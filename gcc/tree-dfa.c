@@ -85,19 +85,38 @@ find_referenced_vars (void)
 {
   basic_block bb;
   block_stmt_iterator si;
+  tree phi;
 
   FOR_EACH_BB (bb)
-    for (si = bsi_start (bb); !bsi_end_p (si); bsi_next (&si))
-      {
-	tree *stmt_p = bsi_stmt_ptr (si);
-	walk_tree (stmt_p, find_vars_r, NULL, NULL);
-      }
+    {
+      for (si = bsi_start (bb); !bsi_end_p (si); bsi_next (&si))
+	{
+	  tree *stmt_p = bsi_stmt_ptr (si);
+	  walk_tree (stmt_p, find_vars_r, NULL, NULL);
+	}
+
+      for (phi = phi_nodes (bb); phi; phi = PHI_CHAIN (phi))
+	{
+	  int len = PHI_NUM_ARGS (phi);
+	  int i;
+
+	  walk_tree (&phi, find_vars_r, NULL, NULL);
+
+	  for (i = 0; i < len; i++)
+	    {
+	      tree arg = PHI_ARG_DEF (phi, i);
+	      walk_tree (&arg, find_vars_r, NULL, NULL);
+	    }
+	}
+    }
 
   return 0;
 }
 
-struct tree_opt_pass pass_referenced_vars =
+struct gimple_opt_pass pass_referenced_vars =
 {
+ {
+  GIMPLE_PASS,
   NULL,					/* name */
   NULL,					/* gate */
   find_referenced_vars,			/* execute */
@@ -108,9 +127,9 @@ struct tree_opt_pass pass_referenced_vars =
   PROP_gimple_leh | PROP_cfg,		/* properties_required */
   PROP_referenced_vars,			/* properties_provided */
   0,					/* properties_destroyed */
-  0,					/* todo_flags_start */
-  0,                                    /* todo_flags_finish */
-  0				        /* letter */
+  TODO_dump_func,			/* todo_flags_start */
+  TODO_dump_func                        /* todo_flags_finish */
+ }
 };
 
 
@@ -192,9 +211,35 @@ create_stmt_ann (tree t)
   /* Since we just created the annotation, mark the statement modified.  */
   ann->modified = true;
 
+  ann->uid = inc_gimple_stmt_max_uid (cfun);
   t->base.ann = (tree_ann_t) ann;
 
   return ann;
+}
+
+/* Renumber all of the gimple stmt uids.  */
+
+void 
+renumber_gimple_stmt_uids (void)
+{
+  basic_block bb;
+
+  set_gimple_stmt_max_uid (cfun, 0);
+  FOR_ALL_BB (bb)
+    {
+      block_stmt_iterator bsi;
+      for (bsi = bsi_start (bb); !bsi_end_p (bsi); bsi_next (&bsi))
+	{
+	  tree stmt = bsi_stmt (bsi);
+	  /* If the stmt has an annotation, then overwrite it, if not,
+	     the process of getting it will set the number
+	     properly.  */
+	  if (has_stmt_ann (stmt))
+	    set_gimple_stmt_uid (stmt, inc_gimple_stmt_max_uid (cfun));
+	  else
+	    get_stmt_ann (stmt);
+	}
+    }
 }
 
 /* Create a new annotation for a tree T.  */
@@ -267,42 +312,6 @@ void
 debug_referenced_vars (void)
 {
   dump_referenced_vars (stderr);
-}
-
-
-/* Dump sub-variables for VAR to FILE.  */
-
-void
-dump_subvars_for (FILE *file, tree var)
-{
-  subvar_t sv = get_subvars_for_var (var);
-  tree subvar;
-  unsigned int i;
-
-  if (!sv)
-    return;
-
-  fprintf (file, "{ ");
-
-  for (i = 0; VEC_iterate (tree, sv, i, subvar); ++i)
-    {
-      print_generic_expr (file, subvar, dump_flags);
-      fprintf (file, "@" HOST_WIDE_INT_PRINT_UNSIGNED, SFT_OFFSET (subvar));
-      if (SFT_BASE_FOR_COMPONENTS_P (subvar))
-        fprintf (file, "[B]");
-      fprintf (file, " ");
-    }
-
-  fprintf (file, "}");
-}
-
-
-/* Dumb sub-variables for VAR to stderr.  */
-
-void
-debug_subvars_for (tree var)
-{
-  dump_subvars_for (stderr, var);
 }
 
 
@@ -401,12 +410,6 @@ dump_variable (FILE *file, tree var)
       dump_may_aliases_for (file, var);
     }
 
-  if (get_subvars_for_var (var))
-    {
-      fprintf (file, ", sub-vars: ");
-      dump_subvars_for (file, var);
-    }
-
   if (!is_gimple_reg (var))
     {
       if (memory_partition (var))
@@ -419,16 +422,6 @@ dump_variable (FILE *file, tree var)
 	{
 	  fprintf (file, ", partition symbols: ");
 	  dump_decl_set (file, MPT_SYMBOLS (var));
-	}
-
-      if (TREE_CODE (var) == STRUCT_FIELD_TAG)
-	{
-	  fprintf (file, ", offset: " HOST_WIDE_INT_PRINT_UNSIGNED,
-		   SFT_OFFSET (var));
-	  fprintf (file, ", base for components: %s",
-		   SFT_BASE_FOR_COMPONENTS_P (var) ? "NO" : "YES");
-	  fprintf (file, ", partitionable: %s",
-		   SFT_UNPARTITIONABLE_P (var) ? "NO" : "YES");
 	}
     }
 
@@ -622,9 +615,14 @@ collect_dfa_stats_r (tree *tp, int *walk_subtrees ATTRIBUTE_UNUSED,
 static tree
 find_vars_r (tree *tp, int *walk_subtrees, void *data ATTRIBUTE_UNUSED)
 {
+  /* If we are reading the lto info back in, we need to rescan the
+     referenced vars.  */
+  if (TREE_CODE (*tp) == SSA_NAME)
+    add_referenced_var (SSA_NAME_VAR (*tp));
+
   /* If T is a regular variable that the optimizers are interested
      in, add it to the list of variables.  */
-  if (SSA_VAR_P (*tp))
+  else if (SSA_VAR_P (*tp))
     add_referenced_var (*tp);
 
   /* Type, _DECL and constant nodes have no interesting children.
@@ -764,18 +762,6 @@ remove_referenced_var (tree var)
   struct tree_decl_minimal in;
   void **loc;
   unsigned int uid = DECL_UID (var);
-  subvar_t sv;
-
-  /* If we remove a var, we should also remove its subvars, as we kill
-     their parent var and its annotation.  */
-  if (var_can_have_subvars (var)
-      && (sv = get_subvars_for_var (var)))
-    {
-      unsigned int i;
-      tree subvar;
-      for (i = 0; VEC_iterate (tree, sv, i, subvar); ++i)
-        remove_referenced_var (subvar);
-    }
 
   clear_call_clobbered (var);
   if ((v_ann = var_ann (var)))
@@ -1028,3 +1014,185 @@ get_ref_base_and_extent (tree exp, HOST_WIDE_INT *poffset,
   return exp;
 }
 
+/* Returns true if STMT references an SSA_NAME that has
+   SSA_NAME_OCCURS_IN_ABNORMAL_PHI set, otherwise false.  */
+
+bool
+stmt_references_abnormal_ssa_name (tree stmt)
+{
+  ssa_op_iter oi;
+  use_operand_p use_p;
+
+  FOR_EACH_SSA_USE_OPERAND (use_p, stmt, oi, SSA_OP_USE)
+    {
+      if (SSA_NAME_OCCURS_IN_ABNORMAL_PHI (USE_FROM_PTR (use_p)))
+	return true;
+    }
+
+  return false;
+}
+
+/* Return true, if the two memory references REF1 and REF2 may alias.  */
+
+bool
+refs_may_alias_p (tree ref1, tree ref2)
+{
+  tree base1, base2;
+  HOST_WIDE_INT offset1 = 0, offset2 = 0;
+  HOST_WIDE_INT size1 = -1, size2 = -1;
+  HOST_WIDE_INT max_size1 = -1, max_size2 = -1;
+
+  gcc_assert ((SSA_VAR_P (ref1)
+	       || handled_component_p (ref1)
+	       || INDIRECT_REF_P (ref1)
+	       || TREE_CODE (ref1) == TARGET_MEM_REF)
+	      && (SSA_VAR_P (ref2)
+		  || handled_component_p (ref2)
+		  || INDIRECT_REF_P (ref2)
+		  || TREE_CODE (ref2) == TARGET_MEM_REF));
+
+  /* Defer to TBAA if possible.  */
+  if (flag_strict_aliasing
+      && !alias_sets_conflict_p (get_alias_set (ref1), get_alias_set (ref2)))
+    return false;
+
+  /* Decompose the references into their base objects and the access.  */
+  base1 = ref1;
+  if (handled_component_p (ref1))
+    base1 = get_ref_base_and_extent (ref1, &offset1, &size1, &max_size1);
+  base2 = ref2;
+  if (handled_component_p (ref2))
+    base2 = get_ref_base_and_extent (ref2, &offset2, &size2, &max_size2);
+
+  /* If both references are based on different variables, they cannot alias.
+     If both references are based on the same variable, they cannot alias if
+     if the accesses do not overlap.  */
+  if (SSA_VAR_P (base1)
+      && SSA_VAR_P (base2)
+      && (!operand_equal_p (base1, base2, 0)
+	  || !ranges_overlap_p (offset1, max_size1, offset2, max_size2)))
+    return false;
+
+  /* If both references are through pointers and both pointers are equal
+     then they do not alias if the accesses do not overlap.  */
+  if (TREE_CODE (base1) == INDIRECT_REF
+      && TREE_CODE (base2) == INDIRECT_REF
+      && operand_equal_p (TREE_OPERAND (base1, 0),
+			  TREE_OPERAND (base2, 0), 0)
+      && !ranges_overlap_p (offset1, max_size1, offset2, max_size2))
+    return false;
+
+  return true;
+}
+
+/* Given a stmt STMT that references memory, return the single stmt
+   that is reached by following the VUSE -> VDEF link.  Returns
+   NULL_TREE, if there is no single stmt that defines all VUSEs of
+   STMT.
+   Note that for a stmt with a single virtual operand this may return
+   a PHI node as well.  Note that if all VUSEs are default definitions
+   this function will return an empty statement.  */
+
+tree
+get_single_def_stmt (tree stmt)
+{
+  tree def_stmt = NULL_TREE;
+  tree use;
+  ssa_op_iter iter;
+
+  FOR_EACH_SSA_TREE_OPERAND (use, stmt, iter, SSA_OP_VIRTUAL_USES)
+    {
+      tree tmp = SSA_NAME_DEF_STMT (use);
+
+      /* ???  This is too simplistic for multiple virtual operands
+	 reaching different PHI nodes of the same basic blocks or for
+	 reaching all default definitions.  */
+      if (def_stmt
+	  && def_stmt != tmp
+	  && !(IS_EMPTY_STMT (def_stmt)
+	       && IS_EMPTY_STMT (tmp)))
+	return NULL_TREE;
+
+      def_stmt = tmp;
+    }
+
+  return def_stmt;
+}
+
+/* Given a PHI node of virtual operands, tries to eliminate cyclic
+   reached definitions if they do not alias REF and returns the
+   defining statement of the single virtual operand that flows in
+   from a non-backedge.  Returns NULL_TREE if such statement within
+   the above conditions cannot be found.  */
+
+tree
+get_single_def_stmt_from_phi (tree ref, tree phi)
+{
+  tree def_arg = NULL_TREE;
+  int i;
+
+  /* Find the single PHI argument that is not flowing in from a
+     back edge and verify that the loop-carried definitions do
+     not alias the reference we look for.  */
+  for (i = 0; i < PHI_NUM_ARGS (phi); ++i)
+    {
+      tree arg = PHI_ARG_DEF (phi, i);
+      tree def_stmt;
+
+      if (!(PHI_ARG_EDGE (phi, i)->flags & EDGE_DFS_BACK))
+	{
+	  /* Multiple non-back edges?  Do not try to handle this.  */
+	  if (def_arg)
+	    return NULL_TREE;
+	  def_arg = arg;
+	  continue;
+	}
+
+      /* Follow the definitions back to the original PHI node.  Bail
+	 out once a definition is found that may alias REF.  */
+      def_stmt = SSA_NAME_DEF_STMT (arg);
+      do
+	{
+	  if (TREE_CODE (def_stmt) != GIMPLE_MODIFY_STMT
+	      || refs_may_alias_p (ref, GIMPLE_STMT_OPERAND (def_stmt, 0)))
+	    return NULL_TREE;
+	  /* ???  This will only work, reaching the PHI node again if
+	     there is a single virtual operand on def_stmt.  */
+	  def_stmt = get_single_def_stmt (def_stmt);
+	  if (!def_stmt)
+	    return NULL_TREE;
+	}
+      while (def_stmt != phi);
+    }
+
+  return SSA_NAME_DEF_STMT (def_arg);
+}
+
+/* Return the single reference statement defining all virtual uses
+   on STMT or NULL_TREE, if there are multiple defining statements.
+   Take into account only definitions that alias REF if following
+   back-edges when looking through a loop PHI node.  */
+
+tree
+get_single_def_stmt_with_phi (tree ref, tree stmt)
+{
+  switch (NUM_SSA_OPERANDS (stmt, SSA_OP_VIRTUAL_USES))
+    {
+    case 0:
+      gcc_unreachable ();
+
+    case 1:
+      {
+	tree def_stmt = SSA_NAME_DEF_STMT (SINGLE_SSA_TREE_OPERAND
+					     (stmt, SSA_OP_VIRTUAL_USES));
+	/* We can handle lookups over PHI nodes only for a single
+	   virtual operand.  */
+	if (TREE_CODE (def_stmt) == PHI_NODE)
+	  return get_single_def_stmt_from_phi (ref, def_stmt);
+	return def_stmt;
+      }
+
+    default:
+      return get_single_def_stmt (stmt);
+    }
+}

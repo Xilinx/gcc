@@ -6,7 +6,7 @@
 --                                                                          --
 --                                   S p e c                                --
 --                                                                          --
---                     Copyright (C) 1999-2006, AdaCore                     --
+--                     Copyright (C) 1999-2008, AdaCore                     --
 --                                                                          --
 -- GNARL is free software; you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -47,6 +47,9 @@
 --  For complete documentation of the operations in this package, please
 --  consult the VxWorks Programmer's Manual and VxWorks Reference Manual.
 
+pragma Warnings (Off, "*foreign convention*");
+pragma Warnings (Off, "*add Convention pragma*");
+
 with System.VxWorks;
 
 package Interfaces.VxWorks is
@@ -73,7 +76,7 @@ package Interfaces.VxWorks is
    --     procedure Handler (Parameter : System.Address) is
    --     begin
    --        Count := Count + 1;
-   --        logMsg ("received an interrupt" & ASCII.LF & ASCII.Nul);
+   --        logMsg ("received an interrupt" & ASCII.LF & ASCII.NUL);
    --     end Handler;
    --  end P;
    --

@@ -534,7 +534,7 @@ enum reg_class
    register.  See `FIXED_REGISTERS' for more information.  */
 /* #define FRAME_POINTER_REQUIRED 0 */
 #define FRAME_POINTER_REQUIRED \
-     (flag_omit_frame_pointer == 0 || current_function_pretend_args_size > 0)
+     (flag_omit_frame_pointer == 0 || crtl->args.pretend_args_size > 0)
 
 /* If defined, this macro specifies a table of register pairs used to eliminate
    unneeded registers that point into the stack frame.  If it is not defined,
@@ -586,7 +586,7 @@ enum reg_class
 
 /* If defined, the maximum amount of space required for outgoing arguments will
    be computed and placed into the variable
-   `current_function_outgoing_args_size'.  No space will be pushed onto the
+   `crtl->outgoing_args_size'.  No space will be pushed onto the
    stack for each call; instead, the function prologue should increase the
    stack frame size by this amount.
 
@@ -726,7 +726,7 @@ enum reg_class
    in memory.  Since this results in slower code, this should be defined only
    if needed for compatibility with other compilers or with an ABI.  If you
    define this macro to be 0, then the conventions used for structure and union
-   return values are decided by the `RETURN_IN_MEMORY' macro.
+   return values are decided by the `TARGET_RETURN_IN_MEMORY' macro.
 
    If not defined, this defaults to the value 1.  */
 #define DEFAULT_PCC_STRUCT_RETURN 1

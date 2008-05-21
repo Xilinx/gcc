@@ -1,6 +1,7 @@
 ;;- Machine description for ARM for GNU compiler
 ;;  Copyright 1991, 1993, 1994, 1995, 1996, 1996, 1997, 1998, 1999, 2000,
-;;  2001, 2002, 2003, 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
+;;  2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
+;;  Free Software Foundation, Inc.
 ;;  Contributed by Pieter `Tiggr' Schoenmakers (rcpieter@win.tue.nl)
 ;;  and Martin Simmons (@harleqn.co.uk).
 ;;  More major hacks by Richard Earnshaw (rearnsha@arm.com).
@@ -93,9 +94,9 @@
    (UNSPEC_TLS      20) ; A symbol that has been treated properly for TLS usage.
    (UNSPEC_PIC_LABEL 21) ; A label used for PIC access that does not appear in the
                          ; instruction stream.
-   (UNSPEC_STACK_ALIGN 20) ; Doubleword aligned stack pointer.  Used to
+   (UNSPEC_STACK_ALIGN 22) ; Doubleword aligned stack pointer.  Used to
 			   ; generate correct unwind information.
-   (UNSPEC_PIC_OFFSET 22) ; A symbolic 12-bit OFFSET that has been treated
+   (UNSPEC_PIC_OFFSET 23) ; A symbolic 12-bit OFFSET that has been treated
 			  ; correctly for PIC usage.
   ]
 )
@@ -183,7 +184,7 @@
 ;; scheduling information.
 
 (define_attr "insn"
-        "mov,mvn,smulxy,smlaxy,smlalxy,smulwy,smlawx,mul,muls,mla,mlas,umull,umulls,umlal,umlals,smull,smulls,smlal,smlals,smlawy,smuad,smuadx,smlad,smladx,smusd,smusdx,smlsd,smlsdx,smmul,smmulr,smmla,umaal,smlald,smlsld,clz,mrs,msr,xtab,other"
+        "mov,mvn,smulxy,smlaxy,smlalxy,smulwy,smlawx,mul,muls,mla,mlas,umull,umulls,umlal,umlals,smull,smulls,smlal,smlals,smlawy,smuad,smuadx,smlad,smladx,smusd,smusdx,smlsd,smlsdx,smmul,smmulr,smmla,umaal,smlald,smlsld,clz,mrs,msr,xtab,sdiv,udiv,other"
         (const_string "other"))
 
 ; TYPE attribute is used to detect floating point instructions which, if
@@ -332,7 +333,7 @@
 
 (define_attr "generic_sched" "yes,no"
   (const (if_then_else 
-          (eq_attr "tune" "arm926ejs,arm1020e,arm1026ejs,arm1136js,arm1136jfs,cortexa8")
+          (eq_attr "tune" "arm926ejs,arm1020e,arm1026ejs,arm1136js,arm1136jfs,cortexa8,cortexr4")
           (const_string "no")
           (const_string "yes"))))
 
@@ -349,6 +350,7 @@
 (include "arm1026ejs.md")
 (include "arm1136jfs.md")
 (include "cortex-a8.md")
+(include "cortex-r4.md")
 
 
 ;;---------------------------------------------------------------------------
@@ -517,12 +519,14 @@
 )
 
 (define_insn_and_split "*arm_addsi3"
-  [(set (match_operand:SI          0 "s_register_operand" "=r,r,r")
-	(plus:SI (match_operand:SI 1 "s_register_operand" "%r,r,r")
-		 (match_operand:SI 2 "reg_or_int_operand" "rI,L,?n")))]
+  [(set (match_operand:SI          0 "s_register_operand" "=r, !k,r, !k,r")
+	(plus:SI (match_operand:SI 1 "s_register_operand" "%rk,!k,rk,!k,rk")
+		 (match_operand:SI 2 "reg_or_int_operand" "rI, rI,L, L,?n")))]
   "TARGET_32BIT"
   "@
    add%?\\t%0, %1, %2
+   add%?\\t%0, %1, %2
+   sub%?\\t%0, %1, #%n2
    sub%?\\t%0, %1, #%n2
    #"
   "TARGET_32BIT &&
@@ -536,7 +540,7 @@
 		      operands[1], 0);
   DONE;
   "
-  [(set_attr "length" "4,4,16")
+  [(set_attr "length" "4,4,4,4,16")
    (set_attr "predicable" "yes")]
 )
 
@@ -545,9 +549,9 @@
 ;; so never allow those alternatives to match if reloading is needed.
 
 (define_insn "*thumb1_addsi3"
-  [(set (match_operand:SI          0 "register_operand" "=l,l,l,*r,*h,l,!k")
+  [(set (match_operand:SI          0 "register_operand" "=l,l,l,*rk,*hk,l,!k")
 	(plus:SI (match_operand:SI 1 "register_operand" "%0,0,l,*0,*0,!k,!k")
-		 (match_operand:SI 2 "nonmemory_operand" "I,J,lL,*h,*r,!M,!O")))]
+		 (match_operand:SI 2 "nonmemory_operand" "I,J,lL,*hk,*rk,!M,!O")))]
   "TARGET_THUMB1"
   "*
    static const char * const asms[] = 
@@ -991,12 +995,13 @@
 
 ; ??? Check Thumb-2 split length
 (define_insn_and_split "*arm_subsi3_insn"
-  [(set (match_operand:SI           0 "s_register_operand" "=r,r")
-	(minus:SI (match_operand:SI 1 "reg_or_int_operand" "rI,?n")
-		  (match_operand:SI 2 "s_register_operand" "r,r")))]
+  [(set (match_operand:SI           0 "s_register_operand" "=r,rk,r")
+	(minus:SI (match_operand:SI 1 "reg_or_int_operand" "rI,!k,?n")
+		  (match_operand:SI 2 "s_register_operand" "r, r, r")))]
   "TARGET_32BIT"
   "@
    rsb%?\\t%0, %2, %1
+   sub%?\\t%0, %1, %2
    #"
   "TARGET_32BIT
    && GET_CODE (operands[1]) == CONST_INT
@@ -1007,7 +1012,7 @@
                       INTVAL (operands[1]), operands[0], operands[2], 0);
   DONE;
   "
-  [(set_attr "length" "4,16")
+  [(set_attr "length" "4,4,16")
    (set_attr "predicable" "yes")]
 )
 
@@ -2140,19 +2145,49 @@
 ;;; the value before we insert.  This loses some of the advantage of having
 ;;; this insv pattern, so this pattern needs to be reevalutated.
 
-; ??? Use Thumb-2 bitfield insert/extract instructions
 (define_expand "insv"
   [(set (zero_extract:SI (match_operand:SI 0 "s_register_operand" "")
                          (match_operand:SI 1 "general_operand" "")
                          (match_operand:SI 2 "general_operand" ""))
         (match_operand:SI 3 "reg_or_int_operand" ""))]
-  "TARGET_ARM"
+  "TARGET_ARM || arm_arch_thumb2"
   "
   {
     int start_bit = INTVAL (operands[2]);
     int width = INTVAL (operands[1]);
     HOST_WIDE_INT mask = (((HOST_WIDE_INT)1) << width) - 1;
     rtx target, subtarget;
+
+    if (arm_arch_thumb2)
+      {
+	bool use_bfi = TRUE;
+
+	if (GET_CODE (operands[3]) == CONST_INT)
+	  {
+	    HOST_WIDE_INT val = INTVAL (operands[3]) & mask;
+
+	    if (val == 0)
+	      {
+		emit_insn (gen_insv_zero (operands[0], operands[1],
+					  operands[2]));
+		DONE;
+	      }
+
+	    /* See if the set can be done with a single orr instruction.  */
+	    if (val == mask && const_ok_for_arm (val << start_bit))
+	      use_bfi = FALSE;
+	  }
+	  
+	if (use_bfi)
+	  {
+	    if (GET_CODE (operands[3]) != REG)
+	      operands[3] = force_reg (SImode, operands[3]);
+
+	    emit_insn (gen_insv_t2 (operands[0], operands[1], operands[2],
+				    operands[3]));
+	    DONE;
+	  }
+      }
 
     target = operands[0];
     /* Avoid using a subreg as a subtarget, and avoid writing a paradoxical 
@@ -2275,6 +2310,28 @@
 
     DONE;
   }"
+)
+
+(define_insn "insv_zero"
+  [(set (zero_extract:SI (match_operand:SI 0 "s_register_operand" "+r")
+                         (match_operand:SI 1 "const_int_operand" "M")
+                         (match_operand:SI 2 "const_int_operand" "M"))
+        (const_int 0))]
+  "arm_arch_thumb2"
+  "bfc%?\t%0, %2, %1"
+  [(set_attr "length" "4")
+   (set_attr "predicable" "yes")]
+)
+
+(define_insn "insv_t2"
+  [(set (zero_extract:SI (match_operand:SI 0 "s_register_operand" "+r")
+                         (match_operand:SI 1 "const_int_operand" "M")
+                         (match_operand:SI 2 "const_int_operand" "M"))
+        (match_operand:SI 3 "s_register_operand" "r"))]
+  "arm_arch_thumb2"
+  "bfi%?\t%0, %3, %2, %1"
+  [(set_attr "length" "4")
+   (set_attr "predicable" "yes")]
 )
 
 ; constants for op 2 will never be given to these patterns.
@@ -3282,12 +3339,19 @@
    (set (match_operand:SI              0 "register_operand" "")
 	(lshiftrt:SI (match_dup 4)
 		     (match_operand:SI 3 "const_int_operand" "")))]
-  "TARGET_THUMB1"
+  "TARGET_THUMB1 || arm_arch_thumb2"
   "
   {
     HOST_WIDE_INT lshift = 32 - INTVAL (operands[2]) - INTVAL (operands[3]);
     HOST_WIDE_INT rshift = 32 - INTVAL (operands[2]);
     
+    if (arm_arch_thumb2)
+      {
+	emit_insn (gen_extzv_t2 (operands[0], operands[1], operands[2],
+				 operands[3]));
+	DONE;
+      }
+
     operands[3] = GEN_INT (rshift);
     
     if (lshift == 0)
@@ -3299,6 +3363,28 @@
     operands[2] = GEN_INT (lshift);
     operands[4] = gen_reg_rtx (SImode);
   }"
+)
+
+(define_insn "extv"
+  [(set (match_operand:SI 0 "s_register_operand" "=r")
+	(sign_extract:SI (match_operand:SI 1 "s_register_operand" "r")
+                         (match_operand:SI 2 "const_int_operand" "M")
+                         (match_operand:SI 3 "const_int_operand" "M")))]
+  "arm_arch_thumb2"
+  "sbfx%?\t%0, %1, %3, %2"
+  [(set_attr "length" "4")
+   (set_attr "predicable" "yes")]
+)
+
+(define_insn "extzv_t2"
+  [(set (match_operand:SI 0 "s_register_operand" "=r")
+	(zero_extract:SI (match_operand:SI 1 "s_register_operand" "r")
+                         (match_operand:SI 2 "const_int_operand" "M")
+                         (match_operand:SI 3 "const_int_operand" "M")))]
+  "arm_arch_thumb2"
+  "ubfx%?\t%0, %1, %3, %2"
+  [(set_attr "length" "4")
+   (set_attr "predicable" "yes")]
 )
 
 
@@ -4786,22 +4872,23 @@
 )
 
 (define_insn "*arm_movsi_insn"
-  [(set (match_operand:SI 0 "nonimmediate_operand" "=r,r,r,r, m")
-	(match_operand:SI 1 "general_operand"      "rI,K,N,mi,r"))]
+  [(set (match_operand:SI 0 "nonimmediate_operand" "=rk,r,r,r,rk,m")
+	(match_operand:SI 1 "general_operand"      "rk, I,K,N,mi,rk"))]
   "TARGET_ARM && ! TARGET_IWMMXT
    && !(TARGET_HARD_FLOAT && TARGET_VFP)
    && (   register_operand (operands[0], SImode)
        || register_operand (operands[1], SImode))"
   "@
    mov%?\\t%0, %1
+   mov%?\\t%0, %1
    mvn%?\\t%0, #%B1
    movw%?\\t%0, %1
    ldr%?\\t%0, %1
    str%?\\t%1, %0"
-  [(set_attr "type" "*,*,*,load1,store1")
+  [(set_attr "type" "*,*,*,*,load1,store1")
    (set_attr "predicable" "yes")
-   (set_attr "pool_range" "*,*,*,4096,*")
-   (set_attr "neg_pool_range" "*,*,*,4084,*")]
+   (set_attr "pool_range" "*,*,*,*,4096,*")
+   (set_attr "neg_pool_range" "*,*,*,*,4084,*")]
 )
 
 (define_split
@@ -4819,8 +4906,8 @@
 )
 
 (define_insn "*thumb1_movsi_insn"
-  [(set (match_operand:SI 0 "nonimmediate_operand" "=l,l,l,l,l,>,l, m,*lh")
-	(match_operand:SI 1 "general_operand"      "l, I,J,K,>,l,mi,l,*lh"))]
+  [(set (match_operand:SI 0 "nonimmediate_operand" "=l,l,l,l,l,>,l, m,*lhk")
+	(match_operand:SI 1 "general_operand"      "l, I,J,K,>,l,mi,l,*lhk"))]
   "TARGET_THUMB1
    && (   register_operand (operands[0], SImode) 
        || register_operand (operands[1], SImode))"
@@ -10181,13 +10268,13 @@
 ; reversed, check that the memory references aren't volatile.
 
 (define_peephole
-  [(set (match_operand:SI 0 "s_register_operand" "=r")
+  [(set (match_operand:SI 0 "s_register_operand" "=rk")
         (match_operand:SI 4 "memory_operand" "m"))
-   (set (match_operand:SI 1 "s_register_operand" "=r")
+   (set (match_operand:SI 1 "s_register_operand" "=rk")
         (match_operand:SI 5 "memory_operand" "m"))
-   (set (match_operand:SI 2 "s_register_operand" "=r")
+   (set (match_operand:SI 2 "s_register_operand" "=rk")
         (match_operand:SI 6 "memory_operand" "m"))
-   (set (match_operand:SI 3 "s_register_operand" "=r")
+   (set (match_operand:SI 3 "s_register_operand" "=rk")
         (match_operand:SI 7 "memory_operand" "m"))]
   "TARGET_ARM && load_multiple_sequence (operands, 4, NULL, NULL, NULL)"
   "*
@@ -10196,11 +10283,11 @@
 )
 
 (define_peephole
-  [(set (match_operand:SI 0 "s_register_operand" "=r")
+  [(set (match_operand:SI 0 "s_register_operand" "=rk")
         (match_operand:SI 3 "memory_operand" "m"))
-   (set (match_operand:SI 1 "s_register_operand" "=r")
+   (set (match_operand:SI 1 "s_register_operand" "=rk")
         (match_operand:SI 4 "memory_operand" "m"))
-   (set (match_operand:SI 2 "s_register_operand" "=r")
+   (set (match_operand:SI 2 "s_register_operand" "=rk")
         (match_operand:SI 5 "memory_operand" "m"))]
   "TARGET_ARM && load_multiple_sequence (operands, 3, NULL, NULL, NULL)"
   "*
@@ -10209,9 +10296,9 @@
 )
 
 (define_peephole
-  [(set (match_operand:SI 0 "s_register_operand" "=r")
+  [(set (match_operand:SI 0 "s_register_operand" "=rk")
         (match_operand:SI 2 "memory_operand" "m"))
-   (set (match_operand:SI 1 "s_register_operand" "=r")
+   (set (match_operand:SI 1 "s_register_operand" "=rk")
         (match_operand:SI 3 "memory_operand" "m"))]
   "TARGET_ARM && load_multiple_sequence (operands, 2, NULL, NULL, NULL)"
   "*
@@ -10221,13 +10308,13 @@
 
 (define_peephole
   [(set (match_operand:SI 4 "memory_operand" "=m")
-        (match_operand:SI 0 "s_register_operand" "r"))
+        (match_operand:SI 0 "s_register_operand" "rk"))
    (set (match_operand:SI 5 "memory_operand" "=m")
-        (match_operand:SI 1 "s_register_operand" "r"))
+        (match_operand:SI 1 "s_register_operand" "rk"))
    (set (match_operand:SI 6 "memory_operand" "=m")
-        (match_operand:SI 2 "s_register_operand" "r"))
+        (match_operand:SI 2 "s_register_operand" "rk"))
    (set (match_operand:SI 7 "memory_operand" "=m")
-        (match_operand:SI 3 "s_register_operand" "r"))]
+        (match_operand:SI 3 "s_register_operand" "rk"))]
   "TARGET_ARM && store_multiple_sequence (operands, 4, NULL, NULL, NULL)"
   "*
   return emit_stm_seq (operands, 4);
@@ -10236,11 +10323,11 @@
 
 (define_peephole
   [(set (match_operand:SI 3 "memory_operand" "=m")
-        (match_operand:SI 0 "s_register_operand" "r"))
+        (match_operand:SI 0 "s_register_operand" "rk"))
    (set (match_operand:SI 4 "memory_operand" "=m")
-        (match_operand:SI 1 "s_register_operand" "r"))
+        (match_operand:SI 1 "s_register_operand" "rk"))
    (set (match_operand:SI 5 "memory_operand" "=m")
-        (match_operand:SI 2 "s_register_operand" "r"))]
+        (match_operand:SI 2 "s_register_operand" "rk"))]
   "TARGET_ARM && store_multiple_sequence (operands, 3, NULL, NULL, NULL)"
   "*
   return emit_stm_seq (operands, 3);
@@ -10249,9 +10336,9 @@
 
 (define_peephole
   [(set (match_operand:SI 2 "memory_operand" "=m")
-        (match_operand:SI 0 "s_register_operand" "r"))
+        (match_operand:SI 0 "s_register_operand" "rk"))
    (set (match_operand:SI 3 "memory_operand" "=m")
-        (match_operand:SI 1 "s_register_operand" "r"))]
+        (match_operand:SI 1 "s_register_operand" "rk"))]
   "TARGET_ARM && store_multiple_sequence (operands, 2, NULL, NULL, NULL)"
   "*
   return emit_stm_seq (operands, 2);
@@ -10310,7 +10397,7 @@
   [(clobber (const_int 0))]
   "TARGET_EITHER"
   "
-  if (current_function_calls_eh_return)
+  if (crtl->calls_eh_return)
     emit_insn (gen_prologue_use (gen_rtx_REG (Pmode, 2)));
   if (TARGET_THUMB1)
     thumb1_expand_epilogue ();
@@ -10610,8 +10697,8 @@
 
 (define_insn "stack_tie"
   [(set (mem:BLK (scratch))
-	(unspec:BLK [(match_operand:SI 0 "s_register_operand" "r")
-		     (match_operand:SI 1 "s_register_operand" "r")]
+	(unspec:BLK [(match_operand:SI 0 "s_register_operand" "rk")
+		     (match_operand:SI 1 "s_register_operand" "rk")]
 		    UNSPEC_PRLG_STK))]
   ""
   ""

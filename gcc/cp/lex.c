@@ -1,6 +1,6 @@
 /* Separate lexical analyzer for GNU C++.
    Copyright (C) 1987, 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008
    Free Software Foundation, Inc.
    Hacked by Michael Tiemann (tiemann@cygnus.com)
 
@@ -241,6 +241,8 @@ static const struct resword reswords[] =
   { "case",		RID_CASE,	0 },
   { "catch",		RID_CATCH,	0 },
   { "char",		RID_CHAR,	0 },
+  { "char16_t",		RID_CHAR16,	D_CXX0X },
+  { "char32_t",		RID_CHAR32,	D_CXX0X },
   { "class",		RID_CLASS,	0 },
   { "const",		RID_CONST,	0 },
   { "const_cast",	RID_CONSTCAST,	0 },
@@ -372,6 +374,7 @@ bool statement_code_p[MAX_TREE_CODES];
 bool
 cxx_init (void)
 {
+  location_t saved_loc;
   unsigned int i;
   static const enum tree_code stmt_codes[] = {
    CTOR_INITIALIZER,	TRY_BLOCK,	HANDLER,
@@ -385,14 +388,8 @@ cxx_init (void)
   for (i = 0; i < ARRAY_SIZE (stmt_codes); i++)
     statement_code_p[stmt_codes[i]] = true;
 
-  /* We cannot just assign to input_filename because it has already
-     been initialized and will be used later as an N_BINCL for stabs+
-     debugging.  */
-#ifdef USE_MAPPED_LOCATION
-  push_srcloc (BUILTINS_LOCATION);
-#else
-  push_srcloc ("<built-in>", 0);
-#endif
+  saved_loc = input_location;
+  input_location = BUILTINS_LOCATION;
 
   init_reswords ();
   init_tree ();
@@ -420,7 +417,7 @@ cxx_init (void)
 
   if (c_common_init () == false)
     {
-      pop_srcloc();
+      input_location = saved_loc;
       return false;
     }
 
@@ -428,7 +425,7 @@ cxx_init (void)
 
   init_repo ();
 
-  pop_srcloc();
+  input_location = saved_loc;
   return true;
 }
 
@@ -523,7 +520,7 @@ handle_pragma_interface (cpp_reader* dfile ATTRIBUTE_UNUSED )
   else if (fname == 0)
     filename = lbasename (input_filename);
   else
-    filename = ggc_strdup (TREE_STRING_POINTER (fname));
+    filename = TREE_STRING_POINTER (fname);
 
   finfo = get_fileinfo (input_filename);
 
@@ -571,18 +568,10 @@ handle_pragma_implementation (cpp_reader* dfile ATTRIBUTE_UNUSED )
     }
   else
     {
-      filename = ggc_strdup (TREE_STRING_POINTER (fname));
-#ifdef USE_MAPPED_LOCATION
-      /* We currently cannot give this diagnostic, as we reach this point
-	 only after cpplib has scanned the entire translation unit, so
-	 cpp_included always returns true.  A plausible fix is to compare
-	 the current source-location cookie with the first source-location
-	 cookie (if any) of the filename, but this requires completing the
-	 --enable-mapped-location project first.  See PR 17577.  */
+      filename = TREE_STRING_POINTER (fname);
       if (cpp_included_before (parse_in, filename, input_location))
 	warning (0, "#pragma implementation for %qs appears after "
 		 "file is included", filename);
-#endif
     }
 
   for (; ifiles; ifiles = ifiles->next)
@@ -593,7 +582,7 @@ handle_pragma_implementation (cpp_reader* dfile ATTRIBUTE_UNUSED )
   if (ifiles == 0)
     {
       ifiles = XNEW (struct impl_files);
-      ifiles->filename = filename;
+      ifiles->filename = xstrdup (filename);
       ifiles->next = impl_file_chain;
       impl_file_chain = ifiles;
     }
@@ -660,16 +649,16 @@ unqualified_fn_lookup_error (tree name)
 	 Note that we have the exact wording of the following message in
 	 the manual (trouble.texi, node "Name lookup"), so they need to
 	 be kept in synch.  */
-      pedwarn ("there are no arguments to %qD that depend on a template "
-	       "parameter, so a declaration of %qD must be available",
-	       name, name);
+      permerror ("there are no arguments to %qD that depend on a template "
+		 "parameter, so a declaration of %qD must be available",
+		 name, name);
 
       if (!flag_permissive)
 	{
 	  static bool hint;
 	  if (!hint)
 	    {
-	      error ("(if you use %<-fpermissive%>, G++ will accept your "
+	      inform ("(if you use %<-fpermissive%>, G++ will accept your "
 		     "code, but allowing the use of an undeclared name is "
 		     "deprecated)");
 	      hint = true;
@@ -814,7 +803,7 @@ cxx_make_type (enum tree_code code)
   tree t = make_node (code);
 
   /* Create lang_type structure.  */
-  if (IS_AGGR_TYPE_CODE (code)
+  if (RECORD_OR_UNION_CODE_P (code)
       || code == BOUND_TEMPLATE_TEMPLATE_PARM)
     {
       struct lang_type *pi = GGC_CNEW (struct lang_type);
@@ -829,7 +818,7 @@ cxx_make_type (enum tree_code code)
     }
 
   /* Set up some flags that give proper default behavior.  */
-  if (IS_AGGR_TYPE_CODE (code))
+  if (RECORD_OR_UNION_CODE_P (code))
     {
       struct c_fileinfo *finfo = get_fileinfo (input_filename);
       SET_CLASSTYPE_INTERFACE_UNKNOWN_X (t, finfo->interface_unknown);
@@ -840,13 +829,10 @@ cxx_make_type (enum tree_code code)
 }
 
 tree
-make_aggr_type (enum tree_code code)
+make_class_type (enum tree_code code)
 {
   tree t = cxx_make_type (code);
-
-  if (IS_AGGR_TYPE_CODE (code))
-    SET_IS_AGGR_TYPE (t, 1);
-
+  SET_CLASS_TYPE_P (t, 1);
   return t;
 }
 

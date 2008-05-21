@@ -1,6 +1,6 @@
 // -*- C++ -*-
 
-// Copyright (C) 2007 Free Software Foundation, Inc.
+// Copyright (C) 2007, 2008 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the terms
@@ -124,7 +124,7 @@ template<typename RandomNumberGenerator>
 /** @brief Random shuffle code executed by each thread.
   *  @param pus Array of thread-local data records. */
 template<typename RandomAccessIterator, typename RandomNumberGenerator>
-  inline void 
+  void 
   parallel_random_shuffle_drs_pu(DRSSorterPU<RandomAccessIterator,
                                  RandomNumberGenerator>* pus)
   {
@@ -213,8 +213,8 @@ template<typename RandomAccessIterator, typename RandomNumberGenerator>
         thread_index_t target_p = bin_proc[target_bin];
 
         // Last column [d->num_threads] stays unchanged.
-        new(&(temporaries[target_p][dist[target_bin + 1]++])) value_type(
-              *(source + i + start));
+        ::new(&(temporaries[target_p][dist[target_bin + 1]++]))
+	    value_type(*(source + i + start));
       }
 
     delete[] oracles;
@@ -237,7 +237,7 @@ template<typename RandomAccessIterator, typename RandomNumberGenerator>
             ((b == d->bins_begin) ? 0 : sd->dist[b][d->num_threads]));
       }
 
-    delete[] sd->temporaries[iam];
+    ::operator delete(sd->temporaries[iam]);
   }
 
 /** @brief Round up to the next greater power of 2.
@@ -260,19 +260,21 @@ template<typename T>
   *  @param rng Random number generator to use.
   */
 template<typename RandomAccessIterator, typename RandomNumberGenerator>
-  inline void
-  parallel_random_shuffle_drs(
-      RandomAccessIterator begin,
-      RandomAccessIterator end,
-      typename std::iterator_traits<RandomAccessIterator>::difference_type n,
-      thread_index_t num_threads,
-      RandomNumberGenerator& rng)
+  void
+  parallel_random_shuffle_drs(RandomAccessIterator begin,
+			      RandomAccessIterator end,
+			      typename std::iterator_traits
+			      <RandomAccessIterator>::difference_type n,
+			      thread_index_t num_threads,
+			      RandomNumberGenerator& rng)
   {
     typedef std::iterator_traits<RandomAccessIterator> traits_type;
     typedef typename traits_type::value_type value_type;
     typedef typename traits_type::difference_type difference_type;
 
     _GLIBCXX_CALL(n)
+
+    const _Settings& __s = _Settings::get();
 
     if (num_threads > n)
       num_threads = static_cast<thread_index_t>(n);
@@ -284,7 +286,7 @@ template<typename RandomAccessIterator, typename RandomNumberGenerator>
 
     // Must fit into L1.
     num_bins_cache = std::max<difference_type>(
-        1, n / (Settings::L1_cache_size_lb / sizeof(value_type)));
+        1, n / (__s.L1_cache_size_lb / sizeof(value_type)));
     num_bins_cache = round_up_to_pow2(num_bins_cache);
 
     // No more buckets than TLB entries, power of 2
@@ -293,7 +295,7 @@ template<typename RandomAccessIterator, typename RandomNumberGenerator>
 
 #if _GLIBCXX_RANDOM_SHUFFLE_CONSIDER_TLB
     // 2 TLB entries needed per bin.
-    num_bins = std::min<difference_type>(Settings::TLB_size / 2, num_bins);
+    num_bins = std::min<difference_type>(__s.TLB_size / 2, num_bins);
 #endif
     num_bins = round_up_to_pow2(num_bins);
 
@@ -303,7 +305,7 @@ template<typename RandomAccessIterator, typename RandomNumberGenerator>
         // Now try the L2 cache
         // Must fit into L2
         num_bins_cache = static_cast<bin_index>(std::max<difference_type>(
-            1, n / (Settings::L2_cache_size / sizeof(value_type))));
+            1, n / (__s.L2_cache_size / sizeof(value_type))));
         num_bins_cache = round_up_to_pow2(num_bins_cache);
 
         // No more buckets than TLB entries, power of 2.
@@ -313,7 +315,7 @@ template<typename RandomAccessIterator, typename RandomNumberGenerator>
 #if _GLIBCXX_RANDOM_SHUFFLE_CONSIDER_TLB
         // 2 TLB entries needed per bin.
         num_bins = std::min(
-            static_cast<difference_type>(Settings::TLB_size / 2), num_bins);
+            static_cast<difference_type>(__s.TLB_size / 2), num_bins);
 #endif
           num_bins = round_up_to_pow2(num_bins);
 #if _GLIBCXX_RANDOM_SHUFFLE_CONSIDER_L1
@@ -393,7 +395,7 @@ template<typename RandomAccessIterator, typename RandomNumberGenerator>
  *  @param rng Random number generator to use.
  */
 template<typename RandomAccessIterator, typename RandomNumberGenerator>
-  inline void
+  void
   sequential_random_shuffle(RandomAccessIterator begin, 
                             RandomAccessIterator end,
                             RandomNumberGenerator& rng)
@@ -403,6 +405,7 @@ template<typename RandomAccessIterator, typename RandomNumberGenerator>
     typedef typename traits_type::difference_type difference_type;
 
     difference_type n = end - begin;
+    const _Settings& __s = _Settings::get();
 
     bin_index num_bins, num_bins_cache;
 
@@ -410,7 +413,7 @@ template<typename RandomAccessIterator, typename RandomNumberGenerator>
     // Try the L1 cache first, must fit into L1.
     num_bins_cache =
         std::max<difference_type>
-            (1, n / (Settings::L1_cache_size_lb / sizeof(value_type)));
+            (1, n / (__s.L1_cache_size_lb / sizeof(value_type)));
     num_bins_cache = round_up_to_pow2(num_bins_cache);
 
     // No more buckets than TLB entries, power of 2
@@ -418,7 +421,7 @@ template<typename RandomAccessIterator, typename RandomNumberGenerator>
     num_bins = std::min(n, (difference_type)num_bins_cache);
 #if _GLIBCXX_RANDOM_SHUFFLE_CONSIDER_TLB
     // 2 TLB entries needed per bin
-    num_bins = std::min((difference_type)Settings::TLB_size / 2, num_bins);
+    num_bins = std::min((difference_type)__s.TLB_size / 2, num_bins);
 #endif
     num_bins = round_up_to_pow2(num_bins);
 
@@ -428,7 +431,7 @@ template<typename RandomAccessIterator, typename RandomNumberGenerator>
         // Now try the L2 cache, must fit into L2.
         num_bins_cache =
             static_cast<bin_index>(std::max<difference_type>(
-                1, n / (Settings::L2_cache_size / sizeof(value_type))));
+                1, n / (__s.L2_cache_size / sizeof(value_type))));
         num_bins_cache = round_up_to_pow2(num_bins_cache);
 
         // No more buckets than TLB entries, power of 2
@@ -439,7 +442,7 @@ template<typename RandomAccessIterator, typename RandomNumberGenerator>
 #if _GLIBCXX_RANDOM_SHUFFLE_CONSIDER_TLB
         // 2 TLB entries needed per bin
         num_bins =
-            std::min<difference_type>(Settings::TLB_size / 2, num_bins);
+            std::min<difference_type>(__s.TLB_size / 2, num_bins);
 #endif
         num_bins = round_up_to_pow2(num_bins);
 #if _GLIBCXX_RANDOM_SHUFFLE_CONSIDER_L1
@@ -478,7 +481,7 @@ template<typename RandomAccessIterator, typename RandomNumberGenerator>
 
         // Distribute according to oracles.
         for (difference_type i = 0; i < n; ++i)
-          new(&(target[(dist0[oracles[i]])++])) value_type(*(begin + i));
+          ::new(&(target[(dist0[oracles[i]])++])) value_type(*(begin + i));
 
         for (int b = 0; b < num_bins; ++b)
           {
@@ -490,7 +493,7 @@ template<typename RandomAccessIterator, typename RandomNumberGenerator>
         delete[] dist0;
         delete[] dist1;
         delete[] oracles;
-        delete[] target;
+        ::operator delete(target);
       }
     else
       __gnu_sequential::random_shuffle(begin, end, rng);

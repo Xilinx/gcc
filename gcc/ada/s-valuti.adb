@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2006, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -72,7 +72,6 @@ package body System.Val_Util is
             S (J) := To_Upper (S (J));
          end loop;
       end if;
-
    end Normalize_String;
 
    -------------------
@@ -156,7 +155,6 @@ package body System.Val_Util is
 
       Ptr.all := P;
       return X;
-
    end Scan_Exponent;
 
    --------------------
@@ -296,8 +294,8 @@ package body System.Val_Util is
       P := P + 1;
 
       --  If underscore is at the end of string, then this is an error and
-      --  we raise Constraint_Error, leaving the pointer past the undescore.
-      --  This seems a bit strange. It means e,g, that if the field is:
+      --  we raise Constraint_Error, leaving the pointer past the underscore.
+      --  This seems a bit strange. It means e.g. that if the field is:
 
       --    345_
 

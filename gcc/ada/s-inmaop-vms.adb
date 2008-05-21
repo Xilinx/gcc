@@ -6,7 +6,7 @@
 --                                                                          --
 --                                  B o d y                                 --
 --                                                                          --
---          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNARL is free software; you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -34,19 +34,12 @@
 --  This is a OpenVMS/Alpha version of this package
 
 with System.OS_Interface;
---  used for various type, constant, and operations
-
 with System.Aux_DEC;
---  used for Short_Address
-
 with System.Parameters;
-
 with System.Tasking;
-
 with System.Tasking.Initialization;
-
+with System.Task_Primitives;
 with System.Task_Primitives.Operations;
-
 with System.Task_Primitives.Operations.DEC;
 
 with Ada.Unchecked_Conversion;
@@ -59,7 +52,8 @@ package body System.Interrupt_Management.Operations is
    use type unsigned_short;
 
    function To_Address is
-     new Ada.Unchecked_Conversion (Task_Id, System.Address);
+     new Ada.Unchecked_Conversion
+       (Task_Id, System.Task_Primitives.Task_Address);
 
    package POP renames System.Task_Primitives.Operations;
 

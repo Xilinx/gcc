@@ -610,7 +610,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
     arg(const complex<_Tp>& __z) { return __complex_arg(__z); }
 #endif
 
-  // 26.2.7/5: norm(__z) returns the squared magintude of __z.
+  // 26.2.7/5: norm(__z) returns the squared magnitude of __z.
   //     As defined, norm() is -not- a norm is the common mathematical
   //     sens used in numerics.  The helper class _Norm_helper<> tries to
   //     distinguish between builtin floating point and the rest, so as
@@ -744,7 +744,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
     exp(const complex<_Tp>& __z) { return __complex_exp(__z); }
 #endif
 
-  // 26.2.8/5 log(__z): Reurns the natural complex logaritm of __z.
+  // 26.2.8/5 log(__z): Returns the natural complex logarithm of __z.
   //                    The branch cut is along the negative axis.
   template<typename _Tp>
     inline complex<_Tp>
@@ -1024,7 +1024,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       complex<float>& operator*=(float);
       complex<float>& operator/=(float);
 
-      // Let's the compiler synthetize the copy and assignment
+      // Let the compiler synthesize the copy and assignment
       // operator.  It always does a pretty good job.
       // complex& operator= (const complex&);
       template<typename _Tp>
@@ -1061,10 +1061,10 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
   { return __imag__ _M_value; }
 
   inline
-  complex<float>::complex(float r, float i)
+  complex<float>::complex(float __r, float __i)
   {
-    __real__ _M_value = r;
-    __imag__ _M_value = i;
+    __real__ _M_value = __r;
+    __imag__ _M_value = __i;
   }
 
   inline complex<float>&
@@ -1178,7 +1178,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       complex<double>& operator*=(double);
       complex<double>& operator/=(double);
 
-      // The compiler will synthetize this, efficiently.
+      // The compiler will synthesize this, efficiently.
       // complex& operator= (const complex&);
       template<typename _Tp>
         complex<double>& operator=(const complex<_Tp>&);
@@ -1476,7 +1476,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
   inline
   complex<double>::complex(const complex<long double>& __z)
-    : _M_value(__z.__rep()) { }
+  : _M_value(__z.__rep()) { }
 
   inline
   complex<long double>::complex(const complex<float>& __z)

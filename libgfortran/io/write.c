@@ -1,6 +1,8 @@
-/* Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
+/* Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008
+   Free Software Foundation, Inc.
    Contributed by Andy Vaught
    Namelist output contributed by Paul Thomas
+   F2003 I/O support contributed by Jerry DeLisle
 
 This file is part of the GNU Fortran 95 runtime library (libgfortran).
 
@@ -361,7 +363,7 @@ write_decimal (st_parameter_dt *dtp, const fnode *f, const char *source,
   if (n < 0)
     n = -n;
 
-  nsign = sign == SIGN_NONE ? 0 : 1;
+  nsign = sign == S_NONE ? 0 : 1;
   q = conv (n, itoa_buf, sizeof (itoa_buf));
 
   digits = strlen (q);
@@ -395,13 +397,13 @@ write_decimal (st_parameter_dt *dtp, const fnode *f, const char *source,
 
   switch (sign)
     {
-    case SIGN_PLUS:
+    case S_PLUS:
       *p++ = '+';
       break;
-    case SIGN_MINUS:
+    case S_MINUS:
       *p++ = '-';
       break;
-    case SIGN_NONE:
+    case S_NONE:
       break;
     }
 
@@ -638,7 +640,7 @@ write_character (st_parameter_dt *dtp, const char *source, int length)
   int i, extra;
   char *p, d;
 
-  switch (dtp->u.p.current_unit->flags.delim)
+  switch (dtp->u.p.delim_status)
     {
     case DELIM_APOSTROPHE:
       d = '\'';
@@ -713,8 +715,8 @@ write_real (st_parameter_dt *dtp, const char *source, int length)
       f.u.real.e = 4;
       break;
     case 16:
-      f.u.real.w = 43;
-      f.u.real.d = 34;
+      f.u.real.w = 44;
+      f.u.real.d = 35;
       f.u.real.e = 4;
       break;
     default:
@@ -729,11 +731,13 @@ write_real (st_parameter_dt *dtp, const char *source, int length)
 static void
 write_complex (st_parameter_dt *dtp, const char *source, int kind, size_t size)
 {
+  char semi_comma = dtp->u.p.decimal_status == DECIMAL_POINT ? ',' : ';';
+
   if (write_char (dtp, '('))
     return;
   write_real (dtp, source, kind);
 
-  if (write_char (dtp, ','))
+  if (write_char (dtp, semi_comma))
     return;
   write_real (dtp, source + size / 2, kind);
 
@@ -775,7 +779,7 @@ list_formatted_write_scalar (st_parameter_dt *dtp, bt type, void *p, int kind,
   else
     {
       if (type != BT_CHARACTER || !dtp->u.p.char_flag ||
-	  dtp->u.p.current_unit->flags.delim != DELIM_NONE)
+	  dtp->u.p.delim_status != DELIM_NONE)
 	write_separator (dtp);
     }
 
@@ -869,6 +873,11 @@ nml_write_obj (st_parameter_dt *dtp, namelist_info * obj, index_type offset,
   size_t base_var_name_len;
   size_t tot_len;
   unit_delim tmp_delim;
+  
+  /* Set the character to be used to separate values
+     to a comma or semi-colon.  */
+
+  char semi_comma = dtp->u.p.decimal_status == DECIMAL_POINT ? ',' : ';';
 
   /* Write namelist variable names in upper case. If a derived type,
      nothing is output.  If a component, base and base_name are set.  */
@@ -985,13 +994,13 @@ nml_write_obj (st_parameter_dt *dtp, namelist_info * obj, index_type offset,
               break;
 
 	    case GFC_DTYPE_CHARACTER:
-	      tmp_delim = dtp->u.p.current_unit->flags.delim;
+	      tmp_delim = dtp->u.p.delim_status;
 	      if (dtp->u.p.nml_delim == '"')
-		dtp->u.p.current_unit->flags.delim = DELIM_QUOTE;
+		dtp->u.p.delim_status = DELIM_QUOTE;
 	      if (dtp->u.p.nml_delim == '\'')
-		dtp->u.p.current_unit->flags.delim = DELIM_APOSTROPHE;
+		dtp->u.p.delim_status = DELIM_APOSTROPHE;
 	      write_character (dtp, p, obj->string_length);
-	      dtp->u.p.current_unit->flags.delim = tmp_delim;
+	      dtp->u.p.delim_status = tmp_delim;
               break;
 
 	    case GFC_DTYPE_REAL:
@@ -1075,12 +1084,12 @@ nml_write_obj (st_parameter_dt *dtp, namelist_info * obj, index_type offset,
 	      internal_error (&dtp->common, "Bad type for namelist write");
             }
 
-	  /* Reset the leading blank suppression, write a comma and, if 5
-	     values have been output, write a newline and advance to column
-	     2. Reset the repeat counter.  */
+	  /* Reset the leading blank suppression, write a comma (or semi-colon)
+	     and, if 5 values have been output, write a newline and advance
+	     to column 2. Reset the repeat counter.  */
 
 	  dtp->u.p.no_leading_blank = 0;
-	  write_character (dtp, ",", 1);
+	  write_character (dtp, &semi_comma, 1);
 	  if (num > 5)
 	    {
 	      num = 0;
@@ -1132,7 +1141,7 @@ namelist_write (st_parameter_dt *dtp)
 
   /* Set the delimiter for namelist output.  */
 
-  tmp_delim = dtp->u.p.current_unit->flags.delim;
+  tmp_delim = dtp->u.p.delim_status;
   switch (tmp_delim)
     {
     case (DELIM_QUOTE):
@@ -1149,7 +1158,7 @@ namelist_write (st_parameter_dt *dtp)
     }
 
   /* Temporarily disable namelist delimters.  */
-  dtp->u.p.current_unit->flags.delim = DELIM_NONE;
+  dtp->u.p.delim_status = DELIM_NONE;
 
   write_character (dtp, "&", 1);
 
@@ -1177,7 +1186,7 @@ namelist_write (st_parameter_dt *dtp)
 #endif
 
   /* Restore the original delimiter.  */
-  dtp->u.p.current_unit->flags.delim = tmp_delim;
+  dtp->u.p.delim_status = tmp_delim;
 }
 
 #undef NML_DIGITS

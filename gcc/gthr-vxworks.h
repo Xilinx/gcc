@@ -36,6 +36,11 @@ Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
 #include "gthr-posix.h"
 
 #else
+#ifdef __cplusplus
+#define UNUSED(x)
+#else
+#define UNUSED(x) x __attribute__((unused))
+#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -58,6 +63,12 @@ static inline void
 __gthread_mutex_init_function (__gthread_mutex_t *mutex)
 {
   *mutex = semMCreate (SEM_Q_PRIORITY | SEM_INVERSION_SAFE | SEM_DELETE_SAFE);
+}
+
+static inline int
+__gthread_mutex_destroy (__gthread_mutex_t * UNUSED(mutex))
+{
+  return 0;
 }
 
 static inline int
@@ -134,6 +145,8 @@ extern int __gthread_key_delete (__gthread_key_t key);
 
 extern void *__gthread_getspecific (__gthread_key_t key);
 extern int __gthread_setspecific (__gthread_key_t key, void *ptr);
+
+#undef UNUSED
 
 #ifdef __cplusplus
 }

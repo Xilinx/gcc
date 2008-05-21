@@ -52,7 +52,8 @@ dw2_assemble_integer (int size, rtx x)
     {
       fputs (op, asm_out_file);
       if (GET_CODE (x) == CONST_INT)
-	fprintf (asm_out_file, HOST_WIDE_INT_PRINT_HEX, INTVAL (x));
+	fprintf (asm_out_file, HOST_WIDE_INT_PRINT_HEX,
+		 (unsigned HOST_WIDE_INT) INTVAL (x));
       else
 	output_addr_const (asm_out_file, x);
     }
@@ -61,7 +62,7 @@ dw2_assemble_integer (int size, rtx x)
 }
 
 
-/* Output an immediate constant in a given size.  */
+/* Output an immediate constant in a given SIZE in bytes.  */
 
 void
 dw2_asm_output_data (int size, unsigned HOST_WIDE_INT value,

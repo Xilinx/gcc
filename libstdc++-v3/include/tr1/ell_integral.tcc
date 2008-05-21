@@ -1,6 +1,6 @@
 // Special functions -*- C++ -*-
 
-// Copyright (C) 2006-2007
+// Copyright (C) 2006, 2007, 2008
 // Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
@@ -55,14 +55,7 @@ namespace tr1
 
   // [5.2] Special functions
 
-  /**
-   * @ingroup tr1_math_spec_func
-   * @{
-   */
-
-  //
   // Implementation-space details.
-  //
   namespace __detail
   {
 
@@ -313,7 +306,7 @@ namespace tr1
      *   Based on Carlson's algorithms:
      *   -  B. C. Carlson Numer. Math. 33, 1 (1979)
      *   -  B. C. Carlson, Special Functions of Applied Mathematics (1977)
-     *   -  Nunerical Recipes in C, 2nd ed, pp. 261-269,
+     *   -  Numerical Recipes in C, 2nd ed, pp. 261-269,
      *      by Press, Teukolsky, Vetterling, Flannery (1992)
      *
      *   @param  __x  The first of two symmetric arguments.
@@ -494,7 +487,7 @@ namespace tr1
      *   Based on Carlson's algorithms:
      *   -  B. C. Carlson Numer. Math. 33, 1 (1979)
      *   -  B. C. Carlson, Special Functions of Applied Mathematics (1977)
-     *   -  Nunerical Recipes in C, 2nd ed, pp. 261-269,
+     *   -  Numerical Recipes in C, 2nd ed, pp. 261-269,
      *      by Press, Teukolsky, Vetterling, Flannery (1992)
      *
      *   @param  __x  The first argument.
@@ -563,7 +556,7 @@ namespace tr1
      *   Based on Carlson's algorithms:
      *   -  B. C. Carlson Numer. Math. 33, 1 (1979)
      *   -  B. C. Carlson, Special Functions of Applied Mathematics (1977)
-     *   -  Nunerical Recipes in C, 2nd ed, pp. 261-269,
+     *   -  Numerical Recipes in C, 2nd ed, pp. 261-269,
      *      by Press, Teukolsky, Vetterling, Flannery (1992)
      *
      *   @param  __x  The first of three symmetric arguments.
@@ -753,9 +746,6 @@ namespace tr1
     }
 
   } // namespace std::tr1::__detail
-
-  /* @} */ // group tr1_math_spec_func
-
 }
 }
 

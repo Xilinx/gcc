@@ -1,4 +1,5 @@
-@c Copyright (C) 2000, 2001, 2002, 2004 Free Software Foundation, Inc.
+@c Copyright (C) 2000, 2001, 2002, 2004, 2006, 2007, 2008 Free Software Foundation,
+@c Inc.
 @c This is part of the GCC manual.
 @c For copying conditions, see the file gcc.texi.
 
@@ -177,7 +178,7 @@ warnings).
 The ISO C++ committee is working on a new ISO C++ standard, dubbed
 C++0x, that is intended to be published by 2009. C++0x contains several
 changes to the C++ language, some of which have been implemented in an
-experimental C++0x mode in GCC. The C++0x mode in GCC tracks the draft
+experimental C++0x mode in GCC@. The C++0x mode in GCC tracks the draft
 working paper for the C++0x standard; the latest working paper is
 available on the ISO C++ committee's web site at
 @uref{http://www.open-std.org/jtc1/sc22/wg21/}. For information
@@ -217,14 +218,6 @@ and
 @uref{http://gcc.gnu.org/readings.html}
 have additional useful information.
 @end itemize
-
-@section Treelang language
-@cindex treelang
-There is no standard for treelang, which is a sample language front end
-for GCC@.  Its only purpose is as a sample for people wishing to write a
-new language for GCC@.  The language is documented in
-@file{gcc/treelang/treelang.texi} which can be turned into info or
-HTML format.
 
 @xref{Top, GNAT Reference Manual, About This Guide, gnat_rm,
 GNAT Reference Manual}, for information on standard

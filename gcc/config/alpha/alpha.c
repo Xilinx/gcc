@@ -189,9 +189,9 @@ static struct alpha_rtx_cost_data const alpha_rtx_cost_size =
 
 /* Get the number of args of a function in one of two ways.  */
 #if TARGET_ABI_OPEN_VMS || TARGET_ABI_UNICOSMK
-#define NUM_ARGS current_function_args_info.num_args
+#define NUM_ARGS crtl->args.info.num_args
 #else
-#define NUM_ARGS current_function_args_info
+#define NUM_ARGS crtl->args.info
 #endif
 
 #define REG_PV 27
@@ -643,8 +643,8 @@ direct_return (void)
 	  && reload_completed
 	  && alpha_sa_size () == 0
 	  && get_frame_size () == 0
-	  && current_function_outgoing_args_size == 0
-	  && current_function_pretend_args_size == 0);
+	  && crtl->outgoing_args_size == 0
+	  && crtl->args.pretend_args_size == 0);
 }
 
 /* Return the ADDR_VEC associated with a tablejump insn.  */
@@ -986,7 +986,7 @@ alpha_legitimize_address (rtx x, rtx scratch,
 	  emit_insn (gen_movdi_er_tlsgd (r16, pic_offset_table_rtx, x, seq));
 	  insn = gen_call_value_osf_tlsgd (r0, tga, seq);
 	  insn = emit_call_insn (insn);
-	  CONST_OR_PURE_CALL_P (insn) = 1;
+	  RTL_CONST_CALL_P (insn) = 1;
 	  use_reg (&CALL_INSN_FUNCTION_USAGE (insn), r16);
 
           insn = get_insns ();
@@ -1007,7 +1007,7 @@ alpha_legitimize_address (rtx x, rtx scratch,
 	  emit_insn (gen_movdi_er_tlsldm (r16, pic_offset_table_rtx, seq));
 	  insn = gen_call_value_osf_tlsldm (r0, tga, seq);
 	  insn = emit_call_insn (insn);
-	  CONST_OR_PURE_CALL_P (insn) = 1;
+	  RTL_CONST_CALL_P (insn) = 1;
 	  use_reg (&CALL_INSN_FUNCTION_USAGE (insn), r16);
 
           insn = get_insns ();
@@ -3013,7 +3013,7 @@ alpha_emit_xfloating_libcall (rtx func, rtx target, rtx operands[],
   tmp = emit_call_insn (GEN_CALL_VALUE (reg, tmp, const0_rtx,
 					const0_rtx, const0_rtx));
   CALL_INSN_FUNCTION_USAGE (tmp) = usage;
-  CONST_OR_PURE_CALL_P (tmp) = 1;
+  RTL_CONST_CALL_P (tmp) = 1;
 
   tmp = get_insns ();
   end_sequence ();
@@ -3047,7 +3047,7 @@ static rtx
 alpha_emit_xfloating_compare (enum rtx_code *pcode, rtx op0, rtx op1)
 {
   enum rtx_code cmp_code, res_code;
-  rtx func, out, operands[2];
+  rtx func, out, operands[2], note;
 
   /* X_floating library comparison functions return
 	   -1  unordered
@@ -3087,10 +3087,13 @@ alpha_emit_xfloating_compare (enum rtx_code *pcode, rtx op0, rtx op1)
   operands[1] = op1;
   out = gen_reg_rtx (DImode);
 
-  /* ??? Strange mode for equiv because what's actually returned
-     is -1,0,1, not a proper boolean value.  */
-  alpha_emit_xfloating_libcall (func, out, operands, 2,
-				gen_rtx_fmt_ee (cmp_code, CCmode, op0, op1));
+  /* What's actually returned is -1,0,1, not a proper boolean value,
+     so use an EXPR_LIST as with a generic libcall instead of a 
+     comparison type expression.  */
+  note = gen_rtx_EXPR_LIST (VOIDmode, op1, NULL_RTX);
+  note = gen_rtx_EXPR_LIST (VOIDmode, op0, note);
+  note = gen_rtx_EXPR_LIST (VOIDmode, func, note);
+  alpha_emit_xfloating_libcall (func, out, operands, 2, note);
 
   return out;
 }
@@ -5446,7 +5449,7 @@ void
 alpha_initialize_trampoline (rtx tramp, rtx fnaddr, rtx cxt,
 			     int fnofs, int cxtofs, int jmpofs)
 {
-  rtx temp, temp1, addr;
+  rtx addr;
   /* VMS really uses DImode pointers in memory at this point.  */
   enum machine_mode mode = TARGET_ABI_OPEN_VMS ? Pmode : ptr_mode;
 
@@ -5460,28 +5463,6 @@ alpha_initialize_trampoline (rtx tramp, rtx fnaddr, rtx cxt,
   emit_move_insn (gen_rtx_MEM (mode, addr), fnaddr);
   addr = memory_address (mode, plus_constant (tramp, cxtofs));
   emit_move_insn (gen_rtx_MEM (mode, addr), cxt);
-
-  /* This has been disabled since the hint only has a 32k range, and in
-     no existing OS is the stack within 32k of the text segment.  */
-  if (0 && jmpofs >= 0)
-    {
-      /* Compute hint value.  */
-      temp = force_operand (plus_constant (tramp, jmpofs+4), NULL_RTX);
-      temp = expand_binop (DImode, sub_optab, fnaddr, temp, temp, 1,
-			   OPTAB_WIDEN);
-      temp = expand_shift (RSHIFT_EXPR, Pmode, temp,
-		           build_int_cst (NULL_TREE, 2), NULL_RTX, 1);
-      temp = expand_and (SImode, gen_lowpart (SImode, temp),
-			 GEN_INT (0x3fff), 0);
-
-      /* Merge in the hint.  */
-      addr = memory_address (SImode, plus_constant (tramp, jmpofs));
-      temp1 = force_reg (SImode, gen_rtx_MEM (SImode, addr));
-      temp1 = expand_and (SImode, temp1, GEN_INT (0xffffc000), NULL_RTX);
-      temp1 = expand_binop (SImode, ior_optab, temp1, temp, temp1, 1,
-			    OPTAB_WIDEN);
-      emit_move_insn (gen_rtx_MEM (SImode, addr), temp1);
-    }
 
 #ifdef ENABLE_EXECUTE_STACK
   emit_library_call (init_one_libfunc ("__enable_execute_stack"),
@@ -5844,8 +5825,7 @@ va_list_skip_additions (tree lhs)
       if (TREE_CODE (rhs) == WITH_SIZE_EXPR)
 	rhs = TREE_OPERAND (rhs, 0);
 
-      if ((TREE_CODE (rhs) != NOP_EXPR
-	   && TREE_CODE (rhs) != CONVERT_EXPR
+      if (((!CONVERT_EXPR_P (rhs))
 	   && ((TREE_CODE (rhs) != PLUS_EXPR
 		&& TREE_CODE (rhs) != POINTER_PLUS_EXPR)
 	       || TREE_CODE (TREE_OPERAND (rhs, 1)) != INTEGER_CST
@@ -6101,7 +6081,7 @@ alpha_va_start (tree valist, rtx nextarg ATTRIBUTE_UNUSED)
   if (NUM_ARGS < 6)
     offset = TARGET_ABI_OPEN_VMS ? UNITS_PER_WORD : 6 * UNITS_PER_WORD;
   else
-    offset = -6 * UNITS_PER_WORD + current_function_pretend_args_size;
+    offset = -6 * UNITS_PER_WORD + crtl->args.pretend_args_size;
 
   if (TARGET_ABI_OPEN_VMS)
     {
@@ -7091,7 +7071,7 @@ alpha_sa_mask (unsigned long *imaskP, unsigned long *fmaskP)
   /* When outputting a thunk, we don't have valid register life info,
      but assemble_start_function wants to output .frame and .mask
      directives.  */
-  if (current_function_is_thunk)
+  if (crtl->is_thunk)
     {
       *imaskP = 0;
       *fmaskP = 0;
@@ -7114,7 +7094,7 @@ alpha_sa_mask (unsigned long *imaskP, unsigned long *fmaskP)
       }
 
   /* We need to restore these for the handler.  */
-  if (current_function_calls_eh_return)
+  if (crtl->calls_eh_return)
     {
       for (i = 0; ; ++i)
 	{
@@ -7167,8 +7147,8 @@ alpha_sa_size (void)
 
       alpha_procedure_type
 	= (sa_size || get_frame_size() != 0
-	   || current_function_outgoing_args_size
-	   || current_function_stdarg || current_function_calls_alloca
+	   || crtl->outgoing_args_size
+	   || cfun->stdarg || cfun->calls_alloca
 	   || frame_pointer_needed)
 	  ? PT_STACK : PT_REGISTER;
 
@@ -7201,9 +7181,9 @@ alpha_sa_size (void)
 
       vms_base_regno
 	= (frame_pointer_needed
-	   || current_function_has_nonlocal_label
+	   || cfun->has_nonlocal_label
 	   || alpha_procedure_type == PT_STACK
-	   || current_function_outgoing_args_size)
+	   || crtl->outgoing_args_size)
 	  ? REG_PV : HARD_FRAME_POINTER_REGNUM;
 
       /* If we want to copy PV into FP, we need to find some register
@@ -7248,7 +7228,7 @@ alpha_initial_elimination_offset (unsigned int from,
   HOST_WIDE_INT ret;
 
   ret = alpha_sa_size ();
-  ret += ALPHA_ROUND (current_function_outgoing_args_size);
+  ret += ALPHA_ROUND (crtl->outgoing_args_size);
 
   switch (from)
     {
@@ -7257,8 +7237,8 @@ alpha_initial_elimination_offset (unsigned int from,
 
     case ARG_POINTER_REGNUM:
       ret += (ALPHA_ROUND (get_frame_size ()
-			   + current_function_pretend_args_size)
-	      - current_function_pretend_args_size);
+			   + crtl->args.pretend_args_size)
+	      - crtl->args.pretend_args_size);
       break;
 
     default:
@@ -7317,18 +7297,18 @@ alpha_does_function_need_gp (void)
     return 0;
 
   /* We need the gp to load the address of __mcount.  */
-  if (TARGET_PROFILING_NEEDS_GP && current_function_profile)
+  if (TARGET_PROFILING_NEEDS_GP && crtl->profile)
     return 1;
 
   /* The code emitted by alpha_output_mi_thunk_osf uses the gp.  */
-  if (current_function_is_thunk)
+  if (crtl->is_thunk)
     return 1;
 
   /* The nonlocal receiver pattern assumes that the gp is valid for
      the nested function.  Reasonable because it's almost always set
      correctly already.  For the cases where that's wrong, make sure
      the nested function loads its gp on entry.  */
-  if (current_function_has_nonlocal_goto)
+  if (crtl->has_nonlocal_goto)
     return 1;
 
   /* If we need a GP (we have a LDSYM insn or a CALL_INSN), load it first.
@@ -7466,23 +7446,23 @@ alpha_expand_prologue (void)
     frame_size = ALPHA_ROUND (sa_size
 			      + (alpha_procedure_type == PT_STACK ? 8 : 0)
 			      + frame_size
-			      + current_function_pretend_args_size);
+			      + crtl->args.pretend_args_size);
   else if (TARGET_ABI_UNICOSMK)
     /* We have to allocate space for the DSIB if we generate a frame.  */
     frame_size = ALPHA_ROUND (sa_size
 			      + (alpha_procedure_type == PT_STACK ? 48 : 0))
 		 + ALPHA_ROUND (frame_size
-				+ current_function_outgoing_args_size);
+				+ crtl->outgoing_args_size);
   else
-    frame_size = (ALPHA_ROUND (current_function_outgoing_args_size)
+    frame_size = (ALPHA_ROUND (crtl->outgoing_args_size)
 		  + sa_size
 		  + ALPHA_ROUND (frame_size
-				 + current_function_pretend_args_size));
+				 + crtl->args.pretend_args_size));
 
   if (TARGET_ABI_OPEN_VMS)
     reg_offset = 8;
   else
-    reg_offset = ALPHA_ROUND (current_function_outgoing_args_size);
+    reg_offset = ALPHA_ROUND (crtl->outgoing_args_size);
 
   alpha_sa_mask (&imask, &fmask);
 
@@ -7498,7 +7478,7 @@ alpha_expand_prologue (void)
      the call to mcount ourselves, rather than having the linker do it
      magically in response to -pg.  Since _mcount has special linkage,
      don't represent the call as a call.  */
-  if (TARGET_PROFILING_NEEDS_GP && current_function_profile)
+  if (TARGET_PROFILING_NEEDS_GP && crtl->profile)
     emit_insn (gen_prologue_mcount ());
 
   if (TARGET_ABI_UNICOSMK)
@@ -7696,14 +7676,14 @@ alpha_expand_prologue (void)
 	FRP (emit_move_insn (hard_frame_pointer_rtx, stack_pointer_rtx));
 
       /* If we have to allocate space for outgoing args, do it now.  */
-      if (current_function_outgoing_args_size != 0)
+      if (crtl->outgoing_args_size != 0)
 	{
 	  rtx seq
 	    = emit_move_insn (stack_pointer_rtx,
 			      plus_constant
 			      (hard_frame_pointer_rtx,
 			       - (ALPHA_ROUND
-				  (current_function_outgoing_args_size))));
+				  (crtl->outgoing_args_size))));
 
 	  /* Only set FRAME_RELATED_P on the stack adjustment we just emitted
 	     if ! frame_pointer_needed. Setting the bit will change the CFA
@@ -7715,7 +7695,7 @@ alpha_expand_prologue (void)
 	       frame_pointer_needed
 	       => vms_unwind_regno == HARD_FRAME_POINTER_REGNUM
 	     and
-	       current_function_outgoing_args_size != 0
+	       crtl->outgoing_args_size != 0
 	       => alpha_procedure_type != PT_NULL,
 
 	     so when we are not setting the bit here, we are guaranteed to
@@ -7792,22 +7772,22 @@ alpha_start_function (FILE *file, const char *fnname,
     frame_size = ALPHA_ROUND (sa_size
 			      + (alpha_procedure_type == PT_STACK ? 8 : 0)
 			      + frame_size
-			      + current_function_pretend_args_size);
+			      + crtl->args.pretend_args_size);
   else if (TARGET_ABI_UNICOSMK)
     frame_size = ALPHA_ROUND (sa_size
 			      + (alpha_procedure_type == PT_STACK ? 48 : 0))
 		 + ALPHA_ROUND (frame_size
-			      + current_function_outgoing_args_size);
+			      + crtl->outgoing_args_size);
   else
-    frame_size = (ALPHA_ROUND (current_function_outgoing_args_size)
+    frame_size = (ALPHA_ROUND (crtl->outgoing_args_size)
 		  + sa_size
 		  + ALPHA_ROUND (frame_size
-				 + current_function_pretend_args_size));
+				 + crtl->args.pretend_args_size));
 
   if (TARGET_ABI_OPEN_VMS)
     reg_offset = 8;
   else
-    reg_offset = ALPHA_ROUND (current_function_outgoing_args_size);
+    reg_offset = ALPHA_ROUND (crtl->outgoing_args_size);
 
   alpha_sa_mask (&imask, &fmask);
 
@@ -7844,7 +7824,7 @@ alpha_start_function (FILE *file, const char *fnname,
 	 Otherwise, do it here.  */
       if (TARGET_ABI_OSF
           && ! alpha_function_needs_gp
-	  && ! current_function_is_thunk)
+	  && ! crtl->is_thunk)
 	{
 	  putc ('$', file);
 	  assemble_name (file, fnname);
@@ -7877,7 +7857,7 @@ alpha_start_function (FILE *file, const char *fnname,
     }
 
   /* Set up offsets to alpha virtual arg/local debugging pointer.  */
-  alpha_auto_offset = -frame_size + current_function_pretend_args_size;
+  alpha_auto_offset = -frame_size + crtl->args.pretend_args_size;
   alpha_arg_offset = -frame_size + 48;
 
   /* Describe our frame.  If the frame size is larger than an integer,
@@ -7896,7 +7876,7 @@ alpha_start_function (FILE *file, const char *fnname,
 	     (frame_pointer_needed
 	      ? HARD_FRAME_POINTER_REGNUM : STACK_POINTER_REGNUM),
 	     frame_size >= max_frame_size ? 0 : frame_size,
-	     current_function_pretend_args_size);
+	     crtl->args.pretend_args_size);
 
   /* Describe which registers were spilled.  */
   if (TARGET_ABI_UNICOSMK)
@@ -7955,7 +7935,7 @@ alpha_output_function_end_prologue (FILE *file)
     fputs ("\t.prologue 0\n", file);
   else if (!flag_inhibit_size_directive)
     fprintf (file, "\t.prologue %d\n",
-	     alpha_function_needs_gp || current_function_is_thunk);
+	     alpha_function_needs_gp || crtl->is_thunk);
 }
 
 /* Write function epilogue.  */
@@ -7991,17 +7971,17 @@ alpha_expand_epilogue (void)
     frame_size = ALPHA_ROUND (sa_size
 			      + (alpha_procedure_type == PT_STACK ? 8 : 0)
 			      + frame_size
-			      + current_function_pretend_args_size);
+			      + crtl->args.pretend_args_size);
   else if (TARGET_ABI_UNICOSMK)
     frame_size = ALPHA_ROUND (sa_size
 			      + (alpha_procedure_type == PT_STACK ? 48 : 0))
 		 + ALPHA_ROUND (frame_size
-			      + current_function_outgoing_args_size);
+			      + crtl->outgoing_args_size);
   else
-    frame_size = (ALPHA_ROUND (current_function_outgoing_args_size)
+    frame_size = (ALPHA_ROUND (crtl->outgoing_args_size)
 		  + sa_size
 		  + ALPHA_ROUND (frame_size
-				 + current_function_pretend_args_size));
+				 + crtl->args.pretend_args_size));
 
   if (TARGET_ABI_OPEN_VMS)
     {
@@ -8011,7 +7991,7 @@ alpha_expand_epilogue (void)
           reg_offset = 0;
     }
   else
-    reg_offset = ALPHA_ROUND (current_function_outgoing_args_size);
+    reg_offset = ALPHA_ROUND (crtl->outgoing_args_size);
 
   alpha_sa_mask (&imask, &fmask);
 
@@ -8021,7 +8001,7 @@ alpha_expand_epilogue (void)
   fp_offset = 0;
   sa_reg = stack_pointer_rtx;
 
-  if (current_function_calls_eh_return)
+  if (crtl->calls_eh_return)
     eh_ofs = EH_RETURN_STACKADJ_RTX;
   else
     eh_ofs = NULL_RTX;
@@ -8132,7 +8112,7 @@ alpha_expand_epilogue (void)
 	 register so as not to interfere with a potential fp restore,
 	 which must be consecutive with an SP restore.  */
       if (frame_size < 32768
-	  && ! (TARGET_ABI_UNICOSMK && current_function_calls_alloca))
+	  && ! (TARGET_ABI_UNICOSMK && cfun->calls_alloca))
 	sp_adj2 = GEN_INT (frame_size);
       else if (TARGET_ABI_UNICOSMK)
 	{
@@ -8358,6 +8338,7 @@ alpha_output_mi_thunk_osf (FILE *file, tree thunk_fndecl ATTRIBUTE_UNUSED,
   final_start_function (insn, file, 1);
   final (insn, file, 1);
   final_end_function ();
+  free_after_compilation (cfun);
 }
 #endif /* TARGET_ABI_OSF */
 
@@ -9793,12 +9774,12 @@ unicosmk_initial_elimination_offset (int from, int to)
   else if (from == ARG_POINTER_REGNUM && to == HARD_FRAME_POINTER_REGNUM)
     return 0;
   else if (from == FRAME_POINTER_REGNUM && to == STACK_POINTER_REGNUM)
-    return (ALPHA_ROUND (current_function_outgoing_args_size)
+    return (ALPHA_ROUND (crtl->outgoing_args_size)
 	    + ALPHA_ROUND (get_frame_size()));
   else if (from == ARG_POINTER_REGNUM && to == STACK_POINTER_REGNUM)
     return (ALPHA_ROUND (fixed_size)
 	    + ALPHA_ROUND (get_frame_size()
-			   + current_function_outgoing_args_size));
+			   + crtl->outgoing_args_size));
   else
     gcc_unreachable ();
 }

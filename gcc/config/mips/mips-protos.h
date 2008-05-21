@@ -209,7 +209,7 @@ extern void mips_expand_vcondv2sf (rtx, rtx, rtx, enum rtx_code, rtx, rtx);
 extern void mips_expand_conditional_move (rtx *);
 extern void mips_expand_conditional_trap (enum rtx_code);
 #endif
-extern void mips_expand_call (rtx, rtx, rtx, rtx, bool);
+extern rtx mips_expand_call (rtx, rtx, rtx, rtx, bool);
 extern void mips_expand_fcc_reload (rtx, rtx, rtx);
 extern void mips_set_return_address (rtx, rtx);
 extern bool mips_expand_block_move (rtx, rtx, rtx);
@@ -292,5 +292,6 @@ extern bool mips_use_ins_ext_p (rtx, HOST_WIDE_INT, HOST_WIDE_INT);
 extern const char *mips16e_output_save_restore (rtx, HOST_WIDE_INT);
 extern bool mips16e_save_restore_pattern_p (rtx, HOST_WIDE_INT,
 					    struct mips16e_save_restore_info *);
+extern void mips_expand_compare_and_swap_12 (rtx, rtx, rtx, rtx);
 
 #endif /* ! GCC_MIPS_PROTOS_H */

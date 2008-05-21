@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -49,15 +49,24 @@ package body Opt is
       Ada_Version_Config                    := Ada_Version;
       Ada_Version_Explicit_Config           := Ada_Version_Explicit;
       Assertions_Enabled_Config             := Assertions_Enabled;
+      Check_Policy_List_Config              := Check_Policy_List;
       Debug_Pragmas_Enabled_Config          := Debug_Pragmas_Enabled;
       Dynamic_Elaboration_Checks_Config     := Dynamic_Elaboration_Checks;
       Exception_Locations_Suppressed_Config := Exception_Locations_Suppressed;
       Extensions_Allowed_Config             := Extensions_Allowed;
       External_Name_Exp_Casing_Config       := External_Name_Exp_Casing;
       External_Name_Imp_Casing_Config       := External_Name_Imp_Casing;
+      Fast_Math_Config                      := Fast_Math;
+      Optimize_Alignment_Config             := Optimize_Alignment;
       Persistent_BSS_Mode_Config            := Persistent_BSS_Mode;
       Polling_Required_Config               := Polling_Required;
       Use_VADS_Size_Config                  := Use_VADS_Size;
+
+      --  Reset the indication that Optimize_Alignment was set locally, since
+      --  if we had a pragma in the config file, it would set this flag True,
+      --  but that's not a local setting.
+
+      Optimize_Alignment_Local := False;
    end Register_Opt_Config_Switches;
 
    ---------------------------------
@@ -69,12 +78,16 @@ package body Opt is
       Ada_Version                    := Save.Ada_Version;
       Ada_Version_Explicit           := Save.Ada_Version_Explicit;
       Assertions_Enabled             := Save.Assertions_Enabled;
+      Check_Policy_List              := Save.Check_Policy_List;
       Debug_Pragmas_Enabled          := Save.Debug_Pragmas_Enabled;
       Dynamic_Elaboration_Checks     := Save.Dynamic_Elaboration_Checks;
       Exception_Locations_Suppressed := Save.Exception_Locations_Suppressed;
       Extensions_Allowed             := Save.Extensions_Allowed;
       External_Name_Exp_Casing       := Save.External_Name_Exp_Casing;
       External_Name_Imp_Casing       := Save.External_Name_Imp_Casing;
+      Fast_Math                      := Save.Fast_Math;
+      Optimize_Alignment             := Save.Optimize_Alignment;
+      Optimize_Alignment_Local       := Save.Optimize_Alignment_Local;
       Persistent_BSS_Mode            := Save.Persistent_BSS_Mode;
       Polling_Required               := Save.Polling_Required;
       Use_VADS_Size                  := Save.Use_VADS_Size;
@@ -89,12 +102,16 @@ package body Opt is
       Save.Ada_Version                    := Ada_Version;
       Save.Ada_Version_Explicit           := Ada_Version_Explicit;
       Save.Assertions_Enabled             := Assertions_Enabled;
+      Save.Check_Policy_List              := Check_Policy_List;
       Save.Debug_Pragmas_Enabled          := Debug_Pragmas_Enabled;
       Save.Dynamic_Elaboration_Checks     := Dynamic_Elaboration_Checks;
       Save.Exception_Locations_Suppressed := Exception_Locations_Suppressed;
       Save.Extensions_Allowed             := Extensions_Allowed;
       Save.External_Name_Exp_Casing       := External_Name_Exp_Casing;
       Save.External_Name_Imp_Casing       := External_Name_Imp_Casing;
+      Save.Fast_Math                      := Fast_Math;
+      Save.Optimize_Alignment             := Optimize_Alignment;
+      Save.Optimize_Alignment_Local       := Optimize_Alignment_Local;
       Save.Persistent_BSS_Mode            := Persistent_BSS_Mode;
       Save.Polling_Required               := Polling_Required;
       Save.Use_VADS_Size                  := Use_VADS_Size;
@@ -122,8 +139,10 @@ package body Opt is
          Extensions_Allowed         := True;
          External_Name_Exp_Casing   := As_Is;
          External_Name_Imp_Casing   := Lowercase;
+         Optimize_Alignment         := 'O';
          Persistent_BSS_Mode        := False;
          Use_VADS_Size              := False;
+         Optimize_Alignment_Local   := True;
 
          --  For an internal unit, assertions/debug pragmas are off unless this
          --  is the main unit and they were explicitly enabled.
@@ -131,27 +150,35 @@ package body Opt is
          if Main_Unit then
             Assertions_Enabled    := Assertions_Enabled_Config;
             Debug_Pragmas_Enabled := Debug_Pragmas_Enabled_Config;
+            Check_Policy_List     := Check_Policy_List_Config;
          else
             Assertions_Enabled    := False;
             Debug_Pragmas_Enabled := False;
+            Check_Policy_List     := Empty;
          end if;
 
       --  Case of non-internal unit
 
       else
-         Ada_Version                := Ada_Version_Config;
-         Ada_Version_Explicit       := Ada_Version_Explicit_Config;
-         Assertions_Enabled         := Assertions_Enabled_Config;
-         Debug_Pragmas_Enabled      := Debug_Pragmas_Enabled_Config;
-         Dynamic_Elaboration_Checks := Dynamic_Elaboration_Checks_Config;
-         Extensions_Allowed         := Extensions_Allowed_Config;
-         External_Name_Exp_Casing   := External_Name_Exp_Casing_Config;
-         External_Name_Imp_Casing   := External_Name_Imp_Casing_Config;
-         Persistent_BSS_Mode        := Persistent_BSS_Mode_Config;
-         Use_VADS_Size              := Use_VADS_Size_Config;
+         Ada_Version                 := Ada_Version_Config;
+         Ada_Version_Explicit        := Ada_Version_Explicit_Config;
+         Assertions_Enabled          := Assertions_Enabled_Config;
+         Check_Policy_List           := Check_Policy_List_Config;
+         Debug_Pragmas_Enabled       := Debug_Pragmas_Enabled_Config;
+         Dynamic_Elaboration_Checks  := Dynamic_Elaboration_Checks_Config;
+         Extensions_Allowed          := Extensions_Allowed_Config;
+         External_Name_Exp_Casing    := External_Name_Exp_Casing_Config;
+         External_Name_Imp_Casing    := External_Name_Imp_Casing_Config;
+         Fast_Math                   := Fast_Math_Config;
+         Optimize_Alignment          := Optimize_Alignment_Config;
+         Optimize_Alignment_Local    := False;
+         Persistent_BSS_Mode         := Persistent_BSS_Mode_Config;
+         Use_VADS_Size               := Use_VADS_Size_Config;
       end if;
 
       Exception_Locations_Suppressed := Exception_Locations_Suppressed_Config;
+      Fast_Math                      := Fast_Math_Config;
+      Optimize_Alignment             := Optimize_Alignment_Config;
       Polling_Required               := Polling_Required_Config;
    end Set_Opt_Config_Switches;
 
@@ -181,6 +208,7 @@ package body Opt is
       Tree_Read_Int  (Assertions_Enabled_Config_Val);
       Tree_Read_Bool (All_Errors_Mode);
       Tree_Read_Bool (Assertions_Enabled);
+      Tree_Read_Int  (Int (Check_Policy_List));
       Tree_Read_Bool (Debug_Pragmas_Enabled);
       Tree_Read_Bool (Enable_Overflow_Checks);
       Tree_Read_Bool (Full_List);
@@ -245,6 +273,7 @@ package body Opt is
       Tree_Write_Int  (Boolean'Pos (Assertions_Enabled_Config));
       Tree_Write_Bool (All_Errors_Mode);
       Tree_Write_Bool (Assertions_Enabled);
+      Tree_Write_Int  (Int (Check_Policy_List));
       Tree_Write_Bool (Debug_Pragmas_Enabled);
       Tree_Write_Bool (Enable_Overflow_Checks);
       Tree_Write_Bool (Full_List);

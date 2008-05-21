@@ -6,7 +6,7 @@
 --                                                                          --
 --                                   S p e c                                --
 --                                                                          --
---          Copyright (C) 1997-2003 Free Software Foundation, Inc.          --
+--          Copyright (C) 1997-2008 Free Software Foundation, Inc.          --
 --                                                                          --
 -- GNARL is free software; you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -35,17 +35,21 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
---  This is the RTEMS version of this package
-
---  These are guesses based on what I think the GNARL team will want to
---  call the rtems configurations.  We use CPU-rtems for the rtems
---  configurations.
+--  This is the RTEMS version of this package.
+--
+--  RTEMS target names are of the form CPU-rtems.
+--  This implementation is designed to work on ALL RTEMS targets.
+--  The RTEMS implementation is primarily based upon the POSIX threads
+--  API but there are also bindings to GNAT/RTEMS support routines
+--  to insulate this code from C API specific details and, in some
+--  cases, obtain target architecture and BSP specific information
+--  that is unavailable at the time this package is built.
 
 --  This package encapsulates all direct interfaces to OS services
 --  that are needed by children of System.
 
 --  PLEASE DO NOT add any with-clauses to this package
---  or remove the pragma Elaborate_Body.
+--  or remove the pragma Preelaborate.
 --  It is designed to be a bottom-level (leaf) package.
 
 with Interfaces.C;
@@ -141,6 +145,11 @@ package System.OS_Interface is
 
    SA_SIGINFO  : constant := 16#02#;
 
+   SA_ONSTACK : constant := 16#00#;
+   --  SA_ONSTACK is not defined on RTEMS, but it is refered to in the POSIX
+   --  implementation of System.Interrupt_Management. Therefore we define a
+   --  dummy value of zero here so that setting this flag is a nop.
+
    SIG_BLOCK   : constant := 1;
    SIG_UNBLOCK : constant := 2;
    SIG_SETMASK : constant := 3;
@@ -159,7 +168,7 @@ package System.OS_Interface is
    ----------
 
    Time_Slice_Supported : constant Boolean := True;
-   --  Indicates wether time slicing is supported (i.e SCHED_RR is supported)
+   --  Indicates whether time slicing is supported (i.e SCHED_RR is supported)
 
    type timespec is private;
 
@@ -194,6 +203,10 @@ package System.OS_Interface is
    SCHED_RR    : constant := 2;
    SCHED_OTHER : constant := 0;
 
+   function To_Target_Priority
+     (Prio : System.Any_Priority) return Interfaces.C.int;
+   --  Maps System.Any_Priority to a POSIX priority
+
    -------------
    -- Process --
    -------------
@@ -222,6 +235,7 @@ package System.OS_Interface is
 
    type Thread_Body is access
      function (arg : System.Address) return System.Address;
+   pragma Convention (C, Thread_Body);
 
    type pthread_t           is private;
    subtype Thread_Id        is pthread_t;
@@ -237,12 +251,32 @@ package System.OS_Interface is
 
    PTHREAD_CREATE_DETACHED : constant := 0;
 
+   PTHREAD_SCOPE_PROCESS : constant := 0;
+   PTHREAD_SCOPE_SYSTEM  : constant := 1;
+
    -----------
    -- Stack --
    -----------
 
+   type stack_t is record
+      ss_sp    : System.Address;
+      ss_flags : int;
+      ss_size  : size_t;
+   end record;
+   pragma Convention (C, stack_t);
+
+   function sigaltstack
+     (ss  : not null access stack_t;
+      oss : access stack_t) return int;
+
+   Alternate_Stack : aliased System.Address;
+   --  This is a dummy definition, never used (Alternate_Stack_Size is null)
+
+   Alternate_Stack_Size : constant := 0;
+   --  No alternate signal stack is used on this platform
+
    Stack_Base_Available : constant Boolean := False;
-   --  Indicates wether the stack base is available on this target.
+   --  Indicates whether the stack base is available on this target.
    --  This allows us to share s-osinte.adb between all the FSU/RTEMS
    --  run time.
    --  Note that this value can only be true if pthread_t has a complete
@@ -378,7 +412,7 @@ package System.OS_Interface is
 
    type struct_sched_param is record
       sched_priority      : int;
-      ss_low_priority     : timespec;
+      ss_low_priority     : int;
       ss_replenish_period : timespec;
       ss_initial_budget   : timespec;
    end record;
@@ -460,6 +494,7 @@ package System.OS_Interface is
    pragma Import (C, pthread_getspecific, "pthread_getspecific");
 
    type destructor_pointer is access procedure (arg : System.Address);
+   pragma Convention (C, destructor_pointer);
 
    function pthread_key_create
      (key        : access pthread_key_t;
@@ -503,7 +538,8 @@ private
    pragma Convention (C, pthread_attr_t);
 
    type pthread_condattr_t is record
-      flags        : int;
+      flags           : int;
+      process_shared  : int;
    end record;
    pragma Convention (C, pthread_condattr_t);
 

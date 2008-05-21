@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -105,24 +105,11 @@ package body Ada.Tags is
    function To_Object_Specific_Data_Ptr is
      new Ada.Unchecked_Conversion (System.Address, Object_Specific_Data_Ptr);
 
-   function To_Predef_Prims_Table_Ptr is
-     new Ada.Unchecked_Conversion (System.Address, Predef_Prims_Table_Ptr);
-
    function To_Tag_Ptr is
      new Ada.Unchecked_Conversion (System.Address, Tag_Ptr);
 
    function To_Type_Specific_Data_Ptr is
      new Ada.Unchecked_Conversion (System.Address, Type_Specific_Data_Ptr);
-
-   ------------------------------------------------
-   -- Unchecked Conversions for other components --
-   ------------------------------------------------
-
-   type Acc_Size
-     is access function (A : System.Address) return Long_Long_Integer;
-
-   function To_Acc_Size is new Unchecked_Conversion (System.Address, Acc_Size);
-   --  The profile of the implicitly defined _size primitive
 
    -------------------------------
    -- Inline_Always Subprograms --
@@ -318,6 +305,21 @@ package body Ada.Tags is
       return This - Offset_To_Top (This);
    end Base_Address;
 
+   --------------------
+   -- Descendant_Tag --
+   --------------------
+
+   function Descendant_Tag (External : String; Ancestor : Tag) return Tag is
+      Int_Tag : constant Tag := Internal_Tag (External);
+
+   begin
+      if not Is_Descendant_At_Same_Level (Int_Tag, Ancestor) then
+         raise Tag_Error;
+      end if;
+
+      return Int_Tag;
+   end Descendant_Tag;
+
    --------------
    -- Displace --
    --------------
@@ -433,21 +435,6 @@ package body Ada.Tags is
 
       return False;
    end IW_Membership;
-
-   --------------------
-   -- Descendant_Tag --
-   --------------------
-
-   function Descendant_Tag (External : String; Ancestor : Tag) return Tag is
-      Int_Tag : constant Tag := Internal_Tag (External);
-
-   begin
-      if not Is_Descendant_At_Same_Level (Int_Tag, Ancestor) then
-         raise Tag_Error;
-      end if;
-
-      return Int_Tag;
-   end Descendant_Tag;
 
    -------------------
    -- Expanded_Name --
@@ -733,7 +720,7 @@ package body Ada.Tags is
 
    begin
       Len := 1;
-      while Str (Len) /= ASCII.Nul loop
+      while Str (Len) /= ASCII.NUL loop
          Len := Len + 1;
       end loop;
 
@@ -778,35 +765,23 @@ package body Ada.Tags is
       --  The tag of the parent is always in the first slot of the table of
       --  ancestor tags.
 
-      Size_Slot : constant Positive := 1;
-      --  The pointer to the _size primitive is always in the first slot of
-      --  the dispatch table.
-
       TSD_Ptr : constant Addr_Ptr :=
                   To_Addr_Ptr (To_Address (T) - DT_Typeinfo_Ptr_Size);
       TSD     : constant Type_Specific_Data_Ptr :=
                   To_Type_Specific_Data_Ptr (TSD_Ptr.all);
       --  Pointer to the TSD
 
-      Parent_Tag              : constant Tag := TSD.Tags_Table (Parent_Slot);
-      Parent_Predef_Prims_Ptr : constant Addr_Ptr :=
-                                  To_Addr_Ptr (To_Address (Parent_Tag)
-                                                - DT_Predef_Prims_Offset);
-      Parent_Predef_Prims     : constant Predef_Prims_Table_Ptr :=
-                                  To_Predef_Prims_Table_Ptr
-                                    (Parent_Predef_Prims_Ptr.all);
-
-      --  The tag of the parent type through the dispatch table and its
-      --  Predef_Prims field.
-
-      F : constant Acc_Size :=
-            To_Acc_Size (Parent_Predef_Prims (Size_Slot));
-      --  Access to the _size primitive of the parent
+      Parent_Tag     : constant Tag := TSD.Tags_Table (Parent_Slot);
+      Parent_TSD_Ptr : constant Addr_Ptr :=
+                         To_Addr_Ptr (To_Address (Parent_Tag)
+                                       - DT_Typeinfo_Ptr_Size);
+      Parent_TSD     : constant Type_Specific_Data_Ptr :=
+                         To_Type_Specific_Data_Ptr (Parent_TSD_Ptr.all);
 
    begin
       --  Here we compute the size of the _parent field of the object
 
-      return SSE.Storage_Count (F.all (Obj));
+      return SSE.Storage_Count (Parent_TSD.Size_Func.all (Obj));
    end Parent_Size;
 
    ----------------
@@ -837,6 +812,56 @@ package body Ada.Tags is
       end if;
    end Parent_Tag;
 
+   -------------------------------
+   -- Register_Interface_Offset --
+   -------------------------------
+
+   procedure Register_Interface_Offset
+     (This         : System.Address;
+      Interface_T  : Tag;
+      Is_Static    : Boolean;
+      Offset_Value : SSE.Storage_Offset;
+      Offset_Func  : Offset_To_Top_Function_Ptr)
+   is
+      Prim_DT     : Dispatch_Table_Ptr;
+      Iface_Table : Interface_Data_Ptr;
+
+   begin
+      --  "This" points to the primary DT and we must save Offset_Value in
+      --  the Offset_To_Top field of the corresponding dispatch table.
+
+      Prim_DT     := DT (To_Tag_Ptr (This).all);
+      Iface_Table := To_Type_Specific_Data_Ptr (Prim_DT.TSD).Interfaces_Table;
+
+      --  Save Offset_Value in the table of interfaces of the primary DT.
+      --  This data will be used by the subprogram "Displace" to give support
+      --  to backward abstract interface type conversions.
+
+      --  Register the offset in the table of interfaces
+
+      if Iface_Table /= null then
+         for Id in 1 .. Iface_Table.Nb_Ifaces loop
+            if Iface_Table.Ifaces_Table (Id).Iface_Tag = Interface_T then
+               if Is_Static or else Offset_Value = 0 then
+                  Iface_Table.Ifaces_Table (Id).Static_Offset_To_Top := True;
+                  Iface_Table.Ifaces_Table (Id).Offset_To_Top_Value :=
+                    Offset_Value;
+               else
+                  Iface_Table.Ifaces_Table (Id).Static_Offset_To_Top := False;
+                  Iface_Table.Ifaces_Table (Id).Offset_To_Top_Func :=
+                    Offset_Func;
+               end if;
+
+               return;
+            end if;
+         end loop;
+      end if;
+
+      --  If we arrive here there is some error in the run-time data structure
+
+      raise Program_Error;
+   end Register_Interface_Offset;
+
    ------------------
    -- Register_Tag --
    ------------------
@@ -845,6 +870,35 @@ package body Ada.Tags is
    begin
       External_Tag_HTable.Set (T);
    end Register_Tag;
+
+   -------------------
+   -- Secondary_Tag --
+   -------------------
+
+   function Secondary_Tag (T, Iface : Tag) return Tag is
+      Iface_Table : Interface_Data_Ptr;
+      Obj_DT      : Dispatch_Table_Ptr;
+
+   begin
+      if not Is_Primary_DT (T) then
+         raise Program_Error;
+      end if;
+
+      Obj_DT      := DT (T);
+      Iface_Table := To_Type_Specific_Data_Ptr (Obj_DT.TSD).Interfaces_Table;
+
+      if Iface_Table /= null then
+         for Id in 1 .. Iface_Table.Nb_Ifaces loop
+            if Iface_Table.Ifaces_Table (Id).Iface_Tag = Iface then
+               return Iface_Table.Ifaces_Table (Id).Secondary_DT;
+            end if;
+         end loop;
+      end if;
+
+      --  If the object does not implement the interface we must raise CE
+
+      raise Constraint_Error with "invalid interface conversion";
+   end Secondary_Tag;
 
    ---------------------
    -- Set_Entry_Index --
@@ -863,68 +917,26 @@ package body Ada.Tags is
    -- Set_Offset_To_Top --
    -----------------------
 
-   procedure Set_Offset_To_Top
+   procedure Set_Dynamic_Offset_To_Top
      (This         : System.Address;
       Interface_T  : Tag;
-      Is_Static    : Boolean;
       Offset_Value : SSE.Storage_Offset;
       Offset_Func  : Offset_To_Top_Function_Ptr)
    is
-      Prim_DT     : Dispatch_Table_Ptr;
-      Sec_Base    : System.Address;
-      Sec_DT      : Dispatch_Table_Ptr;
-      Iface_Table : Interface_Data_Ptr;
-
+      Sec_Base : System.Address;
+      Sec_DT   : Dispatch_Table_Ptr;
    begin
       --  Save the offset to top field in the secondary dispatch table
 
       if Offset_Value /= 0 then
          Sec_Base := This + Offset_Value;
-         Sec_DT   := DT (To_Tag_Ptr (Sec_Base).all);
-
-         if Is_Static then
-            Sec_DT.Offset_To_Top := Offset_Value;
-         else
-            Sec_DT.Offset_To_Top := SSE.Storage_Offset'Last;
-         end if;
+         Sec_DT := DT (To_Tag_Ptr (Sec_Base).all);
+         Sec_DT.Offset_To_Top := SSE.Storage_Offset'Last;
       end if;
 
-      --  "This" points to the primary DT and we must save Offset_Value in
-      --  the Offset_To_Top field of the corresponding secondary dispatch
-      --  table.
-
-      Prim_DT     := DT (To_Tag_Ptr (This).all);
-      Iface_Table := To_Type_Specific_Data_Ptr (Prim_DT.TSD).Interfaces_Table;
-
-      --  Save Offset_Value in the table of interfaces of the primary DT.
-      --  This data will be used by the subprogram "Displace" to give support
-      --  to backward abstract interface type conversions.
-
-      --  Register the offset in the table of interfaces
-
-      if Iface_Table /= null then
-         for Id in 1 .. Iface_Table.Nb_Ifaces loop
-            if Iface_Table.Ifaces_Table (Id).Iface_Tag = Interface_T then
-               Iface_Table.Ifaces_Table (Id).Static_Offset_To_Top :=
-                 Is_Static;
-
-               if Is_Static then
-                  Iface_Table.Ifaces_Table (Id).Offset_To_Top_Value
-                    := Offset_Value;
-               else
-                  Iface_Table.Ifaces_Table (Id).Offset_To_Top_Func
-                    := Offset_Func;
-               end if;
-
-               return;
-            end if;
-         end loop;
-      end if;
-
-      --  If we arrive here there is some error in the run-time data structure
-
-      raise Program_Error;
-   end Set_Offset_To_Top;
+      Register_Interface_Offset
+        (This, Interface_T, False, Offset_Value, Offset_Func);
+   end Set_Dynamic_Offset_To_Top;
 
    ----------------------
    -- Set_Prim_Op_Kind --
@@ -948,9 +960,13 @@ package body Ada.Tags is
    --  Encoding method for source, as exported by binder
 
    function Wide_Expanded_Name (T : Tag) return Wide_String is
+      S : constant String := Expanded_Name (T);
+      W : Wide_String (1 .. S'Length);
+      L : Natural;
    begin
-      return String_To_Wide_String
-        (Expanded_Name (T), Get_WC_Encoding_Method (WC_Encoding));
+      String_To_Wide_String
+        (S, W, L, Get_WC_Encoding_Method (WC_Encoding));
+      return W (1 .. L);
    end Wide_Expanded_Name;
 
    -----------------------------
@@ -958,9 +974,13 @@ package body Ada.Tags is
    -----------------------------
 
    function Wide_Wide_Expanded_Name (T : Tag) return Wide_Wide_String is
+      S : constant String := Expanded_Name (T);
+      W : Wide_Wide_String (1 .. S'Length);
+      L : Natural;
    begin
-      return String_To_Wide_Wide_String
-        (Expanded_Name (T), Get_WC_Encoding_Method (WC_Encoding));
+      String_To_Wide_Wide_String
+        (S, W, L, Get_WC_Encoding_Method (WC_Encoding));
+      return W (1 .. L);
    end Wide_Wide_Expanded_Name;
 
 end Ada.Tags;

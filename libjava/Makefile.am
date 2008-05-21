@@ -13,13 +13,20 @@ SUBDIRS += testsuite
 endif
 
 # write_entries_to_file - writes each entry in a list
-# to the specified file. Each entry is written individually
-# to accomodate systems with severe command-line-length
-# limitations.
+# to the specified file.  Entries are written in chunks of
+# $(write_entries_to_file_split) to accomodate systems with
+# severe command-line-length limitations.
 # Parameters:
 # $(1): variable containing entries to iterate over
 # $(2): output file
-write_entries_to_file = $(shell rm -f $(2) || :) $(shell touch $(2)) $(foreach object,$(1),$(shell echo $(object) >> $(2)))
+write_entries_to_file_split = 50
+write_entries_to_file = $(shell rm -f $(2) || :) $(shell touch $(2)) \
+	$(foreach range, \
+	  $(shell i=1; while test $$i -le $(words $(1)); do \
+	     echo $$i; i=`expr $$i + $(write_entries_to_file_split)`; done), \
+	  $(shell echo $(wordlist $(range), \
+			  $(shell expr $(range) + $(write_entries_to_file_split) - 1), $(1)) \
+	     | tr ' ' '\n' >> $(2)))
 
 ## ################################################################
 
@@ -153,6 +160,12 @@ AM_GCJFLAGS = \
 AM_CFLAGS = @LIBGCJ_CFLAGS@
 if USING_GCC
 AM_CFLAGS += $(WARNINGS)
+endif
+
+if SUPPRESS_LIBGCJ_BC
+LIBGCJ_BC_FLAGS =
+else
+LIBGCJ_BC_FLAGS = -findirect-dispatch -fno-indirect-classes
 endif
 
 ## Extra CFLAGS used for JNI C sources shared with GNU Classpath.
@@ -447,7 +460,8 @@ extra_headers = java/lang/Object.h java/lang/Class.h
 $(extra_headers) $(srcdir)/java/lang/Object.h $(srcdir)/java/lang/Class.h:
 	@:
 
-install-exec-hook: install-toolexeclibLTLIBRARIES install-libexecsubPROGRAMS
+install-exec-hook: install-binPROGRAMS install-toolexeclibLTLIBRARIES \
+	install-libexecsubPROGRAMS
 ## Support for libgcj_bc: dummy shared library used only at link-time.
 if USE_LIBGCJ_BC
 ## Install libgcj_bc dummy lib in the target directory. We also need to delete
@@ -470,6 +484,7 @@ endif BUILD_ECJ1
 
 ## Install the headers.  It is fairly ugly that we have to do this by
 ## hand.
+install_data_local_split = 50
 install-data-local:
 	$(PRE_INSTALL)
 ## Install the .pc file.
@@ -482,12 +497,23 @@ install-data-local:
 ## length limit of some shells.
 	@echo Creating list of headers to install...
 	@: $(call write_entries_to_file,$(nat_headers_install) $(extra_headers),tmp-ilist)
-	@cat tmp-ilist | while read f; do \
-	  d="`echo $$f | sed -e 's,/[^/]*$$,,'`"; \
-	  $(mkinstalldirs) $(DESTDIR)$(gxx_include_dir)/$$d; \
-	  if test -f $(srcdir)/$$f; then p=$(srcdir)/$$f; else p=$$f; fi; \
-	  echo " $(INSTALL_DATA) $$p $(DESTDIR)$(gxx_include_dir)/$$f"; \
-	  $(INSTALL_DATA) $$p $(DESTDIR)$(gxx_include_dir)/$$f; \
+	@srcdirstrip=`echo "$(srcdir)" | sed 's/[].[^$$\\*]/\\\\&/g'`; \
+	while read file; do echo "$$file $$file"; done < tmp-ilist | \
+	sed "s| $$srcdirstrip/| |;"' / .*\//!s/ .*/ ./; s,\( .*\)/[^/]*$$,\1,' | \
+	$(AWK) 'BEGIN { files["."] = "" } \
+	  { files[$$2] = files[$$2] " " $$1; \
+	    if (++n[$$2] == $(install_data_local_split)) { print $$2, files[$$2]; n[$$2] = 0; files[$$2] = "" } } \
+	     END { for (dir in files) print dir, files[dir] }' | \
+	while read dir files; do \
+	  xfiles=; for file in $$files; do \
+	    if test -f "$$file"; then xfiles="$$xfiles $$file"; \
+	    else xfiles="$$xfiles $(srcdir)/$$file"; fi; done; \
+	  test -z "$$xfiles" || { \
+	    test "x$$dir" = x. || { \
+	      echo "$(mkinstalldirs) $(DESTDIR)$(gxx_include_dir)/$$dir"; \
+	      $(mkinstalldirs) $(DESTDIR)$(gxx_include_dir)/$$dir; }; \
+	    echo " $(INSTALL_DATA) $$xfiles $(DESTDIR)$(gxx_include_dir)/$$dir"; \
+	    $(INSTALL_DATA) $$xfiles $(DESTDIR)$(gxx_include_dir)/$$dir; }; \
 	done
 	-@rm -f tmp-ilist
 ## Install inner class headers.

@@ -7,7 +7,7 @@
 --                                 B o d y                                  --
 --                         (Soft Binding Version)                           --
 --                                                                          --
---          Copyright (C) 2004-2006, Free Software Foundation, Inc.         --
+--          Copyright (C) 2004-2007, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -48,17 +48,6 @@ with GNAT.Altivec.Conversions;         use  GNAT.Altivec.Conversions;
 with GNAT.Altivec.Low_Level_Interface; use  GNAT.Altivec.Low_Level_Interface;
 
 package body GNAT.Altivec.Low_Level_Vectors is
-
-   --  This package assumes C_float is an IEEE single-precision float type
-
-   pragma Assert (C_float'Machine_Radix = 2);
-   pragma Assert (C_float'Machine_Mantissa = 24);
-   pragma Assert (C_float'Machine_Emin = -125);
-   pragma Assert (C_float'Machine_Emax = 128);
-   pragma Assert (C_float'Machine_Rounds);
-   pragma Assert (not C_float'Machine_Overflows);
-   pragma Assert (C_float'Signed_Zeros);
-   pragma Assert (C_float'Denorm);
 
    --  Pixel types. As defined in [PIM-2.1 Data types]:
    --  A 16-bit pixel is 1/5/5/5;
@@ -1875,7 +1864,7 @@ package body GNAT.Altivec.Low_Level_Vectors is
 
    function To_Pixel (Source : unsigned_short) return Pixel_16 is
 
-      --  This conversion should not depend on the host endianess;
+      --  This conversion should not depend on the host endianness;
       --  therefore, we cannot use an unchecked conversion.
 
       Target : Pixel_16;
@@ -1890,7 +1879,7 @@ package body GNAT.Altivec.Low_Level_Vectors is
 
    function To_Pixel (Source : unsigned_int) return Pixel_32 is
 
-      --  This conversion should not depend on the host endianess;
+      --  This conversion should not depend on the host endianness;
       --  therefore, we cannot use an unchecked conversion.
 
       Target : Pixel_32;
@@ -1909,10 +1898,10 @@ package body GNAT.Altivec.Low_Level_Vectors is
 
    function To_unsigned_int (Source : Pixel_32) return unsigned_int is
 
-      --  This conversion should not depend on the host endianess;
+      --  This conversion should not depend on the host endianness;
       --  therefore, we cannot use an unchecked conversion.
       --  It should also be the same result, value-wise, on two hosts
-      --  with the same endianess.
+      --  with the same endianness.
 
       Target : unsigned_int := 0;
 
@@ -1941,10 +1930,10 @@ package body GNAT.Altivec.Low_Level_Vectors is
 
    function To_unsigned_short (Source : Pixel_16) return unsigned_short is
 
-      --  This conversion should not depend on the host endianess;
+      --  This conversion should not depend on the host endianness;
       --  therefore, we cannot use an unchecked conversion.
       --  It should also be the same result, value-wise, on two hosts
-      --  with the same endianess.
+      --  with the same endianness.
 
       Target : unsigned_short := 0;
 
@@ -2776,9 +2765,9 @@ package body GNAT.Altivec.Low_Level_Vectors is
 
          --  ??? Check the precision of the operation.
          --  As described in [PEM-6 vexptefp]:
-         --  If theorical_result is equal to 2 at the power of A (J) with
+         --  If theoretical_result is equal to 2 at the power of A (J) with
          --  infinite precision, we should have:
-         --  abs ((D (J) - theorical_result) / theorical_result) <= 1/16
+         --  abs ((D (J) - theoretical_result) / theoretical_result) <= 1/16
 
          D.Values (J) := 2.0 ** NJ_Truncate (VA.Values (J));
       end loop;

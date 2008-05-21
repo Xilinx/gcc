@@ -1,5 +1,5 @@
 /* Matching subroutines in all sizes, shapes and colors.
-   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
+   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
    Free Software Foundation, Inc.
    Contributed by Andy Vaught
 
@@ -104,46 +104,132 @@ gfc_op2string (gfc_intrinsic_op op)
 
 /******************** Generic matching subroutines ************************/
 
+/* This function scans the current statement counting the opened and closed
+   parenthesis to make sure they are balanced.  */
+
+match
+gfc_match_parens (void)
+{
+  locus old_loc, where;
+  int count, instring;
+  gfc_char_t c, quote;
+
+  old_loc = gfc_current_locus;
+  count = 0;
+  instring = 0;
+  quote = ' ';
+
+  for (;;)
+    {
+      c = gfc_next_char_literal (instring);
+      if (c == '\n')
+	break;
+      if (quote == ' ' && ((c == '\'') || (c == '"')))
+	{
+	  quote = c;
+	  instring = 1;
+	  continue;
+	}
+      if (quote != ' ' && c == quote)
+	{
+	  quote = ' ';
+	  instring = 0;
+	  continue;
+	}
+
+      if (c == '(' && quote == ' ')
+	{
+	  count++;
+	  where = gfc_current_locus;
+	}
+      if (c == ')' && quote == ' ')
+	{
+	  count--;
+	  where = gfc_current_locus;
+	}
+    }
+
+  gfc_current_locus = old_loc;
+
+  if (count > 0)
+    {
+      gfc_error ("Missing ')' in statement at or before %L", &where);
+      return MATCH_ERROR;
+    }
+  if (count < 0)
+    {
+      gfc_error ("Missing '(' in statement at or before %L", &where);
+      return MATCH_ERROR;
+    }
+
+  return MATCH_YES;
+}
+
+
 /* See if the next character is a special character that has
    escaped by a \ via the -fbackslash option.  */
 
 match
-gfc_match_special_char (int *c)
+gfc_match_special_char (gfc_char_t *res)
 {
-
+  int len, i;
+  gfc_char_t c, n;
   match m;
 
   m = MATCH_YES;
 
-  switch (gfc_next_char_literal (1))
+  switch ((c = gfc_next_char_literal (1)))
     {
     case 'a':
-      *c = '\a';
+      *res = '\a';
       break;
     case 'b':
-      *c = '\b';
+      *res = '\b';
       break;
     case 't':
-      *c = '\t';
+      *res = '\t';
       break;
     case 'f':
-      *c = '\f';
+      *res = '\f';
       break;
     case 'n':
-      *c = '\n';
+      *res = '\n';
       break;
     case 'r':
-      *c = '\r';
+      *res = '\r';
       break;
     case 'v':
-      *c = '\v';
+      *res = '\v';
       break;
     case '\\':
-      *c = '\\';
+      *res = '\\';
       break;
     case '0':
-      *c = '\0';
+      *res = '\0';
       break;
+
+    case 'x':
+    case 'u':
+    case 'U':
+      /* Hexadecimal form of wide characters.  */
+      len = (c == 'x' ? 2 : (c == 'u' ? 4 : 8));
+      n = 0;
+      for (i = 0; i < len; i++)
+	{
+	  char buf[2] = { '\0', '\0' };
+
+	  c = gfc_next_char_literal (1);
+	  if (!gfc_wide_fits_in_byte (c)
+	      || !gfc_check_digit ((unsigned char) c, 16))
+	    return MATCH_NO;
+
+	  buf[0] = (unsigned char) c;
+	  n = n << 4;
+	  n += strtol (buf, NULL, 16);
+	}
+      *res = n;
+      break;
+
     default:
       /* Unknown backslash codes are simply not expanded.  */
       m = MATCH_NO;
@@ -161,14 +247,14 @@ match
 gfc_match_space (void)
 {
   locus old_loc;
-  int c;
+  char c;
 
   if (gfc_current_form == FORM_FIXED)
     return MATCH_YES;
 
   old_loc = gfc_current_locus;
 
-  c = gfc_next_char ();
+  c = gfc_next_ascii_char ();
   if (!gfc_is_whitespace (c))
     {
       gfc_current_locus = old_loc;
@@ -189,7 +275,8 @@ match
 gfc_match_eos (void)
 {
   locus old_loc;
-  int flag, c;
+  int flag;
+  char c;
 
   flag = 0;
 
@@ -198,13 +285,13 @@ gfc_match_eos (void)
       old_loc = gfc_current_locus;
       gfc_gobble_whitespace ();
 
-      c = gfc_next_char ();
+      c = gfc_next_ascii_char ();
       switch (c)
 	{
 	case '!':
 	  do
 	    {
-	      c = gfc_next_char ();
+	      c = gfc_next_ascii_char ();
 	    }
 	  while (c != '\n');
 
@@ -240,8 +327,9 @@ gfc_match_small_literal_int (int *value, int *cnt)
 
   old_loc = gfc_current_locus;
 
+  *value = -1;
   gfc_gobble_whitespace ();
-  c = gfc_next_char ();
+  c = gfc_next_ascii_char ();
   if (cnt)
     *cnt = 0;
 
@@ -257,7 +345,7 @@ gfc_match_small_literal_int (int *value, int *cnt)
   for (;;)
     {
       old_loc = gfc_current_locus;
-      c = gfc_next_char ();
+      c = gfc_next_ascii_char ();
 
       if (!ISDIGIT (c))
 	break;
@@ -426,15 +514,16 @@ match
 gfc_match_name (char *buffer)
 {
   locus old_loc;
-  int i, c;
+  int i;
+  char c;
 
   old_loc = gfc_current_locus;
   gfc_gobble_whitespace ();
 
-  c = gfc_next_char ();
+  c = gfc_next_ascii_char ();
   if (!(ISALPHA (c) || (c == '_' && gfc_option.flag_allow_leading_underscore)))
     {
-      if (gfc_error_flag_test() == 0)
+      if (gfc_error_flag_test() == 0 && c != '(')
 	gfc_error ("Invalid character in name at %C");
       gfc_current_locus = old_loc;
       return MATCH_NO;
@@ -453,9 +542,16 @@ gfc_match_name (char *buffer)
 	}
 
       old_loc = gfc_current_locus;
-      c = gfc_next_char ();
+      c = gfc_next_ascii_char ();
     }
   while (ISALNUM (c) || c == '_' || (gfc_option.flag_dollar_ok && c == '$'));
+
+  if (c == '$' && !gfc_option.flag_dollar_ok)
+    {
+      gfc_error ("Invalid character '$' at %C. Use -fdollar-ok to allow it "
+		 "as an extension");
+      return MATCH_ERROR;
+    }
 
   buffer[i] = '\0';
   gfc_current_locus = old_loc;
@@ -482,7 +578,7 @@ gfc_match_name_C (char *buffer)
 {
   locus old_loc;
   int i = 0;
-  int c;
+  gfc_char_t c;
 
   old_loc = gfc_current_locus;
   gfc_gobble_whitespace ();
@@ -510,7 +606,9 @@ gfc_match_name_C (char *buffer)
   /* Continue to read valid variable name characters.  */
   do
     {
-      buffer[i++] = c;
+      gcc_assert (gfc_wide_fits_in_byte (c));
+
+      buffer[i++] = (unsigned char) c;
       
     /* C does not define a maximum length of variable names, to my
        knowledge, but the compiler typically places a limit on them.
@@ -537,7 +635,7 @@ gfc_match_name_C (char *buffer)
   if (c == ' ')
     {
       gfc_gobble_whitespace ();
-      c = gfc_peek_char ();
+      c = gfc_peek_ascii_char ();
       if (c != '"' && c != '\'')
         {
           gfc_error ("Embedded space in NAME= specifier at %C");
@@ -610,10 +708,10 @@ match
 gfc_match_intrinsic_op (gfc_intrinsic_op *result)
 {
   locus orig_loc = gfc_current_locus;
-  int ch;
+  char ch;
 
   gfc_gobble_whitespace ();
-  ch = gfc_next_char ();
+  ch = gfc_next_ascii_char ();
   switch (ch)
     {
     case '+':
@@ -627,7 +725,7 @@ gfc_match_intrinsic_op (gfc_intrinsic_op *result)
       return MATCH_YES;
 
     case '=':
-      if (gfc_next_char () == '=')
+      if (gfc_next_ascii_char () == '=')
 	{
 	  /* Matched "==".  */
 	  *result = INTRINSIC_EQ;
@@ -636,10 +734,10 @@ gfc_match_intrinsic_op (gfc_intrinsic_op *result)
       break;
 
     case '<':
-      if (gfc_peek_char () == '=')
+      if (gfc_peek_ascii_char () == '=')
 	{
 	  /* Matched "<=".  */
-	  gfc_next_char ();
+	  gfc_next_ascii_char ();
 	  *result = INTRINSIC_LE;
 	  return MATCH_YES;
 	}
@@ -648,10 +746,10 @@ gfc_match_intrinsic_op (gfc_intrinsic_op *result)
       return MATCH_YES;
 
     case '>':
-      if (gfc_peek_char () == '=')
+      if (gfc_peek_ascii_char () == '=')
 	{
 	  /* Matched ">=".  */
-	  gfc_next_char ();
+	  gfc_next_ascii_char ();
 	  *result = INTRINSIC_GE;
 	  return MATCH_YES;
 	}
@@ -660,10 +758,10 @@ gfc_match_intrinsic_op (gfc_intrinsic_op *result)
       return MATCH_YES;
 
     case '*':
-      if (gfc_peek_char () == '*')
+      if (gfc_peek_ascii_char () == '*')
 	{
 	  /* Matched "**".  */
-	  gfc_next_char ();
+	  gfc_next_ascii_char ();
 	  *result = INTRINSIC_POWER;
 	  return MATCH_YES;
 	}
@@ -672,18 +770,18 @@ gfc_match_intrinsic_op (gfc_intrinsic_op *result)
       return MATCH_YES;
 
     case '/':
-      ch = gfc_peek_char ();
+      ch = gfc_peek_ascii_char ();
       if (ch == '=')
 	{
 	  /* Matched "/=".  */
-	  gfc_next_char ();
+	  gfc_next_ascii_char ();
 	  *result = INTRINSIC_NE;
 	  return MATCH_YES;
 	}
       else if (ch == '/')
 	{
 	  /* Matched "//".  */
-	  gfc_next_char ();
+	  gfc_next_ascii_char ();
 	  *result = INTRINSIC_CONCAT;
 	  return MATCH_YES;
 	}
@@ -692,13 +790,13 @@ gfc_match_intrinsic_op (gfc_intrinsic_op *result)
       return MATCH_YES;
 
     case '.':
-      ch = gfc_next_char ();
+      ch = gfc_next_ascii_char ();
       switch (ch)
 	{
 	case 'a':
-	  if (gfc_next_char () == 'n'
-	      && gfc_next_char () == 'd'
-	      && gfc_next_char () == '.')
+	  if (gfc_next_ascii_char () == 'n'
+	      && gfc_next_ascii_char () == 'd'
+	      && gfc_next_ascii_char () == '.')
 	    {
 	      /* Matched ".and.".  */
 	      *result = INTRINSIC_AND;
@@ -707,9 +805,9 @@ gfc_match_intrinsic_op (gfc_intrinsic_op *result)
 	  break;
 
 	case 'e':
-	  if (gfc_next_char () == 'q')
+	  if (gfc_next_ascii_char () == 'q')
 	    {
-	      ch = gfc_next_char ();
+	      ch = gfc_next_ascii_char ();
 	      if (ch == '.')
 		{
 		  /* Matched ".eq.".  */
@@ -718,7 +816,7 @@ gfc_match_intrinsic_op (gfc_intrinsic_op *result)
 		}
 	      else if (ch == 'v')
 		{
-		  if (gfc_next_char () == '.')
+		  if (gfc_next_ascii_char () == '.')
 		    {
 		      /* Matched ".eqv.".  */
 		      *result = INTRINSIC_EQV;
@@ -729,10 +827,10 @@ gfc_match_intrinsic_op (gfc_intrinsic_op *result)
 	  break;
 
 	case 'g':
-	  ch = gfc_next_char ();
+	  ch = gfc_next_ascii_char ();
 	  if (ch == 'e')
 	    {
-	      if (gfc_next_char () == '.')
+	      if (gfc_next_ascii_char () == '.')
 		{
 		  /* Matched ".ge.".  */
 		  *result = INTRINSIC_GE_OS;
@@ -741,7 +839,7 @@ gfc_match_intrinsic_op (gfc_intrinsic_op *result)
 	    }
 	  else if (ch == 't')
 	    {
-	      if (gfc_next_char () == '.')
+	      if (gfc_next_ascii_char () == '.')
 		{
 		  /* Matched ".gt.".  */
 		  *result = INTRINSIC_GT_OS;
@@ -751,10 +849,10 @@ gfc_match_intrinsic_op (gfc_intrinsic_op *result)
 	  break;
 
 	case 'l':
-	  ch = gfc_next_char ();
+	  ch = gfc_next_ascii_char ();
 	  if (ch == 'e')
 	    {
-	      if (gfc_next_char () == '.')
+	      if (gfc_next_ascii_char () == '.')
 		{
 		  /* Matched ".le.".  */
 		  *result = INTRINSIC_LE_OS;
@@ -763,7 +861,7 @@ gfc_match_intrinsic_op (gfc_intrinsic_op *result)
 	    }
 	  else if (ch == 't')
 	    {
-	      if (gfc_next_char () == '.')
+	      if (gfc_next_ascii_char () == '.')
 		{
 		  /* Matched ".lt.".  */
 		  *result = INTRINSIC_LT_OS;
@@ -773,10 +871,10 @@ gfc_match_intrinsic_op (gfc_intrinsic_op *result)
 	  break;
 
 	case 'n':
-	  ch = gfc_next_char ();
+	  ch = gfc_next_ascii_char ();
 	  if (ch == 'e')
 	    {
-	      ch = gfc_next_char ();
+	      ch = gfc_next_ascii_char ();
 	      if (ch == '.')
 		{
 		  /* Matched ".ne.".  */
@@ -785,8 +883,8 @@ gfc_match_intrinsic_op (gfc_intrinsic_op *result)
 		}
 	      else if (ch == 'q')
 		{
-		  if (gfc_next_char () == 'v'
-		      && gfc_next_char () == '.')
+		  if (gfc_next_ascii_char () == 'v'
+		      && gfc_next_ascii_char () == '.')
 		    {
 		      /* Matched ".neqv.".  */
 		      *result = INTRINSIC_NEQV;
@@ -796,8 +894,8 @@ gfc_match_intrinsic_op (gfc_intrinsic_op *result)
 	    }
 	  else if (ch == 'o')
 	    {
-	      if (gfc_next_char () == 't'
-		  && gfc_next_char () == '.')
+	      if (gfc_next_ascii_char () == 't'
+		  && gfc_next_ascii_char () == '.')
 		{
 		  /* Matched ".not.".  */
 		  *result = INTRINSIC_NOT;
@@ -807,8 +905,8 @@ gfc_match_intrinsic_op (gfc_intrinsic_op *result)
 	  break;
 
 	case 'o':
-	  if (gfc_next_char () == 'r'
-	      && gfc_next_char () == '.')
+	  if (gfc_next_ascii_char () == 'r'
+	      && gfc_next_ascii_char () == '.')
 	    {
 	      /* Matched ".or.".  */
 	      *result = INTRINSIC_OR;
@@ -938,7 +1036,7 @@ gfc_match_char (char c)
   where = gfc_current_locus;
   gfc_gobble_whitespace ();
 
-  if (gfc_next_char () == c)
+  if (gfc_next_ascii_char () == c)
     return MATCH_YES;
 
   gfc_current_locus = where;
@@ -1088,7 +1186,7 @@ loop:
 	}
 
     default:
-      if (c == gfc_next_char ())
+      if (c == gfc_next_ascii_char ())
 	goto loop;
       break;
     }
@@ -1321,7 +1419,7 @@ gfc_match_if (gfc_statement *if_type)
 {
   gfc_expr *expr;
   gfc_st_label *l1, *l2, *l3;
-  locus old_loc;
+  locus old_loc, old_loc2;
   gfc_code *p;
   match m, n;
 
@@ -1334,6 +1432,14 @@ gfc_match_if (gfc_statement *if_type)
   m = gfc_match (" if ( %e", &expr);
   if (m != MATCH_YES)
     return m;
+
+  old_loc2 = gfc_current_locus;
+  gfc_current_locus = old_loc;
+  
+  if (gfc_match_parens () == MATCH_ERROR)
+    return MATCH_ERROR;
+
+  gfc_current_locus = old_loc2;
 
   if (gfc_match_char (')') != MATCH_YES)
     {
@@ -1386,7 +1492,7 @@ gfc_match_if (gfc_statement *if_type)
 
   if (n == MATCH_YES)
     {
-      gfc_error ("Block label is not appropriate IF statement at %C");
+      gfc_error ("Block label is not appropriate for IF statement at %C");
       gfc_free_expr (expr);
       return MATCH_ERROR;
     }
@@ -1456,6 +1562,7 @@ gfc_match_if (gfc_statement *if_type)
   match ("return", gfc_match_return, ST_RETURN)
   match ("rewind", gfc_match_rewind, ST_REWIND)
   match ("stop", gfc_match_stop, ST_STOP)
+  match ("wait", gfc_match_wait, ST_WAIT)
   match ("where", match_simple_where, ST_WHERE)
   match ("write", gfc_match_write, ST_WRITE)
 
@@ -1640,6 +1747,11 @@ gfc_match_do (void)
   /* Match an optional comma, if no comma is found, a space is obligatory.  */
   if (gfc_match_char (',') != MATCH_YES && gfc_match ("% ") != MATCH_YES)
     return MATCH_NO;
+
+  /* Check for balanced parens.  */
+  
+  if (gfc_match_parens () == MATCH_ERROR)
+    return MATCH_ERROR;
 
   /* See if we have a DO WHILE.  */
   if (gfc_match (" while ( %e )%t", &iter.end) == MATCH_YES)
@@ -2165,62 +2277,7 @@ gfc_match_allocate (void)
     }
 
   if (stat != NULL)
-    {
-      bool is_variable;
-
-      if (stat->symtree->n.sym->attr.intent == INTENT_IN)
-	{
-	  gfc_error ("STAT variable '%s' of ALLOCATE statement at %C cannot "
-		     "be INTENT(IN)", stat->symtree->n.sym->name);
-	  goto cleanup;
-	}
-
-      if (gfc_pure (NULL) && gfc_impure_variable (stat->symtree->n.sym))
-	{
-	  gfc_error ("Illegal STAT variable in ALLOCATE statement at %C "
-		     "for a PURE procedure");
-	  goto cleanup;
-	}
-
-      is_variable = false;
-      if (stat->symtree->n.sym->attr.flavor == FL_VARIABLE)
-	is_variable = true;
-      else if (stat->symtree->n.sym->attr.function
-	  && stat->symtree->n.sym->result == stat->symtree->n.sym
-	  && (gfc_current_ns->proc_name == stat->symtree->n.sym
-	      || (gfc_current_ns->parent
-		  && gfc_current_ns->parent->proc_name
-		     == stat->symtree->n.sym)))
-	is_variable = true;
-      else if (gfc_current_ns->entries
-	       && stat->symtree->n.sym->result == stat->symtree->n.sym)
-	{
-	  gfc_entry_list *el;
-	  for (el = gfc_current_ns->entries; el; el = el->next)
-	    if (el->sym == stat->symtree->n.sym)
-	      {
-		is_variable = true;
-	      }
-	}
-      else if (gfc_current_ns->parent && gfc_current_ns->parent->entries
-	       && stat->symtree->n.sym->result == stat->symtree->n.sym)
-	{
-	  gfc_entry_list *el;
-	  for (el = gfc_current_ns->parent->entries; el; el = el->next)
-	    if (el->sym == stat->symtree->n.sym)
-	      {
-		is_variable = true;
-	      }
-	}
-
-      if (!is_variable)
-	{
-	  gfc_error ("STAT expression at %C must be a variable");
-	  goto cleanup;
-	}
-
-      gfc_check_do_variable(stat->symtree);
-    }
+    gfc_check_do_variable(stat->symtree);
 
   if (gfc_match (" )%t") != MATCH_YES)
     goto syntax;
@@ -2362,29 +2419,7 @@ gfc_match_deallocate (void)
     }
 
   if (stat != NULL)
-    {
-      if (stat->symtree->n.sym->attr.intent == INTENT_IN)
-	{
-	  gfc_error ("STAT variable '%s' of DEALLOCATE statement at %C "
-		     "cannot be INTENT(IN)", stat->symtree->n.sym->name);
-	  goto cleanup;
-	}
-
-      if (gfc_pure(NULL) && gfc_impure_variable (stat->symtree->n.sym))
-	{
-	  gfc_error ("Illegal STAT variable in DEALLOCATE statement at %C "
-		     "for a PURE procedure");
-	  goto cleanup;
-	}
-
-      if (stat->symtree->n.sym->attr.flavor != FL_VARIABLE)
-	{
-	  gfc_error ("STAT expression at %C must be a variable");
-	  goto cleanup;
-	}
-
-      gfc_check_do_variable(stat->symtree);
-    }
+    gfc_check_do_variable(stat->symtree);
 
   if (gfc_match (" )%t") != MATCH_YES)
     goto syntax;
@@ -2413,7 +2448,6 @@ gfc_match_return (void)
   gfc_expr *e;
   match m;
   gfc_compile_state s;
-  int c;
 
   e = NULL;
   if (gfc_match_eos () == MATCH_YES)
@@ -2432,7 +2466,7 @@ gfc_match_return (void)
 	RETURN keyword:
 	  return+1
 	  return(1)  */
-      c = gfc_peek_char ();
+      char c = gfc_peek_ascii_char ();
       if (ISALPHA (c) || ISDIGIT (c))
 	return MATCH_NO;
     }
@@ -2714,11 +2748,6 @@ gfc_match_common (void)
 
       if (name[0] == '\0')
 	{
-	  if (gfc_current_ns->is_block_data)
-	    {
-	      gfc_warning ("BLOCK DATA unit cannot contain blank COMMON "
-			   "at %C");
-	    }
 	  t = &gfc_current_ns->blank_common;
 	  if (t->head == NULL)
 	    t->where = gfc_current_locus;
@@ -2872,12 +2901,12 @@ gfc_match_common (void)
 	  gfc_gobble_whitespace ();
 	  if (gfc_match_eos () == MATCH_YES)
 	    goto done;
-	  if (gfc_peek_char () == '/')
+	  if (gfc_peek_ascii_char () == '/')
 	    break;
 	  if (gfc_match_char (',') != MATCH_YES)
 	    goto syntax;
 	  gfc_gobble_whitespace ();
-	  if (gfc_peek_char () == '/')
+	  if (gfc_peek_ascii_char () == '/')
 	    break;
 	}
     }

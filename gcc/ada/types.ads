@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -47,6 +47,8 @@
 --  2s-complement. If there are any machines for which this is not a correct
 --  assumption, a significant number of changes will be required!
 
+with System;
+with Unchecked_Conversion;
 with Unchecked_Deallocation;
 
 package Types is
@@ -123,6 +125,15 @@ package Types is
    procedure Free is new Unchecked_Deallocation (String, String_Ptr);
    --  Procedure for freeing dynamically allocated String values
 
+   subtype Big_String is String (Positive);
+   type Big_String_Ptr is access all Big_String;
+   for Big_String_Ptr'Storage_Size use 0;
+   --  Virtual type for handling imported big strings
+
+   function To_Big_String_Ptr is
+     new Unchecked_Conversion (System.Address, Big_String_Ptr);
+   --  Used to obtain Big_String_Ptr values from external addresses
+
    subtype Word_Hex_String is String (1 .. 8);
    --  Type used to represent Word value as 8 hex digits, with lower case
    --  letters for the alphabetic cases.
@@ -191,6 +202,7 @@ package Types is
    --  type Source_Buffer_Ptr, see Osint.Read_Source_File for details.
 
    type Source_Buffer_Ptr is access all Big_Source_Buffer;
+   for Source_Buffer_Ptr'Storage_Size use 0;
    --  Pointer to source buffer. We use virtual origin addressing for source
    --  buffers, with thin pointers. The pointer points to a virtual instance
    --  of type Big_Source_Buffer, where the actual type is in fact of type
@@ -200,7 +212,7 @@ package Types is
 
    subtype Source_Ptr is Text_Ptr;
    --  Type used to represent a source location, which is a subscript of a
-   --  character in the source buffer. As noted above, diffferent source
+   --  character in the source buffer. As noted above, different source
    --  buffers have different ranges, so it is possible to tell from a
    --  Source_Ptr value which source it refers to. Note that negative numbers
    --  are allowed to accommodate the following special values.
@@ -423,7 +435,7 @@ package Types is
 
    No_List : constant List_Id := List_High_Bound;
    --  Used to indicate absence of a list. Note that the value is zero, which
-   --  is the same as Empty, which is helpful in intializing nodes where a
+   --  is the same as Empty, which is helpful in initializing nodes where a
    --  value of zero can represent either an empty node or an empty list.
 
    Error_List : constant List_Id := List_Low_Bound;
@@ -448,7 +460,7 @@ package Types is
    --  Type used to identify an element list (Elist header table subscript)
 
    No_Elist : constant Elist_Id := Elist_Low_Bound;
-   --  Used to indicate absense of an element list. Note that this is not
+   --  Used to indicate absence of an element list. Note that this is not
    --  an actual Elist header, so element list operations on this value
    --  are not valid.
 
@@ -497,7 +509,7 @@ package Types is
    --  Each character literal in the source is interpreted as being one of the
    --  16#8000_0000 possible Wide_Wide_Character codes, and a unique Integer
    --  Value is assigned, corresponding to the UTF_32 value, which also
-   --  correspondds to the POS value in the Wide_Wide_Character type, and also
+   --  corresponds to the POS value in the Wide_Wide_Character type, and also
    --  corresponds to the POS value in the Wide_Character and Character types
    --  for values that are in appropriate range. String literals are similarly
    --  interpreted as a sequence of such codes.
@@ -603,7 +615,7 @@ package Types is
 
    Dummy_Time_Stamp : constant Time_Stamp_Type := (others => '0');
    --  This is used for dummy time stamp values used in the D lines for
-   --  non-existant files, and is intended to be an impossible value.
+   --  non-existent files, and is intended to be an impossible value.
 
    function "="  (Left, Right : Time_Stamp_Type) return Boolean;
    function "<=" (Left, Right : Time_Stamp_Type) return Boolean;

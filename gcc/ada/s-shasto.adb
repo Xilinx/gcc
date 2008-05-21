@@ -6,8 +6,8 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1998-2007, Free Software Foundation, Inc.         --
---                                                                          --
+--          Copyright (C) 1998-2008, Free Software Foundation, Inc.         --
+--                                                                         --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
 -- ware  Foundation;  either version 2,  or (at your option) any later ver- --
@@ -31,7 +31,6 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
-with Ada.Exceptions;
 with Ada.IO_Exceptions;
 with Ada.Streams;
 
@@ -365,6 +364,43 @@ package body System.Shared_Storage is
    end Shared_Var_Lock;
 
    ----------------------
+   -- Shared_Var_Procs --
+   ----------------------
+
+   package body Shared_Var_Procs is
+
+      use type SIO.Stream_Access;
+
+      ----------
+      -- Read --
+      ----------
+
+      procedure Read is
+         S : SIO.Stream_Access := null;
+      begin
+         S := Shared_Var_ROpen (Full_Name);
+         if S /= null then
+            Typ'Read (S, V);
+            Shared_Var_Close (S);
+         end if;
+      end Read;
+
+      ------------
+      -- Write --
+      ------------
+
+      procedure Write is
+         S : SIO.Stream_Access := null;
+      begin
+         S := Shared_Var_WOpen (Full_Name);
+         Typ'Write (S, V);
+         Shared_Var_Close (S);
+         return;
+      end Write;
+
+   end Shared_Var_Procs;
+
+   ----------------------
    -- Shared_Var_ROpen --
    ----------------------
 
@@ -483,10 +519,8 @@ package body System.Shared_Storage is
                   --  Error if we cannot create the file
 
                   when others =>
-                     Ada.Exceptions.Raise_Exception
-                       (Program_Error'Identity,
-                        "Cannot create shared variable file for """ &
-                        S & '"'); -- "
+                     raise Program_Error with
+                        "Cannot create shared variable file for """ & S & '"';
                end;
          end;
 

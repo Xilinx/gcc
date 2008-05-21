@@ -1,5 +1,5 @@
 /* Handle errors.
-   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
+   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
    Free Software Foundation, Inc.
    Contributed by Andy Vaught & Niels Kristian Bech Jensen
 
@@ -152,6 +152,75 @@ error_integer (long int i)
 }
 
 
+static void
+print_wide_char_into_buffer (gfc_char_t c, char *buf)
+{
+  static const char xdigit[16] = { '0', '1', '2', '3', '4', '5', '6',
+    '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F' };
+
+  if (gfc_wide_is_printable (c))
+    {
+      buf[1] = '\0';
+      buf[0] = (unsigned char) c;
+    }
+  else if (c < ((gfc_char_t) 1 << 8))
+    {
+      buf[4] = '\0';
+      buf[3] = xdigit[c & 0x0F];
+      c = c >> 4;
+      buf[2] = xdigit[c & 0x0F];
+
+      buf[1] = 'x';
+      buf[0] = '\\';
+    }
+  else if (c < ((gfc_char_t) 1 << 16))
+    {
+      buf[6] = '\0';
+      buf[5] = xdigit[c & 0x0F];
+      c = c >> 4;
+      buf[4] = xdigit[c & 0x0F];
+      c = c >> 4;
+      buf[3] = xdigit[c & 0x0F];
+      c = c >> 4;
+      buf[2] = xdigit[c & 0x0F];
+
+      buf[1] = 'u';
+      buf[0] = '\\';
+    }
+  else
+    {
+      buf[10] = '\0';
+      buf[9] = xdigit[c & 0x0F];
+      c = c >> 4;
+      buf[8] = xdigit[c & 0x0F];
+      c = c >> 4;
+      buf[7] = xdigit[c & 0x0F];
+      c = c >> 4;
+      buf[6] = xdigit[c & 0x0F];
+      c = c >> 4;
+      buf[5] = xdigit[c & 0x0F];
+      c = c >> 4;
+      buf[4] = xdigit[c & 0x0F];
+      c = c >> 4;
+      buf[3] = xdigit[c & 0x0F];
+      c = c >> 4;
+      buf[2] = xdigit[c & 0x0F];
+
+      buf[1] = 'U';
+      buf[0] = '\\';
+    }
+}
+
+static char wide_char_print_buffer[11];
+
+const char *
+gfc_print_wide_char (gfc_char_t c)
+{
+  print_wide_char_into_buffer (c, wide_char_print_buffer);
+  return wide_char_print_buffer;
+}
+
+
 /* Show the file, where it was included, and the source line, give a
    locus.  Calls error_printf() recursively, but the recursion is at
    most one level deep.  */
@@ -163,8 +232,8 @@ show_locus (locus *loc, int c1, int c2)
 {
   gfc_linebuf *lb;
   gfc_file *f;
-  char c, *p;
-  int i, m, offset, cmax;
+  gfc_char_t c, *p;
+  int i, offset, cmax;
 
   /* TODO: Either limit the total length and number of included files
      displayed or add buffering of arbitrary number of characters in
@@ -182,11 +251,7 @@ show_locus (locus *loc, int c1, int c2)
   error_string (f->filename);
   error_char (':');
     
-#ifdef USE_MAPPED_LOCATION
   error_integer (LOCATION_LINE (lb->location));
-#else
-  error_integer (lb->linenum);
-#endif
 
   if ((c1 > 0) || (c2 > 0))
     error_char ('.');
@@ -250,34 +315,21 @@ show_locus (locus *loc, int c1, int c2)
      to work correctly when nonprintable characters exist.  A better 
      solution should be found.  */
 
-  p = lb->line + offset;
-  i = strlen (p);
+  p = &(lb->line[offset]);
+  i = gfc_wide_strlen (p);
   if (i > terminal_width)
     i = terminal_width - 1;
 
   for (; i > 0; i--)
     {
+      static char buffer[11];
+
       c = *p++;
       if (c == '\t')
 	c = ' ';
 
-      if (ISPRINT (c))
-	error_char (c);
-      else
-	{
-	  error_char ('\\');
-	  error_char ('x');
-
-	  m = ((c >> 4) & 0x0F) + '0';
-	  if (m > '9')
-	    m += 'A' - '9' - 1;
-	  error_char (m);
-
-	  m = (c & 0x0F) + '0';
-	  if (m > '9')
-	    m += 'A' - '9' - 1;
-	  error_char (m);
-	}
+      print_wide_char_into_buffer (c, buffer);
+      error_string (buffer);
     }
 
   error_char ('\n');
@@ -715,8 +767,7 @@ gfc_notify_std (int std, const char *nocmsgid, ...)
   if (gfc_suppress_error)
     return warning ? SUCCESS : FAILURE;
 
-  cur_error_buffer = (warning && !warnings_are_errors)
-		   ? &warning_buffer : &error_buffer;
+  cur_error_buffer = warning ? &warning_buffer : &error_buffer;
   cur_error_buffer->flag = 1;
   cur_error_buffer->index = 0;
 
@@ -965,31 +1016,6 @@ gfc_free_error (gfc_error_buf *err)
 {
   if (err->flag)
     gfc_free (err->message);
-}
-
-
-/* Debug wrapper for printf.  */
-
-void
-gfc_status (const char *cmsgid, ...)
-{
-  va_list argp;
-
-  va_start (argp, cmsgid);
-
-  vprintf (_(cmsgid), argp);
-
-  va_end (argp);
-}
-
-
-/* Subroutine for outputting a single char so that we don't have to go
-   around creating a lot of 1-character strings.  */
-
-void
-gfc_status_char (char c)
-{
-  putchar (c);
 }
 
 

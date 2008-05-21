@@ -1,7 +1,7 @@
 /* Handle the hair of processing (but not expanding) inline functions.
    Also manage function and variable name overloading.
    Copyright (C) 1987, 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008
    Free Software Foundation, Inc.
    Contributed by Michael Tiemann (tiemann@cygnus.com)
 
@@ -437,7 +437,7 @@ use_thunk (tree thunk_fndecl, bool emit_p)
       BLOCK_VARS (fn_block) = a;
       DECL_INITIAL (thunk_fndecl) = fn_block;
       init_function_start (thunk_fndecl);
-      current_function_is_thunk = 1;
+      crtl->is_thunk = 1;
       assemble_start_function (thunk_fndecl, fnname);
 
       targetm.asm_out.output_mi_thunk (asm_out_file, thunk_fndecl,
@@ -507,7 +507,7 @@ use_thunk (tree thunk_fndecl, bool emit_p)
 		t = build3 (COND_EXPR, TREE_TYPE (t), cond, t,
 			    cp_convert (TREE_TYPE (t), integer_zero_node));
 	    }
-	  if (IS_AGGR_TYPE (TREE_TYPE (t)))
+	  if (MAYBE_CLASS_TYPE_P (TREE_TYPE (t)))
 	    t = build_cplus_new (TREE_TYPE (t), t);
 	  finish_return_stmt (t);
 	}
@@ -674,7 +674,8 @@ do_build_assign_ref (tree fndecl)
 					build_tree_list (NULL_TREE,
 							 converted_parm),
 					base_binfo,
-					LOOKUP_NORMAL | LOOKUP_NONVIRTUAL));
+					LOOKUP_NORMAL | LOOKUP_NONVIRTUAL,
+                                        tf_warning_or_error));
 	}
 
       /* Assign to each of the non-static data members.  */
@@ -729,7 +730,8 @@ do_build_assign_ref (tree fndecl)
 	  init = build3 (COMPONENT_REF, expr_type, init, field, NULL_TREE);
 
 	  if (DECL_NAME (field))
-	    init = build_modify_expr (comp, NOP_EXPR, init);
+	    init = cp_build_modify_expr (comp, NOP_EXPR, init, 
+					 tf_warning_or_error);
 	  else
 	    init = build2 (MODIFY_EXPR, TREE_TYPE (comp), comp, init);
 	  finish_expr_stmt (init);
@@ -770,7 +772,7 @@ synthesize_method (tree fndecl)
   if (! context)
     push_to_top_level ();
   else if (nested)
-    push_function_context_to (context);
+    push_function_context ();
 
   input_location = DECL_SOURCE_LOCATION (fndecl);
 
@@ -808,7 +810,7 @@ synthesize_method (tree fndecl)
   if (! context)
     pop_from_top_level ();
   else if (nested)
-    pop_function_context_from (context);
+    pop_function_context ();
 
   pop_deferring_access_checks ();
 

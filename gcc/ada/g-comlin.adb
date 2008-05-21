@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1999-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1999-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -43,7 +43,7 @@ package body GNAT.Command_Line is
       Parameter_With_Optional_Space,  --  ':' in getopt
       Parameter_With_Space_Or_Equal,  --  '=' in getopt
       Parameter_No_Space,             --  '!' in getopt
-      Parameter_Optional);            --  '?' in getop
+      Parameter_Optional);            --  '?' in getopt
 
    procedure Set_Parameter
      (Variable : out Parameter_Type;
@@ -114,11 +114,11 @@ package body GNAT.Command_Line is
    function Args_From_Expanded (Args : Boolean_Chars) return String;
    --  Return the string made of all characters with True in Args
 
-   type Callback_Procedure is access procedure (Simple_Switch : String);
+   generic
+      with procedure Callback (Simple_Switch : String);
    procedure For_Each_Simple_Switch
-     (Cmd      : Command_Line;
-      Switch   : String;
-      Callback : Callback_Procedure);
+     (Cmd    : Command_Line;
+      Switch : String);
    --  Breaks Switch into as simple switches as possible (expanding aliases and
    --  ungrouping common prefixes when possible), and call Callback for each of
    --  these.
@@ -134,7 +134,7 @@ package body GNAT.Command_Line is
      (Cmd    : Command_Line;
       Result : Argument_List_Access;
       Params : Argument_List_Access);
-   --  When possible, replace or more switches by an alias, ie a shorter
+   --  When possible, replace or more switches by an alias, i.e. a shorter
    --  version.
 
    function Looking_At
@@ -264,8 +264,6 @@ package body GNAT.Command_Line is
             end;
          end if;
       end loop;
-
-      return String'(1 .. 0 => ' ');
    end Expansion;
 
    -----------------
@@ -567,7 +565,7 @@ package body GNAT.Command_Line is
                --  Always prepend the switch character, so that users know that
                --  this comes from a switch on the command line. This is
                --  especially important when Concatenate is False, since
-               --  otherwise the currrent argument first character is lost.
+               --  otherwise the current argument first character is lost.
 
                Set_Parameter
                  (Parser.The_Switch,
@@ -1110,12 +1108,22 @@ package body GNAT.Command_Line is
    -----------------------
 
    procedure Set_Configuration
-     (Cmd      : in out Command_Line;
-      Config   : Command_Line_Configuration)
+     (Cmd    : in out Command_Line;
+      Config : Command_Line_Configuration)
    is
    begin
       Cmd.Config := Config;
    end Set_Configuration;
+
+   -----------------------
+   -- Get_Configuration --
+   -----------------------
+
+   function Get_Configuration
+     (Cmd : Command_Line) return Command_Line_Configuration is
+   begin
+      return Cmd.Config;
+   end Get_Configuration;
 
    ----------------------
    -- Set_Command_Line --
@@ -1185,9 +1193,8 @@ package body GNAT.Command_Line is
    ----------------------------
 
    procedure For_Each_Simple_Switch
-     (Cmd      : Command_Line;
-      Switch   : String;
-      Callback : Callback_Procedure)
+     (Cmd    : Command_Line;
+      Switch : String)
    is
    begin
       --  Are we adding a switch that can in fact be expanded through aliases ?
@@ -1204,7 +1211,7 @@ package body GNAT.Command_Line is
          for A in Cmd.Config.Aliases'Range loop
             if Cmd.Config.Aliases (A).all = Switch then
                For_Each_Simple_Switch
-                 (Cmd, Cmd.Config.Expansions (A).all, Callback);
+                 (Cmd, Cmd.Config.Expansions (A).all);
                return;
             end if;
          end loop;
@@ -1227,7 +1234,7 @@ package body GNAT.Command_Line is
                           .. Switch'Last
                loop
                   For_Each_Simple_Switch
-                    (Cmd, Cmd.Config.Prefixes (P).all & Switch (S), Callback);
+                    (Cmd, Cmd.Config.Prefixes (P).all & Switch (S));
                end loop;
                return;
             end if;
@@ -1291,11 +1298,13 @@ package body GNAT.Command_Line is
          end if;
       end Add_Simple_Switch;
 
+      procedure Add_Simple_Switches is
+         new For_Each_Simple_Switch (Add_Simple_Switch);
+
    --  Start of processing for Add_Switch
 
    begin
-      For_Each_Simple_Switch
-        (Cmd, Switch, Add_Simple_Switch'Unrestricted_Access);
+      Add_Simple_Switches (Cmd, Switch);
       Free (Cmd.Coalesce);
    end Add_Switch;
 
@@ -1381,11 +1390,13 @@ package body GNAT.Command_Line is
          end if;
       end Remove_Simple_Switch;
 
+      procedure Remove_Simple_Switches is
+         new For_Each_Simple_Switch (Remove_Simple_Switch);
+
    --  Start of processing for Remove_Switch
 
    begin
-      For_Each_Simple_Switch
-        (Cmd, Switch, Remove_Simple_Switch'Unrestricted_Access);
+      Remove_Simple_Switches (Cmd, Switch);
       Free (Cmd.Coalesce);
    end Remove_Switch;
 
@@ -1440,11 +1451,13 @@ package body GNAT.Command_Line is
          end if;
       end Remove_Simple_Switch;
 
+      procedure Remove_Simple_Switches is
+         new For_Each_Simple_Switch (Remove_Simple_Switch);
+
    --  Start of processing for Remove_Switch
 
    begin
-      For_Each_Simple_Switch
-        (Cmd, Switch, Remove_Simple_Switch'Unrestricted_Access);
+      Remove_Simple_Switches (Cmd, Switch);
       Free (Cmd.Coalesce);
    end Remove_Switch;
 
@@ -1566,6 +1579,9 @@ package body GNAT.Command_Line is
          end loop;
       end Remove_Cb;
 
+      procedure Check_All is new For_Each_Simple_Switch (Check_Cb);
+      procedure Remove_All is new For_Each_Simple_Switch (Remove_Cb);
+
    --  Start of processing for Alias_Switches
 
    begin
@@ -1582,15 +1598,11 @@ package body GNAT.Command_Line is
          --  then check whether the expanded command line has all of them.
 
          Found := True;
-         For_Each_Simple_Switch
-           (Cmd, Cmd.Config.Expansions (A).all,
-            Check_Cb'Unrestricted_Access);
+         Check_All (Cmd, Cmd.Config.Expansions (A).all);
 
          if Found then
             First := Integer'Last;
-            For_Each_Simple_Switch
-              (Cmd, Cmd.Config.Expansions (A).all,
-               Remove_Cb'Unrestricted_Access);
+            Remove_All (Cmd, Cmd.Config.Expansions (A).all);
             Result (First) := new String'(Cmd.Config.Aliases (A).all);
          end if;
       end loop;

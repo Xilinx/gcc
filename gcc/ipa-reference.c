@@ -836,7 +836,7 @@ analyze_function (struct cgraph_node *fn)
   if (DECL_STRUCT_FUNCTION (decl))
     {
       tree step;
-      for (step = DECL_STRUCT_FUNCTION (decl)->unexpanded_var_list;
+      for (step = DECL_STRUCT_FUNCTION (decl)->local_decls;
 	   step;
 	   step = TREE_CHAIN (step))
 	{
@@ -949,7 +949,6 @@ static_execute (void)
     unsigned int index;
     bitmap_iterator bi;
     bitmap module_statics_readonly = BITMAP_ALLOC (&ipa_obstack);
-    bitmap module_statics_const = BITMAP_ALLOC (&ipa_obstack);
     bitmap bm_temp = BITMAP_ALLOC (&ipa_obstack);
 
     EXECUTE_IF_SET_IN_BITMAP (module_statics_escape, 0, index, bi)
@@ -999,14 +998,6 @@ static_execute (void)
 	      fprintf (dump_file, "read-only var %s\n", 
 		       get_static_name (index));
 	  }
-	if (DECL_INITIAL (var)
-	    && is_gimple_min_invariant (DECL_INITIAL (var)))
-	  {
- 	    bitmap_set_bit (module_statics_const, index);
-	    if (dump_file)
-	      fprintf (dump_file, "read-only constant %s\n",
-		       get_static_name (index));
-	  }
       }
 
     BITMAP_FREE(module_statics_escape);
@@ -1036,7 +1027,6 @@ static_execute (void)
       }
 
     BITMAP_FREE(module_statics_readonly);
-    BITMAP_FREE(module_statics_const);
     BITMAP_FREE(bm_temp);
   }
 
@@ -1329,8 +1319,10 @@ gate_reference (void)
 	  && !(errorcount || sorrycount));
 }
 
-struct tree_opt_pass pass_ipa_reference =
+struct simple_ipa_opt_pass pass_ipa_reference =
 {
+ {
+  SIMPLE_IPA_PASS,
   "static-var",				/* name */
   gate_reference,			/* gate */
   static_execute,			/* execute */
@@ -1342,8 +1334,8 @@ struct tree_opt_pass pass_ipa_reference =
   0,					/* properties_provided */
   0,					/* properties_destroyed */
   0,					/* todo_flags_start */
-  0,                                    /* todo_flags_finish */
-  0					/* letter */
+  0                                     /* todo_flags_finish */
+ }
 };
 
 #include "gt-ipa-reference.h"

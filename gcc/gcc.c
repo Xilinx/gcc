@@ -1,6 +1,6 @@
 /* Compiler driver program that can handle many languages.
    Copyright (C) 1987, 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -285,12 +285,21 @@ static struct obstack obstack;
 
 static struct obstack collect_obstack;
 
+/* This is a list of a wrapper program and its arguments.
+   e.g. wrapper_string of "strace,-c"
+   will cause all programs to run as
+       strace -c program arguments
+   instead of just
+       program arguments */
+static const char  *wrapper_string;
+
 /* Forward declaration for prototypes.  */
 struct path_prefix;
 struct prefix_list;
 
 static void init_spec (void);
 static void store_arg (const char *, int, int);
+static void insert_wrapper (const char *);
 static char *load_specs (const char *);
 static void read_specs (const char *, int);
 static void set_spec (const char *, const char *);
@@ -734,7 +743,7 @@ proper position among the other output files.  */
     %(linker) %l " LINK_PIE_SPEC "%X %{o*} %{A} %{d} %{e*} %{m} %{N} %{n} %{r}\
     %{s} %{t} %{u*} %{x} %{z} %{Z} %{!A:%{!nostdlib:%{!nostartfiles:%S}}}\
     %{static:} %{L*} %(mfwrap) %(boundswrap) %(link_libgcc) %o\
-    %{fopenmp:%:include(libgomp.spec)%(link_gomp)} %(mflib) %(boundslib)\
+    %{fopenmp|ftree-parallelize-loops=*:%:include(libgomp.spec)%(link_gomp)} %(mflib) %(boundslib)\
     %{fprofile-arcs|fprofile-generate|coverage:-lgcov}\
     %{!nostdlib:%{!nodefaultlibs:%(link_ssp) %(link_gcc_c_sequence)}}\
     %{!A:%{!nostdlib:%{!nostartfiles:%E}}} %{T*} }}}}}}"
@@ -887,7 +896,7 @@ static const char *const multilib_defaults_raw[] = MULTILIB_DEFAULTS;
 /* Adding -fopenmp should imply pthreads.  This is particularly important
    for targets that use different start files and suchlike.  */
 #ifndef GOMP_SELF_SPECS
-#define GOMP_SELF_SPECS "%{fopenmp: -pthread}"
+#define GOMP_SELF_SPECS "%{fopenmp|ftree-parallelize-loops=*: -pthread}"
 #endif
 
 static const char *const driver_self_specs[] = {
@@ -983,11 +992,14 @@ static const struct compiler default_compilers[] =
   {".c++", "#C++", 0, 0, 0}, {".C", "#C++", 0, 0, 0},
   {".CPP", "#C++", 0, 0, 0}, {".ii", "#C++", 0, 0, 0},
   {".ads", "#Ada", 0, 0, 0}, {".adb", "#Ada", 0, 0, 0},
-  {".f", "#Fortran", 0, 0, 0}, {".for", "#Fortran", 0, 0, 0},
-  {".fpp", "#Fortran", 0, 0, 0}, {".F", "#Fortran", 0, 0, 0},
-  {".FOR", "#Fortran", 0, 0, 0}, {".FPP", "#Fortran", 0, 0, 0},
-  {".f90", "#Fortran", 0, 0, 0}, {".f95", "#Fortran", 0, 0, 0},
-  {".F90", "#Fortran", 0, 0, 0}, {".F95", "#Fortran", 0, 0, 0},
+  {".f", "#Fortran", 0, 0, 0}, {".F", "#Fortran", 0, 0, 0},
+  {".for", "#Fortran", 0, 0, 0}, {".FOR", "#Fortran", 0, 0, 0},
+  {".ftn", "#Fortran", 0, 0, 0}, {".FTN", "#Fortran", 0, 0, 0},
+  {".fpp", "#Fortran", 0, 0, 0}, {".FPP", "#Fortran", 0, 0, 0},
+  {".f90", "#Fortran", 0, 0, 0}, {".F90", "#Fortran", 0, 0, 0},
+  {".f95", "#Fortran", 0, 0, 0}, {".F95", "#Fortran", 0, 0, 0},
+  {".f03", "#Fortran", 0, 0, 0}, {".F03", "#Fortran", 0, 0, 0},
+  {".f08", "#Fortran", 0, 0, 0}, {".F08", "#Fortran", 0, 0, 0},
   {".r", "#Ratfor", 0, 0, 0},
   {".p", "#Pascal", 0, 0, 0}, {".pas", "#Pascal", 0, 0, 0},
   {".java", "#Java", 0, 0, 0}, {".class", "#Java", 0, 0, 0},
@@ -2861,6 +2873,13 @@ execute (void)
 
   gcc_assert (!processing_spec_function);
 
+  if (wrapper_string)
+    {
+      string = find_a_file (&exec_prefixes, argbuf[0], X_OK, false);
+      argbuf[0] = (string) ? string : argbuf[0];
+      insert_wrapper (wrapper_string);
+    }
+
   /* Count # of piped commands.  */
   for (n_commands = 1, i = 0; i < argbuf_index; i++)
     if (strcmp (argbuf[i], "|") == 0)
@@ -2875,10 +2894,12 @@ execute (void)
 
   commands[0].prog = argbuf[0]; /* first command.  */
   commands[0].argv = &argbuf[0];
-  string = find_a_file (&exec_prefixes, commands[0].prog, X_OK, false);
-
-  if (string)
-    commands[0].argv[0] = string;
+ 
+  if (!wrapper_string)
+    {
+      string = find_a_file (&exec_prefixes, commands[0].prog, X_OK, false);
+      commands[0].argv[0] = (string) ? string : commands[0].argv[0];
+    }
 
   for (n_commands = 1, i = 0; i < argbuf_index; i++)
     if (strcmp (argbuf[i], "|") == 0)
@@ -3101,24 +3122,22 @@ See %s for instructions.",
    If a switch uses following arguments, then the `part1' field
    is the switch itself and the `args' field
    is a null-terminated vector containing the following arguments.
-   The `live_cond' field is:
-   0 when initialized
-   1 if the switch is true in a conditional spec,
-   -1 if false (overridden by a later switch)
-   -2 if this switch should be ignored (used in %<S)
+   Bits in the `live_cond' field are:
+   SWITCH_LIVE to indicate this switch is true in a conditional spec.
+   SWITCH_FALSE to indicate this switch is overridden by a later switch.
+   SWITCH_IGNORE to indicate this switch should be ignored (used in %<S).
    The `validated' field is nonzero if any spec has looked at this switch;
    if it remains zero at the end of the run, it must be meaningless.  */
 
-#define SWITCH_OK       0
-#define SWITCH_FALSE   -1
-#define SWITCH_IGNORE  -2
-#define SWITCH_LIVE     1
+#define SWITCH_LIVE    0x1
+#define SWITCH_FALSE   0x2
+#define SWITCH_IGNORE  0x4
 
 struct switchstr
 {
   const char *part1;
   const char **args;
-  int live_cond;
+  unsigned int live_cond;
   unsigned char validated;
   unsigned char ordering;
 };
@@ -3626,7 +3645,7 @@ process_command (int argc, const char **argv)
 	  /* translate_options () has turned --version into -fversion.  */
 	  printf (_("%s %s%s\n"), programname, pkgversion_string,
 		  version_string);
-	  printf ("Copyright %s 2007 Free Software Foundation, Inc.\n",
+	  printf ("Copyright %s 2008 Free Software Foundation, Inc.\n",
 		  _("(C)"));
 	  fputs (_("This is free software; see the source for copying conditions.  There is NO\n\
 warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n"),
@@ -3816,6 +3835,15 @@ warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n"
 	  use_pipes = 1;
 	  n_switches++;
 	}
+      else if (strcmp (argv[i], "-wrapper") == 0)
+        {
+	  if (++i >= argc)
+	    fatal ("argument to '-wrapper' is missing");
+
+          wrapper_string = argv[i];
+	  n_switches++;
+	  n_switches++;
+        }
       else if (strcmp (argv[i], "-###") == 0)
 	{
 	  /* This is similar to -v except that there is no execution
@@ -4138,7 +4166,7 @@ warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n"
 	     -e0 or -e1 down into the linker.  */
 	  switches[n_switches].part1 = &argv[i][0];
 	  switches[n_switches].args = 0;
-	  switches[n_switches].live_cond = SWITCH_OK;
+	  switches[n_switches].live_cond = 0;
 	  switches[n_switches].validated = 0;
 	  n_switches++;
 	}
@@ -4181,6 +4209,8 @@ warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n"
 	  infiles[n_infiles].language = "*";
 	  infiles[n_infiles++].name = argv[i];
 	}
+      else if (strcmp (argv[i], "-wrapper") == 0)
+        i++;
       else if (strcmp (argv[i], "-specs") == 0)
 	i++;
       else if (strncmp (argv[i], "-specs=", 7) == 0)
@@ -4249,7 +4279,7 @@ warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n"
 	  else
 	    switches[n_switches].args = 0;
 
-	  switches[n_switches].live_cond = SWITCH_OK;
+	  switches[n_switches].live_cond = 0;
 	  switches[n_switches].validated = 0;
 	  switches[n_switches].ordering = 0;
 	  /* These are always valid, since gcc.c itself understands the
@@ -4330,7 +4360,7 @@ set_collect_gcc_options (void)
       first_time = FALSE;
 
       /* Ignore elided switches.  */
-      if (switches[i].live_cond == SWITCH_IGNORE)
+      if ((switches[i].live_cond & SWITCH_IGNORE) != 0)
 	continue;
 
       obstack_grow (&collect_obstack, "'-", 2);
@@ -4430,6 +4460,52 @@ end_going_arg (void)
 	outfiles[input_file_number] = string;
       arg_going = 0;
     }
+}
+
+
+/* Parse the WRAPPER string which is a comma separated list of the command line
+   and insert them into the beginning of argbuf.  */
+
+static void
+insert_wrapper (const char *wrapper)
+{
+  int n = 0;
+  int i;
+  char *buf = xstrdup (wrapper);
+  char *p = buf;
+
+  do
+    {
+      n++;
+      while (*p == ',')
+        p++;
+    }
+  while ((p = strchr (p, ',')) != NULL);
+
+  if (argbuf_index + n >= argbuf_length)
+    {
+      argbuf_length = argbuf_length * 2;
+      while (argbuf_length < argbuf_index + n)
+	argbuf_length *= 2;
+      argbuf = xrealloc (argbuf, argbuf_length * sizeof (const char *));
+    }
+  for (i = argbuf_index - 1; i >= 0; i--)
+    argbuf[i + n] = argbuf[i];
+
+  i = 0;
+  p = buf;
+  do
+    {
+      while (*p == ',')
+        {
+          *p = 0;
+          p++;
+        }
+      argbuf[i++] = p;
+    }
+  while ((p = strchr (p, ',')) != NULL);
+  gcc_assert (i == n);
+  argbuf_index += n;
 }
 
 /* Process the spec SPEC and run the commands specified therein.
@@ -4558,7 +4634,7 @@ do_self_spec (const char *spec)
 	  sw = &switches[i + first];
 	  sw->part1 = &argbuf[i][1];
 	  sw->args = 0;
-	  sw->live_cond = SWITCH_OK;
+	  sw->live_cond = 0;
 	  sw->validated = 0;
 	  sw->ordering = 0;
 	}
@@ -5308,7 +5384,7 @@ do_spec_1 (const char *spec, int inswitch, const char *soft_matched_part)
 		if (!strncmp (switches[i].part1, p, len - have_wildcard)
 		    && (have_wildcard || switches[i].part1[len] == '\0'))
 		  {
-		    switches[i].live_cond = SWITCH_IGNORE;
+		    switches[i].live_cond |= SWITCH_IGNORE;
 		    switches[i].validated = 1;
 		  }
 
@@ -5926,7 +6002,8 @@ check_live_switch (int switchnum, int prefix_length)
   /* If we already processed this switch and determined if it was
      live or not, return our past determination.  */
   if (switches[switchnum].live_cond != 0)
-    return switches[switchnum].live_cond > 0;
+    return ((switches[switchnum].live_cond & SWITCH_LIVE) != 0
+	    && (switches[switchnum].live_cond & SWITCH_FALSE) == 0);
 
   /* Now search for duplicate in a manner that depends on the name.  */
   switch (*name)
@@ -5973,7 +6050,7 @@ check_live_switch (int switchnum, int prefix_length)
     }
 
   /* Otherwise the switch is live.  */
-  switches[switchnum].live_cond = SWITCH_LIVE;
+  switches[switchnum].live_cond |= SWITCH_LIVE;
   return 1;
 }
 
@@ -5988,7 +6065,7 @@ check_live_switch (int switchnum, int prefix_length)
 static void
 give_switch (int switchnum, int omit_first_word)
 {
-  if (switches[switchnum].live_cond == SWITCH_IGNORE)
+  if ((switches[switchnum].live_cond & SWITCH_IGNORE) != 0)
     return;
 
   if (!omit_first_word)
@@ -7154,7 +7231,7 @@ used_arg (const char *p, int len)
       mswitches
 	= XNEWVEC (struct mswitchstr, n_mdswitches + (n_switches ? n_switches : 1));
       for (i = 0; i < n_switches; i++)
-	if (switches[i].live_cond != SWITCH_IGNORE)
+	if ((switches[i].live_cond & SWITCH_IGNORE) == 0)
 	  {
 	    int xlen = strlen (switches[i].part1);
 	    for (j = 0; j < cnt; j++)

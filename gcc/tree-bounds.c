@@ -60,7 +60,6 @@ bounds_build_string (const char *string)
   TREE_TYPE (result) = build_array_type
     (char_type_node, build_index_type (build_int_cst (NULL_TREE, len)));
   TREE_CONSTANT (result) = 1;
-  TREE_INVARIANT (result) = 1;
   TREE_READONLY (result) = 1;
   TREE_STATIC (result) = 1;
 
@@ -96,9 +95,6 @@ bounds_varname_tree (tree decl)
     const char *sourcefile;
     unsigned sourceline = xloc.line;
     unsigned sourcecolumn = 0;
-#ifdef USE_MAPPED_LOCATION
-    sourcecolumn = xloc.column;
-#endif
     sourcefile = xloc.file;
     if (sourcefile == NULL && current_function_decl != NULL_TREE)
       sourcefile = DECL_SOURCE_FILE (current_function_decl);
@@ -188,12 +184,7 @@ bounds_file_function_line_tree (location_t location)
 
   if (xloc.line > 0)
     {
-#ifdef USE_MAPPED_LOCATION
-      if (xloc.column > 0)
-        sprintf (linecolbuf, "%d:%d", xloc.line, xloc.column);
-      else
-#endif
-        sprintf (linecolbuf, "%d", xloc.line);
+      sprintf (linecolbuf, "%d", xloc.line);
       colon = ":";
       line = linecolbuf;
     }
@@ -1509,8 +1500,10 @@ gate_tree_bounds(void)
   return flag_bounds !=0;
 }
 
-struct tree_opt_pass pass_bounds_early =
+struct gimple_opt_pass pass_bounds_early =
+{
   {
+    GIMPLE_PASS,
     "bounds-early",                       /* name */
     gate_tree_bounds,                     /* gate */
     tree_bounds_early,                    /* execute */
@@ -1522,12 +1515,14 @@ struct tree_opt_pass pass_bounds_early =
     0,                                    /* properties_provided */
     0,                                    /* properties_destroyed */
     0,                                    /* todo_flags_start */
-    TODO_dump_func,                       /* todo_flags_finish */
-    0                                     /* letter */
-  };
+    TODO_dump_func                        /* todo_flags_finish */
+  }
+};
 
-struct tree_opt_pass pass_bounds_late =
+struct gimple_opt_pass pass_bounds_late =
+{
   {
+    GIMPLE_PASS,
     "bounds-late",                        /* name */
     gate_tree_bounds,                     /* gate */
     tree_bounds_late,                     /* execute */
@@ -1540,8 +1535,8 @@ struct tree_opt_pass pass_bounds_late =
     0,                                    /* properties_destroyed */
     0,                                    /* todo_flags_start */
     TODO_verify_flow | TODO_verify_stmts
-    | TODO_dump_func,                     /* todo_flags_finish */
-    0                                     /* letter */
-  };
+    | TODO_dump_func                      /* todo_flags_finish */
+  }
+};
 
 #include "gt-tree-bounds.h"

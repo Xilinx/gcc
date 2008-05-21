@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 2001-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 2001-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -88,84 +88,88 @@ package body Prj is
                         Supp_Suffixes             => No_Supp_Language_Index);
 
    Project_Empty : constant Project_Data :=
-     (Externally_Built               => False,
-      Config                         => Default_Project_Config,
-      Languages                      => No_Name_List,
-      First_Referred_By              => No_Project,
-      Name                           => No_Name,
-      Display_Name                   => No_Name,
-      Path_Name                      => No_Path,
-      Display_Path_Name              => No_Path,
-      Virtual                        => False,
-      Location                       => No_Location,
-      Mains                          => Nil_String,
-      Directory                      => No_Path,
-      Display_Directory              => No_Path,
-      Dir_Path                       => null,
-      Library                        => False,
-      Library_Dir                    => No_Path,
-      Display_Library_Dir            => No_Path,
-      Library_Src_Dir                => No_Path,
-      Display_Library_Src_Dir        => No_Path,
-      Library_ALI_Dir                => No_Path,
-      Display_Library_ALI_Dir        => No_Path,
-      Library_Name                   => No_Name,
-      Library_Kind                   => Static,
-      Lib_Internal_Name              => No_Name,
-      Standalone_Library             => False,
-      Lib_Interface_ALIs             => Nil_String,
-      Lib_Auto_Init                  => False,
-      Libgnarl_Needed                => Unknown,
-      Symbol_Data                    => No_Symbols,
-      Ada_Sources                    => Nil_String,
-      Sources                        => Nil_String,
-      First_Source                   => No_Source,
-      Last_Source                    => No_Source,
-      Unit_Based_Language_Name       => No_Name,
-      Unit_Based_Language_Index      => No_Language_Index,
-      Imported_Directories_Switches  => null,
-      Include_Path                   => null,
-      Include_Data_Set               => False,
-      Include_Language               => No_Language_Index,
-      Source_Dirs                    => Nil_String,
-      Known_Order_Of_Source_Dirs     => True,
-      Object_Directory               => No_Path,
-      Display_Object_Dir             => No_Path,
-      Library_TS                     => Empty_Time_Stamp,
-      Exec_Directory                 => No_Path,
-      Display_Exec_Dir               => No_Path,
-      Extends                        => No_Project,
-      Extended_By                    => No_Project,
-      Naming                         => Std_Naming_Data,
-      First_Language_Processing      => No_Language_Index,
-      Decl                           => No_Declarations,
-      Imported_Projects              => Empty_Project_List,
-      All_Imported_Projects          => Empty_Project_List,
-      Ada_Include_Path               => null,
-      Ada_Objects_Path               => null,
-      Objects_Path                   => null,
-      Include_Path_File              => No_Path,
-      Objects_Path_File_With_Libs    => No_Path,
-      Objects_Path_File_Without_Libs => No_Path,
-      Config_File_Name               => No_Path,
-      Config_File_Temp               => False,
-      Linker_Name                    => No_File,
-      Linker_Path                    => No_Path,
-      Minimum_Linker_Options         => No_Name_List,
-      Config_Checked                 => False,
-      Checked                        => False,
-      Seen                           => False,
-      Need_To_Build_Lib              => False,
-      Depth                          => 0,
-      Unkept_Comments                => False,
-      Langs                          => No_Languages,
-      Supp_Languages                 => No_Supp_Language_Index,
-      Ada_Sources_Present            => True,
-      Other_Sources_Present          => True,
-      First_Other_Source             => No_Other_Source,
-      Last_Other_Source              => No_Other_Source,
-      First_Lang_Processing          => Default_First_Language_Processing_Data,
-      Supp_Language_Processing       => No_Supp_Language_Index);
+                     (Qualifier                      => Unspecified,
+                      Externally_Built               => False,
+                      Config                         => Default_Project_Config,
+                      Languages                      => No_Name_List,
+                      First_Referred_By              => No_Project,
+                      Name                           => No_Name,
+                      Display_Name                   => No_Name,
+                      Path_Name                      => No_Path,
+                      Display_Path_Name              => No_Path,
+                      Virtual                        => False,
+                      Location                       => No_Location,
+                      Mains                          => Nil_String,
+                      Directory                      => No_Path,
+                      Display_Directory              => No_Path,
+                      Dir_Path                       => null,
+                      Library                        => False,
+                      Library_Dir                    => No_Path,
+                      Display_Library_Dir            => No_Path,
+                      Library_Src_Dir                => No_Path,
+                      Display_Library_Src_Dir        => No_Path,
+                      Library_ALI_Dir                => No_Path,
+                      Display_Library_ALI_Dir        => No_Path,
+                      Library_Name                   => No_Name,
+                      Library_Kind                   => Static,
+                      Lib_Internal_Name              => No_Name,
+                      Standalone_Library             => False,
+                      Lib_Interface_ALIs             => Nil_String,
+                      Lib_Auto_Init                  => False,
+                      Libgnarl_Needed                => Unknown,
+                      Symbol_Data                    => No_Symbols,
+                      Ada_Sources                    => Nil_String,
+                      Sources                        => Nil_String,
+                      First_Source                   => No_Source,
+                      Last_Source                    => No_Source,
+                      Interfaces_Defined             => False,
+                      Unit_Based_Language_Name       => No_Name,
+                      Unit_Based_Language_Index      => No_Language_Index,
+                      Imported_Directories_Switches  => null,
+                      Include_Path                   => null,
+                      Include_Data_Set               => False,
+                      Include_Language               => No_Language_Index,
+                      Source_Dirs                    => Nil_String,
+                      Known_Order_Of_Source_Dirs     => True,
+                      Object_Directory               => No_Path,
+                      Display_Object_Dir             => No_Path,
+                      Library_TS                     => Empty_Time_Stamp,
+                      Exec_Directory                 => No_Path,
+                      Display_Exec_Dir               => No_Path,
+                      Extends                        => No_Project,
+                      Extended_By                    => No_Project,
+                      Naming                         => Std_Naming_Data,
+                      First_Language_Processing      => No_Language_Index,
+                      Decl                           => No_Declarations,
+                      Imported_Projects              => Empty_Project_List,
+                      All_Imported_Projects          => Empty_Project_List,
+                      Ada_Include_Path               => null,
+                      Ada_Objects_Path               => null,
+                      Objects_Path                   => null,
+                      Include_Path_File              => No_Path,
+                      Objects_Path_File_With_Libs    => No_Path,
+                      Objects_Path_File_Without_Libs => No_Path,
+                      Config_File_Name               => No_Path,
+                      Config_File_Temp               => False,
+                      Linker_Name                    => No_File,
+                      Linker_Path                    => No_Path,
+                      Minimum_Linker_Options         => No_Name_List,
+                      Config_Checked                 => False,
+                      Checked                        => False,
+                      Seen                           => False,
+                      Need_To_Build_Lib              => False,
+                      Depth                          => 0,
+                      Unkept_Comments                => False,
+                      Langs                          => No_Languages,
+                      Supp_Languages                 => No_Supp_Language_Index,
+                      Ada_Sources_Present            => True,
+                      Other_Sources_Present          => True,
+                      First_Other_Source             => No_Other_Source,
+                      Last_Other_Source              => No_Other_Source,
+                      First_Lang_Processing          =>
+                        Default_First_Language_Processing_Data,
+                      Supp_Language_Processing       =>
+                        No_Supp_Language_Index);
 
    package Temp_Files is new Table.Table
      (Table_Component_Type => Path_Name_Type,
@@ -232,10 +236,6 @@ package body Prj is
       Naming   : Naming_Data) return File_Name_Type
    is
       Language_Id : Name_Id;
-      Element_Id  : Array_Element_Id;
-      Element     : Array_Element;
-      Suffix      : File_Name_Type := No_File;
-      Lang        : Language_Index;
 
    begin
       Name_Len := 0;
@@ -243,6 +243,29 @@ package body Prj is
       To_Lower (Name_Buffer (1 .. Name_Len));
       Language_Id := Name_Find;
 
+      return
+        Body_Suffix_Id_Of
+          (In_Tree     => In_Tree,
+           Language_Id => Language_Id,
+           Naming      => Naming);
+   end Body_Suffix_Id_Of;
+
+   -----------------------
+   -- Body_Suffix_Id_Of --
+   -----------------------
+
+   function Body_Suffix_Id_Of
+     (In_Tree     : Project_Tree_Ref;
+      Language_Id : Name_Id;
+      Naming      : Naming_Data) return File_Name_Type
+   is
+      Element_Id : Array_Element_Id;
+      Element    : Array_Element;
+      Suffix     : File_Name_Type := No_File;
+      Lang       : Language_Index;
+
+   begin
+      --  ??? This seems to be only for Ada_Only mode...
       Element_Id := Naming.Body_Suffix;
       while Element_Id /= No_Array_Element loop
          Element := In_Tree.Array_Elements.Table (Element_Id);
@@ -526,8 +549,7 @@ package body Prj is
             In_Tree.Projects.Table (Project).Seen := True;
             Action (Project, With_State);
 
-            List :=
-              In_Tree.Projects.Table (Project).Imported_Projects;
+            List := In_Tree.Projects.Table (Project).Imported_Projects;
             while List /= Empty_Project_List loop
                Recursive_Check (In_Tree.Project_Lists.Table (List).Project);
                List := In_Tree.Project_Lists.Table (List).Next;
@@ -560,6 +582,9 @@ package body Prj is
    -- Hash --
    ----------
 
+   function Hash is new System.HTable.Hash (Header_Num => Header_Num);
+   --  Used in implementation of other functions Hash below
+
    function Hash (Name : File_Name_Type) return Header_Num is
    begin
       return Hash (Get_Name_String (Name));
@@ -573,6 +598,11 @@ package body Prj is
    function Hash (Name : Path_Name_Type) return Header_Num is
    begin
       return Hash (Get_Name_String (Name));
+   end Hash;
+
+   function Hash (Project : Project_Id) return Header_Num is
+   begin
+      return Header_Num (Project mod Max_Header_Num);
    end Hash;
 
    -----------
@@ -605,6 +635,7 @@ package body Prj is
          Name_Len := 0;
          The_Empty_String := Name_Find;
          Empty_Name := The_Empty_String;
+         Empty_File_Name := File_Name_Type (The_Empty_String);
          Name_Len := 4;
          Name_Buffer (1 .. 4) := ".ads";
          Default_Ada_Spec_Suffix_Id := Name_Find;
@@ -644,25 +675,16 @@ package body Prj is
    function Is_A_Language
      (Tree          : Project_Tree_Ref;
       Data          : Project_Data;
-      Language_Name : String) return Boolean
+      Language_Name : Name_Id) return Boolean
    is
-      Lang_Id : Name_Id;
-
    begin
-      Name_Len := 0;
-      Add_Str_To_Name_Buffer (Language_Name);
-      To_Lower (Name_Buffer (1 .. Name_Len));
-      Lang_Id := Name_Find;
-
       if Get_Mode = Ada_Only then
          declare
             List : Name_List_Index := Data.Languages;
-
          begin
             while List /= No_Name_List loop
-               if Tree.Name_Lists.Table (List).Name = Lang_Id then
+               if Tree.Name_Lists.Table (List).Name = Language_Name then
                   return True;
-
                else
                   List := Tree.Name_Lists.Table (List).Next;
                end if;
@@ -671,15 +693,14 @@ package body Prj is
 
       else
          declare
-            Lang_Ind  : Language_Index;
+            Lang_Ind  : Language_Index := Data.First_Language_Processing;
             Lang_Data : Language_Data;
 
          begin
-            Lang_Ind := Data.First_Language_Processing;
             while Lang_Ind /= No_Language_Index loop
                Lang_Data := Tree.Languages_Data.Table (Lang_Ind);
 
-               if Lang_Data.Name = Lang_Id then
+               if Lang_Data.Name = Language_Name then
                   return True;
                end if;
 
@@ -734,10 +755,11 @@ package body Prj is
 
          when others =>
             declare
-               Supp : Supp_Language;
-               Supp_Index : Supp_Language_Index := In_Project.Supp_Languages;
+               Supp       : Supp_Language;
+               Supp_Index : Supp_Language_Index;
 
             begin
+               Supp_Index := In_Project.Supp_Languages;
                while Supp_Index /= No_Supp_Language_Index loop
                   Supp := In_Tree.Present_Languages.Table (Supp_Index);
 
@@ -772,11 +794,11 @@ package body Prj is
 
          when others =>
             declare
-               Supp : Supp_Language_Data;
-               Supp_Index : Supp_Language_Index :=
-                 In_Project.Supp_Language_Processing;
+               Supp       : Supp_Language_Data;
+               Supp_Index : Supp_Language_Index;
 
             begin
+               Supp_Index := In_Project.Supp_Language_Processing;
                while Supp_Index /= No_Supp_Language_Index loop
                   Supp := In_Tree.Supp_Languages.Table (Supp_Index);
 
@@ -811,7 +833,6 @@ package body Prj is
          Language_Id := Name_Find;
 
          Lang := In_Tree.First_Language;
-
          while Lang /= No_Language_Index loop
             if In_Tree.Languages_Data.Table (Lang).Name = Language_Id then
                return
@@ -870,12 +891,11 @@ package body Prj is
       Name_Buffer (1 .. Name_Len) := To_Lower (Name_Buffer (1 .. Name_Len));
       Lang := Name_Find;
 
-      Suffix := In_Tree.Private_Part.Default_Naming.Spec_Suffix;
-      Found := False;
-
-      --  Look for an element of the spec sufix array indexed by the language
+      --  Look for an element of the spec suffix array indexed by the language
       --  name. If one is found, put the default value.
 
+      Suffix := In_Tree.Private_Part.Default_Naming.Spec_Suffix;
+      Found := False;
       while Suffix /= No_Array_Element and then not Found loop
          Element := In_Tree.Array_Elements.Table (Suffix);
 
@@ -911,12 +931,11 @@ package body Prj is
            Array_Element_Table.Last (In_Tree.Array_Elements);
       end if;
 
-      Suffix := In_Tree.Private_Part.Default_Naming.Body_Suffix;
-      Found := False;
-
-      --  Look for an element of the body sufix array indexed by the language
+      --  Look for an element of the body suffix array indexed by the language
       --  name. If one is found, put the default value.
 
+      Suffix := In_Tree.Private_Part.Default_Naming.Body_Suffix;
+      Found := False;
       while Suffix /= No_Array_Element and then not Found loop
          Element := In_Tree.Array_Elements.Table (Suffix);
 
@@ -1048,17 +1067,17 @@ package body Prj is
 
          when others =>
             declare
-               Supp : Supp_Language;
-               Supp_Index : Supp_Language_Index := In_Project.Supp_Languages;
+               Supp       : Supp_Language;
+               Supp_Index : Supp_Language_Index;
 
             begin
+               Supp_Index := In_Project.Supp_Languages;
                while Supp_Index /= No_Supp_Language_Index loop
-                  Supp := In_Tree.Present_Languages.Table
-                                                                (Supp_Index);
+                  Supp := In_Tree.Present_Languages.Table (Supp_Index);
 
                   if Supp.Index = Language then
-                     In_Tree.Present_Languages.Table
-                                            (Supp_Index).Present := Present;
+                     In_Tree.Present_Languages.Table (Supp_Index).Present :=
+                       Present;
                      return;
                   end if;
 
@@ -1069,8 +1088,8 @@ package body Prj is
                         Next  => In_Project.Supp_Languages);
                Present_Language_Table.Increment_Last
                  (In_Tree.Present_Languages);
-               Supp_Index := Present_Language_Table.Last
-                 (In_Tree.Present_Languages);
+               Supp_Index :=
+                 Present_Language_Table.Last (In_Tree.Present_Languages);
                In_Tree.Present_Languages.Table (Supp_Index) :=
                  Supp;
                In_Project.Supp_Languages := Supp_Index;
@@ -1095,7 +1114,7 @@ package body Prj is
 
          when others =>
             declare
-               Supp : Supp_Language_Data;
+               Supp       : Supp_Language_Data;
                Supp_Index : Supp_Language_Index;
 
             begin
@@ -1140,18 +1159,16 @@ package body Prj is
 
          when others =>
             declare
-               Supp : Supp_Suffix;
-               Supp_Index : Supp_Language_Index :=
-                 In_Project.Naming.Supp_Suffixes;
+               Supp       : Supp_Suffix;
+               Supp_Index : Supp_Language_Index;
 
             begin
+               Supp_Index := In_Project.Naming.Supp_Suffixes;
                while Supp_Index /= No_Supp_Language_Index loop
-                  Supp := In_Tree.Supp_Suffixes.Table
-                                                            (Supp_Index);
+                  Supp := In_Tree.Supp_Suffixes.Table (Supp_Index);
 
                   if Supp.Index = For_Language then
-                     In_Tree.Supp_Suffixes.Table
-                       (Supp_Index).Suffix := Suffix;
+                     In_Tree.Supp_Suffixes.Table (Supp_Index).Suffix := Suffix;
                      return;
                   end if;
 
@@ -1160,10 +1177,8 @@ package body Prj is
 
                Supp := (Index => For_Language, Suffix => Suffix,
                         Next  => In_Project.Naming.Supp_Suffixes);
-               Supp_Suffix_Table.Increment_Last
-                 (In_Tree.Supp_Suffixes);
-               Supp_Index := Supp_Suffix_Table.Last
-                 (In_Tree.Supp_Suffixes);
+               Supp_Suffix_Table.Increment_Last (In_Tree.Supp_Suffixes);
+               Supp_Index := Supp_Suffix_Table.Last (In_Tree.Supp_Suffixes);
                In_Tree.Supp_Suffixes.Table (Supp_Index) := Supp;
                In_Project.Naming.Supp_Suffixes := Supp_Index;
             end;
@@ -1224,6 +1239,14 @@ package body Prj is
    procedure Set_Mode (New_Mode : Mode) is
    begin
       Current_Mode := New_Mode;
+      case New_Mode is
+         when Ada_Only =>
+            Default_Language_Is_Ada := True;
+            Must_Check_Configuration := False;
+         when Multi_Language =>
+            Default_Language_Is_Ada := False;
+            Must_Check_Configuration := True;
+      end case;
    end Set_Mode;
 
    ---------------------
@@ -1283,10 +1306,6 @@ package body Prj is
       Naming   : Naming_Data) return File_Name_Type
    is
       Language_Id : Name_Id;
-      Element_Id  : Array_Element_Id;
-      Element     : Array_Element;
-      Suffix      : File_Name_Type := No_File;
-      Lang        : Language_Index;
 
    begin
       Name_Len := 0;
@@ -1294,8 +1313,29 @@ package body Prj is
       To_Lower (Name_Buffer (1 .. Name_Len));
       Language_Id := Name_Find;
 
-      Element_Id := Naming.Spec_Suffix;
+      return
+        Spec_Suffix_Id_Of
+          (In_Tree     => In_Tree,
+           Language_Id => Language_Id,
+           Naming      => Naming);
+   end Spec_Suffix_Id_Of;
 
+   -----------------------
+   -- Spec_Suffix_Id_Of --
+   -----------------------
+
+   function Spec_Suffix_Id_Of
+     (In_Tree     : Project_Tree_Ref;
+      Language_Id : Name_Id;
+      Naming      : Naming_Data) return File_Name_Type
+   is
+      Element_Id : Array_Element_Id;
+      Element    : Array_Element;
+      Suffix     : File_Name_Type := No_File;
+      Lang       : Language_Index;
+
+   begin
+      Element_Id := Naming.Spec_Suffix;
       while Element_Id /= No_Array_Element loop
          Element := In_Tree.Array_Elements.Table (Element_Id);
 
@@ -1308,7 +1348,6 @@ package body Prj is
 
       if Current_Mode = Multi_Language then
          Lang := In_Tree.First_Language;
-
          while Lang /= No_Language_Index loop
             if In_Tree.Languages_Data.Table (Lang).Name = Language_Id then
                Suffix :=
@@ -1346,7 +1385,6 @@ package body Prj is
       Language_Id := Name_Find;
 
       Element_Id := Naming.Spec_Suffix;
-
       while Element_Id /= No_Array_Element loop
          Element := In_Tree.Array_Elements.Table (Element_Id);
 
@@ -1359,7 +1397,6 @@ package body Prj is
 
       if Current_Mode = Multi_Language then
          Lang := In_Tree.First_Language;
-
          while Lang /= No_Language_Index loop
             if In_Tree.Languages_Data.Table (Lang).Name = Language_Id then
                Suffix :=
@@ -1391,7 +1428,6 @@ package body Prj is
       if Tree = No_Project_Tree then
          Prj.Initialize (Tree => No_Project_Tree);
          return Std_Naming_Data;
-
       else
          return Tree.Private_Part.Default_Naming;
       end if;
@@ -1416,11 +1452,11 @@ package body Prj is
 
          when others =>
             declare
-               Supp : Supp_Suffix;
-               Supp_Index : Supp_Language_Index :=
-                 In_Project.Naming.Supp_Suffixes;
+               Supp       : Supp_Suffix;
+               Supp_Index : Supp_Language_Index;
 
             begin
+               Supp_Index := In_Project.Naming.Supp_Suffixes;
                while Supp_Index /= No_Supp_Language_Index loop
                   Supp := In_Tree.Supp_Suffixes.Table (Supp_Index);
 

@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-1999, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -40,6 +40,7 @@ with Namet;
 with Nlists;
 with Opt;
 with Repinfo;
+with Sem_Aux;
 with Sinput;
 with Stand;
 with Stringt;
@@ -57,6 +58,7 @@ begin
    Lib.Tree_Read;
    Namet.Tree_Read;
    Nlists.Tree_Read;
+   Sem_Aux.Tree_Read;
    Sinput.Tree_Read;
    Stand.Tree_Read;
    Stringt.Tree_Read;

@@ -1768,6 +1768,9 @@ write_CV_qualifiers_for_type (const tree type)
 static void
 write_builtin_type (tree type)
 {
+  if (TYPE_CANONICAL (type))
+    type = TYPE_CANONICAL (type);
+
   switch (TREE_CODE (type))
     {
     case VOID_TYPE:
@@ -1779,10 +1782,14 @@ write_builtin_type (tree type)
       break;
 
     case INTEGER_TYPE:
-      /* TYPE may still be wchar_t, since that isn't in
-	 integer_type_nodes.  */
+      /* TYPE may still be wchar_t, char16_t, or char32_t, since that
+	 isn't in integer_type_nodes.  */
       if (type == wchar_type_node)
 	write_char ('w');
+      else if (type == char16_type_node)
+	write_string ("u8char16_t");
+      else if (type == char32_type_node)
+	write_string ("u8char32_t");
       else if (TYPE_FOR_JAVA (type))
 	write_java_integer_type_codes (type);
       else

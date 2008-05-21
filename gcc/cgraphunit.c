@@ -1,5 +1,6 @@
 /* Callgraph based interprocedural optimizations.
-   Copyright (C) 2003, 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
+   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008
+   Free Software Foundation, Inc.
    Contributed by Jan Hubicka
 
 This file is part of GCC.
@@ -459,22 +460,13 @@ cgraph_process_new_functions (void)
 	    cgraph_analyze_function (node);
 	  push_cfun (DECL_STRUCT_FUNCTION (fndecl));
 	  current_function_decl = fndecl;
-	  node->local.inlinable = tree_inlinable_function_p (fndecl);
-	  node->local.self_insns = estimate_num_insns (fndecl,
-						       &eni_inlining_weights);
-	  node->local.disregard_inline_limits
-	    |= DECL_DISREGARD_INLINE_LIMITS (fndecl);
-	  /* Inlining characteristics are maintained by the
-	     cgraph_mark_inline.  */
-	  node->global.insns = node->local.self_insns;
-	  if (flag_really_no_inline && !node->local.disregard_inline_limits)
-	     node->local.inlinable = 0;
+	  compute_inline_parameters (node);
 	  if ((cgraph_state == CGRAPH_STATE_IPA_SSA
 	      && !gimple_in_ssa_p (DECL_STRUCT_FUNCTION (fndecl)))
 	      /* When not optimizing, be sure we run early local passes anyway
 		 to expand OMP.  */
 	      || !optimize)
-	    execute_pass_list (pass_early_local_passes.sub);
+	    execute_pass_list (pass_early_local_passes.pass.sub);
 	  free_dominance_info (CDI_POST_DOMINATORS);
 	  free_dominance_info (CDI_DOMINATORS);
 	  pop_cfun ();
@@ -573,8 +565,9 @@ cgraph_reset_node (struct cgraph_node *node)
   cgraph_node_remove_callees (node);
 
   /* We may need to re-queue the node for assembling in case
-     we already proceeded it and ignored as not needed.  */
-  if (node->reachable && !flag_unit_at_a_time)
+     we already proceeded it and ignored as not needed or got
+     a re-declaration in IMA mode.  */
+  if (node->reachable)
     {
       struct cgraph_node *n;
 
@@ -656,6 +649,7 @@ verify_cgraph_node (struct cgraph_node *node)
   struct cgraph_edge *e;
   struct cgraph_node *main_clone;
   struct function *this_cfun = DECL_STRUCT_FUNCTION (node->decl);
+  struct function *saved_cfun = cfun;
   basic_block this_block;
   block_stmt_iterator bsi;
   bool error_found = false;
@@ -664,6 +658,8 @@ verify_cgraph_node (struct cgraph_node *node)
     return;
 
   timevar_push (TV_CGRAPH_VERIFY);
+  /* debug_generic_stmt needs correct cfun */
+  set_cfun (this_cfun);
   for (e = node->callees; e; e = e->next_callee)
     if (e->aux)
       {
@@ -806,6 +802,7 @@ verify_cgraph_node (struct cgraph_node *node)
       dump_cgraph_node (stderr, node);
       internal_error ("verify_cgraph_node failed");
     }
+  set_cfun (saved_cfun);
   timevar_pop (TV_CGRAPH_VERIFY);
 }
 
@@ -852,7 +849,7 @@ cgraph_analyze_function (struct cgraph_node *node)
     {
       bitmap_obstack_initialize (NULL);
       tree_register_cfg_hooks ();
-      execute_pass_list (pass_early_local_passes.sub);
+      execute_pass_list (pass_early_local_passes.pass.sub);
       free_dominance_info (CDI_POST_DOMINATORS);
       free_dominance_info (CDI_DOMINATORS);
       bitmap_obstack_release (NULL);
@@ -1515,6 +1512,7 @@ cgraph_build_static_cdtor (char which, tree body, int priority)
 
   cgraph_add_new_function (decl, false);
   cgraph_mark_needed_node (cgraph_node (decl));
+  set_cfun (NULL);
 }
 
 void

@@ -1,6 +1,6 @@
 // Special functions -*- C++ -*-
 
-// Copyright (C) 2006-2007
+// Copyright (C) 2006, 2007, 2008
 // Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
@@ -58,15 +58,7 @@ namespace std
 {
 namespace tr1
 {
-
-  /**
-   * @ingroup tr1_math_spec_func
-   * @{
-   */
-
-  //
   // Implementation-space details.
-  //
   namespace __detail
   {
 
@@ -383,7 +375,7 @@ namespace tr1
      *   @brief  Return the digamma function for large argument.
      *   The digamma or @f$ \psi(x) @f$ function is defined by
      *   @f[
-     *     \psi(x) = \frac{Gamma'(x)}{\Gamma(x)}
+     *     \psi(x) = \frac{\Gamma'(x)}{\Gamma(x)}
      *   @f]
      *
      *   The asymptotic series is given by:
@@ -416,7 +408,7 @@ namespace tr1
      *   @brief  Return the digamma function.
      *   The digamma or @f$ \psi(x) @f$ function is defined by
      *   @f[
-     *     \psi(x) = \frac{Gamma'(x)}{\Gamma(x)}
+     *     \psi(x) = \frac{\Gamma'(x)}{\Gamma(x)}
      *   @f]
      *   For negative argument the reflection formula is used:
      *   @f[
@@ -477,9 +469,6 @@ namespace tr1
     }
 
   } // namespace std::tr1::__detail
-
-  /* @} */ // group tr1_math_spec_func
-
 }
 }
 

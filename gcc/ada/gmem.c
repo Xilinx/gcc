@@ -6,7 +6,7 @@
  *                                                                          *
  *                          C Implementation File                           *
  *                                                                          *
- *         Copyright (C) 2000-2007, Free Software Foundation, Inc.          *
+ *         Copyright (C) 2000-2008, Free Software Foundation, Inc.          *
  *                                                                          *
  * GNAT is free software;  you can  redistribute it  and/or modify it under *
  * terms of the  GNU General Public License as published  by the Free Soft- *
@@ -50,6 +50,13 @@
 
 */
 
+#ifdef VMS
+#include <string.h>
+#define xstrdup32(S)  strcpy ((__char_ptr32) _malloc32 (strlen (S) + 1), S)
+#else
+#define xstrdup32(S) S
+#endif
+
 #include <stdio.h>
 
 static FILE *gmemfile;
@@ -79,7 +86,7 @@ __gnat_convert_addresses (void *addrs[], int n_addrs, void *buf, int *len);
    routine.  The latter examines debug info from a provided executable file
    name to perform the translation into symbolic form of an input sequence of
    raw binary addresses.  It attempts to open the file from the provided name
-   "as is", so an an absolute path must be provided to ensure the file is
+   "as is", so an absolute path must be provided to ensure the file is
    always found.  We compute this name once, at initialization time.  */
 
 static const char * exename = 0;
@@ -141,8 +148,10 @@ long long __gnat_gmem_initialize (char *dumpname)
 void __gnat_gmem_a2l_initialize (char *exearg)
 {
   /* Resolve the executable filename to use in later invocations of
-     the libaddr2line symbolization service.  */
-  exename = __gnat_locate_exec_on_path (exearg);
+     the libaddr2line symbolization service. Ensure that on VMS
+     exename is allocated in 32 bit memory for compatibility
+     with libaddr2line. */
+  exename = xstrdup32 (__gnat_locate_exec_on_path (exearg));
 }
 
 /* Read next allocation of deallocation information from the GMEM file and

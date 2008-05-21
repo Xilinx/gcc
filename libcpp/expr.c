@@ -1,6 +1,6 @@
 /* Parse C expressions for cpplib.
    Copyright (C) 1987, 1992, 1994, 1995, 1997, 1998, 1999, 2000, 2001,
-   2002, 2004 Free Software Foundation.
+   2002, 2004, 2008 Free Software Foundation.
    Contributed by Per Bothner, 1994.
 
 This program is free software; you can redistribute it and/or modify it
@@ -637,6 +637,20 @@ parse_defined (cpp_reader *pfile)
 		   "this use of \"defined\" may not be portable");
 
       _cpp_mark_macro_used (node);
+      if (!(node->flags & NODE_USED))
+	{
+	  node->flags |= NODE_USED;
+	  if (node->type == NT_MACRO)
+	    {
+	      if (pfile->cb.used_define)
+		pfile->cb.used_define (pfile, pfile->directive_line, node);
+	    }
+	  else
+	    {
+	      if (pfile->cb.used_undef)
+		pfile->cb.used_undef (pfile, pfile->directive_line, node);
+	    }
+	}
 
       /* A possible controlling macro of the form #if !defined ().
 	 _cpp_parse_expr checks there was no other junk on the line.  */
@@ -691,6 +705,8 @@ eval_token (cpp_reader *pfile, const cpp_token *token)
 
     case CPP_WCHAR:
     case CPP_CHAR:
+    case CPP_CHAR16:
+    case CPP_CHAR32:
       {
 	cppchar_t cc = cpp_interpret_charconst (pfile, token,
 						&temp, &unsignedp);
@@ -729,10 +745,25 @@ eval_token (cpp_reader *pfile, const cpp_token *token)
 	}
       break;
 
-    default: /* CPP_HASH */
+    case CPP_HASH:
+      if (!pfile->state.skipping)
+	{
+	  /* A pedantic warning takes precedence over a deprecated
+	     warning here.  */
+	  if (CPP_PEDANTIC (pfile))
+	    cpp_error (pfile, CPP_DL_PEDWARN,
+		       "assertions are a GCC extension");
+	  else if (CPP_OPTION (pfile, warn_deprecated))
+	    cpp_error (pfile, CPP_DL_WARNING,
+		       "assertions are a deprecated extension");
+	}
       _cpp_test_assertion (pfile, &temp);
       result.high = 0;
       result.low = temp;
+      break;
+
+    default:
+      abort ();
     }
 
   result.unsignedp = !!unsignedp;
@@ -793,9 +824,11 @@ static const struct cpp_operator
   /* COMPL */		{16, NO_L_OPERAND},
   /* AND_AND */		{6, LEFT_ASSOC},
   /* OR_OR */		{5, LEFT_ASSOC},
-  /* QUERY */		{3, 0},
+  /* Note that QUERY, COLON, and COMMA must have the same precedence.
+     However, there are some special cases for these in reduce().  */
+  /* QUERY */		{4, 0},
   /* COLON */		{4, LEFT_ASSOC | CHECK_PROMOTION},
-  /* COMMA */		{2, LEFT_ASSOC},
+  /* COMMA */		{4, LEFT_ASSOC},
   /* OPEN_PAREN */	{1, NO_L_OPERAND},
   /* CLOSE_PAREN */	{0, 0},
   /* EOF */		{0, 0},
@@ -849,6 +882,8 @@ _cpp_parse_expr (cpp_reader *pfile)
 	case CPP_NUMBER:
 	case CPP_CHAR:
 	case CPP_WCHAR:
+	case CPP_CHAR16:
+	case CPP_CHAR32:
 	case CPP_NAME:
 	case CPP_HASH:
 	  if (!want_value)
@@ -1083,6 +1118,9 @@ reduce (cpp_reader *pfile, struct op *top, enum cpp_ttype op)
 	  continue;
 
 	case CPP_QUERY:
+	  /* COMMA and COLON should not reduce a QUERY operator.  */
+	  if (op == CPP_COMMA || op == CPP_COLON)
+	    return top;
 	  cpp_error (pfile, CPP_DL_ERROR, "'?' without following ':'");
 	  return 0;
 

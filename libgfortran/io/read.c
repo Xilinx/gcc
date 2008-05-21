@@ -1,5 +1,6 @@
-/* Copyright (C) 2002, 2003, 2005, 2007 Free Software Foundation, Inc.
+/* Copyright (C) 2002, 2003, 2005, 2007, 2008 Free Software Foundation, Inc.
    Contributed by Andy Vaught
+   F2003 I/O support contributed by Jerry DeLisle
 
 This file is part of the GNU Fortran 95 runtime library (libgfortran).
 
@@ -34,6 +35,7 @@ Boston, MA 02110-1301, USA.  */
 #include <stdlib.h>
 
 /* read.c -- Deal with formatted reads */
+
 
 /* set_integer()-- All of the integer assignments come here to
  * actually place the value into memory.  */
@@ -191,11 +193,13 @@ void
 read_l (st_parameter_dt *dtp, const fnode *f, char *dest, int length)
 {
   char *p;
-  int w;
+  size_t w;
 
   w = f->u.w;
-  p = read_block (dtp, &w);
-  if (p == NULL)
+
+  p = gfc_alloca (w);
+
+  if (read_block_form (dtp, p, &w) == FAILURE)
     return;
 
   while (*p == ' ')
@@ -237,23 +241,29 @@ read_l (st_parameter_dt *dtp, const fnode *f, char *dest, int length)
 void
 read_a (st_parameter_dt *dtp, const fnode *f, char *p, int length)
 {
-  char *source;
-  int w, m, n;
+  char *s;
+  int m, n, wi, status;
+  size_t w;
 
-  w = f->u.w;
-  if (w == -1) /* '(A)' edit descriptor  */
-    w = length;
+  wi = f->u.w;
+  if (wi == -1) /* '(A)' edit descriptor  */
+    wi = length;
+
+  w = wi;
+
+  s = gfc_alloca (w);
 
   dtp->u.p.sf_read_comma = 0;
-  source = read_block (dtp, &w);
-  dtp->u.p.sf_read_comma = 1;
-  if (source == NULL)
+  status = read_block_form (dtp, s, &w);
+  dtp->u.p.sf_read_comma =
+    dtp->u.p.decimal_status == DECIMAL_COMMA ? 0 : 1;
+  if (status == FAILURE)
     return;
-  if (w > length)
-     source += (w - length);
+  if (w > (size_t) length)
+     s += (w - length);
 
-  m = (w > length) ? length : w;
-  memcpy (p, source, m);
+  m = ((int) w > length) ? length : (int) w;
+  memcpy (p, s, m);
 
   n = length - w;
   if (n > 0)
@@ -321,13 +331,18 @@ read_decimal (st_parameter_dt *dtp, const fnode *f, char *dest, int length)
 {
   GFC_UINTEGER_LARGEST value, maxv, maxv_10;
   GFC_INTEGER_LARGEST v;
-  int w, negative;
+  int w, negative; 
+  size_t wu;
   char c, *p;
 
-  w = f->u.w;
-  p = read_block (dtp, &w);
-  if (p == NULL)
+  wu = f->u.w;
+
+  p = gfc_alloca (wu);
+
+  if (read_block_form (dtp, p, &wu) == FAILURE)
     return;
+
+  w = wu;
 
   p = eat_leading_spaces (&w, p);
   if (w == 0)
@@ -404,7 +419,7 @@ read_decimal (st_parameter_dt *dtp, const fnode *f, char *dest, int length)
   generate_error (&dtp->common, LIBERROR_READ_OVERFLOW,
 		  "Value overflowed during integer read");
   next_record (dtp, 1);
-  return;
+
 }
 
 
@@ -421,11 +436,16 @@ read_radix (st_parameter_dt *dtp, const fnode *f, char *dest, int length,
   GFC_INTEGER_LARGEST v;
   int w, negative;
   char c, *p;
+  size_t wu;
 
-  w = f->u.w;
-  p = read_block (dtp, &w);
-  if (p == NULL)
+  wu = f->u.w;
+
+  p = gfc_alloca (wu);
+
+  if (read_block_form (dtp, p, &wu) == FAILURE)
     return;
+
+  w = wu;
 
   p = eat_leading_spaces (&w, p);
   if (w == 0)
@@ -550,7 +570,7 @@ read_radix (st_parameter_dt *dtp, const fnode *f, char *dest, int length,
   generate_error (&dtp->common, LIBERROR_READ_OVERFLOW,
 		  "Value overflowed during integer read");
   next_record (dtp, 1);
-  return;
+
 }
 
 
@@ -563,6 +583,7 @@ read_radix (st_parameter_dt *dtp, const fnode *f, char *dest, int length,
 void
 read_f (st_parameter_dt *dtp, const fnode *f, char *dest, int length)
 {
+  size_t wu;
   int w, seen_dp, exponent;
   int exponent_sign, val_sign;
   int ndigits;
@@ -574,10 +595,14 @@ read_f (st_parameter_dt *dtp, const fnode *f, char *dest, int length)
 
   val_sign = 1;
   seen_dp = 0;
-  w = f->u.w;
-  p = read_block (dtp, &w);
-  if (p == NULL)
+  wu = f->u.w;
+
+  p = gfc_alloca (wu);
+
+  if (read_block_form (dtp, p, &wu) == FAILURE)
     return;
+
+  w = wu;
 
   p = eat_leading_spaces (&w, p);
   if (w == 0)
@@ -601,7 +626,7 @@ read_f (st_parameter_dt *dtp, const fnode *f, char *dest, int length)
   /* A digit, a '.' or a exponent character ('e', 'E', 'd' or 'D')
      is required at this point */
 
-  if (!isdigit (*p) && *p != '.' && *p != 'd' && *p != 'D'
+  if (!isdigit (*p) && *p != '.' && *p != ',' && *p != 'd' && *p != 'D'
       && *p != 'e' && *p != 'E')
     goto bad_float;
 
@@ -614,6 +639,10 @@ read_f (st_parameter_dt *dtp, const fnode *f, char *dest, int length)
     {
       switch (*p)
 	{
+	case ',':
+	  if (dtp->u.p.decimal_status == DECIMAL_COMMA && *p == ',')
+	    *p = '.';
+	  /* Fall through */
 	case '.':
 	  if (seen_dp)
 	    goto bad_float;
@@ -836,7 +865,6 @@ read_f (st_parameter_dt *dtp, const fnode *f, char *dest, int length)
   if (buffer != scratch)
      free_mem (buffer);
 
-  return;
 }
 
 
@@ -844,19 +872,16 @@ read_f (st_parameter_dt *dtp, const fnode *f, char *dest, int length)
  * and never look at it. */
 
 void
-read_x (st_parameter_dt *dtp, int n)
+read_x (st_parameter_dt * dtp, int n)
 {
-  if (!is_stream_io (dtp))
-    {
-      if ((dtp->u.p.current_unit->flags.pad == PAD_NO || is_internal_unit (dtp))
-	  && dtp->u.p.current_unit->bytes_left < n)
-	n = dtp->u.p.current_unit->bytes_left;
+  if ((dtp->u.p.pad_status == PAD_NO || is_internal_unit (dtp))
+      && dtp->u.p.current_unit->bytes_left < n)
+    n = dtp->u.p.current_unit->bytes_left;
 
-      dtp->u.p.sf_read_comma = 0;
-      if (n > 0)
-	read_sf (dtp, &n, 1);
-      dtp->u.p.sf_read_comma = 1;
-    }
-  else
-    dtp->u.p.current_unit->strm_pos += (gfc_offset) n;
+  dtp->u.p.sf_read_comma = 0;
+  if (n > 0)
+    read_sf (dtp, &n, 1);
+  dtp->u.p.sf_read_comma = 1;
+  dtp->u.p.current_unit->strm_pos += (gfc_offset) n;
 }
+

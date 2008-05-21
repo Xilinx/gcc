@@ -1,5 +1,5 @@
 /* Compiler arithmetic header.
-   Copyright (C) 2000, 2001, 2002, 2004, 2005, 2006, 2007
+   Copyright (C) 2000, 2001, 2002, 2004, 2005, 2006, 2007, 2008
    Free Software Foundation, Inc.
    Contributed by Steven Bosscher
 
@@ -40,6 +40,8 @@ arith gfc_range_check (gfc_expr *);
 
 int gfc_compare_expr (gfc_expr *, gfc_expr *, gfc_intrinsic_op);
 int gfc_compare_string (gfc_expr *, gfc_expr *);
+int gfc_compare_with_Cstring (gfc_expr *, const char *, bool);
+
 
 /* Constant folding for gfc_expr trees.  */
 gfc_expr *gfc_parentheses (gfc_expr * op);

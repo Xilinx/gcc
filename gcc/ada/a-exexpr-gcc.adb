@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2006, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -47,7 +47,7 @@ package body Exception_Propagation is
 
    --  These come from "C++ ABI for Itanium: Exception handling", which is
    --  the reference for GCC. They are used only when we are relying on
-   --  back-end tables for exception propagation, which in turn is currenly
+   --  back-end tables for exception propagation, which in turn is currently
    --  only the case for Zero_Cost_Exceptions in GNAT5.
 
    --  Return codes from the GCC runtime functions used to propagate
@@ -132,7 +132,7 @@ package body Exception_Propagation is
       Id : Exception_Id;
       --  GNAT Exception identifier.  This is filled by Propagate_Exception
       --  and then used by the personality routine to determine if the context
-      --  it examines contains a handler for the exception beeing propagated.
+      --  it examines contains a handler for the exception being propagated.
 
       N_Cleanups_To_Trigger : Integer;
       --  Number of cleanup only frames encountered in SEARCH phase.  This is
@@ -160,8 +160,8 @@ package body Exception_Propagation is
    --  by the personality routine through the accessors declared below.  Ada
    --  specific fields are thus always accessed through consistent layout, and
    --  we expect the actual alignment to always be large enough to avoid traps
-   --  from the C accesses to the common header. Besides, accessors aleviate
-   --  the need for a C struct whole conterpart, both painful and errorprone
+   --  from the C accesses to the common header. Besides, accessors alleviate
+   --  the need for a C struct whole counterpart, both painful and error-prone
    --  to maintain anyway.
 
    type GNAT_GCC_Exception_Access is access all GNAT_GCC_Exception;
@@ -242,18 +242,19 @@ package body Exception_Propagation is
    --  Copy all the components of Source to Target as well as the
    --  Private_Data pointer.
 
-   ------------------------------------------------------------
-   -- Accessors to basic components of a GNAT exception data --
-   ------------------------------------------------------------
+   --------------------------------------------------------------------
+   -- Accessors to Basic Components of a GNAT Exception Data Pointer --
+   --------------------------------------------------------------------
 
-   --  As of today, these are only used by the C implementation of the
-   --  GCC propagation personality routine to avoid having to rely on a C
+   --  As of today, these are only used by the C implementation of the GCC
+   --  propagation personality routine to avoid having to rely on a C
    --  counterpart of the whole exception_data structure, which is both
-   --  painful and error prone. These subprograms could be moved to a
-   --  more widely visible location if need be.
+   --  painful and error prone. These subprograms could be moved to a more
+   --  widely visible location if need be.
 
    function Is_Handled_By_Others (E : Exception_Data_Ptr) return Boolean;
    pragma Export (C, Is_Handled_By_Others, "__gnat_is_handled_by_others");
+   pragma Warnings (Off, Is_Handled_By_Others);
 
    function Language_For (E : Exception_Data_Ptr) return Character;
    pragma Export (C, Language_For, "__gnat_language_for");
@@ -669,7 +670,7 @@ package body Exception_Propagation is
    -----------
 
    --  The current model implemented for the stack of occurrences is a
-   --  simplification of previous attempts, which all prooved to be flawed or
+   --  simplification of previous attempts, which all proved to be flawed or
    --  would have needed significant additional circuitry to be made to work
    --  correctly.
 
@@ -684,7 +685,7 @@ package body Exception_Propagation is
    --  interface.
 
    --  The basic point is that arranging for an occurrence to always appear at
-   --  most once on the stack requires a way to determine if a given occurence
+   --  most once on the stack requires a way to determine if a given occurrence
    --  is already there, which is not as easy as it might seem.
 
    --  An attempt was made to use the Private_Data pointer for this purpose.
@@ -724,7 +725,7 @@ package body Exception_Propagation is
    --  but making this to work while still avoiding memory leaks is far
    --  from trivial.
 
-   --  The current scheme has the advantage of beeing simple, and induces
+   --  The current scheme has the advantage of being simple, and induces
    --  extra costs only in reraise cases which is acceptable.
 
 end Exception_Propagation;

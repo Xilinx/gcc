@@ -263,7 +263,7 @@ static rtx find_dummy_reload (rtx, rtx, rtx *, rtx *, enum machine_mode,
 static int hard_reg_set_here_p (unsigned int, unsigned int, rtx);
 static struct decomposition decompose (rtx);
 static int immune_p (rtx, rtx, struct decomposition);
-static int alternative_allows_memconst (const char *, int);
+static bool alternative_allows_const_pool_ref (rtx, const char *, int);
 static rtx find_reloads_toplev (rtx, int, enum reload_type, int, int, rtx,
 				int *);
 static rtx make_memloc (rtx, int);
@@ -454,6 +454,8 @@ push_secondary_reload (int in_p, rtx x, int opnum, int optional,
 	if (MERGE_TO_OTHER (secondary_type, rld[s_reload].when_needed,
 			    opnum, rld[s_reload].opnum))
 	  rld[s_reload].when_needed = RELOAD_OTHER;
+
+	break;
       }
 
   if (s_reload == n_reloads)
@@ -922,29 +924,33 @@ push_reload (rtx in, rtx out, rtx *inloc, rtx *outloc,
   if (outmode == VOIDmode && out != 0)
     outmode = GET_MODE (out);
 
-  /* If IN is a pseudo register everywhere-equivalent to a constant, and
-     it is not in a hard register, reload straight from the constant,
-     since we want to get rid of such pseudo registers.
-     Often this is done earlier, but not always in find_reloads_address.  */
+  /* If find_reloads and friends until now missed to replace a pseudo
+     with a constant of reg_equiv_constant something went wrong
+     beforehand.
+     Note that it can't simply be done here if we missed it earlier
+     since the constant might need to be pushed into the literal pool
+     and the resulting memref would probably need further
+     reloading.  */
   if (in != 0 && REG_P (in))
     {
       int regno = REGNO (in);
 
-      if (regno >= FIRST_PSEUDO_REGISTER && reg_renumber[regno] < 0
-	  && reg_equiv_constant[regno] != 0)
-	in = reg_equiv_constant[regno];
+      gcc_assert (regno < FIRST_PSEUDO_REGISTER
+		  || reg_renumber[regno] >= 0
+		  || reg_equiv_constant[regno] == NULL_RTX);
     }
 
-  /* Likewise for OUT.  Of course, OUT will never be equivalent to
-     an actual constant, but it might be equivalent to a memory location
-     (in the case of a parameter).  */
+  /* reg_equiv_constant only contains constants which are obviously
+     not appropriate as destination.  So if we would need to replace
+     the destination pseudo with a constant we are in real
+     trouble.  */
   if (out != 0 && REG_P (out))
     {
       int regno = REGNO (out);
 
-      if (regno >= FIRST_PSEUDO_REGISTER && reg_renumber[regno] < 0
-	  && reg_equiv_constant[regno] != 0)
-	out = reg_equiv_constant[regno];
+      gcc_assert (regno < FIRST_PSEUDO_REGISTER
+		  || reg_renumber[regno] >= 0
+		  || reg_equiv_constant[regno] == NULL_RTX);
     }
 
   /* If we have a read-write operand with an address side-effect,
@@ -3832,13 +3838,19 @@ find_reloads (rtx insn, int replace, int ind_levels, int live_known,
 	    || no_input_reloads)
 	&& operand_mode[i] != VOIDmode)
       {
+	int this_address_reloaded;
+
+	this_address_reloaded = 0;
 	substed_operand[i] = recog_data.operand[i]
 	  = find_reloads_toplev (force_const_mem (operand_mode[i],
 						  recog_data.operand[i]),
 				 i, address_type[i], ind_levels, 0, insn,
-				 NULL);
-	if (alternative_allows_memconst (recog_data.constraints[i],
-					 goal_alternative_number))
+				 &this_address_reloaded);
+	if (alternative_allows_const_pool_ref (this_address_reloaded == 0
+					       ? substed_operand[i]
+					       : NULL,
+					       recog_data.constraints[i],
+					       goal_alternative_number))
 	  goal_alternative_win[i] = 1;
       }
 
@@ -4494,13 +4506,16 @@ find_reloads (rtx insn, int replace, int ind_levels, int live_known,
   return retval;
 }
 
-/* Return 1 if alternative number ALTNUM in constraint-string CONSTRAINT
-   accepts a memory operand with constant address.  */
+/* Return true if alternative number ALTNUM in constraint-string
+   CONSTRAINT is guaranteed to accept a reloaded constant-pool reference.
+   MEM gives the reference if it didn't need any reloads, otherwise it
+   is null.  */
 
-static int
-alternative_allows_memconst (const char *constraint, int altnum)
+static bool
+alternative_allows_const_pool_ref (rtx mem, const char *constraint, int altnum)
 {
   int c;
+
   /* Skip alternatives before the one requested.  */
   while (altnum > 0)
     {
@@ -4508,12 +4523,25 @@ alternative_allows_memconst (const char *constraint, int altnum)
       altnum--;
     }
   /* Scan the requested alternative for 'm' or 'o'.
-     If one of them is present, this alternative accepts memory constants.  */
+     If one of them is present, this alternative accepts the result of
+     passing a constant-pool reference through find_reloads_toplev.
+
+     The same is true of extra memory constraints if the address
+     was reloaded into a register.  However, the target may elect
+     to disallow the original constant address, forcing it to be
+     reloaded into a register instead.  */
   for (; (c = *constraint) && c != ',' && c != '#';
        constraint += CONSTRAINT_LEN (c, constraint))
-    if (c == 'm' || c == 'o' || EXTRA_MEMORY_CONSTRAINT (c, constraint))
-      return 1;
-  return 0;
+    {
+      if (c == 'm' || c == 'o')
+	return true;
+#ifdef EXTRA_CONSTRAINT_STR
+      if (EXTRA_MEMORY_CONSTRAINT (c, constraint)
+	  && (mem == NULL || EXTRA_CONSTRAINT_STR (mem, c, constraint)))
+	return true;
+#endif
+    }
+  return false;
 }
 
 /* Scan X for memory references and scan the addresses for reloading.
@@ -4772,15 +4800,12 @@ find_reloads_address (enum machine_mode mode, rtx *memrefloc, rtx ad,
     {
       regno = REGNO (ad);
 
-      /* If the register is equivalent to an invariant expression, substitute
-	 the invariant, and eliminate any eliminable register references.  */
-      tem = reg_equiv_constant[regno];
-      if (tem != 0
-	  && (tem = eliminate_regs (tem, mode, insn))
-	  && strict_memory_address_p (mode, tem))
+      if (reg_equiv_constant[regno] != 0)
 	{
-	  *loc = ad = tem;
-	  return 0;
+	  find_reloads_address_part (reg_equiv_constant[regno], loc,
+				     base_reg_class (mode, MEM, SCRATCH),
+				     GET_MODE (ad), opnum, type, ind_levels);
+	  return 1;
 	}
 
       tem = reg_equiv_memory_loc[regno];
@@ -6025,6 +6050,8 @@ find_reloads_subreg_address (rtx x, int force_replace, int opnum,
 
 	      XEXP (tem, 0) = plus_constant (XEXP (tem, 0), offset);
 	      PUT_MODE (tem, GET_MODE (x));
+	      if (MEM_OFFSET (tem))
+		set_mem_offset (tem, plus_constant (MEM_OFFSET (tem), offset));
 
 	      /* If this was a paradoxical subreg that we replaced, the
 		 resulting memory must be sufficiently aligned to allow

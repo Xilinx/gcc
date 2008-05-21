@@ -1,5 +1,5 @@
 /* Pass computing data for optimizing stdarg functions.
-   Copyright (C) 2004, 2005, 2007 Free Software Foundation, Inc.
+   Copyright (C) 2004, 2005, 2007, 2008 Free Software Foundation, Inc.
    Contributed by Jakub Jelinek <jakub@redhat.com>
 
 This file is part of GCC.
@@ -46,9 +46,9 @@ along with GCC; see the file COPYING3.  If not see
 static bool
 reachable_at_most_once (basic_block va_arg_bb, basic_block va_start_bb)
 {
-  edge *stack, e;
+  VEC (edge, heap) *stack = NULL;
+  edge e;
   edge_iterator ei;
-  int sp;
   sbitmap visited;
   bool ret;
 
@@ -58,22 +58,18 @@ reachable_at_most_once (basic_block va_arg_bb, basic_block va_start_bb)
   if (! dominated_by_p (CDI_DOMINATORS, va_arg_bb, va_start_bb))
     return false;
 
-  stack = XNEWVEC (edge, n_basic_blocks + 1);
-  sp = 0;
-
   visited = sbitmap_alloc (last_basic_block);
   sbitmap_zero (visited);
   ret = true;
 
   FOR_EACH_EDGE (e, ei, va_arg_bb->preds)
-    stack[sp++] = e;
+    VEC_safe_push (edge, heap, stack, e);
 
-  while (sp)
+  while (! VEC_empty (edge, stack))
     {
       basic_block src;
 
-      --sp;
-      e = stack[sp];
+      e = VEC_pop (edge, stack);
       src = e->src;
 
       if (e->flags & EDGE_COMPLEX)
@@ -98,11 +94,11 @@ reachable_at_most_once (basic_block va_arg_bb, basic_block va_start_bb)
 	{
 	  SET_BIT (visited, src->index);
 	  FOR_EACH_EDGE (e, ei, src->preds)
-	    stack[sp++] = e;
+	    VEC_safe_push (edge, heap, stack, e);
 	}
     }
 
-  free (stack);
+  VEC_free (edge, heap, stack);
   sbitmap_free (visited);
   return ret;
 }
@@ -162,8 +158,7 @@ va_list_counter_bump (struct stdarg_info *si, tree counter, tree rhs,
 	  continue;
 	}
 
-      if ((TREE_CODE (rhs) == NOP_EXPR
-	   || TREE_CODE (rhs) == CONVERT_EXPR)
+      if (CONVERT_EXPR_P (rhs)
 	  && TREE_CODE (TREE_OPERAND (rhs, 0)) == SSA_NAME)
 	{
 	  lhs = TREE_OPERAND (rhs, 0);
@@ -221,8 +216,7 @@ va_list_counter_bump (struct stdarg_info *si, tree counter, tree rhs,
 	  continue;
 	}
 
-      if ((TREE_CODE (rhs) == NOP_EXPR
-	   || TREE_CODE (rhs) == CONVERT_EXPR)
+      if (CONVERT_EXPR_P (rhs)
 	  && TREE_CODE (TREE_OPERAND (rhs, 0)) == SSA_NAME)
 	{
 	  lhs = TREE_OPERAND (rhs, 0);
@@ -451,8 +445,7 @@ check_va_list_escapes (struct stdarg_info *si, tree lhs, tree rhs)
  if (((TREE_CODE (rhs) == POINTER_PLUS_EXPR
        || TREE_CODE (rhs) == PLUS_EXPR)
       && TREE_CODE (TREE_OPERAND (rhs, 1)) == INTEGER_CST)
-     || TREE_CODE (rhs) == NOP_EXPR
-     || TREE_CODE (rhs) == CONVERT_EXPR)
+     || CONVERT_EXPR_P (rhs))
     rhs = TREE_OPERAND (rhs, 0);
 
   if (TREE_CODE (rhs) != SSA_NAME
@@ -559,8 +552,7 @@ check_all_va_list_escapes (struct stdarg_info *si)
 		     statements.  */
 		  if ((TREE_CODE (rhs) == POINTER_PLUS_EXPR
 		       && TREE_CODE (TREE_OPERAND (rhs, 1)) == INTEGER_CST)
-		      || TREE_CODE (rhs) == NOP_EXPR
-		      || TREE_CODE (rhs) == CONVERT_EXPR)
+		      || CONVERT_EXPR_P (rhs))
 		    rhs = TREE_OPERAND (rhs, 0);
 
 		  if (rhs == use)
@@ -599,7 +591,7 @@ static bool
 gate_optimize_stdarg (void)
 {
   /* This optimization is only for stdarg functions.  */
-  return current_function_stdarg != 0;
+  return cfun->stdarg != 0;
 }
 
 
@@ -652,7 +644,6 @@ execute_optimize_stdarg (void)
 	      break;
 	      /* If old style builtins are used, don't optimize anything.  */
 	    case BUILT_IN_SAVEREGS:
-	    case BUILT_IN_STDARG_START:
 	    case BUILT_IN_ARGS_INFO:
 	    case BUILT_IN_NEXT_ARG:
 	      va_list_escapes = true;
@@ -909,8 +900,10 @@ finish:
 }
 
 
-struct tree_opt_pass pass_stdarg =
+struct gimple_opt_pass pass_stdarg =
 {
+ {
+  GIMPLE_PASS,
   "stdarg",				/* name */
   gate_optimize_stdarg,			/* gate */
   execute_optimize_stdarg,		/* execute */
@@ -922,6 +915,6 @@ struct tree_opt_pass pass_stdarg =
   0,					/* properties_provided */
   0,					/* properties_destroyed */
   0,					/* todo_flags_start */
-  TODO_dump_func,			/* todo_flags_finish */
-  0					/* letter */
+  TODO_dump_func			/* todo_flags_finish */
+ }
 };

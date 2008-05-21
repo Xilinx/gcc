@@ -143,9 +143,46 @@ do {						         \
    to register C++ static destructors.  */
 #define TARGET_CXX_USE_ATEXIT_FOR_CXA_ATEXIT hook_bool_void_true
 
+/* Contains a pointer to type target_ovr_attr defining the target specific
+   overrides of format attributes.  See c-format.h for structure
+   definition.  */
+#undef TARGET_OVERRIDES_FORMAT_ATTRIBUTES
+#define TARGET_OVERRIDES_FORMAT_ATTRIBUTES mingw_format_attribute_overrides
+
+/* Specify the count of elements in TARGET_OVERRIDES_ATTRIBUTE.  */
+#undef TARGET_OVERRIDES_FORMAT_ATTRIBUTES_COUNT
+#define TARGET_OVERRIDES_FORMAT_ATTRIBUTES_COUNT 3
+
+/* MS specific format attributes for ms_printf, ms_scanf, ms_strftime.  */
+#undef TARGET_FORMAT_TYPES
+#define TARGET_FORMAT_TYPES mingw_format_attributes
+
+#undef TARGET_N_FORMAT_TYPES
+#define TARGET_N_FORMAT_TYPES 3
+
 /* JCR_SECTION works on mingw32.  */
 #undef TARGET_USE_JCR_SECTION
 #define TARGET_USE_JCR_SECTION 1
+
+#undef MINGW_ENABLE_EXECUTE_STACK
+#define MINGW_ENABLE_EXECUTE_STACK     \
+extern void __enable_execute_stack (void *);    \
+void         \
+__enable_execute_stack (void *addr)					\
+{									\
+  MEMORY_BASIC_INFORMATION b;						\
+  if (!VirtualQuery (addr, &b, sizeof(b)))				\
+    abort ();								\
+  VirtualProtect (b.BaseAddress, b.RegionSize, PAGE_EXECUTE_READWRITE,	\
+		  &b.Protect);						\
+}
+
+#undef ENABLE_EXECUTE_STACK
+#define ENABLE_EXECUTE_STACK MINGW_ENABLE_EXECUTE_STACK
+
+#ifdef IN_LIBGCC2
+#include <windows.h>
+#endif
 
 #if !TARGET_64BIT
 #define MD_UNWIND_SUPPORT "config/i386/w32-unwind.h"

@@ -1,3 +1,117 @@
+2008-05-15  Janis Johnson  <janis187@us.ibm.com>
+
+	* testsuite/lib/libgomp.exp: Load torture-options.exp from gcc lib.
+
+2008-05-07  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/36106
+	* testsuite/libgomp.c/atomic-5.c: New test.
+	* testsuite/libgomp.c/atomic-6.c: New test.
+	* testsuite/libgomp.c/autopar-1.c: New test.
+
+2008-04-21  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* acinclude.m4 (LIBGOMP_CHECK_SYNC_BUILTINS)
+	(LIBGOMP_CHECK_ATTRIBUTE_VISIBILITY)
+	(LIBGOMP_CHECK_ATTRIBUTE_DLLEXPORT)
+	(LIBGOMP_CHECK_ATTRIBUTE_ALIAS): Fix cache variable names.
+	* configure: Regenerate.
+	* Makefile.in, testsuite/Makefile.in: Likewise.
+
+2008-04-18  Paolo Bonzini  <bonzini@gnu.org>
+
+	PR bootstrap/35457
+	* aclocal.m4: Regenerate.
+	* configure: Regenerate.
+
+2008-03-18  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/35611
+	* testsuite/libgomp.c/atomic-4.c: New test.
+
+	PR libgomp/35625
+	* iter.c (gomp_iter_guided_next_locked): If q > n, set end to ws->end.
+	(gomp_iter_guided_next): Likewise.
+	* testsuite/libgomp.c/pr35625.c: New test.
+
+2008-03-16  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* aclocal.m4: Regenerate.
+	* configure: Likewise.
+	* Makefile.in: Likewise.
+	* testsuite/Makefile.in: Likewise.
+
+2008-03-13  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/35185
+	* testsuite/libgomp.c++/pr35185.C: New test.
+
+2008-03-12  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/35549
+	* testsuite/libgomp.c/pr35549.c: New test.
+
+2008-03-06  Jakub Jelinek  <jakub@redhat.com>
+
+	* testsuite/libgomp.c/atomic-3.c: New test.
+
+2008-03-03  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	PR fortran/33197
+	* testsuite/libgomp.fortran/fortran.exp: Add .f08 and
+	.F08 file suffixes.
+
+2008-03-03  Peter O'Gorman  <pogma@thewrittenword.com>
+
+	PR libgomp/33131
+	* configure.ac: Add ACX_HEADER_STRING.
+	* env.c: Include strings.h.
+	* aclocal.m4: Regenerate.
+	* config.h.in: Regenerate.
+	* configure: Regenerate.
+	* Makefile.in: Regenerate.
+	* testsuite/Makefile.in: Regenerate.
+
+2008-02-15  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/35196
+	* testsuite/libgomp.c/pr35196.c: New test.
+
+	PR middle-end/35130
+	* testsuite/libgomp.fortran/pr35130.f90: New test.
+	* testsuite/libgomp.c/pr35130.c: New test.
+
+2008-01-25  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/33880
+	* testsuite/libgomp.c/pr33880.c: New test.
+	* testsuite/libgomp.fortran/pr33880.f90: New test.
+
+2008-01-24  David Edelsohn  <edelsohn@gnu.org>
+
+	* configure: Regenerate.
+
+2008-01-08  Jakub Jelinek  <jakub@redhat.com>
+
+	* configure.ac: Move futex checking into ../config/futex.m4.
+	* configure: Rebuilt.
+	* aclocal.m4: Rebuilt.
+	* Makefile.in: Rebuilt.
+
+	* configure.tgt: Rename have_tls to gcc_cv_have_tls to match
+	2007-10-15 ../config/tls.m4 change.
+
+2007-12-19  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/34513
+	* testsuite/libgomp.c/pr34513.c: New test.
+	* testsuite/libgomp.c++/pr34513.C: New test.
+
+2007-12-17  Jack Howarth  <howarth@bromo.med.uc.edu>
+
+	PR target/32765
+	* testsuite/libgomp.fortran/crayptr2.f90: Move dg-options for darwin.
+
 2007-12-04  Jakub Jelinek  <jakub@redhat.com>
 
 	* omp.h.in (__GOMP_NOTHROW): Define.  Use it on omp_* prototypes.

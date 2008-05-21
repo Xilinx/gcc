@@ -1,5 +1,5 @@
 /* gfortran backend interface
-   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
+   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
    Free Software Foundation, Inc.
    Contributed by Paul Brook.
 
@@ -95,8 +95,7 @@ static void gfc_print_identifier (FILE *, tree, int);
 static bool gfc_mark_addressable (tree);
 void do_function_end (void);
 int global_bindings_p (void);
-void insert_block (tree);
-static void gfc_clear_binding_stack (void);
+static void clear_binding_stack (void);
 static void gfc_be_parse_file (int);
 static alias_set_type gfc_get_alias_set (tree);
 
@@ -111,7 +110,6 @@ static alias_set_type gfc_get_alias_set (tree);
 #undef LANG_HOOKS_MARK_ADDRESSABLE
 #undef LANG_HOOKS_TYPE_FOR_MODE
 #undef LANG_HOOKS_TYPE_FOR_SIZE
-#undef LANG_HOOKS_CLEAR_BINDING_STACK
 #undef LANG_HOOKS_GET_ALIAS_SET
 #undef LANG_HOOKS_OMP_PRIVATIZE_BY_REFERENCE
 #undef LANG_HOOKS_OMP_PREDETERMINED_SHARING
@@ -123,7 +121,7 @@ static alias_set_type gfc_get_alias_set (tree);
 #undef LANG_HOOKS_GET_ARRAY_DESCR_INFO
 
 /* Define lang hooks.  */
-#define LANG_HOOKS_NAME                 "GNU F95"
+#define LANG_HOOKS_NAME                 "GNU Fortran"
 #define LANG_HOOKS_INIT                 gfc_init
 #define LANG_HOOKS_FINISH               gfc_finish
 #define LANG_HOOKS_INIT_OPTIONS         gfc_init_options
@@ -134,7 +132,6 @@ static alias_set_type gfc_get_alias_set (tree);
 #define LANG_HOOKS_MARK_ADDRESSABLE        gfc_mark_addressable
 #define LANG_HOOKS_TYPE_FOR_MODE           gfc_type_for_mode
 #define LANG_HOOKS_TYPE_FOR_SIZE           gfc_type_for_size
-#define LANG_HOOKS_CLEAR_BINDING_STACK     gfc_clear_binding_stack
 #define LANG_HOOKS_GET_ALIAS_SET	   gfc_get_alias_set
 #define LANG_HOOKS_OMP_PRIVATIZE_BY_REFERENCE	gfc_omp_privatize_by_reference
 #define LANG_HOOKS_OMP_PREDETERMINED_SHARING	gfc_omp_predetermined_sharing
@@ -220,16 +217,17 @@ gfc_truthvalue_conversion (tree expr)
 	  return expr;
 	}
       else if (TREE_CODE (expr) == NOP_EXPR)
-        return build1 (NOP_EXPR, boolean_type_node, TREE_OPERAND (expr, 0));
+        return fold_build1 (NOP_EXPR,
+			    boolean_type_node, TREE_OPERAND (expr, 0));
       else
-        return build1 (NOP_EXPR, boolean_type_node, expr);
+        return fold_build1 (NOP_EXPR, boolean_type_node, expr);
 
     case INTEGER_TYPE:
       if (TREE_CODE (expr) == INTEGER_CST)
 	return integer_zerop (expr) ? boolean_false_node : boolean_true_node;
       else
-        return build2 (NE_EXPR, boolean_type_node, expr,
-		       build_int_cst (TREE_TYPE (expr), 0));
+        return fold_build2 (NE_EXPR, boolean_type_node, expr,
+			    build_int_cst (TREE_TYPE (expr), 0));
 
     default:
       internal_error ("Unexpected type in truthvalue_conversion");
@@ -267,6 +265,8 @@ gfc_be_parse_file (int set_yydebug ATTRIBUTE_UNUSED)
   gfc_get_errors (&warnings, &errors);
   errorcount += errors;
   warningcount += warnings;
+
+  clear_binding_stack ();
 }
 
 
@@ -275,10 +275,8 @@ gfc_be_parse_file (int set_yydebug ATTRIBUTE_UNUSED)
 static bool
 gfc_init (void)
 {
-#ifdef USE_MAPPED_LOCATION
   linemap_add (line_table, LC_ENTER, false, gfc_source_file, 1);
   linemap_add (line_table, LC_RENAME, false, "<built-in>", 0);
-#endif
 
   /* First initialize the backend.  */
   gfc_init_decl_processing ();
@@ -474,19 +472,6 @@ poplevel (int keep, int reverse, int functionbody)
 }
 
 
-/* Insert BLOCK at the end of the list of subblocks of the
-   current binding level.  This is used when a BIND_EXPR is expanded,
-   to handle the BLOCK node inside the BIND_EXPR.  */
-
-void
-insert_block (tree block)
-{
-  TREE_USED (block) = 1;
-  current_binding_level->blocks
-    = chainon (current_binding_level->blocks, block);
-}
-
-
 /* Records a ..._DECL node DECL as belonging to the current lexical scope.
    Returns the ..._DECL node.  */
 
@@ -537,7 +522,7 @@ pushdecl_top_level (tree x)
 
 /* Clear the binding stack.  */
 static void
-gfc_clear_binding_stack (void)
+clear_binding_stack (void)
 {
   while (!global_bindings_p ())
     poplevel (0, 0, 0);
@@ -578,9 +563,9 @@ gfc_init_decl_processing (void)
   /* x86_64 minw32 has a sizetype of "unsigned long long", most other hosts
      have a sizetype of "unsigned long". Therefore choose the correct size
      in mostly target independent way.  */
-  if (TYPE_MODE (long_unsigned_type_node) == Pmode)
+  if (TYPE_MODE (long_unsigned_type_node) == ptr_mode)
     set_sizetype (long_unsigned_type_node);
-  else if (TYPE_MODE (long_long_unsigned_type_node) == Pmode)
+  else if (TYPE_MODE (long_long_unsigned_type_node) == ptr_mode)
     set_sizetype (long_long_unsigned_type_node);
   else
     set_sizetype (long_unsigned_type_node);
@@ -757,6 +742,16 @@ build_builtin_fntypes (tree *fntype, tree type)
   tmp = tree_cons (NULL_TREE, integer_type_node, void_list_node);
   tmp = tree_cons (NULL_TREE, type, tmp);
   fntype[2] = build_function_type (type, tmp);
+  /* type (*) (void) */
+  fntype[3] = build_function_type (type, void_list_node);
+  /* type (*) (type, &int) */
+  tmp = tree_cons (NULL_TREE, type, void_list_node);
+  tmp = tree_cons (NULL_TREE, build_pointer_type (integer_type_node), tmp);
+  fntype[4] = build_function_type (type, tmp);
+  /* type (*) (type, int) */
+  tmp = tree_cons (NULL_TREE, type, void_list_node);
+  tmp = tree_cons (NULL_TREE, integer_type_node, tmp);
+  fntype[5] = build_function_type (type, tmp);
 }
 
 
@@ -807,12 +802,12 @@ gfc_init_builtin_functions (void)
     ATTR_CONST_NOTHROW_LIST
   };
 
-  tree mfunc_float[3];
-  tree mfunc_double[3];
-  tree mfunc_longdouble[3];
-  tree mfunc_cfloat[3];
-  tree mfunc_cdouble[3];
-  tree mfunc_clongdouble[3];
+  tree mfunc_float[6];
+  tree mfunc_double[6];
+  tree mfunc_longdouble[6];
+  tree mfunc_cfloat[6];
+  tree mfunc_cdouble[6];
+  tree mfunc_clongdouble[6];
   tree func_cfloat_float, func_float_cfloat;
   tree func_cdouble_double, func_double_cdouble;
   tree func_clongdouble_longdouble, func_longdouble_clongdouble;
@@ -853,21 +848,21 @@ gfc_init_builtin_functions (void)
   ptype = build_pointer_type (float_type_node);
   tmp = tree_cons (NULL_TREE, float_type_node,
 		   tree_cons (NULL_TREE, ptype,
-		   	      build_tree_list (NULL_TREE, ptype)));
+		   	      tree_cons (NULL_TREE, ptype, void_list_node)));
   func_float_floatp_floatp =
     build_function_type (void_type_node, tmp);
 
   ptype = build_pointer_type (double_type_node);
   tmp = tree_cons (NULL_TREE, double_type_node,
 		   tree_cons (NULL_TREE, ptype,
-		   	      build_tree_list (NULL_TREE, ptype)));
+		   	      tree_cons (NULL_TREE, ptype, void_list_node)));
   func_double_doublep_doublep =
     build_function_type (void_type_node, tmp);
 
   ptype = build_pointer_type (long_double_type_node);
   tmp = tree_cons (NULL_TREE, long_double_type_node,
 		   tree_cons (NULL_TREE, ptype,
-		   	      build_tree_list (NULL_TREE, ptype)));
+		   	      tree_cons (NULL_TREE, ptype, void_list_node)));
   func_longdouble_longdoublep_longdoublep =
     build_function_type (void_type_node, tmp);
 
@@ -903,12 +898,47 @@ gfc_init_builtin_functions (void)
   gfc_define_builtin ("__builtin_copysignf", mfunc_float[1], 
 		      BUILT_IN_COPYSIGNF, "copysignf", true);
  
+  gfc_define_builtin ("__builtin_nextafterl", mfunc_longdouble[1], 
+		      BUILT_IN_NEXTAFTERL, "nextafterl", true);
+  gfc_define_builtin ("__builtin_nextafter", mfunc_double[1], 
+		      BUILT_IN_NEXTAFTER, "nextafter", true);
+  gfc_define_builtin ("__builtin_nextafterf", mfunc_float[1], 
+		      BUILT_IN_NEXTAFTERF, "nextafterf", true);
+ 
+  gfc_define_builtin ("__builtin_frexpl", mfunc_longdouble[4], 
+		      BUILT_IN_FREXPL, "frexpl", false);
+  gfc_define_builtin ("__builtin_frexp", mfunc_double[4], 
+		      BUILT_IN_FREXP, "frexp", false);
+  gfc_define_builtin ("__builtin_frexpf", mfunc_float[4], 
+		      BUILT_IN_FREXPF, "frexpf", false);
+ 
+  gfc_define_builtin ("__builtin_fabsl", mfunc_longdouble[0], 
+		      BUILT_IN_FABSL, "fabsl", true);
+  gfc_define_builtin ("__builtin_fabs", mfunc_double[0], 
+		      BUILT_IN_FABS, "fabs", true);
+  gfc_define_builtin ("__builtin_fabsf", mfunc_float[0], 
+		      BUILT_IN_FABSF, "fabsf", true);
+ 
+  gfc_define_builtin ("__builtin_scalbnl", mfunc_longdouble[5], 
+		      BUILT_IN_SCALBNL, "scalbnl", true);
+  gfc_define_builtin ("__builtin_scalbn", mfunc_double[5], 
+		      BUILT_IN_SCALBN, "scalbn", true);
+  gfc_define_builtin ("__builtin_scalbnf", mfunc_float[5], 
+		      BUILT_IN_SCALBNF, "scalbnf", true);
+ 
   gfc_define_builtin ("__builtin_fmodl", mfunc_longdouble[1], 
 		      BUILT_IN_FMODL, "fmodl", true);
   gfc_define_builtin ("__builtin_fmod", mfunc_double[1], 
 		      BUILT_IN_FMOD, "fmod", true);
   gfc_define_builtin ("__builtin_fmodf", mfunc_float[1], 
 		      BUILT_IN_FMODF, "fmodf", true);
+
+  gfc_define_builtin ("__builtin_infl", mfunc_longdouble[3], 
+		      BUILT_IN_INFL, "__builtin_infl", true);
+  gfc_define_builtin ("__builtin_inf", mfunc_double[3], 
+		      BUILT_IN_INF, "__builtin_inf", true);
+  gfc_define_builtin ("__builtin_inff", mfunc_float[3], 
+		      BUILT_IN_INFF, "__builtin_inff", true);
 
   /* lround{f,,l} and llround{f,,l} */
   type = tree_cons (NULL_TREE, float_type_node, void_list_node);
@@ -942,6 +972,12 @@ gfc_init_builtin_functions (void)
 		      BUILT_IN_POW, "pow", true);
   gfc_define_builtin ("__builtin_powf", mfunc_float[1], 
 		      BUILT_IN_POWF, "powf", true);
+  gfc_define_builtin ("__builtin_cpowl", mfunc_clongdouble[1], 
+		      BUILT_IN_CPOWL, "cpowl", true);
+  gfc_define_builtin ("__builtin_cpow", mfunc_cdouble[1], 
+		      BUILT_IN_CPOW, "cpow", true);
+  gfc_define_builtin ("__builtin_cpowf", mfunc_cfloat[1], 
+		      BUILT_IN_CPOWF, "cpowf", true);
   gfc_define_builtin ("__builtin_powil", mfunc_longdouble[2], 
 		      BUILT_IN_POWIL, "powil", true);
   gfc_define_builtin ("__builtin_powi", mfunc_double[2], 
@@ -1137,7 +1173,7 @@ gfc_init_builtin_functions (void)
 #include "../sync-builtins.def"
 #undef DEF_SYNC_BUILTIN
 
-  if (gfc_option.flag_openmp)
+  if (gfc_option.flag_openmp || flag_tree_parallelize_loops)
     {
 #undef DEF_GOMP_BUILTIN
 #define DEF_GOMP_BUILTIN(code, name, type, attr) \

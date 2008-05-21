@@ -1,5 +1,6 @@
 /* Callgraph handling code.
-   Copyright (C) 2003, 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
+   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008
+   Free Software Foundation, Inc.
    Contributed by Jan Hubicka
 
 This file is part of GCC.
@@ -52,11 +53,13 @@ extern const char * const cgraph_availability_names[];
 
 struct cgraph_local_info GTY(())
 {
-  /* Estimated stack frame consumption by the function.  */
-  HOST_WIDE_INT estimated_self_stack_size;
+  struct inline_summary {
+    /* Estimated stack frame consumption by the function.  */
+    HOST_WIDE_INT estimated_self_stack_size;
 
-  /* Size of the function before inlining.  */
-  int self_insns;
+    /* Size of the function before inlining.  */
+    int self_insns;
+  } inline_summary;
 
   /* Set when function function is visible in current compilation unit only
      and its address is never taken.  */
@@ -115,7 +118,7 @@ struct cgraph_global_info GTY(())
 
 struct cgraph_rtl_info GTY(())
 {
-   int preferred_incoming_stack_boundary;
+   unsigned int preferred_incoming_stack_boundary;
 };
 
 /* The cgraph data structure.
@@ -303,6 +306,7 @@ struct cgraph_node *cgraph_node (tree);
 struct cgraph_node *cgraph_node_for_asm (tree asmname);
 struct cgraph_edge *cgraph_edge (struct cgraph_node *, tree);
 void cgraph_set_call_stmt (struct cgraph_edge *, tree);
+void cgraph_update_edges_for_call_stmt (tree, tree, tree);
 struct cgraph_local_info *cgraph_local_info (tree);
 struct cgraph_global_info *cgraph_global_info (tree);
 struct cgraph_rtl_info *cgraph_rtl_info (tree);
@@ -414,6 +418,7 @@ varpool_next_static_initializer (struct varpool_node *node)
 void cgraph_clone_inlined_nodes (struct cgraph_edge *, bool, bool);
 void cgraph_mark_inline_edge (struct cgraph_edge *, bool);
 bool cgraph_default_inline_p (struct cgraph_node *, const char **);
+unsigned int compute_inline_parameters (struct cgraph_node *);
 
 
 /* Create a new static variable of type TYPE.  */

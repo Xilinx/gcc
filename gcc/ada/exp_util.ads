@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -212,45 +212,53 @@ package Exp_Util is
    --  function itself must do its own cleanups.
 
    function Component_May_Be_Bit_Aligned (Comp : Entity_Id) return Boolean;
-   --  This function is in charge of detecting record components that may cause
-   --  trouble in the back end if an attempt is made to assign the component.
-   --  The back end can handle such assignments with no problem if the
-   --  components involved are small (64-bits or less) records or scalar items
-   --  (including bit-packed arrays represented with modular types) or are both
-   --  aligned on a byte boundary (starting on a byte boundary, and occupying
-   --  an integral number of bytes).
+   --  This function is in charge of detecting record components that may
+   --  cause trouble in the back end if an attempt is made to assign the
+   --  component. The back end can handle such assignments with no problem if
+   --  the components involved are small (64-bits or less) records or scalar
+   --  items (including bit-packed arrays represented with modular types) or
+   --  are both aligned on a byte boundary (starting on a byte boundary, and
+   --  occupying an integral number of bytes).
    --
    --  However, problems arise for records larger than 64 bits, or for arrays
    --  (other than bit-packed arrays represented with a modular type) if the
    --  component starts on a non-byte boundary, or does not occupy an integral
-   --  number of bytes (i.e. there are some bits possibly shared with fields at
-   --  the start or beginning of the component). The back end cannot handle
+   --  number of bytes (i.e. there are some bits possibly shared with fields
+   --  at the start or beginning of the component). The back end cannot handle
    --  loading and storing such components in a single operation.
    --
    --  This function is used to detect the troublesome situation. it is
-   --  conservative in the sense that it produces True unless it knows for sure
-   --  that the component is safe (as outlined in the first paragraph above).
-   --  The code generation for record and array assignment checks for trouble
-   --  using this function, and if so the assignment is generated
+   --  conservative in the sense that it produces True unless it knows for
+   --  sure that the component is safe (as outlined in the first paragraph
+   --  above). The code generation for record and array assignment checks for
+   --  trouble using this function, and if so the assignment is generated
    --  component-wise, which the back end is required to handle correctly.
    --
-   --  Note that in GNAT 3, the back end will reject such components anyway, so
-   --  the hard work in checking for this case is wasted in GNAT 3, but it's
-   --  harmless, so it is easier to do it in all cases, rather than
+   --  Note that in GNAT 3, the back end will reject such components anyway,
+   --  so the hard work in checking for this case is wasted in GNAT 3, but
+   --  it is harmless, so it is easier to do it in all cases, rather than
    --  conditionalize it in GNAT 5 or beyond.
 
    procedure Convert_To_Actual_Subtype (Exp : Node_Id);
-   --  The Etype of an expression is the nominal type of the expression, not
-   --  the actual subtype. Often these are the same, but not always. For
-   --  example, a reference to a formal of unconstrained type has the
+   --  The Etype of an expression is the nominal type of the expression,
+   --  not the actual subtype. Often these are the same, but not always.
+   --  For example, a reference to a formal of unconstrained type has the
    --  unconstrained type as its Etype, but the actual subtype is obtained by
    --  applying the actual bounds. This routine is given an expression, Exp,
-   --  and (if necessary), replaces it using Rewrite, with a conversion to the
-   --  actual subtype, building the actual subtype if necessary. If the
+   --  and (if necessary), replaces it using Rewrite, with a conversion to
+   --  the actual subtype, building the actual subtype if necessary. If the
    --  expression is already of the requested type, then it is unchanged.
 
+   function Corresponding_Runtime_Package (Typ : Entity_Id) return RTU_Id;
+   --  Return the id of the runtime package that will provide support for
+   --  concurrent type Typ. Currently only protected types are supported,
+   --  and the returned value is one of the following:
+   --    System_Tasking_Protected_Objects
+   --    System_Tasking_Protected_Objects_Entries
+   --    System_Tasking_Protected_Objects_Single_Entry
+
    function Current_Sem_Unit_Declarations return List_Id;
-   --  Return the a place where it is fine to insert declarations for the
+   --  Return the place where it is fine to insert declarations for the
    --  current semantic unit. If the unit is a package body, return the
    --  visible declarations of the corresponding spec. For RCI stubs, this
    --  is necessary because the point at which they are generated may not
@@ -338,9 +346,10 @@ package Exp_Util is
 
    function Find_Interface_ADT
      (T     : Entity_Id;
-      Iface : Entity_Id) return Entity_Id;
+      Iface : Entity_Id) return Elmt_Id;
    --  Ada 2005 (AI-251): Given a type T implementing the interface Iface,
-   --  return the Access_Disp_Table value of the interface.
+   --  return the element of Access_Disp_Table containing the tag of the
+   --  interface.
 
    function Find_Interface_Tag
      (T     : Entity_Id;
@@ -362,6 +371,13 @@ package Exp_Util is
    --  with the indicated suffix). This function allows use of a primitive
    --  operation which is not directly visible. If T is a class wide type,
    --  then the reference is to an operation of the corresponding root type.
+
+   function Find_Protection_Object (Scop : Entity_Id) return Entity_Id;
+   --  Traverse the scope stack starting from Scop and look for an entry,
+   --  entry family, or a subprogram that has a Protection_Object and return
+   --  it. Raises Program_Error if no such entity is found since the context
+   --  in which this routine is invoked should always have a protection
+   --  object.
 
    procedure Force_Evaluation
      (Exp      : Node_Id;
@@ -420,7 +436,7 @@ package Exp_Util is
    --  homonym number used to disambiguate overloaded subprograms in the same
    --  scope (the number is used as part of constructed names to make sure that
    --  they are unique). The number is the ordinal position on the Homonym
-   --  chain, counting only entries in the curren scope. If an entity is not
+   --  chain, counting only entries in the current scope. If an entity is not
    --  overloaded, the returned number will be one.
 
    function Inside_Init_Proc return Boolean;
@@ -428,7 +444,7 @@ package Exp_Util is
 
    function In_Unconditional_Context (Node : Node_Id) return Boolean;
    --  Node is the node for a statement or a component of a statement. This
-   --  function deteermines if the statement appears in a context that is
+   --  function determines if the statement appears in a context that is
    --  unconditionally executed, i.e. it is not within a loop or a conditional
    --  or a case statement etc.
 
@@ -482,17 +498,24 @@ package Exp_Util is
    --  Returns true if type T is not tagged and is a derived type,
    --  or is a private type whose completion is such a type.
 
+   function Is_Volatile_Reference (N : Node_Id) return Boolean;
+   --  Checks if the node N represents a volatile reference, which can be
+   --  either a direct reference to a variable treated as volatile, or an
+   --  indexed/selected component where the prefix is treated as volatile,
+   --  or has Volatile_Components set. A slice of a volatile variable is
+   --  also volatile.
+
    procedure Kill_Dead_Code (N : Node_Id; Warn : Boolean := False);
-   --  N represents a node for a section of code that is known to be dead. The
-   --  node is deleted, and any exception handler references and warning
-   --  messages relating to this code are removed. If Warn is True, a warning
-   --  will be output at the start of N indicating the deletion of the code.
+   --  N represents a node for a section of code that is known to be dead. Any
+   --  exception handler references and warning messages relating to this code
+   --  are removed. If Warn is True, a warning will be output at the start of N
+   --  indicating the deletion of the code. Note that the tree for the deleted
+   --  code is left intact so that e.g. cross-reference data is still valid.
 
    procedure Kill_Dead_Code (L : List_Id; Warn : Boolean := False);
    --  Like the above procedure, but applies to every element in the given
-   --  list. Each of the entries is removed from the list before killing it.
-   --  If Warn is True, a warning will be output at the start of N indicating
-   --  the deletion of the code.
+   --  list. If Warn is True, a warning will be output at the start of N
+   --  indicating the deletion of the code.
 
    function Known_Non_Negative (Opnd : Node_Id) return Boolean;
    --  Given a node for a subexpression, determines if it represents a value
@@ -603,6 +626,18 @@ package Exp_Util is
    --  N is an node which is an entity name that represents the name of a
    --  renamed subprogram. The node is rewritten to be an identifier that
    --  refers directly to the renamed subprogram, given by entity E.
+
+   procedure Silly_Boolean_Array_Not_Test (N : Node_Id; T : Entity_Id);
+   --  N is the node for a boolean array NOT operation, and T is the type of
+   --  the array. This routine deals with the silly case where the subtype of
+   --  the boolean array is False..False or True..True, where it is required
+   --  that a Constraint_Error exception be raised (RM 4.5.6(6)).
+
+   procedure Silly_Boolean_Array_Xor_Test (N : Node_Id; T : Entity_Id);
+   --  N is the node for a boolean array XOR operation, and T is the type of
+   --  the array. This routine deals with the silly case where the subtype of
+   --  the boolean array is True..True, where a raise of a Constraint_Error
+   --  exception is required (RM 4.5.6(6)).
 
    function Target_Has_Fixed_Ops
      (Left_Typ   : Entity_Id;

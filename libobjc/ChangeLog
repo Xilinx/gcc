@@ -1,3 +1,18 @@
+2008-05-09  Julian Brown  <julian@codesourcery.com>
+
+	* Makefile.in (LTLDFLAGS): New.
+	(libobjc$(libsuffix).la, libobjc_gc$(libsuffix).la): Use above.
+
+2008-04-18  Paolo Bonzini  <bonzini@gnu.org>
+
+	PR bootstrap/35457
+	* aclocal.m4: Regenerate.
+	* configure: Regenerate.
+
+2008-01-24  David Edelsohn  <edelsohn@gnu.org>
+
+	* configure: Regenerate.
+
 2007-10-14  H.J. Lu  <hongjiu.lu@intel.com>
 
 	* configure.ac: Don't run config-ml.in directly.

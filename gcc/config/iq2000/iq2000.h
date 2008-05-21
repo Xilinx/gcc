@@ -303,7 +303,7 @@ enum reg_class
 #define FRAME_GROWS_DOWNWARD 0
 
 #define STARTING_FRAME_OFFSET						\
-  (current_function_outgoing_args_size)
+  (crtl->outgoing_args_size)
 
 /* Use the default value zero.  */
 /* #define STACK_POINTER_OFFSET 0 */
@@ -374,7 +374,7 @@ enum reg_class
 
 #define REG_PARM_STACK_SPACE(FNDECL) 0
 
-#define OUTGOING_REG_PARM_STACK_SPACE 1
+#define OUTGOING_REG_PARM_STACK_SPACE(FNTYPE) 1
 
 #define RETURN_POPS_ARGS(FUNDECL,FUNTYPE,SIZE) 0
 

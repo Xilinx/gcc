@@ -79,6 +79,7 @@ GNATRTL_NONTASKING_OBJS= \
   a-calari$(objext) \
   a-caldel$(objext) \
   a-calend$(objext) \
+  a-calcon$(objext) \
   a-calfor$(objext) \
   a-catizo$(objext) \
   a-cdlili$(objext) \
@@ -317,6 +318,7 @@ GNATRTL_NONTASKING_OBJS= \
   g-bubsor$(objext) \
   g-busora$(objext) \
   g-busorg$(objext) \
+  g-byorma$(objext) \
   g-bytswa$(objext) \
   g-calend$(objext) \
   g-casuti$(objext) \
@@ -331,10 +333,14 @@ GNATRTL_NONTASKING_OBJS= \
   g-curexc$(objext) \
   g-debuti$(objext) \
   g-debpoo$(objext) \
+  g-decstr$(objext) \
+  g-deutst$(objext) \
   g-diopit$(objext) \
   g-dirope$(objext) \
   g-dyntab$(objext) \
   g-dynhta$(objext) \
+  g-encstr$(objext) \
+  g-enutst$(objext) \
   g-except$(objext) \
   g-excact$(objext) \
   g-exctra$(objext) \
@@ -355,14 +361,17 @@ GNATRTL_NONTASKING_OBJS= \
   g-rannum$(objext) \
   g-regexp$(objext) \
   g-regpat$(objext) \
+  g-sercom$(objext) \
   g-sestin$(objext) \
   g-sha1$(objext) \
   g-soccon$(objext) \
   g-socket$(objext) \
   g-socthi$(objext) \
   g-soliop$(objext) \
+  g-sothco$(objext) \
   g-souinf$(objext) \
   g-speche$(objext) \
+  g-spchge$(objext) \
   g-spipat$(objext) \
   g-spitbo$(objext) \
   g-sptabo$(objext) \
@@ -373,9 +382,13 @@ GNATRTL_NONTASKING_OBJS= \
   g-sttsne$(objext) \
   g-table$(objext) \
   g-tasloc$(objext) \
+  g-timsta$(objext) \
   g-traceb$(objext) \
   g-utf_32$(objext) \
+  g-u3spch$(objext) \
+  g-wispch$(objext) \
   g-wistsp$(objext) \
+  g-zspche$(objext) \
   g-zstspl$(objext) \
   gnat$(objext) \
   i-c$(objext) \
@@ -440,6 +453,7 @@ GNATRTL_NONTASKING_OBJS= \
   s-fvagfl$(objext) \
   s-geveop$(objext) \
   s-htable$(objext) \
+  s-imenne$(objext) \
   s-imgbiu$(objext) \
   s-imgboo$(objext) \
   s-imgcha$(objext) \
@@ -547,6 +561,7 @@ GNATRTL_NONTASKING_OBJS= \
   s-stopoo$(objext) \
   s-stratt$(objext) \
   s-strops$(objext) \
+  s-ststop$(objext) \
   s-soflin$(objext) \
   s-memory$(objext) \
   s-memcop$(objext) \

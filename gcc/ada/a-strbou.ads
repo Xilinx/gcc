@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2006, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- This specification is derived from the Ada Reference Manual for use with --
 -- GNAT. The copyright notice above, and the license provisions that follow --
@@ -456,7 +456,7 @@ package Ada.Strings.Bounded is
       --  is at least one Bounded_String argument from which the maximum
       --  length can be obtained. For all such routines, the implementation
       --  in this private part is simply a renaming of the corresponding
-      --  routine in the super bouded package.
+      --  routine in the superbounded package.
 
       --  The five exceptions are the * and Replicate routines operating on
       --  character values. For these cases, we have a routine in the body
@@ -468,6 +468,12 @@ package Ada.Strings.Bounded is
       --  real trick, it ensures that the type Bounded_String declared in
       --  the generic instantiation is compatible with the Super_String
       --  type declared in the Superbounded package.
+
+      function From_String (Source : String) return Bounded_String;
+      --  Private routine used only by Stream_Convert
+
+      pragma Stream_Convert (Bounded_String, From_String, To_String);
+      --  Provide stream routines without dragging in Ada.Streams
 
       Null_Bounded_String : constant Bounded_String :=
                               (Max_Length     => Max_Length,

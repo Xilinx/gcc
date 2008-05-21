@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1996-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1996-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -104,7 +104,7 @@ procedure Gnatlink is
    --  important because on the GNU linker command line the -L switch is not
    --  used to look for objects files but -L switch is used to look for
    --  objects listed in the response file. This is not a problem with the
-   --  applications objects as they are specified with a fullname.
+   --  applications objects as they are specified with a full name.
 
    package Response_File_Objects is new Table.Table (
      Table_Component_Type => String_Access,
@@ -139,7 +139,7 @@ procedure Gnatlink is
 
    Gcc : String_Access := Program_Name ("gcc");
 
-   Read_Mode  : constant String := "r" & ASCII.Nul;
+   Read_Mode : constant String := "r" & ASCII.NUL;
 
    Begin_Info : String := "--  BEGIN Object file/option list";
    End_Info   : String := "--  END Object file/option list   ";
@@ -147,7 +147,6 @@ procedure Gnatlink is
 
    Gcc_Path             : String_Access;
    Linker_Path          : String_Access;
-
    Output_File_Name     : String_Access;
    Ali_File_Name        : String_Access;
    Binder_Spec_Src_File : String_Access;
@@ -160,6 +159,10 @@ procedure Gnatlink is
    --  Temporary file used by linker to pass list of object files on
    --  certain systems with limitations on size of arguments.
 
+   Lname : String_Access := null;
+   --  File used by linker for CLI target, used to concatenate all .il files
+   --  when the command line passed to ilasm is too long
+
    Debug_Flag_Present : Boolean := False;
    Verbose_Mode       : Boolean := False;
    Very_Verbose_Mode  : Boolean := False;
@@ -167,7 +170,7 @@ procedure Gnatlink is
    Ada_Bind_File : Boolean := True;
    --  Set to True if bind file is generated in Ada
 
-   Standard_Gcc  : Boolean := True;
+   Standard_Gcc : Boolean := True;
 
    Compile_Bind_File : Boolean := True;
    --  Set to False if bind file is not to be compiled
@@ -292,10 +295,14 @@ procedure Gnatlink is
       --  Set to true if the next argument is to be added into the list of
       --  linker's argument without parsing it.
 
+      procedure Check_Version_And_Help is new Check_Version_And_Help_G (Usage);
+
+      --  Start of processing for Process_Args
+
    begin
       --  First, check for --version and --help
 
-      Check_Version_And_Help ("GNATLINK", "1995", Usage'Unrestricted_Access);
+      Check_Version_And_Help ("GNATLINK", "1995");
 
       --  Loop through arguments of gnatlink command
 
@@ -928,14 +935,13 @@ procedure Gnatlink is
 
       Objs_End := Linker_Objects.Last;
 
-      --  Let's continue to compute the Link_Bytes, the linker options are
-      --  part of command line length.
+      --  Continue to compute the Link_Bytes, the linker options are part of
+      --  command line length.
 
       Store_File_Context;
 
       while Next_Line (Nfirst .. Nlast) /= End_Info loop
          Link_Bytes := Link_Bytes + Nlast - Nfirst + 2;
-         --  See comment above
          Get_Next_Line;
       end loop;
 
@@ -949,7 +955,42 @@ procedure Gnatlink is
       --  to read from a file instead of the command line is only triggered if
       --  a conservative threshold is passed.
 
-      if Object_List_File_Required
+      if VM_Target = CLI_Target
+        and then Link_Bytes > Link_Max
+      then
+         Lname := new String'("l~" & Base_Name (Ali_File_Name.all) & ".il");
+
+         for J in Objs_Begin .. Objs_End loop
+            Copy_File (Linker_Objects.Table (J).all, Lname.all,
+                       Success => Closing_Status,
+                       Mode    => Append);
+         end loop;
+
+         --  Add the special objects list file option together with the name
+         --  of the temporary file to the objects file table.
+
+         Linker_Objects.Table (Objs_Begin) :=
+           new String'(Value (Object_File_Option_Ptr) & Lname.all);
+
+         --  The slots containing these object file names are then removed
+         --  from the objects table so they do not appear in the link. They
+         --  are removed by moving up the linker options and non-Ada object
+         --  files appearing after the Ada object list in the table.
+
+         declare
+            N : Integer;
+
+         begin
+            N := Objs_End - Objs_Begin + 1;
+
+            for J in Objs_End + 1 .. Linker_Objects.Last loop
+               Linker_Objects.Table (J - N + 1) := Linker_Objects.Table (J);
+            end loop;
+
+            Linker_Objects.Set_Last (Linker_Objects.Last - N + 1);
+         end;
+
+      elsif Object_List_File_Required
         or else (Object_List_File_Supported
                    and then Link_Bytes > Link_Max)
       then
@@ -1299,7 +1340,7 @@ procedure Gnatlink is
                      else
                         --  If gnatlib library not found, then
                         --  add it anyway in case some other
-                        --  mechanimsm may find it.
+                        --  mechanism may find it.
 
                         Linker_Options.Increment_Last;
                         Linker_Options.Table (Linker_Options.Last) :=
@@ -1471,7 +1512,7 @@ begin
    --  switches:
 
    --    -gnatA   stops reading gnat.adc, since we don't know what
-   --             pagmas would work, and we do not need it anyway.
+   --             pragmas would work, and we do not need it anyway.
 
    --    -gnatWb  allows brackets coding for wide characters
 
@@ -1765,7 +1806,12 @@ begin
               Binder_Options.Table (J);
          end loop;
 
-         Args (Args'Last) := Binder_Body_Src_File;
+         --  Use the full path of the binder generated source, so that it is
+         --  guaranteed that the debugger will find this source, even with
+         --  STABS.
+
+         Args (Args'Last) :=
+           new String'(Normalize_Pathname (Binder_Body_Src_File.all));
 
          if Verbose_Mode then
             Write_Str (Base_Name (Gcc_Path.all));
@@ -1834,7 +1880,7 @@ begin
          --  one. And any subsequent stack setting option will overwrite the
          --  previous one. This is done especially for GNAT/NT where we set
          --  the stack size for tasking programs by a pragma in the NT
-         --  specific tasking package System.Task_Primitives.Oparations.
+         --  specific tasking package System.Task_Primitives.Operations.
 
          --  Note: This is not a FOR loop that runs from Linker_Options.First
          --  to Linker_Options.Last, since operations within the loop can
@@ -1999,11 +2045,15 @@ begin
 
             System.OS_Lib.Spawn (Linker_Path.all, Args, Success);
 
-            --  Delete the temporary file used in conjuction with linking if
+            --  Delete the temporary file used in conjunction with linking if
             --  one was created. See Process_Bind_File for details.
 
             if Tname_FD /= Invalid_FD then
                Delete (Tname);
+            end if;
+
+            if Lname /= null then
+               Delete (Lname.all & ASCII.NUL);
             end if;
 
             if not Success then

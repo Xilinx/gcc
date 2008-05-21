@@ -902,8 +902,10 @@ gate_tree_loop_streamize (void)
   return flag_streamize_loops != 0;
 }
 
-struct tree_opt_pass pass_loop_streamization =
+struct gimple_opt_pass pass_loop_streamization =
 {
+ {
+  GIMPLE_PASS,
   "streamize",			/* name */
   gate_tree_loop_streamize,  /* gate */
   tree_loop_streamization,       /* execute */
@@ -917,6 +919,6 @@ struct tree_opt_pass pass_loop_streamization =
   0,				/* todo_flags_start */
   TODO_update_ssa
   | TODO_dump_func 
-  | TODO_verify_loops,            /* todo_flags_finish */
-  0                             /* letter */  
+  | TODO_verify_loops           /* todo_flags_finish */
+ }
 };

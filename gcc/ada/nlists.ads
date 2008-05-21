@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -129,7 +129,7 @@ package Nlists is
    --  returned. It is an error to call First_Non_Pragma with a Node_Id value
    --  or No_List (No_List is not considered to be the same as an empty list).
    --  This function also skips N_Null nodes which can result from rewriting
-   --  unrecognized or incorrrect pragmas.
+   --  unrecognized or incorrect pragmas.
 
    function Last (List : List_Id) return Node_Id;
    pragma Inline (Last);
@@ -201,7 +201,7 @@ package Nlists is
    function Is_Empty_List (List : List_Id) return Boolean;
    pragma Inline (Is_Empty_List);
    --  This function determines if a given list id references a node list that
-   --  contains no items. No_List is a not a legitimate argument.
+   --  contains no items. No_List as an argument returns True.
 
    function Is_Non_Empty_List (List : List_Id) return Boolean;
    pragma Inline (Is_Non_Empty_List);
@@ -332,9 +332,6 @@ package Nlists is
    function Prev_Node_Address return System.Address;
    --  These functions return the addresses of the Next_Node and Prev_Node
    --  tables (used in Back_End for Gigi).
-
-   procedure Delete_List (L : List_Id);
-   --  Removes all elements of the given list, and calls Delete_Tree on each
 
    function p (U : Union_Id) return Node_Id;
    --  This function is intended for use from the debugger, it determines

@@ -110,8 +110,7 @@ compute_object_offset (const_tree expr, const_tree var)
       break;
 
     case REALPART_EXPR:
-    case NOP_EXPR:
-    case CONVERT_EXPR:
+    CASE_CONVERT:
     case VIEW_CONVERT_EXPR:
     case NON_LVALUE_EXPR:
       return compute_object_offset (TREE_OPERAND (expr, 0), var);
@@ -1063,8 +1062,10 @@ compute_object_sizes (void)
   return 0;
 }
 
-struct tree_opt_pass pass_object_sizes =
+struct gimple_opt_pass pass_object_sizes =
 {
+ {
+  GIMPLE_PASS,
   "objsz",				/* name */
   NULL,					/* gate */
   compute_object_sizes,			/* execute */
@@ -1076,6 +1077,6 @@ struct tree_opt_pass pass_object_sizes =
   0,					/* properties_provided */
   0,					/* properties_destroyed */
   0,					/* todo_flags_start */
-  TODO_dump_func | TODO_verify_ssa,	/* todo_flags_finish */
-  0					/* letter */
+  TODO_dump_func | TODO_verify_ssa	/* todo_flags_finish */
+ }
 };

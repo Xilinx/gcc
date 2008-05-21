@@ -523,8 +523,8 @@ m32c_conditional_register_usage (void)
 /* Implements HARD_REGNO_NREGS.  This is complicated by the fact that
    different registers are different sizes from each other, *and* may
    be different sizes in different chip families.  */
-int
-m32c_hard_regno_nregs (int regno, enum machine_mode mode)
+static int
+m32c_hard_regno_nregs_1 (int regno, enum machine_mode mode)
 {
   if (regno == FLG_REGNO && mode == CCmode)
     return 1;
@@ -549,12 +549,19 @@ m32c_hard_regno_nregs (int regno, enum machine_mode mode)
   return 0;
 }
 
+int
+m32c_hard_regno_nregs (int regno, enum machine_mode mode)
+{
+  int rv = m32c_hard_regno_nregs_1 (regno, mode);
+  return rv ? rv : 1;
+}
+
 /* Implements HARD_REGNO_MODE_OK.  The above function does the work
    already; just test its return value.  */
 int
 m32c_hard_regno_ok (int regno, enum machine_mode mode)
 {
-  return m32c_hard_regno_nregs (regno, mode) != 0;
+  return m32c_hard_regno_nregs_1 (regno, mode) != 0;
 }
 
 /* Implements MODES_TIEABLE_P.  In general, modes aren't tieable since
@@ -1244,7 +1251,7 @@ need_to_save (int regno)
 {
   if (fixed_regs[regno])
     return 0;
-  if (cfun->calls_eh_return)
+  if (crtl->calls_eh_return)
     return 1;
   if (regno == FP_REGNO)
     return 0;
@@ -1274,11 +1281,11 @@ m32c_pushm_popm (Push_Pop_Type ppt)
   int n_dwarfs = 0;
   int nosave_mask = 0;
 
-  if (cfun->return_rtx
-      && GET_CODE (cfun->return_rtx) == PARALLEL
-      && !(cfun->calls_eh_return || cfun->machine->is_interrupt))
+  if (crtl->return_rtx
+      && GET_CODE (crtl->return_rtx) == PARALLEL
+      && !(crtl->calls_eh_return || cfun->machine->is_interrupt))
     {
-      rtx exp = XVECEXP (cfun->return_rtx, 0, 0);
+      rtx exp = XVECEXP (crtl->return_rtx, 0, 0);
       rtx rv = XEXP (exp, 0);
       int rv_bytes = GET_MODE_SIZE (GET_MODE (rv));
 
@@ -3882,20 +3889,20 @@ m32c_leaf_function_p (void)
   struct sequence_stack *seq;
   int rv;
 
-  saved_first = cfun->emit->x_first_insn;
-  saved_last = cfun->emit->x_last_insn;
-  for (seq = cfun->emit->sequence_stack; seq && seq->next; seq = seq->next)
+  saved_first = crtl->emit.x_first_insn;
+  saved_last = crtl->emit.x_last_insn;
+  for (seq = crtl->emit.sequence_stack; seq && seq->next; seq = seq->next)
     ;
   if (seq)
     {
-      cfun->emit->x_first_insn = seq->first;
-      cfun->emit->x_last_insn = seq->last;
+      crtl->emit.x_first_insn = seq->first;
+      crtl->emit.x_last_insn = seq->last;
     }
 
   rv = leaf_function_p ();
 
-  cfun->emit->x_first_insn = saved_first;
-  cfun->emit->x_last_insn = saved_last;
+  crtl->emit.x_first_insn = saved_first;
+  crtl->emit.x_last_insn = saved_last;
   return rv;
 }
 
@@ -3911,7 +3918,7 @@ m32c_function_needs_enter (void)
   rtx fb = gen_rtx_REG (Pmode, FB_REGNO);
 
   insn = get_insns ();
-  for (seq = cfun->emit->sequence_stack;
+  for (seq = crtl->emit.sequence_stack;
        seq;
        insn = seq->first, seq = seq->next);
 

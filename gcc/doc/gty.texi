@@ -1,4 +1,4 @@
-@c Copyright (C) 2002, 2003, 2004, 2007
+@c Copyright (C) 2002, 2003, 2004, 2007, 2008
 @c Free Software Foundation, Inc.
 @c This is part of the GCC manual.
 @c For copying conditions, see the file gcc.texi.
@@ -96,14 +96,14 @@ The structure that immediately contains the current structure.
 @item %0
 The outermost structure that contains the current structure.
 @item %a
-A partial expression of the form @code{[i1][i2]...} that indexes
+A partial expression of the form @code{[i1][i2]@dots{}} that indexes
 the array item currently being marked.
 @end table
 
 For instance, suppose that you have a structure of the form
 @smallexample
 struct A @{
-  ...
+  @dots{}
 @};
 struct B @{
   struct A foo[12];
@@ -316,8 +316,10 @@ escape.
 
 @findex chain_next
 @findex chain_prev
+@findex chain_circular
 @item chain_next ("@var{expression}")
 @itemx chain_prev ("@var{expression}")
+@itemx chain_circular ("@var{expression}")
 
 It's helpful for the type machinery to know if objects are often
 chained together in long lists; this lets it generate code that uses
@@ -326,7 +328,8 @@ it.  @code{chain_next} is an expression for the next item in the list,
 @code{chain_prev} is an expression for the previous item.  For singly
 linked lists, use only @code{chain_next}; for doubly linked lists, use
 both.  The machinery requires that taking the next item of the
-previous item gives the original item.
+previous item gives the original item.  @code{chain_circular} is similar
+to @code{chain_next}, but can be used for circular single linked lists.
 
 @findex reorder
 @item reorder ("@var{function name}")
@@ -413,6 +416,7 @@ For files shared by all front ends, add the filename to the
 For files that are part of one front end, add the filename to the
 @code{gtfiles} variable defined in the appropriate
 @file{config-lang.in}.  For C, the file is @file{c-config-lang.in}.
+Headers should appear before non-headers in this list.
 
 @item
 For files that are part of some but not all front ends, add the

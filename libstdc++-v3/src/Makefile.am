@@ -1,6 +1,7 @@
 ## Makefile for the src subdirectory of the GNU C++ Standard library.
 ##
-## Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2005
+## Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005
+## 2006, 2007, 2008
 ## Free Software Foundation, Inc.
 ##
 ## This file is part of the libstdc++ version 3 distribution.
@@ -121,7 +122,7 @@ basic_file.cc: ${glibcxx_srcdir}/$(BASIC_FILE_CC)
 	$(LN_S) ${glibcxx_srcdir}/$(BASIC_FILE_CC) ./$@ || true
 
 if ENABLE_PARALLEL
-parallel_sources = parallel_list.cc 
+parallel_sources = parallel_list.cc parallel_settings.cc
 else
 parallel_sources =
 endif
@@ -134,6 +135,7 @@ endif
 
 # Sources present in the src directory.
 sources = \
+	atomic.cc \
 	bitmap_allocator.cc \
 	pool_allocator.cc \
 	mt_allocator.cc \
@@ -141,18 +143,20 @@ sources = \
 	compatibility.cc \
 	complex_io.cc \
 	ctype.cc \
+	date_time.cc \
 	debug.cc \
 	functexcept.cc \
 	hash.cc \
 	hash_c++0x.cc \
 	globals_io.cc \
 	hashtable.cc \
-	hashtable_c++0x.cc \	
+	hashtable_c++0x.cc \
 	ios.cc \
 	ios_failure.cc \
 	ios_init.cc \
 	ios_locale.cc \
 	limits.cc \
+	limits_c++0x.cc \
 	list.cc \
 	debug_list.cc \
 	locale.cc \
@@ -181,6 +185,8 @@ sources = \
 	valarray-inst.cc \
 	wlocale-inst.cc \
 	wstring-inst.cc \
+	mutex.cc \
+	condition_variable.cc \
 	${host_sources} \
 	${host_sources_extra} 
 
@@ -214,16 +220,37 @@ concept-inst.lo: concept-inst.cc
 concept-inst.o: concept-inst.cc
 	$(CXXCOMPILE) -D_GLIBCXX_CONCEPT_CHECKS -fimplicit-templates -c $<
 
-# Use special rules for parallel_list.cc compile.
+# Use special rules for parallel mode compilation.
+PARALLEL_FLAGS = -fopenmp -D_GLIBCXX_PARALLEL -I$(glibcxx_builddir)/../libgomp
 parallel_list.lo: parallel_list.cc
-	$(LTCXXCOMPILE) -I$(glibcxx_builddir)/../libgomp -c $<
+	$(LTCXXCOMPILE) $(PARALLEL_FLAGS) -c $<
 parallel_list.o: parallel_list.cc
-	$(CXXCOMPILE) -I$(glibcxx_builddir)/../libgomp -c $<
+	$(CXXCOMPILE) $(PARALLEL_FLAGS) -c $<
+
+parallel_settings.lo: parallel_settings.cc
+	$(LTCXXCOMPILE) $(PARALLEL_FLAGS) -c $<
+parallel_settings.o: parallel_settings.cc
+	$(CXXCOMPILE) $(PARALLEL_FLAGS) -c $<
 
 # Use special rules for the C++0x sources so that the proper flags are passed.
+functexcept.lo: functexcept.cc
+	$(LTCXXCOMPILE) -std=gnu++0x -c $<
+functexcept.o: functexcept.cc
+	$(CXXCOMPILE) -std=gnu++0x -c $<
+
 system_error.lo: system_error.cc
 	$(LTCXXCOMPILE) -std=gnu++0x -c $<
 system_error.o: system_error.cc
+	$(CXXCOMPILE) -std=gnu++0x -c $<
+
+mutex.lo: mutex.cc
+	$(LTCXXCOMPILE) -std=gnu++0x -c $<
+mutex.o: mutex.cc
+	$(CXXCOMPILE) -std=gnu++0x -c $<
+
+condition_variable.lo: condition_variable.cc
+	$(LTCXXCOMPILE) -std=gnu++0x -c $<
+condition_variable.o: condition_variable.cc
 	$(CXXCOMPILE) -std=gnu++0x -c $<
 
 hash_c++0x.lo: hash_c++0x.cc
@@ -235,6 +262,21 @@ hashtable_c++0x.lo: hashtable_c++0x.cc
 	$(LTCXXCOMPILE) -std=gnu++0x -c $<
 hashtable_c++0x.o: hashtable_c++0x.cc
 	$(CXXCOMPILE) -std=gnu++0x -c $<
+
+limits_c++0x.lo: limits_c++0x.cc
+	$(LTCXXCOMPILE) -std=gnu++0x -c $<
+limits_c++0x.o: limits_c++0x.cc
+	$(CXXCOMPILE) -std=gnu++0x -c $<
+
+date_time.lo: date_time.cc
+	$(LTCXXCOMPILE) -std=gnu++0x -c $<
+date_time.o: date_time.cc
+	$(CXXCOMPILE) -std=gnu++0x -c $<
+
+atomic.lo: atomic.cc
+	$(LTCXXCOMPILE) -x c++ -std=gnu++0x -c $<
+atomic.o: atomic.cc
+	$(CXXCOMPILE) -x c++ -std=gnu++0x -c $<
 
 if GLIBCXX_LDBL_COMPAT
 # Use special rules for compatibility-ldbl.cc compilation, as we need to

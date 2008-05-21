@@ -1,6 +1,6 @@
 /* Java(TM) language-specific utility routines.
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004,
-   2005, 2006, 2007 Free Software Foundation, Inc.
+   2005, 2006, 2007, 2008 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -62,7 +62,8 @@ static bool java_dump_tree (void *, tree);
 static void dump_compound_expr (dump_info_p, tree);
 static bool java_decl_ok_for_sibcall (const_tree);
 static tree java_get_callee_fndecl (const_tree);
-static void java_clear_binding_stack (void);
+
+static enum classify_record java_classify_record (tree type);
 
 #ifndef TARGET_OBJECT_SUFFIX
 # define TARGET_OBJECT_SUFFIX ".o"
@@ -180,6 +181,8 @@ struct language_function GTY(())
 #define LANG_HOOKS_TYPE_FOR_MODE java_type_for_mode
 #undef LANG_HOOKS_TYPE_FOR_SIZE
 #define LANG_HOOKS_TYPE_FOR_SIZE java_type_for_size
+#undef LANG_HOOKS_CLASSIFY_RECORD
+#define LANG_HOOKS_CLASSIFY_RECORD java_classify_record
 
 #undef LANG_HOOKS_TREE_DUMP_DUMP_TREE_FN
 #define LANG_HOOKS_TREE_DUMP_DUMP_TREE_FN java_dump_tree
@@ -192,9 +195,6 @@ struct language_function GTY(())
 
 #undef LANG_HOOKS_GET_CALLEE_FNDECL
 #define LANG_HOOKS_GET_CALLEE_FNDECL java_get_callee_fndecl
-
-#undef LANG_HOOKS_CLEAR_BINDING_STACK
-#define LANG_HOOKS_CLEAR_BINDING_STACK java_clear_binding_stack
 
 #undef LANG_HOOKS_SET_DECL_ASSEMBLER_NAME
 #define LANG_HOOKS_SET_DECL_ASSEMBLER_NAME java_mangle_decl
@@ -651,10 +651,8 @@ java_post_options (const char **pfilename)
 	    }
 	}
     }
-#ifdef USE_MAPPED_LOCATION
   linemap_add (line_table, LC_ENTER, false, filename, 0);
   linemap_add (line_table, LC_RENAME, false, "<built-in>", 0);
-#endif
 
   /* Initialize the compiler back end.  */
   return false;
@@ -947,12 +945,18 @@ java_get_callee_fndecl (const_tree call_expr)
 }
 
 
-/* Clear the binding stack.  */
-static void
-java_clear_binding_stack (void)
+static enum classify_record
+java_classify_record (tree type)
 {
-  while (!global_bindings_p ())
-    poplevel (0, 0, 0);
+  if (! CLASS_P (type))
+    return RECORD_IS_STRUCT;
+
+  /* ??? GDB does not support DW_TAG_interface_type as of December,
+     2007.  Re-enable this at a later time.  */
+  if (0 && CLASS_INTERFACE (TYPE_NAME (type)))
+    return RECORD_IS_INTERFACE;
+
+  return RECORD_IS_CLASS;
 }
 
 #include "gt-java-lang.h"

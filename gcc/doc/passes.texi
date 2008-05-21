@@ -1,7 +1,8 @@
 @c markers: CROSSREF BUG TODO
 
 @c Copyright (C) 1988, 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999,
-@c 2000, 2001, 2002, 2003, 2004, 2005 Free Software Foundation, Inc.
+@c 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008 Free Software
+@c Foundation, Inc.
 @c This is part of the GCC manual.
 @c For copying conditions, see the file gcc.texi.
 
@@ -167,7 +168,7 @@ what is present is useful, and a far sight better than nothing at all.
 
 TODO: describe the global variables set up by the pass manager,
 and a brief description of how a new pass should use it.
-I need to look at what info rtl passes use first...
+I need to look at what info rtl passes use first@enddots{}
 
 @node Tree-SSA passes
 @section Tree-SSA passes
@@ -366,7 +367,7 @@ This pass transforms tail recursion into a loop.  It is located in
 
 @item Forward store motion
 
-This pass sinks stores and assignments down the flowgraph closer to it's
+This pass sinks stores and assignments down the flowgraph closer to their
 use point.  The pass is located in @file{tree-ssa-sink.c} and is
 described by @code{pass_sink_code}.
 
@@ -384,7 +385,7 @@ in @file{tree-ssa-math-opts.c} and is described by
 
 @item Full redundancy elimination
 
-This is a simpler form of PRE that only eliminate redundancies that
+This is a simpler form of PRE that only eliminates redundancies that
 occur an all paths.  It is located in @file{tree-ssa-pre.c} and
 described by @code{pass_fre}.
 
@@ -490,7 +491,7 @@ described by @code{pass_vrp}.
 @item Folding built-in functions
 
 This pass simplifies built-in functions, as applicable, with constant
-arguments or with inferrable string lengths.  It is located in
+arguments or with inferable string lengths.  It is located in
 @file{tree-ssa-ccp.c} and is described by @code{pass_fold_builtins}.
 
 @item Split critical edges
@@ -558,7 +559,7 @@ If a function always returns the same local variable, and that local
 variable is an aggregate type, then the variable is replaced with the
 return value for the function (i.e., the function's DECL_RESULT).  This
 is equivalent to the C++ named return value optimization applied to
-GIMPLE.  The pass is located in @file{tree-nrv.c} and is described by
+GIMPLE@.  The pass is located in @file{tree-nrv.c} and is described by
 @code{pass_nrv}.
 
 @item Return slot optimization

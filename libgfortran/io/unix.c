@@ -1,6 +1,7 @@
-/* Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007
+/* Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008
    Free Software Foundation, Inc.
    Contributed by Andy Vaught
+   F2003 I/O support contributed by Jerry DeLisle
 
 This file is part of the GNU Fortran 95 runtime library (libgfortran).
 
@@ -93,8 +94,6 @@ id_from_fd (const int fd)
 
 #endif
 
-
-
 #ifndef SSIZE_MAX
 #define SSIZE_MAX SHRT_MAX
 #endif
@@ -153,7 +152,7 @@ typedef struct
 
   int special_file;		/* =1 if the fd refers to a special file */
 
-  int unbuffered;               /* =1 if the stream is not buffered */
+  io_mode method;		/* Method of stream I/O being used */
 
   char *buffer;
   char small_buffer[BUFFER_SIZE];
@@ -184,7 +183,7 @@ typedef struct
 
   int special_file;		/* =1 if the fd refers to a special file */
 
-  int unbuffered;               /* =1 if the stream is not buffered */
+  io_mode method;		/* Method of stream I/O being used */
 
   char *buffer;
 }
@@ -238,15 +237,15 @@ move_pos_offset (stream* st, int pos_off)
       str->logical_offset += pos_off;
 
       if (str->dirty_offset + str->ndirty > str->logical_offset)
-        {
-          if (str->ndirty + pos_off > 0)
-            str->ndirty += pos_off;
-          else
-            {
-              str->dirty_offset +=  pos_off + pos_off;
-              str->ndirty = 0;
-            }
-        }
+	{
+	  if (str->ndirty + pos_off > 0)
+	    str->ndirty += pos_off;
+	  else
+	    {
+	      str->dirty_offset +=  pos_off + pos_off;
+	      str->ndirty = 0;
+	    }
+	}
 
     return pos_off;
   }
@@ -531,12 +530,10 @@ fd_alloc (unix_stream * s, gfc_offset where,
  * NULL on I/O error. */
 
 static char *
-fd_alloc_r_at (unix_stream * s, int *len, gfc_offset where)
+fd_alloc_r_at (unix_stream * s, int *len)
 {
   gfc_offset m;
-
-  if (where == -1)
-    where = s->logical_offset;
+  gfc_offset where = s->logical_offset;
 
   if (s->buffer != NULL && s->buffer_offset <= where &&
       where + *len <= s->buffer_offset + s->active)
@@ -594,12 +591,10 @@ fd_alloc_r_at (unix_stream * s, int *len, gfc_offset where)
  * we've already buffered the data or we need to load it. */
 
 static char *
-fd_alloc_w_at (unix_stream * s, int *len, gfc_offset where)
+fd_alloc_w_at (unix_stream * s, int *len)
 {
   gfc_offset n;
-
-  if (where == -1)
-    where = s->logical_offset;
+  gfc_offset where = s->logical_offset;
 
   if (s->buffer == NULL || s->buffer_offset > where ||
       where + *len > s->buffer_offset + s->len)
@@ -615,23 +610,23 @@ fd_alloc_w_at (unix_stream * s, int *len, gfc_offset where)
       || where > s->dirty_offset + s->ndirty    
       || s->dirty_offset > where + *len)
     {  /* Discontiguous blocks, start with a clean buffer.  */  
-        /* Flush the buffer.  */  
-       if (s->ndirty != 0)    
-         fd_flush (s);  
-       s->dirty_offset = where;  
-       s->ndirty = *len;
+	/* Flush the buffer.  */  
+      if (s->ndirty != 0)    
+	fd_flush (s);  
+      s->dirty_offset = where;  
+      s->ndirty = *len;
     }
   else
     {  
       gfc_offset start;  /* Merge with the existing data.  */  
       if (where < s->dirty_offset)    
-        start = where;  
+	start = where;  
       else    
-        start = s->dirty_offset;  
+	start = s->dirty_offset;  
       if (where + *len > s->dirty_offset + s->ndirty)    
-        s->ndirty = where + *len - start;  
+	s->ndirty = where + *len - start;  
       else    
-        s->ndirty = s->dirty_offset + s->ndirty - start;  
+	s->ndirty = s->dirty_offset + s->ndirty - start;  
       s->dirty_offset = start;
     }
 
@@ -655,7 +650,7 @@ fd_sfree (unix_stream * s)
 {
   if (s->ndirty != 0 &&
       (s->buffer != s->small_buffer || options.all_unbuffered ||
-       s->unbuffered))
+       s->method == SYNC_UNBUFFERED))
     return fd_flush (s);
 
   return SUCCESS;
@@ -706,16 +701,28 @@ fd_truncate (unix_stream * s)
 
   /* Using ftruncate on a seekable special file (like /dev/null)
      is undefined, so we treat it as if the ftruncate succeeded.  */
+  if (!s->special_file
+      && (
 #ifdef HAVE_FTRUNCATE
-  if (s->special_file || ftruncate (s->fd, s->logical_offset))
+	  ftruncate (s->fd, s->logical_offset) != 0
+#elif defined HAVE_CHSIZE
+	  chsize (s->fd, s->logical_offset) != 0
 #else
-#ifdef HAVE_CHSIZE
-  if (s->special_file || chsize (s->fd, s->logical_offset))
+	  /* If we have neither, always fail and exit, noisily.  */
+	  runtime_error ("required ftruncate or chsize support not present"), 1
 #endif
-#endif
+	  ))
     {
-      s->physical_offset = s->file_length = 0;
-      return SUCCESS;
+      /* The truncation failed and we need to handle this gracefully.
+	 The file length remains the same, but the file-descriptor
+	 offset needs adjustment per the successful lseek above.
+	 (Similarly, the contents of the buffer isn't valid anymore.)
+	 A ftruncate call does not affect the physical (file-descriptor)
+	 offset, according to the ftruncate manual, so neither should a
+	 failed call.  */
+      s->physical_offset = s->logical_offset;
+      s->active = 0;
+      return FAILURE;
     }
 
   s->physical_offset = s->file_length = s->logical_offset;
@@ -741,7 +748,7 @@ fd_sset (unix_stream * s, int c, size_t n)
       /* memset() in chunks of BUFFER_SIZE.  */
       trans = (bytes_left < BUFFER_SIZE) ? bytes_left : BUFFER_SIZE;
 
-      p = fd_alloc_w_at (s, &trans, -1);
+      p = fd_alloc_w_at (s, &trans);
       if (p)
 	  memset (p, c, trans);
       else
@@ -765,10 +772,10 @@ fd_read (unix_stream * s, void * buf, size_t * nbytes)
   void *p;
   int tmp, status;
 
-  if (*nbytes < BUFFER_SIZE && !s->unbuffered)
+  if (*nbytes < BUFFER_SIZE && s->method == SYNC_BUFFERED)
     {
       tmp = *nbytes;
-      p = fd_alloc_r_at (s, &tmp, -1);
+      p = fd_alloc_r_at (s, &tmp);
       if (p)
 	{
 	  *nbytes = tmp;
@@ -813,10 +820,10 @@ fd_write (unix_stream * s, const void * buf, size_t * nbytes)
   void *p;
   int tmp, status;
 
-  if (*nbytes < BUFFER_SIZE && !s->unbuffered)
+  if (*nbytes < BUFFER_SIZE && s->method == SYNC_BUFFERED)
     {
       tmp = *nbytes;
-      p = fd_alloc_w_at (s, &tmp, -1);
+      p = fd_alloc_w_at (s, &tmp);
       if (p)
 	{
 	  *nbytes = tmp;
@@ -859,10 +866,10 @@ fd_close (unix_stream * s)
   if (s->buffer != NULL && s->buffer != s->small_buffer)
     free_mem (s->buffer);
 
-  if (s->fd != STDOUT_FILENO && s->fd != STDERR_FILENO)
+  if (s->fd != STDOUT_FILENO && s->fd != STDERR_FILENO && s->fd != STDIN_FILENO)
     {
       if (close (s->fd) < 0)
-        return FAILURE;
+	return FAILURE;
     }
 
   free_mem (s);
@@ -875,9 +882,10 @@ static void
 fd_open (unix_stream * s)
 {
   if (isatty (s->fd))
-    s->unbuffered = 1;
+    s->method = SYNC_UNBUFFERED;
+  else
+    s->method = SYNC_BUFFERED;
 
-  s->st.alloc_r_at = (void *) fd_alloc_r_at;
   s->st.alloc_w_at = (void *) fd_alloc_w_at;
   s->st.sfree = (void *) fd_sfree;
   s->st.close = (void *) fd_close;
@@ -905,12 +913,10 @@ fd_open (unix_stream * s)
 
 
 static char *
-mem_alloc_r_at (int_stream * s, int *len, gfc_offset where)
+mem_alloc_r_at (int_stream * s, int *len)
 {
   gfc_offset n;
-
-  if (where == -1)
-    where = s->logical_offset;
+  gfc_offset where = s->logical_offset;
 
   if (where < s->buffer_offset || where > s->buffer_offset + s->active)
     return NULL;
@@ -926,15 +932,13 @@ mem_alloc_r_at (int_stream * s, int *len, gfc_offset where)
 
 
 static char *
-mem_alloc_w_at (int_stream * s, int *len, gfc_offset where)
+mem_alloc_w_at (int_stream * s, int *len)
 {
   gfc_offset m;
+  gfc_offset where = s->logical_offset;
 
   assert (*len >= 0);  /* Negative values not allowed. */
   
-  if (where == -1)
-    where = s->logical_offset;
-
   m = where + *len;
 
   if (where < s->buffer_offset)
@@ -949,9 +953,7 @@ mem_alloc_w_at (int_stream * s, int *len, gfc_offset where)
 }
 
 
-/* Stream read function for internal units. This is not actually used
-   at the moment, as all internal IO is formatted and the formatted IO
-   routines use mem_alloc_r_at.  */
+/* Stream read function for internal units.  */
 
 static int
 mem_read (int_stream * s, void * buf, size_t * nbytes)
@@ -960,7 +962,7 @@ mem_read (int_stream * s, void * buf, size_t * nbytes)
   int tmp;
 
   tmp = *nbytes;
-  p = mem_alloc_r_at (s, &tmp, -1);
+  p = mem_alloc_r_at (s, &tmp);
   if (p)
     {
       *nbytes = tmp;
@@ -970,7 +972,7 @@ mem_read (int_stream * s, void * buf, size_t * nbytes)
   else
     {
       *nbytes = 0;
-      return errno;
+      return 0;
     }
 }
 
@@ -985,10 +987,8 @@ mem_write (int_stream * s, const void * buf, size_t * nbytes)
   void *p;
   int tmp;
 
-  errno = 0;
-
   tmp = *nbytes;
-  p = mem_alloc_w_at (s, &tmp, -1);
+  p = mem_alloc_w_at (s, &tmp);
   if (p)
     {
       *nbytes = tmp;
@@ -998,7 +998,7 @@ mem_write (int_stream * s, const void * buf, size_t * nbytes)
   else
     {
       *nbytes = 0;
-      return errno;
+      return 0;
     }
 }
 
@@ -1025,7 +1025,7 @@ mem_set (int_stream * s, int c, size_t n)
 
   len = n;
   
-  p = mem_alloc_w_at (s, &len, -1);
+  p = mem_alloc_w_at (s, &len);
   if (p)
     {
       memset (p, c, len);
@@ -1078,7 +1078,7 @@ empty_internal_buffer(stream *strm)
 /* open_internal()-- Returns a stream structure from an internal file */
 
 stream *
-open_internal (char *base, int length)
+open_internal (char *base, int length, gfc_offset offset)
 {
   int_stream *s;
 
@@ -1086,12 +1086,11 @@ open_internal (char *base, int length)
   memset (s, '\0', sizeof (int_stream));
 
   s->buffer = base;
-  s->buffer_offset = 0;
+  s->buffer_offset = offset;
 
   s->logical_offset = 0;
   s->active = s->file_length = length;
 
-  s->st.alloc_r_at = (void *) mem_alloc_r_at;
   s->st.alloc_w_at = (void *) mem_alloc_w_at;
   s->st.sfree = (void *) mem_sfree;
   s->st.close = (void *) mem_close;
@@ -1212,7 +1211,7 @@ tempfile (st_parameter_open *opp)
     do
 #if defined(HAVE_CRLF) && defined(O_BINARY)
       fd = open (template, O_RDWR | O_CREAT | O_EXCL | O_BINARY,
-                 S_IREAD | S_IWRITE);
+		 S_IREAD | S_IWRITE);
 #else
       fd = open (template, O_RDWR | O_CREAT | O_EXCL, S_IREAD | S_IWRITE);
 #endif
@@ -1323,11 +1322,11 @@ regular_file (st_parameter_open *opp, unit_flags *flags)
   if (fd >=0)
     {
       flags->action = ACTION_READ;
-      return fd;               /* success */
+      return fd;		/* success */
     }
   
   if (errno != EACCES)
-    return fd;                 /* failure */
+    return fd;			/* failure */
 
   /* retry for write-only access */
   rwflag = O_WRONLY;
@@ -1335,9 +1334,9 @@ regular_file (st_parameter_open *opp, unit_flags *flags)
   if (fd >=0)
     {
       flags->action = ACTION_WRITE;
-      return fd;               /* success */
+      return fd;		/* success */
     }
-  return fd;                   /* failure */
+  return fd;			/* failure */
 }
 
 
@@ -1354,7 +1353,7 @@ open_external (st_parameter_open *opp, unit_flags *flags)
     {
       fd = tempfile (opp);
       if (flags->action == ACTION_UNSPECIFIED)
-        flags->action = ACTION_READWRITE;
+	flags->action = ACTION_READWRITE;
 
 #if HAVE_UNLINK_OPEN_FILE
       /* We can unlink scratch files now and it will go away when closed. */
@@ -1419,7 +1418,7 @@ output_stream (void)
 
   s = fd_to_stream (STDOUT_FILENO, PROT_WRITE);
   if (options.unbuffered_preconnected)
-    ((unix_stream *) s)->unbuffered = 1;
+    ((unix_stream *) s)->method = SYNC_UNBUFFERED;
   return s;
 }
 
@@ -1438,7 +1437,7 @@ error_stream (void)
 
   s = fd_to_stream (STDERR_FILENO, PROT_WRITE);
   if (options.unbuffered_preconnected)
-    ((unix_stream *) s)->unbuffered = 1;
+    ((unix_stream *) s)->method = SYNC_UNBUFFERED;
   return s;
 }
 
@@ -1806,7 +1805,7 @@ inquire_sequential (const char *string, int len)
 
   if (S_ISREG (statbuf.st_mode) ||
       S_ISCHR (statbuf.st_mode) || S_ISFIFO (statbuf.st_mode))
-    return yes;
+    return unknown;
 
   if (S_ISDIR (statbuf.st_mode) || S_ISBLK (statbuf.st_mode))
     return no;
@@ -1829,7 +1828,7 @@ inquire_direct (const char *string, int len)
     return unknown;
 
   if (S_ISREG (statbuf.st_mode) || S_ISBLK (statbuf.st_mode))
-    return yes;
+    return unknown;
 
   if (S_ISDIR (statbuf.st_mode) ||
       S_ISCHR (statbuf.st_mode) || S_ISFIFO (statbuf.st_mode))
@@ -1855,7 +1854,7 @@ inquire_formatted (const char *string, int len)
   if (S_ISREG (statbuf.st_mode) ||
       S_ISBLK (statbuf.st_mode) ||
       S_ISCHR (statbuf.st_mode) || S_ISFIFO (statbuf.st_mode))
-    return yes;
+    return unknown;
 
   if (S_ISDIR (statbuf.st_mode))
     return no;
@@ -2038,13 +2037,13 @@ stream_offset (stream *s)
       the solution used by f2c.  Each record contains a pair of length
       markers:
 
-        Length of record n in bytes
-        Data of record n
-        Length of record n in bytes
+	Length of record n in bytes
+	Data of record n
+	Length of record n in bytes
 
-        Length of record n+1 in bytes
-        Data of record n+1
-        Length of record n+1 in bytes
+	Length of record n+1 in bytes
+	Data of record n+1
+	Length of record n+1 in bytes
 
      The length is stored at the end of a record to allow backspacing to the
      previous record.  Between data transfer statements, the file pointer

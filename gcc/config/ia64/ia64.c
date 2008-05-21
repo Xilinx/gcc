@@ -1,5 +1,5 @@
 /* Definitions of target machine for GNU compiler.
-   Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
+   Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
    Free Software Foundation, Inc.
    Contributed by James E. Wilson <wilson@cygnus.com> and
 		  David Mosberger <davidm@hpl.hp.com>.
@@ -796,7 +796,8 @@ ia64_expand_load_address (rtx dest, rtx src)
      computation below are also more natural to compute as 64-bit quantities.
      If we've been given an SImode destination register, change it.  */
   if (GET_MODE (dest) != Pmode)
-    dest = gen_rtx_REG_offset (dest, Pmode, REGNO (dest), 0);
+    dest = gen_rtx_REG_offset (dest, Pmode, REGNO (dest),
+			       byte_lowpart_offset (Pmode, GET_MODE (dest)));
 
   if (TARGET_NO_PIC)
     return false;
@@ -2378,7 +2379,7 @@ ia64_compute_frame_size (HOST_WIDE_INT size)
      Likewise for -a profiling for the bb_init_func argument.  For -ax
      profiling, we need two output registers for the two bb_init_trace_func
      arguments.  */
-  if (current_function_profile)
+  if (crtl->profile)
     i = MAX (i, 1);
 #endif
   current_frame_info.n_output_regs = i;
@@ -2459,7 +2460,7 @@ ia64_compute_frame_size (HOST_WIDE_INT size)
       /* Similarly for gp.  Note that if we're calling setjmp, the stacked
 	 registers are clobbered, so we fall back to the stack.  */
       current_frame_info.r[reg_save_gp]
-	= (current_function_calls_setjmp ? 0 : find_gr_spill (reg_save_gp, 1));
+	= (cfun->calls_setjmp ? 0 : find_gr_spill (reg_save_gp, 1));
       if (current_frame_info.r[reg_save_gp] == 0)
 	{
 	  SET_HARD_REG_BIT (mask, GR_REG (1));
@@ -2574,12 +2575,12 @@ ia64_compute_frame_size (HOST_WIDE_INT size)
      the stack, then the FR save area will be unaligned.  We round the
      size of this area up to keep things 16 byte aligned.  */
   if (spilled_fr_p)
-    pretend_args_size = IA64_STACK_ALIGN (current_function_pretend_args_size);
+    pretend_args_size = IA64_STACK_ALIGN (crtl->args.pretend_args_size);
   else
-    pretend_args_size = current_function_pretend_args_size;
+    pretend_args_size = crtl->args.pretend_args_size;
 
   total_size = (spill_size + extra_spill_size + size + pretend_args_size
-		+ current_function_outgoing_args_size);
+		+ crtl->outgoing_args_size);
   total_size = IA64_STACK_ALIGN (total_size);
 
   /* We always use the 16-byte scratch area provided by the caller, but
@@ -2615,14 +2616,14 @@ ia64_initial_elimination_offset (int from, int to)
 	    offset = -current_frame_info.total_size;
 	  else
 	    offset = -(current_frame_info.total_size
-		       - current_function_outgoing_args_size - 16);
+		       - crtl->outgoing_args_size - 16);
 	  break;
 
 	case STACK_POINTER_REGNUM:
 	  if (current_function_is_leaf)
 	    offset = 0;
 	  else
-	    offset = 16 + current_function_outgoing_args_size;
+	    offset = 16 + crtl->outgoing_args_size;
 	  break;
 
 	default:
@@ -2636,12 +2637,12 @@ ia64_initial_elimination_offset (int from, int to)
       switch (to)
 	{
 	case HARD_FRAME_POINTER_REGNUM:
-	  offset = 16 - current_function_pretend_args_size;
+	  offset = 16 - crtl->args.pretend_args_size;
 	  break;
 
 	case STACK_POINTER_REGNUM:
 	  offset = (current_frame_info.total_size
-		    + 16 - current_function_pretend_args_size);
+		    + 16 - crtl->args.pretend_args_size);
 	  break;
 
 	default:
@@ -2993,7 +2994,7 @@ ia64_expand_prologue (void)
   /* We don't need an alloc instruction if we've used no outputs or locals.  */
   if (current_frame_info.n_local_regs == 0
       && current_frame_info.n_output_regs == 0
-      && current_frame_info.n_input_regs <= current_function_args_info.int_regs
+      && current_frame_info.n_input_regs <= crtl->args.info.int_regs
       && !TEST_HARD_REG_BIT (current_frame_info.mask, AR_PFS_REGNUM))
     {
       /* If there is no alloc, but there are input registers used, then we
@@ -5057,7 +5058,7 @@ ia64_secondary_reload_class (enum reg_class class,
       /* ??? This happens if we cse/gcse a BImode value across a call,
 	 and the function has a nonlocal goto.  This is because global
 	 does not allocate call crossing pseudos to hard registers when
-	 current_function_has_nonlocal_goto is true.  This is relatively
+	 crtl->has_nonlocal_goto is true.  This is relatively
 	 common for C++ programs that use exceptions.  To reproduce,
 	 return NO_REGS and compile libstdc++.  */
       if (GET_CODE (x) == MEM)
@@ -5886,6 +5887,7 @@ rtx_needs_barrier (rtx x, struct reg_flags flags, int pred)
 	case UNSPEC_SETF_EXP:
         case UNSPEC_ADDP4:
 	case UNSPEC_FR_SQRT_RECIP_APPROX:
+	case UNSPEC_FR_SQRT_RECIP_APPROX_RES:
 	case UNSPEC_LDA:
 	case UNSPEC_LDS:
 	case UNSPEC_LDSA:
@@ -5897,6 +5899,7 @@ rtx_needs_barrier (rtx x, struct reg_flags flags, int pred)
 	case UNSPEC_FR_RECIP_APPROX:
 	case UNSPEC_SHRP:
 	case UNSPEC_COPYSIGN:
+	case UNSPEC_FR_RECIP_APPROX_RES:
 	  need_barrier = rtx_needs_barrier (XVECEXP (x, 0, 0), flags, pred);
 	  need_barrier |= rtx_needs_barrier (XVECEXP (x, 0, 1), flags, pred);
 	  break;
@@ -9692,6 +9695,7 @@ ia64_output_mi_thunk (FILE *file, tree thunk ATTRIBUTE_UNUSED,
   final_start_function (insn, file, 1);
   final (insn, file, 1);
   final_end_function ();
+  free_after_compilation (cfun);
 
   reload_completed = 0;
   epilogue_completed = 0;

@@ -1,3 +1,39 @@
+2008-04-17  Tom Tromey  <tromey@redhat.com>
+
+	PR libgcj/35950:
+	* tools/gnu/classpath/tools/jar/Entry.java: New version from
+	Classpath.
+	* tools/classes/gnu/classpath/tools/jar/Entry.class: Update.
+
+2008-03-02  Jakub Jelinek  <jakub@redhat.com>
+
+	* gnu/java/rmi/registry/RegistryImpl.java (version): Update
+	copyright notice dates.
+	* tools/gnu/classpath/tools/orbd/Main.java (run): Likewise.
+
+2008-02-20  Matthias Klose  <doko@ubuntu.com>
+
+	* tools/Makefile.am ($(TOOLS_ZIP)): Revert part of previous change,
+	Do copy resource files in JAVA_MAINTAINER_MODE only.
+	* tools/Makefile.in: Regenerate.
+
+2008-02-18  Jakub Jelinek  <jakub@redhat.com>
+
+	* doc/cp-tools.texinfo (@direntry): Prefix info name with cp-.
+	* doc/cp-hacking.texinfo (@direntry): Likewise.
+	* doc/cp-vmintegration.texinfo (@direntry): Likewise.
+
+2008-02-06  Matthias Klose  <doko@ubuntu.com>
+
+	* tools/Makefile.am ($(TOOLS_ZIP)): Copy over rmic template files.
+	Copy resource files independent of JAVA_MAINTAINER_MODE.
+	* tools/Makefile.in: Regenerate.
+
+2008-01-28  Tom Tromey  <tromey@redhat.com>
+
+	* tools/classes/gnu/classpath/tools/native2ascii/Native2ASCII$3.class:
+	Added.
+
 2007-09-04  Matthias Klose  <doko@ubuntu.com>
 
 	* configure.ac: Append libgcj soversion to nativeexeclibdir.

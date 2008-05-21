@@ -1,3 +1,86 @@
+2008-05-09  Julian Brown  <julian@codesourcery.com>
+
+	* Makefile.am (LTLDFLAGS): New.
+	(libffi_la_LDFLAGS): Use above.
+	* Makefile.in: Regenerate.
+
+2008-04-18  Paolo Bonzini  <bonzini@gnu.org>
+
+	PR bootstrap/35457
+	* aclocal.m4: Regenerate.
+	* configure: Regenerate.
+
+2008-03-26  Kaz Kojima  <kkojima@gcc.gnu.org>
+
+	* src/sh/sysv.S: Add .note.GNU-stack on Linux.
+	* src/sh64/sysv.S: Likewise.
+
+2008-03-26  Daniel Jacobowitz  <dan@debian.org>
+
+	* src/arm/sysv.S: Fix ARM comment marker.
+
+2008-03-26  Jakub Jelinek  <jakub@redhat.com>
+
+	* src/alpha/osf.S: Add .note.GNU-stack on Linux.
+	* src/s390/sysv.S: Likewise.
+	* src/powerpc/ppc_closure.S: Likewise.
+	* src/powerpc/sysv.S: Likewise.
+	* src/x86/unix64.S: Likewise.
+	* src/x86/sysv.S: Likewise.
+	* src/sparc/v8.S: Likewise.
+	* src/sparc/v9.S: Likewise.
+	* src/m68k/sysv.S: Likewise.
+	* src/arm/sysv.S: Likewise.
+
+2008-03-16  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* aclocal.m4: Regenerate.
+	* configure: Likewise.
+	* Makefile.in: Likewise.
+	* include/Makefile.in: Likewise.
+	* testsuite/Makefile.in: Likewise.
+
+2008-02-12  Bjoern Koenig  <bkoenig@alpha-tierchen.de>
+	    Andreas Tobler  <a.tobler@schweiz.org>
+
+	* configure.ac: Add amd64-*-freebsd* target.
+	* configure: Regenerate.
+
+2008-01-30  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR libffi/34612
+	* src/x86/sysv.S (ffi_closure_SYSV): Pop 4 byte from stack when
+	returning struct.
+
+	* testsuite/libffi.call/call.exp: Add "-O2 -fomit-frame-pointer"
+	tests.
+
+2008-01-24  David Edelsohn  <edelsohn@gnu.org>
+
+	* configure: Regenerate.
+
+2008-01-06  Andreas Tobler  <a.tobler@schweiz.org>
+
+	* src/x86/ffi.c (ffi_prep_cif_machdep): Fix thinko.
+
+2008-01-05  Andreas Tobler  <a.tobler@schweiz.org>
+
+	PR testsuite/32843
+	* src/x86/ffi.c (ffi_prep_cif_machdep): Add code for
+	signed/unsigned int8/16 for X86_DARWIN.
+	Updated copyright info.
+	Handle one and two byte structs with special cif->flags.
+	* src/x86/ffitarget.h: Add special types for one and two byte structs.
+	Updated copyright info.
+	* src/x86/darwin.S (ffi_call_SYSV): Rewrite to use a jump table like
+	sysv.S
+	Remove code to pop args from the stack after call.
+	Special-case signed/unsigned for int8/16, one and two byte structs.
+	(ffi_closure_raw_SYSV): Handle FFI_TYPE_UINT8,
+	FFI_TYPE_SINT8, FFI_TYPE_UINT16, FFI_TYPE_SINT16, FFI_TYPE_UINT32,
+	FFI_TYPE_SINT32.
+	Updated copyright info.
+
 2007-12-08  David Daney  <ddaney@avtrex.com>
 
 	* src/mips/n32.S (ffi_call_N32):  Replace dadd with ADDU, dsub with 

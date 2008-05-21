@@ -557,7 +557,7 @@ enum reg_class
 #define INITIAL_ELIMINATION_OFFSET(FROM, TO, OFFSET)			\
 {									\
   if ((FROM) == FRAME_POINTER_REGNUM)					\
-    (OFFSET) = get_frame_size () + current_function_outgoing_args_size;	\
+    (OFFSET) = get_frame_size () + crtl->outgoing_args_size;	\
   else if ((FROM) == ARG_POINTER_REGNUM)				\
    (OFFSET) = compute_frame_size (get_frame_size (), (long *)0);	\
   else									\
@@ -625,7 +625,7 @@ struct cum_arg { int nbytes; int anonymous_args; };
 
 /* Define this if the above stack space is to be considered part of the
    space allocated by the caller.  */
-#define OUTGOING_REG_PARM_STACK_SPACE 1
+#define OUTGOING_REG_PARM_STACK_SPACE(FNTYPE) 1
 
 /* 1 if N is a possible register number for function argument passing.  */
 

@@ -1,6 +1,6 @@
 // Special functions -*- C++ -*-
 
-// Copyright (C) 2006-2007
+// Copyright (C) 2006, 2007, 2008
 // Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
@@ -61,14 +61,7 @@ namespace tr1
 
   // [5.2] Special functions
 
-  /**
-   * @ingroup tr1_math_spec_func
-   * @{
-   */
-
-  //
   // Implementation-space details.
-  //
   namespace __detail
   {
 
@@ -131,7 +124,7 @@ namespace tr1
      *   @param  __nu  The order of the Bessel functions.
      *   @param  __x   The argument of the Bessel functions.
      *   @param  __Jnu  The output Bessel function of the first kind.
-     *   @param  __Nnu  The output Neumann function (Bessel fuction of the second kind).
+     *   @param  __Nnu  The output Neumann function (Bessel function of the second kind).
      *   @param  __Jpnu  The output derivative of the Bessel function of the first kind.
      *   @param  __Npnu  The output derivative of the Neumann function.
      */
@@ -345,7 +338,7 @@ namespace tr1
 
 
     /**
-     *   @brief This routine computes the asyptotic cylindrical Bessel
+     *   @brief This routine computes the asymptotic cylindrical Bessel
      *          and Neumann functions of order nu: \f$ J_{\nu} \f$,
      *          \f$ N_{\nu} \f$.
      *
@@ -358,7 +351,7 @@ namespace tr1
      *   @param  __nu  The order of the Bessel functions.
      *   @param  __x   The argument of the Bessel functions.
      *   @param  __Jnu  The output Bessel function of the first kind.
-     *   @param  __Nnu  The output Neumann function (Bessel fuction of the second kind).
+     *   @param  __Nnu  The output Neumann function (Bessel function of the second kind).
      */
     template <typename _Tp>
     void
@@ -401,7 +394,7 @@ namespace tr1
      *              \frac{\sigma^k (x/2)^{\nu + 2k}}{k!\Gamma(\nu+k+1)}
      *   @f]
      *   where \f$ \sigma = +1 \f$ or\f$  -1 \f$ for
-     *   \f$ Z = I \f$ or \f$ J \f$ respecively. 
+     *   \f$ Z = I \f$ or \f$ J \f$ respectively.
      * 
      *   See Abramowitz & Stegun, 9.1.10
      *       Abramowitz & Stegun, 9.6.7
@@ -488,7 +481,7 @@ namespace tr1
 
 
     /**
-     *   @brief  Return the Neunamm function of order \f$ \nu \f$:
+     *   @brief  Return the Neumann function of order \f$ \nu \f$:
      *           \f$ N_{\nu}(x) \f$.
      *
      *   The Neumann function is defined by:
@@ -633,9 +626,6 @@ namespace tr1
     }
 
   } // namespace std::tr1::__detail
-
-  /* @} */ // group tr1_math_spec_func
-
 }
 }
 

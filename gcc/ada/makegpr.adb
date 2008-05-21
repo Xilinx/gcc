@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 2004-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 2004-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -283,6 +283,8 @@ package body Makegpr is
    Dash_cargs        : constant String_Access := Dash_cargs_String'Access;
    Dash_d_String     : aliased  String := "-d";
    Dash_d            : constant String_Access := Dash_d_String'Access;
+   Dash_eL_String    : aliased  String := "-eL";
+   Dash_eL           : constant String_Access := Dash_eL_String'Access;
    Dash_f_String     : aliased  String := "-f";
    Dash_f            : constant String_Access := Dash_f_String'Access;
    Dash_k_String     : aliased  String := "-k";
@@ -447,7 +449,7 @@ package body Makegpr is
    --  Create the archive dependency file for a library project
 
    procedure Create_Global_Archive_Dependency_File (Name : String);
-   --  Create the archive depenency file for the main project
+   --  Create the archive dependency file for the main project
 
    procedure Display_Command
      (Name    : String;
@@ -1283,7 +1285,7 @@ package body Makegpr is
                     Project_Tree.Other_Sources.Table (Source_Id);
 
                   --  Only include object file name that have not been
-                  --  overriden in extending projects.
+                  --  overridden in extending projects.
 
                   if Is_Included_In_Global_Archive
                        (Source.Object_Name, Proj)
@@ -1822,7 +1824,11 @@ package body Makegpr is
       Object_Name   : constant String := Get_Name_String (Source.Object_Name);
       C_Object_Name : String := Object_Name;
       Dep_Name      : constant String := Get_Name_String (Source.Dep_Name);
-      C_Source_Path : String := Source_Path;
+      C_Source_Path : constant String :=
+                        Normalize_Pathname
+                          (Name           => Source_Path,
+                           Resolve_Links  => False,
+                           Case_Sensitive => False);
 
       Source_In_Dependencies : Boolean := False;
       --  Set True if source was found in dependency file of its object file
@@ -1835,7 +1841,6 @@ package body Makegpr is
       --  Set to True at the end of the first Big_Loop
 
    begin
-      Canonical_Case_File_Name (C_Source_Path);
       Canonical_Case_File_Name (C_Object_Name);
 
       --  Assume the worst, so that statement "return;" may be used if there
@@ -1918,7 +1923,7 @@ package body Makegpr is
       --  Loop Big_Loop is executed several times only when the dependency file
       --  contains several times
       --     <object file>: <source1> ...
-      --  When there is only one of such occurence, Big_Loop is exited
+      --  When there is only one of such occurrence, Big_Loop is exited
       --  successfully at the beginning of the second loop.
 
       Big_Loop :
@@ -2606,6 +2611,12 @@ package body Makegpr is
          Add_Argument (Dash_d, True);
       end if;
 
+      --  -eL
+
+      if Follow_Links_For_Files then
+         Add_Argument (Dash_eL, True);
+      end if;
+
       --  -k
 
       if Keep_Going then
@@ -3027,7 +3038,7 @@ package body Makegpr is
 
             else
                Osint.Fail
-                 ("unknow compiler name for language """,
+                 ("unknown compiler name for language """,
                   Get_Name_String (Language_Names.Table (For_Language)),
                   """");
             end if;
@@ -3372,8 +3383,8 @@ package body Makegpr is
 
       --  Add the directory where gprmake is invoked in front of the path,
       --  if gprmake is invoked from a bin directory or with directory
-      --  information. information. Only do this if the platform is not VMS,
-      --  where the notion of path does not really exist.
+      --  information. Only do this if the platform is not VMS, where the
+      --  notion of path does not really exist.
 
       --  Below code shares nasty code duplication with make.adb code???
 
@@ -4228,6 +4239,9 @@ package body Makegpr is
          elsif Arg = "-d" then
             Display_Compilation_Progress := True;
 
+         elsif Arg = "-eL" then
+            Follow_Links_For_Files := True;
+
          elsif Arg = "-f" then
             Force_Compilations := True;
 
@@ -4365,6 +4379,12 @@ package body Makegpr is
          --  Line for -c
 
          Write_Str ("  -c       Compile only");
+         Write_Eol;
+
+         --  Line for -eL
+
+         Write_Str ("  -eL      Follow symbolic links when processing " &
+                    "project files");
          Write_Eol;
 
          --  Line for -f

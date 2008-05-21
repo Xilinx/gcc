@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -94,41 +94,45 @@ procedure XEinfo is
    Ofile : File_Type;
    --  Used to write output file
 
-   wsp      : Pattern := NSpan (' ' & ASCII.HT);
-   Comment  : Pattern := wsp & "--";
-   For_Rep  : Pattern := wsp & "for";
-   Get_Func : Pattern := wsp * A & "function" & wsp & Break (' ') * Name;
-   Inline   : Pattern := wsp & "pragma Inline (" & Break (')') * Name;
-   Get_Pack : Pattern := wsp & "package ";
-   Get_Enam : Pattern := wsp & Break (',') * N & ',';
-   Find_Fun : Pattern := wsp & "function";
-   F_Subtyp : Pattern := wsp * A & "subtype " & Break (' ') * N;
-   G_Subtyp : Pattern := wsp & "subtype" & wsp & Break (' ') * NewS
-                           & wsp & "is" & wsp & Break (" ;") * OldS
-                           & wsp & ';' & wsp & Rtab (0);
-   F_Typ    : Pattern := wsp * A & "type " & Break (' ') * N & " is (";
-   Get_Nam  : Pattern := wsp * A & Break (",)") * Nam & Len (1) * Term;
-   Get_Styp : Pattern := wsp * A & "subtype " & Break (' ') * N;
-   Get_N1   : Pattern := wsp & Break (' ') * N1;
-   Get_N2   : Pattern := wsp & "-- " & Rest * N2;
-   Get_N3   : Pattern := wsp & Break (';') * N3;
-   Get_FN   : Pattern := wsp * C & "function" & wsp & Break (" (") * FN;
-   Is_Rturn : Pattern := BreakX ('r') & "return";
-   Is_Begin : Pattern := wsp & "begin";
-   Get_Asrt : Pattern := wsp & "pragma Assert";
-   Semicoln : Pattern := BreakX (';');
-   Get_Cmnt : Pattern := BreakX ('-') * A & "--";
-   Get_Expr : Pattern := wsp & "return " & Break (';') * Expr;
-   Chek_End : Pattern := wsp & "end" & BreakX (';') & ';';
-   Get_B1   : Pattern := BreakX (' ') * A & " in " & Rest * B;
-   Get_B2   : Pattern := BreakX (' ') * A & " = " & Rest * B;
-   Get_B3   : Pattern := BreakX (' ') * A & " /= " & Rest * B;
-   To_Paren : Pattern := wsp * Filler & '(';
-   Get_Fml  : Pattern := Break (" :") * Formal & wsp & ':' & wsp
-                           & BreakX (" );") * Formaltyp;
-   Nxt_Fml  : Pattern := wsp & "; ";
-   Get_Rtn  : Pattern := wsp & "return" & wsp & BreakX (" ;") * Rtn;
-   Rem_Prn  : Pattern := wsp & ')';
+   wsp      : constant Pattern := NSpan (' ' & ASCII.HT);
+   Comment  : constant Pattern := wsp & "--";
+   For_Rep  : constant Pattern := wsp & "for";
+   Get_Func : constant Pattern := wsp * A & "function" & wsp
+                                  & Break (' ') * Name;
+   Inline   : constant Pattern := wsp & "pragma Inline (" & Break (')') * Name;
+   Get_Pack : constant Pattern := wsp & "package ";
+   Get_Enam : constant Pattern := wsp & Break (',') * N & ',';
+   Find_Fun : constant Pattern := wsp & "function";
+   F_Subtyp : constant Pattern := wsp * A & "subtype " & Break (' ') * N;
+   G_Subtyp : constant Pattern := wsp & "subtype" & wsp & Break (' ') * NewS
+                                  & wsp & "is" & wsp & Break (" ;") * OldS
+                                  & wsp & ';' & wsp & Rtab (0);
+   F_Typ    : constant Pattern := wsp * A & "type " & Break (' ') * N &
+                                  " is (";
+   Get_Nam  : constant Pattern := wsp * A & Break (",)") * Nam
+                                  & Len (1) * Term;
+   Get_Styp : constant Pattern := wsp * A & "subtype " & Break (' ') * N;
+   Get_N1   : constant Pattern := wsp & Break (' ') * N1;
+   Get_N2   : constant Pattern := wsp & "-- " & Rest * N2;
+   Get_N3   : constant Pattern := wsp & Break (';') * N3;
+   Get_FN   : constant Pattern := wsp * C & "function" & wsp
+                                  & Break (" (") * FN;
+   Is_Rturn : constant Pattern := BreakX ('r') & "return";
+   Is_Begin : constant Pattern := wsp & "begin";
+   Get_Asrt : constant Pattern := wsp & "pragma Assert";
+   Semicoln : constant Pattern := BreakX (';');
+   Get_Cmnt : constant Pattern := BreakX ('-') * A & "--";
+   Get_Expr : constant Pattern := wsp & "return " & Break (';') * Expr;
+   Chek_End : constant Pattern := wsp & "end" & BreakX (';') & ';';
+   Get_B1   : constant Pattern := BreakX (' ') * A & " in " & Rest * B;
+   Get_B2   : constant Pattern := BreakX (' ') * A & " = " & Rest * B;
+   Get_B3   : constant Pattern := BreakX (' ') * A & " /= " & Rest * B;
+   To_Paren : constant Pattern := wsp * Filler & '(';
+   Get_Fml  : constant Pattern := Break (" :") * Formal & wsp & ':' & wsp
+                                  & BreakX (" );") * Formaltyp;
+   Nxt_Fml  : constant Pattern := wsp & "; ";
+   Get_Rtn  : constant Pattern := wsp & "return" & wsp & BreakX (" ;") * Rtn;
+   Rem_Prn  : constant Pattern := wsp & ')';
 
    M : Match_Result;
 
@@ -376,7 +380,7 @@ begin
 
    while Match (Line, Get_FN) loop
 
-      --  Non-inlined funcion
+      --  Non-inlined function
 
       if not Present (Inlined, FN) then
          Put_Line (Ofile, "");
@@ -435,7 +439,7 @@ begin
             Line := Getlin;
             exit when not Match (Line, Get_Asrt);
 
-            --  Pragma asser found, get its continuation lines
+            --  Pragma assert found, get its continuation lines
 
             loop
                exit when Match (Line, Semicoln);
@@ -448,7 +452,7 @@ begin
          Match (Line, Get_Cmnt, M);
          Replace (M, A);
 
-         --  Get continuations of return statemnt
+         --  Get continuations of return statement
 
          while not Match (Line, Semicoln) loop
             Nextlin := Getlin;

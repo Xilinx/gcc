@@ -34,7 +34,14 @@
 --  Enumeration_Type'Image for all enumeration types except those in package
 --  Standard (where we have no opportunity to build image tables), and in
 --  package System (where it is too early to start building image tables).
---  Special routines exist for the enumeration routines in these packages.
+--  Special routines exist for the enumeration types in these packages.
+
+--  Note: this is an obsolete package, replaced by System.Img_Enum_New, which
+--  provides procedures instead of functions for these enumeration image calls.
+--  The reason we maintain this package is that when bootstrapping with old
+--  compilers, the old compiler will search for this unit, expecting to find
+--  these functions. The new compiler will search for procedures in the new
+--  version of the unit.
 
 pragma Warnings (Off);
 pragma Compiler_Unit;
@@ -46,8 +53,7 @@ package System.Img_Enum is
    function Image_Enumeration_8
      (Pos     : Natural;
       Names   : String;
-      Indexes : System.Address)
-      return    String;
+      Indexes : System.Address) return String;
    --  Used to compute Enum'Image (Str) where Enum is some enumeration type
    --  other than those defined in package Standard. Names is a string with a
    --  lower bound of 1 containing the characters of all the enumeration
@@ -62,16 +68,14 @@ package System.Img_Enum is
    function Image_Enumeration_16
      (Pos     : Natural;
       Names   : String;
-      Indexes : System.Address)
-      return    String;
+      Indexes : System.Address) return String;
    --  Identical to Image_Enumeration_8 except that it handles types
    --  using array (0 .. Num) of Natural_16 for the Indexes table.
 
    function Image_Enumeration_32
      (Pos     : Natural;
       Names   : String;
-      Indexes : System.Address)
-      return    String;
+      Indexes : System.Address) return String;
    --  Identical to Image_Enumeration_8 except that it handles types
    --  using array (0 .. Num) of Natural_32 for the Indexes table.
 

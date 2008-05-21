@@ -7,7 +7,7 @@
 --                                  S p e c                                 --
 --                                                                          --
 --             Copyright (C) 1991-1994, Florida State University            --
---             Copyright (C) 1995-2007, Free Software Foundation, Inc.      --
+--          Copyright (C) 1995-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNARL is free software; you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -35,13 +35,14 @@
 --  This is a LynxOS (POSIX Threads) version of this package
 
 --  This package encapsulates all direct interfaces to OS services
---  that are needed by children of System.
+--  that are needed by the tasking run-time (libgnarl).
 
 --  PLEASE DO NOT add any with-clauses to this package or remove the pragma
 --  Preelaborate. This package is designed to be a bottom-level (leaf) package.
 
-with Interfaces.C;
 with Ada.Unchecked_Conversion;
+
+with Interfaces.C;
 
 package System.OS_Interface is
    pragma Preelaborate;
@@ -86,7 +87,7 @@ package System.OS_Interface is
    --
    --
    --  The lowest numbered signal is 1, but 0 is a valid argument to some
-   --  library functions, eg. kill(2). However, 0 is not just another
+   --  library functions, e.g. kill(2). However, 0 is not just another
    --  signal: For instance 'I in Signal' and similar should be used with
    --  caution.
 
@@ -169,7 +170,12 @@ package System.OS_Interface is
    pragma Convention (C, struct_sigaction);
    type struct_sigaction_ptr is access all struct_sigaction;
 
-   SA_SIGINFO  : constant := 16#80#;
+   SA_SIGINFO : constant := 16#80#;
+
+   SA_ONSTACK : constant := 16#00#;
+   --  SA_ONSTACK is not defined on LynxOS, but it is referred to in the POSIX
+   --  implementation of System.Interrupt_Management. Therefore we define a
+   --  dummy value of zero here so that setting this flag is a nop.
 
    SIG_BLOCK   : constant := 0;
    SIG_UNBLOCK : constant := 1;
@@ -253,6 +259,7 @@ package System.OS_Interface is
 
    type Thread_Body is access
      function (arg : System.Address) return System.Address;
+   pragma Convention (C, Thread_Body);
 
    function Thread_Body_Access is new
      Ada.Unchecked_Conversion (System.Address, Thread_Body);
@@ -274,8 +281,11 @@ package System.OS_Interface is
    -- Stack --
    -----------
 
+   Alternate_Stack_Size : constant := 0;
+   --  No alternate signal stack is used on this platform
+
    Stack_Base_Available : constant Boolean := False;
-   --  Indicates whether the stack base is available on this target.
+   --  Indicates whether the stack base is available on this target
 
    function Get_Stack_Base (thread : pthread_t) return Address;
    pragma Inline (Get_Stack_Base);
@@ -484,6 +494,7 @@ package System.OS_Interface is
    pragma Import (C, st_getspecific, "st_getspecific");
 
    type destructor_pointer is access procedure (arg : System.Address);
+   pragma Convention (C, destructor_pointer);
 
    function st_keycreate
      (destructor : destructor_pointer;

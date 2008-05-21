@@ -410,7 +410,7 @@ mtt_info_eq (const void *mtt1, const void *mtt2)
 static tree
 get_inner_of_cast_expr (tree t)
 {
-  while (TREE_CODE (t) == CONVERT_EXPR || TREE_CODE (t) == NOP_EXPR
+  while (CONVERT_EXPR_P (t)
 	 || TREE_CODE (t) == VIEW_CONVERT_EXPR)
     t = TREE_OPERAND (t, 0);
 
@@ -428,7 +428,7 @@ may_flatten_matrices_1 (tree stmt)
     {
     case GIMPLE_MODIFY_STMT:
       t = GIMPLE_STMT_OPERAND (stmt, 1);
-      while (TREE_CODE (t) == CONVERT_EXPR || TREE_CODE (t) == NOP_EXPR)
+      while (CONVERT_EXPR_P (t))
 	{
 	  if (TREE_TYPE (t) && POINTER_TYPE_P (TREE_TYPE (t)))
 	    {
@@ -1442,8 +1442,7 @@ can_calculate_expr_before_stmt (tree expr, sbitmap visited)
 	  }
 	return res;
       }
-    case NOP_EXPR:
-    case CONVERT_EXPR:
+    CASE_CONVERT:
       res = can_calculate_expr_before_stmt (TREE_OPERAND (expr, 0), visited);
       if (res != NULL_TREE)
 	return build1 (TREE_CODE (expr), TREE_TYPE (expr), res);
@@ -2317,7 +2316,10 @@ gate_matrix_reorg (void)
   return flag_ipa_matrix_reorg && flag_whole_program;
 }
 
-struct tree_opt_pass pass_ipa_matrix_reorg = {
+struct simple_ipa_opt_pass pass_ipa_matrix_reorg = 
+{
+ {
+  SIMPLE_IPA_PASS,
   "matrix-reorg",		/* name */
   gate_matrix_reorg,		/* gate */
   matrix_reorg,			/* execute */
@@ -2329,6 +2331,6 @@ struct tree_opt_pass pass_ipa_matrix_reorg = {
   PROP_trees,			/* properties_provided */
   0,				/* properties_destroyed */
   0,				/* todo_flags_start */
-  TODO_dump_cgraph | TODO_dump_func,	/* todo_flags_finish */
-  0				/* letter */
+  TODO_dump_cgraph | TODO_dump_func	/* todo_flags_finish */
+ }
 };

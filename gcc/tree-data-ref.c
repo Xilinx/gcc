@@ -206,7 +206,7 @@ dump_data_reference (FILE *outf,
 
       fprintf (outf, "  access matrix: \n");
 
-      for (i = 0; VEC_iterate (lambda_vector, DR_ACCESS_MATRIX (dr), i, v); i++)
+      for (i = 0; VEC_iterate (lambda_vector, AM_MATRIX (DR_ACCESS_MATRIX (dr)), i, v); i++)
 	print_lambda_vector (outf, v, scop_dim_domain (DR_SCOP (dr)));
     }
   */
@@ -372,14 +372,20 @@ dump_data_dependence_relation (FILE *outf,
 {
   struct data_reference *dra, *drb;
 
-  dra = DDR_A (ddr);
-  drb = DDR_B (ddr);
   fprintf (outf, "(Data Dep: \n");
 
-  if (DDR_ARE_DEPENDENT (ddr) == chrec_dont_know)
-    fprintf (outf, "    (don't know)\n");
-  
-  else if (DDR_ARE_DEPENDENT (ddr) == chrec_known)
+  if (!ddr || DDR_ARE_DEPENDENT (ddr) == chrec_dont_know)
+    {
+      fprintf (outf, "    (don't know)\n)\n");
+      return;
+    }
+
+  dra = DDR_A (ddr);
+  drb = DDR_B (ddr);
+  dump_data_reference (outf, dra);
+  dump_data_reference (outf, drb);
+
+  if (DDR_ARE_DEPENDENT (ddr) == chrec_known)
     fprintf (outf, "    (no dependence)\n");
   
   else if (DDR_ARE_DEPENDENT (ddr) == NULL_TREE)
@@ -749,7 +755,7 @@ dr_analyze_indices (struct data_reference *dr, struct loop *nest)
 	{
 	  op = TREE_OPERAND (aref, 1);
 	  access_fn = analyze_scalar_evolution (loop, op);
-	  access_fn = resolve_mixers (nest, access_fn);
+	  access_fn = instantiate_scev (nest, loop, access_fn);
 	  VEC_safe_push (tree, heap, access_fns, access_fn);
 
 	  TREE_OPERAND (aref, 1) = build_int_cst (TREE_TYPE (op), 0);
@@ -762,7 +768,7 @@ dr_analyze_indices (struct data_reference *dr, struct loop *nest)
     {
       op = TREE_OPERAND (aref, 0);
       access_fn = analyze_scalar_evolution (loop, op);
-      access_fn = resolve_mixers (nest, access_fn);
+      access_fn = instantiate_scev (nest, loop, access_fn);
       base = initial_condition (access_fn);
       split_constant_offset (base, &base, &off);
       access_fn = chrec_replace_initial_condition (access_fn,
@@ -801,8 +807,6 @@ dr_analyze_alias (struct data_reference *dr)
     }
 
   DR_SYMBOL_TAG (dr) = smt;
-  if (smt && var_can_have_subvars (smt))
-    DR_SUBVARS (dr) = get_subvars_for_var (smt);
 
   vops = BITMAP_ALLOC (NULL);
   FOR_EACH_SSA_TREE_OPERAND (op, stmt, it, SSA_OP_VIRTUAL_USES)
@@ -957,6 +961,18 @@ affine_function_zero_p (affine_fn fn)
 	  && affine_function_constant_p (fn));
 }
 
+/* Returns a signed integer type with the largest precision from TA
+   and TB.  */
+
+static tree
+signed_type_for_types (tree ta, tree tb)
+{
+  if (TYPE_PRECISION (ta) > TYPE_PRECISION (tb))
+    return signed_type_for (ta);
+  else
+    return signed_type_for (tb);
+}
+
 /* Applies operation OP on affine functions FNA and FNB, and returns the
    result.  */
 
@@ -980,18 +996,23 @@ affine_fn_op (enum tree_code op, affine_fn fna, affine_fn fnb)
 
   ret = VEC_alloc (tree, heap, m);
   for (i = 0; i < n; i++)
-    VEC_quick_push (tree, ret,
-		    fold_build2 (op, integer_type_node,
-				 VEC_index (tree, fna, i), 
-				 VEC_index (tree, fnb, i)));
+    {
+      tree type = signed_type_for_types (TREE_TYPE (VEC_index (tree, fna, i)),
+					 TREE_TYPE (VEC_index (tree, fnb, i)));
+
+      VEC_quick_push (tree, ret,
+		      fold_build2 (op, type,
+				   VEC_index (tree, fna, i), 
+				   VEC_index (tree, fnb, i)));
+    }
 
   for (; VEC_iterate (tree, fna, i, coef); i++)
     VEC_quick_push (tree, ret,
-		    fold_build2 (op, integer_type_node,
+		    fold_build2 (op, signed_type_for (TREE_TYPE (coef)),
 				 coef, integer_zero_node));
   for (; VEC_iterate (tree, fnb, i, coef); i++)
     VEC_quick_push (tree, ret,
-		    fold_build2 (op, integer_type_node,
+		    fold_build2 (op, signed_type_for (TREE_TYPE (coef)),
 				 integer_zero_node, coef));
 
   return ret;
@@ -1258,6 +1279,8 @@ dr_may_alias_p (const struct data_reference *a, const struct data_reference *b)
   return true;
 }
 
+static void compute_self_dependence (struct data_dependence_relation *);
+
 /* Initialize a data dependence relation between data accesses A and
    B.  NB_LOOPS is the number of loops surrounding the references: the
    size of the classic distance/direction vectors.  */
@@ -1292,6 +1315,20 @@ initialize_data_dependence_relation (struct data_reference *a,
       return res;
     }
 
+  /* When the references are exactly the same, don't spend time doing
+     the data dependence tests, just initialize the ddr and return.  */
+  if (operand_equal_p (DR_REF (a), DR_REF (b), 0))
+    {
+      DDR_AFFINE_P (res) = true;
+      DDR_ARE_DEPENDENT (res) = NULL_TREE;
+      DDR_SUBSCRIPTS (res) = VEC_alloc (subscript_p, heap, DR_NUM_DIMENSIONS (a));
+      DDR_LOOP_NEST (res) = loop_nest;
+      DDR_INNER_LOOP (res) = 0;
+      DDR_SELF_REFERENCE (res) = true;
+      compute_self_dependence (res);
+      return res;
+    }
+
   /* If the references do not access the same object, we do not know
      whether they alias or not.  */
   if (!operand_equal_p (DR_BASE_OBJECT (a), DR_BASE_OBJECT (b), 0))
@@ -1317,6 +1354,7 @@ initialize_data_dependence_relation (struct data_reference *a,
   DDR_SUBSCRIPTS (res) = VEC_alloc (subscript_p, heap, DR_NUM_DIMENSIONS (a));
   DDR_LOOP_NEST (res) = loop_nest;
   DDR_INNER_LOOP (res) = 0;
+  DDR_SELF_REFERENCE (res) = false;
 
   for (i = 0; i < DR_NUM_DIMENSIONS (a); i++)
     {
@@ -1506,15 +1544,16 @@ analyze_ziv_subscript (tree chrec_a,
 		       conflict_function **overlaps_b, 
 		       tree *last_conflicts)
 {
-  tree difference;
+  tree type, difference;
   dependence_stats.num_ziv++;
   
   if (debug_p ())
     fprintf (dump_file, "(analyze_ziv_subscript \n");
-  
-  chrec_a = chrec_convert (integer_type_node, chrec_a, NULL_TREE);
-  chrec_b = chrec_convert (integer_type_node, chrec_b, NULL_TREE);
-  difference = chrec_fold_minus (integer_type_node, chrec_a, chrec_b);
+
+  type = signed_type_for_types (TREE_TYPE (chrec_a), TREE_TYPE (chrec_b));
+  chrec_a = chrec_convert (type, chrec_a, NULL_TREE);
+  chrec_b = chrec_convert (type, chrec_b, NULL_TREE);
+  difference = chrec_fold_minus (type, chrec_a, chrec_b);
   
   switch (TREE_CODE (difference))
     {
@@ -1640,12 +1679,12 @@ analyze_siv_subscript_cst_affine (tree chrec_a,
 				  tree *last_conflicts)
 {
   bool value0, value1, value2;
-  tree difference, tmp;
+  tree type, difference, tmp;
 
-  chrec_a = chrec_convert (integer_type_node, chrec_a, NULL_TREE);
-  chrec_b = chrec_convert (integer_type_node, chrec_b, NULL_TREE);
-  difference = chrec_fold_minus 
-    (integer_type_node, initial_condition (chrec_b), chrec_a);
+  type = signed_type_for_types (TREE_TYPE (chrec_a), TREE_TYPE (chrec_b));
+  chrec_a = chrec_convert (type, chrec_a, NULL_TREE);
+  chrec_b = chrec_convert (type, chrec_b, NULL_TREE);
+  difference = chrec_fold_minus (type, initial_condition (chrec_b), chrec_a);
   
   if (!chrec_is_positive (initial_condition (difference), &value0))
     {
@@ -1688,10 +1727,8 @@ analyze_siv_subscript_cst_affine (tree chrec_a,
 		      struct loop *loop = get_chrec_loop (chrec_b);
 
 		      *overlaps_a = conflict_fn (1, affine_fn_cst (integer_zero_node));
-		      tmp = fold_build2 (EXACT_DIV_EXPR, integer_type_node,
-					 fold_build1 (ABS_EXPR,
-						      integer_type_node,
-						      difference),
+		      tmp = fold_build2 (EXACT_DIV_EXPR, type,
+					 fold_build1 (ABS_EXPR, type, difference),
 					 CHREC_RIGHT (chrec_b));
 		      *overlaps_b = conflict_fn (1, affine_fn_cst (tmp));
 		      *last_conflicts = integer_one_node;
@@ -1770,8 +1807,7 @@ analyze_siv_subscript_cst_affine (tree chrec_a,
 		      struct loop *loop = get_chrec_loop (chrec_b);
 
 		      *overlaps_a = conflict_fn (1, affine_fn_cst (integer_zero_node));
-		      tmp = fold_build2 (EXACT_DIV_EXPR,
-					 integer_type_node, difference, 
+		      tmp = fold_build2 (EXACT_DIV_EXPR, type, difference,
 					 CHREC_RIGHT (chrec_b));
 		      *overlaps_b = conflict_fn (1, affine_fn_cst (tmp));
 		      *last_conflicts = integer_one_node;
@@ -1827,16 +1863,42 @@ analyze_siv_subscript_cst_affine (tree chrec_a,
 /* Helper recursive function for initializing the matrix A.  Returns
    the initial value of CHREC.  */
 
-static int
+static tree
 initialize_matrix_A (lambda_matrix A, tree chrec, unsigned index, int mult)
 {
   gcc_assert (chrec);
 
-  if (TREE_CODE (chrec) != POLYNOMIAL_CHREC)
-    return int_cst_value (chrec);
+  switch (TREE_CODE (chrec))
+    {
+    case POLYNOMIAL_CHREC:
+      gcc_assert (TREE_CODE (CHREC_RIGHT (chrec)) == INTEGER_CST);
 
-  A[index][0] = mult * int_cst_value (CHREC_RIGHT (chrec));
-  return initialize_matrix_A (A, CHREC_LEFT (chrec), index + 1, mult);
+      A[index][0] = mult * int_cst_value (CHREC_RIGHT (chrec));
+      return initialize_matrix_A (A, CHREC_LEFT (chrec), index + 1, mult);
+
+    case PLUS_EXPR:
+    case MULT_EXPR:
+    case MINUS_EXPR:
+      {
+	tree op0 = initialize_matrix_A (A, TREE_OPERAND (chrec, 0), index, mult);
+	tree op1 = initialize_matrix_A (A, TREE_OPERAND (chrec, 1), index, mult);
+
+	return chrec_fold_op (TREE_CODE (chrec), chrec_type (chrec), op0, op1);
+      }
+
+    case NOP_EXPR:
+      {
+	tree op = initialize_matrix_A (A, TREE_OPERAND (chrec, 0), index, mult);
+	return chrec_convert (chrec_type (chrec), op, NULL_TREE);
+      }
+
+    case INTEGER_CST:
+      return chrec;
+
+    default:
+      gcc_unreachable ();
+      return NULL_TREE;
+    }
 }
 
 #define FLOOR_DIV(x,y) ((x) / (y))
@@ -2068,8 +2130,8 @@ analyze_subscript_affine_affine (tree chrec_a,
   A = lambda_matrix_new (dim, 1);
   S = lambda_matrix_new (dim, 1);
 
-  init_a = initialize_matrix_A (A, chrec_a, 0, 1);
-  init_b = initialize_matrix_A (A, chrec_b, nb_vars_a, -1);
+  init_a = int_cst_value (initialize_matrix_A (A, chrec_a, 0, 1));
+  init_b = int_cst_value (initialize_matrix_A (A, chrec_b, nb_vars_a, -1));
   gamma = init_b - init_a;
 
   /* Don't do all the hard work of solving the Diophantine equation
@@ -2347,7 +2409,8 @@ analyze_siv_subscript (tree chrec_a,
 		       tree chrec_b,
 		       conflict_function **overlaps_a, 
 		       conflict_function **overlaps_b, 
-		       tree *last_conflicts)
+		       tree *last_conflicts,
+		       int loop_nest_num)
 {
   dependence_stats.num_siv++;
   
@@ -2355,17 +2418,17 @@ analyze_siv_subscript (tree chrec_a,
     fprintf (dump_file, "(analyze_siv_subscript \n");
   
   if (evolution_function_is_constant_p (chrec_a)
-      && evolution_function_is_affine_p (chrec_b))
+      && evolution_function_is_affine_in_loop (chrec_b, loop_nest_num))
     analyze_siv_subscript_cst_affine (chrec_a, chrec_b, 
 				      overlaps_a, overlaps_b, last_conflicts);
   
-  else if (evolution_function_is_affine_p (chrec_a)
+  else if (evolution_function_is_affine_in_loop (chrec_a, loop_nest_num)
 	   && evolution_function_is_constant_p (chrec_b))
     analyze_siv_subscript_cst_affine (chrec_b, chrec_a, 
 				      overlaps_b, overlaps_a, last_conflicts);
   
-  else if (evolution_function_is_affine_p (chrec_a)
-	   && evolution_function_is_affine_p (chrec_b))
+  else if (evolution_function_is_affine_in_loop (chrec_a, loop_nest_num)
+	   && evolution_function_is_affine_in_loop (chrec_b, loop_nest_num))
     {
       if (!chrec_contains_symbols (chrec_a)
 	  && !chrec_contains_symbols (chrec_b))
@@ -2467,14 +2530,16 @@ analyze_miv_subscript (tree chrec_a,
      variables.  In the MIV case we have to solve a Diophantine
      equation with 2*n variables (if the subscript uses n IVs).
   */
-  tree difference;
+  tree type, difference;
+
   dependence_stats.num_miv++;
   if (debug_p ())
     fprintf (dump_file, "(analyze_miv_subscript \n");
 
-  chrec_a = chrec_convert (integer_type_node, chrec_a, NULL_TREE);
-  chrec_b = chrec_convert (integer_type_node, chrec_b, NULL_TREE);
-  difference = chrec_fold_minus (integer_type_node, chrec_a, chrec_b);
+  type = signed_type_for_types (TREE_TYPE (chrec_a), TREE_TYPE (chrec_b));
+  chrec_a = chrec_convert (type, chrec_a, NULL_TREE);
+  chrec_b = chrec_convert (type, chrec_b, NULL_TREE);
+  difference = chrec_fold_minus (type, chrec_a, chrec_b);
   
   if (eq_evolutions_p (chrec_a, chrec_b))
     {
@@ -2625,7 +2690,7 @@ analyze_overlapping_iterations (tree chrec_a,
   else if (siv_subscript_p (chrec_a, chrec_b))
     analyze_siv_subscript (chrec_a, chrec_b, 
 			   overlap_iterations_a, overlap_iterations_b, 
-			   last_conflicts);
+			   last_conflicts, lnn);
   
   else
     analyze_miv_subscript (chrec_a, chrec_b, 
@@ -2807,9 +2872,9 @@ constant_access_functions (const struct data_dependence_relation *ddr)
   return true;
 }
 
-
 /* Helper function for the case where DDR_A and DDR_B are the same
-   multivariate access function.  */
+   multivariate access function with a constant step.  For an example
+   see pr34635-1.c.  */
 
 static void
 add_multivariate_self_dist (struct data_dependence_relation *ddr, tree c_2)
@@ -2879,7 +2944,17 @@ add_other_self_distances (struct data_dependence_relation *ddr)
 		  return;
 		}
 
-	      add_multivariate_self_dist (ddr, DR_ACCESS_FN (DDR_A (ddr), 0));
+	      access_fun = DR_ACCESS_FN (DDR_A (ddr), 0);
+
+	      if (TREE_CODE (CHREC_LEFT (access_fun)) == POLYNOMIAL_CHREC)
+		add_multivariate_self_dist (ddr, access_fun);
+	      else
+		/* The evolution step is not constant: it varies in
+		   the outer loop, so this cannot be represented by a
+		   distance vector.  For example in pr34635.c the
+		   evolution is {0, +, {0, +, 4}_1}_2.  */
+		DDR_AFFINE_P (ddr) = false;
+
 	      return;
 	    }
 
@@ -3175,6 +3250,11 @@ subscript_dependence_tester_1 (struct data_dependence_relation *ddr,
 
       else
  	{
+	  if (SUB_CONFLICTS_IN_A (subscript))
+	    free_conflict_function (SUB_CONFLICTS_IN_A (subscript));
+	  if (SUB_CONFLICTS_IN_B (subscript))
+	    free_conflict_function (SUB_CONFLICTS_IN_B (subscript));
+
  	  SUB_CONFLICTS_IN_A (subscript) = overlaps_a;
  	  SUB_CONFLICTS_IN_B (subscript) = overlaps_b;
 	  SUB_LAST_CONFLICT (subscript) = last_conflicts;
@@ -3406,9 +3486,11 @@ omega_setup_subscript (tree access_fun_a, tree access_fun_b,
 		       omega_pb pb, bool *maybe_dependent)
 {
   int eq;
-  tree fun_a = chrec_convert (integer_type_node, access_fun_a, NULL_TREE);
-  tree fun_b = chrec_convert (integer_type_node, access_fun_b, NULL_TREE);
-  tree difference = chrec_fold_minus (integer_type_node, fun_a, fun_b);
+  tree type = signed_type_for_types (TREE_TYPE (access_fun_a),
+				     TREE_TYPE (access_fun_b));
+  tree fun_a = chrec_convert (type, access_fun_a, NULL_TREE);
+  tree fun_b = chrec_convert (type, access_fun_b, NULL_TREE);
+  tree difference = chrec_fold_minus (type, fun_a, fun_b);
 
   /* When the fun_a - fun_b is not constant, the dependence is not
      captured by the classic distance vector representation.  */
@@ -3423,8 +3505,7 @@ omega_setup_subscript (tree access_fun_a, tree access_fun_b,
       return true;
     }
 
-  fun_b = chrec_fold_multiply (integer_type_node, fun_b, 
-			       integer_minus_one_node);
+  fun_b = chrec_fold_multiply (type, fun_b, integer_minus_one_node);
 
   eq = omega_add_zero_eq (pb, omega_black);
   if (!init_omega_eq_with_af (pb, eq, DDR_NB_LOOPS (ddr), fun_a, ddr)
@@ -3775,7 +3856,8 @@ compute_affine_dependence (struct data_dependence_relation *ddr,
     }
 
   /* Analyze only when the dependence relation is not yet known.  */
-  if (DDR_ARE_DEPENDENT (ddr) == NULL_TREE)
+  if (DDR_ARE_DEPENDENT (ddr) == NULL_TREE
+      && !DDR_SELF_REFERENCE (ddr))
     {
       dependence_stats.num_dependence_tests++;
 
@@ -3865,11 +3947,16 @@ compute_self_dependence (struct data_dependence_relation *ddr)
   for (i = 0; VEC_iterate (subscript_p, DDR_SUBSCRIPTS (ddr), i, subscript);
        i++)
     {
+      if (SUB_CONFLICTS_IN_A (subscript))
+	free_conflict_function (SUB_CONFLICTS_IN_A (subscript));
+      if (SUB_CONFLICTS_IN_B (subscript))
+	free_conflict_function (SUB_CONFLICTS_IN_B (subscript));
+
       /* The accessed index overlaps for each iteration.  */
       SUB_CONFLICTS_IN_A (subscript)
-	      = conflict_fn (1, affine_fn_cst (integer_zero_node));
+	= conflict_fn (1, affine_fn_cst (integer_zero_node));
       SUB_CONFLICTS_IN_B (subscript)
-	      = conflict_fn (1, affine_fn_cst (integer_zero_node));
+	= conflict_fn (1, affine_fn_cst (integer_zero_node));
       SUB_LAST_CONFLICT (subscript) = chrec_dont_know;
     }
 
@@ -3938,11 +4025,14 @@ get_references_in_stmt (tree stmt, VEC (data_ref_loc, heap) **references)
 
   if (TREE_CODE (stmt) ==  GIMPLE_MODIFY_STMT)
     {
+      tree base;
       op0 = &GIMPLE_STMT_OPERAND (stmt, 0);
       op1 = &GIMPLE_STMT_OPERAND (stmt, 1);
 		
       if (DECL_P (*op1)
-	  || (REFERENCE_CLASS_P (*op1) && get_base_address (*op1)))
+	  || (REFERENCE_CLASS_P (*op1)
+	      && (base = get_base_address (*op1))
+	      && TREE_CODE (base) != SSA_NAME))
 	{
 	  ref = VEC_safe_push (data_ref_loc, heap, *references, NULL);
 	  ref->pos = op1;
@@ -4104,18 +4194,20 @@ find_loop_nest (struct loop *loop, VEC (loop_p, heap) **loop_nest)
   return true;
 }
 
-/* Given a loop nest LOOP, the following vectors are returned:
+/* Returns true when the data dependences have been computed, false otherwise.
+   Given a loop nest LOOP, the following vectors are returned:
    DATAREFS is initialized to all the array elements contained in this loop, 
    DEPENDENCE_RELATIONS contains the relations between the data references.  
    Compute read-read and self relations if 
    COMPUTE_SELF_AND_READ_READ_DEPENDENCES is TRUE.  */
 
-void
+bool
 compute_data_dependences_for_loop (struct loop *loop, 
 				   bool compute_self_and_read_read_dependences,
 				   VEC (data_reference_p, heap) **datarefs,
 				   VEC (ddr_p, heap) **dependence_relations)
 {
+  bool res = true;
   VEC (loop_p, heap) *vloops = VEC_alloc (loop_p, heap, 3);
 
   memset (&dependence_stats, 0, sizeof (dependence_stats));
@@ -4133,6 +4225,7 @@ compute_data_dependences_for_loop (struct loop *loop,
 	 chrec_dont_know.  */
       ddr = initialize_data_dependence_relation (NULL, NULL, vloops);
       VEC_safe_push (ddr_p, heap, *dependence_relations, ddr);
+      res = false;
     }
   else
     compute_all_dependences (*datarefs, dependence_relations, vloops,
@@ -4184,7 +4277,9 @@ compute_data_dependences_for_loop (struct loop *loop,
 	       dependence_stats.num_miv_independent);
       fprintf (dump_file, "Number of miv tests unimplemented: %d\n",
 	       dependence_stats.num_miv_unimplemented);
-    }    
+    }
+
+  return res;
 }
 
 /* Entry point (for testing only).  Analyze all the data references
@@ -4510,7 +4605,7 @@ rdg_vertex_for_stmt (struct graph *rdg, tree stmt)
   struct rdg_vertex_info rvi, *slot;
 
   rvi.stmt = stmt;
-  slot = (struct rdg_vertex_info *) htab_find (rdg->indexes, &rvi);
+  slot = (struct rdg_vertex_info *) htab_find (rdg->indices, &rvi);
 
   if (!slot)
     return -1;
@@ -4626,7 +4721,7 @@ create_rdg_vertices (struct graph *rdg, VEC (tree, heap) *stmts)
 
       rvi->stmt = stmt;
       rvi->index = i;
-      slot = (struct rdg_vertex_info **) htab_find_slot (rdg->indexes, rvi, INSERT);
+      slot = (struct rdg_vertex_info **) htab_find_slot (rdg->indices, rvi, INSERT);
 
       if (!*slot)
 	*slot = rvi;
@@ -4726,7 +4821,9 @@ hash_stmt_vertex_del (void *e)
   free (e);
 }
 
-/* Build an empty Reduced Dependence Graph (RDG).  */
+/* Build the Reduced Dependence Graph (RDG) with one vertex per
+   statement of the loop nest, and one edge per data dependence or
+   scalar dependence.  */
 
 struct graph *
 build_empty_rdg (int n_stmts)
@@ -4734,7 +4831,7 @@ build_empty_rdg (int n_stmts)
   int nb_data_refs = 10;
   struct graph *rdg = new_graph (n_stmts);
 
-  rdg->indexes = htab_create (nb_data_refs, hash_stmt_vertex_info,
+  rdg->indices = htab_create (nb_data_refs, hash_stmt_vertex_info,
 			      eq_stmt_vertex_info, hash_stmt_vertex_del);
   return rdg;
 }
@@ -4770,6 +4867,9 @@ build_rdg (struct loop *loop)
 
   stmts_from_loop (loop, &stmts);
   rdg = build_empty_rdg (VEC_length (tree, stmts));
+
+  rdg->indices = htab_create (nb_data_refs, hash_stmt_vertex_info,
+			      eq_stmt_vertex_info, hash_stmt_vertex_del);
   create_rdg_vertices (rdg, stmts);
   create_rdg_edges (rdg, dependence_relations);
 
@@ -4787,12 +4887,7 @@ free_rdg (struct graph *rdg)
   for (i = 0; i < rdg->n_vertices; i++)
     free (rdg->vertices[i].data);
 
-  /* FIXME: 
-     free_dependence_relations (dependence_relations);
-     free_data_refs (datarefs);
-  */
-
-  htab_delete (rdg->indexes);
+  htab_delete (rdg->indices);
   free_graph (rdg);
 }
 
@@ -4881,7 +4976,9 @@ rdg_defs_used_in_other_loops_p (struct graph *rdg, int v)
 }
 
 /* Determines whether statements S1 and S2 access to similar memory
-   locations.  */
+   locations.  Two memory accesses are considered similar when they
+   have the same base address declaration, i.e. when their
+   ref_base_address is the same.  */
 
 bool
 have_similar_memory_accesses (tree s1, tree s2)
@@ -4898,12 +4995,13 @@ have_similar_memory_accesses (tree s1, tree s2)
     {
       tree base1 = ref_base_address (s1, ref1);
 
-      for (j = 0; VEC_iterate (data_ref_loc, refs2, j, ref2); j++)
-	if (base1 == ref_base_address (s2, ref2))
-	  {
-	    res = true;
-	    goto end;
-	  }
+      if (base1)
+	for (j = 0; VEC_iterate (data_ref_loc, refs2, j, ref2); j++)
+	  if (base1 == ref_base_address (s2, ref2))
+	    {
+	      res = true;
+	      goto end;
+	    }
     }
 
  end:
@@ -4972,3 +5070,20 @@ remove_similar_memory_refs (VEC (tree, heap) **stmts)
   htab_delete (seen);
 }
 
+/* Returns the index of PARAMETER in the parameters vector of the
+   ACCESS_MATRIX.  If PARAMETER does not exist return -1.  */
+
+int 
+access_matrix_get_index_for_parameter (tree parameter, 
+				       struct access_matrix *access_matrix)
+{
+  int i;
+  VEC (tree,heap) *lambda_parameters = AM_PARAMETERS (access_matrix);
+  tree lambda_parameter;
+
+  for (i = 0; VEC_iterate (tree, lambda_parameters, i, lambda_parameter); i++)
+    if (lambda_parameter == parameter)
+      return i + AM_NB_INDUCTION_VARS (access_matrix);
+
+  return -1;
+}

@@ -1,6 +1,6 @@
 // Core algorithmic facilities -*- C++ -*-
 
-// Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007
+// Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
 // Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
@@ -295,34 +295,13 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       { return __it.base(); }
     };
 
-  // Used in __copy_move and __copy_move_backward below.
-  template<bool _IsMove>
-    struct __cm_assign
-    {
-      template<typename _IteratorL, typename _IteratorR>
-        static void
-        __a(_IteratorL __lhs, _IteratorR __rhs) 
-	{ *__lhs = *__rhs; }
-    };
-
-#ifdef __GXX_EXPERIMENTAL_CXX0X__
-  template<>
-    struct __cm_assign<true>
-    {
-      template<typename _IteratorL, typename _IteratorR>
-        static void
-        __a(_IteratorL __lhs, _IteratorR __rhs) 
-	{ *__lhs = std::move(*__rhs); }
-    };
-#endif
-
   // All of these auxiliary structs serve two purposes.  (1) Replace
   // calls to copy with memmove whenever possible.  (Memmove, not memcpy,
   // because the input and output ranges are permitted to overlap.)
   // (2) If we're using random access iterators, then write the loop as
   // a for loop with an explicit count.
 
-  template<bool _IsMove, bool, typename>
+  template<bool, bool, typename>
     struct __copy_move
     {
       template<typename _II, typename _OI>
@@ -330,13 +309,28 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
         __copy_m(_II __first, _II __last, _OI __result)
         {
 	  for (; __first != __last; ++__result, ++__first)
-	    std::__cm_assign<_IsMove>::__a(__result, __first);
+	    *__result = *__first;
 	  return __result;
 	}
     };
 
-  template<bool _IsMove, bool _IsSimple>
-    struct __copy_move<_IsMove, _IsSimple, random_access_iterator_tag>
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+  template<typename _Category>
+    struct __copy_move<true, false, _Category>
+    {
+      template<typename _II, typename _OI>
+        static _OI
+        __copy_m(_II __first, _II __last, _OI __result)
+        {
+	  for (; __first != __last; ++__result, ++__first)
+	    *__result = std::move(*__first);
+	  return __result;
+	}
+    };
+#endif
+
+  template<>
+    struct __copy_move<false, false, random_access_iterator_tag>
     {
       template<typename _II, typename _OI>
         static _OI
@@ -345,13 +339,33 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 	  typedef typename iterator_traits<_II>::difference_type _Distance;
 	  for(_Distance __n = __last - __first; __n > 0; --__n)
 	    {
-	      std::__cm_assign<_IsMove>::__a(__result, __first);
+	      *__result = *__first;
 	      ++__first;
 	      ++__result;
 	    }
 	  return __result;
 	}
     };
+
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+  template<>
+    struct __copy_move<true, false, random_access_iterator_tag>
+    {
+      template<typename _II, typename _OI>
+        static _OI
+        __copy_m(_II __first, _II __last, _OI __result)
+        { 
+	  typedef typename iterator_traits<_II>::difference_type _Distance;
+	  for(_Distance __n = __last - __first; __n > 0; --__n)
+	    {
+	      *__result = std::move(*__first);
+	      ++__first;
+	      ++__result;
+	    }
+	  return __result;
+	}
+    };
+#endif
 
   template<bool _IsMove>
     struct __copy_move<_IsMove, true, random_access_iterator_tag>
@@ -489,7 +503,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 #define _GLIBCXX_MOVE3(_Tp, _Up, _Vp) std::copy(_Tp, _Up, _Vp)
 #endif
 
-  template<bool _IsMove, bool, typename>
+  template<bool, bool, typename>
     struct __copy_move_backward
     {
       template<typename _BI1, typename _BI2>
@@ -497,13 +511,28 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
         __copy_move_b(_BI1 __first, _BI1 __last, _BI2 __result)
         {
 	  while (__first != __last)
-	    std::__cm_assign<_IsMove>::__a(--__result, --__last);
+	    *--__result = *--__last;
 	  return __result;
 	}
     };
 
-  template<bool _IsMove, bool _IsSimple>
-    struct __copy_move_backward<_IsMove, _IsSimple, random_access_iterator_tag>
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+  template<typename _Category>
+    struct __copy_move_backward<true, false, _Category>
+    {
+      template<typename _BI1, typename _BI2>
+        static _BI2
+        __copy_move_b(_BI1 __first, _BI1 __last, _BI2 __result)
+        {
+	  while (__first != __last)
+	    *--__result = std::move(*--__last);
+	  return __result;
+	}
+    };
+#endif
+
+  template<>
+    struct __copy_move_backward<false, false, random_access_iterator_tag>
     {
       template<typename _BI1, typename _BI2>
         static _BI2
@@ -511,10 +540,26 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
         {
 	  typename iterator_traits<_BI1>::difference_type __n;
 	  for (__n = __last - __first; __n > 0; --__n)
-	    std::__cm_assign<_IsMove>::__a(--__result, --__last);
+	    *--__result = *--__last;
 	  return __result;
 	}
     };
+
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+  template<>
+    struct __copy_move_backward<true, false, random_access_iterator_tag>
+    {
+      template<typename _BI1, typename _BI2>
+        static _BI2
+        __copy_move_b(_BI1 __first, _BI1 __last, _BI2 __result)
+        {
+	  typename iterator_traits<_BI1>::difference_type __n;
+	  for (__n = __last - __first; __n > 0; --__n)
+	    *--__result = std::move(*--__last);
+	  return __result;
+	}
+    };
+#endif
 
   template<bool _IsMove>
     struct __copy_move_backward<_IsMove, true, random_access_iterator_tag>
@@ -644,19 +689,24 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
   template<typename _ForwardIterator, typename _Tp>
     inline typename
     __gnu_cxx::__enable_if<__is_scalar<_Tp>::__value, void>::__type
-    __fill_a(_ForwardIterator __first, _ForwardIterator __last, _Tp __value)
+    __fill_a(_ForwardIterator __first, _ForwardIterator __last,
+	     const _Tp& __value)
     {
+      const _Tp __tmp = __value;
       for (; __first != __last; ++__first)
-	*__first = __value;
+	*__first = __tmp;
     }
 
   // Specialization: for char types we can use memset.
   template<typename _Tp>
     inline typename
     __gnu_cxx::__enable_if<__is_byte<_Tp>::__value, void>::__type
-    __fill_a(_Tp* __first, _Tp* __last, _Tp __c)
-    { __builtin_memset(__first, static_cast<unsigned char>(__c),
-		       __last - __first); }
+    __fill_a(_Tp* __first, _Tp* __last, const _Tp& __c)
+    {
+      const _Tp __tmp = __c;
+      __builtin_memset(__first, static_cast<unsigned char>(__tmp),
+		       __last - __first);
+    }
 
   /**
    *  @brief Fills the range [first,last) with copies of value.
@@ -695,17 +745,18 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
   template<typename _OutputIterator, typename _Size, typename _Tp>
     inline typename
     __gnu_cxx::__enable_if<__is_scalar<_Tp>::__value, _OutputIterator>::__type
-    __fill_n_a(_OutputIterator __first, _Size __n, _Tp __value)
+    __fill_n_a(_OutputIterator __first, _Size __n, const _Tp& __value)
     {
+      const _Tp __tmp = __value;
       for (; __n > 0; --__n, ++__first)
-	*__first = __value;
+	*__first = __tmp;
       return __first;
     }
 
   template<typename _Size, typename _Tp>
     inline typename
     __gnu_cxx::__enable_if<__is_byte<_Tp>::__value, _Tp*>::__type
-    __fill_n_a(_Tp* __first, _Size __n, _Tp __c)
+    __fill_n_a(_Tp* __first, _Size __n, const _Tp& __c)
     {
       std::__fill_a(__first, __first + __n, __c);
       return __first + __n;

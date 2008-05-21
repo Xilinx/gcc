@@ -1,7 +1,7 @@
 /* Definitions for parsing and type checking for the GNU compiler for
    the Java(TM) language.
    Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004,
-   2005, 2006, 2007 Free Software Foundation, Inc.
+   2005, 2006, 2007, 2008 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -793,8 +793,6 @@ struct lang_decl_func GTY(())
   int max_locals;
   int max_stack;
   int arg_slot_count;
-  /* A temporary lie for the sake of ggc.  Actually, last_line is
-     only a source_location if USE_MAPPED_LOCATION.  FIXME.  */
   source_location last_line;	/* End line number for a function decl */
   tree throws_list;		/* Exception specified by `throws' */
 
@@ -1026,6 +1024,7 @@ extern tree parse_signature (struct JCF *jcf, int sig_index);
 extern tree add_field (tree, tree, tree, int);
 extern tree add_method (tree, int, tree, tree);
 extern tree add_method_1 (tree, int, tree, tree);
+extern void java_hide_decl (tree);
 extern tree make_class (void);
 extern tree push_class (tree, tree);
 extern tree unmangle_classname (const char *name, int name_length);
@@ -1052,7 +1051,6 @@ extern int global_bindings_p (void);
 extern tree getdecls (void);
 extern void pushlevel (int);
 extern tree poplevel (int,int, int);
-extern void insert_block (tree);
 extern tree pushdecl (tree);
 extern void java_init_decl_processing (void);
 extern void java_dup_lang_specific_decl (tree);
@@ -1205,6 +1203,7 @@ extern void java_check_methods (tree);
 extern void java_mangle_decl (tree);
 extern tree java_mangle_class_field (struct obstack *, tree);
 extern tree java_mangle_vtable (struct obstack *, tree);
+extern tree java_mangle_resource_name (const char *);
 extern void append_gpp_mangled_name (const char *, int);
 
 extern void add_predefined_file (tree);

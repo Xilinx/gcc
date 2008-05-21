@@ -6,7 +6,7 @@
 --                                                                          --
 --                                  B o d y                                 --
 --                                                                          --
---         Copyright (C) 1992-2007, Free Software Foundation, Inc.          --
+--         Copyright (C) 1992-2008, Free Software Foundation, Inc.          --
 --                                                                          --
 -- GNARL is free software; you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -33,49 +33,33 @@
 
 --  This is a HP-UX DCE threads (HPUX 10) version of this package
 
---  This package contains all the GNULL primitives that interface directly
---  with the underlying OS.
+--  This package contains all the GNULL primitives that interface directly with
+--  the underlying OS.
 
 pragma Polling (Off);
---  Turn off polling, we do not want ATC polling to take place during
---  tasking operations. It causes infinite loops and other problems.
+--  Turn off polling, we do not want ATC polling to take place during tasking
+--  operations. It causes infinite loops and other problems.
+
+with Ada.Unchecked_Conversion;
+with Ada.Unchecked_Deallocation;
+
+with Interfaces.C;
 
 with System.Tasking.Debug;
---  used for Known_Tasks
-
 with System.Interrupt_Management;
---  used for Keep_Unmasked
---           Abort_Task_Interrupt
---           Interrupt_ID
+with System.OS_Primitives;
+with System.Task_Primitives.Interrupt_Operations;
 
 pragma Warnings (Off);
 with System.Interrupt_Management.Operations;
---  used for Set_Interrupt_Mask
---           All_Tasks_Mask
 pragma Elaborate_All (System.Interrupt_Management.Operations);
-
 pragma Warnings (On);
 
-with System.OS_Primitives;
---  used for Delay_Modes
-
-with Interfaces.C;
---  used for int
---           size_t
-
-with System.Task_Primitives.Interrupt_Operations;
---  used for Get_Interrupt_ID
-
 with System.Soft_Links;
---  used for Defer/Undefer_Abort
-
 --  We use System.Soft_Links instead of System.Tasking.Initialization
 --  because the later is a higher level package that we shouldn't depend on.
 --  For example when using the restricted run time, it is replaced by
 --  System.Tasking.Restricted.Stages.
-
-with Ada.Unchecked_Conversion;
-with Ada.Unchecked_Deallocation;
 
 package body System.Task_Primitives.Operations is
 
@@ -237,7 +221,7 @@ package body System.Task_Primitives.Operations is
    --  Note: mutexes and cond_variables needed per-task basis are initialized
    --  in Initialize_TCB and the Storage_Error is handled. Other mutexes (such
    --  as RTS_Lock, Memory_Lock...) used in RTS is initialized before any
-   --  status change of RTS. Therefore rasing Storage_Error in the following
+   --  status change of RTS. Therefore raising Storage_Error in the following
    --  routines should be able to be handled safely.
 
    procedure Initialize_Lock
@@ -875,7 +859,7 @@ package body System.Task_Primitives.Operations is
       Succeeded := Result = 0;
 
       pthread_detach (T.Common.LL.Thread'Access);
-      --  Detach the thread using pthread_detach, sinc DCE threads do not have
+      --  Detach the thread using pthread_detach, since DCE threads do not have
       --  pthread_attr_set_detachstate.
 
       Result := pthread_attr_destroy (Attributes'Access);

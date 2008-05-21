@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 2004-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 2004-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -23,13 +23,17 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
-with Ada.Command_Line;  use Ada.Command_Line;
+with Debug;
 with Osint;    use Osint;
 with Output;   use Output;
 with Prj.Ext;
 with Prj.Util;
 with Snames;   use Snames;
 with Table;
+
+with Ada.Command_Line;  use Ada.Command_Line;
+
+with GNAT.Directory_Operations; use GNAT.Directory_Operations;
 
 with System.Case_Util; use System.Case_Util;
 with System.HTable;
@@ -41,7 +45,7 @@ package body Makeutl is
       Index : Int;
    end record;
    --  Identify either a mono-unit source (when Index = 0) or a specific unit
-   --  in a multi-unit source.
+   --  (index = 1's origin index of unit) in a multi-unit source.
 
    --  There follow many global undocumented declarations, comments needed ???
 
@@ -191,7 +195,7 @@ package body Makeutl is
       Exec_Name : constant String := Command_Name;
 
       function Get_Install_Dir (S : String) return String;
-      --  S is the executable name preceeded by the absolute or relative
+      --  S is the executable name preceded by the absolute or relative
       --  path, e.g. "c:\usr\bin\gcc.exe". Returns the absolute directory
       --  where "bin" lies (in the example "C:\usr").
       --  If the executable is not in a "bin" directory, return "".
@@ -271,7 +275,17 @@ package body Makeutl is
 
       if N /= No_Name then
          Write_Str ("""");
-         Write_Name (N);
+
+         declare
+            Name : constant String := Get_Name_String (N);
+         begin
+            if Debug.Debug_Flag_F and then Is_Absolute_Path (Name) then
+               Write_Str (File_Name (Name));
+            else
+               Write_Str (Name);
+            end if;
+         end;
+
          Write_Str (""" ");
       end if;
 
@@ -545,6 +559,20 @@ package body Makeutl is
       Marks.Set (K => (File => Source_File, Index => Index), E => True);
    end Mark;
 
+   -----------------------
+   -- Path_Or_File_Name --
+   -----------------------
+
+   function Path_Or_File_Name (Path : Path_Name_Type) return String is
+      Path_Name : constant String := Get_Name_String (Path);
+   begin
+      if Debug.Debug_Flag_F then
+         return File_Name (Path_Name);
+      else
+         return Path_Name;
+      end if;
+   end Path_Or_File_Name;
+
    ---------------------------
    -- Test_If_Relative_Path --
    ---------------------------
@@ -657,7 +685,7 @@ package body Makeutl is
          Start := Start - 1;
       end loop;
 
-      --  If there is no difits, or if the digits are not preceded by
+      --  If there are no digits, or if the digits are not preceded by
       --  the character that precedes a unit index, this is not the ALI file
       --  of a unit in a multi-unit source.
 

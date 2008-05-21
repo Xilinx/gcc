@@ -1,6 +1,7 @@
 /* Parser for C and Objective-C.
    Copyright (C) 1987, 1988, 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007 Free Software Foundation, Inc.
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008
+   Free Software Foundation, Inc.
 
    Parser actions based on the old Bison parser; structure somewhat
    influenced by and fragments based on the C++ parser.
@@ -442,12 +443,7 @@ c_parser_next_token_is_not (c_parser *parser, enum cpp_ttype type)
 static inline bool
 c_parser_next_token_is_keyword (c_parser *parser, enum rid keyword)
 {
-  c_token *token;
-
-  /* Peek at the next token.  */
-  token = c_parser_peek_token (parser);
-  /* Check to see if it is the indicated keyword.  */
-  return token->keyword == keyword;
+  return c_parser_peek_token (parser)->keyword == keyword;
 }
 
 /* Return true if TOKEN can start a type name,
@@ -1069,7 +1065,7 @@ c_parser_translation_unit (c_parser *parser)
   if (c_parser_next_token_is (parser, CPP_EOF))
     {
       if (pedantic)
-	pedwarn ("%HISO C forbids an empty source file",
+	pedwarn ("%HISO C forbids an empty translation unit",
 		 &c_parser_peek_token (parser)->location);
     }
   else
@@ -1378,7 +1374,7 @@ c_parser_declaration_or_fndef (c_parser *parser, bool fndef_ok, bool empty_ok,
 	{
 	  if (pedantic)
 	    pedwarn ("%HISO C forbids nested functions", &here);
-	  push_function_context ();
+	  c_push_function_context ();
 	}
       if (!start_function (specs, declarator, all_prefix_attrs))
 	{
@@ -1388,7 +1384,7 @@ c_parser_declaration_or_fndef (c_parser *parser, bool fndef_ok, bool empty_ok,
 	  c_parser_error (parser, "expected %<=%>, %<,%>, %<;%>, %<asm%> "
 			  "or %<__attribute__%>");
 	  if (nested)
-	    pop_function_context ();
+	    c_pop_function_context ();
 	  break;
 	}
       /* Parse old-style parameter declarations.  ??? Attributes are
@@ -1415,7 +1411,7 @@ c_parser_declaration_or_fndef (c_parser *parser, bool fndef_ok, bool empty_ok,
 	  tree decl = current_function_decl;
 	  add_stmt (fnbody);
 	  finish_function ();
-	  pop_function_context ();
+	  c_pop_function_context ();
 	  add_stmt (build_stmt (DECL_EXPR, decl));
 	}
       else
@@ -5167,12 +5163,16 @@ c_parser_postfix_expression (c_parser *parser)
     {
     case CPP_NUMBER:
     case CPP_CHAR:
+    case CPP_CHAR16:
+    case CPP_CHAR32:
     case CPP_WCHAR:
       expr.value = c_parser_peek_token (parser)->value;
       expr.original_code = ERROR_MARK;
       c_parser_consume_token (parser);
       break;
     case CPP_STRING:
+    case CPP_STRING16:
+    case CPP_STRING32:
     case CPP_WSTRING:
       expr.value = c_parser_peek_token (parser)->value;
       expr.original_code = STRING_CST;
@@ -7262,13 +7262,21 @@ c_parser_omp_all_clauses (c_parser *parser, unsigned int mask,
 			  const char *where)
 {
   tree clauses = NULL;
+  bool first = true;
 
   while (c_parser_next_token_is_not (parser, CPP_PRAGMA_EOL))
     {
-      location_t here = c_parser_peek_token (parser)->location;
-      const pragma_omp_clause c_kind = c_parser_omp_clause_name (parser);
+      location_t here;
+      pragma_omp_clause c_kind;
       const char *c_name;
       tree prev = clauses;
+
+      if (!first && c_parser_next_token_is (parser, CPP_COMMA))
+	c_parser_consume_token (parser);
+
+      first = false;
+      here = c_parser_peek_token (parser)->location;
+      c_kind = c_parser_omp_clause_name (parser);
 
       switch (c_kind)
 	{
@@ -7377,6 +7385,7 @@ c_parser_omp_atomic (c_parser *parser)
   tree lhs, rhs;
   tree stmt;
   enum tree_code code;
+  struct c_expr rhs_expr;
 
   c_parser_skip_to_pragma_eol (parser);
 
@@ -7439,7 +7448,9 @@ c_parser_omp_atomic (c_parser *parser)
 	}
 
       c_parser_consume_token (parser);
-      rhs = c_parser_expression (parser).value;
+      rhs_expr = c_parser_expression (parser);
+      rhs_expr = default_function_array_conversion (rhs_expr);
+      rhs = rhs_expr.value;
       break;
     }
   stmt = c_finish_omp_atomic (code, lhs, rhs);
@@ -7539,6 +7550,8 @@ c_parser_omp_for_loop (c_parser *parser)
       decl = check_for_loop_decls ();
       if (decl == NULL)
 	goto error_init;
+      if (DECL_INITIAL (decl) == error_mark_node)
+	decl = error_mark_node;
       init = decl;
     }
   else if (c_parser_next_token_is (parser, CPP_NAME)
@@ -7589,7 +7602,7 @@ c_parser_omp_for_loop (c_parser *parser)
   c_break_label = save_break;
   c_cont_label = save_cont;
 
-  /* Only bother calling c_finish_omp_for if we havn't already generated
+  /* Only bother calling c_finish_omp_for if we haven't already generated
      an error from the initialization parsing.  */
   if (decl != NULL && decl != error_mark_node && init != error_mark_node)
     return c_finish_omp_for (loc, decl, init, cond, incr, body, NULL);
@@ -7954,10 +7967,14 @@ c_parser_omp_threadprivate (c_parser *parser)
 
       /* If V had already been marked threadprivate, it doesn't matter
 	 whether it had been used prior to this point.  */
-      if (TREE_USED (v) && !C_DECL_THREADPRIVATE_P (v))
+      if (TREE_CODE (v) != VAR_DECL)
+	error ("%qD is not a variable", v);
+      else if (TREE_USED (v) && !C_DECL_THREADPRIVATE_P (v))
 	error ("%qE declared %<threadprivate%> after first use", v);
       else if (! TREE_STATIC (v) && ! DECL_EXTERNAL (v))
 	error ("automatic variable %qE cannot be %<threadprivate%>", v);
+      else if (TREE_TYPE (v) == error_mark_node)
+	;
       else if (! COMPLETE_TYPE_P (TREE_TYPE (v)))
 	error ("%<threadprivate%> %qE has incomplete type", v);
       else

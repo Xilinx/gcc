@@ -1,3 +1,302 @@
+
+2008-05-18 Xinliang David Li   <davidxl@google.com>
+
+	* ChangeLog: Remove wrong ChangeLog entry. 
+
+2008-05-17 Xinliang David Li   <davidxl@google.com>
+
+	* MAINTAINERS (Write After Approval): Add myself.
+
+2008-05-15  Janus Weil  <janus@gcc.gnu.org>
+
+	* MAINTAINERS (Write After Approval): Add myself.
+
+2008-05-14  Rafael Espindola  <espindola@google.com>
+
+	* config-ml.in: don't handle --enable-shared and --enable-static.
+
+2008-05-10  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* MAINTAINERS: Update my email address.
+
+2008-05-10  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* MAINTAINERS: Update my email address.
+	
+2008-05-03  Kris Van Hees  <kris.van.hees@oracle.com>
+
+	* MAINTAINERS (Write After Approval): Add myself.
+
+2008-04-28  Gabriele Svelto  <gabriele.svelto@st.com>
+
+	* MAINTAINERS (Write After Approval): Add myself.
+
+2008-04-25  Pompapathi V Gadad <Pompapathi.V.Gadad@nsc.com>
+
+	* MAINTAINERS (crx): Add myself.
+
+2008-04-18  Paolo Bonzini  <bonzini@gnu.org>
+
+	Sync with src:
+	2008-04-14  David S. Miller  <davem@davemloft.net>
+
+        * configure.ac: Add sparc*-*-* to gold supported targets.
+        * configure: Regenerate.
+
+2008-04-18  Paolo Bonzini  <bonzini@gnu.org>
+
+	PR bootstrap/35457
+	* configure.ac: Include override.m4.
+	* configure: Regenerate.
+
+2008-04-18  Paolo Bonzini  <bonzini@gnu.org>
+
+        * Makefile.tpl (restrap): Call `make all' using double-colon rules.
+        * Makefile.in: Regenerate.
+
+2008-04-18  M R Swami Reddy <MR.Swami.Reddy@nsc.com>
+
+        * configure.ac (cr16-*-*): Add case for cr16 target and include gdb
+	as nonconfigurable directories list.
+        * configure: Regenerate.
+
+2008-04-14  Ben Elliston  <bje@au.ibm.com>
+
+	* config.sub, config.guess: Update from upstream sources.
+
+2008-04-12  Hans-Peter Nilsson  <hp@axis.com>
+
+	* Makefile.tpl <gcc>: Error early unless at least GNU make 3.80.
+	* Makefile.in: Regenerate.
+
+2008-04-11  Eric B. Weddington  <eweddington@cso.atmel.com>
+
+	* configure.ac: Do not build libssp for the AVR.
+	* configure: Regenerate.
+
+2008-04-07  Ian Lance Taylor  <iant@google.com>
+
+	* Makefile.def: check-gold depends upon all-binutils.
+	* Makefile.in: Regenerate.
+
+2008-04-04  Andy Hutchinson  <hutchinsonandy@aim.com>
+
+	* MAINTAINERS (Write After Approval): Add myself.
+
+2008-04-04  Nick Clifton  <nickc@redhat.com>
+
+	PR binutils/4334
+	* configure.ac: Run ACX_CHECK_CYGWIN_CAT_WORKS for cygwin hosted
+	builds.
+	* configure: Regenerate.
+
+2008-04-04  NightStrike  <NightStrike@gmail.com>
+
+	PR other/35151
+        * configure.ac: Combine rules for mingw32 and mingw64.
+        * configure: Regenerate.
+
+2008-04-02  Kai Tietz  <kai.tietz@onvision.com>
+
+	* MAINTAINERS (Write After Approval): Add myself.
+
+2008-04-01  Seongbae Park <seongbae.park@gmail.com>
+
+	* Makefile.tpl (.NOTPARALLEL): Revert previous change.
+	* Makefile.in (.NOTPARALLEL): Ditto.
+
+2008-04-01  Peter O'Gorman  <pogma@thewrittenword.com>
+
+	* MAINTAINERS (Write After Approval): Add myself.
+
+2008-03-31  Seongbae Park <seongbae.park@gmail.com>
+
+	* Makefile.tpl (.NOTPARALLEL): Serialize stageprofile libiberty.
+	* Makefile.in (.NOTPARALLEL): Regenerate.
+
+2008-03-27  Paolo Bonzini  <bonzini@gnu.org>
+
+	* Makefile.tpl (PICFLAG, PICFLAG_FOR_TARGET): Remove.
+	* Makefile.in: Regenerate.
+
+2008-03-26  Jakub Staszak  <kuba@et.pl>
+
+	* MAINTAINERS (Write After Approval): Add myself.
+
+2008-03-23  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	* MAINTAINERS:  Update e-mail address.
+
+2008-03-20  Ian Lance Taylor  <iant@google.com>
+
+	* configure.ac: Add support for --enable-gold.
+	* Makefile.def: Add gold as a directory like ld.
+	* configure, Makefile.in: Regenerate.
+
+2008-03-16  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* configure.ac: m4_include config/proginstall.m4.
+	* configure: Regenerate.
+
+	Backport from upstream Libtool:
+	
+	2007-10-12  Eric Blake  <ebb9@byu.net>
+	
+	Deal with Autoconf 2.62's semantic change in m4_append.
+	* ltsugar.m4 (lt_append): Replace broken versions of
+	m4_append.
+	(lt_if_append_uniq): Don't require separator to be overquoted,
+	and avoid broken m4_append.
+	(lt_dict_add): Fix typo.
+	* libtool.m4 (_LT_DECL): Don't overquote separator.
+
+2008-03-13  David Edelsohn  <edelsohn@gnu.org>
+
+	* config.rpath: Add AIX 6 support.
+
+2008-03-13  Paolo Bonzini  <bonzini@gnu.org>
+
+	* Makefile.def (stageprofile).  Remove -fprofile-generate
+	from stage_libcflags.
+	* Makefile.in: Regenerate.
+
+2008-03-13  Ben Elliston  <bje@au.ibm.com>
+
+	* config.sub, config.guess: Update from upstream sources.
+
+2008-03-06  Tom Tromey  <tromey@redhat.com>
+
+	* MAINTAINERS: Update for treelang deletion.
+
+2008-03-03  James E. Wilson  <wilson@tuliptree.org>
+
+	* MAINTAINERS: Update my email address.
+
+2008-03-03  Stan Shebs  <stanshebs@earthlink.net>
+
+	* MAINTAINERS (darwin port): Add myself as a maintainer.
+	(objective-c/c++): Add myself as a maintainer.
+
+2008-03-03  Volker Reichelt  <v.reichelt@netcologne.de>
+
+	* MAINTAINERS (Write After Approval): Update my email address.
+
+2008-02-25  Tomas Bily  <tbily@suse.cz>
+
+	* MAINTAINERS (Write After Approval): Add myself.
+
+2008-02-23  Jakub Jelinek  <jakub@redhat.com>
+
+	* MAINTAINERS (OpenMP): Add myself.
+
+2008-02-20  Paolo Bonzini  <bonzini@gnu.org>
+
+	PR bootstrap/32009
+	PR bootstrap/32161
+
+	* configure.ac (CFLAGS_FOR_TARGET, CXXFLAGS_FOR_TARGET): Compute here.
+	* configure: Regenerate.
+
+	* Makefile.def: Define stage_libcflags for all bootstrap stages.
+	* Makefile.tpl (BOOT_LIBCFLAGS, STAGE2_LIBCFLAGS, STAGE3_LIBCFLAGS,
+	STAGE4_LIBCFLAGS): New.
+	(CFLAGS_FOR_TARGET, CXXFLAGS_FOR_TARGET): Subst from autoconf, without
+	$(SYSROOT_CFLAGS_FOR_TARGET) and $(DEBUG_PREFIX_CFLAGS_FOR_TARGET).
+	(BASE_TARGET_EXPORTS): Append them here to C{,XX}FLAGS.
+	(EXTRA_TARGET_FLAGS): Append them here to {LIB,}C{,XX}FLAGS.
+	(configure-stage[+id+]-[+prefix+][+module+]): Pass stage_libcflags
+	for target modules.  Don't export LIBCFLAGS.
+	(all-stage[+id+]-[+prefix+][+module+]): Pass stage_libcflags; pass
+	$(BASE_FLAGS_TO_PASS) where [+args+] was passed, and [+args+] after
+	the overridden CFLAGS_FOR_TARGET and CXXFLAGS_FOR_TARGET.
+	(invocations of `all'): Replace $(TARGET_FLAGS_TO_PASS) with
+	$(EXTRA_TARGET_FLAGS), $(FLAGS_TO_PASS) with $(EXTRA_HOST_FLAGS).
+	* Makefile.in: Regenerate.
+
+2008-02-16  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	PR libgcj/33085
+	* libtool.m4 (_LT_COMPILER_PIC) [ mingw, cygwin ] <GCJ>:
+	Do not use -DDLL_EXPORT.  Backport from upstream.
+
+2008-02-13  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* MAINTAINERS (Write After Approval): Add myself.
+
+2008-02-02  Hans-Peter Nilsson  <hp@axis.com>
+
+	* configure.ac: Enable fortran for cris-*-elf and crisv32-*-elf.
+	* configure: Regenerate.
+
+2008-01-31  Marc Gauthier  <marc@tensilica.com>
+
+	* configure.ac (xtensa*-*-*): Recognize processor variants.
+	* configure: Regenerate.
+
+2008-01-30  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	PR bootstrap/34922
+	* configure.ac (PARSE_ARGS): Push suitable setting of
+	ac_subdirs_all, for `./configure --help=recursive'.
+	Handle `+' in generic toplevel directory disabling.
+	* configure: Regenerate.
+
+2008-01-28  Nick Clifton  <nickc@redhat.com>
+
+	* MAINTAINERS (xstormy16): Take over maintainership.
+
+2008-01-25  Joseph Myers  <joseph@codesourcery.com>
+
+	* MAINTAINERS (c4x port): Remove.
+
+2008-01-24  David Edelsohn  <edelsohn@gnu.org>
+
+	* libtool.m4: Backport AIX 6 support from ToT Libtool.
+
+2008-01-23  Ben Elliston  <bje@au.ibm.com>
+
+	* config.sub, config.guess: Update from upstream sources.
+
+2008-01-22  Tobias Grosser  <grosser@fim.uni-passau.de>
+
+	* MAINTAINERS (Write After Approval): Add myself.
+
+2008-01-17  H.J. Lu  <hjl.tools@gmail.com>
+
+	* MAINTAINERS: Update my email address.
+
+2008-01-09  Raksit Ashok  <raksit@google.com>
+
+	* MAINTAINERS (Write After Approval): Add myself.
+
+2008-01-09  Raksit Ashok  <raksit@google.com>
+
+	* MAINTAINERS (Write After Approval): Add myself.
+
+2008-01-08  Ben Elliston  <bje@au.ibm.com>
+
+	* config.sub, config.guess: Update from upstream sources.
+
+2007-12-17  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	* configure.ac: Change required MPFR from 2.2.0 -> 2.2.1.
+	Change recommended MPFR from 2.2.1 -> 2.3.0.
+	* configure: Regenerate.
+
+2007-12-15  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* MAINTAINERS: Update my email address.
+
+2007-12-15  Bernhard Fischer  <aldot@gcc.gnu.org>
+
+	* MAINTAINERS: Update my email address.
+
+2007-12-13  Richard Sandiford  <rsandifo@nildram.co.uk>
+
+	* Makefile.tpl (CFLAGS_FOR_TARGET): Add -g.
+	(CXXFLAGS_FOR_TARGET): Add -O2 -g.
+	* Makefile.in: Regenerate.
+
 2007-12-10  Mark Heffernan <meheff@google.com>
 
 	* MAINTAINERS (Write After Approval): Add myself and alphabetize two
@@ -120,7 +419,7 @@
 
 	PR bootstrap/31906
 	* libtool-ldflags: Don't prefix arguments with -Xcompiler if
-        they're already prefixed.
+	they're already prefixed.
 
 2007-09-19  Benjamin Kosnik  <bkoz@redhat.com>
 
@@ -137,7 +436,7 @@
 
 2007-09-17  Johannes Singler <singler@ira.uka.de>
 
-        * MAINTAINERS (write-after-approval) add myself
+	* MAINTAINERS (write-after-approval) add myself
 
 2007-09-15  Alan Modra  <amodra@bigpond.net.au>
 
@@ -200,13 +499,13 @@
 
 	* config.sub, config.guess: Update from upstream sources.
 
-2007-08-22  Bud Davis   <jmdavis@link.com>
+2007-08-22  Bud Davis  <jmdavis@link.com>
 
 	* MAINTAINERS (Write After Approval): Added myself.
 	* MAINTAINERS (Reviewers): Removed myself.
 
 2007-08-18  Paul Brook  <paul@codesourcery.com>
-            Joseph Myers  <joseph@codesourcery.com>
+	    Joseph Myers  <joseph@codesourcery.com>
 
 	* Makefile.tpl (DEBUG_PREFIX_CFLAGS_FOR_TARGET): New.
 	(CFLAGS_FOR_TARGET, CXXFLAGS_FOR_TARGET): Include it.
@@ -595,9 +894,9 @@
 	* configure: Rebuilt.
 
 2007-02-17  Mark Mitchell  <mark@codesourcery.com>
-            Nathan Sidwell  <nathan@codesourcery.com>
-            Vladimir Prus  <vladimir@codesourcery.com
-            Joseph Myers  <joseph@codesourcery.com>
+	    Nathan Sidwell  <nathan@codesourcery.com>
+	    Vladimir Prus  <vladimir@codesourcery.com>
+	    Joseph Myers  <joseph@codesourcery.com>
 
 	* configure.ac (TOPLEVEL_CONFIGURE_ARGUMENTS): Fix quoting.
 	* configure: Regenerate.

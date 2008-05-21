@@ -44,18 +44,32 @@ proc check_compile {basename type contents args} {
 	"*// C++*" { set src ${basename}[pid].cc }
 	default { set src ${basename}[pid].c }
     }
-    switch $type {
+    set compile_type $type
+    switch -glob $type {
 	assembly { set output ${basename}[pid].s }
 	object { set output ${basename}[pid].o }
 	executable { set output ${basename}[pid].exe }
+	"rtl-*" {
+	    set output ${basename}[pid].s
+	    lappend options "additional_flags=-fdump-$type"
+	    set compile_type assembly
+	}
     }
     set f [open $src "w"]
     puts $f $contents
     close $f
-    set lines [${tool}_target_compile $src $output $type "$options"]
+    set lines [${tool}_target_compile $src $output $compile_type "$options"]
     file delete $src
 
-    return [list $lines $output]
+    set scan_output $output
+    # Don't try folding this into the switch above; calling "glob" before the
+    # file is created won't work.
+    if [regexp "rtl-(.*)" $type dummy rtl_type] {
+	set scan_output "[glob $src.\[0-9\]\[0-9\]\[0-9\]r.$rtl_type]"
+	file delete $output
+    }
+
+    return [list $lines $scan_output]
 }
 
 proc current_target_name { } {
@@ -369,6 +383,21 @@ proc check_gc_sections_available { } {
     return $gc_sections_available_saved
 }
 
+# Return 1 if according to target_info struct and explicit target list
+# target is supposed to support trampolines.
+ 
+proc check_effective_target_trampolines { } {
+    if [target_info exists no_trampolines] {
+      return 0
+    }
+    if { [istarget avr-*-*]
+	 || [istarget hppa2.0w-hp-hpux11.23]
+	|| [istarget hppa64-hp-hpux11.23] } {
+	return 0;   
+    }
+    return 1
+}
+
 # Return true if profiling is supported on the target.
 
 proc check_profiling_available { test_what } {
@@ -396,6 +425,11 @@ proc check_profiling_available { test_what } {
 	return 0
     }
 
+    # MinGW does not support -p.
+    if { [istarget *-*-mingw*] && [lindex $test_what 1] == "-p" } {
+	return 0
+    }
+
     # At present, there is no profiling support on NetWare.
     if { [istarget *-*-netware*] } {
 	return 0
@@ -416,17 +450,20 @@ proc check_profiling_available { test_what } {
 	     || [istarget arm*-*-eabi*]
 	     || [istarget arm*-*-elf]
 	     || [istarget arm*-*-symbianelf*]
+	     || [istarget avr-*-*]
 	     || [istarget bfin-*-*]
 	     || [istarget powerpc-*-eabi*]
 	     || [istarget strongarm*-*-elf]
 	     || [istarget xscale*-*-elf]
 	     || [istarget cris-*-*]
+	     || [istarget crisv32-*-*]
 	     || [istarget fido-*-elf]
 	     || [istarget h8300-*-*]
 	     || [istarget m32c-*-elf]
 	     || [istarget m68k-*-elf]
 	     || [istarget m68k-*-uclinux*]
 	     || [istarget mips*-*-elf*]
+	     || [istarget xstormy16-*]
 	     || [istarget xtensa-*-elf]
 	     || [istarget *-*-vxworks*]
 	     || [istarget *-*-windiss] } {
@@ -481,6 +518,13 @@ proc check_effective_target_tls {} {
 # This won't change for different subtargets so cache the result.
 
 proc check_effective_target_tls_native {} {
+    # VxWorks uses emulated TLS machinery, but with non-standard helper
+    # functions, so we fail to automatically detect it.
+    global target_triplet
+    if { [regexp ".*-.*-vxworks.*" $target_triplet] } {
+	return 0
+    }
+    
     return [check_no_messages_and_pattern tls_native "!emutls" assembly {
 	__thread int i;
 	int f (void) { return i; }
@@ -506,6 +550,15 @@ proc check_effective_target_fopenmp {} {
     return [check_no_compiler_messages fopenmp object {
 	void foo (void) { }
     } "-fopenmp"]
+}
+
+# Return 1 if compilation with -pthread is error-free for trivial
+# code, 0 otherwise.
+
+proc check_effective_target_pthread {} {
+    return [check_no_compiler_messages pthread object {
+	void foo (void) { }
+    } "-pthread"]
 }
 
 # Return 1 if the target supports -fstack-protector
@@ -554,12 +607,17 @@ proc check_effective_target_mpaired_single { } {
 # Return true if the target has access to FPU instructions.
 
 proc check_effective_target_hard_float { } {
-    return [check_no_compiler_messages hard_float assembly {
-	#if ((defined __mips \
-	      && (defined __mips_soft_float || defined __mips16)) \
-	     || (defined __xtensa__ && defined __XTENSA_SOFT_FLOAT__))
-	#error FOO
-	#endif
+    if { [istarget mips*-*-*] } {
+	return [check_no_compiler_messages hard_float assembly {
+		#if (defined __mips_soft_float || defined __mips16)
+		#error FOO
+		#endif
+	}]
+    }
+
+    # The generic test equates hard_float with "no call for adding doubles".
+    return [check_no_messages_and_pattern hard_float "!\\(call" rtl-expand {
+	double a (double b, double c) { return b + c; }
     }]
 }
 
@@ -592,7 +650,7 @@ proc check_effective_target_nomips16 { } {
 # we don't support MIPS16 PIC.
 
 proc add_options_for_mips16_attribute { flags } {
-    return "$flags -mno-abicalls -fno-pic"
+    return "$flags -mno-abicalls -fno-pic -DMIPS16=__attribute__((mips16))"
 }
 
 # Return true if we can force a mode that allows MIPS16 code generation.
@@ -693,6 +751,18 @@ proc check_effective_target_fortran_large_int { } {
     }]
 }
 
+# Return 1 if the target supports Fortran integer(16), 0 otherwise.
+#
+# When the target name changes, replace the cached result.
+
+proc check_effective_target_fortran_integer_16 { } {
+    return [check_no_compiler_messages fortran_integer_16 executable {
+        ! Fortran
+        integer(16) :: i
+        end
+    }]
+}
+
 # Return 1 if we can statically link libgfortran, 0 otherwise.
 #
 # When the target name changes, replace the cached result.
@@ -725,6 +795,29 @@ proc check_750cl_hw_available { } {
 		   return 0;
 		 }
 	    } "-mpaired"
+	}
+    }]
+}
+
+# Return 1 if the target supports executing SSE2 instructions, 0
+# otherwise.  Cache the result.
+
+proc check_sse2_hw_available { } {
+    return [check_cached_effective_target sse2_hw_available {
+	# If this is not the right target then we can skip the test.
+	if { !([istarget x86_64-*-*] || [istarget i?86-*-*]) } {
+	    expr 0
+	} else {
+	    check_runtime_nocache sse2_hw_available {
+		#include "cpuid.h"
+		int main ()
+		{
+		  unsigned int eax, ebx, ecx, edx = 0;
+		  if (__get_cpuid (1, &eax, &ebx, &ecx, &edx))
+		    return !(edx & bit_SSE2);
+		  return 1;
+		}
+	    } ""
 	}
     }]
 }
@@ -1196,6 +1289,12 @@ proc check_effective_target_powerpc_altivec_ok { } {
     }
 }
 
+# Return 1 if this is a PowerPC target that supports SPU.
+
+proc check_effective_target_powerpc_spu { } {
+    return [istarget powerpc*-*-linux*]
+}
+
 # Return 1 if this is a PowerPC target with SPE enabled.
 
 proc check_effective_target_powerpc_spe { } {
@@ -1631,7 +1730,8 @@ proc check_effective_target_vect_unpack { } {
         set et_vect_unpack_saved 0
         if { ([istarget powerpc*-*-*] && ![istarget powerpc-*paired*])
              || [istarget i?86-*-*]
-             || [istarget x86_64-*-*] } {
+             || [istarget x86_64-*-*] 
+             || [istarget spu-*-*] } {
             set et_vect_unpack_saved 1
         }
     }
@@ -1840,6 +1940,7 @@ proc check_effective_target_vect_short_mult { } {
     } else {
 	set et_vect_short_mult_saved 0
 	if { [istarget ia64-*-*]
+	     || [istarget spu-*-*]
 	     || [istarget i?86-*-*]
 	     || [istarget x86_64-*-*] } {
 	   set et_vect_short_mult_saved 1
@@ -1963,7 +2064,8 @@ proc check_effective_target_sync_int_long { } {
 	     || [istarget s390*-*-*] 
 	     || [istarget powerpc*-*-*]
 	     || [istarget sparc64-*-*]
-	     || [istarget sparcv9-*-*] } {
+	     || [istarget sparcv9-*-*]
+	     || [istarget mips*-*-*] } {
            set et_sync_int_long_saved 1
         }
     }
@@ -1990,7 +2092,8 @@ proc check_effective_target_sync_char_short { } {
 	     || [istarget s390*-*-*] 
 	     || [istarget powerpc*-*-*]
 	     || [istarget sparc64-*-*]
-	     || [istarget sparcv9-*-*] } {
+	     || [istarget sparcv9-*-*]
+	     || [istarget mips*-*-*] } {
            set et_sync_char_short_saved 1
         }
     }
@@ -2155,11 +2258,21 @@ proc check_effective_target_simulator { } {
     return 0
 }
 
-# Return 1 if the target is a VxWorks RTP.
+# Return 1 if the target is a VxWorks kernel.
 
 proc check_effective_target_vxworks_kernel { } {
     return [check_no_compiler_messages vxworks_kernel assembly {
 	#if !defined __vxworks || defined __RTP__
+	#error NO
+	#endif
+    }]
+}
+
+# Return 1 if the target is a VxWorks RTP.
+
+proc check_effective_target_vxworks_rtp { } {
+    return [check_no_compiler_messages vxworks_rtp assembly {
+	#if !defined __vxworks || !defined __RTP__
 	#error NO
 	#endif
     }]
@@ -2174,6 +2287,53 @@ proc check_effective_target_wchar { } {
     return [check_no_compiler_messages wchar assembly {
 	#include <wchar.h>
     }]
+}
+
+# Return 1 if the target has <pthread.h>.
+
+proc check_effective_target_pthread_h { } {
+    return [check_no_compiler_messages pthread_h assembly {
+	#include <pthread.h>
+    }]
+}
+
+# Return 1 if the target can truncate a file from a file-descriptor,
+# as used by libgfortran/io/unix.c:fd_truncate; i.e. ftruncate or
+# chsize.  We test for a trivially functional truncation; no stubs.
+# As libgfortran uses _FILE_OFFSET_BITS 64, we do too; it'll cause a
+# different function to be used.
+
+proc check_effective_target_fd_truncate { } {
+    set prog {
+	#define _FILE_OFFSET_BITS 64
+	#include <unistd.h>
+	#include <stdio.h>
+	#include <stdlib.h>
+	int main ()
+	{
+	  FILE *f = fopen ("tst.tmp", "wb");
+	  int fd;
+	  const char t[] = "test writing more than ten characters";
+	  char s[11];
+	  fd =  fileno (f);
+	  write (fd, t, sizeof (t) - 1);
+	  lseek (fd, 0, 0);
+	  if (ftruncate (fd, 10) != 0)
+	    exit (1);
+	  close (fd);
+	  f = fopen ("tst.tmp", "rb");
+	  if (fread (s, 1, sizeof (s), f) != 10 || strncmp (s, t, 10) != 0)
+	    exit (1);
+	  exit (0);
+	}
+    }
+
+    if { [check_runtime ftruncate $prog] } {
+      return 1;
+    }
+
+    regsub "ftruncate" $prog "chsize" prog
+    return [check_runtime chsize $prog]
 }
 
 # Add to FLAGS all the target-specific flags needed to access the c99 runtime.
@@ -2204,5 +2364,13 @@ proc check_effective_target_c99_runtime { } {
 	}
 	check_no_compiler_messages_nocache c99_runtime assembly \
 	    $contents [add_options_for_c99_runtime ""]
+    }]
+}
+
+# Return 1 if  target wchar_t is at least 4 bytes.
+
+proc check_effective_target_4byte_wchar_t { } {
+    return [check_no_compiler_messages 4byte_wchar_t object {
+	int dummy[sizeof (__WCHAR_TYPE__) >= 4 ? 1 : -1];
     }]
 }

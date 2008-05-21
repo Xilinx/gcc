@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -48,17 +48,17 @@ package Tbuild is
 
    procedure Discard_Node (N : Node_Or_Entity_Id);
    pragma Inline (Discard_Node);
-   --  This is a dummy procedure that simply returns and does nothing.
-   --  It is used when a function returning a Node_Id value is called
-   --  for its side effect (e.g. a call to Make to construct a node)
-   --  but the Node_Id value is not required.
+   --  This is a dummy procedure that simply returns and does nothing. It is
+   --  used when a function returning a Node_Id value is called for its side
+   --  effect (e.g. a call to Make to construct a node) but the Node_Id value
+   --  is not required.
 
    procedure Discard_List (L : List_Id);
    pragma Inline (Discard_List);
-   --  This is a dummy procedure that simply returns and does nothing.
-   --  It is used when a function returning a Node_Id value is called
-   --  for its side effect (e.g. a call to the pareser to parse a list
-   --  of compilation units), but the List_Id value is not required.
+   --  This is a dummy procedure that simply returns and does nothing. It is
+   --  used when a function returning a Node_Id value is called for its side
+   --  effect (e.g. a call to the parser to parse a list of compilation
+   --  units), but the List_Id value is not required.
 
    function Make_Byte_Aligned_Attribute_Reference
      (Sloc           : Source_Ptr;
@@ -71,8 +71,8 @@ package Tbuild is
 
    function Make_DT_Access
      (Loc : Source_Ptr; Rec : Node_Id; Typ : Entity_Id) return Node_Id;
-   --  Create an access to the Dispatch Table by using the Tag field
-   --  of a tagged record : Acc_Dt (Rec.tag).all
+   --  Create an access to the Dispatch Table by using the Tag field of a
+   --  tagged record : Acc_Dt (Rec.tag).all
 
    function Make_Implicit_Exception_Handler
      (Sloc              : Source_Ptr;
@@ -103,7 +103,7 @@ package Tbuild is
      (Loc                 : Source_Ptr;
       Defining_Identifier : Node_Id;
       Label_Construct     : Node_Id) return Node_Id;
-   --  Used to contruct an implicit label declaration node, including setting
+   --  Used to construct an implicit label declaration node, including setting
    --  the proper Label_Construct field (since Label_Construct is a semantic
    --  field, the normal call to Make_Implicit_Label_Declaration does not
    --  set this field).
@@ -135,6 +135,14 @@ package Tbuild is
       Sec : String) return Node_Id;
    --  Construct a Linker_Section pragma for entity Ent, using string Sec as
    --  the section name. Loc is the Sloc value to use in building the pragma.
+
+   function Make_Pragma
+     (Sloc                         : Source_Ptr;
+      Chars                        : Name_Id;
+      Pragma_Argument_Associations : List_Id := No_List;
+      Debug_Statement              : Node_Id := Empty) return Node_Id;
+   --  A convenient form of Make_Pragma not requiring a Pragma_Identifier
+   --  argument (this argument is built from the value given for Chars).
 
    function Make_Raise_Constraint_Error
      (Sloc      : Source_Ptr;
@@ -195,7 +203,7 @@ package Tbuild is
    --  Prefix is prepended only if Prefix is non-blank (in which case it
    --  must be an upper case letter other than O,Q,U,W (which are used for
    --  identifier encoding, see Namet), and T is reserved for use by implicit
-   --  types. and X is reserved for use by debug type encoding (see package
+   --  types, and X is reserved for use by debug type encoding (see package
    --  Exp_Dbug). Note: the reason that Prefix is last is that it is almost
    --  always omitted. The notable case of Prefix being non-null is when
    --  it is 'T' for an implicit type.

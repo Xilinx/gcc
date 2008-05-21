@@ -6,7 +6,7 @@
 --                                                                          --
 --                                   S p e c                                --
 --                                                                          --
---                     Copyright (C) 1999-2005, AdaCore                     --
+--                     Copyright (C) 1999-2008, AdaCore                     --
 --                                                                          --
 -- GNARL is free software; you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -45,6 +45,11 @@
 --  For complete documentation of the operations in this package, please
 --  consult the VxWorks Programmer's Manual and VxWorks Reference Manual.
 
+pragma Warnings (Off, "*foreign convention*");
+pragma Warnings (Off, "*add Convention pragma*");
+--  These are temporary pragmas to suppress warnings about mismatching
+--  conventions, which will be a problem when we get rid of trampolines ???
+
 with System.VxWorks;
 
 package Interfaces.VxWorks is
@@ -75,7 +80,7 @@ package Interfaces.VxWorks is
    --        S : STATUS;
    --     begin
    --        Count := Count + 1;
-   --        logMsg ("received an interrupt" & ASCII.LF & ASCII.Nul);
+   --        logMsg ("received an interrupt" & ASCII.LF & ASCII.NUL);
    --
    --        --  Acknowledge VME interrupt
    --        S := sysBusIntAck (intLevel => Level);
@@ -170,7 +175,7 @@ package Interfaces.VxWorks is
    --  Binding to the C routine sysBusIntGen. Note that the T2
    --  documentation implies that a vector address is the proper
    --  argument - it's not. The interrupt number in the range
-   --  0 .. 255 (for 68K and PPC) is the correct agument.
+   --  0 .. 255 (for 68K and PPC) is the correct argument.
 
    procedure logMsg
      (fmt : String; arg1, arg2, arg3, arg4, arg5, arg6 : int := 0);

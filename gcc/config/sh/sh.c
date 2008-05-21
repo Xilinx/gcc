@@ -1,6 +1,6 @@
 /* Output routines for GCC for Renesas / SuperH SH.
    Copyright (C) 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002,
-   2003, 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
+   2003, 2004, 2005, 2006, 2007, 2008 Free Software Foundation, Inc.
    Contributed by Steve Chamberlain (sac@cygnus.com).
    Improved by Jim Wilson (wilson@cygnus.com).
 
@@ -68,6 +68,14 @@ int code_for_indirect_jump_scratch = CODE_FOR_indirect_jump_scratch;
 #define GEN_MOV (*(TARGET_SHMEDIA64 ? gen_movdi : gen_movsi))
 #define GEN_ADD3 (*(TARGET_SHMEDIA64 ? gen_adddi3 : gen_addsi3))
 #define GEN_SUB3 (*(TARGET_SHMEDIA64 ? gen_subdi3 : gen_subsi3))
+
+/* Used to simplify the logic below.  Find the attributes wherever
+   they may be.  */
+#define SH_ATTRIBUTES(decl) \
+  (TYPE_P (decl)) ? TYPE_ATTRIBUTES (decl) \
+		  : DECL_ATTRIBUTES (decl) \
+		  ? (DECL_ATTRIBUTES (decl)) \
+		  : TYPE_ATTRIBUTES (TREE_TYPE (decl))
 
 /* Set to 1 by expand_prologue() when the function is an interrupt handler.  */
 int current_function_interrupt;
@@ -185,6 +193,10 @@ static HOST_WIDE_INT rounded_frame_size (int);
 static rtx mark_constant_pool_use (rtx);
 const struct attribute_spec sh_attribute_table[];
 static tree sh_handle_interrupt_handler_attribute (tree *, tree, tree, int, bool *);
+static tree sh_handle_resbank_handler_attribute (tree *, tree,
+						 tree, int, bool *);
+static tree sh2a_handle_function_vector_handler_attribute (tree *, tree,
+							   tree, int, bool *);
 static tree sh_handle_sp_switch_attribute (tree *, tree, tree, int, bool *);
 static tree sh_handle_trap_exit_attribute (tree *, tree, tree, int, bool *);
 static tree sh_handle_renesas_attribute (tree *, tree, tree, int, bool *);
@@ -256,7 +268,10 @@ static bool sh_callee_copies (CUMULATIVE_ARGS *, enum machine_mode,
 			      const_tree, bool);
 static int sh_arg_partial_bytes (CUMULATIVE_ARGS *, enum machine_mode,
 			         tree, bool);
+static bool sh_scalar_mode_supported_p (enum machine_mode);
 static int sh_dwarf_calling_convention (const_tree);
+static void sh_encode_section_info (tree, rtx, int);
+static int sh2a_function_vector_p (tree);
 
 
 /* Initialize the GCC target structure.  */
@@ -431,6 +446,8 @@ static int sh_dwarf_calling_convention (const_tree);
 #undef TARGET_GIMPLIFY_VA_ARG_EXPR
 #define TARGET_GIMPLIFY_VA_ARG_EXPR sh_gimplify_va_arg_expr
 
+#undef TARGET_SCALAR_MODE_SUPPORTED_P
+#define TARGET_SCALAR_MODE_SUPPORTED_P sh_scalar_mode_supported_p
 #undef TARGET_VECTOR_MODE_SUPPORTED_P
 #define TARGET_VECTOR_MODE_SUPPORTED_P sh_vector_mode_supported_p
 
@@ -446,6 +463,9 @@ static int sh_dwarf_calling_convention (const_tree);
 /* Return current register pressure for regmode.  */
 #define CURR_REGMODE_PRESSURE(MODE) 	curr_regmode_pressure[((MODE) == SImode) ? 0 : 1]
 
+#undef  TARGET_ENCODE_SECTION_INFO
+#define TARGET_ENCODE_SECTION_INFO	sh_encode_section_info
+
 #ifdef SYMBIAN
 
 #undef  TARGET_ENCODE_SECTION_INFO
@@ -459,6 +479,9 @@ static int sh_dwarf_calling_convention (const_tree);
 
 #undef TARGET_SECONDARY_RELOAD
 #define TARGET_SECONDARY_RELOAD sh_secondary_reload
+
+/* Machine-specific symbol_ref flags.  */
+#define SYMBOL_FLAG_FUNCVEC_FUNCTION    (SYMBOL_FLAG_MACH_DEP << 0)
 
 struct gcc_target targetm = TARGET_INITIALIZER;
 
@@ -658,6 +681,9 @@ print_operand_address (FILE *stream, rtx x)
    'd'  print a V2SF reg as dN instead of fpN.
    'm'  print a pair `base,offset' or `base,index', for LD and ST.
    'U'  Likewise for {LD,ST}{HI,LO}.
+   'V'  print the position of a single bit set.
+   'W'  print the position of a single bit cleared.
+   't'  print a memory address which is a register.
    'u'  prints the lowest 16 bits of CONST_INT, as an unsigned value.
    'o'  output an operator.  */
 
@@ -687,7 +713,11 @@ print_operand (FILE *stream, rtx x, int code)
 	fprintf (stream, "trapa #%ld",
 		 (long) TREE_INT_CST_LOW (TREE_VALUE (TREE_VALUE (trapa_attr))));
       else if (sh_cfun_interrupt_handler_p ())
-	fprintf (stream, "rte");
+	{
+	  if (sh_cfun_resbank_handler_p ())
+	    fprintf (stream, "resbank\n");
+	  fprintf (stream, "rte");
+	}
       else
 	fprintf (stream, "rts");
       break;
@@ -793,6 +823,21 @@ print_operand (FILE *stream, rtx x, int code)
 	  break;
 	}
       break;
+
+    case 't':
+      gcc_assert (GET_CODE (x) == MEM);
+      x = XEXP (x, 0);
+      switch (GET_CODE (x))
+	{
+	case REG:
+	case SUBREG:
+	  print_operand (stream, x, 0);
+	  break;
+	default:
+	  break;
+	}
+      break;
+
     case 'o':
       switch (GET_CODE (x))
 	{
@@ -858,6 +903,22 @@ print_operand (FILE *stream, rtx x, int code)
 	default:
 	  gcc_unreachable ();
 	}
+      break;
+
+    case 'V':
+      {
+	int num = exact_log2 (INTVAL (x));
+	gcc_assert (num >= 0);
+	fprintf (stream, "#%d", num);
+      }
+      break;
+
+    case 'W':
+      {
+	int num = exact_log2 (~INTVAL (x));
+	gcc_assert (num >= 0);
+	fprintf (stream, "#%d", num);
+      }
       break;
 
     case 'd':
@@ -1019,6 +1080,19 @@ print_operand (FILE *stream, rtx x, int code)
     }
 }
 
+
+/* Encode symbol attributes of a SYMBOL_REF into its
+   SYMBOL_REF_FLAGS.  */
+static void
+sh_encode_section_info (tree decl, rtx rtl, int first)
+{
+  default_encode_section_info (decl, rtl, first);
+
+  if (TREE_CODE (decl) == FUNCTION_DECL
+      && sh2a_function_vector_p (decl) && TARGET_SH2A)
+    SYMBOL_REF_FLAGS (XEXP (rtl, 0)) |= SYMBOL_FLAG_FUNCVEC_FUNCTION;
+}
+
 /* Like force_operand, but guarantees that VALUE ends up in TARGET.  */
 static void
 force_into (rtx value, rtx target)
@@ -1610,6 +1684,14 @@ expand_cbranchdi4 (rtx *operands, enum rtx_code comparison)
   if (msw_skip != CODE_FOR_nothing)
     {
       rtx taken_label = operands[3];
+
+      /* Operands were possibly modified, but msw_skip doesn't expect this.
+	 Always use the original ones.  */
+      if (msw_taken != CODE_FOR_nothing)
+	{
+	  operands[1] = op1h;
+	  operands[2] = op2h;
+	}
 
       operands[3] = skip_label = gen_label_rtx ();
       expand_cbranchsi4 (operands, msw_skip, msw_skip_prob);
@@ -3713,7 +3795,8 @@ broken_move (rtx insn)
 		&& FP_REGISTER_P (REGNO (SET_DEST (pat))))
 	  && ! (TARGET_SH2A
 		&& GET_MODE (SET_DEST (pat)) == SImode
-		&& satisfies_constraint_I20 (SET_SRC (pat)))
+		&& (satisfies_constraint_I20 (SET_SRC (pat))
+		   || satisfies_constraint_I28 (SET_SRC (pat))))
 	  && ! satisfies_constraint_I08 (SET_SRC (pat)))
 	return 1;
     }
@@ -3838,6 +3921,7 @@ find_barrier (int num_mova, rtx mova, rtx from)
   rtx barrier_before_mova = 0, found_barrier = 0, good_barrier = 0;
   int si_limit;
   int hi_limit;
+  rtx orig = from;
 
   /* For HImode: range is 510, add 4 because pc counts from address of
      second instruction after this one, subtract 2 for the jump instruction
@@ -3897,6 +3981,7 @@ find_barrier (int num_mova, rtx mova, rtx from)
 
       if (GET_CODE (from) == BARRIER)
 	{
+	  rtx next;
 
 	  found_barrier = from;
 
@@ -3905,6 +3990,14 @@ find_barrier (int num_mova, rtx mova, rtx from)
 	     this kind of barrier.  */
 	  if (barrier_align (from) > 2)
 	    good_barrier = from;
+
+	  /* If we are at the end of a hot/cold block, dump the constants
+	     here.  */
+	  next = NEXT_INSN (from);
+	  if (next
+	      && NOTE_P (next)
+	      && NOTE_KIND (next) == NOTE_INSN_SWITCH_TEXT_SECTIONS)
+	    break;
 	}
 
       if (broken_move (from))
@@ -4061,7 +4154,8 @@ find_barrier (int num_mova, rtx mova, rtx from)
       /* If we exceeded the range, then we must back up over the last
 	 instruction we looked at.  Otherwise, we just need to undo the
 	 NEXT_INSN at the end of the loop.  */
-      if (count_hi > hi_limit || count_si > si_limit)
+      if (PREV_INSN (from) != orig
+	  && (count_hi > hi_limit || count_si > si_limit))
 	from = PREV_INSN (PREV_INSN (from));
       else
 	from = PREV_INSN (from);
@@ -5269,7 +5363,7 @@ split_branches (rtx first)
 		    bp->insert_place = insn;
 		    bp->address = addr;
 		  }
-		ok = redirect_jump (insn, label, 1);
+		ok = redirect_jump (insn, label, 0);
 		gcc_assert (ok);
 	      }
 	    else
@@ -5543,16 +5637,16 @@ output_stack_adjust (int size, rtx reg, int epilogue_p,
 	      if (epilogue_p > 0)
 		{
 		  int nreg = 0;
-		  if (current_function_return_rtx)
+		  if (crtl->return_rtx)
 		    {
 		      enum machine_mode mode;
-		      mode = GET_MODE (current_function_return_rtx);
+		      mode = GET_MODE (crtl->return_rtx);
 		      if (BASE_RETURN_VALUE_REG (mode) == FIRST_RET_REG)
 			nreg = HARD_REGNO_NREGS (FIRST_RET_REG, mode);
 		    }
 		  for (i = 0; i < nreg; i++)
 		    CLEAR_HARD_REG_BIT (temps, FIRST_RET_REG + i);
-		  if (current_function_calls_eh_return)
+		  if (crtl->calls_eh_return)
 		    {
 		      CLEAR_HARD_REG_BIT (temps, EH_RETURN_STACKADJ_REGNO);
 		      for (i = 0; i <= 3; i++)
@@ -5753,7 +5847,16 @@ push_regs (HARD_REG_SET *mask, int interrupt_handler)
       if (i != PR_REG
 	  && (i != FPSCR_REG || ! skip_fpscr)
 	  && TEST_HARD_REG_BIT (*mask, i))
-	push (i);
+           {
+  	/* If the ISR has RESBANK attribute assigned, don't push any of
+   	   the following registers - R0-R14, MACH, MACL and GBR.  */
+      if (! (sh_cfun_resbank_handler_p ()
+	     && ((i >= FIRST_GENERAL_REG && i < LAST_GENERAL_REG)
+		 || i == MACH_REG
+		 || i == MACL_REG
+		 || i == GBR_REG)))
+	  push (i);
+  	}
     }
 
   /* Push banked registers last to improve delay slot opportunities.  */
@@ -5762,7 +5865,8 @@ push_regs (HARD_REG_SET *mask, int interrupt_handler)
       if (TEST_HARD_REG_BIT (*mask, i))
 	push (i);
 
-  if (TEST_HARD_REG_BIT (*mask, PR_REG))
+  /* Don't push PR register for an ISR with RESBANK attribute assigned.  */
+  if (TEST_HARD_REG_BIT (*mask, PR_REG) && !sh_cfun_resbank_handler_p ())
     push (PR_REG);
 }
 
@@ -5874,9 +5978,9 @@ calc_live_regs (HARD_REG_SET *live_regs_mask)
   /* Force PR to be live if the prologue has to call the SHmedia
      argument decoder or register saver.  */
   if (TARGET_SHCOMPACT
-      && ((current_function_args_info.call_cookie
+      && ((crtl->args.info.call_cookie
 	   & ~ CALL_COOKIE_RET_TRAMP (1))
-	  || current_function_saves_all_registers))
+	  || crtl->saves_all_registers))
     pr_live = 1;
   has_call = TARGET_SHMEDIA ? ! leaf_function_p () : pr_live;
   for (count = 0, reg = FIRST_PSEUDO_REGISTER; reg-- != 0; )
@@ -5901,12 +6005,12 @@ calc_live_regs (HARD_REG_SET *live_regs_mask)
 	  : (/* Only push those regs which are used and need to be saved.  */
 	     (TARGET_SHCOMPACT
 	      && flag_pic
-	      && current_function_args_info.call_cookie
+	      && crtl->args.info.call_cookie
 	      && reg == PIC_OFFSET_TABLE_REGNUM)
 	     || (df_regs_ever_live_p (reg)
 		 && (!call_really_used_regs[reg]
 		     || (trapa_handler && reg == FPSCR_REG && TARGET_FPU_ANY)))
-	     || (current_function_calls_eh_return
+	     || (crtl->calls_eh_return
 		 && (reg == EH_RETURN_DATA_REGNO (0)
 		     || reg == EH_RETURN_DATA_REGNO (1)
 		     || reg == EH_RETURN_DATA_REGNO (2)
@@ -6056,7 +6160,7 @@ sh5_schedule_saves (HARD_REG_SET *live_regs_mask, save_schedule *schedule,
 	  && ! FUNCTION_ARG_REGNO_P (i)
 	  && i != FIRST_RET_REG
 	  && ! (cfun->static_chain_decl != NULL && i == STATIC_CHAIN_REGNUM)
-	  && ! (current_function_calls_eh_return
+	  && ! (crtl->calls_eh_return
 		&& (i == EH_RETURN_STACKADJ_REGNO
 		    || ((unsigned) i >= EH_RETURN_DATA_REGNO (0)
 			&& (unsigned) i <= EH_RETURN_DATA_REGNO (3)))))
@@ -6149,16 +6253,16 @@ sh_expand_prologue (void)
 
   /* We have pretend args if we had an object sent partially in registers
      and partially on the stack, e.g. a large structure.  */
-  pretend_args = current_function_pretend_args_size;
+  pretend_args = crtl->args.pretend_args_size;
   if (TARGET_VARARGS_PRETEND_ARGS (current_function_decl)
       && (NPARM_REGS(SImode)
-	  > current_function_args_info.arg_count[(int) SH_ARG_INT]))
+	  > crtl->args.info.arg_count[(int) SH_ARG_INT]))
     pretend_args = 0;
   output_stack_adjust (-pretend_args
-		       - current_function_args_info.stack_regs * 8,
+		       - crtl->args.info.stack_regs * 8,
 		       stack_pointer_rtx, 0, NULL);
 
-  if (TARGET_SHCOMPACT && flag_pic && current_function_args_info.call_cookie)
+  if (TARGET_SHCOMPACT && flag_pic && crtl->args.info.call_cookie)
     /* We're going to use the PIC register to load the address of the
        incoming-argument decoder and/or of the return trampoline from
        the GOT, so make sure the PIC register is preserved and
@@ -6166,7 +6270,7 @@ sh_expand_prologue (void)
     df_set_regs_ever_live (PIC_OFFSET_TABLE_REGNUM, true);
 
   if (TARGET_SHCOMPACT
-      && (current_function_args_info.call_cookie & ~ CALL_COOKIE_RET_TRAMP(1)))
+      && (crtl->args.info.call_cookie & ~ CALL_COOKIE_RET_TRAMP(1)))
     {
       int reg;
 
@@ -6174,20 +6278,20 @@ sh_expand_prologue (void)
 	 be pushed onto the stack live, so that register renaming
 	 doesn't overwrite them.  */
       for (reg = 0; reg < NPARM_REGS (SImode); reg++)
-	if (CALL_COOKIE_STACKSEQ_GET (current_function_args_info.call_cookie)
+	if (CALL_COOKIE_STACKSEQ_GET (crtl->args.info.call_cookie)
 	    >= NPARM_REGS (SImode) - reg)
 	  for (; reg < NPARM_REGS (SImode); reg++)
 	    emit_insn (gen_shcompact_preserve_incoming_args
 		       (gen_rtx_REG (SImode, FIRST_PARM_REG + reg)));
 	else if (CALL_COOKIE_INT_REG_GET
-		 (current_function_args_info.call_cookie, reg) == 1)
+		 (crtl->args.info.call_cookie, reg) == 1)
 	  emit_insn (gen_shcompact_preserve_incoming_args
 		     (gen_rtx_REG (SImode, FIRST_PARM_REG + reg)));
 
       emit_move_insn (gen_rtx_REG (Pmode, MACL_REG),
 		      stack_pointer_rtx);
       emit_move_insn (gen_rtx_REG (SImode, R0_REG),
-		      GEN_INT (current_function_args_info.call_cookie));
+		      GEN_INT (crtl->args.info.call_cookie));
       emit_move_insn (gen_rtx_REG (SImode, MACH_REG),
 		      gen_rtx_REG (SImode, R0_REG));
     }
@@ -6201,7 +6305,7 @@ sh_expand_prologue (void)
     }
 
   /* Emit the code for SETUP_VARARGS.  */
-  if (current_function_stdarg)
+  if (cfun->stdarg)
     {
       if (TARGET_VARARGS_PRETEND_ARGS (current_function_decl))
 	{
@@ -6212,11 +6316,10 @@ sh_expand_prologue (void)
 	      rtx insn;
 
 	      if (i >= (NPARM_REGS(SImode)
-			- current_function_args_info.arg_count[(int) SH_ARG_INT]
+			- crtl->args.info.arg_count[(int) SH_ARG_INT]
 			))
 		break;
 	      insn = push (rn);
-	      RTX_FRAME_RELATED_P (insn) = 0;
 	    }
 	}
     }
@@ -6472,7 +6575,7 @@ sh_expand_prologue (void)
     frame_insn (GEN_MOV (hard_frame_pointer_rtx, stack_pointer_rtx));
 
   if (TARGET_SHCOMPACT
-      && (current_function_args_info.call_cookie & ~ CALL_COOKIE_RET_TRAMP(1)))
+      && (crtl->args.info.call_cookie & ~ CALL_COOKIE_RET_TRAMP(1)))
     {
       /* This must NOT go through the PLT, otherwise mach and macl
 	 may be clobbered.  */
@@ -6691,7 +6794,10 @@ sh_expand_epilogue (bool sibcall_p)
       int last_reg;
 
       save_size = 0;
-      if (TEST_HARD_REG_BIT (live_regs_mask, PR_REG))
+	/* For an ISR with RESBANK attribute assigned, don't pop PR
+	   register.  */
+      if (TEST_HARD_REG_BIT (live_regs_mask, PR_REG)
+	  && !sh_cfun_resbank_handler_p ())	
 	{
 	  if (!frame_pointer_needed)
 	    emit_insn (gen_blockage ());
@@ -6719,7 +6825,15 @@ sh_expand_epilogue (bool sibcall_p)
 	      && hard_reg_set_intersect_p (live_regs_mask,
 					  reg_class_contents[DF_REGS]))
 	    fpscr_deferred = 1;
-	  else if (j != PR_REG && TEST_HARD_REG_BIT (live_regs_mask, j))
+	  /* For an ISR with RESBANK attribute assigned, don't pop
+	     following registers, R0-R14, MACH, MACL and GBR.  */
+	  else if (j != PR_REG && TEST_HARD_REG_BIT (live_regs_mask, j) 
+		   && ! (sh_cfun_resbank_handler_p ()
+			 && ((j >= FIRST_GENERAL_REG
+			      && j < LAST_GENERAL_REG)
+			      || j == MACH_REG
+			      || j == MACL_REG
+			      || j == GBR_REG)))
 	    pop (j);
 
 	  if (j == FIRST_FP_REG && fpscr_deferred)
@@ -6730,12 +6844,12 @@ sh_expand_epilogue (bool sibcall_p)
     emit_insn (gen_toggle_sz ());
   target_flags = save_flags;
 
-  output_stack_adjust (current_function_pretend_args_size
+  output_stack_adjust (crtl->args.pretend_args_size
 		       + save_size + d_rounding
-		       + current_function_args_info.stack_regs * 8,
+		       + crtl->args.info.stack_regs * 8,
 		       stack_pointer_rtx, e, NULL);
 
-  if (current_function_calls_eh_return)
+  if (crtl->calls_eh_return)
     emit_insn (GEN_ADD3 (stack_pointer_rtx, stack_pointer_rtx,
 			 EH_RETURN_STACKADJ_RTX));
 
@@ -6849,11 +6963,11 @@ static rtx
 sh_builtin_saveregs (void)
 {
   /* First unnamed integer register.  */
-  int first_intreg = current_function_args_info.arg_count[(int) SH_ARG_INT];
+  int first_intreg = crtl->args.info.arg_count[(int) SH_ARG_INT];
   /* Number of integer registers we need to save.  */
   int n_intregs = MAX (0, NPARM_REGS (SImode) - first_intreg);
   /* First unnamed SFmode float reg */
-  int first_floatreg = current_function_args_info.arg_count[(int) SH_ARG_FLOAT];
+  int first_floatreg = crtl->args.info.arg_count[(int) SH_ARG_FLOAT];
   /* Number of SFmode float regs to save.  */
   int n_floatregs = MAX (0, NPARM_REGS (SFmode) - first_floatreg);
   rtx regbuf, fpregs;
@@ -6868,25 +6982,25 @@ sh_builtin_saveregs (void)
 
 	  while (pushregs < NPARM_REGS (SImode) - 1
 		 && (CALL_COOKIE_INT_REG_GET
-			(current_function_args_info.call_cookie,
+			(crtl->args.info.call_cookie,
 			 NPARM_REGS (SImode) - pushregs)
 		     == 1))
 	    {
-	      current_function_args_info.call_cookie
+	      crtl->args.info.call_cookie
 		&= ~ CALL_COOKIE_INT_REG (NPARM_REGS (SImode)
 					  - pushregs, 1);
 	      pushregs++;
 	    }
 
 	  if (pushregs == NPARM_REGS (SImode))
-	    current_function_args_info.call_cookie
+	    crtl->args.info.call_cookie
 	      |= (CALL_COOKIE_INT_REG (0, 1)
 		  | CALL_COOKIE_STACKSEQ (pushregs - 1));
 	  else
-	    current_function_args_info.call_cookie
+	    crtl->args.info.call_cookie
 	      |= CALL_COOKIE_STACKSEQ (pushregs);
 
-	  current_function_pretend_args_size += 8 * n_intregs;
+	  crtl->args.pretend_args_size += 8 * n_intregs;
 	}
       if (TARGET_SHCOMPACT)
 	return const0_rtx;
@@ -7084,7 +7198,7 @@ sh_va_start (tree valist, rtx nextarg)
   TREE_SIDE_EFFECTS (t) = 1;
   expand_expr (t, const0_rtx, VOIDmode, EXPAND_NORMAL);
 
-  nfp = current_function_args_info.arg_count[SH_ARG_FLOAT];
+  nfp = crtl->args.info.arg_count[SH_ARG_FLOAT];
   if (nfp < 8)
     nfp = 8 - nfp;
   else
@@ -7099,7 +7213,7 @@ sh_va_start (tree valist, rtx nextarg)
   TREE_SIDE_EFFECTS (t) = 1;
   expand_expr (t, const0_rtx, VOIDmode, EXPAND_NORMAL);
 
-  nint = current_function_args_info.arg_count[SH_ARG_INT];
+  nint = crtl->args.info.arg_count[SH_ARG_INT];
   if (nint < 4)
     nint = 4 - nint;
   else
@@ -7749,7 +7863,7 @@ sh_setup_incoming_varargs (CUMULATIVE_ARGS *ca,
 			   int *pretend_arg_size,
 			   int second_time ATTRIBUTE_UNUSED)
 {
-  gcc_assert (current_function_stdarg);
+  gcc_assert (cfun->stdarg);
   if (TARGET_VARARGS_PRETEND_ARGS (current_function_decl))
     {
       int named_parm_regs, anon_parm_regs;
@@ -7813,11 +7927,11 @@ initial_elimination_offset (int from, int to)
 
   if (from == ARG_POINTER_REGNUM && to == HARD_FRAME_POINTER_REGNUM)
     return total_saved_regs_space + total_auto_space
-      + current_function_args_info.byref_regs * 8;
+      + crtl->args.info.byref_regs * 8;
 
   if (from == ARG_POINTER_REGNUM && to == STACK_POINTER_REGNUM)
     return total_saved_regs_space + total_auto_space
-      + current_function_args_info.byref_regs * 8;
+      + crtl->args.info.byref_regs * 8;
 
   /* Initial gap between fp and sp is 0.  */
   if (from == HARD_FRAME_POINTER_REGNUM && to == STACK_POINTER_REGNUM)
@@ -7890,11 +8004,13 @@ sh_insert_attributes (tree node, tree *attributes)
 	   java frontend.  */
 	attrs
 	  = tree_cons (get_identifier("interrupt_handler"), NULL_TREE, attrs);
-      /* However, for sp_switch, trap_exit and nosave_low_regs, if the
-	 interrupt attribute is missing, we ignore the attribute and warn.  */
+      /* However, for sp_switch, trap_exit, nosave_low_regs and resbank,
+	 if the interrupt attribute is missing, we ignore the attribute
+	 and warn.  */
       else if (lookup_attribute ("sp_switch", attrs)
 	       || lookup_attribute ("trap_exit", attrs)
-	       || lookup_attribute ("nosave_low_regs", attrs))
+	       || lookup_attribute ("nosave_low_regs", attrs)
+	       || lookup_attribute ("resbank", attrs))
 	{
 	  tree *tail;
 
@@ -7902,7 +8018,8 @@ sh_insert_attributes (tree node, tree *attributes)
 	    {
 	      if (is_attribute_p ("sp_switch", TREE_PURPOSE (attrs))
 		  || is_attribute_p ("trap_exit", TREE_PURPOSE (attrs))
-		  || is_attribute_p ("nosave_low_regs", TREE_PURPOSE (attrs)))
+		  || is_attribute_p ("nosave_low_regs", TREE_PURPOSE (attrs))
+		  || is_attribute_p ("resbank", TREE_PURPOSE (attrs)))
 		warning (OPT_Wattributes,
 			 "%qs attribute only applies to interrupt functions",
 			 IDENTIFIER_POINTER (TREE_PURPOSE (attrs)));
@@ -7949,6 +8066,8 @@ sh_insert_attributes (tree node, tree *attributes)
    renesas -- use Renesas calling/layout conventions (functions and
    structures).
 
+   resbank -- In case of an ISR, use a register bank to save registers
+   R0-R14, MACH, MACL, GBR and PR.  This is useful only on SH2A targets.
 */
 
 const struct attribute_spec sh_attribute_table[] =
@@ -7960,6 +8079,8 @@ const struct attribute_spec sh_attribute_table[] =
   { "renesas",           0, 0, false, true, false, sh_handle_renesas_attribute },
   { "trapa_handler",     0, 0, true,  false, false, sh_handle_interrupt_handler_attribute },
   { "nosave_low_regs",   0, 0, true,  false, false, sh_handle_interrupt_handler_attribute },
+  { "resbank",           0, 0, true,  false, false, sh_handle_resbank_handler_attribute },
+  { "function_vector",   1, 1, true,  false, false, sh2a_handle_function_vector_handler_attribute },
 #ifdef SYMBIAN
   /* Symbian support adds three new attributes:
      dllexport - for exporting a function/variable that will live in a dll
@@ -7974,18 +8095,41 @@ const struct attribute_spec sh_attribute_table[] =
   { NULL,                0, 0, false, false, false, NULL }
 };
 
+/* Handle a 'resbank' attribute.  */
+static tree
+sh_handle_resbank_handler_attribute (tree * node, tree name,
+                                     tree args ATTRIBUTE_UNUSED,
+                                     int flags ATTRIBUTE_UNUSED,
+                                     bool * no_add_attrs)
+{
+  if (!TARGET_SH2A)
+    {
+      warning (OPT_Wattributes, "%qs attribute is supported only for SH2A",
+               IDENTIFIER_POINTER (name));
+      *no_add_attrs = true;
+    }
+  if (TREE_CODE (*node) != FUNCTION_DECL)
+    {
+      warning (OPT_Wattributes, "%qs attribute only applies to functions",
+               IDENTIFIER_POINTER (name));
+      *no_add_attrs = true;
+    }
+
+  return NULL_TREE;
+}
+
 /* Handle an "interrupt_handler" attribute; arguments as in
    struct attribute_spec.handler.  */
 static tree
 sh_handle_interrupt_handler_attribute (tree *node, tree name,
-				       tree args ATTRIBUTE_UNUSED,
-				       int flags ATTRIBUTE_UNUSED,
-				       bool *no_add_attrs)
+                                       tree args ATTRIBUTE_UNUSED,
+                                       int flags ATTRIBUTE_UNUSED,
+                                       bool *no_add_attrs)
 {
   if (TREE_CODE (*node) != FUNCTION_DECL)
     {
       warning (OPT_Wattributes, "%qs attribute only applies to functions",
-	       IDENTIFIER_POINTER (name));
+               IDENTIFIER_POINTER (name));
       *no_add_attrs = true;
     }
   else if (TARGET_SHCOMPACT)
@@ -7995,6 +8139,96 @@ sh_handle_interrupt_handler_attribute (tree *node, tree name,
     }
 
   return NULL_TREE;
+}
+
+/* Handle an 'function_vector' attribute; arguments as in
+   struct attribute_spec.handler.  */
+static tree
+sh2a_handle_function_vector_handler_attribute (tree * node, tree name,
+                                               tree args ATTRIBUTE_UNUSED,
+                                               int flags ATTRIBUTE_UNUSED,
+                                               bool * no_add_attrs)
+{
+  if (!TARGET_SH2A)
+    {
+      warning (OPT_Wattributes, "%qs attribute only applies to SH2A",
+               IDENTIFIER_POINTER (name));
+      *no_add_attrs = true;
+    }
+  else if (TREE_CODE (*node) != FUNCTION_DECL)
+    {
+      warning (OPT_Wattributes, "%qs attribute only applies to functions",
+               IDENTIFIER_POINTER (name));
+      *no_add_attrs = true;
+    }
+  else if (TREE_CODE (TREE_VALUE (args)) != INTEGER_CST)
+    {
+      /* The argument must be a constant integer.  */
+      warning (OPT_Wattributes,
+               "`%s' attribute argument not an integer constant",
+               IDENTIFIER_POINTER (name));
+      *no_add_attrs = true;
+    }
+  else if (TREE_INT_CST_LOW (TREE_VALUE (args)) > 255)
+    {
+      /* The argument value must be between 0 to 255.  */
+      warning (OPT_Wattributes,
+               "`%s' attribute argument should be between 0 to 255",
+               IDENTIFIER_POINTER (name));
+      *no_add_attrs = true;
+    }
+  return NULL_TREE;
+}
+
+/* Returns 1 if current function has been assigned the attribute
+   'function_vector'.  */
+int
+sh2a_is_function_vector_call (rtx x)
+{
+  if (GET_CODE (x) == SYMBOL_REF
+      && (SYMBOL_REF_FLAGS (x) & SYMBOL_FLAG_FUNCVEC_FUNCTION))
+    {
+      tree tr = SYMBOL_REF_DECL (x);
+
+      if (sh2a_function_vector_p (tr))
+        return 1;
+    }
+
+  return 0;
+}
+
+/* Returns the function vector number, if the the attribute
+   'function_vector' is assigned, otherwise returns zero.  */
+int
+sh2a_get_function_vector_number (rtx x)
+{
+  int num;
+  tree list, t;
+
+  if ((GET_CODE (x) == SYMBOL_REF)
+      && (SYMBOL_REF_FLAGS (x) & SYMBOL_FLAG_FUNCVEC_FUNCTION))
+    {
+      t = SYMBOL_REF_DECL (x);
+
+      if (TREE_CODE (t) != FUNCTION_DECL)
+        return 0;
+
+      list = SH_ATTRIBUTES (t);
+      while (list)
+        {
+          if (is_attribute_p ("function_vector", TREE_PURPOSE (list)))
+            {
+              num = TREE_INT_CST_LOW (TREE_VALUE (TREE_VALUE (list)));
+              return num;
+            }
+
+          list = TREE_CHAIN (list);
+        }
+
+      return 0;
+    }
+  else
+    return 0;
 }
 
 /* Handle an "sp_switch" attribute; arguments as in
@@ -8085,6 +8319,39 @@ sh_cfun_interrupt_handler_p (void)
   return (lookup_attribute ("interrupt_handler",
 			    DECL_ATTRIBUTES (current_function_decl))
 	  != NULL_TREE);
+}
+
+/* Returns 1 if FUNC has been assigned the attribute
+   "function_vector".  */
+int
+sh2a_function_vector_p (tree func)
+{
+  tree list;
+  if (TREE_CODE (func) != FUNCTION_DECL)
+    return 0;
+
+  list = SH_ATTRIBUTES (func);
+  while (list)
+    {
+      if (is_attribute_p ("function_vector", TREE_PURPOSE (list)))
+        return 1;
+
+      list = TREE_CHAIN (list);
+    }
+  return 0;
+}
+
+/* Returns TRUE if given tree has the "resbank" attribute.  */
+
+int
+sh_cfun_resbank_handler_p (void)
+{
+  return ((lookup_attribute ("resbank",
+                             DECL_ATTRIBUTES (current_function_decl))
+           != NULL_TREE)
+          && (lookup_attribute ("interrupt_handler",
+                                DECL_ATTRIBUTES (current_function_decl))
+              != NULL_TREE) && TARGET_SH2A);
 }
 
 /* Implement TARGET_CHECK_PCH_TARGET_FLAGS.  */
@@ -8946,9 +9213,9 @@ sh_allocate_initial_value (rtx hard_reg)
       if (current_function_is_leaf
 	  && ! sh_pr_n_sets ()
 	  && ! (TARGET_SHCOMPACT
-		&& ((current_function_args_info.call_cookie
+		&& ((crtl->args.info.call_cookie
 		     & ~ CALL_COOKIE_RET_TRAMP (1))
-		    || current_function_saves_all_registers)))
+		    || crtl->saves_all_registers)))
 	x = hard_reg;
       else
 	x = gen_frame_mem (Pmode, return_address_pointer_rtx);
@@ -9188,6 +9455,17 @@ sh_md_finish_global (FILE *dump ATTRIBUTE_UNUSED,
       free (regmode_weight[1]);
       regmode_weight[1] = NULL;
     }
+}
+
+/* The scalar modes supported differs from the default version in TImode
+   for 32-bit SHMEDIA.  */
+static bool
+sh_scalar_mode_supported_p (enum machine_mode mode)
+{
+  if (TARGET_SHMEDIA32 && mode == TImode)
+    return false;
+
+  return default_scalar_mode_supported_p (mode);
 }
 
 /* Cache the can_issue_more so that we can return it from reorder2. Also,
@@ -9534,7 +9812,7 @@ sh_function_ok_for_sibcall (tree decl, tree exp ATTRIBUTE_UNUSED)
 {
   return (1
 	  && (! TARGET_SHCOMPACT
-	      || current_function_args_info.stack_regs == 0)
+	      || crtl->args.info.stack_regs == 0)
 	  && ! sh_cfun_interrupt_handler_p ()
 	  && (! flag_pic
 	      || (decl && ! TREE_PUBLIC (decl))
@@ -10244,7 +10522,7 @@ sh_output_mi_thunk (FILE *file, tree thunk_fndecl ATTRIBUTE_UNUSED,
   if (optimize > 0)
     {
       if (! cfun->cfg)
-	init_flow ();
+	init_flow (cfun);
       split_all_insns_noflow ();
     }
 #endif
@@ -10258,6 +10536,7 @@ sh_output_mi_thunk (FILE *file, tree thunk_fndecl ATTRIBUTE_UNUSED,
   final_start_function (insns, file, 1);
   final (insns, file, 1);
   final_end_function ();
+  free_after_compilation (cfun);
 
   reload_completed = 0;
   epilogue_completed = 0;
@@ -10330,9 +10609,9 @@ sh_get_pr_initial_val (void)
      PR register on SHcompact, because it might be clobbered by the prologue.
      We check first if that is known to be the case.  */
   if (TARGET_SHCOMPACT
-      && ((current_function_args_info.call_cookie
+      && ((crtl->args.info.call_cookie
 	   & ~ CALL_COOKIE_RET_TRAMP (1))
-	  || current_function_saves_all_registers))
+	  || crtl->saves_all_registers))
     return gen_frame_mem (SImode, return_address_pointer_rtx);
 
   /* If we haven't finished rtl generation, there might be a nonlocal label
@@ -10368,6 +10647,9 @@ sh_expand_t_scc (enum rtx_code code, rtx target)
   val = INTVAL (sh_compare_op1);
   if ((code == EQ && val == 1) || (code == NE && val == 0))
     emit_insn (gen_movt (result));
+  else if (TARGET_SH2A && ((code == EQ && val == 0)
+			    || (code == NE && val == 1)))
+    emit_insn (gen_movrt (result));
   else if ((code == EQ && val == 0) || (code == NE && val == 1))
     {
       emit_insn (gen_rtx_CLOBBER (VOIDmode, result));
@@ -10864,8 +11146,10 @@ sh_secondary_reload (bool in_p, rtx x, enum reg_class class,
         return GENERAL_REGS;
       if (class == FPUL_REGS && immediate_operand (x, mode))
 	{
-	  if (satisfies_constraint_I08 (x))
+	  if (satisfies_constraint_I08 (x) || fp_zero_operand (x))
 	    return GENERAL_REGS;
+	  else if (mode == SFmode)
+	    return FP_REGS;
 	  sri->icode = CODE_FOR_reload_insi__i_fpul;
 	  return NO_REGS;
 	}

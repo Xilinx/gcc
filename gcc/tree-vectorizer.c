@@ -791,7 +791,7 @@ slpeel_make_loop_iterate_ntimes (struct loop *loop, tree niters)
    on E which is either the entry or exit of LOOP.  */
 
 struct loop *
-tree_duplicate_loop_to_edge_cfg (struct loop *loop, edge e)
+slpeel_tree_duplicate_loop_to_edge_cfg (struct loop *loop, edge e)
 {
   struct loop *new_loop;
   basic_block *new_bbs, *bbs;
@@ -1166,7 +1166,7 @@ slpeel_tree_peel_loop_to_edge (struct loop *loop,
         orig_exit_bb:
    */
   
-  if (!(new_loop = tree_duplicate_loop_to_edge_cfg (loop, e)))
+  if (!(new_loop = slpeel_tree_duplicate_loop_to_edge_cfg (loop, e)))
     {
       loop_loc = find_loop_location (loop);
       if (dump_file && (dump_flags & TDF_DETAILS))
@@ -1545,6 +1545,22 @@ new_stmt_vec_info (tree stmt, loop_vec_info loop_vinfo)
 }
 
 
+/* Free stmt vectorization related info.  */
+
+void
+free_stmt_vec_info (tree stmt)
+{
+  stmt_vec_info stmt_info = vinfo_for_stmt (stmt);
+
+  if (!stmt_info)
+    return;
+
+  VEC_free (dr_p, heap, STMT_VINFO_SAME_ALIGN_REFS (stmt_info));
+  free (stmt_info);
+  set_stmt_info (stmt_ann (stmt), NULL);
+}
+
+
 /* Function bb_in_loop_p
 
    Used as predicate for dfs order traversal of the loop bbs.  */
@@ -1701,21 +1717,13 @@ destroy_loop_vec_info (loop_vec_info loop_vinfo, bool clean_stmts)
     {
       basic_block bb = bbs[j];
       tree phi;
-      stmt_vec_info stmt_info;
 
       for (phi = phi_nodes (bb); phi; phi = PHI_CHAIN (phi))
-        {
-          stmt_ann_t ann = stmt_ann (phi);
-
-          stmt_info = vinfo_for_stmt (phi);
-          free (stmt_info);
-          set_stmt_info (ann, NULL);
-        }
+        free_stmt_vec_info (phi);
 
       for (si = bsi_start (bb); !bsi_end_p (si); )
 	{
 	  tree stmt = bsi_stmt (si);
-	  stmt_ann_t ann = stmt_ann (stmt);
 	  stmt_vec_info stmt_info = vinfo_for_stmt (stmt);
 
 	  if (stmt_info)
@@ -1733,9 +1741,7 @@ destroy_loop_vec_info (loop_vec_info loop_vinfo, bool clean_stmts)
 		}
 			
 	      /* Free stmt_vec_info.  */
-	      VEC_free (dr_p, heap, STMT_VINFO_SAME_ALIGN_REFS (stmt_info));
-	      free (stmt_info);
-	      set_stmt_info (ann, NULL);
+	      free_stmt_vec_info (stmt);
 
 	      /* Remove dead "pattern stmts".  */
 	      if (remove_stmt_p)
@@ -1754,6 +1760,7 @@ destroy_loop_vec_info (loop_vec_info loop_vinfo, bool clean_stmts)
   for (j = 0; VEC_iterate (slp_instance, slp_instances, j, instance); j++)
     vect_free_slp_tree (SLP_INSTANCE_TREE (instance));
   VEC_free (slp_instance, heap, LOOP_VINFO_SLP_INSTANCES (loop_vinfo));
+  VEC_free (tree, heap, LOOP_VINFO_STRIDED_STORES (loop_vinfo));
 
   free (loop_vinfo);
   loop->aux = NULL;
@@ -1989,7 +1996,13 @@ vect_is_simple_use (tree operand, loop_vec_info loop_vinfo, tree *def_stmt,
       *dt = vect_invariant_def;
       return true;
    }
-    
+
+  if (TREE_CODE (operand) == PAREN_EXPR)
+    {
+      if (vect_print_dump_info (REPORT_DETAILS))
+        fprintf (vect_dump, "non-associatable copy.");
+      operand = TREE_OPERAND (operand, 0);
+    }
   if (TREE_CODE (operand) != SSA_NAME)
     {
       if (vect_print_dump_info (REPORT_DETAILS))
@@ -2159,8 +2172,7 @@ supportable_widening_operation (enum tree_code code, tree stmt, tree vectype,
         }
       break;
 
-    case NOP_EXPR:
-    case CONVERT_EXPR:
+    CASE_CONVERT:
       if (BYTES_BIG_ENDIAN)
         {
           c1 = VEC_UNPACK_HI_EXPR;
@@ -2199,13 +2211,13 @@ supportable_widening_operation (enum tree_code code, tree stmt, tree vectype,
   if (code == FIX_TRUNC_EXPR)
     {
       /* The signedness is determined from output operand.  */
-      optab1 = optab_for_tree_code (c1, type);
-      optab2 = optab_for_tree_code (c2, type);
+      optab1 = optab_for_tree_code (c1, type, optab_default);
+      optab2 = optab_for_tree_code (c2, type, optab_default);
     }
   else
     {
-      optab1 = optab_for_tree_code (c1, vectype);
-      optab2 = optab_for_tree_code (c2, vectype);
+      optab1 = optab_for_tree_code (c1, vectype, optab_default);
+      optab2 = optab_for_tree_code (c2, vectype, optab_default);
     }
 
   if (!optab1 || !optab2)
@@ -2254,8 +2266,7 @@ supportable_narrowing_operation (enum tree_code code,
 
   switch (code)
     {
-    case NOP_EXPR:
-    case CONVERT_EXPR:
+    CASE_CONVERT:
       c1 = VEC_PACK_TRUNC_EXPR;
       break;
 
@@ -2274,9 +2285,9 @@ supportable_narrowing_operation (enum tree_code code,
 
   if (code == FIX_TRUNC_EXPR)
     /* The signedness is determined from output operand.  */
-    optab1 = optab_for_tree_code (c1, type);
+    optab1 = optab_for_tree_code (c1, type, optab_default);
   else
-    optab1 = optab_for_tree_code (c1, vectype);
+    optab1 = optab_for_tree_code (c1, vectype, optab_default);
 
   if (!optab1)
     return false;
@@ -2329,7 +2340,7 @@ reduction_code_for_scalar_code (enum tree_code code,
 
 /* Function vect_is_simple_reduction
 
-   Detect a cross-iteration def-use cucle that represents a simple
+   Detect a cross-iteration def-use cycle that represents a simple
    reduction computation. We look for the following pattern:
 
    loop_header:
@@ -2680,6 +2691,7 @@ vectorize_loops (void)
     }
   vect_loop_location = UNKNOWN_LOC;
 
+  statistics_counter_event (cfun, "Vectorized loops", num_vectorized_loops);
   if (vect_print_dump_info (REPORT_UNVECTORIZED_LOOPS)
       || (vect_print_dump_info (REPORT_VECTORIZED_LOOPS)
 	  && num_vectorized_loops > 0))
@@ -2754,8 +2766,10 @@ gate_increase_alignment (void)
   return flag_section_anchors && flag_tree_vectorize;
 }
 
-struct tree_opt_pass pass_ipa_increase_alignment = 
+struct simple_ipa_opt_pass pass_ipa_increase_alignment = 
 {
+ {
+  SIMPLE_IPA_PASS,
   "increase_alignment",			/* name */
   gate_increase_alignment,		/* gate */
   increase_alignment,			/* execute */
@@ -2767,6 +2781,6 @@ struct tree_opt_pass pass_ipa_increase_alignment =
   0,					/* properties_provided */
   0,					/* properties_destroyed */
   0,					/* todo_flags_start */
-  0, 					/* todo_flags_finish */
-  0					/* letter */
+  0 					/* todo_flags_finish */
+ }
 };

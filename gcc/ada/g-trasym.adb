@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---                     Copyright (C) 1999-2006, AdaCore                     --
+--                     Copyright (C) 1999-2008, AdaCore                     --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -114,7 +114,7 @@ package body GNAT.Traceback.Symbolic is
       --  be found. If the executable file name resolution fails, we have no
       --  sensible basis to invoke the symbolizer at all.
 
-      --  Protect all this against concurrent accesses explicitely, as the
+      --  Protect all this against concurrent accesses explicitly, as the
       --  underlying services are potentially thread unsafe.
 
       TSL.Lock_Task.all;

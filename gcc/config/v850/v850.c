@@ -1386,7 +1386,7 @@ compute_register_save_size (long * p_reg_saved)
   long reg_saved = 0;
 
   /* Count the return pointer if we need to save it.  */
-  if (current_function_profile && !call_p)
+  if (crtl->profile && !call_p)
     {
       df_set_regs_ever_live (LINK_POINTER_REGNUM, true);
       call_p = 1;
@@ -1488,7 +1488,7 @@ compute_frame_size (int size, long * p_reg_saved)
 {
   return (size
 	  + compute_register_save_size (p_reg_saved)
-	  + current_function_outgoing_args_size);
+	  + crtl->outgoing_args_size);
 }
 
 
@@ -1525,7 +1525,7 @@ expand_prologue (void)
     }
 
   /* Save arg registers to the stack if necessary.  */
-  else if (current_function_args_info.anonymous_args)
+  else if (crtl->args.info.anonymous_args)
     {
       if (TARGET_PROLOG_FUNCTION && TARGET_V850E && !TARGET_DISABLE_CALLT)
 	emit_insn (gen_save_r6_r9_v850e ());

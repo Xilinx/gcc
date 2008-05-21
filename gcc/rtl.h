@@ -1,6 +1,6 @@
 /* Register Transfer Language (RTL) definitions for GCC
    Copyright (C) 1987, 1991, 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999,
-   2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
+   2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -149,7 +149,11 @@ typedef struct mem_attrs GTY(())
 } mem_attrs;
 
 /* Structure used to describe the attributes of a REG in similar way as
-   mem_attrs does for MEM above.  */
+   mem_attrs does for MEM above.  Note that the OFFSET field is calculated
+   in the same way as for mem_attrs, rather than in the same way as a
+   SUBREG_BYTE.  For example, if a big-endian target stores a byte
+   object in the low part of a 4-byte register, the OFFSET field
+   will be -3 rather than 0.  */
 
 typedef struct reg_attrs GTY(())
 {
@@ -249,14 +253,17 @@ struct rtx_def GTY((chain_next ("RTX_NEXT (&%h)"),
      In a CODE_LABEL, part of the two-bit alternate entry field.  */
   unsigned int jump : 1;
   /* In a CODE_LABEL, part of the two-bit alternate entry field.
-     1 in a MEM if it cannot trap.  */
+     1 in a MEM if it cannot trap.  
+     1 in a CALL_INSN logically equivalent to
+       ECF_LOOPING_CONST_OR_PURE and DECL_LOOPING_CONST_OR_PURE_P. */
   unsigned int call : 1;
   /* 1 in a REG, MEM, or CONCAT if the value is set at most once, anywhere.
      1 in a SUBREG if it references an unsigned object whose mode has been
      from a promoted to a wider mode.
      1 in a SYMBOL_REF if it addresses something in the per-function
      constants pool.
-     1 in a CALL_INSN, NOTE, or EXPR_LIST for a const or pure call.
+     1 in a CALL_INSN logically equivalent to ECF_CONST and TREE_READONLY. 
+     1 in a NOTE, or EXPR_LIST for a const call.
      1 in a JUMP_INSN, CALL_INSN, or INSN of an annulling branch.  */
   unsigned int unchanging : 1;
   /* 1 in a MEM or ASM_OPERANDS expression if the memory reference is volatile.
@@ -299,7 +306,8 @@ struct rtx_def GTY((chain_next ("RTX_NEXT (&%h)"),
   unsigned frame_related : 1;
   /* 1 in a REG or PARALLEL that is the current function's return value.
      1 in a MEM if it refers to a scalar.
-     1 in a SYMBOL_REF for a weak symbol.  */
+     1 in a SYMBOL_REF for a weak symbol. 
+     1 in a CALL_INSN logically equivalent to ECF_PURE and DECL_PURE_P. */ 
   unsigned return_val : 1;
 
   /* The first element of the operands of this rtx.
@@ -761,10 +769,24 @@ extern void rtl_check_failed_flag (const char *, const_rtx, const char *,
   (RTL_FLAG_CHECK6("INSN_DELETED_P", (RTX), INSN, CALL_INSN, JUMP_INSN,	\
 		   CODE_LABEL, BARRIER, NOTE)->volatil)
 
+/* 1 if RTX is a call to a const function.  Built from ECF_CONST and
+   TREE_READONLY.  */
+#define RTL_CONST_CALL_P(RTX)					\
+  (RTL_FLAG_CHECK1("RTL_CONST_CALL_P", (RTX), CALL_INSN)->unchanging)
+
+/* 1 if RTX is a call to a pure function.  Built from ECF_PURE and
+   DECL_PURE_P.  */
+#define RTL_PURE_CALL_P(RTX)					\
+  (RTL_FLAG_CHECK1("RTL_PURE_CALL_P", (RTX), CALL_INSN)->return_val)
+
 /* 1 if RTX is a call to a const or pure function.  */
-#define CONST_OR_PURE_CALL_P(RTX)					\
-  (RTL_FLAG_CHECK3("CONST_OR_PURE_CALL_P", (RTX), CALL_INSN, NOTE,	\
-		   EXPR_LIST)->unchanging)
+#define RTL_CONST_OR_PURE_CALL_P(RTX) \
+  (RTL_CONST_CALL_P(RTX) || RTL_PURE_CALL_P(RTX))
+
+/* 1 if RTX is a call to a looping const or pure function.  Built from
+   ECF_LOOPING_CONST_OR_PURE and DECL_LOOPING_CONST_OR_PURE_P.  */
+#define RTL_LOOPING_CONST_OR_PURE_CALL_P(RTX)					\
+  (RTL_FLAG_CHECK1("CONST_OR_PURE_CALL_P", (RTX), CALL_INSN)->call)
 
 /* 1 if RTX is a call_insn for a sibling call.  */
 #define SIBLING_CALL_P(RTX)						\
@@ -1110,15 +1132,8 @@ do {									\
   XSTR (XCVECEXP (RTX, 4, N, ASM_OPERANDS), 0)
 #define ASM_OPERANDS_INPUT_MODE(RTX, N)  \
   GET_MODE (XCVECEXP (RTX, 4, N, ASM_OPERANDS))
-#ifdef USE_MAPPED_LOCATION
 #define ASM_OPERANDS_SOURCE_LOCATION(RTX) XCUINT (RTX, 5, ASM_OPERANDS)
 #define ASM_INPUT_SOURCE_LOCATION(RTX) XCUINT (RTX, 1, ASM_INPUT)
-#else
-#define ASM_OPERANDS_SOURCE_FILE(RTX) XCSTR (RTX, 5, ASM_OPERANDS)
-#define ASM_OPERANDS_SOURCE_LINE(RTX) XCINT (RTX, 6, ASM_OPERANDS)
-#define ASM_INPUT_SOURCE_FILE(RTX) XCSTR (RTX, 1, ASM_INPUT)
-#define ASM_INPUT_SOURCE_LINE(RTX) XCINT (RTX, 2, ASM_INPUT)
-#endif
 
 /* 1 if RTX is a mem that is statically allocated in read-only memory.  */
 #define MEM_READONLY_P(RTX) \
@@ -1476,9 +1491,10 @@ extern rtx copy_insn_1 (rtx);
 extern rtx copy_insn (rtx);
 extern rtx gen_int_mode (HOST_WIDE_INT, enum machine_mode);
 extern rtx emit_copy_of_insn_after (rtx, rtx);
-extern void set_reg_attrs_from_mem (rtx, rtx);
+extern void set_reg_attrs_from_value (rtx, rtx);
 extern void set_mem_attrs_from_reg (rtx, rtx);
 extern void set_reg_attrs_for_parm (rtx, rtx);
+extern void adjust_reg_mode (rtx, enum machine_mode);
 extern int mem_expr_equal_p (const_tree, const_tree);
 
 /* In rtl.c */
@@ -1504,6 +1520,7 @@ extern rtvec gen_rtvec_v (int, rtx *);
 extern rtx gen_reg_rtx (enum machine_mode);
 extern rtx gen_rtx_REG_offset (rtx, enum machine_mode, unsigned int, int);
 extern rtx gen_reg_rtx_offset (rtx, enum machine_mode, int);
+extern rtx gen_reg_rtx_and_attrs (rtx);
 extern rtx gen_label_rtx (void);
 extern rtx gen_lowpart_common (enum machine_mode, rtx);
 
@@ -1522,6 +1539,7 @@ extern unsigned int subreg_lowpart_offset (enum machine_mode,
 					   enum machine_mode);
 extern unsigned int subreg_highpart_offset (enum machine_mode,
 					    enum machine_mode);
+extern int byte_lowpart_offset (enum machine_mode, enum machine_mode);
 extern rtx make_safe_from (rtx, rtx);
 extern rtx convert_memory_address (enum machine_mode, rtx);
 extern rtx get_insns (void);
@@ -1733,7 +1751,6 @@ extern rtx find_reg_equal_equiv_note (const_rtx);
 extern rtx find_constant_src (const_rtx);
 extern int find_reg_fusage (const_rtx, enum rtx_code, const_rtx);
 extern int find_regno_fusage (const_rtx, enum rtx_code, unsigned int);
-extern int pure_call_p (const_rtx);
 extern void remove_note (rtx, const_rtx);
 extern void remove_reg_equal_equiv_notes (rtx);
 extern int side_effects_p (const_rtx);
@@ -1886,20 +1903,10 @@ extern GTY(()) rtx return_address_pointer_rtx;
 #ifndef GENERATOR_FILE
 #include "genrtl.h"
 #undef gen_rtx_ASM_INPUT
-#ifdef USE_MAPPED_LOCATION
 #define gen_rtx_ASM_INPUT(MODE, ARG0)				\
   gen_rtx_fmt_si (ASM_INPUT, (MODE), (ARG0), 0)
 #define gen_rtx_ASM_INPUT_loc(MODE, ARG0, LOC)			\
   gen_rtx_fmt_si (ASM_INPUT, (MODE), (ARG0), (LOC))
-#else
-#define gen_rtx_ASM_INPUT(MODE, ARG0)				\
-  gen_rtx_fmt_ssi (ASM_INPUT, (MODE), (ARG0), "", 0)
-#define gen_rtx_ASM_INPUT_loc(MODE, ARG0, LOC)			\
-  gen_rtx_fmt_ssi (ASM_INPUT, (MODE), (ARG0), (LOC).file, (LOC).line)
-#undef gen_rtx_ASM_OPERANDS
-#define gen_rtx_ASM_OPERANDS(MODE, ARG0, ARG1, ARG2, ARG3, ARG4, LOC) \
-  gen_rtx_fmt_ssiEEsi (ASM_OPERANDS, (MODE), (ARG0), (ARG1), (ARG2), (ARG3), (ARG4), (LOC).file, (LOC).line)
-#endif
 #endif
 
 /* There are some RTL codes that require special attention; the
@@ -2211,11 +2218,9 @@ enum libcall_type
   LCT_NORMAL = 0,
   LCT_CONST = 1,
   LCT_PURE = 2,
-  LCT_CONST_MAKE_BLOCK = 3,
-  LCT_PURE_MAKE_BLOCK = 4,
-  LCT_NORETURN = 5,
-  LCT_THROW = 6,
-  LCT_RETURNS_TWICE = 7
+  LCT_NORETURN = 3,
+  LCT_THROW = 4,
+  LCT_RETURNS_TWICE = 5
 };
 
 extern void emit_library_call (rtx, enum libcall_type, enum machine_mode, int,

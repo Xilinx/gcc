@@ -546,8 +546,7 @@ execute_sink_code (void)
   calculate_dominance_info (CDI_DOMINATORS);
   calculate_dominance_info (CDI_POST_DOMINATORS);
   sink_code_in_bb (EXIT_BLOCK_PTR); 
-  if (dump_file && (dump_flags & TDF_STATS))
-    fprintf (dump_file, "Sunk statements:%d\n", sink_stats.sunk);
+  statistics_counter_event (cfun, "Sunk statements", sink_stats.sunk);
   free_dominance_info (CDI_POST_DOMINATORS);
   remove_fake_exit_edges ();
   loop_optimizer_finalize ();
@@ -568,8 +567,10 @@ gate_sink (void)
   return flag_tree_sink != 0;
 }
 
-struct tree_opt_pass pass_sink_code =
+struct gimple_opt_pass pass_sink_code =
 {
+ {
+  GIMPLE_PASS,
   "sink",				/* name */
   gate_sink,				/* gate */
   do_sink,				/* execute */
@@ -585,6 +586,6 @@ struct tree_opt_pass pass_sink_code =
   TODO_update_ssa 
     | TODO_dump_func
     | TODO_ggc_collect
-    | TODO_verify_ssa,			/* todo_flags_finish */
-  0					/* letter */
+    | TODO_verify_ssa			/* todo_flags_finish */
+ }
 };

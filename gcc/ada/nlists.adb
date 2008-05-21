@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -139,7 +139,7 @@ package body Nlists is
       Prev_Node.Set_Last (N);
 
       --  Make sure we have no uninitialized junk in any new entires added.
-      --  This ensures that Tree_Gen will not write out any unitialized junk.
+      --  This ensures that Tree_Gen will not write out any uninitialized junk.
 
       for J in Old_Last + 1 .. N loop
          Next_Node.Table (J) := Empty;
@@ -279,22 +279,6 @@ package body Nlists is
       Append (Node, To);
    end Append_To;
 
-   -----------------
-   -- Delete_List --
-   -----------------
-
-   procedure Delete_List (L : List_Id) is
-      N : Node_Id;
-
-   begin
-      while Is_Non_Empty_List (L) loop
-         N := Remove_Head (L);
-         Delete_Tree (N);
-      end loop;
-
-      --  Should recycle list header???
-   end Delete_List;
-
    -----------
    -- First --
    -----------
@@ -315,7 +299,6 @@ package body Nlists is
 
    function First_Non_Pragma (List : List_Id) return Node_Id is
       N : constant Node_Id := First (List);
-
    begin
       if Nkind (N) /= N_Pragma
            and then
@@ -555,7 +538,7 @@ package body Nlists is
          end if;
       end Insert_List_Before_Debug;
 
-   --  Start of prodcessing for Insert_List_Before
+   --  Start of processing for Insert_List_Before
 
    begin
       pragma Assert (Is_List_Member (Before));
@@ -621,7 +604,7 @@ package body Nlists is
 
    function Is_Non_Empty_List (List : List_Id) return Boolean is
    begin
-      return List /= No_List and then First (List) /= Empty;
+      return First (List) /= Empty;
    end Is_Non_Empty_List;
 
    ----------
@@ -649,7 +632,6 @@ package body Nlists is
 
    function Last_Non_Pragma (List : List_Id) return Node_Id is
       N : constant Node_Id := Last (List);
-
    begin
       if Nkind (N) /= N_Pragma then
          return N;

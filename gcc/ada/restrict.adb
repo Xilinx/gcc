@@ -26,6 +26,7 @@
 with Atree;    use Atree;
 with Casing;   use Casing;
 with Errout;   use Errout;
+with Debug;    use Debug;
 with Fname;    use Fname;
 with Fname.UF; use Fname.UF;
 with Lib;      use Lib;
@@ -101,18 +102,17 @@ package body Restrict is
 
    procedure Check_Elaboration_Code_Allowed (N : Node_Id) is
    begin
-      --  Avoid calling Namet.Unlock/Lock except when there is an error.
-      --  Even in the error case it is a bit dubious, either gigi needs
-      --  the table locked or it does not! ???
-
-      if Restrictions.Set (No_Elaboration_Code)
-        and then not Suppress_Restriction_Message (N)
-      then
-         Namet.Unlock;
-         Check_Restriction (No_Elaboration_Code, N);
-         Namet.Lock;
-      end if;
+      Check_Restriction (No_Elaboration_Code, N);
    end Check_Elaboration_Code_Allowed;
+
+   -----------------------------------------
+   -- Check_Implicit_Dynamic_Code_Allowed --
+   -----------------------------------------
+
+   procedure Check_Implicit_Dynamic_Code_Allowed (N : Node_Id) is
+   begin
+      Check_Restriction (No_Implicit_Dynamic_Code, N);
+   end Check_Implicit_Dynamic_Code_Allowed;
 
    ----------------------------------
    -- Check_No_Implicit_Heap_Alloc --
@@ -172,9 +172,9 @@ package body Restrict is
                   end if;
                end loop;
 
-               --  If not predefied unit, then one special check still remains.
-               --  GNAT.Current_Exception is not allowed if we have restriction
-               --  No_Exception_Propagation active.
+               --  If not predefined unit, then one special check still
+               --  remains. GNAT.Current_Exception is not allowed if we have
+               --  restriction No_Exception_Propagation active.
 
             else
                if Name_Buffer (1 .. 8) = "g-curexc" then
@@ -430,6 +430,18 @@ package body Restrict is
                     or else
                   Restrictions.Set (No_Exception_Propagation));
    end No_Exception_Handlers_Set;
+
+   -------------------------------------
+   -- No_Exception_Propagation_Active --
+   -------------------------------------
+
+   function No_Exception_Propagation_Active return Boolean is
+   begin
+      return (No_Run_Time_Mode
+               or else Configurable_Run_Time_Mode
+               or else Debug_Flag_Dot_G)
+        and then Restriction_Active (No_Exception_Propagation);
+   end No_Exception_Propagation_Active;
 
    ----------------------------------
    -- Process_Restriction_Synonyms --

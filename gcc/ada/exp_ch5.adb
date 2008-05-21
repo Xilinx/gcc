@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -109,13 +109,12 @@ package body Exp_Ch5 is
    --  statements.
 
    procedure Expand_Simple_Function_Return (N : Node_Id);
-   --  Expand simple return from function. Called by
-   --  Expand_N_Simple_Return_Statement in case we're returning from a function
-   --  body.
+   --  Expand simple return from function. In the case where we are returning
+   --  from a function body this is called by Expand_N_Simple_Return_Statement.
 
    function Make_Tag_Ctrl_Assignment (N : Node_Id) return List_Id;
    --  Generate the necessary code for controlled and tagged assignment,
-   --  that is to say, finalization of the target before, adjustement of
+   --  that is to say, finalization of the target before, adjustment of
    --  the target after and save and restore of the tag and finalization
    --  pointers which are not 'part of the value' and must not be changed
    --  upon assignment. N is the original Assignment node.
@@ -805,7 +804,7 @@ package body Exp_Ch5 is
             Ensure_Defined (R_Type, N);
 
             --  We normally compare addresses to find out which way round to
-            --  do the loop, since this is realiable, and handles the cases of
+            --  do the loop, since this is reliable, and handles the cases of
             --  parameters, conversions etc. But we can't do that in the bit
             --  packed case or the VM case, because addresses don't work there.
 
@@ -869,7 +868,7 @@ package body Exp_Ch5 is
               and then not No_Ctrl_Actions (N)
             then
 
-               --  Call TSS procedure for array assignment, passing the the
+               --  Call TSS procedure for array assignment, passing the
                --  explicit bounds of right and left hand sides.
 
                declare
@@ -1346,13 +1345,30 @@ package body Exp_Ch5 is
             F := First_Discriminant (R_Typ);
             while Present (F) loop
 
-               if Is_Unchecked_Union (Base_Type (R_Typ)) then
-                  Insert_Action (N, Make_Field_Assign (F, True));
-               else
-                  Insert_Action (N, Make_Field_Assign (F));
-               end if;
+               --  If we are expanding the initialization of a derived record
+               --  that constrains or renames discriminants of the parent, we
+               --  must use the corresponding discriminant in the parent.
 
-               Next_Discriminant (F);
+               declare
+                  CF : Entity_Id;
+
+               begin
+                  if Inside_Init_Proc
+                    and then Present (Corresponding_Discriminant (F))
+                  then
+                     CF := Corresponding_Discriminant (F);
+                  else
+                     CF := F;
+                  end if;
+
+                  if Is_Unchecked_Union (Base_Type (R_Typ)) then
+                     Insert_Action (N, Make_Field_Assign (CF, True));
+                  else
+                     Insert_Action (N, Make_Field_Assign (CF));
+                  end if;
+
+                  Next_Discriminant (F);
+               end;
             end loop;
          end if;
 
@@ -1523,9 +1539,7 @@ package body Exp_Ch5 is
       --  Since P is going to be evaluated more than once, any subscripts
       --  in P must have their evaluation forced.
 
-      if (Nkind (Lhs) = N_Indexed_Component
-           or else
-          Nkind (Lhs) = N_Selected_Component)
+      if Nkind_In (Lhs, N_Indexed_Component, N_Selected_Component)
         and then Is_Ref_To_Bit_Packed_Array (Prefix (Lhs))
       then
          declare
@@ -1562,9 +1576,8 @@ package body Exp_Ch5 is
             loop
                Set_Analyzed (Exp, False);
 
-               if Nkind (Exp) = N_Selected_Component
-                    or else
-                  Nkind (Exp) = N_Indexed_Component
+               if Nkind_In
+                   (Exp, N_Selected_Component, N_Indexed_Component)
                then
                   Exp := Prefix (Exp);
                else
@@ -1792,9 +1805,9 @@ package body Exp_Ch5 is
                --  discriminant checks are locally suppressed (as in extension
                --  aggregate expansions) because otherwise the discriminant
                --  check will be performed within the _assign call. It is also
-               --  suppressed for assignmments created by the expander that
+               --  suppressed for assignments created by the expander that
                --  correspond to initializations, where we do want to copy the
-               --  tag (No_Ctrl_Actions flag set True). by the expander and we
+               --  tag (No_Ctrl_Actions flag set True) by the expander and we
                --  do not need to mess with tags ever (Expand_Ctrl_Actions flag
                --  is set True in this case).
 
@@ -1805,7 +1818,7 @@ package body Exp_Ch5 is
                           and then not Discriminant_Checks_Suppressed (Empty))
             then
                --  Fetch the primitive op _assign and proper type to call it.
-               --  Because of possible conflits between private and full view
+               --  Because of possible conflicts between private and full view
                --  the proper type is fetched directly from the operation
                --  profile.
 
@@ -1873,8 +1886,11 @@ package body Exp_Ch5 is
                --       <code for controlled and/or tagged assignment>
                --    end if;
 
+               --  Skip this if Restriction (No_Finalization) is active
+
                if not Statically_Different (Lhs, Rhs)
                  and then Expand_Ctrl_Actions
+                 and then not Restriction_Active (No_Finalization)
                then
                   L := New_List (
                     Make_Implicit_If_Statement (N,
@@ -1918,7 +1934,7 @@ package body Exp_Ch5 is
                 Handled_Statement_Sequence =>
                   Make_Handled_Sequence_Of_Statements (Loc, Statements => L)));
 
-            --  If no restrictions on aborts, protect the whole assignement
+            --  If no restrictions on aborts, protect the whole assignment
             --  for controlled objects as per 9.8(11).
 
             if Controlled_Type (Typ)
@@ -1958,9 +1974,8 @@ package body Exp_Ch5 is
             Actual_Rhs : Node_Id := Rhs;
 
          begin
-            while Nkind (Actual_Rhs) = N_Type_Conversion
-              or else
-                  Nkind (Actual_Rhs) = N_Qualified_Expression
+            while Nkind_In (Actual_Rhs, N_Type_Conversion,
+                                        N_Qualified_Expression)
             loop
                Actual_Rhs := Expression (Actual_Rhs);
             end loop;
@@ -2017,9 +2032,7 @@ package body Exp_Ch5 is
                --  Skip this if left hand side is an array or record component
                --  and elementary component validity checks are suppressed.
 
-               if (Nkind (Lhs) = N_Selected_Component
-                    or else
-                   Nkind (Lhs) = N_Indexed_Component)
+               if Nkind_In (Lhs, N_Selected_Component, N_Indexed_Component)
                  and then not Validity_Check_Components
                then
                   null;
@@ -2207,7 +2220,7 @@ package body Exp_Ch5 is
 
          --  An optimization. If there are only two alternatives, and only
          --  a single choice, then rewrite the whole case statement as an
-         --  if statement, since this can result in susbequent optimizations.
+         --  if statement, since this can result in subsequent optimizations.
          --  This helps not only with case statements in the source of a
          --  simple form, but also with generated code (discriminant check
          --  functions in particular)
@@ -2798,24 +2811,53 @@ package body Exp_Ch5 is
                         SS_Allocator := New_Copy_Tree (Heap_Allocator);
                      end if;
 
-                     Set_Storage_Pool
-                       (SS_Allocator, RTE (RE_SS_Pool));
-                     Set_Procedure_To_Call
-                       (SS_Allocator, RTE (RE_SS_Allocate));
+                     --  If the No_Allocators restriction is active, then only
+                     --  an allocator for secondary stack allocation is needed.
 
-                     --  The allocator is returned on the secondary stack,
-                     --  so indicate that the function return, as well as
-                     --  the block that encloses the allocator, must not
-                     --  release it. The flags must be set now because the
-                     --  decision to use the secondary stack is done very
-                     --  late in the course of expanding the return statement,
-                     --  past the point where these flags are normally set.
+                     if Restriction_Active (No_Allocators) then
+                        SS_Allocator   := Heap_Allocator;
+                        Heap_Allocator := Make_Null (Loc);
 
-                     Set_Sec_Stack_Needed_For_Return (Parent_Function);
-                     Set_Sec_Stack_Needed_For_Return
-                       (Return_Statement_Entity (N));
-                     Set_Uses_Sec_Stack (Parent_Function);
-                     Set_Uses_Sec_Stack (Return_Statement_Entity (N));
+                     --  Otherwise the heap allocator may be needed, so we
+                     --  make another allocator for secondary stack allocation.
+
+                     else
+                        SS_Allocator := New_Copy_Tree (Heap_Allocator);
+
+                        --  The heap allocator is marked Comes_From_Source
+                        --  since it corresponds to an explicit user-written
+                        --  allocator (that is, it will only be executed on
+                        --  behalf of callers that call the function as
+                        --  initialization for such an allocator). This
+                        --  prevents errors when No_Implicit_Heap_Allocation
+                        --  is in force.
+
+                        Set_Comes_From_Source (Heap_Allocator, True);
+                     end if;
+
+                     --  The allocator is returned on the secondary stack. We
+                     --  don't do this on VM targets, since the SS is not used.
+
+                     if VM_Target = No_VM then
+                        Set_Storage_Pool (SS_Allocator, RTE (RE_SS_Pool));
+                        Set_Procedure_To_Call
+                          (SS_Allocator, RTE (RE_SS_Allocate));
+
+                        --  The allocator is returned on the secondary stack,
+                        --  so indicate that the function return, as well as
+                        --  the block that encloses the allocator, must not
+                        --  release it. The flags must be set now because the
+                        --  decision to use the secondary stack is done very
+                        --  late in the course of expanding the return
+                        --  statement, past the point where these flags are
+                        --  normally set.
+
+                        Set_Sec_Stack_Needed_For_Return (Parent_Function);
+                        Set_Sec_Stack_Needed_For_Return
+                          (Return_Statement_Entity (N));
+                        Set_Uses_Sec_Stack (Parent_Function);
+                        Set_Uses_Sec_Stack (Return_Statement_Entity (N));
+                     end if;
 
                      --  Create an if statement to test the BIP_Alloc_Form
                      --  formal and initialize the access object to either the
@@ -2888,7 +2930,7 @@ package body Exp_Ch5 is
                      --  implicit access formal to the access object, to ensure
                      --  that the return object is initialized in that case.
                      --  In this situation, the target of the assignment must
-                     --  be rewritten to denote a derference of the access to
+                     --  be rewritten to denote a dereference of the access to
                      --  the return object passed in by the caller.
 
                      if Present (Init_Assignment) then
@@ -3184,54 +3226,59 @@ package body Exp_Ch5 is
 
       --     return not (expression);
 
-      if Nkind (N) = N_If_Statement
-         and then No (Elsif_Parts (N))
-         and then Present (Else_Statements (N))
-         and then List_Length (Then_Statements (N)) = 1
-         and then List_Length (Else_Statements (N)) = 1
-      then
-         declare
-            Then_Stm : constant Node_Id := First (Then_Statements (N));
-            Else_Stm : constant Node_Id := First (Else_Statements (N));
+      --  Only do these optimizations if we are at least at -O1 level
 
-         begin
-            if Nkind (Then_Stm) = N_Simple_Return_Statement
-                 and then
-               Nkind (Else_Stm) = N_Simple_Return_Statement
-            then
-               declare
-                  Then_Expr : constant Node_Id := Expression (Then_Stm);
-                  Else_Expr : constant Node_Id := Expression (Else_Stm);
+      if Optimization_Level > 0 then
+         if Nkind (N) = N_If_Statement
+           and then No (Elsif_Parts (N))
+           and then Present (Else_Statements (N))
+           and then List_Length (Then_Statements (N)) = 1
+           and then List_Length (Else_Statements (N)) = 1
+         then
+            declare
+               Then_Stm : constant Node_Id := First (Then_Statements (N));
+               Else_Stm : constant Node_Id := First (Else_Statements (N));
 
-               begin
-                  if Nkind (Then_Expr) = N_Identifier
-                       and then
-                     Nkind (Else_Expr) = N_Identifier
-                  then
-                     if Entity (Then_Expr) = Standard_True
-                       and then Entity (Else_Expr) = Standard_False
+            begin
+               if Nkind (Then_Stm) = N_Simple_Return_Statement
+                    and then
+                  Nkind (Else_Stm) = N_Simple_Return_Statement
+               then
+                  declare
+                     Then_Expr : constant Node_Id := Expression (Then_Stm);
+                     Else_Expr : constant Node_Id := Expression (Else_Stm);
+
+                  begin
+                     if Nkind (Then_Expr) = N_Identifier
+                          and then
+                        Nkind (Else_Expr) = N_Identifier
                      then
-                        Rewrite (N,
-                          Make_Simple_Return_Statement (Loc,
-                            Expression => Relocate_Node (Condition (N))));
-                        Analyze (N);
-                        return;
+                        if Entity (Then_Expr) = Standard_True
+                          and then Entity (Else_Expr) = Standard_False
+                        then
+                           Rewrite (N,
+                             Make_Simple_Return_Statement (Loc,
+                               Expression => Relocate_Node (Condition (N))));
+                           Analyze (N);
+                           return;
 
-                     elsif Entity (Then_Expr) = Standard_False
-                       and then Entity (Else_Expr) = Standard_True
-                     then
-                        Rewrite (N,
-                          Make_Simple_Return_Statement (Loc,
-                            Expression =>
-                              Make_Op_Not (Loc,
-                                Right_Opnd => Relocate_Node (Condition (N)))));
-                        Analyze (N);
-                        return;
+                        elsif Entity (Then_Expr) = Standard_False
+                          and then Entity (Else_Expr) = Standard_True
+                        then
+                           Rewrite (N,
+                             Make_Simple_Return_Statement (Loc,
+                               Expression =>
+                                 Make_Op_Not (Loc,
+                                   Right_Opnd =>
+                                     Relocate_Node (Condition (N)))));
+                           Analyze (N);
+                           return;
+                        end if;
                      end if;
-                  end if;
-               end;
-            end if;
-         end;
+                  end;
+               end if;
+            end;
+         end if;
       end if;
    end Expand_N_If_Statement;
 
@@ -3263,7 +3310,7 @@ package body Exp_Ch5 is
          return;
       end if;
 
-      --  Note: we do not have to worry about validity chekcing of the for loop
+      --  Note: we do not have to worry about validity checking of the for loop
       --  range bounds here, since they were frozen with constant declarations
       --  and it is during that process that the validity checking is done.
 
@@ -3440,6 +3487,15 @@ package body Exp_Ch5 is
 
    procedure Expand_N_Simple_Return_Statement (N : Node_Id) is
    begin
+      --  Defend against previous errors (i.e. the return statement calls a
+      --  function that is not available in configurable runtime).
+
+      if Present (Expression (N))
+        and then Nkind (Expression (N)) = N_Empty
+      then
+         return;
+      end if;
+
       --  Distinguish the function and non-function cases:
 
       case Ekind (Return_Applies_To (Return_Statement_Entity (N))) is
@@ -3481,6 +3537,16 @@ package body Exp_Ch5 is
       Lab_Node    : Node_Id;
 
    begin
+      --  Call postconditions procedure if procedure with active postconditions
+
+      if Ekind (Scope_Id) = E_Procedure
+        and then Has_Postconditions (Scope_Id)
+      then
+         Insert_Action (N,
+           Make_Procedure_Call_Statement (Loc,
+             Name => Make_Identifier (Loc, Name_uPostconditions)));
+      end if;
+
       --  If it is a return from a procedure do no extra steps
 
       if Kind = E_Procedure or else Kind = E_Generic_Procedure then
@@ -3549,16 +3615,15 @@ package body Exp_Ch5 is
       elsif Is_Protected_Type (Scope_Id) then
          Call :=
            Make_Procedure_Call_Statement (Loc,
-             Name => New_Reference_To
-               (RTE (RE_Complete_Entry_Body), Loc),
-             Parameter_Associations => New_List
-               (Make_Attribute_Reference (Loc,
+             Name =>
+               New_Reference_To (RTE (RE_Complete_Entry_Body), Loc),
+             Parameter_Associations => New_List (
+               Make_Attribute_Reference (Loc,
                  Prefix =>
                    New_Reference_To
-                     (Object_Ref
-                        (Corresponding_Body (Parent (Scope_Id))),
-                     Loc),
-                 Attribute_Name => Name_Unchecked_Access)));
+                     (Find_Protection_Object (Current_Scope), Loc),
+                 Attribute_Name =>
+                   Name_Unchecked_Access)));
 
          Insert_Before (N, Call);
          Analyze (Call);
@@ -3591,28 +3656,30 @@ package body Exp_Ch5 is
       --  The type of the expression (not necessarily the same as R_Type)
 
    begin
-      --  We rewrite "return <expression>;" to be:
+      --  For the case of a simple return that does not come from an extended
+      --  return, in the case of Ada 2005 where we are returning a limited
+      --  type, we rewrite "return <expression>;" to be:
 
       --    return _anon_ : <return_subtype> := <expression>
 
       --  The expansion produced by Expand_N_Extended_Return_Statement will
       --  contain simple return statements (for example, a block containing
       --  simple return of the return object), which brings us back here with
-      --  Comes_From_Extended_Return_Statement set. To avoid infinite
-      --  recursion, we do not transform into an extended return if
-      --  Comes_From_Extended_Return_Statement is True.
+      --  Comes_From_Extended_Return_Statement set. The reason for the barrier
+      --  checking for a simple return that does not come from an extended
+      --  return is to avoid this infinite recursion.
 
       --  The reason for this design is that for Ada 2005 limited returns, we
       --  need to reify the return object, so we can build it "in place", and
       --  we need a block statement to hang finalization and tasking stuff.
 
       --  ??? In order to avoid disruption, we avoid translating to extended
-      --  return except in the cases where we really need to (Ada 2005
-      --  inherently limited). We would prefer eventually to do this
-      --  translation in all cases except perhaps for the case of Ada 95
-      --  inherently limited, in order to fully exercise the code in
-      --  Expand_N_Extended_Return_Statement, and in order to do
-      --  build-in-place for efficiency when it is not required.
+      --  return except in the cases where we really need to (Ada 2005 for
+      --  inherently limited). We might prefer to do this translation in all
+      --  cases (except perhaps for the case of Ada 95 inherently limited),
+      --  in order to fully exercise the Expand_N_Extended_Return_Statement
+      --  code. This would also allow us to to the build-in-place optimization
+      --  for efficiency even in cases where it is semantically not required.
 
       --  As before, we check the type of the return expression rather than the
       --  return type of the function, because the latter may be a limited
@@ -3621,7 +3688,7 @@ package body Exp_Ch5 is
 
       if not Comes_From_Extended_Return_Statement (N)
         and then Is_Inherently_Limited_Type (Etype (Expression (N)))
-        and then Ada_Version >= Ada_05 --  ???
+        and then Ada_Version >= Ada_05
         and then not Debug_Flag_Dot_L
       then
          declare
@@ -3822,7 +3889,7 @@ package body Exp_Ch5 is
          --  secondary stack.
 
          else
-            Set_Storage_Pool      (N, RTE (RE_SS_Pool));
+            Set_Storage_Pool (N, RTE (RE_SS_Pool));
 
             --  If we are generating code for the VM do not use
             --  SS_Allocate since everything is heap-allocated anyway.
@@ -3842,8 +3909,8 @@ package body Exp_Ch5 is
 
       if Is_Tagged_Type (Utyp)
         and then not Is_Class_Wide_Type (Utyp)
-        and then (Nkind (Exp) = N_Type_Conversion
-                    or else Nkind (Exp) = N_Unchecked_Type_Conversion
+        and then (Nkind_In (Exp, N_Type_Conversion,
+                                 N_Unchecked_Type_Conversion)
                     or else (Is_Entity_Name (Exp)
                                and then Ekind (Entity (Exp)) in Formal_Kind))
       then
@@ -3918,8 +3985,8 @@ package body Exp_Ch5 is
         and then not Scope_Suppress (Accessibility_Check)
         and then
           (Is_Class_Wide_Type (Etype (Exp))
-            or else Nkind (Exp) = N_Type_Conversion
-            or else Nkind (Exp) = N_Unchecked_Type_Conversion
+            or else Nkind_In (Exp, N_Type_Conversion,
+                                   N_Unchecked_Type_Conversion)
             or else (Is_Entity_Name (Exp)
                        and then Ekind (Entity (Exp)) in Formal_Kind)
             or else Scope_Depth (Enclosing_Dynamic_Scope (Etype (Exp))) >
@@ -3963,6 +4030,113 @@ package body Exp_Ch5 is
                         Scope_Depth (Enclosing_Dynamic_Scope (Scope_Id)))),
                 Reason => PE_Accessibility_Check_Failed));
          end;
+      end if;
+
+      --  Generate call to postcondition checks if they are present
+
+      if Ekind (Scope_Id) = E_Function
+        and then Has_Postconditions (Scope_Id)
+      then
+         --  We are going to reference the returned value twice in this case,
+         --  once in the call to _Postconditions, and once in the actual return
+         --  statement, but we can't have side effects happening twice, and in
+         --  any case for efficiency we don't want to do the computation twice.
+
+         --  If the returned expression is an entity name, we don't need to
+         --  worry since it is efficient and safe to reference it twice, that's
+         --  also true for literals other than string literals, and for the
+         --  case of X.all where X is an entity name.
+
+         if Is_Entity_Name (Exp)
+           or else Nkind_In (Exp, N_Character_Literal,
+                                  N_Integer_Literal,
+                                  N_Real_Literal)
+           or else (Nkind (Exp) = N_Explicit_Dereference
+                      and then Is_Entity_Name (Prefix (Exp)))
+         then
+            null;
+
+         --  Otherwise we are going to need a temporary to capture the value
+
+         else
+            declare
+               Tnn : constant Entity_Id :=
+                       Make_Defining_Identifier (Loc,
+                         New_Internal_Name ('T'));
+
+            begin
+               --  For a complex expression of an elementary type, capture
+               --  value in the temporary and use it as the reference.
+
+               if Is_Elementary_Type (R_Type) then
+                  Insert_Action (Exp,
+                    Make_Object_Declaration (Loc,
+                      Defining_Identifier => Tnn,
+                      Constant_Present    => True,
+                      Object_Definition   => New_Occurrence_Of (R_Type, Loc),
+                      Expression          => Relocate_Node (Exp)),
+                    Suppress => All_Checks);
+
+                  Rewrite (Exp, New_Occurrence_Of (Tnn, Loc));
+
+               --  If we have something we can rename, generate a renaming of
+               --  the object and replace the expression with a reference
+
+               elsif Is_Object_Reference (Exp) then
+                  Insert_Action (Exp,
+                    Make_Object_Renaming_Declaration (Loc,
+                      Defining_Identifier => Tnn,
+                      Subtype_Mark        => New_Occurrence_Of (R_Type, Loc),
+                      Name                => Relocate_Node (Exp)),
+                    Suppress => All_Checks);
+
+                  Rewrite (Exp, New_Occurrence_Of (Tnn, Loc));
+
+               --  Otherwise we have something like a string literal or an
+               --  aggregate. We could copy the value, but that would be
+               --  inefficient. Instead we make a reference to the value and
+               --  capture this reference with a renaming, the expression is
+               --  then replaced by a dereference of this renaming.
+
+               else
+                  --  For now, copy the value, since the code below does not
+                  --  seem to work correctly ???
+
+                  Insert_Action (Exp,
+                    Make_Object_Declaration (Loc,
+                      Defining_Identifier => Tnn,
+                      Constant_Present    => True,
+                      Object_Definition   => New_Occurrence_Of (R_Type, Loc),
+                      Expression          => Relocate_Node (Exp)),
+                    Suppress => All_Checks);
+
+                  Rewrite (Exp, New_Occurrence_Of (Tnn, Loc));
+
+                  --  Insert_Action (Exp,
+                  --    Make_Object_Renaming_Declaration (Loc,
+                  --      Defining_Identifier => Tnn,
+                  --      Access_Definition =>
+                  --        Make_Access_Definition (Loc,
+                  --          All_Present  => True,
+                  --          Subtype_Mark => New_Occurrence_Of (R_Type, Loc)),
+                  --      Name =>
+                  --        Make_Reference (Loc,
+                  --          Prefix => Relocate_Node (Exp))),
+                  --    Suppress => All_Checks);
+
+                  --  Rewrite (Exp,
+                  --    Make_Explicit_Dereference (Loc,
+                  --      Prefix => New_Occurrence_Of (Tnn, Loc)));
+               end if;
+            end;
+         end if;
+
+         --  Generate call to _postconditions
+
+         Insert_Action (Exp,
+           Make_Procedure_Call_Statement (Loc,
+             Name => Make_Identifier (Loc, Name_uPostconditions),
+             Parameter_Associations => New_List (Duplicate_Subexpr (Exp))));
       end if;
    end Expand_Simple_Function_Return;
 

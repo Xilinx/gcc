@@ -42,6 +42,7 @@
 #include "vec.h"
 #include "lambda.h"
 #include "vecprim.h"
+#include "pointer-set.h"
 
 /* This loop nest code generation is based on non-singular matrix
    math.
@@ -1675,7 +1676,6 @@ remove_iv (tree iv_stmt)
     }
 }
 
-
 /* Transform a lambda loopnest NEW_LOOPNEST, which had TRANSFORM applied to
    it, back into gcc code.  This changes the
    loops, their induction variables, and their bodies, so that they
@@ -1699,15 +1699,16 @@ lambda_loopnest_to_gcc_loopnest (struct loop *old_loopnest,
 {
   struct loop *temp;
   size_t i = 0;
+  int j;
   size_t depth = 0;
   VEC(tree,heap) *new_ivs = NULL;
   tree oldiv;
-  
   block_stmt_iterator bsi;
+
+  transform = lambda_trans_matrix_inverse (transform);
 
   if (dump_file)
     {
-      transform = lambda_trans_matrix_inverse (transform);
       fprintf (dump_file, "Inverse of transformation matrix:\n");
       print_lambda_trans_matrix (dump_file, transform);
     }
@@ -1837,8 +1838,6 @@ lambda_loopnest_to_gcc_loopnest (struct loop *old_loopnest,
 	  tree newiv, stmts;
 	  lambda_body_vector lbv, newlbv;
 
-	  gcc_assert (TREE_CODE (stmt) != PHI_NODE);
-
 	  /* Compute the new expression for the induction
 	     variable.  */
 	  depth = VEC_length (tree, new_ivs);
@@ -1850,7 +1849,8 @@ lambda_loopnest_to_gcc_loopnest (struct loop *old_loopnest,
 
 	  newiv = lbv_to_gcc_expression (newlbv, TREE_TYPE (oldiv),
 					 new_ivs, &stmts);
-	  if (stmts)
+
+	  if (stmts && TREE_CODE (stmt) != PHI_NODE)
 	    {
 	      bsi = bsi_for_stmt (stmt);
 	      bsi_insert_before (&bsi, stmts, BSI_SAME_STMT);
@@ -1858,6 +1858,12 @@ lambda_loopnest_to_gcc_loopnest (struct loop *old_loopnest,
 
 	  FOR_EACH_IMM_USE_ON_STMT (use_p, imm_iter)
 	    propagate_value (use_p, newiv);
+
+	  if (stmts && TREE_CODE (stmt) == PHI_NODE)
+	    for (j = 0; j < PHI_NUM_ARGS (stmt); j++)
+	      if (PHI_ARG_DEF (stmt, j) == newiv)
+		bsi_insert_on_edge (PHI_ARG_EDGE (stmt, j), stmts);
+
 	  update_stmt (stmt);
 	}
 
@@ -2177,7 +2183,128 @@ can_put_after_inner_loop (struct loop *loop, tree stmt)
   return true;
 }
 
+/* Return true when the induction variable IV is simple enough to be
+   re-synthesized.  */
 
+static bool
+can_duplicate_iv (tree iv, struct loop *loop)
+{
+  tree scev = instantiate_parameters
+    (loop, analyze_scalar_evolution (loop, iv));
+
+  if (!automatically_generated_chrec_p (scev))
+    {
+      tree step = evolution_part_in_loop_num (scev, loop->num);
+
+      if (step && step != chrec_dont_know && TREE_CODE (step) == INTEGER_CST)
+	return true;
+    }
+
+  return false;
+}
+
+/* If this is a scalar operation that can be put back into the inner
+   loop, or after the inner loop, through copying, then do so. This
+   works on the theory that any amount of scalar code we have to
+   reduplicate into or after the loops is less expensive that the win
+   we get from rearranging the memory walk the loop is doing so that
+   it has better cache behavior.  */
+
+static bool
+cannot_convert_modify_to_perfect_nest (tree stmt, struct loop *loop)
+{
+  
+  use_operand_p use_a, use_b;
+  imm_use_iterator imm_iter;
+  ssa_op_iter op_iter, op_iter1;
+  tree op0 = GIMPLE_STMT_OPERAND (stmt, 0);
+
+  /* The statement should not define a variable used in the inner
+     loop.  */
+  if (TREE_CODE (op0) == SSA_NAME
+      && !can_duplicate_iv (op0, loop))
+    FOR_EACH_IMM_USE_FAST (use_a, imm_iter, op0)
+      if (bb_for_stmt (USE_STMT (use_a))->loop_father
+	  == loop->inner)
+	return true;
+
+  FOR_EACH_SSA_USE_OPERAND (use_a, stmt, op_iter, SSA_OP_USE)
+    {
+      tree node, op = USE_FROM_PTR (use_a);
+
+      /* The variables should not be used in both loops.  */
+      if (!can_duplicate_iv (op, loop))
+	FOR_EACH_IMM_USE_FAST (use_b, imm_iter, op)
+	  if (bb_for_stmt (USE_STMT (use_b))->loop_father
+	      == loop->inner)
+	    return true;
+
+      /* The statement should not use the value of a scalar that was
+	 modified in the loop.  */
+      node = SSA_NAME_DEF_STMT (op);
+      if (TREE_CODE (node) == PHI_NODE)
+	FOR_EACH_PHI_ARG (use_b, node, op_iter1, SSA_OP_USE)
+	{
+	  tree arg = USE_FROM_PTR (use_b);
+
+	  if (TREE_CODE (arg) == SSA_NAME)
+	    {
+	      tree arg_stmt = SSA_NAME_DEF_STMT (arg);
+
+	      if (bb_for_stmt (arg_stmt)
+		  && (bb_for_stmt (arg_stmt)->loop_father
+		      == loop->inner))
+		return true;
+	    }
+	}
+    }
+
+  return false;
+}
+
+/* Return true when BB contains statements that can harm the transform
+   to a perfect loop nest.  */
+
+static bool
+cannot_convert_bb_to_perfect_nest (basic_block bb, struct loop *loop)
+{
+  block_stmt_iterator bsi;
+  tree exit_condition = get_loop_exit_condition (loop);
+
+  for (bsi = bsi_start (bb); !bsi_end_p (bsi); bsi_next (&bsi))
+    { 
+      tree stmt = bsi_stmt (bsi);
+
+      if (stmt == exit_condition
+	  || not_interesting_stmt (stmt)
+	  || stmt_is_bumper_for_loop (loop, stmt))
+	continue;
+
+      if (TREE_CODE (stmt) == GIMPLE_MODIFY_STMT)
+	{
+	  if (cannot_convert_modify_to_perfect_nest (stmt, loop))
+	    return true;
+
+	  if (can_duplicate_iv (GIMPLE_STMT_OPERAND (stmt, 0), loop))
+	    continue;
+
+	  if (can_put_in_inner_loop (loop->inner, stmt)
+	      || can_put_after_inner_loop (loop, stmt))
+	    continue;
+	}
+
+      /* If the bb of a statement we care about isn't dominated by the
+	 header of the inner loop, then we can't handle this case
+	 right now.  This test ensures that the statement comes
+	 completely *after* the inner loop.  */
+      if (!dominated_by_p (CDI_DOMINATORS,
+			   bb_for_stmt (stmt), 
+			   loop->inner->header))
+	return true;
+    }
+
+  return false;
+}
 
 /* Return TRUE if LOOP is an imperfect nest that we can convert to a
    perfect one.  At the moment, we only handle imperfect nests of
@@ -2187,117 +2314,22 @@ static bool
 can_convert_to_perfect_nest (struct loop *loop)
 {
   basic_block *bbs;
-  tree exit_condition, phi;
+  tree phi;
   size_t i;
-  block_stmt_iterator bsi;
-  basic_block exitdest;
 
   /* Can't handle triply nested+ loops yet.  */
   if (!loop->inner || loop->inner->inner)
     return false;
   
   bbs = get_loop_body (loop);
-  exit_condition = get_loop_exit_condition (loop);
   for (i = 0; i < loop->num_nodes; i++)
-    {
-      if (bbs[i]->loop_father == loop)
-	{
-	  for (bsi = bsi_start (bbs[i]); !bsi_end_p (bsi); bsi_next (&bsi))
-	    { 
-	      tree stmt = bsi_stmt (bsi);
-
-	      if (stmt == exit_condition
-		  || not_interesting_stmt (stmt)
-		  || stmt_is_bumper_for_loop (loop, stmt))
-		continue;
-
-	      /* If this is a scalar operation that can be put back
-	         into the inner loop, or after the inner loop, through
-		 copying, then do so. This works on the theory that
-		 any amount of scalar code we have to reduplicate
-		 into or after the loops is less expensive that the
-		 win we get from rearranging the memory walk
-		 the loop is doing so that it has better
-		 cache behavior.  */
-	      if (TREE_CODE (stmt) == GIMPLE_MODIFY_STMT)
-		{
-		  use_operand_p use_a, use_b;
-		  imm_use_iterator imm_iter;
-		  ssa_op_iter op_iter, op_iter1;
-		  tree op0 = GIMPLE_STMT_OPERAND (stmt, 0);
-		  tree scev = instantiate_parameters
-		    (loop, analyze_scalar_evolution (loop, op0));
-
-		  /* If the IV is simple, it can be duplicated.  */
-		  if (!automatically_generated_chrec_p (scev))
-		    {
-		      tree step = evolution_part_in_loop_num (scev, loop->num);
-		      if (step && step != chrec_dont_know 
-			  && TREE_CODE (step) == INTEGER_CST)
-			continue;
-		    }
-
-		  /* The statement should not define a variable used
-		     in the inner loop.  */
-		  if (TREE_CODE (op0) == SSA_NAME)
-		    FOR_EACH_IMM_USE_FAST (use_a, imm_iter, op0)
-		      if (bb_for_stmt (USE_STMT (use_a))->loop_father
-			  == loop->inner)
-			goto fail;
-
-		  FOR_EACH_SSA_USE_OPERAND (use_a, stmt, op_iter, SSA_OP_USE)
-		    {
-		      tree node, op = USE_FROM_PTR (use_a);
-
-		      /* The variables should not be used in both loops.  */
-		      FOR_EACH_IMM_USE_FAST (use_b, imm_iter, op)
-		      if (bb_for_stmt (USE_STMT (use_b))->loop_father
-			  == loop->inner)
-			goto fail;
-
-		      /* The statement should not use the value of a
-			 scalar that was modified in the loop.  */
-		      node = SSA_NAME_DEF_STMT (op);
-		      if (TREE_CODE (node) == PHI_NODE)
-			FOR_EACH_PHI_ARG (use_b, node, op_iter1, SSA_OP_USE)
-			  {
-			    tree arg = USE_FROM_PTR (use_b);
-
-			    if (TREE_CODE (arg) == SSA_NAME)
-			      {
-				tree arg_stmt = SSA_NAME_DEF_STMT (arg);
-
-				if (bb_for_stmt (arg_stmt)
-				    && (bb_for_stmt (arg_stmt)->loop_father
-					== loop->inner))
-				  goto fail;
-			      }
-			  }
-		    }
-
-		  if (can_put_in_inner_loop (loop->inner, stmt)
-		      || can_put_after_inner_loop (loop, stmt))
-		    continue;
-		}
-
-	      /* Otherwise, if the bb of a statement we care about isn't
-		 dominated by the header of the inner loop, then we can't
-		 handle this case right now.  This test ensures that the
-		 statement comes completely *after* the inner loop.  */
-	      if (!dominated_by_p (CDI_DOMINATORS,
-				   bb_for_stmt (stmt), 
-				   loop->inner->header))
-		goto fail;
-	    }
-	}
-    }
+    if (bbs[i]->loop_father == loop
+	&& cannot_convert_bb_to_perfect_nest (bbs[i], loop))
+      goto fail;
 
   /* We also need to make sure the loop exit only has simple copy phis in it,
-     otherwise we don't know how to transform it into a perfect nest right
-     now.  */
-  exitdest = single_exit (loop)->dest;
-  
-  for (phi = phi_nodes (exitdest); phi; phi = PHI_CHAIN (phi))
+     otherwise we don't know how to transform it into a perfect nest.  */
+  for (phi = phi_nodes (single_exit (loop)->dest); phi; phi = PHI_CHAIN (phi))
     if (PHI_NUM_ARGS (phi) != 1)
       goto fail;
   
@@ -2564,11 +2596,16 @@ lambda_transform_legal_p (lambda_trans_matrix trans,
   gcc_assert (LTM_COLSIZE (trans) == nb_loops
 	      && LTM_ROWSIZE (trans) == nb_loops);
 
-  /* When there is an unknown relation in the dependence_relations, we
-     know that it is no worth looking at this loop nest: give up.  */
+  /* When there are no dependences, the transformation is correct.  */
+  if (VEC_length (ddr_p, dependence_relations) == 0)
+    return true;
+
   ddr = VEC_index (ddr_p, dependence_relations, 0);
   if (ddr == NULL)
     return true;
+
+  /* When there is an unknown relation in the dependence_relations, we
+     know that it is no worth looking at this loop nest: give up.  */
   if (DDR_ARE_DEPENDENT (ddr) == chrec_dont_know)
     return false;
 
@@ -2603,5 +2640,200 @@ lambda_transform_legal_p (lambda_trans_matrix trans,
 	    return false;
 	}
     }
+  return true;
+}
+
+
+/* Collects parameters from affine function ACCESS_FUNCTION, and push
+   them in PARAMETERS.  */
+
+static void
+lambda_collect_parameters_from_af (tree access_function,
+				   struct pointer_set_t *param_set,
+				   VEC (tree, heap) **parameters)
+{
+  if (access_function == NULL)
+    return;
+
+  if (TREE_CODE (access_function) == SSA_NAME
+      && pointer_set_contains (param_set, access_function) == 0)
+    {
+      pointer_set_insert (param_set, access_function);
+      VEC_safe_push (tree, heap, *parameters, access_function);
+    }
+  else
+    {
+      int i, num_operands = tree_operand_length (access_function);
+
+      for (i = 0; i < num_operands; i++)
+	lambda_collect_parameters_from_af (TREE_OPERAND (access_function, i),
+					   param_set, parameters);
+    }
+}
+
+/* Collects parameters from DATAREFS, and push them in PARAMETERS.  */
+
+void
+lambda_collect_parameters (VEC (data_reference_p, heap) *datarefs,
+			   VEC (tree, heap) **parameters)
+{
+  unsigned i, j;
+  struct pointer_set_t *parameter_set = pointer_set_create ();
+  data_reference_p data_reference;
+
+  for (i = 0; VEC_iterate (data_reference_p, datarefs, i, data_reference); i++)
+    for (j = 0; j < DR_NUM_DIMENSIONS (data_reference); j++)
+      lambda_collect_parameters_from_af (DR_ACCESS_FN (data_reference, j),
+					 parameter_set, parameters);
+}
+
+/* Translates BASE_EXPR to vector CY.  AM is needed for inferring
+   indexing positions in the data access vector.  CST is the analyzed
+   integer constant.  */
+
+static bool
+av_for_af_base (tree base_expr, lambda_vector cy, struct access_matrix *am,
+		int cst)
+{
+  bool result = true;
+
+  switch (TREE_CODE (base_expr))
+    {
+    case INTEGER_CST:
+      /* Constant part.  */
+      cy[AM_CONST_COLUMN_INDEX (am)] += int_cst_value (base_expr) * cst;
+      return true;
+
+    case SSA_NAME:
+      {
+	int param_index =
+	  access_matrix_get_index_for_parameter (base_expr, am);
+
+	if (param_index >= 0)
+	  {
+	    cy[param_index] = cst + cy[param_index];
+	    return true;
+	  }
+
+	return false;
+      }
+
+    case PLUS_EXPR:
+      return av_for_af_base (TREE_OPERAND (base_expr, 0), cy, am, cst)
+	&& av_for_af_base (TREE_OPERAND (base_expr, 1), cy, am, cst);
+
+    case MINUS_EXPR:
+      return av_for_af_base (TREE_OPERAND (base_expr, 0), cy, am, cst)
+	&& av_for_af_base (TREE_OPERAND (base_expr, 1), cy, am, -1 * cst);
+
+    case MULT_EXPR:
+      if (TREE_CODE (TREE_OPERAND (base_expr, 0)) == INTEGER_CST)
+	result = av_for_af_base (TREE_OPERAND (base_expr, 1), 
+				 cy, am, cst *
+				 int_cst_value (TREE_OPERAND (base_expr, 0)));
+      else if (TREE_CODE (TREE_OPERAND (base_expr, 1)) == INTEGER_CST)
+	result = av_for_af_base (TREE_OPERAND (base_expr, 0),
+				 cy, am, cst *
+				 int_cst_value (TREE_OPERAND (base_expr, 1)));
+      else
+	result = false;
+
+      return result;
+
+    case NEGATE_EXPR:
+      return av_for_af_base (TREE_OPERAND (base_expr, 0), cy, am, -1 * cst);
+
+    default:
+      return false;
+    }
+
+  return result;
+}
+
+/* Translates ACCESS_FUN to vector CY.  AM is needed for inferring
+   indexing positions in the data access vector.  */
+
+static bool
+av_for_af (tree access_fun, lambda_vector cy, struct access_matrix *am)
+{
+  switch (TREE_CODE (access_fun))
+    {
+    case POLYNOMIAL_CHREC:
+      {
+	tree left = CHREC_LEFT (access_fun);
+	tree right = CHREC_RIGHT (access_fun);
+	unsigned var;
+
+	if (TREE_CODE (right) != INTEGER_CST)
+	  return false;
+
+	var = am_vector_index_for_loop (am, CHREC_VARIABLE (access_fun));
+	cy[var] = int_cst_value (right);
+
+	if (TREE_CODE (left) == POLYNOMIAL_CHREC)
+	  return av_for_af (left, cy, am);
+	else
+	  return av_for_af_base (left, cy, am, 1);
+      }
+
+    case INTEGER_CST:
+      /* Constant part.  */
+      return av_for_af_base (access_fun, cy, am, 1);
+
+    default:
+      return false;
+    }
+}
+
+/* Initializes the access matrix for DATA_REFERENCE.  */
+
+static bool
+build_access_matrix (data_reference_p data_reference,
+		     VEC (tree, heap) *parameters, int loop_nest_num)
+{
+  struct access_matrix *am = GGC_NEW (struct access_matrix);
+  unsigned i, ndim = DR_NUM_DIMENSIONS (data_reference);
+  struct loop *loop = bb_for_stmt (DR_STMT (data_reference))->loop_father;
+  unsigned nb_induction_vars = loop_depth (loop) - loop_nest_num + 1;
+  unsigned lambda_nb_columns;
+  lambda_vector_vec_p matrix;
+
+  AM_LOOP_NEST_NUM (am) = loop_nest_num;
+  AM_NB_INDUCTION_VARS (am) = nb_induction_vars;
+  AM_PARAMETERS (am) = parameters;
+
+  lambda_nb_columns = AM_NB_COLUMNS (am);
+  matrix = VEC_alloc (lambda_vector, heap, lambda_nb_columns);
+  AM_MATRIX (am) = matrix;
+
+  for (i = 0; i < ndim; i++)
+    {
+      lambda_vector access_vector = lambda_vector_new (lambda_nb_columns);
+      tree access_function = DR_ACCESS_FN (data_reference, i);
+
+      if (!av_for_af (access_function, access_vector, am))
+	return false;
+
+      VEC_safe_push (lambda_vector, heap, matrix, access_vector);
+    }
+
+  DR_ACCESS_MATRIX (data_reference) = am;
+  return true;
+}
+
+/* Returns false when one of the access matrices cannot be built.  */
+
+bool
+lambda_compute_access_matrices (VEC (data_reference_p, heap) *datarefs,
+				VEC (tree, heap) *parameters,
+				int loop_nest_num)
+{
+  data_reference_p dataref;
+  unsigned ix;
+
+  for (ix = 0; VEC_iterate (data_reference_p, datarefs, ix, dataref); ix++)
+    if (!build_access_matrix (dataref, parameters, loop_nest_num))
+      return false;
+
   return true;
 }

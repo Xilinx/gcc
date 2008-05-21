@@ -1,6 +1,6 @@
 // Special functions -*- C++ -*-
 
-// Copyright (C) 2006-2007
+// Copyright (C) 2006, 2007, 2008
 // Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
@@ -54,19 +54,12 @@ namespace tr1
 
   // [5.2] Special functions
 
-  /**
-   * @ingroup tr1_math_spec_func
-   * @{
-   */
-
-  //
   // Implementation-space details.
-  //
   namespace __detail
   {
 
     /**
-     *   @brief This routine returns the confluent hypereometric function
+     *   @brief This routine returns the confluent hypergeometric function
      *          by series expansion.
      * 
      *   @f[
@@ -78,7 +71,7 @@ namespace tr1
      * 
      *   If a and b are integers and a < 0 and either b > 0 or b < a then the
      *   series is a polynomial with a finite number of terms.  If b is an integer
-     *   and b <= 0 the the confluent hypergeometric function is undefined.
+     *   and b <= 0 the confluent hypergeometric function is undefined.
      *
      *   @param  __a  The "numerator" parameter.
      *   @param  __c  The "denominator" parameter.
@@ -714,7 +707,7 @@ namespace tr1
     }
 
 
-    /*
+    /**
      *   @brief Return the hypogeometric function @f$ _2F_1(a,b;c;x) @f$.
      *
      *   The hypogeometric function is defined by
@@ -780,9 +773,6 @@ namespace tr1
     }
 
   } // namespace std::tr1::__detail
-
-  /* @} */ // group tr1_math_spec_func
-
 }
 }
 

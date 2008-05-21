@@ -32,7 +32,7 @@
 ------------------------------------------------------------------------------
 
 --  WARNING: There is a C version of this package. Any changes to this
---  source file must be properly reflected in the C header file a-namet.h
+--  source file must be properly reflected in the C header file namet.h
 --  which is created manually from namet.ads and namet.adb.
 
 with Debug;    use Debug;
@@ -55,7 +55,7 @@ package body Namet is
    Hash_Num : constant Int := 2**12;
    --  Number of headers in the hash table. Current hash algorithm is closely
    --  tailored to this choice, so it can only be changed if a corresponding
-   --  change is made to the hash alogorithm.
+   --  change is made to the hash algorithm.
 
    Hash_Max : constant Int := Hash_Num - 1;
    --  Indexes in the hash header table run from 0 to Hash_Num - 1
@@ -444,7 +444,7 @@ package body Namet is
 
                   --  Search the map. Note that this loop must terminate, if
                   --  not we have some kind of internal error, and a constraint
-                  --  constraint error may be raised.
+                  --  error may be raised.
 
                   J := Map'First;
                   loop

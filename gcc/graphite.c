@@ -821,8 +821,8 @@ build_scops_1 (basic_block start, VEC (scop_p, heap) **scops,
 	       basic_block *last, bool *all_simple)
 {
   basic_block current = start;
-  basic_block next;
-  scop_p open_scop;
+  basic_block next = NULL;
+  scop_p open_scop = NULL;
   
   bool in_scop = false;
 
@@ -1735,9 +1735,9 @@ static bool
 build_access_matrix (data_reference_p ref, graphite_bb_p gb)
 {
   unsigned i, ndim = DR_NUM_DIMENSIONS (ref);
+  struct access_matrix *am = GGC_NEW (struct access_matrix);
 
-  DR_SCOP (ref) = GBB_SCOP (gb);
-  DR_ACCESS_MATRIX (ref) = VEC_alloc (lambda_vector, heap, ndim);
+  AM_MATRIX (am) = VEC_alloc (lambda_vector, heap, ndim);
 
   for (i = 0; i < ndim; i++)
     {
@@ -1748,9 +1748,11 @@ build_access_matrix (data_reference_p ref, graphite_bb_p gb)
       if (!build_access_matrix_with_af (af, v, scop, ref_nb_loops (ref)))
 	return false;
 
-      VEC_safe_push (lambda_vector, heap, DR_ACCESS_MATRIX (ref), v);
+      VEC_safe_push (lambda_vector, heap, AM_MATRIX (am), v);
     }
 
+  DR_SCOP (ref) = GBB_SCOP (gb);
+  DR_ACCESS_MATRIX (ref) = am;
   return true;
 }
 
@@ -2260,7 +2262,8 @@ initialize_dependence_polyhedron (scop_p scop,
     }
 
   /* Copy Ds access matrix.  */
-  for (row = 0; VEC_iterate (lambda_vector, DR_ACCESS_MATRIX (a), row, access_row_vector); row++)
+  for (row = 0; VEC_iterate (lambda_vector, AM_MATRIX (DR_ACCESS_MATRIX (a)),
+			     row, access_row_vector); row++)
     {
       for (col = 1; col <= nb_iter1; col++)
 	value_set_si (dep_constraints->p[row + domain1->NbRows + domain2->NbRows][col],
@@ -2272,7 +2275,8 @@ initialize_dependence_polyhedron (scop_p scop,
     }
   value_init (value);
   /* Copy -Dt access matrix.  */
-  for (row = 0; VEC_iterate (lambda_vector, DR_ACCESS_MATRIX (b), row, access_row_vector); row++)
+  for (row = 0; VEC_iterate (lambda_vector, AM_MATRIX (DR_ACCESS_MATRIX (b)),
+			     row, access_row_vector); row++)
     {
       for (col = 1; col <= nb_iter2; col++)
 	value_set_si (dep_constraints->p[row + domain1->NbRows + domain2->NbRows][nb_iter1 + col], 

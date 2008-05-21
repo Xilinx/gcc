@@ -1,6 +1,6 @@
 /* Functions for generic Darwin as target machine for GNU C compiler.
    Copyright (C) 1989, 1990, 1991, 1992, 1993, 2000, 2001, 2002, 2003, 2004,
-   2005, 2006, 2007
+   2005, 2006, 2007, 2008
    Free Software Foundation, Inc.
    Contributed by Apple Computer Inc.
 
@@ -278,7 +278,7 @@ machopic_function_base_name (void)
   if (function_base == NULL)
     function_base = ggc_alloc_string ("<pic base>", sizeof ("<pic base>"));
 
-  current_function_uses_pic_offset_table = 1;
+  crtl->uses_pic_offset_table = 1;
 
   return function_base;
 }
@@ -1136,6 +1136,8 @@ darwin_mergeable_string_section (tree exp,
       && TREE_CODE (exp) == STRING_CST
       && TREE_CODE (TREE_TYPE (exp)) == ARRAY_TYPE
       && align <= 256
+      && (int_size_in_bytes (TREE_TYPE (exp))
+	  == TREE_STRING_LENGTH (exp))
       && ((size_t) TREE_STRING_LENGTH (exp)
 	  == strlen (TREE_STRING_POINTER (exp)) + 1))
     return darwin_sections[cstring_section];
@@ -1732,5 +1734,48 @@ darwin_override_options (void)
       && debug_hooks->var_location != do_nothing_debug_hooks.var_location)
     flag_var_tracking_uninit = 1;
 }
+
+/* Add $LDBL128 suffix to long double builtins.  */
+
+static void
+darwin_patch_builtin (int fncode)
+{
+  tree fn = built_in_decls[fncode];
+  tree sym;
+  char *newname;
+
+  if (!fn)
+    return;
+
+  sym = DECL_ASSEMBLER_NAME (fn);
+  newname = ACONCAT (("_", IDENTIFIER_POINTER (sym), "$LDBL128", NULL));
+
+  set_user_assembler_name (fn, newname);
+
+  fn = implicit_built_in_decls[fncode];
+  if (fn)
+    set_user_assembler_name (fn, newname);
+}
+
+void
+darwin_patch_builtins (void)
+{
+  if (LONG_DOUBLE_TYPE_SIZE != 128)
+    return;
+
+#define PATCH_BUILTIN(fncode) darwin_patch_builtin (fncode);
+#define PATCH_BUILTIN_NO64(fncode)		\
+  if (!TARGET_64BIT)				\
+    darwin_patch_builtin (fncode);
+#define PATCH_BUILTIN_VARIADIC(fncode)				  \
+  if (!TARGET_64BIT						  \
+      && (strverscmp (darwin_macosx_version_min, "10.3.9") >= 0)) \
+    darwin_patch_builtin (fncode);
+#include "darwin-ppc-ldouble-patch.def"
+#undef PATCH_BUILTIN
+#undef PATCH_BUILTIN_NO64
+#undef PATCH_BUILTIN_VARIADIC
+}
+
 
 #include "gt-darwin.h"

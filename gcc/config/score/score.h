@@ -508,7 +508,7 @@ extern enum reg_class score_char_to_class[256];
 
 /* The offset of the first local variable from the beginning of the frame.
    See compute_frame_size for details about the frame layout.  */
-#define STARTING_FRAME_OFFSET           current_function_outgoing_args_size
+#define STARTING_FRAME_OFFSET           crtl->outgoing_args_size
 
 /* The argument pointer always points to the first argument.  */
 #define FIRST_PARM_OFFSET(FUNDECL)      0
@@ -549,7 +549,7 @@ extern enum reg_class score_char_to_class[256];
    Zero means the frame pointer need not be set up (and parms
    may be accessed via the stack pointer) in functions that seem suitable.
    This is computed in `reload', in reload1.c.  */
-#define FRAME_POINTER_REQUIRED          current_function_calls_alloca
+#define FRAME_POINTER_REQUIRED          cfun->calls_alloca
 
 #define ELIMINABLE_REGS                                \
   {{ ARG_POINTER_REGNUM, STACK_POINTER_REGNUM},        \
@@ -578,8 +578,8 @@ extern enum reg_class score_char_to_class[256];
    allocate the area reserved for arguments passed in registers.
    If `ACCUMULATE_OUTGOING_ARGS' is also defined, the only effect
    of this macro is to determine whether the space is included in
-   `current_function_outgoing_args_size'.  */
-#define OUTGOING_REG_PARM_STACK_SPACE   1
+   `crtl->outgoing_args_size'.  */
+#define OUTGOING_REG_PARM_STACK_SPACE(FNTYPE) 1
 
 #define RETURN_POPS_ARGS(FUNDECL, FUNTYPE, STACK_SIZE) 0
 

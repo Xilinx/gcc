@@ -2298,8 +2298,10 @@ rewrite_into_ssa (void)
 }
 
 
-struct tree_opt_pass pass_build_ssa = 
+struct gimple_opt_pass pass_build_ssa = 
 {
+ {
+  GIMPLE_PASS,
   "ssa",				/* name */
   NULL,					/* gate */
   rewrite_into_ssa,			/* execute */
@@ -2313,8 +2315,8 @@ struct tree_opt_pass pass_build_ssa =
   0,					/* todo_flags_start */
   TODO_dump_func
     | TODO_verify_ssa
-    | TODO_remove_unused_locals,	/* todo_flags_finish */
-  0					/* letter */
+    | TODO_remove_unused_locals		/* todo_flags_finish */
+ }
 };
 
 
@@ -2787,19 +2789,6 @@ mark_sym_for_renaming (tree sym)
 {
   if (need_to_initialize_update_ssa_p)
     init_update_ssa ();
-
-  /* FIXME.  Why do we need this?  */
-  {
-    subvar_t svars;
-    if (var_can_have_subvars (sym) && (svars = get_subvars_for_var (sym)))
-      {
-        unsigned int i;
-	tree subvar;
-
-	for (i = 0; VEC_iterate (tree, svars, i, subvar); ++i)
-	  mark_sym_for_renaming (subvar);
-      }
-  }
 
   bitmap_set_bit (syms_to_rename, DECL_UID (sym));
 

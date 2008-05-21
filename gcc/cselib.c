@@ -1600,7 +1600,7 @@ cselib_record_sets (rtx insn)
         {
 	  rtx src = sets[i].src;
 	  if (cond)
-	    src = gen_rtx_IF_THEN_ELSE (GET_MODE (src), cond, src, dest);
+	    src = gen_rtx_IF_THEN_ELSE (GET_MODE (dest), cond, src, dest);
 	  sets[i].src_elt = cselib_lookup (src, GET_MODE (dest), 1);
 	  if (MEM_P (dest))
 	    sets[i].dest_addr_elt = cselib_lookup (XEXP (dest, 0), Pmode, 1);
@@ -1693,7 +1693,11 @@ cselib_process_insn (rtx insn)
 		      GET_MODE (REG_VALUES (i)->elt->val_rtx))))
 	  cselib_invalidate_regno (i, reg_raw_mode[i]);
 
-      if (! CONST_OR_PURE_CALL_P (insn))
+      /* Since it is not clear how cselib is going to be used, be
+	 conservative here and treat looping pure or const functions
+	 as if they were regular functions.  */
+      if (RTL_LOOPING_CONST_OR_PURE_CALL_P (insn)
+	  || !(RTL_CONST_OR_PURE_CALL_P (insn)))
 	cselib_invalidate_mem (callmem);
     }
 

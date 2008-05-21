@@ -1,6 +1,6 @@
 // -*- C++ -*-
 
-// Copyright (C) 2007 Free Software Foundation, Inc.
+// Copyright (C) 2007, 2008 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the terms
@@ -40,6 +40,7 @@
 #define _GLIBCXX_PARALLEL_PARTIAL_SUM_H 1
 
 #include <omp.h>
+#include <new>
 #include <bits/stl_algobase.h>
 #include <parallel/parallel.h>
 #include <parallel/numericfwd.h>
@@ -56,15 +57,14 @@ namespace __gnu_parallel
   *  @param value Start value. Must be passed since the neutral
   *  element is unknown in general.
   *  @return End iterator of output sequence. */
-template<
-    typename InputIterator,
-    typename OutputIterator,
-    typename BinaryOperation>
-  inline OutputIterator
-  parallel_partial_sum_basecase(
-            InputIterator begin, InputIterator end,
-            OutputIterator result, BinaryOperation bin_op,
-            typename std::iterator_traits<InputIterator>::value_type value)
+template<typename InputIterator,
+	 typename OutputIterator,
+	 typename BinaryOperation>
+  OutputIterator
+  parallel_partial_sum_basecase(InputIterator begin, InputIterator end,
+				OutputIterator result, BinaryOperation bin_op,
+				typename std::iterator_traits
+				<InputIterator>::value_type value)
   {
     if (begin == end)
       return result;
@@ -89,15 +89,14 @@ template<
     *  @param num_threads Number of threads to use.
     *  @return End iterator of output sequence.
     */
-template<
-    typename InputIterator,
-    typename OutputIterator,
-    typename BinaryOperation>
+template<typename InputIterator,
+	 typename OutputIterator,
+	 typename BinaryOperation>
   OutputIterator
-  parallel_partial_sum_linear(
-            InputIterator begin, InputIterator end,
-            OutputIterator result, BinaryOperation bin_op,
-            typename std::iterator_traits<InputIterator>::difference_type n)
+  parallel_partial_sum_linear(InputIterator begin, InputIterator end,
+			      OutputIterator result, BinaryOperation bin_op,
+			      typename std::iterator_traits
+			      <InputIterator>::difference_type n)
   {
     typedef std::iterator_traits<InputIterator> traits_type;
     typedef typename traits_type::value_type value_type;
@@ -119,6 +118,8 @@ template<
     difference_type* borders;
     value_type* sums;
 
+    const _Settings& __s = _Settings::get();
+
 #   pragma omp parallel num_threads(num_threads)
       {
 #       pragma omp single
@@ -127,14 +128,14 @@ template<
 
             borders = new difference_type[num_threads + 2];
 
-            if (Settings::partial_sum_dilatation == 1.0f)
+            if (__s.partial_sum_dilation == 1.0f)
               equally_split(n, num_threads + 1, borders);
             else
               {
                 difference_type chunk_length =
-                    ((double)n /
-                    ((double)num_threads + Settings::partial_sum_dilatation)),
-                    borderstart = n - num_threads * chunk_length;
+                    ((double)n
+		     / ((double)num_threads + __s.partial_sum_dilation)),
+		  borderstart = n - num_threads * chunk_length;
                 borders[0] = 0;
                 for (int i = 1; i < (num_threads + 1); ++i)
                   {
@@ -144,8 +145,8 @@ template<
                 borders[num_threads + 1] = n;
               }
 
-            sums = static_cast<value_type*>(
-                ::operator new(sizeof(value_type) * num_threads));
+            sums = static_cast<value_type*>(::operator new(sizeof(value_type)
+							   * num_threads));
             OutputIterator target_end;
           } //single
 
@@ -154,16 +155,17 @@ template<
           {
             *result = *begin;
             parallel_partial_sum_basecase(begin + 1, begin + borders[1],
-                          result + 1, bin_op, *begin);
-            new(&(sums[iam])) value_type(*(result + borders[1] - 1));
+					  result + 1, bin_op, *begin);
+            ::new(&(sums[iam])) value_type(*(result + borders[1] - 1));
           }
         else
           {
-            new(&(sums[iam])) value_type(
-                                std::accumulate(begin + borders[iam] + 1,
-                                begin + borders[iam + 1],
-                                *(begin + borders[iam]),
-                                bin_op, __gnu_parallel::sequential_tag()));
+            ::new(&(sums[iam]))
+	      value_type(std::accumulate(begin + borders[iam] + 1,
+					 begin + borders[iam + 1],
+					 *(begin + borders[iam]),
+					 bin_op,
+					 __gnu_parallel::sequential_tag()));
           }
 
 #       pragma omp barrier
@@ -176,12 +178,12 @@ template<
 
         // Still same team.
         parallel_partial_sum_basecase(begin + borders[iam + 1],
-                      begin + borders[iam + 2],
-                      result + borders[iam + 1], bin_op,
-                      sums[iam]);
+				      begin + borders[iam + 2],
+				      result + borders[iam + 1], bin_op,
+				      sums[iam]);
       } //parallel
 
-    delete[] sums;
+    ::operator delete(sums);
     delete[] borders;
 
     return result + n;
@@ -193,10 +195,9 @@ template<
   *  @param result Begin iterator of output sequence.
   *  @param bin_op Associative binary function.
   *  @return End iterator of output sequence. */
-template<
-    typename InputIterator,
-    typename OutputIterator,
-    typename BinaryOperation>
+template<typename InputIterator,
+	 typename OutputIterator,
+	 typename BinaryOperation>
   OutputIterator
   parallel_partial_sum(InputIterator begin, InputIterator end,
                        OutputIterator result, BinaryOperation bin_op)
@@ -209,9 +210,9 @@ template<
 
     difference_type n = end - begin;
 
-    switch (Settings::partial_sum_algorithm)
+    switch (_Settings::get().partial_sum_algorithm)
       {
-      case Settings::LINEAR:
+      case LINEAR:
         // Need an initial offset.
         return parallel_partial_sum_linear(begin, end, result, bin_op, n);
       default:

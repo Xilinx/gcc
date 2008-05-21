@@ -1,6 +1,6 @@
 /* Functions related to building classes and their related objects.
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004,
-   2005, 2006, 2007 Free Software Foundation, Inc.
+   2005, 2006, 2007, 2008 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -479,10 +479,6 @@ push_class (tree class_type, tree class_name)
 {
   tree decl, signature;
   location_t saved_loc = input_location;
-#ifndef USE_MAPPED_LOCATION
-  input_filename = "<unknown>";
-  input_line = 0;
-#endif
   CLASS_P (class_type) = 1;
   decl = build_decl (TYPE_DECL, class_name, class_type);
   TYPE_DECL_SUPPRESS_DEBUG (decl) = 1;
@@ -742,8 +738,8 @@ build_java_method_type (tree fntype, tree this_class, int access_flags)
   return fntype;
 }
 
-static void
-hide (tree decl ATTRIBUTE_UNUSED)
+void
+java_hide_decl (tree decl ATTRIBUTE_UNUSED)
 {
 #ifdef HAVE_GAS_HIDDEN
   DECL_VISIBILITY (decl) = VISIBILITY_HIDDEN;
@@ -872,7 +868,7 @@ add_field (tree class, tree name, tree field_type, int flags)
       /* Hide everything that shouldn't be visible outside a DSO.  */
       if (flag_indirect_classes
 	  || (FIELD_PRIVATE (field)))
-	hide (field);
+	java_hide_decl (field);
       /* Considered external unless we are compiling it into this
 	 object file.  */
       DECL_EXTERNAL (field) = (is_compiled_class (class) != 2);
@@ -959,7 +955,6 @@ build_utf8_ref (tree name)
   PUSH_FIELD_VALUE (cinit, "data", string);
   FINISH_RECORD_CONSTRUCTOR (cinit);
   TREE_CONSTANT (cinit) = 1;
-  TREE_INVARIANT (cinit) = 1;
 
   /* Generate a unique-enough identifier.  */
   sprintf(buf, "_Utf%d", ++utf8_count);
@@ -1031,7 +1026,7 @@ build_static_class_ref (tree type)
 	{
 	  TREE_PUBLIC (decl) = 1;
 	  if (CLASS_PRIVATE (TYPE_NAME (type)))
-	    hide (decl);
+	    java_hide_decl (decl);
 	}
       DECL_IGNORED_P (decl) = 1;
       DECL_ARTIFICIAL (decl) = 1;
@@ -1067,11 +1062,10 @@ build_classdollar_field (tree type)
 					     /* const */ 1, 0)),
 			/* const */ 1, 0)));
       TREE_STATIC (decl) = 1;
-      TREE_INVARIANT (decl) = 1;
       TREE_CONSTANT (decl) = 1;
       TREE_READONLY (decl) = 1;
       TREE_PUBLIC (decl) = 1;
-      hide (decl);
+      java_hide_decl (decl);
       DECL_IGNORED_P (decl) = 1;
       DECL_ARTIFICIAL (decl) = 1;
       MAYBE_CREATE_VAR_LANG_DECL_SPECIFIC (decl);
@@ -1608,7 +1602,6 @@ get_dispatch_table (tree type, tree this_class_addr)
 		tree fdesc = build2 (FDESC_EXPR, nativecode_ptr_type_node, 
 				     method, build_int_cst (NULL_TREE, j));
 		TREE_CONSTANT (fdesc) = 1;
-		TREE_INVARIANT (fdesc) = 1;
 	        list = tree_cons (NULL_TREE, fdesc, list);
 	      }
 	  else
@@ -1760,7 +1753,7 @@ make_class_data (tree type)
       /* The only dispatch table exported from a DSO is the dispatch
 	 table for java.lang.Class.  */
       if (DECL_NAME (type_decl) != id_class)
-	hide (dtable_decl);
+	java_hide_decl (dtable_decl);
       if (! flag_indirect_classes)
 	rest_of_decl_compilation (dtable_decl, 1, 0);
       /* Maybe we're compiling Class as the first class.  If so, set
@@ -2080,7 +2073,6 @@ make_class_data (tree type)
 			build1 (ADDR_EXPR, symbols_array_ptr_type,
 				TYPE_OTABLE_SYMS_DECL (type)));
       TREE_CONSTANT (TYPE_OTABLE_DECL (type)) = 1;
-      TREE_INVARIANT (TYPE_OTABLE_DECL (type)) = 1;
     }
   if (TYPE_ATABLE_METHODS(type) == NULL_TREE)
     {
@@ -2096,7 +2088,6 @@ make_class_data (tree type)
 			build1 (ADDR_EXPR, symbols_array_ptr_type,
 				TYPE_ATABLE_SYMS_DECL (type)));
       TREE_CONSTANT (TYPE_ATABLE_DECL (type)) = 1;
-      TREE_INVARIANT (TYPE_ATABLE_DECL (type)) = 1;
     }
    if (TYPE_ITABLE_METHODS(type) == NULL_TREE)
     {
@@ -2112,7 +2103,6 @@ make_class_data (tree type)
 			build1 (ADDR_EXPR, symbols_array_ptr_type,
 				TYPE_ITABLE_SYMS_DECL (type)));
       TREE_CONSTANT (TYPE_ITABLE_DECL (type)) = 1;
-      TREE_INVARIANT (TYPE_ITABLE_DECL (type)) = 1;
     }
  
   PUSH_FIELD_VALUE (cons, "catch_classes",
@@ -2613,7 +2603,7 @@ layout_class_method (tree this_class, tree super_class,
       || (METHOD_PRIVATE (method_decl) && METHOD_STATIC (method_decl)
 	  && ! METHOD_NATIVE (method_decl)
 	  && ! special_method_p (method_decl)))
-    hide (method_decl);
+    java_hide_decl (method_decl);
 
   /* Considered external unless it is being compiled into this object
      file, or it was already flagged as external.  */
@@ -2852,7 +2842,6 @@ build_symbol_entry (tree decl, tree special)
   PUSH_FIELD_VALUE (sym, "signature", signature);
   FINISH_RECORD_CONSTRUCTOR (sym);
   TREE_CONSTANT (sym) = 1;
-  TREE_INVARIANT (sym) = 1;
 
   return sym;
 } 
@@ -2893,7 +2882,6 @@ emit_symbol_table (tree name, tree the_table, tree decl_list,
   PUSH_FIELD_VALUE (null_symbol, "signature", null_pointer_node);
   FINISH_RECORD_CONSTRUCTOR (null_symbol);
   TREE_CONSTANT (null_symbol) = 1;  
-  TREE_INVARIANT (null_symbol) = 1;  
   list = tree_cons (NULL_TREE, null_symbol, list);
 
   /* Put the list in the right order and make it a constructor. */

@@ -183,12 +183,12 @@ score7_compute_frame_size (HOST_WIDE_INT size)
   f->gp_reg_size = 0;
   f->mask = 0;
   f->var_size = SCORE7_STACK_ALIGN (size);
-  f->args_size = current_function_outgoing_args_size;
+  f->args_size = crtl->outgoing_args_size;
   f->cprestore_size = flag_pic ? UNITS_PER_WORD : 0;
   if (f->var_size == 0 && current_function_is_leaf)
     f->args_size = f->cprestore_size = 0;
 
-  if (f->args_size == 0 && current_function_calls_alloca)
+  if (f->args_size == 0 && cfun->calls_alloca)
     f->args_size = UNITS_PER_WORD;
 
   f->total_size = f->var_size + f->args_size + f->cprestore_size;
@@ -201,7 +201,7 @@ score7_compute_frame_size (HOST_WIDE_INT size)
         }
     }
 
-  if (current_function_calls_eh_return)
+  if (crtl->calls_eh_return)
     {
       unsigned int i;
       for (i = 0;; ++i)
@@ -381,6 +381,7 @@ score7_output_mi_thunk (FILE *file, tree thunk_fndecl ATTRIBUTE_UNUSED,
   final_start_function (insn, file, 1);
   final (insn, file, 1);
   final_end_function ();
+  free_after_compilation (cfun);
 
   /* Clean up the vars set above.  Note that final_end_function resets
      the global pointer for us.  */
@@ -1427,7 +1428,7 @@ score7_prologue (void)
           rtx mem = gen_rtx_MEM (SImode,
                                  gen_rtx_PRE_DEC (SImode, stack_pointer_rtx));
           rtx reg = gen_rtx_REG (SImode, regno);
-          if (!current_function_calls_eh_return)
+          if (!crtl->calls_eh_return)
             MEM_READONLY_P (mem) = 1;
           EMIT_PL (emit_insn (gen_pushsi_score7 (mem, reg)));
         }
@@ -1507,7 +1508,7 @@ score7_epilogue (int sibcall_p)
   if (base != stack_pointer_rtx)
     emit_move_insn (stack_pointer_rtx, base);
 
-  if (current_function_calls_eh_return)
+  if (crtl->calls_eh_return)
     emit_insn (gen_add3_insn (stack_pointer_rtx,
                               stack_pointer_rtx,
                               EH_RETURN_STACKADJ_RTX));
@@ -1520,7 +1521,7 @@ score7_epilogue (int sibcall_p)
                                  gen_rtx_POST_INC (SImode, stack_pointer_rtx));
           rtx reg = gen_rtx_REG (SImode, regno);
 
-          if (!current_function_calls_eh_return)
+          if (!crtl->calls_eh_return)
             MEM_READONLY_P (mem) = 1;
 
           emit_insn (gen_popsi_score7 (reg, mem));

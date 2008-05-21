@@ -1,3 +1,47 @@
+2008-04-30  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* config/rs6000/t-ppccomm: Add build rules for new files.
+	(LIB2ADD_ST): New variable.
+
+2008-04-07  Andy Hutchinson  <hutchinsonandy@aim.com>
+
+	PR target/34210
+	PR target/35508
+	* config.host (avr-*-*): Add avr cpu_type and avr tmake_file.
+	* config/t-avr: New file. Build 16bit libgcc functions.
+
+2008-03-02  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/35401
+	* config/t-slibgcc-darwin: Make install-leaf dependent on
+	install-darwin-libgcc-stubs instead of install.
+
+2008-01-25  Joseph Myers  <joseph@codesourcery.com>
+
+	* config.host (tic4x-*-*, c4x-*-rtems*, tic4x-*-rtems*, c4x-*,
+	tic4x-*, h8300-*-rtemscoff*, ns32k-*-netbsdelf*, ns32k-*-netbsd*,
+	sh-*-rtemscoff*): Remove cases.
+
+2007-12-27  Richard Sandiford  <rsandifo@nildram.co.uk>
+
+	* Makefile.in (all): Use install-leaf rather than install.
+	(install): Split most of the rule into...
+	(install-leaf): ...this new one.
+
+2007-12-19  Etsushi Kato  <ek.kato@gmail.com>
+	    Paolo Bonzini  <bonzini@gnu.org>
+
+	PR target/30572
+	* Makefile.in: Use @shlib_slibdir@ substitution to get correct install name
+	on darwin.
+	* config/t-slibgcc-darwin: Use @shlib_slibdir@ for -install_name.
+				
+2007-12-15  Hans-Peter Nilsson  <hp@axis.com>
+
+	* config.host (crisv32-*-elf, crisv32-*-none): New, same as
+	cris-*-elf and cris-*-none.
+	(crisv32-*-linux*): Similar, as cris-*-linux*.
+
 2007-11-20  Rask Ingemann Lambertsen  <rask@sygehus.dk>
 
 	* config.host (ia64*-*-elf*): Build ia64 specific libgcc parts.

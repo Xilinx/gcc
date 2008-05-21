@@ -1,5 +1,5 @@
 /* All matcher functions.
-   Copyright (C) 2003, 2005, 2007
+   Copyright (C) 2003, 2005, 2007, 2008
    Free Software Foundation, Inc.
    Contributed by Steven Bosscher
 
@@ -38,7 +38,7 @@ extern gfc_st_label *gfc_statement_label;
 /* match.c.  */
 
 /* Generic match subroutines.  */
-match gfc_match_special_char (int *);
+match gfc_match_special_char (gfc_char_t *);
 match gfc_match_space (void);
 match gfc_match_eos (void);
 match gfc_match_small_literal_int (int *, int *);
@@ -54,6 +54,7 @@ match gfc_match_intrinsic_op (gfc_intrinsic_op *);
 match gfc_match_char (char);
 match gfc_match (const char *, ...);
 match gfc_match_iterator (gfc_iterator *, int);
+match gfc_match_parens (void);
 
 /* Statement matchers.  */
 match gfc_match_program (void);
@@ -211,6 +212,7 @@ match gfc_match_rewind (void);
 match gfc_match_flush (void);
 match gfc_match_inquire (void);
 match gfc_match_read (void);
+match gfc_match_wait (void);
 match gfc_match_write (void);
 match gfc_match_print (void);
 

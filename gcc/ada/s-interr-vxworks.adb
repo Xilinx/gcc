@@ -6,7 +6,7 @@
 --                                                                          --
 --                                  B o d y                                 --
 --                                                                          --
---         Copyright (C) 1992-2007, Free Software Foundation, Inc.          --
+--         Copyright (C) 1992-2008, Free Software Foundation, Inc.          --
 --                                                                          --
 -- GNARL is free software; you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -56,54 +56,31 @@
 --  any time.
 
 --  Within this package, the lock L is used to protect the various status
---  tables. If there is a Server_Task associated with a signal or interrupt,
---  we use the per-task lock of the Server_Task instead so that we protect the
---  status between Interrupt_Manager and Server_Task. Protection among
---  service requests are ensured via user calls to the Interrupt_Manager
---  entries.
+--  tables. If there is a Server_Task associated with a signal or interrupt, we
+--  use the per-task lock of the Server_Task instead so that we protect the
+--  status between Interrupt_Manager and Server_Task. Protection among service
+--  requests are ensured via user calls to the Interrupt_Manager entries.
 
 --  This is the VxWorks version of this package, supporting vectored hardware
 --  interrupts.
 
 with Ada.Unchecked_Conversion;
-
-with System.OS_Interface; use System.OS_Interface;
+with Ada.Task_Identification;
 
 with Interfaces.VxWorks;
 
-with Ada.Task_Identification;
---  used for Task_Id type
-
-with Ada.Exceptions;
---  used for Raise_Exception
-
+with System.OS_Interface; use System.OS_Interface;
 with System.Interrupt_Management;
---  used for Reserve
-
 with System.Task_Primitives.Operations;
---  used for Write_Lock
---           Unlock
---           Abort
---           Wakeup_Task
---           Sleep
---           Initialize_Lock
-
 with System.Storage_Elements;
---  used for To_Address
---           To_Integer
---           Integer_Address
-
 with System.Tasking.Utilities;
---  used for Make_Independent
 
 with System.Tasking.Rendezvous;
---  used for Call_Simple
 pragma Elaborate_All (System.Tasking.Rendezvous);
 
 package body System.Interrupts is
 
    use Tasking;
-   use Ada.Exceptions;
 
    package POP renames System.Task_Primitives.Operations;
 
@@ -214,10 +191,10 @@ package body System.Interrupts is
    Interrupt_Access_Hold : Interrupt_Task_Access;
    --  Variable for allocating an Interrupt_Server_Task
 
-   Default_Handler : array (HW_Interrupt) of Interfaces.VxWorks.VOIDFUNCPTR;
-   --  Vectored interrupt handlers installed prior to program startup.
-   --  These are saved only when the umbrella handler is installed for
-   --  a given interrupt number.
+   Handler_Installed : array (HW_Interrupt) of Boolean := (others => False);
+   --  True if Notify_Interrupt was connected to the interrupt.  Handlers
+   --  can be connected but disconnection is not possible on VxWorks.
+   --  Therefore we ensure Notify_Installed is connected at most once.
 
    -----------------------
    -- Local Subprograms --
@@ -238,9 +215,6 @@ package body System.Interrupts is
    procedure Notify_Interrupt (Param : System.Address);
    --  Umbrella handler for vectored interrupts (not signals)
 
-   procedure Install_Default_Action (Interrupt : HW_Interrupt);
-   --  Restore a handler that was in place prior to program execution
-
    procedure Install_Umbrella_Handler
      (Interrupt : HW_Interrupt;
       Handler   : Interfaces.VxWorks.VOIDFUNCPTR);
@@ -258,7 +232,7 @@ package body System.Interrupts is
 
    --  Calling this procedure with New_Handler = null and Static = True
    --  means we want to detach the current handler regardless of the
-   --  previous handler's binding status (ie. do not care if it is a
+   --  previous handler's binding status (i.e. do not care if it is a
    --  dynamic or static handler).
 
    --  This option is needed so that during the finalization of a PO, we
@@ -310,9 +284,8 @@ package body System.Interrupts is
    procedure Check_Reserved_Interrupt (Interrupt : Interrupt_ID) is
    begin
       if Is_Reserved (Interrupt) then
-         Raise_Exception
-           (Program_Error'Identity,
-            "Interrupt" & Interrupt_ID'Image (Interrupt) & " is reserved");
+         raise Program_Error with
+           "Interrupt" & Interrupt_ID'Image (Interrupt) & " is reserved";
       else
          return;
       end if;
@@ -369,7 +342,7 @@ package body System.Interrupts is
 
    --  Calling this procedure with New_Handler = null and Static = True
    --  means we want to detach the current handler regardless of the
-   --  previous handler's binding status (ie. do not care if it is a
+   --  previous handler's binding status (i.e. do not care if it is a
    --  dynamic or static handler).
 
    --  This option is needed so that during the finalization of a PO, we
@@ -472,20 +445,6 @@ package body System.Interrupts is
       Unimplemented ("Ignore_Interrupt");
    end Ignore_Interrupt;
 
-   ----------------------------
-   -- Install_Default_Action --
-   ----------------------------
-
-   procedure Install_Default_Action (Interrupt : HW_Interrupt) is
-   begin
-      --  Restore original interrupt handler
-
-      Interfaces.VxWorks.intVecSet
-        (Interfaces.VxWorks.INUM_TO_IVEC (Integer (Interrupt)),
-         Default_Handler (Interrupt));
-      Default_Handler (Interrupt) := null;
-   end Install_Default_Action;
-
    ----------------------
    -- Install_Handlers --
    ----------------------
@@ -514,6 +473,17 @@ package body System.Interrupts is
       end loop;
    end Install_Handlers;
 
+   ---------------------------------
+   -- Install_Restricted_Handlers --
+   ---------------------------------
+
+   procedure Install_Restricted_Handlers (Handlers : New_Handler_Array) is
+   begin
+      for N in Handlers'Range loop
+         Attach_Handler (Handlers (N).Handler, Handlers (N).Interrupt, True);
+      end loop;
+   end Install_Restricted_Handlers;
+
    ------------------------------
    -- Install_Umbrella_Handler --
    ------------------------------
@@ -527,10 +497,6 @@ package body System.Interrupts is
       Vec : constant Interrupt_Vector :=
               INUM_TO_IVEC (Interfaces.VxWorks.int (Interrupt));
 
-      Old_Handler : constant VOIDFUNCPTR :=
-                      intVecGet
-                        (INUM_TO_IVEC (Interfaces.VxWorks.int (Interrupt)));
-
       Stat : Interfaces.VxWorks.STATUS;
       pragma Unreferenced (Stat);
       --  ??? shouldn't we test Stat at least in a pragma Assert?
@@ -541,10 +507,9 @@ package body System.Interrupts is
       --  when an interrupt occurs, so the umbrella handler has a different
       --  wrapper generated by intConnect for each interrupt number.
 
-      if Default_Handler (Interrupt) = null then
-         Stat :=
-           intConnect (Vec, Handler, System.Address (Interrupt));
-         Default_Handler (Interrupt) := Old_Handler;
+      if not Handler_Installed (Interrupt) then
+         Stat := intConnect (Vec, Handler, System.Address (Interrupt));
+         Handler_Installed (Interrupt) := True;
       end if;
    end Install_Umbrella_Handler;
 
@@ -640,8 +605,10 @@ package body System.Interrupts is
 
    --  Umbrella handler for vectored hardware interrupts (as opposed to
    --  signals and exceptions).  As opposed to the signal implementation,
-   --  this handler is only installed in the vector table while there is
-   --  an active association of an Ada handler to the interrupt.
+   --  this handler is installed in the vector table when the first Ada
+   --  handler is attached to the interrupt.  However because VxWorks don't
+   --  support disconnecting handlers, this subprogram always test whether
+   --  or not an Ada handler is effectively attached.
 
    --  Otherwise, the handler that existed prior to program startup is
    --  in the vector table.  This ensures that handlers installed by
@@ -649,7 +616,7 @@ package body System.Interrupts is
 
    --  Each Interrupt_Server_Task has an associated binary semaphore
    --  on which it pends once it's been started.  This routine determines
-   --  The appropriate semaphore and and issues a semGive call, waking
+   --  The appropriate semaphore and issues a semGive call, waking
    --  the server task.  When a handler is unbound,
    --  System.Interrupts.Unbind_Handler issues a semFlush, and the
    --  server task deletes its semaphore and terminates.
@@ -657,11 +624,15 @@ package body System.Interrupts is
    procedure Notify_Interrupt (Param : System.Address) is
       Interrupt : constant Interrupt_ID := Interrupt_ID (Param);
 
+      Id : constant SEM_ID := Semaphore_ID_Map (Interrupt);
+
       Discard_Result : STATUS;
       pragma Unreferenced (Discard_Result);
 
    begin
-      Discard_Result := semGive (Semaphore_ID_Map (Interrupt));
+      if Id /= 0 then
+         Discard_Result := semGive (Id);
+      end if;
    end Notify_Interrupt;
 
    ---------------
@@ -744,9 +715,7 @@ package body System.Interrupts is
 
    procedure Unimplemented (Feature : String) is
    begin
-      Raise_Exception
-        (Program_Error'Identity,
-         Feature & " not implemented on VxWorks");
+      raise Program_Error with Feature & " not implemented on VxWorks";
    end Unimplemented;
 
    -----------------------
@@ -799,9 +768,6 @@ package body System.Interrupts is
          use type STATUS;
 
       begin
-         --  Hardware interrupt
-
-         Install_Default_Action (HW_Interrupt (Interrupt));
 
          --  Flush server task off semaphore, allowing it to terminate
 
@@ -823,8 +789,8 @@ package body System.Interrupts is
             --  If an interrupt entry is installed raise
             --  Program_Error. (propagate it to the caller).
 
-            Raise_Exception (Program_Error'Identity,
-              "An interrupt entry is already installed");
+            raise Program_Error with
+              "An interrupt entry is already installed";
          end if;
 
          --  Note : Static = True will pass the following check. This is the
@@ -836,8 +802,8 @@ package body System.Interrupts is
             --  Trying to detach a static Interrupt Handler. raise
             --  Program_Error.
 
-            Raise_Exception (Program_Error'Identity,
-              "Trying to detach a static Interrupt Handler");
+            raise Program_Error with
+              "Trying to detach a static Interrupt Handler";
          end if;
 
          Old_Handler := User_Handler (Interrupt).H;
@@ -869,9 +835,7 @@ package body System.Interrupts is
             --  If an interrupt entry is already installed, raise
             --  Program_Error. (propagate it to the caller).
 
-            Raise_Exception
-              (Program_Error'Identity,
-               "An interrupt is already installed");
+            raise Program_Error with "An interrupt is already installed";
          end if;
 
          --  Note : A null handler with Static = True will
@@ -892,10 +856,9 @@ package body System.Interrupts is
 
            or else not Is_Registered (New_Handler))
          then
-            Raise_Exception
-              (Program_Error'Identity,
+            raise Program_Error with
                "Trying to overwrite a static Interrupt Handler with a " &
-               "dynamic Handler");
+               "dynamic Handler";
          end if;
 
          --  Save the old handler
@@ -1003,9 +966,8 @@ package body System.Interrupts is
                   if User_Handler (Interrupt).H /= null
                     or else User_Entry (Interrupt).T /= Null_Task
                   then
-                     Raise_Exception
-                       (Program_Error'Identity,
-                        "A binding for this interrupt is already present");
+                     raise Program_Error with
+                       "A binding for this interrupt is already present";
                   end if;
 
                   User_Entry (Interrupt) := Entry_Assoc'(T => T, E => E);
@@ -1123,6 +1085,10 @@ package body System.Interrupts is
 
             POP.Write_Lock (Self_Id);
 
+            --  Unassociate the interrupt handler.
+
+            Semaphore_ID_Map (Interrupt) := 0;
+
             --  Delete the associated semaphore
 
             S := semDelete (Int_Sema);
@@ -1131,7 +1097,6 @@ package body System.Interrupts is
 
             --  Set status for the Interrupt_Manager
 
-            Semaphore_ID_Map (Interrupt) := 0;
             Server_ID (Interrupt) := Null_Task;
             POP.Unlock (Self_Id);
 

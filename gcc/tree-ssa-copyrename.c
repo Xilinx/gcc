@@ -1,5 +1,5 @@
 /* Rename SSA copies.
-   Copyright (C) 2004, 2007 Free Software Foundation, Inc.
+   Copyright (C) 2004, 2006, 2007, 2008 Free Software Foundation, Inc.
    Contributed by Andrew MacLeod <amacleod@redhat.com>
 
 This file is part of GCC.
@@ -249,8 +249,11 @@ copy_rename_partition_coalesce (var_map map, tree var1, tree var2, FILE *debug)
   /* Don't coalesce if the aliasing sets of the types are different.  */
   if (POINTER_TYPE_P (TREE_TYPE (root1))
       && POINTER_TYPE_P (TREE_TYPE (root2))
-      && get_alias_set (TREE_TYPE (TREE_TYPE (root1)))
-          != get_alias_set (TREE_TYPE (TREE_TYPE (root2))))
+      && ((get_alias_set (TREE_TYPE (TREE_TYPE (root1)))
+	   != get_alias_set (TREE_TYPE (TREE_TYPE (root2))))
+	  || ((DECL_P (root1) && !MTAG_P (root1))
+	      && (DECL_P (root2) && !MTAG_P (root2))
+	      && DECL_NO_TBAA_P (root1) != DECL_NO_TBAA_P (root2))))
     {
       if (debug)
 	fprintf (debug, " : 2 different aliasing sets. No coalesce.\n");
@@ -386,8 +389,10 @@ gate_copyrename (void)
   return flag_tree_copyrename != 0;
 }
 
-struct tree_opt_pass pass_rename_ssa_copies = 
-{  
+struct gimple_opt_pass pass_rename_ssa_copies = 
+{
+ {
+  GIMPLE_PASS,
   "copyrename",				/* name */
   gate_copyrename,			/* gate */
   rename_ssa_copies,			/* execute */
@@ -399,7 +404,7 @@ struct tree_opt_pass pass_rename_ssa_copies =
   0,					/* properties_provided */
   0,					/* properties_destroyed */
   0,					/* todo_flags_start */ 
-  TODO_dump_func | TODO_verify_ssa,     /* todo_flags_finish */
-  0					/* letter */
+  TODO_dump_func | TODO_verify_ssa      /* todo_flags_finish */
+ }
 }; 
 

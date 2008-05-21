@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 2001-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 2001-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -479,6 +479,7 @@ package body Switch.C is
                Constant_Condition_Warnings     := True;
                Implementation_Unit_Warnings    := True;
                Ineffective_Inline_Warnings     := True;
+               Warn_On_Assertion_Failure       := True;
                Warn_On_Assumed_Low_Bound       := True;
                Warn_On_Bad_Fixed_Value         := True;
                Warn_On_Constant                := True;
@@ -659,12 +660,18 @@ package body Switch.C is
                Ptr := Ptr + 1;
                Try_Semantics := True;
 
-            --  Processing for q switch
+            --  Processing for Q switch
 
             when 'Q' =>
                Ptr := Ptr + 1;
                Force_ALI_Tree_File := True;
                Try_Semantics := True;
+
+               --  Processing for r switch
+
+            when 'r' =>
+               Ptr := Ptr + 1;
+               Treat_Restrictions_As_Warnings := True;
 
             --  Processing for R switch
 
@@ -833,9 +840,11 @@ package body Switch.C is
                      Bad_Switch ("-gnatW" & Switch_Chars (Ptr .. Max));
                end;
 
+               Wide_Character_Encoding_Method_Specified := True;
+
                Upper_Half_Encoding :=
                  Wide_Character_Encoding_Method in
-                 WC_Upper_Half_Encoding_Method;
+                   WC_Upper_Half_Encoding_Method;
 
                Ptr := Ptr + 1;
 

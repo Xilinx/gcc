@@ -62,6 +62,7 @@ extern void error (const char *, ...) ATTRIBUTE_GCC_DIAG(1,2);
 extern void fatal_error (const char *, ...) ATTRIBUTE_GCC_DIAG(1,2)
      ATTRIBUTE_NORETURN;
 extern void pedwarn (const char *, ...) ATTRIBUTE_GCC_DIAG(1,2);
+extern void permerror (const char *, ...) ATTRIBUTE_GCC_DIAG(1,2);
 extern void sorry (const char *, ...) ATTRIBUTE_GCC_DIAG(1,2);
 extern void inform (const char *, ...) ATTRIBUTE_GCC_DIAG(1,2);
 extern void verbatim (const char *, ...) ATTRIBUTE_GCC_DIAG(1,2);
@@ -71,7 +72,7 @@ extern void rest_of_type_compilation (tree, int);
 extern void tree_rest_of_compilation (tree);
 extern void init_optimization_passes (void);
 extern void finish_optimization_passes (void);
-extern bool enable_rtl_dump_file (int);
+extern bool enable_rtl_dump_file (void);
 
 extern void announce_function (tree);
 
@@ -110,6 +111,7 @@ extern const char *progname;
 extern const char *dump_base_name;
 extern const char *aux_base_name;
 extern const char *aux_info_file_name;
+extern const char *profile_data_prefix;
 extern const char *asm_file_name;
 extern bool exit_after_options;
 

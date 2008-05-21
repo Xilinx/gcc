@@ -1,6 +1,6 @@
 /* Part of CPP library.  File handling.
    Copyright (C) 1986, 1987, 1989, 1992, 1993, 1994, 1995, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
    Free Software Foundation, Inc.
    Written by Per Bothner, 1994.
    Based on CCCP program by Paul Rubin, June 1986
@@ -74,6 +74,10 @@ struct _cpp_file
   /* The contents of NAME after calling read_file().  */
   const uchar *buffer;
 
+  /* Pointer to the real start of BUFFER.  read_file() might increment
+     BUFFER; when freeing, this this pointer must be used instead.  */
+  const uchar *buffer_start;
+
   /* The macro, if any, preventing re-inclusion.  */
   const cpp_hashnode *cmacro;
 
@@ -106,9 +110,6 @@ struct _cpp_file
 
   /* If BUFFER above contains the true contents of the file.  */
   bool buffer_valid;
-
-  /* File is a PCH (on return from find_include_file).  */
-  bool pch;
 };
 
 /* A singly-linked list for all searches for a given file name, with
@@ -322,9 +323,7 @@ pch_open_file (cpp_reader *pfile, _cpp_file *file, bool *invalid_pch)
 	    }
 	  closedir (pchdir);
 	}
-      if (valid)
-	file->pch = true;
-      else
+      if (!valid)
 	*invalid_pch = true;
     }
 
@@ -640,8 +639,11 @@ read_file_guts (cpp_reader *pfile, _cpp_file *file)
     cpp_error (pfile, CPP_DL_WARNING,
 	       "%s is shorter than expected", file->path);
 
-  file->buffer = _cpp_convert_input (pfile, CPP_OPTION (pfile, input_charset),
-				     buf, size, total, &file->st.st_size);
+  file->buffer = _cpp_convert_input (pfile,
+				     CPP_OPTION (pfile, input_charset),
+				     buf, size, total,
+				     &file->buffer_start,
+				     &file->st.st_size);
   file->buffer_valid = true;
 
   return true;
@@ -703,11 +705,12 @@ should_stack_file (cpp_reader *pfile, _cpp_file *file, bool import)
     return false;
 
   /* Handle PCH files immediately; don't stack them.  */
-  if (file->pch)
+  if (file->pchname)
     {
       pfile->cb.read_pch (pfile, file->pchname, file->fd, file->path);
-      close (file->fd);
       file->fd = -1;
+      free ((void *) file->pchname);
+      file->pchname = NULL;
       return false;
     }
 
@@ -916,7 +919,7 @@ _cpp_stack_include (cpp_reader *pfile, const char *fname, int angle_brackets,
      complicates LAST_SOURCE_LINE_LOCATION.  This does not apply if we
      found a PCH file (in which case linemap_add is not called) or we
      were included from the command-line.  */
-  if (! file->pch && file->err_no == 0 && type != IT_CMDLINE)
+  if (file->pchname == NULL && file->err_no == 0 && type != IT_CMDLINE)
     pfile->line_table->highest_location--;
 
   return _cpp_stack_file (pfile, file, type == IT_IMPORT);
@@ -973,8 +976,8 @@ make_cpp_file (cpp_reader *pfile, cpp_dir *dir, const char *fname)
 static void
 destroy_cpp_file (_cpp_file *file)
 {
-  if (file->buffer)
-    free ((void *) file->buffer);
+  if (file->buffer_start)
+    free ((void *) file->buffer_start);
   free ((void *) file->name);
   free (file);
 }
@@ -1306,9 +1309,10 @@ _cpp_pop_file_buffer (cpp_reader *pfile, _cpp_file *file)
   /* Invalidate control macros in the #including file.  */
   pfile->mi_valid = false;
 
-  if (file->buffer)
+  if (file->buffer_start)
     {
-      free ((void *) file->buffer);
+      free ((void *) file->buffer_start);
+      file->buffer_start = NULL;
       file->buffer = NULL;
       file->buffer_valid = false;
     }

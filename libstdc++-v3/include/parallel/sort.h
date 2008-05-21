@@ -1,6 +1,6 @@
 // -*- C++ -*-
 
-// Copyright (C) 2007 Free Software Foundation, Inc.
+// Copyright (C) 2007, 2008 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the terms
@@ -60,7 +60,136 @@
 
 namespace __gnu_parallel
 {
+	//prototype
+  template<bool stable, typename RandomAccessIterator,
+           typename Comparator, typename Parallelism>
+  void
+  parallel_sort(RandomAccessIterator begin, RandomAccessIterator end,
+  Comparator comp, Parallelism parallelism);
+	
   /** 
+   *  @brief Choose multiway mergesort, splitting variant at run-time,
+   *  for parallel sorting.
+   *  @param begin Begin iterator of input sequence.
+   *  @param end End iterator of input sequence.
+   *  @param comp Comparator.
+   *  @callgraph 
+   */
+  template<bool stable, typename RandomAccessIterator, typename Comparator>
+  inline void
+  parallel_sort(RandomAccessIterator begin, RandomAccessIterator end,
+    Comparator comp, multiway_mergesort_tag parallelism)
+  {
+    _GLIBCXX_CALL(end - begin)
+
+    if(_Settings::get().sort_splitting == EXACT)
+      parallel_sort_mwms<stable, true>
+        (begin, end, comp, parallelism.get_num_threads());
+    else
+      parallel_sort_mwms<stable, false>
+        (begin, end, comp, parallelism.get_num_threads());
+  }
+
+  /** 
+   *  @brief Choose multiway mergesort with exact splitting,
+   *  for parallel sorting.
+   *  @param begin Begin iterator of input sequence.
+   *  @param end End iterator of input sequence.
+   *  @param comp Comparator.
+   *  @callgraph 
+   */
+  template<bool stable, typename RandomAccessIterator, typename Comparator>
+  inline void
+  parallel_sort(RandomAccessIterator begin, RandomAccessIterator end,
+    Comparator comp, multiway_mergesort_exact_tag parallelism)
+  {
+    _GLIBCXX_CALL(end - begin)
+
+      parallel_sort_mwms<stable, true>
+        (begin, end, comp, parallelism.get_num_threads());
+  }
+
+  /** 
+   *  @brief Choose multiway mergesort with splitting by sampling,
+   *  for parallel sorting.
+   *  @param begin Begin iterator of input sequence.
+   *  @param end End iterator of input sequence.
+   *  @param comp Comparator.
+   *  @callgraph 
+   */
+  template<bool stable, typename RandomAccessIterator, typename Comparator>
+  inline void
+  parallel_sort(RandomAccessIterator begin, RandomAccessIterator end,
+    Comparator comp, multiway_mergesort_sampling_tag parallelism)
+  {
+    _GLIBCXX_CALL(end - begin)
+
+    parallel_sort_mwms<stable, false>
+      (begin, end, comp, parallelism.get_num_threads());
+  }
+
+  /**
+   *  @brief Choose quicksort for parallel sorting.
+   *  @param begin Begin iterator of input sequence.
+   *  @param end End iterator of input sequence.
+   *  @param comp Comparator.
+   *  @callgraph 
+   */
+  template<bool stable, typename RandomAccessIterator, typename Comparator>
+  inline void
+  parallel_sort(RandomAccessIterator begin, RandomAccessIterator end,
+    Comparator comp, quicksort_tag parallelism)
+  {
+    _GLIBCXX_CALL(end - begin)
+
+    _GLIBCXX_PARALLEL_ASSERT(stable == false);
+
+    parallel_sort_qs(begin, end, comp, parallelism.get_num_threads());
+  }
+
+  /**
+   *  @brief Choose balanced quicksort for parallel sorting.
+   *  @param begin Begin iterator of input sequence.
+   *  @param end End iterator of input sequence.
+   *  @param comp Comparator.
+   *  @param stable Sort stable.
+   *  @callgraph 
+   */
+  template<bool stable, typename RandomAccessIterator, typename Comparator>
+  inline void
+  parallel_sort(RandomAccessIterator begin, RandomAccessIterator end,
+    Comparator comp, balanced_quicksort_tag parallelism)
+  {
+    _GLIBCXX_CALL(end - begin)
+
+    _GLIBCXX_PARALLEL_ASSERT(stable == false);
+
+    parallel_sort_qsb(begin, end, comp, parallelism.get_num_threads());
+  }
+
+
+  /** 
+   *  @brief Choose multiway mergesort with exact splitting,
+   *  for parallel sorting.
+   *  @param begin Begin iterator of input sequence.
+   *  @param end End iterator of input sequence.
+   *  @param comp Comparator.
+   *  @callgraph 
+   */
+  template<bool stable, typename RandomAccessIterator, typename Comparator>
+  inline void
+  parallel_sort(RandomAccessIterator begin, RandomAccessIterator end,
+    Comparator comp, default_parallel_tag parallelism)
+  {
+    _GLIBCXX_CALL(end - begin)
+
+    parallel_sort<stable>
+      (begin, end, comp,
+        multiway_mergesort_exact_tag(parallelism.get_num_threads()));
+  }
+
+
+  /**
    *  @brief Choose a parallel sorting algorithm.
    *  @param begin Begin iterator of input sequence.
    *  @param end End iterator of input sequence.
@@ -68,37 +197,39 @@ namespace __gnu_parallel
    *  @param stable Sort stable.
    *  @callgraph 
    */
-  template<typename RandomAccessIterator, typename Comparator>
-  inline void
-  parallel_sort(RandomAccessIterator begin, RandomAccessIterator end,
-		Comparator comp, bool stable)
-  {
-    _GLIBCXX_CALL(end - begin)
-    typedef std::iterator_traits<RandomAccessIterator> traits_type;
-    typedef typename traits_type::value_type value_type;
-    typedef typename traits_type::difference_type difference_type;
+  template<bool stable, typename RandomAccessIterator, typename Comparator>
+    inline void
+    parallel_sort(RandomAccessIterator begin, RandomAccessIterator end,
+                  Comparator comp, parallel_tag parallelism)
+    {
+      _GLIBCXX_CALL(end - begin)
+      typedef std::iterator_traits<RandomAccessIterator> traits_type;
+      typedef typename traits_type::value_type value_type;
+      typedef typename traits_type::difference_type difference_type;
 
-    if (begin != end)
-      {
-	difference_type n = end - begin;
-
-	if (false) ;
+      if (false) ;
 #if _GLIBCXX_MERGESORT
-	else if (Settings::sort_algorithm == Settings::MWMS || stable)
-	  parallel_sort_mwms(begin, end, comp, n, get_max_threads(), stable);
+      else if (stable || _Settings::get().sort_algorithm == MWMS)
+        {
+          if(_Settings::get().sort_splitting == EXACT)
+            parallel_sort_mwms<stable, true>
+              (begin, end, comp, parallelism.get_num_threads());
+          else
+            parallel_sort_mwms<false, false>
+              (begin, end, comp, parallelism.get_num_threads());
+        }
 #endif
 #if _GLIBCXX_QUICKSORT
-	else if (Settings::sort_algorithm == Settings::QS && !stable)
-	  parallel_sort_qs(begin, end, comp, n, get_max_threads());
+      else if (_Settings::get().sort_algorithm == QS)
+        parallel_sort_qs(begin, end, comp, parallelism.get_num_threads());
 #endif
 #if _GLIBCXX_BAL_QUICKSORT
-	else if (Settings::sort_algorithm == Settings::QS_BALANCED && !stable)
-	  parallel_sort_qsb(begin, end, comp, n, get_max_threads());
+      else if (_Settings::get().sort_algorithm == QS_BALANCED)
+        parallel_sort_qsb(begin, end, comp, parallelism.get_num_threads());
 #endif
-	else
-	  __gnu_sequential::sort(begin, end, comp);
-      }
-  }
+      else
+        __gnu_sequential::sort(begin, end, comp);
+    }
 } // end namespace __gnu_parallel
 
 #endif

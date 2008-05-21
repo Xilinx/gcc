@@ -1,7 +1,7 @@
 # Top level -*- makefile -*- fragment for the GNU compiler for the Java(TM)
 # language.
 #   Copyright (C) 1996, 1998, 1999, 2000, 2001, 2002, 2003, 2004,
-#   2005, 2006, 2007 Free Software Foundation, Inc.
+#   2005, 2006, 2007, 2008 Free Software Foundation, Inc.
 
 #This file is part of GCC.
 
@@ -90,6 +90,8 @@ JCFDUMP_OBJS = java/jcf-dump.o java/jcf-io.o java/jcf-depend.o java/jcf-path.o \
 
 JVGENMAIN_OBJS = java/jvgenmain.o java/mangle_name.o errors.o intl.o
 
+java_OBJS = $(sort $(JAVA_OBJS) $(JCFDUMP_OBJS) $(JVGENMAIN_OBJS)) jvspec.o
+
 # Use strict warnings for this front end.
 java-warn = $(STRICT_WARN)
 
@@ -102,7 +104,7 @@ java/parse.o-warn = -Wno-error
 jc1$(exeext): $(JAVA_OBJS) $(BACKEND) $(LIBDEPS) attribs.o
 	rm -f $@
 	$(CC) $(ALL_CFLAGS) $(LDFLAGS) -o $@ \
-		$(JAVA_OBJS) $(BACKEND) $(ZLIB) $(LIBICONV) $(LIBS) attribs.o
+		$(JAVA_OBJS) $(BACKEND) $(ZLIB) $(LIBICONV) $(LIBS) attribs.o $(GMPLIBS)
 
 jcf-dump$(exeext): $(JCFDUMP_OBJS) $(LIBDEPS)
 	rm -f $@
@@ -311,7 +313,7 @@ java/jcf-path.o: java/jcf-path.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
 	  $(srcdir)/java/jcf-path.c $(OUTPUT_OPTION)
 
 TEXI_JAVA_FILES = java/gcj.texi $(gcc_docdir)/include/fdl.texi		\
-	 $(gcc_docdir)/include/gpl.texi $(gcc_docdir)/include/gcc-common.texi   \
+	 $(gcc_docdir)/include/gpl_v3.texi $(gcc_docdir)/include/gcc-common.texi   \
 	 gcc-vers.texi
 
 # Documentation

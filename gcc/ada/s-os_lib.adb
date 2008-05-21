@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---                     Copyright (C) 1995-2007, AdaCore                     --
+--                     Copyright (C) 1995-2008, AdaCore                     --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -293,7 +293,7 @@ package body System.OS_Lib is
       --  Internal exception raised to signal error in copy
 
       function Build_Path (Dir : String; File : String) return String;
-      --  Returns pathname Dir catenated with File adding the directory
+      --  Returns pathname Dir concatenated with File adding the directory
       --  separator only if needed.
 
       procedure Copy (From, To : File_Descriptor);
@@ -458,10 +458,10 @@ package body System.OS_Lib is
          --  Copy attributes
 
          C_From (1 .. Name'Length) := Name;
-         C_From (C_From'Last) := ASCII.Nul;
+         C_From (C_From'Last) := ASCII.NUL;
 
          C_To (1 .. To_Name'Length) := To_Name;
-         C_To (C_To'Last) := ASCII.Nul;
+         C_To (C_To'Last) := ASCII.NUL;
 
          case Preserve is
 
@@ -1622,10 +1622,10 @@ package body System.OS_Lib is
 
                --  If null terminated string, put the quote before
 
-               if Res (J) = ASCII.Nul then
+               if Res (J) = ASCII.NUL then
                   Res (J) := '"';
                   J := J + 1;
-                  Res (J) := ASCII.Nul;
+                  Res (J) := ASCII.NUL;
 
                --  If argument is terminated by '\', then double it. Otherwise
                --  the ending quote will be taken as-is. This is quite strange
@@ -1822,9 +1822,6 @@ package body System.OS_Lib is
          end if;
       end Get_Directory;
 
-      Reference_Dir : constant String := Get_Directory (Directory);
-      --  Current directory name specified
-
    --  Start of processing for Normalize_Pathname
 
    begin
@@ -1836,7 +1833,7 @@ package body System.OS_Lib is
 
       --  First, convert VMS file spec to Unix file spec.
       --  If Name is not in VMS syntax, then this is equivalent
-      --  to put Name at the begining of Path_Buffer.
+      --  to put Name at the beginning of Path_Buffer.
 
       VMS_Conversion : begin
          The_Name (1 .. Name'Length) := Name;
@@ -1899,7 +1896,7 @@ package body System.OS_Lib is
         and then Path_Buffer (2) /= Directory_Separator
       then
          declare
-            Cur_Dir : String := Get_Directory ("");
+            Cur_Dir : constant String := Get_Directory ("");
             --  Get the current directory to get the drive letter
 
          begin
@@ -1927,12 +1924,18 @@ package body System.OS_Lib is
          if Last = 1
            and then not Is_Absolute_Path (Path_Buffer (1 .. End_Path))
          then
-            Path_Buffer
-              (Reference_Dir'Length + 1 .. Reference_Dir'Length + End_Path) :=
+            declare
+               Reference_Dir : constant String  := Get_Directory (Directory);
+               Ref_Dir_Len   : constant Natural := Reference_Dir'Length;
+               --  Current directory name specified and its length
+
+            begin
+               Path_Buffer (Ref_Dir_Len + 1 .. Ref_Dir_Len + End_Path) :=
                  Path_Buffer (1 .. End_Path);
-            End_Path := Reference_Dir'Length + End_Path;
-            Path_Buffer (1 .. Reference_Dir'Length) := Reference_Dir;
-            Last := Reference_Dir'Length;
+               End_Path := Ref_Dir_Len + End_Path;
+               Path_Buffer (1 .. Ref_Dir_Len) := Reference_Dir;
+               Last := Ref_Dir_Len;
+            end;
          end if;
 
          Start  := Last + 1;

@@ -1,6 +1,6 @@
 // Algorithm implementation -*- C++ -*-
 
-// Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007
+// Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
 // Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
@@ -142,11 +142,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
   // for_each
 
-  /**
-   *  @if maint
-   *  This is an overload used by find() for the Input Iterator case.
-   *  @endif
-  */
+  /// This is an overload used by find() for the Input Iterator case.
   template<typename _InputIterator, typename _Tp>
     inline _InputIterator
     __find(_InputIterator __first, _InputIterator __last,
@@ -157,11 +153,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       return __first;
     }
 
-  /**
-   *  @if maint
-   *  This is an overload used by find_if() for the Input Iterator case.
-   *  @endif
-  */
+  /// This is an overload used by find_if() for the Input Iterator case.
   template<typename _InputIterator, typename _Predicate>
     inline _InputIterator
     __find_if(_InputIterator __first, _InputIterator __last,
@@ -172,11 +164,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       return __first;
     }
 
-  /**
-   *  @if maint
-   *  This is an overload used by find() for the RAI case.
-   *  @endif
-  */
+  /// This is an overload used by find() for the RAI case.
   template<typename _RandomAccessIterator, typename _Tp>
     _RandomAccessIterator
     __find(_RandomAccessIterator __first, _RandomAccessIterator __last,
@@ -224,11 +212,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 	}
     }
 
-  /**
-   *  @if maint
-   *  This is an overload used by find_if() for the RAI case.
-   *  @endif
-  */
+  /// This is an overload used by find_if() for the RAI case.
   template<typename _RandomAccessIterator, typename _Predicate>
     _RandomAccessIterator
     __find_if(_RandomAccessIterator __first, _RandomAccessIterator __last,
@@ -290,11 +274,9 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
   // search
 
   /**
-   *  @if maint
    *  This is an uglified
    *  search_n(_ForwardIterator, _ForwardIterator, _Integer, const _Tp&)
    *  overloaded for forward iterators.
-   *  @endif
   */
   template<typename _ForwardIterator, typename _Integer, typename _Tp>
     _ForwardIterator
@@ -324,11 +306,9 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
     }
 
   /**
-   *  @if maint
    *  This is an uglified
    *  search_n(_ForwardIterator, _ForwardIterator, _Integer, const _Tp&)
    *  overloaded for random access iterators.
-   *  @endif
   */
   template<typename _RandomAccessIter, typename _Integer, typename _Tp>
     _RandomAccessIter
@@ -378,12 +358,10 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
   // search_n
 
   /**
-   *  @if maint
    *  This is an uglified
    *  search_n(_ForwardIterator, _ForwardIterator, _Integer, const _Tp&,
    *	       _BinaryPredicate)
    *  overloaded for forward iterators.
-   *  @endif
   */
   template<typename _ForwardIterator, typename _Integer, typename _Tp,
            typename _BinaryPredicate>
@@ -419,12 +397,10 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
     }
 
   /**
-   *  @if maint
    *  This is an uglified
    *  search_n(_ForwardIterator, _ForwardIterator, _Integer, const _Tp&,
    *	       _BinaryPredicate)
    *  overloaded for random access iterators.
-   *  @endif
   */
   template<typename _RandomAccessIter, typename _Integer, typename _Tp,
 	   typename _BinaryPredicate>
@@ -928,11 +904,9 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
     }
 
   /**
-   *  @if maint
    *  This is an uglified unique_copy(_InputIterator, _InputIterator,
    *                                  _OutputIterator)
    *  overloaded for forward iterators and output iterator as result.
-   *  @endif
   */
   template<typename _ForwardIterator, typename _OutputIterator>
     _OutputIterator
@@ -953,11 +927,9 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
     }
 
   /**
-   *  @if maint
    *  This is an uglified unique_copy(_InputIterator, _InputIterator,
    *                                  _OutputIterator)
    *  overloaded for input iterators and output iterator as result.
-   *  @endif
   */
   template<typename _InputIterator, typename _OutputIterator>
     _OutputIterator
@@ -978,11 +950,9 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
     }
 
   /**
-   *  @if maint
    *  This is an uglified unique_copy(_InputIterator, _InputIterator,
    *                                  _OutputIterator)
    *  overloaded for input iterators and forward iterator as result.
-   *  @endif
   */
   template<typename _InputIterator, typename _ForwardIterator>
     _ForwardIterator
@@ -999,12 +969,10 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
     }
 
   /**
-   *  @if maint
    *  This is an uglified
    *  unique_copy(_InputIterator, _InputIterator, _OutputIterator,
    *              _BinaryPredicate)
    *  overloaded for forward iterators and output iterator as result.
-   *  @endif
   */
   template<typename _ForwardIterator, typename _OutputIterator,
 	   typename _BinaryPredicate>
@@ -1030,12 +998,10 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
     }
 
   /**
-   *  @if maint
    *  This is an uglified
    *  unique_copy(_InputIterator, _InputIterator, _OutputIterator,
    *              _BinaryPredicate)
    *  overloaded for input iterators and output iterator as result.
-   *  @endif
   */
   template<typename _InputIterator, typename _OutputIterator,
 	   typename _BinaryPredicate>
@@ -1061,12 +1027,10 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
     }
 
   /**
-   *  @if maint
    *  This is an uglified
    *  unique_copy(_InputIterator, _InputIterator, _OutputIterator,
    *              _BinaryPredicate)
    *  overloaded for input iterators and forward iterator as result.
-   *  @endif
   */
   template<typename _InputIterator, typename _ForwardIterator,
 	   typename _BinaryPredicate>
@@ -1088,11 +1052,9 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
     }
 
   /**
-   *  @if maint
    *  This is an uglified reverse(_BidirectionalIterator,
    *                              _BidirectionalIterator)
    *  overloaded for bidirectional iterators.
-   *  @endif
   */
   template<typename _BidirectionalIterator>
     void
@@ -1110,11 +1072,9 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
     }
 
   /**
-   *  @if maint
    *  This is an uglified reverse(_BidirectionalIterator,
    *                              _BidirectionalIterator)
    *  overloaded for random access iterators.
-   *  @endif
   */
   template<typename _RandomAccessIterator>
     void
@@ -1191,10 +1151,8 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
     }
 
   /**
-   *  @if maint
    *  This is a helper function for the rotate algorithm specialized on RAIs.
    *  It returns the greatest common divisor of two integer values.
-   *  @endif
   */
   template<typename _EuclideanRingElement>
     _EuclideanRingElement
@@ -1209,11 +1167,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       return __m;
     }
 
-  /**
-   *  @if maint
-   *  This is a helper function for the rotate algorithm.
-   *  @endif
-  */
+  /// This is a helper function for the rotate algorithm.
   template<typename _ForwardIterator>
     void
     __rotate(_ForwardIterator __first,
@@ -1249,11 +1203,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 	}
     }
 
-  /**
-   *  @if maint
-   *  This is a helper function for the rotate algorithm.
-   *  @endif
-  */
+   /// This is a helper function for the rotate algorithm.
   template<typename _BidirectionalIterator>
     void
     __rotate(_BidirectionalIterator __first,
@@ -1283,11 +1233,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 	std::__reverse(__first,  __middle, bidirectional_iterator_tag());
     }
 
-  /**
-   *  @if maint
-   *  This is a helper function for the rotate algorithm.
-   *  @endif
-  */
+  /// This is a helper function for the rotate algorithm.
   template<typename _RandomAccessIterator>
     void
     __rotate(_RandomAccessIterator __first,
@@ -1424,11 +1370,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
                        std::copy(__middle, __last, __result));
     }
 
-  /**
-   *  @if maint
-   *  This is a helper function...
-   *  @endif
-  */
+  /// This is a helper function...
   template<typename _ForwardIterator, typename _Predicate>
     _ForwardIterator
     __partition(_ForwardIterator __first, _ForwardIterator __last,
@@ -1453,11 +1395,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       return __first;
     }
 
-  /**
-   *  @if maint
-   *  This is a helper function...
-   *  @endif
-  */
+  /// This is a helper function...
   template<typename _BidirectionalIterator, typename _Predicate>
     _BidirectionalIterator
     __partition(_BidirectionalIterator __first, _BidirectionalIterator __last,
@@ -1487,11 +1425,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
   // partition
 
-  /**
-   *  @if maint
-   *  This is a helper function...
-   *  @endif
-  */
+  /// This is a helper function...
   template<typename _ForwardIterator, typename _Predicate, typename _Distance>
     _ForwardIterator
     __inplace_stable_partition(_ForwardIterator __first,
@@ -1515,11 +1449,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       return __begin;
     }
 
-  /**
-   *  @if maint
-   *  This is a helper function...
-   *  @endif
-  */
+  /// This is a helper function...
   template<typename _ForwardIterator, typename _Pointer, typename _Predicate,
 	   typename _Distance>
     _ForwardIterator
@@ -1617,11 +1547,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 	}
     }
 
-  /**
-   *  @if maint
-   *  This is a helper function for the sort routines.
-   *  @endif
-  */
+  /// This is a helper function for the sort routines.
   template<typename _RandomAccessIterator>
     void
     __heap_select(_RandomAccessIterator __first,
@@ -1634,11 +1560,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 	  std::__pop_heap(__first, __middle, __i);
     }
 
-  /**
-   *  @if maint
-   *  This is a helper function for the sort routines.
-   *  @endif
-  */
+  /// This is a helper function for the sort routines.
   template<typename _RandomAccessIterator, typename _Compare>
     void
     __heap_select(_RandomAccessIterator __first,
@@ -1786,11 +1708,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       return __result_real_last;
     }
 
-  /**
-   *  @if maint
-   *  This is a helper function for the sort routine.
-   *  @endif
-  */
+  /// This is a helper function for the sort routine.
   template<typename _RandomAccessIterator, typename _Tp>
     void
     __unguarded_linear_insert(_RandomAccessIterator __last, _Tp __val)
@@ -1806,11 +1724,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       *__last = __val;
     }
 
-  /**
-   *  @if maint
-   *  This is a helper function for the sort routine.
-   *  @endif
-  */
+  /// This is a helper function for the sort routine.
   template<typename _RandomAccessIterator, typename _Tp, typename _Compare>
     void
     __unguarded_linear_insert(_RandomAccessIterator __last, _Tp __val,
@@ -1827,11 +1741,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       *__last = __val;
     }
 
-  /**
-   *  @if maint
-   *  This is a helper function for the sort routine.
-   *  @endif
-  */
+  /// This is a helper function for the sort routine.
   template<typename _RandomAccessIterator>
     void
     __insertion_sort(_RandomAccessIterator __first,
@@ -1854,11 +1764,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 	}
     }
 
-  /**
-   *  @if maint
-   *  This is a helper function for the sort routine.
-   *  @endif
-  */
+  /// This is a helper function for the sort routine.
   template<typename _RandomAccessIterator, typename _Compare>
     void
     __insertion_sort(_RandomAccessIterator __first,
@@ -1880,11 +1786,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 	}
     }
 
-  /**
-   *  @if maint
-   *  This is a helper function for the sort routine.
-   *  @endif
-  */
+  /// This is a helper function for the sort routine.
   template<typename _RandomAccessIterator>
     inline void
     __unguarded_insertion_sort(_RandomAccessIterator __first,
@@ -1897,11 +1799,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 	std::__unguarded_linear_insert(__i, _ValueType(*__i));
     }
 
-  /**
-   *  @if maint
-   *  This is a helper function for the sort routine.
-   *  @endif
-  */
+  /// This is a helper function for the sort routine.
   template<typename _RandomAccessIterator, typename _Compare>
     inline void
     __unguarded_insertion_sort(_RandomAccessIterator __first,
@@ -1915,18 +1813,12 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
     }
 
   /**
-   *  @if maint
    *  @doctodo
    *  This controls some aspect of the sort routines.
-   *  @endif
   */
   enum { _S_threshold = 16 };
 
-  /**
-   *  @if maint
-   *  This is a helper function for the sort routine.
-   *  @endif
-  */
+  /// This is a helper function for the sort routine.
   template<typename _RandomAccessIterator>
     void
     __final_insertion_sort(_RandomAccessIterator __first,
@@ -1941,11 +1833,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 	std::__insertion_sort(__first, __last);
     }
 
-  /**
-   *  @if maint
-   *  This is a helper function for the sort routine.
-   *  @endif
-  */
+  /// This is a helper function for the sort routine.
   template<typename _RandomAccessIterator, typename _Compare>
     void
     __final_insertion_sort(_RandomAccessIterator __first,
@@ -1961,11 +1849,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 	std::__insertion_sort(__first, __last, __comp);
     }
 
-  /**
-   *  @if maint
-   *  This is a helper function...
-   *  @endif
-  */
+  /// This is a helper function...
   template<typename _RandomAccessIterator, typename _Tp>
     _RandomAccessIterator
     __unguarded_partition(_RandomAccessIterator __first,
@@ -1985,11 +1869,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 	}
     }
 
-  /**
-   *  @if maint
-   *  This is a helper function...
-   *  @endif
-  */
+  /// This is a helper function...
   template<typename _RandomAccessIterator, typename _Tp, typename _Compare>
     _RandomAccessIterator
     __unguarded_partition(_RandomAccessIterator __first,
@@ -2010,11 +1890,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 	}
     }
 
-  /**
-   *  @if maint
-   *  This is a helper function for the sort routine.
-   *  @endif
-  */
+  /// This is a helper function for the sort routine.
   template<typename _RandomAccessIterator, typename _Size>
     void
     __introsort_loop(_RandomAccessIterator __first,
@@ -2046,11 +1922,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 	}
     }
 
-  /**
-   *  @if maint
-   *  This is a helper function for the sort routine.
-   *  @endif
-  */
+  /// This is a helper function for the sort routine.
   template<typename _RandomAccessIterator, typename _Size, typename _Compare>
     void
     __introsort_loop(_RandomAccessIterator __first,
@@ -2083,11 +1955,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 	}
     }
 
-  /**
-   *  @if maint
-   *  This is a helper function for the sort routines.  Precondition: __n > 0.
-   *  @endif
-  */
+  /// This is a helper function for the sort routines.  Precondition: __n > 0.
   template<typename _Size>
     inline _Size
     __lg(_Size __n)
@@ -2125,6 +1993,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 	  if (__depth_limit == 0)
 	    {
 	      std::__heap_select(__first, __nth + 1, __last);
+
 	      // Place the nth largest element in its final position.
 	      std::iter_swap(__first, __nth);
 	      return;
@@ -2516,7 +2385,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
    *  @param  first   An iterator.
    *  @param  last    Another iterator.
    *  @param  val     The search term.
-   *  @return  True if @a val (or its equivelent) is in [@a first,@a last ].
+   *  @return  True if @a val (or its equivalent) is in [@a first,@a last ].
    *  @ingroup binarysearch
    *
    *  Note that this does not actually return an iterator to @a val.  For
@@ -2546,7 +2415,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
    *  @param  last    Another iterator.
    *  @param  val     The search term.
    *  @param  comp    A functor to use for comparisons.
-   *  @return  True if @a val (or its equivelent) is in [@a first,@a last ].
+   *  @return  True if @a val (or its equivalent) is in [@a first,@a last ].
    *  @ingroup binarysearch
    *
    *  Note that this does not actually return an iterator to @a val.  For
@@ -2578,11 +2447,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
   // merge
 
-  /**
-   *  @if maint
-   *  This is a helper function for the merge routines.
-   *  @endif
-  */
+  /// This is a helper function for the merge routines.
   template<typename _BidirectionalIterator1, typename _BidirectionalIterator2,
 	   typename _BidirectionalIterator3>
     _BidirectionalIterator3
@@ -2617,11 +2482,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 	}
     }
 
-  /**
-   *  @if maint
-   *  This is a helper function for the merge routines.
-   *  @endif
-  */
+  /// This is a helper function for the merge routines.
   template<typename _BidirectionalIterator1, typename _BidirectionalIterator2,
 	   typename _BidirectionalIterator3, typename _Compare>
     _BidirectionalIterator3
@@ -2657,11 +2518,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 	}
     }
 
-  /**
-   *  @if maint
-   *  This is a helper function for the merge routines.
-   *  @endif
-  */
+  /// This is a helper function for the merge routines.
   template<typename _BidirectionalIterator1, typename _BidirectionalIterator2,
 	   typename _Distance>
     _BidirectionalIterator1
@@ -2693,11 +2550,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 	}
     }
 
-  /**
-   *  @if maint
-   *  This is a helper function for the merge routines.
-   *  @endif
-  */
+  /// This is a helper function for the merge routines.
   template<typename _BidirectionalIterator, typename _Distance,
 	   typename _Pointer>
     void
@@ -2753,11 +2606,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 	}
     }
 
-  /**
-   *  @if maint
-   *  This is a helper function for the merge routines.
-   *  @endif
-  */
+  /// This is a helper function for the merge routines.
   template<typename _BidirectionalIterator, typename _Distance, 
 	   typename _Pointer, typename _Compare>
     void
@@ -2815,11 +2664,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 	}
     }
 
-  /**
-   *  @if maint
-   *  This is a helper function for the merge routines.
-   *  @endif
-  */
+  /// This is a helper function for the merge routines.
   template<typename _BidirectionalIterator, typename _Distance>
     void
     __merge_without_buffer(_BidirectionalIterator __first,
@@ -2862,11 +2707,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 				  __len1 - __len11, __len2 - __len22);
     }
 
-  /**
-   *  @if maint
-   *  This is a helper function for the merge routines.
-   *  @endif
-  */
+  /// This is a helper function for the merge routines.
   template<typename _BidirectionalIterator, typename _Distance,
 	   typename _Compare>
     void
@@ -3034,15 +2875,16 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       while (__last - __first >= __two_step)
 	{
 	  __result = _GLIBCXX_STD_P::merge(__first, __first + __step_size,
-				__first + __step_size, __first + __two_step,
-				__result);
+					   __first + __step_size,
+					   __first + __two_step,
+					   __result);
 	  __first += __two_step;
 	}
 
       __step_size = std::min(_Distance(__last - __first), __step_size);
       _GLIBCXX_STD_P::merge(__first, __first + __step_size, 
 			    __first + __step_size, __last,
-		 __result);
+			    __result);
     }
 
   template<typename _RandomAccessIterator1, typename _RandomAccessIterator2,
@@ -3206,11 +3048,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 			    __comp);
     }
 
-  /**
-   *  @if maint
-   *  This is a helper function for the stable sorting routines.
-   *  @endif
-  */
+  /// This is a helper function for the stable sorting routines.
   template<typename _RandomAccessIterator>
     void
     __inplace_stable_sort(_RandomAccessIterator __first,
@@ -3229,11 +3067,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 				  __last - __middle);
     }
 
-  /**
-   *  @if maint
-   *  This is a helper function for the stable sorting routines.
-   *  @endif
-  */
+  /// This is a helper function for the stable sorting routines.
   template<typename _RandomAccessIterator, typename _Compare>
     void
     __inplace_stable_sort(_RandomAccessIterator __first,
@@ -3291,8 +3125,8 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       __glibcxx_function_requires(_InputIteratorConcept<_InputIterator2>)
       __glibcxx_function_requires(_LessThanOpConcept<_ValueType1, _ValueType2>)
       __glibcxx_function_requires(_LessThanOpConcept<_ValueType2, _ValueType1>)
-      __glibcxx_requires_sorted(__first1, __last1);
-      __glibcxx_requires_sorted(__first2, __last2);
+      __glibcxx_requires_sorted_set(__first1, __last1, __first2);
+      __glibcxx_requires_sorted_set(__first2, __last2, __first1);
 
       while (__first1 != __last1 && __first2 != __last2)
 	if (*__first2 < *__first1)
@@ -3328,7 +3162,8 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 	   typename _Compare>
     bool
     includes(_InputIterator1 __first1, _InputIterator1 __last1,
-	     _InputIterator2 __first2, _InputIterator2 __last2, _Compare __comp)
+	     _InputIterator2 __first2, _InputIterator2 __last2,
+	     _Compare __comp)
     {
       typedef typename iterator_traits<_InputIterator1>::value_type
 	_ValueType1;
@@ -3342,8 +3177,8 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 				  _ValueType1, _ValueType2>)
       __glibcxx_function_requires(_BinaryPredicateConcept<_Compare,
 				  _ValueType2, _ValueType1>)
-      __glibcxx_requires_sorted_pred(__first1, __last1, __comp);
-      __glibcxx_requires_sorted_pred(__first2, __last2, __comp);
+      __glibcxx_requires_sorted_set_pred(__first1, __last1, __first2, __comp);
+      __glibcxx_requires_sorted_set_pred(__first2, __last2, __first1, __comp);
 
       while (__first1 != __last1 && __first2 != __last2)
 	if (__comp(*__first2, *__first1))
@@ -4010,7 +3845,7 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_P)
    *  @param  last2   End of match candidates.
    *  @return   The first iterator @c i in the range
    *  @p [first1,last1) such that @c *i == @p *(i2) such that i2 is an
-   *  interator in [first2,last2), or @p last1 if no such iterator exists.
+   *  iterator in [first2,last2), or @p last1 if no such iterator exists.
    *
    *  Searches the range @p [first1,last1) for an element that is equal to
    *  some element in the range [first2,last2).  If found, returns an iterator
@@ -4046,7 +3881,7 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_P)
    *  @param  comp    Predicate to use.
    *  @return   The first iterator @c i in the range
    *  @p [first1,last1) such that @c comp(*i, @p *(i2)) is true and i2 is an
-   *  interator in [first2,last2), or @p last1 if no such iterator exists.
+   *  iterator in [first2,last2), or @p last1 if no such iterator exists.
    *
 
    *  Searches the range @p [first1,last1) for an element that is
@@ -4613,14 +4448,12 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_P)
    *  unique_copy() is stable, so the relative order of elements that are
    *  copied is unchanged.
    *
-   *  @if maint
    *  _GLIBCXX_RESOLVE_LIB_DEFECTS
    *  DR 241. Does unique_copy() require CopyConstructible and Assignable?
    *  
    *  _GLIBCXX_RESOLVE_LIB_DEFECTS
    *  DR 538. 241 again: Does unique_copy() require CopyConstructible and 
    *  Assignable?
-   *  @endif
   */
   template<typename _InputIterator, typename _OutputIterator>
     inline _OutputIterator
@@ -4657,10 +4490,8 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_P)
    *  unique_copy() is stable, so the relative order of elements that are
    *  copied is unchanged.
    *
-   *  @if maint
    *  _GLIBCXX_RESOLVE_LIB_DEFECTS
    *  DR 241. Does unique_copy() require CopyConstructible and Assignable?
-   *  @endif
   */
   template<typename _InputIterator, typename _OutputIterator,
 	   typename _BinaryPredicate>
@@ -5029,8 +4860,8 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_P)
       __glibcxx_function_requires(_OutputIteratorConcept<_OutputIterator,
 				  _ValueType2>)
       __glibcxx_function_requires(_LessThanOpConcept<_ValueType2, _ValueType1>)	
-      __glibcxx_requires_sorted(__first1, __last1);
-      __glibcxx_requires_sorted(__first2, __last2);
+      __glibcxx_requires_sorted_set(__first1, __last1, __first2);
+      __glibcxx_requires_sorted_set(__first2, __last2, __first1);
 
       while (__first1 != __last1 && __first2 != __last2)
 	{
@@ -5092,8 +4923,8 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_P)
 				  _ValueType2>)
       __glibcxx_function_requires(_BinaryPredicateConcept<_Compare,
 				  _ValueType2, _ValueType1>)
-      __glibcxx_requires_sorted_pred(__first1, __last1, __comp);
-      __glibcxx_requires_sorted_pred(__first2, __last2, __comp);
+      __glibcxx_requires_sorted_set_pred(__first1, __last1, __first2, __comp);
+      __glibcxx_requires_sorted_set_pred(__first2, __last2, __first1, __comp);
 
       while (__first1 != __last1 && __first2 != __last2)
 	{
@@ -5237,8 +5068,8 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_P)
 				  _ValueType2>)
       __glibcxx_function_requires(_LessThanOpConcept<_ValueType1, _ValueType2>)
       __glibcxx_function_requires(_LessThanOpConcept<_ValueType2, _ValueType1>)
-      __glibcxx_requires_sorted(__first1, __last1);
-      __glibcxx_requires_sorted(__first2, __last2);
+      __glibcxx_requires_sorted_set(__first1, __last1, __first2);
+      __glibcxx_requires_sorted_set(__first2, __last2, __first1);
 
       while (__first1 != __last1 && __first2 != __last2)
 	{
@@ -5305,8 +5136,8 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_P)
 				  _ValueType1, _ValueType2>)
       __glibcxx_function_requires(_BinaryPredicateConcept<_Compare,
 				  _ValueType2, _ValueType1>)
-      __glibcxx_requires_sorted_pred(__first1, __last1, __comp);
-      __glibcxx_requires_sorted_pred(__first2, __last2, __comp);
+      __glibcxx_requires_sorted_set_pred(__first1, __last1, __first2, __comp);
+      __glibcxx_requires_sorted_set_pred(__first2, __last2, __first1, __comp);
 
       while (__first1 != __last1 && __first2 != __last2)
 	{
@@ -5367,8 +5198,8 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_P)
 				  _ValueType1>)
       __glibcxx_function_requires(_LessThanOpConcept<_ValueType1, _ValueType2>)
       __glibcxx_function_requires(_LessThanOpConcept<_ValueType2, _ValueType1>)
-      __glibcxx_requires_sorted(__first1, __last1);
-      __glibcxx_requires_sorted(__first2, __last2);
+      __glibcxx_requires_sorted_set(__first1, __last1, __first2);
+      __glibcxx_requires_sorted_set(__first2, __last2, __first1);
 
       while (__first1 != __last1 && __first2 != __last2)
 	if (*__first1 < *__first2)
@@ -5425,8 +5256,8 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_P)
 				  _ValueType1, _ValueType2>)
       __glibcxx_function_requires(_BinaryPredicateConcept<_Compare,
 				  _ValueType2, _ValueType1>)
-      __glibcxx_requires_sorted_pred(__first1, __last1, __comp);
-      __glibcxx_requires_sorted_pred(__first2, __last2, __comp);
+      __glibcxx_requires_sorted_set_pred(__first1, __last1, __first2, __comp);
+      __glibcxx_requires_sorted_set_pred(__first2, __last2, __first1, __comp);
 
       while (__first1 != __last1 && __first2 != __last2)
 	if (__comp(*__first1, *__first2))
@@ -5480,8 +5311,8 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_P)
 				  _ValueType1>)
       __glibcxx_function_requires(_LessThanOpConcept<_ValueType1, _ValueType2>)
       __glibcxx_function_requires(_LessThanOpConcept<_ValueType2, _ValueType1>)	
-      __glibcxx_requires_sorted(__first1, __last1);
-      __glibcxx_requires_sorted(__first2, __last2);
+      __glibcxx_requires_sorted_set(__first1, __last1, __first2);
+      __glibcxx_requires_sorted_set(__first2, __last2, __first1);
 
       while (__first1 != __last1 && __first2 != __last2)
 	if (*__first1 < *__first2)
@@ -5542,8 +5373,8 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_P)
 				  _ValueType1, _ValueType2>)
       __glibcxx_function_requires(_BinaryPredicateConcept<_Compare,
 				  _ValueType2, _ValueType1>)
-      __glibcxx_requires_sorted_pred(__first1, __last1, __comp);
-      __glibcxx_requires_sorted_pred(__first2, __last2, __comp);
+      __glibcxx_requires_sorted_set_pred(__first1, __last1, __first2, __comp);
+      __glibcxx_requires_sorted_set_pred(__first2, __last2, __first1, __comp);
 
       while (__first1 != __last1 && __first2 != __last2)
 	if (__comp(*__first1, *__first2))
@@ -5599,8 +5430,8 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_P)
 				  _ValueType2>)
       __glibcxx_function_requires(_LessThanOpConcept<_ValueType1, _ValueType2>)
       __glibcxx_function_requires(_LessThanOpConcept<_ValueType2, _ValueType1>)	
-      __glibcxx_requires_sorted(__first1, __last1);
-      __glibcxx_requires_sorted(__first2, __last2);
+      __glibcxx_requires_sorted_set(__first1, __last1, __first2);
+      __glibcxx_requires_sorted_set(__first2, __last2, __first1);
 
       while (__first1 != __last1 && __first2 != __last2)
 	if (*__first1 < *__first2)
@@ -5667,8 +5498,8 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_P)
 				  _ValueType1, _ValueType2>)
       __glibcxx_function_requires(_BinaryPredicateConcept<_Compare,
 				  _ValueType2, _ValueType1>)
-      __glibcxx_requires_sorted_pred(__first1, __last1, __comp);
-      __glibcxx_requires_sorted_pred(__first2, __last2, __comp);
+      __glibcxx_requires_sorted_set_pred(__first1, __last1, __first2, __comp);
+      __glibcxx_requires_sorted_set_pred(__first2, __last2, __first1, __comp);
 
       while (__first1 != __last1 && __first2 != __last2)
 	if (__comp(*__first1, *__first2))

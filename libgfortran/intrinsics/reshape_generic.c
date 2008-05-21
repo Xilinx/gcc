@@ -49,7 +49,7 @@ reshape_internal (parray *ret, parray *source, shape_type *shape,
   index_type rsize;
   index_type rs;
   index_type rex;
-  char *rptr;
+  char * restrict rptr;
   /* s.* indicates the source array.  */
   index_type scount[GFC_MAX_DIMENSIONS];
   index_type sextent[GFC_MAX_DIMENSIONS];
@@ -69,7 +69,24 @@ reshape_internal (parray *ret, parray *source, shape_type *shape,
   const char *src;
   int n;
   int dim;
-  int sempty, pempty;
+  int sempty, pempty, shape_empty;
+  index_type shape_data[GFC_MAX_DIMENSIONS];
+
+  rdim = shape->dim[0].ubound - shape->dim[0].lbound + 1;
+  if (rdim != GFC_DESCRIPTOR_RANK(ret))
+    runtime_error("rank of return array incorrect in RESHAPE intrinsic");
+
+  shape_empty = 0;
+
+  for (n = 0; n < rdim; n++)
+    {
+      shape_data[n] = shape->data[n * shape->dim[0].stride];
+      if (shape_data[n] <= 0)
+	{
+	  shape_data[n] = 0;
+	  shape_empty = 1;
+	}
+    }
 
   if (ret->data == NULL)
     {
@@ -78,7 +95,7 @@ reshape_internal (parray *ret, parray *source, shape_type *shape,
       for (n = 0; n < rdim; n++)
 	{
 	  ret->dim[n].lbound = 0;
-	  rex = shape->data[n * shape->dim[0].stride];
+	  rex = shape_data[n];
 	  ret->dim[n].ubound =  rex - 1;
 	  ret->dim[n].stride = rs;
 	  rs *= rex;
@@ -87,10 +104,9 @@ reshape_internal (parray *ret, parray *source, shape_type *shape,
       ret->data = internal_malloc_size ( rs * size );
       ret->dtype = (source->dtype & ~GFC_DTYPE_RANK_MASK) | rdim;
     }
-  else
-    {
-      rdim = GFC_DESCRIPTOR_RANK (ret);
-    }
+
+  if (shape_empty)
+    return;
 
   rsize = 1;
   for (n = 0; n < rdim; n++)
@@ -104,7 +120,7 @@ reshape_internal (parray *ret, parray *source, shape_type *shape,
       rstride[n] = ret->dim[dim].stride;
       rextent[n] = ret->dim[dim].ubound + 1 - ret->dim[dim].lbound;
 
-      if (rextent[n] != shape->data[dim * shape->dim[0].stride])
+      if (rextent[n] != shape_data[dim])
         runtime_error ("shape and target do not conform");
 
       if (rsize == rstride[n])
@@ -282,16 +298,33 @@ reshape (parray *ret, parray *source, shape_type *shape, parray *pad,
 		    GFC_DESCRIPTOR_SIZE (source));
 }
 
-extern void reshape_char (parray *, GFC_INTEGER_4, parray *, shape_type *,
-			  parray *, shape_type *, GFC_INTEGER_4,
-			  GFC_INTEGER_4);
+
+extern void reshape_char (parray *, gfc_charlen_type, parray *, shape_type *,
+			  parray *, shape_type *, gfc_charlen_type,
+			  gfc_charlen_type);
 export_proto(reshape_char);
 
 void
-reshape_char (parray *ret, GFC_INTEGER_4 ret_length __attribute__((unused)),
+reshape_char (parray *ret, gfc_charlen_type ret_length __attribute__((unused)),
 	      parray *source, shape_type *shape, parray *pad,
-	      shape_type *order, GFC_INTEGER_4 source_length,
-	      GFC_INTEGER_4 pad_length __attribute__((unused)))
+	      shape_type *order, gfc_charlen_type source_length,
+	      gfc_charlen_type pad_length __attribute__((unused)))
 {
   reshape_internal (ret, source, shape, pad, order, source_length);
+}
+
+
+extern void reshape_char4 (parray *, gfc_charlen_type, parray *, shape_type *,
+			   parray *, shape_type *, gfc_charlen_type,
+			   gfc_charlen_type);
+export_proto(reshape_char4);
+
+void
+reshape_char4 (parray *ret, gfc_charlen_type ret_length __attribute__((unused)),
+	       parray *source, shape_type *shape, parray *pad,
+	       shape_type *order, gfc_charlen_type source_length,
+	       gfc_charlen_type pad_length __attribute__((unused)))
+{
+  reshape_internal (ret, source, shape, pad, order,
+		    source_length * sizeof (gfc_char4_t));
 }

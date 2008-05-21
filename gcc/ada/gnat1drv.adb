@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -241,11 +241,13 @@ procedure Gnat1drv is
       if List_Representation_Info /= 0
         or else List_Representation_Info_Mechanisms
       then
+         Set_Standard_Error;
          Write_Eol;
          Write_Str
            ("cannot generate representation information, no code generated");
          Write_Eol;
          Write_Eol;
+         Set_Standard_Output;
       end if;
    end Check_Rep_Info;
 
@@ -369,6 +371,12 @@ begin
       if Debug_Flag_8 then
          Ttypes.Bytes_Big_Endian := not Ttypes.Bytes_Big_Endian;
       end if;
+
+      --  Deal with forcing OpenVMS switches Ture if debug flag M is set, but
+      --  record the setting of Targparm.Open_VMS_On_Target in True_VMS_Target
+      --  before doing this.
+
+      Opt.True_VMS_Target := Targparm.OpenVMS_On_Target;
 
       if Debug_Flag_M then
          Targparm.OpenVMS_On_Target := True;
@@ -578,6 +586,7 @@ begin
       --  generate code).
 
       if Back_End_Mode = Skip then
+         Set_Standard_Error;
          Write_Str ("cannot generate code for ");
          Write_Str ("file ");
          Write_Name (Unit_File_Name (Main_Unit));
@@ -621,6 +630,7 @@ begin
          end if;
 
          Write_Eol;
+         Set_Standard_Output;
 
          Sem_Ch13.Validate_Unchecked_Conversions;
          Sem_Ch13.Validate_Address_Clauses;

@@ -1,3 +1,83 @@
+2008-05-08  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* patch_tester.sh (report): Do not print "Checker: ".
+
+2008-04-23  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* patch_tester.sh (report): Do not print the time.
+
+2008-04-01  Joseph Myers  <joseph@codesourcery.com>
+
+	* texi2pod.pl: Handle @samp and @url inside verbatim blocks.
+	Handle @heading.  Handle enumerated lists with starting numbers
+	and extra headings.
+
+2008-03-10  Janis Johnson  <janis187@us.ibm.com>
+
+	* patch_tester.sh (initialization): Initialize svnpatch and stop.
+	(usage): Add -svnpath and -stop.	
+	(makedir): New.
+	(argument handling): Process -stop and -svnpath.
+	(setup code): Use makedir, error out if initial svn checkout fails.
+	(update): Use svnpath.  Invoke contrib/gcc_update.
+	(apply_patch): Require that patch was created at top level.  Use eval
+	with option variables.  Don't use bootstrap target for make.  Verify
+	that some tests were run.
+	(bootntest_patched): Use snvpath.
+	(main loop): For -stop, exit when there are no more patches to test.
+
+2008-03-09  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* check_warning_flags.sh: Instead of invoke.texi, take the path
+	to the doc directory as argument.  Check that warnings listed in
+	'gcc --help' are accepted by the compiler, and listed in the
+	manuals.
+
+2008-03-06  Tom Tromey  <tromey@redhat.com>
+
+	* patch_tester.sh (usage): Watermark is not lexicographic.
+	Load $STATE/defaults if it exists.
+	(selfexec): Use $0.
+	(apply_patch): Handle deletions.
+	(bootntest): Handle default settings.
+
+2008-03-05  Jakub Jelinek  <jakub@redhat.com>
+
+	* gennews (files): Reference GCC 4.3 web pages.
+
+2008-02-15  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* check_warning_flags.sh: New file.
+
+2008-01-25  Joseph Myers  <joseph@codesourcery.com>
+
+	* paranoia.cc (main): Remove handling of c4x_single and
+	c4x_extended formats.
+
+2007-12-26  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* compareSumTests3: Changed to GPLv3.
+	* prepare_patch.sh: Same.
+	* uninclude: Same.
+	* dglib.pm: Same.
+	* gennews: Same.
+	* texi2pod.pl: Same.
+	* analyze_brprob: Same.
+	* gcc_build: Same.
+
+2007-12-26  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* patch_tester.sh: Changed to GPLv3.
+
+2007-12-15  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* patch_tester.sh: Don't save the script anymore.
+
+2007-12-15  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* patch_tester.sh: New.
+	* prepare_patch.sh: New.
+
 2007-11-26  Alexandre Oliva  <aoliva@redhat.com>
 
 	* compare-debug: Introduce -p flag to preserve .stripped files.

@@ -258,7 +258,7 @@
 ;; Operand and operator predicates
 
 (include "predicates.md")
-
+(include "constraints.md")
 
 ;;; FRIO branches have been optimized for code density
 ;;; this comes at a slight cost of complexity when
@@ -1018,7 +1018,7 @@
   xops[7] = gen_rtx_REG (BImode, REG_CC);
   if (!register_operand (xops[4], SImode)
       && (GET_CODE (xops[4]) != CONST_INT
-          || !CONST_OK_FOR_K (INTVAL (xops[4]), "Ks7")))
+          || !satisfies_constraint_Ks7 (xops[4])))
     xops[4] = force_reg (SImode, xops[4]);
   if (!reg_overlap_mentioned_p (operands[0], operands[1])
       && !reg_overlap_mentioned_p (operands[0], operands[2]))
@@ -1027,7 +1027,7 @@
   emit_insn (gen_movbisi (xops[6], xops[7]));
   if (!register_operand (xops[5], SImode)
       && (GET_CODE (xops[5]) != CONST_INT
-          || !CONST_OK_FOR_K (INTVAL (xops[5]), "Ks7")))
+          || !satisfies_constraint_Ks7 (xops[5])))
     xops[5] = force_reg (SImode, xops[5]);
   if (xops[5] != const0_rtx)
     emit_insn (gen_addsi3 (xops[1], xops[3], xops[5]));
@@ -4253,3 +4253,13 @@
    %0 = %1 >> %N2 (V)%!"
   [(set_attr "type" "dsp32")])
 
+;; Load without alignment exception (masking off low bits)
+
+(define_insn "loadbytes"
+  [(set (match_operand:SI 0 "register_operand" "=d")
+	(mem:SI (and:SI (match_operand:SI 1 "register_operand" "b")
+			(const_int -4))))]
+  ""
+  "DISALGNEXCPT || %0 = [%1];"
+  [(set_attr "type" "mcld")
+   (set_attr "length" "8")])

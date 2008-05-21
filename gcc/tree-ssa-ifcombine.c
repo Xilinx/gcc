@@ -135,6 +135,32 @@ same_phi_args_p (basic_block bb1, basic_block bb2, basic_block dest)
   return true;
 }
 
+/* Return the best representative SSA name for CANDIDATE which is used
+   in a bit test.  */
+
+static tree
+get_name_for_bit_test (tree candidate)
+{
+  /* Skip single-use names in favor of using the name from a
+     non-widening conversion definition.  */
+  if (TREE_CODE (candidate) == SSA_NAME
+      && has_single_use (candidate))
+    {
+      tree def_stmt = SSA_NAME_DEF_STMT (candidate);
+      if (TREE_CODE (def_stmt) == GIMPLE_MODIFY_STMT
+	  && (TREE_CODE (GIMPLE_STMT_OPERAND (def_stmt, 1)) == NOP_EXPR
+	      || TREE_CODE (GIMPLE_STMT_OPERAND (def_stmt, 1)) == CONVERT_EXPR))
+	{
+	  tree rhs = GIMPLE_STMT_OPERAND (def_stmt, 1);
+	  if (TYPE_PRECISION (TREE_TYPE (rhs))
+	      <= TYPE_PRECISION (TREE_TYPE (TREE_OPERAND (rhs, 0))))
+	    return TREE_OPERAND (rhs, 0);
+	}
+    }
+
+  return candidate;
+}
+
 /* Recognize a single bit test pattern in COND_EXPR and its defining
    statements.  Store the name being tested in *NAME and the bit
    in *BIT.  The COND_EXPR computes *NAME & (1 << *BIT).
@@ -176,8 +202,7 @@ recognize_single_bit_test (tree cond_expr, tree *name, tree *bit)
 	if (TREE_CODE (t) != GIMPLE_MODIFY_STMT)
 	  break;
 	t = GIMPLE_STMT_OPERAND (t, 1);
-	if (TREE_CODE (t) == NOP_EXPR
-	    || TREE_CODE (t) == CONVERT_EXPR)
+	if (CONVERT_EXPR_P (t))
 	  t = TREE_OPERAND (t, 0);
       } while (TREE_CODE (t) == SSA_NAME);
 
@@ -192,7 +217,7 @@ recognize_single_bit_test (tree cond_expr, tree *name, tree *bit)
 	{
 	  /* t & 1 */
 	  *bit = integer_zero_node;
-	  *name = orig_name;
+	  *name = get_name_for_bit_test (orig_name);
 	}
 
       return true;
@@ -272,7 +297,7 @@ recognize_bits_test (tree cond_expr, tree *name, tree *bits)
   if (TREE_CODE (t) != BIT_AND_EXPR)
     return false;
 
-  *name = TREE_OPERAND (t, 0);
+  *name = get_name_for_bit_test (TREE_OPERAND (t, 0));
   *bits = TREE_OPERAND (t, 1);
 
   return true;
@@ -605,7 +630,10 @@ gate_ifcombine (void)
   return 1;
 }
 
-struct tree_opt_pass pass_tree_ifcombine = {
+struct gimple_opt_pass pass_tree_ifcombine = 
+{
+ {
+  GIMPLE_PASS,
   "ifcombine",			/* name */
   gate_ifcombine,		/* gate */
   tree_ssa_ifcombine,		/* execute */
@@ -620,6 +648,6 @@ struct tree_opt_pass pass_tree_ifcombine = {
   TODO_dump_func
   | TODO_ggc_collect
   | TODO_update_ssa
-  | TODO_verify_ssa,		/* todo_flags_finish */
-  0				/* letter */
+  | TODO_verify_ssa		/* todo_flags_finish */
+ }
 };

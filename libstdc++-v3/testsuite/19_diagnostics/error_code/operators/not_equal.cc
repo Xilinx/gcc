@@ -1,7 +1,7 @@
 // { dg-options "-std=gnu++0x" }
 // 2007-08-22 Benjamin Kosnik  <bkoz@redhat.com>
 
-// Copyright (C) 2007 Free Software Foundation, Inc.
+// Copyright (C) 2007, 2008 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -20,24 +20,7 @@
 // USA.
 
 #include <system_error>
-#include <testsuite_hooks.h>
-
-namespace __gnu_test
-{
-  struct test_category : public std::error_category
-  { 
-    virtual std::posix_errno 
-    posix(int __v) const
-    { return std::posix_errno(__v); }
-
-    virtual const std::string& 
-    name() const 
-    { 
-      static std::string s("__gnu_test::test_category");
-      return s;
-    }
-  };
-}
+#include <testsuite_error.h>
 
 // unspecified bool operator positive tests
 int main()
@@ -45,7 +28,7 @@ int main()
   bool test __attribute__((unused)) = true;
 
   std::error_code e1;
-  std::error_code e2(std::operation_not_supported);
+  std::error_code e2(std::posix_error::operation_not_supported);
 
   VERIFY( !(e1 != e1) );
   VERIFY( e1 != e2 );

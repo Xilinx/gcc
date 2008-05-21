@@ -39,14 +39,14 @@ Boston, MA 02110-1301, USA.  */
    record, and we have to sift backwards to find the newline before
    that or the start of the file, whichever comes first.  */
 
-#define READ_CHUNK 4096
+static const unsigned int READ_CHUNK = 4096;
 
 static void
 formatted_backspace (st_parameter_filepos *fpp, gfc_unit *u)
 {
   gfc_offset base;
-  char *p;
-  int n;
+  char p[READ_CHUNK];
+  size_t n;
 
   base = file_position (u->s) - 1;
 
@@ -54,9 +54,9 @@ formatted_backspace (st_parameter_filepos *fpp, gfc_unit *u)
     {
       n = (base < READ_CHUNK) ? base : READ_CHUNK;
       base -= n;
-
-      p = salloc_r_at (u->s, &n, base);
-      if (p == NULL)
+      if (sseek (u->s, base) == FAILURE)
+        goto io_error;
+      if (sread (u->s, p, &n) != 0)
 	goto io_error;
 
       /* We have moved backwards from the current position, it should
@@ -66,15 +66,14 @@ formatted_backspace (st_parameter_filepos *fpp, gfc_unit *u)
       /* There is no memrchr() in the C library, so we have to do it
          ourselves.  */
 
-      n--;
-      while (n >= 0)
+      while (n > 0)
 	{
+          n--;
 	  if (p[n] == '\n')
 	    {
 	      base += n + 1;
 	      goto done;
 	    }
-	  n--;
 	}
 
     }
@@ -104,9 +103,9 @@ unformatted_backspace (st_parameter_filepos *fpp, gfc_unit *u)
   gfc_offset m, new;
   GFC_INTEGER_4 m4;
   GFC_INTEGER_8 m8;
-  int length, length_read;
+  size_t length;
   int continued;
-  char *p;
+  char p[sizeof (GFC_INTEGER_8)];
 
   if (compile_options.record_marker == 0)
     length = sizeof (GFC_INTEGER_4);
@@ -115,12 +114,10 @@ unformatted_backspace (st_parameter_filepos *fpp, gfc_unit *u)
 
   do
     {
-      length_read = length;
-
-      p = salloc_r_at (u->s, &length_read,
-		       file_position (u->s) - length);
-      if (p == NULL || length_read != length)
-	goto io_error;
+      if (sseek (u->s, file_position (u->s) - length) == FAILURE)
+        goto io_error;
+      if (sread (u->s, p, &length) != 0)
+        goto io_error;
 
       /* Only GFC_CONVERT_NATIVE and GFC_CONVERT_SWAP are valid here.  */
       if (u->flags.convert == GFC_CONVERT_NATIVE)
@@ -199,13 +196,26 @@ st_backspace (st_parameter_filepos *fpp)
       goto done;
     }
 
-  /* Ignore direct access.  Non-advancing I/O is only allowed for formatted
-     sequential I/O and the next direct access transfer repositions the file 
-     anyway.  */
+  /* Direct access is prohibited, and so is unformatted stream access.  */
 
-  if (u->flags.access == ACCESS_DIRECT || u->flags.access == ACCESS_STREAM)
-    goto done;
 
+  if (u->flags.access == ACCESS_DIRECT)
+    {
+      generate_error (&fpp->common, LIBERROR_OPTION_CONFLICT,
+		      "Cannot BACKSPACE a file opened for DIRECT access");
+      goto done;
+    }
+
+    if (u->flags.access == ACCESS_STREAM && u->flags.form == FORM_UNFORMATTED)
+      {
+	generate_error (&fpp->common, LIBERROR_OPTION_CONFLICT,
+			"Cannot BACKSPACE an unformatted stream file");
+	goto done;
+      }
+
+  /* Make sure format buffer is flushed.  */
+  fbuf_flush (u, 1);
+  
   /* Check for special cases involving the ENDFILE record first.  */
 
   if (u->endfile == AFTER_ENDFILE)
@@ -224,6 +234,15 @@ st_backspace (st_parameter_filepos *fpp)
 
       if (u->mode == WRITING)
 	{
+	  /* If there are previously written bytes from a write with
+	     ADVANCE="no", add a record marker before performing the
+	     BACKSPACE.  */
+
+	  if (u->previous_nonadvancing_write)
+	    finish_last_advance_record (u);
+
+	  u->previous_nonadvancing_write = 0;
+
 	  flush (u->s);
 	  struncate (u->s);
 	  u->mode = READING;
@@ -261,6 +280,22 @@ st_endfile (st_parameter_filepos *fpp)
   u = find_unit (fpp->common.unit);
   if (u != NULL)
     {
+      if (u->flags.access == ACCESS_DIRECT)
+	{
+	  generate_error (&fpp->common, LIBERROR_OPTION_CONFLICT,
+			  "Cannot perform ENDFILE on a file opened"
+			  " for DIRECT access");
+	  goto done;
+	}
+
+      /* If there are previously written bytes from a write with ADVANCE="no",
+	 add a record marker before performing the ENDFILE.  */
+
+      if (u->previous_nonadvancing_write)
+	finish_last_advance_record (u);
+
+      u->previous_nonadvancing_write = 0;
+
       if (u->current_record)
 	{
 	  st_parameter_dt dtp;
@@ -274,6 +309,7 @@ st_endfile (st_parameter_filepos *fpp)
       struncate (u->s);
       u->endfile = AFTER_ENDFILE;
       update_position (u);
+    done:
       unlock_unit (u);
     }
 
@@ -299,6 +335,14 @@ st_rewind (st_parameter_filepos *fpp)
 			"Cannot REWIND a file opened for DIRECT access");
       else
 	{
+	  /* If there are previously written bytes from a write with ADVANCE="no",
+	     add a record marker before performing the ENDFILE.  */
+
+	  if (u->previous_nonadvancing_write)
+	    finish_last_advance_record (u);
+
+	  u->previous_nonadvancing_write = 0;
+
 	  /* Flush the buffers.  If we have been writing to the file, the last
 	       written record is the last record in the file, so truncate the
 	       file now.  Reset to read mode so two consecutive rewind

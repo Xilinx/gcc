@@ -6,7 +6,7 @@
  *                                                                          *
  *                           C Implementation File                          *
  *                                                                          *
- *          Copyright (C) 1992-2007, Free Software Foundation, Inc.         *
+ *          Copyright (C) 1992-2008, Free Software Foundation, Inc.         *
  *                                                                          *
  * GNAT is free software;  you can  redistribute it  and/or modify it under *
  * terms of the  GNU General Public License as published  by the Free Soft- *
@@ -126,11 +126,9 @@ static tree gnat_type_max_size		(const_tree);
 #undef  LANG_HOOKS_PUSHDECL
 #define LANG_HOOKS_PUSHDECL		gnat_return_tree
 #undef  LANG_HOOKS_WRITE_GLOBALS
-#define LANG_HOOKS_WRITE_GLOBALS      gnat_write_global_declarations
+#define LANG_HOOKS_WRITE_GLOBALS	gnat_write_global_declarations
 #undef  LANG_HOOKS_FINISH_INCOMPLETE_DECL
 #define LANG_HOOKS_FINISH_INCOMPLETE_DECL gnat_finish_incomplete_decl
-#undef	LANG_HOOKS_REDUCE_BIT_FIELD_OPERATIONS
-#define LANG_HOOKS_REDUCE_BIT_FIELD_OPERATIONS true
 #undef  LANG_HOOKS_GET_ALIAS_SET
 #define LANG_HOOKS_GET_ALIAS_SET	gnat_get_alias_set
 #undef  LANG_HOOKS_EXPAND_EXPR
@@ -153,6 +151,8 @@ static tree gnat_type_max_size		(const_tree);
 #define LANG_HOOKS_TYPE_FOR_MODE	gnat_type_for_mode
 #undef  LANG_HOOKS_TYPE_FOR_SIZE
 #define LANG_HOOKS_TYPE_FOR_SIZE	gnat_type_for_size
+#undef  LANG_HOOKS_TYPES_COMPATIBLE_P
+#define LANG_HOOKS_TYPES_COMPATIBLE_P	gnat_types_compatible_p
 #undef  LANG_HOOKS_ATTRIBUTE_TABLE
 #define LANG_HOOKS_ATTRIBUTE_TABLE	gnat_internal_attribute_table
 #undef  LANG_HOOKS_BUILTIN_FUNCTION
@@ -249,7 +249,7 @@ gnat_parse_file (int set_yydebug ATTRIBUTE_UNUSED)
    from ARGV that it successfully decoded; 0 indicates failure.  */
 
 static int
-gnat_handle_option (size_t scode, const char *arg, int value ATTRIBUTE_UNUSED)
+gnat_handle_option (size_t scode, const char *arg, int value)
 {
   const struct cl_option *option = &cl_options[scode];
   enum opt_code code = (enum opt_code) scode;
@@ -271,8 +271,16 @@ gnat_handle_option (size_t scode, const char *arg, int value ATTRIBUTE_UNUSED)
       gnat_argc++;
       break;
 
-      /* All front ends are expected to accept this.  */
     case OPT_Wall:
+      set_Wunused (value);
+
+      /* We save the value of warn_uninitialized, since if they put
+	 -Wuninitialized on the command line, we need to generate a
+	 warning about not using it without also specifying -O.  */
+      if (warn_uninitialized != 1)
+	warn_uninitialized = (value ? 2 : 0);
+      break;
+
       /* These are used in the GCC Makefile.  */
     case OPT_Wmissing_prototypes:
     case OPT_Wstrict_prototypes:
@@ -295,9 +303,9 @@ gnat_handle_option (size_t scode, const char *arg, int value ATTRIBUTE_UNUSED)
 
     case OPT_feliminate_unused_debug_types:
       /* We arrange for post_option to be able to only set the corresponding
-         flag to 1 when explicitely requested by the user.  We expect the
-         default flag value to be either 0 or positive, and expose a positive
-         -f as a negative value to post_option.  */
+	 flag to 1 when explicitly requested by the user.  We expect the
+	 default flag value to be either 0 or positive, and expose a positive
+	 -f as a negative value to post_option.  */
       flag_eliminate_unused_debug_types = -value;
       break;
 
@@ -357,6 +365,9 @@ gnat_init_options (unsigned int argc, const char **argv)
 bool
 gnat_post_options (const char **pfilename ATTRIBUTE_UNUSED)
 {
+  /* ??? The warning machinery is outsmarted by Ada.  */
+  warn_unused_parameter = 0;
+
   flag_inline_trees = 1;
 
   if (!flag_no_inline)
@@ -412,11 +423,9 @@ internal_error_function (const char *msgid, va_list *ap)
   fp.Array = buffer;
 
   s = expand_location (input_location);
-#ifdef USE_MAPPED_LOCATION
   if (flag_show_column && s.column != 0)
     asprintf (&loc, "%s:%d:%d", s.file, s.line, s.column);
   else
-#endif
     asprintf (&loc, "%s:%d", s.file, s.line);
   temp_loc.Low_Bound = 1;
   temp_loc.High_Bound = strlen (loc);
@@ -518,7 +527,6 @@ gnat_init_gcc_eh (void)
      marked as "cannot trap" if the flag is not set (see emit_libcall_block).
      We should not let this be since it is possible for such calls to actually
      raise in Ada.  */
-
   flag_exceptions = 1;
   flag_non_call_exceptions = 1;
 
@@ -606,6 +614,14 @@ gnat_print_type (FILE *file, tree node, int indent)
 }
 
 static const char *
+gnat_dwarf_name (tree t, int verbosity ATTRIBUTE_UNUSED)
+{
+  gcc_assert (DECL_P (t));
+
+  return (const char *) IDENTIFIER_POINTER (DECL_NAME (t));
+}
+
+static const char *
 gnat_printable_name (tree decl, int verbosity)
 {
   const char *coded_name = IDENTIFIER_POINTER (DECL_NAME (decl));
@@ -620,14 +636,6 @@ gnat_printable_name (tree decl, int verbosity)
     }
 
   return (const char *) ada_name;
-}
-
-static const char *
-gnat_dwarf_name (tree t, int verbosity ATTRIBUTE_UNUSED)
-{
-  gcc_assert (DECL_P (t));
-
-  return (const char *) IDENTIFIER_POINTER (DECL_NAME (t));
 }
 
 /* Expands GNAT-specific GCC tree nodes.  The only ones we support

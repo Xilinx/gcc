@@ -12,7 +12,7 @@ AC_CONFIG_HEADER(config.h)
 ### am handles this now?  ORIGINAL_LD_FOR_MULTILIBS=$LD
 
 # For libtool versioning info, format is CURRENT:REVISION:AGE
-libtool_VERSION=6:10:0
+libtool_VERSION=6:11:0
 AC_SUBST(libtool_VERSION)
 
 # Find the rest of the source tree framework.
@@ -82,7 +82,9 @@ AH_TEMPLATE(VERSION, [Version number of package])
 # up critical shell variables.
 GLIBCXX_CONFIGURE
 
-AC_LIBTOOL_DLOPEN
+if test "x${with_newlib}" != "xyes"; then
+  AC_LIBTOOL_DLOPEN
+fi
 AM_PROG_LIBTOOL
 AC_SUBST(enable_shared)
 AC_SUBST(enable_static)
@@ -95,6 +97,12 @@ GLIBCXX_ENABLE_HOSTED
 # Enable compiler support that doesn't require linking.
 GLIBCXX_ENABLE_SJLJ_EXCEPTIONS
 GLIBCXX_ENABLE_PCH($is_hosted)
+GLIBCXX_ENABLE_ATOMIC_BUILTINS
+GLIBCXX_ENABLE_THREADS
+
+# Checks for compiler support that don't require linking.
+GLIBCXX_CHECK_COMPILER_FEATURES
+GLIBCXX_CHECK_STANDARD_LAYOUT
 
 # Enable all the variable C++ runtime options that doesn't require linking.
 GLIBCXX_ENABLE_CSTDIO
@@ -107,29 +115,15 @@ GLIBCXX_ENABLE_C99([yes])
 GLIBCXX_ENABLE_CONCEPT_CHECKS([no])
 GLIBCXX_ENABLE_DEBUG_FLAGS(["-g3 -O0"])
 GLIBCXX_ENABLE_DEBUG([no])
-GLIBCXX_ENABLE_PARALLEL
+GLIBCXX_ENABLE_PARALLEL([yes])
 GLIBCXX_ENABLE_CXX_FLAGS
 GLIBCXX_ENABLE_FULLY_DYNAMIC_STRING([no])
 
 # Checks for operating systems support that don't require linking.
 GLIBCXX_CHECK_SYSTEM_ERROR
 
-# No surprises, no surprises...
-GLIBCXX_ENABLE_THREADS
-GLIBCXX_ENABLE_ATOMIC_BUILTINS
-if test $atomicity_dir = cpu/generic/atomicity_mutex ; then
-  AC_MSG_WARN([No native atomic operations are provided for this platform.])
-  if test $target_thread_file = single; then
-    AC_MSG_WARN([They cannot be faked when thread support is disabled.])
-    AC_MSG_WARN([Thread-safety of certain classes is not guaranteed.])
-  else
-    AC_MSG_WARN([They will be faked using a mutex.])
-    AC_MSG_WARN([Performance of certain classes will degrade as a result.])
-  fi
-fi
 
-GLIBCXX_CHECK_COMPILER_FEATURES
-
+# Only do link tests if native. Else, hardcode.
 if $GLIBCXX_IS_NATIVE; then
 
   # We can do more elaborate tests that assume a working linker.
@@ -295,8 +289,11 @@ else
 
   # Assume we have _Unwind_GetIPInfo for cross-compiles.
   AC_DEFINE(HAVE_GETIPINFO)
-
 fi
+
+GCC_LINUX_FUTEX([AC_DEFINE(HAVE_LINUX_FUTEX, 1, [Define if futex syscall is available.])])
+
+GCC_HEADER_STDINT(include/gstdint.h)
 
 # This depends on GLIBCXX CHECK_LINKER_FEATURES, but without it assumes no.
 GLIBCXX_ENABLE_SYMVERS([yes])

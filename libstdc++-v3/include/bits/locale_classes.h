@@ -1,7 +1,7 @@
 // Locale support -*- C++ -*-
 
 // Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
-// 2006, 2007
+// 2006, 2007, 2008
 // Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
@@ -97,9 +97,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
      *  monetary, and messages.  They form a bitmask that supports union and
      *  intersection.  The category all is the union of these values.
      *
-     *  @if maint
      *  NB: Order must match _S_facet_categories definition in locale.cc
-     *  @endif
     */
     static const category none		= 0;
     static const category ctype		= 1L << 0;
@@ -574,13 +572,8 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
    *  @return  true if locale contains a facet of type Facet, else false.
   */
   template<typename _Facet>
-    inline bool
-    has_facet(const locale& __loc) throw()
-    {
-      const size_t __i = _Facet::id._M_id();
-      const locale::facet** __facets = __loc._M_impl->_M_facets;
-      return (__i < __loc._M_impl->_M_facets_size && __facets[__i]);
-    }
+    bool
+    has_facet(const locale& __loc) throw();
 
   /**
    *  @brief  Return a facet.
@@ -596,15 +589,8 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
    *  @throw  std::bad_cast if locale doesn't contain a facet of type Facet.
   */
   template<typename _Facet>
-    inline const _Facet&
-    use_facet(const locale& __loc)
-    {
-      const size_t __i = _Facet::id._M_id();
-      const locale::facet** __facets = __loc._M_impl->_M_facets;
-      if (!(__i < __loc._M_impl->_M_facets_size && __facets[__i]))
-        __throw_bad_cast();
-      return static_cast<const _Facet&>(*__facets[__i]);
-    }
+    const _Facet&
+    use_facet(const locale& __loc);
 
 
   /**
@@ -794,7 +780,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
     collate<wchar_t>::_M_transform(wchar_t*, const wchar_t*, size_t) const;
 #endif
 
-  /// @brief  class collate_byname [22.2.4.2].
+  /// class collate_byname [22.2.4.2].
   template<typename _CharT>
     class collate_byname : public collate<_CharT>
     {

@@ -1,5 +1,5 @@
 ;; XSTORMY16 Machine description template
-;; Copyright (C) 1997, 1998, 1999, 2001, 2002, 2003, 2004, 2005, 2007
+;; Copyright (C) 1997, 1998, 1999, 2001, 2002, 2003, 2004, 2005, 2007, 2008
 ;; Free Software Foundation, Inc.
 ;; Contributed by Red Hat, Inc.
 
@@ -185,7 +185,7 @@
 
 (define_insn "movhi_internal"
   [(set (match_operand:HI 0 "nonimmediate_nonstack_operand" "=r,m,e,e,T,r,S,W,r")
-	(match_operand:HI 1 "xs_hi_general_operand"       "r,e,m,L,L,i,i,ir,W"))]
+	(match_operand:HI 1 "xs_hi_general_operand"          "r,e,m,L,L,i,i,ie,W"))]
   ""
   "@
    mov %0,%1
@@ -304,11 +304,8 @@
 ;; ::::::::::::::::::::
 
 ;; Addition
-; Operand 3 is marked earlyclobber because that helps reload
-; to generate better code---this pattern will never need the
-; carry register as an input, and some output reloads or input
-; reloads might need to use it.  In fact, without the '&' reload
-; will fail in some cases.
+; Note - the early clobber modifier is no longer needed on operand 3
+; and in fact can cause some reload spill failures if it is present.
 ; Note that the 'Z' constraint matches "add $reg,0", which reload
 ; will occasionally emit.  We avoid the "add $reg,imm" match because
 ; it clobbers the carry.
@@ -316,7 +313,7 @@
   [(set (match_operand:HI 0 "register_operand" "=r,r,r,T,T,r,r,r")
 	(plus:HI (match_operand:HI 1 "register_operand" "%0,0,0,0,0,0,0,0")
 		 (match_operand:HI 2 "xs_hi_nonmemory_operand" "O,P,Z,L,M,Ir,N,i")))
-   (clobber (match_scratch:BI 3 "=X,X,X,&y,&y,&y,&y,&y"))]
+   (clobber (match_scratch:BI 3 "=X,X,X,y,y,y,y,y"))]
   ""
   "@
    inc %0,%o2
@@ -883,11 +880,7 @@
 				       (const_int 0)])
 		      (label_ref (match_operand 0 "" ""))
 		      (pc)))
-;; Although I would greatly like the 'match_dup' in the following line
-;; to actually be a register constraint, there is (at the time of writing) no
-;; way for reload to insert an output reload on the edges out of a branch.
-;; If reload is fixed to use insert_insn_on_edge, this can be changed.
-   (clobber (match_dup 2))]
+   (clobber (match_operand:SI 3 "register_operand" "=2"))]
   ""
   "*
 {
@@ -905,15 +898,7 @@
 							 "ri")])
 		      (label_ref (match_operand 0 "" ""))
 		      (pc)))
-;; Although I would greatly like the 'match_dup' in the following line
-;; to actually be a register constraint, there is (at the time of writing) no
-;; way for reload to insert an output reload on the edges out of a branch.
-;; If reload is fixed to use insert_insn_on_edge, this can be changed,
-;; preferably to a 'minus' operand that explains the actual operation, like:
-; (set (match_operand 5 "register_operand" "=2")
-;      (minus:SI (match_operand 6 "register_operand" "2")
-;		 (match_operand 7 "register_operand" "3")))
-   (clobber (match_dup 2))
+   (clobber (match_operand:SI 5 "register_operand" "=2"))
    (clobber (match_operand:BI 4 "" "=&y"))]
   ""
   "#"

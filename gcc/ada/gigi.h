@@ -6,7 +6,7 @@
  *                                                                          *
  *                              C Header File                               *
  *                                                                          *
- *          Copyright (C) 1992-2007, Free Software Foundation, Inc.         *
+ *          Copyright (C) 1992-2008, Free Software Foundation, Inc.         *
  *                                                                          *
  * GNAT is free software;  you can  redistribute it  and/or modify it under *
  * terms of the  GNU General Public License as published  by the Free Soft- *
@@ -373,9 +373,17 @@ enum standard_datatypes
   /* Type declaration node  <==> typedef void *T() */
   ADT_ptr_void_ftype,
 
-  /* A function declaration node for a run-time function for allocating memory.
-     Ada allocators cause calls to this function to be generated.   */
+  /* Type declaration node  <==> typedef virtual void *T() */
+  ADT_fdesc_type,
+
+  /* Null pointer for above type */
+  ADT_null_fdesc,
+
+  /* Function declaration nodes for run-time functions for allocating memory.
+     Ada allocators cause calls to these functions to be generated.  Malloc32
+     is used only on 64bit systems needing to allocate 32bit memory. */
   ADT_malloc_decl,
+  ADT_malloc32_decl,
 
   /* Likewise for freeing memory.  */
   ADT_free_decl,
@@ -406,7 +414,10 @@ extern GTY(()) tree gnat_raise_decls[(int) LAST_REASON_CODE + 1];
 #define ptr_void_type_node gnat_std_decls[(int) ADT_ptr_void_type]
 #define void_ftype gnat_std_decls[(int) ADT_void_ftype]
 #define ptr_void_ftype gnat_std_decls[(int) ADT_ptr_void_ftype]
+#define fdesc_type_node gnat_std_decls[(int) ADT_fdesc_type]
+#define null_fdesc_node gnat_std_decls[(int) ADT_null_fdesc]
 #define malloc_decl gnat_std_decls[(int) ADT_malloc_decl]
+#define malloc32_decl gnat_std_decls[(int) ADT_malloc32_decl]
 #define free_decl gnat_std_decls[(int) ADT_free_decl]
 #define jmpbuf_type gnat_std_decls[(int) ADT_jmpbuf_type]
 #define jmpbuf_ptr_type gnat_std_decls[(int) ADT_jmpbuf_ptr_type]
@@ -442,11 +453,6 @@ extern void set_block_jmpbuf_decl (tree decl);
 /* Get the setjmp_decl, if any, for the current binding level.  */
 extern tree get_block_jmpbuf_decl (void);
 
-/* Insert BLOCK at the end of the list of subblocks of the
-   current binding level.  This is used when a BIND_EXPR is expanded,
-   to handle the BLOCK node inside the BIND_EXPR.  */
-extern void insert_block (tree block);
-
 /* Records a ..._DECL node DECL as belonging to the current lexical scope
    and uses GNAT_NODE for location information.  */
 extern void gnat_pushdecl (tree decl, Node_Id gnat_node);
@@ -472,6 +478,10 @@ extern tree gnat_unsigned_type (tree type_node);
 
 /* Return the signed version of a TYPE_NODE, a scalar type.  */
 extern tree gnat_signed_type (tree type_node);
+
+/* Return 1 if the types T1 and T2 are compatible, i.e. if they can be
+   transparently converted to each other.  */
+extern int gnat_types_compatible_p (tree t1, tree t2);
 
 /* Create an expression whose value is that of EXPR,
    converted to type TYPE.  The TREE_TYPE of the value
@@ -527,13 +537,11 @@ extern void rest_of_record_type_compilation (tree record_type);
    copy-in/copy-out list to be stored into TYPE_CI_CO_LIST.
    RETURNS_UNCONSTRAINED is true if the function returns an unconstrained
    object.  RETURNS_BY_REF is true if the function returns by reference.
-   RETURNS_WITH_DSP is true if the function is to return with a
-   depressed stack pointer.  RETURNS_BY_TARGET_PTR is true if the function
-   is to be passed (as its first parameter) the address of the place to copy
-   its result.  */
+   RETURNS_BY_TARGET_PTR is true if the function is to be passed (as its
+   first parameter) the address of the place to copy its result.  */
 extern tree create_subprog_type (tree return_type, tree param_decl_list,
                                  tree cico_list, bool returns_unconstrained,
-                                 bool returns_by_ref, bool returns_with_dsp,
+                                 bool returns_by_ref,
                                  bool returns_by_target_ptr);
 
 /* Return a copy of TYPE, but safe to modify in any way.  */
@@ -556,36 +564,51 @@ extern tree create_type_decl (tree type_name, tree type,
                               bool artificial_p, bool debug_info_p,
 			      Node_Id gnat_node);
 
-/* Returns a GCC VAR_DECL or CONST_DECL node.
+/* Return a VAR_DECL or CONST_DECL node.
 
    VAR_NAME gives the name of the variable.  ASM_NAME is its assembler name
    (if provided).  TYPE is its data type (a GCC ..._TYPE node).  VAR_INIT is
    the GCC tree for an optional initial expression; NULL_TREE if none.
 
-   CONST_FLAG is true if this variable is constant.
+   CONST_FLAG is true if this variable is constant, in which case we might
+   return a CONST_DECL node unless CONST_DECL_ALLOWED_P is false.
 
    PUBLIC_FLAG is true if this definition is to be made visible outside of
    the current compilation unit. This flag should be set when processing the
-   variable definitions in a package specification.  EXTERN_FLAG is nonzero
-   when processing an external variable declaration (as opposed to a
-   definition: no storage is to be allocated for the variable here).
+   variable definitions in a package specification.
+
+   EXTERN_FLAG is nonzero when processing an external variable declaration (as
+   opposed to a definition: no storage is to be allocated for the variable).
 
    STATIC_FLAG is only relevant when not at top level.  In that case
    it indicates whether to always allocate storage to the variable.
 
    GNAT_NODE is used for the position of the decl.  */
-extern tree create_var_decl (tree var_name, tree asm_name, tree type,
-                             tree var_init, bool const_flag,
-                             bool public_flag, bool extern_flag,
-                             bool static_flag,
-			     struct attrib *attr_list, Node_Id gnat_node);
+tree
+create_var_decl_1 (tree var_name, tree asm_name, tree type, tree var_init,
+		   bool const_flag, bool public_flag, bool extern_flag,
+		   bool static_flag, bool const_decl_allowed_p,
+		   struct attrib *attr_list, Node_Id gnat_node);
 
-/* Similar to create_var_decl, forcing the creation of a VAR_DECL node.  */
-extern tree create_true_var_decl (tree var_name, tree asm_name, tree type,
-				  tree var_init, bool const_flag,
-				  bool public_flag, bool extern_flag,
-				  bool static_flag,
-				  struct attrib *attr_list, Node_Id gnat_node);
+/* Wrapper around create_var_decl_1 for cases where we don't care whether
+   a VAR or a CONST decl node is created.  */
+#define create_var_decl(var_name, asm_name, type, var_init,	\
+			const_flag, public_flag, extern_flag,	\
+			static_flag, attr_list, gnat_node)	\
+  create_var_decl_1 (var_name, asm_name, type, var_init,	\
+		     const_flag, public_flag, extern_flag,	\
+		     static_flag, true, attr_list, gnat_node)
+
+/* Wrapper around create_var_decl_1 for cases where a VAR_DECL node is
+   required.  The primary intent is for DECL_CONST_CORRESPONDING_VARs, which
+   must be VAR_DECLs and on which we want TREE_READONLY set to have them
+   possibly assigned to a readonly data section.  */
+#define create_true_var_decl(var_name, asm_name, type, var_init,	\
+			     const_flag, public_flag, extern_flag,	\
+			     static_flag, attr_list, gnat_node)		\
+  create_var_decl_1 (var_name, asm_name, type, var_init,		\
+		     const_flag, public_flag, extern_flag,		\
+		     static_flag, false, attr_list, gnat_node)
 
 /* Given a DECL and ATTR_LIST, apply the listed attributes.  */
 extern void process_attributes (tree decl, struct attrib *attr_list);
@@ -608,7 +631,7 @@ extern tree create_field_decl (tree field_name, tree field_type,
 
 /* Returns a PARM_DECL node. PARAM_NAME is the name of the parameter,
    PARAM_TYPE is its type.  READONLY is true if the parameter is
-   readonly (either an IN parameter or an address of a pass-by-ref
+   readonly (either an In parameter or an address of a pass-by-ref
    parameter). */
 extern tree create_param_decl (tree param_name, tree param_type,
                                bool readonly);
@@ -787,7 +810,7 @@ extern tree build_component_ref (tree record_variable, tree component,
 
 /* Build a GCC tree to call an allocation or deallocation function.
    If GNU_OBJ is nonzero, it is an object to deallocate.  Otherwise,
-   genrate an allocator.
+   generate an allocator.
 
    GNU_SIZE is the size of the object and ALIGN is the alignment.
    GNAT_PROC, if present is a procedure to call and GNAT_POOL is the

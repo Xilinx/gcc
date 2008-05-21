@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1996-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1996-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -44,7 +44,7 @@ package body VMS_Conv is
    --  kept in a more conveniently accessible form described in this
    --  section.
 
-   --  Commands, command qualifers and options have a similar common format
+   --  Commands, command qualifiers and options have a similar common format
    --  so that searching for matching names can be done in a common manner.
 
    type Item_Id is (Id_Command, Id_Switch, Id_Option);
@@ -274,7 +274,7 @@ package body VMS_Conv is
 
    procedure Place_Unix_Switches (S : VMS_Data.String_Ptr);
    --  Given a unix switch string, place corresponding switches in Buffer,
-   --  updating Ptr appropriatelly. Note that in the case of use of ! the
+   --  updating Ptr appropriately. Note that in the case of use of ! the
    --  result may be to remove a previously placed switch.
 
    procedure Preprocess_Command_Data;
@@ -394,6 +394,16 @@ package body VMS_Conv is
             Unixcmd  => new S'("gnatcheck"),
             Unixsws  => null,
             Switches => Check_Switches'Access,
+            Params   => new Parameter_Array'(1 => Unlimited_Files),
+            Defext   => "   "),
+
+         Sync =>
+           (Cname    => new S'("SYNC"),
+            Usage    => new S'("GNAT SYNC name /qualifiers"),
+            VMS_Only => False,
+            Unixcmd  => new S'("gnatsync"),
+            Unixsws  => null,
+            Switches => Sync_Switches'Access,
             Params   => new Parameter_Array'(1 => Unlimited_Files),
             Defext   => "   "),
 
@@ -804,7 +814,12 @@ package body VMS_Conv is
 
    procedure Output_Version is
    begin
-      Put ("GNAT ");
+      if AAMP_On_Target then
+         Put ("GNAAMP ");
+      else
+         Put ("GNAT ");
+      end if;
+
       Put_Line (Gnatvsn.Gnat_Version_String);
       Put_Line ("Copyright 1996-" &
                 Current_Year &
@@ -2005,7 +2020,7 @@ package body VMS_Conv is
                            --  end of the Argv, otherwise strings like
                            --  "foo/bar" get split at the slash.
 
-                           --  The begining and ending of the string
+                           --  The beginning and ending of the string
                            --  are flagged with embedded nulls which
                            --  are removed when building the Spawn
                            --  call. Nulls are use because they won't

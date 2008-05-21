@@ -275,7 +275,11 @@ is_division_by (tree use_stmt, tree def)
 {
   return TREE_CODE (use_stmt) == GIMPLE_MODIFY_STMT
 	 && TREE_CODE (GIMPLE_STMT_OPERAND (use_stmt, 1)) == RDIV_EXPR
-	 && TREE_OPERAND (GIMPLE_STMT_OPERAND (use_stmt, 1), 1) == def;
+	 && TREE_OPERAND (GIMPLE_STMT_OPERAND (use_stmt, 1), 1) == def
+	 /* Do not recognize x / x as valid division, as we are getting
+	    confused later by replacing all immediate uses x in such
+	    a stmt.  */
+	 && TREE_OPERAND (GIMPLE_STMT_OPERAND (use_stmt, 1), 0) != def;
 }
 
 /* Walk the subset of the dominator tree rooted at OCC, setting the
@@ -551,8 +555,10 @@ execute_cse_reciprocals (void)
   return 0;
 }
 
-struct tree_opt_pass pass_cse_reciprocals =
+struct gimple_opt_pass pass_cse_reciprocals =
 {
+ {
+  GIMPLE_PASS,
   "recip",				/* name */
   gate_cse_reciprocals,			/* gate */
   execute_cse_reciprocals,		/* execute */
@@ -565,8 +571,8 @@ struct tree_opt_pass pass_cse_reciprocals =
   0,					/* properties_destroyed */
   0,					/* todo_flags_start */
   TODO_dump_func | TODO_update_ssa | TODO_verify_ssa
-    | TODO_verify_stmts,                /* todo_flags_finish */
-  0				        /* letter */
+    | TODO_verify_stmts                /* todo_flags_finish */
+ }
 };
 
 /* Records an occurrence at statement USE_STMT in the vector of trees
@@ -657,8 +663,9 @@ execute_cse_sincos_1 (tree name)
   call = build_call_expr (fndecl, 1, name);
   stmt = build_gimple_modify_stmt (res, call);
   def_stmt = SSA_NAME_DEF_STMT (name);
-  if (bb_for_stmt (def_stmt) == top_bb
-      && TREE_CODE (def_stmt) == GIMPLE_MODIFY_STMT)
+  if (!SSA_NAME_IS_DEFAULT_DEF (name)
+      && TREE_CODE (def_stmt) != PHI_NODE
+      && bb_for_stmt (def_stmt) == top_bb)
     {
       bsi = bsi_for_stmt (def_stmt);
       bsi_insert_after (&bsi, stmt, BSI_SAME_STMT);
@@ -756,8 +763,10 @@ gate_cse_sincos (void)
 	 && optimize;
 }
 
-struct tree_opt_pass pass_cse_sincos =
+struct gimple_opt_pass pass_cse_sincos =
 {
+ {
+  GIMPLE_PASS,
   "sincos",				/* name */
   gate_cse_sincos,			/* gate */
   execute_cse_sincos,			/* execute */
@@ -770,8 +779,8 @@ struct tree_opt_pass pass_cse_sincos =
   0,					/* properties_destroyed */
   0,					/* todo_flags_start */
   TODO_dump_func | TODO_update_ssa | TODO_verify_ssa
-    | TODO_verify_stmts,                /* todo_flags_finish */
-  0				        /* letter */
+    | TODO_verify_stmts                 /* todo_flags_finish */
+ }
 };
 
 /* Find all expressions in the form of sqrt(a/b) and
@@ -848,8 +857,10 @@ gate_convert_to_rsqrt (void)
   return flag_unsafe_math_optimizations && optimize;
 }
 
-struct tree_opt_pass pass_convert_to_rsqrt =
+struct gimple_opt_pass pass_convert_to_rsqrt =
 {
+ {
+  GIMPLE_PASS,
   "rsqrt",				/* name */
   gate_convert_to_rsqrt,		/* gate */
   execute_convert_to_rsqrt,		/* execute */
@@ -862,6 +873,6 @@ struct tree_opt_pass pass_convert_to_rsqrt =
   0,					/* properties_destroyed */
   0,					/* todo_flags_start */
   TODO_dump_func | TODO_update_ssa | TODO_verify_ssa
-    | TODO_verify_stmts,                /* todo_flags_finish */
-  0				        /* letter */
+    | TODO_verify_stmts                 /* todo_flags_finish */
+ }
 };

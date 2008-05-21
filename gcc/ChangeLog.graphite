@@ -1,3 +1,7 @@
+2008-05-20  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* Merge from mainline (130800:135673).
+
 2008-05-07  Sebastian Pop  <sebastian.pop@amd.com>
 
 	* graphite.c (end_scop): The exit of the scop is not part of the scop.

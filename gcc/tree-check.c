@@ -58,13 +58,8 @@ tree_check_warning (condate cond, tree stmt, int check_option)
 
   if (flag_tree_checks_verbose)
     {
-#ifdef USE_MAPPED_LOCATION
       const char *file = LOCATION_FILE (input_location);
       int line = LOCATION_LINE (input_location);
-#else
-      const char *file = input_location.file;
-      int line = input_location.line;
-#endif
       fprintf (stderr, "%s:%d: instance = ", file, line);
       /*   print_local_holes (); */
       print_global_holes ();
@@ -505,8 +500,10 @@ gate_tree_check (void)
 	  && basic_block_info != 0);
 }
 
-struct tree_opt_pass pass_check =
+struct gimple_opt_pass pass_check =
 {
+ {
+  GIMPLE_PASS,
   "check",				/* name */
   gate_tree_check,			/* gate */
   execute_tree_check,			/* execute */
@@ -518,6 +515,6 @@ struct tree_opt_pass pass_check =
   0,					/* properties_provided */
   0,					/* properties_destroyed */
   0,					/* todo_flags_start */
-  0,					/* todo_flags_finish */
-  0					/* letter */
+  0					/* todo_flags_finish */
+ }
 };

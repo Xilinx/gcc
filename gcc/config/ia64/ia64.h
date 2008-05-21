@@ -982,7 +982,7 @@ enum reg_class
 #define INIT_EXPANDERS					\
   do {							\
     ia64_init_expanders ();                             \
-    if (cfun && cfun->emit->regno_pointer_align)	\
+    if (crtl->emit.regno_pointer_align)	\
       REGNO_POINTER_ALIGN (ARG_POINTER_REGNUM) = 64;	\
   } while (0)
 
@@ -1029,7 +1029,7 @@ enum reg_class
 
 /* If defined, the maximum amount of space required for outgoing arguments will
    be computed and placed into the variable
-   `current_function_outgoing_args_size'.  */
+   `crtl->outgoing_args_size'.  */
 
 #define ACCUMULATE_OUTGOING_ARGS 1
 

@@ -644,7 +644,7 @@ package body GNAT.AWK is
       when others =>
          Raise_With_Info
            (File_Error'Identity,
-            "Error scaning directory " & Directory
+            "Error scanning directory " & Directory
             & " for files " & Filenames & '.',
             Session);
    end Add_Files;
@@ -1475,7 +1475,6 @@ package body GNAT.AWK is
 
    procedure Split_Line (Session : Session_Type) is
       Fields : Field_Table.Instance renames Session.Data.Fields;
-      pragma Unreferenced (Fields);
    begin
       Field_Table.Init (Fields);
       Split.Current_Line (Session.Data.Separators.all, Session);

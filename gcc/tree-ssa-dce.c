@@ -277,7 +277,7 @@ mark_stmt_if_obviously_necessary (tree stmt, bool aggressive)
      can then remove the block and labels.  */
   switch (TREE_CODE (stmt))
     {
-    case BIND_EXPR:
+    case PREDICT_EXPR:
     case LABEL_EXPR:
     case CASE_LABEL_EXPR:
       mark_stmt_necessary (stmt, false);
@@ -735,22 +735,19 @@ eliminate_unnecessary_stmts (void)
 static void
 print_stats (void)
 {
-  if (dump_file && (dump_flags & (TDF_STATS|TDF_DETAILS)))
-    {
-      float percg;
+  float percg;
 
-      percg = ((float) stats.removed / (float) stats.total) * 100;
-      fprintf (dump_file, "Removed %d of %d statements (%d%%)\n",
-	       stats.removed, stats.total, (int) percg);
+  percg = ((float) stats.removed / (float) stats.total) * 100;
+  fprintf (dump_file, "Removed %d of %d statements (%d%%)\n",
+	   stats.removed, stats.total, (int) percg);
 
-      if (stats.total_phis == 0)
-	percg = 0;
-      else
-	percg = ((float) stats.removed_phis / (float) stats.total_phis) * 100;
+  if (stats.total_phis == 0)
+    percg = 0;
+  else
+    percg = ((float) stats.removed_phis / (float) stats.total_phis) * 100;
 
-      fprintf (dump_file, "Removed %d of %d PHI nodes (%d%%)\n",
-	       stats.removed_phis, stats.total_phis, (int) percg);
-    }
+  fprintf (dump_file, "Removed %d of %d PHI nodes (%d%%)\n",
+	   stats.removed_phis, stats.total_phis, (int) percg);
 }
 
 /* Initialization for this pass.  Set up the used data structures.  */
@@ -854,8 +851,11 @@ perform_tree_ssa_dce (bool aggressive)
   if (cfg_altered)
     free_dominance_info (CDI_DOMINATORS);
 
+  statistics_counter_event (cfun, "Statements deleted", stats.removed);
+  statistics_counter_event (cfun, "PHI nodes deleted", stats.removed_phis);
+
   /* Debugging dumps.  */
-  if (dump_file)
+  if (dump_file && (dump_flags & (TDF_STATS|TDF_DETAILS)))
     print_stats ();
 
   tree_dce_done (aggressive);
@@ -901,8 +901,10 @@ gate_dce (void)
   return flag_tree_dce != 0;
 }
 
-struct tree_opt_pass pass_dce =
+struct gimple_opt_pass pass_dce =
 {
+ {
+  GIMPLE_PASS,
   "dce",				/* name */
   gate_dce,				/* gate */
   tree_ssa_dce,				/* execute */
@@ -914,12 +916,14 @@ struct tree_opt_pass pass_dce =
   0,					/* properties_provided */
   0,					/* properties_destroyed */
   0,					/* todo_flags_start */
-  TODO_dump_func | TODO_verify_ssa,	/* todo_flags_finish */
-  0					/* letter */
+  TODO_dump_func | TODO_verify_ssa	/* todo_flags_finish */
+ }
 };
 
-struct tree_opt_pass pass_dce_loop =
+struct gimple_opt_pass pass_dce_loop =
 {
+ {
+  GIMPLE_PASS,
   "dceloop",				/* name */
   gate_dce,				/* gate */
   tree_ssa_dce_loop,			/* execute */
@@ -931,12 +935,14 @@ struct tree_opt_pass pass_dce_loop =
   0,					/* properties_provided */
   0,					/* properties_destroyed */
   0,					/* todo_flags_start */
-  TODO_dump_func | TODO_verify_ssa,	/* todo_flags_finish */
-  0					/* letter */
+  TODO_dump_func | TODO_verify_ssa	/* todo_flags_finish */
+ }
 };
 
-struct tree_opt_pass pass_cd_dce =
+struct gimple_opt_pass pass_cd_dce =
 {
+ {
+  GIMPLE_PASS,
   "cddce",				/* name */
   gate_dce,				/* gate */
   tree_ssa_cd_dce,			/* execute */
@@ -949,6 +955,6 @@ struct tree_opt_pass pass_cd_dce =
   0,					/* properties_destroyed */
   0,					/* todo_flags_start */
   TODO_dump_func | TODO_verify_ssa
-  | TODO_verify_flow,			/* todo_flags_finish */
-  0					/* letter */
+  | TODO_verify_flow			/* todo_flags_finish */
+ }
 };

@@ -6,7 +6,7 @@
 --                                                                          --
 --                                  B o d y                                 --
 --                                                                          --
---          Copyright (C) 1992-2006, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNARL is free software; you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -32,14 +32,11 @@
 ------------------------------------------------------------------------------
 
 pragma Polling (Off);
---  Turn off polling, we do not want ATC polling to take place during
---  tasking operations. It causes infinite loops and other problems.
+--  Turn off polling, we do not want ATC polling to take place during tasking
+--  operations. It causes infinite loops and other problems.
 
 with System.Task_Primitives.Operations;
---  used for Self
-
 with System.Storage_Elements;
---  Needed for initializing Stack_Info.Size
 
 package body System.Tasking is
 
@@ -160,8 +157,10 @@ package body System.Tasking is
 
    procedure Initialize is
       T             : Task_Id;
-      Success       : Boolean;
       Base_Priority : Any_Priority;
+
+      Success : Boolean;
+      pragma Warnings (Off, Success);
 
    begin
       if Initialized then

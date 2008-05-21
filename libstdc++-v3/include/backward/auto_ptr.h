@@ -1,6 +1,6 @@
 // auto_ptr implementation -*- C++ -*-
 
-// Copyright (C) 2007 Free Software Foundation, Inc.
+// Copyright (C) 2007, 2008 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -82,11 +82,9 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
    *  Good examples of what can and cannot be done with auto_ptr can
    *  be found in the libstdc++ testsuite.
    *
-   *  @if maint
    *  _GLIBCXX_RESOLVE_LIB_DEFECTS
    *  127.  auto_ptr<> conversion issues
    *  These resolutions have all been incorporated.
-   *  @endif
    */
   template<typename _Tp>
     class auto_ptr
@@ -112,7 +110,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
        *  @param  a  Another %auto_ptr of the same type.
        *
        *  This object now @e owns the object previously owned by @a a,
-       *  which has given up ownsership.
+       *  which has given up ownership.
        */
       auto_ptr(auto_ptr& __a) throw() : _M_ptr(__a.release()) { }
 
@@ -124,7 +122,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
        *  pointer-to-Tp/element_type.
        *
        *  This object now @e owns the object previously owned by @a a,
-       *  which has given up ownsership.
+       *  which has given up ownership.
        */
       template<typename _Tp1>
         auto_ptr(auto_ptr<_Tp1>& __a) throw() : _M_ptr(__a.release()) { }
@@ -134,7 +132,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
        *  @param  a  Another %auto_ptr of the same type.
        *
        *  This object now @e owns the object previously owned by @a a,
-       *  which has given up ownsership.  The object that this one @e
+       *  which has given up ownership.  The object that this one @e
        *  used to own and track has been deleted.
        */
       auto_ptr&
@@ -151,7 +149,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
        *  A pointer-to-Tp1 must be convertible to a pointer-to-Tp/element_type.
        *
        *  This object now @e owns the object previously owned by @a a,
-       *  which has given up ownsership.  The object that this one @e
+       *  which has given up ownership.  The object that this one @e
        *  used to own and track has been deleted.
        */
       template<typename _Tp1>
@@ -167,12 +165,10 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
        *  deleted.  If it no longer owns anything (i.e., @c get() is
        *  @c NULL), then this has no effect.
        *
-       *  @if maint
        *  The C++ standard says there is supposed to be an empty throw
        *  specification here, but omitting it is standard conforming.  Its
        *  presence can be detected only if _Tp::~_Tp() throws, but this is
        *  prohibited.  [17.4.3.6]/2
-       *  @endif
        */
       ~auto_ptr() { delete _M_ptr; }
       

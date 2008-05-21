@@ -1,6 +1,7 @@
-/* Copyright (C) 2002, 2003, 2004, 2005, 2007
+/* Copyright (C) 2002, 2003, 2004, 2005, 2007, 2008
    Free Software Foundation, Inc.
    Contributed by Andy Vaught
+   F2003 I/O support contributed by Jerry DeLisle
 
 This file is part of the GNU Fortran 95 runtime library (libgfortran).
 
@@ -97,6 +98,39 @@ static const st_option pad_opt[] =
   { NULL, 0}
 };
 
+static const st_option decimal_opt[] =
+{
+  { "point", DECIMAL_POINT},
+  { "comma", DECIMAL_COMMA},
+  { NULL, 0}
+};
+
+static const st_option encoding_opt[] =
+{
+  /* TODO { "utf-8", ENCODING_UTF8}, */
+  { "default", ENCODING_DEFAULT},
+  { NULL, 0}
+};
+
+static const st_option round_opt[] =
+{
+  { "up", ROUND_UP},
+  { "down", ROUND_DOWN},
+  { "zero", ROUND_ZERO},
+  { "nearest", ROUND_NEAREST},
+  { "compatible", ROUND_COMPATIBLE},
+  { "processor_defined", ROUND_PROCDEFINED},
+  { NULL, 0}
+};
+
+static const st_option sign_opt[] =
+{
+  { "plus", SIGN_PLUS},
+  { "suppress", SIGN_SUPPRESS},
+  { "processor_defined", SIGN_PROCDEFINED},
+  { NULL, 0}
+};
+
 static const st_option convert_opt[] =
 {
   { "native", GFC_CONVERT_NATIVE},
@@ -106,6 +140,12 @@ static const st_option convert_opt[] =
   { NULL, 0}
 };
 
+static const st_option async_opt[] =
+{
+  { "yes", ASYNC_YES},
+  { "no", ASYNC_NO},
+  { NULL, 0}
+};
 
 /* Given a unit, test to see if the file is positioned at the terminal
    point, and if so, change state from NO_ENDFILE flag to AT_ENDFILE.
@@ -179,6 +219,26 @@ edit_modes (st_parameter_open *opp, gfc_unit * u, unit_flags * flags)
 	generate_error (&opp->common, LIBERROR_OPTION_CONFLICT,
 			"PAD parameter conflicts with UNFORMATTED form in "
 			"OPEN statement");
+
+      if (flags->decimal != DECIMAL_UNSPECIFIED)
+	generate_error (&opp->common, LIBERROR_OPTION_CONFLICT,
+			"DECIMAL parameter conflicts with UNFORMATTED form in "
+			"OPEN statement");
+
+      if (flags->encoding != ENCODING_UNSPECIFIED)
+	generate_error (&opp->common, LIBERROR_OPTION_CONFLICT,
+			"ENCODING parameter conflicts with UNFORMATTED form in "
+			"OPEN statement");
+
+      if (flags->round != ROUND_UNSPECIFIED)
+	generate_error (&opp->common, LIBERROR_OPTION_CONFLICT,
+			"ROUND parameter conflicts with UNFORMATTED form in "
+			"OPEN statement");
+
+      if (flags->sign != SIGN_UNSPECIFIED)
+	generate_error (&opp->common, LIBERROR_OPTION_CONFLICT,
+			"SIGN parameter conflicts with UNFORMATTED form in "
+			"OPEN statement");
     }
 
   if ((opp->common.flags & IOPARM_LIBRETURN_MASK) == IOPARM_LIBRETURN_OK)
@@ -190,6 +250,16 @@ edit_modes (st_parameter_open *opp, gfc_unit * u, unit_flags * flags)
 	u->flags.delim = flags->delim;
       if (flags->pad != PAD_UNSPECIFIED)
 	u->flags.pad = flags->pad;
+      if (flags->decimal != DECIMAL_UNSPECIFIED)
+	u->flags.decimal = flags->decimal;
+      if (flags->encoding != ENCODING_UNSPECIFIED)
+	u->flags.encoding = flags->encoding;
+      if (flags->async != ASYNC_UNSPECIFIED)
+	u->flags.async = flags->async;
+      if (flags->round != ROUND_UNSPECIFIED)
+	u->flags.round = flags->round;
+      if (flags->sign != SIGN_UNSPECIFIED)
+	u->flags.sign = flags->sign;
     }
 
   /* Reposition the file if necessary.  */
@@ -249,6 +319,13 @@ new_unit (st_parameter_open *opp, gfc_unit *u, unit_flags * flags)
     flags->form = (flags->access == ACCESS_SEQUENTIAL)
       ? FORM_FORMATTED : FORM_UNFORMATTED;
 
+  if (flags->async == ASYNC_UNSPECIFIED)
+    flags->async = ASYNC_NO;
+
+  if (flags->status == STATUS_UNSPECIFIED)
+    flags->status = STATUS_UNKNOWN;
+
+  /* Checks.  */
 
   if (flags->delim == DELIM_UNSPECIFIED)
     flags->delim = DELIM_NONE;
@@ -289,6 +366,62 @@ new_unit (st_parameter_open *opp, gfc_unit *u, unit_flags * flags)
 	}
     }
 
+  if (flags->decimal == DECIMAL_UNSPECIFIED)
+    flags->decimal = DECIMAL_POINT;
+  else
+    {
+      if (flags->form == FORM_UNFORMATTED)
+	{
+	  generate_error (&opp->common, LIBERROR_OPTION_CONFLICT,
+			  "DECIMAL parameter conflicts with UNFORMATTED form "
+			  "in OPEN statement");
+	  goto fail;
+	}
+    }
+
+  if (flags->encoding == ENCODING_UNSPECIFIED)
+    flags->encoding = ENCODING_DEFAULT;
+  else
+    {
+      if (flags->form == FORM_UNFORMATTED)
+	{
+	  generate_error (&opp->common, LIBERROR_OPTION_CONFLICT,
+			  "ENCODING parameter conflicts with UNFORMATTED form in "
+			  "OPEN statement");
+	  goto fail;
+	}
+    }
+
+  /* NB: the value for ROUND when it's not specified by the user does not
+         have to be PROCESSOR_DEFINED; the standard says that it is
+	 processor dependent, and requires that it is one of the
+	 possible value (see F2003, 9.4.5.13).  */
+  if (flags->round == ROUND_UNSPECIFIED)
+    flags->round = ROUND_PROCDEFINED;
+  else
+    {
+      if (flags->form == FORM_UNFORMATTED)
+	{
+	  generate_error (&opp->common, LIBERROR_OPTION_CONFLICT,
+			  "ROUND parameter conflicts with UNFORMATTED form in "
+			  "OPEN statement");
+	  goto fail;
+	}
+    }
+
+  if (flags->sign == SIGN_UNSPECIFIED)
+    flags->sign = SIGN_PROCDEFINED;
+  else
+    {
+      if (flags->form == FORM_UNFORMATTED)
+	{
+	  generate_error (&opp->common, LIBERROR_OPTION_CONFLICT,
+			  "SIGN parameter conflicts with UNFORMATTED form in "
+			  "OPEN statement");
+	  goto fail;
+	}
+    }
+
   if (flags->position != POSITION_ASIS && flags->access == ACCESS_DIRECT)
    {
      generate_error (&opp->common, LIBERROR_OPTION_CONFLICT,
@@ -299,12 +432,6 @@ new_unit (st_parameter_open *opp, gfc_unit *u, unit_flags * flags)
   else
    if (flags->position == POSITION_UNSPECIFIED)
      flags->position = POSITION_ASIS;
-
-
-  if (flags->status == STATUS_UNSPECIFIED)
-    flags->status = STATUS_UNKNOWN;
-
-  /* Checks.  */
 
   if (flags->access == ACCESS_DIRECT
       && (opp->common.flags & IOPARM_OPEN_HAS_RECL_IN) == 0)
@@ -484,7 +611,7 @@ new_unit (st_parameter_open *opp, gfc_unit *u, unit_flags * flags)
     {
       u->maxrec = max_offset;
       u->recl = 1;
-      u->strm_pos = 1;
+      u->strm_pos = file_position (u->s) + 1;
     }
 
   memmove (u->file, opp->file, opp->file_len);
@@ -499,6 +626,19 @@ new_unit (st_parameter_open *opp, gfc_unit *u, unit_flags * flags)
 
   if (flags->status == STATUS_SCRATCH && opp->file != NULL)
     free_mem (opp->file);
+    
+  if (flags->form == FORM_FORMATTED && (flags->action != ACTION_READ))
+    {
+      if ((opp->common.flags & IOPARM_OPEN_HAS_RECL_IN))
+        fbuf_init (u, u->recl);
+      else
+        fbuf_init (u, 0);
+    }
+  else
+    u->fbuf = NULL;
+
+    
+    
   return u;
 
  cleanup:
@@ -606,6 +746,26 @@ st_open (st_parameter_open *opp)
   flags.pad = !(cf & IOPARM_OPEN_HAS_PAD) ? PAD_UNSPECIFIED :
     find_option (&opp->common, opp->pad, opp->pad_len,
 		 pad_opt, "Bad PAD parameter in OPEN statement");
+
+  flags.decimal = !(cf & IOPARM_OPEN_HAS_DECIMAL) ? DECIMAL_UNSPECIFIED :
+    find_option (&opp->common, opp->decimal, opp->decimal_len,
+		 decimal_opt, "Bad DECIMAL parameter in OPEN statement");
+
+  flags.encoding = !(cf & IOPARM_OPEN_HAS_ENCODING) ? ENCODING_UNSPECIFIED :
+    find_option (&opp->common, opp->encoding, opp->encoding_len,
+		 encoding_opt, "Bad ENCODING parameter in OPEN statement");
+
+  flags.async = !(cf & IOPARM_OPEN_HAS_ASYNCHRONOUS) ? ASYNC_UNSPECIFIED :
+    find_option (&opp->common, opp->asynchronous, opp->asynchronous_len,
+		 async_opt, "Bad ASYNCHRONOUS parameter in OPEN statement");
+
+  flags.round = !(cf & IOPARM_OPEN_HAS_ROUND) ? ROUND_UNSPECIFIED :
+    find_option (&opp->common, opp->round, opp->round_len,
+		 round_opt, "Bad ROUND parameter in OPEN statement");
+
+  flags.sign = !(cf & IOPARM_OPEN_HAS_SIGN) ? SIGN_UNSPECIFIED :
+    find_option (&opp->common, opp->sign, opp->sign_len,
+		 sign_opt, "Bad SIGN parameter in OPEN statement");
 
   flags.form = !(cf & IOPARM_OPEN_HAS_FORM) ? FORM_UNSPECIFIED :
     find_option (&opp->common, opp->form, opp->form_len,

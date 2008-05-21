@@ -1,6 +1,6 @@
 // The template and inlines for the numeric_limits classes. -*- C++ -*- 
 
-// Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
+// Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
 // Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
@@ -63,7 +63,7 @@
 //         double						(1)
 //         long double						(1)
 //
-// GNU C++ undertstands (where supported by the host C-library)
+// GNU C++ understands (where supported by the host C-library)
 //   * integer
 //         long long, unsigned long long			(2)
 //
@@ -79,7 +79,7 @@
 // These values can be overridden in the target configuration file.
 // The default values are appropriate for many 32-bit targets.
 
-// GCC only intrinsicly supports modulo integral types.  The only remaining
+// GCC only intrinsically supports modulo integral types.  The only remaining
 // integral exceptional values is division by zero.  Only targets that do not
 // signal division by zero in some "hard to ignore" way should use false.
 #ifndef __glibcxx_integral_traps
@@ -89,7 +89,7 @@
 // float
 //
 
-// Default values.  Should be overriden in configuration files if necessary.
+// Default values.  Should be overridden in configuration files if necessary.
 
 #ifndef __glibcxx_float_has_denorm_loss
 #  define __glibcxx_float_has_denorm_loss false
@@ -103,7 +103,7 @@
 
 // double
 
-// Default values.  Should be overriden in configuration files if necessary.
+// Default values.  Should be overridden in configuration files if necessary.
 
 #ifndef __glibcxx_double_has_denorm_loss
 #  define __glibcxx_double_has_denorm_loss false
@@ -117,7 +117,7 @@
 
 // long double
 
-// Default values.  Should be overriden in configuration files if necessary.
+// Default values.  Should be overridden in configuration files if necessary.
 
 #ifndef __glibcxx_long_double_has_denorm_loss
 #  define __glibcxx_long_double_has_denorm_loss false
@@ -186,7 +186,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
    *  The @c static @c const members are usable as integral constant
    *  expressions.
    *
-   *  @note This is a seperate class for purposes of efficiency; you
+   *  @note This is a separate class for purposes of efficiency; you
    *        should only access these members as part of an instantiation
    *        of the std::numeric_limits class.
   */
@@ -205,9 +205,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
     /** True if the type is signed.  */
     static const bool is_signed = false;
     /** True if the type is integer.
-     *  @if maint
      *  Is this supposed to be "if the type is integral"?
-     *  @endif
     */
     static const bool is_integer = false;
     /** True if the type uses an exact representation.  "All integer types are
@@ -262,7 +260,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
     /** True if trapping is implemented for this type.  */
     static const bool traps = false;
-    /** True if tinyness is detected before rounding.  (see IEC 559)  */
+    /** True if tininess is detected before rounding.  (see IEC 559)  */
     static const bool tinyness_before = false;
     /** See std::float_round_style for more information.  This is only
         meaningful for floating types; integer types will all be
@@ -278,10 +276,8 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
    *  non-fundamental types, the functions will return 0 and the data
    *  members will all be @c false.
    *
-   *  @if maint
    *  _GLIBCXX_RESOLVE_LIB_DEFECTS:  DRs 201 and 184 (hi Gaby!) are
    *  noted, but not incorporated in this documented (yet).
-   *  @endif
   */
   template<typename _Tp>
     struct numeric_limits : public __numeric_limits_base
@@ -569,6 +565,110 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       static const bool tinyness_before = false;
       static const float_round_style round_style = round_toward_zero;
     };
+
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+  /// numeric_limits<char16_t> specialization.
+  template<>
+    struct numeric_limits<char16_t>
+    {
+      static const bool is_specialized = true;
+
+      static char16_t min() throw()
+      { return __glibcxx_min (char16_t); }
+      static char16_t max() throw()
+      { return __glibcxx_max (char16_t); }
+
+      static const int digits = __glibcxx_digits (char16_t);
+      static const int digits10 = __glibcxx_digits10 (char16_t);
+      static const bool is_signed = __glibcxx_signed (char16_t);
+      static const bool is_integer = true;
+      static const bool is_exact = true;
+      static const int radix = 2;
+      static char16_t epsilon() throw()
+      { return 0; }
+      static char16_t round_error() throw()
+      { return 0; }
+
+      static const int min_exponent = 0;
+      static const int min_exponent10 = 0;
+      static const int max_exponent = 0;
+      static const int max_exponent10 = 0;
+
+      static const bool has_infinity = false;
+      static const bool has_quiet_NaN = false;
+      static const bool has_signaling_NaN = false;
+      static const float_denorm_style has_denorm = denorm_absent;
+      static const bool has_denorm_loss = false;
+
+      static char16_t infinity() throw()
+      { return char16_t(); }
+      static char16_t quiet_NaN() throw()
+      { return char16_t(); }
+      static char16_t signaling_NaN() throw()
+      { return char16_t(); }
+      static char16_t denorm_min() throw()
+      { return char16_t(); }
+
+      static const bool is_iec559 = false;
+      static const bool is_bounded = true;
+      static const bool is_modulo = true;
+
+      static const bool traps = __glibcxx_integral_traps;
+      static const bool tinyness_before = false;
+      static const float_round_style round_style = round_toward_zero;
+    };
+
+  /// numeric_limits<char32_t> specialization.
+  template<>
+    struct numeric_limits<char32_t>
+    {
+      static const bool is_specialized = true;
+
+      static char32_t min() throw()
+      { return __glibcxx_min (char32_t); }
+      static char32_t max() throw()
+      { return __glibcxx_max (char32_t); }
+
+      static const int digits = __glibcxx_digits (char32_t);
+      static const int digits10 = __glibcxx_digits10 (char32_t);
+      static const bool is_signed = __glibcxx_signed (char32_t);
+      static const bool is_integer = true;
+      static const bool is_exact = true;
+      static const int radix = 2;
+      static char32_t epsilon() throw()
+      { return 0; }
+      static char32_t round_error() throw()
+      { return 0; }
+
+      static const int min_exponent = 0;
+      static const int min_exponent10 = 0;
+      static const int max_exponent = 0;
+      static const int max_exponent10 = 0;
+
+      static const bool has_infinity = false;
+      static const bool has_quiet_NaN = false;
+      static const bool has_signaling_NaN = false;
+      static const float_denorm_style has_denorm = denorm_absent;
+      static const bool has_denorm_loss = false;
+
+      static char32_t infinity() throw()
+      { return char32_t(); }
+      static char32_t quiet_NaN() throw()
+      { return char32_t(); }
+      static char32_t signaling_NaN() throw()
+      { return char32_t(); }
+      static char32_t denorm_min() throw()
+      { return char32_t(); }
+
+      static const bool is_iec559 = false;
+      static const bool is_bounded = true;
+      static const bool is_modulo = true;
+
+      static const bool traps = __glibcxx_integral_traps;
+      static const bool tinyness_before = false;
+      static const float_round_style round_style = round_toward_zero;
+    };
+#endif
 
   /// numeric_limits<short> specialization.
   template<>

@@ -6,7 +6,7 @@
 --                                                                          --
 --                                  B o d y                                 --
 --                                                                          --
---         Copyright (C) 1992-2007, Free Software Foundation, Inc.          --
+--         Copyright (C) 1992-2008, Free Software Foundation, Inc.          --
 --                                                                          --
 -- GNARL is free software; you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -33,34 +33,28 @@
 
 --  This is the VxWorks version of this package
 
---  This package contains all the GNULL primitives that interface directly
---  with the underlying OS.
+--  This package contains all the GNULL primitives that interface directly with
+--  the underlying OS.
 
 pragma Polling (Off);
---  Turn off polling, we do not want ATC polling to take place during
---  tasking operations. It causes infinite loops and other problems.
-
-with System.Tasking.Debug;
---  used for Known_Tasks
-
-with System.Interrupt_Management;
---  used for Keep_Unmasked
---           Abort_Task_Interrupt
---           Signal_ID
---           Initialize_Interrupts
-
-with Interfaces.C;
-
-with System.Soft_Links;
---  used for Abort_Defer/Undefer
-
---  We use System.Soft_Links instead of System.Tasking.Initialization
---  because the later is a higher level package that we shouldn't depend on.
---  For example when using the restricted run time, it is replaced by
---  System.Tasking.Restricted.Stages.
+--  Turn off polling, we do not want ATC polling to take place during tasking
+--  operations. It causes infinite loops and other problems.
 
 with Ada.Unchecked_Conversion;
 with Ada.Unchecked_Deallocation;
+
+with Interfaces.C;
+
+with System.Tasking.Debug;
+with System.Interrupt_Management;
+
+with System.Soft_Links;
+--  We use System.Soft_Links instead of System.Tasking.Initialization
+--  because the later is a higher level package that we shouldn't depend
+--  on. For example when using the restricted run time, it is replaced by
+--  System.Tasking.Restricted.Stages.
+
+with System.VxWorks.Ext;
 
 package body System.Task_Primitives.Operations is
 
@@ -70,6 +64,7 @@ package body System.Task_Primitives.Operations is
    use System.Tasking;
    use System.OS_Interface;
    use System.Parameters;
+   use type System.VxWorks.Ext.t_id;
    use type Interfaces.C.int;
 
    subtype int is System.OS_Interface.int;
@@ -113,6 +108,14 @@ package body System.Task_Primitives.Operations is
 
    Foreign_Task_Elaborated : aliased Boolean := True;
    --  Used to identified fake tasks (i.e., non-Ada Threads)
+
+   type Set_Stack_Limit_Proc_Acc is access procedure;
+   pragma Convention (C, Set_Stack_Limit_Proc_Acc);
+
+   Set_Stack_Limit_Hook : Set_Stack_Limit_Proc_Acc;
+   pragma Import (C, Set_Stack_Limit_Hook, "__gnat_set_stack_limit_hook");
+   --  Procedure to be called when a task is created to set stack
+   --  limit.
 
    --------------------
    -- Local Packages --
@@ -532,7 +535,7 @@ package body System.Task_Primitives.Operations is
                else
                   --  If Ticks = int'last, it was most probably truncated so
                   --  let's make another round after recomputing Ticks from
-                  --  the the absolute time.
+                  --  the absolute time.
 
                   if Ticks /= int'Last then
                      Timedout := True;
@@ -652,7 +655,7 @@ package body System.Task_Primitives.Operations is
 
                --  If Ticks = int'last, it was most probably truncated
                --  so let's make another round after recomputing Ticks
-               --  from the the absolute time.
+               --  from the absolute time.
 
                if errno = S_objLib_OBJ_TIMEOUT and then Ticks /= int'Last then
                   Timedout := True;
@@ -746,9 +749,9 @@ package body System.Task_Primitives.Operations is
    pragma Atomic_Components (Prio_Array_Type);
 
    Prio_Array : Prio_Array_Type;
-   --  Global array containing the id of the currently running task for
-   --  each priority. Note that we assume that we are on a single processor
-   --  with run-till-blocked scheduling.
+   --  Global array containing the id of the currently running task for each
+   --  priority. Note that we assume that we are on a single processor with
+   --  run-till-blocked scheduling.
 
    procedure Set_Priority
      (T                   : Task_Id;
@@ -768,7 +771,7 @@ package body System.Task_Primitives.Operations is
         and then Loss_Of_Inheritance
         and then Prio < T.Common.Current_Priority
       then
-         --  Annex D requirement (RM D.2.2(9))
+         --  Annex D requirement (RM D.2.2(9)):
 
          --    If the task drops its priority due to the loss of inherited
          --    priority, it is added at the head of the ready queue for its
@@ -843,6 +846,12 @@ package body System.Task_Primitives.Operations is
       end loop;
 
       Unlock_RTS;
+
+      --  If stack checking is enabled, set the stack limit for this task
+
+      if Set_Stack_Limit_Hook /= null then
+         Set_Stack_Limit_Hook.all;
+      end if;
    end Enter_Task;
 
    --------------
@@ -972,10 +981,9 @@ package body System.Task_Primitives.Operations is
          Succeeded := False;
       else
          Succeeded := True;
+         Task_Creation_Hook (T.Common.LL.Thread);
+         Set_Priority (T, Priority);
       end if;
-
-      Task_Creation_Hook (T.Common.LL.Thread);
-      Set_Priority (T, Priority);
    end Create_Task;
 
    ------------------
@@ -1064,6 +1072,9 @@ package body System.Task_Primitives.Operations is
    --------------
 
    procedure Finalize (S : in out Suspension_Object) is
+      pragma Unmodified (S);
+      --  S may be modified on other targets, but not on VxWorks
+
       Result : STATUS;
 
    begin

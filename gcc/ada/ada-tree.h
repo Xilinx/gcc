@@ -6,7 +6,7 @@
  *                                                                          *
  *                              C Header File                               *
  *                                                                          *
- *          Copyright (C) 1992-2007, Free Software Foundation, Inc.         *
+ *          Copyright (C) 1992-2008, Free Software Foundation, Inc.         *
  *                                                                          *
  * GNAT is free software;  you can  redistribute it  and/or modify it under *
  * terms of the  GNU General Public License as published  by the Free Soft- *
@@ -69,8 +69,9 @@ struct lang_type GTY(()) {tree t; };
 #define TYPE_FAT_POINTER_P(NODE)  \
   (TREE_CODE (NODE) == RECORD_TYPE && TYPE_IS_FAT_POINTER_P (NODE))
 
-/* For integral types and array types, nonzero if this is a packed array type.
-   Such types should not be extended to a larger size.  */
+/* For integral types and array types, nonzero if this is a packed array type
+   used for bit-packed types.  Such types should not be extended to a larger
+   size or validated against a specified size.  */
 #define TYPE_PACKED_ARRAY_TYPE_P(NODE) TYPE_LANG_FLAG_0 (NODE)
 
 #define TYPE_IS_PACKED_ARRAY_TYPE_P(NODE) \
@@ -242,12 +243,12 @@ struct lang_type GTY(()) {tree t; };
    is needed to access the object.  */
 #define DECL_BY_REF_P(NODE) DECL_LANG_FLAG_1 (NODE)
 
-/* Nonzero if this decl is a PARM_DECL for an Ada array being passed to a
-   foreign convention subprogram.  */
-#define DECL_BY_COMPONENT_PTR_P(NODE) DECL_LANG_FLAG_2 (PARM_DECL_CHECK (NODE))
-
 /* Nonzero in a FIELD_DECL that is a dummy built for some internal reason.  */
 #define DECL_INTERNAL_P(NODE) DECL_LANG_FLAG_3 (FIELD_DECL_CHECK (NODE))
+
+/* Nonzero if this decl is a PARM_DECL for an Ada array being passed to a
+   foreign convention subprogram.  */
+#define DECL_BY_COMPONENT_PTR_P(NODE) DECL_LANG_FLAG_3 (PARM_DECL_CHECK (NODE))
 
 /* Nonzero in a FUNCTION_DECL that corresponds to an elaboration procedure.  */
 #define DECL_ELABORATION_PROC_P(NODE) \

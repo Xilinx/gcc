@@ -1,6 +1,6 @@
 /* Implement classes and message passing for Objective C.
    Copyright (C) 1992, 1993, 1994, 1995, 1997, 1998, 1999, 2000,
-   2001, 2002, 2003, 2004, 2005, 2007 Free Software Foundation, Inc.
+   2001, 2002, 2003, 2004, 2005, 2007, 2008 Free Software Foundation, Inc.
    Contributed by Steve Naroff.
 
 This file is part of GCC.
@@ -483,13 +483,6 @@ objc_init (void)
   if (c_objc_common_init () == false)
 #endif
     return false;
-
-#ifndef USE_MAPPED_LOCATION
-  /* Force the line number back to 0; check_newline will have
-     raised it to 1, which will make the builtin functions appear
-     not to be built in.  */
-  input_line = 0;
-#endif
 
   /* If gen_declaration desired, open the output file.  */
   if (flag_gen_declaration)
@@ -1262,7 +1255,8 @@ objc_build_component_ref (tree datum, tree component)
      front-end, but 'finish_class_member_access_expr' seems to be
      a worthy substitute.  */
 #ifdef OBJCPLUS
-  return finish_class_member_access_expr (datum, component, false);
+  return finish_class_member_access_expr (datum, component, false,
+                                          tf_warning_or_error);
 #else
   return build_component_ref (datum, component);
 #endif
@@ -1959,7 +1953,6 @@ objc_build_string_object (tree string)
  			    initlist);
       constructor = objc_build_constructor (internal_const_str_type,
 					    nreverse (initlist));
-      TREE_INVARIANT (constructor) = true;
 
       if (!flag_next_runtime)
 	constructor
@@ -3171,8 +3164,7 @@ objc_generate_write_barrier (tree lhs, enum tree_code modifycode, tree rhs)
       outer = TREE_OPERAND (lhs, 0);
 
       while (!strong_cast_p
-	     && (TREE_CODE (outer) == CONVERT_EXPR
-		 || TREE_CODE (outer) == NOP_EXPR
+	     && (CONVERT_EXPR_P (outer)
 		 || TREE_CODE (outer) == NON_LVALUE_EXPR))
 	{
 	  tree lhstype = TREE_TYPE (outer);
@@ -4489,7 +4481,7 @@ objc_generate_cxx_ctor_or_dtor (bool dtor)
 	  /* Call the ivar's default constructor or destructor.  Do not
 	     call the destructor unless a corresponding constructor call
 	     has also been made (or is not needed).  */
-	  if (IS_AGGR_TYPE (type)
+	  if (MAYBE_CLASS_TYPE_P (type)
 	      && (dtor
 		  ? (TYPE_HAS_NONTRIVIAL_DESTRUCTOR (type)
 		     && (!TYPE_NEEDS_CONSTRUCTING (type)
@@ -4500,7 +4492,7 @@ objc_generate_cxx_ctor_or_dtor (bool dtor)
 	     (build_special_member_call
 	      (build_ivar_reference (DECL_NAME (ivar)),
 	       dtor ? complete_dtor_identifier : complete_ctor_identifier,
-	       NULL_TREE, type, LOOKUP_NORMAL));
+	       NULL_TREE, type, LOOKUP_NORMAL, tf_warning_or_error));
 	}
     }
 
@@ -4542,7 +4534,7 @@ objc_generate_cxx_cdtors (void)
 	{
 	  tree type = TREE_TYPE (ivar);
 
-	  if (IS_AGGR_TYPE (type))
+	  if (MAYBE_CLASS_TYPE_P (type))
 	    {
 	      if (TYPE_NEEDS_CONSTRUCTING (type)
 		  && TYPE_HAS_DEFAULT_CONSTRUCTOR (type))
@@ -6274,8 +6266,7 @@ objc_finish_message_expr (tree receiver, tree sel_name, tree method_params)
   rtype = receiver;
   while (TREE_CODE (rtype) == COMPOUND_EXPR
 	      || TREE_CODE (rtype) == MODIFY_EXPR
-	      || TREE_CODE (rtype) == NOP_EXPR
-	      || TREE_CODE (rtype) == CONVERT_EXPR
+	      || CONVERT_EXPR_P (rtype)
 	      || TREE_CODE (rtype) == COMPONENT_REF)
     rtype = TREE_OPERAND (rtype, 0);
   self = (rtype == self_decl);
@@ -7063,7 +7054,7 @@ add_instance_variable (tree class, int public, tree field_decl)
      need to either (1) warn the user about it or (2) generate suitable
      constructor/destructor call from '- .cxx_construct' or '- .cxx_destruct'
      methods (if '-fobjc-call-cxx-cdtors' was specified).  */
-  if (IS_AGGR_TYPE (field_type)
+  if (MAYBE_CLASS_TYPE_P (field_type)
       && (TYPE_NEEDS_CONSTRUCTING (field_type)
 	  || TYPE_HAS_NONTRIVIAL_DESTRUCTOR (field_type)
 	  || TYPE_POLYMORPHIC_P (field_type)))
@@ -8082,6 +8073,9 @@ encode_type (tree type, int curtype, int format)
   enum tree_code code = TREE_CODE (type);
   char c;
 
+  if (type == error_mark_node)
+    return;
+
   if (TYPE_READONLY (type))
     obstack_1grow (&util_obstack, 'r');
 
@@ -8238,6 +8232,13 @@ static void
 objc_push_parm (tree parm)
 {
   bool relayout_needed = false;
+
+  if (TREE_TYPE (parm) == error_mark_node)
+    {
+      objc_parmlist = chainon (objc_parmlist, parm);
+      return;
+    }
+
   /* Decay arrays and functions into pointers.  */
   if (TREE_CODE (TREE_TYPE (parm)) == ARRAY_TYPE)
     {

@@ -1,5 +1,5 @@
 /* CPP Library - lexical analysis.
-   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005 Free Software Foundation, Inc.
+   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2007 Free Software Foundation, Inc.
    Contributed by Per Bothner, 1994-95.
    Based on CCCP program by Paul Rubin, June 1986
    Adapted to ANSI C, Richard Stallman, Jan 1987
@@ -39,10 +39,10 @@ struct token_spelling
 };
 
 static const unsigned char *const digraph_spellings[] =
-{ U"%:", U"%:%:", U"<:", U":>", U"<%", U"%>" };
+{ UC"%:", UC"%:%:", UC"<:", UC":>", UC"<%", UC"%>" };
 
-#define OP(e, s) { SPELL_OPERATOR, U s  },
-#define TK(e, s) { SPELL_ ## s,    U #e },
+#define OP(e, s) { SPELL_OPERATOR, UC s  },
+#define TK(e, s) { SPELL_ ## s,    UC #e },
 static const struct token_spelling token_spellings[N_TTYPES] = { TTYPE_TABLE };
 #undef OP
 #undef TK
@@ -538,8 +538,8 @@ lex_identifier (cpp_reader *pfile, const uchar *base, bool starts_ucn,
       len = cur - base;
       hash = HT_HASHFINISH (hash, len);
 
-      result = (cpp_hashnode *)
-	ht_lookup_with_hash (pfile->hash_table, base, len, hash, HT_ALLOC);
+      result = CPP_HASHNODE (ht_lookup_with_hash (pfile->hash_table,
+						  base, len, hash, HT_ALLOC));
     }
 
   /* Rarely, identifiers require diagnostics when lexed.  */
@@ -611,8 +611,8 @@ create_literal (cpp_reader *pfile, cpp_token *token, const uchar *base,
 
 /* Lexes a string, character constant, or angle-bracketed header file
    name.  The stored string contains the spelling, including opening
-   quote and leading any leading 'L'.  It returns the type of the
-   literal, or CPP_OTHER if it was not properly terminated.
+   quote and leading any leading 'L', 'u' or 'U'.  It returns the type
+   of the literal, or CPP_OTHER if it was not properly terminated.
 
    The spelling is NUL-terminated, but it is not guaranteed that this
    is the first NUL since embedded NULs are preserved.  */
@@ -626,12 +626,16 @@ lex_string (cpp_reader *pfile, cpp_token *token, const uchar *base)
 
   cur = base;
   terminator = *cur++;
-  if (terminator == 'L')
+  if (terminator == 'L' || terminator == 'u' || terminator == 'U')
     terminator = *cur++;
   if (terminator == '\"')
-    type = *base == 'L' ? CPP_WSTRING: CPP_STRING;
+    type = (*base == 'L' ? CPP_WSTRING :
+	    *base == 'U' ? CPP_STRING32 :
+	    *base == 'u' ? CPP_STRING16 : CPP_STRING);
   else if (terminator == '\'')
-    type = *base == 'L' ? CPP_WCHAR: CPP_CHAR;
+    type = (*base == 'L' ? CPP_WCHAR :
+	    *base == 'U' ? CPP_CHAR32 :
+	    *base == 'u' ? CPP_CHAR16 : CPP_CHAR);
   else
     terminator = '>', type = CPP_HEADER_NAME;
 
@@ -965,11 +969,16 @@ _cpp_lex_direct (cpp_reader *pfile)
       }
 
     case 'L':
-      /* 'L' may introduce wide characters or strings.  */
-      if (*buffer->cur == '\'' || *buffer->cur == '"')
+    case 'u':
+    case 'U':
+      /* 'L', 'u' or 'U' may introduce wide characters or strings.  */
+      if (c == 'L' || CPP_OPTION (pfile, uliterals))
 	{
-	  lex_string (pfile, result, buffer->cur - 1);
-	  break;
+	  if (*buffer->cur == '\'' || *buffer->cur == '"')
+	    {
+	      lex_string (pfile, result, buffer->cur - 1);
+	      break;
+	    }
 	}
       /* Fall through.  */
 
@@ -977,12 +986,12 @@ _cpp_lex_direct (cpp_reader *pfile)
     case 'a': case 'b': case 'c': case 'd': case 'e': case 'f':
     case 'g': case 'h': case 'i': case 'j': case 'k': case 'l':
     case 'm': case 'n': case 'o': case 'p': case 'q': case 'r':
-    case 's': case 't': case 'u': case 'v': case 'w': case 'x':
+    case 's': case 't':           case 'v': case 'w': case 'x':
     case 'y': case 'z':
     case 'A': case 'B': case 'C': case 'D': case 'E': case 'F':
     case 'G': case 'H': case 'I': case 'J': case 'K':
     case 'M': case 'N': case 'O': case 'P': case 'Q': case 'R':
-    case 'S': case 'T': case 'U': case 'V': case 'W': case 'X':
+    case 'S': case 'T':           case 'V': case 'W': case 'X':
     case 'Y': case 'Z':
       result->type = CPP_NAME;
       {

@@ -1,6 +1,6 @@
 /* Process expressions for the GNU compiler for the Java(TM) language.
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004,
-   2005, 2006, 2007 Free Software Foundation, Inc.
+   2005, 2006, 2007, 2008 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -3132,6 +3132,7 @@ expand_byte_code (JCF *jcf, tree method)
   int dead_code_index = -1;
   unsigned char* byte_ops;
   long length = DECL_CODE_LENGTH (method);
+  location_t max_location = input_location;
 
   stack_pointer = 0;
   JCF_SEEK (jcf, DECL_CODE_OFFSET (method));
@@ -3218,11 +3219,9 @@ expand_byte_code (JCF *jcf, tree method)
 	      if (pc == PC)
 		{
 		  int line = GET_u2 (linenumber_pointer - 2);
-#ifdef USE_MAPPED_LOCATION
 		  input_location = linemap_line_start (line_table, line, 1);
-#else
-		  input_location.line = line;
-#endif
+		  if (input_location > max_location)
+		    max_location = input_location;
 		  if (!(instruction_bits[PC] & BCODE_HAS_MULTI_LINENUMBERS))
 		    break;
 		}
@@ -3242,6 +3241,8 @@ expand_byte_code (JCF *jcf, tree method)
 	warning (0, "unreachable bytecode from %d to the end of the method", 
 		 dead_code_index);
     }
+
+  DECL_FUNCTION_LAST_LINE (method) = max_location;
 }
 
 static void
@@ -3808,7 +3809,6 @@ cache_cpool_data_ref (void)
       tree cpool_ptr = build_decl (VAR_DECL, NULL_TREE, 
 				   build_pointer_type (TREE_TYPE (d)));
       java_add_local_var (cpool_ptr);
-      TREE_INVARIANT (cpool_ptr) = 1;
       TREE_CONSTANT (cpool_ptr) = 1;
 
       java_add_stmt (build2 (MODIFY_EXPR, TREE_TYPE (cpool_ptr), 

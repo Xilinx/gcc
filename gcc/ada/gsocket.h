@@ -6,7 +6,7 @@
  *                                                                          *
  *                              C Header File                               *
  *                                                                          *
- *         Copyright (C) 2004-2006, Free Software Foundation, Inc.          *
+ *         Copyright (C) 2004-2008, Free Software Foundation, Inc.          *
  *                                                                          *
  * GNAT is free software;  you can  redistribute it  and/or modify it under *
  * terms of the  GNU General Public License as published  by the Free Soft- *
@@ -139,7 +139,15 @@
 #include <sys/time.h>
 #endif
 
-#if !(defined (VMS) || defined (__MINGW32__) || defined(__rtems__))
+/*
+ * RTEMS has these .h files but not until you have built RTEMS.  When
+ * IN_RTS, you only have the .h files in the newlib C library.
+ * Because this file is also included from gen-soccon.c which is built
+ * to run on RTEMS (not IN_RTS), we must distinguish between IN_RTS
+ * and using this file to compile gen-soccon.
+ */
+#if !(defined (VMS) || defined (__MINGW32__) || \
+      (defined(__rtems__) && defined(IN_RTS)))
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
@@ -167,7 +175,7 @@
 
 #if defined (_AIX) || defined (__FreeBSD__) || defined (__hpux__) || defined (__osf__) || defined (_WIN32) || defined (__APPLE__)
 # define HAVE_THREAD_SAFE_GETxxxBYyyy 1
-#elif defined (sgi) || defined (linux) || (defined (sun) && defined (__SVR4) && !defined (__vxworks))
+#elif defined (sgi) || defined (linux) || defined (__GLIBC__) || (defined (sun) && defined (__SVR4) && !defined (__vxworks))
 # define HAVE_GETxxxBYyyy_R 1
 #endif
 
@@ -175,4 +183,10 @@
 # define Need_Netdb_Buffer 1
 #else
 # define Need_Netdb_Buffer 0
+#endif
+
+#if defined (__FreeBSD__) || defined (__vxworks)
+# define Has_Sockaddr_Len 1
+#else
+# define Has_Sockaddr_Len 0
 #endif

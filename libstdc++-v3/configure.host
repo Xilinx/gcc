@@ -94,6 +94,9 @@ case "${host_cpu}" in
   arm* | xscale | ep9312)
     try_cpu=arm
     ;;
+  crisv32)
+    try_cpu=cris
+    ;;
   i[567]86 | x86_64)
     try_cpu=i486
     ;;
@@ -316,15 +319,6 @@ case "${host}" in
         if test -d ${glibcxx_srcdir}/config/abi/post/${try_cpu}-linux-gnu; then
           abi_baseline_pair=${try_cpu}-linux-gnu
         fi
-    esac
-    ;;
-  mips*-*-*)
-    case "${host_os}" in
-      gnu* | linux* | irix*)
-        ;;
-      *)
-        atomicity_dir="cpu/generic"
-        ;;
     esac
     ;;
   powerpc*-*-darwin*)

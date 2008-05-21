@@ -1,7 +1,7 @@
 // { dg-options "-std=gnu++0x" }
 // { dg-do compile }
 
-// Copyright (C) 2007 Free Software Foundation, Inc.
+// Copyright (C) 2007, 2008 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -36,6 +36,7 @@
 #include <csetjmp>
 #include <csignal>
 #include <cstdarg>
+#include <cstdatomic>
 #include <cstdbool>
 #include <cstddef>
 #include <cstdint>
@@ -67,6 +68,7 @@
 #include <math.h>
 #include <setjmp.h>
 #include <signal.h>
+#include <stdatomic.h>
 #include <stdarg.h>
 #ifdef _GLIBCXX_HAVE_STDBOOL_H
 #include <stdbool.h>
@@ -93,7 +95,9 @@
 #include <algorithm>
 #include <array>
 #include <bitset>
+#include <condition_variable>
 #include <complex>
+#include <date_time>
 #include <deque>
 #include <exception>
 #include <fstream>
@@ -109,6 +113,7 @@
 #include <locale>
 #include <map>
 #include <memory>
+#include <mutex>
 #include <new>
 #include <numeric>
 #include <ostream>

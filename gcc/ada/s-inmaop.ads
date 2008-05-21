@@ -2,12 +2,11 @@
 --                                                                          --
 --                 GNAT RUN-TIME LIBRARY (GNARL) COMPONENTS                 --
 --                                                                          --
---            S Y S T E M . I N T E R R U P T _ M A N A G E M E N T .       --
---                             O P E R A T I O N S                          --
+--                  SYSTEM.INTERRUPT_MANAGEMENT.OPERATIONS                  --
 --                                                                          --
 --                                  S p e c                                 --
 --                                                                          --
---          Copyright (C) 1992-2005, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNARL is free software; you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -97,7 +96,7 @@ package System.Interrupt_Management.Operations is
 
    procedure Copy_Interrupt_Mask (X : out Interrupt_Mask; Y : Interrupt_Mask);
    pragma Inline (Copy_Interrupt_Mask);
-   --  Assigment needed for limited private type Interrupt_Mask
+   --  Assignment needed for limited private type Interrupt_Mask
 
    procedure Interrupt_Self_Process (Interrupt : Interrupt_ID);
    pragma Inline (Interrupt_Self_Process);

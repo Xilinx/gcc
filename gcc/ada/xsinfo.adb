@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -37,7 +37,7 @@
 
 --  Note: this program assumes that sinfo.ads has passed the error checks
 --  which are carried out by the CSinfo utility, so it does not duplicate
---  these checks and assumes the soruce is correct.
+--  these checks and assumes the source is correct.
 
 --  An optional argument allows the specification of an output file name to
 --  override the default sinfo.h file name for the generated output file.
@@ -65,23 +65,24 @@ procedure XSinfo is
    Rtn       : VString := Nul;
    Term      : VString := Nul;
 
-   InS       : File_Type;
-   Ofile     : File_Type;
+   InS   : File_Type;
+   Ofile : File_Type;
 
-   wsp     : Pattern := Span (' ' & ASCII.HT);
-   Wsp_For : Pattern := wsp & "for";
-   Is_Cmnt : Pattern := wsp & "--";
-   Typ_Nod : Pattern := wsp * A & "type Node_Kind is";
-   Get_Nam : Pattern := wsp * A & "N_" &  Break (",)") * Nam
-                          & Len (1) * Term;
-   Sub_Typ : Pattern := wsp * A & "subtype " &  Break (' ') * N;
-   No_Cont : Pattern := wsp & Break (' ') * N1 & " .. " & Break (';') * N2;
-   Cont_N1 : Pattern := wsp & Break (' ') * N1 & " .." & Rpos (0);
-   Cont_N2 : Pattern := Span (' ') & Break (';') * N2;
-   Is_Func : Pattern := wsp * A & "function " & Rest * Nam;
-   Get_Arg : Pattern := wsp & "(N : " & Break (')') * Arg
-                          & ") return " & Break (';') * Rtn
-                          & ';' & wsp & "--" & wsp & Rest * Comment;
+   wsp     : constant Pattern := Span (' ' & ASCII.HT);
+   Wsp_For : constant Pattern := wsp & "for";
+   Is_Cmnt : constant Pattern := wsp & "--";
+   Typ_Nod : constant Pattern := wsp * A & "type Node_Kind is";
+   Get_Nam : constant Pattern := wsp * A & "N_" &  Break (",)") * Nam
+                                 & Len (1) * Term;
+   Sub_Typ : constant Pattern := wsp * A & "subtype " &  Break (' ') * N;
+   No_Cont : constant Pattern := wsp & Break (' ') * N1
+                                 & " .. " & Break (';') * N2;
+   Cont_N1 : constant Pattern := wsp & Break (' ') * N1 & " .." & Rpos (0);
+   Cont_N2 : constant Pattern := Span (' ') & Break (';') * N2;
+   Is_Func : constant Pattern := wsp * A & "function " & Rest * Nam;
+   Get_Arg : constant Pattern := wsp & "(N : " & Break (')') * Arg
+                                 & ") return " & Break (';') * Rtn
+                                 & ';' & wsp & "--" & wsp & Rest * Comment;
 
    NKV : Natural;
 

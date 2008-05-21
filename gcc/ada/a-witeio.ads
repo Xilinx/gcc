@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2006, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
 --                                                                          --
 -- This specification is derived from the Ada Reference Manual for use with --
 -- GNAT. The copyright notice above, and the license provisions that follow --
@@ -49,8 +49,6 @@ with System.File_Control_Block;
 with System.WCh_Con;
 
 package Ada.Wide_Text_IO is
-
-   package WCh_Con renames System.WCh_Con;
 
    type File_Type is limited private;
    type File_Mode is (In_File, Out_File, Append_File);
@@ -140,7 +138,7 @@ package Ada.Wide_Text_IO is
    -- Buffer control --
    --------------------
 
-   --  Note: The paramter file is in out in the RM, but as pointed out
+   --  Note: The parameter file is in out in the RM, but as pointed out
    --  in <<95-5166.a Tucker Taft 95-6-23>> this is clearly an oversight.
 
    procedure Flush (File : File_Type);
@@ -303,6 +301,8 @@ package Ada.Wide_Text_IO is
    Layout_Error : exception renames IO_Exceptions.Layout_Error;
 
 private
+   package WCh_Con renames System.WCh_Con;
+
    -----------------------------------
    -- Handling of Format Characters --
    -----------------------------------
@@ -319,7 +319,7 @@ private
    --  omitted on output unless an explicit New_Page call is made before
    --  closing the file. No page mark is added when a file is appended to,
    --  so, in accordance with the permission in (RM A.10.2(4)), there may
-   --  or may not be a page mark separating preexising text in the file
+   --  or may not be a page mark separating preexisting text in the file
    --  from the new text to be written.
 
    --  A file mark is marked by the physical end of file. In DOS translation
@@ -350,8 +350,14 @@ private
       Line_Length : Count := 0;
       Page_Length : Count := 0;
 
+      Self : aliased File_Type;
+      --  Set to point to the containing Text_AFCB block. This is used to
+      --  implement the Current_{Error,Input,Output} functions which return
+      --  a File_Access, the file access value returned is a pointer to
+      --  the Self field of the corresponding file.
+
       Before_LM : Boolean := False;
-      --  This flag is used to deal with the anomolies introduced by the
+      --  This flag is used to deal with the anomalies introduced by the
       --  peculiar definition of End_Of_File and End_Of_Page in Ada. These
       --  functions require looking ahead more than one character. Since
       --  there is no convenient way of backing up more than one character,

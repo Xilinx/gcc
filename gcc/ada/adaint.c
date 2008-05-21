@@ -6,7 +6,7 @@
  *                                                                          *
  *                          C Implementation File                           *
  *                                                                          *
- *          Copyright (C) 1992-2007, Free Software Foundation, Inc.         *
+ *          Copyright (C) 1992-2008, Free Software Foundation, Inc.         *
  *                                                                          *
  * GNAT is free software;  you can  redistribute it  and/or modify it under *
  * terms of the  GNU General Public License as published  by the Free Soft- *
@@ -76,7 +76,12 @@
 #include "version.h"
 #endif
 
-#if defined (__MINGW32__)
+#if defined (RTX)
+#include <windows.h>
+#include <Rtapi.h>
+#include <sys/utime.h>
+
+#elif defined (__MINGW32__)
 
 #include "mingw32.h"
 #include <sys/utime.h>
@@ -354,6 +359,30 @@ __gnat_current_time
   return (OS_Time) res;
 }
 
+/* Return the current local time as a string in the ISO 8601 format of
+   "YYYY-MM-DD HH:MM:SS.SS". The returned string is 22 + 1 (NULL) characters
+   long. */
+
+void
+__gnat_current_time_string
+  (char *result)
+{
+  const char *format = "%Y-%m-%d %H:%M:%S";
+  /* Format string necessary to describe the ISO 8601 format */
+
+  const time_t t_val = time (NULL);
+
+  strftime (result, 22, format, localtime (&t_val));
+  /* Convert the local time into a string following the ISO format, copying
+     at most 22 characters into the result string. */
+
+  result [19] = '.';
+  result [20] = '0';
+  result [21] = '0';
+  /* The sub-seconds are manually set to zero since type time_t lacks the
+     precision necessary for nanoseconds. */
+}
+
 void
 __gnat_to_gm_time
   (OS_Time *p_time,
@@ -429,7 +458,8 @@ __gnat_symlink (char *oldpath ATTRIBUTE_UNUSED,
 
 /* Try to lock a file, return 1 if success.  */
 
-#if defined (__vxworks) || defined (__nucleus__) || defined (MSDOS) || defined (_WIN32)
+#if defined (__vxworks) || defined (__nucleus__) || defined (MSDOS) \
+  || defined (_WIN32)
 
 /* Version that does not use link. */
 
@@ -638,9 +668,9 @@ __gnat_get_debuggable_suffix_ptr (int *len, const char **value)
 /* Returns the OS filename and corresponding encoding.  */
 
 void
-__gnat_os_filename (char *filename, char *w_filename,
+__gnat_os_filename (char *filename, char *w_filename ATTRIBUTE_UNUSED,
 		    char *os_name, int *o_length,
-		    char *encoding, int *e_length)
+		    char *encoding ATTRIBUTE_UNUSED, int *e_length)
 {
 #if defined (_WIN32) && ! defined (__vxworks) && ! defined (CROSS_DIRECTORY_STRUCTURE)
   WS2SU (os_name, (TCHAR *)w_filename, o_length);
@@ -655,7 +685,7 @@ __gnat_os_filename (char *filename, char *w_filename,
 }
 
 FILE *
-__gnat_fopen (char *path, char *mode, int encoding)
+__gnat_fopen (char *path, char *mode, int encoding ATTRIBUTE_UNUSED)
 {
 #if defined (_WIN32) && ! defined (__vxworks) && ! defined (CROSS_DIRECTORY_STRUCTURE)
   TCHAR wpath[GNAT_MAX_PATH_LEN];
@@ -677,7 +707,7 @@ __gnat_fopen (char *path, char *mode, int encoding)
 }
 
 FILE *
-__gnat_freopen (char *path, char *mode, FILE *stream, int encoding)
+__gnat_freopen (char *path, char *mode, FILE *stream, int encoding ATTRIBUTE_UNUSED)
 {
 #if defined (_WIN32) && ! defined (__vxworks) && ! defined (CROSS_DIRECTORY_STRUCTURE)
   TCHAR wpath[GNAT_MAX_PATH_LEN];
@@ -882,7 +912,8 @@ __gnat_open_new_temp (char *path, int fmode)
 
   strcpy (path, "GNAT-XXXXXX");
 
-#if (defined (__FreeBSD__) || defined (linux)) && !defined (__vxworks)
+#if (defined (__FreeBSD__) || defined (__NetBSD__) || defined (__OpenBSD__) \
+  || defined (linux) || defined(__GLIBC__)) && !defined (__vxworks)
   return mkstemp (path);
 #elif defined (__Lynx__)
   mktemp (path);
@@ -974,7 +1005,8 @@ __gnat_tmp_name (char *tmp_filename)
     free (pname);
   }
 
-#elif defined (linux) || defined (__FreeBSD__)
+#elif defined (linux) || defined (__FreeBSD__) || defined (__NetBSD__) \
+  || defined (__OpenBSD__) || defined(__GLIBC__)
 #define MAX_SAFE_PATH 1000
   char *tmpdir = getenv ("TMPDIR");
 
@@ -995,7 +1027,12 @@ __gnat_tmp_name (char *tmp_filename)
 
 DIR* __gnat_opendir (char *name)
 {
-#ifdef __MINGW32__
+#if defined (RTX)
+  /* Not supported in RTX */
+
+  return NULL;
+
+#elif defined (__MINGW32__)
   TCHAR wname[GNAT_MAX_PATH_LEN];
 
   S2WSU (wname, name, GNAT_MAX_PATH_LEN);
@@ -1012,7 +1049,11 @@ DIR* __gnat_opendir (char *name)
 char *
 __gnat_readdir (DIR *dirp, char *buffer, int *len)
 {
-#if defined (__MINGW32__)
+#if defined (RTX)
+  /* Not supported in RTX */
+
+  return NULL;
+#elif defined (__MINGW32__)
   struct _tdirent *dirent = _treaddir ((_TDIR*)dirp);
 
   if (dirent != NULL)
@@ -1054,7 +1095,12 @@ __gnat_readdir (DIR *dirp, char *buffer, int *len)
 
 int __gnat_closedir (DIR *dirp)
 {
-#ifdef __MINGW32__
+#if defined (RTX)
+  /* Not supported in RTX */
+
+  return 0;
+
+#elif defined (__MINGW32__)
   return _tclosedir ((_TDIR*)dirp);
 
 #else
@@ -1074,7 +1120,7 @@ __gnat_readdir_is_thread_safe (void)
 #endif
 }
 
-#ifdef _WIN32
+#if defined (_WIN32) && !defined (RTX)
 /* Number of seconds between <Jan 1st 1601> and <Jan 1st 1970>.  */
 static const unsigned long long w32_epoch_offset = 11644473600ULL;
 
@@ -1114,7 +1160,7 @@ __gnat_file_time_name (char *name)
   close (fd);
   return (OS_Time)ret;
 
-#elif defined (_WIN32)
+#elif defined (_WIN32) && !defined (RTX)
   time_t ret = -1;
   TCHAR wname[GNAT_MAX_PATH_LEN];
 
@@ -1217,7 +1263,7 @@ __gnat_file_time_fd (int fd)
   tot_secs += file_tsec * 2;
   return (OS_Time) tot_secs;
 
-#elif defined (_WIN32)
+#elif defined (_WIN32) && !defined (RTX)
   HANDLE h = (HANDLE) _get_osfhandle (fd);
   time_t ret = win32_filetime (h);
   return (OS_Time) ret;
@@ -1247,7 +1293,7 @@ __gnat_set_file_time_name (char *name, time_t time_stamp)
 
 /* Code to implement __gnat_set_file_time_name for these systems.  */
 
-#elif defined (_WIN32)
+#elif defined (_WIN32) && !defined (RTX)
   union
   {
     FILETIME ft_time;
@@ -1462,7 +1508,7 @@ __gnat_get_libraries_from_registry (void)
 {
   char *result = (char *) "";
 
-#if defined (_WIN32) && ! defined (__vxworks) && ! defined (CROSS_DIRECTORY_STRUCTURE)
+#if defined (_WIN32) && ! defined (__vxworks) && ! defined (CROSS_DIRECTORY_STRUCTURE) && ! defined (RTX)
 
   HKEY reg_key;
   DWORD name_size, value_size;
@@ -1552,7 +1598,7 @@ __gnat_stat (char *name, struct stat *statbuf)
 int
 __gnat_file_exists (char *name)
 {
-#ifdef __MINGW32__
+#if defined (__MINGW32__) && !defined (RTX)
   /*  On Windows do not use __gnat_stat() because a bug in Microsoft
   _stat() routine. When the system time-zone is set with a negative
   offset the _stat() routine fails on specific files like CON:  */
@@ -1720,7 +1766,10 @@ __gnat_portable_spawn (char *args[])
   int finished ATTRIBUTE_UNUSED;
   int pid ATTRIBUTE_UNUSED;
 
-#if defined (MSDOS) || defined (_WIN32)
+#if defined (__vxworks) || defined(__nucleus__) || defined(RTX)
+  return -1;
+
+#elif defined (MSDOS) || defined (_WIN32)
   /* args[0] must be quotes as it could contain a full pathname with spaces */
   char *args_0 = args[0];
   args[0] = (char *)xmalloc (strlen (args_0) + 3);
@@ -1739,8 +1788,6 @@ __gnat_portable_spawn (char *args[])
   else
     return status;
 
-#elif defined (__vxworks) || defined(__nucleus__)
-  return -1;
 #else
 
 #ifdef __EMX__
@@ -1809,7 +1856,7 @@ __gnat_dup2 (int oldfd, int newfd)
 
 /* WIN32 code to implement a wait call that wait for any child process.  */
 
-#ifdef _WIN32
+#if defined (_WIN32) && !defined (RTX)
 
 /* Synchronization code, to be thread safe.  */
 
@@ -2021,7 +2068,10 @@ __gnat_portable_no_block_spawn (char *args[])
 {
   int pid = 0;
 
-#if defined (__EMX__) || defined (MSDOS)
+#if defined (__vxworks) || defined (__nucleus__) || defined (RTX)
+  return -1;
+
+#elif defined (__EMX__) || defined (MSDOS)
 
   /* ??? For PC machines I (Franco) don't know the system calls to implement
      this routine. So I'll fake it as follows. This routine will behave
@@ -2038,9 +2088,6 @@ __gnat_portable_no_block_spawn (char *args[])
 
   pid = win32_no_block_spawn (args[0], args);
   return pid;
-
-#elif defined (__vxworks) || defined (__nucleus__)
-  return -1;
 
 #else
   pid = fork ();
@@ -2067,16 +2114,17 @@ __gnat_portable_wait (int *process_status)
   int status = 0;
   int pid = 0;
 
-#if defined (_WIN32)
+#if defined (__vxworks) || defined (__nucleus__) || defined (RTX)
+  /* Not sure what to do here, so do same as __EMX__ case, i.e., nothing but
+     return zero.  */
+
+#elif defined (_WIN32)
 
   pid = win32_wait (&status);
 
 #elif defined (__EMX__) || defined (MSDOS)
   /* ??? See corresponding comment in portable_no_block_spawn.  */
 
-#elif defined (__vxworks) || defined (__nucleus__)
-  /* Not sure what to do here, so do same as __EMX__ case, i.e., nothing but
-     return zero.  */
 #else
 
   pid = waitpid (-1, &status, 0);
@@ -2218,7 +2266,7 @@ __gnat_locate_exec_on_path (char *exec_name)
 {
   char *apath_val;
 
-#ifdef _WIN32
+#if defined (_WIN32) && !defined (RTX)
   TCHAR *wpath_val = _tgetenv (_T("PATH"));
   TCHAR *wapath_val;
   /* In Win32 systems we expand the PATH as for XP environment
@@ -2834,6 +2882,7 @@ _flush_cache()
       && defined (__SVR4)) \
       && ! (defined (linux) && (defined (i386) || defined (__x86_64__))) \
       && ! (defined (linux) && defined (__ia64__)) \
+      && ! (defined (linux) && defined (powerpc)) \
       && ! defined (__FreeBSD__) \
       && ! defined (__hpux__) \
       && ! defined (__APPLE__) \
@@ -2990,3 +3039,46 @@ __gnat_sals_init_using_constructors ()
    return 1;
 #endif
 }
+
+/* In RTX mode, the procedure to get the time (as file time) is different
+   in RTSS mode and Win32 mode. In order to avoid duplicating an Ada file,
+   we introduce an intermediate procedure to link against the corresponding
+   one in each situation. */
+#ifdef RTX
+
+void GetTimeAsFileTime(LPFILETIME pTime)
+{
+#ifdef RTSS
+  RtGetRtssTimeAsFileTime (pTime); /* RTSS interface */
+#else
+  GetSystemTimeAsFileTime (pTime); /* w32 interface */
+#endif
+}
+#endif
+
+#if defined (linux) || defined(__GLIBC__)
+/* pthread affinity support */
+
+int __gnat_pthread_setaffinity_np (pthread_t th,
+			           size_t cpusetsize,
+			           const void *cpuset);
+
+#ifdef CPU_SETSIZE
+#include <pthread.h>
+int
+__gnat_pthread_setaffinity_np (pthread_t th,
+			       size_t cpusetsize,
+			       const cpu_set_t *cpuset)
+{
+  return pthread_setaffinity_np (th, cpusetsize, cpuset);
+}
+#else
+int
+__gnat_pthread_setaffinity_np (pthread_t th ATTRIBUTE_UNUSED,
+			       size_t cpusetsize ATTRIBUTE_UNUSED,
+			       const void *cpuset ATTRIBUTE_UNUSED)
+{
+  return 0;
+}
+#endif
+#endif

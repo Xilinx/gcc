@@ -160,8 +160,7 @@ force_label_rtx (tree label)
   else
     p = cfun;
 
-  p->expr->x_forced_labels = gen_rtx_EXPR_LIST (VOIDmode, ref,
-						p->expr->x_forced_labels);
+  forced_labels = gen_rtx_EXPR_LIST (VOIDmode, ref, forced_labels);
   return ref;
 }
 
@@ -1078,7 +1077,7 @@ expand_asm_operands (tree string, tree outputs, tree inputs,
     if (real_output_rtx[i])
       emit_move_insn (real_output_rtx[i], output_rtx[i]);
 
-  cfun->has_asm_statement = 1;
+  crtl->has_asm_statement = 1;
   free_temp_slots ();
 }
 
@@ -1821,7 +1820,7 @@ expand_nl_goto_receiver (void)
 	  /* Now restore our arg pointer from the address at which it
 	     was saved in our stack frame.  */
 	  emit_move_insn (virtual_incoming_args_rtx,
-			  copy_to_reg (get_arg_pointer_save_area (cfun)));
+			  copy_to_reg (get_arg_pointer_save_area ()));
 	}
     }
 #endif
@@ -1997,6 +1996,7 @@ expand_stack_restore (tree var)
 {
   rtx sa = expand_normal (var);
 
+  sa = convert_memory_address (Pmode, sa);
   emit_stack_restore (SAVE_BLOCK, sa, NULL_RTX);
 }
 
@@ -2259,8 +2259,9 @@ emit_case_bit_tests (tree index_type, tree index_expr, tree minval,
 
   mode = TYPE_MODE (index_type);
   expr = expand_normal (range);
-  emit_cmp_and_jump_insns (index, expr, GTU, NULL_RTX, mode, 1,
-			   default_label);
+  if (default_label)
+    emit_cmp_and_jump_insns (index, expr, GTU, NULL_RTX, mode, 1,
+			     default_label);
 
   index = convert_to_mode (word_mode, index, 0);
   index = expand_binop (word_mode, ashl_optab, const1_rtx,
@@ -2275,7 +2276,8 @@ emit_case_bit_tests (tree index_type, tree index_expr, tree minval,
 			       word_mode, 1, test[i].label);
     }
 
-  emit_jump (default_label);
+  if (default_label)
+    emit_jump (default_label);
 }
 
 #ifndef HAVE_casesi
@@ -2321,7 +2323,7 @@ expand_case (tree exp)
   struct case_node *case_list = 0;
 
   /* Label to jump to if no case matches.  */
-  tree default_label_decl;
+  tree default_label_decl = NULL_TREE;
 
   alloc_pool case_node_pool = create_alloc_pool ("struct case_node pool",
                                                  sizeof (struct case_node),
@@ -2339,18 +2341,21 @@ expand_case (tree exp)
     {
       tree elt;
       bitmap label_bitmap;
+      int vl = TREE_VEC_LENGTH (vec);
 
       /* cleanup_tree_cfg removes all SWITCH_EXPR with their index
 	 expressions being INTEGER_CST.  */
       gcc_assert (TREE_CODE (index_expr) != INTEGER_CST);
 
-      /* The default case is at the end of TREE_VEC.  */
-      elt = TREE_VEC_ELT (vec, TREE_VEC_LENGTH (vec) - 1);
-      gcc_assert (!CASE_HIGH (elt));
-      gcc_assert (!CASE_LOW (elt));
-      default_label_decl = CASE_LABEL (elt);
+      /* The default case, if ever taken, is at the end of TREE_VEC.  */
+      elt = TREE_VEC_ELT (vec, vl - 1);
+      if (!CASE_LOW (elt) && !CASE_HIGH (elt))
+	{
+	  default_label_decl = CASE_LABEL (elt);
+	  --vl;
+	}
 
-      for (i = TREE_VEC_LENGTH (vec) - 1; --i >= 0; )
+      for (i = vl - 1; i >= 0; --i)
 	{
 	  tree low, high;
 	  elt = TREE_VEC_ELT (vec, i);
@@ -2369,7 +2374,8 @@ expand_case (tree exp)
 
 
       before_case = start = get_last_insn ();
-      default_label = label_rtx (default_label_decl);
+      if (default_label_decl)
+	default_label = label_rtx (default_label_decl);
 
       /* Get upper and lower bounds of case values.  */
 
@@ -2414,7 +2420,8 @@ expand_case (tree exp)
 	 type, so we may still get a zero here.  */
       if (count == 0)
 	{
-	  emit_jump (default_label);
+	  if (default_label)
+	    emit_jump (default_label);
           free_alloc_pool (case_node_pool);
 	  return;
 	}
@@ -2510,13 +2517,15 @@ expand_case (tree exp)
 	       && estimate_case_costs (case_list));
 	  balance_case_nodes (&case_list, NULL);
 	  emit_case_nodes (index, case_list, default_label, index_type);
-	  emit_jump (default_label);
+	  if (default_label)
+	    emit_jump (default_label);
 	}
       else
 	{
+	  rtx fallback_label = label_rtx (case_list->code_label);
 	  table_label = gen_label_rtx ();
 	  if (! try_casesi (index_type, index_expr, minval, range,
-			    table_label, default_label))
+			    table_label, default_label, fallback_label))
 	    {
 	      bool ok;
 
@@ -2559,7 +2568,12 @@ expand_case (tree exp)
 		  = gen_rtx_LABEL_REF (Pmode, label_rtx (n->code_label));
 	    }
 
-	  /* Fill in the gaps with the default.  */
+	  /* Fill in the gaps with the default.  We may have gaps at
+	     the beginning if we tried to avoid the minval subtraction,
+	     so substitute some label even if the default label was
+	     deemed unreachable.  */
+	  if (!default_label)
+	    default_label = fallback_label;
 	  for (i = 0; i < ncases; i++)
 	    if (labelvec[i] == 0)
 	      labelvec[i] = gen_rtx_LABEL_REF (Pmode, default_label);
@@ -3044,7 +3058,8 @@ emit_case_nodes (rtx index, case_node_ptr node, rtx default_label,
 	      emit_case_nodes (index, node->left, default_label, index_type);
 	      /* If left-hand subtree does nothing,
 		 go to default.  */
-	      emit_jump (default_label);
+	      if (default_label)
+	        emit_jump (default_label);
 
 	      /* Code branches here for the right-hand subtree.  */
 	      expand_label (test_label);
@@ -3179,7 +3194,8 @@ emit_case_nodes (rtx index, case_node_ptr node, rtx default_label,
 	    {
 	      /* If the left-hand subtree fell through,
 		 don't let it fall into the right-hand subtree.  */
-	      emit_jump (default_label);
+	      if (default_label)
+		emit_jump (default_label);
 
 	      expand_label (test_label);
 	      emit_case_nodes (index, node->right, default_label, index_type);

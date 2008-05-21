@@ -6,7 +6,7 @@
 
 # GCC is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
-# the Free Software Foundation; either version 2, or (at your option)
+# the Free Software Foundation; either version 3, or (at your option)
 # any later version.
 
 # GCC is distributed in the hope that it will be useful,
@@ -218,9 +218,11 @@ while(<$inf>) {
     s/\@\}/&rbrace;/g;
     s/\@\@/&at;/g;
 
-    # Inside a verbatim block, handle @var specially.
+    # Inside a verbatim block, handle @var, @samp and @url specially.
     if ($shift ne "") {
 	s/\@var\{([^\}]*)\}/<$1>/g;
+	s/\@samp\{([^\}]*)\}/"$1"/g;
+	s/\@url\{([^\}]*)\}/<$1>/g;
     }
 
     # POD doesn't interpret E<> inside a verbatim block.
@@ -250,7 +252,7 @@ while(<$inf>) {
 	next;
     };
 
-    /^\@(?:section|unnumbered|unnumberedsec|center)\s+(.+)$/
+    /^\@(?:section|unnumbered|unnumberedsec|center|heading)\s+(.+)$/
 	and $_ = "\n=head2 $1\n";
     /^\@subsection\s+(.+)$/
 	and $_ = "\n=head3 $1\n";
@@ -321,8 +323,14 @@ while(<$inf>) {
     /^\@itemx?\s*(.+)?$/ and do {
 	if (defined $1) {
             if ($ic) {
-                # Entity escapes prevent munging by the <> processing below.
-                $_ = "\n=item $ic\&LT;$1\&GT;\n";
+		if ($endw eq "enumerate") {
+		    $_ = "\n=item $ic $1\n";
+		    $ic =~ s/(\d+)/$1 + 1/eg;
+		} else {
+		    # Entity escapes prevent munging by the <>
+		    # processing below.
+		    $_ = "\n=item $ic\&LT;$1\&GT;\n";
+		}
             } else {
                 $_ = "\n=item $1\n";
             }

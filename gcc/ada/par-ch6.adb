@@ -64,9 +64,8 @@ package body Ch6 is
 
          if Token = Tok_Return then
             Restore_Scan_State (Scan_State);
-            Error_Msg_SC ("unexpected semicolon ignored");
+            Error_Msg_SC ("|extra "";"" ignored");
             Scan; -- rescan past junk semicolon
-
          else
             Restore_Scan_State (Scan_State);
          end if;
@@ -176,7 +175,7 @@ package body Ch6 is
       Scope.Table (Scope.Last).Ecol := Start_Column;
       Scope.Table (Scope.Last).Lreq := False;
 
-      --  Ada2005: scan leading overriding indicator
+      --  Ada2005: scan leading NOT OVERRIDING indicator
 
       if Token = Tok_Not then
          Scan;  -- past NOT
@@ -184,9 +183,26 @@ package body Ch6 is
          if Token = Tok_Overriding then
             Scan;  --  past OVERRIDING
             Not_Overriding := True;
+
+         --  Overriding keyword used in non Ada 2005 mode
+
+         elsif Token = Tok_Identifier
+           and then Token_Name = Name_Overriding
+         then
+            Error_Msg_SC ("overriding indicator is an Ada 2005 extension");
+            Error_Msg_SC ("\unit must be compiled with -gnat05 switch");
+            Scan;  --  past Overriding
+            Not_Overriding := True;
+
          else
             Error_Msg_SC ("OVERRIDING expected!");
          end if;
+
+      --  Ada 2005: scan leading OVERRIDING indicator
+
+      --  Note: in the case of OVERRIDING keyword used in Ada 95 mode, the
+      --  declaration circuit already gave an error message and changed the
+      --  token to Tok_Overriding.
 
       elsif Token = Tok_Overriding then
          Scan;  --  past OVERRIDING
@@ -194,14 +210,14 @@ package body Ch6 is
       end if;
 
       if (Is_Overriding or else Not_Overriding) then
-         if Ada_Version < Ada_05 then
-            Error_Msg_SP (" overriding indicator is an Ada 2005 extension");
-            Error_Msg_SP ("\unit must be compiled with -gnat05 switch");
+
+         --  Note that if we are not in Ada_05 mode, error messages have
+         --  already been given, so no need to give another message here.
 
          --  An overriding indicator is allowed for subprogram declarations,
          --  bodies, renamings, stubs, and instantiations.
 
-         elsif Pf_Flags /= Pf_Decl_Gins_Pbod_Rnam_Stub then
+         if Pf_Flags /= Pf_Decl_Gins_Pbod_Rnam_Stub then
             Error_Msg_SC ("overriding indicator not allowed here!");
 
          elsif Token /= Tok_Function
@@ -248,11 +264,7 @@ package body Ch6 is
       end if;
 
       Scope.Table (Scope.Last).Labl := Name_Node;
-
-      if Token = Tok_Colon then
-         Error_Msg_SC ("redundant colon ignored");
-         Scan; -- past colon
-      end if;
+      Ignore (Tok_Colon);
 
       --  Deal with generic instantiation, the one case in which we do not
       --  have a subprogram specification as part of whatever we are parsing
@@ -263,7 +275,7 @@ package body Ch6 is
 
          if Token = Tok_New then
             if not Pf_Flags.Gins then
-               Error_Msg_SC ("generic instantation not allowed here!");
+               Error_Msg_SC ("generic instantiation not allowed here!");
             end if;
 
             Scan; -- past NEW
@@ -394,6 +406,19 @@ package body Ch6 is
          Discard_Junk_Node (P_Expression);
       end if;
 
+      --  Deal with semicolon followed by IS. We want to treat this as IS
+
+      if Token = Tok_Semicolon then
+         Save_Scan_State (Scan_State);
+         Scan; -- past semicolon
+
+         if Token = Tok_Is then
+            Error_Msg_SP ("extra "";"" ignored");
+         else
+            Restore_Scan_State (Scan_State);
+         end if;
+      end if;
+
       --  Deal with case of semicolon ending a subprogram declaration
 
       if Token = Tok_Semicolon then
@@ -407,8 +432,8 @@ package body Ch6 is
          --  semicolon, and go process the body.
 
          if Token = Tok_Is then
-            Error_Msg_SP ("unexpected semicolon ignored");
-            T_Is; -- ignroe redundant IS's
+            Error_Msg_SP ("|extra "";"" ignored");
+            T_Is; -- scan past IS
             goto Subprogram_Body;
 
          --  If BEGIN follows in an appropriate column, we immediately
@@ -419,7 +444,7 @@ package body Ch6 is
          elsif Token = Tok_Begin
             and then Start_Column >= Scope.Table (Scope.Last).Ecol
          then
-            Error_Msg_SP (""";"" should be IS!");
+            Error_Msg_SP ("|"";"" should be IS!");
             goto Subprogram_Body;
 
          else
@@ -523,7 +548,7 @@ package body Ch6 is
          --  semicolon which should really be an IS
 
          else
-            Error_Msg_AP ("missing "";""");
+            Error_Msg_AP ("|missing "";""");
             SIS_Missing_Semicolon_Message := Get_Msg_Id;
             goto Subprogram_Declaration;
          end if;
@@ -1000,7 +1025,8 @@ package body Ch6 is
       Specification_Loop : loop
          begin
             if Token = Tok_Pragma then
-               P_Pragmas_Misplaced;
+               Error_Msg_SC ("pragma not allowed in formal part");
+               Discard_Junk_Node (P_Pragma (Skipping => True));
             end if;
 
             Ignore (Tok_Left_Paren);
@@ -1185,7 +1211,7 @@ package body Ch6 is
             --  that semicolon should have been a right parenthesis and exit
 
             if Token = Tok_Is or else Token = Tok_Return then
-               Error_Msg_SP ("expected "")"" in place of "";""");
+               Error_Msg_SP ("|"";"" should be "")""");
                exit Specification_Loop;
             end if;
 
@@ -1271,7 +1297,7 @@ package body Ch6 is
       end if;
 
       if Token = Tok_In then
-         Error_Msg_SC ("IN must preceed OUT in parameter mode");
+         Error_Msg_SC ("IN must precede OUT in parameter mode");
          Scan; -- past IN
          Set_In_Present (Node, True);
       end if;

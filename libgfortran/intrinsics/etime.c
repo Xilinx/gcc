@@ -29,11 +29,7 @@ write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
 Boston, MA 02110-1301, USA.  */
 
 #include "libgfortran.h"
-
-#if defined (HAVE_SYS_TIME_H) && defined (HAVE_SYS_RESOURCE_H)
-#include <sys/time.h>
-#include <sys/resource.h>
-#endif
+#include "time_1.h"
 
 extern void etime_sub (gfc_array_r4 *t, GFC_REAL_4 *result);
 iexport_proto(etime_sub);
@@ -42,30 +38,23 @@ void
 etime_sub (gfc_array_r4 *t, GFC_REAL_4 *result)
 {
   GFC_REAL_4 tu, ts, tt, *tp;
+  long user_sec, user_usec, system_sec, system_usec;
 
-#if defined(HAVE_SYS_TIME_H) && defined(HAVE_SYS_RESOURCE_H)
-  struct rusage rt;
+  if (((t->dim[0].ubound + 1 - t->dim[0].lbound)) < 2)
+    runtime_error ("Insufficient number of elements in TARRAY.");
 
-  if (getrusage(RUSAGE_SELF, &rt) == 0)
+  if (__time_1 (&user_sec, &user_usec, &system_sec, &system_usec) == 0)
     {
-      tu = (GFC_REAL_4)(rt.ru_utime.tv_sec + 1.e-6 * rt.ru_utime.tv_usec);
-      ts = (GFC_REAL_4)(rt.ru_stime.tv_sec + 1.e-6 * rt.ru_stime.tv_usec);
+      tu = (GFC_REAL_4)(user_sec + 1.e-6 * user_usec);
+      ts = (GFC_REAL_4)(system_sec + 1.e-6 * system_usec);
       tt = tu + ts;
     }
   else
     {
-      tu = -1.;
-      ts = -1.;
-      tt = -1.;
+      tu = (GFC_REAL_4)-1.0;
+      ts = (GFC_REAL_4)-1.0;
+      tt = (GFC_REAL_4)-1.0;
     }
-#else
-  tu = -1.;
-  ts = -1.;
-  tt = -1.;
-#endif
-
-  if (((t->dim[0].ubound + 1 - t->dim[0].lbound)) < 2)
-    runtime_error ("Insufficient number of elements in TARRAY.");
 
   tp = t->data;
 

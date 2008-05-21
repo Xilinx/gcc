@@ -1,5 +1,5 @@
 /* C/ObjC/C++ command line option handling.
-   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007
+   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008
    Free Software Foundation, Inc.
    Contributed by Neil Booth.
 
@@ -401,10 +401,13 @@ c_common_handle_option (size_t scode, const char *arg, int value)
       warn_return_type = value;
       warn_sequence_point = value;	/* Was C only.  */
       warn_switch = value;
-      set_Wstrict_aliasing (value);
+      if (warn_strict_aliasing == -1)
+	set_Wstrict_aliasing (value);
       warn_address = value;
-      warn_strict_overflow = value;
+      if (warn_strict_overflow == -1)
+	warn_strict_overflow = value;
       warn_array_bounds = value;
+      warn_volatile_register_var = value;
 
       /* Only warn about unknown pragmas that are not in system
 	 headers.  */
@@ -1064,7 +1067,7 @@ c_common_post_options (const char **pfilename)
   /* -Wextra implies -Wtype-limits, -Wclobbered, 
      -Wempty-body, -Wsign-compare, 
      -Wmissing-field-initializers, -Wmissing-parameter-type
-     -Wold-style-declaration, and -Woverride-init, 
+     -Wold-style-declaration, -Woverride-init and -Wignored-qualifiers
      but not if explicitly overridden.  */
   if (warn_type_limits == -1)
     warn_type_limits = extra_warnings;
@@ -1082,11 +1085,18 @@ c_common_post_options (const char **pfilename)
     warn_old_style_declaration = extra_warnings;
   if (warn_override_init == -1)
     warn_override_init = extra_warnings;
+  if (warn_ignored_qualifiers == -1)
+    warn_ignored_qualifiers = extra_warnings;
 
   /* -Wpointer_sign is disabled by default, but it is enabled if any
      of -Wall or -pedantic are given.  */
   if (warn_pointer_sign == -1)
     warn_pointer_sign = 0;
+
+  if (warn_strict_aliasing == -1)
+    warn_strict_aliasing = 0;
+  if (warn_strict_overflow == -1)
+    warn_strict_overflow = 0;
 
   /* -Woverlength-strings is off by default, but is enabled by -pedantic.
      It is never enabled in C++, as the minimum limit is not normative
@@ -1097,11 +1107,6 @@ c_common_post_options (const char **pfilename)
   /* Adjust various flags for C++ based on command-line settings.  */
   if (c_dialect_cxx ())
     {
-      if (!flag_permissive)
-	{
-	  flag_pedantic_errors = 1;
-	  cpp_opts->pedantic_errors = 1;
-	}
       if (!flag_no_inline)
 	{
 	  flag_inline_trees = 1;
@@ -1222,15 +1227,15 @@ c_common_init (void)
   if (version_flag)
     c_common_print_pch_checksum (stderr);
 
+  /* Has to wait until now so that cpplib has its hash table.  */
+  init_pragma ();
+
   if (flag_preprocess_only)
     {
       finish_options ();
       preprocess_file (parse_in);
       return false;
     }
-
-  /* Has to wait until now so that cpplib has its hash table.  */
-  init_pragma ();
 
   return true;
 }
@@ -1422,6 +1427,8 @@ sanitize_cpp_opts (void)
       flag_dump_includes = 0;
       flag_no_line_commands = 1;
     }
+  else if (cpp_opts->deps.missing_files)
+    error ("-MG may only be used with -M or -MM");
 
   cpp_opts->unsigned_char = !flag_signed_char;
   cpp_opts->stdc_0_in_system_headers = STDC_0_IN_SYSTEM_HEADERS;
@@ -1429,7 +1436,11 @@ sanitize_cpp_opts (void)
   /* We want -Wno-long-long to override -pedantic -std=non-c99
      and/or -Wtraditional, whatever the ordering.  */
   cpp_opts->warn_long_long
-    = warn_long_long && ((!flag_isoc99 && pedantic) || warn_traditional);
+    = warn_long_long && ((pedantic
+			  && (c_dialect_cxx ()
+			      ? cxx_dialect == cxx98
+			      : !flag_isoc99))
+                         || warn_traditional);
 
   /* Similarly with -Wno-variadic-macros.  No check for c99 here, since
      this also turns off warnings about GCCs extension.  */
@@ -1659,6 +1670,7 @@ handle_OPT_d (const char *arg)
       case 'M':			/* Dump macros only.  */
       case 'N':			/* Dump names.  */
       case 'D':			/* Dump definitions.  */
+      case 'U':			/* Dump used macros.  */
 	flag_dump_macros = c;
 	break;
 

@@ -1,5 +1,5 @@
 /* Pretty formatting of GENERIC trees in C syntax.
-   Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007
+   Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
    Free Software Foundation, Inc.
    Adapted from c-pretty-print.c by Diego Novillo <dnovillo@redhat.com>
 
@@ -35,6 +35,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree-pass.h"
 #include "fixed-value.h"
 #include "value-prof.h"
+#include "predict.h"
 
 /* Local functions, macros and variables.  */
 static int op_prio (const_tree);
@@ -127,7 +128,7 @@ print_generic_decl (FILE *file, tree decl, int flags)
 }
 
 /* Print tree T, and its successors, on file FILE.  FLAGS specifies details
-   to show in the dump.  See TDF_* in tree.h.  */
+   to show in the dump.  See TDF_* in tree-pass.h.  */
 
 void
 print_generic_stmt (FILE *file, tree t, int flags)
@@ -138,7 +139,7 @@ print_generic_stmt (FILE *file, tree t, int flags)
 }
 
 /* Print tree T, and its successors, on file FILE.  FLAGS specifies details
-   to show in the dump.  See TDF_* in tree.h.  The output is indented by
+   to show in the dump.  See TDF_* in tree-pass.h.  The output is indented by
    INDENT spaces.  */
 
 void
@@ -155,7 +156,7 @@ print_generic_stmt_indented (FILE *file, tree t, int flags, int indent)
 }
 
 /* Print a single expression T on file FILE.  FLAGS specifies details to show
-   in the dump.  See TDF_* in tree.h.  */
+   in the dump.  See TDF_* in tree-pass.h.  */
 
 void
 print_generic_expr (FILE *file, tree t, int flags)
@@ -436,10 +437,10 @@ dump_symbols (pretty_printer *buffer, bitmap syms, int flags)
 }
 
 
-/* Dump the node NODE on the pretty_printer BUFFER, SPC spaces of indent.
-   FLAGS specifies details to show in the dump (see TDF_* in tree-pass.h).
-   If IS_STMT is true, the object printed is considered to be a statement
-   and it is terminated by ';' if appropriate.  */
+/* Dump the node NODE on the pretty_printer BUFFER, SPC spaces of
+   indent.  FLAGS specifies details to show in the dump (see TDF_* in
+   tree-pass.h).  If IS_STMT is true, the object printed is considered
+   to be a statement and it is terminated by ';' if appropriate.  */
 
 int
 dump_generic_node (pretty_printer *buffer, tree node, int spc, int flags,
@@ -799,7 +800,8 @@ dump_generic_node_aux (pretty_printer *buffer, tree node, int spc, int flags,
 	  /* Would "%x%0*x" or "%x%*0x" get zero-padding on all
 	     systems?  */
 	  sprintf (pp_buffer (buffer)->digit_buffer,
-		   HOST_WIDE_INT_PRINT_DOUBLE_HEX, high, low);
+		   HOST_WIDE_INT_PRINT_DOUBLE_HEX,
+		   (unsigned HOST_WIDE_INT) high, low);
 	  pp_string (buffer, pp_buffer (buffer)->digit_buffer);
 	}
       else
@@ -921,7 +923,6 @@ dump_generic_node_aux (pretty_printer *buffer, tree node, int spc, int flags,
 
     case SYMBOL_MEMORY_TAG:
     case NAME_MEMORY_TAG:
-    case STRUCT_FIELD_TAG:
     case VAR_DECL:
     case PARM_DECL:
     case FIELD_DECL:
@@ -1437,8 +1438,7 @@ dump_generic_node_aux (pretty_printer *buffer, tree node, int spc, int flags,
     case FIXED_CONVERT_EXPR:
     case FIX_TRUNC_EXPR:
     case FLOAT_EXPR:
-    case CONVERT_EXPR:
-    case NOP_EXPR:
+    CASE_CONVERT:
       type = TREE_TYPE (node);
       op0 = TREE_OPERAND (node, 0);
       if (type != TREE_TYPE (op0))
@@ -1460,6 +1460,12 @@ dump_generic_node_aux (pretty_printer *buffer, tree node, int spc, int flags,
       pp_string (buffer, ">(");
       dump_generic_node (buffer, TREE_OPERAND (node, 0), spc, flags, false);
       pp_character (buffer, ')');
+      break;
+
+    case PAREN_EXPR:
+      pp_string (buffer, "((");
+      dump_generic_node (buffer, TREE_OPERAND (node, 0), spc, flags, false);
+      pp_string (buffer, "))");
       break;
 
     case NON_LVALUE_EXPR:
@@ -1600,6 +1606,16 @@ dump_generic_node_aux (pretty_printer *buffer, tree node, int spc, int flags,
 	  pp_character (buffer, '}');
 	}
       is_expr = false;
+      break;
+
+    case PREDICT_EXPR:
+      pp_string (buffer, "// predicted ");
+      if (PREDICT_EXPR_OUTCOME (node))
+        pp_string (buffer, "likely by ");
+      else
+        pp_string (buffer, "unlikely by ");
+      pp_string (buffer, predictor_name (PREDICT_EXPR_PREDICTOR (node)));
+      pp_string (buffer, " predictor.");
       break;
 
     case RETURN_EXPR:
@@ -2451,8 +2467,7 @@ op_prio (const_tree op)
     case INDIRECT_REF:
     case ADDR_EXPR:
     case FLOAT_EXPR:
-    case NOP_EXPR:
-    case CONVERT_EXPR:
+    CASE_CONVERT:
     case FIX_TRUNC_EXPR:
     case TARGET_EXPR:
       return 14;
@@ -3053,6 +3068,8 @@ dump_phi_nodes (pretty_printer *buffer, basic_block bb, int indent, int flags)
           pp_string (buffer, "# ");
           dump_generic_node (buffer, phi, indent, flags, false);
           pp_newline (buffer);
+	  if (flags & TDF_VERBOSE)
+	    print_node (buffer->buffer->stream, "", phi, indent);
         }
     }
 }
@@ -3122,20 +3139,10 @@ dump_implicit_edges (pretty_printer *buffer, basic_block bb, int indent,
     {
       INDENT (indent);
 
-      if ((flags & TDF_LINENO)
-#ifdef USE_MAPPED_LOCATION
-	  && e->goto_locus != UNKNOWN_LOCATION
-#else
-	  && e->goto_locus
-#endif
-	  )
+      if ((flags & TDF_LINENO) && e->goto_locus != UNKNOWN_LOCATION)
 	{
 	  expanded_location goto_xloc;
-#ifdef USE_MAPPED_LOCATION
 	  goto_xloc = expand_location (e->goto_locus);
-#else
-	  goto_xloc = *e->goto_locus;
-#endif
 	  pp_character (buffer, '[');
 	  if (goto_xloc.file)
 	    {
@@ -3181,6 +3188,8 @@ dump_generic_bb_buff (pretty_printer *buffer, basic_block bb,
       dump_generic_node (buffer, stmt, curr_indent, flags, true);
       pp_newline (buffer);
       dump_histograms_for_stmt (cfun, buffer->buffer->stream, stmt);
+      if (flags & TDF_VERBOSE)
+	print_node (buffer->buffer->stream, "", stmt, curr_indent);
     }
 
   dump_implicit_edges (buffer, bb, indent, flags);

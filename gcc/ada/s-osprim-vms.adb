@@ -71,7 +71,7 @@ package body System.OS_Primitives is
    --  pidadr = address of process id to be woken up
    --  prcnam = name of process to be woken up
    --  daytim = time to wake up
-   --  reptim = repitition interval of wakeup calls
+   --  reptim = repetition interval of wakeup calls
    --
 
    procedure Sys_Schdwk
@@ -177,6 +177,7 @@ package body System.OS_Primitives is
    is
       Sleep_Time : OS_Time;
       Status     : Cond_Value_Type;
+      pragma Unreferenced (Status);
 
    begin
       Sleep_Time := To_OS_Time (Time, Mode);

@@ -47,7 +47,7 @@
 
 _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
 
-  /// @brief  Extension to use icov for dealing with character encodings.
+  /// Extension to use iconv for dealing with character encodings.
   // This includes conversions and comparisons between various character
   // sets.  This object encapsulates data that may need to be shared between
   // char_traits, codecvt and ctype.
@@ -101,7 +101,7 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
     // typedef STATE_T state_type
     // requires: state_type shall meet the requirements of
     // CopyConstructible types (20.1.3)
-    // NB: This does not preseve the actual state of the conversion
+    // NB: This does not preserve the actual state of the conversion
     // descriptor member, but it does duplicate the encoding
     // information.
     encoding_state(const encoding_state& __obj) : _M_in_desc(0), _M_out_desc(0)
@@ -206,7 +206,7 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
     }
   };
 
-  /// @brief  encoding_char_traits.
+  /// encoding_char_traits
   // Custom traits type with encoding_state for the state type, and the
   // associated fpos<encoding_state> for the position type, all other
   // bits equivalent to the required char_traits instantiations.
@@ -224,7 +224,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
   using __gnu_cxx::encoding_state;
 
-  /// @brief  codecvt<InternT, _ExternT, encoding_state> specialization.
+  /// codecvt<InternT, _ExternT, encoding_state> specialization.
   // This partial specialization takes advantage of iconv to provide
   // code conversions between a large number of character encodings.
   template<typename _InternT, typename _ExternT>

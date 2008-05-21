@@ -1,3 +1,86 @@
+2008-04-21  Aurelien Jarno  <aurelien@aurel32.net>
+
+	* libiberty/configure.ac: use -fPIC on Linux/MIPS hosts.
+	* libiberty/configure: Regenerate.
+
+2008-04-18  Kris Van Hees <kris.van.hees@oracle.com>
+
+	* testsuite/demangle-expected: Added tests for char16_t and char32_t.
+
+2008-04-18  Paolo Bonzini  <bonzini@gnu.org>
+
+	PR bootstrap/35457
+	* aclocal.m4: Add override.m4.
+	* configure: Regenerate.
+
+2008-03-31  Ian Lance Taylor  <iant@google.com>
+
+	* cp-demangle.c (d_substitution): Correct overflow check to avoid
+	-fstrict-overflow optimizations.
+
+2008-03-27  Paolo Bonzini  <bonzini@gnu.org>
+
+	* configure.ac (frags): Don't set, use frag instead.
+	(PICFLAG): Set here and substitute.
+	* Makefile.in (PICFLAG): Substitute from autoconf.
+	* configure: Regenerate.
+
+2008-03-24  Ian Lance Taylor  <iant@google.com>
+
+	* sha1.c: New file, from gnulib.
+	* Makefile.in: Rebuild dependencies.
+	(CFILES): Add sha1.c.
+	(REQUIRED_OFILES): Add sha1.o.
+
+2008-03-24  Doug Evans  <dje@google.com>
+
+	* make-relative-prefix.c (make_relative_prefix_1): Handle NULL
+	return from strdup.
+
+2008-03-12  Seongbae Park <seongbae.park@gmail.com>
+
+	* cplus-dem.c (malloc, realloc): Use void * instead of char *
+	as return type.
+
+2008-03-11  Nick Clifton  <nickc@redhat.com>
+
+	* md5.c (md5_process_bytes): Do not assume that memcpy will
+	provide a return value.
+
+2008-02-19  Ben Elliston  <bje@au.ibm.com>
+
+	PR other/12618
+	* testsuite/Makefile.in (mostlyclean): Remove any core file.
+
+2008-01-26  David Daney  <ddaney@avtrex.com>
+
+	* cp-demangle.c (d_dump): Handle DEMANGLE_COMPONENT_JAVA_RESOURCE,
+	DEMANGLE_COMPONENT_COMPOUND_NAME, and
+	DEMANGLE_COMPONENT_CHARACTER cases.
+	(d_make_comp): Handle DEMANGLE_COMPONENT_COMPOUND_NAME and
+	DEMANGLE_COMPONENT_JAVA_RESOURCE cases.
+	(d_make_character): New function.
+	(d_java_resource): Same.
+	(d_special_name): Handle "Gr" case.
+	(d_print_comp): Handle DEMANGLE_COMPONENT_JAVA_RESOURCE,
+	DEMANGLE_COMPONENT_COMPOUND_NAME, and
+	DEMANGLE_COMPONENT_CHARACTER cases.
+	* testsuite/demangle-expected: Add test for java resource name
+	mangling.
+
+2008-01-23  Thiago Jung Bauermann  <bauerman@br.ibm.com>
+
+	* cplus-dem.c (demangle_function_name): Changed to return value
+	indicating if a name was correctly demangled.
+	(iterate_demangle_function): Use demangle_function_name return
+	value.
+
+2008-01-19  Manuel Lopez-Ibanez  <manu@gcc.gnu.org>
+
+	PR other/33768
+	* splay-tree.c (rotate_left): Fix minor typo in comment.
+	(rotate_right): Likewise.
+
 2007-11-12  Joseph Myers  <joseph@codesourcery.com>
 
 	* floatformat.c (floatformat_ibm_long_double_is_valid): Fix

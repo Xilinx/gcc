@@ -1078,7 +1078,6 @@ enum mips_code_readable_setting {
 #endif
 
 #define DBX_DEBUGGING_INFO 1		/* generate stabs (OSF/rose) */
-#define MIPS_DEBUGGING_INFO 1		/* MIPS specific debugging info */
 #define DWARF2_DEBUGGING_INFO 1         /* dwarf2 debugging info */
 
 #ifndef PREFERRED_DEBUGGING_TYPE
@@ -1372,7 +1371,7 @@ enum mips_code_readable_setting {
    - 3 fake registers:
 	- ARG_POINTER_REGNUM
 	- FRAME_POINTER_REGNUM
-	- FAKE_CALL_REGNO (see the comment above load_callsi for details)
+	- GOT_VERSION_REGNUM (see the comment above load_call<mode> for details)
    - 3 dummy entries that were used at various times in the past.
    - 6 DSP accumulator registers (3 hi-lo pairs) for MIPS DSP ASE
    - 6 DSP control registers  */
@@ -1452,7 +1451,7 @@ enum mips_code_readable_setting {
   1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,			\
   1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,			\
   /* Others.  */                                                        \
-  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,			\
+  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0,			\
   /* COP0 registers */							\
   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,			\
   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,			\
@@ -1884,7 +1883,7 @@ enum reg_class
    See mips_compute_frame_info for details about the frame layout.  */
 
 #define STARTING_FRAME_OFFSET						\
-  (current_function_outgoing_args_size					\
+  (crtl->outgoing_args_size					\
    + (TARGET_CALL_CLOBBERED_GP ? MIPS_STACK_ALIGN (UNITS_PER_WORD) : 0))
 
 #define RETURN_ADDR_RTX mips_return_addr
@@ -1936,8 +1935,8 @@ enum reg_class
    allocate the area reserved for arguments passed in registers.
    If `ACCUMULATE_OUTGOING_ARGS' is also defined, the only effect
    of this macro is to determine whether the space is included in
-   `current_function_outgoing_args_size'.  */
-#define OUTGOING_REG_PARM_STACK_SPACE 1
+   `crtl->outgoing_args_size'.  */
+#define OUTGOING_REG_PARM_STACK_SPACE(FNTYPE) 1
 
 #define STACK_BOUNDARY (TARGET_NEWABI ? 128 : 64)
 
@@ -2089,8 +2088,12 @@ typedef struct mips_args {
 
 /* Say that the epilogue uses the return address register.  Note that
    in the case of sibcalls, the values "used by the epilogue" are
-   considered live at the start of the called function.  */
-#define EPILOGUE_USES(REGNO) ((REGNO) == 31)
+   considered live at the start of the called function.
+
+   If using a GOT, say that the epilogue also uses GOT_VERSION_REGNUM.
+   See the comment above load_call<mode> for details.  */
+#define EPILOGUE_USES(REGNO) \
+  ((REGNO) == 31 || (TARGET_USE_GOT && (REGNO) == GOT_VERSION_REGNUM))
 
 /* Treat LOC as a byte offset from the stack pointer and round it up
    to the next fully-aligned offset.  */
@@ -2899,7 +2902,46 @@ while (0)
   "\tsc" SUFFIX "\t%@,%1\n"			\
   "\tbeq\t%@,%.,1b\n"				\
   "\tnop\n"					\
-  "2:\tsync%-%]%>%)"
+  "\tsync%-%]%>%)\n"				\
+  "2:\n"
+
+/* Return an asm string that atomically:
+
+     - Given that %2 contains a bit mask and %3 the inverted mask and
+       that %4 and %5 have already been ANDed with $2.
+
+     - Compares the bits in memory reference %1 selected by mask %2 to
+       register %4 and, if they are equal, changes the selected bits
+       in memory to %5.
+
+     - Sets register %0 to the old value of memory reference %1.
+ */
+#define MIPS_COMPARE_AND_SWAP_12		\
+  "%(%<%[%|sync\n"				\
+  "1:\tll\t%0,%1\n"				\
+  "\tand\t%@,%0,%2\n"				\
+  "\tbne\t%@,%z4,2f\n"				\
+  "\tand\t%@,%0,%3\n"				\
+  "\tor\t%@,%@,%5\n"				\
+  "\tsc\t%@,%1\n"				\
+  "\tbeq\t%@,%.,1b\n"				\
+  "\tnop\n"					\
+  "\tsync%-%]%>%)\n"				\
+  "2:\n"
+
+/* Like MIPS_COMPARE_AND_SWAP_12, except %5 is a constant zero,
+   so the OR can be omitted.  */
+#define MIPS_COMPARE_AND_SWAP_12_0		\
+  "%(%<%[%|sync\n"				\
+  "1:\tll\t%0,%1\n"				\
+  "\tand\t%@,%0,%2\n"				\
+  "\tbne\t%@,%z4,2f\n"				\
+  "\tand\t%@,%0,%3\n"				\
+  "\tsc\t%@,%1\n"				\
+  "\tbeq\t%@,%.,1b\n"				\
+  "\tnop\n"					\
+  "\tsync%-%]%>%)\n"				\
+  "2:\n"
 
 /* Return an asm string that atomically:
 

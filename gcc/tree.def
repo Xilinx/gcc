@@ -363,7 +363,6 @@ DEFTREECODE (RESULT_DECL, "result_decl", tcc_declaration, 0)
 
 /* Memory tags used in tree-ssa to represent memory locations in
    virtual SSA.  */
-DEFTREECODE (STRUCT_FIELD_TAG, "struct_field_tag", tcc_declaration, 0)
 DEFTREECODE (NAME_MEMORY_TAG, "name_memory_tag", tcc_declaration, 0)
 DEFTREECODE (SYMBOL_MEMORY_TAG, "symbol_memory_tag", tcc_declaration, 0)
 DEFTREECODE (MEMORY_PARTITION_TAG, "memory_partition_tag", tcc_declaration, 0)
@@ -389,10 +388,11 @@ DEFTREECODE (COMPONENT_REF, "component_ref", tcc_reference, 3)
 /* Reference to a group of bits within an object.  Similar to COMPONENT_REF
    except the position is given explicitly rather than via a FIELD_DECL.
    Operand 0 is the structure or union expression;
-   operand 1 is a tree giving the number of bits being referenced;
-   operand 2 is a tree giving the position of the first referenced bit.
-   The field can be either a signed or unsigned field;
-   BIT_FIELD_REF_UNSIGNED says which.  */
+   operand 1 is a tree giving the constant number of bits being referenced;
+   operand 2 is a tree giving the constant position of the first referenced bit.
+   The result type width has to match the number of bits referenced.
+   If the result type is integral, its signedness specifies how it is extended
+   to its mode width.  */
 DEFTREECODE (BIT_FIELD_REF, "bit_field_ref", tcc_reference, 3)
 
 /* The ordering of the following codes is optimized for the checking
@@ -493,7 +493,10 @@ DEFTREECODE (TARGET_EXPR, "target_expr", tcc_expression, 4)
    Operand 1 must have the same type as the entire expression, unless
    it unconditionally throws an exception, in which case it should
    have VOID_TYPE.  The same constraints apply to operand 2.  The
-   condition in operand 0 must be of integral type.  */
+   condition in operand 0 must be of integral type. 
+
+   In cfg gimple, if you do not have a selection expression, operands
+   1 and 2 are NULL.  The operands are then taken from the cfg edges. */
 DEFTREECODE (COND_EXPR, "cond_expr", tcc_expression, 3)
 
 /* Vector conditional expression. It is like COND_EXPR, but with
@@ -733,6 +736,10 @@ DEFTREECODE (LTGT_EXPR, "ltgt_expr", tcc_comparison, 2)
 
 DEFTREECODE (RANGE_EXPR, "range_expr", tcc_binary, 2)
 
+/* Represents a re-association barrier for floating point expressions
+   like explicit parenthesis in fortran.  */
+DEFTREECODE (PAREN_EXPR, "paren_expr", tcc_unary, 1)
+
 /* Represents a conversion of type of a value.
    All conversions, including implicit ones, must be
    represented by CONVERT_EXPR or NOP_EXPR nodes.  */
@@ -932,8 +939,13 @@ DEFTREECODE (VALUE_HANDLE, "value_handle", tcc_exceptional, 0)
    two things:
 
    	1- X is a copy of Y.
-	2- EXPR is a GIMPLE conditional expression (as defined by
-	   is_gimple_condexpr) and is known to be true.
+	2- EXPR is a conditional expression and is known to be true.
+
+   Valid and to be expected forms of conditional expressions are
+   valid GIMPLE condidional expressions (as defined by is_gimple_condexpr)
+   and conditional expressions with the first operand being a
+   PLUS_EXPR with a variable possibly wrapped in a NOP_EXPR first
+   operand and an integer constant second operand.
 
    The type of the expression is the same as Y.  */
 DEFTREECODE (ASSERT_EXPR, "assert_expr", tcc_expression, 2)
@@ -1165,6 +1177,12 @@ DEFTREECODE (VEC_EXTRACT_ODD_EXPR, "vec_extractodd_expr", tcc_binary, 2)
 DEFTREECODE (VEC_INTERLEAVE_HIGH_EXPR, "vec_interleavehigh_expr", tcc_binary, 2)
 DEFTREECODE (VEC_INTERLEAVE_LOW_EXPR, "vec_interleavelow_expr", tcc_binary, 2)
 
+/* PREDICT_EXPR.  Specify hint for branch prediction.  The
+   PREDICT_EXPR_PREDICTOR specify predictor and PREDICT_EXPR_OUTCOME the
+   outcome (0 for not taken and 1 for taken).  Once the profile is guessed
+   all conditional branches leading to execution paths executing the
+   PREDICT_EXPR will get predicted by the specified predictor.  */
+DEFTREECODE (PREDICT_EXPR, "predict_expr", tcc_unary, 1)
 /*
 Local variables:
 mode:c

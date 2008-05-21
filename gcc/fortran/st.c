@@ -1,5 +1,5 @@
 /* Build executable statement trees.
-   Copyright (C) 2000, 2001, 2002, 2004, 2005, 2006, 2007
+   Copyright (C) 2000, 2001, 2002, 2004, 2005, 2006, 2007, 2008
    Free Software Foundation, Inc.
    Contributed by Andy Vaught
 
@@ -144,6 +144,10 @@ gfc_free_statement (gfc_code *p)
 
     case EXEC_INQUIRE:
       gfc_free_inquire (p->ext.inquire);
+      break;
+
+    case EXEC_WAIT:
+      gfc_free_wait (p->ext.wait);
       break;
 
     case EXEC_READ:

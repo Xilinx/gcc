@@ -43,6 +43,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "hashtab.h"
 #include "tree-iterator.h"
 #include "cgraph.h"
+#include "tree-pass.h"
 
 #include "gcov-io.c"
 
@@ -421,6 +422,9 @@ coverage_counter_alloc (unsigned counter, unsigned num)
       ASM_GENERATE_INTERNAL_LABEL (buf, "LPBX", counter + 1);
       DECL_NAME (tree_ctr_tables[counter]) = get_identifier (buf);
       DECL_ALIGN (tree_ctr_tables[counter]) = TYPE_ALIGN (gcov_type_node);
+
+      if (dump_file)
+	fprintf (dump_file, "Using data file %s\n", da_file_name);
     }
   fn_b_ctrs[counter] = fn_n_ctrs[counter];
   fn_n_ctrs[counter] += num;
@@ -441,6 +445,23 @@ tree_coverage_counter_ref (unsigned counter, unsigned no)
   /* "no" here is an array index, scaled to bytes later.  */
   return build4 (ARRAY_REF, gcov_type_node, tree_ctr_tables[counter],
 		 build_int_cst (NULL_TREE, no), NULL, NULL);
+}
+
+/* Generate a tree to access the address of COUNTER NO.  */
+
+tree
+tree_coverage_counter_addr (unsigned counter, unsigned no)
+{
+  tree gcov_type_node = get_gcov_type ();
+
+  gcc_assert (no < fn_n_ctrs[counter] - fn_b_ctrs[counter]);
+  no += prg_n_ctrs[counter] + fn_b_ctrs[counter];
+
+  /* "no" here is an array index, scaled to bytes later.  */
+  return build_fold_addr_expr (build4 (ARRAY_REF, gcov_type_node,
+				       tree_ctr_tables[counter],
+				       build_int_cst (NULL_TREE, no),
+				       NULL, NULL));
 }
 
 /* Generate a checksum for a string.  CHKSUM is the current
@@ -528,7 +549,9 @@ compute_checksum (void)
 int
 coverage_begin_output (void)
 {
-  if (no_coverage)
+  /* We don't need to output .gcno file unless we're under -ftest-coverage
+     (e.g. -fprofile-arcs/generate/use don't need .gcno to work). */
+  if (no_coverage || !flag_test_coverage)
     return 0;
 
   if (!bbg_function_announced)
@@ -785,8 +808,7 @@ build_gcov_info (void)
   tree field, fields = NULL_TREE;
   tree value = NULL_TREE;
   tree filename_string;
-  char *filename;
-  int filename_len;
+  int da_file_name_len;
   unsigned n_fns;
   const struct function_list *fn;
   tree string_type;
@@ -825,17 +847,11 @@ build_gcov_info (void)
   field = build_decl (FIELD_DECL, NULL_TREE, string_type);
   TREE_CHAIN (field) = fields;
   fields = field;
-  filename = getpwd ();
-  filename = (filename && da_file_name[0] != '/'
-	      ? concat (filename, "/", da_file_name, NULL)
-	      : da_file_name);
-  filename_len = strlen (filename);
-  filename_string = build_string (filename_len + 1, filename);
-  if (filename != da_file_name)
-    free (filename);
+  da_file_name_len = strlen (da_file_name);
+  filename_string = build_string (da_file_name_len + 1, da_file_name);
   TREE_TYPE (filename_string) = build_array_type
     (char_type_node, build_index_type
-     (build_int_cst (NULL_TREE, filename_len)));
+     (build_int_cst (NULL_TREE, da_file_name_len)));
   value = tree_cons (field, build1 (ADDR_EXPR, string_type, filename_string),
 		     value);
 
@@ -962,10 +978,27 @@ void
 coverage_init (const char *filename)
 {
   int len = strlen (filename);
+  /* + 1 for extra '/', in case prefix doesn't end with /.  */
+  int prefix_len;
+ 
+  if (profile_data_prefix == 0 && filename[0] != '/')
+    profile_data_prefix = getpwd ();
+
+  prefix_len = (profile_data_prefix) ? strlen (profile_data_prefix) + 1 : 0;
 
   /* Name of da file.  */
-  da_file_name = XNEWVEC (char, len + strlen (GCOV_DATA_SUFFIX) + 1);
-  strcpy (da_file_name, filename);
+  da_file_name = XNEWVEC (char, len + strlen (GCOV_DATA_SUFFIX) 
+			  + prefix_len + 1);
+
+  if (profile_data_prefix)
+    {
+      strcpy (da_file_name, profile_data_prefix);
+      da_file_name[prefix_len - 1] = '/';
+      da_file_name[prefix_len] = 0;
+    }
+  else
+    da_file_name[0] = 0;
+  strcat (da_file_name, filename);
   strcat (da_file_name, GCOV_DATA_SUFFIX);
 
   /* Name of bbg file.  */
@@ -973,7 +1006,8 @@ coverage_init (const char *filename)
   strcpy (bbg_file_name, filename);
   strcat (bbg_file_name, GCOV_NOTE_SUFFIX);
 
-  read_counts_file ();
+  if (flag_profile_use)
+    read_counts_file ();
 }
 
 /* Performs file-level cleanup.  Close graph file, generate coverage

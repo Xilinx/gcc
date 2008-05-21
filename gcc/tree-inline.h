@@ -88,15 +88,20 @@ typedef struct copy_body_data
      by manipulating the CFG rather than a statement.  */
   bool transform_return_to_modify;
 
-  /* True if lang_hooks.decls.insert_block should be invoked when
-     duplicating BLOCK nodes.  */
-  bool transform_lang_insert_block;
-
   /* True if this statement will need to be regimplified.  */
   bool regimplify;
 
+  /* > 0 if we are remapping a type currently.  */
+  int remapping_type_depth;
+
+  /* A function to be called when duplicating BLOCK nodes.  */
+  void (*transform_lang_insert_block) (tree);
+
   /* Statements that might be possibly folded.  */
   struct pointer_set_t *statements_to_fold;
+
+  /* Entry basic block to currently copied body.  */
+  struct basic_block_def *entry_bb;
 } copy_body_data;
 
 /* Weights of constructions for estimate_num_insns.  */
@@ -111,9 +116,6 @@ typedef struct eni_weights_d
 
   /* Cost of "expensive" div and mod operations.  */
   unsigned div_mod_cost;
-
-  /* Cost of switch statement.  */
-  unsigned switch_cost;
 
   /* Cost for omp construct.  */
   unsigned omp_cost;
@@ -141,7 +143,8 @@ extern void insert_decl_map (copy_body_data *, tree, tree);
 unsigned int optimize_inline_calls (tree);
 bool tree_inlinable_function_p (tree);
 tree copy_tree_r (tree *, int *, void *);
-void clone_body (tree, tree, void *);
+tree copy_generic_body (copy_body_data *id);
+tree copy_decl_no_change (tree decl, copy_body_data *id);
 void save_body (tree, tree *, tree *);
 int estimate_move_cost (tree type);
 int estimate_num_insns (tree expr, eni_weights *);

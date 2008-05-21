@@ -422,7 +422,7 @@ enum save_direction
 	  handlers.  */						\
 	|| (interrupt_handler && call_used_regs[regno] 		\
 	   && !current_function_is_leaf)			\
-	||(current_function_calls_eh_return			\
+	||(crtl->calls_eh_return			\
 	   && (regno == GPR_R7 || regno == GPR_R8))		\
 	)							\
   )
@@ -436,7 +436,7 @@ enum save_direction
    subtracting the first slot's length from `STARTING_FRAME_OFFSET'.
    Otherwise, it is found by adding the length of the first slot to
    the value `STARTING_FRAME_OFFSET'.  */
-#define STARTING_FRAME_OFFSET current_function_outgoing_args_size
+#define STARTING_FRAME_OFFSET crtl->outgoing_args_size
 
 /* Offset from the argument pointer register to the first argument's address.
    On some machines it may depend on the data type of the function.
@@ -527,12 +527,12 @@ extern struct mt_frame_info current_frame_info;
 
 /* If defined, the maximum amount of space required for outgoing
    arguments will be computed and placed into the variable
-   `current_function_outgoing_args_size'.  */
+   `crtl->outgoing_args_size'.  */
 #define ACCUMULATE_OUTGOING_ARGS 1
 
 /* Define this if it is the responsibility of the caller to
    allocate the area reserved for arguments passed in registers.  */
-#define OUTGOING_REG_PARM_STACK_SPACE 1
+#define OUTGOING_REG_PARM_STACK_SPACE(FNTYPE) 1
 
 /* The number of register assigned to holding function arguments.  */
 #define MT_NUM_ARG_REGS        4
@@ -580,7 +580,7 @@ extern struct mt_frame_info current_frame_info;
 
 /* A C expression which can inhibit the returning of certain function
    values in registers, based on the type of value.  */
-#define RETURN_IN_MEMORY(TYPE) (int_size_in_bytes (TYPE) > UNITS_PER_WORD)
+#define TARGET_RETURN_IN_MEMORY mt_return_in_memory
 
 /* Define this macro to be 1 if all structure and union return values must be
    in memory.  */

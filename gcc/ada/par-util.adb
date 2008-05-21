@@ -23,9 +23,10 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
-with Csets;   use Csets;
-with Stylesw; use Stylesw;
-with Uintp;   use Uintp;
+with Csets;    use Csets;
+with Namet.Sp; use Namet.Sp;
+with Stylesw;  use Stylesw;
+with Uintp;    use Uintp;
 
 with GNAT.Spelling_Checker; use GNAT.Spelling_Checker;
 
@@ -75,7 +76,7 @@ package body Util is
          Token := T;
          return True;
 
-      --  A special check for an illegal abbrevation
+      --  A special check for an illegal abbreviation
 
       elsif Name_Len < S'Length
         and then Name_Len >= 4
@@ -108,7 +109,7 @@ package body Util is
         and then S = Name_Buffer (1 .. SL)
       then
          Scan_Ptr := Token_Ptr + S'Length;
-         Error_Msg_S ("missing space");
+         Error_Msg_S ("|missing space");
          Token := T;
          return True;
       end if;
@@ -174,18 +175,6 @@ package body Util is
          null;
       end if;
    end Check_Misspelling_Of;
-
-   --------------------------
-   -- Check_No_Right_Paren --
-   --------------------------
-
-   procedure Check_No_Right_Paren is
-   begin
-      if Token = Tok_Right_Paren then
-         Error_Msg_SC ("unexpected right parenthesis");
-         Scan; -- past unexpected right paren
-      end if;
-   end Check_No_Right_Paren;
 
    -----------------------------
    -- Check_Simple_Expression --
@@ -342,7 +331,7 @@ package body Util is
 
          <<Assume_Comma>>
             Restore_Scan_State (Scan_State);
-            Error_Msg_SC (""";"" illegal here, replaced by "",""");
+            Error_Msg_SC ("|"";"" should be "",""");
             Scan; -- past the semicolon
             return True;
 
@@ -390,38 +379,33 @@ package body Util is
 
    procedure Ignore (T : Token_Type) is
    begin
-      if Token = T then
+      while Token = T loop
          if T = Tok_Comma then
-            Error_Msg_SC ("unexpected "","" ignored");
+            Error_Msg_SC ("|extra "","" ignored");
 
          elsif T = Tok_Left_Paren then
-            Error_Msg_SC ("unexpected ""("" ignored");
+            Error_Msg_SC ("|extra ""("" ignored");
 
          elsif T = Tok_Right_Paren then
-            Error_Msg_SC ("unexpected "")"" ignored");
+            Error_Msg_SC ("|extra "")"" ignored");
 
          elsif T = Tok_Semicolon then
-            Error_Msg_SC ("unexpected "";"" ignored");
+            Error_Msg_SC ("|extra "";"" ignored");
+
+         elsif T = Tok_Colon then
+            Error_Msg_SC ("|extra "":"" ignored");
 
          else
             declare
                Tname : constant String := Token_Type'Image (Token);
-               Msg   : String := "unexpected keyword ????????????????????????";
-
             begin
-               --  Loop to copy characters of keyword name (ignoring Tok_)
-
-               for J in 5 .. Tname'Last loop
-                  Msg (J + 14) := Fold_Upper (Tname (J));
-               end loop;
-
-               Msg (Tname'Last + 15 .. Tname'Last + 22) := " ignored";
-               Error_Msg_SC (Msg (1 .. Tname'Last + 22));
+               Error_Msg_SC
+                 ("|extra " & Tname (5 .. Tname'Last) & "ignored");
             end;
          end if;
 
          Scan; -- Scan past ignored token
-      end if;
+      end loop;
    end Ignore;
 
    ----------------------------
@@ -437,7 +421,6 @@ package body Util is
          declare
             Ident_Casing : constant Casing_Type :=
                              Identifier_Casing (Current_Source_File);
-
             Key_Casing   : constant Casing_Type :=
                              Keyword_Casing (Current_Source_File);
 
@@ -587,6 +570,21 @@ package body Util is
    end Merge_Identifier;
 
    -------------------
+   -- Next_Token_Is --
+   -------------------
+
+   function Next_Token_Is (Tok : Token_Type) return Boolean is
+      Scan_State : Saved_Scan_State;
+      Result     : Boolean;
+   begin
+      Save_Scan_State (Scan_State);
+      Scan;
+      Result := (Token = Tok);
+      Restore_Scan_State (Scan_State);
+      return Result;
+   end Next_Token_Is;
+
+   -------------------
    -- No_Constraint --
    -------------------
 
@@ -677,27 +675,15 @@ package body Util is
 
       --  Check for possible misspelling
 
-      Get_Name_String (Token_Name);
+      Error_Msg_Name_1 := First_Attribute_Name;
+      while Error_Msg_Name_1 <= Last_Attribute_Name loop
+         if Is_Bad_Spelling_Of (Token_Name, Error_Msg_Name_1) then
+            Error_Msg_N ("\possible misspelling of %", Token_Node);
+            exit;
+         end if;
 
-      declare
-         AN : constant String := Name_Buffer (1 .. Name_Len);
-
-      begin
-         Error_Msg_Name_1 := First_Attribute_Name;
-         while Error_Msg_Name_1 <= Last_Attribute_Name loop
-            Get_Name_String (Error_Msg_Name_1);
-
-            if Is_Bad_Spelling_Of
-                 (AN, Name_Buffer (1 .. Name_Len))
-            then
-               Error_Msg_N
-                 ("\possible misspelling of %", Token_Node);
-               exit;
-            end if;
-
-            Error_Msg_Name_1 := Error_Msg_Name_1 + 1;
-         end loop;
-      end;
+         Error_Msg_Name_1 := Error_Msg_Name_1 + 1;
+      end loop;
    end Signal_Bad_Attribute;
 
    -----------------------------

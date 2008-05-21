@@ -67,6 +67,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "alloc-pool.h"
 #include "df.h"
 #include "cfgloop.h"
+#include "tree-flow.h"
 
 /* The obstack on which the flow graph components are allocated.  */
 
@@ -80,17 +81,21 @@ static void free_edge (edge);
 /* Called once at initialization time.  */
 
 void
-init_flow (void)
+init_flow (struct function *the_fun)
 {
-  if (!cfun->cfg)
-    cfun->cfg = GGC_CNEW (struct control_flow_graph);
-  n_edges = 0;
-  ENTRY_BLOCK_PTR = GGC_CNEW (struct basic_block_def);
-  ENTRY_BLOCK_PTR->index = ENTRY_BLOCK;
-  EXIT_BLOCK_PTR = GGC_CNEW (struct basic_block_def);
-  EXIT_BLOCK_PTR->index = EXIT_BLOCK;
-  ENTRY_BLOCK_PTR->next_bb = EXIT_BLOCK_PTR;
-  EXIT_BLOCK_PTR->prev_bb = ENTRY_BLOCK_PTR;
+  if (!the_fun->cfg)
+    the_fun->cfg = GGC_CNEW (struct control_flow_graph);
+  n_edges_for_function (the_fun) = 0;
+  ENTRY_BLOCK_PTR_FOR_FUNCTION (the_fun)
+    = GGC_CNEW (struct basic_block_def);
+  ENTRY_BLOCK_PTR_FOR_FUNCTION (the_fun)->index = ENTRY_BLOCK;
+  EXIT_BLOCK_PTR_FOR_FUNCTION (the_fun)
+    = GGC_CNEW (struct basic_block_def);
+  EXIT_BLOCK_PTR_FOR_FUNCTION (the_fun)->index = EXIT_BLOCK;
+  ENTRY_BLOCK_PTR_FOR_FUNCTION (the_fun)->next_bb 
+    = EXIT_BLOCK_PTR_FOR_FUNCTION (the_fun);
+  EXIT_BLOCK_PTR_FOR_FUNCTION (the_fun)->prev_bb 
+    = ENTRY_BLOCK_PTR_FOR_FUNCTION (the_fun);
 }
 
 /* Helper function for remove_edge and clear_edges.  Frees edge structure
@@ -359,6 +364,9 @@ remove_edge_raw (edge e)
   disconnect_src (e);
   disconnect_dest (e);
 
+  /* This is probably not needed, but it doesn't hurt.  */
+  redirect_edge_var_map_clear (e);
+
   free_edge (e);
 }
 
@@ -395,6 +403,7 @@ redirect_edge_succ_nodup (edge e, basic_block new_succ)
 	s->probability = REG_BR_PROB_BASE;
       s->count += e->count;
       remove_edge (e);
+      redirect_edge_var_map_dup (s, e);
       e = s;
     }
   else
@@ -613,6 +622,8 @@ dump_reg_info (FILE *file)
 	fprintf (file, "; crosses 1 call");
       else if (REG_N_CALLS_CROSSED (i))
 	fprintf (file, "; crosses %d calls", REG_N_CALLS_CROSSED (i));
+      if (REG_FREQ_CALLS_CROSSED (i))
+	fprintf (file, "; crosses call with %d frequency", REG_FREQ_CALLS_CROSSED (i));
       if (regno_reg_rtx[i] != NULL
 	  && PSEUDO_REGNO_BYTES (i) != UNITS_PER_WORD)
 	fprintf (file, "; %d bytes", PSEUDO_REGNO_BYTES (i));

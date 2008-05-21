@@ -1,3 +1,43 @@
+2008-04-03  Tom Tromey  <tromey@redhat.com>
+
+	* Make-lang.in (obj-c++_OBJS): New variable.
+
+2008-03-27  Tom Tromey  <tromey@redhat.com>
+
+	* Make-lang.in: Revert automatic dependency patch.
+
+2008-03-25  Tom Tromey  <tromey@redhat.com>
+
+	* Make-lang.in (obj-c++_OBJS): Rename from objcp_OBJS.
+	(objcp/objcp-act.o): Restore target.
+
+2008-03-25  Tom Tromey  <tromey@redhat.com>
+
+	* Make-lang.in (objcp_OBJS): New variable.
+	(cc1objplus-checksum.o, objcp/objcp-lang.o, objcp/objcp-decl.o,
+	objcp/objcp-act.o): Remove.
+
+2008-03-07  Paolo Bonzini  <bonzini@gnu.org>
+
+	Revert:
+
+	2008-02-07  Andreas Tobler  <andreast-list@fgznet.ch>
+	            Douglas Gregor  <doug.gregor@gmail.com>
+ 
+	PR bootstrap/35115
+	* objcp-decl.c (objcp_comptypes): Call cp_comptypes, not comptypes.
+
+2008-02-07  Andreas Tobler  <andreast-list@fgznet.ch>
+            Douglas Gregor  <doug.gregor@gmail.com>
+ 
+	PR bootstrap/35115
+	* objcp-decl.c (objcp_comptypes): Call cp_comptypes, not comptypes.
+
+2008-02-06  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	PR other/35107
+	* Make-lang.in (cc1objplus-dummy, cc1objplus): Add $(GMPLIBS).
+
 2007-08-02  Nick Clifton  <nickc@redhat.com>
 
 	* Make-lang.in: Change copyright header to refer to version 3 of

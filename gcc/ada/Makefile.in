@@ -1,5 +1,5 @@
 # Makefile for GNU Ada Compiler (GNAT).
-#   Copyright (C) 1994-2007 Free Software Foundation, Inc.
+#   Copyright (C) 1994-2008 Free Software Foundation, Inc.
 
 #This file is part of GCC.
 
@@ -55,10 +55,6 @@
 #      BISON:   Gnu bison works.
 #      FLEX:    Gnu flex works.
 #      Other miscellaneous tools for obscure targets.
-
-# Tell GNU make 3.79 not to run this directory in parallel.
-# Not all of the required dependencies are present.
-.NOTPARALLEL:
 
 # Suppress smart makes who think they know how to automake Yacc files
 .y.c:
@@ -400,6 +396,7 @@ ifeq ($(strip $(filter-out m68k% wrs vx%,$(targ))),)
   s-osprim.adb<s-osprim-vxworks.adb \
   s-parame.ads<s-parame-vxworks.ads \
   s-parame.adb<s-parame-vxworks.adb \
+  s-stchop.ads<s-stchop-limit.ads \
   s-stchop.adb<s-stchop-vxworks.adb \
   s-taprop.adb<s-taprop-vxworks.adb \
   s-taspri.ads<s-taspri-vxworks.ads \
@@ -413,10 +410,13 @@ ifeq ($(strip $(filter-out m68k% wrs vx%,$(targ))),)
   g-sttsne.ads<g-sttsne-locking.ads \
   system.ads<system-vxworks-m68k.ads
 
-  TOOLS_TARGET_PAIRS=mlib-tgt-specific.adb<mlib-tgt-vxworks.adb
+  TOOLS_TARGET_PAIRS=mlib-tgt-specific.adb<mlib-tgt-specific-vxworks.adb
 
   EXTRA_GNATRTL_NONTASKING_OBJS=i-vxwork.o i-vxwoio.o
   EXTRA_GNATRTL_TASKING_OBJS=s-vxwork.o
+
+  EXTRA_LIBGNAT_SRCS+=vx_stack_info.c
+  EXTRA_LIBGNAT_OBJS+=vx_stack_info.o
 
   ifeq ($(strip $(filter-out yes,$(TRACE))),)
     LIBGNAT_TARGET_PAIRS += \
@@ -438,6 +438,7 @@ ifeq ($(strip $(filter-out powerpc% wrs vxworks,$(targ))),)
   s-osprim.adb<s-osprim-vxworks.adb \
   s-parame.ads<s-parame-vxworks.ads \
   s-parame.adb<s-parame-vxworks.adb \
+  s-stchop.ads<s-stchop-limit.ads \
   s-stchop.adb<s-stchop-vxworks.adb \
   s-taprop.adb<s-taprop-vxworks.adb \
   s-taspri.ads<s-taspri-vxworks.ads \
@@ -449,7 +450,7 @@ ifeq ($(strip $(filter-out powerpc% wrs vxworks,$(targ))),)
   g-sttsne.adb<g-sttsne-vxworks.adb \
   g-sttsne.ads<g-sttsne-locking.ads
 
-  TOOLS_TARGET_PAIRS=mlib-tgt-specific.adb<mlib-tgt-vxworks.adb
+  TOOLS_TARGET_PAIRS=mlib-tgt-specific.adb<mlib-tgt-specific-vxworks.adb
 
   ifeq ($(strip $(filter-out yes,$(TRACE))),)
     LIBGNAT_TARGET_PAIRS += \
@@ -488,6 +489,9 @@ ifeq ($(strip $(filter-out powerpc% wrs vxworks,$(targ))),)
   endif
 
   EXTRA_GNATRTL_TASKING_OBJS=s-vxwork.o
+
+  EXTRA_LIBGNAT_SRCS+=vx_stack_info.c
+  EXTRA_LIBGNAT_OBJS+=vx_stack_info.o
 endif
 
 # vxworksae / vxworks 653
@@ -520,7 +524,7 @@ ifeq ($(strip $(filter-out powerpc% wrs vxworksae,$(targ))),)
   g-sttsne.ads<g-sttsne-locking.ads \
   system.ads<system-vxworks-ppc-vthread.ads
 
-  TOOLS_TARGET_PAIRS=mlib-tgt-specific.adb<mlib-tgt-vxworks.adb
+  TOOLS_TARGET_PAIRS=mlib-tgt-specific.adb<mlib-tgt-specific-vxworks.adb
 
   EXTRA_GNATRTL_NONTASKING_OBJS=i-vxwork.o i-vxwoio.o s-vxwexc.o
   EXTRA_GNATRTL_TASKING_OBJS=s-vxwork.o
@@ -555,6 +559,7 @@ ifeq ($(strip $(filter-out sparc% wrs vx%,$(targ))),)
   s-osprim.adb<s-osprim-vxworks.adb \
   s-parame.ads<s-parame-vxworks.ads \
   s-parame.adb<s-parame-vxworks.adb \
+  s-stchop.ads<s-stchop-limit.ads \
   s-stchop.adb<s-stchop-vxworks.adb \
   s-taprop.adb<s-taprop-vxworks.adb \
   s-taspri.ads<s-taspri-vxworks.ads \
@@ -568,10 +573,13 @@ ifeq ($(strip $(filter-out sparc% wrs vx%,$(targ))),)
   g-sttsne.ads<g-sttsne-locking.ads \
   system.ads<system-vxworks-sparcv9.ads   \
 
-  TOOLS_TARGET_PAIRS=mlib-tgt-specific.adb<mlib-tgt-vxworks.adb
+  TOOLS_TARGET_PAIRS=mlib-tgt-specific.adb<mlib-tgt-specific-vxworks.adb
 
   EXTRA_GNATRTL_NONTASKING_OBJS=i-vxwork.o i-vxwoio.o
   EXTRA_GNATRTL_TASKING_OBJS=s-vxwork.o
+
+  EXTRA_LIBGNAT_SRCS+=vx_stack_info.c
+  EXTRA_LIBGNAT_OBJS+=vx_stack_info.o
 endif
 
 ifeq ($(strip $(filter-out %86 wrs vxworks,$(targ))),)
@@ -586,6 +594,7 @@ ifeq ($(strip $(filter-out %86 wrs vxworks,$(targ))),)
   s-osprim.adb<s-osprim-vxworks.adb \
   s-parame.ads<s-parame-vxworks.ads \
   s-parame.adb<s-parame-vxworks.adb \
+  s-stchop.ads<s-stchop-limit.ads \
   s-stchop.adb<s-stchop-vxworks.adb \
   s-taprop.adb<s-taprop-vxworks.adb \
   s-taspri.ads<s-taspri-vxworks.ads \
@@ -598,7 +607,7 @@ ifeq ($(strip $(filter-out %86 wrs vxworks,$(targ))),)
   g-sttsne.adb<g-sttsne-vxworks.adb \
   g-sttsne.ads<g-sttsne-locking.ads
 
-  TOOLS_TARGET_PAIRS=mlib-tgt-specific.adb<mlib-tgt-vxworks.adb
+  TOOLS_TARGET_PAIRS=mlib-tgt-specific.adb<mlib-tgt-specific-vxworks.adb
 
   ifeq ($(strip $(filter-out yes,$(TRACE))),)
     LIBGNAT_TARGET_PAIRS += \
@@ -637,6 +646,9 @@ ifeq ($(strip $(filter-out %86 wrs vxworks,$(targ))),)
   endif
 
   EXTRA_GNATRTL_TASKING_OBJS=s-vxwork.o
+
+  EXTRA_LIBGNAT_SRCS+=vx_stack_info.c
+  EXTRA_LIBGNAT_OBJS+=vx_stack_info.o
 endif
 
 ifeq ($(strip $(filter-out arm% coff wrs vx%,$(targ))),)
@@ -652,6 +664,7 @@ ifeq ($(strip $(filter-out arm% coff wrs vx%,$(targ))),)
   s-osprim.adb<s-osprim-vxworks.adb \
   s-parame.ads<s-parame-vxworks.ads \
   s-parame.adb<s-parame-vxworks.adb \
+  s-stchop.ads<s-stchop-limit.ads \
   s-stchop.adb<s-stchop-vxworks.adb \
   s-taprop.adb<s-taprop-vxworks.adb \
   s-taspri.ads<s-taspri-vxworks.ads \
@@ -665,10 +678,13 @@ ifeq ($(strip $(filter-out arm% coff wrs vx%,$(targ))),)
   g-sttsne.ads<g-sttsne-locking.ads \
   system.ads<system-vxworks-arm.ads
 
-  TOOLS_TARGET_PAIRS=mlib-tgt-specific.adb<mlib-tgt-vxworks.adb
+  TOOLS_TARGET_PAIRS=mlib-tgt-specific.adb<mlib-tgt-specific-vxworks.adb
 
   EXTRA_GNATRTL_NONTASKING_OBJS=i-vxwork.o i-vxwoio.o
   EXTRA_GNATRTL_TASKING_OBJS=s-vxwork.o
+
+  EXTRA_LIBGNAT_SRCS+=vx_stack_info.c
+  EXTRA_LIBGNAT_OBJS+=vx_stack_info.o
 endif
 
 ifeq ($(strip $(filter-out mips% wrs vx%,$(targ))),)
@@ -684,6 +700,7 @@ ifeq ($(strip $(filter-out mips% wrs vx%,$(targ))),)
   s-osprim.adb<s-osprim-vxworks.adb \
   s-parame.ads<s-parame-vxworks.ads \
   s-parame.adb<s-parame-vxworks.adb \
+  s-stchop.ads<s-stchop-limit.ads \
   s-stchop.adb<s-stchop-vxworks.adb \
   s-taprop.adb<s-taprop-vxworks.adb \
   s-taspri.ads<s-taspri-vxworks.ads \
@@ -697,10 +714,13 @@ ifeq ($(strip $(filter-out mips% wrs vx%,$(targ))),)
   g-sttsne.ads<g-sttsne-locking.ads \
   system.ads<system-vxworks-mips.ads
 
-  TOOLS_TARGET_PAIRS=mlib-tgt-specific.adb<mlib-tgt-vxworks.adb
+  TOOLS_TARGET_PAIRS=mlib-tgt-specific.adb<mlib-tgt-specific-vxworks.adb
 
   EXTRA_GNATRTL_NONTASKING_OBJS=i-vxwork.o i-vxwoio.o
   EXTRA_GNATRTL_TASKING_OBJS=s-vxwork.o
+
+  EXTRA_LIBGNAT_SRCS+=vx_stack_info.c
+  EXTRA_LIBGNAT_OBJS+=vx_stack_info.o
 endif
 
 ifeq ($(strip $(filter-out sparc% sun solaris%,$(targ))),)
@@ -742,7 +762,7 @@ ifeq ($(strip $(filter-out sparc% sun solaris%,$(targ))),)
     LIBGNAT_TARGET_PAIRS = $(LIBGNAT_TARGET_PAIRS_64)
   endif
   
-  TOOLS_TARGET_PAIRS=mlib-tgt-specific.adb<mlib-tgt-solaris.adb
+  TOOLS_TARGET_PAIRS=mlib-tgt-specific.adb<mlib-tgt-specific-solaris.adb
 
   EH_MECHANISM=-gcc
   THREADSLIB = -lposix4 -lthread
@@ -796,7 +816,7 @@ ifeq ($(strip $(filter-out %86 solaris2%,$(arch) $(osys))),)
   g-soliop.ads<g-soliop-solaris.ads \
   system.ads<system-solaris-x86.ads
 
-  TOOLS_TARGET_PAIRS=mlib-tgt-specific.adb<mlib-tgt-solaris.adb
+  TOOLS_TARGET_PAIRS=mlib-tgt-specific.adb<mlib-tgt-specific-solaris.adb
 
   EH_MECHANISM=-gcc
   THREADSLIB = -lposix4 -lthread
@@ -819,6 +839,7 @@ ifeq ($(strip $(filter-out %86 linux%,$(arch) $(osys))),)
   s-osprim.adb<s-osprim-posix.adb \
   s-taspri.ads<s-taspri-posix.ads \
   s-tpopsp.adb<s-tpopsp-posix-foreign.adb \
+  g-sercom.adb<g-sercom-linux.adb \
   system.ads<system-linux-x86.ads
 
   ifeq ($(strip $(filter-out marte,$(THREAD_KIND))),)
@@ -841,16 +862,20 @@ ifeq ($(strip $(filter-out %86 linux%,$(arch) $(osys))),)
   else
     LIBGNAT_TARGET_PAIRS += \
     g-soccon.ads<g-soccon-linux-x86.ads \
+    s-linux.ads<s-linux.ads \
     s-osinte.adb<s-osinte-posix.adb \
     s-osinte.ads<s-osinte-linux.ads \
+    s-tasinf.ads<s-tasinf-linux.ads \
+    s-tasinf.adb<s-tasinf-linux.adb \
     s-taprop.adb<s-taprop-linux.adb
 
     EH_MECHANISM=-gcc
     THREADSLIB = -lpthread
+    EXTRA_GNATRTL_TASKING_OBJS=s-linux.o
   endif
 
   TOOLS_TARGET_PAIRS =  \
-    mlib-tgt-specific.adb<mlib-tgt-linux.adb \
+    mlib-tgt-specific.adb<mlib-tgt-specific-linux.adb \
     indepsw.adb<indepsw-gnu.adb
 
   GNATLIB_SHARED = gnatlib-shared-dual
@@ -871,12 +896,14 @@ ifeq ($(strip $(filter-out %86 kfreebsd%,$(arch) $(osys))),)
   s-osinte.ads<s-osinte-kfreebsd-gnu.ads \
   s-osprim.adb<s-osprim-posix.adb \
   s-taprop.adb<s-taprop-linux.adb \
+  s-tasinf.ads<s-tasinf-linux.ads \
+  s-tasinf.adb<s-tasinf-linux.adb \
   s-taspri.ads<s-taspri-posix.ads \
   s-tpopsp.adb<s-tpopsp-posix-foreign.adb \
   system.ads<system-freebsd-x86.ads
 
   TOOLS_TARGET_PAIRS =  \
-    mlib-tgt.adb<mlib-tgt-linux.adb \
+    mlib-tgt-specific.adb<mlib-tgt-linux.adb \
     indepsw.adb<indepsw-gnu.adb
 
   EH_MECHANISM=-gcc
@@ -905,7 +932,7 @@ ifeq ($(strip $(filter-out %86 freebsd%,$(arch) $(osys))),)
   system.ads<system-freebsd-x86.ads
 
   TOOLS_TARGET_PAIRS = \
-  mlib-tgt-specific.adb<mlib-tgt-linux.adb
+  mlib-tgt-specific.adb<mlib-tgt-specific-linux.adb
   GNATLIB_SHARED = gnatlib-shared-dual
 
   EH_MECHANISM=-gcc
@@ -921,11 +948,14 @@ ifeq ($(strip $(filter-out s390% linux%,$(arch) $(osys))),)
     a-intnam.ads<a-intnam-linux.ads \
     s-inmaop.adb<s-inmaop-posix.adb \
     s-intman.adb<s-intman-posix.adb \
+    s-linux.ads<s-linux.ads \
     s-osinte.adb<s-osinte-posix.adb \
     s-osinte.ads<s-osinte-linux.ads \
     s-osprim.adb<s-osprim-posix.adb \
     s-taprop.adb<s-taprop-linux.adb \
-    s-taspri.ads<s-taspri-posix.ads \
+    s-tasinf.ads<s-tasinf-linux.ads \
+    s-tasinf.adb<s-tasinf-linux.adb \
+    s-taspri.ads<s-taspri-posix-noaltstack.ads \
     s-tpopsp.adb<s-tpopsp-posix-foreign.adb \
     system.ads<system-linux-s390x.ads
   else
@@ -933,18 +963,22 @@ ifeq ($(strip $(filter-out s390% linux%,$(arch) $(osys))),)
     a-intnam.ads<a-intnam-linux.ads \
     s-inmaop.adb<s-inmaop-posix.adb \
     s-intman.adb<s-intman-posix.adb \
+    s-linux.ads<s-linux.ads \
     s-osinte.adb<s-osinte-posix.adb \
     s-osinte.ads<s-osinte-linux.ads \
     s-osprim.adb<s-osprim-posix.adb \
     s-taprop.adb<s-taprop-linux.adb \
-    s-taspri.ads<s-taspri-posix.ads \
+    s-tasinf.ads<s-tasinf-linux.ads \
+    s-tasinf.adb<s-tasinf-linux.adb \
+    s-taspri.ads<s-taspri-posix-noaltstack.ads \
     s-tpopsp.adb<s-tpopsp-posix-foreign.adb \
     system.ads<system-linux-s390.ads
   endif
 
   TOOLS_TARGET_PAIRS =  \
-    mlib-tgt-specific.adb<mlib-tgt-linux.adb
+    mlib-tgt-specific.adb<mlib-tgt-specific-linux.adb
 
+  EXTRA_GNATRTL_TASKING_OBJS=s-linux.o
   EH_MECHANISM=-gcc
   THREADSLIB = -lpthread
   GNATLIB_SHARED = gnatlib-shared-dual
@@ -985,7 +1019,7 @@ ifeq ($(strip $(filter-out mips sgi irix%,$(targ))),)
   endif
 
   EH_MECHANISM=-gcc
-  TOOLS_TARGET_PAIRS = mlib-tgt-specific.adb<mlib-tgt-irix.adb
+  TOOLS_TARGET_PAIRS = mlib-tgt-specific.adb<mlib-tgt-specific-irix.adb
   TGT_LIB = -lexc
   MISCLIB = -lexc
   PREFIX_OBJS = $(PREFIX_REAL_OBJS)
@@ -1030,7 +1064,7 @@ ifeq ($(strip $(filter-out hppa% hp hpux11%,$(targ))),)
   g-soccon.ads<g-soccon-hpux.ads \
   system.ads<system-hpux.ads
 
-  TOOLS_TARGET_PAIRS = mlib-tgt-specific.adb<mlib-tgt-hpux.adb
+  TOOLS_TARGET_PAIRS = mlib-tgt-specific.adb<mlib-tgt-specific-hpux.adb
   EH_MECHANISM=-gcc
   TGT_LIB = /usr/lib/libcl.a
   THREADSLIB = -lpthread
@@ -1060,7 +1094,7 @@ ifeq ($(strip $(filter-out ibm aix%,$(manu) $(osys))),)
   PREFIX_OBJS=$(PREFIX_REAL_OBJS)
 
   TOOLS_TARGET_PAIRS = \
-  mlib-tgt-specific.adb<mlib-tgt-aix.adb \
+  mlib-tgt-specific.adb<mlib-tgt-specific-aix.adb \
   indepsw.adb<indepsw-aix.adb
 
   GMEM_LIB = gmemlib
@@ -1068,7 +1102,7 @@ endif
 
 ifeq ($(strip $(filter-out lynxos,$(osys))),)
   TOOLS_TARGET_PAIRS = \
-  mlib-tgt-specific.adb<mlib-tgt-lynxos.adb \
+  mlib-tgt-specific.adb<mlib-tgt-specific-lynxos.adb \
   indepsw.adb<indepsw-gnu.adb
 
   ifeq ($(strip $(filter-out %86 lynxos,$(arch) $(osys))),)
@@ -1112,6 +1146,7 @@ endif
 
 ifeq ($(strip $(filter-out rtems%,$(osys))),)
   LIBGNAT_TARGET_PAIRS = \
+  system.ads<system-rtems.ads \
   a-intnam.ads<a-intnam-rtems.ads \
   s-inmaop.adb<s-inmaop-posix.adb \
   s-intman.adb<s-intman-posix.adb \
@@ -1121,9 +1156,9 @@ ifeq ($(strip $(filter-out rtems%,$(osys))),)
   s-parame.adb<s-parame-rtems.adb \
   s-taprop.adb<s-taprop-posix.adb \
   s-taspri.ads<s-taspri-posix.ads \
-  s-auxdec.ads<s-auxdec-empty.ads \
-  s-auxdec.adb<s-auxdec-empty.adb \
-  s-tpopsp.adb<s-tpopsp-rtems.adb
+  s-tpopsp.adb<s-tpopsp-rtems.adb \
+  g-soccon.ads<g-soccon-rtems.ads \
+  s-stchop.adb<s-stchop-rtems.adb
 endif
 
 ifeq ($(strip $(filter-out alpha% dec osf%,$(targ))),)
@@ -1143,7 +1178,7 @@ ifeq ($(strip $(filter-out alpha% dec osf%,$(targ))),)
   g-soccon.ads<g-soccon-tru64.ads \
   system.ads<system-tru64.ads
 
-  TOOLS_TARGET_PAIRS=mlib-tgt-specific.adb<mlib-tgt-tru64.adb
+  TOOLS_TARGET_PAIRS=mlib-tgt-specific.adb<mlib-tgt-specific-tru64.adb
 
   EH_MECHANISM=-gcc
   GMEM_LIB=gmemlib
@@ -1171,11 +1206,11 @@ ifeq ($(strip $(filter-out ia64 hp vms% openvms%,$(targ))),)
   LIBGNAT_TARGET_PAIRS_AUX1 = \
   g-enblsp.adb<g-enblsp-vms-ia64.adb \
   g-trasym.adb<g-trasym-vms-ia64.adb \
-  s-auxdec.ads<s-auxdec-vms_64.ads \
+  s-asthan.adb<s-asthan-vms-ia64.adb \
   s-osinte.adb<s-osinte-vms-ia64.adb \
   s-osinte.ads<s-osinte-vms-ia64.ads \
   s-vaflop.adb<s-vaflop-vms-ia64.adb \
-  system.ads<system-vms_64.ads
+  system.ads<system-vms-ia64.ads
 
   LIBGNAT_TARGET_PAIRS_AUX2 = \
   s-parame.ads<s-parame-vms-ia64.ads
@@ -1184,8 +1219,9 @@ ifeq ($(strip $(filter-out alpha64 dec vms% openvms% alphavms%,$(targ))),)
   LIBGNAT_TARGET_PAIRS_AUX1 = \
   g-enblsp.adb<g-enblsp-vms-alpha.adb \
   g-trasym.adb<g-trasym-vms-alpha.adb \
+  s-traent.adb<s-traent-vms.adb \
+  s-traent.ads<s-traent-vms.ads \
   s-asthan.adb<s-asthan-vms-alpha.adb \
-  s-auxdec.ads<s-auxdec-vms_64.ads \
   s-osinte.adb<s-osinte-vms.adb \
   s-osinte.ads<s-osinte-vms.ads \
   s-vaflop.adb<s-vaflop-vms-alpha.adb \
@@ -1222,10 +1258,15 @@ endif
   i-cpoint.ads<i-cpoint-vms_64.ads \
   i-cpoint.adb<i-cpoint-vms_64.adb \
   i-cstrea.adb<i-cstrea-vms.adb \
+  memtrack.adb<memtrack-vms_64.adb \
+  s-auxdec.ads<s-auxdec-vms_64.ads \
+  s-crtl.ads<s-crtl-vms_64.ads \
   s-inmaop.adb<s-inmaop-vms.adb \
   s-interr.adb<s-interr-vms.adb \
   s-intman.adb<s-intman-vms.adb \
   s-intman.ads<s-intman-vms.ads \
+  s-memory.adb<s-memory-vms_64.adb \
+  s-memory.ads<s-memory-vms_64.ads \
   s-osprim.adb<s-osprim-vms.adb \
   s-osprim.ads<s-osprim-vms.ads \
   s-taprop.adb<s-taprop-vms.adb \
@@ -1233,25 +1274,25 @@ endif
   s-tpopsp.adb<s-tpopsp-posix-foreign.adb \
   s-tpopde.adb<s-tpopde-vms.adb \
   s-tpopde.ads<s-tpopde-vms.ads \
-  s-traent.adb<s-traent-vms.adb \
-  s-traent.ads<s-traent-vms.ads \
   $(LIBGNAT_TARGET_PAIRS_AUX1) \
   $(LIBGNAT_TARGET_PAIRS_AUX2)
 
 ifeq ($(strip $(filter-out ia64 hp vms% openvms%,$(targ))),)
   TOOLS_TARGET_PAIRS= \
-  mlib-tgt-specific.adb<mlib-tgt-vms-ia64.adb \
+  mlib-tgt-specific.adb<mlib-tgt-specific-vms-ia64.adb \
   symbols.adb<symbols-vms.adb \
   symbols-processing.adb<symbols-processing-vms-ia64.adb
 else
   TOOLS_TARGET_PAIRS= \
-  mlib-tgt-specific.adb<mlib-tgt-vms-alpha.adb \
+  mlib-tgt-specific.adb<mlib-tgt-specific-vms-alpha.adb \
   symbols.adb<symbols-vms.adb \
   symbols-processing.adb<symbols-processing-vms-alpha.adb
 endif
 
+adamsg.o: adamsg.msg
+	-$(DECC) --cc=message adamsg.msg -o adamsg.o
 
-  EXTRA_GNATMAKE_OBJS = mlib-tgt-vms.o
+  EXTRA_GNATMAKE_OBJS = mlib-tgt-vms_common.o
 
   GMEM_LIB = gmemlib
   EH_MECHANISM=-gcc
@@ -1260,6 +1301,8 @@ ifeq ($(strip $(filter-out alpha64 dec vms% openvms% alphavms%,$(targ))),)
   EXTRA_LIBGNAT_SRCS=vmshandler.asm
   EXTRA_LIBGNAT_OBJS=vmshandler.o
 endif
+  EXTRA_LIBGNAT_SRCS+=adamsg.msg
+  EXTRA_LIBGNAT_OBJS+=adamsg.o
   EXTRA_GNATRTL_TASKING_OBJS=s-tpopde.o
   EXTRA_GNATTOOLS = \
      ../../gnatlbr$(exeext)  \
@@ -1267,7 +1310,7 @@ endif
      ../../vms_help$(exeext) \
      ../../gnat.hlp
   # This command transforms (YYYYMMDD) into YY,MMDD
-  GSMATCH_VERSION := $(shell grep "^ *Gnat_Static_Version_String" $(fsrcpfx)gnatvsn.ads | sed -e 's/.*(\(.*\)).*/\1/' -e 's/\(..\)\(..\)\(....\)/\2,\3/')
+  GSMATCH_VERSION := $(shell grep "^ *Gnat_Static_Version_String" $(fsrcpfx)gnatvsn.ads | sed -e 's/.*(\(.*\)).*/\1/' -e 's/\(..\)\(..\)\(....\).*/\2,\3/')
   TOOLS_LIBS_LO := --for-linker=sys\\$$\$$library:trace.exe
   LIBRARY_VERSION := $(subst .,_,$(LIB_VERSION))
 endif
@@ -1276,19 +1319,11 @@ ifeq ($(strip $(filter-out cygwin32% mingw32% pe,$(osys))),)
   LIBGNAT_TARGET_PAIRS = \
   a-dirval.adb<a-dirval-mingw.adb \
   a-excpol.adb<a-excpol-abort.adb \
-  a-exetim.adb<a-exetim-mingw.adb \
-  a-exetim.ads<a-exetim-mingw.ads \
-  a-intnam.ads<a-intnam-mingw.ads \
   a-numaux.adb<a-numaux-x86.adb \
   a-numaux.ads<a-numaux-x86.ads \
   s-gloloc.adb<s-gloloc-mingw.adb \
   s-inmaop.adb<s-inmaop-dummy.adb \
-  s-interr.adb<s-interr-sigaction.adb \
-  s-intman.adb<s-intman-mingw.adb \
   s-memory.adb<s-memory-mingw.adb \
-  s-osinte.ads<s-osinte-mingw.ads \
-  s-osprim.adb<s-osprim-mingw.adb \
-  s-taprop.adb<s-taprop-mingw.adb \
   s-taspri.ads<s-taspri-mingw.ads \
   s-tasinf.adb<s-tasinf-mingw.adb \
   s-tasinf.ads<s-tasinf-mingw.ads \
@@ -1297,24 +1332,103 @@ ifeq ($(strip $(filter-out cygwin32% mingw32% pe,$(osys))),)
   g-socthi.adb<g-socthi-mingw.adb \
   g-stsifd.adb<g-stsifd-sockets.adb \
   g-soccon.ads<g-soccon-mingw.ads \
-  g-soliop.ads<g-soliop-mingw.ads \
-  system.ads<system-mingw.ads
+  g-soliop.ads<g-soliop-mingw.ads
+
+  ifeq ($(strip $(filter-out rtx_w32 rtx_rtss,$(THREAD_KIND))),)
+    LIBGNAT_TARGET_PAIRS += \
+    s-intman.adb<s-intman-dummy.adb \
+    s-osinte.ads<s-osinte-rtx.ads \
+    s-osprim.adb<s-osprim-rtx.adb \
+    s-taprop.adb<s-taprop-rtx.adb \
+    system.ads<system-rtx.ads
+
+    EXTRA_GNATRTL_NONTASKING_OBJS = s-win32.o
+
+    MISCLIB = -lwsock32 -lrtapi_w32
+    THREADSLIB=-lrtapi_w32
+  else
+    LIBGNAT_TARGET_PAIRS += \
+    a-exetim.adb<a-exetim-mingw.adb \
+    a-exetim.ads<a-exetim-mingw.ads \
+    a-intnam.ads<a-intnam-mingw.ads \
+    g-sercom.adb<g-sercom-mingw.adb \
+    s-interr.adb<s-interr-sigaction.adb \
+    s-intman.adb<s-intman-mingw.adb \
+    s-osinte.ads<s-osinte-mingw.ads \
+    s-osprim.adb<s-osprim-mingw.adb \
+    s-taprop.adb<s-taprop-mingw.adb \
+    system.ads<system-mingw.ads
+
+    EXTRA_GNATRTL_NONTASKING_OBJS = s-win32.o s-win32.o g-regist.o
+    EXTRA_GNATRTL_TASKING_OBJS = a-exetim.o
+
+    MISCLIB = -lwsock32
+
+    # ??? This will be replaced by gnatlib-shared-dual-win32 when GNAT
+    # auto-import support for array/record will be done.
+    GNATLIB_SHARED = gnatlib-shared-win32
+  endif
 
   TOOLS_TARGET_PAIRS= \
-  mlib-tgt-specific.adb<mlib-tgt-mingw.adb \
+  mlib-tgt-specific.adb<mlib-tgt-specific-mingw.adb \
   indepsw.adb<indepsw-mingw.adb
 
-  MISCLIB = -lwsock32
+  EH_MECHANISM=-gcc
   GMEM_LIB = gmemlib
   PREFIX_OBJS = $(PREFIX_REAL_OBJS)
   EXTRA_GNATTOOLS = ../../gnatdll$(exeext)
   EXTRA_GNATMAKE_OBJS = mdll.o mdll-utl.o mdll-fil.o
-  EXTRA_GNATRTL_NONTASKING_OBJS = g-regist.o
-  EXTRA_GNATRTL_TASKING_OBJS = a-exetim.o
   soext = .dll
-# ??? This will be replaced by gnatlib-shared-dual-win32 when GNAT auto-import
-# support for array/record will be done.
-  GNATLIB_SHARED = gnatlib-shared-win32
+  LIBRARY_VERSION := $(LIB_VERSION)
+endif
+
+ifeq ($(strip $(filter-out mips linux%,$(arch) $(osys))),)
+  LIBGNAT_TARGET_PAIRS = \
+  a-intnam.ads<a-intnam-linux.ads \
+  g-soccon.ads<g-soccon-linux-mips.ads \
+  s-inmaop.adb<s-inmaop-posix.adb \
+  s-intman.adb<s-intman-posix.adb \
+  s-linux.ads<s-linux.ads \
+  s-osinte.adb<s-osinte-posix.adb \
+  s-osinte.ads<s-osinte-linux.ads \
+  s-osprim.adb<s-osprim-posix.adb \
+  s-taprop.adb<s-taprop-linux.adb \
+  s-tasinf.ads<s-tasinf-linux.ads \
+  s-tasinf.adb<s-tasinf-linux.adb \
+  s-taspri.ads<s-taspri-posix.ads \
+  s-tpopsp.adb<s-tpopsp-posix-foreign.adb \
+  system.ads<system-linux-mips.ads
+
+  EH_MECHANISM=-gcc
+  THREADSLIB = -lpthread
+  GNATLIB_SHARED = gnatlib-shared-dual
+  GMEM_LIB = gmemlib
+  PREFIX_OBJS = $(PREFIX_REAL_OBJS)
+  LIBRARY_VERSION := $(LIB_VERSION)
+endif
+
+ifeq ($(strip $(filter-out mipsel linux%,$(arch) $(osys))),)
+  LIBGNAT_TARGET_PAIRS = \
+  a-intnam.ads<a-intnam-linux.ads \
+  g-soccon.ads<g-soccon-linux-mips.ads \
+  s-inmaop.adb<s-inmaop-posix.adb \
+  s-intman.adb<s-intman-posix.adb \
+  s-linux.ads<s-linux.ads \
+  s-osinte.adb<s-osinte-posix.adb \
+  s-osinte.ads<s-osinte-linux.ads \
+  s-osprim.adb<s-osprim-posix.adb \
+  s-taprop.adb<s-taprop-linux.adb \
+  s-tasinf.ads<s-tasinf-linux.ads \
+  s-tasinf.adb<s-tasinf-linux.adb \
+  s-taspri.ads<s-taspri-posix.ads \
+  s-tpopsp.adb<s-tpopsp-posix-foreign.adb \
+  system.ads<system-linux-mipsel.ads
+
+  EH_MECHANISM=-gcc
+  THREADSLIB = -lpthread
+  GNATLIB_SHARED = gnatlib-shared-dual
+  GMEM_LIB = gmemlib
+  PREFIX_OBJS = $(PREFIX_REAL_OBJS)
   LIBRARY_VERSION := $(LIB_VERSION)
 endif
 
@@ -1324,18 +1438,23 @@ ifeq ($(strip $(filter-out powerpc% linux%,$(arch) $(osys))),)
   g-soccon.ads<g-soccon-linux-ppc.ads \
   s-inmaop.adb<s-inmaop-posix.adb \
   s-intman.adb<s-intman-posix.adb \
+  s-linux.ads<s-linux.ads \
   s-osinte.adb<s-osinte-posix.adb \
   s-osinte.ads<s-osinte-linux.ads \
   s-osprim.adb<s-osprim-posix.adb \
   s-taprop.adb<s-taprop-linux.adb \
-  s-taspri.ads<s-taspri-posix.ads \
+  s-tasinf.ads<s-tasinf-linux.ads \
+  s-tasinf.adb<s-tasinf-linux.adb \
+  s-taspri.ads<s-taspri-posix-noaltstack.ads \
   s-tpopsp.adb<s-tpopsp-posix-foreign.adb \
+  g-sercom.adb<g-sercom-linux.adb \
   system.ads<system-linux-ppc.ads
 
   TOOLS_TARGET_PAIRS =  \
-    mlib-tgt-specific.adb<mlib-tgt-linux.adb \
+    mlib-tgt-specific.adb<mlib-tgt-specific-linux.adb \
     indepsw.adb<indepsw-gnu.adb
 
+  EXTRA_GNATRTL_TASKING_OBJS=s-linux.o
   EH_MECHANISM=-gcc
   THREADSLIB = -lpthread
   GNATLIB_SHARED = gnatlib-shared-dual
@@ -1349,18 +1468,22 @@ ifeq ($(strip $(filter-out sparc% linux%,$(arch) $(osys))),)
   a-intnam.ads<a-intnam-linux.ads \
   s-inmaop.adb<s-inmaop-posix.adb \
   s-intman.adb<s-intman-posix.adb \
+  s-linux.ads<s-linux.ads \
   s-osinte.adb<s-osinte-posix.adb \
   s-osinte.ads<s-osinte-linux.ads \
   s-osprim.adb<s-osprim-posix.adb \
   s-taprop.adb<s-taprop-linux.adb \
-  s-taspri.ads<s-taspri-posix.ads \
+  s-tasinf.ads<s-tasinf-linux.ads \
+  s-tasinf.adb<s-tasinf-linux.adb \
+  s-taspri.ads<s-taspri-posix-noaltstack.ads \
   s-tpopsp.adb<s-tpopsp-posix-foreign.adb \
   system.ads<system-linux-sparc.ads
 
   TOOLS_TARGET_PAIRS =  \
-    mlib-tgt-specific.adb<mlib-tgt-linux.adb \
+    mlib-tgt-specific.adb<mlib-tgt-specific-linux.adb \
     indepsw.adb<indepsw-gnu.adb
 
+  EXTRA_GNATRTL_TASKING_OBJS=s-linux.o
   EH_MECHANISM=-gcc
   THREADSLIB = -lpthread
   GNATLIB_SHARED = gnatlib-shared-dual
@@ -1374,18 +1497,22 @@ ifeq ($(strip $(filter-out hppa% linux%,$(arch) $(osys))),)
   a-intnam.ads<a-intnam-linux.ads \
   s-inmaop.adb<s-inmaop-posix.adb \
   s-intman.adb<s-intman-posix.adb \
+  s-linux.ads<s-linux-hppa.ads \
   s-osinte.adb<s-osinte-posix.adb \
-  s-osinte.ads<s-osinte-linux-hppa.ads \
+  s-osinte.ads<s-osinte-linux.ads \
   s-osprim.adb<s-osprim-posix.adb \
   s-taprop.adb<s-taprop-linux.adb \
-  s-taspri.ads<s-taspri-posix.ads \
+  s-tasinf.ads<s-tasinf-linux.ads \
+  s-tasinf.adb<s-tasinf-linux.adb \
+  s-taspri.ads<s-taspri-posix-noaltstack.ads \
   s-tpopsp.adb<s-tpopsp-posix-foreign.adb \
   system.ads<system-linux-hppa.ads
 
   TOOLS_TARGET_PAIRS =  \
-    mlib-tgt-specific.adb<mlib-tgt-linux.adb \
+    mlib-tgt-specific.adb<mlib-tgt-specific-linux.adb \
     indepsw.adb<indepsw-gnu.adb
 
+  EXTRA_GNATRTL_TASKING_OBJS=s-linux.o
   EH_MECHANISM=-gcc
   THREADSLIB = -lpthread
   GNATLIB_SHARED = gnatlib-shared-dual
@@ -1399,18 +1526,22 @@ ifeq ($(strip $(filter-out sh4% linux%,$(arch) $(osys))),)
   a-intnam.ads<a-intnam-linux.ads \
   s-inmaop.adb<s-inmaop-posix.adb \
   s-intman.adb<s-intman-posix.adb \
+  s-linux.ads<s-linux.ads \
   s-osinte.adb<s-osinte-posix.adb \
   s-osinte.ads<s-osinte-linux.ads \
   s-osprim.adb<s-osprim-posix.adb \
   s-taprop.adb<s-taprop-linux.adb \
-  s-taspri.ads<s-taspri-posix.ads \
+  s-tasinf.ads<s-tasinf-linux.ads \
+  s-tasinf.adb<s-tasinf-linux.adb \
+  s-taspri.ads<s-taspri-posix-noaltstack.ads \
   s-tpopsp.adb<s-tpopsp-posix-foreign.adb \
   system.ads<system-linux-sh4.ads
 
   TOOLS_TARGET_PAIRS =  \
-    mlib-tgt.adb<mlib-tgt-linux.adb \
+    mlib-tgt-specific.adb<mlib-tgt-linux.adb \
     indepsw.adb<indepsw-linux.adb
 
+  EXTRA_GNATRTL_TASKING_OBJS=s-linux.o
   EH_MECHANISM=-gcc
   MISCLIB=
   THREADSLIB = -lpthread
@@ -1427,18 +1558,23 @@ ifeq ($(strip $(filter-out %ia64 linux%,$(arch) $(osys))),)
   g-soccon.ads<g-soccon-linux-64.ads \
   s-inmaop.adb<s-inmaop-posix.adb \
   s-intman.adb<s-intman-posix.adb \
+  s-linux.ads<s-linux.ads \
   s-osinte.ads<s-osinte-linux.ads \
   s-osinte.adb<s-osinte-posix.adb \
   s-osprim.adb<s-osprim-posix.adb \
   s-taprop.adb<s-taprop-linux.adb \
+  s-tasinf.ads<s-tasinf-linux.ads \
+  s-tasinf.adb<s-tasinf-linux.adb \
   s-tpopsp.adb<s-tpopsp-posix-foreign.adb \
-  s-taspri.ads<s-taspri-posix.ads \
+  s-taspri.ads<s-taspri-posix-noaltstack.ads \
+  g-sercom.adb<g-sercom-linux.adb \
   system.ads<system-linux-ia64.ads
 
   TOOLS_TARGET_PAIRS =  \
-    mlib-tgt-specific.adb<mlib-tgt-linux.adb \
+    mlib-tgt-specific.adb<mlib-tgt-specific-linux.adb \
     indepsw.adb<indepsw-gnu.adb
 
+  EXTRA_GNATRTL_TASKING_OBJS=s-linux.o
   EH_MECHANISM=-gcc
   MISCLIB=
   THREADSLIB=-lpthread
@@ -1453,18 +1589,22 @@ ifeq ($(strip $(filter-out alpha% linux%,$(arch) $(osys))),)
   a-intnam.ads<a-intnam-linux.ads \
   s-inmaop.adb<s-inmaop-posix.adb \
   s-intman.adb<s-intman-posix.adb \
-  s-osinte.ads<s-osinte-linux-alpha.ads \
+  s-linux.ads<s-linux-alpha.ads \
+  s-osinte.ads<s-osinte-linux.ads \
   s-osinte.adb<s-osinte-posix.adb \
   s-osprim.adb<s-osprim-posix.adb \
   s-taprop.adb<s-taprop-linux.adb \
+  s-tasinf.ads<s-tasinf-linux.ads \
+  s-tasinf.adb<s-tasinf-linux.adb \
   s-tpopsp.adb<s-tpopsp-posix-foreign.adb \
-  s-taspri.ads<s-taspri-posix.ads \
+  s-taspri.ads<s-taspri-posix-noaltstack.ads \
   system.ads<system-linux-alpha.ads
 
   TOOLS_TARGET_PAIRS =  \
-    mlib-tgt-specific.adb<mlib-tgt-linux.adb \
+    mlib-tgt-specific.adb<mlib-tgt-specific-linux.adb \
     indepsw.adb<indepsw-gnu.adb
 
+  EXTRA_GNATRTL_TASKING_OBJS=s-linux.o
   EH_MECHANISM=-gcc
   MISCLIB=
   THREADSLIB=-lpthread
@@ -1481,18 +1621,23 @@ ifeq ($(strip $(filter-out %x86_64 linux%,$(arch) $(osys))),)
   g-soccon.ads<g-soccon-linux-64.ads \
   s-inmaop.adb<s-inmaop-posix.adb \
   s-intman.adb<s-intman-posix.adb \
+  s-linux.ads<s-linux.ads \
   s-osinte.ads<s-osinte-linux.ads \
   s-osinte.adb<s-osinte-posix.adb \
   s-osprim.adb<s-osprim-posix.adb \
   s-taprop.adb<s-taprop-linux.adb \
+  s-tasinf.ads<s-tasinf-linux.ads \
+  s-tasinf.adb<s-tasinf-linux.adb \
   s-tpopsp.adb<s-tpopsp-posix-foreign.adb \
   s-taspri.ads<s-taspri-posix.ads \
+  g-sercom.adb<g-sercom-linux.adb \
   system.ads<system-linux-x86_64.ads
 
   TOOLS_TARGET_PAIRS =  \
-    mlib-tgt-specific.adb<mlib-tgt-linux.adb \
+    mlib-tgt-specific.adb<mlib-tgt-specific-linux.adb \
     indepsw.adb<indepsw-gnu.adb
 
+  EXTRA_GNATRTL_TASKING_OBJS=s-linux.o
   EH_MECHANISM=-gcc
   THREADSLIB=-lpthread
   GNATLIB_SHARED=gnatlib-shared-dual
@@ -1535,7 +1680,7 @@ ifeq ($(strip $(filter-out darwin%,$(osys))),)
   endif
 
   TOOLS_TARGET_PAIRS =  \
-    mlib-tgt-specific.adb<mlib-tgt-darwin.adb
+    mlib-tgt-specific.adb<mlib-tgt-specific-darwin.adb
 
   EH_MECHANISM=-gcc
   GNATLIB_SHARED = gnatlib-shared-darwin
@@ -1631,56 +1776,29 @@ ifeq ($(TOOLSCASE),cross)
   vpath %.h   ../
 endif
 
-
-../../gnatchop$(exeext): 
-	$(GNATMAKE) -c $(ADA_INCLUDES) gnatchop --GCC="$(CC) $(ALL_ADAFLAGS)"
-	$(GNATBIND) $(ADA_INCLUDES) $(GNATBIND_FLAGS) gnatchop 
-	$(GNATLINK) -v gnatchop -o $@ --GCC="$(GCC_LINK)" $(TOOLS_LIBS)
-
-../../gnat$(exeext): 
-	$(GNATMAKE) -c $(ADA_INCLUDES) gnatcmd --GCC="$(CC) $(ALL_ADAFLAGS)"
-	$(GNATBIND) $(ADA_INCLUDES) $(GNATBIND_FLAGS) gnatcmd 
-	$(GNATLINK) -v gnatcmd -o $@ --GCC="$(GCC_LINK)" $(TOOLS_LIBS)
-
-../../gnatkr$(exeext): 
-	$(GNATMAKE) -c $(ADA_INCLUDES) gnatkr --GCC="$(CC) $(ALL_ADAFLAGS)"
-	$(GNATBIND) $(ADA_INCLUDES) $(GNATBIND_FLAGS) gnatkr 
-	$(GNATLINK) -v gnatkr -o $@ --GCC="$(GCC_LINK)" $(TOOLS_LIBS)
-
-../../gnatls$(exeext): 
-	$(GNATMAKE) -c $(ADA_INCLUDES) gnatls --GCC="$(CC) $(ALL_ADAFLAGS)"
-	$(GNATBIND) $(ADA_INCLUDES) $(GNATBIND_FLAGS) gnatls 
-	$(GNATLINK) -v gnatls -o $@ --GCC="$(GCC_LINK)" $(TOOLS_LIBS)
-
-../../gnatname$(exeext): 
-	$(GNATMAKE) -c $(ADA_INCLUDES) gnatname --GCC="$(CC) $(ALL_ADAFLAGS)"
-	$(GNATBIND) $(ADA_INCLUDES) $(GNATBIND_FLAGS) gnatname 
-	$(GNATLINK) -v gnatname -o $@ --GCC="$(GCC_LINK)" $(TOOLS_LIBS)
-
-../../gprmake$(exeext): 
-	$(GNATMAKE) -c $(ADA_INCLUDES) gprmake --GCC="$(CC) $(ALL_ADAFLAGS)"
-	$(GNATBIND) $(ADA_INCLUDES) $(GNATBIND_FLAGS) gprmake
-	$(GNATLINK) -v gprmake -o $@ --GCC="$(GCC_LINK)" $(TOOLS_LIBS)
-
-../../gnatprep$(exeext): 
-	$(GNATMAKE) -c $(ADA_INCLUDES) gnatprep --GCC="$(CC) $(ALL_ADAFLAGS)"
-	$(GNATBIND) $(ADA_INCLUDES) $(GNATBIND_FLAGS) gnatprep 
-	$(GNATLINK) -v gnatprep -o $@ --GCC="$(GCC_LINK)" $(TOOLS_LIBS)
-
-../../gnatxref$(exeext): 
-	$(GNATMAKE) -c $(ADA_INCLUDES) gnatxref --GCC="$(CC) $(ALL_ADAFLAGS)"
-	$(GNATBIND) $(ADA_INCLUDES) $(GNATBIND_FLAGS) gnatxref 
-	$(GNATLINK) -v gnatxref -o $@ --GCC="$(GCC_LINK)" $(TOOLS_LIBS)
-
-../../gnatfind$(exeext): 
-	$(GNATMAKE) -c $(ADA_INCLUDES) gnatfind --GCC="$(CC) $(ALL_ADAFLAGS)"
-	$(GNATBIND) $(ADA_INCLUDES) $(GNATBIND_FLAGS) gnatfind 
-	$(GNATLINK) -v gnatfind -o $@ --GCC="$(GCC_LINK)" $(TOOLS_LIBS)
-
-../../gnatclean$(exeext): 
-	$(GNATMAKE) -c $(ADA_INCLUDES) gnatclean --GCC="$(CC) $(ALL_ADAFLAGS)"
-	$(GNATBIND) $(ADA_INCLUDES) $(GNATBIND_FLAGS) gnatclean
-	$(GNATLINK) -v gnatclean -o $@ --GCC="$(GCC_LINK)" $(TOOLS_LIBS)
+common-tools:
+	$(GNATMAKE) -c -b $(ADA_INCLUDES) \
+	  --GNATBIND="$(GNATBIND)" --GCC="$(CC) $(ALL_ADAFLAGS)" \
+	  gnatchop gnatcmd gnatkr gnatls gnatprep gnatxref gnatfind gnatname \
+	  gnatclean -bargs $(ADA_INCLUDES) $(GNATBIND_FLAGS)
+	$(GNATLINK) -v gnatcmd -o ../../gnat$(exext) \
+		--GCC="$(GCC_LINK)" $(TOOLS_LIBS)
+	$(GNATLINK) -v gnatchop -o ../../gnatchop$(exext) \
+		--GCC="$(GCC_LINK)" $(TOOLS_LIBS)
+	$(GNATLINK) -v gnatkr -o ../../gnatkr$(exext) \
+		--GCC="$(GCC_LINK)" $(TOOLS_LIBS)
+	$(GNATLINK) -v gnatls -o ../../gnatls$(exext) \
+		--GCC="$(GCC_LINK)" $(TOOLS_LIBS)
+	$(GNATLINK) -v gnatprep -o ../../gnatprep$(exext) \
+		--GCC="$(GCC_LINK)" $(TOOLS_LIBS)
+	$(GNATLINK) -v gnatxref -o ../../gnatxref$(exext) \
+		--GCC="$(GCC_LINK)" $(TOOLS_LIBS)
+	$(GNATLINK) -v gnatfind -o ../../gnatfind$(exext) \
+		--GCC="$(GCC_LINK)" $(TOOLS_LIBS)
+	$(GNATLINK) -v gnatname -o ../../gnatname$(exext) \
+		--GCC="$(GCC_LINK)" $(TOOLS_LIBS)
+	$(GNATLINK) -v gnatclean -o ../../gnatclean$(exext) \
+		--GCC="$(GCC_LINK)" $(TOOLS_LIBS)
 
 ../../gnatsym$(exeext): 
 	$(GNATMAKE) -c $(ADA_INCLUDES) gnatsym --GCC="$(CC) $(ALL_ADAFLAGS)"
@@ -1689,7 +1807,7 @@ endif
 
 ../../gnatdll$(exeext): 
 	$(GNATMAKE) -c $(ADA_INCLUDES) gnatdll --GCC="$(CC) $(ALL_ADAFLAGS)"
-	$(GNATBIND) $(ADA_INCLUDES) $(GNATBIND_FLAGS) $(GNATBIND_FLAGS) gnatdll
+	$(GNATBIND) $(ADA_INCLUDES) $(GNATBIND_FLAGS) gnatdll
 	$(GNATLINK) -v gnatdll -o $@ --GCC="$(GCC_LINK)" $(TOOLS_LIBS)
 
 ../../vxaddr2line$(exeext): targext.o
@@ -1725,12 +1843,6 @@ gnatlink-re:  link.o targext.o
 ../../gnatlink$(exeext): $(P) b_gnatl.o link.o targext.o $(GNATLINK_OBJS)
 	$(GCC_LINK) $(ALL_CFLAGS) $(LDFLAGS) -o $@ b_gnatl.o $(GNATLINK_OBJS) \
 		    $(TOOLS_LIBS)
-
-../../gnatbl$(exeext): gnatbl.o
-	$(GCC_LINK) -o $@ $(ALL_CFLAGS) $(LDFLAGS) gnatbl.o $(TOOLS_LIBS)
-
-gnatbl.o: gnatbl.c adaint.h
-	$(CC) $(ALL_CFLAGS) $(INCLUDES) -c $< $(OUTPUT_OPTION)
 
 ../stamp-gnatlib:
 	@if [ ! -f stamp-gnatlib ] ; \
@@ -1978,20 +2090,18 @@ gnatlib-shared-vms:
 	     THREAD_KIND="$(THREAD_KIND)" \
              gnatlib
 	$(RM) rts/libgna*$(soext)
-	cd rts && echo "case_sensitive=yes" > SYMVEC_$$$$.opt && \
-	objdump --syms $(LIBGNAT_OBJS) $(GNATRTL_NONTASKING_OBJS) | \
-	$(SHLIB_SYMVEC) >> SYMVEC_$$$$.opt && \
-	echo "case_sensitive=NO" >> SYMVEC_$$$$.opt && \
+	cd rts && \
+	../../gnatsym -s SYMVEC_$$$$.opt \
+	$(LIBGNAT_OBJS) $(GNATRTL_NONTASKING_OBJS) && \
 	../../xgcc -g -B../../ -shared -shared-libgcc \
 	   -o libgnat$(hyphen)$(LIBRARY_VERSION)$(soext) libgnat.a \
 	   sys\$$library:trace.exe \
 	   --for-linker=/noinform \
 	   --for-linker=SYMVEC_$$$$.opt \
 	   --for-linker=gsmatch=equal,$(GSMATCH_VERSION)
-	cd rts && echo "case_sensitive=yes" > SYMVEC_$$$$.opt && \
-	objdump --syms $(GNATRTL_TASKING_OBJS) | \
-	$(SHLIB_SYMVEC) >> SYMVEC_$$$$.opt && \
-	echo "case_sensitive=NO" >> SYMVEC_$$$$.opt && \
+	cd rts && \
+	../../gnatsym -s SYMVEC_$$$$.opt \
+	$(GNATRTL_TASKING_OBJS) && \
 	../../xgcc -g -B../../ -shared -shared-libgcc \
 	   -o libgnarl$(hyphen)$(LIBRARY_VERSION)$(soext) \
 	   libgnarl.a libgnat$(hyphen)$(LIBRARY_VERSION)$(soext) \
@@ -2127,6 +2237,7 @@ socket.o  : socket.c gsocket.h
 sysdep.o  : sysdep.c
 raise-gcc.o : raise-gcc.c raise.h
 raise.o   : raise.c raise.h
+vx_stack_info.o : vx_stack_info.c
 
 gen-soccon: gen-soccon.c gsocket.h
 	$(CC) $(ALL_CFLAGS) $(ADA_CFLAGS) $(ALL_CPPFLAGS) $(INCLUDES) \

@@ -1,6 +1,6 @@
 /* Expand the basic unary and binary arithmetic operations, for GNU compiler.
    Copyright (C) 1987, 1988, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -334,13 +334,13 @@ widen_operand (rtx op, enum machine_mode mode, enum machine_mode oldmode,
   return result;
 }
 
-/* Return the optab used for computing the operation given by
-   the tree code, CODE.  This function is not always usable (for
-   example, it cannot give complete results for multiplication
-   or division) but probably ought to be relied on more widely
-   throughout the expander.  */
+/* Return the optab used for computing the operation given by the tree code,
+   CODE and the tree EXP.  This function is not always usable (for example, it
+   cannot give complete results for multiplication or division) but probably
+   ought to be relied on more widely throughout the expander.  */
 optab
-optab_for_tree_code (enum tree_code code, const_tree type)
+optab_for_tree_code (enum tree_code code, const_tree type,
+		     enum optab_subtype subtype)
 {
   bool trapv;
   switch (code)
@@ -374,17 +374,45 @@ optab_for_tree_code (enum tree_code code, const_tree type)
       return TYPE_UNSIGNED (type) ? udiv_optab : sdiv_optab;
 
     case LSHIFT_EXPR:
+      if (VECTOR_MODE_P (TYPE_MODE (type)))
+	{
+	  if (subtype == optab_vector)
+	    return TYPE_SATURATING (type) ? NULL : vashl_optab;
+
+	  gcc_assert (subtype == optab_scalar);
+	}
       if (TYPE_SATURATING(type))
 	return TYPE_UNSIGNED(type) ? usashl_optab : ssashl_optab;
       return ashl_optab;
 
     case RSHIFT_EXPR:
+      if (VECTOR_MODE_P (TYPE_MODE (type)))
+	{
+	  if (subtype == optab_vector)
+	    return TYPE_UNSIGNED (type) ? vlshr_optab : vashr_optab;
+
+	  gcc_assert (subtype == optab_scalar);
+	}
       return TYPE_UNSIGNED (type) ? lshr_optab : ashr_optab;
 
     case LROTATE_EXPR:
+      if (VECTOR_MODE_P (TYPE_MODE (type)))
+	{
+	  if (subtype == optab_vector)
+	    return vrotl_optab;
+
+	  gcc_assert (subtype == optab_scalar);
+	}
       return rotl_optab;
 
     case RROTATE_EXPR:
+      if (VECTOR_MODE_P (TYPE_MODE (type)))
+	{
+	  if (subtype == optab_vector)
+	    return vrotr_optab;
+
+	  gcc_assert (subtype == optab_scalar);
+	}
       return rotr_optab;
 
     case MAX_EXPR:
@@ -540,7 +568,7 @@ expand_widen_pattern_expr (tree exp, rtx op0, rtx op1, rtx wide_op, rtx target,
   oprnd0 = TREE_OPERAND (exp, 0);
   tmode0 = TYPE_MODE (TREE_TYPE (oprnd0));
   widen_pattern_optab =
-        optab_for_tree_code (TREE_CODE (exp), TREE_TYPE (oprnd0));
+    optab_for_tree_code (TREE_CODE (exp), TREE_TYPE (oprnd0), optab_default);
   icode = (int) optab_handler (widen_pattern_optab, tmode0)->insn_code;
   gcc_assert (icode != CODE_FOR_nothing);
   xmode0 = insn_data[icode].operand[1].mode;
@@ -1151,8 +1179,7 @@ expand_doubleword_shift (enum machine_mode op1_mode, optab binoptab,
 
    If we want to multiply two two-word values and have normal and widening
    multiplies of single-word values, we can do this with three smaller
-   multiplications.  Note that we do not make a REG_NO_CONFLICT block here
-   because we are not operating on one word at a time.
+   multiplications.
 
    The multiplication proceeds as follows:
 			         _______________________
@@ -1750,7 +1777,7 @@ expand_binop (enum machine_mode mode, optab binoptab, rtx op0, rtx op1,
 	  else
 	    equiv_value = 0;
 
-	  emit_no_conflict_block (insns, target, op0, op1, equiv_value);
+	  emit_insn (insns);
 	  return target;
 	}
     }
@@ -1785,7 +1812,7 @@ expand_binop (enum machine_mode mode, optab binoptab, rtx op0, rtx op1,
 	  || (shift_mask == BITS_PER_WORD - 1
 	      && double_shift_mask == BITS_PER_WORD * 2 - 1))
 	{
-	  rtx insns, equiv_value;
+	  rtx insns;
 	  rtx into_target, outof_target;
 	  rtx into_input, outof_input;
 	  int left_shift, outof_word;
@@ -1819,8 +1846,7 @@ expand_binop (enum machine_mode mode, optab binoptab, rtx op0, rtx op1,
 	      insns = get_insns ();
 	      end_sequence ();
 
-	      equiv_value = gen_rtx_fmt_ee (binoptab->code, mode, op0, op1);
-	      emit_no_conflict_block (insns, target, op0, op1, equiv_value);
+	      emit_insn (insns);
 	      return target;
 	    }
 	  end_sequence ();
@@ -1935,11 +1961,6 @@ expand_binop (enum machine_mode mode, optab binoptab, rtx op0, rtx op1,
 
       if (inter != 0)
 	{
-	  /* One may be tempted to wrap the insns in a REG_NO_CONFLICT
-	     block to help the register allocator a bit.  But a multi-word
-	     rotate will need all the input bits when setting the output
-	     bits, so there clearly is a conflict between the input and
-	     output registers.  So we can't use a no-conflict block here.  */
 	  emit_insn (insns);
 	  return target;
 	}
@@ -3012,8 +3033,7 @@ expand_absneg_bit (enum rtx_code code, enum machine_mode mode,
       insns = get_insns ();
       end_sequence ();
 
-      temp = gen_rtx_fmt_e (code, mode, copy_rtx (op0));
-      emit_no_conflict_block (insns, target, op0, NULL_RTX, temp);
+      emit_insn (insns);
     }
   else
     {
@@ -3213,9 +3233,7 @@ expand_unop (enum machine_mode mode, optab unoptab, rtx op0, rtx target,
       insns = get_insns ();
       end_sequence ();
 
-      emit_no_conflict_block (insns, target, op0, NULL_RTX,
-			      gen_rtx_fmt_e (unoptab->code, mode,
-					     copy_rtx (op0)));
+      emit_insn (insns);
       return target;
     }
 
@@ -3273,6 +3291,7 @@ expand_unop (enum machine_mode mode, optab unoptab, rtx op0, rtx target,
     {
       rtx insns;
       rtx value;
+      rtx eq_value;
       enum machine_mode outmode = mode;
 
       /* All of these functions return small values.  Thus we choose to
@@ -3292,8 +3311,12 @@ expand_unop (enum machine_mode mode, optab unoptab, rtx op0, rtx target,
       end_sequence ();
 
       target = gen_reg_rtx (outmode);
-      emit_libcall_block (insns, target, value,
-			  gen_rtx_fmt_e (unoptab->code, outmode, op0));
+      eq_value = gen_rtx_fmt_e (unoptab->code, mode, op0);
+      if (GET_MODE_SIZE (outmode) < GET_MODE_SIZE (mode))
+	eq_value = simplify_gen_unary (TRUNCATE, outmode, eq_value, mode);
+      else if (GET_MODE_SIZE (outmode) > GET_MODE_SIZE (mode))
+	eq_value = simplify_gen_unary (ZERO_EXTEND, outmode, eq_value, mode);
+      emit_libcall_block (insns, target, value, eq_value);
 
       return target;
     }
@@ -3660,7 +3683,7 @@ expand_copysign_bit (enum machine_mode mode, rtx op0, rtx op1, rtx target,
       insns = get_insns ();
       end_sequence ();
 
-      emit_no_conflict_block (insns, target, op0, op1, NULL_RTX);
+      emit_insn (insns);
     }
   else
     {
@@ -3772,10 +3795,9 @@ struct no_conflict_data
   bool must_stay;
 };
 
-/* Called via note_stores by emit_no_conflict_block and emit_libcall_block.
-   Set P->must_stay if the currently examined clobber / store has to stay
-   in the list of insns that constitute the actual no_conflict block /
-   libcall block.  */
+/* Called via note_stores by emit_libcall_block.  Set P->must_stay if
+   the currently examined clobber / store has to stay in the list of
+   insns that constitute the actual libcall block.  */
 static void
 no_conflict_move_test (rtx dest, const_rtx set, void *p0)
 {
@@ -3839,131 +3861,6 @@ maybe_encapsulate_block (rtx first, rtx last, rtx equiv)
     }
 }
 
-/* Emit code to perform a series of operations on a multi-word quantity, one
-   word at a time.
-
-   Such a block is preceded by a CLOBBER of the output, consists of multiple
-   insns, each setting one word of the output, and followed by a SET copying
-   the output to itself.
-
-   Each of the insns setting words of the output receives a REG_NO_CONFLICT
-   note indicating that it doesn't conflict with the (also multi-word)
-   inputs.  The entire block is surrounded by REG_LIBCALL and REG_RETVAL
-   notes.
-
-   INSNS is a block of code generated to perform the operation, not including
-   the CLOBBER and final copy.  All insns that compute intermediate values
-   are first emitted, followed by the block as described above.
-
-   TARGET, OP0, and OP1 are the output and inputs of the operations,
-   respectively.  OP1 may be zero for a unary operation.
-
-   EQUIV, if nonzero, is an expression to be placed into a REG_EQUAL note
-   on the last insn.
-
-   If TARGET is not a register, INSNS is simply emitted with no special
-   processing.  Likewise if anything in INSNS is not an INSN or if
-   there is a libcall block inside INSNS.
-
-   The final insn emitted is returned.  */
-
-rtx
-emit_no_conflict_block (rtx insns, rtx target, rtx op0, rtx op1, rtx equiv)
-{
-  rtx prev, next, first, last, insn;
-
-  if (!REG_P (target) || reload_in_progress)
-    return emit_insn (insns);
-  else
-    for (insn = insns; insn; insn = NEXT_INSN (insn))
-      if (!NONJUMP_INSN_P (insn)
-	  || find_reg_note (insn, REG_LIBCALL, NULL_RTX))
-	return emit_insn (insns);
-
-  /* First emit all insns that do not store into words of the output and remove
-     these from the list.  */
-  for (insn = insns; insn; insn = next)
-    {
-      rtx note;
-      struct no_conflict_data data;
-
-      next = NEXT_INSN (insn);
-
-      /* Some ports (cris) create a libcall regions at their own.  We must
-	 avoid any potential nesting of LIBCALLs.  */
-      if ((note = find_reg_note (insn, REG_LIBCALL, NULL)) != NULL)
-	remove_note (insn, note);
-      if ((note = find_reg_note (insn, REG_RETVAL, NULL)) != NULL)
-	remove_note (insn, note);
-
-      data.target = target;
-      data.first = insns;
-      data.insn = insn;
-      data.must_stay = 0;
-      note_stores (PATTERN (insn), no_conflict_move_test, &data);
-      if (! data.must_stay)
-	{
-	  if (PREV_INSN (insn))
-	    NEXT_INSN (PREV_INSN (insn)) = next;
-	  else
-	    insns = next;
-
-	  if (next)
-	    PREV_INSN (next) = PREV_INSN (insn);
-
-	  add_insn (insn);
-	}
-    }
-
-  prev = get_last_insn ();
-
-  /* Now write the CLOBBER of the output, followed by the setting of each
-     of the words, followed by the final copy.  */
-  if (target != op0 && target != op1)
-    emit_insn (gen_rtx_CLOBBER (VOIDmode, target));
-
-  for (insn = insns; insn; insn = next)
-    {
-      next = NEXT_INSN (insn);
-      add_insn (insn);
-
-      if (op1 && REG_P (op1))
-	REG_NOTES (insn) = gen_rtx_EXPR_LIST (REG_NO_CONFLICT, op1,
-					      REG_NOTES (insn));
-
-      if (op0 && REG_P (op0))
-	REG_NOTES (insn) = gen_rtx_EXPR_LIST (REG_NO_CONFLICT, op0,
-					      REG_NOTES (insn));
-    }
-
-  if (optab_handler (mov_optab, GET_MODE (target))->insn_code
-      != CODE_FOR_nothing)
-    {
-      last = emit_move_insn (target, target);
-      if (equiv)
-	set_unique_reg_note (last, REG_EQUAL, equiv);
-    }
-  else
-    {
-      last = get_last_insn ();
-
-      /* Remove any existing REG_EQUAL note from "last", or else it will
-	 be mistaken for a note referring to the full contents of the
-	 alleged libcall value when found together with the REG_RETVAL
-	 note added below.  An existing note can come from an insn
-	 expansion at "last".  */
-      remove_note (last, find_reg_note (last, REG_EQUAL, NULL_RTX));
-    }
-
-  if (prev == 0)
-    first = get_insns ();
-  else
-    first = NEXT_INSN (prev);
-
-  maybe_encapsulate_block (first, last, equiv);
-
-  return last;
-}
 
 /* Emit code to make a call to a constant function or a library call.
 
@@ -4258,7 +4155,7 @@ prepare_cmp_insn (rtx *px, rtx *py, enum rtx_code *pcomparison, rtx size,
       size = convert_to_mode (TYPE_MODE (length_type), size,
 			      TYPE_UNSIGNED (length_type));
 
-      result = emit_library_call_value (libfunc, 0, LCT_PURE_MAKE_BLOCK,
+      result = emit_library_call_value (libfunc, 0, LCT_PURE,
 					result_mode, 3,
 					XEXP (x, 0), Pmode,
 					XEXP (y, 0), Pmode,
@@ -4300,7 +4197,7 @@ prepare_cmp_insn (rtx *px, rtx *py, enum rtx_code *pcomparison, rtx size,
 	    libfunc = ulibfunc;
 	}
 
-      result = emit_library_call_value (libfunc, NULL_RTX, LCT_CONST_MAKE_BLOCK,
+      result = emit_library_call_value (libfunc, NULL_RTX, LCT_CONST,
 					targetm.libgcc_cmp_return_mode (),
 					2, x, mode, y, mode);
 
@@ -5139,10 +5036,8 @@ expand_float (rtx to, rtx from, int unsignedp)
       }
 
   /* Unsigned integer, and no way to convert directly.  Convert as signed,
-     then unconditionally adjust the result.  For decimal float values we
-     do this only if we have already determined that a signed conversion
-     provides sufficient accuracy.  */
-  if (unsignedp && (can_do_signed || !DECIMAL_FLOAT_MODE_P (GET_MODE (to))))
+     then unconditionally adjust the result.  */
+  if (unsignedp && can_do_signed)
     {
       rtx label = gen_label_rtx ();
       rtx temp;
@@ -5267,7 +5162,8 @@ expand_float (rtx to, rtx from, int unsignedp)
       end_sequence ();
 
       emit_libcall_block (insns, target, value,
-			  gen_rtx_FLOAT (GET_MODE (to), from));
+			  gen_rtx_fmt_e (unsignedp ? UNSIGNED_FLOAT : FLOAT,
+					 GET_MODE (to), from));
     }
 
  done:

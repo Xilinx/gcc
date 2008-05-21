@@ -1,5 +1,5 @@
-@c Copyright (C) 1988, 1989, 1992, 1993, 1994, 1996, 1998, 1999, 2000,
-@c 2001, 2002, 2003, 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
+@c Copyright (C) 1988, 1989, 1992, 1993, 1994, 1996, 1998, 1999, 2000, 2001,
+@c 2002, 2003, 2004, 2005, 2006, 2007, 2008 Free Software Foundation, Inc.
 
 @c This is part of the GCC manual.
 @c For copying conditions, see the file gcc.texi.
@@ -369,6 +369,12 @@ goto *(&&foo + array[i]);
 This is more friendly to code living in shared libraries, as it reduces
 the number of dynamic relocations that are needed, and by consequence,
 allows the data to be read-only.
+
+The @code{&&foo} expressions for the same label might have different values
+if the containing function is inlined or cloned.  If a program relies on
+them being always the same, @code{__attribute__((__noinline__))} should
+be used to prevent inlining.  If @code{&&foo} is used
+in a static variable initializer, inlining is forbidden.
 
 @node Nested Functions
 @section Nested Functions
@@ -1875,7 +1881,7 @@ For instance,
 
 @smallexample
 void* my_calloc(size_t, size_t) __attribute__((alloc_size(1,2)))
-void my_realloc(void* size_t) __attribute__((alloc_size(2)))
+void my_realloc(void*, size_t) __attribute__((alloc_size(2)))
 @end smallexample
 
 declares that my_calloc will return memory of the size given by
@@ -2198,13 +2204,22 @@ for consistency with the @code{printf} style format string argument
 @code{my_format}.
 
 The parameter @var{archetype} determines how the format string is
-interpreted, and should be @code{printf}, @code{scanf}, @code{strftime}
-or @code{strfmon}.  (You can also use @code{__printf__},
-@code{__scanf__}, @code{__strftime__} or @code{__strfmon__}.)  The
-parameter @var{string-index} specifies which argument is the format
-string argument (starting from 1), while @var{first-to-check} is the
-number of the first argument to check against the format string.  For
-functions where the arguments are not available to be checked (such as
+interpreted, and should be @code{printf}, @code{scanf}, @code{strftime},
+@code{gnu_printf}, @code{gnu_scanf}, @code{gnu_strftime} or
+@code{strfmon}.  (You can also use @code{__printf__},
+@code{__scanf__}, @code{__strftime__} or @code{__strfmon__}.)  On
+MinGW targets, @code{ms_printf}, @code{ms_scanf}, and
+@code{ms_strftime} are also present.
+@var{archtype} values such as @code{printf} refer to the formats accepted
+by the system's C run-time library, while @code{gnu_} values always refer
+to the formats accepted by the GNU C Library.  On Microsoft Windows
+targets, @code{ms_} values refer to the formats accepted by the
+@file{msvcrt.dll} library.
+The parameter @var{string-index}
+specifies which argument is the format string argument (starting
+from 1), while @var{first-to-check} is the number of the first
+argument to check against the format string.  For functions
+where the arguments are not available to be checked (such as
 @code{vprintf}), specify the third parameter as zero.  In this case the
 compiler only checks the format string for consistency.  For
 @code{strftime} formats, the third parameter is required to be zero.
@@ -2284,15 +2299,32 @@ is used.  @xref{C Dialect Options,,Options
 Controlling C Dialect}.
 
 @item function_vector
-@cindex calling functions through the function vector on H8/300, M16C, and M32C processors
+@cindex calling functions through the function vector on H8/300, M16C, M32C and SH2A processors
 Use this attribute on the H8/300, H8/300H, and H8S to indicate that the specified
 function should be called through the function vector.  Calling a
 function through the function vector will reduce code size, however;
 the function vector has a limited size (maximum 128 entries on the H8/300
 and 64 entries on the H8/300H and H8S) and shares space with the interrupt vector.
 
+In SH2A target, this attribute declares a function to be called using the
+TBR relative addressing mode.  The argument to this attribute is the entry
+number of the same function in a vector table containing all the TBR
+relative addressable functions.  For the successful jump, register TBR
+should contain the start address of this TBR relative vector table.
+In the startup routine of the user application, user needs to care of this
+TBR register initialization.  The TBR relative vector table can have at
+max 256 function entries.  The jumps to these functions will be generated
+using a SH2A specific, non delayed branch instruction JSR/N @@(disp8,TBR).
 You must use GAS and GLD from GNU binutils version 2.7 or later for
 this attribute to work correctly.
+
+Please refer the example of M16C target, to see the use of this
+attribute while declaring a function,
+
+In an application, for a function being called once, this attribute will
+save at least 8 bytes of code; and if other successive calls are being
+made to the same function, it will save 2 bytes of code per each of these
+calls.
 
 On M16C/M32C targets, the @code{function_vector} attribute declares a
 special page subroutine call function. Use of this attribute reduces
@@ -2330,7 +2362,7 @@ This attribute is ignored for R8C target.
 
 @item interrupt
 @cindex interrupt handler functions
-Use this attribute on the ARM, AVR, C4x, CRX, M32C, M32R/D, m68k, MS1,
+Use this attribute on the ARM, AVR, CRX, M32C, M32R/D, m68k, MS1,
 and Xstormy16 ports to indicate that the specified function is an
 interrupt handler.  The compiler will generate function entry and exit
 sequences suitable for use in an interrupt handler when this attribute
@@ -2377,7 +2409,7 @@ from the USP register in the function prologue.
 @item l1_text
 @cindex @code{l1_text} function attribute
 This attribute specifies a function to be placed into L1 Instruction
-SRAM. The function will be put into a specific section named @code{.l1.text}.
+SRAM@. The function will be put into a specific section named @code{.l1.text}.
 With @option{-mfdpic}, function calls with a such function as the callee
 or caller will use inlined PLT.
 
@@ -2478,7 +2510,7 @@ defined by shared libraries.
 
 @item naked
 @cindex function without a prologue/epilogue code
-Use this attribute on the ARM, AVR, C4x, IP2K and SPU ports to indicate that
+Use this attribute on the ARM, AVR, IP2K and SPU ports to indicate that
 the specified function does not need prologue/epilogue sequences generated by
 the compiler.  It is up to the programmer to provide these sequences.
 
@@ -2513,6 +2545,17 @@ Functions with this attribute will not be so instrumented.
 @cindex @code{noinline} function attribute
 This function attribute prevents a function from being considered for
 inlining.
+@c Don't enumerate the optimizations by name here; we try to be
+@c future-compatible with this mechanism.
+If the function does not have side-effects, there are optimizations
+other than inlining that causes function calls to be optimized away,
+although the function call is live.  To keep such calls from being
+optimized away, put
+@smallexample
+asm ("");
+@end smallexample
+(@pxref{Extended Asm}) in the called function, to serve as a special
+side-effect.
 
 @item nonnull (@var{arg-index}, @dots{})
 @cindex @code{nonnull} function attribute
@@ -2695,6 +2738,19 @@ number of registers available if used in conjunction with the
 @code{regparm} attribute.  The @code{force_align_arg_pointer}
 attribute is incompatible with nested functions; this is considered a
 hard error.
+
+@item resbank
+@cindex @code{resbank} attribute
+On the SH2A target, this attribute enables the high-speed register
+saving and restoration using a register bank for @code{interrupt_handler}
+routines.  Saving to the bank is performed automatcially after the CPU
+accepts an interrupt that uses a register bank.
+
+The nineteen 32-bit registers comprising general register R0 to R14,
+control register GBR, and system registers MACH, MACL, and PR and the
+vector table address offset are saved into a register bank.  Register
+banks are stacked in first-in last-out (FILO) sequence.  Restoration
+from the bank is executed by issuing a RESBANK instruction.
 
 @item returns_twice
 @cindex @code{returns_twice} attribute
@@ -3363,7 +3419,8 @@ designs, @code{__alignof__ (double)} is 4 or even 2.
 
 Some machines never actually require alignment; they allow reference to any
 data type even at an odd address.  For these machines, @code{__alignof__}
-reports the @emph{recommended} alignment of a type.
+reports the smallest alignment that GCC will give the data type, usually as
+mandated by the target ABI.
 
 If the operand of @code{__alignof__} is an lvalue rather than a type,
 its value is the required alignment for its type, taking into account
@@ -5632,7 +5689,7 @@ assert (__builtin_object_size (q, 1) == sizeof (var.b));
 @end deftypefn
 
 There are built-in functions added for many common string operation
-functions, e.g. for @code{memcpy} @code{__builtin___memcpy_chk}
+functions, e.g., for @code{memcpy} @code{__builtin___memcpy_chk}
 built-in is provided.  This built-in has an additional last argument,
 which is the number of bytes remaining in object the @var{dest}
 argument points to or @code{(size_t) -1} if the size is not known.
@@ -5685,7 +5742,7 @@ int __builtin___vsnprintf_chk (char *s, size_t maxlen, int flag, size_t os,
 @end smallexample
 
 The added @var{flag} argument is passed unchanged to @code{__sprintf_chk}
-etc. functions and can contain implementation specific flags on what
+etc.@: functions and can contain implementation specific flags on what
 additional security measures the checking function might take, such as
 handling @code{%n} differently.
 
@@ -5701,7 +5758,7 @@ In addition to this, there are checking built-in functions
 @code{__builtin___fprintf_chk} and @code{__builtin___vfprintf_chk}.
 These have just one additional argument, @var{flag}, right before
 format string @var{fmt}.  If the compiler is able to optimize them to
-@code{fputc} etc. functions, it will, otherwise the checking function
+@code{fputc} etc.@: functions, it will, otherwise the checking function
 should be called and the @var{flag} argument passed to it.
 
 @node Other Builtins
@@ -5711,6 +5768,7 @@ should be called and the @var{flag} argument passed to it.
 @findex __builtin_isnormal
 @findex __builtin_isgreater
 @findex __builtin_isgreaterequal
+@findex __builtin_isinf_sign
 @findex __builtin_isless
 @findex __builtin_islessequal
 @findex __builtin_islessgreater
@@ -6237,8 +6295,10 @@ the same names as the standard macros ( @code{isgreater},
 @code{islessgreater}, and @code{isunordered}) , with @code{__builtin_}
 prefixed.  We intend for a library implementor to be able to simply
 @code{#define} each standard macro to its built-in equivalent.
-In the same fashion, GCC provides @code{isfinite} and @code{isnormal}
-built-ins used with @code{__builtin_} prefixed.
+In the same fashion, GCC provides @code{isfinite}, @code{isinf_sign}
+and @code{isnormal} built-ins used with @code{__builtin_} prefixed.
+The @code{isinf} and @code{isnan} builtins appear both with and
+without the @code{__builtin_} prefix.
 
 @deftypefn {Built-in Function} int __builtin_types_compatible_p (@var{type1}, @var{type2})
 
@@ -6417,6 +6477,14 @@ if (__builtin_expect (ptr != NULL, 1))
 when testing pointer or floating-point values.
 @end deftypefn
 
+@deftypefn {Built-in Function} void __builtin_trap (void)
+This function causes the program to exit abnormally.  GCC implements
+this function by using a target-dependent mechanism (such as
+intentionally executing an illegal instruction) or by calling
+@code{abort}.  The mechanism used may vary from release to release so
+you should not rely on any particular implementation.
+@end deftypefn
+
 @deftypefn {Built-in Function} void __builtin___clear_cache (char *@var{begin}, char *@var{end})
 This function is used to flush the processor's instruction cache for
 the region of memory between @var{begin} inclusive and @var{end}
@@ -6512,6 +6580,14 @@ This function is suitable for implementing the ISO C99 macro @code{INFINITY}.
 @deftypefn {Built-in Function} {long double} __builtin_infl (void)
 Similar to @code{__builtin_inf}, except the return
 type is @code{long double}.
+@end deftypefn
+
+@deftypefn {Built-in Function} int __builtin_isinf_sign (...)
+Similar to @code{isinf}, except the return value will be negative for
+an argument of @code{-Inf}.  Note while the parameter list is an
+ellipsis, this function only accepts exactly one floating point
+argument.  GCC treats this parameter as type-generic, which means it
+does not do default promotion from float to double.
 @end deftypefn
 
 @deftypefn {Built-in Function} double __builtin_nan (const char *str)
@@ -7381,7 +7457,7 @@ The following machine modes are available for use with MMX built-in functions
 (@pxref{Vector Extensions}): @code{V2SI} for a vector of two 32-bit integers,
 @code{V4HI} for a vector of four 16-bit integers, and @code{V8QI} for a
 vector of eight 8-bit integers.  Some of the built-in functions operate on
-MMX registers as a whole 64-bit entity, these use @code{DI} as their mode.
+MMX registers as a whole 64-bit entity, these use @code{V1DI} as their mode.
 
 If 3Dnow extensions are enabled, @code{V2SF} is used as a mode for a vector
 of two 32-bit floating point values.
@@ -7392,12 +7468,12 @@ integers, these use @code{V4SI}.  Finally, some instructions operate on an
 entire vector register, interpreting it as a 128-bit integer, these use mode
 @code{TI}.
 
-In the 64-bit mode, x86-64 family of processors uses additional built-in
+In 64-bit mode, the x86-64 family of processors uses additional built-in
 functions for efficient use of @code{TF} (@code{__float128}) 128-bit
 floating point and @code{TC} 128-bit complex floating point values.
 
-The following floating point built-in functions are made available in the
-64-bit mode.  All of them implement the function that is part of the name.
+The following floating point built-in functions are available in 64-bit
+mode.  All of them implement the function that is part of the name.
 
 @smallexample
 __float128 __builtin_fabsq (__float128)
@@ -7451,6 +7527,24 @@ v2si __builtin_ia32_punpckldq (v2si, v2si)
 v8qi __builtin_ia32_packsswb (v4hi, v4hi)
 v4hi __builtin_ia32_packssdw (v2si, v2si)
 v8qi __builtin_ia32_packuswb (v4hi, v4hi)
+
+v4hi __builtin_ia32_psllw (v4hi, v4hi)
+v2si __builtin_ia32_pslld (v2si, v2si)
+v1di __builtin_ia32_psllq (v1di, v1di)
+v4hi __builtin_ia32_psrlw (v4hi, v4hi)
+v2si __builtin_ia32_psrld (v2si, v2si)
+v1di __builtin_ia32_psrlq (v1di, v1di)
+v4hi __builtin_ia32_psraw (v4hi, v4hi)
+v2si __builtin_ia32_psrad (v2si, v2si)
+v4hi __builtin_ia32_psllwi (v4hi, int)
+v2si __builtin_ia32_pslldi (v2si, int)
+v1di __builtin_ia32_psllqi (v1di, int)
+v4hi __builtin_ia32_psrlwi (v4hi, int)
+v2si __builtin_ia32_psrldi (v2si, int)
+v1di __builtin_ia32_psrlqi (v1di, int)
+v4hi __builtin_ia32_psrawi (v4hi, int)
+v2si __builtin_ia32_psradi (v2si, int)
+
 @end smallexample
 
 The following built-in functions are made available either with
@@ -7462,7 +7556,7 @@ instruction that is part of the name.
 v4hi __builtin_ia32_pmulhuw (v4hi, v4hi)
 v8qi __builtin_ia32_pavgb (v8qi, v8qi)
 v4hi __builtin_ia32_pavgw (v4hi, v4hi)
-v4hi __builtin_ia32_psadbw (v8qi, v8qi)
+v1di __builtin_ia32_psadbw (v8qi, v8qi)
 v8qi __builtin_ia32_pmaxub (v8qi, v8qi)
 v4hi __builtin_ia32_pmaxsw (v4hi, v4hi)
 v8qi __builtin_ia32_pminub (v8qi, v8qi)
@@ -7564,13 +7658,13 @@ Generates the @code{movups} machine instruction as a store to memory.
 Generates the @code{movss} machine instruction as a load from memory.
 @item void __builtin_ia32_storess (float *, v4sf)
 Generates the @code{movss} machine instruction as a store to memory.
-@item v4sf __builtin_ia32_loadhps (v4sf, v2si *)
+@item v4sf __builtin_ia32_loadhps (v4sf, const v2sf *)
 Generates the @code{movhps} machine instruction as a load from memory.
-@item v4sf __builtin_ia32_loadlps (v4sf, v2si *)
+@item v4sf __builtin_ia32_loadlps (v4sf, const v2sf *)
 Generates the @code{movlps} machine instruction as a load from memory
-@item void __builtin_ia32_storehps (v4sf, v2si *)
+@item void __builtin_ia32_storehps (v2sf *, v4sf)
 Generates the @code{movhps} machine instruction as a store to memory.
-@item void __builtin_ia32_storelps (v4sf, v2si *)
+@item void __builtin_ia32_storelps (v2sf *, v4sf)
 Generates the @code{movlps} machine instruction as a store to memory.
 @end table
 
@@ -7665,15 +7759,15 @@ v16qi __builtin_ia32_punpcklbw128 (v16qi, v16qi)
 v8hi __builtin_ia32_punpcklwd128 (v8hi, v8hi)
 v4si __builtin_ia32_punpckldq128 (v4si, v4si)
 v2di __builtin_ia32_punpcklqdq128 (v2di, v2di)
-v16qi __builtin_ia32_packsswb128 (v16qi, v16qi)
-v8hi __builtin_ia32_packssdw128 (v8hi, v8hi)
-v16qi __builtin_ia32_packuswb128 (v16qi, v16qi)
+v16qi __builtin_ia32_packsswb128 (v8hi, v8hi)
+v8hi __builtin_ia32_packssdw128 (v4si, v4si)
+v16qi __builtin_ia32_packuswb128 (v8hi, v8hi)
 v8hi __builtin_ia32_pmulhuw128 (v8hi, v8hi)
 void __builtin_ia32_maskmovdqu (v16qi, v16qi)
 v2df __builtin_ia32_loadupd (double *)
 void __builtin_ia32_storeupd (double *, v2df)
-v2df __builtin_ia32_loadhpd (v2df, double *)
-v2df __builtin_ia32_loadlpd (v2df, double *)
+v2df __builtin_ia32_loadhpd (v2df, double const *)
+v2df __builtin_ia32_loadlpd (v2df, double const *)
 int __builtin_ia32_movmskpd (v2df)
 int __builtin_ia32_pmovmskb128 (v16qi)
 void __builtin_ia32_movnti (int *, int)
@@ -7710,16 +7804,16 @@ void __builtin_ia32_lfence (void)
 void __builtin_ia32_mfence (void)
 v16qi __builtin_ia32_loaddqu (const char *)
 void __builtin_ia32_storedqu (char *, v16qi)
-unsigned long long __builtin_ia32_pmuludq (v2si, v2si)
+v1di __builtin_ia32_pmuludq (v2si, v2si)
 v2di __builtin_ia32_pmuludq128 (v4si, v4si)
-v8hi __builtin_ia32_psllw128 (v8hi, v2di)
-v4si __builtin_ia32_pslld128 (v4si, v2di)
-v2di __builtin_ia32_psllq128 (v4si, v2di)
-v8hi __builtin_ia32_psrlw128 (v8hi, v2di)
-v4si __builtin_ia32_psrld128 (v4si, v2di)
+v8hi __builtin_ia32_psllw128 (v8hi, v8hi)
+v4si __builtin_ia32_pslld128 (v4si, v4si)
+v2di __builtin_ia32_psllq128 (v2di, v2di)
+v8hi __builtin_ia32_psrlw128 (v8hi, v8hi)
+v4si __builtin_ia32_psrld128 (v4si, v4si)
 v2di __builtin_ia32_psrlq128 (v2di, v2di)
-v8hi __builtin_ia32_psraw128 (v8hi, v2di)
-v4si __builtin_ia32_psrad128 (v4si, v2di)
+v8hi __builtin_ia32_psraw128 (v8hi, v8hi)
+v4si __builtin_ia32_psrad128 (v4si, v4si)
 v2di __builtin_ia32_pslldqi128 (v2di, int)
 v8hi __builtin_ia32_psllwi128 (v8hi, int)
 v4si __builtin_ia32_pslldi128 (v4si, int)
@@ -7769,13 +7863,13 @@ v4hi __builtin_ia32_phaddsw (v4hi, v4hi)
 v2si __builtin_ia32_phsubd (v2si, v2si)
 v4hi __builtin_ia32_phsubw (v4hi, v4hi)
 v4hi __builtin_ia32_phsubsw (v4hi, v4hi)
-v8qi __builtin_ia32_pmaddubsw (v8qi, v8qi)
+v4hi __builtin_ia32_pmaddubsw (v8qi, v8qi)
 v4hi __builtin_ia32_pmulhrsw (v4hi, v4hi)
 v8qi __builtin_ia32_pshufb (v8qi, v8qi)
 v8qi __builtin_ia32_psignb (v8qi, v8qi)
 v2si __builtin_ia32_psignd (v2si, v2si)
 v4hi __builtin_ia32_psignw (v4hi, v4hi)
-long long __builtin_ia32_palignr (long long, long long, int)
+v1di __builtin_ia32_palignr (v1di, v1di, int)
 v8qi __builtin_ia32_pabsb (v8qi)
 v2si __builtin_ia32_pabsd (v2si)
 v4hi __builtin_ia32_pabsw (v4hi)
@@ -7792,13 +7886,13 @@ v8hi __builtin_ia32_phaddsw128 (v8hi, v8hi)
 v4si __builtin_ia32_phsubd128 (v4si, v4si)
 v8hi __builtin_ia32_phsubw128 (v8hi, v8hi)
 v8hi __builtin_ia32_phsubsw128 (v8hi, v8hi)
-v16qi __builtin_ia32_pmaddubsw128 (v16qi, v16qi)
+v8hi __builtin_ia32_pmaddubsw128 (v16qi, v16qi)
 v8hi __builtin_ia32_pmulhrsw128 (v8hi, v8hi)
 v16qi __builtin_ia32_pshufb128 (v16qi, v16qi)
 v16qi __builtin_ia32_psignb128 (v16qi, v16qi)
 v4si __builtin_ia32_psignd128 (v4si, v4si)
 v8hi __builtin_ia32_psignw128 (v8hi, v8hi)
-v2di __builtin_ia32_palignr (v2di, v2di, int)
+v2di __builtin_ia32_palignr128 (v2di, v2di, int)
 v16qi __builtin_ia32_pabsb128 (v16qi)
 v4si __builtin_ia32_pabsd128 (v4si)
 v8hi __builtin_ia32_pabsw128 (v8hi)
@@ -7914,7 +8008,7 @@ Generates the @code{crc32b} machine instruction.
 Generates the @code{crc32w} machine instruction.
 @item unsigned int __builtin_ia32_crc32si (unsigned int, unsigned int)
 Generates the @code{crc32l} machine instruction.
-@item unsigned long long __builtin_ia32_crc32di (unsigned int, unsigned long long)
+@item unsigned long long __builtin_ia32_crc32di (unsigned long long, unsigned long long)
 @end table
 
 The following built-in functions are changed to generate new SSE4.2
@@ -7928,6 +8022,27 @@ Generates the @code{popcntl} or @code{popcntq} machine instruction,
 depending on the size of @code{unsigned long}.
 @item int __builtin_popcountll (unsigned long long)
 Generates the @code{popcntq} machine instruction.
+@end table
+
+The following built-in functions are available when @option{-maes} is
+used.  All of them generate the machine instruction that is part of the
+name.
+
+@smallexample
+v2di __builtin_ia32_aesenc128 (v2di, v2di)
+v2di __builtin_ia32_aesenclast128 (v2di, v2di)
+v2di __builtin_ia32_aesdec128 (v2di, v2di)
+v2di __builtin_ia32_aesdeclast128 (v2di, v2di)
+v2di __builtin_ia32_aeskeygenassist128 (v2di, const int)
+v2di __builtin_ia32_aesimc128 (v2di)
+@end smallexample
+
+The following built-in function is available when @option{-mpclmul} is
+used.
+
+@table @code
+@item v2di __builtin_ia32_pclmulqdq128 (v2di, v2di, const int)
+Generates the @code{pclmulqdq} machine instruction.
 @end table
 
 The following built-in functions are available when @option{-msse4a} is used.
@@ -10825,6 +10940,7 @@ for further explanation.
 * Weak Pragmas::
 * Diagnostic Pragmas::
 * Visibility Pragmas::
+* Push/Pop Macro Pragmas::
 @end menu
 
 @node ARM Pragmas
@@ -10886,7 +11002,6 @@ Do not apply the @code{longcall} attribute to subsequent function
 declarations.
 @end table
 
-@c Describe c4x pragmas here.
 @c Describe h8300 pragmas here.
 @c Describe sh pragmas here.
 @c Describe v850 pragmas here.
@@ -10937,7 +11052,7 @@ The Solaris target supports @code{#pragma redefine_extname}
 Increase the minimum alignment of each @var{variable} to @var{alignment}.
 This is the same as GCC's @code{aligned} attribute @pxref{Variable
 Attributes}).  Macro expansion occurs on the arguments to this pragma
-when compiling C and Objective-C.  It does not currently occur when
+when compiling C and Objective-C@.  It does not currently occur when
 compiling C++, but this is a bug which may be fixed in a future
 release.
 
@@ -11022,11 +11137,11 @@ way of knowing that that happened.)
 @node Structure-Packing Pragmas
 @subsection Structure-Packing Pragmas
 
-For compatibility with Win32, GCC supports a set of @code{#pragma}
-directives which change the maximum alignment of members of structures
-(other than zero-width bitfields), unions, and classes subsequently
-defined.  The @var{n} value below always is required to be a small power
-of two and specifies the new alignment in bytes.
+For compatibility with Microsoft Windows compilers, GCC supports a
+set of @code{#pragma} directives which change the maximum alignment of
+members of structures (other than zero-width bitfields), unions, and
+classes subsequently defined. The @var{n} value below always is required
+to be a small power of two and specifies the new alignment in bytes.
 
 @enumerate
 @item @code{#pragma pack(@var{n})} simply sets the new alignment.
@@ -11043,7 +11158,7 @@ multiple @code{#pragma pack(@var{n})} instances and finalized by a single
 @code{#pragma pack(pop)}.
 @end enumerate
 
-Some targets, e.g. i386 and powerpc, support the @code{ms_struct}
+Some targets, e.g.@: i386 and powerpc, support the @code{ms_struct}
 @code{#pragma} which lays out a structure as the documented
 @code{__attribute__ ((ms_struct))}.
 @enumerate
@@ -11093,7 +11208,7 @@ macros are defined.
 
 Modifies the disposition of a diagnostic.  Note that not all
 diagnostics are modifiable; at the moment only warnings (normally
-controlled by @samp{-W...}) can be controlled, and not all of them.
+controlled by @samp{-W@dots{}}) can be controlled, and not all of them.
 Use @option{-fdiagnostics-show-option} to determine which diagnostics
 are controllable and which option controls them.
 
@@ -11140,6 +11255,41 @@ affected; if you want to override the visibility for a particular
 member or instantiation, you must use an attribute.
 
 @end table
+
+
+@node Push/Pop Macro Pragmas
+@subsection Push/Pop Macro Pragmas
+
+For compatibility with Microsoft Windows compilers, GCC supports
+@samp{#pragma push_macro(@var{"macro_name"})}
+and @samp{#pragma pop_macro(@var{"macro_name"})}.
+
+@table @code
+@item #pragma push_macro(@var{"macro_name"})
+@cindex pragma, push_macro
+This pragma saves the value of the macro named as @var{macro_name} to
+the top of the stack for this macro.
+
+@item #pragma pop_macro(@var{"macro_name"})
+@cindex pragma, pop_macro
+This pragma sets the value of the macro named as @var{macro_name} to
+the value on top of the stack for this macro. If the stack for
+@var{macro_name} is empty, the value of the macro remains unchanged.
+@end table
+
+For example:
+
+@smallexample
+#define X  1
+#pragma push_macro("X")
+#undef X
+#define X -1
+#pragma pop_macro("X")
+int x [X]; 
+@end smallexample
+
+In this example, the definition of X as 1 is saved by @code{#pragma
+push_macro} and restored by @code{#pragma pop_macro}.
 
 @node Unnamed Fields
 @section Unnamed struct/union fields within structs/unions
@@ -11545,7 +11695,7 @@ causing an access.  However, there is reason to believe that it is,
 because otherwise certain simple expressions become undefined.  However,
 because it would surprise most programmers, G++ treats dereferencing a
 pointer to volatile object of complete type when the value is unused as
-GCC would do for an equivalent type in C.  When the object has incomplete
+GCC would do for an equivalent type in C@.  When the object has incomplete
 type, G++ issues a warning; if you wish to force an error, you must
 force a conversion to rvalue with, for instance, a static cast.
 

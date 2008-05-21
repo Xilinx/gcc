@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -120,7 +120,8 @@ package Errout is
    --        reference to the Any_Type node, then the message is suppressed.
 
    --    6.  Note that cases 2-5 only apply to error messages, not warning
-   --        messages. Warning messages are only suppressed for case 1.
+   --        messages. Warning messages are only suppressed for case 1, and
+   --        when they come from other than the main extended unit.
 
    --  This normal suppression action may be overridden in cases 2-5 (but not
    --  in case 1) by setting All_Errors mode, or by setting the special
@@ -264,17 +265,31 @@ package Errout is
    --      it, since it makes it clear that the continuation is part of an
    --      unconditional message.
 
+   --    Insertion character !! (unconditional warning)
+
+   --      Normally warning messages issued in other than the main unit are
+   --      suppressed. If the message ends with !! then this suppression is
+   --      avoided. This is currently only used by the Compile_Time_Warning
+   --      pragma to ensure the message for a with'ed unit is output.
+
    --    Insertion character ? (Question: warning message)
    --      The character ? appearing anywhere in a message makes the message
    --      warning instead of a normal error message, and the text of the
-   --      message will be preceded by "Warning:" instead of "Error:" in the
-   --      normal case. The handling of warnings if further controlled by the
-   --      Warning_Mode option (-w switch), see package Opt for further
-   --      details, and also by the current setting from pragma Warnings. This
-   --      pragma applies only to warnings issued from the semantic phase (not
-   --      the parser), but currently all relevant warnings are posted by the
-   --      semantic phase anyway. Messages starting with (style) are also
-   --      treated as warning messages.
+   --      message will be preceded by "warning:" in the normal case. The
+   --      handling of warnings if further controlled by the Warning_Mode
+   --      option (-w switch), see package Opt for further details, and also by
+   --      the current setting from pragma Warnings. This pragma applies only
+   --      to warnings issued from the semantic phase (not the parser), but
+   --      currently all relevant warnings are posted by the semantic phase
+   --      anyway. Messages starting with (style) are also treated as warning
+   --      messages.
+   --
+   --      Note: when a warning message is output, the text of the message is
+   --      preceded by "warning: " in the normal case. An exception to this
+   --      rule occurs when the text of the message starts with "info: " in
+   --      which case this string is not prepended. This allows callers to
+   --      label certain warnings as informational messages, rather than as
+   --      warning messages requiring some action.
    --
    --      Note: the presence of ? is ignored in continuation messages (i.e.
    --      messages starting with the \ insertion character). The warning

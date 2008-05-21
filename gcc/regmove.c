@@ -193,7 +193,7 @@ try_auto_increment (rtx insn, rtx inc_insn, rtx inc_insn_set, rtx reg,
 		  /* If there is a REG_DEAD note on this insn, we must
 		     change this not to REG_UNUSED meaning that the register
 		     is set, but the value is dead.  Failure to do so will
-		     result in a sched1 dieing -- when it recomputes lifetime
+		     result in sched1 dying -- when it recomputes lifetime
 		     information, the number of REG_DEAD notes will have
 		     changed.  */
 		  rtx note = find_reg_note (insn, REG_DEAD, reg);
@@ -506,6 +506,8 @@ optimize_reg_copy_1 (rtx insn, rtx dest, rtx src)
 	  int s_length = 0;
 	  int d_n_calls = 0;
 	  int s_n_calls = 0;
+	  int s_freq_calls = 0;
+	  int d_freq_calls = 0;
 
 	  /* We can do the optimization.  Scan forward from INSN again,
 	     replacing regs as we go.  Set FAILED if a replacement can't
@@ -556,8 +558,12 @@ optimize_reg_copy_1 (rtx insn, rtx dest, rtx src)
 		  /* Similarly, total calls for SREGNO, total calls beyond
 		     the death note for DREGNO.  */
 		  s_n_calls++;
+		  s_freq_calls += REG_FREQ_FROM_BB  (BLOCK_FOR_INSN (q));
 		  if (dest_death)
-		    d_n_calls++;
+		    {
+		      d_n_calls++;
+		      d_freq_calls += REG_FREQ_FROM_BB  (BLOCK_FOR_INSN (q));
+		    }
 		}
 
 	      /* If DEST dies here, remove the death note and save it for
@@ -590,6 +596,7 @@ optimize_reg_copy_1 (rtx insn, rtx dest, rtx src)
 		    }
 
 		  REG_N_CALLS_CROSSED (sregno) -= s_n_calls;
+		  REG_FREQ_CALLS_CROSSED (sregno) -= s_freq_calls;
 		}
 
 	      /* Move death note of SRC from P to INSN.  */
@@ -619,6 +626,7 @@ optimize_reg_copy_1 (rtx insn, rtx dest, rtx src)
 		  if (REG_LIVE_LENGTH (dregno) >= 0)
 		    REG_LIVE_LENGTH (dregno) += d_length;
 		  REG_N_CALLS_CROSSED (dregno) += d_n_calls;
+		  REG_FREQ_CALLS_CROSSED (dregno) += d_freq_calls;
 		}
 	    }
 
@@ -684,8 +692,11 @@ optimize_reg_copy_2 (rtx insn, rtx dest, rtx src)
 
 		if (CALL_P (q))
 		  {
+		    int freq = REG_FREQ_FROM_BB  (BLOCK_FOR_INSN (q));
 		    REG_N_CALLS_CROSSED (dregno)--;
 		    REG_N_CALLS_CROSSED (sregno)++;
+		    REG_FREQ_CALLS_CROSSED (dregno) -= freq;
+		    REG_FREQ_CALLS_CROSSED (sregno) += freq;
 		  }
 	      }
 
@@ -953,7 +964,7 @@ static int
 fixup_match_2 (rtx insn, rtx dst, rtx src, rtx offset)
 {
   rtx p, dst_death = 0;
-  int length, num_calls = 0;
+  int length, num_calls = 0, freq_calls = 0;
 
   /* If SRC dies in INSN, we'd have to move the death note.  This is
      considered to be very unlikely, so we just skip the optimization
@@ -997,6 +1008,7 @@ fixup_match_2 (rtx insn, rtx dst, rtx src, rtx offset)
 		  remove_death (REGNO (dst), dst_death);
 		  REG_LIVE_LENGTH (REGNO (dst)) += length;
 		  REG_N_CALLS_CROSSED (REGNO (dst)) += num_calls;
+		  REG_FREQ_CALLS_CROSSED (REGNO (dst)) += freq_calls;
 		}
 
 	      if (dump_file)
@@ -1049,7 +1061,10 @@ fixup_match_2 (rtx insn, rtx dst, rtx src, rtx offset)
       if (CALL_P (p))
 	{
 	  if (! dst_death)
-	    num_calls++;
+	    {
+	      num_calls++;
+	      freq_calls += REG_FREQ_FROM_BB  (BLOCK_FOR_INSN (p));
+	    }
 
 	  if (REG_N_CALLS_CROSSED (REGNO (src)) == 0)
 	    break;
@@ -1276,7 +1291,7 @@ regmove_optimize (rtx f, int nregs)
 	    {
 	      rtx set, p, src, dst;
 	      rtx src_note, dst_note;
-	      int num_calls = 0;
+	      int num_calls = 0, freq_calls = 0;
 	      enum reg_class src_class, dst_class;
 	      int length;
 
@@ -1465,6 +1480,7 @@ regmove_optimize (rtx f, int nregs)
 		  if (CALL_P (p))
 		    {
 		      num_calls++;
+		      freq_calls += REG_FREQ_FROM_BB  (BLOCK_FOR_INSN (p));
 
 		      if (REG_N_CALLS_CROSSED (REGNO (dst)) == 0)
 			break;
@@ -1497,6 +1513,8 @@ regmove_optimize (rtx f, int nregs)
 
 		  REG_N_CALLS_CROSSED (dstno) += num_calls;
 		  REG_N_CALLS_CROSSED (srcno) -= num_calls;
+		  REG_FREQ_CALLS_CROSSED (dstno) += freq_calls;
+		  REG_FREQ_CALLS_CROSSED (srcno) -= freq_calls;
 
 		  REG_LIVE_LENGTH (dstno) += length;
 		  if (REG_LIVE_LENGTH (srcno) >= 0)
@@ -1677,7 +1695,7 @@ fixup_match_1 (rtx insn, rtx set, rtx src, rtx src_subreg, rtx dst,
   rtx p;
   rtx post_inc = 0, post_inc_set = 0, search_end = 0;
   int success = 0;
-  int num_calls = 0, s_num_calls = 0;
+  int num_calls = 0, freq_calls = 0, s_num_calls = 0, s_freq_calls = 0;
   enum rtx_code code = NOTE;
   HOST_WIDE_INT insn_const = 0, newconst = 0;
   rtx overlap = 0; /* need to move insn ? */
@@ -1869,10 +1887,13 @@ fixup_match_1 (rtx insn, rtx set, rtx src, rtx src_subreg, rtx dst,
 	    break;
 
 	  num_calls++;
+	  freq_calls += REG_FREQ_FROM_BB  (BLOCK_FOR_INSN (p));
 
 	  if (src_note)
-	    s_num_calls++;
-
+	    {
+	      s_num_calls++;
+	      s_freq_calls += REG_FREQ_FROM_BB  (BLOCK_FOR_INSN (p));
+	    }
 	}
     }
 
@@ -1921,7 +1942,7 @@ fixup_match_1 (rtx insn, rtx set, rtx src, rtx src_subreg, rtx dst,
     {
       rtx note = find_reg_note (insn, REG_EQUAL, NULL_RTX);
       rtx q, set2 = NULL_RTX;
-      int num_calls2 = 0, s_length2 = 0;
+      int num_calls2 = 0, s_length2 = 0, freq_calls2 = 0;
 
       if (note && CONSTANT_P (XEXP (note, 0)))
 	{
@@ -1950,7 +1971,10 @@ fixup_match_1 (rtx insn, rtx set, rtx src, rtx src_subreg, rtx dst,
 		  break;
 		}
 	      if (CALL_P (p))
-		num_calls2++;
+		{
+		  num_calls2++;
+		  freq_calls2 += REG_FREQ_FROM_BB  (BLOCK_FOR_INSN (p));
+		}
 	    }
 	  if (q && set2 && SET_DEST (set2) == src && CONSTANT_P (SET_SRC (set2))
 	      && validate_change (insn, &SET_SRC (set), XEXP (note, 0), 0))
@@ -1958,6 +1982,7 @@ fixup_match_1 (rtx insn, rtx set, rtx src, rtx src_subreg, rtx dst,
 	      delete_insn (q);
 	      INC_REG_N_SETS (REGNO (src), -1);
 	      REG_N_CALLS_CROSSED (REGNO (src)) -= num_calls2;
+	      REG_FREQ_CALLS_CROSSED (REGNO (src)) -= freq_calls2;
 	      REG_LIVE_LENGTH (REGNO (src)) -= s_length2;
 	      insn_const = 0;
 	    }
@@ -2026,12 +2051,14 @@ fixup_match_1 (rtx insn, rtx set, rtx src, rtx src_subreg, rtx dst,
       REG_NOTES (p) = src_note;
 
       REG_N_CALLS_CROSSED (REGNO (src)) += s_num_calls;
+      REG_FREQ_CALLS_CROSSED (REGNO (src)) += s_freq_calls;
     }
 
   INC_REG_N_SETS (REGNO (src), 1);
   INC_REG_N_SETS (REGNO (dst), -1);
 
   REG_N_CALLS_CROSSED (REGNO (dst)) -= num_calls;
+  REG_FREQ_CALLS_CROSSED (REGNO (dst)) -= freq_calls;
 
   REG_LIVE_LENGTH (REGNO (src)) += s_length;
   if (REG_LIVE_LENGTH (REGNO (dst)) >= 0)
@@ -2108,8 +2135,10 @@ rest_of_handle_regmove (void)
   return 0;
 }
 
-struct tree_opt_pass pass_regmove =
+struct rtl_opt_pass pass_regmove =
 {
+ {
+  RTL_PASS,
   "regmove",                            /* name */
   gate_handle_regmove,                  /* gate */
   rest_of_handle_regmove,               /* execute */
@@ -2123,7 +2152,7 @@ struct tree_opt_pass pass_regmove =
   0,                                    /* todo_flags_start */
   TODO_df_finish | TODO_verify_rtl_sharing |
   TODO_dump_func |
-  TODO_ggc_collect,                     /* todo_flags_finish */
-  'N'                                   /* letter */
+  TODO_ggc_collect                      /* todo_flags_finish */
+ }
 };
 

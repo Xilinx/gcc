@@ -29,6 +29,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "tm.h"
 #include "rtl.h"
 #include "tree.h"
+#include "tm_p.h"
 #include "regs.h"
 #include "hard-reg-set.h"
 #include "flags.h"
@@ -228,7 +229,7 @@ struct store_info
   /* An bitmask as wide as the number of bytes in the word that
      contains a 1 if the byte may be needed.  The store is unused if
      all of the bits are 0.  */
-  long positions_needed;
+  unsigned HOST_WIDE_INT positions_needed;
 
   /* The next store info for this insn.  */
   struct store_info *next;
@@ -238,6 +239,15 @@ struct store_info
      basic block.  */
   rtx rhs;  
 };
+
+/* Return a bitmask with the first N low bits set.  */
+
+static unsigned HOST_WIDE_INT
+lowpart_bitmask (int n)
+{
+  unsigned HOST_WIDE_INT mask = ~(unsigned HOST_WIDE_INT) 0;
+  return mask >> (HOST_BITS_PER_WIDE_INT - n);
+}
 
 typedef struct store_info *store_info_t;
 static alloc_pool cse_store_info_pool;
@@ -521,11 +531,8 @@ struct clear_alias_mode_holder
 
 static alloc_pool clear_alias_mode_pool;
 
-/* This is true except for two cases:
-   (1) current_function_stdarg -- i.e. we cannot do this 
-       for vararg functions because they play games with the frame.  
-   (2) In ada, it is sometimes not safe to do assume that any stores
-       based off the stack frame go dead at the exit to a function.  */
+/* This is true except if cfun->stdarg -- i.e. we cannot do
+   this for vararg functions because they play games with the frame.  */
 static bool stores_off_frame_dead_at_return;
 
 /* Counter for stats.  */
@@ -540,6 +547,8 @@ static unsigned int current_position;
 
 
 static bool gate_dse (void);
+static bool gate_dse1 (void);
+static bool gate_dse2 (void);
 
 
 /*----------------------------------------------------------------------------
@@ -709,10 +718,7 @@ dse_step0 (void)
   bb_table = XCNEWVEC (bb_info_t, last_basic_block);
   rtx_group_next_id = 0;
 
-  stores_off_frame_dead_at_return = 
-    (!(TREE_CODE (TREE_TYPE (current_function_decl)) == FUNCTION_TYPE
-       && (TYPE_RETURNS_STACK_DEPRESSED (TREE_TYPE (current_function_decl)))))
-    && (!current_function_stdarg);
+  stores_off_frame_dead_at_return = !cfun->stdarg;
 
   init_alias_analysis ();
   
@@ -1311,7 +1317,7 @@ record_store (rtx body, bb_info_t bb_info)
 	      && (GET_MODE (mem) == entry->mode))
 	    {
 	      delete = true;
-	      s_info->positions_needed = 0;
+	      s_info->positions_needed = (unsigned HOST_WIDE_INT) 0;
 	    }
 	  if (dump_file)
 	    fprintf (dump_file, "    trying spill store in insn=%d alias_set=%d\n",
@@ -1327,7 +1333,8 @@ record_store (rtx body, bb_info_t bb_info)
 		     (int)s_info->begin, (int)s_info->end);
 	  for (i = offset; i < offset+width; i++)
 	    if (i >= s_info->begin && i < s_info->end)
-	      s_info->positions_needed &= ~(1L << (i - s_info->begin));
+	      s_info->positions_needed
+		&= ~(((unsigned HOST_WIDE_INT) 1) << (i - s_info->begin));
 	}
       else if (s_info->rhs)
 	/* Need to see if it is possible for this store to overwrite
@@ -1343,7 +1350,7 @@ record_store (rtx body, bb_info_t bb_info)
       
       /* An insn can be deleted if every position of every one of
 	 its s_infos is zero.  */
-      if (s_info->positions_needed != 0)
+      if (s_info->positions_needed != (unsigned HOST_WIDE_INT) 0)
 	delete = false;
       
       if (delete)
@@ -1363,7 +1370,7 @@ record_store (rtx body, bb_info_t bb_info)
       ptr = next;
     }
   
-  gcc_assert ((unsigned) width < sizeof (store_info->positions_needed) * CHAR_BIT);
+  gcc_assert ((unsigned) width <= HOST_BITS_PER_WIDE_INT);
   
   /* Finish filling in the store_info.  */
   store_info->next = insn_info->store_rec;
@@ -1372,7 +1379,7 @@ record_store (rtx body, bb_info_t bb_info)
   store_info->alias_set = spill_alias_set;
   store_info->mem_addr = get_addr (XEXP (mem, 0));
   store_info->cse_base = base;
-  store_info->positions_needed = (1L << width) - 1;
+  store_info->positions_needed = lowpart_bitmask (width);
   store_info->group_id = group_id;
   store_info->begin = offset;
   store_info->end = offset + width;
@@ -1381,9 +1388,9 @@ record_store (rtx body, bb_info_t bb_info)
   if (store_info->is_set 
       /* No place to keep the value after ra.  */
       && !reload_completed
-      /* The careful reviewer may wish to comment my checking that the
-	 rhs of a store is always a reg.  */
-      && REG_P (SET_SRC (body))
+      && (REG_P (SET_SRC (body))
+	  || GET_CODE (SET_SRC (body)) == SUBREG
+	  || CONSTANT_P (SET_SRC (body)))
       /* Sometimes the store and reload is used for truncation and
 	 rounding.  */
       && !(FLOAT_MODE_P (GET_MODE (mem)) && (flag_float_store)))
@@ -1416,15 +1423,15 @@ dump_insn_info (const char * start, insn_info_t insn_info)
    shift.  */
 
 static rtx
-find_shift_sequence (rtx read_reg,
-		     int access_size,
+find_shift_sequence (int access_size,
 		     store_info_t store_info,
 		     read_info_t read_info,
 		     int shift)
 {
   enum machine_mode store_mode = GET_MODE (store_info->mem);
   enum machine_mode read_mode = GET_MODE (read_info->mem);
-  rtx chosen_seq = NULL;
+  enum machine_mode new_mode;
+  rtx read_reg = NULL;
 
   /* Some machines like the x86 have shift insns for each size of
      operand.  Other machines like the ppc or the ia-64 may only have
@@ -1433,21 +1440,32 @@ find_shift_sequence (rtx read_reg,
      justify the value we want to read but is available in one insn on
      the machine.  */
 
-  for (; access_size <= UNITS_PER_WORD; access_size *= 2)
+  for (new_mode = smallest_mode_for_size (access_size * BITS_PER_UNIT,
+					  MODE_INT);
+       GET_MODE_BITSIZE (new_mode) <= BITS_PER_WORD;
+       new_mode = GET_MODE_WIDER_MODE (new_mode))
     {
-      rtx target, new_reg, shift_seq, insn;
-      enum machine_mode new_mode;
-      int cost;
+      rtx target, new_reg, shift_seq, insn, new_lhs;
+      int cost, offset;
 
-      /* Try a wider mode if truncating the store mode to ACCESS_SIZE
-	 bytes requires a real instruction.  */
-      if (access_size < GET_MODE_SIZE (store_mode)
-	  && !TRULY_NOOP_TRUNCATION (access_size * BITS_PER_UNIT,
+      /* Try a wider mode if truncating the store mode to NEW_MODE
+	 requires a real instruction.  */
+      if (GET_MODE_BITSIZE (new_mode) < GET_MODE_BITSIZE (store_mode)
+	  && !TRULY_NOOP_TRUNCATION (GET_MODE_BITSIZE (new_mode),
 				     GET_MODE_BITSIZE (store_mode)))
 	continue;
 
-      new_mode = smallest_mode_for_size (access_size * BITS_PER_UNIT,
-					 MODE_INT);
+      /* Also try a wider mode if the necessary punning is either not
+	 desirable or not possible.  */
+      if (!CONSTANT_P (store_info->rhs)
+	  && !MODES_TIEABLE_P (new_mode, store_mode))
+	continue;
+      offset = subreg_lowpart_offset (new_mode, store_mode);
+      new_lhs = simplify_gen_subreg (new_mode, copy_rtx (store_info->rhs),
+				     store_mode, offset);
+      if (new_lhs == NULL_RTX)
+	continue;
+
       new_reg = gen_reg_rtx (new_mode);
 
       start_sequence ();
@@ -1483,31 +1501,13 @@ find_shift_sequence (rtx read_reg,
 	 take the value from the store and put it into the
 	 shift pseudo, then shift it, then generate another
 	 move to put in into the target of the read.  */
-      start_sequence ();
-      emit_move_insn (new_reg, gen_lowpart (new_mode, store_info->rhs));
+      emit_move_insn (new_reg, new_lhs);
       emit_insn (shift_seq);
-      convert_move (read_reg, new_reg, 1);
-		  
-      if (dump_file)
-	{
-	  fprintf (dump_file, " -- adding extract insn r%d:%s = r%d:%s\n",
-		   REGNO (new_reg), GET_MODE_NAME (new_mode),
-		   REGNO (store_info->rhs), GET_MODE_NAME (store_mode));
-		      
-	  fprintf (dump_file, " -- with shift of r%d by %d\n",
-		   REGNO(new_reg), shift);
-	  fprintf (dump_file, " -- and second extract insn r%d:%s = r%d:%s\n",
-		   REGNO (read_reg), GET_MODE_NAME (read_mode),
-		   REGNO (new_reg), GET_MODE_NAME (new_mode));
-	}
-		  
-      /* Get the three insn sequence and return it.  */
-      chosen_seq = get_insns ();
-      end_sequence ();
+      read_reg = extract_low_bits (read_mode, new_mode, new_reg);
       break;
     }
 
-  return chosen_seq;
+  return read_reg;
 }
 
 
@@ -1550,14 +1550,9 @@ replace_read (store_info_t store_info, insn_info_t store_insn,
   enum machine_mode read_mode = GET_MODE (read_info->mem);
   int shift;
   int access_size; /* In bytes.  */
-  rtx read_reg = gen_reg_rtx (read_mode);
-  rtx shift_seq = NULL;
+  rtx insns, read_reg;
 
   if (!dbg_cnt (dse))
-    return false;
-
-  if (GET_MODE_CLASS (read_mode) != MODE_INT
-      || GET_MODE_CLASS (store_mode) != MODE_INT)
     return false;
 
   /* To get here the read is within the boundaries of the write so
@@ -1573,62 +1568,43 @@ replace_read (store_info_t store_info, insn_info_t store_insn,
   /* From now on it is bits.  */
   shift *= BITS_PER_UNIT;
 
-  /* We need to keep this in perspective.  We are replacing a read
+  /* Create a sequence of instructions to set up the read register.
+     This sequence goes immediately before the store and its result
+     is read by the load.
+
+     We need to keep this in perspective.  We are replacing a read
      with a sequence of insns, but the read will almost certainly be
      in cache, so it is not going to be an expensive one.  Thus, we
      are not willing to do a multi insn shift or worse a subroutine
      call to get rid of the read.  */
-  if (shift)
-    {
-      if (access_size > UNITS_PER_WORD)
-	return false;
-
-      shift_seq = find_shift_sequence (read_reg, access_size, store_info,
-				       read_info, shift);
-      if (!shift_seq)
-	return false;
-    }
-
   if (dump_file)
-    fprintf (dump_file, "replacing load at %d from store at %d\n",
-	     INSN_UID (read_insn->insn), INSN_UID (store_insn->insn)); 
+    fprintf (dump_file, "trying to replace %smode load in insn %d"
+	     " from %smode store in insn %d\n",
+	     GET_MODE_NAME (read_mode), INSN_UID (read_insn->insn),
+	     GET_MODE_NAME (store_mode), INSN_UID (store_insn->insn));
+  start_sequence ();
+  if (shift)
+    read_reg = find_shift_sequence (access_size, store_info, read_info, shift);
+  else
+    read_reg = extract_low_bits (read_mode, store_mode,
+				 copy_rtx (store_info->rhs));
+  if (read_reg == NULL_RTX)
+    {
+      end_sequence ();
+      if (dump_file)
+	fprintf (dump_file, " -- could not extract bits of stored value\n");
+      return false;
+    }
+  /* Force the value into a new register so that it won't be clobbered
+     between the store and the load.  */
+  read_reg = copy_to_mode_reg (read_mode, read_reg);
+  insns = get_insns ();
+  end_sequence ();
 
   if (validate_change (read_insn->insn, loc, read_reg, 0))
     {
-      rtx insns;
       deferred_change_t deferred_change = pool_alloc (deferred_change_pool);
       
-      if (read_mode == store_mode)
-	{
-	  start_sequence ();
-	  
-	  /* The modes are the same and everything lines up.  Just
-	     generate a simple move.  */
-	  emit_move_insn (read_reg, store_info->rhs);
-	  if (dump_file)
-	    fprintf (dump_file, " -- adding move insn r%d = r%d\n",
-		     REGNO (read_reg), REGNO (store_info->rhs));
-	  insns = get_insns ();
-	  end_sequence ();
-	}
-      else if (shift)
-	insns = shift_seq;
-      else
-	{
-	  /* The modes are different but the lsb are in the same
-	     place, we need to extract the value in the right from the
-	     rhs of the store.  */
-	  start_sequence ();
-	  convert_move (read_reg, store_info->rhs, 1);
-	  
-	  if (dump_file)
-	    fprintf (dump_file, " -- adding extract insn r%d:%s = r%d:%s\n",
-		     REGNO (read_reg), GET_MODE_NAME (read_mode),
-		     REGNO (store_info->rhs), GET_MODE_NAME (store_mode));
-	  insns = get_insns ();
-	  end_sequence ();
-	}
-
       /* Insert this right before the store insn where it will be safe
 	 from later insns that might change it before the read.  */
       emit_insn_before (insns, store_insn->insn);
@@ -1666,12 +1642,22 @@ replace_read (store_info_t store_info, insn_info_t store_insn,
 	 rest of dse, play like this read never happened.  */
       read_insn->read_rec = read_info->next;
       pool_free (read_info_pool, read_info);
+      if (dump_file)
+	{
+	  fprintf (dump_file, " -- replaced the loaded MEM with ");
+	  print_simple_rtl (dump_file, read_reg);
+	  fprintf (dump_file, "\n");
+	}
       return true;
     }
   else 
     {
       if (dump_file)
-	fprintf (dump_file, " -- validation failure\n"); 
+	{
+	  fprintf (dump_file, " -- replacing the loaded MEM with ");
+	  print_simple_rtl (dump_file, read_reg);
+	  fprintf (dump_file, " led to an invalid instruction\n");
+	}
       return false;
     }
 }
@@ -1826,8 +1812,10 @@ check_mem_read_rtx (rtx *loc, void *data)
 		      && (offset >= store_info->begin)
 		      && (offset + width <= store_info->end))
 		    {
-		      int mask = ((1L << width) - 1) << (offset - store_info->begin);
-		      
+		      unsigned HOST_WIDE_INT mask
+			= (lowpart_bitmask (width)
+			   << (offset - store_info->begin));
+
 		      if ((store_info->positions_needed & mask) == mask
 			  && replace_read (store_info, i_ptr, 
 					   read_info, insn_info, loc))
@@ -1893,8 +1881,10 @@ check_mem_read_rtx (rtx *loc, void *data)
 	      && (offset >= store_info->begin)
 	      && (offset + width <= store_info->end))
 	    {
-	      int mask = ((1L << width) - 1) << (offset - store_info->begin);
-	      
+	      unsigned HOST_WIDE_INT mask
+		= (lowpart_bitmask (width)
+		   << (offset - store_info->begin));
+
 	      if ((store_info->positions_needed & mask) == mask
 		  && replace_read (store_info, i_ptr, 
 				   read_info, insn_info, loc))
@@ -1977,7 +1967,7 @@ scan_insn (bb_info_t bb_info, rtx insn)
       /* Const functions cannot do anything bad i.e. read memory,
 	 however, they can read their parameters which may have
 	 been pushed onto the stack.  */
-      if (CONST_OR_PURE_CALL_P (insn) && !pure_call_p (insn))
+      if (RTL_CONST_CALL_P (insn))
 	{
 	  insn_info_t i_ptr = active_local_stores;
 	  insn_info_t last = NULL;
@@ -2173,7 +2163,7 @@ dse_step1 (void)
 	      && (EDGE_COUNT (bb->succs) == 0
 		  || (single_succ_p (bb)
 		      && single_succ (bb) == EXIT_BLOCK_PTR
-		      && ! current_function_calls_eh_return)))
+		      && ! crtl->calls_eh_return)))
 	    {
 	      insn_info_t i_ptr = active_local_stores;
 	      while (i_ptr)
@@ -3284,13 +3274,29 @@ rest_of_handle_dse (void)
 static bool
 gate_dse (void)
 {
-  return optimize > 0 && flag_dse;
+  return gate_dse1 () || gate_dse2 ();
 }
 
-struct tree_opt_pass pass_rtl_dse1 =
+static bool
+gate_dse1 (void)
 {
+  return optimize > 0 && flag_dse
+    && dbg_cnt (dse1);
+}
+
+static bool
+gate_dse2 (void)
+{
+  return optimize > 0 && flag_dse
+    && dbg_cnt (dse2);
+}
+
+struct rtl_opt_pass pass_rtl_dse1 =
+{
+ {
+  RTL_PASS,
   "dse1",                               /* name */
-  gate_dse,                             /* gate */
+  gate_dse1,                            /* gate */
   rest_of_handle_dse,                   /* execute */
   NULL,                                 /* sub */
   NULL,                                 /* next */
@@ -3302,14 +3308,16 @@ struct tree_opt_pass pass_rtl_dse1 =
   0,                                    /* todo_flags_start */
   TODO_dump_func |
   TODO_df_finish | TODO_verify_rtl_sharing |
-  TODO_ggc_collect,                     /* todo_flags_finish */
-  'w'                                   /* letter */
+  TODO_ggc_collect                      /* todo_flags_finish */
+ }
 };
 
-struct tree_opt_pass pass_rtl_dse2 =
+struct rtl_opt_pass pass_rtl_dse2 =
 {
+ {
+  RTL_PASS,
   "dse2",                               /* name */
-  gate_dse,                             /* gate */
+  gate_dse2,                            /* gate */
   rest_of_handle_dse,                   /* execute */
   NULL,                                 /* sub */
   NULL,                                 /* next */
@@ -3321,6 +3329,6 @@ struct tree_opt_pass pass_rtl_dse2 =
   0,                                    /* todo_flags_start */
   TODO_dump_func |
   TODO_df_finish | TODO_verify_rtl_sharing |
-  TODO_ggc_collect,                     /* todo_flags_finish */
-  'w'                                   /* letter */
+  TODO_ggc_collect                      /* todo_flags_finish */
+ }
 };

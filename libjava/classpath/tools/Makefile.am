@@ -100,6 +100,19 @@ noinst_SCRIPTS = gappletviewer gjarsigner gkeytool \
 	gjar gnative2ascii gserialver gjavah grmiregistry \
 	gtnameserv gorbd grmid grmic
 bin_PROGRAMS =
+## FIXME: revisit this with a newer automake.
+gappletviewer: gappletviewer.in
+gjarsigner: gjarsigner.in
+gkeytool: gkeytool.in
+gjar: gjar.in
+gnative2ascii: gnative2ascii.in
+gserialver: gserialver.in
+gjavah: gjavah.in
+grmiregistry: grmiregistry.in
+gtnameserv: gtnameserv.in
+gorbd: gorbd.in
+grmid: grmid.in
+grmic: grmic.in
 endif
 EXTRA_DIST = toolwrapper.c gappletviewer.in gjarsigner.in gkeytool.in \
 	gjar.in gnative2ascii.in gserialver.in gjavah.in grmiregistry.in \
@@ -197,6 +210,14 @@ if JAVA_MAINTAINER_MODE
 	  cp $(top_srcdir)/resource/$$p classes/$$p; \
 	done
 endif
+## Copy over rmic template files.
+	@list=`cd $(srcdir) && find gnu/classpath/tools -name \*.jav -print`; \
+	for p in $$list; do \
+	  dirname=classes/`dirname $$p`; \
+	  if ! test -d "$$dirname"; then mkdir -p "$$dirname"; fi; \
+	  echo "  cp $(srcdir)/$$p classes/$$p"; \
+	  cp $(srcdir)/$$p classes/$$p; \
+	done
 	cp -pR $(srcdir)/asm .
 	cp -pR $(srcdir)/classes .
 ## END GCJ LOCAL

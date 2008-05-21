@@ -545,7 +545,9 @@
 #define TARGET_PROMOTE_PROTOTYPES hook_bool_const_tree_false
 
 #define TARGET_STRUCT_VALUE_RTX hook_rtx_tree_int_null
+#ifndef TARGET_RETURN_IN_MEMORY
 #define TARGET_RETURN_IN_MEMORY default_return_in_memory
+#endif
 #define TARGET_RETURN_IN_MSB hook_bool_const_tree_false
 
 #define TARGET_EXPAND_BUILTIN_SAVEREGS default_expand_builtin_saveregs
@@ -602,6 +604,14 @@
 
 #ifndef TARGET_SECONDARY_RELOAD
 #define TARGET_SECONDARY_RELOAD default_secondary_reload
+#endif
+
+#ifndef TARGET_EXPAND_TO_RTL_HOOK
+#define TARGET_EXPAND_TO_RTL_HOOK hook_void_void
+#endif
+
+#ifndef TARGET_INSTANTIATE_DECLS
+#define TARGET_INSTANTIATE_DECLS hook_void_void
 #endif
 
 /* C specific.  */
@@ -682,6 +692,61 @@
     TARGET_CXX_USE_AEABI_ATEXIT,		\
     TARGET_CXX_USE_ATEXIT_FOR_CXA_ATEXIT,	\
     TARGET_CXX_ADJUST_CLASS_AT_DEFINITION	\
+  }
+
+/* EMUTLS specific */
+#ifndef TARGET_EMUTLS_GET_ADDRESS
+#define TARGET_EMUTLS_GET_ADDRESS "__builtin___emutls_get_address"
+#endif
+
+#ifndef TARGET_EMUTLS_REGISTER_COMMON
+#define TARGET_EMUTLS_REGISTER_COMMON "__builtin___emutls_register_common"
+#endif
+
+#ifndef TARGET_EMUTLS_VAR_SECTION
+#define TARGET_EMUTLS_VAR_SECTION NULL
+#endif
+
+#ifndef TARGET_EMUTLS_TMPL_SECTION
+#define TARGET_EMUTLS_TMPL_SECTION NULL
+#endif
+
+#ifndef TARGET_EMUTLS_VAR_PREFIX
+#define TARGET_EMUTLS_VAR_PREFIX NULL
+#endif
+
+#ifndef TARGET_EMUTLS_TMPL_PREFIX
+#define TARGET_EMUTLS_TMPL_PREFIX NULL
+#endif
+
+#ifndef TARGET_EMUTLS_VAR_FIELDS
+#define TARGET_EMUTLS_VAR_FIELDS default_emutls_var_fields
+#endif
+
+#ifndef TARGET_EMUTLS_VAR_INIT
+#define TARGET_EMUTLS_VAR_INIT default_emutls_var_init
+#endif
+
+#ifndef TARGET_EMUTLS_VAR_ALIGN_FIXED
+#define TARGET_EMUTLS_VAR_ALIGN_FIXED false
+#endif
+
+#ifndef TARGET_EMUTLS_DEBUG_FORM_TLS_ADDRESS
+#define TARGET_EMUTLS_DEBUG_FORM_TLS_ADDRESS false
+#endif
+
+#define TARGET_EMUTLS				\
+  {						\
+    TARGET_EMUTLS_GET_ADDRESS,  		\
+    TARGET_EMUTLS_REGISTER_COMMON,  		\
+    TARGET_EMUTLS_VAR_SECTION,  		\
+    TARGET_EMUTLS_TMPL_SECTION,  		\
+    TARGET_EMUTLS_VAR_PREFIX,  			\
+    TARGET_EMUTLS_TMPL_PREFIX,  		\
+    TARGET_EMUTLS_VAR_FIELDS,			\
+    TARGET_EMUTLS_VAR_INIT,			\
+    TARGET_EMUTLS_VAR_ALIGN_FIXED,		\
+    TARGET_EMUTLS_DEBUG_FORM_TLS_ADDRESS	\
   }
 
 /* The whole shebang.  */
@@ -771,8 +836,11 @@
   TARGET_INVALID_UNARY_OP,			\
   TARGET_INVALID_BINARY_OP,			\
   TARGET_SECONDARY_RELOAD,			\
+  TARGET_EXPAND_TO_RTL_HOOK,			\
+  TARGET_INSTANTIATE_DECLS,			\
   TARGET_C,					\
   TARGET_CXX,					\
+  TARGET_EMUTLS,				\
   TARGET_EXTRA_LIVE_ON_ENTRY,			\
   TARGET_UNWIND_TABLES_DEFAULT,			\
   TARGET_HAVE_NAMED_SECTIONS,			\

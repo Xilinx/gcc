@@ -1,6 +1,6 @@
 /* Top level of GCC compilers (cc1, cc1plus, etc.)
    Copyright (C) 1987, 1988, 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -81,6 +81,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "value-prof.h"
 #include "alloc-pool.h"
 #include "tree-mudflap.h"
+#include "tree-bounds.h"
 #include "tree-pass.h"
 
 #if defined (DWARF2_UNWIND_INFO) || defined (DWARF2_DEBUGGING_INFO)
@@ -134,10 +135,6 @@ static const char **save_argv;
 
 const char *main_input_filename;
 
-#ifndef USE_MAPPED_LOCATION
-location_t unknown_location = { NULL, 0 };
-#endif
-
 /* Used to enable -fvar-tracking, -fweb and -frename-registers according
    to optimize and default_debug_hooks in process_options ().  */
 #define AUTODETECT_VALUE 2
@@ -148,23 +145,6 @@ location_t input_location;
 
 struct line_maps *line_table;
 
-/* Stack of currently pending input files.  */
-
-struct file_stack *input_file_stack;
-
-/* Incremented on each change to input_file_stack.  */
-int input_file_stack_tick;
-
-/* Record of input_file_stack at each tick.  */
-typedef struct file_stack *fs_p;
-DEF_VEC_P(fs_p);
-DEF_VEC_ALLOC_P(fs_p,heap);
-static VEC(fs_p,heap) *input_file_stack_history;
-
-/* Whether input_file_stack has been restored to a previous state (in
-   which case there should be no more pushing).  */
-static bool input_file_stack_restored;
-
 /* Name to use as base of names for dump output files.  */
 
 const char *dump_base_name;
@@ -172,6 +152,9 @@ const char *dump_base_name;
 /* Name to use as a base for auxiliary output files.  */
 
 const char *aux_base_name;
+
+/* Prefix for profile data files */
+const char *profile_data_prefix;
 
 /* A mask of target_flags that includes bit X if X was set or cleared
    on the command line.  */
@@ -301,6 +284,10 @@ enum tls_model flag_tls_default = TLS_MODEL_GLOBAL_DYNAMIC;
    Usually these are warnings about failure to conform to some standard.  */
 
 int flag_pedantic_errors = 0;
+
+/* Nonzero means make permerror produce warnings instead of errors.  */
+
+int flag_permissive = 0;
 
 /* -dA causes debug commentary information to be produced in
    the generated assembly code (to make it more readable).  This option
@@ -962,72 +949,6 @@ warn_deprecated_use (tree node)
     }
 }
 
-/* Save the current INPUT_LOCATION on the top entry in the
-   INPUT_FILE_STACK.  Push a new entry for FILE and LINE, and set the
-   INPUT_LOCATION accordingly.  */
-
-void
-#ifdef USE_MAPPED_LOCATION
-push_srcloc (location_t fline)
-#else
-push_srcloc (const char *file, int line)
-#endif
-{
-  struct file_stack *fs;
-
-  gcc_assert (!input_file_stack_restored);
-  if (input_file_stack_tick == (int) ((1U << INPUT_FILE_STACK_BITS) - 1))
-    sorry ("GCC supports only %d input file changes", input_file_stack_tick);
-
-  fs = XNEW (struct file_stack);
-  fs->location = input_location;
-  fs->next = input_file_stack;
-#ifdef USE_MAPPED_LOCATION
-  input_location = fline;
-#else
-  input_filename = file;
-  input_line = line;
-#endif
-  input_file_stack = fs;
-  input_file_stack_tick++;
-  VEC_safe_push (fs_p, heap, input_file_stack_history, input_file_stack);
-}
-
-/* Pop the top entry off the stack of presently open source files.
-   Restore the INPUT_LOCATION from the new topmost entry on the
-   stack.  */
-
-void
-pop_srcloc (void)
-{
-  struct file_stack *fs;
-
-  gcc_assert (!input_file_stack_restored);
-  if (input_file_stack_tick == (int) ((1U << INPUT_FILE_STACK_BITS) - 1))
-    sorry ("GCC supports only %d input file changes", input_file_stack_tick);
-
-  fs = input_file_stack;
-  input_location = fs->location;
-  input_file_stack = fs->next;
-  input_file_stack_tick++;
-  VEC_safe_push (fs_p, heap, input_file_stack_history, input_file_stack);
-}
-
-/* Restore the input file stack to its state as of TICK, for the sake
-   of diagnostics after processing the whole input.  Once this has
-   been called, push_srcloc and pop_srcloc may no longer be
-   called.  */
-void
-restore_input_file_stack (int tick)
-{
-  if (tick == 0)
-    input_file_stack = NULL;
-  else
-    input_file_stack = VEC_index (fs_p, input_file_stack_history, tick - 1);
-  input_file_stack_tick = tick;
-  input_file_stack_restored = true;
-}
-
 /* Compile an entire translation unit.  Write a file of assembly
    output and various debugging dumps.  */
 
@@ -1039,16 +960,13 @@ compile_file (void)
   init_cgraph ();
   init_final (main_input_filename);
   coverage_init (aux_base_name);
+  statistics_init ();
 
   timevar_push (TV_PARSE);
 
   /* Call the parser, which parses the entire file (calling
      rest_of_compilation for each function).  */
   lang_hooks.parse_file (set_yydebug);
-
-  /* In case there were missing block closers,
-     get us back to the global binding level.  */
-  lang_hooks.clear_binding_stack ();
 
   /* Compilation is now finished except for writing
      what's left of the symbol table output.  */
@@ -1158,14 +1076,18 @@ decode_d_option (const char *arg)
 	break;
       case 'D':	/* These are handled by the preprocessor.  */
       case 'I':
+      case 'M':
+      case 'N':
+      case 'U':
 	break;
       case 'H':
 	setup_core_dumping();
 	break;
-
       case 'a':
+	enable_rtl_dump_file ();
+	break;
+
       default:
-	if (!enable_rtl_dump_file (c))
 	  warning (0, "unrecognized gcc debugging option: %c", c);
 	break;
       }
@@ -1194,7 +1116,7 @@ print_version (FILE *file, const char *indent)
   static const char fmt2[] =
     N_("GMP version %s, MPFR version %s.\n");
   static const char fmt3[] =
-    N_("warning: %s header version %s differs from library version %s.\n");
+    N_("%s%swarning: %s header version %s differs from library version %s.\n");
   static const char fmt4[] =
     N_("%s%sGGC heuristics: --param ggc-min-expand=%d --param ggc-min-heapsize=%d\n");
 #ifndef __VERSION__
@@ -1224,10 +1146,12 @@ print_version (FILE *file, const char *indent)
   if (strcmp (GCC_GMP_STRINGIFY_VERSION, gmp_version))
     fprintf (file,
 	     file == stderr ? _(fmt3) : fmt3,
+	     indent, *indent != 0 ? " " : "",
 	     "GMP", GCC_GMP_STRINGIFY_VERSION, gmp_version);
   if (strcmp (MPFR_VERSION_STRING, mpfr_get_version ()))
     fprintf (file,
 	     file == stderr ? _(fmt3) : fmt3,
+	     indent, *indent != 0 ? " " : "",
 	     "MPFR", MPFR_VERSION_STRING, mpfr_get_version ());
   fprintf (file,
 	   file == stderr ? _(fmt4) : fmt4,
@@ -1685,6 +1609,7 @@ general_init (const char *argv0)
   /* This must be done after add_params but before argument processing.  */
   init_ggc_heuristics();
   init_optimization_passes ();
+  statistics_early_init ();
 }
 
 /* Return true if the current target supports -fsection-anchors.  */
@@ -1739,9 +1664,6 @@ process_options (void)
      sets the original filename if appropriate (e.g. foo.i -> foo.c)
      so we can correctly initialize debug output.  */
   no_backend = lang_hooks.post_options (&main_input_filename);
-#ifndef USE_MAPPED_LOCATION
-  input_filename = main_input_filename;
-#endif
 
 #ifdef OVERRIDE_OPTIONS
   /* Some machines may reject certain combinations of options.  */
@@ -1986,13 +1908,6 @@ process_options (void)
       flag_prefetch_loop_arrays = 0;
     }
 
-#ifndef OBJECT_FORMAT_ELF
-#ifndef OBJECT_FORMAT_MACHO
-  if (flag_function_sections && write_symbols != NO_DEBUG)
-    warning (0, "-ffunction-sections may affect debugging on some targets");
-#endif
-#endif
-
   /* The presence of IEEE signaling NaNs, implies all math can trap.  */
   if (flag_signaling_nans)
     flag_trapping_math = 1;
@@ -2007,6 +1922,10 @@ process_options (void)
   /* With -fcx-limited-range, we do cheap and quick complex arithmetic.  */
   if (flag_cx_limited_range)
     flag_complex_method = 0;
+
+  /* With -fcx-fortran-rules, we do something in-between cheap and C99.  */
+  if (flag_cx_fortran_rules)
+    flag_complex_method = 1;
 
   /* Targets must be able to place spill slots at lower addresses.  If the
      target already uses a soft frame pointer, the transition is trivial.  */
@@ -2025,7 +1944,7 @@ process_options (void)
   if (flag_unwind_tables && !ACCUMULATE_OUTGOING_ARGS
       && flag_omit_frame_pointer)
     {
-      warning (0, "unwind tables currently requires a frame pointer "
+      warning (0, "unwind tables currently require a frame pointer "
 	       "for correctness");
       flag_omit_frame_pointer = 0;
     }
@@ -2128,12 +2047,7 @@ lang_dependent_init (const char *name)
     dump_base_name = name && name[0] ? name : "gccdump";
 
   /* Other front-end initialization.  */
-#ifdef USE_MAPPED_LOCATION
   input_location = BUILTINS_LOCATION;
-#else
-  input_filename = "<built-in>";
-  input_line = 0;
-#endif
   if (lang_hooks.init () == 0)
     return 0;
   input_location = save_loc;
@@ -2216,6 +2130,7 @@ finalize (void)
 	fatal_error ("error closing %s: %m", asm_file_name);
     }
 
+  statistics_fini ();
   finish_optimization_passes ();
 
   if (mem_report)
@@ -2284,6 +2199,9 @@ toplev_main (unsigned int argc, const char **argv)
   /* Exit early if we can (e.g. -help).  */
   if (!exit_after_options)
     do_compile ();
+
+  if (warningcount || errorcount) 
+    print_ignored_options ();
 
   if (errorcount || sorrycount)
     return (FATAL_EXIT_CODE);

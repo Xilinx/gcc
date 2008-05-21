@@ -45,7 +45,7 @@
 @end ifset
 
 @c Copyright (C) 1988, 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-@c 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
+@c 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008 Free Software Foundation, Inc.
 @c *** Converted to texinfo by Dean Wakerley, dean@wakerley.com
 
 @c IMPORTANT: whenever you modify this file, run `install.texi2html' to
@@ -71,7 +71,7 @@
 @c Part 2 Summary Description and Copyright
 @copying
 Copyright @copyright{} 1988, 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006 Free Software Foundation, Inc.
+1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008 Free Software Foundation, Inc.
 @sp 1
 Permission is granted to copy, distribute and/or modify this document
 under the terms of the GNU Free Documentation License, Version 1.2 or
@@ -285,7 +285,7 @@ requirements.
 Necessary to uncompress GCC @command{tar} files when source code is
 obtained via FTP mirror sites.
 
-@item GNU make version 3.79.1 (or later)
+@item GNU make version 3.80 (or later)
 
 You must have GNU make installed to build GCC@.
 
@@ -297,14 +297,14 @@ systems' @command{tar} programs will also work, only try GNU
 
 @item GNU Multiple Precision Library (GMP) version 4.1 (or later)
 
-Necessary to build GCC.  If you do not have it installed in your
+Necessary to build GCC@.  If you do not have it installed in your
 library search path, you will have to configure with the
 @option{--with-gmp} configure option.  See also
 @option{--with-gmp-lib} and @option{--with-gmp-include}.
 
-@item MPFR Library version 2.2.1 (or later)
+@item MPFR Library version 2.3.0 (or later)
 
-Necessary to build GCC.  It can be downloaded from
+Necessary to build GCC@.  It can be downloaded from
 @uref{http://www.mpfr.org/}.  The version of MPFR that is bundled with
 GMP 4.1.x contains numerous bugs.  Although GCC may appear to function
 with the buggy versions of MPFR, there are a few bugs that will not be
@@ -371,16 +371,6 @@ Necessary to run @samp{make check} for @file{fixinc}.
 
 Necessary to regenerate the top level @file{Makefile.in} file from
 @file{Makefile.tpl} and @file{Makefile.def}.
-
-@item GNU Bison version 1.28 (or later)
-
-Necessary when modifying @file{*.y} files.  Necessary to build the
-@code{treelang} front end (which is not enabled by default) from a
-checkout of the SVN repository; the generated files are not in the
-repository.  They are included in releases.
-
-Berkeley @command{yacc} (@command{byacc}) has been reported to work
-as well.
 
 @item Flex version 2.5.4 (or later)
 
@@ -1161,11 +1151,11 @@ grep language= */config-lang.in
 @end smallexample
 Currently, you can use any of the following:
 @code{all}, @code{ada}, @code{c}, @code{c++}, @code{fortran}, @code{java},
-@code{objc}, @code{obj-c++}, @code{treelang}.
+@code{objc}, @code{obj-c++}.
 Building the Ada compiler has special requirements, see below.
 If you do not pass this flag, or specify the option @code{all}, then all
 default languages available in the @file{gcc} sub-tree will be configured.
-Ada, Objective-C++, and treelang are not default languages; the rest are.
+Ada and Objective-C++ are not default languages; the rest are.
 Re-defining @code{LANGUAGES} when calling @samp{make} @strong{does not}
 work anymore, as those language sub-directories might not have been
 configured!
@@ -1211,7 +1201,8 @@ powerpc-linux for powerpc64-linux, only generates 32-bit code.  This
 option enables the 32-bit target to be a bi-arch compiler, which is
 useful when you want a bi-arch compiler that defaults to 32-bit, and
 you are building a bi-arch or multi-arch binutils in a combined tree.
-Currently, this option only affects powerpc-linux and x86-linux.
+Currently, this option only affects sparc-linux, powerpc-linux and
+x86-linux.
 
 @item --enable-secureplt
 This option enables @option{-msecure-plt} by default for powerpc-linux.
@@ -1271,12 +1262,12 @@ checks available are @samp{yes} (most common checks
 all), @samp{all} (all but @samp{valgrind}), @samp{release} (cheapest
 checks @samp{assert,runtime}) or @samp{none} (same as @samp{no}).
 Individual checks can be enabled with these flags @samp{assert},
-@samp{fold}, @samp{gc}, @samp{gcac} @samp{misc}, @samp{rtl},
+@samp{df}, @samp{fold}, @samp{gc}, @samp{gcac} @samp{misc}, @samp{rtl},
 @samp{rtlflag}, @samp{runtime}, @samp{tree}, and @samp{valgrind}.
 
 The @samp{valgrind} check requires the external @command{valgrind}
 simulator, available from @uref{http://valgrind.org/}.  The
-@samp{rtl}, @samp{gcac} and @samp{valgrind} checks are very expensive.
+@samp{df}, @samp{rtl}, @samp{gcac} and @samp{valgrind} checks are very expensive.
 To disable all checking, @samp{--disable-checking} or
 @samp{--enable-checking=none} must be explicitly requested.  Disabling
 assertions will make the compiler and runtime slightly faster but
@@ -1554,6 +1545,17 @@ using non-functional stubs for native method implementations.
 @item --disable-jvmpi
 Disable JVMPI support.
 
+@item --disable-libgcj-bc
+Disable BC ABI compilation of certain parts of libgcj.  By default,
+some portions of libgcj are compiled with @option{-findirect-dispatch}
+and @option{-fno-indirect-classes}, allowing them to be overridden at
+run-time.
+
+If @option{--disable-libgcj-bc} is specified, libgcj is built without
+these options.  This allows the compile-time linker to resolve
+dependencies when statically linking to libgcj.  However it makes it
+impossible to override the affected portions of libgcj at run-time.
+
 @item --with-ecos
 Enable runtime eCos target support.
 
@@ -1696,18 +1698,13 @@ that type mismatches occur, this could be the cause.
 
 The solution is not to use such a directory for building GCC@.
 
-When building from SVN or snapshots and enabling the @code{treelang}
-front end, or if you modify @file{*.y} files, you need the Bison parser
-generator installed.  If you do not modify @file{*.y} files, releases
-contain the Bison-generated files and you do not need Bison installed
-to build them.  Note that most front ends now use hand-written parsers,
-which can be modified with no need for Bison.
-
 Similarly, when building from SVN or snapshots, or if you modify
-@file{*.l} files, you need the Flex lexical analyzer generator installed.
-There is still one Flex-based lexical analyzer (part of the build
-machinery, not of GCC itself) that is used even if you only build the
-C front end.
+@file{*.l} files, you need the Flex lexical analyzer generator
+installed.  If you do not modify @file{*.l} files, releases contain
+the Flex-generated files and you do not need Flex installed to build
+them.  There is still one Flex-based lexical analyzer (part of the
+build machinery, not of GCC itself) that is used even if you only
+build the C front end.
 
 When building from SVN or snapshots, or if you modify Texinfo
 documentation, you need version 4.4 or later of Texinfo installed if you
@@ -1751,33 +1748,35 @@ same described above, but object files from the stage1 and
 stage2 of the 3-stage bootstrap of the compiler are deleted as
 soon as they are no longer needed.
 
-If you want to save additional space during the bootstrap and in
-the final installation as well, you can build the compiler binaries
-without debugging information as in the following example.  This will save
-roughly 40% of disk space both for the bootstrap and the final installation.
-(Libraries will still contain debugging information.)
+If you wish to use non-default GCC flags when compiling the stage2
+and stage3 compilers, set @code{BOOT_CFLAGS} on the command line when
+doing @samp{make}.  For example, if you want to save additional space
+during the bootstrap and in the final installation as well, you can
+build the compiler binaries without debugging information as in the
+following example.  This will save roughly 40% of disk space both for
+the bootstrap and the final installation.  (Libraries will still contain
+debugging information.)
 
 @smallexample
-     make CFLAGS='-O' LIBCFLAGS='-g -O2' \
-       LIBCXXFLAGS='-g -O2 -fno-implicit-templates' bootstrap
+     make BOOT_CFLAGS='-O' bootstrap
 @end smallexample
 
-If you wish to use non-default GCC flags when compiling the stage2 and
-stage3 compilers, set @code{BOOT_CFLAGS} on the command line when doing
-@samp{make}.  Non-default optimization flags are less well
-tested here than the default of @samp{-g -O2}, but should still work.
-In a few cases, you may find that you need to specify special flags such
-as @option{-msoft-float} here to complete the bootstrap; or, if the
-native compiler miscompiles the stage1 compiler, you may need to work
-around this, by choosing @code{BOOT_CFLAGS} to avoid the parts of the
-stage1 compiler that were miscompiled, or by using @samp{make
+You can place non-default optimization flags into @code{BOOT_CFLAGS}; they
+are less well tested here than the default of @samp{-g -O2}, but should
+still work.  In a few cases, you may find that you need to specify special
+flags such as @option{-msoft-float} here to complete the bootstrap; or,
+if the native compiler miscompiles the stage1 compiler, you may need
+to work around this, by choosing @code{BOOT_CFLAGS} to avoid the parts
+of the stage1 compiler that were miscompiled, or by using @samp{make
 bootstrap4} to increase the number of stages of bootstrap.
 
-Note that using non-standard @code{CFLAGS} can cause bootstrap to fail
-if these trigger a warning with the new compiler.  For example using
-@samp{-O2 -g -mcpu=i686} on @code{i686-pc-linux-gnu} will cause bootstrap
-failure as @option{-mcpu=} is deprecated in 3.4.0 and above.
-
+@code{BOOT_CFLAGS} does not apply to bootstrapped target libraries.
+Since these are always compiled with the compiler currently being
+bootstrapped, you can use @code{CFLAGS_FOR_TARGET} to modify their
+compilation flags, as for non-bootstrapped target libraries.
+Again, if the native compiler miscompiles the stage1 compiler, you may
+need to work around this by avoiding non-working parts of the stage1
+compiler.  Use @code{STAGE1_LIBCFLAGS} to this end.
 
 If you used the flag @option{--enable-languages=@dots{}} to restrict
 the compilers to be built, only those you've actually enabled will be
@@ -2057,7 +2056,7 @@ You can run the testsuites multiple times using combinations of options
 with a syntax similar to the brace expansion of popular shells:
 
 @smallexample
-    @dots{}"--target_board=arm-sim/@{-mhard-float,-msoft-float@}@{-O1,-O2,-O3,@}"
+    @dots{}"--target_board=arm-sim\@{-mhard-float,-msoft-float\@}\@{-O1,-O2,-O3,\@}"
 @end smallexample
 
 (Note the empty option caused by the trailing comma in the final group.)
@@ -2079,7 +2078,7 @@ They can be combined as many times as you wish, in arbitrary ways.  This
 list:
 
 @smallexample
-    @dots{}"--target_board=unix/-Wextra@{-O3,-fno-strength-reduce@}@{-fomit-frame-pointer,@}"
+    @dots{}"--target_board=unix/-Wextra\@{-O3,-fno-strength\@}\@{-fomit-frame,\@}"
 @end smallexample
 
 will generate four combinations, all involving @samp{-Wextra}.
@@ -2358,7 +2357,10 @@ AIX:
 @uref{http://www.bullfreeware.com,,Bull's Freeware and Shareware Archive for AIX};
 
 @item
-@uref{http://aixpdslib.seas.ucla.edu,,UCLA Software Library for AIX}.
+@uref{http://pware.hvcc.edu,,Hudson Valley Community College Open Source Softeware for IBM System p};
+
+@item
+@uref{http://www.perzl.org/aix,,AIX 5L and 6 Open Source Packages}.
 @end itemize
 
 @item
@@ -2404,12 +2406,12 @@ The @uref{http://www.mingw.org/,,MinGW} project.
 @item
 @uref{ftp://ftp.thewrittenword.com/packages/by-name/,,The
 Written Word} offers binaries for
-AIX 4.3.2.
+AIX 4.3.3, 5.1 and 5.2,
 IRIX 6.5,
-Digital UNIX 4.0D and 5.1,
+Tru64 UNIX 4.0D and 5.1,
 GNU/Linux (i386),
 HP-UX 10.20, 11.00, and 11.11, and
-Solaris/SPARC 2.5.1, 2.6, 7, 8, and 9.
+Solaris/SPARC 2.5.1, 2.6, 7, 8, 9 and 10.
 
 @item
 @uref{http://www.openpkg.org/,,OpenPKG} offers binaries for quite a
@@ -2481,8 +2483,6 @@ information are.
 @uref{#avr,,avr}
 @item
 @uref{#bfin,,Blackfin}
-@item
-@uref{#c4x,,c4x}
 @item
 @uref{#dos,,DOS}
 @item
@@ -2670,8 +2670,8 @@ cross-compilers on the Alpha for 32-bit machines has only been tested in
 a few cases and may not work properly.
 
 @samp{make compare} may fail on old versions of DEC Unix unless you add
-@option{-save-temps} to @code{CFLAGS}.  On these systems, the name of the
-assembler input file is stored in the object file, and that makes
+@option{-save-temps} to @code{BOOT_CFLAGS}.  On these systems, the name
+of the assembler input file is stored in the object file, and that makes
 comparison fail if it differs between the @code{stage1} and
 @code{stage2} compilations.  The option @option{-save-temps} forces a
 fixed name to be used for the assembler input file, instead of a
@@ -2810,36 +2810,6 @@ See ``Blackfin Options'' in the main manual
 
 More information, and a version of binutils with support for this processor,
 is available at @uref{http://blackfin.uclinux.org}
-
-@html
-<hr />
-@end html
-@heading @anchor{c4x}c4x
-
-Texas Instruments TMS320C3x and TMS320C4x Floating Point Digital Signal
-Processors.  These are used in embedded applications.  There are no
-standard Unix configurations.
-@ifnothtml
-@xref{TMS320C3x/C4x Options,, TMS320C3x/C4x Options, gcc, Using the
-GNU Compiler Collection (GCC)},
-@end ifnothtml
-@ifhtml
-See ``TMS320C3x/C4x Options'' in the main manual
-@end ifhtml
-for the list of supported MCU types.
-
-GCC can be configured as a cross compiler for both the C3x and C4x
-architectures on the same system.  Use @samp{configure --target=c4x
---enable-languages="c,c++"} to configure.
-
-
-Further installation notes and other useful information about C4x tools
-can also be obtained from:
-
-@itemize @bullet
-@item
-@uref{http://www.elec.canterbury.ac.nz/c4x/,,http://www.elec.canterbury.ac.nz/c4x/}
-@end itemize
 
 @html
 <hr />
@@ -3018,7 +2988,7 @@ or @samp{98}.  Another way is to add an appropriate set of predefines
 to @env{CC}.  The description for the @option{munix=} option contains
 a list of the predefines used with each standard.
 
-As of GCC 4.1, @env{DWARF2} exception handling is available on HP-UX. 
+As of GCC 4.1, @env{DWARF2} exception handling is available on HP-UX@.
 It is now the default.  This exposed a bug in the handling of data
 relocations in the GAS assembler.  The handling of 64-bit data relocations
 was seriously broken, affecting debugging and exception support on all
@@ -3656,7 +3626,7 @@ use traps on systems that support them.
 Cross-compilers for the MIPS as target using the MIPS assembler
 currently do not work, because the auxiliary programs
 @file{mips-tdump.c} and @file{mips-tfile.c} can't be compiled on
-anything but a MIPS.  It does work to cross compile for a MIPS
+anything but a MIPS@.  It does work to cross compile for a MIPS
 if you use the GNU assembler and linker.
 
 The assembler from GNU binutils 2.17 and earlier has a bug in the way
@@ -3664,8 +3634,8 @@ it sorts relocations for REL targets (o32, o64, EABI).  This can cause
 bad code to be generated for simple C++ programs.  Also the linker
 from GNU binutils versions prior to 2.17 has a bug which causes the
 runtime linker stubs in very large programs, like @file{libgcj.so}, to
-be incorrectly generated.  Binutils CVS snapshots and releases made
-after Nov. 9, 2006 are thought to be free from both of these problems.
+be incorrectly generated.  GNU Binutils 2.18 and later (and snapshots
+made after Nov. 9, 2006) should be free from both of these problems.
 
 @html
 <hr />

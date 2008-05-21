@@ -52,7 +52,9 @@ REG_NOTE (EQUIV)
 
 /* Like REG_EQUIV except that the destination is only momentarily
    equal to the specified rtx.  Therefore, it cannot be used for
-   substitution; but it can be used for cse.  */
+   substitution; but it can be used for cse.  Together with a
+   REG_RETVAL note, it means that the insn sets the full contents of
+   the libcall value.  */
 REG_NOTE (EQUAL)
 
 /* This insn copies the return-value of a library call out of the hard
@@ -73,10 +75,6 @@ REG_NOTE (LIBCALL)
    in the md file named `decrement_and_branch_until_zero' or else this
    will never be added to any instructions.  */
 REG_NOTE (NONNEG)
-
-/* There is no conflict *after this insn* between the register in the
-   note and the destination of this insn.  */
-REG_NOTE (NO_CONFLICT)
 
 /* Identifies a register set in this insn and never used.  */
 REG_NOTE (UNUSED)

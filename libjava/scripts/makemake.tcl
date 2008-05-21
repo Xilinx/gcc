@@ -78,7 +78,17 @@ set package_map(org/xml) bc
 set package_map(org/w3c) bc
 set package_map(org/relaxng) bc
 set package_map(javax/rmi) bc
-set package_map(org/omg) bc
+set package_map(org/omg/IOP) bc
+set package_map(org/omg/PortableServer) bc
+set package_map(org/omg/CosNaming) bc
+set package_map(org/omg/CORBA_2_3) bc
+set package_map(org/omg/Messaging) bc
+set package_map(org/omg/stub) bc
+set package_map(org/omg/CORBA) bc
+set package_map(org/omg/PortableInterceptor) bc
+set package_map(org/omg/DynamicAny) bc
+set package_map(org/omg/SendingContext) bc
+set package_map(org/omg/Dynamic) bc
 set package_map(gnu/CORBA) bc
 set package_map(gnu/javax/rmi) bc
 set package_map(gnu/java/lang/management) bcheaders
@@ -139,8 +149,6 @@ makearray properties_map
 
 # logging.properties is installed and is editable.
 set properties_map(java/util/logging) _
-# We haven't merged locale resources yet.
-set properties_map(gnu/java/locale) _
 
 # We want to be able to load xerces if it is on the class path.  So,
 # we have to avoid compiling in the XML-related service files.
@@ -317,7 +325,9 @@ proc emit_bc_rule {package} {
   if {$package_map($package) == "bc"} {
     puts -nonewline "-fjni "
   }
-  puts "-findirect-dispatch -fno-indirect-classes -c -o $loname @$tname"
+  # Unless bc is disabled with --disable-libgcj-bc, $(LIBGCJ_BC_FLAGS) is:
+  #   -findirect-dispatch -fno-indirect-classes
+  puts "\$(LIBGCJ_BC_FLAGS) -c -o $loname @$tname"
   puts "\t@rm -f $tname"
   puts ""
 

@@ -437,7 +437,28 @@ expand_vector_operations_1 (block_stmt_iterator *bsi)
       || code == VEC_UNPACK_FLOAT_LO_EXPR)
     type = TREE_TYPE (TREE_OPERAND (rhs, 0));
 
-  op = optab_for_tree_code (code, type);
+  /* Choose between vector shift/rotate by vector and vector shift/rotate by
+     scalar */
+  if (code == LSHIFT_EXPR || code == RSHIFT_EXPR || code == LROTATE_EXPR
+      || code == RROTATE_EXPR)
+    {
+      /* If the 2nd argument is vector, we need a vector/vector shift */
+      if (VECTOR_MODE_P (TYPE_MODE (TREE_TYPE (TREE_OPERAND (rhs, 1)))))
+	op = optab_for_tree_code (code, type, optab_vector);
+
+      else
+	{
+	  /* Try for a vector/scalar shift, and if we don't have one, see if we
+	     have a vector/vector shift */
+	  op = optab_for_tree_code (code, type, optab_scalar);
+	  if (!op
+	      || (op->handlers[(int) TYPE_MODE (type)].insn_code
+		  == CODE_FOR_nothing))
+	    op = optab_for_tree_code (code, type, optab_vector);
+	}
+    }
+  else
+    op = optab_for_tree_code (code, type, optab_default);
 
   /* For widening/narrowing vector operations, the relevant type is of the 
      arguments, not the widened result.  VEC_UNPACK_FLOAT_*_EXPR is
@@ -458,7 +479,7 @@ expand_vector_operations_1 (block_stmt_iterator *bsi)
   if (op == NULL
       && code == NEGATE_EXPR
       && INTEGRAL_TYPE_P (TREE_TYPE (type)))
-    op = optab_for_tree_code (MINUS_EXPR, type);
+    op = optab_for_tree_code (MINUS_EXPR, type, optab_default);
 
   /* For very wide vectors, try using a smaller vector mode.  */
   compute_type = type;
@@ -527,8 +548,10 @@ expand_vector_operations (void)
   return 0;
 }
 
-struct tree_opt_pass pass_lower_vector = 
+struct gimple_opt_pass pass_lower_vector = 
 {
+ {
+  GIMPLE_PASS,
   "veclower",				/* name */
   0,					/* gate */
   expand_vector_operations,		/* execute */
@@ -541,12 +564,14 @@ struct tree_opt_pass pass_lower_vector =
   0,					/* properties_destroyed */
   0,					/* todo_flags_start */
   TODO_dump_func | TODO_ggc_collect
-    | TODO_verify_stmts,		/* todo_flags_finish */
-  0					/* letter */
+    | TODO_verify_stmts			/* todo_flags_finish */
+ }
 };
 
-struct tree_opt_pass pass_lower_vector_ssa = 
+struct gimple_opt_pass pass_lower_vector_ssa = 
 {
+ {
+  GIMPLE_PASS,
   "veclower2",				/* name */
   gate_expand_vector_operations,	/* gate */
   expand_vector_operations,		/* execute */
@@ -560,8 +585,8 @@ struct tree_opt_pass pass_lower_vector_ssa =
   0,					/* todo_flags_start */
   TODO_dump_func | TODO_update_ssa	/* todo_flags_finish */
     | TODO_verify_ssa
-    | TODO_verify_stmts | TODO_verify_flow,
-  0					/* letter */
+    | TODO_verify_stmts | TODO_verify_flow
+ }
 };
 
 #include "gt-tree-vect-generic.h"

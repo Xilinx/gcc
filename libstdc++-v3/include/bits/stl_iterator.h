@@ -1,6 +1,6 @@
 // Iterators -*- C++ -*-
 
-// Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007
+// Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
 // Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
@@ -750,7 +750,7 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
 
   // Note: In what follows, the left- and right-hand-side iterators are
   // allowed to vary in types (conceptually in cv-qualification) so that
-  // comparaison between cv-qualified and non-cv-qualified iterators be
+  // comparison between cv-qualified and non-cv-qualified iterators be
   // valid.  However, the greedy and unfriendly operators in std::rel_ops
   // will make overload resolution ambiguous (when in scope) if we don't
   // provide overloads whose operands are of the same type.  Can someone
@@ -860,14 +860,12 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
   // 24.4.3  Move iterators
   /**
-   *  @if maint
    *  Class template move_iterator is an iterator adapter with the same
    *  behavior as the underlying iterator except that its dereference
    *  operator implicitly converts the value returned by the underlying
    *  iterator's dereference operator to an rvalue reference.  Some
    *  generic algorithms can be called with move iterators to replace
    *  copying with moving.
-   *  @endif
    */
   template<typename _Iterator>
     class move_iterator

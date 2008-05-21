@@ -1,6 +1,6 @@
 // -*- C++ -*-
 
-// Copyright (C) 2007 Free Software Foundation, Inc.
+// Copyright (C) 2007, 2008 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the terms
@@ -10,7 +10,7 @@
 
 // This library is distributed in the hope that it will be useful, but
 // WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURstartE.  See the GNU
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 // General Public License for more details.
 
 // You should have received a copy of the GNU General Public License
@@ -58,26 +58,25 @@ namespace __gnu_parallel
  *  @param selector Functionality (e. g. std::find_if (), std::equal(),...)
  *  @return Place of finding in both sequences.
  */
-template<
-    typename RandomAccessIterator1,
-    typename RandomAccessIterator2,
-    typename Pred,
-    typename Selector>
-  std::pair<RandomAccessIterator1, RandomAccessIterator2>
+template<typename RandomAccessIterator1,
+	 typename RandomAccessIterator2,
+	 typename Pred,
+	 typename Selector>
+  inline std::pair<RandomAccessIterator1, RandomAccessIterator2>
   find_template(RandomAccessIterator1 begin1, RandomAccessIterator1 end1,
                 RandomAccessIterator2 begin2, Pred pred, Selector selector)
   {
-    switch (Settings::find_distribution)
+    switch (_Settings::get().find_algorithm)
       {
-      case Settings::GROWING_BLOCKS:
+      case GROWING_BLOCKS:
         return find_template(begin1, end1, begin2, pred, selector,
-                            growing_blocks_tag());
-      case Settings::CONSTANT_SIZE_BLOCKS:
+			     growing_blocks_tag());
+      case CONSTANT_SIZE_BLOCKS:
         return find_template(begin1, end1, begin2, pred, selector,
-                            constant_size_blocks_tag());
-      case Settings::EQUAL_SPLIT:
+			     constant_size_blocks_tag());
+      case EQUAL_SPLIT:
         return find_template(begin1, end1, begin2, pred, selector,
-                            equal_split_tag());
+			     equal_split_tag());
       default:
         _GLIBCXX_PARALLEL_ASSERT(false);
         return std::make_pair(begin1, begin2);
@@ -96,11 +95,10 @@ template<
  *  @param selector Functionality (e. g. std::find_if (), std::equal(),...)
  *  @return Place of finding in both sequences.
  */
-template<
-    typename RandomAccessIterator1,
-    typename RandomAccessIterator2,
-    typename Pred,
-    typename Selector>
+template<typename RandomAccessIterator1,
+	 typename RandomAccessIterator2,
+	 typename Pred,
+	 typename Selector>
   std::pair<RandomAccessIterator1, RandomAccessIterator2>
   find_template(RandomAccessIterator1 begin1,
                 RandomAccessIterator1 end1,
@@ -160,8 +158,9 @@ template<
     omp_destroy_lock(&result_lock);
     delete[] borders;
 
-    return std::pair<RandomAccessIterator1, RandomAccessIterator2>(
-        begin1 + result, begin2 + result);
+    return
+      std::pair<RandomAccessIterator1, RandomAccessIterator2>(begin1 + result,
+							      begin2 + result);
   }
 
 #endif
@@ -177,10 +176,10 @@ template<
  *  @param pred Find predicate.
  *  @param selector Functionality (e. g. std::find_if (), std::equal(),...)
  *  @return Place of finding in both sequences.
- *  @see __gnu_parallel::Settings::find_sequential_search_size
- *  @see __gnu_parallel::Settings::find_initial_block_size
- *  @see __gnu_parallel::Settings::find_maximum_block_size
- *  @see __gnu_parallel::Settings::find_increasing_factor
+ *  @see __gnu_parallel::_Settings::find_sequential_search_size
+ *  @see __gnu_parallel::_Settings::find_initial_block_size
+ *  @see __gnu_parallel::_Settings::find_maximum_block_size
+ *  @see __gnu_parallel::_Settings::find_increasing_factor
  *
  *  There are two main differences between the growing blocks and
  *  the constant-size blocks variants.
@@ -190,11 +189,10 @@ template<
  *     for CSB, the blocks are allocated in a predetermined manner,
  *     namely spacial round-robin.
  */
-template<
-    typename RandomAccessIterator1,
-    typename RandomAccessIterator2,
-    typename Pred,
-    typename Selector>
+template<typename RandomAccessIterator1,
+	 typename RandomAccessIterator2,
+	 typename Pred,
+	 typename Selector>
   std::pair<RandomAccessIterator1, RandomAccessIterator2>
   find_template(RandomAccessIterator1 begin1, RandomAccessIterator1 end1,
                 RandomAccessIterator2 begin2, Pred pred, Selector selector,
@@ -206,10 +204,12 @@ template<
     typedef typename traits_type::difference_type difference_type;
     typedef typename traits_type::value_type value_type;
 
+    const _Settings& __s = _Settings::get();
+
     difference_type length = end1 - begin1;
 
-    difference_type sequential_search_size = std::min<difference_type>(
-        length, Settings::find_sequential_search_size);
+    difference_type sequential_search_size =
+      std::min<difference_type>(length, __s.find_sequential_search_size);
 
     // Try it sequentially first.
     std::pair<RandomAccessIterator1, RandomAccessIterator2> find_seq_result =
@@ -235,7 +235,7 @@ template<
         // Not within first k elements -> start parallel.
         thread_index_t iam = omp_get_thread_num();
 
-        difference_type block_size = Settings::find_initial_block_size;
+        difference_type block_size = __s.find_initial_block_size;
         difference_type start =
             fetch_and_add<difference_type>(&next_block_start, block_size);
 
@@ -270,23 +270,24 @@ template<
                   omp_unset_lock(&result_lock);
               }
 
-            block_size = std::min<difference_type>(
-                block_size * Settings::find_increasing_factor,
-                Settings::find_maximum_block_size);
+            block_size =
+	      std::min<difference_type>(block_size * __s.find_increasing_factor,
+					__s.find_maximum_block_size);
 
             // Get new block, update pointer to next block.
             start =
-                fetch_and_add<difference_type>(&next_block_start, block_size);
-            stop = (length < (start + block_size)) ?
-                        length : (start + block_size);
+	      fetch_and_add<difference_type>(&next_block_start, block_size);
+            stop = ((length < (start + block_size))
+		    ? length : (start + block_size));
           }
       } //parallel
 
     omp_destroy_lock(&result_lock);
 
     // Return iterator on found element.
-    return std::pair<RandomAccessIterator1, RandomAccessIterator2>(
-        begin1 + result, begin2 + result);
+    return
+      std::pair<RandomAccessIterator1, RandomAccessIterator2>(begin1 + result,
+							      begin2 + result);
   }
 
 #endif
@@ -302,8 +303,8 @@ template<
  *  @param pred Find predicate.
  *  @param selector Functionality (e. g. std::find_if (), std::equal(),...)
  *  @return Place of finding in both sequences.
- *  @see __gnu_parallel::Settings::find_sequential_search_size
- *  @see __gnu_parallel::Settings::find_block_size
+ *  @see __gnu_parallel::_Settings::find_sequential_search_size
+ *  @see __gnu_parallel::_Settings::find_block_size
  *  There are two main differences between the growing blocks and the
  *  constant-size blocks variants.
  *  1. For GB, the block size grows; for CSB, the block size is fixed.
@@ -311,11 +312,10 @@ template<
  *  blocks are allocated in a predetermined manner, namely spacial
  *  round-robin.
  */
-template<
-    typename RandomAccessIterator1,
-    typename RandomAccessIterator2,
-    typename Pred,
-    typename Selector>
+template<typename RandomAccessIterator1,
+	 typename RandomAccessIterator2,
+	 typename Pred,
+	 typename Selector>
   std::pair<RandomAccessIterator1, RandomAccessIterator2>
   find_template(RandomAccessIterator1 begin1, RandomAccessIterator1 end1,
                 RandomAccessIterator2 begin2, Pred pred, Selector selector,
@@ -326,10 +326,12 @@ template<
     typedef typename traits_type::difference_type difference_type;
     typedef typename traits_type::value_type value_type;
 
+    const _Settings& __s = _Settings::get();
+
     difference_type length = end1 - begin1;
 
     difference_type sequential_search_size = std::min<difference_type>(
-        length, Settings::find_sequential_search_size);
+        length, __s.find_sequential_search_size);
 
     // Try it sequentially first.
     std::pair<RandomAccessIterator1, RandomAccessIterator2> find_seq_result =
@@ -352,7 +354,7 @@ template<
           num_threads = omp_get_num_threads();
 
         thread_index_t iam = omp_get_thread_num();
-        difference_type block_size = Settings::find_initial_block_size;
+        difference_type block_size = __s.find_initial_block_size;
 
         // First element of thread's current iteration.
         difference_type iteration_start = sequential_search_size;
@@ -395,8 +397,9 @@ template<
     omp_destroy_lock(&result_lock);
 
     // Return iterator on found element.
-    return std::pair<RandomAccessIterator1, RandomAccessIterator2>(
-        begin1 + result, begin2 + result);
+    return
+      std::pair<RandomAccessIterator1, RandomAccessIterator2>(begin1 + result,
+							      begin2 + result);
   }
 #endif
 } // end namespace

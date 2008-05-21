@@ -1,5 +1,5 @@
 @c Copyright (C) 1988,1989,1992,1993,1994,1995,1996,1997,1998,1999,2000,2001,
-@c 2002, 2003, 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
+@c 2002, 2003, 2004, 2005, 2006, 2007, 2008 Free Software Foundation, Inc.
 @c This is part of the GCC manual.
 @c For copying conditions, see the file gcc.texi.
 
@@ -50,6 +50,7 @@ through the macros defined in the @file{.h} file.
 * Floating Point::      Handling floating point for cross-compilers.
 * Mode Switching::      Insertion of mode-switching instructions.
 * Target Attributes::   Defining target-specific uses of @code{__attribute__}.
+* Emulated TLS::        Emulated TLS support.
 * MIPS Coprocessors::   MIPS coprocessor support and how to customize it.
 * PCH Target::          Validity checking for precompiled headers.
 * C++ ABI::             Controlling C++ ABI changes.
@@ -1288,9 +1289,7 @@ mode, otherwise @var{mode} is VOIDmode.  @var{mode} is provided in the
 case where structures of one field would require the structure's mode to
 retain the field's mode.
 
-Normally, this is not needed.  See the file @file{c4x.h} for an example
-of how to use this macro to prevent a structure having a floating point
-field from being accessed in an integer mode.
+Normally, this is not needed.
 @end defmac
 
 @defmac ROUND_TYPE_ALIGN (@var{type}, @var{computed}, @var{specified})
@@ -1351,7 +1350,7 @@ targets.
 
 @defmac TARGET_FLOAT_FORMAT
 A code distinguishing the floating point format of the target machine.
-There are four defined values:
+There are two defined values:
 
 @ftable @code
 @item IEEE_FLOAT_FORMAT
@@ -1361,9 +1360,6 @@ need to define @code{TARGET_FLOAT_FORMAT} when the format is IEEE@.
 @item VAX_FLOAT_FORMAT
 This code indicates the ``F float'' (for @code{float}) and ``D float''
 or ``G float'' formats (for @code{double}) used on the VAX and PDP-11@.
-
-@item C4X_FLOAT_FORMAT
-This code indicates the format used on the TMS320C3x/C4x.
 @end ftable
 
 If your target uses a floating point format other than these, you must
@@ -1505,6 +1501,20 @@ Returns true if the target supports decimal floating point.
 
 @deftypefn {Target Hook} {bool} TARGET_FIXED_POINT_SUPPORTED_P (void)
 Returns true if the target supports fixed-point arithmetic.
+@end deftypefn
+
+@deftypefn {Target Hook} void TARGET_EXPAND_TO_RTL_HOOK (void)
+This hook is called just before expansion into rtl, allowing the target
+to perform additional initializations or analysis before the expansion.
+For example, the rs6000 port uses it to allocate a scratch stack slot
+for use in copying SDmode values between memory and floating point
+registers whenever the function being expanded has any SDmode
+usage.
+@end deftypefn
+
+@deftypefn {Target Hook} void TARGET_INSTANTIATE_DECLS (void)
+This hook allows the backend to perform additional instantiations on rtl
+that are not actually in any insns yet, but will be later.
 @end deftypefn
 
 @deftypefn {Target Hook} {const char *} TARGET_MANGLE_TYPE (tree @var{type})
@@ -2079,7 +2089,9 @@ consecutive registers are needed for a given mode.
 @defmac HARD_REGNO_NREGS (@var{regno}, @var{mode})
 A C expression for the number of consecutive hard registers, starting
 at register number @var{regno}, required to hold a value of mode
-@var{mode}.
+@var{mode}.  This macro must never return zero, even if a register
+cannot hold the requested mode - indicate that with HARD_REGNO_MODE_OK
+and/or CANNOT_CHANGE_MODE_CLASS instead.
 
 On a machine where all registers are exactly one word, a suitable
 definition of this macro is
@@ -2614,9 +2626,9 @@ of the scratch register(s).
 In some cases, both an intermediate and a scratch register are required.
 
 For input reloads, this target hook is called with nonzero @var{in_p},
-and @var{x} is an rtx that needs to be copied to a register in of class
+and @var{x} is an rtx that needs to be copied to a register of class
 @var{reload_class} in @var{reload_mode}.  For output reloads, this target
-hook is called with zero @var{in_p}, and a register of class @var{reload_mode}
+hook is called with zero @var{in_p}, and a register of class @var{reload_class}
 needs to be copied to rtx @var{x} in @var{reload_mode}.
 
 If copying a register of @var{reload_class} from/to @var{x} requires
@@ -3159,7 +3171,7 @@ frame, or the frame pointer of the @var{count} @minus{} 1 frame if
 @code{RETURN_ADDR_IN_PREVIOUS_FRAME} is defined.
 
 The value of the expression must always be the correct address when
-@var{count} is zero, but may be @code{NULL_RTX} if there is not way to
+@var{count} is zero, but may be @code{NULL_RTX} if there is no way to
 determine the return address of other frames.
 @end defmac
 
@@ -3207,11 +3219,11 @@ This target hook allows the backend to emit frame-related insns that
 contain UNSPECs or UNSPEC_VOLATILEs.  The DWARF 2 call frame debugging
 info engine will invoke it on insns of the form
 @smallexample
-(set (reg) (unspec [...] UNSPEC_INDEX))
+(set (reg) (unspec [@dots{}] UNSPEC_INDEX))
 @end smallexample
 and
 @smallexample
-(set (reg) (unspec_volatile [...] UNSPECV_INDEX)).
+(set (reg) (unspec_volatile [@dots{}] UNSPECV_INDEX)).
 @end smallexample
 to let the backend emit the call frame instructions.  @var{label} is
 the CFI label attached to the insn, @var{pattern} is the pattern of
@@ -3807,9 +3819,11 @@ which.
 @c above is overfull.  not sure what to do.  --mew 5feb93  did
 @c something, not sure if it looks good.  --mew 10feb93
 
-@defmac OUTGOING_REG_PARM_STACK_SPACE
-Define this to a nonzero value if it is the responsibility of the caller
-to allocate the area reserved for arguments passed in registers.
+@defmac OUTGOING_REG_PARM_STACK_SPACE (@var{fntype})
+Define this to a nonzero value if it is the responsibility of the
+caller to allocate the area reserved for arguments passed in registers
+when calling a function of @var{fntype}.  @var{fntype} may be NULL
+if the function called is a library function.
 
 If @code{ACCUMULATE_OUTGOING_ARGS} is defined, this macro controls
 whether the space for these arguments counts in the value of
@@ -5472,7 +5486,7 @@ widening multiplication of the even elements of two input vectors of type @var{x
 If this hook is defined, the autovectorizer will use it along with the
 @code{TARGET_VECTORIZE_BUILTIN_MUL_WIDEN_ODD} target hook when vectorizing
 widening multiplication in cases that the order of the results does not have to be
-preserved (e.g. used only by a reduction computation). Otherwise, the
+preserved (e.g.@: used only by a reduction computation). Otherwise, the
 @code{widen_mult_hi/lo} idioms will be used.
 @end deftypefn
 
@@ -5483,7 +5497,7 @@ widening multiplication of the odd elements of two input vectors of type @var{x}
 If this hook is defined, the autovectorizer will use it along with the
 @code{TARGET_VECTORIZE_BUILTIN_MUL_WIDEN_EVEN} target hook when vectorizing
 widening multiplication in cases that the order of the results does not have to be
-preserved (e.g. used only by a reduction computation). Otherwise, the
+preserved (e.g.@: used only by a reduction computation). Otherwise, the
 @code{widen_mult_hi/lo} idioms will be used.
 @end deftypefn
 
@@ -6203,14 +6217,14 @@ used to initialize data used by the previous hook.
 @deftypefn {Target Hook} void TARGET_SCHED_DFA_PRE_CYCLE_ADVANCE (void)
 The hook to notify target that the current simulated cycle is about to finish.
 The hook is analogous to @samp{TARGET_SCHED_DFA_PRE_CYCLE_INSN} but used
-to change the state in more complicated situations - e.g. when advancing
+to change the state in more complicated situations - e.g., when advancing
 state on a single insn is not enough.
 @end deftypefn
 
 @deftypefn {Target Hook} void TARGET_SCHED_DFA_POST_CYCLE_ADVANCE (void)
 The hook to notify target that new simulated cycle has just started.
 The hook is analogous to @samp{TARGET_SCHED_DFA_POST_CYCLE_INSN} but used
-to change the state in more complicated situations - e.g. when advancing
+to change the state in more complicated situations - e.g., when advancing
 state on a single insn is not enough.
 @end deftypefn
 
@@ -6339,7 +6353,7 @@ enabled/used.  @var{flags} initially may have either the SCHED_RGN or SCHED_EBB
 bit set.  This denotes the scheduler pass for which the data should be
 provided.  The target backend should modify @var{flags} by modifying
 the bits corresponding to the following features: USE_DEPS_LIST, USE_GLAT,
-DETACH_LIFE_INFO, and DO_SPECULATION.  For the DO_SPECULATION feature
+DETACH_LIFE_INFO, and DO_SPECULATION@.  For the DO_SPECULATION feature
 an additional structure @var{spec_info} should be filled by the target.
 The structure describes speculation types that can be used in the scheduler.
 @end deftypefn
@@ -7140,7 +7154,7 @@ defining this macro.  If unable, use the expression
 before and after that, output the additional assembler syntax for defining
 the name, and a newline.
 
-There are two ways of handling global BSS.  One is to define either
+There are two ways of handling global BSS@.  One is to define either
 this macro or its aligned counterpart, @code{ASM_OUTPUT_ALIGNED_BSS}.
 The other is to have @code{TARGET_ASM_SELECT_SECTION} return a
 switchable BSS section (@pxref{TARGET_HAVE_SWITCHABLE_BSS_SECTIONS}).
@@ -7929,6 +7943,14 @@ of type @code{char *} that points to the beginning of a line of output
 from @code{LDD_SUFFIX}.  If the line lists a dynamic dependency, the
 code must advance @var{ptr} to the beginning of the filename on that
 line.  Otherwise, it must set @var{ptr} to @code{NULL}.
+@end defmac
+
+@defmac SHLIB_SUFFIX
+Define this macro to a C string constant containing the default shared
+library extension of the target (e.g., @samp{".so"}).  @command{collect2}
+strips version information after this suffix when generating global
+constructor and destructor names.  This define is only needed on targets
+that use @command{collect2} to process constructors and destructors.
 @end defmac
 
 @node Instruction Output
@@ -9173,6 +9195,84 @@ attributes, @code{false} otherwise.  By default, if a function has a
 target specific attribute attached to it, it will not be inlined.
 @end deftypefn
 
+@node Emulated TLS
+@section Emulating TLS
+@cindex Emulated TLS
+
+For targets whose psABI does not provide Thread Local Storage via
+specific relocations and instruction sequences, an emulation layer is
+used.  A set of target hooks allows this emulation layer to be
+configured for the requirements of a particular target.  For instance
+the psABI may infact specify TLS support in terms of an emulation
+layer.
+
+The emulation layer works by creating a control object for every TLS
+object.  To access the TLS object, a lookup function is provided
+which, when given the address of the control object, will return the
+address of the current thread's instance of the TLS object.
+
+@deftypevr {Target Hook} {const char *} TARGET_EMUTLS_GET_ADDRESS
+Contains the name of the helper function that uses a TLS control
+object to locate a TLS instance.  The default causes libgcc's
+emulated TLS helper function to be used.
+@end deftypevr
+
+@deftypevr {Target Hook} {const char *} TARGET_EMUTLS_REGISTER_COMMON
+Contains the name of the helper function that should be used at
+program startup to register TLS objects that are implicitly
+initialized to zero.  If this is @code{NULL}, all TLS objects will
+have explicit initializers.  The default causes libgcc's emulated TLS
+registration function to be used.
+@end deftypevr
+
+@deftypevr {Target Hook} {const char *} TARGET_EMUTLS_VAR_SECTION
+Contains the name of the section in which TLS control variables should
+be placed.  The default of @code{NULL} allows these to be placed in
+any section.
+@end deftypevr
+
+@deftypevr {Target Hook} {const char *} TARGET_EMUTLS_TMPL_SECTION
+Contains the name of the section in which TLS initializers should be
+placed.  The default of @code{NULL} allows these to be placed in any
+section.
+@end deftypevr
+
+@deftypevr {Target Hook} {const char *} TARGET_EMUTLS_VAR_PREFIX
+Contains the prefix to be prepended to TLS control variable names.
+The default of @code{NULL} uses a target-specific prefix.
+@end deftypevr
+
+@deftypevr {Target Hook} {const char *} TARGET_EMUTLS_TMPL_PREFIX
+Contains the prefix to be prepended to TLS initializer objects.  The
+default of @code{NULL} uses a target-specific prefix.
+@end deftypevr
+
+@deftypefn {Target Hook} tree TARGET_EMUTLS_VAR_FIELDS (tree @var{type}, tree *@var{name})
+Specifies a function that generates the FIELD_DECLs for a TLS control
+object type.  @var{type} is the RECORD_TYPE the fields are for and
+@var{name} should be filled with the structure tag, if the default of
+@code{__emutls_object} is unsuitable.  The default creates a type suitable
+for libgcc's emulated TLS function.
+@end deftypefn
+
+@deftypefn {Target Hook} tree TARGET_EMUTLS_VAR_INIT (tree @var{var}, tree @var{decl}, tree @var{tmpl_addr})
+Specifies a function that generates the CONSTRUCTOR to initialize a
+TLS control object.  @var{var} is the TLS control object, @var{decl}
+is the TLS object and @var{tmpl_addr} is the address of the
+initializer.  The default initializes libgcc's emulated TLS control object.
+@end deftypefn
+
+@deftypevr {Target Hook} {bool} TARGET_EMUTLS_VAR_ALIGN_FIXED
+Specifies whether the alignment of TLS control variable objects is
+fixed and should not be increased as some backends may do to optimize
+single objects.  The default is false.
+@end deftypevr
+
+@deftypevr {Target Hook} {bool} TARGET_EMUTLS_DEBUG_FORM_TLS_ADDRESS
+Specifies whether a DWARF @code{DW_OP_form_tls_address} location descriptor
+may be used to describe emulated TLS control objects.
+@end deftypevr
+
 @node MIPS Coprocessors
 @section Defining coprocessor specifics for MIPS targets.
 @cindex MIPS coprocessor-definition macros
@@ -9797,9 +9897,6 @@ arguments of pragmas registered with
 @code{c_register_pragma_with_expansion} but not on the arguments of
 pragmas registered with @code{c_register_pragma}.
 
-For an example use of this routine, see @file{c4x.h} and the callback
-routines defined in @file{c4x-c.c}.
-
 Note that the use of @code{pragma_lex} is specific to the C and C++
 compilers.  It will not work in the Java or Fortran compilers, or any
 other language compilers for that matter.  Thus if @code{pragma_lex} is going
@@ -10126,7 +10223,7 @@ may in turn cause a branch offset to overflow.
 @deftypefn {Target Hook} bool TARGET_COMMUTATIVE_P (rtx @var{x}, @var{outer_code})
 This target hook returns @code{true} if @var{x} is considered to be commutative.
 Usually, this is just COMMUTATIVE_P (@var{x}), but the HP PA doesn't consider
-PLUS to be commutative inside a MEM.  @var{outer_code} is the rtx code
+PLUS to be commutative inside a MEM@.  @var{outer_code} is the rtx code
 of the enclosing rtl, if known, otherwise it is UNKNOWN.
 @end deftypefn
 
@@ -10301,6 +10398,18 @@ option.  The default is to have no target-specific format checks.
 @defmac TARGET_N_FORMAT_TYPES
 If defined, this macro is the number of entries in
 @code{TARGET_FORMAT_TYPES}.
+@end defmac
+
+@defmac TARGET_OVERRIDES_FORMAT_ATTRIBUTES
+If defined, this macro is the name of a global variable containing
+target-specific format overrides for the @option{-Wformat} option. The
+default is to have no target-specific format overrides. If defined,
+@code{TARGET_FORMAT_TYPES} must be defined, too.
+@end defmac
+
+@defmac TARGET_OVERRIDES_FORMAT_ATTRIBUTES_COUNT
+If defined, this macro specifies the number of entries in
+@code{TARGET_OVERRIDES_FORMAT_ATTRIBUTES}.
 @end defmac
 
 @deftypefn {Target Hook} bool TARGET_RELAXED_ORDERING

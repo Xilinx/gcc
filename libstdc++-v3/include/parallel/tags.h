@@ -1,6 +1,6 @@
 // -*- C++ -*-
 
-// Copyright (C) 2007 Free Software Foundation, Inc.
+// Copyright (C) 2007, 2008 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the terms
@@ -30,7 +30,7 @@
 
 /**
  * @file parallel/tags.h
- * @brief Tags for compile-time options.
+ * @brief Tags for compile-time selection.
  *  This file is a GNU parallel extension to the Standard C++ Library.
  */
 
@@ -39,64 +39,61 @@
 #ifndef _GLIBCXX_PARALLEL_TAGS_H
 #define _GLIBCXX_PARALLEL_TAGS_H 1
 
-// Parallel mode namespaces.
-namespace std 
-{ 
-  namespace __parallel { } 
-}
+#include <omp.h>
+#include <parallel/types.h>
 
-/**
- * @namespace __gnu_sequential
- * @brief GNU sequential classes for public use.
- */
-namespace __gnu_sequential 
-{ 
-#ifdef _GLIBCXX_PARALLEL
-  using namespace std::__norm;
-#else
-  using namespace std;
-#endif   
-}
-
-/**
- * @namespace __gnu_parallel
- * @brief GNU parallel classes for public use.
- */
 namespace __gnu_parallel
 {
-  // Import all the parallel versions of components in namespace std.
-  using namespace std::__parallel;
-
-  enum parallelism
-    {
-      /// Not parallel.
-      sequential,
-
-      /// Parallel unbalanced (equal-sized chunks).
-      parallel_unbalanced,
-
-      /// Parallel balanced (work-stealing).
-      parallel_balanced,
-
-      /// Parallel with OpenMP dynamic load-balancing.
-      parallel_omp_loop,
-
-      /// Parallel with OpenMP static load-balancing.
-      parallel_omp_loop_static,
-
-      /// Parallel with OpenMP taskqueue construct.
-      parallel_taskqueue
-    };
-
-  inline bool 
-  is_parallel(const parallelism __p) { return __p != sequential; }
-
-
   /** @brief Forces sequential execution at compile time. */
   struct sequential_tag { };
 
-  /** @brief Recommends parallel execution at compile time. */
-  struct parallel_tag { };
+  /** @brief Recommends parallel execution at compile time,
+   *  optionally using a user-specified number of threads. */
+  struct parallel_tag
+  {
+    private:
+      thread_index_t num_threads;
+
+    public:
+      /** @brief Default constructor. Use default number of threads. */
+      parallel_tag()
+      {
+        this->num_threads = 0;
+      }
+
+      /** @brief Default constructor. Recommend number of threads to use.
+       *  @param num_threads Desired number of threads. */
+      parallel_tag(thread_index_t num_threads)
+      {
+        this->num_threads = num_threads;
+      }
+
+      /** @brief Find out desired number of threads.
+       *  @return Desired number of threads. */
+      inline thread_index_t get_num_threads()
+      {
+        if(num_threads == 0)
+          return omp_get_max_threads();
+        else
+          return num_threads;
+      }
+
+      /** @brief Set the desired number of threads.
+       *  @param num_threads Desired number of threads. */
+      inline void set_num_threads(thread_index_t num_threads)
+      {
+        this->num_threads = num_threads;
+      }
+  };
+
+  /** @brief Recommends parallel execution using the
+      default parallel algorithm. */
+  struct default_parallel_tag : public parallel_tag
+  {
+      default_parallel_tag() { }
+      default_parallel_tag(thread_index_t num_threads)
+          : parallel_tag(num_threads) { }
+  };
 
   /** @brief Recommends parallel execution using dynamic
       load-balancing at compile time. */
@@ -115,17 +112,86 @@ namespace __gnu_parallel
   struct omp_loop_static_tag : public parallel_tag { };
 
 
+  /** @brief Base class for for std::find() variants. */
+  struct find_tag { };
+
+
+  /** @brief Forces parallel merging
+   *  with exact splitting, at compile time. */
+  struct exact_tag : public parallel_tag
+  {
+      exact_tag() { }
+      exact_tag(thread_index_t num_threads)
+          : parallel_tag(num_threads) { }
+  };
+
+  /** @brief Forces parallel merging
+   *  with exact splitting, at compile time. */
+  struct sampling_tag : public parallel_tag
+  {
+      sampling_tag() { }
+      sampling_tag(thread_index_t num_threads)
+          : parallel_tag(num_threads) { }
+  };
+
+
+  /** @brief Forces parallel sorting using multiway mergesort
+   *  at compile time. */
+  struct multiway_mergesort_tag : public parallel_tag
+  {
+      multiway_mergesort_tag() { }
+      multiway_mergesort_tag(thread_index_t num_threads)
+          : parallel_tag(num_threads) { }
+  };
+
+  /** @brief Forces parallel sorting using multiway mergesort
+   *  with exact splitting at compile time. */
+  struct multiway_mergesort_exact_tag : public parallel_tag
+  {
+      multiway_mergesort_exact_tag() { }
+      multiway_mergesort_exact_tag(thread_index_t num_threads)
+          : parallel_tag(num_threads) { }
+  };
+
+  /** @brief Forces parallel sorting using multiway mergesort
+   *  with splitting by sampling at compile time. */
+  struct multiway_mergesort_sampling_tag : public parallel_tag
+  {
+      multiway_mergesort_sampling_tag() { }
+      multiway_mergesort_sampling_tag(thread_index_t num_threads)
+          : parallel_tag(num_threads) { }
+  };
+
+  /** @brief Forces parallel sorting using unbalanced quicksort
+   *  at compile time. */
+  struct quicksort_tag : public parallel_tag
+  {
+      quicksort_tag() { }
+      quicksort_tag(thread_index_t num_threads)
+          : parallel_tag(num_threads) { }
+  };
+
+  /** @brief Forces parallel sorting using balanced quicksort
+   *  at compile time. */
+  struct balanced_quicksort_tag : public parallel_tag
+  {
+      balanced_quicksort_tag() { }
+      balanced_quicksort_tag(thread_index_t num_threads)
+          : parallel_tag(num_threads) { }
+  };
+
+
   /** @brief Selects the growing block size variant for std::find().
       @see _GLIBCXX_FIND_GROWING_BLOCKS */
-  struct growing_blocks_tag { };
+  struct growing_blocks_tag : public find_tag { };
 
   /** @brief Selects the constant block size variant for std::find().
       @see _GLIBCXX_FIND_CONSTANT_SIZE_BLOCKS */
-  struct constant_size_blocks_tag { };
+  struct constant_size_blocks_tag : public find_tag { };
 
   /** @brief Selects the equal splitting variant for std::find().
       @see _GLIBCXX_FIND_EQUAL_SPLIT */
-  struct equal_split_tag { };
+  struct equal_split_tag : public find_tag { };
 }
 
 #endif /* _GLIBCXX_PARALLEL_TAGS_H */

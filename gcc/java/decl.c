@@ -1,7 +1,7 @@
 /* Process declarations and variables for the GNU compiler for the
    Java(TM) language.
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2007,
-   2005, 2006, 2007 Free Software Foundation, Inc.
+   2005, 2006, 2007, 2008 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -906,7 +906,7 @@ java_init_decl_processing (void)
     = add_builtin_function ("_Jv_ResolvePoolEntry",
 			    build_function_type (ptr_type_node, t),
 			    0,NOT_BUILT_IN, NULL, NULL_TREE);
-  DECL_IS_PURE (soft_resolvepoolentry_node) = 1;
+  DECL_PURE_P (soft_resolvepoolentry_node) = 1;
   throw_node = add_builtin_function ("_Jv_Throw",
 				     build_function_type (void_type_node, t),
 				     0, NOT_BUILT_IN, NULL, NULL_TREE);
@@ -1000,7 +1000,7 @@ java_init_decl_processing (void)
     = add_builtin_function ("_Jv_IsInstanceOf",
 			    build_function_type (boolean_type_node, t),
 			    0, NOT_BUILT_IN, NULL, NULL_TREE);
-  DECL_IS_PURE (soft_instanceof_node) = 1;
+  DECL_PURE_P (soft_instanceof_node) = 1;
   t = tree_cons (NULL_TREE, object_ptr_type_node,
 		 tree_cons (NULL_TREE, object_ptr_type_node, endlink));
   soft_checkarraystore_node
@@ -1014,7 +1014,7 @@ java_init_decl_processing (void)
     = add_builtin_function ("_Jv_LookupInterfaceMethodIdx",
 			    build_function_type (ptr_type_node, t),
 			    0, NOT_BUILT_IN, NULL, NULL_TREE);
-  DECL_IS_PURE (soft_lookupinterfacemethod_node) = 1;
+  DECL_PURE_P (soft_lookupinterfacemethod_node) = 1;
   t = tree_cons (NULL_TREE, ptr_type_node,
 		 tree_cons (NULL_TREE, ptr_type_node,
 			    tree_cons (NULL_TREE, ptr_type_node, endlink)));
@@ -1581,18 +1581,6 @@ force_poplevels (int start_pc)
     }
 }
 
-/* Insert BLOCK at the end of the list of subblocks of the
-   current binding level.  This is used when a BIND_EXPR is expanded,
-   to handle the BLOCK node inside the BIND_EXPR.  */
-
-void
-insert_block (tree block)
-{
-  TREE_USED (block) = 1;
-  current_binding_level->blocks
-    = chainon (current_binding_level->blocks, block);
-}
-
 /* integrate_decl_tree calls this function. */
 
 void
@@ -1851,12 +1839,7 @@ finish_method (tree fndecl)
     set_cfun (DECL_STRUCT_FUNCTION (fndecl));
   else
     allocate_struct_function (fndecl, false);
-#ifdef USE_MAPPED_LOCATION
   cfun->function_end_locus = DECL_FUNCTION_LAST_LINE (fndecl);
-#else
-  cfun->function_end_locus.file = DECL_SOURCE_FILE (fndecl);
-  cfun->function_end_locus.line = DECL_FUNCTION_LAST_LINE (fndecl);
-#endif
 
   /* Defer inlining and expansion to the cgraph optimizers.  */
   cgraph_finalize_function (fndecl, false);
@@ -1890,18 +1873,27 @@ java_mark_decl_local (tree decl)
 static void
 java_mark_cni_decl_local (tree decl)
 {
-  /* Setting DECL_LOCAL_CNI_METHOD_P changes the behavior of the mangler.
-     We expect that we should not yet have referenced this decl in a 
-     context that requires it.  Check this invariant even if we don't have
-     support for hidden aliases.  */
-  gcc_assert (!DECL_ASSEMBLER_NAME_SET_P (decl));
-
 #if !defined(HAVE_GAS_HIDDEN) || !defined(ASM_OUTPUT_DEF)
   return;
 #endif
 
   DECL_VISIBILITY (decl) = VISIBILITY_HIDDEN;
   DECL_LOCAL_CNI_METHOD_P (decl) = 1;
+
+  /* Setting DECL_LOCAL_CNI_METHOD_P changes the behavior of the
+     mangler.  We might have already referenced this native method and
+     therefore created its name, but even if we have it won't hurt.
+     We'll just go via its externally visible name, rather than its
+     hidden alias.  However, we must force things so that the correct
+     mangling is done.  */
+
+  if (DECL_ASSEMBLER_NAME_SET_P (decl))
+    java_mangle_decl (decl);
+  if (DECL_RTL_SET_P (decl))
+    {
+      SET_DECL_RTL (decl, 0);
+      make_decl_rtl (decl);
+    }
 }
 
 /* Use the preceding two functions and mark all members of the class.  */

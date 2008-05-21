@@ -20,6 +20,47 @@ autogen definitions fixincl;
 FIXINC_DEBUG = yes;
 #endif
 
+/* On AIX when _LARGE_FILES is defined stdio.h defines fopen to
+ * fopen64 etc. and this causes problems when building with g++
+ * because cstdio udefs everything from stdio.h, leaving us with
+ * ::fopen has not been declared errors. This fixes stdio.h to
+ * undef those defines and use __asm__ to alias the symbols if
+ * building with g++ and -D_LARGE_FILES
+ */
+fix = {
+	hackname  = AAB_aix_stdio;
+	files     = stdio.h;
+	select    = "define fopen fopen64";
+	mach      = "*-*-aix*";
+
+	c_fix	  = wrap;
+
+	c_fix_arg = "";
+
+	c_fix_arg = "\n" 
+	"#if defined __GNUG__ && defined _LARGE_FILES && defined __cplusplus\n"
+	"#define __need__aix_stdio_h_fix\n"
+	"#ifdef __need__aix_stdio_h_fix\n"
+	"#undef fseeko\n"
+	"#undef ftello\n"
+	"#undef fgetpos\n"
+	"#undef fsetpos\n"
+	"#undef fopen\n"
+	"#undef freopen\n"
+	"/* Alias the symbols using asm */\n"
+	"extern \"C\" {\n"
+	"extern int fgetpos(FILE *, fpos64_t *) __asm__(\"fgetpos64\");\n"
+	"extern FILE *fopen(const char *, const char *) __asm__(\"fopen64\");\n"
+	"extern FILE *freopen(const char *, const char *, FILE *) __asm__(\"freopen64\");\n"
+	"extern int fseeko(FILE *, off64_t, int) __asm__(\"fseeko64\");\n"
+	"extern int fsetpos(FILE *, const fpos64_t *) __asm__(\"fsetpos64\");\n"
+	"extern off64_t ftello(FILE *) __asm__(\"ftello64\");\n"
+	"}\n"
+	"#endif\n"
+	"#endif\n";
+	test_text = "";
+};
+
 
 /*
  *  On Mac OS 10.3.9, the 'long double' functions are available in
@@ -141,6 +182,7 @@ fix = {
     mach     = 'i[34567]86-*-linux*';
     bypass   = '} while';
     bypass   = 'x86_64';
+    bypass   = 'posix_types_64';
 
     /*
      * Define _POSIX_TYPES_H_WRAPPER at the end of the wrapper, not
@@ -1085,8 +1127,8 @@ fix = {
  */
 fix = {
     hackname  = bsd_stdio_attrs_conflict;
-    mach      = *-*-*bsd*;
-    mach      = *-*-*darwin*;
+    mach      = "*-*-*bsd*";
+    mach      = "*-*-*darwin*";
     files     = stdio.h;
     select    = "^#define[ \t]*vfscanf[ \t]*__svfscanf[ \t]*$";
     c_fix     = format;
@@ -1303,7 +1345,7 @@ fix = {
  */
 fix = {
     hackname  = freebsd_gcc3_breakage;
-    mach      = *-*-freebsd*;
+    mach      = "*-*-freebsd*";
     files     = sys/cdefs.h;
     select    = '^#if __GNUC__ == 2 && __GNUC_MINOR__ >= 7$';
     bypass    = '__GNUC__[ \t]*([>=]=[ \t]*[3-9]|>[ \t]*2)';
@@ -1320,7 +1362,7 @@ fix = {
  */
 fix = {
     hackname  = freebsd_gcc4_breakage;
-    mach      = *-*-freebsd*; 
+    mach      = "*-*-freebsd*"; 
     files     = sys/cdefs.h;
     select    = '^#if __GNUC__ == 2 && __GNUC_MINOR__ >= 7 \|\| __GNUC__ == 3$';
     c_fix     = format;
@@ -1341,6 +1383,24 @@ fix = {
     test_text = <<-EOT
 #if __GNUC_PREREQ (2, 7) && defined __OPTIMIZE__ \
     && !defined __OPTIMIZE_SIZE__ && !defined __NO_INLINE__
+# define __USE_EXTERN_INLINES	1
+#endif
+EOT;
+};
+
+
+/*
+ *  Similar, but a version that didn't have __NO_INLINE__
+ */
+fix = {
+    hackname  = glibc_c99_inline_1a;
+    files     = features.h, '*/features.h';
+    select    = "(\\) && defined __OPTIMIZE__ && !defined __OPTIMIZE_SIZE__)\n"
+		"(#[ \t]*define[ \t]*__USE_EXTERN_INLINES[ \t]*1)";
+    c_fix     = format;
+    c_fix_arg = "%1 && (defined __extern_inline || defined __GNUC_GNU_INLINE__)\n%2";
+    test_text = <<-EOT
+#if __GNUC_PREREQ (2, 7) && defined __OPTIMIZE__ && !defined __OPTIMIZE_SIZE__
 # define __USE_EXTERN_INLINES	1
 #endif
 EOT;
@@ -1378,7 +1438,7 @@ fix = {
     hackname  = glibc_c99_inline_3;
     files     = bits/string2.h, '*/bits/string2.h';
     select    = "extern __inline";
-    bypass    = "__STDC_VERSION__";
+    bypass    = "__extern_inline|__GNU_STDC_INLINE__";
     c_fix     = format;
     c_fix_arg = "# if defined(__cplusplus) || defined(__GNUC_STDC_INLINE__)";
     c_fix_arg = "^# ifdef __cplusplus$";
@@ -1394,15 +1454,13 @@ fix = {
 
 fix = {
     hackname  = glibc_c99_inline_4;
-    files     = sys/sysmacros.h, '*/sys/sysmacros.h';
-    bypass    = "__STDC_VERSION__";
-    select    = "extern __inline";
+    files     = sys/sysmacros.h, '*/sys/sysmacros.h', wchar.h, '*/wchar.h';
+    bypass    = "__extern_inline|__gnu_inline__";
+    select    = "(^| )extern __inline";
     c_fix     = format;
-    c_fix_arg = "\n#ifdef __GNUC_GNU_INLINE__\nextern\n#endif\n";
-    c_fix_arg = '(^| )extern ';
+    c_fix_arg = "%0 __attribute__ ((__gnu_inline__))";
     test_text = <<-EOT
 	__extension__ extern __inline unsigned int
-	__extension__ __extern_inline unsigned int
 	extern __inline unsigned int
 	EOT;
 };
@@ -1586,7 +1644,7 @@ fix = {
 
 fix = {
      hackname  = hppa_hpux_fp_macros;
-     mach      = hppa*-hp-hpux11*;
+     mach      = "hppa*-hp-hpux11*";
      files     = math.h;
      select    = "#[ \t]*define[ \t]*FP_NORMAL.*\n"
 		 "#[ \t]*define[ \t]*FP_ZERO.*\n"
@@ -1695,7 +1753,7 @@ fix = {
  */
 fix = {
     hackname  = hpux11_abs;
-    mach      = ia64-hp-hpux11*;
+    mach      = "ia64-hp-hpux11*";
     files     = stdlib.h;
     select    = "ifndef _MATH_INCLUDED";
     c_fix     = format;
@@ -2637,7 +2695,7 @@ fix = {
  */
 fix = {
     hackname  = netbsd_c99_inline_1;
-    mach      = *-*-netbsd*;
+    mach      = "*-*-netbsd*";
     files     = signal.h;
     select    = "extern __inline int";
 
@@ -2650,7 +2708,7 @@ fix = {
 
 fix = {
     hackname  = netbsd_c99_inline_2;
-    mach      = *-*-netbsd*;
+    mach      = "*-*-netbsd*";
     files     = signal.h;
     select    = "#define _SIGINLINE extern __inline";
 
@@ -2672,7 +2730,7 @@ fix = {
  */
 fix = {
     hackname  = netbsd_extra_semicolon;
-    mach      = *-*-netbsd*;
+    mach      = "*-*-netbsd*";
     files     = sys/cdefs.h;
     select    = "#define[ \t]*__END_DECLS[ \t]*};";
 
@@ -3204,6 +3262,30 @@ fix = {
     "#define	islessgreater(x, y)	((x) __builtin_islessgreater(y))\n"
     "#undef	isunordered\n"
     "#define	isunordered(x, y)	((x) __builtin_isunordered(y))";
+};
+
+/*
+ * On Solaris 11, if you do isinf(NaN) you'll get a floating point
+ * exception.  Provide an alternative using GCC's builtin.
+ */
+
+fix = {
+    hackname  = solaris_math_10;
+    select    = '@\(#\)math_c99.h' "[ \t]+1.[0-9]+[ \t]+[0-9/]+ SMI";
+    files     = iso/math_c99.h;
+    c_fix     = format;
+    c_fix_arg = "#define\tisinf(x) __builtin_isinf(x)";
+    c_fix_arg = "^#define[ \t]+isinf\\(x\\)[ \t]+__extension__\\([ \t]*\\\\\n"
+                "[ \t]*\\{[ \t]*__typeof\\(x\\)[ \t]*__x_i[ \t]*=[ \t]*\\(x\\);[ \t]*\\\\\n"
+                "[ \t]*__x_i[ \t]*==[ \t]*\\(__typeof\\(__x_i\\)\\)[ \t]*INFINITY[ \t]*\\|\\|[ \t]*\\\\\n"
+                "[ \t]*__x_i[ \t]*==[ \t]*\\(__typeof\\(__x_i\\)\\)[ \t]*\\(-INFINITY\\);[ \t]*\\}\\)";
+    test_text =
+    '#pragma ident	"@(#)math_c99.h	1.12	07/01/21 SMI"'"\n"
+    "#undef	isinf\n"
+    "#define	isinf(x)	__extension__( \\\\\n"
+    "			{ __typeof(x) __x_i = (x); \\\\\n"
+    "			__x_i == (__typeof(__x_i)) INFINITY || \\\\\n"
+    "			__x_i == (__typeof(__x_i)) (-INFINITY); })";
 };
 
 /*

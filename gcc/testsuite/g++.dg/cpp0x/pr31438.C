@@ -1,7 +1,7 @@
 // { dg-options "-std=gnu++0x" }
 
 template<typename> struct A;
-template<typename T, typename... U> struct A<T(U)> // { dg-error "parameter packs|U|not used|U" }
+template<typename T, typename... U> struct A<T(U)> // { dg-error "parameter packs|U" }
 {
  template<typename X> A(X);
 };

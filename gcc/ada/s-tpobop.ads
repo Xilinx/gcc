@@ -2,12 +2,11 @@
 --                                                                          --
 --                 GNAT RUN-TIME LIBRARY (GNARL) COMPONENTS                 --
 --                                                                          --
---     S Y S T E M . T A S K I N G . P R O T E C T E D _ O B J E C T S .    --
---                             O P E R A T I O N S                          --
+--               SYSTEM.TASKING.PROTECTED_OBJECTS.OPERATIONS                --
 --                                                                          --
 --                                  S p e c                                 --
 --                                                                          --
---          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNARL is free software; you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -45,7 +44,6 @@
 --  Any changes to this interface may require corresponding compiler changes.
 
 with Ada.Exceptions;
---  Used for Exception_Id
 
 with System.Tasking.Protected_Objects.Entries;
 
@@ -199,6 +197,15 @@ private
       Cancelled : Boolean := False;
    end record;
    pragma Volatile (Communication_Block);
+
+   --  When a program contains limited interfaces, the compiler generates the
+   --  predefined primitives associated with dispatching selects. One of the
+   --  parameters of these routines is of type Communication_Block. Even if
+   --  the program lacks implementing concurrent types, the tasking runtime is
+   --  dragged in unconditionally because of Communication_Block. To avoid this
+   --  case, the compiler uses type Dummy_Communication_Block which defined in
+   --  System.Soft_Links. If the structure of Communication_Block is changed,
+   --  the corresponding dummy type must be changed as well.
 
    --  The Communication_Block seems to be a relic. At the moment, the
    --  compiler seems to be generating unnecessary conditional code based on

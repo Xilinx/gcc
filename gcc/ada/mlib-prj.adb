@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---                     Copyright (C) 2001-2007, AdaCore                     --
+--                     Copyright (C) 2001-2008, AdaCore                     --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -446,7 +446,7 @@ package body MLib.Prj is
       --  Start of processing for Add_Rpath
 
       begin
-         --  If firt path, allocate initial Rpath
+         --  If first path, allocate initial Rpath
 
          if Rpath = null then
             Rpath := new String (1 .. Initial_Rpath_Length);
@@ -827,6 +827,12 @@ package body MLib.Prj is
 
       if not Data.Library then
          Com.Fail ("project """, Project_Name, """ has no library");
+      end if;
+
+      --  Do not attempt to build the library if it is externally built
+
+      if Data.Externally_Built then
+         return;
       end if;
 
       --  If this is the first time Build_Library is called, get the Name_Id
@@ -1399,17 +1405,18 @@ package body MLib.Prj is
                               declare
                                  ALI_File : constant String :=
                                               Ext_To
-                                                (Filename (1 .. Last), "ali");
+                                                (C_Filename
+                                                   (1 .. Last), "ali");
                                  ALI_Path : constant String :=
-                                              Ext_To (Object_Path, "ali");
+                                              Ext_To (C_Object_Path, "ali");
                                  Add_It   : Boolean :=
                                               There_Are_Foreign_Sources
-                                              or else
-                                                (Last > 5
-                                                 and then
-                                                 C_Filename
-                                                   (1 .. B_Start'Length) =
-                                                 B_Start.all);
+                                                or else
+                                                  (Last > 5
+                                                    and then
+                                                      C_Filename
+                                                        (1 .. B_Start'Length) =
+                                                           B_Start.all);
                                  Fname    : File_Name_Type;
                                  Proj     : Project_Id;
 
@@ -2118,9 +2125,9 @@ package body MLib.Prj is
                      Obj_TS := File_Stamp (File_Name_Type'(Name_Find));
 
                      --  If library file time stamp is earlier, set
-                     --  Need_To_Build_Lib and return. String comparaison is
+                     --  Need_To_Build_Lib and return. String comparison is
                      --  used, otherwise time stamps may be too close and the
-                     --  comparaison would return True, which would trigger
+                     --  comparison would return True, which would trigger
                      --  an unnecessary rebuild of the library.
 
                      if String (Lib_TS) < String (Obj_TS) then
@@ -2348,7 +2355,7 @@ package body MLib.Prj is
       Fd : FILEs;
       --  Binder file's descriptor
 
-      Read_Mode : constant String := "r" & ASCII.Nul;
+      Read_Mode : constant String := "r" & ASCII.NUL;
       --  For fopen
 
       Status : Interfaces.C_Streams.int;

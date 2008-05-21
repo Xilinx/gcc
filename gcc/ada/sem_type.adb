@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -39,6 +39,7 @@ with Sem_Ch6;  use Sem_Ch6;
 with Sem_Ch8;  use Sem_Ch8;
 with Sem_Ch12; use Sem_Ch12;
 with Sem_Disp; use Sem_Disp;
+with Sem_Dist; use Sem_Dist;
 with Sem_Util; use Sem_Util;
 with Stand;    use Stand;
 with Sinfo;    use Sinfo;
@@ -403,10 +404,9 @@ package body Sem_Type is
             return;
          end if;
 
-      --  In an instance, an abstract non-dispatching operation cannot
-      --  be a candidate interpretation, because it could not have been
-      --  one in the generic (it may be a spurious overloading in the
-      --  instance).
+      --  In an instance, an abstract non-dispatching operation cannot be a
+      --  candidate interpretation, because it could not have been one in the
+      --  generic (it may be a spurious overloading in the instance).
 
       elsif In_Instance
         and then Is_Overloadable (E)
@@ -415,20 +415,20 @@ package body Sem_Type is
       then
          return;
 
-      --  An inherited interface operation that is implemented by some
-      --  derived type does not participate in overload resolution, only
-      --  the implementation operation does.
+      --  An inherited interface operation that is implemented by some derived
+      --  type does not participate in overload resolution, only the
+      --  implementation operation does.
 
       elsif Is_Hidden (E)
         and then Is_Subprogram (E)
         and then Present (Abstract_Interface_Alias (E))
       then
          --  Ada 2005 (AI-251): If this primitive operation corresponds with
-         --  an inmediate ancestor interface there is no need to add it to the
-         --  list of interpretations; the corresponding aliased primitive is
+         --  an immediate ancestor interface there is no need to add it to the
+         --  list of interpretations. The corresponding aliased primitive is
          --  also in this list of primitive operations and will be used instead
-         --  because otherwise we have a dummy between the two subprograms that
-         --  are in fact the same.
+         --  because otherwise we have a dummy ambiguity between the two
+         --  subprograms which are in fact the same.
 
          if not Is_Ancestor
                   (Find_Dispatching_Type (Abstract_Interface_Alias (E)),
@@ -437,6 +437,12 @@ package body Sem_Type is
             Add_One_Interp (N, Abstract_Interface_Alias (E), T);
          end if;
 
+         return;
+
+      --  Calling stubs for an RACW operation never participate in resolution,
+      --  they are executed only through dispatching calls.
+
+      elsif Is_RACW_Stub_Type_Operation (E) then
          return;
       end if;
 
@@ -505,8 +511,8 @@ package body Sem_Type is
             end;
 
          else
-            --  Overloaded prefix in indexed or selected component,
-            --  or call whose name is an expression or another call.
+            --  Overloaded prefix in indexed or selected component, or call
+            --  whose name is an expression or another call.
 
             Add_Entry (Etype (N), Etype (N));
          end if;
@@ -530,6 +536,7 @@ package body Sem_Type is
             Write_Entity_Info (All_Interp.Table (J). Nam, " ");
          else
             Write_Str ("No Interp");
+            Write_Eol;
          end if;
 
          Write_Str ("=================");
@@ -641,7 +648,7 @@ package body Sem_Type is
                Add_One_Interp (N, H, Etype (H));
 
                if Debug_Flag_E then
-                  Write_Str ("Add overloaded Interpretation ");
+                  Write_Str ("Add overloaded interpretation ");
                   Write_Int (Int (H));
                   Write_Eol;
                end if;
@@ -680,9 +687,15 @@ package body Sem_Type is
 
       if All_Interp.Last = First_Interp + 1 then
 
-         --  The original interpretation is in fact not overloaded
+         --  The final interpretation is in fact not overloaded. Note that the
+         --  unique legal interpretation may or may not be the original one,
+         --  so we need to update N's entity and etype now, because once N
+         --  is marked as not overloaded it is also expected to carry the
+         --  proper interpretation.
 
          Set_Is_Overloaded (N, False);
+         Set_Entity (N, All_Interp.Table (First_Interp).Nam);
+         Set_Etype  (N, All_Interp.Table (First_Interp).Typ);
       end if;
    end Collect_Interps;
 
@@ -931,7 +944,7 @@ package body Sem_Type is
 
       --  The context can be a remote access type, and the expression the
       --  corresponding source type declared in a categorized package, or
-      --  viceversa.
+      --  vice versa.
 
       elsif Is_Record_Type (T1)
         and then (Is_Remote_Call_Interface (T1)
@@ -1514,8 +1527,8 @@ package body Sem_Type is
       end if;
 
       --  Check for overloaded CIL convention stuff because the CIL libraries
-      --  do sick things like Console.WriteLine where it matches
-      --  two different overloads, so just pick the first ???
+      --  do sick things like Console.Write_Line where it matches two different
+      --  overloads, so just pick the first ???
 
       if Convention (Nam1) = Convention_CIL
         and then Convention (Nam2) = Convention_CIL
@@ -1981,7 +1994,10 @@ package body Sem_Type is
       Form_Parm : Node_Id;
 
    begin
-      if Is_Overloaded (N) then
+      --  Why is check on E needed below ???
+      --  In any case this para needs comments ???
+
+      if Is_Overloaded (N) and then Is_Overloadable (E) then
          Act_Parm  := First_Actual (N);
          Form_Parm := First_Formal (E);
          while Present (Act_Parm)

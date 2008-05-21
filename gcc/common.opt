@@ -1,6 +1,7 @@
 ; Options for the language- and target-independent parts of the compiler.
 
-; Copyright (C) 2003, 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
+; Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008
+; Free Software Foundation, Inc.
 ;
 ; This file is part of GCC.
 ;
@@ -109,13 +110,20 @@ Wfatal-errors
 Common Var(flag_fatal_errors)
 Exit on the first error occurred
 
+Wframe-larger-than=
+Common RejectNegative Joined UInteger
+-Wframe-larger-than=<number> Warn if a function's stack frame requires more than <number> bytes
+
 Winline
 Common Var(warn_inline) Warning
 Warn when an inlined function cannot be inlined
 
 Wlarger-than-
 Common RejectNegative Joined UInteger Warning
--Wlarger-than-<number>	Warn if an object is larger than <number> bytes
+
+Wlarger-than=
+Common RejectNegative Joined UInteger Warning
+-Wlarger-than=<number>	Warn if an object is larger than <number> bytes
 
 Wlogical-op
 Common Warning Var(warn_logical_op)
@@ -128,6 +136,10 @@ Warn if the loop cannot be optimized due to nontrivial assumptions.
 Wmissing-noreturn
 Common Var(warn_missing_noreturn) Warning
 Warn about functions which might be candidates for __attribute__((noreturn))
+
+Wmudflap
+Common Var(warn_mudflap) Init(1) Warning
+Warn about constructs not instrumented by -fmudflap
 
 Woverflow
 Common Var(warn_overflow) Init(1) Warning
@@ -154,7 +166,7 @@ Common Warning
 Warn about code which might break strict aliasing rules
 
 Wstrict-aliasing=
-Common Joined UInteger Warning
+Common Joined UInteger Var(warn_strict_aliasing) Init(-1) Warning
 Warn about code which might break strict aliasing rules
 
 Wstrict-overflow
@@ -162,7 +174,7 @@ Common Warning
 Warn about optimizations that assume that signed overflow is undefined
 
 Wstrict-overflow=
-Common Joined UInteger Warning
+Common Joined UInteger Var(warn_strict_overflow) Init(-1) Warning
 Warn about optimizations that assume that signed overflow is undefined
 
 Wswitch
@@ -180,6 +192,10 @@ Warn about all enumerated switches missing a specific case
 Wsystem-headers
 Common Var(warn_system_headers) Warning
 Do not suppress warnings from system headers
+
+Wtype-limits
+Common Var(warn_type_limits) Init(-1) Warning
+Warn if a comparison is always true or always false due to the limited range of the data type
 
 Wuninitialized
 Common Var(warn_uninitialized) Warning
@@ -212,10 +228,6 @@ Warn when an expression value is unused
 Wunused-variable
 Common Var(warn_unused_variable) Warning
 Warn when a variable is unused
-
-Wvolatile-register-var
-Common Var(warn_register_var) Warning
-Warn when a register variable is declared volatile
 
 Wcoverage-mismatch
 Common RejectNegative Var(warn_coverage_mismatch) Warning
@@ -388,6 +400,10 @@ When running CSE, follow conditional jumps
 fcx-limited-range
 Common Report Var(flag_cx_limited_range) Optimization
 Omit range reduction step when performing complex division
+
+fcx-fortran-rules
+Common Report Var(flag_cx_fortran_rules) Optimization
+Complex multiplication and division follow Fortran rules
 
 fdata-sections
 Common Report Var(flag_data_sections) Optimization
@@ -668,6 +684,10 @@ fmerge-constants
 Common Report Var(flag_merge_constants,1) VarExists Optimization
 Attempt to merge identical constants across compilation units
 
+fmerge-debug-strings
+Common Report Var(flag_merge_debug_strings) Init(1)
+Attempt to merge identical debug strings across compilation units
+
 fmessage-length=
 Common RejectNegative Joined UInteger
 -fmessage-length=<number>	Limit diagnostics to <number> characters per line.  0 suppresses line-wrapping
@@ -796,13 +816,26 @@ fprofile-arcs
 Common Report Var(profile_arc_flag)
 Insert arc-based program profiling code
 
+fprofile-dir=
+Common Joined RejectNegative
+Set the top-level directory for storing the profile data.
+The default is 'pwd'.
+
 fprofile-generate
 Common
 Enable common options for generating profile info for profile feedback directed optimizations
 
+fprofile-generate=
+Common Joined RejectNegative
+Enable common options for generating profile info for profile feedback directed optimizations, and set -fprofile-dir=
+
 fprofile-use
-Common
+Common Var(flag_profile_use)
 Enable common options for performing profile feedback directed optimizations
+
+fprofile-use=
+Common Joined RejectNegative
+Enable common options for performing profile feedback directed optimizations, and set -fprofile-dir=
 
 fprofile-values
 Common Report Var(flag_profile_values)
@@ -1100,7 +1133,7 @@ Common Report Var(flag_tree_fre) Optimization
 Enable Full Redundancy Elimination (FRE) on trees
 
 ftree-loop-distribution
-Common Report Var(flag_tree_loop_distribution)
+Common Report Var(flag_tree_loop_distribution) Optimization
 Enable loop distribution on trees
 
 ftree-loop-im
@@ -1132,8 +1165,8 @@ Common Report Var(flag_tree_reassoc) Init(1) Optimization
 Enable reassociation on tree level
 
 ftree-salias
-Common Report Var(flag_tree_salias) Optimization
-Perform structural alias analysis
+Common
+Does nothing.  Preserved for backward compatibility.
 
 ftree-sink
 Common Report Var(flag_tree_sink) Optimization

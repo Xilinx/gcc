@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -29,7 +29,6 @@ with Einfo;    use Einfo;
 with Errout;   use Errout;
 with Exp_Tss;  use Exp_Tss;
 with Exp_Util; use Exp_Util;
-with Layout;   use Layout;
 with Lib;      use Lib;
 with Lib.Xref; use Lib.Xref;
 with Namet;    use Namet;
@@ -68,13 +67,13 @@ package body Sem_Ch13 is
 
    procedure Alignment_Check_For_Esize_Change (Typ : Entity_Id);
    --  This routine is called after setting the Esize of type entity Typ.
-   --  The purpose is to deal with the situation where an aligment has been
+   --  The purpose is to deal with the situation where an alignment has been
    --  inherited from a derived type that is no longer appropriate for the
    --  new Esize value. In this case, we reset the Alignment to unknown.
 
    procedure Check_Component_Overlap (C1_Ent, C2_Ent : Entity_Id);
    --  Given two entities for record components or discriminants, checks
-   --  if they hav overlapping component clauses and issues errors if so.
+   --  if they have overlapping component clauses and issues errors if so.
 
    function Get_Alignment_Value (Expr : Node_Id) return Uint;
    --  Given the expression for an alignment value, returns the corresponding
@@ -119,7 +118,7 @@ package body Sem_Ch13 is
    --  call to Validate_Unchecked_Conversions does the actual error
    --  checking and posting of warnings. The reason for this delayed
    --  processing is to take advantage of back-annotations of size and
-   --  alignment values peformed by the back end.
+   --  alignment values performed by the back end.
 
    type UC_Entry is record
       Enode  : Node_Id;   -- node used for posting warnings
@@ -180,17 +179,16 @@ package body Sem_Ch13 is
         and then Attribute_Name (N) = Name_Address
       then
          declare
-            Nam : Node_Id := Prefix (N);
+            P : Node_Id;
+
          begin
-            while False
-              or else Nkind (Nam) = N_Selected_Component
-              or else Nkind (Nam) = N_Indexed_Component
-            loop
-               Nam := Prefix (Nam);
+            P := Prefix (N);
+            while Nkind_In (P, N_Selected_Component, N_Indexed_Component) loop
+               P := Prefix (P);
             end loop;
 
-            if Is_Entity_Name (Nam) then
-               return Entity (Nam);
+            if Is_Entity_Name (P) then
+               return Entity (P);
             end if;
          end;
       end if;
@@ -296,7 +294,7 @@ package body Sem_Ch13 is
 
       declare
          Comps : array (0 .. Num_CC) of Entity_Id;
-         --  Array to collect component and discrimninant entities. The data
+         --  Array to collect component and discriminant entities. The data
          --  starts at index 1, the 0'th entry is for the sort routine.
 
          function CP_Lt (Op1, Op2 : Natural) return Boolean;
@@ -486,7 +484,11 @@ package body Sem_Ch13 is
    --  definition clause that is the preferred approach in Ada 95.
 
    procedure Analyze_At_Clause (N : Node_Id) is
+      CS : constant Boolean := Comes_From_Source (N);
+
    begin
+      --  This is an obsolescent feature
+
       Check_Restriction (No_Obsolescent_Features, N);
 
       if Warn_On_Obsolescent_Feature then
@@ -496,11 +498,21 @@ package body Sem_Ch13 is
            ("\use address attribute definition clause instead?", N);
       end if;
 
+      --  Rewrite as address clause
+
       Rewrite (N,
         Make_Attribute_Definition_Clause (Sloc (N),
           Name  => Identifier (N),
           Chars => Name_Address,
           Expression => Expression (N)));
+
+      --  We preserve Comes_From_Source, since logically the clause still
+      --  comes from the source program even though it is changed in form.
+
+      Set_Comes_From_Source (N, CS);
+
+      --  Analyze rewritten clause
+
       Analyze_Attribute_Definition_Clause (N);
    end Analyze_At_Clause;
 
@@ -529,6 +541,10 @@ package body Sem_Ch13 is
       procedure Analyze_Stream_TSS_Definition (TSS_Nam : TSS_Name_Type);
       --  Common processing for 'Read, 'Write, 'Input and 'Output attribute
       --  definition clauses.
+
+      -----------------------------------
+      -- Analyze_Stream_TSS_Definition --
+      -----------------------------------
 
       procedure Analyze_Stream_TSS_Definition (TSS_Nam : TSS_Name_Type) is
          Subp : Entity_Id := Empty;
@@ -589,7 +605,6 @@ package body Sem_Ch13 is
 
             return Base_Type (Typ) = Base_Type (Ent)
               and then No (Next_Formal (F));
-
          end Has_Good_Profile;
 
       --  Start of processing for Analyze_Stream_TSS_Definition
@@ -740,6 +755,22 @@ package body Sem_Ch13 is
          --  Address attribute definition clause
 
          when Attribute_Address => Address : begin
+
+            --  A little error check, catch for X'Address use X'Address;
+
+            if Nkind (Nam) = N_Identifier
+              and then Nkind (Expr) = N_Attribute_Reference
+              and then Attribute_Name (Expr) = Name_Address
+              and then Nkind (Prefix (Expr)) = N_Identifier
+              and then Chars (Nam) = Chars (Prefix (Expr))
+            then
+               Error_Msg_NE
+                 ("address for & is self-referencing", Prefix (Expr), Ent);
+               return;
+            end if;
+
+            --  Not that special case, carry on with analysis of expression
+
             Analyze_And_Resolve (Expr, RTE (RE_Address));
 
             if Present (Address_Clause (U_Ent)) then
@@ -876,7 +907,7 @@ package body Sem_Ch13 is
                   --  We mark a possible modification of a variable with an
                   --  address clause, since it is likely aliasing is occurring.
 
-                  Note_Possible_Modification (Nam);
+                  Note_Possible_Modification (Nam, Sure => False);
 
                   --  Here we are checking for explicit overlap of one variable
                   --  by another, and if we find this then mark the overlapped
@@ -921,22 +952,25 @@ package body Sem_Ch13 is
 
                --  If the address clause is of the form:
 
-               --    for X'Address use Y'Address
+               --    for Y'Address use X'Address
 
                --  or
 
-               --    Const : constant Address := Y'Address;
+               --    Const : constant Address := X'Address;
                --    ...
-               --    for X'Address use Const;
+               --    for Y'Address use Const;
 
                --  then we make an entry in the table for checking the size and
                --  alignment of the overlaying variable. We defer this check
                --  till after code generation to take full advantage of the
                --  annotation done by the back end. This entry is only made if
                --  we have not already posted a warning about size/alignment
-               --  (some warnings of this type are posted in Checks).
+               --  (some warnings of this type are posted in Checks), and if
+               --  the address clause comes from source.
 
-               if Address_Clause_Overlay_Warnings then
+               if Address_Clause_Overlay_Warnings
+                 and then Comes_From_Source (N)
+               then
                   declare
                      Ent_X : Entity_Id := Empty;
                      Ent_Y : Entity_Id := Empty;
@@ -946,7 +980,18 @@ package body Sem_Ch13 is
 
                      if Present (Ent_Y) and then Is_Entity_Name (Name (N)) then
                         Ent_X := Entity (Name (N));
-                           Address_Clause_Checks.Append ((N, Ent_X, Ent_Y));
+                        Address_Clause_Checks.Append ((N, Ent_X, Ent_Y));
+
+                        --  If variable overlays a constant view, and we are
+                        --  warning on overlays, then mark the variable as
+                        --  overlaying a constant (we will give warnings later
+                        --  if this variable is assigned).
+
+                        if Is_Constant_Object (Ent_Y)
+                          and then Ekind (Ent_X) = E_Variable
+                        then
+                           Set_Overlays_Constant (Ent_X);
+                        end if;
                      end if;
                   end;
                end if;
@@ -1039,7 +1084,7 @@ package body Sem_Ch13 is
 
             if Has_Component_Size_Clause (Btype) then
                Error_Msg_N
-                 ("component size clase for& previously given", Nam);
+                 ("component size clause for& previously given", Nam);
 
             elsif Csize /= No_Uint then
                Check_Size (Expr, Component_Type (Btype), Csize, Biased);
@@ -1058,34 +1103,50 @@ package body Sem_Ch13 is
                --  that will be used to represent the biased subtype that
                --  reflects the biased representation of components. We need
                --  this subtype to get proper conversions on referencing
-               --  elements of the array.
+               --  elements of the array. Note that component size clauses
+               --  are ignored in VM mode.
 
-               if Biased then
-                  New_Ctyp :=
-                    Make_Defining_Identifier (Loc,
-                      Chars => New_External_Name (Chars (U_Ent), 'C', 0, 'T'));
+               if VM_Target = No_VM then
+                  if Biased then
+                     New_Ctyp :=
+                       Make_Defining_Identifier (Loc,
+                         Chars =>
+                           New_External_Name (Chars (U_Ent), 'C', 0, 'T'));
 
-                  Decl :=
-                    Make_Subtype_Declaration (Loc,
-                      Defining_Identifier => New_Ctyp,
-                      Subtype_Indication  =>
-                        New_Occurrence_Of (Component_Type (Btype), Loc));
+                     Decl :=
+                       Make_Subtype_Declaration (Loc,
+                         Defining_Identifier => New_Ctyp,
+                         Subtype_Indication  =>
+                           New_Occurrence_Of (Component_Type (Btype), Loc));
 
-                  Set_Parent (Decl, N);
-                  Analyze (Decl, Suppress => All_Checks);
+                     Set_Parent (Decl, N);
+                     Analyze (Decl, Suppress => All_Checks);
 
-                  Set_Has_Delayed_Freeze        (New_Ctyp, False);
-                  Set_Esize                     (New_Ctyp, Csize);
-                  Set_RM_Size                   (New_Ctyp, Csize);
-                  Init_Alignment                (New_Ctyp);
-                  Set_Has_Biased_Representation (New_Ctyp, True);
-                  Set_Is_Itype                  (New_Ctyp, True);
-                  Set_Associated_Node_For_Itype (New_Ctyp, U_Ent);
+                     Set_Has_Delayed_Freeze        (New_Ctyp, False);
+                     Set_Esize                     (New_Ctyp, Csize);
+                     Set_RM_Size                   (New_Ctyp, Csize);
+                     Init_Alignment                (New_Ctyp);
+                     Set_Has_Biased_Representation (New_Ctyp, True);
+                     Set_Is_Itype                  (New_Ctyp, True);
+                     Set_Associated_Node_For_Itype (New_Ctyp, U_Ent);
 
-                  Set_Component_Type (Btype, New_Ctyp);
+                     Set_Component_Type (Btype, New_Ctyp);
+                  end if;
+
+                  Set_Component_Size (Btype, Csize);
+
+               --  For VM case, we ignore component size clauses
+
+               else
+                  --  Give a warning unless we are in GNAT mode, in which case
+                  --  the warning is suppressed since it is not useful.
+
+                  if not GNAT_Mode then
+                     Error_Msg_N
+                       ("?component size ignored in this configuration", N);
+                  end if;
                end if;
 
-               Set_Component_Size            (Btype, Csize);
                Set_Has_Component_Size_Clause (Btype, True);
                Set_Has_Non_Standard_Rep      (Btype, True);
             end if;
@@ -1376,7 +1437,6 @@ package body Sem_Ch13 is
                Set_Has_Small_Clause (U_Ent);
                Set_Has_Small_Clause (Implicit_Base);
                Set_Has_Non_Standard_Rep (Implicit_Base);
-               Set_Discrete_RM_Size (U_Ent);
             end if;
          end Small;
 
@@ -1421,6 +1481,11 @@ package body Sem_Ch13 is
             Analyze_And_Resolve
               (Expr, Class_Wide_Type (RTE (RE_Root_Storage_Pool)));
 
+            if not Denotes_Variable (Expr) then
+               Error_Msg_N ("storage pool must be a variable", Expr);
+               return;
+            end if;
+
             if Nkind (Expr) = N_Type_Conversion then
                T := Etype (Expression (Expr));
             else
@@ -1430,7 +1495,7 @@ package body Sem_Ch13 is
             --  The Stack_Bounded_Pool is used internally for implementing
             --  access types with a Storage_Size. Since it only work
             --  properly when used on one specific type, we need to check
-            --  that it is not highjacked improperly:
+            --  that it is not hijacked improperly:
             --    type T is access Integer;
             --    for T'Storage_Size use n;
             --    type Q is access Float;
@@ -1733,10 +1798,10 @@ package body Sem_Ch13 is
          while Present (Decl) loop
             DeclO := Original_Node (Decl);
             if Comes_From_Source (DeclO)
-              and then Nkind (DeclO) /= N_Pragma
-              and then Nkind (DeclO) /= N_Use_Package_Clause
-              and then Nkind (DeclO) /= N_Use_Type_Clause
-              and then Nkind (DeclO) /= N_Implicit_Label_Declaration
+              and not Nkind_In (DeclO, N_Pragma,
+                                       N_Use_Package_Clause,
+                                       N_Use_Type_Clause,
+                                       N_Implicit_Label_Declaration)
             then
                Error_Msg_N
                  ("this declaration not allowed in machine code subprogram",
@@ -1753,9 +1818,9 @@ package body Sem_Ch13 is
          while Present (Stmt) loop
             StmtO := Original_Node (Stmt);
             if Comes_From_Source (StmtO)
-              and then Nkind (StmtO) /= N_Pragma
-              and then Nkind (StmtO) /= N_Label
-              and then Nkind (StmtO) /= N_Code_Statement
+              and then not Nkind_In (StmtO, N_Pragma,
+                                            N_Label,
+                                            N_Code_Statement)
             then
                Error_Msg_N
                  ("this statement is not allowed in machine code subprogram",
@@ -1839,10 +1904,7 @@ package body Sem_Ch13 is
 
       --  Don't allow rep clause for standard [wide_[wide_]]character
 
-      elsif Root_Type (Enumtype) = Standard_Character
-        or else Root_Type (Enumtype) = Standard_Wide_Character
-        or else Root_Type (Enumtype) = Standard_Wide_Wide_Character
-      then
+      elsif Is_Standard_Character_Type (Enumtype) then
          Error_Msg_N ("enumeration rep clause not allowed for this type", N);
          return;
 
@@ -2190,14 +2252,19 @@ package body Sem_Ch13 is
          end;
       end if;
 
-      --  Clear any existing component clauses for the type (this happens with
-      --  derived types, where we are now overriding the original).
+      --  For untagged types, clear any existing component clauses for the
+      --  type. If the type is derived, this is what allows us to override
+      --  a rep clause for the parent. For type extensions, the representation
+      --  of the inherited components is inherited, so we want to keep previous
+      --  component clauses for completeness.
 
-      Comp := First_Component_Or_Discriminant (Rectype);
-      while Present (Comp) loop
-         Set_Component_Clause (Comp, Empty);
-         Next_Component_Or_Discriminant (Comp);
-      end loop;
+      if not Is_Tagged_Type (Rectype) then
+         Comp := First_Component_Or_Discriminant (Rectype);
+         while Present (Comp) loop
+            Set_Component_Clause (Comp, Empty);
+            Next_Component_Or_Discriminant (Comp);
+         end loop;
+      end if;
 
       --  All done if no component clauses
 
@@ -2263,7 +2330,7 @@ package body Sem_Ch13 is
 
             --  The only pragma of interest is Complete_Representation
 
-            if Chars (CC) = Name_Complete_Representation then
+            if Pragma_Name (CC) = Name_Complete_Representation then
                CR_Pragma := CC;
             end if;
 
@@ -2286,6 +2353,14 @@ package body Sem_Ch13 is
                elsif Fbit < 0 then
                   Error_Msg_N
                     ("first bit cannot be negative", First_Bit (CC));
+
+               --  The Last_Bit specified in a component clause must not be
+               --  less than the First_Bit minus one (RM-13.5.1(10)).
+
+               elsif Lbit < Fbit - 1 then
+                  Error_Msg_N
+                    ("last bit cannot be less than first bit minus one",
+                     Last_Bit (CC));
 
                --  Values look OK, so find the corresponding record component
                --  Even though the syntax allows an attribute reference for
@@ -2323,9 +2398,37 @@ package body Sem_Ch13 is
                        ("component clause is for non-existent field", CC);
 
                   elsif Present (Component_Clause (Comp)) then
-                     Error_Msg_Sloc := Sloc (Component_Clause (Comp));
-                     Error_Msg_N
-                       ("component clause previously given#", CC);
+
+                     --  Diagnose duplicate rep clause, or check consistency
+                     --  if this is an inherited component. In a double fault,
+                     --  there may be a duplicate inconsistent clause for an
+                     --  inherited component.
+
+                     if Scope (Original_Record_Component (Comp)) = Rectype
+                       or else Parent (Component_Clause (Comp)) = N
+                     then
+                        Error_Msg_Sloc := Sloc (Component_Clause (Comp));
+                        Error_Msg_N ("component clause previously given#", CC);
+
+                     else
+                        declare
+                           Rep1 : constant Node_Id := Component_Clause (Comp);
+                        begin
+                           if Intval (Position (Rep1)) /=
+                                                   Intval (Position (CC))
+                             or else Intval (First_Bit (Rep1)) /=
+                                                   Intval (First_Bit (CC))
+                             or else Intval (Last_Bit (Rep1)) /=
+                                                   Intval (Last_Bit (CC))
+                           then
+                              Error_Msg_N ("component clause inconsistent "
+                                & "with representation of ancestor", CC);
+                           elsif Warn_On_Redundant_Constructs then
+                              Error_Msg_N ("?redundant component clause "
+                                & "for inherited component!", CC);
+                           end if;
+                        end;
+                     end if;
 
                   else
                      --  Make reference for field in record rep clause and set
@@ -2415,30 +2518,30 @@ package body Sem_Ch13 is
       end loop;
 
       --  Now that we have processed all the component clauses, check for
-      --  overlap. We have to leave this till last, since the components
-      --  can appear in any arbitrary order in the representation clause.
+      --  overlap. We have to leave this till last, since the components can
+      --  appear in any arbitrary order in the representation clause.
 
       --  We do not need this check if all specified ranges were monotonic,
       --  as recorded by Overlap_Check_Required being False at this stage.
 
-      --  This first section checks if there are any overlapping entries
-      --  at all. It does this by sorting all entries and then seeing if
-      --  there are any overlaps. If there are none, then that is decisive,
-      --  but if there are overlaps, they may still be OK (they may result
-      --  from fields in different variants).
+      --  This first section checks if there are any overlapping entries at
+      --  all. It does this by sorting all entries and then seeing if there are
+      --  any overlaps. If there are none, then that is decisive, but if there
+      --  are overlaps, they may still be OK (they may result from fields in
+      --  different variants).
 
       if Overlap_Check_Required then
          Overlap_Check1 : declare
 
             OC_Fbit : array (0 .. Ccount) of Uint;
-            --  First-bit values for component clauses, the value is the
-            --  offset of the first bit of the field from start of record.
-            --  The zero entry is for use in sorting.
+            --  First-bit values for component clauses, the value is the offset
+            --  of the first bit of the field from start of record. The zero
+            --  entry is for use in sorting.
 
             OC_Lbit : array (0 .. Ccount) of Uint;
-            --  Last-bit values for component clauses, the value is the
-            --  offset of the last bit of the field from start of record.
-            --  The zero entry is for use in sorting.
+            --  Last-bit values for component clauses, the value is the offset
+            --  of the last bit of the field from start of record. The zero
+            --  entry is for use in sorting.
 
             OC_Count : Natural := 0;
             --  Count of entries in OC_Fbit and OC_Lbit
@@ -2496,10 +2599,10 @@ package body Sem_Ch13 is
          end Overlap_Check1;
       end if;
 
-      --  If Overlap_Check_Required is still True, then we have to do
-      --  the full scale overlap check, since we have at least two fields
-      --  that do overlap, and we need to know if that is OK since they
-      --  are in the same variant, or whether we have a definite problem
+      --  If Overlap_Check_Required is still True, then we have to do the full
+      --  scale overlap check, since we have at least two fields that do
+      --  overlap, and we need to know if that is OK since they are in
+      --  different variant, or whether we have a definite problem.
 
       if Overlap_Check_Required then
          Overlap_Check2 : declare
@@ -2517,7 +2620,7 @@ package body Sem_Ch13 is
 
             --  Loop through all components in record. For each component check
             --  for overlap with any of the preceding elements on the component
-            --  list containing the component, and also, if the component is in
+            --  list containing the component and also, if the component is in
             --  a variant, check against components outside the case structure.
             --  This latter test is repeated recursively up the variant tree.
 
@@ -2545,7 +2648,7 @@ package body Sem_Ch13 is
                Component_List_Loop : loop
 
                   --  If derived type definition, go to full declaration
-                  --  If at outer level, check discriminants if there are any
+                  --  If at outer level, check discriminants if there are any.
 
                   if Nkind (Clist) = N_Derived_Type_Definition then
                      Clist := Parent (Clist);
@@ -2553,8 +2656,8 @@ package body Sem_Ch13 is
 
                   --  Outer level of record definition, check discriminants
 
-                  if Nkind (Clist) = N_Full_Type_Declaration
-                    or else Nkind (Clist) = N_Private_Type_Declaration
+                  if Nkind_In (Clist, N_Full_Type_Declaration,
+                                      N_Private_Type_Declaration)
                   then
                      if Has_Discriminants (Defining_Identifier (Clist)) then
                         C2_Ent :=
@@ -2592,23 +2695,22 @@ package body Sem_Ch13 is
                   --  be a variant, in which case its parent is a variant part,
                   --  and the parent of the variant part is a component list
                   --  whose components must all be checked against the current
-                  --  component for overlap.
+                  --  component for overlap).
 
                   if Nkind (Parent (Clist)) = N_Variant then
                      Clist := Parent (Parent (Parent (Clist)));
 
                   --  Check for possible discriminant part in record, this is
                   --  treated essentially as another level in the recursion.
-                  --  For this case we have the parent of the component list
-                  --  is the record definition, and its parent is the full
-                  --  type declaration which contains the discriminant
-                  --  specifications.
+                  --  For this case the parent of the component list is the
+                  --  record definition, and its parent is the full type
+                  --  declaration containing the discriminant specifications.
 
                   elsif Nkind (Parent (Clist)) = N_Record_Definition then
                      Clist := Parent (Parent ((Clist)));
 
                   --  If neither of these two cases, we are at the top of
-                  --  the tree
+                  --  the tree.
 
                   else
                      exit Component_List_Loop;
@@ -2622,24 +2724,23 @@ package body Sem_Ch13 is
          end Overlap_Check2;
       end if;
 
-      --  For records that have component clauses for all components, and
-      --  whose size is less than or equal to 32, we need to know the size
-      --  in the front end to activate possible packed array processing
-      --  where the component type is a record.
+      --  For records that have component clauses for all components, and whose
+      --  size is less than or equal to 32, we need to know the size in the
+      --  front end to activate possible packed array processing where the
+      --  component type is a record.
 
-      --  At this stage Hbit + 1 represents the first unused bit from all
-      --  the component clauses processed, so if the component clauses are
+      --  At this stage Hbit + 1 represents the first unused bit from all the
+      --  component clauses processed, so if the component clauses are
       --  complete, then this is the length of the record.
 
-      --  For records longer than System.Storage_Unit, and for those where
-      --  not all components have component clauses, the back end determines
-      --  the length (it may for example be appopriate to round up the size
-      --  to some convenient boundary, based on alignment considerations etc).
+      --  For records longer than System.Storage_Unit, and for those where not
+      --  all components have component clauses, the back end determines the
+      --  length (it may for example be appropriate to round up the size
+      --  to some convenient boundary, based on alignment considerations, etc).
 
-      if Unknown_RM_Size (Rectype)
-        and then Hbit + 1 <= 32
-      then
-         --  Nothing to do if at least one component with no component clause
+      if Unknown_RM_Size (Rectype) and then Hbit + 1 <= 32 then
+
+         --  Nothing to do if at least one component has no component clause
 
          Comp := First_Component_Or_Discriminant (Rectype);
          while Present (Comp) loop
@@ -2670,9 +2771,7 @@ package body Sem_Ch13 is
 
       --  If no Complete_Representation pragma, warn if missing components
 
-      elsif Warn_On_Unrepped_Components
-        and then not Warnings_Off (Rectype)
-      then
+      elsif Warn_On_Unrepped_Components then
          declare
             Num_Repped_Components   : Nat := 0;
             Num_Unrepped_Components : Nat := 0;
@@ -2694,7 +2793,10 @@ package body Sem_Ch13 is
             --  We are only interested in the case where there is at least one
             --  unrepped component, and at least half the components have rep
             --  clauses. We figure that if less than half have them, then the
-            --  partial rep clause is really intentional.
+            --  partial rep clause is really intentional. If the component
+            --  type has no underlying type set at this point (as for a generic
+            --  formal type), we don't know enough to give a warning on the
+            --  component.
 
             if Num_Unrepped_Components > 0
               and then Num_Unrepped_Components < Num_Repped_Components
@@ -2702,9 +2804,12 @@ package body Sem_Ch13 is
                Comp := First_Component_Or_Discriminant (Rectype);
                while Present (Comp) loop
                   if No (Component_Clause (Comp))
+                    and then Comes_From_Source (Comp)
+                    and then Present (Underlying_Type (Etype (Comp)))
                     and then (Is_Scalar_Type (Underlying_Type (Etype (Comp)))
                                 or else Size_Known_At_Compile_Time
                                              (Underlying_Type (Etype (Comp))))
+                    and then not Has_Warnings_Off (Rectype)
                   then
                      Error_Msg_Sloc := Sloc (Comp);
                      Error_Msg_NE
@@ -2728,9 +2833,9 @@ package body Sem_Ch13 is
       if Present (Component_Clause (C1_Ent))
         and then Present (Component_Clause (C2_Ent))
       then
-         --  Exclude odd case where we have two tag fields in the same
-         --  record, both at location zero. This seems a bit strange,
-         --  but it seems to happen in some circumstances ???
+         --  Exclude odd case where we have two tag fields in the same record,
+         --  both at location zero. This seems a bit strange, but it seems to
+         --  happen in some circumstances ???
 
          if Chars (C1_Ent) = Name_uTag
            and then Chars (C2_Ent) = Name_uTag
@@ -2772,14 +2877,14 @@ package body Sem_Ch13 is
       U_Ent : Entity_Id)
    is
       procedure Check_At_Constant_Address (Nod : Node_Id);
-      --  Checks that the given node N represents a name whose 'Address
-      --  is constant (in the same sense as OK_Constant_Address_Clause,
-      --  i.e. the address value is the same at the point of declaration
-      --  of U_Ent and at the time of elaboration of the address clause.
+      --  Checks that the given node N represents a name whose 'Address is
+      --  constant (in the same sense as OK_Constant_Address_Clause, i.e. the
+      --  address value is the same at the point of declaration of U_Ent and at
+      --  the time of elaboration of the address clause.
 
       procedure Check_Expr_Constants (Nod : Node_Id);
-      --  Checks that Nod meets the requirements for a constant address
-      --  clause in the sense of the enclosing procedure.
+      --  Checks that Nod meets the requirements for a constant address clause
+      --  in the sense of the enclosing procedure.
 
       procedure Check_List_Constants (Lst : List_Id);
       --  Check that all elements of list Lst meet the requirements for a
@@ -2879,11 +2984,11 @@ package body Sem_Ch13 is
                   --  If the node is an object declaration without initial
                   --  value, some code has been expanded, and the expression
                   --  is not constant, even if the constituents might be
-                  --  acceptable, as in  A'Address + offset.
+                  --  acceptable, as in A'Address + offset.
 
                   if Ekind (Ent) = E_Variable
-                    and then Nkind (Declaration_Node (Ent))
-                      = N_Object_Declaration
+                    and then
+                      Nkind (Declaration_Node (Ent)) = N_Object_Declaration
                     and then
                       No (Expression (Declaration_Node (Ent)))
                   then
@@ -2923,16 +3028,16 @@ package body Sem_Ch13 is
                     or else
                   Ekind (Ent) = E_In_Parameter
                then
-                  --  This is the case where we must have Ent defined
-                  --  before U_Ent. Clearly if they are in different
-                  --  units this requirement is met since the unit
-                  --  containing Ent is already processed.
+                  --  This is the case where we must have Ent defined before
+                  --  U_Ent. Clearly if they are in different units this
+                  --  requirement is met since the unit containing Ent is
+                  --  already processed.
 
                   if not In_Same_Source_Unit (Ent, U_Ent) then
                      return;
 
-                  --  Otherwise location of Ent must be before the
-                  --  location of U_Ent, that's what prior defined means.
+                  --  Otherwise location of Ent must be before the location
+                  --  of U_Ent, that's what prior defined means.
 
                   elsif Sloc (Ent) < Loc_U_Ent then
                      return;
@@ -3049,15 +3154,15 @@ package body Sem_Ch13 is
             when N_Unchecked_Type_Conversion =>
                Check_Expr_Constants (Expression (Nod));
 
-               --  If this is a rewritten unchecked conversion, subtypes
-               --  in this node are those created within the instance.
-               --  To avoid order of elaboration issues, replace them
-               --  with their base types. Note that address clauses can
-               --  cause order of elaboration problems because they are
-               --  elaborated by the back-end at the point of definition,
-               --  and may mention entities declared in between (as long
-               --  as everything is static). It is user-friendly to allow
-               --  unchecked conversions in this context.
+               --  If this is a rewritten unchecked conversion, subtypes in
+               --  this node are those created within the instance. To avoid
+               --  order of elaboration issues, replace them with their base
+               --  types. Note that address clauses can cause order of
+               --  elaboration problems because they are elaborated by the
+               --  back-end at the point of definition, and may mention
+               --  entities declared in between (as long as everything is
+               --  static). It is user-friendly to allow unchecked conversions
+               --  in this context.
 
                if Nkind (Original_Node (Nod)) = N_Function_Call then
                   Set_Etype (Expression (Nod),
@@ -3217,7 +3322,7 @@ package body Sem_Ch13 is
          if Siz < M then
 
             --  Size is less than minimum size, but one possibility remains
-            --  that we can manage with the new size if we bias the type
+            --  that we can manage with the new size if we bias the type.
 
             M := UI_From_Int (Minimum_Size (UT, Biased => True));
 
@@ -3289,9 +3394,8 @@ package body Sem_Ch13 is
       else
          declare
             Id    : constant Attribute_Id := Get_Attribute_Id (Chars (N));
-
          begin
-            return Id = Attribute_Input
+            return   Id = Attribute_Input
               or else Id = Attribute_Output
               or else Id = Attribute_Read
               or else Id = Attribute_Write
@@ -3339,7 +3443,7 @@ package body Sem_Ch13 is
          --  we have short and long addresses, and it is possible for an access
          --  type to have a short address size (and thus be less than the size
          --  of System.Address itself). We simply skip the check for VMS, and
-         --  leave the back end to do the check.
+         --  leave it to the back end to do the check.
 
       elsif Is_Access_Type (T) then
          if OpenVMS_On_Target then
@@ -3357,9 +3461,9 @@ package body Sem_Ch13 is
 
       elsif Is_Discrete_Type (T) then
 
-         --  The following loop is looking for the nearest compile time
-         --  known bounds following the ancestor subtype chain. The idea
-         --  is to find the most restrictive known bounds information.
+         --  The following loop is looking for the nearest compile time known
+         --  bounds following the ancestor subtype chain. The idea is to find
+         --  the most restrictive known bounds information.
 
          Ancest := T;
          loop
@@ -3395,23 +3499,34 @@ package body Sem_Ch13 is
          end loop;
 
       --  Fixed-point types. We can't simply use Expr_Value to get the
-      --  Corresponding_Integer_Value values of the bounds, since these
-      --  do not get set till the type is frozen, and this routine can
-      --  be called before the type is frozen. Similarly the test for
-      --  bounds being static needs to include the case where we have
-      --  unanalyzed real literals for the same reason.
+      --  Corresponding_Integer_Value values of the bounds, since these do not
+      --  get set till the type is frozen, and this routine can be called
+      --  before the type is frozen. Similarly the test for bounds being static
+      --  needs to include the case where we have unanalyzed real literals for
+      --  the same reason.
 
       elsif Is_Fixed_Point_Type (T) then
 
-         --  The following loop is looking for the nearest compile time
-         --  known bounds following the ancestor subtype chain. The idea
-         --  is to find the most restrictive known bounds information.
+         --  The following loop is looking for the nearest compile time known
+         --  bounds following the ancestor subtype chain. The idea is to find
+         --  the most restrictive known bounds information.
 
          Ancest := T;
          loop
             if Ancest = Any_Type or else Etype (Ancest) = Any_Type then
                return 0;
             end if;
+
+            --  Note: In the following two tests for LoSet and HiSet, it may
+            --  seem redundant to test for N_Real_Literal here since normally
+            --  one would assume that the test for the value being known at
+            --  compile time includes this case. However, there is a glitch.
+            --  If the real literal comes from folding a non-static expression,
+            --  then we don't consider any non- static expression to be known
+            --  at compile time if we are in configurable run time mode (needed
+            --  in some cases to give a clearer definition of what is and what
+            --  is not accepted). So the test is indeed needed. Without it, we
+            --  would set neither Lo_Set nor Hi_Set and get an infinite loop.
 
             if not LoSet then
                if Nkind (Type_Low_Bound (Ancest)) = N_Real_Literal
@@ -3463,8 +3578,8 @@ package body Sem_Ch13 is
       end if;
 
       --  Signed case. Note that we consider types like range 1 .. -1 to be
-      --  signed for the purpose of computing the size, since the bounds
-      --  have to be accomodated in the base type.
+      --  signed for the purpose of computing the size, since the bounds have
+      --  to be accommodated in the base type.
 
       if Lo < 0 or else Hi < 0 then
          S := 1;
@@ -3656,7 +3771,7 @@ package body Sem_Ch13 is
          return True;
       end if;
 
-      --  Otherwise check for incompleted type
+      --  Otherwise check for incomplete type
 
       if Is_Incomplete_Or_Private_Type (T)
         and then No (Underlying_Type (T))
@@ -3665,7 +3780,7 @@ package body Sem_Ch13 is
            ("representation item must be after full type declaration", N);
          return True;
 
-      --  If the type has incompleted components, a representation clause is
+      --  If the type has incomplete components, a representation clause is
       --  illegal but stream attributes and Convention pragmas are correct.
 
       elsif Has_Private_Component (T) then
@@ -3752,7 +3867,26 @@ package body Sem_Ch13 is
          end if;
       end if;
 
-      --  No error, link item into head of chain of rep items for the entity
+      --  No error, link item into head of chain of rep items for the entity,
+      --  but avoid chaining if we have an overloadable entity, and the pragma
+      --  is one that can apply to multiple overloaded entities.
+
+      if Is_Overloadable (T)
+        and then Nkind (N) = N_Pragma
+      then
+         declare
+            Pname : constant Name_Id := Pragma_Name (N);
+         begin
+            if Pname = Name_Convention or else
+               Pname = Name_Import     or else
+               Pname = Name_Export     or else
+               Pname = Name_External   or else
+               Pname = Name_Interface
+            then
+               return False;
+            end if;
+         end;
+      end if;
 
       Record_Rep_Item (T, N);
       return False;
@@ -3830,8 +3964,8 @@ package body Sem_Ch13 is
          return not Has_Non_Standard_Rep (T2);
       end if;
 
-      --  Here the two types both have non-standard representation, and we
-      --  need to determine if they have the same non-standard representation
+      --  Here the two types both have non-standard representation, and we need
+      --  to determine if they have the same non-standard representation.
 
       --  For arrays, we simply need to test if the component sizes are the
       --  same. Pragma Pack is reflected in modified component sizes, so this
@@ -3929,7 +4063,7 @@ package body Sem_Ch13 is
 
       --  For enumeration types, we must check each literal to see if the
       --  representation is the same. Note that we do not permit enumeration
-      --  reprsentation clauses for Character and Wide_Character, so these
+      --  representation clauses for Character and Wide_Character, so these
       --  cases were already dealt with.
 
       elsif Is_Enumeration_Type (T1) then
@@ -4151,8 +4285,8 @@ package body Sem_Ch13 is
 
       Target := Ancestor_Subtype (Etype (Act_Unit));
 
-      --  If either type is generic, the instantiation happens within a
-      --  generic unit, and there is nothing to check. The proper check
+      --  If either type is generic, the instantiation happens within a generic
+      --  unit, and there is nothing to check. The proper check
       --  will happen when the enclosing generic is instantiated.
 
       if Is_Generic_Type (Source) or else Is_Generic_Type (Target) then
@@ -4182,14 +4316,53 @@ package body Sem_Ch13 is
         and then Convention (Target) /= Convention (Source)
         and then Warn_On_Unchecked_Conversion
       then
-         Error_Msg_N
-           ("?conversion between pointers with different conventions!", N);
+         --  Give warnings for subprogram pointers only on most targets. The
+         --  exception is VMS, where data pointers can have different lengths
+         --  depending on the pointer convention.
+
+         if Is_Access_Subprogram_Type (Target)
+           or else Is_Access_Subprogram_Type (Source)
+           or else OpenVMS_On_Target
+         then
+            Error_Msg_N
+              ("?conversion between pointers with different conventions!", N);
+         end if;
       end if;
 
-      --  Make entry in unchecked conversion table for later processing
-      --  by Validate_Unchecked_Conversions, which will check sizes and
-      --  alignments (using values set by the back-end where possible).
-      --  This is only done if the appropriate warning is active
+      --  Warn if one of the operands is Ada.Calendar.Time. Do not emit a
+      --  warning when compiling GNAT-related sources.
+
+      if Warn_On_Unchecked_Conversion
+        and then not In_Predefined_Unit (N)
+        and then RTU_Loaded (Ada_Calendar)
+        and then
+          (Chars (Source) = Name_Time
+             or else
+           Chars (Target) = Name_Time)
+      then
+         --  If Ada.Calendar is loaded and the name of one of the operands is
+         --  Time, there is a good chance that this is Ada.Calendar.Time.
+
+         declare
+            Calendar_Time : constant Entity_Id :=
+                              Full_View (RTE (RO_CA_Time));
+         begin
+            pragma Assert (Present (Calendar_Time));
+
+            if Source = Calendar_Time
+              or else Target = Calendar_Time
+            then
+               Error_Msg_N
+                 ("?representation of 'Time values may change between " &
+                  "'G'N'A'T versions", N);
+            end if;
+         end;
+      end if;
+
+      --  Make entry in unchecked conversion table for later processing by
+      --  Validate_Unchecked_Conversions, which will check sizes and alignments
+      --  (using values set by the back-end where possible). This is only done
+      --  if the appropriate warning is active.
 
       if Warn_On_Unchecked_Conversion then
          Unchecked_Conversions.Append
@@ -4211,10 +4384,10 @@ package body Sem_Ch13 is
          end if;
       end if;
 
-      --  If unchecked conversion to access type, and access type is
-      --  declared in the same unit as the unchecked conversion, then
-      --  set the No_Strict_Aliasing flag (no strict aliasing is
-      --  implicit in this situation).
+      --  If unchecked conversion to access type, and access type is declared
+      --  in the same unit as the unchecked conversion, then set the
+      --  No_Strict_Aliasing flag (no strict aliasing is implicit in this
+      --  situation).
 
       if Is_Access_Type (Target) and then
         In_Same_Source_Unit (Target, N)
@@ -4225,7 +4398,7 @@ package body Sem_Ch13 is
       --  Generate N_Validate_Unchecked_Conversion node for back end in
       --  case the back end needs to perform special validation checks.
 
-      --  Shouldn't this be in exp_ch13, since the check only gets done
+      --  Shouldn't this be in Exp_Ch13, since the check only gets done
       --  if we have full expansion and the back end is called ???
 
       Vnode :=
@@ -4233,8 +4406,8 @@ package body Sem_Ch13 is
       Set_Source_Type (Vnode, Source);
       Set_Target_Type (Vnode, Target);
 
-      --  If the unchecked conversion node is in a list, just insert before
-      --  it. If not we have some strange case, not worth bothering about.
+      --  If the unchecked conversion node is in a list, just insert before it.
+      --  If not we have some strange case, not worth bothering about.
 
       if Is_List_Member (N) then
          Insert_After (N, Vnode);
@@ -4259,11 +4432,11 @@ package body Sem_Ch13 is
             Target_Siz    : Uint;
 
          begin
-            --  This validation check, which warns if we have unequal sizes
-            --  for unchecked conversion, and thus potentially implementation
+            --  This validation check, which warns if we have unequal sizes for
+            --  unchecked conversion, and thus potentially implementation
             --  dependent semantics, is one of the few occasions on which we
-            --  use the official RM size instead of Esize. See description
-            --  in Einfo "Handling of Type'Size Values" for details.
+            --  use the official RM size instead of Esize. See description in
+            --  Einfo "Handling of Type'Size Values" for details.
 
             if Serious_Errors_Detected = 0
               and then Known_Static_RM_Size (Source)

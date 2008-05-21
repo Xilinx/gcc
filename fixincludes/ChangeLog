@@ -1,3 +1,77 @@
+2008-05-14  Joseph Myers  <joseph@codesourcery.com>
+
+	* inclhack.def (AAB_fd_zero_asm_posix_types_h): Bypass on
+	posix_types_64.
+	* fixincl.x: Regenerate.
+
+2008-04-25  Kai Tietz  <kai.tietz@onvision.com>
+
+	* fixincl.c (fix_with_system): Cast pointer difference to long.
+	* fixlib.c (make_raw_shell_str): Cast compare to avoid sign warning.
+
+2008-04-18  Paolo Bonzini  <bonzini@gnu.org>
+
+	PR bootstrap/35457
+	* Makefile.in: Rewrite aclocal.m4 rule.
+	* aclocal.m4: Regenerate.
+	* configure: Regenerate.
+
+2008-03-07  Peter O'Gorman  <pogma@thewrittenword.com>
+
+	PR c++/20366
+	* inclhack.def (AAB_aix_stdio): Hack stdio.h for -D_LARGE_FILES.
+	* fixincl.x: Regenerate.
+	* tests/base/stdio.h: Add test.
+
+2008-02-25  Ben Elliston  <bje@au.ibm.com>
+
+	PR other/32948
+	* fixincl.c (fix_applies): Remove unused variable `name_len'.
+
+2008-02-19  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	* inclhack.def (solaris_math_10): New.
+	* tests/base/iso/math_c99.h: Update.
+
+	* fixincl.x: Regenerate.
+
+2008-02-04  Ismail Dönmez  <ismail@pardus.org.tr>
+
+	* inclhack.def: (bsd_stdio_attrs_conflict, freebsd_gcc3_breakage,
+	freebsd_gcc4_breakage, hppa_hpux_fp_macros, hpux11_abs,
+	netbsd_c99_inline_1, netbsd_c99_inline_2, netbsd_extra_semicolon):  Add
+	quotes around mach entries.
+	* fixincl.x: Regenerate with latest autogen (5.9.4), updating license
+	to GPLv3.
+
+2008-02-04  Hans-Peter Nilsson  <hp@axis.com>
+
+	PR other/31405
+	* inclhack.def: (glibc_c99_inline_1a): Re-add last change.
+	(glibc_c99_inline_3) <bypass>: Change from __STDC_VERSION__ to
+	__extern_inline|__GNU_STDC_INLINE__.
+	(glibc_c99_inline_4) <files>: Add wchar.h and */wchar.h.
+	<bypass>: Change from __STDC_VERSION__ to
+	__extern_inline|__GNU_STDC_INLINE__.
+	<first c_fix_arg>: Change from #ifdef-wrapping the extern part to
+	appending attribute-gnu_inline.
+	<second c_fix_arg>: Remove.
+	<test_text>: Remove __extern_inline line.
+	* tests/base/features.h: Re-add.
+	* tests/base/sys/sysmacros.h: Adjust.
+	* fixincl.x: Regenerate.
+
+2008-01-06  Hans-Peter Nilsson  <hp@axis.com>
+
+	Revert last change.
+
+2007-12-18  Hans-Peter Nilsson  <hp@axis.com>
+
+	* inclhack.def: (glibc_c99_inline_1a, glibc_c99_inline_5): New.
+	* fixincl.x: Regenerate.
+	* tests/base/wchar.h: Update.
+	* tests/base/features.h: New.
+
 2007-10-14  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
 
 	PR target/33700

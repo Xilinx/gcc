@@ -1,6 +1,6 @@
 /* Build expressions with type checking for C compiler.
    Copyright (C) 1987, 1988, 1991, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -91,7 +91,7 @@ static void push_string (const char *);
 static void push_member_name (tree);
 static int spelling_length (void);
 static char *print_spelling (char *);
-static void warning_init (const char *);
+static void warning_init (int, const char *);
 static tree digest_init (tree, tree, bool, int);
 static void output_init_element (tree, bool, tree, tree, int);
 static void output_pending_init_elements (int);
@@ -530,6 +530,7 @@ common_pointer_type (tree t1, tree t2)
   tree pointed_to_1, mv1;
   tree pointed_to_2, mv2;
   tree target;
+  unsigned target_quals;
 
   /* Save time if the two types are the same.  */
 
@@ -557,10 +558,15 @@ common_pointer_type (tree t1, tree t2)
   if (TREE_CODE (mv2) != ARRAY_TYPE)
     mv2 = TYPE_MAIN_VARIANT (pointed_to_2);
   target = composite_type (mv1, mv2);
-  t1 = build_pointer_type (c_build_qualified_type
-			   (target,
-			    TYPE_QUALS (pointed_to_1) |
-			    TYPE_QUALS (pointed_to_2)));
+
+  /* For function types do not merge const qualifiers, but drop them
+     if used inconsistently.  The middle-end uses these to mark const
+     and noreturn functions.  */
+  if (TREE_CODE (pointed_to_1) == FUNCTION_TYPE)
+    target_quals = TYPE_QUALS (pointed_to_1) & TYPE_QUALS (pointed_to_2);
+  else
+    target_quals = TYPE_QUALS (pointed_to_1) | TYPE_QUALS (pointed_to_2);
+  t1 = build_pointer_type (c_build_qualified_type (target, target_quals));
   return build_type_attribute_variant (t1, attributes);
 }
 
@@ -1651,8 +1657,7 @@ default_function_array_conversion (struct c_expr exp)
 	bool lvalue_array_p;
 
 	while ((TREE_CODE (exp.value) == NON_LVALUE_EXPR
-		|| TREE_CODE (exp.value) == NOP_EXPR
-		|| TREE_CODE (exp.value) == CONVERT_EXPR)
+		|| CONVERT_EXPR_P (exp.value))
 	       && TREE_TYPE (TREE_OPERAND (exp.value, 0)) == type)
 	  {
 	    if (TREE_CODE (exp.value) == NON_LVALUE_EXPR)
@@ -1972,8 +1977,7 @@ build_indirect_ref (tree ptr, const char *errorstring)
 
   if (TREE_CODE (type) == POINTER_TYPE)
     {
-      if (TREE_CODE (pointer) == CONVERT_EXPR
-          || TREE_CODE (pointer) == NOP_EXPR
+      if (CONVERT_EXPR_P (pointer)
           || TREE_CODE (pointer) == VIEW_CONVERT_EXPR)
 	{
 	  /* If a warning is issued, mark it to avoid duplicates from
@@ -2207,7 +2211,6 @@ build_external_ref (tree id, int fun, location_t loc)
       used_types_insert (TREE_TYPE (ref));
       ref = DECL_INITIAL (ref);
       TREE_CONSTANT (ref) = 1;
-      TREE_INVARIANT (ref) = 1;
     }
   else if (current_function_decl != 0
 	   && !DECL_FILE_SCOPE_P (current_function_decl)
@@ -2228,7 +2231,8 @@ build_external_ref (tree id, int fun, location_t loc)
 	   && DECL_EXTERNAL (current_function_decl)
 	   && VAR_OR_FUNCTION_DECL_P (ref)
 	   && (TREE_CODE (ref) != VAR_DECL || TREE_STATIC (ref))
-	   && ! TREE_PUBLIC (ref))
+	   && ! TREE_PUBLIC (ref)
+	   && DECL_CONTEXT (ref) != current_function_decl)
     pedwarn ("%H%qD is static but used in inline function %qD "
 	     "which is not static", &loc, ref, current_function_decl);
 
@@ -2392,8 +2396,7 @@ build_function_call (tree function, tree params)
      expression if necessary.  This has the nice side-effect to prevent
      the tree-inliner from generating invalid assignment trees which may
      blow up in the RTL expander later.  */
-  if ((TREE_CODE (function) == NOP_EXPR
-       || TREE_CODE (function) == CONVERT_EXPR)
+  if (CONVERT_EXPR_P (function)
       && TREE_CODE (tem = TREE_OPERAND (function, 0)) == ADDR_EXPR
       && TREE_CODE (tem = TREE_OPERAND (tem, 0)) == FUNCTION_DECL
       && !comptypes (fntype, TREE_TYPE (tem)))
@@ -2437,8 +2440,14 @@ build_function_call (tree function, tree params)
   if (nargs < 0)
     return error_mark_node;
 
-  /* Check that the arguments to the function are valid.  */
+  /* Check that arguments to builtin functions match the expectations.  */
+  if (fundecl
+      && DECL_BUILT_IN (fundecl)
+      && DECL_BUILT_IN_CLASS (fundecl) == BUILT_IN_NORMAL
+      && !check_builtin_function_arguments (fundecl, nargs, argarray))
+    return error_mark_node;
 
+  /* Check that the arguments to the function are valid.  */
   check_function_arguments (TYPE_ATTRIBUTES (fntype), nargs, argarray,
 			    TYPE_ARG_TYPES (fntype));
 
@@ -2809,13 +2818,13 @@ pointer_diff (tree op0, tree op1)
      different mode in place.)
      So first try to find a common term here 'by hand'; we want to cover
      at least the cases that occur in legal static initializers.  */
-  if ((TREE_CODE (op0) == NOP_EXPR || TREE_CODE (op0) == CONVERT_EXPR)
+  if (CONVERT_EXPR_P (op0)
       && (TYPE_PRECISION (TREE_TYPE (op0))
 	  == TYPE_PRECISION (TREE_TYPE (TREE_OPERAND (op0, 0)))))
     con0 = TREE_OPERAND (op0, 0);
   else
     con0 = op0;
-  if ((TREE_CODE (op1) == NOP_EXPR || TREE_CODE (op1) == CONVERT_EXPR)
+  if (CONVERT_EXPR_P (op1)
       && (TYPE_PRECISION (TREE_TYPE (op1))
 	  == TYPE_PRECISION (TREE_TYPE (TREE_OPERAND (op1, 0)))))
     con1 = TREE_OPERAND (op1, 0);
@@ -3543,13 +3552,11 @@ build_compound_expr (tree expr1, tree expr2)
       if (warn_unused_value)
 	{
 	  if (VOID_TYPE_P (TREE_TYPE (expr1))
-	      && (TREE_CODE (expr1) == NOP_EXPR
-		  || TREE_CODE (expr1) == CONVERT_EXPR))
+	      && CONVERT_EXPR_P (expr1))
 	    ; /* (void) a, b */
 	  else if (VOID_TYPE_P (TREE_TYPE (expr1))
 		   && TREE_CODE (expr1) == COMPOUND_EXPR
-		   && (TREE_CODE (TREE_OPERAND (expr1, 1)) == CONVERT_EXPR
-		       || TREE_CODE (TREE_OPERAND (expr1, 1)) == NOP_EXPR))
+		   && CONVERT_EXPR_P (TREE_OPERAND (expr1, 1)))
 	    ; /* (void) a, (void) b, c */
 	  else
 	    warning (OPT_Wunused_value, 
@@ -3621,8 +3628,9 @@ build_c_cast (tree type, tree expr)
       tree field;
 
       for (field = TYPE_FIELDS (type); field; field = TREE_CHAIN (field))
-	if (comptypes (TYPE_MAIN_VARIANT (TREE_TYPE (field)),
-		       TYPE_MAIN_VARIANT (TREE_TYPE (value))))
+	if (TREE_TYPE (field) != error_mark_node
+	    && comptypes (TYPE_MAIN_VARIANT (TREE_TYPE (field)),
+			  TYPE_MAIN_VARIANT (TREE_TYPE (value))))
 	  break;
 
       if (field)
@@ -3635,7 +3643,6 @@ build_c_cast (tree type, tree expr)
 			   build_constructor_single (type, field, value),
 			   true, 0);
 	  TREE_CONSTANT (t) = TREE_CONSTANT (value);
-	  TREE_INVARIANT (t) = TREE_INVARIANT (value);
 	  return t;
 	}
       error ("cast to union type from type not present in union");
@@ -4629,19 +4636,21 @@ pedwarn_init (const char *msgid)
     pedwarn ("(near initialization for %qs)", ofwhat);
 }
 
-/* Issue a warning for a bad initializer component.
-   MSGID identifies the message.
-   The component name is taken from the spelling stack.  */
+/* Issue a warning for a bad initializer component.  
+
+   OPT is the OPT_W* value corresponding to the warning option that
+   controls this warning.  MSGID identifies the message.  The
+   component name is taken from the spelling stack.  */
 
 static void
-warning_init (const char *msgid)
+warning_init (int opt, const char *msgid)
 {
   char *ofwhat;
 
-  warning (0, "%s", _(msgid));
+  warning (opt, "%s", _(msgid));
   ofwhat = print_spelling ((char *) alloca (spelling_length () + 1));
   if (*ofwhat)
-    warning (0, "(near initialization for %qs)", ofwhat);
+    warning (opt, "(near initialization for %qs)", ofwhat);
 }
 
 /* If TYPE is an array type and EXPR is a parenthesized string
@@ -5408,7 +5417,7 @@ push_init_level (int implicit)
   if (implicit == 1 && warn_missing_braces && !missing_braces_mentioned)
     {
       missing_braces_mentioned = 1;
-      warning_init ("missing braces around initializer");
+      warning_init (OPT_Wmissing_braces, "missing braces around initializer");
     }
 
   if (TREE_CODE (constructor_type) == RECORD_TYPE
@@ -5469,7 +5478,7 @@ push_init_level (int implicit)
   else
     {
       if (constructor_type != error_mark_node)
-	warning_init ("braces around scalar initializer");
+	warning_init (0, "braces around scalar initializer");
       constructor_fields = constructor_type;
       constructor_unfilled_fields = constructor_type;
     }
@@ -5555,7 +5564,8 @@ pop_init_level (int implicit)
 	if (constructor_unfilled_fields && !constructor_designated)
 	  {
 	    push_member_name (constructor_unfilled_fields);
-	    warning_init ("missing initializer");
+	    warning_init (OPT_Wmissing_field_initializers,
+                          "missing initializer");
 	    RESTORE_SPELLING_DEPTH (constructor_depth);
 	  }
     }
@@ -5597,7 +5607,7 @@ pop_init_level (int implicit)
 	  ret.value = build_constructor (constructor_type,
 					 constructor_elements);
 	  if (constructor_constant)
-	    TREE_CONSTANT (ret.value) = TREE_INVARIANT (ret.value) = 1;
+	    TREE_CONSTANT (ret.value) = 1;
 	  if (constructor_constant && constructor_simple)
 	    TREE_STATIC (ret.value) = 1;
 	}
@@ -5839,9 +5849,9 @@ add_pending_init (tree purpose, tree value)
 	  else
 	    {
 	      if (TREE_SIDE_EFFECTS (p->value))
-		warning_init ("initialized field with side-effects overwritten");
+		warning_init (0, "initialized field with side-effects overwritten");
 	      else if (warn_override_init)
-		warning_init ("initialized field overwritten");
+		warning_init (OPT_Woverride_init, "initialized field overwritten");
 	      p->value = value;
 	      return;
 	    }
@@ -5862,9 +5872,9 @@ add_pending_init (tree purpose, tree value)
 	  else
 	    {
 	      if (TREE_SIDE_EFFECTS (p->value))
-		warning_init ("initialized field with side-effects overwritten");
+		warning_init (0, "initialized field with side-effects overwritten");
 	      else if (warn_override_init)
-		warning_init ("initialized field overwritten");
+		warning_init (OPT_Woverride_init, "initialized field overwritten");
 	      p->value = value;
 	      return;
 	    }
@@ -6336,9 +6346,9 @@ output_init_element (tree value, bool strict_string, tree type, tree field,
     {
       if (TREE_SIDE_EFFECTS (VEC_last (constructor_elt,
 				       constructor_elements)->value))
-	warning_init ("initialized field with side-effects overwritten");
+	warning_init (0, "initialized field with side-effects overwritten");
       else if (warn_override_init)
-	warning_init ("initialized field overwritten");
+	warning_init (OPT_Woverride_init, "initialized field overwritten");
 
       /* We can have just one union field set.  */
       constructor_elements = 0;
@@ -7110,7 +7120,7 @@ c_finish_return (tree retval)
 	{
 	  switch (TREE_CODE (inner))
 	    {
-	    case NOP_EXPR:   case NON_LVALUE_EXPR:  case CONVERT_EXPR:
+	    CASE_CONVERT:   case NON_LVALUE_EXPR:
 	    case PLUS_EXPR:
 	      inner = TREE_OPERAND (inner, 0);
 	      continue;
@@ -7123,9 +7133,8 @@ c_finish_return (tree retval)
 		tree op1 = TREE_OPERAND (inner, 1);
 
 		while (!POINTER_TYPE_P (TREE_TYPE (op1))
-		       && (TREE_CODE (op1) == NOP_EXPR
-			   || TREE_CODE (op1) == NON_LVALUE_EXPR
-			   || TREE_CODE (op1) == CONVERT_EXPR))
+		       && (CONVERT_EXPR_P (op1)
+			   || TREE_CODE (op1) == NON_LVALUE_EXPR))
 		  op1 = TREE_OPERAND (op1, 0);
 
 		if (POINTER_TYPE_P (TREE_TYPE (op1)))
@@ -7492,6 +7501,9 @@ c_finish_bc_stmt (tree *label_p, bool is_break)
 
   if (skip)
     return NULL_TREE;
+
+  if (!is_break)
+    add_stmt (build_predict_expr (PRED_CONTINUE, NOT_TAKEN));
 
   return add_stmt (build1 (GOTO_EXPR, void_type_node, label));
 }
@@ -8131,7 +8143,7 @@ build_binary_op (enum tree_code code, tree orig_op0, tree orig_op1,
 
     case EQ_EXPR:
     case NE_EXPR:
-      if (code0 == REAL_TYPE || code1 == REAL_TYPE)
+      if (FLOAT_TYPE_P (type0) || FLOAT_TYPE_P (type1))
 	warning (OPT_Wfloat_equal,
 		 "comparing floating point with == or != is unsafe");
       /* Result of comparison is always int,
@@ -8641,8 +8653,7 @@ c_objc_common_truthvalue_conversion (tree expr)
    required.  */
 
 tree
-c_expr_to_decl (tree expr, bool *tc ATTRIBUTE_UNUSED,
-		bool *ti ATTRIBUTE_UNUSED, bool *se)
+c_expr_to_decl (tree expr, bool *tc ATTRIBUTE_UNUSED, bool *se)
 {
   if (TREE_CODE (expr) == COMPOUND_LITERAL_EXPR)
     {

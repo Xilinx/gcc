@@ -1,6 +1,7 @@
-/* Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007
+/* Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008
    Free Software Foundation, Inc.
    Contributed by Andy Vaught
+   F2003 I/O support contributed by Jerry DeLisle
 
 This file is part of the GNU Fortran 95 runtime library (libgfortran).
 
@@ -44,13 +45,11 @@ typedef enum
 }
 bt;
 
-
 struct st_parameter_dt;
 
 typedef struct stream
 {
-  char *(*alloc_w_at) (struct stream *, int *, gfc_offset);
-  char *(*alloc_r_at) (struct stream *, int *, gfc_offset);
+  char *(*alloc_w_at) (struct stream *, int *);
   try (*sfree) (struct stream *);
   try (*close) (struct stream *);
   try (*seek) (struct stream *, gfc_offset);
@@ -61,17 +60,16 @@ typedef struct stream
 }
 stream;
 
+typedef enum
+{ SYNC_BUFFERED, SYNC_UNBUFFERED, ASYNC }
+io_mode;
 
 /* Macros for doing file I/O given a stream.  */
 
 #define sfree(s) ((s)->sfree)(s)
 #define sclose(s) ((s)->close)(s)
 
-#define salloc_r(s, len) ((s)->alloc_r_at)(s, len, -1)
-#define salloc_w(s, len) ((s)->alloc_w_at)(s, len, -1)
-
-#define salloc_r_at(s, len, where) ((s)->alloc_r_at)(s, len, where)
-#define salloc_w_at(s, len, where) ((s)->alloc_w_at)(s, len, where)
+#define salloc_w(s, len) ((s)->alloc_w_at)(s, len)
 
 #define sseek(s, pos) ((s)->seek)(s, pos)
 #define struncate(s) ((s)->trunc)(s)
@@ -205,12 +203,35 @@ typedef enum
 unit_pad;
 
 typedef enum
+{ DECIMAL_POINT, DECIMAL_COMMA, DECIMAL_UNSPECIFIED }
+unit_decimal;
+
+typedef enum
+{ ENCODING_UTF8, ENCODING_DEFAULT, ENCODING_UNSPECIFIED }
+unit_encoding;
+
+typedef enum
+{ ROUND_UP, ROUND_DOWN, ROUND_ZERO, ROUND_NEAREST, ROUND_COMPATIBLE,
+  ROUND_PROCDEFINED, ROUND_UNSPECIFIED }
+unit_round;
+
+/* NOTE: unit_sign must correspond with the sign_status enumerator in
+   st_parameter_dt to not break the ABI.  */
+typedef enum
+{ SIGN_PROCDEFINED, SIGN_SUPPRESS, SIGN_PLUS, SIGN_UNSPECIFIED }
+unit_sign;
+
+typedef enum
 { ADVANCE_YES, ADVANCE_NO, ADVANCE_UNSPECIFIED }
 unit_advance;
 
 typedef enum
 {READING, WRITING}
 unit_mode;
+
+typedef enum
+{ ASYNC_YES, ASYNC_NO, ASYNC_UNSPECIFIED }
+unit_async;
 
 #define CHARACTER1(name) \
 	      char * name; \
@@ -233,6 +254,11 @@ typedef struct
   CHARACTER1 (delim);
   CHARACTER2 (pad);
   CHARACTER1 (convert);
+  CHARACTER2 (decimal);
+  CHARACTER1 (encoding);
+  CHARACTER2 (round);
+  CHARACTER1 (sign);
+  CHARACTER2 (asynchronous);
 }
 st_parameter_open;
 
@@ -275,6 +301,16 @@ st_parameter_filepos;
 #define IOPARM_INQUIRE_HAS_WRITE	(1 << 28)
 #define IOPARM_INQUIRE_HAS_READWRITE	(1 << 29)
 #define IOPARM_INQUIRE_HAS_CONVERT	(1 << 30)
+#define IOPARM_INQUIRE_HAS_FLAGS2	(1 << 31)
+
+#define IOPARM_INQUIRE_HAS_ASYNCHRONOUS	(1 << 0)
+#define IOPARM_INQUIRE_HAS_DECIMAL	(1 << 1)
+#define IOPARM_INQUIRE_HAS_ENCODING	(1 << 2)
+#define IOPARM_INQUIRE_HAS_PENDING	(1 << 3)
+#define IOPARM_INQUIRE_HAS_ROUND	(1 << 4)
+#define IOPARM_INQUIRE_HAS_SIGN		(1 << 5)
+#define IOPARM_INQUIRE_HAS_SIZE		(1 << 6)
+#define IOPARM_INQUIRE_HAS_ID		(1 << 7)
 
 typedef struct
 {
@@ -299,6 +335,15 @@ typedef struct
   CHARACTER1 (write);
   CHARACTER2 (readwrite);
   CHARACTER1 (convert);
+  GFC_INTEGER_4 flags2;
+  CHARACTER1 (asynchronous);
+  CHARACTER2 (decimal);
+  CHARACTER1 (encoding);
+  CHARACTER2 (pending);
+  CHARACTER1 (round);
+  CHARACTER2 (sign);
+  GFC_INTEGER_4 *size;
+  GFC_INTEGER_4 *id;
 }
 st_parameter_inquire;
 
@@ -314,6 +359,15 @@ struct format_data;
 #define IOPARM_DT_HAS_ADVANCE			(1 << 13)
 #define IOPARM_DT_HAS_INTERNAL_UNIT		(1 << 14)
 #define IOPARM_DT_HAS_NAMELIST_NAME		(1 << 15)
+#define IOPARM_DT_HAS_ID			(1 << 16)
+#define IOPARM_DT_HAS_POS			(1 << 17)
+#define IOPARM_DT_HAS_ASYNCHRONOUS		(1 << 18)
+#define IOPARM_DT_HAS_BLANK			(1 << 19)
+#define IOPARM_DT_HAS_DECIMAL			(1 << 20)
+#define IOPARM_DT_HAS_DELIM			(1 << 21)
+#define IOPARM_DT_HAS_PAD			(1 << 22)
+#define IOPARM_DT_HAS_ROUND			(1 << 23)
+#define IOPARM_DT_HAS_SIGN			(1 << 24)
 /* Internal use bit.  */
 #define IOPARM_DT_IONML_SET			(1 << 31)
 
@@ -327,6 +381,15 @@ typedef struct st_parameter_dt
   CHARACTER2 (advance);
   CHARACTER1 (internal_unit);
   CHARACTER2 (namelist_name);
+  GFC_IO_INT *id;
+  GFC_IO_INT pos;
+  CHARACTER1 (asynchronous);
+  CHARACTER2 (blank);
+  CHARACTER1 (decimal);
+  CHARACTER2 (delim);
+  CHARACTER1 (pad);
+  CHARACTER2 (round);
+  CHARACTER1 (sign);
   /* Private part of the structure.  The compiler just needs
      to reserve enough space.  */
   union
@@ -341,7 +404,8 @@ typedef struct st_parameter_dt
 	  int item_count;
 	  unit_mode mode;
 	  unit_blank blank_status;
-	  enum {SIGN_S, SIGN_SS, SIGN_SP} sign_status;
+          unit_pad pad_status;
+	  enum { SIGN_S, SIGN_SS, SIGN_SP } sign_status;
 	  int scale_factor;
 	  int max_pos; /* Maximum righthand column written to.  */
 	  /* Number of skips + spaces to be done for T and X-editing.  */
@@ -354,6 +418,8 @@ typedef struct st_parameter_dt
 	       2 if an EOR was encountered due to a 2-bytes marker (CRLF) */
 	  int sf_seen_eor;
 	  unit_advance advance_status;
+	  unit_decimal decimal_status;
+          unit_delim delim_status;
 
 	  unsigned reversion_flag : 1; /* Format reversion has occurred.  */
 	  unsigned first_item : 1;
@@ -422,6 +488,16 @@ extern char check_st_parameter_dt[sizeof (((st_parameter_dt *) 0)->u.pad)
 				  >= sizeof (((st_parameter_dt *) 0)->u.p)
 				  ? 1 : -1];
 
+#define IOPARM_WAIT_HAS_ID		(1 << 7)
+
+typedef struct
+{
+  st_parameter_common common;
+  CHARACTER1 (id);
+}
+st_parameter_wait;
+
+
 #undef CHARACTER1
 #undef CHARACTER2
 
@@ -436,10 +512,34 @@ typedef struct
   unit_position position;
   unit_status status;
   unit_pad pad;
+  unit_decimal decimal;
+  unit_encoding encoding;
+  unit_round round;
+  unit_sign sign;
   unit_convert convert;
   int has_recl;
+  unit_async async;
 }
 unit_flags;
+
+
+/* Formatting buffer. This is a temporary scratch buffer. Currently used only
+   by formatted writes. After every
+   formatted write statement, this buffer is flushed. This buffer is needed since
+   not all devices are seekable, and T or TL edit descriptors require 
+   moving backwards in the record.  However, advance='no' complicates the
+   situation, so the buffer must only be partially flushed from the end of the
+   last flush until the current position in the record. */
+
+typedef struct fbuf
+{
+  char *buf;			/* Start of buffer.  */
+  size_t len;			/* Length of buffer.  */
+  size_t act;			/* Active bytes in buffer.  */
+  size_t flushed;		/* Flushed bytes from beginning of buffer.  */
+  size_t pos;			/* Current position in buffer.  */
+}
+fbuf;
 
 
 typedef struct gfc_unit
@@ -451,7 +551,8 @@ typedef struct gfc_unit
   struct gfc_unit *left, *right;
   int priority;
 
-  int read_bad, current_record, saved_pos;
+  int read_bad, current_record, saved_pos, previous_nonadvancing_write;
+
   enum
   { NO_ENDFILE, AT_ENDFILE, AFTER_ENDFILE }
   endfile;
@@ -491,6 +592,9 @@ typedef struct gfc_unit
 
   int file_len;
   char *file;
+  
+  /* Formatting buffer.  */
+  struct fbuf *fbuf;
 }
 gfc_unit;
 
@@ -503,7 +607,8 @@ typedef enum
   FMT_COMMA, FMT_COLON, FMT_SLASH, FMT_DOLLAR, FMT_T, FMT_TR, FMT_TL,
   FMT_LPAREN, FMT_RPAREN, FMT_X, FMT_S, FMT_SS, FMT_SP, FMT_STRING,
   FMT_BADSTRING, FMT_P, FMT_I, FMT_B, FMT_BN, FMT_BZ, FMT_O, FMT_Z, FMT_F,
-  FMT_E, FMT_EN, FMT_ES, FMT_G, FMT_L, FMT_A, FMT_D, FMT_H, FMT_END
+  FMT_E, FMT_EN, FMT_ES, FMT_G, FMT_L, FMT_A, FMT_D, FMT_H, FMT_END, FMT_DC,
+  FMT_DP
 }
 format_token;
 
@@ -568,7 +673,7 @@ internal_proto(compare_files);
 extern stream *open_external (st_parameter_open *, unit_flags *);
 internal_proto(open_external);
 
-extern stream *open_internal (char *, int);
+extern stream *open_internal (char *, int, gfc_offset);
 internal_proto(open_internal);
 
 extern stream *input_stream (void);
@@ -692,6 +797,9 @@ internal_proto(unlock_unit);
 extern void update_position (gfc_unit *);
 internal_proto(update_position);
 
+extern void finish_last_advance_record (gfc_unit *u);
+internal_proto (finish_last_advance_record);
+
 /* open.c */
 
 extern gfc_unit *new_unit (st_parameter_open *, gfc_unit *, unit_flags *);
@@ -721,8 +829,8 @@ internal_proto(free_format_data);
 extern const char *type_name (bt);
 internal_proto(type_name);
 
-extern void *read_block (st_parameter_dt *, int *);
-internal_proto(read_block);
+extern try read_block_form (st_parameter_dt *, void *, size_t *);
+internal_proto(read_block_form);
 
 extern char *read_sf (st_parameter_dt *, int *, int);
 internal_proto(read_sf);
@@ -730,10 +838,12 @@ internal_proto(read_sf);
 extern void *write_block (st_parameter_dt *, int);
 internal_proto(write_block);
 
-extern gfc_offset next_array_record (st_parameter_dt *, array_loop_spec *);
+extern gfc_offset next_array_record (st_parameter_dt *, array_loop_spec *,
+				     int*);
 internal_proto(next_array_record);
 
-extern gfc_offset init_loop_spec (gfc_array_char *, array_loop_spec *);
+extern gfc_offset init_loop_spec (gfc_array_char *, array_loop_spec *,
+				  gfc_offset *);
 internal_proto(init_loop_spec);
 
 extern void next_record (st_parameter_dt *, int);
@@ -741,6 +851,9 @@ internal_proto(next_record);
 
 extern void reverse_memcpy (void *, const void *, size_t);
 internal_proto (reverse_memcpy);
+
+extern void st_wait (st_parameter_wait *);
+export_proto(st_wait);
 
 /* read.c */
 
@@ -834,6 +947,25 @@ internal_proto(size_from_real_kind);
 
 extern size_t size_from_complex_kind (int);
 internal_proto(size_from_complex_kind);
+
+/* fbuf.c */
+extern void fbuf_init (gfc_unit *, size_t);
+internal_proto(fbuf_init);
+
+extern void fbuf_destroy (gfc_unit *);
+internal_proto(fbuf_destroy);
+
+extern void fbuf_reset (gfc_unit *);
+internal_proto(fbuf_reset);
+
+extern char * fbuf_alloc (gfc_unit *, size_t);
+internal_proto(fbuf_alloc);
+
+extern int fbuf_flush (gfc_unit *, int);
+internal_proto(fbuf_flush);
+
+extern int fbuf_seek (gfc_unit *, gfc_offset);
+internal_proto(fbuf_seek);
 
 /* lock.c */
 extern void free_ionml (st_parameter_dt *);

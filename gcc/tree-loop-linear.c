@@ -146,19 +146,17 @@ gather_interchange_stats (VEC (ddr_p, heap) *dependence_relations,
       for (it = 0; it < DR_NUM_DIMENSIONS (dr); 
 	   it++, ref = TREE_OPERAND (ref, 0))
 	{
-	  tree chrec = DR_ACCESS_FN (dr, it);
-	  tree tstride = evolution_part_in_loop_num (chrec, loop->num);
+	  int num = am_vector_index_for_loop (DR_ACCESS_MATRIX (dr), loop->num);
+	  int istride = AM_GET_ACCESS_MATRIX_ELEMENT (DR_ACCESS_MATRIX (dr), it, num);
 	  tree array_size = TYPE_SIZE (TREE_TYPE (ref));
 	  double_int dstride;
 
-	  if (tstride == NULL_TREE
-	      || array_size == NULL_TREE 
-	      || TREE_CODE (tstride) != INTEGER_CST
+	  if (array_size == NULL_TREE 
 	      || TREE_CODE (array_size) != INTEGER_CST)
 	    continue;
 
 	  dstride = double_int_mul (tree_to_double_int (array_size), 
-				    tree_to_double_int (tstride));
+				    shwi_to_double_int (istride));
 	  (*access_strides) = double_int_add (*access_strides, dstride);
 	}
     }
@@ -179,10 +177,14 @@ try_interchange_loops (lambda_trans_matrix trans,
 		       VEC (data_reference_p, heap) *datarefs,
 		       struct loop *first_loop)
 {
+  bool res;
   struct loop *loop_i;
   struct loop *loop_j;
   unsigned int dependence_steps_i, dependence_steps_j;
   double_int access_strides_i, access_strides_j;
+  double_int small, large, nb_iter;
+  double_int l1_cache_size, l2_cache_size;
+  int cmp;
   unsigned int nb_deps_not_carried_by_i, nb_deps_not_carried_by_j;
   struct data_dependence_relation *ddr;
 
@@ -194,7 +196,10 @@ try_interchange_loops (lambda_trans_matrix trans,
   ddr = VEC_index (ddr_p, dependence_relations, 0);
   if (ddr == NULL || DDR_ARE_DEPENDENT (ddr) == chrec_dont_know)
     return trans;
-  
+
+  l1_cache_size = uhwi_to_double_int (L1_CACHE_SIZE * 1024);
+  l2_cache_size = uhwi_to_double_int (L2_CACHE_SIZE * 1024);
+
   /* LOOP_I is always the outer loop.  */
   for (loop_j = first_loop->inner; 
        loop_j; 
@@ -216,18 +221,38 @@ try_interchange_loops (lambda_trans_matrix trans,
 	
 	/* Heuristics for loop interchange profitability:
 
+	   0. Don't transform if the smallest stride is larger than
+	      the L2 cache, or if the largest stride multiplied by the
+	      number of iterations is smaller than the L1 cache.
+
 	   1. (spatial locality) Inner loops should have smallest
               dependence steps.
 
 	   2. (spatial locality) Inner loops should contain more
 	   dependence relations not carried by the loop.
 
-	   3. (temporal locality) Inner loops should have smallest 
+	   3. (temporal locality) Inner loops should have smallest
 	      array access strides.
 	*/
+
+	cmp = double_int_ucmp (access_strides_i, access_strides_j);
+	small = cmp < 0 ? access_strides_i : access_strides_j;
+	large = cmp < 0 ? access_strides_j : access_strides_i;
+
+	if (double_int_ucmp (small, l2_cache_size) > 0)
+	  continue;
+
+	res = cmp < 0 ?
+	  estimated_loop_iterations (loop_j, false, &nb_iter):
+	  estimated_loop_iterations (loop_i, false, &nb_iter);
+	large = double_int_mul (large, nb_iter);
+
+	if (res && double_int_ucmp (large, l1_cache_size) < 0)
+	  continue;
+
 	if (dependence_steps_i < dependence_steps_j 
 	    || nb_deps_not_carried_by_i > nb_deps_not_carried_by_j
-	    || double_int_ucmp (access_strides_i, access_strides_j) < 0)
+	    || cmp < 0)
 	  {
 	    lambda_matrix_row_exchange (LTM_MATRIX (trans),
 					loop_depth (loop_i) - loop_depth (first_loop),
@@ -293,6 +318,7 @@ linear_transform_loops (void)
   loop_iterator li;
   VEC(tree,heap) *oldivs = NULL;
   VEC(tree,heap) *invariants = NULL;
+  VEC(tree,heap) *lambda_parameters = NULL;
   VEC(tree,heap) *remove_ivs = VEC_alloc (tree, heap, 3);
   struct loop *loop_nest;
   tree oldiv_stmt;
@@ -303,6 +329,7 @@ linear_transform_loops (void)
       unsigned int depth = 0;
       VEC (ddr_p, heap) *dependence_relations;
       VEC (data_reference_p, heap) *datarefs;
+      
       lambda_loopnest before, after;
       lambda_trans_matrix trans;
       struct obstack lambda_obstack;
@@ -314,11 +341,18 @@ linear_transform_loops (void)
 
       VEC_truncate (tree, oldivs, 0);
       VEC_truncate (tree, invariants, 0);
+      VEC_truncate (tree, lambda_parameters, 0);
 
       datarefs = VEC_alloc (data_reference_p, heap, 10);
       dependence_relations = VEC_alloc (ddr_p, heap, 10 * 10);
-      compute_data_dependences_for_loop (loop_nest, true, &datarefs,
-					 &dependence_relations);
+      if (!compute_data_dependences_for_loop (loop_nest, true, &datarefs,
+					      &dependence_relations))
+	continue;
+      
+      lambda_collect_parameters (datarefs, &lambda_parameters);
+      if (!lambda_compute_access_matrices (datarefs, lambda_parameters,
+					   loop_nest->num))
+	continue;
 
       if (dump_file && (dump_flags & TDF_DETAILS))
 	dump_ddrs (dump_file, dependence_relations);

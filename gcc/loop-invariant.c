@@ -1,5 +1,5 @@
 /* RTL-level loop invariant motion.
-   Copyright (C) 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
+   Copyright (C) 2004, 2005, 2006, 2007, 2008 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -206,7 +206,7 @@ check_maybe_invariant (rtx x)
 
       /* Just handle the most trivial case where we load from an unchanging
 	 location (most importantly, pic tables).  */
-      if (MEM_READONLY_P (x))
+      if (MEM_READONLY_P (x) && !MEM_VOLATILE_P (x))
 	break;
 
       return false;
@@ -563,7 +563,8 @@ find_exits (struct loop *loop, basic_block *body,
 	  FOR_BB_INSNS (body[i], insn)
 	    {
 	      if (CALL_P (insn)
-		  && !CONST_OR_PURE_CALL_P (insn))
+		  && (RTL_LOOPING_CONST_OR_PURE_CALL_P (insn)
+		      || !RTL_CONST_OR_PURE_CALL_P (insn)))
 		{
 		  has_call = true;
 		  bitmap_set_bit (may_exit, i);
@@ -796,8 +797,7 @@ find_invariant_insn (rtx insn, bool always_reached, bool always_executed)
 
   /* Until we get rid of LIBCALLS.  */
   if (find_reg_note (insn, REG_RETVAL, NULL_RTX)
-      || find_reg_note (insn, REG_LIBCALL, NULL_RTX)
-      || find_reg_note (insn, REG_NO_CONFLICT, NULL_RTX))
+      || find_reg_note (insn, REG_LIBCALL, NULL_RTX))
     return;
 
 #ifdef HAVE_cc0
@@ -904,7 +904,8 @@ find_invariants_bb (basic_block bb, bool always_reached, bool always_executed)
 
       if (always_reached
 	  && CALL_P (insn)
-	  && !CONST_OR_PURE_CALL_P (insn))
+	  && (RTL_LOOPING_CONST_OR_PURE_CALL_P (insn)
+	      || ! RTL_CONST_OR_PURE_CALL_P (insn)))
 	always_reached = false;
     }
 }
@@ -1193,7 +1194,7 @@ move_invariant_reg (struct loop *loop, unsigned invno)
 	 need to create a temporary register.  */
       set = single_set (inv->insn);
       dest = SET_DEST (set);
-      reg = gen_reg_rtx (GET_MODE (dest));
+      reg = gen_reg_rtx_and_attrs (dest);
 
       /* Try replacing the destination by a new pseudoregister.  */
       if (!validate_change (inv->insn, &SET_DEST (set), reg, false))

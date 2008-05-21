@@ -1,6 +1,6 @@
 // Locale support (codecvt) -*- C++ -*-
 
-// Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
+// Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
 //  Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
@@ -46,7 +46,7 @@
 
 _GLIBCXX_BEGIN_NAMESPACE(std)
 
-  /// @brief  Empty base class for codecvt facet [22.2.1.5].
+  /// Empty base class for codecvt facet [22.2.1.5].
   class codecvt_base
   {
   public:
@@ -96,7 +96,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
        *  respectively.  If the result needed no conversion, from_next and
        *  to_next are not affected.
        *
-       *  The @a state argument should be intialized if the input is at the
+       *  The @a state argument should be initialized if the input is at the
        *  beginning and carried from a previous call if continuing
        *  conversion.  There are no guarantees about how @a state is used.
        *
@@ -176,7 +176,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
        *  respectively.  If the result needed no conversion, from_next and
        *  to_next are not affected.
        *
-       *  The @a state argument should be intialized if the input is at the
+       *  The @a state argument should be initialized if the input is at the
        *  beginning and carried from a previous call if continuing
        *  conversion.  There are no guarantees about how @a state is used.
        *
@@ -330,7 +330,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
   template<typename _InternT, typename _ExternT, typename _StateT>
     locale::id codecvt<_InternT, _ExternT, _StateT>::id;
 
-  /// @brief class codecvt<char, char, mbstate_t> specialization.
+  /// class codecvt<char, char, mbstate_t> specialization.
   template<>
     class codecvt<char, char, mbstate_t>
     : public __codecvt_abstract_base<char, char, mbstate_t>
@@ -388,7 +388,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
   };
 
 #ifdef _GLIBCXX_USE_WCHAR_T
-  /// @brief  class codecvt<wchar_t, char, mbstate_t> specialization.
+  /// class codecvt<wchar_t, char, mbstate_t> specialization.
   template<>
     class codecvt<wchar_t, char, mbstate_t>
     : public __codecvt_abstract_base<wchar_t, char, mbstate_t>
@@ -448,7 +448,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
     };
 #endif //_GLIBCXX_USE_WCHAR_T
 
-  /// @brief class codecvt_byname [22.2.1.6].
+  /// class codecvt_byname [22.2.1.6].
   template<typename _InternT, typename _ExternT, typename _StateT>
     class codecvt_byname : public codecvt<_InternT, _ExternT, _StateT>
     {

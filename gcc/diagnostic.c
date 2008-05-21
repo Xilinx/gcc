@@ -1,5 +1,5 @@
 /* Language-independent diagnostic subroutines for the GNU Compiler Collection
-   Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
+   Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
    Free Software Foundation, Inc.
    Contributed by Gabriel Dos Reis <gdr@codesourcery.com>
 
@@ -51,8 +51,7 @@ static void default_diagnostic_finalizer (diagnostic_context *,
 					  diagnostic_info *);
 
 static void error_recursion (diagnostic_context *) ATTRIBUTE_NORETURN;
-static bool diagnostic_count_diagnostic (diagnostic_context *,
-					 diagnostic_info *);
+
 static void diagnostic_action_after_output (diagnostic_context *,
 					    diagnostic_info *);
 static void real_abort (void) ATTRIBUTE_NORETURN;
@@ -157,59 +156,9 @@ diagnostic_build_prefix (diagnostic_info *diagnostic)
   return
     (s.file == NULL
      ? build_message_string ("%s: %s", progname, text)
-#ifdef USE_MAPPED_LOCATION
      : flag_show_column && s.column != 0
      ? build_message_string ("%s:%d:%d: %s", s.file, s.line, s.column, text)
-#endif
      : build_message_string ("%s:%d: %s", s.file, s.line, text));
-}
-
-/* Count a diagnostic.  Return true if the message should be printed.  */
-static bool
-diagnostic_count_diagnostic (diagnostic_context *context,
-			     diagnostic_info *diagnostic)
-{
-  diagnostic_t kind = diagnostic->kind;
-  switch (kind)
-    {
-    default:
-      gcc_unreachable ();
-
-    case DK_ICE:
-#ifndef ENABLE_CHECKING
-      /* When not checking, ICEs are converted to fatal errors when an
-	 error has already occurred.  This is counteracted by
-	 abort_on_error.  */
-      if ((diagnostic_kind_count (context, DK_ERROR) > 0
-	   || diagnostic_kind_count (context, DK_SORRY) > 0)
-	  && !context->abort_on_error)
-	{
-	  expanded_location s = expand_location (diagnostic->location);
-	  fnotice (stderr, "%s:%d: confused by earlier errors, bailing out\n",
-		   s.file, s.line);
-	  exit (ICE_EXIT_CODE);
-	}
-#endif
-      if (context->internal_error)
-	(*context->internal_error) (diagnostic->message.format_spec,
-				    diagnostic->message.args_ptr);
-      /* Fall through.  */
-
-    case DK_FATAL: case DK_SORRY:
-    case DK_ANACHRONISM: case DK_NOTE:
-      ++diagnostic_kind_count (context, kind);
-      break;
-
-    case DK_WARNING:
-      ++diagnostic_kind_count (context, DK_WARNING);
-      break;
-
-    case DK_ERROR:
-      ++diagnostic_kind_count (context, DK_ERROR);
-      break;
-    }
-
-  return true;
 }
 
 /* Take any action which is expected to happen after the diagnostic
@@ -271,7 +220,7 @@ diagnostic_report_current_function (diagnostic_context *context,
 void
 diagnostic_report_current_module (diagnostic_context *context)
 {
-  struct file_stack *p;
+  const struct line_map *map;
 
   if (pp_needs_newline (context->printer))
     {
@@ -279,23 +228,29 @@ diagnostic_report_current_module (diagnostic_context *context)
       pp_needs_newline (context->printer) = false;
     }
 
-  p = input_file_stack;
-  if (p && diagnostic_last_module_changed (context))
+  if (input_location <= BUILTINS_LOCATION)
+    return;
+
+  map = linemap_lookup (line_table, input_location);
+  if (map && diagnostic_last_module_changed (context, map))
     {
-      expanded_location xloc = expand_location (p->location);
-      pp_verbatim (context->printer,
-                   "In file included from %s:%d",
-		   xloc.file, xloc.line);
-      while ((p = p->next) != NULL)
+      diagnostic_set_last_module (context, map);
+      if (! MAIN_FILE_P (map))
 	{
-	  xloc = expand_location (p->location);
+	  map = INCLUDED_FROM (line_table, map);
 	  pp_verbatim (context->printer,
-		       ",\n                 from %s:%d",
-		       xloc.file, xloc.line);
+		       "In file included from %s:%d",
+		       map->to_file, LAST_SOURCE_LINE (map));
+	  while (! MAIN_FILE_P (map))
+	    {
+	      map = INCLUDED_FROM (line_table, map);
+	      pp_verbatim (context->printer,
+			   ",\n                 from %s:%d",
+			   map->to_file, LAST_SOURCE_LINE (map));
+	    }
+	  pp_verbatim (context->printer, ":");
+	  pp_newline (context->printer);
 	}
-      pp_verbatim (context->printer, ":");
-      diagnostic_set_last_module (context);
-      pp_newline (context->printer);
     }
 }
 
@@ -345,6 +300,7 @@ diagnostic_report_diagnostic (diagnostic_context *context,
 			      diagnostic_info *diagnostic)
 {
   bool maybe_print_warnings_as_errors_message = false;
+  const char *saved_format_spec;
 
   /* Give preference to being able to inhibit warnings, before they
      get reclassified to something else.  */
@@ -405,27 +361,45 @@ diagnostic_report_diagnostic (diagnostic_context *context,
 
   context->lock++;
 
-  if (diagnostic_count_diagnostic (context, diagnostic))
+  if (diagnostic->kind == DK_ICE) 
     {
-      const char *saved_format_spec = diagnostic->message.format_spec;
-
-      if (context->show_option_requested && diagnostic->option_index)
-	diagnostic->message.format_spec
-	  = ACONCAT ((diagnostic->message.format_spec,
-		      " [", cl_options[diagnostic->option_index].opt_text, "]", NULL));
-
-      diagnostic->message.locus = &diagnostic->location;
-      diagnostic->message.abstract_origin = &diagnostic->abstract_origin;
-      diagnostic->abstract_origin = NULL;
-      pp_format (context->printer, &diagnostic->message);
-      (*diagnostic_starter (context)) (context, diagnostic);
-      pp_output_formatted_text (context->printer);
-      (*diagnostic_finalizer (context)) (context, diagnostic);
-      pp_flush (context->printer);
-      diagnostic_action_after_output (context, diagnostic);
-      diagnostic->message.format_spec = saved_format_spec;
-      diagnostic->abstract_origin = NULL;
+#ifndef ENABLE_CHECKING
+      /* When not checking, ICEs are converted to fatal errors when an
+	 error has already occurred.  This is counteracted by
+	 abort_on_error.  */
+      if ((diagnostic_kind_count (context, DK_ERROR) > 0
+	   || diagnostic_kind_count (context, DK_SORRY) > 0)
+	  && !context->abort_on_error)
+	{
+	  expanded_location s = expand_location (diagnostic->location);
+	  fnotice (stderr, "%s:%d: confused by earlier errors, bailing out\n",
+		   s.file, s.line);
+	  exit (ICE_EXIT_CODE);
+	}
+#endif
+      if (context->internal_error)
+	(*context->internal_error) (diagnostic->message.format_spec,
+				    diagnostic->message.args_ptr);
     }
+  ++diagnostic_kind_count (context, diagnostic->kind);
+  
+  saved_format_spec = diagnostic->message.format_spec;
+  if (context->show_option_requested && diagnostic->option_index)
+    diagnostic->message.format_spec
+      = ACONCAT ((diagnostic->message.format_spec,
+                  " [", cl_options[diagnostic->option_index].opt_text, "]", NULL));
+  
+  diagnostic->message.locus = &diagnostic->location;
+  diagnostic->message.abstract_origin = &diagnostic->abstract_origin;
+  diagnostic->abstract_origin = NULL;
+  pp_format (context->printer, &diagnostic->message);
+  (*diagnostic_starter (context)) (context, diagnostic);
+  pp_output_formatted_text (context->printer);
+  (*diagnostic_finalizer (context)) (context, diagnostic);
+  pp_flush (context->printer);
+  diagnostic_action_after_output (context, diagnostic);
+  diagnostic->message.format_spec = saved_format_spec;
+  diagnostic->abstract_origin = NULL;
 
   context->lock--;
 }
@@ -540,10 +514,30 @@ pedwarn (const char *gmsgid, ...)
 
   va_start (ap, gmsgid);
   diagnostic_set_info (&diagnostic, gmsgid, &ap, input_location,
-		       pedantic_error_kind ());
+		       pedantic_warning_kind ());
   report_diagnostic (&diagnostic);
   va_end (ap);
 }
+
+/* A "permissive" error: issues an error unless -fpermissive was given
+   on the command line, in which case it issues a warning.  Use this
+   for things that really should be errors but we want to support
+   legacy code.  */
+
+void
+permerror (const char *gmsgid, ...)
+{
+  diagnostic_info diagnostic;
+  va_list ap;
+
+  va_start (ap, gmsgid);
+  diagnostic_set_info (&diagnostic, gmsgid, &ap, input_location,
+		       permissive_error_kind ());
+  diagnostic.option_index = OPT_fpermissive;
+  report_diagnostic (&diagnostic);
+  va_end (ap);
+}
+
 
 /* A hard error: the code is definitely ill-formed, and an object file
    will not be produced.  */

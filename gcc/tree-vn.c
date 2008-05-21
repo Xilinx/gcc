@@ -83,8 +83,6 @@ expressions_equal_p (tree e1, tree e2)
 
     }
   else if (TREE_CODE (e1) == TREE_CODE (e2)
-	   && (te1 == te2
-	       || types_compatible_p (te1, te2))
 	   && operand_equal_p (e1, e2, OEP_PURE_SAME))
     return true;
 
@@ -105,19 +103,6 @@ set_value_handle (tree e, tree v)
   else
     /* Do nothing.  Constants are their own value handles.  */
     gcc_assert (is_gimple_min_invariant (e));
-}
-
-/* A comparison function for use in qsort to compare vuses.  Simply
-   subtracts version numbers.  */
-
-static int
-vuses_compare (const void *pa, const void *pb)
-{
-  const tree vusea = *((const tree *)pa);
-  const tree vuseb = *((const tree *)pb);
-  int sn = SSA_NAME_VERSION (vusea) - SSA_NAME_VERSION (vuseb);
-
-  return sn;
 }
 
 /* Print out the "Created value <x> for <Y>" statement to the
@@ -161,7 +146,7 @@ sort_vuses (VEC (tree,gc) *vuses)
     qsort (VEC_address (tree, vuses),
 	   VEC_length (tree, vuses),
 	   sizeof (tree),
-	   vuses_compare);
+	   operand_build_cmp);
 }
 
 /* Sort the VUSE array so that we can do equality comparisons
@@ -174,7 +159,7 @@ sort_vuses_heap (VEC (tree,heap) *vuses)
     qsort (VEC_address (tree, vuses),
 	   VEC_length (tree, vuses),
 	   sizeof (tree),
-	   vuses_compare);
+	   operand_build_cmp);
 }
 /* Insert EXPR into VALUE_TABLE with value VAL, and add expression
    EXPR to the value set for value VAL.  */
@@ -186,10 +171,10 @@ vn_add (tree expr, tree val)
     {
     case tcc_comparison:
     case tcc_binary:
-      vn_binary_op_insert (expr, val);
+      vn_nary_op_insert (expr, val);
       break;
     case tcc_unary:
-      vn_unary_op_insert (expr, val);
+      vn_nary_op_insert (expr, val);
       break;
       /* In the case of array-refs of constants, for example, we can
 	 end up with no vuses.  */
@@ -214,7 +199,7 @@ vn_add (tree expr, tree val)
 	}
       else if (TREE_CODE (expr) == ADDR_EXPR)
 	{
-	  vn_unary_op_insert (expr, val);
+	  vn_nary_op_insert (expr, val);
 	  break;
 	}
       /* FALLTHROUGH */
@@ -261,14 +246,14 @@ vn_lookup (tree expr)
     {
     case tcc_comparison:
     case tcc_binary:
-      return vn_binary_op_lookup (expr);
+      return vn_nary_op_lookup (expr);
     case tcc_unary:
-      return vn_unary_op_lookup (expr);
+      return vn_nary_op_lookup (expr);
       break;
       /* In the case of array-refs of constants, for example, we can
 	 end up with no vuses.  */
     case tcc_reference:
-      return vn_reference_lookup (expr, NULL);
+      return vn_reference_lookup (expr, NULL, false);
       break;
       /* It is possible to have CALL_EXPR with no vuses for things
 	 like "cos", and these will fall into vn_lookup.   */
@@ -277,11 +262,11 @@ vn_lookup (tree expr)
     case tcc_expression:
     case tcc_declaration:
       if (TREE_CODE (expr) == CALL_EXPR || DECL_P (expr))
-	return vn_reference_lookup (expr, NULL);
+	return vn_reference_lookup (expr, NULL, false);
       else if (TREE_CODE (expr) == SSA_NAME)
 	return SSA_NAME_VALUE (expr);
       else if (TREE_CODE (expr) == ADDR_EXPR)
-	return vn_unary_op_lookup (expr);
+	return vn_nary_op_lookup (expr);
       /* FALLTHROUGH */
     default:
       gcc_unreachable ();
@@ -321,7 +306,9 @@ vn_lookup_with_vuses (tree expr, VEC (tree, gc) *vuses)
   if (is_gimple_min_invariant (expr) || TREE_CODE (expr) == FIELD_DECL)
     return expr;
 
-  return vn_reference_lookup (expr, vuses);
+  /* We may not walk the use-def chains here as the alias oracle cannot
+     properly deal with VALUE_HANDLE tree nodes we feed it here.  */
+  return vn_reference_lookup (expr, vuses, false);
 }
 
 static tree

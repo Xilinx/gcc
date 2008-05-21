@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -31,6 +31,7 @@ with Exp_Disp; use Exp_Disp;
 with Exp_Ch7;  use Exp_Ch7;
 with Exp_Tss;  use Exp_Tss;
 with Errout;   use Errout;
+with Lib.Xref; use Lib.Xref;
 with Namet;    use Namet;
 with Nlists;   use Nlists;
 with Nmake;    use Nmake;
@@ -79,8 +80,14 @@ package body Sem_Disp is
       New_Op      : Entity_Id)
    is
       List : constant Elist_Id := Primitive_Operations (Tagged_Type);
+
    begin
-      Append_Elmt (New_Op, List);
+      --  The dispatching operation may already be on the list, if it the
+      --  wrapper for an inherited function of a null extension (see exp_ch3
+      --  for the construction of function wrappers). The list of primitive
+      --  operations must not contain duplicates.
+
+      Append_Unique_Elmt (New_Op, List);
    end Add_Dispatching_Operation;
 
    -------------------------------
@@ -143,7 +150,12 @@ package body Sem_Disp is
                end if;
 
                if Present (Default_Value (Formal)) then
-                  if Ekind (Etype (Formal)) = E_Anonymous_Access_Type then
+
+                  --  In Ada 2005, access parameters can have defaults
+
+                  if Ekind (Etype (Formal)) = E_Anonymous_Access_Type
+                    and then Ada_Version < Ada_05
+                  then
                      Error_Msg_N
                        ("default not allowed for controlling access parameter",
                         Default_Value (Formal));
@@ -285,6 +297,10 @@ package body Sem_Disp is
       Indeterm_Ancestor_Call : Boolean := False;
       Indeterm_Ctrl_Type     : Entity_Id;
 
+      Static_Tag : Node_Id := Empty;
+      --  If a controlling formal has a statically tagged actual, the tag of
+      --  this actual is to be used for any tag-indeterminate actual
+
       procedure Check_Dispatching_Context;
       --  If the call is tag-indeterminate and the entity being called is
       --  abstract, verify that the context is a call that will eventually
@@ -379,6 +395,16 @@ package body Sem_Disp is
             then
                Indeterm_Ancestor_Call := True;
                Indeterm_Ctrl_Type     := Etype (Formal);
+
+            --  If the formal is controlling but the actual is not, the type
+            --  of the actual is statically known, and may be used as the
+            --  controlling tag for some other-indeterminate actual.
+
+            elsif Is_Controlling_Formal (Formal)
+              and then Is_Entity_Name (Actual)
+              and then Is_Tagged_Type (Etype (Actual))
+            then
+               Static_Tag := Actual;
             end if;
 
             Next_Actual (Actual);
@@ -400,11 +426,13 @@ package body Sem_Disp is
 
          if No (Control)
            and then Indeterm_Ancestor_Call
+           and then No (Static_Tag)
          then
             Control :=
               Make_Attribute_Reference (Loc,
                 Prefix         => New_Occurrence_Of (Indeterm_Ctrl_Type, Loc),
                 Attribute_Name => Name_Tag);
+
             Analyze (Control);
          end if;
 
@@ -455,12 +483,40 @@ package body Sem_Disp is
             Set_Controlling_Argument (N, Control);
             Check_Restriction (No_Dispatching_Calls, N);
 
+         --  If there is a statically tagged actual and a tag-indeterminate
+         --  call to a function of the ancestor (such as that provided by a
+         --  default), then treat this as a dispatching call and propagate
+         --  the tag to the tag-indeterminate call(s).
+
+         elsif Present (Static_Tag) and then Indeterm_Ancestor_Call then
+            Control :=
+              Make_Attribute_Reference (Loc,
+                Prefix         =>
+                  New_Occurrence_Of (Etype (Static_Tag), Loc),
+                Attribute_Name => Name_Tag);
+
+            Analyze (Control);
+
+            Actual := First_Actual (N);
+            Formal := First_Formal (Subp_Entity);
+            while Present (Actual) loop
+               if Is_Tag_Indeterminate (Actual)
+                 and then Is_Controlling_Formal (Formal)
+               then
+                  Propagate_Tag (Control, Actual);
+               end if;
+
+               Next_Actual (Actual);
+               Next_Formal (Formal);
+            end loop;
+
+            Check_Dispatching_Context;
+
          else
             --  The call is not dispatching, so check that there aren't any
             --  tag-indeterminate abstract calls left.
 
             Actual := First_Actual (N);
-
             while Present (Actual) loop
                if Is_Tag_Indeterminate (Actual) then
 
@@ -586,7 +642,10 @@ package body Sem_Disp is
          begin
             E := First_Entity (Subp);
             while Present (E) loop
-               if Is_Access_Type (Etype (E)) then
+
+               --  For an access parameter, check designated type.
+
+               if Ekind (Etype (E)) = E_Anonymous_Access_Type then
                   Typ := Designated_Type (Etype (E));
                else
                   Typ := Etype (E);
@@ -732,6 +791,9 @@ package body Sem_Disp is
                      --  if the subprogram is already frozen, we must update
                      --  its dispatching information explicitly here. The
                      --  information is taken from the overridden subprogram.
+                     --  We must also generate a cross-reference entry because
+                     --  references to other primitives were already created
+                     --  when type was frozen.
 
                      Body_Is_Last_Primitive := True;
 
@@ -761,6 +823,8 @@ package body Sem_Disp is
                                 Prim    => Subp,
                                 Ins_Nod => Subp_Body);
                            end if;
+
+                           Generate_Reference (Tagged_Type, Subp, 'p', False);
                         end if;
                      end if;
                   end if;
@@ -1049,8 +1113,10 @@ package body Sem_Disp is
          Set_Scope (Subp, Current_Scope);
          Tagged_Type := Find_Dispatching_Type (Subp);
 
+         --  Add Old_Subp to primitive operations if not already present.
+
          if Present (Tagged_Type) and then Is_Tagged_Type (Tagged_Type) then
-            Append_Elmt (Old_Subp, Primitive_Operations (Tagged_Type));
+            Append_Unique_Elmt (Old_Subp, Primitive_Operations (Tagged_Type));
 
             --  If Old_Subp isn't already marked as dispatching then
             --  this is the case of an operation of an untagged private
@@ -1381,6 +1447,7 @@ package body Sem_Disp is
             elsif Is_Subprogram (Prim)
               and then Present (Abstract_Interface_Alias (Prim))
               and then Alias (Prim) = Prev_Op
+              and then Present (Etype (New_Op))
             then
                Set_Alias (Prim, New_Op);
                Check_Subtype_Conformant (New_Op, Prim);
@@ -1482,6 +1549,14 @@ package body Sem_Disp is
 
       if VM_Target = No_VM then
          Expand_Dispatching_Call (Call_Node);
+
+      --  Expansion of a dispatching call results in an indirect call, which in
+      --  turn causes current values to be killed (see Resolve_Call), so on VM
+      --  targets we do the call here to ensure consistent warnings between VM
+      --  and non-VM targets.
+
+      else
+         Kill_Current_Values;
       end if;
    end Propagate_Tag;
 

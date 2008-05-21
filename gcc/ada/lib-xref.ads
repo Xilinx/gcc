@@ -73,7 +73,7 @@ package Lib.Xref is
    --        in the visible part of a generic package, and space otherwise.
 
    --        entity is the name of the referenced entity, with casing in
-   --        the canical casing for the source file where it is defined.
+   --        the canonical casing for the source file where it is defined.
 
    --        renameref provides information on renaming. If the entity is
    --        a package, object or overloadable entity which is declared by
@@ -237,8 +237,33 @@ package Lib.Xref is
    --           source node that generates the implicit reference, and it is
    --           useful to record this one.
 
-   --           k is used to denote a reference to the parent unit, in the
-   --           cross-reference line for a child unit.
+   --           k is another non-standard reference type, used to record a
+   --           reference from a child unit to its parent. For various cross-
+   --           referencing tools, we need a pointer from the xref entries for
+   --           the child to the parent. This is the opposite way round from
+   --           normal xref entries, since the reference is *from* the child
+   --           unit *to* the parent unit, yet appears in the xref entries for
+   --           the child. Consider this example:
+   --
+   --             package q is
+   --             end;
+   --             package q.r is
+   --             end q.r;
+   --
+   --           The ali file for q-r.ads has these entries
+   --
+   --             D q.ads
+   --             D q-r.ads
+   --             D system.ads
+   --             X 1 q.ads
+   --             1K9*q 2e4 2|1r9 2r5
+   --             X 2 q-r.ads
+   --             1K11*r 1|1k9 2|2l7 2e8
+   --
+   --           Here the 2|1r9 entry appearing in the section for the parent
+   --           is the normal reference from the child to the parent. The 1k9
+   --           entry in the section for the child duplicates this information
+   --           but appears in the child rather than the parent.
 
    --           l is used to identify the occurrence in the source of the
    --           name on an end line. This is just a syntactic reference
@@ -251,7 +276,7 @@ package Lib.Xref is
    --           Pq of this type, then an entry in the list of references to
    --           Tx will point to the declaration of Pq. Note that this entry
    --           type is unusual because it an implicit rather than explicit,
-   --           and the name of the refrerence does not match the name of the
+   --           and the name of the reference does not match the name of the
    --           entity for which a reference is generated. These entries are
    --           generated only for entities declared in the extended main
    --           source unit (main unit itself, its separate spec (if any).
@@ -299,7 +324,7 @@ package Lib.Xref is
    --           instantiations, this can be nested [...[...[...]]] etc.
    --           The reference is of the form [file|line] no column is
    --           present since it is assumed that only one instantiation
-   --           appears on a single source line. Note that the appearence
+   --           appears on a single source line. Note that the appearance
    --           of file numbers in such references follows the normal
    --           rules (present only if needed, and resets the current
    --           file for subsequent references).
@@ -333,7 +358,7 @@ package Lib.Xref is
    --              a reference (e.g. a call) at line 8 column 4 of the
    --              of the current file.
 
-   --              the END line of the body has an explict reference to
+   --              the END line of the body has an explicit reference to
    --              the name of the procedure at line 12, column 13.
 
    --              the body ends at line 12, column 15, just past this label
@@ -568,11 +593,11 @@ package Lib.Xref is
    --  a renaming of a predefined operator.
 
    procedure Generate_Reference
-     (E             : Entity_Id;
-      N             : Node_Id;
-      Typ           : Character := 'r';
-      Set_Ref       : Boolean   := True;
-      Force         : Boolean   := False);
+     (E       : Entity_Id;
+      N       : Node_Id;
+      Typ     : Character := 'r';
+      Set_Ref : Boolean   := True;
+      Force   : Boolean   := False);
    --  This procedure is called to record a reference. N is the location
    --  of the reference and E is the referenced entity. Typ is one of:
    --

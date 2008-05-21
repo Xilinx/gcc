@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---                     Copyright (C) 1999-2007, AdaCore                     --
+--                     Copyright (C) 1999-2008, AdaCore                     --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -42,7 +42,7 @@
 --  (special command line arguments starting with '-' by default) and their
 --  parameters, and then the rest of the command line arguments.
 
---  This package is flexible enough to accomodate various needs: optional
+--  This package is flexible enough to accommodate various needs: optional
 --  switch parameters, various characters to separate a switch and its
 --  parameter, whether to stop the parsing at the first non-switch argument
 --  encountered, etc.
@@ -84,7 +84,7 @@
 --  A more complicated example would involve the use of sections for the
 --  switches, as for instance in gnatmake. The same command line is used to
 --  provide switches for several tools. Each tool recognizes its switches by
---  separating them with special switches, chosen by the programer.
+--  separating them with special switches, chosen by the programmer.
 --  Each section acts as a command line of its own.
 
 --  begin
@@ -401,7 +401,7 @@ package GNAT.Command_Line is
    --  matching switch is returned.
    --
    --  Arbitrary characters are allowed for switches, although it is
-   --  strongly recommanded to use only letters and digits for portability
+   --  strongly recommended to use only letters and digits for portability
    --  reasons.
    --
    --  When Concatenate is False, individual switches need to be separated by
@@ -523,9 +523,13 @@ package GNAT.Command_Line is
    type Command_Line is private;
 
    procedure Set_Configuration
-     (Cmd      : in out Command_Line;
-      Config   : Command_Line_Configuration);
+     (Cmd    : in out Command_Line;
+      Config : Command_Line_Configuration);
    --  Set the configuration for this command line
+
+   function Get_Configuration
+     (Cmd : Command_Line) return Command_Line_Configuration;
+   --  Return the configuration used for that command line
 
    procedure Set_Command_Line
      (Cmd                : in out Command_Line;

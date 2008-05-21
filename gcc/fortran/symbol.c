@@ -1,5 +1,5 @@
 /* Maintain binary trees of symbols.
-   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
+   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
    Free Software Foundation, Inc.
    Contributed by Andy Vaught
 
@@ -212,7 +212,7 @@ gfc_get_default_type (gfc_symbol *sym, gfc_namespace *ns)
   letter = sym->name[0];
 
   if (gfc_option.flag_allow_leading_underscore && letter == '_')
-    gfc_internal_error ("Option -fallow_leading_underscore is for use only by "
+    gfc_internal_error ("Option -fallow-leading-underscore is for use only by "
 			"gfortran developers, and should not be used for "
 			"implicitly typed variables");
 
@@ -595,6 +595,21 @@ check_conflict (symbol_attribute *attr, const char *name, locus *where)
       conf2 (function);
       conf2 (subroutine);
       conf2 (threadprivate);
+
+      if (attr->access == ACCESS_PUBLIC || attr->access == ACCESS_PRIVATE)
+	{
+	  a2 = attr->access == ACCESS_PUBLIC ? public : private;
+	  gfc_error ("%s attribute applied to %s %s at %L", a2, a1,
+	    name, where);
+	  return FAILURE;
+	}
+
+      if (attr->is_bind_c)
+	{
+	  gfc_error_now ("BIND(C) applied to %s %s at %L", a1, name, where);
+	  return FAILURE;
+	}
+
       break;
 
     case FL_VARIABLE:
@@ -2153,8 +2168,8 @@ gfc_new_symtree (gfc_symtree **root, const char *name)
 
 /* Delete a symbol from the tree.  Does not free the symbol itself!  */
 
-static void
-delete_symtree (gfc_symtree **root, const char *name)
+void
+gfc_delete_symtree (gfc_symtree **root, const char *name)
 {
   gfc_symtree st, *st0;
 
@@ -2582,7 +2597,34 @@ gfc_undo_symbols (void)
       if (p->new)
 	{
 	  /* Symbol was new.  */
-	  delete_symtree (&p->ns->sym_root, p->name);
+	  if (p->attr.in_common && p->common_block->head)
+	    {
+	      /* If the symbol was added to any common block, it
+		 needs to be removed to stop the resolver looking
+		 for a (possibly) dead symbol.  */
+
+	      if (p->common_block->head == p)
+	        p->common_block->head = p->common_next;
+	      else
+		{
+		  gfc_symbol *cparent, *csym;
+
+		  cparent = p->common_block->head;
+		  csym = cparent->common_next;
+
+		  while (csym != p)
+		    {
+		      cparent = csym;
+		      csym = csym->common_next;
+		    }
+
+		  gcc_assert(cparent->common_next == p);
+
+		  cparent->common_next = csym->common_next;
+		}
+	    }
+
+	  gfc_delete_symtree (&p->ns->sym_root, p->name);
 
 	  p->refs--;
 	  if (p->refs < 0)
@@ -3598,7 +3640,8 @@ add_proc_interface (gfc_symbol *sym, ifsrc source,
    declaration statement (see match_proc_decl()) to create the formal
    args based on the args of a given named interface.  */
 
-void copy_formal_args (gfc_symbol *dest, gfc_symbol *src)
+void
+copy_formal_args (gfc_symbol *dest, gfc_symbol *src)
 {
   gfc_formal_arglist *head = NULL;
   gfc_formal_arglist *tail = NULL;
@@ -3713,6 +3756,20 @@ build_formal_args (gfc_symbol *new_proc_sym,
   gfc_current_ns = parent_ns;
 }
 
+static int
+std_for_isocbinding_symbol (int id)
+{
+  switch (id)
+    {
+#define NAMED_INTCST(a,b,c,d) \
+      case a:\
+        return d;
+#include "iso-c-binding.def"
+#undef NAMED_INTCST
+       default:
+         return GFC_STD_F2003;
+    }
+}
 
 /* Generate the given set of C interoperable kind objects, or all
    interoperable kinds.  This function will only be given kind objects
@@ -3738,6 +3795,8 @@ generate_isocbinding_symbol (const char *mod_name, iso_c_binding_symbol s,
   char comp_name[(GFC_MAX_SYMBOL_LEN * 2) + 1];
   int index;
 
+  if (gfc_notification_std (std_for_isocbinding_symbol (s)) == FAILURE)
+    return;
   tmp_symtree = gfc_find_symtree (gfc_current_ns->sym_root, name);
 
   /* Already exists in this scope so don't re-add it.
@@ -3761,7 +3820,7 @@ generate_isocbinding_symbol (const char *mod_name, iso_c_binding_symbol s,
   switch (s)
     {
 
-#define NAMED_INTCST(a,b,c) case a :
+#define NAMED_INTCST(a,b,c,d) case a : 
 #define NAMED_REALCST(a,b,c) case a :
 #define NAMED_CMPXCST(a,b,c) case a :
 #define NAMED_LOGCST(a,b,c) case a :
@@ -3806,9 +3865,9 @@ generate_isocbinding_symbol (const char *mod_name, iso_c_binding_symbol s,
 	tmp_sym->value->ts.is_c_interop = 1;
 	tmp_sym->value->ts.is_iso_c = 1;
 	tmp_sym->value->value.character.length = 1;
-	tmp_sym->value->value.character.string = gfc_getmem (2);
+	tmp_sym->value->value.character.string = gfc_get_wide_string (2);
 	tmp_sym->value->value.character.string[0]
-	  = (char) c_interop_kinds_table[s].value;
+	  = (gfc_char_t) c_interop_kinds_table[s].value;
 	tmp_sym->value->value.character.string[1] = '\0';
 	tmp_sym->ts.cl = gfc_get_charlen ();
 	tmp_sym->ts.cl->length = gfc_int_expr (1);

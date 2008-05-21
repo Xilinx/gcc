@@ -23,8 +23,9 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
-with Stringt; use Stringt;
-with Uintp;   use Uintp;
+with Namet.Sp; use Namet.Sp;
+with Stringt;  use Stringt;
+with Uintp;    use Uintp;
 
 with GNAT.Spelling_Checker; use GNAT.Spelling_Checker;
 
@@ -301,7 +302,7 @@ package body Endh is
                   --  opening label, with the components all marked as not
                   --  from source, and Is_End_Label set in the identifier
                   --  or operator symbol. The location for all components
-                  --  is the curent token location.
+                  --  is the current token location.
 
                   --  Case of child unit name
 
@@ -711,25 +712,15 @@ package body Endh is
               and then Chars (End_Labl) > Error_Name
               and then Chars (Nam) > Error_Name
             then
-               Get_Name_String (Chars (End_Labl));
                Error_Msg_Name_1 := Chars (Nam);
 
                if Error_Msg_Name_1 > Error_Name then
-                  declare
-                     S : constant String (1 .. Name_Len) :=
-                           Name_Buffer (1 .. Name_Len);
-
-                  begin
-                     Get_Name_String (Error_Msg_Name_1);
-
-                     if Is_Bad_Spelling_Of
-                         (Name_Buffer (1 .. Name_Len), S)
-                     then
-                        Error_Msg_N ("misspelling of %", End_Labl);
-                        Syntax_OK := True;
-                        return;
-                     end if;
-                  end;
+                  if Is_Bad_Spelling_Of (Chars (Nam), Chars (End_Labl)) then
+                     Error_Msg_Name_1 := Chars (Nam);
+                     Error_Msg_N ("misspelling of %", End_Labl);
+                     Syntax_OK := True;
+                     return;
+                  end if;
                end if;
             end if;
          end;
@@ -984,7 +975,7 @@ package body Endh is
       else
          --  A special check. If we have END; followed by an end of file,
          --  WITH or SEPARATE, then if we are not at the outer level, then
-         --  we have a sytax error. Consider the example:
+         --  we have a syntax error. Consider the example:
 
          --   ...
          --      declare
@@ -1137,7 +1128,7 @@ package body Endh is
 
          --  First we see how good the current END entry is with respect to
          --  what we expect. It is considered pretty good if the token is OK,
-         --  and either the label or the column matches. an END for RECORD is
+         --  and either the label or the column matches. An END for RECORD is
          --  always considered to be pretty good in the record case. This is
          --  because not only does a record disallow a nested structure, but
          --  also it is unlikely that such nesting could occur by accident.

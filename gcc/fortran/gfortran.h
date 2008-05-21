@@ -1,5 +1,5 @@
 /* gfortran header file
-   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
+   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
    Free Software Foundation, Inc.
    Contributed by Andy Vaught
 
@@ -102,6 +102,12 @@ mstring;
 
 
 /*************************** Enums *****************************/
+
+/* Used when matching and resolving data I/O transfer statements.  */
+
+typedef enum
+{ M_READ, M_WRITE, M_PRINT, M_INQUIRE }
+io_kind;
 
 /* The author remains confused to this day about the convention of
    returning '0' for 'SUCCESS'... or was it the other way around?  The
@@ -211,8 +217,8 @@ typedef enum
   ST_IF_BLOCK, ST_IMPLICIT, ST_IMPLICIT_NONE, ST_IMPORT, ST_INQUIRE, ST_INTERFACE,
   ST_PARAMETER, ST_MODULE, ST_MODULE_PROC, ST_NAMELIST, ST_NULLIFY, ST_OPEN,
   ST_PAUSE, ST_PRIVATE, ST_PROGRAM, ST_PUBLIC, ST_READ, ST_RETURN, ST_REWIND,
-  ST_STOP, ST_SUBROUTINE, ST_TYPE, ST_USE, ST_WHERE_BLOCK, ST_WHERE, ST_WRITE,
-  ST_ASSIGNMENT, ST_POINTER_ASSIGNMENT, ST_SELECT_CASE, ST_SEQUENCE,
+  ST_STOP, ST_SUBROUTINE, ST_TYPE, ST_USE, ST_WHERE_BLOCK, ST_WHERE, ST_WAIT, 
+  ST_WRITE, ST_ASSIGNMENT, ST_POINTER_ASSIGNMENT, ST_SELECT_CASE, ST_SEQUENCE,
   ST_SIMPLE_IF, ST_STATEMENT_FUNCTION, ST_DERIVED_DECL, ST_LABEL_ASSIGNMENT,
   ST_ENUM, ST_ENUMERATOR, ST_END_ENUM,
   ST_OMP_ATOMIC, ST_OMP_BARRIER, ST_OMP_CRITICAL, ST_OMP_END_CRITICAL,
@@ -223,7 +229,7 @@ typedef enum
   ST_OMP_PARALLEL, ST_OMP_PARALLEL_DO, ST_OMP_PARALLEL_SECTIONS,
   ST_OMP_PARALLEL_WORKSHARE, ST_OMP_SECTIONS, ST_OMP_SECTION, ST_OMP_SINGLE,
   ST_OMP_THREADPRIVATE, ST_OMP_WORKSHARE, ST_PROCEDURE,
-  ST_NONE
+  ST_GET_FCN_CHARACTERISTICS, ST_NONE
 }
 gfc_statement;
 
@@ -347,6 +353,7 @@ enum gfc_isym_id
   GFC_ISYM_EPSILON,
   GFC_ISYM_ERF,
   GFC_ISYM_ERFC,
+  GFC_ISYM_ERFC_SCALED,
   GFC_ISYM_ETIME,
   GFC_ISYM_EXIT,
   GFC_ISYM_EXP,
@@ -379,6 +386,7 @@ enum gfc_isym_id
   GFC_ISYM_GMTIME,
   GFC_ISYM_HOSTNM,
   GFC_ISYM_HUGE,
+  GFC_ISYM_HYPOT,
   GFC_ISYM_IACHAR,
   GFC_ISYM_IAND,
   GFC_ISYM_IARGC,
@@ -463,6 +471,7 @@ enum gfc_isym_id
   GFC_ISYM_RESHAPE,
   GFC_ISYM_RRSPACING,
   GFC_ISYM_RSHIFT,
+  GFC_ISYM_SC_KIND,
   GFC_ISYM_SCALE,
   GFC_ISYM_SCAN,
   GFC_ISYM_SECNDS,
@@ -547,7 +556,7 @@ init_local_integer;
 /* Used for keeping things in balanced binary trees.  */
 #define BBT_HEADER(self) int priority; struct self *left, *right
 
-#define NAMED_INTCST(a,b,c) a,
+#define NAMED_INTCST(a,b,c,d) a,
 typedef enum
 {
   ISOFORTRANENV_INVALID = -1,
@@ -557,7 +566,7 @@ typedef enum
 iso_fortran_env_symbol;
 #undef NAMED_INTCST
 
-#define NAMED_INTCST(a,b,c) a,
+#define NAMED_INTCST(a,b,c,d) a,
 #define NAMED_REALCST(a,b,c) a,
 #define NAMED_CMPXCST(a,b,c) a,
 #define NAMED_LOGCST(a,b,c) a,
@@ -691,6 +700,21 @@ typedef struct
 symbol_attribute;
 
 
+/* We need to store source lines as sequences of multibyte source
+   characters. We define here a type wide enough to hold any multibyte
+   source character, just like libcpp does.  A 32-bit type is enough.  */
+
+#if HOST_BITS_PER_INT >= 32
+typedef unsigned int gfc_char_t;
+#elif HOST_BITS_PER_LONG >= 32
+typedef unsigned long gfc_char_t;
+#elif defined(HAVE_LONG_LONG) && (HOST_BITS_PER_LONGLONG >= 32)
+typedef unsigned long long gfc_char_t;
+#else
+# error "Cannot find an integer type with at least 32 bits"
+#endif
+
+
 /* The following three structures are used to identify a location in
    the sources.
 
@@ -713,31 +737,23 @@ typedef struct gfc_file
 
 typedef struct gfc_linebuf
 {
-#ifdef USE_MAPPED_LOCATION
   source_location location;
-#else
-  int linenum;
-#endif
   struct gfc_file *file;
   struct gfc_linebuf *next;
 
   int truncated;
   bool dbg_emitted;
 
-  char line[1];
+  gfc_char_t line[1];
 } gfc_linebuf;
 
 #define gfc_linebuf_header_size (offsetof (gfc_linebuf, line))
 
-#ifdef USE_MAPPED_LOCATION
 #define gfc_linebuf_linenum(LBUF) (LOCATION_LINE ((LBUF)->location))
-#else
-#define gfc_linebuf_linenum(LBUF) ((LBUF)->linenum)
-#endif
 
 typedef struct
 {
-  char *nextc;
+  gfc_char_t *nextc;
   gfc_linebuf *lb;
 } locus;
 
@@ -768,6 +784,7 @@ typedef struct gfc_charlen
 {
   struct gfc_expr *length;
   struct gfc_charlen *next;
+  bool length_from_typespec; /* Length from explicit array ctor typespec?  */
   tree backend_decl;
 
   int resolved;
@@ -783,6 +800,7 @@ typedef struct
   int kind;
   struct gfc_symbol *derived;
   gfc_charlen *cl;	/* For character types only.  */
+  struct gfc_symbol *interface;	/* For PROCEDURE declarations.  */
   int is_c_interop;
   int is_iso_c;
   bt f90_type; 
@@ -985,7 +1003,7 @@ typedef struct gfc_symbol
   gfc_typespec ts;
   symbol_attribute attr;
 
-  /* The interface member points to the formal argument list if the
+  /* The formal member points to the formal argument list if the
      symbol is a function or subroutine name.  If the symbol is a
      generic name, the generic member points to the list of
      interfaces.  */
@@ -1000,8 +1018,6 @@ typedef struct gfc_symbol
   gfc_array_spec *as;
   struct gfc_symbol *result;	/* function result symbol */
   gfc_component *components;	/* Derived type components */
-
-  struct gfc_symbol *interface;	/* For PROCEDURE declarations.  */
 
   /* Defined only for Cray pointees; points to their pointer.  */
   struct gfc_symbol *cp_pointer;
@@ -1450,6 +1466,8 @@ typedef struct gfc_expr
   {
     int logical;
 
+    io_kind iokind;
+
     mpz_t integer;
 
     mpfr_t real;
@@ -1480,7 +1498,7 @@ typedef struct gfc_expr
     struct
     {
       int length;
-      char *string;
+      gfc_char_t *string;
     }
     character;
 
@@ -1549,6 +1567,15 @@ typedef struct
 gfc_real_info;
 
 extern gfc_real_info gfc_real_kinds[];
+
+typedef struct
+{
+  int kind, bit_size;
+  const char *name;
+}
+gfc_character_info;
+
+extern gfc_character_info gfc_character_kinds[];
 
 
 /* Equivalence structures.  Equivalent lvalues are linked along the
@@ -1641,7 +1668,8 @@ gfc_alloc;
 typedef struct
 {
   gfc_expr *unit, *file, *status, *access, *form, *recl,
-    *blank, *position, *action, *delim, *pad, *iostat, *iomsg, *convert;
+    *blank, *position, *action, *delim, *pad, *iostat, *iomsg, *convert,
+    *decimal, *encoding, *round, *sign, *asynchronous, *id;
   gfc_st_label *err;
 }
 gfc_open;
@@ -1668,7 +1696,8 @@ typedef struct
   gfc_expr *unit, *file, *iostat, *exist, *opened, *number, *named,
     *name, *access, *sequential, *direct, *form, *formatted,
     *unformatted, *recl, *nextrec, *blank, *position, *action, *read,
-    *write, *readwrite, *delim, *pad, *iolength, *iomsg, *convert, *strm_pos;
+    *write, *readwrite, *delim, *pad, *iolength, *iomsg, *convert, *strm_pos,
+    *asynchronous, *decimal, *encoding, *pending, *round, *sign, *size, *id;
 
   gfc_st_label *err;
 
@@ -1678,7 +1707,17 @@ gfc_inquire;
 
 typedef struct
 {
-  gfc_expr *io_unit, *format_expr, *rec, *advance, *iostat, *size, *iomsg;
+  gfc_expr *unit, *iostat, *iomsg, *id;
+  gfc_st_label *err, *end, *eor;
+}
+gfc_wait;
+
+
+typedef struct
+{
+  gfc_expr *io_unit, *format_expr, *rec, *advance, *iostat, *size, *iomsg,
+	   *id, *pos, *asynchronous, *blank, *decimal, *delim, *pad, *round,
+	   *sign, *extra_comma;
 
   gfc_symbol *namelist;
   /* A format_label of `format_asterisk' indicates the "*" format */
@@ -1707,7 +1746,7 @@ typedef enum
   EXEC_IF, EXEC_ARITHMETIC_IF, EXEC_DO, EXEC_DO_WHILE, EXEC_SELECT,
   EXEC_FORALL, EXEC_WHERE, EXEC_CYCLE, EXEC_EXIT,
   EXEC_ALLOCATE, EXEC_DEALLOCATE,
-  EXEC_OPEN, EXEC_CLOSE,
+  EXEC_OPEN, EXEC_CLOSE, EXEC_WAIT,
   EXEC_READ, EXEC_WRITE, EXEC_IOLENGTH, EXEC_TRANSFER, EXEC_DT_END,
   EXEC_BACKSPACE, EXEC_ENDFILE, EXEC_INQUIRE, EXEC_REWIND, EXEC_FLUSH,
   EXEC_OMP_CRITICAL, EXEC_OMP_DO, EXEC_OMP_FLUSH, EXEC_OMP_MASTER,
@@ -1744,6 +1783,7 @@ typedef struct gfc_code
     gfc_close *close;
     gfc_filepos *filepos;
     gfc_inquire *inquire;
+    gfc_wait *wait;
     gfc_dt *dt;
     gfc_forall_iterator *forall_iterator;
     struct gfc_code *whichloop;
@@ -1811,7 +1851,7 @@ typedef struct
   int max_continue_fixed;
   int max_continue_free;
   int max_identifier_length;
-  int verbose;
+  int dump_parse_tree;
 
   int warn_aliasing;
   int warn_ampersand;
@@ -1925,10 +1965,25 @@ void gfc_advance_line (void);
 int gfc_check_include (void);
 int gfc_define_undef_line (void);
 
+int gfc_wide_is_printable (gfc_char_t);
+int gfc_wide_is_digit (gfc_char_t);
+int gfc_wide_fits_in_byte (gfc_char_t);
+gfc_char_t gfc_wide_tolower (gfc_char_t);
+gfc_char_t gfc_wide_toupper (gfc_char_t);
+size_t gfc_wide_strlen (const gfc_char_t *);
+int gfc_wide_strncasecmp (const gfc_char_t *, const char *, size_t);
+gfc_char_t *gfc_wide_memset (gfc_char_t *, gfc_char_t, size_t);
+char *gfc_widechar_to_char (const gfc_char_t *, int);
+gfc_char_t *gfc_char_to_widechar (const char *);
+
+#define gfc_get_wide_string(n) gfc_getmem((n) * sizeof(gfc_char_t))
+
 void gfc_skip_comments (void);
-int gfc_next_char_literal (int);
-int gfc_next_char (void);
-int gfc_peek_char (void);
+gfc_char_t gfc_next_char_literal (int);
+gfc_char_t gfc_next_char (void);
+char gfc_next_ascii_char (void);
+gfc_char_t gfc_peek_char (void);
+char gfc_peek_ascii_char (void);
 void gfc_error_recovery (void);
 void gfc_gobble_whitespace (void);
 try gfc_new_file (void);
@@ -1981,6 +2036,8 @@ typedef struct gfc_error_buf
 void gfc_error_init_1 (void);
 void gfc_buffer_error (int);
 
+const char *gfc_print_wide_char (gfc_char_t);
+
 void gfc_warning (const char *, ...) ATTRIBUTE_GCC_GFC(1,2);
 void gfc_warning_now (const char *, ...) ATTRIBUTE_GCC_GFC(1,2);
 void gfc_clear_warning (void);
@@ -2005,9 +2062,6 @@ void gfc_push_error (gfc_error_buf *);
 void gfc_pop_error (gfc_error_buf *);
 void gfc_free_error (gfc_error_buf *);
 
-void gfc_status (const char *, ...) ATTRIBUTE_PRINTF_1;
-void gfc_status_char (char);
-
 void gfc_get_errors (int *, int *);
 
 /* arith.c */
@@ -2015,6 +2069,7 @@ void gfc_arith_init_1 (void);
 void gfc_arith_done_1 (void);
 gfc_expr *gfc_enum_initializer (gfc_expr *, locus);
 arith gfc_check_integer_range (mpz_t p, int kind);
+bool gfc_check_character_range (gfc_char_t, int);
 
 /* trans-types.c */
 try gfc_validate_c_kind (gfc_typespec *);
@@ -2113,6 +2168,7 @@ gfc_expr * gfc_lval_expr_from_sym (gfc_symbol *);
 gfc_namespace *gfc_get_namespace (gfc_namespace *, int);
 gfc_symtree *gfc_new_symtree (gfc_symtree **, const char *);
 gfc_symtree *gfc_find_symtree (gfc_symtree *, const char *);
+void gfc_delete_symtree (gfc_symtree **, const char *);
 gfc_symtree *gfc_get_unique_symtree (gfc_namespace *);
 gfc_user_op *gfc_get_uop (const char *);
 gfc_user_op *gfc_find_uop (const char *, gfc_namespace *);
@@ -2170,6 +2226,7 @@ char gfc_type_letter (bt);
 gfc_symbol * gfc_get_intrinsic_sub_symbol (const char *);
 try gfc_convert_type (gfc_expr *, gfc_typespec *, int);
 try gfc_convert_type_warn (gfc_expr *, gfc_typespec *, int, int);
+try gfc_convert_chartype (gfc_expr *, gfc_typespec *);
 int gfc_generic_intrinsic (const char *);
 int gfc_specific_intrinsic (const char *);
 int gfc_intrinsic_name (const char *, int);
@@ -2328,6 +2385,8 @@ void gfc_free_inquire (gfc_inquire *);
 try gfc_resolve_inquire (gfc_inquire *);
 void gfc_free_dt (gfc_dt *);
 try gfc_resolve_dt (gfc_dt *);
+void gfc_free_wait (gfc_wait *);
+try gfc_resolve_wait (gfc_wait *);
 
 /* module.c */
 void gfc_module_init_2 (void);
@@ -2339,6 +2398,7 @@ bool gfc_check_access (gfc_access, gfc_access);
 symbol_attribute gfc_variable_attr (gfc_expr *, gfc_typespec *);
 symbol_attribute gfc_expr_attr (gfc_expr *);
 match gfc_match_rvalue (gfc_expr **);
+int gfc_check_digit (char, int);
 
 /* trans.c */
 void gfc_generate_code (gfc_namespace *);
@@ -2350,21 +2410,7 @@ void gfc_insert_bbt (void *, void *, compare_fn);
 void gfc_delete_bbt (void *, void *, compare_fn);
 
 /* dump-parse-tree.c */
-void gfc_show_actual_arglist (gfc_actual_arglist *);
-void gfc_show_array_ref (gfc_array_ref *);
-void gfc_show_array_spec (gfc_array_spec *);
-void gfc_show_attr (symbol_attribute *);
-void gfc_show_code (int, gfc_code *);
-void gfc_show_components (gfc_symbol *);
-void gfc_show_constructor (gfc_constructor *);
-void gfc_show_equiv (gfc_equiv *);
-void gfc_show_expr (gfc_expr *);
-void gfc_show_expr_n (const char *, gfc_expr *);
-void gfc_show_namelist (gfc_namelist *);
-void gfc_show_namespace (gfc_namespace *);
-void gfc_show_ref (gfc_ref *);
-void gfc_show_symbol (gfc_symbol *);
-void gfc_show_typespec (gfc_typespec *);
+void gfc_dump_parse_tree (gfc_namespace *, FILE *);
 
 /* parse.c */
 try gfc_parse_file (void);

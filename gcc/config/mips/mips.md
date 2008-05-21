@@ -30,7 +30,7 @@
    (UNSPEC_GET_FNADDR		 3)
    (UNSPEC_BLOCKAGE		 4)
    (UNSPEC_CPRESTORE		 5)
-   (UNSPEC_EH_RECEIVER		 6)
+   (UNSPEC_RESTORE_GP		 6)
    (UNSPEC_EH_RETURN		 7)
    (UNSPEC_CONSTTABLE_INT	 8)
    (UNSPEC_CONSTTABLE_FLOAT	 9)
@@ -54,14 +54,17 @@
    (UNSPEC_SYNCI		35)
    (UNSPEC_SYNC			36)
    (UNSPEC_COMPARE_AND_SWAP	37)
-   (UNSPEC_SYNC_OLD_OP		38)
-   (UNSPEC_SYNC_NEW_OP		39)
-   (UNSPEC_SYNC_EXCHANGE	40)
-   (UNSPEC_MEMORY_BARRIER	41)
+   (UNSPEC_COMPARE_AND_SWAP_12	38)
+   (UNSPEC_SYNC_OLD_OP		39)
+   (UNSPEC_SYNC_NEW_OP		40)
+   (UNSPEC_SYNC_EXCHANGE	41)
+   (UNSPEC_MEMORY_BARRIER	42)
+   (UNSPEC_SET_GOT_VERSION	43)
+   (UNSPEC_UPDATE_GOT_VERSION	44)
    
    (UNSPEC_ADDRESS_FIRST	100)
 
-   (FAKE_CALL_REGNO		79)
+   (GOT_VERSION_REGNUM		79)
 
    ;; For MIPS Paired-Singled Floating Point Instructions.
 
@@ -290,8 +293,9 @@
 ;; frsqrt2      floating point reciprocal square root step2
 ;; multi	multiword sequence (or user asm statements)
 ;; nop		no operation
+;; ghost	an instruction that produces no real code
 (define_attr "type"
-  "unknown,branch,jump,call,load,fpload,fpidxload,store,fpstore,fpidxstore,prefetch,prefetchx,condmove,mfc,mtc,mthilo,mfhilo,const,arith,logical,shift,slt,signext,clz,trap,imul,imul3,imadd,idiv,move,fmove,fadd,fmul,fmadd,fdiv,frdiv,frdiv1,frdiv2,fabs,fneg,fcmp,fcvt,fsqrt,frsqrt,frsqrt1,frsqrt2,multi,nop"
+  "unknown,branch,jump,call,load,fpload,fpidxload,store,fpstore,fpidxstore,prefetch,prefetchx,condmove,mfc,mtc,mthilo,mfhilo,const,arith,logical,shift,slt,signext,clz,trap,imul,imul3,imadd,idiv,move,fmove,fadd,fmul,fmadd,fdiv,frdiv,frdiv1,frdiv2,fabs,fneg,fcmp,fcvt,fsqrt,frsqrt,frsqrt1,frsqrt2,multi,nop,ghost"
   (cond [(eq_attr "jal" "!unset") (const_string "call")
 	 (eq_attr "got" "load") (const_string "load")]
 	(const_string "unknown")))
@@ -438,17 +442,6 @@
 	 (const_string "hilo")]
 	(const_string "none")))
 
-;; Indicates which SET in an instruction pattern induces a hazard.
-;; Only meaningful when "hazard" is not "none".  SINGLE means that
-;; the pattern has only one set while the other values are indexes
-;; into a PARALLEL vector.
-;;
-;; Hazardous instructions with multiple sets should generally put the
-;; hazardous set first.  The only purpose of this attribute is to force
-;; each multi-set pattern to explicitly assert that this condition holds.
-(define_attr "hazard_set" "single,0"
-  (const_string "single"))
-
 ;; Is it a single instruction?
 (define_attr "single_insn" "no,yes"
   (symbol_ref "get_attr_length (insn) == (TARGET_MIPS16 ? 2 : 4)"))
@@ -483,6 +476,10 @@
 ;; This mode iterator allows 32-bit and 64-bit GPR patterns to be generated
 ;; from the same template.
 (define_mode_iterator GPR [SI (DI "TARGET_64BIT")])
+
+;; A copy of GPR that can be used when a pattern has two independent
+;; modes.
+(define_mode_iterator GPR2 [SI (DI "TARGET_64BIT")])
 
 ;; This mode iterator allows :P to be used for patterns that operate on
 ;; pointer-sized quantities.  Exactly one of the two alternatives will match.
@@ -583,14 +580,19 @@
   [DF (SF "!TARGET_FIX_SB1 || flag_unsafe_math_optimizations")
    (V2SF "TARGET_SB1 && (!TARGET_FIX_SB1 || flag_unsafe_math_optimizations)")])
 
-; This attribute gives the condition for which sqrt instructions exist.
+;; This attribute gives the conditions under which SQRT.fmt instructions
+;; can be used.
 (define_mode_attr sqrt_condition
   [(SF "!ISA_MIPS1") (DF "!ISA_MIPS1") (V2SF "TARGET_SB1")])
 
-; This attribute gives the condition for which recip and rsqrt instructions
-; exist.
+;; This attribute gives the conditions under which RECIP.fmt and RSQRT.fmt
+;; instructions can be used.  The MIPS32 and MIPS64 ISAs say that RECIP.D
+;; and RSQRT.D are unpredictable when doubles are stored in pairs of FPRs,
+;; so for safety's sake, we apply this restriction to all targets.
 (define_mode_attr recip_condition
-  [(SF "ISA_HAS_FP4") (DF "ISA_HAS_FP4") (V2SF "TARGET_SB1")])
+  [(SF "ISA_HAS_FP4")
+   (DF "ISA_HAS_FP4 && TARGET_FLOAT64")
+   (V2SF "TARGET_SB1")])
 
 ;; This code iterator allows all branch instructions to be generated from
 ;; a single define_expand template.
@@ -613,9 +615,20 @@
 ;; by swapping the operands.
 (define_code_iterator swapped_fcond [ge gt unge ungt])
 
+;; These code iterators allow the signed and unsigned scc operations to use
+;; the same template.
+(define_code_iterator any_gt [gt gtu])
+(define_code_iterator any_ge [ge geu])
+(define_code_iterator any_lt [lt ltu])
+(define_code_iterator any_le [le leu])
+
 ;; <u> expands to an empty string when doing a signed operation and
 ;; "u" when doing an unsigned operation.
-(define_code_attr u [(sign_extend "") (zero_extend "u")])
+(define_code_attr u [(sign_extend "") (zero_extend "u")
+		     (gt "") (gtu "u")
+		     (ge "") (geu "u")
+		     (lt "") (ltu "u")
+		     (le "") (leu "u")])
 
 ;; <su> is like <u>, but the signed form expands to "s" rather than "".
 (define_code_attr su [(sign_extend "s") (zero_extend "u")])
@@ -697,6 +710,12 @@
 
 (define_cpu_unit "alu" "alu")
 (define_cpu_unit "imuldiv" "imuldiv")
+
+;; Ghost instructions produce no real code and introduce no hazards.
+;; They exist purely to express an effect on dataflow.
+(define_insn_reservation "ghost" 0
+  (eq_attr "type" "ghost")
+  "nothing")
 
 (include "4k.md")
 (include "5k.md")
@@ -1931,7 +1950,7 @@
   "<divide_condition>"
 {
   if (const_1_operand (operands[1], <MODE>mode))
-    if (!(ISA_HAS_FP4 && flag_unsafe_math_optimizations))
+    if (!(<recip_condition> && flag_unsafe_math_optimizations))
       operands[1] = force_reg (<MODE>mode, operands[1]);
 })
 
@@ -4262,39 +4281,41 @@
    (set_attr "mode" "<HALFMODE>")])
 
 ;; Move a constant that satisfies CONST_GP_P into operand 0.
-(define_expand "load_const_gp"
-  [(set (match_operand 0 "register_operand" "=d")
-	(const (unspec [(const_int 0)] UNSPEC_GP)))])
+(define_expand "load_const_gp_<mode>"
+  [(set (match_operand:P 0 "register_operand" "=d")
+	(const:P (unspec:P [(const_int 0)] UNSPEC_GP)))])
 
 ;; Insn to initialize $gp for n32/n64 abicalls.  Operand 0 is the offset
 ;; of _gp from the start of this function.  Operand 1 is the incoming
 ;; function address.
-(define_insn_and_split "loadgp_newabi"
-  [(unspec_volatile [(match_operand 0 "" "")
-		     (match_operand 1 "register_operand" "")] UNSPEC_LOADGP)]
+(define_insn_and_split "loadgp_newabi_<mode>"
+  [(set (match_operand:P 0 "register_operand" "=d")
+	(unspec_volatile:P [(match_operand:P 1)
+			    (match_operand:P 2 "register_operand" "d")]
+			   UNSPEC_LOADGP))]
   "mips_current_loadgp_style () == LOADGP_NEWABI"
   "#"
   ""
-  [(set (match_dup 2) (match_dup 3))
-   (set (match_dup 2) (match_dup 4))
-   (set (match_dup 2) (match_dup 5))]
+  [(set (match_dup 0) (match_dup 3))
+   (set (match_dup 0) (match_dup 4))
+   (set (match_dup 0) (match_dup 5))]
 {
-  operands[2] = pic_offset_table_rtx;
-  operands[3] = gen_rtx_HIGH (Pmode, operands[0]);
-  operands[4] = gen_rtx_PLUS (Pmode, operands[2], operands[1]);
-  operands[5] = gen_rtx_LO_SUM (Pmode, operands[2], operands[0]);
+  operands[3] = gen_rtx_HIGH (Pmode, operands[1]);
+  operands[4] = gen_rtx_PLUS (Pmode, operands[0], operands[2]);
+  operands[5] = gen_rtx_LO_SUM (Pmode, operands[0], operands[1]);
 }
   [(set_attr "length" "12")])
 
 ;; Likewise, for -mno-shared code.  Operand 0 is the __gnu_local_gp symbol.
-(define_insn_and_split "loadgp_absolute"
-  [(unspec_volatile [(match_operand 0 "" "")] UNSPEC_LOADGP)]
+(define_insn_and_split "loadgp_absolute_<mode>"
+  [(set (match_operand:P 0 "register_operand" "=d")
+	(unspec_volatile:P [(match_operand:P 1)] UNSPEC_LOADGP))]
   "mips_current_loadgp_style () == LOADGP_ABSOLUTE"
   "#"
   ""
   [(const_int 0)]
 {
-  mips_emit_move (pic_offset_table_rtx, operands[0]);
+  mips_emit_move (operands[0], operands[1]);
   DONE;
 }
   [(set_attr "length" "8")])
@@ -4307,33 +4328,30 @@
   [(unspec_volatile [(reg:DI 28)] UNSPEC_BLOCKAGE)]
   ""
   ""
-  [(set_attr "type"	"unknown")
-   (set_attr "mode"	"none")
-   (set_attr "length"	"0")])
+  [(set_attr "type" "ghost")
+   (set_attr "mode" "none")
+   (set_attr "length" "0")])
 
 ;; Initialize $gp for RTP PIC.  Operand 0 is the __GOTT_BASE__ symbol
 ;; and operand 1 is the __GOTT_INDEX__ symbol.
-(define_insn "loadgp_rtp"
-  [(unspec_volatile [(match_operand 0 "symbol_ref_operand")
-		     (match_operand 1 "symbol_ref_operand")] UNSPEC_LOADGP)]
+(define_insn_and_split "loadgp_rtp_<mode>"
+  [(set (match_operand:P 0 "register_operand" "=d")
+	(unspec_volatile:P [(match_operand:P 1 "symbol_ref_operand")
+			    (match_operand:P 2 "symbol_ref_operand")]
+			   UNSPEC_LOADGP))]
   "mips_current_loadgp_style () == LOADGP_RTP"
   "#"
-  [(set_attr "length" "12")])
-
-(define_split
-  [(unspec_volatile [(match_operand:P 0 "symbol_ref_operand")
-		     (match_operand:P 1 "symbol_ref_operand")] UNSPEC_LOADGP)]
-  "mips_current_loadgp_style () == LOADGP_RTP"
-  [(set (match_dup 2) (high:P (match_dup 3)))
-   (set (match_dup 2) (unspec:P [(match_dup 2)
+  ""
+  [(set (match_dup 0) (high:P (match_dup 3)))
+   (set (match_dup 0) (unspec:P [(match_dup 0)
 				 (match_dup 3)] UNSPEC_LOAD_GOT))
-   (set (match_dup 2) (unspec:P [(match_dup 2)
+   (set (match_dup 0) (unspec:P [(match_dup 0)
 				 (match_dup 4)] UNSPEC_LOAD_GOT))]
 {
-  operands[2] = pic_offset_table_rtx;
-  operands[3] = mips_unspec_address (operands[0], SYMBOL_ABSOLUTE);
-  operands[4] = mips_unspec_address (operands[1], SYMBOL_HALF);
-})
+  operands[3] = mips_unspec_address (operands[1], SYMBOL_ABSOLUTE);
+  operands[4] = mips_unspec_address (operands[2], SYMBOL_HALF);
+}
+  [(set_attr "length" "12")])
 
 ;; Emit a .cprestore directive, which normally expands to a single store
 ;; instruction.  Note that we continue to use .cprestore for explicit reloc
@@ -4398,15 +4416,11 @@
    (clobber (reg:SI 31))]
   "ISA_HAS_SYNCI"
 {
-  return ".set\tpush\n"
-         "\t.set\tnoreorder\n"
-         "\t.set\tnomacro\n"
-         "\tbal\t1f\n"
+  return "%(%<bal\t1f\n"
          "\tnop\n"
          "1:\taddiu\t$31,$31,12\n"
          "\tjr.hb\t$31\n"
-         "\tnop\n"
-         "\t.set\tpop";
+         "\tnop%>%)";
 }
   [(set_attr "length" "20")])
 
@@ -4433,6 +4447,37 @@
     return MIPS_COMPARE_AND_SWAP ("<d>", "move");
 }
   [(set_attr "length" "32")])
+
+(define_expand "sync_compare_and_swap<mode>"
+  [(match_operand:SHORT 0 "register_operand")
+   (match_operand:SHORT 1 "memory_operand")
+   (match_operand:SHORT 2 "general_operand")
+   (match_operand:SHORT 3 "general_operand")]
+  "GENERATE_LL_SC"
+{
+  mips_expand_compare_and_swap_12 (operands[0], operands[1],
+				   operands[2], operands[3]);
+  DONE;
+})
+
+;; Helper insn for mips_expand_compare_and_swap_12.
+(define_insn "compare_and_swap_12"
+  [(set (match_operand:SI 0 "register_operand" "=&d,&d")
+	(match_operand:SI 1 "memory_operand" "+R,R"))
+   (set (match_dup 1)
+	(unspec_volatile:SI [(match_operand:SI 2 "register_operand" "d,d")
+			     (match_operand:SI 3 "register_operand" "d,d")
+			     (match_operand:SI 4 "reg_or_0_operand" "dJ,dJ")
+			     (match_operand:SI 5 "reg_or_0_operand" "d,J")]
+			    UNSPEC_COMPARE_AND_SWAP_12))]
+  "GENERATE_LL_SC"
+{
+  if (which_alternative == 0)
+    return MIPS_COMPARE_AND_SWAP_12;
+  else
+    return MIPS_COMPARE_AND_SWAP_12_0;
+}
+  [(set_attr "length" "40,36")])
 
 (define_insn "sync_add<mode>"
   [(set (match_operand:GPR 0 "memory_operand" "+R,R")
@@ -5056,6 +5101,8 @@
 ;;
 ;;  ....................
 
+;; Destination is always set in SI mode.
+
 (define_expand "seq"
   [(set (match_operand:SI 0 "register_operand")
 	(eq:SI (match_dup 1)
@@ -5063,23 +5110,23 @@
   ""
   { if (mips_expand_scc (EQ, operands[0])) DONE; else FAIL; })
 
-(define_insn "*seq_<mode>"
-  [(set (match_operand:GPR 0 "register_operand" "=d")
-	(eq:GPR (match_operand:GPR 1 "register_operand" "d")
-		(const_int 0)))]
+(define_insn "*seq_<GPR:mode><GPR2:mode>"
+  [(set (match_operand:GPR2 0 "register_operand" "=d")
+	(eq:GPR2 (match_operand:GPR 1 "register_operand" "d")
+		 (const_int 0)))]
   "!TARGET_MIPS16"
   "sltu\t%0,%1,1"
   [(set_attr "type" "slt")
-   (set_attr "mode" "<MODE>")])
+   (set_attr "mode" "<GPR:MODE>")])
 
-(define_insn "*seq_<mode>_mips16"
-  [(set (match_operand:GPR 0 "register_operand" "=t")
-	(eq:GPR (match_operand:GPR 1 "register_operand" "d")
-		(const_int 0)))]
+(define_insn "*seq_<GPR:mode><GPR2:mode>_mips16"
+  [(set (match_operand:GPR2 0 "register_operand" "=t")
+	(eq:GPR2 (match_operand:GPR 1 "register_operand" "d")
+		 (const_int 0)))]
   "TARGET_MIPS16"
   "sltu\t%1,1"
   [(set_attr "type" "slt")
-   (set_attr "mode" "<MODE>")])
+   (set_attr "mode" "<GPR:MODE>")])
 
 ;; "sne" uses sltu instructions in which the first operand is $0.
 ;; This isn't possible in mips16 code.
@@ -5091,221 +5138,116 @@
   "!TARGET_MIPS16"
   { if (mips_expand_scc (NE, operands[0])) DONE; else FAIL; })
 
-(define_insn "*sne_<mode>"
-  [(set (match_operand:GPR 0 "register_operand" "=d")
-	(ne:GPR (match_operand:GPR 1 "register_operand" "d")
-		(const_int 0)))]
+(define_insn "*sne_<GPR:mode><GPR2:mode>"
+  [(set (match_operand:GPR2 0 "register_operand" "=d")
+	(ne:GPR2 (match_operand:GPR 1 "register_operand" "d")
+		 (const_int 0)))]
   "!TARGET_MIPS16"
   "sltu\t%0,%.,%1"
   [(set_attr "type" "slt")
-   (set_attr "mode" "<MODE>")])
+   (set_attr "mode" "<GPR:MODE>")])
 
-(define_expand "sgt"
+(define_expand "sgt<u>"
   [(set (match_operand:SI 0 "register_operand")
-	(gt:SI (match_dup 1)
-	       (match_dup 2)))]
+	(any_gt:SI (match_dup 1)
+		   (match_dup 2)))]
   ""
-  { if (mips_expand_scc (GT, operands[0])) DONE; else FAIL; })
+  { if (mips_expand_scc (<CODE>, operands[0])) DONE; else FAIL; })
 
-(define_insn "*sgt_<mode>"
-  [(set (match_operand:GPR 0 "register_operand" "=d")
-	(gt:GPR (match_operand:GPR 1 "register_operand" "d")
-		(match_operand:GPR 2 "reg_or_0_operand" "dJ")))]
+(define_insn "*sgt<u>_<GPR:mode><GPR2:mode>"
+  [(set (match_operand:GPR2 0 "register_operand" "=d")
+	(any_gt:GPR2 (match_operand:GPR 1 "register_operand" "d")
+		     (match_operand:GPR 2 "reg_or_0_operand" "dJ")))]
   "!TARGET_MIPS16"
-  "slt\t%0,%z2,%1"
+  "slt<u>\t%0,%z2,%1"
   [(set_attr "type" "slt")
-   (set_attr "mode" "<MODE>")])
+   (set_attr "mode" "<GPR:MODE>")])
 
-(define_insn "*sgt_<mode>_mips16"
-  [(set (match_operand:GPR 0 "register_operand" "=t")
-	(gt:GPR (match_operand:GPR 1 "register_operand" "d")
-		(match_operand:GPR 2 "register_operand" "d")))]
+(define_insn "*sgt<u>_<GPR:mode><GPR2:mode>_mips16"
+  [(set (match_operand:GPR2 0 "register_operand" "=t")
+	(any_gt:GPR2 (match_operand:GPR 1 "register_operand" "d")
+		     (match_operand:GPR 2 "register_operand" "d")))]
   "TARGET_MIPS16"
-  "slt\t%2,%1"
+  "slt<u>\t%2,%1"
   [(set_attr "type" "slt")
-   (set_attr "mode" "<MODE>")])
+   (set_attr "mode" "<GPR:MODE>")])
 
-(define_expand "sge"
+(define_expand "sge<u>"
   [(set (match_operand:SI 0 "register_operand")
-	(ge:SI (match_dup 1)
-	       (match_dup 2)))]
+	(any_ge:SI (match_dup 1)
+		   (match_dup 2)))]
   ""
-  { if (mips_expand_scc (GE, operands[0])) DONE; else FAIL; })
+  { if (mips_expand_scc (<CODE>, operands[0])) DONE; else FAIL; })
 
-(define_insn "*sge_<mode>"
-  [(set (match_operand:GPR 0 "register_operand" "=d")
-	(ge:GPR (match_operand:GPR 1 "register_operand" "d")
-		(const_int 1)))]
+(define_insn "*sge<u>_<GPR:mode><GPR2:mode>"
+  [(set (match_operand:GPR2 0 "register_operand" "=d")
+	(any_ge:GPR2 (match_operand:GPR 1 "register_operand" "d")
+		     (const_int 1)))]
   "!TARGET_MIPS16"
-  "slt\t%0,%.,%1"
+  "slt<u>\t%0,%.,%1"
   [(set_attr "type" "slt")
-   (set_attr "mode" "<MODE>")])
+   (set_attr "mode" "<GPR:MODE>")])
 
-(define_expand "slt"
+(define_expand "slt<u>"
   [(set (match_operand:SI 0 "register_operand")
-	(lt:SI (match_dup 1)
-	       (match_dup 2)))]
+	(any_lt:SI (match_dup 1)
+		   (match_dup 2)))]
   ""
-  { if (mips_expand_scc (LT, operands[0])) DONE; else FAIL; })
+  { if (mips_expand_scc (<CODE>, operands[0])) DONE; else FAIL; })
 
-(define_insn "*slt_<mode>"
-  [(set (match_operand:GPR 0 "register_operand" "=d")
-	(lt:GPR (match_operand:GPR 1 "register_operand" "d")
-		(match_operand:GPR 2 "arith_operand" "dI")))]
+(define_insn "*slt<u>_<GPR:mode><GPR2:mode>"
+  [(set (match_operand:GPR2 0 "register_operand" "=d")
+	(any_lt:GPR2 (match_operand:GPR 1 "register_operand" "d")
+		     (match_operand:GPR 2 "arith_operand" "dI")))]
   "!TARGET_MIPS16"
-  "slt\t%0,%1,%2"
+  "slt<u>\t%0,%1,%2"
   [(set_attr "type" "slt")
-   (set_attr "mode" "<MODE>")])
+   (set_attr "mode" "<GPR:MODE>")])
 
-(define_insn "*slt_<mode>_mips16"
-  [(set (match_operand:GPR 0 "register_operand" "=t,t")
-	(lt:GPR (match_operand:GPR 1 "register_operand" "d,d")
-		(match_operand:GPR 2 "arith_operand" "d,I")))]
+(define_insn "*slt<u>_<GPR:mode><GPR2:mode>_mips16"
+  [(set (match_operand:GPR2 0 "register_operand" "=t,t")
+	(any_lt:GPR2 (match_operand:GPR 1 "register_operand" "d,d")
+		     (match_operand:GPR 2 "arith_operand" "d,I")))]
   "TARGET_MIPS16"
-  "slt\t%1,%2"
+  "slt<u>\t%1,%2"
   [(set_attr "type" "slt")
-   (set_attr "mode" "<MODE>")
+   (set_attr "mode" "<GPR:MODE>")
    (set_attr_alternative "length"
 		[(const_int 4)
 		 (if_then_else (match_operand 2 "m16_uimm8_1")
 			       (const_int 4)
 			       (const_int 8))])])
 
-(define_expand "sle"
+(define_expand "sle<u>"
   [(set (match_operand:SI 0 "register_operand")
-	(le:SI (match_dup 1)
-	       (match_dup 2)))]
+	(any_le:SI (match_dup 1)
+		   (match_dup 2)))]
   ""
-  { if (mips_expand_scc (LE, operands[0])) DONE; else FAIL; })
+  { if (mips_expand_scc (<CODE>, operands[0])) DONE; else FAIL; })
 
-(define_insn "*sle_<mode>"
-  [(set (match_operand:GPR 0 "register_operand" "=d")
-	(le:GPR (match_operand:GPR 1 "register_operand" "d")
-		(match_operand:GPR 2 "sle_operand" "")))]
+(define_insn "*sle<u>_<GPR:mode><GPR2:mode>"
+  [(set (match_operand:GPR2 0 "register_operand" "=d")
+	(any_le:GPR2 (match_operand:GPR 1 "register_operand" "d")
+		     (match_operand:GPR 2 "sle_operand" "")))]
   "!TARGET_MIPS16"
 {
   operands[2] = GEN_INT (INTVAL (operands[2]) + 1);
-  return "slt\t%0,%1,%2";
+  return "slt<u>\t%0,%1,%2";
 }
   [(set_attr "type" "slt")
-   (set_attr "mode" "<MODE>")])
+   (set_attr "mode" "<GPR:MODE>")])
 
-(define_insn "*sle_<mode>_mips16"
-  [(set (match_operand:GPR 0 "register_operand" "=t")
-	(le:GPR (match_operand:GPR 1 "register_operand" "d")
-		(match_operand:GPR 2 "sle_operand" "")))]
+(define_insn "*sle<u>_<GPR:mode><GPR2:mode>_mips16"
+  [(set (match_operand:GPR2 0 "register_operand" "=t")
+	(any_le:GPR2 (match_operand:GPR 1 "register_operand" "d")
+		     (match_operand:GPR 2 "sle_operand" "")))]
   "TARGET_MIPS16"
 {
   operands[2] = GEN_INT (INTVAL (operands[2]) + 1);
-  return "slt\t%1,%2";
+  return "slt<u>\t%1,%2";
 }
   [(set_attr "type" "slt")
-   (set_attr "mode" "<MODE>")
-   (set (attr "length") (if_then_else (match_operand 2 "m16_uimm8_m1_1")
-				      (const_int 4)
-				      (const_int 8)))])
-
-(define_expand "sgtu"
-  [(set (match_operand:SI 0 "register_operand")
-	(gtu:SI (match_dup 1)
-		(match_dup 2)))]
-  ""
-  { if (mips_expand_scc (GTU, operands[0])) DONE; else FAIL; })
-
-(define_insn "*sgtu_<mode>"
-  [(set (match_operand:GPR 0 "register_operand" "=d")
-	(gtu:GPR (match_operand:GPR 1 "register_operand" "d")
-		 (match_operand:GPR 2 "reg_or_0_operand" "dJ")))]
-  "!TARGET_MIPS16"
-  "sltu\t%0,%z2,%1"
-  [(set_attr "type" "slt")
-   (set_attr "mode" "<MODE>")])
-
-(define_insn "*sgtu_<mode>_mips16"
-  [(set (match_operand:GPR 0 "register_operand" "=t")
-	(gtu:GPR (match_operand:GPR 1 "register_operand" "d")
-		 (match_operand:GPR 2 "register_operand" "d")))]
-  "TARGET_MIPS16"
-  "sltu\t%2,%1"
-  [(set_attr "type" "slt")
-   (set_attr "mode" "<MODE>")])
-
-(define_expand "sgeu"
-  [(set (match_operand:SI 0 "register_operand")
-        (geu:SI (match_dup 1)
-                (match_dup 2)))]
-  ""
-  { if (mips_expand_scc (GEU, operands[0])) DONE; else FAIL; })
-
-(define_insn "*sge_<mode>"
-  [(set (match_operand:GPR 0 "register_operand" "=d")
-	(geu:GPR (match_operand:GPR 1 "register_operand" "d")
-	         (const_int 1)))]
-  "!TARGET_MIPS16"
-  "sltu\t%0,%.,%1"
-  [(set_attr "type" "slt")
-   (set_attr "mode" "<MODE>")])
-
-(define_expand "sltu"
-  [(set (match_operand:SI 0 "register_operand")
-	(ltu:SI (match_dup 1)
-		(match_dup 2)))]
-  ""
-  { if (mips_expand_scc (LTU, operands[0])) DONE; else FAIL; })
-
-(define_insn "*sltu_<mode>"
-  [(set (match_operand:GPR 0 "register_operand" "=d")
-	(ltu:GPR (match_operand:GPR 1 "register_operand" "d")
-		 (match_operand:GPR 2 "arith_operand" "dI")))]
-  "!TARGET_MIPS16"
-  "sltu\t%0,%1,%2"
-  [(set_attr "type" "slt")
-   (set_attr "mode" "<MODE>")])
-
-(define_insn "*sltu_<mode>_mips16"
-  [(set (match_operand:GPR 0 "register_operand" "=t,t")
-	(ltu:GPR (match_operand:GPR 1 "register_operand" "d,d")
-		 (match_operand:GPR 2 "arith_operand" "d,I")))]
-  "TARGET_MIPS16"
-  "sltu\t%1,%2"
-  [(set_attr "type" "slt")
-   (set_attr "mode" "<MODE>")
-   (set_attr_alternative "length"
-		[(const_int 4)
-		 (if_then_else (match_operand 2 "m16_uimm8_1")
-			       (const_int 4)
-			       (const_int 8))])])
-
-(define_expand "sleu"
-  [(set (match_operand:SI 0 "register_operand")
-	(leu:SI (match_dup 1)
-		(match_dup 2)))]
-  ""
-  { if (mips_expand_scc (LEU, operands[0])) DONE; else FAIL; })
-
-(define_insn "*sleu_<mode>"
-  [(set (match_operand:GPR 0 "register_operand" "=d")
-	(leu:GPR (match_operand:GPR 1 "register_operand" "d")
-	         (match_operand:GPR 2 "sleu_operand" "")))]
-  "!TARGET_MIPS16"
-{
-  operands[2] = GEN_INT (INTVAL (operands[2]) + 1);
-  return "sltu\t%0,%1,%2";
-}
-  [(set_attr "type" "slt")
-   (set_attr "mode" "<MODE>")])
-
-(define_insn "*sleu_<mode>_mips16"
-  [(set (match_operand:GPR 0 "register_operand" "=t")
-	(leu:GPR (match_operand:GPR 1 "register_operand" "d")
-	         (match_operand:GPR 2 "sleu_operand" "")))]
-  "TARGET_MIPS16"
-{
-  operands[2] = GEN_INT (INTVAL (operands[2]) + 1);
-  return "sltu\t%1,%2";
-}
-  [(set_attr "type" "slt")
-   (set_attr "mode" "<MODE>")
+   (set_attr "mode" "<GPR:MODE>")
    (set (attr "length") (if_then_else (match_operand 2 "m16_uimm8_m1_1")
 				      (const_int 4)
 				      (const_int 8)))])
@@ -5519,9 +5461,9 @@
   [(unspec_volatile [(const_int 0)] UNSPEC_BLOCKAGE)]
   ""
   ""
-  [(set_attr "type"	"unknown")
-   (set_attr "mode"	"none")
-   (set_attr "length"	"0")])
+  [(set_attr "type" "ghost")
+   (set_attr "mode" "none")
+   (set_attr "length" "0")])
 
 (define_expand "epilogue"
   [(const_int 2)]
@@ -5598,9 +5540,33 @@
   DONE;
 })
 
-(define_insn_and_split "exception_receiver"
+(define_expand "exception_receiver"
+  [(const_int 0)]
+  "TARGET_USE_GOT"
+{
+  /* See the comment above load_call<mode> for details.  */
+  emit_insn (gen_set_got_version ());
+
+  /* If we have a call-clobbered $gp, restore it from its save slot.  */
+  if (HAVE_restore_gp)
+    emit_insn (gen_restore_gp ());
+  DONE;
+})
+
+(define_expand "nonlocal_goto_receiver"
+  [(const_int 0)]
+  "TARGET_USE_GOT"
+{
+  /* See the comment above load_call<mode> for details.  */
+  emit_insn (gen_set_got_version ());
+  DONE;
+})
+
+;; Restore $gp from its .cprestore stack slot.  The instruction remains
+;; volatile until all uses of $28 are exposed.
+(define_insn_and_split "restore_gp"
   [(set (reg:SI 28)
-	(unspec_volatile:SI [(const_int 0)] UNSPEC_EH_RECEIVER))]
+	(unspec_volatile:SI [(const_int 0)] UNSPEC_RESTORE_GP))]
   "TARGET_CALL_CLOBBERED_GP"
   "#"
   "&& reload_completed"
@@ -5629,23 +5595,65 @@
 ;; potentially modify the GOT entry.  And once a stub has been called,
 ;; we must not call it again.
 ;;
-;; We represent this restriction using an imaginary fixed register that
-;; is set by the GOT load and used by the call.  By making this register
-;; call-clobbered, and by making the GOT load the only way of setting
-;; the register, we ensure that the load cannot be moved past a call.
+;; We represent this restriction using an imaginary, fixed, call-saved
+;; register called GOT_VERSION_REGNUM.  The idea is to make the register
+;; live throughout the function and to change its value after every
+;; potential call site.  This stops any rtx value that uses the register
+;; from being computed before an earlier call.  To do this, we:
+;;
+;;    - Ensure that the register is live on entry to the function,
+;;	so that it is never thought to be used uninitalized.
+;;
+;;    - Ensure that the register is live on exit from the function,
+;;	so that it is live throughout.
+;;
+;;    - Make each call (lazily-bound or not) use the current value
+;;	of GOT_VERSION_REGNUM, so that updates of the register are
+;;	not moved across call boundaries.
+;;
+;;    - Add "ghost" definitions of the register to the beginning of
+;;	blocks reached by EH and ABNORMAL_CALL edges, because those
+;;	edges may involve calls that normal paths don't.  (E.g. the
+;;	unwinding code that handles a non-call exception may change
+;;	lazily-bound GOT entries.)  We do this by making the
+;;	exception_receiver and nonlocal_goto_receiver expanders emit
+;;	a set_got_version instruction.
+;;
+;;    - After each call (lazily-bound or not), use a "ghost"
+;;	update_got_version instruction to change the register's value.
+;;	This instruction mimics the _possible_ effect of the dynamic
+;;	resolver during the call and it remains live even if the call
+;;	itself becomes dead.
+;;
+;;    - Leave GOT_VERSION_REGNUM out of all register classes.
+;;	The register is therefore not a valid register_operand
+;;	and cannot be moved to or from other registers.
 (define_insn "load_call<mode>"
   [(set (match_operand:P 0 "register_operand" "=d")
 	(unspec:P [(match_operand:P 1 "register_operand" "r")
-		   (match_operand:P 2 "immediate_operand" "")]
-		  UNSPEC_LOAD_CALL))
-   (set (reg:P FAKE_CALL_REGNO)
-	(unspec:P [(match_dup 2)] UNSPEC_LOAD_CALL))]
+		   (match_operand:P 2 "immediate_operand" "")
+		   (reg:SI GOT_VERSION_REGNUM)] UNSPEC_LOAD_CALL))]
   "TARGET_USE_GOT"
   "<load>\t%0,%R2(%1)"
   [(set_attr "type" "load")
    (set_attr "mode" "<MODE>")
-   (set_attr "hazard_set" "0")
    (set_attr "length" "4")])
+
+(define_insn "set_got_version"
+  [(set (reg:SI GOT_VERSION_REGNUM)
+	(unspec_volatile:SI [(const_int 0)] UNSPEC_SET_GOT_VERSION))]
+  "TARGET_USE_GOT"
+  ""
+  [(set_attr "length" "0")
+   (set_attr "type" "ghost")])
+
+(define_insn "update_got_version"
+  [(set (reg:SI GOT_VERSION_REGNUM)
+	(unspec:SI [(reg:SI GOT_VERSION_REGNUM)] UNSPEC_UPDATE_GOT_VERSION))]
+  "TARGET_USE_GOT"
+  ""
+  [(set_attr "length" "0")
+   (set_attr "type" "ghost")])
 
 ;; Sibling calls.  All these patterns use jump instructions.
 

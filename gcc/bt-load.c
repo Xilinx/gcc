@@ -508,7 +508,7 @@ compute_defs_uses_and_gen (fibheap_t all_btr_defs, btr_def *def_array,
 		  note_other_use_this_block (regno, info.users_this_bb);
 		}
 	      /* Check for the blockage emitted by expand_nl_goto_receiver.  */
-	      else if (current_function_has_nonlocal_label
+	      else if (cfun->has_nonlocal_label
 		       && GET_CODE (PATTERN (insn)) == UNSPEC_VOLATILE)
 		{
 		  btr_user user;
@@ -1505,8 +1505,10 @@ rest_of_handle_branch_target_load_optimize1 (void)
   return 0;
 }
 
-struct tree_opt_pass pass_branch_target_load_optimize1 =
+struct rtl_opt_pass pass_branch_target_load_optimize1 =
 {
+ {
+  RTL_PASS,
   "btl1",                               /* name */
   gate_handle_branch_target_load_optimize1,      /* gate */
   rest_of_handle_branch_target_load_optimize1,   /* execute */
@@ -1521,7 +1523,7 @@ struct tree_opt_pass pass_branch_target_load_optimize1 =
   TODO_dump_func |
   TODO_verify_rtl_sharing |
   TODO_ggc_collect,                     /* todo_flags_finish */
-  'd'                                   /* letter */
+ }
 };
 
 static bool
@@ -1553,8 +1555,10 @@ rest_of_handle_branch_target_load_optimize2 (void)
   return 0;
 }
 
-struct tree_opt_pass pass_branch_target_load_optimize2 =
+struct rtl_opt_pass pass_branch_target_load_optimize2 =
 {
+ {
+  RTL_PASS,
   "btl2",                               /* name */
   gate_handle_branch_target_load_optimize2,      /* gate */
   rest_of_handle_branch_target_load_optimize2,   /* execute */
@@ -1568,6 +1572,6 @@ struct tree_opt_pass pass_branch_target_load_optimize2 =
   0,                                    /* todo_flags_start */
   TODO_dump_func |
   TODO_ggc_collect,                     /* todo_flags_finish */
-  'd'                                   /* letter */
+ }
 };
 

@@ -46,15 +46,15 @@ package body GNAT.Directory_Operations is
 
    use Ada;
 
-   type Dir_Type_Value is new System.Address;
-   --  This is the low-level address directory structure as returned by the C
-   --  opendir routine.
-
    Filename_Max : constant Integer := 1024;
    --  1024 is the value of FILENAME_MAX in stdio.h
 
    procedure Free is new
      Ada.Unchecked_Deallocation (Dir_Type_Value, Dir_Type);
+
+   On_Windows : constant Boolean := GNAT.OS_Lib.Directory_Separator = '\';
+   --  An indication that we are on Windows. Used in Get_Current_Dir, to
+   --  deal with drive letters in the beginning of absolute paths.
 
    ---------------
    -- Base_Name --
@@ -415,7 +415,7 @@ package body GNAT.Directory_Operations is
 
             E := K;
 
-            --  Check that first chartacter is a letter
+            --  Check that first character is a letter
 
             if Characters.Handling.Is_Letter (Path (E)) then
                E := E + 1;
@@ -591,6 +591,15 @@ package body GNAT.Directory_Operations is
       end if;
 
       Dir (Buffer'First .. Last) := Buffer (Buffer'First .. Last);
+
+      --  By default, the drive letter on Windows is in upper case
+
+      if On_Windows and then Last > Dir'First and then
+        Dir (Dir'First + 1) = ':'
+      then
+         Dir (Dir'First) :=
+           Ada.Characters.Handling.To_Upper (Dir (Dir'First));
+      end if;
    end Get_Current_Dir;
 
    -------------

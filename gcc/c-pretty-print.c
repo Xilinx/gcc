@@ -1,5 +1,6 @@
 /* Subroutines common to both C and C++ pretty-printers.
-   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
+   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008
+   Free Software Foundation, Inc.
    Contributed by Gabriel Dos Reis <gdr@integrable-solutions.net>
 
 This file is part of GCC.
@@ -224,7 +225,10 @@ pp_c_space_for_pointer_operator (c_pretty_printer *pp, tree t)
 void
 pp_c_type_qualifier_list (c_pretty_printer *pp, tree t)
 {
-   int qualifiers;
+  int qualifiers;
+
+  if (!t || t == error_mark_node)
+    return;
 
   if (!TYPE_P (t))
     t = TREE_TYPE (t);
@@ -828,8 +832,8 @@ pp_c_integer_constant (c_pretty_printer *pp, tree i)
 	  high = ~high + !low;
 	  low = -low;
 	}
-      sprintf (pp_buffer (pp)->digit_buffer,
-	       HOST_WIDE_INT_PRINT_DOUBLE_HEX, high, low);
+      sprintf (pp_buffer (pp)->digit_buffer, HOST_WIDE_INT_PRINT_DOUBLE_HEX, 
+	       (unsigned HOST_WIDE_INT) high, (unsigned HOST_WIDE_INT) low);
       pp_string (pp, pp_buffer (pp)->digit_buffer);
     }
   if (TYPE_UNSIGNED (type))
@@ -1169,6 +1173,12 @@ pp_c_initializer_list (c_pretty_printer *pp, tree e)
   tree type = TREE_TYPE (e);
   const enum tree_code code = TREE_CODE (type);
 
+  if (TREE_CODE (e) == CONSTRUCTOR)
+    {
+      pp_c_constructor_elts (pp, CONSTRUCTOR_ELTS (e));
+      return;
+    }
+
   switch (code)
     {
     case RECORD_TYPE:
@@ -1203,16 +1213,12 @@ pp_c_initializer_list (c_pretty_printer *pp, tree e)
     case VECTOR_TYPE:
       if (TREE_CODE (e) == VECTOR_CST)
 	pp_c_expression_list (pp, TREE_VECTOR_CST_ELTS (e));
-      else if (TREE_CODE (e) == CONSTRUCTOR)
-	pp_c_constructor_elts (pp, CONSTRUCTOR_ELTS (e));
       else
 	break;
       return;
 
     case COMPLEX_TYPE:
-      if (TREE_CODE (e) == CONSTRUCTOR)
-	pp_c_constructor_elts (pp, CONSTRUCTOR_ELTS (e));
-      else if (TREE_CODE (e) == COMPLEX_CST || TREE_CODE (e) == COMPLEX_EXPR)
+      if (TREE_CODE (e) == COMPLEX_CST || TREE_CODE (e) == COMPLEX_EXPR)
 	{
 	  const bool cst = TREE_CODE (e) == COMPLEX_CST;
 	  pp_expression (pp, cst ? TREE_REALPART (e) : TREE_OPERAND (e, 0));
@@ -1549,8 +1555,7 @@ pp_c_cast_expression (c_pretty_printer *pp, tree e)
     {
     case FLOAT_EXPR:
     case FIX_TRUNC_EXPR:
-    case CONVERT_EXPR:
-    case NOP_EXPR:
+    CASE_CONVERT:
       pp_c_type_cast (pp, TREE_TYPE (e));
       pp_c_cast_expression (pp, TREE_OPERAND (e, 0));
       break;
@@ -1737,10 +1742,14 @@ pp_c_and_expression (c_pretty_printer *pp, tree e)
 static void
 pp_c_exclusive_or_expression (c_pretty_printer *pp, tree e)
 {
-  if (TREE_CODE (e) == BIT_XOR_EXPR)
+  if (TREE_CODE (e) == BIT_XOR_EXPR
+      || TREE_CODE (e) == TRUTH_XOR_EXPR)
     {
       pp_c_exclusive_or_expression (pp, TREE_OPERAND (e, 0));
-      pp_c_maybe_whitespace (pp);
+      if (TREE_CODE (e) == BIT_XOR_EXPR)
+	pp_c_maybe_whitespace (pp);
+      else
+	pp_c_whitespace (pp);
       pp_carret (pp);
       pp_c_whitespace (pp);
       pp_c_and_expression (pp, TREE_OPERAND (e, 1));
@@ -1775,7 +1784,8 @@ pp_c_inclusive_or_expression (c_pretty_printer *pp, tree e)
 static void
 pp_c_logical_and_expression (c_pretty_printer *pp, tree e)
 {
-  if (TREE_CODE (e) == TRUTH_ANDIF_EXPR)
+  if (TREE_CODE (e) == TRUTH_ANDIF_EXPR
+      || TREE_CODE (e) == TRUTH_AND_EXPR)
     {
       pp_c_logical_and_expression (pp, TREE_OPERAND (e, 0));
       pp_c_whitespace (pp);
@@ -1794,7 +1804,8 @@ pp_c_logical_and_expression (c_pretty_printer *pp, tree e)
 void
 pp_c_logical_or_expression (c_pretty_printer *pp, tree e)
 {
-  if (TREE_CODE (e) == TRUTH_ORIF_EXPR)
+  if (TREE_CODE (e) == TRUTH_ORIF_EXPR
+      || TREE_CODE (e) == TRUTH_OR_EXPR)
     {
       pp_c_logical_or_expression (pp, TREE_OPERAND (e, 0));
       pp_c_whitespace (pp);
@@ -1935,8 +1946,7 @@ pp_c_expression (c_pretty_printer *pp, tree e)
 
     case FLOAT_EXPR:
     case FIX_TRUNC_EXPR:
-    case CONVERT_EXPR:
-    case NOP_EXPR:
+    CASE_CONVERT:
       pp_c_cast_expression (pp, e);
       break;
 
@@ -1963,6 +1973,7 @@ pp_c_expression (c_pretty_printer *pp, tree e)
       break;
 
     case BIT_XOR_EXPR:
+    case TRUTH_XOR_EXPR:
       pp_c_exclusive_or_expression (pp, e);
       break;
 
@@ -1971,10 +1982,12 @@ pp_c_expression (c_pretty_printer *pp, tree e)
       break;
 
     case TRUTH_ANDIF_EXPR:
+    case TRUTH_AND_EXPR:
       pp_c_logical_and_expression (pp, e);
       break;
 
     case TRUTH_ORIF_EXPR:
+    case TRUTH_OR_EXPR:
       pp_c_logical_or_expression (pp, e);
       break;
 

@@ -1,6 +1,6 @@
 /* Output Dwarf2 format symbol table information from GCC.
    Copyright (C) 1992, 1993, 1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002,
-   2003, 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
+   2003, 2004, 2005, 2006, 2007, 2008 Free Software Foundation, Inc.
    Contributed by Gary Funck (gary@intrepid.com).
    Derived from DWARF 1 implementation of Ron Guilmette (rfg@monkeys.com).
    Extensively modified by Jason Merrill (jason@cygnus.com).
@@ -339,6 +339,17 @@ static GTY ((param_is (struct indirect_string_node))) htab_t debug_str_hash;
 static GTY(()) int dw2_string_counter;
 static GTY(()) unsigned long dwarf2out_cfi_label_num;
 
+/* True if the compilation unit places functions in more than one section.  */
+static GTY(()) bool have_multiple_function_sections = false;
+
+/* Whether the default text and cold text sections have been used at all.  */
+
+static GTY(()) bool text_section_used = false;
+static GTY(()) bool cold_text_section_used = false;
+
+/* The default cold text section.  */
+static GTY(()) section *cold_text_section;
+
 #if defined (DWARF2_DEBUGGING_INFO) || defined (DWARF2_UNWIND_INFO)
 
 /* Forward declarations for functions defined in this file.  */
@@ -357,6 +368,7 @@ static void initial_return_save (rtx);
 static HOST_WIDE_INT stack_adjust_offset (const_rtx);
 static void output_cfi (dw_cfi_ref, dw_fde_ref, int);
 static void output_call_frame_info (int);
+static void dwarf2out_note_section_used (void);
 static void dwarf2out_stack_adjust (rtx, bool);
 static void flush_queued_reg_saves (void);
 static bool clobbers_queued_reg_save (const_rtx);
@@ -1522,7 +1534,7 @@ static dw_cfa_location cfa_temp;
 static void
 dwarf2out_frame_debug_expr (rtx expr, const char *label)
 {
-  rtx src, dest;
+  rtx src, dest, span;
   HOST_WIDE_INT offset;
 
   /* If RTX_FRAME_RELATED_P is set on a PARALLEL, process each member of
@@ -1872,7 +1884,32 @@ dwarf2out_frame_debug_expr (rtx expr, const char *label)
 	}
 
       def_cfa_1 (label, &cfa);
-      queue_reg_save (label, src, NULL_RTX, offset);
+      {
+	span = targetm.dwarf_register_span (src);
+
+	if (!span)
+	  queue_reg_save (label, src, NULL_RTX, offset);
+	else
+	  {
+	    /* We have a PARALLEL describing where the contents of SRC
+	       live.  Queue register saves for each piece of the
+	       PARALLEL.  */
+	    int par_index;
+	    int limit;
+	    HOST_WIDE_INT span_offset = offset;
+
+	    gcc_assert (GET_CODE (span) == PARALLEL);
+
+	    limit = XVECLEN (span, 0);
+	    for (par_index = 0; par_index < limit; par_index++)
+	      {
+		rtx elem = XVECEXP (span, 0, par_index);
+
+		queue_reg_save (label, elem, NULL_RTX, span_offset);
+		span_offset += GET_MODE_SIZE (GET_MODE (elem));
+	      }
+	  }
+      }
       break;
 
     default:
@@ -2079,7 +2116,8 @@ output_cfi (dw_cfi_ref cfi, dw_fde_ref fde, int for_eh)
     dw2_asm_output_data (1, (cfi->dw_cfi_opc
 			     | (cfi->dw_cfi_oprnd1.dw_cfi_offset & 0x3f)),
 			 "DW_CFA_advance_loc " HOST_WIDE_INT_PRINT_HEX,
-			 cfi->dw_cfi_oprnd1.dw_cfi_offset);
+			 ((unsigned HOST_WIDE_INT)
+			  cfi->dw_cfi_oprnd1.dw_cfi_offset));
   else if (cfi->dw_cfi_opc == DW_CFA_offset)
     {
       r = DWARF2_FRAME_REG_OUT (cfi->dw_cfi_oprnd1.dw_cfi_reg_num, for_eh);
@@ -2424,12 +2462,6 @@ output_call_frame_info (int for_eh)
 
       if (for_eh)
 	{
-	  rtx sym_ref = gen_rtx_SYMBOL_REF (Pmode, fde->dw_fde_begin);
-	  SYMBOL_REF_FLAGS (sym_ref) |= SYMBOL_FLAG_LOCAL;
-	  dw2_asm_output_encoded_addr_rtx (fde_encoding,
-					   sym_ref,
-					   false,
-					   "FDE initial location");
 	  if (fde->dw_fde_switched_sections)
 	    {
 	      rtx sym_ref2 = gen_rtx_SYMBOL_REF (Pmode,
@@ -2452,14 +2484,20 @@ output_call_frame_info (int for_eh)
 				    "FDE address range");
 	    }
 	  else
-	    dw2_asm_output_delta (size_of_encoded_value (fde_encoding),
-				  fde->dw_fde_end, fde->dw_fde_begin,
-				  "FDE address range");
+	    {
+	      rtx sym_ref = gen_rtx_SYMBOL_REF (Pmode, fde->dw_fde_begin);
+	      SYMBOL_REF_FLAGS (sym_ref) |= SYMBOL_FLAG_LOCAL;
+	      dw2_asm_output_encoded_addr_rtx (fde_encoding,
+					       sym_ref,
+					       false,
+					       "FDE initial location");
+	      dw2_asm_output_delta (size_of_encoded_value (fde_encoding),
+				    fde->dw_fde_end, fde->dw_fde_begin,
+				    "FDE address range");
+	    }
 	}
       else
 	{
-	  dw2_asm_output_addr (DWARF2_ADDR_SIZE, fde->dw_fde_begin,
-			       "FDE initial location");
 	  if (fde->dw_fde_switched_sections)
 	    {
 	      dw2_asm_output_addr (DWARF2_ADDR_SIZE,
@@ -2478,9 +2516,13 @@ output_call_frame_info (int for_eh)
 				    "FDE address range");
 	    }
 	  else
-	    dw2_asm_output_delta (DWARF2_ADDR_SIZE,
-				  fde->dw_fde_end, fde->dw_fde_begin,
-				  "FDE address range");
+	    {
+	      dw2_asm_output_addr (DWARF2_ADDR_SIZE, fde->dw_fde_begin,
+				   "FDE initial location");
+	      dw2_asm_output_delta (DWARF2_ADDR_SIZE,
+				    fde->dw_fde_end, fde->dw_fde_begin,
+				    "FDE address range");
+	    }
 	}
 
       if (augmentation[0])
@@ -2615,8 +2657,8 @@ dwarf2out_begin_prologue (unsigned int line ATTRIBUTE_UNUSED,
   fde->dw_fde_cfi = NULL;
   fde->funcdef_number = current_function_funcdef_no;
   fde->nothrow = TREE_NOTHROW (current_function_decl);
-  fde->uses_eh_lsda = cfun->uses_eh_lsda;
-  fde->all_throwers_are_sibcalls = cfun->all_throwers_are_sibcalls;
+  fde->uses_eh_lsda = crtl->uses_eh_lsda;
+  fde->all_throwers_are_sibcalls = crtl->all_throwers_are_sibcalls;
 
   args_size = old_args_size = 0;
 
@@ -2680,6 +2722,42 @@ dwarf2out_frame_finish (void)
   if (! USING_SJLJ_EXCEPTIONS && (flag_unwind_tables || flag_exceptions))
     output_call_frame_info (1);
 #endif
+}
+
+/* Note that the current function section is being used for code.  */
+
+static void
+dwarf2out_note_section_used (void)
+{
+  section *sec = current_function_section ();
+  if (sec == text_section)
+    text_section_used = true;
+  else if (sec == cold_text_section)
+    cold_text_section_used = true;
+}
+
+void
+dwarf2out_switch_text_section (void)
+{
+  dw_fde_ref fde;
+
+  gcc_assert (cfun);
+
+  fde = &fde_table[fde_table_in_use - 1];
+  fde->dw_fde_switched_sections = true;
+  fde->dw_fde_hot_section_label = crtl->subsections.hot_section_label;
+  fde->dw_fde_hot_section_end_label = crtl->subsections.hot_section_end_label;
+  fde->dw_fde_unlikely_section_label = crtl->subsections.cold_section_label;
+  fde->dw_fde_unlikely_section_end_label = crtl->subsections.cold_section_end_label;
+  have_multiple_function_sections = true;
+
+  /* Reset the current label on switching text sections, so that we
+     don't attempt to advance_loc4 between labels in different sections.  */
+  fde->dw_fde_current_label = NULL;
+
+  /* There is no need to mark used sections when not debugging.  */
+  if (cold_text_section != NULL)
+    dwarf2out_note_section_used ();
 }
 #endif
 
@@ -3659,7 +3737,6 @@ static void dwarf2out_imported_module_or_decl (tree, tree);
 static void dwarf2out_abstract_function (tree);
 static void dwarf2out_var_location (rtx);
 static void dwarf2out_begin_function (tree);
-static void dwarf2out_switch_text_section (void);
 
 /* The debug hooks structure.  */
 
@@ -3760,7 +3837,7 @@ DEF_VEC_ALLOC_O(dw_attr_node,gc);
    The children of each node form a circular list linked by
    die_sib.  die_child points to the node *before* the "first" child node.  */
 
-typedef struct die_struct GTY(())
+typedef struct die_struct GTY((chain_circular ("%h.die_sib")))
 {
   enum dwarf_tag die_tag;
   char *die_symbol;
@@ -3968,9 +4045,6 @@ static GTY(()) unsigned line_info_table_allocated;
 /* Number of elements in line_info_table currently in use.  */
 static GTY(()) unsigned line_info_table_in_use;
 
-/* True if the compilation unit places functions in more than one section.  */
-static GTY(()) bool have_multiple_function_sections = false;
-
 /* A pointer to the base of a table that contains line information
    for each source code line outside of .text in the compilation unit.  */
 static GTY ((length ("separate_line_info_table_allocated")))
@@ -4052,15 +4126,6 @@ static GTY(()) int label_num;
 
 /* Cached result of previous call to lookup_filename.  */
 static GTY(()) struct dwarf_file_data * file_table_last_lookup;
-
-/* Whether the default text and cold text sections have been used at
-   all.  */
-
-static GTY(()) bool text_section_used = false;
-static GTY(()) bool cold_text_section_used = false;
-
-/* The default cold text section.  */
-static GTY(()) section *cold_text_section;
 
 #ifdef DWARF2_DEBUGGING_INFO
 
@@ -4187,6 +4252,7 @@ static void output_compilation_unit_header (void);
 static void output_comp_unit (dw_die_ref, int);
 static const char *dwarf2_name (tree, int);
 static void add_pubname (tree, dw_die_ref);
+static void add_pubname_string (const char *, dw_die_ref);
 static void add_pubtype (tree, dw_die_ref);
 static void output_pubnames (VEC (pubname_entry,gc) *);
 static void add_arange (tree, dw_die_ref);
@@ -4356,7 +4422,7 @@ static int maybe_emit_file (struct dwarf_file_data *fd);
 
 /* Section flags for .debug_str section.  */
 #define DEBUG_STR_SECTION_FLAGS \
-  (HAVE_GAS_SHF_MERGE && flag_merge_constants			\
+  (HAVE_GAS_SHF_MERGE && flag_merge_debug_strings		\
    ? SECTION_DEBUG | SECTION_MERGE | SECTION_STRINGS | 1	\
    : SECTION_DEBUG)
 
@@ -4562,8 +4628,6 @@ dwarf_tag_name (unsigned int tag)
       return "DW_TAG_namelist";
     case DW_TAG_namelist_item:
       return "DW_TAG_namelist_item";
-    case DW_TAG_namespace:
-      return "DW_TAG_namespace";
     case DW_TAG_packed_type:
       return "DW_TAG_packed_type";
     case DW_TAG_subprogram:
@@ -4582,8 +4646,26 @@ dwarf_tag_name (unsigned int tag)
       return "DW_TAG_variable";
     case DW_TAG_volatile_type:
       return "DW_TAG_volatile_type";
+    case DW_TAG_dwarf_procedure:
+      return "DW_TAG_dwarf_procedure";
+    case DW_TAG_restrict_type:
+      return "DW_TAG_restrict_type";
+    case DW_TAG_interface_type:
+      return "DW_TAG_interface_type";
+    case DW_TAG_namespace:
+      return "DW_TAG_namespace";
     case DW_TAG_imported_module:
       return "DW_TAG_imported_module";
+    case DW_TAG_unspecified_type:
+      return "DW_TAG_unspecified_type";
+    case DW_TAG_partial_unit:
+      return "DW_TAG_partial_unit";
+    case DW_TAG_imported_unit:
+      return "DW_TAG_imported_unit";
+    case DW_TAG_condition:
+      return "DW_TAG_condition";
+    case DW_TAG_shared_type:
+      return "DW_TAG_shared_type";
     case DW_TAG_MIPS_loop:
       return "DW_TAG_MIPS_loop";
     case DW_TAG_format_label:
@@ -6301,6 +6383,7 @@ is_type_die (dw_die_ref die)
     {
     case DW_TAG_array_type:
     case DW_TAG_class_type:
+    case DW_TAG_interface_type:
     case DW_TAG_enumeration_type:
     case DW_TAG_pointer_type:
     case DW_TAG_reference_type:
@@ -7065,40 +7148,6 @@ add_loc_descr_to_loc_list (dw_loc_list_ref *list_head, dw_loc_descr_ref descr,
   *d = new_loc_list (descr, begin, end, section, 0);
 }
 
-/* Note that the current function section is being used for code.  */
-
-static void
-dwarf2out_note_section_used (void)
-{
-  section *sec = current_function_section ();
-  if (sec == text_section)
-    text_section_used = true;
-  else if (sec == cold_text_section)
-    cold_text_section_used = true;
-}
-
-static void
-dwarf2out_switch_text_section (void)
-{
-  dw_fde_ref fde;
-
-  gcc_assert (cfun);
-
-  fde = &fde_table[fde_table_in_use - 1];
-  fde->dw_fde_switched_sections = true;
-  fde->dw_fde_hot_section_label = cfun->hot_section_label;
-  fde->dw_fde_hot_section_end_label = cfun->hot_section_end_label;
-  fde->dw_fde_unlikely_section_label = cfun->cold_section_label;
-  fde->dw_fde_unlikely_section_end_label = cfun->cold_section_end_label;
-  have_multiple_function_sections = true;
-
-  /* Reset the current label on switching text sections, so that we
-     don't attempt to advance_loc4 between labels in different sections.  */
-  fde->dw_fde_current_label = NULL;
-
-  dwarf2out_note_section_used ();
-}
-
 /* Output the location list given to us.  */
 
 static void
@@ -7434,16 +7483,21 @@ dwarf2_name (tree decl, int scope)
 /* Add a new entry to .debug_pubnames if appropriate.  */
 
 static void
-add_pubname (tree decl, dw_die_ref die)
+add_pubname_string (const char *str, dw_die_ref die)
 {
   pubname_entry e;
 
-  if (! TREE_PUBLIC (decl))
-    return;
-
   e.die = die;
-  e.name = xstrdup (dwarf2_name (decl, 1));
+  e.name = xstrdup (str);
   VEC_safe_push (pubname_entry, gc, pubname_table, &e);
+}
+
+static void
+add_pubname (tree decl, dw_die_ref die)
+{
+
+  if (TREE_PUBLIC (decl))
+    add_pubname_string (dwarf2_name (decl, 1), die);
 }
 
 /* Add a new entry to .debug_pubtypes if appropriate.  */
@@ -8169,7 +8223,7 @@ output_line_info (void)
   current_line = 1;
 
   if (cfun && in_cold_section_p)
-    strcpy (prev_line_label, cfun->cold_section_label);
+    strcpy (prev_line_label, crtl->subsections.cold_section_label);
   else
     strcpy (prev_line_label, text_section_label);
   for (lt_index = 1; lt_index < line_info_table_in_use; ++lt_index)
@@ -9440,16 +9494,33 @@ loc_descriptor_from_tree_1 (tree loc, int want_address)
       if (DECL_THREAD_LOCAL_P (loc))
 	{
 	  rtx rtl;
+	  unsigned first_op;
+	  unsigned second_op;
 
-	  /* If this is not defined, we have no way to emit the data.  */
-	  if (!targetm.have_tls || !targetm.asm_out.output_dwarf_dtprel)
-	    return 0;
+	  if (targetm.have_tls)
+	    {
+	      /* If this is not defined, we have no way to emit the
+	         data.  */
+	      if (!targetm.asm_out.output_dwarf_dtprel)
+		return 0;
 
-	  /* The way DW_OP_GNU_push_tls_address is specified, we can only
-	     look up addresses of objects in the current module.  */
-	  if (DECL_EXTERNAL (loc))
-	    return 0;
-
+	       /* The way DW_OP_GNU_push_tls_address is specified, we
+	     	  can only look up addresses of objects in the current
+	     	  module.  */
+	      if (DECL_EXTERNAL (loc))
+		return 0;
+	      first_op = INTERNAL_DW_OP_tls_addr;
+	      second_op = DW_OP_GNU_push_tls_address;
+	    }
+	  else
+	    {
+	      if (!targetm.emutls.debug_form_tls_address)
+		return 0;
+	      loc = emutls_decl (loc);
+	      first_op = DW_OP_addr;
+	      second_op = DW_OP_form_tls_address;
+	    }
+	  
 	  rtl = rtl_for_decl_location (loc);
 	  if (rtl == NULL_RTX)
 	    return 0;
@@ -9460,11 +9531,11 @@ loc_descriptor_from_tree_1 (tree loc, int want_address)
 	  if (! CONSTANT_P (rtl))
 	    return 0;
 
-	  ret = new_loc_descr (INTERNAL_DW_OP_tls_addr, 0, 0);
+	  ret = new_loc_descr (first_op, 0, 0);
 	  ret->dw_loc_oprnd1.val_class = dw_val_class_addr;
 	  ret->dw_loc_oprnd1.v.val_addr = rtl;
-
-	  ret1 = new_loc_descr (DW_OP_GNU_push_tls_address, 0, 0);
+	  
+	  ret1 = new_loc_descr (second_op, 0, 0);
 	  add_loc_descr (&ret, ret1);
 
 	  have_address = 1;
@@ -9527,9 +9598,7 @@ loc_descriptor_from_tree_1 (tree loc, int want_address)
     case COMPOUND_EXPR:
       return loc_descriptor_from_tree_1 (TREE_OPERAND (loc, 1), want_address);
 
-    case NOP_EXPR:
-    case CONVERT_EXPR:
-    case NON_LVALUE_EXPR:
+    CASE_CONVERT:
     case VIEW_CONVERT_EXPR:
     case SAVE_EXPR:
     case GIMPLE_MODIFY_STMT:
@@ -10365,6 +10434,8 @@ reference_to_unused (tree * tp, int * walk_subtrees,
       if (!node->output)
 	return *tp;
     }
+  else if (TREE_CODE (*tp) == STRING_CST && !TREE_ASM_WRITTEN (*tp))
+    return *tp;
 
   return NULL_TREE;
 }
@@ -10680,12 +10751,63 @@ secname_for_decl (const_tree decl)
       secname = TREE_STRING_POINTER (sectree);
     }
   else if (cfun && in_cold_section_p)
-    secname = cfun->cold_section_label;
+    secname = crtl->subsections.cold_section_label;
   else
     secname = text_section_label;
 
   return secname;
 }
+
+/* Check whether decl is a Fortran COMMON symbol.  If not, NULL_RTX is returned.
+   If so, the rtx for the SYMBOL_REF for the COMMON block is returned, and the
+   value is the offset into the common block for the symbol.  */
+
+static tree
+fortran_common (tree decl, HOST_WIDE_INT *value)
+{
+  tree val_expr, cvar;
+  enum machine_mode mode;
+  HOST_WIDE_INT bitsize, bitpos;
+  tree offset;
+  int volatilep = 0, unsignedp = 0;
+
+  /* If the decl isn't a VAR_DECL, or if it isn't public or static, or if
+     it does not have a value (the offset into the common area), or if it
+     is thread local (as opposed to global) then it isn't common, and shouldn't
+     be handled as such.  */
+  if (TREE_CODE (decl) != VAR_DECL
+      || !TREE_PUBLIC (decl)
+      || !TREE_STATIC (decl)
+      || !DECL_HAS_VALUE_EXPR_P (decl)
+      || !is_fortran ())
+    return NULL_TREE;
+
+  val_expr = DECL_VALUE_EXPR (decl);
+  if (TREE_CODE (val_expr) != COMPONENT_REF)
+    return NULL_TREE;
+
+  cvar = get_inner_reference (val_expr, &bitsize, &bitpos, &offset,
+			      &mode, &unsignedp, &volatilep, true);
+
+  if (cvar == NULL_TREE
+      || TREE_CODE (cvar) != VAR_DECL
+      || DECL_ARTIFICIAL (cvar)
+      || !TREE_PUBLIC (cvar))
+    return NULL_TREE;
+
+  *value = 0;
+  if (offset != NULL)
+    {
+      if (!host_integerp (offset, 0))
+	return NULL_TREE;
+      *value = tree_low_cst (offset, 0);
+    }
+  if (bitpos != 0)
+    *value += bitpos / BITS_PER_UNIT;
+
+  return cvar;
+}
+
 
 /* Generate *either* a DW_AT_location attribute or else a DW_AT_const_value
    data attribute for a variable or a parameter.  We generate the
@@ -11010,9 +11132,7 @@ add_bound_info (dw_die_ref subrange_die, enum dwarf_attribute bound_attr, tree b
 	add_AT_unsigned (subrange_die, bound_attr, tree_low_cst (bound, 0));
       break;
 
-    case CONVERT_EXPR:
-    case NOP_EXPR:
-    case NON_LVALUE_EXPR:
+    CASE_CONVERT:
     case VIEW_CONVERT_EXPR:
       add_bound_info (subrange_die, bound_attr, TREE_OPERAND (bound, 0));
       break;
@@ -11473,6 +11593,8 @@ class_or_namespace_scope_p (dw_die_ref context_die)
 {
   return (context_die
 	  && (context_die->die_tag == DW_TAG_structure_type
+	      || context_die->die_tag == DW_TAG_class_type
+	      || context_die->die_tag == DW_TAG_interface_type
 	      || context_die->die_tag == DW_TAG_union_type
 	      || context_die->die_tag == DW_TAG_namespace));
 }
@@ -11694,8 +11816,7 @@ descr_info_loc (tree val, tree base_decl)
 
   switch (TREE_CODE (val))
     {
-    case NOP_EXPR:
-    case CONVERT_EXPR:
+    CASE_CONVERT:
       return descr_info_loc (TREE_OPERAND (val, 0), base_decl);
     case INTEGER_CST:
       if (host_integerp (val, 0))
@@ -11891,12 +12012,36 @@ gen_inlined_enumeration_type_die (tree type, dw_die_ref context_die)
   add_abstract_origin_attribute (type_die, type);
 }
 
+/* Determine what tag to use for a record type.  */
+
+static enum dwarf_tag
+record_type_tag (tree type)
+{
+  if (! lang_hooks.types.classify_record)
+    return DW_TAG_structure_type;
+
+  switch (lang_hooks.types.classify_record (type))
+    {
+    case RECORD_IS_STRUCT:
+      return DW_TAG_structure_type;
+
+    case RECORD_IS_CLASS:
+      return DW_TAG_class_type;
+
+    case RECORD_IS_INTERFACE:
+      return DW_TAG_interface_type;
+
+    default:
+      gcc_unreachable ();
+    }
+}
+
 /* Generate a DIE to represent an inlined instance of a structure type.  */
 
 static void
 gen_inlined_structure_type_die (tree type, dw_die_ref context_die)
 {
-  dw_die_ref type_die = new_die (DW_TAG_structure_type, context_die, type);
+  dw_die_ref type_die = new_die (record_type_tag (type), context_die, type);
 
   /* We do not check for TREE_ASM_WRITTEN (type) being set, as the type may
      be incomplete and such types are not marked.  */
@@ -12558,9 +12703,10 @@ gen_subprogram_die (tree decl, dw_die_ref context_die)
 static void
 gen_variable_die (tree decl, dw_die_ref context_die)
 {
+  HOST_WIDE_INT off;
+  tree com_decl;
+  dw_die_ref var_die;
   tree origin = decl_ultimate_origin (decl);
-  dw_die_ref var_die = new_die (DW_TAG_variable, context_die, decl);
-
   dw_die_ref old_die = lookup_decl_die (decl);
   int declaration = (DECL_EXTERNAL (decl)
 		     /* If DECL is COMDAT and has not actually been
@@ -12583,6 +12729,37 @@ gen_variable_die (tree decl, dw_die_ref context_die)
 		     || (TREE_CODE (decl) == VAR_DECL
 			 && DECL_COMDAT (decl) && !TREE_ASM_WRITTEN (decl))
 		     || class_or_namespace_scope_p (context_die));
+
+  com_decl = fortran_common (decl, &off);
+
+  /* Symbol in common gets emitted as a child of the common block, in the form
+     of a data member.
+
+     ??? This creates a new common block die for every common block symbol.
+     Better to share same common block die for all symbols in that block.  */
+  if (com_decl)
+    {
+      tree field;
+      dw_die_ref com_die;
+      const char *cnam = IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME (com_decl));
+      dw_loc_descr_ref loc = loc_descriptor_from_tree (com_decl);
+
+      field = TREE_OPERAND (DECL_VALUE_EXPR (decl), 0);
+      var_die = new_die (DW_TAG_common_block, context_die, decl);
+      add_name_and_src_coords_attributes (var_die, field);
+      add_AT_flag (var_die, DW_AT_external, 1);
+      add_AT_loc (var_die, DW_AT_location, loc);
+      com_die = new_die (DW_TAG_member, var_die, decl);
+      add_name_and_src_coords_attributes (com_die, decl);
+      add_type_attribute (com_die, TREE_TYPE (decl), TREE_READONLY (decl),
+			  TREE_THIS_VOLATILE (decl), context_die);
+      add_AT_loc (com_die, DW_AT_data_member_location,
+		  int_loc_descriptor (off));
+      add_pubname_string (cnam, var_die); /* ??? needed? */
+      return;
+    }
+
+  var_die = new_die (DW_TAG_variable, context_die, decl);
 
   if (origin != NULL)
     add_abstract_origin_attribute (var_die, origin);
@@ -12964,7 +13141,7 @@ gen_compile_unit_die (const char *filename)
     language = DW_LANG_Ada95;
   else if (strcmp (language_string, "GNU F77") == 0)
     language = DW_LANG_Fortran77;
-  else if (strcmp (language_string, "GNU F95") == 0)
+  else if (strcmp (language_string, "GNU Fortran") == 0)
     language = DW_LANG_Fortran95;
   else if (strcmp (language_string, "GNU Pascal") == 0)
     language = DW_LANG_Pascal83;
@@ -13097,7 +13274,7 @@ gen_struct_or_union_type_die (tree type, dw_die_ref context_die,
       dw_die_ref old_die = type_die;
 
       type_die = new_die (TREE_CODE (type) == RECORD_TYPE
-			  ? DW_TAG_structure_type : DW_TAG_union_type,
+			  ? record_type_tag (type) : DW_TAG_union_type,
 			  scope_die, type);
       equate_type_number_to_die (type, type_die);
       if (old_die)
@@ -13559,8 +13736,13 @@ decls_for_scope (tree stmt, dw_die_ref context_die, int depth)
 	    add_child_die (context_die, die);
 	  /* Do not produce debug information for static variables since
 	     these might be optimized out.  We are called for these later
-	     in varpool_analyze_pending_decls. */
-	  if (TREE_CODE (decl) == VAR_DECL && TREE_STATIC (decl))
+	     in varpool_analyze_pending_decls.
+
+	     But *do* produce it for Fortran COMMON variables because,
+	     even though they are static, their names can differ depending
+	     on the scope, which we need to preserve.  */
+	  if (TREE_CODE (decl) == VAR_DECL && TREE_STATIC (decl)
+	      && !(is_fortran () && TREE_PUBLIC (decl)))
 	    ;
 	  else
 	    gen_decl_die (decl, context_die);
@@ -13686,11 +13868,8 @@ force_type_die (tree type)
       else
 	context_die = comp_unit_die;
 
-      type_die = lookup_type_die (type);
-      if (type_die)
-	return type_die;
-      gen_type_die (type, context_die);
-      type_die = lookup_type_die (type);
+      type_die = modified_type_die (type, TYPE_READONLY (type),
+				    TYPE_VOLATILE (type), context_die);
       gcc_assert (type_die);
     }
   return type_die;
@@ -13891,6 +14070,16 @@ gen_decl_die (tree decl, dw_die_ref context_die)
       if (debug_info_level <= DINFO_LEVEL_TERSE)
 	break;
 
+      /* If this is the global definition of the Fortran COMMON block, we don't
+         need to do anything.  Syntactically, the block itself has no identity,
+         just its constituent identifiers.  */
+      if (TREE_CODE (decl) == VAR_DECL
+          && TREE_PUBLIC (decl)
+          && TREE_STATIC (decl)
+          && is_fortran ()
+          && !DECL_HAS_VALUE_EXPR_P (decl))
+        break;
+
       /* Output any DIEs that are needed to specify the type of this data
 	 object.  */
       if (TREE_CODE (decl) == RESULT_DECL && DECL_BY_REFERENCE (decl))
@@ -13957,7 +14146,15 @@ dwarf2out_global_decl (tree decl)
   /* Output DWARF2 information for file-scope tentative data object
      declarations, file-scope (extern) function declarations (which had no
      corresponding body) and file-scope tagged type declarations and
-     definitions which have not yet been forced out.  */
+     definitions which have not yet been forced out.
+
+     Ignore the global decl of any Fortran COMMON blocks which also wind up here
+     though they have already been described in the local scope for the 
+     procedures using them.  */
+  if (TREE_CODE (decl) == VAR_DECL
+      && TREE_PUBLIC (decl) && TREE_STATIC (decl) && is_fortran ())
+    return;
+
   if (TREE_CODE (decl) != FUNCTION_DECL || !DECL_INITIAL (decl))
     dwarf2out_decl (decl);
 }
@@ -14334,7 +14531,7 @@ dwarf2out_var_location (rtx loc_note)
   newloc->next = NULL;
 
   if (cfun && in_cold_section_p)
-    newloc->section_label = cfun->cold_section_label;
+    newloc->section_label = crtl->subsections.cold_section_label;
   else
     newloc->section_label = text_section_label;
 
@@ -14771,6 +14968,7 @@ prune_unused_types_walk (dw_die_ref die)
     case DW_TAG_structure_type:
     case DW_TAG_union_type:
     case DW_TAG_class_type:
+    case DW_TAG_interface_type:
     case DW_TAG_friend:
     case DW_TAG_variant_part:
     case DW_TAG_enumeration_type:

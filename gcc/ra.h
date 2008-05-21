@@ -32,6 +32,9 @@ struct allocno
   /* Number of calls crossed by each allocno.  */
   int calls_crossed;
 
+  /* Estimated frequency of crossing call by each allocno.  */
+  int freq_calls_crossed;
+
   /* Number of calls that might throw crossed by each allocno.  */
   int throwing_calls_crossed;
 
@@ -72,9 +75,14 @@ struct allocno
 
   HARD_REG_SET regs_someone_prefers;
 
+#ifdef EH_RETURN_DATA_REGNO
+  /* Set to true if allocno can't be allocated in an eh register.  */
+  unsigned int no_eh_reg:1;
+#endif
+
 #ifdef STACK_REGS
   /* Set to true if allocno can't be allocated in the stack register.  */
-  bool no_stack_reg;
+  unsigned int no_stack_reg:1;
 #endif
 };
 extern struct allocno *allocno;

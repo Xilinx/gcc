@@ -1,6 +1,6 @@
 /* real.c - software floating point emulation.
    Copyright (C) 1993, 1994, 1995, 1996, 1997, 1998, 1999,
-   2000, 2002, 2003, 2004, 2005, 2007 Free Software Foundation, Inc.
+   2000, 2002, 2003, 2004, 2005, 2007, 2008 Free Software Foundation, Inc.
    Contributed by Stephen L. Moshier (moshier@world.std.com).
    Re-written by Richard Henderson <rth@redhat.com>
 
@@ -1471,7 +1471,8 @@ real_to_decimal (char *str, const REAL_VALUE_TYPE *r_orig, size_t buf_size,
       return;
     case rvc_nan:
       /* ??? Print the significand as well, if not canonical?  */
-      strcpy (str, (r.sign ? "-NaN" : "+NaN"));
+      sprintf (str, "%c%cNaN", (r_orig->sign ? '-' : '+'),
+	       (r_orig->signalling ? 'S' : 'Q'));
       return;
     default:
       gcc_unreachable ();
@@ -1743,7 +1744,8 @@ real_to_hexadecimal (char *str, const REAL_VALUE_TYPE *r, size_t buf_size,
       return;
     case rvc_nan:
       /* ??? Print the significand as well, if not canonical?  */
-      strcpy (str, (r->sign ? "-NaN" : "+NaN"));
+      sprintf (str, "%c%cNaN", (r->sign ? '-' : '+'),
+	       (r->signalling ? 'S' : 'Q'));
       return;
     default:
       gcc_unreachable ();
@@ -1811,6 +1813,22 @@ real_from_string (REAL_VALUE_TYPE *r, const char *str)
     }
   else if (*str == '+')
     str++;
+
+  if (!strncmp (str, "QNaN", 4))
+    {
+      get_canonical_qnan (r, sign);
+      return 0;
+    }
+  else if (!strncmp (str, "SNaN", 4))
+    {
+      get_canonical_snan (r, sign);
+      return 0;
+    }
+  else if (!strncmp (str, "Inf", 3))
+    {
+      get_inf (r, sign);
+      return 0;
+    }
 
   if (str[0] == '0' && (str[1] == 'x' || str[1] == 'X'))
     {
@@ -2161,6 +2179,49 @@ times_pten (REAL_VALUE_TYPE *r, int exp)
 
   if (negative)
     do_divide (r, r, &pten);
+}
+
+/* Returns the special REAL_VALUE_TYPE enumerated by E.  */
+
+const REAL_VALUE_TYPE *
+get_real_const (enum real_value_const e)
+{
+  static REAL_VALUE_TYPE value[rv_max];
+
+  gcc_assert (e < rv_max);
+
+  /* Initialize mathematical constants for constant folding builtins.
+     These constants need to be given to at least 160 bits precision.  */
+  if (value[e].cl == rvc_zero)
+    switch (e)
+    {
+    case rv_e:
+      {
+	mpfr_t m;
+	mpfr_init2 (m, SIGNIFICAND_BITS);
+	mpfr_set_ui (m, 1, GMP_RNDN);
+	mpfr_exp (m, m, GMP_RNDN);
+	real_from_mpfr (&value[e], m, NULL_TREE, GMP_RNDN);
+	mpfr_clear (m);
+      }
+      break;
+    case rv_third:
+      real_arithmetic (&value[e], RDIV_EXPR, &dconst1, real_digit (3));
+      break;
+    case rv_sqrt2:
+      {
+	mpfr_t m;
+	mpfr_init2 (m, SIGNIFICAND_BITS);
+	mpfr_sqrt_ui (m, 2, GMP_RNDN);
+	real_from_mpfr (&value[e], m, NULL_TREE, GMP_RNDN);
+	mpfr_clear (m);
+      }
+      break;
+    default:
+      gcc_unreachable();
+    }
+
+  return &value[e];
 }
 
 /* Fills R with +Inf.  */
@@ -4277,235 +4338,6 @@ const struct real_format decimal_quad_format =
     true,
     false
   };
-
-/* The "twos-complement" c4x format is officially defined as
-
-	x = s(~s).f * 2**e
-
-   This is rather misleading.  One must remember that F is signed.
-   A better description would be
-
-	x = -1**s * ((s + 1 + .f) * 2**e
-
-   So if we have a (4 bit) fraction of .1000 with a sign bit of 1,
-   that's -1 * (1+1+(-.5)) == -1.5.  I think.
-
-   The constructions here are taken from Tables 5-1 and 5-2 of the
-   TMS320C4x User's Guide wherein step-by-step instructions for
-   conversion from IEEE are presented.  That's close enough to our
-   internal representation so as to make things easy.
-
-   See http://www-s.ti.com/sc/psheets/spru063c/spru063c.pdf  */
-
-static void encode_c4x_single (const struct real_format *fmt,
-			       long *, const REAL_VALUE_TYPE *);
-static void decode_c4x_single (const struct real_format *,
-			       REAL_VALUE_TYPE *, const long *);
-static void encode_c4x_extended (const struct real_format *fmt,
-				 long *, const REAL_VALUE_TYPE *);
-static void decode_c4x_extended (const struct real_format *,
-				 REAL_VALUE_TYPE *, const long *);
-
-static void
-encode_c4x_single (const struct real_format *fmt ATTRIBUTE_UNUSED,
-		   long *buf, const REAL_VALUE_TYPE *r)
-{
-  unsigned long image, exp, sig;
-
-  switch (r->cl)
-    {
-    case rvc_zero:
-      exp = -128;
-      sig = 0;
-      break;
-
-    case rvc_inf:
-    case rvc_nan:
-      exp = 127;
-      sig = 0x800000 - r->sign;
-      break;
-
-    case rvc_normal:
-      exp = REAL_EXP (r) - 1;
-      sig = (r->sig[SIGSZ-1] >> (HOST_BITS_PER_LONG - 24)) & 0x7fffff;
-      if (r->sign)
-	{
-	  if (sig)
-	    sig = -sig;
-	  else
-	    exp--;
-	  sig |= 0x800000;
-	}
-      break;
-
-    default:
-      gcc_unreachable ();
-    }
-
-  image = ((exp & 0xff) << 24) | (sig & 0xffffff);
-  buf[0] = image;
-}
-
-static void
-decode_c4x_single (const struct real_format *fmt ATTRIBUTE_UNUSED,
-		   REAL_VALUE_TYPE *r, const long *buf)
-{
-  unsigned long image = buf[0];
-  unsigned long sig;
-  int exp, sf;
-
-  exp = (((image >> 24) & 0xff) ^ 0x80) - 0x80;
-  sf = ((image & 0xffffff) ^ 0x800000) - 0x800000;
-
-  memset (r, 0, sizeof (*r));
-
-  if (exp != -128)
-    {
-      r->cl = rvc_normal;
-
-      sig = sf & 0x7fffff;
-      if (sf < 0)
-	{
-	  r->sign = 1;
-	  if (sig)
-	    sig = -sig;
-	  else
-	    exp++;
-	}
-      sig = (sig << (HOST_BITS_PER_LONG - 24)) | SIG_MSB;
-
-      SET_REAL_EXP (r, exp + 1);
-      r->sig[SIGSZ-1] = sig;
-    }
-}
-
-static void
-encode_c4x_extended (const struct real_format *fmt ATTRIBUTE_UNUSED,
-		     long *buf, const REAL_VALUE_TYPE *r)
-{
-  unsigned long exp, sig;
-
-  switch (r->cl)
-    {
-    case rvc_zero:
-      exp = -128;
-      sig = 0;
-      break;
-
-    case rvc_inf:
-    case rvc_nan:
-      exp = 127;
-      sig = 0x80000000 - r->sign;
-      break;
-
-    case rvc_normal:
-      exp = REAL_EXP (r) - 1;
-
-      sig = r->sig[SIGSZ-1];
-      if (HOST_BITS_PER_LONG == 64)
-	sig = sig >> 1 >> 31;
-      sig &= 0x7fffffff;
-
-      if (r->sign)
-	{
-	  if (sig)
-	    sig = -sig;
-	  else
-	    exp--;
-	  sig |= 0x80000000;
-	}
-      break;
-
-    default:
-      gcc_unreachable ();
-    }
-
-  exp = (exp & 0xff) << 24;
-  sig &= 0xffffffff;
-
-  if (FLOAT_WORDS_BIG_ENDIAN)
-    buf[0] = exp, buf[1] = sig;
-  else
-    buf[0] = sig, buf[0] = exp;
-}
-
-static void
-decode_c4x_extended (const struct real_format *fmt ATTRIBUTE_UNUSED,
-		     REAL_VALUE_TYPE *r, const long *buf)
-{
-  unsigned long sig;
-  int exp, sf;
-
-  if (FLOAT_WORDS_BIG_ENDIAN)
-    exp = buf[0], sf = buf[1];
-  else
-    sf = buf[0], exp = buf[1];
-
-  exp = (((exp >> 24) & 0xff) & 0x80) - 0x80;
-  sf = ((sf & 0xffffffff) ^ 0x80000000) - 0x80000000;
-
-  memset (r, 0, sizeof (*r));
-
-  if (exp != -128)
-    {
-      r->cl = rvc_normal;
-
-      sig = sf & 0x7fffffff;
-      if (sf < 0)
-	{
-	  r->sign = 1;
-	  if (sig)
-	    sig = -sig;
-	  else
-	    exp++;
-	}
-      if (HOST_BITS_PER_LONG == 64)
-	sig = sig << 1 << 31;
-      sig |= SIG_MSB;
-
-      SET_REAL_EXP (r, exp + 1);
-      r->sig[SIGSZ-1] = sig;
-    }
-}
-
-const struct real_format c4x_single_format =
-  {
-    encode_c4x_single,
-    decode_c4x_single,
-    2,
-    24,
-    24,
-    -126,
-    128,
-    23,
-    -1,
-    false,
-    false,
-    false,
-    false,
-    false,
-    false
-  };
-
-const struct real_format c4x_extended_format =
-  {
-    encode_c4x_extended,
-    decode_c4x_extended,
-    2,
-    32,
-    32,
-    -126,
-    128,
-    31,
-    -1,
-    false,
-    false,
-    false,
-    false,
-    false,
-    false
-  };
-
 
 /* A synthetic "format" for internal arithmetic.  It's the size of the
    internal significand minus the two bits needed for proper rounding.

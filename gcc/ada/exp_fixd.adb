@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -629,7 +629,7 @@ package body Exp_Fixd is
          --  happen?) and both were equal to the power of 2, then we would
          --  be one bit off in this test, so for the left operand, we only
          --  go up to the power of 2 - 1. This ensures that we do not get
-         --  this anomolous case, and in practice the right operand is by
+         --  this anomalous case, and in practice the right operand is by
          --  far the more likely one to be the constant.
 
          Left_Size := UI_To_Int (RM_Size (Left_Type));
@@ -663,7 +663,7 @@ package body Exp_Fixd is
          end if;
 
          --  Now the result size must be at least twice the longer of
-         --  the two sizes, to accomodate all possible results.
+         --  the two sizes, to accommodate all possible results.
 
          Rsize := 2 * Int'Max (Left_Size, Right_Size);
 
@@ -2123,7 +2123,7 @@ package body Exp_Fixd is
 
       if Etype (Left) = Universal_Real then
          if Nkind (Left) = N_Real_Literal then
-            Do_Multiply_Fixed_Universal (N, Right, Left);
+            Do_Multiply_Fixed_Universal (N, Left => Right, Right => Left);
 
          elsif Nkind (Left) = N_Type_Conversion then
             Rewrite_Non_Static_Universal (Left);
@@ -2214,7 +2214,7 @@ package body Exp_Fixd is
       Right : constant Node_Id := Right_Opnd (N);
    begin
       if Etype (Left) = Universal_Real then
-         Do_Multiply_Fixed_Universal (N, Right, Left);
+         Do_Multiply_Fixed_Universal (N, Left => Right, Right => Left);
       elsif Etype (Right) = Universal_Real then
          Do_Multiply_Fixed_Universal (N, Left, Right);
       else

@@ -590,7 +590,8 @@ suitable_reference_p (struct data_reference *a, enum ref_step_type *ref_step)
   tree ref = DR_REF (a), step = DR_STEP (a);
 
   if (!step
-      || !is_gimple_reg_type (TREE_TYPE (ref)))
+      || !is_gimple_reg_type (TREE_TYPE (ref))
+      || tree_could_throw_p (ref))
     return false;
 
   if (integer_zerop (step))
@@ -2388,8 +2389,6 @@ set_alias_info (tree ref, struct data_reference *dr)
     new_type_alias (var, tag, ref);
   else
     var_ann (var)->symbol_mem_tag = tag;
-
-  var_ann (var)->subvars = DR_SUBVARS (dr);
 }
 
 /* Prepare initializers for CHAIN in LOOP.  Returns false if this is

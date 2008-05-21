@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -47,6 +47,7 @@ with Rtsfind;
 with Sprint;
 with Scn;      use Scn;
 with Sem;      use Sem;
+with Sem_Aux;
 with Sem_Ch8;  use Sem_Ch8;
 with Sem_Elab; use Sem_Elab;
 with Sem_Prag; use Sem_Prag;
@@ -59,8 +60,8 @@ with Tbuild;   use Tbuild;
 with Types;    use Types;
 
 procedure Frontend is
-      Config_Pragmas : List_Id;
-      --  Gather configuration pragmas
+   Config_Pragmas : List_Id;
+   --  Gather configuration pragmas
 
 begin
    --  Carry out package initializations. These are initializations which
@@ -75,9 +76,12 @@ begin
    Nlists.Initialize;
    Elists.Initialize;
    Lib.Load.Initialize;
+   Sem_Aux.Initialize;
    Sem_Ch8.Initialize;
+   Sem_Prag.Initialize;
    Fname.UF.Initialize;
    Checks.Initialize;
+   Sem_Warn.Initialize;
 
    --  Create package Standard
 
@@ -102,7 +106,7 @@ begin
    end if;
 
    --  Now that the preprocessing situation is established, we are able to
-   --  load the main source (this is no longer done by Lib.Load.Initalize).
+   --  load the main source (this is no longer done by Lib.Load.Initialize).
 
    Lib.Load.Load_Main_Source;
 
@@ -205,6 +209,14 @@ begin
 
    if Mapping_File_Name /= null then
       Fmap.Initialize (Mapping_File_Name.all);
+   end if;
+
+   --  Adjust Optimize_Alignment mode from debug switches if necessary
+
+   if Debug_Flag_Dot_SS then
+      Optimize_Alignment := 'S';
+   elsif Debug_Flag_Dot_TT then
+      Optimize_Alignment := 'T';
    end if;
 
    --  We have now processed the command line switches, and the gnat.adc
@@ -326,6 +338,7 @@ begin
          Sem_Warn.Output_Non_Modifed_In_Out_Warnings;
          Sem_Warn.Output_Unreferenced_Messages;
          Sem_Warn.Check_Unused_Withs;
+         Sem_Warn.Output_Unused_Warnings_Off_Warnings;
       end if;
    end if;
 
@@ -345,7 +358,7 @@ begin
    Sprint.Source_Dump;
 
    --  If a mapping file has been specified by a -gnatem switch, update
-   --  it if there has been some sourcs that were not in the mappings.
+   --  it if there has been some sources that were not in the mappings.
 
    if Mapping_File_Name /= null then
       Fmap.Update_Mapping_File (Mapping_File_Name.all);

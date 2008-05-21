@@ -859,8 +859,8 @@ simplify_unary_operation_1 (enum rtx_code code, enum machine_mode mode, rtx op)
       if (GET_CODE (op) == SUBREG
 	  && SUBREG_PROMOTED_VAR_P (op)
 	  && ! SUBREG_PROMOTED_UNSIGNED_P (op)
-	  && GET_MODE (XEXP (op, 0)) == mode)
-	return XEXP (op, 0);
+	  && GET_MODE_SIZE (mode) <= GET_MODE_SIZE (GET_MODE (XEXP (op, 0))))
+	return rtl_hooks.gen_lowpart_no_emit (mode, op);
 
 #if defined(POINTERS_EXTEND_UNSIGNED) && !defined(HAVE_ptr_extend)
       if (! POINTERS_EXTEND_UNSIGNED
@@ -881,8 +881,8 @@ simplify_unary_operation_1 (enum rtx_code code, enum machine_mode mode, rtx op)
       if (GET_CODE (op) == SUBREG
 	  && SUBREG_PROMOTED_VAR_P (op)
 	  && SUBREG_PROMOTED_UNSIGNED_P (op) > 0
-	  && GET_MODE (XEXP (op, 0)) == mode)
-	return XEXP (op, 0);
+	  && GET_MODE_SIZE (mode) <= GET_MODE_SIZE (GET_MODE (XEXP (op, 0))))
+	return rtl_hooks.gen_lowpart_no_emit (mode, op);
 
 #if defined(POINTERS_EXTEND_UNSIGNED) && !defined(HAVE_ptr_extend)
       if (POINTERS_EXTEND_UNSIGNED > 0
@@ -2428,6 +2428,19 @@ simplify_binary_operation_1 (enum rtx_code code, enum machine_mode mode,
 	      return simplify_gen_binary (code, mode, tem, op1);
 	    }
 	}
+
+      /* (and X (ior (not X) Y) -> (and X Y) */
+      if (GET_CODE (op1) == IOR
+	  && GET_CODE (XEXP (op1, 0)) == NOT
+	  && op0 == XEXP (XEXP (op1, 0), 0))
+       return simplify_gen_binary (AND, mode, op0, XEXP (op1, 1));
+
+      /* (and (ior (not X) Y) X) -> (and X Y) */
+      if (GET_CODE (op0) == IOR
+	  && GET_CODE (XEXP (op0, 0)) == NOT
+	  && op1 == XEXP (XEXP (op0, 0), 0))
+	return simplify_gen_binary (AND, mode, op1, XEXP (op0, 1));
+
       tem = simplify_associative_operation (code, mode, op0, op1);
       if (tem)
 	return tem;
@@ -2916,7 +2929,12 @@ simplify_const_binary_operation (enum rtx_code code, enum machine_mode mode,
 
   if (VECTOR_MODE_P (mode)
       && code == VEC_CONCAT
-      && CONSTANT_P (op0) && CONSTANT_P (op1))
+      && (CONST_INT_P (op0)
+	  || GET_CODE (op0) == CONST_DOUBLE
+	  || GET_CODE (op0) == CONST_FIXED)
+      && (CONST_INT_P (op1)
+	  || GET_CODE (op1) == CONST_DOUBLE
+	  || GET_CODE (op1) == CONST_FIXED))
     {
       unsigned n_elts = GET_MODE_NUNITS (mode);
       rtvec v = rtvec_alloc (n_elts);
@@ -3656,6 +3674,24 @@ simplify_plus_minus (enum rtx_code code, enum machine_mode mode, rtx op0,
      one CONST_INT, and the sort will have ensured that it is last
      in the array and that any other constant will be next-to-last.  */
 
+  if (GET_CODE (ops[n_ops - 1].op) == CONST_INT)
+    i = n_ops - 2;
+  else
+    i = n_ops - 1;
+
+  if (i >= 1
+      && ops[i].neg
+      && !ops[i - 1].neg
+      && CONSTANT_P (ops[i].op)
+      && GET_CODE (ops[i].op) == GET_CODE (ops[i - 1].op))
+    {
+      ops[i - 1].op = gen_rtx_MINUS (mode, ops[i - 1].op, ops[i].op);
+      ops[i - 1].op = gen_rtx_CONST (mode, ops[i - 1].op);
+      if (i < n_ops - 1)
+	ops[i] = ops[i + 1];
+      n_ops--;
+    }
+
   if (n_ops > 1
       && GET_CODE (ops[n_ops - 1].op) == CONST_INT
       && CONSTANT_P (ops[n_ops - 2].op))
@@ -4233,15 +4269,17 @@ simplify_const_relational_operation (enum rtx_code code,
       else
 	{
 	  rtx mmin_rtx, mmax_rtx;
-	  unsigned int sign_copies = num_sign_bit_copies (trueop0, mode);
 	  get_mode_bounds (mode, sign, mode, &mmin_rtx, &mmax_rtx);
 
-	  /* Since unsigned mmin will never be interpreted as negative, use
-	     INTVAL (and an arithmetic right shift).  */
-	  mmin = INTVAL (mmin_rtx) >> (sign_copies - 1);
-	  /* Since signed mmax will always be positive, use UINTVAL (and
-	     a logical right shift).  */
-	  mmax = UINTVAL (mmax_rtx) >> (sign_copies - 1);
+	  mmin = INTVAL (mmin_rtx);
+	  mmax = INTVAL (mmax_rtx);
+	  if (sign)
+	    {
+	      unsigned int sign_copies = num_sign_bit_copies (trueop0, mode);
+
+	      mmin >>= (sign_copies - 1);
+	      mmax >>= (sign_copies - 1);
+	    }
 	}
 
       switch (code)
@@ -5001,7 +5039,22 @@ simplify_subreg (enum machine_mode outermode, rtx op,
 	return newx;
       if (validate_subreg (outermode, innermostmode,
 			   SUBREG_REG (op), final_offset))
-        return gen_rtx_SUBREG (outermode, SUBREG_REG (op), final_offset);
+	{
+	  newx = gen_rtx_SUBREG (outermode, SUBREG_REG (op), final_offset);
+	  if (SUBREG_PROMOTED_VAR_P (op)
+	      && SUBREG_PROMOTED_UNSIGNED_P (op) >= 0
+	      && GET_MODE_CLASS (outermode) == MODE_INT
+	      && IN_RANGE (GET_MODE_SIZE (outermode),
+			   GET_MODE_SIZE (innermode),
+			   GET_MODE_SIZE (innermostmode))
+	      && subreg_lowpart_p (newx))
+	    {
+	      SUBREG_PROMOTED_VAR_P (newx) = 1;
+	      SUBREG_PROMOTED_UNSIGNED_SET
+		(newx, SUBREG_PROMOTED_UNSIGNED_P (op));
+	    }
+	  return newx;
+	}
       return NULL_RTX;
     }
 
@@ -5203,6 +5256,22 @@ simplify_subreg (enum machine_mode outermode, rtx op,
       && subreg_lsb_1 (outermode, innermode, byte) == 0)
     return simplify_gen_binary (ASHIFT, outermode,
 				XEXP (XEXP (op, 0), 0), XEXP (op, 1));
+
+  /* Recognize a word extraction from a multi-word subreg.  */
+  if ((GET_CODE (op) == LSHIFTRT
+       || GET_CODE (op) == ASHIFTRT)
+      && SCALAR_INT_MODE_P (outermode)
+      && GET_MODE_BITSIZE (outermode) >= BITS_PER_WORD
+      && GET_MODE_BITSIZE (innermode) >= (2 * GET_MODE_BITSIZE (outermode))
+      && GET_CODE (XEXP (op, 1)) == CONST_INT
+      && (INTVAL (XEXP (op, 1)) & (GET_MODE_BITSIZE (outermode) - 1)) == 0
+      && byte == subreg_lowpart_offset (outermode, innermode))
+    {
+      int shifted_bytes = INTVAL (XEXP (op, 1)) / BITS_PER_UNIT;
+      return simplify_gen_subreg (outermode, XEXP (op, 0), innermode,
+				  (WORDS_BIG_ENDIAN
+				   ? byte - shifted_bytes : byte + shifted_bytes));
+    }
 
   return NULL_RTX;
 }

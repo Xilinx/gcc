@@ -297,7 +297,7 @@ mark_reg_store (sparseset allocnos_live,
     {
       unsigned int start = regno;
       unsigned int last = end_hard_regno (mode, regno);
-      if ((GET_CODE (reg) == SUBREG) && !DF_REF_FLAGS_IS_SET (ref, DF_REF_EXTRACT))
+      if ((GET_CODE (reg) == SUBREG) && !DF_REF_FLAGS_IS_SET (ref, DF_REF_ZERO_EXTRACT))
 	{
 	  start += subreg_regno_offset (regno, GET_MODE (SUBREG_REG (reg)),
 					SUBREG_BYTE (reg), GET_MODE (reg));
@@ -441,16 +441,14 @@ ra_init_live_subregs (bool init_value,
 
 
 /* Set REG to be not live in the sets ALLOCNOS_LIVE, LIVE_SUBREGS,
-   HARD_REGS_LIVE.  If EXTRACT is false, assume that the entire reg is
-   set not live even if REG is a subreg.  */
+   HARD_REGS_LIVE.  DEF is the definition of the register.  */
 
 inline static void
 clear_reg_in_live (sparseset allocnos_live,
 		   sbitmap *live_subregs, 
 		   int *live_subregs_used,
 		   HARD_REG_SET *hard_regs_live, 
-		   rtx reg,
-		   bool extract)
+		   rtx reg, struct df_ref *def)
 {
   unsigned int regno = (GET_CODE (reg) == SUBREG) 
     ? REGNO (SUBREG_REG (reg)): REGNO (reg);
@@ -458,14 +456,23 @@ clear_reg_in_live (sparseset allocnos_live,
 
   if (allocnum >= 0)
     {
-      if ((GET_CODE (reg) == SUBREG) && !extract)
-
+      if (GET_CODE (reg) == SUBREG
+	  && !DF_REF_FLAGS_IS_SET (def, DF_REF_ZERO_EXTRACT))
 	{
 	  unsigned int start = SUBREG_BYTE (reg);
 	  unsigned int last = start + GET_MODE_SIZE (GET_MODE (reg));
 
 	  ra_init_live_subregs (sparseset_bit_p (allocnos_live, allocnum), 
 				live_subregs, live_subregs_used, allocnum, reg);
+
+	  if (!DF_REF_FLAGS_IS_SET (def, DF_REF_STRICT_LOW_PART))
+	    {
+	      /* Expand the range to cover entire words.
+		 Bytes added here are "don't care".  */
+	      start = start / UNITS_PER_WORD * UNITS_PER_WORD;
+	      last = ((last + UNITS_PER_WORD - 1)
+		      / UNITS_PER_WORD * UNITS_PER_WORD);
+	    }
 
 	  /* Ignore the paradoxical bits.  */
 	  if ((int)last > live_subregs_used[allocnum])
@@ -503,7 +510,8 @@ clear_reg_in_live (sparseset allocnos_live,
   if (! fixed_regs[regno])
     {
       unsigned int start = regno;
-      if ((GET_CODE (reg) == SUBREG) && !extract)
+      if (GET_CODE (reg) == SUBREG
+	  && !DF_REF_FLAGS_IS_SET (def, DF_REF_ZERO_EXTRACT))
 	{
 	  unsigned int last;
 	  start += SUBREG_BYTE (reg);
@@ -856,7 +864,7 @@ global_conflicts (void)
 		  rtx reg = DF_REF_REG (def);
 		  set_reg_in_live (allocnos_live, live_subregs, live_subregs_used, 
 				   &hard_regs_live, reg, 
-				   DF_REF_FLAGS_IS_SET (def, DF_REF_EXTRACT));
+				   DF_REF_FLAGS_IS_SET (def, DF_REF_ZERO_EXTRACT));
 		  if (dump_file)
 		    dump_ref (dump_file, "  adding def", "\n",
 			      reg, DF_REF_REGNO (def), live_subregs, live_subregs_used);
@@ -890,8 +898,7 @@ global_conflicts (void)
 		  rtx reg = DF_REF_REG (def);
 
 		  clear_reg_in_live (allocnos_live, live_subregs, live_subregs_used,
-				     &hard_regs_live, reg,
-				     DF_REF_FLAGS_IS_SET (def, DF_REF_EXTRACT));
+				     &hard_regs_live, reg, def);
 		  if (dump_file)
 		    dump_ref (dump_file, "  clearing def", "\n", 
 			      reg, DF_REF_REGNO (def), live_subregs, live_subregs_used);
@@ -939,7 +946,7 @@ global_conflicts (void)
 		 use unless that set also happens to wrapped in a
 		 ZERO_EXTRACT. */
 	      if (DF_REF_FLAGS_IS_SET (use, DF_REF_READ_WRITE) 
-		  && (!DF_REF_FLAGS_IS_SET (use, DF_REF_EXTRACT)) 
+		  && (!DF_REF_FLAGS_IS_SET (use, DF_REF_ZERO_EXTRACT)) 
 		  && DF_REF_FLAGS_IS_SET (use, DF_REF_SUBREG))
 		continue;
 	      
@@ -950,7 +957,7 @@ global_conflicts (void)
 	      if (allocnum >= 0)
 		{
 		  if (GET_CODE (reg) == SUBREG
-		      && !DF_REF_FLAGS_IS_SET (use, DF_REF_EXTRACT)) 
+		      && !DF_REF_FLAGS_IS_SET (use, DF_REF_ZERO_EXTRACT)) 
 		    {
 		      unsigned int start = SUBREG_BYTE (reg);
 		      unsigned int last = start + GET_MODE_SIZE (GET_MODE (reg));
@@ -1184,6 +1191,11 @@ global_conflicts (void)
 		break;
 	      record_one_conflict (allocnos_live, &hard_regs_live, regno);
 	    }
+
+	  EXECUTE_IF_SET_IN_SPARSESET (allocnos_live, i)
+	    {
+	      allocno[i].no_eh_reg = 1;
+	    }
 	}
 #endif
 
@@ -1208,7 +1220,7 @@ global_conflicts (void)
 	  /* No need to record conflicts for call clobbered regs if we have
 	     nonlocal labels around, as we don't ever try to allocate such
 	     regs in this case.  */
-	  if (! current_function_has_nonlocal_label)
+	  if (! cfun->has_nonlocal_label)
 	    for (i = 0; i < FIRST_PSEUDO_REGISTER; i++)
 	      if (call_used_regs [i])
 		record_one_conflict (allocnos_live, &hard_regs_live, i);

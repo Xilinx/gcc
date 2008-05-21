@@ -50,14 +50,14 @@
 /*  link_max is a conservative system specific threshold (in bytes) of the  */
 /*  argument length passed to the linker which will trigger a file being    */
 /*  used instead of the command line directly. If the argument length is    */
-/*  greater than this threshhold, then an objlist_file will be generated    */
+/*  greater than this threshold, then an objlist_file will be generated     */
 /*  and object_file_option and objlist_file_supported must be set. If       */
 /*  objlist_file_supported is set to 0 (unsupported), then link_max is      */
 /*  set to 2**31-1 so that the limit will never be exceeded.                */
 
 /*  run_path_option is the system dependent linker option which specifies   */
 /*  the run time path to use when loading dynamic libraries. This should    */
-/*  be set to the null string if the system does not support dynmamic       */
+/*  be set to the null string if the system does not support dynamic        */
 /*  loading of libraries.                                                   */
 
 /*  shared_libgnat_default gives the system dependent link method that      */
@@ -153,7 +153,7 @@ unsigned char __gnat_objlist_file_supported = 1;
 unsigned char __gnat_using_gnu_linker = 1;
 const char *__gnat_object_library_extension = ".a";
 
-#elif defined (linux)
+#elif defined (linux) || defined(__GLIBC__)
 const char *__gnat_object_file_option = "";
 const char *__gnat_run_path_option = "-Wl,-rpath,";
 char __gnat_shared_libgnat_default = STATIC;

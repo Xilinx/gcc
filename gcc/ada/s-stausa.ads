@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---         Copyright (C) 2004-2007, Free Software Foundation, Inc.          --
+--         Copyright (C) 2004-2008, Free Software Foundation, Inc.          --
 --                                                                          --
 -- GNARL is free software; you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -40,9 +40,6 @@ package System.Stack_Usage is
    pragma Preelaborate;
 
    package SSE renames System.Storage_Elements;
-
-   Byte_Size : constant := 8;
-   Unsigned_32_Size : constant := 4 * Byte_Size;
 
    --  The alignment clause seems dubious, what about architectures where
    --  the maximum alignment is less than 4???
@@ -130,7 +127,7 @@ package System.Stack_Usage is
    --      this point, it will increase the measured stack size.
 
    --    Strategy: We could augment this stack frame and see if it changes the
-   --      measure. However, this error should be negligeable.
+   --      measure. However, this error should be negligible.
 
    --   Pattern zone overflow:
 
@@ -228,7 +225,7 @@ package System.Stack_Usage is
    --  When this flag is true, then stack analysis is enabled
 
    procedure Compute_Result (Analyzer : in out Stack_Analyzer);
-   --  Read the patern zone and deduce the stack usage. It should be called
+   --  Read the pattern zone and deduce the stack usage. It should be called
    --  from the same frame as Fill_Stack. If Analyzer.Probe is not null, an
    --  array of Unsigned_32 with Analyzer.Probe elements is allocated on
    --  Compute_Result's stack frame. Probe can be used to detect  the error:
@@ -252,7 +249,7 @@ package System.Stack_Usage is
    procedure Report_Result (Analyzer : Stack_Analyzer);
    --  Store the results of the computation in memory, at the address
    --  corresponding to the symbol __gnat_stack_usage_results. This is not
-   --  done inside Compute_Resuls in order to use as less stack as possible
+   --  done inside Compute_Result in order to use as less stack as possible
    --  within a task.
 
    procedure Output_Results;
@@ -270,6 +267,9 @@ private
    package Unsigned_32_Addr is
      new System.Address_To_Access_Conversions (Interfaces.Unsigned_32);
 
+   subtype Pattern_Type is Interfaces.Unsigned_32;
+   Bytes_Per_Pattern : constant := Pattern_Type'Object_Size / Storage_Unit;
+
    type Stack_Analyzer is record
       Task_Name : String (1 .. Task_Name_Length);
       --  Name of the task
@@ -277,11 +277,11 @@ private
       Size : Natural;
       --  Size of the pattern zone
 
-      Pattern : Interfaces.Unsigned_32;
+      Pattern : Pattern_Type;
       --  Pattern used to recognize untouched memory
 
       Bottom_Pattern_Mark : Stack_Address;
-      --  Bound of the pattern area on the stack clostest to the bottom
+      --  Bound of the pattern area on the stack closest to the bottom
 
       Top_Pattern_Mark : Stack_Address;
       --  Topmost bound of the pattern area on the stack
@@ -296,13 +296,9 @@ private
       --  Address of the bottom of the stack, as given by the caller of
       --  Initialize_Analyzer.
 
-      Array_Address : System.Address;
-      --  Address of the array of Unsigned_32 that represents the pattern zone
-
-      First_Is_Topmost : Boolean;
-      --  Set to true if the first element of the array of Unsigned_32 that
-      --  represents the pattern zone is at the topmost address of the
-      --  pattern zone; false if it is the bottommost address.
+      Stack_Overlay_Address : System.Address;
+      --  Address of the stack abstraction object we overlay over a
+      --  task's real stack, typically a pattern-initialized array.
 
       Result_Id : Positive;
       --  Id of the result. If less than value given to gnatbind -u corresponds
@@ -338,7 +334,7 @@ private
      (SP_Low  : Stack_Address;
       SP_High : Stack_Address) return Natural;
    pragma Inline (Stack_Size);
-   --  Return the size of a portion of stack delimeted by SP_High and SP_Low
+   --  Return the size of a portion of stack delimited by SP_High and SP_Low
    --  (), i.e. the difference between SP_High and SP_Low. The storage element
    --  pointed by SP_Low is not included in the size. Inlined to reduce the
    --  size of the stack used by the instrumentation code.

@@ -66,6 +66,9 @@
 /* Define if ECANCELED exists. */
 #undef HAVE_ECANCELED
 
+/* Define if EIDRM exists. */
+#undef HAVE_EIDRM
+
 /* Define to 1 if you have the <endian.h> header file. */
 #undef HAVE_ENDIAN_H
 
@@ -84,6 +87,9 @@
 /* Define if ENOTRECOVERABLE exists. */
 #undef HAVE_ENOTRECOVERABLE
 
+/* Define if ENOTSUP exists. */
+#undef HAVE_ENOTSUP
+
 /* Define if EOVERFLOW exists. */
 #undef HAVE_EOVERFLOW
 
@@ -95,6 +101,9 @@
 
 /* Define if ETIME exists. */
 #undef HAVE_ETIME
+
+/* Define if ETXTBSY exists. */
+#undef HAVE_ETXTBSY
 
 /* Define to 1 if you have the `expf' function. */
 #undef HAVE_EXPF
@@ -146,6 +155,9 @@
 
 /* Define to 1 if you have the `frexpl' function. */
 #undef HAVE_FREXPL
+
+/* Define to 1 if you have the <gconf.h> header file. */
+#undef HAVE_GCONF_H
 
 /* Define to 1 if you have the <gconv.h> header file. */
 #undef HAVE_GCONV_H
@@ -231,6 +243,9 @@
 
 /* Only used in build directory testsuite_hooks.h. */
 #undef HAVE_LIMIT_VMEM
+
+/* Define if futex syscall is available. */
+#undef HAVE_LINUX_FUTEX
 
 /* Define to 1 if you have the <locale.h> header file. */
 #undef HAVE_LOCALE_H
@@ -363,9 +378,6 @@
 
 /* Define to 1 if you have the <sys/machine.h> header file. */
 #undef HAVE_SYS_MACHINE_H
-
-/* Define if sys_nerr exists. */
-#undef HAVE_SYS_NERR
 
 /* Define to 1 if you have the <sys/param.h> header file. */
 #undef HAVE_SYS_PARAM_H
@@ -704,14 +716,32 @@
 /* Define to the version of this package. */
 #undef PACKAGE_VERSION
 
+/* The size of a `char', as computed by sizeof. */
+#undef SIZEOF_CHAR
+
+/* The size of a `int', as computed by sizeof. */
+#undef SIZEOF_INT
+
+/* The size of a `long', as computed by sizeof. */
+#undef SIZEOF_LONG
+
+/* The size of a `short', as computed by sizeof. */
+#undef SIZEOF_SHORT
+
+/* The size of a `void *', as computed by sizeof. */
+#undef SIZEOF_VOID_P
+
 /* Define to 1 if you have the ANSI C header files. */
 #undef STDC_HEADERS
 
 /* Version number of package */
 #undef VERSION
 
-/* Define if builtin atomic operations are supported on this host. */
-#undef _GLIBCXX_ATOMIC_BUILTINS
+/* Define if builtin atomic operations for bool are supported on this host. */
+#undef _GLIBCXX_ATOMIC_BUILTINS_1
+
+/* Define if builtin atomic operations for int are supported on this host. */
+#undef _GLIBCXX_ATOMIC_BUILTINS_4
 
 /* Define to use concept checking code from the boost libraries. */
 #undef _GLIBCXX_CONCEPT_CHECKS
@@ -799,6 +829,9 @@
 /* Define if dev/random and dev/urandom are available for the random_device of
    TR1 (Chapter 5.1). */
 #undef _GLIBCXX_USE_RANDOM_TR1
+
+/* Define if standard layout types are supported in C++200x. */
+#undef _GLIBCXX_USE_STANDARD_LAYOUT
 
 /* Define if code specialized for wchar_t should be used. */
 #undef _GLIBCXX_USE_WCHAR_T

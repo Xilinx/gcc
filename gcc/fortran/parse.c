@@ -1,5 +1,5 @@
 /* Main parser.
-   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
+   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
    Free Software Foundation, Inc.
    Contributed by Andy Vaught
 
@@ -85,13 +85,151 @@ match_word (const char *str, match (*subr) (void), locus *old_locus)
 	undo_new_statement ();				  \
     } while (0);
 
+
+/* This is a specialist version of decode_statement that is used
+   for the specification statements in a function, whose
+   characteristics are deferred into the specification statements.
+   eg.:  INTEGER (king = mykind) foo ()
+	 USE mymodule, ONLY mykind..... 
+   The KIND parameter needs a return after USE or IMPORT, whereas
+   derived type declarations can occur anywhere, up the executable
+   block.  ST_GET_FCN_CHARACTERISTICS is returned when we have run
+   out of the correct kind of specification statements.  */
+static gfc_statement
+decode_specification_statement (void)
+{
+  gfc_statement st;
+  locus old_locus;
+  char c;
+
+  if (gfc_match_eos () == MATCH_YES)
+    return ST_NONE;
+
+  old_locus = gfc_current_locus;
+
+  match ("import", gfc_match_import, ST_IMPORT);
+  match ("use", gfc_match_use, ST_USE);
+
+  if (gfc_current_block ()->ts.type != BT_DERIVED)
+    goto end_of_block;
+
+  match (NULL, gfc_match_st_function, ST_STATEMENT_FUNCTION);
+  match (NULL, gfc_match_data_decl, ST_DATA_DECL);
+  match (NULL, gfc_match_enumerator_def, ST_ENUMERATOR);
+
+  /* General statement matching: Instead of testing every possible
+     statement, we eliminate most possibilities by peeking at the
+     first character.  */
+
+  c = gfc_peek_ascii_char ();
+
+  switch (c)
+    {
+    case 'a':
+      match ("abstract% interface", gfc_match_abstract_interface,
+	     ST_INTERFACE);
+      break;
+
+    case 'b':
+      match (NULL, gfc_match_bind_c_stmt, ST_ATTR_DECL);
+      break;
+
+    case 'c':
+      break;
+
+    case 'd':
+      match ("data", gfc_match_data, ST_DATA);
+      match ("dimension", gfc_match_dimension, ST_ATTR_DECL);
+      break;
+
+    case 'e':
+      match ("enum , bind ( c )", gfc_match_enum, ST_ENUM);
+      match ("entry% ", gfc_match_entry, ST_ENTRY);
+      match ("equivalence", gfc_match_equivalence, ST_EQUIVALENCE);
+      match ("external", gfc_match_external, ST_ATTR_DECL);
+      break;
+
+    case 'f':
+      match ("format", gfc_match_format, ST_FORMAT);
+      break;
+
+    case 'g':
+      break;
+
+    case 'i':
+      match ("implicit", gfc_match_implicit, ST_IMPLICIT);
+      match ("implicit% none", gfc_match_implicit_none, ST_IMPLICIT_NONE);
+      match ("interface", gfc_match_interface, ST_INTERFACE);
+      match ("intent", gfc_match_intent, ST_ATTR_DECL);
+      match ("intrinsic", gfc_match_intrinsic, ST_ATTR_DECL);
+      break;
+
+    case 'm':
+      break;
+
+    case 'n':
+      match ("namelist", gfc_match_namelist, ST_NAMELIST);
+      break;
+
+    case 'o':
+      match ("optional", gfc_match_optional, ST_ATTR_DECL);
+      break;
+
+    case 'p':
+      match ("parameter", gfc_match_parameter, ST_PARAMETER);
+      match ("pointer", gfc_match_pointer, ST_ATTR_DECL);
+      if (gfc_match_private (&st) == MATCH_YES)
+	return st;
+      match ("procedure", gfc_match_procedure, ST_PROCEDURE);
+      if (gfc_match_public (&st) == MATCH_YES)
+	return st;
+      match ("protected", gfc_match_protected, ST_ATTR_DECL);
+      break;
+
+    case 'r':
+      break;
+
+    case 's':
+      match ("save", gfc_match_save, ST_ATTR_DECL);
+      break;
+
+    case 't':
+      match ("target", gfc_match_target, ST_ATTR_DECL);
+      match ("type", gfc_match_derived_decl, ST_DERIVED_DECL);
+      break;
+
+    case 'u':
+      break;
+
+    case 'v':
+      match ("value", gfc_match_value, ST_ATTR_DECL);
+      match ("volatile", gfc_match_volatile, ST_ATTR_DECL);
+      break;
+
+    case 'w':
+      break;
+    }
+
+  /* This is not a specification statement.  See if any of the matchers
+     has stored an error message of some sort.  */
+
+end_of_block:
+  gfc_clear_error ();
+  gfc_buffer_error (0);
+  gfc_current_locus = old_locus;
+
+  return ST_GET_FCN_CHARACTERISTICS;
+}
+
+
+/* This is the primary 'decode_statement'.  */
 static gfc_statement
 decode_statement (void)
 {
   gfc_statement st;
   locus old_locus;
   match m;
-  int c;
+  char c;
 
 #ifdef GFC_DEBUG
   gfc_symbol_state ();
@@ -100,8 +238,14 @@ decode_statement (void)
   gfc_clear_error ();	/* Clear any pending errors.  */
   gfc_clear_warning ();	/* Clear any pending warnings.  */
 
+  gfc_matching_function = false;
+
   if (gfc_match_eos () == MATCH_YES)
     return ST_NONE;
+
+  if (gfc_current_state () == COMP_FUNCTION
+	&& gfc_current_block ()->result->ts.kind == -1)
+    return decode_specification_statement ();
 
   old_locus = gfc_current_locus;
 
@@ -113,6 +257,7 @@ decode_statement (void)
       || gfc_current_state () == COMP_INTERFACE
       || gfc_current_state () == COMP_CONTAINS)
     {
+      gfc_matching_function = true;
       m = gfc_match_function_decl ();
       if (m == MATCH_YES)
 	return ST_FUNCTION;
@@ -122,6 +267,8 @@ decode_statement (void)
 	gfc_undo_symbols ();
       gfc_current_locus = old_locus;
     }
+  gfc_matching_function = false;
+
 
   /* Match statements whose error messages are meant to be overwritten
      by something better.  */
@@ -168,7 +315,7 @@ decode_statement (void)
      statement, we eliminate most possibilities by peeking at the
      first character.  */
 
-  c = gfc_peek_char ();
+  c = gfc_peek_ascii_char ();
 
   switch (c)
     {
@@ -293,6 +440,7 @@ decode_statement (void)
       break;
 
     case 'w':
+      match ("wait", gfc_match_wait, ST_WAIT);
       match ("write", gfc_match_write, ST_WRITE);
       break;
     }
@@ -314,7 +462,7 @@ static gfc_statement
 decode_omp_directive (void)
 {
   locus old_locus;
-  int c;
+  char c;
 
 #ifdef GFC_DEBUG
   gfc_symbol_state ();
@@ -337,7 +485,7 @@ decode_omp_directive (void)
      statement, we eliminate most possibilities by peeking at the
      first character.  */
 
-  c = gfc_peek_char ();
+  c = gfc_peek_ascii_char ();
 
   switch (c)
     {
@@ -421,31 +569,34 @@ static gfc_statement
 next_free (void)
 {
   match m;
-  int c, d, cnt, at_bol;
+  int i, cnt, at_bol;
+  char c;
 
   at_bol = gfc_at_bol ();
   gfc_gobble_whitespace ();
 
-  c = gfc_peek_char ();
+  c = gfc_peek_ascii_char ();
 
   if (ISDIGIT (c))
     {
+      char d;
+
       /* Found a statement label?  */
       m = gfc_match_st_label (&gfc_statement_label);
 
-      d = gfc_peek_char ();
+      d = gfc_peek_ascii_char ();
       if (m != MATCH_YES || !gfc_is_whitespace (d))
 	{
-	  gfc_match_small_literal_int (&c, &cnt);
+	  gfc_match_small_literal_int (&i, &cnt);
 
 	  if (cnt > 5)
 	    gfc_error_now ("Too many digits in statement label at %C");
 
-	  if (c == 0)
+	  if (i == 0)
 	    gfc_error_now ("Zero is not a valid statement label at %C");
 
 	  do
-	    c = gfc_next_char ();
+	    c = gfc_next_ascii_char ();
 	  while (ISDIGIT(c));
 
 	  if (!gfc_is_whitespace (c))
@@ -459,11 +610,11 @@ next_free (void)
 
 	  gfc_gobble_whitespace ();
 
-	  if (at_bol && gfc_peek_char () == ';')
+	  if (at_bol && gfc_peek_ascii_char () == ';')
 	    {
 	      gfc_error_now ("Semicolon at %C needs to be preceded by "
 			     "statement");
-	      gfc_next_char (); /* Eat up the semicolon.  */
+	      gfc_next_ascii_char (); /* Eat up the semicolon.  */
 	      return ST_NONE;
 	    }
 
@@ -485,8 +636,8 @@ next_free (void)
 	{
 	  int i;
 
-	  c = gfc_next_char ();
-	  for (i = 0; i < 5; i++, c = gfc_next_char ())
+	  c = gfc_next_ascii_char ();
+	  for (i = 0; i < 5; i++, c = gfc_next_ascii_char ())
 	    gcc_assert (c == "!$omp"[i]);
 
 	  gcc_assert (c == ' ');
@@ -498,7 +649,7 @@ next_free (void)
   if (at_bol && c == ';')
     {
       gfc_error_now ("Semicolon at %C needs to be preceded by statement");
-      gfc_next_char (); /* Eat up the semicolon.  */
+      gfc_next_ascii_char (); /* Eat up the semicolon.  */
       return ST_NONE;
     }
 
@@ -513,7 +664,7 @@ next_fixed (void)
 {
   int label, digit_flag, i;
   locus loc;
-  char c;
+  gfc_char_t c;
 
   if (!gfc_at_bol ())
     return decode_statement ();
@@ -546,7 +697,7 @@ next_fixed (void)
 	case '7':
 	case '8':
 	case '9':
-	  label = label * 10 + c - '0';
+	  label = label * 10 + ((unsigned char) c - '0');
 	  label_locus = gfc_current_locus;
 	  digit_flag = 1;
 	  break;
@@ -557,7 +708,7 @@ next_fixed (void)
 	  if (gfc_option.flag_openmp)
 	    {
 	      for (i = 0; i < 5; i++, c = gfc_next_char_literal (0))
-		gcc_assert (TOLOWER (c) == "*$omp"[i]);
+		gcc_assert ((char) gfc_wide_tolower (c) == "*$omp"[i]);
 
 	      if (c != ' ' && c != '0')
 		{
@@ -648,7 +799,7 @@ static gfc_statement
 next_statement (void)
 {
   gfc_statement st;
-
+  locus old_locus;
   gfc_new_block = NULL;
 
   for (;;)
@@ -677,6 +828,8 @@ next_statement (void)
       if (gfc_define_undef_line ())
 	continue;
 
+      old_locus = gfc_current_locus;
+
       st = (gfc_current_form == FORM_FIXED) ? next_fixed () : next_free ();
 
       if (st != ST_NONE)
@@ -684,6 +837,13 @@ next_statement (void)
     }
 
   gfc_buffer_error (0);
+
+  if (st == ST_GET_FCN_CHARACTERISTICS && gfc_statement_label != NULL)
+    {
+      gfc_free_st_label (gfc_statement_label);
+      gfc_statement_label = NULL;
+      gfc_current_locus = old_locus;
+    }
 
   if (st != ST_NONE)
     check_statement_label (st);
@@ -705,9 +865,9 @@ next_statement (void)
   case ST_CLOSE: case ST_CONTINUE: case ST_DEALLOCATE: case ST_END_FILE: \
   case ST_GOTO: case ST_INQUIRE: case ST_NULLIFY: case ST_OPEN: \
   case ST_READ: case ST_RETURN: case ST_REWIND: case ST_SIMPLE_IF: \
-  case ST_PAUSE: case ST_STOP: case ST_WRITE: case ST_ASSIGNMENT: \
+  case ST_PAUSE: case ST_STOP: case ST_WAIT: case ST_WRITE: \
   case ST_POINTER_ASSIGNMENT: case ST_EXIT: case ST_CYCLE: \
-  case ST_ARITHMETIC_IF: case ST_WHERE: case ST_FORALL: \
+  case ST_ASSIGNMENT: case ST_ARITHMETIC_IF: case ST_WHERE: case ST_FORALL: \
   case ST_LABEL_ASSIGNMENT: case ST_FLUSH: case ST_OMP_FLUSH: \
   case ST_OMP_BARRIER
 
@@ -1111,6 +1271,9 @@ gfc_ascii_statement (gfc_statement st)
     case ST_WHERE_BLOCK:	/* Fall through */
     case ST_WHERE:
       p = "WHERE";
+      break;
+    case ST_WAIT:
+      p = "WAIT";
       break;
     case ST_WRITE:
       p = "WRITE";
@@ -1870,30 +2033,48 @@ done:
 }
 
 
-/* Recover use associated or imported function characteristics.  */
+/* Associate function characteristics by going back to the function
+   declaration and rematching the prefix.  */
 
-static try
+static match
 match_deferred_characteristics (gfc_typespec * ts)
 {
   locus loc;
-  match m;
+  match m = MATCH_ERROR;
+  char name[GFC_MAX_SYMBOL_LEN + 1];
 
   loc = gfc_current_locus;
 
-  if (gfc_current_block ()->ts.type != BT_UNKNOWN)
+  gfc_current_locus = gfc_current_block ()->declared_at;
+
+  gfc_clear_error ();
+  gfc_buffer_error (1);
+  m = gfc_match_prefix (ts);
+  gfc_buffer_error (0);
+
+  if (ts->type == BT_DERIVED)
     {
-      /* Kind expression for an intrinsic type.  */
-      gfc_current_locus = gfc_function_kind_locus;
-      m = gfc_match_kind_spec (ts, true);
-    }
-  else
-    {
-      /* A derived type.  */
-      gfc_current_locus = gfc_function_type_locus;
-      m = gfc_match_type_spec (ts, 0);
+      ts->kind = 0;
+
+      if (!ts->derived || !ts->derived->components)
+	m = MATCH_ERROR;
     }
 
-  gfc_current_ns->proc_name->result->ts = *ts;
+  /* Only permit one go at the characteristic association.  */
+  if (ts->kind == -1)
+    ts->kind = 0;
+
+  /* Set the function locus correctly.  If we have not found the
+     function name, there is an error.  */
+  gfc_match ("function% %n", name);
+  if (m == MATCH_YES && strcmp (name, gfc_current_block ()->name) == 0)
+    {
+      gfc_current_block ()->declared_at = gfc_current_locus;
+      gfc_commit_symbols ();
+    }
+  else
+    gfc_error_check ();
+
   gfc_current_locus =loc;
   return m;
 }
@@ -1906,6 +2087,8 @@ static gfc_statement
 parse_spec (gfc_statement st)
 {
   st_state ss;
+  bool bad_characteristic = false;
+  gfc_typespec *ts;
 
   verify_st_order (&ss, ST_NONE);
   if (st == ST_NONE)
@@ -1984,15 +2167,6 @@ loop:
 	}
 
       accept_statement (st);
-
-      /* Look out for function kind/type information that used
-	 use associated or imported parameter.  This is signalled
-	 by kind = -1.  */
-      if (gfc_current_state () == COMP_FUNCTION
-	    && (st == ST_USE || st == ST_IMPORT || st == ST_DERIVED_DECL)
-	    && gfc_current_block ()->ts.kind == -1)
-	match_deferred_characteristics (&gfc_current_block ()->ts);
-
       st = next_statement ();
       goto loop;
 
@@ -2002,21 +2176,37 @@ loop:
       st = next_statement ();
       goto loop;
 
+    case ST_GET_FCN_CHARACTERISTICS:
+      /* This statement triggers the association of a function's result
+	 characteristics.  */
+      ts = &gfc_current_block ()->result->ts;
+      if (match_deferred_characteristics (ts) != MATCH_YES)
+	bad_characteristic = true;
+
+      st = next_statement ();
+      goto loop;
+
     default:
       break;
     }
 
-  /* If we still have kind = -1 at the end of the specification block,
-     then there is an error. */
-  if (gfc_current_state () == COMP_FUNCTION
-	&& gfc_current_block ()->ts.kind == -1)
+  /* If match_deferred_characteristics failed, then there is an error. */
+  if (bad_characteristic)
     {
-      if (gfc_current_block ()->ts.type != BT_UNKNOWN)
+      ts = &gfc_current_block ()->result->ts;
+      if (ts->type != BT_DERIVED)
 	gfc_error ("Bad kind expression for function '%s' at %L",
-		   gfc_current_block ()->name, &gfc_function_kind_locus);
+		   gfc_current_block ()->name,
+		   &gfc_current_block ()->declared_at);
       else
 	gfc_error ("The type for function '%s' at %L is not accessible",
-		   gfc_current_block ()->name, &gfc_function_type_locus);
+		   gfc_current_block ()->name,
+		   &gfc_current_block ()->declared_at);
+
+      gfc_current_block ()->ts.kind = 0;
+      /* Keep the derived type; if it's bad, it will be discovered later.  */
+      if (!(ts->type == BT_DERIVED && ts->derived))
+        ts->type = BT_UNKNOWN;
     }
 
   return st;
@@ -3014,8 +3204,7 @@ parse_contained (int module)
 
   pop_state ();
   if (!contains_statements)
-    /* This is valid in Fortran 2008.  */
-    gfc_notify_std (GFC_STD_GNU, "Extension: CONTAINS statement without "
+    gfc_notify_std (GFC_STD_F2008, "Fortran 2008: CONTAINS statement without "
 		    "FUNCTION or SUBROUTINE statement at %C");
 }
 
@@ -3380,8 +3569,8 @@ loop:
   gfc_resolve (gfc_current_ns);
 
   /* Dump the parse tree if requested.  */
-  if (gfc_option.verbose)
-    gfc_show_namespace (gfc_current_ns);
+  if (gfc_option.dump_parse_tree)
+    gfc_dump_parse_tree (gfc_current_ns, stdout);
 
   gfc_get_errors (NULL, &errors);
   if (s.state == COMP_MODULE)

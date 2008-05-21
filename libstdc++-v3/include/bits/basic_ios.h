@@ -1,7 +1,7 @@
 // Iostreams base classes -*- C++ -*-
 
 // Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
-// 2006, 2007
+// 2006, 2007, 2008
 // Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
@@ -81,9 +81,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
       //@{
       /**
-       *  @if maint
        *  These are non-standard types.
-       *  @endif
       */
       typedef ctype<_CharT>                          __ctype_type;
       typedef num_put<_CharT, ostreambuf_iterator<_CharT, _Traits> >
@@ -227,7 +225,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
        *  in the error flags, then an exception of type
        *  std::ios_base::failure is thrown.
        *
-       *  If the error flage is already set when the exceptions mask is
+       *  If the error flag is already set when the exceptions mask is
        *  added, the exception is immediately thrown.  Try running the
        *  following under GCC 3.1 or later:
        *  @code
@@ -357,7 +355,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       copyfmt(const basic_ios& __rhs);
 
       /**
-       *  @brief  Retreives the "empty" character.
+       *  @brief  Retrieves the "empty" character.
        *  @return  The current fill character.
        *
        *  It defaults to a space (' ') in the current locale.

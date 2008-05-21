@@ -1,7 +1,7 @@
 ;; -*- Mode: Scheme -*-
 ;;   Machine description for GNU compiler,
 ;;   for ATMEL AVR micro controllers.
-;;   Copyright (C) 1998, 1999, 2000, 2001, 2002, 2004, 2005, 2006, 2007
+;;   Copyright (C) 1998, 1999, 2000, 2001, 2002, 2004, 2005, 2006, 2007, 2008
 ;;   Free Software Foundation, Inc.
 ;;   Contributed by Denis Chertykov (denisc@overta.ru)
 
@@ -31,7 +31,8 @@
 ;;  o  Displacement for (mem (plus (reg) (const_int))) operands.
 ;;  p  POST_INC or PRE_DEC address as a pointer (X, Y, Z)
 ;;  r  POST_INC or PRE_DEC address as a register (r26, r28, r30)
-;;  ~  Output 'r' if not AVR_MEGA.
+;;  ~  Output 'r' if not AVR_HAVE_JMP_CALL.
+;;  !  Output 'e' if AVR_HAVE_EIJMP_EICALL.
 
 ;; UNSPEC usage:
 ;;  0  Length of a string, see "strlenhi".
@@ -47,6 +48,7 @@
    (ZERO_REGNO	1)	; zero register r1
    
    (SREG_ADDR   0x5F)
+   (RAMPZ_ADDR  0x5B)
    
    (UNSPEC_STRLEN	0)
    (UNSPEC_INDEX_JMP	1)
@@ -72,7 +74,7 @@
 		       (const_string "no"))))
 
 (define_attr "mcu_mega" "yes,no"
-  (const (if_then_else (symbol_ref "AVR_MEGA")
+  (const (if_then_else (symbol_ref "AVR_HAVE_JMP_CALL")
 		       (const_string "yes")
 		       (const_string "no"))))
   
@@ -2054,7 +2056,7 @@
   [(set (pc)
         (if_then_else
 	 (match_operator 0 "eqne_operator"
-			 [(zero_extract
+			 [(zero_extract:HI
 			   (match_operand:QI 1 "register_operand" "r")
 			   (const_int 1)
 			   (match_operand 2 "const_int_operand" "n"))
@@ -2121,9 +2123,9 @@
 			   (label_ref (match_operand 1 "" ""))
 			   (pc)))]
   ""
-  [(set (pc) (if_then_else (eq (zero_extract (match_dup 0)
-					     (const_int 1)
-					     (const_int 7))
+  [(set (pc) (if_then_else (eq (zero_extract:HI (match_dup 0)
+						(const_int 1)
+						(const_int 7))
 			       (const_int 0))
 			   (label_ref (match_dup 1))
 			   (pc)))]
@@ -2135,9 +2137,9 @@
 			   (label_ref (match_operand 1 "" ""))
 			   (pc)))]
   ""
-  [(set (pc) (if_then_else (ne (zero_extract (match_dup 0)
-					     (const_int 1)
-					     (const_int 7))
+  [(set (pc) (if_then_else (ne (zero_extract:HI (match_dup 0)
+						(const_int 1)
+						(const_int 7))
 			       (const_int 0))
 			   (label_ref (match_dup 1))
 			   (pc)))]
@@ -2258,7 +2260,7 @@
         (label_ref (match_operand 0 "" "")))]
   ""
   "*{
-  if (AVR_MEGA && get_attr_length (insn) != 1)
+  if (AVR_HAVE_JMP_CALL && get_attr_length (insn) != 1)
     return AS1 (jmp,%0);
   return AS1 (rjmp,%0);
 }"
@@ -2300,22 +2302,22 @@
   "(register_operand (operands[0], HImode) || CONSTANT_P (operands[0]))"
   "*{
   if (which_alternative==0)
-     return \"icall\";
+     return \"%!icall\";
   else if (which_alternative==1)
     {
       if (AVR_HAVE_MOVW)
 	return (AS2 (movw, r30, %0) CR_TAB
-		\"icall\");
+               \"%!icall\");
       else
 	return (AS2 (mov, r30, %A0) CR_TAB
 		AS2 (mov, r31, %B0) CR_TAB
-		\"icall\");
+		\"%!icall\");
     }
   else if (which_alternative==2)
     return AS1(%~call,%c0);
   return (AS2 (ldi,r30,lo8(%0)) CR_TAB
           AS2 (ldi,r31,hi8(%0)) CR_TAB
-          \"icall\");
+          \"%!icall\");
 }"
   [(set_attr "cc" "clobber,clobber,clobber,clobber")
    (set_attr_alternative "length"
@@ -2337,22 +2339,22 @@
   "(register_operand (operands[0], VOIDmode) || CONSTANT_P (operands[0]))"
   "*{
   if (which_alternative==0)
-     return \"icall\";
+     return \"%!icall\";
   else if (which_alternative==1)
     {
       if (AVR_HAVE_MOVW)
 	return (AS2 (movw, r30, %1) CR_TAB
-		\"icall\");
+		\"%!icall\");
       else
 	return (AS2 (mov, r30, %A1) CR_TAB
 		AS2 (mov, r31, %B1) CR_TAB
-		\"icall\");
+		\"%!icall\");
     }
   else if (which_alternative==2)
     return AS1(%~call,%c1);
   return (AS2 (ldi, r30, lo8(%1)) CR_TAB
           AS2 (ldi, r31, hi8(%1)) CR_TAB
-          \"icall\");
+          \"%!icall\");
 }"
   [(set_attr "cc" "clobber,clobber,clobber,clobber")
    (set_attr_alternative "length"
@@ -2375,12 +2377,19 @@
 ; indirect jump
 (define_insn "indirect_jump"
   [(set (pc) (match_operand:HI 0 "register_operand" "!z,*r"))]
-  ""
+  "!AVR_HAVE_EIJMP_EICALL"
   "@
 	ijmp
 	push %A0\;push %B0\;ret"
   [(set_attr "length" "1,3")
    (set_attr "cc" "none,none")])
+
+(define_insn "*indirect_jump_avr6"
+  [(set (pc) (match_operand:HI 0 "register_operand" "z"))]
+  "AVR_HAVE_EIJMP_EICALL"
+  "eijmp"
+  [(set_attr "length" "1")
+   (set_attr "cc" "none")])
 
 ;; table jump
 
@@ -2390,7 +2399,7 @@
 			UNSPEC_INDEX_JMP))
    (use (label_ref (match_operand 1 "" "")))
    (clobber (match_dup 0))]
-  "!AVR_MEGA"
+  "(!AVR_HAVE_JMP_CALL) && (!AVR_HAVE_EIJMP_EICALL)"
   "@
 	ijmp
 	push %A0\;push %B0\;ret"
@@ -2403,7 +2412,7 @@
 			UNSPEC_INDEX_JMP))
    (use (label_ref (match_operand 1 "" "")))
    (clobber (match_dup 0))]
-  "AVR_MEGA && TARGET_CALL_PROLOGUES"
+  "AVR_HAVE_JMP_CALL && TARGET_CALL_PROLOGUES"
   "jmp __tablejump2__"
   [(set_attr "length" "2")
    (set_attr "cc" "clobber")])
@@ -2413,13 +2422,13 @@
 			UNSPEC_INDEX_JMP))
    (use (label_ref (match_operand 1 "" "")))
    (clobber (match_dup 0))]
-  "AVR_MEGA && AVR_HAVE_LPMX"
+  "AVR_HAVE_JMP_CALL && AVR_HAVE_LPMX"
   "lsl r30
 	rol r31
 	lpm __tmp_reg__,Z+
 	lpm r31,Z
 	mov r30,__tmp_reg__
-	ijmp"
+	%!ijmp"
   [(set_attr "length" "6")
    (set_attr "cc" "clobber")])
 
@@ -2428,7 +2437,7 @@
 			UNSPEC_INDEX_JMP))
    (use (label_ref (match_operand 1 "" "")))
    (clobber (match_dup 0))]
-  "AVR_MEGA"
+  "AVR_HAVE_JMP_CALL && !AVR_HAVE_EIJMP_EICALL"
   "lsl r30
 	rol r31
 	lpm
@@ -2509,7 +2518,7 @@
   [(set (pc)
 	(if_then_else
 	 (match_operator 0 "eqne_operator"
-			 [(zero_extract
+			 [(zero_extract:HI
 			   (mem:QI (match_operand 1 "low_io_address_operand" "n"))
 			   (const_int 1)
 			   (match_operand 2 "const_int_operand" "n"))
@@ -2556,7 +2565,7 @@
   [(set (pc)
 	(if_then_else
 	 (match_operator 0 "eqne_operator"
-			 [(zero_extract
+			 [(zero_extract:HI
 			   (mem:QI (match_operand 1 "high_io_address_operand" "n"))
 			   (const_int 1)
 			   (match_operand 2 "const_int_operand" "n"))

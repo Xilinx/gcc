@@ -1,5 +1,5 @@
 /* Subroutines for insn-output.c for Tensilica's Xtensa architecture.
-   Copyright 2001, 2002, 2003, 2004, 2005, 2006, 2007
+   Copyright 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
    Free Software Foundation, Inc.
    Contributed by Bob Wilson (bwilson@tensilica.com) at Tensilica.
 
@@ -652,6 +652,16 @@ gen_float_relational (enum rtx_code test_code, /* relational test (EQ, etc) */
     case GT: reverse_regs = 1; invert = 0; gen_fn = gen_slt_sf; break;
     case LT: reverse_regs = 0; invert = 0; gen_fn = gen_slt_sf; break;
     case GE: reverse_regs = 1; invert = 0; gen_fn = gen_sle_sf; break;
+    case UNEQ: reverse_regs = 0; invert = 0; gen_fn = gen_suneq_sf; break;
+    case LTGT: reverse_regs = 0; invert = 1; gen_fn = gen_suneq_sf; break;
+    case UNLE: reverse_regs = 0; invert = 0; gen_fn = gen_sunle_sf; break;
+    case UNGT: reverse_regs = 1; invert = 0; gen_fn = gen_sunlt_sf; break;
+    case UNLT: reverse_regs = 0; invert = 0; gen_fn = gen_sunlt_sf; break;
+    case UNGE: reverse_regs = 1; invert = 0; gen_fn = gen_sunle_sf; break;
+    case UNORDERED:
+      reverse_regs = 0; invert = 0; gen_fn = gen_sunordered_sf; break;
+    case ORDERED:
+      reverse_regs = 0; invert = 1; gen_fn = gen_sunordered_sf; break;
     default:
       fatal_insn ("bad test", gen_rtx_fmt_ee (test_code, VOIDmode, cmp0, cmp1));
       reverse_regs = 0; invert = 0; gen_fn = 0; /* avoid compiler warnings */
@@ -1908,6 +1918,8 @@ override_options (void)
   /* There's no need for -fPIC (as opposed to -fpic) on Xtensa.  */
   if (flag_pic > 1)
     flag_pic = 1;
+  if (flag_pic && !flag_pie)
+    flag_shlib = 1;
 
   /* Hot/cold partitioning does not work on this architecture, because of
      constant pools (the load instruction cannot necessarily reach that far).
@@ -1989,7 +2001,7 @@ print_operand (FILE *file, rtx x, int letter)
 	{
 	  /* For a volatile memory reference, emit a MEMW before the
 	     load or store.  */
-	  if (MEM_VOLATILE_P (x))
+	  if (MEM_VOLATILE_P (x) && TARGET_SERIALIZE_VOLATILE)
 	    fprintf (file, "memw\n\t");
 	}
       else
@@ -2280,7 +2292,7 @@ compute_frame_size (int size)
 
   xtensa_current_frame_size =
     XTENSA_STACK_ALIGN (size
-			+ current_function_outgoing_args_size
+			+ crtl->outgoing_args_size
 			+ (WINDOW_SIZE * UNITS_PER_WORD));
   return xtensa_current_frame_size;
 }
@@ -2300,6 +2312,10 @@ xtensa_frame_pointer_required (void)
   return 0;
 }
 
+
+/* minimum frame = reg save area (4 words) plus static chain (1 word)
+   and the total number of words must be a multiple of 128 bits.  */
+#define MIN_FRAME_SIZE (8 * UNITS_PER_WORD)
 
 void
 xtensa_expand_prologue (void)
@@ -2379,7 +2395,7 @@ xtensa_function_epilogue (FILE *file ATTRIBUTE_UNUSED,
 rtx
 xtensa_return_addr (int count, rtx frame)
 {
-  rtx result, retaddr;
+  rtx result, retaddr, curaddr, label;
 
   if (count == -1)
     retaddr = gen_rtx_REG (Pmode, A0_REG);
@@ -2393,10 +2409,25 @@ xtensa_return_addr (int count, rtx frame)
 
   /* The 2 most-significant bits of the return address on Xtensa hold
      the register window size.  To get the real return address, these
-     bits must be replaced with the high bits from the current PC.  */
+     bits must be replaced with the high bits from some address in the
+     code.  */
 
+  /* Get the 2 high bits of a local label in the code.  */
+  curaddr = gen_reg_rtx (Pmode);
+  label = gen_label_rtx ();
+  emit_label (label);
+  LABEL_PRESERVE_P (label) = 1;
+  emit_move_insn (curaddr, gen_rtx_LABEL_REF (Pmode, label));
+  emit_insn (gen_lshrsi3 (curaddr, curaddr, GEN_INT (30)));
+  emit_insn (gen_ashlsi3 (curaddr, curaddr, GEN_INT (30)));
+
+  /* Clear the 2 high bits of the return address.  */
   result = gen_reg_rtx (Pmode);
-  emit_insn (gen_fix_return_addr (result, retaddr));
+  emit_insn (gen_ashlsi3 (result, retaddr, GEN_INT (2)));
+  emit_insn (gen_lshrsi3 (result, result, GEN_INT (2)));
+
+  /* Combine them to get the result.  */
+  emit_insn (gen_iorsi3 (result, result, curaddr));
   return result;
 }
 
@@ -2454,7 +2485,7 @@ static rtx
 xtensa_builtin_saveregs (void)
 {
   rtx gp_regs;
-  int arg_words = current_function_args_info.arg_words;
+  int arg_words = crtl->args.info.arg_words;
   int gp_left = MAX_ARGS_IN_REGISTERS - arg_words;
 
   if (gp_left <= 0)
@@ -2491,7 +2522,7 @@ xtensa_va_start (tree valist, rtx nextarg ATTRIBUTE_UNUSED)
   tree t, u;
   int arg_words;
 
-  arg_words = current_function_args_info.arg_words;
+  arg_words = crtl->args.info.arg_words;
 
   f_stk = TYPE_FIELDS (va_list_type_node);
   f_reg = TREE_CHAIN (f_stk);
@@ -2521,7 +2552,7 @@ xtensa_va_start (tree valist, rtx nextarg ATTRIBUTE_UNUSED)
   if (arg_words >= MAX_ARGS_IN_REGISTERS)
     arg_words += 2;
   t = build2 (GIMPLE_MODIFY_STMT, integer_type_node, ndx,
-	      size_int (arg_words * UNITS_PER_WORD));
+	      build_int_cst (integer_type_node, arg_words * UNITS_PER_WORD));
   TREE_SIDE_EFFECTS (t) = 1;
   expand_expr (t, const0_rtx, VOIDmode, EXPAND_NORMAL);
 }
@@ -2586,8 +2617,10 @@ xtensa_gimplify_va_arg_expr (tree valist, tree type, tree *pre_p,
     {
       int align = MIN (TYPE_ALIGN (type), STACK_BOUNDARY) / BITS_PER_UNIT;
 
-      t = build2 (PLUS_EXPR, integer_type_node, orig_ndx, size_int (align - 1));
-      t = build2 (BIT_AND_EXPR, integer_type_node, t, size_int (-align));
+      t = build2 (PLUS_EXPR, integer_type_node, orig_ndx,
+		  build_int_cst (integer_type_node, align - 1));
+      t = build2 (BIT_AND_EXPR, integer_type_node, t,
+		  build_int_cst (integer_type_node, -align));
       t = build2 (GIMPLE_MODIFY_STMT, integer_type_node, orig_ndx, t);
       gimplify_and_add (t, pre_p);
     }
@@ -2618,7 +2651,8 @@ xtensa_gimplify_va_arg_expr (tree valist, tree type, tree *pre_p,
       lab_over = create_artificial_label ();
 
       t = build2 (GT_EXPR, boolean_type_node, ndx,
-		  size_int (MAX_ARGS_IN_REGISTERS * UNITS_PER_WORD));
+		  build_int_cst (integer_type_node,
+				 MAX_ARGS_IN_REGISTERS * UNITS_PER_WORD));
       t = build3 (COND_EXPR, void_type_node, t,
 		  build1 (GOTO_EXPR, void_type_node, lab_false),
 		  NULL_TREE);
@@ -2648,7 +2682,8 @@ xtensa_gimplify_va_arg_expr (tree valist, tree type, tree *pre_p,
   lab_false2 = create_artificial_label ();
 
   t = build2 (GT_EXPR, boolean_type_node, orig_ndx,
-	      size_int (MAX_ARGS_IN_REGISTERS * UNITS_PER_WORD));
+	      build_int_cst (integer_type_node,
+			     MAX_ARGS_IN_REGISTERS * UNITS_PER_WORD));
   t = build3 (COND_EXPR, void_type_node, t,
 	      build1 (GOTO_EXPR, void_type_node, lab_false2),
 	      NULL_TREE);
@@ -2693,7 +2728,8 @@ xtensa_gimplify_va_arg_expr (tree valist, tree type, tree *pre_p,
   else
     size = va_size;
 
-  t = build2 (MINUS_EXPR, sizetype, ndx, size);
+  t = fold_convert (sizetype, ndx);
+  t = build2 (MINUS_EXPR, sizetype, t, size);
   addr = build2 (POINTER_PLUS_EXPR, ptr_type_node, array, t);
 
   addr = fold_convert (build_pointer_type (type), addr);
@@ -2803,7 +2839,8 @@ xtensa_secondary_reload_class (enum reg_class class,
 
   if (!isoutput)
     {
-      if (class == FP_REGS && constantpool_mem_p (x))
+      if ((class == FP_REGS || GET_MODE_SIZE (mode) < UNITS_PER_WORD)
+	  && constantpool_mem_p (x))
 	return RL_REGS;
     }
 
@@ -2831,7 +2868,7 @@ order_regs_for_local_alloc (void)
 
       /* Use the AR registers in increasing order (skipping a0 and a1)
 	 but save the incoming argument registers for a last resort.  */
-      num_arg_regs = current_function_args_info.arg_words;
+      num_arg_regs = crtl->args.info.arg_words;
       if (num_arg_regs > MAX_ARGS_IN_REGISTERS)
 	num_arg_regs = MAX_ARGS_IN_REGISTERS;
       for (i = GP_ARG_FIRST; i < 16 - num_arg_regs; i++)
@@ -3125,5 +3162,96 @@ xtensa_return_in_memory (const_tree type, const_tree fntype ATTRIBUTE_UNUSED)
   return ((unsigned HOST_WIDE_INT) int_size_in_bytes (type)
 	  > 4 * UNITS_PER_WORD);
 }
+
+
+/* TRAMPOLINE_TEMPLATE: For Xtensa, the trampoline must perform an ENTRY
+   instruction with a minimal stack frame in order to get some free
+   registers.  Once the actual call target is known, the proper stack frame
+   size is extracted from the ENTRY instruction at the target and the
+   current frame is adjusted to match.  The trampoline then transfers
+   control to the instruction following the ENTRY at the target.  Note:
+   this assumes that the target begins with an ENTRY instruction.  */
+
+void
+xtensa_trampoline_template (FILE *stream)
+{
+  bool use_call0 = (TARGET_CONST16 || TARGET_ABSOLUTE_LITERALS);
+
+  fprintf (stream, "\t.begin no-transform\n");
+  fprintf (stream, "\tentry\tsp, %d\n", MIN_FRAME_SIZE);
+
+  if (use_call0)
+    {
+      /* Save the return address.  */
+      fprintf (stream, "\tmov\ta10, a0\n");
+
+      /* Use a CALL0 instruction to skip past the constants and in the
+	 process get the PC into A0.  This allows PC-relative access to
+	 the constants without relying on L32R.  */
+      fprintf (stream, "\tcall0\t.Lskipconsts\n");
+    }
+  else
+    fprintf (stream, "\tj\t.Lskipconsts\n");
+
+  fprintf (stream, "\t.align\t4\n");
+  fprintf (stream, ".Lchainval:%s0\n", integer_asm_op (4, TRUE));
+  fprintf (stream, ".Lfnaddr:%s0\n", integer_asm_op (4, TRUE));
+  fprintf (stream, ".Lskipconsts:\n");
+
+  /* Load the static chain and function address from the trampoline.  */
+  if (use_call0)
+    {
+      fprintf (stream, "\taddi\ta0, a0, 3\n");
+      fprintf (stream, "\tl32i\ta9, a0, 0\n");
+      fprintf (stream, "\tl32i\ta8, a0, 4\n");
+    }
+  else
+    {
+      fprintf (stream, "\tl32r\ta9, .Lchainval\n");
+      fprintf (stream, "\tl32r\ta8, .Lfnaddr\n");
+    }
+
+  /* Store the static chain.  */
+  fprintf (stream, "\ts32i\ta9, sp, %d\n", MIN_FRAME_SIZE - 20);
+
+  /* Set the proper stack pointer value.  */
+  fprintf (stream, "\tl32i\ta9, a8, 0\n");
+  fprintf (stream, "\textui\ta9, a9, %d, 12\n",
+	   TARGET_BIG_ENDIAN ? 8 : 12);
+  fprintf (stream, "\tslli\ta9, a9, 3\n");
+  fprintf (stream, "\taddi\ta9, a9, %d\n", -MIN_FRAME_SIZE);
+  fprintf (stream, "\tsub\ta9, sp, a9\n");
+  fprintf (stream, "\tmovsp\tsp, a9\n");
+
+  if (use_call0)
+    /* Restore the return address.  */
+    fprintf (stream, "\tmov\ta0, a10\n");
+
+  /* Jump to the instruction following the ENTRY.  */
+  fprintf (stream, "\taddi\ta8, a8, 3\n");
+  fprintf (stream, "\tjx\ta8\n");
+
+  /* Pad size to a multiple of TRAMPOLINE_ALIGNMENT.  */
+  if (use_call0)
+    fprintf (stream, "\t.byte\t0\n");
+  else
+    fprintf (stream, "\tnop\n");
+
+  fprintf (stream, "\t.end no-transform\n");
+}
+
+
+void
+xtensa_initialize_trampoline (rtx addr, rtx func, rtx chain)
+{
+  bool use_call0 = (TARGET_CONST16 || TARGET_ABSOLUTE_LITERALS);
+  int chain_off = use_call0 ? 12 : 8;
+  int func_off = use_call0 ? 16 : 12;
+  emit_move_insn (gen_rtx_MEM (SImode, plus_constant (addr, chain_off)), chain);
+  emit_move_insn (gen_rtx_MEM (SImode, plus_constant (addr, func_off)), func);
+  emit_library_call (gen_rtx_SYMBOL_REF (Pmode, "__xtensa_sync_caches"),
+		     0, VOIDmode, 1, addr, Pmode);
+}
+
 
 #include "gt-xtensa.h"

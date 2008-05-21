@@ -78,7 +78,7 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
    *  right, but the int_type and state_type typedefs, and the eof()
    *  member function, are likely to be wrong.)  The reason this class
    *  exists is so users can specialize it.  Classes in namespace std
-   *  may not be specialized for fundamentl types, but classes in
+   *  may not be specialized for fundamental types, but classes in
    *  namespace __gnu_cxx may be.
    *
    *  See http://gcc.gnu.org/onlinedocs/libstdc++/21_strings/howto.html#5
@@ -231,7 +231,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
     { };
 
 
-  /// @brief  21.1.3.1  char_traits specializations
+  /// 21.1.3.1  char_traits specializations
   template<>
     struct char_traits<char>
     {
@@ -301,7 +301,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
 
 #ifdef _GLIBCXX_USE_WCHAR_T
-  /// @brief  21.1.3.2  char_traits specializations
+  /// 21.1.3.2  char_traits specializations
   template<>
     struct char_traits<wchar_t>
     {

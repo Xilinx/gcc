@@ -6,7 +6,7 @@
 --                                                                          --
 --                                  S p e c                                 --
 --                                                                          --
---          Copyright (C) 1992-2006, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNARL is free software; you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -46,10 +46,7 @@
 --  System.Protected_Objects.Single_Entry
 
 with System.Task_Info;
---  used for Task_Info_Type
-
 with System.Parameters;
---  used for Size_Type
 
 package System.Tasking.Restricted.Stages is
    pragma Elaborate_Body;
@@ -161,7 +158,7 @@ package System.Tasking.Restricted.Stages is
    --  single argument to State.
    --
    --  Elaborated is a pointer to a Boolean that must be set to true on exit
-   --  if the task could be sucessfully elaborated.
+   --  if the task could be successfully elaborated.
    --
    --  Chain is a linked list of task that needs to be created. On exit,
    --  Created_Task.Activation_Link will be Chain.T_ID, and Chain.T_ID will be

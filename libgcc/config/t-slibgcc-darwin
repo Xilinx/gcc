@@ -16,7 +16,7 @@ SHLIB_LC = -lc
 # Note that this version is used for the loader, not the linker; the linker
 # uses the stub versions named by the versioned members of $(INSTALL_FILES).
 SHLIB_LINK = $(CC) $(LIBGCC2_CFLAGS) -dynamiclib -nodefaultlibs \
-	-install_name $(slibdir)/$(SHLIB_INSTALL_NAME) \
+	-install_name @shlib_slibdir@/$(SHLIB_INSTALL_NAME) \
 	-single_module -o $(SHLIB_DIR)/$(SHLIB_SONAME).tmp \
 	-Wl,-exported_symbols_list,$(SHLIB_MAP) \
 	$(SHLIB_VERSTRING) \
@@ -38,7 +38,7 @@ SHLIB_INSTALL = \
 
 ifeq ($(enable_shared),yes)
 all: $(INSTALL_FILES)
-install: install-darwin-libgcc-stubs
+install-leaf: install-darwin-libgcc-stubs
 endif
 
 # In order to support -mmacosx-version-min, you need to have multiple

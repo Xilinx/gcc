@@ -6,7 +6,7 @@
 --                                                                          --
 --                                  B o d y                                 --
 --                                                                          --
---         Copyright (C) 1992-2007, Free Software Foundation, Inc.          --
+--         Copyright (C) 1992-2008, Free Software Foundation, Inc.          --
 --                                                                          --
 -- GNARL is free software; you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -33,29 +33,22 @@
 
 --  This is a OpenVMS/Alpha version of this package
 
---  This package contains all the GNULL primitives that interface directly
---  with the underlying OS.
+--  This package contains all the GNULL primitives that interface directly with
+--  the underlying OS.
 
 pragma Polling (Off);
---  Turn off polling, we do not want ATC polling to take place during
---  tasking operations. It causes infinite loops and other problems.
-
-with System.Tasking.Debug;
---  used for Known_Tasks
-
-with System.OS_Primitives;
---  used for Delay_Modes
-
-with Interfaces.C;
---  used for int
---           size_t
-
-with System.Soft_Links;
---  used for Get_Exc_Stack_Addr
---           Abort_Defer/Undefer
+--  Turn off polling, we do not want ATC polling to take place during tasking
+--  operations. It causes infinite loops and other problems.
 
 with Ada.Unchecked_Conversion;
 with Ada.Unchecked_Deallocation;
+
+with Interfaces.C;
+
+with System.Tasking.Debug;
+with System.OS_Primitives;
+with System.Soft_Links;
+with System.Aux_DEC;
 
 package body System.Task_Primitives.Operations is
 
@@ -138,15 +131,18 @@ package body System.Task_Primitives.Operations is
    -----------------------
 
    function To_Task_Id is
-     new Ada.Unchecked_Conversion (System.Address, Task_Id);
+     new Ada.Unchecked_Conversion
+       (System.Task_Primitives.Task_Address, Task_Id);
 
    function To_Address is
-     new Ada.Unchecked_Conversion (Task_Id, System.Address);
+     new Ada.Unchecked_Conversion
+       (Task_Id, System.Task_Primitives.Task_Address);
 
    function Get_Exc_Stack_Addr return Address;
    --  Replace System.Soft_Links.Get_Exc_Stack_Addr_NT
 
    procedure Timer_Sleep_AST (ID : Address);
+   pragma Convention (C, Timer_Sleep_AST);
    --  Signal the condition variable when AST fires
 
    procedure Timer_Sleep_AST (ID : Address) is
@@ -196,7 +192,7 @@ package body System.Task_Primitives.Operations is
    --  Note: mutexes and cond_variables needed per-task basis are initialized
    --  in Initialize_TCB and the Storage_Error is handled. Other mutexes (such
    --  as RTS_Lock, Memory_Lock...) used in RTS is initialized before any
-   --  status change of RTS. Therefore rasing Storage_Error in the following
+   --  status change of RTS. Therefore raising Storage_Error in the following
    --  routines should be able to be handled safely.
 
    procedure Initialize_Lock
@@ -525,7 +521,7 @@ package body System.Task_Primitives.Operations is
       if Time /= 0.0 or else Mode /= Relative then
          Sleep_Time := To_OS_Time (Time, Mode);
 
-         if Mode = Relative or else OS_Clock < Sleep_Time then
+         if Mode = Relative or else OS_Clock <= Sleep_Time then
             Self_ID.Common.State := Delay_Sleep;
             Self_ID.Common.LL.AST_Pending := True;
 
@@ -822,7 +818,7 @@ package body System.Task_Primitives.Operations is
       Result     : Interfaces.C.int;
 
       function Thread_Body_Access is new
-        Ada.Unchecked_Conversion (System.Address, Thread_Body);
+        Ada.Unchecked_Conversion (System.Aux_DEC.Short_Address, Thread_Body);
 
    begin
       --  Since the initial signal mask of a thread is inherited from the

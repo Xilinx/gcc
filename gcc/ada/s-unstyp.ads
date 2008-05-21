@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -32,7 +32,7 @@
 ------------------------------------------------------------------------------
 
 --  This package contains definitions of standard unsigned types that
---  correspond in size to the standard signed types declared in Standard.
+--  correspond in size to the standard signed types declared in Standard,
 --  and (unlike the types in Interfaces) have corresponding names. It
 --  also contains some related definitions for other specialized types
 --  used by the compiler in connection with packed array types.
@@ -55,7 +55,7 @@ package System.Unsigned_Types is
 
    type Packed_Byte is mod 2 ** 8;
    for Packed_Byte'Size use 8;
-   --  Component type for Packed_Butes array
+   --  Component type for Packed_Bytes array
 
    type Packed_Bytes1 is array (Natural range <>) of Packed_Byte;
    for Packed_Bytes1'Alignment use 1;
@@ -200,7 +200,7 @@ package System.Unsigned_Types is
    pragma Import (Intrinsic, Rotate_Left);
    pragma Import (Intrinsic, Rotate_Right);
 
-   --  The following definitions are obsolsecent. They were needed by the
+   --  The following definitions are obsolescent. They were needed by the
    --  previous version of the compiler and runtime, but are not needed
    --  by the current version. We retain them to help with bootstrap path
    --  problems. Also they seem harmless, and if any user programs have

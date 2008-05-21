@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -223,9 +223,38 @@ package body Treepr is
    -- pl --
    --------
 
-   procedure pl (L : List_Id) is
+   procedure pl (L : Int) is
+      Lid : Int;
+
    begin
-      Print_Tree_List (L);
+      if L < 0 then
+         Lid := L;
+
+      --  This is the case where we transform e.g. +36 to -99999936
+
+      else
+         if L <= 9 then
+            Lid := -(99999990 + L);
+         elsif L <= 99 then
+            Lid := -(99999900 + L);
+         elsif L <= 999 then
+            Lid := -(99999000 + L);
+         elsif L <= 9999 then
+            Lid := -(99990000 + L);
+         elsif L <= 99999 then
+            Lid := -(99900000 + L);
+         elsif L <= 999999 then
+            Lid := -(99000000 + L);
+         elsif L <= 9999999 then
+            Lid := -(90000000 + L);
+         else
+            Lid := -L;
+         end if;
+      end if;
+
+      --  Now output the list
+
+      Print_Tree_List (List_Id (Lid));
    end pl;
 
    --------
@@ -1625,7 +1654,7 @@ package body Treepr is
          No_Indent : Boolean := False);
       --  This procedure tests the given value of one of the Fields referenced
       --  by the current node to determine whether to visit it recursively.
-      --  Normally No_Indent is false, which means tha the visited node will
+      --  Normally No_Indent is false, which means that the visited node will
       --  be indented using New_Prefix. If No_Indent is set to True, then
       --  this indentation is skipped, and Prefix_Str is used for the call
       --  to print the descendent. No_Indent is effective only if the

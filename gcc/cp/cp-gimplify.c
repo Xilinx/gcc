@@ -387,35 +387,56 @@ cp_gimplify_init_expr (tree *expr_p, tree *pre_p, tree *post_p)
 {
   tree from = TREE_OPERAND (*expr_p, 1);
   tree to = TREE_OPERAND (*expr_p, 0);
-  tree sub;
+  tree t;
+  tree slot = NULL_TREE;
 
   /* What about code that pulls out the temp and uses it elsewhere?  I
      think that such code never uses the TARGET_EXPR as an initializer.  If
      I'm wrong, we'll abort because the temp won't have any RTL.  In that
      case, I guess we'll need to replace references somehow.  */
   if (TREE_CODE (from) == TARGET_EXPR)
-    from = TARGET_EXPR_INITIAL (from);
+    {
+      slot = TARGET_EXPR_SLOT (from);
+      from = TARGET_EXPR_INITIAL (from);
+    }
 
   /* Look through any COMPOUND_EXPRs, since build_compound_expr pushes them
      inside the TARGET_EXPR.  */
-  sub = expr_last (from);
-
-  /* If we are initializing from an AGGR_INIT_EXPR, drop the INIT_EXPR and
-     replace the slot operand with our target.
-
-     Should we add a target parm to gimplify_expr instead?  No, as in this
-     case we want to replace the INIT_EXPR.  */
-  if (TREE_CODE (sub) == AGGR_INIT_EXPR)
+  for (t = from; t; )
     {
-      gimplify_expr (&to, pre_p, post_p, is_gimple_lvalue, fb_lvalue);
-      AGGR_INIT_EXPR_SLOT (sub) = to;
-      *expr_p = from;
+      tree sub = TREE_CODE (t) == COMPOUND_EXPR ? TREE_OPERAND (t, 0) : t;
 
-      /* The initialization is now a side-effect, so the container can
-	 become void.  */
-      if (from != sub)
-	TREE_TYPE (from) = void_type_node;
+      /* If we are initializing from an AGGR_INIT_EXPR, drop the INIT_EXPR and
+	 replace the slot operand with our target.
+
+	 Should we add a target parm to gimplify_expr instead?  No, as in this
+	 case we want to replace the INIT_EXPR.  */
+      if (TREE_CODE (sub) == AGGR_INIT_EXPR)
+	{
+	  gimplify_expr (&to, pre_p, post_p, is_gimple_lvalue, fb_lvalue);
+	  AGGR_INIT_EXPR_SLOT (sub) = to;
+	  *expr_p = from;
+
+	  /* The initialization is now a side-effect, so the container can
+	     become void.  */
+	  if (from != sub)
+	    TREE_TYPE (from) = void_type_node;
+	}
+      else if (TREE_CODE (sub) == INIT_EXPR
+	       && TREE_OPERAND (sub, 0) == slot)
+	{
+	  /* An INIT_EXPR under TARGET_EXPR created by build_value_init,
+	     will be followed by an AGGR_INIT_EXPR.  */
+	  gimplify_expr (&to, pre_p, post_p, is_gimple_lvalue, fb_lvalue);
+	  TREE_OPERAND (sub, 0) = to;
+	}
+
+      if (t == sub)
+	break;
+      else
+	t = TREE_OPERAND (t, 1);
     }
+
 }
 
 /* Gimplify a MUST_NOT_THROW_EXPR.  */
@@ -823,7 +844,8 @@ cxx_omp_clause_apply_fn (tree fn, tree arg1, tree arg2)
       if (arg2)
 	argarray[i++] = p2;
       /* Handle default arguments.  */
-      for (parm = defparm; parm != void_list_node; parm = TREE_CHAIN (parm), i++)
+      for (parm = defparm; parm && parm != void_list_node;
+	   parm = TREE_CHAIN (parm), i++)
 	argarray[i] = convert_default_arg (TREE_VALUE (parm),
 					   TREE_PURPOSE (parm), fn, i);
       t = build_call_a (fn, i, argarray);
@@ -854,7 +876,7 @@ cxx_omp_clause_apply_fn (tree fn, tree arg1, tree arg2)
       if (arg2)
 	argarray[i++] = build_fold_addr_expr (arg2);
       /* Handle default arguments.  */
-      for (parm = defparm; parm != void_list_node;
+      for (parm = defparm; parm && parm != void_list_node;
 	   parm = TREE_CHAIN (parm), i++)
 	argarray[i] = convert_default_arg (TREE_VALUE (parm),
 					   TREE_PURPOSE (parm),

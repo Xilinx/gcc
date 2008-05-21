@@ -1,3 +1,142 @@
+2008-05-12  Aaron W. LaFramboise  <aaronavay62@aaronwl.com>
+
+	* jcf-dump.c (print_constant): Use
+	HOST_LONG_LONG_FORMAT.
+
+2008-05-07  Kenneth Zadeck <zadeck@naturalbridge.com>
+
+	* decl.c (java_init_decl_processing): Change DECL_IS_PURE to
+	DECL_PURE_P.
+
+2008-04-23  Paolo Bonzini  <bonzini@gnu.org>
+
+	* class.c (build_utf8_ref): Don't set TREE_INVARIANT.
+	(build_classdollar_field): Don't set TREE_INVARIANT.
+	(get_dispatch_table): Don't set TREE_INVARIANT.
+	(make_class_data): Don't set TREE_INVARIANT.
+	(build_symbol_entry): Don't set TREE_INVARIANT.
+	(emit_symbol_table): Don't set TREE_INVARIANT.
+	* constants.c (build_constant_data_ref): Don't set TREE_INVARIANT.
+	(build_ref_from_constant_pool): Don't set TREE_INVARIANT.
+	* resource.c (compile_resource_data): Don't set TREE_INVARIANT.
+	* expr.c (cache_cpool_data_ref): Don't set TREE_INVARIANT.
+
+2008-04-03  Tom Tromey  <tromey@redhat.com>
+
+	* Make-lang.in (java_OBJS): New variable.
+
+2008-04-03  Paolo Bonzini  <bonzini@gnu.org>
+
+        * java-tree.h (insert_block): Kill.
+        * decl.c (insert_block): Kill.
+		
+2008-04-01  Joseph Myers  <joseph@codesourcery.com>
+
+	* gcj.texi: Include gpl_v3.texi instead of gpl.texi
+	* Make-lang.in (TEXI_JAVA_FILES): Include gpl_v3.texi instead of
+	gpl.texi.
+
+2008-03-27  Tom Tromey  <tromey@redhat.com>
+
+	* Make-lang.in: Revert automatic dependency patch.
+
+2008-03-25  Tom Tromey  <tromey@redhat.com>
+
+	* Make-lang.in: Removed most explicit .o targets.
+	(java/jvspec.o): Reduce to variable setting.  Moved to java/.
+	($(GCJ)$(exeext)): Update.
+	(JAVA_OBJS): New variable.
+	(JCFDUMP_OBJS): Reformat.
+	(java_OBJS): New variable.
+	(java/jvspec.o-warn): Update.
+	(java/parse.o-warn): Remove.
+	(JAVA_TREE_H): Remove.
+	(java/jcf-io.o): Reduce to variable setting.
+	(ALL_CPPFLAGS): Likewise.
+
+2008-03-12  Paolo Bonzini  <bonzini@gnu.org>
+
+	* mangle.c (java_mangle_decl): Remove dead check.
+
+2008-03-11  Paolo Bonzini  <bonzini@gnu.org>
+
+        * jcf-parse.c (java_parse_file): Assert binding levels are
+        left in order.
+        * lang.c (LANG_HOOKS_CLEAR_BINDING_STACK, java_clear_binding_stack):
+        Delete.
+
+2008-03-02  Jakub Jelinek  <jakub@redhat.com>
+
+	* jcf-dump.c (version): Update copyright notice dates.
+
+2008-02-29  Tom Tromey  <tromey@redhat.com>
+
+	* expr.c (expand_byte_code): Set DECL_FUNCTION_LAST_LINE on
+	method.
+	* java-tree.h (struct lang_decl_func): Remove obsolete comment.
+
+2008-02-26  Tom Tromey  <tromey@redhat.com>
+
+	* lang.c (java_post_options): Remove conditional.
+	* expr.c (expand_byte_code): Remove old location code.
+	* jcf-parse.c (set_source_filename): Remove old location code.
+	(give_name_to_class): Likewise.
+	(jcf_parse): Likewise.
+	(duplicate_class_warning): Likewise.
+	(parse_class_file): Likewise.
+	(java_parse_file): Likewise.
+	* decl.c (finish_method): Remove old location code.
+	* class.c (push_class): Remove old location code.
+
+2008-02-06  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	PR other/35107
+	* Make-lang.in (jc1): Add $(GMPLIBS).
+
+2008-01-23  David Daney  <ddaney@avtrex.com>
+
+	* class.c (hide)  Rename to...
+	(java_hide_decl) ... this throughout, and make public.
+	* resource.c (Jr_count): Remove.
+	(compile_resource_data): Call java_mangle_resource_name to generate
+	decl name.  Make resource decl public and hidden.
+	* mangle.c (java_mangle_resource_name): New function.
+	* java-tree.h (java_hide_decl, java_mangle_resource_name): Declare
+	functions.
+
+2008-01-04  Andrew Haley  <aph@redhat.com>
+
+	PR java/17779
+	* jcf-parse.c (parse_zip_file_entries): Move decl to compile on
+	C90.
+
+2008-01-03  Andrew Haley  <aph@redhat.com>
+
+	PR java/17779
+	* jcf-parse.c (parse_zip_file_entries): Unset TYPE_ALIAS_SET if
+	we're about to re-layout the type.
+
+2007-12-20  Alexandre Oliva  <aoliva@redhat.com>
+
+	* lang.c (java_classify_record): Don't return
+	RECORD_IS_INTERFACE for now.
+
+2007-12-18  Andrew Haley  <aph@redhat.com>
+
+	PR java/27643
+	* jcf-parse.c (java_parse_file): Remove call to
+	java_mark_class_local.
+	(parse_class_file): Reinstate call to java_mark_class_local here.
+	* decl.c (java_mark_cni_decl_local): If the ASSEMBLER_NAME is
+	already set, call java_mangle_decl() and make_decl_rtl() to
+	rewrite its name as a hidden alias.
+
+2007-12-15  Alexandre Oliva  <aoliva@redhat.com>
+
+	PR debug/7081
+	* lang.c (java_classify_record): New.
+	(LANG_HOOKS_CLASSIFY_RECORD): Override.
+
 2007-11-26  Andreas Krebbel  <krebbel1@de.ibm.com>
 
 	PR 34081/C++

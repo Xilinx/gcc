@@ -1,5 +1,5 @@
 /* The Blackfin code generation auxiliary output file.
-   Copyright (C) 2005, 2006, 2007 Free Software Foundation, Inc.
+   Copyright (C) 2005, 2006, 2007, 2008 Free Software Foundation, Inc.
    Contributed by Analog Devices.
 
    This file is part of GCC.
@@ -49,6 +49,7 @@
 #include "langhooks.h"
 #include "bfin-protos.h"
 #include "tm-preds.h"
+#include "tm-constrs.h"
 #include "gt-bfin.h"
 #include "basic-block.h"
 #include "cfglayout.h"
@@ -93,7 +94,7 @@ static int bfin_flag_schedule_insns2;
 static int bfin_flag_var_tracking;
 
 /* -mcpu support */
-bfin_cpu_t bfin_cpu_type = DEFAULT_CPU_TYPE;
+bfin_cpu_t bfin_cpu_type = BFIN_CPU_UNKNOWN;
 
 /* -msi-revision support. There are three special values:
    -1      -msi-revision=none.
@@ -114,85 +115,97 @@ struct bfin_cpu
 struct bfin_cpu bfin_cpus[] =
 {
   {"bf522", BFIN_CPU_BF522, 0x0000,
-   WA_SPECULATIVE_LOADS},
+   WA_SPECULATIVE_LOADS | WA_RETS},
+
+  {"bf523", BFIN_CPU_BF523, 0x0000,
+   WA_SPECULATIVE_LOADS | WA_RETS},
+
+  {"bf524", BFIN_CPU_BF524, 0x0000,
+   WA_SPECULATIVE_LOADS | WA_RETS},
 
   {"bf525", BFIN_CPU_BF525, 0x0000,
-   WA_SPECULATIVE_LOADS},
+   WA_SPECULATIVE_LOADS | WA_RETS},
+
+  {"bf526", BFIN_CPU_BF526, 0x0000,
+   WA_SPECULATIVE_LOADS | WA_RETS},
 
   {"bf527", BFIN_CPU_BF527, 0x0000,
-   WA_SPECULATIVE_LOADS},
+   WA_SPECULATIVE_LOADS | WA_RETS},
 
   {"bf531", BFIN_CPU_BF531, 0x0005,
-   WA_SPECULATIVE_LOADS},
+   WA_SPECULATIVE_LOADS | WA_RETS},
   {"bf531", BFIN_CPU_BF531, 0x0004,
-   WA_SPECULATIVE_LOADS | WA_SPECULATIVE_SYNCS},
+   WA_SPECULATIVE_LOADS | WA_SPECULATIVE_SYNCS | WA_RETS},
   {"bf531", BFIN_CPU_BF531, 0x0003,
-   WA_SPECULATIVE_LOADS | WA_SPECULATIVE_SYNCS},
+   WA_SPECULATIVE_LOADS | WA_SPECULATIVE_SYNCS | WA_RETS},
 
   {"bf532", BFIN_CPU_BF532, 0x0005,
-   WA_SPECULATIVE_LOADS},
+   WA_SPECULATIVE_LOADS | WA_RETS},
   {"bf532", BFIN_CPU_BF532, 0x0004,
-   WA_SPECULATIVE_LOADS | WA_SPECULATIVE_SYNCS},
+   WA_SPECULATIVE_LOADS | WA_SPECULATIVE_SYNCS | WA_RETS},
   {"bf532", BFIN_CPU_BF532, 0x0003,
-   WA_SPECULATIVE_LOADS | WA_SPECULATIVE_SYNCS},
+   WA_SPECULATIVE_LOADS | WA_SPECULATIVE_SYNCS | WA_RETS},
 
   {"bf533", BFIN_CPU_BF533, 0x0005,
-   WA_SPECULATIVE_LOADS},
+   WA_SPECULATIVE_LOADS | WA_RETS},
   {"bf533", BFIN_CPU_BF533, 0x0004,
-   WA_SPECULATIVE_LOADS | WA_SPECULATIVE_SYNCS},
+   WA_SPECULATIVE_LOADS | WA_SPECULATIVE_SYNCS | WA_RETS},
   {"bf533", BFIN_CPU_BF533, 0x0003,
-   WA_SPECULATIVE_LOADS | WA_SPECULATIVE_SYNCS},
+   WA_SPECULATIVE_LOADS | WA_SPECULATIVE_SYNCS | WA_RETS},
 
   {"bf534", BFIN_CPU_BF534, 0x0003,
-   WA_SPECULATIVE_LOADS},
+   WA_SPECULATIVE_LOADS | WA_RETS},
   {"bf534", BFIN_CPU_BF534, 0x0002,
-   WA_SPECULATIVE_LOADS | WA_SPECULATIVE_SYNCS},
+   WA_SPECULATIVE_LOADS | WA_SPECULATIVE_SYNCS | WA_RETS},
   {"bf534", BFIN_CPU_BF534, 0x0001,
-   WA_SPECULATIVE_LOADS | WA_SPECULATIVE_SYNCS},
+   WA_SPECULATIVE_LOADS | WA_SPECULATIVE_SYNCS | WA_RETS},
 
   {"bf536", BFIN_CPU_BF536, 0x0003,
-   WA_SPECULATIVE_LOADS},
+   WA_SPECULATIVE_LOADS | WA_RETS},
   {"bf536", BFIN_CPU_BF536, 0x0002,
-   WA_SPECULATIVE_LOADS | WA_SPECULATIVE_SYNCS},
+   WA_SPECULATIVE_LOADS | WA_SPECULATIVE_SYNCS | WA_RETS},
   {"bf536", BFIN_CPU_BF536, 0x0001,
-   WA_SPECULATIVE_LOADS | WA_SPECULATIVE_SYNCS},
+   WA_SPECULATIVE_LOADS | WA_SPECULATIVE_SYNCS | WA_RETS},
 
   {"bf537", BFIN_CPU_BF537, 0x0003,
-   WA_SPECULATIVE_LOADS},
+   WA_SPECULATIVE_LOADS | WA_RETS},
   {"bf537", BFIN_CPU_BF537, 0x0002,
-   WA_SPECULATIVE_LOADS | WA_SPECULATIVE_SYNCS},
+   WA_SPECULATIVE_LOADS | WA_SPECULATIVE_SYNCS | WA_RETS},
   {"bf537", BFIN_CPU_BF537, 0x0001,
-   WA_SPECULATIVE_LOADS | WA_SPECULATIVE_SYNCS},
+   WA_SPECULATIVE_LOADS | WA_SPECULATIVE_SYNCS | WA_RETS},
 
   {"bf538", BFIN_CPU_BF538, 0x0004,
-   WA_SPECULATIVE_LOADS},
+   WA_SPECULATIVE_LOADS | WA_RETS},
   {"bf538", BFIN_CPU_BF538, 0x0003,
-   WA_SPECULATIVE_LOADS},
+   WA_SPECULATIVE_LOADS | WA_RETS},
 
   {"bf539", BFIN_CPU_BF539, 0x0004,
-   WA_SPECULATIVE_LOADS},
+   WA_SPECULATIVE_LOADS | WA_RETS},
   {"bf539", BFIN_CPU_BF539, 0x0003,
-   WA_SPECULATIVE_LOADS},
+   WA_SPECULATIVE_LOADS | WA_RETS},
   {"bf539", BFIN_CPU_BF539, 0x0002,
-   WA_SPECULATIVE_LOADS},
+   WA_SPECULATIVE_LOADS | WA_RETS},
 
   {"bf542", BFIN_CPU_BF542, 0x0000,
-   WA_SPECULATIVE_LOADS},
+   WA_SPECULATIVE_LOADS | WA_RETS},
 
   {"bf544", BFIN_CPU_BF544, 0x0000,
-   WA_SPECULATIVE_LOADS},
+   WA_SPECULATIVE_LOADS | WA_RETS},
+
+  {"bf547", BFIN_CPU_BF547, 0x0000,
+   WA_SPECULATIVE_LOADS | WA_RETS},
 
   {"bf548", BFIN_CPU_BF548, 0x0000,
-   WA_SPECULATIVE_LOADS},
+   WA_SPECULATIVE_LOADS | WA_RETS},
 
   {"bf549", BFIN_CPU_BF549, 0x0000,
-   WA_SPECULATIVE_LOADS},
+   WA_SPECULATIVE_LOADS | WA_RETS},
 
-  {"bf561", BFIN_CPU_BF561, 0x0005, 0},
+  {"bf561", BFIN_CPU_BF561, 0x0005, WA_RETS},
   {"bf561", BFIN_CPU_BF561, 0x0003,
-   WA_SPECULATIVE_LOADS | WA_SPECULATIVE_SYNCS},
+   WA_SPECULATIVE_LOADS | WA_SPECULATIVE_SYNCS | WA_RETS},
   {"bf561", BFIN_CPU_BF561, 0x0002,
-   WA_SPECULATIVE_LOADS | WA_SPECULATIVE_SYNCS},
+   WA_SPECULATIVE_LOADS | WA_SPECULATIVE_SYNCS | WA_RETS},
 
   {NULL, 0, 0, 0}
 };
@@ -292,7 +305,7 @@ legitimize_pic_address (rtx orig, rtx reg, rtx picreg)
 
       emit_move_insn (reg, new);
       if (picreg == pic_offset_table_rtx)
-	current_function_uses_pic_offset_table = 1;
+	crtl->uses_pic_offset_table = 1;
       return reg;
     }
 
@@ -349,7 +362,7 @@ must_save_p (bool is_inthandler, unsigned regno)
   if (D_REGNO_P (regno))
     {
       bool is_eh_return_reg = false;
-      if (current_function_calls_eh_return)
+      if (crtl->calls_eh_return)
 	{
 	  unsigned j;
 	  for (j = 0; ; j++)
@@ -374,7 +387,7 @@ must_save_p (bool is_inthandler, unsigned regno)
 	       && (is_inthandler || !call_used_regs[regno]))
 	      || (!TARGET_FDPIC
 		  && regno == PIC_OFFSET_TABLE_REGNUM
-		  && (current_function_uses_pic_offset_table
+		  && (crtl->uses_pic_offset_table
 		      || (TARGET_ID_SHARED_LIBRARY && !current_function_is_leaf))));
     }
   else
@@ -437,7 +450,7 @@ stack_frame_needed_p (void)
 {
   /* EH return puts a new return address into the frame using an
      address relative to the frame pointer.  */
-  if (current_function_calls_eh_return)
+  if (crtl->calls_eh_return)
     return true;
   return frame_pointer_needed;
 }
@@ -765,9 +778,9 @@ bfin_initial_elimination_offset (int from, int to)
 
   if (to == STACK_POINTER_REGNUM)
     {
-      if (current_function_outgoing_args_size >= FIXED_STACK_AREA)
-	offset += current_function_outgoing_args_size;
-      else if (current_function_outgoing_args_size)
+      if (crtl->outgoing_args_size >= FIXED_STACK_AREA)
+	offset += crtl->outgoing_args_size;
+      else if (crtl->outgoing_args_size)
 	offset += FIXED_STACK_AREA;
 
       offset += get_frame_size ();
@@ -839,7 +852,7 @@ add_to_reg (rtx reg, HOST_WIDE_INT value, int frame, int epilogue_p)
 	    if ((df_regs_ever_live_p (i) && ! call_used_regs[i])
 		|| (!TARGET_FDPIC
 		    && i == PIC_OFFSET_TABLE_REGNUM
-		    && (current_function_uses_pic_offset_table
+		    && (crtl->uses_pic_offset_table
 			|| (TARGET_ID_SHARED_LIBRARY
 			    && ! current_function_is_leaf))))
 	      break;
@@ -931,10 +944,10 @@ emit_link_insn (rtx spreg, HOST_WIDE_INT frame_size)
 static HOST_WIDE_INT
 arg_area_size (void)
 {
-  if (current_function_outgoing_args_size)
+  if (crtl->outgoing_args_size)
     {
-      if (current_function_outgoing_args_size >= FIXED_STACK_AREA)
-	return current_function_outgoing_args_size;
+      if (crtl->outgoing_args_size >= FIXED_STACK_AREA)
+	return crtl->outgoing_args_size;
       else
 	return FIXED_STACK_AREA;
     }
@@ -1152,13 +1165,13 @@ bfin_expand_prologue (void)
       return;
     }
 
-  if (current_function_limit_stack
+  if (crtl->limit_stack
       || TARGET_STACK_CHECK_L1)
     {
       HOST_WIDE_INT offset
 	= bfin_initial_elimination_offset (ARG_POINTER_REGNUM,
 					   STACK_POINTER_REGNUM);
-      rtx lim = current_function_limit_stack ? stack_limit_rtx : NULL_RTX;
+      rtx lim = crtl->limit_stack ? stack_limit_rtx : NULL_RTX;
       rtx p2reg = gen_rtx_REG (Pmode, REG_P2);
 
       if (!lim)
@@ -1204,7 +1217,7 @@ bfin_expand_prologue (void)
 
   if (TARGET_ID_SHARED_LIBRARY
       && !TARGET_SEP_DATA
-      && (current_function_uses_pic_offset_table
+      && (crtl->uses_pic_offset_table
 	  || !current_function_is_leaf))
     bfin_load_pic_reg (pic_offset_table_rtx);
 }
@@ -1825,10 +1838,10 @@ bfin_pass_by_reference (CUMULATIVE_ARGS *cum ATTRIBUTE_UNUSED,
 
 /* Decide whether a type should be returned in memory (true)
    or in a register (false).  This is called by the macro
-   RETURN_IN_MEMORY.  */
+   TARGET_RETURN_IN_MEMORY.  */
 
-int
-bfin_return_in_memory (const_tree type)
+static bool
+bfin_return_in_memory (const_tree type, const_tree fntype ATTRIBUTE_UNUSED)
 {
   int size = int_size_in_bytes (type);
   return size > 2 * UNITS_PER_WORD || size == -1;
@@ -2272,7 +2285,7 @@ bfin_secondary_reload (bool in_p, rtx x, enum reg_class class,
   if (fp_plus_const_operand (x, mode))
     {
       rtx op2 = XEXP (x, 1);
-      int large_constant_p = ! CONST_7BIT_IMM_P (INTVAL (op2));
+      int large_constant_p = ! satisfies_constraint_Ks7 (op2);
 
       if (class == PREGS || class == PREGS_CLOBBERED)
 	return NO_REGS;
@@ -2433,6 +2446,17 @@ bfin_init_machine_status (void)
 void
 override_options (void)
 {
+  /* If processor type is not specified, enable all workarounds.  */
+  if (bfin_cpu_type == BFIN_CPU_UNKNOWN)
+    {
+      int i;
+
+      for (i = 0; bfin_cpus[i].name != NULL; i++)
+	bfin_workarounds |= bfin_cpus[i].workarounds;
+
+      bfin_si_revision = 0xffff;
+    }
+
   if (bfin_csync_anomaly == 1)
     bfin_workarounds |= WA_SPECULATIVE_SYNCS;
   else if (bfin_csync_anomaly == 0)
@@ -2450,9 +2474,6 @@ override_options (void)
   if (bfin_lib_id_given && ! TARGET_ID_SHARED_LIBRARY)
     error ("-mshared-library-id= specified without -mid-shared-library");
 
-  if (TARGET_ID_SHARED_LIBRARY && flag_pic == 0)
-    flag_pic = 1;
-
   if (stack_limit_rtx && TARGET_STACK_CHECK_L1)
     error ("Can't use multiple stack checking methods together.");
 
@@ -2467,6 +2488,9 @@ override_options (void)
   if (TARGET_SEP_DATA)
     target_flags |= MASK_ID_SHARED_LIBRARY | MASK_LEAF_ID_SHARED_LIBRARY;
 
+  if (TARGET_ID_SHARED_LIBRARY && flag_pic == 0)
+    flag_pic = 1;
+
   /* There is no single unaligned SI op for PIC code.  Sometimes we
      need to use ".4byte" and sometimes we need to use ".picptr".
      See bfin_assemble_integer for details.  */
@@ -2477,6 +2501,18 @@ override_options (void)
      since we don't support it and it'll just break.  */
   if (flag_pic && !TARGET_FDPIC && !TARGET_ID_SHARED_LIBRARY)
     flag_pic = 0;
+
+  if (TARGET_MULTICORE && bfin_cpu_type != BFIN_CPU_BF561)
+    error ("-mmulticore can only be used with BF561");
+
+  if (TARGET_COREA && !TARGET_MULTICORE)
+    error ("-mcorea should be used with -mmulticore");
+
+  if (TARGET_COREB && !TARGET_MULTICORE)
+    error ("-mcoreb should be used with -mmulticore");
+
+  if (TARGET_COREA && TARGET_COREB)
+    error ("-mcorea and -mcoreb can't be used together");
 
   flag_schedule_insns = 0;
 
@@ -2693,7 +2729,7 @@ split_load_immediate (rtx operands[])
 
   if (D_REGNO_P (regno))
     {
-      if (CONST_7BIT_IMM_P (tmp))
+      if (tmp >= -64 && tmp <= 63)
 	{
 	  emit_insn (gen_movsi (operands[0], GEN_INT (tmp)));
 	  emit_insn (gen_movstricthi_high (operands[0], GEN_INT (val & -65536)));
@@ -2720,7 +2756,7 @@ split_load_immediate (rtx operands[])
     return 0;
 
   if (optimize_size
-      && num_compl_zero && CONST_7BIT_IMM_P (shifted_compl))
+      && num_compl_zero && shifted_compl >= -64 && shifted_compl <= 63)
     {
       /* If optimizing for size, generate a sequence that has more instructions
 	 but is shorter.  */
@@ -2851,7 +2887,7 @@ bfin_rtx_costs (rtx x, int code, int outer_code, int *total)
     {
     case CONST_INT:
       if (outer_code == SET || outer_code == PLUS)
-        *total = CONST_7BIT_IMM_P (INTVAL (x)) ? 0 : cost2;
+        *total = satisfies_constraint_Ks7 (x) ? 0 : cost2;
       else if (outer_code == AND)
         *total = log2constp (~INTVAL (x)) ? 0 : cost2;
       else if (outer_code == LE || outer_code == LT || outer_code == EQ)
@@ -2909,7 +2945,7 @@ bfin_rtx_costs (rtx x, int code, int outer_code, int *total)
 	{
 	  *total = 6 * cost2;
 	  if (GET_CODE (op1) != CONST_INT
-	      || !CONST_7BIT_IMM_P (INTVAL (op1)))
+	      || !satisfies_constraint_Ks7 (op1))
 	    *total += rtx_cost (op1, PLUS);
 	  if (GET_CODE (op0) != REG
 	      && (GET_CODE (op0) != SUBREG || GET_CODE (SUBREG_REG (op0)) != REG))
@@ -3376,6 +3412,8 @@ bfin_adjust_cost (rtx insn, rtx link, rtx dep_insn, int cost)
   if (dep_insn_type == TYPE_MOVE || dep_insn_type == TYPE_MCLD)
     {
       rtx pat = PATTERN (dep_insn);
+      if (GET_CODE (pat) == PARALLEL)
+	pat = XVECEXP (pat, 0, 0);
       rtx dest = SET_DEST (pat);
       rtx src = SET_SRC (pat);
       if (! ADDRESS_REGNO_P (REGNO (dest))
@@ -4180,7 +4218,22 @@ bfin_discover_loops (bitmap_obstack *stack, FILE *dump_file)
 
       if (INSN_P (tail) && recog_memoized (tail) == CODE_FOR_loop_end)
 	{
+	  rtx insn;
 	  /* A possible loop end */
+
+	  /* There's a degenerate case we can handle - an empty loop consisting
+	     of only a back branch.  Handle that by deleting the branch.  */
+	  insn = BB_HEAD (BRANCH_EDGE (bb)->dest);
+	  if (next_real_insn (insn) == tail)
+	    {
+	      if (dump_file)
+		{
+		  fprintf (dump_file, ";; degenerate loop ending at\n");
+		  print_rtl_single (dump_file, tail);
+		}
+	      delete_insn_and_edges (tail);
+	      continue;
+	    }
 
 	  loop = XNEW (struct loop_info);
 	  loop->next = loops;
@@ -4765,6 +4818,9 @@ bfin_reorg (void)
   if (! ENABLE_WA_SPECULATIVE_SYNCS)
     return;
 
+  if (! ENABLE_WA_RETS)
+    return;
+
   for (insn = get_insns (); insn; insn = NEXT_INSN (insn))
     {
       if (JUMP_P (insn)
@@ -5203,6 +5259,8 @@ enum bfin_builtins
 
   BFIN_BUILTIN_CPLX_SQU,
 
+  BFIN_BUILTIN_LOADBYTES,
+
   BFIN_BUILTIN_MAX
 };
 
@@ -5257,7 +5315,11 @@ bfin_init_builtins (void)
   tree short_ftype_v2hi
     = build_function_type_list (short_integer_type_node, V2HI_type_node,
 				NULL_TREE);
-
+  tree int_ftype_pint
+    = build_function_type_list (integer_type_node,
+				build_pointer_type (integer_type_node),
+				NULL_TREE);
+  
   /* Add the remaining MMX insns with somewhat more complicated types.  */
   def_builtin ("__builtin_bfin_csync", void_ftype_void, BFIN_BUILTIN_CSYNC);
   def_builtin ("__builtin_bfin_ssync", void_ftype_void, BFIN_BUILTIN_SSYNC);
@@ -5384,6 +5446,11 @@ bfin_init_builtins (void)
 	       BFIN_BUILTIN_CPLX_MSU_16_S40);
   def_builtin ("__builtin_bfin_csqu_fr16", v2hi_ftype_v2hi,
 	       BFIN_BUILTIN_CPLX_SQU);
+
+  /* "Unaligned" load.  */
+  def_builtin ("__builtin_bfin_loadbytes", int_ftype_pint,
+	       BFIN_BUILTIN_LOADBYTES);
+
 }
 
 
@@ -5431,6 +5498,8 @@ static const struct builtin_description bdesc_2arg[] =
 
 static const struct builtin_description bdesc_1arg[] =
 {
+  { CODE_FOR_loadbytes, "__builtin_bfin_loadbytes", BFIN_BUILTIN_LOADBYTES, 0 },
+
   { CODE_FOR_ones, "__builtin_bfin_ones", BFIN_BUILTIN_ONES, 0 },
 
   { CODE_FOR_signbitshi2, "__builtin_bfin_norm_fr1x16", BFIN_BUILTIN_NORM_1X16, 0 },
@@ -5887,5 +5956,8 @@ bfin_expand_builtin (tree exp, rtx target ATTRIBUTE_UNUSED,
 
 #undef TARGET_CANNOT_FORCE_CONST_MEM
 #define TARGET_CANNOT_FORCE_CONST_MEM bfin_cannot_force_const_mem
+
+#undef TARGET_RETURN_IN_MEMORY
+#define TARGET_RETURN_IN_MEMORY bfin_return_in_memory
 
 struct gcc_target targetm = TARGET_INITIALIZER;

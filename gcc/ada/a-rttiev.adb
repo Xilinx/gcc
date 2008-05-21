@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---           Copyright (C) 2005-2006, Free Software Foundation, Inc.        --
+--           Copyright (C) 2005-2008, Free Software Foundation, Inc.        --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -34,7 +34,6 @@
 with System.Task_Primitives.Operations;
 with System.Tasking.Utilities;
 with System.Soft_Links;
---  used for Abort_Defer/Undefer
 
 with Ada.Containers.Doubly_Linked_Lists;
 pragma Elaborate_All (Ada.Containers.Doubly_Linked_Lists);
@@ -46,7 +45,6 @@ pragma Elaborate_All (Ada.Containers.Doubly_Linked_Lists);
 package body Ada.Real_Time.Timing_Events is
 
    use System.Task_Primitives.Operations;
-   --  for Write_Lock and Unlock
 
    package SSL renames System.Soft_Links;
 
@@ -68,8 +66,8 @@ package body Ada.Real_Time.Timing_Events is
    --  Used for mutually exclusive access to All_Events
 
    procedure Process_Queued_Events;
-   --  Examine the queue of pending events for any that have timed-out. For
-   --  those that have timed-out, remove them from the queue and invoke their
+   --  Examine the queue of pending events for any that have timed out. For
+   --  those that have timed out, remove them from the queue and invoke their
    --  handler (unless the user has cancelled the event by setting the handler
    --  pointer to null). Mutually exclusive access is held via Event_Queue_Lock
    --  during part of the processing.
@@ -144,7 +142,7 @@ package body Ada.Real_Time.Timing_Events is
 
          if Next_Event.Timeout > Clock then
 
-            --  We found one that has not yet timed-out. The queue is in
+            --  We found one that has not yet timed out. The queue is in
             --  ascending order by Timeout so there is no need to continue
             --  processing (and indeed we must not continue since we always
             --  delete the first element).
@@ -184,8 +182,12 @@ package body Ada.Real_Time.Timing_Events is
             Next_Event.Handler := null;
 
             if Handler /= null then
-               Handler (Timing_Event (Next_Event.all));
+               Handler.all (Timing_Event (Next_Event.all));
             end if;
+
+         --  Ignore exceptions propagated by Handler.all, as required by
+         --  RM-D.15(21/2)
+
          exception
             when others =>
                null;
@@ -263,12 +265,15 @@ package body Ada.Real_Time.Timing_Events is
    begin
       Remove_From_Queue (Event'Unchecked_Access);
       Event.Handler := null;
-      if At_Time <= Clock then
-         if Handler /= null then
-            Handler (Event);
-         end if;
-         return;
-      end if;
+
+      --  RM-D.15(15/2) requires that at this point, we check whether the time
+      --  has already passed, and if so, call Handler.all directly from here
+      --  instead of doing the enqueuing below. However, this causes a nasty
+      --  race condition and potential deadlock. If the current task has
+      --  already locked the protected object of Handler.all, and the time has
+      --  passed, deadlock would occur. Therefore, we ignore the requirement.
+      --  The same comment applies to the other Set_Handler below.
+
       if Handler /= null then
          Event.Timeout := At_Time;
          Event.Handler := Handler;
@@ -288,12 +293,9 @@ package body Ada.Real_Time.Timing_Events is
    begin
       Remove_From_Queue (Event'Unchecked_Access);
       Event.Handler := null;
-      if In_Time <= Time_Span_Zero then
-         if Handler /= null then
-            Handler (Event);
-         end if;
-         return;
-      end if;
+
+      --  See comment in the other Set_Handler above.
+
       if Handler /= null then
          Event.Timeout := Clock + In_Time;
          Event.Handler := Handler;

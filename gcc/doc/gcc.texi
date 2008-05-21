@@ -41,8 +41,8 @@
 
 @copying
 Copyright @copyright{} 1988, 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006,
-2007 Free Software Foundation, Inc.
+1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
+2008 Free Software Foundation, Inc.
 
 Permission is granted to copy, distribute and/or modify this document
 under the terms of the GNU Free Documentation License, Version 1.2 or
@@ -66,6 +66,7 @@ included in the section entitled ``GNU Free Documentation License''.
 @dircategory Software development
 @direntry
 * gcc: (gcc).                  The GNU Compiler Collection.
+* g++: (gcc).                  The GNU C++ compiler.
 @end direntry
 This file documents the use of the GNU compilers.
 @sp 1
@@ -169,7 +170,7 @@ Introduction, gccint, GNU Compiler Collection (GCC) Internals}.
 
 @include funding.texi
 @include gnu.texi
-@include gpl.texi
+@include gpl_v3.texi
 
 @c ---------------------------------------------------------------------
 @c GFDL

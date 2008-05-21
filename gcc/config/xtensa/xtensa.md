@@ -1,5 +1,5 @@
 ;; GCC machine description for Tensilica's Xtensa architecture.
-;; Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007
+;; Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
 ;; Free Software Foundation, Inc.
 ;; Contributed by Bob Wilson (bwilson@tensilica.com) at Tensilica.
 
@@ -59,13 +59,18 @@
 
 ;; This code iterator allows all branch instructions to be generated from
 ;; a single define_expand template.
-(define_code_iterator any_cond [eq ne gt ge lt le gtu geu ltu leu])
+(define_code_iterator any_cond [eq ne gt ge lt le gtu geu ltu leu
+				uneq ltgt ungt unge unlt unle
+				unordered ordered])
 
 ;; This code iterator is for setting a register from a comparison.
 (define_code_iterator any_scc [eq ne gt ge lt le])
 
 ;; This code iterator is for floating-point comparisons.
-(define_code_iterator any_scc_sf [eq lt le])
+(define_code_iterator any_scc_sf [eq lt le uneq unlt unle unordered])
+(define_code_attr scc_sf [(eq "oeq") (lt "olt") (le "ole") 
+			  (uneq "ueq") (unlt "ult") (unle "ule")
+			  (unordered "un")])
 
 ;; This iterator and attribute allow to combine most atomic operations.
 (define_code_iterator ATOMIC [and ior xor plus minus mult])
@@ -928,7 +933,7 @@
 	(plus:SI (match_dup 1) (match_dup 2)))]
   "TARGET_HARD_FLOAT"
 {
-  if (volatile_refs_p (PATTERN (insn)))
+  if (TARGET_SERIALIZE_VOLATILE && volatile_refs_p (PATTERN (insn)))
     output_asm_insn ("memw", operands);
   return "lsiu\t%0, %1, %2";
 }
@@ -944,7 +949,7 @@
 	(plus:SI (match_dup 0) (match_dup 1)))]
   "TARGET_HARD_FLOAT"
 {
-  if (volatile_refs_p (PATTERN (insn)))
+  if (TARGET_SERIALIZE_VOLATILE && volatile_refs_p (PATTERN (insn)))
     output_asm_insn ("memw", operands);
   return "ssiu\t%2, %0, %1";
 }
@@ -1415,7 +1420,7 @@
 	(any_scc_sf:CC (match_operand:SF 1 "register_operand" "f")
 		       (match_operand:SF 2 "register_operand" "f")))]
   "TARGET_HARD_FLOAT"
-  "o<code>.s\t%0, %1, %2"
+  "<scc_sf>.s\t%0, %1, %2"
   [(set_attr "type"	"farith")
    (set_attr "mode"	"BL")
    (set_attr "length"	"3")])
@@ -1665,21 +1670,6 @@
   [(set_attr "type"	"nop")
    (set_attr "mode"	"none")
    (set_attr "length"	"0")])
-
-;; The fix_return_addr pattern sets the high 2 bits of an address in a
-;; register to match the high bits of the current PC.
-(define_insn "fix_return_addr"
-  [(set (match_operand:SI 0 "register_operand" "=a")
-	(unspec:SI [(match_operand:SI 1 "register_operand" "r")]
-		   UNSPEC_RET_ADDR))
-   (clobber (match_scratch:SI 2 "=r"))
-   (clobber (match_scratch:SI 3 "=r"))]
-  ""
-  "mov\t%2, a0\;call0\t0f\;.align\t4\;0:\;mov\t%3, a0\;mov\ta0, %2\;\
-srli\t%3, %3, 30\;slli\t%0, %1, 2\;ssai\t2\;src\t%0, %3, %0"
-  [(set_attr "type"	"multi")
-   (set_attr "mode"	"SI")
-   (set_attr "length"	"24")])
 
 
 ;; Instructions for the Xtensa "boolean" option.

@@ -39,7 +39,7 @@
 --  Ada.Calendar. It provides Split and Time_Of to build and split a Time
 --  data. And it provides accessor functions to get only one of Hour, Minute,
 --  Second, Second_Duration. Other functions are to access more advanced
---  valueas like Day_Of_Week, Day_In_Year and Week_In_Year.
+--  values like Day_Of_Week, Day_In_Year and Week_In_Year.
 
 with Ada.Calendar;
 with Interfaces.C;
@@ -56,11 +56,15 @@ package GNAT.Calendar is
    subtype Day_In_Year_Number  is Positive range 1 .. 366;
    subtype Week_In_Year_Number is Positive range 1 .. 53;
 
+   No_Time : constant Ada.Calendar.Time;
+   --  A constant set to the first date that can be represented by the type
+   --  Time. It can be used to indicate an uninitialized date.
+
    function Hour       (Date : Ada.Calendar.Time) return Hour_Number;
    function Minute     (Date : Ada.Calendar.Time) return Minute_Number;
    function Second     (Date : Ada.Calendar.Time) return Second_Number;
    function Sub_Second (Date : Ada.Calendar.Time) return Second_Duration;
-   --  Hour, Minute, Sedond and Sub_Second returns the complete time data for
+   --  Hour, Minute, Second and Sub_Second returns the complete time data for
    --  the Date (H:M:S.SS). See Ada.Calendar for Year, Month, Day accessors.
    --  Second_Duration precision depends on the target clock precision.
 
@@ -130,5 +134,11 @@ private
    --  The code of this function is a modified version of algorithm 199 from
    --  the Collected Algorithms of the ACM. The author of algorithm 199 is
    --  Robert G. Tantzen.
+
+   No_Time : constant Ada.Calendar.Time :=
+               Ada.Calendar.Time_Of
+                 (Ada.Calendar.Year_Number'First,
+                  Ada.Calendar.Month_Number'First,
+                  Ada.Calendar.Day_Number'First);
 
 end GNAT.Calendar;

@@ -1,5 +1,5 @@
 /* Array things
-   Copyright (C) 2000, 2001, 2002, 2004, 2005, 2006, 2007
+   Copyright (C) 2000, 2001, 2002, 2004, 2005, 2006, 2007, 2008
    Free Software Foundation, Inc.
    Contributed by Andy Vaught
 
@@ -250,6 +250,21 @@ gfc_resolve_array_spec (gfc_array_spec *as, int check_constant)
       e = as->upper[i];
       if (resolve_array_bound (e, check_constant) == FAILURE)
 	return FAILURE;
+
+      if ((as->lower[i] == NULL) || (as->upper[i] == NULL))
+	continue;
+
+      /* If the size is negative in this dimension, set it to zero.  */
+      if (as->lower[i]->expr_type == EXPR_CONSTANT
+	    && as->upper[i]->expr_type == EXPR_CONSTANT
+	    && mpz_cmp (as->upper[i]->value.integer,
+			as->lower[i]->value.integer) < 0)
+	{
+	  gfc_free_expr (as->upper[i]);
+	  as->upper[i] = gfc_copy_expr (as->lower[i]);
+	  mpz_sub_ui (as->upper[i]->value.integer,
+		      as->upper[i]->value.integer, 1);
+	}
     }
 
   return SUCCESS;
@@ -318,15 +333,6 @@ match_array_element_spec (gfc_array_spec *as)
   if (m == MATCH_NO)
     return AS_ASSUMED_SHAPE;
 
-  /* If the size is negative in this dimension, set it to zero.  */
-  if ((*lower)->expr_type == EXPR_CONSTANT
-      && (*upper)->expr_type == EXPR_CONSTANT
-      && mpz_cmp ((*upper)->value.integer, (*lower)->value.integer) < 0)
-    {
-      gfc_free_expr (*upper);
-      *upper = gfc_copy_expr (*lower);
-      mpz_sub_ui ((*upper)->value.integer, (*upper)->value.integer, 1);
-    }
   return AS_EXPLICIT;
 }
 
@@ -430,6 +436,12 @@ gfc_match_array_spec (gfc_array_spec **asp)
 		     GFC_MAX_DIMENSIONS);
 	  goto cleanup;
 	}
+
+      if (as->rank > 7
+	  && gfc_notify_std (GFC_STD_F2008, "Fortran 2008: Array "
+			     "specification at %C with more than 7 dimensions")
+	     == FAILURE)
+	goto cleanup;
 
       as->rank++;
     }
@@ -871,9 +883,11 @@ gfc_match_array_constructor (gfc_expr **result)
 {
   gfc_constructor *head, *tail, *new;
   gfc_expr *expr;
+  gfc_typespec ts;
   locus where;
   match m;
   const char *end_delim;
+  bool seen_ts;
 
   if (gfc_match (" (/") == MATCH_NO)
     {
@@ -892,11 +906,33 @@ gfc_match_array_constructor (gfc_expr **result)
 
   where = gfc_current_locus;
   head = tail = NULL;
+  seen_ts = false;
+
+  /* Try to match an optional "type-spec ::"  */
+  if (gfc_match_type_spec (&ts, 0) == MATCH_YES)
+    {
+      seen_ts = (gfc_match (" ::") == MATCH_YES);
+
+      if (seen_ts)
+	{
+	  if (gfc_notify_std (GFC_STD_F2003, "Fortran 2003: Array constructor "
+			      "including type specification at %C") == FAILURE)
+	    goto cleanup;
+	}
+    }
+
+  if (! seen_ts)
+    gfc_current_locus = where;
 
   if (gfc_match (end_delim) == MATCH_YES)
     {
-      gfc_error ("Empty array constructor at %C is not allowed");
-      goto cleanup;
+      if (seen_ts)
+	goto done;
+      else
+	{
+	  gfc_error ("Empty array constructor at %C is not allowed");
+	  goto cleanup;
+	}
     }
 
   for (;;)
@@ -921,12 +957,21 @@ gfc_match_array_constructor (gfc_expr **result)
   if (gfc_match (end_delim) == MATCH_NO)
     goto syntax;
 
+done:
   expr = gfc_get_expr ();
 
   expr->expr_type = EXPR_ARRAY;
 
   expr->value.constructor = head;
   /* Size must be calculated at resolution time.  */
+
+  if (seen_ts)
+    expr->ts = ts;
+  else
+    expr->ts.type = BT_UNKNOWN;
+  
+  if (expr->ts.cl)
+    expr->ts.cl->length_from_typespec = seen_ts;
 
   expr->where = where;
   expr->rank = 1;
@@ -958,7 +1003,7 @@ static enum
 cons_state;
 
 static int
-check_element_type (gfc_expr *expr)
+check_element_type (gfc_expr *expr, bool convert)
 {
   if (cons_state == CONS_BAD)
     return 0;			/* Suppress further errors */
@@ -979,6 +1024,9 @@ check_element_type (gfc_expr *expr)
   if (gfc_compare_types (&constructor_ts, &expr->ts))
     return 0;
 
+  if (convert)
+    return gfc_convert_type (expr, &constructor_ts, 1) == SUCCESS ? 0 : 1;
+
   gfc_error ("Element in %s array constructor at %L is %s",
 	     gfc_typename (&constructor_ts), &expr->where,
 	     gfc_typename (&expr->ts));
@@ -991,7 +1039,7 @@ check_element_type (gfc_expr *expr)
 /* Recursive work function for gfc_check_constructor_type().  */
 
 static try
-check_constructor_type (gfc_constructor *c)
+check_constructor_type (gfc_constructor *c, bool convert)
 {
   gfc_expr *e;
 
@@ -1001,13 +1049,13 @@ check_constructor_type (gfc_constructor *c)
 
       if (e->expr_type == EXPR_ARRAY)
 	{
-	  if (check_constructor_type (e->value.constructor) == FAILURE)
+	  if (check_constructor_type (e->value.constructor, convert) == FAILURE)
 	    return FAILURE;
 
 	  continue;
 	}
 
-      if (check_element_type (e))
+      if (check_element_type (e, convert))
 	return FAILURE;
     }
 
@@ -1023,10 +1071,20 @@ gfc_check_constructor_type (gfc_expr *e)
 {
   try t;
 
-  cons_state = CONS_START;
-  gfc_clear_ts (&constructor_ts);
+  if (e->ts.type != BT_UNKNOWN)
+    {
+      cons_state = CONS_GOOD;
+      constructor_ts = e->ts;
+    }
+  else
+    {
+      cons_state = CONS_START;
+      gfc_clear_ts (&constructor_ts);
+    }
 
-  t = check_constructor_type (e->value.constructor);
+  /* If e->ts.type != BT_UNKNOWN, the array constructor included a
+     typespec, and we will now convert the values on the fly.  */
+  t = check_constructor_type (e->value.constructor, e->ts.type != BT_UNKNOWN);
   if (t == SUCCESS && e->ts.type == BT_UNKNOWN)
     e->ts = constructor_ts;
 
@@ -1520,13 +1578,15 @@ resolve_array_list (gfc_constructor *p)
 
 /* Resolve character array constructor. If it is a constant character array and
    not specified character length, update character length to the maximum of
-   its element constructors' length.  */
+   its element constructors' length.  For arrays with fixed length, pad the
+   elements as necessary with needed_length.  */
 
 void
 gfc_resolve_character_array_constructor (gfc_expr *expr)
 {
   gfc_constructor *p;
   int max_length;
+  bool generated_length;
 
   gcc_assert (expr->expr_type == EXPR_ARRAY);
   gcc_assert (expr->ts.type == BT_CHARACTER);
@@ -1551,6 +1611,7 @@ gfc_resolve_character_array_constructor (gfc_expr *expr)
 
 got_charlen:
 
+  generated_length = false;
   if (expr->ts.cl->length == NULL)
     {
       /* Find the maximum length of the elements. Do nothing for variable
@@ -1590,11 +1651,45 @@ got_charlen:
 	{
 	  /* Update the character length of the array constructor.  */
 	  expr->ts.cl->length = gfc_int_expr (max_length);
-	  /* Update the element constructors.  */
-	  for (p = expr->value.constructor; p; p = p->next)
-	    if (p->expr->expr_type == EXPR_CONSTANT)
-	      gfc_set_constant_character_len (max_length, p->expr, true);
+	  generated_length = true;
+	  /* Real update follows below.  */
 	}
+    }
+  else 
+    {
+      /* We've got a character length specified.  It should be an integer,
+	 otherwise an error is signalled elsewhere.  */
+      gcc_assert (expr->ts.cl->length);
+
+      /* If we've got a constant character length, pad according to this.
+	 gfc_extract_int does check for BT_INTEGER and EXPR_CONSTANT and sets
+	 max_length only if they pass.  */
+      gfc_extract_int (expr->ts.cl->length, &max_length);
+    }
+
+  /* Found a length to update to, do it for all element strings shorter than
+     the target length.  */
+  if (max_length != -1)
+    {
+      for (p = expr->value.constructor; p; p = p->next)
+	if (p->expr->expr_type == EXPR_CONSTANT)
+	  {
+	    gfc_expr *cl = NULL;
+	    int current_length = -1;
+
+	    if (p->expr->ts.cl && p->expr->ts.cl->length)
+	    {
+	      cl = p->expr->ts.cl->length;
+	      gfc_extract_int (cl, &current_length);
+	    }
+
+	    /* If gfc_extract_int above set current_length, we implicitly
+	       know the type is BT_INTEGER and it's EXPR_CONSTANT.  */
+
+	    if (generated_length || ! cl
+		|| (current_length != -1 && current_length < max_length))
+	      gfc_set_constant_character_len (max_length, p->expr, true);
+	  }
     }
 }
 

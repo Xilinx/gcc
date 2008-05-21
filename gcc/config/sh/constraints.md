@@ -35,6 +35,8 @@
 ;;  M: 1
 ;;  N: 0
 ;;  P27: 1 | 2 | 8 | 16
+;;  Pso: 1 | 2 | 4 | 8 | 16 | 32 | 64 | 128
+;;  Psz: ~1 | ~2 | ~4 | ~8 | ~16 | ~32 | ~64 | ~128
 ;; Q: pc relative load operand
 ;; Rxx: reserved for exotic register classes.
 ;; Sxx: extra memory (storage) constraints
@@ -112,16 +114,32 @@
        (match_test "ival >= -524288 && ival <= 524287")
        (match_test "TARGET_SH2A")))
 
+(define_constraint "I28"
+  "A signed 28-bit constant, as used in SH2A movi20s."
+  (and (match_code "const_int")
+       (match_test "ival >=  -134217728 && ival <= 134217727")
+       (match_test "(ival & 255) == 0")
+       (match_test "TARGET_SH2A")))
 (define_constraint "J16"
   "0xffffffff00000000 or 0x00000000ffffffff."
   (and (match_code "const_int")
        (match_test "CONST_OK_FOR_J16 (ival)")))
+
+(define_constraint "K03"
+  "An unsigned 3-bit constant, as used in SH2A bclr, bset, etc."
+  (and (match_code "const_int")
+       (match_test "ival >= 0 && ival <= 7")))
 
 (define_constraint "K08"
   "An unsigned 8-bit constant, as used in and, or, etc."
   (and (match_code "const_int")
        (match_test "ival >= 0 && ival <= 255")))
  
+(define_constraint "K12"
+  "An unsigned 8-bit constant, as used in SH2A 12-bit display."
+  (and (match_code "const_int")
+       (match_test "ival >= 0 && ival <= 4095")))
+
 (define_constraint "K16"
   "An unsigned 16-bit constant, as used in SHmedia shori."
   (and (match_code "const_int")
@@ -198,6 +216,30 @@
    PIC_DIRECT_ADDR_P."
   (match_test "IS_NON_EXPLICIT_CONSTANT_P (op)"))
 
+(define_constraint "Pso"
+  "Integer constant with a single bit set in its lower 8-bit."
+  (and (match_code "const_int")
+       (ior (match_test "ival == 1")
+	    (match_test "ival == 2")
+	    (match_test "ival == 4")
+	    (match_test "ival == 8")
+	    (match_test "ival == 16")
+	    (match_test "ival == 32")
+	    (match_test "ival == 64")
+	    (match_test "ival == 128"))))
+
+(define_constraint "Psz"
+  "Integer constant with a single zero bit in the lower 8-bit."
+  (and (match_code "const_int")
+       (ior (match_test "~ival == 1")
+	    (match_test "~ival == 2")
+	    (match_test "~ival == 4")
+	    (match_test "~ival == 8")
+	    (match_test "~ival == 16")
+	    (match_test "~ival == 32")
+	    (match_test "~ival == 64")
+	    (match_test "~ival == 128"))))
+
 (define_memory_constraint "Sr0"
   "@internal"
   (and (match_test "memory_operand (op, GET_MODE (op))")
@@ -207,3 +249,15 @@
   "@internal"
   (and (match_test "memory_operand (op, GET_MODE (op))")
        (match_test "GET_CODE (XEXP (op, 0)) != PLUS")))
+
+(define_memory_constraint "Sbv"
+  "A memory reference, as used in SH2A bclr.b, bset.b, etc."
+  (and (match_test "MEM_P (op) && GET_MODE (op) == QImode")
+       (match_test "REG_P (XEXP (op, 0))")))
+
+(define_memory_constraint "Sbw"
+  "A memory reference, as used in SH2A bclr.b, bset.b, etc."
+  (and (match_test "MEM_P (op) && GET_MODE (op) == QImode")
+       (match_test "GET_CODE (XEXP (op, 0)) == PLUS")
+       (match_test "REG_P (XEXP (XEXP (op, 0), 0))")
+       (match_test "satisfies_constraint_K12 (XEXP (XEXP (op, 0), 1))")))

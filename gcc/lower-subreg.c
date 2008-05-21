@@ -586,7 +586,7 @@ move_libcall_note (rtx old_start, rtx new_start)
 static void
 remove_retval_note (rtx insn1)
 {
-  rtx note0, insn0, note1, insn;
+  rtx note0, insn0, note1;
 
   note1 = find_reg_note (insn1, REG_RETVAL, NULL);
   if (note1 == NULL_RTX)
@@ -597,19 +597,6 @@ remove_retval_note (rtx insn1)
 
   remove_note (insn0, note0);
   remove_note (insn1, note1);
-
-  for (insn = insn0; insn != insn1; insn = NEXT_INSN (insn))
-    {
-      while (1)
-	{
-	  rtx note;
-
-	  note = find_reg_note (insn, REG_NO_CONFLICT, NULL);
-	  if (note == NULL_RTX)
-	    break;
-	  remove_note (insn, note);
-	}
-    }
 }
 
 /* Resolve any decomposed registers which appear in register notes on
@@ -642,7 +629,6 @@ resolve_reg_notes (rtx insn)
       note = *pnote;
       switch (REG_NOTE_KIND (note))
 	{
-	case REG_NO_CONFLICT:
 	case REG_DEAD:
 	case REG_UNUSED:
 	  if (resolve_reg_p (XEXP (note, 0)))
@@ -897,7 +883,7 @@ resolve_simple_move (rtx set, rtx insn)
 static bool
 resolve_clobber (rtx pat, rtx insn)
 {
-  rtx reg, note;
+  rtx reg;
   enum machine_mode orig_mode;
   unsigned int words, i;
   int ret;
@@ -905,17 +891,6 @@ resolve_clobber (rtx pat, rtx insn)
   reg = XEXP (pat, 0);
   if (!resolve_reg_p (reg) && !resolve_subreg_p (reg))
     return false;
-
-  /* If this clobber has a REG_LIBCALL note, then it is the initial
-     clobber added by emit_no_conflict_block.  We were able to
-     decompose the register, so we no longer need the clobber.  */
-  note = find_reg_note (insn, REG_LIBCALL, NULL_RTX);
-  if (note != NULL_RTX)
-    {
-      remove_retval_note (XEXP (note, 0));
-      delete_insn (insn);
-      return true;
-    }
 
   orig_mode = GET_MODE (reg);
   words = GET_MODE_SIZE (orig_mode);
@@ -1425,8 +1400,10 @@ rest_of_handle_lower_subreg2 (void)
   return 0;
 }
 
-struct tree_opt_pass pass_lower_subreg =
+struct rtl_opt_pass pass_lower_subreg =
 {
+ {
+  RTL_PASS,
   "subreg",	                        /* name */
   gate_handle_lower_subreg,             /* gate */
   rest_of_handle_lower_subreg,          /* execute */
@@ -1440,12 +1417,14 @@ struct tree_opt_pass pass_lower_subreg =
   0,                                    /* todo_flags_start */
   TODO_dump_func |
   TODO_ggc_collect |
-  TODO_verify_flow,                     /* todo_flags_finish */
-  'u'                                   /* letter */
+  TODO_verify_flow                      /* todo_flags_finish */
+ }
 };
 
-struct tree_opt_pass pass_lower_subreg2 =
+struct rtl_opt_pass pass_lower_subreg2 =
 {
+ {
+  RTL_PASS,
   "subreg2",	                        /* name */
   gate_handle_lower_subreg,             /* gate */
   rest_of_handle_lower_subreg2,          /* execute */
@@ -1460,6 +1439,6 @@ struct tree_opt_pass pass_lower_subreg2 =
   TODO_df_finish | TODO_verify_rtl_sharing |
   TODO_dump_func |
   TODO_ggc_collect |
-  TODO_verify_flow,                     /* todo_flags_finish */
-  'U'                                   /* letter */
+  TODO_verify_flow                      /* todo_flags_finish */
+ }
 };

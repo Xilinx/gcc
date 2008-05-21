@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -31,15 +31,13 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
---  This version is used for all Ada 2005 builds. It differs from a-except.ads
---  only with respect to the addition of Wide_[Wide]Exception_Name functions.
+--  This version of Ada.Exceptions fully supports both Ada 95 and Ada 2005.
+--  It is used in all situations except for the build of the compiler and
+--  other basic tools. For these latter builds, we use an Ada 95-only version.
 
 --  The reason for this splitting off of a separate version is that bootstrap
 --  compilers often will be used that do not support Ada 2005 features, and
 --  Ada.Exceptions is part of the compiler sources.
-
---  The base version of this unit Ada.Exceptions omits the Wide version of
---  Exception_Name and is used to build the compiler and other basic tools.
 
 pragma Style_Checks (All_Checks);
 --  No subprogram ordering check, due to logical grouping
@@ -398,7 +396,7 @@ package body Ada.Exceptions is
    --  is deferred before the reraise operation.
 
    --  Save_Occurrence variations: As the management of the private data
-   --  attached to occurrences is delicate, wether or not pointers to such
+   --  attached to occurrences is delicate, whether or not pointers to such
    --  data has to be copied in various situations is better made explicit.
    --  The following procedures provide an internal interface to help making
    --  this explicit.
@@ -422,11 +420,11 @@ package body Ada.Exceptions is
    -- Run-Time Check Routines --
    -----------------------------
 
-   --  These routines are called from the runtime to raise a specific
-   --  exception with a reason message attached. The parameters are
-   --  the file name and line number in each case. The names are keyed
-   --  to the codes defined in Types.ads and a-types.h (for example,
-   --  the name Rcheck_05 refers to the Reason whose Pos code is 5).
+   --  These routines raise a specific exception with a reason message
+   --  attached. The parameters are the file name and line number in each
+   --  case. The names are keyed to the codes defined in types.ads and
+   --  a-types.h (for example, the name Rcheck_05 refers to the Reason
+   --  RT_Exception_Code'Val (5)).
 
    procedure Rcheck_00 (File : System.Address; Line : Integer);
    procedure Rcheck_01 (File : System.Address; Line : Integer);
@@ -840,20 +838,20 @@ package body Ada.Exceptions is
      (E       : Exception_Id;
       Message : String := "")
    is
+      EF : Exception_Id := E;
+
    begin
-      if E /= null then
-         Exception_Data.Set_Exception_Msg (E, Message);
-         Abort_Defer.all;
-         Raise_Current_Excep (E);
+      --  Raise CE if E = Null_ID (AI-446)
+
+      if E = null then
+         EF := Constraint_Error'Identity;
       end if;
 
-      --  Note: if E is null, then we simply return, which is correct Ada 95
-      --  semantics. If we are operating in Ada 2005 mode, then the expander
-      --  generates a raise Constraint_Error immediately following the call
-      --  to provide the required Ada 2005 semantics (see AI-329). We do it
-      --  this way to avoid having run time dependencies on the Ada version.
+      --  Go ahead and raise appropriate exception
 
-      return;
+      Exception_Data.Set_Exception_Msg (EF, Message);
+      Abort_Defer.all;
+      Raise_Current_Excep (EF);
    end Raise_Exception;
 
    ----------------------------
@@ -1359,17 +1357,27 @@ package body Ada.Exceptions is
    --  Encoding method for source, as exported by binder
 
    function Wide_Exception_Name
-     (Id : Exception_Id) return Wide_String is
+     (Id : Exception_Id) return Wide_String
+   is
+      S : constant String := Exception_Name (Id);
+      W : Wide_String (1 .. S'Length);
+      L : Natural;
    begin
-      return String_To_Wide_String
-        (Exception_Name (Id), Get_WC_Encoding_Method (WC_Encoding));
+      String_To_Wide_String
+        (S, W, L, Get_WC_Encoding_Method (WC_Encoding));
+      return W (1 .. L);
    end Wide_Exception_Name;
 
    function Wide_Exception_Name
-     (X : Exception_Occurrence) return Wide_String is
+     (X : Exception_Occurrence) return Wide_String
+   is
+      S : constant String := Exception_Name (X);
+      W : Wide_String (1 .. S'Length);
+      L : Natural;
    begin
-      return String_To_Wide_String
-        (Exception_Name (X), Get_WC_Encoding_Method (WC_Encoding));
+      String_To_Wide_String
+        (S, W, L, Get_WC_Encoding_Method (WC_Encoding));
+      return W (1 .. L);
    end Wide_Exception_Name;
 
    ----------------------------
@@ -1379,17 +1387,25 @@ package body Ada.Exceptions is
    function Wide_Wide_Exception_Name
      (Id : Exception_Id) return Wide_Wide_String
    is
+      S : constant String := Exception_Name (Id);
+      W : Wide_Wide_String (1 .. S'Length);
+      L : Natural;
    begin
-      return String_To_Wide_Wide_String
-        (Exception_Name (Id), Get_WC_Encoding_Method (WC_Encoding));
+      String_To_Wide_Wide_String
+        (S, W, L, Get_WC_Encoding_Method (WC_Encoding));
+      return W (1 .. L);
    end Wide_Wide_Exception_Name;
 
    function Wide_Wide_Exception_Name
      (X : Exception_Occurrence) return Wide_Wide_String
    is
+      S : constant String := Exception_Name (X);
+      W : Wide_Wide_String (1 .. S'Length);
+      L : Natural;
    begin
-      return String_To_Wide_Wide_String
-        (Exception_Name (X), Get_WC_Encoding_Method (WC_Encoding));
+      String_To_Wide_Wide_String
+        (S, W, L, Get_WC_Encoding_Method (WC_Encoding));
+      return W (1 .. L);
    end Wide_Wide_Exception_Name;
 
    --------------------------

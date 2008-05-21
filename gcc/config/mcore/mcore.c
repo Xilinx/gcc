@@ -1651,7 +1651,7 @@ layout_mcore_frame (struct mcore_frame * infp)
 
   /* Might have to spill bytes to re-assemble a big argument that
      was passed partially in registers and partially on the stack.  */
-  nbytes = current_function_pretend_args_size;
+  nbytes = crtl->args.pretend_args_size;
   
   /* Determine how much space for spilled anonymous args (e.g., stdarg).  */
   if (current_function_anonymous_args)
@@ -1665,7 +1665,7 @@ layout_mcore_frame (struct mcore_frame * infp)
 
   /* And the rest of it... locals and space for overflowed outbounds.  */
   infp->local_size = get_frame_size ();
-  infp->outbound_size = current_function_outgoing_args_size;
+  infp->outbound_size = crtl->outgoing_args_size;
 
   /* Make sure we have a whole number of words for the locals.  */
   if (infp->local_size % STACK_BYTES)
@@ -1938,7 +1938,7 @@ mcore_expand_prolog (void)
       
       ASM_OUTPUT_CG_NODE (asm_out_file, mcore_current_function_name, space_allocated);
 
-      if (current_function_calls_alloca)
+      if (cfun->calls_alloca)
 	ASM_OUTPUT_CG_EDGE (asm_out_file, mcore_current_function_name, "alloca", 1);
 
       /* 970425: RBE:
@@ -1962,7 +1962,7 @@ mcore_expand_prolog (void)
   /* If we have a parameter passed partially in regs and partially in memory,
      the registers will have been stored to memory already in function.c.  So
      we only need to do something here for varargs functions.  */
-  if (fi.arg_size != 0 && current_function_pretend_args_size == 0)
+  if (fi.arg_size != 0 && crtl->args.pretend_args_size == 0)
     {
       int offset;
       int rn = FIRST_PARM_REG + NPARM_REGS - 1;
@@ -2729,7 +2729,7 @@ mcore_function_value (const_tree valtype, const_tree func ATTRIBUTE_UNUSED)
   
   mode = TYPE_MODE (valtype);
 
-  PROMOTE_MODE (mode, unsigned_p, NULL);
+  mode = promote_mode (valtype, mode, &unsigned_p, 1);
   
   return handle_structs_in_regs (mode, valtype, FIRST_RET_REG);
 }

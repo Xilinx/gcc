@@ -1,5 +1,5 @@
 /* Process source files and output type information.
-   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007
+   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008
    Free Software Foundation, Inc.
 
    This file is part of GCC.
@@ -521,16 +521,11 @@ do_typedef (const char *s, type_p t, struct fileloc *pos)
 {
   pair_p p;
 
-  /* temporary kludge - gengtype doesn't handle conditionals or macros.
-     Ignore any attempt to typedef CUMULATIVE_ARGS, location_t,
-     expanded_location, or source_locus, unless it is coming from
-     this file (main() sets them up with safe dummy definitions).  */
-  if ((!strcmp (s, "CUMULATIVE_ARGS")
-       || !strcmp (s, "location_t")
-       || !strcmp (s, "source_locus")
-       || !strcmp (s, "source_location")
-       || !strcmp (s, "expanded_location"))
-      && pos->file != this_file)
+  /* temporary kludge - gengtype doesn't handle conditionals or
+     macros.  Ignore any attempt to typedef CUMULATIVE_ARGS, unless it
+     is coming from this file (main() sets them up with safe dummy
+     definitions).  */
+  if (!strcmp (s, "CUMULATIVE_ARGS") && pos->file != this_file)
     return;
 
   for (p = typedefs; p != NULL; p = p->next)
@@ -1942,6 +1937,8 @@ walk_type (type_p t, struct walk_type_data *d)
       ;
     else if (strcmp (oo->name, "chain_prev") == 0)
       ;
+    else if (strcmp (oo->name, "chain_circular") == 0)
+      ;
     else if (strcmp (oo->name, "reorder") == 0)
       ;
     else
@@ -2419,6 +2416,7 @@ write_func_for_structure (type_p orig_s, type_p s, type_p *param,
   int i;
   const char *chain_next = NULL;
   const char *chain_prev = NULL;
+  const char *chain_circular = NULL;
   const char *mark_hook_name = NULL;
   options_p opt;
   struct walk_type_data d;
@@ -2437,11 +2435,17 @@ write_func_for_structure (type_p orig_s, type_p s, type_p *param,
       chain_next = opt->info;
     else if (strcmp (opt->name, "chain_prev") == 0)
       chain_prev = opt->info;
+    else if (strcmp (opt->name, "chain_circular") == 0)
+      chain_circular = opt->info;
     else if (strcmp (opt->name, "mark_hook") == 0)
       mark_hook_name = opt->info;
 
   if (chain_prev != NULL && chain_next == NULL)
     error_at_line (&s->u.s.line, "chain_prev without chain_next");
+  if (chain_circular != NULL && chain_next != NULL)
+    error_at_line (&s->u.s.line, "chain_circular with chain_next");
+  if (chain_circular != NULL)
+    chain_next = chain_circular;
 
   d.process_field = write_types_process_field;
   d.cookie = wtd;
@@ -2486,7 +2490,10 @@ write_func_for_structure (type_p orig_s, type_p s, type_p *param,
     }
   else
     {
-      oprintf (d.of, "  while (%s (xlimit", wtd->marker_routine);
+      if (chain_circular != NULL)
+	oprintf (d.of, "  if (!%s (xlimit", wtd->marker_routine);
+      else
+	oprintf (d.of, "  while (%s (xlimit", wtd->marker_routine);
       if (wtd->param_prefix)
 	{
 	  oprintf (d.of, ", xlimit, gt_%s_", wtd->param_prefix);
@@ -2494,6 +2501,8 @@ write_func_for_structure (type_p orig_s, type_p s, type_p *param,
 	  output_type_enum (d.of, orig_s);
 	}
       oprintf (d.of, "))\n");
+      if (chain_circular != NULL)
+	oprintf (d.of, "    return;\n  do\n");
       if (mark_hook_name && !wtd->skip_hooks)
 	{
 	  oprintf (d.of, "    {\n");
@@ -2529,7 +2538,22 @@ write_func_for_structure (type_p orig_s, type_p s, type_p *param,
 	  oprintf (d.of, ");\n");
 	  oprintf (d.of, "      }\n");
 	}
-      oprintf (d.of, "  while (x != xlimit)\n");
+      if (chain_circular != NULL)
+	{
+	  oprintf (d.of, "  while (%s (xlimit", wtd->marker_routine);
+	  if (wtd->param_prefix)
+	    {
+	      oprintf (d.of, ", xlimit, gt_%s_", wtd->param_prefix);
+	      output_mangled_typename (d.of, orig_s);
+	      output_type_enum (d.of, orig_s);
+	    }
+	  oprintf (d.of, "));\n");
+	  if (mark_hook_name && !wtd->skip_hooks)
+	    oprintf (d.of, "  %s (xlimit);\n", mark_hook_name);
+	  oprintf (d.of, "  do\n");
+	}
+      else
+	oprintf (d.of, "  while (x != xlimit)\n");
     }
   oprintf (d.of, "    {\n");
   if (mark_hook_name && chain_next == NULL && !wtd->skip_hooks)
@@ -2548,6 +2572,8 @@ write_func_for_structure (type_p orig_s, type_p s, type_p *param,
     }
 
   oprintf (d.of, "    }\n");
+  if (chain_circular != NULL)
+    oprintf (d.of, "  while (x != xlimit);\n");
   oprintf (d.of, "}\n");
 }
 
@@ -2985,6 +3011,8 @@ write_root (outf_p f, pair_p v, type_p type, const char *name, int has_length,
 		skip_p = 1;
 	      else if (strcmp (o->name, "desc") == 0)
 		desc = o->info;
+	      else if (strcmp (o->name, "param_is") == 0)
+		;
 	      else
 		error_at_line (line,
 		       "field `%s' of global `%s' has unknown option `%s'",
@@ -3478,36 +3506,6 @@ note_def_vec_alloc (const char *type, const char *astrat, struct fileloc *pos)
   do_typedef (astratname, new_structure (astratname, 0, pos, field, 0), pos);
 }
 
-/* Yet more temporary kludge since gengtype doesn't understand conditionals.
-   This must be kept in sync with input.h.  */
-static void
-define_location_structures (void)
-{
-  pair_p fields;
-  type_p locs;
-  static struct fileloc pos = { this_file, __LINE__ };
-  do_scalar_typedef ("source_location", &pos);
-
-#ifdef USE_MAPPED_LOCATION
-    fields = create_field (0, &scalar_nonchar, "column");
-    fields = create_field (fields, &scalar_nonchar, "line");
-    fields = create_field (fields, &string_type, "file");
-    locs = new_structure ("anon:expanded_location", 0, &pos, fields, 0);
-
-    do_typedef ("expanded_location", locs, &pos);
-    do_scalar_typedef ("location_t", &pos);
-    do_scalar_typedef ("source_locus", &pos);
-#else
-    fields = create_field (0, &scalar_nonchar, "line");
-    fields = create_field (fields, &string_type, "file");
-    locs = new_structure ("location_s", 0, &pos, fields, 0);
-
-    do_typedef ("expanded_location", locs, &pos);
-    do_typedef ("location_t", locs, &pos);
-    do_typedef ("source_locus", create_pointer (locs), &pos);
-#endif
-}
-
 
 int
 main (int argc, char **argv)
@@ -3544,7 +3542,6 @@ main (int argc, char **argv)
   do_scalar_typedef ("JCF_u2", &pos); pos.line++;
   do_scalar_typedef ("void", &pos); pos.line++;
   do_typedef ("PTR", create_pointer (resolve_typedef ("void", &pos)), &pos);
-  define_location_structures ();
 
   for (i = 0; i < num_gt_files; i++)
     parse_file (gt_files[i]);

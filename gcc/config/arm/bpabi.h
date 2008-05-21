@@ -1,5 +1,5 @@
 /* Configuration file for ARM BPABI targets.
-   Copyright (C) 2004, 2005, 2007
+   Copyright (C) 2004, 2005, 2007, 2008
    Free Software Foundation, Inc.
    Contributed by CodeSourcery, LLC   
 
@@ -55,11 +55,15 @@
 #undef  SUBTARGET_EXTRA_ASM_SPEC
 #define SUBTARGET_EXTRA_ASM_SPEC "%{mabi=apcs-gnu|mabi=atpcs:-meabi=gnu;:-meabi=4}"
 
+#ifndef SUBTARGET_EXTRA_LINK_SPEC
+#define SUBTARGET_EXTRA_LINK_SPEC ""
+#endif
+
 /* The generic link spec in elf.h does not support shared libraries.  */
 #undef  LINK_SPEC
 #define LINK_SPEC "%{mbig-endian:-EB} %{mlittle-endian:-EL} "		\
   "%{static:-Bstatic} %{shared:-shared} %{symbolic:-Bsymbolic} "	\
-  "-X"
+  "-X" SUBTARGET_EXTRA_LINK_SPEC
 
 #if defined (__thumb__)
 #define RENAME_LIBRARY_SET ".thumb_set"
@@ -97,6 +101,21 @@
 #endif
 #ifdef L_floatdisf
 #define DECLARE_LIBRARY_RENAMES RENAME_LIBRARY (floatdisf, l2f)
+#endif
+
+/* These renames are needed on ARMv6M.  Other targets get them from
+   assembly routines.  */
+#ifdef L_fixunsdfsi
+#define DECLARE_LIBRARY_RENAMES RENAME_LIBRARY (fixunsdfsi, d2uiz)
+#endif
+#ifdef L_fixunssfsi
+#define DECLARE_LIBRARY_RENAMES RENAME_LIBRARY (fixunssfsi, f2uiz)
+#endif
+#ifdef L_floatundidf
+#define DECLARE_LIBRARY_RENAMES RENAME_LIBRARY (floatundidf, ul2d)
+#endif
+#ifdef L_floatundisf
+#define DECLARE_LIBRARY_RENAMES RENAME_LIBRARY (floatundisf, ul2f)
 #endif
 
 /* The BPABI requires that we always use an out-of-line implementation

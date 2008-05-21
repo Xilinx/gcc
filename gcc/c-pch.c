@@ -1,5 +1,5 @@
 /* Precompiled header implementation for the C languages.
-   Copyright (C) 2000, 2002, 2003, 2004, 2005, 2007 Free Software Foundation, Inc.
+   Copyright (C) 2000, 2002, 2003, 2004, 2005, 2007, 2008 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -243,8 +243,9 @@ c_common_valid_pch (cpp_reader *pfile, const char *name, int fd)
     fatal_error ("can%'t read %s: %m", name);
   else if (sizeread != IDENT_LENGTH + 16)
     {
-      cpp_error (pfile, CPP_DL_WARNING, "%s: too short to be a PCH file",
-		 name);
+      if (cpp_get_options (pfile)->warn_invalid_pch)
+	cpp_error (pfile, CPP_DL_WARNING, "%s: too short to be a PCH file",
+		   name);
       return 2;
     }
 
@@ -372,6 +373,7 @@ c_common_read_pch (cpp_reader *pfile, const char *name,
   if (f == NULL)
     {
       cpp_errno (pfile, CPP_DL_ERROR, "calling fdopen");
+      close (fd);
       return;
     }
 
@@ -380,6 +382,7 @@ c_common_read_pch (cpp_reader *pfile, const char *name,
   if (fread (&h, sizeof (h), 1, f) != 1)
     {
       cpp_errno (pfile, CPP_DL_ERROR, "reading");
+      fclose (f);
       return;
     }
 
@@ -409,23 +412,17 @@ c_common_read_pch (cpp_reader *pfile, const char *name,
     }
 
   /* Save the location and then restore it after reading the PCH.  */
-#ifdef USE_MAPPED_LOCATION
   saved_loc = expand_location (line_table->highest_line);
-#else
-  {
-    const struct line_map *map = linemap_lookup (line_table,
-						 line_table->highest_line);
-    saved_loc.file = map->to_file;
-    saved_loc.line = SOURCE_LINE (map, line_table->highest_line);
-  }
-#endif
 
   cpp_prepare_state (pfile, &smd);
 
   gt_pch_restore (f);
 
   if (cpp_read_state (pfile, name, f, smd) != 0)
-    return;
+    {
+      fclose (f);
+      return;
+    }
 
   fclose (f);
 

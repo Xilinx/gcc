@@ -1,5 +1,6 @@
 /* Callgraph handling code.
-   Copyright (C) 2003, 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
+   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008
+   Free Software Foundation, Inc.
    Contributed by Jan Hubicka
 
 This file is part of GCC.
@@ -440,6 +441,51 @@ cgraph_redirect_edge_callee (struct cgraph_edge *e, struct cgraph_node *n)
   e->callee = n;
 }
 
+/* Update or remove corresponding cgraph edge if a call OLD_CALL
+   in OLD_STMT changed into NEW_STMT.  */
+
+void
+cgraph_update_edges_for_call_stmt (tree old_stmt, tree old_call,
+				   tree new_stmt)
+{
+  tree new_call = get_call_expr_in (new_stmt);
+  struct cgraph_node *node = cgraph_node (cfun->decl);
+
+  if (old_call != new_call)
+    {
+      struct cgraph_edge *e = cgraph_edge (node, old_stmt);
+      struct cgraph_edge *ne = NULL;
+      tree new_decl;
+
+      if (e)
+	{
+	  gcov_type count = e->count;
+	  int frequency = e->frequency;
+	  int loop_nest = e->loop_nest;
+
+	  cgraph_remove_edge (e);
+	  if (new_call)
+	    {
+	      new_decl = get_callee_fndecl (new_call);
+	      if (new_decl)
+		{
+		  ne = cgraph_create_edge (node, cgraph_node (new_decl),
+					   new_stmt, count, frequency,
+					   loop_nest);
+		  gcc_assert (ne->inline_failed);
+		}
+	    }
+	}
+    }
+  else if (old_stmt != new_stmt)
+    {
+      struct cgraph_edge *e = cgraph_edge (node, old_stmt);
+
+      if (e)
+	cgraph_set_call_stmt (e, new_stmt);
+    }
+}
+
 /* Remove all callees from the node.  */
 
 void
@@ -677,13 +723,14 @@ dump_cgraph_node (FILE *f, struct cgraph_node *node)
   if (node->count)
     fprintf (f, " executed "HOST_WIDEST_INT_PRINT_DEC"x",
 	     (HOST_WIDEST_INT)node->count);
-  if (node->local.self_insns)
-    fprintf (f, " %i insns", node->local.self_insns);
-  if (node->global.insns && node->global.insns != node->local.self_insns)
+  if (node->local.inline_summary.self_insns)
+    fprintf (f, " %i insns", node->local.inline_summary.self_insns);
+  if (node->global.insns && node->global.insns
+      != node->local.inline_summary.self_insns)
     fprintf (f, " (%i after inlining)", node->global.insns);
-  if (node->local.estimated_self_stack_size)
-    fprintf (f, " %i bytes stack usage", (int)node->local.estimated_self_stack_size);
-  if (node->global.estimated_stack_size != node->local.estimated_self_stack_size)
+  if (node->local.inline_summary.estimated_self_stack_size)
+    fprintf (f, " %i bytes stack usage", (int)node->local.inline_summary.estimated_self_stack_size);
+  if (node->global.estimated_stack_size != node->local.inline_summary.estimated_self_stack_size)
     fprintf (f, " %i bytes after inlining", (int)node->global.estimated_stack_size);
   if (node->origin)
     fprintf (f, " nested in: %s", cgraph_node_name (node->origin));
@@ -1024,7 +1071,7 @@ cgraph_add_new_function (tree fndecl, bool lowered)
           tree_lowering_passes (fndecl);
 	bitmap_obstack_initialize (NULL);
 	if (!gimple_in_ssa_p (DECL_STRUCT_FUNCTION (fndecl)) && optimize)
-	  execute_pass_list (pass_early_local_passes.sub);
+	  execute_pass_list (pass_early_local_passes.pass.sub);
 	bitmap_obstack_release (NULL);
 	tree_rest_of_compilation (fndecl);
 	pop_cfun ();

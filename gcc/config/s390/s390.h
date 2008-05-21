@@ -142,22 +142,29 @@ extern enum processor_flags s390_arch_flags;
 #define CAN_DEBUG_WITHOUT_FP
 
 /* Constants needed to control the TEST DATA CLASS (TDC) instruction.  */
-#define S390_TDC_POSITIVE_ZERO                (1 << 11)
-#define S390_TDC_NEGATIVE_ZERO                (1 << 10)
-#define S390_TDC_POSITIVE_NORMALIZED_NUMBER   (1 << 9)
-#define S390_TDC_NEGATIVE_NORMALIZED_NUMBER   (1 << 8)
-#define S390_TDC_POSITIVE_DENORMALIZED_NUMBER (1 << 7)
-#define S390_TDC_NEGATIVE_DENORMALIZED_NUMBER (1 << 6)
-#define S390_TDC_POSITIVE_INFINITY            (1 << 5)
-#define S390_TDC_NEGATIVE_INFINITY            (1 << 4)
-#define S390_TDC_POSITIVE_QUIET_NAN           (1 << 3)
-#define S390_TDC_NEGATIVE_QUIET_NAN           (1 << 2)
-#define S390_TDC_POSITIVE_SIGNALING_NAN       (1 << 1)
-#define S390_TDC_NEGATIVE_SIGNALING_NAN       (1 << 0)
+#define S390_TDC_POSITIVE_ZERO                     (1 << 11)
+#define S390_TDC_NEGATIVE_ZERO                     (1 << 10)
+#define S390_TDC_POSITIVE_NORMALIZED_BFP_NUMBER    (1 << 9)
+#define S390_TDC_NEGATIVE_NORMALIZED_BFP_NUMBER    (1 << 8)
+#define S390_TDC_POSITIVE_DENORMALIZED_BFP_NUMBER  (1 << 7)
+#define S390_TDC_NEGATIVE_DENORMALIZED_BFP_NUMBER  (1 << 6)
+#define S390_TDC_POSITIVE_INFINITY                 (1 << 5)
+#define S390_TDC_NEGATIVE_INFINITY                 (1 << 4)
+#define S390_TDC_POSITIVE_QUIET_NAN                (1 << 3)
+#define S390_TDC_NEGATIVE_QUIET_NAN                (1 << 2)
+#define S390_TDC_POSITIVE_SIGNALING_NAN            (1 << 1)
+#define S390_TDC_NEGATIVE_SIGNALING_NAN            (1 << 0)
 
+/* The following values are different for DFP.  */
+#define S390_TDC_POSITIVE_DENORMALIZED_DFP_NUMBER (1 << 9)
+#define S390_TDC_NEGATIVE_DENORMALIZED_DFP_NUMBER (1 << 8)
+#define S390_TDC_POSITIVE_NORMALIZED_DFP_NUMBER   (1 << 7)
+#define S390_TDC_NEGATIVE_NORMALIZED_DFP_NUMBER   (1 << 6)
+
+/* For signbit, the BFP-DFP-difference makes no difference. */ 
 #define S390_TDC_SIGNBIT_SET (S390_TDC_NEGATIVE_ZERO \
-                          | S390_TDC_NEGATIVE_NORMALIZED_NUMBER \
-                          | S390_TDC_NEGATIVE_DENORMALIZED_NUMBER\
+                          | S390_TDC_NEGATIVE_NORMALIZED_BFP_NUMBER \
+                          | S390_TDC_NEGATIVE_DENORMALIZED_BFP_NUMBER\
                           | S390_TDC_NEGATIVE_INFINITY \
                           | S390_TDC_NEGATIVE_QUIET_NAN \
 			  | S390_TDC_NEGATIVE_SIGNALING_NAN )
@@ -514,9 +521,8 @@ extern const enum reg_class regclass_map[FIRST_PSEUDO_REGISTER];
 
 /* Offset from the stack pointer register to an item dynamically
    allocated on the stack, e.g., by `alloca'.  */
-extern int current_function_outgoing_args_size;
 #define STACK_DYNAMIC_OFFSET(FUNDECL) \
-  (STACK_POINTER_OFFSET + current_function_outgoing_args_size)
+  (STACK_POINTER_OFFSET + crtl->outgoing_args_size)
 
 /* Offset of first parameter from the argument pointer register value.
    We have a fake argument pointer register that points directly to
@@ -629,10 +635,11 @@ CUMULATIVE_ARGS;
 #define FUNCTION_ARG(CUM, MODE, TYPE, NAMED)   \
   s390_function_arg (&CUM, MODE, TYPE, NAMED)
 
-/* Arguments can be placed in general registers 2 to 6,
-   or in floating point registers 0 and 2.  */
+/* Arguments can be placed in general registers 2 to 6, or in floating
+   point registers 0 and 2 for 31 bit and fprs 0, 2, 4 and 6 for 64
+   bit.  */
 #define FUNCTION_ARG_REGNO_P(N) (((N) >=2 && (N) <7) || \
-                                 (N) == 16 || (N) == 17)
+  (N) == 16 || (N) == 17 || (TARGET_64BIT && ((N) == 18 || (N) == 19)))
 
 
 /* Scalar return values.  */
@@ -807,6 +814,16 @@ extern struct rtx_def *s390_compare_op0, *s390_compare_op1, *s390_compare_emitte
 
 /* Don't perform CSE on function addresses.  */
 #define NO_FUNCTION_CSE
+
+/* This value is used in tree-sra to decide whether it might benefical
+   to split a struct move into several word-size moves.  For S/390
+   only small values make sense here since struct moves are relatively
+   cheap thanks to mvc so the small default value choosen for archs
+   with memmove patterns should be ok.  But this value is multiplied
+   in tree-sra with UNITS_PER_WORD to make a decision so we adjust it
+   here to compensate for that factor since mvc costs exactly the same
+   on 31 and 64 bit.  */
+#define MOVE_RATIO (TARGET_64BIT? 2 : 4)
 
 
 /* Sections.  */

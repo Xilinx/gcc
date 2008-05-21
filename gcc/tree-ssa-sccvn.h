@@ -26,36 +26,40 @@ extern tree VN_TOP;
 
 typedef struct vn_ssa_aux
 {
-  /* SCC information.  */
-  unsigned int dfsnum;
-  bool visited;
-  unsigned int low;
-  bool on_sccstack;
-
   /* Value number. This may be an SSA name or a constant.  */
   tree valnum;
   /* Representative expression, if not a direct constant. */
   tree expr;
+
+  /* SCC information.  */
+  unsigned int dfsnum;
+  unsigned int low;
+  unsigned visited : 1;
+  unsigned on_sccstack : 1;
+
   /* Whether the representative expression contains constants.  */
-  bool has_constants;
+  unsigned has_constants : 1;
   /* Whether the SSA_NAME has been value numbered already.  This is
      only saying whether visit_use has been called on it at least
      once.  It cannot be used to avoid visitation for SSA_NAME's
      involved in non-singleton SCC's.  */
-  bool use_processed;
+  unsigned use_processed : 1;
+
+  /* Whether the SSA_NAME has no defining statement and thus an
+     insertion of such with EXPR as definition is required before
+     a use can be created of it.  */
+  unsigned needs_insertion : 1;
 } *vn_ssa_aux_t;
 
 /* Return the value numbering info for an SSA_NAME.  */
 extern vn_ssa_aux_t VN_INFO (tree);
 extern vn_ssa_aux_t VN_INFO_GET (tree);
-void run_scc_vn (void);
+bool run_scc_vn (bool);
 void free_scc_vn (void);
 void switch_to_PRE_table (void);
-tree vn_binary_op_lookup (tree);
-void vn_binary_op_insert (tree, tree);
-tree vn_unary_op_lookup (tree);
-void vn_unary_op_insert (tree, tree);
-tree vn_reference_lookup (tree, VEC (tree, gc) *);
+tree vn_nary_op_lookup (tree);
+void vn_nary_op_insert (tree, tree);
+tree vn_reference_lookup (tree, VEC (tree, gc) *, bool);
 void vn_reference_insert (tree, tree, VEC (tree, gc) *);
 VEC (tree, gc) *shared_vuses_from_stmt (tree);
 VEC (tree, gc) *copy_vuses_from_stmt (tree);

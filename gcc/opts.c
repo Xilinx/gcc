@@ -58,13 +58,10 @@ bool extra_warnings;
 bool warn_larger_than;
 HOST_WIDE_INT larger_than_size;
 
-/* Nonzero means warn about constructs which might not be
-   strict-aliasing safe.  */
-int warn_strict_aliasing;
-
-/* Nonzero means warn about optimizations which rely on undefined
-   signed overflow.  */
-int warn_strict_overflow;
+/* True to warn about any function whose frame size is larger
+ * than N bytes. */
+bool warn_frame_larger_than;
+HOST_WIDE_INT frame_larger_than_size;
 
 /* Hack for cooperation between set_Wunused and set_Wextra.  */
 static bool maybe_warn_unused_parameter;
@@ -345,7 +342,11 @@ bool no_unit_at_a_time_default;
 struct visibility_flags visibility_options;
 
 /* What to print when a switch has no documentation.  */
+#ifdef ENABLE_CHECKING
 static const char undocumented_msg[] = N_("This switch lacks documentation");
+#else
+static const char undocumented_msg[] = "";
+#endif
 
 /* Used for bookkeeping on whether user set these flags so
    -fprofile-use/-fprofile-generate does not use them.  */
@@ -363,6 +364,12 @@ DEF_VEC_ALLOC_P(char_p,heap);
 
 static VEC(char_p,heap) *flag_instrument_functions_exclude_functions;
 static VEC(char_p,heap) *flag_instrument_functions_exclude_files;
+
+typedef const char *const_char_p; /* For DEF_VEC_P.  */
+DEF_VEC_P(const_char_p);
+DEF_VEC_ALLOC_P(const_char_p,heap);
+
+static VEC(const_char_p,heap) *ignored_options;
 
 /* Input file names.  */
 const char **in_fnames;
@@ -442,6 +449,33 @@ complain_wrong_lang (const char *text, const struct cl_option *option,
   free (bad_lang);
 }
 
+/* Buffer the unknown option described by the string OPT.  Currently,
+   we only complain about unknown -Wno-* options if they may have
+   prevented a diagnostic. Otherwise, we just ignore them.  */
+
+static void postpone_unknown_option_error(const char *opt)
+{
+  VEC_safe_push (const_char_p, heap, ignored_options, opt);
+}
+
+/* Produce an error for each option previously buffered.  */
+
+void print_ignored_options (void)
+{
+  location_t saved_loc = input_location;
+
+  input_location = 0;
+
+  while (!VEC_empty (const_char_p, ignored_options))
+    {
+      const char *opt;
+      opt = VEC_pop (const_char_p, ignored_options);
+      error ("unrecognized command line option \"%s\"", opt);
+    }
+
+  input_location = saved_loc;
+}
+
 /* Handle the switch beginning at ARGV for the language indicated by
    LANG_MASK.  Returns the number of switches consumed.  */
 static unsigned int
@@ -471,6 +505,14 @@ handle_option (const char **argv, unsigned int lang_mask)
       opt = dup;
       value = 0;
       opt_index = find_opt (opt + 1, lang_mask | CL_COMMON | CL_TARGET);
+      if (opt_index == cl_options_count && opt[1] == 'W')
+	{
+	  /* We don't generate errors for unknown -Wno-* options
+             unless we issue diagnostics.  */
+	  postpone_unknown_option_error (argv[0]);
+	  result = 1;
+	  goto done;
+	}
     }
 
   if (opt_index == cl_options_count)
@@ -711,7 +753,7 @@ handle_options (unsigned int argc, const char **argv, unsigned int lang_mask)
 	{
 	  if (main_input_filename == NULL)
 	    {
-	    main_input_filename = opt;
+	      main_input_filename = opt;
 	      main_input_baselength
 		= base_of_path (main_input_filename, &main_input_basename);
 	    }
@@ -806,7 +848,6 @@ decode_options (unsigned int argc, const char **argv)
       flag_tree_fre = 1;
       flag_tree_copy_prop = 1;
       flag_tree_sink = 1;
-      flag_tree_salias = 1;
       if (!no_unit_at_a_time_default)
         flag_unit_at_a_time = 1;
 
@@ -949,6 +990,16 @@ decode_options (unsigned int argc, const char **argv)
 
   if (flag_really_no_inline == 2)
     flag_really_no_inline = flag_no_inline;
+
+  /* Inlining of functions called just once will only work if we can look
+     at the complete translation unit.  */
+  if (flag_inline_functions_called_once && !flag_unit_at_a_time)
+    {
+      flag_inline_functions_called_once = 0;
+      warning (OPT_Wdisabled_optimization,
+	       "-funit-at-a-time is required for inlining of functions "
+	       "that are only called once");
+    }
 
   /* The optimization to partition hot and cold basic blocks into separate
      sections of the .o and executable files does not work (currently)
@@ -1167,7 +1218,24 @@ print_filtered_help (unsigned int include_flags,
     }
 
   if (! found)
-    printf (_(" No options with the desired characteristics were found\n"));
+    {
+      unsigned int langs = include_flags & CL_LANG_ALL;
+
+      if (langs == 0)
+	printf (_(" No options with the desired characteristics were found\n"));
+      else
+	{
+	  unsigned int i;
+
+	  /* PR 31349: Tell the user how to see all of the
+	     options supported by a specific front end.  */
+	  for (i = 0; (1U << i) < CL_LANG_ALL; i ++)
+	    if ((1U << i) & langs)
+	      printf (_(" None found.  Use --help=%s to show *all* the options supported by the %s front-end\n"),
+		      lang_names[i], lang_names[i]);
+	}
+	
+    }
   else if (! displayed)
     printf (_(" All options with the desired characteristics have already been displayed\n"));
 
@@ -1241,13 +1309,10 @@ print_specific_help (unsigned int include_flags,
 	  if (i >= cl_lang_count)
 	    break;
 	  if ((exclude_flags & ((1U << cl_lang_count) - 1)) != 0)
-	    {
-	      description = _("The following options are specific to the language ");
-	      descrip_extra = lang_names [i];
-	    }
+	    description = _("The following options are specific to just the language ");
 	  else
 	    description = _("The following options are supported by the language ");
-	    descrip_extra = lang_names [i];
+	  descrip_extra = lang_names [i];
 	  break;
 	}
     }
@@ -1287,12 +1352,17 @@ static int
 common_handle_option (size_t scode, const char *arg, int value,
 		      unsigned int lang_mask)
 {
+  static bool verbose = false;
   enum opt_code code = (enum opt_code) scode;
 
   switch (code)
     {
     case OPT__param:
       handle_param (arg);
+      break;
+
+    case OPT_v:
+      verbose = true;
       break;
 
     case OPT_fhelp:
@@ -1302,7 +1372,7 @@ common_handle_option (size_t scode, const char *arg, int value,
 	unsigned int undoc_mask;
 	unsigned int i;
 
-	undoc_mask = extra_warnings ? 0 : CL_UNDOCUMENTED;
+	undoc_mask = (verbose | extra_warnings) ? 0 : CL_UNDOCUMENTED;
 	/* First display any single language specific options.  */
 	for (i = 0; i < cl_lang_count; i++)
 	  print_specific_help
@@ -1364,6 +1434,7 @@ common_handle_option (size_t scode, const char *arg, int value,
 	    };
 	    unsigned int * pflags;
 	    char * comma;
+	    unsigned int lang_flag, specific_flag;
 	    unsigned int len;
 	    unsigned int i;
 
@@ -1381,28 +1452,52 @@ common_handle_option (size_t scode, const char *arg, int value,
 	    else
 	      len = comma - a;
 
-	    for (i = 0; specifics[i].string != NULL; i++)
+	    /* Check to see if the string matches an option class name.  */
+	    for (i = 0, specific_flag = 0; specifics[i].string != NULL; i++)
 	      if (strncasecmp (a, specifics[i].string, len) == 0)
 		{
-		  * pflags |= specifics[i].flag;
+		  specific_flag = specifics[i].flag;
+		  break;
+		}
+	    
+	    /* Check to see if the string matches a language name.
+	       Note - we rely upon the alpha-sorted nature of the entries in
+	       the lang_names array, specifically that shorter names appear
+	       before their longer variants.  (ie C before C++).  That way
+	       when we are attempting to match --help=c for example we will
+	       match with C first and not C++.  */
+	    for (i = 0, lang_flag = 0; i < cl_lang_count; i++)
+	      if (strncasecmp (a, lang_names[i], len) == 0)
+		{
+		  lang_flag = 1U << i;
 		  break;
 		}
 
-	    if (specifics[i].string == NULL)
+	    if (specific_flag != 0)
 	      {
-		/* Check to see if the string matches a language name.  */
-		for (i = 0; i < cl_lang_count; i++)
-		  if (strncasecmp (a, lang_names[i], len) == 0)
-		    {
-		      * pflags |= 1U << i;
-		      break;
-		    }
-
-		if (i == cl_lang_count)
-		  fnotice (stderr,
-			   "warning: unrecognized argument to --help= switch: %.*s\n",
-			   len, a);
+		if (lang_flag == 0)
+		  * pflags |= specific_flag;
+		else
+		  {
+		    /* The option's argument matches both the start of a
+		       language name and the start of an option class name.
+		       We have a special case for when the user has
+		       specified "--help=c", but otherwise we have to issue
+		       a warning.  */
+		    if (strncasecmp (a, "c", len) == 0)
+		      * pflags |= lang_flag;
+		    else
+		      fnotice (stderr,
+			       "warning: --help argument %.*s is ambiguous, please be more specific\n",
+			       len, a);
+		  }
 	      }
+	    else if (lang_flag != 0)
+	      * pflags |= lang_flag;
+	    else
+	      fnotice (stderr,
+		       "warning: unrecognized argument to --help= option: %.*s\n",
+		       len, a);
 
 	    if (comma == NULL)
 	      break;
@@ -1444,8 +1539,18 @@ common_handle_option (size_t scode, const char *arg, int value,
       break;
 
     case OPT_Wlarger_than_:
+      /* This form corresponds to -Wlarger-than-.  
+	 Kept for backward compatibility. 
+	 Don't use it as the first argument of warning().  */
+
+    case OPT_Wlarger_than_eq:
       larger_than_size = value;
       warn_larger_than = value != -1;
+      break;
+
+    case OPT_Wframe_larger_than_:
+      frame_larger_than_size = value;
+      warn_frame_larger_than = value != -1;
       break;
 
     case OPT_Wstrict_aliasing:
@@ -1610,6 +1715,15 @@ common_handle_option (size_t scode, const char *arg, int value,
       flag_inline_functions_set = true;
       break;
 
+    case OPT_fprofile_dir_:
+      profile_data_prefix = xstrdup (arg);
+      break;
+
+    case OPT_fprofile_use_:
+      profile_data_prefix = xstrdup (arg);
+      flag_profile_use = true;
+      value = true;
+      /* No break here - do -fprofile-use processing. */
     case OPT_fprofile_use:
       if (!flag_branch_probabilities_set)
         flag_branch_probabilities = value;
@@ -1627,6 +1741,10 @@ common_handle_option (size_t scode, const char *arg, int value,
         flag_inline_functions = value;
       break;
 
+    case OPT_fprofile_generate_:
+      profile_data_prefix = xstrdup (arg);
+      value = true;
+      /* No break here - do -fprofile-generate processing. */
     case OPT_fprofile_generate:
       if (!profile_arc_flag_set)
         profile_arc_flag = value;
@@ -1787,6 +1905,7 @@ common_handle_option (size_t scode, const char *arg, int value,
     case OPT_fstrength_reduce:
     case OPT_ftree_store_copy_prop:
     case OPT_fforce_addr:
+    case OPT_ftree_salias:
       /* These are no-ops, preserved for backward compatibility.  */
       break;
 
@@ -1871,6 +1990,8 @@ set_Wstrict_aliasing (int onoff)
   gcc_assert (onoff == 0 || onoff == 1);
   if (onoff != 0)
     warn_strict_aliasing = 3;
+  else
+    warn_strict_aliasing = 0;
 }
 
 /* The following routines are useful in setting all the flags that

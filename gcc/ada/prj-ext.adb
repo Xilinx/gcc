@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 2000-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 2000-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -66,7 +66,6 @@ package body Prj.Ext is
    --  first for external reference in this table, before checking the
    --  environment. Htable is emptied (reset) by procedure Reset.
 
-   ---------
    package Search_Directories is new Table.Table
      (Table_Component_Type => Name_Id,
       Table_Index_Type     => Natural,
@@ -76,6 +75,7 @@ package body Prj.Ext is
       Table_Name           => "Prj.Ext.Search_Directories");
    --  The table for the directories specified with -aP switches
 
+   ---------
    -- Add --
    ---------
 
@@ -142,20 +142,18 @@ package body Prj.Ext is
       Prj_Path        : String_Access := Gpr_Prj_Path;
 
    begin
-      if Get_Mode = Ada_Only then
-         if Gpr_Prj_Path.all /= "" then
+      if Gpr_Prj_Path.all /= "" then
 
-            --  Warn if both environment variables are defined
+         --  In Ada only mode, warn if both environment variables are defined
 
-            if Ada_Prj_Path.all /= "" then
-               Write_Line
-                 ("Warning: ADA_PROJECT_PATH is not taken into account");
-               Write_Line ("         when GPR_PROJECT_PATH is defined");
-            end if;
-
-         else
-            Prj_Path := Ada_Prj_Path;
+         if Get_Mode = Ada_Only and then Ada_Prj_Path.all /= "" then
+            Write_Line
+              ("Warning: ADA_PROJECT_PATH is not taken into account");
+            Write_Line ("         when GPR_PROJECT_PATH is defined");
          end if;
+
+      else
+         Prj_Path := Ada_Prj_Path;
       end if;
 
       --  The current directory is always first
@@ -182,7 +180,7 @@ package body Prj.Ext is
       end if;
 
       --  Scan the directory path to see if "-" is one of the directories.
-      --  Remove each occurence of "-" and set Add_Default_Dir to False.
+      --  Remove each occurrence of "-" and set Add_Default_Dir to False.
       --  Also resolve relative paths and symbolic links.
 
       First := 3;
@@ -262,19 +260,17 @@ package body Prj.Ext is
                Prefix := new String'(Executable_Prefix_Path);
 
                if Prefix.all /= "" then
-                  if Get_Mode = Ada_Only then
-                     Current_Project_Path :=
-                       new String'(Name_Buffer (1 .. Name_Len) &
-                                   Path_Separator &
-                                   Prefix.all & Directory_Separator & "gnat");
-
-                  else
-                     Current_Project_Path :=
-                       new String'(Name_Buffer (1 .. Name_Len) &
-                                   Path_Separator &
-                                   Prefix.all & Directory_Separator &
-                                   "share" & Directory_Separator & "gpr");
+                  if Get_Mode = Multi_Language then
+                     Add_Str_To_Name_Buffer
+                       (Path_Separator & Prefix.all &
+                        Directory_Separator & "share" &
+                        Directory_Separator & "gpr");
                   end if;
+
+                  Add_Str_To_Name_Buffer
+                    (Path_Separator & Prefix.all &
+                     Directory_Separator & "lib" &
+                     Directory_Separator & "gnat");
                end if;
 
             else

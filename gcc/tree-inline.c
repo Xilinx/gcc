@@ -1,5 +1,5 @@
 /* Tree inlining.
-   Copyright 2001, 2002, 2003, 2004, 2005, 2006, 2007
+   Copyright 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
    Free Software Foundation, Inc.
    Contributed by Alexandre Oliva <aoliva@redhat.com>
 
@@ -127,7 +127,6 @@ eni_weights eni_time_weights;
 /* Prototypes.  */
 
 static tree declare_return_variable (copy_body_data *, tree, tree, tree *);
-static tree copy_generic_body (copy_body_data *);
 static bool inlinable_function_p (tree);
 static void remap_block (tree *, copy_body_data *);
 static tree remap_decls (tree, copy_body_data *);
@@ -140,7 +139,6 @@ static void remap_save_expr (tree *, void *, int *);
 static void add_lexical_block (tree current_block, tree new_block);
 static tree copy_decl_to_var (tree, copy_body_data *);
 static tree copy_result_decl_to_var (tree, copy_body_data *);
-static tree copy_decl_no_change (tree, copy_body_data *);
 static tree copy_decl_maybe_to_var (tree, copy_body_data *);
 
 /* Insert a tree->tree mapping for ID.  Despite the name suggests
@@ -186,15 +184,42 @@ remap_ssa_name (tree name, copy_body_data *id)
     {
       new = make_ssa_name (new, NULL);
       insert_decl_map (id, name, new);
-      if (IS_EMPTY_STMT (SSA_NAME_DEF_STMT (name)))
-	{
-	  SSA_NAME_DEF_STMT (new) = build_empty_stmt ();
-	  if (gimple_default_def (id->src_cfun, SSA_NAME_VAR (name)) == name)
-	    set_default_def (SSA_NAME_VAR (new), new);
-	}
       SSA_NAME_OCCURS_IN_ABNORMAL_PHI (new)
 	= SSA_NAME_OCCURS_IN_ABNORMAL_PHI (name);
       TREE_TYPE (new) = TREE_TYPE (SSA_NAME_VAR (new));
+      if (IS_EMPTY_STMT (SSA_NAME_DEF_STMT (name)))
+	{
+	  /* By inlining function having uninitialized variable, we might
+	     extend the lifetime (variable might get reused).  This cause
+	     ICE in the case we end up extending lifetime of SSA name across
+	     abnormal edge, but also increase register presure.
+
+	     We simply initialize all uninitialized vars by 0 except for case
+	     we are inlining to very first BB.  We can avoid this for all
+	     BBs that are not withing strongly connected regions of the CFG,
+	     but this is bit expensive to test.
+	   */
+	  if (id->entry_bb && is_gimple_reg (SSA_NAME_VAR (name))
+	      && TREE_CODE (SSA_NAME_VAR (name)) != PARM_DECL
+	      && (id->entry_bb != EDGE_SUCC (ENTRY_BLOCK_PTR, 0)->dest
+		  || EDGE_COUNT (id->entry_bb->preds) != 1))
+	    {
+	      block_stmt_iterator bsi = bsi_last (id->entry_bb);
+	      tree init_stmt
+		  = build_gimple_modify_stmt (new,
+				  	      fold_convert (TREE_TYPE (new),
+					       		    integer_zero_node));
+	      bsi_insert_after (&bsi, init_stmt, BSI_NEW_STMT);
+	      SSA_NAME_DEF_STMT (new) = init_stmt;
+	      SSA_NAME_IS_DEFAULT_DEF (new) = 0;
+	    }
+	  else
+	    {
+	      SSA_NAME_DEF_STMT (new) = build_empty_stmt ();
+	      if (gimple_default_def (id->src_cfun, SSA_NAME_VAR (name)) == name)
+	        set_default_def (SSA_NAME_VAR (new), new);
+	    }
+	}
     }
   else
     insert_decl_map (id, name, new);
@@ -259,7 +284,8 @@ remap_decl (tree decl, copy_body_data *id)
 	      tree map = remap_ssa_name (def, id);
 	      /* Watch out RESULT_DECLs whose SSA names map directly
 		 to them.  */
-	      if (TREE_CODE (map) == SSA_NAME)
+	      if (TREE_CODE (map) == SSA_NAME
+		  && IS_EMPTY_STMT (SSA_NAME_DEF_STMT (map)))
 	        set_default_def (t, map);
 	    }
 	  add_referenced_var (t);
@@ -381,6 +407,7 @@ tree
 remap_type (tree type, copy_body_data *id)
 {
   tree *node;
+  tree tmp;
 
   if (type == NULL)
     return type;
@@ -397,7 +424,11 @@ remap_type (tree type, copy_body_data *id)
       return type;
     }
 
-  return remap_type_1 (type, id);
+  id->remapping_type_depth++;
+  tmp = remap_type_1 (type, id);
+  id->remapping_type_depth--;
+
+  return tmp;
 }
 
 static tree
@@ -411,14 +442,14 @@ remap_decls (tree decls, copy_body_data *id)
     {
       tree new_var;
 
-      /* We can not chain the local static declarations into the unexpanded_var_list
+      /* We can not chain the local static declarations into the local_decls
          as we can't duplicate them or break one decl rule.  Go ahead and link
-         them into unexpanded_var_list.  */
+         them into local_decls.  */
       if (!auto_var_in_fn_p (old_var, id->src_fn)
 	  && !DECL_EXTERNAL (old_var))
 	{
-	  cfun->unexpanded_var_list = tree_cons (NULL_TREE, old_var,
-						 cfun->unexpanded_var_list);
+	  cfun->local_decls = tree_cons (NULL_TREE, old_var,
+						 cfun->local_decls);
 	  continue;
 	}
 
@@ -465,7 +496,7 @@ remap_block (tree *block, copy_body_data *id)
   fn = id->dst_fn;
 
   if (id->transform_lang_insert_block)
-    lang_hooks.decls.insert_block (new_block);
+    id->transform_lang_insert_block (new_block);
 
   /* Remember the remapped block.  */
   insert_decl_map (id, old_block, new_block);
@@ -640,7 +671,7 @@ copy_body_r (tree *tp, int *walk_subtrees, void *data)
 	    {
 	      value = *n;
 	      STRIP_TYPE_NOPS (value);
-	      if (TREE_CONSTANT (value) || TREE_READONLY_DECL_P (value))
+	      if (TREE_CONSTANT (value) || TREE_READONLY (value))
 		{
 		  *tp = build_empty_stmt ();
 		  return copy_body_r (tp, walk_subtrees, data);
@@ -668,11 +699,18 @@ copy_body_r (tree *tp, int *walk_subtrees, void *data)
 	      tree type = TREE_TYPE (TREE_TYPE (*n));
 	      new = unshare_expr (*n);
 	      old = *tp;
-	      *tp = fold_indirect_ref_1 (type, new);
+	      *tp = gimple_fold_indirect_ref (new);
 	      if (! *tp)
 	        {
 		  if (TREE_CODE (new) == ADDR_EXPR)
-		    *tp = TREE_OPERAND (new, 0);
+		    {
+		      *tp = fold_indirect_ref_1 (type, new);
+		      /* ???  We should either assert here or build
+			 a VIEW_CONVERT_EXPR instead of blindly leaking
+			 incompatible types to our IL.  */
+		      if (! *tp)
+			*tp = TREE_OPERAND (new, 0);
+		    }
 	          else
 		    {
 	              *tp = build1 (INDIRECT_REF, type, new);
@@ -688,9 +726,10 @@ copy_body_r (tree *tp, int *walk_subtrees, void *data)
 	 tweak some special cases.  */
       copy_tree_r (tp, walk_subtrees, NULL);
 
-      /* Global variables we didn't seen yet needs to go into referenced
-	 vars.  */
-      if (gimple_in_ssa_p (cfun) && TREE_CODE (*tp) == VAR_DECL)
+      /* Global variables we haven't seen yet needs to go into referenced
+	 vars.  If not referenced from types only.  */
+      if (gimple_in_ssa_p (cfun) && TREE_CODE (*tp) == VAR_DECL
+	  && id->remapping_type_depth == 0)
 	add_referenced_var (*tp);
        
       /* If EXPR has block defined, map it to newly constructed block.
@@ -732,7 +771,7 @@ copy_body_r (tree *tp, int *walk_subtrees, void *data)
 	 and friends are up-to-date.  */
       else if (TREE_CODE (*tp) == ADDR_EXPR)
 	{
-	  int invariant = TREE_INVARIANT (*tp);
+	  int invariant = is_gimple_min_invariant (*tp);
 	  walk_tree (&TREE_OPERAND (*tp, 0), copy_body_r, id, NULL);
 	  /* Handle the case where we substituted an INDIRECT_REF
 	     into the operand of the ADDR_EXPR.  */
@@ -742,7 +781,7 @@ copy_body_r (tree *tp, int *walk_subtrees, void *data)
 	    recompute_tree_invariant_for_addr_expr (*tp);
 	  /* If this used to be invariant, but is not any longer,
 	     then regimplification is probably needed.  */
-	  if (invariant && !TREE_INVARIANT (*tp))
+	  if (invariant && !is_gimple_min_invariant (*tp))
 	    id->regimplify = true;
 	  *walk_subtrees = 0;
 	}
@@ -1238,7 +1277,7 @@ initialize_cfun (tree new_fndecl, tree callee_fndecl, gcov_type count,
   *new_cfun = *DECL_STRUCT_FUNCTION (callee_fndecl);
   new_cfun->funcdef_no = get_next_funcdef_no ();
   VALUE_HISTOGRAMS (new_cfun) = NULL;
-  new_cfun->unexpanded_var_list = NULL;
+  new_cfun->local_decls = NULL;
   new_cfun->cfg = NULL;
   new_cfun->decl = new_fndecl /*= copy_node (callee_fndecl)*/;
   DECL_STRUCT_FUNCTION (new_fndecl) = new_cfun;
@@ -1262,7 +1301,7 @@ initialize_cfun (tree new_fndecl, tree callee_fndecl, gcov_type count,
 
   if (src_cfun->gimple_df)
     {
-      init_tree_ssa ();
+      init_tree_ssa (cfun);
       cfun->gimple_df->in_ssa_p = true;
       init_ssa_operands ();
     }
@@ -1353,7 +1392,7 @@ copy_cfg_body (copy_body_data * id, gcov_type count, int frequency,
 /* Make a copy of the body of FN so that it can be inserted inline in
    another function.  */
 
-static tree
+tree
 copy_generic_body (copy_body_data *id)
 {
   tree body;
@@ -1401,7 +1440,6 @@ setup_one_parameter (copy_body_data *id, tree p, tree value, tree fn,
 {
   tree init_stmt;
   tree var;
-  tree var_sub;
   tree rhs = value;
   tree def = (gimple_in_ssa_p (cfun)
 	      ? gimple_default_def (id->src_cfun, p) : NULL);
@@ -1409,7 +1447,16 @@ setup_one_parameter (copy_body_data *id, tree p, tree value, tree fn,
   if (value
       && value != error_mark_node
       && !useless_type_conversion_p (TREE_TYPE (p), TREE_TYPE (value)))
-    rhs = fold_build1 (NOP_EXPR, TREE_TYPE (p), value);
+    {
+      if (fold_convertible_p (TREE_TYPE (p), value))
+	rhs = fold_build1 (NOP_EXPR, TREE_TYPE (p), value);
+      else
+	/* ???  For valid (GIMPLE) programs we should not end up here.
+	   Still if something has gone wrong and we end up with truly
+	   mismatched types here, fall back to using a VIEW_CONVERT_EXPR
+	   to not leak invalid GIMPLE to the following passes.  */
+	rhs = fold_build1 (VIEW_CONVERT_EXPR, TREE_TYPE (p), value);
+    }
 
   /* If the parameter is never assigned to, has no SSA_NAMEs created,
      we may not need to create a new variable here at all.  Instead, we may
@@ -1448,23 +1495,10 @@ setup_one_parameter (copy_body_data *id, tree p, tree value, tree fn,
       add_referenced_var (var);
     }
 
-  /* See if the frontend wants to pass this by invisible reference.  If
-     so, our new VAR_DECL will have REFERENCE_TYPE, and we need to
-     replace uses of the PARM_DECL with dereferences.  */
-  if (TREE_TYPE (var) != TREE_TYPE (p)
-      && POINTER_TYPE_P (TREE_TYPE (var))
-      && TREE_TYPE (TREE_TYPE (var)) == TREE_TYPE (p))
-    {
-      insert_decl_map (id, var, var);
-      var_sub = build_fold_indirect_ref (var);
-    }
-  else
-    var_sub = var;
-
   /* Register the VAR_DECL as the equivalent for the PARM_DECL;
      that way, when the PARM_DECL is encountered, it will be
      automatically replaced by the VAR_DECL.  */
-  insert_decl_map (id, p, var_sub);
+  insert_decl_map (id, p, var);
 
   /* Declare this new variable.  */
   TREE_CHAIN (var) = *vars;
@@ -1524,7 +1558,7 @@ setup_one_parameter (copy_body_data *id, tree p, tree value, tree fn,
 
       if (rhs == error_mark_node)
 	{
-  	  insert_decl_map (id, p, var_sub);
+	  insert_decl_map (id, p, var);
 	  return;
 	}
 
@@ -1691,6 +1725,7 @@ declare_return_variable (copy_body_data *id, tree return_slot, tree modify_dest,
 	{
 	  var = return_slot;
 	  gcc_assert (TREE_CODE (var) != SSA_NAME);
+	  TREE_ADDRESSABLE (var) |= TREE_ADDRESSABLE (result);
 	}
       if ((TREE_CODE (TREE_TYPE (result)) == COMPLEX_TYPE
            || TREE_CODE (TREE_TYPE (result)) == VECTOR_TYPE)
@@ -1762,9 +1797,9 @@ declare_return_variable (copy_body_data *id, tree return_slot, tree modify_dest,
     }
 
   DECL_SEEN_IN_BIND_EXPR_P (var) = 1;
-  DECL_STRUCT_FUNCTION (caller)->unexpanded_var_list
+  DECL_STRUCT_FUNCTION (caller)->local_decls
     = tree_cons (NULL_TREE, var,
-		 DECL_STRUCT_FUNCTION (caller)->unexpanded_var_list);
+		 DECL_STRUCT_FUNCTION (caller)->local_decls);
 
   /* Do not have the rest of GCC warn about this variable as it should
      not be visible to the user.  */
@@ -1848,7 +1883,6 @@ inline_forbidden_p_1 (tree *nodep, int *walk_subtrees ATTRIBUTE_UNUSED,
 	    /* We cannot inline functions that take a variable number of
 	       arguments.  */
 	  case BUILT_IN_VA_START:
-	  case BUILT_IN_STDARG_START:
 	  case BUILT_IN_NEXT_ARG:
 	  case BUILT_IN_VA_END:
 	    inline_forbidden_reason
@@ -1951,6 +1985,27 @@ inline_forbidden_p_1 (tree *nodep, int *walk_subtrees ATTRIBUTE_UNUSED,
   return NULL_TREE;
 }
 
+static tree
+inline_forbidden_p_2 (tree *nodep, int *walk_subtrees,
+		      void *fnp)
+{
+  tree node = *nodep;
+  tree fn = (tree) fnp;
+
+  if (TREE_CODE (node) == LABEL_DECL && DECL_CONTEXT (node) == fn)
+    {
+      inline_forbidden_reason
+	= G_("function %q+F can never be inlined "
+	     "because it saves address of local label in a static variable");
+      return node;
+    }
+
+  if (TYPE_P (node))
+    *walk_subtrees = 0;
+
+  return NULL_TREE;
+}
+
 /* Return subexpression representing possible alloca call, if any.  */
 static tree
 inline_forbidden_p (tree fndecl)
@@ -1959,15 +2014,30 @@ inline_forbidden_p (tree fndecl)
   block_stmt_iterator bsi;
   basic_block bb;
   tree ret = NULL_TREE;
+  struct function *fun = DECL_STRUCT_FUNCTION (fndecl);
+  tree step;
 
-  FOR_EACH_BB_FN (bb, DECL_STRUCT_FUNCTION (fndecl))
+  FOR_EACH_BB_FN (bb, fun)
     for (bsi = bsi_start (bb); !bsi_end_p (bsi); bsi_next (&bsi))
       {
 	ret = walk_tree_without_duplicates (bsi_stmt_ptr (bsi),
-				    inline_forbidden_p_1, fndecl);
+					    inline_forbidden_p_1, fndecl);
 	if (ret)
 	  goto egress;
       }
+
+  for (step = fun->local_decls; step; step = TREE_CHAIN (step))
+    {
+      tree decl = TREE_VALUE (step);
+      if (TREE_CODE (decl) == VAR_DECL
+	  && TREE_STATIC (decl)
+	  && !DECL_EXTERNAL (decl)
+	  && DECL_INITIAL (decl))
+	ret = walk_tree_without_duplicates (&DECL_INITIAL (decl),
+					    inline_forbidden_p_2, fndecl);
+	if (ret)
+	  goto egress;
+    }
 
 egress:
   input_location = saved_loc;
@@ -2135,8 +2205,8 @@ estimate_num_insns_1 (tree *tp, int *walk_subtrees, void *data)
     case COMPOUND_EXPR:
     case BIND_EXPR:
     case WITH_CLEANUP_EXPR:
-    case NOP_EXPR:
-    case CONVERT_EXPR:
+    case PAREN_EXPR:
+    CASE_CONVERT:
     case VIEW_CONVERT_EXPR:
     case SAVE_EXPR:
     case ADDR_EXPR:
@@ -2148,7 +2218,6 @@ estimate_num_insns_1 (tree *tp, int *walk_subtrees, void *data)
     case EH_FILTER_EXPR:
     case STATEMENT_LIST:
     case ERROR_MARK:
-    case NON_LVALUE_EXPR:
     case FDESC_EXPR:
     case VA_ARG_EXPR:
     case TRY_CATCH_EXPR:
@@ -2178,6 +2247,7 @@ estimate_num_insns_1 (tree *tp, int *walk_subtrees, void *data)
     case COMPLEX_CST:
     case VECTOR_CST:
     case STRING_CST:
+    case PREDICT_EXPR:
       *walk_subtrees = 0;
       return NULL;
 
@@ -2322,9 +2392,12 @@ estimate_num_insns_1 (tree *tp, int *walk_subtrees, void *data)
       break;
 
     case SWITCH_EXPR:
-      /* TODO: Cost of a switch should be derived from the number of
-	 branches.  */
-      d->count += d->weights->switch_cost;
+      /* Take into account cost of the switch + guess 2 conditional jumps for
+         each case label.  
+
+	 TODO: once the switch expansion logic is sufficiently separated, we can
+	 do better job on estimating cost of the switch.  */
+      d->count += TREE_VEC_LENGTH (SWITCH_LABELS (x)) * 2;
       break;
 
     /* Few special cases of expensive operations.  This is useful
@@ -2344,6 +2417,11 @@ estimate_num_insns_1 (tree *tp, int *walk_subtrees, void *data)
     case CALL_EXPR:
       {
 	tree decl = get_callee_fndecl (x);
+	tree addr = CALL_EXPR_FN (x);
+	tree funtype = TREE_TYPE (addr);
+
+	gcc_assert (POINTER_TYPE_P (funtype));
+	funtype = TREE_TYPE (funtype);
 
 	if (decl && DECL_BUILT_IN_CLASS (decl) == BUILT_IN_MD)
 	  cost = d->weights->target_builtin_call_cost;
@@ -2366,20 +2444,33 @@ estimate_num_insns_1 (tree *tp, int *walk_subtrees, void *data)
 	      break;
 	    }
 
+	if (decl)
+	  funtype = TREE_TYPE (decl);
+
 	/* Our cost must be kept in sync with cgraph_estimate_size_after_inlining
-	   that does use function declaration to figure out the arguments.  */
-	if (!decl)
+	   that does use function declaration to figure out the arguments. 
+
+	   When we deal with function with no body nor prototype, base estimates on
+	   actual parameters of the call expression.  Otherwise use either the actual
+	   arguments types or function declaration for more precise answer.  */
+	if (decl && DECL_ARGUMENTS (decl))
+	  {
+	    tree arg;
+	    for (arg = DECL_ARGUMENTS (decl); arg; arg = TREE_CHAIN (arg))
+	      d->count += estimate_move_cost (TREE_TYPE (arg));
+	  }
+	else if (funtype && prototype_p (funtype))
+	  {
+	    tree t;
+	    for (t = TYPE_ARG_TYPES (funtype); t; t = TREE_CHAIN (t))
+	      d->count += estimate_move_cost (TREE_VALUE (t));
+	  }
+	else
 	  {
 	    tree a;
 	    call_expr_arg_iterator iter;
 	    FOR_EACH_CALL_EXPR_ARG (a, iter, x)
 	      d->count += estimate_move_cost (TREE_TYPE (a));
-	  }
-	else
-	  {
-	    tree arg;
-	    for (arg = DECL_ARGUMENTS (decl); arg; arg = TREE_CHAIN (arg))
-	      d->count += estimate_move_cost (TREE_TYPE (arg));
 	  }
 
 	d->count += cost;
@@ -2453,13 +2544,11 @@ init_inline_once (void)
   eni_inlining_weights.call_cost = PARAM_VALUE (PARAM_INLINE_CALL_COST);
   eni_inlining_weights.target_builtin_call_cost = 1;
   eni_inlining_weights.div_mod_cost = 10;
-  eni_inlining_weights.switch_cost = 1;
   eni_inlining_weights.omp_cost = 40;
 
   eni_size_weights.call_cost = 1;
   eni_size_weights.target_builtin_call_cost = 1;
   eni_size_weights.div_mod_cost = 1;
-  eni_size_weights.switch_cost = 10;
   eni_size_weights.omp_cost = 40;
 
   /* Estimating time for call is difficult, since we have no idea what the
@@ -2469,7 +2558,6 @@ init_inline_once (void)
   eni_time_weights.call_cost = 10;
   eni_time_weights.target_builtin_call_cost = 10;
   eni_time_weights.div_mod_cost = 10;
-  eni_time_weights.switch_cost = 4;
   eni_time_weights.omp_cost = 40;
 }
 
@@ -2495,7 +2583,7 @@ expand_call_inline (basic_block bb, tree stmt, tree *tp, void *data)
 {
   copy_body_data *id;
   tree t;
-  tree use_retvar;
+  tree retvar, use_retvar;
   tree fn;
   struct pointer_map_t *st;
   tree return_slot;
@@ -2662,6 +2750,7 @@ expand_call_inline (basic_block bb, tree stmt, tree *tp, void *data)
 
   gcc_assert (!id->src_cfun->after_inlining);
 
+  id->entry_bb = bb;
   initialize_inlined_parameters (id, t, fn, bb);
 
   if (DECL_INITIAL (fn))
@@ -2696,9 +2785,27 @@ expand_call_inline (basic_block bb, tree stmt, tree *tp, void *data)
   else
     modify_dest = NULL;
 
+  /* If we are inlining a call to the C++ operator new, we don't want
+     to use type based alias analysis on the return value.  Otherwise
+     we may get confused if the compiler sees that the inlined new
+     function returns a pointer which was just deleted.  See bug
+     33407.  */
+  if (DECL_IS_OPERATOR_NEW (fn))
+    {
+      return_slot = NULL;
+      modify_dest = NULL;
+    }
+
   /* Declare the return variable for the function.  */
-  declare_return_variable (id, return_slot,
-			   modify_dest, &use_retvar);
+  retvar = declare_return_variable (id, return_slot,
+				    modify_dest, &use_retvar);
+
+  if (DECL_IS_OPERATOR_NEW (fn))
+    {
+      gcc_assert (TREE_CODE (retvar) == VAR_DECL
+		  && POINTER_TYPE_P (TREE_TYPE (retvar)));
+      DECL_NO_TBAA_P (retvar) = 1;
+    }
 
   /* This is it.  Duplicate the callee body.  Assume callee is
      pre-gimplified.  Note that we must not alter the caller
@@ -2708,16 +2815,16 @@ expand_call_inline (basic_block bb, tree stmt, tree *tp, void *data)
   copy_body (id, bb->count, bb->frequency, bb, return_block);
 
   /* Add local vars in this inlined callee to caller.  */
-  t_step = id->src_cfun->unexpanded_var_list;
+  t_step = id->src_cfun->local_decls;
   for (; t_step; t_step = TREE_CHAIN (t_step))
     {
       var = TREE_VALUE (t_step);
       if (TREE_STATIC (var) && !TREE_ASM_WRITTEN (var))
-	cfun->unexpanded_var_list = tree_cons (NULL_TREE, var,
-					       cfun->unexpanded_var_list);
+	cfun->local_decls = tree_cons (NULL_TREE, var,
+					       cfun->local_decls);
       else
-	cfun->unexpanded_var_list = tree_cons (NULL_TREE, remap_decl (var, id),
-					       cfun->unexpanded_var_list);
+	cfun->local_decls = tree_cons (NULL_TREE, remap_decl (var, id),
+					       cfun->local_decls);
     }
 
   /* Clean up.  */
@@ -2745,15 +2852,15 @@ expand_call_inline (basic_block bb, tree stmt, tree *tp, void *data)
       if (TREE_CODE (stmt) == GIMPLE_MODIFY_STMT
 	  && TREE_CODE (GIMPLE_STMT_OPERAND (stmt, 0)) == SSA_NAME)
 	{
-	  tree name = TREE_OPERAND (stmt, 0);
-	  tree var = SSA_NAME_VAR (TREE_OPERAND (stmt, 0));
+	  tree name = GIMPLE_STMT_OPERAND (stmt, 0);
+	  tree var = SSA_NAME_VAR (GIMPLE_STMT_OPERAND (stmt, 0));
 	  tree def = gimple_default_def (cfun, var);
 
 	  /* If the variable is used undefined, make this name undefined via
 	     move.  */
 	  if (def)
 	    {
-	      TREE_OPERAND (stmt, 1) = def;
+	      GIMPLE_STMT_OPERAND (stmt, 1) = def;
 	      update_stmt (stmt);
 	    }
 	  /* Otherwise make this variable undefined.  */
@@ -2836,11 +2943,17 @@ fold_marked_statements (int first, struct pointer_set_t *statements)
 	  if (pointer_set_contains (statements, bsi_stmt (bsi)))
 	    {
 	      tree old_stmt = bsi_stmt (bsi);
+	      tree old_call = get_call_expr_in (old_stmt);
+
 	      if (fold_stmt (bsi_stmt_ptr (bsi)))
 		{
 		  update_stmt (bsi_stmt (bsi));
-		  if (maybe_clean_or_replace_eh_stmt (old_stmt, bsi_stmt (bsi)))
-		     tree_purge_dead_eh_edges (BASIC_BLOCK (first));
+		  if (old_call)
+		    cgraph_update_edges_for_call_stmt (old_stmt, old_call,
+						       bsi_stmt (bsi));
+		  if (maybe_clean_or_replace_eh_stmt (old_stmt,
+						      bsi_stmt (bsi)))
+		    tree_purge_dead_eh_edges (BASIC_BLOCK (first));
 		}
 	    }
       }
@@ -2893,7 +3006,7 @@ optimize_inline_calls (tree fn)
   id.transform_call_graph_edges = CB_CGE_DUPLICATE;
   id.transform_new_cfg = false;
   id.transform_return_to_modify = true;
-  id.transform_lang_insert_block = false;
+  id.transform_lang_insert_block = NULL;
   id.statements_to_fold = pointer_set_create ();
 
   push_gimplify_context ();
@@ -2946,36 +3059,6 @@ optimize_inline_calls (tree fn)
   return (TODO_update_ssa | TODO_cleanup_cfg
 	  | (gimple_in_ssa_p (cfun) ? TODO_remove_unused_locals : 0)
 	  | (profile_status != PROFILE_ABSENT ? TODO_rebuild_frequencies : 0));
-}
-
-/* FN is a function that has a complete body, and CLONE is a function whose
-   body is to be set to a copy of FN, mapping argument declarations according
-   to the ARG_MAP splay_tree.  */
-
-void
-clone_body (tree clone, tree fn, void *arg_map)
-{
-  copy_body_data id;
-
-  /* Clone the body, as if we were making an inline call.  But, remap the
-     parameters in the callee to the parameters of caller.  */
-  memset (&id, 0, sizeof (id));
-  id.src_fn = fn;
-  id.dst_fn = clone;
-  id.src_cfun = DECL_STRUCT_FUNCTION (fn);
-  id.decl_map = (struct pointer_map_t *)arg_map;
-
-  id.copy_decl = copy_decl_no_change;
-  id.transform_call_graph_edges = CB_CGE_DUPLICATE;
-  id.transform_new_cfg = true;
-  id.transform_return_to_modify = false;
-  id.transform_lang_insert_block = true;
-
-  /* We're not inside any EH region.  */
-  id.eh_region = -1;
-
-  /* Actually copy the body.  */
-  append_to_statement_list_force (copy_generic_body (&id), &DECL_SAVED_TREE (clone));
 }
 
 /* Passed to walk_tree.  Copies the node pointed to, if appropriate.  */
@@ -3198,7 +3281,7 @@ unsave_expr_now (tree expr)
   id.transform_call_graph_edges = CB_CGE_DUPLICATE;
   id.transform_new_cfg = false;
   id.transform_return_to_modify = false;
-  id.transform_lang_insert_block = false;
+  id.transform_lang_insert_block = NULL;
 
   /* Walk the tree once to find local labels.  */
   walk_tree_without_duplicates (&expr, mark_local_for_remap_r, &id);
@@ -3241,9 +3324,7 @@ declare_inline_vars (tree block, tree vars)
     {
       DECL_SEEN_IN_BIND_EXPR_P (t) = 1;
       gcc_assert (!TREE_STATIC (t) && !TREE_ASM_WRITTEN (t));
-      cfun->unexpanded_var_list =
-	tree_cons (NULL_TREE, t,
-		   cfun->unexpanded_var_list);
+      cfun->local_decls = tree_cons (NULL_TREE, t, cfun->local_decls);
     }
 
   if (block)
@@ -3344,7 +3425,7 @@ copy_result_decl_to_var (tree decl, copy_body_data *id)
 }
 
 
-static tree
+tree
 copy_decl_no_change (tree decl, copy_body_data *id)
 {
   tree copy;
@@ -3480,7 +3561,7 @@ tree_function_versioning (tree old_decl, tree new_decl, varray_type tree_map,
     = update_clones ? CB_CGE_MOVE_CLONES : CB_CGE_MOVE;
   id.transform_new_cfg = true;
   id.transform_return_to_modify = false;
-  id.transform_lang_insert_block = false;
+  id.transform_lang_insert_block = NULL;
 
   current_function_decl = new_decl;
   old_entry_block = ENTRY_BLOCK_PTR_FOR_FUNCTION
@@ -3516,19 +3597,18 @@ tree_function_versioning (tree old_decl, tree new_decl, varray_type tree_map,
   /* Renumber the lexical scoping (non-code) blocks consecutively.  */
   number_blocks (id.dst_fn);
   
-  if (DECL_STRUCT_FUNCTION (old_decl)->unexpanded_var_list != NULL_TREE)
+  if (DECL_STRUCT_FUNCTION (old_decl)->local_decls != NULL_TREE)
     /* Add local vars.  */
-    for (t_step = DECL_STRUCT_FUNCTION (old_decl)->unexpanded_var_list;
+    for (t_step = DECL_STRUCT_FUNCTION (old_decl)->local_decls;
 	 t_step; t_step = TREE_CHAIN (t_step))
       {
 	tree var = TREE_VALUE (t_step);
 	if (TREE_STATIC (var) && !TREE_ASM_WRITTEN (var))
-	  cfun->unexpanded_var_list = tree_cons (NULL_TREE, var,
-						 cfun->unexpanded_var_list);
+	  cfun->local_decls = tree_cons (NULL_TREE, var, cfun->local_decls);
 	else
-	  cfun->unexpanded_var_list =
+	  cfun->local_decls =
 	    tree_cons (NULL_TREE, remap_decl (var, &id),
-		       cfun->unexpanded_var_list);
+		       cfun->local_decls);
       }
   
   /* Copy the Function's body.  */
@@ -3592,6 +3672,8 @@ build_duplicate_type (tree type)
   type = remap_type_1 (type, &id);
 
   pointer_map_destroy (id.decl_map);
+
+  TYPE_CANONICAL (type) = type;
 
   return type;
 }

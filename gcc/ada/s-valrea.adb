@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2006, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -56,7 +56,7 @@ package body System.Val_Real is
       P : Integer;
       --  Local copy of string pointer
 
-      Base   : Long_Long_Float;
+      Base : Long_Long_Float;
       --  Base value
 
       Uval : Long_Long_Float;
@@ -82,7 +82,7 @@ package body System.Val_Real is
 
       Num_Saved_Zeroes : Natural := 0;
       --  This counts zeroes after the decimal point. A non-zero value means
-      --  that this number of previously scanned digits are zero. if the end
+      --  that this number of previously scanned digits are zero. If the end
       --  of the number is reached, these zeroes are simply discarded, which
       --  ensures that trailing zeroes after the point never affect the value
       --  (which might otherwise happen as a result of rounding). With this

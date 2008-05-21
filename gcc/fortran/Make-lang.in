@@ -1,6 +1,7 @@
 # -*- makefile -*-
 # Top level makefile fragment for GNU gfortran, the GNU Fortran 95 compiler.
-# Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
+# Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008 Free Software
+# Foundation, Inc.
 # Contributed by Paul Brook <paul@nowt.org
 # and Steven Bosscher <s.bosscher@student.tudelft.nl>
 
@@ -67,6 +68,8 @@ F95_OBJS = $(F95_PARSER_OBJS) \
     fortran/trans-intrinsic.o fortran/trans-io.o fortran/trans-openmp.o \
     fortran/trans-stmt.o fortran/trans-types.o
 
+fortran_OBJS = $(F95_OBJS) gfortranspec.o
+
 #
 # Define the names for selecting gfortran in LANGUAGES.
 fortran: f951$(exeext)
@@ -94,7 +97,7 @@ gfortran-cross$(exeext): gfortran$(exeext)
 f951$(exeext): $(F95_OBJS) \
 		$(BACKEND) $(LIBDEPS) attribs.o
 	$(CC) $(ALL_CFLAGS) $(LDFLAGS) -o $@ \
-		$(F95_OBJS) $(BACKEND) $(LIBS) attribs.o
+		$(F95_OBJS) $(BACKEND) $(LIBS) attribs.o $(GMPLIBS)
 
 gt-fortran-trans.h    : s-gtype; @true
 #
@@ -149,7 +152,7 @@ GFORTRAN_TEXI = \
   $(srcdir)/fortran/intrinsic.texi \
   $(srcdir)/fortran/invoke.texi \
   $(srcdir)/doc/include/fdl.texi \
-  $(srcdir)/doc/include/gpl.texi \
+  $(srcdir)/doc/include/gpl_v3.texi \
   $(srcdir)/doc/include/funding.texi \
   $(srcdir)/doc/include/gcc-common.texi \
   gcc-vers.texi

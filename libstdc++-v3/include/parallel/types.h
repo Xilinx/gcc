@@ -1,6 +1,6 @@
 // -*- C++ -*-
 
-// Copyright (C) 2007 Free Software Foundation, Inc.
+// Copyright (C) 2007, 2008 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the terms
@@ -29,7 +29,7 @@
 // Public License.
 
 /** @file parallel/types.h
- *  @brief Basic typedefs.
+ *  @brief Basic types and typedefs.
  *  This file is a GNU parallel extension to the Standard C++ Library.
  */
 
@@ -42,13 +42,80 @@
 
 namespace __gnu_parallel
 {
+  // Enumerated types.
+
+  /// Run-time equivalents for the compile-time tags.
+  enum _Parallelism
+    {
+      /// Not parallel.
+      sequential,
+
+      /// Parallel unbalanced (equal-sized chunks).
+      parallel_unbalanced,
+
+      /// Parallel balanced (work-stealing).
+      parallel_balanced,
+
+      /// Parallel with OpenMP dynamic load-balancing.
+      parallel_omp_loop,
+
+      /// Parallel with OpenMP static load-balancing.
+      parallel_omp_loop_static,
+
+      /// Parallel with OpenMP taskqueue construct.
+      parallel_taskqueue
+    };
+
+  /// Strategies for run-time algorithm selection: 
+  // force_sequential, force_parallel, heuristic.
+  enum _AlgorithmStrategy
+    {
+      heuristic,
+      force_sequential,
+      force_parallel
+    };
+
+  /// Sorting algorithms: 
+  // multi-way mergesort, quicksort, load-balanced quicksort.
+  enum _SortAlgorithm 
+    { 
+      MWMS, 
+      QS, 
+      QS_BALANCED 
+    };
+
+  /// Merging algorithms: 
+  // bubblesort-alike, loser-tree variants, enum sentinel.
+  enum _MultiwayMergeAlgorithm
+    {
+      LOSER_TREE
+    };
+
+  /// Partial sum algorithms: recursive, linear.
+  enum _PartialSumAlgorithm 
+    { 
+      RECURSIVE, 
+      LINEAR 
+    };
+
+  /// Sorting/merging algorithms: sampling, exact.
+  enum _SplittingAlgorithm 
+    { 
+      SAMPLING, 
+      EXACT 
+    };
+
+  /// Find algorithms:
+  // growing blocks, equal-sized blocks, equal splitting.
+  enum _FindAlgorithm 
+    { 
+      GROWING_BLOCKS, 
+      CONSTANT_SIZE_BLOCKS, 
+      EQUAL_SPLIT 
+    };
+
+  /// Integer Types.
   // XXX need to use <cstdint>
-  /** @brief 8-bit signed integer. */
-  typedef char int8;
-
-  /** @brief 8-bit unsigned integer. */
-  typedef unsigned char uint8;
-
   /** @brief 16-bit signed integer. */
   typedef short int16;
 
@@ -79,20 +146,16 @@ namespace __gnu_parallel
    */
   typedef uint16 thread_index_t;
 
-  /**
-   * @brief Longest compare-and-swappable integer type on this platform.
-   */
+  // XXX atomics interface?
+  /// Longest compare-and-swappable integer type on this platform.
   typedef int64 lcas_t;
 
-  /**
-   * @brief Number of bits of ::lcas_t.
-   */
+  // XXX numeric_limits::digits?
+  /// Number of bits of ::lcas_t.
   static const int lcas_t_bits = sizeof(lcas_t) * 8;
 
-  /**
-   * @brief ::lcas_t with the right half of bits set to 1.
-   */
-  static const lcas_t lcas_t_mask = (((lcas_t)1 << (lcas_t_bits / 2)) - 1);
+  /// ::lcas_t with the right half of bits set to 1.
+  static const lcas_t lcas_t_mask = ((lcas_t(1) << (lcas_t_bits / 2)) - 1);
 }
 
 #endif /* _GLIBCXX_TYPES_H */

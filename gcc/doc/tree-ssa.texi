@@ -1,4 +1,4 @@
-@c Copyright (c) 2004, 2005, 2007 Free Software Foundation, Inc.
+@c Copyright (c) 2004, 2005, 2007, 2008 Free Software Foundation, Inc.
 @c Free Software Foundation, Inc.
 @c This is part of the GCC manual.
 @c For copying conditions, see the file gcc.texi.
@@ -828,7 +828,7 @@ instance, given
 @{
   int a, b, *p;
 
-  if (...)
+  if (@dots{})
     p = &a;
   else
     p = &b;
@@ -850,7 +850,7 @@ operands, use the @option{-vops} option to @option{-fdump-tree}:
 @{
   int a, b, *p;
 
-  if (...)
+  if (@dots{})
     p = &a;
   else
     p = &b;
@@ -1198,7 +1198,8 @@ the version number and the statement that created the
 @code{SSA_NAME}.  Only definitions and virtual definitions may
 create new @code{SSA_NAME} nodes.
 
-Sometimes, flow of control makes it impossible to determine what is the
+@cindex PHI nodes
+Sometimes, flow of control makes it impossible to determine the
 most recent version of a variable.  In these cases, the compiler
 inserts an artificial definition for that variable called
 @dfn{PHI function} or @dfn{PHI node}.  This new definition merges
@@ -1206,9 +1207,9 @@ all the incoming versions of the variable to create a new name
 for it.  For instance,
 
 @smallexample
-if (...)
+if (@dots{})
   a_1 = 5;
-else if (...)
+else if (@dots{})
   a_2 = 2;
 else
   a_3 = 13;
@@ -1293,11 +1294,11 @@ Suppose that we insert new names @code{x_10} and @code{x_11} (lines
      1	L0:
      2	x_1 = PHI (0, x_5)
      3	if (x_1 < 10)
-     4	  x_10 = ...
+     4	  x_10 = @dots{}
      5	  if (x_1 > 7)
      6	    y_2 = 0
      7	  else
-     8	    x_11 = ...
+     8	    x_11 = @dots{}
      9	    y_3 = x_1 + x_7
      10	  endif
      11	  x_5 = x_1 + 1
@@ -1389,7 +1390,7 @@ modifications should be bracketed between calls to
     munge_stmt (tree stmt)
     @{
        push_stmt_changes (&stmt);
-       ... rewrite STMT ...
+       @dots{} rewrite STMT @dots{}
        pop_stmt_changes (&stmt);
     @}
 @end smallexample
@@ -1665,7 +1666,7 @@ T, we add Vi to the may-aliases set for T@.  Meaning that
 after alias analysis, we will have:
 
 @smallexample
-may-aliases(T) = @{ V1, V2, V3, ..., Vn @}
+may-aliases(T) = @{ V1, V2, V3, @dots{}, Vn @}
 @end smallexample
 
 This means that every statement that references T, will get
@@ -1676,7 +1677,7 @@ to the alias set of all the Vi variables:
 @smallexample
 may-aliases(V1) = @{ T @}
 may-aliases(V2) = @{ T @}
-...
+@dots{}
 may-aliases(Vn) = @{ T @}
 @end smallexample
 

@@ -1,5 +1,6 @@
 /*  -*- Mode: Asm -*-  */
-/* Copyright (C) 1998, 1999, 2000, 2007 Free Software Foundation, Inc.
+/* Copyright (C) 1998, 1999, 2000, 2007, 2008 
+   Free Software Foundation, Inc.
    Contributed by Denis Chertykov <denisc@overta.ru>
 
 This file is free software; you can redistribute it and/or modify it
@@ -31,6 +32,7 @@ Boston, MA 02110-1301, USA.  */
 #define __SREG__ 0x3f
 #define __SP_H__ 0x3e
 #define __SP_L__ 0x3d
+#define __RAMPZ__ 0x3B
 
 /* Most of the functions here are called directly from avr.md
    patterns, instead of using the standard libcall mechanisms.
@@ -593,7 +595,12 @@ __prologue_saves__:
 	out	__SP_H__,r29
 	out	__SREG__,__tmp_reg__
 	out	__SP_L__,r28
+#if defined (__AVR_HAVE_EIJMP_EICALL__)
+	eijmp
+#else
 	ijmp
+#endif
+
 .endfunc
 #endif /* defined (L_prologue) */
 
@@ -647,6 +654,7 @@ exit:
 	/* Code from .fini8 ... .fini1 sections inserted by ld script.  */
 
 	.section .fini0,"ax",@progbits
+	cli
 __stop_program:
 	rjmp	__stop_program
 	.endfunc
@@ -672,32 +680,75 @@ __tablejump__:
 	lpm	__tmp_reg__, Z+
 	lpm	r31, Z
 	mov	r30, __tmp_reg__
+
+#if defined (__AVR_HAVE_EIJMP_EICALL__)
+	eijmp
+#else
 	ijmp
+#endif
+
 #else
 	lpm
 	adiw	r30, 1
 	push	r0
 	lpm
 	push	r0
+#if defined (__AVR_HAVE_EIJMP_EICALL__)
+        push    __zero_reg__
+#endif
 	ret
 #endif
 	.endfunc
 #endif /* defined (L_tablejump) */
 
-/* __do_copy_data is only necessary if there is anything in .data section.
-   Does not use RAMPZ - crt*.o provides a replacement for >64K devices.  */
-
 #ifdef L_copy_data
 	.section .init4,"ax",@progbits
 	.global __do_copy_data
 __do_copy_data:
+#if defined(__AVR_HAVE_ELPMX__)
 	ldi	r17, hi8(__data_end)
 	ldi	r26, lo8(__data_start)
 	ldi	r27, hi8(__data_start)
 	ldi	r30, lo8(__data_load_start)
 	ldi	r31, hi8(__data_load_start)
-	rjmp	.do_copy_data_start
-.do_copy_data_loop:
+	ldi	r16, hh8(__data_load_start)
+	out	__RAMPZ__, r16
+	rjmp	.L__do_copy_data_start
+.L__do_copy_data_loop:
+	elpm	r0, Z+
+	st	X+, r0
+.L__do_copy_data_start:
+	cpi	r26, lo8(__data_end)
+	cpc	r27, r17
+	brne	.L__do_copy_data_loop
+#elif  !defined(__AVR_HAVE_ELPMX__) && defined(__AVR_HAVE_ELPM__)
+	ldi	r17, hi8(__data_end)
+	ldi	r26, lo8(__data_start)
+	ldi	r27, hi8(__data_start)
+	ldi	r30, lo8(__data_load_start)
+	ldi	r31, hi8(__data_load_start)
+	ldi	r16, hh8(__data_load_start - 0x10000)
+.L__do_copy_data_carry:
+	inc	r16
+	out	__RAMPZ__, r16
+	rjmp	.L__do_copy_data_start
+.L__do_copy_data_loop:
+	elpm
+	st	X+, r0
+	adiw	r30, 1
+	brcs	.L__do_copy_data_carry
+.L__do_copy_data_start:
+	cpi	r26, lo8(__data_end)
+	cpc	r27, r17
+	brne	.L__do_copy_data_loop
+#elif !defined(__AVR_HAVE_ELPMX__) && !defined(__AVR_HAVE_ELPM__)
+	ldi	r17, hi8(__data_end)
+	ldi	r26, lo8(__data_start)
+	ldi	r27, hi8(__data_start)
+	ldi	r30, lo8(__data_load_start)
+	ldi	r31, hi8(__data_load_start)
+	rjmp	.L__do_copy_data_start
+.L__do_copy_data_loop:
 #if defined (__AVR_HAVE_LPMX__)
 	lpm	r0, Z+
 #else
@@ -705,10 +756,11 @@ __do_copy_data:
 	adiw	r30, 1
 #endif
 	st	X+, r0
-.do_copy_data_start:
+.L__do_copy_data_start:
 	cpi	r26, lo8(__data_end)
 	cpc	r27, r17
-	brne	.do_copy_data_loop
+	brne	.L__do_copy_data_loop
+#endif /* !defined(__AVR_HAVE_ELPMX__) && !defined(__AVR_HAVE_ELPM__) */
 #endif /* L_copy_data */
 
 /* __do_clear_bss is only necessary if there is anything in .bss section.  */
@@ -732,7 +784,7 @@ __do_clear_bss:
 /* __do_global_ctors and __do_global_dtors are only necessary
    if there are any constructors/destructors.  */
 
-#if defined (__AVR_MEGA__)
+#if defined (__AVR_HAVE_JMP_CALL__)
 #define XCALL call
 #else
 #define XCALL rcall

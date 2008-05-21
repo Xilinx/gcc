@@ -64,7 +64,7 @@ extern const char *lhd_comdat_group (tree);
 extern tree lhd_expr_size (const_tree);
 extern size_t lhd_tree_size (enum tree_code);
 extern HOST_WIDE_INT lhd_to_target_charset (HOST_WIDE_INT);
-extern tree lhd_expr_to_decl (tree, bool *, bool *, bool *);
+extern tree lhd_expr_to_decl (tree, bool *, bool *);
 extern tree lhd_builtin_function (tree decl);
 
 /* Declarations of default tree inlining hooks.  */
@@ -85,12 +85,12 @@ extern void lhd_omp_firstprivatize_type_sizes (struct gimplify_omp_ctx *,
 #define LANG_HOOKS_INIT			hook_bool_void_false
 #define LANG_HOOKS_FINISH		lhd_do_nothing
 #define LANG_HOOKS_PARSE_FILE		lhd_do_nothing_i
-#define LANG_HOOKS_CLEAR_BINDING_STACK	lhd_do_nothing
 #define LANG_HOOKS_INIT_OPTIONS		hook_uint_uint_constcharptrptr_0
 #define LANG_HOOKS_INITIALIZE_DIAGNOSTICS lhd_initialize_diagnostics
 #define LANG_HOOKS_HANDLE_OPTION	hook_int_size_t_constcharptr_int_0
 #define LANG_HOOKS_MISSING_ARGUMENT	hook_bool_constcharptr_size_t_false
 #define LANG_HOOKS_POST_OPTIONS		lhd_post_options
+#define LANG_HOOKS_MISSING_NORETURN_OK_P hook_bool_tree_true
 #define LANG_HOOKS_GET_ALIAS_SET	lhd_get_alias_set
 #define LANG_HOOKS_EXPAND_EXPR		lhd_expand_expr
 #define LANG_HOOKS_EXPAND_DECL		lhd_expand_decl
@@ -98,7 +98,6 @@ extern void lhd_omp_firstprivatize_type_sizes (struct gimplify_omp_ctx *,
 #define LANG_HOOKS_STATICP		lhd_staticp
 #define LANG_HOOKS_DUP_LANG_SPECIFIC_DECL lhd_do_nothing_t
 #define LANG_HOOKS_SET_DECL_ASSEMBLER_NAME lhd_set_decl_assembler_name
-#define LANG_HOOKS_REDUCE_BIT_FIELD_OPERATIONS false
 #define LANG_HOOKS_NO_BODY_BLOCKS	false
 #define LANG_HOOKS_PRINT_STATISTICS	lhd_do_nothing
 #define LANG_HOOKS_PRINT_XNODE		lhd_print_tree_nothing
@@ -116,12 +115,6 @@ extern void lhd_omp_firstprivatize_type_sizes (struct gimplify_omp_ctx *,
 #define LANG_HOOKS_EXPR_TO_DECL		lhd_expr_to_decl
 #define LANG_HOOKS_TO_TARGET_CHARSET	lhd_to_target_charset
 #define LANG_HOOKS_INIT_TS		lhd_do_nothing
-
-#define LANG_HOOKS_FUNCTION_INIT	lhd_do_nothing_f
-#define LANG_HOOKS_FUNCTION_FINAL	lhd_do_nothing_f
-#define LANG_HOOKS_FUNCTION_ENTER_NESTED lhd_do_nothing_f
-#define LANG_HOOKS_FUNCTION_LEAVE_NESTED lhd_do_nothing_f
-#define LANG_HOOKS_FUNCTION_MISSING_NORETURN_OK_P hook_bool_tree_true
 
 /* Attribute hooks.  */
 #define LANG_HOOKS_ATTRIBUTE_TABLE		NULL
@@ -144,14 +137,6 @@ extern void lhd_omp_firstprivatize_type_sizes (struct gimplify_omp_ctx *,
   LANG_HOOKS_CALLGRAPH_EMIT_ASSOCIATED_THUNKS, \
 }
 
-#define LANG_HOOKS_FUNCTION_INITIALIZER {	\
-  LANG_HOOKS_FUNCTION_INIT,			\
-  LANG_HOOKS_FUNCTION_FINAL,			\
-  LANG_HOOKS_FUNCTION_ENTER_NESTED,		\
-  LANG_HOOKS_FUNCTION_LEAVE_NESTED,		\
-  LANG_HOOKS_FUNCTION_MISSING_NORETURN_OK_P	\
-}
-
 /* Hooks for tree gimplification.  */
 #define LANG_HOOKS_GIMPLIFY_EXPR lhd_gimplify_expr
 #define LANG_HOOKS_FOLD_OBJ_TYPE_REF NULL
@@ -172,6 +157,7 @@ extern tree lhd_make_node (enum tree_code);
 /* Types hooks.  There are no reasonable defaults for most of them,
    so we create a compile-time error instead.  */
 #define LANG_HOOKS_MAKE_TYPE lhd_make_node
+#define LANG_HOOKS_CLASSIFY_RECORD	NULL
 #define LANG_HOOKS_INCOMPLETE_TYPE_ERROR lhd_incomplete_type_error
 #define LANG_HOOKS_GENERIC_TYPE_P	hook_bool_const_tree_false
 #define LANG_HOOKS_TYPE_PROMOTES_TO lhd_type_promotes_to
@@ -181,10 +167,12 @@ extern tree lhd_make_node (enum tree_code);
   lhd_omp_firstprivatize_type_sizes
 #define LANG_HOOKS_TYPE_HASH_EQ		NULL
 #define LANG_HOOKS_GET_ARRAY_DESCR_INFO	NULL
+#define LANG_HOOKS_RECONSTRUCT_COMPLEX_TYPE reconstruct_complex_type
 #define LANG_HOOKS_HASH_TYPES		true
 
 #define LANG_HOOKS_FOR_TYPES_INITIALIZER { \
   LANG_HOOKS_MAKE_TYPE, \
+  LANG_HOOKS_CLASSIFY_RECORD, \
   LANG_HOOKS_TYPE_FOR_MODE, \
   LANG_HOOKS_TYPE_FOR_SIZE, \
   LANG_HOOKS_GENERIC_TYPE_P, \
@@ -195,12 +183,12 @@ extern tree lhd_make_node (enum tree_code);
   LANG_HOOKS_OMP_FIRSTPRIVATIZE_TYPE_SIZES, \
   LANG_HOOKS_TYPE_HASH_EQ, \
   LANG_HOOKS_GET_ARRAY_DESCR_INFO, \
+  LANG_HOOKS_RECONSTRUCT_COMPLEX_TYPE, \
   LANG_HOOKS_HASH_TYPES \
 }
 
 /* Declaration hooks.  */
 #define LANG_HOOKS_GLOBAL_BINDINGS_P global_bindings_p
-#define LANG_HOOKS_INSERT_BLOCK	insert_block
 #define LANG_HOOKS_PUSHDECL	pushdecl
 #define LANG_HOOKS_GETDECLS	getdecls
 #define LANG_HOOKS_WARN_UNUSED_GLOBAL_DECL lhd_warn_unused_global_decl
@@ -218,7 +206,6 @@ extern tree lhd_make_node (enum tree_code);
 
 #define LANG_HOOKS_DECLS { \
   LANG_HOOKS_GLOBAL_BINDINGS_P, \
-  LANG_HOOKS_INSERT_BLOCK, \
   LANG_HOOKS_PUSHDECL, \
   LANG_HOOKS_GETDECLS, \
   LANG_HOOKS_WARN_UNUSED_GLOBAL_DECL, \
@@ -248,7 +235,7 @@ extern tree lhd_make_node (enum tree_code);
   LANG_HOOKS_INIT, \
   LANG_HOOKS_FINISH, \
   LANG_HOOKS_PARSE_FILE, \
-  LANG_HOOKS_CLEAR_BINDING_STACK, \
+  LANG_HOOKS_MISSING_NORETURN_OK_P, \
   LANG_HOOKS_GET_ALIAS_SET, \
   LANG_HOOKS_EXPAND_EXPR, \
   LANG_HOOKS_EXPAND_DECL, \
@@ -257,7 +244,6 @@ extern tree lhd_make_node (enum tree_code);
   LANG_HOOKS_STATICP, \
   LANG_HOOKS_DUP_LANG_SPECIFIC_DECL, \
   LANG_HOOKS_SET_DECL_ASSEMBLER_NAME, \
-  LANG_HOOKS_REDUCE_BIT_FIELD_OPERATIONS, \
   LANG_HOOKS_NO_BODY_BLOCKS, \
   LANG_HOOKS_PRINT_STATISTICS, \
   LANG_HOOKS_PRINT_XNODE, \
@@ -274,7 +260,6 @@ extern tree lhd_make_node (enum tree_code);
   LANG_HOOKS_ATTRIBUTE_TABLE, \
   LANG_HOOKS_COMMON_ATTRIBUTE_TABLE, \
   LANG_HOOKS_FORMAT_ATTRIBUTE_TABLE, \
-  LANG_HOOKS_FUNCTION_INITIALIZER, \
   LANG_HOOKS_TREE_INLINING_INITIALIZER, \
   LANG_HOOKS_CALLGRAPH_INITIALIZER, \
   LANG_HOOKS_TREE_DUMP_INITIALIZER, \

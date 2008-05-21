@@ -41,6 +41,7 @@ DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in \
 subdir = testsuite
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/../config/enable.m4 \
+	$(top_srcdir)/../config/futex.m4 \
 	$(top_srcdir)/../config/iconv.m4 \
 	$(top_srcdir)/../config/lead-dot.m4 \
 	$(top_srcdir)/../config/lib-ld.m4 \
@@ -48,6 +49,9 @@ am__aclocal_m4_deps = $(top_srcdir)/../config/enable.m4 \
 	$(top_srcdir)/../config/lib-prefix.m4 \
 	$(top_srcdir)/../config/multi.m4 \
 	$(top_srcdir)/../config/no-executables.m4 \
+	$(top_srcdir)/../config/override.m4 \
+	$(top_srcdir)/../config/proginstall.m4 \
+	$(top_srcdir)/../config/stdint.m4 \
 	$(top_srcdir)/../config/unwind_ipinfo.m4 \
 	$(top_srcdir)/../libtool.m4 $(top_srcdir)/../ltoptions.m4 \
 	$(top_srcdir)/../ltsugar.m4 $(top_srcdir)/../ltversion.m4 \
@@ -300,9 +304,6 @@ compile_script = ${glibcxx_srcdir}/scripts/check_compile
 # running this is off by default.
 # XXX Need to add dependency on libtestc++.a
 check_performance_script = ${glibcxx_srcdir}/scripts/check_performance
-
-# Generates the plots and graphs for performance testing.
-doc_performance_script = ${glibcxx_srcdir}/scripts/make_graphs.py
 
 # Runs the testsuite in parallel mode.
 libgomp_dir = ${glibcxx_builddir}/../libgomp
@@ -561,12 +562,6 @@ check-compile: testsuite_files ${compile_script}
 check-performance: testsuite_files_performance ${performance_script}
 	-@(chmod + ${check_performance_script}; \
 	  ${check_performance_script} ${glibcxx_srcdir} ${glibcxx_builddir})
-doc-performance:
-	-@(chmod + ${doc_performance_script}; \
-	${doc_performance_script} ${glibcxx_srcdir} \
-	${glibcxx_builddir}/testsuite \
-	${glibcxx_srcdir}/testsuite/data/make_graph_htmls.xml \
-	${glibcxx_srcdir}/testsuite/data/make_graph_test_infos.xml local g++)
 
 check-parallel: site.exp
 	-@(if test ! -d $${libgomp_dir}; then \

@@ -202,6 +202,11 @@ show_locus (st_parameter_common *cmp)
 		   (int) cmp->line, cmp->filename, cmp->unit, filename);
 	  free_mem (filename);
 	}
+      else
+	{
+	  st_printf ("At line %d of file %s (unit = %d)\n",
+		   (int) cmp->line, cmp->filename, cmp->unit);
+	}
       return;
     }
 
@@ -410,6 +415,13 @@ translate_error (int code)
 void
 generate_error (st_parameter_common *cmp, int family, const char *message)
 {
+
+  /* If there was a previous error, don't mask it with another
+     error message, EOF or EOR condition.  */
+
+  if ((cmp->flags & IOPARM_LIBRETURN_MASK) == IOPARM_LIBRETURN_ERROR)
+    return;
+
   /* Set the error status.  */
   if ((cmp->flags & IOPARM_HAS_IOSTAT))
     *cmp->iostat = (family == LIBERROR_OS) ? errno : family;

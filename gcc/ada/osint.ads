@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -62,7 +62,7 @@ package Osint is
       T : File_Type) return File_Name_Type;
    --  Finds a source, library or config file depending on the value of T
    --  following the directory search order rules unless N is the name of the
-   --  file just read with Next_Main_File and already contains directiory
+   --  file just read with Next_Main_File and already contains directory
    --  information, in which case just look in the Primary_Directory. Returns
    --  File_Name_Type of the full file name if found, No_File if file not
    --  found. Note that for the special case of gnat.adc, only the compilation
@@ -110,7 +110,9 @@ package Osint is
    --  cross compilation case, looks at the prefix of the current program being
    --  run and prepend it to Nam. For instance if the program being run is
    --  <target>-gnatmake and Nam is "gcc", the returned value will be a pointer
-   --  to "<target>-gcc". This function clobbers Name_Buffer and Name_Len.
+   --  to "<target>-gcc". In the specific case where AAMP_On_Target is set, the
+   --  name "gcc" is mapped to "gnaamp", and names of the form "gnat*" are
+   --  mapped to "gnaamp*". This function clobbers Name_Buffer and Name_Len.
 
    procedure Write_Program_Name;
    --  Writes name of program as invoked to the current output
@@ -160,7 +162,7 @@ package Osint is
    --  Same as above for a path name
 
    type String_Access_List is array (Positive range <>) of String_Access;
-   --  Deferenced type used to return a list of file specs in
+   --  Dereferenced type used to return a list of file specs in
    --  To_Canonical_File_List.
 
    type String_Access_List_Access is access all String_Access_List;
@@ -282,7 +284,7 @@ package Osint is
                            new String'("ada_source_path");
    Objects_Search_File : constant String_Access :=
                            new String'("ada_object_path");
-   --  Names of the files containg the default include or objects search
+   --  Names of the files containing the default include or objects search
    --  directories. These files, located in Sdefault.Search_Dir_Prefix, do
    --  not necessarily exist.
 
@@ -344,7 +346,7 @@ package Osint is
    --    LF
 
    --  The source is terminated by an EOF (16#1A#) character, which is
-   --  the last charcater of the returned source bufer (note that any
+   --  the last character of the returned source buffer (note that any
    --  EOF characters in positions other than the last source character
    --  are treated as representing blanks).
    --
@@ -405,7 +407,7 @@ package Osint is
    --  Source_File_Stamp (N) is made. This may be undesirable in certain
    --  applications as this is uselessly slow if source file data does not
    --  change during program execution. When this procedure is called with
-   --  Cache => True access to source file data does not encurr a penalty if
+   --  Cache => True access to source file data does not incur a penalty if
    --  this data was previously retrieved.
 
    -------------------------------------------
@@ -458,7 +460,7 @@ package Osint is
    --  whose name is given by the parameter Name.
    --
    --  See description of Read_Source_File for details on the format of the
-   --  returned text buffer (the format is identical). THe lower bound of
+   --  returned text buffer (the format is identical). The lower bound of
    --  the Text_Buffer is always zero
    --
    --  If the specified file cannot be opened, then the action depends on
@@ -484,7 +486,7 @@ package Osint is
    --  using Read_Library_Info, including appropriate directory information.
    --  Calling this routine entails no library file directory lookup
    --  penalty. Note that the object file corresponding to a library file
-   --  is not actually read. Its time stamp is fected when the flag
+   --  is not actually read. Its time stamp is affected when the flag
    --  Opt.Check_Object_Consistency is set.
 
    function Current_Library_File_Stamp return Time_Stamp_Type;

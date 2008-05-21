@@ -1421,13 +1421,22 @@ echo "$as_me: error: \`$ac_var' was not set in the previous run" >&2;}
     ,);;
     *)
       if test "x$ac_old_val" != "x$ac_new_val"; then
-	{ echo "$as_me:$LINENO: error: \`$ac_var' has changed since the previous run:" >&5
+        # differences in whitespace do not lead to failure.
+        ac_old_val_w=`echo x $ac_old_val`
+        ac_new_val_w=`echo x $ac_new_val`
+        if test "$ac_old_val_w" != "$ac_new_val_w"; then
+          { echo "$as_me:$LINENO: error: \`$ac_var' has changed since the previous run:" >&5
 echo "$as_me: error: \`$ac_var' has changed since the previous run:" >&2;}
-	{ echo "$as_me:$LINENO:   former value:  $ac_old_val" >&5
-echo "$as_me:   former value:  $ac_old_val" >&2;}
-	{ echo "$as_me:$LINENO:   current value: $ac_new_val" >&5
-echo "$as_me:   current value: $ac_new_val" >&2;}
-	ac_cache_corrupted=:
+          ac_cache_corrupted=:
+        else
+          { echo "$as_me:$LINENO: warning: ignoring whitespace changes in \`$ac_var' since the previous run:" >&5
+echo "$as_me: warning: ignoring whitespace changes in \`$ac_var' since the previous run:" >&2;}
+          eval $ac_var=\$ac_old_val
+        fi
+        { echo "$as_me:$LINENO:   former value:  \`$ac_old_val'" >&5
+echo "$as_me:   former value:  \`$ac_old_val'" >&2;}
+        { echo "$as_me:$LINENO:   current value: \`$ac_new_val'" >&5
+echo "$as_me:   current value: \`$ac_new_val'" >&2;}
       fi;;
   esac
   # Pass precious variables to config.status.
@@ -1728,6 +1737,7 @@ am__api_version="1.9"
 # SVR4 /usr/ucb/install, which tries to use the nonexistent group "staff"
 # OS/2's system install, which has a completely different semantic
 # ./install, which can be erroneously created by make from ./install.sh.
+# Reject install programs that cannot install multiple files.
 echo "$as_me:$LINENO: checking for a BSD-compatible install" >&5
 echo $ECHO_N "checking for a BSD-compatible install... $ECHO_C" >&6
 if test -z "$INSTALL"; then
@@ -1761,8 +1771,18 @@ case $as_dir/ in
 	    # program-specific install script used by HP pwplus--don't use.
 	    :
 	  else
-	    ac_cv_path_install="$as_dir/$ac_prog$ac_exec_ext -c"
-	    break 3
+	    rm -rf conftest.one conftest.two conftest.dir
+	    echo one > conftest.one
+	    echo two > conftest.two
+	    mkdir conftest.dir
+	    if "$as_dir/$ac_prog$ac_exec_ext" -c conftest.one conftest.two "`pwd`/conftest.dir" &&
+	      test -s conftest.one && test -s conftest.two &&
+	      test -s conftest.dir/conftest.one &&
+	      test -s conftest.dir/conftest.two
+	    then
+	      ac_cv_path_install="$as_dir/$ac_prog$ac_exec_ext -c"
+	      break 3
+	    fi
 	  fi
 	fi
       done
@@ -1771,15 +1791,16 @@ case $as_dir/ in
 esac
 done
 
+rm -rf conftest.one conftest.two conftest.dir
 
 fi
   if test "${ac_cv_path_install+set}" = set; then
     INSTALL=$ac_cv_path_install
   else
-    # As a last resort, use the slow shell script.  We don't cache a
-    # path for INSTALL within a source directory, because that will
+    # As a last resort, use the slow shell script.  Don't cache a
+    # value for INSTALL within a source directory, because that will
     # break other packages using the cache if that directory is
-    # removed, or if the path is relative.
+    # removed, or if the value is a relative name.
     INSTALL=$ac_install_sh
   fi
 fi
@@ -3744,6 +3765,7 @@ fi
 # SVR4 /usr/ucb/install, which tries to use the nonexistent group "staff"
 # OS/2's system install, which has a completely different semantic
 # ./install, which can be erroneously created by make from ./install.sh.
+# Reject install programs that cannot install multiple files.
 echo "$as_me:$LINENO: checking for a BSD-compatible install" >&5
 echo $ECHO_N "checking for a BSD-compatible install... $ECHO_C" >&6
 if test -z "$INSTALL"; then
@@ -3777,8 +3799,18 @@ case $as_dir/ in
 	    # program-specific install script used by HP pwplus--don't use.
 	    :
 	  else
-	    ac_cv_path_install="$as_dir/$ac_prog$ac_exec_ext -c"
-	    break 3
+	    rm -rf conftest.one conftest.two conftest.dir
+	    echo one > conftest.one
+	    echo two > conftest.two
+	    mkdir conftest.dir
+	    if "$as_dir/$ac_prog$ac_exec_ext" -c conftest.one conftest.two "`pwd`/conftest.dir" &&
+	      test -s conftest.one && test -s conftest.two &&
+	      test -s conftest.dir/conftest.one &&
+	      test -s conftest.dir/conftest.two
+	    then
+	      ac_cv_path_install="$as_dir/$ac_prog$ac_exec_ext -c"
+	      break 3
+	    fi
 	  fi
 	fi
       done
@@ -3787,15 +3819,16 @@ case $as_dir/ in
 esac
 done
 
+rm -rf conftest.one conftest.two conftest.dir
 
 fi
   if test "${ac_cv_path_install+set}" = set; then
     INSTALL=$ac_cv_path_install
   else
-    # As a last resort, use the slow shell script.  We don't cache a
-    # path for INSTALL within a source directory, because that will
+    # As a last resort, use the slow shell script.  Don't cache a
+    # value for INSTALL within a source directory, because that will
     # break other packages using the cache if that directory is
-    # removed, or if the path is relative.
+    # removed, or if the value is a relative name.
     INSTALL=$ac_install_sh
   fi
 fi
@@ -4348,13 +4381,13 @@ if test "${lt_cv_nm_interface+set}" = set; then
 else
   lt_cv_nm_interface="BSD nm"
   echo "int some_variable = 0;" > conftest.$ac_ext
-  (eval echo "\"\$as_me:4351: $ac_compile\"" >&5)
+  (eval echo "\"\$as_me:4384: $ac_compile\"" >&5)
   (eval "$ac_compile" 2>conftest.err)
   cat conftest.err >&5
-  (eval echo "\"\$as_me:4354: $NM \\\"conftest.$ac_objext\\\"\"" >&5)
+  (eval echo "\"\$as_me:4387: $NM \\\"conftest.$ac_objext\\\"\"" >&5)
   (eval "$NM \"conftest.$ac_objext\"" 2>conftest.err > conftest.out)
   cat conftest.err >&5
-  (eval echo "\"\$as_me:4357: output\"" >&5)
+  (eval echo "\"\$as_me:4390: output\"" >&5)
   cat conftest.out >&5
   if $GREP 'External.*some_variable' conftest.out > /dev/null; then
     lt_cv_nm_interface="MS dumpbin"
@@ -4621,7 +4654,7 @@ lt_cv_deplibs_check_method='unknown'
 # whether `pass_all' will *always* work, you probably want this one.
 
 case $host_os in
-aix4* | aix5*)
+aix[4-9]*)
   lt_cv_deplibs_check_method=pass_all
   ;;
 
@@ -5409,7 +5442,7 @@ ia64-*-hpux*)
   ;;
 *-*-irix6*)
   # Find out which ABI we are using.
-  echo '#line 5412 "configure"' > conftest.$ac_ext
+  echo '#line 5445 "configure"' > conftest.$ac_ext
   if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
   (eval $ac_compile) 2>&5
   ac_status=$?
@@ -6514,11 +6547,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:6517: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:6550: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>conftest.err)
    ac_status=$?
    cat conftest.err >&5
-   echo "$as_me:6521: \$? = $ac_status" >&5
+   echo "$as_me:6554: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s "$ac_outfile"; then
      # The compiler can only warn and ignore the option if not recognized
      # So say no if there are warnings other than the usual output.
@@ -6836,11 +6869,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:6839: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:6872: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>conftest.err)
    ac_status=$?
    cat conftest.err >&5
-   echo "$as_me:6843: \$? = $ac_status" >&5
+   echo "$as_me:6876: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s "$ac_outfile"; then
      # The compiler can only warn and ignore the option if not recognized
      # So say no if there are warnings other than the usual output.
@@ -6941,11 +6974,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:6944: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:6977: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>out/conftest.err)
    ac_status=$?
    cat out/conftest.err >&5
-   echo "$as_me:6948: \$? = $ac_status" >&5
+   echo "$as_me:6981: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s out/conftest2.$ac_objext
    then
      # The compiler can only warn and ignore the option if not recognized
@@ -6996,11 +7029,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:6999: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:7032: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>out/conftest.err)
    ac_status=$?
    cat out/conftest.err >&5
-   echo "$as_me:7003: \$? = $ac_status" >&5
+   echo "$as_me:7036: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s out/conftest2.$ac_objext
    then
      # The compiler can only warn and ignore the option if not recognized
@@ -7144,7 +7177,7 @@ echo $ECHO_N "checking whether the $compiler linker ($LD) supports shared librar
 
     # See if GNU ld supports shared libraries.
     case $host_os in
-    aix3* | aix4* | aix5*)
+    aix[3-9]*)
       # On AIX/PPC, the GNU linker is very broken
       if test "$host_cpu" != ia64; then
 	ld_shlibs=no
@@ -7378,7 +7411,7 @@ _LT_EOF
       fi
       ;;
 
-    aix4* | aix5*)
+    aix[4-9]*)
       if test "$host_cpu" = ia64; then
 	# On IA64, the linker does run time linking by default, so we don't
 	# have to do anything special.
@@ -7398,7 +7431,7 @@ _LT_EOF
 	# Test if we are trying to use run time linking or normal
 	# AIX style linking. If -brtl is somewhere in LDFLAGS, we
 	# need to do runtime linking.
-	case $host_os in aix4.[23]|aix4.[23].*|aix5*)
+	case $host_os in aix4.[23]|aix4.[23].*|aix[5-9]*)
 	  for ld_flag in $LDFLAGS; do
 	  if (test $ld_flag = "-brtl" || test $ld_flag = "-Wl,-brtl"); then
 	    aix_use_runtimelinking=yes
@@ -8473,7 +8506,7 @@ aix3*)
   soname_spec='${libname}${release}${shared_ext}$major'
   ;;
 
-aix4* | aix5*)
+aix[4-9]*)
   version_type=linux
   need_lib_prefix=no
   need_version=no
@@ -9848,7 +9881,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<_LT_EOF
-#line 9851 "configure"
+#line 9884 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -9948,7 +9981,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<_LT_EOF
-#line 9951 "configure"
+#line 9984 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -10131,7 +10164,7 @@ echo $ECHO_N "checking whether to build shared libraries... $ECHO_C" >&6
     fi
     ;;
 
-  aix4* | aix5*)
+  aix[4-9]*)
     if test "$host_cpu" != ia64 && test "$aix_use_runtimelinking" = no ; then
       test "$enable_shared" = yes && enable_static=no
     fi
@@ -10278,7 +10311,7 @@ fi
 
 
 # Provide some information about the compiler.
-echo "$as_me:10281:" \
+echo "$as_me:10314:" \
      "checking for Fortran compiler version" >&5
 ac_compiler=`set X $ac_compile; echo $2`
 { (eval echo "$as_me:$LINENO: \"$ac_compiler --version </dev/null >&5\"") >&5
@@ -10514,7 +10547,7 @@ fi
 
 
 # Provide some information about the compiler.
-echo "$as_me:10517:" \
+echo "$as_me:10550:" \
      "checking for Fortran compiler version" >&5
 ac_compiler=`set X $ac_compile; echo $2`
 { (eval echo "$as_me:$LINENO: \"$ac_compiler --version </dev/null >&5\"") >&5
@@ -10782,7 +10815,7 @@ echo $ECHO_N "checking whether to build shared libraries... $ECHO_C" >&6
           postinstall_cmds='$RANLIB $lib'
         fi
         ;;
-      aix4* | aix5*)
+      aix[4-9]*)
 	if test "$host_cpu" != ia64 && test "$aix_use_runtimelinking" = no ; then
 	  test "$enable_shared" = yes && enable_static=no
 	fi
@@ -11230,11 +11263,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:11233: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:11266: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>conftest.err)
    ac_status=$?
    cat conftest.err >&5
-   echo "$as_me:11237: \$? = $ac_status" >&5
+   echo "$as_me:11270: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s "$ac_outfile"; then
      # The compiler can only warn and ignore the option if not recognized
      # So say no if there are warnings other than the usual output.
@@ -11329,11 +11362,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:11332: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:11365: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>out/conftest.err)
    ac_status=$?
    cat out/conftest.err >&5
-   echo "$as_me:11336: \$? = $ac_status" >&5
+   echo "$as_me:11369: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s out/conftest2.$ac_objext
    then
      # The compiler can only warn and ignore the option if not recognized
@@ -11381,11 +11414,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:11384: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:11417: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>out/conftest.err)
    ac_status=$?
    cat out/conftest.err >&5
-   echo "$as_me:11388: \$? = $ac_status" >&5
+   echo "$as_me:11421: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s out/conftest2.$ac_objext
    then
      # The compiler can only warn and ignore the option if not recognized
@@ -11526,7 +11559,7 @@ echo $ECHO_N "checking whether the $compiler linker ($LD) supports shared librar
 
     # See if GNU ld supports shared libraries.
     case $host_os in
-    aix3* | aix4* | aix5*)
+    aix[3-9]*)
       # On AIX/PPC, the GNU linker is very broken
       if test "$host_cpu" != ia64; then
 	ld_shlibs_FC=no
@@ -11760,7 +11793,7 @@ _LT_EOF
       fi
       ;;
 
-    aix4* | aix5*)
+    aix[4-9]*)
       if test "$host_cpu" = ia64; then
 	# On IA64, the linker does run time linking by default, so we don't
 	# have to do anything special.
@@ -11780,7 +11813,7 @@ _LT_EOF
 	# Test if we are trying to use run time linking or normal
 	# AIX style linking. If -brtl is somewhere in LDFLAGS, we
 	# need to do runtime linking.
-	case $host_os in aix4.[23]|aix4.[23].*|aix5*)
+	case $host_os in aix4.[23]|aix4.[23].*|aix[5-9]*)
 	  for ld_flag in $LDFLAGS; do
 	  if (test $ld_flag = "-brtl" || test $ld_flag = "-Wl,-brtl"); then
 	    aix_use_runtimelinking=yes
@@ -12682,7 +12715,7 @@ aix3*)
   soname_spec='${libname}${release}${shared_ext}$major'
   ;;
 
-aix4* | aix5*)
+aix[4-9]*)
   version_type=linux
   need_lib_prefix=no
   need_version=no
@@ -18788,6 +18821,71 @@ if test $ac_cv_type_intptr_t = yes; then
 
 cat >>confdefs.h <<_ACEOF
 #define HAVE_INTPTR_T 1
+_ACEOF
+
+
+fi
+
+echo "$as_me:$LINENO: checking for uintptr_t" >&5
+echo $ECHO_N "checking for uintptr_t... $ECHO_C" >&6
+if test "${ac_cv_type_uintptr_t+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+$ac_includes_default
+int
+main ()
+{
+if ((uintptr_t *) 0)
+  return 0;
+if (sizeof (uintptr_t))
+  return 0;
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext
+if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
+  (eval $ac_compile) 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+	 { ac_try='test -z "$ac_c_werror_flag"
+			 || test ! -s conftest.err'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; } &&
+	 { ac_try='test -s conftest.$ac_objext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+  ac_cv_type_uintptr_t=yes
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+ac_cv_type_uintptr_t=no
+fi
+rm -f conftest.err conftest.$ac_objext conftest.$ac_ext
+fi
+echo "$as_me:$LINENO: result: $ac_cv_type_uintptr_t" >&5
+echo "${ECHO_T}$ac_cv_type_uintptr_t" >&6
+if test $ac_cv_type_uintptr_t = yes; then
+
+cat >>confdefs.h <<_ACEOF
+#define HAVE_UINTPTR_T 1
 _ACEOF
 
 
@@ -31971,7 +32069,7 @@ fi
 
   echo "$as_me:$LINENO: checking whether isfinite is broken" >&5
 echo $ECHO_N "checking whether isfinite is broken... $ECHO_C" >&6
-if test "${have_broken_isfinite+set}" = set; then
+if test "${libgfor_cv_have_broken_isfinite+set}" = set; then
   echo $ECHO_N "(cached) $ECHO_C" >&6
 else
 
@@ -31980,8 +32078,8 @@ else
   if test "$cross_compiling" = yes; then
 
 case "${target}" in
-  hppa*-*-hpux*) have_broken_isfinite=yes ;;
-  *) have_broken_isfinite=no ;;
+  hppa*-*-hpux*) libgfor_cv_have_broken_isfinite=yes ;;
+  *) libgfor_cv_have_broken_isfinite=no ;;
 esac
 else
   cat >conftest.$ac_ext <<_ACEOF
@@ -31991,9 +32089,7 @@ cat confdefs.h >>conftest.$ac_ext
 cat >>conftest.$ac_ext <<_ACEOF
 /* end confdefs.h.  */
 
-#ifdef HAVE_MATH_H
 #include <math.h>
-#endif
 #include <float.h>
 int main ()
 {
@@ -32019,22 +32115,22 @@ if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
   ac_status=$?
   echo "$as_me:$LINENO: \$? = $ac_status" >&5
   (exit $ac_status); }; }; then
-  have_broken_isfinite=no
+  libgfor_cv_have_broken_isfinite=no
 else
   echo "$as_me: program exited with status $ac_status" >&5
 echo "$as_me: failed program was:" >&5
 sed 's/^/| /' conftest.$ac_ext >&5
 
 ( exit $ac_status )
-have_broken_isfinite=yes
+libgfor_cv_have_broken_isfinite=yes
 fi
 rm -f core *.core gmon.out bb.out conftest$ac_exeext conftest.$ac_objext conftest.$ac_ext
 fi
   LIBS=$libgfor_check_for_broken_isfinite_save_LIBS
 fi
-echo "$as_me:$LINENO: result: $have_broken_isfinite" >&5
-echo "${ECHO_T}$have_broken_isfinite" >&6
-if test x"$have_broken_isfinite" = xyes; then
+echo "$as_me:$LINENO: result: $libgfor_cv_have_broken_isfinite" >&5
+echo "${ECHO_T}$libgfor_cv_have_broken_isfinite" >&6
+if test x"$libgfor_cv_have_broken_isfinite" = xyes; then
 
 cat >>confdefs.h <<\_ACEOF
 #define HAVE_BROKEN_ISFINITE 1
@@ -32046,7 +32142,7 @@ fi
 
   echo "$as_me:$LINENO: checking whether isnan is broken" >&5
 echo $ECHO_N "checking whether isnan is broken... $ECHO_C" >&6
-if test "${have_broken_isnan+set}" = set; then
+if test "${libgfor_cv_have_broken_isnan+set}" = set; then
   echo $ECHO_N "(cached) $ECHO_C" >&6
 else
 
@@ -32055,8 +32151,8 @@ else
   if test "$cross_compiling" = yes; then
 
 case "${target}" in
-  hppa*-*-hpux*) have_broken_isnan=yes ;;
-  *) have_broken_isnan=no ;;
+  hppa*-*-hpux*) libgfor_cv_have_broken_isnan=yes ;;
+  *) libgfor_cv_have_broken_isnan=no ;;
 esac
 else
   cat >conftest.$ac_ext <<_ACEOF
@@ -32066,9 +32162,7 @@ cat confdefs.h >>conftest.$ac_ext
 cat >>conftest.$ac_ext <<_ACEOF
 /* end confdefs.h.  */
 
-#ifdef HAVE_MATH_H
 #include <math.h>
-#endif
 #include <float.h>
 int main ()
 {
@@ -32112,22 +32206,22 @@ if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
   ac_status=$?
   echo "$as_me:$LINENO: \$? = $ac_status" >&5
   (exit $ac_status); }; }; then
-  have_broken_isnan=no
+  libgfor_cv_have_broken_isnan=no
 else
   echo "$as_me: program exited with status $ac_status" >&5
 echo "$as_me: failed program was:" >&5
 sed 's/^/| /' conftest.$ac_ext >&5
 
 ( exit $ac_status )
-have_broken_isnan=yes
+libgfor_cv_have_broken_isnan=yes
 fi
 rm -f core *.core gmon.out bb.out conftest$ac_exeext conftest.$ac_objext conftest.$ac_ext
 fi
   LIBS=$libgfor_check_for_broken_isnan_save_LIBS
 fi
-echo "$as_me:$LINENO: result: $have_broken_isnan" >&5
-echo "${ECHO_T}$have_broken_isnan" >&6
-if test x"$have_broken_isnan" = xyes; then
+echo "$as_me:$LINENO: result: $libgfor_cv_have_broken_isnan" >&5
+echo "${ECHO_T}$libgfor_cv_have_broken_isnan" >&6
+if test x"$libgfor_cv_have_broken_isnan" = xyes; then
 
 cat >>confdefs.h <<\_ACEOF
 #define HAVE_BROKEN_ISNAN 1
@@ -32139,7 +32233,7 @@ fi
 
   echo "$as_me:$LINENO: checking whether fpclassify is broken" >&5
 echo $ECHO_N "checking whether fpclassify is broken... $ECHO_C" >&6
-if test "${have_broken_fpclassify+set}" = set; then
+if test "${libgfor_cv_have_broken_fpclassify+set}" = set; then
   echo $ECHO_N "(cached) $ECHO_C" >&6
 else
 
@@ -32148,8 +32242,8 @@ else
   if test "$cross_compiling" = yes; then
 
 case "${target}" in
-  hppa*-*-hpux*) have_broken_fpclassify=yes ;;
-  *) have_broken_fpclassify=no ;;
+  hppa*-*-hpux*) libgfor_cv_have_broken_fpclassify=yes ;;
+  *) libgfor_cv_have_broken_fpclassify=no ;;
 esac
 else
   cat >conftest.$ac_ext <<_ACEOF
@@ -32159,9 +32253,7 @@ cat confdefs.h >>conftest.$ac_ext
 cat >>conftest.$ac_ext <<_ACEOF
 /* end confdefs.h.  */
 
-#ifdef HAVE_MATH_H
 #include <math.h>
-#endif
 #include <float.h>
 int main ()
 {
@@ -32189,22 +32281,22 @@ if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
   ac_status=$?
   echo "$as_me:$LINENO: \$? = $ac_status" >&5
   (exit $ac_status); }; }; then
-  have_broken_fpclassify=no
+  libgfor_cv_have_broken_fpclassify=no
 else
   echo "$as_me: program exited with status $ac_status" >&5
 echo "$as_me: failed program was:" >&5
 sed 's/^/| /' conftest.$ac_ext >&5
 
 ( exit $ac_status )
-have_broken_fpclassify=yes
+libgfor_cv_have_broken_fpclassify=yes
 fi
 rm -f core *.core gmon.out bb.out conftest$ac_exeext conftest.$ac_objext conftest.$ac_ext
 fi
   LIBS=$libgfor_check_for_broken_fpclassify_save_LIBS
 fi
-echo "$as_me:$LINENO: result: $have_broken_fpclassify" >&5
-echo "${ECHO_T}$have_broken_fpclassify" >&6
-if test x"$have_broken_fpclassify" = xyes; then
+echo "$as_me:$LINENO: result: $libgfor_cv_have_broken_fpclassify" >&5
+echo "${ECHO_T}$libgfor_cv_have_broken_fpclassify" >&6
+if test x"$libgfor_cv_have_broken_fpclassify" = xyes; then
 
 cat >>confdefs.h <<\_ACEOF
 #define HAVE_BROKEN_FPCLASSIFY 1
@@ -32216,15 +32308,15 @@ fi
 
   echo "$as_me:$LINENO: checking whether the target stat is reliable" >&5
 echo $ECHO_N "checking whether the target stat is reliable... $ECHO_C" >&6
-if test "${have_working_stat+set}" = set; then
+if test "${libgfor_cv_have_working_stat+set}" = set; then
   echo $ECHO_N "(cached) $ECHO_C" >&6
 else
 
   if test "$cross_compiling" = yes; then
 
 case "${target}" in
-  *mingw*) have_working_stat=no ;;
-  *) have_working_stat=yes;;
+  *mingw*) libgfor_cv_have_working_stat=no ;;
+  *) libgfor_cv_have_working_stat=yes;;
 esac
 else
   cat >conftest.$ac_ext <<_ACEOF
@@ -32266,21 +32358,21 @@ if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
   ac_status=$?
   echo "$as_me:$LINENO: \$? = $ac_status" >&5
   (exit $ac_status); }; }; then
-  have_working_stat=yes
+  libgfor_cv_have_working_stat=yes
 else
   echo "$as_me: program exited with status $ac_status" >&5
 echo "$as_me: failed program was:" >&5
 sed 's/^/| /' conftest.$ac_ext >&5
 
 ( exit $ac_status )
-have_working_stat=no
+libgfor_cv_have_working_stat=no
 fi
 rm -f core *.core gmon.out bb.out conftest$ac_exeext conftest.$ac_objext conftest.$ac_ext
 fi
 fi
-echo "$as_me:$LINENO: result: $have_working_stat" >&5
-echo "${ECHO_T}$have_working_stat" >&6
-if test x"$have_working_stat" = xyes; then
+echo "$as_me:$LINENO: result: $libgfor_cv_have_working_stat" >&5
+echo "${ECHO_T}$libgfor_cv_have_working_stat" >&6
+if test x"$libgfor_cv_have_working_stat" = xyes; then
 
 cat >>confdefs.h <<\_ACEOF
 #define HAVE_WORKING_STAT 1
@@ -32292,7 +32384,7 @@ fi
 
   echo "$as_me:$LINENO: checking whether __mingw_snprintf is present" >&5
 echo $ECHO_N "checking whether __mingw_snprintf is present... $ECHO_C" >&6
-if test "${have_mingw_snprintf+set}" = set; then
+if test "${libgfor_cv_have_mingw_snprintf+set}" = set; then
   echo $ECHO_N "(cached) $ECHO_C" >&6
 else
 
@@ -32343,20 +32435,20 @@ if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
   ac_status=$?
   echo "$as_me:$LINENO: \$? = $ac_status" >&5
   (exit $ac_status); }; }; then
-  eval "have_mingw_snprintf=yes"
+  eval "libgfor_cv_have_mingw_snprintf=yes"
 else
   echo "$as_me: failed program was:" >&5
 sed 's/^/| /' conftest.$ac_ext >&5
 
-eval "have_mingw_snprintf=no"
+eval "libgfor_cv_have_mingw_snprintf=no"
 fi
 rm -f conftest.err conftest.$ac_objext \
       conftest$ac_exeext conftest.$ac_ext
 
 fi
-echo "$as_me:$LINENO: result: $have_mingw_snprintf" >&5
-echo "${ECHO_T}$have_mingw_snprintf" >&6
-  if test x"$have_mingw_snprintf" = xyes; then
+echo "$as_me:$LINENO: result: $libgfor_cv_have_mingw_snprintf" >&5
+echo "${ECHO_T}$libgfor_cv_have_mingw_snprintf" >&6
+  if test x"$libgfor_cv_have_mingw_snprintf" = xyes; then
 
 cat >>confdefs.h <<\_ACEOF
 #define HAVE_MINGW_SNPRINTF 1
@@ -32448,7 +32540,7 @@ fi
 
   echo "$as_me:$LINENO: checking whether fpsetmask is present" >&5
 echo $ECHO_N "checking whether fpsetmask is present... $ECHO_C" >&6
-if test "${have_fpsetmask+set}" = set; then
+if test "${libgfor_cv_have_fpsetmask+set}" = set; then
   echo $ECHO_N "(cached) $ECHO_C" >&6
 else
 
@@ -32500,20 +32592,20 @@ if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
   ac_status=$?
   echo "$as_me:$LINENO: \$? = $ac_status" >&5
   (exit $ac_status); }; }; then
-  eval "have_fpsetmask=yes"
+  eval "libgfor_cv_have_fpsetmask=yes"
 else
   echo "$as_me: failed program was:" >&5
 sed 's/^/| /' conftest.$ac_ext >&5
 
-eval "have_fpsetmask=no"
+eval "libgfor_cv_have_fpsetmask=no"
 fi
 rm -f conftest.err conftest.$ac_objext \
       conftest$ac_exeext conftest.$ac_ext
 
 fi
-echo "$as_me:$LINENO: result: $have_fpsetmask" >&5
-echo "${ECHO_T}$have_fpsetmask" >&6
-  if test x"$have_fpsetmask" = xyes; then
+echo "$as_me:$LINENO: result: $libgfor_cv_have_fpsetmask" >&5
+echo "${ECHO_T}$libgfor_cv_have_fpsetmask" >&6
+  if test x"$libgfor_cv_have_fpsetmask" = xyes; then
 
 cat >>confdefs.h <<\_ACEOF
 #define HAVE_FPSETMASK 1
@@ -32743,7 +32835,7 @@ FPU_HOST_HEADER=config/${fpu_host}.h
 
   echo "$as_me:$LINENO: checking whether the target supports hidden visibility" >&5
 echo $ECHO_N "checking whether the target supports hidden visibility... $ECHO_C" >&6
-if test "${have_attribute_visibility+set}" = set; then
+if test "${libgfor_cv_have_attribute_visibility+set}" = set; then
   echo $ECHO_N "(cached) $ECHO_C" >&6
 else
 
@@ -32786,19 +32878,19 @@ if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
   ac_status=$?
   echo "$as_me:$LINENO: \$? = $ac_status" >&5
   (exit $ac_status); }; }; then
-  have_attribute_visibility=yes
+  libgfor_cv_have_attribute_visibility=yes
 else
   echo "$as_me: failed program was:" >&5
 sed 's/^/| /' conftest.$ac_ext >&5
 
-have_attribute_visibility=no
+libgfor_cv_have_attribute_visibility=no
 fi
 rm -f conftest.err conftest.$ac_objext conftest.$ac_ext
   CFLAGS="$save_CFLAGS"
 fi
-echo "$as_me:$LINENO: result: $have_attribute_visibility" >&5
-echo "${ECHO_T}$have_attribute_visibility" >&6
-  if test $have_attribute_visibility = yes; then
+echo "$as_me:$LINENO: result: $libgfor_cv_have_attribute_visibility" >&5
+echo "${ECHO_T}$libgfor_cv_have_attribute_visibility" >&6
+  if test $libgfor_cv_have_attribute_visibility = yes; then
 
 cat >>confdefs.h <<\_ACEOF
 #define HAVE_ATTRIBUTE_VISIBILITY 1
@@ -32808,7 +32900,7 @@ _ACEOF
 
   echo "$as_me:$LINENO: checking whether the target supports dllexport" >&5
 echo $ECHO_N "checking whether the target supports dllexport... $ECHO_C" >&6
-if test "${have_attribute_dllexport+set}" = set; then
+if test "${libgfor_cv_have_attribute_dllexport+set}" = set; then
   echo $ECHO_N "(cached) $ECHO_C" >&6
 else
 
@@ -32851,19 +32943,19 @@ if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
   ac_status=$?
   echo "$as_me:$LINENO: \$? = $ac_status" >&5
   (exit $ac_status); }; }; then
-  have_attribute_dllexport=yes
+  libgfor_cv_have_attribute_dllexport=yes
 else
   echo "$as_me: failed program was:" >&5
 sed 's/^/| /' conftest.$ac_ext >&5
 
-have_attribute_dllexport=no
+libgfor_cv_have_attribute_dllexport=no
 fi
 rm -f conftest.err conftest.$ac_objext conftest.$ac_ext
   CFLAGS="$save_CFLAGS"
 fi
-echo "$as_me:$LINENO: result: $have_attribute_dllexport" >&5
-echo "${ECHO_T}$have_attribute_dllexport" >&6
-  if test $have_attribute_dllexport = yes; then
+echo "$as_me:$LINENO: result: $libgfor_cv_have_attribute_dllexport" >&5
+echo "${ECHO_T}$libgfor_cv_have_attribute_dllexport" >&6
+  if test $libgfor_cv_have_attribute_dllexport = yes; then
 
 cat >>confdefs.h <<\_ACEOF
 #define HAVE_ATTRIBUTE_DLLEXPORT 1
@@ -32873,7 +32965,7 @@ _ACEOF
 
   echo "$as_me:$LINENO: checking whether the target supports symbol aliases" >&5
 echo $ECHO_N "checking whether the target supports symbol aliases... $ECHO_C" >&6
-if test "${have_attribute_alias+set}" = set; then
+if test "${libgfor_cv_have_attribute_alias+set}" = set; then
   echo $ECHO_N "(cached) $ECHO_C" >&6
 else
 
@@ -32921,19 +33013,19 @@ if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
   ac_status=$?
   echo "$as_me:$LINENO: \$? = $ac_status" >&5
   (exit $ac_status); }; }; then
-  have_attribute_alias=yes
+  libgfor_cv_have_attribute_alias=yes
 else
   echo "$as_me: failed program was:" >&5
 sed 's/^/| /' conftest.$ac_ext >&5
 
-have_attribute_alias=no
+libgfor_cv_have_attribute_alias=no
 fi
 rm -f conftest.err conftest.$ac_objext \
       conftest$ac_exeext conftest.$ac_ext
 fi
-echo "$as_me:$LINENO: result: $have_attribute_alias" >&5
-echo "${ECHO_T}$have_attribute_alias" >&6
-  if test $have_attribute_alias = yes; then
+echo "$as_me:$LINENO: result: $libgfor_cv_have_attribute_alias" >&5
+echo "${ECHO_T}$libgfor_cv_have_attribute_alias" >&6
+  if test $libgfor_cv_have_attribute_alias = yes; then
 
 cat >>confdefs.h <<\_ACEOF
 #define HAVE_ATTRIBUTE_ALIAS 1
@@ -32945,7 +33037,7 @@ _ACEOF
 
   echo "$as_me:$LINENO: checking whether the target supports __sync_fetch_and_add" >&5
 echo $ECHO_N "checking whether the target supports __sync_fetch_and_add... $ECHO_C" >&6
-if test "${have_sync_fetch_and_add+set}" = set; then
+if test "${libgfor_cv_have_sync_fetch_and_add+set}" = set; then
   echo $ECHO_N "(cached) $ECHO_C" >&6
 else
 
@@ -32993,19 +33085,19 @@ if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
   ac_status=$?
   echo "$as_me:$LINENO: \$? = $ac_status" >&5
   (exit $ac_status); }; }; then
-  have_sync_fetch_and_add=yes
+  libgfor_cv_have_sync_fetch_and_add=yes
 else
   echo "$as_me: failed program was:" >&5
 sed 's/^/| /' conftest.$ac_ext >&5
 
-have_sync_fetch_and_add=no
+libgfor_cv_have_sync_fetch_and_add=no
 fi
 rm -f conftest.err conftest.$ac_objext \
       conftest$ac_exeext conftest.$ac_ext
 fi
-echo "$as_me:$LINENO: result: $have_sync_fetch_and_add" >&5
-echo "${ECHO_T}$have_sync_fetch_and_add" >&6
-  if test $have_sync_fetch_and_add = yes; then
+echo "$as_me:$LINENO: result: $libgfor_cv_have_sync_fetch_and_add" >&5
+echo "${ECHO_T}$libgfor_cv_have_sync_fetch_and_add" >&6
+  if test $libgfor_cv_have_sync_fetch_and_add = yes; then
 
 cat >>confdefs.h <<\_ACEOF
 #define HAVE_SYNC_FETCH_AND_ADD 1
@@ -33038,7 +33130,7 @@ _ACEOF
 
   echo "$as_me:$LINENO: checking whether pragma weak works" >&5
 echo $ECHO_N "checking whether pragma weak works... $ECHO_C" >&6
-if test "${have_pragma_weak+set}" = set; then
+if test "${libgfor_cv_have_pragma_weak+set}" = set; then
   echo $ECHO_N "(cached) $ECHO_C" >&6
 else
 
@@ -33082,18 +33174,18 @@ if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
   ac_status=$?
   echo "$as_me:$LINENO: \$? = $ac_status" >&5
   (exit $ac_status); }; }; then
-  have_pragma_weak=yes
+  libgfor_cv_have_pragma_weak=yes
 else
   echo "$as_me: failed program was:" >&5
 sed 's/^/| /' conftest.$ac_ext >&5
 
-have_pragma_weak=no
+libgfor_cv_have_pragma_weak=no
 fi
 rm -f conftest.err conftest.$ac_objext conftest.$ac_ext
 fi
-echo "$as_me:$LINENO: result: $have_pragma_weak" >&5
-echo "${ECHO_T}$have_pragma_weak" >&6
-  if test $have_pragma_weak = yes; then
+echo "$as_me:$LINENO: result: $libgfor_cv_have_pragma_weak" >&5
+echo "${ECHO_T}$libgfor_cv_have_pragma_weak" >&6
+  if test $libgfor_cv_have_pragma_weak = yes; then
 
 cat >>confdefs.h <<\_ACEOF
 #define SUPPORTS_WEAK 1
@@ -33114,15 +33206,15 @@ _ACEOF
 
   echo "$as_me:$LINENO: checking whether the target can unlink an open file" >&5
 echo $ECHO_N "checking whether the target can unlink an open file... $ECHO_C" >&6
-if test "${have_unlink_open_file+set}" = set; then
+if test "${libgfor_cv_have_unlink_open_file+set}" = set; then
   echo $ECHO_N "(cached) $ECHO_C" >&6
 else
 
   if test "$cross_compiling" = yes; then
 
 case "${target}" in
-  *mingw*) have_unlink_open_file=no ;;
-  *) have_unlink_open_file=yes;;
+  *mingw*) libgfor_cv_have_unlink_open_file=no ;;
+  *) libgfor_cv_have_unlink_open_file=yes;;
 esac
 else
   cat >conftest.$ac_ext <<_ACEOF
@@ -33166,21 +33258,21 @@ if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
   ac_status=$?
   echo "$as_me:$LINENO: \$? = $ac_status" >&5
   (exit $ac_status); }; }; then
-  have_unlink_open_file=yes
+  libgfor_cv_have_unlink_open_file=yes
 else
   echo "$as_me: program exited with status $ac_status" >&5
 echo "$as_me: failed program was:" >&5
 sed 's/^/| /' conftest.$ac_ext >&5
 
 ( exit $ac_status )
-have_unlink_open_file=no
+libgfor_cv_have_unlink_open_file=no
 fi
 rm -f core *.core gmon.out bb.out conftest$ac_exeext conftest.$ac_objext conftest.$ac_ext
 fi
 fi
-echo "$as_me:$LINENO: result: $have_unlink_open_file" >&5
-echo "${ECHO_T}$have_unlink_open_file" >&6
-if test x"$have_unlink_open_file" = xyes; then
+echo "$as_me:$LINENO: result: $libgfor_cv_have_unlink_open_file" >&5
+echo "${ECHO_T}$libgfor_cv_have_unlink_open_file" >&6
+if test x"$libgfor_cv_have_unlink_open_file" = xyes; then
 
 cat >>confdefs.h <<\_ACEOF
 #define HAVE_UNLINK_OPEN_FILE 1
@@ -33192,15 +33284,15 @@ fi
 
   echo "$as_me:$LINENO: checking whether the target has CRLF as line terminator" >&5
 echo $ECHO_N "checking whether the target has CRLF as line terminator... $ECHO_C" >&6
-if test "${have_crlf+set}" = set; then
+if test "${libgfor_cv_have_crlf+set}" = set; then
   echo $ECHO_N "(cached) $ECHO_C" >&6
 else
 
   if test "$cross_compiling" = yes; then
 
 case "${target}" in
-  *mingw*) have_crlf=yes ;;
-  *) have_crlf=no;;
+  *mingw*) libgfor_cv_have_crlf=yes ;;
+  *) libgfor_cv_have_crlf=no;;
 esac
 else
   cat >conftest.$ac_ext <<_ACEOF
@@ -33256,21 +33348,21 @@ if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
   ac_status=$?
   echo "$as_me:$LINENO: \$? = $ac_status" >&5
   (exit $ac_status); }; }; then
-  have_crlf=yes
+  libgfor_cv_have_crlf=yes
 else
   echo "$as_me: program exited with status $ac_status" >&5
 echo "$as_me: failed program was:" >&5
 sed 's/^/| /' conftest.$ac_ext >&5
 
 ( exit $ac_status )
-have_crlf=no
+libgfor_cv_have_crlf=no
 fi
 rm -f core *.core gmon.out bb.out conftest$ac_exeext conftest.$ac_objext conftest.$ac_ext
 fi
 fi
-echo "$as_me:$LINENO: result: $have_crlf" >&5
-echo "${ECHO_T}$have_crlf" >&6
-if test x"$have_crlf" = xyes; then
+echo "$as_me:$LINENO: result: $libgfor_cv_have_crlf" >&5
+echo "${ECHO_T}$libgfor_cv_have_crlf" >&6
+if test x"$libgfor_cv_have_crlf" = xyes; then
 
 cat >>confdefs.h <<\_ACEOF
 #define HAVE_CRLF 1
