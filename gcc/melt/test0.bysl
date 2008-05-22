@@ -84,7 +84,7 @@
 (defclass my_class_selector
   :super my_class_named
   :predef CLASS_SELECTOR
-  :fields (
+  :fields ( sel_extra
 ))
 
 (defselector the_sel my_class_selector
@@ -92,11 +92,25 @@
 
 
 
-(defun testunsafegetputnameprogn (o n) 
-  (let ( (oldn (unsafe_get_field :my_name o)) )
+(defun testunsafegetputnameprogn (o n f g) 
+  (let ( (oldn (unsafe_get_field :my_name 
+				 (f o))) )
     (progn 
-      (unsafe_put_fields o :my_name n) 
+      (unsafe_put_fields
+       (f o) 
+       :my_name (g n)) 
       oldn)))
+
+(defun testput3sel (f nam xtr oselx osely oselz)
+  (unsafe_put_fields oselx 
+		     :my_name (f nam)
+		     :sel_extra (f xtr))
+  (unsafe_put_fields osely 
+		     :my_name (f nam)
+		     :sel_extra (f xtr))
+  (unsafe_put_fields oselz 
+		     :my_name (f nam)
+		     :sel_extra (f xtr)))
 
 (defun testsendsel (f x) 
   (the_sel (f x) 

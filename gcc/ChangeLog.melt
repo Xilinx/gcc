@@ -1,3 +1,21 @@
+2008-05-22  Basile Starynkevitch  <basile@starynkevitch.net>
+	[some unsafe_put_fields but not all are skipped .. we have to find
+	a pattern for them to find the bug]
+
+	* basilys.h: (basilys_dbgtracefile) new variable.
+	(basilys_trace_start, basilys_trace_end) new macros [useful only
+	when ENABLE_CHECKING]
+
+	* basilys.c: (basilys_initialize) deal with basilys_dbgtracefile
+	using BASILYSTRACE environment variable [ugly!]
+
+	* melt/warm-basilys.bysl: generate calls to basilys_trace_start,
+	basilys_trace_end./ Closures are better dbgout-ed.
+
+	* melt/test0.bysl: added more unsafe_put_fields tests.
+
+	* melt-cc-script.proto: more verbose [using ls]
+
 2008-05-21  Basile Starynkevitch  <basile@starynkevitch.net>
 	[perhaps a metabug: the (unsafe_put_fields nbind :labind_res
 	oresv) in compilobj_nrep_forever is not compiled in warm-basilys-1

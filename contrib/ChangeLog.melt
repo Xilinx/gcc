@@ -1,4 +1,8 @@
 
+2008-05-22  Basile Starynkevitch  <basile@starynkevitch.net>
+	* cold-basilys.lisp: added generation of basilys_trace_start &
+	basilys_trace_end, renaming all Lambda routines
+
 2008-05-21  Basile Starynkevitch  <basile@starynkevitch.net>
 	* cold-basilys.lisp: [handling of OR might be wrong but is not corrected]
 	typo in output_ccode obj_closetq.

@@ -229,6 +229,7 @@ static void *bstrangelocal;
 static long nbaddlocalptr;
 
 static FILE *debughack_file;
+FILE* basilys_dbgtracefile;
 void *basilys_checkedp_ptr1;
 void *basilys_checkedp_ptr2;
 
@@ -5499,6 +5500,22 @@ basilys_initialize (void)
   debugeprintf
     ("basilys_initialize before initial_command command_string=%s",
      basilys_command_string);
+#if ENABLE_CHECKING
+      if (flag_basilys_debug)
+	{
+	  char* tracenam = getenv("BASILYSTRACE");
+	  if (tracenam) 
+	    basilys_dbgtracefile = fopen(tracenam, "w");
+	  if (basilys_dbgtracefile) {
+	    time_t now = 0;
+	    time(&now);
+	    debugeprintf ("basilys_initialize dbgtracefile %s", tracenam);
+	    fprintf(basilys_dbgtracefile, "**BASILYS TRACE %s pid %d at %s", 
+		    tracenam, (int)getpid(), ctime(&now));
+	    fflush(basilys_dbgtracefile);
+	  }
+	}
+#endif
   /* the command exit is builtin */
   if (basilys_command_string && !strcmp (basilys_command_string, "exit"))
     exit_after_options = 1;
@@ -5535,6 +5552,13 @@ basilys_initialize (void)
 		 basilys_command_string);
   debugeprintf ("basilys_initialize ended with %ld GarbColl, %ld fullGc",
 		basilys_nb_garbcoll, basilys_nb_full_garbcoll);
+#if ENABLE_CHECKING
+  if (basilys_dbgtracefile) {
+    fprintf(basilys_dbgtracefile, "\n**END TRACE\n");
+    fclose(basilys_dbgtracefile);
+    basilys_dbgtracefile = NULL;
+  }
+#endif
 }
 
 

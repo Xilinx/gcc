@@ -26,7 +26,7 @@ melt_cc=":MELT_CC:"
 melt_cflags=":MELT_CFLAGS:"
 melt_headerdir=":MELT_HEADERDIR:"
 
-#set -x
+set -x
 ## script invoked by cc1 with two arguments : the generated C source to compile
 ## and the naked (without suffix) dynamically-loadable stuff to generate
 
@@ -70,6 +70,7 @@ Linux|SunOS|Solaris)
 	echo Compiling $csource with line numbers
 	$melt_cc -Wall -fPIC -shared $melt_cflags -I "$melt_headerdir" $csource $datf.c -o $nakedynstuff.so
 	echo
+	ls -lt  $nakedynstuff-n.so  $nakedynstuff.so  $csource
 	;;
 *) 
 	libtool --mode=compile -prefer-pic $melt_cc $csource  -I "$melt_headerdir" -o $nakedynstuff.lo;

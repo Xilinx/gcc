@@ -46,8 +46,7 @@ along with GCC; see the file COPYING3.   If not see
  *****/
 
 /* declared in toplev.h which we want to avoid #include-ing */
-extern void fatal_error (const char *, ...) ATTRIBUTE_GCC_DIAG(1,2)
-     ATTRIBUTE_NORETURN;
+extern void fatal_error (const char *, ...);
 
 /* use -fdump-ipa-basilys */
 
@@ -2253,6 +2252,7 @@ void basilys_dbgshortbacktrace(const char* msg, int maxdepth);
 #if ENABLE_CHECKING
 extern void* basilys_checkedp_ptr1;
 extern void* basilys_checkedp_ptr2;
+extern FILE* basilys_dbgtracefile;
 void basilys_caught_assign_at(void*ptr, const char*fil, int lin, const char*msg);
 #define basilys_checked_assignmsg_at(Assign,Fil,Lin,Msg) ({		\
       void* p_##Lin = (Assign);						\
@@ -2265,10 +2265,16 @@ void basilys_caught_assign_at(void*ptr, const char*fil, int lin, const char*msg)
 #define basilys_checked_assignmsg(Assign,Msg) basilys_checked_assignmsg_at((Assign),__FILE__,__LINE__,Msg)
 void basilys_cbreak_at(const char*msg, const char*fil, int lin);
 #define basilys_cbreak(Msg) basilys_cbreak_at((Msg),__FILE__,__LINE__)
+#define basilys_trace_start(Msg,Cnt) do {if (basilys_dbgtracefile) \
+   fprintf(basilys_dbgtracefile, "+%s %ld\n", Msg, (long)(Cnt));} while(0)
+#define basilys_trace_end(Msg,Cnt) do {if (basilys_dbgtracefile) \
+   fprintf(basilys_dbgtracefile, "-%s %ld\n", Msg, (long)(Cnt));} while(0)
 #else
 #define basilys_checked_assign(Assign) Assign
 #define basilys_checked_assignmsg(Assign,Msg) Assign
 #define basilys_cbreak(Msg) ((void)(Msg))
+#define basilys_trace_start(Msg,Cnt) do{}while(0)
+#define basilys_trace_end(Msg,Cnt) do{}while(0)
 #endif /*ENABLE_CHECKING*/
 
 #endif /*BASILYS_INCLUDED_ */
