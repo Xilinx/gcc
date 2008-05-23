@@ -1132,6 +1132,10 @@ ftree-fre
 Common Report Var(flag_tree_fre) Optimization
 Enable Full Redundancy Elimination (FRE) on trees
 
+ftree-loop-fusion
+Common Report Var(flag_tree_loop_fusion) Optimization
+Enable loop fusion on trees
+
 ftree-loop-distribution
 Common Report Var(flag_tree_loop_distribution) Optimization
 Enable loop distribution on trees

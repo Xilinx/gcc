@@ -1165,6 +1165,7 @@ OBJS-common = \
 	tree-if-conv.o \
 	tree-into-ssa.o \
 	tree-iterator.o \
+        tree-loop-fusion.o \
 	tree-loop-distribution.o \
 	tree-loop-linear.o \
 	tree-loop-streamization.o \
@@ -2335,6 +2336,11 @@ tree-loop-linear.o: tree-loop-linear.c $(CONFIG_H) $(SYSTEM_H) coretypes.h \
    $(TARGET_H) tree-chrec.h $(OBSTACK_H)
 tree-loop-streamization.o: tree-loop-streamization.c $(CONFIG_H) $(SYSTEM_H) \
    coretypes.h \
+   $(TM_H) $(GGC_H) $(OPTABS_H) $(TREE_H) $(RTL_H) $(BASIC_BLOCK_H) \
+   $(DIAGNOSTIC_H) $(TREE_FLOW_H) $(TREE_DUMP_H) $(TIMEVAR_H) $(CFGLOOP_H) \
+   tree-pass.h $(TREE_DATA_REF_H) $(SCEV_H) $(EXPR_H) \
+   $(TARGET_H) tree-chrec.h tree-vectorizer.h
+tree-loop-fusion.o: tree-loop-fusion.c $(CONFIG_H) $(SYSTEM_H) coretypes.h \
    $(TM_H) $(GGC_H) $(OPTABS_H) $(TREE_H) $(RTL_H) $(BASIC_BLOCK_H) \
    $(DIAGNOSTIC_H) $(TREE_FLOW_H) $(TREE_DUMP_H) $(TIMEVAR_H) $(CFGLOOP_H) \
    tree-pass.h $(TREE_DATA_REF_H) $(SCEV_H) $(EXPR_H) \

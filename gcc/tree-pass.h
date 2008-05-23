@@ -332,6 +332,7 @@ extern struct gimple_opt_pass pass_empty_loop;
 extern struct gimple_opt_pass pass_record_bounds;
 extern struct gimple_opt_pass pass_graphite_transforms;
 extern struct gimple_opt_pass pass_if_conversion;
+extern struct gimple_opt_pass pass_loop_fusion; 
 extern struct gimple_opt_pass pass_loop_distribution;
 extern struct gimple_opt_pass pass_loop_streamization;
 extern struct gimple_opt_pass pass_vectorize;

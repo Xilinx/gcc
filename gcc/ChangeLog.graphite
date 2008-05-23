@@ -1,3 +1,14 @@
+2008-05-22  Sandeep Maram <smaram_b04@iiita.ac.in>
+
+	* doc/invoke.texi (-ftree-loop-fusion): Document.
+	* tree-pass.h (pass_loop_fusion): Declared.
+	* tree-loop-fusion.c: New.
+	* timevar.def (TV_TREE_LOOP_FUSION): Declared.
+	* tree-data-ref.c (find_data_references_in_loop): Make extern.
+	* tree-data-ref.h (find_data_references_in_loop): Declared.
+	* common.opt (ftree-loop-fusion): Declared.
+	* Makefile.in (tree-loop-fusion.o): Added rule and to OBJS-common.
+
 2008-05-21  Sebastian Pop  <sebastian.pop@amd.com>
 
 	* graphite.c (build_access_matrix): Fix typo from the merge.

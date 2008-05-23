@@ -4118,7 +4118,7 @@ find_data_references_in_stmt (struct loop *nest, tree stmt,
    TODO: This function should be made smarter so that it can handle address
    arithmetic as if they were array accesses, etc.  */
 
-static tree 
+tree 
 find_data_references_in_loop (struct loop *loop,
 			      VEC (data_reference_p, heap) **datarefs)
 {
