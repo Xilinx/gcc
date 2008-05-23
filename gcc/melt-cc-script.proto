@@ -26,7 +26,11 @@ melt_cc=":MELT_CC:"
 melt_cflags=":MELT_CFLAGS:"
 melt_headerdir=":MELT_HEADERDIR:"
 
-set -x
+if [ -n "$MELT_CC" ]; then
+    melt_cc=$MELT_CC
+fi
+
+#set -x
 ## script invoked by cc1 with two arguments : the generated C source to compile
 ## and the naked (without suffix) dynamically-loadable stuff to generate
 
@@ -65,10 +69,12 @@ case `uname` in
 Linux|SunOS|Solaris) 
 # we have temporarily a build of foo-n.so from foo.c without linenumbering
 	echo Compiling $csource without line numbering
-	$melt_cc -Wall -fPIC -shared $melt_cflags -DMELTGCC_NOLINENUMBERING  -I "$melt_headerdir" $csource $datf.c -o $nakedynstuff-n.so
+	time $melt_cc -Wall -fPIC -shared $melt_cflags -DMELTGCC_NOLINENUMBERING  -I "$melt_headerdir" $csource $datf.c -o $nakedynstuff-n.so
+	echo
 	echo
 	echo Compiling $csource with line numbers
-	$melt_cc -Wall -fPIC -shared $melt_cflags -I "$melt_headerdir" $csource $datf.c -o $nakedynstuff.so
+	time $melt_cc -Wall -fPIC -shared $melt_cflags -I "$melt_headerdir" $csource $datf.c -o $nakedynstuff.so
+	echo
 	echo
 	ls -lt  $nakedynstuff-n.so  $nakedynstuff.so  $csource
 	;;
@@ -79,3 +85,6 @@ Linux|SunOS|Solaris)
 	rm -f $datf.*
 	;;
 esac
+
+echo done $0 $* '@@@@'
+echo

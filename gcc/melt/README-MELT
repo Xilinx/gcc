@@ -32,3 +32,21 @@ for debugging I usually add the  -fbasilys-debug -fdump-ipa-basilys flags which 
 
 
 #### comments and questions to <basile@starynkevitch.net> 
+
+
+##################################################################
+
+NOTES about bugs in melt:
+
+rev135773. 22-May-2008: 
+
+Apparently, all (unsafe_put_fields ...)  expressions are indeed
+compiled by warm-basilys.bysl.
+
+But in normexp_forever the 
+    (unsafe_put_fields slbind :labind_clonsy resy)
+expression is apparently compiled *after* the multiapply - this should not happen!
+
+FIXED by having every normalization function, even
+normexp_unsafe_put_fields, return a simple local occurrence (of void
+type).

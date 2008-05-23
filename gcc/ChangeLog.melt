@@ -1,3 +1,24 @@
+2008-05-23  Basile Starynkevitch  <basile@starynkevitch.net>
+	[the skipped unsafe_put_fields was because
+	normexp_unsafe_put_fields should, like every other side-effecting
+	expression, returns a simple local occurrence of ctype_void;;
+	warm-basilys-1 still buggy for test0!]
+
+	* melt/warm-basilys.bysl: (add2sbuf_indent) lowered column threshold.
+	(dbgout_fields) less wide output.
+	(dbgout_anybinding_method) nicer output.
+	(normal_exp) selector - better comment.
+	(normexp_return) always return a locsymocc.
+	(normexp_unsafe_get_field) returns a locsymocc.
+	(outpucod_objlocv) shorter comments in generated code.
+	(compilobj_nrep_forever) added useless *99bis stuff & extra asserts.
+
+	* melt/test0.bysl: added more tests.
+
+	* melt/README-MELT: added explanation about bug.
+
+	* melt-cc-script.proto: minor typos & outputs.
+
 2008-05-22  Basile Starynkevitch  <basile@starynkevitch.net>
 	[some unsafe_put_fields but not all are skipped .. we have to find
 	a pattern for them to find the bug]

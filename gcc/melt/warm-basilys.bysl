@@ -331,7 +331,7 @@
 
 ;; primitive to add an indentation or space into a strbuf
 (defprimitive add2sbuf_indent (sbuf :long depth) :void
-  "basilysgc_strbuf_add_indent((" sbuf "), (" depth "), 72)")
+  "basilysgc_strbuf_add_indent((" sbuf "), (" depth "), 64)")
 
 
 ;; primitive to add an indented newline into a strbuf
@@ -1320,7 +1320,7 @@
 			 (add2sbuf_strconst sbuf "=")
 			 (dbg_out curval dbgi (+i depth 1))
 			 (let ( (:long deltalen (-i (strbuf_usedlength sbuf) curulen)) )
-			   (if  (>i deltalen 100)
+			   (if  (>i deltalen 80)
 			       (add2sbuf_indentnl sbuf depth)))
 			 )))
 		 (setq ix (+i ix 1))
@@ -1840,7 +1840,7 @@
       (let ( (:long dbgcounter (progn (increment_dbgcounter) (the_dbgcounter)))
 	     (sbuf (make_strbuf discr_strbuf)) 
 	     (occmap (make_mapobject discr_mapobjects 50))
-	     (boxedmaxdepth (make_integerbox discr_integer 10)) ;;;; @@@ DEBUGDEPTH
+	     (boxedmaxdepth (make_integerbox discr_integer 17)) ;;;; @@@ DEBUGDEPTH
 	     (dbgi (make_instance class_debuginfo
 				  :dbgi_sbuf sbuf
 				  :dbgi_occmap occmap
@@ -2068,7 +2068,8 @@
 	 (sbuf  (unsafe_get_field :dbgi_sbuf dbgi)) 
 	 (binder (unsafe_get_field :binder self))
 	 ) 
-    (add2sbuf_strconst sbuf "[%")
+    (add2sbuf_indent sbuf depth)
+    (add2sbuf_strconst sbuf "[~")
     (add2sbuf_string sbuf (unsafe_get_field :named_name dis))
     (add2sbuf_strconst sbuf "/")
     (add2sbuf_longhex sbuf (obj_hash self))
@@ -2079,7 +2080,7 @@
 	  (add2sbuf_strconst sbuf "; ")
 	  (dbgout_fields self dbgi (+i depth 1) 1)
 	  ))
-    (add2sbuf_strconst sbuf "%]")
+    (add2sbuf_strconst sbuf "~]")
     ))
 (install_method class_any_binding dbg_output dbgout_anybinding_method)
 (install_method class_any_binding dbg_outputagain dbgout_anybinding_method)
@@ -4268,6 +4269,11 @@
 ;;;   ncx = the normalization context 
 ;;;   psloc = (parent) source location
 ;;;;; expected results: normalized + binding list 
+;;; IMPORTANT NOTICE: even for simple expressions [like side-effecting
+;;; expressions returning void, e.g. RETURN, EXIT, ... other simple
+;;; side-effecting expressions like SETQ], the normalized should
+;;; always be a simple occurrence, and the work being done in the
+;;; bindings list.
 (defselector normal_exp class_selector
 ;  :named_name (stringconst2val discr_namestring "NORMAL_EXP")
 )
@@ -4849,18 +4855,35 @@
   (assert_msg "check nctxt" (is_a ncx class_normcontext))
   (let ( (sloc (unsafe_get_field :src_loc recv)) 
 	 (srets (unsafe_get_field :sreturn_body recv))
-	 (:long nbrets (multiple_length srets)))
+	 (:long nbrets (multiple_length srets))
+	 (csym (clone_symbol 'return_)) 
+	 (clocc (make_instance class_nrep_locsymocc
+			       :nrep_loc sloc
+			       :nocc_ctyp ctype_void
+			       :nocc_symb csym)) 
+	 (cbind (make_instance class_normlet_binding
+			       :letbind_loc sloc
+			       :binder csym
+			       :letbind_type ctype_void 
+			       ;; :letbind_expr is filled later
+			       ))
+	 )
     ;; special case for empty return
     (if (<=i nbrets 0)
-	(let ( (nemptret 
-		(make_instance class_nrep_return
-			       :nrep_loc sloc
-			       :nret_main ()
-			       :nret_rest ()
-			       ))
-	       )
-	  (debugmsg nemptret "normexp_return result nemptret" (the_callcount))
-	  (return nemptret))
+	(let ( 
+	      (nbindemp (make_list discr_list))
+	      (nemptret 
+	       (make_instance class_nrep_return
+			      :nrep_loc sloc
+			      :nret_main ()
+			      :nret_rest ()
+			      ))
+	      )
+	  (unsafe_put_fields cbind :letbind_expr nemptret)
+	  (list_append nbindemp cbind)
+	  (debugmsg clocc "normexp_return empty; return clocc" (the_callcount))
+	  (debugmsg nbindemp "normexp_return empty; return nbindemp" (the_callcount))
+	  (return clocc nbindemp))
       (multicall
        (nrets nbindrets)
        (normalize_tuple srets env ncx sloc)
@@ -4870,6 +4893,8 @@
 	      )
 	 (if (!= ctyp0 ctype_value)
 	     (error_plain sloc "main return is not a value"))
+	 (if (null nbindrets) 
+	     (setq nbindrets (make_list discr_list)))
 	 (multiple_every
 	  nrets
 	  (lambda (ncomp :long ix)
@@ -4881,9 +4906,10 @@
 				:nret_main nret0
 				:nret_rest (if (>i nbrets 0) toth)))
 		)
-	   (debugmsg nret "normexp_return result nret" (the_callcount))
+	   (list_append nbindrets cbind)
+	   (debugmsg clocc "normexp_return result nret" (the_callcount))
 	   (debugmsg nbindrets "normexp_return result nbindrets" (the_callcount))
-	   (return nret nbindrets)
+	   (return clocc nbindrets)
 	   ))))))
 (install_method class_src_return normal_exp normexp_return)
 
@@ -4977,8 +5003,8 @@
 		(lambda (recv env) (unsafe_get_field :nif_ctyp recv)))
 
 ;;;;;;;;;;;;;;;; normalize an or
-;; (OR (f1 a1)) is let d1 = (f1 a1) in d1
-;; (OR (f1 a1) (f2 a2)) is let o1 = (let d1 = (f1 a1) in  (if d1 d1 (let d2 = (f2 a2) in d2))) in o1
+    ;; (OR (f1 a1)) is let d1 = (f1 a1) in d1
+    ;; (OR (f1 a1) (f2 a2)) is let o1 = (let d1 = (f1 a1) in  (if d1 d1 (let d2 = (f2 a2) in d2))) in o1
 (defun normexp_or (recv env ncx psloc)
   (assert_msg "check or recv" (is_a recv class_src_or))
   (assert_msg "check env" (is_a env class_environment))
@@ -5000,12 +5026,12 @@
      (lambda (scur :long six)
        (debugmsg scur "normexp scur" (get_int boxorcount))
        (multicall
-        (ncur nbind)
-        (normal_exp scur env ncx sloc)
-        (debugmsg ncur "normexp ncur" (get_int boxorcount))
-        (list_every ncur
-                    (lambda (bnd) (put_env newenv bnd)))
-        (if (null (box_content norbox))
+	(ncur nbind)
+	(normal_exp scur env ncx sloc)
+	(debugmsg ncur "normexp ncur" (get_int boxorcount))
+	(list_every ncur
+		    (lambda (bnd) (put_env newenv bnd)))
+	(if (null (box_content norbox))
 	    (progn
 	      (box_put nbindorbox nbind)
 	      (box_put norbox ncur) 
@@ -5018,30 +5044,30 @@
 	    (if (!= ctypcur (box_content ctyporbox))
 		(error_plain  sloc "disjuncts' type mismatch in OR | COND"))
 	    (let (
-	    	  ;; ncur is normal, so simple
-	    	  (nifor (make_instance
-	    		  class_nrep_if
-	    		  :nrep_loc sloc
-	    		  :nif_test ncur
-	    		  :nif_then ncur
-	    		  :nif_else (wrap_normal_let1 (box_content norbox) (box_content nbindorbox) sloc)
-	    		  :nif_ctyp ctypcur
-	    		  )
-	    		 )
-	    	  (csymor (clone_symbol 'or_))
+		  ;; ncur is normal, so simple
+		  (nifor (make_instance
+			  class_nrep_if
+			  :nrep_loc sloc
+			  :nif_test ncur
+			  :nif_then ncur
+			  :nif_else (wrap_normal_let1 (box_content norbox) (box_content nbindorbox) sloc)
+			  :nif_ctyp ctypcur
+			  )
+			 )
+		  (csymor (clone_symbol 'or_))
 		  (corbind (make_instance 
-	    	 	    class_normlet_binding
-	    	 	    :binder csymor
-	    	 	    :letbind_loc sloc
-	    	 	    :letbind_type ctypcur
-	    	 	    :letbind_expr nifor))
+			    class_normlet_binding
+			    :binder csymor
+			    :letbind_loc sloc
+			    :letbind_type ctypcur
+			    :letbind_expr nifor))
 		  (corocc (make_instance
 			   class_nrep_locsymocc
-	    	 	   :nrep_loc sloc
-	    	 	   :nocc_ctyp ctypcur
-	    	 	   :nocc_symb csymor
-	    	 	   :nocc_bind corbind))
-	    	  )
+			   :nrep_loc sloc
+			   :nocc_ctyp ctypcur
+			   :nocc_symb csymor
+			   :nocc_bind corbind))
+		  )
 	      (box_put nbindorbox (make_list discr_list))
 	      (list_append2list (box_content nbindorbox) nbind)
 	      (list_append (box_content nbindorbox) corbind)
@@ -5245,7 +5271,7 @@
   (assert_msg "check unsafegetfield recv" (is_a recv class_src_unsafe_get_field))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normcontext))
-  (debugmsg recv "normexp unsafeget" recv (the_callcount))
+  (debugmsg recv "normexp unsafeget recv" recv (the_callcount))
   (let ( (sloc   (unsafe_get_field :src_loc recv))
 	 (sobj   (unsafe_get_field :suget_obj recv))
 	 (sfld   (unsafe_get_field :suget_field recv)) 
@@ -5272,9 +5298,10 @@
 				   :nocc_bind cbind))
 	    )
        (list_append nbind cbind)
-       (return 
-	clocc nbind
-	)))))
+       (debugmsg clocc "normexp unsafeget result clocc" (the_callcount))
+       (debugmsg nbind "normexp unsafeget result nbind" (the_callcount))
+       (return 	clocc nbind
+		)))))
 (install_method class_src_unsafe_get_field normal_exp normexp_unsafe_get_field)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -5289,7 +5316,19 @@
 	 (sfields (unsafe_get_field :suput_fields recv))
 	 (:long nbfields (multiple_length sfields))
 	 (nfields (make_multiple discr_multiple nbfields))
-	 (nbindlist (make_list discr_list))
+	 (nbindlist (make_list discr_list)) 
+	 (csym (clone_symbol 'unsafput_))
+	 (cbind (make_instance class_normlet_binding
+			       :binder csym
+			       :letbind_loc sloc
+			       :letbind_type ctype_void
+			       ;; letbind_expr filled later
+			       :letbind_expr ()))
+	 (clocc (make_instance  class_nrep_locsymocc
+				:nrep_loc sloc
+				:nocc_ctyp ctype_void
+				:nocc_symb csym
+				:nocc_bind cbind))
 	 )
     (multicall
      (nobj nobjbind)
@@ -5316,11 +5355,12 @@
 				 :nrep_loc sloc
 				 :nuput_obj nobj
 				 :nuput_fields nfields)) )
-       (debugmsg npuf "normexp_unsafe_put_fields npuf" (the_callcount))
-       (return 
-	npuf
-	nbindlist
-	)))))
+       (unsafe_put_fields cbind :letbind_expr npuf)
+       (list_append nbindlist cbind)
+       (debugmsg clocc "normexp_unsafe_put_fields result clocc" (the_callcount))
+       (debugmsg nbindlist "normexp_unsafe_put_fields result nbindlist" (the_callcount))
+       (return clocc nbindlist)
+       ))))
 (install_method class_src_unsafe_put_fields normal_exp normexp_unsafe_put_fields)
 (install_method class_nrep_unsafe_put_fields get_ctype (lambda (recv env) ctype_void))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -5408,7 +5448,7 @@
 				 :nrep_loc curfloc
 				 :nfla_field curfield
 				 :nfla_val nexp)
-	       )))))
+		  )))))
 	   (nmkins 
 	    (make_instance class_nrep_make_instance
 			   :nrep_loc sloc
@@ -5429,6 +5469,7 @@
 	   )
       (list_append bindlist cbind)
       (debugmsg clocc "normexp_make_instance result clocc" (the_callcount))
+      (debugmsg bindlist "normexp_make_instance result bindlist" (the_callcount))
       (return clocc bindlist)
       )
     )
@@ -5453,13 +5494,23 @@
     (assert_msg "check slbind" (is_a slbind class_label_binding))
     (put_env newenv slbind)
     (let ( (resy (clone_symbol (unsafe_get_field :binder slbind))) )
-      (debugmsg resy "normexp_forever updated resy" (the_callcount))
+      (debugmsg resy "normexp_forever putting resy.." (the_callcount))
+      (debugmsg slbind "..normexp_forever in slbind" (the_callcount))
+      (assert_msg "check resy obj1" (is_object resy))
       (unsafe_put_fields slbind :labind_clonsy resy)
       (debugmsg slbind "normexp_forever updated slbind" (the_callcount))
+      (debugmsg resy "normexp_forever clonsy put resy" (the_callcount))
       (assert_msg "check resy" (is_a resy class_clonedsymbol))
+      (debugmsg (unsafe_get_field :labind_clonsy slbind) "normexp_forever got1 clonsy" (the_callcount))
+      (assert_msg "check did1 put resy" (== (unsafe_get_field :labind_clonsy slbind) resy))
+      (assert_msg "check resy obj2" (is_object resy))
       (multicall
        (nbody nbodbindings)
        (normalize_tuple sbody newenv ncx sloc)
+       (debugmsg slbind "normexp_forever again slbind" (the_callcount))
+       (assert_msg "check did2 put resy" (== (unsafe_get_field :labind_clonsy slbind) resy))
+       (debugmsg (unsafe_get_field :labind_clonsy slbind) "normexp_forever got2 clonsy" (the_callcount))
+       (assert_msg "check size slbind" (<i (get_int labind_clonsy) (object_length slbind)))
        (let (
 	     (resbody (make_tuple1 discr_multiple 
 				   (wrap_normal_letseq nbody nbodbindings sloc)))
@@ -5681,6 +5732,7 @@
     (multicall
      (nbody nbindings)
      (normalize_tuple sbody newenv ncx sloc)
+     (debugmsg nbody "normexp_defun nbody before replace_last_by_return" (the_callcount))
      (multiple_every
       nbindings
       (lambda (nbi :long ix)
@@ -5689,6 +5741,7 @@
 	    (npbody (wrap_normal_letseq nrbody nbindings sloc))
 	    )
        (unsafe_put_fields nproc  :nproc_body npbody)
+       (debugmsg npbody "normexp_defun npbody after replace_last_by_return" (the_callcount))
        )
      (unsafe_put_fields ncx :nctx_curproc oldproc :nctx_symbcachemap oldsymbcache)
      (let ( (clovtup 
@@ -5703,7 +5756,7 @@
 		       (nsy (normal_exp sy env ncx sloc))
 		       )
 		  nsy
-		)))) )
+		  )))) )
        (unsafe_put_fields ndataclos :ndclo_closv clovtup)
        )
      (unsafe_put_fields sfubind :fubind_fundata ndataclos)
@@ -5928,7 +5981,9 @@
 		 )
 	       )
 	     ( :else
-	       (error_plain sloc "multi-called expression neither apply nor send"))
+	       (error_plain sloc "multi-called expression neither apply nor send")
+	       (return)
+	       )
 	     ))))))))
        
 (install_method class_src_multicall normal_exp normexp_multicall)
@@ -8085,19 +8140,19 @@
 	)
     (cond 
      ( (== ltyp ctype_value)
-       (add2sbuf_strconst implbuf "/*lptr:")
+       (add2sbuf_strconst implbuf "/*_.")
        (add2sbuf_string implbuf lcnam)
        (add2sbuf_strconst implbuf "*/ curfptr[")
        (add2sbuf_longdec implbuf (get_int loff))
        (add2sbuf_strconst implbuf "]") )
      ( (== ltyp ctype_long)
-       (add2sbuf_strconst implbuf "/*llng:")
+       (add2sbuf_strconst implbuf "/*_#")
        (add2sbuf_string implbuf lcnam)
        (add2sbuf_strconst implbuf "*/ curfnum[")
        (add2sbuf_longdec implbuf (get_int loff))
        (add2sbuf_strconst implbuf "]") )
      (:else
-      (add2sbuf_strconst implbuf "/*lother*/ curfram__.")
+      (add2sbuf_strconst implbuf "/*_?*/ curfram__.")
       (add2sbuf_string implbuf lcnam)))
     )
   )
@@ -8131,9 +8186,6 @@
 		(== (unsafe_get_field :obv_type ocnstv) ctype_value))
     (add2sbuf_strconst implbuf "(/*!")
     (add2sbuf_string implbuf onam)
-    ;; for debug only 
-    (add2sbuf_strconst implbuf " #")
-    (add2sbuf_longhex implbuf (obj_hash ocnstv))
     ;; was for debug
     (add2sbuf_strconst implbuf "*/ curfrout->tabval[")
     (add2sbuf_longdec implbuf (get_int ooff))
@@ -9946,14 +9998,21 @@
 	 (nbody (unsafe_get_field :nforever_body nfor))
 	 (nres (unsafe_get_field :nforever_result nfor)) 
 	 (oresv (get_free_objlocptr gcx nres))
+;;;; the 99bis are useless - just for devbugging! should be removed later
+	 (nbind99bis (unsafe_get_field :nforever_bind nfor))
+	 (oresv99bis oresv)
 	 )
     (debugmsg nbind "compilobj_nrep_forever initial nbind" (the_callcount))
     (debugmsg (discrim nbind) "compilobj_nrep_forever initial nbind's class" (the_callcount))
+    (debugmsg (unsafe_get_field :labind_clonsy nbind) ":labind_clonsy in nbind" (the_callcount))
     (assert_msg "check nbind" (is_a nbind class_label_binding))
     (debugmsg oresv "compilobj_nrep_forever oresv" (the_callcount))
     (assert_msg "check oresv" (is_a oresv class_objlocv))
     (unsafe_put_fields nbind :labind_res oresv)
     (assert_msg "check again nbind" (is_object nbind))
+    (debugmsg (unsafe_get_field :labind_clonsy nbind99bis) ":labind_clonsy in nbind99bis" (the_callcount))
+    (assert_msg "check 99bis nbind" (== nbind99bis nbind))
+    (assert_msg "check 99bis oresv" (== oresv99bis oresv))
     (debugmsg nbind "compilobj_nrep_forever updated nbind" (the_callcount))
     (let ( (closy (unsafe_get_field :labind_clonsy nbind)) 
 	   (bodyl (make_list discr_list))
@@ -11691,7 +11750,9 @@
   (debugmsg ctype_long "before read compileseq_command ctype_long" (the_callcount))
   (debugmsg class_selector "before read compileseq_command {class} class_selector" (the_callcount))
   (debugmsg class_nrep_routproc "before read compileseq_command {class} class_nrep_routproc" (the_callcount))
+  (debugmsg class_label_binding "before read compileseq_command {class} class_label_binding" (the_callcount))
   (debugmsg named_name "before read compileseq_command {field} named_name" (the_callcount))
+  (debugmsg labind_clonsy "before read compileseq_command {field} labind_clonsy" (the_callcount))
   (debugmsg dbg_output "before read compileseq_command dbg_output" (the_callcount))
   (debugmsg (unsafe_get_field :named_name dbg_output) "before read compileseq_command dbg_output's name" (the_callcount))
   (assert_msg "check DBG_OUTPUT's name is string" (is_string (unsafe_get_field :named_name dbg_output)))

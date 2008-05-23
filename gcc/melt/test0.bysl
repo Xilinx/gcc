@@ -9,6 +9,10 @@
 
 (defprimitive puts (:cstring s) :void "puts(" s ")")
 
+(defprimitive primfirst (u v) :value "firstprimitive(" u "," v ")")
+
+(defprimitive primsecond (u v) :value "secondprimitive(" u "," v ")")
+
 (defun f1 
   (g x)
   (g x x))
@@ -158,6 +162,26 @@
    (h u v)
    )
 )
+
+
+;; it happenned (at least in rev135773 of Melt branch) that the
+;; following function was incorrectly compiled because the
+;; unsafe_put_fields was generated at the wrong place, after the
+;; multicall!
+
+(defun testputfieldmultisend (ob f x y z)
+  (let ( 
+	(u (primfirst x y))
+	)
+    (unsafe_put_fields ob :sel_extra u)
+    (multicall 
+     (r1 r2)
+     (f y z)
+     (primsecond r1 r2)
+    )
+  )
+) 
+
 
 (defprimitive gti (:long a b) :long 
   "((" a ")>(" b "))")
