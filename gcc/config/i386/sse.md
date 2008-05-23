@@ -2304,8 +2304,8 @@
   [(set_attr "type" "ssemov")
    (set_attr "mode" "V4SF,V2SF")])
 
-(define_expand "vec_initv4sf"
-  [(match_operand:V4SF 0 "register_operand" "")
+(define_expand "vec_init<mode>"
+  [(match_operand:SSEMODE 0 "register_operand" "")
    (match_operand 1 "" "")]
   "TARGET_SSE"
 {
@@ -2372,9 +2372,9 @@
   DONE;
 })
 
-(define_expand "vec_setv4sf"
-  [(match_operand:V4SF 0 "register_operand" "")
-   (match_operand:SF 1 "register_operand" "")
+(define_expand "vec_set<mode>"
+  [(match_operand:SSEMODE 0 "register_operand" "")
+   (match_operand:<ssescalarmode> 1 "register_operand" "")
    (match_operand 2 "const_int_operand" "")]
   "TARGET_SSE"
 {
@@ -2429,9 +2429,9 @@
   DONE;
 })
 
-(define_expand "vec_extractv4sf"
-  [(match_operand:SF 0 "register_operand" "")
-   (match_operand:V4SF 1 "register_operand" "")
+(define_expand "vec_extract<mode>"
+  [(match_operand:<ssescalarmode> 0 "register_operand" "")
+   (match_operand:SSEMODE 1 "register_operand" "")
    (match_operand 2 "const_int_operand" "")]
   "TARGET_SSE"
 {
@@ -2785,37 +2785,6 @@
    movhps\t{%2, %0|%0, %2}"
   [(set_attr "type" "sselog,ssemov,ssemov,ssemov,ssemov")
    (set_attr "mode" "V2DF,V1DF,DF,V4SF,V2SF")])
-
-(define_expand "vec_setv2df"
-  [(match_operand:V2DF 0 "register_operand" "")
-   (match_operand:DF 1 "register_operand" "")
-   (match_operand 2 "const_int_operand" "")]
-  "TARGET_SSE"
-{
-  ix86_expand_vector_set (false, operands[0], operands[1],
-			  INTVAL (operands[2]));
-  DONE;
-})
-
-(define_expand "vec_extractv2df"
-  [(match_operand:DF 0 "register_operand" "")
-   (match_operand:V2DF 1 "register_operand" "")
-   (match_operand 2 "const_int_operand" "")]
-  "TARGET_SSE"
-{
-  ix86_expand_vector_extract (false, operands[0], operands[1],
-			      INTVAL (operands[2]));
-  DONE;
-})
-
-(define_expand "vec_initv2df"
-  [(match_operand:V2DF 0 "register_operand" "")
-   (match_operand 1 "" "")]
-  "TARGET_SSE"
-{
-  ix86_expand_vector_init (false, operands[0], operands[1]);
-  DONE;
-})
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
@@ -4929,130 +4898,6 @@
    movlps\t{%1, %0|%0, %1}"
   [(set_attr "type" "ssemov,ssemov,ssemov,sselog,ssemov,ssemov,ssemov")
    (set_attr "mode" "TI,TI,TI,TI,V4SF,V2SF,V2SF")])
-
-(define_expand "vec_setv2di"
-  [(match_operand:V2DI 0 "register_operand" "")
-   (match_operand:DI 1 "register_operand" "")
-   (match_operand 2 "const_int_operand" "")]
-  "TARGET_SSE"
-{
-  ix86_expand_vector_set (false, operands[0], operands[1],
-			  INTVAL (operands[2]));
-  DONE;
-})
-
-(define_expand "vec_extractv2di"
-  [(match_operand:DI 0 "register_operand" "")
-   (match_operand:V2DI 1 "register_operand" "")
-   (match_operand 2 "const_int_operand" "")]
-  "TARGET_SSE"
-{
-  ix86_expand_vector_extract (false, operands[0], operands[1],
-			      INTVAL (operands[2]));
-  DONE;
-})
-
-(define_expand "vec_initv2di"
-  [(match_operand:V2DI 0 "register_operand" "")
-   (match_operand 1 "" "")]
-  "TARGET_SSE"
-{
-  ix86_expand_vector_init (false, operands[0], operands[1]);
-  DONE;
-})
-
-(define_expand "vec_setv4si"
-  [(match_operand:V4SI 0 "register_operand" "")
-   (match_operand:SI 1 "register_operand" "")
-   (match_operand 2 "const_int_operand" "")]
-  "TARGET_SSE"
-{
-  ix86_expand_vector_set (false, operands[0], operands[1],
-			  INTVAL (operands[2]));
-  DONE;
-})
-
-(define_expand "vec_extractv4si"
-  [(match_operand:SI 0 "register_operand" "")
-   (match_operand:V4SI 1 "register_operand" "")
-   (match_operand 2 "const_int_operand" "")]
-  "TARGET_SSE"
-{
-  ix86_expand_vector_extract (false, operands[0], operands[1],
-			      INTVAL (operands[2]));
-  DONE;
-})
-
-(define_expand "vec_initv4si"
-  [(match_operand:V4SI 0 "register_operand" "")
-   (match_operand 1 "" "")]
-  "TARGET_SSE"
-{
-  ix86_expand_vector_init (false, operands[0], operands[1]);
-  DONE;
-})
-
-(define_expand "vec_setv8hi"
-  [(match_operand:V8HI 0 "register_operand" "")
-   (match_operand:HI 1 "register_operand" "")
-   (match_operand 2 "const_int_operand" "")]
-  "TARGET_SSE"
-{
-  ix86_expand_vector_set (false, operands[0], operands[1],
-			  INTVAL (operands[2]));
-  DONE;
-})
-
-(define_expand "vec_extractv8hi"
-  [(match_operand:HI 0 "register_operand" "")
-   (match_operand:V8HI 1 "register_operand" "")
-   (match_operand 2 "const_int_operand" "")]
-  "TARGET_SSE"
-{
-  ix86_expand_vector_extract (false, operands[0], operands[1],
-			      INTVAL (operands[2]));
-  DONE;
-})
-
-(define_expand "vec_initv8hi"
-  [(match_operand:V8HI 0 "register_operand" "")
-   (match_operand 1 "" "")]
-  "TARGET_SSE"
-{
-  ix86_expand_vector_init (false, operands[0], operands[1]);
-  DONE;
-})
-
-(define_expand "vec_setv16qi"
-  [(match_operand:V16QI 0 "register_operand" "")
-   (match_operand:QI 1 "register_operand" "")
-   (match_operand 2 "const_int_operand" "")]
-  "TARGET_SSE"
-{
-  ix86_expand_vector_set (false, operands[0], operands[1],
-			  INTVAL (operands[2]));
-  DONE;
-})
-
-(define_expand "vec_extractv16qi"
-  [(match_operand:QI 0 "register_operand" "")
-   (match_operand:V16QI 1 "register_operand" "")
-   (match_operand 2 "const_int_operand" "")]
-  "TARGET_SSE"
-{
-  ix86_expand_vector_extract (false, operands[0], operands[1],
-			      INTVAL (operands[2]));
-  DONE;
-})
-
-(define_expand "vec_initv16qi"
-  [(match_operand:V16QI 0 "register_operand" "")
-   (match_operand 1 "" "")]
-  "TARGET_SSE"
-{
-  ix86_expand_vector_init (false, operands[0], operands[1]);
-  DONE;
-})
 
 (define_expand "vec_unpacku_hi_v16qi"
   [(match_operand:V8HI 0 "register_operand" "")

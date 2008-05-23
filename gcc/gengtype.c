@@ -2361,9 +2361,6 @@ write_types_process_field (type_p f, const struct walk_type_data *d)
       break;
 
     case TYPE_STRING:
-      if (wtd->param_prefix == NULL)
-	break;
-
     case TYPE_STRUCT:
     case TYPE_UNION:
     case TYPE_LANG_STRUCT:
@@ -3138,7 +3135,7 @@ write_root (outf_p f, pair_p v, type_p type, const char *name, int has_length,
 	oprintf (f, "    &%s,\n", name);
 	oprintf (f, "    1, \n");
 	oprintf (f, "    sizeof (%s),\n", v->name);
-	oprintf (f, "    &gt_ggc_m_S,\n");
+	oprintf (f, "    (gt_pointer_walker) &gt_ggc_m_S,\n");
 	oprintf (f, "    (gt_pointer_walker) &gt_pch_n_S\n");
 	oprintf (f, "  },\n");
       }

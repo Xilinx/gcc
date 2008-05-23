@@ -2764,6 +2764,12 @@ override_options (void)
      can be optimized to ap = __builtin_next_arg (0).  */
   if (!TARGET_64BIT || TARGET_64BIT_MS_ABI)
     targetm.expand_builtin_va_start = NULL;
+
+#ifdef USE_IX86_CLD
+  /* Use -mcld by default for 32-bit code if configured with --enable-cld.  */
+  if (!TARGET_64BIT)
+    target_flags |= MASK_CLD & ~target_flags_explicit;
+#endif
 }
 
 /* Return true if this goes in large data/bss.  */
@@ -4840,7 +4846,7 @@ ix86_libcall_value (enum machine_mode mode)
 
 /* Return true iff type is returned in memory.  */
 
-static int
+static int ATTRIBUTE_UNUSED
 return_in_memory_32 (const_tree type, enum machine_mode mode)
 {
   HOST_WIDE_INT size;
@@ -4880,14 +4886,14 @@ return_in_memory_32 (const_tree type, enum machine_mode mode)
   return 0;
 }
 
-static int
+static int ATTRIBUTE_UNUSED
 return_in_memory_64 (const_tree type, enum machine_mode mode)
 {
   int needed_intregs, needed_sseregs;
   return !examine_argument (mode, type, 1, &needed_intregs, &needed_sseregs);
 }
 
-static int
+static int ATTRIBUTE_UNUSED
 return_in_memory_ms_64 (const_tree type, enum machine_mode mode)
 {
   HOST_WIDE_INT size = int_size_in_bytes (type);
@@ -6597,6 +6603,10 @@ ix86_expand_prologue (void)
 	emit_insn (gen_prologue_use (pic_offset_table_rtx));
       emit_insn (gen_blockage ());
     }
+
+  /* Emit cld instruction if stringops are used in the function.  */
+  if (TARGET_CLD && ix86_current_function_needs_cld)
+    emit_insn (gen_cld ());
 }
 
 /* Emit code to restore saved registers using MOV insns.  First register
@@ -23818,6 +23828,8 @@ ix86_expand_vector_init_one_var (bool mmx_ok, enum machine_mode mode,
       break;
 
     case V16QImode:
+      if (TARGET_SSE4_1)
+	break;
       wmode = V8HImode;
       goto widen;
     case V8QImode:
@@ -24084,21 +24096,13 @@ ix86_expand_vector_init_general (bool mmx_ok, enum machine_mode mode,
     case V2SImode:
       if (!mmx_ok && !TARGET_SSE)
 	break;
-
-      n = 2;
-      goto vec_concat;
+      /* FALLTHRU */
 
     case V4SFmode:
     case V4SImode:
-      n = 4;
-      goto vec_concat;
-
     case V2DFmode:
     case V2DImode:
-      n = 2;
-      goto vec_concat;
-
-vec_concat:
+      n = GET_MODE_NUNITS (mode);
       for (i = 0; i < n; i++)
 	ops[i] = XVECEXP (vals, 0, i);
       ix86_expand_vector_init_concat (mode, target, ops, n);
@@ -24107,18 +24111,13 @@ vec_concat:
     case V16QImode:
       if (!TARGET_SSE4_1)
 	break;
-
-      n = 16;
-      goto vec_interleave;
+      /* FALLTHRU */
 
     case V8HImode:
       if (!TARGET_SSE2)
 	break;
 
-      n = 8;
-      goto vec_interleave;
-
-vec_interleave:
+      n = GET_MODE_NUNITS (mode);
       for (i = 0; i < n; i++)
 	ops[i] = XVECEXP (vals, 0, i);
       ix86_expand_vector_init_interleave (mode, target, ops, n >> 1);

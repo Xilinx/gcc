@@ -5473,12 +5473,14 @@ vect_transform_strided_load (tree stmt, VEC(tree,heap) *dr_chain, int size,
 	break;
 
       /* Skip the gaps. Loads created for the gaps will be removed by dead
-       code elimination pass later.
+       code elimination pass later. No need to check for the first stmt in
+       the group, since it always exists.
        DR_GROUP_GAP is the number of steps in elements from the previous
        access (if there is no gap DR_GROUP_GAP is 1). We skip loads that
        correspond to the gaps.
       */
-      if (gap_count < DR_GROUP_GAP (vinfo_for_stmt (next_stmt)))
+      if (next_stmt != first_stmt 
+          && gap_count < DR_GROUP_GAP (vinfo_for_stmt (next_stmt)))
       {
         gap_count++;
         continue;
@@ -5778,7 +5780,8 @@ vectorizable_load (tree stmt, block_stmt_iterator *bsi, tree *vec_stmt,
      nested within an outer-loop that is being vectorized.  */
 
   if (nested_in_vect_loop_p (loop, stmt)
-      && (TREE_INT_CST_LOW (DR_STEP (dr)) % UNITS_PER_SIMD_WORD != 0))
+      && (TREE_INT_CST_LOW (DR_STEP (dr))
+	  % GET_MODE_SIZE (TYPE_MODE (vectype)) != 0))
     {
       gcc_assert (alignment_support_scheme != dr_explicit_realign_optimized);
       compute_in_loop = true;

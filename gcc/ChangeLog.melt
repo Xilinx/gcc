@@ -1,4 +1,7 @@
 2008-05-23  Basile Starynkevitch  <basile@starynkevitch.net>
+	MERGED with trunk rev135793
+
+2008-05-23  Basile Starynkevitch  <basile@starynkevitch.net>
 	[the skipped unsafe_put_fields was because
 	normexp_unsafe_put_fields should, like every other side-effecting
 	expression, returns a simple local occurrence of ctype_void;;

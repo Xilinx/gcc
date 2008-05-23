@@ -1,3 +1,88 @@
+2008-05-23  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	* gcc.dg/builtins-error.c: Test __builtin_fpclassify.  Also
+	add tests for all previous type-generic builtins.
+	* gcc.dg/pr28796-2.c: Add -DUNSAFE flag.
+	* gcc.dg/tg-tests.h: Test __builtin_fpclassify.
+
+2008-05-22  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR libgfortran/36302
+	* gfortran.dg/cshift_large_1.f90:  New test.
+	* gfortran.dg/eoshift_large_1.f90:  New test.
+
+2008-05-22  Rafael Espindola  <espindola@google.com>
+
+	* gcc.c-torture/compile/20080522-1.c: New testcase.
+
+2008-05-22  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.c-torture/execute/20080522-1.c: New testcase.
+
+2008-05-22  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.dg/tree-ssa/alias-18.c: New testcase.
+
+2008-05-22  Arnaud Charlet  <charlet@adacore.com>
+
+	* gnat.dg/slice5.adb: New test.
+	* gnat.dg/notnot.adb: New test.
+	* gnat.dg/tf_interface_1.ad[sb]: New test.
+	* gnat.dg/const1.adb: New test.
+	* gnat.dg/parameterlessfunc.adb: New test.
+	* gnat.dg/specs/interface5.ads: New test.
+	* gnat.dg/specs/cpp_assignment.ads: New test.
+
+2008-05-22  Nathan Sidwell  <nathan@codesourcery.com>
+
+	* lib/dg-pch.exp (dg-pch): Fix if bracing.
+
+2008-05-21  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* gcc.target/i386/m128-check.h (ARRAY_SIZE): New.
+	(CHECK_EXP): Use it.
+
+	* gcc.target/i386/set-v16qi-3.h: New.
+	* gcc.target/i386/sse2-set-v16qi-3.c: Likewise.
+	* gcc.target/i386/sse4_1-set-v16qi-3.c: Likewise.
+
+2008-05-21  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR tree-optimization/36287
+	PR tree-optimization/36286
+	* gcc.dg/tree-ssa/pr36287.c: New.
+	* gfortran.dg/pr36286.f90: New.
+
+2008-05-21  Tom Tromey  <tromey@redhat.com>
+
+	PR preprocessor/27777:
+	* gcc.dg/cpp/pr27777.c: New file.
+
+2008-05-21  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/36023
+	* g++.dg/ext/complit10.C: New test.
+
+2008-05-21  Janis Johnson  <janis187@us.ibm.com>
+
+	* gfortran.dg/nint_2.f90: XFAIL only when using -O0.
+
+	* lib/target-supports-dg.exp (dg-xfail-run-if): New.
+	* gcc.test-framework/dg-do-run-xrif-exp-F.c: New test.
+	* gcc.test-framework/dg-do-run-xrif-exp-P.c: New test.
+	* gcc.test-framework/dg-do-run-xrif-exp-XF.c: New test.
+	* gcc.test-framework/dg-do-run-xrif-exp-XP.c: New test.
+	* gcc.test-framework/dg-dot-run-xrif-exp-F.c: New test.
+	* gcc.test-framework/dg-dot-run-xrif-exp-P.c: New test.
+	* gcc.test-framework/dg-dot-run-xrif-exp-XF.c: New test.
+	* gcc.test-framework/dg-dot-run-xrif-exp-XP.c: New test.
+	* gcc.test-framework/test-framework.awk: Handle new tests.
+
+2008-05-21  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	PR fortran/36257
+	* gfortran.dg/char_length_12.f90: New test.
+
 2008-05-20  Nathan Sidwell  <nathan@codesourcery.com>
 
 	* gcc.c-torture/execute/builtins/memops-asm.c: Set inside_main.

@@ -105,6 +105,8 @@
 %{mcpu=405fp: -m405} \
 %{mcpu=440: -m440} \
 %{mcpu=440fp: -m440} \
+%{mcpu=464: -m440} \
+%{mcpu=464fp: -m440} \
 %{mcpu=505: -mppc} \
 %{mcpu=601: -m601} \
 %{mcpu=602: -mppc} \
@@ -897,7 +899,7 @@ extern enum rs6000_nop_insertion rs6000_sched_insert_nops;
 #define PAIRED_VECTOR_MODE(MODE)        \
          ((MODE) == V2SFmode)            
 
-#define UNITS_PER_SIMD_WORD					     \
+#define UNITS_PER_SIMD_WORD(MODE)				     \
 	(TARGET_ALTIVEC ? UNITS_PER_ALTIVEC_WORD		     \
 	 : (TARGET_SPE ? UNITS_PER_SPE_WORD : (TARGET_PAIRED_FLOAT ? \
 	 UNITS_PER_PAIRED_WORD : UNITS_PER_WORD)))
