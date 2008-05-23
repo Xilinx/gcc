@@ -4942,6 +4942,7 @@
 				:nret_main nret0
 				:nret_rest (if (>i nbrets 0) toth)))
 		)
+	   (unsafe_put_fields cbind :letbind_expr nret)
 	   (list_append nbindrets cbind)
 	   (debugmsg clocc "normexp_return result nret" (the_callcount))
 	   (debugmsg nbindrets "normexp_return result nbindrets" (the_callcount))

@@ -1,4 +1,9 @@
 2008-05-23  Basile Starynkevitch  <basile@starynkevitch.net>
+	[warm-basilys-1 works for test0, test1, not testrun1]
+	* melt/warm-basilys.bysl: (normexp_return) forgot to put the normalized return expr in its bindings.
+
+	* melt/warm-basilys.bysl: every instance of class_nrep_locsymocc should have its :nocc_bind set
+2008-05-23  Basile Starynkevitch  <basile@starynkevitch.net>
 	[warm-basilys-1 still buggy for test0]
 	* melt/warm-basilys.bysl: every instance of class_nrep_locsymocc should have its :nocc_bind set
 
