@@ -2783,11 +2783,11 @@
 			   ))
 		       ( (== curkw ':fields)
 			 (if fieldnams (error_plain loc "duplicate fields in defclass"))
-			 (and curval
-			      (not (is_a curval class_sexpr))
-			      (error_plain loc "bad fields in defclass"))
-			 (let ( (namlist (unsafe_get_field :sexp_contents curval))
-				(namloc (unsafe_get_field :loca_location curval))
+			 (if curval
+			     (if (is_not_a curval class_sexpr)
+				 (error_plain loc "bad fields in defclass")))
+			 (let ( (namlist (if curval (unsafe_get_field :sexp_contents curval)))
+				(namloc (if curval (unsafe_get_field :loca_location curval)))
 				(:long nbnam  (list_length namlist))
 				(:long ix 0)
 				(nampair (list_first namlist))
