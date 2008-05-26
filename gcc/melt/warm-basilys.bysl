@@ -2587,9 +2587,7 @@
 ))
 
 
-(message_dbg "@%X after install_initial_macro")
-(debugmsg discr_verbatimstring "@%Y after install_initial_macro discr_verbatimstring")
-(message_dbg "@%Z after install_initial_macro")
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;; macro expansers
 ;; the defprimitive expander
@@ -2757,7 +2755,7 @@
 		 (setq curpair (pair_tail curpair))
 		 (cond ( (== curkw ':super)
 			 (if supernam (error_plain loc "duplicate super in defclass"))
-			 (if (not (is_a curval class_symbol))
+			 (if (is_not_a curval class_symbol)
 			     (error_plain loc "bad super in defclass"))
 			 (setq supernam curval)
 			 (let ( (superb (find_env env supernam)) )
@@ -5707,9 +5705,6 @@
     )
   )
 
-(message_dbg "@%X after replace_last_by_return")
-(debugmsg discr_verbatimstring "@%Y after replace_last_by_return discr_verbatimstring")
-(message_dbg "@%Z after replace_last_by_return")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;; normalize a DEFUN
@@ -6913,7 +6908,6 @@
       (add2sbuf_indentnl sbuf 1)
       (if olocvar
 	  (progn
-	    (add2sbuf_strconst sbuf "/*inioblocvar*/ ")
 	    (output_c_code olocvar (the_null) sbuf 1)
 	    (add2sbuf_strconst sbuf " = (void*)&cdat->")
 	    (add2sbuf_string sbuf oname)
@@ -7058,7 +7052,6 @@
     (add2sbuf_indentnl sbuf 1)
     (if olocvar
 	(progn
-	  (add2sbuf_strconst sbuf "/*inimulocvar*/ ")
 	  (output_c_code olocvar (the_null) sbuf 1)
 	  (add2sbuf_strconst sbuf " = (void*)&cdat->")
 	  (add2sbuf_string sbuf cnam)
@@ -7249,7 +7242,6 @@
     (add2sbuf_indentnl sbuf 1)
     (if olocvar
 	(progn
-	  (add2sbuf_strconst sbuf "/*inistrlocvar*/ ")
 	  (output_c_code olocvar (the_null) sbuf 1)
 	  (add2sbuf_strconst sbuf " = (void*)&cdat->")
 	  (add2sbuf_string sbuf cnam)
@@ -11756,63 +11748,29 @@
 			    nam fun))))
 ;;;;
 (defun readseq_command (dispatcher arg)
-  (message_dbg "starting readseq")
   (debugmsg arg "start readseq_command" (the_callcount))
   (let ( (rlist (read_file arg)) )
-    (message_dbg "ending readseq")
     (debugmsg rlist "done readseq_command" (the_callcount))
 ))
 
 (install_initial_command  (stringconst2val discr_string "readseq") readseq_command)
 
 ;;;;
-
-(message_dbg "@%X before compileseq_command")
-(debugmsg discr_verbatimstring "@%Y before compileseq_command discr_verbatimstring")
-(message_dbg "@%Z before compileseq_command")
-
 ;;;;;
-(defun compileseq_command (dispatcher arg secarg)
-  (message_dbg "starting compileseq_command")
-  (debugmsg arg "start compileseq_command" (the_callcount))
-  (debugmsg discr_string "compileseq_command discr_string" (the_callcount))
-  (debugmsg discr_verbatimstring "compileseq_command discr_verbatimstring" (the_callcount))
-  (debugmsg initial_environment "before read compileseq_command initial_environment" (the_callcount))
-  (debugmsg 'defun "before read compileseq_command defun symbol" (the_callcount))
-  (debugmsg 'if "before read compileseq_command if symbol" (the_callcount))
-  (debugmsg tokenizer "before read compileseq_command tokenizer" (the_callcount))
-  (debugmsg ':value "before read compileseq_command :value keyword" (the_callcount))
-  (debugmsg ':void "before read compileseq_command :void keyword" (the_callcount))
-  (debugmsg ':long "before read compileseq_command :long keyword" (the_callcount))
-  (debugmsg ctype_value "before read compileseq_command ctype_value" (the_callcount))
-  (debugmsg ctype_void "before read compileseq_command ctype_void" (the_callcount))
-  (debugmsg ctype_long "before read compileseq_command ctype_long" (the_callcount))
-  (debugmsg class_selector "before read compileseq_command {class} class_selector" (the_callcount))
-  (debugmsg class_nrep_routproc "before read compileseq_command {class} class_nrep_routproc" (the_callcount))
-  (debugmsg class_label_binding "before read compileseq_command {class} class_label_binding" (the_callcount))
-  (debugmsg named_name "before read compileseq_command {field} named_name" (the_callcount))
-  (debugmsg labind_clonsy "before read compileseq_command {field} labind_clonsy" (the_callcount))
-  (debugmsg dbg_output "before read compileseq_command dbg_output" (the_callcount))
-  (debugmsg (unsafe_get_field :named_name dbg_output) "before read compileseq_command dbg_output's name" (the_callcount))
-  (assert_msg "check DBG_OUTPUT's name is string" (is_string (unsafe_get_field :named_name dbg_output)))
+(defun compilefile_command (dispatcher arg secarg)
+  (message_dbg "starting compilefile_command")
+  (debugmsg arg "start compilefile_command" (the_callcount))
   (let ( (rlist (read_file arg)) 
 	 (basnam (if (is_string secarg) secarg (make_string_nakedbasename discr_string arg)))
 	 ) 
-    (debugmsg rlist "after read compileseq_command rlist" (the_callcount))
-    (debugmsg tokenizer "after read compileseq_command tokenizer" (the_callcount))
-    (debugmsg initial_environment "after read compileseq_command initial_environment" (the_callcount))
-    (debugmsg class_nrep_datakeyword "compileseq_command class_nrep_datakeyword" (the_callcount))
-    (debugmsg class_nrep "compileseq_command class_nrep" (the_callcount))
+    (debugmsg rlist "after read compilefile_command rlist" (the_callcount))
+    (debugmsg tokenizer "after read compilefile_command tokenizer" (the_callcount))
+    (debugmsg initial_environment "after read compilefile_command initial_environment" (the_callcount))
+    (debugmsg class_nrep_datakeyword "compilefile_command class_nrep_datakeyword" (the_callcount))
+    (debugmsg class_nrep "compilefile_command class_nrep" (the_callcount))
     (compile_list_sexpr rlist initial_environment basnam)
     ))
 
-(install_initial_command  (stringconst2val discr_string "compileseq") compileseq_command)
+(install_initial_command  (stringconst2val discr_string "compilefile") compilefile_command)
 
-(message_dbg "@%T before showing initial_command_dispatcher")
-
-(assert_msg "check that debugmsg is a closure" (is_closure debugmsg))
-
-(debugmsg initial_command_dispatcher "toplevel initial_command_dispatcher")
-
-(message_dbg "@%Z at eof")
 ;;; eof warm-basilys.bysl

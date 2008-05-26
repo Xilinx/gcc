@@ -1,3 +1,9 @@
+2008-05-26  Basile Starynkevitch  <basile@starynkevitch.net>
+	[**** before putting the generated warm-basilys.c into SVN ***]
+	* melt/warm-basilys.bysl: compileseq command renamed as compilefile
+
+	* Makefile.in: using compilefile command before putting the generated warm-basilys.c
+
 2008-05-24  Basile Starynkevitch  <basile@starynkevitch.net>
 	[**** warm-basilys bootstrapped successfully: warm-basilys-2 &
 	warm-basilys-3 are identical!!! ****]
