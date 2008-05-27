@@ -314,6 +314,11 @@ package Exp_Util is
    --  used to ensure that an Itype is properly defined outside a conditional
    --  construct when it is referenced in more than one branch.
 
+   function Entry_Names_OK return Boolean;
+   --  Determine whether it is appropriate to dynamically allocate strings
+   --  which represent entry [family member] names. These strings are created
+   --  by the compiler and used by GDB.
+
    procedure Evolve_And_Then (Cond : in out Node_Id; Cond1 : Node_Id);
    --  Rewrites Cond with the expression: Cond and then Cond1. If Cond is
    --  Empty, then simply returns Cond1 (this allows the use of Empty to
@@ -336,13 +341,6 @@ package Exp_Util is
    --  Build a constrained subtype from the initial value in object
    --  declarations and/or allocations when the type is indefinite (including
    --  class-wide).
-
-   function Find_Interface
-     (T    : Entity_Id;
-      Comp : Entity_Id) return Entity_Id;
-   --  Ada 2005 (AI-251): Given a tagged type and one of its components
-   --  associated with the secondary dispatch table of an abstract interface
-   --  type, return the associated abstract interface type.
 
    function Find_Interface_ADT
      (T     : Entity_Id;
@@ -456,9 +454,6 @@ package Exp_Util is
    function Is_Library_Level_Tagged_Type (Typ : Entity_Id) return Boolean;
    --  Return True if Typ is a library level tagged type. Currently we use
    --  this information to build statically allocated dispatch tables.
-
-   function Is_Predefined_Dispatching_Operation (E : Entity_Id) return Boolean;
-   --  Ada 2005 (AI-251): Determines if E is a predefined primitive operation
 
    function Is_Ref_To_Bit_Packed_Array (N : Node_Id) return Boolean;
    --  Determine whether the node P is a reference to a bit packed array, i.e.

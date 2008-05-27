@@ -41,6 +41,7 @@ with Exp_Intr; use Exp_Intr;
 with Exp_Pakd; use Exp_Pakd;
 with Exp_Tss;  use Exp_Tss;
 with Exp_Util; use Exp_Util;
+with Exp_VFpt; use Exp_VFpt;
 with Fname;    use Fname;
 with Freeze;   use Freeze;
 with Inline;   use Inline;
@@ -3963,6 +3964,21 @@ package body Exp_Ch6 is
    procedure Expand_N_Function_Call (N : Node_Id) is
    begin
       Expand_Call (N);
+
+      --  If the return value of a foreign compiled function is
+      --  VAX Float then expand the return (adjusts the location
+      --  of the return value on Alpha/VMS, noop everywere else).
+      --  Comes_From_Source intercepts recursive expansion.
+
+      if Vax_Float (Etype (N))
+        and then Nkind (N) = N_Function_Call
+        and then Present (Name (N))
+        and then Present (Entity (Name (N)))
+        and then Has_Foreign_Convention (Entity (Name (N)))
+        and then Comes_From_Source (Parent (N))
+      then
+         Expand_Vax_Foreign_Return (N);
+      end if;
    end Expand_N_Function_Call;
 
    ---------------------------------------
@@ -4728,7 +4744,7 @@ package body Exp_Ch6 is
          Tagged_Typ := Find_Dispatching_Type (Prim);
 
          if No (Access_Disp_Table (Tagged_Typ))
-           or else not Has_Abstract_Interfaces (Tagged_Typ)
+           or else not Has_Interfaces (Tagged_Typ)
            or else not RTE_Available (RE_Interface_Tag)
            or else Restriction_Active (No_Dispatching_Calls)
          then
@@ -4856,7 +4872,7 @@ package body Exp_Ch6 is
                --  table slot.
 
                if not Is_Interface (Typ)
-                 or else Present (Abstract_Interface_Alias (Subp))
+                 or else Present (Interface_Alias (Subp))
                then
                   if Is_Predefined_Dispatching_Operation (Subp) then
                      Register_Predefined_DT_Entry (Subp);
@@ -5166,9 +5182,9 @@ package body Exp_Ch6 is
       end if;
    end Make_Build_In_Place_Call_In_Anonymous_Context;
 
-   ---------------------------------------------------
+   --------------------------------------------
    -- Make_Build_In_Place_Call_In_Assignment --
-   ---------------------------------------------------
+   --------------------------------------------
 
    procedure Make_Build_In_Place_Call_In_Assignment
      (Assign        : Node_Id;

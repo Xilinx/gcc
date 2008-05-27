@@ -186,7 +186,6 @@ static void Compilation_Unit_to_gnu (Node_Id);
 static void record_code_position (Node_Id);
 static void insert_code_for (Node_Id);
 static void add_cleanup (tree, Node_Id);
-static tree mark_visited (tree *, int *, void *);
 static tree unshare_save_expr (tree *, int *, void *);
 static void add_stmt_list (List_Id);
 static void push_exception_label_stack (tree *, Entity_Id);
@@ -222,14 +221,14 @@ gigi (Node_Id gnat_root, int max_gnat_node, int number_name,
       struct Elist_Header *elists_ptr, struct Elmt_Item *elmts_ptr,
       struct String_Entry *strings_ptr, Char_Code *string_chars_ptr,
       struct List_Header *list_headers_ptr, Nat number_file,
-      struct File_Info_Type *file_info_ptr ATTRIBUTE_UNUSED,
+      struct File_Info_Type *file_info_ptr,
       Entity_Id standard_integer, Entity_Id standard_long_long_float,
       Entity_Id standard_exception_type, Int gigi_operating_mode)
 {
   tree gnu_standard_long_long_float;
   tree gnu_standard_exception_type;
   struct elab_info *info;
-  int i ATTRIBUTE_UNUSED;
+  int i;
 
   max_gnat_nodes = max_gnat_node;
   number_names = number_name;
@@ -921,7 +920,7 @@ Attribute_to_gnu (Node_Id gnat_node, tree *gnu_result_type_p, int attribute)
 	    TREE_CONSTANT (gnu_expr) = 1;
 
 	  if (TREE_CODE (gnu_expr) == ADDR_EXPR)
-	    TREE_STATIC (gnu_expr) = TREE_CONSTANT (gnu_expr) = 1;
+	    TREE_NO_TRAMPOLINE (gnu_expr) = TREE_CONSTANT (gnu_expr) = 1;
 	}
 
       /* For other address attributes applied to a nested function,
@@ -4881,7 +4880,10 @@ gnat_to_gnu (Node_Id gnat_node)
      the location information of their last use.  Note that we may have
      no result if we tried to build a CALL_EXPR node to a procedure with
      no side-effects and optimization is enabled.  */
-  if (gnu_result && EXPR_P (gnu_result) && !REFERENCE_CLASS_P (gnu_result))
+  if (gnu_result
+      && EXPR_P (gnu_result)
+      && TREE_CODE (gnu_result) != NOP_EXPR
+      && !REFERENCE_CLASS_P (gnu_result))
     set_expr_location_from_node (gnu_result, gnat_node);
 
   /* If we're supposed to return something of void_type, it means we have
@@ -5102,13 +5104,13 @@ add_decl_expr (tree gnu_decl, Entity_Id gnat_entity)
       /* Mark everything as used to prevent node sharing with subprograms.
 	 Note that walk_tree knows how to deal with TYPE_DECL, but neither
 	 VAR_DECL nor CONST_DECL.  This appears to be somewhat arbitrary.  */
-      walk_tree (&gnu_stmt, mark_visited, NULL, NULL);
+      mark_visited (&gnu_stmt);
       if (TREE_CODE (gnu_decl) == VAR_DECL
 	  || TREE_CODE (gnu_decl) == CONST_DECL)
 	{
-	  walk_tree (&DECL_SIZE (gnu_decl), mark_visited, NULL, NULL);
-	  walk_tree (&DECL_SIZE_UNIT (gnu_decl), mark_visited, NULL, NULL);
-	  walk_tree (&DECL_INITIAL (gnu_decl), mark_visited, NULL, NULL);
+	  mark_visited (&DECL_SIZE (gnu_decl));
+	  mark_visited (&DECL_SIZE_UNIT (gnu_decl));
+	  mark_visited (&DECL_INITIAL (gnu_decl));
 	}
       /* In any case, we have to deal with our own TYPE_ADA_SIZE field.  */
       if (TREE_CODE (gnu_decl) == TYPE_DECL
@@ -5116,7 +5118,7 @@ add_decl_expr (tree gnu_decl, Entity_Id gnat_entity)
 	      || TREE_CODE (type) == UNION_TYPE
 	      || TREE_CODE (type) == QUAL_UNION_TYPE)
 	  && (t = TYPE_ADA_SIZE (type)))
-	walk_tree (&t, mark_visited, NULL, NULL);
+	mark_visited (&t);
     }
   else
     add_stmt_with_node (gnu_stmt, gnat_entity);
@@ -5150,13 +5152,10 @@ add_decl_expr (tree gnu_decl, Entity_Id gnat_entity)
     }
 }
 
-/* Utility function to mark nodes with TREE_VISITED and types as having their
-   sized gimplified.  Called from walk_tree.  We use this to indicate all
-   variable sizes and positions in global types may not be shared by any
-   subprogram.  */
+/* Callback for walk_tree to mark the visited trees rooted at *TP.  */
 
 static tree
-mark_visited (tree *tp, int *walk_subtrees, void *data ATTRIBUTE_UNUSED)
+mark_visited_r (tree *tp, int *walk_subtrees, void *data ATTRIBUTE_UNUSED)
 {
   if (TREE_VISITED (*tp))
     *walk_subtrees = 0;
@@ -5184,6 +5183,16 @@ unshare_save_expr (tree *tp, int *walk_subtrees ATTRIBUTE_UNUSED,
     TREE_OPERAND (t, 0) = unshare_expr (TREE_OPERAND (t, 0));
 
   return NULL_TREE;
+}
+
+/* Mark nodes rooted at *TP with TREE_VISITED and types as having their
+   sized gimplified.  We use this to indicate all variable sizes and
+   positions in global types may not be shared by any subprogram.  */
+
+void
+mark_visited (tree *tp)
+{
+  walk_tree (tp, mark_visited_r, NULL, NULL);
 }
 
 /* Add GNU_CLEANUP, a cleanup action, to the current code group and
@@ -6847,7 +6856,8 @@ Sloc_to_locus (Source_Ptr Sloc, location_t *locus)
 
   if (Sloc <= Standard_Location)
     {
-      *locus = BUILTINS_LOCATION;
+      if (*locus == UNKNOWN_LOCATION)
+	*locus = BUILTINS_LOCATION;
       return false;
     }
   else

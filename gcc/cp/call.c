@@ -4004,7 +4004,8 @@ build_new_op (enum tree_code code, int flags, tree arg1, tree arg2, tree arg3,
 		      != TYPE_MAIN_VARIANT (TREE_TYPE (arg2)))
 		  && (complain & tf_warning))
 		{
-		  warning (0, "comparison between %q#T and %q#T",
+		  warning (OPT_Wenum_compare,
+			   "comparison between %q#T and %q#T",
 			   TREE_TYPE (arg1), TREE_TYPE (arg2));
 		}
 	      break;
@@ -4580,7 +4581,10 @@ convert_like_real (conversion *convs, tree expr, tree fn, int argnum,
 		return error_mark_node;
 	      }
 	    if (lvalue & clk_bitfield)
-	      expr = convert_bitfield_to_declared_type (expr);
+	      {
+		expr = convert_bitfield_to_declared_type (expr);
+		expr = fold_convert (type, expr);
+	      }
 	    expr = build_target_expr_with_type (expr, type);
 	  }
 

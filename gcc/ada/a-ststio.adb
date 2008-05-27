@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -102,7 +102,7 @@ package body Ada.Streams.Stream_IO is
 
    procedure Close (File : in out File_Type) is
    begin
-      FIO.Close (AP (File));
+      FIO.Close (AP (File)'Unrestricted_Access);
    end Close;
 
    ------------
@@ -138,7 +138,7 @@ package body Ada.Streams.Stream_IO is
 
    procedure Delete (File : in out File_Type) is
    begin
-      FIO.Delete (AP (File));
+      FIO.Delete (AP (File)'Unrestricted_Access);
    end Delete;
 
    -----------------
@@ -362,7 +362,7 @@ package body Ada.Streams.Stream_IO is
       if ((File.Mode = FCB.In_File) /= (Mode = In_File))
         and then not File.Update_Mode
       then
-         FIO.Reset (AP (File), FCB.Inout_File);
+         FIO.Reset (AP (File)'Unrestricted_Access, FCB.Inout_File);
          File.Update_Mode := True;
       end if;
 

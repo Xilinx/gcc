@@ -41,10 +41,6 @@ package System.Stack_Usage is
 
    package SSE renames System.Storage_Elements;
 
-   --  The alignment clause seems dubious, what about architectures where
-   --  the maximum alignment is less than 4???
-   --  Anyway, why not use Interfaces.Unsigned_32???
-
    subtype Stack_Address is SSE.Integer_Address;
    --  Address on the stack
 
@@ -53,9 +49,8 @@ package System.Stack_Usage is
       renames System.Storage_Elements.To_Integer;
 
    type Stack_Analyzer is private;
-   --  Type of the stack analyzer tool. It is used to fill a portion of
-   --  the stack with Pattern, and to compute the stack used after some
-   --  execution.
+   --  Type of the stack analyzer tool. It is used to fill a portion of the
+   --  stack with Pattern, and to compute the stack used after some execution.
 
    --  Usage:
 
@@ -90,9 +85,9 @@ package System.Stack_Usage is
    --  Errors:
    --
    --  We are instrumenting the code to measure the stack used by the user
-   --  code. This method has a number of systematic errors, but several
-   --  methods can be used to evaluate or reduce those errors. Here are
-   --  those errors and the strategy that we use to deal with them:
+   --  code. This method has a number of systematic errors, but several methods
+   --  can be used to evaluate or reduce those errors. Here are those errors
+   --  and the strategy that we use to deal with them:
 
    --  Bottom offset:
 
@@ -164,8 +159,8 @@ package System.Stack_Usage is
    --     Description: The pattern zone does not fit on the stack. This may
    --       lead to an erroneous execution.
 
-   --    Strategy: Specify a storage size that is bigger than the size of the
-   --      pattern. 2 times bigger should be enough.
+   --     Strategy: Specify a storage size that is bigger than the size of the
+   --       pattern. 2 times bigger should be enough.
 
    --   Augmentation of the user stack frames:
 
@@ -211,15 +206,18 @@ package System.Stack_Usage is
    --                                            Analyzer.Top_Pattern_Mark
 
    procedure Initialize_Analyzer
-     (Analyzer       : in out Stack_Analyzer;
-      Task_Name      : String;
-      Size           : Natural;
-      Overflow_Guard : Natural;
-      Bottom         : Stack_Address;
-      Pattern        : Interfaces.Unsigned_32 := 16#DEAD_BEEF#);
+     (Analyzer         : in out Stack_Analyzer;
+      Task_Name        : String;
+      Stack_Size       : Natural;
+      Max_Pattern_Size : Natural;
+      Bottom           : Stack_Address;
+      Pattern          : Interfaces.Unsigned_32 := 16#DEAD_BEEF#);
    --  Should be called before any use of a Stack_Analyzer, to initialize it.
-   --  Size is the size of the pattern zone. Bottom should be a close
-   --  approximation of the caller base frame address.
+   --  Max_Pattern_Size is the size of the pattern zone, might be smaller than
+   --  the full stack size in order to take into account e.g. the secondary
+   --  stack and a guard against overflow. The actual size taken will be
+   --  reajusted with data already used at the time the stack is actually
+   --  filled.
 
    Is_Enabled : Boolean := False;
    --  When this flag is true, then stack analysis is enabled
@@ -274,7 +272,10 @@ private
       Task_Name : String (1 .. Task_Name_Length);
       --  Name of the task
 
-      Size : Natural;
+      Stack_Size : Natural;
+      --  Entire size of the analyzed stack
+
+      Pattern_Size : Natural;
       --  Size of the pattern zone
 
       Pattern : Pattern_Type;
@@ -304,9 +305,9 @@ private
       --  Id of the result. If less than value given to gnatbind -u corresponds
       --  to the location in the result array of result for the current task.
 
-      Overflow_Guard : Natural;
-      --  The amount of bytes that won't be analyzed in order to prevent
-      --  writing out of the stack
+      Stack_Used_When_Filling : Natural := 0;
+      --  Amount of stack that was already used when actually filling the
+      --  memory, and therefore not analyzed.
    end record;
 
    Environment_Task_Analyzer : Stack_Analyzer;
@@ -314,10 +315,16 @@ private
    Compute_Environment_Task  : Boolean;
 
    type Task_Result is record
-      Task_Name      : String (1 .. Task_Name_Length);
-      Measure        : Natural;
-      Max_Size       : Natural;
-      Overflow_Guard : Natural;
+      Task_Name : String (1 .. Task_Name_Length);
+
+      Min_Measure : Natural;
+      --  Minimum value for the measure
+
+      Max_Measure : Natural;
+      --  Maximum value for the measure, taking into account the actual size
+      --  of the pattern filled.
+
+      Max_Size : Natural;
    end record;
 
    type Result_Array_Type is array (Positive range <>) of Task_Result;

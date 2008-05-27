@@ -902,6 +902,10 @@ along with GCC; see the file COPYING3.  If not see
 #define LEGITIMATE_PIC_OPERAND_P(X) 1
 #endif
 
+#ifndef TARGET_MEM_CONSTRAINT
+#define TARGET_MEM_CONSTRAINT 'm'
+#endif
+
 #ifndef REVERSIBLE_CC_MODE
 #define REVERSIBLE_CC_MODE(MODE) 0
 #endif
@@ -938,6 +942,15 @@ along with GCC; see the file COPYING3.  If not see
 
 #ifndef OUTGOING_REG_PARM_STACK_SPACE
 #define OUTGOING_REG_PARM_STACK_SPACE(FNTYPE) 0
+#endif
+
+#ifndef LOCAL_ALIGNMENT
+#define LOCAL_ALIGNMENT(TYPE, ALIGNMENT) ALIGNMENT
+#endif
+
+#ifndef STACK_SLOT_ALIGNMENT
+#define STACK_SLOT_ALIGNMENT(TYPE,MODE,ALIGN) \
+  ((TYPE) ? LOCAL_ALIGNMENT ((TYPE), (ALIGN)) : (ALIGN))
 #endif
 
 #endif  /* ! GCC_DEFAULTS_H */

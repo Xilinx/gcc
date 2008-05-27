@@ -9268,7 +9268,7 @@ package body Sem_Ch12 is
          --  Now verify that the actual includes all other ancestors of
          --  the formal.
 
-         Elmt := First_Elmt (Abstract_Interfaces (A_Gen_T));
+         Elmt := First_Elmt (Interfaces (A_Gen_T));
          while Present (Elmt) loop
             if not Interface_Present_In_Ancestor
                      (Act_T, Get_Instance_Of (Node (Elmt)))
@@ -9575,7 +9575,6 @@ package body Sem_Ch12 is
 
                function Is_Tagged_Ancestor (T1, T2 : Entity_Id) return Boolean
                is
-                  Interfaces : Elist_Id;
                   Intfc_Elmt : Elmt_Id;
 
                begin
@@ -9599,9 +9598,7 @@ package body Sem_Ch12 is
                   --  progenitors.
 
                   else
-                     Interfaces := Abstract_Interfaces (T2);
-
-                     Intfc_Elmt := First_Elmt (Interfaces);
+                     Intfc_Elmt := First_Elmt (Interfaces (T2));
                      while Present (Intfc_Elmt) loop
                         if Is_Ancestor (T1, Node (Intfc_Elmt)) then
                            return True;
@@ -10806,7 +10803,11 @@ package body Sem_Ch12 is
    -------------------
 
    procedure Remove_Parent (In_Body : Boolean := False) is
-      S      : Entity_Id := Current_Scope;
+      S : Entity_Id := Current_Scope;
+      --  S is the scope containing the instantiation just completed. The
+      --  scope stack contains the parent instances of the instantiation,
+      --  followed by the original S.
+
       E      : Entity_Id;
       P      : Entity_Id;
       Hidden : Elmt_Id;
@@ -10824,7 +10825,6 @@ package body Sem_Ch12 is
 
             if In_Open_Scopes (P) then
                E := First_Entity (P);
-
                while Present (E) loop
                   Set_Is_Immediately_Visible (E, True);
                   Next_Entity (E);
@@ -10853,14 +10853,38 @@ package body Sem_Ch12 is
                         and then not Parent_Unit_Visible)
             then
                Set_Is_Immediately_Visible (P, False);
+
+            --  If the current scope is itself an instantiation of a generic
+            --  nested within P, and we are in the private part of body of
+            --  this instantiation, restore the full views of P, that were
+            --  removed in End_Package_Scope above. This obscure case can
+            --  occur when a subunit of a generic contains an instance of
+            --  of a child unit of its generic parent unit.
+
+            elsif S = Current_Scope
+              and then Is_Generic_Instance (S)
+            then
+               declare
+                  Par : constant Entity_Id :=
+                          Generic_Parent
+                            (Specification (Unit_Declaration_Node (S)));
+               begin
+                  if Present (Par)
+                    and then P = Scope (Par)
+                    and then (In_Package_Body (S) or else In_Private_Part (S))
+                  then
+                     Set_In_Private_Part (P);
+                     Install_Private_Declarations (P);
+                  end if;
+               end;
             end if;
          end loop;
 
          --  Reset visibility of entities in the enclosing scope
 
          Set_Is_Hidden_Open_Scope (Current_Scope, False);
-         Hidden := First_Elmt (Hidden_Entities);
 
+         Hidden := First_Elmt (Hidden_Entities);
          while Present (Hidden) loop
             Set_Is_Immediately_Visible (Node (Hidden), True);
             Next_Elmt (Hidden);

@@ -2230,6 +2230,7 @@ package body Exp_Ch4 is
       Declare_Stmts : List_Id;
 
       H_Decl   : Node_Id;
+      I_Decl   : Node_Id;
       H_Init   : Node_Id;
       P_Decl   : Node_Id;
       R_Decl   : Node_Id;
@@ -2427,6 +2428,7 @@ package body Exp_Ch4 is
            or else Root_Type (Ind_Typ) = Standard_Integer
            or else Root_Type (Ind_Typ) = Standard_Short_Integer
            or else Root_Type (Ind_Typ) = Standard_Short_Short_Integer
+           or else Is_Modular_Integer_Type (Ind_Typ)
          then
             Target_Type := Standard_Integer;
          else
@@ -2609,7 +2611,37 @@ package body Exp_Ch4 is
       for I in 2 .. Nb_Opnds loop
          H_Init := Make_Op_Add (Loc, H_Init, S_Length (I));
       end loop;
-      H_Init := Ind_Val (Make_Op_Add (Loc, H_Init, L_Pos));
+
+      --  If the index type is small modular type, we need to perform an
+      --  additional check that the upper bound fits in the index type.
+      --  Otherwise the computation of the upper bound can wrap around
+      --  and yield meaningless results. The constraint check has to be
+      --  explicit in the code, because the generated function is compiled
+      --  with checks disabled, for efficiency.
+
+      if Is_Modular_Integer_Type (Ind_Typ)
+        and then Esize (Ind_Typ) < Esize (Standard_Integer)
+      then
+         I_Decl :=
+            Make_Object_Declaration (Loc,
+             Defining_Identifier => Make_Defining_Identifier (Loc, Name_uI),
+             Object_Definition   => New_Reference_To (Standard_Integer, Loc),
+             Expression          =>
+               Make_Type_Conversion (Loc,
+                  New_Reference_To (Standard_Integer, Loc),
+                  Make_Op_Add (Loc, H_Init, L_Pos)));
+
+         H_Init :=
+           Ind_Val (
+             Make_Type_Conversion (Loc,
+               New_Reference_To (Ind_Typ, Loc),
+               New_Reference_To (Defining_Identifier (I_Decl), Loc)));
+
+      --  For other index types, computation is safe.
+
+      else
+         H_Init := Ind_Val (Make_Op_Add (Loc, H_Init, L_Pos));
+      end if;
 
       H_Decl :=
         Make_Object_Declaration (Loc,
@@ -2635,6 +2667,28 @@ package body Exp_Ch4 is
       --  Construct the declarations for the declare block
 
       Declare_Decls := New_List (P_Decl, H_Decl, R_Decl);
+
+      --  Add constraint check for the modular index case.
+
+      if Is_Modular_Integer_Type (Ind_Typ)
+        and then Esize (Ind_Typ) < Esize (Standard_Integer)
+      then
+         Insert_After (P_Decl, I_Decl);
+
+         Insert_After (I_Decl,
+            Make_Raise_Constraint_Error (Loc,
+               Condition =>
+                  Make_Op_Gt (Loc,
+                     Left_Opnd =>
+                       New_Reference_To (Defining_Identifier (I_Decl), Loc),
+                     Right_Opnd =>
+                       Make_Type_Conversion (Loc,
+                          New_Reference_To (Standard_Integer, Loc),
+                          Make_Attribute_Reference (Loc,
+                             Prefix => New_Reference_To (Ind_Typ, Loc),
+                             Attribute_Name => Name_Last))),
+                Reason => CE_Range_Check_Failed));
+      end if;
 
       --  Construct list of statements for the declare block
 
@@ -7583,79 +7637,151 @@ package body Exp_Ch4 is
          --  Otherwise, proceed with processing tagged conversion
 
          declare
-            Actual_Operand_Type : Entity_Id;
-            Actual_Target_Type  : Entity_Id;
+            Actual_Op_Typ   : Entity_Id;
+            Actual_Targ_Typ : Entity_Id;
+            Make_Conversion : Boolean := False;
+            Root_Op_Typ     : Entity_Id;
 
-            Cond : Node_Id;
+            procedure Make_Tag_Check (Targ_Typ : Entity_Id);
+            --  Create a membership check to test whether Operand is a member
+            --  of Targ_Typ. If the original Target_Type is an access, include
+            --  a test for null value. The check is inserted at N.
 
-         begin
-            if Is_Access_Type (Target_Type) then
-               Actual_Operand_Type := Designated_Type (Operand_Type);
-               Actual_Target_Type  := Designated_Type (Target_Type);
+            --------------------
+            -- Make_Tag_Check --
+            --------------------
 
-            else
-               Actual_Operand_Type := Operand_Type;
-               Actual_Target_Type  := Target_Type;
-            end if;
+            procedure Make_Tag_Check (Targ_Typ : Entity_Id) is
+               Cond : Node_Id;
 
-            --  Ada 2005 (AI-251): Handle interface type conversion
-
-            if Is_Interface (Actual_Operand_Type) then
-               Expand_Interface_Conversion (N, Is_Static => False);
-               return;
-            end if;
-
-            if Is_Class_Wide_Type (Actual_Operand_Type)
-              and then Root_Type (Actual_Operand_Type) /=  Actual_Target_Type
-              and then Is_Ancestor
-                         (Root_Type (Actual_Operand_Type),
-                          Actual_Target_Type)
-              and then not Tag_Checks_Suppressed (Actual_Target_Type)
-            then
-               --  Conversion is valid for any descendant of the target type
-
-               Actual_Target_Type := Class_Wide_Type (Actual_Target_Type);
+            begin
+               --  Generate:
+               --    [Constraint_Error
+               --       when Operand /= null
+               --         and then Operand.all not in Targ_Typ]
 
                if Is_Access_Type (Target_Type) then
                   Cond :=
-                     Make_And_Then (Loc,
-                       Left_Opnd =>
-                         Make_Op_Ne (Loc,
-                           Left_Opnd  => Duplicate_Subexpr_No_Checks (Operand),
-                           Right_Opnd => Make_Null (Loc)),
+                    Make_And_Then (Loc,
+                      Left_Opnd =>
+                        Make_Op_Ne (Loc,
+                          Left_Opnd  => Duplicate_Subexpr_No_Checks (Operand),
+                          Right_Opnd => Make_Null (Loc)),
 
-                       Right_Opnd =>
-                         Make_Not_In (Loc,
-                           Left_Opnd  =>
-                             Make_Explicit_Dereference (Loc,
-                               Prefix =>
-                                 Duplicate_Subexpr_No_Checks (Operand)),
-                           Right_Opnd =>
-                             New_Reference_To (Actual_Target_Type, Loc)));
+                      Right_Opnd =>
+                        Make_Not_In (Loc,
+                          Left_Opnd  =>
+                            Make_Explicit_Dereference (Loc,
+                              Prefix => Duplicate_Subexpr_No_Checks (Operand)),
+                          Right_Opnd => New_Reference_To (Targ_Typ, Loc)));
+
+               --  Generate:
+               --    [Constraint_Error when Operand not in Targ_Typ]
 
                else
                   Cond :=
                     Make_Not_In (Loc,
                       Left_Opnd  => Duplicate_Subexpr_No_Checks (Operand),
-                      Right_Opnd =>
-                        New_Reference_To (Actual_Target_Type, Loc));
+                      Right_Opnd => New_Reference_To (Targ_Typ, Loc));
                end if;
 
                Insert_Action (N,
                  Make_Raise_Constraint_Error (Loc,
                    Condition => Cond,
                    Reason    => CE_Tag_Check_Failed));
+            end Make_Tag_Check;
 
-               declare
-                  Conv : Node_Id;
-               begin
-                  Conv :=
-                    Make_Unchecked_Type_Conversion (Loc,
-                      Subtype_Mark => New_Occurrence_Of (Target_Type, Loc),
-                      Expression => Relocate_Node (Expression (N)));
-                  Rewrite (N, Conv);
-                  Analyze_And_Resolve (N, Target_Type);
-               end;
+         --  Start of processing
+
+         begin
+            if Is_Access_Type (Target_Type) then
+               Actual_Op_Typ   := Designated_Type (Operand_Type);
+               Actual_Targ_Typ := Designated_Type (Target_Type);
+
+            else
+               Actual_Op_Typ   := Operand_Type;
+               Actual_Targ_Typ := Target_Type;
+            end if;
+
+            Root_Op_Typ := Root_Type (Actual_Op_Typ);
+
+            --  Ada 2005 (AI-251): Handle interface type conversion
+
+            if Is_Interface (Actual_Op_Typ) then
+               Expand_Interface_Conversion (N, Is_Static => False);
+               return;
+            end if;
+
+            if not Tag_Checks_Suppressed (Actual_Targ_Typ) then
+
+               --  Create a runtime tag check for a downward class-wide type
+               --  conversion.
+
+               if Is_Class_Wide_Type (Actual_Op_Typ)
+                 and then Root_Op_Typ /= Actual_Targ_Typ
+                 and then Is_Ancestor (Root_Op_Typ, Actual_Targ_Typ)
+               then
+                  Make_Tag_Check (Class_Wide_Type (Actual_Targ_Typ));
+                  Make_Conversion := True;
+               end if;
+
+               --  AI05-0073: If the result subtype of the function is defined
+               --  by an access_definition designating a specific tagged type
+               --  T, a check is made that the result value is null or the tag
+               --  of the object designated by the result value identifies T.
+               --  Constraint_Error is raised if this check fails.
+
+               if Nkind (Parent (N)) = Sinfo.N_Return_Statement then
+                  declare
+                     Func     : Entity_Id;
+                     Func_Typ : Entity_Id;
+
+                  begin
+                     --  Climb scope stack looking for the enclosing function
+
+                     Func := Current_Scope;
+                     while Present (Func)
+                       and then Ekind (Func) /= E_Function
+                     loop
+                        Func := Scope (Func);
+                     end loop;
+
+                     --  The function's return subtype must be defined using
+                     --  an access definition.
+
+                     if Nkind (Result_Definition (Parent (Func))) =
+                          N_Access_Definition
+                     then
+                        Func_Typ := Directly_Designated_Type (Etype (Func));
+
+                        --  The return subtype denotes a specific tagged type,
+                        --  in other words, a non class-wide type.
+
+                        if Is_Tagged_Type (Func_Typ)
+                          and then not Is_Class_Wide_Type (Func_Typ)
+                        then
+                           Make_Tag_Check (Actual_Targ_Typ);
+                           Make_Conversion := True;
+                        end if;
+                     end if;
+                  end;
+               end if;
+
+               --  We have generated a tag check for either a class-wide type
+               --  conversion or for AI05-0073.
+
+               if Make_Conversion then
+                  declare
+                     Conv : Node_Id;
+                  begin
+                     Conv :=
+                       Make_Unchecked_Type_Conversion (Loc,
+                         Subtype_Mark => New_Occurrence_Of (Target_Type, Loc),
+                         Expression   => Relocate_Node (Expression (N)));
+                     Rewrite (N, Conv);
+                     Analyze_And_Resolve (N, Target_Type);
+                  end;
+               end if;
             end if;
          end;
 
@@ -9084,7 +9210,7 @@ package body Exp_Ch4 is
          --    Obj1 in Iface'Class;  --  Compile time error
 
          if not Is_Class_Wide_Type (Left_Type)
-           and then (Is_Parent (Etype (Right_Type), Left_Type)
+           and then (Is_Ancestor (Etype (Right_Type), Left_Type)
                        or else (Is_Interface (Etype (Right_Type))
                                  and then Interface_Present_In_Ancestor
                                            (Typ   => Left_Type,

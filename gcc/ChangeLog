@@ -1,3 +1,348 @@
+2008-05-27  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* dwarf2out.c (current_fde): Change return type to dw_fde_ref.
+	Moved to the front of file.
+
+2008-05-27  Xuepeng Guo  <xuepeng.guo@intel.com>
+	    H.J. Lu  <hongjiu.lu@intel.com>
+
+	* dwarf2out.c (current_fde): New.
+	(add_cfi): Use it.
+	(lookup_cfa:): Likewise.
+	(dwarf2out_end_epilogue): Likewise.
+	(dwarf2out_note_section_used): Likewise.
+
+2008-05-27  Michael Matz  <matz@suse.de>
+
+	PR c++/27975
+	* c.opt (Wenum-compare): New warning option.
+	* doc/invoke.texi  (Warning Options): Document -Wenum-compare.
+
+2008-05-27  Michael Matz  <matz@suse.de>
+
+	PR middle-end/36326
+	* tree-gimple.c (is_gimple_mem_rhs): Remove work-around for
+	non-BLKmode types.
+	* tree-tailcall.c (find_tail_calls): Don't mark calls storing
+	into memory as tail calls.
+
+2008-05-27  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/36339
+	* tree-ssa-alias.c (set_initial_properties): Escaped pt_anything
+	pointers cause all addressable variables to be call clobbered.
+
+2008-05-27  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/36245
+	* tree-ssa-address.c (add_to_parts): Deal with non-pointer
+	bases.
+
+2008-05-27  Andreas Krebbel  <krebbel1@de.ibm.com>
+
+	* config/s390/s390.md: Replace all occurences of the 'm'
+	constraint with 'RT'.
+
+2008-05-27  Andreas Krebbel  <krebbel1@de.ibm.com>
+
+	* config/s390/s390.md ("cpu_facility", "enabled"): Attribute
+	definitions added.
+	("*movdi_64dfp", "*movdi_64extimm", "*movdi_64"): Merged into
+	"*movdi_64".
+	("*anddi3_extimm", "*anddi3"): Merged into "*anddi3".
+	("*iordi3_extimm", "*iordi3"): Merged into "*iordi3".
+	("*xordi3_extimm", "*xordi3"): Merged into "*xordi3".
+
+2008-05-27  Andreas Krebbel  <krebbel1@de.ibm.com>
+
+	* reload.c: (find_reloads): Skip alternatives according to the
+	"enabled" attribute. Constify the constraint variable.
+	* recog.c (get_attr_enabled): Add default implementation.
+	(extract_insn): Set the alternative_enabled_p array
+	in the recog_data struct.
+	(preprocess_constraints, constrain_operands): Skip
+	alternatives according to the "enabled" attribute
+	* recog.h (struct recog_data): New field alternative_enabled_p.
+	(skip_alternative): New inline function.
+	* regclass.c: (record_operand_costs): Check the "enabled"
+	attribute.
+	(record_reg_classes): Skip alternative according to the
+	"enabled" attribute.
+
+	* doc/md.texi: Add documention for the "enabled" attribute.
+
+2008-05-27  Andreas Krebbel  <krebbel1@de.ibm.com>
+
+	* defaults.h (TARGET_MEM_CONSTRAINT): New target macro added.
+	* postreload.c (reload_cse_simplify_operands): Replace 'm'
+	constraint with TARGET_MEM_CONSTRAINT.
+	* recog.c (asm_operand_ok, preprocess_constraints,
+	constrain_operands): Likewise.
+	* regclass.c (record_reg_classes): Likewise.
+	* reload.c (find_reloads, alternative_allows_const_pool_ref):
+	Likewise.
+	* reload1.c (maybe_fix_stack_asms): Likewise.
+	* stmt.c (parse_output_constraint, parse_input_constraint):
+	Likewise.
+	* recog.h: Adjust comment.
+	* genpreds.c (generic_constraint_letters): Remove 'm' constraint.
+	* genoutput.c (note_constraint): Don't emit error for 'm'
+	constraint.
+	* doc/md.texi: Add a note to description of 'm' constraint.
+	* doc/tm.texi: Document the new TARGET_MEM_CONSTRAINT macro.
+
+2008-05-27  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* tree-sra.c (sra_type_can_be_decomposed_p) <RECORD_TYPE>: Make sure
+	that the bitfield is of integral type before testing its precision.
+
+2008-05-27  Trevor Smigiel  <trevor_smigiel@playstation.sony.com>
+	    Sa Liu  <saliu@de.ibm.com> 
+
+	* config/spu/spu.c (spu_init_libfuncs): Add __multi3, __divti3, 
+	__modti3, __udivti3, __umodti3 and __udivmodti4.
+	* config/spu/t-spu-elf (LIB2FUNCS_STATIC_EXTRA): Add files
+	that implement TImode mul and div functions.
+	* config/spu/multi3.c: New. Implement __multi3.
+	* config/spu/divmodti4.c: New. Implement _udivmodti4 and others.
+	* testsuite/gcc.target/spu/muldivti3.c: New. Test TImode mul and div
+	functions on SPU.
+
+2008-05-26  Steven Bosscher  <stevenb.gcc@gmail.com>
+
+	* config/rs6000/rs6000.c (rs6000_legitimize_tls_address): Generate
+	new tls_gd_* and tls_ld_* insns instead of an insn sequence.
+	* config/rs6000/rs6000.md (TLSmode, tls_abi_suffix, tls_insn_suffix,
+	tls_sysv_suffix): New mode and mode attribute iterators.
+	(tls_gd_32, tls_gd_64, tls_ld_32, tls_ld_64): Remove.
+	(lts_gd_aix*, tls_gd_sysv*, tls_ld_aix*, tls_ld_sysv*): New patterns.
+	(tls_dtprel_*, tls_dtprel_ha_*, tls_dtprel_lo_*, tls_got_dtprel_*,
+	tls_tprel_*, tls_tprel_ha_*, tls_tprel_lo_*, tls_got_tprel_*,
+	tls_tls_*): Merge 32 bit and 64 bit variants using aforementioned
+	iterators.
+
+2008-05-26  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR tree-optimization/36329
+	* tree.h (CALL_CANNOT_INLINE_P): Add access check.
+	* tree-gimple.h (CALL_STMT_CANNOT_INLINE_P): New macro.
+	* cgraphbuild.c (initialize_inline_failed): Use the latter
+	macro in lieu of the former.
+	* ipa-inline.c (cgraph_mark_inline): Likewise.
+	(cgraph_decide_inlining_of_small_function): Likewise.
+	(cgraph_decide_inlining): Likewise.
+	(cgraph_decide_inlining_incrementally): Likewise.
+
+2008-05-26  Tristan Gingold  <gingold@adacore.com>
+            Anatoly Sokolov  <aesok@post.ru>
+
+	* config/avr/avr.md ("call_prologue_saves"): Use hi8(gs())/lo8(gs())
+	instead of pm_lo8/pm_hi8 to makes this call working on avr6.
+	* config/avr/avr.c (expand_prologue): Tune "call_prologue" 
+	optimization for 'avr6' architecture.
+
+2008-05-26  Andy Hutchinson  <hutchinsonandy@aim.com>
+
+	PR target/34932
+	* config/avr/avr.md (*addhi3_zero_extend2): Remove.
+
+2008-05-26  Richard Guenther  <rguenther@suse.de>
+
+	* tree-ssa-sccvn.c (expr_has_constants): Declare.
+	(visit_reference_op_load): Initialize VN_INFO->has_constants
+	properly.
+
+2008-05-26  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR middle-end/36253
+	* caller-save.c (insert_restore): Verify alignment of spill
+	space.
+	(insert_save): Likewise.
+
+	* cfgexpand.c (LOCAL_ALIGNMENT): Removed.
+
+	* defaults.h (LOCAL_ALIGNMENT): New. Provide default.
+	(STACK_SLOT_ALIGNMENT): Likewise.
+
+	* function.c (LOCAL_ALIGNMENT): Removed.
+	(get_stack_local_alignment): New.
+	(assign_stack_local): Use it.  Set alignment on stack slot.
+	(assign_stack_temp_for_type): Use get_stack_local_alignment.
+
+	* config/i386/i386.h (LOCAL_ALIGNMENT): Updated.
+	(STACK_SLOT_ALIGNMENT): New.
+
+	* config/i386/i386.c (ix86_local_alignment): Handle caller-save
+	stack slot in XFmode.
+
+	* doc/tm.texi (STACK_SLOT_ALIGNMENT): New.
+
+2008-05-26  Kai Tietz  <kai.tietz@onevision.com>
+
+	PR/36321
+	* config/i386/i386.md (allocate_stack_worker_64): Make sure
+	argument operand in rax isn't removed.
+
+2008-05-26  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/36300
+	* fold-const.c (extract_muldiv_1): Use TYPE_OVERFLOW_WRAPS,
+	not TYPE_UNSIGNED.  Use TYPE_PRECISION instead of GET_MODE_SIZE.
+
+2008-05-26  Daniel Franke  <franke.daniel@gmail.com>
+
+	PR bootstrap/36331
+	* c-cppbuiltin.c (define__GNUC__): Re-add definition of __GNUG__.
+
+2008-05-26  Dominique Dhumieres  <dominiq@lps.ens.fr>
+
+	* config/darwin-c.c: Include "incpath.h" instead of "c-incpath.h".
+	* config/t-darwin: Use "incpath.h" instead of "c-incpath.h".
+
+2008-05-25  Eric Botcazou  <ebotcazou@adacore.com>
+
+	 * tree-nested.c (convert_tramp_reference) <ADDR_EXPR>: Do not
+	build a trampoline if we don't want one.
+	* varasm.c (initializer_constant_valid_p) <ADDR_EXPR>: Do not
+	return zero for nested functions if we don't want a trampoline.
+
+2008-05-26  Daniel Franke  <franke.daniel@gmail.com>
+
+	* doc/invoke.texi: Added f77, f77-cpp-input to list of file types.
+
+2008-05-26  Daniel Franke  <franke.daniel@gmail.com>
+
+	PR fortran/18428
+	* c.opt: Removed undocumented option '-lang-fortran'.
+	* c-common.h: Removed global variable 'lang_fortran'.
+	* c-opts.c (c_common_handle_option): Removed code to handle
+	option '-lang-fortran'. Updated includes.
+	* c-cppbuiltin.c (c_cpp_builtins): Removed conditional
+	definition of '__GFORTRAN__'.
+	(define__GNUC__): Reimplemented to use BASEVER and
+	cpp_define_formatted.
+	(builtin_define_with_value_n): Removed.
+	* c-incpath.h: Renamed to ...
+	* incpath.h: ... this.
+	* c-incpath.c: Renamed to ...
+	* incpath.c: ... this. Updated includes.
+	* fix-header.c: Updated includes.
+	* Makefile.in: Replaced c-incpath.[ch] by incpath.[ch].
+	(c-cppbuiltin.o): Added dependency on and definition of BASEVER.
+	(OBJ-archive): Added cppdefault.o, incpath.o and prefix.o.
+
+2008-05-25  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* tree.h: Update the table of flags used on tree nodes.
+	(TREE_NO_TRAMPOLINE): New accessor for static_flag.
+	(SAVE_EXPR_RESOLVED_P): Use automatically-built access check.
+	(FORCED_LABEL): Add access check.
+	(CALL_EXPR_RETURN_SLOT_OPT): Likewise.
+	(ASM_INPUT_P): Likewise.
+	(ASM_VOLATILE_P): Likewise.
+	(EH_FILTER_MUST_NOT_THROW): Access static_flag directly.
+	(OMP_SECTION_LAST): Access private_flag directly.
+	(OMP_RETURN_NOWAIT): Likewise.
+	(OMP_PARALLEL_COMBINED): Likewise.
+	(OMP_CLAUSE_PRIVATE_DEBUG): Access public_flag directly.
+	(OMP_CLAUSE_LASTPRIVATE_FIRSTPRIVATE): Likewise.
+	* tree-ssa-propagate.c (STMT_IN_SSA_EDGE_WORKLIST): Access
+	deprecated_flag directly.
+
+2008-05-25  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* final.c (frame_pointer_needed): Removed.
+	* flags.h (frame_pointer_needed): Likewise.
+
+	* function.h (rtl_data): Add frame_pointer_needed.
+	(frame_pointer_needed): New.
+
+2008-05-25  Arthur Loiret  <arthur.loiret@u-psud.fr>
+
+	* config.gcc (sh2[lbe]*-*-linux*): Allow target.
+
+2008-05-25  Steven Bosscher  <stevenb.gcc@gmail.com>
+
+	* gcse.c (hash_scan_set): Do not pick up a REG_EQUAL value if
+	SRC is a REG.
+
+2008-05-25  Alan Modra  <amodra@bigpond.net.au>
+
+	* c-common.c (strip_array_types): Move function to..
+	* tree.c: ..here.
+	(get_inner_array_type): Delete.
+	* c-common.h (strip_array_types): Move declaration to..
+	* tree.h: ..here.
+	(get_inner_array_type): Delete.
+	* config/i386/i386.c (x86_field_alignment): Use strip_array_types.
+	* config/rs6000/aix.h (ADJUST_FIELD_ALIGN): Likewise.
+	* config/rs6000/linux64.h (ADJUST_FIELD_ALIGN): Likewise.
+	* config/pa/pa.c (emit_move_sequence): Likewise.
+
+2008-05-24  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/i386.md (*sse_prologue_save_insn): Set length
+	attribute to 34.
+
+2008-05-24  Andy Hutchinson  <hutchinsonandy@aim.com>
+
+	* function.c: Include target hook for nonlocal_goto frame value.
+
+2008-05-24  Richard Guenther  <rguenther@suse.de>
+
+	* tree-dfa.c (refs_may_alias_p): Re-instantiate case that
+	a scalar variable can be only accessed through a pointer
+	or a union.
+
+2008-05-24  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	* builtins.c (fold_builtin_fpclassify): Fix spelling of FP_INFINITE.
+	* doc/extend.texi: Likewise.
+
+2008-05-23  DJ Delorie  <dj@redhat.com>
+
+	* config/m32c/jump.md (untyped_call): Add.
+
+	* config/m32c/m32c.c (m32c_return_addr_rtx): Change pointer type
+	for A24 to PSImode.
+	(m32c_address_cost): Detail costs for indirect offsets.
+
+2008-05-23  Rafael Espindola  <espindola@google.com>
+
+	* see.c (see_get_extension_data): Don't use SUBREG_REG to test
+	if a node is a SUBREG.
+	(see_analyze_one_def): Don't use SUBREG_REG to test if a node
+	is a SUBREG.
+
+2008-05-23  Paul Brook  <paul@codesourcery.com>
+	    Carlos O'Donell  <carlos@codesourcery.com>
+
+	* doc/extend.texi: Clarify use of __attribute__((naked)).
+	* doc/tm.texi: Document TARGET_ALLOCATE_STACK_SLOTS_FOR_ARGS.
+	* target.h (gcc_target): Add allocate_stack_slots_for_args.
+	* function.c (use_register_for_decl): Use
+	targetm.calls.allocate_stack_slots_for_args.
+	* target-def.h (TARGET_CALLS): Add 
+	TARGET_ALLOCATE_STACK_SLOTS_FOR_ARGS.
+	* config/arm/arm.c (arm_allocate_stack_slots_for_args): 
+	New function.
+	(TARGET_ALLOCATE_STACK_SLOTS_FOR_ARGS): Define.
+
+2008-05-23  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* expr.c (highest_pow2_factor) <BIT_AND_EXPR>: New case.
+
+2008-05-23  Steven Munroe  <sjmunroe@us.ibm.com>
+
+	* config/rs6000/darwin-ldouble.c (fmsub): Eliminate the full
+	PACK/UNPACK between FP_SUB_Q and FD_TRUNC so that the result
+	is only rounded once.
+
+2008-05-23  Richard Guenther  <rguenther@suse.de>
+
+	* tree-ssa-operands.c (mark_difference_for_renaming): Use
+	bitmap_xor.
+
 2008-05-23  Uros Bizjak  <ubizjak@gmail.com>
 	    Jakub Jelinek  <jakub@redhat.com>
 

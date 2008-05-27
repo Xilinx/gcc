@@ -544,6 +544,13 @@ package body Exp_Aggr is
          return False;
       end if;
 
+      --  If component is limited, aggregate must be expanded because each
+      --  component assignment must be built in place.
+
+      if Is_Inherently_Limited_Type (Component_Type (Typ)) then
+         return False;
+      end if;
+
       --  Checks 4 (array must not be multi-dimensional Fortran case)
 
       if Convention (Typ) = Convention_Fortran
@@ -1512,6 +1519,16 @@ package body Exp_Aggr is
              Expression =>
                Unchecked_Convert_To (Typ,
                  Make_Integer_Literal (Loc, Uint_0))));
+      end if;
+
+      --  If the component type contains tasks, we need to build a Master
+      --  entity in the current scope, because it will be needed if build-
+      --  in-place functions are called in the expanded code.
+
+      if Nkind (Parent (N)) = N_Object_Declaration
+        and then Has_Task (Typ)
+      then
+         Build_Master_Entity (Defining_Identifier (Parent (N)));
       end if;
 
       --  STEP 1: Process component associations
@@ -2573,7 +2590,7 @@ package body Exp_Aggr is
                   --  Ada 2005 (AI-251): If tagged type has progenitors we must
                   --  also initialize tags of the secondary dispatch tables.
 
-                  if Has_Abstract_Interfaces (Base_Type (Typ)) then
+                  if Has_Interfaces (Base_Type (Typ)) then
                      Init_Secondary_Tags
                        (Typ        => Base_Type (Typ),
                         Target     => Target,
@@ -3080,7 +3097,7 @@ package body Exp_Aggr is
          --  abstract interfaces we must also initialize the tags of the
          --  secondary dispatch tables.
 
-         if Has_Abstract_Interfaces (Base_Type (Typ)) then
+         if Has_Interfaces (Base_Type (Typ)) then
             Init_Secondary_Tags
               (Typ        => Base_Type (Typ),
                Target     => Target,
@@ -4041,7 +4058,7 @@ package body Exp_Aggr is
          --      Aggr_Lo <= Aggr_Hi and then
          --        (Aggr_Lo < Ind_Lo or else Aggr_Hi > Ind_Hi)]
 
-         --  As an optimization try to see if some tests are trivially vacuos
+         --  As an optimization try to see if some tests are trivially vacuous
          --  because we are comparing an expression against itself.
 
          if Aggr_Lo = Ind_Lo and then Aggr_Hi = Ind_Hi then
@@ -4672,6 +4689,8 @@ package body Exp_Aggr is
               Make_Raise_Constraint_Error (Loc,
                 Condition => Cond,
                 Reason    => CE_Length_Check_Failed));
+            --  Questionable reason code, shouldn't that be a
+            --  CE_Range_Check_Failed ???
          end if;
 
          --  Now look inside the sub-aggregate to see if there is more work
@@ -4951,6 +4970,13 @@ package body Exp_Aggr is
           or else
             (Nkind (Parent (Parent (N))) = N_Allocator
               and then In_Place_Assign_OK);
+      end if;
+
+      --  If  this is an array of tasks, it will be expanded into build-in-
+      --  -place assignments. Build an activation chain for the tasks now
+
+      if Has_Task (Etype (N)) then
+         Build_Activation_Chain_Entity (N);
       end if;
 
       if not Has_Default_Init_Comps (N)
@@ -5369,7 +5395,7 @@ package body Exp_Aggr is
       --  If the tagged types covers interface types we need to initialize all
       --  hidden components containing pointers to secondary dispatch tables.
 
-      elsif Is_Tagged_Type (Typ) and then Has_Abstract_Interfaces (Typ) then
+      elsif Is_Tagged_Type (Typ) and then Has_Interfaces (Typ) then
          Convert_To_Assignments (N, Typ);
 
       --  If some components are mutable, the size of the aggregate component

@@ -1,3 +1,29 @@
+2008-05-27  Michael Matz  <matz@suse.de>
+
+	PR c++/27975
+	* call.c (build_new_op): Make warning conditional on
+	OPT_Wenum_compare.
+
+2008-05-27  Alexandre Oliva  <aoliva@redhat.com>
+
+	PR c++/35909
+	* call.c (convert_like_real): Convert bitfield to desired type
+	before creating temporary.
+
+2008-05-26  Daniel Franke  <franke.daniel@gmail.com>
+
+	* Makefile.in: Adjusted dependencies on c-incpath.o.
+
+2008-05-23  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/36237
+	* cp-gimplify.c (cxx_omp_clause_apply_fn): Call
+	fold_build_cleanup_point_expr on build_call_a results.
+
+	PR c++/36308
+	* semantics.c (omp_clause_info_fndecl): New function.
+	(finish_omp_clauses): Use it.
+
 2008-05-21  Jakub Jelinek  <jakub@redhat.com>
 
 	PR c++/36023
