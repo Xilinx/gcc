@@ -227,8 +227,8 @@
 (defprimitive negi (:long i) :long "(-(" i "))")
 (defprimitive noti (:long i) :long "(~(" i "))")
 
-(defprimitive /i (:long a b) :long "(basilys_idiv(" a "), (" b "))")
-(defprimitive %i (:long a b) :long "(basilys_imod(" a "), (" b "))")
+(defprimitive /i (:long a b) :long "(basilys_idiv((" a "), (" b ")))")
+(defprimitive %i (:long a b) :long "(basilys_imod((" a "), (" b ")))")
 (defprimitive /iraw (:long a b)  :long "((" a ") / (" b "))")
 (defprimitive %iraw (:long a b)  :long "((" a ") % (" b "))")
 ;; boolean not
@@ -728,19 +728,21 @@
 
 ;;; installation of a method in a class or discriminant
 (defun install_method (cla sel fun)
-  (if (and
-       (is_a cla class_discr)
-       (is_a sel class_selector)
-       (is_closure fun))
-      (let 
-	  ( (mapdict 
-	     (unsafe_get_field :disc_methodict cla)) )
-	(if (is_mapobject mapdict)
-	    (mapobject_put mapdict sel fun)
-	  (let ( (newmapdict (make_mapobject discr_methodmap 35)) )
-	    (unsafe_put_fields cla :disc_methodict newmapdict)
-	    (mapobject_put newmapdict sel fun)
-	    )))))
+  (if
+      (is_a cla class_discr)
+      (if 
+	  (is_a sel class_selector)
+	  (if
+	      (is_closure fun)
+	      (let 
+		  ( (mapdict 
+		     (unsafe_get_field :disc_methodict cla)) )
+		(if (is_mapobject mapdict)
+		    (mapobject_put mapdict sel fun)
+		  (let ( (newmapdict (make_mapobject discr_methodmap 35)) )
+		    (unsafe_put_fields cla :disc_methodict newmapdict)
+		    (mapobject_put newmapdict sel fun)
+		    )))))))
 
 ;;; output on stderr
 (defprimitive outnum_err (:cstring pref :long l :cstring suf) :void
@@ -765,6 +767,20 @@
 		     (if (>=i ix ln) (exit tuploop))
 		     (f  (multiple_nth tup ix) ix)
 		     (setq ix (+i ix 1)))))))
+
+;;; full iterator on a list
+(defun list_every (lis f)
+  (if (is_list lis)
+      (if (is_closure f)
+	  (let ( (curpair (list_first lis)) )
+	    (forever lisloop
+		     (if (is_pair curpair)
+			 (let ( (curhead (pair_head curpair))
+				(curtail (pair_tail curpair))
+				)
+			   (f curhead)
+			   (setq curpair curtail))
+		       (return (the_null))))))))
 
 ;; find a binding inside an environment
 (defun find_env (env binder)
@@ -975,6 +991,24 @@
   (outnewline_err) 
   )
 
+(defun dotest_forever ()
+  (outcstring_err "**forever test**")
+  (outnewline_err)
+  (let ( (:long ix 0) 
+	 (res (forever testloop
+		       (outnum_err "foreverloop ix=" ix ";")
+		       (outnewline_err)
+		       (if (>i ix 21)
+			   (exit testloop (make_integerbox discr_integer ix)))
+		       (setq ix (+i ix (+i 1 (/i ix 3))))))
+	 )
+    (outv res "after forverloop res=")
+    (outnewline_err)
+    (outcstring_err "**ended test forever**")
+    (outnewline_err) 
+    ))
+    
+
 (defun dotest_or ()
   (outcstring_err "**or tests**")
   (outnewline_err)
@@ -1022,6 +1056,36 @@
   (outnewline_err)
   )
 
+
+(defun outv_listcomp (v) 
+  (outv v "listcomp=") 
+  (outnewline_err))
+
+(defun dotest_lists ()
+  (outcstring_err "**lists test**")
+  (outnewline_err)
+  (let ( (emptyl (make_list discr_list))
+	 (monol (make_list discr_list))
+	 (tripl (make_list discr_list)) )
+    (list_append monol (make_integerbox discr_integer 1))
+    (list_append tripl (make_integerbox discr_integer 1000))
+    (list_append tripl (make_integerbox discr_integer 2000))
+    (list_append tripl (make_integerbox discr_integer 3000))
+    (outcstring_err "list_every on nil")
+    (outnewline_err)
+    (list_every () outv_listcomp)
+    (outcstring_err "list_every on emptyl")
+    (outnewline_err)
+    (list_every emptyl outv_listcomp)
+    (outcstring_err "list_every on monol")
+    (outnewline_err)
+    (list_every monol outv_listcomp)
+    (outcstring_err "list_every on tripl")
+    (outnewline_err)
+    (list_every tripl outv_listcomp)
+    (outcstring_err "**ended lists test**")
+    (outnewline_err)))
+    
 (defun dotest_objects ()
   (outcstring_err "**objects test**")
   (outnewline_err)
@@ -1045,11 +1109,15 @@
   (outnewline_err)
   (dotest_or)
   (outnewline_err)
+  (dotest_forever)
+  (outnewline_err)
   (dotest_multiple)
   (outnewline_err)
   (dotest_multiapply)
   (outnewline_err)
   (dotest_multisend)
+  (outnewline_err)
+  (dotest_lists)
   (outnewline_err)
   (dotest_objects)
   (outnewline_err)

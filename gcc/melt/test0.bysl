@@ -42,10 +42,12 @@
   (lambda (y_arg) 
     (f_cl y_arg)))
 
-(defun testandsetq (v w :long i j)
+(defun testandsetq (f v w :long i j)
   (if 
       (and i j)
-      (setq v w)))
+      (setq v w))
+  (f v)
+  )
 
 (defun testor (v w :long i j)
   (if 

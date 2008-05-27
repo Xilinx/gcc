@@ -78,4 +78,8 @@ Boston, MA 02110-1301, USA.  */
 #define curfclos curfram__.clos
 #define curfrout curfram__.clos->rout
 
+/* these are added by the *melt-cc-script shell script */
+extern const char basilys_compiled_timestamp[];
+extern const char basilys_md5[];
+
 /* eof run-basilys.h */

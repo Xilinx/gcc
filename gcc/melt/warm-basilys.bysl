@@ -210,6 +210,9 @@
 ;;; the current frame depth
 (defprimitive the_framedepth () :long "(basilys_curframdepth())")
 
+;;; the timestamp of compilation & md5 checksum of the generated C file
+(defprimitive out_cplugin_compiled_timestamp_err () :void "basilys_puts(stderr,basilys_compiled_timestamp)")
+(defprimitive out_cplugin_md5_checksum_err () :void "basilys_puts(stderr,basilys_md5)")
 
 ;; primitive to force garbage collection
 (defprimitive minor_garbcoll (:long siz) :void 
@@ -256,8 +259,8 @@
 (defprimitive negi (:long i) :long "(-(" i "))")
 (defprimitive noti (:long i) :long "(~(" i "))")
 
-(defprimitive /i (:long a b) :long "(basilys_idiv(" a "), (" b "))")
-(defprimitive %i (:long a b) :long "(basilys_imod(" a "), (" b "))")
+(defprimitive /i (:long a b) :long "(basilys_idiv((" a "), (" b ")))")
+(defprimitive %i (:long a b) :long "(basilys_imod((" a "), (" b ")))")
 (defprimitive /iraw (:long a b)  :long "((" a ") / (" b "))")
 (defprimitive %iraw (:long a b)  :long "((" a ") % (" b "))")
 ;; boolean not
@@ -925,7 +928,7 @@
 		 (:else 
 		  (debugmsg symb "clone_symbol bad symb" (the_callcount))
 		  (assert_msg "invalid symb in clone_symbol" ())
-		  (return))))
+		  (return (the_null)))))
 	 (boxi (mapstring_getstr mapstr synam)) )
     (if (not (is_integerbox boxi))
 	(progn 
@@ -976,7 +979,7 @@
 			    (curval (mapobject_nth_val map ix)) )
 		       (if curat 
 			   (if (null (f curat curval))
-			       (exit maploop curat))
+			       (return curat))
 			 ))
 		     (setq ix (+i ix 1))
 		     )))))
@@ -987,7 +990,8 @@
       (if (is_closure f)
 	  (let ( (:long ix 0) )
 	    (forever maploop
-		     (if (>=i ix (mapstring_size map)) (exit maploop))
+		     (if (>=i ix (mapstring_size map)) 
+			 (exit maploop))
 		     (let ( (curat (mapstring_nth_attrstr map discr_string ix))
 			    (curval (mapstring_nth_val map ix)) )
 		       (if curat (f curat curval))
@@ -1002,12 +1006,13 @@
       (if (is_closure f)
 	  (let ( (:long ix 0) )
 	    (forever maploop
-		     (if (>=i ix (mapstring_size map)) (exit maploop))
+		     (if (>=i ix (mapstring_size map)) 
+			 (exit maploop))
 		     (let ( (curat (mapstring_nth_attrstr map discr_string ix))
 			    (curval (mapstring_nth_val map ix)) )
 		       (if curat 
 			   (if (null (f curat curval))
-			       (exit maploop curat)
+			       (return curat)
 			     )))
 		     (setq ix (+i ix 1))
 		     )))))
@@ -1018,7 +1023,8 @@
       (if (is_closure f)
 	  (let ( (:long ix 0) )
 	    (forever maploop
-		     (if (>=i ix (mapstring_size map)) (exit maploop))
+		     (if (>=i ix (mapstring_size map)) 
+			 (exit maploop))
 		     (let ( (curval (mapstring_nth_val map ix)) )
 		       (if curval  (f curval)))
 		     (setq ix (+i ix 1))
@@ -1035,7 +1041,7 @@
 		     (let ( (curval (mapstring_nth_val map ix)) )
 		       (if curval 
 			   (if (null (f curval))
-			       (exit maploop curval)
+			       (return curval)
 			     )))
 		     (setq ix (+i ix 1))
 		     )))))
@@ -1047,9 +1053,13 @@
       (if (is_closure f)
 	  (let ( (curpair (list_first lis)) )
 	    (forever lisloop
-		     (if (not (is_pair curpair)) (exit lisloop))
-		     (f (pair_head curpair)) 
-		     (setq curpair (pair_tail curpair)))))))
+		     (if (is_pair curpair)
+			 (let ( (curhead (pair_head curpair))
+				(curtail (pair_tail curpair))
+				)
+			   (f curhead)
+			   (setq curpair curtail))
+		       (return (the_null))))))))
 
 ;;; iterator on a list, if the called f returns nil the iteration is stopped
 (defun list_iterate_test (lis f)
@@ -1059,7 +1069,7 @@
 	    (forever lisloop
 		     (if (not (is_pair curpair)) (exit lisloop))
 		     (let ( (curelem (pair_head curpair)) )
-		       (if (null (f curelem)) (exit lisloop curelem)))
+		       (if (null (f curelem)) (return curelem)))
 		       (setq curpair (pair_tail curpair)))))))
 
 ;; add to a destination list a source list
@@ -1084,22 +1094,21 @@
 	  (forever pairloop
 		   (if (not (is_pair pair)) (exit pairloop))
 		     (let ( (curelem (pair_head pair)) )
-		       (if (null (f curelem)) (exit pairloop curelem)))
+		       (if (null (f curelem)) (return curelem)))
 		       (setq pair (pair_tail pair)))))
 		   
 ;;; map on a list (list_map lis f) where lis is (e1 ... en) is ((f e1) .... (f en))
 (defun list_map (lis f)
-  (and (is_list lis)
-       (is_closure f)
-       (let ( (reslis (make_list discr_list)) 
-	      (curpair (list_first lis)) )
-	 (forever lisloop
-		  (if (not (is_pair curpair)) (exit lisloop))
-		  (let ( (curelem (pair_head curpair)) )
-		    (list_append reslis (f curelem)))
-		  (setq curpair (pair_tail curpair)))
-	 reslis
-	 )))
+  (if (is_list lis)
+      (if (is_closure f)
+	  (let ( (reslis (make_list discr_list)) 
+		 (curpair (list_first lis)) )
+	    (forever lisloop
+		     (if (not (is_pair curpair)) (return reslis))
+		     (let ( (curelem (pair_head curpair)) )
+		       (list_append reslis (f curelem)))
+		     (setq curpair (pair_tail curpair)))
+	    ))))
 		    
 ;;; translate a list to a multiple - with each element transformed by a function f (default the identity)
 (defun list_to_multiple (lis disc f)
@@ -1135,13 +1144,12 @@
 	   (curpair pair)
 	   )
       (forever loopfi
-	       (if (not (is_pair curpair)) (exit loopfi))
+	       (if (not (is_pair curpair)) (return tup))
 	       (let ( (c (pair_head curpair))
 		      (tc (if (is_closure f) (f c) c)) )
 		 (multiple_put_nth tup ix tc)
 		 (setq ix (+i ix 1))
 		 (setq curpair (pair_tail curpair))))
-      tup
       )))
 
 ;;; full iterator on tuple - 
@@ -1177,7 +1185,8 @@
 	    (forever tuploop
 		     (if (>=i ix ln) (exit tuploop))
 		     (let ( (curcomp (multiple_nth tup ix)) )
-		       (if (null (f curcomp ix)) (exit tuploop curcomp)))
+		       (if (null (f curcomp ix)) 
+			   (return curcomp)))
 		     (setq ix (+i ix 1)))))))
 
 ;;; map on tuple -- with tup= (t0 t1 ... t_n-1) return ((f t0 0) (f t1 1) ... (f t_n-1 n-1)
@@ -1189,11 +1198,11 @@
 		 (res (make_multiple discr_multiple ln))
 		 )
 	    (forever tuploop
-		     (if (>=i ix ln) (exit tuploop))
+		     (if (>=i ix ln) (return res))
 		     (let ( (curcomp (multiple_nth tup ix)) )
 		       (multiple_put_nth res ix (f curcomp ix)))
 		     (setq ix (+i ix 1)))
-	    res))))
+	    ))))
 		     
 
 ;;; installation of a method in a class or discriminant
@@ -1203,29 +1212,32 @@
   ;;(debugmsg cla "install_method cla%" (the_callcount))
   ;;(debugmsg sel "install_method sel%" (the_callcount))
   ;;(debugmsg fun "install_method fun%" (the_callcount))
-  (if (and
-       (is_a cla class_discr)
-       (is_a sel class_selector)
-       (is_closure fun))
-      (let 
-	  ( (mapdict 
-	     (unsafe_get_field :disc_methodict cla)) )
-	(if (is_mapobject mapdict)
-	    (mapobject_put mapdict sel fun)
-	  (let ( (newmapdict (make_mapobject discr_methodmap 35)) )
-	    (unsafe_put_fields cla :disc_methodict newmapdict)
-	    (mapobject_put newmapdict sel fun)
-	    )))
-    (progn
-      (debugmsg cla "install_method failed cla=" (the_callcount))
-      (debugmsg sel "install_method failed sel=" (the_callcount))
-      (debugmsg fun "install_method failed fun=" (the_callcount))
-      (messageval_dbg "install_method failed cla!=" cla)
-      (messageval_dbg "install_method failed sel!=" sel)
-      (messageval_dbg "install_method failed fun!=" fun)
-      ;(assert_msg "install_method failed" ())
-      )
-    ))
+  (if 
+      (is_a cla class_discr)
+      (if 
+	  (is_a sel class_selector)
+	  (if 
+	      (is_closure fun)
+	      (let 
+		  ( (mapdict 
+		     (unsafe_get_field :disc_methodict cla)) )
+		(if (is_mapobject mapdict)
+		    (mapobject_put mapdict sel fun)
+		  (let ( (newmapdict (make_mapobject discr_methodmap 35)) )
+		    (unsafe_put_fields cla :disc_methodict newmapdict)
+		    (mapobject_put newmapdict sel fun)
+		    (return (the_null))
+		    ))))))
+;- (progn
+;-   (debugmsg cla "install_method failed cla=" (the_callcount))
+;-   (debugmsg sel "install_method failed sel=" (the_callcount))
+;-   (debugmsg fun "install_method failed fun=" (the_callcount))
+;-   (messageval_dbg "install_method failed cla!=" cla)
+;-   (messageval_dbg "install_method failed sel!=" sel)
+;-   (messageval_dbg "install_method failed fun!=" fun)
+;-					;(assert_msg "install_method failed" ())
+;-   )
+  )
 
 
 (defclass class_debuginfo 
@@ -2022,6 +2034,8 @@
 
 ;; put a binding at top of an environment
 (defun put_env (env binding)
+  (assert_msg "check binding is obj" (is_object binding))
+  (assert_msg "check env is obj" (is_object env))
   (assert_msg "check env" (is_a env class_environment))
   (if (not (is_a binding class_any_binding))
       (progn
@@ -2233,9 +2247,12 @@
   :super class_src
   :fields (sif_test
 	   sif_then
-	   sif_else
 ))
 
+(defclass class_src_ifelse
+  :super class_src_if
+  :fields ( sif_else
+))
 
 ;; an or
 ;;; since (OR a1 a2) is (IF a1 a1 a2) we need to normalize it to avoid evaluating twice a1
@@ -2618,14 +2635,14 @@
 		(debugmsg typkw "mexpand_defprimitive bad cty" (the_callcount))
 		(error_strv loc "bad type keyword for defprimitive"
 			    (unsafe_get_field :named_name typkw))
-		(return ())
+		(return (the_null))
 		))
 	  (if (!= (unsafe_get_field :ctype_keyword cty) typkw)
 	      (progn
 		(debugmsg typkw "mexpand_defprimitive strange typkw" (the_callcount))
 		(error_strv loc "invalid type keyword for defprimitive"
 			    (unsafe_get_field :named_name typkw)) 
-		(return ())   
+		(return (the_null))   
 		))
 	  ;; parse the rest as to be expanded
 	  (setq curpair (pair_tail curpair))
@@ -3040,7 +3057,7 @@
 	 (:else
 	  (error_strv loc "invalid class name for definstance"
 		      (unsafe_get_field :named_name nam))
-	  (return)
+	  (return (the_null))
 	  ))
 	(setq claname nam)
 	(assert_msg "check cla" (is_a cla class_class))
@@ -3135,7 +3152,7 @@
 	 (:else
 	  (error_strv loc "invalid class name for definstance"
 		      (unsafe_get_field :named_name nam))
-	  (return)
+	  (return (the_null))
 	  ))
 	(setq claname nam)
 	(assert_msg "check cla" (is_a cla class_class))
@@ -3220,7 +3237,7 @@
        (:else
 	(error_strv loc "invalid class name for make_instance"
 		    (unsafe_get_field :named_name claname))
-	(return)
+	(return (the_null))
 	))
       (assert_msg "check cla" (is_a cla class_class))
       (setq curpair (pair_tail curpair))
@@ -3299,7 +3316,7 @@
     (if (is_not_a curfkw class_keyword)
 	(progn
 	  (error_plain loc "field keyword expected in unsafe_get_field")
-	  (return)))
+	  (return (the_null))))
     (setq curpair (pair_tail curpair))
     (let ( (curexp (pair_head curpair)) )
       (setq curpair (pair_tail curpair))
@@ -3310,7 +3327,7 @@
 	(if (not (is_a flda class_src_fieldassign))
 	    (progn 
 	      (error_plain loc "bad field and expression in unsafe_get_field")
-	      (return)))
+	      (return (the_null))))
 	(let ( (fld (unsafe_get_field :sfla_field flda))
 	       (exp (unsafe_get_field :sfla_expr flda)) )
 	  (make_instance class_src_unsafe_get_field
@@ -3334,7 +3351,7 @@
     (if (is_not_a cursym class_symbol)
 	(progn
 	  (error_plain loc "var symbol name expected in setq")
-	  (return)))
+	  (return (the_null))))
     (setq curpair (pair_tail curpair))
     (let ( (curexp (pair_head curpair)) )
       (setq curpair (pair_tail curpair))
@@ -3372,13 +3389,18 @@
 	    (setq xelse (macroexpand_1 curelse env mexpander))
 	    (setq curpair (pair_tail curpair))
 	    (if (is_pair curpair)
-		(error_plain loc "IF with more than three sons"))))
-      (make_instance class_src_if
-		     :src_loc loc
-		     :sif_test xcond
-		     :sif_then xthen
-		     :sif_else xelse)
-      )))
+		(error_plain loc "IF with more than three sons"))
+	    (make_instance class_src_ifelse
+			   :src_loc loc
+			   :sif_test xcond
+			   :sif_then xthen
+			   :sif_else xelse
+			   ))
+	(make_instance class_src_if
+		       :src_loc loc
+		       :sif_test xcond
+		       :sif_then xthen)
+	))))
 (install_initial_macro 'if mexpand_if)
 
 
@@ -3439,7 +3461,7 @@
 			    (debugmsg res "mexpand_cond res for monoexp cond" (the_callcount))
 			    )
 			  ( (null (pair_tail curcondrestpairs))
-			    (setq res (make_instance class_src_if
+			    (setq res (make_instance class_src_ifelse
 						     :src_loc curcondloc
 						     :sif_test (macroexpand_1 curcondtest env mexpander)
 						     :sif_then (macroexpand_1 (pair_head curcondrestpairs) env mexpander)
@@ -3448,7 +3470,7 @@
 			    (debugmsg res "mexpand_cond res for biexp cond" (the_callcount))
 			    )
 			  (:else 
-			    (setq res (make_instance class_src_if
+			    (setq res (make_instance class_src_ifelse
 						     :src_loc curcondloc
 						     :sif_test (macroexpand_1 curcondtest env mexpander)
 						     :sif_then (pairlist_to_progn curcondrestpairs curcondloc env mexpander)
@@ -3772,7 +3794,7 @@
     (if (is_not_a labnam class_symbol)
 	(progn
 	  (error_plain loc "missing label in FOREVER")
-	  (return)))
+	  (return (the_null))))
     (setq curpair (pair_tail curpair))
     (let ( (labind (make_instance class_label_binding
 				  :binder labnam
@@ -3802,14 +3824,14 @@
     (if (is_not_a labnam class_symbol)
 	(progn
 	  (error_plain loc "missing label in EXIT")
-	  (return)))
+	  (return (the_null))))
     (setq curpair (pair_tail curpair))
     (let ( (labind (find_env env labnam)) )
 	   (if (is_not_a labind class_label_binding)
 	       (progn 
 		 (error_strv loc "bad label in EXIT" 
 			     (unsafe_get_field :named_name labnam))
-		 (return)))
+		 (return (the_null))))
       (let ( (bodytup (pairlist_to_multiple
 		       curpair
 		       discr_multiple
@@ -4468,7 +4490,7 @@
        (progn
 	 (error_strv psloc "unbound symbol to normalize"
 		     (unsafe_get_field :named_name recv))
-	 (return)))
+	 (return (the_null))))
    (if (null psloc)
        (shortbacktrace_dbg "normex_symbol null psloc" 10)
      )
@@ -4692,7 +4714,7 @@
 	   (progn
 	     (error_strv sloc "length mismatch between formals & actuals in primitive" 
 			 sopnamstr)
-	     (return))
+	     (return (the_null)))
 	   )
        (let ( (bmap (make_mapobject  discr_mapobjects (+i 2 (/iraw (*i 3 nbarg) 2))))
 	      (expargs (make_multiple discr_multiple nbexp))
@@ -4960,6 +4982,69 @@
 	 (stest (unsafe_get_field :sif_test recv))
 	 (ctypif ctype_void)
 	 (sthen (unsafe_get_field :sif_then recv))
+	 )
+    (multicall 
+     (ntest nbindif)	     ;nbindif is also the whole result binding
+     (normal_exp stest env ncx sloc)
+     (assert_msg "check nbindif test" (is_list_or_null nbindif))
+     ;; in practice we don't need to make a common super-
+     ;; environment with nbindif since all relevant bindings there are
+     ;; generated, with unique cloned symbols, and these bindings 
+     ;; are local to the test part
+     (multicall 
+      (nthen nbindthen)
+      (normal_exp sthen env ncx sloc)
+      (assert_msg "check nbindthen" (is_list_or_null nbindthen))
+      (let ( (newthenenv (fresh_env env)) )
+	(list_every 
+	 nbindthen
+	 (lambda (b) (put_env newthenenv b)))
+	;; the ctyp of the whole if is initialized to the ctype of the then part
+	(setq ctypif (get_ctype nthen newthenenv))
+	;;
+	(let ( (csym (clone_symbol '_if_))
+	       (clocc  (make_instance  class_nrep_locsymocc
+				       :nrep_loc sloc
+				       :nocc_ctyp ctypif
+				       :nocc_symb csym)) 
+	       (wthen (wrap_normal_let1 nthen nbindthen sloc))
+	       (cbind (make_instance class_normlet_binding
+				     :letbind_loc sloc
+				     :binder csym
+				     :letbind_type ctypif 
+				     :letbind_expr 
+				     (make_instance class_nrep_if
+						    :nrep_loc sloc
+						    :nif_test ntest
+						    :nif_then wthen
+						    :nif_else (the_null)
+						    :nif_ctyp ctypif
+						    ))) )
+	  (unsafe_put_fields clocc :nocc_bind cbind)
+	  (if (not (is_list nbindif))
+	      (setq nbindif (make_list discr_list)))
+	  (list_append nbindif cbind)
+	  (debugmsg clocc "normexp_if result clocc" (the_callcount))
+	  (debugmsg nbindif "normexp_if result nbindif" (the_callcount))
+	  (return clocc nbindif)
+	  ))
+      ))))
+(install_method class_src_if normal_exp normexp_if)
+(install_method class_nrep_if get_ctype 
+		(lambda (recv env) (unsafe_get_field :nif_ctyp recv)))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; normalize an ifelse
+(defun normexp_ifelse (recv env ncx psloc)
+  (assert_msg "check if recv" (is_a recv class_src_ifelse))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check nctxt" (is_a ncx class_normcontext))
+  (debugmsg recv "normexp_ifelse recv" (the_callcount))
+  (let ( (sloc (unsafe_get_field :src_loc recv))
+	 (stest (unsafe_get_field :sif_test recv))
+	 (ctypif ctype_void)
+	 (sthen (unsafe_get_field :sif_then recv))
 	 (selse (unsafe_get_field :sif_else recv))
 	 )
     (multicall 
@@ -4986,58 +5071,57 @@
 	 (assert_msg "check nbindelse" (is_list_or_null nbindelse))
 	 ;; if we have both then & else branches,
 	 ;; ensure their compatibility of types
-	 (and nthen (not (is_a nelse class_nrep_nil)) nelse
-	      (let ( (ctypthen ctypif) ; only for clarity since ctypif initialized from then part
-		     (newelseenv (let ( (nenv (fresh_env env)) )
-				   (list_every 
-				    nbindelse
-				    (lambda (b) (put_env nenv b)))
-				   nenv
-				   ))
-		     (ctypelse (get_ctype nelse newelseenv))
-		     )	
-		(and
-		 (!= ctypthen ctype_void)
-		 (!= ctypelse ctype_void)
-		 (!= ctypthen ctypelse)
-		 (progn
-		   (debugmsg nthen "normexp_if incompatyp nthen")
-		   (debugmsg nelse "normexp_if incompatyp nelse")
-		   (debugmsg ctypthen "normexp_if incompatyp ctypthen")
-		   (debugmsg ctypelse "normexp_if incompatyp ctypelse")
-		   (error_plain sloc 
-				"incompatible types in conditional branches")
-		   )
-		 )
-		))
-	 (let ( (csym (clone_symbol '_if_))
-		(clocc  (make_instance  class_nrep_locsymocc
-					:nrep_loc sloc
-					:nocc_ctyp ctypif
-					:nocc_symb csym)) 
-		(wthen (wrap_normal_let1 nthen nbindthen sloc))
-		(welse (wrap_normal_let1 nelse nbindelse sloc))
-		(cbind (make_instance class_normlet_binding
-				      :letbind_loc sloc
-				      :binder csym
-				      :letbind_type ctypif 
-				      :letbind_expr 
-				      (make_instance class_nrep_if
-						     :nrep_loc sloc
-						     :nif_test ntest
-						     :nif_then wthen
-						     :nif_else welse
-						     :nif_ctyp ctypif
-						     ))) )
-	   (unsafe_put_fields clocc :nocc_bind cbind)
-	   (if (not (is_list nbindif))
-	       (setq nbindif (make_list discr_list)))
-	   (list_append nbindif cbind)
-	   (return clocc nbindif)
-	   )))))))
-(install_method class_src_if normal_exp normexp_if)
-(install_method class_nrep_if get_ctype 
-		(lambda (recv env) (unsafe_get_field :nif_ctyp recv)))
+	 (let ( (newelseenv (let ( (nenv (fresh_env env)) )
+			      (list_every 
+			       nbindelse
+			       (lambda (b) (put_env nenv b)))
+			      nenv
+			      ))
+		(ctypelse (get_ctype nelse newelseenv)) )
+	   (assert_msg "check ctypif" (is_a ctypif class_ctype))
+	   (assert_msg "check ctypelse" (is_a ctypelse class_ctype))
+	   (if (== ctypif ctype_void) (setq ctypelse ctype_void))
+	   (if (== ctypelse ctype_void) (setq ctypif ctype_void))
+	   (if (!= ctypif ctypelse)
+	       (progn
+		 (debugmsg nthen "normexp_ifelse incompatyp nthen")
+		 (debugmsg nelse "normexp_ifelse incompatyp nelse")
+		 (debugmsg ctypif "normexp_ifelse incompatyp ctypif")
+		 (debugmsg ctypelse "normexp_ifelse incompatyp ctypelse")
+		 (error_plain sloc 
+			      "incompatible types in conditional branches")
+		 (setq ctypif ctype_void)
+		 ))
+	   ;;
+	   ;;
+	   (let ( (csym (clone_symbol '_ifelse_))
+		  (clocc  (make_instance  class_nrep_locsymocc
+					  :nrep_loc sloc
+					  :nocc_ctyp ctypif
+					  :nocc_symb csym)) 
+		  (wthen (wrap_normal_let1 nthen nbindthen sloc))
+		  (welse (wrap_normal_let1 nelse nbindelse sloc))
+		  (cbind (make_instance class_normlet_binding
+					:letbind_loc sloc
+					:binder csym
+					:letbind_type ctypif 
+					:letbind_expr 
+					(make_instance class_nrep_if
+						       :nrep_loc sloc
+						       :nif_test ntest
+						       :nif_then wthen
+						       :nif_else welse
+						       :nif_ctyp ctypif
+						       ))) )
+	     (unsafe_put_fields clocc :nocc_bind cbind)
+	     (if (not (is_list nbindif))
+		 (setq nbindif (make_list discr_list)))
+	     (list_append nbindif cbind)
+	     (debugmsg clocc "normexp_ifelse result clocc" (the_callcount))
+	     (debugmsg nbindif "normexp_ifelse result nbindif" (the_callcount))
+	     (return clocc nbindif)
+	     ))))))))
+(install_method class_src_ifelse normal_exp normexp_ifelse)
 
 ;;;;;;;;;;;;;;;; normalize an or
     ;; (OR (f1 a1)) is let d1 = (f1 a1) in d1
@@ -5466,7 +5550,7 @@
     (if (not (is_a cladata class_nrep))
 	(progn
 	  (error_strv sloc "invalid class in make_instance" (unsafe_get_field :named_name sclass))
-	  (return)))
+	  (return (the_null))))
     (let ( (nfields 
 	    (multiple_map 
 	     sfields 
@@ -6019,7 +6103,7 @@
 	       )
 	     ( :else
 	       (error_plain sloc "multi-called expression neither apply nor send")
-	       (return)
+	       (return (the_null))
 	       )
 	     ))))))))
        
@@ -6496,14 +6580,14 @@
     (if (not (is_a icladata class_nrep))
 	(progn
 	  (error_strv sloc "invalid class in definstance" (unsafe_get_field :named_name sname))
-	  (return)))
+	  (return (the_null))))
     (cond
      ( (null spredef) () )
      ( (is_integerbox spredef) () )
      ( (is_a spredef class_symbol) () )
      (:else
       (error_strv sloc "bad predef in DEFINSTANCE"  (unsafe_get_field :named_name sname))
-      (return)))
+      (return (the_null))))
     (assert_msg "check sinstclass" (is_a sinstclass class_class))
     (assert_msg "check sinstclasym" (is_a sinstclasym class_symbol))
     (let (
@@ -6588,11 +6672,11 @@
     (if (not (is_a icladata class_nrep))
 	(progn
 	  (error_strv sloc "invalid class in defselector" (unsafe_get_field :named_name sname))
-	  (return)))
+	  (return (the_null))))
     (if spredef
 	(if (not (or (is_integerbox spredef) (is_a spredef class_symbol)))
 	    (progn (error_strv sloc "bad predef in defselector"  (unsafe_get_field :named_name sname))
-		   (return))))
+		   (return (the_null)))))
     (assert_msg "check sinstclass" (is_a sinstclass class_class))
     (assert_msg "check sinstclasym" (is_a sinstclasym class_symbol))
     (assert_msg "check sname" (is_a sname class_symbol))
@@ -7515,10 +7599,11 @@
 	  (unsafe_put_fields recv :obdi_destlist destl)))
     (let ( (firstd (pair_head (list_first destl))) )
       (if (== firstd desto)
-	  (return recv)))
-    (list_append destl desto)
-    (return recv)
-))
+	  (return recv)
+	(progn
+	  (list_append destl desto)
+	  (return recv)
+	  )))))
 (install_method class_objdestinstr put_objdest putobjdest_objdestinstr)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -7789,6 +7874,9 @@
     (add2sbuf_indentnl declbuf 0)
     (output_raw_location orloc implbuf 0 "proc")
     (add2sbuf_indentnl declbuf 0)
+    (if (is_mixint orloc)
+	(output_raw_location orloc declbuf 0 "procdecl")
+	)
     (add2sbuf_strconst declbuf "static basilys_ptr_t ")
     (add2sbuf_string declbuf onam)
     (add2sbuf_strconst declbuf "(basilysclosure_ptr_t closp_,")
@@ -8369,12 +8457,15 @@
 	 (cexp (unsafe_get_field :obcpt_expr obcomp)) 
 	 (boxdepthp1 (make_integerbox discr_integer (+i depth 1)))
 	 )
+    (debugmsg obcomp "outpucod_objcompute obcomp" (the_callcount))
     (output_location cloc implbuf depth "compute")
-    (list_every
-     cdest
-     (lambda (destcur) 
-       (output_c_code destcur declbuf implbuf (get_int boxdepthp1))
-       (add2sbuf_strconst implbuf " = ")))
+    (if (is_list cdest)
+	(list_every
+	 cdest
+	 (lambda (destcur) 
+	   (output_c_code destcur declbuf implbuf (get_int boxdepthp1))
+	   (add2sbuf_strconst implbuf " = ")
+	   ())))
     (if (is_list cexp)
 	(list_every
 	 cexp 
@@ -8383,7 +8474,7 @@
       (output_c_code cexp declbuf implbuf (+i depth 1))
       )
     (add2sbuf_strconst implbuf ";")
-))
+    ))
 (install_method class_objcompute output_c_code outpucod_objcompute)
 
 
@@ -9510,87 +9601,6 @@
     (debugmsg oinitrout "compile2obj_initproc final oinitrout" (the_callcount))
     (return oinitrout)
     ))
-
-;; compile a list of sexpressions as a module starting from a given environment
-(defun compile_list_sexpr (lsexp inienv modnamstr)
-  (message_dbg "starting  compile_list_sexpr")
-  (debugmsg lsexp "\n\n\n*compile_list_sexpr lsexp"  (the_callcount)) ;list of sexpr
-  (debugmsg inienv "compile_list_sexpr inienv" (the_callcount)) ;initial environment
-  (debugmsg modnamstr "compile_list_sexpr modnamstr" (the_callcount)) ;module name
-  (assert_msg "check lsexp" (is_list lsexp))
-  (assert_msg "check modnamstr" (is_string modnamstr))
-  (assert_msg "check inienv" (is_a inienv class_environment))
-  (let ( (ncx (create_normcontext)) )
-    (debugmsg ncx "compile_list_sexpr initial ncx" (the_callcount))
-    (assert_msg "check ncx" (is_a ncx class_normcontext))
-    (let ( (xlist (macroexpand_toplevel_list lsexp inienv)) 
-	   (iniproc (unsafe_get_field :nctx_initproc ncx))
-	   )
-      (debugmsg xlist "after macroexpansion compile_list_sexpr seq" (the_callcount))
-      (debugmsg inienv "after macroexpansion compile_list_sexpr inienv" (the_callcount))
-      (assert_msg "check iniproc" (is_a iniproc class_nrep_initproc))
-      (list_every
-       xlist
-       (lambda (sexp :long ix)
-	 (debugmsg sexp "compile_list_sexpr sexp" (the_callcount))
-	 (let (
-	       (psloc (if (is_a sexp class_located) (unsafe_get_field :loca_location sexp)))
-	       )
-	   (multicall 
-	    (nexp nbind)
-	    (normal_exp sexp inienv ncx psloc)	    
-	    (debugmsg nexp "compile_list_sexpr nexp")    
-	    (debugmsg nbind "compile_list_sexpr nbind")
-	    (if (and (is_a nexp class_nrep)
-		     (not (is_a nexp class_nrep_anyproc)))
-		(let ( (wnexp (wrap_normal_let1 nexp nbind psloc)) )
-		  (debugmsg wnexp "compile_list_sexpr wnexp")
-		  (list_append (unsafe_get_field :ninit_topl iniproc) 
-			       wnexp)
-		  ))))))
-      (let ( (prolist (unsafe_get_field :nctx_proclist ncx)) 
-	     (objlist (make_list discr_list))
-	     (compicache (make_mapobject discr_mapobjects (+i 10 (*i 20 (list_length xlist)))))
-	     (countbox (make_integerbox discr_integer 0))
-	     )
-	(assert_msg "check prolist" (is_list prolist))
-	(list_every
-	 prolist
-	 (lambda (pro)
-	   (assert_msg "check pro" (is_a pro class_nrep_anyproc))
-	   (debugmsg pro "compile_list_sexpr pro" (the_callcount))
-	   (put_int countbox (+i (get_int countbox) 1))
-	   (let ( (objpro (compile2obj_procedure pro compicache (get_int countbox))) )
-	     (debugmsg objpro "compile_list_sexpr objpro" (the_callcount))
-	     (debugmsg pro "compile_list_sexpr done pro" (the_callcount))
-	     (list_append objlist objpro)
-	     ;;(debugmsg compicache "compile_list_sexpr compicache" (the_callcount))
-	     )))
-	(let ( (inipro (unsafe_get_field :nctx_initproc ncx)) 
-	       (inidata (unsafe_get_field :nctx_datalist ncx))
-	       )
-	  (assert_msg "check inipro" (is_a inipro class_nrep_initproc))
-	  (let ( (iniobj (compile2obj_initproc inipro inidata compicache)) )
-	    (debugmsg iniobj "compile_list_sexpr iniobj" (the_callcount))
-	    (let ( (declbuf (make_strbuf discr_strbuf))
-		   (implbuf (make_strbuf discr_strbuf)) 
-		   )
-	      (add2sbuf_strconst declbuf "/** declarations generated by warm-basilys **/")
-	      (add2sbuf_indentnl implbuf 0)
-	      (add2sbuf_strconst implbuf "/** implementations generated by warm-basilys **/")
-	      (add2sbuf_indentnl implbuf 0)
-	      (list_every
-	       objlist
-	       (lambda (obel)
-		 (debugmsg obel "compile_list_sexpr obel" (the_callcount))
-		 (output_c_code obel declbuf implbuf 0)))
-	      (debugmsg modnamstr "compile_list_sexpr final modnamstr" (the_callcount)) 
-	      (debugmsg iniobj "compile_list_sexpr outputting iniobj" (the_callcount))
-	      (output_c_code iniobj declbuf implbuf 0)
-	      (output_cfile_decl_impl modnamstr declbuf implbuf)
-	      ))))))
-  (message_dbg "ended compile_list_sexpr")
-  )
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -10968,17 +10978,6 @@
 
 (install_method class_objcond  put_objdest  putobjdest_objcond)
 ;;;;;;;;;;;;;;;;
-(defun putobjdest_objapply (recv desto)
-  (debugmsg recv "putobjdest objapply recv" (the_callcount))
-;  (debugmsg desto "putobjdest objapply desto" (the_callcount))
-  (assert_msg "check recv" (is_a recv class_objapply))
-  (assert_msg "check desto" (is_a desto class_objlocv))
-  (let ( (adest (unsafe_get_field :obdi_destlist recv)) )
-    (assert_msg "check adest" (is_list adest))
-    (list_prepend adest desto)
-    recv
-))
-(install_method class_objapply put_objdest putobjdest_objapply)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -11734,6 +11733,111 @@
     )
   )
 (install_method class_nrep_dataroutine compile_obj compilobj_dataroutine)
+
+
+
+
+
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; compile a list of sexpressions as a module starting from a given environment
+(defun compile_list_sexpr (lsexp inienv modnamstr)
+  (message_dbg "starting  compile_list_sexpr")
+  (debugmsg lsexp "\n\n\n*compile_list_sexpr lsexp"  (the_callcount)) ;list of sexpr
+  (debugmsg inienv "compile_list_sexpr inienv" (the_callcount)) ;initial environment
+  (debugmsg modnamstr "compile_list_sexpr modnamstr" (the_callcount)) ;module name
+  (assert_msg "check lsexp" (is_list lsexp))
+  (assert_msg "check modnamstr" (is_string modnamstr))
+  (assert_msg "check inienv" (is_a inienv class_environment))
+  (let ( (ncx (create_normcontext)) )
+    (debugmsg ncx "compile_list_sexpr initial ncx" (the_callcount))
+    (assert_msg "check ncx" (is_a ncx class_normcontext))
+    (let ( (xlist (macroexpand_toplevel_list lsexp inienv)) 
+	   (iniproc (unsafe_get_field :nctx_initproc ncx))
+	   )
+      (debugmsg xlist "after macroexpansion compile_list_sexpr seq" (the_callcount))
+      (debugmsg inienv "after macroexpansion compile_list_sexpr inienv" (the_callcount))
+      (assert_msg "check iniproc" (is_a iniproc class_nrep_initproc))
+      (assert_msg "check xlist" (is_list xlist))
+      (list_every
+       xlist
+       (lambda (sexp :long ix)
+	 (debugmsg sexp "compile_list_sexpr sexp" (the_callcount))
+	 (let (
+	       (psloc (if (is_a sexp class_located) (unsafe_get_field :loca_location sexp)))
+	       )
+	   (multicall 
+	    (nexp nbind)
+	    (normal_exp sexp inienv ncx psloc)	    
+	    (debugmsg nexp "compile_list_sexpr nexp")    
+	    (debugmsg nbind "compile_list_sexpr nbind")
+	    (if (and (is_a nexp class_nrep)
+		     (not (is_a nexp class_nrep_anyproc)))
+		(let ( (wnexp (wrap_normal_let1 nexp nbind psloc)) )
+		  (debugmsg wnexp "compile_list_sexpr wnexp")
+		  (list_append (unsafe_get_field :ninit_topl iniproc) 
+			       wnexp)
+		  ))))))
+      (let ( (prolist (unsafe_get_field :nctx_proclist ncx)) 
+	     (objlist (make_list discr_list))
+	     (compicache (make_mapobject discr_mapobjects (+i 10 (*i 20 (list_length xlist)))))
+	     (countbox (make_integerbox discr_integer 0))
+	     ) 
+	(debugmsg prolist "compile_list_sexpr prolist")  
+	(assert_msg "check prolist" (is_list prolist))
+	(list_every
+	 prolist
+	 (lambda (pro)
+	   (assert_msg "check pro" (is_a pro class_nrep_anyproc))
+	   (debugmsg pro "compile_list_sexpr pro" (the_callcount))
+	   (put_int countbox (+i (get_int countbox) 1))
+	   (let ( (objpro (compile2obj_procedure pro compicache (get_int countbox))) )
+	     (debugmsg objpro "compile_list_sexpr objpro" (the_callcount))
+	     (debugmsg pro "compile_list_sexpr done pro" (the_callcount))
+	     (list_append objlist objpro)
+	     ;;(debugmsg compicache "compile_list_sexpr compicache" (the_callcount))
+	     )))
+	(debugmsg objlist "compile_list_sexpr objlist")  
+	(assert_msg "check objlist" (is_list objlist))
+	(let ( (inipro (unsafe_get_field :nctx_initproc ncx)) 
+	       (inidata (unsafe_get_field :nctx_datalist ncx))
+	       )
+	  (assert_msg "check inipro" (is_a inipro class_nrep_initproc))
+	  (let ( (iniobj (compile2obj_initproc inipro inidata compicache)) )
+	    (debugmsg iniobj "compile_list_sexpr iniobj" (the_callcount))
+	    (let ( (declbuf (make_strbuf discr_strbuf))
+		   (implbuf (make_strbuf discr_strbuf)) 
+		   )
+	      (add2sbuf_strconst declbuf "/** declarations generated by warm-basilys **/")
+	      (add2sbuf_indentnl implbuf 0)
+	      (add2sbuf_strconst implbuf "/** implementations generated by warm-basilys **/")
+	      (add2sbuf_indentnl implbuf 0)
+	      (outnum_err "** warm-basilys generated " (list_length objlist) " routines into ")
+	      (outstr_err modnamstr)
+	      (outnewline_err)
+	      (outcstring_err "** from ")
+	      (out_cplugin_compiled_timestamp_err)
+	      (outnewline_err)
+	      (outcstring_err "** of checksum ")
+	      (out_cplugin_md5_checksum_err)
+	      (outnewline_err)
+	      ;;;
+	      (list_every
+	       objlist
+	       (lambda (obel)
+		 (debugmsg obel "compile_list_sexpr obel" (the_callcount))
+		 (output_c_code obel declbuf implbuf 0)))
+	      (debugmsg modnamstr "compile_list_sexpr final modnamstr" (the_callcount)) 
+	      (debugmsg iniobj "compile_list_sexpr outputting iniobj" (the_callcount))
+	      (output_c_code iniobj declbuf implbuf 0)
+	      (output_cfile_decl_impl modnamstr declbuf implbuf)
+	      ))))))
+  (message_dbg "ended compile_list_sexpr")
+  )
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
