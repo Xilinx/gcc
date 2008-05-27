@@ -1022,6 +1022,21 @@
   (outnewline_err)
   )
 
+(defun dotest_objects ()
+  (outcstring_err "**objects test**")
+  (outnewline_err)
+  (let ( (vbind (make_instance class_value_binding
+			       :binder 'boundsym
+			       :vbind_value 'symvalue)) ) 
+    (outv vbind " objects test vbind=")
+    (outnewline_err)
+    (if (is_a vbind class_any_binding)
+	(outcstring_err "**test objects OK!**")
+      (outcstring_err "@@@ test objects FAILED!!! @@@@"))
+    (outnewline_err)
+  (outcstring_err "**ended objects test**")
+  (outnewline_err)
+))
 
 (defun test_command (dispatcher arg)
   (outcstring_err "**start of tests in testrun1**")
@@ -1035,6 +1050,9 @@
   (dotest_multiapply)
   (outnewline_err)
   (dotest_multisend)
+  (outnewline_err)
+  (dotest_objects)
+  (outnewline_err)
   (outcstring_err "**end tests in testrun1**")
   (outnewline_err)
 )

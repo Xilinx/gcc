@@ -2023,10 +2023,6 @@ basilys_is_instance_of (basilys_ptr_t inst_p, basilys_ptr_t class_p)
  * CALL FRAMES 
  ***/
 
-struct framloc_basilys_st {
-  const char* frlo_file;
-  int frlo_line;
-};
 
 /* call frames for our copying garbage collector cannot be GTY-ed
    because they are inside the C call stack */

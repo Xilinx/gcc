@@ -1,5 +1,16 @@
-2008-05-26  Basile Starynkevitch  <basile@starynkevitch.net>
+2008-05-27  Basile Starynkevitch  <basile@starynkevitch.net>
 	[**** before putting the generated warm-basilys.c into SVN ***]
+	* melt/warm-basilys.bysl: reverted changes, back to rev.135845
+
+	* Makefile.in: reverted changes, back to rev.135845
+
+	* basilys.c: (basilys_dbgbacktrace, basilys_dbgshortbacktrace)
+	show the flocs field of frame [runtime line information].
+
+	* basilys.h: removed unused struct framloc_basilys_st.
+
+2008-05-26  Basile Starynkevitch  <basile@starynkevitch.net>
+	[**** before putting the generated warm-basilys.c into SVN - DID NOT basilysbootstrap ***]
 	* melt/warm-basilys.bysl: compileseq command renamed as compilefile
 
 	* Makefile.in: using compilefile command before putting the generated warm-basilys.c

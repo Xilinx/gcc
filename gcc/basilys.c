@@ -5003,8 +5003,6 @@ readstring (struct reading_st *rd)
   obstack_1grow (&bstring_obstack, (char) 0);
   cstr = XOBFINISH (&bstring_obstack, char *);
   strv = basilysgc_new_string (BASILYSGOB (DISCR_STRING), cstr);
-  if (nbesc > 0)
-    debugeprintf ("read at line %d escaped string '%s'", rd->rlineno, cstr);
   obstack_free (&bstring_obstack, cstr);
   BASILYS_EXITFRAME ();
   return strv;
@@ -6009,6 +6007,12 @@ basilys_dbgbacktrace (int depth)
        (fr = fr->prev), (curdepth++))
     {
       fprintf (stderr, "frame#%d closure: ", curdepth);
+#if ENABLE_CHECKING
+      if (fr->flocs) 
+	fprintf(stderr, "{%s} ", fr->flocs);
+      else
+	fputs(" ", stderr);
+#endif
       basilys_dbgeprint (fr->clos);
     }
   for (totdepth = curdepth; fr != NULL; fr = fr->prev);
@@ -6028,8 +6032,8 @@ basilys_dbgshortbacktrace (const char *msg, int maxdepth)
   for (fr = basilys_topframe; fr != NULL && curdepth < maxdepth;
        (fr = fr->prev), (curdepth++))
     {
-      if ((curdepth - 1) % 3 == 0)
-	putc ('\n', stderr);
+      if ((curdepth - 1) % 2 == 0)
+	fputs ("\n", stderr);
       fprintf (stderr, "#%d:", curdepth);
       if (basilys_magic_discr ((void *) fr->clos) == OBMAG_CLOSURE)
 	{
@@ -6037,10 +6041,16 @@ basilys_dbgshortbacktrace (const char *msg, int maxdepth)
 	  if (basilys_magic_discr ((void *) curout) == OBMAG_ROUTINE)
 	    fprintf (stderr, "<%s> ", curout->routdescr);
 	  else
-	    fputs ("?norout? ", stderr);
+	    fputs ("?norout?", stderr);
 	}
       else
 	fprintf (stderr, "_ ");
+#if ENABLE_CHECKING
+      if (fr->flocs) 
+	fprintf(stderr, "{%s} ", fr->flocs);
+      else
+	fputs(" ", stderr);
+#endif
     };
   if (fr)
     fprintf (stderr, "...&%d", maxdepth - curdepth);
