@@ -2628,79 +2628,81 @@
 
 ;; an internal compare function used to display mapobject-s & mapstring-s in a canonical order.
 (defun compare_obj_ranked (x1 bxrk1 x2 bxrk2 vless veq vgreat)
-  (let ( (x1dis (discrim x1))
-	 (x2dis (discrim x2))
-	 (:long rk1 (get_int bxrk1))
-	 (:long rk2 (get_int bxrk2))
-	 )
-    (cond ( (!= x1dis x2dis)
-	    (if (string< (unsafe_get_field :named_name x1dis) 
-			 (unsafe_get_field :named_name x2dis))
-		(return vless)
-	      (return vgreat)
-	      ))
-	  ( (is_a x1 class_clonedsymbol)
-	    (let ( (n1 (unsafe_get_field :named_name x1))
-		   (n2 (unsafe_get_field :named_name x2)) )
-	      (cond ( (string< n1 n2)
+  (if (== x1 x2)
+      (return veq)
+    (let ( (x1dis (discrim x1))
+	   (x2dis (discrim x2))
+	   (:long rk1 (get_int bxrk1))
+	   (:long rk2 (get_int bxrk2))
+	   )
+      (cond ( (!= x1dis x2dis)
+	      (if (string< (unsafe_get_field :named_name x1dis) 
+			   (unsafe_get_field :named_name x2dis))
+		  (return vless)
+		(return vgreat)
+		))
+	    ( (is_a x1 class_clonedsymbol)
+	      (let ( (n1 (unsafe_get_field :named_name x1))
+		     (n2 (unsafe_get_field :named_name x2)) )
+		(cond ( (string< n1 n2)
+			(return vless))
+		      ( (string> n1 n2)
+			(return vgreat))
+		      (:else 
+		       (let (
+			     (yr1 (unsafe_get_field :csym_urank x1))
+			     (yr2 (unsafe_get_field :csym_urank x2))
+			     (:long nr1 (get_int yr1))
+			     (:long nr2 (get_int yr2))
+			     )
+			 (cond ( (<i nr1 nr2)
+				 (return vless))
+			       ( (>i nr1 nr2)
+				 (return vgreat))
+			       (:else 
+				;; this should not happen, two distinct cloned symbols with same name & rank
+				(assert_msg "corrupted same cloned symbols" ())
+				(return (the_null)))
+			       ))))
+		))
+	    ( (is_a x1 class_named)
+	      (let ( (n1 (unsafe_get_field :named_name x1))
+		     (n2 (unsafe_get_field :named_name x2))
+		     )
+		(cond ( (string< n1 n2)
+			(return vless))
+		      ( (string> n1 n2)
+			(return vgreat))
+		      ( (<i rk1 rk2)
+			(return vless))
+		      ( (>i rk1 rk2)
+			(return vgreat))
+		      (:else 
+		       (return veq)))
+		)
+	      )
+	    ( (is_a x1 class_any_binding)
+	      (let ( (bsy1 (unsafe_get_field :binder x1))
+		     (bsy2 (unsafe_get_field :binder x1)) )
+		(return (compare_obj_ranked bsy1 bxrk1 bsy2 bxrk2 vless veq vgreat))))
+	    ( (is_string x1)
+	      (cond ( (string< x1 x2)
 		      (return vless))
-		    ( (string> n1 n2)
-		      (return vgreat))
-		    (:else 
-		     (let (
-			   (yr1 (unsafe_get_field :csym_urank x1))
-			   (yr2 (unsafe_get_field :csym_urank x2))
-			   (:long nr1 (get_int yr1))
-			   (:long nr2 (get_int yr2))
-			   )
-		       (cond ( (<i nr1 nr2)
-			       (return vless))
-			     ( (>i nr1 nr2)
-			       (return vgreat))
-			     (:else 
-			      ;; this should not happen, two distinct cloned symbols with same name & rank
-			      (assert_msg "corrupted same cloned symbols" ())
-			      (return (the_null)))
-			     ))))
-	      ))
-	  ( (is_a x1 class_named)
-	    (let ( (n1 (unsafe_get_field :named_name x1))
-		   (n2 (unsafe_get_field :named_name x2))
-		   )
-	      (cond ( (string< n1 n2)
-		      (return vless))
-		    ( (string> n1 n2)
+		    ( (string> x1 x2)
 		      (return vgreat))
 		    ( (<i rk1 rk2)
 		      (return vless))
 		    ( (>i rk1 rk2)
 		      (return vgreat))
 		    (:else 
-		     (return veq)))
-	      )
-	    )
-	  ( (is_a x1 class_any_binding)
-	    (let ( (bsy1 (unsafe_get_field :binder x1))
-		   (bsy2 (unsafe_get_field :binder x1)) )
-	      (return (compare_obj_ranked bsy1 bxrk1 bsy2 bxrk2 vless veq vgreat))))
-	  ( (is_string x1)
-	    (cond ( (string< x1 x2)
-		    (return vless))
-		  ( (string> x1 x2)
-		    (return vgreat))
-		  ( (<i rk1 rk2)
-		    (return vless))
-		  ( (>i rk1 rk2)
-		    (return vgreat))
-		  (:else 
-		   (return veq))))
-	  ( (<i rk1 rk2)
-	    (return vless))
-	  ( (>i rk1 rk2)
-	    (return vgreat))
-	  (:else
-	   (return veq))
-	  )))
+		     (return veq))))
+	    ( (<i rk1 rk2)
+	      (return vless))
+	    ( (>i rk1 rk2)
+	      (return vgreat))
+	    (:else
+	     (return veq))
+	    ))))
 
 
 
@@ -3318,28 +3320,42 @@
 		  (cond ( (is_a opbind class_macro_binding)
 			  (let ( (mexp (unsafe_get_field :mbind_expanser opbind)) )
 			    (assert_msg "check mexp" (is_closure mexp))
-			    (mexp sexpr env mexpander)) )
+			    (let ( (resm (mexp sexpr env mexpander)) )
+			      (debugmsg resm "macroexpand_1 result for macro resm" (the_callcount))
+			      (return resm)
+			      )))
 			( (is_a opbind class_selector_binding)
-			  (expand_msend opbind sexpr env mexpander)
-			  )
+			  (let ( (ress (expand_msend opbind sexpr env mexpander)) )
+			    (debugmsg ress "macroexpand_1 result for send ress" (the_callcount))
+			    (return ress)
+			    ))
 			( (is_a opbind class_primitive_binding)
-			  (expand_primitive opbind sexpr env mexpander)
-			  )
+			  (let ( (resp (expand_primitive opbind sexpr env mexpander)) )
+			    (debugmsg resp "macroexpand_1 result for primitive resp" (the_callcount))
+			    (return resp)
+			    ))
 			(:else 
 			 ;; this is to catch the case when DEFUN is not bound...
 			 (assert_msg "check soper not defun" (!= soper 'defun))
 			 (assert_msg "check soper not named DEFUN" (not (is_stringconst (unsafe_get_field :named_name soper) "DEFUN")))
-			 (expand_apply sexpr env mexpander))
-			)
-		  ))
+			 (let ( (resa (expand_apply sexpr env mexpander))) 
+			   (debugmsg resa "macroexpand_1 result for apply resa" (the_callcount))
+			   (return resa)
+			   )
+			 ))))
 	      ( (is_a soper class_keyword)
-		(expand_keywordfun sexpr env mexpander) )
+		(let ( (resk (expand_keywordfun sexpr env mexpander)) )
+		  (debugmsg resk "macroexpand_1 result for keywordfun resk" (the_callcount))
+		  (return resk)))
 	      ;; the empty list is expanded as nil
 	      ( (==i (list_length scont) 0)
-		())
+		(debugmsg (the_null) "macroexpand_1 result for null" (the_callcount))
+		(return (the_null)))
 	      (:else 
-	       (expand_apply sexpr env mexpander))
-	      ))
+	       (let ( (resca (expand_apply sexpr env mexpander)) )
+		 (debugmsg resca "macroexpand_1 result complex apply resca" (the_callcount))
+		 (return resca)
+		 ))))
     sexpr))
   
 ;;; expand a primitive s-expression
@@ -4241,45 +4257,45 @@
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
   (assert_msg "check env" (is_a env class_environment))
   (debugmsg sexpr "mexpand_if sexpr" (the_callcount))
-  (let ( (xcond ())
-	 (xthen ())
-	 (xelse ()) 
-	 (cont (unsafe_get_field :sexp_contents sexpr))
-	 (loc  (unsafe_get_field :loca_location sexpr))
-	 (curpair (pair_tail (list_first cont)))
-	 (curif (pair_head curpair)) )
+  (let (
+	(cont (unsafe_get_field :sexp_contents sexpr))
+	(loc  (unsafe_get_field :loca_location sexpr))
+	(curpair (pair_tail (list_first cont)))
+	(curif (pair_head curpair)) )
     (if (not (is_pair curpair))
 	(error_plain loc "missing condition in IF"))
     (setq curpair (pair_tail curpair))
     (if (not (is_pair curpair))
 	(error_plain loc "missing then in IF"))
-    (setq xcond (macroexpand_1 curif env mexpander))
-    (let ( (curthen (pair_head curpair)) )
-      (setq curpair (pair_tail curpair))
-      (setq xthen (macroexpand_1 curthen env mexpander))
-      (debugmsg xthen "mexpand_if xthen" (the_callcount))
-      (if (is_pair curpair)
-	  (let ( (curelse (pair_head curpair)) )
-	    (setq xelse (macroexpand_1 curelse env mexpander))
-	    (setq curpair (pair_tail curpair))
-	    (if (is_pair curpair)
-		(error_plain loc "IF with more than three sons"))
-	    (let ( (rese
-		    (make_instance class_src_ifelse
-				   :src_loc loc
-				   :sif_test xcond
-				   :sif_then xthen
-				   :sif_else xelse
-				   )) )
-	      (debugmsg rese "mexpand_if return rese" (the_callcount))
-	      (return rese)))
-	(let ( (resp (make_instance class_src_if
-				    :src_loc loc
-				    :sif_test xcond
-				    :sif_then xthen)) )
-	  (debugmsg resp "mexpand_if return resp" (the_callcount))
-	  (return resp))
-	))))
+    (let ( (xcond (macroexpand_1 curif env mexpander)) )
+      (debugmsg xcond "mexpand_if xcond" (the_callcount))
+      (let ( (curthen (pair_head curpair)) )
+	(setq curpair (pair_tail curpair))
+	(let ( (xthen (macroexpand_1 curthen env mexpander)) )
+	  (debugmsg xthen "mexpand_if xthen" (the_callcount))
+	  (if (is_pair curpair)
+	      (let ( (curelse (pair_head curpair)) 
+		     (xelse (macroexpand_1 curelse env mexpander)) )
+		(debugmsg xelse "mexpand_if xelse" (the_callcount))
+		(setq curpair (pair_tail curpair))
+		(if (is_pair curpair)
+		    (error_plain loc "IF with more than three sons"))
+		(let ( (rese
+			(make_instance class_src_ifelse
+				       :src_loc loc
+				       :sif_test xcond
+				       :sif_then xthen
+				       :sif_else xelse
+				       )) )
+		  (debugmsg rese "mexpand_if with else return rese" (the_callcount))
+		  (return rese)))
+	    (let ( (resp (make_instance class_src_if
+					:src_loc loc
+					:sif_test xcond
+					:sif_then xthen)) )
+	      (debugmsg resp "mexpand_if plain return resp" (the_callcount))
+	      (return resp))
+	    ))))))
 (install_initial_macro 'if mexpand_if)
 
 
@@ -4410,7 +4426,7 @@
 		 (setq ix (-i ix 1))
 		)
 	(debugmsg res "mexpand_and res:" (the_callcount))
-	res))))
+	(return res)))))
 (install_initial_macro 'and mexpand_and)
       
 ;;;; the or expanser
@@ -4479,12 +4495,14 @@
 	  (setq curpair (pair_tail curpair))
 	  (setq curarg (pair_head curpair))
 	  (if curarg (error_plain loc "too long letbinding"))))
-    (make_instance class_src_letbinding
-		   :src_loc loc
-		   :sletb_type ctyp
-		   :sletb_binder var
-		   :sletb_expr expr)
-    ))
+    (let ( (letb
+	    (make_instance class_src_letbinding
+			   :src_loc loc
+			   :sletb_type ctyp
+			   :sletb_binder var
+			   :sletb_expr expr)) )
+      (return letb)
+      )))
 
 ;;; the LET expander itself
 (defun mexpand_let (sexpr env mexpander)
@@ -4524,10 +4542,12 @@
        )))
     (setq bodytup (pairlist_to_multiple restpair discr_multiple 
 					(lambda (e) (macroexpand_1 e newenv mexpander))))
-    (make_instance class_src_let
-		   :src_loc loc
-		   :slet_bindings bindtup
-		   :slet_body bodytup
+    (let ( (letr
+	    (make_instance class_src_let
+			   :src_loc loc
+			   :slet_bindings bindtup
+			   :slet_body bodytup)) )
+      (return letr)
     )))
 (install_initial_macro 'let mexpand_let)
 
@@ -4545,13 +4565,17 @@
     (let ( (argtup (lambda_arg_bindings (pair_head curpair) sexpr)) )
       (setq curpair (pair_tail curpair))
       (multiple_every argtup 
-			     (lambda (lb) (put_env newenv lb)))
+		      (lambda (lb) (put_env newenv lb)))
       (let ( (bodytup (pairlist_to_multiple curpair discr_multiple 
-					    (lambda (e) (macroexpand_1 e newenv mexpander)))) )
-	(make_instance class_src_lambda
-		       :src_loc loc
-		       :slam_argbind argtup
-		       :slam_body bodytup)))))
+					    (lambda (e) (macroexpand_1 e newenv mexpander)))) 
+	     (lambr 
+	      (make_instance class_src_lambda
+			     :src_loc loc
+			     :slam_argbind argtup
+			     :slam_body bodytup))
+	     ) 
+	(return lambr)
+	))))
 (install_initial_macro 'lambda mexpand_lambda)
       
 
@@ -4573,16 +4597,19 @@
 	(setq curpair (pair_tail curpair))
 	(let ( (curcall (macroexpand_1 curcallexp env mexpander)) )
 	  (multiple_every restup 
-				 (lambda (lb) (put_env newenv lb)
-				   ))
+			  (lambda (lb) (put_env newenv lb)
+			    ))
 	  (let ( (bodytup (pairlist_to_multiple curpair discr_multiple 
-						(lambda (e) (macroexpand_1 e newenv mexpander)))) )
-	    (make_instance class_src_multicall
-			   :src_loc loc
-			   :smulc_resbind restup
-			   :smulc_call curcall
-			   :smulc_body bodytup
-			   )
+						(lambda (e) (macroexpand_1 e newenv mexpander)))) 
+		 (mulcr
+		  (make_instance class_src_multicall
+				 :src_loc loc
+				 :smulc_resbind restup
+				 :smulc_call curcall
+				 :smulc_body bodytup
+				 )) 
+		 )
+	    (return mulcr)
 	    ))))))
 (install_initial_macro 'multicall mexpand_multicall)
 
@@ -4604,7 +4631,7 @@
     (let ( (squ (make_instance class_src_quote
 			       :src_loc loc
 			       :squoted quoted)) )
-      squ
+      (return squ)
       )))
 (install_initial_macro 'quote mexpand_quote)
 
@@ -4643,22 +4670,27 @@
 ;;;; the progn expanser
 (defun mexpand_progn (sexpr env mexpander)
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
-  (pairlist_to_progn (pair_tail
-		      (list_first (unsafe_get_field :sexp_contents sexpr)))
-		     (unsafe_get_field :loca_location sexpr)
-		     env
-		     mexpander)
-)
+  (let ( (progr
+	  (pairlist_to_progn (pair_tail
+			      (list_first (unsafe_get_field :sexp_contents sexpr)))
+			     (unsafe_get_field :loca_location sexpr)
+			     env
+			     mexpander)) )
+    (return progr)
+    ))
 (install_initial_macro 'progn mexpand_progn)
 
 ;;;; the return expanser
 (defun mexpand_return (sexpr env mexpander)
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
-  (pairlist_to_return (pair_tail (list_first (unsafe_get_field :sexp_contents sexpr)))
-		     (unsafe_get_field :loca_location sexpr)
-		     env
-		     mexpander)
-)
+  (let ( (retr
+	  (pairlist_to_return (pair_tail (list_first (unsafe_get_field :sexp_contents sexpr)))
+			      (unsafe_get_field :loca_location sexpr)
+			      env
+			      mexpander)) 
+	 )
+    (return retr)
+    ))
 (install_initial_macro 'return mexpand_return)
 
 ;;;; the forever expanser
@@ -4682,12 +4714,15 @@
       (let ( (bodytup (pairlist_to_multiple
 		       curpair
 		       discr_multiple
-		       (lambda (e) (macroexpand_1 e newenv mexpander)))) )
-	(make_instance class_src_forever
-		       :src_loc loc
-		       :slabel_bind labind
-		       :sfrv_body bodytup)
-))))
+		       (lambda (e) (macroexpand_1 e newenv mexpander)))) 
+	     (forr
+	      (make_instance class_src_forever
+			     :src_loc loc
+			     :slabel_bind labind
+			     :sfrv_body bodytup)) 
+	     )
+	(return forr)
+	))))
 (install_initial_macro 'forever mexpand_forever)
 
 
@@ -4706,20 +4741,23 @@
 	  (return (the_null))))
     (setq curpair (pair_tail curpair))
     (let ( (labind (find_env env labnam)) )
-	   (if (is_not_a labind class_label_binding)
-	       (progn 
-		 (error_strv loc "bad label in EXIT" 
-			     (unsafe_get_field :named_name labnam))
-		 (return (the_null))))
+      (if (is_not_a labind class_label_binding)
+	  (progn 
+	    (error_strv loc "bad label in EXIT" 
+			(unsafe_get_field :named_name labnam))
+	    (return (the_null))))
       (let ( (bodytup (pairlist_to_multiple
 		       curpair
 		       discr_multiple
-		       (lambda (e) (macroexpand_1 e newenv mexpander)))) )
-	(make_instance class_src_exit
-		       :src_loc loc
-		       :slabel_bind labind
-		       :sexi_body bodytup)
-))))
+		       (lambda (e) (macroexpand_1 e newenv mexpander)))) 
+	     (exr
+	      (make_instance class_src_exit
+			     :src_loc loc
+			     :slabel_bind labind
+			     :sexi_body bodytup)) 
+	     )
+	(return exr)
+	))))
 (install_initial_macro 'exit mexpand_exit)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -5533,6 +5571,7 @@
   (assert_msg "check if recv" (is_a recv class_src_if))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normcontext))
+  (debugmsg recv "normexp_if recv" (the_callcount))
   (let ( (sloc (unsafe_get_field :src_loc recv))
 	 (stest (unsafe_get_field :sif_test recv))
 	 (ctypif ctype_void)
@@ -5542,6 +5581,7 @@
      (ntest nbindif)	     ;nbindif is also the whole result binding
      (normal_exp stest env ncx sloc)
      (assert_msg "check nbindif test" (is_list_or_null nbindif))
+     (debugmsg ntest "normexp_if ntest" (the_callcount))
      ;; in practice we don't need to make a common super-
      ;; environment with nbindif since all relevant bindings there are
      ;; generated, with unique cloned symbols, and these bindings 
@@ -5549,6 +5589,7 @@
      (multicall 
       (nthen nbindthen)
       (normal_exp sthen env ncx sloc)
+      (debugmsg nthen "normexp_if nthen" (the_callcount))
       (assert_msg "check nbindthen" (is_list_or_null nbindthen))
       (let ( (newthenenv (fresh_env env)) )
 	(list_every 
@@ -5605,6 +5646,7 @@
     (multicall 
      (ntest nbindif)	     ;nbindif is also the whole result binding
      (normal_exp stest env ncx sloc)
+     (debugmsg ntest "normexp_ifelse ntest" (the_callcount))
      (assert_msg "check nbindif test" (is_list_or_null nbindif))
      ;; in practice we don't need to make a common super-
      ;; environment with nbindif since all relevant bindings there are
@@ -5613,6 +5655,7 @@
      (multicall 
       (nthen nbindthen)
       (normal_exp sthen env ncx sloc)
+      (debugmsg nthen "normexp_ifelse nthen" (the_callcount))
       (assert_msg "check nbindthen" (is_list_or_null nbindthen))
       (let ( (newthenenv (fresh_env env)) )
 	(list_every 
@@ -5623,6 +5666,7 @@
 	(multicall 
 	 (nelse nbindelse)
 	 (normal_exp selse env ncx sloc)
+	 (debugmsg nelse "normexp_ifelse nelse" (the_callcount))
 	 (assert_msg "check nbindelse" (is_list_or_null nbindelse))
 	 ;; if we have both then & else branches,
 	 ;; ensure their compatibility of types

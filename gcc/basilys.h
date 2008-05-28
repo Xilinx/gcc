@@ -2090,13 +2090,17 @@ extern basilys_ptr_t basilys_jmpval;
   void*  /* a basilys_ptr_t */ varptr[NBVAR];	\
 } curfram__
 /* initialize the current callframe and link it at top */
-#define BASILYS_INITFRAME_AT(NBVAR,CLOS,FIL,LIN) do {	\
-  memset(&curfram__, 0, sizeof(curfram__));	\
-  curfram__.nbvar = (NBVAR);			\
-  curfram__.flocs = FIL ":" #LIN;		\
-  curfram__.prev = basilys_topframe;		\
-  curfram__.clos = (CLOS);			\
-  basilys_topframe = ((void*)&curfram__);	\
+#define BASILYS_INITFRAME_AT(NBVAR,CLOS,FIL,LIN) do {		\
+  static char locbuf_##LIN[64];					\
+  if (!locbuf_##LIN[0])						\
+    snprintf(locbuf_##LIN, sizeof(locbuf_##LIN)-1, "%s:%d",	\
+	     basename(FIL), (int)LIN);				\
+  memset(&curfram__, 0, sizeof(curfram__));			\
+  curfram__.nbvar = (NBVAR);					\
+  curfram__.flocs = locbuf_##LIN;				\
+  curfram__.prev = basilys_topframe;				\
+  curfram__.clos = (CLOS);					\
+  basilys_topframe = ((void*)&curfram__);			\
 } while(0)
 #define BASILYS_INITFRAME(NBVAR,CLOS) BASILYS_INITFRAME_AT(NBVAR,CLOS,__FILE__,__LINE__)
 #define BASILYS_LOCATION(LOCS) do{curfram__.flocs= LOCS;}while(0)
