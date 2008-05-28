@@ -2178,8 +2178,11 @@
 	)))
 
 ;;; translate a pairlist to a tuple - with each element transformed by a function f (default the identity)
+;;; @@@ in rev.136119 this function is incorrectly compiled in warm-basilys-1.c
+;;; even by replacing the (exit loopln) with (return tup)
 (defun pairlist_to_multiple (pair disc f)
   (if (null disc) (setq disc discr_multiple))
+  (debugmsg pair "pairlist_to_multiple pair" (the_callcount))
   (let ( (:long ln 0) )
     (let ( (curpair pair) )
       (forever loopln
@@ -2191,12 +2194,14 @@
 	   (curpair pair)
 	   )
       (forever loopfi
-	       (if (not (is_pair curpair)) (return tup))
+	       (if (not (is_pair curpair)) (exit loopfi))
 	       (let ( (c (pair_head curpair))
 		      (tc (if (is_closure f) (f c) c)) )
 		 (multiple_put_nth tup ix tc)
 		 (setq ix (+i ix 1))
 		 (setq curpair (pair_tail curpair))))
+      (debugmsg tup "pairlist_to_multiple tup" (the_callcount))
+      (return tup)
       )))
 
 ;;; full iterator on tuple - 
@@ -4409,6 +4414,7 @@
 		  )))
 	(:long nbcomp (multiple_length cxtup))
 	)
+    (debugmsg cxtup "mexpand_and cxtup" (the_callcount))
     (if (<i nbcomp 1)
 	(error_plain loc "AND without sons")
       (let ( (res (multiple_nth cxtup (-i nbcomp 1)))
@@ -4416,7 +4422,6 @@
 	(forever revloop
 		 (if (<i ix 0) (exit revloop))
 		 (let ( (curc (multiple_nth cxtup ix)) )
-		   (messagenum_dbg "mexpand_and ix" ix)
 		   (setq res 
 			 (make_instance class_src_if
 					:src_loc loc

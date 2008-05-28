@@ -1,4 +1,10 @@
 2008-05-28  Basile Starynkevitch  <basile@starynkevitch.net>
+	[still metabuggy; the function pairlist_to_multiple is incorrectly
+	compiled in warm-basilys-1.c by coldbuild-warm-basilys.c]
+
+	* melt/warm-basilys.bysl: added debugmsg
+
+2008-05-28  Basile Starynkevitch  <basile@starynkevitch.net>
 	[still metabuggy]
 	* basilys.h: added better location flocs in BASILYS_INITFRAME_AT
 	by doing a snprintf.
