@@ -2042,7 +2042,7 @@ basilysgc_multiple_put_nth (basilysmultiple_ptr_t mul_p,
 #define valv    curfram__.varptr[2]
   mulv = mul_p;
   valv = val_p;
-  if (!basilys_magic_discr (mulv) == OBMAG_MULTIPLE)
+  if (basilys_magic_discr (mulv) != OBMAG_MULTIPLE)
     goto end;
   ln = mult_mulv->nbval;
   if (n < 0)
@@ -2106,7 +2106,10 @@ end:
 #undef val2v
 #undef clov
   if (!ok) 
-    longjmp(mulsort_escapjmp, 1);
+    {
+      debugeprintf(" mulsort_cmp failed");
+      longjmp(mulsort_escapjmp, 1);
+    }
   return cmp;
 }
 
@@ -2129,7 +2132,8 @@ basilysgc_sort_multiple(basilys_ptr_t mult_p, basilys_ptr_t clo_p, basilys_ptr_t
     goto end;
   if (basilys_magic_discr(clov) != OBMAG_CLOSURE)
     goto end;
-  if (!discrmv) discrmv = BASILYSGOB(DISCR_MULTIPLE);
+  if (!discrmv) 
+    discrmv = BASILYSGOB(DISCR_MULTIPLE);
   if (basilys_magic_discr(discrmv) != OBMAG_OBJECT)
     goto end;
   if (((basilysobject_ptr_t)discrmv)->obj_num != OBMAG_MULTIPLE)
@@ -2150,6 +2154,7 @@ basilysgc_sort_multiple(basilys_ptr_t mult_p, basilys_ptr_t clo_p, basilys_ptr_t
     }
   else {
     resv = NULL;
+    debugeprintf("failed");
   } 
 end:
   if (ixtab) 

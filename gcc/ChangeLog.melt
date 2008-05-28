@@ -1,6 +1,17 @@
 2008-05-28  Basile Starynkevitch  <basile@starynkevitch.net>
+	[still metabuggy; debug output is now sorted]
+	* basilys.c: (mulsort_cmp, basilysgc_sort_multiple) added debugeprintf...
+
+	* basilys.h: (basilys_string_less) new function.
+
+	* melt/warm-basilys.bysl: dbgout for mapstring & mapobjects are
+	giving sorted output [which is more canonical and should be easier
+	to compare with other runs]
+
+2008-05-28  Basile Starynkevitch  <basile@starynkevitch.net>
 	[still a metabug; adding sort of multiple to ease debug messages]
 	* basilys.h: (basilysgc_sort_multiple) new function declared.
+	(basilys_multiple_put_nth) corrected test on magic of discr.
 
 	* basilys.c: (basilysgc_sort_multiple) added.
 

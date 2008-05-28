@@ -1329,6 +1329,18 @@ basilys_string_same (basilys_ptr_t v1, basilys_ptr_t v2)
 }
 
 static inline bool
+basilys_string_less (basilys_ptr_t v1, basilys_ptr_t v2)
+{
+  if (basilys_magic_discr (v1) == OBMAG_STRING
+      && basilys_magic_discr (v2) == OBMAG_STRING)
+    {
+      return strcmp (((struct basilysstring_st *) v1)->val,
+		     ((struct basilysstring_st *) v2)->val) < 0;
+    }
+  return 0;
+}
+
+static inline bool
 basilys_is_string_const (basilys_ptr_t v, const char *s) {
   if (s && basilys_magic_discr (v) == OBMAG_STRING)
     return 0 == strcmp (((struct basilysstring_st *) v)->val, s);

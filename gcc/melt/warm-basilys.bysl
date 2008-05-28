@@ -26,6 +26,12 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
+;;****************************************************************
+;;       C L A S S E S 
+;;****************************************************************
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;; ================ general classes
 
 ;; root class
 (defclass class_root 
@@ -145,6 +151,1037 @@
   :super class_named
   :fields (cmd_fundict			;stringmap for closures
 	   ))
+
+
+;; class for debug information (used for debugmsg & dbgout* stuff)
+(defclass class_debuginfo 
+  :super class_root
+  :fields (dbgi_sbuf 			;the produced stringbuf
+	   dbgi_occmap ;the occurrence map (to avoid outputing twice the same object)
+	   dbgi_maxdepth ;the boxed integer maximal depth
+	   )
+)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;; ================ classes for environments & bindings
+
+;;;; the class for environments
+(defclass class_environment
+  :super class_root
+  :fields (env_bind			;the map of bindings
+	   env_prev			;the previous environment
+	   env_proc			;the procedure of this environment
+))
+
+;; the (super-)class of any binding
+(defclass class_any_binding
+  :super class_root
+  :fields (binder)
+)
+
+;;; superclass of exported bindings
+(defclass class_exported_binding
+  :super class_any_binding
+  :fields ( )
+)
+
+;; macro binding
+(defclass class_macro_binding
+  :super class_exported_binding
+  :fields (mbind_expanser))
+
+
+;; value binding - as exported 
+(defclass class_value_binding
+  :super class_exported_binding
+  :fields (vbind_value
+))
+
+; formal binding (used in generated defprimitive)
+(defclass class_formal_binding
+  :super class_any_binding
+  :fields (fbind_type)
+  ;;the obj_num is the argument rank
+  :predef CLASS_FORMAL_BINDING)
+
+
+;;; fixed bindings are defined in a compilation unit and can be implemented as constants in routine
+(defclass class_fixed_binding
+  :super class_any_binding
+  :fields ()
+)
+
+;; selector binding
+(defclass class_selector_binding
+  :super class_fixed_binding
+  :fields (sbind_selectordef 		;the "source" defselector
+	   sbind_selectordata		;the compiled data
+	   ;; maybe we need an selectorval for the actual value
+	   )
+)
+
+;; primitive binding
+(defclass class_primitive_binding
+  :super class_fixed_binding
+  :fields (pbind_primdef		;the source defprimitive
+	   pbind_primitive		;the primitive proper
+	   pbind_primdata		;the primitive data as compiled
+))
+
+
+;; function binding
+(defclass class_function_binding
+  :super class_fixed_binding
+  :fields (fubind_defun ;the source definition
+	   fubind_fundata		;compiled data
+))
+
+;; class binding
+(defclass class_class_binding
+  :super class_fixed_binding
+  :fields (cbind_defclass ;the source definition
+	   cbind_class			;the built class
+	   cbind_cladata		;compiled data
+))
+
+;; field binding
+(defclass class_field_binding
+  :super class_fixed_binding
+  :fields (flbind_clabind		;the class binding
+	   flbind_field			;the field proper
+	   flbind_fdata			;the compiled field data
+))
+
+;; instance binding
+(defclass class_instance_binding
+  :super class_fixed_binding
+  :fields ( ibind_iclass		;the instance's class
+	    ibind_data			;the compiled data
+	    ))
+;; let binding
+(defclass class_let_binding
+  :super class_any_binding
+  :fields (letbind_type			;the ctype 
+	   letbind_expr			;the expression
+	   letbind_loc			;the optional src location
+	   ))
+
+;; normalized let binding
+(defclass class_normlet_binding
+  :super class_let_binding
+  :fields  ())				;no additional field, but
+					;letbind_expr is "normal"
+
+;; label binding
+(defclass class_label_binding
+  :super class_any_binding
+  :fields (labind_loc			;location of the label
+;;; following fields are filled later in the compilation phase
+	   labind_clonsy		;unique cloned symbol
+	   labind_res			;result localvar
+))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;; ================  source program elements
+
+;; common superclass of source elements
+(defclass class_src 
+  :super class_root
+  :fields (src_loc			;the source location (if any)
+	   )
+)
+
+
+;;; source application 
+(defclass class_src_apply
+  :super class_src
+  :fields (sapp_fun			;the function to apply
+	   sapp_args			;the arguments tuple
+	   ))
+
+;;; source message sending 
+(defclass class_src_msend
+  :super class_src
+  :fields ( 
+	    msend_selbind		;the selector binding
+	    msend_recv			;the reciever
+	    msend_args 			;the tuple of arguments
+	   ))
+
+;;; source primitive call
+(defclass class_src_primitive
+  :super class_src
+  :fields (sprim_oper			;the primitive operation
+	   sprim_args			;the arguments tuple
+	   ))
+
+;;; source progn
+(defclass class_src_progn
+  :super class_src
+  :fields (sprogn_body			;the body tuple
+))
+
+;;; source progn
+(defclass class_src_return
+  :super class_src
+  :fields (sreturn_body			;the body tuple
+))
+
+;;;; source setq
+(defclass class_src_setq
+  :super class_src
+  :fields (sstq_var
+	   sstq_expr))
+
+
+;;;; source quote
+(defclass class_src_quote
+  :super class_src
+  :fields (squoted
+))
+;;; superclass for all source definitions
+(defclass class_srcdef
+  :super class_src
+  :fields (sdef_name			;defined name
+))
+
+;;; superclass for all definitions with formal arglist
+(defclass class_srcdeformal
+  :super class_srcdef
+  :fields (sformal_args			;formal arguments binding tuple
+))
+
+;;;; define a function
+(defclass class_src_defun
+  :super class_srcdeformal
+  :fields (sfun_body			;body sequence
+))
+
+;;; define a primitive
+(defclass class_src_defprimitive
+  :super class_srcdeformal
+  :fields (sprim_type			;result type of primitive
+	   sprim_expansion		;primitive expansion
+))
+
+;; define an object (common to instance, class, selector)
+(defclass class_src_defobjcommon
+  :super class_srcdef
+  :fields (sobj_predef			;the predefined rank
+	   sobj_docstr			;documentation string
+))
+
+;; define a class 
+;;;; the class has been built (at compile time), but we need a
+;;;; srcdefclass to actually generate code
+(defclass class_src_defclass
+  :super class_src_defobjcommon
+  :fields (sclass_clabind		;the binding of the class
+	   sclass_superbind		;binding of superclass (or nil if none)
+	   sclass_fldbinds		;the sequence of (own field bindings)
+))
+
+
+;; define an instance
+(defclass class_src_definstance
+  :super class_src_defobjcommon
+  :fields (sinst_class			;the class of the instance
+	   sinst_clabind		;the classbinding of the instance
+	   sinst_objnum			;the object number symbol or integer
+	   sinst_fields			;the sequence of field assignment
+))
+
+;; define a selector 
+(defclass class_src_defselector
+  :super class_src_definstance
+)
+
+;; a field assignment
+(defclass class_src_fieldassign
+  :super class_src
+  :fields (sfla_field			;the field 
+	   sfla_expr			;the expression
+))
+
+
+;; make an instance
+(defclass class_src_make_instance
+  :super class_src
+  :fields (smins_class			;the class to be instantiated
+	   smins_clabind		;its (class|value) binding
+	   smins_fields			;the sequence of field assignment
+))
+
+;;; source unsafe get field
+(defclass class_src_unsafe_get_field
+  :super class_src
+  :fields (suget_obj	     ;the object expression
+	   suget_field	     ;the field keyword
+))
+
+;; source unsafe put fields
+(defclass class_src_unsafe_put_fields
+  :super class_src
+  :fields (suput_obj	     ;the object expression
+	   suput_fields			;the sequence of field assignment
+))
+
+
+;; a conditional (if, and, cond)
+(defclass class_src_if
+  :super class_src
+  :fields (sif_test
+	   sif_then
+))
+
+(defclass class_src_ifelse
+  :super class_src_if
+  :fields ( sif_else
+))
+
+;; an or
+;;; since (OR a1 a2) is (IF a1 a1 a2) we need to normalize it to avoid evaluating twice a1
+;;; so there is no normalized or... (only normalized if-s)
+(defclass class_src_or
+  :super class_src
+  :fields (sor_disj			;tuple of disjuncts
+))
+
+
+
+;;; letbinding source
+(defclass class_src_letbinding
+  :super class_src
+  :fields (sletb_type			;the type of the binding
+	   sletb_binder			;the binder (variable)
+	   sletb_expr			;the expression
+))
+
+;; let source
+(defclass class_src_let
+  :super class_src
+  :fields (slet_bindings		;the tuple of letbinding-s
+	   slet_body			;the body tuple 
+))
+
+;; lambda
+(defclass class_src_lambda
+  :super class_src 
+  :fields (slam_argbind			;tuple of argument bindings
+	   slam_body			;tuple for body
+))
+
+
+;; multicall
+(defclass class_src_multicall
+  :super class_src
+  :fields (smulc_resbind		;tuple of argument bindings for multiple results
+	   smulc_call			;called stuff
+	   smulc_body			;tuple for body
+))
+
+;;; forever & exit share a common label
+(defclass class_src_labelled
+  :super class_src
+  :fields (slabel_bind			;the label binding
+))
+
+;; forever
+(defclass class_src_forever
+  :super class_src_labelled
+  :fields (sfrv_body			;tuple for body
+))
+
+;; exit
+(defclass class_src_exit
+  :super class_src_labelled
+  :fields ( sexi_body			;tuple for body
+))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;; ================ normalized representations
+
+
+;; basically, the normalized representation of (f a (g x)) 
+;; is let y=(g x) in (f a y)
+;; etc... where y is a cloned symbol
+
+(defclass class_nrep
+  :super class_root
+  :fields (nrep_loc			;location in source
+))
+
+;; a simple stuff is a non-object, a symbol (or keyword or clonedsym),
+;; ...
+(defclass class_nrep_simple
+  :super class_nrep
+  :fields (
+))
+
+;; a normalized expression should never be the result of normal_exp;
+;; it should only appear in bindings!
+(defclass class_nrep_expr
+  :super class_nrep
+  :fields (
+))
+
+;; normal applications have simple functions & arguments
+(defclass class_nrep_apply
+  :super class_nrep_expr
+  :fields (napp_fun			;simple function to apply
+	   napp_args			;tuple of simple arguments
+))
+
+;; normalized multiresult apply
+(defclass class_nrep_multiapply
+  :super class_nrep_apply
+  :fields (nmulapp_bindings 		;a tuple of formal result bindings
+	   nmulapp_body			;body normexp
+))
+
+;;; normal message sending
+(defclass class_nrep_msend
+  :super class_nrep_expr
+  :fields (nsend_sel		   ;the normalized selector occurrence
+	   nsend_recv		   ;the reciever
+	   nsend_args		   ;the tuple of simple arguments
+))
+
+
+
+;; normalized multiresult message send
+(defclass class_nrep_multimsend
+  :super class_nrep_msend
+  :fields (nmulsend_bindings		;tuple of formal bindings
+	   nmulsend_body		;body normexp
+))
+
+;; normal chunk is a normalized expansion of primitive
+(defclass class_nrep_chunk
+  :super class_nrep_expr
+  :fields (nchunk_expansion		;the expansion
+	   nchunk_primitive		;the primitive
+))
+
+;; normal lets have simple binding & body subexpressions
+(defclass class_nrep_let
+  :super class_nrep_expr
+  :fields (nlet_bindings		;a tuple of class_normlet_binding-s
+	   nlet_body
+))
+
+;; normal return have a main & supplementary subexpressions
+(defclass class_nrep_return
+  :super class_nrep_expr
+  :fields (nret_main			;main normal expression to return
+	   nret_rest			;tuple of normal expr...
+))
+
+;; normal if have simple test, then, else clauses & a ctype
+(defclass class_nrep_if
+  :super class_nrep_expr
+  :fields (nif_test
+	   nif_then
+	   nif_else
+	   nif_ctyp
+))
+
+;; normal progn has a distingished last
+(defclass class_nrep_progn
+  :super class_nrep_expr
+  :fields (nprogn_seq			;tuple of all but last
+	   nprogn_last
+	   ))
+
+;; normalized unsafe get field
+(defclass class_nrep_unsafe_get_field
+  :super class_nrep_expr
+  :fields (nuget_obj
+	   nuget_field))
+
+
+;; normalized unsafe_put_field
+(defclass class_nrep_unsafe_put_fields
+  :super class_nrep_expr
+  :fields (nuput_obj
+	   nuput_fields))
+
+;; normalized setq
+(defclass class_nrep_setq
+  :super class_nrep_expr
+  :fields (nstq_var
+	   nstq_exp
+))
+
+;; normalized forever
+(defclass class_nrep_forever
+  :super class_nrep_expr
+  :fields (nforever_bind 		;the label binding
+	   nforever_body		;a tuple
+	   nforever_result		;cloned symbol for result
+))
+
+;; normalized exit
+(defclass class_nrep_exit
+  :super class_nrep_expr
+  :fields (nexit_bind			;the label binding
+	   nexit_val			;the exited value
+))
+
+;; normalized field assign (in make instance)
+(defclass class_nrep_fieldassign
+  :super class_nrep
+  :fields (nfla_field			;the field
+	   nfla_val			;its normalized value
+))
+
+;; normalized make instance
+(defclass class_nrep_make_instance
+  :super class_nrep_expr
+  :fields (nmins_class			;the instanciated class
+	   nmins_cladata		;its data
+	   nmins_fields			;the tuple of field assignments
+))
+
+;; normalized lambda
+(defclass class_nrep_lambda 
+  :super class_nrep_expr
+  :fields (nlambda_proc			;the procedure
+	   nlambda_constrout		;the constant routine
+	   nlambda_closedv		;the tuple of closed normal values
+))
+
+
+;;; procedures
+(defclass class_nrep_anyproc
+  :super class_nrep
+  :fields (
+	   nproc_body
+))
+
+
+;; the class of the initial procedure
+(defclass class_nrep_initproc
+  :super class_nrep_anyproc
+  :fields (ninit_topl			;list of toplevel nrep
+))
+
+;; normal routine procedure
+(defclass class_nrep_routproc
+  :super class_nrep_anyproc
+  :fields (
+	   nrpro_name			;name (if any)
+	   nrpro_argb			;argument bindings
+	   nrpro_closedb		;list of closed bindings
+	   nrpro_const			;list of constants
+	   nrpro_datarout		;routine data object
+	   nrpro_dataclos		;closure data object
+	   nrpro_thunklist		;list of thunks to be called when compiling it
+))
+
+
+;;; static normalized predef
+(defclass class_nrep_predef
+  :super class_nrep_simple
+  :fields (
+	   nrpredef			;the predef is a symbol or a boxed integer
+))
+
+;; normalized nil
+(defclass class_nrep_nil
+  :super class_nrep_simple
+  :fields (
+))
+
+
+;;;; static data is build at module initialization time
+(defclass class_nrep_data
+  ;; the objnum is the predefined rank if any
+  :super class_nrep_simple
+  :fields (ndata_name			;name if any of the data
+	   ndata_discrx		;discriminant normal expression 
+	   ndata_rank			;boxed integer rank of the data 
+	   ;;; we box the integer and don't use the objnum bzcause we
+	   ;;; might have a lot (>30000) of data
+	   ndata_locbind		;local binding tuple to fill the data
+	   ))
+
+;; normal "static" instance - built at modules initialization
+(defclass class_nrep_datainstance
+  :super class_nrep_data
+  :fields (ninst_objnum			;object number (a number or a symbol)
+	   ninst_predef			;predefined rank (number or symbol)
+	   ninst_hash			;integer hash
+	   ninst_slots			;tuple of normalized slots expressions
+))
+
+;; normal "static" string
+(defclass class_nrep_datastring
+  :super class_nrep_data
+  :fields ( nstr_string		    ;the string
+))
+
+;; normal "static" tuple
+(defclass class_nrep_datatuple
+  :super class_nrep_data
+  :fields ( ntup_comp			;the tuple of component values expressions
+))
+
+;; normal interned static symbol
+(defclass class_nrep_datasymbol
+  :super class_nrep_datainstance
+  :fields ( ndsy_namestr
+))
+
+;; normal interned static keyword
+(defclass class_nrep_datakeyword
+  :super class_nrep_datasymbol
+  :fields ( 
+))
+
+;; normal static routine data
+(defclass class_nrep_dataroutine
+  :super class_nrep_data
+  :fields (ndrou_proc		    ;associated procedure
+))
+
+;; normal static closure data
+(defclass class_nrep_dataclosure
+  :super class_nrep_data
+  :fields (ndclo_proc		    ;associated procedure
+	   ndclo_closv		    ;tuple of closed values
+))
+
+;; normal static start value
+;; obtained from an initial binding
+(defclass class_nrep_startval
+  :super class_nrep_simple
+  :fields (nstart_var		    ;the variable
+	   ))
+
+;; normal  occurrence of a symbol 
+(defclass class_nrep_symocc
+  :super class_nrep_simple
+  :fields (nocc_symb
+	   nocc_ctyp			;the ctype of the symbol, eg ctype_value
+	   nocc_bind			;the binding of the symbol
+))
+
+;; normal local occurrence of a symbol
+(defclass class_nrep_locsymocc
+  :super class_nrep_symocc
+  :fields (
+))
+
+;; normal closed occurrence of a symbol
+(defclass class_nrep_closedocc
+  :super class_nrep_symocc
+  :fields (ncloc_procs			;list of enclosing procedures
+))
+
+;; normal constant occurrence of a symbol
+(defclass class_nrep_constocc
+  :super class_nrep_closedocc
+)
+
+;; normal constant (.e.g a quoted symbol, a keyword, ...)
+(defclass class_nrep_constant
+  :super class_nrep_simple
+  :fields (nconst_sval			;source value
+	   nconst_data			;normalized data
+	   nconst_proc			;containing proc
+))
+
+;; data field accessor (mostly used for defclass initialization) this
+;; translates into basilys_field_object(<obj>,<off>) of obj is not a
+;; datainstance and directly to the field if it is a datainstance
+(defclass class_nrep_fieldacc
+  :super class_nrep_expr
+  :fields (naccf_obj			;data for the object to be accessed 
+	   naccf_fld			;rank or field to be accessoed
+))
+
+;;; data multiple accessor (mostly used for defclass initialization)
+;; this translates into basilys_multiple_nth(<mul>,<ix>) if mul is not
+;; a datatuple and directly to the component if it is a datatuple
+(defclass class_nrep_multacc
+  :super class_nrep_expr
+  :fields (naccm_mul			;data for the multiple to be accessed
+	   naccm_ix			;index to be accessed (a boxed integer)
+))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; normalization context
+(defclass class_normcontext
+  :super class_root
+  :fields (nctx_initproc		;initial procedure
+	   nctx_proclist		;list of procedures
+	   nctx_datalist		;list of data
+	   nctx_symbmap			;stringmap of name to interned symbols
+	   nctx_keywmap			;stringmap of name to interned keywords
+	   nctx_symbcachemap		;objmap of cached symbol -> occurrence
+	   nctx_predefmap		;objmap of predef -> boxedrank or symbols
+	   nctx_valmap			;objmap of values -> data 
+	   nctx_valbindmap 		;objmap of value binding -> data
+	   nctx_curproc			;current procedure
+))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;; ================ classes for code generation
+
+
+;;; code generation context
+(defclass class_genercontext
+  :super class_root
+  :fields ( gncx_objrout 		;the containing object routine
+	    gncx_locmap			;objmap from normal bindings to locals
+	    gncx_freeptrlist		;list of freed local pointers
+	    gncx_freelonglist		;list of freed local longs
+	    gncx_freeothermaps		;map keyed by ctypes of list of freed local others
+	    gncx_retloc			;return location
+	    gncx_compicache		;cache map of procedure to compiled routines
+))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;; common superclass for objcode
+(defclass class_objcode
+  :super class_root
+  :fields (
+))
+
+
+;;;; value like objects
+(defclass class_objvalue
+  :super class_objcode
+  :fields ( obv_type			;the ctype
+))
+
+
+;;; pure values are side-effect free
+(defclass class_objpurevalue
+  :super class_objvalue
+  :fields ())
+
+;; object local variable
+(defclass class_objlocv
+  :super class_objpurevalue
+  :fields (obl_off			;offset in frame
+	   obl_proc			;containing procedure
+	   obl_cname			;symbolic cname string
+))
+
+
+;; closed occurrence
+(defclass class_objcloccv
+  :super class_objpurevalue
+  :fields (obc_off			;offset in closure
+	   obc_proc			;containing procedure
+	   obc_name			;symbolic name
+))
+
+
+;; constant [closed] occurrence
+(defclass class_objconstv
+  :super class_objcloccv
+  :fields (
+))
+
+;; predefined object
+(defclass class_objpredef
+  :super class_objpurevalue
+  :fields (obpredef
+))
+
+;; nil
+(defclass class_objnil
+  :super class_objpurevalue
+  :fields ())
+
+;; initial element 
+(defclass class_objinitelem
+  :super class_objpurevalue
+  :fields (oie_cname 			;symbolic cname string - fieldname in cdat
+	   oie_data			;normal data
+	   oie_discr			;compiled discriminant
+	   oie_locvar			;initial routine's local variable
+	   ;; the size, if any is the obj_num
+))
+
+;;; initial object - see BASILYS_OBJECT_STRUCT in basilys.h
+(defclass class_objinitobject
+  :super class_objinitelem
+  :fields (
+	   oio_predef			;the predef name or number to contain this object
+))
+
+
+;;; initial multiple - see BASILYS_MULTIPLE_STRUCT in basilys.h
+(defclass class_objinitmultiple
+  :super class_objinitelem
+  :fields (
+	   ;; we may need to tuple of compiled values for accessing
+	   ;; the nth at compilation time in compilobj_nrep_multacc
+	   oim_tupval			;tuple of compiled values
+))
+
+;;; initial closure - see BASILYS_CLOSURE_STRUCT in basilys.h
+(defclass class_objinitclosure 
+  :super  class_objinitelem
+  :fields (
+))
+
+;;; initial routine - see  BASILYS_ROUTINE_STRUCT in basilys.h
+(defclass class_objinitroutine
+  :super class_objinitelem
+  :fields (
+	   oir_procroutine		;the procroutine associated
+))
+
+;;; initial string - see BASILYS_STRING_STRUCT in basilys.h
+(defclass class_objinitstring
+  :super class_objinitelem
+  :fields (
+))
+
+
+;; expanded value
+(defclass class_objexpv
+  :super class_objvalue
+  :fields (obx_cont
+))
+
+;; expanded value with location 
+(defclass class_objlocatedexpv
+  :super class_objexpv
+  :fields (obcx_loc			;optional location
+))
+
+;;;; instructions
+(defclass class_objinstr
+  :super class_objcode
+  :fields (obi_loc			;src location
+))
+
+
+;;;; instructions with a list of destinations (computes, calls, sends, etc...)
+(defclass class_objdestinstr
+  :super class_objinstr
+  :fields (obdi_destlist		;a list of destination lovations
+))
+
+;;; compute instruction
+(defclass class_objcompute
+  :super class_objdestinstr
+  :fields (obcpt_expr			;expression list
+))
+
+;; get argument instruction
+(defclass class_objgetarg
+  :super class_objinstr
+  :fields (obarg_obloc			;objlocation
+	   obarg_bind			;formal binding
+))
+
+
+;; put extra result instruction
+(defclass class_objputxtraresult
+  :super class_objinstr
+  :fields (obxres_rank 			;boxed rank
+	   obxres_obloc			;objlocation
+))
+
+;; final return
+(defclass class_objfinalreturn
+  :super class_objinstr
+  :fields (				;no argument
+))
+
+;; clear instruction
+(defclass class_objclear
+  :super class_objinstr
+  :fields (oclr_vloc			;varlocation to clear
+))
+
+;; block instruction
+(defclass class_objblock
+  :super class_objinstr
+  :fields ( oblo_bodyl			;body list
+	    oblo_epil			;epilogue list
+))
+
+;; looping block
+(defclass class_objloop
+  :super class_objblock		 ;the body is looped, not the epilogue
+  :fields (obloop_label		 ;cloned symbol
+	   obloop_resv		 ;the result of the loop
+))
+
+;; exit a loop
+(defclass class_objexit
+  :super class_objinstr
+  :fields (obexit_label			;cloned symbol for goto destination
+))
+
+;; conditional instruction
+(defclass class_objcond
+  :super class_objinstr
+  :fields (obcond_test
+	   obcond_then
+	   obcond_else
+))
+
+;;; apply instruction
+(defclass class_objapply
+  :super class_objdestinstr
+  :fields (obapp_clos			;closure to be applied
+	   obapp_args			;argument tuple
+))
+
+;;; multiapply instruction
+(defclass class_objmultiapply
+  :super class_objapply
+  :fields (obmultapp_xres		;extraresult tuple
+))
+
+;;; message send instruction
+(defclass class_objmsend
+  :super class_objdestinstr
+  :fields (obmsnd_sel			;selector object (compiled)
+	   obmsnd_recv			;message reciever (compiled)
+	   obmsnd_args 			;argument tuple (compiled)
+))
+
+;;; multisend instruction
+(defclass class_objmultimsend
+  :super class_objmsend
+  :fields (obmultsnd_xres		;extraresult tuple
+))
+
+;; raw object allocation instruction
+(defclass class_objrawallocobj
+  :super class_objdestinstr
+  :fields (
+	   obrallobj_class		;the class data
+	   obrallobj_len		;the boxed integer length
+))
+
+
+;; new closure allocation
+(defclass class_objnewclosure
+  :super class_objdestinstr
+  :fields (obnclo_discr		     ;the discriminant
+	   obnclo_rout		     ;the routine
+	   obnclo_len		     ;the boxed integer length
+))
+
+;; put a component inside a tuple
+(defclass class_objputuple
+  :super class_objinstr
+  :fields (oputu_tupled			;the tuple data
+	   oputu_offset			;numerical offset
+	   oputu_value			;the new value
+))
+
+;; put a slot inside an object
+(defclass class_objputslot
+  :super class_objinstr
+  :fields ( oslot_odata			;the object data to put
+	    oslot_offset		;numerical offset
+	    oslot_field			;the [optional] field (only for generated comment)
+	    oslot_value			;the new value
+))
+
+
+;; get a slot from an object
+(defclass class_objgetslot
+  :super class_objdestinstr
+  :fields (ogetsl_obj		   ;the object to get from
+	   ogetsl_field		   ;the fieldname
+))
+
+;; put the routine inside a closure
+(defclass class_objputclosurout
+  :super class_objinstr
+  :fields (opclor_clos			;the closure data
+	   opclor_rout			;the routine data
+))
+
+;; put a closed value inside a closure
+(defclass class_objputclosedv
+  :super class_objinstr
+  :fields (opclov_clos			;the closure data or local
+	   opclov_off 			;the boxed offset
+	   opclov_cval			;the closed value
+))
+
+;; put a constant value inside a routine
+(defclass class_objputroutconst
+  :super class_objinstr
+  :fields (oprconst_rout	 ;the routine data
+	   oprconst_off		 ;the boxed offset
+	   oprconst_cval	 ;the constant value
+))
+
+;; touch a value, with a tiny comment
+(defclass class_objtouch
+  :super class_objinstr
+  :fields (otouch_val
+	   otouch_comment
+))
+
+;; set a predef
+(defclass class_objsetpredef
+ :super class_objinstr
+ :fields ( ospr_object			;the object 
+	   ospr_predef			;its predef rank
+))
+
+
+;;; routines
+(defclass class_routineobj
+  :super class_named
+  :fields (obrout_proc			;the associated procedure
+	   obrout_body			;the body (a list)
+	   obrout_nbval			;the boxed number of value pointers
+	   obrout_nblong		;the boxed number of longs
+	   ;;; if double are needed, we might later add some obrout_nbdouble
+	   obrout_others		;the list of other (nonvalue,
+					;nonlongs) locals (usually C
+					;pointers like tree-s,
+					;cstrings, ...)
+	   obrout_retval		;the main return value
+))
+
+;; procedure routine
+(defclass class_procroutineobj
+  :super class_routineobj
+  :fields (oprout_getargs		;the get arguments tuple of instructions
+	   oprout_loc			;the source location
+	   oprout_funam			;function name
+))
+
+;; initial routine
+(defclass class_initialroutineobj
+  :super class_routineobj
+  :fields (
+	   oirout_data			;the tuple of initial data
+	   oirout_fill			;the fill of the data (a list of instr)
+))
+
+
+
+
+
+
+
+;; 
+
+;;****************************************************************
+;;       P R I M I T I V E S 
+;;****************************************************************
+
+
 
 ;; primitive for converting a string constant into a string value
 (defprimitive stringconst2val (discr :cstring strc) :value
@@ -402,6 +1439,10 @@
   "(basilys_is_string_const((void*)(" str "), (" cs ")))")
 (defprimitive string_length (str) :long
   "basilys_string_length((" str "))")
+(defprimitive string= (s1 s2) :long "basilys_string_same((" s1 "), (" s2 "))")
+(defprimitive string< (s1 s2) :long "basilys_string_less((" s1 "), (" s2 "))")
+(defprimitive string> (s1 s2) :long "basilys_string_less((" s2 "), (" s1 "))")
+
 ;;; convert a strbuf into a string
 (defprimitive strbuf2string (dis sbuf) :value
   "(basilysgc_new_stringdup((void*)(" dis "), basilys_strbuf_str((" sbuf "))))")
@@ -417,6 +1458,9 @@
 ;; primitive to get the nth field of an object
 (defprimitive object_nth_field (ob :long n) :value
   "(basilys_field_object((" ob "), (" n ")))")
+
+(defprimitive subclass_of (cl1 cl2) :long
+  "basilys_is_subclass_of((" cl1 "), (" cl2 "))")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;; MULTIPLEs primitives
@@ -1243,13 +2287,6 @@
   )
 
 
-(defclass class_debuginfo 
-  :super class_root
-  :fields (dbgi_sbuf 			;the produced stringbuf
-	   dbgi_occmap ;the occurrence map (to avoid outputing twice the same object)
-	   dbgi_maxdepth ;the boxed integer maximal depth
-	   )
-)
 
 ;;; selector to output for debugging
 ;;; reciever: any object or value
@@ -1579,7 +2616,7 @@
 	 (sbuf  (unsafe_get_field :dbgi_sbuf dbgi)) )
     (assert_msg "check sbuf" (is_strbuf sbuf))
     (add2sbuf_indentnl sbuf nextdepth)
-    (add2sbuf_strconst sbuf "** ")  
+    (add2sbuf_strconst sbuf "**")  
     (put_int (unsafe_get_field :dbgi_maxdepth dbgi) 0)
     (dbg_outobject at dbgi nextdepth)
     (put_int (unsafe_get_field :dbgi_maxdepth dbgi) oldmaxdepth)
@@ -1589,10 +2626,90 @@
     (add2sbuf_strconst sbuf "; ")
     ))
 
+;; an internal compare function used to display mapobject-s & mapstring-s in a canonical order.
+(defun compare_obj_ranked (x1 bxrk1 x2 bxrk2 vless veq vgreat)
+  (let ( (x1dis (discrim x1))
+	 (x2dis (discrim x2))
+	 (:long rk1 (get_int bxrk1))
+	 (:long rk2 (get_int bxrk2))
+	 )
+    (cond ( (!= x1dis x2dis)
+	    (if (string< (unsafe_get_field :named_name x1dis) 
+			 (unsafe_get_field :named_name x2dis))
+		(return vless)
+	      (return vgreat)
+	      ))
+	  ( (is_a x1 class_clonedsymbol)
+	    (let ( (n1 (unsafe_get_field :named_name x1))
+		   (n2 (unsafe_get_field :named_name x2)) )
+	      (cond ( (string< n1 n2)
+		      (return vless))
+		    ( (string> n1 n2)
+		      (return vgreat))
+		    (:else 
+		     (let (
+			   (yr1 (unsafe_get_field :csym_urank x1))
+			   (yr2 (unsafe_get_field :csym_urank x2))
+			   (:long nr1 (get_int yr1))
+			   (:long nr2 (get_int yr2))
+			   )
+		       (cond ( (<i nr1 nr2)
+			       (return vless))
+			     ( (>i nr1 nr2)
+			       (return vgreat))
+			     (:else 
+			      ;; this should not happen, two distinct cloned symbols with same name & rank
+			      (assert_msg "corrupted same cloned symbols" ())
+			      (return (the_null)))
+			     ))))
+	      ))
+	  ( (is_a x1 class_named)
+	    (let ( (n1 (unsafe_get_field :named_name x1))
+		   (n2 (unsafe_get_field :named_name x2))
+		   )
+	      (cond ( (string< n1 n2)
+		      (return vless))
+		    ( (string> n1 n2)
+		      (return vgreat))
+		    ( (<i rk1 rk2)
+		      (return vless))
+		    ( (>i rk1 rk2)
+		      (return vgreat))
+		    (:else 
+		     (return veq)))
+	      )
+	    )
+	  ( (is_a x1 class_any_binding)
+	    (let ( (bsy1 (unsafe_get_field :binder x1))
+		   (bsy2 (unsafe_get_field :binder x1)) )
+	      (return (compare_obj_ranked bsy1 bxrk1 bsy2 bxrk2 vless veq vgreat))))
+	  ( (is_string x1)
+	    (cond ( (string< x1 x2)
+		    (return vless))
+		  ( (string> x1 x2)
+		    (return vgreat))
+		  ( (<i rk1 rk2)
+		    (return vless))
+		  ( (>i rk1 rk2)
+		    (return vgreat))
+		  (:else 
+		   (return veq))))
+	  ( (<i rk1 rk2)
+	    (return vless))
+	  ( (>i rk1 rk2)
+	    (return vgreat))
+	  (:else
+	   (return veq))
+	  )))
+
+
+
+
 (defun dbgout_mapobject_method (self dbgi :long depth)
   (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
   (let ( (dis (discrim self)) 
 	 (sbuf  (unsafe_get_field :dbgi_sbuf dbgi))
+	 (:long mapcount (mapobject_count self))
 	 )
     (if (== dis DISCR_MAPOBJECTS)
 	(add2sbuf_strconst sbuf " {")
@@ -1605,45 +2722,126 @@
     (if (need_dbglim depth (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
 	(let (
 	      (nextdepthbox (make_integerbox discr_integer (+i 1 depth)))
+	      (countbox (make_integerbox discr_integer 0))
+	      (boxedone (make_integerbox discr_integer 1))
+	      (boxedzero (make_integerbox discr_integer 0))
+	      (boxedminusone (make_integerbox discr_integer -1))
+	      (tupl (make_multiple discr_multiple mapcount))
 	      )
+	  ;; fill the tupl with (attribute value rank) entries
 	  (mapobject_every
 	   self
 	   (lambda (at va)
-	     (dbgoutinternal_mapobj_entry at va dbgi nextdepthbox)
-	     ))))
-    (add2sbuf_strconst sbuf "}")))
+	     (let ( (:long curcount (get_int countbox)) 
+		    (ent (make_tuple3 discr_multiple 
+				      at va 
+				      (make_integerbox discr_integer curcount)))
+		    )
+	       (multiple_put_nth tupl curcount ent)
+	       (put_int countbox (+i curcount 1))
+	       )))
+	  (assert_msg "check tupl" (is_multiple tupl))
+;;; sort the tuple and output in sorted order
+	  (let ( (sortupl 
+		  (multiple_sort 
+		   tupl
+		   (lambda (e1 e2)
+		     (let ( (e1at (multiple_nth e1 0))
+			    (e1va (multiple_nth e1 1))
+			    (e1rk (multiple_nth e1 2))
+			    (e2at (multiple_nth e2 0))
+			    (e2va (multiple_nth e2 1))
+			    (e2rk (multiple_nth e2 2))
+			    )
+		       (compare_obj_ranked e1at e1rk e2at e2rk boxedminusone boxedzero boxedone)
+		       ))
+		   discr_multiple
+		   ))
+		 )
+	    (assert_msg "check sortupl" (is_multiple sortupl))
+	    (multiple_every 
+	     sortupl
+	     (lambda (el :long ix)
+	       (let ( (elat (multiple_nth el 0))
+		      (elva (multiple_nth el 1)) )
+		 (dbgoutinternal_mapobj_entry elat elva dbgi nextdepthbox)
+		 )))
+	    )
+	  (add2sbuf_strconst sbuf "}")))))
 (install_method discr_mapobjects dbg_output dbgout_mapobject_method)
+
+
+
 
 ;; multiple debug out
 (defun dbgout_mapstring_method (self dbgi :long depth)
   (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
-      (let ( (dis (discrim self)) 
-	     (sbuf (unsafe_get_field :dbgi_sbuf dbgi))
-	     (:long ix 0)
-	     )
-	(if (== dis DISCR_MAPSTRINGS)
-	    (add2sbuf_strconst sbuf " <(")
-	  (progn
-	    (add2sbuf_strconst sbuf " |")
-	    (add2sbuf_string sbuf (unsafe_get_field :named_name dis))
-	    (add2sbuf_strconst sbuf "<(")))
-	(add2sbuf_strconst sbuf "/")
-	(add2sbuf_longdec sbuf (mapstring_count self))
-	(forever mapstrloop
-		 (if (>i ix (mapstring_size self)) (exit mapstrloop))
-		 (let ( (curstr (mapstring_nth_attrstr self discr_string ix))
-			(curat (mapstring_nth_val self ix)) )
-		   (if (and (is_string curstr) (notnull curat))
-		       (progn
-			 (add2sbuf_indentnl sbuf (+i depth 1))
-			 (add2sbuf_strconst sbuf "!*")
-			 (dbg_out curstr dbgi (+i depth 1))
-			 (add2sbuf_strconst sbuf " => ")  
-			 (add2sbuf_indent sbuf (+i depth 1))
-			 (dbg_out curat dbgi (+i depth 2))
-			 )))
-		 (setq ix (+i ix 1)))
-	(add2sbuf_strconst sbuf " )>")))
+  (let ( (dis (discrim self)) 
+	 (sbuf (unsafe_get_field :dbgi_sbuf dbgi))
+	 (:long ix 0)
+	 (:long mapcount (mapstring_count self))
+	 (nextdepthbox (make_integerbox discr_integer (+i 1 depth)))
+	 (countbox (make_integerbox discr_integer 0))
+	 (boxedone (make_integerbox discr_integer 1))
+	 (boxedzero (make_integerbox discr_integer 0))
+	 (boxedminusone (make_integerbox discr_integer -1))
+	 (tupl (make_multiple discr_multiple mapcount))
+	 )
+    (if (== dis DISCR_MAPSTRINGS)
+	(add2sbuf_strconst sbuf " <(")
+      (progn
+	(add2sbuf_strconst sbuf " |")
+	(add2sbuf_string sbuf (unsafe_get_field :named_name dis))
+	(add2sbuf_strconst sbuf "<(")))
+    (add2sbuf_strconst sbuf "/")
+    (add2sbuf_longdec sbuf mapcount)
+    ;; fill the tuple with string, value, rank triples
+    (mapstring_every 
+     self
+     (lambda (str val)
+       (let ( (:long curcount (get_int countbox)) 
+	      (ent (make_tuple3 discr_multiple 
+				str val 
+				(make_integerbox discr_integer curcount)))
+	      )
+	 (multiple_put_nth tupl curcount ent)
+	 (put_int countbox (+i curcount 1))
+	 )))
+    ;; sort the tuple and display it
+    (let ( (sortupl
+	    (multiple_sort 
+	     tupl
+	     (lambda (e1 e2)
+	       (let ( (e1at (multiple_nth e1 0))
+		      (e1va (multiple_nth e1 1))
+		      (e1rk (multiple_nth e1 2))
+		      (e2at (multiple_nth e2 0))
+		      (e2va (multiple_nth e2 1))
+		      (e2rk (multiple_nth e2 2))
+		      )
+		 (compare_obj_ranked e1at e1rk e2at e2rk boxedminusone boxedzero boxedone)
+		 ))
+	     discr_multiple
+	     ))
+	   )
+      (assert_msg "check sortupl" (is_multiple sortupl)) 
+      (multiple_every 
+       sortupl
+       (lambda (el :long ix)
+	 (let ( (curstr (multiple_nth el 0))
+		(curval (multiple_nth el 1)) 
+		(:long nextdepth (get_int nextdepthbox))
+		)
+	   (if (and (is_string curstr) (notnull curval))
+	       (progn
+		 (add2sbuf_indentnl sbuf nextdepth)
+		 (add2sbuf_strconst sbuf "!*")
+		 (dbg_out curstr dbgi nextdepth)
+		 (add2sbuf_strconst sbuf " => ")  
+		 (add2sbuf_indent sbuf nextdepth)
+		 (dbg_out curval dbgi (+i nextdepth 1))
+		 ))))))
+    (add2sbuf_strconst sbuf " )>")))
 (install_method discr_mapstrings dbg_output dbgout_mapstring_method)
 
 
@@ -1870,121 +3068,6 @@
 	(outnewline_dbg)
 	)))
 
-;;;; the class for environments
-(defclass class_environment
-  :super class_root
-  :fields (env_bind			;the map of bindings
-	   env_prev			;the previous environment
-	   env_proc			;the procedure of this environment
-))
-
-;; the (super-)class of any binding
-(defclass class_any_binding
-  :super class_root
-  :fields (binder)
-)
-
-;;; superclass of exported bindings
-(defclass class_exported_binding
-  :super class_any_binding
-  :fields ( )
-)
-
-;; macro binding
-(defclass class_macro_binding
-  :super class_exported_binding
-  :fields (mbind_expanser))
-
-
-;; value binding - as exported 
-(defclass class_value_binding
-  :super class_exported_binding
-  :fields (vbind_value
-))
-
-; formal binding (used in generated defprimitive)
-(defclass class_formal_binding
-  :super class_any_binding
-  :fields (fbind_type)
-  ;;the obj_num is the argument rank
-  :predef CLASS_FORMAL_BINDING)
-
-
-;;; fixed bindings are defined in a compilation unit and can be implemented as constants in routine
-(defclass class_fixed_binding
-  :super class_any_binding
-  :fields ()
-)
-
-;; selector binding
-(defclass class_selector_binding
-  :super class_fixed_binding
-  :fields (sbind_selectordef 		;the "source" defselector
-	   sbind_selectordata		;the compiled data
-	   ;; maybe we need an selectorval for the actual value
-	   )
-)
-
-;; primitive binding
-(defclass class_primitive_binding
-  :super class_fixed_binding
-  :fields (pbind_primdef		;the source defprimitive
-	   pbind_primitive		;the primitive proper
-	   pbind_primdata		;the primitive data as compiled
-))
-
-
-;; function binding
-(defclass class_function_binding
-  :super class_fixed_binding
-  :fields (fubind_defun ;the source definition
-	   fubind_fundata		;compiled data
-))
-
-;; class binding
-(defclass class_class_binding
-  :super class_fixed_binding
-  :fields (cbind_defclass ;the source definition
-	   cbind_class			;the built class
-	   cbind_cladata		;compiled data
-))
-
-;; field binding
-(defclass class_field_binding
-  :super class_fixed_binding
-  :fields (flbind_clabind		;the class binding
-	   flbind_field			;the field proper
-	   flbind_fdata			;the compiled field data
-))
-
-;; instance binding
-(defclass class_instance_binding
-  :super class_fixed_binding
-  :fields ( ibind_iclass		;the instance's class
-	    ibind_data			;the compiled data
-	    ))
-;; let binding
-(defclass class_let_binding
-  :super class_any_binding
-  :fields (letbind_type			;the ctype 
-	   letbind_expr			;the expression
-	   letbind_loc			;the optional src location
-	   ))
-
-;; normalized let binding
-(defclass class_normlet_binding
-  :super class_let_binding
-  :fields  ())				;no additional field, but
-					;letbind_expr is "normal"
-
-;; label binding
-(defclass class_label_binding
-  :super class_any_binding
-  :fields (labind_loc			;location of the label
-;;; following fields are filled later in the compilation phase
-	   labind_clonsy		;unique cloned symbol
-	   labind_res			;result localvar
-))
 
 ;; make a fresh environment 
 (defun fresh_env (parenv)
@@ -2101,220 +3184,6 @@
     ))
 (install_method class_any_binding dbg_output dbgout_anybinding_method)
 (install_method class_any_binding dbg_outputagain dbgout_anybinding_method)
-
-;;;;;;;;;;;;;;;;;;;; source program elements
-(defclass class_src 
-  :super class_root
-  :fields (src_loc			;the source location (if any)
-	   )
-)
-
-
-;;; source application 
-(defclass class_src_apply
-  :super class_src
-  :fields (sapp_fun			;the function to apply
-	   sapp_args			;the arguments tuple
-	   ))
-
-;;; source message sending 
-(defclass class_src_msend
-  :super class_src
-  :fields ( 
-	    msend_selbind		;the selector binding
-	    msend_recv			;the reciever
-	    msend_args 			;the tuple of arguments
-	   ))
-
-;;; source primitive call
-(defclass class_src_primitive
-  :super class_src
-  :fields (sprim_oper			;the primitive operation
-	   sprim_args			;the arguments tuple
-	   ))
-
-;;; source progn
-(defclass class_src_progn
-  :super class_src
-  :fields (sprogn_body			;the body tuple
-))
-
-;;; source progn
-(defclass class_src_return
-  :super class_src
-  :fields (sreturn_body			;the body tuple
-))
-
-;;;; source setq
-(defclass class_src_setq
-  :super class_src
-  :fields (sstq_var
-	   sstq_expr))
-
-
-;;;; source quote
-(defclass class_src_quote
-  :super class_src
-  :fields (squoted
-))
-;;; superclass for all source definitions
-(defclass class_srcdef
-  :super class_src
-  :fields (sdef_name			;defined name
-))
-
-;;; superclass for all definitions with formal arglist
-(defclass class_srcdeformal
-  :super class_srcdef
-  :fields (sformal_args			;formal arguments binding tuple
-))
-
-;;;; define a function
-(defclass class_src_defun
-  :super class_srcdeformal
-  :fields (sfun_body			;body sequence
-))
-
-;;; define a primitive
-(defclass class_src_defprimitive
-  :super class_srcdeformal
-  :fields (sprim_type			;result type of primitive
-	   sprim_expansion		;primitive expansion
-))
-
-;; define an object (common to instance, class, selector)
-(defclass class_src_defobjcommon
-  :super class_srcdef
-  :fields (sobj_predef			;the predefined rank
-	   sobj_docstr			;documentation string
-))
-
-;; define a class 
-;;;; the class has been built (at compile time), but we need a
-;;;; srcdefclass to actually generate code
-(defclass class_src_defclass
-  :super class_src_defobjcommon
-  :fields (sclass_clabind		;the binding of the class
-	   sclass_superbind		;binding of superclass (or nil if none)
-	   sclass_fldbinds		;the sequence of (own field bindings)
-))
-
-
-;; define an instance
-(defclass class_src_definstance
-  :super class_src_defobjcommon
-  :fields (sinst_class			;the class of the instance
-	   sinst_clabind		;the classbinding of the instance
-	   sinst_objnum			;the object number symbol or integer
-	   sinst_fields			;the sequence of field assignment
-))
-
-;; define a selector 
-(defclass class_src_defselector
-  :super class_src_definstance
-)
-
-;; a field assignment
-(defclass class_src_fieldassign
-  :super class_src
-  :fields (sfla_field			;the field 
-	   sfla_expr			;the expression
-))
-
-
-;; make an instance
-(defclass class_src_make_instance
-  :super class_src
-  :fields (smins_class			;the class to be instantiated
-	   smins_clabind		;its (class|value) binding
-	   smins_fields			;the sequence of field assignment
-))
-
-;;; source unsafe get field
-(defclass class_src_unsafe_get_field
-  :super class_src
-  :fields (suget_obj	     ;the object expression
-	   suget_field	     ;the field keyword
-))
-
-;; source unsafe put fields
-(defclass class_src_unsafe_put_fields
-  :super class_src
-  :fields (suput_obj	     ;the object expression
-	   suput_fields			;the sequence of field assignment
-))
-
-
-;; a conditional (if, and, cond)
-(defclass class_src_if
-  :super class_src
-  :fields (sif_test
-	   sif_then
-))
-
-(defclass class_src_ifelse
-  :super class_src_if
-  :fields ( sif_else
-))
-
-;; an or
-;;; since (OR a1 a2) is (IF a1 a1 a2) we need to normalize it to avoid evaluating twice a1
-;;; so there is no normalized or... (only normalized if-s)
-(defclass class_src_or
-  :super class_src
-  :fields (sor_disj			;tuple of disjuncts
-))
-
-
-
-;;; letbinding source
-(defclass class_src_letbinding
-  :super class_src
-  :fields (sletb_type			;the type of the binding
-	   sletb_binder			;the binder (variable)
-	   sletb_expr			;the expression
-))
-
-;; let source
-(defclass class_src_let
-  :super class_src
-  :fields (slet_bindings		;the tuple of letbinding-s
-	   slet_body			;the body tuple 
-))
-
-;; lambda
-(defclass class_src_lambda
-  :super class_src 
-  :fields (slam_argbind			;tuple of argument bindings
-	   slam_body			;tuple for body
-))
-
-
-;; multicall
-(defclass class_src_multicall
-  :super class_src
-  :fields (smulc_resbind		;tuple of argument bindings for multiple results
-	   smulc_call			;called stuff
-	   smulc_body			;tuple for body
-))
-
-;;; forever & exit share a common label
-(defclass class_src_labelled
-  :super class_src
-  :fields (slabel_bind			;the label binding
-))
-
-;; forever
-(defclass class_src_forever
-  :super class_src_labelled
-  :fields (sfrv_body			;tuple for body
-))
-
-;; exit
-(defclass class_src_exit
-  :super class_src_labelled
-  :fields ( sexi_body			;tuple for body
-))
 
 
 ;;;;;;;;;;;;;;;;;;;; first pass, macro expansion
@@ -3856,330 +4725,6 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; normalized representations
-;; basically, the normalized representation of (f a (g x)) 
-;; is let y=(g x) in (f a y)
-;; etc... where y is a cloned symbol
-
-(defclass class_nrep
-  :super class_root
-  :fields (nrep_loc			;location in source
-))
-
-;; a simple stuff is a non-object, a symbol (or keyword or clonedsym),
-;; ...
-(defclass class_nrep_simple
-  :super class_nrep
-  :fields (
-))
-
-;; a normalized expression should never be the result of normal_exp;
-;; it should only appear in bindings!
-(defclass class_nrep_expr
-  :super class_nrep
-  :fields (
-))
-
-;; normal applications have simple functions & arguments
-(defclass class_nrep_apply
-  :super class_nrep_expr
-  :fields (napp_fun			;simple function to apply
-	   napp_args			;tuple of simple arguments
-))
-
-;; normalized multiresult apply
-(defclass class_nrep_multiapply
-  :super class_nrep_apply
-  :fields (nmulapp_bindings 		;a tuple of formal result bindings
-	   nmulapp_body			;body normexp
-))
-
-;;; normal message sending
-(defclass class_nrep_msend
-  :super class_nrep_expr
-  :fields (nsend_sel		   ;the normalized selector occurrence
-	   nsend_recv		   ;the reciever
-	   nsend_args		   ;the tuple of simple arguments
-))
-
-
-
-;; normalized multiresult message send
-(defclass class_nrep_multimsend
-  :super class_nrep_msend
-  :fields (nmulsend_bindings		;tuple of formal bindings
-	   nmulsend_body		;body normexp
-))
-
-;; normal chunk is a normalized expansion of primitive
-(defclass class_nrep_chunk
-  :super class_nrep_expr
-  :fields (nchunk_expansion		;the expansion
-	   nchunk_primitive		;the primitive
-))
-
-;; normal lets have simple binding & body subexpressions
-(defclass class_nrep_let
-  :super class_nrep_expr
-  :fields (nlet_bindings		;a tuple of class_normlet_binding-s
-	   nlet_body
-))
-
-;; normal return have a main & supplementary subexpressions
-(defclass class_nrep_return
-  :super class_nrep_expr
-  :fields (nret_main			;main normal expression to return
-	   nret_rest			;tuple of normal expr...
-))
-
-;; normal if have simple test, then, else clauses & a ctype
-(defclass class_nrep_if
-  :super class_nrep_expr
-  :fields (nif_test
-	   nif_then
-	   nif_else
-	   nif_ctyp
-))
-
-;; normal progn has a distingished last
-(defclass class_nrep_progn
-  :super class_nrep_expr
-  :fields (nprogn_seq			;tuple of all but last
-	   nprogn_last
-	   ))
-
-;; normalized unsafe get field
-(defclass class_nrep_unsafe_get_field
-  :super class_nrep_expr
-  :fields (nuget_obj
-	   nuget_field))
-
-
-;; normalized unsafe_put_field
-(defclass class_nrep_unsafe_put_fields
-  :super class_nrep_expr
-  :fields (nuput_obj
-	   nuput_fields))
-
-;; normalized setq
-(defclass class_nrep_setq
-  :super class_nrep_expr
-  :fields (nstq_var
-	   nstq_exp
-))
-
-;; normalized forever
-(defclass class_nrep_forever
-  :super class_nrep_expr
-  :fields (nforever_bind 		;the label binding
-	   nforever_body		;a tuple
-	   nforever_result		;cloned symbol for result
-))
-
-;; normalized exit
-(defclass class_nrep_exit
-  :super class_nrep_expr
-  :fields (nexit_bind			;the label binding
-	   nexit_val			;the exited value
-))
-
-;; normalized field assign (in make instance)
-(defclass class_nrep_fieldassign
-  :super class_nrep
-  :fields (nfla_field			;the field
-	   nfla_val			;its normalized value
-))
-
-;; normalized make instance
-(defclass class_nrep_make_instance
-  :super class_nrep_expr
-  :fields (nmins_class			;the instanciated class
-	   nmins_cladata		;its data
-	   nmins_fields			;the tuple of field assignments
-))
-
-;; normalized lambda
-(defclass class_nrep_lambda 
-  :super class_nrep_expr
-  :fields (nlambda_proc			;the procedure
-	   nlambda_constrout		;the constant routine
-	   nlambda_closedv		;the tuple of closed normal values
-))
-
-
-;;; procedures
-(defclass class_nrep_anyproc
-  :super class_nrep
-  :fields (
-	   nproc_body
-))
-
-
-;; the class of the initial procedure
-(defclass class_nrep_initproc
-  :super class_nrep_anyproc
-  :fields (ninit_topl			;list of toplevel nrep
-))
-
-;; normal routine procedure
-(defclass class_nrep_routproc
-  :super class_nrep_anyproc
-  :fields (
-	   nrpro_name			;name (if any)
-	   nrpro_argb			;argument bindings
-	   nrpro_closedb		;list of closed bindings
-	   nrpro_const			;list of constants
-	   nrpro_datarout		;routine data object
-	   nrpro_dataclos		;closure data object
-	   nrpro_thunklist		;list of thunks to be called when compiling it
-))
-
-
-;;; static normalized predef
-(defclass class_nrep_predef
-  :super class_nrep_simple
-  :fields (
-	   nrpredef			;the predef is a symbol or a boxed integer
-))
-
-;; normalized nil
-(defclass class_nrep_nil
-  :super class_nrep_simple
-  :fields (
-))
-
-
-;;;; static data is build at module initialization time
-(defclass class_nrep_data
-  ;; the objnum is the predefined rank if any
-  :super class_nrep_simple
-  :fields (ndata_name			;name if any of the data
-	   ndata_discrx		;discriminant normal expression 
-	   ndata_rank			;boxed integer rank of the data 
-	   ;;; we box the integer and don't use the objnum bzcause we
-	   ;;; might have a lot (>30000) of data
-	   ndata_locbind		;local binding tuple to fill the data
-	   ))
-
-;; normal "static" instance - built at modules initialization
-(defclass class_nrep_datainstance
-  :super class_nrep_data
-  :fields (ninst_objnum			;object number (a number or a symbol)
-	   ninst_predef			;predefined rank (number or symbol)
-	   ninst_hash			;integer hash
-	   ninst_slots			;tuple of normalized slots expressions
-))
-
-;; normal "static" string
-(defclass class_nrep_datastring
-  :super class_nrep_data
-  :fields ( nstr_string		    ;the string
-))
-
-;; normal "static" tuple
-(defclass class_nrep_datatuple
-  :super class_nrep_data
-  :fields ( ntup_comp			;the tuple of component values expressions
-))
-
-;; normal interned static symbol
-(defclass class_nrep_datasymbol
-  :super class_nrep_datainstance
-  :fields ( ndsy_namestr
-))
-
-;; normal interned static keyword
-(defclass class_nrep_datakeyword
-  :super class_nrep_datasymbol
-  :fields ( 
-))
-
-;; normal static routine data
-(defclass class_nrep_dataroutine
-  :super class_nrep_data
-  :fields (ndrou_proc		    ;associated procedure
-))
-
-;; normal static closure data
-(defclass class_nrep_dataclosure
-  :super class_nrep_data
-  :fields (ndclo_proc		    ;associated procedure
-	   ndclo_closv		    ;tuple of closed values
-))
-
-;; normal static start value
-;; obtained from an initial binding
-(defclass class_nrep_startval
-  :super class_nrep_simple
-  :fields (nstart_var		    ;the variable
-	   ))
-
-;; normal  occurrence of a symbol 
-(defclass class_nrep_symocc
-  :super class_nrep_simple
-  :fields (nocc_symb
-	   nocc_ctyp			;the ctype of the symbol, eg ctype_value
-	   nocc_bind			;the binding of the symbol
-))
-
-;; normal local occurrence of a symbol
-(defclass class_nrep_locsymocc
-  :super class_nrep_symocc
-  :fields (
-))
-
-;; normal closed occurrence of a symbol
-(defclass class_nrep_closedocc
-  :super class_nrep_symocc
-  :fields (ncloc_procs			;list of enclosing procedures
-))
-
-;; normal constant occurrence of a symbol
-(defclass class_nrep_constocc
-  :super class_nrep_closedocc
-)
-
-;; normal constant (.e.g a quoted symbol, a keyword, ...)
-(defclass class_nrep_constant
-  :super class_nrep_simple
-  :fields (nconst_sval			;source value
-	   nconst_data			;normalized data
-	   nconst_proc			;containing proc
-))
-
-;; data field accessor (mostly used for defclass initialization) this
-;; translates into basilys_field_object(<obj>,<off>) of obj is not a
-;; datainstance and directly to the field if it is a datainstance
-(defclass class_nrep_fieldacc
-  :super class_nrep_expr
-  :fields (naccf_obj			;data for the object to be accessed 
-	   naccf_fld			;rank or field to be accessoed
-))
-
-;;; data multiple accessor (mostly used for defclass initialization)
-;; this translates into basilys_multiple_nth(<mul>,<ix>) if mul is not
-;; a datatuple and directly to the component if it is a datatuple
-(defclass class_nrep_multacc
-  :super class_nrep_expr
-  :fields (naccm_mul			;data for the multiple to be accessed
-	   naccm_ix			;index to be accessed (a boxed integer)
-))
-
-
-;;; normalization context
-(defclass class_normcontext
-  :super class_root
-  :fields (nctx_initproc		;initial procedure
-	   nctx_proclist		;list of procedures
-	   nctx_datalist		;list of data
-	   nctx_symbmap			;stringmap of name to interned symbols
-	   nctx_keywmap			;stringmap of name to interned keywords
-	   nctx_symbcachemap		;objmap of cached symbol -> occurrence
-	   nctx_predefmap		;objmap of predef -> boxedrank or symbols
-	   nctx_valmap			;objmap of values -> data 
-	   nctx_valbindmap 		;objmap of value binding -> data
-	   nctx_curproc			;current procedure
-))
 
 ;;; add some data to a normalization context and return it
 (defun add_nctx_data (nctx ndata)
@@ -6778,28 +7323,6 @@
 (defselector put_objdest class_selector
 )
 
-;;; classes for code generation
-
-
-;;; code generation context
-(defclass class_genercontext
-  :super class_root
-  :fields ( gncx_objrout 		;the containing object routine
-	    gncx_locmap			;objmap from normal bindings to locals
-	    gncx_freeptrlist		;list of freed local pointers
-	    gncx_freelonglist		;list of freed local longs
-	    gncx_freeothermaps		;map keyed by ctypes of list of freed local others
-	    gncx_retloc			;return location
-	    gncx_compicache		;cache map of procedure to compiled routines
-))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;; common superclass for objcode
-(defclass class_objcode
-  :super class_root
-  :fields (
-))
-
 (defun putobjdest_catchall_objcode (recv desto)
   (debugmsg recv "putobjdest_catchall_objcode recv@@  "  (the_callcount))
   (debugmsg desto "putobjdest_catchall_objcode desto@@  "  (the_callcount))
@@ -6811,65 +7334,11 @@
 
 
 
-;;;; value like objects
-(defclass class_objvalue
-  :super class_objcode
-  :fields ( obv_type			;the ctype
-))
-
 (defun getctype_objvalue (recv env)
   (assert_msg "check recv objvalue" (is_a recv class_objvalue))
   (unsafe_get_field :obv_type recv))
 (install_method class_objvalue get_ctype getctype_objvalue)
 
-;;; pure values are side-effect free
-(defclass class_objpurevalue
-  :super class_objvalue
-  :fields ())
-
-;; object local variable
-(defclass class_objlocv
-  :super class_objpurevalue
-  :fields (obl_off			;offset in frame
-	   obl_proc			;containing procedure
-	   obl_cname			;symbolic cname string
-))
-
-
-;; closed occurrence
-(defclass class_objcloccv
-  :super class_objpurevalue
-  :fields (obc_off			;offset in closure
-	   obc_proc			;containing procedure
-	   obc_name			;symbolic name
-))
-
-;; constant [closed] occurrence
-(defclass class_objconstv
-  :super class_objcloccv
-  :fields (
-))
-
-;; predefined object
-(defclass class_objpredef
-  :super class_objpurevalue
-  :fields (obpredef
-))
-
-;; nil
-(defclass class_objnil
-  :super class_objpurevalue
-  :fields ())
-
-;; initial element 
-(defclass class_objinitelem
-  :super class_objpurevalue
-  :fields (oie_cname 			;symbolic cname string - fieldname in cdat
-	   oie_data			;normal data
-	   oie_discr			;compiled discriminant
-	   oie_locvar			;initial routine's local variable
-	   ;; the size, if any is the obj_num
-))
 
 ;;;; selector to generate the declaration of an initial
 ;;; reciever some objinielem
@@ -6969,12 +7438,6 @@
   ctype_value)
 (install_method class_objnil get_ctype gectyp_objnil)
 
-;;; initial object - see BASILYS_OBJECT_STRUCT in basilys.h
-(defclass class_objinitobject
-  :super class_objinitelem
-  :fields (
-	   oio_predef			;the predef name or number to contain this object
-))
 (defun outdeclinit_objinitobject (recv sbuf)
   (add2sbuf_strconst sbuf " struct BASILYS_OBJECT_STRUCT(")
   (add2sbuf_longdec sbuf (get_int recv))
@@ -7122,14 +7585,6 @@
 
 
 
-;;; initial multiple - see BASILYS_MULTIPLE_STRUCT in basilys.h
-(defclass class_objinitmultiple
-  :super class_objinitelem
-  :fields (
-	   ;; we may need to tuple of compiled values for accessing
-	   ;; the nth at compilation time in compilobj_nrep_multacc
-	   oim_tupval			;tuple of compiled values
-))
 (defun outdeclinit_objinitmultiple (recv sbuf)
   (add2sbuf_strconst sbuf " struct BASILYS_MULTIPLE_STRUCT(")
   (add2sbuf_longdec sbuf (get_int recv))
@@ -7173,11 +7628,6 @@
     ))
 (install_method class_objinitmultiple output_c_initfill outcinitfill_objinitmultiple)
 
-;;; initial closure - see BASILYS_CLOSURE_STRUCT in basilys.h
-(defclass class_objinitclosure 
-  :super  class_objinitelem
-  :fields (
-))
 (defun outdeclinit_objinitclosure (recv sbuf)
   (add2sbuf_strconst sbuf " struct BASILYS_CLOSURE_STRUCT(")
   (add2sbuf_longdec sbuf (get_int recv))
@@ -7222,12 +7672,6 @@
 (install_method class_objinitclosure output_c_initfill outcinitfill_objinitclosure)
 
 
-;;; initial routine - see  BASILYS_ROUTINE_STRUCT in basilys.h
-(defclass class_objinitroutine
-  :super class_objinitelem
-  :fields (
-	   oir_procroutine		;the procroutine associated
-))
 (defun outdeclinit_objinitroutine (recv sbuf)
   (add2sbuf_strconst sbuf " struct BASILYS_ROUTINE_STRUCT(")
   (add2sbuf_longdec sbuf (get_int recv))
@@ -7316,11 +7760,6 @@
     ))
 (install_method class_objinitroutine output_c_initfill outcinitfill_objinitroutine)
 
-;;; initial string - see BASILYS_STRING_STRUCT in basilys.h
-(defclass class_objinitstring
-  :super class_objinitelem
-  :fields (
-))
 (defun outdeclinit_objinitstring (recv sbuf)
   (add2sbuf_strconst sbuf " struct BASILYS_STRING_STRUCT(")
   (add2sbuf_longdec sbuf (get_int recv))
@@ -7365,228 +7804,6 @@
     ))
 (install_method class_objinitstring output_c_initfill outcinitfill_objinitstring)
 
-;; expanded value
-(defclass class_objexpv
-  :super class_objvalue
-  :fields (obx_cont
-))
-
-;; expanded value with location 
-(defclass class_objlocatedexpv
-  :super class_objexpv
-  :fields (obcx_loc			;optional location
-))
-
-;;;; instructions
-(defclass class_objinstr
-  :super class_objcode
-  :fields (obi_loc			;src location
-))
-
-;;;; instructions with a list of destinations (computes, calls, sends, etc...)
-(defclass class_objdestinstr
-  :super class_objinstr
-  :fields (obdi_destlist		;a list of destination lovations
-))
-
-;;; compute instruction
-(defclass class_objcompute
-  :super class_objdestinstr
-  :fields (obcpt_expr			;expression list
-))
-
-;; get argument instruction
-(defclass class_objgetarg
-  :super class_objinstr
-  :fields (obarg_obloc			;objlocation
-	   obarg_bind			;formal binding
-))
-
-
-;; put extra result instruction
-(defclass class_objputxtraresult
-  :super class_objinstr
-  :fields (obxres_rank 			;boxed rank
-	   obxres_obloc			;objlocation
-))
-
-;; final return
-(defclass class_objfinalreturn
-  :super class_objinstr
-  :fields (				;no argument
-))
-
-;; clear instruction
-(defclass class_objclear
-  :super class_objinstr
-  :fields (oclr_vloc			;varlocation to clear
-))
-
-;; block instruction
-(defclass class_objblock
-  :super class_objinstr
-  :fields ( oblo_bodyl			;body list
-	    oblo_epil			;epilogue list
-))
-
-;; looping block
-(defclass class_objloop
-  :super class_objblock		 ;the body is looped, not the epilogue
-  :fields (obloop_label		 ;cloned symbol
-	   obloop_resv		 ;the result of the loop
-))
-
-;; exit a loop
-(defclass class_objexit
-  :super class_objinstr
-  :fields (obexit_label			;cloned symbol for goto destination
-))
-
-;; conditional instruction
-(defclass class_objcond
-  :super class_objinstr
-  :fields (obcond_test
-	   obcond_then
-	   obcond_else
-))
-
-;;; apply instruction
-(defclass class_objapply
-  :super class_objdestinstr
-  :fields (obapp_clos			;closure to be applied
-	   obapp_args			;argument tuple
-))
-
-;;; multiapply instruction
-(defclass class_objmultiapply
-  :super class_objapply
-  :fields (obmultapp_xres		;extraresult tuple
-))
-
-;;; message send instruction
-(defclass class_objmsend
-  :super class_objdestinstr
-  :fields (obmsnd_sel			;selector object (compiled)
-	   obmsnd_recv			;message reciever (compiled)
-	   obmsnd_args 			;argument tuple (compiled)
-))
-
-;;; multisend instruction
-(defclass class_objmultimsend
-  :super class_objmsend
-  :fields (obmultsnd_xres		;extraresult tuple
-))
-
-;; raw object allocation instruction
-(defclass class_objrawallocobj
-  :super class_objdestinstr
-  :fields (
-	   obrallobj_class		;the class data
-	   obrallobj_len		;the boxed integer length
-))
-
-
-;; new closure allocation
-(defclass class_objnewclosure
-  :super class_objdestinstr
-  :fields (obnclo_discr		     ;the discriminant
-	   obnclo_rout		     ;the routine
-	   obnclo_len		     ;the boxed integer length
-))
-
-;; put a component inside a tuple
-(defclass class_objputuple
-  :super class_objinstr
-  :fields (oputu_tupled			;the tuple data
-	   oputu_offset			;numerical offset
-	   oputu_value			;the new value
-))
-
-;; put a slot inside an object
-(defclass class_objputslot
-  :super class_objinstr
-  :fields ( oslot_odata			;the object data to put
-	    oslot_offset		;numerical offset
-	    oslot_field			;the [optional] field (only for generated comment)
-	    oslot_value			;the new value
-))
-
-
-;; get a slot from an object
-(defclass class_objgetslot
-  :super class_objdestinstr
-  :fields (ogetsl_obj		   ;the object to get from
-	   ogetsl_field		   ;the fieldname
-))
-
-;; put the routine inside a closure
-(defclass class_objputclosurout
-  :super class_objinstr
-  :fields (opclor_clos			;the closure data
-	   opclor_rout			;the routine data
-))
-
-;; put a closed value inside a closure
-(defclass class_objputclosedv
-  :super class_objinstr
-  :fields (opclov_clos			;the closure data or local
-	   opclov_off 			;the boxed offset
-	   opclov_cval			;the closed value
-))
-
-;; put a constant value inside a routine
-(defclass class_objputroutconst
-  :super class_objinstr
-  :fields (oprconst_rout	 ;the routine data
-	   oprconst_off		 ;the boxed offset
-	   oprconst_cval	 ;the constant value
-))
-
-;; touch a value, with a tiny comment
-(defclass class_objtouch
-  :super class_objinstr
-  :fields (otouch_val
-	   otouch_comment
-))
-
-;; set a predef
-(defclass class_objsetpredef
- :super class_objinstr
- :fields ( ospr_object			;the object 
-	   ospr_predef			;its predef rank
-))
-
-
-;;; routines
-(defclass class_routineobj
-  :super class_named
-  :fields (obrout_proc			;the associated procedure
-	   obrout_body			;the body (a list)
-	   obrout_nbval			;the boxed number of value pointers
-	   obrout_nblong		;the boxed number of longs
-	   ;;; if double are needed, we might later add some obrout_nbdouble
-	   obrout_others		;the list of other (nonvalue,
-					;nonlongs) locals (usually C
-					;pointers like tree-s,
-					;cstrings, ...)
-	   obrout_retval		;the main return value
-))
-
-;; procedure routine
-(defclass class_procroutineobj
-  :super class_routineobj
-  :fields (oprout_getargs		;the get arguments tuple of instructions
-	   oprout_loc			;the source location
-	   oprout_funam			;function name
-))
-
-;; initial routine
-(defclass class_initialroutineobj
-  :super class_routineobj
-  :fields (
-	   oirout_data			;the tuple of initial data
-	   oirout_fill			;the fill of the data (a list of instr)
-))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; in the debug output routineobj-s make huge output, so print the detail only when at toplevel
@@ -8497,6 +8714,7 @@
 	 (cthen (unsafe_get_field :obcond_then ocond))
 	 (celse (unsafe_get_field :obcond_else ocond)) 
 	 )
+    (assert_msg "check ctest" (notnull ctest))
     (output_location cloc implbuf depth "cond")
     (add2sbuf_strconst implbuf "/*cond*/ if (")
     (output_c_code ctest declbuf implbuf (+i depth 1))
@@ -10960,6 +11178,7 @@
 				:obcond_then othen
 				:obcond_else oelse))
 	   )
+      (assert_msg "check otest" (notnull otest))
       (debugmsg obif "compilobj_nrep_if obif" (the_callcount))
       obif
       )))
