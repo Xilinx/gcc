@@ -59,11 +59,11 @@ extern long basilys_dbgcounter;
 
 #define debugeprintf_raw(Fmt,...) do{if (flag_basilys_debug) \
       {fprintf(stderr, Fmt, ##__VA_ARGS__); fflush(stderr);}}while(0)
-#define debugeprintf(Fmt,...) debugeprintf_raw("!@%s:%d: " Fmt "\n", \
+#define debugeprintf(Fmt,...) debugeprintf_raw("!@%s:%d:\n@! " Fmt "\n", \
       basename(__FILE__), __LINE__, ##__VA_ARGS__)
 #define debugeprintvalue(Msg,Val) do{if (flag_basilys_debug){	\
       void* __val = (Val);					\
-      fprintf(stderr,"!@%s:%d: %s @%p= ",			\
+      fprintf(stderr,"!@%s:%d:\n@! %s @%p= ",			\
               basename(__FILE__), __LINE__, (Msg), __val);	\
       basilys_dbgeprint(__val); }} while(0)
 #define debugebacktrace(Msg,Depth)  do{if (flag_basilys_debug){	\
@@ -775,6 +775,16 @@ basilys_multiple_length (basilysmultiple_ptr_t mul)
     return 0;
   return mul->nbval;
 }
+
+/* sort a multiple MUL using as compare function the closure CMPCLO
+   which should return a boxed integer (0 for equality, <0 for less
+   than, >0 for greater than), when applied to two values to
+   compare. If the closure does not return an integer the whole sort
+   returns null; otherwise it returns a new multiple value of
+   discriminant DISCRM */
+basilys_ptr_t
+basilysgc_sort_multiple(basilys_ptr_t mult_p, basilys_ptr_t clo_p, basilys_ptr_t discrm_p); 
+
 
 /* allocate a new box of given DISCR & content VAL */
 basilys_ptr_t basilysgc_new_box (basilysobject_ptr_t discr_p,
@@ -2194,7 +2204,7 @@ basilys_output_cfile_decl_impl(basilys_ptr_t cfilnam, basilys_ptr_t declbuf, bas
 static inline void
 debugeputs_at (const char *fil, int lin, const char *msg)
 {
-  debugeprintf_raw ("!@%s:%d: %s\n", basename (fil), lin, msg);
+  debugeprintf_raw ("!@%s:%d:\n@! %s\n", basename (fil), lin, msg);
 }
 
 #define debugeputs(Msg) debugeputs_at(__FILE__,__LINE__,(Msg))
@@ -2204,7 +2214,7 @@ debugvalue_at (const char *fil, int lin, const char *msg, void *val)
 {
   if (flag_basilys_debug)
     {
-      fprintf (stderr, "!@%s:%d: %s @%p/%d= ",
+      fprintf (stderr, "!@%s:%d:\n@! %s @%p/%d= ",
 	       basename (fil), lin, (msg), val, basilys_magic_discr (val));
       basilys_dbgeprint (val);
       fflush (stderr);

@@ -447,6 +447,9 @@
 ;; be careful to avoid circularities
 (defprimitive multiple_put_nth (mul :long n :value v) :void
   " basilysgc_multiple_put_nth((void*)(" mul "), (" n "), (void*)(" v "))")
+;; sort a multiple, the compare function should return a boxed integer
+(defprimitive multiple_sort (mul cmp discrm) :value
+  " basilysgc_sort_multiple((" mul "), (" cmp "),( " discrm "))")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;; MAPOBJECTs primitives
@@ -3368,6 +3371,7 @@
 (defun mexpand_if (sexpr env mexpander)
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
   (assert_msg "check env" (is_a env class_environment))
+  (debugmsg sexpr "mexpand_if sexpr" (the_callcount))
   (let ( (xcond ())
 	 (xthen ())
 	 (xelse ()) 
@@ -3384,22 +3388,28 @@
     (let ( (curthen (pair_head curpair)) )
       (setq curpair (pair_tail curpair))
       (setq xthen (macroexpand_1 curthen env mexpander))
+      (debugmsg xthen "mexpand_if xthen" (the_callcount))
       (if (is_pair curpair)
 	  (let ( (curelse (pair_head curpair)) )
 	    (setq xelse (macroexpand_1 curelse env mexpander))
 	    (setq curpair (pair_tail curpair))
 	    (if (is_pair curpair)
 		(error_plain loc "IF with more than three sons"))
-	    (make_instance class_src_ifelse
-			   :src_loc loc
-			   :sif_test xcond
-			   :sif_then xthen
-			   :sif_else xelse
-			   ))
-	(make_instance class_src_if
-		       :src_loc loc
-		       :sif_test xcond
-		       :sif_then xthen)
+	    (let ( (rese
+		    (make_instance class_src_ifelse
+				   :src_loc loc
+				   :sif_test xcond
+				   :sif_then xthen
+				   :sif_else xelse
+				   )) )
+	      (debugmsg rese "mexpand_if return rese" (the_callcount))
+	      (return rese)))
+	(let ( (resp (make_instance class_src_if
+				    :src_loc loc
+				    :sif_test xcond
+				    :sif_then xthen)) )
+	  (debugmsg resp "mexpand_if return resp" (the_callcount))
+	  (return resp))
 	))))
 (install_initial_macro 'if mexpand_if)
 
@@ -11747,7 +11757,7 @@
 ;; compile a list of sexpressions as a module starting from a given environment
 (defun compile_list_sexpr (lsexp inienv modnamstr)
   (message_dbg "starting  compile_list_sexpr")
-  (debugmsg lsexp "\n\n\n*compile_list_sexpr lsexp"  (the_callcount)) ;list of sexpr
+  (debugmsg lsexp "\n\n\n*%*%* compile_list_sexpr lsexp"  (the_callcount)) ;list of sexpr
   (debugmsg inienv "compile_list_sexpr inienv" (the_callcount)) ;initial environment
   (debugmsg modnamstr "compile_list_sexpr modnamstr" (the_callcount)) ;module name
   (assert_msg "check lsexp" (is_list lsexp))

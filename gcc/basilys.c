@@ -63,6 +63,9 @@ along with GCC; see the file COPYING3.   If not see
 #error required libtool dynamic loader library LTDL
 #endif /*HAVE_LIBTOOLDYNL */
 
+/* basilysgc_sort_multiple needs setjmp */
+#include <setjmp.h>
+
 #include "basilys.h"
 
 
@@ -2056,6 +2059,113 @@ end:
 #undef discrv
 #undef valv
 }
+
+
+
+/*** sort a multiple with a compare closure which should return a
+     number; if it does not, the sort return nil, by longjmp-ing out
+     of qsort
+ ***/
+static jmp_buf mulsort_escapjmp;
+static basilys_ptr_t *mulsort_mult_ad;
+static basilys_ptr_t *mulsort_clos_ad;
+static int mulsort_cmp(const void*p1, const void*p2)
+{
+  int ok = 0;
+  int cmp = 0;
+  int ix1 = -1, ix2 = -1; 
+  union basilysparam_un argtab[2];
+  BASILYS_ENTERFRAME(5, NULL);
+#define rescmpv curfram__.varptr[0]
+#define val1v curfram__.varptr[1]
+#define val2v curfram__.varptr[2]
+#define clov  curfram__.varptr[3]
+#define mulv  curfram__.varptr[4]
+  mulv = *mulsort_mult_ad;
+  clov = *mulsort_clos_ad;
+  ix1 = *(int*)p1;
+  ix2 = *(int*)p2;
+  val1v = basilys_multiple_nth(mulv, ix1);
+  val2v = basilys_multiple_nth(mulv, ix2);
+  if (val1v == val2v) {
+    ok = 1;
+    cmp = 0;
+    goto end;
+  }
+  memset(argtab, 0, sizeof(argtab));
+  argtab[0].bp_aptr = (basilys_ptr_t *) &val2v;
+  rescmpv = basilys_apply(clov, val1v, BPARSTR_PTR, argtab, "", NULL);
+  if (basilys_magic_discr(rescmpv) == OBMAG_INT) {
+    ok = 1;
+    cmp = basilys_get_int(rescmpv);
+  }
+end:
+  BASILYS_EXITFRAME ();
+#undef rescmpv
+#undef val1v
+#undef val2v
+#undef clov
+  if (!ok) 
+    longjmp(mulsort_escapjmp, 1);
+  return cmp;
+}
+
+basilys_ptr_t
+basilysgc_sort_multiple(basilys_ptr_t mult_p, basilys_ptr_t clo_p, basilys_ptr_t discrm_p) 
+{
+  int *ixtab = 0;
+  int i = 0;
+  unsigned mulen = 0;
+  BASILYS_ENTERFRAME(5, NULL);
+#define multv      curfram__.varptr[0]
+#define clov       curfram__.varptr[1]
+#define discrmv    curfram__.varptr[2]
+#define resv       curfram__.varptr[3]
+  multv = mult_p;
+  clov = clo_p;
+  discrmv = discrm_p;
+  resv = NULL;
+  if (basilys_magic_discr(multv) != OBMAG_MULTIPLE) 
+    goto end;
+  if (basilys_magic_discr(clov) != OBMAG_CLOSURE)
+    goto end;
+  if (!discrmv) discrmv = BASILYSGOB(DISCR_MULTIPLE);
+  if (basilys_magic_discr(discrmv) != OBMAG_OBJECT)
+    goto end;
+  if (((basilysobject_ptr_t)discrmv)->obj_num != OBMAG_MULTIPLE)
+    goto end;
+  mulen = (int) (((basilysmultiple_ptr_t)multv)->nbval);
+  /* allocate and fill ixtab with indexes */
+  ixtab = xcalloc(mulen+1, sizeof(ixtab[0]));
+  for (i = 0; i<(int)mulen; i++) 
+    ixtab[i] = i;
+  mulsort_mult_ad = (basilys_ptr_t *) &multv;
+  mulsort_clos_ad = (basilys_ptr_t *) &clov;
+  if (!setjmp(mulsort_escapjmp)) 
+    {
+      qsort(ixtab, (size_t)mulen, sizeof(ixtab[0]), mulsort_cmp);
+      resv = basilysgc_new_multiple (discrmv, (unsigned)mulen);
+      for (i = 0; i<(int)mulen; i++) 
+	basilysgc_multiple_put_nth(resv, i, basilys_multiple_nth(multv, ixtab[i]));
+    }
+  else {
+    resv = NULL;
+  } 
+end:
+  if (ixtab) 
+    free(ixtab);
+  memset(&mulsort_escapjmp, 0, sizeof(mulsort_escapjmp));
+  mulsort_mult_ad = 0;
+  mulsort_clos_ad = 0;
+  BASILYS_EXITFRAME ();
+  return resv;
+#undef multv
+#undef clov
+#undef discrmv
+#undef resv
+}
+
+
 
 /* allocate a new box of given DISCR & content VAL */
 basilys_ptr_t
@@ -6032,8 +6142,7 @@ basilys_dbgshortbacktrace (const char *msg, int maxdepth)
   for (fr = basilys_topframe; fr != NULL && curdepth < maxdepth;
        (fr = fr->prev), (curdepth++))
     {
-      if ((curdepth - 1) % 2 == 0)
-	fputs ("\n", stderr);
+      fputs ("\n", stderr);
       fprintf (stderr, "#%d:", curdepth);
       if (basilys_magic_discr ((void *) fr->clos) == OBMAG_CLOSURE)
 	{
