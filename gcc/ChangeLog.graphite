@@ -1,3 +1,8 @@
+2008-05-29  Tobias Grosser  <grosser@fim.uni-passau.de>
+
+	* graphite.c (dot_all_scops_1): Fix some colors. Reuse colors, if
+	we have too many colors.
+
 2008-05-22  Sandeep Maram <smaram_b04@iiita.ac.in>
 
 	* doc/invoke.texi (-ftree-loop-fusion): Document.

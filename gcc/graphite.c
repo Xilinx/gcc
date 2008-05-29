@@ -266,7 +266,7 @@ dot_all_scops_1 (FILE *file)
       for (i = 0; VEC_iterate (scop_p, current_scops, i, scop); i++)
 	if (bb_in_scop_p (bb, scop) || scop->exit == bb || scop->entry == bb)
 	  {
-	    switch (i)
+	    switch (i % 17)
 	      {
 	      case 0: /* red */
 		color = "#e41a1c";
@@ -302,13 +302,13 @@ dot_all_scops_1 (FILE *file)
 		color = "#bebada";
 		break;
 	      case 11:
-		color = "fb8072";
+		color = "#fb8072";
 		break;
 	      case 12:
-		color = "80b1d3";
+		color = "#80b1d3";
 		break;
 	      case 13:
-		color = "fdb462";
+		color = "#fdb462";
 		break;
 	      case 14:
 		color = "#b3de69";
