@@ -3361,7 +3361,7 @@
 		 (debugmsg resca "macroexpand_1 result complex apply resca" (the_callcount))
 		 (return resca)
 		 ))))
-    sexpr))
+    (return sexpr)))
   
 ;;; expand a primitive s-expression
 (defun expand_primitive (opbind sexpr env mexpander)
@@ -3544,17 +3544,20 @@
 		 (:long ix 0) )
 	    (forever comploop
 		     (if (not (is_pair curpair)) (exit comploop))
-		     (let ( (curcomp  (macroexpand_1 (pair_head curpair) env mexpander)) )
-		       ;; change string to verbatimstring to ease primitive expansion
-		       ;; and check that each component is e string or a symbol
-		       (cond ( (== (discrim curcomp) discr_string)
-			       (setq curcomp (make_string discr_verbatimstring curcomp)))
-			     ( (!= (discrim curcomp) class_symbol)
-			       (error_strv loc "invalid expansion component in primitive"
-					   (unsafe_get_field :named_name symb))))
-		       (multiple_put_nth etuple ix curcomp)
-		       (setq curpair (pair_tail curpair))
-		       (setq ix (+i ix 1))))
+		     (let ( (curhead  (pair_head curpair)) )
+		       (debugmsg curhead "mexpand_defprimitive curhead" (the_callcount))
+		       (let ( (curcomp  (macroexpand_1 curhead env mexpander)) )
+			 (debugmsg curcomp "mexpand_defprimitive curcomp" (the_callcount))
+			 ;; change string to verbatimstring to ease primitive expansion
+			 ;; and check that each component is e string or a symbol
+			 (cond ( (== (discrim curcomp) discr_string)
+				 (setq curcomp (make_string discr_verbatimstring curcomp)))
+			       ( (!= (discrim curcomp) class_symbol)
+				 (error_strv loc "invalid expansion component in primitive"
+					     (unsafe_get_field :named_name symb))))
+			 (multiple_put_nth etuple ix curcomp)
+			 (setq curpair (pair_tail curpair))
+			 (setq ix (+i ix 1)))))
 	    (let ( (sdefpri
 		    (make_instance class_src_defprimitive
 				   :src_loc loc
@@ -9985,7 +9988,7 @@
 	  (get_free_objlocptr gcx nam))
 	;; return null for the void ctype
 	( (== ctyp ctype_void)
-	  ())
+	  (return (the_null)))
 	(:else 
 	 (debugmsg nam "getfreeobjloctyped nam" (the_callcount))
 	 (debugmsg ctyp "getfreeobjloctyped ctyp" (the_callcount))
