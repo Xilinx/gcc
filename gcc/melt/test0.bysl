@@ -63,6 +63,12 @@
     f)
 )
 
+(defun testletlong (f x)
+  (let (
+        (:long two 2) )
+    (f x two)))
+
+
 (defun testletforever (x y f g)
   (let ( (uu x) )
     (forever loop

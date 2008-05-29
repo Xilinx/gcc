@@ -7378,9 +7378,18 @@
   (outcstring_err "* putobjdest unimplemented reciever class ")
   (let ( (discr (discrim recv)) ) (outstr_err (unsafe_get_field :named_name discr)))
   (outnewline_err)
-  (assert_msg "@@ unexpected catchall putobjdest" ()))
+  (assert_msg "@@ unexpected catchall putobjdest objcod" ()))
 (install_method class_objcode put_objdest putobjdest_catchall_objcode)
 
+
+(defun putobjdest_catchall_anydiscr (recv desto)
+  (debugmsg recv "putobjdest_catchall_anydiscr recv@@  "  (the_callcount))
+  (debugmsg desto "putobjdest_catchall_anydiscr desto@@  "  (the_callcount))
+  (outcstring_err "* putobjdest unimplemented reciever discriminant ")
+  (let ( (discr (discrim recv)) ) (outstr_err (unsafe_get_field :named_name discr)))
+  (outnewline_err)
+  (assert_msg "@@ unexpected catchall putobjdest anydiscr" ()))
+(install_method discr_anyrecv put_objdest putobjdest_catchall_anydiscr)
 
 
 (defun getctype_objvalue (recv env)
@@ -10458,15 +10467,22 @@
 		     (debugmsg nexp "compilobj_nrep_let current normbinding faulty nexp")
 		     (debugmsg obnx "compilobj_nrep_let current normbinding faulty obnx")
 		     (assert_msg "compilobj_nrep_let check obnx" (is_object obnx)))))
-	   ;; link nlbnd to obva in locmap
-	   (if obva (mapobject_put locmap nlbnd obva))
-	   ;; put destination obva in obnx
-	   (let ( (obmy (if obva (or (put_objdest obnx obva) obnx) obnx)) )
-	     (if obmy
-		 (progn 
-		   (debugmsg obmy "compilobj_nrep_let obmy")
-		   (list_append obodl obmy)))
-	     )
+	   (if obva
+	       ;; non void cty
+	       (progn
+		 (mapobject_put locmap nlbnd obva)
+		 (let ( (obpd (put_objdest obnx obva)) 
+			(obmy (or obpd obnx))
+			)
+		   (debugmsg obpd "compilobj_nrep_let current obpd")
+		   (debugmsg obmy "compilobj_nrep_let append obmy")
+		   (list_append obodl obmy)
+		 ))
+	     (progn
+	       ;; obva is nil when cty is void type 
+	       (debugmsg obnx "compilobj_nrep_let append obnx")
+	       (list_append obodl obnx)
+	       ))
 	   ;; add clearing of obva to epilogue part of oblock
 	   (if obva 
 	       (let ( (obcl (make_instance class_objclear
@@ -11143,6 +11159,54 @@
     ))
 
 (install_method class_objvalue  put_objdest  putobjdest_objvalue)
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defun putobjdest_integer (recv desto)
+  (assert_msg "check recv" (is_integerbox recv))
+  (assert_msg "check desto" (is_a desto class_objlocv))
+  (debugmsg recv "putobjdest_integer recv" (the_callcount))
+  (debugmsg desto "putobjdest_integer desto" (the_callcount))
+  (let ( (destlis (make_list discr_list))
+	 (explis (make_list discr_list))
+	 (typdesto (unsafe_get_field :obv_type desto))
+	 (obc (make_instance class_objcompute
+			     ;; dont fill :obi_loc
+			     :obdi_destlist destlis
+			     :obcpt_expr explis
+			     )) 
+	 )
+    (assert_msg "check typdesto" (== typdesto ctype_long))
+    (list_append destlis desto)
+    (list_append explis recv)
+    (debugmsg obc "putobjdest_integer return obc" (the_callcount))
+    obc
+    ))
+(install_method discr_integer put_objdest putobjdest_integer)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defun putobjdest_null (recv desto)
+  (assert_msg "check recv" (null recv))
+  (assert_msg "check desto" (is_a desto class_objlocv))
+  (debugmsg recv "putobjdest_integer recv" (the_callcount))
+  (debugmsg desto "putobjdest_integer desto" (the_callcount))
+  (let ( (destlis (make_list discr_list))
+	 (explis (make_list discr_list))
+	 (typdesto (unsafe_get_field :obv_type desto))
+	 (obc (make_instance class_objcompute
+			     ;; dont fill :obi_loc
+			     :obdi_destlist destlis
+			     :obcpt_expr explis
+			     )) 
+	 )
+	(list_append destlis desto)
+    (if (== typdesto ctype_long)
+	(list_append explis (make_integerbox discr_integer 0))
+      (list_append explis recv))
+    (debugmsg obc "putobjdest_null return obc" (the_callcount))
+    obc
+    ))
+(install_method discr_nullrecv put_objdest putobjdest_null)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun putobjdest_objblock (recv desto)

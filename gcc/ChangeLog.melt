@@ -1,3 +1,9 @@
+2008-05-29  Basile Starynkevitch  <basile@starynkevitch.net>
+[still metabuggy; warm-basilys-1 miscompile test0 -its testandsetq function]
+
+	* melt/warm-basilys.bysl: added putobjdest catchall for anydiscr,
+	and putobjdest methhods for null and discr_integer.
+
 2008-05-28  Basile Starynkevitch  <basile@starynkevitch.net>
 	[still metabuggy; the function pairlist_to_multiple is incorrectly
 	compiled in warm-basilys-1.c by coldbuild-warm-basilys.c]
