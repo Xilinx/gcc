@@ -1,5 +1,18 @@
 2008-05-29  Tobias Grosser  <grosser@fim.uni-passau.de>
 
+	* graphite.c (get_bb_type): Reworked. We distinguish between
+	loops with one or multiple exits.
+	(is_loop_exit): New.
+	(is_pred): New.
+	(is_bb_addable): Rework condition handling, now support for case
+	case statements and loops with multiple exits.
+
+        * testsuite/gcc.dg/graphite/scop-11.c: New.
+        * testsuite/gcc.dg/graphite/scop-12.c: New.
+        * testsuite/gcc.dg/graphite/scop-13.c: New.
+
+2008-05-29  Tobias Grosser  <grosser@fim.uni-passau.de>
+
 	* graphite.c (dot_all_scops_1): Fix some colors. Reuse colors, if
 	we have too many colors.
 
