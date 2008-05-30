@@ -1770,6 +1770,20 @@ make_anon_name (void)
   return get_identifier (buf);
 }
 
+/* This code is practically identical to that for creating
+   anonymous names, but is just used for lambdas instead. */
+
+static GTY(()) int lambda_cnt = 0;
+
+tree
+make_lambda_name (void)
+{
+  char buf[32];
+
+  sprintf (buf, LAMBDANAME_FORMAT, lambda_cnt++);
+  return get_identifier (buf);
+}
+
 /* Return (from the stack of) the BINDING, if any, established at SCOPE.  */
 
 static inline cxx_binding *

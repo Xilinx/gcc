@@ -1624,6 +1624,22 @@ static tree cp_parser_constant_expression
   (cp_parser *, bool, bool *);
 static tree cp_parser_builtin_offsetof
   (cp_parser *);
+static tree cp_parser_lambda_expression
+  (cp_parser *);
+static tree cp_parser_lambda_class_definition
+  (cp_parser *, tree *);
+static void cp_parser_lambda_head
+  (cp_parser *, cp_parameter_declarator **, tree *, cp_decl_specifier_seq *, cp_parameter_declarator **, tree *);
+static cp_parameter_declarator *cp_parser_lambda_parameter_clause
+  (cp_parser *);
+static void cp_parser_lambda_external_reference_clause
+  (cp_parser *, cp_parameter_declarator **, tree *);
+static void cp_parser_build_mem_init_list
+  (cp_parser *, cp_parameter_declarator *, tree *);
+static tree cp_parser_lambda_body
+  (cp_parser *, cp_decl_specifier_seq *, cp_declarator *, bool *);
+static void cp_parser_lambda_return_type_clause_opt
+  (cp_parser *, cp_decl_specifier_seq *);
 
 /* Statements [gram.stmt.stmt]  */
 
@@ -3244,6 +3260,15 @@ cp_parser_primary_expression (cp_parser *parser,
 	return expr;
       }
 
+    case CPP_LESS:
+        /* If this is a diamond symbol, "<>", then it starts a lambda
+           expression. */
+        if (cxx_dialect == cxx0x && cp_lexer_peek_nth_token (parser->lexer, 2)->type == CPP_GREATER)
+        {
+          cp_lexer_consume_token (parser->lexer);
+          return cp_parser_lambda_expression (parser);
+        }
+  
     case CPP_KEYWORD:
       switch (token->keyword)
 	{
@@ -6625,6 +6650,709 @@ cp_parser_trait_expr (cp_parser* parser, enum rid keyword)
      the trait expr now or saving it for template instantiation.  */
   return finish_trait_expr (kind, type1, type2);
 }
+
+/* Parse a lambda expression */
+static tree
+cp_parser_lambda_expression (cp_parser* parser)
+{
+  /* Arguments to the constructor */
+  tree ctor_arg_list = NULL_TREE;
+  /* The lambda class definition */
+  tree type = cp_parser_lambda_class_definition (parser, &ctor_arg_list);
+  /* The construction expression (primary-expression) */
+  tree construction_expr;
+
+  type = TREE_CHAIN (type);
+
+  construction_expr = build_functional_cast (
+    type,
+    ctor_arg_list,
+    tf_warning_or_error
+  );
+
+  return construction_expr;
+}
+
+static tree
+cp_parser_lambda_class_definition (cp_parser* parser,
+    tree* ctor_arg_list)
+{
+  unsigned int saved_num_template_parameter_lists;
+  bool         saved_in_function_body;
+  int          saved_num_classes;
+
+  tree enclosing_class_type = current_class_type;
+  tree type;
+  tree fco_decl;
+  tree ctor_decl;
+
+  bool expression_body_p;
+
+  cp_parameter_declarator* ctor_param_list = no_parameters;
+  cp_parameter_declarator* fco_param_list  = no_parameters;
+  tree fco_exception_spec = NULL_TREE;
+  cp_decl_specifier_seq fco_return_type_specs;
+
+  cp_parser_lambda_head (parser,
+      &fco_param_list,
+      &fco_exception_spec,
+      &fco_return_type_specs,
+      &ctor_param_list,
+      ctor_arg_list);
+
+  /* TODO: Move out to surrounding non-function, non-class scope. */
+  push_to_top_level ();
+
+  /********************************************
+   * Start up the class
+   * - class_specifier
+   * + class_head
+   ********************************************/
+  {
+    tree name;
+
+    push_deferring_access_checks (dk_no_deferred);
+
+    /* Unique name. This is just like an unnamed class. */
+    name = make_lambda_name ();
+
+    /* Create the new class for this lambda. */
+    type = xref_tag (
+        /*tag_code=*/class_type,
+        /*name=*/name,
+        /*scope=*/ts_current,
+        /*template_header_p=*/false);
+
+    /* For now, say that this was declared a class and not a struct. */
+    CLASSTYPE_DECLARED_CLASS (type) = true;
+
+    /* Clear base types. */
+    xref_basetypes (type, /*bases=*/NULL_TREE);
+
+    /* Remember that we are defining one more class. */
+    ++parser->num_classes_being_defined;
+
+    /* Inside the class, surrounding template-parameter-lists
+       do not apply.  */
+    saved_num_template_parameter_lists
+      = parser->num_template_parameter_lists;
+    parser->num_template_parameter_lists = 0;
+    /* We are not in a function body.  */
+    saved_in_function_body = parser->in_function_body;
+    parser->in_function_body = false;
+
+    /* Start the class. */
+    type = begin_class_definition (type, NULL_TREE);
+
+    /* TODO: look into push_class, pop_class */
+    current_class_type = type;
+  }
+
+  /********************************************
+   * Create members
+   * - member_specification_opt
+   * + member_declaration
+   ********************************************/
+  {
+    cp_parameter_declarator* decl_list;
+
+    /* Members are private */
+    current_access_specifier = access_private_node;
+
+    for (decl_list = ctor_param_list;
+        decl_list && decl_list->declarator;
+        decl_list = decl_list->next)
+    {
+      cp_decl_specifier_seq eref_type_specs;
+      cp_declarator* eref_declarator;
+      tree mem_decl;
+
+      /* Get the old type and identifier back. */
+      /* TODO: perform a deep copy? */
+      eref_type_specs = decl_list->decl_specifiers;
+      cp_parser_set_storage_class (parser, &eref_type_specs, RID_MUTABLE);
+
+      eref_declarator = decl_list->declarator;
+      while (eref_declarator->kind != cdk_id)
+        eref_declarator = eref_declarator->declarator;
+
+      mem_decl = grokfield (
+          eref_declarator,
+          &eref_type_specs,
+          /*initializer=*/NULL_TREE,
+          /*init_const_expr_p=*/true,
+          /*asm_specification=*/NULL_TREE,
+          /*attributes=*/NULL_TREE);
+
+      if (mem_decl)
+        finish_member_declaration (mem_decl);
+    }
+  }
+
+  /********************************************
+   * Start the function call operator
+   * - member_specification_opt
+   * + member_declaration
+   ********************************************/
+  {
+    bool saved_in_declarator_p;
+    bool saved_default_arg_ok_p;
+
+    /* fco = function call operator */
+    tree                     fco_name;
+    cp_declarator*           fco_declarator;
+
+    saved_in_declarator_p = parser->in_declarator_p;
+    parser->in_declarator_p = true;
+
+    saved_default_arg_ok_p = parser->default_arg_ok_p;
+    parser->default_arg_ok_p = true;
+
+    fco_name = ansi_opname (CALL_EXPR);
+    fco_declarator = make_id_declarator (
+        parser->scope,
+        fco_name,
+        sfk_none);
+
+    fco_declarator = make_call_declarator (
+        fco_declarator,
+        fco_param_list,
+        /*cv_qualifiers=*/TYPE_QUAL_CONST,
+        fco_exception_spec);
+
+    parser->in_declarator_p = saved_in_declarator_p;
+    parser->default_arg_ok_p = saved_default_arg_ok_p;
+
+    /* operator() is public */
+    current_access_specifier = access_public_node;
+
+    fco_decl = cp_parser_lambda_body (parser,
+        &fco_return_type_specs,
+        fco_declarator,
+        &expression_body_p);
+
+    finish_member_declaration (fco_decl);
+  }
+
+  /********************************************
+   * Start the constructor
+   * - member_specification_opt
+   * + member_declaration
+   ********************************************/
+  {
+    tree ctor_name;
+    cp_decl_specifier_seq ctor_decl_specs;
+    cp_declarator* ctor_declarator;
+
+    clear_decl_specs (&ctor_decl_specs);
+    ctor_name = constructor_name (type);
+    ctor_declarator = make_id_declarator (
+        parser->scope,
+        ctor_name,
+        sfk_constructor);
+    ctor_declarator = make_call_declarator (
+        ctor_declarator,
+        ctor_param_list,
+        /*cv_quals=*/0,
+        /*exception_specification=*/NULL_TREE);
+
+    current_access_specifier = access_public_node;
+
+    ctor_decl = start_method (
+        &ctor_decl_specs,
+        ctor_declarator,
+        /*attributes=*/NULL_TREE);
+    DECL_INITIALIZED_IN_CLASS_P (ctor_decl) = 1;
+    finish_method (ctor_decl);
+
+    finish_member_declaration (ctor_decl);
+  }
+
+  /********************************************
+   * Finish the class (part 1)
+   * - class_specifier
+   ********************************************/
+  {
+    type = finish_struct (type, NULL_TREE);
+
+    if (enclosing_class_type)
+      make_friend_class (enclosing_class_type, type, /*complain=*/false);
+  }
+
+  /********************************************
+   * Finish the constructor
+   * - class_specifier
+   * + late_parsing_for_member
+   * + function_definition_after_declarator
+   * + ctor_initializer_opt_and_function_body
+   * + mem_initializer_list
+   ********************************************/
+  {
+    tree mem_init_list = NULL_TREE;
+    tree ctor_body;
+    tree ctor_compound_stmt;
+    tree ctor_fn;
+
+    /* Let the front end know that we are going to be defining this
+       function. */
+    start_preparsed_function (
+        ctor_decl,
+        NULL_TREE,
+        SF_PRE_PARSED | SF_INCLASS_INLINE);
+
+    ctor_body = begin_function_body ();
+
+    cp_parser_build_mem_init_list (parser,
+        ctor_param_list,
+        &mem_init_list);
+
+    /* gcc_assert (DECL_CONSTRUCTOR_P (current_function_decl)); */
+    finish_mem_initializers (mem_init_list);
+
+    ctor_compound_stmt = begin_compound_stmt (0);
+    finish_compound_stmt (ctor_compound_stmt);
+
+    finish_function_body (ctor_body);
+
+    /* Finish the function and generate code for it if necessary. */
+    /* 3 == (1 | 2) == (ctor_initializer_p && inline_p) */
+    ctor_fn = finish_function (3);
+    expand_or_defer_fn (ctor_fn);
+  }
+
+  /********************************************
+   * Finish the function call operator
+   * - class_specifier
+   * + late_parsing_for_member
+   * + function_definition_after_declarator
+   * + ctor_initializer_opt_and_function_body
+   ********************************************/
+  {
+    if (expression_body_p)
+    {
+      tree fco_body;
+      tree fco_compound_stmt;
+      tree fco_body_expr;
+      tree fco_fn;
+
+      /* Let the front end know that we are going to be defining this
+         function. */
+      start_preparsed_function (
+          fco_decl,
+          NULL_TREE,
+          SF_PRE_PARSED | SF_INCLASS_INLINE);
+
+      fco_body = begin_function_body ();
+
+      fco_compound_stmt = begin_compound_stmt (0);
+
+      cp_parser_require (parser, CPP_OPEN_PAREN, "`('");
+      fco_body_expr = cp_parser_expression (parser, /*cast_p=*/false);
+      cp_parser_require (parser, CPP_CLOSE_PAREN, "`)'");
+
+      if (!fco_return_type_specs.any_specifiers_p)
+      {
+        tree fco_return_type;
+        tree fco_return_decl;
+
+        fco_return_type = finish_decltype_type (
+            fco_body_expr,
+            /*id_expression_or_member_access_p=*/false);
+        /* TREE_TYPE (FUNCTION_DECL) == METHOD_TYPE
+           TREE_TYPE (METHOD_TYPE)   == return-type */
+        TREE_TYPE (TREE_TYPE (fco_decl)) = fco_return_type;
+
+        /* Must redo some work from start_preparsed_function. */
+        fco_return_decl = build_decl (
+            RESULT_DECL,
+            0,
+            TYPE_MAIN_VARIANT (fco_return_type));
+        DECL_ARTIFICIAL (fco_return_decl) = 1;
+        DECL_IGNORED_P (fco_return_decl) = 1;
+        cp_apply_type_quals_to_decl (
+            cp_type_quals (fco_return_type),
+            fco_return_decl);
+
+        DECL_RESULT (fco_decl) = fco_return_decl;
+      }
+
+      finish_return_stmt (fco_body_expr);
+      /* Remember the location? */
+      /* SET_EXPR_LOCATION (fco_return_stmt, token->location); */
+
+      finish_compound_stmt (fco_compound_stmt);
+
+      finish_function_body (fco_body);
+
+      /* Finish the function and generate code for it if necessary. */
+      /* 2 == inline_p */
+      fco_fn = finish_function (2);
+      expand_or_defer_fn (fco_fn);
+    }
+    else
+    {
+      /* Must set to 0 because late_parsing_for_member checks */
+      saved_num_classes = parser->num_classes_being_defined;
+      parser->num_classes_being_defined = 0;
+      cp_parser_late_parsing_for_member (parser, fco_decl);
+      parser->num_classes_being_defined = saved_num_classes;
+    }
+  }
+
+  /********************************************
+   * Finish the class (part 2)
+   * - class_specifier
+   ********************************************/
+  {
+    parser->in_function_body
+      = saved_in_function_body;
+    parser->num_template_parameter_lists
+      = saved_num_template_parameter_lists;
+
+    --parser->num_classes_being_defined;
+
+    pop_deferring_access_checks ();
+  }
+
+  pop_from_top_level ();
+
+  return type;
+}
+
+static void
+cp_parser_build_mem_init_list (cp_parser* parser,
+    cp_parameter_declarator* decl_list,
+    tree* mem_init_list)
+{
+
+  for (;
+      decl_list && decl_list->declarator;
+      decl_list = decl_list->next)
+  {
+    cp_declarator* eref_declarator;
+    tree eref_id;
+
+    tree mem;
+    tree mem_ctor_arg;
+    tree mem_ctor_arg_list = NULL_TREE;
+    tree mem_init;
+
+    cp_id_kind idk = CP_ID_KIND_NONE;
+    const char* error_msg;
+
+    /* Get the old identifier back. */
+    eref_declarator = decl_list->declarator;
+    while (eref_declarator->kind != cdk_id)
+      eref_declarator = eref_declarator->declarator;
+    eref_id = eref_declarator->u.id.unqualified_name;
+
+    /* What member are we initializing? */
+    mem = expand_member_init (eref_id);
+
+    /* What parameter are we using to initialize it? */
+    mem_ctor_arg = cp_parser_lookup_name (parser,
+        eref_id,
+        none_type,
+        /*is_template=*/false,
+        /*is_namespace=*/false,
+        /*check_dependency=*/true,
+        /*ambiguous_decls=*/NULL);
+
+    mem_ctor_arg = finish_id_expression (
+        eref_id,
+        mem_ctor_arg,
+        parser->scope,
+        &idk,
+        /*integral_constant_expression_p=*/false,
+        /*allow_non_integral_constant_expression_p=*/false,
+        /*non_integral_constant_expression_p=*/NULL,
+        /*template_p=*/false,
+        /*done=*/true,
+        /*address_p=*/false,
+        /*template_arg_p=*/false,
+        &error_msg);
+
+    mem_ctor_arg_list = tree_cons (NULL_TREE, mem_ctor_arg, NULL_TREE);
+
+    /* Put it all together now. */
+    mem_init = build_tree_list (mem, mem_ctor_arg_list);
+    TREE_CHAIN (mem_init) = *mem_init_list;
+    *mem_init_list = mem_init;
+    /* TODO: is above the same as */
+    /* *mem_init_list = tree_cons (
+       mem,
+       mem_ctor_arg_list,
+     *mem_init_list); */
+  }
+}
+
+static void
+cp_parser_lambda_head (cp_parser* parser,
+    cp_parameter_declarator** fco_param_list,
+    tree* fco_exception_spec,
+    cp_decl_specifier_seq* fco_return_type_specs,
+    cp_parameter_declarator** ctor_param_list,
+    tree* ctor_arg_list)
+{
+  /* Consume the next token.  Getting this far means it must be
+     either "__lambda", "__lambda__", or '>'. */
+  cp_lexer_consume_token (parser->lexer);
+
+  /* Parse parameters */
+  *fco_param_list = cp_parser_lambda_parameter_clause (parser);
+
+  /* Parse exception specification */
+  *fco_exception_spec = cp_parser_exception_specification_opt (parser);
+
+  /* Parse return type clause */
+  cp_parser_lambda_return_type_clause_opt (parser,
+      fco_return_type_specs);
+
+  /* Parse local references */
+  cp_parser_lambda_external_reference_clause (parser,
+      ctor_param_list,
+      ctor_arg_list);
+}
+
+static cp_parameter_declarator*
+cp_parser_lambda_parameter_clause (cp_parser* parser)
+{
+  cp_parameter_declarator* parameters = no_parameters;
+  bool is_error = false;
+
+  cp_parser_require (parser, CPP_OPEN_PAREN, "`('");
+  if (cp_lexer_next_token_is_not (parser->lexer, CPP_CLOSE_PAREN))
+    parameters = cp_parser_parameter_declaration_list (parser, &is_error);
+  cp_parser_require (parser, CPP_CLOSE_PAREN, "`)'");
+
+  return (is_error) ? (no_parameters) : (parameters);
+}
+
+static void
+cp_parser_lambda_external_reference_clause (cp_parser* parser,
+    cp_parameter_declarator** ctor_param_list,
+    tree* ctor_arg_list)
+{
+  cp_parameter_declarator** ctor_param_list_tail = ctor_param_list;
+  /* Need commas after the first local reference. */
+  bool first = true;
+
+  /* Eat the ':' */
+  if (cp_lexer_next_token_is_not (parser->lexer, CPP_COLON)) return;
+  cp_lexer_consume_token (parser->lexer);
+
+  /* For each external reference, we need to
+       1. Create member (later)
+       2. Add to ctor_param_list
+       3. Add to ctor_arg_list
+       4. Create mem_initializer, add to list (later)
+   */
+
+  cp_parser_require (parser, CPP_OPEN_SQUARE, "`['");
+
+  while (cp_lexer_next_token_is_not (parser->lexer, CPP_CLOSE_SQUARE))
+  {
+    enum pass_code_type {BY_COPY, BY_REF, BY_RVALUE_REF};
+
+    cp_id_kind idk = CP_ID_KIND_NONE;
+    const char* error_msg;
+
+    cp_decl_specifier_seq eref_type_specs;
+    cp_declarator* eref_declarator;
+    tree eref_id;
+    tree eref_init_expr;
+    tree eref_type;
+
+    enum pass_code_type pass_code = BY_COPY;
+
+    if (!first)
+      cp_parser_require (parser, CPP_COMMA, "`,'");
+    else
+      first = false;
+
+    /* Remember whether we want to take this as a reference or not. */
+    if (cp_lexer_next_token_is (parser->lexer, CPP_AND))
+      pass_code = BY_REF;
+    else if (cp_lexer_next_token_is (parser->lexer, CPP_AND_AND))
+      pass_code = BY_RVALUE_REF;
+
+    if (pass_code != BY_COPY)
+      cp_lexer_consume_token (parser->lexer);
+
+    /* Get the identifier. */
+    eref_id = cp_parser_identifier (parser);
+
+    /* Turn into a declarator. */
+    eref_declarator = make_id_declarator (
+        NULL_TREE,
+        eref_id,
+        sfk_none);
+
+    if (pass_code == BY_RVALUE_REF)
+      eref_declarator = make_reference_declarator (
+          /*cv_qualifiers=*/TYPE_UNQUALIFIED,
+          eref_declarator,
+          /*rvalue_ref=*/true);
+
+    /* Find the initializer for this external reference. */
+    if (cp_lexer_next_token_is (parser->lexer, CPP_EQ))
+    {
+      /* An explicit expression exists. */
+      cp_lexer_consume_token (parser->lexer);
+      eref_init_expr = cp_parser_assignment_expression (parser,
+          /*cast_p=*/true);
+    }
+    else
+    {
+      /* Turn the identifier into an id-expression. */
+      eref_init_expr = cp_parser_lookup_name (parser,
+          eref_id,
+          none_type,
+          /*is_template=*/false,
+          /*is_namespace=*/false,
+          /*check_dependency=*/true,
+          /*ambiguous_decls=*/NULL);
+
+      eref_init_expr = finish_id_expression (
+          eref_id,
+          eref_init_expr,
+          parser->scope,
+          &idk,
+          /*integral_constant_expression_p=*/false,
+          /*allow_non_integral_constant_expression_p=*/false,
+          /*non_integral_constant_expression_p=*/NULL,
+          /*template_p=*/false,
+          /*done=*/true,
+          /*address_p=*/false,
+          /*template_arg_p=*/false,
+          &error_msg);
+    }
+
+    /* Get the type. */
+    eref_type = finish_decltype_type (
+        eref_init_expr,
+        /*id_expression_or_member_access_p=*/false);
+
+    /* May come as a reference, so strip it down if desired. */
+    if (pass_code != BY_REF)
+      eref_type = non_reference (eref_type);
+    else if (TREE_CODE (eref_type) != REFERENCE_TYPE)
+    {
+      error ("%qE cannot be used to initialize a non-const reference",
+          eref_init_expr);
+      continue;
+    }
+
+    clear_decl_specs (&eref_type_specs);
+    eref_type_specs.type = eref_type;
+
+    /* Add to ctor_param_list */
+    {
+      cp_parameter_declarator* ctor_param = make_parameter_declarator (
+          &eref_type_specs,
+          eref_declarator,
+          /*default_argument=*/NULL_TREE);
+
+      *ctor_param_list_tail = ctor_param;
+      ctor_param_list_tail = &ctor_param->next;
+    }
+
+    /* Add to ctor_arg_list */
+    {
+      tree ctor_arg = eref_init_expr;
+
+      *ctor_arg_list = tree_cons (NULL_TREE, ctor_arg, *ctor_arg_list);
+    }
+
+  }
+
+  cp_parser_require (parser, CPP_CLOSE_SQUARE, "`]'");
+
+  /* Arguments were built in reverse order */
+  *ctor_arg_list = nreverse(*ctor_arg_list);
+}
+
+static tree
+cp_parser_lambda_body (cp_parser* parser,
+    cp_decl_specifier_seq* fco_return_type_specs,
+    cp_declarator* fco_declarator,
+    bool* expression_body_p)
+{
+  cp_token* token;
+
+  tree fco_decl = error_mark_node;
+
+  /* Assume statement body */
+  *expression_body_p = false;
+
+  token = cp_lexer_peek_token (parser->lexer);
+  fco_declarator->id_loc = token->location;
+  
+  if (token->type == CPP_OPEN_BRACE)
+  {
+    if (!fco_return_type_specs->any_specifiers_p)
+      cp_parser_error (parser, "requires lambda-return-type-clause");
+    else
+      fco_decl = cp_parser_save_member_function_body (parser,
+          fco_return_type_specs,
+          fco_declarator,
+          /*attributes=*/NULL_TREE);
+  }
+  else if (token->type == CPP_OPEN_PAREN)
+  {
+    *expression_body_p = true;
+
+    if (!fco_return_type_specs->any_specifiers_p)
+    {
+      fco_return_type_specs->type = void_type_node;
+      /*fco_return_type_specs->any_specifiers_p = true;*/
+    }
+
+    fco_decl = start_method (
+        fco_return_type_specs,
+        fco_declarator,
+        /*attributes=*/NULL_TREE);
+    DECL_INITIALIZED_IN_CLASS_P (fco_decl) = 1;
+    finish_method (fco_decl);
+  }
+  else
+  {
+    cp_parser_error (parser, "expected lambda-body");
+  }
+
+  return fco_decl;
+}
+
+static void
+cp_parser_lambda_return_type_clause_opt (cp_parser* parser,
+    cp_decl_specifier_seq* fco_return_type_specs)
+{
+  tree type_id;
+
+  clear_decl_specs (fco_return_type_specs);
+
+  if (cp_lexer_next_token_is_not (parser->lexer, CPP_DEREF)) return;
+  cp_lexer_consume_token (parser->lexer);
+
+  if (cp_lexer_next_token_is (parser->lexer, CPP_OPEN_PAREN))
+  {
+    cp_lexer_consume_token (parser->lexer);
+    type_id = cp_parser_type_id (parser);
+    cp_parser_require (parser, CPP_CLOSE_PAREN, "`)'");
+  }
+  else
+  {
+    tree nelts;
+    type_id = cp_parser_new_type_id (parser, &nelts);
+    /* TODO: not sure how to use nelts */
+  }
+
+  fco_return_type_specs->type = type_id;
+  fco_return_type_specs->any_specifiers_p = true;
+  /* TODO: do we need cp_parser_set_decl_spec_type()? */
+  /* TODO: do we need grokdeclarator()? */
+}
+
 
 /* Statements [gram.stmt.stmt]  */
 
