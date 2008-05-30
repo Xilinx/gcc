@@ -1892,34 +1892,6 @@ build_scop_data_accesses (scop_p scop)
     }
 }
 
-static struct loop *
-create_empty_loop (edge header_edge)
-{
-  int prob;
-  edge true_edge, false_edge;
-  basic_block loop_header, loop_latch, succ_bb, pred_bb, switch_bb;
-
-  switch_bb = create_empty_bb (EXIT_BLOCK_PTR->prev_bb);
-  
-
-  pred_bb = header_edge->src;
-  loop_header = split_edge (header_edge);
-  loop_latch = split_edge (single_succ_edge (loop_header));
-  succ_bb = single_succ (loop_latch);
-
-  make_edge (loop_header, succ_bb, 0);
-  set_immediate_dominator (CDI_DOMINATORS, loop_header, switch_bb);
-  set_immediate_dominator (CDI_DOMINATORS, loop_latch, loop_header);
-
-  false_edge = make_edge (switch_bb, loop_header, 0);
-  true_edge = make_edge (switch_bb, succ_bb, EDGE_FALLTHRU);
-
-/*  prob = EDGE_FREQUENCY (header_edge);*/
-  prob = REG_BR_PROB_BASE / 2;
-  return loopify (single_succ_edge (loop_latch), header_edge, switch_bb, 
-		  true_edge, false_edge, 1, prob, REG_BR_PROB_BASE - prob);
-}
-
 /* Converts a GMP constant value to a tree and returns it.  */
 
 static tree
@@ -2040,23 +2012,53 @@ clast_to_gcc_expression (struct clast_expr *e, tree type,
   return NULL_TREE;
 }
 
-/* Translates a Cloog For statement to a GCC loop.  */
+/* Creates and inserts an induction variable for the new LOOP,
+   corresponding to Cloog's STMT.  */
 
-static void
-graphite_loop_to_gcc_loop (edge header_edge, scop_p scop,
-			   struct clast_for *stmt,
-			   VEC (tree,heap) **remove_ivs ATTRIBUTE_UNUSED)
+static struct loop *
+graphite_create_new_loop (scop_p scop, edge header_edge,
+			  struct clast_for *stmt)
 {
-  bool insert_after;
+  int prob;
+  edge true_edge, false_edge;
+  basic_block loop_header, loop_latch, succ_bb, pred_bb, switch_bb;
+  struct loop *loop;
+  tree ivvar;
   block_stmt_iterator bsi;
-  tree stmts;
-  tree ivvar = create_tmp_var (integer_type_node, "grivtmp");
-  struct loop *loop = create_empty_loop (header_edge);
-  tree nlb = clast_to_gcc_expression (stmt->LB, integer_type_node,
-				      SCOP_NEWIVS (scop),
-				      SCOP_PARAMS (scop));
+  bool insert_after;
+  tree stmts, stride, cond_expr, lowb, upb;
+  edge exit_e;
+  
+  switch_bb = create_empty_bb (EXIT_BLOCK_PTR->prev_bb);
+  cond_expr = build3 (COND_EXPR, void_type_node, boolean_false_node,
+		      NULL_TREE, NULL_TREE);
+  bsi = bsi_after_labels (switch_bb);
+  bsi_insert_after (&bsi, cond_expr, BSI_NEW_STMT);
 
-  nlb = force_gimple_operand (nlb, &stmts, true, ivvar);
+  
+  pred_bb = header_edge->src;
+  loop_header = split_edge (header_edge);
+  loop_latch = split_edge (single_succ_edge (loop_header));
+  succ_bb = single_succ (loop_latch);
+
+  make_edge (loop_header, succ_bb, 0);
+  set_immediate_dominator (CDI_DOMINATORS, loop_header, switch_bb);
+  set_immediate_dominator (CDI_DOMINATORS, loop_latch, loop_header);
+
+  false_edge = make_edge (switch_bb, loop_header, 0);
+  true_edge = make_edge (switch_bb, succ_bb, EDGE_FALLTHRU);
+
+  prob = REG_BR_PROB_BASE / 2;
+  loop = loopify (single_succ_edge (loop_latch), header_edge, switch_bb, 
+		  true_edge, false_edge, 1, prob, REG_BR_PROB_BASE - prob);
+
+  /* Create the new induction variable.  */
+  stride = gmp_cst_to_tree (stmt->stride);
+  lowb = clast_to_gcc_expression (stmt->LB, integer_type_node,
+				  SCOP_NEWIVS (scop), SCOP_PARAMS (scop));
+  ivvar = create_tmp_var (integer_type_node, "graphiteIV");
+
+  lowb = force_gimple_operand (lowb, &stmts, true, ivvar);
   if (stmts)
     {
       bsi_insert_on_edge (loop_preheader_edge (loop), stmts);
@@ -2065,133 +2067,92 @@ graphite_loop_to_gcc_loop (edge header_edge, scop_p scop,
 
   add_referenced_var (ivvar);
   standard_iv_increment_position (loop, &bsi, &insert_after);
-  create_iv (nlb, gmp_cst_to_tree (stmt->stride), ivvar, loop, &bsi,
-	     insert_after, &ivvar, NULL);
+  create_iv (lowb, stride, ivvar, loop, &bsi, insert_after, &ivvar, NULL);
 
-#if 0
-  create_exit_cond (loop, stmt->UB);
+  /* Create the loop exit condition.  */
+  upb = clast_to_gcc_expression (stmt->UB, integer_type_node,
+				 SCOP_NEWIVS (scop), SCOP_PARAMS (scop));
+  exit_e = single_exit (loop);
+  bsi = bsi_last (exit_e->src);
 
-  /* Build the new upper bound and insert its statements in the
-     basic block of the exit condition */
-  newupperbound = lle_to_gcc_expression (LL_UPPER_BOUND (newloop),
-					 LL_LINEAR_OFFSET (newloop),
-					 type,
-					 new_ivs,
-					 invariants, MIN_EXPR, &stmts);
-  exit = single_exit (temp);
-  exitcond = get_loop_exit_condition (temp);
-  bb = bb_for_stmt (exitcond);
-  bsi = bsi_after_labels (bb);
+  upb = force_gimple_operand (upb, &stmts, true, NULL);
   if (stmts)
-    bsi_insert_before (&bsi, stmts, BSI_NEW_STMT);
+    bsi_insert_after (&bsi, stmts, BSI_NEW_STMT);
 
-#endif
+  cond_expr = build2 (LT_EXPR, boolean_type_node, upb, ivvar);
+  cond_expr = build3 (COND_EXPR, void_type_node, cond_expr,
+		      NULL_TREE, NULL_TREE);
+  bsi_insert_after (&bsi, cond_expr, BSI_NEW_STMT);
 
-  /*
-    rename_ivs ();
-    remove_old_ivs ();
-  */
-
-#if 0
-  
-  /* Rewrite uses of the old ivs so that they are now specified in terms of
-     the new ivs.  */
-
-  for (i = 0; VEC_iterate (tree, old_ivs, i, oldiv); i++)
-    {
-      imm_use_iterator imm_iter;
-      use_operand_p use_p;
-      tree oldiv_def;
-      tree oldiv_stmt = SSA_NAME_DEF_STMT (oldiv);
-      tree stmt;
-
-      if (TREE_CODE (oldiv_stmt) == PHI_NODE)
-        oldiv_def = PHI_RESULT (oldiv_stmt);
-      else
-	oldiv_def = SINGLE_SSA_TREE_OPERAND (oldiv_stmt, SSA_OP_DEF);
-      gcc_assert (oldiv_def != NULL_TREE);
-
-      FOR_EACH_IMM_USE_STMT (stmt, imm_iter, oldiv_def)
-        {
-	  tree newiv, stmts;
-	  lambda_body_vector lbv, newlbv;
-
-	  gcc_assert (TREE_CODE (stmt) != PHI_NODE);
-
-	  /* Compute the new expression for the induction
-	     variable.  */
-	  depth = VEC_length (tree, new_ivs);
-          lbv = lambda_body_vector_new (depth, lambda_obstack);
-	  LBV_COEFFICIENTS (lbv)[i] = 1;
-	  
-          newlbv = lambda_body_vector_compute_new (transform, lbv,
-                                                   lambda_obstack);
-
-	  newiv = lbv_to_gcc_expression (newlbv, TREE_TYPE (oldiv),
-					 new_ivs, &stmts);
-	  if (stmts)
-	    {
-	      bsi = bsi_for_stmt (stmt);
-	      bsi_insert_before (&bsi, stmts, BSI_SAME_STMT);
-	    }
-
-	  FOR_EACH_IMM_USE_ON_STMT (use_p, imm_iter)
-	    propagate_value (use_p, newiv);
-	  update_stmt (stmt);
-	}
-
-      /* Remove the now unused induction variable.  */
-      VEC_safe_push (tree, heap, *remove_ivs, oldiv_stmt);
-    }
-
-  VEC_free (tree, heap, new_ivs);
-#endif
+  return loop;
 }
 
-static void
-graphite_cond_to_gcc_cond (block_stmt_iterator *bsi ATTRIBUTE_UNUSED, scop_p scop ATTRIBUTE_UNUSED, struct clast_stmt *stmt ATTRIBUTE_UNUSED, 
-			   VEC (tree,heap) **remove_ivs ATTRIBUTE_UNUSED)
-{
-#if 0
-  create_cond_bb ();
-  create_then_bb ();
-#endif
-}
+/* Remove all the edges from BB.  */
 
 static void
-graphite_stmt_to_gcc_stmt (block_stmt_iterator *bsi, scop_p scop, struct clast_stmt *stmt, 
-			   VEC (tree,heap) **remove_ivs)
+remove_all_edges (basic_block bb)
 {
-  if (stmt->type == stmt_root)
-    return;
+  edge e;
+  edge_iterator ei;
+
+  for (ei = ei_start (bb->succs); (e = ei_safe_edge (ei)); )
+    remove_edge (e);
+
+  for (ei = ei_start (bb->preds); (e = ei_safe_edge (ei)); )
+    remove_edge (e);
+}
+
+/* Translates a CLAST statement STMT to GCC representation.  */
+
+static edge
+translate_clast (scop_p scop, struct clast_stmt *stmt, edge next_e)
+{
+  if (!stmt)
+    return next_e;
 
   switch (stmt->type) 
     {
-    case stmt_ass:
-      gcc_unreachable ();
-      break;
+    case stmt_root:
+      return translate_clast (scop, stmt->next, next_e);
 
     case stmt_user:
-      graphite_stmt_to_gcc_stmt (bsi, scop, stmt, remove_ivs);
-      break;
+      {
+	CloogStatement *cs = ((struct clast_user_stmt *) stmt)->statement;
+	graphite_bb_p gbb = (graphite_bb_p) cs->usr;
+	basic_block bb = gbb->bb;
+
+	remove_all_edges (bb);
+	redirect_edge_succ_nodup (next_e, bb);
+	next_e = make_edge (bb, EXIT_BLOCK_PTR, 0);
+
+#if 0
+	graphite_rename_ivs ();
+#endif
+
+	return translate_clast (scop, stmt->next, next_e);
+      }
 
     case stmt_for:
-      graphite_loop_to_gcc_loop (single_succ_edge (bsi->bb), scop,
-				 (struct clast_for *) stmt, remove_ivs);
-      break;
+      {
+	struct loop *loop = graphite_create_new_loop (scop, next_e,
+						      (struct clast_for *) stmt);
+	edge last_e = single_exit (loop);
 
-    case stmt_guard:
-      graphite_cond_to_gcc_cond (bsi, scop, stmt, remove_ivs);
-      break;
+	next_e = translate_clast (scop, ((struct clast_for *) stmt)->body,
+				  single_pred_edge (loop->latch));
+	redirect_edge_succ_nodup (next_e, loop->latch);
+	return translate_clast (scop, stmt->next, last_e);
+      }
 
     case stmt_block:
-      for ( ; stmt; stmt = stmt->next)
-	graphite_stmt_to_gcc_stmt (bsi, scop, stmt, remove_ivs);
+      next_e = translate_clast (scop, ((struct clast_block *) stmt)->body, next_e);
+      return translate_clast (scop, stmt->next, next_e);
 
-      break;
-
+    case stmt_guard:
+    case stmt_ass:
     default:
-      gcc_unreachable ();
+      /* NIY.  */
+      return next_e;
     }
 }
 
@@ -2253,36 +2214,10 @@ find_transform (scop_p scop)
 static void
 gloog (scop_p scop, struct clast_stmt *stmt)
 {
-  VEC (tree,heap) *remove_ivs = VEC_alloc (tree, heap, 3);
-  tree oldiv_stmt;
-  struct loop *loop; 
-  unsigned i;
-  block_stmt_iterator bsi;
-  basic_block *bbs;
-  unsigned nbbs;
-
   if (0)
-    {
-      loop = first_loop_in_scop (scop);
-      bbs = get_loop_body_in_dom_order (loop);
-      nbbs = loop->num_nodes;
-
-      cancel_loop_tree (loop); 
-      for (i = 0; i < nbbs; i++)
-	delete_basic_block (bbs[i]);
-
-      bsi = bsi_start (split_edge (single_succ_edge (SCOP_ENTRY (scop))));
-
-      for ( ; stmt; stmt = stmt->next)
-	graphite_stmt_to_gcc_stmt (&bsi, scop, stmt, &remove_ivs);
-
-      for (i = 0; VEC_iterate (tree, remove_ivs, i, oldiv_stmt); i++)
-	remove_iv (oldiv_stmt);
-        
-    }
+    translate_clast (scop, stmt, single_succ_edge (SCOP_ENTRY (scop)));
 
   cloog_clast_free (stmt);
-  VEC_free (tree, heap, remove_ivs);
 }
 
 /* Returns a matrix representing the data dependence between memory
