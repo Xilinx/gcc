@@ -119,6 +119,15 @@ print_graphite_bb (FILE *file, graphite_bb_p gb, int indent, int verbosity)
   fprintf (file, ")\n");
 }
 
+/* Print the schedules from SCHED.  */
+
+void
+debug_gbb (graphite_bb_p gb, int verbosity)
+{
+  print_graphite_bb (stderr, gb, 0, verbosity);
+}
+
+
 /* Print SCOP to FILE.  */
 
 static void
@@ -134,12 +143,12 @@ print_scop (FILE *file, scop_p scop, int verbosity)
   cloog_program_print (file, SCOP_PROG (scop));
   fprintf (file, "       )\n");
 
-  if (scop->bbs)
+  if (SCOP_BBS (scop))
     {
       graphite_bb_p gb;
       unsigned i;
 
-      for (i = 0; VEC_iterate (graphite_bb_p, scop->bbs, i, gb); i++)
+      for (i = 0; VEC_iterate (graphite_bb_p, SCOP_BBS (scop), i, gb); i++)
 	print_graphite_bb (file, gb, 0, verbosity);
     }
 
@@ -1006,28 +1015,8 @@ build_graphite_bb (scop_p scop, basic_block bb)
   GBB_DATA_REFS (gb) = NULL; 
 
   /* Store the GRAPHITE representation of the current BB.  */
-  VEC_safe_push (graphite_bb_p, heap, scop->bbs, gb);
+  VEC_safe_push (graphite_bb_p, heap, SCOP_BBS (scop), gb);
   bitmap_set_bit (SCOP_BBS_B (scop), bb->index);
-}
-
-/* Predicate for dfs order traversal of bbs in a scop.  */
-
-static bool
-dfs_bb_in_scop_p (const_basic_block bb, const void *data)
-{
-  scop_p scop = (scop_p) data;
-
-  /* Scop's exit is not in the scop.  Exclude also bbs, which are dominated
-     by the SCoP exit.  These are e.g. loop latches.  */
-  if (dominated_by_p (CDI_DOMINATORS, bb, SCOP_EXIT (scop))
-      /* Every block in the scop is dominated by scop's entry.  */
-      || !dominated_by_p (CDI_DOMINATORS, bb, SCOP_ENTRY (scop))
-      /* Every block in the scop is postdominated by scop's exit.  */
-      || !dominated_by_p (CDI_POST_DOMINATORS, bb, SCOP_EXIT (scop)))
-    return false;
-
-  build_graphite_bb (scop, (basic_block) bb);
-  return true;
 }
 
 /* Gather the basic blocks belonging to the SCOP.  */
@@ -1035,17 +1024,69 @@ dfs_bb_in_scop_p (const_basic_block bb, const void *data)
 static void
 build_scop_bbs (scop_p scop)
 {
-  basic_block *bbs = XCNEWVEC (basic_block, n_basic_blocks);
+  basic_block *stack = XNEWVEC (basic_block, n_basic_blocks + 1);
+  sbitmap visited = sbitmap_alloc (last_basic_block);
+  int sp = 0;
 
-  /* Iterate over all the basic blocks of the scop in their pseudo
-     execution order, and associate to each bb a static schedule.
-     (pseudo exec order = the branches of a condition are scheduled
-     sequentially: the then clause comes before the else clause.)  */
+  sbitmap_zero (visited);
+  stack[sp++] = SCOP_ENTRY (scop);
 
-  dfs_enumerate_from (SCOP_ENTRY (scop), 0, dfs_bb_in_scop_p, bbs,
-		      n_basic_blocks, scop);
-  build_graphite_bb (scop, SCOP_ENTRY (scop));
-  free (bbs);
+  while (sp)
+    {
+      basic_block bb = stack[--sp];
+      unsigned depth = loop_depth (bb->loop_father);
+      int num = bb->loop_father->num;
+      edge_iterator ei;
+      edge e;
+
+      /* Scop's exit is not in the scop.  Exclude also bbs, which are
+	 dominated by the SCoP exit.  These are e.g. loop latches.  */
+      if (TEST_BIT (visited, bb->index)
+	  || dominated_by_p (CDI_DOMINATORS, bb, SCOP_EXIT (scop))
+	  /* Every block in the scop is dominated by scop's entry.  */
+	  || !dominated_by_p (CDI_DOMINATORS, bb, SCOP_ENTRY (scop))
+	  /* Every block in the scop is postdominated by scop's exit.  */
+	  || (bb != ENTRY_BLOCK_PTR 
+	      && !dominated_by_p (CDI_POST_DOMINATORS, bb, SCOP_EXIT (scop))))
+	continue;
+
+      build_graphite_bb (scop, bb);
+      SET_BIT (visited, bb->index);
+
+      /* First push the blocks that have to be processed last.  */
+      FOR_EACH_EDGE (e, ei, bb->succs)
+	if (! TEST_BIT (visited, e->dest->index)
+	    && loop_depth (e->dest->loop_father) < depth)
+	  stack[sp++] = e->dest;
+
+      FOR_EACH_EDGE (e, ei, bb->succs)
+	if (! TEST_BIT (visited, e->dest->index)
+	    && loop_depth (e->dest->loop_father) == depth
+	    && e->dest->loop_father->num != num)
+	  stack[sp++] = e->dest;
+
+      FOR_EACH_EDGE (e, ei, bb->succs)
+	if (! TEST_BIT (visited, e->dest->index)
+	    && loop_depth (e->dest->loop_father) == depth
+	    && e->dest->loop_father->num == num
+	    && EDGE_COUNT (e->dest->preds) > 1)
+	  stack[sp++] = e->dest;
+
+      FOR_EACH_EDGE (e, ei, bb->succs)
+	if (! TEST_BIT (visited, e->dest->index)
+	    && loop_depth (e->dest->loop_father) == depth
+	    && e->dest->loop_father->num == num
+	    && EDGE_COUNT (e->dest->preds) == 1)
+	  stack[sp++] = e->dest;
+
+      FOR_EACH_EDGE (e, ei, bb->succs)
+	if (! TEST_BIT (visited, e->dest->index)
+	    && loop_depth (e->dest->loop_father) > depth)
+	  stack[sp++] = e->dest;
+    }
+
+  free (stack);
+  sbitmap_free (visited);
 }
 
 /* Record LOOP as occuring in SCOP.  */
@@ -1067,9 +1108,26 @@ build_scop_loop_nests (scop_p scop)
 {
   unsigned i;
   graphite_bb_p gb;
+  struct loop *loop0, *loop1;
 
   for (i = 0; VEC_iterate (graphite_bb_p, SCOP_BBS (scop), i, gb); i++)
     scop_record_loop (scop, gbb_loop (gb));
+
+  /* Make sure that the loops in the SCOP_LOOP_NEST are ordered.  It
+     can be the case that an inner loop is inserted before an outer
+     loop.  For avoiding this, semi-sort once.  */
+  for (i = 0; VEC_iterate (loop_p, SCOP_LOOP_NEST (scop), i, loop0); i++)
+    {
+      if (VEC_length (loop_p, SCOP_LOOP_NEST (scop)) == i + 1)
+	break;
+
+      loop1 = VEC_index (loop_p, SCOP_LOOP_NEST (scop), i + 1);
+      if (loop0->num > loop1->num)
+	{
+	  VEC_replace (loop_p, SCOP_LOOP_NEST (scop), i, loop1);
+	  VEC_replace (loop_p, SCOP_LOOP_NEST (scop), i + 1, loop0);
+	}
+    }
 }
 
 /* Build dynamic schedules for all the BBs. */
@@ -1111,7 +1169,7 @@ build_scop_dynamic_schedules (scop_p scop)
 static void
 build_scop_canonical_schedules (scop_p scop)
 {
-  unsigned i;
+  unsigned i, j;
   graphite_bb_p gb;
   unsigned nb = scop_nb_loops (scop) + 1;
 
@@ -1119,10 +1177,29 @@ build_scop_canonical_schedules (scop_p scop)
 
   for (i = 0; VEC_iterate (graphite_bb_p, SCOP_BBS (scop), i, gb); i++)
     {
-      SCOP_STATIC_SCHEDULE (scop)[loop_depth (gbb_loop (gb))] += 1;
+      int offset = scop_loop_index (scop, gbb_loop (gb));
+
+      /* After leaving a loop, it is possible that the schedule is not
+	 set at zero.  This loop reinitializes components located
+	 after OFFSET.  */
+
+      for (j = offset + 1; j < nb; j++)
+	if (SCOP_STATIC_SCHEDULE (scop)[j])
+	  {
+	    memset (&(SCOP_STATIC_SCHEDULE (scop)[j]), 0,
+		    sizeof (int) * (nb - j));
+	    ++SCOP_STATIC_SCHEDULE (scop)[offset];
+	    break;
+	  }
+
       GBB_STATIC_SCHEDULE (gb) = lambda_vector_new (nb);
       lambda_vector_copy (SCOP_STATIC_SCHEDULE (scop), 
 			  GBB_STATIC_SCHEDULE (gb), nb);
+
+      if (0)
+	debug_gbb (gb, 3);
+
+      ++SCOP_STATIC_SCHEDULE (scop)[offset];
     }
 }
 
@@ -1152,7 +1229,7 @@ invariant_in_scop_p (tree var, scop_p scop)
 	  || !stmt_in_scop_p (SSA_NAME_DEF_STMT (var), scop));
 }
 
-/* Get the index corresponding to VAR in the current LOOP.  */
+/* Get the index for parameter VAR in SCOP.  */
 
 static int
 param_index (tree var, scop_p scop)
@@ -1863,7 +1940,7 @@ build_access_matrix (data_reference_p ref, graphite_bb_p gb)
   return true;
 }
 
-/* Build a schedule for each basic-block in the SCOP.  */
+/* Build the access matrices for the data references in the SCOP.  */
 
 static void
 build_scop_data_accesses (scop_p scop)

@@ -1,4 +1,18 @@
 2008-05-30  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite.c (debug_gbb): New.
+	(print_scop, build_graphite_bb): Use SCOP_BBS.
+	(build_scop_bbs): Reimplemented.
+	(dfs_bb_in_scop_p): Removed.
+	(build_scop_loop_nests): Reorder loops inserted in 
+	SCOP_LOOP_NEST: outer loops should come first.
+	(build_scop_canonical_schedules): Reinitialize at zero
+	the components of the SCOP_STATIC_SCHEDULE for the loops
+	that have already been parsed.
+
+	* graphite.h (debug_gbb): Declared.
+
+2008-05-30  Sebastian Pop  <sebastian.pop@amd.com>
 	    Jan Sjodin  <jan.sjodin@amd.com>
 
 	* graphite.c (create_empty_loop): Renamed graphite_create_new_loop.
