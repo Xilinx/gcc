@@ -35,6 +35,7 @@ struct graphite_bb
 
   lambda_vector static_schedule;
   lambda_vector compressed_alpha_matrix;
+  CloogMatrix *domain;
   CloogMatrix *dynamic_schedule;
   VEC (data_reference_p, heap) *data_refs;
 };
@@ -45,6 +46,7 @@ struct graphite_bb
 #define GBB_DATA_REFS(GBB) GBB->data_refs
 #define GBB_ALPHA(GBB) GBB->compressed_alpha_matrix
 #define GBB_DYNAMIC_SCHEDULE(GBB) GBB->dynamic_schedule
+#define GBB_DOMAIN(GBB) GBB->domain
 
 struct loop_to_cloog_loop_str
 {

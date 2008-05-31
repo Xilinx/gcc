@@ -1013,6 +1013,7 @@ build_graphite_bb (scop_p scop, basic_block bb)
   GBB_BB (gb) = bb;
   GBB_SCOP (gb) = scop;
   GBB_DATA_REFS (gb) = NULL; 
+  GBB_DOMAIN (gb) = NULL;
 
   /* Store the GRAPHITE representation of the current BB.  */
   VEC_safe_push (graphite_bb_p, heap, SCOP_BBS (scop), gb);
@@ -1612,7 +1613,7 @@ graphite_bb_from_bb (basic_block bb, scop_p scop)
 /* Returns the body of LOOP as a CloogStatement chain.  */
 
 static CloogStatement *
-loop_body_to_cloog_stmts (struct loop *loop, scop_p scop)
+loop_body_to_cloog_stmts (struct loop *loop, scop_p scop, CloogMatrix *cstr)
 {
   basic_block *bbs = get_loop_body (loop);
   CloogStatement *prev = NULL;
@@ -1625,13 +1626,18 @@ loop_body_to_cloog_stmts (struct loop *loop, scop_p scop)
     if (bbs[i]->loop_father == loop)
       {
 	CloogStatement *stmt = cloog_statement_alloc (number++);
+        graphite_bb_p gbb = graphite_bb_from_bb (bbs[i], scop);
+
+        /* XXX: Only here to sniff the GBB_DOMAIN for changed cloog output.
+           Also remove cstr parameter if not needed any more.  */
+        GBB_DOMAIN (gbb) = cstr;
 
 	if (prev)
 	  prev->next = stmt;
 	else
 	  res = stmt;
 
-	stmt->usr = graphite_bb_from_bb (bbs[i], scop);
+	stmt->usr = gbb;
 	prev = stmt;
       }
 
@@ -1765,7 +1771,7 @@ setup_cloog_loop (scop_p scop, struct loop *loop, CloogMatrix *outer_cstr,
       l->next = setup_cloog_loop (scop, loop->next, outer_cstr, nb_outer_loops);
     }
 
-  stmt = loop_body_to_cloog_stmts (loop, scop);
+  stmt = loop_body_to_cloog_stmts (loop, scop, cstr);
 
   res->block = cloog_block_alloc (stmt, NULL, 0, NULL, nb_outer_loops + 1);
   
@@ -2233,6 +2239,88 @@ translate_clast (scop_p scop, struct clast_stmt *stmt, edge next_e)
     }
 }
 
+/* Build cloog program for SCoP.  */
+
+static void
+build_cloog_prog (scop_p scop)
+{
+  int i;
+  graphite_bb_p gbb;
+  CloogLoop *loop_list = NULL;
+  CloogBlockList *block_list = NULL;
+  CloogDomainList *scattering = NULL;
+  CloogProgram *prog = SCOP_PROG (scop);
+
+  for (i = 0; VEC_iterate (graphite_bb_p, SCOP_BBS (scop), i, gbb); i++)
+    {
+      /* Build new block.  */
+      CloogMatrix *domain = GBB_DOMAIN (gbb);
+      CloogStatement *stmt = cloog_statement_alloc (GBB_BB (gbb)->index);
+      CloogBlock *block = cloog_block_alloc (stmt, NULL, 0, NULL,
+					     nb_loops_around_gb (gbb));                           
+      stmt->usr = gbb;
+
+      /* Add empty domain to all bbs, which do not yet have a domain, as they
+         are not part of any loop.  */
+      if (domain == NULL)
+	domain = cloog_matrix_alloc (0, nb_params_in_scop (scop) + 2);
+        
+      /* Build loop list.  */
+      {
+        CloogLoop *new_loop_list = cloog_loop_malloc ();
+        new_loop_list->next = loop_list;
+        new_loop_list->domain = cloog_domain_matrix2domain (domain);
+        new_loop_list->block = block; 
+        loop_list = new_loop_list;
+      }
+
+      /* Build block list.  */
+      {
+        CloogBlockList *new_block_list = cloog_block_list_malloc ();
+        new_block_list->next = block_list;
+        new_block_list->block = block;
+        block_list = new_block_list;
+      }
+
+      /* Build scattering list.  */
+      {
+        /* XXX: Replace with cloog_domain_list_alloc(), when available.  */
+        CloogDomainList *new_scattering = xmalloc (sizeof (CloogDomainList));
+        new_scattering->next = scattering;
+        new_scattering->domain = cloog_domain_matrix2domain (schedule_to_scattering (gbb));
+        scattering = new_scattering;
+      }
+
+      /* XXX: Unused cloog field.  Not necessary for scattering. Just here
+         during developement to document this.  Should be removed in future gcc
+         and cloog versions.  */
+      block->scattering = schedule_to_scattering (gbb);
+
+      debug_gbb (gbb, 3);
+    }
+
+  prog->loop = loop_list;
+  prog->blocklist = block_list;
+  prog->nb_scattdims = 2 * scop_nb_loops (scop) + 1;
+  prog->scaldims = (int *) xmalloc (prog->nb_scattdims * (sizeof (int)));
+
+  /* XXX: Work around some libcloog shortcomings.  Cedric will integrate this
+     into cloog.  */
+  gcc_assert (prog->scaldims);
+    
+  for (i = 0; i < prog->nb_scattdims; i++)
+    prog->scaldims[i] = 0 ;
+
+  /* Extract scalar dimensions to simplify the code generation problem.  */
+  cloog_program_extract_scalars (prog, scattering);
+
+  /* Apply scattering.  */
+  cloog_program_scatter (prog, scattering);
+
+  /* Iterators corresponding to scalar dimensions have to be extracted.  */
+  cloog_names_scalarize (prog->names, prog->nb_scattdims, prog->scaldims);
+}
+
 /* Find the right transform for the SCOP, and return a Cloog AST
    representing the new form of the program.  */
 
@@ -2242,6 +2330,11 @@ find_transform (scop_p scop)
   CloogOptions *options = cloog_options_malloc ();
   CloogProgram *prog;
   struct clast_stmt *stmt;
+  
+  /* XXX: Connect new cloog prog generation to graphite, if we should use this
+     one clean up.  */
+  if (0)
+    build_cloog_prog (scop);
 
   /* Change cloog output language to C.  If we do use FORTRAN instead, cloog
      will stop e.g. with "ERROR: unbounded loops not allowed in FORTRAN.", if

@@ -1,3 +1,13 @@
+2008-05-30 Tobias Grosser  <grosser@fim.uni-passau.de>
+
+	* graphite.c (build_graphite_bb): Initialize GBB_DOMAIN.
+	(loop_body_to_cloog_stmts): Export GBB_DOMAIN.
+	(setup_cloog_loop): Export GBB_DOMAIN.
+	(build_cloog_prog): New.  Create new CLOOG_PROG, which should be
+	able to rebuild the original control flow.
+	* graphite.h (graphite_bb): Add domain field and access macro.
+	(GBB_DOMAIN): New.
+
 2008-05-30  Sebastian Pop  <sebastian.pop@amd.com>
 
 	* graphite.c (debug_gbb): New.
