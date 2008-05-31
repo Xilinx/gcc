@@ -1793,7 +1793,6 @@ schedule_to_scattering (graphite_bb_p gb)
   scop_p scop = GBB_SCOP (gb);
   int max_nb_iterators = scop_nb_loops (scop);
   struct loop *loop;
-  int nb_iterators = nb_loops_around_gb (gb);
 
   /* Number of columns:
      1                        col  = Eq/Inq,
@@ -1803,20 +1802,26 @@ schedule_to_scattering (graphite_bb_p gb)
    The scattering domain contains one dimension for every iterator (which 
    iteration of this loop should be scattered) and max_nb_iterators + 1
    dimension for the textual order of every loop.  */ 
-  int nb_cols = 1 + (2 * max_nb_iterators + 1) + nb_iterators + 1;
+  int nb_cols = 1 + (2 * max_nb_iterators + 1) + max_nb_iterators + 1;
   int col_const = nb_cols - 1; 
   int col_iter_offset = 1 + (2 * max_nb_iterators + 1) - 1;
 
-  CloogMatrix *scat = cloog_matrix_alloc (nb_iterators * 2 + 1, nb_cols);
+  /* To ensure that the scattering functions have the same
+     dimensionality, we complete the scattering functions with zeroes
+     (this is a CLooG 0.14.0 and previous versions requirement, it
+     should be removed in a future version).  */
+  CloogMatrix *scat = cloog_matrix_alloc (max_nb_iterators * 2 + 1, nb_cols);
 
+  /* Initialize the identity matrix.  */
+  for (i = 0; i < max_nb_iterators * 2 + 1; i++)
+    {
+      value_init (scat->p[i][i + 1]);
+      value_set_si (scat->p[i][i + 1], 1);
+    }
 
   /* Set textual order for outer loop.  */
-  value_init (scat->p[row][1]);
   value_init (scat->p[row][col_const]);
-
-  value_set_si (scat->p[row][1], 1);
   value_set_si (scat->p[row][col_const], GBB_STATIC_SCHEDULE (gb)[0]);
-  row++;
 
   loop = gbb_loop (gb);
   if (!loop || loop->num == 0)
@@ -1827,27 +1832,19 @@ schedule_to_scattering (graphite_bb_p gb)
        i = scop_loop_index (scop, loop))       
     {
       /* Set scattering for loop iterator.  */
-      value_init (scat->p[row][2 * i]);
-      value_init (scat->p[row][col_iter_offset + i]);
-
-      value_set_si (scat->p[row][2 * i], 1);
-      value_set_si (scat->p[row][col_iter_offset + i], 1);
-      row++;
+      value_init (scat->p[2 * i][col_iter_offset + i]);
+      value_set_si (scat->p[2 * i][col_iter_offset + i], -1);
 
       /* Set textual order for bb's of loop.  */
-      value_init (scat->p[row][2 * i + 1]);
-      value_init (scat->p[row][col_const]);
-
-      value_set_si (scat->p[row][2 * i + 1], 1);
-      value_set_si (scat->p[row][col_const], GBB_STATIC_SCHEDULE (gb)[i]);
-      row++;
+      value_init (scat->p[2 * i + 1][col_const]);
+      value_set_si (scat->p[2 * i + 1][col_const], GBB_STATIC_SCHEDULE (gb)[i]);
 
       loop = loop_outer (loop);
       if (!loop || loop->num == 0)
 	break;
     }
 
- return scat; 
+  return scat; 
 }
 
 /* Build the current domain matrix: the loops belonging to the current

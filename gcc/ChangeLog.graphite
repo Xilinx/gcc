@@ -1,6 +1,12 @@
 2008-05-31  Sebastian Pop  <sebastian.pop@amd.com>
 	    Jan Sjodin  <jan.sjodin@amd.com>
 
+	* graphite.c (schedule_to_scattering): Make scattering domains
+	uniformly of the same size, as required by CLooG 0.14.0 and before.
+
+2008-05-31  Sebastian Pop  <sebastian.pop@amd.com>
+	    Jan Sjodin  <jan.sjodin@amd.com>
+
 	* graphite.c (schedule_to_scattering): Rewrite, correct the
 	translation of the scheduling function to scattering.
 	(build_cloog_prog): Call schedule_to_scattering only once.
