@@ -1,3 +1,12 @@
+2008-05-31  Sebastian Pop  <sebastian.pop@amd.com>
+	    Jan Sjodin  <jan.sjodin@amd.com>
+
+	* graphite.c (schedule_to_scattering): Rewrite, correct the
+	translation of the scheduling function to scattering.
+	(build_cloog_prog): Call schedule_to_scattering only once.
+	* graphite.h (scop_loop_index): Do not fail for loops not
+	in the scop: return -1.
+
 2008-05-30 Tobias Grosser  <grosser@fim.uni-passau.de>
 
 	* graphite.c (build_graphite_bb): Initialize GBB_DOMAIN.

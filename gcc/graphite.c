@@ -1784,11 +1784,15 @@ setup_cloog_loop (scop_p scop, struct loop *loop, CloogMatrix *outer_cstr,
 static CloogMatrix *
 schedule_to_scattering (graphite_bb_p gb) 
 {
+  int i;
+  int row = 0; 
+
   /* Conservative aproximation, the maximal loop depth of all bbs would be
      sufficient, as we use in cloog one iterator for loops of the same loop
      depth.  */
-  int max_nb_iterators = scop_nb_loops (GBB_SCOP (gb));
-  struct loop *loop = gbb_loop (gb);
+  scop_p scop = GBB_SCOP (gb);
+  int max_nb_iterators = scop_nb_loops (scop);
+  struct loop *loop;
   int nb_iterators = nb_loops_around_gb (gb);
 
   /* Number of columns:
@@ -1799,49 +1803,49 @@ schedule_to_scattering (graphite_bb_p gb)
    The scattering domain contains one dimension for every iterator (which 
    iteration of this loop should be scattered) and max_nb_iterators + 1
    dimension for the textual order of every loop.  */ 
-  int nb_cols = 1 + 2 * max_nb_iterators + 1 + nb_iterators + 1;
+  int nb_cols = 1 + (2 * max_nb_iterators + 1) + nb_iterators + 1;
   int col_const = nb_cols - 1; 
-  int col_iter_offset = 1 + 2 * max_nb_iterators + 1;
+  int col_iter_offset = 1 + (2 * max_nb_iterators + 1) - 1;
 
   CloogMatrix *scat = cloog_matrix_alloc (nb_iterators * 2 + 1, nb_cols);
 
-  int i;
-  int loop_index;
-  int row = 0; 
-
-  /* Reverse, because we get the inner loops first.  */
-  for (i = nb_iterators - 1; i >= 0; i--) 
-    {
-      loop_index = scop_loop_index (GBB_SCOP (gb), loop);
-
-      /* Set textual order for bb's of loop.  */
-      value_init (scat->p[row][2 * i + 3]);
-      value_set_si (scat->p[row][2 * i + 3], 1);
-      value_init (scat->p[row][col_const]);
-      value_set_si (scat->p[row][col_const],
-		    GBB_STATIC_SCHEDULE (gb)[loop_index]);
-
-      row++;
-
-      /* Set scattering for loop iterator.  */
-      value_init (scat->p[row][2 * i + 2]);
-      value_set_si (scat->p[row][2 * i + 2], 1);
-      value_init (scat->p[row][col_iter_offset + i]);
-      value_set_si (scat->p[row][col_iter_offset + i], 1);
-
-      loop = loop_outer (loop);
-      row++;
-    }
 
   /* Set textual order for outer loop.  */
-#if 0
-  loop_index = scop_loop_index (GBB_SCOP (gb), loop);
-
   value_init (scat->p[row][1]);
-  value_set_si (scat->p[row][1], 1);
   value_init (scat->p[row][col_const]);
-  value_set_si (scat->p[row][col_const], GBB_STATIC_SCHEDULE (gb)[loop_index]);
-#endif
+
+  value_set_si (scat->p[row][1], 1);
+  value_set_si (scat->p[row][col_const], GBB_STATIC_SCHEDULE (gb)[0]);
+  row++;
+
+  loop = gbb_loop (gb);
+  if (!loop || loop->num == 0)
+    return scat;
+
+  for (i = scop_loop_index (scop, loop);
+       i != -1;
+       i = scop_loop_index (scop, loop))       
+    {
+      /* Set scattering for loop iterator.  */
+      value_init (scat->p[row][2 * i]);
+      value_init (scat->p[row][col_iter_offset + i]);
+
+      value_set_si (scat->p[row][2 * i], 1);
+      value_set_si (scat->p[row][col_iter_offset + i], 1);
+      row++;
+
+      /* Set textual order for bb's of loop.  */
+      value_init (scat->p[row][2 * i + 1]);
+      value_init (scat->p[row][col_const]);
+
+      value_set_si (scat->p[row][2 * i + 1], 1);
+      value_set_si (scat->p[row][col_const], GBB_STATIC_SCHEDULE (gb)[i]);
+      row++;
+
+      loop = loop_outer (loop);
+      if (!loop || loop->num == 0)
+	break;
+    }
 
  return scat; 
 }
@@ -2282,21 +2286,22 @@ build_cloog_prog (scop_p scop)
         block_list = new_block_list;
       }
 
-      /* Build scattering list.  */
-      {
-        /* XXX: Replace with cloog_domain_list_alloc(), when available.  */
-        CloogDomainList *new_scattering = xmalloc (sizeof (CloogDomainList));
-        new_scattering->next = scattering;
-        new_scattering->domain = cloog_domain_matrix2domain (schedule_to_scattering (gbb));
-        scattering = new_scattering;
-      }
-
       /* XXX: Unused cloog field.  Not necessary for scattering. Just here
          during developement to document this.  Should be removed in future gcc
          and cloog versions.  */
       block->scattering = schedule_to_scattering (gbb);
 
-      debug_gbb (gbb, 3);
+      /* Build scattering list.  */
+      {
+        /* XXX: Replace with cloog_domain_list_alloc(), when available.  */
+        CloogDomainList *new_scattering = xmalloc (sizeof (CloogDomainList));
+        new_scattering->next = scattering;
+        new_scattering->domain = cloog_domain_matrix2domain (block->scattering);
+        scattering = new_scattering;
+      }
+
+      if (0)
+	debug_gbb (gbb, 3);
     }
 
   prog->loop = loop_list;

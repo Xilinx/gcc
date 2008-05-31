@@ -199,7 +199,8 @@ loop_iteration_vector_dim (unsigned int loop_num, scop_p scop)
   return loop_domain_dim (loop_num, scop) - 2 - nb_params_in_scop (scop);
 }
 
-/* Returns the index of LOOP in the domain matrix for the SCOP.  */
+/* Returns the index of LOOP in the domain matrix for the SCOP.
+   Returns -1 when the loop does not belong to the SCOP.  */
 
 static inline int
 scop_loop_index (scop_p scop, struct loop *loop)
@@ -213,7 +214,6 @@ scop_loop_index (scop_p scop, struct loop *loop)
     if (l == loop)
       return i;
 
-  gcc_unreachable ();
   return -1;
 }
 
