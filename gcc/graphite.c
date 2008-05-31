@@ -1204,32 +1204,6 @@ build_scop_canonical_schedules (scop_p scop)
     }
 }
 
-/* Return true when STMT is contained in SCOP.  */
-
-static inline bool
-stmt_in_scop_p (tree stmt, scop_p scop)
-{
-  return bb_in_scop_p (bb_for_stmt (stmt), scop);
-}
-
-static inline bool
-function_parameter_p (tree var)
-{
-  return (TREE_CODE (SSA_NAME_VAR (var)) == PARM_DECL);
-}
-
-/* Return true when VAR is invariant in SCOP.  In that case, VAR is a
-   parameter of SCOP.  */
-
-static inline bool
-invariant_in_scop_p (tree var, scop_p scop)
-{
-  gcc_assert (TREE_CODE (var) == SSA_NAME);
-
-  return (function_parameter_p (var)
-	  || !stmt_in_scop_p (SSA_NAME_DEF_STMT (var), scop));
-}
-
 /* Get the index for parameter VAR in SCOP.  */
 
 static int
@@ -1251,30 +1225,133 @@ param_index (tree var, scop_p scop)
   return VEC_length (name_tree, SCOP_PARAMS (scop)) - 1;
 }
 
+/* Scan EXPR and translate it to an inequality vector INEQ that will
+   be inserted in the constraint domain matrix C at row R.  N is
+   the number of columns for loop iterators in C.  */
+
+static void
+scan_tree_for_params (scop_p s, tree e, CloogMatrix *c, int r, int n, Value k)
+{
+  unsigned cst_col, param_col;
+
+  switch (TREE_CODE (e))
+    {
+    case POLYNOMIAL_CHREC:
+      {
+	tree left = CHREC_LEFT (e);
+	tree right = CHREC_RIGHT (e);
+	int var = CHREC_VARIABLE (e);
+
+	if (TREE_CODE (right) != INTEGER_CST)
+	  return;
+
+	if (c)
+	  {
+	    unsigned var_idx = loop_iteration_vector_dim (var, s);
+	    value_init (c->p[r][var_idx]);
+	    value_set_si (c->p[r][var_idx], int_cst_value (right));
+	  }
+
+	switch (TREE_CODE (left))
+	  {
+	  case POLYNOMIAL_CHREC:
+	    scan_tree_for_params (s, left, c, r, n, k);
+            return;
+
+	  case INTEGER_CST:
+	    /* Constant part.  */
+	    if (c)
+	      {
+		cst_col = c->NbColumns - 1;
+		value_init (c->p[r][cst_col]);
+		value_set_si (c->p[r][cst_col], int_cst_value (left));
+	      }
+	    return;
+
+	  default:
+            {
+              scan_tree_for_params (s, left, c, r, n, k);
+              return;
+            }
+	  }
+      }
+      break;
+
+    case MULT_EXPR:
+      if (chrec_contains_symbols (TREE_OPERAND (e, 0)))
+	{
+	  Value val;
+
+	  gcc_assert (host_integerp (TREE_OPERAND (e, 1), 1));
+
+	  value_init (val);
+	  value_set_si (val, int_cst_value (TREE_OPERAND (e, 1)));
+	  value_multiply (k, k, val);
+	  value_clear (val);
+	  scan_tree_for_params (s, TREE_OPERAND (e, 0), c, r, n, k);
+	}
+      else
+	{
+	  Value val;
+
+	  gcc_assert (host_integerp (TREE_OPERAND (e, 0), 1));
+
+	  value_init (val);
+	  value_set_si (val, int_cst_value (TREE_OPERAND (e, 0)));
+	  value_multiply (k, k, val);
+	  value_clear (val);
+	  scan_tree_for_params (s, TREE_OPERAND (e, 1), c, r, n, k);
+	}
+      break;
+
+    case PLUS_EXPR:
+      scan_tree_for_params (s, TREE_OPERAND (e, 0), c, r, n, k);
+      scan_tree_for_params (s, TREE_OPERAND (e, 1), c, r, n, k);
+      break;
+
+    case MINUS_EXPR:
+      scan_tree_for_params (s, TREE_OPERAND (e, 0), c, r, n, k);
+      value_oppose (k, k);
+      scan_tree_for_params (s, TREE_OPERAND (e, 1), c, r, n, k);
+      break;
+
+    case SSA_NAME:
+      param_col = 1 + n + param_index (e, s);
+
+      if (c)
+	{
+	  value_init (c->p[r][param_col]);
+	  value_assign (c->p[r][param_col], k);
+	}
+      break;
+
+
+    case INTEGER_CST:
+      if (c)
+	{
+	  cst_col = c->NbColumns - 1;
+	  value_init (c->p[r][cst_col]);
+	  value_set_si (c->p[r][cst_col], int_cst_value (e));
+	}
+      break;
+
+    case NOP_EXPR:
+    case CONVERT_EXPR:
+    case NON_LVALUE_EXPR:
+      scan_tree_for_params (s, TREE_OPERAND (e, 0), c, r, n, k);
+      break;
+
+    default:
+      break;
+    }
+}
+
+
 struct irp_data
 {
   struct loop *loop;
   scop_p scop;
 };
-
-/* Record VAR as a parameter of DTA->scop.  */
-
-static bool
-idx_record_param (tree *var, void *dta)
-{
-  struct irp_data *data = dta;
-
-  switch (TREE_CODE (*var))
-    {
-    case SSA_NAME:
-      if (invariant_in_scop_p (*var, data->scop))
-	param_index (*var, data->scop);
-      return true;
-
-    default:
-      return true;
-    }
-}
 
 /* Record parameters occurring in an evolution function of a data
    access, niter expression, etc.  Callback for for_each_index.  */
@@ -1296,7 +1373,15 @@ idx_record_params (tree base, tree *idx, void *dta)
 
       scev = analyze_scalar_evolution (loop, *idx);
       scev = instantiate_parameters (floop, scev);
-      for_each_scev_op (&scev, idx_record_param, dta);
+
+      {
+	Value one;
+
+	value_init (one);
+	value_set_si (one, 1);
+	scan_tree_for_params (scop, scev, NULL, 0, 0, one);
+	value_clear (one);
+      }
     }
 
   return true;
@@ -1415,7 +1500,13 @@ find_scop_parameters (scop_p scop)
             outermost_loop_in_scop (scop, loop->header),
             nb_iters);
           
-	  for_each_scev_op (&nb_iters, idx_record_param, &irp);
+	  {
+	    Value one;
+	    value_init (one);
+	    value_set_si (one, 1);
+	    scan_tree_for_params (scop, nb_iters, NULL, 0, 0, one);
+	    value_clear (one);
+	  }
 	}
     }
 
@@ -1450,114 +1541,6 @@ build_scop_context (scop_p scop)
   value_set_si (matrix->p[0][nb_params + 1], 0);
 
   SCOP_PROG (scop)->context = cloog_domain_matrix2domain (matrix);
-}
-
-/* Scan EXPR and translate it to an inequality vector INEQ that will
-   be inserted in the constraint domain matrix C at row R.  N is
-   the number of columns for loop iterators in C.  */
-
-static void
-scan_tree_for_params (scop_p s, tree e, CloogMatrix *c, int r, int n, Value k)
-{
-  unsigned cst_col, param_col;
-
-  switch (TREE_CODE (e))
-    {
-    case POLYNOMIAL_CHREC:
-      {
-	tree left = CHREC_LEFT (e);
-	tree right = CHREC_RIGHT (e);
-	int var = CHREC_VARIABLE (e);
-	unsigned var_idx;
-
-	if (TREE_CODE (right) != INTEGER_CST)
-	  return;
-
-        var_idx = loop_iteration_vector_dim (var, s);
-        value_init (c->p[r][var_idx]);
-        value_set_si (c->p[r][var_idx], int_cst_value (right));
-
-	switch (TREE_CODE (left))
-	  {
-	  case POLYNOMIAL_CHREC:
-	    scan_tree_for_params (s, left, c, r, n, k);
-            return;
-	  case INTEGER_CST:
-	    {
-	      /* Constant part.  */
-              cst_col = c->NbColumns - 1;
-              value_init (c->p[r][cst_col]);
-              value_set_si (c->p[r][cst_col], int_cst_value (left));
-	      return;
-	    }
-
-	  default:
-            {
-              scan_tree_for_params (s, left, c, r, n, k);
-              return;
-            }
-	  }
-      }
-      break;
-    case MULT_EXPR:
-      if (chrec_contains_symbols (TREE_OPERAND (e, 0)))
-	{
-	  Value val;
-
-	  gcc_assert (host_integerp (TREE_OPERAND (e, 1), 1));
-
-	  value_init (val);
-	  value_set_si (val, int_cst_value (TREE_OPERAND (e, 1)));
-	  value_multiply (k, k, val);
-	  value_clear (val);
-	  scan_tree_for_params (s, TREE_OPERAND (e, 0), c, r, n, k);
-	}
-      else
-	{
-	  Value val;
-
-	  gcc_assert (host_integerp (TREE_OPERAND (e, 0), 1));
-
-	  value_init (val);
-	  value_set_si (val, int_cst_value (TREE_OPERAND (e, 0)));
-	  value_multiply (k, k, val);
-	  value_clear (val);
-	  scan_tree_for_params (s, TREE_OPERAND (e, 1), c, r, n, k);
-	}
-      break;
-
-    case PLUS_EXPR:
-      scan_tree_for_params (s, TREE_OPERAND (e, 0), c, r, n, k);
-      scan_tree_for_params (s, TREE_OPERAND (e, 1), c, r, n, k);
-      break;
-
-    case MINUS_EXPR:
-      scan_tree_for_params (s, TREE_OPERAND (e, 0), c, r, n, k);
-      value_oppose (k, k);
-      scan_tree_for_params (s, TREE_OPERAND (e, 1), c, r, n, k);
-      break;
-
-    case SSA_NAME:
-      param_col = 1 + n + param_index (e, s);
-      value_init (c->p[r][param_col]);
-      value_assign (c->p[r][param_col], k);
-      break;
-
-    case INTEGER_CST:
-      cst_col = c->NbColumns - 1;
-      value_init (c->p[r][cst_col]);
-      value_set_si (c->p[r][cst_col], int_cst_value (e));
-      break;
-
-    case NOP_EXPR:
-    case CONVERT_EXPR:
-    case NON_LVALUE_EXPR:
-      scan_tree_for_params (s, TREE_OPERAND (e, 0), c, r, n, k);
-      break;
-
-    default:
-      break;
-    }
 }
 
 /* Returns the first loop in SCOP, returns NULL if there is no loop in
@@ -1661,7 +1644,7 @@ setup_cloog_loop (scop_p scop, struct loop *loop, CloogMatrix *outer_cstr,
   CloogLoop *res = cloog_loop_malloc ();
 
   unsigned nb_rows = outer_cstr->NbRows + 1;
-  unsigned nb_cols = outer_cstr->NbColumns + 1;
+  unsigned nb_cols = outer_cstr->NbColumns;
 
   /* Last column of CSTR is the column of constants.  */
   unsigned cst_col = nb_cols - 1;
@@ -1824,7 +1807,9 @@ schedule_to_scattering (graphite_bb_p gb)
   value_set_si (scat->p[row][col_const], GBB_STATIC_SCHEDULE (gb)[0]);
 
   loop = gbb_loop (gb);
-  if (!loop || loop->num == 0)
+  if (!loop
+      || !bitmap_bit_p (SCOP_LOOPS (scop), loop->num)
+      || loop->num == 0)
     return scat;
 
   for (i = scop_loop_index (scop, loop);
@@ -1840,7 +1825,9 @@ schedule_to_scattering (graphite_bb_p gb)
       value_set_si (scat->p[2 * i + 1][col_const], GBB_STATIC_SCHEDULE (gb)[i]);
 
       loop = loop_outer (loop);
-      if (!loop || loop->num == 0)
+      if (!loop 
+	  || !bitmap_bit_p (SCOP_LOOPS (scop), loop->num)
+	  || loop->num == 0)
 	break;
     }
 
@@ -1864,7 +1851,7 @@ build_scop_iteration_domain (scop_p scop)
      - first column: eq/ineq boolean
      - last column: a constant
      - nb_params_in_scop columns for the parameters used in the scop.  */
-  outer_cstr = cloog_matrix_alloc (0, 2 + nb_params_in_scop (scop));
+  outer_cstr = cloog_matrix_alloc (0, scop_dim_domain (scop) + 1);
   SCOP_PROG (scop)->loop = setup_cloog_loop (scop, loop, outer_cstr, 0);
   return true;
 }
@@ -2264,8 +2251,8 @@ build_cloog_prog (scop_p scop)
       /* Add empty domain to all bbs, which do not yet have a domain, as they
          are not part of any loop.  */
       if (domain == NULL)
-	domain = cloog_matrix_alloc (0, nb_params_in_scop (scop) + 2);
-        
+	domain = cloog_matrix_alloc (0, scop_dim_domain (scop) + 1);
+
       /* Build loop list.  */
       {
         CloogLoop *new_loop_list = cloog_loop_malloc ();
@@ -2333,10 +2320,8 @@ find_transform (scop_p scop)
   CloogProgram *prog;
   struct clast_stmt *stmt;
   
-  /* XXX: Connect new cloog prog generation to graphite, if we should use this
-     one clean up.  */
-  if (0)
-    build_cloog_prog (scop);
+  /* Connect new cloog prog generation to graphite.  */
+  build_cloog_prog (scop);
 
   /* Change cloog output language to C.  If we do use FORTRAN instead, cloog
      will stop e.g. with "ERROR: unbounded loops not allowed in FORTRAN.", if

@@ -1,6 +1,21 @@
 2008-05-31  Sebastian Pop  <sebastian.pop@amd.com>
 	    Jan Sjodin  <jan.sjodin@amd.com>
 
+	* graphite.c (stmt_in_scop_p, function_parameter_p,
+	invariant_in_scop_p): Removed.
+	(scan_tree_for_params): Can be used with no constraint 
+	matrix for gathering parameters.
+	(idx_record_params): Don't use idx_record_param, instead use 
+	scan_tree_for_params.
+	(find_scop_parameters): Same.
+	(setup_cloog_loop, build_scop_iteration_domain, build_cloog_prog): 
+	Fix the size of loop domains.
+	(schedule_to_scattering): Exit when the outer loop is not in scop.
+	(find_transform): Enable build_cloog_prog.
+
+2008-05-31  Sebastian Pop  <sebastian.pop@amd.com>
+	    Jan Sjodin  <jan.sjodin@amd.com>
+
 	* graphite.c (schedule_to_scattering): Make scattering domains
 	uniformly of the same size, as required by CLooG 0.14.0 and before.
 
