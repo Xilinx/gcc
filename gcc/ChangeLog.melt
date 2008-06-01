@@ -1,3 +1,8 @@
+2008-06-01  Basile Starynkevitch  <basile@starynkevitch.net>
+[still metabuggy warmbasilys1 fails on test0]
+	* melt/warm-basilys.bysl: added several (void) to avoid conditional type mismatch.
+	(replace_last_by_return) more robust because of added (void) calls.
+
 2008-05-29  Basile Starynkevitch  <basile@starynkevitch.net>
 [still metabuggy; warm-basilys-1 fails on test0]
 

@@ -1181,7 +1181,12 @@
 ;;       P R I M I T I V E S 
 ;;****************************************************************
 
+;; primitive to ignore a value
+(defprimitive ignore (v) :void
+  "/*ignore*/(" v ")")
 
+;; primitive to return a void
+(defprimitive void () :void "/*void*/0")
 
 ;; primitive for converting a string constant into a string value
 (defprimitive stringconst2val (discr :cstring strc) :value
@@ -1673,7 +1678,7 @@
 
 ;; to signal an error in a basilys source with some additional string value
 (defprimitive error_strv (loc :cstring msg :value strv) :void
-  "error(\"BASILYS ERROR: file %s line %d : %s - %s\","
+  "error(\"BASILYS ERROR: file %s, line %d : %s - %s\","
   " basilys_string_str(basilys_val_mixint(" loc ")), "
   " (int) basilys_num_mixint(" loc "), ("
   msg
@@ -1681,7 +1686,23 @@
   )
 ;; signal a plain error in a basilys source
 (defprimitive error_plain (loc :cstring msg) :void
-  "error(\"BASILYS ERROR: file %s line %d :: %s \","
+  "error(\"BASILYS ERROR: file %s, line %d :: %s \","
+  " basilys_string_str(basilys_val_mixint(" loc ")), "
+  " (int) basilys_num_mixint(" loc "), ("
+  msg "))"
+  )
+
+;; to signal an warning in a basilys source with some additional string value
+(defprimitive warning_strv (loc :cstring msg :value strv) :void
+  "warning(0, \"BASILYS WARNING: file %s, line %d : %s - %s\","
+  " basilys_string_str(basilys_val_mixint(" loc ")), "
+  " (int) basilys_num_mixint(" loc "), ("
+  msg
+  "), basilys_string_str((" strv ")))"
+  )
+;; signal a plain warning in a basilys source
+(defprimitive warning_plain (loc :cstring msg) :void
+  "warning(0, \"BASILYS WARNING: file %s, line %d :: %s \","
   " basilys_string_str(basilys_val_mixint(" loc ")), "
   " (int) basilys_num_mixint(" loc "), ("
   msg "))"
@@ -1975,8 +1996,9 @@
 		 (:else 
 		  (debugmsg symb "clone_symbol bad symb" (the_callcount))
 		  (assert_msg "invalid symb in clone_symbol" ())
-		  (return (the_null)))))
+		  (the_null))))
 	 (boxi (mapstring_getstr mapstr synam)) )
+    (assert_msg "check synam" (is_string synam))
     (if (not (is_integerbox boxi))
 	(progn 
 	  (setq boxi (make_integerbox discr_integer 0))
@@ -2278,7 +2300,6 @@
 		  (let ( (newmapdict (make_mapobject discr_methodmap 35)) )
 		    (unsafe_put_fields cla :disc_methodict newmapdict)
 		    (mapobject_put newmapdict sel fun)
-		    (return (the_null))
 		    ))))))
 ;- (progn
 ;-   (debugmsg cla "install_method failed cla=" (the_callcount))
@@ -2324,7 +2345,7 @@
 	    (let ( (newocc (make_integerbox discr_integer 1)) )
 	      (mapobject_put occmap obj newocc)
 	      (checkcallstack_msg "in dbg_outobject output")
-	      (dbg_output obj dbgi depth)
+	      (ignore (dbg_output obj dbgi depth))
 	      )))))
   )
 
@@ -2337,13 +2358,13 @@
     (if (need_dbglim depth (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
 	(if (is_object obj)
 	    (progn
-	      (checkcallstack_msg "start dbg_out outobject")
-	      (dbg_outobject obj dbgi depth)
+	      ;; (checkcallstack_msg "start dbg_out outobject")
+	      (ignore (dbg_outobject obj dbgi depth))
 	      )
 	  (if obj
 	      (progn
-		(checkcallstack_msg "start dbg_out output")
-		(dbg_output obj dbgi depth)
+		;; (checkcallstack_msg "start dbg_out output")
+		(ignore (dbg_output obj dbgi depth))
 		)
 	    (if (is_strbuf sbuf) (add2sbuf_strconst sbuf "()")
 	      )))
@@ -2455,7 +2476,7 @@
     (if  (need_dbglim depth (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
 	(progn
 	  (add2sbuf_strconst sbuf ",")
-	  (dbg_out (mixint_val self) dbgi (+i depth 1))
+	  (ignore (dbg_out (mixint_val self) dbgi (+i depth 1)))
 	  )
       (add2sbuf_strconst sbuf ",..")
       )
@@ -2480,7 +2501,7 @@
       (add2sbuf_strconst sbuf "[")
       (if (need_dbg depth)
 	  (let ( (:long ix 0) )
-	    (forever comploop
+	    (ignore (forever comploop
 		     (if (>=i ix ln) (exit comploop))
 		     (add2sbuf_indent sbuf depth)
 		     (let ( (:long curulen (strbuf_usedlength sbuf)) )
@@ -2489,7 +2510,7 @@
 			    (<i ix (-i ln 1))
 			    (add2sbuf_indentnl sbuf (+i 1 depth))))
 		     (setq ix (+i ix 1))
-		     ))
+		     )))
 	(add2sbuf_strconst sbuf "..")
 	)
       (add2sbuf_strconst sbuf "]")
@@ -3432,7 +3453,8 @@
 			(setq argtype cty)
 		      (progn
 			(error_strv argloc "invalid keyword in formal arglist"
-				    (unsafe_get_field :named_name curarg))    
+				    (unsafe_get_field :named_name curarg))
+			()
 			)
 		      ))
 		  ()			;to make the compiler happy we explicitly gives nil
@@ -3551,10 +3573,12 @@
 			 ;; change string to verbatimstring to ease primitive expansion
 			 ;; and check that each component is e string or a symbol
 			 (cond ( (== (discrim curcomp) discr_string)
-				 (setq curcomp (make_string discr_verbatimstring curcomp)))
+				 (setq curcomp (make_string discr_verbatimstring curcomp))
+				 ())
 			       ( (!= (discrim curcomp) class_symbol)
 				 (error_strv loc "invalid expansion component in primitive"
-					     (unsafe_get_field :named_name symb))))
+					     (unsafe_get_field :named_name symb))
+				 ()))
 			 (multiple_put_nth etuple ix curcomp)
 			 (setq curpair (pair_tail curpair))
 			 (setq ix (+i ix 1)))))
@@ -3679,20 +3703,27 @@
 			   (cond ( (is_a superb class_class_binding)
 				   (setq superbind superb) 
 				   (setq superclass (unsafe_get_field :cbind_class superb))
+				   (void)
 				   )
 				 ( (is_a superb class_value_binding)
 				   (let ((superval (unsafe_get_field :vbind_value superb)))
 				     (if (is_a superval class_class)
 					 (progn
 					   (setq superbind superb)
-					   (setq superclass superval))
+					   (setq superclass superval)
+					   (void)
+					   )
 				       (error_strv loc "super is not a class in defclass" 
-						   (unsafe_get_field :named_name supernam)))))
+						   (unsafe_get_field :named_name supernam))))
+				   (void)
+				   )
 				 (:else 
 				  (error_strv loc "invalid super in defclass" 
-					      (unsafe_get_field :named_name supernam)))
+					      (unsafe_get_field :named_name supernam))
+				  (void)
+				  )
 				 )
-					;()
+			   (void)
 			   ))
 		       ( (== curkw ':fields)
 			 (if fieldnams (error_plain loc "duplicate fields in defclass"))
@@ -3717,36 +3748,36 @@
 				    (setq ix (+i ix 1))
 				    )
 			   (setq fieldnams namtupl)
-					;()
+			   (void)
 			   ))
 		       ( (== curkw ':predef)
 			 (if predef (error_plain loc "duplicate predef in DEFCLASS"))
 			 (setq predef (macroexpand_1 curval env mexpander))
 			 (cond
 			  ( (is_integerbox predef) 
-			    ()
+			    (void)
 			    )
 			  ( (is_a predef class_symbol)
-			    ()
+			    (void)
 			    )
 			  (:else
 			   (error_plain loc "bad predef in DEFCLASS")
-			   ()
+			   (void)
 			   )
 			  )
-					;()
+			 (void)
 			 )
 		       ( (== curkw ':docstr)
 			 (if docstr (error_plain loc "duplicate docstr in DEFCLASS"))
 			 (setq docstr (macroexpand_1 curval env mexpander))
 			 (if (not (is_string docstr))
 			     (error_plain loc "bad docstr in DEFCLASS"))
-					;()
+			 (void)
 			 )
 		       (:else
 			(error_strv loc "invalid keyword in DEFCLASS" 
 				    (unsafe_get_field :named_name curkw))
-					;()
+			(void)
 			)
 		       ))))
     (debugmsg symb "scan_defclass returns symb" (the_callcount))
@@ -3905,7 +3936,9 @@
 	(if (is_a fld class_field)
 	    (box_put fldbox fld)
 	  (error_strv loc "invalid field name in field assignment" 
-		      (unsafe_get_field :named_name fldkw)))))
+		      (unsafe_get_field :named_name fldkw)))
+	()
+	))
     ;; at last make the field assignment
     (let ( (fld (box_content fldbox)) )
       (if (is_a fld class_field)
@@ -3971,6 +4004,7 @@
 				    (if (is_a curexp class_sexpr)
 					(macroexpand_1 curexp env mexpander)
 				      curexp))
+			      (void)
 			      )
 			    ( (== curfkw ':predef)
 			      (if predef (error_plain loc "duplicate :predef in definstance"))
@@ -3978,12 +4012,15 @@
 				    (if (is_a curexp class_sexpr)
 					(macroexpand_1 curexp env mexpander)
 				      curexp))
+			      (void)
 			      )
 			    (:else 
 			     (let  ( (flda (parse_field_assignment cla loc curfkw curexp env mexpander)) )
 			       (if flda 
 				   (list_append fldlist flda)
-				 )))))
+				 )
+			       (void)
+			       ))))
 		   (setq curpair (pair_tail curpair))
 		   ))
 	(let ( (fastup (list_to_multiple fldlist discr_multiple)) 
@@ -4066,6 +4103,7 @@
 				    (if (is_a curexp class_sexpr)
 					(macroexpand_1 curexp env mexpander)
 				      curexp))
+			      (void)
 			      )
 			    ( (== curfkw ':predef)
 			      (if curexp (error_plain loc "duplicate :predef in definstance"))
@@ -4073,12 +4111,15 @@
 				    (if (is_a curexp class_sexpr)
 					(macroexpand_1 curexp env mexpander)
 				      curexp))
+			      (void)
 			      )
 			    (:else 
 			     (let  ( (flda (parse_field_assignment cla loc curfkw curexp env mexpander)) )
 			       (if flda 
 				   (list_append fldlist flda)
-				 )))))
+				 )
+			       (void)
+			       ))))
 		   (setq curpair (pair_tail curpair))
 		   ))
 	(let ( ( fastup (list_to_multiple fldlist discr_multiple)) 
@@ -4125,15 +4166,20 @@
       (cond 
        ( (is_a bnd class_class_binding)
 	 (setq clabind bnd)
-	 (setq cla (unsafe_get_field :cbind_class bnd)) )
+	 (setq cla (unsafe_get_field :cbind_class bnd)) 
+	 (void)
+	 )
        ( (and (is_a bnd class_value_binding)
 	      (is_a (unsafe_get_field :vbind_value bnd) class_class))
 	 (setq clabind bnd)
-	 (setq cla (unsafe_get_field :vbind_value bnd)))
+	 (setq cla (unsafe_get_field :vbind_value bnd))
+	 (void)
+	 )
        (:else
 	(error_strv loc "invalid class name for make_instance"
 		    (unsafe_get_field :named_name claname))
 	(return (the_null))
+	(void)
 	))
       (assert_msg "check cla" (is_a cla class_class))
       (setq curpair (pair_tail curpair))
@@ -4419,7 +4465,9 @@
 	)
     (debugmsg cxtup "mexpand_and cxtup" (the_callcount))
     (if (<i nbcomp 1)
-	(error_plain loc "AND without sons")
+	(progn
+	  (error_plain loc "AND without sons")
+	  (return))
       (let ( (res (multiple_nth cxtup (-i nbcomp 1)))
 	     (:long ix (-i nbcomp 2)) )
 	(forever revloop
@@ -4453,7 +4501,9 @@
 	(:long nbcomp (multiple_length cxtup))
 	)
     (if (<i nbcomp 1)
-	(error_plain loc "OR without sons")
+	(progn 
+	  (error_plain loc "OR without sons")
+	  (return (the_null)))
       (let ( (res 
 	      (make_instance class_src_or
 			     :src_loc loc
@@ -4494,7 +4544,9 @@
 	  ( (is_a curarg class_symbol)
 	    (setq var curarg)
 	    (setq curpair (pair_tail curpair))
-	    (setq curarg (pair_head curpair))))
+	    (setq curarg (pair_head curpair))
+	    (void))
+	  )
     (if (null var) 
 	(error_plain loc "missing variable in letbinding"))
     (if curarg
@@ -4502,7 +4554,9 @@
 	  (setq expr (macroexpand_1 curarg env mexpander))
 	  (setq curpair (pair_tail curpair))
 	  (setq curarg (pair_head curpair))
-	  (if curarg (error_plain loc "too long letbinding"))))
+	  (if curarg (error_plain loc "too long letbinding"))
+	  (void)
+	  ))
     (let ( (letb
 	    (make_instance class_src_letbinding
 			   :src_loc loc
@@ -4528,11 +4582,11 @@
 	)
     (if bindexpr 
 	(if (is_a bindexpr class_sexpr) 
-	    (setq bindtup 
+	    (ignore (setq bindtup 
 		  (pairlist_to_multiple 
 		   (list_first (unsafe_get_field :sexp_contents bindexpr))
 		   discr_multiple
-		   (lambda (b) (mexpand_letbinding b env mexpander))))
+		   (lambda (b) (mexpand_letbinding b env mexpander)))))
 	  (error_plain loc "missing letbinding-s in LET"))
       )
     (multiple_every
@@ -5515,15 +5569,17 @@
 	 (srets (unsafe_get_field :sreturn_body recv))
 	 (:long nbrets (multiple_length srets))
 	 (csym (clone_symbol 'return_)) 
+	 ;; while the return effectively go out, it is preferable to give it a value type
+	 ;; to avoid make warning on code like (if (p x) (return) (.....))
 	 (cbind (make_instance class_normlet_binding
 			       :letbind_loc sloc
 			       :binder csym
-			       :letbind_type ctype_void 
+			       :letbind_type ctype_value 
 			       ;; :letbind_expr is filled later
 			       ))
 	 (clocc (make_instance class_nrep_locsymocc
 			       :nrep_loc sloc
-			       :nocc_ctyp ctype_void
+			       :nocc_ctyp ctype_value
 			       :nocc_symb csym
 			       :nocc_bind cbind)) 
 	 )
@@ -5687,18 +5743,29 @@
 		(ctypelse (get_ctype nelse newelseenv)) )
 	   (assert_msg "check ctypif" (is_a ctypif class_ctype))
 	   (assert_msg "check ctypelse" (is_a ctypelse class_ctype))
-	   (if (== ctypif ctype_void) (setq ctypelse ctype_void))
-	   (if (== ctypelse ctype_void) (setq ctypif ctype_void))
-	   (if (!= ctypif ctypelse)
-	       (progn
-		 (debugmsg nthen "normexp_ifelse incompatyp nthen")
-		 (debugmsg nelse "normexp_ifelse incompatyp nelse")
-		 (debugmsg ctypif "normexp_ifelse incompatyp ctypif")
-		 (debugmsg ctypelse "normexp_ifelse incompatyp ctypelse")
-		 (error_plain sloc 
-			      "incompatible types in conditional branches")
-		 (setq ctypif ctype_void)
-		 ))
+	   (cond
+	    ( (== ctypif ctypelse)
+	      ()
+	      )
+	    ( (and (!= ctypif ctype_void) (is_not_a nthen class_nrep_nil))
+	      (debugmsg nthen "normexp_ifelse incompatyp.then nthen")
+	      (debugmsg nelse "normexp_ifelse incompatyp.then nelse")
+	      (debugmsg ctypif "normexp_ifelse incompatyp.then ctypif")
+	      (debugmsg ctypelse "normexp_ifelse incompatyp.then ctypelse")
+	      (warning_plain sloc "mismatched type in IF/OR/COND conditional - ignoring then type")
+	      (setq ctypif ctype_void))
+	    ( (and (!= ctypelse ctype_void) (is_not_a nelse class_nrep_nil))
+	      (debugmsg nthen "normexp_ifelse incompatyp.else nthen")
+	      (debugmsg nelse "normexp_ifelse incompatyp.else nelse")
+	      (debugmsg ctypif "normexp_ifelse incompatyp.else ctypif")
+	      (debugmsg ctypelse "normexp_ifelse incompatyp.else ctypelse")
+	      (warning_plain sloc "mismatched type in IF/OR/COND conditional - ignoring else type")
+	      (setq ctypif ctype_void))
+	    (:else
+	     (warning_plain sloc 
+			  "incompatible types in conditional IF/OR/COND branches")
+	     (setq ctypif ctype_void)
+	     ))
 	   ;;
 	   ;;
 	   (let ( (csym (clone_symbol '_ifelse_))
@@ -6334,14 +6401,18 @@
 	    tup  (-i tuplen 1)
 	    (make_instance class_nrep_return
 			   :nrep_loc sloc
-			   :nret_main lastcomp))))
+			   :nret_main lastcomp)))
+       (return tup)
+       )
 ;;; last expression is a normal data, return it
      ( (is_a lastcomp class_nrep_data)
        (multiple_put_nth 
 	tup  (-i tuplen 1)
 	(make_instance class_nrep_return
 		       :nrep_loc sloc
-		       :nret_main lastcomp)))
+		       :nret_main lastcomp))
+       (return tup)
+       )
 ;;; no last expression - don't bother to return
      ( (null lastcomp)
        (return tup)
@@ -6359,7 +6430,9 @@
 	    (put_env newenv bnd)
 	    ))
 	 (if (is_multiple lbody) 
-	     (replace_last_by_return lbody newenv lloc))))
+	     (replace_last_by_return lbody newenv lloc))
+	 (return tup)
+	 ))
 ;;; last expression is some more complex normalized stuff
 ;;; if it is a value wrap it into a normalized let with return 
      ( (is_a lastcomp class_nrep)
@@ -6392,15 +6465,13 @@
 	       (multiple_put_nth 
 		tup  (-i tuplen 1)
 		rlet)
+	       (return tup)
 	       )))))
-    tup					; returns the original tuple
+    (return tup)			; returns the original tuple
 ;;; general case, do nothing 
     )
   )
 
-(message_dbg "@%X after replace_last_by_return")
-(debugmsg discr_verbatimstring "@%Y after replace_last_by_return discr_verbatimstring")
-(message_dbg "@%Z after replace_last_by_return")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;; normalize a DEFUN
@@ -8457,7 +8528,7 @@
     (add2sbuf_indentnl implbuf 0)
     (add2sbuf_strconst implbuf " return ")
     (if oretval 
-	(output_c_code oretval declbuf implbuf 1)
+	(ignore (output_c_code oretval declbuf implbuf 1))
       (add2sbuf_strconst implbuf "/*noretval*/ NULL"))
     (add2sbuf_strconst implbuf ";")
     (add2sbuf_indentnl implbuf 0)
@@ -8855,11 +8926,13 @@
 			 ( (== curctyp ctype_value)
 			   (add2sbuf_strconst implbuf "bp_aptr = (basilys_ptr_t*) &")
 			   (output_c_code curarg declbuf implbuf (get_int boxdepthp1))
+			   (void)
 			 )
 		     (:else 
 		      (add2sbuf_string implbuf (unsafe_get_field :ctype_argfield curctyp))
 		      (add2sbuf_strconst implbuf " = ")
 		      (output_c_code curarg declbuf implbuf (get_int boxdepthp1))
+		      (void)
 		      ))
 		   (add2sbuf_strconst implbuf ";")
 		   ))))
@@ -8948,11 +9021,13 @@
 			 ( (== curctyp ctype_value)
 			   (add2sbuf_strconst implbuf "bp_aptr = (basilys_ptr_t*) &")
 			   (output_c_code curarg declbuf implbuf (get_int boxdepthp1))
+			   (void)
 			   )
 		     (:else
 		      (add2sbuf_string implbuf (unsafe_get_field :ctype_argfield curctyp))
 		      (add2sbuf_strconst implbuf " = ")
 		      (output_c_code curarg declbuf implbuf (get_int boxdepthp1))
+		      (void)
 		      ))
 		   (add2sbuf_strconst implbuf ";")
 		   )))
@@ -9065,11 +9140,13 @@
 		    ( (== curctyp ctype_value)
 		      (add2sbuf_strconst implbuf "bp_aptr = (basilys_ptr_t*) &")
 		      (output_c_code curarg declbuf implbuf (get_int boxdepthp1))
+		      (void)
 		      )
 		    (:else
 		     (add2sbuf_string implbuf (unsafe_get_field :ctype_argfield curctyp))
 		     (add2sbuf_strconst implbuf " = ")
 		     (output_c_code curarg declbuf implbuf (get_int boxdepthp1))
+		     (void)
 		     ))
 		   (add2sbuf_strconst implbuf ";")
 		   ))))
@@ -9094,11 +9171,13 @@
 		( (== curestyp ctype_value)
 		  (add2sbuf_strconst implbuf "bp_aptr = (basilys_ptr_t*) &")
 		  (output_c_code cures declbuf implbuf (get_int boxdepthp1))
+		  (void)
 		  )
 		(:else
 		 (add2sbuf_string implbuf (unsafe_get_field :ctype_resfield curestyp))
 		 (add2sbuf_strconst implbuf " = ")
 		 (output_c_code cures declbuf implbuf (get_int boxdepthp1))
+		 (void)
 		 ))
 	       (add2sbuf_strconst implbuf ";")
 	       )
@@ -9222,11 +9301,13 @@
 		( (== curctyp ctype_value)
 		  (add2sbuf_strconst implbuf "bp_aptr = (basilys_ptr_t*) &")
 		  (output_c_code curarg declbuf implbuf (get_int boxdepthp1))
+		  (void)
 		  )
 		(:else
 		 (add2sbuf_string implbuf (unsafe_get_field :ctype_argfield curctyp))
 		 (add2sbuf_strconst implbuf " = ")
 		 (output_c_code curarg declbuf implbuf (get_int boxdepthp1))
+		 (void)
 		 ))
 	       (add2sbuf_strconst implbuf ";")
 	       )))
@@ -9247,15 +9328,18 @@
 	       (add2sbuf_strconst implbuf "].")
 	       (cond
 		( (null cures)
-		  (add2sbuf_strconst implbuf "bp_aptr = (basilys_ptr_t*)NULL"))
+		  (add2sbuf_strconst implbuf "bp_aptr = (basilys_ptr_t*)NULL")
+		  (void))
 		( (== curestyp ctype_value)
 		  (add2sbuf_strconst implbuf "bp_aptr = (basilys_ptr_t*) &")
 		  (output_c_code cures declbuf implbuf (get_int boxdepthp1))
+		  (void)
 		  )
 		(:else
 		 (add2sbuf_string implbuf (unsafe_get_field :ctype_resfield curestyp))
 		 (add2sbuf_strconst implbuf " = ")
 		 (output_c_code cures declbuf implbuf (get_int boxdepthp1))
+		 (void)
 		 ))
 	       (add2sbuf_strconst implbuf ";")
 	       )
@@ -9965,7 +10049,8 @@
       (cond ( (is_a nam class_named)
 	      (add2sbuf_cident nambuf (unsafe_get_field :named_name nam)))
 	    ( (is_string nam)
-	      (add2sbuf_cident nambuf nam)))
+	      (add2sbuf_cident nambuf nam))
+	    )
       (add2sbuf_strconst nambuf "__L")
       (add2sbuf_longdec nambuf (+i nblong 1))
       (put_int nblongbox (+i nblong 1))
@@ -11370,6 +11455,8 @@
   )
 (install_method class_nrep_return compile_obj compilobj_nrep_return)
 
+(install_method class_nrep_return get_ctype 
+		(lambda (recv env) ctype_value))
 ;; all the closures generated by lambda share the same ...
 (definstance discrclosure_objpredef class_objpredef
   :obv_type ctype_value
