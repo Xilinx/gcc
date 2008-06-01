@@ -1,6 +1,13 @@
 2008-05-31  Sebastian Pop  <sebastian.pop@amd.com>
 	    Jan Sjodin  <jan.sjodin@amd.com>
 
+	* graphite.c (scan_tree_for_params, setup_cloog_loop): Compute the offset 
+	of the last loop.
+	(setup_cloog_loop): Copy the entire outer constraint matrix.
+
+2008-05-31  Sebastian Pop  <sebastian.pop@amd.com>
+	    Jan Sjodin  <jan.sjodin@amd.com>
+
 	* graphite.c (stmt_in_scop_p, function_parameter_p,
 	invariant_in_scop_p): Removed.
 	(scan_tree_for_params): Can be used with no constraint 

@@ -1197,9 +1197,6 @@ build_scop_canonical_schedules (scop_p scop)
       lambda_vector_copy (SCOP_STATIC_SCHEDULE (scop), 
 			  GBB_STATIC_SCHEDULE (gb), nb);
 
-      if (0)
-	debug_gbb (gb, 3);
-
       ++SCOP_STATIC_SCHEDULE (scop)[offset];
     }
 }
@@ -1230,7 +1227,7 @@ param_index (tree var, scop_p scop)
    the number of columns for loop iterators in C.  */
 
 static void
-scan_tree_for_params (scop_p s, tree e, CloogMatrix *c, int r, int n, Value k)
+scan_tree_for_params (scop_p s, tree e, CloogMatrix *c, int r, Value k)
 {
   unsigned cst_col, param_col;
 
@@ -1255,7 +1252,7 @@ scan_tree_for_params (scop_p s, tree e, CloogMatrix *c, int r, int n, Value k)
 	switch (TREE_CODE (left))
 	  {
 	  case POLYNOMIAL_CHREC:
-	    scan_tree_for_params (s, left, c, r, n, k);
+	    scan_tree_for_params (s, left, c, r, k);
             return;
 
 	  case INTEGER_CST:
@@ -1270,7 +1267,7 @@ scan_tree_for_params (scop_p s, tree e, CloogMatrix *c, int r, int n, Value k)
 
 	  default:
             {
-              scan_tree_for_params (s, left, c, r, n, k);
+              scan_tree_for_params (s, left, c, r, k);
               return;
             }
 	  }
@@ -1288,7 +1285,7 @@ scan_tree_for_params (scop_p s, tree e, CloogMatrix *c, int r, int n, Value k)
 	  value_set_si (val, int_cst_value (TREE_OPERAND (e, 1)));
 	  value_multiply (k, k, val);
 	  value_clear (val);
-	  scan_tree_for_params (s, TREE_OPERAND (e, 0), c, r, n, k);
+	  scan_tree_for_params (s, TREE_OPERAND (e, 0), c, r, k);
 	}
       else
 	{
@@ -1300,23 +1297,23 @@ scan_tree_for_params (scop_p s, tree e, CloogMatrix *c, int r, int n, Value k)
 	  value_set_si (val, int_cst_value (TREE_OPERAND (e, 0)));
 	  value_multiply (k, k, val);
 	  value_clear (val);
-	  scan_tree_for_params (s, TREE_OPERAND (e, 1), c, r, n, k);
+	  scan_tree_for_params (s, TREE_OPERAND (e, 1), c, r, k);
 	}
       break;
 
     case PLUS_EXPR:
-      scan_tree_for_params (s, TREE_OPERAND (e, 0), c, r, n, k);
-      scan_tree_for_params (s, TREE_OPERAND (e, 1), c, r, n, k);
+      scan_tree_for_params (s, TREE_OPERAND (e, 0), c, r, k);
+      scan_tree_for_params (s, TREE_OPERAND (e, 1), c, r, k);
       break;
 
     case MINUS_EXPR:
-      scan_tree_for_params (s, TREE_OPERAND (e, 0), c, r, n, k);
+      scan_tree_for_params (s, TREE_OPERAND (e, 0), c, r, k);
       value_oppose (k, k);
-      scan_tree_for_params (s, TREE_OPERAND (e, 1), c, r, n, k);
+      scan_tree_for_params (s, TREE_OPERAND (e, 1), c, r, k);
       break;
 
     case SSA_NAME:
-      param_col = 1 + n + param_index (e, s);
+      param_col = 1 + scop_nb_loops (s) + param_index (e, s);
 
       if (c)
 	{
@@ -1338,7 +1335,7 @@ scan_tree_for_params (scop_p s, tree e, CloogMatrix *c, int r, int n, Value k)
     case NOP_EXPR:
     case CONVERT_EXPR:
     case NON_LVALUE_EXPR:
-      scan_tree_for_params (s, TREE_OPERAND (e, 0), c, r, n, k);
+      scan_tree_for_params (s, TREE_OPERAND (e, 0), c, r, k);
       break;
 
     default:
@@ -1379,7 +1376,7 @@ idx_record_params (tree base, tree *idx, void *dta)
 
 	value_init (one);
 	value_set_si (one, 1);
-	scan_tree_for_params (scop, scev, NULL, 0, 0, one);
+	scan_tree_for_params (scop, scev, NULL, 0, one);
 	value_clear (one);
       }
     }
@@ -1504,7 +1501,7 @@ find_scop_parameters (scop_p scop)
 	    Value one;
 	    value_init (one);
 	    value_set_si (one, 1);
-	    scan_tree_for_params (scop, nb_iters, NULL, 0, 0, one);
+	    scan_tree_for_params (scop, nb_iters, NULL, 0, one);
 	    value_clear (one);
 	  }
 	}
@@ -1628,13 +1625,11 @@ loop_body_to_cloog_stmts (struct loop *loop, scop_p scop, CloogMatrix *cstr)
   return res;
 }
 
-/* Converts LOOP in SCOP to cloog's format.  NB_OUTER_LOOPS is the
-   number of loops surrounding LOOP in SCOP.  OUTER_CSTR gives the
+/* Converts LOOP in SCOP to cloog's format.  OUTER_CSTR gives the
    constraints matrix for the surrounding loops.  */
 
 static CloogLoop *
-setup_cloog_loop (scop_p scop, struct loop *loop, CloogMatrix *outer_cstr,
-		  int nb_outer_loops)
+setup_cloog_loop (scop_p scop, struct loop *loop, CloogMatrix *outer_cstr)
 {
   unsigned i, j, row;
   CloogStatement *stmt;
@@ -1651,7 +1646,7 @@ setup_cloog_loop (scop_p scop, struct loop *loop, CloogMatrix *outer_cstr,
 
   /* The column for the current loop is just after the columns of
      other outer loops.  */
-  unsigned loop_col = nb_outer_loops + 1;
+  unsigned loop_col = scop_loop_index (scop, loop) + 1;
 
   tree nb_iters = number_of_latch_executions (loop);
 
@@ -1666,27 +1661,11 @@ setup_cloog_loop (scop_p scop, struct loop *loop, CloogMatrix *outer_cstr,
 
   /* Copy the outer constraints.  */
   for (i = 0; i < outer_cstr->NbRows; i++)
-    {
-      /* Copy the eq/ineq and loops columns.  */
-      for (j = 0; j < loop_col; j++)
-	{
-	  value_init (cstr->p[i][j]);
-	  value_assign (cstr->p[i][j], outer_cstr->p[i][j]);
-	}
-
-      /* Leave an empty column in CSTR for the current loop, and then
-	 copy the parameter columns.  */
-      for (j = loop_col; j < outer_cstr->NbColumns - 1; j++)
-	{
-	  value_init (cstr->p[i][j + 1]);
-	  value_assign (cstr->p[i][j + 1], outer_cstr->p[i][j]);
-	}
-
-      /* Copy the constant column.  */
-      value_init (cstr->p[i][cst_col]);
-      value_assign (cstr->p[i][cst_col], 
-		    outer_cstr->p[i][outer_cstr->NbColumns - 1]);
-    }
+    for (j = 0; j < outer_cstr->NbColumns; j++)
+      {
+	value_init (cstr->p[i][j]);
+	value_assign (cstr->p[i][j], outer_cstr->p[i][j]);
+      }
 
   /* 0 <= loop_i */
   row = outer_cstr->NbRows;
@@ -1725,7 +1704,7 @@ setup_cloog_loop (scop_p scop, struct loop *loop, CloogMatrix *outer_cstr,
                                 nb_iters);
       value_init (one);
       value_set_si (one, 1);
-      scan_tree_for_params (scop, nb_iters, cstr, row, loop_col, one);
+      scan_tree_for_params (scop, nb_iters, cstr, row, one);
       value_clear (one);
     }
 
@@ -1741,7 +1720,7 @@ setup_cloog_loop (scop_p scop, struct loop *loop, CloogMatrix *outer_cstr,
      res->inner for representing inner loops: this information is
      contained in the scattering matrix.  */
   if (loop->inner && loop_in_scop_p (loop->inner, scop))
-    res->next = setup_cloog_loop (scop, loop->inner, cstr, nb_outer_loops + 1);
+    res->next = setup_cloog_loop (scop, loop->inner, cstr);
 
   if (loop->next && loop_in_scop_p (loop->next, scop))
     {
@@ -1751,12 +1730,12 @@ setup_cloog_loop (scop_p scop, struct loop *loop, CloogMatrix *outer_cstr,
       while (l->next)
 	l = l->next;
 
-      l->next = setup_cloog_loop (scop, loop->next, outer_cstr, nb_outer_loops);
+      l->next = setup_cloog_loop (scop, loop->next, outer_cstr);
     }
 
   stmt = loop_body_to_cloog_stmts (loop, scop, cstr);
 
-  res->block = cloog_block_alloc (stmt, NULL, 0, NULL, nb_outer_loops + 1);
+  res->block = cloog_block_alloc (stmt, NULL, 0, NULL, loop_col);
   
   return res;
 }
@@ -1852,7 +1831,7 @@ build_scop_iteration_domain (scop_p scop)
      - last column: a constant
      - nb_params_in_scop columns for the parameters used in the scop.  */
   outer_cstr = cloog_matrix_alloc (0, scop_dim_domain (scop) + 1);
-  SCOP_PROG (scop)->loop = setup_cloog_loop (scop, loop, outer_cstr, 0);
+  SCOP_PROG (scop)->loop = setup_cloog_loop (scop, loop, outer_cstr);
   return true;
 }
 
@@ -2283,9 +2262,6 @@ build_cloog_prog (scop_p scop)
         new_scattering->domain = cloog_domain_matrix2domain (block->scattering);
         scattering = new_scattering;
       }
-
-      if (0)
-	debug_gbb (gbb, 3);
     }
 
   prog->loop = loop_list;
