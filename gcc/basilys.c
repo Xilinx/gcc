@@ -2107,7 +2107,6 @@ end:
 #undef clov
   if (!ok) 
     {
-      debugeprintf(" mulsort_cmp failed");
       longjmp(mulsort_escapjmp, 1);
     }
   return cmp;
@@ -2154,7 +2153,6 @@ basilysgc_sort_multiple(basilys_ptr_t mult_p, basilys_ptr_t clo_p, basilys_ptr_t
     }
   else {
     resv = NULL;
-    debugeprintf("failed");
   } 
 end:
   if (ixtab) 
@@ -4439,8 +4437,10 @@ static struct obstack bstring_obstack;
 /* readval returns the read value and sets *PGOT to true if something
    was read */
 static basilys_ptr_t readval (struct reading_st *rd, bool * pgot);
+
+enum commenthandling_en { COMMENT_SKIP=0, COMMENT_NO };
 static int
-skipspace_getc (struct reading_st *rd)
+skipspace_getc (struct reading_st *rd, enum commenthandling_en comh)
 {
   int c = 0;
   int incomm = 0;
@@ -4467,7 +4467,7 @@ readagain:
 	{
 	  memset (linbuf, 0, sizeof (linbuf));
 	  eol = NULL;
-	  if (!fgets (linbuf, sizeof (linbuf), rd->rfil))
+	  if (!fgets (linbuf, sizeof (linbuf)-2, rd->rfil))
 	    {
 	      /* reached eof, so either give mlin or duplicate an empty
 	         line */
@@ -4509,16 +4509,16 @@ readagain:
       rd->rcol = 0;
       goto readagain;
     }
-  else if (c == ';')
+  else if (c == ';' && comh == COMMENT_SKIP)
     goto readline;
-  else if (c == '#' && rdfollowc (1) == '|')
+  else if (c == '#' && comh == COMMENT_SKIP && rdfollowc (1) == '|')
     {
       incomm = 1;
       rdnext ();
       c = rdcurc ();
       goto readagain;
     }
-  else if (incomm && c == '|' && rdfollowc (1) == '#')
+  else if (incomm && comh == COMMENT_SKIP && c == '|' && rdfollowc (1) == '#')
     {
       incomm = 0;
       rdnext ();
@@ -4621,41 +4621,7 @@ readsimplelong (struct reading_st *rd)
       NUMNAM (OBMAG_SPECPPL_CONSTRAINT_SYSTEM);
       NUMNAM (OBMAG_SPECPPL_GENERATOR);
       NUMNAM (OBMAG_SPECPPL_GENERATOR_SYSTEM);
-      NUMNAM (FPROPED_PROP);
-      NUMNAM (FPROPED__LAST);
-      NUMNAM (FNAMED_NAME);
-      NUMNAM (FNAMED__LAST);
-      NUMNAM (FDISCR_METHODICT);
-      NUMNAM (FDISCR_SENDER);
-      NUMNAM (FDISCR__LAST);
-      NUMNAM (FCLASS_ANCESTORS);
-      NUMNAM (FCLASS_FIELDS);
-      NUMNAM (FCLASS_OBJNUMDESCR);
-      NUMNAM (FCLASS_DATA);
-      NUMNAM (FCLASS__LAST);
-      NUMNAM (FSEXPR_LOCATION);
-      NUMNAM (FSEXPR_CONTENTS);
-      NUMNAM (FSEXPR__LAST);
-      /***
-      not @NumNam (FFIELD_OWNCLASS);
-      not @NumNam (FFIELD_TYPINFO);
-      not @NumNam (FFIELD__LAST);
-      not @NumNam (FRENV_MACRODICT);
-      not @NumNam (FRENV_NAMEBIND);
-      not @NumNam (FRENV_PARENTENV);
-      not @NumNam (FRENV__LAST);
-      not @NumNam (FSYMB_DATA);
-      not @NumNam (FSYMB__LAST);
-      not @NumNam (FQUARK_SIGN);
-      not @NumNam (FQUARK_DATA);
-      not @NumNam (FQUARK__LAST);
-      not @NumNam (BPAR_PTR);
-      not @NumNam (BPAR_RESTPTR);
-      not @NumNam (BPAR_TREE);
-      not @NumNam (BPAR_LONG);
-      not @NumNam (BPAR_EDGE);
-      not @NumNam (BPAR_BB);
-      ***/
+      /** the fields' ranks of basilys.h have been removed in rev126278 */
 #undef NUMNAM
       if (r < 0)
 	READ_ERROR ("bad magic number name %s", nam);
@@ -4673,6 +4639,7 @@ readseqlist (struct reading_st *rd, int endc)
 {
   int c = 0;
   int nbcomp = 0;
+  int startlin = rd->rlineno;
   bool got = FALSE;
   BASILYS_ENTERFRAME (2, NULL);
 #define seqv curfram__.varptr[0]
@@ -4680,7 +4647,7 @@ readseqlist (struct reading_st *rd, int endc)
   seqv = basilysgc_new_list (BASILYSGOB (DISCR_LIST));
 readagain:
   compv = NULL;
-  c = skipspace_getc (rd);
+  c = skipspace_getc (rd, COMMENT_SKIP);
   if (c == endc)
     {
       rdnext ();
@@ -4689,7 +4656,7 @@ readagain:
   got = FALSE;
   compv = readval (rd, &got);
   if (!compv && !got)
-    READ_ERROR ("unexpected stuff in seq %.20s", &rdcurc ());
+    READ_ERROR ("unexpected stuff in seq %.20s ... started line %d", &rdcurc (), startlin);
   basilysgc_append_list (seqv, compv);
   nbcomp++;
   goto readagain;
@@ -4968,7 +4935,7 @@ readsexpr (struct reading_st *rd, int endc)
 #define locmixv curfram__.varptr[2]
   if (!endc || rdeof ())
     READ_ERROR ("eof in s-expr (lin%d)", lineno);
-  c = skipspace_getc (rd);
+  c = skipspace_getc (rd, COMMENT_SKIP);
   contv = readseqlist (rd, endc);
   sexprv = makesexpr (rd, lineno, contv);
   BASILYS_EXITFRAME ();
@@ -4999,7 +4966,7 @@ readassoc (struct reading_st *rd)
   else if (sz < 0)
     sz = 2;
   mapv = basilysgc_new_mapobjects (BASILYSGOB (DISCR_MAPOBJECTS), sz);
-  c = skipspace_getc (rd);
+  c = skipspace_getc (rd, COMMENT_SKIP);
   while (c != '}' && !rdeof ())
     {
       bool gotat = FALSE, gotva = FALSE;
@@ -5007,7 +4974,7 @@ readassoc (struct reading_st *rd)
       attrv = readval (rd, &gotat);
       if (!gotat || !attrv || basilys_magic_discr (attrv) != OBMAG_OBJECT)
 	READ_ERROR ("bad attribute in mapoobject line %d", ln);
-      c = skipspace_getc (rd);
+      c = skipspace_getc (rd, COMMENT_SKIP);
       if (c != '=')
 	READ_ERROR ("expected equal = after attribute but got %c",
 		    ISPRINT (c) ? c : ' ');
@@ -5016,9 +4983,9 @@ readassoc (struct reading_st *rd)
       valv = readval (rd, &gotva);
       if (!valv)
 	READ_ERROR ("null or missing value in mapobject line %d", ln);
-      c = skipspace_getc (rd);
+      c = skipspace_getc (rd, COMMENT_SKIP);
       if (c == '.')
-	c = skipspace_getc (rd);
+	c = skipspace_getc (rd, COMMENT_SKIP);
     }
   if (c == '}')
     rdnext ();
@@ -5045,7 +5012,10 @@ readstring (struct reading_st *rd)
       if (c != '\\')
 	{
 	  obstack_1grow (&bstring_obstack, (char) c);
-	  rdnext ();
+	  if (c == '\n')
+	    c = skipspace_getc(rd, COMMENT_NO);
+	  else
+	    rdnext ();
 	}
       else
 	{
@@ -5088,7 +5058,7 @@ readstring (struct reading_st *rd)
 	      break;
 	    case '\n':
 	    case '\r':
-	      rdnext ();
+	      skipspace_getc(rd, COMMENT_NO);
 	      continue;
 	    case ' ':
 	      c = ' ';
@@ -5104,8 +5074,28 @@ readstring (struct reading_st *rd)
 		endc++;
 	      rd->rcol += endc - &rdcurc ();
 	      break;
+	    case '{':
+	      {
+		int linbrac = rd->rlineno;
+		/* the escaped left brace \{ read verbatim all the string till the right brace } */
+		rdnext ();
+		while (rdcurc () != '}') 
+		  {
+		    int cc;
+		    if (rdeof ())
+		      READ_ERROR("reached end of file in braced block string starting line %d", linbrac);
+		    cc = rdcurc ();
+		    if (cc == '\n')
+		      cc = skipspace_getc(rd, COMMENT_NO);
+		    else
+		      obstack_1grow (&bstring_obstack, (char) cc);
+		    rdnext ();
+		  };
+		rdnext();
+	      }
+	      break;
 	    default:
-	      READ_ERROR ("illegal escape sequence %.3s in string",
+	      READ_ERROR ("illegal escape sequence %.10s in string",
 			  &rdcurc () - 1);
 	    }
 	  obstack_1grow (&bstring_obstack, (char) c);
@@ -5292,7 +5282,7 @@ readval (struct reading_st *rd, bool * pgot)
 #define seqv    curfram__.varptr[2]
 #define altv    curfram__.varptr[3]
   readv = NULL;
-  c = skipspace_getc (rd);
+  c = skipspace_getc (rd, COMMENT_SKIP);
   /*   debugeprintf ("start readval line %d col %d char %c", rd->rlineno, rd->rcol,
      ISPRINT (c) ? c : ' '); */
   if (ISDIGIT (c)
@@ -5469,7 +5459,7 @@ basilysgc_read_file (const char *filnam, const char *locnam)
   while (!rdeof ())
     {
       bool got = FALSE;
-      skipspace_getc (rd);
+      skipspace_getc (rd, COMMENT_SKIP);
       if (rdeof ())
 	break;
       valv = readval (rd, &got);
@@ -5535,11 +5525,17 @@ do_initial_command (void)
 				basilys_secondargument_string);
 	pararg[1].bp_aptr = (basilys_ptr_t *) & csecstrv;
       }
+    else 
+      {
+	debugeprintf("do_initial_command no second argument %p", basilys_secondargument_string);
+	csecstrv = NULL;
+	pararg[1].bp_aptr = (basilys_ptr_t *) 0;
+      }
     debugeprintf ("do_initial_command before apply closv %p", closv);
     (void) basilys_apply (closv,
 			  BASILYSG
 			  (INITIAL_COMMAND_DISPATCHER),
-			  BPARSTR_PTR, pararg, "", NULL);
+			  BPARSTR_PTR BPARSTR_PTR, pararg, "", NULL);
     debugeprintf ("do_initial_command after apply closv %p", closv);
   }
 end:;
@@ -6195,9 +6191,10 @@ basilys_output_cfile_decl_impl (basilys_ptr_t unitnam,
   dotcnam = xcalloc (unamlen + 3, 1);
   dotcpercentnam = xcalloc (unamlen + 4, 1);
   strcpy (dotcnam, basilys_string_str (unitnam));
-  strcpy (dotcpercentnam, basilys_string_str (unitnam));
-  strcat (dotcnam, ".c");
-  strcat (dotcpercentnam, ".c%");
+  if (unamlen>4 && (dotcnam[unamlen-2] != '.' || dotcnam[unamlen-1] != 'c'))
+    strcat (dotcnam, ".c");
+  strcpy (dotcpercentnam, dotcnam);
+  strcat (dotcpercentnam, "%");
   (void) rename (dotcnam, dotcpercentnam);
   cfil = fopen (dotcnam, "w");
   if (!cfil)

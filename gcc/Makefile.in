@@ -1312,6 +1312,7 @@ MOSTLYCLEANFILES = insn-flags.h insn-config.h insn-codes.h \
  $(SPECS) collect2$(exeext) \
  run-basilys.d  \
  gcov-iov$(build_exeext) gcov$(exeext) gcov-dump$(exeext) \
+ *.so \
  *.[0-9][0-9].* *.[si] *-checksum.c libbackend.a libgcc.mk
 
 # Defined in libgcc2.c, included only in the static library.
@@ -4670,41 +4671,48 @@ warm%.so: warm%.c built-melt-cc-script
 	./built-melt-cc-script $< $@
 
 warm-basilys-3.c: warm-basilys-2.so cc1$(exeext) $(srcdir)/melt/warm-basilys.bysl 
+	rm -f $@
 	./cc1$(exeext) -fbasilys -fbasilys-init=$< \
-	 -fbasilys-dynlibdir=. \
-	 -fbasilys-compile-script=built-melt-cc-script \
- 	 -fbasilys-gensrcdir=. \
-	 -fbasilys-tempdir=. \
-	 -fbasilys-command=compileseq -fbasilys-arg=$(srcdir)/melt/warm-basilys.bysl \
-	 -fbasilys-secondarg=$@ -frandom-seed=AbCdEfGhIj
+	      -fbasilys-dynlibdir=. \
+	      -fbasilys-compile-script=built-melt-cc-script \
+ 	      -fbasilys-gensrcdir=. \
+	      -fbasilys-tempdir=. \
+	      -fbasilys-command=compilefile -fbasilys-arg=$(srcdir)/melt/warm-basilys.bysl \
+	      -fbasilys-secondarg=$@ -frandom-seed=AbCdEfGhIj
+	ls -l $@
 
 warm-basilys-2.c: warm-basilys-1.so cc1$(exeext) $(srcdir)/melt/warm-basilys.bysl 
+	-rm -f $@
 	./cc1$(exeext) -fbasilys -fbasilys-init=$< \
-	 -fbasilys-dynlibdir=. \
-	 -fbasilys-compile-script=built-melt-cc-script \
- 	 -fbasilys-gensrcdir=. \
-	 -fbasilys-tempdir=. \
-	 -fbasilys-command=compileseq -fbasilys-arg=$(srcdir)/melt/warm-basilys.bysl \
-	 -fbasilys-secondarg=$@ -frandom-seed=AbCdEfGhIj
+	      -fbasilys-dynlibdir=. \
+	      -fbasilys-compile-script=built-melt-cc-script \
+ 	      -fbasilys-gensrcdir=. \
+	      -fbasilys-tempdir=. \
+	      -fbasilys-command=compilefile -fbasilys-arg=$(srcdir)/melt/warm-basilys.bysl \
+	      -fbasilys-secondarg=$@ -frandom-seed=AbCdEfGhIj
+	ls -l $@
 
-warm-basilys-1.c: warm-basilys-0.so cc1$(exeext) $(srcdir)/melt/warm-basilys.bysl 
+warm-basilys-1.c: warm-basilys-0.so cc1$(exeext) $(srcdir)/melt/warm-basilys.bysl
+	-rm -f $@ 
 	./cc1$(exeext) -fbasilys -fbasilys-init=$< \
-	 -fbasilys-dynlibdir=. \
-	 -fbasilys-compile-script=built-melt-cc-script \
- 	 -fbasilys-gensrcdir=. \
-	 -fbasilys-tempdir=. \
-	 -fbasilys-command=compileseq -fbasilys-arg=$(srcdir)/melt/warm-basilys.bysl \
-	 -fbasilys-secondarg=$@ -frandom-seed=AbCdEfGhIj
-
+	      -fbasilys-dynlibdir=. \
+	      -fbasilys-compile-script=built-melt-cc-script \
+ 	      -fbasilys-gensrcdir=. \
+	      -fbasilys-tempdir=. \
+	      -fbasilys-command=compilefile -fbasilys-arg=$(srcdir)/melt/warm-basilys.bysl \
+	      -fbasilys-secondarg=$@ -frandom-seed=AbCdEfGhIj
+	ls -l $@
 #### this phony target is given manually to copy the generated
 #### warm-basilys-2.c into the source directory it should be only
 #### explicitly given
 upgrade-warm-basilys: warm-basilys-2.c warm-basilys-3.c
-	diff warm-basilys-2.c warm-basilys-3.c
+	@echo upgrade-warm-basilys show diff of warm-basilys-2.c and warm-basilys-3.c
+	-diff warm-basilys-2.c warm-basilys-3.c || true
 ## we use unifdef to make the warm-basilys-0.c shorter, because it goes into the SVN source repository
-	-unifdef -UMELTGCC_NOLINENUMBERING warm-basilys-3.c > $(srcdir)/warm-basilys-0.c-tmp
-	$(SHELL) $(srcdir)/../move-if-change $(srcdir)/warm-basilys-0.c-tmp $(srcdir)/warm-basilys-0.c
+	-unifdef -UMELTGCC_NOLINENUMBERING warm-basilys-3.c | sed -e 's:warm-basilys-3:warm-basilys-0:' > warm-basilys-0.c-tmp
+	$(SHELL) $(srcdir)/../move-if-change warm-basilys-0.c-tmp $(srcdir)/warm-basilys-0.c
 ## we regenerate warm-basilys-3 to be sure
+	@echo upgrade-warm-basilys remaking again warm-basilys-3
 	$(MAKE) warm-basilys-3.so
 
 ## one of the intall-melt-headers-{tar,cpio,cp} targets below is

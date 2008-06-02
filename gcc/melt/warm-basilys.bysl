@@ -1,24 +1,29 @@
 ;; -*- Lisp -*-
 ;; file warm-basilys.bysl
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;    Copyright 2008 Free Software Foundation, Inc.
-;;    Contributed by Basile Starynkevitch <basile@starynkevitch.net>
+(comment "
+    Copyright 2008 Free Software Foundation, Inc.
+    Contributed by Basile Starynkevitch <basile@starynkevitch.net>
 
-;;    This file is part of GCC.
+    This file is part of GCC.
 
-;;    GCC is free software; you can redistribute it and/or modify
-;;    it under the terms of the GNU General Public License as published by
-;;    the Free Software Foundation; either version 3, or (at your option)
-;;    any later version.
+    GCC is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 3, or (at your option)
+    any later version.
 
-;;    GCC is distributed in the hope that it will be useful,
-;;    but WITHOUT ANY WARRANTY; without even the implied warranty of
-;;    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-;;    GNU General Public License for more details.
+    GCC is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
 
-;;    You should have received a copy of the GNU General Public License
-;;    along with GCC; see the file COPYING3.  If not see
-;;    <http://www.gnu.org/licenses/>.
+    You should have received a copy of the GNU General Public License
+    along with GCC; see the file COPYING3.  If not see
+    <http://www.gnu.org/licenses/>.
+")
+
+;; the copyright notice above apply both to warm-basilys.bysl and 
+;; to the generated file warm-basilys*.c
 
 ;;;;;;
 ;;    This file is a bootstrapping compiler for the basilys lisp dialect
@@ -321,7 +326,7 @@
   :fields (sprogn_body			;the body tuple
 ))
 
-;;; source progn
+;;; source return
 (defclass class_src_return
   :super class_src
   :fields (sreturn_body			;the body tuple
@@ -333,6 +338,11 @@
   :fields (sstq_var
 	   sstq_expr))
 
+;;;; source comment
+(defclass class_src_comment
+  :super class_src
+  :fields (scomm_str
+	  ))
 
 ;;;; source quote
 (defclass class_src_quote
@@ -562,6 +572,12 @@
   :super class_nrep_expr
   :fields (nchunk_expansion		;the expansion
 	   nchunk_primitive		;the primitive
+))
+
+;; normal comment is a normalized comment
+(defclass class_nrep_comment
+  :super class_nrep_expr
+  :fields (ncomm_string	;the comment
 ))
 
 ;; normal lets have simple binding & body subexpressions
@@ -1369,40 +1385,40 @@
   "(basilys_magic_discr((" v ")) == OBMAG_STRBUF)")
 ;; primitive to add a string const into a strbuf
 (defprimitive add2sbuf_strconst (sbuf :cstring str) :void 
-  "basilysgc_add_strbuf((" sbuf "), (" str "))")
+  "basilysgc_add_strbuf((void*)(" sbuf "), (" str "))")
 ;; primitive to add a string value into a strbuf
 (defprimitive add2sbuf_string (sbuf str) :void 
-  "basilysgc_add_strbuf((" sbuf "), basilys_string_str(" str "))")
+  "basilysgc_add_strbuf((void*)(" sbuf "), basilys_string_str(" str "))")
 
 ;; primitive to add an indentation or space into a strbuf
 (defprimitive add2sbuf_indent (sbuf :long depth) :void
-  "basilysgc_strbuf_add_indent((" sbuf "), (" depth "), 64)")
+  "basilysgc_strbuf_add_indent((void*)(" sbuf "), (" depth "), 64)")
 
 
 ;; primitive to add an indented newline into a strbuf
 (defprimitive add2sbuf_indentnl (sbuf :long depth) :void
-  "basilysgc_strbuf_add_indent((" sbuf "), (" depth "), 0)")
+  "basilysgc_strbuf_add_indent((void*)(" sbuf "), (" depth "), 0)")
 
 
 ;; primitive to add a strbuf into a strbuf
 (defprimitive add2sbuf_sbuf (sbuf asbuf) :void 
-  "basilysgc_add_strbuf((" sbuf "), basilys_strbuf_str(" asbuf "))")
+  "basilysgc_add_strbuf((void*)(" sbuf "), basilys_strbuf_str(" asbuf "))")
 
 ;; primitive to add a string value, C encoded, into a strbuf
 (defprimitive add2sbuf_cencstring (sbuf str) :void 
-  "basilysgc_add_strbuf_cstr((" sbuf "), basilys_string_str(" str "))")
+  "basilysgc_add_strbuf_cstr((void*)(" sbuf "), basilys_string_str(" str "))")
 
 ;; primitive to add a strbuf, C encoded, into a strbuf
 (defprimitive add2sbuf_cencstrbuf (sbuf asbuf) :void 
-  "basilysgc_add_strbuf_cstr((" sbuf "), basilys_strbuf_str(" asbuf "))")
+  "basilysgc_add_strbuf_cstr((void*)(" sbuf "), basilys_strbuf_str(" asbuf "))")
 
 ;; primitive to add a string value, Ccomment encoded, into a strbuf
 (defprimitive add2sbuf_ccomstring (sbuf str) :void 
-  "basilysgc_add_strbuf_ccomment((" sbuf "), basilys_string_str(" str "))")
+  "basilysgc_add_strbuf_ccomment((void*)(" sbuf "), basilys_string_str(" str "))")
 
 ;; primitive to add a strbuf, C encoded, into a strbuf
 (defprimitive add2sbuf_ccomstrbuf (sbuf asbuf) :void 
-  "basilysgc_add_strbuf_ccomment((" sbuf "), basilys_strbuf_str(" asbuf "))")
+  "basilysgc_add_strbuf_ccomment((void*)(" sbuf "), basilys_strbuf_str(" asbuf "))")
 
 
 ;; primitive to add into a strbuf a string as C ident (nonalphanum
@@ -1417,15 +1433,15 @@
 
 ;; primitive to add a long in decimal into a strbuf
 (defprimitive add2sbuf_longdec (sbuf :long num) :void
-  "basilysgc_add_strbuf_dec((" sbuf "), (" num "))")
+  "basilysgc_add_strbuf_dec((void*)(" sbuf "), (" num "))")
 
 ;; primitive to add a long in hex into a strbuf
 (defprimitive add2sbuf_longhex (sbuf :long num) :void
-  "basilysgc_add_strbuf_hex((" sbuf "), (" num "))")
+  "basilysgc_add_strbuf_hex((void*)(" sbuf "), (" num "))")
 
 ;; primitive to add a routine descr into a strbuf
 (defprimitive add2sbuf_routinedescr (sbuf rout) :void
-  "basilysgc_add_strbuf((" sbuf "), basilys_routine_descrstr(" rout "))")
+  "basilysgc_add_strbuf((void*)(" sbuf "), basilys_routine_descrstr(" rout "))")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; STRING primitives
@@ -1606,10 +1622,10 @@
   "(basilys_magic_discr((" bx ")) == OBMAG_BOX)")
 ;; safe fetch content
 (defprimitive box_content (box) :value
-  "basilys_box_content((" box "))")
+  "basilys_box_content((void*)(" box "))")
 ;; put into a box
 (defprimitive box_put (box val) :void
-  "basilysgc_box_put((" box "), (" val "))")
+  "basilysgc_box_put((void*)(" box "), (" val "))")
 ;; make a box
 (defprimitive make_box (discr valb) :value
   "basilysgc_new_box((void*)(" discr "), (void*)(" valb "))")
@@ -3692,94 +3708,85 @@
 	       (setq curpair (pair_tail curpair))
 	       (let ( (curval (pair_head curpair)) )
 		 (setq curpair (pair_tail curpair))
-		 (cond ( (== curkw ':super)
-			 (if supernam (error_plain loc "duplicate super in defclass"))
-			 (if (not (is_a curval class_symbol))
-			     (error_plain loc "bad super in defclass"))
-			 (setq supernam curval)
-			 (let ( (superb (find_env env supernam)) )
+		 (cond 
+		  ( (== curkw ':super)
+		    (if supernam (error_plain loc "duplicate super in defclass"))
+		    (if (not (is_a curval class_symbol))
+			(error_plain loc "bad super in defclass"))
+		    (setq supernam curval)
+		    (let ( (superb (find_env env supernam)) )
 ;;; should handle the case when the class is bound in the start environment
 ;;; to a value which happens to be a class
-			   (cond ( (is_a superb class_class_binding)
-				   (setq superbind superb) 
-				   (setq superclass (unsafe_get_field :cbind_class superb))
-				   (void)
-				   )
-				 ( (is_a superb class_value_binding)
-				   (let ((superval (unsafe_get_field :vbind_value superb)))
-				     (if (is_a superval class_class)
-					 (progn
-					   (setq superbind superb)
-					   (setq superclass superval)
-					   (void)
-					   )
-				       (error_strv loc "super is not a class in defclass" 
-						   (unsafe_get_field :named_name supernam))))
-				   (void)
-				   )
-				 (:else 
-				  (error_strv loc "invalid super in defclass" 
-					      (unsafe_get_field :named_name supernam))
-				  (void)
-				  )
-				 )
-			   (void)
-			   ))
-		       ( (== curkw ':fields)
-			 (if fieldnams (error_plain loc "duplicate fields in defclass"))
-			 (if curval
-			     (if (is_not_a curval class_sexpr)
-				 (error_plain loc "bad fields in defclass")))
-			 (let ( (namlist (if curval (unsafe_get_field :sexp_contents curval)))
-				(namloc (if curval (unsafe_get_field :loca_location curval)))
-				(:long nbnam  (list_length namlist))
-				(:long ix 0)
-				(nampair (list_first namlist))
-				(namtupl (make_multiple discr_multiple nbnam)) )
-			   (setq fieldsloc namloc)
-			   (forever namloop
-				    (if (not (is_pair nampair)) (exit namloop))
-				    (let ( (curnam (pair_head nampair)) )
-				      (if (not (is_a curnam class_symbol))
-					  (error_plain namloc "non name field in defclass"))
-				      (multiple_put_nth namtupl ix curnam)
+		      (cond ( (is_a superb class_class_binding)
+			      (setq superbind superb) 
+			      (setq superclass (unsafe_get_field :cbind_class superb))
+			      )
+			    ( (is_a superb class_value_binding)
+			      (let ((superval (unsafe_get_field :vbind_value superb)))
+				(if (is_a superval class_class)
+				    (progn
+				      (setq superbind superb)
+				      (setq superclass superval)
 				      )
-				    (setq nampair (pair_tail nampair))
-				    (setq ix (+i ix 1))
-				    )
-			   (setq fieldnams namtupl)
-			   (void)
-			   ))
-		       ( (== curkw ':predef)
-			 (if predef (error_plain loc "duplicate predef in DEFCLASS"))
-			 (setq predef (macroexpand_1 curval env mexpander))
-			 (cond
-			  ( (is_integerbox predef) 
-			    (void)
+				  (error_strv loc "super is not a class in defclass" 
+					      (unsafe_get_field :named_name supernam))))
+			      )
+			    (:else 
+			     (error_strv loc "invalid super in defclass" 
+					 (unsafe_get_field :named_name supernam))
+			     )
 			    )
-			  ( (is_a predef class_symbol)
-			    (void)
-			    )
-			  (:else
-			   (error_plain loc "bad predef in DEFCLASS")
-			   (void)
-			   )
-			  )
-			 (void)
-			 )
-		       ( (== curkw ':docstr)
-			 (if docstr (error_plain loc "duplicate docstr in DEFCLASS"))
-			 (setq docstr (macroexpand_1 curval env mexpander))
-			 (if (not (is_string docstr))
-			     (error_plain loc "bad docstr in DEFCLASS"))
-			 (void)
-			 )
-		       (:else
-			(error_strv loc "invalid keyword in DEFCLASS" 
-				    (unsafe_get_field :named_name curkw))
-			(void)
-			)
-		       ))))
+		      ))
+		  ( (== curkw ':fields)
+		    (if fieldnams (error_plain loc "duplicate fields in defclass"))
+		    (if curval
+			(if (is_not_a curval class_sexpr)
+			    (error_plain loc "bad fields in defclass")))
+		    (let ( (namlist (if curval (unsafe_get_field :sexp_contents curval)))
+			   (namloc (if curval (unsafe_get_field :loca_location curval)))
+			   (:long nbnam  (list_length namlist))
+			   (:long ix 0)
+			   (nampair (list_first namlist))
+			   (namtupl (make_multiple discr_multiple nbnam)) )
+		      (setq fieldsloc namloc)
+		      (forever namloop
+			       (if (not (is_pair nampair)) (exit namloop))
+			       (let ( (curnam (pair_head nampair)) )
+				 (if (not (is_a curnam class_symbol))
+				     (error_plain namloc "non name field in defclass"))
+				 (multiple_put_nth namtupl ix curnam)
+				 )
+			       (setq nampair (pair_tail nampair))
+			       (setq ix (+i ix 1))
+			       )
+		      (setq fieldnams namtupl)
+		      ))
+		  ( (== curkw ':predef)
+		    (if predef (error_plain loc "duplicate predef in DEFCLASS"))
+		    (setq predef (macroexpand_1 curval env mexpander))
+		    (cond
+		     ( (is_integerbox predef) 
+		       (void)
+		       )
+		     ( (is_a predef class_symbol)
+		       (void)
+		       )
+		     (:else
+		      (error_plain loc "bad predef in DEFCLASS")
+		      )
+		     )
+		    )
+		  ( (== curkw ':docstr)
+		    (if docstr (error_plain loc "duplicate docstr in DEFCLASS"))
+		    (setq docstr (macroexpand_1 curval env mexpander))
+		    (if (not (is_string docstr))
+			(error_plain loc "bad docstr in DEFCLASS"))
+		    )
+		  (:else
+		   (error_strv loc "invalid keyword in DEFCLASS" 
+			       (unsafe_get_field :named_name curkw))
+		   )
+		  ))))
     (debugmsg symb "scan_defclass returns symb" (the_callcount))
     (debugmsg loc "scan_defclass returns loc" (the_callcount))
     (debugmsg supernam "scan_defclass returns supernam" (the_callcount))
@@ -4004,7 +4011,6 @@
 				    (if (is_a curexp class_sexpr)
 					(macroexpand_1 curexp env mexpander)
 				      curexp))
-			      (void)
 			      )
 			    ( (== curfkw ':predef)
 			      (if predef (error_plain loc "duplicate :predef in definstance"))
@@ -4012,14 +4018,12 @@
 				    (if (is_a curexp class_sexpr)
 					(macroexpand_1 curexp env mexpander)
 				      curexp))
-			      (void)
 			      )
 			    (:else 
 			     (let  ( (flda (parse_field_assignment cla loc curfkw curexp env mexpander)) )
 			       (if flda 
 				   (list_append fldlist flda)
 				 )
-			       (void)
 			       ))))
 		   (setq curpair (pair_tail curpair))
 		   ))
@@ -4103,7 +4107,6 @@
 				    (if (is_a curexp class_sexpr)
 					(macroexpand_1 curexp env mexpander)
 				      curexp))
-			      (void)
 			      )
 			    ( (== curfkw ':predef)
 			      (if curexp (error_plain loc "duplicate :predef in definstance"))
@@ -4111,14 +4114,12 @@
 				    (if (is_a curexp class_sexpr)
 					(macroexpand_1 curexp env mexpander)
 				      curexp))
-			      (void)
 			      )
 			    (:else 
 			     (let  ( (flda (parse_field_assignment cla loc curfkw curexp env mexpander)) )
 			       (if flda 
 				   (list_append fldlist flda)
 				 )
-			       (void)
 			       ))))
 		   (setq curpair (pair_tail curpair))
 		   ))
@@ -4167,19 +4168,16 @@
        ( (is_a bnd class_class_binding)
 	 (setq clabind bnd)
 	 (setq cla (unsafe_get_field :cbind_class bnd)) 
-	 (void)
 	 )
        ( (and (is_a bnd class_value_binding)
 	      (is_a (unsafe_get_field :vbind_value bnd) class_class))
 	 (setq clabind bnd)
 	 (setq cla (unsafe_get_field :vbind_value bnd))
-	 (void)
 	 )
        (:else
 	(error_strv loc "invalid class name for make_instance"
 		    (unsafe_get_field :named_name claname))
 	(return (the_null))
-	(void)
 	))
       (assert_msg "check cla" (is_a cla class_class))
       (setq curpair (pair_tail curpair))
@@ -4187,12 +4185,13 @@
 	       (if (not (is_pair curpair)) (exit insloop))
 	       (let ( (curfkw (pair_head curpair)) )
 		 (if (is_not_a curfkw class_keyword)
-		     (error_plain loc "expecting keyword in make_instance"))
+		     (error_plain loc "expecting keyword in MAKE_INSTANCE"))
 		 (setq curpair (pair_tail curpair))
 		 (let ( (curexp (pair_head curpair)) )
 		   (let  ( (flda (parse_field_assignment cla loc curfkw curexp env mexpander)) )
 		     (if flda 
 			 (list_append fldlist flda)
+		       (error_strv loc "bad field name in MAKE_INSTANCE" (unsafe_get_field :named_name curfkw))
 		       ))))
 	       (setq curpair (pair_tail curpair))
 	       )
@@ -4545,8 +4544,7 @@
 	    (setq var curarg)
 	    (setq curpair (pair_tail curpair))
 	    (setq curarg (pair_head curpair))
-	    (void))
-	  )
+	    ))
     (if (null var) 
 	(error_plain loc "missing variable in letbinding"))
     (if curarg
@@ -4555,7 +4553,6 @@
 	  (setq curpair (pair_tail curpair))
 	  (setq curarg (pair_head curpair))
 	  (if curarg (error_plain loc "too long letbinding"))
-	  (void)
 	  ))
     (let ( (letb
 	    (make_instance class_src_letbinding
@@ -4583,10 +4580,10 @@
     (if bindexpr 
 	(if (is_a bindexpr class_sexpr) 
 	    (ignore (setq bindtup 
-		  (pairlist_to_multiple 
-		   (list_first (unsafe_get_field :sexp_contents bindexpr))
-		   discr_multiple
-		   (lambda (b) (mexpand_letbinding b env mexpander)))))
+			  (pairlist_to_multiple 
+			   (list_first (unsafe_get_field :sexp_contents bindexpr))
+			   discr_multiple
+			   (lambda (b) (mexpand_letbinding b env mexpander)))))
 	  (error_plain loc "missing letbinding-s in LET"))
       )
     (multiple_every
@@ -4594,14 +4591,14 @@
      (lambda (slb)
        (assert_msg "mexp.let. check slb" (is_a slb class_src_letbinding))
        (let (
-	      (sx (unsafe_get_field :sletb_expr slb))
-	      (lb (make_instance class_let_binding
+	     (sx (unsafe_get_field :sletb_expr slb))
+	     (lb (make_instance class_let_binding
 				:binder (unsafe_get_field :sletb_binder slb)
 				:letbind_type (unsafe_get_field :sletb_type slb)
 				:letbind_expr sx)) )
 	 (assert_msg "mexp.let not list lb" (not (is_list lb)))
 	 (put_env newenv lb)
-       )))
+	 )))
     (setq bodytup (pairlist_to_multiple restpair discr_multiple 
 					(lambda (e) (macroexpand_1 e newenv mexpander))))
     (let ( (letr
@@ -4610,7 +4607,7 @@
 			   :slet_bindings bindtup
 			   :slet_body bodytup)) )
       (return letr)
-    )))
+      )))
 (install_initial_macro 'let mexpand_let)
 
 
@@ -4696,6 +4693,30 @@
       (return squ)
       )))
 (install_initial_macro 'quote mexpand_quote)
+
+;;;;;;;; for COMMENT (only of strings)
+(defun mexpand_comment  (sexpr env mexpander)
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check env" (is_a env class_environment))
+  (let ( (cont (unsafe_get_field :sexp_contents sexpr))
+	 (loc  (unsafe_get_field :loca_location sexpr))
+	 (curpair (pair_tail (list_first cont))) 
+	 (comstr (pair_head curpair))
+	 )
+    (if (pair_tail curpair)
+	(error_plain loc "COMMENT should have only one string argument"))
+    (if (not (is_string comstr))
+	(progn
+	  (error_plain loc "COMMENT should have a string")
+	  (setq comstr ()))
+      )
+    (let ( (scom (make_instance class_src_comment
+			       :src_loc loc
+			       :scomm_str comstr)) )
+      (return scom)
+)))
+(install_initial_macro 'comment mexpand_comment)
+
 
 ;;;;;;;; for PROGN
 ;; internal routine to make a progn from a pairlist at a location
@@ -6932,7 +6953,39 @@
 	  )))))
 (install_method class_src_quote normal_exp normexp_quote)
 
-
+;;;;;; normalize a COMMENT
+(defun normexp_comment (recv env ncx psloc)
+  (assert_msg "check comment recv" (is_a recv class_src_comment))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check nctxt" (is_a ncx class_normcontext))
+  (debugmsg recv "normexp_comment start recv" (the_callcount))
+  (let ( (sloc (unsafe_get_field :src_loc recv))
+	 (scomm (unsafe_get_field :scomm_str recv))
+	 (ncomm (make_instance class_nrep_comment
+			       :nrep_loc sloc
+			       :ncomm_string scomm
+			     ))  
+	 (csym (clone_symbol 'comment_)) 
+	 (cbind (make_instance class_normlet_binding
+			       :letbind_loc sloc
+			       :binder csym
+			       :letbind_type ctype_void
+			       :letbind_expr ncomm))
+	 (clocc (make_instance class_nrep_locsymocc
+			       :nrep_loc sloc
+			       :nocc_ctyp ctype_void
+			       :nocc_symb csym
+			       :nocc_bind cbind))
+	 (bindlist (make_list discr_list))
+	 )
+    (if scomm (assert_msg "check scomm" (is_string scomm)))
+    (list_append bindlist cbind)
+    (debugmsg ncomm "normexp_comment end ncomm" (the_callcount))
+    (debugmsg clocc "normexp_comment return clocc" (the_callcount))
+    (debugmsg bindlist "normexp_comment return bindlist" (the_callcount))
+    (return clocc bindlist)
+))
+(install_method class_src_comment normal_exp normexp_comment)
 
 ;;;;;; normalize a keyword
 (defun normexp_keyword (recv env ncx psloc)
@@ -8927,13 +8980,11 @@
 			 ( (== curctyp ctype_value)
 			   (add2sbuf_strconst implbuf "bp_aptr = (basilys_ptr_t*) &")
 			   (output_c_code curarg declbuf implbuf (get_int boxdepthp1))
-			   (void)
 			 )
 		     (:else 
 		      (add2sbuf_string implbuf (unsafe_get_field :ctype_argfield curctyp))
 		      (add2sbuf_strconst implbuf " = ")
 		      (output_c_code curarg declbuf implbuf (get_int boxdepthp1))
-		      (void)
 		      ))
 		   (add2sbuf_strconst implbuf ";")
 		   ))))
@@ -9022,13 +9073,11 @@
 			 ( (== curctyp ctype_value)
 			   (add2sbuf_strconst implbuf "bp_aptr = (basilys_ptr_t*) &")
 			   (output_c_code curarg declbuf implbuf (get_int boxdepthp1))
-			   (void)
 			   )
 		     (:else
 		      (add2sbuf_string implbuf (unsafe_get_field :ctype_argfield curctyp))
 		      (add2sbuf_strconst implbuf " = ")
 		      (output_c_code curarg declbuf implbuf (get_int boxdepthp1))
-		      (void)
 		      ))
 		   (add2sbuf_strconst implbuf ";")
 		   )))
@@ -9141,13 +9190,11 @@
 		    ( (== curctyp ctype_value)
 		      (add2sbuf_strconst implbuf "bp_aptr = (basilys_ptr_t*) &")
 		      (output_c_code curarg declbuf implbuf (get_int boxdepthp1))
-		      (void)
 		      )
 		    (:else
 		     (add2sbuf_string implbuf (unsafe_get_field :ctype_argfield curctyp))
 		     (add2sbuf_strconst implbuf " = ")
 		     (output_c_code curarg declbuf implbuf (get_int boxdepthp1))
-		     (void)
 		     ))
 		   (add2sbuf_strconst implbuf ";")
 		   ))))
@@ -9172,13 +9219,11 @@
 		( (== curestyp ctype_value)
 		  (add2sbuf_strconst implbuf "bp_aptr = (basilys_ptr_t*) &")
 		  (output_c_code cures declbuf implbuf (get_int boxdepthp1))
-		  (void)
 		  )
 		(:else
 		 (add2sbuf_string implbuf (unsafe_get_field :ctype_resfield curestyp))
 		 (add2sbuf_strconst implbuf " = ")
 		 (output_c_code cures declbuf implbuf (get_int boxdepthp1))
-		 (void)
 		 ))
 	       (add2sbuf_strconst implbuf ";")
 	       )
@@ -9302,13 +9347,11 @@
 		( (== curctyp ctype_value)
 		  (add2sbuf_strconst implbuf "bp_aptr = (basilys_ptr_t*) &")
 		  (output_c_code curarg declbuf implbuf (get_int boxdepthp1))
-		  (void)
 		  )
 		(:else
 		 (add2sbuf_string implbuf (unsafe_get_field :ctype_argfield curctyp))
 		 (add2sbuf_strconst implbuf " = ")
 		 (output_c_code curarg declbuf implbuf (get_int boxdepthp1))
-		 (void)
 		 ))
 	       (add2sbuf_strconst implbuf ";")
 	       )))
@@ -9330,17 +9373,15 @@
 	       (cond
 		( (null cures)
 		  (add2sbuf_strconst implbuf "bp_aptr = (basilys_ptr_t*)NULL")
-		  (void))
+		  )
 		( (== curestyp ctype_value)
 		  (add2sbuf_strconst implbuf "bp_aptr = (basilys_ptr_t*) &")
 		  (output_c_code cures declbuf implbuf (get_int boxdepthp1))
-		  (void)
 		  )
 		(:else
 		 (add2sbuf_string implbuf (unsafe_get_field :ctype_resfield curestyp))
 		 (add2sbuf_strconst implbuf " = ")
 		 (output_c_code cures declbuf implbuf (get_int boxdepthp1))
-		 (void)
 		 ))
 	       (add2sbuf_strconst implbuf ";")
 	       )
@@ -10205,6 +10246,30 @@
 )
 
 (install_method class_nrep_nil compile_obj compilobj_nrep_nil)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defun compilobj_nrep_comment (ncomm gcx)
+  (assert_msg "check ncomm" (is_a ncomm class_nrep_comment))
+  (assert_msg "check gcx" (is_a gcx class_genercontext))
+  (debugmsg ncomm "compilobj_nrep_comment start" (the_callcount))
+  (let ( (coms (unsafe_get_field :ncomm_string ncomm))
+	 (nloc (unsafe_get_field :nrep_loc ncomm))
+	 (sbuf (make_strbuf discr_strbuf)) )
+    (add2sbuf_strconst sbuf "/**!* ")
+    (add2sbuf_ccomstring sbuf coms)
+    (add2sbuf_strconst sbuf " *!**/")
+    (let ( (ostr (strbuf2string discr_verbatimstring sbuf)) 
+	   (res  (make_instance class_objcompute
+				:obi_loc nloc
+				:obdi_destlist ()
+				:obcpt_expr ostr))
+	   )  
+      (debugmsg ostr "compilobj_nrep_comment ostr" (the_callcount))
+      (debugmsg res "compilobj_nrep_comment res" (the_callcount))
+      (return res)
+      )))
+(install_method class_nrep_comment compile_obj compilobj_nrep_comment)
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun compilobj_nrep_locsymocc (lsyo gcx)
@@ -12191,6 +12256,8 @@
     (assert_msg "check ncx" (is_a ncx class_normcontext))
     (let ( (xlist (macroexpand_toplevel_list lsexp inienv)) 
 	   (iniproc (unsafe_get_field :nctx_initproc ncx))
+	   (declbuf (make_strbuf discr_strbuf))
+	   (implbuf (make_strbuf discr_strbuf)) 
 	   )
       (debugmsg xlist "after macroexpansion compile_list_sexpr seq" (the_callcount))
       (debugmsg inienv "after macroexpansion compile_list_sexpr inienv" (the_callcount))
@@ -12203,6 +12270,18 @@
 	 (let (
 	       (psloc (if (is_a sexp class_located) (unsafe_get_field :loca_location sexp)))
 	       )
+	   ;; special hack to handle toplevel comment specially; the generated comment goes into the declbuf
+	   (if (is_a sexp class_src_comment)
+	       (let ( (sloc (unsafe_get_field :src_loc sexp))
+		      (scomm (unsafe_get_field :scomm_str sexp)) 
+		      )
+		 (add2sbuf_indentnl declbuf 0)
+		 (add2sbuf_strconst declbuf "/**!!** ")
+		 (add2sbuf_ccomstring declbuf scomm)
+		 (add2sbuf_strconst declbuf "**!!**/")
+		 (add2sbuf_indentnl declbuf 0)
+		 )
+	     ;;; otherwise, normalize etc.
 	   (multicall 
 	    (nexp nbind)
 	    (normal_exp sexp inienv ncx psloc)	    
@@ -12214,7 +12293,7 @@
 		  (debugmsg wnexp "compile_list_sexpr wnexp")
 		  (list_append (unsafe_get_field :ninit_topl iniproc) 
 			       wnexp)
-		  ))))))
+		  )))))))
       (let ( (prolist (unsafe_get_field :nctx_proclist ncx)) 
 	     (objlist (make_list discr_list))
 	     (compicache (make_mapobject discr_mapobjects (+i 10 (*i 20 (list_length xlist)))))
@@ -12242,33 +12321,26 @@
 	  (assert_msg "check inipro" (is_a inipro class_nrep_initproc))
 	  (let ( (iniobj (compile2obj_initproc inipro inidata compicache)) )
 	    (debugmsg iniobj "compile_list_sexpr iniobj" (the_callcount))
-	    (let ( (declbuf (make_strbuf discr_strbuf))
-		   (implbuf (make_strbuf discr_strbuf)) 
-		   )
-	      (add2sbuf_strconst declbuf "/** declarations generated by warm-basilys **/")
-	      (add2sbuf_indentnl implbuf 0)
-	      (add2sbuf_strconst implbuf "/** implementations generated by warm-basilys **/")
-	      (add2sbuf_indentnl implbuf 0)
-	      (outnum_err "** warm-basilys generated " (list_length objlist) " routines into ")
-	      (outstr_err modnamstr)
-	      (outnewline_err)
-	      (outcstring_err "** from ")
-	      (out_cplugin_compiled_timestamp_err)
-	      (outnewline_err)
-	      (outcstring_err "** of checksum ")
-	      (out_cplugin_md5_checksum_err)
-	      (outnewline_err)
-	      ;;;
-	      (list_every
-	       objlist
-	       (lambda (obel)
-		 (debugmsg obel "compile_list_sexpr obel" (the_callcount))
-		 (output_c_code obel declbuf implbuf 0)))
-	      (debugmsg modnamstr "compile_list_sexpr final modnamstr" (the_callcount)) 
-	      (debugmsg iniobj "compile_list_sexpr outputting iniobj" (the_callcount))
-	      (output_c_code iniobj declbuf implbuf 0)
-	      (output_cfile_decl_impl modnamstr declbuf implbuf)
-	      ))))))
+	    (outnum_err "** warm-basilys generated " (list_length objlist) " routines into ")
+	    (outstr_err modnamstr)
+	    (outnewline_err)
+	    (outcstring_err "** from ")
+	    (out_cplugin_compiled_timestamp_err)
+	    (outnewline_err)
+	    (outcstring_err "** of checksum ")
+	    (out_cplugin_md5_checksum_err)
+	    (outnewline_err)
+;;;
+	    (list_every
+	     objlist
+	     (lambda (obel)
+	       (debugmsg obel "compile_list_sexpr obel" (the_callcount))
+	       (output_c_code obel declbuf implbuf 0)))
+	    (debugmsg modnamstr "compile_list_sexpr final modnamstr" (the_callcount)) 
+	    (debugmsg iniobj "compile_list_sexpr outputting iniobj" (the_callcount))
+	    (output_c_code iniobj declbuf implbuf 0)
+	    (output_cfile_decl_impl modnamstr declbuf implbuf)
+	    )))))
   (message_dbg "ended compile_list_sexpr")
   )
 
@@ -12309,41 +12381,42 @@
 (message_dbg "@%Z before compileseq_command")
 
 ;;;;;
-(defun compileseq_command (dispatcher arg secarg)
-  (message_dbg "starting compileseq_command")
-  (debugmsg arg "start compileseq_command" (the_callcount))
-  (debugmsg discr_string "compileseq_command discr_string" (the_callcount))
-  (debugmsg discr_verbatimstring "compileseq_command discr_verbatimstring" (the_callcount))
-  (debugmsg initial_environment "before read compileseq_command initial_environment" (the_callcount))
-  (debugmsg 'defun "before read compileseq_command defun symbol" (the_callcount))
-  (debugmsg 'if "before read compileseq_command if symbol" (the_callcount))
-  (debugmsg tokenizer "before read compileseq_command tokenizer" (the_callcount))
-  (debugmsg ':value "before read compileseq_command :value keyword" (the_callcount))
-  (debugmsg ':void "before read compileseq_command :void keyword" (the_callcount))
-  (debugmsg ':long "before read compileseq_command :long keyword" (the_callcount))
-  (debugmsg ctype_value "before read compileseq_command ctype_value" (the_callcount))
-  (debugmsg ctype_void "before read compileseq_command ctype_void" (the_callcount))
-  (debugmsg ctype_long "before read compileseq_command ctype_long" (the_callcount))
-  (debugmsg class_selector "before read compileseq_command {class} class_selector" (the_callcount))
-  (debugmsg class_nrep_routproc "before read compileseq_command {class} class_nrep_routproc" (the_callcount))
-  (debugmsg class_label_binding "before read compileseq_command {class} class_label_binding" (the_callcount))
-  (debugmsg named_name "before read compileseq_command {field} named_name" (the_callcount))
-  (debugmsg labind_clonsy "before read compileseq_command {field} labind_clonsy" (the_callcount))
-  (debugmsg dbg_output "before read compileseq_command dbg_output" (the_callcount))
-  (debugmsg (unsafe_get_field :named_name dbg_output) "before read compileseq_command dbg_output's name" (the_callcount))
+(defun compilefile_command (dispatcher arg secarg)
+  (message_dbg "starting compilefile_command")
+  (debugmsg arg "start compilefile_command arg" (the_callcount))
+  (debugmsg secarg "start compilefile_command secarg" (the_callcount))
+  (debugmsg discr_string "compilefile_command discr_string" (the_callcount))
+  (debugmsg discr_verbatimstring "compilefile_command discr_verbatimstring" (the_callcount))
+  (debugmsg initial_environment "before read compilefile_command initial_environment" (the_callcount))
+  (debugmsg 'defun "before read compilefile_command defun symbol" (the_callcount))
+  (debugmsg 'if "before read compilefile_command if symbol" (the_callcount))
+  (debugmsg tokenizer "before read compilefile_command tokenizer" (the_callcount))
+  (debugmsg ':value "before read compilefile_command :value keyword" (the_callcount))
+  (debugmsg ':void "before read compilefile_command :void keyword" (the_callcount))
+  (debugmsg ':long "before read compilefile_command :long keyword" (the_callcount))
+  (debugmsg ctype_value "before read compilefile_command ctype_value" (the_callcount))
+  (debugmsg ctype_void "before read compilefile_command ctype_void" (the_callcount))
+  (debugmsg ctype_long "before read compilefile_command ctype_long" (the_callcount))
+  (debugmsg class_selector "before read compilefile_command {class} class_selector" (the_callcount))
+  (debugmsg class_nrep_routproc "before read compilefile_command {class} class_nrep_routproc" (the_callcount))
+  (debugmsg class_label_binding "before read compilefile_command {class} class_label_binding" (the_callcount))
+  (debugmsg named_name "before read compilefile_command {field} named_name" (the_callcount))
+  (debugmsg labind_clonsy "before read compilefile_command {field} labind_clonsy" (the_callcount))
+  (debugmsg dbg_output "before read compilefile_command dbg_output" (the_callcount))
+  (debugmsg (unsafe_get_field :named_name dbg_output) "before read compilefile_command dbg_output's name" (the_callcount))
   (assert_msg "check DBG_OUTPUT's name is string" (is_string (unsafe_get_field :named_name dbg_output)))
   (let ( (rlist (read_file arg)) 
 	 (basnam (if (is_string secarg) secarg (make_string_nakedbasename discr_string arg)))
 	 ) 
-    (debugmsg rlist "after read compileseq_command rlist" (the_callcount))
-    (debugmsg tokenizer "after read compileseq_command tokenizer" (the_callcount))
-    (debugmsg initial_environment "after read compileseq_command initial_environment" (the_callcount))
-    (debugmsg class_nrep_datakeyword "compileseq_command class_nrep_datakeyword" (the_callcount))
-    (debugmsg class_nrep "compileseq_command class_nrep" (the_callcount))
+    (debugmsg rlist "after read compilefile_command rlist" (the_callcount))
+    (debugmsg tokenizer "after read compilefile_command tokenizer" (the_callcount))
+    (debugmsg initial_environment "after read compilefile_command initial_environment" (the_callcount))
+    (debugmsg class_nrep_datakeyword "compilefile_command class_nrep_datakeyword" (the_callcount))
+    (debugmsg class_nrep "compilefile_command class_nrep" (the_callcount))
     (compile_list_sexpr rlist initial_environment basnam)
     ))
 
-(install_initial_command  (stringconst2val discr_string "compileseq") compileseq_command)
+(install_initial_command  (stringconst2val discr_string "compilefile") compilefile_command)
 
 (message_dbg "@%T before showing initial_command_dispatcher")
 
