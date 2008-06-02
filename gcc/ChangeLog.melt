@@ -1,4 +1,12 @@
 2008-06-02  Basile Starynkevitch  <basile@starynkevitch.net>
+MELT bootstrapped, ie the generated warm-basilys-0.c is selfgenerated from warm-basilys.bysl & viceversa.
+
+	* warm-basilys-0.c: new file, bootstrapped from melt/warm-basilys.bysl
+
+	* Makefile.in: removed all the crap with cold-basilys.lisp and added warm-basilys-[0123] handling
+	added new phony target upgrade-warm-basilys
+
+2008-06-02  Basile Starynkevitch  <basile@starynkevitch.net>
 	MELT branch merged with trunk r136272
 
 2008-06-02  Basile Starynkevitch  <basile@starynkevitch.net>
