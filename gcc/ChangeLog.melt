@@ -1,3 +1,7 @@
+2008-06-02  Basile Starynkevitch  <basile@starynkevitch.net>
+[metabuggy: test0c & test0w differ]
+	* melt/warm-basilys.bysl: added several return-s.
+
 2008-06-01  Basile Starynkevitch  <basile@starynkevitch.net>
 [still metabuggy warmbasilys1 fails on test0]
 	* melt/warm-basilys.bysl: added several (void) to avoid conditional type mismatch.

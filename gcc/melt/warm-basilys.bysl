@@ -6804,8 +6804,9 @@
 	  (progn
 	    (debugmsg predefmap "normalpredef predefmap" (the_callcount))
 	    (debugmsg pred "normalpredef pred" (the_callcount))
-	    (error_strv sloc "not a predef:" msg))
-	))))
+	    (error_strv sloc "not a predef:" msg)
+	    (the_null)
+	    )))))
 
 
 ;; retrieve or create the normalized datasym for a symbol
@@ -6813,10 +6814,13 @@
   ;; sym should be strictly a symbol (not be in a subclass of class_symbol!)
   (assert_msg "check symb" (== (discrim sym) class_symbol))
   (assert_msg "check nctxt" (is_a ncx class_normcontext))
+  (debugmsg sym "normal_symbol_data start sym" (the_callcount))
   (let ( (valmap  (unsafe_get_field :nctx_valmap ncx))
 	 (osydata (mapobject_get valmap sym)) )
     (if osydata
-	osydata
+	(progn
+	  (debugmsg osydata "normal_symbol_data found osydata" (the_callcount))
+	  (return osydata))
 	(let ( (:long syhash (obj_hash sym))
 	       (synamstr (unsafe_get_field :named_name sym))
 	       ;; make the datastring from synamstr
@@ -6839,7 +6843,8 @@
 	  (add_nctx_data ncx synamstrdata)
 	  (mapobject_put valmap sym sydata)
 	  (mapstring_putstr (unsafe_get_field :nctx_symbmap ncx) synamstr sydata)
-	  sydata
+	  (debugmsg sydata "normal_symbol_data return sydata" (the_callcount))
+	  (return sydata)
 	  ))))
 
 
@@ -7739,7 +7744,6 @@
     (add2sbuf_indentnl sbuf 1)
     (if olocvar
 	(progn
-	  (add2sbuf_strconst sbuf "/*inimulocvar*/ ")
 	  (output_c_code olocvar (the_null) sbuf 1)
 	  (add2sbuf_strconst sbuf " = (void*)&cdat->")
 	  (add2sbuf_string sbuf cnam)
@@ -7914,7 +7918,6 @@
     (add2sbuf_indentnl sbuf 1)
     (if olocvar
 	(progn
-	  (add2sbuf_strconst sbuf "/*inistrlocvar*/ ")
 	  (output_c_code olocvar (the_null) sbuf 1)
 	  (add2sbuf_strconst sbuf " = (void*)&cdat->")
 	  (add2sbuf_string sbuf cnam)
@@ -11609,10 +11612,10 @@
   (assert_msg "compil_data_and_slots_fill check odiscr" (is_a odiscr class_objvalue))
   (assert_msg "compil_data_and_slots_fill check irout" (is_a irout class_initialroutineobj))
   (assert_msg "compil_data_and_slots_fill check gcx" (is_a gcx class_genercontext))
-  ;; (debugmsg ndat "compil_data_and_slots_fill ndat" (the_callcount))
-  ;; (debugmsg obj "compil_data_and_slots_fill obj" (the_callcount))
-  ;; (debugmsg odiscr "compil_data_and_slots_fill odiscr" (the_callcount))
-  ;; (debugmsg irout "compil_data_and_slots_fill irout un" (the_callcount))
+  (debugmsg ndat "compil_data_and_slots_fill start ndat" (the_callcount))
+  (debugmsg obj "compil_data_and_slots_fill start obj" (the_callcount))
+  (debugmsg odiscr "compil_data_and_slots_fill odiscr" (the_callcount))
+  (debugmsg irout "compil_data_and_slots_fill irout un" (the_callcount))
   (let (
 	(ibodylis (unsafe_get_field :obrout_body irout))
 	(ifilllis (unsafe_get_field :oirout_fill irout))
