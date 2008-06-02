@@ -415,7 +415,7 @@
 ;; Attribute describing the processor.  This attribute must match exactly
 ;; with the processor_type enumeration in mips.h.
 (define_attr "cpu"
-  "r3000,4kc,4kp,5kc,5kf,20kc,24kc,24kf2_1,24kf1_1,74kc,74kf2_1,74kf1_1,74kf3_2,m4k,r3900,r6000,r4000,r4100,r4111,r4120,r4130,r4300,r4600,r4650,r5000,r5400,r5500,r7000,r8000,r9000,sb1,sb1a,sr71000"
+  "r3000,4kc,4kp,5kc,5kf,20kc,24kc,24kf2_1,24kf1_1,74kc,74kf2_1,74kf1_1,74kf3_2,loongson2e,loongson2f,m4k,r3900,r6000,r4000,r4100,r4111,r4120,r4130,r4300,r4600,r4650,r5000,r5400,r5500,r7000,r8000,r9000,sb1,sb1a,sr71000"
   (const (symbol_ref "mips_tune")))
 
 ;; The type of hardware hazard associated with this instruction.
@@ -495,6 +495,9 @@
 ;; 64-bit modes for which we provide move patterns.
 (define_mode_iterator MOVE64
   [DI DF (V2SF "TARGET_HARD_FLOAT && TARGET_PAIRED_SINGLE_FLOAT")])
+
+;; 128-bit modes for which we provide move patterns on 64-bit targets.
+(define_mode_iterator MOVE128 [TF])
 
 ;; This mode iterator allows the QI and HI extension patterns to be
 ;; defined from the same template.
@@ -2912,7 +2915,7 @@
 
       /* Allow REG_NOTES to be set on last insn (labels don't have enough
 	 fields, and can't be used for REG_NOTES anyway).  */
-      emit_insn (gen_rtx_USE (VOIDmode, stack_pointer_rtx));
+      emit_use (stack_pointer_rtx);
       DONE;
     }
 })
@@ -2955,7 +2958,7 @@
 
   /* Allow REG_NOTES to be set on last insn (labels don't have enough
      fields, and can't be used for REG_NOTES anyway).  */
-  emit_insn (gen_rtx_USE (VOIDmode, stack_pointer_rtx));
+  emit_use (stack_pointer_rtx);
   DONE;
 })
 
@@ -2997,7 +3000,7 @@
 
   /* Allow REG_NOTES to be set on last insn (labels don't have enough
      fields, and can't be used for REG_NOTES anyway).  */
-  emit_insn (gen_rtx_USE (VOIDmode, stack_pointer_rtx));
+  emit_use (stack_pointer_rtx);
   DONE;
 })
 
@@ -3039,7 +3042,7 @@
 
   /* Allow REG_NOTES to be set on last insn (labels don't have enough
      fields, and can't be used for REG_NOTES anyway).  */
-  emit_insn (gen_rtx_USE (VOIDmode, stack_pointer_rtx));
+  emit_use (stack_pointer_rtx);
   DONE;
 })
 
@@ -4064,34 +4067,52 @@
 ;; 128-bit floating point moves
 
 (define_expand "movtf"
-  [(set (match_operand:TF 0 "")
-	(match_operand:TF 1 ""))]
-  ""
+  [(set (match_operand:TF 0)
+	(match_operand:TF 1))]
+  "TARGET_64BIT"
 {
   if (mips_legitimize_move (TFmode, operands[0], operands[1]))
     DONE;
 })
 
 ;; This pattern handles both hard- and soft-float cases.
-(define_insn_and_split "*movtf_internal"
-  [(set (match_operand:TF 0 "nonimmediate_operand" "=d,R,f,dR")
-	(match_operand:TF 1 "move_operand" "dGR,dG,dGR,f"))]
-  ""
+(define_insn "*movtf"
+  [(set (match_operand:TF 0 "nonimmediate_operand" "=d,d,m,f,d,f,m")
+	(match_operand:TF 1 "move_operand" "dG,m,dG,dG,f,m,f"))]
+  "TARGET_64BIT
+   && !TARGET_MIPS16
+   && (register_operand (operands[0], TFmode)
+       || reg_or_0_operand (operands[1], TFmode))"
   "#"
-  "&& reload_completed"
-  [(const_int 0)]
-{
-  mips_split_doubleword_move (operands[0], operands[1]);
-  DONE;
-}
-  [(set_attr "type" "multi")
-   (set_attr "length" "16")])
+  [(set_attr "type" "multi,load,store,multi,multi,fpload,fpstore")
+   (set_attr "length" "8,*,*,8,8,*,*")])
+
+(define_insn "*movtf_mips16"
+  [(set (match_operand:TF 0 "nonimmediate_operand" "=d,y,d,d,m")
+	(match_operand:TF 1 "move_operand" "d,d,y,m,d"))]
+  "TARGET_64BIT
+   && TARGET_MIPS16
+   && (register_operand (operands[0], TFmode)
+       || register_operand (operands[1], TFmode))"
+  "#"
+  [(set_attr "type" "multi,multi,multi,load,store")
+   (set_attr "length" "8,8,8,*,*")])
 
 (define_split
   [(set (match_operand:MOVE64 0 "nonimmediate_operand")
 	(match_operand:MOVE64 1 "move_operand"))]
   "reload_completed && !TARGET_64BIT
    && mips_split_64bit_move_p (operands[0], operands[1])"
+  [(const_int 0)]
+{
+  mips_split_doubleword_move (operands[0], operands[1]);
+  DONE;
+})
+
+(define_split
+  [(set (match_operand:MOVE128 0 "nonimmediate_operand")
+	(match_operand:MOVE128 1 "move_operand"))]
+  "TARGET_64BIT && reload_completed"
   [(const_int 0)]
 {
   mips_split_doubleword_move (operands[0], operands[1]);
@@ -5685,9 +5706,9 @@
   mips_emit_move (pv, lab);
   emit_stack_restore (SAVE_NONLOCAL, stack, NULL_RTX);
   mips_emit_move (gp, gpv);
-  emit_insn (gen_rtx_USE (VOIDmode, hard_frame_pointer_rtx));
-  emit_insn (gen_rtx_USE (VOIDmode, stack_pointer_rtx));
-  emit_insn (gen_rtx_USE (VOIDmode, gp));
+  emit_use (hard_frame_pointer_rtx);
+  emit_use (stack_pointer_rtx);
+  emit_use (gp);
   emit_indirect_jump (pv);
   DONE;
 })
@@ -5739,7 +5760,12 @@
 ;; Trivial return.  Make it look like a normal return insn as that
 ;; allows jump optimizations to work better.
 
-(define_insn "return"
+(define_expand "return"
+  [(return)]
+  "mips_can_use_return_insn ()"
+  { mips_expand_before_return (); })
+
+(define_insn "*return"
   [(return)]
   "mips_can_use_return_insn ()"
   "%*j\t$31%/"

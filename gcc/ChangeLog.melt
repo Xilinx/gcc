@@ -1,4 +1,7 @@
 2008-06-02  Basile Starynkevitch  <basile@starynkevitch.net>
+	MELT branch merged with trunk r136272
+
+2008-06-02  Basile Starynkevitch  <basile@starynkevitch.net>
 [bootstrapped: warm-basilys-2,3,4,5 are same, but strangely warm-basilys-1&2 differ]
 	* melt/warm-basilys.bysl: (normexp_ifelse) does not 
           set the type to void when only one of then or else is void!

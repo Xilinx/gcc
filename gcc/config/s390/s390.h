@@ -1,8 +1,9 @@
 /* Definitions of target machine for GNU compiler, for IBM S/390
    Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006,
-   2007 Free Software Foundation, Inc.
+   2007, 2008 Free Software Foundation, Inc.
    Contributed by Hartmut Penner (hpenner@de.ibm.com) and
                   Ulrich Weigand (uweigand@de.ibm.com).
+                  Andreas Krebbel (Andreas.Krebbel@de.ibm.com)
 
 This file is part of GCC.
 
@@ -40,6 +41,7 @@ enum processor_type
   PROCESSOR_2064_Z900,
   PROCESSOR_2084_Z990,
   PROCESSOR_2094_Z9_109,
+  PROCESSOR_2097_Z10,
   PROCESSOR_max
 };
 
@@ -51,7 +53,8 @@ enum processor_flags
   PF_ZARCH = 2,
   PF_LONG_DISPLACEMENT = 4,
   PF_EXTIMM = 8,
-  PF_DFP = 16
+  PF_DFP = 16,
+  PF_Z10 = 32
 };
 
 extern enum processor_type s390_tune;
@@ -59,6 +62,10 @@ extern enum processor_flags s390_tune_flags;
 
 extern enum processor_type s390_arch;
 extern enum processor_flags s390_arch_flags;
+
+/* These flags indicate that the generated code should run on a cpu
+   providing the respective hardware facility regardless of the
+   current cpu mode (ESA or z/Architecture).  */
 
 #define TARGET_CPU_IEEE_FLOAT \
 	(s390_arch_flags & PF_IEEE_FLOAT)
@@ -70,6 +77,12 @@ extern enum processor_flags s390_arch_flags;
  	(s390_arch_flags & PF_EXTIMM)
 #define TARGET_CPU_DFP \
  	(s390_arch_flags & PF_DFP)
+#define TARGET_CPU_Z10 \
+ 	(s390_arch_flags & PF_Z10)
+
+/* These flags indicate that the generated code should run on a cpu
+   providing the respective hardware facility when run in
+   z/Architecture mode.  */
 
 #define TARGET_LONG_DISPLACEMENT \
        (TARGET_ZARCH && TARGET_CPU_LONG_DISPLACEMENT)
@@ -77,6 +90,8 @@ extern enum processor_flags s390_arch_flags;
        (TARGET_ZARCH && TARGET_CPU_EXTIMM)
 #define TARGET_DFP \
        (TARGET_ZARCH && TARGET_CPU_DFP)
+#define TARGET_Z10 \
+       (TARGET_ZARCH && TARGET_CPU_Z10)
 
 /* Run-time target specification.  */
 
@@ -485,11 +500,14 @@ extern const enum reg_class regclass_map[FIRST_PSEUDO_REGISTER];
 #define PREFERRED_RELOAD_CLASS(X, CLASS)	\
   s390_preferred_reload_class ((X), (CLASS))
 
-/* We need secondary memory to move data between GPRs and FPRs.  */
+/* We need secondary memory to move data between GPRs and FPRs.  With
+   DFP the ldgr lgdr instructions are available.  But these
+   instructions do not handle GPR pairs so it is not possible for 31
+   bit.  */
 #define SECONDARY_MEMORY_NEEDED(CLASS1, CLASS2, MODE) \
  ((CLASS1) != (CLASS2)                                \
   && ((CLASS1) == FP_REGS || (CLASS2) == FP_REGS)     \
-  && (!TARGET_DFP || GET_MODE_SIZE (MODE) != 8))
+  && (!TARGET_DFP || !TARGET_64BIT || GET_MODE_SIZE (MODE) != 8))
 
 /* Get_secondary_mem widens its argument to BITS_PER_WORD which loses on 64bit
    because the movsi and movsf patterns don't handle r/f moves.  */
@@ -686,6 +704,13 @@ CUMULATIVE_ARGS;
 
 /* Maximum number of registers that can appear in a valid memory address.  */
 #define MAX_REGS_PER_ADDRESS 2
+
+/* This definition replaces the formerly used 'm' constraint with a
+different constraint letter in order to avoid changing semantics of
+the 'm' constraint when accepting new address formats in
+legitimate_address_p.  The constraint letter defined here must not be
+used in insn definitions or inline assemblies.  */
+#define TARGET_MEM_CONSTRAINT 'e'
 
 /* S/390 has no mode dependent addresses.  */
 #define GO_IF_MODE_DEPENDENT_ADDRESS(ADDR, LABEL)
@@ -953,7 +978,12 @@ do {									\
 #define CLZ_DEFINED_VALUE_AT_ZERO(MODE, VALUE) ((VALUE) = 64, 1)
 
 /* Machine-specific symbol_ref flags.  */
-#define SYMBOL_FLAG_ALIGN1	(SYMBOL_FLAG_MACH_DEP << 0)
+#define SYMBOL_FLAG_ALIGN1	          (SYMBOL_FLAG_MACH_DEP << 0)
+#define SYMBOL_REF_ALIGN1_P(X)		\
+  ((SYMBOL_REF_FLAGS (X) & SYMBOL_FLAG_ALIGN1))
+#define SYMBOL_FLAG_NOT_NATURALLY_ALIGNED (SYMBOL_FLAG_MACH_DEP << 1)
+#define SYMBOL_REF_NOT_NATURALLY_ALIGNED_P(X) \
+  ((SYMBOL_REF_FLAGS (X) & SYMBOL_FLAG_NOT_NATURALLY_ALIGNED))
 
 /* Check whether integer displacement is in range.  */
 #define DISP_IN_RANGE(d) \

@@ -571,7 +571,9 @@ verify_flow_sensitive_alias_info (void)
 	  goto err;
 	}
 
-      if (pi->value_escapes_p && pi->name_mem_tag)
+      if (pi->value_escapes_p
+	  && pi->escape_mask & ~ESCAPE_TO_RETURN
+	  && pi->name_mem_tag)
 	{
 	  tree t = memory_partition (pi->name_mem_tag);
 	  if (t == NULL_TREE)
@@ -904,24 +906,6 @@ uid_decl_map_hash (const void *item)
   return ((const_tree)item)->decl_minimal.uid;
 }
 
-/* Return true if the uid in both int tree maps are equal.  */
-
-static int
-var_ann_eq (const void *va, const void *vb)
-{
-  const struct static_var_ann_d *a = (const struct static_var_ann_d *) va;
-  const_tree const b = (const_tree) vb;
-  return (a->uid == DECL_UID (b));
-}
-
-/* Hash a UID in a int_tree_map.  */
-
-static unsigned int
-var_ann_hash (const void *item)
-{
-  return ((const struct static_var_ann_d *)item)->uid;
-}
-
 /* Return true if the DECL_UID in both trees are equal.  */
 
 static int
@@ -951,8 +935,6 @@ init_tree_ssa (struct function *fn)
 				     		    uid_decl_map_eq, NULL);
   fn->gimple_df->default_defs = htab_create_ggc (20, uid_ssaname_map_hash, 
 				                 uid_ssaname_map_eq, NULL);
-  fn->gimple_df->var_anns = htab_create_ggc (20, var_ann_hash, 
-					     var_ann_eq, NULL);
   fn->gimple_df->call_clobbered_vars = BITMAP_GGC_ALLOC ();
   fn->gimple_df->addressable_vars = BITMAP_GGC_ALLOC ();
   init_ssanames (fn, 0);
@@ -998,9 +980,16 @@ delete_tree_ssa (void)
       set_phi_nodes (bb, NULL);
     }
 
-  /* Remove annotations from every referenced variable.  */
+  /* Remove annotations from every referenced local variable.  */
   FOR_EACH_REFERENCED_VAR (var, rvi)
     {
+      if (!MTAG_P (var)
+	  && (TREE_STATIC (var) || DECL_EXTERNAL (var)))
+	{
+	  var_ann (var)->mpt = NULL_TREE;
+	  var_ann (var)->symbol_mem_tag = NULL_TREE;
+	  continue;
+	}
       if (var->base.ann)
         ggc_free (var->base.ann);
       var->base.ann = NULL;
@@ -1018,8 +1007,6 @@ delete_tree_ssa (void)
   
   htab_delete (cfun->gimple_df->default_defs);
   cfun->gimple_df->default_defs = NULL;
-  htab_delete (cfun->gimple_df->var_anns);
-  cfun->gimple_df->var_anns = NULL;
   cfun->gimple_df->call_clobbered_vars = NULL;
   cfun->gimple_df->addressable_vars = NULL;
   cfun->gimple_df->modified_noreturn_calls = NULL;

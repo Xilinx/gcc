@@ -4638,7 +4638,13 @@ ix86_function_arg_boundary (enum machine_mode mode, tree type)
 {
   int align;
   if (type)
-    align = TYPE_ALIGN (type);
+    {
+      /* Since canonical type is used for call, we convert it to
+	 canonical type if needed.  */
+      if (!TYPE_STRUCTURAL_EQUALITY_P (type))
+	type = TYPE_CANONICAL (type);
+      align = TYPE_ALIGN (type);
+    }
   else
     align = GET_MODE_ALIGNMENT (mode);
   if (align < PARM_BOUNDARY)
@@ -10408,12 +10414,10 @@ ix86_expand_vector_move (enum machine_mode mode, rtx operands[])
       && standard_sse_constant_p (op1) <= 0)
     op1 = validize_mem (force_const_mem (mode, op1));
 
-  /* TDmode values are passed as TImode on the stack.  TImode values
-     are moved via xmm registers, and moving them to stack can result in
-     unaligned memory access.  Use ix86_expand_vector_move_misalign()
-     if memory operand is not aligned correctly.  */
+  /* We need to check memory alignment for SSE mode since attribute
+     can make operands unaligned.  */
   if (can_create_pseudo_p ()
-      && (mode == TImode) && !TARGET_64BIT
+      && SSE_REG_MODE_P (mode)
       && ((MEM_P (op0) && (MEM_ALIGN (op0) < align))
 	  || (MEM_P (op1) && (MEM_ALIGN (op1) < align))))
     {
@@ -10545,7 +10549,7 @@ ix86_expand_vector_move_misalign (enum machine_mode mode, rtx operands[])
 	     writing to the top half twice.  */
 	  if (TARGET_SSE_SPLIT_REGS)
 	    {
-	      emit_insn (gen_rtx_CLOBBER (VOIDmode, op0));
+	      emit_clobber (op0);
 	      zero = op0;
 	    }
 	  else
@@ -10579,7 +10583,7 @@ ix86_expand_vector_move_misalign (enum machine_mode mode, rtx operands[])
 	  if (TARGET_SSE_PARTIAL_REG_DEPENDENCY)
 	    emit_move_insn (op0, CONST0_RTX (mode));
 	  else
-	    emit_insn (gen_rtx_CLOBBER (VOIDmode, op0));
+	    emit_clobber (op0);
 
 	  if (mode != V4SFmode)
 	    op0 = gen_lowpart (V4SFmode, op0);
@@ -10972,7 +10976,7 @@ ix86_expand_convert_uns_didf_sse (rtx target, rtx input)
     emit_insn (gen_movdi_to_sse (int_xmm, input));
   else if (TARGET_SSE_SPLIT_REGS)
     {
-      emit_insn (gen_rtx_CLOBBER (VOIDmode, int_xmm));
+      emit_clobber (int_xmm);
       emit_move_insn (gen_lowpart (DImode, int_xmm), input);
     }
   else
@@ -24180,7 +24184,7 @@ ix86_expand_vector_init_general (bool mmx_ok, enum machine_mode mode,
       else if (n_words == 2)
 	{
 	  rtx tmp = gen_reg_rtx (mode);
-	  emit_insn (gen_rtx_CLOBBER (VOIDmode, tmp));
+	  emit_clobber (tmp);
 	  emit_move_insn (gen_lowpart (word_mode, tmp), words[0]);
 	  emit_move_insn (gen_highpart (word_mode, tmp), words[1]);
 	  emit_move_insn (target, tmp);

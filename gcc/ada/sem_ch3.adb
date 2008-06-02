@@ -712,6 +712,10 @@ package body Sem_Ch3 is
    --  E is some record type. This routine computes E's Stored_Constraint
    --  from its Discriminant_Constraint.
 
+   procedure Diagnose_Interface (N : Node_Id;  E : Entity_Id);
+   --  Check that an entity in a list of progenitors is an interface,
+   --  emit error otherwise.
+
    -----------------------
    -- Access_Definition --
    -----------------------
@@ -3060,6 +3064,14 @@ package body Sem_Ch3 is
       then
          Set_In_Private_Part (Id);
       end if;
+
+      --  Check for violation of No_Local_Timing_Events
+
+      if Is_RTE (Etype (Id), RE_Timing_Event)
+        and then not Is_Library_Level_Entity (Id)
+      then
+         Check_Restriction (No_Local_Timing_Events, N);
+      end if;
    end Analyze_Object_Declaration;
 
    ---------------------------
@@ -3098,10 +3110,7 @@ package body Sem_Ch3 is
             while Present (Intf) loop
                T := Find_Type_Of_Subtype_Indic (Intf);
 
-               if not Is_Interface (T) then
-                  Error_Msg_NE ("(Ada 2005) & must be an interface", Intf, T);
-               end if;
-
+               Diagnose_Interface (Intf, T);
                Next (Intf);
             end loop;
          end;
@@ -6276,14 +6285,13 @@ package body Sem_Ch3 is
                   C1 := First_Elmt (New_Discrs);
                   C2 := First_Elmt (Discriminant_Constraint (Derived_Type));
                   while Present (C1) and then Present (C2) loop
-
                      if Fully_Conformant_Expressions (Node (C1), Node (C2))
                        or else
-                     (Is_OK_Static_Expression (Node (C1))
-                        and then
-                      Is_OK_Static_Expression (Node (C2))
-                        and then
-                      Expr_Value (Node (C1)) = Expr_Value (Node (C2)))
+                         (Is_OK_Static_Expression (Node (C1))
+                            and then
+                          Is_OK_Static_Expression (Node (C2))
+                            and then
+                          Expr_Value (Node (C1)) = Expr_Value (Node (C2)))
                      then
                         null;
 
@@ -8660,8 +8668,7 @@ package body Sem_Ch3 is
             Iface_Def   := Type_Definition (Parent_Node);
 
             if not Is_Interface (Iface_Typ) then
-               Error_Msg_NE ("(Ada 2005) & must be an interface",
-                          Iface, Iface_Typ);
+               Diagnose_Interface (Iface, Iface_Typ);
 
             else
                Check_Ifaces (Iface_Def, Iface);
@@ -8701,8 +8708,7 @@ package body Sem_Ch3 is
          Iface_Def   := Type_Definition (Parent_Node);
 
          if not Is_Interface (Iface_Typ) then
-            Error_Msg_NE ("(Ada 2005) & must be an interface",
-                          Iface, Iface_Typ);
+            Diagnose_Interface (Iface, Iface_Typ);
 
          else
             --  "The declaration of a specific descendant of an interface
@@ -11391,7 +11397,16 @@ package body Sem_Ch3 is
             while Present (Prim_Elmt) loop
                Iface_Subp := Node (Prim_Elmt);
 
-               if not Is_Predefined_Dispatching_Operation (Iface_Subp) then
+               --  Exclude derivation of predefined primitives except those
+               --  that come from source. Required to catch declarations of
+               --  equality operators of interfaces. For example:
+
+               --     type Iface is interface;
+               --     function "=" (Left, Right : Iface) return Boolean;
+
+               if not Is_Predefined_Dispatching_Operation (Iface_Subp)
+                 or else Comes_From_Source (Iface_Subp)
+               then
                   E := Find_Primitive_Covering_Interface
                          (Tagged_Type => Tagged_Type,
                           Iface_Prim  => Iface_Subp);
@@ -12441,8 +12456,7 @@ package body Sem_Ch3 is
 
       if Interface_Present (Def) then
          if not Is_Interface (Parent_Type) then
-            Error_Msg_NE
-              ("(Ada 2005) & must be an interface", Indic, Parent_Type);
+            Diagnose_Interface (Indic, Parent_Type);
 
          else
             Parent_Node := Parent (Base_Type (Parent_Type));
@@ -12535,7 +12549,7 @@ package body Sem_Ch3 is
                T := Find_Type_Of_Subtype_Indic (Intf);
 
                if not Is_Interface (T) then
-                  Error_Msg_NE ("(Ada 2005) & must be an interface", Intf, T);
+                  Diagnose_Interface (Intf, T);
 
                --  Check the rules of 3.9.4(12/2) and 7.5(2/2) that disallow
                --  a limited type from having a nonlimited progenitor.
@@ -12847,6 +12861,19 @@ package body Sem_Ch3 is
          end if;
       end if;
    end Derived_Type_Declaration;
+
+   ------------------------
+   -- Diagnose_Interface --
+   ------------------------
+
+   procedure Diagnose_Interface (N : Node_Id;  E : Entity_Id) is
+   begin
+      if not Is_Interface (E)
+        and then  E /= Any_Type
+      then
+         Error_Msg_NE ("(Ada 2005) & must be an interface", N, E);
+      end if;
+   end Diagnose_Interface;
 
    ----------------------------------
    -- Enumeration_Type_Declaration --

@@ -3746,6 +3746,7 @@ rs6000_legitimize_address (rtx x, rtx oldx ATTRIBUTE_UNUSED,
       return gen_rtx_LO_SUM (Pmode, reg, x);
     }
   else if (TARGET_TOC
+	   && GET_CODE (x) == SYMBOL_REF
 	   && constant_pool_expr_p (x)
 	   && ASM_OUTPUT_SPECIAL_POOL_ENTRY_P (get_pool_constant (x), Pmode))
     {
@@ -3889,7 +3890,6 @@ rs6000_legitimize_tls_address (rtx addr, enum tls_model model)
 		  emit_insn (gen_addsi3 (tmp3, tmp1, tmp2));
 		  last = emit_move_insn (got, tmp3);
 		  set_unique_reg_note (last, REG_EQUAL, gsym);
-		  maybe_encapsulate_block (first, last, gsym);
 		}
 	    }
 	}
@@ -4191,6 +4191,7 @@ rs6000_legitimize_reload_address (rtx x, enum machine_mode mode,
     }
 
   if (TARGET_TOC
+      && GET_CODE (x) == SYMBOL_REF
       && constant_pool_expr_p (x)
       && ASM_OUTPUT_SPECIAL_POOL_ENTRY_P (get_pool_constant (x), mode))
     {
@@ -4999,7 +5000,7 @@ rs6000_emit_move (rtx dest, rtx source, enum machine_mode mode)
 	     This should not be done for operands that contain LABEL_REFs.
 	     For now, we just handle the obvious case.  */
 	  if (GET_CODE (operands[1]) != LABEL_REF)
-	    emit_insn (gen_rtx_USE (VOIDmode, operands[1]));
+	    emit_use (operands[1]);
 
 #if TARGET_MACHO
 	  /* Darwin uses a special PIC legitimizer.  */
@@ -5041,6 +5042,7 @@ rs6000_emit_move (rtx dest, rtx source, enum machine_mode mode)
 	  operands[1] = force_const_mem (mode, operands[1]);
 
 	  if (TARGET_TOC
+	      && GET_CODE (XEXP (operands[1], 0)) == SYMBOL_REF
 	      && constant_pool_expr_p (XEXP (operands[1], 0))
 	      && ASM_OUTPUT_SPECIAL_POOL_ENTRY_P (
 			get_pool_constant (XEXP (operands[1], 0)),
@@ -12359,6 +12361,7 @@ print_operand_address (FILE *file, rtx x)
 
 	  minus = XEXP (contains_minus, 0);
 	  symref = XEXP (minus, 0);
+	  gcc_assert (GET_CODE (XEXP (minus, 1)) == SYMBOL_REF);
 	  XEXP (contains_minus, 0) = symref;
 	  if (TARGET_ELF)
 	    {

@@ -708,11 +708,11 @@ expand_builtin_setjmp_receiver (rtx receiver_label ATTRIBUTE_UNUSED)
 {
   /* Clobber the FP when we get here, so we have to make sure it's
      marked as used by this function.  */
-  emit_insn (gen_rtx_USE (VOIDmode, hard_frame_pointer_rtx));
+  emit_use (hard_frame_pointer_rtx);
 
   /* Mark the static chain as clobbered here so life information
      doesn't get messed up for it.  */
-  emit_insn (gen_rtx_CLOBBER (VOIDmode, static_chain_rtx));
+  emit_clobber (static_chain_rtx);
 
   /* Now put in the code to restore the frame pointer, and argument
      pointer, if needed.  */
@@ -723,7 +723,7 @@ expand_builtin_setjmp_receiver (rtx receiver_label ATTRIBUTE_UNUSED)
       emit_move_insn (virtual_stack_vars_rtx, hard_frame_pointer_rtx);
       /* This might change the hard frame pointer in ways that aren't
 	 apparent to early optimization passes, so force a clobber.  */
-      emit_insn (gen_rtx_CLOBBER (VOIDmode, hard_frame_pointer_rtx));
+      emit_clobber (hard_frame_pointer_rtx);
     }
 
 #if ARG_POINTER_REGNUM != HARD_FRAME_POINTER_REGNUM
@@ -822,18 +822,14 @@ expand_builtin_longjmp (rtx buf_addr, rtx value)
 	{
 	  lab = copy_to_reg (lab);
 
-	  emit_insn (gen_rtx_CLOBBER (VOIDmode,
-				      gen_rtx_MEM (BLKmode,
-						   gen_rtx_SCRATCH (VOIDmode))));
-	  emit_insn (gen_rtx_CLOBBER (VOIDmode,
-				      gen_rtx_MEM (BLKmode,
-						   hard_frame_pointer_rtx)));
+	  emit_clobber (gen_rtx_MEM (BLKmode, gen_rtx_SCRATCH (VOIDmode)));
+	  emit_clobber (gen_rtx_MEM (BLKmode, hard_frame_pointer_rtx));
 
 	  emit_move_insn (hard_frame_pointer_rtx, fp);
 	  emit_stack_restore (SAVE_NONLOCAL, stack, NULL_RTX);
 
-	  emit_insn (gen_rtx_USE (VOIDmode, hard_frame_pointer_rtx));
-	  emit_insn (gen_rtx_USE (VOIDmode, stack_pointer_rtx));
+	  emit_use (hard_frame_pointer_rtx);
+	  emit_use (stack_pointer_rtx);
 	  emit_indirect_jump (lab);
 	}
     }
@@ -892,13 +888,8 @@ expand_builtin_nonlocal_goto (tree exp)
     {
       r_label = copy_to_reg (r_label);
 
-      emit_insn (gen_rtx_CLOBBER (VOIDmode,
-				  gen_rtx_MEM (BLKmode,
-					       gen_rtx_SCRATCH (VOIDmode))));
-
-      emit_insn (gen_rtx_CLOBBER (VOIDmode,
-				  gen_rtx_MEM (BLKmode,
-					       hard_frame_pointer_rtx)));
+      emit_clobber (gen_rtx_MEM (BLKmode, gen_rtx_SCRATCH (VOIDmode)));
+      emit_clobber (gen_rtx_MEM (BLKmode, hard_frame_pointer_rtx));
 
       /* Restore frame pointer for containing function.
 	 This sets the actual hard register used for the frame pointer
@@ -910,8 +901,8 @@ expand_builtin_nonlocal_goto (tree exp)
 
       /* USE of hard_frame_pointer_rtx added for consistency;
 	 not clear if really needed.  */
-      emit_insn (gen_rtx_USE (VOIDmode, hard_frame_pointer_rtx));
-      emit_insn (gen_rtx_USE (VOIDmode, stack_pointer_rtx));
+      emit_use (hard_frame_pointer_rtx);
+      emit_use (stack_pointer_rtx);
 
       /* If the architecture is using a GP register, we must
 	 conservatively assume that the target function makes use of it.
@@ -924,7 +915,7 @@ expand_builtin_nonlocal_goto (tree exp)
 	 a no-op if the GP register is a global invariant.)  */
       if ((unsigned) PIC_OFFSET_TABLE_REGNUM != INVALID_REGNUM
 	  && fixed_regs[PIC_OFFSET_TABLE_REGNUM])
-	emit_insn (gen_rtx_USE (VOIDmode, pic_offset_table_rtx));
+	emit_use (pic_offset_table_rtx);
 
       emit_indirect_jump (r_label);
     }
@@ -1602,7 +1593,7 @@ expand_builtin_return (rtx result)
 	emit_move_insn (reg, adjust_address (result, mode, size));
 
 	push_to_sequence (call_fusage);
-	emit_insn (gen_rtx_USE (VOIDmode, reg));
+	emit_use (reg);
 	call_fusage = get_insns ();
 	end_sequence ();
 	size += GET_MODE_SIZE (mode);
@@ -5249,18 +5240,17 @@ build_string_literal (int len, const char *str)
 
   t = build_string (len, str);
   elem = build_type_variant (char_type_node, 1, 0);
-  index = build_index_type (build_int_cst (NULL_TREE, len - 1));
+  index = build_index_type (size_int (len - 1));
   type = build_array_type (elem, index);
   TREE_TYPE (t) = type;
   TREE_CONSTANT (t) = 1;
   TREE_READONLY (t) = 1;
   TREE_STATIC (t) = 1;
 
-  type = build_pointer_type (type);
-  t = build1 (ADDR_EXPR, type, t);
-
   type = build_pointer_type (elem);
-  t = build1 (NOP_EXPR, type, t);
+  t = build1 (ADDR_EXPR, type,
+	      build4 (ARRAY_REF, elem,
+		      t, integer_zero_node, NULL_TREE, NULL_TREE));
   return t;
 }
 

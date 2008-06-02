@@ -1,3 +1,164 @@
+2008-05-29  Thomas Quinot  <quinot@adacore.com>
+
+	* sem_eval.adb: Minor reformatting
+
+2008-05-29  Ed Schonberg  <schonberg@adacore.com>
+
+	* sem_ch6.adb (Analyze_Subprogram_Specification): if the return type
+	is abstract, do not apply abstractness check on subprogram if this is
+	a renaming declaration.
+
+2008-05-29  Arnaud Charlet  <charlet@adacore.com>
+
+	PR ada/864
+	* osint.ads, osint.adb (Program_Name): New parameter "Prog" to
+	allow recognition of program suffix in addition to prefix.
+	
+	* gnatchop.adb (Locate_Executable): Add support for prefix.
+	
+	* make.adb, gnatcmd.adb, gnatlink.adb, prj-makr.adb,
+	mlib-utl.adb: Adjust calls to Program_Name.
+
+2008-05-29  Robert Dewar  <dewar@adacore.com>
+
+	* sem_ch3.adb: Minor reformatting
+	* sem_prag.adb: Minor reformatting
+	* sem_res.adb: Minor reformatting
+	* sinput-p.ads: Minor reformatting
+
+2008-05-29  Javier Miranda  <miranda@adacore.com>
+
+	* sem_util.adb:
+	(Abstract_Interface_List): Add missing support for full type-declaration
+	associated with synchronized types.
+
+2008-05-29  Robert Dewar  <dewar@adacore.com>
+
+	* sem_eval.adb (Is_Same_Value): Take care of several more cases
+
+2008-05-28  Ed Schonberg  <schonberg@adacore.com>
+
+	* sem_ch5.adb (Analyze_Assignment): If the name is of a local anonymous
+	access type, wrap the expression in a conversion to force an
+	accessibility check.
+
+	* sem_aggr.adb (Aggegate_Constraint_Checks): Apply conversion to force
+	accessibility checks even when expansion is disabled in order to
+	generate messages in the presence of previous errors or in
+	semantics-only mode.
+
+2008-05-28  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* system-lynxos-ppc.ads (Always_Compatible_Rep): Set to False.
+	* system-lynxos-x86.ads (Always_Compatible_Rep): Set to False.
+
+2008-05-28  Vincent Celier  <celier@adacore.com>
+
+	PR ada/34446
+	* gnat_ugn.texi: Document restriction introduced on 2007-04-20 in
+	preprocessing expressions
+
+2008-05-28  Vincent Celier  <celier@adacore.com>
+
+	* sinput-p.adb (Source_File_Is_Subunit): Allow special character used
+	for preprocessing
+	
+	* sinput-p.ads: Minor comment update and reformatting
+
+2008-05-28  Ed Schonberg  <schonberg@adacore.com>
+
+	* sem_res.adb (Valid_Conversion): An anonymous access_to_subprogram
+	type has a deeper level than any master only when it is the type of an
+	access parameter.
+
+2008-05-28  Javier Miranda  <miranda@adacore.com>
+
+	* sem_ch3.adb (Derive_Progenitor_Subprograms): Add documentation.
+
+2008-05-28  Javier Miranda  <miranda@adacore.com>
+
+	* sem_util.ads (Find_Overridden_Synchronized_Primitive): Removed.
+	* sem_util.adb (Find_Overridden_Synchronized_Primitive): Removed.
+	* sem_ch6.adb (Check_Synchronized_Overriding): Remove one formal.
+	Add code that was previously located in
+	Find_Overridden_Synchronized_Primitive because it is only used here.
+
+2008-05-28  Sergey Rybin  <rybin@adacore.com>
+
+	* sem_prag.adb (Process_Extended_Import_Export_Subprogram_Pragma): Set
+	Entity field for formal_parameter_NAME in MECHANISM_ASSOCIATION.
+
+2008-05-28  Robert Dewar  <dewar@adacore.com>
+
+	* restrict.ads:
+	Add missing restrictions, and properly label all GNAT defined ones
+	
+	* rtsfind.ads:
+	Add entry for Ada_Real_Time.Timing_Events.Timing_Event
+	Add entry for Ada.Task_Termination.Set_Specific_Handler
+	Add entry for Ada.Task_Termination.Specific_Handler
+	
+	* s-rident.ads:
+	Add missing restrictions and properly mark all gnat defined ones
+	
+	* sem_ch3.adb:
+	(Analyze_Object_Declaration): Check No_Local_Timing_Events restriction
+	
+	* sem_res.adb:
+	(Resolve_Call): Check violation of No_Specific_Termination_Handlers
+
+	* gnat_rm.texi: Add missing restrictions, and properly label all
+	GNAT defined ones
+
+2008-05-28  Robert Dewar  <dewar@adacore.com>
+
+	* restrict.adb:
+	(Check_Restriction): violation of restriction No_Finalization is
+	treated as a serious error to stop expansion
+
+2008-05-28  Robert Dewar  <dewar@adacore.com>
+
+	* exp_util.adb: Minor reformatting
+	* exp_util.ads: Minor reformatting.
+
+2008-05-28  Arnaud Charlet  <charlet@adacore.com>
+
+	* Make-lang.in: Remove gprmake.
+
+	* gprmake.adb, makegpr.ads, makegpr.adb: Removed.
+
+2008-05-28  Ed Schonberg  <schonberg@adacore.com>
+
+	* sem_ch3.adb (Diagnose_Interface): Cleanup error messages involving
+	improper progenitor names, and avoid cascaded errors.
+
+2008-05-28  Robert Dewar  <dewar@adacore.com>
+
+	* gnat_rm.texi: Add note on Old giving warning when applied to constant
+
+	* sem_attr.adb (Analyze_Attribute, case Old): Give warning if prefix is
+	a constant
+
+2008-05-28  Robert Dewar  <dewar@adacore.com>
+
+	* exp_fixd.adb (Build_Multiply): Correct one-off error in computing
+	size
+
+2008-05-28  Robert Dewar  <dewar@adacore.com>
+
+	* exp_ch5.adb:
+	(Expand_Simple_Function_Return): Copy unaligned result into temporary
+
+2008-05-28  Javier Miranda  <miranda@adacore.com>
+
+	* sem_ch3.adb (Derive_Progenitor_Primitives): Add missing support
+	for user-defined predefined primitives.
+	
+	* sem_util.adb (Matches_Prefixed_View_Profile): Ditto.
+	(Find_Overridden_Synchronized_Primitive): Ditto.
+
+	* sem_ch6.adb (Check_Synchronized_Overriding): Ditto.
+
 2008-05-27  Arnaud Charlet  <charlet@adacore.com>
 
 	* a-ststio.adb, s-direio.adb:

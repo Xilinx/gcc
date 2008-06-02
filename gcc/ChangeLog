@@ -1,3 +1,372 @@
+2008-06-01  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* config/mips/mips.c (mips_valid_offset_p): New function.
+	(mips_valid_lo_sum_p): Likewise.
+	(mips_classify_address): Use them.
+	(mips_force_address): New function.
+	(mips_legitimize_address): Use it.
+	* config/mips/mips.md (MOVE128): New mode iterator.
+	(movtf): Require TARGET_64BIT.  Remove empty strings.
+	(*movtf_internal): Rename to...
+	(*movtf): ...this and require !TARGET_MIPS16.  Use "m" instead
+	of "R" and use {,fp}{load,store} attributes instead of "multi".
+	Use a separate define_split.
+	(*movtf_mips16): New pattern.
+
+2008-06-01  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* config/mips/mips-protos.h (mips_expand_before_return): Declare.
+	* config/mips/mips.c (mips_expand_before_return): New function.
+	(mips_expand_epilogue): Call it.
+	* config/mips/mips.md (return): Turn into a define_expand.
+	(*return): New insn.
+
+2008-06-01  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* rtl.h (emit_clobber, gen_clobber, emit_use, gen_use): Declare.
+	* emit-rtl.c (emit_clobber, gen_clobber, emit_use, gen_use): New
+	functions.  Do not emit uses and clobbers of CONCATs; individually
+	use and clobber their operands.
+	* builtins.c (expand_builtin_setjmp_receiver): Use emit_clobber,
+	gen_clobber, emit_use and gen_use.
+	(expand_builtin_longjmp, expand_builtin_nonlocal_goto): Likewise.
+	(expand_builtin_return): Likewise.
+	* cfgbuild.c (count_basic_blocks): Likewise.
+	* cfgrtl.c (rtl_flow_call_edges_add): Likewise.
+	* explow.c (emit_stack_restore): Likewise.
+	* expmed.c (extract_bit_field_1): Likewise.
+	* expr.c (convert_move, emit_move_complex_parts): Likewise.
+	(emit_move_multi_word, store_constructor): Likewise.
+	* function.c (do_clobber_return_reg, do_use_return_reg): Likewise.
+	(thread_prologue_and_epilogue_insns): Likewise.
+	* lower-subreg.c (resolve_simple_move): Likewise.
+	* optabs.c (widen_operand, expand_binop): Likewise.
+	(expand_doubleword_bswap, emit_no_conflict_block): Likewise.
+	* reload.c (find_reloads): Likewise.
+	* reload1.c (eliminate_regs_in_insn): Likewise.
+	* stmt.c (expand_nl_goto_receiver): Likewise.
+	* config/alpha/alpha.md (builtin_longjmp): Likewise.
+	* config/arc/arc.md (*movdi_insn, *movdf_insn): Likewise.
+	* config/arm/arm.c (arm_load_pic_register): Likewise.
+	(thumb1_expand_epilogue, thumb_set_return_address): Likewise.
+	* config/arm/arm.md (untyped_return): Likewise.
+	* config/arm/linux-elf.h (PROFILE_HOOK): Likewise.
+	* config/avr/avr.c (expand_prologue): Likewise.
+	* config/bfin/bfin.c (do_unlink): Likewise.
+	* config/bfin/bfin.md (<optab>di3, adddi3, subdi3): Likewise.
+	* config/cris/cris.c (cris_expand_prologue): Likewise.
+	* config/darwin.c (machopic_indirect_data_reference): Likewise.
+	(machopic_legitimize_pic_address): Likewise.
+	* config/frv/frv.c (frv_frame_access, frv_expand_epilogue): Likewise.
+	(frv_ifcvt_modify_insn, frv_expand_mdpackh_builtin): Likewise.
+	* config/i386/i386.c (ix86_expand_vector_move_misalign): Likewise.
+	(ix86_expand_convert_uns_didf_sse): Likewise.
+	(ix86_expand_vector_init_general): Likewise.
+	* config/ia64/ia64.md (eh_epilogue): Likewise.
+	* config/iq2000/iq2000.c (iq2000_expand_epilogue): Likewise.
+	* config/m32c/m32c.c (m32c_emit_eh_epilogue): Likewise.
+	* config/m32r/m32r.c (m32r_reload_lr): Likewise.
+	(config/iq2000/iq2000.c): Likewise.
+	* config/mips/mips.md (fixuns_truncdfsi2): Likewise.
+	(fixuns_truncdfdi2, fixuns_truncsfsi2, fixuns_truncsfdi2): Likewise.
+	(builtin_longjmp): Likewise.
+	* config/mn10300/mn10300.md (call, call_value): Likewise.
+	* config/pa/pa.md (nonlocal_goto, nonlocal_longjmp): Likewise.
+	* config/pdp11/pdp11.md (abshi2): Likewise.
+	* config/rs6000/rs6000.c (rs6000_emit_move): Likewise.
+	* config/s390/s390.c (s390_emit_prologue): Likewise.
+	* config/s390/s390.md (movmem_long, setmem_long): Likewise.
+	(cmpmem_long, extendsidi2, zero_extendsidi2, udivmoddi4): Likewise.
+	(builtin_setjmp_receiver, restore_stack_nonlocal): Likewise.
+	* config/sh/sh.c (prepare_move_operands): Likewise.
+	(output_stack_adjust, sh_expand_epilogue): Likewise.
+	(sh_set_return_address, sh_expand_t_scc): Likewise.
+	* config/sparc/sparc.c (load_pic_register): Likewise.
+	* config/sparc/sparc.md (untyped_return, nonlocal_goto): Likewise.
+	* config/spu/spu.c (spu_expand_epilogue): Likewise.
+	* config/v850/v850.c (expand_epilogue): Likewise.
+
+2008-05-31  Anatoly Sokolov  <aesok@post.ru>
+
+	* config/avr/avr.md (UNSPECV_WRITE_SP_IRQ_ON): New constants.
+	(UNSPECV_WRITE_SP_IRQ_OFF): (Ditto.).
+	(movhi_sp_r_irq_off, movhi_sp_r_irq_on): New insn.
+	* config/avr/avr.c (expand_prologue, expand_epilogue): Use 
+	movhi_sp_r_irq_off and movhi_sp_r_irq_on insns for writing to the 
+	stack pointer register.
+	(output_movhi): Remove code for interrupt specific writing to the 
+	stack pointer register.
+
+2008-05-31  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/34244
+	* fold-const.c (tree_expr_nonnegative_warnv_p): Do not ask VRP.
+	(tree_expr_nonzero_warnv_p): Likewise.
+	* tree-vrp.c (vrp_expr_computes_nonnegative): Call
+	ssa_name_nonnegative_p.
+	(vrp_expr_computes_nonzero): Call ssa_name_nonzero_p.
+	(extract_range_from_unary_expr): Use vrp_expr_computes_nonzero,
+	not tree_expr_nonzero_warnv_p.
+
+	PR tree-optimization/36262
+	Revert
+	2007-11-29  Zdenek Dvorak  <ook@ucw.cz>
+
+        PR tree-optimization/34244
+        * tree-vrp.c (adjust_range_with_scev): Clear scev cache.
+        (record_numbers_of_iterations): New function.
+        (execute_vrp): Cache the numbers of iterations of loops.
+        * tree-scalar-evolution.c (scev_reset_except_niters):
+        New function.
+        (scev_reset): Use scev_reset_except_niters.
+        * tree-scalar-evolution.h (scev_reset_except_niters): Declare.
+
+2008-05-31  Bernd Schmidt  <bernd.schmidt@analog.com>
+
+	* config/bfin/bfin.h (TARGET_CPU_CPP_BUILTINS): Define
+	__WORKAROUND_RETS when appropriate.
+
+2008-05-31  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.md (*fop_<mode>_comm_mixed): Macroize from
+	*fop_sf_comm_mixed and *fop_df_comm_mixed insn patterns using MODEF
+	mode iterator.
+	(*fop_<mode>_comm_sse): Macroize from *fop_sf_comm_sse and
+	*fop_df_comm_sse insn patterns using MODEF mode iterator.
+	(*fop_<mode>_comm_i387): Macroize from *fop_sf_comm_i387 and
+	*fop_df_comm_i387 insn patterns using MODEF mode iterator.
+	(*fop_<mode>_1_mixed): Macroize from *fop_sf_1_mixed and
+	*fop_df_1_mixed insn patterns using MODEF mode iterator.
+	(*fop_<mode>_1_sse): Macroize from *fop_sf_1_sse and
+	*fop_df_1_sse insn patterns using MODEF mode iterator.
+	(*fop_<mode>_1_i387): Macroize from *fop_sf_1_i387 and
+	*fop_df_1_i387 insn patterns using MODEF mode iterator.
+	(*fop_<MODEF:mode>_2_i387): Macroize from *fop_sf_2<mode>_i387 and
+	*fop_df_2<mode>_i387 insn patterns using MODEF mode iterator.
+	(*fop_<MODEF:mode>_3_i387): Macroize from *fop_sf_3<mode>_i387 and
+	*fop_df_3<mode>_i387 insn patterns using MODEF mode iterator.
+	(*fop_xf_2_i387): Rename from *fop_xf_2<mode>_i387.
+	(*fop_xf_3_i387): Rename from *fop_xf_3<mode>_i387.
+	(*fop_xf_4_i387): Use <MODE> for mode attribute.
+	(*fop_xf_5_i387): Ditto.
+	(*fop_xf_6_i387): Ditto.
+
+2008-05-30  Richard Guenther  <rguenther@suse.de>
+
+	* builtins.c (build_string_literal): Avoid generating
+	a non-gimple_val result.
+
+2008-05-30  DJ Delorie  <dj@redhat.com>
+
+	* exec-tool.in: Use an environment variable (private) instead of a
+	file (shared) as a semaphore, so as to not break parallel builds.
+
+2008-05-30  Steven Bosscher  <stevenb.gcc@gmail.com>
+
+	* optabs.c (maybe_encapsulate_block): Remove.
+	(emit_libcall_block): Adjust accordingly.
+	* optabs.h (maybe_encapsulate_block): Remove prototype.
+
+	* config/rs6000/rs6000.c (rs6000_legitimize_tls_address):
+	Don't use maybe_encapsulate_block.
+
+2008-05-30  Steven Bosscher  <stevenb.gcc@gmail.com>
+
+	* config/rs6000/rs6000.c (rs6000_legitimize_address,
+	rs6000_legitimize_reload_address, rs6000_emit_move): Make sure an
+	rtx is a SYMBOL_REF before calling get_pool_constant.
+
+2008-05-30  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* fold-const.c (fold_unary) <CASE_CONVERT>: Add ??? comment.
+
+2008-05-30  Danny Smith  <dannysmith@users.sourceforge.net>
+
+	* incpath.c: Use HOST_LACKS_INODE_NUMBERS conditional
+	rather than OS names to choose INO_T_EQ definition.
+	(DIRS_EQ) [!INO_T_EQ]: Don't worry about case in comparison.
+	(add_path) [!INO_T_EQ]: Use lrealpath to fill canonical_name field.
+
+2008-05-29  Daniel Franke  <franke.daniel@gmail.com>
+
+	PR target/36348
+	* config/darwin-f.c: New.
+	* config/t-darwin: Added rule to build darwin-f.o.
+	* config.gcc: Defined new variable, fortran_target_objs.
+	(*-*-darwin*): Set fortran_target_objs.
+	* Makefile.in: Defined new variable FORTRAN_TARGET_OBJS.
+	* configure.ac: Substitute fortran_target_objs, set FORTRAN_TARGET_OBJS.
+	* configure: Regenerated.
+
+2008-05-29  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/35771
+	* config/i386/i386.c (ix86_function_arg_boundary): Convert to
+	canonical type if needed.
+
+2008-05-29  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* tree-nested.c (check_for_nested_with_variably_modified): Fix typo.
+
+2008-05-29  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/36343
+	PR tree-optimization/36346
+	PR tree-optimization/36347
+	* tree-flow.h (clobber_what_p_points_to): Declare.
+	* tree-ssa-structalias.c (set_uids_in_ptset): Whether the
+	pointed-to variable is dereferenced is irrelevant to whether
+	the pointer can access the pointed-to variable.
+	(clobber_what_p_points_to): New function.
+	* tree-ssa-alias.c (set_initial_properties): Use it.
+	* tree-ssa.c (verify_flow_sensitive_alias_info): Adjust
+	call clobber check for NMTs.
+
+2008-05-28  Seongbae Park  <seongbae.park@gmail.com>
+	
+	* value-prof.c (tree_ic_transform): Use HOST_WIDEST_INT_PRINT_DEC
+	for printing gcov_type.
+
+2008-05-28  Seongbae Park  <seongbae.park@gmail.com>
+
+	* tree-ssa-propagate.c (set_rhs): Preserve the histogram
+	and the eh region information.
+	* value-prof.c (gimple_move_stmt_histograms): New function.
+	* value-prof.h (gimple_move_stmt_histograms): New function declaration.
+
+2008-05-28  Andreas Tobler  <a.tobler@schweiz.org>
+
+	* config/pa/pa.md: Remove extern frame_pointer_needed declaration.
+
+2008-05-28  Seongbae Park <seongbae.park@gmail.com>
+
+	* value-prof.c (tree_ic_transform): Print counts.
+	* tree-profile.c (tree_gen_ic_func_profiler):
+	Clear __gcov_indreict_call_callee variable to avoid misattribution
+	of the profile.
+
+2008-05-28  Rafael Espindola  <espindola@google.com>
+
+	* see.c (see_def_extension_not_merged): Use copy_rtx_if_shared to avoid
+	invalid sharing.
+
+2008-05-28  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/36339
+	* tree-ssa-alias.c (set_initial_properties): Move pt_anything
+	and clobbering code out of the loop.
+
+2008-05-28  Andreas Krebbel  <krebbel1@de.ibm.com>
+
+	* config/s390/constraints.md ('b', 'C', 'D', 'e'): New constraint
+	letters defined.
+
+	* config/s390/s390.c (s390_compare_and_branch_condition_mask,
+	s390_contiguous_bitmask_p, s390_symref_operand_p,
+	s390_check_symref_alignment, s390_reload_larl_operand,
+	s390_reload_symref_address): New functions.
+	(s390_branch_condition_mnemonic): Support compare and branch
+	instructions.
+	(s390_mem_constraint): Avoid symrefs to accepted by the 'T'
+	and 'W' constraints.
+	(s390_secondary_reload): Add secondary reloads for unaligned
+	symbol refs or symbol refs to floating point or QI/TI mode
+	integer values.
+	(legitimate_address_p): Accept symbol references as addresses.
+	(s390_expand_insv): Use rotate and insert selected bits
+	instruction for insv when building for z10.
+	(print_operand_address): Handle symbol ref addresses.
+	(print_operand): Output modifier 'c' added for signed byte values.
+	(s390_encode_section_info): Mark symbol refs with
+	SYMBOL_FLAG_NOT_NATURALLY_ALIGNED if appropriate.
+
+	* config/s390/s390.md (SIL,RRS,RIS): New instruction formats added.
+	(length attribute): RRF, RRR have 4 byte length.
+	(FPALL, INTALL): New mode iterators added.
+	(*tstdi_sign, *cmpdi_ccs_sign, *cmpsi_ccs_sign,
+	*cmp<mode>_ccs, *cmpdi_ccu_zero, *cmpdi_ccu, *cmpsi_ccu, *cmphi_ccu,
+	*movdi_64, *movsi_zarch, *movhi, movmem<mode>, *movmem_short,
+	*extendsidi2, *extendhidi2_extimm, *extendhisi2_extimm,
+	*zero_extendsidi2, adddi3, *adddi3_31z, *adddi3_31, addsi3,
+	*add<mode>3, *add<mode>3_carry1_cc, *add<mode>3_carry2_cc,
+	*add<mode>3_cc, *add<mode>3_imm_cc, *muldi3_sign, muldi3,
+	*mulsi3_sign, mulsi3, mulsidi3): Patterns enhanced with z10
+	instructions.
+	(*cmphi_ccs_z10, *cmpdi_ccs_signhi_rl, *cmpsi_ccu_zerohi_rlsi,
+	*cmp<GPR:mode>_ccu_zerohi_rldi, *cmp_and_br_signed_<mode>,
+	*cmp_and_br_unsigned_<mode>, reload<INTALL:mode><P:mode>_tomem_z10,
+	reload<INTALL:mode><P:mode>_toreg_z10,
+	reload<FPALL:mode><P:mode>_tomem_z10,
+	reload<FPALL:mode><P:mode>_toreg_z10,
+	reload<P:mode>_larl_odd_addend_z10, *execute_rl, *insv<mode>_z10,
+	*insv<mode>_z10_noshift, *insv<mode>_or_z10_noshift,
+	*zero_extendhi<mode>2_z10, *cmp_and_trap_signed_int<mode>,
+	*cmp_and_trap_unsigned_int<mode>, prefetch): New pattern or expander
+	definition.
+	(movmem, clrmem, cmpmem): New splitters added.
+
+	* config/s390/predicates.md (larl_operand): Use
+	SYMBOL_REF_FLAGS (op) & SYMBOL_FLAG_ALIGN1 replaced with
+	SYMBOL_REF_ALIGN1_P.
+	(s390_signed_integer_comparison,
+	s390_unsigned_integer_comparison): New predicates.
+
+	* config/s390/s390-protos.h (s390_check_symref_alignment,
+	s390_contiguous_bitmask_p, s390_reload_larl_operand,
+	s390_reload_symref_address,
+	s390_compare_and_branch_condition_mask): Prototypes added.
+
+	* config/s390/s390.h (TARGET_MEM_CONSTRAINT,
+	SYMBOL_REF_ALIGN1_P, SYMBOL_FLAG_NOT_NATURALLY_ALIGNED,
+	SYMBOL_REF_NOT_NATURALLY_ALIGNED_P): Macro definition added.
+
+2008-05-28  Andreas Krebbel  <krebbel1@de.ibm.com>
+
+	* config/s390/s390.c (z10_cost): New cost function for z10.
+	(s390_handle_arch_option, override_options): Support -march=z10 switch.
+	(s390_issue_rate): Adjust issue rate for z10.
+	* config/s390/s390.h (processor_type): Add PROCESSOR_2097_Z10.
+	(processor_flags): Add PF_Z10.
+	(TARGET_CPU_Z10, TARGET_Z10): New macro definitions.
+	* config/s390/s390.md (cpu, cpu_facility attributes): Add z10.
+	* gcc/config.gcc: Add z10.
+
+2008-05-28  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/36291
+	* tree-flow. h (struct gimple_df): Remove var_anns member.
+	* tree-flow-inline.h (gimple_var_anns): Remove.
+	(var_ann): Simplify.
+	* tree-dfa.c (create_var_ann): Simplify.
+	(remove_referenced_var): Clear alias info from var_anns of globals.
+	* tree-ssa.c (init_tree_ssa): Do not allocate var_anns.
+	(delete_tree_ssa): Clear alias info from var_anns of globals.
+	Do not free var_anns.
+	(var_ann_eq): Remove.
+	(var_ann_hash): Likewise.
+
+2008-05-28  Mark Shinwell  <shinwell@codesourcery.com>
+
+	* config/mips/mips.c (mips_cpu_info_table): Add loongson2e
+	and loongson2f entries.
+	(mips_rtx_cost_data): Add entries for Loongson-2E/2F.
+	* config/mips/mips.h (processor_type): Add Loongson-2E
+	and Loongson-2F entries.
+	(TARGET_LOONGSON_2E, TARGET_LOONGSON_2F, TARGET_LOONGSON_2EF): New.
+	(MIPS_ISA_LEVEL_SPEC): Handle Loongson-2E/2F.
+	* config/mips/mips.md (define_attr cpu): Add loongson2e and loongson2f.
+	* doc/invoke.texi (MIPS Options): Document loongson2e
+	and loongson2f processor names.
+
+2008-05-27  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/35767
+	PR target/35771
+	* config/i386/i386.c (ix86_function_arg_boundary): Use
+	alignment of canonical type.
+	(ix86_expand_vector_move): Check unaligned memory access for
+	all SSE modes.
+
 2008-05-27  H.J. Lu  <hongjiu.lu@intel.com>
 
 	* dwarf2out.c (current_fde): Change return type to dw_fde_ref.
@@ -35,8 +404,7 @@
 2008-05-27  Richard Guenther  <rguenther@suse.de>
 
 	PR tree-optimization/36245
-	* tree-ssa-address.c (add_to_parts): Deal with non-pointer
-	bases.
+	* tree-ssa-address.c (add_to_parts): Deal with non-pointer bases.
 
 2008-05-27  Andreas Krebbel  <krebbel1@de.ibm.com>
 
@@ -64,8 +432,7 @@
 	alternatives according to the "enabled" attribute
 	* recog.h (struct recog_data): New field alternative_enabled_p.
 	(skip_alternative): New inline function.
-	* regclass.c: (record_operand_costs): Check the "enabled"
-	attribute.
+	* regclass.c: (record_operand_costs): Check the "enabled" attribute.
 	(record_reg_classes): Skip alternative according to the
 	"enabled" attribute.
 
@@ -79,15 +446,12 @@
 	* recog.c (asm_operand_ok, preprocess_constraints,
 	constrain_operands): Likewise.
 	* regclass.c (record_reg_classes): Likewise.
-	* reload.c (find_reloads, alternative_allows_const_pool_ref):
-	Likewise.
+	* reload.c (find_reloads, alternative_allows_const_pool_ref): Likewise.
 	* reload1.c (maybe_fix_stack_asms): Likewise.
-	* stmt.c (parse_output_constraint, parse_input_constraint):
-	Likewise.
+	* stmt.c (parse_output_constraint, parse_input_constraint): Likewise.
 	* recog.h: Adjust comment.
 	* genpreds.c (generic_constraint_letters): Remove 'm' constraint.
-	* genoutput.c (note_constraint): Don't emit error for 'm'
-	constraint.
+	* genoutput.c (note_constraint): Don't emit error for 'm' constraint.
 	* doc/md.texi: Add a note to description of 'm' constraint.
 	* doc/tm.texi: Document the new TARGET_MEM_CONSTRAINT macro.
 
@@ -134,7 +498,7 @@
 	(cgraph_decide_inlining_incrementally): Likewise.
 
 2008-05-26  Tristan Gingold  <gingold@adacore.com>
-            Anatoly Sokolov  <aesok@post.ru>
+	    Anatoly Sokolov  <aesok@post.ru>
 
 	* config/avr/avr.md ("call_prologue_saves"): Use hi8(gs())/lo8(gs())
 	instead of pm_lo8/pm_hi8 to makes this call working on avr6.
@@ -149,29 +513,22 @@
 2008-05-26  Richard Guenther  <rguenther@suse.de>
 
 	* tree-ssa-sccvn.c (expr_has_constants): Declare.
-	(visit_reference_op_load): Initialize VN_INFO->has_constants
-	properly.
+	(visit_reference_op_load): Initialize VN_INFO->has_constants properly.
 
 2008-05-26  H.J. Lu  <hongjiu.lu@intel.com>
 
 	PR middle-end/36253
-	* caller-save.c (insert_restore): Verify alignment of spill
-	space.
+	* caller-save.c (insert_restore): Verify alignment of spill space.
 	(insert_save): Likewise.
-
 	* cfgexpand.c (LOCAL_ALIGNMENT): Removed.
-
 	* defaults.h (LOCAL_ALIGNMENT): New. Provide default.
 	(STACK_SLOT_ALIGNMENT): Likewise.
-
 	* function.c (LOCAL_ALIGNMENT): Removed.
 	(get_stack_local_alignment): New.
 	(assign_stack_local): Use it.  Set alignment on stack slot.
 	(assign_stack_temp_for_type): Use get_stack_local_alignment.
-
 	* config/i386/i386.h (LOCAL_ALIGNMENT): Updated.
 	(STACK_SLOT_ALIGNMENT): New.
-
 	* config/i386/i386.c (ix86_local_alignment): Handle caller-save
 	stack slot in XFmode.
 
@@ -201,7 +558,7 @@
 
 2008-05-25  Eric Botcazou  <ebotcazou@adacore.com>
 
-	 * tree-nested.c (convert_tramp_reference) <ADDR_EXPR>: Do not
+	* tree-nested.c (convert_tramp_reference) <ADDR_EXPR>: Do not
 	build a trampoline if we don't want one.
 	* varasm.c (initializer_constant_valid_p) <ADDR_EXPR>: Do not
 	return zero for nested functions if we don't want a trampoline.
@@ -290,9 +647,8 @@
 
 2008-05-24  Richard Guenther  <rguenther@suse.de>
 
-	* tree-dfa.c (refs_may_alias_p): Re-instantiate case that
-	a scalar variable can be only accessed through a pointer
-	or a union.
+	* tree-dfa.c (refs_may_alias_p): Re-instantiate case that a scalar
+	variable can be only accessed through a pointer or a union.
 
 2008-05-24  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
 
@@ -322,10 +678,8 @@
 	* target.h (gcc_target): Add allocate_stack_slots_for_args.
 	* function.c (use_register_for_decl): Use
 	targetm.calls.allocate_stack_slots_for_args.
-	* target-def.h (TARGET_CALLS): Add 
-	TARGET_ALLOCATE_STACK_SLOTS_FOR_ARGS.
-	* config/arm/arm.c (arm_allocate_stack_slots_for_args): 
-	New function.
+	* target-def.h (TARGET_CALLS): Add TARGET_ALLOCATE_STACK_SLOTS_FOR_ARGS.
+	* config/arm/arm.c (arm_allocate_stack_slots_for_args): New function.
 	(TARGET_ALLOCATE_STACK_SLOTS_FOR_ARGS): Define.
 
 2008-05-23  Eric Botcazou  <ebotcazou@adacore.com>
@@ -340,8 +694,7 @@
 
 2008-05-23  Richard Guenther  <rguenther@suse.de>
 
-	* tree-ssa-operands.c (mark_difference_for_renaming): Use
-	bitmap_xor.
+	* tree-ssa-operands.c (mark_difference_for_renaming): Use bitmap_xor.
 
 2008-05-23  Uros Bizjak  <ubizjak@gmail.com>
 	    Jakub Jelinek  <jakub@redhat.com>
@@ -364,8 +717,8 @@
 
 	* doc/install.texi (Options specification): Document --enable-cld.
 	* doc/invoke.texi (Machine Dependent Options)
-        [i386 and x86-64 Options]: Add -mcld option.
-        (Intel 386 and AMD x86-64 Options): Document -mcld option.
+	[i386 and x86-64 Options]: Add -mcld option.
+	(Intel 386 and AMD x86-64 Options): Document -mcld option.
 
 2008-05-23  Kai Tietz  <kai.tietz@onevison.com>
 	* config/i386/i386.c (return_in_memory_32): Add ATTRIBUTE_UNUSED.
@@ -604,16 +957,15 @@
 	parameter.
 	* config/mips/mips.h (MIPS_COMPARE_AND_SWAP_12): Add OPS parameter.
 	(MIPS_COMPARE_AND_SWAP_12_0): Delete macro.
-	(MIPS_COMPARE_AND_SWAP_12_ZERO_OP,
-	MIPS_COMPARE_AND_SWAP_12_NONZERO_OP,
+	(MIPS_COMPARE_AND_SWAP_12_ZERO_OP, MIPS_COMPARE_AND_SWAP_12_NONZERO_OP,
 	MIPS_SYNC_OP_12, MIPS_SYNC_OP_12_NOT_NOP,
 	MIPS_SYNC_OP_12_NOT_NOT, MIPS_SYNC_OLD_OP_12,
 	MIPS_SYNC_OLD_OP_12_NOT_NOP, MIPS_SYNC_OLD_OP_12_NOT_NOP_REG,
 	MIPS_SYNC_OLD_OP_12_NOT_NOT, MIPS_SYNC_OLD_OP_12_NOT_NOT_REG,
 	MIPS_SYNC_NEW_OP_12, MIPS_SYNC_NEW_OP_12_NOT_NOP,
 	MIPS_SYNC_NEW_OP_12_NOT_NOT, MIPS_SYNC_EXCHANGE_12,
-	MIPS_SYNC_EXCHANGE_12_ZERO_OP,
-	MIPS_SYNC_EXCHANGE_12_NONZERO_OP): New macros.
+	MIPS_SYNC_EXCHANGE_12_ZERO_OP, MIPS_SYNC_EXCHANGE_12_NONZERO_OP):
+	New macros.
 
 2008-05-20  H.J. Lu  <hongjiu.lu@intel.com>
 
@@ -775,8 +1127,8 @@
 
 	* config/i386/i386.c (ix86_expand_vector_init_concat): New.
 	(ix86_expand_vector_init_interleave): Likewise.
-	(ix86_expand_vector_init_general): Use them.  Assert word_mode
-	== SImode when n_words == 4.
+	(ix86_expand_vector_init_general): Use them.  Assert
+	word_mode == SImode when n_words == 4.
 
 2008-05-19  Uros Bizjak  <ubizjak@gmail.com>
 

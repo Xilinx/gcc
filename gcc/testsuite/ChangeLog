@@ -1,3 +1,163 @@
+2008-06-01  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* gcc.c-torture/execute/ieee/ieee.exp: Load c-torture.exp.
+
+2008-06-01  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* gcc.target/mips/fpr-moves-7.c: New test.
+	* gcc.target/mips/fpr-moves-8.c: New test.
+
+2008-05-30  Bernd Schmidt  <bernd.schmidt@analog.com>
+
+	* gcc.target/bfin/mcpu-default.c: Adjust for recent changes: default
+	CPU has all workarounds, and no longer explicitly sets bf532 as CPU
+	type.
+
+	* gcc.target/bfin/mcpu-bf531.c: Adjust for WORKAROUND_RETS.
+	* gcc.target/bfin/mcpu-bf532.c: Likewise.
+	* gcc.target/bfin/mcpu-bf533.c: Likewise.
+	* gcc.target/bfin/mcpu-bf534.c: Likewise.
+	* gcc.target/bfin/mcpu-bf536.c: Likewise.
+	* gcc.target/bfin/mcpu-bf537.c: Likewise.
+	* gcc.target/bfin/mcpu-bf548.c: Likewise.
+	* gcc.target/bfin/mcpu-bf549.c: Likewise.
+	* gcc.target/bfin/mcpu-bf561.c: Likewise.
+	* gcc.target/bfin/mcpu-bf523.c: Likewise.
+	* gcc.target/bfin/mcpu-bf524.c: Likewise.
+	* gcc.target/bfin/mcpu-bf526.c: Likewise.
+	* gcc.target/bfin/mcpu-bf522.c: Likewise.
+	* gcc.target/bfin/mcpu-bf525.c: Likewise.
+	* gcc.target/bfin/mcpu-bf527.c: Likewise.
+	* gcc.target/bfin/mcpu-bf538.c: Likewise.
+	* gcc.target/bfin/mcpu-bf539.c: Likewise.
+	* gcc.target/bfin/mcpu-bf542.c: Likewise.
+	* gcc.target/bfin/mcpu-bf544.c: Likewise.
+	* gcc.target/bfin/mcpu-default.c: Likewise.
+	* gcc.target/bfin/workarounds-any.c: Likewise.
+	* gcc.target/bfin/workarounds-none.c: Likewise.
+	* gcc.target/bfin/workarounds-1.c: Likewise.
+	* gcc.target/bfin/workarounds-2.c: Likewise.
+	* gcc.target/bfin/workarounds-3.c: Likewise.
+	* gcc.target/bfin/workarounds-4.c: Likewise.
+
+2008-05-30  Tom Tromey  <tromey@redhat.com>
+
+	PR preprocessor/36320:
+	* gcc.dg/cpp/pr36320.c: New file.
+
+2008-05-29  Paolo Carlini  <paolo.carlini@oracle.com>
+
+        PR c++/35243
+        * g++.dg/cpp0x/vt-35243.C: New.	
+
+2008-05-29  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/35771
+	* gcc.dg/torture/pr35771.h: New.
+	* gcc.dg/torture/pr35771-1.c: Likewise.
+	* gcc.dg/torture/pr35771-2.c: Likewise.
+	* gcc.dg/torture/pr35771-3.c: Likewise.
+
+2008-05-29  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc.dg/nested-func-6.c: New test.
+
+2008-05-29  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/36343
+	* gcc.c-torture/execute/pr36343.c: New testcase.
+
+2008-05-29  Arnaud Charlet  <charlet@adacore.com>
+
+	* gnat.dg/abstract1.ad[sb]: New test.
+
+2008-05-28  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/36325
+	PR fortran/35830
+	* gfortran.dg/interface_23.f90: New.
+	* gfortran.dg/gomp/reduction3.f90: Fixed invalid code.
+	* gfortran.dg/proc_decl_12.f90: New:
+	* gfortran.dg/external_procedures_1.f90: Fixed error message.
+	
+2008-05-28  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	PR fortran/36319
+	* gfortran.dg/widechar_5.f90: New file.
+	* gfortran.dg/widechar_6.f90: New file.
+	* gfortran.dg/widechar_7.f90: New file.
+	* gfortran.dg/widechar_intrinsics_5.f90: Uncomment the lines
+	testing the SPREAD intrinsic.
+	* gfortran.dg/widechar_intrinsics_6.f90: New file.
+	* gfortran.dg/widechar_intrinsics_7.f90: New file.
+	* gfortran.dg/widechar_intrinsics_8.f90: New file.
+	* gfortran.dg/widechar_intrinsics_9.f90: New file.
+	* gfortran.dg/widechar_intrinsics_10.f90: New file.
+
+2008-05-28  Seongbae Park <seongbae.park@gmail.com>
+
+	* gcc.dg/tree-prof/ic-misattribution-1.c: New test.
+	* gcc.dg/tree-prof/ic-misattribution-1a.c: New test.
+	* lib/profopt.exp (profopt-get-options): Support
+	dg-additional-sources.
+	(profopt-execute): Handle additional sources.
+
+2008-05-28  Rafael Espindola  <espindola@google.com>
+
+	* gcc.dg/20080528-1.c: New test.
+
+2008-05-28  Arnaud Charlet  <charlet@adacore.com>
+
+	* gnat.dg/old_errors.adb, gnat.dg/deep_old.adb: Adjust.
+
+	* gnat.dg/specs/iface_eq_test.ads,
+	gnat.dg/specs/iface_eq_test-child.ads: New test.
+	* gnat.dg/specs/self_class.ads: New test.
+	* gnat.dg/fixce.adb: New test.
+	* gnat.dg/frunaligned*.ad[sb]: New test.
+
+2008-05-27  Andy Hutchinson  <hutchinsonandy@aim.com>
+
+	* gcc.dg/tree-ssa/data-dep-1.c: Skip test for avr-*-* too much code.
+	* gcc.dg/tree-ssa/ldist-3.c: Ditto.
+	* gcc.dg/tree-ssa/ldist-5.c: Ditto.
+	* gcc.dg/tree-ssa/ifc-20040816-2 .c: Adjust for int size < 4 bytes.
+	* gcc.dg/tree-ssa/pr32540-1.c: Ditto.
+	* gcc.dg/tree-ssa/pr32540-2.c: Ditto.
+	* gcc.dg/tree-ssa/ssa-lim-5.c: Ditto.
+	* gcc.dg/tree-ssa/pr23115.c: Adjust test for double size < 8 bytes. 
+
+2008-05-27  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/35767
+	PR target/35771
+	* gcc.target/i386/pr35767-1.c: New.
+	* gcc.target/i386/pr35767-1d.c: Likewise.
+	* gcc.target/i386/pr35767-1i.c: Likewise.
+	* gcc.target/i386/pr35767-2.c: Likewise.
+	* gcc.target/i386/pr35767-2d.c: Likewise.
+	* gcc.target/i386/pr35767-2i.c: Likewise.
+	* gcc.target/i386/pr35767-3.c: Likewise.
+	* gcc.target/i386/pr35767-4.c: Likewise.
+	* gcc.target/i386/pr35767-5.c: Likewise.
+
+2008-05-27  Tobias Burnus  <burnus@net-b.de>
+
+	* gfortran.dg/assignment_3.f90: Add missing cleanup-modules.
+
+2008-05-27  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/36316
+	* gfortran.dg/assignment_3.f90: New.
+
+2008-05-27  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* lib/fortran-torture.exp (get-fortran-torture-options):
+	New function, replacing old FORTRAN_TORTURE_OPTIONS code.
+	* gfortran.fortran-torture/compile/compile.exp: Use
+	[get-fortran-torture-options] instead of $FORTRAN_TORTURE_OPTIONS.
+	* gfortran.fortran-torture/execute/execute.exp: Likewise.
+
 2008-05-27  Michael Matz  <matz@suse.de>
 
 	PR c++/27975

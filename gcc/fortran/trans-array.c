@@ -472,14 +472,14 @@ gfc_set_loop_bounds_from_array_spec (gfc_interface_mapping * mapping,
 	    gfc_apply_interface_mapping (mapping, &tmpse, as->lower[dim]);
 	    gfc_add_block_to_block (&se->pre, &tmpse.pre);
 	    gfc_add_block_to_block (&se->post, &tmpse.post);
-	    lower = tmpse.expr;
+	    lower = fold_convert (gfc_array_index_type, tmpse.expr);
 
 	    /* ...and the upper bound.  */
 	    gfc_init_se (&tmpse, NULL);
 	    gfc_apply_interface_mapping (mapping, &tmpse, as->upper[dim]);
 	    gfc_add_block_to_block (&se->pre, &tmpse.pre);
 	    gfc_add_block_to_block (&se->post, &tmpse.post);
-	    upper = tmpse.expr;
+	    upper = fold_convert (gfc_array_index_type, tmpse.expr);
 
 	    /* Set the upper bound of the loop to UPPER - LOWER.  */
 	    tmp = fold_build2 (MINUS_EXPR, gfc_array_index_type, upper, lower);
@@ -969,7 +969,6 @@ gfc_trans_array_ctor_element (stmtblock_t * pblock, tree desc,
 			      tree offset, gfc_se * se, gfc_expr * expr)
 {
   tree tmp;
-  tree esize;
 
   gfc_conv_expr (se, expr);
 
@@ -977,11 +976,17 @@ gfc_trans_array_ctor_element (stmtblock_t * pblock, tree desc,
   tmp = build_fold_indirect_ref (gfc_conv_descriptor_data_get (desc));
   tmp = gfc_build_array_ref (tmp, offset, NULL);
 
-  esize = size_in_bytes (gfc_get_element_type (TREE_TYPE (desc)));
-  esize = fold_convert (gfc_charlen_type_node, esize);
-
   if (expr->ts.type == BT_CHARACTER)
     {
+      int i = gfc_validate_kind (BT_CHARACTER, expr->ts.kind, false);
+      tree esize;
+
+      esize = size_in_bytes (gfc_get_element_type (TREE_TYPE (desc)));
+      esize = fold_convert (gfc_charlen_type_node, esize);
+      esize = fold_build2 (TRUNC_DIV_EXPR, gfc_charlen_type_node, esize,
+			   build_int_cst (gfc_charlen_type_node,
+					  gfc_character_kinds[i].bit_size / 8));
+
       gfc_conv_string_parameter (se);
       if (POINTER_TYPE_P (TREE_TYPE (tmp)))
 	{
