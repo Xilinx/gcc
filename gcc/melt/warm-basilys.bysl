@@ -5679,7 +5679,8 @@
 						    :nif_then wthen
 						    :nif_else (the_null)
 						    :nif_ctyp ctypif
-						    ))) )
+						    ))) 
+	       )
 	  (unsafe_put_fields clocc :nocc_bind cbind)
 	  (if (not (is_list nbindif))
 	      (setq nbindif (make_list discr_list)))
@@ -5747,54 +5748,51 @@
 	    ( (== ctypif ctypelse)
 	      ()
 	      )
-	    ( (and (!= ctypif ctype_void) (is_not_a nthen class_nrep_nil))
-	      (debugmsg nthen "normexp_ifelse incompatyp.then nthen")
-	      (debugmsg nelse "normexp_ifelse incompatyp.then nelse")
-	      (debugmsg ctypif "normexp_ifelse incompatyp.then ctypif")
-	      (debugmsg ctypelse "normexp_ifelse incompatyp.then ctypelse")
-	      (warning_plain sloc "mismatched type in IF/OR/COND conditional - ignoring then type")
-	      (setq ctypif ctype_void))
-	    ( (and (!= ctypelse ctype_void) (is_not_a nelse class_nrep_nil))
-	      (debugmsg nthen "normexp_ifelse incompatyp.else nthen")
-	      (debugmsg nelse "normexp_ifelse incompatyp.else nelse")
-	      (debugmsg ctypif "normexp_ifelse incompatyp.else ctypif")
-	      (debugmsg ctypelse "normexp_ifelse incompatyp.else ctypelse")
-	      (warning_plain sloc "mismatched type in IF/OR/COND conditional - ignoring else type")
-	      (setq ctypif ctype_void))
+	    ( (and (!= ctypif ctype_void) (== ctypelse ctype_void))
+	      () ;; ctypif is correct
+	      )
+	    ( (and (== ctypif ctype_void) (!= ctypelse ctype_void))
+	      (setq ctypif ctypelse)
+	      )
 	    (:else
 	     (warning_plain sloc 
-			  "incompatible types in conditional IF/OR/COND branches")
+			    "incompatible types in conditional IF/OR/COND branches")
+	     (warning_strv sloc "then type in conditional is "
+			   (unsafe_get_field :named_name ctypif))
+	     (warning_strv sloc "else type in conditional is "
+			   (unsafe_get_field :named_name ctypelse))
 	     (setq ctypif ctype_void)
-	     ))
-	   ;;
-	   ;;
-	   (let ( (csym (clone_symbol '_ifelse_))
-		  (clocc  (make_instance  class_nrep_locsymocc
-					  :nrep_loc sloc
-					  :nocc_ctyp ctypif
-					  :nocc_symb csym)) 
-		  (wthen (wrap_normal_let1 nthen nbindthen sloc))
-		  (welse (wrap_normal_let1 nelse nbindelse sloc))
-		  (cbind (make_instance class_normlet_binding
-					:letbind_loc sloc
-					:binder csym
-					:letbind_type ctypif 
-					:letbind_expr 
-					(make_instance class_nrep_if
-						       :nrep_loc sloc
-						       :nif_test ntest
-						       :nif_then wthen
-						       :nif_else welse
-						       :nif_ctyp ctypif
-						       ))) )
-	     (unsafe_put_fields clocc :nocc_bind cbind)
-	     (if (not (is_list nbindif))
-		 (setq nbindif (make_list discr_list)))
-	     (list_append nbindif cbind)
-	     (debugmsg clocc "normexp_ifelse result clocc" (the_callcount))
-	     (debugmsg nbindif "normexp_ifelse result nbindif" (the_callcount))
-	     (return clocc nbindif)
-	     ))))))))
+	     )
+	    ))
+	 ;;
+	 ;;
+	 (let ( (csym (clone_symbol '_ifelse_))
+		(clocc  (make_instance  class_nrep_locsymocc
+					:nrep_loc sloc
+					:nocc_ctyp ctypif
+					:nocc_symb csym)) 
+		(wthen (wrap_normal_let1 nthen nbindthen sloc))
+		(welse (wrap_normal_let1 nelse nbindelse sloc))
+		(cbind (make_instance class_normlet_binding
+				      :letbind_loc sloc
+				      :binder csym
+				      :letbind_type ctypif 
+				      :letbind_expr 
+				      (make_instance class_nrep_if
+						     :nrep_loc sloc
+						     :nif_test ntest
+						     :nif_then wthen
+						     :nif_else welse
+						     :nif_ctyp ctypif
+						     ))) )
+	   (unsafe_put_fields clocc :nocc_bind cbind)
+	   (if (not (is_list nbindif))
+	       (setq nbindif (make_list discr_list)))
+	   (list_append nbindif cbind)
+	   (debugmsg clocc "normexp_ifelse result clocc" (the_callcount))
+	   (debugmsg nbindif "normexp_ifelse result nbindif" (the_callcount))
+	   (return clocc nbindif)
+	   )))))))
 (install_method class_src_ifelse normal_exp normexp_ifelse)
 
 ;;;;;;;;;;;;;;;; normalize an or

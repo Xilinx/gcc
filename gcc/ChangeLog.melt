@@ -1,4 +1,11 @@
 2008-06-02  Basile Starynkevitch  <basile@starynkevitch.net>
+[bootstrapped: warm-basilys-2,3,4,5 are same, but strangely warm-basilys-1&2 differ]
+	* melt/warm-basilys.bysl: (normexp_ifelse) does not 
+          set the type to void when only one of then or else is void!
+
+	* Makefile.in: continue when diff of warmbasilys is nonempty
+
+2008-06-02  Basile Starynkevitch  <basile@starynkevitch.net>
 [metabuggy: test0c & test0w differ]
 	* melt/warm-basilys.bysl: added several return-s.
 

@@ -4853,13 +4853,17 @@ coldtest-warm-basilys: coldbuilt-warm-basilys.so cc1$(exeext) built-melt-cc-scri
 #compare test0c & test0w
 	ls -l test0c.c test0w.c
 	md5sum test0c.c test0w.c
-	diff -u test0c.c test0w.c > compare-test0c-test0w.diff
+	-diff -u test0c.c test0w.c > compare-test0c-test0w.diff
 	wc -l compare-test0c-test0w.diff
+	tail  compare-test0c-test0w.diff
+	echo
 ## compare testrun1c & testrun1w
 	ls -l testrun1c.c testrun1w.c
 	md5sum testrun1c.c testrun1w.c
-	diff -u testrun1c.c testrun1w.c > compare-testrun1c-testrun1w.diff
+	-diff -u testrun1c.c testrun1w.c > compare-testrun1c-testrun1w.diff
 	wc -l compare-testrun1c-testrun1w.diff
+	tail compare-testrun1c-testrun1w.diff
+	echo
 ## warmcompile warm-basilys itself with itself 
 	-@echo warmbasilys1 compiling warmbasilys
 	time ./cc1-melt$(exeext) -fbasilys $(BASILYSDEBUG)  \
@@ -4882,8 +4886,10 @@ coldtest-warm-basilys: coldbuilt-warm-basilys.so cc1$(exeext) built-melt-cc-scri
 	 -fbasilys-command=compileseq -fbasilys-arg=$(srcdir)/melt/warm-basilys.bysl -frandom-seed=AbCdEfGhIj
 	cp warm-basilys.c warm-basilys-3.c
 	./built-melt-cc-script warm-basilys-3.c warm-basilys-3.so
-	diff -u warm-basilys-2.c warm-basilys-3.c > compare-warm-basilys-2-3.diff
+	-diff -u warm-basilys-2.c warm-basilys-3.c > compare-warm-basilys-2-3.diff
 	wc -l compare-warm-basilys-2-3.diff
+	tail compare-warm-basilys-2-3.diff
+	@echo
 ## warmcompile warm-basilys itself with itself
 	-@echo warmbasilys3 compiling warmbasilys
 	time ./cc1-melt$(exeext) -fbasilys $(BASILYSDEBUG)  \
