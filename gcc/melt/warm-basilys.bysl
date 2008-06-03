@@ -1900,7 +1900,6 @@
 
 (defun install_ctype (ctyp)
   (assert_msg "check ctyp" (is_a ctyp class_ctype)) 
-  (debugmsg ctyp "install_ctype"  (the_callcount))
   (let ( (ckw (unsafe_get_field :ctype_keyword ctyp)) )
     (assert_msg "check ckw" (is_a ckw class_keyword))
     (unsafe_put_fields ckw :symb_data ctyp)
@@ -2035,7 +2034,7 @@
 		 ( (is_string symb) 
 		   symb)
 		 (:else 
-		  (debugmsg symb "clone_symbol bad symb" (the_callcount))
+		  ;(debugmsg symb "clone_symbol bad symb" (the_callcount))
 		  (assert_msg "invalid symb in clone_symbol" ())
 		  (the_null))))
 	 (boxi (mapstring_getstr mapstr synam)) )
@@ -2241,11 +2240,8 @@
 	)))
 
 ;;; translate a pairlist to a tuple - with each element transformed by a function f (default the identity)
-;;; @@@ in rev.136119 this function is incorrectly compiled in warm-basilys-1.c
-;;; even by replacing the (exit loopln) with (return tup)
 (defun pairlist_to_multiple (pair disc f)
   (if (null disc) (setq disc discr_multiple))
-  (debugmsg pair "pairlist_to_multiple pair" (the_callcount))
   (let ( (:long ln 0) )
     (let ( (curpair pair) )
       (forever loopln
@@ -2263,7 +2259,6 @@
 		 (multiple_put_nth tup ix tc)
 		 (setq ix (+i ix 1))
 		 (setq curpair (pair_tail curpair))))
-      (debugmsg tup "pairlist_to_multiple tup" (the_callcount))
       (return tup)
       )))
 
@@ -3117,6 +3112,7 @@
     (outnewline_err)
     ))
 
+
 (defun debugmsg (val :cstring msgstr :long count)
   (if (need_dbg 0) 
       (let ( (:long dbgcounter (progn (increment_dbgcounter) (the_dbgcounter)))
@@ -3136,6 +3132,8 @@
 	(outstrbuf_dbg sbuf)
 	(outnewline_dbg)
 	)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
 ;; make a fresh environment 
@@ -5360,6 +5358,7 @@
 	  ))
       ;; previous function binding at toplevel
       ( (is_a bind class_function_binding)
+	(debugmsg bind "normexp_symbol function bind" (the_callcount))
 	(let ( (fubdat (unsafe_get_field :fubind_fundata bind)) )
 	  (assert_msg "normexp_symbol check fubdat" (is_a fubdat class_nrep_dataclosure))
 	  ;; cache the result & return it
@@ -12605,10 +12604,6 @@
 
 ;;;;
 
-(message_dbg "@%X before compileseq_command")
-(debugmsg discr_verbatimstring "@%Y before compileseq_command discr_verbatimstring")
-(message_dbg "@%Z before compileseq_command")
-
 ;;;;;
 (defun compilefile_command (dispatcher arg secarg)
   (message_dbg "starting compilefile_command")
@@ -12647,11 +12642,7 @@
 
 (install_initial_command  (stringconst2val discr_string "compilefile") compilefile_command)
 
-(message_dbg "@%T before showing initial_command_dispatcher")
-
-(assert_msg "check that debugmsg is a closure" (is_closure debugmsg))
 
 (debugmsg initial_command_dispatcher "toplevel initial_command_dispatcher")
 
-(message_dbg "@%Z at eof")
 ;;; eof warm-basilys.bysl

@@ -1,4 +1,9 @@
 2008-06-03  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warm-basilys.bysl: removed some debugmsg.
+
+	* warm-basilys-0.c: regenerated.
+
+2008-06-03  Basile Starynkevitch  <basile@starynkevitch.net>
 	* Makefile.in: added MELTBASILYSCC1 variable & warm-basilys-4.c target
 
 	* melt/warm-basilys.bysl: added handling of cppif
