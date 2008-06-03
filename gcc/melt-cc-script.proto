@@ -30,6 +30,10 @@ if [ -n "$MELT_CC" ]; then
     melt_cc=$MELT_CC
 fi
 
+if [ -n "$MELT_EXTRACFLAGS" ]; then
+    melt_cflags="$melt_cflags $MELT_EXTRACFLAGS"
+fi
+
 #set -x
 ## script invoked by cc1 with two arguments : the generated C source to compile
 ## and the naked (without suffix) dynamically-loadable stuff to generate
@@ -79,8 +83,8 @@ Linux|SunOS|Solaris)
 	ls -lt    $nakedynstuff.so  $csource
 	;;
 *) 
-	libtool --mode=compile -prefer-pic $melt_cc $csource  -I "$melt_headerdir" -o $nakedynstuff.lo;
-	libtool --mode=compile -prefer-pic $melt_cc $datf.c -o $datf.lo
+	libtool --mode=compile -prefer-pic $melt_cc $melt_cflags $csource  -I "$melt_headerdir" -o $nakedynstuff.lo;
+	libtool --mode=compile -prefer-pic $melt_cc $melt_cflags $datf.c -o $datf.lo
 	libtool --mode=link -module $melt_cc  $makedynstuff.lo $datf.lo -o  $nakedynstuff.la
 	rm -f $datf.*
 	;;

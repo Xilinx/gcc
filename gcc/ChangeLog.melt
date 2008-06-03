@@ -1,4 +1,8 @@
 2008-06-03  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-cc-script.proto: added MELT_EXTRACFLAGS.
+	the untested libtool command has been corrected to use  $melt_cflags
+
+2008-06-03  Basile Starynkevitch  <basile@starynkevitch.net>
 	MELT branch merged with trunk r136317
 
 2008-06-03  Basile Starynkevitch  <basile@starynkevitch.net>
