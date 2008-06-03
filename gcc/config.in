@@ -1,6 +1,6 @@
 /* config.in.  Generated from configure.ac by autoheader.  */
 
-/* Define as the number of bits in a byte, if \`limits.h' doesn't. */
+/* Define as the number of bits in a byte, if `limits.h' doesn't. */
 #ifndef USED_FOR_TARGET
 #undef CHAR_BIT
 #endif
@@ -1560,7 +1560,7 @@
 #endif
 
 
-/* Define to \`long' if <sys/resource.h> doesn't define. */
+/* Define to `long' if <sys/resource.h> doesn't define. */
 #ifndef USED_FOR_TARGET
 #undef rlim_t
 #endif

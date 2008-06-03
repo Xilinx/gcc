@@ -1,4 +1,7 @@
 2008-06-03  Basile Starynkevitch  <basile@starynkevitch.net>
+	MELT branch merged with trunk r136317
+
+2008-06-03  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warm-basilys.bysl: using debug_msg macro everywhere instead of debugmsg.
 
 	* warm-basilys-0.c: regenerated.

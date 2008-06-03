@@ -814,6 +814,14 @@ gfc_add_allocatable (symbol_attribute *attr, locus *where)
       return FAILURE;
     }
 
+  if (attr->flavor == FL_PROCEDURE && attr->if_source == IFSRC_IFBODY
+      && gfc_find_state (COMP_INTERFACE) == FAILURE)
+    {
+      gfc_error ("ALLOCATABLE specified outside of INTERFACE body at %L",
+		 where);
+      return FAILURE;
+    }
+
   attr->allocatable = 1;
   return check_conflict (attr, NULL, where);
 }
@@ -829,6 +837,14 @@ gfc_add_dimension (symbol_attribute *attr, const char *name, locus *where)
   if (attr->dimension)
     {
       duplicate_attr ("DIMENSION", where);
+      return FAILURE;
+    }
+
+  if (attr->flavor == FL_PROCEDURE && attr->if_source == IFSRC_IFBODY
+      && gfc_find_state (COMP_INTERFACE) == FAILURE)
+    {
+      gfc_error ("DIMENSION specified for '%s' outside its INTERFACE body "
+		 "at %L", name, where);
       return FAILURE;
     }
 
@@ -1450,6 +1466,13 @@ gfc_add_explicit_interface (gfc_symbol *sym, ifsrc source,
     {
       gfc_error ("Symbol '%s' at %L already has an explicit interface",
 		 sym->name, where);
+      return FAILURE;
+    }
+
+  if (source == IFSRC_IFBODY && (sym->attr.dimension || sym->attr.allocatable))
+    {
+      gfc_error ("'%s' at %L has attributes specified outside its INTERFACE "
+		 "body", sym->name, where);
       return FAILURE;
     }
 
@@ -2096,6 +2119,7 @@ gfc_get_namespace (gfc_namespace *parent, int parent_types)
   ns = gfc_getmem (sizeof (gfc_namespace));
   ns->sym_root = NULL;
   ns->uop_root = NULL;
+  ns->finalizers = NULL;
   ns->default_access = ACCESS_UNKNOWN;
   ns->parent = parent;
 
@@ -2284,6 +2308,8 @@ gfc_free_symbol (gfc_symbol *sym)
 
   gfc_free_formal_arglist (sym->formal);
 
+  gfc_free_namespace (sym->f2k_derived);
+
   gfc_free (sym);
 }
 
@@ -2316,6 +2342,7 @@ gfc_new_symbol (const char *name, gfc_namespace *ns)
 
   /* Clear the ptrs we may need.  */
   p->common_block = NULL;
+  p->f2k_derived = NULL;
   
   return p;
 }
@@ -2884,6 +2911,33 @@ gfc_free_equiv_lists (gfc_equiv_list *l)
 }
 
 
+/* Free a finalizer procedure list.  */
+
+void
+gfc_free_finalizer (gfc_finalizer* el)
+{
+  if (el)
+    {
+      --el->procedure->refs;
+      if (!el->procedure->refs)
+	gfc_free_symbol (el->procedure);
+
+      gfc_free (el);
+    }
+}
+
+static void
+gfc_free_finalizer_list (gfc_finalizer* list)
+{
+  while (list)
+    {
+      gfc_finalizer* current = list;
+      list = list->next;
+      gfc_free_finalizer (current);
+    }
+}
+
+
 /* Free a namespace structure and everything below it.  Interface
    lists associated with intrinsic operators are not freed.  These are
    taken care of when a specific name is freed.  */
@@ -2908,6 +2962,7 @@ gfc_free_namespace (gfc_namespace *ns)
   free_sym_tree (ns->sym_root);
   free_uop_tree (ns->uop_root);
   free_common_tree (ns->common_root);
+  gfc_free_finalizer_list (ns->finalizers);
 
   for (cl = ns->cl_list; cl; cl = cl2)
     {
