@@ -7141,7 +7141,7 @@ cp_parser_lambda_external_reference_clause (cp_parser* parser,
 
   while (cp_lexer_next_token_is_not (parser->lexer, CPP_CLOSE_SQUARE))
   {
-    enum pass_code_type {BY_COPY, BY_REF, BY_RVALUE_REF};
+    enum storage_code_type {BY_COPY, BY_REF, BY_RVALUE_REF};
 
     cp_id_kind idk = CP_ID_KIND_NONE;
     const char* error_msg;
@@ -7152,7 +7152,7 @@ cp_parser_lambda_external_reference_clause (cp_parser* parser,
     tree eref_init_expr;
     tree eref_type;
 
-    enum pass_code_type pass_code = BY_COPY;
+    enum storage_code_type storage_code = BY_COPY;
 
     if (!first)
       cp_parser_require (parser, CPP_COMMA, "`,'");
@@ -7161,11 +7161,11 @@ cp_parser_lambda_external_reference_clause (cp_parser* parser,
 
     /* Remember whether we want to take this as a reference or not. */
     if (cp_lexer_next_token_is (parser->lexer, CPP_AND))
-      pass_code = BY_REF;
+      storage_code = BY_REF;
     else if (cp_lexer_next_token_is (parser->lexer, CPP_AND_AND))
-      pass_code = BY_RVALUE_REF;
+      storage_code = BY_RVALUE_REF;
 
-    if (pass_code != BY_COPY)
+    if (storage_code != BY_COPY)
       cp_lexer_consume_token (parser->lexer);
 
     /* Get the identifier. */
@@ -7177,7 +7177,7 @@ cp_parser_lambda_external_reference_clause (cp_parser* parser,
         eref_id,
         sfk_none);
 
-    if (pass_code == BY_RVALUE_REF)
+    if (storage_code == BY_RVALUE_REF)
       eref_declarator = make_reference_declarator (
           /*cv_qualifiers=*/TYPE_UNQUALIFIED,
           eref_declarator,
@@ -7223,7 +7223,7 @@ cp_parser_lambda_external_reference_clause (cp_parser* parser,
         /*id_expression_or_member_access_p=*/false);
 
     /* May come as a reference, so strip it down if desired. */
-    if (pass_code != BY_REF)
+    if (storage_code != BY_REF)
       eref_type = non_reference (eref_type);
     else if (TREE_CODE (eref_type) != REFERENCE_TYPE)
     {
