@@ -3260,14 +3260,17 @@ cp_parser_primary_expression (cp_parser *parser,
 	return expr;
       }
 
-    case CPP_LESS:
-        /* If this is a diamond symbol, "<>", then it starts a lambda
-           expression. */
-        if (cxx_dialect == cxx0x && cp_lexer_peek_nth_token (parser->lexer, 2)->type == CPP_GREATER)
-        {
-          cp_lexer_consume_token (parser->lexer);
-          return cp_parser_lambda_expression (parser);
-        }
+    case CPP_OPEN_SQUARE:
+      if (cxx_dialect == cxx0x)
+        return cp_parser_lambda_expression (parser);
+      else if (c_dialect_objc ())
+        /* We have an Objective-C++ message. */
+        return cp_parser_objc_expression (parser);
+
+    case CPP_OBJC_STRING:
+      if (c_dialect_objc ())
+      /* We have an Objective-C++ string literal. */
+        return cp_parser_objc_expression (parser);
   
     case CPP_KEYWORD:
       switch (token->keyword)
@@ -3495,13 +3498,6 @@ cp_parser_primary_expression (cp_parser *parser,
 
       /* Anything else is an error.  */
     default:
-      /* ...unless we have an Objective-C++ message or string literal,
-         that is.  */
-      if (c_dialect_objc ()
-	  && (token->type == CPP_OPEN_SQUARE
-              || token->type == CPP_OBJC_STRING))
-	return cp_parser_objc_expression (parser);
-
       cp_parser_error (parser, "expected primary-expression");
       return error_mark_node;
     }
@@ -7094,9 +7090,10 @@ cp_parser_lambda_head (cp_parser* parser,
     cp_parameter_declarator** ctor_param_list,
     tree* ctor_arg_list)
 {
-  /* Consume the next token.  Getting this far means it must be
-     either "__lambda", "__lambda__", or '>'. */
-  cp_lexer_consume_token (parser->lexer);
+  /* Parse local references */
+  cp_parser_lambda_external_reference_clause (parser,
+      ctor_param_list,
+      ctor_arg_list);
 
   /* Parse parameters */
   *fco_param_list = cp_parser_lambda_parameter_clause (parser);
@@ -7107,11 +7104,6 @@ cp_parser_lambda_head (cp_parser* parser,
   /* Parse return type clause */
   cp_parser_lambda_return_type_clause_opt (parser,
       fco_return_type_specs);
-
-  /* Parse local references */
-  cp_parser_lambda_external_reference_clause (parser,
-      ctor_param_list,
-      ctor_arg_list);
 }
 
 static cp_parameter_declarator*
@@ -7137,8 +7129,7 @@ cp_parser_lambda_external_reference_clause (cp_parser* parser,
   /* Need commas after the first local reference. */
   bool first = true;
 
-  /* Eat the ':' */
-  if (cp_lexer_next_token_is_not (parser->lexer, CPP_COLON)) return;
+  /* Eat the leading `['. */
   cp_lexer_consume_token (parser->lexer);
 
   /* For each external reference, we need to
@@ -7147,8 +7138,6 @@ cp_parser_lambda_external_reference_clause (cp_parser* parser,
        3. Add to ctor_arg_list
        4. Create mem_initializer, add to list (later)
    */
-
-  cp_parser_require (parser, CPP_OPEN_SQUARE, "`['");
 
   while (cp_lexer_next_token_is_not (parser->lexer, CPP_CLOSE_SQUARE))
   {
