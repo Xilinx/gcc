@@ -458,6 +458,14 @@
 ))
 
 
+;; preprocessor conditional
+(defclass class_src_cppif
+  :super class_src
+  :fields (sifp_cond			;C preprocessor symbol or verbatim string to test
+	   sifp_then			;then clause
+	   sifp_else			;else clause
+))
+;;;;;;;;;;;;;;;;
 
 ;;; letbinding source
 (defclass class_src_letbinding
@@ -601,6 +609,15 @@
 	   nif_then
 	   nif_else
 	   nif_ctyp
+))
+
+;; normal ifcpp have a symbol and a ctyp
+(defclass class_nrep_cppif
+  :super class_nrep_expr
+  :fields (nifp_cond
+	   nifp_then
+	   nifp_else
+	   nifp_ctyp
 ))
 
 ;; normal progn has a distingished last
@@ -1045,6 +1062,14 @@
   :fields (obcond_test
 	   obcond_then
 	   obcond_else
+))
+
+;; preprocessor conditional instruction
+(defclass class_objcppif
+  :super class_objinstr
+  :fields (obifp_cond
+	   obifp_then
+	   obifp_else
 ))
 
 ;;; apply instruction
@@ -4351,6 +4376,56 @@
 	    ))))))
 (install_initial_macro 'if mexpand_if)
 
+;;;;; the cppif expander
+(defun mexpand_cppif (sexpr env mexpander)
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check env" (is_a env class_environment))
+  (debugmsg sexpr "mexpand_cppif sexpr" (the_callcount))
+  (let (
+	(cont (unsafe_get_field :sexp_contents sexpr))
+	(loc  (unsafe_get_field :loca_location sexpr))
+	(curpair (pair_tail (list_first cont)))
+	(curif (pair_head curpair)) )
+    (if (not (is_pair curpair))
+	(error_plain loc "missing condition in CPPIF"))
+    (setq curpair (pair_tail curpair))
+    (if (not (is_pair curpair))
+	(error_plain loc "missing then in CPPIF"))
+    (let ( (xcond (macroexpand_1 curif env mexpander)) )
+      (debugmsg xcond "mexpand_cppif xcond" (the_callcount))
+      (cond 
+       ( (is_string xcond) ())
+       ( (is_a xcond class_symbol) ())
+       (:else
+	(error_plain loc "invalid cpp-condition in CPPIF - string or symbol expected")
+	(return ())))
+      (let ( (curthen (pair_head curpair)) )
+	(setq curpair (pair_tail curpair))
+	(let ( (xthen (macroexpand_1 curthen env mexpander)) 
+	       (xelse ())
+	       )
+	  (debugmsg xthen "mexpand_cppif xthen" (the_callcount))
+	  (if (is_pair curpair)
+	      (let ( (curelse (pair_head curpair)) 
+		     (gotxelse (macroexpand_1 curelse env mexpander)) )
+		(debugmsg gotxelse "mexpand_cppif gotxelse" (the_callcount))
+		(setq curpair (pair_tail curpair))
+		(setq xelse gotxelse)
+		(if (is_pair curpair)
+		    (error_plain loc "CPPIF with more than three sons"))))
+	  (let ( (resp (make_instance class_src_cppif
+				      :src_loc loc
+				      :sifp_cond xcond
+				      :sifp_then xthen
+				      :sifp_else xelse
+				      ))
+		 )
+	    (debugmsg resp "mexpand_cppif return resp" (the_callcount))
+	    (return resp)
+	    ))))))
+(install_initial_macro 'cppif mexpand_cppif)
+
+
 
 ;;;;; the cond expanser
 (defun mexpand_cond (sexpr env mexpander)
@@ -5815,6 +5890,80 @@
 	   (return clocc nbindif)
 	   )))))))
 (install_method class_src_ifelse normal_exp normexp_ifelse)
+
+
+;;;;;;;;;;;;;;;; normalize a cppif
+(defun normexp_cppif (recv env ncx psloc)
+  (assert_msg "check cppif recv" (is_a recv class_src_cppif))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check nctxt" (is_a ncx class_normcontext))
+  (debugmsg recv "normexp_cppif recv" (the_callcount))
+  (let ( (sloc (unsafe_get_field :src_loc recv))
+	 (scond (unsafe_get_field :sifp_cond recv))
+	 (ctypif ctype_void)
+	 (sthen (unsafe_get_field :sifp_then recv))
+	 (selse (unsafe_get_field :sifp_else recv))
+	 )
+    ;; normalize the then-part
+    (multicall 
+     (nthen nbindthen)
+     (normal_exp sthen env ncx sloc)
+     (debugmsg nthen "normexp_cppif nthen" (the_callcount))
+     (assert_msg "check nbindthen" (is_list_or_null nbindthen))
+     (let ( (newthenenv (fresh_env env)) )
+       (list_every 
+	nbindthen
+	(lambda (b) (put_env newthenenv b)))
+       ;; the ctyp of the whole cppif is initialized to the ctype of the then part
+       (setq ctypif (get_ctype nthen newthenenv))
+       (assert_msg "check ctypif" (is_a ctypif class_ctype))
+       ;; normalize the else-part
+       (multicall 
+	(nelse nbindelse)
+	(normal_exp selse env ncx sloc)
+	(debugmsg nelse "normexp_cppif nelse" (the_callcount))
+	(assert_msg "check nbindelse" (is_list_or_null nbindelse))
+	(let ( (newelseenv (fresh_env env)) )
+	  (list_every 
+	   nbindelse
+	   (lambda (b) (put_env newelseenv b)))
+	  (let ( (ctypelse (get_ctype nelse newelseenv)) )
+	    (if (!= ctypif ctypelse)
+		(progn
+		  (error_plain sloc "CPPIF incompatible then & else types")
+		  (error_strv sloc "CPPIF incompatible then type :" 
+			      (unsafe_get_field :named_name ctypif))
+		  (error_strv sloc "CPPIF incompatible else type :" 
+			      (unsafe_get_field :named_name ctypelse))))
+
+	    (let ( (csym (clone_symbol 'ifcpp_))
+		   (clocc  (make_instance  class_nrep_locsymocc
+					   :nrep_loc sloc
+					   :nocc_ctyp ctypif
+					   :nocc_symb csym)) 
+		   (wthen (wrap_normal_let1 nthen nbindthen sloc))
+		   (welse (wrap_normal_let1 nelse nbindelse sloc))
+		   (cbind (make_instance class_normlet_binding
+					 :letbind_loc sloc
+					 :binder csym
+					 :letbind_type ctypif 
+					 :letbind_expr 
+					 (make_instance class_nrep_cppif
+							:nrep_loc sloc
+							:nifp_cond scond
+							:nifp_then wthen
+							:nifp_else welse
+							:nifp_ctyp ctypif
+							))) 
+		   (nbindres (make_list discr_list))
+		   )
+	      (unsafe_put_fields clocc :nocc_bind cbind)
+	      (list_append nbindres cbind)
+	      (debugmsg clocc "normexp_cppif result clocc" (the_callcount))
+	      (debugmsg nbindres "normexp_cppif result nbindres" (the_callcount))
+	      (return clocc nbindres)
+	      ))))))))
+(install_method class_src_cppif normal_exp normexp_cppif)
 
 ;;;;;;;;;;;;;;;; normalize an or
     ;; (OR (f1 a1)) is let d1 = (f1 a1) in d1
@@ -8932,7 +9081,37 @@
 (install_method class_objcond output_c_code outpucod_objcond)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-
+;; output a cppif
+(defun outpucod_objcppif (opif declbuf implbuf :long depth)
+  (assert_msg "check opif" (is_a opif class_objcppif))
+  (debugmsg opif "outpucod_objcppif opif" (the_callcount))
+  (let ( (cloc (unsafe_get_field :obi_loc opif))
+	 (ccond (unsafe_get_field :obifp_cond opif))
+	 (cthen (unsafe_get_field :obifp_then opif))
+	 (celse (unsafe_get_field :obifp_else opif))
+	 (:long depthp1 (+i 1 depth))
+	 )
+    (assert_msg "check ccond" (is_string ccond))
+    (output_raw_location cloc implbuf depth "cppif")
+    (add2sbuf_strconst implbuf "#if ")
+    (add2sbuf_string implbuf ccond)
+    (add2sbuf_indentnl implbuf depthp1)
+    (output_location cloc implbuf depth "cppif.then")
+    (output_c_code cthen declbuf implbuf depthp1)
+    (add2sbuf_indentnl implbuf depthp1)
+    (add2sbuf_strconst implbuf "#else /*")
+    (add2sbuf_string implbuf ccond)
+    (add2sbuf_strconst implbuf "*/")
+    (add2sbuf_indentnl implbuf depthp1)
+    (output_location cloc implbuf depth "cppif.else")
+    (output_c_code celse declbuf implbuf depthp1)
+    (add2sbuf_indentnl implbuf depthp1)
+    (add2sbuf_strconst implbuf "#endif /*")
+    (add2sbuf_string implbuf ccond)
+    (add2sbuf_strconst implbuf "*/")
+    (add2sbuf_indentnl implbuf depthp1)
+))
+(install_method class_objcppif output_c_code outpucod_objcppif)
 
 
 ;; output an application
@@ -11450,6 +11629,7 @@
       obif
       )))
 (install_method class_nrep_if compile_obj compilobj_nrep_if)
+
 ;;;;;;;;;;;;;
 (defun putobjdest_objcond (recv desto)
 ;  (debugmsg recv "putobjdest objcond recv" (the_callcount))
@@ -11475,7 +11655,56 @@
 (install_method class_objcond  put_objdest  putobjdest_objcond)
 ;;;;;;;;;;;;;;;;
 
+(defun compilobj_nrep_cppif (pif gcx)
+  (assert_msg "check pif" (is_a pif class_nrep_cppif))
+  (assert_msg "check gcx" (is_a gcx class_genercontext))
+  (debugmsg pif "compilobj_nrep_cppif pif" (the_callcount))
+  (let ( (loc (unsafe_get_field :nrep_loc pif))
+	 (ncond (unsafe_get_field :nifp_cond pif))
+	 (nthen (unsafe_get_field :nifp_then pif))
+	 (nelse (unsafe_get_field :nifp_else pif))
+	 (ctyp (unsafe_get_field :nifp_ctyp pif))
+	 (scond (cond
+		 ( (is_a ncond class_symbol) (unsafe_get_field :named_name ncond))
+		 ( (is_string ncond) ncond)
+		 (:else (assert_msg "invalid ncond in nrep_cppif" ()))))
+	 (othen (compile_obj nthen gcx))
+	 (oelse (compile_obj nelse gcx))
+	 (res (make_instance class_objcppif
+			     :obi_loc loc
+			     :obifp_cond scond
+			     :obifp_then othen
+			     :obifp_else oelse))
+	 )
+    (debugmsg res "compilobj_nrep_cppif result" (the_callcount))
+    (return res)
+    ))
+(install_method class_nrep_cppif compile_obj compilobj_nrep_cppif)
 
+
+;;;;;;;;;;;;;
+(defun putobjdest_objcppif (recv desto)
+;  (debugmsg recv "putobjdest objcppif recv" (the_callcount))
+;  (debugmsg desto "putobjdest objcppif desto" (the_callcount))
+  (assert_msg "check recv" (is_a recv class_objcppif))
+  (assert_msg "check desto" (is_a desto class_objlocv))
+  (let ( (othen (unsafe_get_field :obifp_then recv))
+	 (oelse (unsafe_get_field :obifp_else recv)) 
+	 )
+ ;   (debugmsg othen "putobjdest objcppif othen" (the_callcount))
+ ;   (debugmsg oelse "putobjdest objcppif oelse" (the_callcount))
+    (let ( (dthen (put_objdest othen desto))
+	   (delse (put_objdest oelse desto)) )
+;      (debugmsg dthen "putobjdest objcppif dthen" (the_callcount))
+;      (debugmsg delse "putobjdest objcppif delse" (the_callcount))
+      (unsafe_put_fields recv
+			 :obifp_then dthen
+			 :obifp_else delse)
+;      (debugmsg recv "putobjdest objcppif updated recv" (the_callcount))
+      recv
+      )))
+
+(install_method class_objcppif  put_objdest  putobjdest_objcppif)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;
 (defun compilobj_nrep_return (nret gcx)

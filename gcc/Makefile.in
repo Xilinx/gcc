@@ -4667,41 +4667,50 @@ install-melt-headers: melt.encap $(INSTALL_MELT_HEADERS_DIR) install-melt-cc-scr
 ## warm-basilys.c using Clisp on the contrib/cold-basilys.lisp but now
 ## warm-basilys.bysl bootstraps itself
 
-warm%.so: warm%.c built-melt-cc-script
-	./built-melt-cc-script $< $@
-
-warm-basilys-3.c: warm-basilys-2.so cc1$(exeext) $(srcdir)/melt/warm-basilys.bysl 
-	rm -f $@
-	./cc1$(exeext) -fbasilys -fbasilys-init=$< \
+MELTBASILYSCC1= time ./cc1$(exeext) -fbasilys  \
 	      -fbasilys-dynlibdir=. \
 	      -fbasilys-compile-script=built-melt-cc-script \
  	      -fbasilys-gensrcdir=. \
 	      -fbasilys-tempdir=. \
-	      -fbasilys-command=compilefile -fbasilys-arg=$(srcdir)/melt/warm-basilys.bysl \
-	      -fbasilys-secondarg=$@ -frandom-seed=AbCdEfGhIj
+	      -fbasilys-command=compilefile  \
+	      -frandom-seed=AbCdEfGhIj
+
+warm%.so: warm%.c built-melt-cc-script
+	./built-melt-cc-script $< $@
+
+warm-basilys-4.c: warm-basilys-3.so cc1$(exeext) $(srcdir)/melt/warm-basilys.bysl
+	rm -f $@
+	@echo generating warm-basilys-4
+	$(MELTBASILYSCC1) -fbasilys-init=$< \
+	      -fbasilys-arg=$(srcdir)/melt/warm-basilys.bysl \
+	      -fbasilys-secondarg=$@
+	ls -l $@
+
+warm-basilys-3.c: warm-basilys-2.so cc1$(exeext) $(srcdir)/melt/warm-basilys.bysl 
+	rm -f $@
+	@echo generating warm-basilys-3
+	$(MELTBASILYSCC1) -fbasilys-init=$< \
+	      -fbasilys-arg=$(srcdir)/melt/warm-basilys.bysl \
+	      -fbasilys-secondarg=$@
 	ls -l $@
 
 warm-basilys-2.c: warm-basilys-1.so cc1$(exeext) $(srcdir)/melt/warm-basilys.bysl 
 	-rm -f $@
-	./cc1$(exeext) -fbasilys -fbasilys-init=$< \
-	      -fbasilys-dynlibdir=. \
-	      -fbasilys-compile-script=built-melt-cc-script \
- 	      -fbasilys-gensrcdir=. \
-	      -fbasilys-tempdir=. \
-	      -fbasilys-command=compilefile -fbasilys-arg=$(srcdir)/melt/warm-basilys.bysl \
-	      -fbasilys-secondarg=$@ -frandom-seed=AbCdEfGhIj
+	@echo generating warm-basilys-2
+	$(MELTBASILYSCC1) -fbasilys-init=$< \
+	      -fbasilys-arg=$(srcdir)/melt/warm-basilys.bysl \
+	      -fbasilys-secondarg=$@
 	ls -l $@
 
 warm-basilys-1.c: warm-basilys-0.so cc1$(exeext) $(srcdir)/melt/warm-basilys.bysl
 	-rm -f $@ 
-	./cc1$(exeext) -fbasilys -fbasilys-init=$< \
-	      -fbasilys-dynlibdir=. \
-	      -fbasilys-compile-script=built-melt-cc-script \
- 	      -fbasilys-gensrcdir=. \
-	      -fbasilys-tempdir=. \
-	      -fbasilys-command=compilefile -fbasilys-arg=$(srcdir)/melt/warm-basilys.bysl \
-	      -fbasilys-secondarg=$@ -frandom-seed=AbCdEfGhIj
+	@echo generating warm-basilys-1
+	$(MELTBASILYSCC1) -fbasilys-init=$< \
+	      -fbasilys-arg=$(srcdir)/melt/warm-basilys.bysl \
+	      -fbasilys-secondarg=$@
 	ls -l $@
+
+
 #### this phony target is given manually to copy the generated
 #### warm-basilys-2.c into the source directory it should be only
 #### explicitly given

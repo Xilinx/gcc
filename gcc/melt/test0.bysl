@@ -227,6 +227,9 @@
 	    (f u)) )
       (g v u))))
 
+(defun testcpp (x)
+ (cppif "MYCPPCOND && OTHERCOND" x ()))
+
 (if foo 
     (puts "has foo"))
 

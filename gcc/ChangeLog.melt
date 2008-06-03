@@ -1,3 +1,10 @@
+2008-06-03  Basile Starynkevitch  <basile@starynkevitch.net>
+	* Makefile.in: added MELTBASILYSCC1 variable & warm-basilys-4.c target
+
+	* melt/warm-basilys.bysl: added handling of cppif
+
+	* melt/test0.bysl: added test of cppif
+
 2008-06-02  Basile Starynkevitch  <basile@starynkevitch.net>
 	* basilys.c: (mulsort_cmp) removed debugprintf...s
 	(skipspace_getc) added comment handling argument.
