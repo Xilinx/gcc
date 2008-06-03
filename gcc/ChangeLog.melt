@@ -1,4 +1,8 @@
 2008-06-03  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warm-basilys.bysl: added debug_msg macro, and error
+	messages for unresolved forward references.
+
+2008-06-03  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warm-basilys.bysl: removed some debugmsg.
 
 	* warm-basilys-0.c: regenerated.

@@ -4916,6 +4916,83 @@
 	))))
 (install_initial_macro 'exit mexpand_exit)
 
+(defun debug_msg_fun (val :cstring msgstr :long count :cstring filenam :long lineno)
+  (if (need_dbg 0) 
+      (let ( (:long dbgcounter (progn (increment_dbgcounter) (the_dbgcounter)))
+	     (sbuf (make_strbuf discr_strbuf)) 
+	     (occmap (make_mapobject discr_mapobjects 50))
+	     (boxedmaxdepth (make_integerbox discr_integer 17)) ;;;; @@@ DEBUGDEPTH
+	     (dbgi (make_instance class_debuginfo
+				  :dbgi_sbuf sbuf
+				  :dbgi_occmap occmap
+				  :dbgi_maxdepth boxedmaxdepth))
+	     )
+	(outnum_dbg "!*#" dbgcounter "/")
+	(outnum_dbg "" (-i (the_framedepth) 1) ":")
+	(if filenam
+	    (progn
+	      (outcstring_dbg filenam)
+	      (outnum_dbg ":" lineno ":")
+	      ))
+	(outcstring_dbg msgstr)
+	(if (>i count 0) (outnum_dbg " !" count ": "))
+	(dbg_out val dbgi 0)
+	(outstrbuf_dbg sbuf)
+	(outnewline_dbg)
+	)))
+
+(defun mexpand_debug_msg (sexpr env mexpander)
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check env" (is_a env class_environment))
+  (debugmsg sexpr "mexpand_debug_msg sexpr")
+  (let (
+	(cont (unsafe_get_field :sexp_contents sexpr))
+	(loc  (unsafe_get_field :loca_location sexpr))
+	(curpair (pair_tail (list_first cont)))
+	(xval (macroexpand_1 (pair_head curpair)  env mexpander)) 
+	(xmsg ())
+	(xcount ())
+	)
+    (if (not (is_pair curpair))
+	(error_plain loc "missing message in DEBUG_MSG"))
+    (setq xmsg  (macroexpand_1 (pair_head curpair) env mexpander))
+    (setq curpair (pair_tail curpair))
+    (if (is_pair curpair)
+	(progn
+	  (setq xcount (macroexpand_1 (pair_head curpair) env mexpander))
+	  (setq curpair (pair_tail curpair))))
+    (if curpair
+	(error_plain loc "too many arguments to DEBUG_MSG"))
+    (if (not (is_string xmsg))
+	(error_plain loc "message argument should be string in DEBUG_MSG"))
+    (if (null xcount)
+	(let ( (conlis (make_list discr_list)) )
+	  (list_append conlis 'the_callcount)
+	  (setq xcount (macroexpand_1 (make_instance class_sexpr 
+						     :sexp_contents conlis
+						     :loca_location loc)
+				      env mexpander))))
+    (let ( (dcall (make_instance 
+		   class_src_apply
+		   :src_loc loc
+		   :sapp_fun 'debug_msg_fun
+		   :sapp_args (make_tuple5 discr_multiple
+					   xval
+					   xmsg
+					   xcount
+					   (mixint_val loc)
+					   (make_integerbox discr_integer (get_int loc)))))
+	   (dcppif (make_instance class_src_cppif
+				  :src_loc loc
+				  :sifp_cond 'ENABLE_CHECKING
+				  :sifp_then dcall
+				  :sifp_else ()
+				  )) 
+	   )
+      (debugmsg dcppif "mexpand_debug_msg result dcppif")
+      (return dcppif)
+      )))
+(install_initial_macro 'debug_msg mexpand_debug_msg)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -5360,6 +5437,10 @@
       ( (is_a bind class_function_binding)
 	(debugmsg bind "normexp_symbol function bind" (the_callcount))
 	(let ( (fubdat (unsafe_get_field :fubind_fundata bind)) )
+	  (if (null fubdat)
+	      (error_strv psloc "unresolved forward function reference to"
+			  (unsafe_get_field :named_name recv)
+			  ))
 	  (assert_msg "normexp_symbol check fubdat" (is_a fubdat class_nrep_dataclosure))
 	  ;; cache the result & return it
 	  (mapobject_put sycmap recv fubdat)
@@ -5368,6 +5449,11 @@
       ;; previous primitive binding at toplevel
       ( (is_a bind class_primitive_binding)
 	(let ( (pribidat (unsafe_get_field :pbind_primdata bind)) )
+	  (if (null pribidat)
+	      (error_strv psloc "unresolved forward primitive reference to"
+			  (unsafe_get_field :named_name recv)
+			  )
+	      )
 	  (assert_msg "normexp_symbol check pribdat" (is_a pribidat class_nrep_datainstance))
 	  ;; cache the result & return it
 	  (mapobject_put sycmap recv pribidat)
@@ -5375,6 +5461,11 @@
       ;; previous class binding at toplevel
       ( (is_a bind class_class_binding)
 	(let ( (cldat (unsafe_get_field :cbind_cladata bind)) )
+	  (if (null cldat)
+	      (error_strv psloc "unresolved forward class reference to"
+			  (unsafe_get_field :named_name recv)
+			  )
+	      )
 	  (assert_msg "normexp_symbol check cldat" (is_a cldat class_nrep_datainstance))
 	  ;; cache the result & return it
 	  (mapobject_put sycmap recv cldat)
@@ -5382,6 +5473,11 @@
       ;; previous field binding at toplevel
       ( (is_a bind class_field_binding)
 	(let ( (fdat (unsafe_get_field :flbind_fdata bind)) )
+	  (if (null fdat)
+	      (error_strv psloc "unresolved forward field reference to"
+			  (unsafe_get_field :named_name recv)
+			  )
+	      )
 	  (assert_msg "normexp_symbol check fdat" (is_a fdat class_nrep_datainstance))
 	  ;; cache the result & return it
 	  (mapobject_put sycmap recv fdat)
@@ -5389,6 +5485,11 @@
       ;; previous selector binding at toplevel
       ( (is_a bind class_selector_binding)
 	(let ( (seldat (unsafe_get_field :sbind_selectordata bind)) )
+	  (if (null seldat)
+	      (error_strv psloc "unresolved forward selector reference to"
+			  (unsafe_get_field :named_name recv)
+			  )
+	      )
 	  (assert_msg "normexp_symbol check seldat" (is_a seldat class_nrep_datainstance))
 	  ;; cache the result & return it
 	  (mapobject_put sycmap recv seldat)
@@ -5396,6 +5497,11 @@
       ;; previous instance binding at toplevel
       ( (is_a bind class_instance_binding)
 	(let ( (insdat (unsafe_get_field :ibind_data bind)) )
+	  (if (null insdat)
+	      (error_strv psloc "unresolved forward instance reference to"
+			  (unsafe_get_field :named_name recv)
+			  )
+	      )
 	  (assert_msg "normexp_symbol check insdat" (is_a insdat class_nrep_datainstance))
 	  ;; cache the result & return it
 	  (mapobject_put sycmap recv insdat)
