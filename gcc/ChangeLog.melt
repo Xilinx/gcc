@@ -1,4 +1,11 @@
 2008-06-03  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warm-basilys.bysl: using debug_msg macro everywhere instead of debugmsg.
+
+	* warm-basilys-0.c: regenerated.
+
+	* melt-cc-script.proto: do not compile anymore the *-n.so without line numbering.
+
+2008-06-03  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warm-basilys.bysl: added debug_msg macro, and error
 	messages for unresolved forward references.
 
