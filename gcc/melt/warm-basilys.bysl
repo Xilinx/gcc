@@ -6098,7 +6098,7 @@
 	   nbindelse
 	   (lambda (b) (put_env newelseenv b)))
 	  (let ( (ctypelse (get_ctype nelse newelseenv)) )
-	    (if (!= ctypif ctypelse)
+	    (if (and (!= ctypif ctypelse) (!= ctypif ctype_void) (!= ctypelse ctype_void))
 		(progn
 		  (error_plain sloc "CPPIF incompatible then & else types")
 		  (error_strv sloc "CPPIF incompatible then type :" 
