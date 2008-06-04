@@ -1315,10 +1315,11 @@
 (defprimitive create_keywordstr (strv) :value
   "basilysgc_named_keyword( basilys_string_str(" strv "), BASILYS_CREATE)")
 
-;; runtime assertion with message
+;; OBSOLETE runtime assertion with message
 (defprimitive assertmsg (:cstring msg :long cond) :void
   "basilys_assertmsg(" msg ", ( " cond "))")
-;; runtime assertion with message called by expansion of assert_msg
+
+;; runtime assertion with message called by expansion of assertmsg
 (defprimitive assert_failed (:cstring msg :cstring filename :long lineno) :void
   "basilys_assert_failed((" msg "),(" filename "),(" lineno "), __FUNCTION__)")
 
@@ -1903,7 +1904,8 @@
  :named_name (stringconst2val discr_namestring "DISCR_ROUTINE"))
 
 (defun install_ctype (ctyp)
-  (assertmsg "check ctyp" (is_a ctyp class_ctype)) 
+  (debug_msg ctyp "install_ctype")
+  (assert_msg "check ctyp" (is_a ctyp class_ctype)) 
   (let ( (ckw (unsafe_get_field :ctype_keyword ctyp)) )
     (assertmsg "check ckw" (is_a ckw class_keyword))
     (unsafe_put_fields ckw :symb_data ctyp)
@@ -4943,8 +4945,8 @@
 	)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; assert_msg macro is expanded into other src..
-;;;;;; (assert_msg msg check)
+;;; assertmsg macro is expanded into other src..
+;;;;;; (assertmsg msg check)
 ;;; becomes
 ;;;;;; (cppif ENABLE_CHECKING (if check (assert_failed msg filename lineno)) ())
 ;;; where assert_failed is a primitive
@@ -4952,7 +4954,7 @@
 (defun mexpand_assert_msg (sexpr env mexpander)
   (assertmsg "check sexpr" (is_a sexpr class_sexpr))
   (assertmsg "check env" (is_a env class_environment))
-  (debug_msg sexpr "mexpand_assert_msg sexpr")
+  (debug_msg sexpr "mexpand_assertmsg sexpr")
   (let (
 	(cont (unsafe_get_field :sexp_contents sexpr))
 	(loc  (unsafe_get_field :loca_location sexpr))
@@ -4963,16 +4965,16 @@
 	)
     (if (is_not_a assfail_binding class_primitive_binding)
 	(progn
-	  (error_plain loc "ASSERT_FAILED not bound to a primitive in  (ASSERT_MSG <msg> <test>)")
+	  (error_plain loc "ASSERT_FAILED not bound to a primitive in  (ASSERTMSG <msg> <test>)")
 	  (return)))
     (if (not (is_string xmsg))
-	(error_plain loc "non string message in (ASSERT_MSG <msg> <test>)"))
+	(error_plain loc "non string message in (ASSERTMSG <msg> <test>)"))
     (setq curpair (pair_tail curpair))
     (if (not (is_pair curpair))
-	(error_plain loc "missing test in (ASSERT_MSG <msg> <test>)"))
+	(error_plain loc "missing test in (ASSERTMSG <msg> <test>)"))
     (setq xtest (macroexpand_1 (pair_head curpair) env mexpander))
     (if (pair_tail curpair)
-	(error_plain loc "extra arg for (ASSERT_MSG <msg> <test>)"))
+	(error_plain loc "extra arg for (ASSERTMSG <msg> <test>)"))
     (let ( (aprim (make_instance 
 		   class_src_primitive
 		   :src_loc loc
@@ -4982,10 +4984,11 @@
 					   (mixint_val loc)
 					   (make_integerbox discr_integer (get_int loc)))))
 	   (atest (make_instance
-		   class_src_if
+		   class_src_ifelse
 		   :src_loc loc
 		   :sif_test xtest
-		   :sif_then aprim))
+		   :sif_then ()
+		   :sif_else aprim))
 	   (acppif (make_instance class_src_cppif
 				  :src_loc loc
 				  :sifp_cond 'ENABLE_CHECKING
@@ -4993,7 +4996,7 @@
 				  :sifp_else ()
 				  )) 
 	   )
-      (debug_msg acppif "mexpand_assert_msg result acppif")
+      (debug_msg acppif "mexpand_assertmsg result acppif")
       (return acppif)
     )))
 (install_initial_macro 'assert_msg mexpand_assert_msg)
