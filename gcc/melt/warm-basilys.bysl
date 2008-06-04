@@ -8418,8 +8418,103 @@
 	))
   )
 
+
+;;; output the code for declaring the current frame struct
+(defun output_curframe_declstruct (rou dsbuf)
+  (let (
+	(obody (unsafe_get_field :obrout_body rou))
+	(onbval (unsafe_get_field :obrout_nbval rou))
+	(onblong (unsafe_get_field :obrout_nblong rou))
+	(:long nbval (get_int onbval))
+	(:long nblong (get_int onblong))
+	(:long isinitial (is_a rou class_initialroutineobj))
+	(others (unsafe_get_field :obrout_others rou))
+	)       
+    ;; output the current frame
+    (add2sbuf_indentnl dsbuf 0)
+    (add2sbuf_strconst dsbuf " struct ")
+    (if (is_a rou class_named)
+	(progn
+	  (add2sbuf_strconst dsbuf "frame_")
+	  (add2sbuf_string dsbuf (unsafe_get_field :named_name rou))
+	  (add2sbuf_strconst dsbuf "_st ")))
+    (add2sbuf_strconst dsbuf "{ unsigned nbvar;")
+    (add2sbuf_indentnl dsbuf 0)
+    (add2sbuf_strconst dsbuf "#if ENABLE_CHECKING")
+    (add2sbuf_indentnl dsbuf 0)
+    (add2sbuf_strconst dsbuf "  const char* flocs;")
+    (add2sbuf_indentnl dsbuf 0)
+    (add2sbuf_strconst dsbuf "#endif")
+    (add2sbuf_indentnl dsbuf 0)
+    ;; we declare a noinitialclos to be sure to never use clos in the
+    ;; generated code; if we do, the generated code is invalid C
+    (if isinitial
+	(add2sbuf_strconst dsbuf "  struct basilysclosure_st *noinitialclos;")
+      (add2sbuf_strconst dsbuf "  struct basilysclosure_st *clos;"))
+    (add2sbuf_indentnl dsbuf 0)
+    (add2sbuf_strconst dsbuf "  struct excepth_basilys_st *exh;")
+    (add2sbuf_indentnl dsbuf 0)
+    (add2sbuf_strconst dsbuf "  struct callframe_basilys_st *prev;")
+    (add2sbuf_indentnl dsbuf 0)
+    (if (>i nbval 0) 
+	(progn
+	  (add2sbuf_strconst dsbuf "#define CURFRAM_NBVARPTR ")
+	  (add2sbuf_longdec dsbuf nbval)
+	  (add2sbuf_indentnl dsbuf 0)
+	  (add2sbuf_strconst dsbuf "  void* varptr[")
+	  (add2sbuf_longdec dsbuf nbval)
+	  (add2sbuf_strconst dsbuf "];")
+	  (add2sbuf_indentnl dsbuf 0))
+      (progn
+	(add2sbuf_strconst dsbuf "/*no varptr*/")
+	(add2sbuf_indentnl dsbuf 0)
+	(add2sbuf_strconst dsbuf "#define CURFRAM_NBVARPTR /*none*/0")
+	(add2sbuf_indentnl dsbuf 0)))
+    (if (>i nblong 0)
+	(progn
+	  (add2sbuf_strconst dsbuf "#define CURFRAM_NBVARNUM ")
+	  (add2sbuf_longdec dsbuf nblong)
+	  (add2sbuf_indentnl dsbuf 0)
+	  (add2sbuf_strconst dsbuf "  long varnum[")
+	  (add2sbuf_longdec dsbuf nblong)
+	  (add2sbuf_strconst dsbuf "];")
+	  (add2sbuf_indentnl dsbuf 0))
+      (progn
+	(add2sbuf_strconst dsbuf "/*no varnum*/")
+	(add2sbuf_indentnl dsbuf 0)
+	(add2sbuf_strconst dsbuf "#define CURFRAM_NBVARNUM /*none*/0")
+	(add2sbuf_indentnl dsbuf 0)))
+    (if others 
+	(progn
+	  (debug_msg others "output_curframe_init others")
+	  (add2sbuf_strconst dsbuf "/*others*/")
+	  (add2sbuf_indentnl dsbuf 0)
+	  (list_every 
+	   others
+	   (lambda (oloc)
+	     (assert_msg "check other oloc" (is_a oloc class_objlocv))
+	     (let ( (octyp (unsafe_get_field :obv_type oloc))
+		    (oname (unsafe_get_field :obl_cname oloc))
+		    )
+	       (assert_msg "check octyp" (is_a octyp class_ctype))
+	       (add2sbuf_string dsbuf (unsafe_get_field :ctype_cname octyp))
+	       (add2sbuf_strconst dsbuf " ")
+	       (add2sbuf_string dsbuf oname)
+	       (add2sbuf_strconst dsbuf ";")
+	       (add2sbuf_indentnl dsbuf 0))
+	     ))
+	  )
+      (progn
+	(add2sbuf_strconst dsbuf "/*no others*/")
+	(add2sbuf_indentnl dsbuf 0))
+      )
+    (add2sbuf_strconst dsbuf "  long _spare_; }")
+    (add2sbuf_indentnl dsbuf 0)
+    ;; end of curframe
+    ))
+
 ;;; output the code for declaring and initializing the current frame 
-(defun output_curframe_init (rou implbuf)
+(defun output_curframe_declstruct_init (declstruct rou implbuf)
   (debug_msg rou "output_curframe_init rou")
   (let (
 	(obody (unsafe_get_field :obrout_body rou))
@@ -8445,143 +8540,22 @@
     (add2sbuf_strconst implbuf "#define callcount 0L")
     (add2sbuf_indentnl implbuf 0)
     (add2sbuf_strconst implbuf "#endif")
-    ;; output the current frame
     (add2sbuf_indentnl implbuf 0)
-    (add2sbuf_strconst implbuf " struct ")
-    (if (is_a rou class_named)
-	(progn
-	  (add2sbuf_strconst implbuf "frame_")
-	  (add2sbuf_string implbuf (unsafe_get_field :named_name rou))
-	  (add2sbuf_strconst implbuf "_st ")))
-    (add2sbuf_strconst implbuf "{ unsigned nbvar;")
+    (declstruct rou implbuf)
+    (add2sbuf_strconst implbuf "  curfram__;")
     (add2sbuf_indentnl implbuf 0)
-    (add2sbuf_strconst implbuf "#if ENABLE_CHECKING")
+    (add2sbuf_strconst implbuf "  memset(&curfram__, 0, sizeof(curfram__));")
     (add2sbuf_indentnl implbuf 0)
-    (add2sbuf_strconst implbuf "  const char* flocs;")
-    (add2sbuf_indentnl implbuf 0)
-    (add2sbuf_strconst implbuf "#endif")
-    (add2sbuf_indentnl implbuf 0)
-    ;; we declare a noinitialclos to be sure to never use clos in the
-    ;; generated code; if we do, the generated code is invalid C
-    (if isinitial
-	(add2sbuf_strconst implbuf "  struct basilysclosure_st *noinitialclos;")
-      (add2sbuf_strconst implbuf "  struct basilysclosure_st *clos;"))
-    (add2sbuf_indentnl implbuf 0)
-    (add2sbuf_strconst implbuf "  struct excepth_basilys_st *exh;")
-    (add2sbuf_indentnl implbuf 0)
-    (add2sbuf_strconst implbuf "  struct callframe_basilys_st *prev;")
-    (add2sbuf_indentnl implbuf 0)
-    (if (>i nbval 0) 
-	(progn
-	  (add2sbuf_strconst implbuf "#define CURFRAM_NBVARPTR ")
-	  (add2sbuf_longdec implbuf nbval)
-	  (add2sbuf_indentnl implbuf 0)
-	  (add2sbuf_strconst implbuf "  void* varptr[")
-	  (add2sbuf_longdec implbuf nbval)
-	  (add2sbuf_strconst implbuf "];")
-	  (add2sbuf_indentnl implbuf 0))
-      (progn
-	(add2sbuf_strconst implbuf "/*no varptr*/")
-	(add2sbuf_indentnl implbuf 0)
-	(add2sbuf_strconst implbuf "#define CURFRAM_NBVARPTR /*none*/0")
-	(add2sbuf_indentnl implbuf 0)))
-    (if (>i nblong 0)
-	(progn
-	  (add2sbuf_strconst implbuf "#define CURFRAM_NBVARNUM ")
-	  (add2sbuf_longdec implbuf nblong)
-	  (add2sbuf_indentnl implbuf 0)
-	  (add2sbuf_strconst implbuf "  long varnum[")
-	  (add2sbuf_longdec implbuf nblong)
-	  (add2sbuf_strconst implbuf "];")
-	  (add2sbuf_indentnl implbuf 0))
-      (progn
-	(add2sbuf_strconst implbuf "/*no varnum*/")
-	(add2sbuf_indentnl implbuf 0)
-	(add2sbuf_strconst implbuf "#define CURFRAM_NBVARNUM /*none*/0")
-	(add2sbuf_indentnl implbuf 0)))
-    (if others 
-	(progn
-	  (debug_msg others "output_curframe_init others")
-	  (add2sbuf_strconst implbuf "/*others*/")
-	  (add2sbuf_indentnl implbuf 0)
-	  (list_every 
-	   others
-	   (lambda (oloc)
-	     (assert_msg "check other oloc" (is_a oloc class_objlocv))
-	     (let ( (octyp (unsafe_get_field :obv_type oloc))
-		    (oname (unsafe_get_field :obl_cname oloc))
-		    )
-	       (assert_msg "check octyp" (is_a octyp class_ctype))
-	       (add2sbuf_string implbuf (unsafe_get_field :ctype_cname octyp))
-	       (add2sbuf_strconst implbuf " ")
-	       (add2sbuf_string implbuf oname)
-	       (add2sbuf_strconst implbuf ";")
-	       (add2sbuf_indentnl implbuf 0))
-	     ))
-	  )
-      (progn
-	(add2sbuf_strconst implbuf "/*no others*/")
-	(add2sbuf_indentnl implbuf 0))
-      )
-    ;; end of curframe
-    (add2sbuf_strconst implbuf "  long _spare_; } curfram__ = {")
+    (add2sbuf_strconst implbuf " curfram__.nbvar = ")
     (add2sbuf_longdec implbuf nbval)
-    (add2sbuf_strconst implbuf ", ")
+    (add2sbuf_strconst implbuf ";")
     (add2sbuf_indentnl implbuf 0)
-    (add2sbuf_strconst implbuf "#if ENABLE_CHECKING")
-    (add2sbuf_indentnl implbuf 0)
-    (add2sbuf_strconst implbuf " (const char *)0, ")
-    (add2sbuf_indentnl implbuf 0)
-    (add2sbuf_strconst implbuf "#endif")
-    (add2sbuf_indentnl implbuf 0)
-    (add2sbuf_strconst implbuf " (struct basilysclosure_st *)0, ")
-    (add2sbuf_strconst implbuf " (struct excepth_basilys_st *)0, ")
-    (add2sbuf_strconst implbuf " (struct callframe_basilys_st *) 0, ")
-    (if (>i nbval 0) 
-	(let ( (:long ix 0) )
-	  (add2sbuf_indentnl implbuf 0)
-	  (add2sbuf_strconst implbuf " /*ptrvars*/{")
-	  (forever ptrloop
-		   (if (>=i ix nbval) (exit ptrloop))
-		   (if (>i ix 0) (add2sbuf_strconst implbuf ","))
-		   (if (==i 0 (%iraw ix 8)) 
-		       (add2sbuf_indentnl implbuf 2))
-		   (add2sbuf_strconst implbuf " (void*)0")
-		   (setq ix (+i ix 1))
-		   )
-	  (add2sbuf_strconst implbuf "},") ;
-	  ))
-    (if (>i nblong 0) 
-	(let ( (:long ix 0) )
-	  (add2sbuf_indentnl implbuf 0)
-	  (add2sbuf_strconst implbuf " /*numvars*/{")
-	  (forever ptrloop
-		   (if (>=i ix nblong) (exit ptrloop))
-		   (if (>i ix 0) (add2sbuf_strconst implbuf ","))
-		   (if (==i 0 (%iraw ix 8)) 
-		       (add2sbuf_indentnl implbuf 2))
-		   (add2sbuf_strconst implbuf " 0L")
-		   (setq ix (+i ix 1))
-		   )
-	  (add2sbuf_strconst implbuf "},") ;
-	  ))
-    (list_every 
-     others
-     (lambda (oloc)
-       (add2sbuf_strconst implbuf " (void*)0,")))
-    (add2sbuf_strconst implbuf " 0L };")
-    (add2sbuf_indentnl implbuf 0)
+    (if (not isinitial)
+	(progn
+	  (add2sbuf_strconst implbuf "  curfram__.clos = closp_;")
+	  (add2sbuf_indentnl implbuf 0)))
     (add2sbuf_strconst implbuf " curfram__.prev = (void*) basilys_topframe;")
     (add2sbuf_indentnl implbuf 0)
-    (if  (is_a rou class_initialroutineobj)
-	(progn
-	  (add2sbuf_strconst implbuf " curfram__.noinitialclos = NULL /*since initroutine*/;")
-	  (add2sbuf_indentnl implbuf 0)
-	  )
-      (progn
-	(add2sbuf_strconst implbuf " curfram__.clos = closp_;")
-	(add2sbuf_indentnl implbuf 0)
-	))
     (add2sbuf_strconst implbuf " basilys_topframe = (void*) &curfram__;")
     (add2sbuf_indentnl implbuf 0)
     ))
@@ -8635,7 +8609,7 @@
     (add2sbuf_indentnl implbuf 5)
     (add2sbuf_strconst implbuf " const char xresdescr_[],")
     (add2sbuf_strconst implbuf " union basilysparam_un *xrestab_) {")
-    (output_curframe_init prou implbuf)
+    (output_curframe_declstruct_init output_curframe_declstruct prou implbuf)
     (add2sbuf_strconst implbuf "basilys_trace_start(\"")
     (add2sbuf_string implbuf ofunam)
     (add2sbuf_strconst implbuf "\", callcount);")
@@ -8781,6 +8755,76 @@
 	 (add2sbuf_indentnl implbuf 1))
        ))))
 
+
+
+;;; output the cdata structure
+(defun output_curframe_cdat_struct (idatup implbuf)
+    (add2sbuf_indentnl implbuf 1)
+    (add2sbuf_strconst implbuf "struct cdata_st {")
+    (multiple_every
+     idatup
+     (lambda (curdat :long curk) 
+       (debug_msg curdat "output_curframe_cdat_struct curdat")
+       (add2sbuf_indentnl implbuf 1)
+       (output_c_declinit curdat implbuf)))
+    (add2sbuf_indentnl implbuf 0)
+    (add2sbuf_strconst implbuf " long spare_;")
+    (add2sbuf_indentnl implbuf 0)
+    (add2sbuf_strconst implbuf "}")
+)
+
+;;; output the cdata structure fill
+(defun output_curframe_cdat_fill (idatup implbuf)
+  ;; generate the allocation of cdat
+  (add2sbuf_strconst implbuf " cdat = basilysgc_allocate(sizeof(*cdat),0);")
+  (add2sbuf_indentnl implbuf 1)
+  (add2sbuf_strconst implbuf " basilys_prohibit_garbcoll = TRUE;")
+  (add2sbuf_indentnl implbuf 1)
+;;;
+;;; generate the initial predef of cdat
+  (add2sbuf_strconst implbuf "/*initial routine predef*/")
+  (add2sbuf_indentnl implbuf 1)
+  (multiple_every
+   idatup
+   (lambda (curpdat :long curk) 
+     (debug_msg curpdat "outpucod_initialroutine curpdat inipredef")
+     (output_c_initpredef curpdat implbuf)))
+;;;
+;;; generate the initial filling of cdat
+  (add2sbuf_strconst implbuf "/*initial routine fill*/")
+  (add2sbuf_indentnl implbuf 1)
+  (multiple_every
+   idatup
+   (lambda (curfil :long curk) 
+     (debug_msg curfil "outpucod_initialroutine curfil")
+     (add2sbuf_indentnl implbuf 1)
+     (output_c_initfill curfil implbuf)))
+;;;
+;;; generate the get of symbols & keywords
+  (add2sbuf_strconst implbuf "/*initial routine get symbol & keyword*/")
+  (add2sbuf_indentnl implbuf 1)
+  (add2sbuf_strconst implbuf "if (BASILYSG(TOKENIZER)) {")
+  (add2sbuf_indentnl implbuf 2)
+  (multiple_every
+   idatup
+   (lambda (curpdat :long curk) 
+     (debug_msg curpdat "outpucod_initialroutine curpdat getsymkey")
+     (if (is_a curpdat class_objinitobject)
+	 (output_code_getsymkw curpdat implbuf)
+       )
+     ))
+  (add2sbuf_strconst implbuf "}; /*end get symbols & keywords */")
+  (add2sbuf_indentnl implbuf 1)
+;;;;;;;
+;;; initialize the variables
+;;;
+;;; clear the cdat for safety and renable GC
+  (add2sbuf_strconst implbuf " cdat = NULL;")
+  (add2sbuf_indentnl implbuf 0)
+  (add2sbuf_strconst implbuf " basilys_prohibit_garbcoll = FALSE;")
+  (add2sbuf_indentnl implbuf 0)
+  )
+
 ;; output code for the initial routine
 (defun outpucod_initialroutine (pini declbuf implbuf :long depth)
   (assert_msg "check pini" (is_a pini class_initialroutineobj))
@@ -8803,69 +8847,13 @@
     (debug_msg idatup "outpucod_initialroutine start idatup")
     (debug_msg irfill "outpucod_initialroutine start irfill")
     (add2sbuf_indentnl implbuf 1)
-    (add2sbuf_strconst implbuf "struct cdata_st {")
-    (multiple_every
-     idatup
-     (lambda (curdat :long curk) 
-       (debug_msg curdat "outpucod_initialroutine curdat")
-       (add2sbuf_indentnl implbuf 1)
-       (output_c_declinit curdat implbuf)))
-    (add2sbuf_indentnl implbuf 0)
-    (add2sbuf_strconst implbuf " long spare_;")
-    (add2sbuf_indentnl implbuf 0)
-    (add2sbuf_strconst implbuf "} *cdat = NULL;")
+    (output_curframe_cdat_struct idatup implbuf)
+    (add2sbuf_strconst implbuf " *cdat = NULL;")
     (add2sbuf_indentnl implbuf 1)
     ;; generate the initial frame
-    (output_curframe_init pini implbuf)
-    ;; generate the allocation of cdat
-    (add2sbuf_strconst implbuf " cdat = basilysgc_allocate(sizeof(*cdat),0);")
-    (add2sbuf_indentnl implbuf 1)
-    (add2sbuf_strconst implbuf " basilys_prohibit_garbcoll = TRUE;")
-    (add2sbuf_indentnl implbuf 1)
-;;;
-;;; generate the initial predef of cdat
-    (add2sbuf_strconst implbuf "/*initial routine predef*/")
-    (add2sbuf_indentnl implbuf 1)
-    (multiple_every
-     idatup
-     (lambda (curpdat :long curk) 
-       (debug_msg curpdat "outpucod_initialroutine curpdat inipredef")
-       (output_c_initpredef curpdat implbuf)))
-;;;
-;;; generate the initial filling of cdat
-    (add2sbuf_strconst implbuf "/*initial routine fill*/")
-    (add2sbuf_indentnl implbuf 1)
-    (multiple_every
-     idatup
-     (lambda (curfil :long curk) 
-       (debug_msg curfil "outpucod_initialroutine curfil")
-       (add2sbuf_indentnl implbuf 1)
-       (output_c_initfill curfil implbuf)))
-;;;
-;;; generate the get of symbols & keywords
-    (add2sbuf_strconst implbuf "/*initial routine get symbol & keyword*/")
-    (add2sbuf_indentnl implbuf 1)
-    (add2sbuf_strconst implbuf "if (BASILYSG(TOKENIZER)) {")
-    (add2sbuf_indentnl implbuf 2)
-    (multiple_every
-     idatup
-     (lambda (curpdat :long curk) 
-       (debug_msg curpdat "outpucod_initialroutine curpdat getsymkey")
-       (if (is_a curpdat class_objinitobject)
-	   (output_code_getsymkw curpdat implbuf)
-	 )
-       ))
-    (add2sbuf_strconst implbuf "}; /*end get symbols & keywords */")
-    (add2sbuf_indentnl implbuf 1)
-;;;;;;;
-;;; initialize the variables
-;;;
-    (debug_msg irfill "outpucod_initialroutine irfill")
-;;; clear the cdat for safety and renable GC
-    (add2sbuf_strconst implbuf " cdat = NULL;")
-    (add2sbuf_indentnl implbuf 0)
-    (add2sbuf_strconst implbuf " basilys_prohibit_garbcoll = FALSE;")
-    (add2sbuf_indentnl implbuf 0)
+    (output_curframe_declstruct_init output_curframe_declstruct pini implbuf)
+;;; fill the cdat
+    (output_curframe_cdat_fill idatup implbuf)
 ;;; output the body
 ;;;
     (add2sbuf_strconst implbuf "/*initial routine body*/")

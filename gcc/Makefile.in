@@ -4659,7 +4659,7 @@ melt.encap: run-basilys.d
 	$(MAKE) warm-basilys-2.so
 
 
-.PHONY: install-melt-headers update-warm-basilys
+.PHONY: install-melt-headers update-warm-basilys diff-warm-1-2 diff-warm-2-3  diff-warm-4-5
 
 install-melt-headers: melt.encap $(INSTALL_MELT_HEADERS_DIR) install-melt-cc-script
 
@@ -4670,13 +4670,28 @@ install-melt-headers: melt.encap $(INSTALL_MELT_HEADERS_DIR) install-melt-cc-scr
 MELTBASILYSCC1= time ./cc1$(exeext) -fbasilys  \
 	      -fbasilys-dynlibdir=. \
 	      -fbasilys-compile-script=built-melt-cc-script \
- 	      -fbasilys-gensrcdir=. \
+	      -fbasilys-gensrcdir=. \
 	      -fbasilys-tempdir=. \
 	      -fbasilys-command=compilefile  \
 	      -frandom-seed=AbCdEfGhIj
 
 warm%.so: warm%.c built-melt-cc-script
 	./built-melt-cc-script $< $@
+
+diff-warm-1-2: warm-basilys-1.c warm-basilys-2.c
+	-diff $^
+diff-warm-2-3: warm-basilys-2.c warm-basilys-3.c
+	-diff $^
+diff-warm-4-5: warm-basilys-4.c warm-basilys-5.c
+	-diff $^
+
+warm-basilys-5.c: warm-basilys-4.so cc1$(exeext) $(srcdir)/melt/warm-basilys.bysl
+	rm -f $@
+	@echo generating warm-basilys-5
+	$(MELTBASILYSCC1) -fbasilys-init=$< \
+	      -fbasilys-arg=$(srcdir)/melt/warm-basilys.bysl \
+	      -fbasilys-secondarg=$@
+	ls -l $@
 
 warm-basilys-4.c: warm-basilys-3.so cc1$(exeext) $(srcdir)/melt/warm-basilys.bysl
 	rm -f $@

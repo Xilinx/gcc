@@ -1,4 +1,11 @@
 2008-06-04  Basile Starynkevitch  <basile@starynkevitch.net>
+	* Makefile.in: added warm-basilys-5.c & diff-warm-1-2 ... targets
+
+	* melt/warm-basilys.bysl: using memset to clear the current
+	frame. splitted some output routines, to later separate the cdata
+	fill in initial routine as another routine.
+
+2008-06-04  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warm-basilys.bysl: using assert_msg macro instead of assertmsg primitive.
 
 	* warm-basilys-0.c: regenerated twice (before and after edition of warm-basilys.bysl)
