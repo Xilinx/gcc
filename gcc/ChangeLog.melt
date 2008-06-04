@@ -1,3 +1,12 @@
+2008-06-04  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warm-basilys.bysl: adding assert_msg macro - instead of
+	primitive.
+
+	* basilys.h: basilys_assert_failed always defined.
+
+	* basilys.c: (basilys_output_cfile_decl_impl) writes more
+	atomically the file into 'foo.c.' renamed as 'foo.c' at end.
+
 2008-06-03  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-cc-script.proto: added MELT_EXTRACFLAGS.
 	the untested libtool command has been corrected to use  $melt_cflags

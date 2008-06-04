@@ -1799,8 +1799,10 @@ void  basilys_check_call_frames_at(int youngflag, const char*msg, const char*fil
 #else
 /* Include EXPR, so that unused variable warnings do not occur.  */
 #define basilys_assertmsg(MSG,EXPR) ((void)(0 && (MSG) && (EXPR)))
+#define basilys_assert_failed(MSG,FIL,LIN,FUN) ((void)(0 && (MSG)))
 #define basilys_check_call_frames(YNG,MSG) (void)(0)
 #endif
+
 
 /******************* method sending ************************/
 basilys_ptr_t basilysgc_send (basilys_ptr_t recv,

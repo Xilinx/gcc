@@ -6180,6 +6180,7 @@ basilys_output_cfile_decl_impl (basilys_ptr_t unitnam,
 {
   int unamlen = 0;
   char *dotcnam = NULL;
+  char *dotcdotnam = NULL;
   char *dotcpercentnam = NULL;
   FILE *cfil = NULL;
   gcc_assert (basilys_magic_discr (unitnam) == OBMAG_STRING);
@@ -6190,13 +6191,15 @@ basilys_output_cfile_decl_impl (basilys_ptr_t unitnam,
   unamlen = strlen (basilys_string_str (unitnam));
   dotcnam = xcalloc (unamlen + 3, 1);
   dotcpercentnam = xcalloc (unamlen + 4, 1);
+  dotcdotnam = xcalloc (unamlen + 5, 1);
   strcpy (dotcnam, basilys_string_str (unitnam));
   if (unamlen>4 && (dotcnam[unamlen-2] != '.' || dotcnam[unamlen-1] != 'c'))
     strcat (dotcnam, ".c");
   strcpy (dotcpercentnam, dotcnam);
   strcat (dotcpercentnam, "%");
-  (void) rename (dotcnam, dotcpercentnam);
-  cfil = fopen (dotcnam, "w");
+  strcpy(dotcdotnam, dotcnam);
+  strcat(dotcdotnam, ".");
+  cfil = fopen (dotcdotnam, "w");
   if (!cfil)
     fatal_error ("failed to open basilys generated file %s - %m", dotcnam);
   fprintf (cfil,
@@ -6215,7 +6218,15 @@ basilys_output_cfile_decl_impl (basilys_ptr_t unitnam,
   fprintf (cfil, "\n/**** end of %s ****/\n", basilys_string_str (unitnam));
   fclose (cfil);
   debugeprintf ("output_cfile done dotcnam %s", dotcnam);
+  /* if possible, rename the previous 'foo.c' file to 'foo.c%' as a backup */
+  (void) rename (dotcnam, dotcpercentnam);
+  /* always rename the just generated 'foo.c.' file to 'foo.c' to make
+     the generation more atomic */
+  if (rename(dotcdotnam, dotcnam)) 
+    fatal_error("failed to rename basilys generated file %s to %s - %m",
+		dotcdotnam, dotcnam);
   free (dotcnam);
+  free (dotcdotnam);
   free (dotcpercentnam);
 }
 
