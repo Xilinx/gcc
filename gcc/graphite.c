@@ -2745,6 +2745,9 @@ graphite_transform_loops (void)
   scop_p scop;
   struct graph * rdg = NULL;
 
+  if (number_of_loops () <= 1)
+    return;
+
   current_scops = VEC_alloc (scop_p, heap, 3);
 
   calculate_dominance_info (CDI_DOMINATORS);

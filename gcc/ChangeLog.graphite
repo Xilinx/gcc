@@ -1,3 +1,8 @@
+2008-06-04  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite.c (graphite_transform_loops): Early return when 
+	there are no loops in the function.
+
 2008-05-31  Sebastian Pop  <sebastian.pop@amd.com>
 	    Jan Sjodin  <jan.sjodin@amd.com>
 
