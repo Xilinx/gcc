@@ -1319,7 +1319,7 @@
 (defprimitive assertmsg (:cstring msg :long cond) :void
   "basilys_assertmsg(" msg ", ( " cond "))")
 
-;; runtime assertion with message called by expansion of assertmsg
+;; runtime assertion with message called by expansion of assert_msg
 (defprimitive assert_failed (:cstring msg :cstring filename :long lineno) :void
   "basilys_assert_failed((" msg "),(" filename "),(" lineno "), __FUNCTION__)")
 
@@ -1907,7 +1907,7 @@
   (debug_msg ctyp "install_ctype")
   (assert_msg "check ctyp" (is_a ctyp class_ctype)) 
   (let ( (ckw (unsafe_get_field :ctype_keyword ctyp)) )
-    (assertmsg "check ckw" (is_a ckw class_keyword))
+    (assert_msg "check ckw" (is_a ckw class_keyword))
     (unsafe_put_fields ckw :symb_data ctyp)
     ))
 
@@ -2002,8 +2002,8 @@
     
 ;; function to intern a symbol (or return the previous one)
 (defun intern_symbol (tokz symb)
-  (assertmsg "check tokz" (is_a tokz class_tokenizer))
-  (assertmsg "check sym" (is_a symb class_symbol))
+  (assert_msg "check tokz" (is_a tokz class_tokenizer))
+  (assert_msg "check sym" (is_a symb class_symbol))
   (let ( (syname (unsafe_get_field :named_name symb)) 
 	 (sydict (unsafe_get_field :tok_symboldict tokz))
 	 (oldsy (mapstring_getstr sydict syname)) )
@@ -2017,8 +2017,8 @@
 
 ;; function to intern a keyword (or return the previous one)
 (defun intern_keyword (tokz keyw)
-  (assertmsg "check tokz" (is_a tokz class_tokenizer))
-  (assertmsg "check keyw" (is_a keyw class_keyword))
+  (assert_msg "check tokz" (is_a tokz class_tokenizer))
+  (assert_msg "check keyw" (is_a keyw class_keyword))
   (let ( (kwname (unsafe_get_field :named_name keyw)) 
 	 (kwdict (unsafe_get_field :tok_keywdict tokz))
 	 (oldkw (mapstring_getstr kwdict kwname)) )
@@ -2041,10 +2041,10 @@
 		   symb)
 		 (:else 
 		  ;(debug_msg symb "clone_symbol bad symb")
-		  (assertmsg "invalid symb in clone_symbol" ())
+		  (assert_msg "invalid symb in clone_symbol" ())
 		  (the_null))))
 	 (boxi (mapstring_getstr mapstr synam)) )
-    (assertmsg "check synam" (is_string synam))
+    (assert_msg "check synam" (is_string synam))
     (if (not (is_integerbox boxi))
 	(progn 
 	  (setq boxi (make_integerbox discr_integer 0))
@@ -2350,7 +2350,7 @@
 ;-   (messageval_dbg "install_method failed cla!=" cla)
 ;-   (messageval_dbg "install_method failed sel!=" sel)
 ;-   (messageval_dbg "install_method failed fun!=" fun)
-;-					;(assertmsg "install_method failed" ())
+;-					;(assert_msg "install_method failed" ())
 ;-   )
   )
 
@@ -2374,7 +2374,7 @@
 
 ;; somehow needed to be a separate function because of a bug in cold
 (defun dbg_outobject (obj dbgi :long depth)
-  (assertmsg "check dbgi" (is_a dbgi class_debuginfo))
+  (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
   (let ( (occmap (unsafe_get_field :dbgi_occmap dbgi)) )
     (if (is_mapobject occmap)
 	(let ( (occ (mapobject_get occmap obj)) )
@@ -2392,7 +2392,7 @@
   )
 
 (defun dbg_out (obj dbgi  :long depth) 
-  (assertmsg "check dbgi" (is_a dbgi class_debuginfo))
+  (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
   (checkcallstack_msg "start dbg_out")
   (let ( (sbuf (unsafe_get_field :dbgi_sbuf dbgi))
 	 (discr (discrim obj))
@@ -2416,15 +2416,15 @@
   
 ;; utility to dump fields in an object from a given rank
 (defun dbgout_fields (obj dbgi :long depth rank)
-  (assertmsg "check dbgi" (is_a dbgi class_debuginfo))
-  (assertmsg "check obj" (is_object obj))
+  (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
+  (assert_msg "check obj" (is_object obj))
   (let ( (:long nbf (object_length obj)) 
 	 (cla (discrim obj))
 	 (:long ix rank)
 	 (clafieldseq (unsafe_get_field :class_fields cla))
 	 (sbuf  (unsafe_get_field :dbgi_sbuf dbgi))
 	 )
-    (assertmsg "check sbuf" (is_strbuf sbuf))
+    (assert_msg "check sbuf" (is_strbuf sbuf))
     (if (<i ix 0) (setq ix 0))
     (if (need_dbglim depth (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
 	(forever fldloop
@@ -2457,7 +2457,7 @@
 
 ;; string debug output
 (defun dbgout_string_method (self dbgi :long depth)
-  (assertmsg "check dbgi" (is_a dbgi class_debuginfo))
+  (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
   (let ( (dis (discrim self)) 
 	 (sbuf  (unsafe_get_field :dbgi_sbuf dbgi))
 	 )
@@ -2481,7 +2481,7 @@
 
 ;; integer debug output
 (defun dbgout_integer_method (self dbgi :long depth)
-  (assertmsg "check dbgi" (is_a dbgi class_debuginfo))
+  (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
   (let ( (dis (discrim self)) 
 	 (sbuf  (unsafe_get_field :dbgi_sbuf dbgi))
 	 )
@@ -2501,7 +2501,7 @@
 
 ;; mixint debug value
 (defun dbgout_mixint_method (self dbgi :long depth)
-  (assertmsg "check dbgi" (is_a dbgi class_debuginfo))
+  (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
   (let ( (dis (discrim self)) 
 	 (sbuf  (unsafe_get_field :dbgi_sbuf dbgi))
 	 )
@@ -2528,7 +2528,7 @@
 
 ;; multiple debug out
 (defun dbgout_multiple_method (self dbgi :long depth)
-  (assertmsg "check dbgi" (is_a dbgi class_debuginfo))
+  (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
   (let ( (dis (discrim self)) 
 	 (sbuf (unsafe_get_field :dbgi_sbuf dbgi))
 	 )
@@ -2562,7 +2562,7 @@
 
 ;; routine debug out - don't print the routine components
 (defun dbgout_routine_method (self dbgi :long depth)
-  (assertmsg "check dbgi" (is_a dbgi class_debuginfo))
+  (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
   (let ( (dis (discrim self)) 
 	 (sbuf (unsafe_get_field :dbgi_sbuf dbgi))
 	 )
@@ -2581,7 +2581,7 @@
 
 ;; closure debug out 
 (defun dbgout_closure_method (self dbgi :long depth)
-  (assertmsg "check dbgi" (is_a dbgi class_debuginfo))
+  (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
   (let ( (dis (discrim self)) 
 	 (:long oldmaxdepth (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
 	 (sbuf  (unsafe_get_field :dbgi_sbuf dbgi)) )
@@ -2617,7 +2617,7 @@
 
 ;; list debug out 
 (defun dbgout_list_method (self dbgi :long depth)
-  (assertmsg "check dbgi" (is_a dbgi class_debuginfo))
+  (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
   (let ( (dis (discrim self)) 
 	 (sbuf  (unsafe_get_field :dbgi_sbuf dbgi)) )
     (if (== dis DISCR_LIST)
@@ -2657,7 +2657,7 @@
 
 ;; pair debug output
 (defun dbgout_pair_method (self dbgi :long depth)
-  (assertmsg "check dbgi" (is_a dbgi class_debuginfo))
+  (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
   (let ( (dis (discrim self)) 
 	 (sbuf  (unsafe_get_field :dbgi_sbuf dbgi)) )
     (if (== dis DISCR_PAIR)
@@ -2682,7 +2682,7 @@
   (let ( (:long nextdepth (get_int nextdepthbox))
 	 (:long oldmaxdepth (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
 	 (sbuf  (unsafe_get_field :dbgi_sbuf dbgi)) )
-    (assertmsg "check sbuf" (is_strbuf sbuf))
+    (assert_msg "check sbuf" (is_strbuf sbuf))
     (add2sbuf_indentnl sbuf nextdepth)
     (add2sbuf_strconst sbuf "**")  
     (put_int (unsafe_get_field :dbgi_maxdepth dbgi) 0)
@@ -2729,7 +2729,7 @@
 				 (return vgreat))
 			       (:else 
 				;; this should not happen, two distinct cloned symbols with same name & rank
-				(assertmsg "corrupted same cloned symbols" ())
+				(assert_msg "corrupted same cloned symbols" ())
 				(return (the_null)))
 			       ))))
 		))
@@ -2776,7 +2776,7 @@
 
 
 (defun dbgout_mapobject_method (self dbgi :long depth)
-  (assertmsg "check dbgi" (is_a dbgi class_debuginfo))
+  (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
   (let ( (dis (discrim self)) 
 	 (sbuf  (unsafe_get_field :dbgi_sbuf dbgi))
 	 (:long mapcount (mapobject_count self))
@@ -2810,7 +2810,7 @@
 	       (multiple_put_nth tupl curcount ent)
 	       (put_int countbox (+i curcount 1))
 	       )))
-	  (assertmsg "check tupl" (is_multiple tupl))
+	  (assert_msg "check tupl" (is_multiple tupl))
 ;;; sort the tuple and output in sorted order
 	  (let ( (sortupl 
 		  (multiple_sort 
@@ -2828,7 +2828,7 @@
 		   discr_multiple
 		   ))
 		 )
-	    (assertmsg "check sortupl" (is_multiple sortupl))
+	    (assert_msg "check sortupl" (is_multiple sortupl))
 	    (multiple_every 
 	     sortupl
 	     (lambda (el :long ix)
@@ -2845,7 +2845,7 @@
 
 ;; multiple debug out
 (defun dbgout_mapstring_method (self dbgi :long depth)
-  (assertmsg "check dbgi" (is_a dbgi class_debuginfo))
+  (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
   (let ( (dis (discrim self)) 
 	 (sbuf (unsafe_get_field :dbgi_sbuf dbgi))
 	 (:long ix 0)
@@ -2894,7 +2894,7 @@
 	     discr_multiple
 	     ))
 	   )
-      (assertmsg "check sortupl" (is_multiple sortupl)) 
+      (assert_msg "check sortupl" (is_multiple sortupl)) 
       (multiple_every 
        sortupl
        (lambda (el :long ix)
@@ -2917,7 +2917,7 @@
 
 ;;;; generic object debug
 (defun dbgout_anyobject_method (self dbgi :long depth)
-  (assertmsg "check dbgi" (is_a dbgi class_debuginfo))
+  (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
   (let ( (dis (discrim self)) 
 	 (sbuf  (unsafe_get_field :dbgi_sbuf dbgi)) ) 
     (add2sbuf_strconst sbuf "|")
@@ -2939,7 +2939,7 @@
 
 ;;;; generic value debug
 (defun dbgout_anyrecv_method (self dbgi :long depth)
-  (assertmsg "check dbgi" (is_a dbgi class_debuginfo))
+  (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
   (let ( (dis (discrim self)) 
 	 (sbuf  (unsafe_get_field :dbgi_sbuf dbgi)) ) 
     (add2sbuf_strconst sbuf " ?.")
@@ -2950,7 +2950,7 @@
 
 ;;; generic object debug outputagain
 (defun dbgoutagain_anyobject_method (self dbgi :long depth)
-  (assertmsg "check dbgi" (is_a dbgi class_debuginfo))
+  (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
   (let ( (dis (discrim self)) 
 	 (sbuf  (unsafe_get_field :dbgi_sbuf dbgi)) )  
     (add2sbuf_strconst sbuf " ^^|")
@@ -2962,13 +2962,13 @@
 	
 ;;;; named object debug
 (defun dbgout_namedobject_method (self dbgi :long depth)
-  (assertmsg "check dbgi" (is_a dbgi class_debuginfo))
+  (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
   (let ( (dis (discrim self)) 
 	 (sbuf  (unsafe_get_field :dbgi_sbuf dbgi))
 	 (onam (unsafe_get_field :named_name self))
 	 (oprop (unsafe_get_field :prop_table self))
 	 ) 
-    (assertmsg "check sbuf" (is_strbuf sbuf))
+    (assert_msg "check sbuf" (is_strbuf sbuf))
     (add2sbuf_strconst sbuf "`")
     (add2sbuf_string sbuf onam)
     (add2sbuf_strconst sbuf "|")
@@ -2994,7 +2994,7 @@
 
 ;;;; named object debug outputagain
 (defun dbgoutagain_namedobject_method (self dbgi :long depth)
-  (assertmsg "check dbgi" (is_a dbgi class_debuginfo))
+  (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
   (let ( (dis (discrim self)) 
 	 (sbuf  (unsafe_get_field :dbgi_sbuf dbgi))
 	 (onam (unsafe_get_field :named_name self)) 
@@ -3010,16 +3010,16 @@
 
 ;;;; symbol output debug & again
 (defun dbgout_symbol_method (self dbgi :long depth)
-  (assertmsg "check dbgi" (is_a dbgi class_debuginfo))
-  (assertmsg "check self" (is_a self class_symbol))
+  (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
+  (assert_msg "check self" (is_a self class_symbol))
   (if (<=i depth 0)
       (dbgout_namedobject_method self dbgi 0)
     (dbgoutagain_symbol_method self dbgi depth)))
 (install_method class_symbol dbg_output dbgout_symbol_method)
 
 (defun dbgoutagain_symbol_method (self dbgi :long depth)
-  (assertmsg "check dbgi" (is_a dbgi class_debuginfo))
-  (assertmsg "check self" (is_a self class_symbol))
+  (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
+  (assert_msg "check self" (is_a self class_symbol))
   (let ( (sbuf  (unsafe_get_field :dbgi_sbuf dbgi))
 	 (onam (unsafe_get_field :named_name self))
 	 )	
@@ -3031,16 +3031,16 @@
 
 ;;;; keyword output debug & again
 (defun dbgout_keyword_method (self dbgi :long depth)
-  (assertmsg "check dbgi" (is_a dbgi class_debuginfo))
-  (assertmsg "check self" (is_a self class_keyword))
+  (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
+  (assert_msg "check self" (is_a self class_keyword))
   (if (<=i depth 0)
       (dbgout_namedobject_method self dbgi 0)
     (dbgoutagain_keyword_method self dbgi depth)))
 (install_method class_keyword dbg_output dbgout_keyword_method)
 
 (defun dbgoutagain_keyword_method (self dbgi :long depth)
-  (assertmsg "check dbgi" (is_a dbgi class_debuginfo))
-  (assertmsg "check self" (is_a self class_keyword))
+  (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
+  (assert_msg "check self" (is_a self class_keyword))
   (let ( (sbuf  (unsafe_get_field :dbgi_sbuf dbgi))
 	 (onam (unsafe_get_field :named_name self))
 	 )	
@@ -3052,8 +3052,8 @@
 
 ;;;; clonedsymbol output debug & again
 (defun dbgout_clonedsymbol_method (self dbgi :long depth)
-  (assertmsg "check dbgi" (is_a dbgi class_debuginfo))
-  (assertmsg "check self" (is_a self class_clonedsymbol))
+  (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
+  (assert_msg "check self" (is_a self class_clonedsymbol))
   (if (<=i depth 0)
       (dbgout_namedobject_method self dbgi 0)
     (dbgoutagain_clonedsymbol_method self dbgi depth)
@@ -3076,8 +3076,8 @@
 
 ;;;; ctype output debug & again
 (defun dbgout_ctype_method (self dbgi :long depth)
-  (assertmsg "check dbgi" (is_a dbgi class_debuginfo))
-  (assertmsg "check self" (is_a self class_ctype))
+  (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
+  (assert_msg "check self" (is_a self class_ctype))
   (if (<=i depth 0)
       (dbgout_namedobject_method self dbgi 0)
     (dbgoutagain_ctype_method self dbgi depth)
@@ -3156,15 +3156,15 @@
 
 ;; find a binding inside an environment
 (defun find_env (env binder)
-  (assertmsg "check env" (is_a env class_environment))
-  (assertmsg "check binder" (is_object binder))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check binder" (is_object binder))
   (forever findloop
 	   (if (is_not_a env class_environment)
 	       (exit findloop ()))
-	   (assertmsg "check env obj" (is_object env))
+	   (assert_msg "check env obj" (is_object env))
 	   (let ( (bindmap 
 		   (unsafe_get_field :env_bind env)) )
-	     (assertmsg "check bindmap" (is_mapobject bindmap))
+	     (assert_msg "check bindmap" (is_mapobject bindmap))
 	     (let ( (bnd 
 		     (mapobject_get bindmap binder)) )
 	       (if bnd 
@@ -3176,15 +3176,15 @@
 
 ; find a binding inside an environment and also returns the reversed list of enclosing procedures
 (defun find_enclosing_env (env binder)
-  (assertmsg "check env" (is_a env class_environment))
-  (assertmsg "check binder" (is_object binder))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check binder" (is_object binder))
   (let ( (proclist (make_list discr_list)) )
   (forever findloop
 	   (if (is_not_a env class_environment) (exit findloop))
 	   (let ( (bindmap (unsafe_get_field :env_bind env)) 
 		  (eproc (unsafe_get_field :env_proc env))
 		  )
-	     (assertmsg "check bindmap" (is_mapobject bindmap))
+	     (assert_msg "check bindmap" (is_mapobject bindmap))
 	     (let ( (bnd (mapobject_get bindmap binder)) )
 	       (if bnd (return bnd proclist)))
 	     (if eproc (list_prepend proclist eproc))
@@ -3193,14 +3193,14 @@
 
 ;; put a binding at top of an environment
 (defun put_env (env binding)
-  (assertmsg "check binding is obj" (is_object binding))
-  (assertmsg "check env is obj" (is_object env))
-  (assertmsg "check env" (is_a env class_environment))
+  (assert_msg "check binding is obj" (is_object binding))
+  (assert_msg "check env is obj" (is_object env))
+  (assert_msg "check env" (is_a env class_environment))
   (if (not (is_a binding class_any_binding))
       (progn
 	(debug_msg binding "put_env invalid binding")
 	(shortbacktrace_dbg "put_env invalid binding" 15)))
-  (assertmsg "check binding" (is_a binding class_any_binding))
+  (assert_msg "check binding" (is_a binding class_any_binding))
   (let ( (bindmap (unsafe_get_field :env_bind env)) 
 	 (binder (unsafe_get_field :binder binding))
 	 )
@@ -3209,21 +3209,21 @@
 	  (debug_msg binding "put_env bad binder in binding")
 	  (debug_msg binder "put_env bad binder")
 	  (shortbacktrace_dbg "put_env  bad binder in binding" 5)))
-    (assertmsg "check bindmap" (is_mapobject bindmap))
-    (assertmsg "check binder" (is_object binder))
+    (assert_msg "check bindmap" (is_mapobject bindmap))
+    (assert_msg "check binder" (is_object binder))
     (mapobject_put bindmap binder binding)
     ))
 
 ;; overwrite a binding in the environment where it has been already bind
 (defun overwrite_env (env binding)
-  (assertmsg "check env" (is_a env class_environment))
-  (assertmsg "check binding" (is_a binding class_any_binding))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check binding" (is_a binding class_any_binding))
   (let ( (binder  (unsafe_get_field :binder binding)) )
-    (assertmsg "check binder" (is_object binder))
+    (assert_msg "check binder" (is_object binder))
     (forever findloop
 	     (if (not (is_a env class_environment)) (exit findloop))
 	     (let ( (bindmap (unsafe_get_field :env_bind env)) )
-	       (assertmsg "check bindmap" (is_mapobject bindmap))
+	       (assert_msg "check bindmap" (is_mapobject bindmap))
 	       (let ( (oldbinding (mapobject_get bindmap binder)) )
 		 (if oldbinding 
 		     (progn 
@@ -3235,8 +3235,8 @@
 
 ;;;; any binding debug output
 (defun dbgout_anybinding_method (self dbgi :long depth)
-  (assertmsg "check dbgi" (is_a dbgi class_debuginfo))
-  (assertmsg "check self" (is_a self class_any_binding))
+  (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
+  (assert_msg "check self" (is_a self class_any_binding))
   (let ( (dis (discrim self)) 
 	 (sbuf  (unsafe_get_field :dbgi_sbuf dbgi)) 
 	 (binder (unsafe_get_field :binder self))
@@ -3276,9 +3276,9 @@
 
 ;;expand all but the first element of a list as a tuple
 (defun expand_restlist_as_tuple (arglist env mexpander)
-  (assertmsg "check end" (is_a env class_environment))
-  (assertmsg "check mexpander" (is_closure mexpander))
-  (assertmsg "check arglist" (is_list arglist))
+  (assert_msg "check end" (is_a env class_environment))
+  (assert_msg "check mexpander" (is_closure mexpander))
+  (assert_msg "check arglist" (is_list arglist))
   (let ( (:long nbarg (list_length arglist))
 	 (:long ix 0)
 	 (curpair (pair_tail (list_first arglist)))
@@ -3286,7 +3286,7 @@
 	 )
     (forever exploop
 	     (if (not curpair) (exit exploop))
-	     (assertmsg "check curpair" (is_pair curpair))
+	     (assert_msg "check curpair" (is_pair curpair))
 	     (let ( (curarg (pair_head curpair)) 
 		    (curexp (macroexpand_1 curarg env mexpander))
 		    )
@@ -3299,8 +3299,8 @@
 
 ;;expand all of a pairlist as a tuple
 (defun expand_pairlist_as_tuple (pair env mexpander)
-  (assertmsg "check end" (is_a env class_environment))
-  (assertmsg "check mexpander" (is_closure mexpander))
+  (assert_msg "check end" (is_a env class_environment))
+  (assert_msg "check mexpander" (is_closure mexpander))
   (let ( (:long nbarg (pair_listlength pair))
 	 (:long ix 0)
 	 (tup (make_multiple discr_multiple nbarg)) )
@@ -3319,9 +3319,9 @@
 
 ;;; expand an s-expression known to be an application
 (defun expand_apply (sexpr env mexpander)
-  (assertmsg "check sexpr" (is_a sexpr class_sexpr))
-  (assertmsg "check end" (is_a env class_environment))
-  (assertmsg "check mexpander" (is_closure mexpander))
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check end" (is_a env class_environment))
+  (assert_msg "check mexpander" (is_closure mexpander))
   (let ( (scont (unsafe_get_field :sexp_contents sexpr))
 	 (sloc (unsafe_get_field :loca_location sexpr))
 	 (soper (pair_head (list_first scont)))
@@ -3338,10 +3338,10 @@
 
 ;;; expand an s-expression known to be a message send
 (defun expand_msend  (opbind sexpr env mexpander)
-  (assertmsg "check sexpr" (is_a sexpr class_sexpr))
-  (assertmsg "check end" (is_a env class_environment))
-  (assertmsg "check mexpander" (is_closure mexpander))
-  (assertmsg "check opbind" (is_a opbind class_selector_binding))
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check end" (is_a env class_environment))
+  (assert_msg "check mexpander" (is_closure mexpander))
+  (assert_msg "check opbind" (is_a opbind class_selector_binding))
   (debug_msg sexpr "expand_msend sexpr")
   (let ( (scont (unsafe_get_field :sexp_contents sexpr))
 	 (sloc (unsafe_get_field :loca_location sexpr))
@@ -3369,17 +3369,17 @@
 ;;;;; (:fieldname obj) to get a field
 ;;;;; (:selector recv arg...) to send a message
 (defun expand_keywordfun (sexpr env mexpander)
-  (assertmsg "check sexpr" (is_a sexpr class_sexpr))
-  (assertmsg "check end" (is_a env class_environment))
-  (assertmsg "check mexpander" (is_closure mexpander))
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check end" (is_a env class_environment))
+  (assert_msg "check mexpander" (is_closure mexpander))
   (error_plain (unsafe_get_field :loca_location sexpr) "keywordoper not implemented")
-  (assertmsg "@@@  expand_keywordfun NOT IMPLEMENTED" 0)
+  (assert_msg "@@@  expand_keywordfun NOT IMPLEMENTED" 0)
 )
 
 (defun macroexpand_1 (sexpr env mexpander)
   (if (null mexpander) (setq mexpander macroexpand_1))
-  (assertmsg "check env" (is_a env class_environment))
-  (assertmsg "check mexpander" (is_closure mexpander))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check mexpander" (is_closure mexpander))
   (if (is_a sexpr class_sexpr)
       (let ( (scont (unsafe_get_field :sexp_contents sexpr))
 	     (soper (pair_head (list_first scont))) )
@@ -3390,7 +3390,7 @@
 		  (debug_msg opbind "macroexpand_1 opbind")
 		  (cond ( (is_a opbind class_macro_binding)
 			  (let ( (mexp (unsafe_get_field :mbind_expanser opbind)) )
-			    (assertmsg "check mexp" (is_closure mexp))
+			    (assert_msg "check mexp" (is_closure mexp))
 			    (let ( (resm (mexp sexpr env mexpander)) )
 			      (debug_msg resm "macroexpand_1 result for macro resm")
 			      (return resm)
@@ -3407,8 +3407,8 @@
 			    ))
 			(:else 
 			 ;; this is to catch the case when DEFUN is not bound...
-			 (assertmsg "check soper not defun" (!= soper 'defun))
-			 (assertmsg "check soper not named DEFUN" (not (is_stringconst (unsafe_get_field :named_name soper) "DEFUN")))
+			 (assert_msg "check soper not defun" (!= soper 'defun))
+			 (assert_msg "check soper not named DEFUN" (not (is_stringconst (unsafe_get_field :named_name soper) "DEFUN")))
 			 (let ( (resa (expand_apply sexpr env mexpander))) 
 			   (debug_msg resa "macroexpand_1 result for apply resa")
 			   (return resa)
@@ -3431,17 +3431,17 @@
   
 ;;; expand a primitive s-expression
 (defun expand_primitive (opbind sexpr env mexpander)
-  (assertmsg "check opbind" (is_a opbind class_primitive_binding))
-  (assertmsg "check sexpr" (is_a sexpr class_sexpr))
-  (assertmsg "check end" (is_a env class_environment))
-  (assertmsg "check mexpander" (is_closure mexpander))
+  (assert_msg "check opbind" (is_a opbind class_primitive_binding))
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check end" (is_a env class_environment))
+  (assert_msg "check mexpander" (is_closure mexpander))
   (let ( (scont (unsafe_get_field :sexp_contents sexpr))
 	 (sloc (unsafe_get_field :loca_location sexpr))
 	 (soper (pair_head (list_first scont)))
 	 (xargtup (expand_restlist_as_tuple scont env mexpander))
 	 (sprim (unsafe_get_field :pbind_primitive opbind))
 	 )
-    (assertmsg "check sprim" (is_a sprim class_primitive))
+    (assert_msg "check sprim" (is_a sprim class_primitive))
     (make_instance class_src_primitive
 		   :src_loc sloc
 		   :sprim_oper sprim
@@ -3453,8 +3453,8 @@
   ;; (messageval_dbg "macroexpand_toplevel_list Env" env)
   ;;  (debug_msg  env "macroexpand_toplevel_list env"(the_callcount)) 
   (debug_msg slist "macroexpand_toplevel_list slist") 
-  (assertmsg "check env" (is_a env class_environment))
-  (assertmsg "check slist" (is_list slist))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check slist" (is_list slist))
   (let ( (xlist (list_map slist 
 			  (lambda (sexp) 
 			    (debug_msg sexp "macroexpand_toplevel_list sexp")
@@ -3476,7 +3476,7 @@
   (if (null formalsexp)
       (progn
 	(return (make_multiple discr_multiple 0))))
-  (assertmsg "check formalsexp" (is_a formalsexp class_sexpr))
+  (assert_msg "check formalsexp" (is_a formalsexp class_sexpr))
   (let ( (:long argrk 0)
 	 (argtype ctype_value)
 	 (arglist (unsafe_get_field :sexp_contents formalsexp))
@@ -3488,7 +3488,7 @@
 ;;; first loop on arg
     (forever argloop
 	     (if (null curpair) (exit argloop))
-	     (assertmsg "check curpair" (is_pair curpair))
+	     (assert_msg "check curpair" (is_pair curpair))
 	     (let ( (curarg (pair_head curpair)) )
 	       (cond
 		( (is_a curarg class_keyword)
@@ -3540,9 +3540,9 @@
 	   )
       (forever bndloop
 	       (if (null bndpair) (exit bndloop))
-	       (assertmsg "check bndpair" (is_pair bndpair))
+	       (assert_msg "check bndpair" (is_pair bndpair))
 	       (let ( (curbnd (pair_head bndpair)) )
-		 (assertmsg "check curbnd" (is_a curbnd class_formal_binding))
+		 (assert_msg "check curbnd" (is_a curbnd class_formal_binding))
 		 (multiple_put_nth bndtup ix curbnd)
 		 )
 	       (setq ix (+i ix 1))
@@ -3554,8 +3554,8 @@
 
 ;;;;;;;;;;;;;;;; install an initial macro expanser
 (defun install_initial_macro (symb expander)
-  (assertmsg "check sexpr" (is_a symb class_symbol))
-  (assertmsg "check expander" (is_closure expander))
+  (assert_msg "check sexpr" (is_a symb class_symbol))
+  (assert_msg "check expander" (is_closure expander))
   (let ( (mbind (make_instance class_macro_binding 
 			       :binder symb
 			       :mbind_expanser expander
@@ -3569,8 +3569,8 @@
 ;; the defprimitive expander
 (defun mexpand_defprimitive (sexpr env mexpander)
   (debug_msg sexpr "mexpand_defprimitive sexpr")
-  (assertmsg "check sexpr" (is_a sexpr class_sexpr))
-  (assertmsg "check env" (is_a env class_environment))
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check env" (is_a env class_environment))
   (let ( (cont (unsafe_get_field :sexp_contents sexpr))
 	 (loc  (unsafe_get_field :loca_location sexpr))
 	 (curpair (pair_tail (list_first cont)))
@@ -3654,8 +3654,8 @@
 
 ;;;;;;;;;;;;;;;;;; the defun expander
 (defun mexpand_defun (sexpr env mexpander)
-  (assertmsg "check sexpr" (is_a sexpr class_sexpr))
-  (assertmsg "check env" (is_a env class_environment))
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check env" (is_a env class_environment))
   (debug_msg sexpr "mexp.defun sexpr")
   (let ( (cont (unsafe_get_field :sexp_contents sexpr))
 	 (loc  (unsafe_get_field :loca_location sexpr))
@@ -3827,8 +3827,8 @@
 
 
 (defun mexpand_defclass (sexpr env mexpander)
-  (assertmsg "check sexpr" (is_a sexpr class_sexpr))
-  (assertmsg "check env" (is_a env class_environment))
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check env" (is_a env class_environment))
   (debug_msg  sexpr "mexp.defclass sexpr")
   (multicall 
    (symb loc supernam superbind superclass predef fieldnams fieldsloc docstr)
@@ -3842,7 +3842,7 @@
    (debug_msg fieldnams "mexp.defclass scanned fieldnams")
    (debug_msg fieldsloc "mexp.defclass scanned fieldsloc")
    (debug_msg docstr "mexp.defclass scanned docstr")
-   (assertmsg "check symb" (is_a symb class_symbol))
+   (assert_msg "check symb" (is_a symb class_symbol))
    (let ( 
 	 (ancestors (if (is_object superclass)
 			(let ( (superancestors (unsafe_get_field :class_ancestors superclass))
@@ -3850,8 +3850,8 @@
 			       (anctuple (make_multiple discr_seqclass (+i 1 nbsuperanc)))
 			       (:long ix 0)
 			       )
-			  (assertmsg "check superclass" (is_a superclass class_class))
-			  (assertmsg "check superancestors" (is_multiple superancestors))
+			  (assert_msg "check superclass" (is_a superclass class_class))
+			  (assert_msg "check superancestors" (is_multiple superancestors))
 			  (forever ancloop
 				   (if (>=i ix nbsuperanc) (exit ancloop))
 				   (multiple_put_nth anctuple ix (multiple_nth superancestors ix))
@@ -3885,7 +3885,7 @@
       (lambda (sfld :long ix)
 	(messagenum_dbg "expdefclasupflds ix" ix)
 	(messageval_dbg "expdefclasupfldsval sfld" sfld)
-	(assertmsg "check superfield" (is_a sfld class_field))
+	(assert_msg "check superfield" (is_a sfld class_field))
 	(multiple_put_nth fieldtup ix sfld)
 	(mapstring_putstr fieldstrmap (unsafe_get_field :named_name sfld) sfld)
 	))
@@ -3893,7 +3893,7 @@
       fieldnams
       (lambda (fldnam :long ix)
 	(messagenum_dbg "expdefclafldnam ix" ix)
-	(assertmsg "check fldnam" (is_a fldnam class_symbol))
+	(assert_msg "check fldnam" (is_a fldnam class_symbol))
 	(let ( (fldstr (unsafe_get_field :named_name fldnam)) 
 	       )
 	  (if (mapstring_getstr fieldstrmap fldstr)
@@ -3936,9 +3936,9 @@
 (defun parse_field_assignment (cla loc fldkw expr env mexpander)
   (if (not (is_a fldkw class_keyword))
       (error_plain loc "expecting :fieldname"))
-  (assertmsg "check fldkw" (is_a fldkw class_keyword))
-  (assertmsg "check env" (is_a env class_environment))
-  (assertmsg "check mexpander" (is_closure mexpander))
+  (assert_msg "check fldkw" (is_a fldkw class_keyword))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check mexpander" (is_closure mexpander))
   ;; expr is an sexpr or a symbol or a string or ...
   (let ( (fldbox (make_box discr_box ())) )
     ;; if we have a class, find the field inside
@@ -3946,7 +3946,7 @@
 	(multiple_iterate_test
 	 (unsafe_get_field :class_fields cla)
 	 (lambda (cfld :long ix)
-	   (assertmsg "check fld" (is_a cfld class_field))
+	   (assert_msg "check fld" (is_a cfld class_field))
 	   (if (==s (unsafe_get_field :named_name cfld) 
 		    (unsafe_get_field :named_name fldkw))
 	       (progn 
@@ -3984,8 +3984,8 @@
 
 ;; the definstance expanser
 (defun mexpand_definstance (sexpr env mexpander)
-  (assertmsg "check sexpr" (is_a sexpr class_sexpr))
-  (assertmsg "check env" (is_a env class_environment))
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check env" (is_a env class_environment))
   (debug_msg sexpr "mexp.definstance sexpr")
   (let ( (predef ())
 	 (objnum ())
@@ -4022,7 +4022,7 @@
 	  (return (the_null))
 	  ))
 	(setq claname nam)
-	(assertmsg "check cla" (is_a cla class_class))
+	(assert_msg "check cla" (is_a cla class_class))
 	(setq curpair (pair_tail curpair))
 	(forever insloop
 		 (if (not (is_pair curpair)) (exit insloop))
@@ -4080,8 +4080,8 @@
 
 ;; the definstance expanser
 (defun mexpand_defselector (sexpr env mexpander)
-  (assertmsg "check sexpr" (is_a sexpr class_sexpr))
-  (assertmsg "check env" (is_a env class_environment))
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check env" (is_a env class_environment))
   (debug_msg sexpr "mexp.definstance sexpr")
   (let ( (predef ())
 	 (objnum ())
@@ -4118,7 +4118,7 @@
 	  (return (the_null))
 	  ))
 	(setq claname nam)
-	(assertmsg "check cla" (is_a cla class_class))
+	(assert_msg "check cla" (is_a cla class_class))
 	(setq curpair (pair_tail curpair))
 	(forever insloop
 		 (if (not (is_pair curpair)) (exit insloop))
@@ -4173,8 +4173,8 @@
 
 ;;;; the make_instance expander
 (defun mexpand_make_instance (sexpr env mexpander)
-  (assertmsg "check sexpr" (is_a sexpr class_sexpr))
-  (assertmsg "check env" (is_a env class_environment))
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check env" (is_a env class_environment))
   (let ( (fields ())
 	 (fieldnams ())
 	 (cont (unsafe_get_field :sexp_contents sexpr))
@@ -4205,7 +4205,7 @@
 		    (unsafe_get_field :named_name claname))
 	(return (the_null))
 	))
-      (assertmsg "check cla" (is_a cla class_class))
+      (assert_msg "check cla" (is_a cla class_class))
       (setq curpair (pair_tail curpair))
       (forever insloop
 	       (if (not (is_pair curpair)) (exit insloop))
@@ -4234,8 +4234,8 @@
 
 ;;;; the unsafe_put_fields expander
 (defun mexpand_unsafe_put_fields (sexpr env mexpander)
-  (assertmsg "check sexpr" (is_a sexpr class_sexpr))
-  (assertmsg "check env" (is_a env class_environment))
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check env" (is_a env class_environment))
   (let ( (fields ())
 	 (fieldnams ())
 	 (cont (unsafe_get_field :sexp_contents sexpr))
@@ -4273,8 +4273,8 @@
 
 ;;;; the unsafe_get_field expander
 (defun mexpand_unsafe_get_field (sexpr env mexpander)
-  (assertmsg "check sexpr" (is_a sexpr class_sexpr))
-  (assertmsg "check env" (is_a env class_environment))
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check env" (is_a env class_environment))
   (let ( (cont (unsafe_get_field :sexp_contents sexpr))
 	 (loc  (unsafe_get_field :loca_location sexpr))
 	 (curpair (pair_tail (list_first cont)))
@@ -4308,8 +4308,8 @@
 
 ;;;; the setq expander
 (defun mexpand_setq (sexpr env mexpander)
-  (assertmsg "check sexpr" (is_a sexpr class_sexpr))
-  (assertmsg "check env" (is_a env class_environment))
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check env" (is_a env class_environment))
   (let ( (cont (unsafe_get_field :sexp_contents sexpr))
 	 (loc  (unsafe_get_field :loca_location sexpr))
 	 (curpair (pair_tail (list_first cont)))
@@ -4333,8 +4333,8 @@
 
 ;;;;; the if expanser
 (defun mexpand_if (sexpr env mexpander)
-  (assertmsg "check sexpr" (is_a sexpr class_sexpr))
-  (assertmsg "check env" (is_a env class_environment))
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check env" (is_a env class_environment))
   (debug_msg sexpr "mexpand_if sexpr")
   (let (
 	(cont (unsafe_get_field :sexp_contents sexpr))
@@ -4379,8 +4379,8 @@
 
 ;;;;; the cppif expander
 (defun mexpand_cppif (sexpr env mexpander)
-  (assertmsg "check sexpr" (is_a sexpr class_sexpr))
-  (assertmsg "check env" (is_a env class_environment))
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check env" (is_a env class_environment))
   (debug_msg sexpr "mexpand_cppif sexpr")
   (let (
 	(cont (unsafe_get_field :sexp_contents sexpr))
@@ -4430,8 +4430,8 @@
 
 ;;;;; the cond expanser
 (defun mexpand_cond (sexpr env mexpander)
-  (assertmsg "check sexpr" (is_a sexpr class_sexpr))
-  (assertmsg "check env" (is_a env class_environment))
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check env" (is_a env class_environment))
   (debug_msg sexpr "mexpand_cond sexpr")
   (let (
 	(cont (unsafe_get_field :sexp_contents sexpr))
@@ -4524,8 +4524,8 @@
 ;;; (AND a1 a2) is expansed into (IF a1 a2)
 ;;; (AND a1 a2 a3) is expansed into (IF a1 (IF a2 a3))
 (defun mexpand_and (sexpr env mexpander)
-  (assertmsg "check sexpr" (is_a sexpr class_sexpr))
-  (assertmsg "check env" (is_a env class_environment))
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check env" (is_a env class_environment))
   (debug_msg sexpr "mexpand_and sexpr:" )
   (let (
 	(cont (unsafe_get_field :sexp_contents sexpr))
@@ -4562,8 +4562,8 @@
       
 ;;;; the or expanser
 (defun mexpand_or (sexpr env mexpander)
-  (assertmsg "check sexpr" (is_a sexpr class_sexpr))
-  (assertmsg "check env" (is_a env class_environment))
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check env" (is_a env class_environment))
   (debug_msg sexpr "mexpand_or sexpr")
   (let (
 	(cont (unsafe_get_field :sexp_contents sexpr))
@@ -4591,8 +4591,8 @@
 ;;;;;;;; for LET
 ;; internal routine to make a letbinding
 (defun mexpand_letbinding (sexpr env mexpander)
-  (assertmsg "check sexpr" (is_a sexpr class_sexpr))
-  (assertmsg "check env" (is_a env class_environment))
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check env" (is_a env class_environment))
   (let (
 	(cont (unsafe_get_field :sexp_contents sexpr))
 	(loc  (unsafe_get_field :loca_location sexpr))
@@ -4641,8 +4641,8 @@
 
 ;;; the LET expander itself
 (defun mexpand_let (sexpr env mexpander)
-  (assertmsg "check sexpr" (is_a sexpr class_sexpr))
-  (assertmsg "check env" (is_a env class_environment))
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check env" (is_a env class_environment))
   (let (
 	(cont (unsafe_get_field :sexp_contents sexpr))
 	(loc  (unsafe_get_field :loca_location sexpr))
@@ -4665,14 +4665,14 @@
     (multiple_every
      bindtup
      (lambda (slb)
-       (assertmsg "mexp.let. check slb" (is_a slb class_src_letbinding))
+       (assert_msg "mexp.let. check slb" (is_a slb class_src_letbinding))
        (let (
 	     (sx (unsafe_get_field :sletb_expr slb))
 	     (lb (make_instance class_let_binding
 				:binder (unsafe_get_field :sletb_binder slb)
 				:letbind_type (unsafe_get_field :sletb_type slb)
 				:letbind_expr sx)) )
-	 (assertmsg "mexp.let not list lb" (not (is_list lb)))
+	 (assert_msg "mexp.let not list lb" (not (is_list lb)))
 	 (put_env newenv lb)
 	 )))
     (setq bodytup (pairlist_to_multiple restpair discr_multiple 
@@ -4689,8 +4689,8 @@
 
 ;;;;;;;; for LAMBDA
 (defun mexpand_lambda (sexpr env mexpander)
-  (assertmsg "check sexpr" (is_a sexpr class_sexpr))
-  (assertmsg "check env" (is_a env class_environment))
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check env" (is_a env class_environment))
   (let ( (cont (unsafe_get_field :sexp_contents sexpr))
 	 (loc  (unsafe_get_field :loca_location sexpr))
 	 (curpair (pair_tail (list_first cont))) 
@@ -4716,8 +4716,8 @@
 
 ;;;;;;;; for MULTICALL
 (defun mexpand_multicall (sexpr env mexpander)
-  (assertmsg "check sexpr" (is_a sexpr class_sexpr))
-  (assertmsg "check env" (is_a env class_environment))
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check env" (is_a env class_environment))
   (let ( (cont (unsafe_get_field :sexp_contents sexpr))
 	 (loc  (unsafe_get_field :loca_location sexpr))
 	 (curpair (pair_tail (list_first cont))) 
@@ -4750,8 +4750,8 @@
 
 ;;;;;;;; for QUOTE (only of symbols or keywords)
 (defun mexpand_quote (sexpr env mexpander)
-  (assertmsg "check sexpr" (is_a sexpr class_sexpr))
-  (assertmsg "check env" (is_a env class_environment))
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check env" (is_a env class_environment))
   (let ( (cont (unsafe_get_field :sexp_contents sexpr))
 	 (loc  (unsafe_get_field :loca_location sexpr))
 	 (curpair (pair_tail (list_first cont))) 
@@ -4772,8 +4772,8 @@
 
 ;;;;;;;; for COMMENT (only of strings)
 (defun mexpand_comment  (sexpr env mexpander)
-  (assertmsg "check sexpr" (is_a sexpr class_sexpr))
-  (assertmsg "check env" (is_a env class_environment))
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check env" (is_a env class_environment))
   (let ( (cont (unsafe_get_field :sexp_contents sexpr))
 	 (loc  (unsafe_get_field :loca_location sexpr))
 	 (curpair (pair_tail (list_first cont))) 
@@ -4797,9 +4797,9 @@
 ;;;;;;;; for PROGN
 ;; internal routine to make a progn from a pairlist at a location
 (defun pairlist_to_progn (pair loc env mexpander)
-  (assertmsg "check env" (is_a env class_environment))
+  (assert_msg "check env" (is_a env class_environment))
   (debug_msg pair "pairlist_to_progn pair")
-  (assertmsg "check_pair" (is_pair pair))
+  (assert_msg "check_pair" (is_pair pair))
   (let ( (bodytup (pairlist_to_multiple 
 		   pair 
 		   discr_multiple
@@ -4815,7 +4815,7 @@
 
 ;; internal routine to make a return from a pairlist at a location
 (defun pairlist_to_return (pair loc env mexpander)
-  (assertmsg "check env" (is_a env class_environment))
+  (assert_msg "check env" (is_a env class_environment))
   (let ( (bodytup (pairlist_to_multiple 
 		   pair 
 		   discr_multiple
@@ -4828,7 +4828,7 @@
 
 ;;;; the progn expanser
 (defun mexpand_progn (sexpr env mexpander)
-  (assertmsg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
   (let ( (progr
 	  (pairlist_to_progn (pair_tail
 			      (list_first (unsafe_get_field :sexp_contents sexpr)))
@@ -4841,7 +4841,7 @@
 
 ;;;; the return expanser
 (defun mexpand_return (sexpr env mexpander)
-  (assertmsg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
   (let ( (retr
 	  (pairlist_to_return (pair_tail (list_first (unsafe_get_field :sexp_contents sexpr)))
 			      (unsafe_get_field :loca_location sexpr)
@@ -4854,7 +4854,7 @@
 
 ;;;; the forever expanser
 (defun mexpand_forever (sexpr env mexpander)
-  (assertmsg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
   (let ( (cont (unsafe_get_field :sexp_contents sexpr))
 	 (loc  (unsafe_get_field :loca_location sexpr))
 	 (curpair (pair_tail (list_first cont))) 
@@ -4887,7 +4887,7 @@
 
 ;;;; the exit expanser
 (defun mexpand_exit (sexpr env mexpander)
-  (assertmsg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
   (let ( (cont (unsafe_get_field :sexp_contents sexpr))
 	 (loc  (unsafe_get_field :loca_location sexpr))
 	 (curpair (pair_tail (list_first cont))) 
@@ -4945,16 +4945,16 @@
 	)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; assertmsg macro is expanded into other src..
-;;;;;; (assertmsg msg check)
+;;; assert_msg macro is expanded into other src..
+;;;;;; (assert_msg msg check)
 ;;; becomes
 ;;;;;; (cppif ENABLE_CHECKING (if check (assert_failed msg filename lineno)) ())
 ;;; where assert_failed is a primitive
 
 (defun mexpand_assert_msg (sexpr env mexpander)
-  (assertmsg "check sexpr" (is_a sexpr class_sexpr))
-  (assertmsg "check env" (is_a env class_environment))
-  (debug_msg sexpr "mexpand_assertmsg sexpr")
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check env" (is_a env class_environment))
+  (debug_msg sexpr "mexpand_assert_msg sexpr")
   (let (
 	(cont (unsafe_get_field :sexp_contents sexpr))
 	(loc  (unsafe_get_field :loca_location sexpr))
@@ -4965,16 +4965,16 @@
 	)
     (if (is_not_a assfail_binding class_primitive_binding)
 	(progn
-	  (error_plain loc "ASSERT_FAILED not bound to a primitive in  (ASSERTMSG <msg> <test>)")
+	  (error_plain loc "ASSERT_FAILED not bound to a primitive in  (ASSERT_MSG <msg> <test>)")
 	  (return)))
     (if (not (is_string xmsg))
-	(error_plain loc "non string message in (ASSERTMSG <msg> <test>)"))
+	(error_plain loc "non string message in (ASSERT_MSG <msg> <test>)"))
     (setq curpair (pair_tail curpair))
     (if (not (is_pair curpair))
-	(error_plain loc "missing test in (ASSERTMSG <msg> <test>)"))
+	(error_plain loc "missing test in (ASSERT_MSG <msg> <test>)"))
     (setq xtest (macroexpand_1 (pair_head curpair) env mexpander))
     (if (pair_tail curpair)
-	(error_plain loc "extra arg for (ASSERTMSG <msg> <test>)"))
+	(error_plain loc "extra arg for (ASSERT_MSG <msg> <test>)"))
     (let ( (aprim (make_instance 
 		   class_src_primitive
 		   :src_loc loc
@@ -4996,7 +4996,7 @@
 				  :sifp_else ()
 				  )) 
 	   )
-      (debug_msg acppif "mexpand_assertmsg result acppif")
+      (debug_msg acppif "mexpand_assert_msg result acppif")
       (return acppif)
     )))
 (install_initial_macro 'assert_msg mexpand_assert_msg)
@@ -5009,8 +5009,8 @@
 ;;; where count is (the_callcount) if not given
 
 (defun mexpand_debug_msg (sexpr env mexpander)
-  (assertmsg "check sexpr" (is_a sexpr class_sexpr))
-  (assertmsg "check env" (is_a env class_environment))
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check env" (is_a env class_environment))
   (debug_msg sexpr "mexpand_debug_msg sexpr")
   (let (
 	(cont (unsafe_get_field :sexp_contents sexpr))
@@ -5067,15 +5067,15 @@
 
 ;;; add some data to a normalization context and return it
 (defun add_nctx_data (nctx ndata)
-  (assertmsg "check nctx" (is_a nctx class_normcontext))
-  (assertmsg "check ndata" (is_a ndata class_nrep_data))
-  (assertmsg "fresh ndata" (null (unsafe_get_field :ndata_rank ndata)))
+  (assert_msg "check nctx" (is_a nctx class_normcontext))
+  (assert_msg "check ndata" (is_a ndata class_nrep_data))
+  (assert_msg "fresh ndata" (null (unsafe_get_field :ndata_rank ndata)))
   (let ( (datlis (unsafe_get_field :nctx_datalist nctx)) )
-    (assertmsg "check datlis" (is_list datlis))
+    (assert_msg "check datlis" (is_list datlis))
     (let ( (lastdat (pair_head (list_last datlis)))  )
       (if (is_a lastdat class_nrep_data)
 	  (let ( (:long lastrk (get_int (unsafe_get_field :ndata_rank lastdat))) )
-	    (assertmsg "check lastrk" (>i lastrk 0))
+	    (assert_msg "check lastrk" (>i lastrk 0))
 	    (let ( (rkbox (make_integerbox discr_integer (+i 1 lastrk))) )
 	      (unsafe_put_fields ndata :ndata_rank rkbox)
 	      ))
@@ -5227,8 +5227,8 @@
 
 ;; many stuff are already normalized 
 (defun normexp_identical (recv env ncx psloc)
-  (assertmsg "check env" (is_a env class_environment))
-  (assertmsg "check nctxt" (is_a ncx class_normcontext))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check nctxt" (is_a ncx class_normcontext))
   ;; is a no-op
   (debug_msg recv "normexp_identical recv")
   recv)
@@ -5236,8 +5236,8 @@
 (install_method discr_anyrecv normal_exp  normexp_identical)
 
 (defun normexp_null (recv env ncx psloc)
-  (assertmsg "check env" (is_a env class_environment))
-  (assertmsg "check nctxt" (is_a ncx class_normcontext))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check nctxt" (is_a ncx class_normcontext))
   (let ( (normnull (make_instance class_nrep_nil :nrep_loc psloc)) )
     (debug_msg normnull "normexp_null normnull")
     normnull
@@ -5246,14 +5246,14 @@
 
 ;;; catchall for src
 (defun normexp_src_catchall (recv env ncx psloc)
-  (assertmsg "check env" (is_a env class_environment))
-  (assertmsg "check nctxt" (is_a ncx class_normcontext))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check nctxt" (is_a ncx class_normcontext))
   (debug_msg recv "normexp_src_catchall recv" )
   (let ( (myclass (discrim recv))
 	 (myclassname (unsafe_get_field :named_name myclass)) )
     (error_strv (unsafe_get_field :src_loc recv) 
 		"unimplemented normalization for " myclassname)
-    (assertmsg "normexp_src_catchall unimplemented normexp for src" ())
+    (assert_msg "normexp_src_catchall unimplemented normexp for src" ())
     ))
 (install_method class_src normal_exp normexp_src_catchall)
 
@@ -5284,9 +5284,9 @@
 
 ;;; normalize a tuple - returning a tuple & a bindinglist
 (defun normalize_tuple (tup env ncx psloc)
-  (assertmsg "check env" (is_a env class_environment))
-  (assertmsg "check nctxt" (is_a ncx class_normcontext))
-  (assertmsg "check tup" (is_multiple tup))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check nctxt" (is_a ncx class_normcontext))
+  (assert_msg "check tup" (is_multiple tup))
   (debug_msg tup "normalize_tuple tup" )
   (let ( (bindlist (make_list discr_list)) 
 	 (res (multiple_map
@@ -5297,14 +5297,14 @@
 		  (norcomp nbinds)
 		  (normal_exp comp env ncx psloc)
 		 ; (debug_msg norcomp "normalize_tuple norcomp")
-		  (assertmsg "check nbinds" (is_list_or_null nbinds))
-		  (assertmsg "check norcomp not nrep_expr" (is_not_a norcomp class_nrep_expr))
+		  (assert_msg "check nbinds" (is_list_or_null nbinds))
+		  (assert_msg "check norcomp not nrep_expr" (is_not_a norcomp class_nrep_expr))
 		  (if (is_list nbinds)
 		      (list_every 
 		       nbinds
 		       (lambda (bnd)
-			 (assertmsg "check bnd" (is_a bnd class_any_binding))
-			 (assertmsg "check bindlist" (is_list bindlist))
+			 (assert_msg "check bnd" (is_a bnd class_any_binding))
+			 (assert_msg "check bindlist" (is_list bindlist))
 			 (list_append bindlist bnd)
 			 ))		
 		    )
@@ -5321,8 +5321,8 @@
 
 ;; wrap a normal let around a tuple of normalized expressions and a bindinglist
 (defun wrap_normal_letseq (tupnexp bindlist loc)
-  (assertmsg "check tupnexp" (is_multiple_or_null tupnexp))
-  (assertmsg "check bindlist" (is_list_or_null bindlist))
+  (assert_msg "check tupnexp" (is_multiple_or_null tupnexp))
+  (assert_msg "check bindlist" (is_list_or_null bindlist))
   (list_every
    bindlist 
    (lambda (cbind) 
@@ -5331,7 +5331,7 @@
 	   (debug_msg tupnexp "wrap_normal_letseq tuplexp")
 	   (debug_msg bindlist "wrap_normal_letseq bindlist")
 	   (debug_msg cbind "wrap_normal_letseq cbind")))
-     (assertmsg "check cbind wrapnormletseq" (is_a cbind class_normlet_binding))))
+     (assert_msg "check cbind wrapnormletseq" (is_a cbind class_normlet_binding))))
   (let ( (wnlet
 	  (make_instance class_nrep_let
 			 :nrep_loc loc
@@ -5343,7 +5343,7 @@
 
 ;; wrap a normal let around a single normalized expression & a bindinglist
 (defun wrap_normal_let1 (nexp bindlist loc)
-  (assertmsg "check bindlist" (is_list_or_null bindlist))
+  (assert_msg "check bindlist" (is_list_or_null bindlist))
   (list_every
    bindlist 
    (lambda (cbind) 
@@ -5352,7 +5352,7 @@
 	   (debug_msg nexp "wrap_normal_let1 nexp")
 	   (debug_msg bindlist "wrap_normal_let1 bindlist")
 	   (debug_msg cbind "wrap_normal_let1 cbind")))
-     (assertmsg "check cbind wrapnormlet1" (is_a cbind class_normlet_binding))))
+     (assert_msg "check cbind wrapnormlet1" (is_a cbind class_normlet_binding))))
   (if 
       (and (is_list bindlist)
 	   (is_pair (list_first bindlist)))
@@ -5379,7 +5379,7 @@
   (multicall
    (bind procs)
    (find_enclosing_env env recv)
-   (assertmsg "normexp_symbol check recv" (is_a recv class_symbol))
+   (assert_msg "normexp_symbol check recv" (is_a recv class_symbol))
    (if (null bind)
        (progn
 	 (error_strv psloc "unbound symbol to normalize"
@@ -5390,7 +5390,7 @@
      )
    (let ( (sycmap (unsafe_get_field :nctx_symbcachemap ncx))
 	  (syca (mapobject_get sycmap recv)) )
-     (assertmsg "check sycmap" (is_mapobject sycmap))
+     (assert_msg "check sycmap" (is_mapobject sycmap))
      (cond 
       ;; check if in the cache
       (syca syca)	     ;already cached
@@ -5441,7 +5441,7 @@
 		(list_every
 		 procs
 		 (lambda (pr)
-		   (assertmsg "check pr" (is_a pr class_nrep_anyproc))
+		   (assert_msg "check pr" (is_a pr class_nrep_anyproc))
 		   (let ( (clbox (make_box discr_box fxocc))
 			  (cnstproc (unsafe_get_field :nrpro_const pr)) )
 		     (list_every 
@@ -5466,7 +5466,7 @@
 	      (list_every 
 	       procs
 	       (lambda (pr)
-		 (assertmsg "check pr" (is_a pr class_nrep_anyproc))
+		 (assert_msg "check pr" (is_a pr class_nrep_anyproc))
 		 (let ( (clbox (make_box discr_box clocc))
 			(clobindl (unsafe_get_field :nrpro_closedb pr)) )
 		   (list_every 
@@ -5509,7 +5509,7 @@
 	      (error_strv psloc "unresolved forward function reference to"
 			  (unsafe_get_field :named_name recv)
 			  ))
-	  (assertmsg "normexp_symbol check fubdat" (is_a fubdat class_nrep_dataclosure))
+	  (assert_msg "normexp_symbol check fubdat" (is_a fubdat class_nrep_dataclosure))
 	  ;; cache the result & return it
 	  (mapobject_put sycmap recv fubdat)
 	  fubdat
@@ -5522,7 +5522,7 @@
 			  (unsafe_get_field :named_name recv)
 			  )
 	      )
-	  (assertmsg "normexp_symbol check pribdat" (is_a pribidat class_nrep_datainstance))
+	  (assert_msg "normexp_symbol check pribdat" (is_a pribidat class_nrep_datainstance))
 	  ;; cache the result & return it
 	  (mapobject_put sycmap recv pribidat)
 	  pribidat))
@@ -5534,7 +5534,7 @@
 			  (unsafe_get_field :named_name recv)
 			  )
 	      )
-	  (assertmsg "normexp_symbol check cldat" (is_a cldat class_nrep_datainstance))
+	  (assert_msg "normexp_symbol check cldat" (is_a cldat class_nrep_datainstance))
 	  ;; cache the result & return it
 	  (mapobject_put sycmap recv cldat)
 	  cldat))
@@ -5546,7 +5546,7 @@
 			  (unsafe_get_field :named_name recv)
 			  )
 	      )
-	  (assertmsg "normexp_symbol check fdat" (is_a fdat class_nrep_datainstance))
+	  (assert_msg "normexp_symbol check fdat" (is_a fdat class_nrep_datainstance))
 	  ;; cache the result & return it
 	  (mapobject_put sycmap recv fdat)
 	  fdat))
@@ -5558,7 +5558,7 @@
 			  (unsafe_get_field :named_name recv)
 			  )
 	      )
-	  (assertmsg "normexp_symbol check seldat" (is_a seldat class_nrep_datainstance))
+	  (assert_msg "normexp_symbol check seldat" (is_a seldat class_nrep_datainstance))
 	  ;; cache the result & return it
 	  (mapobject_put sycmap recv seldat)
 	  seldat))
@@ -5570,7 +5570,7 @@
 			  (unsafe_get_field :named_name recv)
 			  )
 	      )
-	  (assertmsg "normexp_symbol check insdat" (is_a insdat class_nrep_datainstance))
+	  (assert_msg "normexp_symbol check insdat" (is_a insdat class_nrep_datainstance))
 	  ;; cache the result & return it
 	  (mapobject_put sycmap recv insdat)
 	  insdat)
@@ -5592,7 +5592,7 @@
 	  procs
 	  (lambda (pr)
 	    (debug_msg pr "normexp_symbol const pr")
-	    (assertmsg "check pr" (is_a pr class_nrep_anyproc))
+	    (assert_msg "check pr" (is_a pr class_nrep_anyproc))
 	    (let ( (clbox (make_box discr_box kocc))
 		   (constproc (unsafe_get_field :nrpro_const pr)) )
 	      (list_every 
@@ -5607,7 +5607,7 @@
 (install_method class_symbol normal_exp normexp_symbol)
 
 (defun gectyp_symocc (recv env)
-  (assertmsg "check recv" (is_a recv class_nrep_symocc))
+  (assert_msg "check recv" (is_a recv class_nrep_symocc))
   (unsafe_get_field :nocc_ctyp recv)
 )
 (install_method class_nrep_symocc get_ctype gectyp_symocc)
@@ -5616,14 +5616,14 @@
 ;;; normalize a primitive invocation
 (defun normexp_primitive (recv env ncx psloc)
   (debug_msg recv "normexp_primitive recv")
-  (assertmsg "check prim recv" (is_a recv class_src_primitive))
-  (assertmsg "check env" (is_a env class_environment))
-  (assertmsg "check nctxt" (is_a ncx class_normcontext))
+  (assert_msg "check prim recv" (is_a recv class_src_primitive))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check nctxt" (is_a ncx class_normcontext))
   (let ( (sloc (unsafe_get_field :src_loc recv)) 
 	 (soper (unsafe_get_field :sprim_oper recv))
 	 (sargs (unsafe_get_field :sprim_args recv)) 
 	 )
-    (assertmsg "check soper" (is_a soper class_primitive))
+    (assert_msg "check soper" (is_a soper class_primitive))
     (multicall 
      (nargs nbind)
      (normalize_tuple sargs env ncx sloc)
@@ -5646,7 +5646,7 @@
 	 (multiple_every
 	  sopformals
 	  (lambda (forb :long ix)
-	    (assertmsg "check forb" (is_a forb class_formal_binding))
+	    (assert_msg "check forb" (is_a forb class_formal_binding))
 	    (let ( (forarg (unsafe_get_field :binder forb))
 		   (actarg (multiple_nth nargs ix)) )
 	      (mapobject_put bmap forarg actarg)
@@ -5702,7 +5702,7 @@
 (install_method class_nrep_chunk get_ctype 
 		(lambda (recv env)
 		  (let ( ( prim (unsafe_get_field :nchunk_primitive recv)) )
-		    (assertmsg "check prim" (is_a prim class_primitive))
+		    (assert_msg "check prim" (is_a prim class_primitive))
 		    (unsafe_get_field :prim_type prim))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -5712,7 +5712,7 @@
    nargs
    (lambda (cnarg :long ix) 
      (let ( (ctyp (get_ctype cnarg env)) )
-       (assertmsg "check_ctype_nargs ctyp" (is_a ctyp class_ctype))
+       (assert_msg "check_ctype_nargs ctyp" (is_a ctyp class_ctype))
        (if (not (is_string (unsafe_get_field :ctype_parstring ctyp)))
 	   (error_strv sloc "argument has invalid type" (unsafe_get_field :named_name ctyp))
      ))
@@ -5721,9 +5721,9 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; normalize an application
 (defun normexp_apply (recv env ncx psloc)
-  (assertmsg "check apply recv" (is_a recv class_src_apply))
-  (assertmsg "check env" (is_a env class_environment))
-  (assertmsg "check nctxt" (is_a ncx class_normcontext))
+  (assert_msg "check apply recv" (is_a recv class_src_apply))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check nctxt" (is_a ncx class_normcontext))
   (let ( (sloc (unsafe_get_field :src_loc recv)) 
 	 (sfun (unsafe_get_field :sapp_fun recv))
 	 (sargs (unsafe_get_field :sapp_args recv))
@@ -5732,11 +5732,11 @@
     (multicall 
      (nfun nbindfun)
      (normal_exp sfun env ncx sloc)
-     (assertmsg "check nbindfun" (is_list_or_null nbindfun))
+     (assert_msg "check nbindfun" (is_list_or_null nbindfun))
      (multicall
       (nargs nbindargs)
       (normalize_tuple sargs env ncx sloc)
-      (assertmsg "check nbindargs" (is_list_or_null nbindargs))
+      (assert_msg "check nbindargs" (is_list_or_null nbindargs))
       (check_ctype_nargs nargs env sloc)
       (setq nbindargs (list_append2list nbindargs nbindfun))
       (let ( (csym (clone_symbol sfusymb))
@@ -5767,9 +5767,9 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; normalize a message send
 (defun normexp_msend (msnd env ncx psloc)
-  (assertmsg "check env" (is_a msnd class_src_msend))
-  (assertmsg "check env" (is_a env class_environment))
-  (assertmsg "check nctxt" (is_a ncx class_normcontext))
+  (assert_msg "check env" (is_a msnd class_src_msend))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check nctxt" (is_a ncx class_normcontext))
   ; (debug_msg ncx "normexp_msend ncx")
   (debug_msg msnd "normexp_msend msnd")
   (let ( (msbind (unsafe_get_field :msend_selbind msnd))
@@ -5785,10 +5785,10 @@
     (multicall
      (nrecv nbindrecv)
      (normal_exp msrecv env ncx sloc)
-     (assertmsg "check nbindrecv" (is_list_or_null nbindrecv))
+     (assert_msg "check nbindrecv" (is_list_or_null nbindrecv))
      ;; check that reciever is a value
      (let ( (ctypr (get_ctype nrecv env)) )
-       (assertmsg "normexp_msend check ctypr " (is_a ctypr class_ctype))
+       (assert_msg "normexp_msend check ctypr " (is_a ctypr class_ctype))
        (if (!= ctypr ctype_value)
 	   (error_strv sloc "non value reciever for message send of selector"
 		       (unsafe_get_field :named_name selnam)))
@@ -5796,7 +5796,7 @@
      (multicall
       (nargs nbindargs)
       (normalize_tuple msargs env ncx sloc)
-      (assertmsg "check nbindargs" (is_list_or_null nbindargs))
+      (assert_msg "check nbindargs" (is_list_or_null nbindargs))
       (setq nbindrecv (list_append2list nbindrecv nbindargs))
       (check_ctype_nargs nargs env sloc)
       (let (
@@ -5831,9 +5831,9 @@
 ;;; normalize a return
 (defun normexp_return (recv env ncx psloc)
   (debug_msg recv "normexp_return recv")
-  (assertmsg "check return recv" (is_a recv class_src_return))
-  (assertmsg "check env" (is_a env class_environment))
-  (assertmsg "check nctxt" (is_a ncx class_normcontext))
+  (assert_msg "check return recv" (is_a recv class_src_return))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check nctxt" (is_a ncx class_normcontext))
   (let ( (sloc (unsafe_get_field :src_loc recv)) 
 	 (srets (unsafe_get_field :sreturn_body recv))
 	 (:long nbrets (multiple_length srets))
@@ -5901,9 +5901,9 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; normalize an if
 (defun normexp_if (recv env ncx psloc)
-  (assertmsg "check if recv" (is_a recv class_src_if))
-  (assertmsg "check env" (is_a env class_environment))
-  (assertmsg "check nctxt" (is_a ncx class_normcontext))
+  (assert_msg "check if recv" (is_a recv class_src_if))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check nctxt" (is_a ncx class_normcontext))
   (debug_msg recv "normexp_if recv")
   (let ( (sloc (unsafe_get_field :src_loc recv))
 	 (stest (unsafe_get_field :sif_test recv))
@@ -5913,7 +5913,7 @@
     (multicall 
      (ntest nbindif)	     ;nbindif is also the whole result binding
      (normal_exp stest env ncx sloc)
-     (assertmsg "check nbindif test" (is_list_or_null nbindif))
+     (assert_msg "check nbindif test" (is_list_or_null nbindif))
      (debug_msg ntest "normexp_if ntest")
      ;; in practice we don't need to make a common super-
      ;; environment with nbindif since all relevant bindings there are
@@ -5923,7 +5923,7 @@
       (nthen nbindthen)
       (normal_exp sthen env ncx sloc)
       (debug_msg nthen "normexp_if nthen")
-      (assertmsg "check nbindthen" (is_list_or_null nbindthen))
+      (assert_msg "check nbindthen" (is_list_or_null nbindthen))
       (let ( (newthenenv (fresh_env env)) )
 	(list_every 
 	 nbindthen
@@ -5967,9 +5967,9 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; normalize an ifelse
 (defun normexp_ifelse (recv env ncx psloc)
-  (assertmsg "check if recv" (is_a recv class_src_ifelse))
-  (assertmsg "check env" (is_a env class_environment))
-  (assertmsg "check nctxt" (is_a ncx class_normcontext))
+  (assert_msg "check if recv" (is_a recv class_src_ifelse))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check nctxt" (is_a ncx class_normcontext))
   (debug_msg recv "normexp_ifelse recv")
   (let ( (sloc (unsafe_get_field :src_loc recv))
 	 (stest (unsafe_get_field :sif_test recv))
@@ -5981,7 +5981,7 @@
      (ntest nbindif)	     ;nbindif is also the whole result binding
      (normal_exp stest env ncx sloc)
      (debug_msg ntest "normexp_ifelse ntest")
-     (assertmsg "check nbindif test" (is_list_or_null nbindif))
+     (assert_msg "check nbindif test" (is_list_or_null nbindif))
      ;; in practice we don't need to make a common super-
      ;; environment with nbindif since all relevant bindings there are
      ;; generated, with unique cloned symbols, and these bindings 
@@ -5990,7 +5990,7 @@
       (nthen nbindthen)
       (normal_exp sthen env ncx sloc)
       (debug_msg nthen "normexp_ifelse nthen")
-      (assertmsg "check nbindthen" (is_list_or_null nbindthen))
+      (assert_msg "check nbindthen" (is_list_or_null nbindthen))
       (let ( (newthenenv (fresh_env env)) )
 	(list_every 
 	 nbindthen
@@ -6001,7 +6001,7 @@
 	 (nelse nbindelse)
 	 (normal_exp selse env ncx sloc)
 	 (debug_msg nelse "normexp_ifelse nelse")
-	 (assertmsg "check nbindelse" (is_list_or_null nbindelse))
+	 (assert_msg "check nbindelse" (is_list_or_null nbindelse))
 	 ;; if we have both then & else branches,
 	 ;; ensure their compatibility of types
 	 (let ( (newelseenv (let ( (nenv (fresh_env env)) )
@@ -6011,8 +6011,8 @@
 			      nenv
 			      ))
 		(ctypelse (get_ctype nelse newelseenv)) )
-	   (assertmsg "check ctypif" (is_a ctypif class_ctype))
-	   (assertmsg "check ctypelse" (is_a ctypelse class_ctype))
+	   (assert_msg "check ctypif" (is_a ctypif class_ctype))
+	   (assert_msg "check ctypelse" (is_a ctypelse class_ctype))
 	   (cond
 	    ( (== ctypif ctypelse)
 	      ()
@@ -6067,9 +6067,9 @@
 
 ;;;;;;;;;;;;;;;; normalize a cppif
 (defun normexp_cppif (recv env ncx psloc)
-  (assertmsg "check cppif recv" (is_a recv class_src_cppif))
-  (assertmsg "check env" (is_a env class_environment))
-  (assertmsg "check nctxt" (is_a ncx class_normcontext))
+  (assert_msg "check cppif recv" (is_a recv class_src_cppif))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check nctxt" (is_a ncx class_normcontext))
   (debug_msg recv "normexp_cppif recv")
   (let ( (sloc (unsafe_get_field :src_loc recv))
 	 (scond (unsafe_get_field :sifp_cond recv))
@@ -6082,20 +6082,20 @@
      (nthen nbindthen)
      (normal_exp sthen env ncx sloc)
      (debug_msg nthen "normexp_cppif nthen")
-     (assertmsg "check nbindthen" (is_list_or_null nbindthen))
+     (assert_msg "check nbindthen" (is_list_or_null nbindthen))
      (let ( (newthenenv (fresh_env env)) )
        (list_every 
 	nbindthen
 	(lambda (b) (put_env newthenenv b)))
        ;; the ctyp of the whole cppif is initialized to the ctype of the then part
        (setq ctypif (get_ctype nthen newthenenv))
-       (assertmsg "check ctypif" (is_a ctypif class_ctype))
+       (assert_msg "check ctypif" (is_a ctypif class_ctype))
        ;; normalize the else-part
        (multicall 
 	(nelse nbindelse)
 	(normal_exp selse env ncx sloc)
 	(debug_msg nelse "normexp_cppif nelse")
-	(assertmsg "check nbindelse" (is_list_or_null nbindelse))
+	(assert_msg "check nbindelse" (is_list_or_null nbindelse))
 	(let ( (newelseenv (fresh_env env)) )
 	  (list_every 
 	   nbindelse
@@ -6142,9 +6142,9 @@
     ;; (OR (f1 a1)) is let d1 = (f1 a1) in d1
     ;; (OR (f1 a1) (f2 a2)) is let o1 = (let d1 = (f1 a1) in  (if d1 d1 (let d2 = (f2 a2) in d2))) in o1
 (defun normexp_or (recv env ncx psloc)
-  (assertmsg "check or recv" (is_a recv class_src_or))
-  (assertmsg "check env" (is_a env class_environment))
-  (assertmsg "check nctxt" (is_a ncx class_normcontext))
+  (assert_msg "check or recv" (is_a recv class_src_or))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check nctxt" (is_a ncx class_normcontext))
   (debug_msg recv "normexp_or recv")
   (let ( 
 	(boxorcount (make_integerbox discr_integer (the_callcount)))
@@ -6176,7 +6176,7 @@
 	      )
 	  (let ( (ctypcur (get_ctype ncur newenv))
 		 )
-	    (assertmsg "check ctypcur" (is_a ctypcur class_ctype))
+	    (assert_msg "check ctypcur" (is_a ctypcur class_ctype))
 	    (if (!= ctypcur (box_content ctyporbox))
 		(error_plain  sloc "disjuncts' type mismatch in OR | COND"))
 	    (let (
@@ -6225,9 +6225,9 @@
 ;;;;;; normalize a PROGN
 ;;;; (PROGN a1 a2 ... an) is based upon the normalization of (LET () a1 a2 ... an)
 (defun normexp_progn (recv env ncx psloc)
-  (assertmsg "check progn recv" (is_a recv class_src_progn))
-  (assertmsg "check env" (is_a env class_environment))
-  (assertmsg "check nctxt" (is_a ncx class_normcontext))
+  (assert_msg "check progn recv" (is_a recv class_src_progn))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check nctxt" (is_a ncx class_normcontext))
   (debug_msg recv "normexp_progn recv")
   (let ( (sloc (unsafe_get_field :src_loc recv))
 	 (sbody (unsafe_get_field :sprogn_body recv))
@@ -6286,9 +6286,9 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;	 
 ;;;;;; normalize a LET
 (defun normexp_let (recv  env ncx psloc)
-  (assertmsg "check let recv" (is_a recv class_src_let))
-  (assertmsg "check env" (is_a env class_environment))
-  (assertmsg "check nctxt" (is_a ncx class_normcontext))
+  (assert_msg "check let recv" (is_a recv class_src_let))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check nctxt" (is_a ncx class_normcontext))
   (debug_msg recv "normexp_let recv")
   (let ( (sloc (unsafe_get_field :src_loc recv))
 	 (sbindings (unsafe_get_field :slet_bindings recv))
@@ -6299,7 +6299,7 @@
     (multiple_every 
      sbindings
      (lambda (sb :long sbix)
-       (assertmsg "check sb" (is_a sb class_src_letbinding))
+       (assert_msg "check sb" (is_a sb class_src_letbinding))
        (let ( (sbloc (unsafe_get_field :src_loc sb))
 	      (sbtyp (unsafe_get_field :sletb_type sb))
 	      (sbinder (unsafe_get_field :sletb_binder sb))
@@ -6353,11 +6353,11 @@
      (nbody nbodbindings)
      (normalize_tuple sbody newenv ncx sloc)
      (list_append2list bindlist  nbodbindings)
-     (assertmsg "normexp_let check bindlist" (is_list_or_null bindlist))
+     (assert_msg "normexp_let check bindlist" (is_list_or_null bindlist))
      (list_every
       bindlist
       (lambda (cbnd) 
-	(assertmsg "normexp_let check cbnd" (is_a cbnd class_normlet_binding))))
+	(assert_msg "normexp_let check cbnd" (is_a cbnd class_normlet_binding))))
 ;;; remove every locallly bound symbol from the symbol cache map
      (let ( (sycmap (unsafe_get_field :nctx_symbcachemap ncx)) )
        (list_every bindlist 
@@ -6404,15 +6404,15 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; normalize an UNSAFE_GET_FIELD
 (defun normexp_unsafe_get_field (recv env ncx psloc)
-  (assertmsg "check unsafegetfield recv" (is_a recv class_src_unsafe_get_field))
-  (assertmsg "check env" (is_a env class_environment))
-  (assertmsg "check nctxt" (is_a ncx class_normcontext))
+  (assert_msg "check unsafegetfield recv" (is_a recv class_src_unsafe_get_field))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check nctxt" (is_a ncx class_normcontext))
   (debug_msg recv "normexp unsafeget recv")
   (let ( (sloc   (unsafe_get_field :src_loc recv))
 	 (sobj   (unsafe_get_field :suget_obj recv))
 	 (sfld   (unsafe_get_field :suget_field recv)) 
 	 ) 
-    (assertmsg "check sfld" (is_a sfld class_field))
+    (assert_msg "check sfld" (is_a sfld class_field))
     (multicall
      (nobj nbind)
      (normal_exp sobj env ncx sloc)
@@ -6443,9 +6443,9 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; normalize an UNSAFE_PUT_FIELDS
 (defun normexp_unsafe_put_fields (recv env ncx psloc)
-  (assertmsg "check unsafeputfields recv" (is_a recv class_src_unsafe_put_fields))
-  (assertmsg "check env" (is_a env class_environment))
-  (assertmsg "check nctxt" (is_a ncx class_normcontext))
+  (assert_msg "check unsafeputfields recv" (is_a recv class_src_unsafe_put_fields))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check nctxt" (is_a ncx class_normcontext))
   (debug_msg recv "normexp_unsafe_put_fields recv")
   (let ( (sloc   (unsafe_get_field :src_loc recv))
 	 (sobj   (unsafe_get_field :suput_obj recv))
@@ -6473,10 +6473,10 @@
      (multiple_every 
       sfields
       (lambda (fla :long ix) 
-	(assertmsg "check fla" (is_a fla class_src_fieldassign))
+	(assert_msg "check fla" (is_a fla class_src_fieldassign))
 	(let ( (fld (unsafe_get_field :sfla_field fla))
 	       (exp (unsafe_get_field :sfla_expr fla)) )
-	  (assertmsg "check fld" (is_a fld class_field))
+	  (assert_msg "check fld" (is_a fld class_field))
 	  (multicall
 	   (nexp nexpbind)
 	   (normal_exp exp env ncx sloc)
@@ -6502,14 +6502,14 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; normalize a setq
 (defun normexp_setq (recv env ncx psloc)
-  (assertmsg "check setq recv" (is_a recv class_src_setq))
-  (assertmsg "check env" (is_a env class_environment))
-  (assertmsg "check nctxt" (is_a ncx class_normcontext))
+  (assert_msg "check setq recv" (is_a recv class_src_setq))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check nctxt" (is_a ncx class_normcontext))
   (debug_msg recv "normexp setq recv")
   (let ( (sloc   (unsafe_get_field :src_loc recv))
 	 (svar   (unsafe_get_field :sstq_var recv))
 	 (sexp   (unsafe_get_field :sstq_expr recv)) ) 
-    (assertmsg "check svar" (is_a svar class_symbol))
+    (assert_msg "check svar" (is_a svar class_symbol))
     (let ( (nvar (normexp_symbol svar env ncx sloc)) 
 	   (varctyp (get_ctype nvar env))
 	   )
@@ -6549,9 +6549,9 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;; normalize a make_instance
 (defun normexp_make_instance (recv env ncx psloc)
-  (assertmsg "check make_instance recv" (is_a recv class_src_make_instance))
-  (assertmsg "check env" (is_a env class_environment))
-  (assertmsg "check nctxt" (is_a ncx class_normcontext))
+  (assert_msg "check make_instance recv" (is_a recv class_src_make_instance))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check nctxt" (is_a ncx class_normcontext))
   (debug_msg recv "normexp_make_instance recv" )
   (let ( (sloc (unsafe_get_field :src_loc recv))
 	 (sclass (unsafe_get_field :smins_class recv))
@@ -6570,7 +6570,7 @@
 	    (multiple_map 
 	     sfields 
 	     (lambda (curflda :long curk)
-	       (assertmsg "check curflda" (is_a curflda class_src_fieldassign))
+	       (assert_msg "check curflda" (is_a curflda class_src_fieldassign))
 	       (let ( (curfloc (unsafe_get_field :src_loc curflda))
 		      (curfield (unsafe_get_field :sfla_field curflda))
 		      (curexp (unsafe_get_field :sfla_expr curflda)) )
@@ -6578,7 +6578,7 @@
 		 (multicall
 		  (nexp nbind)
 		  (normal_exp curexp env ncx curfloc)
-		  (assertmsg "check nbind" (is_list_or_null nbind))
+		  (assert_msg "check nbind" (is_list_or_null nbind))
 		  (list_append2list bindlist  nbind)
 		  (make_instance class_nrep_fieldassign
 				 :nrep_loc curfloc
@@ -6618,35 +6618,35 @@
 ;;;;;; normalize a forever
 
 (defun normexp_forever (recv env ncx psloc)
-  (assertmsg "check forever recv" (is_a recv class_src_forever))
-  (assertmsg "check env" (is_a env class_environment))
-  (assertmsg "check nctxt" (is_a ncx class_normcontext))
+  (assert_msg "check forever recv" (is_a recv class_src_forever))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check nctxt" (is_a ncx class_normcontext))
   (debug_msg recv "normexp_forever recv" )
   (let ( (sloc   (unsafe_get_field :src_loc recv))
 	 (slbind (unsafe_get_field :slabel_bind recv))
 	 (sbody (unsafe_get_field :sfrv_body recv))
 	 (newenv (fresh_env env))
 	 )
-    (assertmsg "check slbind" (is_a slbind class_label_binding))
+    (assert_msg "check slbind" (is_a slbind class_label_binding))
     (put_env newenv slbind)
     (let ( (resy (clone_symbol (unsafe_get_field :binder slbind))) )
       (debug_msg resy "normexp_forever putting resy..")
       (debug_msg slbind "..normexp_forever in slbind")
-      (assertmsg "check resy obj1" (is_object resy))
+      (assert_msg "check resy obj1" (is_object resy))
       (unsafe_put_fields slbind :labind_clonsy resy)
       (debug_msg slbind "normexp_forever updated slbind")
       (debug_msg resy "normexp_forever clonsy put resy")
-      (assertmsg "check resy" (is_a resy class_clonedsymbol))
+      (assert_msg "check resy" (is_a resy class_clonedsymbol))
       (debug_msg (unsafe_get_field :labind_clonsy slbind) "normexp_forever got1 clonsy")
-      (assertmsg "check did1 put resy" (== (unsafe_get_field :labind_clonsy slbind) resy))
-      (assertmsg "check resy obj2" (is_object resy))
+      (assert_msg "check did1 put resy" (== (unsafe_get_field :labind_clonsy slbind) resy))
+      (assert_msg "check resy obj2" (is_object resy))
       (multicall
        (nbody nbodbindings)
        (normalize_tuple sbody newenv ncx sloc)
        (debug_msg slbind "normexp_forever again slbind")
-       (assertmsg "check did2 put resy" (== (unsafe_get_field :labind_clonsy slbind) resy))
+       (assert_msg "check did2 put resy" (== (unsafe_get_field :labind_clonsy slbind) resy))
        (debug_msg (unsafe_get_field :labind_clonsy slbind) "normexp_forever got2 clonsy")
-       (assertmsg "check size slbind" (<i (get_int labind_clonsy) (object_length slbind)))
+       (assert_msg "check size slbind" (<i (get_int labind_clonsy) (object_length slbind)))
        (let (
 	     (resbody (make_tuple1 discr_multiple 
 				   (wrap_normal_letseq nbody nbodbindings sloc)))
@@ -6682,16 +6682,16 @@
 ;;; the normalization of an exit is a local variable of ctype_void
 ;;; this enables detection of applications like (foo (exit 2))
 (defun normexp_exit (recv env ncx psloc)
-  (assertmsg "check exit recv" (is_a recv class_src_exit))
-  (assertmsg "check env" (is_a env class_environment))
-  (assertmsg "check nctxt" (is_a ncx class_normcontext))
+  (assert_msg "check exit recv" (is_a recv class_src_exit))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check nctxt" (is_a ncx class_normcontext))
   (debug_msg recv "normexp_exit recv")
   (let ( (sloc   (unsafe_get_field :src_loc recv))
 	 (slbind (unsafe_get_field :slabel_bind recv))
 	 (sbody (unsafe_get_field :sexi_body recv))
 	 (newenv (fresh_env env))
 	 )
-    (assertmsg "check slbind" (is_a slbind class_label_binding))
+    (assert_msg "check slbind" (is_a slbind class_label_binding))
     (put_env newenv slbind)
     (multicall
      (nbody nbodbindings)
@@ -6726,8 +6726,8 @@
 ;;;;;; replace in a tupe of normalized stuff the last with a return 
 ;;;;;; for normalization of defun-s or lambda-s
 (defun replace_last_by_return (tup env sloc)
-  (assertmsg "check tup" (is_multiple tup))
-  (assertmsg "check env" (is_a env class_environment))
+  (assert_msg "check tup" (is_multiple tup))
+  (assert_msg "check env" (is_a env class_environment))
   (let ( (:long tuplen (multiple_length tup)) 
 	 (lastcomp (if (>i tuplen 0) (multiple_nth tup (-i tuplen 1)))) )
     (cond 
@@ -6817,9 +6817,9 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;; normalize a DEFUN
 (defun normexp_defun (recv  env ncx psloc)
-  (assertmsg "check defun recv" (is_a recv class_src_defun))
-  (assertmsg "check env" (is_a env class_environment))
-  (assertmsg "check nctxt" (is_a ncx class_normcontext))
+  (assert_msg "check defun recv" (is_a recv class_src_defun))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check nctxt" (is_a ncx class_normcontext))
   (debug_msg recv "normexp_defun recv")
   (let ( (sloc (unsafe_get_field :src_loc recv))
 	 (snam (unsafe_get_field :sdef_name recv))
@@ -6859,12 +6859,12 @@
 		       :nctx_symbcachemap (make_mapobject discr_mapobjects 40))
     (add_nctx_data ncx ndatarout)
     (add_nctx_data ncx ndataclos)
-    (assertmsg "check sfubind" (is_a sfubind class_function_binding))
+    (assert_msg "check sfubind" (is_a sfubind class_function_binding))
     (unsafe_put_fields nproc :nrpro_datarout ndatarout :nrpro_dataclos ndataclos)
     (multiple_every 
      sformals
      (lambda (fbi :long ix)
-       (assertmsg "check fbi" (is_a fbi class_formal_binding))
+       (assert_msg "check fbi" (is_a fbi class_formal_binding))
        (put_env newenv fbi)))
     (unsafe_put_fields newenv :env_proc nproc)
     ;; add nproc into ncx
@@ -6889,7 +6889,7 @@
 	      closblis
 	      discr_multiple
 	      (lambda (bnd)
-		(assertmsg "normexp_defun check bnd" (is_a bnd class_any_binding))
+		(assert_msg "normexp_defun check bnd" (is_a bnd class_any_binding))
 		(let ( (sy (unsafe_get_field :binder bnd)) 
 		       ;; since sy is a symbol, its normalized form does not add any binding
 		       ;; we normalize it in the *old* environment, not the new one
@@ -6911,9 +6911,9 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;; normalize a LAMBDA
 (defun normexp_lambda (recv env ncx psloc)
-  (assertmsg "check lambda recv" (is_a recv class_src_lambda))
-  (assertmsg "check env" (is_a env class_environment))
-  (assertmsg "check nctxt" (is_a ncx class_normcontext))
+  (assert_msg "check lambda recv" (is_a recv class_src_lambda))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check nctxt" (is_a ncx class_normcontext))
   (debug_msg recv "normexp_lambda recv")
   (let ( (sloc (unsafe_get_field :src_loc recv))
 	 (sargs (unsafe_get_field :slam_argbind recv))
@@ -6953,7 +6953,7 @@
     (multiple_every
      sargs
      (lambda (fbi :long ix)
-       (assertmsg "check fbi" (is_a fbi class_formal_binding))
+       (assert_msg "check fbi" (is_a fbi class_formal_binding))
        (put_env newenv fbi)))
     (unsafe_put_fields newenv :env_proc nproc)
     ;; add nproc into ncx
@@ -6987,7 +6987,7 @@
 	    (list_to_multiple closedblist
 			      discr_multiple
 			      (lambda (bnd)
-				(assertmsg "normexp_lambda check bnd" (is_a bnd class_any_binding))
+				(assert_msg "normexp_lambda check bnd" (is_a bnd class_any_binding))
 				(let ( (sy (unsafe_get_field :binder bnd)) 
 				       ;; since sy is a symbol, its normalized form does not add any binding
 				       ;; we normalize it in the *old* environment, not the new one
@@ -7019,9 +7019,9 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defun normexp_multicall (recv env ncx psloc)
-  (assertmsg "check multicall recv" (is_a recv class_src_multicall))
-  (assertmsg "check env" (is_a env class_environment))
-  (assertmsg "check nctxt" (is_a ncx class_normcontext))
+  (assert_msg "check multicall recv" (is_a recv class_src_multicall))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check nctxt" (is_a ncx class_normcontext))
   (debug_msg recv "normexp_multicall recv")
   (let ( (sloc (unsafe_get_field :src_loc recv))
 	 (sresbind (unsafe_get_field :smulc_resbind recv))
@@ -7037,7 +7037,7 @@
 ;;; since ncall is normalized, it is a class_nrep_locsymocc and
 ;;; the last binding in ncallbindings is a class_normlet_binding
 ;;; whose binder is the nocc_symb of the ncall
-     (assertmsg "normexp_multicall check ncall" (is_a ncall class_nrep_locsymocc))
+     (assert_msg "normexp_multicall check ncall" (is_a ncall class_nrep_locsymocc))
      (let ( (ncallsym (unsafe_get_field :nocc_symb ncall)) 
 	    (nboxcall (make_box discr_box ())) ;box to contain the real normalized call
 	    (nrealcall ())		       ;the real call
@@ -7046,7 +7046,7 @@
        (list_iterate_test	;loop exited when cbnd is for ncallsym
 	ncallbindings
 	(lambda (cbnd)
-	  (assertmsg "normexp_multicall check cbnd" (is_a cbnd class_normlet_binding))
+	  (assert_msg "normexp_multicall check cbnd" (is_a cbnd class_normlet_binding))
 	  (if (== ncallsym (unsafe_get_field :binder cbnd))
 	      (let ( (nrealcall (unsafe_get_field :letbind_expr cbnd)) )
 		(box_put nboxcall nrealcall)
@@ -7089,7 +7089,7 @@
 ;;; handle differently apply & sends
 	    (cond
 	     ( (is_a scall class_src_apply)
-	       (assertmsg "normexp_multicall check nrealcall apply" (is_a nrealcall class_nrep_apply))
+	       (assert_msg "normexp_multicall check nrealcall apply" (is_a nrealcall class_nrep_apply))
 	       (let ( (nres (make_instance class_nrep_multiapply
 					   :nrep_loc sloc
 					   :napp_fun (unsafe_get_field :napp_fun nrealcall)
@@ -7105,7 +7105,7 @@
 	       )
 	     ( (is_a scall class_src_msend)
 	       (debug_msg nrealcall "normexp_multicall multicall nrealcall")
-	       (assertmsg "normexp_multicall check nrealcall send" (is_a nrealcall class_nrep_msend))
+	       (assert_msg "normexp_multicall check nrealcall send" (is_a nrealcall class_nrep_msend))
 	       (let ( (nres (make_instance class_nrep_multimsend
 					   :nrep_loc sloc
 					   :nsend_sel (unsafe_get_field :nsend_sel nrealcall)
@@ -7133,8 +7133,8 @@
 
 ;;; create the normal predef (or fail with a msg) 
 (defun normal_predef (pred ncx sloc msg)
-  (assertmsg "check pred" (is_object pred))
-  (assertmsg "check nctxt"  (is_a ncx class_normcontext))
+  (assert_msg "check pred" (is_object pred))
+  (assert_msg "check nctxt"  (is_a ncx class_normcontext))
   (let ( (predefmap (unsafe_get_field :nctx_predefmap ncx)) 
 	 (brk (mapobject_get predefmap pred)) )
     (if (or (is_integerbox brk) (is_a brk class_symbol))
@@ -7153,8 +7153,8 @@
 ;; retrieve or create the normalized datasym for a symbol
 (defun normal_symbol_data (sym ncx sloc)
   ;; sym should be strictly a symbol (not be in a subclass of class_symbol!)
-  (assertmsg "check symb" (== (discrim sym) class_symbol))
-  (assertmsg "check nctxt" (is_a ncx class_normcontext))
+  (assert_msg "check symb" (== (discrim sym) class_symbol))
+  (assert_msg "check nctxt" (is_a ncx class_normcontext))
   (debug_msg sym "normal_symbol_data start sym")
   (let ( (valmap  (unsafe_get_field :nctx_valmap ncx))
 	 (osydata (mapobject_get valmap sym)) )
@@ -7193,8 +7193,8 @@
 ;; retrieve or create the normalized datakeyword for a keyword
 (defun normal_keyword_data (keyw ncx sloc)
   ;; keyw should be strictly a keyword (not be in a subclass of class_keyword!)
-  (assertmsg "check keywb" (== (discrim keyw) class_keyword))
-  (assertmsg "check nctxt" (is_a ncx class_normcontext))
+  (assert_msg "check keywb" (== (discrim keyw) class_keyword))
+  (assert_msg "check nctxt" (is_a ncx class_normcontext))
   (let ( (valmap  (unsafe_get_field :nctx_valmap ncx))
 	 (osydata (mapobject_get valmap keyw)) )
     (if osydata osydata
@@ -7226,7 +7226,7 @@
 
 ;; create the tuples of slots of a datainstance for a particular class
 (defun create_data_slots (cla)
-  (assertmsg "check cla" (is_a cla class_class)) 
+  (assert_msg "check cla" (is_a cla class_class)) 
   (debug_msg cla "create_data_slots cla")
   (let ( (tupslo 
 	  (make_multiple discr_multiple  (multiple_length (unsafe_get_field :class_fields cla)))) 
@@ -7237,8 +7237,8 @@
 
 ;; fill a slot of a datainstance
 (defun fill_data_slot (di field val)
-  (assertmsg "check di" (is_a di class_nrep_datainstance))
-  (assertmsg "check field" (is_a field class_field))
+  (assert_msg "check di" (is_a di class_nrep_datainstance))
+  (assert_msg "check field" (is_a field class_field))
   (let ( (:long fix (obj_num field))
 	 (slots (unsafe_get_field :ninst_slots di)) )
     (multiple_put_nth slots fix val)
@@ -7247,14 +7247,14 @@
 ;;;;;; normalize a QUOTE-d symbol
 
 (defun normexp_quote (recv env ncx psloc)
-  (assertmsg "check quote recv" (is_a recv class_src_quote))
-  (assertmsg "check env" (is_a env class_environment))
-  (assertmsg "check nctxt" (is_a ncx class_normcontext))
+  (assert_msg "check quote recv" (is_a recv class_src_quote))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check nctxt" (is_a ncx class_normcontext))
   ;(debug_msg ncx "normexp_quote ncx")
   (debug_msg recv "normexp_quote recv")
   (let ( (sloc   (unsafe_get_field :src_loc recv))
 	 (quotedsy (unsafe_get_field :squoted recv)) )
-    (assertmsg "check quotedsy" (== (discrim quotedsy) class_symbol))
+    (assert_msg "check quotedsy" (== (discrim quotedsy) class_symbol))
     (let ( (sdata (normal_symbol_data quotedsy ncx psloc))
 	   (curproc (unsafe_get_field :nctx_curproc ncx))
 	   )
@@ -7277,9 +7277,9 @@
 
 ;;;;;; normalize a COMMENT
 (defun normexp_comment (recv env ncx psloc)
-  (assertmsg "check comment recv" (is_a recv class_src_comment))
-  (assertmsg "check env" (is_a env class_environment))
-  (assertmsg "check nctxt" (is_a ncx class_normcontext))
+  (assert_msg "check comment recv" (is_a recv class_src_comment))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check nctxt" (is_a ncx class_normcontext))
   (debug_msg recv "normexp_comment start recv")
   (let ( (sloc (unsafe_get_field :src_loc recv))
 	 (scomm (unsafe_get_field :scomm_str recv))
@@ -7300,7 +7300,7 @@
 			       :nocc_bind cbind))
 	 (bindlist (make_list discr_list))
 	 )
-    (if scomm (assertmsg "check scomm" (is_string scomm)))
+    (if scomm (assert_msg "check scomm" (is_string scomm)))
     (list_append bindlist cbind)
     (debug_msg ncomm "normexp_comment end ncomm")
     (debug_msg clocc "normexp_comment return clocc")
@@ -7311,15 +7311,15 @@
 
 ;;;;;; normalize a keyword
 (defun normexp_keyword (recv env ncx psloc)
-  (assertmsg "check keyword recv" (is_a recv class_keyword))
-  (assertmsg "check env" (is_a env class_environment))
-  (assertmsg "check nctxt" (is_a ncx class_normcontext))
+  (assert_msg "check keyword recv" (is_a recv class_keyword))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check nctxt" (is_a ncx class_normcontext))
   ;;(debug_msg ncx "normexp_keyword ncx")
   (debug_msg recv "normexp_keyword recv")
   (let ( (kdata (normal_keyword_data recv ncx psloc)) 
 	 (curproc (unsafe_get_field :nctx_curproc ncx)) 
 	 )
-    (assertmsg "check curproc" (is_a curproc class_nrep_anyproc))
+    (assert_msg "check curproc" (is_a curproc class_nrep_anyproc))
     (if (is_a curproc class_nrep_routproc)
 	(let (
 	      (constlist (unsafe_get_field :nrpro_const curproc))
@@ -7344,9 +7344,9 @@
 
 ;;;;;; normalize a DEFPRIMITIVE
 (defun normexp_defprimitive (recv env ncx psloc)
-  (assertmsg "check defprimitive recv" (is_a recv class_src_defprimitive))
-  (assertmsg "check env" (is_a env class_environment))
-  (assertmsg "check nctxt" (is_a ncx class_normcontext))
+  (assert_msg "check defprimitive recv" (is_a recv class_src_defprimitive))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check nctxt" (is_a ncx class_normcontext))
   (let ( (sloc   (unsafe_get_field :src_loc recv))
 	 (sname  (unsafe_get_field :sdef_name recv))
 	 (sargs  (unsafe_get_field :sformal_args recv))
@@ -7387,7 +7387,7 @@
     (multiple_every
      sargs
      (lambda (fargb :long ix)
-       (assertmsg "check fargb" (is_a fargb class_formal_binding))
+       (assert_msg "check fargb" (is_a fargb class_formal_binding))
        (let ( (ftyp (unsafe_get_field :fbind_type fargb)) 
 	      (fsymb (unsafe_get_field :binder fargb))
 	      (fdataslot (create_data_slots class_formal_binding))
@@ -7403,7 +7403,7 @@
 	      (fsymbdata (normal_symbol_data fsymb ncx sloc))
 	      (ftypdata (normal_predef ftyp ncx sloc "primitive arg type"))
 	      )
-	 (assertmsg "check ftyp" (is_a ftyp class_ctype))
+	 (assert_msg "check ftyp" (is_a ftyp class_ctype))
 	 (add_nctx_data ncx fargdata)
 	 (fill_data_slot fargdata binder fsymbdata)
 	 (fill_data_slot fargdata fbind_type ftypdata)
@@ -7455,9 +7455,9 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;; normalize a DEFCLASS
 (defun normexp_defclass (recv env ncx psloc)
-  (assertmsg "check defclass recv" (is_a recv class_src_defclass))
-  (assertmsg "check env" (is_a env class_environment))
-  (assertmsg "check nctxt" (is_a ncx class_normcontext))
+  (assert_msg "check defclass recv" (is_a recv class_src_defclass))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check nctxt" (is_a ncx class_normcontext))
   (let ( (sloc   (unsafe_get_field :src_loc recv))
 	 (sname  (unsafe_get_field :sdef_name recv))
 	 (spredef (unsafe_get_field :sobj_predef recv))
@@ -7465,7 +7465,7 @@
 	 (superbind (unsafe_get_field :sclass_superbind recv))
 	 (sfldbinds (unsafe_get_field :sclass_fldbinds recv))
 	 )
-    (assertmsg "check sclabind" (is_a sclabind class_class_binding))
+    (assert_msg "check sclabind" (is_a sclabind class_class_binding))
     (let ( (claobj (unsafe_get_field :cbind_class sclabind)) 
 	   (namsymdata (normal_symbol_data sname ncx sloc))
 	   (namstrdata
@@ -7511,7 +7511,7 @@
 	   (superdata (if (is_a superbind class_any_binding) 
 			  (normal_exp (unsafe_get_field :binder superbind) env ncx sloc)))
 	   )
-      (assertmsg "check claobj" (is_a claobj class_class))
+      (assert_msg "check claobj" (is_a claobj class_class))
       (add_nctx_data ncx cladata)
       (add_nctx_data ncx namstrdata)
       (add_nctx_data ncx ancdata)
@@ -7519,7 +7519,7 @@
       (fill_data_slot cladata named_name namstrdata)
       (fill_data_slot cladata class_ancestors ancdata)
       (fill_data_slot cladata class_fields flddata)
-      (assertmsg "check sclabind" (is_a sclabind class_class_binding))
+      (assert_msg "check sclabind" (is_a sclabind class_class_binding))
       (unsafe_put_fields sclabind :cbind_cladata cladata)
       ;; for each field which is not own, make a data to copy it from the superclass
       (setq ix 0)
@@ -7546,12 +7546,12 @@
       (forever loopownfield
 	       (if (>=i ix nbownfld) (exit loopownfield))
 	       (let ( (ownfldbind (multiple_nth sfldbinds ix)) )
-		 (assertmsg "check ownfldbind" (is_a ownfldbind class_field_binding))
+		 (assert_msg "check ownfldbind" (is_a ownfldbind class_field_binding))
 		 (let ( (ownfldsym (unsafe_get_field :binder ownfldbind))
 			(ownfld (unsafe_get_field :flbind_field ownfldbind))
 			)
-		   (assertmsg "check ownfldsym" (is_a ownfldsym class_symbol))
-		   (assertmsg "check ownfld" (is_a ownfld class_field))
+		   (assert_msg "check ownfldsym" (is_a ownfldsym class_symbol))
+		   (assert_msg "check ownfld" (is_a ownfld class_field))
 		   (let ( (ownfldsymdata (normal_symbol_data ownfldsym ncx sloc)) 
 			  (ownfldslots (make_multiple discr_multiple (obj_len ownfld)))
 			  (ownflstrdata 
@@ -7610,9 +7610,9 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;; normalize a DEFINSTANCE
 (defun normexp_definstance (recv env ncx psloc)
-  (assertmsg "check definstance recv" (is_a recv class_src_definstance))
-  (assertmsg "check env" (is_a env class_environment))
-  (assertmsg "check nctxt" (is_a ncx class_normcontext))
+  (assert_msg "check definstance recv" (is_a recv class_src_definstance))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check nctxt" (is_a ncx class_normcontext))
   (debug_msg recv "normexp_definstance recv")
   (let ( (sloc   (unsafe_get_field :src_loc recv))
 	 (sname  (unsafe_get_field :sdef_name recv))
@@ -7632,7 +7632,7 @@
 		       (normal_exp sinstclasym env ncx sloc)))
 	 )
     (debug_msg bindins "normexp_definstance bindins")
-    (assertmsg "check bindins" (is_a  bindins class_instance_binding))
+    (assert_msg "check bindins" (is_a  bindins class_instance_binding))
     (if (not (is_a icladata class_nrep))
 	(progn
 	  (error_strv sloc "invalid class in definstance" (unsafe_get_field :named_name sname))
@@ -7644,8 +7644,8 @@
      (:else
       (error_strv sloc "bad predef in DEFINSTANCE"  (unsafe_get_field :named_name sname))
       (return (the_null))))
-    (assertmsg "check sinstclass" (is_a sinstclass class_class))
-    (assertmsg "check sinstclasym" (is_a sinstclasym class_symbol))
+    (assert_msg "check sinstclass" (is_a sinstclass class_class))
+    (assert_msg "check sinstclasym" (is_a sinstclasym class_symbol))
     (let (
 	  (slotup (make_multiple discr_multiple
 				 (multiple_length (unsafe_get_field :class_fields sinstclass))))
@@ -7667,13 +7667,13 @@
        sinstfields
        (lambda (flda :long ix)
 	 (debug_msg flda "normexp_definstance flda")
-	 (assertmsg "check flda" (is_a flda class_src_fieldassign))
+	 (assert_msg "check flda" (is_a flda class_src_fieldassign))
 	 (let ( (curfld (unsafe_get_field :sfla_field flda))
 		(curexp (unsafe_get_field :sfla_expr flda))
 		(:long curoff (obj_num curfld))
 		)
-	   (assertmsg "check curfld" (is_a curfld class_field))
-	   (assertmsg "good curfld"
+	   (assert_msg "check curfld" (is_a curfld class_field))
+	   (assert_msg "good curfld"
 		       (== (multiple_nth (unsafe_get_field :class_fields sinstclass) curoff) 
 			   curfld))  
 	   (debug_msg curexp "normexp_definstance field curexp")
@@ -7702,9 +7702,9 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;; normalize a DEFSELECTOR
 (defun normexp_defselector (recv env ncx psloc)
-  (assertmsg "check defselector recv" (is_a recv class_src_defselector))
-  (assertmsg "check env" (is_a env class_environment))
-  (assertmsg "check nctxt" (is_a ncx class_normcontext))
+  (assert_msg "check defselector recv" (is_a recv class_src_defselector))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check nctxt" (is_a ncx class_normcontext))
   (debug_msg recv "normexp defselector recv")
   (let ( 
 	(sloc (unsafe_get_field :src_loc recv))
@@ -7724,7 +7724,7 @@
 	(icladata (if (is_a sinstclasym class_symbol) 
 		      (normal_exp sinstclasym env ncx sloc)))
 	)
-    (assertmsg "check bindsel" (is_a bindsel class_selector_binding))
+    (assert_msg "check bindsel" (is_a bindsel class_selector_binding))
     (if (not (is_a icladata class_nrep))
 	(progn
 	  (error_strv sloc "invalid class in defselector" (unsafe_get_field :named_name sname))
@@ -7733,9 +7733,9 @@
 	(if (not (or (is_integerbox spredef) (is_a spredef class_symbol)))
 	    (progn (error_strv sloc "bad predef in defselector"  (unsafe_get_field :named_name sname))
 		   (return (the_null)))))
-    (assertmsg "check sinstclass" (is_a sinstclass class_class))
-    (assertmsg "check sinstclasym" (is_a sinstclasym class_symbol))
-    (assertmsg "check sname" (is_a sname class_symbol))
+    (assert_msg "check sinstclass" (is_a sinstclass class_class))
+    (assert_msg "check sinstclasym" (is_a sinstclasym class_symbol))
+    (assert_msg "check sname" (is_a sname class_symbol))
     (let (
 	  (slotup (make_multiple discr_multiple
 				 (multiple_length (unsafe_get_field :class_fields sinstclass))))
@@ -7760,13 +7760,13 @@
       (multiple_every
        sinstfields
        (lambda (flda :long ix)
-	 (assertmsg "check flda" (is_a flda class_src_fieldassign))
+	 (assert_msg "check flda" (is_a flda class_src_fieldassign))
 	 (let ( (curfld (unsafe_get_field :sfla_field flda))
 		(curexp (unsafe_get_field :sfla_expr flda))
 		(:long curoff (obj_num curfld))
 		)
-	   (assertmsg "check curfld" (is_a curfld class_field))
-	   (assertmsg "good curfld"
+	   (assert_msg "check curfld" (is_a curfld class_field))
+	   (assert_msg "good curfld"
 		       (== (multiple_nth (unsafe_get_field :class_fields sinstclass) curoff) 
 			   curfld))  
 	   (multicall
@@ -7813,7 +7813,7 @@
   (outcstring_err "* compilobj unimplemented reciever class ")
   (let ( (discr (discrim recv)) ) (outstr_err (unsafe_get_field :named_name discr)))
   (outnewline_err)
-  (assertmsg "@@compile_obj should be implemented in nrep-s subclasses" ())
+  (assert_msg "@@compile_obj should be implemented in nrep-s subclasses" ())
   )
 (install_method class_nrep compile_obj compilobj_catchall_nrep)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -7830,7 +7830,7 @@
   (outcstring_err "* putobjdest unimplemented reciever class ")
   (let ( (discr (discrim recv)) ) (outstr_err (unsafe_get_field :named_name discr)))
   (outnewline_err)
-  (assertmsg "@@ unexpected catchall putobjdest objcod" ()))
+  (assert_msg "@@ unexpected catchall putobjdest objcod" ()))
 (install_method class_objcode put_objdest putobjdest_catchall_objcode)
 
 
@@ -7840,12 +7840,12 @@
   (outcstring_err "* putobjdest unimplemented reciever discriminant ")
   (let ( (discr (discrim recv)) ) (outstr_err (unsafe_get_field :named_name discr)))
   (outnewline_err)
-  (assertmsg "@@ unexpected catchall putobjdest anydiscr" ()))
+  (assert_msg "@@ unexpected catchall putobjdest anydiscr" ()))
 (install_method discr_anyrecv put_objdest putobjdest_catchall_anydiscr)
 
 
 (defun getctype_objvalue (recv env)
-  (assertmsg "check recv objvalue" (is_a recv class_objvalue))
+  (assert_msg "check recv objvalue" (is_a recv class_objvalue))
   (unsafe_get_field :obv_type recv))
 (install_method class_objvalue get_ctype getctype_objvalue)
 
@@ -7857,7 +7857,7 @@
 )
 (defun outdeclinit_root (recv sbuf)
   (debug_msg recv "outdeclinit_root recv")
-  (assertmsg "outdeclinit_root unimplemented catchall" ())
+  (assert_msg "outdeclinit_root unimplemented catchall" ())
 )
 (install_method class_root output_c_declinit outdeclinit_root)
 
@@ -7875,12 +7875,12 @@
 
 
 (defun outpucod_objinielem (obielem  declbuf implbuf :long depth)
-  (assertmsg "check obelem" (is_a obielem class_objinitelem))
+  (assert_msg "check obelem" (is_a obielem class_objinitelem))
   ;;(debug_msg obielem "outpucod_objinielem obielem")
   (let ( (olocvar (unsafe_get_field :oie_locvar obielem))
 	 (cnam (unsafe_get_field :oie_cname obielem)) )
-    (assertmsg "check cnam" (is_string cnam))
-    (assertmsg "check olocvar"  olocvar)
+    (assert_msg "check cnam" (is_string cnam))
+    (assert_msg "check olocvar"  olocvar)
     (add2sbuf_strconst implbuf "/*obielem ")
     (add2sbuf_string implbuf cnam)
     (add2sbuf_strconst implbuf "*/ ")
@@ -7896,7 +7896,7 @@
 )
 (defun outcinitfill_root (recv declbuf implbuf :long depth)
   (debug_msg recv "outcinitfill_root recv")
-  (assertmsg "outcinitfill_root unimplemented catchall" ())
+  (assert_msg "outcinitfill_root unimplemented catchall" ())
 )
 (install_method class_root output_c_initfill outcinitfill_root)
 
@@ -7915,7 +7915,7 @@
 
 ;;; output a predef
 (defun outpucod_predef (obpred declbuf implbuf :long depth)
-  (assertmsg "check obpredef" (is_a obpred class_objpredef))
+  (assert_msg "check obpredef" (is_a obpred class_objpredef))
   (let ( (obpr (unsafe_get_field :obpredef obpred)) )
     (cond 
      ( (is_integerbox obpr)
@@ -7930,14 +7930,14 @@
        )
      ( :else
        (debug_msg obpredef "bad obpredef")
-       (assertmsg "invalid obpredef" ())
+       (assert_msg "invalid obpredef" ())
        )
      )))
 (install_method class_objpredef output_c_code outpucod_predef)
 
 ;;;; output a nil
 (defun outpucod_nil (obnil  declbuf implbuf :long depth)
-  (assertmsg "check obnil" (is_a obnil class_objnil))
+  (assert_msg "check obnil" (is_a obnil class_objnil))
   (add2sbuf_strconst implbuf "(/*nil*/NULL)"))
 (install_method class_objnil output_c_code outpucod_nil)
 
@@ -7959,7 +7959,7 @@
 
 
 (defun outcinitfill_objinitobject (recv sbuf)
-  (assertmsg "outcinitfill_objinitobject check recv" (is_a recv class_objinitobject))
+  (assert_msg "outcinitfill_objinitobject check recv" (is_a recv class_objinitobject))
   (debug_msg recv "outcinitfill_objinitobject recv")
   (let ( (odata (unsafe_get_field :oie_data recv)) 
 	 (odiscr (unsafe_get_field :oie_discr recv))
@@ -7967,7 +7967,7 @@
 	 (olocvar (unsafe_get_field :oie_locvar recv))
 	 (oiopredef (unsafe_get_field :oio_predef recv))
 	 )
-    (assertmsg "check odata" (is_a odata class_nrep_datainstance))
+    (assert_msg "check odata" (is_a odata class_nrep_datainstance))
     (let ( (odloc (unsafe_get_field :nrep_loc odata))
 	   (odhash (unsafe_get_field :ninst_hash odata))
 	   (odslots (unsafe_get_field :ninst_slots odata))
@@ -8011,7 +8011,7 @@
 		    (add2sbuf_string sbuf (unsafe_get_field :named_name odobnum)))
 		  (:else 
 		   (debug_msg odobnum "outcinitfill_objinitobject unexpected odobnum")
-		   (assertmsg "outcinitfill_objinitobject unexpected odobnum" ())
+		   (assert_msg "outcinitfill_objinitobject unexpected odobnum" ())
 		   ))
 	    (add2sbuf_strconst sbuf ";")
 	    (add2sbuf_indentnl sbuf 1)
@@ -8045,8 +8045,8 @@
 
 
 (defun outcinitpredef_objinitobject (recv sbuf)
-  (assertmsg "outcinitpredef_objinitobject check recv" (is_a recv class_objinitobject))
-  (assertmsg "outcinitpredef_objinitobject check sbuf" (is_strbuf sbuf))
+  (assert_msg "outcinitpredef_objinitobject check recv" (is_a recv class_objinitobject))
+  (assert_msg "outcinitpredef_objinitobject check sbuf" (is_strbuf sbuf))
   (debug_msg recv "outcinitpredef_objinitobject recv")
   (let ( (odata (unsafe_get_field :oie_data recv)) 
 	 (odiscr (unsafe_get_field :oie_discr recv))
@@ -8054,7 +8054,7 @@
 	 (olocvar (unsafe_get_field :oie_locvar recv))
 	 (oiopredef (unsafe_get_field :oio_predef recv))
 	 )
-    (assertmsg "check odata" (is_a odata class_nrep_datainstance))
+    (assert_msg "check odata" (is_a odata class_nrep_datainstance))
     (debug_msg oiopredef "outcinitpredef_objinitobject oiopredef")
     (if (null oiopredef) (return (the_null)))
     (if (is_a oiopredef class_nrep_nil) (return (the_null)))
@@ -8086,7 +8086,7 @@
 	 (return (the_null)))
        ( :else
 	 (debug_msg oiopredef "outcinitpredef_objinitobject unexpected oiopredef")
-	 (assertmsg "outcinitpredef_objinitobject unexpected oiopredef" ())
+	 (assert_msg "outcinitpredef_objinitobject unexpected oiopredef" ())
 	 )))
     )
   )
@@ -8106,7 +8106,7 @@
 
 
 (defun outcinitfill_objinitmultiple (recv sbuf)
-  (assertmsg "outcinitfill_objinitmultiple check recv" (is_a recv class_objinitmultiple))
+  (assert_msg "outcinitfill_objinitmultiple check recv" (is_a recv class_objinitmultiple))
   (debug_msg recv "outcinitfill_objinitmultiple recv")
   (let ( (cnam (unsafe_get_field :oie_cname recv)) 
 	 (olocvar (unsafe_get_field :oie_locvar recv))
@@ -8147,7 +8147,7 @@
 (install_method class_objinitclosure output_c_declinit outdeclinit_objinitclosure)
 
 (defun outcinitfill_objinitclosure (recv sbuf)
-  (assertmsg "outcinitfill_objinitclosure check recv" (is_a recv class_objinitclosure))
+  (assert_msg "outcinitfill_objinitclosure check recv" (is_a recv class_objinitclosure))
   (debug_msg recv "outcinitfill_objinitclosure recv")
   (let ( (cnam (unsafe_get_field :oie_cname recv)) 
 	 (olocvar (unsafe_get_field :oie_locvar recv))
@@ -8192,7 +8192,7 @@
 
 
 (defun outcinitfill_objinitroutine (recv sbuf)
-  (assertmsg "outcinitfill_objinitroutine check recv" (is_a recv class_objinitroutine))
+  (assert_msg "outcinitfill_objinitroutine check recv" (is_a recv class_objinitroutine))
   (debug_msg recv "outcinitfill_objinitroutine recv")
   (let ( (cnam (unsafe_get_field :oie_cname recv)) 
 	 (ipro (unsafe_get_field :oir_procroutine recv))
@@ -8251,7 +8251,7 @@
     (if ipro
 	(progn
 	  (debug_msg ipro "outcinitfill_objinitroutine ipro")
-	  (assertmsg "check ipro" (is_a ipro class_named))
+	  (assert_msg "check ipro" (is_a ipro class_named))
 	  (add2sbuf_strconst sbuf "*(basilysroutfun_t **) (cdat->")
 	  (add2sbuf_string sbuf cnam)
 	  (add2sbuf_strconst sbuf ".routaddr) = ")
@@ -8280,7 +8280,7 @@
 
 
 (defun outcinitfill_objinitstring (recv sbuf)
-  (assertmsg "outcinitfill_objinitstring check recv" (is_a recv class_objinitstring))
+  (assert_msg "outcinitfill_objinitstring check recv" (is_a recv class_objinitstring))
   (debug_msg recv "outcinitfill_objinitstring recv")
   (let ( (cnam (unsafe_get_field :oie_cname recv)) 
 	 (olocvar (unsafe_get_field :oie_locvar recv))
@@ -8324,7 +8324,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;; common put destination of objdestinstr....
 (defun putobjdest_objdestinstr (recv desto)
-  (assertmsg "putobjdest_objdestinstr check recv" (is_a recv class_objdestinstr))
+  (assert_msg "putobjdest_objdestinstr check recv" (is_a recv class_objdestinstr))
   (debug_msg recv "putobjdest_objdestinstr recv")
   (debug_msg desto "putobjdest_objdestinstr desto@@  " )
   (let ( (destl (unsafe_get_field :obdi_destlist recv)) )
@@ -8354,7 +8354,7 @@
   (outcstring_err "* output_c_code unimplemented reciever discriminator ")
   (let ( (discr (discrim any)) ) (outstr_err (unsafe_get_field :named_name discr)))
   (outnewline_err)
-  (assertmsg "@@ outpucod_anydiscr not able to output" ())
+  (assert_msg "@@ outpucod_anydiscr not able to output" ())
 )
 (install_method discr_anyrecv output_c_code outpucod_anydiscr)
 
@@ -8370,7 +8370,7 @@
   (outcstring_err "* output_c_code unimplemented reciever class ")
   (let ( (discr (discrim anyr)) ) (outstr_err (unsafe_get_field :named_name discr)))
   (outnewline_err)
-  (assertmsg "@@ outpucod_catchall_root not able to output" ())
+  (assert_msg "@@ outpucod_catchall_root not able to output" ())
 )
 (install_method class_root output_c_code outpucod_catchall_root)
 
@@ -8507,11 +8507,11 @@
 	  (list_every 
 	   others
 	   (lambda (oloc)
-	     (assertmsg "check other oloc" (is_a oloc class_objlocv))
+	     (assert_msg "check other oloc" (is_a oloc class_objlocv))
 	     (let ( (octyp (unsafe_get_field :obv_type oloc))
 		    (oname (unsafe_get_field :obl_cname oloc))
 		    )
-	       (assertmsg "check octyp" (is_a octyp class_ctype))
+	       (assert_msg "check octyp" (is_a octyp class_ctype))
 	       (add2sbuf_string implbuf (unsafe_get_field :ctype_cname octyp))
 	       (add2sbuf_strconst implbuf " ")
 	       (add2sbuf_string implbuf oname)
@@ -8588,7 +8588,7 @@
 
 ;;; output code for a procroutine
 (defun outpucod_procroutine (prou declbuf implbuf :long depth)
-  (assertmsg "check prou" (is_a prou class_procroutineobj))
+  (assert_msg "check prou" (is_a prou class_procroutineobj))
   (let ( (onam (unsafe_get_field :named_name prou)) 
 	 (obody (unsafe_get_field :obrout_body prou))
 	 (onbval (unsafe_get_field :obrout_nbval prou))
@@ -8644,7 +8644,7 @@
     (add2sbuf_strconst implbuf "/*getargs*/")
     (add2sbuf_indentnl implbuf 0)
     (debug_msg ogargs "outpucod_procroutine output ogargs")
-    (assertmsg "check ogargs" (is_multiple ogargs))
+    (assert_msg "check ogargs" (is_multiple ogargs))
     (multiple_every
      ogargs
      (lambda (curget :long curank) 
@@ -8663,7 +8663,7 @@
     (add2sbuf_indentnl implbuf 0)
     ;; output the body
     (debug_msg obody "outpucod_procroutine output obody")
-    (assertmsg "check obody" (is_list obody))
+    (assert_msg "check obody" (is_list obody))
     (add2sbuf_strconst implbuf "/*body*/")
     (add2sbuf_indentnl implbuf 0)
     (list_every
@@ -8783,7 +8783,7 @@
 
 ;; output code for the initial routine
 (defun outpucod_initialroutine (pini declbuf implbuf :long depth)
-  (assertmsg "check pini" (is_a pini class_initialroutineobj))
+  (assert_msg "check pini" (is_a pini class_initialroutineobj))
   (add2sbuf_indentnl declbuf 0)
   (add2sbuf_indentnl declbuf 0)
   (add2sbuf_strconst declbuf "void* start_module_basilys(void*);")
@@ -8925,7 +8925,7 @@
 
 ;; output code for argument getter
 (defun outpucod_getarg (garg declbuf implbuf :long depth)
-  (assertmsg "check garg" (is_a garg class_objgetarg))
+  (assert_msg "check garg" (is_a garg class_objgetarg))
   (debug_msg garg "outpucod_getarg garg")
   (let ( (oloc (unsafe_get_field :obarg_obloc garg)) 
 	 (nloc (unsafe_get_field :obi_loc garg))
@@ -8933,13 +8933,13 @@
 	 (:long rkbind (get_int obind))
 	 (ctybind (unsafe_get_field :fbind_type obind))
 	 )
-    (assertmsg "check obind" (is_a obind class_formal_binding))
+    (assert_msg "check obind" (is_a obind class_formal_binding))
     (output_location nloc implbuf depth "getarg")
-    (assertmsg "check oloc" (is_a oloc class_objlocv))
-    (assertmsg "check ctybind" (is_a ctybind class_ctype))
+    (assert_msg "check oloc" (is_a oloc class_objlocv))
+    (assert_msg "check ctybind" (is_a ctybind class_ctype))
     (if (==i rkbind 0)
 	(progn
-	  (assertmsg "check ctybind first" (== ctybind ctype_value))
+	  (assert_msg "check ctybind first" (== ctybind ctype_value))
 	  (output_c_code oloc declbuf implbuf depth)
 	  (add2sbuf_strconst implbuf " = firstargp_;")
 	  (add2sbuf_indentnl implbuf depth)
@@ -8991,7 +8991,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; output code for objlocv
 (defun outpucod_objlocv (locv declbuf implbuf :long depth)
-  (assertmsg "check locv" (is_a locv class_objlocv))
+  (assert_msg "check locv" (is_a locv class_objlocv))
   ;; (debug_msg locv "outpucod_objlocv locv")
   (let ( 
 	(ltyp (unsafe_get_field :obv_type locv))
@@ -9021,10 +9021,10 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; output code for object closed occurrence
 (defun outpucod_objcloccv (occv  declbuf implbuf :long depth)
-  (assertmsg "check occv" (is_a occv class_objcloccv))
+  (assert_msg "check occv" (is_a occv class_objcloccv))
   (let ( (ooff (unsafe_get_field :obc_off occv))
 	 (onam (unsafe_get_field :obc_name occv)) )
-    (assertmsg "check valueness of closed occurrence" 
+    (assert_msg "check valueness of closed occurrence" 
 		(== (unsafe_get_field :obv_type occv) ctype_value))
     (add2sbuf_strconst implbuf "(/*~")
     (add2sbuf_string implbuf onam)
@@ -9038,11 +9038,11 @@
 ;;;;;;;;;;;;;;;;
 ;; output code for object const [closed] occurrence
 (defun outpucod_objconstv (ocnstv  declbuf implbuf :long depth)
-  (assertmsg "check ocnstv" (is_a ocnstv class_objconstv))
+  (assert_msg "check ocnstv" (is_a ocnstv class_objconstv))
   (debug_msg ocnstv "outpucod_objconstv ocnstv")
   (let ( (ooff (unsafe_get_field :obc_off ocnstv))
 	 (onam (unsafe_get_field :obc_name ocnstv)) )
-    (assertmsg "check valueness of const occurrence" 
+    (assert_msg "check valueness of const occurrence" 
 		(== (unsafe_get_field :obv_type ocnstv) ctype_value))
     (add2sbuf_strconst implbuf "(/*!")
     (add2sbuf_string implbuf onam)
@@ -9057,7 +9057,7 @@
 
 ;; output code for objblock
 (defun outpucod_objblock (oblo declbuf implbuf :long depth)
-  (assertmsg "check oblo" (is_a oblo class_objblock))
+  (assert_msg "check oblo" (is_a oblo class_objblock))
   (debug_msg oblo "outpucod_objblock oblo")
   (output_location (unsafe_get_field :obi_loc oblo) implbuf depth "block")
   (let ( (bodyl (unsafe_get_field :oblo_bodyl oblo))
@@ -9100,8 +9100,8 @@
 
 ;;; add a cname for a cloned identifier into a buffer
 (defun add2sbuf_clonsym (sbuf csy)
-  (assertmsg "check sbuf" (is_strbuf sbuf))
-  (assertmsg "check csy" (is_a csy class_clonedsymbol))
+  (assert_msg "check sbuf" (is_strbuf sbuf))
+  (assert_msg "check csy" (is_a csy class_clonedsymbol))
   (let ( (cnam (unsafe_get_field :named_name csy))
 	 (:long rk (get_int (unsafe_get_field :csym_urank csy))) )
     (add2sbuf_cident sbuf cnam)
@@ -9111,7 +9111,7 @@
 
 ;;; output code for objloop
 (defun outpucod_objloop (oblo declbuf implbuf :long depth)
-  (assertmsg "check oblo" (is_a oblo class_objloop))
+  (assert_msg "check oblo" (is_a oblo class_objloop))
   (debug_msg oblo "outpucod_objloop oblo")
   (let ( (bodyl (unsafe_get_field :oblo_bodyl oblo))
 	 (epil (unsafe_get_field :oblo_epil oblo)) 
@@ -9119,7 +9119,7 @@
 	 (oloc (unsafe_get_field :obi_loc oblo))
 	 (boxdepthp1 (make_integerbox discr_integer (+i depth 1)))
 	 )
-    (assertmsg "check lab" (is_a lab class_clonedsymbol))
+    (assert_msg "check lab" (is_a lab class_clonedsymbol))
     (output_location oloc implbuf depth "loop")
     (add2sbuf_strconst implbuf "/*loop*/{ labloop_")
     (add2sbuf_clonsym implbuf lab)
@@ -9168,12 +9168,12 @@
 
 ;;; output code for objexit
 (defun outpucod_objexit (obxi declbuf implbuf :long depth)
-  (assertmsg "check obxi" (is_a obxi class_objexit))
+  (assert_msg "check obxi" (is_a obxi class_objexit))
   (debug_msg obxi "outpucod_objexit obxi")
   (let ( (olab (unsafe_get_field :obexit_label obxi))
 	 (loc (unsafe_get_field :obi_loc obxi))
 	 )
-    (assertmsg "check olab" (is_a olab class_clonedsymbol))
+    (assert_msg "check olab" (is_a olab class_clonedsymbol))
     (output_location loc implbuf depth "exit")
     (add2sbuf_strconst implbuf "/*exit*/{")
     (add2sbuf_indentnl implbuf depth)
@@ -9186,7 +9186,7 @@
 
 ;;; output code for objcompute
 (defun outpucod_objcompute (obcomp declbuf implbuf :long depth)
-  (assertmsg "check obcomp" (is_a obcomp class_objcompute))
+  (assert_msg "check obcomp" (is_a obcomp class_objcompute))
   (let ( (cdest (unsafe_get_field :obdi_destlist obcomp)) ; destination list
 	 (cloc (unsafe_get_field :obi_loc obcomp))
 	 (cexp (unsafe_get_field :obcpt_expr obcomp)) 
@@ -9215,14 +9215,14 @@
 
 ;; output a conditional
 (defun outpucod_objcond (ocond declbuf implbuf :long depth)
-  (assertmsg "check ocond" (is_a ocond class_objcond))
+  (assert_msg "check ocond" (is_a ocond class_objcond))
   (debug_msg ocond "outpucod_objcond ocond")
   (let ( (cloc (unsafe_get_field :obi_loc ocond))
 	 (ctest (unsafe_get_field :obcond_test ocond))
 	 (cthen (unsafe_get_field :obcond_then ocond))
 	 (celse (unsafe_get_field :obcond_else ocond)) 
 	 )
-    (assertmsg "check ctest" (notnull ctest))
+    (assert_msg "check ctest" (notnull ctest))
     (output_location cloc implbuf depth "cond")
     (add2sbuf_strconst implbuf "/*cond*/ if (")
     (output_c_code ctest declbuf implbuf (+i depth 1))
@@ -9256,7 +9256,7 @@
 
 ;; output a cppif
 (defun outpucod_objcppif (opif declbuf implbuf :long depth)
-  (assertmsg "check opif" (is_a opif class_objcppif))
+  (assert_msg "check opif" (is_a opif class_objcppif))
   (debug_msg opif "outpucod_objcppif opif")
   (let ( (cloc (unsafe_get_field :obi_loc opif))
 	 (ccond (unsafe_get_field :obifp_cond opif))
@@ -9264,7 +9264,7 @@
 	 (celse (unsafe_get_field :obifp_else opif))
 	 (:long depthp1 (+i 1 depth))
 	 )
-    (assertmsg "check ccond" (is_string ccond))
+    (assert_msg "check ccond" (is_string ccond))
     (output_raw_location cloc implbuf depth "cppif")
     (add2sbuf_strconst implbuf "#if ")
     (add2sbuf_string implbuf ccond)
@@ -9289,7 +9289,7 @@
 
 ;; output an application
 (defun outpucod_objapply (oapp declbuf implbuf :long depth)
-  (assertmsg "check oapp" (is_a oapp class_objapply))
+  (assert_msg "check oapp" (is_a oapp class_objapply))
   (debug_msg oapp "outpucod_objapply oapp")
   (let (
 	(aloc (unsafe_get_field :obi_loc oapp))
@@ -9316,12 +9316,12 @@
 	   oargs
 	   (lambda (curarg :long curank)
 	     (debug_msg curarg "outputcod_objapply curarg")
-	     (assertmsg "outputcod_objapply check curarg not objinstr" (not (is_a curarg class_objinstr)))
+	     (assert_msg "outputcod_objapply check curarg not objinstr" (not (is_a curarg class_objinstr)))
 	    ; (cbreak_msg "outputcod_objapply curarg")
 	     (if (>i curank 0)
 		 (let ( (curctyp (get_ctype curarg (the_null))) )
 		   (debug_msg curctyp "outputcod_objapply curctyp")
-		   (assertmsg "check curctyp" (is_a curctyp class_ctype))
+		   (assert_msg "check curctyp" (is_a curctyp class_ctype))
 		   (output_location aloc implbuf (get_int boxdepthp1) "apply.arg")
 		   (add2sbuf_strconst implbuf "argtab[")
 		   (add2sbuf_longdec implbuf  (-i curank 1))
@@ -9381,7 +9381,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; output a message send
 (defun outpucod_objmsend (omsend declbuf implbuf :long depth)
-  (assertmsg "check omsend" (is_a omsend class_objmsend))
+  (assert_msg "check omsend" (is_a omsend class_objmsend))
   (debug_msg omsend "outpucod_objmsend omsend")
   (let ( (oloc (unsafe_get_field :obi_loc omsend))
 	 (odest (unsafe_get_field :obdi_destlist omsend))
@@ -9413,7 +9413,7 @@
 	     (debug_msg curarg "outputcod_objapply curarg")
 		 (let ( (curctyp (get_ctype curarg (the_null))) )
 		   (debug_msg curctyp "outputcod_objmsend curctyp")
-		   (assertmsg "check curctyp" (is_a curctyp class_ctype))
+		   (assert_msg "check curctyp" (is_a curctyp class_ctype))
 		   (output_location oloc implbuf (get_int boxdepthp1) "ojbmsend.arg")
 		   (add2sbuf_strconst implbuf "argtab[")
 		   (add2sbuf_longdec implbuf  curank)
@@ -9469,7 +9469,7 @@
 ;; output a multiresult application
 
 (defun outpucod_objmultiapply (oapp declbuf implbuf :long depth)
-  (assertmsg "check oapp" (is_a oapp class_objmultiapply))
+  (assert_msg "check oapp" (is_a oapp class_objmultiapply))
   (debug_msg oapp "outpucod_objmultiapply oapp")
   (let (
 	(aloc (unsafe_get_field :obi_loc oapp))
@@ -9483,8 +9483,8 @@
 	(resdesclist (make_list discr_list))
 	(boxdepthp1 (make_integerbox discr_integer (+i 1 depth)))
 	)
-    (assertmsg "check oargs" (is_multiple_or_null oargs))
-    (assertmsg "check oxres" (is_multiple_or_null oxres))
+    (assert_msg "check oargs" (is_multiple_or_null oargs))
+    (assert_msg "check oxres" (is_multiple_or_null oxres))
     (output_location aloc implbuf depth "multiapply")
     (add2sbuf_strconst implbuf "/*multiapply ")
     (add2sbuf_longdec implbuf nbarg)
@@ -9530,7 +9530,7 @@
 	     (if (>i curank 0)
 		 (let ( (curctyp (get_ctype curarg (the_null))) )
 		   (debug_msg curctyp "outpucod_objmultiapply curctyp")
-		   (assertmsg "check curctyp" (is_a curctyp class_ctype))
+		   (assert_msg "check curctyp" (is_a curctyp class_ctype))
 		   (output_location aloc implbuf (get_int boxdepthp1) "multiapply.arg")
 		   (add2sbuf_strconst implbuf "argtab[")
 		   (add2sbuf_longdec implbuf  (-i curank 1))
@@ -9560,7 +9560,7 @@
 	   (lambda (cures :long curank)
 	     (let ( (curestyp (get_ctype cures (the_null))) )
 	       (debug_msg curestyp "outpucod_objmultiapply curestyp")
-	       (assertmsg "check curestyp" (is_a curestyp class_ctype))
+	       (assert_msg "check curestyp" (is_a curestyp class_ctype))
 	       (output_location aloc implbuf (get_int boxdepthp1) "multiapply.xres")
 	       (add2sbuf_strconst implbuf "restab[")
 	       (add2sbuf_longdec implbuf  curank)
@@ -9632,7 +9632,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; output a multiresult message send
 (defun outpucod_objmultimsend (omsnd  declbuf implbuf :long depth)
-  (assertmsg "check omsnd" (is_a omsnd class_objmultimsend))
+  (assert_msg "check omsnd" (is_a omsnd class_objmultimsend))
   (debug_msg omsnd "outpucod_objmultimsend omsnd")
   (let ( (oloc (unsafe_get_field :obi_loc omsnd))
 	 (odest (unsafe_get_field :obdi_destlist omsnd))
@@ -9687,7 +9687,7 @@
 	     (debug_msg curarg "outpucod_objmultimsend curarg")
 	     (let ( (curctyp (get_ctype curarg (the_null))) )
 	       (debug_msg curctyp "outpucod_objmultimsend curctyp")
-	       (assertmsg "check curctyp" (is_a curctyp class_ctype))
+	       (assert_msg "check curctyp" (is_a curctyp class_ctype))
 	       (output_location oloc implbuf (get_int boxdepthp1) "multimsend.arg")
 	       (add2sbuf_strconst implbuf "argtab[")
 	       (add2sbuf_longdec implbuf   curank)
@@ -9717,7 +9717,7 @@
 	   (lambda (cures :long curank)
 	     (let ( (curestyp (get_ctype cures (the_null))) )
 	       (debug_msg curestyp "outpucod_objmultimsend curestyp")
-	       (assertmsg "check curestyp" (is_a curestyp class_ctype))
+	       (assert_msg "check curestyp" (is_a curestyp class_ctype))
 	       (output_location oloc implbuf (get_int boxdepthp1) "multimsend.xres")
 	       (add2sbuf_strconst implbuf "restab[")
 	       (add2sbuf_longdec implbuf  curank)
@@ -9786,7 +9786,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; output a clear
 (defun outpucod_objclear (oclear declbuf implbuf :long depth)
-  (assertmsg "check oclear" (is_a oclear class_objclear))
+  (assert_msg "check oclear" (is_a oclear class_objclear))
   (debug_msg oclear "outpucod_objclear oclear")
   (let ( (cloc (unsafe_get_field :obi_loc oclear))
 	 (cvl (unsafe_get_field :oclr_vloc oclear))
@@ -9801,7 +9801,7 @@
 
 ;; output a raw object allocation
 (defun outpucod_objrawallocobj (oralob declbuf implbuf :long depth)
-  (assertmsg "check oralob" (is_a oralob class_objrawallocobj))
+  (assert_msg "check oralob" (is_a oralob class_objrawallocobj))
   (debug_msg oralob "outpucod_objrawallocobj oralob")
   (let ( (iloc (unsafe_get_field :obi_loc oralob))
 	 (iclass (unsafe_get_field :obrallobj_class oralob))
@@ -9809,7 +9809,7 @@
 	 (destlist (unsafe_get_field :obdi_destlist oralob)) 
 	 (boxdepthp1 (make_integerbox discr_integer (+i depth 1)))
 	 )
-    (assertmsg "outpucod_objrawallocobj check iclass" (is_a iclass class_objvalue))
+    (assert_msg "outpucod_objrawallocobj check iclass" (is_a iclass class_objvalue))
     (output_location iloc implbuf depth "rawallocobj")
     (add2sbuf_strconst implbuf "/*rawallocobj*/ ")
     (list_every
@@ -9830,7 +9830,7 @@
 
 ;; output a closure allocation
 (defun outpucod_objnewclosure (obnclo declbuf implbuf :long depth)
-  (assertmsg "check oralob" (is_a obnclo class_objnewclosure))
+  (assert_msg "check oralob" (is_a obnclo class_objnewclosure))
   (debug_msg obnclo "outpucod_objnewclosure obnclo") 
   (let ( (iloc (unsafe_get_field :obi_loc obnclo))
 	 (odiscr (unsafe_get_field :obnclo_discr obnclo))
@@ -9860,7 +9860,7 @@
 
 ;; output a touch
 (defun outpucod_objtouch (otouch declbuf implbuf :long depth)
-  (assertmsg "check oclear" (is_a otouch class_objtouch))
+  (assert_msg "check oclear" (is_a otouch class_objtouch))
   (let ( (iloc (unsafe_get_field :obi_loc otouch)) 
 	 (touched (unsafe_get_field :otouch_val otouch)) 
 	 (comm (unsafe_get_field :otouch_comment otouch))
@@ -9883,7 +9883,7 @@
 
 ;;; output a put tuple (mostly used in initial data content filling)
 (defun outpucod_objputuple (optup declbuf implbuf :long depth)
-  (assertmsg "check optyp" (is_a optup class_objputuple))
+  (assert_msg "check optyp" (is_a optup class_objputuple))
   (debug_msg optup "outpucod_objputuple optup")
   (let ( (iloc (unsafe_get_field :obi_loc optup))
 	 (otup (unsafe_get_field :oputu_tupled optup))
@@ -9916,14 +9916,14 @@
 
 
 (defun outpucod_objgetslot (ogsl declbuf implbuf :long depth)
-  (assertmsg "check ogsl" (is_a ogsl class_objgetslot))
+  (assert_msg "check ogsl" (is_a ogsl class_objgetslot))
   (let ( (oloc (unsafe_get_field :obi_loc ogsl))
 	 (destlist (unsafe_get_field :obdi_destlist ogsl))
 	 (oobj (unsafe_get_field :ogetsl_obj ogsl))
 	 (ofield (unsafe_get_field :ogetsl_field ogsl))
 	 (boxdepthp1 (make_integerbox discr_integer (+i depth 1)))
 	 )
-    (assertmsg "check ofield" (is_a ofield class_field))
+    (assert_msg "check ofield" (is_a ofield class_field))
     (debug_msg ogsl "outpucod_objgetslot ogsl")
     (output_location oloc implbuf depth "getslot")
     (list_every
@@ -9944,7 +9944,7 @@
 
 ;;; output a put slot (mostly used in initial data content filling)
 (defun outpucod_objputslot (opslo declbuf implbuf :long depth)
-  (assertmsg "check opslo" (is_a opslo class_objputslot))
+  (assert_msg "check opslo" (is_a opslo class_objputslot))
   (debug_msg opslo "outpucod_objputslot opslo")
   (let ( (iloc (unsafe_get_field :obi_loc opslo))
 	 (odata (unsafe_get_field :oslot_odata opslo))
@@ -9952,7 +9952,7 @@
 	 (ofield (unsafe_get_field :oslot_field opslo))
 	 (oval (unsafe_get_field :oslot_value opslo))
 	 )
-    (assertmsg "outpucod_objputslot check oval not nrep" (not (is_a oval class_nrep)))
+    (assert_msg "outpucod_objputslot check oval not nrep" (not (is_a oval class_nrep)))
     (output_location iloc implbuf depth "putslot")
     (add2sbuf_strconst implbuf "/*putslot checkobj*/ basilys_assertmsg(\"putslot checkobj")
     (if (is_a odata class_named)
@@ -9991,7 +9991,7 @@
 
 ;;; output the putting of the routine in a closure
 (defun outpucod_objputclosurout (opclor  declbuf implbuf :long depth)
-  (assertmsg "check opclor" (is_a opclor class_objputclosurout))
+  (assert_msg "check opclor" (is_a opclor class_objputclosurout))
   (debug_msg opclor "outpucod_objputclosurout opclor")
   (let ( (oloc (unsafe_get_field :obi_loc opclor))
 	 (oclos (unsafe_get_field :opclor_clos opclor))
@@ -10017,7 +10017,7 @@
 
 ;;; output the putting of a closed value
 (defun outpucod_objputclosedv (opclov declbuf implbuf :long depth)
-  (assertmsg "check opclor" (is_a opclov class_objputclosedv))
+  (assert_msg "check opclor" (is_a opclov class_objputclosedv))
   (debug_msg opclov "outpucod_objputclosedv")
   (let ( (oloc (unsafe_get_field :obi_loc opclov))
 	 (oclos (unsafe_get_field :opclov_clos opclov))
@@ -10050,7 +10050,7 @@
 
 ;; output the putting of a constant value inside a routine
 (defun outpucod_objputroutconst (oprconst declbuf implbuf :long depth)
-  (assertmsg "check oprconst" (is_a oprconst class_objputroutconst))
+  (assert_msg "check oprconst" (is_a oprconst class_objputroutconst))
   (let ( (oloc (unsafe_get_field :obi_loc oprconst))
 	 (orout (unsafe_get_field :oprconst_rout oprconst))
 	 (ooff (unsafe_get_field :oprconst_off oprconst))
@@ -10076,15 +10076,15 @@
 
 ;;; output the put of an extra returned result
 (defun outpucod_objputxtraresult (oputx declbuf implbuf :long depth)
-  (assertmsg "check oputx" (is_a oputx class_objputxtraresult))
+  (assert_msg "check oputx" (is_a oputx class_objputxtraresult))
   (let (  (oloc (unsafe_get_field :obi_loc oputx))
 	  (orank (unsafe_get_field :obxres_rank oputx))
 	  (ovloc (unsafe_get_field :obxres_obloc oputx))
 	  (octyp (get_ctype ovloc (the_null)))
 	  )
     (output_location oloc implbuf depth "putxtraresult")
-    (assertmsg "check octyp" (is_a octyp class_ctype))
-    (assertmsg "check orank" (is_integerbox orank))
+    (assert_msg "check octyp" (is_a octyp class_ctype))
+    (assert_msg "check orank" (is_integerbox orank))
     (add2sbuf_strconst implbuf "if (!xrestab_ || !xresdescr_) goto labend_rout;")
     (add2sbuf_indentnl implbuf depth)
     (add2sbuf_strconst implbuf "if (xresdescr_[")
@@ -10110,11 +10110,11 @@
 
 ;;; output an expression
 (defun outpucod_objexpv (oexp declbuf implbuf :long depth)
-  (assertmsg "check oexp" (is_a oexp class_objexpv))
+  (assert_msg "check oexp" (is_a oexp class_objexpv))
   (let ( (cont (unsafe_get_field :obx_cont oexp)) 
 	 (boxdepthp1 (make_integerbox discr_integer (+i depth 1)))
 	 )
-    (assertmsg "check cont" (is_multiple cont))
+    (assert_msg "check cont" (is_multiple cont))
     (multiple_every
      cont
      (lambda (comp :long ix)
@@ -10124,12 +10124,12 @@
 
 ;;; output a located expression
 (defun outpucod_objlocatedexpv (oexp declbuf implbuf :long depth)
-  (assertmsg "check oexp" (is_a oexp class_objlocatedexpv))
+  (assert_msg "check oexp" (is_a oexp class_objlocatedexpv))
   (let ( (cont (unsafe_get_field :obx_cont oexp)) 
 	 (oloc (unsafe_get_field :obcx_loc oexp))
 	 (boxdepthp1 (make_integerbox discr_integer (+i depth 1)))
 	 )
-    (assertmsg "check cont" (is_multiple cont))
+    (assert_msg "check cont" (is_multiple cont))
     (if (is_mixint oloc)
 	(output_raw_location oloc implbuf depth "expr")
 	)
@@ -10142,7 +10142,7 @@
 
 ;;; output a verbatim string
 (defun outpucod_verbatimstring (vstr declbuf implbuf :long depth)
-  (assertmsg "check vstr" (== (discrim vstr) discr_verbatimstring))
+  (assert_msg "check vstr" (== (discrim vstr) discr_verbatimstring))
   (debug_msg vstr "outpucod_verbatimstring vstr")
   (add2sbuf_string implbuf vstr)
 )
@@ -10169,11 +10169,11 @@
 	(install_method discr_verbatimstring output_c_code outpucod_verbatimstring)
 	(return (outpucod_verbatimstring vstr declbuf implbuf depth))
 ;;; never reached!
-	(assertmsg "outpucod_string check vstr not verbatim" (!= (discrim vstr) discr_verbatimstring)
+	(assert_msg "outpucod_string check vstr not verbatim" (!= (discrim vstr) discr_verbatimstring)
 		    )))
   (if (!= (discrim vstr) discr_string)
       (debug_msg vstr "outpucod_string strange vstr"))
-  (assertmsg "check vstr" (== (discrim vstr) discr_string)) 
+  (assert_msg "check vstr" (== (discrim vstr) discr_string)) 
   (add2sbuf_strconst implbuf " \"")
   (add2sbuf_cencstring implbuf vstr)
   (add2sbuf_strconst implbuf "\"")
@@ -10185,14 +10185,14 @@
 
 ;;; output an integer
 (defun outpucod_integer (vint declbuf implbuf :long depth)
-  (assertmsg "check vint" (is_integerbox vint))
+  (assert_msg "check vint" (is_integerbox vint))
   (add2sbuf_longdec implbuf (get_int vint))
 )
 (install_method discr_integer output_c_code outpucod_integer)
 
 ;;; output a finalreturn
 (defun outpucod_finalreturn (fret declbuf implbuf :long depth)
-  (assertmsg "check fret" (is_a fret class_objfinalreturn))
+  (assert_msg "check fret" (is_a fret class_objfinalreturn))
   (output_location (unsafe_get_field :obi_loc fret) implbuf depth "finalreturn")
   (add2sbuf_strconst implbuf ";")
   (add2sbuf_indentnl implbuf depth)
@@ -10203,7 +10203,7 @@
 
 ;; for some reason, final returns are sometimes putobjdest-ed - a NOP here
 (defun putobjdest_objfinalreturn (recv desto)
-  (assertmsg "check recv" (is_a recv class_objfinalreturn))
+  (assert_msg "check recv" (is_a recv class_objfinalreturn))
   recv
 )
 (install_method class_objfinalreturn put_objdest putobjdest_objfinalreturn)
@@ -10216,8 +10216,8 @@
 (defun compile2obj_procedure (pro compicache :long num)
   (debug_msg pro "compilproc pro")
   ;;(debug_msg compicache "compilproc compicache")
-  (assertmsg "check pro" (is_a pro class_nrep_routproc))
-  (assertmsg "check compicache" (is_mapobject compicache))
+  (assert_msg "check pro" (is_a pro class_nrep_routproc))
+  (assert_msg "check compicache" (is_mapobject compicache))
   (let ( (namsbuf (make_strbuf discr_strbuf)) 
 	 (routfunam (the_null))
 	 )
@@ -10264,7 +10264,7 @@
 	   (multiple_map 
 	    nargb
 	    (lambda (bnd :long ix)
-	      (assertmsg "check bnd" (is_a bnd class_formal_binding))
+	      (assert_msg "check bnd" (is_a bnd class_formal_binding))
 					;	      (debug_msg bnd "compilproc bnd")
 	      (let ( (bctyp (unsafe_get_field :fbind_type bnd)) 
 		     (bnam (unsafe_get_field :binder bnd))
@@ -10292,7 +10292,7 @@
       (unsafe_put_fields obrout :oprout_getargs gtatup)
       (debug_msg obrout "compile2obj_procedure obrout")
       (debug_msg nbody "compile2obj_procedure nbody")
-      (assertmsg "check nbody" (is_a nbody class_nrep))
+      (assert_msg "check nbody" (is_a nbody class_nrep))
       (if (is_a pro class_nrep_routproc)
 	  (let ( (pthuls (unsafe_get_field :nrpro_thunklist pro)) )
 	    (debug_msg pthuls "compile2obj_procedure pthuls")
@@ -10300,7 +10300,7 @@
 	     pthuls
 	     (lambda (pthu) 
 	       (debug_msg pthu "compile2obj_procedure pthu")
-	       (assertmsg "compile2obj_procedure check pthu" (is_closure pthu))
+	       (assert_msg "compile2obj_procedure check pthu" (is_closure pthu))
 	       (pthu gcx)
 	       )
 	    )))
@@ -10315,9 +10315,9 @@
 
 ;;;; compile the initial procedure into an object
 (defun compile2obj_initproc (ipro idata compicache)
-  (assertmsg "check ipro" (is_a ipro class_nrep_initproc))
-  (assertmsg "check idata" (is_list idata))
-  (assertmsg "check compicache" (is_mapobject compicache))
+  (assert_msg "check ipro" (is_a ipro class_nrep_initproc))
+  (assert_msg "check idata" (is_list idata))
+  (assert_msg "check compicache" (is_mapobject compicache))
   (debug_msg ipro "compile2obj_initproc ipro")
   (debug_msg compicache "compile2obj_initproc compicache")
   (let ( (locmap (make_mapobject discr_mapobjects 50))
@@ -10349,7 +10349,7 @@
 	   idata discr_multiple
 	   (lambda (curdat)
 	     ;;(debug_msg curdat "compile2obj_initproc curdat")
-	     (assertmsg "check curdat" (is_a curdat class_nrep_data))
+	     (assert_msg "check curdat" (is_a curdat class_nrep_data))
 	     (let ( (curobd (compile_obj curdat gcx)) )
 	       ;;(debug_msg curobd "compile2obj_initproc curobd")
 	       curobd))))
@@ -10357,7 +10357,7 @@
 	 )
     (unsafe_put_fields oinitrout
 		       :oirout_data odatatup)
-    (assertmsg "check toplis" (is_list_or_null toplis))
+    (assert_msg "check toplis" (is_list_or_null toplis))
     (list_every 
      toplis
      (lambda (curtop)
@@ -10374,7 +10374,7 @@
 ;;;function to get a free local value pointer for some name
 ;; any free ptr is only reused for its offset. the objlocv is not reused...
 (defun get_free_objlocptr (gcx nam)
-  (assertmsg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check gcx" (is_a gcx class_genercontext))
   ;;(debug_msg nam "get_free_objlocptr start nam")
   (let ( (orout (unsafe_get_field :gncx_objrout gcx))
 	 (freeli (unsafe_get_field :gncx_freeptrlist gcx)) 
@@ -10385,15 +10385,15 @@
     ;;    (debug_msg freeli "get_free_objlocptr popped freeli")
     (if (not (is_a orout class_routineobj))
 	(debug_msg orout "get_free_objlocptr bad orout"))
-    (assertmsg "check orout" (is_a orout class_routineobj))
+    (assert_msg "check orout" (is_a orout class_routineobj))
     (if (is_a pfree  class_objlocv)
 	(let ( (offpfree (unsafe_get_field :obl_off pfree)) )
-	  (assertmsg "get_free_objlocptr check offpfree" (is_integerbox offpfree))
+	  (assert_msg "get_free_objlocptr check offpfree" (is_integerbox offpfree))
 	  (setq off (get_int offpfree)))
       (let ( (nbvalorout (unsafe_get_field :obrout_nbval orout)) )
 	(setq off (get_int nbvalorout))
       ))
-    (assertmsg "check off" (>=i off 0))
+    (assert_msg "check off" (>=i off 0))
     (let ( (nbvalbox (unsafe_get_field :obrout_nbval orout)) 
 	   (:long nbval (get_int nbvalbox))  
 	   (nambuf (make_strbuf discr_strbuf))
@@ -10421,21 +10421,21 @@
 
 ;;; function to get a free local long for some name
 (defun get_free_objloclong (gcx nam)
-  (assertmsg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check gcx" (is_a gcx class_genercontext))
   (let ( (orout (unsafe_get_field :gncx_objrout gcx))
 	 (freeli (unsafe_get_field :gncx_freelonglist gcx)) 
 	 (pfree (list_popfirst freeli))
 	 (:long off -1)
 	 )
-    (assertmsg "check orout" (is_a orout class_routineobj))
+    (assert_msg "check orout" (is_a orout class_routineobj))
     (if (is_a pfree  class_objlocv)
 	(let ( (offpfree (unsafe_get_field :obl_off pfree)) )
-	  (assertmsg "check offpfree" (is_integerbox offpfree))
+	  (assert_msg "check offpfree" (is_integerbox offpfree))
 	  (setq off (get_int offpfree)))
       (let ( (nblongorout (unsafe_get_field :obrout_nblong orout)) )
-	(assertmsg "check nblongorout" (is_integerbox nblongorout))
+	(assert_msg "check nblongorout" (is_integerbox nblongorout))
 	(setq off (get_int nblongorout))))
-    (assertmsg "check off" (>=i off 0))
+    (assert_msg "check off" (>=i off 0))
     (let ( (nblongbox (unsafe_get_field :obrout_nblong orout)) 
 	   (:long nblong (get_int nblongbox))  
 	   (nambuf (make_strbuf discr_strbuf))
@@ -10459,8 +10459,8 @@
 (defun get_free_objloctyped (gcx nam ctyp)
   (debug_msg nam "get_free_objloctyped nam")
   (debug_msg ctyp "get_free_objloctyped ctyp")
-  (assertmsg "check gcx" (is_a gcx class_genercontext))
-  (assertmsg "check ctyp" (is_a ctyp class_ctype))
+  (assert_msg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check ctyp" (is_a ctyp class_ctype))
   (cond ( (== ctyp ctype_long)
 	  (get_free_objloclong gcx nam))
 	( (== ctyp ctype_value)
@@ -10475,8 +10475,8 @@
 		(orout (unsafe_get_field :gncx_objrout gcx))
 		(:long off -1)
 		)
-	   (assertmsg "check freemap" (is_mapobject freemap))
-	   (assertmsg "check orout" (is_a orout class_routineobj))
+	   (assert_msg "check freemap" (is_mapobject freemap))
+	   (assert_msg "check orout" (is_a orout class_routineobj))
 	   (let ( (freeli (mapobject_get freemap ctyp)) )
 	     (if (null freeli) 
 		 (progn
@@ -10491,7 +10491,7 @@
 		     (others (unsafe_get_field :obrout_others orout))
 		     (:long nbothers (list_length others))
 		     )
-		 (assertmsg "check others" (is_list others))
+		 (assert_msg "check others" (is_list others))
 		 (add2sbuf_strconst nambuf "loc_")
 		 (add2sbuf_cident nambuf  (unsafe_get_field :named_name ctyp))
 		 (add2sbuf_strconst nambuf "__o")
@@ -10509,8 +10509,8 @@
 
 ;; function to dispose, i.e. mark as free, a binding 
 (defun dispose_bnd_obj (bnd gcx)
-  (assertmsg "check bnd" (is_a bnd class_any_binding))
-  (assertmsg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check bnd" (is_a bnd class_any_binding))
+  (assert_msg "check gcx" (is_a gcx class_genercontext))
   (debug_msg bnd "dispose_bnd_obj start bnd")
   (let ( (locmap (unsafe_get_field :gncx_locmap gcx))
 	 (oldloc (mapobject_get locmap bnd)) )
@@ -10523,7 +10523,7 @@
 	       (return))
 	  (debug_msg bnd "dispose_bnd_obj nulloldloc bnd")
 	  ))
-    (assertmsg "check oldloc" (is_a oldloc class_objlocv))
+    (assert_msg "check oldloc" (is_a oldloc class_objlocv))
     ;;(debug_msg oldloc "dispose_bnd_obj oldloc")
     (mapobject_remove locmap bnd)
     ;;(debug_msg locmap "dispose_bnd_obj after remove locmap")
@@ -10538,19 +10538,19 @@
 	     (let ( (freemap (unsafe_get_field :gncx_freeothermaps gcx)) 
 		    (orout (unsafe_get_field :gncx_objrout gcx))
 		    )
-	       (assertmsg "check freemap" (is_mapobject freemap))
-	       (assertmsg "check orout" (is_a orout class_routineobj))
+	       (assert_msg "check freemap" (is_mapobject freemap))
+	       (assert_msg "check orout" (is_a orout class_routineobj))
 	       (let ( (freeli (mapobject_get freemap oldcty)) )
 		 ;; since we are freeing, freeli should exist
-		 (assertmsg "check freeli" (is_list freeli))
+		 (assert_msg "check freeli" (is_list freeli))
 		 (list_append freeli oldloc))))))
     (debug_msg bnd "dispose_bnd_obj end bnd")
     ))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun compilobj_nrep_chunk (nchk gcx)
-  (assertmsg "check nchk" (is_a nchk class_nrep_chunk))
-  (assertmsg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check nchk" (is_a nchk class_nrep_chunk))
+  (assert_msg "check gcx" (is_a gcx class_genercontext))
   (debug_msg nchk "compilobj nrepchunk nchk")
 ;  (debug_msg gcx "compilobj nrepchunk gcx")
 ;  (debug_msg env "compilobj nrepchunk env")
@@ -10558,8 +10558,8 @@
 	 (nexp (unsafe_get_field :nchunk_expansion nchk))
 	 (nprim (unsafe_get_field :nchunk_primitive nchk))
 	 )
-    (assertmsg "check nprim" (is_a nprim class_primitive))
-    (assertmsg "check nexp" (is_multiple nexp))
+    (assert_msg "check nprim" (is_a nprim class_primitive))
+    (assert_msg "check nexp" (is_multiple nexp))
     (let (  (otup (multiple_map
 		   nexp
 		   (lambda (comp :long ix)
@@ -10580,7 +10580,7 @@
 				 :obx_cont otup)
 		    ))      
 	    )
-      (assertmsg "check primty" (is_a primty class_ctype))
+      (assert_msg "check primty" (is_a primty class_ctype))
       (debug_msg oexp "compiobj nrepchunk oexp")
       oexp)
     ))
@@ -10589,8 +10589,8 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun compilobj_nrep_nil (nilo gcx)
-  (assertmsg "check nilo" (is_a nilo class_nrep_nil))
-  (assertmsg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check nilo" (is_a nilo class_nrep_nil))
+  (assert_msg "check gcx" (is_a gcx class_genercontext))
   (debug_msg nilo "compilobj_nrep_nil nilo")
   (let ( (obnil (make_instance class_objnil
 			       :obv_type ctype_value)) )
@@ -10601,8 +10601,8 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun compilobj_nrep_comment (ncomm gcx)
-  (assertmsg "check ncomm" (is_a ncomm class_nrep_comment))
-  (assertmsg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check ncomm" (is_a ncomm class_nrep_comment))
+  (assert_msg "check gcx" (is_a gcx class_genercontext))
   (debug_msg ncomm "compilobj_nrep_comment start")
   (let ( (coms (unsafe_get_field :ncomm_string ncomm))
 	 (nloc (unsafe_get_field :nrep_loc ncomm))
@@ -10625,8 +10625,8 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun compilobj_nrep_locsymocc (lsyo gcx)
-  (assertmsg "check nchk" (is_a lsyo class_nrep_locsymocc))
-  (assertmsg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check nchk" (is_a lsyo class_nrep_locsymocc))
+  (assert_msg "check gcx" (is_a gcx class_genercontext))
   (let ( (loc (unsafe_get_field :nrep_loc lsyo))
 	 (locmap (unsafe_get_field :gncx_locmap gcx))
 	 (sym (unsafe_get_field :nocc_symb lsyo))
@@ -10644,7 +10644,7 @@
 	  (debug_msg lsyo "compilobj locsymocc null sbnd; lsyo=")
 	  (debug_msg sym "compilobj locsymocc null sbnd; sym=")
 	  ; (shortbacktrace_dbg "compilobj locsymocc  null sbnd" 16)
-	  (assertmsg "locsymocc without binding" ())
+	  (assert_msg "locsymocc without binding" ())
 	  ))
     (if (null ovar) 
 	(progn
@@ -10652,9 +10652,9 @@
 	  ;;(debug_msg gcx "compilobj locsymocc null ovar gcx")
 	  ;;(debug_msg locmap "compilobj locsymocc null ovar locmap")
 	  (debug_msg lsyo "compilobj locsymocc null ovar lsyo")
-	  (assertmsg "compilobj locsymocc null ovar without ctype_void" (== oty ctype_void))
+	  (assert_msg "compilobj locsymocc null ovar without ctype_void" (== oty ctype_void))
 	  )
-      (assertmsg "compilobj locsymocc check ovar"  (is_a ovar class_objlocv)))
+      (assert_msg "compilobj locsymocc check ovar"  (is_a ovar class_objlocv)))
 ;    (debug_msg ovar "compilobj locsymocc return ovar")
     (return ovar)
 ))
@@ -10662,8 +10662,8 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun compilobj_nrep_closedocc (nclo gcx)
-  (assertmsg "check nclo" (is_a nclo class_nrep_closedocc))
-  (assertmsg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check nclo" (is_a nclo class_nrep_closedocc))
+  (assert_msg "check gcx" (is_a gcx class_genercontext))
   (debug_msg nclo "compilobj closedocc nclo")
   ;;(debug_msg gcx "compilobj closedocc gcx")
   (let ( 
@@ -10677,11 +10677,11 @@
     ;;(debug_msg orout "compilobj closedocc orout")
     ;;(debug_msg nclo "compilobj closedocc nclo")
     ;;(debug_msg lastcproc "compilobj closedocc lastcproc")
-    (assertmsg "check lastcproc" (is_a lastcproc class_nrep_routproc))
+    (assert_msg "check lastcproc" (is_a lastcproc class_nrep_routproc))
     (let ( (cloblis (unsafe_get_field :nrpro_closedb lastcproc)) 
 	   (:long clorank -1)
 	   )
-      (assertmsg "check cloblis" (is_list cloblis))
+      (assert_msg "check cloblis" (is_list cloblis))
       (let ( (curpair (list_first cloblis)) 
 	     (:long curank 0)
 	     )
@@ -10696,7 +10696,7 @@
 	   (setq curpair (pair_tail curpair))
 	   (setq curank (+i curank 1))
 	   ))
-	(assertmsg "check good closed rank" (>=i clorank 0))
+	(assert_msg "check good closed rank" (>=i clorank 0))
 	(let ( 
 	      (nclotyp (unsafe_get_field :nocc_ctyp nclo))
 	      (ocloccv 
@@ -10707,7 +10707,7 @@
 			       :obc_proc lastcproc
 			       :obc_name (unsafe_get_field :named_name osym)))
 	      )
-	  (assertmsg "check nclotyp" (is_a nclotyp class_ctype))
+	  (assert_msg "check nclotyp" (is_a nclotyp class_ctype))
 	  (debug_msg ocloccv "compilobj closedocc result ocloccv")
 	  ocloccv
 	  )))))
@@ -10716,8 +10716,8 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun compilobj_nrep_constocc (ncnst gcx)
-  (assertmsg "check ncnst" (is_a ncnst class_nrep_constocc))
-  (assertmsg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check ncnst" (is_a ncnst class_nrep_constocc))
+  (assert_msg "check gcx" (is_a gcx class_genercontext))
   (debug_msg ncnst "compilobj constocc ncnst")
   ;;(debug_msg gcx "compilobj constocc gcx")
   (let ( 
@@ -10730,11 +10730,11 @@
     ;;(debug_msg orout "compilobj constocc orout")
     ;;(debug_msg nloc "compilobj constocc nloc")
     ;;(debug_msg lastcproc "compilobj constocc lastcproc")
-    (assertmsg "check lastcproc" (is_a lastcproc class_nrep_routproc))
+    (assert_msg "check lastcproc" (is_a lastcproc class_nrep_routproc))
     (let ( (cnstlis (unsafe_get_field :nrpro_const lastcproc)) 
 	   (:long cnstrank -1)
 	   )
-      (assertmsg "check cnstlis" (is_list cnstlis))
+      (assert_msg "check cnstlis" (is_list cnstlis))
       (let ( (curpair (list_first cnstlis)) 
 	     (:long curank 0)
 	     )
@@ -10749,7 +10749,7 @@
 	   (setq curpair (pair_tail curpair))
 	   (setq curank (+i curank 1))
 	   ))
-	(assertmsg "check good const rank" (>=i cnstrank 0))
+	(assert_msg "check good const rank" (>=i cnstrank 0))
 	(let ( 
 	      (cnstyp (unsafe_get_field :nocc_ctyp ncnst))
 	      (oconstv 
@@ -10759,7 +10759,7 @@
 							 cnstrank)
 			       :obc_proc lastcproc
 			       :obc_name (unsafe_get_field :named_name osym))) )
-	  (assertmsg "check cnstyp" (is_a cnstyp class_ctype))
+	  (assert_msg "check cnstyp" (is_a cnstyp class_ctype))
 	  (debug_msg oconstv "compilobj constocc result oconstv")
 	  oconstv
 	  )))))
@@ -10769,8 +10769,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; compile a constant
 (defun compilobj_nrep_constant (nconst gcx)
-  (assertmsg "check gcx" (is_a gcx class_genercontext))
-  (assertmsg "check nconst" (is_a nconst class_nrep_constant))
+  (assert_msg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check nconst" (is_a nconst class_nrep_constant))
   (debug_msg nconst "compilobj constant nconst")
   (let ( (nloc (unsafe_get_field :nrep_loc nconst))
 	 (sval (unsafe_get_field :nconst_sval nconst))
@@ -10797,7 +10797,7 @@
 	   (setq curpair (pair_tail curpair))
 	   (setq curank (+i curank 1))
 	   )
-	  (assertmsg "check coff" (>=i coff 0))
+	  (assert_msg "check coff" (>=i coff 0))
 	  (add2sbuf_strconst nambuf "konst_")
 	  (add2sbuf_longdec nambuf coff)
 	  (if (is_a sval class_named)
@@ -10830,8 +10830,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; compile a forever
 (defun compilobj_nrep_forever (nfor gcx)
-  (assertmsg "check gcx" (is_a gcx class_genercontext))
-  (assertmsg "check nfor" (is_a nfor class_nrep_forever))
+  (assert_msg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check nfor" (is_a nfor class_nrep_forever))
   (debug_msg nfor "compilobj_nrep_forever nfor")
   ;;(debug_msg gcx "compilobj_nrep_forever gcx")
   (let ( (nloc (unsafe_get_field :nrep_loc nfor))
@@ -10846,14 +10846,14 @@
     (debug_msg nbind "compilobj_nrep_forever initial nbind")
     (debug_msg (discrim nbind) "compilobj_nrep_forever initial nbind's class")
     (debug_msg (unsafe_get_field :labind_clonsy nbind) ":labind_clonsy in nbind")
-    (assertmsg "check nbind" (is_a nbind class_label_binding))
+    (assert_msg "check nbind" (is_a nbind class_label_binding))
     (debug_msg oresv "compilobj_nrep_forever oresv")
-    (assertmsg "check oresv" (is_a oresv class_objlocv))
+    (assert_msg "check oresv" (is_a oresv class_objlocv))
     (unsafe_put_fields nbind :labind_res oresv)
-    (assertmsg "check again nbind" (is_object nbind))
+    (assert_msg "check again nbind" (is_object nbind))
     (debug_msg (unsafe_get_field :labind_clonsy nbind99bis) ":labind_clonsy in nbind99bis")
-    (assertmsg "check 99bis nbind" (== nbind99bis nbind))
-    (assertmsg "check 99bis oresv" (== oresv99bis oresv))
+    (assert_msg "check 99bis nbind" (== nbind99bis nbind))
+    (assert_msg "check 99bis oresv" (== oresv99bis oresv))
     (debug_msg nbind "compilobj_nrep_forever updated nbind")
     (let ( (closy (unsafe_get_field :labind_clonsy nbind)) 
 	   (bodyl (make_list discr_list))
@@ -10865,7 +10865,7 @@
 				 :obloop_label closy
 				 :obloop_resv oresv))
 	   )
-      (assertmsg "check closy" (is_a closy class_clonedsymbol))
+      (assert_msg "check closy" (is_a closy class_clonedsymbol))
       (multiple_every
        nbody
        (lambda (ncomp :long ix)
@@ -10880,15 +10880,15 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; compile an exit
 (defun compilobj_nrep_exit (nexi gcx)
-  (assertmsg "check gcx" (is_a gcx class_genercontext))
-  (assertmsg "check nexi" (is_a nexi class_nrep_exit))
+  (assert_msg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check nexi" (is_a nexi class_nrep_exit))
   (debug_msg nexi "compilobj_nrep_exit nexi")
   ;;(debug_msg gcx "compilobj_nrep_exit gcx")
   (let ( 
 	(nloc (unsafe_get_field :nrep_loc nexi))
 	(nbindx (unsafe_get_field :nexit_bind nexi))
 	(nval (unsafe_get_field :nexit_val nexi)) )
-    (assertmsg "check nbindx" (is_a nbindx class_label_binding))
+    (assert_msg "check nbindx" (is_a nbindx class_label_binding))
     (let ( 
 	  (inslist (make_list discr_list)) 
 	  (epilist (make_list discr_list)) 
@@ -10919,7 +10919,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun compilobj_discrany (anyv gcx)
-  (assertmsg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check gcx" (is_a gcx class_genercontext))
 ;  (debug_msg anyv "compilobj_discrany anyv")
   anyv
 )
@@ -10927,8 +10927,8 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun compilobj_nrep_let (rlet gcx)
-  (assertmsg "check rlet" (is_a rlet class_nrep_let))
-  (assertmsg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check rlet" (is_a rlet class_nrep_let))
+  (assert_msg "check gcx" (is_a gcx class_genercontext))
   (let ( (loc (unsafe_get_field :nrep_loc rlet))
 	 (bnds (unsafe_get_field :nlet_bindings rlet))
 	 (bdy (unsafe_get_field :nlet_body rlet))
@@ -10948,7 +10948,7 @@
     ;;    (debug_msg bnds "compilobj_nrep_let bnds")
     ;; for each normalexp in the bnds tuple
     ;; add the binding and the setting in the body and the clear in the epilogue
-    (assertmsg "compilobj_nrep_let check bnds multiple" (is_multiple_or_null bnds))
+    (assert_msg "compilobj_nrep_let check bnds multiple" (is_multiple_or_null bnds))
     ;;(debug_msg loc "compilobj_nrep_let before iterate normbind loc")
     ;; iterate on normal bindings
     (multiple_every
@@ -10957,7 +10957,7 @@
        (debug_msg loc "compilobj_nrep_let current normbinding loc")
        (debug_msg nlbnd "compilobj_nrep_let current normbinding nlbnd")
        (debug_msg locmap "compilobj_nrep_let current normbinding locmap")
-       (assertmsg "check nlbnd in compilobj_nrep_let" (is_a nlbnd class_normlet_binding))
+       (assert_msg "check nlbnd in compilobj_nrep_let" (is_a nlbnd class_normlet_binding))
        (let ( (bder (unsafe_get_field :binder nlbnd))
 	      (cty (unsafe_get_field :letbind_type nlbnd))
 	      (nexp (unsafe_get_field :letbind_expr nlbnd))
@@ -10972,7 +10972,7 @@
 		   (progn 
 		     (debug_msg nexp "compilobj_nrep_let current normbinding faulty nexp")
 		     (debug_msg obnx "compilobj_nrep_let current normbinding faulty obnx")
-		     (assertmsg "compilobj_nrep_let check obnx" (is_object obnx)))))
+		     (assert_msg "compilobj_nrep_let check obnx" (is_object obnx)))))
 	   (if obva
 	       ;; non void cty
 	       (progn
@@ -11033,8 +11033,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; compile a setq
 (defun compilobj_nrep_setq (nsq gcx)
-  (assertmsg "check nsq" (is_a nsq class_nrep_setq))
-  (assertmsg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check nsq" (is_a nsq class_nrep_setq))
+  (assert_msg "check gcx" (is_a gcx class_genercontext))
   (debug_msg nsq "compilobj_nrep_setq nsq")
   (let ( (loc (unsafe_get_field :nrep_loc nsq))
 	 (var (unsafe_get_field :nstq_var nsq))
@@ -11055,8 +11055,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; compile a progn
 (defun compilobj_nrep_progn (npro gcx)
-  (assertmsg "check npro" (is_a npro class_nrep_progn))
-  (assertmsg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check npro" (is_a npro class_nrep_progn))
+  (assert_msg "check gcx" (is_a gcx class_genercontext))
   (debug_msg npro "compilobj_nrep_progn npro")
   (let ( (loc (unsafe_get_field :nrep_loc npro))
 	 (nseq (unsafe_get_field :nprogn_seq npro))
@@ -11083,8 +11083,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; compile a multacc [data multiple accessor]
 (defun compilobj_nrep_multacc (nma gcx)
-  (assertmsg "check nma" (is_a nma class_nrep_multacc))
-  (assertmsg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check nma" (is_a nma class_nrep_multacc))
+  (assert_msg "check gcx" (is_a gcx class_genercontext))
   (debug_msg nma "compilobj_nrep_multacc nma")
   (let ( (loc (unsafe_get_field :nrep_loc nma))
 	 (mul (unsafe_get_field :naccm_mul nma))
@@ -11135,8 +11135,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; compile a fieldacc [data field accessor]
 (defun compilobj_nrep_fieldacc (nfa gcx)
-  (assertmsg "check nfa" (is_a nfa class_nrep_fieldacc))
-  (assertmsg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check nfa" (is_a nfa class_nrep_fieldacc))
+  (assert_msg "check gcx" (is_a gcx class_genercontext))
   (debug_msg nfa "compilobj_nrep_fieldacc nfa")
   (let ( (loc (unsafe_get_field :nrep_loc nfa))
 	 (obj (unsafe_get_field :naccf_obj nfa))
@@ -11166,7 +11166,7 @@
 	      res
 	      )))
 	 )
-    (assertmsg "compilobj_nrep_fieldacc check fld" (is_a fld class_field))
+    (assert_msg "compilobj_nrep_fieldacc check fld" (is_a fld class_field))
     (debug_msg cobj "compilobj_nrep_fieldacc cobj")
     (debug_msg fld "compilobj_nrep_fieldacc fld")
     (if (is_a cobj class_objinitobject)
@@ -11190,8 +11190,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; compile an unsafe get field access
 (defun compilobj_nrep_unsafe_get_field (nugf gcx)
-  (assertmsg "check nugf" (is_a nugf class_nrep_unsafe_get_field))
-  (assertmsg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check nugf" (is_a nugf class_nrep_unsafe_get_field))
+  (assert_msg "check gcx" (is_a gcx class_genercontext))
   (debug_msg nugf "compilobj_nrep_unsafe_get_field nugf")
   (let ( (loc (unsafe_get_field :nrep_loc nugf)) 
 	 (nobj (unsafe_get_field :nuget_obj nugf))
@@ -11212,8 +11212,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; compile an unsafe put fields
 (defun compilobj_nrep_unsafe_put_fields (nupf gcx)
-  (assertmsg "check nupf" (is_a nupf class_nrep_unsafe_put_fields))
-  (assertmsg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check nupf" (is_a nupf class_nrep_unsafe_put_fields))
+  (assert_msg "check gcx" (is_a gcx class_genercontext))
   (debug_msg nupf "compilobj_nrep_unsafe_put_fields nupf")
   (let ( (loc (unsafe_get_field :nrep_loc nupf)) 
 	 (nobj (unsafe_get_field :nuput_obj nupf))
@@ -11229,13 +11229,13 @@
     (multiple_every 
      nfldass
      (lambda (nfa :long ix)
-       (assertmsg "check nfa" (is_a nfa class_nrep_fieldassign))
+       (assert_msg "check nfa" (is_a nfa class_nrep_fieldassign))
        (let ( (aloc (unsafe_get_field :nrep_loc nfa)) 
 	      (afield (unsafe_get_field :nfla_field nfa))
 	      (aval (unsafe_get_field :nfla_val nfa))
 	      (:long aoff (get_int afield))
 	      )
-	 (assertmsg "check afield" (is_a afield class_field))
+	 (assert_msg "check afield" (is_a afield class_field))
 	 (let ( 
 	       (oval (compile_obj aval gcx)) 
 	       (opuf (make_instance class_objputslot
@@ -11244,7 +11244,7 @@
 				    :oslot_field afield
 				    :oslot_offset (make_integerbox discr_integer aoff)
 				    :oslot_value oval)) )
-	   (assertmsg "compilobj_nrep_unsafe_put_fields check oval not nrep" (not (is_a oval class_nrep)))
+	   (assert_msg "compilobj_nrep_unsafe_put_fields check oval not nrep" (not (is_a oval class_nrep)))
 	   (list_append obodl opuf))
 	 )))
     (list_append obodl (make_instance class_objtouch
@@ -11258,8 +11258,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; compile a simple application
 (defun compilobj_nrep_apply (napp gcx)
-  (assertmsg "check napp" (is_a napp class_nrep_apply))
-  (assertmsg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check napp" (is_a napp class_nrep_apply))
+  (assert_msg "check gcx" (is_a gcx class_genercontext))
   (let ( (loc (unsafe_get_field :nrep_loc napp))
 	 (fun (unsafe_get_field :napp_fun napp))
 	 (args (unsafe_get_field :napp_args napp))
@@ -11270,7 +11270,7 @@
 		   args
 		   (lambda (comp :long ix)
 		     (let ( (ocomp (compile_obj comp gcx)) )
-		       (assertmsg "compilobj_nrep_apply check ocomp not objinstr"
+		       (assert_msg "compilobj_nrep_apply check ocomp not objinstr"
 				   (not (is_a ocomp class_objinstr)))
 		       ocomp))))
 	   (dlist (make_list discr_list))
@@ -11289,8 +11289,8 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun compilobj_nrep_multiapply (nmapp gcx)
-  (assertmsg "check napp" (is_a nmapp class_nrep_multiapply))
-  (assertmsg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check napp" (is_a nmapp class_nrep_multiapply))
+  (assert_msg "check gcx" (is_a gcx class_genercontext))
   (debug_msg nmapp "compilobj_nrep_multiapply nmapp")
   (let ( (loc (unsafe_get_field :nrep_loc nmapp))
 	 (rbinds (unsafe_get_field :nmulapp_bindings nmapp))
@@ -11304,13 +11304,13 @@
 	   rbinds
 	   (lambda (bind :long ix)
 	     (debug_msg bind "compilobj_nrep_multiapply bind")
-	     (assertmsg "compilobj_nrep_multiapply check bind" 
+	     (assert_msg "compilobj_nrep_multiapply check bind" 
 			 (is_a bind class_formal_binding))
 	     (let ( (bder (unsafe_get_field :binder bind))
 		    (cty (unsafe_get_field :fbind_type bind)) 
 		    (obva (get_free_objloctyped gcx bder cty))
 		    )
-	       (assertmsg "compilobj_nrep_multiapply check cty" 
+	       (assert_msg "compilobj_nrep_multiapply check cty" 
 			   (is_a cty class_ctype))
 	       ;; link nlbnd to obva in locmap
 	       (if obva (mapobject_put locmap bind obva))
@@ -11375,8 +11375,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; compile a simple message send
 (defun compilobj_nrep_msend (nsnd gcx)
-  (assertmsg "check nsnd" (is_a nsnd class_nrep_msend))
-  (assertmsg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check nsnd" (is_a nsnd class_nrep_msend))
+  (assert_msg "check gcx" (is_a gcx class_genercontext))
   (let ( (loc (unsafe_get_field :nrep_loc nsnd))
 	 (nsel (unsafe_get_field :nsend_sel nsnd))
 	 (nrecv (unsafe_get_field :nsend_recv nsnd))
@@ -11406,8 +11406,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; compile a multiresult message send
 (defun compilobj_nrep_multimsend (nmsnd gcx)
-  (assertmsg "check nmsnd" (is_a nmsnd class_nrep_multimsend))
-  (assertmsg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check nmsnd" (is_a nmsnd class_nrep_multimsend))
+  (assert_msg "check gcx" (is_a gcx class_genercontext))
   (debug_msg nmsnd "compilobj_nrep_multimsend nmsnd")
   (let ( (loc (unsafe_get_field :nrep_loc nmsnd)) 
 	 (rbinds (unsafe_get_field :nmulsend_bindings nmsnd))
@@ -11422,13 +11422,13 @@
 	   rbinds
 	   (lambda (bind :long ix)
 	     (debug_msg bind "compilobj_nrep_multimsend bind")
-	     (assertmsg "compilobj_nrep_multimsend check bind" 
+	     (assert_msg "compilobj_nrep_multimsend check bind" 
 			 (is_a bind class_formal_binding))
 	     (let ( (bder (unsafe_get_field :binder bind))
 		    (cty (unsafe_get_field :fbind_type bind)) 
 		    (obva (get_free_objloctyped gcx bder cty))
 		    )
-	       (assertmsg "compilobj_nrep_multimsend check cty" 
+	       (assert_msg "compilobj_nrep_multimsend check cty" 
 			   (is_a cty class_ctype))
 	       ;; link nlbnd to obva in locmap
 	       (if obva (mapobject_put locmap bind obva))
@@ -11496,32 +11496,32 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; compile bindings
 (defun compilobj_any_binding  (bind gcx)
-  (assertmsg "check bind" (is_a bind class_any_binding))
-  (assertmsg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check bind" (is_a bind class_any_binding))
+  (assert_msg "check gcx" (is_a gcx class_genercontext))
   (debug_msg bind "compilobj_any_binding bind")
   (displaydebugmsg bind "class_bind compile_obj recv")
   (outcstring_err "* compilobj unimplemented reciever binding class ")
   (let ( (discr (discrim bind)) ) (outstr_err (unsafe_get_field :named_name discr)))
   (outnewline_err)
-  (assertmsg "@@compile_obj should be implemented in anybinding-s subclasses" ())
+  (assert_msg "@@compile_obj should be implemented in anybinding-s subclasses" ())
 )
 (install_method class_any_binding compile_obj compilobj_any_binding)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; compile value bindings
 (defun compilobj_value_binding  (bind gcx)
-  (assertmsg "check bind" (is_a bind class_value_binding))
-  (assertmsg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check bind" (is_a bind class_value_binding))
+  (assert_msg "check gcx" (is_a gcx class_genercontext))
   (debug_msg bind "compilobj_value_binding bind")
-  (assertmsg "@@unimplemented compilobj_value_binding" ())
+  (assert_msg "@@unimplemented compilobj_value_binding" ())
 )
 (install_method class_value_binding compile_obj compilobj_value_binding )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; compile selector bindings
 (defun compilobj_selector_binding  (bind gcx)
-  (assertmsg "check bind" (is_a bind class_selector_binding))
-  (assertmsg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check bind" (is_a bind class_selector_binding))
+  (assert_msg "check gcx" (is_a gcx class_genercontext))
   (debug_msg bind "compilobj_selector_binding bind")
   (let ( (sbdata (unsafe_get_field :sbind_selectordata bind)) 
 	 (osdata (compile_obj sbdata gcx)) )
@@ -11535,8 +11535,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; compile primitive bindings
 (defun compilobj_primitive_binding  (bind gcx)
-  (assertmsg "check bind" (is_a bind class_primitive_binding))
-  (assertmsg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check bind" (is_a bind class_primitive_binding))
+  (assert_msg "check gcx" (is_a gcx class_genercontext))
   (debug_msg bind "compilobj_primitive_binding bind")
   (let ( (pbdata (unsafe_get_field :pbind_primdata bind)) 
 	 (opdata (compile_obj pbdata gcx)) )
@@ -11548,8 +11548,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; compile function bindings
 (defun compilobj_function_binding  (bind gcx)
-  (assertmsg "check bind" (is_a bind class_function_binding))
-  (assertmsg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check bind" (is_a bind class_function_binding))
+  (assert_msg "check gcx" (is_a gcx class_genercontext))
   (debug_msg bind "compilobj_function_binding bind")
   (let ( (fbdata (unsafe_get_field :fubind_fundata bind))
 	 (ofdata (compile_obj fbdata gcx)) )
@@ -11561,8 +11561,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; compile class bindings
 (defun compilobj_class_binding  (bind gcx)
-  (assertmsg "check bind" (is_a bind class_class_binding))
-  (assertmsg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check bind" (is_a bind class_class_binding))
+  (assert_msg "check gcx" (is_a gcx class_genercontext))
   (debug_msg bind "compilobj_class_binding bind")
   (let ( (cbdata (unsafe_get_field :cbind_cladata bind)) 
 	 (ocdata (compile_obj cbdata gcx)) )
@@ -11574,8 +11574,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; compile field bindings
 (defun compilobj_field_binding  (bind gcx)
-  (assertmsg "check bind" (is_a bind class_field_binding))
-  (assertmsg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check bind" (is_a bind class_field_binding))
+  (assert_msg "check gcx" (is_a gcx class_genercontext))
   (debug_msg bind "compilobj_field_binding bind")
   (let ( (fbdata (unsafe_get_field :flbind_fdata bind))
 	 (ofdata (compile_obj fbdata gcx)) )
@@ -11587,8 +11587,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; compile instance bindings
 (defun compilobj_instance_binding  (bind gcx)
-  (assertmsg "check bind" (is_a bind class_instance_binding))
-  (assertmsg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check bind" (is_a bind class_instance_binding))
+  (assert_msg "check gcx" (is_a gcx class_genercontext))
   (debug_msg bind "compilobj_instance_binding bind")
   (let ( (ibdata (unsafe_get_field :ibind_data bind)) 
 	 (oidata (compile_obj ibdata gcx)) )
@@ -11602,8 +11602,8 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun putobjdest_objvalue (recv desto)
-  (assertmsg "check recv" (is_a recv class_objvalue))
-  (assertmsg "check desto" (is_a desto class_objlocv))
+  (assert_msg "check recv" (is_a recv class_objvalue))
+  (assert_msg "check desto" (is_a desto class_objlocv))
   (let ( (typrecv (unsafe_get_field :obv_type recv))
 	 (typdesto (unsafe_get_field :obv_type desto)) 
 	 )
@@ -11636,7 +11636,7 @@
 	   )))
      ;; common case when desto & recv have same type
      ( (== typrecv typdesto)
-       (assertmsg "check same typrecv&rtpdesto" (is_a typrecv class_ctype))
+       (assert_msg "check same typrecv&rtpdesto" (is_a typrecv class_ctype))
        (let ( (destlis (make_list discr_list))
 	      (explis (make_list discr_list))
 	      (obc (make_instance class_objcompute
@@ -11660,7 +11660,7 @@
       (let ( (discr (discrim desto)) ) (outstr_err (unsafe_get_field :named_name discr)))
       (outcstring_err ">")
       (outnewline_err)
-      (assertmsg "putobjdest_objvalue type mismatch" ())
+      (assert_msg "putobjdest_objvalue type mismatch" ())
       (return recv)))
     ))
 
@@ -11669,8 +11669,8 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun putobjdest_integer (recv desto)
-  (assertmsg "check recv" (is_integerbox recv))
-  (assertmsg "check desto" (is_a desto class_objlocv))
+  (assert_msg "check recv" (is_integerbox recv))
+  (assert_msg "check desto" (is_a desto class_objlocv))
   (debug_msg recv "putobjdest_integer recv")
   (debug_msg desto "putobjdest_integer desto")
   (let ( (destlis (make_list discr_list))
@@ -11682,7 +11682,7 @@
 			     :obcpt_expr explis
 			     )) 
 	 )
-    (assertmsg "check typdesto" (== typdesto ctype_long))
+    (assert_msg "check typdesto" (== typdesto ctype_long))
     (list_append destlis desto)
     (list_append explis recv)
     (debug_msg obc "putobjdest_integer return obc")
@@ -11692,8 +11692,8 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun putobjdest_null (recv desto)
-  (assertmsg "check recv" (null recv))
-  (assertmsg "check desto" (is_a desto class_objlocv))
+  (assert_msg "check recv" (null recv))
+  (assert_msg "check desto" (is_a desto class_objlocv))
   (debug_msg recv "putobjdest_integer recv")
   (debug_msg desto "putobjdest_integer desto")
   (let ( (destlis (make_list discr_list))
@@ -11716,15 +11716,15 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun putobjdest_objblock (recv desto)
-  (assertmsg "check recv" (is_a recv class_objblock))
-  (assertmsg "check desto" (is_a desto class_objlocv))
+  (assert_msg "check recv" (is_a recv class_objblock))
+  (assert_msg "check desto" (is_a desto class_objlocv))
 ;  (debug_msg recv "putobjdest block recv")
 ;  (debug_msg desto "putobjdest block desto")
   (let ( (obl (unsafe_get_field :oblo_bodyl recv))
 	 (oep (unsafe_get_field :oblo_epil recv))
 	 )
-    (assertmsg "check obl" (is_list_or_null obl))
-    (assertmsg "check oep" (is_list_or_null oep))
+    (assert_msg "check obl" (is_list_or_null obl))
+    (assert_msg "check oep" (is_list_or_null oep))
     ;; maybe we should remove in the epilogue any clear of same ctype & offset
     (let ( (lpby (list_last obl))
 	   (lasbp (pair_head lpby))
@@ -11743,8 +11743,8 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun putobjdest_objloop (recv desto)
-  (assertmsg "check recv" (is_a recv class_objloop))
-  (assertmsg "check desto" (is_a desto class_objlocv))
+  (assert_msg "check recv" (is_a recv class_objloop))
+  (assert_msg "check desto" (is_a desto class_objlocv))
   (let ( (epil (unsafe_get_field :oblo_epil recv)) 
 	 (resv (unsafe_get_field :obloop_resv recv))
 	 (destlist (make_list discr_list))
@@ -11755,8 +11755,8 @@
 			     ))
 	 )
     (list_append destlist desto)
-    (assertmsg "check epil" (is_list epil))
-    (assertmsg "check resv" (is_a resv class_objlocv))
+    (assert_msg "check epil" (is_list epil))
+    (assert_msg "check resv" (is_a resv class_objlocv))
     (list_append epil obc)
     )
   (debug_msg recv "putobjdest loop updated recv")
@@ -11767,8 +11767,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; do nothing when puting a destination into an objexit
 (defun putobjdest_objexit (recv desto)
-  (assertmsg "check recv" (is_a recv class_objexit))
-  (assertmsg "check desto" (is_a desto class_objlocv))
+  (assert_msg "check recv" (is_a recv class_objexit))
+  (assert_msg "check desto" (is_a desto class_objlocv))
     recv
 )
 (install_method class_objexit put_objdest putobjdest_objexit)
@@ -11777,8 +11777,8 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun compilobj_nrep_if (rif gcx)
-  (assertmsg "check rif" (is_a rif class_nrep_if))
-  (assertmsg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check rif" (is_a rif class_nrep_if))
+  (assert_msg "check gcx" (is_a gcx class_genercontext))
   (debug_msg rif "compilobj_nrep_if rif")
   (let ( (loc (unsafe_get_field :nrep_loc rif))
 	 (ntest (unsafe_get_field :nif_test rif))
@@ -11786,7 +11786,7 @@
 	 (nelse (unsafe_get_field :nif_else rif))
 	 (nctyp (unsafe_get_field :nif_ctyp rif))
 	 )
-    (assertmsg "check nctyp" (is_a nctyp class_ctype))
+    (assert_msg "check nctyp" (is_a nctyp class_ctype))
     (let ( (otest (compile_obj ntest gcx))
 	   (othen (compile_obj nthen gcx))
 	   (oelse (if (is_not_a nelse class_nrep_nil) 
@@ -11797,7 +11797,7 @@
 				:obcond_then othen
 				:obcond_else oelse))
 	   )
-      (assertmsg "check otest" (notnull otest))
+      (assert_msg "check otest" (notnull otest))
       (debug_msg obif "compilobj_nrep_if obif")
       obif
       )))
@@ -11807,8 +11807,8 @@
 (defun putobjdest_objcond (recv desto)
 ;  (debug_msg recv "putobjdest objcond recv")
 ;  (debug_msg desto "putobjdest objcond desto")
-  (assertmsg "check recv" (is_a recv class_objcond))
-  (assertmsg "check desto" (is_a desto class_objlocv))
+  (assert_msg "check recv" (is_a recv class_objcond))
+  (assert_msg "check desto" (is_a desto class_objlocv))
   (let ( (othen (unsafe_get_field :obcond_then recv))
 	 (oelse (unsafe_get_field :obcond_else recv)) 
 	 )
@@ -11829,8 +11829,8 @@
 ;;;;;;;;;;;;;;;;
 
 (defun compilobj_nrep_cppif (pif gcx)
-  (assertmsg "check pif" (is_a pif class_nrep_cppif))
-  (assertmsg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check pif" (is_a pif class_nrep_cppif))
+  (assert_msg "check gcx" (is_a gcx class_genercontext))
   (debug_msg pif "compilobj_nrep_cppif pif")
   (let ( (loc (unsafe_get_field :nrep_loc pif))
 	 (ncond (unsafe_get_field :nifp_cond pif))
@@ -11840,7 +11840,7 @@
 	 (scond (cond
 		 ( (is_a ncond class_symbol) (unsafe_get_field :named_name ncond))
 		 ( (is_string ncond) ncond)
-		 (:else (assertmsg "invalid ncond in nrep_cppif" ()))))
+		 (:else (assert_msg "invalid ncond in nrep_cppif" ()))))
 	 (othen (compile_obj nthen gcx))
 	 (oelse (compile_obj nelse gcx))
 	 (res (make_instance class_objcppif
@@ -11859,8 +11859,8 @@
 (defun putobjdest_objcppif (recv desto)
 ;  (debug_msg recv "putobjdest objcppif recv")
 ;  (debug_msg desto "putobjdest objcppif desto")
-  (assertmsg "check recv" (is_a recv class_objcppif))
-  (assertmsg "check desto" (is_a desto class_objlocv))
+  (assert_msg "check recv" (is_a recv class_objcppif))
+  (assert_msg "check desto" (is_a desto class_objlocv))
   (let ( (othen (unsafe_get_field :obifp_then recv))
 	 (oelse (unsafe_get_field :obifp_else recv)) 
 	 )
@@ -11881,8 +11881,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;
 (defun compilobj_nrep_return (nret gcx)
-  (assertmsg "check nret" (is_a nret class_nrep_return))
-  (assertmsg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check nret" (is_a nret class_nrep_return))
+  (assert_msg "check gcx" (is_a gcx class_genercontext))
 ;  (debug_msg gcx "compilobj_nrep_return gcx")
   (debug_msg nret "compilobj_nrep_return nret")
   (let ( (rloc (unsafe_get_field :nrep_loc nret))
@@ -11896,9 +11896,9 @@
 				:oblo_bodyl olis))
 	 (omainv (compile_obj rmain gcx))
 	 )
-    (assertmsg "check orout" (is_a orout class_routineobj))
+    (assert_msg "check orout" (is_a orout class_routineobj))
     (debug_msg rrest "compilobj_nrep_return rrest")
-    (assertmsg "check rrest" (is_multiple_or_null rrest))
+    (assert_msg "check rrest" (is_multiple_or_null rrest))
     (if (null (unsafe_get_field :obrout_retval orout))
 	(unsafe_put_fields orout :obrout_retval retloc))
     (list_append olis (put_objdest omainv retloc))
@@ -11932,13 +11932,13 @@
   )
 
 (defun compilobj_nrep_lambda (nlam gcx)
-  (assertmsg "check gcx" (is_a gcx class_genercontext))
-  (assertmsg "check nlam" (is_a nlam class_nrep_lambda))
+  (assert_msg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check nlam" (is_a nlam class_nrep_lambda))
   (debug_msg nlam "compilobj_nrep_lambda nlam")
   (let ( (nloc (unsafe_get_field :nrep_loc nlam))
 	 (npro (let 
 		   ( (checkpro (unsafe_get_field :nlambda_proc nlam)) )
-		 (assertmsg "check checkpro" (is_a checkpro class_nrep_routproc))
+		 (assert_msg "check checkpro" (is_a checkpro class_nrep_routproc))
 		 checkpro))
 	 (nam (unsafe_get_field :nrpro_name npro))
 	 (nclovtup (unsafe_get_field :nlambda_closedv nlam))
@@ -11987,8 +11987,8 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun compilobj_nrep_makeinst (nmki gcx)
-  (assertmsg "check gcx" (is_a gcx class_genercontext))
-  (assertmsg "check nmki" (is_a nmki class_nrep_make_instance))
+  (assert_msg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check nmki" (is_a nmki class_nrep_make_instance))
   (debug_msg nmki "compilobj_nrep_makeinst nmki")
   ;; (debug_msg gcx "compilobj_nrep_makeinst gcx")
   (let ( (nloc (unsafe_get_field :nrep_loc nmki))
@@ -11996,7 +11996,7 @@
 	 (ncladat (unsafe_get_field :nmins_cladata nmki))
 	 (nfields (unsafe_get_field :nmins_fields nmki)) 
 	 )
-    (assertmsg "check ncla" (is_a ncla class_class))
+    (assert_msg "check ncla" (is_a ncla class_class))
     (let ( (:long nbfld (multiple_length (unsafe_get_field :class_fields ncla)))
 	   (destlist (make_list discr_list))
 	   (locv (get_free_objlocptr gcx 'inst))
@@ -12017,15 +12017,15 @@
       (multiple_every
        nfields
        (lambda (cfla :long ix)
-	 (assertmsg "compilobj_nrep_makeinst check cfla" (is_a cfla class_nrep_fieldassign))
+	 (assert_msg "compilobj_nrep_makeinst check cfla" (is_a cfla class_nrep_fieldassign))
 	 (let ( (cfloc (unsafe_get_field :nrep_loc cfla))
 		(cfield (unsafe_get_field :nfla_field cfla))
 		(cval (unsafe_get_field :nfla_val cfla)) )
-	   (assertmsg "compilobj_nrep_makeinst check cfield" (is_a cfield class_field))
+	   (assert_msg "compilobj_nrep_makeinst check cfield" (is_a cfield class_field))
 	   (list_append 
 	    olis
 	    (let ( (oval (compile_obj cval gcx)) )
-	      (assertmsg "compilobj_nrep_makeinst check oval not nrep" (not (is_a oval class_nrep)))
+	      (assert_msg "compilobj_nrep_makeinst check oval not nrep" (not (is_a oval class_nrep)))
 	      (make_instance class_objputslot 
 			     :obi_loc (if cfloc cfloc nloc)
 			     :oslot_odata locv
@@ -12044,17 +12044,17 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; compile a procedure should not be called
 (defun compilobj_routproc (npro gcx)
-  (assertmsg "check gcx" (is_a gcx class_genercontext))
-  (assertmsg "check npro" (is_a npro class_nrep_routproc))
+  (assert_msg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check npro" (is_a npro class_nrep_routproc))
   (debug_msg gcx "compilobj_routproc gcx")
   (debug_msg npro "compilobj_routproc npro")
-  (assertmsg "UNEXPECTED CALL TO compilobj_routproc" ())
+  (assert_msg "UNEXPECTED CALL TO compilobj_routproc" ())
 )
 (install_method class_nrep_routproc compile_obj compilobj_routproc)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;
 (defun compilobj_predef (npr gcx)
-  (assertmsg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check gcx" (is_a gcx class_genercontext))
 ;  (debug_msg npr "compilobj_predef npr")
   (let ( (opr (make_instance class_objpredef
 			     :obv_type ctype_value
@@ -12072,11 +12072,11 @@
 ;;; to add the initial data fill and the slots filling
 ;;; return a tuple of bindings to be disposed
 (defun compil_data_and_slots_fill (ndat obj odiscr irout gcx)
-  (assertmsg "compil_data_and_slots_fill check ndat" (is_a ndat class_nrep_data))
-  (assertmsg "compil_data_and_slots_fill check obj" (is_a obj class_objinitobject))
-  (assertmsg "compil_data_and_slots_fill check odiscr" (is_a odiscr class_objvalue))
-  (assertmsg "compil_data_and_slots_fill check irout" (is_a irout class_initialroutineobj))
-  (assertmsg "compil_data_and_slots_fill check gcx" (is_a gcx class_genercontext))
+  (assert_msg "compil_data_and_slots_fill check ndat" (is_a ndat class_nrep_data))
+  (assert_msg "compil_data_and_slots_fill check obj" (is_a obj class_objinitobject))
+  (assert_msg "compil_data_and_slots_fill check odiscr" (is_a odiscr class_objvalue))
+  (assert_msg "compil_data_and_slots_fill check irout" (is_a irout class_initialroutineobj))
+  (assert_msg "compil_data_and_slots_fill check gcx" (is_a gcx class_genercontext))
   (debug_msg ndat "compil_data_and_slots_fill start ndat")
   (debug_msg obj "compil_data_and_slots_fill start obj")
   (debug_msg odiscr "compil_data_and_slots_fill odiscr")
@@ -12092,17 +12092,17 @@
 	;; a tuple to store the objvar for localbinds to be able to clear them later
 	(tupvar (make_multiple discr_multiple (multiple_length locmap)))
 	)
-    (assertmsg "compil_data_and_slots_fill check ibodylis" (is_list ibodylis))
-    (assertmsg "compil_data_and_slots_fill check fresh obj" (null (unsafe_get_field :oie_locvar obj)))
+    (assert_msg "compil_data_and_slots_fill check ibodylis" (is_list ibodylis))
+    (assert_msg "compil_data_and_slots_fill check fresh obj" (null (unsafe_get_field :oie_locvar obj)))
     (unsafe_put_fields obj :oie_locvar locvar)
-    (assertmsg "compil_data_and_slots_fill check ifilllis" (is_list ifilllis))
-    (assertmsg "compil_data_and_slots_fill check ibodylis" (is_list ibodylis))
+    (assert_msg "compil_data_and_slots_fill check ifilllis" (is_list ifilllis))
+    (assert_msg "compil_data_and_slots_fill check ibodylis" (is_list ibodylis))
 					; (debug_msg dlocbind "compil_data_and_slots_fill dlocbind")
     (multiple_every
      dlocbind
      (lambda (lbind :long bindrk)
 					; (debug_msg lbind "compil_data_and_slots_fill lbind")
-       (assertmsg "compil_data_and_slots_fill check lbind" (is_a lbind class_normlet_binding))
+       (assert_msg "compil_data_and_slots_fill check lbind" (is_a lbind class_normlet_binding))
        (let ( (bder (unsafe_get_field :binder lbind))
 	      (cty (unsafe_get_field :letbind_type lbind))
 	      (nexp (unsafe_get_field :letbind_expr lbind))
@@ -12126,7 +12126,7 @@
 	   (let ( (slobj (compile_obj sloval gcx)) 
 		  )
 					;(debug_msg slobj "compil_data_and_slots_fill slobj")
-	     (assertmsg "compil_data_and_slots_fill check slobj not nrep" (not (is_a slobj class_nrep)))
+	     (assert_msg "compil_data_and_slots_fill check slobj not nrep" (not (is_a slobj class_nrep)))
 	     (let (
 		   (ooff (make_integerbox discr_integer slork))
 		   (oput 
@@ -12171,7 +12171,7 @@
 
 ;; probably useless function
 (defun dispose_dlocbind_after_data_and_slots_fill (dlocbind gcx)
-  (assertmsg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check gcx" (is_a gcx class_genercontext))
   (debug_msg dlocbind "dispose_dlocbind_after_data_and_slots_fill dlocbind")
   (multiple_every
    dlocbind
@@ -12179,15 +12179,15 @@
   )
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun compilobj_datasymbol (syv gcx)
-  (assertmsg "check gcx" (is_a gcx class_genercontext))
-  (assertmsg "check syv" (is_a syv class_nrep_datasymbol))
+  (assert_msg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check syv" (is_a syv class_nrep_datasymbol))
   (debug_msg syv "compilobj_datasymbol syv")
   (let ( (compicache (unsafe_get_field :gncx_compicache gcx)) 
 	 (chobj (mapobject_get compicache syv))
 	 (inirout (unsafe_get_field :gncx_objrout gcx))
 	 )
     ;; datasymbol compiled only in initial routines
-    (assertmsg "check inirout" (is_a inirout class_initialroutineobj))
+    (assert_msg "check inirout" (is_a inirout class_initialroutineobj))
     (if chobj
 	(progn
 	  (debug_msg chobj "compilobj_datasymbol found chobj")
@@ -12230,7 +12230,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;; compilobj of datainstance
 (defun compilobj_datainstance (dai gcx)
-  (assertmsg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check gcx" (is_a gcx class_genercontext))
 ;  (debug_msg gcx "compilobj_datainstance gcx")
   (debug_msg dai "compilobj_datainstance dai")
   (let ( (compicache (unsafe_get_field :gncx_compicache gcx)) 
@@ -12238,7 +12238,7 @@
 	 (inirout (unsafe_get_field :gncx_objrout gcx))
 	 )
     ;; datainstance compiled only in initial routines
-    (assertmsg "check inirout" (is_a inirout class_initialroutineobj))
+    (assert_msg "check inirout" (is_a inirout class_initialroutineobj))
     (if chobj
 	(progn
 	  (debug_msg chobj "compilobj_datainstance return found chobj")
@@ -12256,7 +12256,7 @@
 	   )
       ;; if the drank is invalid or nil, the data has never been added
       ;; with add_nctx_data (should not happen)
-      (assertmsg "compilobj_datainstance check drank" (is_integerbox drank))
+      (assert_msg "compilobj_datainstance check drank" (is_integerbox drank))
       ;(debug_msg disx "compilobj_datainstance disx")
       ;(debug_msg gcx "compilobj_datainstance avant gcx")
       (debug_msg loc "compilobj_datainstance loc before cdisx")
@@ -12308,8 +12308,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;; compile a data tuple
 (defun compilobj_datatuple (nti gcx)
-  (assertmsg "check nti" (is_a nti class_nrep_datatuple))
-  (assertmsg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check nti" (is_a nti class_nrep_datatuple))
+  (assert_msg "check gcx" (is_a gcx class_genercontext))
   ;;(debug_msg gcx "compilobj_datatuple gcx")
   (debug_msg nti "compilobj_datatuple nti")
   (let ( (compicache (unsafe_get_field :gncx_compicache gcx)) 
@@ -12317,7 +12317,7 @@
 	 (inirout (unsafe_get_field :gncx_objrout gcx))
 	 )
     ;; datatuples compiled only in initial routines
-    (assertmsg "check inirout" (is_a inirout class_initialroutineobj))
+    (assert_msg "check inirout" (is_a inirout class_initialroutineobj))
     (if chobj
 	(progn
 	  (debug_msg chobj "compilobj_datatuple found chobj")
@@ -12379,8 +12379,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;; compile a data string
 (defun compilobj_datastring (nds gcx)
-  (assertmsg "check nds" (is_a nds class_nrep_datastring))
-  (assertmsg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check nds" (is_a nds class_nrep_datastring))
+  (assert_msg "check gcx" (is_a gcx class_genercontext))
   ; (debug_msg gcx "compilobj_datastring gcx")
   (debug_msg nds "compilobj_datastring nds")
   (let ( (compicache (unsafe_get_field :gncx_compicache gcx)) 
@@ -12388,7 +12388,7 @@
 	 (chobj (mapobject_get compicache nds))
 	 )
     ;; datastring compiled only in initial routines
-    (assertmsg "check inirout" (is_a inirout class_initialroutineobj))
+    (assert_msg "check inirout" (is_a inirout class_initialroutineobj))
     (if chobj
 	(progn
 	  (debug_msg chobj "compilobj_datastring found chobj")
@@ -12428,8 +12428,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;; compile a data closure
 (defun compilobj_dataclosure (ncl gcx)
-  (assertmsg "check ncl" (is_a ncl class_nrep_dataclosure))
-  (assertmsg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check ncl" (is_a ncl class_nrep_dataclosure))
+  (assert_msg "check gcx" (is_a gcx class_genercontext))
   ;(debug_msg gcx "compilobj_dataclosure gcx")
   (debug_msg ncl "compilobj_dataclosure ncl")
   (let ( (compicache (unsafe_get_field :gncx_compicache gcx)) 
@@ -12437,7 +12437,7 @@
 	 (inibody (unsafe_get_field :obrout_body inirout))
 	 (chobj (mapobject_get compicache ncl))
 	 )
-    (assertmsg  "check inirout" (is_a inirout class_initialroutineobj))
+    (assert_msg  "check inirout" (is_a inirout class_initialroutineobj))
     (if chobj
 	(progn
 	  (debug_msg chobj "compilobj_dataclosure found chobj")
@@ -12455,7 +12455,7 @@
 	  (locvar (get_free_objlocptr gcx '_valclo_))
 	  (comm (unsafe_get_field :named_name '_dataclosure_))
 	  )
-      (assertmsg "check npro" (is_a npro class_nrep_routproc))
+      (assert_msg "check npro" (is_a npro class_nrep_routproc))
       (add2sbuf_strconst nambuf "dclo_")
       (add2sbuf_longdec nambuf (get_int nrank))
       (if nam (progn
@@ -12475,7 +12475,7 @@
 	    )
 	(put_int oiclo nbclos)
 	(mapobject_put compicache ncl oiclo)
-	(assertmsg "check ndatarou" (is_a ndatarou class_nrep_dataroutine))
+	(assert_msg "check ndatarou" (is_a ndatarou class_nrep_dataroutine))
 	(let (
 	      ;; npro should already have been compiled, so should be in the compiler cache
 	      (ocrout (mapobject_get compicache npro))
@@ -12488,7 +12488,7 @@
 					 ))
 	      (bxoff (make_integerbox discr_integer 0))
 	      )
-	  (assertmsg "check ocrout" (is_a ocrout class_procroutineobj))
+	  (assert_msg "check ocrout" (is_a ocrout class_procroutineobj))
 	  (list_append inibody ocputrout)
 	  (debug_msg nclov "compilobj_dataclosure nclov")
 	  (debug_msg ocrout "compilobj_dataclosure ocrout")
@@ -12519,8 +12519,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;; compile a data routine
 (defun compilobj_dataroutine (ndrou gcx)
-  (assertmsg "check ndrou" (is_a ndrou class_nrep_dataroutine))
-  (assertmsg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check ndrou" (is_a ndrou class_nrep_dataroutine))
+  (assert_msg "check gcx" (is_a gcx class_genercontext))
   ;;(debug_msg gcx "compilobj_dataroutine+ gcx" )
   (debug_msg ndrou "compilobj_dataroutine+ ndrou")
   (let ( (compicache (unsafe_get_field :gncx_compicache gcx)) 
@@ -12529,7 +12529,7 @@
 	 (unused_stuff ())	  ;to circumvent a bug in cold-basilys
 	 )
     ;; dataroutine compiled only in initial routines
-    (assertmsg "check inirout" (is_a inirout class_initialroutineobj))
+    (assert_msg "check inirout" (is_a inirout class_initialroutineobj))
     (if chobj
 	(progn
 	  (debug_msg chobj "compilobj_dataroutine+ found chobj")
@@ -12546,7 +12546,7 @@
       (if (null nloc)
 	  (if (is_a npro class_nrep)
 	      (setq nloc (unsafe_get_field :nrep_loc npro))))
-      (assertmsg "check compicache" (is_mapobject compicache))
+      (assert_msg "check compicache" (is_mapobject compicache))
       (let (
 	    (nambuf (make_strbuf discr_strbuf))
 	    (:long drk (get_int drank))
@@ -12585,7 +12585,7 @@
 		   (cond
 		    ( (is_a constx class_nrep_constocc)
 		      (let ( (cnstbind (unsafe_get_field :nocc_bind constx)) )
-			(assertmsg "compilobj_dataroutine check cnstbind" (is_a cnstbind class_any_binding))
+			(assert_msg "compilobj_dataroutine check cnstbind" (is_a cnstbind class_any_binding))
 			(let ( 
 			      (oconstx (compile_obj cnstbind gcx)) 
 			      (:long off (get_int bxoff))
@@ -12615,7 +12615,7 @@
 			      (put_int bxoff (+i off 1))))))
 		    (:else
 		     (debug_msg constx  "compilobj_dataroutine unexpected constx")
-		     (assertmsg "compilobj_dataroutine unexepected constx" ())
+		     (assert_msg "compilobj_dataroutine unexepected constx" ())
 		     )
 		    )
 		   )
@@ -12650,12 +12650,12 @@
   (debug_msg lsexp "\n\n\n*%*%* compile_list_sexpr lsexp" ) ;list of sexpr
   (debug_msg inienv "compile_list_sexpr inienv") ;initial environment
   (debug_msg modnamstr "compile_list_sexpr modnamstr") ;module name
-  (assertmsg "check lsexp" (is_list lsexp))
-  (assertmsg "check modnamstr" (is_string modnamstr))
-  (assertmsg "check inienv" (is_a inienv class_environment))
+  (assert_msg "check lsexp" (is_list lsexp))
+  (assert_msg "check modnamstr" (is_string modnamstr))
+  (assert_msg "check inienv" (is_a inienv class_environment))
   (let ( (ncx (create_normcontext)) )
     (debug_msg ncx "compile_list_sexpr initial ncx")
-    (assertmsg "check ncx" (is_a ncx class_normcontext))
+    (assert_msg "check ncx" (is_a ncx class_normcontext))
     (let ( (xlist (macroexpand_toplevel_list lsexp inienv)) 
 	   (iniproc (unsafe_get_field :nctx_initproc ncx))
 	   (declbuf (make_strbuf discr_strbuf))
@@ -12663,8 +12663,8 @@
 	   )
       (debug_msg xlist "after macroexpansion compile_list_sexpr seq")
       (debug_msg inienv "after macroexpansion compile_list_sexpr inienv")
-      (assertmsg "check iniproc" (is_a iniproc class_nrep_initproc))
-      (assertmsg "check xlist" (is_list xlist))
+      (assert_msg "check iniproc" (is_a iniproc class_nrep_initproc))
+      (assert_msg "check xlist" (is_list xlist))
       (list_every
        xlist
        (lambda (sexp :long ix)
@@ -12702,11 +12702,11 @@
 	     (countbox (make_integerbox discr_integer 0))
 	     ) 
 	(debug_msg prolist "compile_list_sexpr prolist")  
-	(assertmsg "check prolist" (is_list prolist))
+	(assert_msg "check prolist" (is_list prolist))
 	(list_every
 	 prolist
 	 (lambda (pro)
-	   (assertmsg "check pro" (is_a pro class_nrep_anyproc))
+	   (assert_msg "check pro" (is_a pro class_nrep_anyproc))
 	   (debug_msg pro "compile_list_sexpr pro")
 	   (put_int countbox (+i (get_int countbox) 1))
 	   (let ( (objpro (compile2obj_procedure pro compicache (get_int countbox))) )
@@ -12716,11 +12716,11 @@
 	     ;;(debug_msg compicache "compile_list_sexpr compicache")
 	     )))
 	(debug_msg objlist "compile_list_sexpr objlist")  
-	(assertmsg "check objlist" (is_list objlist))
+	(assert_msg "check objlist" (is_list objlist))
 	(let ( (inipro (unsafe_get_field :nctx_initproc ncx)) 
 	       (inidata (unsafe_get_field :nctx_datalist ncx))
 	       )
-	  (assertmsg "check inipro" (is_a inipro class_nrep_initproc))
+	  (assert_msg "check inipro" (is_a inipro class_nrep_initproc))
 	  (let ( (iniobj (compile2obj_initproc inipro inidata compicache)) )
 	    (debug_msg iniobj "compile_list_sexpr iniobj")
 	    (outnum_err "** warm-basilys generated " (list_length objlist) " routines into ")
@@ -12802,7 +12802,7 @@
   (debug_msg labind_clonsy "before read compilefile_command {field} labind_clonsy")
   (debug_msg dbg_output "before read compilefile_command dbg_output")
   (debug_msg (unsafe_get_field :named_name dbg_output) "before read compilefile_command dbg_output's name")
-  (assertmsg "check DBG_OUTPUT's name is string" (is_string (unsafe_get_field :named_name dbg_output)))
+  (assert_msg "check DBG_OUTPUT's name is string" (is_string (unsafe_get_field :named_name dbg_output)))
   (let ( (rlist (read_file arg)) 
 	 (basnam (if (is_string secarg) secarg (make_string_nakedbasename discr_string arg)))
 	 ) 

@@ -1,4 +1,12 @@
 2008-06-04  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warm-basilys.bysl: using assert_msg macro instead of assertmsg primitive.
+
+	* warm-basilys-0.c: regenerated twice (before and after edition of warm-basilys.bysl)
+
+2008-06-04  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warm-basilys.bysl: macroexpansion of cppid twisted.
+
+2008-06-04  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warm-basilys.bysl: normalize cppif only checks for non void
 	type equality.
 
