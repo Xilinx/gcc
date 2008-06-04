@@ -1,4 +1,10 @@
 2008-06-04  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite.c (get_bb_type): On function body, i.e. loop_0, 
+	don't mark blocks as GBB_LOOP_SING_EXIT_HEADER, mark them
+	as GBB_COND_HEADER.
+
+2008-06-04  Sebastian Pop  <sebastian.pop@amd.com>
 	    Tobias Grosser  <grosser@fim.uni-passau.de>
 
 	* graphite.c (graphite_transform_loops): Early return when 

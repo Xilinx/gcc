@@ -665,8 +665,10 @@ get_bb_type (basic_block bb, struct loop *last_loop)
     {
       if (single_exit (loop) != NULL)
         return GBB_LOOP_SING_EXIT_HEADER;
-      else 
+      else if (loop->num != 0)
         return GBB_LOOP_MULT_EXIT_HEADER;
+      else
+	return GBB_COND_HEADER;
     }
 
   if (nb_dom == 0)
