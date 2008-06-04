@@ -1,4 +1,7 @@
 2008-06-04  Basile Starynkevitch  <basile@starynkevitch.net>
+	MELT branch merged with trunk r136369
+
+2008-06-04  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warm-basilys.bysl: generating a separate static
 	initialize_module_cdata routine to make the start_module_basilys
 	routine less huge.
