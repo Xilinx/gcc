@@ -313,7 +313,7 @@ add_localptr (basilys_ptr_t p)
   /* the only way to reach this point is that blocaltab is
      full; this should never happen, since it was allocated bigger
      than the number of locals! */
-  gcc_unreachable ();
+  fatal_error("corrupted bloctab foradd_localptr p=%p", p);
 }
 
 
@@ -952,9 +952,8 @@ forwarded_copy (basilys_ptr_t p)
 	break;
       }
     default:
-      debugeprintf ("forward invalid p=%p discr=%p magic=%d",
+      fatal_error ("corruption: forward invalid p=%p discr=%p magic=%d",
 		    (void *) p, (void *) p->u_discr, mag);
-      gcc_unreachable ();
     }
   if (n)
     {
@@ -982,6 +981,7 @@ forwarded_copy (basilys_ptr_t p)
 static void
 scanning (basilys_ptr_t p)
 {
+  unsigned omagic = 0;
   if (!p)
     return;
   gcc_assert (p != (void *) 1);
@@ -994,7 +994,8 @@ scanning (basilys_ptr_t p)
   gcc_assert (p->u_discr && p->u_discr != (basilysobject_ptr_t) 1);
   FORWARDED (p->u_discr);
   gcc_assert (!basilys_is_young (p));
-  switch (p->u_discr->object_magic)
+  omagic = p->u_discr->object_magic;
+  switch (omagic)
     {
     case OBMAG_OBJECT:
       {
@@ -1264,7 +1265,8 @@ scanning (basilys_ptr_t p)
     case OBMAG_EDGE:
       break;
     default:
-      gcc_unreachable ();
+      /* gcc_unreachable (); */
+      fatal_error("basilys scanning GC: corrupted heap, p=%p omagic=%d\n", p, (int) omagic);
     }
 }
 
@@ -3699,14 +3701,12 @@ basilys_is_subclass_of (basilysobject_ptr_t subclass_p,
       || basilys_magic_discr ((basilys_ptr_t) superclass_p) !=
       OBMAG_OBJECT || superclass_p->object_magic != OBMAG_OBJECT)
     {
-      gcc_unreachable ();
       return FALSE;
     }
   if (subclass_p->obj_len < FCLASS__LAST
       || !subclass_p->obj_vartab
       || superclass_p->obj_len < FCLASS__LAST || !superclass_p->obj_vartab)
     {
-      gcc_unreachable ();
       return FALSE;
     }
   if (superclass_p == BASILYSGOB (CLASS_ROOT))
@@ -3718,13 +3718,11 @@ basilys_is_subclass_of (basilysobject_ptr_t subclass_p,
   if (basilys_magic_discr ((basilys_ptr_t) subanc) !=
       OBMAG_MULTIPLE || subanc->discr != BASILYSGOB (DISCR_SEQCLASS))
     {
-      gcc_unreachable ();
       return FALSE;
     }
   if (basilys_magic_discr ((basilys_ptr_t) superanc) !=
       OBMAG_MULTIPLE || superanc->discr != BASILYSGOB (DISCR_SEQCLASS))
     {
-      gcc_unreachable ();
       return FALSE;
     }
   subdepth = subanc->nbval;
@@ -6070,7 +6068,7 @@ basilys_debug_out (struct debugprint_basilys_st *dp,
     case OBMAG_DECAY:
       fatal_error ("debug_out unimplemented magic %d", mag);
     default:
-      gcc_unreachable ();
+      fatal_error ("debug_out invalid magic %d", mag);
     }
 }
 

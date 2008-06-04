@@ -1,4 +1,8 @@
 2008-06-04  Basile Starynkevitch  <basile@starynkevitch.net>
+	* basilys.c: (add_localptr, basilys_garbcoll, scanning, debug_out)
+	replaced gcc_unreachable by more explicit fatal_error.
+
+2008-06-04  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warm-basilys.bysl: adding assert_msg macro - instead of
 	primitive.
 
