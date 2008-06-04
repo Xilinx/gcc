@@ -8680,7 +8680,7 @@
 (install_method class_procroutineobj output_c_code outpucod_procroutine)
 
 
-
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;
 ;; output at start of initial routine the get of symbols or keywords
 (defun output_code_getsymkw (curpdat implbuf)
@@ -8825,35 +8825,65 @@
   (add2sbuf_indentnl implbuf 0)
   )
 
+
+
+
 ;; output code for the initial routine
 (defun outpucod_initialroutine (pini declbuf implbuf :long depth)
   (assert_msg "check pini" (is_a pini class_initialroutineobj))
-  (add2sbuf_indentnl declbuf 0)
-  (add2sbuf_indentnl declbuf 0)
-  (add2sbuf_strconst declbuf "void* start_module_basilys(void*);")
-  (add2sbuf_indentnl declbuf 0)
-  (add2sbuf_indentnl implbuf 0)
-  (add2sbuf_indentnl implbuf 0)
-  (add2sbuf_indentnl implbuf 0)
-  (add2sbuf_strconst implbuf "void* start_module_basilys(void* modatap_) {")
-  (add2sbuf_indentnl implbuf 0)
-  (debug_msg pini "outpucod_initialroutine pini")
-  ;; generate the initial data structure
   (let ( 
 	(idatup (unsafe_get_field :oirout_data pini)) 
 	(irfill (unsafe_get_field :oirout_fill pini))
 	(oretval (unsafe_get_field :obrout_retval pini))
 	) 
-    (debug_msg idatup "outpucod_initialroutine start idatup")
-    (debug_msg irfill "outpucod_initialroutine start irfill")
+    (add2sbuf_indentnl declbuf 0)
+    (add2sbuf_indentnl declbuf 0)
+    (add2sbuf_strconst declbuf "void* start_module_basilys(void*);")
+    (add2sbuf_indentnl declbuf 0)
+    (add2sbuf_indentnl implbuf 0)
+    (add2sbuf_indentnl implbuf 0)
+    (add2sbuf_strconst implbuf "typedef ")
+    (output_curframe_declstruct pini implbuf)
+    (add2sbuf_strconst implbuf " initial_frame_st;")
+    (add2sbuf_indentnl implbuf 0)
+    (add2sbuf_indentnl implbuf 0)
+    (add2sbuf_indentnl implbuf 0)
+    (add2sbuf_strconst implbuf "static void initialize_module_cdata(initial_frame_st *iniframp__)")
+    (add2sbuf_indentnl implbuf 0)
+    (add2sbuf_strconst implbuf "{")
+    (add2sbuf_indentnl implbuf 0)
+    (add2sbuf_strconst implbuf "#define curfram__  (*iniframp__)")
     (add2sbuf_indentnl implbuf 1)
     (output_curframe_cdat_struct idatup implbuf)
     (add2sbuf_strconst implbuf " *cdat = NULL;")
-    (add2sbuf_indentnl implbuf 1)
-    ;; generate the initial frame
-    (output_curframe_declstruct_init output_curframe_declstruct pini implbuf)
+    (add2sbuf_indentnl implbuf 0)
 ;;; fill the cdat
     (output_curframe_cdat_fill idatup implbuf)
+    (add2sbuf_indentnl implbuf 0)
+    (add2sbuf_strconst implbuf "#undef curfram__")
+    (add2sbuf_indentnl implbuf 0)
+    (add2sbuf_strconst implbuf "} /*end initialize_module_cdata*/")
+    (add2sbuf_indentnl implbuf 0)
+    (add2sbuf_indentnl implbuf 0)
+    (add2sbuf_indentnl implbuf 0)
+    (add2sbuf_strconst implbuf "void* start_module_basilys(void* modatap_) {")
+    (add2sbuf_indentnl implbuf 0)
+    (debug_msg pini "outpucod_initialroutine pini")
+    ;; generate the initial data structure
+    (debug_msg idatup "outpucod_initialroutine start idatup")
+    (debug_msg irfill "outpucod_initialroutine start irfill")
+    (add2sbuf_indentnl implbuf 1)
+    ;; generate the initial frame
+    (output_curframe_declstruct_init 
+     (lambda (rou dsbuf)
+       (add2sbuf_indentnl dsbuf 0)
+       (add2sbuf_strconst dsbuf "initial_frame_st ")
+       )
+     pini implbuf)
+;;; output call cdata initializer
+    (add2sbuf_indentnl implbuf 1)
+    (add2sbuf_strconst implbuf "initialize_module_cdata(&curfram__);")
+    (add2sbuf_indentnl implbuf 1)
 ;;; output the body
 ;;;
     (add2sbuf_strconst implbuf "/*initial routine body*/")
@@ -8908,6 +8938,12 @@
     (add2sbuf_indentnl implbuf 0)
     ))
 (install_method class_initialroutineobj output_c_code outpucod_initialroutine)
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+
 
 
 
