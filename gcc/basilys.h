@@ -298,7 +298,7 @@ enum obmag_en    {
 
 
 /***
-    objects are à la ObjVlisp, single-inheritance with a root class, 
+    objects are a la ObjVlisp, single-inheritance with a root class, 
     the discr of an object is its class
     each object has its hashcode, its magic (used to discriminate non-object values),
     its number of slots or instance variables object_arity, and an array of slots called vartab[] 
@@ -641,7 +641,7 @@ GTY (())
 struct entrystringsbasilys_st
 GTY (())
 {
-  char *GTY (()) e_at;
+  const char *GTY (()) e_at;
   basilys_ptr_t e_va;
 };
 
@@ -981,10 +981,10 @@ void basilys_garbcoll (size_t wanted, bool needfull);
 #endif
 
 static inline bool
-basilys_is_young (const void *p)
+basilys_is_young (const void *const p)
 {
-  return (char *) p >= (char *) basilys_startalz
-    && (char *) p < (char *) basilys_endalz;
+  return (const char * const) p >= (const char * const) basilys_startalz
+    && (const char * const) p < (const char * const) basilys_endalz;
 }
 
 
@@ -1532,7 +1532,7 @@ basilys_nthattrraw_mapstrings (struct basilysmapstrings_st *mapstring_p,
   if (ix < 0 || ix >= basilys_primtab[mapstring_p->lenix])
     return 0;
   at = mapstring_p->entab[ix].e_at;
-  if ((void *) at == (void *) HTAB_DELETED_ENTRY)
+  if ((const void *) at == (const void *) HTAB_DELETED_ENTRY)
     return 0;
   return at;
 }
@@ -1546,7 +1546,7 @@ basilys_nthval_mapstrings (struct basilysmapstrings_st *mapstring_p, int ix)
   if (ix < 0 || ix >= basilys_primtab[mapstring_p->lenix])
     return 0;
   at = mapstring_p->entab[ix].e_at;
-  if ((void *) at == (void *) HTAB_DELETED_ENTRY)
+  if ((const void *) at == (const void *) HTAB_DELETED_ENTRY)
     return 0;
   return mapstring_p->entab[ix].e_va;
 }

@@ -1,4 +1,14 @@
 2008-06-04  Basile Starynkevitch  <basile@starynkevitch.net>
+	* basilys.h: (basilys_is_young) takes a const pointer to const.
+	(basilys_nthattrraw_mapstrings, basilys_nthval_mapstrings) also const.
+
+	* basilys.c: (add_localptr, scanning, basilysgc_add_strbuf_raw)
+	(basilysgc_add_strbuf_cident, mulsort_cmp)
+	(basilysgc_put_mapstrings, basilysgc_remove_mapstrings)
+	(basilysgc_new_string_nakedbasename, compile_to_dyl) cosmetic
+	constness issues/typos.
+	
+2008-06-04  Basile Starynkevitch  <basile@starynkevitch.net>
 	* basilys.c: (add_localptr, basilys_garbcoll, scanning, debug_out)
 	replaced gcc_unreachable by more explicit fatal_error.
 

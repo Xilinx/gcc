@@ -313,7 +313,7 @@ add_localptr (basilys_ptr_t p)
   /* the only way to reach this point is that blocaltab is
      full; this should never happen, since it was allocated bigger
      than the number of locals! */
-  fatal_error("corrupted bloctab foradd_localptr p=%p", p);
+  fatal_error("corrupted bloctab foradd_localptr p=%p", (void*) p);
 }
 
 
@@ -1161,14 +1161,14 @@ scanning (basilys_ptr_t p)
 	  }
 	for (ix = 0; ix < siz; ix++)
 	  {
-	    char *at = src->entab[ix].e_at;
+	    const char *at = src->entab[ix].e_at;
 	    if (!at || at == (void *) 1)
 	      {
 		src->entab[ix].e_va = NULL;
 		continue;
 	      }
-	    if (basilys_is_young (at))
-	      src->entab[ix].e_at = (char *) ggc_strdup (at);
+	    if (basilys_is_young ((const void*) at))
+	      src->entab[ix].e_at = (const char *) ggc_strdup (at);
 	    FORWARDED (src->entab[ix].e_va);
 	  }
 	break;
@@ -1266,7 +1266,7 @@ scanning (basilys_ptr_t p)
       break;
     default:
       /* gcc_unreachable (); */
-      fatal_error("basilys scanning GC: corrupted heap, p=%p omagic=%d\n", p, (int) omagic);
+      fatal_error("basilys scanning GC: corrupted heap, p=%p omagic=%d\n", (void*)p, (int) omagic);
     }
 }
 
@@ -1565,7 +1565,7 @@ basilysgc_add_strbuf_raw (struct basilysstrbuf_st *strbuf_p, const char *str)
     goto end;
   if (basilys_magic_discr (strbufv) != OBMAG_STRBUF)
     goto end;
-  gcc_assert (!basilys_is_young ((void *) (char *) str));
+  gcc_assert (!basilys_is_young (str));
   slen = strlen (str);
   blen = basilys_primtab[buf_strbufv->buflenix];
   gcc_assert (blen > 0);
@@ -1772,7 +1772,8 @@ basilysgc_add_strbuf_cident (struct basilysstrbuf_st
 {
   int slen = str ? strlen (str) : 0;
   char *dupstr = 0;
-  char *ps = 0, *pd = 0;
+  const char *ps = 0;
+  char *pd = 0;
   char tinybuf[80];
   if (!str || !str[0])
     return;
@@ -1784,7 +1785,7 @@ basilysgc_add_strbuf_cident (struct basilysstrbuf_st
   else
     dupstr = xcalloc (slen + 2, 1);
   if (str)
-    for (ps = (char *) str, pd = dupstr; *ps; ps++)
+    for (ps = (const char *) str, pd = dupstr; *ps; ps++)
       {
 	if (ISALNUM (*ps))
 	  *(pd++) = *ps;
@@ -2085,8 +2086,8 @@ static int mulsort_cmp(const void*p1, const void*p2)
 #define mulv  curfram__.varptr[4]
   mulv = *mulsort_mult_ad;
   clov = *mulsort_clos_ad;
-  ix1 = *(int*)p1;
-  ix2 = *(int*)p2;
+  ix1 = *(const int*)p1;
+  ix2 = *(const int*)p2;
   val1v = basilys_multiple_nth(mulv, ix1);
   val2v = basilys_multiple_nth(mulv, ix2);
   if (val1v == val2v) {
@@ -3210,7 +3211,7 @@ basilysgc_put_mapstrings (struct basilysmapstrings_st
       oldtab = map_mapstringv->entab;
       for (ix = 0; ix < len; ix++)
 	{
-	  char *curat = oldtab[ix].e_at;
+	  const char *curat = oldtab[ix].e_at;
 	  int newix;
 	  if (!curat || curat == (void *) HTAB_DELETED_ENTRY)
 	    continue;
@@ -3258,7 +3259,7 @@ basilys_get_mapstrings (struct basilysmapstrings_st
 			*mapstring_p, const char *attr)
 {
   long ix = 0, len = 0;
-  char *oldat = NULL;
+  const char *oldat = NULL;
   if (!mapstring_p || !attr)
     return NULL;
   if (mapstring_p->discr->object_magic != OBMAG_MAPSTRINGS)
@@ -3313,8 +3314,8 @@ basilysgc_remove_mapstrings (struct basilysmapstrings_st *
   if (ix < 0 || !(oldat = map_mapstringv->entab[ix].e_at)
       || oldat == HTAB_DELETED_ENTRY)
     goto end;
-  if (!basilys_is_young ((void *) (char *) oldat))
-    ggc_free ((void *) oldat);
+  if (!basilys_is_young (oldat))
+    ggc_free (oldat);
   map_mapstringv->entab[ix].e_at = (void *) HTAB_DELETED_ENTRY;
   valuv = map_mapstringv->entab[ix].e_va;
   map_mapstringv->entab[ix].e_va = NULL;
@@ -3345,7 +3346,7 @@ basilysgc_remove_mapstrings (struct basilysmapstrings_st *
       oldtab = map_mapstringv->entab;
       for (ix = 0; ix < len; ix++)
 	{
-	  char *curat = oldtab[ix].e_at;
+	  const char *curat = oldtab[ix].e_at;
 	  int newix;
 	  if (!curat || curat == (void *) HTAB_DELETED_ENTRY)
 	    continue;
@@ -3815,7 +3816,7 @@ basilysgc_new_string_nakedbasename (basilysobject_ptr_t
   int slen = 0;
   char tinybuf[120];
   char *strcop = 0;
-  char *basestr = 0;
+  const char *basestr = 0;
   char *dot = 0;
   BASILYS_ENTERFRAME (2, NULL);
 #define discrv     curfram__.varptr[0]
@@ -3838,7 +3839,7 @@ basilysgc_new_string_nakedbasename (basilysobject_ptr_t
     }
   else
     strcop = strcpy (xcalloc (1, slen + 1), str);
-  basestr = (char *) lbasename (strcop);
+  basestr = (const char *) lbasename (strcop);
   dot = strchr (basestr, '.');
   if (dot)
     *dot = 0;
@@ -4123,7 +4124,7 @@ compile_to_dyl (const char *srcfile, const char *dlfile)
    */
   const char *ourmeltcompilescript = NULL;
   struct pex_time ptime;
-  char *argv[4];
+  const char * argv[4];
   memset (&ptime, 0, sizeof (ptime));
   /* compute the ourmeltcompilscript */
   ourmeltcompilescript = getenv ("MELT_GCC_COMPILE_SCRIPT");
@@ -4137,12 +4138,12 @@ compile_to_dyl (const char *srcfile, const char *dlfile)
   fflush (stdout);
   fflush (stderr);
   pex = pex_init (PEX_RECORD_TIMES, ourmeltcompilescript, NULL);
-  argv[0] = (char *) ourmeltcompilescript;
-  argv[1] = (char *) srcfile;
-  argv[2] = (char *) dlfile;
+  argv[0] = (const char *) ourmeltcompilescript;
+  argv[1] = (const char *) srcfile;
+  argv[2] = (const char *) dlfile;
   argv[3] = (char *) 0;
   errmsg =
-    pex_run (pex, PEX_LAST | PEX_SEARCH, ourmeltcompilescript, argv,
+    pex_run (pex, PEX_LAST | PEX_SEARCH, ourmeltcompilescript, (char**)argv,
 	     NULL, NULL, &err);
   if (errmsg)
     fatal_error
