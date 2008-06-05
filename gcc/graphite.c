@@ -1114,7 +1114,13 @@ build_scop_loop_nests (scop_p scop)
   struct loop *loop0, *loop1;
 
   for (i = 0; VEC_iterate (graphite_bb_p, SCOP_BBS (scop), i, gb); i++)
-    scop_record_loop (scop, gbb_loop (gb));
+    {
+      struct loop *loop = gbb_loop (gb);
+
+      /* Only add loops, if they are completely contained in the SCoP.  */
+      if (loop->header == GBB_BB (gb) && bb_in_scop_p (loop->latch, scop))
+        scop_record_loop (scop, gbb_loop (gb));
+    }
 
   /* Make sure that the loops in the SCOP_LOOP_NEST are ordered.  It
      can be the case that an inner loop is inserted before an outer
@@ -1167,7 +1173,36 @@ build_scop_dynamic_schedules (scop_p scop)
     }
 }
 
-/* Build for BB the static schedule.  */
+/* Build for BB the static schedule.
+
+   The STATIC_SCHEDULE is defined like this:
+
+   A
+   for (i: ...)
+     {
+       for (j: ...)
+         {
+           B
+           C 
+         }
+
+       for (k: ...)
+         {
+           D
+           E 
+         }
+     }
+   F
+
+   Static schedules for A to F:
+
+     ? i j k
+   A 0 0 0 0
+   B 1 0 0 0
+   C 1 0 1 0
+   D 1 1 0 0
+   E 1 1 0 1
+   F 2 0 0 0  */
 
 static void
 build_scop_canonical_schedules (scop_p scop)
@@ -1180,7 +1215,13 @@ build_scop_canonical_schedules (scop_p scop)
 
   for (i = 0; VEC_iterate (graphite_bb_p, SCOP_BBS (scop), i, gb); i++)
     {
-      int offset = scop_loop_index (scop, gbb_loop (gb));
+      struct loop *loop = gbb_loop (gb);
+      int offset = 0;
+
+      /* Shift one step, to make space for outermost layer
+         not contained in any SCoP.  */
+      if (scop_contains_loop (scop, loop))
+        offset = scop_loop_index (scop, gbb_loop (gb)) + 1;
 
       /* After leaving a loop, it is possible that the schedule is not
 	 set at zero.  This loop reinitializes components located
@@ -1749,67 +1790,78 @@ static CloogMatrix *
 schedule_to_scattering (graphite_bb_p gb) 
 {
   int i;
-  int row = 0; 
-
-  /* Conservative aproximation, the maximal loop depth of all bbs would be
-     sufficient, as we use in cloog one iterator for loops of the same loop
-     depth.  */
   scop_p scop = GBB_SCOP (gb);
-  int max_nb_iterators = scop_nb_loops (scop);
   struct loop *loop;
 
-  /* Number of columns:
-     1                        col  = Eq/Inq,
-     2 * max_nb_iterators + 1 cols = Scattering dimensions,
-     nb_iterators             cols = bb's iterators,
-     1                        col  = Constant 1
-   The scattering domain contains one dimension for every iterator (which 
-   iteration of this loop should be scattered) and max_nb_iterators + 1
-   dimension for the textual order of every loop.  */ 
-  int nb_cols = 1 + (2 * max_nb_iterators + 1) + max_nb_iterators + 1;
-  int col_const = nb_cols - 1; 
-  int col_iter_offset = 1 + (2 * max_nb_iterators + 1) - 1;
-
-  /* To ensure that the scattering functions have the same
-     dimensionality, we complete the scattering functions with zeroes
+  /* For all bb in the same SCoP the scattering functions must have the same
+     dimensionality. So we always use a scattering function, that is large
+     enough for every bb of this SCoP.
      (this is a CLooG 0.14.0 and previous versions requirement, it
-     should be removed in a future version).  */
-  CloogMatrix *scat = cloog_matrix_alloc (max_nb_iterators * 2 + 1, nb_cols);
+     should be removed in a future version). 
+
+     XXX: max_nb_iterators: The maximal possible loop depth in this SCoP
+     would be sufficient.  */
+  int max_nb_iterators = scop_nb_loops (scop);
+  int nb_iterators = nb_loops_around_gb (gb);
+  int scattering_dimensions = max_nb_iterators * 2 + 1;
+
+  /* The cloog scattering matrix consists of these colums:
+     1                        col  = Eq/Inq,
+     scattering_dimensions    cols = Scattering dimensions,
+     nb_iterators             cols = bb's iterators,
+     nb_params_in_scop        cols = Parameters,
+     1                        col  = Constant 1.
+
+     Example:
+
+     scattering_dimensions = 5
+     max_nb_iterators = 2
+     nb_iterators = 1 
+     nb_params_in_scop = 2
+
+     Schedule:
+     ? i
+     4 5
+
+     Scattering Matrix:
+     s1  s2  s3  s4  s5  i   p1  p2  1 
+     1   0   0   0   0   0   0   0  -4  = 0
+     0   1   0   0   0  -1   0   0   0  = 0
+     0   0   1   0   0   0   0   0  -5  = 0  */
+  int nb_params = nb_params_in_scop (scop);
+  int nb_cols = 1 + scattering_dimensions + nb_iterators + nb_params + 1;
+  int col_const = nb_cols - 1; 
+  int col_iter_offset = 1 + scattering_dimensions;
+
+  CloogMatrix *scat = cloog_matrix_alloc (scattering_dimensions, nb_cols);
 
   /* Initialize the identity matrix.  */
-  for (i = 0; i < max_nb_iterators * 2 + 1; i++)
+  for (i = 0; i < scattering_dimensions; i++)
     {
       value_init (scat->p[i][i + 1]);
       value_set_si (scat->p[i][i + 1], 1);
     }
 
-  /* Set textual order for outer loop.  */
-  value_init (scat->p[row][col_const]);
-  value_set_si (scat->p[row][col_const], GBB_STATIC_SCHEDULE (gb)[0]);
+  /* Textual order outside the first loop */
+  value_init (scat->p[0][col_const]);
+  value_set_si (scat->p[0][col_const], -GBB_STATIC_SCHEDULE (gb)[0]);
 
   loop = gbb_loop (gb);
-  if (!loop
-      || scop_contains_loop (scop, loop)
-      || loop->num == 0)
-    return scat;
 
-  for (i = scop_loop_index (scop, loop);
-       i != -1;
-       i = scop_loop_index (scop, loop))       
+  /* For all surrounding loops.  */
+  for (i = nb_iterators - 1;  i >= 0; i--)
     {
-      /* Set scattering for loop iterator.  */
-      value_init (scat->p[2 * i][col_iter_offset + i]);
-      value_set_si (scat->p[2 * i][col_iter_offset + i], -1);
+      int schedule = GBB_STATIC_SCHEDULE (gb)[scop_loop_index (scop, loop) + 1];
 
-      /* Set textual order for bb's of loop.  */
-      value_init (scat->p[2 * i + 1][col_const]);
-      value_set_si (scat->p[2 * i + 1][col_const], GBB_STATIC_SCHEDULE (gb)[i]);
+      /* Iterations of this loop.  */
+      value_init (scat->p[2 * i + 1][col_iter_offset + i]);
+      value_set_si (scat->p[2 * i + 1][col_iter_offset + i], -1);
+
+      /* Textual order inside this loop.  */
+      value_init (scat->p[2 * i + 2][col_const]);
+      value_set_si (scat->p[2 * i + 2][col_const], -schedule);
 
       loop = loop_outer (loop);
-      if (!loop 
-	  || scop_contains_loop (scop, loop)
-	  || loop->num == 0)
-	break;
     }
 
   return scat; 
@@ -2278,14 +2330,17 @@ build_cloog_prog (scop_p scop)
   for (i = 0; i < prog->nb_scattdims; i++)
     prog->scaldims[i] = 0 ;
 
-  /* Extract scalar dimensions to simplify the code generation problem.  */
-  cloog_program_extract_scalars (prog, scattering);
+  if (0)
+    {
+      /* Extract scalar dimensions to simplify the code generation problem.  */
+      cloog_program_extract_scalars (prog, scattering);
 
-  /* Apply scattering.  */
-  cloog_program_scatter (prog, scattering);
+      /* Apply scattering.  */
+      cloog_program_scatter (prog, scattering);
 
-  /* Iterators corresponding to scalar dimensions have to be extracted.  */
-  cloog_names_scalarize (prog->names, prog->nb_scattdims, prog->scaldims);
+      /* Iterators corresponding to scalar dimensions have to be extracted.  */
+      cloog_names_scalarize (prog->names, prog->nb_scattdims, prog->scaldims);
+    }
 }
 
 /* Find the right transform for the SCOP, and return a Cloog AST

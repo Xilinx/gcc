@@ -1,5 +1,20 @@
 2008-06-04  Tobias Grosser  <grosser@fim.uni-passau.de>
 
+	* graphite.c (schedule_to_scattering): Fix scattering dimensions,
+	add support for parameters, add STATIC_SCHEDULE at the right places,
+	cleanup.
+
+2008-06-04  Tobias Grosser  <grosser@fim.uni-passau.de>
+
+	* graphite.c (build_scop_loop_nests): Only add the loops, that
+	are contained completely in the SCoP.
+	(build_cloog_prog): Disable scattering, until schedule_to_scattering
+	and the domains are fixed.
+	(build_scop_canonical_schedules): Add support for bbs not contained
+	in any SCoP.
+
+2008-06-04  Tobias Grosser  <grosser@fim.uni-passau.de>
+
 	* graphite.h (scop_contains_loop): Update comments to match
 	the actual behavior.
 	(scop_contains_loop): New.

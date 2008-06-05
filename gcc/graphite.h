@@ -99,7 +99,7 @@ struct scop
   /* New induction variables generated for this SCOP.  */
   VEC (name_tree, heap) *new_ivs;
 
-  /* Loops contained in the scop.  */
+  /* Loops completely contained in the scop.  */
   bitmap loops;
   VEC (loop_p, heap) *loop_nest;
 
