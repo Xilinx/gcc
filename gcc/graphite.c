@@ -2793,6 +2793,21 @@ dump_dependence_graph (FILE *f, struct graph *g)
     }
 }
 
+/* Returns the number of data references in SCOP.  */
+
+static int
+nb_data_refs_in_scop (scop_p scop)
+{
+  int i;
+  graphite_bb_p gbb;
+  int res = 0;
+
+  for (i = 0; VEC_iterate (graphite_bb_p, SCOP_BBS (scop), i, gbb); i++)
+    res += VEC_length (data_reference_p, GBB_DATA_REFS (gbb));
+
+  return res;
+}
+
 /* Perform a set of linear transforms on LOOPS.  */
 
 void
@@ -2823,11 +2838,26 @@ graphite_transform_loops (void)
       find_scop_parameters (scop);
       build_scop_context (scop);
 
+      if (dump_file && (dump_flags & TDF_DETAILS))
+	{
+	  fprintf (dump_file, "\n(In SCoP %d:\n", i);
+	  fprintf (dump_file, "\nnumber of bbs: %d\n",
+		   VEC_length (graphite_bb_p, SCOP_BBS (scop)));
+	  fprintf (dump_file, "\nnumber of loops: %d)\n",
+		   VEC_length (loop_p, SCOP_LOOP_NEST (scop)));
+	}
+
       if (!build_scop_iteration_domain (scop))
 	continue;
 
       build_scop_data_accesses (scop);
       build_scop_dynamic_schedules (scop);
+
+      if (dump_file && (dump_flags & TDF_DETAILS))
+	{
+	  int nbrefs = nb_data_refs_in_scop (scop);
+	  fprintf (dump_file, "\nnumber of data refs: %d\n", nbrefs);
+	}
 
       if (0)
 	build_rdg_all_levels (scop);

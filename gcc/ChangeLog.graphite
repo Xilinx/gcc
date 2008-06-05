@@ -1,3 +1,9 @@
+2008-06-05  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite.c (nb_data_refs_in_scop): New.
+	(graphite_transform_loops): Print more stats: number of
+	loops, basic blocks and data references per scop.
+
 2008-06-04  Sebastian Pop  <sebastian.pop@amd.com>
 	    Jan Sjodin  <jan.sjodin@amd.com>
 
