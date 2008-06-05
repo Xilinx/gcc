@@ -65,12 +65,14 @@ case $dynstuff in
     *) nakedynstuff=`echo $dynstuff | sed 's/\.[a-z]*$//'`;;
 esac
 
+: ${TMPDIR=/tmp}
+
 if which tempfile; then
     datf=`tempfile  -p bdat`
 elif which mktemp; then
     datf=`mktemp -t bdat.XXXXXXXX`
 else
-    datf=/tmp/bdat$$
+    datf=$TMPDIR/bdat$$-$RANDOM
 fi
 
 rm -f $datf $datf.c $datf.*
