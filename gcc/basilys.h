@@ -1893,8 +1893,10 @@ enum basilys_globalix_en
   BGLOB_CLASS_DISCR,
   /* the class of tokenizers */
   BGLOB_CLASS_TOKENIZER,
-  /* the class of command dispatchers */
-  BGLOB_CLASS_COMMAND_DISPATCHER,
+  /* the class of system data */
+  BGLOB_CLASS_SYSTEM_DATA,
+  /***** for compatibility */
+#define BGLOB_CLASS_COMMAND_DISPATCHER BGLOB_CLASS_SYSTEM_DATA
   /* atom for returning true */
   BGLOB_ATOM_TRUE,
   /**** every ctype should be predefined ****/
@@ -1910,8 +1912,10 @@ enum basilys_globalix_en
   BGLOB_CTYPE_CSTRING,
   /* the global tokenizer */
   BGLOB_TOKENIZER,
-  /* the initial command dispatcher */
-  BGLOB_INITIAL_COMMAND_DISPATCHER,
+  /* the initial system data */
+  BGLOB_INITIAL_SYSTEM_DATA,
+  /***** for compatibility */
+#define BGLOB_INITIAL_COMMAND_DISPATCHER BGLOB_INITIAL_SYSTEM_DATA
   /**************************** placeholder for last wired */
   BGLOB__LASTWIRED,
   /*****/
@@ -1991,11 +1995,14 @@ enum
   FTOK__LAST
 };
 
-/* fields inside the command dispatcher */
+/* fields inside the system data */
 enum
 {
-  FCMDIS_FUNDICT = FNAMED__LAST,	/* the stringdict of commands */
-  FCMDIS__LAST
+  FSYSDAT_FUNDICT = FNAMED__LAST,	/* the stringdict of commands */
+#define FCMDIS_FUNDICT FSYSDAT_FUNDICT
+  FSYSDAT_FRESHENV,
+  FSYSDAT_PUTENV,
+  FSYSDAT__LAST
 };
 
 /* BASILYSG(Foo) is the global of index BGLOB_Foo */

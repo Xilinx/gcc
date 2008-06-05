@@ -1,4 +1,24 @@
 2008-06-05  Basile Starynkevitch  <basile@starynkevitch.net>
+[preparing for adding export by having start_module_basilys returns some environment;
+using the INITIAL_SYSTEM_DATA to wrap all system data, including command dispatching, 
+environment management, etc...]
+
+	* basilys.h: renaming *COMMAND_DISPATCHER as *SYSTEM_DATA added
+	fields offset for them
+
+	* basilys.c: (do_initial_command) uses the SYSTEM_DATA ...
+
+	* melt/warm-basilys.bysl: using SYSTEM_DATA and generating a fresh
+	environment in the start_module_basilys
+
+	* warm-basilys-0.c: regenerated twice [after editing warm-basilys.bysl]
+
+	* melt-cc-script.proto: redirecting which to /dev/null
+
+	* Makefile.in: remove more carefully the #line-s when upgrading warm-basilys-0.c
+	and regenerating warm-basilys-5 afterwards.
+
+2008-06-05  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt-cc-script.proto: improved a little bit the tempfile ...
 

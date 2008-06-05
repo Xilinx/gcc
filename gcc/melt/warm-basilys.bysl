@@ -140,6 +140,7 @@
 
 ;; class of tokenizers
 (defclass class_tokenizer
+  :predef CLASS_TOKENIZER
   :super class_named
   :fields (tok_symboldict 		; stringmap for symbols
 	   tok_keywdict 			;stringmap for keywords
@@ -147,14 +148,19 @@
 	   tok_addkeyw		;closure to add a keyword of given name
 	   tok_internsymbol		;closure to intern a symbol
 	   tok_internkeyw		;closure to intern a keyword
-	   )
-  :predef CLASS_TOKENIZER)
+	   ))
 
-;; class of command dispatchers
-(defclass class_command_dispatcher
-  :predef CLASS_COMMAND_DISPATCHER
+;; class of system data
+(defclass class_system_data
+  :predef CLASS_SYSTEM_DATA
   :super class_named
-  :fields (cmd_fundict			;stringmap for closures
+  :fields (sysdata_cmd_fundict			;stringmap for closures for command dispatching
+	   sysdata_fresh_env			;closure to make a fresh environment
+	   sysdata_put_env			;closure to put into an environment
+	   sysdata___spare1
+	   sysdata___spare2
+	   sysdata___spare3
+	   sysdata___spare4
 	   ))
 
 
@@ -849,7 +855,7 @@
 ;;; module compilation context
 (defclass class_modulcontext
   :super class_root
-  :fields (mocx_modulename
+  :fields (mocx_modulename		;the module name
 ))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -3154,7 +3160,7 @@
 
 ;; make a fresh environment 
 (defun fresh_env (parenv)
-  (if (is_a parenv class_environment)
+  (if (or (null parenv) (is_a parenv class_environment))
       (make_instance class_environment 
 		     :env_bind (make_mapobject discr_mapobjects 6)
 		     :env_prev parenv)))
@@ -5129,7 +5135,7 @@
 (defprimitive global_CLASS_FORMAL_BINDING        () :value "(void*)BASILYSG(CLASS_FORMAL_BINDING)")
 (defprimitive global_CLASS_DISCR                 () :value "(void*)BASILYSG(CLASS_DISCR)")
 (defprimitive global_CLASS_TOKENIZER             () :value "(void*)BASILYSG(CLASS_TOKENIZER)")
-(defprimitive global_CLASS_COMMAND_DISPATCHER    () :value "(void*)BASILYSG(CLASS_COMMAND_DISPATCHER)")
+(defprimitive global_CLASS_SYSTEM_DATA           () :value "(void*)BASILYSG(CLASS_SYSTEM_DATA)")
 (defprimitive global_ATOM_TRUE                   () :value "(void*)BASILYSG(ATOM_TRUE)")
 (defprimitive global_CTYPE_LONG                  () :value "(void*)BASILYSG(CTYPE_LONG)")
 (defprimitive global_CTYPE_VALUE                 () :value "(void*)BASILYSG(CTYPE_VALUE)")
@@ -5137,7 +5143,8 @@
 (defprimitive global_CTYPE_VOID                  () :value "(void*)BASILYSG(CTYPE_VOID)")
 (defprimitive global_CTYPE_CSTRING               () :value "(void*)BASILYSG(CTYPE_CSTRING)")
 (defprimitive global_TOKENIZER                   () :value "(void*)BASILYSG(TOKENIZER)")
-(defprimitive global_INITIAL_COMMAND_DISPATCHER  () :value "(void*)BASILYSG(INITIAL_COMMAND_DISPATCHER)")
+(defprimitive global_INITIAL_SYSTEM_DATA  () :value "(void*)BASILYSG(INITIAL_SYSTEM_DATA)")
+
 
 (defun fill_initial_predefmap (predefmap)
     ;; manually keep in sync  with enum basilys_globalix_en in basilys.h
@@ -5173,7 +5180,7 @@
     (mapobject_put predefmap (global_CLASS_FORMAL_BINDING)           'CLASS_FORMAL_BINDING)
     (mapobject_put predefmap (global_CLASS_DISCR)                    'CLASS_DISCR)
     (mapobject_put predefmap (global_CLASS_TOKENIZER)                'CLASS_TOKENIZER)
-    (mapobject_put predefmap (global_CLASS_COMMAND_DISPATCHER)       'CLASS_COMMAND_DISPATCHER)
+    (mapobject_put predefmap (global_CLASS_SYSTEM_DATA)              'CLASS_SYSTEM_DATA)
     (mapobject_put predefmap (global_ATOM_TRUE)                      'ATOM_TRUE)
     (mapobject_put predefmap (global_CTYPE_LONG)                     'CTYPE_LONG)
     (mapobject_put predefmap (global_CTYPE_VALUE)                    'CTYPE_VALUE)
@@ -5181,7 +5188,7 @@
     (mapobject_put predefmap (global_CTYPE_VOID)                     'CTYPE_VOID)
     (mapobject_put predefmap (global_CTYPE_CSTRING)                  'CTYPE_CSTRING)
     (mapobject_put predefmap (global_TOKENIZER)                      'TOKENIZER)
-    (mapobject_put predefmap (global_INITIAL_COMMAND_DISPATCHER)     'INITIAL_COMMAND_DISPATCHER)
+    (mapobject_put predefmap (global_INITIAL_SYSTEM_DATA)     'INITIAL_SYSTEM_DATA)
 )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -8878,7 +8885,7 @@
     (add2sbuf_indentnl implbuf 0)
     (add2sbuf_indentnl implbuf 0)
     (add2sbuf_indentnl implbuf 0)
-    (add2sbuf_strconst implbuf "void* start_module_basilys(void* modatap_) {")
+    (add2sbuf_strconst implbuf "void* start_module_basilys(void* modargp_) {")
     (add2sbuf_indentnl implbuf 0)
     (debug_msg pini "outpucod_initialroutine pini")
     ;; generate the initial data structure
@@ -10351,6 +10358,15 @@
       obrout
       )))
 
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;  the initial routine uses the initial system data ...
+(definstance initialsystemdata_objpredef class_objpredef
+  :obv_type ctype_value
+  :obpredef 'INITIAL_SYSTEM_DATA
+  )
+
 ;;;; compile the initial procedure into an object
 (defun compile2obj_initproc (ipro modctx idata compicache)
   (assert_msg "check ipro" (is_a ipro class_nrep_initproc))
@@ -10383,31 +10399,65 @@
 	 (retloc 
 	  (let ( (retl (get_free_objlocptr gcx '_retinit_)) )
 	    (unsafe_put_fields gcx :gncx_retloc retl)
+	    (unsafe_put_fields oinitrout :obrout_retval retl)
 	    retl))
-	 (odatatup 
-	  (list_to_multiple
-	   idata discr_multiple
-	   (lambda (curdat)
-	     ;;(debug_msg curdat "compile2obj_initproc curdat")
-	     (assert_msg "check curdat" (is_a curdat class_nrep_data))
-	     (let ( (curobd (compile_obj curdat gcx)) )
-	       ;;(debug_msg curobd "compile2obj_initproc curobd")
-	       curobd))))
-	 (toplis (unsafe_get_field :ninit_topl ipro)) 
+	 (ofreshenv  (get_free_objlocptr gcx '_freshenv_))
+	 (oputenv (get_free_objlocptr gcx '_putenv_)) 
+	 (oprevenv (get_free_objlocptr gcx '_prevenv_))
 	 )
-    (unsafe_put_fields oinitrout
-		       :oirout_data odatatup)
-    (assert_msg "check toplis" (is_list_or_null toplis))
-    (list_every 
-     toplis
-     (lambda (curtop)
-       (let ( (otop (compile_obj curtop gcx)) )
-	 (debug_msg otop "compile2obj_initproc otop")
-	 (list_append oinibody otop))))
-    (debug_msg gcx "compile2obj_initproc final gcx")
-    (debug_msg oinitrout "compile2obj_initproc final oinitrout")
-    (return oinitrout)
-    ))
+    ;; the body starts by getting the previous environment from the
+    ;; modargp_ unique argument
+    (let ( (lisdest (make_list discr_list)) )
+      (list_append lisdest oprevenv)
+      (list_append oinibody
+		   (make_instance class_objcompute
+				  :obdi_destlist lisdest
+				  :obcpt_expr (make_stringconst discr_verbatimstring "modargp_"))
+		   )
+      )
+;;; then we use the system data to make a fresh_env
+    (let ( (lisdest (make_list discr_list)) )
+      (list_append lisdest ofreshenv)
+      (list_append oinibody
+		   (make_instance class_objgetslot
+				  :obi_loc ()
+				  :obdi_destlist lisdest
+				  :ogetsl_obj initialsystemdata_objpredef 
+				  :ogetsl_field sysdata_fresh_env)))
+    (let  ( (lisdest (make_list discr_list)) )
+      (list_append lisdest retloc)
+      (list_append oinibody
+		   (make_instance class_objapply
+				  :obdi_destlist lisdest
+				  :obapp_clos ofreshenv
+				  :obapp_args (make_tuple1 discr_multiple oprevenv))))
+    
+    (let (
+	  (odatatup 
+	   (list_to_multiple
+	    idata discr_multiple
+	    (lambda (curdat)
+	      ;;(debug_msg curdat "compile2obj_initproc curdat")
+	      (assert_msg "check curdat" (is_a curdat class_nrep_data))
+	      (let ( (curobd (compile_obj curdat gcx)) )
+		;;(debug_msg curobd "compile2obj_initproc curobd")
+		curobd))))
+	  (toplis (unsafe_get_field :ninit_topl ipro)) 
+	  )
+      (unsafe_put_fields oinitrout
+			 :oirout_data odatatup)
+      (assert_msg "check toplis" (is_list_or_null toplis))
+      (list_every 
+       toplis
+       (lambda (curtop)
+	 (let ( (otop (compile_obj curtop gcx)) )
+	   (debug_msg otop "compile2obj_initproc otop")
+	   (list_append oinibody otop))))
+;;; final instruction is to return
+      (debug_msg gcx "compile2obj_initproc final gcx")
+      (debug_msg oinitrout "compile2obj_initproc final oinitrout")
+      (return oinitrout)
+      )))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -12693,9 +12743,10 @@
   (assert_msg "check lsexp" (is_list lsexp))
   (assert_msg "check modnamstr" (is_string modnamstr))
   (assert_msg "check inienv" (is_a inienv class_environment))
-  (let ( (modctx (make_instance class_modulcontext
-				:mocx_modulename modnamstr))
-	 (ncx (create_normcontext modctx)) )
+  (let (
+	(modctx (make_instance class_modulcontext
+			       :mocx_modulename modnamstr))
+	(ncx (create_normcontext modctx)) )
     (debug_msg ncx "compile_list_sexpr initial ncx")
     (assert_msg "check ncx" (is_a ncx class_normcontext))
     (let ( (xlist (macroexpand_toplevel_list lsexp inienv)) 
@@ -12725,19 +12776,19 @@
 		 (add2sbuf_strconst declbuf "**!!**/")
 		 (add2sbuf_indentnl declbuf 0)
 		 )
-	     ;;; otherwise, normalize etc.
-	   (multicall 
-	    (nexp nbind)
-	    (normal_exp sexp inienv ncx psloc)	    
-	    (debug_msg nexp "compile_list_sexpr nexp")    
-	    (debug_msg nbind "compile_list_sexpr nbind")
-	    (if (and (is_a nexp class_nrep)
-		     (not (is_a nexp class_nrep_anyproc)))
-		(let ( (wnexp (wrap_normal_let1 nexp nbind psloc)) )
-		  (debug_msg wnexp "compile_list_sexpr wnexp")
-		  (list_append (unsafe_get_field :ninit_topl iniproc) 
-			       wnexp)
-		  )))))))
+;;; otherwise, normalize etc.
+	     (multicall 
+	      (nexp nbind)
+	      (normal_exp sexp inienv ncx psloc)	    
+	      (debug_msg nexp "compile_list_sexpr nexp")    
+	      (debug_msg nbind "compile_list_sexpr nbind")
+	      (if (and (is_a nexp class_nrep)
+		       (not (is_a nexp class_nrep_anyproc)))
+		  (let ( (wnexp (wrap_normal_let1 nexp nbind psloc)) )
+		    (debug_msg wnexp "compile_list_sexpr wnexp")
+		    (list_append (unsafe_get_field :ninit_topl iniproc) 
+				 wnexp)
+		    )))))))
       (let ( (prolist (unsafe_get_field :nctx_proclist ncx)) 
 	     (objlist (make_list discr_list))
 	     (compicache (make_mapobject discr_mapobjects (+i 10 (*i 20 (list_length xlist)))))
@@ -12792,11 +12843,13 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;;;;;;;;;;;;;;;;; initial commands
-(definstance initial_command_dispatcher class_command_dispatcher
-  :predef INITIAL_COMMAND_DISPATCHER
-  :named_name (stringconst2val discr_namestring "INITIAL_COMMAND_DISPATCHER")
-  :cmd_fundict  (make_mapstring discr_mapstrings 40)
+;;;;;;;;;;;;;;;;;;;; initial system data 
+(definstance initial_system_data class_system_data
+  :predef INITIAL_SYSTEM_DATA
+  :named_name (stringconst2val discr_namestring "INITIAL_SYSTEM_DATA")
+  :sysdata_cmd_fundict  (make_mapstring discr_mapstrings 40)
+  :sysdata_fresh_env fresh_env
+  :sysdata_put_env put_env
 )
 
 (defun install_initial_command (nam fun)
@@ -12805,7 +12858,7 @@
   (debug_msg fun "install_initial_command fun")
   (if (is_closure fun)
       (if (is_string nam)
-	  (mapstring_putstr (unsafe_get_field :cmd_fundict initial_command_dispatcher) 
+	  (mapstring_putstr (unsafe_get_field :sysdata_cmd_fundict initial_system_data) 
 			    nam fun))))
 ;;;;
 (defun readseq_command (dispatcher arg secarg modata)
@@ -12860,6 +12913,6 @@
 (install_initial_command  (stringconst2val discr_string "compilefile") compilefile_command)
 
 
-(debug_msg initial_command_dispatcher "toplevel initial_command_dispatcher")
+(debug_msg initial_system_data "toplevel initial_system_data")
 
 ;;; eof warm-basilys.bysl

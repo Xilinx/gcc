@@ -5535,13 +5535,13 @@ do_initial_command (basilys_ptr_t modata_p)
   debugeprintf ("do_initial_command command_string %s",
 		basilys_command_string);
   if (basilys_magic_discr
-      ((BASILYSG (INITIAL_COMMAND_DISPATCHER))) != OBMAG_OBJECT
-      || BASILYSGOB (INITIAL_COMMAND_DISPATCHER)->obj_len <
-      FCMDIS__LAST
-      || !BASILYSGOB (INITIAL_COMMAND_DISPATCHER)->obj_vartab
+      ((BASILYSG (INITIAL_SYSTEM_DATA))) != OBMAG_OBJECT
+      || BASILYSGOB (INITIAL_SYSTEM_DATA)->obj_len <
+      FSYSDAT_FUNDICT+1
+      || !BASILYSGOB (INITIAL_SYSTEM_DATA)->obj_vartab
       || !basilys_command_string || !basilys_command_string[0])
     goto end;
-  dictv = BASILYSGOB (INITIAL_COMMAND_DISPATCHER)->obj_vartab[FCMDIS_FUNDICT];
+  dictv = BASILYSGOB (INITIAL_SYSTEM_DATA)->obj_vartab[FSYSDAT_FUNDICT];
   debugeprintf ("do_initial_command dictv=%p", dictv);
   debugeprintvalue ("do_initial_command dictv", dictv);
   if (basilys_magic_discr (dictv) != OBMAG_MAPSTRINGS)
@@ -5582,7 +5582,7 @@ do_initial_command (basilys_ptr_t modata_p)
     debugeprintf ("do_initial_command before apply closv %p", closv);
     (void) basilys_apply (closv,
 			  BASILYSG
-			  (INITIAL_COMMAND_DISPATCHER),
+			  (INITIAL_SYSTEM_DATA),
 			  BPARSTR_PTR BPARSTR_PTR BPARSTR_PTR, pararg, "",
 			  NULL);
     debugeprintf ("do_initial_command after apply closv %p", closv);
@@ -5659,9 +5659,9 @@ load_basilys_modules_and_do_command (void)
   if (basilys_command_string && !strcmp (basilys_command_string, "exit"))
     exit_after_options = 1;
   else if (basilys_magic_discr
-	   ((BASILYSG (INITIAL_COMMAND_DISPATCHER))) == OBMAG_OBJECT
-	   && BASILYSGOB (INITIAL_COMMAND_DISPATCHER)->obj_len >=
-	   FCMDIS__LAST && basilys_command_string
+	   ((BASILYSG (INITIAL_SYSTEM_DATA))) == OBMAG_OBJECT
+	   && BASILYSGOB (INITIAL_SYSTEM_DATA)->obj_len >=
+	   FSYSDAT_FUNDICT && basilys_command_string
 	   && basilys_command_string[0])
     {
       gcc_assert (dump_file == (FILE *) 0);	/* WHY? */

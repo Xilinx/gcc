@@ -67,9 +67,9 @@ esac
 
 : ${TMPDIR=/tmp}
 
-if which tempfile; then
+if which tempfile > /dev/null; then
     datf=`tempfile  -p bdat`
-elif which mktemp; then
+elif which mktemp > /dev/null; then
     datf=`mktemp -t bdat.XXXXXXXX`
 else
     datf=$TMPDIR/bdat$$-$RANDOM
