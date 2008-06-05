@@ -844,6 +844,14 @@
 	   naccm_ix			;index to be accessed (a boxed integer)
 ))
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; module compilation context
+(defclass class_modulcontext
+  :super class_root
+  :fields (mocx_modulename
+))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; normalization context
 (defclass class_normcontext
@@ -858,6 +866,7 @@
 	   nctx_valmap			;objmap of values -> data 
 	   nctx_valbindmap 		;objmap of value binding -> data
 	   nctx_curproc			;current procedure
+	   nctx_modulcontext		;the module compilation context
 ))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -874,6 +883,7 @@
 	    gncx_freeothermaps		;map keyed by ctypes of list of freed local others
 	    gncx_retloc			;return location
 	    gncx_compicache		;cache map of procedure to compiled routines
+	    gncx_modulcontext		;the module compilation context
 ))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -5176,12 +5186,13 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; create a normalization context
-(defun create_normcontext ()
+(defun create_normcontext (modctx)
   (let ( (:long maxpredefix (last_globpredef_index))
 	 (:long ix 1)
 	 (predefmap (make_mapobject discr_mapobjects (+i 19 (*i 2 maxpredefix))))
 	 (valmap (make_mapobject discr_mapobjects 350))
 	 )
+    (assert_msg "check modctx" (is_a modctx class_modulcontext))
     (forever predefloop
 	     (if (>=i ix maxpredefix) (exit predefloop))
 	     (let ( (curpredef (get_globpredef ix)) )
@@ -5207,6 +5218,7 @@
 		     ;; we need a symbcachemap for the toplevel expressions
 		     :nctx_symbcachemap (make_mapobject discr_mapobjects 30)
 		     :nctx_curproc inipro
+		     :nctx_modulcontext modctx
 		     ))))
 
 ;;; the normal_exp selector 
@@ -10237,11 +10249,12 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; compile a single procedure
-(defun compile2obj_procedure (pro compicache :long num)
+(defun compile2obj_procedure (pro modctx compicache :long num)
   (debug_msg pro "compilproc pro")
   ;;(debug_msg compicache "compilproc compicache")
   (assert_msg "check pro" (is_a pro class_nrep_routproc))
   (assert_msg "check compicache" (is_mapobject compicache))
+  (assert_msg "check modctx" (is_a modctx class_modulcontext))
   (let ( (namsbuf (make_strbuf discr_strbuf)) 
 	 (routfunam (the_null))
 	 )
@@ -10279,6 +10292,7 @@
 			      :gncx_freelonglist (make_list discr_list)
 			      :gncx_freeothermaps (make_mapobject discr_mapobjects 20)
 			      :gncx_compicache compicache
+			      :gncx_modulcontext modctx
 			      ))
 	  (retloc 
 	   (let ( (retl (get_free_objlocptr gcx '_retval_)) )
@@ -10338,9 +10352,10 @@
       )))
 
 ;;;; compile the initial procedure into an object
-(defun compile2obj_initproc (ipro idata compicache)
+(defun compile2obj_initproc (ipro modctx idata compicache)
   (assert_msg "check ipro" (is_a ipro class_nrep_initproc))
   (assert_msg "check idata" (is_list idata))
+  (assert_msg "check modctx" (is_a modctx class_modulcontext))
   (assert_msg "check compicache" (is_mapobject compicache))
   (debug_msg ipro "compile2obj_initproc ipro")
   (debug_msg compicache "compile2obj_initproc compicache")
@@ -10363,6 +10378,7 @@
 			     :gncx_freelonglist (make_list discr_list)
 			     :gncx_freeothermaps (make_mapobject discr_mapobjects 20)
 			     :gncx_compicache compicache
+			     :gncx_modulcontext modctx
 			     ))
 	 (retloc 
 	  (let ( (retl (get_free_objlocptr gcx '_retinit_)) )
@@ -12677,7 +12693,9 @@
   (assert_msg "check lsexp" (is_list lsexp))
   (assert_msg "check modnamstr" (is_string modnamstr))
   (assert_msg "check inienv" (is_a inienv class_environment))
-  (let ( (ncx (create_normcontext)) )
+  (let ( (modctx (make_instance class_modulcontext
+				:mocx_modulename modnamstr))
+	 (ncx (create_normcontext modctx)) )
     (debug_msg ncx "compile_list_sexpr initial ncx")
     (assert_msg "check ncx" (is_a ncx class_normcontext))
     (let ( (xlist (macroexpand_toplevel_list lsexp inienv)) 
@@ -12733,7 +12751,7 @@
 	   (assert_msg "check pro" (is_a pro class_nrep_anyproc))
 	   (debug_msg pro "compile_list_sexpr pro")
 	   (put_int countbox (+i (get_int countbox) 1))
-	   (let ( (objpro (compile2obj_procedure pro compicache (get_int countbox))) )
+	   (let ( (objpro (compile2obj_procedure pro modctx compicache (get_int countbox))) )
 	     (debug_msg objpro "compile_list_sexpr objpro")
 	     (debug_msg pro "compile_list_sexpr done pro")
 	     (list_append objlist objpro)
@@ -12745,7 +12763,7 @@
 	       (inidata (unsafe_get_field :nctx_datalist ncx))
 	       )
 	  (assert_msg "check inipro" (is_a inipro class_nrep_initproc))
-	  (let ( (iniobj (compile2obj_initproc inipro inidata compicache)) )
+	  (let ( (iniobj (compile2obj_initproc inipro modctx inidata compicache)) )
 	    (debug_msg iniobj "compile_list_sexpr iniobj")
 	    (outnum_err "** warm-basilys generated " (list_length objlist) " routines into ")
 	    (outstr_err modnamstr)

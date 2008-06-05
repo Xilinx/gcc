@@ -1,4 +1,7 @@
 2008-06-05  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warm-basilys.bysl: started adding module compilation context.
+
+2008-06-05  Basile Starynkevitch  <basile@starynkevitch.net>
 	* basilys.c: preparing for several MELT modules!
 	(load_basilys_modules_and_do_command) new function.
 	(basilys_initialize) calls load_basilys_modules_and_do_command.
