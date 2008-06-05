@@ -1,5 +1,14 @@
+2008-06-05  Tobias Grosser  <grosser@fim.uni-passau.de>
+    
+	* graphite.c (scan_tree_for_params): Change the way params are
+	added to be indepenent of the number of loops.
+	(setup_cloog_loop): Revert to short matrix format. Fix parameter
+	handling.
+	(build_cloog_prog): Revert to short matrix format.
+
 2008-06-05  Sebastian Pop  <sebastian.pop@amd.com>
 	    Dwarak Rajagopal <dwarak.rajagopal@amd.com>
+
 	* tree-loop-fusion.c (fuse_loops): Fix uninitialized variable warning.
 
 2008-06-05  Sebastian Pop  <sebastian.pop@amd.com>

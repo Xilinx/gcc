@@ -1356,10 +1356,11 @@ scan_tree_for_params (scop_p s, tree e, CloogMatrix *c, int r, Value k)
       break;
 
     case SSA_NAME:
-      param_col = 1 + scop_nb_loops (s) + param_index (e, s);
+      param_col = param_index (e, s);
 
       if (c)
 	{
+          param_col += c->NbColumns - nb_params_in_scop (s);
 	  value_init (c->p[r][param_col]);
 	  value_assign (c->p[r][param_col], k);
 	}
@@ -1668,11 +1669,13 @@ loop_body_to_cloog_stmts (struct loop *loop, scop_p scop, CloogMatrix *cstr)
   return res;
 }
 
-/* Converts LOOP in SCOP to cloog's format.  OUTER_CSTR gives the
+/* Converts LOOP in SCOP to cloog's format.  NB_OUTER_LOOPS is the
+   number of loops surrounding LOOP in SCOP.  OUTER_CSTR gives the
    constraints matrix for the surrounding loops.  */
 
 static CloogLoop *
-setup_cloog_loop (scop_p scop, struct loop *loop, CloogMatrix *outer_cstr)
+setup_cloog_loop (scop_p scop, struct loop *loop, CloogMatrix *outer_cstr,
+		  int nb_outer_loops)
 {
   unsigned i, j, row;
   CloogStatement *stmt;
@@ -1682,14 +1685,14 @@ setup_cloog_loop (scop_p scop, struct loop *loop, CloogMatrix *outer_cstr)
   CloogLoop *res = cloog_loop_malloc ();
 
   unsigned nb_rows = outer_cstr->NbRows + 1;
-  unsigned nb_cols = outer_cstr->NbColumns;
+  unsigned nb_cols = outer_cstr->NbColumns + 1;
 
   /* Last column of CSTR is the column of constants.  */
   unsigned cst_col = nb_cols - 1;
 
   /* The column for the current loop is just after the columns of
      other outer loops.  */
-  unsigned loop_col = scop_loop_index (scop, loop) + 1;
+  unsigned loop_col = nb_outer_loops + 1;
 
   tree nb_iters = number_of_latch_executions (loop);
 
@@ -1704,11 +1707,22 @@ setup_cloog_loop (scop_p scop, struct loop *loop, CloogMatrix *outer_cstr)
 
   /* Copy the outer constraints.  */
   for (i = 0; i < outer_cstr->NbRows; i++)
-    for (j = 0; j < outer_cstr->NbColumns; j++)
-      {
-	value_init (cstr->p[i][j]);
-	value_assign (cstr->p[i][j], outer_cstr->p[i][j]);
-      }
+    {
+      /* Copy the eq/ineq and loops columns.  */
+      for (j = 0; j < loop_col; j++)
+        {
+          value_init (cstr->p[i][j]);
+          value_assign (cstr->p[i][j], outer_cstr->p[i][j]);
+        }
+
+      /* Leave an empty column in CSTR for the current loop, and then
+        copy the parameter columns.  */
+      for (j = loop_col; j < cstr->NbColumns; j++)
+        {
+          value_init (cstr->p[i][j + 1]);
+          value_assign (cstr->p[i][j + 1], outer_cstr->p[i][j]);
+        }
+    }
 
   /* 0 <= loop_i */
   row = outer_cstr->NbRows;
@@ -1763,7 +1777,7 @@ setup_cloog_loop (scop_p scop, struct loop *loop, CloogMatrix *outer_cstr)
      res->inner for representing inner loops: this information is
      contained in the scattering matrix.  */
   if (loop->inner && loop_in_scop_p (loop->inner, scop))
-    res->next = setup_cloog_loop (scop, loop->inner, cstr);
+    res->next = setup_cloog_loop (scop, loop->inner, cstr, nb_outer_loops + 1);
 
   if (loop->next && loop_in_scop_p (loop->next, scop))
     {
@@ -1773,12 +1787,12 @@ setup_cloog_loop (scop_p scop, struct loop *loop, CloogMatrix *outer_cstr)
       while (l->next)
 	l = l->next;
 
-      l->next = setup_cloog_loop (scop, loop->next, outer_cstr);
+      l->next = setup_cloog_loop (scop, loop->next, outer_cstr, nb_outer_loops);
     }
 
   stmt = loop_body_to_cloog_stmts (loop, scop, cstr);
 
-  res->block = cloog_block_alloc (stmt, NULL, 0, NULL, loop_col);
+  res->block = cloog_block_alloc (stmt, NULL, 0, NULL, nb_outer_loops + 1);
   
   return res;
 }
@@ -1884,8 +1898,8 @@ build_scop_iteration_domain (scop_p scop)
      - first column: eq/ineq boolean
      - last column: a constant
      - nb_params_in_scop columns for the parameters used in the scop.  */
-  outer_cstr = cloog_matrix_alloc (0, scop_dim_domain (scop) + 1);
-  SCOP_PROG (scop)->loop = setup_cloog_loop (scop, loop, outer_cstr);
+  outer_cstr = cloog_matrix_alloc (0, nb_params_in_scop (scop) + 2);
+  SCOP_PROG (scop)->loop = setup_cloog_loop (scop, loop, outer_cstr, 0);
   return true;
 }
 
@@ -2284,7 +2298,7 @@ build_cloog_prog (scop_p scop)
       /* Add empty domain to all bbs, which do not yet have a domain, as they
          are not part of any loop.  */
       if (domain == NULL)
-	domain = cloog_matrix_alloc (0, scop_dim_domain (scop) + 1);
+	domain = cloog_matrix_alloc (0, nb_params_in_scop (scop) + 2);
 
       /* Build loop list.  */
       {
@@ -2330,17 +2344,14 @@ build_cloog_prog (scop_p scop)
   for (i = 0; i < prog->nb_scattdims; i++)
     prog->scaldims[i] = 0 ;
 
-  if (0)
-    {
-      /* Extract scalar dimensions to simplify the code generation problem.  */
-      cloog_program_extract_scalars (prog, scattering);
+  /* Extract scalar dimensions to simplify the code generation problem.  */
+  cloog_program_extract_scalars (prog, scattering);
 
-      /* Apply scattering.  */
-      cloog_program_scatter (prog, scattering);
+  /* Apply scattering.  */
+  cloog_program_scatter (prog, scattering);
 
-      /* Iterators corresponding to scalar dimensions have to be extracted.  */
-      cloog_names_scalarize (prog->names, prog->nb_scattdims, prog->scaldims);
-    }
+  /* Iterators corresponding to scalar dimensions have to be extracted.  */
+  cloog_names_scalarize (prog->names, prog->nb_scattdims, prog->scaldims);
 }
 
 /* Find the right transform for the SCOP, and return a Cloog AST
