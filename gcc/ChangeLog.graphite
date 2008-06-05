@@ -1,3 +1,10 @@
+2008-06-04  Tobias Grosser  <grosser@fim.uni-passau.de>
+
+	* graphite.h (scop_contains_loop): Update comments to match
+	the actual behavior.
+	(scop_contains_loop): New.
+	* graphite.c (schedule_to_scattering): Use scop_contains_loop.
+
 2008-06-04  Sebastian Pop  <sebastian.pop@amd.com>
 
 	* graphite.c (get_bb_type): On function body, i.e. loop_0, 

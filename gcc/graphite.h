@@ -199,8 +199,7 @@ loop_iteration_vector_dim (unsigned int loop_num, scop_p scop)
   return loop_domain_dim (loop_num, scop) - 2 - nb_params_in_scop (scop);
 }
 
-/* Returns the index of LOOP in the domain matrix for the SCOP.
-   Returns -1 when the loop does not belong to the SCOP.  */
+/* Returns the index of LOOP in the domain matrix for the SCOP.  */
 
 static inline int
 scop_loop_index (scop_p scop, struct loop *loop)
@@ -214,7 +213,15 @@ scop_loop_index (scop_p scop, struct loop *loop)
     if (l == loop)
       return i;
 
-  return -1;
+  gcc_unreachable();
+}
+
+/* Checks, if SCOP contains LOOP.  */
+
+static inline bool
+scop_contains_loop (scop_p scop, struct loop *loop)
+{
+  return bitmap_bit_p (SCOP_LOOPS (scop), loop->num);
 }
 
 /* Associate a POLYHEDRON dependence description to two data

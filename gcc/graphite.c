@@ -1789,7 +1789,7 @@ schedule_to_scattering (graphite_bb_p gb)
 
   loop = gbb_loop (gb);
   if (!loop
-      || !bitmap_bit_p (SCOP_LOOPS (scop), loop->num)
+      || scop_contains_loop (scop, loop)
       || loop->num == 0)
     return scat;
 
@@ -1807,7 +1807,7 @@ schedule_to_scattering (graphite_bb_p gb)
 
       loop = loop_outer (loop);
       if (!loop 
-	  || !bitmap_bit_p (SCOP_LOOPS (scop), loop->num)
+	  || scop_contains_loop (scop, loop)
 	  || loop->num == 0)
 	break;
     }
