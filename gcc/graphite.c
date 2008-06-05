@@ -422,7 +422,7 @@ loop_affine_expr (struct loop *outermost_loop, struct loop *loop, tree expr)
 {
   tree scev = analyze_scalar_evolution (loop, expr);
 
-  scev = instantiate_parameters (outermost_loop, scev);
+  scev = instantiate_scev (outermost_loop, loop, scev);
 
   return (evolution_function_is_invariant_p (scev, outermost_loop->num)
 	  || evolution_function_is_affine_multivariate_p (scev,
@@ -1409,10 +1409,10 @@ idx_record_params (tree base, tree *idx, void *dta)
       tree scev;
       scop_p scop = data->scop;
       struct loop *loop = data->loop;
-      struct loop *floop = SCOP_ENTRY (scop)->loop_father;
 
       scev = analyze_scalar_evolution (loop, *idx);
-      scev = instantiate_parameters (floop, scev);
+      scev = instantiate_scev (outermost_loop_in_scop (scop, loop->header),
+			       loop, scev);
 
       {
 	Value one;
@@ -1536,9 +1536,9 @@ find_scop_parameters (scop_p scop)
 	  irp.loop = loop;
 	  irp.scop = scop;
           nb_iters = analyze_scalar_evolution (loop, nb_iters);
-          nb_iters = instantiate_parameters (
-            outermost_loop_in_scop (scop, loop->header),
-            nb_iters);
+          nb_iters = instantiate_scev (outermost_loop_in_scop (scop,
+							       loop->header),
+				       loop, nb_iters);
           
 	  {
 	    Value one;
@@ -1743,8 +1743,8 @@ setup_cloog_loop (scop_p scop, struct loop *loop, CloogMatrix *outer_cstr)
       value_set_si (cstr->p[row][loop_col], -1);
       nb_iters = analyze_scalar_evolution (loop, nb_iters);
       nb_iters = 
-        instantiate_parameters (outermost_loop_in_scop (scop, loop->header),
-                                nb_iters);
+        instantiate_scev (outermost_loop_in_scop (scop, loop->header),
+			  loop, nb_iters);
       value_init (one);
       value_set_si (one, 1);
       scan_tree_for_params (scop, nb_iters, cstr, row, one);

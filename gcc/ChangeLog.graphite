@@ -1,3 +1,10 @@
+2008-06-04  Sebastian Pop  <sebastian.pop@amd.com>
+	    Jan Sjodin  <jan.sjodin@amd.com>
+
+	* graphite.c (loop_affine_expr, idx_record_params,
+	find_scop_parameters, setup_cloog_loop): Use instantiate_scev 
+	instead of instantiate_parameters.
+
 2008-06-04  Tobias Grosser  <grosser@fim.uni-passau.de>
 
 	* graphite.c (schedule_to_scattering): Fix scattering dimensions,
