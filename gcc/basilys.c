@@ -663,6 +663,15 @@ forwarded_copy (basilys_ptr_t p)
        (((struct basilysforward_st *) p->u_discr)->forward))->object_magic;
   else
     mag = p->u_discr->object_magic;
+  /***
+   * we can copy *dst = *src only for structures which do not use
+   * FLEXIBLE_DIM; for those that do and which are "empty" this is not
+   * possible, since when FLEXIBLE_DIM is 1 it would overwrite
+   * something else. 
+   *
+   * I really hate the C dialect which long time ago
+   * prohibited zero-length arrays.
+   ***/
   switch (mag)
     {
     case OBMAG_OBJECT:
@@ -673,7 +682,12 @@ forwarded_copy (basilys_ptr_t p)
 				       obj__tabfields));
 	unsigned oblen = src->obj_len;
 	int ix;
-	*dst = *src;
+	/* we cannot copy the whole src, because FLEXIBLE_DIM might be 1 */
+	dst->obj_class = src->obj_class;
+	dst->obj_hash = src->obj_hash;
+	dst->obj_num = src->obj_num;
+	dst->obj_len = src->obj_len;
+	dst->obj_vartab = 0;
 	if (oblen > 0)
 	  {
 	    dst->obj_vartab = ggc_alloc_cleared (sizeof (void *) * oblen);
@@ -711,7 +725,10 @@ forwarded_copy (basilys_ptr_t p)
 	struct basilysmultiple_st *dst =
 	  ggc_alloc_cleared (sizeof (struct basilysmultiple_st) +
 			     nbv * sizeof (void *));
-	*dst = *src;
+	/* we cannot copy the whole src, because FLEXIBLE_DIM might be
+	   1 and nbval could be 0 */
+	dst->discr = src->discr;
+	dst->nbval = src->nbval;
 	for (ix = (int) nbv; ix >= 0; ix--)
 	  dst->tabval[ix] = src->tabval[ix];
 	n = (basilys_ptr_t) dst;
@@ -725,7 +742,9 @@ forwarded_copy (basilys_ptr_t p)
 	struct basilysclosure_st *dst =
 	  ggc_alloc_cleared (sizeof (struct basilysclosure_st) +
 			     nbv * sizeof (void *));
-	*dst = *src;
+	dst->discr = src->discr;
+	dst->rout = src->rout;
+	dst->nbval = src->nbval;
 	for (ix = (int) nbv; ix >= 0; ix--)
 	  dst->tabval[ix] = src->tabval[ix];
 	n = (basilys_ptr_t) dst;
@@ -739,7 +758,11 @@ forwarded_copy (basilys_ptr_t p)
 	struct basilysroutine_st *dst =
 	  ggc_alloc_cleared (sizeof (struct basilysroutine_st) +
 			     nbv * sizeof (void *));
-	*dst = *src;
+	dst->discr = src->discr;
+	strncpy (dst->routdescr, src->routdescr, BASILYS_ROUTDESCR_LEN);
+	dst->routdescr[BASILYS_ROUTDESCR_LEN - 1] = 0;
+	dst->nbval = src->nbval;
+	memcpy (dst->routaddr, src->routaddr, sizeof (dst->routaddr));
 	for (ix = (int) nbv; ix >= 0; ix--)
 	  dst->tabval[ix] = src->tabval[ix];
 	n = (basilys_ptr_t) dst;
@@ -817,7 +840,7 @@ forwarded_copy (basilys_ptr_t p)
 	int srclen = strlen (src->val);
 	struct basilysstring_st *dst =
 	  ggc_alloc_cleared (sizeof (struct basilysstring_st) + srclen + 1);
-	*dst = *src;
+	dst->discr = src->discr;
 	memcpy (dst->val, src->val, srclen);
 	n = (basilys_ptr_t) dst;
 	break;
@@ -828,7 +851,10 @@ forwarded_copy (basilys_ptr_t p)
 	unsigned blen = basilys_primtab[src->buflenix];
 	struct basilysstrbuf_st *dst =
 	  ggc_alloc_cleared (sizeof (struct basilysstrbuf_st));
-	*dst = *src;
+	dst->discr = src->discr;
+	dst->bufstart = src->bufstart;
+	dst->bufend = src->bufend;
+	dst->buflenix = src->buflenix;
 	if (blen > 0)
 	  {
 	    dst->bufzn = ggc_alloc_cleared (1 + blen);
@@ -872,7 +898,9 @@ forwarded_copy (basilys_ptr_t p)
 	int siz = basilys_primtab[src->lenix];
 	struct basilysmapobjects_st *dst =
 	  ggc_alloc_cleared (sizeof (struct basilysmapobjects_st));
-	*dst = *src;
+	dst->discr = src->discr;
+	dst->count = src->count;
+	dst->lenix = src->lenix;
 	if (siz > 0 && src->entab)
 	  {
 	    dst->entab = ggc_alloc_cleared (siz * sizeof (dst->entab[0]));
@@ -889,7 +917,9 @@ forwarded_copy (basilys_ptr_t p)
 	int siz = basilys_primtab[src->lenix];
 	struct basilysmaptrees_st *dst =
 	  ggc_alloc_cleared (sizeof (struct basilysmaptrees_st));
-	*dst = *src;
+	dst->discr = src->discr;
+	dst->count = src->count;
+	dst->lenix = src->lenix;
 	if (siz > 0 && src->entab)
 	  {
 	    dst->entab = ggc_alloc_cleared (siz * sizeof (dst->entab[0]));
@@ -906,7 +936,9 @@ forwarded_copy (basilys_ptr_t p)
 	int siz = basilys_primtab[src->lenix];
 	struct basilysmapstrings_st *dst =
 	  ggc_alloc_cleared (sizeof (struct basilysmapstrings_st));
-	*dst = *src;
+	dst->discr = src->discr;
+	dst->count = src->count;
+	dst->lenix = src->lenix;
 	if (siz > 0 && src->entab)
 	  {
 	    dst->entab = ggc_alloc_cleared (siz * sizeof (dst->entab[0]));
@@ -923,7 +955,9 @@ forwarded_copy (basilys_ptr_t p)
 	int siz = basilys_primtab[src->lenix];
 	struct basilysmapbasicblocks_st *dst =
 	  ggc_alloc_cleared (sizeof (struct basilysmapbasicblocks_st));
-	*dst = *src;
+	dst->discr = src->discr;
+	dst->count = src->count;
+	dst->lenix = src->lenix;
 	if (siz > 0 && src->entab)
 	  {
 	    dst->entab = ggc_alloc_cleared (siz * sizeof (dst->entab[0]));
@@ -940,7 +974,9 @@ forwarded_copy (basilys_ptr_t p)
 	int siz = basilys_primtab[src->lenix];
 	struct basilysmapedges_st *dst =
 	  ggc_alloc_cleared (sizeof (struct basilysmapedges_st));
-	*dst = *src;
+	dst->discr = src->discr;
+	dst->count = src->count;
+	dst->lenix = src->lenix;
 	if (siz > 0 && src->entab)
 	  {
 	    dst->entab = ggc_alloc_cleared (siz * sizeof (dst->entab[0]));
@@ -4134,7 +4170,7 @@ compile_to_dyl (const char *srcfile, const char *dlfile)
   char *argv[4];
   memset (&ptime, 0, sizeof (ptime));
   /* compute the ourmeltcompilscript */
-  ourmeltcompilescript = (char*) basilys_compile_script_string;
+  ourmeltcompilescript = (char *) basilys_compile_script_string;
   if (!ourmeltcompilescript || !ourmeltcompilescript[0])
     ourmeltcompilescript = melt_compile_script;
   debugeprintf ("compile_to_dyl melt ourmeltcompilescript=%s",

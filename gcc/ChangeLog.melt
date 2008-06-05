@@ -1,4 +1,19 @@
 2008-06-05  Basile Starynkevitch  <basile@starynkevitch.net>
+[should work on x86/32 bits]
+	* basilys.h: increased  BASILYS_ROUTDESCR_LEN
+
+	* basilys.c: (forwarded_copy) because of FLEXIBLE_DIM mess,
+	varysized structures copies are made memberwise.
+
+	* melt-cc-script.proto: enhanced to accept some flags like -I -D
+	-U and to use mktemp if tempfile does not exist.
+
+	* Makefile.in: upgrade-warm-basilys used correctly unifdef.
+	added rule for +warm%-n.so
+
+	* warm-basilys-0.c: regenerated using new Makefile.in.
+
+2008-06-05  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warm-basilys.bysl: started adding module compilation context.
 
 2008-06-05  Basile Starynkevitch  <basile@starynkevitch.net>

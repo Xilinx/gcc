@@ -38,6 +38,20 @@ fi
 ## script invoked by cc1 with two arguments : the generated C source to compile
 ## and the naked (without suffix) dynamically-loadable stuff to generate
 
+## for commodity, we pass -D -U -I to gcc, and -F to set the cflags, and -x for debugging
+while getopts "D:I:U:F:xv" flag ; do
+    shift
+    case "$flag" in
+	D) melt_cflags="$melt_cflags -D$OPTARG";;
+	U) melt_cflags="$melt_cflags -U$OPTARG";;
+	I) melt_cflags="$melt_cflags -U$OPTARG";;
+	F) melt_cflags="$melt_cflags $OPTARG";;
+	x) set -x;;
+	v) set -v;;
+	*) echo unrecognized flag $flag;;
+    esac
+done
+
 csource=$1
 dynstuff=$2
 
@@ -51,14 +65,19 @@ case $dynstuff in
     *) nakedynstuff=`echo $dynstuff | sed 's/\.[a-z]*$//'`;;
 esac
 
-datf=`tempfile  -p bdat`
+if which tempfile; then
+    datf=`tempfile  -p bdat`
+elif which mktemp; then
+    datf=`mktemp -t bdat.XXXXXXXX`
+else
+    datf=/tmp/bdat$$
+fi
+
+rm -f $datf $datf.c $datf.*
 
 pwd
 echo melt_cc= $melt_cc melt_cflags= $melt_cflags melt_headerdir= $melt_headerdir  csource= $csource nakedynstuff= $nakedynstuff datf= $datf
 
-if [ -z "$datf" ]; then
-    datf=/tmp/bdat$$
-fi
 # generate the temporary timestamp & md5s file
 md5src=`md5sum $csource`     
 
@@ -76,7 +95,7 @@ Linux|SunOS|Solaris)
 #	time $melt_cc -Wall -fPIC -shared $melt_cflags -DMELTGCC_NOLINENUMBERING  -I "$melt_headerdir" $csource $datf.c -o $nakedynstuff-n.so
 #	echo
 	echo
-	echo Compiling $csource with line numbers
+	echo Compiling $csource with $melt_cflags
 	time $melt_cc -Wall -fPIC -shared $melt_cflags -I "$melt_headerdir" $csource $datf.c -o $nakedynstuff.so
 	echo
 	echo

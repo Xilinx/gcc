@@ -405,7 +405,7 @@ GTY (())
   long _gap; }
 
 /* when OBMAG_ROUTINE */
-#define BASILYS_ROUTDESCR_LEN 80
+#define BASILYS_ROUTDESCR_LEN 96
 struct basilysroutine_st
 GTY (())
 {
