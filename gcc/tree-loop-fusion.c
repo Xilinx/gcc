@@ -155,7 +155,7 @@ static struct loop *
 fuse_loops (struct loop *loop_a ATTRIBUTE_UNUSED,
 	    struct loop *loop_b ATTRIBUTE_UNUSED)
 {
-  struct loop *fused_loop;
+  struct loop *fused_loop = NULL;
   return fused_loop;
 }
 

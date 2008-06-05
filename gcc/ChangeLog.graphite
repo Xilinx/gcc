@@ -1,4 +1,8 @@
 2008-06-05  Sebastian Pop  <sebastian.pop@amd.com>
+	    Dwarak Rajagopal <dwarak.rajagopal@amd.com>
+	* tree-loop-fusion.c (fuse_loops): Fix uninitialized variable warning.
+
+2008-06-05  Sebastian Pop  <sebastian.pop@amd.com>
 
 	* graphite.c (nb_data_refs_in_scop): New.
 	(graphite_transform_loops): Print more stats: number of
