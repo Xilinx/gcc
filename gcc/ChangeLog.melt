@@ -1,3 +1,14 @@
+2008-06-05  Basile Starynkevitch  <basile@starynkevitch.net>
+	* basilys.c: preparing for several MELT modules!
+	(load_basilys_modules_and_do_command) new function.
+	(basilys_initialize) calls load_basilys_modules_and_do_command.
+	(do_initial_command) gives the module data as third argument.
+
+	* common.opt: updated description of -fbasilys-init
+
+	* melt/warm-basilys.bysl: added unused moduldata argument to
+	commands function.
+
 2008-06-04  Basile Starynkevitch  <basile@starynkevitch.net>
 	MELT branch merged with trunk r136369
 

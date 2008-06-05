@@ -366,10 +366,10 @@ fbasilys-gensrcdir=
 Common Report Var(basilys_gensrcdir_string) RejectNegative Joined  Condition(HAVE_PARMAPOLY && HAVE_LIBTOOLDYNL && ENABLE_BASILYSMELT)
 Generated source directory for basilys
 
-; initial C or dynamic lib file for above analysis
+; initial C or dynamic lib modules for above analysis
 fbasilys-init=
 Common Report Var(basilys_init_string) RejectNegative Joined  Condition(HAVE_PARMAPOLY && HAVE_LIBTOOLDYNL && ENABLE_BASILYSMELT)
-Initial file for -fbasilys analysis (dynamic C mode)
+Initial semi-colon separated list of modules for -fbasilys analysis (dynamic C mode)
 
 ; second argument string for basilys
 fbasilys-secondarg=

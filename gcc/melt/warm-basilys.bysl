@@ -12790,7 +12790,7 @@
 	  (mapstring_putstr (unsafe_get_field :cmd_fundict initial_command_dispatcher) 
 			    nam fun))))
 ;;;;
-(defun readseq_command (dispatcher arg)
+(defun readseq_command (dispatcher arg secarg modata)
   (message_dbg "starting readseq")
   (debug_msg arg "start readseq_command")
   (let ( (rlist (read_file arg)) )
@@ -12803,10 +12803,11 @@
 ;;;;
 
 ;;;;;
-(defun compilefile_command (dispatcher arg secarg)
+(defun compilefile_command (dispatcher arg secarg moduldata)
   (message_dbg "starting compilefile_command")
   (debug_msg arg "start compilefile_command arg")
   (debug_msg secarg "start compilefile_command secarg")
+  (debug_msg moduldata "start compilefile_command moduldata")
   (debug_msg discr_string "compilefile_command discr_string")
   (debug_msg discr_verbatimstring "compilefile_command discr_verbatimstring")
   (debug_msg initial_environment "before read compilefile_command initial_environment")
