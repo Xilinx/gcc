@@ -156,7 +156,9 @@
   :super class_named
   :fields (sysdata_cmd_fundict			;stringmap for closures for command dispatching
 	   sysdata_fresh_env			;closure to make a fresh environment
-	   sysdata_put_env			;closure to put into an environment
+	   sysdata_value_exporter		;closure to export a value
+	   sysdata_class_exporter		;closure to export a class
+	   sysdata_macro_exporter		;closure to export a macro
 	   sysdata___spare1
 	   sysdata___spare2
 	   sysdata___spare3
@@ -361,14 +363,20 @@
   :super class_src
   :fields (sexport_names
 ))
-;; export
-(defclass class_src_export
+;; export value
+(defclass class_src_export_value
   :super class_src_exportcommon
   :fields (
 ))
 
 ;; export macros
 (defclass class_src_export_macro
+  :super class_src_exportcommon
+  :fields (
+))
+
+;; export macros
+(defclass class_src_export_class
   :super class_src_exportcommon
   :fields (
 ))
@@ -1045,7 +1053,7 @@
 ;;; compute instruction
 (defclass class_objcompute
   :super class_objdestinstr
-  :fields (obcpt_expr			;expression list
+  :fields (obcpt_expr			;expression list or object or tuple
 ))
 
 ;; get argument instruction
@@ -1572,6 +1580,12 @@
   "(basilysgc_new_mult4((basilysobject_ptr_t)(" discr "),(" v1 "), (" v2  "), (" v3  "), (" v4 ")))")
 (defprimitive make_tuple5 (discr v1 v2 v3 v4 v5) :value
   "(basilysgc_new_mult5((basilysobject_ptr_t)(" discr "),(" v1 "), (" v2  "), (" v3  "), (" v4  "), (" v5 ")))")
+(defprimitive make_tuple6 (discr v1 v2 v3 v4 v5 v6) :value
+  "(basilysgc_new_mult6((basilysobject_ptr_t)(" discr "),(" v1 "), (" v2  "), (" 
+  v3  "), (" v4  "), (" v5  "), (" v6 ")))")
+(defprimitive make_tuple7 (discr v1 v2 v3 v4 v5 v6 v7) :value
+  "(basilysgc_new_mult7((basilysobject_ptr_t)(" discr "),(" v1 "), (" v2  "), (" v3  "), (" v4  
+  "), (" v5  "), (" v6  "), (" v7 ")))")
 ;; primitive to get the nth  in a multiple
 (defprimitive multiple_nth (mul :long n) :value
     "(basilys_multiple_nth((void*)(" mul "), (" n ")))")
@@ -3992,25 +4006,25 @@
 		 (box_put fldbox cfld)
 		 ()			; nil to exit to iteration
 		 )
-	     cfld))
+	       cfld))
 	 )
-      ;; othewise, find the field by its bound name
-      (let ( (fldnam (create_symbolstr (unsafe_get_field :named_name fldkw))) 
-	     (fldbind (find_env env fldnam)) 
-	     (fld  (cond 
-		    ( (is_a fldbind class_field_binding)
-		      (unsafe_get_field :flbind_field fldbind) )
-		    ( (is_a fldbind class_value_binding)
-		      (let ( (vfld (unsafe_get_field :vbind_value fldbind)) )
-			(if (is_a vfld class_field)
-			    vfld)) )
-		    )) )
-	(if (is_a fld class_field)
-	    (box_put fldbox fld)
-	  (error_strv loc "invalid field name in field assignment" 
-		      (unsafe_get_field :named_name fldkw)))
-	()
-	))
+	;; othewise, find the field by its bound name
+	(let ( (fldnam (create_symbolstr (unsafe_get_field :named_name fldkw))) 
+	      (fldbind (find_env env fldnam)) 
+	       (fld  (cond 
+		       ( (is_a fldbind class_field_binding)
+			(unsafe_get_field :flbind_field fldbind) )
+		       ( (is_a fldbind class_value_binding)
+			(let ( (vfld (unsafe_get_field :vbind_value fldbind)) )
+			  (if (is_a vfld class_field)
+			      vfld)) )
+		       )) )
+	  (if (is_a fld class_field)
+	      (box_put fldbox fld)
+	      (error_strv loc "invalid field name in field assignment" 
+			  (unsafe_get_field :named_name fldkw)))
+	  ()
+	  ))
     ;; at last make the field assignment
     (let ( (fld (box_content fldbox)) )
       (if (is_a fld class_field)
@@ -4019,7 +4033,10 @@
 			   :src_loc loc
 			   :sfla_field fld
 			   :sfla_expr xex
-			   ))))))
+			   ))
+	  (error_strv loc "unknown field name in field assignment"
+		      (unsafe_get_field :named_name fldkw))
+	  ))))
 
 ;; the definstance expanser
 (defun mexpand_definstance (sexpr env mexpander)
@@ -5102,11 +5119,11 @@
 (install_initial_macro 'debug_msg mexpand_debug_msg)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; export macro (export <symbol> ...)
-(defun mexpand_export (sexpr env mexpander)
+;;; export_value macro (export_value <symbol> ...)
+(defun mexpand_export_value (sexpr env mexpander)
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
   (assert_msg "check env" (is_a env class_environment))
-  (debug_msg sexpr "mexpand_export sexpr")
+  (debug_msg sexpr "mexpand_export_value sexpr")
   (let (
 	(cont (unsafe_get_field :sexp_contents sexpr))
 	(loc  (unsafe_get_field :loca_location sexpr))
@@ -5116,17 +5133,18 @@
 		  (lambda (s)
 		    (let ( (sym  (macroexpand_1 s env mexpander)) )
 		      (if (is_not_a sym class_symbol)
-			  (error_plain loc "(EXPORT <sym>...) expecting symbol"))
+			  (error_plain loc "(EXPORT_VALUE <sym>...) expecting symbol"))
 		      sym
 		      ))))
-	(res (make_instance class_src_export
+	(res (make_instance class_src_export_value
 			    :src_loc loc
 			    :sexport_names symbtup))
 	)
-    (debug_msg res "mexpand_export result res")
+    (debug_msg res "mexpand_export_value result res")
     (return res)
     ))
-(install_initial_macro 'export mexpand_export)
+(install_initial_macro 'export mexpand_export_value)
+
 ;;;;
 ;;; export_macro macro (export_macro <symbol> ...)
 (defun mexpand_export_macro (sexpr env mexpander)
@@ -5153,6 +5171,33 @@
     (return res)
     ))
 (install_initial_macro 'export_macro mexpand_export_macro)
+
+;;;;
+;;; export_class macro (export_class <symbol> ...)
+(defun mexpand_export_class (sexpr env mexpander)
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check env" (is_a env class_environment))
+  (debug_msg sexpr "mexpand_export_class sexpr")
+  (let (
+	(cont (unsafe_get_field :sexp_contents sexpr))
+	(loc  (unsafe_get_field :loca_location sexpr))
+	(curpair (pair_tail (list_first cont)))
+	(symbtup (pairlist_to_multiple 
+		  curpair discr_multiple
+		  (lambda (s)
+		    (let ( (sym  (macroexpand_1 s env mexpander)) )
+		      (if (is_not_a sym class_symbol)
+			  (error_plain loc "(EXPORT_CLASS <sym>...) expecting symbol"))
+		      sym
+		      ))))
+	(res (make_instance class_src_export_class
+			    :src_loc loc
+			    :sexport_names symbtup))
+	)
+    (debug_msg res "mexpand_export_class result res")
+    (return res)
+    ))
+(install_initial_macro 'export_class mexpand_export_class)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -7889,9 +7934,9 @@
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;; normalize an export
-(defun normexp_export (recv env ncx psloc)
-  (assert_msg "check export recv" (is_a recv class_src_export))
+;;;; normalize an export_value
+(defun normexp_export_value (recv env ncx psloc)
+  (assert_msg "check exportval recv" (is_a recv class_src_export_value))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normcontext))
   (debug_msg recv "normexp export recv")
@@ -7899,9 +7944,10 @@
 	(sloc (unsafe_get_field :src_loc recv))
 	(sxnames (unsafe_get_field :sexport_names))
 	)
-    (assert_msg "@@ UNIMPLEMENTED normexp_export " ())
+    (assert_msg "@@ UNIMPLEMENTED normexp_export_value " ())
     ))
-(install_method class_src_export normal_exp normexp_export)
+(install_method class_src_export_value normal_exp normexp_export_value)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; normalize an export_macro
 (defun normexp_export_macro (recv env ncx psloc)
@@ -7916,6 +7962,21 @@
     (assert_msg "@@ UNIMPLEMENTED normexp_export_macro " ())
     ))
 (install_method class_src_export_macro normal_exp normexp_export_macro)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;; normalize an export_class
+(defun normexp_export_class (recv env ncx psloc)
+  (assert_msg "check export_class recv" (is_a recv class_src_export_class))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check nctxt" (is_a ncx class_normcontext))
+  (debug_msg recv "normexp export_class recv")
+  (let ( 
+	(sloc (unsafe_get_field :src_loc recv))
+	(sxnames (unsafe_get_field :sexport_names))
+	)
+    (assert_msg "@@ UNIMPLEMENTED normexp_export_class " ())
+    ))
+(install_method class_src_export_class normal_exp normexp_export_class)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -8006,9 +8067,9 @@
 	 (cnam (unsafe_get_field :oie_cname obielem)) )
     (assert_msg "check cnam" (is_string cnam))
     (assert_msg "check olocvar"  olocvar)
-    (add2sbuf_strconst implbuf "/*obielem ")
-    (add2sbuf_string implbuf cnam)
-    (add2sbuf_strconst implbuf "*/ ")
+  ;  (add2sbuf_strconst implbuf "/*obielem ")
+  ;  (add2sbuf_string implbuf cnam)
+  ;  (add2sbuf_strconst implbuf "*/ ")
     (output_c_code olocvar declbuf implbuf depth)
     )
 )
@@ -8105,7 +8166,7 @@
       (add2sbuf_indentnl sbuf 1)
       (if olocvar
 	  (progn
-	    (add2sbuf_strconst sbuf "/*inioblocvar*/ ")
+	    ; (add2sbuf_strconst sbuf "/*inioblocvar*/ ")
 	    (output_c_code olocvar (the_null) sbuf 1)
 	    (add2sbuf_strconst sbuf " = (void*)&cdat->")
 	    (add2sbuf_string sbuf oname)
@@ -8283,7 +8344,7 @@
     (add2sbuf_indentnl sbuf 1)
     (if olocvar
 	(progn
-	  (add2sbuf_strconst sbuf "/*inicloslocvar*/ ")
+	  ; (add2sbuf_strconst sbuf "/*inicloslocvar*/ ")
 	  (output_c_code olocvar (the_null) sbuf 1)
 	  (add2sbuf_strconst sbuf " = (void*)&cdat->")
 	  (add2sbuf_string sbuf cnam)
@@ -8330,7 +8391,7 @@
     (add2sbuf_indentnl sbuf 1)
     (if olocvar
 	(progn
-	  (add2sbuf_strconst sbuf "/*iniroutlocvar*/ ")
+	 ; (add2sbuf_strconst sbuf "/*iniroutlocvar*/ ")
 	  (output_c_code olocvar (the_null) sbuf 1)
 	  (add2sbuf_strconst sbuf " = (void*)&cdat->")
 	  (add2sbuf_string sbuf cnam)
@@ -9337,7 +9398,7 @@
 (defun outpucod_objcompute (obcomp declbuf implbuf :long depth)
   (assert_msg "check obcomp" (is_a obcomp class_objcompute))
   (let ( (cdest (unsafe_get_field :obdi_destlist obcomp)) ; destination list
-	 (cloc (unsafe_get_field :obi_loc obcomp))
+	(cloc (unsafe_get_field :obi_loc obcomp))
 	 (cexp (unsafe_get_field :obcpt_expr obcomp)) 
 	 (boxdepthp1 (make_integerbox discr_integer (+i depth 1)))
 	 )
@@ -9350,13 +9411,19 @@
 	   (output_c_code destcur declbuf implbuf (get_int boxdepthp1))
 	   (add2sbuf_strconst implbuf " = ")
 	   ())))
-    (if (is_list cexp)
-	(list_every
-	 cexp 
-	 (lambda (expcur) 
-	   (output_c_code expcur declbuf implbuf (get_int boxdepthp1))))
-      (output_c_code cexp declbuf implbuf (+i depth 1))
-      )
+    (cond ((is_list cexp)
+	   (list_every
+	    cexp 
+	    (lambda (expcur) 
+	      (output_c_code expcur declbuf implbuf (get_int boxdepthp1)))))
+	  ((is_multiple cexp)
+	   (multiple_every
+	    cexp
+	    (lambda (expcur) 
+	      (output_c_code expcur declbuf implbuf (get_int boxdepthp1)))))
+	  (:else
+	   (output_c_code cexp declbuf implbuf (+i depth 1))
+	   ))
     (add2sbuf_strconst implbuf ";")
     ))
 (install_method class_objcompute output_c_code outpucod_objcompute)
@@ -10482,7 +10549,7 @@
   (debug_msg ipro "compile2obj_initproc ipro")
   (debug_msg compicache "compile2obj_initproc compicache")
   (let ( (locmap (make_mapobject discr_mapobjects 50))
-	 (oinibody (make_list discr_list))
+	(oinibody (make_list discr_list))
 	 (oinitrout
 	  (make_instance class_initialroutineobj
 			 :named_name (make_stringconst discr_string "start_module_basilys")
@@ -10508,9 +10575,12 @@
 	    (unsafe_put_fields oinitrout :obrout_retval retl)
 	    retl))
 	 (ofreshenv  (get_free_objlocptr gcx '_freshenv_))
-	 (oputenv (get_free_objlocptr gcx '_putenv_)) 
-	 (oprevenv (get_free_objlocptr gcx '_prevenv_))
+	 (oprevenv  (get_free_objlocptr gcx '_prevenv_))
+	 (ovalexporter (get_free_objlocptr gcx '_valexport_)) 
+	 (oclassexporter (get_free_objlocptr gcx '_classexport_))
+	 (omacroexporter (get_free_objlocptr gcx '_macroexport_))
 	 )
+    (debug_msg retloc "retloc is")
     ;; the body starts by getting the previous environment from the
     ;; modargp_ unique argument
     (let ( (lisdest (make_list discr_list)) )
@@ -10530,6 +10600,22 @@
 				  :obdi_destlist lisdest
 				  :ogetsl_obj initialsystemdata_objpredef 
 				  :ogetsl_field sysdata_fresh_env)))
+    ;; always generate a test for fresh_env being a closure if the oprevenv exists
+    (list_append 
+     oinibody
+     (make_instance class_objcompute
+		    :obcpt_expr (make_tuple7
+				 discr_multiple
+				 (make_stringconst discr_verbatimstring 
+						   "if ((") 
+				 oprevenv
+				 (make_stringconst discr_verbatimstring 
+						   ") && basilys_magic_discr(")
+				 ofreshenv
+				 (make_stringconst discr_verbatimstring 
+						   ") != OBMAG_CLOSURE) warning(0, \"bad basilys fresh_env @%p in system data <%s:%d>\", ")
+				 ofreshenv
+				 (make_stringconst discr_verbatimstring ", __FILE__, __LINE__);"))))
     (let  ( (lisdest (make_list discr_list)) )
       (list_append lisdest retloc)
       (list_append oinibody
@@ -10537,7 +10623,7 @@
 				  :obdi_destlist lisdest
 				  :obapp_clos ofreshenv
 				  :obapp_args (make_tuple1 discr_multiple oprevenv))))
-    
+    (debug_msg oinibody "compile2obj_initproc initial oinibody")
     (let (
 	  (odatatup 
 	   (list_to_multiple
@@ -10559,7 +10645,59 @@
 	 (let ( (otop (compile_obj curtop gcx)) )
 	   (debug_msg otop "compile2obj_initproc otop")
 	   (list_append oinibody otop))))
-;;; final instruction is to return
+;;; if ofreshenv does not exist, get it again. In practice this only
+;;; happens for the very first module, at start of which the system
+;;; data does not exist.
+      (list_append oinibody
+		   (make_instance class_objcond
+				  :obcond_test ofreshenv
+				  :obcond_then ()
+				  :obcond_else
+				  (let ( (lisdest (make_list discr_list)) )
+				    (list_append lisdest ofreshenv)
+				    (make_instance class_objgetslot
+						   :obi_loc ()
+						   :obdi_destlist lisdest
+						   :ogetsl_obj initialsystemdata_objpredef 
+						   :ogetsl_field sysdata_fresh_env))))
+      (let ( (getsysd
+	      (lambda (ovar field :cstring msg)
+		(let ( (lisdest (make_list discr_list)) )
+		  (list_append lisdest ovar)
+		  (list_append oinibody
+			       (make_instance class_objgetslot
+					      :obi_loc ()
+					      :obdi_destlist lisdest
+					      :ogetsl_obj initialsystemdata_objpredef 
+					      :ogetsl_field field)))
+		;; always generate a test for ovar being a closure 
+		(list_append 
+		 oinibody
+		 (make_instance class_objcompute
+				:obcpt_expr (make_tuple7
+					     discr_multiple
+					     (make_stringconst discr_verbatimstring 
+							       "if (basilys_magic_discr(")
+					     ovar
+					     (make_stringconst discr_verbatimstring 
+							       ") != OBMAG_CLOSURE) warning(0, \"BASILYS: ")
+					     (make_stringconst discr_verbatimstring msg)
+					     (make_stringconst discr_verbatimstring
+							       " @%p in system data <%s:%d>\", ")
+					     ovar
+					     (make_stringconst discr_verbatimstring ", __FILE__, __LINE__);"))))
+		)) 
+	    )
+	;; get the value exporter
+	(getsysd ovalexporter sysdata_value_exporter "invalid value exporter")
+	;; get the class exporter
+	(getsysd oclassexporter sysdata_class_exporter "invalid class exporter")
+	;; get the macro exporter
+	(getsysd omacroexporter sysdata_macro_exporter "invalid macro exporter")
+	)
+;;; then we use the system data to get oputenv
+;;;; @@@ the emission of export goes here...
+      (debug_msg oinibody "compile2obj_initproc final oinibody")
       (debug_msg gcx "compile2obj_initproc final gcx")
       (debug_msg oinitrout "compile2obj_initproc final oinitrout")
       (return oinitrout)
@@ -12954,13 +13092,19 @@
   :predef INITIAL_SYSTEM_DATA
   :named_name (stringconst2val discr_namestring "INITIAL_SYSTEM_DATA")
   :sysdata_cmd_fundict  (make_mapstring discr_mapstrings 40)
-  :sysdata_fresh_env fresh_env
-  :sysdata_put_env put_env
+;  :sysdata_fresh_env fresh_env
+  :sysdata_fresh_env 
+  (lambda (e) 
+    (debug_msg e "systemdata fresh_env arg e=")
+    (let ( (res (fresh_env e)) )
+      (debug_msg res "systemdata fresh_env res=")
+      (messageval_dbg "Sysdatafreshenv res" res)
+      (return res)))
 )
 
 (defun install_initial_command (nam fun)
-  (messageval_dbg "install_initial_command @@ fun" fun)
-  (messageval_dbg "install_initial_command @@ nam" nam)
+;  (messageval_dbg "install_initial_command @@ fun" fun)
+;  (messageval_dbg "install_initial_command @@ nam" nam)
   (debug_msg fun "install_initial_command fun")
   (if (is_closure fun)
       (if (is_string nam)
@@ -13018,6 +13162,13 @@
 
 (install_initial_command  (stringconst2val discr_string "compilefile") compilefile_command)
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defun showmdata_command (dispatcher arg secarg moduldata)
+  (message_dbg "starting showmdata_command")
+  (debug_msg moduldata "showmdata moduldata")
+  (message_dbg "ending showmdata_command"))
+(install_initial_command (stringconst2val discr_string "showmdata") showmdata_command)
+;;;;;;;;;;;;;;;;
 
 (debug_msg initial_system_data "toplevel initial_system_data")
 

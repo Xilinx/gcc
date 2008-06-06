@@ -38,8 +38,10 @@ fi
 ## script invoked by cc1 with two arguments : the generated C source to compile
 ## and the naked (without suffix) dynamically-loadable stuff to generate
 
-## for commodity, we pass -D -U -I to gcc, and -F to set the cflags, -C to set the compiler, and -x & -v for debugging
-while getopts "D:I:U:F:C:xv" flag ; do
+## for commodity, we pass -D -U -I to gcc, and -F to set the cflags,
+## -C to set the compiler, and -x & -v for debugging and -n to omit
+## line info
+while getopts "D:I:U:F:C:xvn" flag ; do
     : the $flag 
     case "$flag" in
 	D) melt_cflags="$melt_cflags -D$OPTARG";;
@@ -47,6 +49,7 @@ while getopts "D:I:U:F:C:xv" flag ; do
 	I) melt_cflags="$melt_cflags -U$OPTARG";;
 	F) melt_cflags="$melt_cflags $OPTARG";;
 	C) melt_cc="$OPTARG";;
+	n)  melt_cflags="$melt_cflags -DMELTGCC_NOLINENUMBERING";;
 	x) set -x;;
 	v) set -v;;
 	*) echo unrecognized flag $flag;;

@@ -98,11 +98,19 @@
 	   )
   )
 
-;; class of command dispatchers
-(defclass class_command_dispatcher
-  :predef CLASS_COMMAND_DISPATCHER
+;; class of system data
+(defclass class_system_data
+  :predef CLASS_SYSTEM_DATA
   :super class_named
-  :fields (cmd_fundict			;stringmap for closures
+  :fields (sysdata_cmd_fundict			;stringmap for closures for command dispatching
+	   sysdata_fresh_env			;closure to make a fresh environment
+	   sysdata_value_exporter		;closure to export a value
+	   sysdata_class_exporter		;closure to export a class
+	   sysdata_macro_exporter		;closure to export a macro
+	   sysdata___spare1
+	   sysdata___spare2
+	   sysdata___spare3
+	   sysdata___spare4
 	   ))
 
 ;; the (super-)class of any binding
@@ -713,9 +721,9 @@
 
 
 ;;;;;;;;;;;;;;;;;;;; initial commands
-(definstance initial_command_dispatcher class_command_dispatcher
+(definstance initial_system_data class_system_data
   :predef INITIAL_COMMAND_DISPATCHER
-  :named_name (stringconst2val discr_namestring "INITIAL_COMMAND_DISPATCHER")
+  :named_name (stringconst2val discr_namestring "INITIAL_SYSTEM_DATA")
   :cmd_fundict  (make_mapstring discr_mapstrings 40)
 )
 
@@ -723,7 +731,7 @@
   (if (is_closure fun)
       (if (is_string nam)
 	  (mapstring_putstr 
-	   (unsafe_get_field :cmd_fundict initial_command_dispatcher) 
+	   (unsafe_get_field :cmd_fundict initial_system_data)
 	   nam fun))))
 
 ;;; installation of a method in a class or discriminant
@@ -898,7 +906,7 @@
 (install_ctype ctype_value)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defun say_command (dispatcher arg)
+(defun say_command (sysdat arg mod)
   (outstr_err arg)
   (outnewline_err)
 )
@@ -1116,7 +1124,7 @@
 	(outcstring_err "@@@ nested test failed@@"))
       (outnewline_err))))
 	 
-(defun test_command (dispatcher arg)
+(defun test_command (sysdat arg mod)
   (outcstring_err "**start of tests in testrun1**")
   (outnewline_err)
   (dotest_progn)

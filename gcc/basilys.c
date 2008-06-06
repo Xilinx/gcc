@@ -4443,6 +4443,7 @@ dylibfound:
      (void *) dlsy);
   modulv = (*starout) (mdatav);
   debugeprintvalue ("modulv after calling start_module_basilys", modulv);
+  debugeprintf("basilysgc_compile_dyn returns modulv %p", (void*) modulv);
   /* we never free  plainstuffpath and we never release the shared library! */
   BASILYS_EXITFRAME ();
   return modulv;
@@ -5532,8 +5533,8 @@ do_initial_command (basilys_ptr_t modata_p)
 #define csecstrv  curfram__.varptr[3]
 #define modatav   curfram__.varptr[4]
   modatav = modata_p;
-  debugeprintf ("do_initial_command command_string %s",
-		basilys_command_string);
+  debugeprintf ("do_initial_command command_string %s modatav %p",
+		basilys_command_string, (void*)modatav);
   if (basilys_magic_discr
       ((BASILYSG (INITIAL_SYSTEM_DATA))) != OBMAG_OBJECT
       || BASILYSGOB (INITIAL_SYSTEM_DATA)->obj_len <
@@ -5648,8 +5649,9 @@ load_basilys_modules_and_do_command (void)
 	  *nextmod = (char) 0;
 	  nextmod++;
 	}
-      debugeprintf ("load_initial_basilys_modules curmod %s", curmod);
+      debugeprintf ("load_initial_basilys_modules curmod %s before", curmod);
       modatv = basilysgc_compile_dyn (modatv, curmod);
+      debugeprintf ("load_initial_basilys_modules curmod %s loaded modatv %p", curmod, (void*)modatv);
       curmod = nextmod;
     }
   /**
