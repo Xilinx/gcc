@@ -1,4 +1,10 @@
 2008-06-06  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warm-basilys.bysl: added compile_warning macro.
+	still unimplemented normexp_export_value.
+
+	* warm-basilys-0.c: regenerated twice [before & afeter edition]
+
+2008-06-06  Basile Starynkevitch  <basile@starynkevitch.net>
 	* basilys.c: (load_initial_basilys_modules) debug messages to show module data.
 
 	* melt-cc-script.proto: added -n flag to avoid line numbering.

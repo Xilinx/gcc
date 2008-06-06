@@ -548,6 +548,11 @@
   :fields ( sexi_body			;tuple for body
 ))
 
+;; compile time warning
+(defclass class_src_compilewarning
+    :super class_src
+  :fields (scwarn_msg
+	   scwarn_expr))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; ================ normalized representations
@@ -4914,16 +4919,17 @@
   (let ( (cont (unsafe_get_field :sexp_contents sexpr))
 	 (loc  (unsafe_get_field :loca_location sexpr))
 	 (curpair (pair_tail (list_first cont))) 
-	 (labnam (pair_head curpair))
+	 (slabnam (pair_head curpair))
+	 (xlabnam (macroexpand_1 slabnam env mexpander))
 	 (newenv (fresh_env env))
 	 )
-    (if (is_not_a labnam class_symbol)
+    (if (is_not_a xlabnam class_symbol)
 	(progn
 	  (error_plain loc "missing label in FOREVER")
 	  (return (the_null))))
     (setq curpair (pair_tail curpair))
     (let ( (labind (make_instance class_label_binding
-				  :binder labnam
+				  :binder xlabnam
 				  :labind_loc loc)) )
       (put_env newenv labind)
       (let ( (bodytup (pairlist_to_multiple
@@ -4947,19 +4953,20 @@
   (let ( (cont (unsafe_get_field :sexp_contents sexpr))
 	 (loc  (unsafe_get_field :loca_location sexpr))
 	 (curpair (pair_tail (list_first cont))) 
-	 (labnam (pair_head curpair))
+	 (slabnam (pair_head curpair))
+	 (xlabnam (macroexpand_1 slabnam env mexpander))
 	 (newenv (fresh_env env))
 	 )
-    (if (is_not_a labnam class_symbol)
+    (if (is_not_a xlabnam class_symbol)
 	(progn
 	  (error_plain loc "missing label in EXIT")
 	  (return (the_null))))
     (setq curpair (pair_tail curpair))
-    (let ( (labind (find_env env labnam)) )
+    (let ( (labind (find_env env xlabnam)) )
       (if (is_not_a labind class_label_binding)
 	  (progn 
 	    (error_strv loc "bad label in EXIT" 
-			(unsafe_get_field :named_name labnam))
+			(unsafe_get_field :named_name xlabnam))
 	    (return (the_null))))
       (let ( (bodytup (pairlist_to_multiple
 		       curpair
@@ -4975,6 +4982,41 @@
 	))))
 (install_initial_macro 'exit mexpand_exit)
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; compile time warning (compile_warning msg expr)
+;; we don't issue the warning at expansion phase, but at normalization phase.
+(defun  mexpand_compile_warning (sexpr env mexpander)
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (debug_msg sexpr "mexpand_compile_warning sexpr")
+  (let ( (cont (unsafe_get_field :sexp_contents sexpr))
+	(loc  (unsafe_get_field :loca_location sexpr))
+	 (curpair (pair_tail (list_first cont))) 
+	 (smsg (pair_head curpair))
+	 (xmsg (macroexpand_1 smsg env mexpander))
+	 )
+    (if (not (is_string xmsg))
+	(progn
+	  (error_plain loc "missing message string in (COMPILE_WARNING <msg> <exp>)")
+	  (return (the_null))))
+    (setq curpair (pair_tail curpair))
+    (let ( (sexp (pair_head curpair))
+	  (xexp (macroexpand_1 sexp env mexpander))
+	   )
+      (setq curpair (pair_tail curpair))
+      (if (notnull curpair)
+	  (error_plain loc "too many arguments in (COMPILE_WARNING <msg> <exp>)"))
+      (let ( (res (make_instance  class_src_compilewarning
+				  :src_loc loc
+				  :scwarn_msg xmsg
+				  :scwarn_expr xexp
+				  ))
+	    )
+	(debug_msg res "mexpand_compile_warning result")
+	(return res)
+	))))
+(install_initial_macro 'compile_warning mexpand_compile_warning)
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; debug_msg support
 (defun debug_msg_fun (val :cstring msgstr :long count :cstring filenam :long lineno)
   (if (need_dbg 0) 
       (let ( (:long dbgcounter (progn (increment_dbgcounter) (the_dbgcounter)))
@@ -6864,6 +6906,29 @@
 (install_method class_src_exit normal_exp normexp_exit)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;; normalize the compile_warning
+(defun normexp_compilewarning  (recv env ncx psloc)
+  (assert_msg "check compilewarn recv" (is_a recv class_src_compilewarning))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check nctxt" (is_a ncx class_normcontext))
+  (debug_msg recv "normexp_compile_warning recv")
+  (let ((sloc   (unsafe_get_field :src_loc recv)) 
+	(swmsg (unsafe_get_field :scwarn_msg recv))
+	(swexp (unsafe_get_field :scwarn_expr recv))
+	)
+    (warning_strv sloc "COMPILE_WARNING:" swmsg)
+    (multicall 
+     (nexp nbind)
+     (normal_exp swexp env ncx sloc)
+     (debug_msg nexp "normexp_compile_warning nesult nexp")
+     (debug_msg nbind "normexp_compile_warning result nbind")
+     (return nexp nbind)
+     )))
+
+(Install_method class_src_compilewarning normal_exp normexp_compilewarning)
+(install_method class_src_compilewarning get_ctype 
+		(lambda (recv env) (get_ctype (unsafe_get_field :scwarn_expr recv) env)))
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;; replace in a tupe of normalized stuff the last with a return 
 ;;;;;; for normalization of defun-s or lambda-s
 (defun replace_last_by_return (tup env sloc)
@@ -7943,6 +8008,31 @@
   (let ( 
 	(sloc (unsafe_get_field :src_loc recv))
 	(sxnames (unsafe_get_field :sexport_names))
+	(sxbinds (multiple_map
+		  sxnames
+		  (lambda (xnam :long ix)
+		    (assert_msg "check xnam" (is_a xnam class_symbol))
+		    (let ( (xbind (find_env env xnam)) )
+		      (if (is_not_a xbind class_any_binding)
+			  (progn 
+			    (error_strv sloc "unbound symbol to EXPORT_VALUE"
+					(unsafe_get_field :named_name xnam))
+			    (return)
+			    ))
+		      (cond 
+			((is_a xbind class_let_binding)
+			 (error_strv sloc "locally let-bound symbol to EXPORT_VALUE"
+				     (unsafe_get_field :named_name xnam))
+			 (return))
+			((is_a xbind class_function_binding)
+			 (compile_warning "normexp_export_value not implemented" ())
+			 (assert_msg "unimplemented  normexp_export_value functionbind" ())
+			 )
+			(:else
+			 )
+			)
+			     
+		  ))))
 	)
     (assert_msg "@@ UNIMPLEMENTED normexp_export_value " ())
     ))
@@ -13092,7 +13182,7 @@
   :predef INITIAL_SYSTEM_DATA
   :named_name (stringconst2val discr_namestring "INITIAL_SYSTEM_DATA")
   :sysdata_cmd_fundict  (make_mapstring discr_mapstrings 40)
-;  :sysdata_fresh_env fresh_env
+  ;;  :sysdata_fresh_env fresh_env
   :sysdata_fresh_env 
   (lambda (e) 
     (debug_msg e "systemdata fresh_env arg e=")
@@ -13100,7 +13190,22 @@
       (debug_msg res "systemdata fresh_env res=")
       (messageval_dbg "Sysdatafreshenv res" res)
       (return res)))
-)
+  :sysdata_value_exporter
+  (compile_warning 
+   "unimplemented value exporter in system data"
+   (lambda (sym val env)
+     (assert_msg "@@ unimplemented value exporter" ())))
+  :sysdata_class_exporter
+  (compile_warning 
+   "unimplemented class exporter in system data"
+   (lambda (sym val env)
+     (assert_msg "@@ unimplemented class exporter" ())))
+  :sysdata_macro_exporter
+  (compile_warning 
+   "unimplemented macro exporter in system data"
+   (lambda (sym val env)
+     (assert_msg "@@ unimplemented macro exporter" ())))
+  )
 
 (defun install_initial_command (nam fun)
 ;  (messageval_dbg "install_initial_command @@ fun" fun)
