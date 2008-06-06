@@ -1,5 +1,12 @@
 2008-06-05  Tobias Grosser  <grosser@fim.uni-passau.de>
     
+	* graphite.c (first_loop_in_scop): Deleted.
+	(setup_cloog_loop): Only walk the loop chain for inner loops.
+	(build_scop_iteration_domain): Execute setup_cloog_loop for
+	all loops in the first layer.
+
+2008-06-05  Tobias Grosser  <grosser@fim.uni-passau.de>
+    
 	* graphite.c (scan_tree_for_params): Change the way params are
 	added to be indepenent of the number of loops.
 	(setup_cloog_loop): Revert to short matrix format. Fix parameter

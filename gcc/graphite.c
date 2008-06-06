@@ -1584,26 +1584,6 @@ build_scop_context (scop_p scop)
   SCOP_PROG (scop)->context = cloog_domain_matrix2domain (matrix);
 }
 
-/* Returns the first loop in SCOP, returns NULL if there is no loop in
-   SCOP.  */
-
-static struct loop *
-first_loop_in_scop (scop_p scop)
-{
-  struct loop *loop = SCOP_ENTRY (scop)->loop_father->inner;
-
-  if (loop == NULL)
-    return NULL;
-
-  while (loop->next && !loop_in_scop_p (loop, scop))
-    loop = loop->next;
-
-  if (loop_in_scop_p (loop, scop))
-    return loop;
-
-  return NULL;
-}
-
 /* Calculate the number of loops around GB in the current SCOP.  */
 
 static inline int
@@ -1779,7 +1759,10 @@ setup_cloog_loop (scop_p scop, struct loop *loop, CloogMatrix *outer_cstr,
   if (loop->inner && loop_in_scop_p (loop->inner, scop))
     res->next = setup_cloog_loop (scop, loop->inner, cstr, nb_outer_loops + 1);
 
-  if (loop->next && loop_in_scop_p (loop->next, scop))
+  /* Only go to the next loops, if we are not at the outermost layer.  These
+     have to be handled seperately, as we can be sure, that the chain at this
+     layer will be connected.  */
+  if (nb_outer_loops != 0 && loop->next && loop_in_scop_p (loop->next, scop))
     {
       CloogLoop *l = res;
 
@@ -1888,19 +1871,29 @@ schedule_to_scattering (graphite_bb_p gb)
 static bool
 build_scop_iteration_domain (scop_p scop)
 {
-  struct loop *loop = first_loop_in_scop (scop);
+  struct loop *loop;
   CloogMatrix *outer_cstr;
+  int i;
 
-  if (loop == NULL)
-    return false;
+  /* Build cloog loop for all loops, that are in the uppermost loop layer of
+     this SCoP.  */
+  for (i = 0; VEC_iterate (loop_p, SCOP_LOOP_NEST(scop), i, loop); i++)
+    {
+      if (!loop_in_scop_p (loop_outer (loop), scop))
+        {
+          /* The outermost constraints is a matrix that has:
+             -first column: eq/ineq boolean
+             -last column: a constant
+             -nb_params_in_scop columns for the parameters used in the scop.  */
+          CloogLoop *next_loop;
+          outer_cstr = cloog_matrix_alloc (0, nb_params_in_scop (scop) + 2);
+          next_loop = setup_cloog_loop (scop, loop, outer_cstr, 0);
+          next_loop->next = SCOP_PROG (scop)->loop;
+          SCOP_PROG (scop)->loop = next_loop; 
+        }
+    }
 
-  /* The outermost constraints is a matrix that has:
-     - first column: eq/ineq boolean
-     - last column: a constant
-     - nb_params_in_scop columns for the parameters used in the scop.  */
-  outer_cstr = cloog_matrix_alloc (0, nb_params_in_scop (scop) + 2);
-  SCOP_PROG (scop)->loop = setup_cloog_loop (scop, loop, outer_cstr, 0);
-  return true;
+  return (i != 0);
 }
 
 /* Initializes an equation CY of the access matrix using the
