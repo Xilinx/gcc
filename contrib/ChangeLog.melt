@@ -1,4 +1,7 @@
 
+2008-06-06  Basile Starynkevitch  <basile@starynkevitch.net>
+	* cold-basilys.lisp: obsolete file.
+
 2008-05-22  Basile Starynkevitch  <basile@starynkevitch.net>
 	* cold-basilys.lisp: added generation of basilys_trace_start &
 	basilys_trace_end, renaming all Lambda routines
