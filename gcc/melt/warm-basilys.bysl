@@ -355,6 +355,24 @@
   :super class_src
   :fields (squoted
 ))
+
+;; source export 
+(defclass class_src_exportcommon
+  :super class_src
+  :fields (sexport_names
+))
+;; export
+(defclass class_src_export
+  :super class_src_exportcommon
+  :fields (
+))
+
+;; export macros
+(defclass class_src_export_macro
+  :super class_src_exportcommon
+  :fields (
+))
+
 ;;; superclass for all source definitions
 (defclass class_srcdef
   :super class_src
@@ -850,6 +868,11 @@
 	   naccm_ix			;index to be accessed (a boxed integer)
 ))
 
+;;; normalized export of bindings
+(defclass class_nrep_exportb
+  :super class_nrep_expr
+  :fields (nexp_bindings		;tuple of bindings to export
+))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; module compilation context
@@ -5077,6 +5100,60 @@
       (return dcppif)
       )))
 (install_initial_macro 'debug_msg mexpand_debug_msg)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; export macro (export <symbol> ...)
+(defun mexpand_export (sexpr env mexpander)
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check env" (is_a env class_environment))
+  (debug_msg sexpr "mexpand_export sexpr")
+  (let (
+	(cont (unsafe_get_field :sexp_contents sexpr))
+	(loc  (unsafe_get_field :loca_location sexpr))
+	(curpair (pair_tail (list_first cont)))
+	(symbtup (pairlist_to_multiple 
+		  curpair discr_multiple
+		  (lambda (s)
+		    (let ( (sym  (macroexpand_1 s env mexpander)) )
+		      (if (is_not_a sym class_symbol)
+			  (error_plain loc "(EXPORT <sym>...) expecting symbol"))
+		      sym
+		      ))))
+	(res (make_instance class_src_export
+			    :src_loc loc
+			    :sexport_names symbtup))
+	)
+    (debug_msg res "mexpand_export result res")
+    (return res)
+    ))
+(install_initial_macro 'export mexpand_export)
+;;;;
+;;; export_macro macro (export_macro <symbol> ...)
+(defun mexpand_export_macro (sexpr env mexpander)
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check env" (is_a env class_environment))
+  (debug_msg sexpr "mexpand_export_macro sexpr")
+  (let (
+	(cont (unsafe_get_field :sexp_contents sexpr))
+	(loc  (unsafe_get_field :loca_location sexpr))
+	(curpair (pair_tail (list_first cont)))
+	(symbtup (pairlist_to_multiple 
+		  curpair discr_multiple
+		  (lambda (s)
+		    (let ( (sym  (macroexpand_1 s env mexpander)) )
+		      (if (is_not_a sym class_symbol)
+			  (error_plain loc "(EXPORT_MACRO <sym>...) expecting symbol"))
+		      sym
+		      ))))
+	(res (make_instance class_src_export_macro
+			    :src_loc loc
+			    :sexport_names symbtup))
+	)
+    (debug_msg res "mexpand_export_macro result res")
+    (return res)
+    ))
+(install_initial_macro 'export_macro mexpand_export_macro)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -7810,6 +7887,35 @@
 	))))
 (install_method class_src_defselector normal_exp normexp_defselector)
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;; normalize an export
+(defun normexp_export (recv env ncx psloc)
+  (assert_msg "check export recv" (is_a recv class_src_export))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check nctxt" (is_a ncx class_normcontext))
+  (debug_msg recv "normexp export recv")
+  (let ( 
+	(sloc (unsafe_get_field :src_loc recv))
+	(sxnames (unsafe_get_field :sexport_names))
+	)
+    (assert_msg "@@ UNIMPLEMENTED normexp_export " ())
+    ))
+(install_method class_src_export normal_exp normexp_export)
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;; normalize an export_macro
+(defun normexp_export_macro (recv env ncx psloc)
+  (assert_msg "check export_macro recv" (is_a recv class_src_export_macro))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check nctxt" (is_a ncx class_normcontext))
+  (debug_msg recv "normexp export_macro recv")
+  (let ( 
+	(sloc (unsafe_get_field :src_loc recv))
+	(sxnames (unsafe_get_field :sexport_names))
+	)
+    (assert_msg "@@ UNIMPLEMENTED normexp_export_macro " ())
+    ))
+(install_method class_src_export_macro normal_exp normexp_export_macro)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
