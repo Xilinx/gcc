@@ -1,6 +1,6 @@
 /* Top level of GCC compilers (cc1, cc1plus, etc.)
    Copyright (C) 1987, 1988, 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -564,6 +564,14 @@ init_optimization_passes (void)
 	  NEXT_PASS (pass_copy_prop);
 	  NEXT_PASS (pass_merge_phi);
 	  NEXT_PASS (pass_dce);
+          /* Ideally the function call conditional 
+             dead code elimination phase can be delayed
+             till later where potentially more opportunities
+             can be found.  Due to lack of good ways to
+             update VDEFs associated with the shrink-wrapped
+             calls, it is better to do the transformation
+             here where memory SSA is not built yet.  */
+	  NEXT_PASS (pass_call_cdce);
 	  NEXT_PASS (pass_update_address_taken);
 	  NEXT_PASS (pass_simple_dse);
 	  NEXT_PASS (pass_tail_recursion);
@@ -1243,7 +1251,7 @@ execute_one_pass (struct opt_pass *pass)
 #endif
 
   /* IPA passes are executed on whole program, so cfun should be NULL.
-     Ohter passes needs function context set.  */
+     Other passes need function context set.  */
   if (pass->type == SIMPLE_IPA_PASS || pass->type == IPA_PASS)
     gcc_assert (!cfun && !current_function_decl);
   else
@@ -1390,8 +1398,6 @@ execute_ipa_pass_list (struct opt_pass *pass)
 	    }
 	  summaries_generated = true;
 	}
-      else
-	summaries_generated = false;
       if (execute_one_pass (pass) && pass->sub)
 	{
 	  if (pass->sub->type == GIMPLE_PASS)

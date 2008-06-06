@@ -1,4 +1,7 @@
 2008-06-06  Basile Starynkevitch  <basile@starynkevitch.net>
+	MERGED WITH TRUNK rev.136492
+
+2008-06-06  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warm-basilys.bysl: added compile_warning macro.
 	still unimplemented normexp_export_value.
 

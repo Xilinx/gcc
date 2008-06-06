@@ -192,7 +192,7 @@ remap_ssa_name (tree name, copy_body_data *id)
 	  /* By inlining function having uninitialized variable, we might
 	     extend the lifetime (variable might get reused).  This cause
 	     ICE in the case we end up extending lifetime of SSA name across
-	     abnormal edge, but also increase register presure.
+	     abnormal edge, but also increase register pressure.
 
 	     We simply initialize all uninitialized vars by 0 except for case
 	     we are inlining to very first BB.  We can avoid this for all
@@ -1603,7 +1603,7 @@ setup_one_parameter (copy_body_data *id, tree p, tree value, tree fn,
 	}
 
       /* If VAR represents a zero-sized variable, it's possible that the
-	 assignment statment may result in no gimple statements.  */
+	 assignment statement may result in no gimple statements.  */
       if (init_stmt)
         bsi_insert_after (&bsi, init_stmt, BSI_NEW_STMT);
       if (gimple_in_ssa_p (cfun))
@@ -2478,6 +2478,7 @@ estimate_num_insns_1 (tree *tp, int *walk_subtrees, void *data)
       }
 
     case OMP_PARALLEL:
+    case OMP_TASK:
     case OMP_FOR:
     case OMP_SECTIONS:
     case OMP_SINGLE:
