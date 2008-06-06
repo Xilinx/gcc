@@ -1,5 +1,8 @@
 
 2008-06-06  Basile Starynkevitch  <basile@starynkevitch.net>
+	* cold-basilys.lisp: REMOVED FILE.
+
+2008-06-06  Basile Starynkevitch  <basile@starynkevitch.net>
 	* cold-basilys.lisp: obsolete file.
 
 2008-05-22  Basile Starynkevitch  <basile@starynkevitch.net>
