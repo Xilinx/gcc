@@ -735,6 +735,7 @@
 (defclass class_nrep_initproc
   :super class_nrep_anyproc
   :fields (ninit_topl			;list of toplevel nrep
+	   ninit_expval			;list of normal exported values 
 ))
 
 ;; normal routine procedure
@@ -881,10 +882,12 @@
 	   naccm_ix			;index to be accessed (a boxed integer)
 ))
 
-;;; normalized export of bindings
-(defclass class_nrep_exportb
-  :super class_nrep_expr
-  :fields (nexp_bindings		;tuple of bindings to export
+;;; normalized exported value
+(defclass class_nrep_exportval
+  :super class_nrep
+  :fields (nexpv_symb			;symbol
+	   nexpv_bind			;binding
+	   nexpv_data			;data
 ))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -5185,7 +5188,7 @@
     (debug_msg res "mexpand_export_value result res")
     (return res)
     ))
-(install_initial_macro 'export mexpand_export_value)
+(install_initial_macro 'export_value mexpand_export_value)
 
 ;;;;
 ;;; export_macro macro (export_macro <symbol> ...)
@@ -5374,6 +5377,7 @@
     (fill_initial_predefmap predefmap)
     (let ( (inipro  (make_instance class_nrep_initproc
 				   :ninit_topl (make_list discr_list)
+				   :ninit_expval (make_list discr_list)
 				   :nrep_loc ()
 				   )) )
       (debug_msg inipro "create_normcontext inipro")
@@ -8004,38 +8008,146 @@
   (assert_msg "check exportval recv" (is_a recv class_src_export_value))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normcontext))
-  (debug_msg recv "normexp export recv")
+  (debug_msg recv "normexp_export_value recv")
   (let ( 
 	(sloc (unsafe_get_field :src_loc recv))
-	(sxnames (unsafe_get_field :sexport_names))
-	(sxbinds (multiple_map
-		  sxnames
-		  (lambda (xnam :long ix)
-		    (assert_msg "check xnam" (is_a xnam class_symbol))
-		    (let ( (xbind (find_env env xnam)) )
-		      (if (is_not_a xbind class_any_binding)
-			  (progn 
-			    (error_strv sloc "unbound symbol to EXPORT_VALUE"
-					(unsafe_get_field :named_name xnam))
-			    (return)
-			    ))
-		      (cond 
-			((is_a xbind class_let_binding)
-			 (error_strv sloc "locally let-bound symbol to EXPORT_VALUE"
-				     (unsafe_get_field :named_name xnam))
-			 (return))
-			((is_a xbind class_function_binding)
-			 (compile_warning "normexp_export_value not implemented" ())
-			 (assert_msg "unimplemented  normexp_export_value functionbind" ())
-			 )
-			(:else
-			 )
-			)
-			     
-		  ))))
+	(sxnames (unsafe_get_field :sexport_names recv))
+	(iniproc (let ( (ip (unsafe_get_field :nctx_initproc ncx)) )
+		   (assert_msg "check iniproc" (is_a ip class_nrep_initproc))
+		   ip))
+	(iniexpvals (let ( (ev (unsafe_get_field :ninit_expval iniproc)) )
+		      (assert_msg "check iniexpvals" (is_list ev))
+		      ev))
 	)
-    (assert_msg "@@ UNIMPLEMENTED normexp_export_value " ())
-    ))
+    (multiple_every
+     sxnames
+     (lambda (xnam :long ix)
+       (assert_msg "check xnam" (is_a xnam class_symbol))
+       (let ( (xbind (find_env env xnam)) )
+	 (debug_msg xbind "normexp_export_value xbind")
+	 (if (is_not_a xbind class_any_binding)
+	     (progn 
+	       (error_strv sloc "unbound symbol to EXPORT_VALUE"
+			   (unsafe_get_field :named_name xnam))
+	       (return)
+	       ))
+	 (cond 
+	  ((is_a xbind class_let_binding)
+	   (error_strv sloc "locally let-bound symbol to EXPORT_VALUE"
+		       (unsafe_get_field :named_name xnam))
+	   (return))
+	  ((is_a xbind class_function_binding)
+	   (let ( 
+		 (xdata (unsafe_get_field :fubind_fundata xbind))
+		 (expval (make_instance class_nrep_exportval
+					:nrep_loc sloc
+					:nexpv_symb xnam
+					:nexpv_bind xbind
+					:nexpv_data xdata
+					))
+		 )
+	     (if (is_not_a xdata class_nrep_data)
+		 (error_strv sloc "forward defined function symbol to EXPORT_VALUE"
+			     (unsafe_get_field :named_name xnam)))
+	     (list_append iniexpvals expval)
+	     (debug_msg expval "normexp_export_value appended function expval")
+	     (return)
+	     ))
+	  ((is_a xbind class_instance_binding)
+	   (let ( (xdata (unsafe_get_field :ibind_data xbind))
+		  (expval (make_instance class_nrep_exportval
+					 :nrep_loc sloc
+					 :nexpv_symb xnam
+					 :nexpv_bind xbind
+					 :nexpv_data xdata
+					 ))
+		  )
+	     (if (is_not_a xdata class_nrep_data)
+		 (error_strv sloc "forward defined instance symbol to EXPORT_VALUE"
+			     (unsafe_get_field :named_name xnam)))
+	     (list_append iniexpvals expval)
+	     (debug_msg expval "normexp_export_value appended instance expval")
+	     (return)
+	     ))
+	  ((is_a xbind class_primitive_binding)
+	   (let ( (xdata (unsafe_get_field :pbind_primdata xbind)) 
+		  (expval (make_instance class_nrep_exportval
+					 :nrep_loc sloc
+					 :nexpv_symb xnam
+					 :nexpv_bind xbind
+					 :nexpv_data xdata
+					 ))
+		  )
+	     (if (is_not_a xdata class_nrep_data)
+		 (error_strv sloc "forward defined primitive symbol to EXPORT_VALUE"
+			     (unsafe_get_field :named_name xnam)))
+	     (list_append iniexpvals expval)
+	     (debug_msg expval "normexp_export_value appended primitive expval")
+	     (return)
+	     ))
+	  ((is_a xbind class_selector_binding)
+	   (let ( (xdata (unsafe_get_field :sbind_selectordata xbind)) 
+		  (expval (make_instance class_nrep_exportval
+					 :nrep_loc sloc
+					 :nexpv_symb xnam
+					 :nexpv_bind xbind
+					 :nexpv_data xdata
+					 ))
+		  )
+	     (if (is_not_a xdata class_nrep_data)
+		 (error_strv sloc "forward defined selector symbol to EXPORT_VALUE"
+			     (unsafe_get_field :named_name xnam)))
+	     (list_append iniexpvals expval)
+	     (debug_msg expval "normexp_export_value appended selector expval")
+	     (return)
+	     ))
+	  ((is_a xbind class_field_binding)
+	   (let ( (xdata (unsafe_get_field :flbind_fdata xbind)) 
+		  (expval (make_instance class_nrep_exportval
+					 :nrep_loc sloc
+					 :nexpv_symb xnam
+					 :nexpv_bind xbind
+					 :nexpv_data xdata
+					 ))
+		  )
+	     (if (is_not_a xdata class_nrep_data)
+		 (error_strv sloc "forward defined field symbol to EXPORT_VALUE"
+			     (unsafe_get_field :named_name xnam)))
+	     (list_append iniexpvals expval)
+	     (debug_msg expval "normexp_export_value appended field expval")
+	     (return)
+	     ))
+	  ((is_a xbind class_class_binding)
+	   (warning_strv sloc "class symbol export with EXPORT_VALUE - maybe should be EXPORT_CLASS"
+			 (unsafe_get_field :named_name xnam))
+	   (let ( (xdata (unsafe_get_field :cbind_cladata xbind)) 
+		  (expval (make_instance class_nrep_exportval
+					 :nrep_loc sloc
+					 :nexpv_symb xnam
+					 :nexpv_bind xbind
+					 :nexpv_data xdata
+					 ))
+		  )
+	     (if (is_not_a xdata class_nrep_data)
+		 (error_strv sloc "forward defined class symbol to EXPORT_VALUE"
+			     (unsafe_get_field :named_name xnam)))
+	     (list_append iniexpvals expval)
+	     (debug_msg expval "normexp_export_value appended class expval")
+	     (return)
+	     ))
+	  (:else			 
+	   (compile_warning "normexp_export_value not fully implemented" ())
+	   (error_strv sloc "unimplemented export of symbol to EXPORT_VALUE"
+		       (unsafe_get_field :named_name xnam))
+	   (error_strv sloc "unimplemented binding class to EXPORT_VALUE"
+		       (unsafe_get_field :named_name (discrim xbind)))
+	   (debug_msg xbind "normexp_export_value @@unimplemented@@ xbind")
+	   (assert_msg "@@unimplemented export value other" ())
+	   )
+	  )
+	 )))))
+	
+
 (install_method class_src_export_value normal_exp normexp_export_value)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -10449,7 +10561,6 @@
 ;;; output a verbatim string
 (defun outpucod_verbatimstring (vstr declbuf implbuf :long depth)
   (assert_msg "check vstr" (== (discrim vstr) discr_verbatimstring))
-  (debug_msg vstr "outpucod_verbatimstring vstr")
   (add2sbuf_string implbuf vstr)
 )
 (debug_msg discr_verbatimstring "discr_verbatimstring @@before installmeth warmbasilys")
@@ -10460,25 +10571,6 @@
 
 ;; output a string (cstring constant)
 (defun outpucod_string (vstr declbuf implbuf :long depth)
-  (if (== (discrim vstr) discr_verbatimstring)
-      (progn
-	;;; @@@ UGLY HACK - should never be used. But something wrong
-	;;; in sending output_c_code to discr_verbatimstring
-	(debug_msg vstr "outpucod_string bad verbatim vstr")
-	(debug_msg class_discr "outpucod_string class_discr")
-	(debug_msg discr_string "outpucod_string discr_string")
-	(debug_msg (unsafe_get_field :disc_methodict discr_string) "outpucod_string discr_string methodict")
-	(debug_msg discr_namestring "outpucod_string discr_namestring")
-	(debug_msg (unsafe_get_field :disc_methodict discr_namestring) "outpucod_string discr_namestring methodict")
-	(debug_msg discr_verbatimstring "outpucod_string discr_verbatimstring")
-	(debug_msg  (unsafe_get_field :disc_methodict discr_verbatimstring) "outpucod_string discr_verbatimstring methodict")
-	(install_method discr_verbatimstring output_c_code outpucod_verbatimstring)
-	(return (outpucod_verbatimstring vstr declbuf implbuf depth))
-;;; never reached!
-	(assert_msg "outpucod_string check vstr not verbatim" (!= (discrim vstr) discr_verbatimstring)
-		    )))
-  (if (!= (discrim vstr) discr_string)
-      (debug_msg vstr "outpucod_string strange vstr"))
   (assert_msg "check vstr" (== (discrim vstr) discr_string)) 
   (add2sbuf_strconst implbuf " \"")
   (add2sbuf_cencstring implbuf vstr)
@@ -10638,38 +10730,39 @@
   (assert_msg "check compicache" (is_mapobject compicache))
   (debug_msg ipro "compile2obj_initproc ipro")
   (debug_msg compicache "compile2obj_initproc compicache")
-  (let ( (locmap (make_mapobject discr_mapobjects 50))
+  (let ((locmap (make_mapobject discr_mapobjects 50))
+	(iexpvals (unsafe_get_field :ninit_expval ipro))
 	(oinibody (make_list discr_list))
-	 (oinitrout
-	  (make_instance class_initialroutineobj
-			 :named_name (make_stringconst discr_string "start_module_basilys")
-			 :obrout_proc ipro
-			 :obrout_body oinibody
-			 :obrout_nbval (make_integerbox discr_integer 0)
-			 :obrout_nblong (make_integerbox discr_integer 0)
-			 :obrout_others (make_list discr_list)
-			 :oirout_fill (make_list discr_list)
-			 ))
-	 (gcx (make_instance class_genercontext
-			     :gncx_objrout oinitrout
-			     :gncx_locmap locmap
-			     :gncx_freeptrlist (make_list discr_list)
-			     :gncx_freelonglist (make_list discr_list)
-			     :gncx_freeothermaps (make_mapobject discr_mapobjects 20)
-			     :gncx_compicache compicache
-			     :gncx_modulcontext modctx
-			     ))
-	 (retloc 
-	  (let ( (retl (get_free_objlocptr gcx '_retinit_)) )
-	    (unsafe_put_fields gcx :gncx_retloc retl)
-	    (unsafe_put_fields oinitrout :obrout_retval retl)
-	    retl))
-	 (ofreshenv  (get_free_objlocptr gcx '_freshenv_))
-	 (oprevenv  (get_free_objlocptr gcx '_prevenv_))
-	 (ovalexporter (get_free_objlocptr gcx '_valexport_)) 
-	 (oclassexporter (get_free_objlocptr gcx '_classexport_))
-	 (omacroexporter (get_free_objlocptr gcx '_macroexport_))
-	 )
+	(oinitrout
+	 (make_instance class_initialroutineobj
+			:named_name (make_stringconst discr_string "start_module_basilys")
+			:obrout_proc ipro
+			:obrout_body oinibody
+			:obrout_nbval (make_integerbox discr_integer 0)
+			:obrout_nblong (make_integerbox discr_integer 0)
+			:obrout_others (make_list discr_list)
+			:oirout_fill (make_list discr_list)
+			))
+	(gcx (make_instance class_genercontext
+			    :gncx_objrout oinitrout
+			    :gncx_locmap locmap
+			    :gncx_freeptrlist (make_list discr_list)
+			    :gncx_freelonglist (make_list discr_list)
+			    :gncx_freeothermaps (make_mapobject discr_mapobjects 20)
+			    :gncx_compicache compicache
+			    :gncx_modulcontext modctx
+			    ))
+	(retloc 
+	 (let ( (retl (get_free_objlocptr gcx '_retinit_)) )
+	   (unsafe_put_fields gcx :gncx_retloc retl)
+	   (unsafe_put_fields oinitrout :obrout_retval retl)
+	   retl))
+	(ofreshenv  (get_free_objlocptr gcx '_freshenv_))
+	(oprevenv  (get_free_objlocptr gcx '_prevenv_))
+	(ovalexporter (get_free_objlocptr gcx '_valexport_)) 
+	(oclassexporter (get_free_objlocptr gcx '_classexport_))
+	(omacroexporter (get_free_objlocptr gcx '_macroexport_))
+	)
     (debug_msg retloc "retloc is")
     ;; the body starts by getting the previous environment from the
     ;; modargp_ unique argument
@@ -10777,7 +10870,7 @@
 					     ovar
 					     (make_stringconst discr_verbatimstring ", __FILE__, __LINE__);"))))
 		)) 
-	    )
+	     )
 	;; get the value exporter
 	(getsysd ovalexporter sysdata_value_exporter "invalid value exporter")
 	;; get the class exporter
@@ -10785,6 +10878,17 @@
 	;; get the macro exporter
 	(getsysd omacroexporter sysdata_macro_exporter "invalid macro exporter")
 	)
+      (debug_msg iexpvals "compile2obj_initproc iexpvals")
+      (list_every 
+       iexpvals
+       (lambda (curexpval)
+	 (debug_msg curexpval "compile2obj_initproc curexpval")
+	 (assert_msg "check curexpv" (is_a curexpval class_nrep_exportval))
+	 (let ((curexploc (unsafe_get_field :nrep_loc curexpval))
+	       (curexsym (unsafe_get_field :nexpv_symb curexpval))
+	       )
+	   (compile_warning "@@ NOT IMPLEMENTED compile2obj_initproc handling of exported value " ())
+	   )))
 ;;; then we use the system data to get oputenv
 ;;;; @@@ the emission of export goes here...
       (debug_msg oinibody "compile2obj_initproc final oinibody")

@@ -1,3 +1,7 @@
+2008-06-07  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warm-basilys.bysl: added normexp_export_value.
+	but generation of export still missing.
+
 2008-06-06  Basile Starynkevitch  <basile@starynkevitch.net>
 	MERGED WITH TRUNK rev.136492
 
