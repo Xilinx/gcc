@@ -1,4 +1,11 @@
 2008-06-07  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warm-basilys.bysl: export_value are generated.  added
+	nexpv_symdata & nexpv_valdata into class_nrep_exportval begin
+	introduction of current_module_environment &
+	parent_module_environment macros. Less emitted comments for
+	putslot & putclosurout.
+
+2008-06-07  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warm-basilys.bysl: added normexp_export_value.
 	but generation of export still missing.
 

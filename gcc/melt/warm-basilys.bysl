@@ -554,6 +554,20 @@
   :fields (scwarn_msg
 	   scwarn_expr))
 
+;; the fresh current module environment, returning the newly build
+;; module environment result of the generated start_module_basilys
+(defclass class_src_current_module_environment
+    :super class_src
+    :fields (
+))
+
+;; the fres previous module environment, returning the argument passed
+;; to the generated start_module_basilys
+(defclass class_src_parent_module_environment
+    :super class_src
+    :fields (
+))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; ================ normalized representations
 
@@ -885,9 +899,9 @@
 ;;; normalized exported value
 (defclass class_nrep_exportval
   :super class_nrep
-  :fields (nexpv_symb			;symbol
+  :fields (nexpv_symdata		;symbol data
 	   nexpv_bind			;binding
-	   nexpv_data			;data
+	   nexpv_valdata		;value data
 ))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -5244,6 +5258,47 @@
     ))
 (install_initial_macro 'export_class mexpand_export_class)
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;; current_module_environment macro 
+(defun mexpand_current_module_environment (sexpr env mexpander)
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check env" (is_a env class_environment))
+  (debug_msg sexpr "mexpand_current_module_environment sexpr")
+  (let (
+	(cont (unsafe_get_field :sexp_contents sexpr))
+	(loc  (unsafe_get_field :loca_location sexpr))
+	(curpair (pair_tail (list_first cont)))
+	(res (make_instance class_src_current_module_environment
+			    :src_loc loc))
+	)
+    (if (notnull curpair)
+	(error_plain loc "(CURRENT_MODULE_ENVIRONMENT) should not have any argument"))
+    (debug_msg res "mexpand_current_module_environment return res")
+    (return res)
+))
+(install_initial_macro 'current_module_environment mexpand_current_module_environment)
+
+;;;;;;;;;;;;;;;;
+;;;; parent_module_environment macro 
+(defun mexpand_parent_module_environment (sexpr env mexpander)
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check env" (is_a env class_environment))
+  (debug_msg sexpr "mexpand_parent_module_environment sexpr")
+  (let (
+	(cont (unsafe_get_field :sexp_contents sexpr))
+	(loc  (unsafe_get_field :loca_location sexpr))
+	(curpair (pair_tail (list_first cont)))
+	(res (make_instance class_src_parent_module_environment
+			    :src_loc loc))
+	)
+    (if (notnull curpair)
+	(error_plain loc "(PARENT_MODULE_ENVIRONMENT) should not have any argument"))
+    (debug_msg res "mexpand_parent_module_environment return res")
+    (return res)
+))
+(install_initial_macro 'parent_module_environment mexpand_parent_module_environment)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -8023,8 +8078,11 @@
      sxnames
      (lambda (xnam :long ix)
        (assert_msg "check xnam" (is_a xnam class_symbol))
-       (let ( (xbind (find_env env xnam)) )
+       (let ( (xbind (find_env env xnam)) 
+	      (xsymdata (normal_symbol_data xnam ncx sloc))
+	      )
 	 (debug_msg xbind "normexp_export_value xbind")
+	 (assert_msg "check xsymdata" (is_a xsymdata class_nrep_datasymbol))
 	 (if (is_not_a xbind class_any_binding)
 	     (progn 
 	       (error_strv sloc "unbound symbol to EXPORT_VALUE"
@@ -8041,9 +8099,9 @@
 		 (xdata (unsafe_get_field :fubind_fundata xbind))
 		 (expval (make_instance class_nrep_exportval
 					:nrep_loc sloc
-					:nexpv_symb xnam
+					:nexpv_symdata xsymdata
 					:nexpv_bind xbind
-					:nexpv_data xdata
+					:nexpv_valdata xdata
 					))
 		 )
 	     (if (is_not_a xdata class_nrep_data)
@@ -8057,9 +8115,9 @@
 	   (let ( (xdata (unsafe_get_field :ibind_data xbind))
 		  (expval (make_instance class_nrep_exportval
 					 :nrep_loc sloc
-					 :nexpv_symb xnam
+					 :nexpv_symdata xsymdata
 					 :nexpv_bind xbind
-					 :nexpv_data xdata
+					 :nexpv_valdata xdata
 					 ))
 		  )
 	     (if (is_not_a xdata class_nrep_data)
@@ -8073,9 +8131,9 @@
 	   (let ( (xdata (unsafe_get_field :pbind_primdata xbind)) 
 		  (expval (make_instance class_nrep_exportval
 					 :nrep_loc sloc
-					 :nexpv_symb xnam
+					 :nexpv_symdata xsymdata
 					 :nexpv_bind xbind
-					 :nexpv_data xdata
+					 :nexpv_valdata xdata
 					 ))
 		  )
 	     (if (is_not_a xdata class_nrep_data)
@@ -8089,9 +8147,9 @@
 	   (let ( (xdata (unsafe_get_field :sbind_selectordata xbind)) 
 		  (expval (make_instance class_nrep_exportval
 					 :nrep_loc sloc
-					 :nexpv_symb xnam
+					 :nexpv_symdata xsymdata
 					 :nexpv_bind xbind
-					 :nexpv_data xdata
+					 :nexpv_valdata xdata
 					 ))
 		  )
 	     (if (is_not_a xdata class_nrep_data)
@@ -8105,9 +8163,9 @@
 	   (let ( (xdata (unsafe_get_field :flbind_fdata xbind)) 
 		  (expval (make_instance class_nrep_exportval
 					 :nrep_loc sloc
-					 :nexpv_symb xnam
+					 :nexpv_symdata xsymdata
 					 :nexpv_bind xbind
-					 :nexpv_data xdata
+					 :nexpv_valdata xdata
 					 ))
 		  )
 	     (if (is_not_a xdata class_nrep_data)
@@ -8123,9 +8181,9 @@
 	   (let ( (xdata (unsafe_get_field :cbind_cladata xbind)) 
 		  (expval (make_instance class_nrep_exportval
 					 :nrep_loc sloc
-					 :nexpv_symb xnam
+					 :nexpv_symdata xsymdata
 					 :nexpv_bind xbind
-					 :nexpv_data xdata
+					 :nexpv_valdata xdata
 					 ))
 		  )
 	     (if (is_not_a xdata class_nrep_data)
@@ -8161,7 +8219,8 @@
 	(sloc (unsafe_get_field :src_loc recv))
 	(sxnames (unsafe_get_field :sexport_names))
 	)
-    (assert_msg "@@ UNIMPLEMENTED normexp_export_macro " ())
+    (compile_warning "normexp_export_macro @@UNIMPLEMENTED" ())
+    (error_plain sloc "normexp_export_macro NOT YET UNIMPLEMENTED")
     ))
 (install_method class_src_export_macro normal_exp normexp_export_macro)
 
@@ -8176,10 +8235,39 @@
 	(sloc (unsafe_get_field :src_loc recv))
 	(sxnames (unsafe_get_field :sexport_names))
 	)
-    (assert_msg "@@ UNIMPLEMENTED normexp_export_class " ())
+    (compile_warning "normexp_export_class @@UNIMPLEMENTED" ())    
+    (error_plain sloc "normexp_export_macro NOT YET UNIMPLEMENTED")
     ))
 (install_method class_src_export_class normal_exp normexp_export_class)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;; normalize current_module_environment
+(defun normexp_current_module_environment (recv env ncx psloc)
+  (assert_msg "check current_module_environment recv" (is_a recv class_src_current_module_environment))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check nctxt" (is_a ncx class_normcontext))
+  (debug_msg recv "normexp_current_module_environment  recv")
+  (let ( 
+	(sloc (unsafe_get_field :src_loc recv))
+	)
+    (compile_warning "normexp_current_module_environment @@UNIMPLEMENTED" ())    
+    (error_plain sloc "normexp_current_module_environment NOT YET UNIMPLEMENTED")
+    ))
+(install_method class_src_current_module_environment normal_exp normexp_current_module_environment)
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;;; normalize parent_module_environment
+(defun normexp_parent_module_environment (recv env ncx psloc)
+  (assert_msg "check parent_module_environment recv" (is_a recv class_src_parent_module_environment))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check nctxt" (is_a ncx class_normcontext))
+  (debug_msg recv "normexp_parent_module_environment  recv")
+  (let ( 
+	(sloc (unsafe_get_field :src_loc recv))
+	)
+    (compile_warning "normexp_parent_module_environment @@UNIMPLEMENTED" ())    
+    (error_plain sloc "normexp_parent_module_environment NOT YET UNIMPLEMENTED")
+    ))
+(install_method class_src_parent_module_environment normal_exp normexp_parent_module_environment)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -10372,7 +10460,9 @@
 	 )
     (assert_msg "outpucod_objputslot check oval not nrep" (not (is_a oval class_nrep)))
     (output_location iloc implbuf depth "putslot")
-    (add2sbuf_strconst implbuf "/*putslot checkobj*/ basilys_assertmsg(\"putslot checkobj")
+    (add2sbuf_strconst implbuf "/*putslot*/")
+    (add2sbuf_indentnl implbuf depth)
+    (add2sbuf_strconst implbuf "basilys_assertmsg(\"putslot checkobj")
     (if (is_a odata class_named)
 	(progn
 	  (add2sbuf_strconst implbuf " ")
@@ -10381,7 +10471,7 @@
     (output_c_code odata declbuf implbuf depth)
     (add2sbuf_strconst implbuf ") == OBMAG_OBJECT);")
     (add2sbuf_indentnl implbuf depth)
-    (add2sbuf_strconst implbuf "/*putslot checkoff*/ basilys_assertmsg(\"putslot checkoff\", (")
+    (add2sbuf_strconst implbuf "basilys_assertmsg(\"putslot checkoff\", (")
     (output_c_code ooff declbuf implbuf depth)
     (add2sbuf_strconst implbuf ">=0 && ")
     (output_c_code ooff declbuf implbuf depth)
@@ -10415,15 +10505,17 @@
 	 (oclos (unsafe_get_field :opclor_clos opclor))
 	 (orout (unsafe_get_field :opclor_rout opclor)) )
     (output_location oloc implbuf depth "putclosurout")
-    (add2sbuf_strconst implbuf "/*putclosrout checkclo*/ basilys_assertmsg(\"putclosrout checkclo\", basilys_magic_discr(")
+    (add2sbuf_strconst implbuf "/*putclosurout*/")
+    (add2sbuf_indentnl implbuf depth)
+    (add2sbuf_strconst implbuf "basilys_assertmsg(\"putclosrout checkclo\", basilys_magic_discr(")
     (output_c_code oclos declbuf implbuf depth)
     (add2sbuf_strconst implbuf ") == OBMAG_CLOSURE);")
     (add2sbuf_indentnl implbuf depth)
-    (add2sbuf_strconst implbuf "/*putclosrout checkrout*/ basilys_assertmsg(\"putclosrout checkrout\", basilys_magic_discr(")
+    (add2sbuf_strconst implbuf "basilys_assertmsg(\"putclosrout checkrout\", basilys_magic_discr(")
     (output_c_code orout declbuf implbuf depth)
     (add2sbuf_strconst implbuf ") == OBMAG_ROUTINE);")
     (add2sbuf_indentnl implbuf depth)
-    (add2sbuf_strconst implbuf "/*putclosrout*/ ((basilysclosure_ptr_t)")
+    (add2sbuf_strconst implbuf "((basilysclosure_ptr_t)")
     (output_c_code oclos declbuf implbuf depth)
     (add2sbuf_strconst implbuf ")->rout = ")
     (output_c_code orout declbuf implbuf depth)
@@ -10759,7 +10851,7 @@
 	   retl))
 	(ofreshenv  (get_free_objlocptr gcx '_freshenv_))
 	(oprevenv  (get_free_objlocptr gcx '_prevenv_))
-	(ovalexporter (get_free_objlocptr gcx '_valexport_)) 
+	(ovalueexporter (get_free_objlocptr gcx '_valexport_)) 
 	(oclassexporter (get_free_objlocptr gcx '_classexport_))
 	(omacroexporter (get_free_objlocptr gcx '_macroexport_))
 	)
@@ -10872,7 +10964,7 @@
 		)) 
 	     )
 	;; get the value exporter
-	(getsysd ovalexporter sysdata_value_exporter "invalid value exporter")
+	(getsysd ovalueexporter sysdata_value_exporter "invalid value exporter")
 	;; get the class exporter
 	(getsysd oclassexporter sysdata_class_exporter "invalid class exporter")
 	;; get the macro exporter
@@ -10885,10 +10977,24 @@
 	 (debug_msg curexpval "compile2obj_initproc curexpval")
 	 (assert_msg "check curexpv" (is_a curexpval class_nrep_exportval))
 	 (let ((curexploc (unsafe_get_field :nrep_loc curexpval))
-	       (curexsym (unsafe_get_field :nexpv_symb curexpval))
+	       (curexsyda (unsafe_get_field :nexpv_symdata curexpval))
+	       (curexvada (unsafe_get_field :nexpv_valdata curexpval))
+	       (osydat (compile_obj curexsyda gcx))
+	       (ovadat (compile_obj curexvada gcx))
 	       )
-	   (compile_warning "@@ NOT IMPLEMENTED compile2obj_initproc handling of exported value " ())
-	   )))
+	   (debug_msg osydat "compile2obj_initproc osydat")
+	   (debug_msg ovadat "compile2obj_initproc ovadat")
+	   ;; emit application of ovalueexporter on osydat ovadat ofreshenv
+	   (let ( (oapp
+		   (make_instance class_objapply
+				  :obi_loc curexploc
+				  :obdi_destlist ()
+				  :obapp_clos ovalueexporter
+				  :obapp_args (make_tuple3 discr_multiple osydat ovadat ofreshenv)))
+		  )
+	     (debug_msg oapp "compile2obj_initproc exportvalue oapp")
+	     (list_append oinibody oapp)
+	     ))))
 ;;; then we use the system data to get oputenv
 ;;;; @@@ the emission of export goes here...
       (debug_msg oinibody "compile2obj_initproc final oinibody")
