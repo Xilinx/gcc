@@ -1,3 +1,10 @@
+2008-06-06  Tobias Grosser  <grosser@fim.uni-passau.de>
+	    Adrien Eliche  <aeliche@isty.uvsq.fr>
+
+	* graphite.c (is_bb_addable): Add more comments and enhance
+	readablity of the source code. Fix memory leak.
+	(is_loop_exit): Fix memory leak.
+
 2008-06-05  Tobias Grosser  <grosser@fim.uni-passau.de>
     
 	* graphite.c (first_loop_in_scop): Deleted.

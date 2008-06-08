@@ -761,46 +761,54 @@ is_bb_addable (basic_block bb, struct loop *outermost_loop,
       break;
 
     case GBB_LOOP_SING_EXIT_HEADER:
-    case GBB_LOOP_MULT_EXIT_HEADER:
       {
-        /* XXX: Handle loop nests with the same header.  */
-        /* XXX: Handle iterative optimization of outermost_loop.  */
         VEC (scop_p, heap) *tmp_scops = VEC_alloc (scop_p, heap, 3);
 
         bb_addable = build_scops_1 (bb, &tmp_scops, loop, outermost_loop, last,
                                   bb_simple);
-        if (type == GBB_LOOP_MULT_EXIT_HEADER)
-          {
-            VEC (edge, heap) *exits = get_loop_exit_edges (loop);
-            edge e;
-            int i;
 
-            for (i = 0; VEC_iterate (edge, exits, i, e); i++)
-              if (dominated_by_p (CDI_DOMINATORS, e->dest, bb)
-                  && e->dest->loop_father == loop_outer (loop))
-                build_scops_1 (e->dest, &tmp_scops, e->dest->loop_father,
-                                outermost_loop, last, bb_simple);
-            *next = NULL; 
-            *last = NULL;
-            *bb_simple = false;
-            bb_addable = false;
-          }
-        else
-          {
-            *next = single_exit (bb->loop_father)->dest;
+        *next = single_exit (bb->loop_father)->dest;
 
-            if (!dominated_by_p (CDI_DOMINATORS, *next, bb))
-              *next = NULL;
+        if (!dominated_by_p (CDI_DOMINATORS, *next, bb))
+          *next = NULL;
 
-            *last = single_exit (bb->loop_father)->src;
-          }
+        *last = single_exit (bb->loop_father)->src;
 
         if (!bb_addable)
           move_scops (&tmp_scops, scops);
         else 
           free_scops (tmp_scops);
 
-        break;
+        return bb_addable;
+      }
+
+    case GBB_LOOP_MULT_EXIT_HEADER:
+      {
+        /* XXX: Handle loop nests with the same header.  */
+        /* XXX: Handle iterative optimization of outermost_loop.  */
+        /* XXX: For now we just do not join loops with multiple exits. If the 
+           exits lead to the seam bb it may be possible to join the loop.  */
+        VEC (scop_p, heap) *tmp_scops = VEC_alloc (scop_p, heap, 3);
+        VEC (edge, heap) *exits = get_loop_exit_edges (loop);
+        edge e;
+        int i;
+
+        bb_addable = build_scops_1 (bb, &tmp_scops, loop, outermost_loop, last,
+                                  bb_simple);
+
+        for (i = 0; VEC_iterate (edge, exits, i, e); i++)
+          if (dominated_by_p (CDI_DOMINATORS, e->dest, bb)
+              && e->dest->loop_father == loop_outer (loop))
+            build_scops_1 (e->dest, &tmp_scops, e->dest->loop_father,
+                           outermost_loop, last, bb_simple);
+
+        *next = NULL; 
+        *last = NULL;
+        *bb_simple = false;
+        bb_addable = false;
+        free_scops (tmp_scops);
+
+        return bb_addable;
       }
     case GBB_COND_HEADER:
     {
@@ -812,21 +820,27 @@ is_bb_addable (basic_block bb, struct loop *outermost_loop,
       basic_block last_bb = NULL;
       edge e;
       *bb_simple = true;
-  
+ 
+      /* First check the successors of bb, and check if it is possible to join
+         the different branches.  */
       for (i = 0; VEC_iterate (edge, bb->succs, i, e); i++)
         {
+          bool bb_simple_tmp;
+          basic_block next_tmp;
           dom_bb = e->dest;
 
           /* Only handle bb dominated by 'bb'.  The others will be handled by
              the bb, that dominates this bb.  */
           if (!dominated_by_p (CDI_DOMINATORS, dom_bb, bb))
             {
-              if (!last_bb)
+              /* Check, if edge leads direct to the end of this condition.  If
+                 this is true, the condition stays joinable.  */
+              if (last_bb)
                 last_bb = dom_bb;
 
               if (dom_bb != last_bb)
                 *bb_simple = false;
-              
+
               continue;
             }
         
@@ -837,63 +851,74 @@ is_bb_addable (basic_block bb, struct loop *outermost_loop,
               continue;
             }
 
-          /* Edges which jump forward.  */
+          /* Ignore edges, which jump forward.  */
           if (VEC_length (edge, dom_bb->preds) > 1)
             {
+
+              /* Check, if edge leads direct to the end of this condition.  If
+                 this is true, the condition stays joinable.  */
               if (last_bb)
                 last_bb = dom_bb;
 
               if (dom_bb != last_bb)
                 *bb_simple = false;
-            }
-          else
-            {
-              bool bb_simple_tmp;
 
-	      bb_addable &= build_scops_1 (dom_bb, &tmp_scops, loop,
-					 outermost_loop, last, &bb_simple_tmp);
-              *bb_simple &= bb_simple_tmp; 
-              
-              if (*bb_simple)
-                {
-                  basic_block next_tmp = VEC_last (edge, (*last)->succs)->dest;
+              continue;
+            }
+
+	  bb_addable &= build_scops_1 (dom_bb, &tmp_scops, loop, outermost_loop,
+                                       last, &bb_simple_tmp);
+          *bb_simple &= bb_simple_tmp; 
+          next_tmp = VEC_last (edge, (*last)->succs)->dest;
                   
-                  if (!last_bb)
-                    last_bb = next_tmp;
+          /* Checks, if all branches end at the same point. If that is true, the
+             condition stays joinable.  */
+          if (!last_bb)
+            last_bb = next_tmp;
 
-                  if (next_tmp != last_bb)
-                    *bb_simple = false;
-                }
-            }
+          if (next_tmp != last_bb)
+            *bb_simple = false;
         }
 
       bb_addable &= *bb_simple;
-      *next = NULL; 
 
-      /* Check if we have a bb, that is simple enough to be joined later.  */
-      if (*bb_simple && bb_addable)
+      /* If the condition is joinable, break and return the endpoint of the
+         condition.  */
+      if (bb_addable && *bb_simple)
         {
+          /* Only return a next pointer, if we dominate this pointer.  Otherwise
+             it will be handled by the bb dominating it.  */ 
           if (dominated_by_p (CDI_DOMINATORS, last_bb, bb) && last_bb != bb)
             *next = last_bb;
-          break;
+          else
+            *next = NULL; 
+
+          return bb_addable;
         }
 
       /* Scan the remaining dominated bbs.  */
       for (i = 0; VEC_iterate (basic_block, dominated, i, dom_bb); i++)
         {
-          if (!(is_pred (bb, dom_bb) && VEC_length (edge, dom_bb->preds) == 1)
-              && !is_loop_exit (bb->loop_father, dom_bb))
-            {
-              bool bb_simple_tmp;
-	      build_scops_1 (dom_bb, &tmp_scops, loop,
-					 outermost_loop, last, &bb_simple_tmp);
-              *bb_simple = false;
-            }
+          bool bb_simple_tmp;
+
+          /* Ignore loop exits.  They will be handled after the loop body.  */
+          if (is_loop_exit (bb->loop_father, dom_bb))
+            continue;
+
+          /* Ignore the bbs processed above.  */
+          if (is_pred (bb, dom_bb) && VEC_length (edge, dom_bb->preds) == 1)
+            continue;
+
+	  build_scops_1 (dom_bb, &tmp_scops, loop, outermost_loop, last,
+            &bb_simple_tmp);
+          *bb_simple = false;
         }
 
       bb_addable &= *bb_simple;
+      *next = NULL; 
       move_scops (&tmp_scops, scops);
-      break;
+
+      return bb_addable;
     }
     default:
       gcc_unreachable ();
