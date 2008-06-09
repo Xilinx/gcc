@@ -1,3 +1,31 @@
+2008-06-08  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/36459
+	* decl.c (match_procedure_decl): Correctly recognize if the interface
+	is an intrinsic procedure.
+
+2008-06-08  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/35830
+	* resolve.c (resolve_symbol): Copy more attributes for
+	PROCEDUREs with interfaces.
+
+2008-06-07  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/36420
+	PR fortran/36422
+	* io.c (check_format): Add new error message for zero width.
+	Use new	error message for FMT_A and with READ, FMT_G.  Allow
+	FMT_G with WRITE except when -std=F95 and -std=F2003.
+
+2008-06-07  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/36437
+	* intrinsic.c (add_functions): Implement c_sizeof.
+	* trans-intrinsic.c (gfc_conv_intrinsic_sizeof): Do not
+	create unneeded variable in the scalar case.
+	* intrinsic.texi: Add C_SIZEOF documentation.
+
 2008-06-06  Tobias Burnus  <burnus@net-b.de>
 
 	* intrinsic.texi (BESSEL_J1): Fix BES(S)EL_J1 typo.

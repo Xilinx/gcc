@@ -1,3 +1,88 @@
+2008-06-08  Paolo Carlini  <paolo.carlini@oracle.com>
+
+        PR c++/35242
+        * g++.dg/cpp0x/vt-35242.C: New.
+
+2008-06-08  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/36459
+	* gfortran.dg/proc_decl_16.f90: New.
+	
+2008-06-08  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/35830
+	* proc_decl_13.f90: New.
+	* proc_decl_14.f90: New.
+	* proc_decl_15.f90: New.
+
+2008-06-07  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/36420
+	PR fortran/36421
+	PR fortran/36422
+	* gfortran.dg/fmt_g0_1.f08: New test.
+	* gfortran.dg/fmt_g0_2.f08: New test.
+	* gfortran.dg/fmt_g0_3.f08: New test.
+
+2008-06-07  Xinliang David Li  <davidxl@google.com>
+
+	PR/36440
+	* gcc.dg/cdce1.c: Remove run target clause.
+	* gcc.dg/cdce2.c: Ditto.
+	* g++.dg/cdce3.C: Fix a bug in target specification.
+
+2008-06-07  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/36437
+	* gfortran.dg/c_sizeof_1.f90: New.
+	* gfortran.dg/c_sizeof_2.f90: New.
+
+2008-06-07  Joseph Myers  <joseph@codesourcery.com>
+
+	* g++.dg/abi/arm_cxa_vec1.C: Don't handle xscale*-*-*.
+	* g++.dg/eh/spbp.C: Don't handle *-*-solaris2.[56]*.
+	* g++.dg/warn/miss-format-1.C: Don't handle Solaris before Solaris
+	7.
+	* gcc.c-torture/compile/981006-1.c: Don't handle xscale*-*-*,
+	strongarm*-*-* and cris-*-aout*.
+	* gcc.c-torture/execute/941014-1.x: Don't handle xscale*-*-* and
+	strongarm*-*-*.
+	* gcc.dg/20030909-1.c: Don't handle xscale*-*-* and
+	strongarm*-*-*.
+	* gcc.dg/20031108-1.c: Don't handle xscale*-*-* and
+	strongarm*-*-*.
+	* gcc.dg/20040813-1.c: Don't handle *-*-sysv5*.
+	* gcc.dg/arm-asm.c: Don't handle strongarm*-*-* and xscale*-*-*.
+	* gcc.dg/arm-scd42-1.c: Use target arm*-*-*.
+	* gcc.dg/arm-scd42-3.c: Use target arm*-*-*.
+	* gcc.dg/cpp/assert4.c: Don't handle BeOS.
+	* gcc.dg/debug/pr35154.c: Don't handle *-*-sysv5*.
+	* gcc.dg/intmax_t-1.c: Don't handle *-*-solaris2.5.1 and
+	xscale*-*-elf*.
+	* gcc.dg/pragma-align.c: Don't handle i?86-*-sco3.2v5*.
+	* gcc.dg/pthread-init-2.c: Don't handle *-*-solaris2.5.1.
+	* gcc.misc-tests/arm-isr.exp: Use target arm*-*-*.
+	* gcc.target/powerpc/ppc-sdata-1.c: Don't handle powerpc-*-sysv*.
+	* gcc.target/powerpc/ppc-sdata-2.c: Don't handle powerpc-*-sysv*.
+	* gcc.target/powerpc/ppc-stackalign-1.c: Don't handle
+	powerpc-*-sysv*.
+	* gfortran.dg/debug/pr35154-stabs.f: Don't handle *-*-sysv5*.
+	* lib/target-supports.exp: Don't handle strongarm*-*-elf,
+	xscale*-*-elf and *-*-windiss.
+	* obj-c++.dg/dwarf-2.mm: Don't handle *-*-solaris2.[56]*.
+	* objc.dg/dwarf-1.m: Don't handle *-*-solaris2.[56]*.
+	* objc.dg/dwarf-2.m: Don't handle *-*-solaris2.[56]*.
+	* gcc.dg/mt-loopi1.c: Remove.
+
+2008-06-07  Samuel Tardieu  <sam@rfc1149.net>
+
+	* gnat.dg/specs/oversize.ads: New.
+
+2008-06-07  Paolo Carlini  <paolo.carlini@oracle.com>
+
+        PR c++/35327
+        * g++.dg/parse/crash41.C: New.
+
 2008-06-06  Jakub Jelinek  <jakub@redhat.com>
 
 	PR target/36362

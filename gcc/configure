@@ -908,6 +908,7 @@ SYSTEM_HEADER_DIR
 inhibit_libc
 CC_FOR_BUILD
 BUILD_CFLAGS
+BUILD_LDFLAGS
 STMP_FIXINC
 STMP_FIXPROTO
 collect2
@@ -14607,6 +14608,7 @@ else
 	esac
 	saved_CFLAGS="${CFLAGS}"
 	CC="${CC_FOR_BUILD}" CFLAGS="${CFLAGS_FOR_BUILD}" \
+	LDFLAGS="${LDFLAGS_FOR_BUILD}" \
 	${realsrcdir}/configure \
 		--enable-languages=${enable_languages-all} \
 		--target=$target_alias --host=$build_alias --build=$build_alias
@@ -15061,6 +15063,7 @@ fi
 # These are the normal (build=host) settings:
 CC_FOR_BUILD='$(CC)'
 BUILD_CFLAGS='$(ALL_CFLAGS)'
+BUILD_LDFLAGS='$(LDFLAGS)'
 STMP_FIXINC=stmp-fixinc
 
 # Possibly disable fixproto, on a per-target basis.
@@ -15078,6 +15081,7 @@ esac
 if test x$build != x$host || test "x$coverage_flags" != x
 then
     BUILD_CFLAGS='$(INTERNAL_CFLAGS) $(T_CFLAGS) $(CFLAGS_FOR_BUILD)'
+    BUILD_LDFLAGS='$(LDFLAGS_FOR_BUILD)'
 
     if test "x$TARGET_SYSTEM_ROOT" = x; then
 	if test "x$STMP_FIXPROTO" != x; then
@@ -15766,13 +15770,13 @@ if test "${lt_cv_nm_interface+set}" = set; then
 else
   lt_cv_nm_interface="BSD nm"
   echo "int some_variable = 0;" > conftest.$ac_ext
-  (eval echo "\"\$as_me:15769: $ac_compile\"" >&5)
+  (eval echo "\"\$as_me:15773: $ac_compile\"" >&5)
   (eval "$ac_compile" 2>conftest.err)
   cat conftest.err >&5
-  (eval echo "\"\$as_me:15772: $NM \\\"conftest.$ac_objext\\\"\"" >&5)
+  (eval echo "\"\$as_me:15776: $NM \\\"conftest.$ac_objext\\\"\"" >&5)
   (eval "$NM \"conftest.$ac_objext\"" 2>conftest.err > conftest.out)
   cat conftest.err >&5
-  (eval echo "\"\$as_me:15775: output\"" >&5)
+  (eval echo "\"\$as_me:15779: output\"" >&5)
   cat conftest.out >&5
   if $GREP 'External.*some_variable' conftest.out > /dev/null; then
     lt_cv_nm_interface="MS dumpbin"
@@ -16875,7 +16879,7 @@ ia64-*-hpux*)
   ;;
 *-*-irix6*)
   # Find out which ABI we are using.
-  echo '#line 16878 "configure"' > conftest.$ac_ext
+  echo '#line 16882 "configure"' > conftest.$ac_ext
   if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
   (eval $ac_compile) 2>&5
   ac_status=$?
@@ -17492,11 +17496,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:17495: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:17499: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>conftest.err)
    ac_status=$?
    cat conftest.err >&5
-   echo "$as_me:17499: \$? = $ac_status" >&5
+   echo "$as_me:17503: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s "$ac_outfile"; then
      # The compiler can only warn and ignore the option if not recognized
      # So say no if there are warnings other than the usual output.
@@ -17814,11 +17818,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:17817: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:17821: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>conftest.err)
    ac_status=$?
    cat conftest.err >&5
-   echo "$as_me:17821: \$? = $ac_status" >&5
+   echo "$as_me:17825: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s "$ac_outfile"; then
      # The compiler can only warn and ignore the option if not recognized
      # So say no if there are warnings other than the usual output.
@@ -17919,11 +17923,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:17922: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:17926: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>out/conftest.err)
    ac_status=$?
    cat out/conftest.err >&5
-   echo "$as_me:17926: \$? = $ac_status" >&5
+   echo "$as_me:17930: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s out/conftest2.$ac_objext
    then
      # The compiler can only warn and ignore the option if not recognized
@@ -17974,11 +17978,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:17977: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:17981: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>out/conftest.err)
    ac_status=$?
    cat out/conftest.err >&5
-   echo "$as_me:17981: \$? = $ac_status" >&5
+   echo "$as_me:17985: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s out/conftest2.$ac_objext
    then
      # The compiler can only warn and ignore the option if not recognized
@@ -20730,7 +20734,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<_LT_EOF
-#line 20733 "configure"
+#line 20737 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -20830,7 +20834,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<_LT_EOF
-#line 20833 "configure"
+#line 20837 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -23807,7 +23811,7 @@ esac
 # version to the per-target configury.
 case "$target" in
   i?86*-*-* | mips*-*-* | alpha*-*-* | powerpc*-*-* | sparc*-*-* | m68*-*-* \
-  | x86_64*-*-* | hppa*-*-* | arm*-*-* | strongarm*-*-* | xscale*-*-* \
+  | x86_64*-*-* | hppa*-*-* | arm*-*-* \
   | xstormy16*-*-* | cris-*-* | xtensa-*-* | bfin-*-* | score*-*-* | spu-*-*)
     insn="nop"
     ;;
@@ -25754,6 +25758,7 @@ SYSTEM_HEADER_DIR!$SYSTEM_HEADER_DIR$ac_delim
 inhibit_libc!$inhibit_libc$ac_delim
 CC_FOR_BUILD!$CC_FOR_BUILD$ac_delim
 BUILD_CFLAGS!$BUILD_CFLAGS$ac_delim
+BUILD_LDFLAGS!$BUILD_LDFLAGS$ac_delim
 STMP_FIXINC!$STMP_FIXINC$ac_delim
 STMP_FIXPROTO!$STMP_FIXPROTO$ac_delim
 collect2!$collect2$ac_delim
@@ -25798,7 +25803,6 @@ build_xm_defines!$build_xm_defines$ac_delim
 build_file_translate!$build_file_translate$ac_delim
 check_languages!$check_languages$ac_delim
 cpp_install_dir!$cpp_install_dir$ac_delim
-xmake_file!$xmake_file$ac_delim
 _ACEOF
 
   if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 97; then
@@ -25840,6 +25844,7 @@ _ACEOF
 ac_delim='%!_!# '
 for ac_last_try in false false false false false :; do
   cat >conf$$subs.sed <<_ACEOF
+xmake_file!$xmake_file$ac_delim
 tmake_file!$tmake_file$ac_delim
 extra_gcc_objs!$extra_gcc_objs$ac_delim
 extra_headers_list!$extra_headers_list$ac_delim
@@ -25883,7 +25888,7 @@ LIBOBJS!$LIBOBJS$ac_delim
 LTLIBOBJS!$LTLIBOBJS$ac_delim
 _ACEOF
 
-  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 41; then
+  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 42; then
     break
   elif $ac_last_try; then
     { { echo "$as_me:$LINENO: error: could not make $CONFIG_STATUS" >&5

@@ -1,4 +1,7 @@
 2008-06-09  Basile Starynkevitch  <basile@starynkevitch.net>
+	MELT branch merged with trunk r136577
+
+2008-06-09  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warm-basilys.bysl: new [still unused] classes:
 	class_objinternsymbol class_objinternkeyword
 	class_objgetnamedsymbol class_objgetnamedkeyword with their

@@ -1,3 +1,17 @@
+2008-06-08  Paolo Carlini  <paolo.carlini@oracle.com>
+
+        PR c++/35242
+        * pt.c (maybe_process_partial_specialization): Check the tree
+	returned by push_template_decl for error_mark_node.
+	* parser.c (cp_parser_class_head): Likewise, check the tree
+	returned by the latter. 
+
+2008-06-07  Paolo Carlini  <paolo.carlini@oracle.com>
+
+        PR c++/35327
+        * decl.c (grokdeclarator): In case of wrong return type return
+	immediately error_mark_node.
+
 2008-06-06  Jakub Jelinek  <jakub@redhat.com>
 
 	* cp-tree.h (cxx_omp_finish_clause, cxx_omp_create_clause_info,

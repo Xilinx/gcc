@@ -1,3 +1,17 @@
+2008-06-08  Joseph Myers  <joseph@codesourcery.com>
+
+	PR tree-optimization/36218
+	* Makefile.def (flags_to_pass): Add LDFLAGS_FOR_BUILD.
+	* Makefile.tpl (EXTRA_BUILD_FLAGS): Define.
+	(all prefix="build-"): Pass them to build-system sub-makes.
+	* Makefile.in: Regenerate.
+
+2008-06-07  Joseph Myers  <joseph@codesourcery.com>
+
+	* MAINTAINERS (mt port): Remove.
+	(sco5, unixware, sco udk): Remove.
+	(Kean Johnston): Add to Write After Approval.
+
 2008-05-30  Julian Brown  <julian@codesourcery.com>
 
 	* configure.ac (arm*-*-linux-gnueabi): Don't disable building
