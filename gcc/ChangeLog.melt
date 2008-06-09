@@ -1,3 +1,10 @@
+2008-06-09  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warm-basilys.bysl: new [still unused] classes:
+	class_objinternsymbol class_objinternkeyword
+	class_objgetnamedsymbol class_objgetnamedkeyword with their
+	outpucod* routines.  output_code_getsymkw output_code_internsymkw
+	are obsolete.
+
 2008-06-07  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warm-basilys.bysl: export_value are generated.  added
 	nexpv_symdata & nexpv_valdata into class_nrep_exportval begin

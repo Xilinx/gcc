@@ -159,6 +159,7 @@
 	   sysdata_value_exporter		;closure to export a value
 	   sysdata_class_exporter		;closure to export a class
 	   sysdata_macro_exporter		;closure to export a macro
+	   ;;;keep these spare slots to easy the addition of other slots
 	   sysdata___spare1
 	   sysdata___spare2
 	   sysdata___spare3
@@ -1139,6 +1140,40 @@
   :fields (obifp_cond
 	   obifp_then
 	   obifp_else
+))
+
+;;; keyword & symbol intern instruction
+(defclass class_objinterncommon
+  :super class_objinstr
+  :fields (obintern_iobj			;the objinitobject for
+						;the symbol or keyword
+))
+
+(defclass class_objinternsymbol
+  :super class_objinterncommon
+  :fields (
+))
+
+(defclass class_objinternkeyword
+  :super class_objinterncommon
+  :fields (
+))
+
+;;; keyword & symbol getnamed instruction
+(defclass class_objgetnamedcommon
+  :super class_objinstr
+  :fields (obgnamed_iobj		;the objinitobject for the
+					;symbol or keyword
+))
+
+(defclass class_objgetnamedsymbol
+  :super class_objgetnamedcommon
+  :fields (
+))
+
+(defclass class_objgetnamedkeyword
+  :super class_objgetnamedcommon
+  :fields (
 ))
 
 ;;; apply instruction
@@ -9163,6 +9198,7 @@
   (let ( (odat (unsafe_get_field :oie_data curpdat))
 	 (oloc (unsafe_get_field :oie_locvar curpdat)) 
 	 )
+    (compile_warning "output_code_getsymkw is obsolete - use class_objinternsymbol or class_objinternkeyword" ())
     (cond 
      ;; first check for keywords, since they are also symbols (so order is important)
      ( (is_a odat class_nrep_datakeyword)
@@ -9209,6 +9245,7 @@
   (let ( (odat (unsafe_get_field :oie_data curpdat))
 	 (oloc (unsafe_get_field :oie_locvar curpdat)) 
 	 )
+    (compile_warning "output_code_internsymkw is obsolete - use class_objinternsymbol or class_objinternkeyword" ())
     (cond 
      ;; first check for keywords, since they are also symbols (so order is important)
      ( (is_a odat class_nrep_datakeyword)
@@ -9793,6 +9830,111 @@
 (install_method class_objcppif output_c_code outpucod_objcppif)
 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defun outpucod_objinternsymbol (oisy declbuf implbuf :long depth)
+  (assert_msg "check oisy" (is_a oisy class_objinternsymbol))
+  (debug_msg oisy "outpucod_objinternsymbol oisy")
+  (let ( (cloc (unsafe_get_field :obi_loc oisy))
+	 (oiobj (unsafe_get_field :obintern_iobj oisy))
+	 (oidat (unsafe_get_field :oie_data oiobj)) 
+	 (oilocv (unsafe_get_field :oie_locvar oiobj)) 
+	 )
+    (assert_msg "check oiobj" (is_a oiobj class_objinitobject))
+    (assert_msg "check oidat" (is_a oidat class_nrep_datasymbol))
+       (let ( (nsy (unsafe_get_field :ndsy_namestr oidat)) )
+	 (output_location (if cloc cloc (unsafe_get_field :nrep_loc oidat)) implbuf 1 "internsymbol")
+	 (add2sbuf_strconst implbuf "/*")
+	 (add2sbuf_string implbuf nsy)
+	 (add2sbuf_strconst implbuf "*/ (void) basilysgc_intern_symbol(")
+	 (output_c_code oilocv declbuf implbuf depth)
+	 (add2sbuf_strconst implbuf ");")
+	 (add2sbuf_indentnl implbuf depth))
+))
+(install_method class_objinternsymbol output_c_code outpucod_objinternsymbol)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defun outpucod_objinternkeyword (oikw declbuf implbuf :long depth)
+  (assert_msg "check oikw" (is_a oikw class_objinternkeyword))
+  (debug_msg oikw "outpucod_objinternkeyword oikw")
+  (let ( (cloc (unsafe_get_field :obi_loc oikw))
+	 (oiobj (unsafe_get_field :obintern_iobj oikw))
+	 (oidat (unsafe_get_field :oie_data oiobj)) 
+	 (oilocv (unsafe_get_field :oie_locvar oiobj)) 
+	 )
+    (assert_msg "check oidat" (is_a oidat class_nrep_datakeyword))
+       (let ( (nsy (unsafe_get_field :ndsy_namestr oidat)) )
+	 (output_location (if cloc cloc (unsafe_get_field :nrep_loc oidat)) implbuf depth "internkeyword")
+	 (add2sbuf_strconst implbuf "/*")
+	 (add2sbuf_string implbuf nsy)
+	 (add2sbuf_strconst implbuf "*/ (void) basilysgc_intern_keyword(")
+	 (output_c_code oilocv declbuf implbuf depth)
+	 (add2sbuf_strconst implbuf ");")
+	 (add2sbuf_indentnl implbuf depth))
+))
+(install_method class_objinternkeyword output_c_code outpucod_objinternkeyword)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defun outpucod_objgetnamedsymbol (ogsy declbuf implbuf :long depth)
+  (assert_msg "check ogsy" (is_a ogsy class_objgetnamedsymbol))
+  (debug_msg ogsy "outpucod_objgetnamedsymbol ogsy")
+  (let ( (cloc (unsafe_get_field :obi_loc ogsy))
+	 (oiobj (unsafe_get_field :obgnamed_iobj ogsy)) 
+	 (ogdat (unsafe_get_field :oie_data oiobj))
+	 (oilocv (unsafe_get_field :oie_locvar oiobj))
+	 )
+    (assert_msg "check oiobj" (is_a oiobj class_objinitobject))
+    (assert_msg "check ogdat" (is_a ogdat class_nrep_datasymbol))
+    (let ( (nsy (unsafe_get_field :ndsy_namestr ogdat)) 
+	   )
+      (output_location (if cloc cloc (unsafe_get_field :nrep_loc ogdat)) implbuf depth "getnamedsymbol")
+      (add2sbuf_strconst implbuf "{ basilys_ptr_t sy_")
+      (add2sbuf_cident implbuf nsy)
+      (add2sbuf_strconst implbuf " = basilysgc_named_symbol(\"")
+      (add2sbuf_string implbuf nsy)
+      (add2sbuf_strconst implbuf "\", BASILYS_GET);")
+      (add2sbuf_indentnl implbuf (+i depth 1))
+      (add2sbuf_strconst implbuf "if (sy_")
+      (add2sbuf_cident implbuf nsy)
+      (add2sbuf_strconst implbuf ") ")
+      (output_c_code oilocv declbuf implbuf (+i depth 1))
+      (add2sbuf_strconst implbuf " = (void*) sy_")
+      (add2sbuf_cident implbuf nsy)
+      (add2sbuf_strconst implbuf "; }")
+      (add2sbuf_indentnl implbuf depth)
+      )))
+(install_method class_objgetnamedsymbol output_c_code outpucod_objgetnamedsymbol)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defun outpucod_objgetnamedkeyword (ogkw declbuf implbuf :long depth)
+  (assert_msg "check ogkw" (is_a ogkw class_objgetnamedkeyword))
+  (debug_msg ogkw "outpucod_objgetnamedkeyword ogkw")
+  (let ( (cloc (unsafe_get_field :obi_loc ogkw))
+	 (oiobj (unsafe_get_field :obgnamed_iobj ogkw)) 
+	 (ogdat (unsafe_get_field :oie_data oiobj))
+	 (oilocv (unsafe_get_field :oie_locvar oiobj))
+	 )
+    (assert_msg "check oiobj" (is_a oiobj class_objinitobject))
+    (assert_msg "check ogdat" (is_a ogdat class_nrep_datakeyword))
+    (let ( (nkw (unsafe_get_field :ndsy_namestr ogdat)) )
+      (output_location (if cloc cloc (unsafe_get_field :nrep_loc ogdat)) implbuf depth "getnamedkeyword")
+      (add2sbuf_strconst implbuf "{ basilys_ptr_t kw_")
+      (add2sbuf_cident implbuf nkw)
+      (add2sbuf_strconst implbuf " = basilysgc_named_keyword(\"")
+      (add2sbuf_string implbuf nkw)
+      (add2sbuf_strconst implbuf "\", BASILYS_GET);")
+      (add2sbuf_indentnl implbuf (+i depth 1))
+      (add2sbuf_strconst implbuf "if (kw_")
+      (add2sbuf_cident implbuf nkw)
+      (add2sbuf_strconst implbuf ") ")
+      (output_c_code oilocv declbuf implbuf (+i depth 1))
+      (add2sbuf_strconst implbuf " = (void*) kw_")
+      (add2sbuf_cident implbuf nkw)
+      (add2sbuf_strconst implbuf "; }")
+      (add2sbuf_indentnl implbuf depth)
+      )))
+(install_method class_objgetnamedkeyword output_c_code outpucod_objgetnamedkeyword)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; output an application
 (defun outpucod_objapply (oapp declbuf implbuf :long depth)
   (assert_msg "check oapp" (is_a oapp class_objapply))
@@ -10995,8 +11137,7 @@
 	     (debug_msg oapp "compile2obj_initproc exportvalue oapp")
 	     (list_append oinibody oapp)
 	     ))))
-;;; then we use the system data to get oputenv
-;;;; @@@ the emission of export goes here...
+      (compile_warning "missing emission of export for classes & macros" ())
       (debug_msg oinibody "compile2obj_initproc final oinibody")
       (debug_msg gcx "compile2obj_initproc final gcx")
       (debug_msg oinitrout "compile2obj_initproc final oinitrout")
