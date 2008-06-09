@@ -2001,7 +2001,12 @@ enum
   FSYSDAT_FUNDICT = FNAMED__LAST,	/* the stringdict of commands */
 #define FCMDIS_FUNDICT FSYSDAT_FUNDICT
   FSYSDAT_FRESHENV,
-  FSYSDAT_PUTENV,
+  /***
+   * we comment the two fields below because we do not need them in
+   * basilys.c and they are generated correctly in warm-basilys*.c
+   ***/
+  /* FSYSDAT_VALUEEXPORTER */
+  /* FSYSDAT_MACROEXPORTER */
   FSYSDAT__LAST
 };
 

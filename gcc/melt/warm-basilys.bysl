@@ -157,7 +157,6 @@
   :fields (sysdata_cmd_fundict			;stringmap for closures for command dispatching
 	   sysdata_fresh_env			;closure to make a fresh environment
 	   sysdata_value_exporter		;closure to export a value
-	   sysdata_class_exporter		;closure to export a class
 	   sysdata_macro_exporter		;closure to export a macro
 	   ;;;keep these spare slots to easy the addition of other slots
 	   sysdata___spare1
@@ -8129,6 +8128,10 @@
 	   (error_strv sloc "locally let-bound symbol to EXPORT_VALUE"
 		       (unsafe_get_field :named_name xnam))
 	   (return))
+	  ((is_a xbind class_label_binding)
+	   (error_strv sloc "locally label-bound symbol to EXPORT_VALUE"
+		       (unsafe_get_field :named_name xnam))
+	   (return))
 	  ((is_a xbind class_function_binding)
 	   (let ( 
 		 (xdata (unsafe_get_field :fubind_fundata xbind))
@@ -8229,13 +8232,12 @@
 	     (return)
 	     ))
 	  (:else			 
-	   (compile_warning "normexp_export_value not fully implemented" ())
-	   (error_strv sloc "unimplemented export of symbol to EXPORT_VALUE"
+	   (error_strv sloc "unimplemented/unexpected export of symbol to EXPORT_VALUE"
 		       (unsafe_get_field :named_name xnam))
-	   (error_strv sloc "unimplemented binding class to EXPORT_VALUE"
+	   (error_strv sloc "unimplemented/unexpected binding class to EXPORT_VALUE"
 		       (unsafe_get_field :named_name (discrim xbind)))
-	   (debug_msg xbind "normexp_export_value @@unimplemented@@ xbind")
-	   (assert_msg "@@unimplemented export value other" ())
+	   (debug_msg xbind "normexp_export_value @@unimplemented/unexpected@@ xbind")
+	   (return)
 	   )
 	  )
 	 )))))
@@ -9320,20 +9322,6 @@
 	     (progn
 	       (output_c_code curbody declbuf implbuf 1)
 	       (add2sbuf_indentnl implbuf 1))))))
-;;; ouput the interning of symbols & keywwords
-    (compile_warning "no wired output of interning of symbols & keywords" ())
- ;; (add2sbuf_strconst implbuf "/*initial routine interning of symbol & keyword*/")
- ;; (add2sbuf_indentnl implbuf 1)
- ;; (multiple_every
- ;;  idatup
- ;;  (lambda (curpdat :long curk) 
- ;;    (debug_msg curpdat "outpucod_initialroutine curpdat internkeysym")
- ;;    (if (is_a curpdat class_objinitobject)
- ;;	   (output_code_internsymkw curpdat implbuf)
- ;;	 )
- ;;    ))
- ;; (add2sbuf_strconst implbuf "/*end interning of symbols & keywords */")
- ;; (add2sbuf_indentnl implbuf 1)
 ;;; end of implementation
 ;;;
     (add2sbuf_strconst implbuf ";")
@@ -9752,9 +9740,11 @@
     (assert_msg "check oidat" (is_a oidat class_nrep_datasymbol))
        (let ( (nsy (unsafe_get_field :ndsy_namestr oidat)) )
 	 (output_location (if cloc cloc (unsafe_get_field :nrep_loc oidat)) implbuf 1 "internsymbol")
-	 (add2sbuf_strconst implbuf "/*")
+	 (add2sbuf_strconst implbuf "/*internsym:")
 	 (add2sbuf_string implbuf nsy)
-	 (add2sbuf_strconst implbuf "*/ (void) basilysgc_intern_symbol(")
+	 (add2sbuf_strconst implbuf "*/")
+	 (add2sbuf_indentnl implbuf depth)
+	  (add2sbuf_strconst implbuf "(void) basilysgc_intern_symbol(")
 	 (output_c_code oilocv declbuf implbuf depth)
 	 (add2sbuf_strconst implbuf ");")
 	 (add2sbuf_indentnl implbuf depth))
@@ -9773,9 +9763,11 @@
     (assert_msg "check oidat" (is_a oidat class_nrep_datakeyword))
        (let ( (nsy (unsafe_get_field :ndsy_namestr oidat)) )
 	 (output_location (if cloc cloc (unsafe_get_field :nrep_loc oidat)) implbuf depth "internkeyword")
-	 (add2sbuf_strconst implbuf "/*")
+	 (add2sbuf_strconst implbuf "/*internkeyw:")
 	 (add2sbuf_string implbuf nsy)
-	 (add2sbuf_strconst implbuf "*/ (void) basilysgc_intern_keyword(")
+	 (add2sbuf_strconst implbuf "*/")
+	 (add2sbuf_indentnl implbuf depth)
+	 (add2sbuf_strconst implbuf "(void) basilysgc_intern_keyword(")
 	 (output_c_code oilocv declbuf implbuf depth)
 	 (add2sbuf_strconst implbuf ");")
 	 (add2sbuf_indentnl implbuf depth))
@@ -9796,6 +9788,10 @@
     (let ( (nsy (unsafe_get_field :ndsy_namestr ogdat)) 
 	   )
       (output_location (if cloc cloc (unsafe_get_field :nrep_loc ogdat)) implbuf depth "getnamedsymbol")
+      (add2sbuf_strconst implbuf "/*getnamedsym:")
+      (add2sbuf_string implbuf nsy)
+      (add2sbuf_strconst implbuf "*/")
+      (add2sbuf_indentnl implbuf depth)
       (add2sbuf_strconst implbuf "if (BASILYSG(TOKENIZER)) { basilys_ptr_t sy_")
       (add2sbuf_cident implbuf nsy)
       (add2sbuf_strconst implbuf " = basilysgc_named_symbol(\"")
@@ -9826,6 +9822,10 @@
     (assert_msg "check ogdat" (is_a ogdat class_nrep_datakeyword))
     (let ( (nkw (unsafe_get_field :ndsy_namestr ogdat)) )
       (output_location (if cloc cloc (unsafe_get_field :nrep_loc ogdat)) implbuf depth "getnamedkeyword")
+      (add2sbuf_strconst implbuf "/*getnamedkeyw:")
+      (add2sbuf_string implbuf nkw)
+      (add2sbuf_strconst implbuf "*/")
+      (add2sbuf_indentnl implbuf depth)
       (add2sbuf_strconst implbuf "if (BASILYSG(TOKENIZER)) { basilys_ptr_t kw_")
       (add2sbuf_cident implbuf nkw)
       (add2sbuf_strconst implbuf " = basilysgc_named_keyword(\"")
@@ -10427,8 +10427,10 @@
 	(progn 
 	       (add2sbuf_strconst implbuf "/*touch:")
 	       (add2sbuf_cident implbuf comm)
-	       (add2sbuf_strconst implbuf "*/")))
-    (add2sbuf_strconst implbuf " basilysgc_touch(")
+	       (add2sbuf_strconst implbuf "*/")
+	       (add2sbuf_indentnl implbuf depth)
+	       ))
+    (add2sbuf_strconst implbuf "basilysgc_touch(")
     (output_c_code touched declbuf implbuf depth)
     (add2sbuf_strconst implbuf ");")
     (add2sbuf_indentnl implbuf depth)
@@ -10530,7 +10532,7 @@
     (output_c_code odata declbuf implbuf depth)
     (add2sbuf_strconst implbuf ")));")
     (add2sbuf_indentnl implbuf depth)
-    (add2sbuf_strconst implbuf "/*putslot*/ ((basilysobject_ptr_t)(")
+    (add2sbuf_strconst implbuf "((basilysobject_ptr_t)(")
     (output_c_code odata declbuf implbuf depth)
     (add2sbuf_strconst implbuf "))->obj_vartab[")
     (output_c_code ooff declbuf implbuf depth)
@@ -10903,7 +10905,6 @@
 	(ofreshenv  (get_free_objlocptr gcx '_freshenv_))
 	(oprevenv  (get_free_objlocptr gcx '_prevenv_))
 	(ovalueexporter (get_free_objlocptr gcx '_valexport_)) 
-	(oclassexporter (get_free_objlocptr gcx '_classexport_))
 	(omacroexporter (get_free_objlocptr gcx '_macroexport_))
 	)
     (debug_msg retloc "retloc is")
@@ -11075,8 +11076,6 @@
 	     )
 	;; get the value exporter
 	(getsysd ovalueexporter sysdata_value_exporter "invalid value exporter")
-	;; get the class exporter
-	(getsysd oclassexporter sysdata_class_exporter "invalid class exporter")
 	;; get the macro exporter
 	(getsysd omacroexporter sysdata_macro_exporter "invalid macro exporter")
 	)
@@ -13495,36 +13494,55 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; initial fresh environment maker
+(defun initfresh_envmaker (prevenv)
+    (debug_msg prevenv "initfresh_envmaker prevenv")
+    (let ( (newenv (fresh_env prevenv)) )
+      (debug_msg newenv "initfresh_envmaker result newenv")
+      (return newenv)
+))
+
+;; initial value exporter
+(defun initvalue_exporter (sym val env)
+  (debug_msg sym "initvalue_exporter sym")
+  (debug_msg val "initvalue_exporter val")
+  (debug_msg env "initvalue_exporter env")
+  (assert_msg "check sym" (is_a sym class_symbol))
+  (assert_msg "check env" (is_a env class_environment))
+  (let ( (valbind (make_instance
+		   class_value_binding
+		   :binder sym
+		   :vbind_value val
+		   )) 
+	 )
+    (put_env env valbind)
+    (debug_msg valbind "initvalue_exporter valbind")
+    (return)
+    ))
+
+;; initial macro exporter
+(defun initmacro_exporter (sym val env)
+  (debug_msg sym "initmacro_exporter sym")
+  (debug_msg val "initmacro_exporter val")
+  (debug_msg env "initmacro_exporter env")
+  (assert_msg "check sym" (is_a sym class_symbol))
+  (assert_msg "check env" (is_a env class_environment))
+  (compile_warning "INITMACRO_EXPORTER unimplemented" ())
+  (assert_msg "initmacro_exporter @@NOT IMPLEMENTED@@" ())
+)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;; initial system data 
 (definstance initial_system_data class_system_data
   :predef INITIAL_SYSTEM_DATA
   :named_name (stringconst2val discr_namestring "INITIAL_SYSTEM_DATA")
   :sysdata_cmd_fundict  (make_mapstring discr_mapstrings 40)
-  ;;  :sysdata_fresh_env fresh_env
-  :sysdata_fresh_env 
-  (lambda (e) 
-    (debug_msg e "systemdata fresh_env arg e=")
-    (let ( (res (fresh_env e)) )
-      (debug_msg res "systemdata fresh_env res=")
-      (messageval_dbg "Sysdatafreshenv res" res)
-      (return res)))
-  :sysdata_value_exporter
-  (compile_warning 
-   "unimplemented value exporter in system data"
-   (lambda (sym val env)
-     (assert_msg "@@ unimplemented value exporter" ())))
-  :sysdata_class_exporter
-  (compile_warning 
-   "unimplemented class exporter in system data"
-   (lambda (sym val env)
-     (assert_msg "@@ unimplemented class exporter" ())))
-  :sysdata_macro_exporter
-  (compile_warning 
-   "unimplemented macro exporter in system data"
-   (lambda (sym val env)
-     (assert_msg "@@ unimplemented macro exporter" ())))
-  )
+  :sysdata_fresh_env initfresh_envmaker
+  :sysdata_value_exporter initvalue_exporter
+  :sysdata_macro_exporter initmacro_exporter
+)
+  
 
 (defun install_initial_command (nam fun)
 ;  (messageval_dbg "install_initial_command @@ fun" fun)
@@ -13581,6 +13599,7 @@
     (debug_msg initial_environment "after read compilefile_command initial_environment")
     (debug_msg class_nrep_datakeyword "compilefile_command class_nrep_datakeyword")
     (debug_msg class_nrep "compilefile_command class_nrep")
+    (compile_warning "we should use (current_module_environment) instead of initial_environment" ())
     (compile_list_sexpr rlist initial_environment basnam)
     ))
 

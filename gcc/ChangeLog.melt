@@ -1,4 +1,15 @@
 2008-06-09  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warm-basilys.bysl: removed sysdata_class_exporter field.
+	normexp_export_value complete, but not tested.
+	normexp_export_class to be written...
+	added initvalue_exporter, and unimplemented initmacro_exporter.
+	simpler initial_system_data.
+
+	* warm-basilys-0.c: regenerated twice.
+
+	* basilys.h: added commented  FSYSDAT_VALUEEXPORTER &  FSYSDAT_MACROEXPORTER 
+
+2008-06-09  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warm-basilys.bysl: removed  output_code_getsymkw output_code_internsymkw
 	compile2obj_initproc now explicitly build the getting & interning of symbols.
 
