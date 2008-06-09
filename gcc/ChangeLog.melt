@@ -1,4 +1,10 @@
 2008-06-09  Basile Starynkevitch  <basile@starynkevitch.net>
+[export machinery probably buggy ....]
+	* melt/warm-basilys.bysl: added class_objcommentedblock.
+	the initvalue_exporter seems called without a freshenv!
+	added list1 list2 list3 utilities.
+
+2008-06-09  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warm-basilys.bysl: removed sysdata_class_exporter field.
 	normexp_export_value complete, but not tested.
 	normexp_export_class to be written...
