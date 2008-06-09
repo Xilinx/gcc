@@ -1,4 +1,8 @@
 2008-06-09  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warm-basilys.bysl: removed  output_code_getsymkw output_code_internsymkw
+	compile2obj_initproc now explicitly build the getting & interning of symbols.
+
+2008-06-09  Basile Starynkevitch  <basile@starynkevitch.net>
 	MELT branch merged with trunk r136577
 
 2008-06-09  Basile Starynkevitch  <basile@starynkevitch.net>

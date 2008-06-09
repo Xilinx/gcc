@@ -9191,82 +9191,6 @@
 (install_method class_procroutineobj output_c_code outpucod_procroutine)
 
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;;;;;;;;;;;;;
-;; output at start of initial routine the get of symbols or keywords
-(defun output_code_getsymkw (curpdat implbuf)
-  (let ( (odat (unsafe_get_field :oie_data curpdat))
-	 (oloc (unsafe_get_field :oie_locvar curpdat)) 
-	 )
-    (compile_warning "output_code_getsymkw is obsolete - use class_objinternsymbol or class_objinternkeyword" ())
-    (cond 
-     ;; first check for keywords, since they are also symbols (so order is important)
-     ( (is_a odat class_nrep_datakeyword)
-       (let ( (nsy (unsafe_get_field :ndsy_namestr odat)) )
-	 (output_location (unsafe_get_field :nrep_loc odat) implbuf 2 "getkeywd")
-	 (add2sbuf_strconst implbuf "{ basilys_ptr_t kw_")
-	 (add2sbuf_cident implbuf nsy)
-	 (add2sbuf_strconst implbuf " = basilysgc_named_keyword(\"")
-	 (add2sbuf_string implbuf nsy)
-	 (add2sbuf_strconst implbuf "\", BASILYS_GET);")
-	 (add2sbuf_indentnl implbuf 2)
-	 (add2sbuf_strconst implbuf "if (kw_")
-	 (add2sbuf_cident implbuf nsy)
-	 (add2sbuf_strconst implbuf ") ")
-	 (output_c_code oloc (the_null) implbuf 2)
-	 (add2sbuf_strconst implbuf " = (void*) kw_")
-	 (add2sbuf_cident implbuf nsy)
-	 (add2sbuf_strconst implbuf "; }")
-	 (add2sbuf_indentnl implbuf 1)
-	 )) 
-     ( (is_a odat class_nrep_datasymbol)
-       (let ( (nsy (unsafe_get_field :ndsy_namestr odat)) )
-	 (output_location (unsafe_get_field :nrep_loc odat) implbuf 2 "getsymbol")
-	 (add2sbuf_strconst implbuf "{ basilys_ptr_t sy_")
-	 (add2sbuf_cident implbuf nsy)
-	 (add2sbuf_strconst implbuf " = basilysgc_named_symbol(\"")
-	 (add2sbuf_string implbuf nsy)
-	 (add2sbuf_strconst implbuf "\", BASILYS_GET);")
-	 (add2sbuf_indentnl implbuf 2)
-	 (add2sbuf_strconst implbuf "if (sy_")
-	 (add2sbuf_cident implbuf nsy)
-	 (add2sbuf_strconst implbuf ") ")
-	 (output_c_code oloc (the_null) implbuf 2)
-	 (add2sbuf_strconst implbuf " = (void*) sy_")
-	 (add2sbuf_cident implbuf nsy)
-	 (add2sbuf_strconst implbuf "; }")
-	 (add2sbuf_indentnl implbuf 1)
-	 ))
-     ))
-  )
-
-;; output at end of initial routine the interning of symbols & keywords
-(defun output_code_internsymkw (curpdat implbuf)
-  (let ( (odat (unsafe_get_field :oie_data curpdat))
-	 (oloc (unsafe_get_field :oie_locvar curpdat)) 
-	 )
-    (compile_warning "output_code_internsymkw is obsolete - use class_objinternsymbol or class_objinternkeyword" ())
-    (cond 
-     ;; first check for keywords, since they are also symbols (so order is important)
-     ( (is_a odat class_nrep_datakeyword)
-       (let ( (nsy (unsafe_get_field :ndsy_namestr odat)) )
-	 (output_location (unsafe_get_field :nrep_loc odat) implbuf 1 "internkeywd")
-	 (add2sbuf_strconst implbuf "/*")
-	 (add2sbuf_string implbuf nsy)
-	 (add2sbuf_strconst implbuf "*/ (void) basilysgc_intern_keyword(")
-	 (output_c_code oloc (the_null) implbuf 1)
-	 (add2sbuf_strconst implbuf ");")
-	 (add2sbuf_indentnl implbuf 1)))
-     ( (is_a odat class_nrep_datasymbol)
-       (let ( (nsy (unsafe_get_field :ndsy_namestr odat)) )
-	 (output_location (unsafe_get_field :nrep_loc odat) implbuf 1 "internsymb")
-	 (add2sbuf_strconst implbuf "/*")
-	 (add2sbuf_string implbuf nsy)
-	 (add2sbuf_strconst implbuf "*/ (void) basilysgc_intern_symbol(")
-	 (output_c_code oloc (the_null) implbuf 1)
-	 (add2sbuf_strconst implbuf ");")
-	 (add2sbuf_indentnl implbuf 1))
-       ))))
 
 
 
@@ -9312,22 +9236,6 @@
      (debug_msg curfil "outpucod_initialroutine curfil")
      (add2sbuf_indentnl implbuf 1)
      (output_c_initfill curfil implbuf)))
-;;;
-;;; generate the get of symbols & keywords
-  (add2sbuf_strconst implbuf "/*initial routine get symbol & keyword*/")
-  (add2sbuf_indentnl implbuf 1)
-  (add2sbuf_strconst implbuf "if (BASILYSG(TOKENIZER)) {")
-  (add2sbuf_indentnl implbuf 2)
-  (multiple_every
-   idatup
-   (lambda (curpdat :long curk) 
-     (debug_msg curpdat "outpucod_initialroutine curpdat getsymkey")
-     (if (is_a curpdat class_objinitobject)
-	 (output_code_getsymkw curpdat implbuf)
-       )
-     ))
-  (add2sbuf_strconst implbuf "}; /*end get symbols & keywords */")
-  (add2sbuf_indentnl implbuf 1)
 ;;;;;;;
 ;;; initialize the variables
 ;;;
@@ -9413,18 +9321,19 @@
 	       (output_c_code curbody declbuf implbuf 1)
 	       (add2sbuf_indentnl implbuf 1))))))
 ;;; ouput the interning of symbols & keywwords
-    (add2sbuf_strconst implbuf "/*initial routine interning of symbol & keyword*/")
-    (add2sbuf_indentnl implbuf 1)
-    (multiple_every
-     idatup
-     (lambda (curpdat :long curk) 
-       (debug_msg curpdat "outpucod_initialroutine curpdat internkeysym")
-       (if (is_a curpdat class_objinitobject)
-	   (output_code_internsymkw curpdat implbuf)
-	 )
-       ))
-    (add2sbuf_strconst implbuf "/*end interning of symbols & keywords */")
-    (add2sbuf_indentnl implbuf 1)
+    (compile_warning "no wired output of interning of symbols & keywords" ())
+ ;; (add2sbuf_strconst implbuf "/*initial routine interning of symbol & keyword*/")
+ ;; (add2sbuf_indentnl implbuf 1)
+ ;; (multiple_every
+ ;;  idatup
+ ;;  (lambda (curpdat :long curk) 
+ ;;    (debug_msg curpdat "outpucod_initialroutine curpdat internkeysym")
+ ;;    (if (is_a curpdat class_objinitobject)
+ ;;	   (output_code_internsymkw curpdat implbuf)
+ ;;	 )
+ ;;    ))
+ ;; (add2sbuf_strconst implbuf "/*end interning of symbols & keywords */")
+ ;; (add2sbuf_indentnl implbuf 1)
 ;;; end of implementation
 ;;;
     (add2sbuf_strconst implbuf ";")
@@ -9887,7 +9796,7 @@
     (let ( (nsy (unsafe_get_field :ndsy_namestr ogdat)) 
 	   )
       (output_location (if cloc cloc (unsafe_get_field :nrep_loc ogdat)) implbuf depth "getnamedsymbol")
-      (add2sbuf_strconst implbuf "{ basilys_ptr_t sy_")
+      (add2sbuf_strconst implbuf "if (BASILYSG(TOKENIZER)) { basilys_ptr_t sy_")
       (add2sbuf_cident implbuf nsy)
       (add2sbuf_strconst implbuf " = basilysgc_named_symbol(\"")
       (add2sbuf_string implbuf nsy)
@@ -9917,7 +9826,7 @@
     (assert_msg "check ogdat" (is_a ogdat class_nrep_datakeyword))
     (let ( (nkw (unsafe_get_field :ndsy_namestr ogdat)) )
       (output_location (if cloc cloc (unsafe_get_field :nrep_loc ogdat)) implbuf depth "getnamedkeyword")
-      (add2sbuf_strconst implbuf "{ basilys_ptr_t kw_")
+      (add2sbuf_strconst implbuf "if (BASILYSG(TOKENIZER)) { basilys_ptr_t kw_")
       (add2sbuf_cident implbuf nkw)
       (add2sbuf_strconst implbuf " = basilysgc_named_keyword(\"")
       (add2sbuf_string implbuf nkw)
@@ -11056,12 +10965,71 @@
       (unsafe_put_fields oinitrout
 			 :oirout_data odatatup)
       (assert_msg "check toplis" (is_list_or_null toplis))
-      (list_every 
-       toplis
-       (lambda (curtop)
-	 (let ( (otop (compile_obj curtop gcx)) )
-	   (debug_msg otop "compile2obj_initproc otop")
-	   (list_append oinibody otop))))
+;;; compile the toplevels
+      (let ( (objtoplis 
+	      (list_map
+	       toplis
+	       (lambda (curtop)
+		 (let ( (otop (compile_obj curtop gcx)) )
+		   (debug_msg otop "compile2obj_initproc otop")
+		   otop)))) 
+	     )
+	;; generate the getting of symbols & keywords
+	(multiple_every
+	 odatatup
+	 (lambda (curpdat :long curk) 
+	   (if (is_a curpdat class_objinitobject)
+	       (let ( (odat (unsafe_get_field :oie_data curpdat))
+		      )
+		 (debug_msg curpdat "compile2obj_initproc getting curpdat")
+		 (cond 
+		  ;; first  check for keywords, since they are also symbols (so order is important)
+		  ( (is_a odat class_nrep_datakeyword)
+		    (let ( (ogkw (make_instance class_objgetnamedkeyword
+						:obgnamed_iobj curpdat))
+			   )
+		      (list_append oinibody ogkw)
+		      (debug_msg ogkw "compile2obj_initproc added keyword getting ogkw")
+		      ))
+		  ( (is_a odat class_nrep_datasymbol)
+		    (let ( (ogsy (make_instance class_objgetnamedsymbol
+						:obgnamed_iobj curpdat))
+			   )
+		      (list_append oinibody ogsy)
+		      (debug_msg ogsy "compile2obj_initproc added symbol getting ogsy")
+		      ))
+		  )))))
+	;; append the compiled toplevel
+	(list_every 
+	 objtoplis
+	 (lambda (curobjt)
+	   (list_append oinibody curobjt)))
+	;; generate interning of symbols & keywords
+	(multiple_every
+	 odatatup
+	 (lambda (curpdat :long curk) 
+	   (if (is_a curpdat class_objinitobject)
+	       (let ( (odat (unsafe_get_field :oie_data curpdat))
+		      )
+		 (debug_msg curpdat "compile2obj_initproc interning curpdat")
+		 (cond 
+		  ;; first  check for keywords, since they are also symbols (so order is important)
+		  ( (is_a odat class_nrep_datakeyword)
+		    (let ( (oikw (make_instance class_objinternkeyword
+						:obintern_iobj curpdat))
+			   )
+		      (list_append oinibody oikw)
+		      (debug_msg oikw "compile2obj_initproc added keyword interning oikw")
+		      ))
+		  ( (is_a odat class_nrep_datasymbol)
+		    (let ( (oisy (make_instance class_objinternsymbol
+						:obintern_iobj curpdat))
+			   )
+		      (list_append oinibody oisy)
+		      (debug_msg oisy "compile2obj_initproc added symbol interning oisy")
+		      ))
+		  )))))
+	)
 ;;; if ofreshenv does not exist, get it again. In practice this only
 ;;; happens for the very first module, at start of which the system
 ;;; data does not exist.
