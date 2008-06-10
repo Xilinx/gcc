@@ -105,7 +105,6 @@
   :fields (sysdata_cmd_fundict			;stringmap for closures for command dispatching
 	   sysdata_fresh_env			;closure to make a fresh environment
 	   sysdata_value_exporter		;closure to export a value
-	   sysdata_class_exporter		;closure to export a class
 	   sysdata_macro_exporter		;closure to export a macro
 	   sysdata___spare1
 	   sysdata___spare2
@@ -719,19 +718,51 @@
  :named_name (stringconst2val discr_namestring "DISCR_ROUTINE"))
 
 
+(defun initest_freshenv_maker  (parenv)
+  (if (or (null parenv) (is_a parenv class_environment))
+      (make_instance class_environment
+		     :env_bind (make_mapobject discr_mapobjects 6)
+		     :env_prev parenv)))
+  
+
+(defun initest_value_exporter (sym val env)
+  (assert_msg "check sym" (is_a sym class_symbol))
+  (assert_msg "check env" (is_a env class_environment))
+  (let ( (valbind (make_instance
+		   class_value_binding
+		   :binder sym
+		   :vbind_value val
+		   )) 
+	 )
+    (put_env env valbind)))
+
+(defun  initest_macro_exporter (sym val env)
+  (assert_msg "check sym" (is_a sym class_symbol))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check val is closure" (is_closure val))
+  (let ( (macbind (make_instance
+		   class_macro_binding
+		   :binder sym
+		   :mbind_expanser val))
+	 )
+    (put_env env macbind)
+    ))
 
 ;;;;;;;;;;;;;;;;;;;; initial commands
 (definstance initial_system_data class_system_data
   :predef INITIAL_COMMAND_DISPATCHER
   :named_name (stringconst2val discr_namestring "INITIAL_SYSTEM_DATA")
-  :cmd_fundict  (make_mapstring discr_mapstrings 40)
+  :sysdata_cmd_fundict  (make_mapstring discr_mapstrings 40)
+  :sysdata_fresh_env initest_freshenv_maker
+  :sysdata_value_exporter initest_value_exporter
+  :sysdata_macro_exporter initest_macro_exporter
 )
 
 (defun install_initial_command (nam fun)
   (if (is_closure fun)
       (if (is_string nam)
 	  (mapstring_putstr 
-	   (unsafe_get_field :cmd_fundict initial_system_data)
+	   (unsafe_get_field :sysdata_cmd_fundict initial_system_data)
 	   nam fun))))
 
 ;;; installation of a method in a class or discriminant
@@ -817,6 +848,20 @@
 	   )
   )
 
+
+;; put a binding at top of an environment
+(defun put_env (env binding)
+  (assert_msg "check binding is obj" (is_object binding))
+  (assert_msg "check env is obj" (is_object env))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check binding" (is_a binding class_any_binding))
+  (let ( (bindmap (unsafe_get_field :env_bind env)) 
+	 (binder (unsafe_get_field :binder binding))
+	 )
+    (assert_msg "check bindmap" (is_mapobject bindmap))
+    (assert_msg "check binder" (is_object binder))
+    (mapobject_put bindmap binder binding)
+    ))
 
 ; find a binding inside an environment and also returns the reversed list of enclosing procedures
 (defun find_enclosing_env (env binder)
@@ -1151,4 +1196,13 @@
 
 (install_initial_command   (stringconst2val discr_string "say") say_command)
 (install_initial_command   (stringconst2val discr_string "test") test_command)
+
+(defun macrone_expander (sexp env mexpander) (make_integerbox discr_integer 1))
+
+(export_value test_command)
+
+(export_class class_selector)
+
+(export_macro macrone macrone_expander)
+
 ;; eof 

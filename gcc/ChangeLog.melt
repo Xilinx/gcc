@@ -1,4 +1,13 @@
 2008-06-10  Basile Starynkevitch  <basile@starynkevitch.net>
+[all exports tested on testrun1.bysl]
+	* melt/warm-basilys.bysl: the macro export emission calls omacroexporter!
+	corrected normexp_export_class.
+
+	* melt/testrun1.bysl: updated to test all exports.
+
+	* warm-basilys-0.c: regenerated twice.
+
+2008-06-10  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warm-basilys.bysl:  emitting export macro [untested]
 
 2008-06-10  Basile Starynkevitch  <basile@starynkevitch.net>

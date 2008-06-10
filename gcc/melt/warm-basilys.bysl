@@ -7508,9 +7508,9 @@
 ;; retrieve or create the normalized datasym for a symbol
 (defun normal_symbol_data (sym ncx sloc)
   ;; sym should be strictly a symbol (not be in a subclass of class_symbol!)
+  (debug_msg sym "normal_symbol_data start sym")
   (assert_msg "check symb" (== (discrim sym) class_symbol))
   (assert_msg "check nctxt" (is_a ncx class_normcontext))
-  (debug_msg sym "normal_symbol_data start sym")
   (let ( (valmap  (unsafe_get_field :nctx_valmap ncx))
 	 (osydata (mapobject_get valmap sym)) )
     (if osydata
@@ -8304,7 +8304,7 @@
   (debug_msg recv "normexp export_class recv")
   (let ( 
 	(sloc (unsafe_get_field :src_loc recv))
-	(sxnames (unsafe_get_field :sexport_names))
+	(sxnames (unsafe_get_field :sexport_names recv))
 	(iniproc (let ( (ip (unsafe_get_field :nctx_initproc ncx)) )
 		   (assert_msg "check iniproc" (is_a ip class_nrep_initproc))
 		   ip))
@@ -8356,7 +8356,7 @@
 			     )
 			(assert_msg "check fldbind" (is_a fldbind class_field_binding))
 			(let ( (fldata (unsafe_get_field :flbind_fdata fldbind))
-			       (flsymdata (normal_symbol_data fldnam ncx sloc))
+			       (flsymdata (normal_symbol_data fldsym ncx sloc))
 			       (flexpval (make_instance class_nrep_exportval
 						      :nrep_loc sloc
 						      :nexp_symdata flsymdata
@@ -11300,7 +11300,7 @@
 		     (make_instance class_objapply
 				    :obi_loc curexploc
 				    :obdi_destlist ()
-				    :obapp_clos ovalueexporter
+				    :obapp_clos omacroexporter
 				    :obapp_args (make_tuple3 discr_multiple osydat omac retloc)))
 		    )
 	       (debug_msg oapp "compile2obj_initproc exportvalue oapp")
@@ -13699,12 +13699,9 @@
 
 ;; initial fresh environment maker
 (defun initfresh_envmaker (prevenv)
-  (shortbacktrace_dbg "initfresh_envmaker" 9)
-  (messageval_dbg "initfresh_envmaker prevenv" prevenv)
   (debug_msg prevenv "initfresh_envmaker prevenv")
   (let ( (newenv (fresh_env prevenv)) )
     (debug_msg newenv "initfresh_envmaker result newenv")
-    (messageval_dbg "initfresh_envmaker newvenv" newenv)
     (return newenv)
     ))
 
@@ -13713,10 +13710,6 @@
   (debug_msg sym "initvalue_exporter sym")
   (debug_msg val "initvalue_exporter val")
   (debug_msg env "initvalue_exporter env")
-  (messageval_dbg "initvalue_exporter env" env)
-  (messageval_dbg "initvalue_exporter sym" sym)
-  (messageval_dbg "initvalue_exporter val" val)
-  (shortbacktrace_dbg "initvalue_exporter" 8)
   (assert_msg "check sym" (is_a sym class_symbol))
   (assert_msg "check env" (is_a env class_environment))
   (let ( (valbind (make_instance
@@ -13727,7 +13720,6 @@
 	 )
     (put_env env valbind)
     (debug_msg valbind "initvalue_exporter valbind")
-    (messageval_dbg "initvalue_exporter valbind" valbind)
     (return)
     ))
 
@@ -13746,7 +13738,6 @@
 	 )
     (put_env env macbind)
     (debug_msg macbind "initmacro_exporter macbind")
-    (messageval_dbg "initmacro_exporter macbind" macbind)
     (return)
     ))
 
@@ -13828,7 +13819,8 @@
   (message_dbg "starting showmdata_command")
   (debug_msg moduldata "showmdata moduldata")
   (message_dbg "ending showmdata_command"))
-(install_initial_command (stringconst2val discr_string "showmdata") showmdata_command)
+(install_initial_command 
+ (stringconst2val discr_string "showmdata") showmdata_command)
 ;;;;;;;;;;;;;;;;
 
 (debug_msg initial_system_data "toplevel initial_system_data")
