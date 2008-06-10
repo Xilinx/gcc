@@ -1,4 +1,7 @@
 2008-06-10  Basile Starynkevitch  <basile@starynkevitch.net>
+	MELT branch merged with trunk r136620
+
+2008-06-10  Basile Starynkevitch  <basile@starynkevitch.net>
 [all exports tested on testrun1.bysl]
 	* melt/warm-basilys.bysl: the macro export emission calls omacroexporter!
 	corrected normexp_export_class.
