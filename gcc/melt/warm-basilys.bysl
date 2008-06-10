@@ -4971,14 +4971,21 @@
 ;;;; the progn expanser
 (defun mexpand_progn (sexpr env mexpander)
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
-  (let ( (progr
-	  (pairlist_to_progn (pair_tail
-			      (list_first (unsafe_get_field :sexp_contents sexpr)))
-			     (unsafe_get_field :loca_location sexpr)
-			     env
-			     mexpander)) )
-    (return progr)
-    ))
+  (let ( (sloc (unsafe_get_field :loca_location sexpr))
+	 (pairs  (pair_tail
+		  (list_first (unsafe_get_field :sexp_contents sexpr)))) 
+	 )
+    (if (not (is_pair pairs))
+	(progn
+	  (error_plain sloc "empty PROGN")
+	  (return)))
+    (let ( (progr
+	    (pairlist_to_progn pairs
+			       sloc
+			       env
+			       mexpander)) )
+      (return progr)
+      )))
 (install_initial_macro 'progn mexpand_progn)
 
 ;;;; the return expanser
@@ -8307,9 +8314,52 @@
 			   (unsafe_get_field :named_name xnam))
 	       (return)
 	       ))
-	 )))
-    (compile_warning "normexp_export_class @@UNIMPLEMENTED" ())    
-    (error_plain sloc "normexp_export_macro NOT YET UNIMPLEMENTED")
+	 (let ( (xdata (unsafe_get_field :cbind_cladata xbind)) 
+		(xclass (unsafe_get_field :cbind_class xbind))
+		(expval (make_instance class_nrep_exportval
+				       :nrep_loc sloc
+				       :nexpv_symdata xsymdata
+				       :nexpv_bind xbind
+				       :nexpv_valdata xdata
+				       ))
+		)
+	   (if (is_not_a xdata class_nrep_data)
+	       (error_strv sloc "forward defined class symbol to EXPORT_CLASS"
+			   (unsafe_get_field :named_name xnam)))
+	   (list_append iniexpvals expval)
+	   (debug_msg expval "normexp_export_class appended class expval")
+	   (assert_msg "check xclass" (is_a xclass class_class))
+	   (let ( (xclfields (unsafe_get_field :class_fields xclass)) 
+		  )
+	     (multiple_every
+	      xclfields
+	      (lambda (curfld :long ix)
+		(assert_msg "check curfld" (is_a curfld class_field))
+		(let ( (fldnam (unsafe_get_field :named_name curfld))
+		       (fldclass (unsafe_get_field :fld_ownclass curfld)) )
+		  ;; export as value each field belonging to this class
+		  (if (== fldclass xclass)
+		      (let ( (fldsym (get_symbolstr fldnam))
+			     (fldbind (find_env env fldsym))
+			     )
+			(assert_msg "check fldbind" (is_a fldbind class_field_binding))
+			(let ( (fldata (unsafe_get_field :flbind_fdata fldbind))
+			       (flsymdata (normal_symbol_data fldnam ncx sloc))
+			       (flexpval (make_instance class_nrep_exportval
+						      :nrep_loc sloc
+						      :nexpv_symdata flsymdata
+						      :nexpv_bind fldbind
+						      :nexpv_valdata fldata))
+			       )
+			    (assert_msg "check flsymdata" (is_a flsymdata class_nrep_datasymbol))
+			    (assert_msg "check fldata" (is_a fldata class_nrep_datainstance))
+			    (list_append iniexpvals flexpval)
+			    (debug_msg flexpval "normexp_export_class appended field flexpval")
+			  )))
+		  )))
+	     )
+	   (return)
+	   ))))
     ))
 (install_method class_src_export_class normal_exp normexp_export_class)
 
