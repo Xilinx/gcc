@@ -376,6 +376,7 @@
 ))
 
 ;; export one macro - (export_macro <macroname> <value>)
+;; beware that the evaluation of the value is done near end of initial routine!
 (defclass class_src_export_macro
   :super class_src
   :fields (sexpmac_mname
@@ -914,8 +915,7 @@
 ;;; normalized exported macro
 (defclass class_nrep_exportmacro
   :super class_nrep_export
-  :fields (nexp_mbinds			;local bindings list
-	   nexp_mexp			;normalized exp
+  :fields (nexp_mexp			;normalized exp
 	   
 ))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -8397,18 +8397,18 @@
      (nexp nbinds)
      (normal_exp mvalexp env ncx sloc)
      (let ( 
+	   (wnexp (wrap_normal_let1 nexp nbinds sloc))
 	   (symdata (normal_symbol_data mname ncx sloc))
 	   (expmacro (make_instance class_nrep_exportmacro
 				    :nrep_loc sloc
 				    :nexp_symdata symdata
-				    :nexp_mbinds nbinds
-				    :nexp_mexp nexp
+				    :nexp_mexp (if (>i (list_length nbinds) 0) wnexp nexp)
 				    ))
 	   )
        (debug_msg expmacro "normexp_export_macro expmacro")
        (list_append iniexpmacros expmacro)
        )
-     (return)
+     (return nexp nbinds)
      )))
 (install_method class_src_export_macro normal_exp normexp_export_macro)
 
@@ -11048,6 +11048,7 @@
   (debug_msg compicache "compile2obj_initproc compicache")
   (let ((locmap (make_mapobject discr_mapobjects 50))
 	(iexpvals (unsafe_get_field :ninit_expval ipro))
+	(iexpmacros (unsafe_get_field :ninit_expmacro ipro))
 	(oinibody (make_list discr_list))
 	(oinitrout
 	 (make_instance class_initialroutineobj
@@ -11256,12 +11257,13 @@
 	  ;; get the macro exporter
 	  (getsysd omacroexporter sysdata_macro_exporter "invalid macro exporter")
 	  )
+	;; process value (& class) exports
 	(debug_msg iexpvals "compile2obj_initproc iexpvals")
 	(list_every 
 	 iexpvals
 	 (lambda (curexpval)
 	   (debug_msg curexpval "compile2obj_initproc curexpval")
-	   (assert_msg "check curexpv" (is_a curexpval class_nrep_exportval))
+	   (assert_msg "check curexpval" (is_a curexpval class_nrep_exportval))
 	   (let ((curexploc (unsafe_get_field :nrep_loc curexpval))
 		 (curexsyda (unsafe_get_field :nexp_symdata curexpval))
 		 (curexvada (unsafe_get_field :nexp_valdata curexpval))
@@ -11281,7 +11283,30 @@
 	       (debug_msg oapp "compile2obj_initproc exportvalue oapp")
 	       (list_append oinibody oapp)
 	       ))))
-	(compile_warning "missing emission of export for macros" ())
+	;; process macro exports
+	(list_every
+	 iexpmacros
+	 (lambda (curexpmacro)
+	   (debug_msg curexpmacro "compile2obj_initproc curexpmacro")
+	   (assert_msg "check curexpmacro" (is_a curexpmacro class_nrep_exportmacro))
+	   (let ( (curexploc (unsafe_get_field :nrep_loc curexpmacro))
+		  (curexsyda (unsafe_get_field :nexp_symdata curexpmacro))
+		  (nmacv (unsafe_get_field :nexp_mexp curexpmacro))
+		  (osydat (compile_obj curexsyda gcx))
+		  (omac (compile_obj nmacv gcx))
+		  )
+	     ;; emit application of omacroexporter on osydat omac retloc
+	     (let ( (oapp
+		     (make_instance class_objapply
+				    :obi_loc curexploc
+				    :obdi_destlist ()
+				    :obapp_clos ovalueexporter
+				    :obapp_args (make_tuple3 discr_multiple osydat omac retloc)))
+		    )
+	       (debug_msg oapp "compile2obj_initproc exportvalue oapp")
+	       (list_append oinibody oapp)
+	       ))))
+;;; ending
 	(debug_msg oinibody "compile2obj_initproc final oinibody")
 	(debug_msg gcx "compile2obj_initproc final gcx")
 	(debug_msg oinitrout "compile2obj_initproc final oinitrout")
@@ -13713,9 +13738,17 @@
   (debug_msg env "initmacro_exporter env")
   (assert_msg "check sym" (is_a sym class_symbol))
   (assert_msg "check env" (is_a env class_environment))
-  (compile_warning "INITMACRO_EXPORTER unimplemented" ())
-  (assert_msg "initmacro_exporter @@NOT IMPLEMENTED@@" ())
-)
+  (assert_msg "check val is closure" (is_closure val))
+  (let ( (macbind (make_instance
+		   class_macro_binding
+		   :binder sym
+		   :mbind_expanser val))
+	 )
+    (put_env env macbind)
+    (debug_msg macbind "initmacro_exporter macbind")
+    (messageval_dbg "initmacro_exporter macbind" macbind)
+    (return)
+    ))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;; initial system data 

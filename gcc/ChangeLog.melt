@@ -1,4 +1,7 @@
 2008-06-10  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warm-basilys.bysl:  emitting export macro [untested]
+
+2008-06-10  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warm-basilys.bysl: coded normexp_export_macro [untested]
 
 2008-06-10  Basile Starynkevitch  <basile@starynkevitch.net>
