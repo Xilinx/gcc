@@ -1,3 +1,7 @@
+2008-06-10  Basile Starynkevitch  <basile@starynkevitch.net>
+[export machinery might work]
+	* melt/warm-basilys.bysl: the value exporter should be called on the resulting environment.
+
 2008-06-09  Basile Starynkevitch  <basile@starynkevitch.net>
 [export machinery probably buggy ....]
 	* melt/warm-basilys.bysl: added class_objcommentedblock.

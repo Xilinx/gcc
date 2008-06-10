@@ -11187,13 +11187,13 @@
 		 )
 	     (debug_msg osydat "compile2obj_initproc osydat")
 	     (debug_msg ovadat "compile2obj_initproc ovadat")
-	     ;; emit application of ovalueexporter on osydat ovadat ofreshenv
+	     ;; emit application of ovalueexporter on osydat ovadat retloc
 	     (let ( (oapp
 		     (make_instance class_objapply
 				    :obi_loc curexploc
 				    :obdi_destlist ()
 				    :obapp_clos ovalueexporter
-				    :obapp_args (make_tuple3 discr_multiple osydat ovadat ofreshenv)))
+				    :obapp_args (make_tuple3 discr_multiple osydat ovadat retloc)))
 		    )
 	       (debug_msg oapp "compile2obj_initproc exportvalue oapp")
 	       (list_append oinibody oapp)
@@ -13591,11 +13591,14 @@
 
 ;; initial fresh environment maker
 (defun initfresh_envmaker (prevenv)
-    (debug_msg prevenv "initfresh_envmaker prevenv")
-    (let ( (newenv (fresh_env prevenv)) )
-      (debug_msg newenv "initfresh_envmaker result newenv")
-      (return newenv)
-))
+  (shortbacktrace_dbg "initfresh_envmaker" 9)
+  (messageval_dbg "initfresh_envmaker prevenv" prevenv)
+  (debug_msg prevenv "initfresh_envmaker prevenv")
+  (let ( (newenv (fresh_env prevenv)) )
+    (debug_msg newenv "initfresh_envmaker result newenv")
+    (messageval_dbg "initfresh_envmaker newvenv" newenv)
+    (return newenv)
+    ))
 
 ;; initial value exporter
 (defun initvalue_exporter (sym val env)
@@ -13605,6 +13608,7 @@
   (messageval_dbg "initvalue_exporter env" env)
   (messageval_dbg "initvalue_exporter sym" sym)
   (messageval_dbg "initvalue_exporter val" val)
+  (shortbacktrace_dbg "initvalue_exporter" 8)
   (assert_msg "check sym" (is_a sym class_symbol))
   (assert_msg "check env" (is_a env class_environment))
   (let ( (valbind (make_instance
