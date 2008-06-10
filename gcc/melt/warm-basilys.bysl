@@ -369,16 +369,17 @@
   :fields (
 ))
 
-;; export macros
-(defclass class_src_export_macro
+;; export classes
+(defclass class_src_export_class
   :super class_src_exportcommon
   :fields (
 ))
 
-;; export macros
-(defclass class_src_export_class
-  :super class_src_exportcommon
-  :fields (
+;; export one macro - (export_macro <macroname> <value>)
+(defclass class_src_export_macro
+  :super class_src
+  :fields (sexpmac_mname
+	   sexpmac_mval
 ))
 
 ;;; superclass for all source definitions
@@ -749,7 +750,8 @@
 (defclass class_nrep_initproc
   :super class_nrep_anyproc
   :fields (ninit_topl			;list of toplevel nrep
-	   ninit_expval			;list of normal exported values 
+	   ninit_expval			;list of normal exported values of class_nrep_exportval
+	   ninit_expmacro		;list of normal exported macros of class_nrep_exportmacro
 ))
 
 ;; normal routine procedure
@@ -896,14 +898,26 @@
 	   naccm_ix			;index to be accessed (a boxed integer)
 ))
 
-;;; normalized exported value
-(defclass class_nrep_exportval
+
+;;; normalized export
+(defclass class_nrep_export
   :super class_nrep
-  :fields (nexpv_symdata		;symbol data
-	   nexpv_bind			;binding
-	   nexpv_valdata		;value data
+  :fields (nexp_symdata		;symbol data
 ))
 
+;;; normalized exported value
+(defclass class_nrep_exportval
+  :super class_nrep_export
+  :fields (nexp_valdata		;value data
+))
+
+;;; normalized exported macro
+(defclass class_nrep_exportmacro
+  :super class_nrep_export
+  :fields (nexp_mbinds			;local bindings list
+	   nexp_mexp			;normalized exp
+	   
+))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; module compilation context
 (defclass class_modulcontext
@@ -3566,6 +3580,7 @@
 		 (debug_msg resca "macroexpand_1 result complex apply resca")
 		 (return resca)
 		 ))))
+    ;; if the sexpr is not an sexpr return itself
     (return sexpr)))
   
 ;;; expand a primitive s-expression
@@ -5276,7 +5291,7 @@
 (install_initial_macro 'export_value mexpand_export_value)
 
 ;;;;
-;;; export_macro macro (export_macro <symbol> ...)
+;;; export_macro macro (export_macro <symbol> <expander>)
 (defun mexpand_export_macro (sexpr env mexpander)
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
   (assert_msg "check env" (is_a env class_environment))
@@ -5285,21 +5300,24 @@
 	(cont (unsafe_get_field :sexp_contents sexpr))
 	(loc  (unsafe_get_field :loca_location sexpr))
 	(curpair (pair_tail (list_first cont)))
-	(symbtup (pairlist_to_multiple 
-		  curpair discr_multiple
-		  (lambda (s)
-		    (let ( (sym  (macroexpand_1 s env mexpander)) )
-		      (if (is_not_a sym class_symbol)
-			  (error_plain loc "(EXPORT_MACRO <sym>...) expecting symbol"))
-		      sym
-		      ))))
-	(res (make_instance class_src_export_macro
-			    :src_loc loc
-			    :sexport_names symbtup))
+	(symb (macroexpand_1 (pair_head curpair) env mexpander))
 	)
+    (if (is_not_a symb class_symbol)
+	(error_plain loc "(EXPORT_MACRO <sym> <expander>) expecting symbol"))
+    (setq curpair (pair_tail curpair))
+    (let ( (expv (macroexpand_1 (pair_head curpair) env mexpander)) 
+	   )
+      (if (null expv)
+	  (error_plain loc  "(EXPORT_MACRO <sym> <expander>) expecting expander"))
+      (let ( (res (make_instance class_src_export_macro
+				 :src_loc loc
+				 :sexpmac_mname symb
+				 :sexpmac_mval expv
+		   ))
+	     )
     (debug_msg res "mexpand_export_macro result res")
     (return res)
-    ))
+    ))))
 (install_initial_macro 'export_macro mexpand_export_macro)
 
 ;;;;
@@ -5504,6 +5522,7 @@
     (let ( (inipro  (make_instance class_nrep_initproc
 				   :ninit_topl (make_list discr_list)
 				   :ninit_expval (make_list discr_list)
+				   :ninit_expmacro (make_list discr_list)
 				   :nrep_loc ()
 				   )) )
       (debug_msg inipro "create_normcontext inipro")
@@ -8174,9 +8193,8 @@
 		 (xdata (unsafe_get_field :fubind_fundata xbind))
 		 (expval (make_instance class_nrep_exportval
 					:nrep_loc sloc
-					:nexpv_symdata xsymdata
-					:nexpv_bind xbind
-					:nexpv_valdata xdata
+					:nexp_symdata xsymdata
+					:nexp_valdata xdata
 					))
 		 )
 	     (if (is_not_a xdata class_nrep_data)
@@ -8190,9 +8208,8 @@
 	   (let ( (xdata (unsafe_get_field :ibind_data xbind))
 		  (expval (make_instance class_nrep_exportval
 					 :nrep_loc sloc
-					 :nexpv_symdata xsymdata
-					 :nexpv_bind xbind
-					 :nexpv_valdata xdata
+					 :nexp_symdata xsymdata
+					 :nexp_valdata xdata
 					 ))
 		  )
 	     (if (is_not_a xdata class_nrep_data)
@@ -8206,9 +8223,8 @@
 	   (let ( (xdata (unsafe_get_field :pbind_primdata xbind)) 
 		  (expval (make_instance class_nrep_exportval
 					 :nrep_loc sloc
-					 :nexpv_symdata xsymdata
-					 :nexpv_bind xbind
-					 :nexpv_valdata xdata
+					 :nexp_symdata xsymdata
+					 :nexp_valdata xdata
 					 ))
 		  )
 	     (if (is_not_a xdata class_nrep_data)
@@ -8222,9 +8238,8 @@
 	   (let ( (xdata (unsafe_get_field :sbind_selectordata xbind)) 
 		  (expval (make_instance class_nrep_exportval
 					 :nrep_loc sloc
-					 :nexpv_symdata xsymdata
-					 :nexpv_bind xbind
-					 :nexpv_valdata xdata
+					 :nexp_symdata xsymdata
+					 :nexp_valdata xdata
 					 ))
 		  )
 	     (if (is_not_a xdata class_nrep_data)
@@ -8238,9 +8253,8 @@
 	   (let ( (xdata (unsafe_get_field :flbind_fdata xbind)) 
 		  (expval (make_instance class_nrep_exportval
 					 :nrep_loc sloc
-					 :nexpv_symdata xsymdata
-					 :nexpv_bind xbind
-					 :nexpv_valdata xdata
+					 :nexp_symdata xsymdata
+					 :nexp_valdata xdata
 					 ))
 		  )
 	     (if (is_not_a xdata class_nrep_data)
@@ -8256,9 +8270,8 @@
 	   (let ( (xdata (unsafe_get_field :cbind_cladata xbind)) 
 		  (expval (make_instance class_nrep_exportval
 					 :nrep_loc sloc
-					 :nexpv_symdata xsymdata
-					 :nexpv_bind xbind
-					 :nexpv_valdata xdata
+					 :nexp_symdata xsymdata
+					 :nexp_valdata xdata
 					 ))
 		  )
 	     (if (is_not_a xdata class_nrep_data)
@@ -8318,9 +8331,8 @@
 		(xclass (unsafe_get_field :cbind_class xbind))
 		(expval (make_instance class_nrep_exportval
 				       :nrep_loc sloc
-				       :nexpv_symdata xsymdata
-				       :nexpv_bind xbind
-				       :nexpv_valdata xdata
+				       :nexp_symdata xsymdata
+				       :nexp_valdata xdata
 				       ))
 		)
 	   (if (is_not_a xdata class_nrep_data)
@@ -8347,9 +8359,8 @@
 			       (flsymdata (normal_symbol_data fldnam ncx sloc))
 			       (flexpval (make_instance class_nrep_exportval
 						      :nrep_loc sloc
-						      :nexpv_symdata flsymdata
-						      :nexpv_bind fldbind
-						      :nexpv_valdata fldata))
+						      :nexp_symdata flsymdata
+						      :nexp_valdata fldata))
 			       )
 			    (assert_msg "check flsymdata" (is_a flsymdata class_nrep_datasymbol))
 			    (assert_msg "check fldata" (is_a fldata class_nrep_datainstance))
@@ -8372,11 +8383,33 @@
   (debug_msg recv "normexp export_macro recv")
   (let ( 
 	(sloc (unsafe_get_field :src_loc recv))
-	(sxnames (unsafe_get_field :sexport_names))
+	(mname (unsafe_get_field :sexpmac_mname recv))
+	(mvalexp (unsafe_get_field :sexpmac_mval recv))
+	(iniproc (let ( (ip (unsafe_get_field :nctx_initproc ncx)) )
+		   (assert_msg "check iniproc" (is_a ip class_nrep_initproc))
+		   ip))
+	(iniexpmacros (let ( (ev (unsafe_get_field :ninit_expmacro iniproc)) )
+			(assert_msg "check iniexpmacros" (is_list ev))
+			ev))
 	)
-    (compile_warning "normexp_export_macro @@UNIMPLEMENTED" ())
-    (error_plain sloc "normexp_export_macro NOT YET UNIMPLEMENTED")
-    ))
+    (assert_msg "check mname" (is_a mname class_symbol))
+    (multicall 
+     (nexp nbinds)
+     (normal_exp mvalexp env ncx sloc)
+     (let ( 
+	   (symdata (normal_symbol_data mname ncx sloc))
+	   (expmacro (make_instance class_nrep_exportmacro
+				    :nrep_loc sloc
+				    :nexp_symdata symdata
+				    :nexp_mbinds nbinds
+				    :nexp_mexp nexp
+				    ))
+	   )
+       (debug_msg expmacro "normexp_export_macro expmacro")
+       (list_append iniexpmacros expmacro)
+       )
+     (return)
+     )))
 (install_method class_src_export_macro normal_exp normexp_export_macro)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -11230,8 +11263,8 @@
 	   (debug_msg curexpval "compile2obj_initproc curexpval")
 	   (assert_msg "check curexpv" (is_a curexpval class_nrep_exportval))
 	   (let ((curexploc (unsafe_get_field :nrep_loc curexpval))
-		 (curexsyda (unsafe_get_field :nexpv_symdata curexpval))
-		 (curexvada (unsafe_get_field :nexpv_valdata curexpval))
+		 (curexsyda (unsafe_get_field :nexp_symdata curexpval))
+		 (curexvada (unsafe_get_field :nexp_valdata curexpval))
 		 (osydat (compile_obj curexsyda gcx))
 		 (ovadat (compile_obj curexvada gcx))
 		 )
@@ -11248,7 +11281,7 @@
 	       (debug_msg oapp "compile2obj_initproc exportvalue oapp")
 	       (list_append oinibody oapp)
 	       ))))
-	(compile_warning "missing emission of export for classes & macros" ())
+	(compile_warning "missing emission of export for macros" ())
 	(debug_msg oinibody "compile2obj_initproc final oinibody")
 	(debug_msg gcx "compile2obj_initproc final gcx")
 	(debug_msg oinitrout "compile2obj_initproc final oinitrout")
