@@ -1,3 +1,11 @@
+2008-06-10  Tobias Grosser  <grosser@fim.uni-passau.de>
+
+	* graphite.c (is_bb_addable): Fix memory leak, handling of loops
+	with multiple exits and conditional handling in edge cases.
+	(is_loop_exit): Fix memory leak. (Forgotten in last commit)
+
+	* testsuite/gcc.dg/graphite/scop-14.c: New.
+
 2008-06-06  Tobias Grosser  <grosser@fim.uni-passau.de>
 	    Adrien Eliche  <aeliche@isty.uvsq.fr>
 

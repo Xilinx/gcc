@@ -705,6 +705,7 @@ is_loop_exit (struct loop *loop, basic_block exit_bb)
   int i;
   VEC (edge, heap) *exits;
   edge e;
+  bool is_exit = false;
 
   if (loop_outer (loop) == NULL)
     return false;
@@ -713,9 +714,11 @@ is_loop_exit (struct loop *loop, basic_block exit_bb)
   
   for (i = 0; VEC_iterate (edge, exits, i, e); i++)
     if (e->dest == exit_bb)
-      return true;
+      is_exit = true;
 
-  return false;
+  VEC_free (edge, heap, exits);
+
+  return is_exit;
 }
 
 /* Check if 'pred' is predecessor of 'succ'.  */
@@ -797,7 +800,7 @@ is_bb_addable (basic_block bb, struct loop *outermost_loop,
                                   bb_simple);
 
         for (i = 0; VEC_iterate (edge, exits, i, e); i++)
-          if (dominated_by_p (CDI_DOMINATORS, e->dest, bb)
+          if (dominated_by_p (CDI_DOMINATORS, e->dest, e->src)
               && e->dest->loop_father == loop_outer (loop))
             build_scops_1 (e->dest, &tmp_scops, e->dest->loop_father,
                            outermost_loop, last, bb_simple);
@@ -806,7 +809,8 @@ is_bb_addable (basic_block bb, struct loop *outermost_loop,
         *last = NULL;
         *bb_simple = false;
         bb_addable = false;
-        free_scops (tmp_scops);
+        move_scops (&tmp_scops, scops);
+        VEC_free (edge, heap, exits);
 
         return bb_addable;
       }
@@ -829,25 +833,25 @@ is_bb_addable (basic_block bb, struct loop *outermost_loop,
           basic_block next_tmp;
           dom_bb = e->dest;
 
+          /* Ignore loop exits.  They will be handled after the loop body.  */
+          if (is_loop_exit (bb->loop_father, dom_bb))
+            {
+              bb_addable = false;
+              continue;
+            }
+
           /* Only handle bb dominated by 'bb'.  The others will be handled by
              the bb, that dominates this bb.  */
           if (!dominated_by_p (CDI_DOMINATORS, dom_bb, bb))
             {
               /* Check, if edge leads direct to the end of this condition.  If
                  this is true, the condition stays joinable.  */
-              if (last_bb)
+              if (!last_bb)
                 last_bb = dom_bb;
 
               if (dom_bb != last_bb)
                 *bb_simple = false;
 
-              continue;
-            }
-        
-          /* Ignore loop exits.  They will be handled after the loop body.  */
-          if (is_loop_exit (bb->loop_father, dom_bb))
-            {
-              bb_addable = false;
               continue;
             }
 
@@ -857,7 +861,7 @@ is_bb_addable (basic_block bb, struct loop *outermost_loop,
 
               /* Check, if edge leads direct to the end of this condition.  If
                  this is true, the condition stays joinable.  */
-              if (last_bb)
+              if (!last_bb)
                 last_bb = dom_bb;
 
               if (dom_bb != last_bb)
