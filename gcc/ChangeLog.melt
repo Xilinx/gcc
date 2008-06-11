@@ -1,4 +1,12 @@
 2008-06-11  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt/warm-basilys.bysl: export_value renamed as export_values.
+	compilefile uses the current module environment if the previous
+	was non nil or else the initial_environment
+
+	* warm-basilys-0.c: regenerated twice.
+
+2008-06-11  Basile Starynkevitch  <basile@starynkevitch.net>
 [macro (current_module_environment) works on a tiny example]
 
 	* melt/warm-basilys.bysl: added quasidata & quasiconstant for

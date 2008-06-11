@@ -365,7 +365,7 @@
   :fields (sexport_names
 ))
 ;; export value
-(defclass class_src_export_value
+(defclass class_src_export_values
   :super class_src_exportcommon
   :fields (
 ))
@@ -5317,11 +5317,11 @@
 (install_initial_macro 'debug_msg mexpand_debug_msg)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; export_value macro (export_value <symbol> ...)
-(defun mexpand_export_value (sexpr env mexpander)
+;;; export_values macro (export_values <symbol> ...)
+(defun mexpand_export_values (sexpr env mexpander)
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
   (assert_msg "check env" (is_a env class_environment))
-  (debug_msg sexpr "mexpand_export_value sexpr")
+  (debug_msg sexpr "mexpand_export_values sexpr")
   (let (
 	(cont (unsafe_get_field :sexp_contents sexpr))
 	(loc  (unsafe_get_field :loca_location sexpr))
@@ -5331,17 +5331,17 @@
 		  (lambda (s)
 		    (let ( (sym  (macroexpand_1 s env mexpander)) )
 		      (if (is_not_a sym class_symbol)
-			  (error_plain loc "(EXPORT_VALUE <sym>...) expecting symbol"))
+			  (error_plain loc "(EXPORT_VALUES <sym>...) expecting symbol"))
 		      sym
 		      ))))
-	(res (make_instance class_src_export_value
+	(res (make_instance class_src_export_values
 			    :src_loc loc
 			    :sexport_names symbtup))
 	)
-    (debug_msg res "mexpand_export_value result res")
+    (debug_msg res "mexpand_export_values result res")
     (return res)
     ))
-(install_initial_macro 'export_value mexpand_export_value)
+(install_initial_macro 'export_values mexpand_export_values)
 
 ;;;;
 ;;; export_macro macro (export_macro <symbol> <expander>)
@@ -8208,18 +8208,18 @@
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;; normalize an export_value
-(defun normexp_export_value (recv env ncx psloc)
-  (compile_warning "export_value could be simpler -- see comment" ())
+;;;; normalize an export_values
+(defun normexp_export_values (recv env ncx psloc)
+  (compile_warning "export_values could be simpler -- see comment" ())
   ;; actually, export of values & classes could be simpler.  the
   ;; export of a symbol should be expanded as the invocation of the
   ;; value exporter on the current module environment. we don't need
   ;; anything special in the initproc for the export.
 
-  (assert_msg "check exportval recv" (is_a recv class_src_export_value))
+  (assert_msg "check exportval recv" (is_a recv class_src_export_values))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normcontext))
-  (debug_msg recv "normexp_export_value recv")
+  (debug_msg recv "normexp_export_values recv")
   (let ( 
 	(sloc (unsafe_get_field :src_loc recv))
 	(sxnames (unsafe_get_field :sexport_names recv))
@@ -8237,21 +8237,21 @@
        (let ( (xbind (find_env env xnam)) 
 	      (xsymdata (normal_symbol_data xnam ncx sloc))
 	      )
-	 (debug_msg xbind "normexp_export_value xbind")
+	 (debug_msg xbind "normexp_export_values xbind")
 	 (assert_msg "check xsymdata" (is_a xsymdata class_nrep_datasymbol))
 	 (if (is_not_a xbind class_any_binding)
 	     (progn 
-	       (error_strv sloc "unbound symbol to EXPORT_VALUE"
+	       (error_strv sloc "unbound symbol to EXPORT_VALUES"
 			   (unsafe_get_field :named_name xnam))
 	       (return)
 	       ))
 	 (cond 
 	  ((is_a xbind class_let_binding)
-	   (error_strv sloc "locally let-bound symbol to EXPORT_VALUE"
+	   (error_strv sloc "locally let-bound symbol to EXPORT_VALUES"
 		       (unsafe_get_field :named_name xnam))
 	   (return))
 	  ((is_a xbind class_label_binding)
-	   (error_strv sloc "locally label-bound symbol to EXPORT_VALUE"
+	   (error_strv sloc "locally label-bound symbol to EXPORT_VALUES"
 		       (unsafe_get_field :named_name xnam))
 	   (return))
 	  ((is_a xbind class_function_binding)
@@ -8264,10 +8264,10 @@
 					))
 		 )
 	     (if (is_not_a xdata class_nrep_data)
-		 (error_strv sloc "forward defined function symbol to EXPORT_VALUE"
+		 (error_strv sloc "forward defined function symbol to EXPORT_VALUES"
 			     (unsafe_get_field :named_name xnam)))
 	     (list_append iniexpvals expval)
-	     (debug_msg expval "normexp_export_value appended function expval")
+	     (debug_msg expval "normexp_export_values appended function expval")
 	     (return)
 	     ))
 	  ((is_a xbind class_instance_binding)
@@ -8279,10 +8279,10 @@
 					 ))
 		  )
 	     (if (is_not_a xdata class_nrep_data)
-		 (error_strv sloc "forward defined instance symbol to EXPORT_VALUE"
+		 (error_strv sloc "forward defined instance symbol to EXPORT_VALUES"
 			     (unsafe_get_field :named_name xnam)))
 	     (list_append iniexpvals expval)
-	     (debug_msg expval "normexp_export_value appended instance expval")
+	     (debug_msg expval "normexp_export_values appended instance expval")
 	     (return)
 	     ))
 	  ((is_a xbind class_primitive_binding)
@@ -8294,10 +8294,10 @@
 					 ))
 		  )
 	     (if (is_not_a xdata class_nrep_data)
-		 (error_strv sloc "forward defined primitive symbol to EXPORT_VALUE"
+		 (error_strv sloc "forward defined primitive symbol to EXPORT_VALUES"
 			     (unsafe_get_field :named_name xnam)))
 	     (list_append iniexpvals expval)
-	     (debug_msg expval "normexp_export_value appended primitive expval")
+	     (debug_msg expval "normexp_export_values appended primitive expval")
 	     (return)
 	     ))
 	  ((is_a xbind class_selector_binding)
@@ -8309,10 +8309,10 @@
 					 ))
 		  )
 	     (if (is_not_a xdata class_nrep_data)
-		 (error_strv sloc "forward defined selector symbol to EXPORT_VALUE"
+		 (error_strv sloc "forward defined selector symbol to EXPORT_VALUES"
 			     (unsafe_get_field :named_name xnam)))
 	     (list_append iniexpvals expval)
-	     (debug_msg expval "normexp_export_value appended selector expval")
+	     (debug_msg expval "normexp_export_values appended selector expval")
 	     (return)
 	     ))
 	  ((is_a xbind class_field_binding)
@@ -8324,14 +8324,14 @@
 					 ))
 		  )
 	     (if (is_not_a xdata class_nrep_data)
-		 (error_strv sloc "forward defined field symbol to EXPORT_VALUE"
+		 (error_strv sloc "forward defined field symbol to EXPORT_VALUES"
 			     (unsafe_get_field :named_name xnam)))
 	     (list_append iniexpvals expval)
-	     (debug_msg expval "normexp_export_value appended field expval")
+	     (debug_msg expval "normexp_export_values appended field expval")
 	     (return)
 	     ))
 	  ((is_a xbind class_class_binding)
-	   (warning_strv sloc "class symbol export with EXPORT_VALUE - maybe should be EXPORT_CLASS"
+	   (warning_strv sloc "class symbol export with EXPORT_VALUES - maybe should be EXPORT_CLASS"
 			 (unsafe_get_field :named_name xnam))
 	   (let ( (xdata (unsafe_get_field :cbind_cladata xbind)) 
 		  (expval (make_instance class_nrep_exportval
@@ -8341,25 +8341,25 @@
 					 ))
 		  )
 	     (if (is_not_a xdata class_nrep_data)
-		 (error_strv sloc "forward defined class symbol to EXPORT_VALUE"
+		 (error_strv sloc "forward defined class symbol to EXPORT_VALUES"
 			     (unsafe_get_field :named_name xnam)))
 	     (list_append iniexpvals expval)
-	     (debug_msg expval "normexp_export_value appended class expval")
+	     (debug_msg expval "normexp_export_values appended class expval")
 	     (return)
 	     ))
 	  (:else			 
-	   (error_strv sloc "unimplemented/unexpected export of symbol to EXPORT_VALUE"
+	   (error_strv sloc "unimplemented/unexpected export of symbol to EXPORT_VALUES"
 		       (unsafe_get_field :named_name xnam))
-	   (error_strv sloc "unimplemented/unexpected binding class to EXPORT_VALUE"
+	   (error_strv sloc "unimplemented/unexpected binding class to EXPORT_VALUES"
 		       (unsafe_get_field :named_name (discrim xbind)))
-	   (debug_msg xbind "normexp_export_value @@unimplemented/unexpected@@ xbind")
+	   (debug_msg xbind "normexp_export_values @@unimplemented/unexpected@@ xbind")
 	   (return)
 	   )
 	  )
 	 )))))
 	
 
-(install_method class_src_export_value normal_exp normexp_export_value)
+(install_method class_src_export_values normal_exp normexp_export_values)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; normalize an export_class
@@ -13915,14 +13915,15 @@
   (assert_msg "check DBG_OUTPUT's name is string" (is_string (unsafe_get_field :named_name dbg_output)))
   (let ( (rlist (read_file arg)) 
 	 (basnam (if (is_string secarg) secarg (make_string_nakedbasename discr_string arg)))
+	 (curmodenv (current_module_environment))
+	 (parmodenv (parent_module_environment))
+	 (compenv (if parmodenv curmodenv initial_environment))
 	 ) 
     (debug_msg rlist "after read compilefile_command rlist")
     (debug_msg tokenizer "after read compilefile_command tokenizer")
     (debug_msg initial_environment "after read compilefile_command initial_environment")
-    (debug_msg class_nrep_datakeyword "compilefile_command class_nrep_datakeyword")
-    (debug_msg class_nrep "compilefile_command class_nrep")
-    (compile_warning "we should use (current_module_environment) instead of initial_environment" ())
-    (compile_list_sexpr rlist initial_environment basnam)
+    (debug_msg compenv "compilefile compenv")
+    (compile_list_sexpr rlist compenv basnam)
     ))
 
 (install_initial_command  (stringconst2val discr_string "compilefile") compilefile_command)
