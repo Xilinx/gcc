@@ -752,8 +752,6 @@
 (defclass class_nrep_initproc
   :super class_nrep_anyproc
   :fields (ninit_topl			;list of toplevel nrep
-	   ;; OBSOLETE ninit_expmacro		
-	   ninit_expmacro		;list of normal exported macros of class_nrep_exportmacro
 ))
 
 ;; normal routine procedure
@@ -5574,7 +5572,6 @@
     (fill_initial_predefmap predefmap)
     (let ( (inipro  (make_instance class_nrep_initproc
 				   :ninit_topl (make_list discr_list)
-				   :ninit_expmacro (make_list discr_list)
 				   :nrep_loc ()
 				   )) 
 	   (ncx (make_instance class_normcontext
@@ -8407,6 +8404,81 @@
 (install_method class_src_export_class normal_exp normexp_export_class)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; internal function giving a normalized cloned symbol for the macro exporter
+;;; return only one result, and update the bindslist
+(defun normal_macro_exporter (env ncx psloc bindslist)
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check bindslist" (is_list bindslist))
+  (assert_msg "check ncx" (is_a ncx class_normcontext))
+  (let ( (csymvalexp (clone_symbol '_macroxporter_))
+	 (nsysdat (make_instance class_nrep_predef
+				 :nrep_loc psloc
+				 :nrpredef 'INITIAL_SYSTEM_DATA))
+	 (cbind (make_instance class_normlet_binding
+			       :letbind_loc psloc
+			       :binder csymvalexp
+			       :letbind_type ctype_value
+			       :letbind_expr (make_instance class_nrep_unsafe_get_field
+							    :nrep_loc psloc
+							    :nuget_obj nsysdat
+							    :nuget_field sysdata_macro_exporter)))
+	 (locsym (make_instance class_nrep_locsymocc
+				:nrep_loc psloc
+				:nocc_ctyp ctype_value
+				:nocc_symb csymvalexp
+				:nocc_bind cbind))
+	 )
+    (list_append bindslist cbind)
+    (return locsym)
+    ))
+
+;;;;;;;;;;;;;;;;
+
+(defun normal_exported_macro (sym nexp nmacroxp env ncx psloc bindslist)
+  (debug_msg sym "normal_exported_macro start sym")
+  (debug_msg nexp "normal_exported_macro start nexp")
+  (debug_msg nmacroxp "normal_exported_macro start nmacroxp")
+  (assert_msg "check sym" (is_a sym class_symbol))
+  (assert_msg "check nexp" (is_a nexp class_nrep))
+  (assert_msg "check nmacroxp" (is_a nmacroxp class_nrep))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check ncx" (is_a ncx class_normcontext))
+  (assert_msg "check bindslist" (is_list bindslist))
+  (let ( (csymexpo (clone_symbol '_exportedm_))
+	 (symdata (normal_symbol_data sym ncx psloc))
+	 (scurenvx (make_instance class_src_current_module_environment
+				  :src_loc psloc))
+	 )
+    (debug_msg scurenvx "normal_exported_macro scurenvx")
+    (multicall 
+     (ncurenv curenvbinds)
+     ;; we call directly the normalization of the created (current_module_environment) expr
+     (normexp_current_module_environment scurenvx env ncx psloc)
+     (debug_msg ncurenv "normal_exported_macro ncurenv")
+     (debug_msg curenvbinds "normal_exported_macro curenvbinds")
+     (list_append2list bindslist curenvbinds)
+     (let (
+	   (cbind (make_instance class_normlet_binding
+				 :letbind_loc psloc
+				 :binder csymexpo
+				 :letbind_type ctype_void
+				 :letbind_expr (make_instance class_nrep_apply
+							      :nrep_loc psloc
+							      :napp_fun nmacroxp
+							      :napp_args (make_tuple3 discr_multiple symdata nexp ncurenv))))
+	   (syocc (make_instance class_nrep_locsymocc
+				 :nrep_loc psloc
+				 :nocc_ctyp ctype_void 
+				 :nocc_symb csymexpo
+				 :nocc_bind cbind) )
+	   )
+       (debug_msg cbind "normal_exported_macro cbind")
+       (debug_msg syocc "normal_exported_macro return syocc")
+       (list_append bindslist cbind)
+       syocc
+       ;;
+       ))))
+
 ;;;; normalize an export_macro
 (defun normexp_export_macro (recv env ncx psloc)
   (assert_msg "check export_macro recv" (is_a recv class_src_export_macro))
@@ -8417,30 +8489,21 @@
 	(sloc (unsafe_get_field :src_loc recv))
 	(mname (unsafe_get_field :sexpmac_mname recv))
 	(mvalexp (unsafe_get_field :sexpmac_mval recv))
-	(iniproc (let ( (ip (unsafe_get_field :nctx_initproc ncx)) )
-		   (assert_msg "check iniproc" (is_a ip class_nrep_initproc))
-		   ip))
-	(iniexpmacros (let ( (ev (unsafe_get_field :ninit_expmacro iniproc)) )
-			(assert_msg "check iniexpmacros" (is_list ev))
-			ev))
+	(bindslist (make_list discr_list))
+	(nmacexp (normal_macro_exporter env ncx sloc bindslist))
 	)
     (assert_msg "check mname" (is_a mname class_symbol))
     (multicall 
      (nexp nbinds)
      (normal_exp mvalexp env ncx sloc)
+     (list_append2list bindslist nbinds)
      (let ( 
-	   (wnexp (wrap_normal_let1 nexp nbinds sloc))
-	   (symdata (normal_symbol_data mname ncx sloc))
-	   (expmacro (make_instance class_nrep_exportmacro
-				    :nrep_loc sloc
-				    :nexp_symdata symdata
-				    :nexp_mexp (if (>i (list_length nbinds) 0) wnexp nexp)
-				    ))
+	   (nexpm (normal_exported_macro mname nexp nmacexp env ncx sloc bindslist))
 	   )
-       (debug_msg expmacro "normexp_export_macro expmacro")
-       (list_append iniexpmacros expmacro)
+       (debug_msg nexpm "normexp_export_macro nexpm")
        )
-     (return nexp nbinds)
+       (debug_msg bindslist "normexp_export_macro final bindslist")
+     (return () bindslist)
      )))
 (install_method class_src_export_macro normal_exp normexp_export_macro)
 
@@ -11103,7 +11166,6 @@
   (debug_msg ipro "compile2obj_initproc ipro")
   (debug_msg compicache "compile2obj_initproc compicache")
   (let ((locmap (make_mapobject discr_mapobjects 50))
-	(iexpmacros (compile_warning "obsolete iexpmacros" (unsafe_get_field :ninit_expmacro ipro)))
 	(oinibody (make_list discr_list))
 	(oinitrout
 	 (make_instance class_initialroutineobj
@@ -11282,62 +11344,6 @@
 			))
 		    )))))
 	  )
-	(let ( (getsysd
-		(lambda (ovar field :cstring msg)
-		  (let ( (lisdest (make_list discr_list)) )
-		    (list_append lisdest ovar)
-		    (list_append oinibody
-				 (make_instance class_objgetslot
-						:obi_loc ()
-						:obdi_destlist lisdest
-						:ogetsl_obj initialsystemdata_objpredef 
-						:ogetsl_field field)))
-		  ;; always generate a test for ovar being a closure 
-		  (list_append 
-		   oinibody
-		   (make_instance class_objcompute
-				  :obcpt_expr (make_tuple7
-					       discr_multiple
-					       (make_stringconst discr_verbatimstring 
-								 "if (basilys_magic_discr(")
-					       ovar
-					       (make_stringconst discr_verbatimstring 
-								 ") != OBMAG_CLOSURE) warning(0, \"BASILYS: ")
-					       (make_stringconst discr_verbatimstring msg)
-					       (make_stringconst discr_verbatimstring
-								 " @%p in system data <%s:%d>\", ")
-					       ovar
-					       (make_stringconst discr_verbatimstring ", __FILE__, __LINE__);"))))
-		  )) 
-	       )
-	  ;; get the value exporter
-	  (getsysd ovalueexporter sysdata_value_exporter "invalid value exporter")
-	  ;; get the macro exporter
-	  (getsysd omacroexporter sysdata_macro_exporter "invalid macro exporter")
-	  )
-	;; process macro exports
-	(list_every
-	 iexpmacros
-	 (lambda (curexpmacro)
-	   (debug_msg curexpmacro "compile2obj_initproc curexpmacro")
-	   (assert_msg "check curexpmacro" (is_a curexpmacro class_nrep_exportmacro))
-	   (let ( (curexploc (unsafe_get_field :nrep_loc curexpmacro))
-		  (curexsyda (unsafe_get_field :nexp_symdata curexpmacro))
-		  (nmacv (unsafe_get_field :nexp_mexp curexpmacro))
-		  (osydat (compile_obj curexsyda gcx))
-		  (omac (compile_obj nmacv gcx))
-		  )
-	     ;; emit application of omacroexporter on osydat omac retloc
-	     (let ( (oapp
-		     (make_instance class_objapply
-				    :obi_loc curexploc
-				    :obdi_destlist ()
-				    :obapp_clos omacroexporter
-				    :obapp_args (make_tuple3 discr_multiple osydat omac retloc)))
-		    )
-	       (debug_msg oapp "compile2obj_initproc exportvalue oapp")
-	       (list_append oinibody oapp)
-	       ))))
 ;;; ending
 	(debug_msg oinibody "compile2obj_initproc final oinibody")
 	(debug_msg gcx "compile2obj_initproc final gcx")

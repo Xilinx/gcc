@@ -1,5 +1,10 @@
 2008-06-11  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt/warm-basilys.bysl: export_macro normalisation done
+	better. Removed ninit_expmacro field in class_nrep_initproc
+
+2008-06-11  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt/warm-basilys.bysl: export_values & export_class
 	normalisation done better. Removed ninit_expval field in
 	class_nrep_initproc
