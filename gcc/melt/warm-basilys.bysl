@@ -271,6 +271,7 @@
   :fields ( ibind_iclass		;the instance's class
 	    ibind_data			;the compiled data
 	    ))
+
 ;; let binding
 (defclass class_let_binding
   :super class_any_binding
@@ -783,10 +784,20 @@
 ))
 
 
+;;; quasidata are stuff to be computed inside the initial routine;
+;;; most of them are plain data, but current_module_environment &
+;;; parent_module_environment need specific stuff
+
+(defclass class_nrep_quasidata
+  :super class_nrep
+  :fields (
+))
+
+
 ;;;; static data is build at module initialization time
 (defclass class_nrep_data
   ;; the objnum is the predefined rank if any
-  :super class_nrep_simple
+  :super class_nrep_quasidata
   :fields (ndata_name			;name if any of the data
 	   ndata_discrx		;discriminant normal expression 
 	   ndata_rank			;boxed integer rank of the data 
@@ -873,12 +884,45 @@
   :super class_nrep_closedocc
 )
 
-;; normal constant (.e.g a quoted symbol, a keyword, ...)
-(defclass class_nrep_constant
+;;; normal quasi constants for current_module_environment &
+;;; parent_module_environment & constants
+(defclass class_nrep_quasiconstant
   :super class_nrep_simple
   :fields (nconst_sval			;source value
-	   nconst_data			;normalized data
 	   nconst_proc			;containing proc
+	   nconst_data			;normalized data or stuff inside iniproc
+))
+
+;; normal constant (.e.g a quoted symbol, a keyword, ...)
+(defclass class_nrep_constant
+  :super class_nrep_quasiconstant
+  :fields (
+	   
+))
+
+;; noormal current_module_environment quasiconst
+(defclass class_nrep_quasiconst_current_module_environment
+  :super class_nrep_quasiconstant
+  :fields (
+))
+
+
+;; normal current_module_environment quasidata
+(defclass class_nrep_quasidata_current_module_environment
+  :super class_nrep_quasidata
+  :fields (
+))
+
+;; noormal parent_module_environment quasiconst
+(defclass class_nrep_quasiconst_parent_module_environment
+  :super class_nrep_quasiconstant
+  :fields (
+))
+
+;; normal parent_module_environment quasidata
+(defclass class_nrep_quasidata_parent_module_environment
+  :super class_nrep_quasidata
+  :fields (
 ))
 
 ;; data field accessor (mostly used for defclass initialization) this
@@ -940,6 +984,8 @@
 	   nctx_valbindmap 		;objmap of value binding -> data
 	   nctx_curproc			;current procedure
 	   nctx_modulcontext		;the module compilation context
+	   nctx_qdatcurmodenv		;quasi data for current_module_environment
+	   nctx_qdatparmodenv		;quasi data for parent_module_environment
 ))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -957,6 +1003,13 @@
 	    gncx_retloc			;return location
 	    gncx_compicache		;cache map of procedure to compiled routines
 	    gncx_modulcontext		;the module compilation context
+))
+
+
+;; code generation context for initial routine
+(defclass class_initgenercontext
+  :super class_genercontext
+  :fields (igncx_prevenvloc	    ;local for previous environment [parent_module_environment]
 ))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -5524,22 +5577,29 @@
 				   :ninit_expval (make_list discr_list)
 				   :ninit_expmacro (make_list discr_list)
 				   :nrep_loc ()
-				   )) )
-      (debug_msg inipro "create_normcontext inipro")
-      (make_instance class_normcontext
-		     :nctx_initproc inipro
-		     :nctx_proclist (make_list discr_list)
-		     :nctx_datalist (make_list discr_list)
-		     :nctx_symbmap  (make_mapstring discr_mapstrings 50)
-		     :nctx_keywmap  (make_mapstring discr_mapstrings 40)
-		     :nctx_predefmap predefmap
-		     :nctx_valmap valmap
-		     :nctx_valbindmap (make_mapobject discr_mapobjects 20)
-		     ;; we need a symbcachemap for the toplevel expressions
-		     :nctx_symbcachemap (make_mapobject discr_mapobjects 30)
-		     :nctx_curproc inipro
-		     :nctx_modulcontext modctx
-		     ))))
+				   )) 
+	   (ncx (make_instance class_normcontext
+			       :nctx_initproc inipro
+			       :nctx_proclist (make_list discr_list)
+			       :nctx_datalist (make_list discr_list)
+			       :nctx_symbmap  (make_mapstring discr_mapstrings 50)
+			       :nctx_keywmap  (make_mapstring discr_mapstrings 40)
+			       :nctx_predefmap predefmap
+			       :nctx_valmap valmap
+			       :nctx_valbindmap (make_mapobject discr_mapobjects 20)
+			       ;; we need a symbcachemap for the toplevel expressions
+			       :nctx_symbcachemap (make_mapobject discr_mapobjects 30)
+			       :nctx_curproc inipro
+			       :nctx_modulcontext modctx
+			       :nctx_qdatcurmodenv (make_instance class_nrep_quasidata_current_module_environment
+								  )
+			       :nctx_qdatparmodenv (make_instance class_nrep_quasidata_parent_module_environment
+								  )
+			       ))
+	   )
+      (debug_msg ncx "create_normcontext return ncx")
+      (return ncx)
+      )))
 
 ;;; the normal_exp selector 
 ;;;;; expected arguments: 
@@ -8150,6 +8210,12 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; normalize an export_value
 (defun normexp_export_value (recv env ncx psloc)
+  (compile_warning "export_value could be simpler -- see comment" ())
+  ;; actually, export of values & classes could be simpler.  the
+  ;; export of a symbol should be expanded as the invocation of the
+  ;; value exporter on the current module environment. we don't need
+  ;; anything special in the initproc for the export.
+
   (assert_msg "check exportval recv" (is_a recv class_src_export_value))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normcontext))
@@ -8418,12 +8484,23 @@
   (assert_msg "check current_module_environment recv" (is_a recv class_src_current_module_environment))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normcontext))
-  (debug_msg recv "normexp_current_module_environment  recv")
+  (debug_msg recv "normexp_current_module_environment recv")
   (let ( 
 	(sloc (unsafe_get_field :src_loc recv))
+	(curproc (unsafe_get_field :nctx_curproc ncx))
+	(qdatcur (unsafe_get_field :nctx_qdatcurmodenv ncx))
+	(nquasi (make_instance class_nrep_quasiconst_current_module_environment
+			       :nrep_loc sloc
+			       :nconst_sval recv
+			       :nconst_proc curproc
+			       :nconst_data qdatcur
+			       ))
 	)
-    (compile_warning "normexp_current_module_environment @@UNIMPLEMENTED" ())    
-    (error_plain sloc "normexp_current_module_environment NOT YET UNIMPLEMENTED")
+    (assert_msg "check qdatcur" (is_a qdatcur class_nrep_quasidata_current_module_environment))
+    (if (is_a curproc class_nrep_routproc)
+	(list_append (unsafe_get_field :nrpro_const curproc) qdatcur))
+    (debug_msg nquasi "normexp_current_module_environment nquasi")
+    (return nquasi)
     ))
 (install_method class_src_current_module_environment normal_exp normexp_current_module_environment)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -8436,9 +8513,20 @@
   (debug_msg recv "normexp_parent_module_environment  recv")
   (let ( 
 	(sloc (unsafe_get_field :src_loc recv))
+	(curproc (unsafe_get_field :nctx_curproc ncx))
+	(qdatpar (unsafe_get_field :nctx_qdatparmodenv ncx))
+	(nquasi (make_instance class_nrep_quasiconst_parent_module_environment
+			       :nrep_loc sloc
+			       :nconst_sval recv
+			       :nconst_proc curproc
+			       :nconst_data qdatpar
+			       ))
 	)
-    (compile_warning "normexp_parent_module_environment @@UNIMPLEMENTED" ())    
-    (error_plain sloc "normexp_parent_module_environment NOT YET UNIMPLEMENTED")
+    (assert_msg "check qdatpar" (is_a qdatpar class_nrep_quasidata_parent_module_environment))
+    (if (is_a curproc class_nrep_routproc)
+	(list_append (unsafe_get_field :nrpro_const curproc) qdatpar))
+    (debug_msg nquasi "normexp_parent_module_environment nquasi")
+    (return nquasi)
     ))
 (install_method class_src_parent_module_environment normal_exp normexp_parent_module_environment)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -10790,11 +10878,13 @@
 	 (ooff (unsafe_get_field :oprconst_off oprconst))
 	 (ocval (unsafe_get_field :oprconst_cval oprconst)) )
     (output_location oloc implbuf depth "putroutconst")
-    (add2sbuf_strconst implbuf "/*putroutconst checkrout*/ basilys_assertmsg(\"putroutconst checkrout\", basilys_magic_discr(")
+    (add2sbuf_strconst implbuf "/*putroutconst*/")
+    (add2sbuf_indentnl implbuf depth)
+    (add2sbuf_strconst implbuf "basilys_assertmsg(\"putroutconst checkrout\", basilys_magic_discr(")
     (output_c_code orout declbuf implbuf depth)
     (add2sbuf_strconst implbuf ") == OBMAG_ROUTINE);")
     (add2sbuf_indentnl implbuf depth)
-    (add2sbuf_strconst implbuf "/*putroutconst*/ ((basilysroutine_ptr_t)")
+    (add2sbuf_strconst implbuf "((basilysroutine_ptr_t)")
     (output_c_code orout declbuf implbuf depth)
     (add2sbuf_strconst implbuf ")->tabval[")
     (output_c_code ooff declbuf implbuf depth)
@@ -11060,7 +11150,7 @@
 			:obrout_others (make_list discr_list)
 			:oirout_fill (make_list discr_list)
 			))
-	(gcx (make_instance class_genercontext
+	(gcx (make_instance class_initgenercontext
 			    :gncx_objrout oinitrout
 			    :gncx_locmap locmap
 			    :gncx_freeptrlist (make_list discr_list)
@@ -11075,7 +11165,10 @@
 	   (unsafe_put_fields oinitrout :obrout_retval retl)
 	   retl))
 	(ofreshenv  (get_free_objlocptr gcx '_freshenv_))
-	(oprevenv  (get_free_objlocptr gcx '_prevenv_))
+	(oprevenv  (let ( (preve (get_free_objlocptr gcx '_prevenv_))
+			  )
+		     (unsafe_put_fields gcx :igncx_prevenvloc preve)
+		     preve))
 	(ovalueexporter (get_free_objlocptr gcx '_valexport_)) 
 	(omacroexporter (get_free_objlocptr gcx '_macroexport_))
 	)
@@ -11711,11 +11804,11 @@
 (install_method class_nrep_constocc compile_obj compilobj_nrep_constocc)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;; compile a constant
-(defun compilobj_nrep_constant (nconst gcx)
+;;;; compile a quasiconstant
+(defun compilobj_nrep_quasiconstant (nconst gcx)
   (assert_msg "check gcx" (is_a gcx class_genercontext))
-  (assert_msg "check nconst" (is_a nconst class_nrep_constant))
-  (debug_msg nconst "compilobj constant nconst")
+  (assert_msg "check nconst" (is_a nconst class_nrep_quasiconstant))
+  (debug_msg nconst "compilobj quasiconstant nconst")
   (let ( (nloc (unsafe_get_field :nrep_loc nconst))
 	 (sval (unsafe_get_field :nconst_sval nconst))
 	 (data (unsafe_get_field :nconst_data nconst))
@@ -11757,19 +11850,19 @@
 				 :obc_proc proc
 				 :obc_name (strbuf2string discr_string nambuf)
 				 )) )
-	    (debug_msg constv "compilobj constant constv")
+	    (debug_msg constv "compilobj quasiconstant constv")
 	    (return constv)
 	    )
 	  )
       (let ( (odata (compile_obj data gcx)) )
 	;; not inside a proc, just return the compiled data
-	(debug_msg odata "compilobj constant odata")
+	(debug_msg odata "compilobj quasiconstant odata")
 	(return odata)
 	)
       )
     )
   )
-(install_method class_nrep_constant compile_obj compilobj_nrep_constant)
+(install_method class_nrep_quasiconstant compile_obj compilobj_nrep_quasiconstant)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; compile a forever
@@ -13543,7 +13636,7 @@
 				(list_append inibody iput)
 				(put_int bxoff (+i off 1))))))
 		      )
-		    ( (is_a constx class_nrep_data)
+		    ( (is_a constx class_nrep_quasidata)
 		      (debug_msg constx "compilobj_dataroutine constx data")
 		      (let ( 
 			    (oconstx (compile_obj constx gcx)) 
@@ -13578,8 +13671,28 @@
   )
 (install_method class_nrep_dataroutine compile_obj compilobj_dataroutine)
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defun compilobj_quasidata_current_module_environment (qdcm gcx)
+  (assert_msg "check qdcm" (is_a qdcm class_nrep_quasidata_current_module_environment))
+  (assert_msg "check gcx" (is_a gcx class_initgenercontext))
+  (debug_msg qdcm "compilobj_quasidata_current_module_environment qdcm")
+  (let ( (retloc (unsafe_get_field :gncx_retloc gcx)) 
+	 )
+    (debug_msg retloc "compilobj_quasidata_current_module_environment return retloc")
+    (return retloc)))
+(install_method class_nrep_quasidata_current_module_environment compile_obj compilobj_quasidata_current_module_environment)
 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defun compilobj_quasidata_parent_module_environment (qdpm gcx)
+  (assert_msg "check qdpm" (is_a qdpm class_nrep_quasidata_parent_module_environment))
+  (assert_msg "check gcx" (is_a gcx class_initgenercontext))
+  (debug_msg qdpm "compilobj_quasidata_parent_module_environment qdpm")
+  (let ( (prevenvloc (unsafe_get_field :igncx_prevenvloc gcx)) 
+	 )
+    (debug_msg prevenvloc "compilobj_quasidata_parent_module_environment return prevenvloc")
+    (return prevenvloc)))
+(install_method class_nrep_quasidata_parent_module_environment compile_obj compilobj_quasidata_parent_module_environment)
 
 
 

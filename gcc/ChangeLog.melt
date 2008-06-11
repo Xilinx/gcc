@@ -1,3 +1,18 @@
+2008-06-11  Basile Starynkevitch  <basile@starynkevitch.net>
+[macro (current_module_environment) works on a tiny example]
+
+	* melt/warm-basilys.bysl: added quasidata & quasiconstant for
+	supporting current_module_environment & parent_module_environment
+	macros. added class_nrep_quasiconstant class_nrep_quasidata
+	class_nrep_quasiconst_current_module_environment
+	class_nrep_quasidata_current_module_environment
+	class_nrep_quasiconst_parent_module_environment
+	class_nrep_quasidata_parent_module_environment
+	class_initgenercontext. Comments about making normexp_export_value
+	much simpler. Less emitted comments for routine
+	initialization. added methods for compiling our new quasidata
+	classes.
+
 2008-06-10  Basile Starynkevitch  <basile@starynkevitch.net>
 	MELT branch merged with trunk r136620
 
