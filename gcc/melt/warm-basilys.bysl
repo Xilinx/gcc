@@ -752,7 +752,7 @@
 (defclass class_nrep_initproc
   :super class_nrep_anyproc
   :fields (ninit_topl			;list of toplevel nrep
-	   ninit_expval			;list of normal exported values of class_nrep_exportval
+	   ;; OBSOLETE ninit_expmacro		
 	   ninit_expmacro		;list of normal exported macros of class_nrep_exportmacro
 ))
 
@@ -5574,7 +5574,6 @@
     (fill_initial_predefmap predefmap)
     (let ( (inipro  (make_instance class_nrep_initproc
 				   :ninit_topl (make_list discr_list)
-				   :ninit_expval (make_list discr_list)
 				   :ninit_expmacro (make_list discr_list)
 				   :nrep_loc ()
 				   )) 
@@ -8305,8 +8304,7 @@
 
 ;;;; normalize an export_values
 (defun normexp_export_values (recv env ncx psloc)
-  (compile_warning "export_values could be simpler -- see comment" ())
-  ;; actually, export of values & classes could be simpler.  the
+  ;; actually, export of values & classes could be simple.  the
   ;; export of a symbol should be expanded as the invocation of the
   ;; value exporter on the current module environment. we don't need
   ;; anything special in the initproc for the export.
@@ -8319,140 +8317,27 @@
   (let ( 
 	(sloc (unsafe_get_field :src_loc recv))
 	(sxnames (unsafe_get_field :sexport_names recv))
-	(iniproc (let ( (ip (unsafe_get_field :nctx_initproc ncx)) )
-		   (assert_msg "check iniproc" (is_a ip class_nrep_initproc))
-		   ip))
-	(iniexpvals (let ( (ev (unsafe_get_field :ninit_expval iniproc)) )
-		      (assert_msg "check iniexpvals" (is_list ev))
-		      ev))
+	(bindslist (make_list discr_list))
+	(nvaluexporter (normal_value_exporter env ncx bindslist))
 	)
     (multiple_every
      sxnames
      (lambda (xnam :long ix)
        (assert_msg "check xnam" (is_a xnam class_symbol))
-       (let ( (xbind (find_env env xnam)) 
-	      (xsymdata (normal_symbol_data xnam ncx sloc))
-	      )
-	 (debug_msg xbind "normexp_export_values xbind")
-	 (assert_msg "check xsymdata" (is_a xsymdata class_nrep_datasymbol))
-	 (if (is_not_a xbind class_any_binding)
-	     (progn 
-	       (error_strv sloc "unbound symbol to EXPORT_VALUES"
-			   (unsafe_get_field :named_name xnam))
-	       (return)
-	       ))
-	 (cond 
-	  ((is_a xbind class_let_binding)
-	   (error_strv sloc "locally let-bound symbol to EXPORT_VALUES"
-		       (unsafe_get_field :named_name xnam))
-	   (return))
-	  ((is_a xbind class_label_binding)
-	   (error_strv sloc "locally label-bound symbol to EXPORT_VALUES"
-		       (unsafe_get_field :named_name xnam))
-	   (return))
-	  ((is_a xbind class_function_binding)
-	   (let ( 
-		 (xdata (unsafe_get_field :fubind_fundata xbind))
-		 (expval (make_instance class_nrep_exportval
-					:nrep_loc sloc
-					:nexp_symdata xsymdata
-					:nexp_valdata xdata
-					))
-		 )
-	     (if (is_not_a xdata class_nrep_data)
-		 (error_strv sloc "forward defined function symbol to EXPORT_VALUES"
-			     (unsafe_get_field :named_name xnam)))
-	     (list_append iniexpvals expval)
-	     (debug_msg expval "normexp_export_values appended function expval")
-	     (return)
-	     ))
-	  ((is_a xbind class_instance_binding)
-	   (let ( (xdata (unsafe_get_field :ibind_data xbind))
-		  (expval (make_instance class_nrep_exportval
-					 :nrep_loc sloc
-					 :nexp_symdata xsymdata
-					 :nexp_valdata xdata
-					 ))
-		  )
-	     (if (is_not_a xdata class_nrep_data)
-		 (error_strv sloc "forward defined instance symbol to EXPORT_VALUES"
-			     (unsafe_get_field :named_name xnam)))
-	     (list_append iniexpvals expval)
-	     (debug_msg expval "normexp_export_values appended instance expval")
-	     (return)
-	     ))
-	  ((is_a xbind class_primitive_binding)
-	   (let ( (xdata (unsafe_get_field :pbind_primdata xbind)) 
-		  (expval (make_instance class_nrep_exportval
-					 :nrep_loc sloc
-					 :nexp_symdata xsymdata
-					 :nexp_valdata xdata
-					 ))
-		  )
-	     (if (is_not_a xdata class_nrep_data)
-		 (error_strv sloc "forward defined primitive symbol to EXPORT_VALUES"
-			     (unsafe_get_field :named_name xnam)))
-	     (list_append iniexpvals expval)
-	     (debug_msg expval "normexp_export_values appended primitive expval")
-	     (return)
-	     ))
-	  ((is_a xbind class_selector_binding)
-	   (let ( (xdata (unsafe_get_field :sbind_selectordata xbind)) 
-		  (expval (make_instance class_nrep_exportval
-					 :nrep_loc sloc
-					 :nexp_symdata xsymdata
-					 :nexp_valdata xdata
-					 ))
-		  )
-	     (if (is_not_a xdata class_nrep_data)
-		 (error_strv sloc "forward defined selector symbol to EXPORT_VALUES"
-			     (unsafe_get_field :named_name xnam)))
-	     (list_append iniexpvals expval)
-	     (debug_msg expval "normexp_export_values appended selector expval")
-	     (return)
-	     ))
-	  ((is_a xbind class_field_binding)
-	   (let ( (xdata (unsafe_get_field :flbind_fdata xbind)) 
-		  (expval (make_instance class_nrep_exportval
-					 :nrep_loc sloc
-					 :nexp_symdata xsymdata
-					 :nexp_valdata xdata
-					 ))
-		  )
-	     (if (is_not_a xdata class_nrep_data)
-		 (error_strv sloc "forward defined field symbol to EXPORT_VALUES"
-			     (unsafe_get_field :named_name xnam)))
-	     (list_append iniexpvals expval)
-	     (debug_msg expval "normexp_export_values appended field expval")
-	     (return)
-	     ))
-	  ((is_a xbind class_class_binding)
-	   (warning_strv sloc "class symbol export with EXPORT_VALUES - maybe should be EXPORT_CLASS"
-			 (unsafe_get_field :named_name xnam))
-	   (let ( (xdata (unsafe_get_field :cbind_cladata xbind)) 
-		  (expval (make_instance class_nrep_exportval
-					 :nrep_loc sloc
-					 :nexp_symdata xsymdata
-					 :nexp_valdata xdata
-					 ))
-		  )
-	     (if (is_not_a xdata class_nrep_data)
-		 (error_strv sloc "forward defined class symbol to EXPORT_VALUES"
-			     (unsafe_get_field :named_name xnam)))
-	     (list_append iniexpvals expval)
-	     (debug_msg expval "normexp_export_values appended class expval")
-	     (return)
-	     ))
-	  (:else			 
-	   (error_strv sloc "unimplemented/unexpected export of symbol to EXPORT_VALUES"
-		       (unsafe_get_field :named_name xnam))
-	   (error_strv sloc "unimplemented/unexpected binding class to EXPORT_VALUES"
-		       (unsafe_get_field :named_name (discrim xbind)))
-	   (debug_msg xbind "normexp_export_values @@unimplemented/unexpected@@ xbind")
-	   (return)
-	   )
-	  )
-	 )))))
+       (debug_msg xnam "normexp_export_values xnam")
+       (multicall
+	(nsym nsymbinds)
+	(normal_exp xnam env ncx sloc)
+	(debug_msg nsym "normexp_export_values nsym")
+	(debug_msg nsymbinds "normexp_export_values nsym")
+	(list_append2list bindslist nsymbinds)
+	(let ( (nexpv (normal_exported_value xnam nsym nvaluexporter env ncx sloc bindslist))
+	       )
+	  (debug_msg nexpv "normexp_export_values nexpv")
+	  ))))
+    (debug_msg bindslist "normexp_export_values final bindslist")
+    (return () bindslist)
+    ))
 	
 
 (install_method class_src_export_values normal_exp normexp_export_values)
@@ -8467,12 +8352,8 @@
   (let ( 
 	(sloc (unsafe_get_field :src_loc recv))
 	(sxnames (unsafe_get_field :sexport_names recv))
-	(iniproc (let ( (ip (unsafe_get_field :nctx_initproc ncx)) )
-		   (assert_msg "check iniproc" (is_a ip class_nrep_initproc))
-		   ip))
-	(iniexpvals (let ( (ev (unsafe_get_field :ninit_expval iniproc)) )
-		      (assert_msg "check iniexpvals" (is_list ev))
-		      ev))
+	(bindslist (make_list discr_list))
+	(nvaluexporter (normal_value_exporter env ncx bindslist))
 	)
     (multiple_every
      sxnames
@@ -8491,48 +8372,37 @@
 	       ))
 	 (let ( (xdata (unsafe_get_field :cbind_cladata xbind)) 
 		(xclass (unsafe_get_field :cbind_class xbind))
-		(expval (make_instance class_nrep_exportval
-				       :nrep_loc sloc
-				       :nexp_symdata xsymdata
-				       :nexp_valdata xdata
-				       ))
 		)
+	   (debug_msg xdata "normexp_export_class xdata")
 	   (if (is_not_a xdata class_nrep_data)
 	       (error_strv sloc "forward defined class symbol to EXPORT_CLASS"
 			   (unsafe_get_field :named_name xnam)))
-	   (list_append iniexpvals expval)
-	   (debug_msg expval "normexp_export_class appended class expval")
-	   (assert_msg "check xclass" (is_a xclass class_class))
-	   (let ( (xclfields (unsafe_get_field :class_fields xclass)) 
+	   (let ( (nclav (normal_exported_value xnam xdata nvaluexporter env ncx sloc bindslist))
 		  )
-	     (multiple_every
-	      xclfields
-	      (lambda (curfld :long ix)
-		(assert_msg "check curfld" (is_a curfld class_field))
-		(let ( (fldnam (unsafe_get_field :named_name curfld))
-		       (fldclass (unsafe_get_field :fld_ownclass curfld)) )
-		  ;; export as value each field belonging to this class
-		  (if (== fldclass xclass)
-		      (let ( (fldsym (get_symbolstr fldnam))
-			     (fldbind (find_env env fldsym))
-			     )
-			(assert_msg "check fldbind" (is_a fldbind class_field_binding))
-			(let ( (fldata (unsafe_get_field :flbind_fdata fldbind))
-			       (flsymdata (normal_symbol_data fldsym ncx sloc))
-			       (flexpval (make_instance class_nrep_exportval
-						      :nrep_loc sloc
-						      :nexp_symdata flsymdata
-						      :nexp_valdata fldata))
+	     (debug_msg nclav "normexp_export_class nclav")
+	     (assert_msg "check xclass" (is_a xclass class_class))
+	     (let ( (xclfields (unsafe_get_field :class_fields xclass)) 
+		    )
+	       (multiple_every
+		xclfields
+		(lambda (curfld :long ix)
+		  (assert_msg "check curfld" (is_a curfld class_field))
+		  (let ( (fldnam (unsafe_get_field :named_name curfld))
+			 (fldclass (unsafe_get_field :fld_ownclass curfld)) )
+		    ;; export as value each field belonging to this class
+		    (if (== fldclass xclass)
+			(let ( (fldsym (get_symbolstr fldnam))
+			       (fldbind (find_env env fldsym))
 			       )
-			    (assert_msg "check flsymdata" (is_a flsymdata class_nrep_datasymbol))
-			    (assert_msg "check fldata" (is_a fldata class_nrep_datainstance))
-			    (list_append iniexpvals flexpval)
-			    (debug_msg flexpval "normexp_export_class appended field flexpval")
-			  )))
-		  )))
-	     )
-	   (return)
-	   ))))
+			  (assert_msg "check fldbind" (is_a fldbind class_field_binding))
+			  (let ( (fldata (unsafe_get_field :flbind_fdata fldbind))
+				 (nfld (normal_exported_value fldsym fldata nvaluexporter env ncx sloc bindslist))
+				 )
+			    (debug_msg nfld "normexp_export_class nfld")
+			    ))))))))))
+       ))
+    (debug_msg bindslist "normexp_export_class final bindslist")
+    (return () bindslist)
     ))
 (install_method class_src_export_class normal_exp normexp_export_class)
 
@@ -11233,8 +11103,7 @@
   (debug_msg ipro "compile2obj_initproc ipro")
   (debug_msg compicache "compile2obj_initproc compicache")
   (let ((locmap (make_mapobject discr_mapobjects 50))
-	(iexpvals (unsafe_get_field :ninit_expval ipro))
-	(iexpmacros (unsafe_get_field :ninit_expmacro ipro))
+	(iexpmacros (compile_warning "obsolete iexpmacros" (unsafe_get_field :ninit_expmacro ipro)))
 	(oinibody (make_list discr_list))
 	(oinitrout
 	 (make_instance class_initialroutineobj
@@ -11446,32 +11315,6 @@
 	  ;; get the macro exporter
 	  (getsysd omacroexporter sysdata_macro_exporter "invalid macro exporter")
 	  )
-	;; process value (& class) exports
-	(debug_msg iexpvals "compile2obj_initproc iexpvals")
-	(list_every 
-	 iexpvals
-	 (lambda (curexpval)
-	   (debug_msg curexpval "compile2obj_initproc curexpval")
-	   (assert_msg "check curexpval" (is_a curexpval class_nrep_exportval))
-	   (let ((curexploc (unsafe_get_field :nrep_loc curexpval))
-		 (curexsyda (unsafe_get_field :nexp_symdata curexpval))
-		 (curexvada (unsafe_get_field :nexp_valdata curexpval))
-		 (osydat (compile_obj curexsyda gcx))
-		 (ovadat (compile_obj curexvada gcx))
-		 )
-	     (debug_msg osydat "compile2obj_initproc osydat")
-	     (debug_msg ovadat "compile2obj_initproc ovadat")
-	     ;; emit application of ovalueexporter on osydat ovadat retloc
-	     (let ( (oapp
-		     (make_instance class_objapply
-				    :obi_loc curexploc
-				    :obdi_destlist ()
-				    :obapp_clos ovalueexporter
-				    :obapp_args (make_tuple3 discr_multiple osydat ovadat retloc)))
-		    )
-	       (debug_msg oapp "compile2obj_initproc exportvalue oapp")
-	       (list_append oinibody oapp)
-	       ))))
 	;; process macro exports
 	(list_every
 	 iexpmacros
