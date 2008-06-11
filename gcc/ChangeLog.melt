@@ -1,5 +1,10 @@
 2008-06-11  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt/warm-basilys.bysl: adding normal_exported_value &
+	normal_value_exporter to ease normalization of values
+
+2008-06-11  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt/warm-basilys.bysl: export_value renamed as export_values.
 	compilefile uses the current module environment if the previous
 	was non nil or else the initial_environment

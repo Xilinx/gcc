@@ -8208,6 +8208,101 @@
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;;;;; (export_values v ...) 
+;; is equivalent to
+;;;;;; let  _valuexporter = the_system_data.sysdata_value_exporter 
+;;;;;; then _quotev = 'v
+;;;;;; then _norm_v = v
+;;;;;; then _curenv = (current_module_environment)
+;;;;;; then :void _exported_v = _valueexporter _quotev _norm_v 
+;;;;;; in _exported_v
+;; where _valuexporter _quotev _norm_v _exported_v are fresh variables 
+;; and the_system_data is accessed using predef-s
+
+;;; internal function giving a normalized cloned symbol for the value exporter
+;;; return only one result, and update the bindslist
+(defun normal_value_exporter (env ncx psloc bindslist)
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check bindslist" (is_list bindslist))
+  (assert_msg "check ncx" (is_a ncx class_normcontext))
+  (let ( (csymvalexp (clone_symbol '_valuexporter_))
+	 (nsysdat (make_instance class_nrep_predef
+				 :nrep_loc psloc
+				 :nrpredef 'INITIAL_SYSTEM_DATA))
+	 (cbind (make_instance class_normlet_binding
+			       :letbind_loc psloc
+			       :binder csymvalexp
+			       :letbind_type ctype_value
+			       :letbind_expr (make_instance class_nrep_unsafe_get_field
+							    :nrep_loc psloc
+							    :nuget_obj nsysdat
+							    :nuget_field sysdata_value_exporter)))
+	 (locsym (make_instance class_nrep_locsymocc
+				:nrep_loc psloc
+				:nocc_ctyp ctype_value
+				:nocc_symb csymvalexp
+				:nocc_bind cbind))
+	 )
+    (list_append bindslist cbind)
+    (return locsym)
+    ))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; internal function for value export
+;;
+;;; sym is the exported symbol
+;;
+;;; nexp is the normalized expression of its value
+;;
+;;; nvalueexp is the normalized expression of the value exporter given
+;;; by normal_value_exporter above
+(defun normal_exported_value (sym nexp nvaluexp env ncx psloc bindslist)
+  (debug_msg sym "normal_exported_value start sym")
+  (debug_msg nexp "normal_exported_value start nexp")
+  (debug_msg nvaluexp "normal_exported_value start nvaluexp")
+  (assert_msg "check sym" (is_a sym class_symbol))
+  (assert_msg "check nexp" (is_a nexp class_nrep))
+  (assert_msg "check nvaluexp" (is_a nvaluexp class_nrep))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check ncx" (is_a ncx class_normcontext))
+  (assert_msg "check bindslist" (is_list bindslist))
+  (let ( (csymexpo (clone_symbol '_exported_))
+	 (symdata (normal_symbol_data sym ncx psloc))
+	 (scurenvx (make_instance class_src_current_module_environment
+				  :src_loc psloc))
+	 )
+    (debug_msg scurenvx "normal_exported_value scurenvx")
+    (multicall 
+     (ncurenv curenvbinds)
+     ;; we call directly the normalization of the created (current_module_environment) expr
+     (normexp_current_module_environment scurenvx env ncx psloc)
+     (debug_msg ncurenv "normal_exported_value ncurenv")
+     (debug_msg curenvbinds "normal_exported_value curenvbinds")
+     (list_append2list bindslist curenvbinds)
+     (let (
+	   (cbind (make_instance class_normlet_binding
+				 :letbind_loc psloc
+				 :binder csymexpo
+				 :letbind_type ctype_void
+				 :letbind_expr (make_instance class_nrep_apply
+							      :nrep_loc psloc
+							      :napp_fun nvaluexp
+							      :napp_args (make_tuple3 discr_multiple symdata nexp ncurenv))))
+	   (syocc (make_instance class_nrep_locsymocc
+				 :nrep_loc psloc
+				 :nocc_ctyp ctype_void 
+				 :nocc_symb csymexpo
+				 :nocc_bind cbind) )
+	   )
+       (debug_msg cbind "normal_exported_value cbind")
+       (debug_msg syocc "normal_exported_value return syocc")
+       (list_append bindslist cbind)
+       syocc
+       ;;
+       ))))
+
+
 ;;;; normalize an export_values
 (defun normexp_export_values (recv env ncx psloc)
   (compile_warning "export_values could be simpler -- see comment" ())
@@ -8215,7 +8310,8 @@
   ;; export of a symbol should be expanded as the invocation of the
   ;; value exporter on the current module environment. we don't need
   ;; anything special in the initproc for the export.
-
+;;;; this implies that a locally let-bound symbol could be passed to
+;;;; export_values, some kind of strange practice.
   (assert_msg "check exportval recv" (is_a recv class_src_export_values))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normcontext))
