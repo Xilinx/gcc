@@ -873,14 +873,20 @@ is_bb_addable (basic_block bb, struct loop *outermost_loop,
 	  bb_addable &= build_scops_1 (dom_bb, &tmp_scops, loop, outermost_loop,
                                        last, &bb_simple_tmp);
           *bb_simple &= bb_simple_tmp; 
-          next_tmp = VEC_last (edge, (*last)->succs)->dest;
-                  
+          
           /* Checks, if all branches end at the same point. If that is true, the
              condition stays joinable.  */
-          if (!last_bb)
-            last_bb = next_tmp;
+          if (*last &&  VEC_length (edge, (*last)->succs) == 1)
+            {
+              next_tmp = VEC_last (edge, (*last)->succs)->dest;
+                  
+              if (!last_bb)
+                last_bb = next_tmp;
 
-          if (next_tmp != last_bb)
+              if (next_tmp != last_bb)
+                *bb_simple = false;
+            }
+          else
             *bb_simple = false;
         }
 
