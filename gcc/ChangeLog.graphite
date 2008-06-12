@@ -1,5 +1,9 @@
 2008-06-12  Tobias Grosser  <grosser@fim.uni-passau.de>
 
+	* graphite.c (end_scop): Style fix.
+	(schedule_to_scattering): Style and comment fix.
+
+2008-06-12  Tobias Grosser  <grosser@fim.uni-passau.de>
 	* graphite.c (print_graphite_bb): Fix definiton of
 	schedule_to_scattering.
 	(initialize_cloog_names): Change nb_scattdims to max loop

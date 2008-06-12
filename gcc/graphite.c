@@ -949,8 +949,7 @@ end_scop (scop_p scop, basic_block exit, basic_block *last, tree stmt)
 {
   /* XXX: Disable bb splitting, contains a bug (SIGSEGV in polyhedron
      aermod.f90).  */
-  if (0)
-  if (stmt && VEC_length (edge, exit->preds) == 1)
+  if (0 && stmt && VEC_length (edge, exit->preds) == 1)
     {
       edge e;
 
@@ -1823,7 +1822,13 @@ setup_cloog_loop (scop_p scop, struct loop *loop, CloogMatrix *outer_cstr,
 }
 
 /* Converts the graphite scheduling function into a cloog scattering
-   function matrix, which restores the original control flow.  */
+   matrix.  This scattering matrix is used to limit the possible cloog
+   output to valid programs in respect to the scheduling function. 
+
+   SCATTERING_DIMENSIONS specifies the dimensionality of the scattering
+   matrix. CLooG 0.14.0 and previous versions require, that all scattering
+   functions of one CloogProgram have the same dimensionality, therefore we
+   allow to specify it. (Should be removed in future versions.  */
 
 static CloogMatrix *
 schedule_to_scattering (graphite_bb_p gb, int scattering_dimensions) 
@@ -1832,14 +1837,6 @@ schedule_to_scattering (graphite_bb_p gb, int scattering_dimensions)
   scop_p scop = GBB_SCOP (gb);
   struct loop *loop;
 
-  /* For all bb in the same SCoP the scattering functions must have the same
-     dimensionality. So we always use a scattering function, that is large
-     enough for every bb of this SCoP.
-     (this is a CLooG 0.14.0 and previous versions requirement, it
-     should be removed in a future version). 
-
-     XXX: max_nb_iterators: The maximal possible loop depth in this SCoP
-     would be sufficient.  */
   int nb_iterators = nb_loops_around_gb (gb);
 
   /* The cloog scattering matrix consists of these colums:
@@ -1872,7 +1869,7 @@ schedule_to_scattering (graphite_bb_p gb, int scattering_dimensions)
 
   CloogMatrix *scat = cloog_matrix_alloc (scattering_dimensions, nb_cols);
 
-  assert (scattering_dimensions >= nb_iterators * 2 + 1);
+  gcc_assert (scattering_dimensions >= nb_iterators * 2 + 1);
 
   /* Initialize the identity matrix.  */
   for (i = 0; i < scattering_dimensions; i++)
