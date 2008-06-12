@@ -1,3 +1,8 @@
+2008-06-12  Tobias Grosser  <grosser@fim.uni-passau.de>
+
+	* graphite.c (end_scop): Disable bb splitting. Fixes SIGSEGV
+	in polyhedron/aermod.f90.
+
 2008-06-11  Tobias Grosser  <grosser@fim.uni-passau.de>
             Dwarak Rajagopal  <dwarak.rajagopal@amd.com>
             Harsha Jagasia  <harsha.jagasia@amd.com>

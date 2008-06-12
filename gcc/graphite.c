@@ -943,6 +943,9 @@ is_bb_addable (basic_block bb, struct loop *outermost_loop,
 static void
 end_scop (scop_p scop, basic_block exit, basic_block *last, tree stmt)
 {
+  /* XXX: Disable bb splitting, contains a bug (SIGSEGV in polyhedron
+     aermod.f90).  */
+  if (0)
   if (stmt && VEC_length (edge, exit->preds) == 1)
     {
       edge e;
