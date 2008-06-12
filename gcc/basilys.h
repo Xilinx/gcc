@@ -2118,6 +2118,15 @@ extern basilys_ptr_t basilys_jmpval;
 } while(0)
 #define BASILYS_INITFRAME(NBVAR,CLOS) BASILYS_INITFRAME_AT(NBVAR,CLOS,__FILE__,__LINE__)
 #define BASILYS_LOCATION(LOCS) do{curfram__.flocs= LOCS;}while(0)
+
+#define BASILYS_LOCATION_HERE_AT(FIL,LIN,MSG) do {			\
+  static char locbuf_##LIN[72];						\
+  if (!locbuf_##LIN[0])							\
+    snprintf(locbuf_##LIN, sizeof(locbuf_##LIN)-1, "%s:%d <%s>",	\
+	     basename(FIL), (int)LIN, MSG);				\
+  curfram__.flocs =  locbuf_##LIN;					\
+} while(0)
+#define BASILYS_LOCATION_HERE(MSG)  BASILYS_LOCATION_HERE_AT(__FILE__,__LINE__,MSG)
 #else
 #define BASILYS_DECLFRAME(NBVAR) struct {	\
   unsigned nbvar;				\
@@ -2127,6 +2136,7 @@ extern basilys_ptr_t basilys_jmpval;
   void*  /* a basilys_ptr_t */ varptr[NBVAR];	\
 } curfram__
 #define BASILYS_LOCATION(LOCS) do{}while(0)
+#define BASILYS_LOCATION_HERE(MSG) do{}while(0)
 /* initialize the current callframe and link it at top */
 #define BASILYS_INITFRAME(NBVAR,CLOS) do {	\
   memset(&curfram__, 0, sizeof(curfram__));	\

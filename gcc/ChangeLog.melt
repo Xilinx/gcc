@@ -1,4 +1,24 @@
 2008-06-12  Basile Starynkevitch  <basile@starynkevitch.net>
+[beginning to split warm-basilys.bysl into several files using
+export...; not yet working!]
+
+	* basilys.h: added BASILYS_LOCATION_HERE macro.
+
+	* basilys.c: (basilysgc_compile_dyn) using BASILYS_LOCATION_HERE
+	(load_basilys_modules_and_do_command) sets dump_file to stderr
+	earlier and uses BASILYS_LOCATION_HERE, so now debug_msg works in
+	warm-basilys.bysl even at initialization!
+
+	* melt/warm-basilys.bysl: moved some stuff. better debug_msg_fun.
+
+	* Makefile.in: added awk script to split warm-basilys.bysl into
+	several files warmelt-first.bysl warmelt-macro.bysl
+	warmelt-normal.bysl warmelt-genobj.bysl. Added commented target
+	warmelt-macro.so
+
+	* warm-basilys-0.c: regenerated.
+
+2008-06-12  Basile Starynkevitch  <basile@starynkevitch.net>
 	* common.opt: added fbasilys-debugskip= option.
 
 	* basilys.c: (load_basilys_modules_and_do_command) on non MsDos

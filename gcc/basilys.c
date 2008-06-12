@@ -4359,6 +4359,7 @@ basilysgc_compile_dyn (basilys_ptr_t modata_p, const char *modfile)
      no dynlib is found, we have to compile the generated C source.
   **/
   /* check the plain stuff path directly */
+  BASILYS_LOCATION_HERE("basilysgc_compile_dyn before load_checked_dylib plain");
   dlh = load_checked_dylib (plainstuffpath, md5src);
   if (dlh)
     goto dylibfound;
@@ -4370,6 +4371,7 @@ basilysgc_compile_dyn (basilys_ptr_t modata_p, const char *modfile)
   if (basilys_dynlibdir_string && basilys_dynlibdir_string[0])
     {
       tmpath = concat (basilys_dynlibdir_string, "/", plainstuffpath, NULL);
+      BASILYS_LOCATION_HERE("basilysgc_compile_dyn before load_checked_dylib pathed");
       dlh = load_checked_dylib (tmpath, md5src);
       if (dlh)
 	{
@@ -4381,6 +4383,7 @@ basilysgc_compile_dyn (basilys_ptr_t modata_p, const char *modfile)
     }
   /* check in the builtin melt dynamic lib directory */
   tmpath = concat (melt_dynlib_dir, "/", plainstuffpath, NULL);
+  BASILYS_LOCATION_HERE("basilysgc_compile_dyn before load_checked_dylib builtin");
   dlh = load_checked_dylib (tmpath, md5src);
   if (dlh)
     {
@@ -4391,6 +4394,7 @@ basilysgc_compile_dyn (basilys_ptr_t modata_p, const char *modfile)
   free (tmpath);
   /* check in the temporary directory */
   tmpath = basilys_tempdir_path (plainstuffpath);
+  BASILYS_LOCATION_HERE("basilysgc_compile_dyn before load_checked_dylib tmpath");
   dlh = tmpath ? load_checked_dylib (tmpath, md5src) : NULL;
   if (dlh)
     {
@@ -4403,6 +4407,7 @@ basilysgc_compile_dyn (basilys_ptr_t modata_p, const char *modfile)
   if (md5src)
     {
       tmpath = concat ("./", plainstuffpath, NULL);
+      BASILYS_LOCATION_HERE("basilysgc_compile_dyn before load_checked_dylib src");
       dlh = load_checked_dylib (tmpath, md5src);
       if (dlh)
 	{
@@ -4419,6 +4424,7 @@ basilysgc_compile_dyn (basilys_ptr_t modata_p, const char *modfile)
       compile_to_dyl (srcpath, tmpath);
       debugeprintf ("basilysgc_compile srcpath=%s compiled to tmpath=%s",
 		    srcpath, tmpath);
+      BASILYS_LOCATION_HERE("basilysgc_compile_dyn before load_checked_dylib compiled tmpath");
       dlh = load_checked_dylib (tmpath, md5src);
       if (dlh)
 	{
@@ -4441,7 +4447,9 @@ dylibfound:
   debugeprintf
     ("basilysgc_compile before calling start_module_basilys @%p",
      (void *) dlsy);
+  BASILYS_LOCATION_HERE("basilysgc_compile_dyn before calling module");
   modulv = (*starout) (mdatav);
+  BASILYS_LOCATION_HERE("basilysgc_compile_dyn after calling module");
   debugeprintvalue ("modulv after calling start_module_basilys", modulv);
   debugeprintf("basilysgc_compile_dyn returns modulv %p", (void*) modulv);
   /* we never free  plainstuffpath and we never release the shared library! */
@@ -4829,6 +4837,7 @@ basilysgc_intern_symbol (basilys_ptr_t symb_p)
       union basilysparam_un pararg[1];
       memset (&pararg, 0, sizeof (pararg));
       pararg[0].bp_aptr = (basilys_ptr_t *) & symbv;
+      BASILYS_LOCATION_HERE("intern symbol before apply");
       resv =
 	basilys_apply (closv, BASILYSG (TOKENIZER), BPARSTR_PTR,
 		       pararg, "", NULL);
@@ -4880,6 +4889,7 @@ basilysgc_intern_keyword (basilys_ptr_t keyw_p)
       union basilysparam_un pararg[1];
       memset (&pararg, 0, sizeof (pararg));
       pararg[0].bp_aptr = (basilys_ptr_t *) & keywv;
+      BASILYS_LOCATION_HERE("intern keyword before apply");
       resv =
 	basilys_apply (closv, BASILYSG (TOKENIZER), BPARSTR_PTR,
 		       pararg, "", NULL);
@@ -5581,6 +5591,7 @@ do_initial_command (basilys_ptr_t modata_p)
       }
     pararg[2].bp_aptr = (basilys_ptr_t *) & modatav;
     debugeprintf ("do_initial_command before apply closv %p", closv);
+    BASILYS_LOCATION_HERE("do_initial_command before apply");
     (void) basilys_apply (closv,
 			  BASILYSG
 			  (INITIAL_SYSTEM_DATA),
@@ -5618,6 +5629,14 @@ load_basilys_modules_and_do_command (void)
   if (!basilys_init_string || !basilys_init_string[0])
     fatal_error ("no initial basilys modules given");
   dupmodpath = xstrdup (basilys_init_string);
+  if (flag_basilys_debug)
+    {
+      fflush (stderr);
+#define modatv curfram__.varptr[0]
+      debugeprintf ("load_initial_basilys_modules sets dump_file to stderr");
+      dump_file = stderr;
+      fflush (stderr);
+    }
 #if ENABLE_CHECKING
   if (flag_basilys_debug)
     {
@@ -5658,6 +5677,7 @@ load_basilys_modules_and_do_command (void)
 	  nextmod++;
 	}
       debugeprintf ("load_initial_basilys_modules curmod %s before", curmod);
+      BASILYS_LOCATION_HERE("load_initial_basilys_modules before compile_dyn");
       modatv = basilysgc_compile_dyn (modatv, curmod);
       debugeprintf ("load_initial_basilys_modules curmod %s loaded modatv %p", curmod, (void*)modatv);
       curmod = nextmod;
@@ -5679,17 +5699,12 @@ load_basilys_modules_and_do_command (void)
 	("load_basilys_modules_and_do_command sets exit_after_options for command %s",
 	 basilys_command_string);
       exit_after_options = 1;
-      if (flag_basilys_debug)
-	{
-	  fflush (stderr);
-	  dump_file = stderr;
-	  fflush (stderr);
-	}
+      BASILYS_LOCATION_HERE("load_initial_basilys_modules before do_initial_command");
       do_initial_command (modatv);
       debugeprintf
 	("load_basilys_modules_and_do_command after do_initial_command (will exit after options) command_string %s",
 	 basilys_command_string);
-      if (dump_file)
+      if (dump_file == stderr && flag_basilys_debug)
 	{
 	  debugeprintf
 	    ("load_basilys_modules_and_do_command dump_file cleared was %p",
