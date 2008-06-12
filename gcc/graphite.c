@@ -49,7 +49,8 @@ Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
 VEC (scop_p, heap) *current_scops;
 
 static tree harmful_stmt_in_bb (struct loop *outermost_loop, basic_block);
-static CloogMatrix *schedule_to_scattering (graphite_bb_p);
+static CloogMatrix *schedule_to_scattering (graphite_bb_p, int);
+static inline int nb_loops_around_gb (graphite_bb_p gb);
 
 /* Returns a new loop_to_cloog_loop_str structure.  */
 
@@ -113,7 +114,10 @@ print_graphite_bb (FILE *file, graphite_bb_p gb, int indent, int verbosity)
     dump_data_references (file, GBB_DATA_REFS (gb));
 
   fprintf (file, "       (scattering: \n");
-  cloog_matrix_print (file, schedule_to_scattering (gb));
+  cloog_matrix_print (file,
+                      schedule_to_scattering (gb, 2 * nb_loops_around_gb (gb)
+                                                 + 1));
+                                                    
   fprintf (file, "       )\n");
 
   fprintf (file, ")\n");
@@ -1508,7 +1512,7 @@ initialize_cloog_names (scop_p scop)
   unsigned i, nb_params = VEC_length (name_tree, SCOP_PARAMS (scop));
   char **params = XNEWVEC (char *, nb_params);
   unsigned nb_iterators = scop_nb_loops(scop);
-  unsigned nb_scattering= scop_nb_loops(scop) * 2 + 1;
+  unsigned nb_scattering= SCOP_PROG (scop)->nb_scattdims;
   char **iterators = XNEWVEC (char *, nb_iterators);
   char **scattering = XNEWVEC (char *, nb_scattering);
   name_tree p;
@@ -1822,7 +1826,7 @@ setup_cloog_loop (scop_p scop, struct loop *loop, CloogMatrix *outer_cstr,
    function matrix, which restores the original control flow.  */
 
 static CloogMatrix *
-schedule_to_scattering (graphite_bb_p gb) 
+schedule_to_scattering (graphite_bb_p gb, int scattering_dimensions) 
 {
   int i;
   scop_p scop = GBB_SCOP (gb);
@@ -1836,9 +1840,7 @@ schedule_to_scattering (graphite_bb_p gb)
 
      XXX: max_nb_iterators: The maximal possible loop depth in this SCoP
      would be sufficient.  */
-  int max_nb_iterators = scop_nb_loops (scop);
   int nb_iterators = nb_loops_around_gb (gb);
-  int scattering_dimensions = max_nb_iterators * 2 + 1;
 
   /* The cloog scattering matrix consists of these colums:
      1                        col  = Eq/Inq,
@@ -1869,6 +1871,8 @@ schedule_to_scattering (graphite_bb_p gb)
   int col_iter_offset = 1 + scattering_dimensions;
 
   CloogMatrix *scat = cloog_matrix_alloc (scattering_dimensions, nb_cols);
+
+  assert (scattering_dimensions >= nb_iterators * 2 + 1);
 
   /* Initialize the identity matrix.  */
   for (i = 0; i < scattering_dimensions; i++)
@@ -2311,11 +2315,23 @@ static void
 build_cloog_prog (scop_p scop)
 {
   int i;
+  int max_nb_loops = 0;
   graphite_bb_p gbb;
   CloogLoop *loop_list = NULL;
   CloogBlockList *block_list = NULL;
   CloogDomainList *scattering = NULL;
   CloogProgram *prog = SCOP_PROG (scop);
+  
+  for (i = 0; VEC_iterate (graphite_bb_p, SCOP_BBS (scop), i, gbb); i++)
+    {
+      int nb_loops = nb_loops_around_gb (gbb);
+      if (max_nb_loops < nb_loops)
+        max_nb_loops = nb_loops;
+    }
+
+  prog->nb_scattdims = 2 * max_nb_loops + 1; 
+
+  initialize_cloog_names (scop);
 
   for (i = 0; VEC_iterate (graphite_bb_p, SCOP_BBS (scop), i, gbb); i++)
     {
@@ -2351,7 +2367,7 @@ build_cloog_prog (scop_p scop)
       /* XXX: Unused cloog field.  Not necessary for scattering. Just here
          during developement to document this.  Should be removed in future gcc
          and cloog versions.  */
-      block->scattering = schedule_to_scattering (gbb);
+      block->scattering = schedule_to_scattering (gbb, prog->nb_scattdims);
 
       /* Build scattering list.  */
       {
@@ -2365,7 +2381,6 @@ build_cloog_prog (scop_p scop)
 
   prog->loop = loop_list;
   prog->blocklist = block_list;
-  prog->nb_scattdims = 2 * scop_nb_loops (scop) + 1;
   prog->scaldims = (int *) xmalloc (prog->nb_scattdims * (sizeof (int)));
 
   /* XXX: Work around some libcloog shortcomings.  Cedric will integrate this

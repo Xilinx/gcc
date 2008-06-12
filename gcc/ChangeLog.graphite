@@ -1,5 +1,16 @@
 2008-06-12  Tobias Grosser  <grosser@fim.uni-passau.de>
 
+	* graphite.c (print_graphite_bb): Fix definiton of
+	schedule_to_scattering.
+	(initialize_cloog_names): Change nb_scattdims to max loop
+	depth in SCoP.
+	(schedule_to_scattering): Take parameter for number of scattering
+	dimensions.
+	(build_cloog_prog): Only build as much scattering dimensions as
+	necessary.
+
+2008-06-12  Tobias Grosser  <grosser@fim.uni-passau.de>
+
 	* graphite.c (end_scop): Disable bb splitting. Fixes SIGSEGV
 	in polyhedron/aermod.f90.
 
