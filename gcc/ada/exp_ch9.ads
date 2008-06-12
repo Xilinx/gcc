@@ -58,6 +58,11 @@ package Exp_Ch9 is
    --  build record declaration. N is the type declaration, Ctyp is the
    --  concurrent entity (task type or protected type).
 
+   function Build_Entry_Names (Conc_Typ : Entity_Id) return Node_Id;
+   --  Create the statements which populate the entry names array of a task or
+   --  protected type. The statements are wrapped inside a block due to a local
+   --  declaration.
+
    procedure Build_Master_Entity (E : Entity_Id);
    --  Given an entity E for the declaration of an object containing tasks
    --  or of a type declaration for an allocator whose designated type is a
@@ -158,17 +163,15 @@ package Exp_Ch9 is
 
    function Convert_Concurrent
      (N    : Node_Id;
-      Typ  : Entity_Id)
-      return Node_Id;
-   --  N is an expression of type Typ. If the type is not a concurrent
-   --  type then it is returned unchanged. If it is a task or protected
-   --  reference, Convert_Concurrent creates an unchecked conversion node
-   --  from this expression to the corresponding concurrent record type
-   --  value. We need this in any situation where the concurrent type is
-   --  used, because the actual concurrent object is an object of the
-   --  corresponding concurrent type, and manipulations on the concurrent
-   --  object actually manipulate the corresponding object of the record
-   --  type.
+      Typ  : Entity_Id) return Node_Id;
+   --  N is an expression of type Typ. If the type is not a concurrent type
+   --  then it is returned unchanged. If it is a task or protected reference,
+   --  Convert_Concurrent creates an unchecked conversion node from this
+   --  expression to the corresponding concurrent record type value. We need
+   --  this in any situation where the concurrent type is used, because the
+   --  actual concurrent object is an object of the corresponding concurrent
+   --  type, and manipulations on the concurrent object actually manipulate the
+   --  corresponding object of the record type.
 
    function Entry_Index_Expression
      (Sloc  : Source_Ptr;

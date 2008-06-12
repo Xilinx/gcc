@@ -1278,7 +1278,8 @@ package body Sem_Attr is
            and then Convention (Etype (P)) = Convention_CPP
            and then Is_CPP_Class (Root_Type (Etype (P)))
          then
-            Error_Attr_P ("invalid use of % attribute with CPP tagged type");
+            Error_Attr_P
+              ("invalid use of % attribute with 'C'P'P tagged type");
          end if;
       end Check_Not_CPP_Type;
 
@@ -1459,6 +1460,14 @@ package body Sem_Attr is
          Etyp : Entity_Id;
          Btyp : Entity_Id;
 
+         In_Shared_Var_Procs : Boolean;
+         --  True when compiling the body of System.Shared_Storage.
+         --  Shared_Var_Procs. For this runtime package (always compiled in
+         --  GNAT mode), we allow stream attributes references for limited
+         --  types for the case where shared passive objects are implemented
+         --  using stream attributes, which is the default in GNAT's persistent
+         --  storage implementation.
+
       begin
          Validate_Non_Static_Attribute_Function_Call;
 
@@ -1492,7 +1501,19 @@ package body Sem_Attr is
          --  in Ada 2005 mode), or a pragma Stream_Convert applies to Btyp
          --  (with no visibility restriction).
 
-         if Comes_From_Source (N)
+         declare
+            Gen_Body : constant Node_Id := Enclosing_Generic_Body (N);
+         begin
+            if Present (Gen_Body) then
+               In_Shared_Var_Procs :=
+                 Is_RTE (Corresponding_Spec (Gen_Body), RE_Shared_Var_Procs);
+            else
+               In_Shared_Var_Procs := False;
+            end if;
+         end;
+
+         if (Comes_From_Source (N)
+              and then not (In_Shared_Var_Procs or In_Instance))
            and then not Stream_Attribute_Available (P_Type, Nam)
            and then not Has_Rep_Pragma (Btyp, Name_Stream_Convert)
          then
@@ -3480,6 +3501,75 @@ package body Sem_Attr is
             Error_Attr ("attribute % cannot apply to limited objects", P);
          end if;
 
+         if Is_Entity_Name (P)
+           and then Is_Constant_Object (Entity (P))
+         then
+            Error_Msg_N
+              ("?attribute Old applied to constant has no effect", P);
+         end if;
+
+         --  Check that the expression does not refer to local entities
+
+         Check_Local : declare
+            Subp : Entity_Id := Current_Subprogram;
+
+            function Process (N : Node_Id) return Traverse_Result;
+            --  Check that N does not contain references to local variables
+            --  or other local entities of Subp.
+
+            -------------
+            -- Process --
+            -------------
+
+            function Process (N : Node_Id) return Traverse_Result is
+            begin
+               if Is_Entity_Name (N)
+                 and then not Is_Formal (Entity (N))
+                 and then Enclosing_Subprogram (Entity (N)) = Subp
+               then
+                  Error_Msg_Node_1 := Entity (N);
+                  Error_Attr
+                    ("attribute % cannot refer to local variable&", N);
+               end if;
+
+               return OK;
+            end Process;
+
+            procedure Check_No_Local is new Traverse_Proc;
+
+         --  Start of processing for Check_Local
+
+         begin
+            Check_No_Local (P);
+
+            if In_Parameter_Specification (P) then
+
+               --  We have additional restrictions on using 'Old in parameter
+               --  specifications.
+
+               if Present (Enclosing_Subprogram (Current_Subprogram)) then
+
+                  --  Check that there is no reference to the enclosing
+                  --  subprogram local variables. Otherwise, we might end
+                  --  up being called from the enclosing subprogram and thus
+                  --  using 'Old on a local variable which is not defined
+                  --  at entry time.
+
+                  Subp := Enclosing_Subprogram (Current_Subprogram);
+                  Check_No_Local (P);
+
+               else
+                  --  We must prevent default expression of library-level
+                  --  subprogram from using 'Old, as the subprogram may be
+                  --  used in elaboration code for which there is no enclosing
+                  --  subprogram.
+
+                  Error_Attr
+                    ("attribute % can only appear within subprogram", N);
+               end if;
+            end if;
+         end Check_Local;
+
       ------------
       -- Output --
       ------------
@@ -5151,6 +5241,7 @@ package body Sem_Attr is
          --  subtype then get the type from the initial value. If the value has
          --  been expanded into assignments, there is no expression and the
          --  attribute reference remains dynamic.
+
          --  We could do better here and retrieve the type ???
 
          if Ekind (P_Entity) = E_Constant
@@ -7999,6 +8090,70 @@ package body Sem_Attr is
 
             if Is_Entity_Name (P) then
                Set_Address_Taken (Entity (P));
+            end if;
+
+            if Nkind (P) = N_Slice then
+
+               --  Arr (X .. Y)'address is identical to Arr (X)'address,
+               --  even if the array is packed and the slice itself is not
+               --  addressable. Transform the prefix into an indexed component.
+
+               --  Note that the transformation is safe only if we know that
+               --  the slice is non-null. That is because a null slice can have
+               --  an out of bounds index value.
+
+               --  Right now, gigi blows up if given 'Address on a slice as a
+               --  result of some incorrect freeze nodes generated by the front
+               --  end, and this covers up that bug in one case, but the bug is
+               --  likely still there in the cases not handled by this code ???
+
+               --  It's not clear what 'Address *should* return for a null
+               --  slice with out of bounds indexes, this might be worth an ARG
+               --  discussion ???
+
+               --  One approach would be to do a length check unconditionally,
+               --  and then do the transformation below unconditionally, but
+               --  analyze with checks off, avoiding the problem of the out of
+               --  bounds index. This approach would interpret the address of
+               --  an out of bounds null slice as being the address where the
+               --  array element would be if there was one, which is probably
+               --  as reasonable an interpretation as any ???
+
+               declare
+                  Loc : constant Source_Ptr := Sloc (P);
+                  D   : constant Node_Id := Discrete_Range (P);
+                  Lo  : Node_Id;
+
+               begin
+                  if Is_Entity_Name (D)
+                    and then
+                      Not_Null_Range
+                        (Type_Low_Bound (Entity (D)),
+                         Type_High_Bound (Entity (D)))
+                  then
+                     Lo :=
+                       Make_Attribute_Reference (Loc,
+                          Prefix => (New_Occurrence_Of (Entity (D), Loc)),
+                          Attribute_Name => Name_First);
+
+                  elsif Nkind (D) = N_Range
+                    and then Not_Null_Range (Low_Bound (D), High_Bound (D))
+                  then
+                     Lo := Low_Bound (D);
+
+                  else
+                     Lo := Empty;
+                  end if;
+
+                  if Present (Lo) then
+                     Rewrite (P,
+                        Make_Indexed_Component (Loc,
+                           Prefix =>  Relocate_Node (Prefix (P)),
+                           Expressions => New_List (Lo)));
+
+                     Analyze_And_Resolve (P);
+                  end if;
+               end;
             end if;
          end Address_Attribute;
 

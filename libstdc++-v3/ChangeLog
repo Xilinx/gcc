@@ -1,9 +1,537 @@
+2008-06-11  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/tr1_impl/hashtable (_Hashtable<>::cbegin(size_type),
+	cend(size_type)): Add per DR 691. 
+	* testsuite/23_containers/unordered_map/requirements/cliterators.cc:
+	New.
+	* testsuite/23_containers/unordered_multimap/requirements/
+	cliterators.cc: Likewise.
+	* testsuite/23_containers/unordered_set/requirements/cliterators.cc:
+	Likewise.
+	* testsuite/23_containers/unordered_multiset/requirements/
+	cliterators.cc: Likewise.
+	* doc/xml/manual/intro.xml: Add an entry for DR 691.
+
+2008-06-11  Matthias Klose  <doko@ubuntu.com>
+
+	* testsuite/30_threads/lock_error, testsuite/30_threads/once_flag:
+	Remove empty directories.
+
+2008-06-07  Joseph Myers  <joseph@codesourcery.com>
+
+	* configure.host (xscale, ep9312, m680[246]0, solaris2.5,
+	solaris2.5.[0-9], solaris2.6, windiss*): Remove.
+	* crossconfig.m4 (*-solaris2.5, *-solaris2.6, *-windiss*): Remove.
+	* configure: Regenerate.
+	* config/os/solaris/solaris2.5: Remove directory.
+	* config/os/solaris/solaris2.6: Remove directory.
+	* config/os/windiss: Remove directory.
+
+2008-06-06  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* doc/xml/manual/using.xml: Outline exception topics.
+
+	* include/ext/pb_ds/detail/binary_heap_/insert_fn_imps.hpp: Format.
+	* include/ext/pb_ds/detail/left_child_next_sibling_heap_/
+	policy_access_fn_imps.hpp: Same.
+	* include/ext/pb_ds/priority_queue.hpp: Same.
+	* include/ext/throw_allocator.h: Same.
+
+	* include/ext/pb_ds/tag_and_trait.hpp (string_tag): New tag.
+	(sequence_tag): New tag. Doxygen markup fixes.
+
+	* testsuite/lib/libstdc++.exp: Remove twister_ran_gen.cc source file.
+
+	* testsuite/performance/ext/pb_ds/text_find_timing.cc: Fix
+	comment typo, include paths, format.
+	* testsuite/performance/ext/pb_ds/tree_text_insert_timing.cc: Same.
+	* testsuite/performance/ext/pb_ds/
+	hash_random_int_erase_mem_usage.cc: Same.
+	* testsuite/performance/ext/pb_ds/
+	random_int_subscript_find_timing.cc: Same.
+	* testsuite/performance/ext/pb_ds/
+	priority_queue_text_push_timing.cc: Same.
+	* testsuite/performance/ext/pb_ds/tree_split_join_timing.cc: Same.
+	* testsuite/performance/ext/pb_ds/random_int_find_timing.cc: Same.
+	* testsuite/performance/ext/pb_ds/multimap_text_insert_mem_usage.hpp
+	* testsuite/performance/ext/pb_ds/multimap_text_find_timing.hpp
+	* testsuite/performance/ext/pb_ds/
+	priority_queue_random_int_push_timing.cc: Same.
+	* testsuite/performance/ext/pb_ds/priority_queue_text_modify_timing.hpp
+	* testsuite/performance/ext/pb_ds/tree_order_statistics_timing.cc: Same.
+	* testsuite/performance/ext/pb_ds/
+	priority_queue_text_push_pop_timing.cc: Same.
+	* testsuite/performance/ext/pb_ds/
+	priority_queue_text_join_timing.cc: Same.
+	* testsuite/performance/ext/pb_ds/
+	priority_queue_random_int_push_pop_timing.cc: Same.
+	* testsuite/performance/ext/pb_ds/
+	random_int_subscript_insert_timing.cc: Same.
+	* testsuite/performance/ext/pb_ds/tree_text_lor_find_timing.cc: Same.
+	* testsuite/performance/ext/pb_ds/multimap_text_insert_timing.hpp
+	* testsuite/performance/ext/pb_ds/
+	priority_queue_text_pop_mem_usage.cc: Same.
+	* testsuite/performance/ext/pb_ds/
+	hash_zlob_random_int_find_timing.cc: Same.
+	* testsuite/ext/pb_ds/regression/hash_data_map_rand.cc: Same.
+	* testsuite/ext/pb_ds/regression/trie_data_map_rand.cc: Same.
+	* testsuite/ext/pb_ds/regression/list_update_no_data_map_rand.cc: Same.
+	* testsuite/ext/pb_ds/regression/tree_no_data_map_rand.cc: Same.
+	* testsuite/ext/pb_ds/regression/list_update_data_map_rand.cc: Same.
+	* testsuite/ext/pb_ds/regression/hash_no_data_map_rand.cc: Same.
+	* testsuite/ext/pb_ds/regression/priority_queue_rand.cc: Same.
+	* testsuite/ext/pb_ds/regression/tree_data_map_rand.cc: Same.
+	* testsuite/ext/pb_ds/regression/trie_no_data_map_rand.cc: Same.
+	* testsuite/util/regression/trait/priority_queue/trait.hpp: Same.
+	* testsuite/util/regression/trait/erase_if_fn.hpp: Same.
+	* testsuite/util/regression/trait/assoc/native_type_trait.hpp: Same.
+	* testsuite/util/regression/trait/assoc/node_update_trait.hpp: Same.
+	* testsuite/util/regression/trait/assoc/get_set_load_trait.hpp: Same.
+	* testsuite/util/regression/trait/assoc/get_set_loads_trait.hpp: Same.
+	* testsuite/util/regression/trait/assoc/trait.hpp: Same.
+	* testsuite/util/regression/trait/assoc/resize_trait.hpp: Same.
+	* testsuite/util/regression/trait/assoc/type_trait.hpp: Same.
+	* testsuite/util/regression/trait/assoc/to_string.hpp: Same.
+	* testsuite/util/regression/basic_type.hpp: Same.
+	* testsuite/util/common_type/priority_queue/string_form.hpp: Same.
+	* testsuite/util/common_type/priority_queue/detail/
+	ds_string_form.hpp: Same.
+	* testsuite/util/common_type/assoc/string_form.hpp: Same.
+	* testsuite/util/common_type/assoc/detail/
+	resize_policy_string_form.hpp: Same.
+	* testsuite/util/common_type/assoc/detail/
+	trigger_policy_string_form.hpp: Same.
+	* testsuite/util/common_type/assoc/detail/
+	comb_hash_fn_string_form.hpp: Same.
+	* testsuite/util/common_type/assoc/detail/ds_string_form.hpp: Same.
+	* testsuite/util/common_type/assoc/detail/
+	size_policy_string_form.hpp: Same.
+	* testsuite/util/common_type/assoc/detail/
+	probe_fn_string_form.hpp: Same.
+	* testsuite/util/common_type/assoc/detail/
+	list_update_policy_string_form.hpp: Same.
+	* testsuite/util/common_type/assoc/detail/
+	store_hash_string_form.hpp: Same.
+	* testsuite/util/common_type/assoc/native_set.hpp: Same.
+	* testsuite/util/io/prog_bar.cc: Same.
+
+	* testsuite/util/regression/rand/io: Remove.
+	* testsuite/util/regression/rand/io/priority_queue: Same.
+	* testsuite/util/regression/rand/io/assoc: Same.
+	* testsuite/util/regression/rand/io/priority_queue/
+	xml_formatter.hpp: Consolidate this...
+	* testsuite/util/regression/rand/io/assoc/xml_formatter.hpp: ...this
+	* testsuite/util/regression/rand/io/xml_formatter.hpp: ... and this
+	* testsuite/util/regression/rand/xml_formatter.hpp: ...here.
+
+	* testsuite/util/regression/rand/priority_queue/
+	container_rand_regression_test.hpp:To ...
+	container_rand_regression_test.h: ... this.
+	* testsuite/util/regression/rand/priority_queue/detail/*.hpp:To ...
+	* testsuite/util/regression/rand/priority_queue/
+	container_rand_regression_test.tcc: ... this.
+	PB_DS_THROW_IF_FAIL: Change to _GLIBCXX_THROW_IF, adjust predicate.
+	PB_DS_SET_DESTRUCT_PRINT: Fold inline.
+	PB_DS_CANCEL_DESTRUCT_PRINT: Fold inline.
+	* testsuite/util/regression/rand/priority_queue/
+	rand_regression_test.hpp: Adjust includes.
+
+	* testsuite/util/regression/rand/assoc/
+	container_rand_regression_test.hpp: To ...
+	* testsuite/util/regression/rand/assoc/
+	container_rand_regression_test.h: ... this.
+	* testsuite/util/regression/rand/assoc/detail/*.hpp:To ...
+	* testsuite/util/regression/rand/assoc/
+	container_rand_regression_test.tcc: ...this.
+	* testsuite/util/regression/rand/assoc/rand_regression_test.hpp: Adjust
+	includes.
+
+	* testsuite/util/regression/priority_queue: Remove.
+	* testsuite/util/regression/assoc: Remove.
+	* testsuite/util/regression/priority_queue/
+	common_type.hpp: Consolidate this...
+	* testsuite/util/regression/assoc/common_type.hpp: ... and this
+	* testsuite/util/regression/common_type.hpp: ...here.
+
+	* testsuite/util/rng: Remove.
+	* testsuite/util/rng/twister_rand_gen.cc: Consolidate...
+	* testsuite/util/rng/twister_rand_gen.hpp: ... and this
+	* testsuite/util/testsuite_rng.h: ...here.
+
+	* testsuite/util/native_type/priority_queue: Remove.
+	* testsuite/util/native_type/priority_queue/
+	native_priority_queue.hpp: To...
+	* testsuite/util/native_type/native_priority_queue.hpp: ...here.
+
+	* testsuite/util/native_type/assoc: Remove.
+	* testsuite/util/native_type/assoc/native_multimap.hpp: To...
+	* testsuite/util/native_type/assoc/native_tree_tag.hpp: To...
+	* testsuite/util/native_type/assoc/native_hash_multimap.hpp: To...
+	* testsuite/util/native_type/assoc/native_set.hpp: To...
+	* testsuite/util/native_type/assoc/native_map.hpp: To...
+	* testsuite/util/native_type/assoc/native_hash_set.hpp: To...
+	* testsuite/util/native_type/assoc/native_hash_tag.hpp: To...
+	* testsuite/util/native_type/assoc/native_hash_map.hpp: To...
+	* testsuite/util/native_type/native_multimap.hpp: ...here.
+	* testsuite/util/native_type/native_tree_tag.hpp: ...here.
+	* testsuite/util/native_type/native_hash_multimap.hpp: ...here.
+	* testsuite/util/native_type/native_set.hpp: ...here.
+	* testsuite/util/native_type/native_map.hpp: ...here.
+	* testsuite/util/native_type/native_hash_set.hpp: ...here.
+	* testsuite/util/native_type/native_hash_tag.hpp: ...here.
+	* testsuite/util/native_type/native_hash_map.hpp: ...here.
+
+	* testsuite/util/common_type/priority_queue/common_type.hpp:
+	Make include guard distinct.
+	* testsuite/util/common_type/assoc/common_type.hpp: Same.
+
+2008-06-06  Joseph Myers  <joseph@codesourcery.com>
+
+	* configure.ac: Do not check for gconv.h.
+	* crossconfig.m4 (GLIBCXX_CROSSCONFIG): Do not test for gconv.h or
+	gconf.h.  For glibc and uClibc systems, define
+	_GLIBCXX_USE_RANDOM_TR1 and HAVE_MMAP and use AC_LC_MESSAGES and
+	AM_ICONV.
+	* configure, config.h.in: Regenerate.
+
+2008-06-06  Joseph Myers  <joseph@codesourcery.com>
+
+	* testsuite/17_intro/headers/all.cc,
+	testsuite/17_intro/headers/all_c++200x_compatibility.cc,
+	testsuite/17_intro/headers/all_pedantic_errors.cc,
+	testsuite/ext/headers.cc: Only include
+	<ext/codecvt_specializations.h> and <ext/enc_filebuf.h> if
+	_GLIBCXX_HAVE_ICONV.
+
+2008-06-05  Johannes Singler  <singler@ira.uka.de>
+
+	* include/parallel/random_shuffle.h:
+	(parallel_random_shuffle_drs) Get the actual number of
+	threads after entering the parallel region. Indentation.
+	* include/parallel/algo.h: (random_shuffle(begin, end))
+	Add namespace qualification to avoid ambiguity.
+
+2008-06-04  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* include/ext/pb_ds/assoc_container.hpp: Change allocator typedef
+	to allocator_type, as per existing conventions.
+	* include/ext/pb_ds/detail/binomial_heap_base_/
+	binomial_heap_base_.hpp: Same.
+	* include/ext/pb_ds/detail/cc_hash_table_map_/cc_ht_map_.hpp: Same.
+	* include/ext/pb_ds/detail/pat_trie_/pat_trie_.hpp: Same.
+	* include/ext/pb_ds/detail/bin_search_tree_/bin_search_tree_.hpp: Same.
+	* include/ext/pb_ds/detail/gp_hash_table_map_/gp_ht_map_.hpp: Same.
+	* include/ext/pb_ds/detail/binary_heap_/binary_heap_.hpp: Same.
+	* include/ext/pb_ds/detail/trie_policy/trie_policy_base.hpp: Same.
+	* include/ext/pb_ds/detail/pairing_heap_/pairing_heap_.hpp: Same.
+	* include/ext/pb_ds/detail/binomial_heap_/binomial_heap_.hpp: Same.
+	* include/ext/pb_ds/detail/left_child_next_sibling_heap_/
+	left_child_next_sibling_heap_.hpp: Same.
+	* include/ext/pb_ds/detail/thin_heap_/thin_heap_.hpp: Same.
+	* include/ext/pb_ds/detail/ov_tree_map_/ov_tree_map_.hpp: Same.
+	* include/ext/pb_ds/detail/splay_tree_/splay_tree_.hpp: Same.
+	* include/ext/pb_ds/detail/list_update_map_/lu_map_.hpp: Same.
+	* include/ext/pb_ds/detail/rc_binomial_heap_/
+	rc_binomial_heap_.hpp: Same.
+	* include/ext/pb_ds/detail/rc_binomial_heap_/rc.hpp: Same.
+	* include/ext/pb_ds/detail/rb_tree_map_/rb_tree_.hpp: Same.
+	* include/ext/pb_ds/list_update_policy.hpp: Same.
+	* include/ext/pb_ds/exception.hpp: Same.
+	* include/ext/pb_ds/tree_policy.hpp: Same.
+	* include/ext/pb_ds/trie_policy.hpp: Same.
+	* include/ext/pb_ds/priority_queue.hpp: Same.
+	* testsuite/util/regression/trait/assoc/trait.hpp: Same.
+	* testsuite/util/regression/trait/assoc/type_trait.hpp: Same.
+	* testsuite/util/regression/rand/priority_queue/detail/
+	defs_fn_imps.hpp: Same.
+	* testsuite/util/regression/rand/priority_queue/detail/
+	operator_fn_imps.hpp: Same.
+	* testsuite/util/regression/rand/priority_queue/
+	container_rand_regression_test.hpp: Same.
+	* testsuite/util/regression/rand/assoc/detail/defs_fn_imps.hpp: Same.
+	* testsuite/util/regression/rand/assoc/detail/
+	operator_fn_imps.hpp: Same.
+	* testsuite/util/regression/rand/assoc/
+	container_rand_regression_test.hpp: Same.
+	* testsuite/util/native_type/assoc/native_multimap.hpp: Same.
+	* testsuite/util/native_type/assoc/native_hash_multimap.hpp: Same.
+	* testsuite/util/common_type/assoc/detail/
+	tree_supports_order_statistics.hpp: Same.
+	* testsuite/util/common_type/assoc/detail/
+	trie_supports_prefix_search.hpp: Same.
+	* testsuite/util/common_type/assoc/detail/
+	trie_supports_order_statistics.hpp: Same.
+
+2008-06-02  Sandra Loosemore  <sandra@codesourcery.com>
+	    Daniel Jacobowitz  <dan@codesourcery.com>
+
+	* testsuite/27_io/basic_filebuf/sputbackc/char/9425.cc: Use
+	dg-require-fileio.
+	* testsuite/27_io/basic_filebuf/sputbackc/char/1-out.cc: Likewise.
+	* testsuite/27_io/basic_filebuf/sputbackc/char/2-out.cc: Likewise.
+
+2008-06-02  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/vector.tcc (vector<>::_M_insert_aux): In C++0x mode,
+	avoid a memory leak if the first __uninitialized_move_a throws.
+	(vector<>::_M_fill_insert): Do not always copy to __x_copy, similarly
+	to _M_insert_aux.
+	* testsuite/23_containers/vector/modifiers/moveable.cc: Adjust.
+	* testsuite/23_containers/vector/resize/moveable.cc: Likewise.
+
+2008-05-31  Paolo Carlini  <paolo.carlini@oracle.com>
+	    Chris Jefferson  <chris@bubblescope.net>
+
+	PR libstdc++/36338
+	* include/bits/stl_heap.h (sort_heap): Use __pop_heap directly.
+	(pop_heap): Slightly tweak.
+
+2008-05-29  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/debug/bitset (bitset(const char*)): Implement DR 778
+	in debug-mode too.
+
+	* include/bits/cpp_type_traits.h (__is_integer): In C++0x mode
+	deal with char16_t and char32_t.
+
+2008-05-26  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/c_global/cmath (pow(float, int), pow(double, int),
+	pow(long double, int)): Do not define in C++0x mode, per DR 550.
+	* include/tr1_impl/cmath (pow): Do not bring in unconditionally
+	from namespace std.
+	* include/tr1/cmath (pow(double, double), pow(float, float),
+	pow(long double, long double), pow(_Tp, _Up)): Define.
+	* include/tr1/complex (pow): Do not bring in from namespace std.
+	(pow(const std::complex<_Tp>&, int), pow(const std::complex<_Tp>&,
+	const _Tp&), pow(const _Tp&, const std::complex<_Tp>&),
+	pow(const std::complex<_Tp>&, const std::complex<_Tp>&)): Define.
+	* include/tr1_impl/complex (pow(const std::complex<_Tp>&,
+	const _Up&), pow(const _Tp&, const std::complex<_Up>&),
+	pow(const std::complex<_Tp>&, const std::complex<_Up>&)): Always
+	define.
+	* doc/xml/manual/intro.xml: Add an entry for DR 550.
+	* testsuite/26_numerics/headers/cmath/dr550.cc: New.
+	* testsuite/tr1/8_c_compatibility/cmath/overloads.cc: Adjust.
+
+2008-05-25  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/std/tuple: Ifndef __GXX_EXPERIMENTAL_CXX0X__ just error out.
+	* include/std/date_time: Likewise.
+	* include/std/system_error: Likewise.
+	* include/std/type_traits: Likewise; fix typo in macro name.
+	* include/std/regex: Likewise.
+	* include/std/random: Likewise.
+	* include/std/unordered_map: Likewise.
+	* include/std/condition_variable: Likewise.
+	* include/std/unordered_set: Likewise.
+	* include/std/mutex: Likewise.
+	* include/std/array: Likewise.
+
+	* include/c_std/cmath: Fix obsolete comment.
+	* include/c_global/cmath: Likewise.
+
+2008-05-25  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/std/complex (complex<>::real(_Tp), complex<>::imag(_Tp),
+	complex<float>::real(float), complex<float>::imag(float),
+	complex<double>::real(double), complex<double>::imag(double),
+	complex<long double>::real(long double),
+	complex<long double>::imag(long double)): Add per DR 387.
+	(complex<>::real(), complex<>::imag(), complex<float>::real(),
+	complex<float>::imag(), complex<double>::real(),
+	complex<double>::imag(), complex<long double>::real(),
+	complex<long double>::imag(long double)): Adjust in C++0x mode.
+	(real(complex<>&), imag(complex<>&), real(const complex<>&),
+	imag(const complex<>&)): Likewise.
+	* testsuite/26_numerics/complex/dr387.cc: New.
+	* doc/xml/manual/intro.xml: Add an entry for DR 387.
+
+2008-05-25  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/std/complex: Trivial stylistic changes, define inline
+	members inline, consistently with the rest of the library.
+	(pow(const _Tp&, const complex<>&)): Minor tweak.
+
+2008-05-24  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* src/atomic.cc (atomic_flag_test_and_set_explicit,
+	atomic_flag_clear_explicit): Suppress unused parameter warnings.
+
+2008-05-23  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/std/tuple: Replace int -> size_t throughout per DR 775.
+	* include/tr1_impl/array: Likewise.
+	* include/tr1_impl/utility: Likewise.
+	* doc/xml/manual/intro.xml: Add an entry for DR 775.
+
+2008-05-23  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* doc/xml/manual/intro.xml: Adjust links to ISO documents.
+
+2008-05-23  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/c_std/cmath (fpclassify): Use __builtin_fpclassify.
+	* include/c_global/cmath (fpclassify): Likewise.
+
+2008-05-22  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/tr1_impl/hashtable_policy.h (_Map_base<,,
+	std::_Select1st<_Pair>, true,>::at): Add per DR 761.
+	* testsuite/23_containers/unordered_map/dr761.cc: New.
+	* doc/xml/manual/intro.xml: Add an entry for DR 761.
+
+2008-05-22  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* testsuite/26_numerics/complex/dr781.cc: Add test variable.
+
+2008-05-22  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/std/complex (proj(const std::complex<>&), proj(_Tp)):
+	Add per DR 781.
+	* include/tr1_impl/complex(polar(const _Tp&, const _Up&)): Move to...
+	* include/tr1/complex: ... here.
+	* doc/xml/manual/intro.xml: Add an entry for DR 781.
+	* testsuite/26_numerics/complex/dr781.cc: Add.
+	* acinclude.m4 ([GLIBCXX_ENABLE_C99]): Update.
+	* configure: Regenerate.
+
+2008-05-21  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/std/bitset (bitset<>::bitset(const char*)): Add per DR 778.
+	(bitset<>::_M_copy_from_ptr): Add.
+	(bitset<>::_M_copy_from_string): Forward to the latter.
+	* doc/xml/manual/intro.xml: Add an entry for DR 778.
+	* testsuite/23_containers/bitset/cons/2.cc: Add.
+
+2008-05-21  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* doc/html/ext/lwg-active.html: Update to Revision R56.
+	* doc/html/ext/lwg-closed.html: Likewise.
+	* doc/html/ext/lwg-defects.html: Likewise.
+
+2008-05-20  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/33979 (partial)
+	* include/tr1_impl/functional_hash.h (hash<char16_t>,
+	hash<char32_t>): Add specializations.
+	* include/tr1_impl/type_traits (is_integral<char16_t>,
+	is_integral<char32_t>): Likewise.
+	* include/std/limits (numeric_limits<char16_t>,
+	numeric_limits<char32_t>): Likewise.
+	* src/limits_c++0x.cc: Add.
+	* src/Makefile.am: Update.
+	* testsuite/20_util/hash/requirements/explicit_instantiation.cc:
+	Update.
+	* testsuite/20_util/is_integral/value.cc: New.
+	* testsuite/20_util/is_integral/requirements/typedefs.cc: Likewise.
+	* testsuite/20_util/is_integral/requirements/
+	explicit_instantiation.cc: Likewise.
+	* testsuite/18_support/numeric_limits/char16_32_t.cc: Likewise.
+	* config/abi/pre/gnu.ver: Export new numeric_limits symbols at
+	GLIBCXX_3.4.11.
+	* configure: Regenerate.
+	* src/Makefile.in: Likewise.
+	* config.h.in: Likewise.
+
+2008-05-16  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* include/std/system_error: Align to current draft specifications.
+	* src/system_error.cc: Same.
+	* src/functexcept.cc: Adjust for corrected system_error construction.
+	* include/std/ostream: Adjust error_code inserter.
+	* acinclude.m4 (GLIBCXX_CHECK_SYSTEM_ERROR): Remove sys_nerr test.
+	* config/abi/pre/gnu.ver: Add new exports.
+
+	* testsuite/util/testsuite_error.h: Consolidate error testing
+	utilities here.
+	* testsuite/19_diagnostics/error_code/cons/1.cc: Use
+	testsuite_error, adjust line numbers and constructor calls.
+	* testsuite/19_diagnostics/error_code/operators/equal.cc: Same.
+	* testsuite/19_diagnostics/error_code/operators/not_equal.cc: Same.
+	* testsuite/19_diagnostics/error_category/cons/copy_neg.cc: Same.
+	* testsuite/19_diagnostics/error_category/cons/default.cc: Same.
+	* testsuite/19_diagnostics/error_category/operators/equal.cc: Same.
+	* testsuite/19_diagnostics/error_category/operators/not_equal.cc: Same.
+	* testsuite/19_diagnostics/system_error/cons_virtual_derivation.cc:
+	Same.
+	* testsuite/19_diagnostics/system_error/cons-1.cc: Same.
+	* testsuite/19_diagnostics/system_error/what-1.cc: Same.
+	* testsuite/19_diagnostics/system_error/what-2.cc: Same.
+	* testsuite/19_diagnostics/system_error/what-big.cc: Same.
+	* testsuite/19_diagnostics/system_error/what-3.cc: Same.
+	* testsuite/19_diagnostics/system_error/what-4.cc: Same.
+
+2008-05-15  Bernd Schmidt  <bernd.schmidt@analog.com>
+
+	* configure.ac: Don't check AC_LIBTOOL_DLOPEN if using newlib.
+	* configure: Regenerate.
+
+2008-05-15  Johannes Singler  <singler@ira.uka.de>
+
+	* xml/manual/parallel_mode.xml:
+	General revision and documentation of new compile-time
+	options for sorting.
+
+2008-05-14  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* include/std/mutex (mutex::try_lock): Eat errors.
+	(mutex::unlock): Same.
+	(recursive_mutex::try_lock): Eat errors.
+	(recursive_mutex::unlock): Same.
+	* testsuite/30_threads/mutex/dest/destructor_locked.cc: Add
+	-pthreads, adjust line numbers.
+	* testsuite/30_threads/mutex/native_handle/1.cc: Same.
+	* testsuite/30_threads/mutex/cons/1.cc: Same.
+	* testsuite/30_threads/mutex/try_lock/1.cc: Same.
+	* testsuite/30_threads/mutex/try_lock/2.cc: Same.
+	* testsuite/30_threads/mutex/lock/1.cc: Same.
+	* testsuite/30_threads/mutex/unlock/1.cc: Same.
+	* testsuite/30_threads/recursive_mutex/dest/destructor_locked.cc: Same.
+	* testsuite/30_threads/recursive_mutex/native_handle/1.cc: Same.
+	* testsuite/30_threads/recursive_mutex/cons/1.cc: Same.
+
+2008-05-14  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* include/std/sstream: Adjust braces.
+	* include/bits/fstream.tcc: Same.
+	* testsuite/29_atomics/atomic_flag/test_and_set/explicit.c: Add
+	-shared-libgcc.
+	* testsuite/29_atomics/atomic_flag/test_and_set/implicit.c: Same.
+
+	* doc/doxygen/user.cfg.in: Remove thread include.
+
+2008-05-13  David Daney  <ddaney@avtrex.com>
+
+	* config/cpu/mips/atomicity.h: Remove file.
+	* config/cpu/mips: Remove directory.
+	* configure.host: Remove host specific handling for mips*-*-*.
+
+2008-05-12  Stefano Soffia  <soffia@cs.unipr.it>
+	    Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/debug/vector (vector<>::_M_requires_reallocation): Just
+	use this->capacity().
+	(vector<>::capacity): Move non-pedantic / pedantic logic here.
+	* testsuite/23_containers/vector/
+	debug_mode_requires_reallocation-2.cc: New.
+
+	* testsuite/23_containers/vector/debug_mode_requires_reallocation.cc:
+	Rename to debug_mode_requires_reallocation-1.cc
+
+2008-05-10  Roberto Bagnara  <bagnara@cs.unipr.it>
+	    Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/debug/vector (vector<>::_M_requires_reallocation): Fix macro.
+	* testsuite/23_containers/vector/debug_mode_requires_reallocation.cc:
+	New.
+
 2008-05-07  Johannes Singler  <singler@ira.uka.de>
 
        * include/parallel/quicksort.h:
        (parallel_sort_qs_conquer) Explicitly request number of threads
        in the parallel clause.
-       (parallel_sort_qs) Remove setting the number of threads globally. 
+       (parallel_sort_qs) Remove setting the number of threads globally.
 
 2008-05-06  Benjamin Kosnik  <bkoz@redhat.com>
 
@@ -14,7 +542,7 @@
 	* testsuite/30_threads/mutex/cons/copy_neg.cc: Same.
 	* testsuite/30_threads/recursive_mutex/cons/assign_neg.cc: Same.
 	* testsuite/30_threads/recursive_mutex/cons/copy_neg.cc: Same.
-	
+
 2008-05-06  Benjamin Kosnik  <bkoz@redhat.com>
 
 	* include/std/condition_variable: New.

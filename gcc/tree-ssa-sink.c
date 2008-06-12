@@ -189,20 +189,7 @@ is_hidden_global_store (tree stmt)
 
 	}
       else if (INDIRECT_REF_P (lhs))
-	{
-	  tree ptr = TREE_OPERAND (lhs, 0);
-	  struct ptr_info_def *pi = SSA_NAME_PTR_INFO (ptr);
-	  tree nmt = (pi) ? pi->name_mem_tag : NULL_TREE;
-	  tree smt = symbol_mem_tag (SSA_NAME_VAR (ptr));
-
-	  /* If either the name tag or the symbol tag for PTR is a
-	     global variable, then the store is necessary.  */
-	  if ((nmt && is_global_var (nmt))
-	      || (smt && is_global_var (smt)))
-	    {
-	      return true;
-	    }
-	}
+	return may_point_to_global_var (TREE_OPERAND (lhs, 0));
       else
 	gcc_unreachable ();
     }
@@ -546,8 +533,7 @@ execute_sink_code (void)
   calculate_dominance_info (CDI_DOMINATORS);
   calculate_dominance_info (CDI_POST_DOMINATORS);
   sink_code_in_bb (EXIT_BLOCK_PTR); 
-  if (dump_file && (dump_flags & TDF_STATS))
-    fprintf (dump_file, "Sunk statements:%d\n", sink_stats.sunk);
+  statistics_counter_event (cfun, "Sunk statements", sink_stats.sunk);
   free_dominance_info (CDI_POST_DOMINATORS);
   remove_fake_exit_edges ();
   loop_optimizer_finalize ();

@@ -33,7 +33,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "diagnostic.h"
 #include "intl.h"
 #include "cppdefault.h"
-#include "c-incpath.h"
+#include "incpath.h"
 #include "debug.h"		/* For debug_hooks.  */
 #include "opts.h"
 #include "options.h"
@@ -71,9 +71,6 @@ static bool deps_seen;
 
 /* If -v seen.  */
 static bool verbose;
-
-/* If -lang-fortran seen.  */
-bool lang_fortran = false;
 
 /* Dependency output file.  */
 static const char *deps_file;
@@ -249,15 +246,6 @@ c_common_init_options (unsigned int argc, const char **argv)
 	    result |= CL_C | CL_ObjC | CL_CXX | CL_ObjCXX;
 	    break;
 	  }
-
-#ifdef CL_Fortran
-      for (i = 1; i < argc; i++)
-	if (! strcmp (argv[i], "-lang-fortran"))
-	{
-	    result |= CL_Fortran;
-	    break;
-	}
-#endif
     }
 
   return result;
@@ -288,10 +276,6 @@ c_common_handle_option (size_t scode, const char *arg, int value)
 	    result = 0;
 	  break;
 	}
-#ifdef CL_Fortran
-      if (lang_fortran && (cl_options[code].flags & (CL_Fortran)))
-	break;
-#endif
       result = 0;
       break;
 
@@ -891,10 +875,6 @@ c_common_handle_option (size_t scode, const char *arg, int value)
       cpp_opts->dollars_in_ident = false;
       break;
 
-    case OPT_lang_fortran:
-      lang_fortran = true;
-      break;
-
     case OPT_lang_objc:
       cpp_opts->objc = 1;
       break;
@@ -1427,6 +1407,8 @@ sanitize_cpp_opts (void)
       flag_dump_includes = 0;
       flag_no_line_commands = 1;
     }
+  else if (cpp_opts->deps.missing_files)
+    error ("-MG may only be used with -M or -MM");
 
   cpp_opts->unsigned_char = !flag_signed_char;
   cpp_opts->stdc_0_in_system_headers = STDC_0_IN_SYSTEM_HEADERS;

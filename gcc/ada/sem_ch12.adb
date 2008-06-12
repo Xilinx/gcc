@@ -454,7 +454,7 @@ package body Sem_Ch12 is
       Inst   : Node_Id) return Boolean;
    --  True if the instantiation Inst and the given freeze_node F_Node appear
    --  within the same declarative part, ignoring subunits, but with no inter-
-   --  vening suprograms or concurrent units. If true, the freeze node
+   --  vening subprograms or concurrent units. If true, the freeze node
    --  of the instance can be placed after the freeze node of the parent,
    --  which it itself an instance.
 
@@ -2729,7 +2729,7 @@ package body Sem_Ch12 is
       Save_Parent : Node_Id;
 
    begin
-      --  Create copy of generic unit,and save for instantiation. If the unit
+      --  Create copy of generic unit, and save for instantiation. If the unit
       --  is a child unit, do not copy the specifications for the parent, which
       --  are not part of the generic tree.
 
@@ -4040,14 +4040,15 @@ package body Sem_Ch12 is
          Create_Instantiation_Source (N, Gen_Unit, False, S_Adjustment);
 
          --  Copy original generic tree, to produce text for instantiation
-         --  Inherit overriding indicator from instance node.
 
          Act_Tree :=
            Copy_Generic_Node
              (Original_Node (Gen_Decl), Empty, Instantiating => True);
 
+         --  Inherit overriding indicator from instance node
+
          Act_Spec := Specification (Act_Tree);
-         Set_Must_Override (Act_Spec, Must_Override (N));
+         Set_Must_Override     (Act_Spec, Must_Override (N));
          Set_Must_Not_Override (Act_Spec, Must_Not_Override (N));
 
          Renaming_List :=
@@ -4634,7 +4635,7 @@ package body Sem_Ch12 is
             --  Verify that the actual subprograms match. Note that actuals
             --  that are attributes are rewritten as subprograms. If the
             --  subprogram in the formal package is defaulted, no check is
-            --  needed. Note that this can only happen in Ada2005 when the
+            --  needed. Note that this can only happen in Ada 2005 when the
             --  formal package can be partially parametrized.
 
             if Nkind (Unit_Declaration_Node (E1)) =
@@ -9267,7 +9268,7 @@ package body Sem_Ch12 is
          --  Now verify that the actual includes all other ancestors of
          --  the formal.
 
-         Elmt := First_Elmt (Abstract_Interfaces (A_Gen_T));
+         Elmt := First_Elmt (Interfaces (A_Gen_T));
          while Present (Elmt) loop
             if not Interface_Present_In_Ancestor
                      (Act_T, Get_Instance_Of (Node (Elmt)))
@@ -9574,7 +9575,6 @@ package body Sem_Ch12 is
 
                function Is_Tagged_Ancestor (T1, T2 : Entity_Id) return Boolean
                is
-                  Interfaces : Elist_Id;
                   Intfc_Elmt : Elmt_Id;
 
                begin
@@ -9598,9 +9598,7 @@ package body Sem_Ch12 is
                   --  progenitors.
 
                   else
-                     Interfaces := Abstract_Interfaces (T2);
-
-                     Intfc_Elmt := First_Elmt (Interfaces);
+                     Intfc_Elmt := First_Elmt (Interfaces (T2));
                      while Present (Intfc_Elmt) loop
                         if Is_Ancestor (T1, Node (Intfc_Elmt)) then
                            return True;
@@ -9982,7 +9980,9 @@ package body Sem_Ch12 is
             Check_Restriction (No_Fixed_Point, Actual);
          end if;
 
-         --  Deal with error of using incomplete type as generic actual
+         --  Deal with error of using incomplete type as generic actual.
+         --  This includes limited views of a type, even if the non-limited
+         --  view may be available.
 
          if Ekind (Act_T) = E_Incomplete_Type
            or else (Is_Class_Wide_Type (Act_T)
@@ -10803,7 +10803,11 @@ package body Sem_Ch12 is
    -------------------
 
    procedure Remove_Parent (In_Body : Boolean := False) is
-      S      : Entity_Id := Current_Scope;
+      S : Entity_Id := Current_Scope;
+      --  S is the scope containing the instantiation just completed. The
+      --  scope stack contains the parent instances of the instantiation,
+      --  followed by the original S.
+
       E      : Entity_Id;
       P      : Entity_Id;
       Hidden : Elmt_Id;
@@ -10821,7 +10825,6 @@ package body Sem_Ch12 is
 
             if In_Open_Scopes (P) then
                E := First_Entity (P);
-
                while Present (E) loop
                   Set_Is_Immediately_Visible (E, True);
                   Next_Entity (E);
@@ -10850,14 +10853,38 @@ package body Sem_Ch12 is
                         and then not Parent_Unit_Visible)
             then
                Set_Is_Immediately_Visible (P, False);
+
+            --  If the current scope is itself an instantiation of a generic
+            --  nested within P, and we are in the private part of body of
+            --  this instantiation, restore the full views of P, that were
+            --  removed in End_Package_Scope above. This obscure case can
+            --  occur when a subunit of a generic contains an instance of
+            --  of a child unit of its generic parent unit.
+
+            elsif S = Current_Scope
+              and then Is_Generic_Instance (S)
+            then
+               declare
+                  Par : constant Entity_Id :=
+                          Generic_Parent
+                            (Specification (Unit_Declaration_Node (S)));
+               begin
+                  if Present (Par)
+                    and then P = Scope (Par)
+                    and then (In_Package_Body (S) or else In_Private_Part (S))
+                  then
+                     Set_In_Private_Part (P);
+                     Install_Private_Declarations (P);
+                  end if;
+               end;
             end if;
          end loop;
 
          --  Reset visibility of entities in the enclosing scope
 
          Set_Is_Hidden_Open_Scope (Current_Scope, False);
-         Hidden := First_Elmt (Hidden_Entities);
 
+         Hidden := First_Elmt (Hidden_Entities);
          while Present (Hidden) loop
             Set_Is_Immediately_Visible (Node (Hidden), True);
             Next_Elmt (Hidden);

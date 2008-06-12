@@ -1,5 +1,5 @@
 /* Support routines for Value Range Propagation (VRP).
-   Copyright (C) 2005, 2006, 2007 Free Software Foundation, Inc.
+   Copyright (C) 2005, 2006, 2007, 2008 Free Software Foundation, Inc.
    Contributed by Diego Novillo <dnovillo@redhat.com>.
 
 This file is part of GCC.
@@ -772,7 +772,9 @@ usable_range_p (value_range_t *vr, bool *strict_overflow_p)
 static bool
 vrp_expr_computes_nonnegative (tree expr, bool *strict_overflow_p)
 {
-  return tree_expr_nonnegative_warnv_p (expr, strict_overflow_p);
+  return (tree_expr_nonnegative_warnv_p (expr, strict_overflow_p)
+	  || (TREE_CODE (expr) == SSA_NAME
+	      && ssa_name_nonnegative_p (expr)));
 }
 
 /* Like tree_expr_nonzero_warnv_p, but this function uses value ranges
@@ -781,7 +783,9 @@ vrp_expr_computes_nonnegative (tree expr, bool *strict_overflow_p)
 static bool
 vrp_expr_computes_nonzero (tree expr, bool *strict_overflow_p)
 {
-  if (tree_expr_nonzero_warnv_p (expr, strict_overflow_p))
+  if (tree_expr_nonzero_warnv_p (expr, strict_overflow_p)
+      || (TREE_CODE (expr) == SSA_NAME
+	  && ssa_name_nonzero_p (expr)))
     return true;
 
   /* If we have an expression of the form &X->a, then the expression
@@ -1581,7 +1585,7 @@ extract_range_from_assert (value_range_t *vr_p, tree expr)
 		3a. If the high limit of the VR_ANTI_RANGE resides
 		    within the VR_RANGE, then the result is a new
 		    VR_RANGE starting at the high limit of the
-		    the VR_ANTI_RANGE + 1 and extending to the
+		    VR_ANTI_RANGE + 1 and extending to the
 		    high limit of the original VR_RANGE.
 
 		3b. If the low limit of the VR_ANTI_RANGE resides
@@ -2799,13 +2803,6 @@ adjust_range_with_scev (value_range_t *vr, struct loop *loop, tree stmt,
   if (vr->type == VR_ANTI_RANGE)
     return;
 
-  /* Ensure that there are not values in the scev cache based on assumptions
-     on ranges of ssa names that were changed
-     (in set_value_range/set_value_range_to_varying).  Preserve cached numbers
-     of iterations, that were computed before the start of VRP (we do not
-     recompute these each time to save the compile time).  */
-  scev_reset_except_niters ();
-
   chrec = instantiate_parameters (loop, analyze_scalar_evolution (loop, var));
 
   /* Like in PR19590, scev can return a constant function.  */
@@ -3797,12 +3794,10 @@ register_edge_assert_for_2 (tree name, edge e, block_stmt_iterator bsi,
 
       /* Extract NAME2 from the (optional) sign-changing cast.  */
       if (TREE_CODE (def_stmt) == GIMPLE_MODIFY_STMT
-          && (TREE_CODE (GIMPLE_STMT_OPERAND (def_stmt, 1)) == NOP_EXPR
-	      || TREE_CODE (GIMPLE_STMT_OPERAND (def_stmt, 1)) == CONVERT_EXPR))
+          && CONVERT_EXPR_P (GIMPLE_STMT_OPERAND (def_stmt, 1)))
 	{
 	  tree rhs = GIMPLE_STMT_OPERAND (def_stmt, 1);
-	  if ((TREE_CODE (rhs) == NOP_EXPR
-	       || TREE_CODE (rhs) == CONVERT_EXPR)
+	  if (CONVERT_EXPR_P (rhs)
 	      && ! TYPE_UNSIGNED (TREE_TYPE (TREE_OPERAND (rhs, 0)))
 	      && (TYPE_PRECISION (TREE_TYPE (rhs))
 		  == TYPE_PRECISION (TREE_TYPE (TREE_OPERAND (rhs, 0)))))
@@ -3954,8 +3949,7 @@ register_edge_assert_for_1 (tree op, enum tree_code code,
       /* Recurse through the copy.  */
       retval |= register_edge_assert_for_1 (rhs, code, e, bsi);
     }
-  else if (TREE_CODE (rhs) == NOP_EXPR
-	   || TREE_CODE (rhs) == CONVERT_EXPR)
+  else if (CONVERT_EXPR_P (rhs))
     { 
       /* Recurse through the type conversion.  */
       retval |= register_edge_assert_for_1 (TREE_OPERAND (rhs, 0),
@@ -4543,9 +4537,8 @@ process_assert_insertions (void)
   if (update_edges_p)
     bsi_commit_edge_inserts ();
 
-  if (dump_file && (dump_flags & TDF_STATS))
-    fprintf (dump_file, "\nNumber of ASSERT_EXPR expressions inserted: %d\n\n",
-	     num_asserts);
+  statistics_counter_event (cfun, "Number of ASSERT_EXPR expressions inserted",
+			    num_asserts);
 }
 
 
@@ -6447,7 +6440,7 @@ simplify_stmt_for_jump_threading (tree stmt, tree within_stmt)
 }
 
 /* Blocks which have more than one predecessor and more than
-   one successor present jump threading opportunities.  ie,
+   one successor present jump threading opportunities, i.e.,
    when the block is reached from a specific predecessor, we
    may be able to determine which of the outgoing edges will
    be traversed.  When this optimization applies, we are able
@@ -6640,20 +6633,6 @@ vrp_finalize (void)
   vr_phi_edge_counts = NULL;
 }
 
-/* Calculates number of iterations for all loops, to ensure that they are
-   cached.  */
-
-static void
-record_numbers_of_iterations (void)
-{
-  loop_iterator li;
-  struct loop *loop;
-
-  FOR_EACH_LOOP (li, loop, 0)
-    {
-      number_of_latch_executions (loop);
-    }
-}
 
 /* Main entry point to VRP (Value Range Propagation).  This pass is
    loosely based on J. R. C. Patterson, ``Accurate Static Branch
@@ -6711,17 +6690,6 @@ execute_vrp (void)
   scev_initialize ();
 
   insert_range_assertions ();
-
-  /* Compute the # of iterations for each loop before we start the VRP
-     analysis.  The value ranges determined by VRP are used in expression
-     simplification, that is also used by the # of iterations analysis.
-     However, in the middle of the VRP analysis, the value ranges do not take
-     all the possible paths in CFG into account, so they do not have to be
-     correct, and the # of iterations analysis can obtain wrong results.
-     This is a problem, since the results of the # of iterations analysis
-     are cached, so these mistakes would not be corrected when the value
-     ranges are corrected.  */
-  record_numbers_of_iterations ();
 
   to_remove_edges = VEC_alloc (edge, heap, 10);
   to_update_switch_stmts = VEC_alloc (switch_update, heap, 5);

@@ -4894,6 +4894,38 @@ reshape_init (tree type, tree init)
   return new_init;
 }
 
+/* Verify array initializer.  Returns true if errors have been reported.  */
+
+bool
+check_array_initializer (tree decl, tree type, tree init)
+{
+  tree element_type = TREE_TYPE (type);
+
+  /* The array type itself need not be complete, because the
+     initializer may tell us how many elements are in the array.
+     But, the elements of the array must be complete.  */
+  if (!COMPLETE_TYPE_P (complete_type (element_type)))
+    {
+      if (decl)
+	error ("elements of array %q#D have incomplete type", decl);
+      else
+	error ("elements of array %q#T have incomplete type", type);
+      return true;
+    }
+  /* It is not valid to initialize a VLA.  */
+  if (init
+      && ((COMPLETE_TYPE_P (type) && !TREE_CONSTANT (TYPE_SIZE (type)))
+	  || !TREE_CONSTANT (TYPE_SIZE (element_type))))
+    {
+      if (decl)
+	error ("variable-sized object %qD may not be initialized", decl);
+      else
+	error ("variable-sized compound literal");
+      return true;
+    }
+  return false;
+}
+
 /* Verify INIT (the initializer for DECL), and record the
    initialization in DECL_INITIAL, if appropriate.  CLEANUP is as for
    grok_reference_init.
@@ -4917,24 +4949,8 @@ check_initializer (tree decl, tree init, int flags, tree *cleanup)
 
   if (TREE_CODE (type) == ARRAY_TYPE)
     {
-      tree element_type = TREE_TYPE (type);
-
-      /* The array type itself need not be complete, because the
-	 initializer may tell us how many elements are in the array.
-	 But, the elements of the array must be complete.  */
-      if (!COMPLETE_TYPE_P (complete_type (element_type)))
-	{
-	  error ("elements of array %q#D have incomplete type", decl);
-	  return NULL_TREE;
-	}
-      /* It is not valid to initialize a VLA.  */
-      if (init
-	  && ((COMPLETE_TYPE_P (type) && !TREE_CONSTANT (TYPE_SIZE (type)))
-	      || !TREE_CONSTANT (TYPE_SIZE (element_type))))
-	{
-	  error ("variable-sized object %qD may not be initialized", decl);
-	  return NULL_TREE;
-	}
+      if (check_array_initializer (decl, type, init))
+	return NULL_TREE;
     }
   else if (!COMPLETE_TYPE_P (type))
     {
@@ -8072,17 +8088,17 @@ grokdeclarator (const cp_declarator *declarator,
 		set_no_warning = true;
 	      }
 
-	    /* Warn about some types functions can't return.  */
+	    /* Error about some types functions can't return.  */
 
 	    if (TREE_CODE (type) == FUNCTION_TYPE)
 	      {
 		error ("%qs declared as function returning a function", name);
-		type = integer_type_node;
+		return error_mark_node;
 	      }
 	    if (TREE_CODE (type) == ARRAY_TYPE)
 	      {
 		error ("%qs declared as function returning an array", name);
-		type = integer_type_node;
+		return error_mark_node;
 	      }
 
 	    /* Pick up type qualifiers which should be applied to `this'.  */
@@ -11743,7 +11759,7 @@ finish_function_body (tree compstmt)
    of curly braces, skipping the artificial block created for constructor
    initializers.  */
 
-static tree
+tree
 outer_curly_brace_block (tree fndecl)
 {
   tree block = BLOCK_SUBBLOCKS (DECL_INITIAL (fndecl));

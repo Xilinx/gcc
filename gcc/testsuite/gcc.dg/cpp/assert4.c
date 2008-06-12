@@ -1,8 +1,9 @@
-/* Copyright (C) 2003 Free Software Foundation, Inc.
+/* Copyright (C) 2003, 2006, 2008 Free Software Foundation, Inc.
    Test builtin preprocessor assertions.
    By Kaveh Ghazi <ghazi@caip.rutgers.edu>.  */
 
 /* { dg-do preprocess } */
+/* { dg-options "-ansi -Wno-deprecated" } */
 
 /* Check for #system assertions.  */
 
@@ -124,14 +125,6 @@
 #  error
 # endif
 #elif #system(winnt)
-# error
-#endif
-
-#if defined __BEOS__
-# if !#system(beos)
-#  error
-# endif
-#elif #system(beos)
 # error
 #endif
 

@@ -192,7 +192,7 @@ remap_ssa_name (tree name, copy_body_data *id)
 	  /* By inlining function having uninitialized variable, we might
 	     extend the lifetime (variable might get reused).  This cause
 	     ICE in the case we end up extending lifetime of SSA name across
-	     abnormal edge, but also increase register presure.
+	     abnormal edge, but also increase register pressure.
 
 	     We simply initialize all uninitialized vars by 0 except for case
 	     we are inlining to very first BB.  We can avoid this for all
@@ -795,7 +795,8 @@ copy_body_r (tree *tp, int *walk_subtrees, void *data)
    later  */
 
 static basic_block
-copy_bb (copy_body_data *id, basic_block bb, int frequency_scale, int count_scale)
+copy_bb (copy_body_data *id, basic_block bb, int frequency_scale,
+         gcov_type count_scale)
 {
   block_stmt_iterator bsi, copy_bsi;
   basic_block copy_basic_block;
@@ -1108,7 +1109,7 @@ update_ssa_across_abnormal_edges (basic_block bb, basic_block ret_bb,
    accordingly.  Edges will be taken care of later.  Assume aux
    pointers to point to the copies of each BB.  */
 static void
-copy_edges_for_bb (basic_block bb, int count_scale, basic_block ret_bb)
+copy_edges_for_bb (basic_block bb, gcov_type count_scale, basic_block ret_bb)
 {
   basic_block new_bb = (basic_block) bb->aux;
   edge_iterator ei;
@@ -1257,7 +1258,7 @@ initialize_cfun (tree new_fndecl, tree callee_fndecl, gcov_type count,
   struct function *new_cfun
      = (struct function *) ggc_alloc_cleared (sizeof (struct function));
   struct function *src_cfun = DECL_STRUCT_FUNCTION (callee_fndecl);
-  int count_scale, frequency_scale;
+  gcov_type count_scale, frequency_scale;
 
   if (ENTRY_BLOCK_PTR_FOR_FUNCTION (src_cfun)->count)
     count_scale = (REG_BR_PROB_BASE * count
@@ -1301,7 +1302,7 @@ initialize_cfun (tree new_fndecl, tree callee_fndecl, gcov_type count,
 
   if (src_cfun->gimple_df)
     {
-      init_tree_ssa ();
+      init_tree_ssa (cfun);
       cfun->gimple_df->in_ssa_p = true;
       init_ssa_operands ();
     }
@@ -1321,7 +1322,7 @@ copy_cfg_body (copy_body_data * id, gcov_type count, int frequency,
   struct function *cfun_to_copy;
   basic_block bb;
   tree new_fndecl = NULL;
-  int count_scale, frequency_scale;
+  gcov_type count_scale, frequency_scale;
   int last;
 
   if (ENTRY_BLOCK_PTR_FOR_FUNCTION (src_cfun)->count)
@@ -1440,7 +1441,6 @@ setup_one_parameter (copy_body_data *id, tree p, tree value, tree fn,
 {
   tree init_stmt;
   tree var;
-  tree var_sub;
   tree rhs = value;
   tree def = (gimple_in_ssa_p (cfun)
 	      ? gimple_default_def (id->src_cfun, p) : NULL);
@@ -1496,23 +1496,10 @@ setup_one_parameter (copy_body_data *id, tree p, tree value, tree fn,
       add_referenced_var (var);
     }
 
-  /* See if the frontend wants to pass this by invisible reference.  If
-     so, our new VAR_DECL will have REFERENCE_TYPE, and we need to
-     replace uses of the PARM_DECL with dereferences.  */
-  if (TREE_TYPE (var) != TREE_TYPE (p)
-      && POINTER_TYPE_P (TREE_TYPE (var))
-      && TREE_TYPE (TREE_TYPE (var)) == TREE_TYPE (p))
-    {
-      insert_decl_map (id, var, var);
-      var_sub = build_fold_indirect_ref (var);
-    }
-  else
-    var_sub = var;
-
   /* Register the VAR_DECL as the equivalent for the PARM_DECL;
      that way, when the PARM_DECL is encountered, it will be
      automatically replaced by the VAR_DECL.  */
-  insert_decl_map (id, p, var_sub);
+  insert_decl_map (id, p, var);
 
   /* Declare this new variable.  */
   TREE_CHAIN (var) = *vars;
@@ -1572,7 +1559,7 @@ setup_one_parameter (copy_body_data *id, tree p, tree value, tree fn,
 
       if (rhs == error_mark_node)
 	{
-  	  insert_decl_map (id, p, var_sub);
+	  insert_decl_map (id, p, var);
 	  return;
 	}
 
@@ -1617,7 +1604,7 @@ setup_one_parameter (copy_body_data *id, tree p, tree value, tree fn,
 	}
 
       /* If VAR represents a zero-sized variable, it's possible that the
-	 assignment statment may result in no gimple statements.  */
+	 assignment statement may result in no gimple statements.  */
       if (init_stmt)
         bsi_insert_after (&bsi, init_stmt, BSI_NEW_STMT);
       if (gimple_in_ssa_p (cfun))
@@ -2220,8 +2207,7 @@ estimate_num_insns_1 (tree *tp, int *walk_subtrees, void *data)
     case BIND_EXPR:
     case WITH_CLEANUP_EXPR:
     case PAREN_EXPR:
-    case NOP_EXPR:
-    case CONVERT_EXPR:
+    CASE_CONVERT:
     case VIEW_CONVERT_EXPR:
     case SAVE_EXPR:
     case ADDR_EXPR:
@@ -2493,6 +2479,7 @@ estimate_num_insns_1 (tree *tp, int *walk_subtrees, void *data)
       }
 
     case OMP_PARALLEL:
+    case OMP_TASK:
     case OMP_FOR:
     case OMP_SECTIONS:
     case OMP_SINGLE:

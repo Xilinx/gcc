@@ -1,3 +1,18 @@
+2008-06-07  Joseph Myers  <joseph@codesourcery.com>
+
+	* configure.ac (xscale*-wrs-vx*, xscale*-wrs-coff): Remove.
+	* configure: Regenerate.
+
+2008-05-20  Arnaud Charlet  <charlet@adacore.com>
+
+	* Makefile.in (GNATTOOLS2_FILES): Replaced by common-tools target
+	in gcc/ada/Makefile.in
+
+2008-05-13  Arnaud Charlet  <charlet@adacore.com>
+
+	PR ada/31808
+	* Makefile.in (gnattools-cross): Do not build vxaddr2line
+
 2008-04-05  Arnaud Charlet  <charlet@adacore.com>
 
 	* Makefile.in: Remove handling of gnatbl.

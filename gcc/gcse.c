@@ -1692,12 +1692,25 @@ hash_scan_set (rtx pat, rtx insn, struct hash_table *table)
       unsigned int regno = REGNO (dest);
       rtx tmp;
 
-      /* See if a REG_NOTE shows this equivalent to a simpler expression.
+      /* See if a REG_EQUAL note shows this equivalent to a simpler expression.
+
 	 This allows us to do a single GCSE pass and still eliminate
 	 redundant constants, addresses or other expressions that are
-	 constructed with multiple instructions.  */
+	 constructed with multiple instructions.
+
+	 However, keep the original SRC if INSN is a simple reg-reg move.  In
+	 In this case, there will almost always be a REG_EQUAL note on the
+	 insn that sets SRC.  By recording the REG_EQUAL value here as SRC
+	 for INSN, we miss copy propagation opportunities and we perform the
+	 same PRE GCSE operation repeatedly on the same REG_EQUAL value if we
+	 do more than one PRE GCSE pass.
+
+	 Note that this does not impede profitable constant propagations.  We
+	 "look through" reg-reg sets in lookup_avail_set.  */
       note = find_reg_equal_equiv_note (insn);
       if (note != 0
+	  && REG_NOTE_KIND (note) == REG_EQUAL
+	  && !REG_P (src)
 	  && (table->set_p
 	      ? gcse_constant_p (XEXP (note, 0))
 	      : want_to_gcse_p (XEXP (note, 0))))
@@ -4667,7 +4680,7 @@ compute_transpout (void)
 
   FOR_EACH_BB (bb)
     {
-      /* Note that flow inserted a nop a the end of basic blocks that
+      /* Note that flow inserted a nop at the end of basic blocks that
 	 end in call instructions for reasons other than abnormal
 	 control flow.  */
       if (! CALL_P (BB_END (bb)))
@@ -5987,7 +6000,7 @@ store_killed_in_insn (const_rtx x, const_rtx x_regs, const_rtx insn, int after)
     {
       /* A normal or pure call might read from pattern,
 	 but a const call will not.  */
-      if (RTL_CONST_CALL_P (insn))
+      if (!RTL_CONST_CALL_P (insn))
 	return true;
 
       /* But even a const call reads its parameters.  Check whether the

@@ -119,6 +119,8 @@ match gfc_match_omp_parallel_sections (void);
 match gfc_match_omp_parallel_workshare (void);
 match gfc_match_omp_sections (void);
 match gfc_match_omp_single (void);
+match gfc_match_omp_task (void);
+match gfc_match_omp_taskwait (void);
 match gfc_match_omp_threadprivate (void);
 match gfc_match_omp_workshare (void);
 match gfc_match_omp_end_nowait (void);
@@ -140,6 +142,7 @@ match gfc_match_function_decl (void);
 match gfc_match_entry (void);
 match gfc_match_subroutine (void);
 match gfc_match_derived_decl (void);
+match gfc_match_final_decl (void);
 
 match gfc_match_implicit_none (void);
 match gfc_match_implicit (void);

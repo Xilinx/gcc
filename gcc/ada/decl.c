@@ -122,6 +122,17 @@ static void check_ok_for_atomic (tree, Entity_Id, bool);
 static int compatible_signatures_p (tree ftype1, tree ftype2);
 static void rest_of_type_decl_compilation_no_defer (tree);
 
+/* Return true if GNAT_ADDRESS is a compile time known value.
+   In particular catch System'To_Address.  */
+
+static bool
+compile_time_known_address_p (Node_Id gnat_address)
+{
+  return ((Nkind (gnat_address) == N_Unchecked_Type_Conversion
+	   && Compile_Time_Known_Value (Expression (gnat_address)))
+	  || Compile_Time_Known_Value (gnat_address));
+}
+
 /* Given GNAT_ENTITY, an entity in the incoming GNAT tree, return a
    GCC type corresponding to that entity.  GNAT_ENTITY is assumed to
    refer to an Ada type.  */
@@ -865,7 +876,7 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 			/* ??? No DECL_EXPR is created so we need to mark
 			   the expression manually lest it is shared.  */
 			if (global_bindings_p ())
-			  TREE_VISITED (gnu_decl) = 1;
+			  mark_visited (&gnu_decl);
 			save_gnu_tree (gnat_entity, gnu_decl, true);
 			saved = true;
 			break;
@@ -1026,7 +1037,9 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	      = build_reference_type_for_mode (gnu_type, ptr_mode, true);
 	    gnu_address = convert (gnu_type, gnu_address);
 	    used_by_ref = true;
-	    const_flag = !Is_Public (gnat_entity);
+	    const_flag = !Is_Public (gnat_entity)
+	      || compile_time_known_address_p (Expression (Address_Clause
+							   (gnat_entity)));
 
 	    /* If we don't have an initializing expression for the underlying
 	       variable, the initializing expression for the pointer is the
@@ -1058,9 +1071,24 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	      = build_reference_type_for_mode (gnu_type, ptr_mode, true);
 	    gnu_size = NULL_TREE;
 
-	    gnu_expr = NULL_TREE;
 	    /* No point in taking the address of an initializing expression
 	       that isn't going to be used.  */
+	    gnu_expr = NULL_TREE;
+
+	    /* If it has an address clause whose value is known at compile
+	       time, make the object a CONST_DECL.  This will avoid a
+	       useless dereference.  */
+	    if (Present (Address_Clause (gnat_entity)))
+	      {
+		Node_Id gnat_address
+		  = Expression (Address_Clause (gnat_entity));
+
+		if (compile_time_known_address_p (gnat_address))
+		  {
+		    gnu_expr = gnat_to_gnu (gnat_address);
+		    const_flag = true;
+		  }
+	      }
 
 	    used_by_ref = true;
 	  }
@@ -1258,7 +1286,8 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	   for these.  */
 	if (TREE_CODE (gnu_decl) == CONST_DECL
 	    && (definition || Sloc (gnat_entity) > Standard_Location)
-	    && (Is_Public (gnat_entity)
+	    && ((Is_Public (gnat_entity)
+		 && !Present (Address_Clause (gnat_entity)))
 		|| optimize == 0
 		|| Address_Taken (gnat_entity)
 		|| Is_Aliased (gnat_entity)
@@ -1271,6 +1300,10 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 				      gnat_entity);
 
 	    SET_DECL_CONST_CORRESPONDING_VAR (gnu_decl, gnu_corr_var);
+
+	    /* As debugging information will be generated for the variable,
+	       do not generate information for the constant.  */
+	    DECL_IGNORED_P (gnu_decl) = true;
 	  }
 
 	/* If this is declared in a block that contains a block with an
@@ -2310,7 +2343,7 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 
 		  /* ??? create_type_decl is not invoked on the inner types so
 		     the MULT_EXPR node built above will never be marked.  */
-		  TREE_VISITED (TYPE_SIZE_UNIT (gnu_arr_type)) = 1;
+		  mark_visited (&TYPE_SIZE_UNIT (gnu_arr_type));
 		}
 	    }
 
@@ -2343,6 +2376,12 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 
 	      finish_record_type (gnu_bound_rec_type, gnu_field_list,
 				  0, false);
+
+	      TYPE_STUB_DECL (gnu_type)
+		= build_decl (TYPE_DECL, NULL_TREE, gnu_type);
+
+	      add_parallel_type
+		(TYPE_STUB_DECL (gnu_type), gnu_bound_rec_type);
 	    }
 
 	  TYPE_CONVENTION_FORTRAN_P (gnu_type)
@@ -3073,6 +3112,9 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 							 0, NULL_TREE,
 							 NULL_TREE, 0),
 				      0, false);
+
+		  add_parallel_type (TYPE_STUB_DECL (gnu_type),
+				     gnu_subtype_marker);
 		}
 
 	      /* Now we can finalize it.  */
@@ -4346,9 +4388,9 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 
 		/* ??? The context of gnu_field is not necessarily gnu_type so
 		   the MULT_EXPR node built above may not be marked by the call
-		   to create_type_decl below.  Mark it manually for now.  */
+		   to create_type_decl below.  */
 		if (global_bindings_p ())
-		  TREE_VISITED (DECL_FIELD_OFFSET (gnu_field)) = 1;
+		  mark_visited (&DECL_FIELD_OFFSET (gnu_field));
 		}
 	    }
 
@@ -5262,10 +5304,12 @@ elaborate_expression_1 (Node_Id gnat_expr, Entity_Id gnat_entity,
 			bool need_debug)
 {
   tree gnu_decl = NULL_TREE;
-  /* Strip any conversions to see if the expression is a readonly variable.
-     ??? This really should remain readonly, but we have to think about
+  /* Skip any conversions and simple arithmetics to see if the expression
+     is a read-only variable.
+     ??? This really should remain read-only, but we have to think about
      the typing of the tree here.  */
-  tree gnu_inner_expr = remove_conversions (gnu_expr, true);
+  tree gnu_inner_expr
+    = skip_simple_arithmetic (remove_conversions (gnu_expr, true));
   bool expr_global = Is_Public (gnat_entity) || global_bindings_p ();
   bool expr_variable;
 
@@ -5281,7 +5325,7 @@ elaborate_expression_1 (Node_Id gnat_expr, Entity_Id gnat_entity,
 		       gnu_expr, NULL_TREE);
 
   /* If GNU_EXPR is neither a placeholder nor a constant, nor a variable
-     that is a constant, make a variable that is initialized to contain the
+     that is read-only, make a variable that is initialized to contain the
      bound when the package containing the definition is elaborated.  If
      this entity is defined at top level and a bound or discriminant value
      isn't a constant or a reference to a discriminant, replace the bound
@@ -5731,6 +5775,8 @@ maybe_pad_type (tree type, tree size, unsigned int align,
 					     marker, 0, NULL_TREE, NULL_TREE,
 					     0),
 			  0, false);
+
+      add_parallel_type (TYPE_STUB_DECL (record), marker);
 
       if (size && TREE_CODE (size) != INTEGER_CST && definition)
 	create_var_decl (concat_id_with_name (name, "XVZ"), NULL_TREE,
@@ -6415,6 +6461,8 @@ components_to_record (tree gnu_record_type, Node_Id component_list,
       /* Only make the QUAL_UNION_TYPE if there are any non-empty variants.  */
       if (gnu_variant_list)
 	{
+	  int union_field_packed;
+
 	  if (all_rep_and_size)
 	    {
 	      TYPE_SIZE (gnu_union_type) = TYPE_SIZE (gnu_record_type);
@@ -6436,9 +6484,13 @@ components_to_record (tree gnu_record_type, Node_Id component_list,
 	      return;
 	    }
 
+	  /* Deal with packedness like in gnat_to_gnu_field.  */
+	  union_field_packed
+	    = adjust_packed (gnu_union_type, gnu_record_type, packed);
+
 	  gnu_union_field
 	    = create_field_decl (gnu_var_name, gnu_union_type, gnu_record_type,
-				 packed,
+				 union_field_packed,
 				 all_rep ? TYPE_SIZE (gnu_union_type) : 0,
 				 all_rep ? bitsize_zero_node : 0, 0);
 
@@ -6622,7 +6674,7 @@ annotate_value (tree gnu_size)
       else
 	return No_Uint;
 
-    case NOP_EXPR:  case CONVERT_EXPR:   case NON_LVALUE_EXPR:
+    CASE_CONVERT:   case NON_LVALUE_EXPR:
       return annotate_value (TREE_OPERAND (gnu_size, 0));
 
       /* Now just list the operations we handle.  */

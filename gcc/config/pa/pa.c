@@ -1712,8 +1712,7 @@ emit_move_sequence (rtx *operands, enum machine_mode mode, rtx scratch_reg)
 		    decl = TREE_OPERAND (decl, 1);
 
 		  type = TREE_TYPE (decl);
-		  if (TREE_CODE (type) == ARRAY_TYPE)
-		    type = get_inner_array_type (type);
+		  type = strip_array_types (type);
 
 		  if (POINTER_TYPE_P (type))
 		    {
@@ -2103,8 +2102,7 @@ reloc_needed (tree exp)
       reloc |= reloc_needed (TREE_OPERAND (exp, 1));
       break;
 
-    case NOP_EXPR:
-    case CONVERT_EXPR:
+    CASE_CONVERT:
     case NON_LVALUE_EXPR:
       reloc = reloc_needed (TREE_OPERAND (exp, 0));
       break;

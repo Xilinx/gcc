@@ -99,7 +99,6 @@ gfc_trans_label_assign (gfc_code * code)
   tree len;
   tree addr;
   tree len_tree;
-  char *label_str;
   int label_len;
 
   /* Start a new block.  */
@@ -119,14 +118,13 @@ gfc_trans_label_assign (gfc_code * code)
     }
   else
     {
-      label_len = code->label->format->value.character.length;
-      label_str
-	= gfc_widechar_to_char (code->label->format->value.character.string,
-				label_len);
+      gfc_expr *format = code->label->format;
+
+      label_len = format->value.character.length;
       len_tree = build_int_cst (NULL_TREE, label_len);
-      label_tree = gfc_build_string_const (label_len + 1, label_str);
+      label_tree = gfc_build_wide_string_const (format->ts.kind, label_len + 1,
+						format->value.character.string);
       label_tree = gfc_build_addr_expr (pvoid_type_node, label_tree);
-      gfc_free (label_str);
     }
 
   gfc_add_modify_expr (&se.pre, len, len_tree);
@@ -1321,41 +1319,56 @@ gfc_trans_logical_select (gfc_code * code)
 static tree
 gfc_trans_character_select (gfc_code *code)
 {
-  tree init, node, end_label, tmp, type, case_num, label;
+  tree init, node, end_label, tmp, type, case_num, label, fndecl;
   stmtblock_t block, body;
   gfc_case *cp, *d;
   gfc_code *c;
   gfc_se se;
-  int n;
+  int n, k;
 
-  static tree select_struct;
-  static tree ss_string1, ss_string1_len;
-  static tree ss_string2, ss_string2_len;
-  static tree ss_target;
+  /* The jump table types are stored in static variables to avoid
+     constructing them from scratch every single time.  */
+  static tree select_struct[2];
+  static tree ss_string1[2], ss_string1_len[2];
+  static tree ss_string2[2], ss_string2_len[2];
+  static tree ss_target[2];
 
-  if (select_struct == NULL)
+  tree pchartype = gfc_get_pchar_type (code->expr->ts.kind);
+
+  if (code->expr->ts.kind == 1)
+    k = 0;
+  else if (code->expr->ts.kind == 4)
+    k = 1;
+  else
+    gcc_unreachable ();
+
+  if (select_struct[k] == NULL)
     {
-      tree gfc_int4_type_node = gfc_get_int_type (4);
+      select_struct[k] = make_node (RECORD_TYPE);
 
-      select_struct = make_node (RECORD_TYPE);
-      TYPE_NAME (select_struct) = get_identifier ("_jump_struct");
+      if (code->expr->ts.kind == 1)
+	TYPE_NAME (select_struct[k]) = get_identifier ("_jump_struct_char1");
+      else if (code->expr->ts.kind == 4)
+	TYPE_NAME (select_struct[k]) = get_identifier ("_jump_struct_char4");
+      else
+	gcc_unreachable ();
 
 #undef ADD_FIELD
-#define ADD_FIELD(NAME, TYPE)				\
-  ss_##NAME = gfc_add_field_to_struct			\
-     (&(TYPE_FIELDS (select_struct)), select_struct,	\
+#define ADD_FIELD(NAME, TYPE)					\
+  ss_##NAME[k] = gfc_add_field_to_struct				\
+     (&(TYPE_FIELDS (select_struct[k])), select_struct[k],	\
       get_identifier (stringize(NAME)), TYPE)
 
-      ADD_FIELD (string1, pchar_type_node);
-      ADD_FIELD (string1_len, gfc_int4_type_node);
+      ADD_FIELD (string1, pchartype);
+      ADD_FIELD (string1_len, gfc_charlen_type_node);
 
-      ADD_FIELD (string2, pchar_type_node);
-      ADD_FIELD (string2_len, gfc_int4_type_node);
+      ADD_FIELD (string2, pchartype);
+      ADD_FIELD (string2_len, gfc_charlen_type_node);
 
       ADD_FIELD (target, integer_type_node);
 #undef ADD_FIELD
 
-      gfc_finish_type (select_struct);
+      gfc_finish_type (select_struct[k]);
     }
 
   cp = code->block->ext.case_list;
@@ -1401,40 +1414,40 @@ gfc_trans_character_select (gfc_code *code)
 
       if (d->low == NULL)
         {
-          node = tree_cons (ss_string1, null_pointer_node, node);
-          node = tree_cons (ss_string1_len, integer_zero_node, node);
+          node = tree_cons (ss_string1[k], null_pointer_node, node);
+          node = tree_cons (ss_string1_len[k], integer_zero_node, node);
         }
       else
         {
           gfc_conv_expr_reference (&se, d->low);
 
-          node = tree_cons (ss_string1, se.expr, node);
-          node = tree_cons (ss_string1_len, se.string_length, node);
+          node = tree_cons (ss_string1[k], se.expr, node);
+          node = tree_cons (ss_string1_len[k], se.string_length, node);
         }
 
       if (d->high == NULL)
         {
-          node = tree_cons (ss_string2, null_pointer_node, node);
-          node = tree_cons (ss_string2_len, integer_zero_node, node);
+          node = tree_cons (ss_string2[k], null_pointer_node, node);
+          node = tree_cons (ss_string2_len[k], integer_zero_node, node);
         }
       else
         {
           gfc_init_se (&se, NULL);
           gfc_conv_expr_reference (&se, d->high);
 
-          node = tree_cons (ss_string2, se.expr, node);
-          node = tree_cons (ss_string2_len, se.string_length, node);
+          node = tree_cons (ss_string2[k], se.expr, node);
+          node = tree_cons (ss_string2_len[k], se.string_length, node);
         }
 
-      node = tree_cons (ss_target, build_int_cst (integer_type_node, d->n),
+      node = tree_cons (ss_target[k], build_int_cst (integer_type_node, d->n),
 			node);
 
-      tmp = build_constructor_from_list (select_struct, nreverse (node));
+      tmp = build_constructor_from_list (select_struct[k], nreverse (node));
       init = tree_cons (NULL_TREE, tmp, init);
     }
 
-  type = build_array_type (select_struct, build_index_type
-			   (build_int_cst (NULL_TREE, n - 1)));
+  type = build_array_type (select_struct[k],
+			   build_index_type (build_int_cst (NULL_TREE, n-1)));
 
   init = build_constructor_from_list (type, nreverse(init));
   TREE_CONSTANT (init) = 1;
@@ -1455,9 +1468,15 @@ gfc_trans_character_select (gfc_code *code)
 
   gfc_add_block_to_block (&block, &se.pre);
 
-  tmp = build_call_expr (gfor_fndecl_select_string, 4, init,
-			 build_int_cst (NULL_TREE, n), se.expr,
-			 se.string_length);
+  if (code->expr->ts.kind == 1)
+    fndecl = gfor_fndecl_select_string;
+  else if (code->expr->ts.kind == 4)
+    fndecl = gfor_fndecl_select_string_char4;
+  else
+    gcc_unreachable ();
+
+  tmp = build_call_expr (fndecl, 4, init, build_int_cst (NULL_TREE, n),
+			 se.expr, se.string_length);
   case_num = gfc_create_var (integer_type_node, "case_num");
   gfc_add_modify_expr (&block, case_num, tmp);
 
@@ -3150,6 +3169,7 @@ gfc_trans_where_assign (gfc_expr *expr1, gfc_expr *expr2,
    {
      /* The rhs is scalar.  Add a ss for the expression.  */
      rss = gfc_get_ss ();
+     rss->where = 1;
      rss->next = gfc_ss_terminator;
      rss->type = GFC_SS_SCALAR;
      rss->expr = expr2;
@@ -3312,6 +3332,7 @@ gfc_trans_where_2 (gfc_code * code, tree mask, bool invert,
   gfc_code *cblock;
   gfc_code *cnext;
   tree tmp;
+  tree cond;
   tree count1, count2;
   bool need_cmask;
   bool need_pmask;
@@ -3376,6 +3397,13 @@ gfc_trans_where_2 (gfc_code * code, tree mask, bool invert,
       /* Calculate the total size of temporary needed.  */
       size = compute_overall_iter_number (nested_forall_info, inner_size,
 					  &inner_size_body, block);
+
+      /* Check whether the size is negative.  */
+      cond = fold_build2 (LE_EXPR, boolean_type_node, size,
+			  gfc_index_zero_node);
+      size = fold_build3 (COND_EXPR, gfc_array_index_type, cond,
+			  gfc_index_zero_node, size);
+      size = gfc_evaluate_now (size, block);
 
       /* Allocate temporary for WHERE mask if needed.  */
       if (need_cmask)
@@ -3578,6 +3606,7 @@ gfc_trans_where_3 (gfc_code * cblock, gfc_code * eblock)
   if (tsss == gfc_ss_terminator)
     {
       tsss = gfc_get_ss ();
+      tsss->where = 1;
       tsss->next = gfc_ss_terminator;
       tsss->type = GFC_SS_SCALAR;
       tsss->expr = tsrc;
@@ -3595,6 +3624,7 @@ gfc_trans_where_3 (gfc_code * cblock, gfc_code * eblock)
       if (esss == gfc_ss_terminator)
 	{
 	  esss = gfc_get_ss ();
+	  esss->where = 1;
 	  esss->next = gfc_ss_terminator;
 	  esss->type = GFC_SS_SCALAR;
 	  esss->expr = esrc;
@@ -3709,19 +3739,28 @@ gfc_trans_where (gfc_code * code)
 	     block is dependence free if cond is not dependent on writes
 	     to x1 and x2, y1 is not dependent on writes to x2, and y2
 	     is not dependent on writes to x1, and both y's are not
-	     dependent upon their own x's.  */
+	     dependent upon their own x's.  In addition to this, the
+	     final two dependency checks below exclude all but the same
+	     array reference if the where and elswhere destinations
+	     are the same.  In short, this is VERY conservative and this
+	     is needed because the two loops, required by the standard
+	     are coalesced in gfc_trans_where_3.  */
 	  if (!gfc_check_dependency(cblock->next->expr,
 				    cblock->expr, 0)
 	      && !gfc_check_dependency(eblock->next->expr,
 				       cblock->expr, 0)
 	      && !gfc_check_dependency(cblock->next->expr,
-				       eblock->next->expr2, 0)
+				       eblock->next->expr2, 1)
 	      && !gfc_check_dependency(eblock->next->expr,
-				       cblock->next->expr2, 0)
+				       cblock->next->expr2, 1)
 	      && !gfc_check_dependency(cblock->next->expr,
-				       cblock->next->expr2, 0)
+				       cblock->next->expr2, 1)
 	      && !gfc_check_dependency(eblock->next->expr,
-				       eblock->next->expr2, 0))
+				       eblock->next->expr2, 1)
+	      && !gfc_check_dependency(cblock->next->expr,
+				       eblock->next->expr, 0)
+	      && !gfc_check_dependency(eblock->next->expr,
+				       cblock->next->expr, 0))
 	    return gfc_trans_where_3 (cblock, eblock);
 	}
     }

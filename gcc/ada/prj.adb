@@ -95,21 +95,16 @@ package body Prj is
                       First_Referred_By              => No_Project,
                       Name                           => No_Name,
                       Display_Name                   => No_Name,
-                      Path_Name                      => No_Path,
-                      Display_Path_Name              => No_Path,
+                      Path                           => No_Path_Information,
                       Virtual                        => False,
                       Location                       => No_Location,
                       Mains                          => Nil_String,
-                      Directory                      => No_Path,
-                      Display_Directory              => No_Path,
+                      Directory                      => No_Path_Information,
                       Dir_Path                       => null,
                       Library                        => False,
-                      Library_Dir                    => No_Path,
-                      Display_Library_Dir            => No_Path,
-                      Library_Src_Dir                => No_Path,
-                      Display_Library_Src_Dir        => No_Path,
-                      Library_ALI_Dir                => No_Path,
-                      Display_Library_ALI_Dir        => No_Path,
+                      Library_Dir                    => No_Path_Information,
+                      Library_Src_Dir                => No_Path_Information,
+                      Library_ALI_Dir                => No_Path_Information,
                       Library_Name                   => No_Name,
                       Library_Kind                   => Static,
                       Lib_Internal_Name              => No_Name,
@@ -122,6 +117,7 @@ package body Prj is
                       Sources                        => Nil_String,
                       First_Source                   => No_Source,
                       Last_Source                    => No_Source,
+                      Interfaces_Defined             => False,
                       Unit_Based_Language_Name       => No_Name,
                       Unit_Based_Language_Index      => No_Language_Index,
                       Imported_Directories_Switches  => null,
@@ -130,11 +126,9 @@ package body Prj is
                       Include_Language               => No_Language_Index,
                       Source_Dirs                    => Nil_String,
                       Known_Order_Of_Source_Dirs     => True,
-                      Object_Directory               => No_Path,
-                      Display_Object_Dir             => No_Path,
+                      Object_Directory               => No_Path_Information,
                       Library_TS                     => Empty_Time_Stamp,
-                      Exec_Directory                 => No_Path,
-                      Display_Exec_Dir               => No_Path,
+                      Exec_Directory                 => No_Path_Information,
                       Extends                        => No_Project,
                       Extended_By                    => No_Project,
                       Naming                         => Std_Naming_Data,
@@ -597,6 +591,11 @@ package body Prj is
    function Hash (Name : Path_Name_Type) return Header_Num is
    begin
       return Hash (Get_Name_String (Name));
+   end Hash;
+
+   function Hash (Project : Project_Id) return Header_Num is
+   begin
+      return Header_Num (Project mod Max_Header_Num);
    end Hash;
 
    -----------

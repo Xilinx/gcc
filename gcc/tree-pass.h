@@ -1,5 +1,6 @@
 /* Definitions for describing one tree-ssa optimization pass.
-   Copyright (C) 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
+   Copyright (C) 2004, 2005, 2006, 2007, 2008 Free Software Foundation,
+   Inc.
    Contributed by Richard Henderson <rth@redhat.com>
 
 This file is part of GCC.
@@ -70,6 +71,8 @@ enum tree_dump_index
 
 #define TDF_DIAGNOSTIC	(1 << 15)	/* A dump to be put in a diagnostic
 					   message.  */
+#define TDF_VERBOSE     (1 << 16)       /* A dump that uses the full tree 
+					   dumper to print stmts. */
 
 extern char *get_dump_file_name (enum tree_dump_index);
 extern int dump_enabled_p (enum tree_dump_index);
@@ -140,7 +143,7 @@ struct gimple_opt_pass
   struct opt_pass pass;
 };
 
-/* Decription of RTL pass.  */
+/* Description of RTL pass.  */
 struct rtl_opt_pass
 {
   struct opt_pass pass;
@@ -155,24 +158,24 @@ struct ipa_opt_pass
 {
   struct opt_pass pass;
 
-  /* IPA passes can analyze function body and variable initializers using this
-      hook and produce summary.  */
-  void (*function_generate_summary) (struct cgraph_node *);
-  void (*variable_generate_summary) (struct varpool_node *);
+  /* IPA passes can analyze function body and variable initializers
+      using this hook and produce summary.  */
+  void (*generate_summary) (void);
 
-  /* These hooks will be used to serialize IPA summaries on disk.  For a moment
-      they are just placeholders.  */
-  void (*function_write_summary) (struct cgraph_node *); 
-  void (*variable_write_summary) (struct varpool_node *);
+  /* This hook is used to serialize IPA summaries on disk.  */
+  void (*write_summary) (void);
+
+  /* For most ipa passes, the information can only be deserialized in
+     one chunk.  However, function bodies are read function at a time
+     as needed so both calls are necessary.  */
+  void (*read_summary) (void);
   void (*function_read_summary) (struct cgraph_node *);
-  void (*variable_read_summary) (struct varpool_node *);
-
+  
   /* Results of interprocedural propagation of an IPA pass is applied to
      function body via this hook.  */
   unsigned int function_transform_todo_flags_start;
   unsigned int (*function_transform) (struct cgraph_node *);
   void (*variable_transform) (struct varpool_node *);
-
 };
 
 /* Description of simple IPA pass.  Simple IPA passes have just one execute
@@ -335,6 +338,7 @@ extern struct gimple_opt_pass pass_dominator;
 extern struct gimple_opt_pass pass_dce;
 extern struct gimple_opt_pass pass_dce_loop;
 extern struct gimple_opt_pass pass_cd_dce;
+extern struct gimple_opt_pass pass_call_cdce;
 extern struct gimple_opt_pass pass_merge_phi;
 extern struct gimple_opt_pass pass_split_crit_edges;
 extern struct gimple_opt_pass pass_pre;
@@ -374,7 +378,6 @@ extern struct gimple_opt_pass pass_check_data_deps;
 extern struct gimple_opt_pass pass_copy_prop;
 extern struct gimple_opt_pass pass_store_ccp;
 extern struct gimple_opt_pass pass_vrp;
-extern struct gimple_opt_pass pass_create_structure_vars;
 extern struct gimple_opt_pass pass_uncprop;
 extern struct gimple_opt_pass pass_return_slot;
 extern struct gimple_opt_pass pass_reassoc;
@@ -509,6 +512,10 @@ extern struct gimple_opt_pass pass_update_address_taken;
 /* The root of the compilation pass tree, once constructed.  */
 extern struct opt_pass *all_passes, *all_ipa_passes, *all_lowering_passes;
 
+/* Current optimization pass.  */
+extern struct opt_pass *current_pass;
+
+extern struct opt_pass * get_pass_for_id (int);
 extern void execute_pass_list (struct opt_pass *);
 extern void execute_ipa_pass_list (struct opt_pass *);
 extern void print_current_pass (FILE *);

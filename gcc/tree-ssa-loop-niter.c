@@ -1,5 +1,6 @@
 /* Functions to determine/estimate number of iterations of a loop.
-   Copyright (C) 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
+   Copyright (C) 2004, 2005, 2006, 2007, 2008 Free Software Foundation,
+   Inc.
    
 This file is part of GCC.
    
@@ -1437,8 +1438,7 @@ expand_simple_operations (tree expr)
 
   e = GIMPLE_STMT_OPERAND (stmt, 1);
   if (/* Casts are simple.  */
-      TREE_CODE (e) != NOP_EXPR
-      && TREE_CODE (e) != CONVERT_EXPR
+      !CONVERT_EXPR_P (e)
       /* Copies are simple.  */
       && TREE_CODE (e) != SSA_NAME
       /* Assignments of invariants are simple.  */
@@ -2190,8 +2190,7 @@ derive_constant_upper_bound (const_tree val)
     case INTEGER_CST:
       return tree_to_double_int (val);
 
-    case NOP_EXPR:
-    case CONVERT_EXPR:
+    CASE_CONVERT:
       op0 = TREE_OPERAND (val, 0);
       subtype = TREE_TYPE (op0);
       if (!TYPE_UNSIGNED (subtype)
@@ -2315,7 +2314,7 @@ derive_constant_upper_bound (const_tree val)
 }
 
 /* Records that every statement in LOOP is executed I_BOUND times.
-   REALISTIC is true if I_BOUND is expected to be close the the real number
+   REALISTIC is true if I_BOUND is expected to be close to the real number
    of iterations.  UPPER is true if we are sure the loop iterates at most
    I_BOUND times.  */
 
@@ -2344,7 +2343,7 @@ record_niter_bound (struct loop *loop, double_int i_bound, bool realistic,
 /* Records that AT_STMT is executed at most BOUND + 1 times in LOOP.  IS_EXIT
    is true if the loop is exited immediately after STMT, and this exit
    is taken at last when the STMT is executed BOUND + 1 times.
-   REALISTIC is true if BOUND is expected to be close the the real number
+   REALISTIC is true if BOUND is expected to be close to the real number
    of iterations.  UPPER is true if we are sure the loop iterates at most
    BOUND times.  I_BOUND is an unsigned double_int upper estimate on BOUND.  */
 

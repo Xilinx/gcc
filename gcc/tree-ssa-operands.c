@@ -1523,7 +1523,8 @@ get_addr_dereference_operands (tree stmt, tree *addr, int flags, tree full_ref,
 	  if (dump_file
 	      && TREE_CODE (ptr) == SSA_NAME
 	      && (pi == NULL
-		  || pi->name_mem_tag == NULL_TREE))
+		  || (pi->name_mem_tag == NULL_TREE
+		      && !pi->pt_anything)))
 	    {
 	      fprintf (dump_file,
 		  "NOTE: no flow-sensitive alias info for ");
@@ -2092,17 +2093,22 @@ get_expr_operands (tree stmt, tree *expr_p, int flags)
 
     case OMP_FOR:
       {
-	tree init = OMP_FOR_INIT (expr);
-	tree cond = OMP_FOR_COND (expr);
-	tree incr = OMP_FOR_INCR (expr);
 	tree c, clauses = OMP_FOR_CLAUSES (stmt);
+	int i;
 
-	get_expr_operands (stmt, &GIMPLE_STMT_OPERAND (init, 0), opf_def);
-	get_expr_operands (stmt, &GIMPLE_STMT_OPERAND (init, 1), opf_use);
-	get_expr_operands (stmt, &TREE_OPERAND (cond, 1), opf_use);
-	get_expr_operands (stmt,
-	                   &TREE_OPERAND (GIMPLE_STMT_OPERAND (incr, 1), 1),
-			   opf_use);
+	for (i = 0; i < TREE_VEC_LENGTH (OMP_FOR_INIT (expr)); i++)
+	  {
+	    tree init = TREE_VEC_ELT (OMP_FOR_INIT (expr), i);
+	    tree cond = TREE_VEC_ELT (OMP_FOR_COND (expr), i);
+	    tree incr = TREE_VEC_ELT (OMP_FOR_INCR (expr), i);
+
+	    get_expr_operands (stmt, &GIMPLE_STMT_OPERAND (init, 0), opf_def);
+	    get_expr_operands (stmt, &GIMPLE_STMT_OPERAND (init, 1), opf_use);
+	    get_expr_operands (stmt, &TREE_OPERAND (cond, 1), opf_use);
+	    get_expr_operands (stmt,
+			       &TREE_OPERAND (GIMPLE_STMT_OPERAND (incr, 1),
+					      1), opf_use);
+	  }
 
 	c = find_omp_clause (clauses, OMP_CLAUSE_SCHEDULE);
 	if (c)
@@ -2551,9 +2557,7 @@ swap_tree_operands (tree stmt, tree *exp0, tree *exp1)
 /* Add the base address of REF to the set *ADDRESSES_TAKEN.  If
    *ADDRESSES_TAKEN is NULL, a new set is created.  REF may be
    a single variable whose address has been taken or any other valid
-   GIMPLE memory reference (structure reference, array, etc).  If the
-   base address of REF is a decl that has sub-variables, also add all
-   of its sub-variables.  */
+   GIMPLE memory reference (structure reference, array, etc).  */
 
 void
 add_to_addressable_set (tree ref, bitmap *addresses_taken)
@@ -2787,15 +2791,9 @@ mark_difference_for_renaming (bitmap s1, bitmap s2)
   else if (!bitmap_equal_p (s1, s2))
     {
       bitmap t1 = BITMAP_ALLOC (NULL);
-      bitmap t2 = BITMAP_ALLOC (NULL);
-
-      bitmap_and_compl (t1, s1, s2);
-      bitmap_and_compl (t2, s2, s1);
-      bitmap_ior_into (t1, t2);
+      bitmap_xor (t1, s1, s2);
       mark_set_for_renaming (t1);
-
       BITMAP_FREE (t1);
-      BITMAP_FREE (t2);
     }
 }
 

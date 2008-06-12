@@ -1577,6 +1577,11 @@ package body Sprint is
             Write_Str_With_Col_Check_Sloc ("new ");
             Sprint_Node (Subtype_Mark (Node));
 
+            if Present (Interface_List (Node)) then
+               Write_Str_With_Col_Check (" and ");
+               Sprint_And_List (Interface_List (Node));
+            end if;
+
             if Private_Present (Node) then
                Write_Str_With_Col_Check (" with private");
             end if;
@@ -2442,6 +2447,12 @@ package body Sprint is
 
             Write_Str_With_Col_Check (" is new ");
             Sprint_Node (Subtype_Indication (Node));
+
+            if Present (Interface_List (Node)) then
+               Write_Str_With_Col_Check (" and ");
+               Sprint_And_List (Interface_List (Node));
+            end if;
+
             Write_Str_With_Col_Check (" with private;");
 
          when N_Procedure_Call_Statement =>
@@ -3732,7 +3743,14 @@ package body Sprint is
                      end loop;
 
                      Write_Str (") of ");
-                     Sprint_Node (Component_Type (Typ));
+                     X := Component_Type (Typ);
+
+                     --  Preserve sloc of component type, which is defined
+                     --  elsewhere than the itype (see comment above).
+
+                     Old_Sloc := Sloc (X);
+                     Sprint_Node (X);
+                     Set_Sloc (X, Old_Sloc);
 
                      --  Array subtypes and string subtypes
 

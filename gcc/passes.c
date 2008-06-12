@@ -1,6 +1,6 @@
 /* Top level of GCC compilers (cc1, cc1plus, etc.)
    Copyright (C) 1987, 1988, 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -333,6 +333,37 @@ struct rtl_opt_pass pass_postreload =
 /* The root of the compilation pass tree, once constructed.  */
 struct opt_pass *all_passes, *all_ipa_passes, *all_lowering_passes;
 
+/* A map from static pass id to optimization pass.  */
+struct opt_pass **passes_by_id;
+int passes_by_id_size;
+
+/* Set the static pass number of pass PASS to ID and record that
+   in the mapping from static pass number to pass.  */
+
+static void
+set_pass_for_id (int id, struct opt_pass *pass)
+{
+  pass->static_pass_number = id;
+  if (passes_by_id_size <= id)
+    {
+      passes_by_id = xrealloc (passes_by_id, (id + 1) * sizeof (void *));
+      memset (passes_by_id + passes_by_id_size, 0,
+	      (id + 1 - passes_by_id_size) * sizeof (void *));
+      passes_by_id_size = id + 1;
+    }
+  passes_by_id[id] = pass;
+}
+
+/* Return the pass with the static pass number ID.  */
+
+struct opt_pass *
+get_pass_for_id (int id)
+{
+  if (id >= passes_by_id_size)
+    return NULL;
+  return passes_by_id[id];
+}
+
 /* Iterate over the pass tree allocating dump file numbers.  We want
    to do this depth first, and independent of whether the pass is
    enabled or not.  */
@@ -343,7 +374,7 @@ register_one_dump_file (struct opt_pass *pass)
   char *dot_name, *flag_name, *glob_name;
   const char *prefix;
   char num[10];
-  int flags;
+  int flags, id;
 
   /* See below in next_pass_1.  */
   num[0] = '\0';
@@ -361,8 +392,8 @@ register_one_dump_file (struct opt_pass *pass)
 
   flag_name = concat (prefix, pass->name, num, NULL);
   glob_name = concat (prefix, pass->name, NULL);
-  pass->static_pass_number = dump_register (dot_name, flag_name, glob_name,
-                                            flags);
+  id = dump_register (dot_name, flag_name, glob_name, flags);
+  set_pass_for_id (id, pass);
 }
 
 /* Recursive worker function for register_dump_files.  */
@@ -517,7 +548,6 @@ init_optimization_passes (void)
 	  NEXT_PASS (pass_referenced_vars);
 	  NEXT_PASS (pass_reset_cc_flags);
 	  NEXT_PASS (pass_build_ssa);
-	  NEXT_PASS (pass_expand_omp_ssa);
 	  NEXT_PASS (pass_early_warn_uninitialized);
 	  NEXT_PASS (pass_rebuild_cgraph_edges);
 	  NEXT_PASS (pass_early_inline);
@@ -531,6 +561,14 @@ init_optimization_passes (void)
 	  NEXT_PASS (pass_copy_prop);
 	  NEXT_PASS (pass_merge_phi);
 	  NEXT_PASS (pass_dce);
+          /* Ideally the function call conditional 
+             dead code elimination phase can be delayed
+             till later where potentially more opportunities
+             can be found.  Due to lack of good ways to
+             update VDEFs associated with the shrink-wrapped
+             calls, it is better to do the transformation
+             here where memory SSA is not built yet.  */
+	  NEXT_PASS (pass_call_cdce);
 	  NEXT_PASS (pass_update_address_taken);
 	  NEXT_PASS (pass_simple_dse);
 	  NEXT_PASS (pass_tail_recursion);
@@ -557,10 +595,8 @@ init_optimization_passes (void)
   NEXT_PASS (pass_all_optimizations);
     {
       struct opt_pass **p = &pass_all_optimizations.pass.sub;
-      NEXT_PASS (pass_create_structure_vars);
-      /* ??? pass_build_alias is a dummy pass that ensures that we
-	 execute TODO_rebuild_alias at this point even if
-	 pass_create_structure_vars was disabled.  */
+      /* pass_build_alias is a dummy pass that ensures that we
+	 execute TODO_rebuild_alias at this point.  */
       NEXT_PASS (pass_build_alias);
       NEXT_PASS (pass_return_slot);
       NEXT_PASS (pass_rename_ssa_copies);
@@ -885,7 +921,9 @@ execute_function_todo (void *data)
   flags &= ~cfun->last_verified;
   if (!flags)
     return;
-  
+
+  statistics_fini_pass ();
+
   /* Always cleanup the CFG before trying to update SSA.  */
   if (flags & TODO_cleanup_cfg)
     {
@@ -1126,21 +1164,21 @@ add_ipa_transform_pass (void *data)
   VEC_safe_push (ipa_opt_pass, heap, cfun->ipa_transforms_to_apply, ipa_pass);
 }
 
-/* Execute IPA pass function summary generation. DATA is pointer to
-   pass list to execute.  */
+/* Execute summary generation for all of the passes in IPA_PASS.  */
 
 static void
-execute_ipa_summary_passes (void *data)
+execute_ipa_summary_passes (struct ipa_opt_pass *ipa_pass)
 {
-  struct ipa_opt_pass *ipa_pass = (struct ipa_opt_pass *)data;
-  struct cgraph_node *node = cgraph_node (cfun->decl);
-  while (ipa_pass && ipa_pass->pass.type == IPA_PASS)
+  while (ipa_pass)
     {
       struct opt_pass *pass = &ipa_pass->pass;
-      if (!pass->gate || pass->gate ())
+
+      /* Execute all of the IPA_PASSes in the list.  */
+      if (ipa_pass->pass.type == IPA_PASS 
+	  && (!pass->gate || pass->gate ()))
 	{
 	  pass_init_dump_file (pass);
-	  ipa_pass->function_generate_summary (node);
+	  ipa_pass->generate_summary ();
 	  pass_fini_dump_file (pass);
 	}
       ipa_pass = (struct ipa_opt_pass *)ipa_pass->pass.next;
@@ -1198,7 +1236,7 @@ execute_one_pass (struct opt_pass *pass)
   unsigned int todo_after = 0;
 
   /* IPA passes are executed on whole program, so cfun should be NULL.
-     Ohter passes needs function context set.  */
+     Other passes need function context set.  */
   if (pass->type == SIMPLE_IPA_PASS || pass->type == IPA_PASS)
     gcc_assert (!cfun && !current_function_decl);
   else
@@ -1325,12 +1363,10 @@ execute_ipa_pass_list (struct opt_pass *pass)
 	    {
 	      if (!quiet_flag && !cfun)
 		fprintf (stderr, " <summary generate>");
-	      do_per_function_toporder (execute_ipa_summary_passes, pass);
+	      execute_ipa_summary_passes ((struct ipa_opt_pass *) pass);
 	    }
 	  summaries_generated = true;
 	}
-      else
-	summaries_generated = false;
       if (execute_one_pass (pass) && pass->sub)
 	{
 	  if (pass->sub->type == GIMPLE_PASS)
@@ -1348,4 +1384,5 @@ execute_ipa_pass_list (struct opt_pass *pass)
     }
   while (pass);
 }
+
 #include "gt-passes.h"

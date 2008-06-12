@@ -69,10 +69,6 @@ along with GCC; see the file COPYING3.  If not see
 /* So we can assign to cfun in this file.  */
 #undef cfun
 
-#ifndef LOCAL_ALIGNMENT
-#define LOCAL_ALIGNMENT(TYPE, ALIGNMENT) ALIGNMENT
-#endif
-
 #ifndef STACK_ALIGNMENT_NEEDED
 #define STACK_ALIGNMENT_NEEDED 1
 #endif
@@ -325,6 +321,26 @@ frame_offset_overflow (HOST_WIDE_INT offset, tree func)
   return FALSE;
 }
 
+/* Return stack slot alignment in bits for TYPE and MODE.  */
+
+static unsigned int
+get_stack_local_alignment (tree type, enum machine_mode mode)
+{
+  unsigned int alignment;
+
+  if (mode == BLKmode)
+    alignment = BIGGEST_ALIGNMENT;
+  else
+    alignment = GET_MODE_ALIGNMENT (mode);
+
+  /* Allow the frond-end to (possibly) increase the alignment of this
+     stack slot.  */
+  if (! type)
+    type = lang_hooks.types.type_for_mode (mode, 0);
+
+  return STACK_SLOT_ALIGNMENT (type, mode, alignment);
+}
+
 /* Allocate a stack slot of SIZE bytes and return a MEM rtx for it
    with machine mode MODE.
 
@@ -341,24 +357,12 @@ assign_stack_local (enum machine_mode mode, HOST_WIDE_INT size, int align)
 {
   rtx x, addr;
   int bigend_correction = 0;
-  unsigned int alignment;
+  unsigned int alignment, alignment_in_bits;
   int frame_off, frame_alignment, frame_phase;
 
   if (align == 0)
     {
-      tree type;
-
-      if (mode == BLKmode)
-	alignment = BIGGEST_ALIGNMENT;
-      else
-	alignment = GET_MODE_ALIGNMENT (mode);
-
-      /* Allow the target to (possibly) increase the alignment of this
-	 stack slot.  */
-      type = lang_hooks.types.type_for_mode (mode, 0);
-      if (type)
-	alignment = LOCAL_ALIGNMENT (type, alignment);
-
+      alignment = get_stack_local_alignment (NULL, mode);
       alignment /= BITS_PER_UNIT;
     }
   else if (align == -1)
@@ -378,8 +382,10 @@ assign_stack_local (enum machine_mode mode, HOST_WIDE_INT size, int align)
   if (alignment * BITS_PER_UNIT > PREFERRED_STACK_BOUNDARY)
     alignment = PREFERRED_STACK_BOUNDARY / BITS_PER_UNIT;
 
-  if (crtl->stack_alignment_needed < alignment * BITS_PER_UNIT)
-    crtl->stack_alignment_needed = alignment * BITS_PER_UNIT;
+  alignment_in_bits = alignment * BITS_PER_UNIT;
+
+  if (crtl->stack_alignment_needed < alignment_in_bits)
+    crtl->stack_alignment_needed = alignment_in_bits;
 
   /* Calculate how many bytes the start of local variables is off from
      stack alignment.  */
@@ -432,6 +438,7 @@ assign_stack_local (enum machine_mode mode, HOST_WIDE_INT size, int align)
     frame_offset += size;
 
   x = gen_rtx_MEM (mode, addr);
+  set_mem_align (x, alignment_in_bits);
   MEM_NOTRAP_P (x) = 1;
 
   stack_slot_list
@@ -544,16 +551,7 @@ assign_stack_temp_for_type (enum machine_mode mode, HOST_WIDE_INT size,
   /* These are now unused.  */
   gcc_assert (keep <= 1);
 
-  if (mode == BLKmode)
-    align = BIGGEST_ALIGNMENT;
-  else
-    align = GET_MODE_ALIGNMENT (mode);
-
-  if (! type)
-    type = lang_hooks.types.type_for_mode (mode, 0);
-
-  if (type)
-    align = LOCAL_ALIGNMENT (type, align);
+  align = get_stack_local_alignment (type, mode);
 
   /* Try to find an available, already-allocated temporary of the proper
      mode which meets the size and alignment requirements.  Choose the
@@ -1776,6 +1774,9 @@ aggregate_value_p (const_tree exp, const_tree fntype)
 bool
 use_register_for_decl (const_tree decl)
 {
+  if (!targetm.calls.allocate_stack_slots_for_args())
+    return true;
+  
   /* Honor volatile.  */
   if (TREE_SIDE_EFFECTS (decl))
     return false;
@@ -2008,15 +2009,15 @@ assign_parm_find_data_types (struct assign_parm_data_all *all, tree parm,
 
   memset (data, 0, sizeof (*data));
 
-  /* NAMED_ARG is a mis-nomer.  We really mean 'non-varadic'. */
+  /* NAMED_ARG is a misnomer.  We really mean 'non-variadic'. */
   if (!cfun->stdarg)
-    data->named_arg = 1;  /* No varadic parms.  */
+    data->named_arg = 1;  /* No variadic parms.  */
   else if (TREE_CHAIN (parm))
-    data->named_arg = 1;  /* Not the last non-varadic parm. */
+    data->named_arg = 1;  /* Not the last non-variadic parm. */
   else if (targetm.calls.strict_argument_naming (&all->args_so_far))
-    data->named_arg = 1;  /* Only varadic ones are unnamed.  */
+    data->named_arg = 1;  /* Only variadic ones are unnamed.  */
   else
-    data->named_arg = 0;  /* Treat as varadic.  */
+    data->named_arg = 0;  /* Treat as variadic.  */
 
   nominal_type = TREE_TYPE (parm);
   passed_type = DECL_ARG_TYPE (parm);
@@ -3851,6 +3852,10 @@ allocate_struct_function (tree fndecl, bool abstract_p)
   if (init_machine_status)
     cfun->machine = (*init_machine_status) ();
 
+#ifdef OVERRIDE_ABI_FORMAT
+  OVERRIDE_ABI_FORMAT (fndecl);
+#endif
+
   if (fndecl != NULL_TREE)
     {
       DECL_STRUCT_FUNCTION (fndecl) = cfun;
@@ -4231,7 +4236,7 @@ expand_function_start (tree subr)
       r_save = expand_expr (t_save, NULL_RTX, VOIDmode, EXPAND_WRITE);
       r_save = convert_memory_address (Pmode, r_save);
 
-      emit_move_insn (r_save, virtual_stack_vars_rtx);
+      emit_move_insn (r_save, targetm.builtin_setjmp_frame_value ());
       update_nonlocal_goto_save_area ();
     }
 
@@ -4310,7 +4315,7 @@ diddle_return_value (void (*doit) (rtx, void *), void *arg)
 static void
 do_clobber_return_reg (rtx reg, void *arg ATTRIBUTE_UNUSED)
 {
-  emit_insn (gen_rtx_CLOBBER (VOIDmode, reg));
+  emit_clobber (reg);
 }
 
 void
@@ -4333,7 +4338,7 @@ clobber_return_register (void)
 static void
 do_use_return_reg (rtx reg, void *arg ATTRIBUTE_UNUSED)
 {
-  emit_insn (gen_rtx_USE (VOIDmode, reg));
+  emit_use (reg);
 }
 
 static void
@@ -4739,7 +4744,7 @@ thread_prologue_and_epilogue_insns (void)
       /* Insert an explicit USE for the frame pointer 
          if the profiling is on and the frame pointer is required.  */
       if (crtl->profile && frame_pointer_needed)
-        emit_insn (gen_rtx_USE (VOIDmode, hard_frame_pointer_rtx));
+	emit_use (hard_frame_pointer_rtx);
 
       /* Retain a map of the prologue insns.  */
       record_insns (seq, &prologue);
@@ -5299,7 +5304,7 @@ match_asm_constraints_1 (rtx insn, rtx *p_sets, int noutputs)
       emit_insn_before (insns, insn);
 
       /* Now replace all mentions of the input with output.  We can't
-	 just replace the occurence in inputs[i], as the register might
+	 just replace the occurrence in inputs[i], as the register might
 	 also be used in some other input (or even in an address of an
 	 output), which would mean possibly increasing the number of
 	 inputs by one (namely 'output' in addition), which might pose
@@ -5309,7 +5314,7 @@ match_asm_constraints_1 (rtx insn, rtx *p_sets, int noutputs)
 
 	 Here 'input' is used in two occurrences as input (once for the
 	 input operand, once for the address in the second output operand).
-	 If we would replace only the occurence of the input operand (to
+	 If we would replace only the occurrence of the input operand (to
 	 make the matching) we would be left with this:
 
 	   output = input

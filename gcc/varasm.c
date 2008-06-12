@@ -2869,8 +2869,7 @@ const_hash_1 (const tree exp)
       return (const_hash_1 (TREE_OPERAND (exp, 0)) * 9
 	      + const_hash_1 (TREE_OPERAND (exp, 1)));
 
-    case NOP_EXPR:
-    case CONVERT_EXPR:
+    CASE_CONVERT:
       return const_hash_1 (TREE_OPERAND (exp, 0)) * 7 + 2;
 
     default:
@@ -3023,8 +3022,7 @@ compare_constant (const tree t1, const tree t2)
       return (compare_constant (TREE_OPERAND (t1, 0), TREE_OPERAND (t2, 0))
 	      && compare_constant(TREE_OPERAND (t1, 1), TREE_OPERAND (t2, 1)));
 
-    case NOP_EXPR:
-    case CONVERT_EXPR:
+    CASE_CONVERT:
     case VIEW_CONVERT_EXPR:
       return compare_constant (TREE_OPERAND (t1, 0), TREE_OPERAND (t2, 0));
 
@@ -3070,8 +3068,7 @@ copy_constant (tree exp)
 		     copy_constant (TREE_OPERAND (exp, 0)),
 		     copy_constant (TREE_OPERAND (exp, 1)));
 
-    case NOP_EXPR:
-    case CONVERT_EXPR:
+    CASE_CONVERT:
     case VIEW_CONVERT_EXPR:
       return build1 (TREE_CODE (exp), TREE_TYPE (exp),
 		     copy_constant (TREE_OPERAND (exp, 0)));
@@ -3968,8 +3965,7 @@ compute_reloc_for_constant (tree exp)
 	reloc |= reloc2;
       break;
 
-    case NOP_EXPR:
-    case CONVERT_EXPR:
+    CASE_CONVERT:
     case VIEW_CONVERT_EXPR:
       reloc = compute_reloc_for_constant (TREE_OPERAND (exp, 0));
       break;
@@ -4023,8 +4019,7 @@ output_addressed_constants (tree exp)
       output_addressed_constants (TREE_OPERAND (exp, 1));
       /* Fall through.  */
 
-    case NOP_EXPR:
-    case CONVERT_EXPR:
+    CASE_CONVERT:
     case VIEW_CONVERT_EXPR:
       output_addressed_constants (TREE_OPERAND (exp, 0));
       break;
@@ -4106,32 +4101,35 @@ initializer_constant_valid_p (tree value, tree endtype)
 
     case ADDR_EXPR:
     case FDESC_EXPR:
-      value = staticp (TREE_OPERAND (value, 0));
-      if (value)
-	{
-	  /* "&(*a).f" is like unto pointer arithmetic.  If "a" turns out to
-	     be a constant, this is old-skool offsetof-like nonsense.  */
-	  if (TREE_CODE (value) == INDIRECT_REF
-	      && TREE_CONSTANT (TREE_OPERAND (value, 0)))
-	    return null_pointer_node;
-	  /* Taking the address of a nested function involves a trampoline.  */
-	  if (TREE_CODE (value) == FUNCTION_DECL
-	      && decl_function_context (value)
-	      && !DECL_NO_STATIC_CHAIN (value))
-	    return NULL_TREE;
-	  /* "&{...}" requires a temporary to hold the constructed
-	     object.  */
-	  if (TREE_CODE (value) == CONSTRUCTOR)
-	    return NULL_TREE;
-	}
-      return value;
+      {
+	tree op0 = staticp (TREE_OPERAND (value, 0));
+	if (op0)
+	  {
+	    /* "&(*a).f" is like unto pointer arithmetic.  If "a" turns out
+	       to be a constant, this is old-skool offsetof-like nonsense.  */
+	    if (TREE_CODE (op0) == INDIRECT_REF
+		&& TREE_CONSTANT (TREE_OPERAND (op0, 0)))
+	      return null_pointer_node;
+	    /* Taking the address of a nested function involves a trampoline,
+	       unless we don't need or want one.  */
+	    if (TREE_CODE (op0) == FUNCTION_DECL
+		&& decl_function_context (op0)
+		&& !DECL_NO_STATIC_CHAIN (op0)
+		&& !TREE_NO_TRAMPOLINE (value))
+	      return NULL_TREE;
+	    /* "&{...}" requires a temporary to hold the constructed
+	       object.  */
+	    if (TREE_CODE (op0) == CONSTRUCTOR)
+	      return NULL_TREE;
+	  }
+	return op0;
+      }
 
     case VIEW_CONVERT_EXPR:
     case NON_LVALUE_EXPR:
       return initializer_constant_valid_p (TREE_OPERAND (value, 0), endtype);
 
-    case CONVERT_EXPR:
-    case NOP_EXPR:
+    CASE_CONVERT:
       {
 	tree src;
 	tree src_type;
@@ -4247,8 +4245,7 @@ initializer_constant_valid_p (tree value, tree endtype)
 	     (int)(p1 - p2) to ((int)p1 - (int)p2) under the theory
 	     that the narrower operation is cheaper.  */
 
-	  while (TREE_CODE (op0) == NOP_EXPR
-		 || TREE_CODE (op0) == CONVERT_EXPR
+	  while (CONVERT_EXPR_P (op0)
 		 || TREE_CODE (op0) == NON_LVALUE_EXPR)
 	    {
 	      tree inner = TREE_OPERAND (op0, 0);
@@ -4260,8 +4257,7 @@ initializer_constant_valid_p (tree value, tree endtype)
 	      op0 = inner;
 	    }
 
-	  while (TREE_CODE (op1) == NOP_EXPR
-		 || TREE_CODE (op1) == CONVERT_EXPR
+	  while (CONVERT_EXPR_P (op1)
 		 || TREE_CODE (op1) == NON_LVALUE_EXPR)
 	    {
 	      tree inner = TREE_OPERAND (op1, 0);
@@ -4362,7 +4358,7 @@ output_constant (tree exp, unsigned HOST_WIDE_INT size, unsigned int align)
 
   /* Eliminate any conversions since we'll be outputting the underlying
      constant.  */
-  while (TREE_CODE (exp) == NOP_EXPR || TREE_CODE (exp) == CONVERT_EXPR
+  while (CONVERT_EXPR_P (exp)
 	 || TREE_CODE (exp) == NON_LVALUE_EXPR
 	 || TREE_CODE (exp) == VIEW_CONVERT_EXPR)
     {

@@ -336,19 +336,22 @@ dump_omp_clause (pretty_printer *buffer, tree clause, int spc, int flags)
       pp_string (buffer, "default(");
       switch (OMP_CLAUSE_DEFAULT_KIND (clause))
 	{
-      case OMP_CLAUSE_DEFAULT_UNSPECIFIED:
-	break;
-      case OMP_CLAUSE_DEFAULT_SHARED:
-	pp_string (buffer, "shared");
-	break;
-      case OMP_CLAUSE_DEFAULT_NONE:
-	pp_string (buffer, "none");
-	break;
-      case OMP_CLAUSE_DEFAULT_PRIVATE:
-	pp_string (buffer, "private");
-	break;
-      default:
-	gcc_unreachable ();
+	case OMP_CLAUSE_DEFAULT_UNSPECIFIED:
+	  break;
+	case OMP_CLAUSE_DEFAULT_SHARED:
+	  pp_string (buffer, "shared");
+	  break;
+	case OMP_CLAUSE_DEFAULT_NONE:
+	  pp_string (buffer, "none");
+	  break;
+	case OMP_CLAUSE_DEFAULT_PRIVATE:
+	  pp_string (buffer, "private");
+	  break;
+	case OMP_CLAUSE_DEFAULT_FIRSTPRIVATE:
+	  pp_string (buffer, "firstprivate");
+	  break;
+	default:
+	  gcc_unreachable ();
 	}
       pp_character (buffer, ')');
       break;
@@ -369,6 +372,9 @@ dump_omp_clause (pretty_printer *buffer, tree clause, int spc, int flags)
       case OMP_CLAUSE_SCHEDULE_RUNTIME:
 	pp_string (buffer, "runtime");
 	break;
+      case OMP_CLAUSE_SCHEDULE_AUTO:
+	pp_string (buffer, "auto");
+	break;
       default:
 	gcc_unreachable ();
 	}
@@ -379,6 +385,18 @@ dump_omp_clause (pretty_printer *buffer, tree clause, int spc, int flags)
 	      OMP_CLAUSE_SCHEDULE_CHUNK_EXPR (clause),
 	      spc, flags, false);
 	}
+      pp_character (buffer, ')');
+      break;
+
+    case OMP_CLAUSE_UNTIED:
+      pp_string (buffer, "untied");
+      break;
+
+    case OMP_CLAUSE_COLLAPSE:
+      pp_string (buffer, "collapse(");
+      dump_generic_node (buffer,
+			 OMP_CLAUSE_COLLAPSE_EXPR (clause),
+			 spc, flags, false);
       pp_character (buffer, ')');
       break;
 
@@ -438,10 +456,10 @@ dump_symbols (pretty_printer *buffer, bitmap syms, int flags)
 }
 
 
-/* Dump the node NODE on the pretty_printer BUFFER, SPC spaces of indent.
-   FLAGS specifies details to show in the dump (see TDF_* in tree-pass.h).
-   If IS_STMT is true, the object printed is considered to be a statement
-   and it is terminated by ';' if appropriate.  */
+/* Dump the node NODE on the pretty_printer BUFFER, SPC spaces of
+   indent.  FLAGS specifies details to show in the dump (see TDF_* in
+   tree-pass.h).  If IS_STMT is true, the object printed is considered
+   to be a statement and it is terminated by ';' if appropriate.  */
 
 int
 dump_generic_node (pretty_printer *buffer, tree node, int spc, int flags,
@@ -1436,8 +1454,7 @@ dump_generic_node (pretty_printer *buffer, tree node, int spc, int flags,
     case FIXED_CONVERT_EXPR:
     case FIX_TRUNC_EXPR:
     case FLOAT_EXPR:
-    case CONVERT_EXPR:
-    case NOP_EXPR:
+    CASE_CONVERT:
       type = TREE_TYPE (node);
       op0 = TREE_OPERAND (node, 0);
       if (type != TREE_TYPE (op0))
@@ -1878,12 +1895,41 @@ dump_generic_node (pretty_printer *buffer, tree node, int spc, int flags,
       is_expr = false;
       break;
 
+    case OMP_TASK:
+      pp_string (buffer, "#pragma omp task");
+      dump_omp_clauses (buffer, OMP_TASK_CLAUSES (node), spc, flags);
+      if (OMP_TASK_FN (node))
+	{
+	  pp_string (buffer, " [child fn: ");
+	  dump_generic_node (buffer, OMP_TASK_FN (node), spc, flags, false);
+
+	  pp_string (buffer, " (");
+
+	  if (OMP_TASK_DATA_ARG (node))
+	    dump_generic_node (buffer, OMP_TASK_DATA_ARG (node), spc, flags,
+			       false);
+	  else
+	    pp_string (buffer, "???");
+
+	  pp_character (buffer, ')');
+	  if (OMP_TASK_COPYFN (node))
+	    {
+	      pp_string (buffer, ", copy fn: ");
+	      dump_generic_node (buffer, OMP_TASK_COPYFN (node), spc,
+				 flags, false);
+	    }
+	  pp_character (buffer, ']');
+	}
+      goto dump_omp_body;
+
     case OMP_FOR:
       pp_string (buffer, "#pragma omp for");
       dump_omp_clauses (buffer, OMP_FOR_CLAUSES (node), spc, flags);
 
       if (!(flags & TDF_SLIM))
 	{
+	  int i;
+
 	  if (OMP_FOR_PRE_BODY (node))
 	    {
 	      newline_and_indent (buffer, spc + 2);
@@ -1893,14 +1939,22 @@ dump_generic_node (pretty_printer *buffer, tree node, int spc, int flags,
 	      dump_generic_node (buffer, OMP_FOR_PRE_BODY (node),
 		  spc, flags, false);
 	    }
-	  newline_and_indent (buffer, spc);
-	  pp_string (buffer, "for (");
-	  dump_generic_node (buffer, OMP_FOR_INIT (node), spc, flags, false);
-	  pp_string (buffer, "; ");
-	  dump_generic_node (buffer, OMP_FOR_COND (node), spc, flags, false);
-	  pp_string (buffer, "; ");
-	  dump_generic_node (buffer, OMP_FOR_INCR (node), spc, flags, false);
-	  pp_string (buffer, ")");
+	  spc -= 2;
+	  for (i = 0; i < TREE_VEC_LENGTH (OMP_FOR_INIT (node)); i++)
+	    {
+	      spc += 2;
+	      newline_and_indent (buffer, spc);
+	      pp_string (buffer, "for (");
+	      dump_generic_node (buffer, TREE_VEC_ELT (OMP_FOR_INIT (node), i),
+				 spc, flags, false);
+	      pp_string (buffer, "; ");
+	      dump_generic_node (buffer, TREE_VEC_ELT (OMP_FOR_COND (node), i),
+				 spc, flags, false);
+	      pp_string (buffer, "; ");
+	      dump_generic_node (buffer, TREE_VEC_ELT (OMP_FOR_INCR (node), i),
+				 spc, flags, false);
+	      pp_string (buffer, ")");
+	    }
 	  if (OMP_FOR_BODY (node))
 	    {
 	      newline_and_indent (buffer, spc + 2);
@@ -1911,6 +1965,7 @@ dump_generic_node (pretty_printer *buffer, tree node, int spc, int flags,
 	      newline_and_indent (buffer, spc + 2);
 	      pp_character (buffer, '}');
 	    }
+	  spc -= 2 * TREE_VEC_LENGTH (OMP_FOR_INIT (node)) - 2;
 	  if (OMP_FOR_PRE_BODY (node))
 	    {
 	      spc -= 4;
@@ -2268,7 +2323,7 @@ print_declaration (pretty_printer *buffer, tree t, int spc, int flags)
       pp_character (buffer, ')');
     }
 
-  /* The initial value of a function serves to determine wether the function
+  /* The initial value of a function serves to determine whether the function
      is declared or defined.  So the following does not apply to function
      nodes.  */
   if (TREE_CODE (t) != FUNCTION_DECL)
@@ -2466,8 +2521,7 @@ op_prio (const_tree op)
     case INDIRECT_REF:
     case ADDR_EXPR:
     case FLOAT_EXPR:
-    case NOP_EXPR:
-    case CONVERT_EXPR:
+    CASE_CONVERT:
     case FIX_TRUNC_EXPR:
     case TARGET_EXPR:
       return 14;
@@ -3068,6 +3122,8 @@ dump_phi_nodes (pretty_printer *buffer, basic_block bb, int indent, int flags)
           pp_string (buffer, "# ");
           dump_generic_node (buffer, phi, indent, flags, false);
           pp_newline (buffer);
+	  if (flags & TDF_VERBOSE)
+	    print_node (buffer->buffer->stream, "", phi, indent);
         }
     }
 }
@@ -3186,6 +3242,8 @@ dump_generic_bb_buff (pretty_printer *buffer, basic_block bb,
       dump_generic_node (buffer, stmt, curr_indent, flags, true);
       pp_newline (buffer);
       dump_histograms_for_stmt (cfun, buffer->buffer->stream, stmt);
+      if (flags & TDF_VERBOSE)
+	print_node (buffer->buffer->stream, "", stmt, curr_indent);
     }
 
   dump_implicit_edges (buffer, bb, indent, flags);

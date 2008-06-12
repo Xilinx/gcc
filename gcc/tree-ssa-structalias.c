@@ -2911,8 +2911,7 @@ get_constraint_for (tree t, VEC (ce_s, heap) **results)
       {
 	switch (TREE_CODE (t))
 	  {
-	  case NOP_EXPR:
-	  case CONVERT_EXPR:
+	  CASE_CONVERT:
 	    {
 	      tree op = TREE_OPERAND (t, 0);
 
@@ -3532,8 +3531,7 @@ handle_ptr_arith (VEC (ce_s, heap) *lhsc, tree expr)
   unsigned int i = 0;
   unsigned int j = 0;
   VEC (ce_s, heap) *temp = NULL;
-  unsigned int rhsoffset = 0;
-  bool unknown_addend = false;
+  unsigned HOST_WIDE_INT rhsunitoffset, rhsoffset;
 
   if (TREE_CODE (expr) != POINTER_PLUS_EXPR)
     return false;
@@ -3542,13 +3540,18 @@ handle_ptr_arith (VEC (ce_s, heap) *lhsc, tree expr)
   op1 = TREE_OPERAND (expr, 1);
   gcc_assert (POINTER_TYPE_P (TREE_TYPE (op0)));
 
-  get_constraint_for (op0, &temp);
+  /* If the offset is not a non-negative integer constant that fits
+     in a HOST_WIDE_INT, we cannot handle it here.  */
+  if (!host_integerp (op1, 1))
+    return false;
 
-  /* Handle non-constants by making constraints from integer.  */
-  if (TREE_CODE (op1) == INTEGER_CST)
-    rhsoffset = TREE_INT_CST_LOW (op1) * BITS_PER_UNIT;
-  else
-    unknown_addend = true;
+  /* Make sure the bit-offset also fits.  */
+  rhsunitoffset = TREE_INT_CST_LOW (op1);
+  rhsoffset = rhsunitoffset * BITS_PER_UNIT;
+  if (rhsunitoffset != rhsoffset / BITS_PER_UNIT)
+    return false;
+
+  get_constraint_for (op0, &temp);
 
   for (i = 0; VEC_iterate (ce_s, lhsc, i, c); i++)
     for (j = 0; VEC_iterate (ce_s, temp, j, c2); j++)
@@ -3564,30 +3567,6 @@ handle_ptr_arith (VEC (ce_s, heap) *lhsc, tree expr)
 	      continue;
 	    c2->var = temp->id;
 	    c2->offset = 0;
-	  }
-	else if (unknown_addend)
-	  {
-	    /* Can't handle *a + integer where integer is unknown.  */
-	    if (c2->type != SCALAR)
-	      {
-		struct constraint_expr intc;
-		intc.var = integer_id;
-		intc.offset = 0;
-		intc.type = SCALAR;
-		process_constraint (new_constraint (*c, intc));
-	      }
-	    else
-	      {
-		/* We known it lives somewhere within c2->var.  */
-		varinfo_t tmp = get_varinfo (c2->var);
-		for (; tmp; tmp = tmp->next)
-		  {
-		    struct constraint_expr tmpc = *c2;
-		    c2->var = tmp->id;
-		    c2->offset = 0;
-		    process_constraint (new_constraint (*c, tmpc));
-		  }
-	      }
 	  }
 	else
 	  c2->offset = rhsoffset;
@@ -3727,7 +3706,7 @@ find_func_aliases (tree origt)
 	  if (TREE_CODE (t) == GIMPLE_MODIFY_STMT)
 	    {
 	      handle_rhs_call (GIMPLE_STMT_OPERAND (t, 1));
-	      if (POINTER_TYPE_P (TREE_TYPE (GIMPLE_STMT_OPERAND (t, 1))))
+	      if (could_have_pointers (GIMPLE_STMT_OPERAND (t, 1)))
 		handle_lhs_call (GIMPLE_STMT_OPERAND (t, 0));
 	    }
 	  else
@@ -3994,6 +3973,30 @@ insert_into_field_list_sorted (varinfo_t base, varinfo_t field)
     }
 }
 
+/* This structure is used during pushing fields onto the fieldstack
+   to track the offset of the field, since bitpos_of_field gives it
+   relative to its immediate containing type, and we want it relative
+   to the ultimate containing object.  */
+
+struct fieldoff
+{
+  /* Type of the field.  */
+  tree type;
+
+  /* Size, in bits, of the field.  */
+  tree size;
+
+  /* Field.  */
+  tree decl;
+
+  /* Offset from the base of the base containing object to this field.  */
+  HOST_WIDE_INT offset;  
+};
+typedef struct fieldoff fieldoff_s;
+
+DEF_VEC_O(fieldoff_s);
+DEF_VEC_ALLOC_O(fieldoff_s,heap);
+
 /* qsort comparison function for two fieldoff's PA and PB */
 
 static int
@@ -4012,13 +4015,35 @@ fieldoff_compare (const void *pa, const void *pb)
 }
 
 /* Sort a fieldstack according to the field offset and sizes.  */
-void
+static void
 sort_fieldstack (VEC(fieldoff_s,heap) *fieldstack)
 {
   qsort (VEC_address (fieldoff_s, fieldstack),
 	 VEC_length (fieldoff_s, fieldstack),
 	 sizeof (fieldoff_s),
 	 fieldoff_compare);
+}
+
+/* Return true if V is a tree that we can have subvars for.
+   Normally, this is any aggregate type.  Also complex
+   types which are not gimple registers can have subvars.  */
+
+static inline bool
+var_can_have_subvars (const_tree v)
+{
+  /* Volatile variables should never have subvars.  */
+  if (TREE_THIS_VOLATILE (v))
+    return false;
+
+  /* Non decls or memory tags can never have subvars.  */
+  if (!DECL_P (v) || MTAG_P (v))
+    return false;
+
+  /* Aggregates without overlapping fields can have subvars.  */
+  if (TREE_CODE (TREE_TYPE (v)) == RECORD_TYPE)
+    return true;
+
+  return false;
 }
 
 /* Given a TYPE, and a vector of field offsets FIELDSTACK, push all
@@ -4030,172 +4055,63 @@ sort_fieldstack (VEC(fieldoff_s,heap) *fieldstack)
    Returns the number of fields pushed.
 
    HAS_UNION is set to true if we find a union type as a field of
-   TYPE.
+   TYPE.  */
 
-   ADDRESSABLE_TYPE is the type of the outermost object that could
-   have its address taken.  */
-
-int
+static int
 push_fields_onto_fieldstack (tree type, VEC(fieldoff_s,heap) **fieldstack,
-			     HOST_WIDE_INT offset, bool *has_union,
-			     tree addressable_type)
+			     HOST_WIDE_INT offset, bool *has_union)
 {
   tree field;
   int count = 0;
-  unsigned int first_element = VEC_length (fieldoff_s, *fieldstack);
+
+  if (TREE_CODE (type) != RECORD_TYPE)
+    return 0;
 
   /* If the vector of fields is growing too big, bail out early.
      Callers check for VEC_length <= MAX_FIELDS_FOR_FIELD_SENSITIVE, make
      sure this fails.  */
-  if (first_element > MAX_FIELDS_FOR_FIELD_SENSITIVE)
+  if (VEC_length (fieldoff_s, *fieldstack) > MAX_FIELDS_FOR_FIELD_SENSITIVE)
     return 0;
 
-  if (TREE_CODE (type) == COMPLEX_TYPE)
-    {
-      fieldoff_s *real_part, *img_part;
-      real_part = VEC_safe_push (fieldoff_s, heap, *fieldstack, NULL);
-      real_part->type = TREE_TYPE (type);
-      real_part->size = TYPE_SIZE (TREE_TYPE (type));
-      real_part->offset = offset;
-      real_part->decl = NULL_TREE;
-      real_part->alias_set = -1;
-      real_part->base_for_components = false;
+  for (field = TYPE_FIELDS (type); field; field = TREE_CHAIN (field))
+    if (TREE_CODE (field) == FIELD_DECL)
+      {
+	bool push = false;
+	int pushed = 0;
 
-      img_part = VEC_safe_push (fieldoff_s, heap, *fieldstack, NULL);
-      img_part->type = TREE_TYPE (type);
-      img_part->size = TYPE_SIZE (TREE_TYPE (type));
-      img_part->offset = offset + TREE_INT_CST_LOW (TYPE_SIZE (TREE_TYPE (type)));
-      img_part->decl = NULL_TREE;
-      img_part->alias_set = -1;
-      img_part->base_for_components = false;
+	if (has_union
+	    && (TREE_CODE (TREE_TYPE (field)) == QUAL_UNION_TYPE
+		|| TREE_CODE (TREE_TYPE (field)) == UNION_TYPE))
+	  *has_union = true;
 
-      count = 2;
-    }
+	if (!var_can_have_subvars (field))
+	  push = true;
+	else if (!(pushed = push_fields_onto_fieldstack
+		   (TREE_TYPE (field),
+		    fieldstack,
+		    offset + bitpos_of_field (field),
+		    has_union))
+		 && (DECL_SIZE (field)
+		     && !integer_zerop (DECL_SIZE (field))))
+	  /* Empty structures may have actual size, like in C++.  So
+	     see if we didn't push any subfields and the size is
+	     nonzero, push the field onto the stack.  */
+	  push = true;
 
-  else if (TREE_CODE (type) == ARRAY_TYPE)
-    {
-      tree sz = TYPE_SIZE (type);
-      tree elsz = TYPE_SIZE (TREE_TYPE (type));
-      HOST_WIDE_INT nr;
-      int i;
-
-      if (! sz
-	  || ! host_integerp (sz, 1)
-	  || TREE_INT_CST_LOW (sz) == 0
-	  || ! elsz
-	  || ! host_integerp (elsz, 1)
-	  || TREE_INT_CST_LOW (elsz) == 0)
-	return 0;
-
-      nr = TREE_INT_CST_LOW (sz) / TREE_INT_CST_LOW (elsz);
-      if (nr > SALIAS_MAX_ARRAY_ELEMENTS)
-	return 0;
-
-      for (i = 0; i < nr; ++i)
-	{
-	  bool push = false;
-	  int pushed = 0;
-
-	  if (has_union
-	      && (TREE_CODE (TREE_TYPE (type)) == QUAL_UNION_TYPE
-		  || TREE_CODE (TREE_TYPE (type)) == UNION_TYPE))
-	    *has_union = true;
-
-	  if (!AGGREGATE_TYPE_P (TREE_TYPE (type))) /* var_can_have_subvars */
-	    push = true;
-	  else if (!(pushed = push_fields_onto_fieldstack
-		     (TREE_TYPE (type),
-		      fieldstack,
-		      offset + i * TREE_INT_CST_LOW (elsz),
-		      has_union,
-		      (TYPE_NONALIASED_COMPONENT (type)
-		       ? addressable_type
-		       : TREE_TYPE (type)))))
-	    /* Empty structures may have actual size, like in C++. So
-	       see if we didn't push any subfields and the size is
-	       nonzero, push the field onto the stack */
-	    push = true;
-
-	  if (push)
-	    {
-	      fieldoff_s *pair;
-
-	      pair = VEC_safe_push (fieldoff_s, heap, *fieldstack, NULL);
-	      pair->type = TREE_TYPE (type);
-	      pair->size = elsz;
-	      pair->decl = NULL_TREE;
-	      pair->offset = offset + i * TREE_INT_CST_LOW (elsz);
-	      if (TYPE_NONALIASED_COMPONENT (type))
-		pair->alias_set = get_alias_set (addressable_type);
-	      else
-		pair->alias_set = -1;
-	      pair->base_for_components = false;
-	      count++;
-	    }
-	  else
-	    count += pushed;
-	}
-    }
-
-  else
-    {
-      for (field = TYPE_FIELDS (type); field; field = TREE_CHAIN (field))
-	if (TREE_CODE (field) == FIELD_DECL)
+	if (push)
 	  {
-	    bool push = false;
-	    int pushed = 0;
+	    fieldoff_s *pair;
 
-	    if (has_union
-	        && (TREE_CODE (TREE_TYPE (field)) == QUAL_UNION_TYPE
-		    || TREE_CODE (TREE_TYPE (field)) == UNION_TYPE))
-	      *has_union = true;
-
-	    if (!var_can_have_subvars (field))
-	      push = true;
-	    else if (!(pushed = push_fields_onto_fieldstack
-		       (TREE_TYPE (field),
-		        fieldstack,
-		        offset + bitpos_of_field (field),
-		        has_union,
-		        (DECL_NONADDRESSABLE_P (field)
-		         ? addressable_type
-		         : TREE_TYPE (field))))
-		     && ((DECL_SIZE (field)
-			  && !integer_zerop (DECL_SIZE (field)))
-			 || (!DECL_SIZE (field)
-			     && TREE_CODE (TREE_TYPE (field)) == ARRAY_TYPE)))
-	      /* Empty structures may have actual size, like in C++.  So
-	         see if we didn't push any subfields and the size is
-	         nonzero, push the field onto the stack.  Trailing flexible
-		 array members also need a representative to be able to
-		 treat taking their address in PTA.  */
-	      push = true;
-
-	    if (push)
-	      {
-	        fieldoff_s *pair;
-
-	        pair = VEC_safe_push (fieldoff_s, heap, *fieldstack, NULL);
-	        pair->type = TREE_TYPE (field);
-	        pair->size = DECL_SIZE (field);
-	        pair->decl = field;
-	        pair->offset = offset + bitpos_of_field (field);
-	        if (DECL_NONADDRESSABLE_P (field))
-	          pair->alias_set = get_alias_set (addressable_type);
-	        else
-	          pair->alias_set = -1;
-	        pair->base_for_components = false;
-	        count++;
-	      }
-	    else
-	      count += pushed;
-          }
-    }
-
-  /* Make sure the first pushed field is marked as eligible for
-     being a base for component references.  */
-  if (count > 0)
-    VEC_index (fieldoff_s, *fieldstack, first_element)->base_for_components = true;
+	    pair = VEC_safe_push (fieldoff_s, heap, *fieldstack, NULL);
+	    pair->type = TREE_TYPE (field);
+	    pair->size = DECL_SIZE (field);
+	    pair->decl = field;
+	    pair->offset = offset + bitpos_of_field (field);
+	    count++;
+	  }
+	else
+	  count += pushed;
+      }
 
   return count;
 }
@@ -4389,15 +4305,13 @@ create_variable_info_for (tree decl, const char *name)
 	     || TREE_CODE (decltype) == QUAL_UNION_TYPE;
   if (var_can_have_subvars (decl) && use_field_sensitive && !hasunion)
     {
-      push_fields_onto_fieldstack (decltype, &fieldstack, 0, &hasunion,
-				   decltype);
+      push_fields_onto_fieldstack (decltype, &fieldstack, 0, &hasunion);
       if (hasunion)
 	{
 	  VEC_free (fieldoff_s, heap, fieldstack);
 	  notokay = true;
 	}
     }
-
 
   /* If the variable doesn't have subvars, we may end up needing to
      sort the field list and create fake variables for all the
@@ -4730,17 +4644,19 @@ set_uids_in_ptset (tree ptr, bitmap into, bitmap from, bool is_derefed,
 	  || TREE_CODE (vi->decl) == RESULT_DECL)
 	{
 	  /* Just add VI->DECL to the alias set.
-	     Don't type prune artificial vars.  */
-	  if (vi->is_artificial_var)
+	     Don't type prune artificial vars or points-to sets
+	     for pointers that have not been dereferenced or with
+	     type-based pruning disabled.  */
+	  if (vi->is_artificial_var
+	      || !is_derefed
+	      || no_tbaa_pruning)
 	    bitmap_set_bit (into, DECL_UID (vi->decl));
 	  else
 	    {
 	      alias_set_type var_alias_set, ptr_alias_set;
 	      var_alias_set = get_alias_set (vi->decl);
 	      ptr_alias_set = get_alias_set (TREE_TYPE (TREE_TYPE (ptr)));
-	      if (no_tbaa_pruning
-		  || (!is_derefed && !vi->directly_dereferenced)
-		  || alias_sets_conflict_p (ptr_alias_set, var_alias_set))
+	      if (alias_sets_conflict_p (ptr_alias_set, var_alias_set))
 	        bitmap_set_bit (into, DECL_UID (vi->decl));
 	    }
 	}
@@ -4802,32 +4718,6 @@ set_used_smts (void)
       smt = va->symbol_mem_tag;
       if (smt && bitmap_bit_p (withsolution->solution, anything_id))
 	bitmap_set_bit (used_smts, DECL_UID (smt));
-    }
-}
-
-/* Merge the necessary SMT's into the bitmap INTO, which is
-   P's varinfo.  This involves merging all SMT's that are a subset of
-   the SMT necessary for P. */
-
-static void
-merge_smts_into (tree p, bitmap solution)
-{
-  tree smt;
-  bitmap aliases;
-  tree var = p;
-
-  if (TREE_CODE (p) == SSA_NAME)
-    var = SSA_NAME_VAR (p);
-
-  smt = var_ann (var)->symbol_mem_tag;
-  if (smt)
-    {
-      /* The smt itself isn't included in its aliases.  */
-      bitmap_set_bit (solution, DECL_UID (smt));
-
-      aliases = MTAG_ALIASES (smt);
-      if (aliases)
-	bitmap_ior_into (solution, aliases);
     }
 }
 
@@ -4912,18 +4802,17 @@ find_what_p_points_to (tree p)
 		}
 	    }
 
+	  /* Instead of doing extra work, simply do not create
+	     points-to information for pt_anything pointers.  This
+	     will cause the operand scanner to fall back to the
+	     type-based SMT and its aliases.  Which is the best
+	     we could do here for the points-to set as well.  */
+	  if (was_pt_anything)
+	    return false;
+
 	  /* Share the final set of variables when possible.  */
 	  finished_solution = BITMAP_GGC_ALLOC ();
 	  stats.points_to_sets_created++;
-
-	  /* Instead of using pt_anything, we merge in the SMT aliases
-	     for the underlying SMT.  In addition, if they could have
-	     pointed to anything, they could point to global memory.  */
-	  if (was_pt_anything)
-	    {
-	      merge_smts_into (p, finished_solution);
-	      pi->pt_global_mem = 1;
-	    }
 
 	  set_uids_in_ptset (p, finished_solution, vi->solution,
 			     vi->directly_dereferenced,
@@ -4951,7 +4840,71 @@ find_what_p_points_to (tree p)
   return false;
 }
 
+/* Mark everything that p points to as call clobbered.  Returns true
+   if everything is done and false if all addressable variables need to
+   be clobbered because p points to anything.  */
 
+bool
+clobber_what_p_points_to (tree p)
+{
+  tree lookup_p = p;
+  varinfo_t vi;
+  struct ptr_info_def *pi;
+  unsigned int i;
+  bitmap_iterator bi;
+
+  if (!have_alias_info)
+    return false;
+
+  /* For parameters, get at the points-to set for the actual parm
+     decl.  */
+  if (TREE_CODE (p) == SSA_NAME
+      && TREE_CODE (SSA_NAME_VAR (p)) == PARM_DECL
+      && SSA_NAME_IS_DEFAULT_DEF (p))
+    lookup_p = SSA_NAME_VAR (p);
+
+  vi = lookup_vi_for_tree (lookup_p);
+  if (!vi)
+    return false;
+
+  /* We are asking for the points-to solution of pointers.  */
+  gcc_assert (!vi->is_artificial_var
+	      && vi->size == vi->fullsize);
+
+  pi = get_ptr_info (p);
+
+  /* This variable may have been collapsed, let's get the real
+     variable.  */
+  vi = get_varinfo (find (vi->id));
+
+  /* Mark variables in the solution call-clobbered.  */
+  EXECUTE_IF_SET_IN_BITMAP (vi->solution, 0, i, bi)
+    {
+      varinfo_t vi = get_varinfo (i);
+
+      if (vi->is_artificial_var)
+	{
+	  /* nothing_id and readonly_id do not cause any
+	     call clobber ops.  For anything_id and integer_id
+	     we need to clobber all addressable vars.  */
+	  if (vi->id == anything_id
+	      || vi->id == integer_id)
+	    return false;
+	}
+
+      /* Only artificial heap-vars are further interesting.  */
+      if (vi->is_artificial_var && !vi->is_heap_var)
+	continue;
+
+      if ((TREE_CODE (vi->decl) == VAR_DECL
+	   || TREE_CODE (vi->decl) == PARM_DECL
+	   || TREE_CODE (vi->decl) == RESULT_DECL)
+	  && !unmodifiable_var_p (vi->decl))
+	mark_call_clobbered (vi->decl, pi->escape_mask);
+    }
+
+  return true;
+}
 
 /* Dump points-to information to OUTFILE.  */
 

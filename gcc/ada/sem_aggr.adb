@@ -198,8 +198,8 @@ package body Sem_Aggr is
    --  quadratic in the size of the association list.
 
    procedure Check_Misspelled_Component
-     (Elements      : Elist_Id;
-      Component     : Node_Id);
+     (Elements  : Elist_Id;
+      Component : Node_Id);
    --  Give possible misspelling diagnostic if Component is likely to be
    --  a misspelling of one of the components of the Assoc_List.
    --  This is called by Resolve_Aggr_Expr after producing
@@ -414,6 +414,22 @@ package body Sem_Aggr is
          return;
       end if;
 
+      --  Ada 2005 (AI-230): Generate a conversion to an anonymous access
+      --  component's type to force the appropriate accessibility checks.
+
+      --  Ada 2005 (AI-231): Generate conversion to the null-excluding
+      --  type to force the corresponding run-time check
+
+      if Is_Access_Type (Check_Typ)
+        and then ((Is_Local_Anonymous_Access (Check_Typ))
+                    or else (Can_Never_Be_Null (Check_Typ)
+                               and then not Can_Never_Be_Null (Exp_Typ)))
+      then
+         Rewrite (Exp, Convert_To (Check_Typ, Relocate_Node (Exp)));
+         Analyze_And_Resolve (Exp, Check_Typ);
+         Check_Unset_Reference (Exp);
+      end if;
+
       --  This is really expansion activity, so make sure that expansion
       --  is on and is allowed.
 
@@ -486,20 +502,6 @@ package body Sem_Aggr is
             Check_Unset_Reference (Exp);
          end if;
 
-      --  Ada 2005 (AI-230): Generate a conversion to an anonymous access
-      --  component's type to force the appropriate accessibility checks.
-
-      --  Ada 2005 (AI-231): Generate conversion to the null-excluding
-      --  type to force the corresponding run-time check
-
-      elsif Is_Access_Type (Check_Typ)
-        and then ((Is_Local_Anonymous_Access (Check_Typ))
-                    or else (Can_Never_Be_Null (Check_Typ)
-                               and then not Can_Never_Be_Null (Exp_Typ)))
-      then
-         Rewrite (Exp, Convert_To (Check_Typ, Relocate_Node (Exp)));
-         Analyze_And_Resolve (Exp, Check_Typ);
-         Check_Unset_Reference (Exp);
       end if;
    end Aggregate_Constraint_Checks;
 
@@ -716,8 +718,8 @@ package body Sem_Aggr is
    --------------------------------
 
    procedure Check_Misspelled_Component
-     (Elements      : Elist_Id;
-      Component     : Node_Id)
+     (Elements  : Elist_Id;
+      Component : Node_Id)
    is
       Max_Suggestions   : constant := 2;
 
@@ -2113,7 +2115,7 @@ package body Sem_Aggr is
 
       function Valid_Ancestor_Type return Boolean;
       --  Verify that the type of the ancestor part is a non-private ancestor
-      --  of the expected type.
+      --  of the expected type, which must be a type extension.
 
       ----------------------------
       -- Valid_Limited_Ancestor --
@@ -2159,8 +2161,8 @@ package body Sem_Aggr is
             Imm_Type := Etype (Base_Type (Imm_Type));
          end loop;
 
-         if Etype (Imm_Type) /= Base_Type (A_Type)
-           or else Base_Type (Typ) = Base_Type (A_Type)
+         if not Is_Derived_Type (Base_Type (Typ))
+           or else Etype (Imm_Type) /= Base_Type (A_Type)
          then
             Error_Msg_NE ("expect ancestor type of &", A, Typ);
             return False;

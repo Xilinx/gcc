@@ -434,12 +434,14 @@ check_conflict (symbol_attribute *attr, const char *name, locus *where)
 
   conf (target, external);
   conf (target, intrinsic);
-  conf (external, dimension);   /* See Fortran 95's R504.  */
+
+  if (!attr->if_source)
+    conf (external, dimension);   /* See Fortran 95's R504.  */
 
   conf (external, intrinsic);
   conf (entry, intrinsic);
 
-  if ((attr->if_source && !attr->procedure) || attr->contained)
+  if ((attr->if_source == IFSRC_DECL && !attr->procedure) || attr->contained)
     {
       conf (external, subroutine);
       conf (external, function);
@@ -595,6 +597,21 @@ check_conflict (symbol_attribute *attr, const char *name, locus *where)
       conf2 (function);
       conf2 (subroutine);
       conf2 (threadprivate);
+
+      if (attr->access == ACCESS_PUBLIC || attr->access == ACCESS_PRIVATE)
+	{
+	  a2 = attr->access == ACCESS_PUBLIC ? public : private;
+	  gfc_error ("%s attribute applied to %s %s at %L", a2, a1,
+	    name, where);
+	  return FAILURE;
+	}
+
+      if (attr->is_bind_c)
+	{
+	  gfc_error_now ("BIND(C) applied to %s %s at %L", a1, name, where);
+	  return FAILURE;
+	}
+
       break;
 
     case FL_VARIABLE:
@@ -797,6 +814,14 @@ gfc_add_allocatable (symbol_attribute *attr, locus *where)
       return FAILURE;
     }
 
+  if (attr->flavor == FL_PROCEDURE && attr->if_source == IFSRC_IFBODY
+      && gfc_find_state (COMP_INTERFACE) == FAILURE)
+    {
+      gfc_error ("ALLOCATABLE specified outside of INTERFACE body at %L",
+		 where);
+      return FAILURE;
+    }
+
   attr->allocatable = 1;
   return check_conflict (attr, NULL, where);
 }
@@ -812,6 +837,14 @@ gfc_add_dimension (symbol_attribute *attr, const char *name, locus *where)
   if (attr->dimension)
     {
       duplicate_attr ("DIMENSION", where);
+      return FAILURE;
+    }
+
+  if (attr->flavor == FL_PROCEDURE && attr->if_source == IFSRC_IFBODY
+      && gfc_find_state (COMP_INTERFACE) == FAILURE)
+    {
+      gfc_error ("DIMENSION specified for '%s' outside its INTERFACE body "
+		 "at %L", name, where);
       return FAILURE;
     }
 
@@ -1433,6 +1466,13 @@ gfc_add_explicit_interface (gfc_symbol *sym, ifsrc source,
     {
       gfc_error ("Symbol '%s' at %L already has an explicit interface",
 		 sym->name, where);
+      return FAILURE;
+    }
+
+  if (source == IFSRC_IFBODY && (sym->attr.dimension || sym->attr.allocatable))
+    {
+      gfc_error ("'%s' at %L has attributes specified outside its INTERFACE "
+		 "body", sym->name, where);
       return FAILURE;
     }
 
@@ -2079,6 +2119,7 @@ gfc_get_namespace (gfc_namespace *parent, int parent_types)
   ns = gfc_getmem (sizeof (gfc_namespace));
   ns->sym_root = NULL;
   ns->uop_root = NULL;
+  ns->finalizers = NULL;
   ns->default_access = ACCESS_UNKNOWN;
   ns->parent = parent;
 
@@ -2267,6 +2308,8 @@ gfc_free_symbol (gfc_symbol *sym)
 
   gfc_free_formal_arglist (sym->formal);
 
+  gfc_free_namespace (sym->f2k_derived);
+
   gfc_free (sym);
 }
 
@@ -2299,6 +2342,7 @@ gfc_new_symbol (const char *name, gfc_namespace *ns)
 
   /* Clear the ptrs we may need.  */
   p->common_block = NULL;
+  p->f2k_derived = NULL;
   
   return p;
 }
@@ -2867,6 +2911,33 @@ gfc_free_equiv_lists (gfc_equiv_list *l)
 }
 
 
+/* Free a finalizer procedure list.  */
+
+void
+gfc_free_finalizer (gfc_finalizer* el)
+{
+  if (el)
+    {
+      --el->procedure->refs;
+      if (!el->procedure->refs)
+	gfc_free_symbol (el->procedure);
+
+      gfc_free (el);
+    }
+}
+
+static void
+gfc_free_finalizer_list (gfc_finalizer* list)
+{
+  while (list)
+    {
+      gfc_finalizer* current = list;
+      list = list->next;
+      gfc_free_finalizer (current);
+    }
+}
+
+
 /* Free a namespace structure and everything below it.  Interface
    lists associated with intrinsic operators are not freed.  These are
    taken care of when a specific name is freed.  */
@@ -2891,6 +2962,7 @@ gfc_free_namespace (gfc_namespace *ns)
   free_sym_tree (ns->sym_root);
   free_uop_tree (ns->uop_root);
   free_common_tree (ns->common_root);
+  gfc_free_finalizer_list (ns->finalizers);
 
   for (cl = ns->cl_list; cl; cl = cl2)
     {
@@ -3625,7 +3697,8 @@ add_proc_interface (gfc_symbol *sym, ifsrc source,
    declaration statement (see match_proc_decl()) to create the formal
    args based on the args of a given named interface.  */
 
-void copy_formal_args (gfc_symbol *dest, gfc_symbol *src)
+void
+copy_formal_args (gfc_symbol *dest, gfc_symbol *src)
 {
   gfc_formal_arglist *head = NULL;
   gfc_formal_arglist *tail = NULL;
@@ -3648,6 +3721,7 @@ void copy_formal_args (gfc_symbol *dest, gfc_symbol *src)
       /* May need to copy more info for the symbol.  */
       formal_arg->sym->attr = curr_arg->sym->attr;
       formal_arg->sym->ts = curr_arg->sym->ts;
+      formal_arg->sym->as = gfc_copy_array_spec (curr_arg->sym->as);
 
       /* If this isn't the first arg, set up the next ptr.  For the
         last arg built, the formal_arg->next will never get set to
@@ -3740,6 +3814,20 @@ build_formal_args (gfc_symbol *new_proc_sym,
   gfc_current_ns = parent_ns;
 }
 
+static int
+std_for_isocbinding_symbol (int id)
+{
+  switch (id)
+    {
+#define NAMED_INTCST(a,b,c,d) \
+      case a:\
+        return d;
+#include "iso-c-binding.def"
+#undef NAMED_INTCST
+       default:
+         return GFC_STD_F2003;
+    }
+}
 
 /* Generate the given set of C interoperable kind objects, or all
    interoperable kinds.  This function will only be given kind objects
@@ -3765,6 +3853,8 @@ generate_isocbinding_symbol (const char *mod_name, iso_c_binding_symbol s,
   char comp_name[(GFC_MAX_SYMBOL_LEN * 2) + 1];
   int index;
 
+  if (gfc_notification_std (std_for_isocbinding_symbol (s)) == FAILURE)
+    return;
   tmp_symtree = gfc_find_symtree (gfc_current_ns->sym_root, name);
 
   /* Already exists in this scope so don't re-add it.
@@ -3788,7 +3878,7 @@ generate_isocbinding_symbol (const char *mod_name, iso_c_binding_symbol s,
   switch (s)
     {
 
-#define NAMED_INTCST(a,b,c) case a :
+#define NAMED_INTCST(a,b,c,d) case a : 
 #define NAMED_REALCST(a,b,c) case a :
 #define NAMED_CMPXCST(a,b,c) case a :
 #define NAMED_LOGCST(a,b,c) case a :

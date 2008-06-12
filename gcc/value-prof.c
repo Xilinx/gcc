@@ -1,5 +1,6 @@
 /* Transformations based on profile information for values.
-   Copyright (C) 2003, 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
+   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008 Free Software
+   Foundation, Inc.
 
 This file is part of GCC.
 
@@ -336,6 +337,25 @@ gimple_duplicate_stmt_histograms (struct function *fun, tree stmt,
     }
 }
 
+
+/* Move all histograms associated with OSTMT to STMT.  */
+
+void
+gimple_move_stmt_histograms (struct function *fun, tree stmt, tree ostmt)
+{
+  histogram_value val = gimple_histogram_value (fun, ostmt);
+  if (val)
+    {
+      /* The following three statements can't be reordered,
+         because histogram hashtab relies on stmt field value
+	 for finding the exact slot. */
+      set_histogram_value (fun, ostmt, NULL);
+      for (; val != NULL; val = val->hvalue.next)
+	val->hvalue.stmt = stmt;
+      set_histogram_value (fun, stmt, val);
+    }
+}
+
 static bool error_found = false;
 
 /* Helper function for verify_histograms.  For each histogram reachable via htab
@@ -590,7 +610,7 @@ tree_divmod_fixed_value_transform (tree stmt)
   enum tree_code code;
   gcov_type val, count, all;
   tree modify, op, op1, op2, result, value, tree_val;
-  int prob;
+  gcov_type prob;
 
   modify = stmt;
   if (TREE_CODE (stmt) == RETURN_EXPR
@@ -631,7 +651,10 @@ tree_divmod_fixed_value_transform (tree stmt)
     return false;
 
   /* Compute probability of taking the optimal path.  */
-  prob = (count * REG_BR_PROB_BASE + all / 2) / all;
+  if (all > 0)
+    prob = (count * REG_BR_PROB_BASE + all / 2) / all;
+  else
+    prob = 0;
 
   tree_val = build_int_cst_wide (get_gcov_type (),
 				 (unsigned HOST_WIDE_INT) val,
@@ -750,7 +773,7 @@ tree_mod_pow2_value_transform (tree stmt)
   enum tree_code code;
   gcov_type count, wrong_values, all;
   tree modify, op, op1, op2, result, value;
-  int prob;
+  gcov_type prob;
 
   modify = stmt;
   if (TREE_CODE (stmt) == RETURN_EXPR
@@ -797,7 +820,10 @@ tree_mod_pow2_value_transform (tree stmt)
   if (check_counter (stmt, "pow2", all, bb_for_stmt (stmt)->count))
     return false;
 
-  prob = (count * REG_BR_PROB_BASE + all / 2) / all;
+  if (all > 0)
+    prob = (count * REG_BR_PROB_BASE + all / 2) / all;
+  else
+    prob = 0;
 
   result = tree_mod_pow2 (stmt, op, op1, op2, prob, count, all);
 
@@ -929,7 +955,7 @@ tree_mod_subtract_transform (tree stmt)
   enum tree_code code;
   gcov_type count, wrong_values, all;
   tree modify, op, op1, op2, result, value;
-  int prob1, prob2;
+  gcov_type prob1, prob2;
   unsigned int i, steps;
   gcov_type count1, count2;
 
@@ -996,8 +1022,15 @@ tree_mod_subtract_transform (tree stmt)
     }
 
   /* Compute probability of taking the optimal path(s).  */
-  prob1 = (count1 * REG_BR_PROB_BASE + all / 2) / all;
-  prob2 = (count2 * REG_BR_PROB_BASE + all / 2) / all;
+  if (all > 0)
+    {
+      prob1 = (count1 * REG_BR_PROB_BASE + all / 2) / all;
+      prob2 = (count2 * REG_BR_PROB_BASE + all / 2) / all;
+    }
+  else
+    {
+      prob1 = prob2 = 0;
+    }
 
   /* In practice, "steps" is always 2.  This interface reflects this,
      and will need to be changed if "steps" can change.  */
@@ -1043,7 +1076,7 @@ find_func_by_pid (int	pid)
 
 /* Do transformation
 
-  if (actual_callee_addres == addres_of_most_common_function/method)
+  if (actual_callee_address == address_of_most_common_function/method)
     do direct call
   else
     old call
@@ -1154,7 +1187,7 @@ tree_ic_transform (tree stmt)
 {
   histogram_value histogram;
   gcov_type val, count, all;
-  int prob;
+  gcov_type prob;
   tree call, callee, modify;
   struct cgraph_node *direct_call;
   
@@ -1180,7 +1213,10 @@ tree_ic_transform (tree stmt)
   if (4 * count <= 3 * all)
     return false;
 
-  prob = (count * REG_BR_PROB_BASE + all / 2) / all;
+  if (all > 0)
+    prob = (count * REG_BR_PROB_BASE + all / 2) / all;
+  else
+    prob = 0;
   direct_call = find_func_by_pid ((int)val);
 
   if (direct_call == NULL)
@@ -1198,6 +1234,8 @@ tree_ic_transform (tree stmt)
       print_generic_stmt (dump_file, stmt, TDF_SLIM);
       fprintf (dump_file, " to ");
       print_generic_stmt (dump_file, modify, TDF_SLIM);
+      fprintf (dump_file, "hist->count "HOST_WIDEST_INT_PRINT_DEC
+	       " hist->all "HOST_WIDEST_INT_PRINT_DEC"\n", count, all);
     }
 
   return true;
@@ -1209,8 +1247,8 @@ interesting_stringop_to_profile_p (tree fndecl, tree call)
 {
   enum built_in_function fcode = DECL_FUNCTION_CODE (fndecl);
 
-  if (fcode != BUILT_IN_MEMSET && fcode != BUILT_IN_MEMCPY
-      && fcode != BUILT_IN_BZERO)
+  if (fcode != BUILT_IN_MEMCPY && fcode != BUILT_IN_MEMPCPY
+      && fcode != BUILT_IN_MEMSET && fcode != BUILT_IN_BZERO)
     return false;
 
   switch (fcode)
@@ -1343,7 +1381,7 @@ tree_stringops_transform (block_stmt_iterator *bsi)
   tree value;
   tree dest, src;
   unsigned int dest_align, src_align;
-  int prob;
+  gcov_type prob;
   tree tree_val;
 
   if (!call)
@@ -1377,7 +1415,10 @@ tree_stringops_transform (block_stmt_iterator *bsi)
     return false;
   if (check_counter (stmt, "value", all, bb_for_stmt (stmt)->count))
     return false;
-  prob = (count * REG_BR_PROB_BASE + all / 2) / all;
+  if (all > 0)
+    prob = (count * REG_BR_PROB_BASE + all / 2) / all;
+  else
+    prob = 0;
   dest = CALL_EXPR_ARG (call, 0);
   dest_align = get_pointer_alignment (dest, BIGGEST_ALIGNMENT);
   switch (fcode)
@@ -1705,4 +1746,3 @@ value_profile_transformations (void)
   return (value_prof_hooks->value_profile_transformations) ();
 }
 
-

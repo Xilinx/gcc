@@ -102,6 +102,11 @@ extern void set_block_for_group (tree);
    Get SLOC from GNAT_ENTITY.  */
 extern void add_decl_expr (tree gnu_decl, Entity_Id gnat_entity);
 
+/* Mark nodes rooted at *TP with TREE_VISITED and types as having their
+   sized gimplified.  We use this to indicate all variable sizes and
+   positions in global types may not be shared by any subprogram.  */
+extern void mark_visited (tree *);
+
 /* Finalize any From_With_Type incomplete types.  We do this after processing
    our compilation unit and after processing its spec, if this is a body.  */
 extern void finalize_from_with_types (void);
@@ -212,7 +217,7 @@ extern void gigi (Node_Id gnat_root, int max_gnat_node, int number_name,
                   Char_Code *strings_chars_ptr,
                   struct List_Header *list_headers_ptr,
                   Nat number_file,
-                  struct File_Info_Type *file_info_ptr ATTRIBUTE_UNUSED,
+                  struct File_Info_Type *file_info_ptr,
                   Entity_Id standard_integer,
                   Entity_Id standard_long_long_float,
                   Entity_Id standard_exception_type,
@@ -529,6 +534,12 @@ extern void finish_record_type (tree record_type, tree fieldlist,
    directly in most cases since finish_record_type takes care of doing
    so, unless explicitly requested not to through DO_NOT_FINALIZE.  */
 extern void rest_of_record_type_compilation (tree record_type);
+
+/* Append PARALLEL_TYPE on the chain of parallel types for decl.  */
+extern void add_parallel_type (tree decl, tree parallel_type);
+
+/* Return the parallel type associated to a type, if any.  */
+extern tree get_parallel_type (tree type);
 
 /* Returns a FUNCTION_TYPE node. RETURN_TYPE is the type returned by the
    subprogram. If it is void_type_node, then we are dealing with a procedure,
@@ -847,7 +858,7 @@ extern tree gnat_builtin_function (tree decl);
 /* Search the chain of currently reachable declarations for a builtin
    FUNCTION_DECL node corresponding to function NAME (an IDENTIFIER_NODE).
    Return the first node found, if any, or NULL_TREE otherwise.  */
-extern tree builtin_decl_for (tree name ATTRIBUTE_UNUSED);
+extern tree builtin_decl_for (tree name);
 
 /* This function is called by the front end to enumerate all the supported
    modes for the machine.  We pass a function which is called back with

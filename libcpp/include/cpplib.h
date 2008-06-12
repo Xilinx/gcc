@@ -1,6 +1,6 @@
 /* Definitions for CPP library.
    Copyright (C) 1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003,
-   2004, 2005, 2007
+   2004, 2005, 2007, 2008
    Free Software Foundation, Inc.
    Written by Per Bothner, 1994-95.
 
@@ -275,8 +275,9 @@ struct cpp_options
   /* Nonzero means handle cplusplus style comments.  */
   unsigned char cplusplus_comments;
 
-  /* Nonzero means define __OBJC__, treat @ as a special token, and
-     use the OBJC[PLUS]_INCLUDE_PATH environment variable.  */
+  /* Nonzero means define __OBJC__, treat @ as a special token, use
+     the OBJC[PLUS]_INCLUDE_PATH environment variable, and allow
+     "#import".  */
   unsigned char objc;
 
   /* Nonzero means don't copy comments into the output file.  */
@@ -506,6 +507,10 @@ struct cpp_dir
   /* NAME of the directory, NUL-terminated.  */
   char *name;
   unsigned int len;
+
+  /* The canonicalized NAME as determined by lrealpath.  This field 
+     is only used by hosts that lack reliable inode numbers.  */
+  char *canonical_name;
 
   /* One if a system header, two if a system header that has extern
      "C" guards for C++.  */
@@ -843,6 +848,8 @@ extern void cpp_error_with_line (cpp_reader *, int, source_location, unsigned,
 /* In lex.c */
 extern int cpp_ideq (const cpp_token *, const char *);
 extern void cpp_output_line (cpp_reader *, FILE *);
+extern unsigned char *cpp_output_line_to_string (cpp_reader *,
+						 const unsigned char *);
 extern void cpp_output_token (const cpp_token *, FILE *);
 extern const char *cpp_type2name (enum cpp_ttype);
 /* Returns the value of an escape sequence, truncated to the correct

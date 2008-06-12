@@ -1,5 +1,5 @@
 /* SSA Dominator optimizations for trees
-   Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007
+   Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
    Free Software Foundation, Inc.
    Contributed by Diego Novillo <dnovillo@redhat.com>
 
@@ -283,7 +283,7 @@ tree_ssa_dominator_optimize (void)
   loop_optimizer_init (LOOPS_HAVE_SIMPLE_LATCHES);
 
   /* We need accurate information regarding back edges in the CFG
-     for jump threading; this may include back edes that are not part of
+     for jump threading; this may include back edges that are not part of
      a single loop.  */
   mark_dfs_back_edges ();
       
@@ -319,6 +319,23 @@ tree_ssa_dominator_optimize (void)
      such edges from the CFG as needed.  */
   if (!bitmap_empty_p (need_eh_cleanup))
     {
+      unsigned i;
+      bitmap_iterator bi;
+
+      /* Jump threading may have created forwarder blocks from blocks
+	 needing EH cleanup; the new successor of these blocks, which
+	 has inherited from the original block, needs the cleanup.  */
+      EXECUTE_IF_SET_IN_BITMAP (need_eh_cleanup, 0, i, bi)
+	{
+	  basic_block bb = BASIC_BLOCK (i);
+	  if (single_succ_p (bb) == 1
+	      && (single_succ_edge (bb)->flags & EDGE_EH) == 0)
+	    {
+	      bitmap_clear_bit (need_eh_cleanup, i);
+	      bitmap_set_bit (need_eh_cleanup, single_succ (bb)->index);
+	    }
+	}
+
       tree_purge_all_dead_eh_edges (need_eh_cleanup);
       bitmap_zero (need_eh_cleanup);
     }
@@ -339,6 +356,13 @@ tree_ssa_dominator_optimize (void)
       if (value && !is_gimple_min_invariant (value))
 	SSA_NAME_VALUE (name) = NULL;
     }
+
+  statistics_counter_event (cfun, "Redundant expressions eliminated",
+			    opt_stats.num_re);
+  statistics_counter_event (cfun, "Constants propagated",
+			    opt_stats.num_const_prop);
+  statistics_counter_event (cfun, "Copies propagated",
+			    opt_stats.num_copy_prop);
 
   /* Debugging dumps.  */
   if (dump_file && (dump_flags & TDF_STATS))
@@ -586,7 +610,7 @@ dom_opt_finalize_block (struct dom_walk_data *walk_data, basic_block bb)
 
 
   /* If we have an outgoing edge to a block with multiple incoming and
-     outgoing edges, then we may be able to thread the edge.  ie, we
+     outgoing edges, then we may be able to thread the edge, i.e., we
      may be able to statically determine which of the outgoing edges
      will be traversed when the incoming edge from BB is traversed.  */
   if (single_succ_p (bb)
@@ -851,24 +875,10 @@ record_equivalences_from_incoming_edge (basic_block bb)
 void
 dump_dominator_optimization_stats (FILE *file)
 {
-  long n_exprs;
-
   fprintf (file, "Total number of statements:                   %6ld\n\n",
 	   opt_stats.num_stmts);
   fprintf (file, "Exprs considered for dominator optimizations: %6ld\n",
            opt_stats.num_exprs_considered);
-
-  n_exprs = opt_stats.num_exprs_considered;
-  if (n_exprs == 0)
-    n_exprs = 1;
-
-  fprintf (file, "    Redundant expressions eliminated:         %6ld (%.0f%%)\n",
-	   opt_stats.num_re, PERCENT (opt_stats.num_re,
-				      n_exprs));
-  fprintf (file, "    Constants propagated:                     %6ld\n",
-	   opt_stats.num_const_prop);
-  fprintf (file, "    Copies propagated:                        %6ld\n",
-	   opt_stats.num_copy_prop);
 
   fprintf (file, "\nHash table statistics:\n");
 
@@ -1350,7 +1360,7 @@ record_edge_info (basic_block bb)
 	      tree op1 = TREE_OPERAND (cond, 1);
 
 	      /* Special case comparing booleans against a constant as we
-		 know the value of OP0 on both arms of the branch.  i.e., we
+		 know the value of OP0 on both arms of the branch, i.e., we
 		 can record an equivalence for OP0 rather than COND.  */
 	      if ((TREE_CODE (cond) == EQ_EXPR || TREE_CODE (cond) == NE_EXPR)
 		  && TREE_CODE (op0) == SSA_NAME

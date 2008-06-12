@@ -1,6 +1,6 @@
 /* C++-specific tree lowering bits; see also c-gimplify.c and tree-gimple.c.
 
-   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007
+   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008
    Free Software Foundation, Inc.
    Contributed by Jason Merrill <jason@redhat.com>
 
@@ -694,10 +694,19 @@ cp_genericize_r (tree *stmt_p, int *walk_subtrees, void *data)
   else if (TREE_CODE (stmt) == OMP_CLAUSE)
     switch (OMP_CLAUSE_CODE (stmt))
       {
+      case OMP_CLAUSE_LASTPRIVATE:
+	/* Don't dereference an invisiref in OpenMP clauses.  */
+	if (is_invisiref_parm (OMP_CLAUSE_DECL (stmt)))
+	  {
+	    *walk_subtrees = 0;
+	    if (OMP_CLAUSE_LASTPRIVATE_STMT (stmt))
+	      cp_walk_tree (&OMP_CLAUSE_LASTPRIVATE_STMT (stmt),
+			    cp_genericize_r, p_set, NULL);
+	  }
+	break;
       case OMP_CLAUSE_PRIVATE:
       case OMP_CLAUSE_SHARED:
       case OMP_CLAUSE_FIRSTPRIVATE:
-      case OMP_CLAUSE_LASTPRIVATE:
       case OMP_CLAUSE_COPYIN:
       case OMP_CLAUSE_COPYPRIVATE:
 	/* Don't dereference an invisiref in OpenMP clauses.  */
@@ -784,7 +793,7 @@ cp_genericize (tree fndecl)
 static tree
 cxx_omp_clause_apply_fn (tree fn, tree arg1, tree arg2)
 {
-  tree defparm, parm;
+  tree defparm, parm, t;
   int i = 0;
   int nargs;
   tree *argarray;
@@ -804,7 +813,7 @@ cxx_omp_clause_apply_fn (tree fn, tree arg1, tree arg2)
       tree inner_type = TREE_TYPE (arg1);
       tree start1, end1, p1;
       tree start2 = NULL, p2 = NULL;
-      tree ret = NULL, lab, t;
+      tree ret = NULL, lab;
 
       start1 = arg1;
       start2 = arg2;
@@ -849,6 +858,8 @@ cxx_omp_clause_apply_fn (tree fn, tree arg1, tree arg2)
 	argarray[i] = convert_default_arg (TREE_VALUE (parm),
 					   TREE_PURPOSE (parm), fn, i);
       t = build_call_a (fn, i, argarray);
+      t = fold_convert (void_type_node, t);
+      t = fold_build_cleanup_point_expr (TREE_TYPE (t), t);
       append_to_statement_list (t, &ret);
 
       t = TYPE_SIZE_UNIT (inner_type);
@@ -881,7 +892,9 @@ cxx_omp_clause_apply_fn (tree fn, tree arg1, tree arg2)
 	argarray[i] = convert_default_arg (TREE_VALUE (parm),
 					   TREE_PURPOSE (parm),
 					   fn, i);
-      return build_call_a (fn, i, argarray);
+      t = build_call_a (fn, i, argarray);
+      t = fold_convert (void_type_node, t);
+      return fold_build_cleanup_point_expr (TREE_TYPE (t), t);
     }
 }
 
@@ -889,7 +902,8 @@ cxx_omp_clause_apply_fn (tree fn, tree arg1, tree arg2)
    NULL if there's nothing to do.  */
 
 tree
-cxx_omp_clause_default_ctor (tree clause, tree decl)
+cxx_omp_clause_default_ctor (tree clause, tree decl,
+			     tree outer ATTRIBUTE_UNUSED)
 {
   tree info = CP_OMP_CLAUSE_INFO (clause);
   tree ret = NULL;
@@ -953,4 +967,101 @@ bool
 cxx_omp_privatize_by_reference (const_tree decl)
 {
   return is_invisiref_parm (decl);
+}
+
+/* True if OpenMP sharing attribute of DECL is predetermined.  */
+
+enum omp_clause_default_kind
+cxx_omp_predetermined_sharing (tree decl)
+{
+  tree type;
+
+  /* Static data members are predetermined as shared.  */
+  if (TREE_STATIC (decl))
+    {
+      tree ctx = CP_DECL_CONTEXT (decl);
+      if (TYPE_P (ctx) && MAYBE_CLASS_TYPE_P (ctx))
+	return OMP_CLAUSE_DEFAULT_SHARED;
+    }
+
+  type = TREE_TYPE (decl);
+  if (TREE_CODE (type) == REFERENCE_TYPE)
+    {
+      if (!is_invisiref_parm (decl))
+	return OMP_CLAUSE_DEFAULT_UNSPECIFIED;
+      type = TREE_TYPE (type);
+
+      if (TREE_CODE (decl) == RESULT_DECL && DECL_NAME (decl))
+	{
+	  /* NVR doesn't preserve const qualification of the
+	     variable's type.  */
+	  tree outer = outer_curly_brace_block (current_function_decl);
+	  tree var;
+
+	  if (outer)
+	    for (var = BLOCK_VARS (outer); var; var = TREE_CHAIN (var))
+	      if (DECL_NAME (decl) == DECL_NAME (var)
+		  && (TYPE_MAIN_VARIANT (type)
+		      == TYPE_MAIN_VARIANT (TREE_TYPE (var))))
+		{
+		  if (TYPE_READONLY (TREE_TYPE (var)))
+		    type = TREE_TYPE (var);
+		  break;
+		}
+	}
+    }
+
+  if (type == error_mark_node)
+    return OMP_CLAUSE_DEFAULT_UNSPECIFIED;
+
+  /* Variables with const-qualified type having no mutable member
+     are predetermined shared.  */
+  if (TYPE_READONLY (type) && !cp_has_mutable_p (type))
+    return OMP_CLAUSE_DEFAULT_SHARED;
+
+  return OMP_CLAUSE_DEFAULT_UNSPECIFIED;
+}
+
+/* Finalize an implicitly determined clause.  */
+
+void
+cxx_omp_finish_clause (tree c)
+{
+  tree decl, inner_type;
+  bool make_shared = false;
+
+  if (OMP_CLAUSE_CODE (c) != OMP_CLAUSE_FIRSTPRIVATE)
+    return;
+
+  decl = OMP_CLAUSE_DECL (c);
+  decl = require_complete_type (decl);
+  inner_type = TREE_TYPE (decl);
+  if (decl == error_mark_node)
+    make_shared = true;
+  else if (TREE_CODE (TREE_TYPE (decl)) == REFERENCE_TYPE)
+    {
+      if (is_invisiref_parm (decl))
+	inner_type = TREE_TYPE (inner_type);
+      else
+	{
+	  error ("%qE implicitly determined as %<firstprivate%> has reference type",
+		 decl);
+	  make_shared = true;
+	}
+    }
+
+  /* We're interested in the base element, not arrays.  */
+  while (TREE_CODE (inner_type) == ARRAY_TYPE)
+    inner_type = TREE_TYPE (inner_type);
+
+  /* Check for special function availability by building a call to one.
+     Save the results, because later we won't be in the right context
+     for making these queries.  */
+  if (!make_shared
+      && CLASS_TYPE_P (inner_type)
+      && cxx_omp_create_clause_info (c, inner_type, false, true, false))
+    make_shared = true;
+
+  if (make_shared)
+    OMP_CLAUSE_CODE (c) = OMP_CLAUSE_SHARED;
 }

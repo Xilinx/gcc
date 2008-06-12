@@ -1,5 +1,5 @@
 /* Define builtin-in macros for the C family front ends.
-   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007
+   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -48,8 +48,6 @@ along with GCC; see the file COPYING3.  If not see
 
 /* Non-static as some targets don't use it.  */
 void builtin_define_std (const char *) ATTRIBUTE_UNUSED;
-static void builtin_define_with_value_n (const char *, const char *,
-					 size_t);
 static void builtin_define_with_int_value (const char *, HOST_WIDE_INT);
 static void builtin_define_with_hex_fp_value (const char *, tree,
 					      int, const char *,
@@ -303,7 +301,7 @@ builtin_define_decimal_float_constants (const char *name_prefix,
   sprintf (buf, "1E-%d%s", fmt->p - 1, suffix);
   builtin_define_with_value (name, buf, 0);
 
-  /* Minimum denormalized postive decimal value.  */
+  /* Minimum denormalized positive decimal value.  */
   sprintf (name, "__%s_DEN__", name_prefix);
   p = buf;
   for (digits = fmt->p; digits > 1; digits--)
@@ -375,40 +373,19 @@ builtin_define_fixed_point_constants (const char *name_prefix,
 static void
 define__GNUC__ (void)
 {
-  /* The format of the version string, enforced below, is
-     ([^0-9]*-)?[0-9]+[.][0-9]+([.][0-9]+)?([- ].*)?  */
-  const char *q, *v = version_string;
+  int major, minor, patchlevel;
 
-  while (*v && !ISDIGIT (*v))
-    v++;
-  gcc_assert (*v && (v <= version_string || v[-1] == '-'));
-
-  q = v;
-  while (ISDIGIT (*v))
-    v++;
-  builtin_define_with_value_n ("__GNUC__", q, v - q);
-  if (c_dialect_cxx ())
-    builtin_define_with_value_n ("__GNUG__", q, v - q);
-
-  gcc_assert (*v == '.' && ISDIGIT (v[1]));
-
-  q = ++v;
-  while (ISDIGIT (*v))
-    v++;
-  builtin_define_with_value_n ("__GNUC_MINOR__", q, v - q);
-
-  if (*v == '.')
+  if (sscanf (BASEVER, "%d.%d.%d", &major, &minor, &patchlevel) != 3)
     {
-      gcc_assert (ISDIGIT (v[1]));
-      q = ++v;
-      while (ISDIGIT (*v))
-	v++;
-      builtin_define_with_value_n ("__GNUC_PATCHLEVEL__", q, v - q);
+      sscanf (BASEVER, "%d.%d", &major, &minor);
+      patchlevel = 0;
     }
-  else
-    builtin_define_with_value_n ("__GNUC_PATCHLEVEL__", "0", 1);
+  cpp_define_formatted (parse_in, "__GNUC__=%d", major);
+  cpp_define_formatted (parse_in, "__GNUC_MINOR__=%d", minor);
+  cpp_define_formatted (parse_in, "__GNUC_PATCHLEVEL__=%d", patchlevel);
 
-  gcc_assert (!*v || *v == ' ' || *v == '-');
+  if (c_dialect_cxx ())
+    cpp_define_formatted (parse_in, "__GNUG__=%d", major);
 }
 
 /* Define macros used by <stdint.h>.  Currently only defines limits
@@ -682,10 +659,7 @@ c_cpp_builtins (cpp_reader *pfile)
     cpp_define (pfile, "__SSP__=1");
 
   if (flag_openmp)
-    cpp_define (pfile, "_OPENMP=200505");
-
-  if (lang_fortran)
-    cpp_define (pfile, "__GFORTRAN__=1");
+    cpp_define (pfile, "_OPENMP=200805");
 
   builtin_define_type_sizeof ("__SIZEOF_INT__", integer_type_node);
   builtin_define_type_sizeof ("__SIZEOF_LONG__", long_integer_type_node);
@@ -799,23 +773,6 @@ builtin_define_with_value (const char *macro, const char *expansion, int is_str)
   cpp_define (parse_in, buf);
 }
 
-/* Pass an object-like macro and a value to define it to.  The third
-   parameter is the length of the expansion.  */
-static void
-builtin_define_with_value_n (const char *macro, const char *expansion, size_t elen)
-{
-  char *buf;
-  size_t mlen = strlen (macro);
-
-  /* Space for an = and a NUL.  */
-  buf = (char *) alloca (mlen + elen + 2);
-  memcpy (buf, macro, mlen);
-  buf[mlen] = '=';
-  memcpy (buf + mlen + 1, expansion, elen);
-  buf[mlen + elen + 1] = '\0';
-
-  cpp_define (parse_in, buf);
-}
 
 /* Pass an object-like macro and an integer value to define it to.  */
 static void

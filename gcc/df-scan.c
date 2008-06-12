@@ -166,7 +166,6 @@ struct df_scan_problem_data
   alloc_pool insn_pool;
   alloc_pool reg_pool;
   alloc_pool mw_reg_pool;
-  alloc_pool mw_link_pool;
   bitmap_obstack reg_bitmaps;
   bitmap_obstack insn_bitmaps;
 };
@@ -221,7 +220,6 @@ df_scan_free_internal (void)
   free_alloc_pool (problem_data->insn_pool);
   free_alloc_pool (problem_data->reg_pool);
   free_alloc_pool (problem_data->mw_reg_pool);
-  free_alloc_pool (problem_data->mw_link_pool);
   bitmap_obstack_release (&problem_data->reg_bitmaps);
   bitmap_obstack_release (&problem_data->insn_bitmaps);
   free (df_scan->problem_data);
@@ -312,9 +310,6 @@ df_scan_alloc (bitmap all_blocks ATTRIBUTE_UNUSED)
   problem_data->mw_reg_pool 
     = create_alloc_pool ("df_scan_mw_reg pool", 
 			 sizeof (struct df_mw_hardreg), block_size);
-  problem_data->mw_link_pool 
-    = create_alloc_pool ("df_scan_mw_link pool", 
-			 sizeof (struct df_link), block_size);
 
   bitmap_obstack_initialize (&problem_data->reg_bitmaps);
   bitmap_obstack_initialize (&problem_data->insn_bitmaps);
@@ -462,7 +457,7 @@ df_scan_add_problem (void)
 
 
 /* First, grow the reg_info information.  If the current size is less than
-   the number of psuedos, grow to 25% more than the number of
+   the number of pseudos, grow to 25% more than the number of
    pseudos.  
 
    Second, assure that all of the slots up to max_reg_num have been
@@ -3434,7 +3429,7 @@ df_bb_refs_collect (struct df_collection_rec *collection_rec, basic_block bb)
 	 bottom of the sender block.
 
          The bottom of the sender block is problematic because not all
-         out-edges of the a block are eh-edges.  However, it is true
+         out-edges of a block are eh-edges.  However, it is true
          that all edges into a block are either eh-edges or none of
          them are eh-edges.  Thus, we can model this at the top of the
          eh-receiver for all of the edges at once. */

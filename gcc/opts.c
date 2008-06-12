@@ -1,5 +1,5 @@
 /* Command line option handling.
-   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007
+   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008
    Free Software Foundation, Inc.
    Contributed by Neil Booth.
 
@@ -848,7 +848,6 @@ decode_options (unsigned int argc, const char **argv)
       flag_tree_fre = 1;
       flag_tree_copy_prop = 1;
       flag_tree_sink = 1;
-      flag_tree_salias = 1;
       if (!no_unit_at_a_time_default)
         flag_unit_at_a_time = 1;
 
@@ -890,6 +889,8 @@ decode_options (unsigned int argc, const char **argv)
 
       if (!optimize_size)
 	{
+          /* Conditional DCE generates bigger code.  */
+          flag_tree_builtin_call_dce = 1;
           /* PRE tends to generate bigger code.  */
           flag_tree_pre = 1;
 	}
@@ -949,7 +950,7 @@ decode_options (unsigned int argc, const char **argv)
      modify it.  */
   target_flags = targetm.default_target_flags;
 
-  /* Some tagets have ABI-specified unwind tables.  */
+  /* Some targets have ABI-specified unwind tables.  */
   flag_unwind_tables = targetm.unwind_tables_default;
 
 #ifdef OPTIMIZATION_OPTIONS
@@ -1404,7 +1405,7 @@ common_handle_option (size_t scode, const char *arg, int value,
 	unsigned int include_flags = 0;
 	/* Note - by default we include undocumented options when listing
 	   specific classes.  If you only want to see documented options
-	   then add ",^undocumented" to the --help= option.  e.g.:
+	   then add ",^undocumented" to the --help= option.  E.g.:
 
 	   --help=target,^undocumented  */
 	unsigned int exclude_flags = 0;
@@ -1464,7 +1465,7 @@ common_handle_option (size_t scode, const char *arg, int value,
 	    /* Check to see if the string matches a language name.
 	       Note - we rely upon the alpha-sorted nature of the entries in
 	       the lang_names array, specifically that shorter names appear
-	       before their longer variants.  (ie C before C++).  That way
+	       before their longer variants.  (i.e. C before C++).  That way
 	       when we are attempting to match --help=c for example we will
 	       match with C first and not C++.  */
 	    for (i = 0, lang_flag = 0; i < cl_lang_count; i++)
@@ -1898,6 +1899,7 @@ common_handle_option (size_t scode, const char *arg, int value,
     case OPT_fstrength_reduce:
     case OPT_ftree_store_copy_prop:
     case OPT_fforce_addr:
+    case OPT_ftree_salias:
       /* These are no-ops, preserved for backward compatibility.  */
       break;
 

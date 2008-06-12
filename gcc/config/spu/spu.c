@@ -1937,8 +1937,7 @@ spu_expand_epilogue (bool sibcall_p)
 
   if (!sibcall_p)
     {
-      emit_insn (gen_rtx_USE
-		 (VOIDmode, gen_rtx_REG (SImode, LINK_REGISTER_REGNUM)));
+      emit_use (gen_rtx_REG (SImode, LINK_REGISTER_REGNUM));
       jump = emit_jump_insn (gen__return ());
       emit_barrier_after (jump);
     }
@@ -4712,6 +4711,13 @@ spu_init_libfuncs (void)
 
   set_conv_libfunc (ufloat_optab, DFmode, SImode, "__float_unssidf");
   set_conv_libfunc (ufloat_optab, DFmode, DImode, "__float_unsdidf");
+
+  set_optab_libfunc (smul_optab, TImode, "__multi3");
+  set_optab_libfunc (sdiv_optab, TImode, "__divti3");
+  set_optab_libfunc (smod_optab, TImode, "__modti3");
+  set_optab_libfunc (udiv_optab, TImode, "__udivti3");
+  set_optab_libfunc (umod_optab, TImode, "__umodti3");
+  set_optab_libfunc (udivmod_optab, TImode, "__udivmodti4");
 }
 
 /* Make a subreg, stripping any existing subreg.  We could possibly just
@@ -5089,7 +5095,7 @@ spu_initialize_trampoline (rtx tramp, rtx fnaddr, rtx cxt)
       insnc = force_reg (V4SImode, array_to_constant (V4SImode, insna));
 
       emit_insn (gen_shufb (shuf, fnaddr, cxt, shufc));
-      emit_insn (gen_rotlv4si3 (rotl, shuf, spu_const (V4SImode, 7)));
+      emit_insn (gen_vrotlv4si3 (rotl, shuf, spu_const (V4SImode, 7)));
       emit_insn (gen_movv4si (mask, spu_const (V4SImode, 0xffff << 7)));
       emit_insn (gen_selb (insn, insnc, rotl, mask));
 

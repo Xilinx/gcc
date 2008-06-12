@@ -156,12 +156,6 @@
 /* Define to 1 if you have the `frexpl' function. */
 #undef HAVE_FREXPL
 
-/* Define to 1 if you have the <gconf.h> header file. */
-#undef HAVE_GCONF_H
-
-/* Define to 1 if you have the <gconv.h> header file. */
-#undef HAVE_GCONV_H
-
 /* Define if _Unwind_GetIPInfo is available. */
 #undef HAVE_GETIPINFO
 
@@ -378,9 +372,6 @@
 
 /* Define to 1 if you have the <sys/machine.h> header file. */
 #undef HAVE_SYS_MACHINE_H
-
-/* Define if sys_nerr exists. */
-#undef HAVE_SYS_NERR
 
 /* Define to 1 if you have the <sys/param.h> header file. */
 #undef HAVE_SYS_PARAM_H

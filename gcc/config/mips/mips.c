@@ -584,6 +584,9 @@ static const struct mips_cpu_info mips_cpu_info_table[] = {
   { "r4600", PROCESSOR_R4600, 3, 0 },
   { "orion", PROCESSOR_R4600, 3, 0 },
   { "r4650", PROCESSOR_R4650, 3, 0 },
+  /* ST Loongson 2E/2F processors.  */
+  { "loongson2e", PROCESSOR_LOONGSON_2E, 3, PTF_AVOID_BRANCHLIKELY },
+  { "loongson2f", PROCESSOR_LOONGSON_2F, 3, PTF_AVOID_BRANCHLIKELY },
 
   /* MIPS IV processors. */
   { "r8000", PROCESSOR_R8000, 4, 0 },
@@ -642,6 +645,7 @@ static const struct mips_cpu_info mips_cpu_info_table[] = {
   { "sb1", PROCESSOR_SB1, 64, PTF_AVOID_BRANCHLIKELY },
   { "sb1a", PROCESSOR_SB1A, 64, PTF_AVOID_BRANCHLIKELY },
   { "sr71000", PROCESSOR_SR71000, 64, PTF_AVOID_BRANCHLIKELY },
+  { "xlr", PROCESSOR_XLR, 64, 0 }
 };
 
 /* Default costs.  If these are used for a processor we should look
@@ -832,6 +836,12 @@ static const struct mips_rtx_cost_data mips_rtx_cost_data[PROCESSOR_MAX] = {
 		     1,           /* branch_cost */
 		     4            /* memory_latency */
   },
+  { /* Loongson-2E */
+    DEFAULT_COSTS
+  },
+  { /* Loongson-2F */
+    DEFAULT_COSTS
+  },
   { /* M4k */
     DEFAULT_COSTS
   },
@@ -1006,6 +1016,21 @@ static const struct mips_rtx_cost_data mips_rtx_cost_data[PROCESSOR_MAX] = {
   { /* SR71000 */
     DEFAULT_COSTS
   },
+  { /* XLR */
+    /* Need to replace first five with the costs of calling the appropriate 
+       libgcc routine.  */
+    COSTS_N_INSNS (256),          /* fp_add */
+    COSTS_N_INSNS (256),          /* fp_mult_sf */
+    COSTS_N_INSNS (256),          /* fp_mult_df */
+    COSTS_N_INSNS (256),          /* fp_div_sf */
+    COSTS_N_INSNS (256),          /* fp_div_df */
+    COSTS_N_INSNS (8),            /* int_mult_si */
+    COSTS_N_INSNS (8),            /* int_mult_di */
+    COSTS_N_INSNS (72),           /* int_div_si */
+    COSTS_N_INSNS (72),           /* int_div_di */
+		     1,           /* branch_cost */
+		     4            /* memory_latency */
+  }
 };
 
 /* This hash table keeps track of implicit "mips16" and "nomips16" attributes
@@ -1800,6 +1825,51 @@ mips_valid_base_register_p (rtx x, enum machine_mode mode, bool strict_p)
 	  && mips_regno_mode_ok_for_base_p (REGNO (x), mode, strict_p));
 }
 
+/* Return true if, for every base register BASE_REG, (plus BASE_REG X)
+   can address a value of mode MODE.  */
+
+static bool
+mips_valid_offset_p (rtx x, enum machine_mode mode)
+{
+  /* Check that X is a signed 16-bit number.  */
+  if (!const_arith_operand (x, Pmode))
+    return false;
+
+  /* We may need to split multiword moves, so make sure that every word
+     is accessible.  */
+  if (GET_MODE_SIZE (mode) > UNITS_PER_WORD
+      && !SMALL_OPERAND (INTVAL (x) + GET_MODE_SIZE (mode) - UNITS_PER_WORD))
+    return false;
+
+  return true;
+}
+
+/* Return true if a LO_SUM can address a value of mode MODE when the
+   LO_SUM symbol has type SYMBOL_TYPE.  */
+
+static bool
+mips_valid_lo_sum_p (enum mips_symbol_type symbol_type, enum machine_mode mode)
+{
+  /* Check that symbols of type SYMBOL_TYPE can be used to access values
+     of mode MODE.  */
+  if (mips_symbol_insns (symbol_type, mode) == 0)
+    return false;
+
+  /* Check that there is a known low-part relocation.  */
+  if (mips_lo_relocs[symbol_type] == NULL)
+    return false;
+
+  /* We may need to split multiword moves, so make sure that each word
+     can be accessed without inducing a carry.  This is mainly needed
+     for o64, which has historically only guaranteed 64-bit alignment
+     for 128-bit types.  */
+  if (GET_MODE_SIZE (mode) > UNITS_PER_WORD
+      && GET_MODE_BITSIZE (mode) > GET_MODE_ALIGNMENT (mode))
+    return false;
+
+  return true;
+}
+
 /* Return true if X is a valid address for machine mode MODE.  If it is,
    fill in INFO appropriately.  STRICT_P is true if REG_OK_STRICT is in
    effect.  */
@@ -1822,7 +1892,7 @@ mips_classify_address (struct mips_address_info *info, rtx x,
       info->reg = XEXP (x, 0);
       info->offset = XEXP (x, 1);
       return (mips_valid_base_register_p (info->reg, mode, strict_p)
-	      && const_arith_operand (info->offset, VOIDmode));
+	      && mips_valid_offset_p (info->offset, mode));
 
     case LO_SUM:
       info->type = ADDRESS_LO_SUM;
@@ -1840,8 +1910,7 @@ mips_classify_address (struct mips_address_info *info, rtx x,
       info->symbol_type
 	= mips_classify_symbolic_expression (info->offset, SYMBOL_CONTEXT_MEM);
       return (mips_valid_base_register_p (info->reg, mode, strict_p)
-	      && mips_symbol_insns (info->symbol_type, mode) > 0
-	      && mips_lo_relocs[info->symbol_type] != 0);
+	      && mips_valid_lo_sum_p (info->symbol_type, mode));
 
     case CONST_INT:
       /* Small-integer addresses don't occur very often, but they
@@ -2464,6 +2533,16 @@ mips_legitimize_tls_address (rtx loc)
   return dest;
 }
 
+/* If X is not a valid address for mode MODE, force it into a register.  */
+
+static rtx
+mips_force_address (rtx x, enum machine_mode mode)
+{
+  if (!mips_legitimate_address_p (mode, x, false))
+    x = force_reg (Pmode, x);
+  return x;
+}
+
 /* This function is used to implement LEGITIMIZE_ADDRESS.  If *XLOC can
    be legitimized in a way that the generic machinery might not expect,
    put the new address in *XLOC and return true.  MODE is the mode of
@@ -2472,7 +2551,7 @@ mips_legitimize_tls_address (rtx loc)
 bool
 mips_legitimize_address (rtx *xloc, enum machine_mode mode)
 {
-  rtx base;
+  rtx base, addr;
   HOST_WIDE_INT offset;
 
   if (mips_tls_symbol_p (*xloc))
@@ -2482,8 +2561,11 @@ mips_legitimize_address (rtx *xloc, enum machine_mode mode)
     }
 
   /* See if the address can split into a high part and a LO_SUM.  */
-  if (mips_split_symbol (NULL, *xloc, mode, xloc))
-    return true;
+  if (mips_split_symbol (NULL, *xloc, mode, &addr))
+    {
+      *xloc = mips_force_address (addr, mode);
+      return true;
+    }
 
   /* Handle BASE + OFFSET using mips_add_offset.  */
   mips_split_plus (*xloc, &base, &offset);
@@ -2491,7 +2573,8 @@ mips_legitimize_address (rtx *xloc, enum machine_mode mode)
     {
       if (!mips_valid_base_register_p (base, mode, false))
 	base = copy_to_mode_reg (Pmode, base);
-      *xloc = mips_add_offset (NULL, base, offset);
+      addr = mips_add_offset (NULL, base, offset);
+      *xloc = mips_force_address (addr, mode);
       return true;
     }
   return false;
@@ -2589,23 +2672,6 @@ mips_legitimize_move (enum machine_mode mode, rtx dest, rtx src)
   if (!register_operand (dest, mode) && !reg_or_0_operand (src, mode))
     {
       mips_emit_move (dest, force_reg (mode, src));
-      return true;
-    }
-
-  /* Check for individual, fully-reloaded mflo and mfhi instructions.  */
-  if (GET_MODE_SIZE (mode) <= UNITS_PER_WORD
-      && REG_P (src) && MD_REG_P (REGNO (src))
-      && REG_P (dest) && GP_REG_P (REGNO (dest)))
-    {
-      int other_regno = REGNO (src) == HI_REGNUM ? LO_REGNUM : HI_REGNUM;
-      if (GET_MODE_SIZE (mode) <= 4)
-	emit_insn (gen_mfhilo_si (gen_lowpart (SImode, dest),
-				  gen_lowpart (SImode, src),
-				  gen_rtx_REG (SImode, other_regno)));
-      else
-	emit_insn (gen_mfhilo_di (gen_lowpart (DImode, dest),
-				  gen_lowpart (DImode, src),
-				  gen_rtx_REG (DImode, other_regno)));
       return true;
     }
 
@@ -3405,7 +3471,7 @@ mips_subword (rtx op, bool high_p)
 
   mode = GET_MODE (op);
   if (mode == VOIDmode)
-    mode = DImode;
+    mode = TARGET_64BIT ? TImode : DImode;
 
   if (TARGET_BIG_ENDIAN ? !high_p : high_p)
     byte = UNITS_PER_WORD;
@@ -3456,6 +3522,8 @@ mips_split_64bit_move_p (rtx dest, rtx src)
 void
 mips_split_doubleword_move (rtx dest, rtx src)
 {
+  rtx low_dest;
+
   if (FP_REG_RTX_P (dest) || FP_REG_RTX_P (src))
     {
       if (!TARGET_64BIT && GET_MODE (dest) == DImode)
@@ -3469,12 +3537,27 @@ mips_split_doubleword_move (rtx dest, rtx src)
       else
 	gcc_unreachable ();
     }
+  else if (REG_P (dest) && REGNO (dest) == MD_REG_FIRST)
+    {
+      low_dest = mips_subword (dest, false);
+      mips_emit_move (low_dest, mips_subword (src, false));
+      if (TARGET_64BIT)
+	emit_insn (gen_mthidi_ti (dest, mips_subword (src, true), low_dest));
+      else
+	emit_insn (gen_mthisi_di (dest, mips_subword (src, true), low_dest));
+    }
+  else if (REG_P (src) && REGNO (src) == MD_REG_FIRST)
+    {
+      mips_emit_move (mips_subword (dest, false), mips_subword (src, false));
+      if (TARGET_64BIT)
+	emit_insn (gen_mfhidi_ti (mips_subword (dest, true), src));
+      else
+	emit_insn (gen_mfhisi_di (mips_subword (dest, true), src));
+    }
   else
     {
       /* The operation can be split into two normal moves.  Decide in
 	 which order to do them.  */
-      rtx low_dest;
-
       low_dest = mips_subword (dest, false);
       if (REG_P (low_dest)
 	  && reg_overlap_mentioned_p (low_dest, src))
@@ -3517,8 +3600,9 @@ mips_output_move (rtx dest, rtx src)
 	  if (GP_REG_P (REGNO (dest)))
 	    return "move\t%0,%z1";
 
-	  if (MD_REG_P (REGNO (dest)))
-	    return "mt%0\t%z1";
+	  /* Moves to HI are handled by special .md insns.  */
+	  if (REGNO (dest) == LO_REGNUM)
+	    return "mtlo\t%z1";
 
 	  if (DSP_ACC_REG_P (REGNO (dest)))
 	    {
@@ -3541,14 +3625,29 @@ mips_output_move (rtx dest, rtx src)
 	    }
 	}
       if (dest_code == MEM)
-	return dbl_p ? "sd\t%z1,%0" : "sw\t%z1,%0";
+	switch (GET_MODE_SIZE (mode))
+	  {
+	  case 1: return "sb\t%z1,%0";
+	  case 2: return "sh\t%z1,%0";
+	  case 4: return "sw\t%z1,%0";
+	  case 8: return "sd\t%z1,%0";
+	  }
     }
   if (dest_code == REG && GP_REG_P (REGNO (dest)))
     {
       if (src_code == REG)
 	{
-	  /* Handled by separate patterns.  */
-	  gcc_assert (!MD_REG_P (REGNO (src)));
+	  /* Moves from HI are handled by special .md insns.  */
+	  if (REGNO (src) == LO_REGNUM)
+	    {
+	      /* When generating VR4120 or VR4130 code, we use MACC and
+		 DMACC instead of MFLO.  This avoids both the normal
+		 MIPS III HI/LO hazards and the errata related to
+		 -mfix-vr4130.  */
+	      if (ISA_HAS_MACCHI)
+		return dbl_p ? "dmacc\t%0,%.,%." : "macc\t%0,%.,%.";
+	      return "mflo\t%0";
+	    }
 
 	  if (DSP_ACC_REG_P (REGNO (src)))
 	    {
@@ -3575,7 +3674,13 @@ mips_output_move (rtx dest, rtx src)
 	}
 
       if (src_code == MEM)
-	return dbl_p ? "ld\t%0,%1" : "lw\t%0,%1";
+	switch (GET_MODE_SIZE (mode))
+	  {
+	  case 1: return "lbu\t%0,%1";
+	  case 2: return "lhu\t%0,%1";
+	  case 4: return "lw\t%0,%1";
+	  case 8: return "ld\t%0,%1";
+	  }
 
       if (src_code == CONST_INT)
 	{
@@ -5873,14 +5978,29 @@ mips_expand_synci_loop (rtx begin, rtx end)
   emit_jump_insn (gen_condjump (cmp_result, label));
 }
 
-/* Expand a QI or HI mode compare_and_swap.  The operands are the same
-   as for the generator function.  */
+/* Expand a QI or HI mode atomic memory operation.
+
+   GENERATOR contains a pointer to the gen_* function that generates
+   the SI mode underlying atomic operation using masks that we
+   calculate.
+
+   RESULT is the return register for the operation.  Its value is NULL
+   if unused.
+
+   MEM is the location of the atomic access.
+
+   OLDVAL is the first operand for the operation.
+
+   NEWVAL is the optional second operand for the operation.  Its value
+   is NULL if unused.  */
 
 void
-mips_expand_compare_and_swap_12 (rtx result, rtx mem, rtx oldval, rtx newval)
+mips_expand_atomic_qihi (union mips_gen_fn_ptrs generator,
+                         rtx result, rtx mem, rtx oldval, rtx newval)
 {
   rtx orig_addr, memsi_addr, memsi, shift, shiftsi, unshifted_mask;
-  rtx unshifted_mask_reg, mask, inverted_mask, res;
+  rtx unshifted_mask_reg, mask, inverted_mask, si_op;
+  rtx res = NULL;
   enum machine_mode mode;
 
   mode = GET_MODE (mem);
@@ -5927,7 +6047,7 @@ mips_expand_compare_and_swap_12 (rtx result, rtx mem, rtx oldval, rtx newval)
     }
 
   /* Do the same for the new value.  */
-  if (newval != const0_rtx)
+  if (newval && newval != const0_rtx)
     {
       newval = convert_modes (SImode, mode, newval, true);
       newval = force_reg (SImode, newval);
@@ -5935,14 +6055,24 @@ mips_expand_compare_and_swap_12 (rtx result, rtx mem, rtx oldval, rtx newval)
     }
 
   /* Do the SImode atomic access.  */
-  res = gen_reg_rtx (SImode);
-  emit_insn (gen_compare_and_swap_12 (res, memsi, mask, inverted_mask,
-				      oldval, newval));
+  if (result)
+    res = gen_reg_rtx (SImode);
+  if (newval)
+    si_op = generator.fn_6 (res, memsi, mask, inverted_mask, oldval, newval);
+  else if (result)
+    si_op = generator.fn_5 (res, memsi, mask, inverted_mask, oldval);
+  else
+    si_op = generator.fn_4 (memsi, mask, inverted_mask, oldval);
 
-  /* Shift and convert the result.  */
-  mips_emit_binary (AND, res, res, mask);
-  mips_emit_binary (LSHIFTRT, res, res, shiftsi);
-  mips_emit_move (result, gen_lowpart (GET_MODE (result), res));
+  emit_insn (si_op);
+
+  if (result)
+    {
+      /* Shift and convert the result.  */
+      mips_emit_binary (AND, res, res, mask);
+      mips_emit_binary (LSHIFTRT, res, res, shiftsi);
+      mips_emit_move (result, gen_lowpart (GET_MODE (result), res));
+    }
 }
 
 /* Return true if it is possible to use left/right accesses for a
@@ -8424,8 +8554,6 @@ mips_emit_loadgp (void)
       emit_insn (Pmode == SImode
 		 ? gen_loadgp_newabi_si (pic_reg, offset, incoming_address)
 		 : gen_loadgp_newabi_di (pic_reg, offset, incoming_address));
-      if (!TARGET_EXPLICIT_RELOCS)
-	emit_insn (gen_loadgp_blockage ());
       break;
 
     case LOADGP_RTP:
@@ -8434,13 +8562,16 @@ mips_emit_loadgp (void)
       emit_insn (Pmode == SImode
 		 ? gen_loadgp_rtp_si (pic_reg, base, index)
 		 : gen_loadgp_rtp_di (pic_reg, base, index));
-      if (!TARGET_EXPLICIT_RELOCS)
-	emit_insn (gen_loadgp_blockage ());
       break;
 
     default:
-      break;
+      return;
     }
+  /* Emit a blockage if there are implicit uses of the GP register.
+     This includes profiled functions, because FUNCTION_PROFILE uses
+     a jal macro.  */
+  if (!TARGET_EXPLICIT_RELOCS || crtl->profile)
+    emit_insn (gen_loadgp_blockage ());
 }
 
 /* Expand the "prologue" pattern.  */
@@ -8599,6 +8730,24 @@ mips_restore_reg (rtx reg, rtx mem)
     mips_emit_move (reg, mem);
 }
 
+/* Emit any instructions needed before a return.  */
+
+void
+mips_expand_before_return (void)
+{
+  /* When using a call-clobbered gp, we start out with unified call
+     insns that include instructions to restore the gp.  We then split
+     these unified calls after reload.  These split calls explicitly
+     clobber gp, so there is no need to define
+     PIC_OFFSET_TABLE_REG_CALL_CLOBBERED.
+
+     For consistency, we should also insert an explicit clobber of $28
+     before return insns, so that the post-reload optimizers know that
+     the register is not live on exit.  */
+  if (TARGET_CALL_CLOBBERED_GP)
+    emit_clobber (pic_offset_table_rtx);
+}
+
 /* Expand an "epilogue" or "sibcall_epilogue" pattern; SIBCALL_P
    says which.  */
 
@@ -8741,6 +8890,7 @@ mips_expand_epilogue (bool sibcall_p)
 	regno = GP_REG_FIRST + 7;
       else
 	regno = GP_REG_FIRST + 31;
+      mips_expand_before_return ();
       emit_jump_insn (gen_return_internal (gen_rtx_REG (Pmode, regno)));
     }
 }
@@ -8826,13 +8976,30 @@ mips_hard_regno_mode_ok_p (unsigned int regno, enum machine_mode mode)
   if (ACC_REG_P (regno)
       && (INTEGRAL_MODE_P (mode) || ALL_FIXED_POINT_MODE_P (mode)))
     {
-      if (size <= UNITS_PER_WORD)
-	return true;
+      if (MD_REG_P (regno))
+	{
+	  /* After a multiplication or division, clobbering HI makes
+	     the value of LO unpredictable, and vice versa.  This means
+	     that, for all interesting cases, HI and LO are effectively
+	     a single register.
 
-      if (size <= UNITS_PER_WORD * 2)
-	return (DSP_ACC_REG_P (regno)
-		? ((regno - DSP_ACC_REG_FIRST) & 1) == 0
-		: regno == MD_REG_FIRST);
+	     We model this by requiring that any value that uses HI
+	     also uses LO.  */
+	  if (size <= UNITS_PER_WORD * 2)
+	    return regno == (size <= UNITS_PER_WORD ? LO_REGNUM : MD_REG_FIRST);
+	}
+      else
+	{
+	  /* DSP accumulators do not have the same restrictions as
+	     HI and LO, so we can treat them as normal doubleword
+	     registers.  */
+	  if (size <= UNITS_PER_WORD)
+	    return true;
+
+	  if (size <= UNITS_PER_WORD * 2
+	      && ((regno - DSP_ACC_REG_FIRST) & 1) == 0)
+	    return true;
+	}
     }
 
   if (ALL_COP_REG_P (regno))

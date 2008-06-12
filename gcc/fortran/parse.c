@@ -366,6 +366,7 @@ decode_statement (void)
       break;
 
     case 'f':
+      match ("final", gfc_match_final_decl, ST_FINAL);
       match ("flush", gfc_match_flush, ST_FLUSH);
       match ("format", gfc_match_format, ST_FORMAT);
       break;
@@ -514,6 +515,7 @@ decode_omp_directive (void)
       match ("end parallel", gfc_match_omp_eos, ST_OMP_END_PARALLEL);
       match ("end sections", gfc_match_omp_end_nowait, ST_OMP_END_SECTIONS);
       match ("end single", gfc_match_omp_end_single, ST_OMP_END_SINGLE);
+      match ("end task", gfc_match_omp_eos, ST_OMP_END_TASK);
       match ("end workshare", gfc_match_omp_end_nowait,
 	     ST_OMP_END_WORKSHARE);
       break;
@@ -540,6 +542,8 @@ decode_omp_directive (void)
       match ("single", gfc_match_omp_single, ST_OMP_SINGLE);
       break;
     case 't':
+      match ("task", gfc_match_omp_task, ST_OMP_TASK);
+      match ("taskwait", gfc_match_omp_taskwait, ST_OMP_TASKWAIT);
       match ("threadprivate", gfc_match_omp_threadprivate,
 	     ST_OMP_THREADPRIVATE);
     case 'w':
@@ -640,7 +644,7 @@ next_free (void)
 	  for (i = 0; i < 5; i++, c = gfc_next_ascii_char ())
 	    gcc_assert (c == "!$omp"[i]);
 
-	  gcc_assert (c == ' ');
+	  gcc_assert (c == ' ' || c == '\t');
 	  gfc_gobble_whitespace ();
 	  return decode_omp_directive ();
 	}
@@ -869,7 +873,7 @@ next_statement (void)
   case ST_POINTER_ASSIGNMENT: case ST_EXIT: case ST_CYCLE: \
   case ST_ASSIGNMENT: case ST_ARITHMETIC_IF: case ST_WHERE: case ST_FORALL: \
   case ST_LABEL_ASSIGNMENT: case ST_FLUSH: case ST_OMP_FLUSH: \
-  case ST_OMP_BARRIER
+  case ST_OMP_BARRIER: case ST_OMP_TASKWAIT
 
 /* Statements that mark other executable statements.  */
 
@@ -878,7 +882,8 @@ next_statement (void)
   case ST_OMP_PARALLEL_SECTIONS: case ST_OMP_SECTIONS: case ST_OMP_ORDERED: \
   case ST_OMP_CRITICAL: case ST_OMP_MASTER: case ST_OMP_SINGLE: \
   case ST_OMP_DO: case ST_OMP_PARALLEL_DO: case ST_OMP_ATOMIC: \
-  case ST_OMP_WORKSHARE: case ST_OMP_PARALLEL_WORKSHARE
+  case ST_OMP_WORKSHARE: case ST_OMP_PARALLEL_WORKSHARE: \
+  case ST_OMP_TASK
 
 /* Declaration statements */
 
@@ -1350,6 +1355,9 @@ gfc_ascii_statement (gfc_statement st)
     case ST_OMP_END_SINGLE:
       p = "!$OMP END SINGLE";
       break;
+    case ST_OMP_END_TASK:
+      p = "!$OMP END TASK";
+      break;
     case ST_OMP_END_WORKSHARE:
       p = "!$OMP END WORKSHARE";
       break;
@@ -1382,6 +1390,12 @@ gfc_ascii_statement (gfc_statement st)
       break;
     case ST_OMP_SINGLE:
       p = "!$OMP SINGLE";
+      break;
+    case ST_OMP_TASK:
+      p = "!$OMP TASK";
+      break;
+    case ST_OMP_TASKWAIT:
+      p = "!$OMP TASKWAIT";
       break;
     case ST_OMP_THREADPRIVATE:
       p = "!$OMP THREADPRIVATE";
@@ -1682,6 +1696,7 @@ static void
 parse_derived (void)
 {
   int compiling_type, seen_private, seen_sequence, seen_component, error_flag;
+  int seen_contains, seen_contains_comp;
   gfc_statement st;
   gfc_state_data s;
   gfc_symbol *derived_sym = NULL;
@@ -1697,6 +1712,8 @@ parse_derived (void)
   seen_private = 0;
   seen_sequence = 0;
   seen_component = 0;
+  seen_contains = 0;
+  seen_contains_comp = 0;
 
   compiling_type = 1;
 
@@ -1710,8 +1727,30 @@ parse_derived (void)
 
 	case ST_DATA_DECL:
 	case ST_PROCEDURE:
+	  if (seen_contains)
+	    {
+	      gfc_error ("Components in TYPE at %C must precede CONTAINS");
+	      error_flag = 1;
+	    }
+
 	  accept_statement (st);
 	  seen_component = 1;
+	  break;
+
+	case ST_FINAL:
+	  if (!seen_contains)
+	    {
+	      gfc_error ("FINAL declaration at %C must be inside CONTAINS");
+	      error_flag = 1;
+	    }
+
+	  if (gfc_notify_std (GFC_STD_F2003,
+			      "Fortran 2003:  FINAL procedure declaration"
+			      " at %C") == FAILURE)
+	    error_flag = 1;
+
+	  accept_statement (ST_FINAL);
+	  seen_contains_comp = 1;
 	  break;
 
 	case ST_END_TYPE:
@@ -1719,14 +1758,26 @@ parse_derived (void)
 
 	  if (!seen_component
 	      && (gfc_notify_std (GFC_STD_F2003, "Fortran 2003: Derived type "
-			         "definition at %C without components")
+				 "definition at %C without components")
 		  == FAILURE))
+	    error_flag = 1;
+
+	  if (seen_contains && !seen_contains_comp
+	      && (gfc_notify_std (GFC_STD_F2008, "Fortran 2008: Derived type "
+				 "definition at %C with empty CONTAINS "
+				 "section") == FAILURE))
 	    error_flag = 1;
 
 	  accept_statement (ST_END_TYPE);
 	  break;
 
 	case ST_PRIVATE:
+	  if (seen_contains)
+	    {
+	      gfc_error ("PRIVATE statement at %C must precede CONTAINS");
+	      error_flag = 1;
+	    }
+
 	  if (gfc_find_state (COMP_MODULE) == FAILURE)
 	    {
 	      gfc_error ("PRIVATE statement in TYPE at %C must be inside "
@@ -1755,6 +1806,12 @@ parse_derived (void)
 	  break;
 
 	case ST_SEQUENCE:
+	  if (seen_contains)
+	    {
+	      gfc_error ("SEQUENCE statement at %C must precede CONTAINS");
+	      error_flag = 1;
+	    }
+
 	  if (seen_component)
 	    {
 	      gfc_error ("SEQUENCE statement at %C must precede "
@@ -1776,6 +1833,22 @@ parse_derived (void)
 	  seen_sequence = 1;
 	  gfc_add_sequence (&gfc_current_block ()->attr, 
 			    gfc_current_block ()->name, NULL);
+	  break;
+
+	case ST_CONTAINS:
+	  if (gfc_notify_std (GFC_STD_F2003,
+			      "Fortran 2003:  CONTAINS block in derived type"
+			      " definition at %C") == FAILURE)
+	    error_flag = 1;
+
+	  if (seen_contains)
+	    {
+	      gfc_error ("Already inside a CONTAINS block at %C");
+	      error_flag = 1;
+	    }
+
+	  seen_contains = 1;
+	  accept_statement (ST_CONTAINS);
 	  break;
 
 	default:
@@ -1914,15 +1987,26 @@ loop:
       unexpected_eof ();
 
     case ST_SUBROUTINE:
-      new_state = COMP_SUBROUTINE;
-      gfc_add_explicit_interface (gfc_new_block, IFSRC_IFBODY,
-				  gfc_new_block->formal, NULL);
-      break;
-
     case ST_FUNCTION:
-      new_state = COMP_FUNCTION;
-      gfc_add_explicit_interface (gfc_new_block, IFSRC_IFBODY,
-				  gfc_new_block->formal, NULL);
+      if (st == ST_SUBROUTINE)
+	new_state = COMP_SUBROUTINE;
+      else if (st == ST_FUNCTION)
+	new_state = COMP_FUNCTION;
+      if (gfc_add_explicit_interface (gfc_new_block, IFSRC_IFBODY,
+				  gfc_new_block->formal, NULL) == FAILURE)
+	{
+	  reject_statement ();
+	  gfc_free_namespace (gfc_current_ns);
+	  goto loop;
+	}
+      if (current_interface.type != INTERFACE_ABSTRACT &&
+	 !gfc_new_block->attr.dummy &&
+	 gfc_add_external (&gfc_new_block->attr, &gfc_current_locus) == FAILURE)
+	{
+	  reject_statement ();
+	  gfc_free_namespace (gfc_current_ns);
+	  goto loop;
+	}
       break;
 
     case ST_PROCEDURE:
@@ -2786,6 +2870,9 @@ parse_omp_structured_block (gfc_statement omp_st, bool workshare_stmts_only)
     case ST_OMP_SINGLE:
       omp_end_st = ST_OMP_END_SINGLE;
       break;
+    case ST_OMP_TASK:
+      omp_end_st = ST_OMP_END_TASK;
+      break;
     case ST_OMP_WORKSHARE:
       omp_end_st = ST_OMP_END_WORKSHARE;
       break;
@@ -2996,6 +3083,7 @@ parse_executable (gfc_statement st)
 	case ST_OMP_CRITICAL:
 	case ST_OMP_MASTER:
 	case ST_OMP_SINGLE:
+	case ST_OMP_TASK:
 	  parse_omp_structured_block (st, false);
 	  break;
 

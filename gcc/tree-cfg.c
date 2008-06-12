@@ -114,26 +114,41 @@ static edge find_taken_edge_switch_expr (basic_block, tree);
 static tree find_case_label_for_value (tree, tree);
 
 void
-init_empty_tree_cfg (void)
+init_empty_tree_cfg_for_function (struct function *fn)
 {
   /* Initialize the basic block array.  */
-  init_flow ();
-  profile_status = PROFILE_ABSENT;
-  n_basic_blocks = NUM_FIXED_BLOCKS;
-  last_basic_block = NUM_FIXED_BLOCKS;
-  basic_block_info = VEC_alloc (basic_block, gc, initial_cfg_capacity);
-  VEC_safe_grow_cleared (basic_block, gc, basic_block_info,
+  init_flow (fn);
+  profile_status_for_function (fn) = PROFILE_ABSENT;
+  n_basic_blocks_for_function (fn) = NUM_FIXED_BLOCKS;
+  last_basic_block_for_function (fn) = NUM_FIXED_BLOCKS;
+  basic_block_info_for_function (fn)
+    = VEC_alloc (basic_block, gc, initial_cfg_capacity);
+  VEC_safe_grow_cleared (basic_block, gc,
+			 basic_block_info_for_function (fn),
 			 initial_cfg_capacity);
 
   /* Build a mapping of labels to their associated blocks.  */
-  label_to_block_map = VEC_alloc (basic_block, gc, initial_cfg_capacity);
-  VEC_safe_grow_cleared (basic_block, gc, label_to_block_map,
+  label_to_block_map_for_function (fn)
+    = VEC_alloc (basic_block, gc, initial_cfg_capacity);
+  VEC_safe_grow_cleared (basic_block, gc,
+			 label_to_block_map_for_function (fn),
 			 initial_cfg_capacity);
 
-  SET_BASIC_BLOCK (ENTRY_BLOCK, ENTRY_BLOCK_PTR);
-  SET_BASIC_BLOCK (EXIT_BLOCK, EXIT_BLOCK_PTR);
-  ENTRY_BLOCK_PTR->next_bb = EXIT_BLOCK_PTR;
-  EXIT_BLOCK_PTR->prev_bb = ENTRY_BLOCK_PTR;
+  SET_BASIC_BLOCK_FOR_FUNCTION (fn, ENTRY_BLOCK, 
+				ENTRY_BLOCK_PTR_FOR_FUNCTION (fn));
+  SET_BASIC_BLOCK_FOR_FUNCTION (fn, EXIT_BLOCK, 
+		   EXIT_BLOCK_PTR_FOR_FUNCTION (fn));
+
+  ENTRY_BLOCK_PTR_FOR_FUNCTION (fn)->next_bb
+    = EXIT_BLOCK_PTR_FOR_FUNCTION (fn);
+  EXIT_BLOCK_PTR_FOR_FUNCTION (fn)->prev_bb
+    = ENTRY_BLOCK_PTR_FOR_FUNCTION (fn);
+}
+
+void
+init_empty_tree_cfg (void)
+{
+  init_empty_tree_cfg_for_function (cfun);
 }
 
 /*---------------------------------------------------------------------------
@@ -508,6 +523,7 @@ make_edges (void)
 	      break;
 
 	    case OMP_PARALLEL:
+	    case OMP_TASK:
 	    case OMP_FOR:
 	    case OMP_SINGLE:
 	    case OMP_MASTER:
@@ -1921,16 +1937,17 @@ remove_useless_stmts_1 (tree *tp, struct rus_data *data)
       break;
 
     case OMP_PARALLEL:
+    case OMP_TASK:
       /* Make sure the outermost BIND_EXPR in OMP_BODY isn't removed
 	 as useless.  */
-      remove_useless_stmts_1 (&BIND_EXPR_BODY (OMP_BODY (*tp)), data);
+      remove_useless_stmts_1 (&BIND_EXPR_BODY (OMP_TASKREG_BODY (*tp)), data);
       data->last_goto = NULL;
       break;
 
     case OMP_SECTIONS:
     case OMP_SINGLE:
     case OMP_SECTION:
-    case OMP_MASTER :
+    case OMP_MASTER:
     case OMP_ORDERED:
     case OMP_CRITICAL:
       remove_useless_stmts_1 (&OMP_BODY (*tp), data);
@@ -3252,8 +3269,7 @@ verify_expr (tree *tp, int *walk_subtrees, void *data ATTRIBUTE_UNUSED)
     case NON_LVALUE_EXPR:
 	gcc_unreachable ();
 
-    case NOP_EXPR:
-    case CONVERT_EXPR:
+    CASE_CONVERT:
     case FIX_TRUNC_EXPR:
     case FLOAT_EXPR:
     case NEGATE_EXPR:
@@ -3599,6 +3615,18 @@ one_pointer_to_useless_type_conversion_p (tree dest, tree src_obj)
   return false;
 }
 
+/* Return true if TYPE1 is a fixed-point type and if conversions to and
+   from TYPE2 can be handled by FIXED_CONVERT_EXPR.  */
+
+static bool
+valid_fixed_convert_types_p (tree type1, tree type2)
+{
+  return (FIXED_POINT_TYPE_P (type1)
+	  && (INTEGRAL_TYPE_P (type2)
+	      || SCALAR_FLOAT_TYPE_P (type2)
+	      || FIXED_POINT_TYPE_P (type2)));
+}
+
 /* Verify the GIMPLE expression EXPR.  Returns true if there is an
    error, otherwise false.  */
 
@@ -3613,8 +3641,7 @@ verify_gimple_expr (tree expr)
   /* Special codes we cannot handle via their class.  */
   switch (TREE_CODE (expr))
     {
-    case NOP_EXPR:
-    case CONVERT_EXPR:
+    CASE_CONVERT:
       {
 	tree op = TREE_OPERAND (expr, 0);
 	if (!is_gimple_val (op))
@@ -3633,7 +3660,10 @@ verify_gimple_expr (tree expr)
 	   there is no sign or zero extension involved.  */
 	if (((POINTER_TYPE_P (type) && INTEGRAL_TYPE_P (TREE_TYPE (op)))
 	     || (POINTER_TYPE_P (TREE_TYPE (op)) && INTEGRAL_TYPE_P (type)))
-	    && TYPE_PRECISION (type) == TYPE_PRECISION (TREE_TYPE (op)))
+	    && (TYPE_PRECISION (type) == TYPE_PRECISION (TREE_TYPE (op))
+		/* For targets were the precision of sizetype doesn't
+		   match that of pointers we need the following.  */
+		|| type == sizetype || TREE_TYPE (op) == sizetype))
 	  return false;
 
 	/* Allow conversion from integer to offset type and vice versa.  */
@@ -3648,6 +3678,27 @@ verify_gimple_expr (tree expr)
 	if (TREE_CODE (type) != TREE_CODE (TREE_TYPE (op)))
 	  {
 	    error ("invalid types in nop conversion");
+	    debug_generic_expr (type);
+	    debug_generic_expr (TREE_TYPE (op));
+	    return true;
+	  }
+
+	return false;
+      }
+
+    case FIXED_CONVERT_EXPR:
+      {
+	tree op = TREE_OPERAND (expr, 0);
+	if (!is_gimple_val (op))
+	  {
+	    error ("invalid operand in conversion");
+	    return true;
+	  }
+
+	if (!valid_fixed_convert_types_p (type, TREE_TYPE (op))
+	    && !valid_fixed_convert_types_p (TREE_TYPE (op), type))
+	  {
+	    error ("invalid types in fixed-point conversion");
 	    debug_generic_expr (type);
 	    debug_generic_expr (TREE_TYPE (op));
 	    return true;
@@ -6148,11 +6199,16 @@ dump_function_to_file (tree fn, FILE *file, int flags)
       print_generic_expr (file, TREE_TYPE (arg), dump_flags);
       fprintf (file, " ");
       print_generic_expr (file, arg, dump_flags);
+      if (flags & TDF_VERBOSE)
+	print_node (file, "", arg, 4);
       if (TREE_CHAIN (arg))
 	fprintf (file, ", ");
       arg = TREE_CHAIN (arg);
     }
   fprintf (file, ")\n");
+
+  if (flags & TDF_VERBOSE)
+    print_node (file, "", fn, 2);
 
   dsf = DECL_STRUCT_FUNCTION (fn);
   if (dsf && (flags & TDF_DETAILS))
@@ -6179,6 +6235,8 @@ dump_function_to_file (tree fn, FILE *file, int flags)
 	  var = TREE_VALUE (vars);
 
 	  print_generic_decl (file, var, flags);
+	  if (flags & TDF_VERBOSE)
+	    print_node (file, "", var, 4);
 	  fprintf (file, "\n");
 
 	  any_var = true;

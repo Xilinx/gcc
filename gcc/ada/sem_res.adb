@@ -56,6 +56,7 @@ with Sem_Cat;  use Sem_Cat;
 with Sem_Ch4;  use Sem_Ch4;
 with Sem_Ch6;  use Sem_Ch6;
 with Sem_Ch8;  use Sem_Ch8;
+with Sem_Ch13; use Sem_Ch13;
 with Sem_Disp; use Sem_Disp;
 with Sem_Dist; use Sem_Dist;
 with Sem_Elab; use Sem_Elab;
@@ -471,12 +472,15 @@ package body Sem_Res is
 
                function Large_Storage_Type (T : Entity_Id) return Boolean is
                begin
-                  return
-                    T = Standard_Integer
-                      or else
-                    T = Standard_Positive
-                      or else
-                    T = Standard_Natural;
+                  --  The type is considered large if its bounds are known at
+                  --  compile time and if it requires at least as many bits as
+                  --  a Positive to store the possible values.
+
+                  return Compile_Time_Known_Value (Type_Low_Bound (T))
+                    and then Compile_Time_Known_Value (Type_High_Bound (T))
+                    and then
+                      Minimum_Size (T, Biased => True) >=
+                        Esize (Standard_Integer) - 1;
                end Large_Storage_Type;
 
             begin
@@ -5146,6 +5150,15 @@ package body Sem_Res is
          Check_Intrinsic_Call (N);
       end if;
 
+      --  Check for violation of restriction No_Specific_Termination_Handlers
+
+      if Is_RTE (Nam, RE_Set_Specific_Handler)
+           or else
+         Is_RTE (Nam, RE_Specific_Handler)
+      then
+         Check_Restriction (No_Specific_Termination_Handlers, N);
+      end if;
+
       --  All done, evaluate call and deal with elaboration issues
 
       Eval_Call (N);
@@ -6561,7 +6574,7 @@ package body Sem_Res is
    procedure Resolve_Null (N : Node_Id; Typ : Entity_Id) is
    begin
       --  Handle restriction against anonymous null access values This
-      --  restriction can be turned off using -gnatdh.
+      --  restriction can be turned off using -gnatdj.
 
       --  Ada 2005 (AI-231): Remove restriction
 
@@ -6571,7 +6584,7 @@ package body Sem_Res is
         and then Comes_From_Source (N)
       then
          --  In the common case of a call which uses an explicitly null
-         --  value for an access parameter, give specialized error msg
+         --  value for an access parameter, give specialized error message.
 
          if Nkind_In (Parent (N), N_Procedure_Call_Statement,
                                   N_Function_Call)
@@ -6974,6 +6987,19 @@ package body Sem_Res is
          then
             Error_Msg_N ("?not expression should be parenthesized here!", N);
          end if;
+
+         --  Warn on double negation if checking redundant constructs
+
+         if Warn_On_Redundant_Constructs
+           and then Comes_From_Source (N)
+           and then Comes_From_Source (Right_Opnd (N))
+           and then Root_Type (Typ) = Standard_Boolean
+           and then Nkind (Right_Opnd (N)) = N_Op_Not
+         then
+            Error_Msg_N ("redundant double negation?", N);
+         end if;
+
+         --  Complete resolution and evaluation of NOT
 
          Resolve (Right_Opnd (N), B_Typ);
          Check_Unset_Reference (Right_Opnd (N));
@@ -9412,15 +9438,18 @@ package body Sem_Res is
             end if;
          end;
 
-      --  Subprogram access types
+      --  Access to subprogram types. If the operand is an access parameter,
+      --  the type has a deeper accessibility that any master, and cannot
+      --  be assigned.
 
       elsif (Ekind (Target_Type) = E_Access_Subprogram_Type
                or else
              Ekind (Target_Type) = E_Anonymous_Access_Subprogram_Type)
         and then No (Corresponding_Remote_Type (Opnd_Type))
       then
-         if
-           Ekind (Base_Type (Opnd_Type)) = E_Anonymous_Access_Subprogram_Type
+         if Ekind (Base_Type (Opnd_Type)) = E_Anonymous_Access_Subprogram_Type
+           and then Is_Entity_Name (Operand)
+           and then Ekind (Entity (Operand)) = E_In_Parameter
          then
             Error_Msg_N
               ("illegal attempt to store anonymous access to subprogram",
@@ -9430,13 +9459,9 @@ package body Sem_Res is
                "(RM 3.10.2 (13))",
                Operand);
 
-            if Is_Entity_Name (Operand)
-              and then Ekind (Entity (Operand)) = E_In_Parameter
-            then
-               Error_Msg_NE
-                 ("\use named access type for& instead of access parameter",
-                  Operand, Entity (Operand));
-            end if;
+            Error_Msg_NE
+             ("\use named access type for& instead of access parameter",
+               Operand, Entity (Operand));
          end if;
 
          --  Check that the designated types are subtype conformant

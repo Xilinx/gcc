@@ -732,10 +732,6 @@ fomit-frame-pointer
 Common Report Var(flag_omit_frame_pointer) Optimization
 When possible do not generate stack frames
 
-fopenmp-ssa
-Common Report Var(flag_openmp_ssa)
-Expand OpenMP operations on SSA form
-
 foptimize-register-move
 Common Report Var(flag_regmove) Optimization
 Do the full register move optimization pass
@@ -1141,8 +1137,8 @@ Common Report Var(flag_tree_reassoc) Init(1) Optimization
 Enable reassociation on tree level
 
 ftree-salias
-Common Report Var(flag_tree_salias) Optimization
-Perform structural alias analysis
+Common
+Does nothing.  Preserved for backward compatibility.
 
 ftree-sink
 Common Report Var(flag_tree_sink) Optimization
@@ -1258,6 +1254,10 @@ Use expression value profiles in optimizations
 fweb
 Common Report Var(flag_web) Init(2) Optimization
 Construct webs and split unrelated uses of single variable
+
+ftree-builtin-call-dce
+Common Report Var(flag_tree_builtin_call_dce) Init(0) Optimization
+Enable conditional dead code elimination for builtin calls
 
 fwhole-program
 Common Report Var(flag_whole_program) Init(0) Optimization

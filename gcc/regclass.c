@@ -1143,8 +1143,9 @@ record_operand_costs (rtx insn, struct costs *op_costs,
 	record_address_regs (GET_MODE (recog_data.operand[i]),
 			     XEXP (recog_data.operand[i], 0),
 			     0, MEM, SCRATCH, frequency * 2);
-      else if (constraints[i][0] == 'p'
-	       || EXTRA_ADDRESS_CONSTRAINT (constraints[i][0], constraints[i]))
+      else if (recog_data.alternative_enabled_p[0]
+	       && (constraints[i][0] == 'p'
+		   || EXTRA_ADDRESS_CONSTRAINT (constraints[i][0], constraints[i])))
 	record_address_regs (VOIDmode, recog_data.operand[i], 0, ADDRESS,
 			     SCRATCH, frequency * 2);
     }
@@ -1701,7 +1702,7 @@ record_reg_classes (int n_alts, int n_ops, rtx *ops,
 		    [(int) base_reg_class (VOIDmode, ADDRESS, SCRATCH)];
 		  break;
 
-		case 'm':  case 'o':  case 'V':
+		case TARGET_MEM_CONSTRAINT:  case 'o':  case 'V':
 		  /* It doesn't seem worth distinguishing between offsettable
 		     and non-offsettable addresses here.  */
 		  allows_mem[i] = 1;
@@ -1932,6 +1933,9 @@ record_reg_classes (int n_alts, int n_ops, rtx *ops,
       if (alt_fail)
 	continue;
 
+      if (!recog_data.alternative_enabled_p[alt])
+	continue;
+
       /* Finally, update the costs with the information we've calculated
 	 about this alternative.  */
 
@@ -1957,7 +1961,7 @@ record_reg_classes (int n_alts, int n_ops, rtx *ops,
      we may want to adjust the cost of that register class to -1.
 
      Avoid the adjustment if the source does not die to avoid stressing of
-     register allocator by preferrencing two colliding registers into single
+     register allocator by preferencing two colliding registers into single
      class.
 
      Also avoid the adjustment if a copy between registers of the class

@@ -250,6 +250,41 @@ gfc_conv_intrinsic_conversion (gfc_se * se, gfc_expr * expr)
   gcc_assert (expr->value.function.actual->expr);
   gfc_conv_intrinsic_function_args (se, expr, args, nargs);
 
+  /* Conversion between character kinds involves a call to a library
+     function.  */
+  if (expr->ts.type == BT_CHARACTER)
+    {
+      tree fndecl, var, addr, tmp;
+
+      if (expr->ts.kind == 1
+	  && expr->value.function.actual->expr->ts.kind == 4)
+	fndecl = gfor_fndecl_convert_char4_to_char1;
+      else if (expr->ts.kind == 4
+	       && expr->value.function.actual->expr->ts.kind == 1)
+	fndecl = gfor_fndecl_convert_char1_to_char4;
+      else
+	gcc_unreachable ();
+
+      /* Create the variable storing the converted value.  */
+      type = gfc_get_pchar_type (expr->ts.kind);
+      var = gfc_create_var (type, "str");
+      addr = gfc_build_addr_expr (build_pointer_type (type), var);
+
+      /* Call the library function that will perform the conversion.  */
+      gcc_assert (nargs >= 2);
+      tmp = build_call_expr (fndecl, 3, addr, args[0], args[1]);
+      gfc_add_expr_to_block (&se->pre, tmp);
+
+      /* Free the temporary afterwards.  */
+      tmp = gfc_call_free (var);
+      gfc_add_expr_to_block (&se->post, tmp);
+
+      se->expr = var;
+      se->string_length = args[0];
+
+      return;
+    }
+
   /* Conversion from complex to non-complex involves taking the real
      component of the value.  */
   if (TREE_CODE (TREE_TYPE (args[0])) == COMPLEX_TYPE
@@ -938,6 +973,8 @@ gfc_conv_intrinsic_bound (gfc_se * se, gfc_expr * expr, int upper)
 	  size = fold_build2 (MINUS_EXPR, gfc_array_index_type, ubound, lbound);
 	  se->expr = fold_build2 (PLUS_EXPR, gfc_array_index_type, size,
 				  gfc_index_one_node);
+	  se->expr = fold_build2 (MAX_EXPR, gfc_array_index_type, se->expr,
+				  gfc_index_zero_node);
 	}
       else
 	se->expr = gfc_index_one_node;
@@ -1271,16 +1308,13 @@ gfc_conv_intrinsic_char (gfc_se * se, gfc_expr * expr)
   tree type;
   unsigned int num_args;
 
-  /* We must allow for the KIND argument, even though.... */
   num_args = gfc_intrinsic_argument_list_length (expr);
   gfc_conv_intrinsic_function_args (se, expr, arg, num_args);
 
-  /* .... we currently don't support character types != 1.  */
-  gcc_assert (expr->ts.kind == 1);
-  type = gfc_character1_type_node;
+  type = gfc_get_char_type (expr->ts.kind);
   var = gfc_create_var (type, "char");
 
-  arg[0] = convert (type, arg[0]);
+  arg[0] = fold_build1 (NOP_EXPR, type, arg[0]);
   gfc_add_modify_expr (&se->pre, var, arg[0]);
   se->expr = gfc_build_addr_expr (build_pointer_type (type), var);
   se->string_length = integer_one_node;
@@ -1293,9 +1327,7 @@ gfc_conv_intrinsic_ctime (gfc_se * se, gfc_expr * expr)
   tree var;
   tree len;
   tree tmp;
-  tree type;
   tree cond;
-  tree gfc_int8_type_node = gfc_get_int_type (8);
   tree fndecl;
   tree *args;
   unsigned int num_args;
@@ -1303,9 +1335,8 @@ gfc_conv_intrinsic_ctime (gfc_se * se, gfc_expr * expr)
   num_args = gfc_intrinsic_argument_list_length (expr) + 2;
   args = alloca (sizeof (tree) * num_args);
 
-  type = build_pointer_type (gfc_character1_type_node);
-  var = gfc_create_var (type, "pstr");
-  len = gfc_create_var (gfc_int8_type_node, "len");
+  var = gfc_create_var (pchar_type_node, "pstr");
+  len = gfc_create_var (gfc_get_int_type (8), "len");
 
   gfc_conv_intrinsic_function_args (se, expr, &args[2], num_args - 2);
   args[0] = build_fold_addr_expr (var);
@@ -1334,9 +1365,7 @@ gfc_conv_intrinsic_fdate (gfc_se * se, gfc_expr * expr)
   tree var;
   tree len;
   tree tmp;
-  tree type;
   tree cond;
-  tree gfc_int4_type_node = gfc_get_int_type (4);
   tree fndecl;
   tree *args;
   unsigned int num_args;
@@ -1344,9 +1373,8 @@ gfc_conv_intrinsic_fdate (gfc_se * se, gfc_expr * expr)
   num_args = gfc_intrinsic_argument_list_length (expr) + 2;
   args = alloca (sizeof (tree) * num_args);
 
-  type = build_pointer_type (gfc_character1_type_node);
-  var = gfc_create_var (type, "pstr");
-  len = gfc_create_var (gfc_int4_type_node, "len");
+  var = gfc_create_var (pchar_type_node, "pstr");
+  len = gfc_create_var (gfc_get_int_type (4), "len");
 
   gfc_conv_intrinsic_function_args (se, expr, &args[2], num_args - 2);
   args[0] = build_fold_addr_expr (var);
@@ -1377,19 +1405,16 @@ gfc_conv_intrinsic_ttynam (gfc_se * se, gfc_expr * expr)
   tree var;
   tree len;
   tree tmp;
-  tree type;
   tree cond;
   tree fndecl;
-  tree gfc_int4_type_node = gfc_get_int_type (4);
   tree *args;
   unsigned int num_args;
 
   num_args = gfc_intrinsic_argument_list_length (expr) + 2;
   args = alloca (sizeof (tree) * num_args);
 
-  type = build_pointer_type (gfc_character1_type_node);
-  var = gfc_create_var (type, "pstr");
-  len = gfc_create_var (gfc_int4_type_node, "len");
+  var = gfc_create_var (pchar_type_node, "pstr");
+  len = gfc_create_var (gfc_get_int_type (4), "len");
 
   gfc_conv_intrinsic_function_args (se, expr, &args[2], num_args - 2);
   args[0] = build_fold_addr_expr (var);
@@ -1507,7 +1532,7 @@ static void
 gfc_conv_intrinsic_minmax_char (gfc_se * se, gfc_expr * expr, int op)
 {
   tree *args;
-  tree var, len, fndecl, tmp, cond;
+  tree var, len, fndecl, tmp, cond, function;
   unsigned int nargs;
 
   nargs = gfc_intrinsic_argument_list_length (expr);
@@ -1517,15 +1542,22 @@ gfc_conv_intrinsic_minmax_char (gfc_se * se, gfc_expr * expr, int op)
   /* Create the result variables.  */
   len = gfc_create_var (gfc_charlen_type_node, "len");
   args[0] = build_fold_addr_expr (len);
-  var = gfc_create_var (build_pointer_type (gfc_character1_type_node), "pstr");
+  var = gfc_create_var (gfc_get_pchar_type (expr->ts.kind), "pstr");
   args[1] = gfc_build_addr_expr (ppvoid_type_node, var);
   args[2] = build_int_cst (NULL_TREE, op);
   args[3] = build_int_cst (NULL_TREE, nargs / 2);
 
+  if (expr->ts.kind == 1)
+    function = gfor_fndecl_string_minmax;
+  else if (expr->ts.kind == 4)
+    function = gfor_fndecl_string_minmax_char4;
+  else
+    gcc_unreachable ();
+
   /* Make the function call.  */
-  fndecl = build_addr (gfor_fndecl_string_minmax, current_function_decl);
-  tmp = build_call_array (TREE_TYPE (TREE_TYPE (gfor_fndecl_string_minmax)),
-			  fndecl, nargs + 4, args);
+  fndecl = build_addr (function, current_function_decl);
+  tmp = build_call_array (TREE_TYPE (TREE_TYPE (function)), fndecl,
+			  nargs + 4, args);
   gfc_add_expr_to_block (&se->pre, tmp);
 
   /* Free the temporary afterwards, if necessary.  */
@@ -2689,12 +2721,20 @@ gfc_conv_intrinsic_len (gfc_se * se, gfc_expr * expr)
 static void
 gfc_conv_intrinsic_len_trim (gfc_se * se, gfc_expr * expr)
 {
-  tree args[2];
-  tree type;
+  int kind = expr->value.function.actual->expr->ts.kind;
+  tree args[2], type, fndecl;
 
   gfc_conv_intrinsic_function_args (se, expr, args, 2);
   type = gfc_typenode_for_spec (&expr->ts);
-  se->expr = build_call_expr (gfor_fndecl_string_len_trim, 2, args[0], args[1]);
+
+  if (kind == 1)
+    fndecl = gfor_fndecl_string_len_trim;
+  else if (kind == 4)
+    fndecl = gfor_fndecl_string_len_trim_char4;
+  else
+    gcc_unreachable ();
+
+  se->expr = build_call_expr (fndecl, 2, args[0], args[1]);
   se->expr = convert (type, se->expr);
 }
 
@@ -2734,12 +2774,12 @@ gfc_conv_intrinsic_index_scan_verify (gfc_se * se, gfc_expr * expr,
 static void
 gfc_conv_intrinsic_ichar (gfc_se * se, gfc_expr * expr)
 {
-  tree args[2];
-  tree type;
+  tree args[2], type, pchartype;
 
   gfc_conv_intrinsic_function_args (se, expr, args, 2);
   gcc_assert (POINTER_TYPE_P (TREE_TYPE (args[1])));
-  args[1] = fold_build1 (NOP_EXPR, pchar_type_node, args[1]);
+  pchartype = gfc_get_pchar_type (expr->value.function.actual->expr->ts.kind);
+  args[1] = fold_build1 (NOP_EXPR, pchartype, args[1]);
   type = gfc_typenode_for_spec (&expr->ts);
 
   se->expr = build_fold_indirect_ref (args[1]);
@@ -3188,6 +3228,24 @@ gfc_conv_intrinsic_size (gfc_se * se, gfc_expr * expr)
 }
 
 
+/* Helper function to compute the size of a character variable,
+   excluding the terminating null characters.  The result has
+   gfc_array_index_type type.  */
+
+static tree
+size_of_string_in_bytes (int kind, tree string_length)
+{
+  tree bytesize;
+  int i = gfc_validate_kind (BT_CHARACTER, kind, false);
+ 
+  bytesize = build_int_cst (gfc_array_index_type,
+			    gfc_character_kinds[i].bit_size / 8);
+
+  return fold_build2 (MULT_EXPR, gfc_array_index_type, bytesize,
+		      fold_convert (gfc_array_index_type, string_length));
+}
+
+
 static void
 gfc_conv_intrinsic_sizeof (gfc_se *se, gfc_expr *expr)
 {
@@ -3200,15 +3258,12 @@ gfc_conv_intrinsic_sizeof (gfc_se *se, gfc_expr *expr)
   tree tmp;
   tree lower;
   tree upper;
-  /*tree stride;*/
   int n;
 
   arg = expr->value.function.actual->expr;
 
   gfc_init_se (&argse, NULL);
   ss = gfc_walk_expr (arg);
-
-  source_bytes = gfc_create_var (gfc_array_index_type, "bytes");
 
   if (ss == gfc_ss_terminator)
     {
@@ -3219,14 +3274,14 @@ gfc_conv_intrinsic_sizeof (gfc_se *se, gfc_expr *expr)
 
       /* Obtain the source word length.  */
       if (arg->ts.type == BT_CHARACTER)
-	source_bytes = fold_convert (gfc_array_index_type,
-				     argse.string_length);
+	se->expr = size_of_string_in_bytes (arg->ts.kind,
+					    argse.string_length);
       else
-	source_bytes = fold_convert (gfc_array_index_type,
-				     size_in_bytes (type)); 
+	se->expr = fold_convert (gfc_array_index_type, size_in_bytes (type)); 
     }
   else
     {
+      source_bytes = gfc_create_var (gfc_array_index_type, "bytes");
       argse.want_pointer = 0;
       gfc_conv_expr_descriptor (&argse, arg, ss);
       source = gfc_conv_descriptor_data_get (argse.expr);
@@ -3234,7 +3289,7 @@ gfc_conv_intrinsic_sizeof (gfc_se *se, gfc_expr *expr)
 
       /* Obtain the argument's word length.  */
       if (arg->ts.type == BT_CHARACTER)
-	tmp = fold_convert (gfc_array_index_type, argse.string_length);
+	tmp = size_of_string_in_bytes (arg->ts.kind, argse.string_length);
       else
 	tmp = fold_convert (gfc_array_index_type,
 			    size_in_bytes (type)); 
@@ -3255,10 +3310,10 @@ gfc_conv_intrinsic_sizeof (gfc_se *se, gfc_expr *expr)
 			     tmp, source_bytes);
 	  gfc_add_modify_expr (&argse.pre, source_bytes, tmp);
 	}
+      se->expr = source_bytes;
     }
 
   gfc_add_block_to_block (&se->pre, &argse.pre);
-  se->expr = source_bytes;
 }
 
 
@@ -3271,7 +3326,9 @@ gfc_conv_intrinsic_strcmp (gfc_se * se, gfc_expr * expr, int op)
 
   gfc_conv_intrinsic_function_args (se, expr, args, 4);
 
-  se->expr = gfc_build_compare_string (args[0], args[1], args[2], args[3]);
+  se->expr
+    = gfc_build_compare_string (args[0], args[1], args[2], args[3],
+				expr->value.function.actual->expr->ts.kind);
   se->expr = fold_build2 (op, gfc_typenode_for_spec (&expr->ts), se->expr,
 			  build_int_cst (TREE_TYPE (se->expr), 0));
 }
@@ -3353,7 +3410,8 @@ gfc_conv_intrinsic_array_transfer (gfc_se * se, gfc_expr * expr)
 
       /* Obtain the source word length.  */
       if (arg->expr->ts.type == BT_CHARACTER)
-	tmp = fold_convert (gfc_array_index_type, argse.string_length);
+	tmp = size_of_string_in_bytes (arg->expr->ts.kind,
+				       argse.string_length);
       else
 	tmp = fold_convert (gfc_array_index_type,
 			    size_in_bytes (source_type)); 
@@ -3392,7 +3450,8 @@ gfc_conv_intrinsic_array_transfer (gfc_se * se, gfc_expr * expr)
 
       /* Obtain the source word length.  */
       if (arg->expr->ts.type == BT_CHARACTER)
-	tmp = fold_convert (gfc_array_index_type, argse.string_length);
+	tmp = size_of_string_in_bytes (arg->expr->ts.kind,
+				       argse.string_length);
       else
 	tmp = fold_convert (gfc_array_index_type,
 			    size_in_bytes (source_type)); 
@@ -3444,7 +3503,7 @@ gfc_conv_intrinsic_array_transfer (gfc_se * se, gfc_expr * expr)
 
   if (arg->expr->ts.type == BT_CHARACTER)
     {
-      tmp = fold_convert (gfc_array_index_type, argse.string_length);
+      tmp = size_of_string_in_bytes (arg->expr->ts.kind, argse.string_length);
       mold_type = gfc_get_character_type_len (arg->expr->ts.kind, tmp);
     }
   else
@@ -3818,32 +3877,37 @@ gfc_conv_intrinsic_sr_kind (gfc_se *se, gfc_expr *expr)
 static void
 gfc_conv_intrinsic_trim (gfc_se * se, gfc_expr * expr)
 {
-  tree gfc_int4_type_node = gfc_get_int_type (4);
   tree var;
   tree len;
   tree addr;
   tree tmp;
-  tree type;
   tree cond;
   tree fndecl;
+  tree function;
   tree *args;
   unsigned int num_args;
 
   num_args = gfc_intrinsic_argument_list_length (expr) + 2;
   args = alloca (sizeof (tree) * num_args);
 
-  type = build_pointer_type (gfc_character1_type_node);
-  var = gfc_create_var (type, "pstr");
+  var = gfc_create_var (gfc_get_pchar_type (expr->ts.kind), "pstr");
   addr = gfc_build_addr_expr (ppvoid_type_node, var);
-  len = gfc_create_var (gfc_int4_type_node, "len");
+  len = gfc_create_var (gfc_get_int_type (4), "len");
 
   gfc_conv_intrinsic_function_args (se, expr, &args[2], num_args - 2);
   args[0] = build_fold_addr_expr (len);
   args[1] = addr;
 
-  fndecl = build_addr (gfor_fndecl_string_trim, current_function_decl);
-  tmp = build_call_array (TREE_TYPE (TREE_TYPE (gfor_fndecl_string_trim)),
-			  fndecl, num_args, args);
+  if (expr->ts.kind == 1)
+    function = gfor_fndecl_string_trim;
+  else if (expr->ts.kind == 4)
+    function = gfor_fndecl_string_trim_char4;
+  else
+    gcc_unreachable ();
+
+  fndecl = build_addr (function, current_function_decl);
+  tmp = build_call_array (TREE_TYPE (TREE_TYPE (function)), fndecl,
+			  num_args, args);
   gfc_add_expr_to_block (&se->pre, tmp);
 
   /* Free the temporary afterwards, if necessary.  */
@@ -3865,8 +3929,13 @@ gfc_conv_intrinsic_repeat (gfc_se * se, gfc_expr * expr)
 {
   tree args[3], ncopies, dest, dlen, src, slen, ncopies_type;
   tree type, cond, tmp, count, exit_label, n, max, largest;
+  tree size;
   stmtblock_t block, body;
   int i;
+
+  /* We store in charsize the size of a character.  */
+  i = gfc_validate_kind (BT_CHARACTER, expr->ts.kind, false);
+  size = build_int_cst (size_type_node, gfc_character_kinds[i].bit_size / 8);
 
   /* Get the arguments.  */
   gfc_conv_intrinsic_function_args (se, expr, args, 3);
@@ -3912,7 +3981,6 @@ gfc_conv_intrinsic_repeat (gfc_se * se, gfc_expr * expr)
 		      cond);
   gfc_trans_runtime_check (cond, &se->pre, &expr->where,
 			   "Argument NCOPIES of REPEAT intrinsic is too large");
-			   
 
   /* Compute the destination length.  */
   dlen = fold_build2 (MULT_EXPR, gfc_charlen_type_node,
@@ -3923,7 +3991,7 @@ gfc_conv_intrinsic_repeat (gfc_se * se, gfc_expr * expr)
 
   /* Generate the code to do the repeat operation:
        for (i = 0; i < ncopies; i++)
-         memmove (dest + (i * slen), src, slen);  */
+         memmove (dest + (i * slen * size), src, slen*size);  */
   gfc_start_block (&block);
   count = gfc_create_var (ncopies_type, "count");
   gfc_add_modify_expr (&block, count, build_int_cst (ncopies_type, 0));
@@ -3940,15 +4008,18 @@ gfc_conv_intrinsic_repeat (gfc_se * se, gfc_expr * expr)
 		     build_empty_stmt ());
   gfc_add_expr_to_block (&body, tmp);
 
-  /* Call memmove (dest + (i*slen), src, slen).  */
+  /* Call memmove (dest + (i*slen*size), src, slen*size).  */
   tmp = fold_build2 (MULT_EXPR, gfc_charlen_type_node,
 		     fold_convert (gfc_charlen_type_node, slen),
 		     fold_convert (gfc_charlen_type_node, count));
-  tmp = fold_build2 (POINTER_PLUS_EXPR, pchar_type_node,
-		     fold_convert (pchar_type_node, dest),
+  tmp = fold_build2 (MULT_EXPR, gfc_charlen_type_node,
+		     tmp, fold_convert (gfc_charlen_type_node, size));
+  tmp = fold_build2 (POINTER_PLUS_EXPR, pvoid_type_node,
+		     fold_convert (pvoid_type_node, dest),
 		     fold_convert (sizetype, tmp));
-  tmp = build_call_expr (built_in_decls[BUILT_IN_MEMMOVE], 3,
-			 tmp, src, slen);
+  tmp = build_call_expr (built_in_decls[BUILT_IN_MEMMOVE], 3, tmp, src,
+			 fold_build2 (MULT_EXPR, size_type_node, slen,
+				      fold_convert (size_type_node, size)));
   gfc_add_expr_to_block (&body, tmp);
 
   /* Increment count.  */
@@ -4031,7 +4102,8 @@ gfc_conv_intrinsic_function (gfc_se * se, gfc_expr * expr)
 {
   gfc_intrinsic_sym *isym;
   const char *name;
-  int lib;
+  int lib, kind;
+  tree fndecl;
 
   isym = expr->value.function.isym;
 
@@ -4079,11 +4151,27 @@ gfc_conv_intrinsic_function (gfc_se * se, gfc_expr * expr)
       break;
 
     case GFC_ISYM_SCAN:
-      gfc_conv_intrinsic_index_scan_verify (se, expr, gfor_fndecl_string_scan);
+      kind = expr->value.function.actual->expr->ts.kind;
+      if (kind == 1)
+       fndecl = gfor_fndecl_string_scan;
+      else if (kind == 4)
+       fndecl = gfor_fndecl_string_scan_char4;
+      else
+       gcc_unreachable ();
+
+      gfc_conv_intrinsic_index_scan_verify (se, expr, fndecl);
       break;
 
     case GFC_ISYM_VERIFY:
-      gfc_conv_intrinsic_index_scan_verify (se, expr, gfor_fndecl_string_verify);
+      kind = expr->value.function.actual->expr->ts.kind;
+      if (kind == 1)
+       fndecl = gfor_fndecl_string_verify;
+      else if (kind == 4)
+       fndecl = gfor_fndecl_string_verify_char4;
+      else
+       gcc_unreachable ();
+
+      gfc_conv_intrinsic_index_scan_verify (se, expr, fndecl);
       break;
 
     case GFC_ISYM_ALLOCATED:
@@ -4099,11 +4187,25 @@ gfc_conv_intrinsic_function (gfc_se * se, gfc_expr * expr)
       break;
 
     case GFC_ISYM_ADJUSTL:
-      gfc_conv_intrinsic_adjust (se, expr, gfor_fndecl_adjustl);
+      if (expr->ts.kind == 1)
+       fndecl = gfor_fndecl_adjustl;
+      else if (expr->ts.kind == 4)
+       fndecl = gfor_fndecl_adjustl_char4;
+      else
+       gcc_unreachable ();
+
+      gfc_conv_intrinsic_adjust (se, expr, fndecl);
       break;
 
     case GFC_ISYM_ADJUSTR:
-      gfc_conv_intrinsic_adjust (se, expr, gfor_fndecl_adjustr);
+      if (expr->ts.kind == 1)
+       fndecl = gfor_fndecl_adjustr;
+      else if (expr->ts.kind == 4)
+       fndecl = gfor_fndecl_adjustr_char4;
+      else
+       gcc_unreachable ();
+
+      gfc_conv_intrinsic_adjust (se, expr, fndecl);
       break;
 
     case GFC_ISYM_AIMAG:
@@ -4250,7 +4352,15 @@ gfc_conv_intrinsic_function (gfc_se * se, gfc_expr * expr)
       break;
 
     case GFC_ISYM_INDEX:
-      gfc_conv_intrinsic_index_scan_verify (se, expr, gfor_fndecl_string_index);
+      kind = expr->value.function.actual->expr->ts.kind;
+      if (kind == 1)
+       fndecl = gfor_fndecl_string_index;
+      else if (kind == 4)
+       fndecl = gfor_fndecl_string_index_char4;
+      else
+       gcc_unreachable ();
+
+      gfc_conv_intrinsic_index_scan_verify (se, expr, fndecl);
       break;
 
     case GFC_ISYM_IOR:

@@ -1,5 +1,6 @@
 /* Loop invariant motion.
-   Copyright (C) 2003, 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
+   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008 Free Software
+   Foundation, Inc.
    
 This file is part of GCC.
    
@@ -40,6 +41,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "hashtab.h"
 #include "tree-affine.h"
 #include "pointer-set.h"
+#include "tree-ssa-propagate.h"
 
 /* TODO:  Support for predicated code motion.  I.e.
 
@@ -130,7 +132,7 @@ typedef struct mem_ref
   unsigned id;			/* ID assigned to the memory reference
 				   (its index in memory_accesses.refs_list)  */
   hashval_t hash;		/* Its hash value.  */
-  bitmap stored;		/* The set of loops in that this memory locatio
+  bitmap stored;		/* The set of loops in that this memory location
 				   is stored to.  */
   VEC (mem_ref_locs_p, heap) *accesses_in_loop;
 				/* The locations of the accesses.  Vector
@@ -569,7 +571,7 @@ outermost_indep_loop (struct loop *outer, struct loop *loop, mem_ref_p ref)
 }
 
 /* If there is a simple load or store to a memory reference in STMT, returns
-   the location of the memory reference, and sets IS_STORE accoring to whether
+   the location of the memory reference, and sets IS_STORE according to whether
    it is a store or load.  Otherwise, returns NULL.  */
 
 static tree *
@@ -812,8 +814,7 @@ rewrite_bittest (block_stmt_iterator *bsi)
 
   /* There is a conversion in between possibly inserted by fold.  */
   t = GIMPLE_STMT_OPERAND (stmt1, 1);
-  if (TREE_CODE (t) == NOP_EXPR
-      || TREE_CODE (t) == CONVERT_EXPR)
+  if (CONVERT_EXPR_P (t))
     {
       t = TREE_OPERAND (t, 0);
       if (TREE_CODE (t) != SSA_NAME
@@ -900,6 +901,14 @@ determine_invariantness_stmt (struct dom_walk_data *dw_data ATTRIBUTE_UNUSED,
 	    {
 	      maybe_never = true;
 	      outermost = NULL;
+	    }
+	  /* Make sure to note always_executed_in for stores to make
+	     store-motion work.  */
+	  else if (stmt_makes_single_store (stmt))
+	    {
+	      stmt_ann (stmt)->common.aux
+		= xcalloc (1, sizeof (struct lim_aux_data));
+	      LIM_DATA (stmt)->always_executed_in = outermost;
 	    }
 	  continue;
 	}
@@ -1609,40 +1618,12 @@ mem_refs_may_alias_p (tree mem1, tree mem2, struct pointer_map_t **ttae_cache)
   /* Perform BASE + OFFSET analysis -- if MEM1 and MEM2 are based on the same
      object and their offset differ in such a way that the locations cannot
      overlap, then they cannot alias.  */
-  aff_tree off1, off2;
   double_int size1, size2;
-  tree base1, base2;
+  aff_tree off1, off2;
 
-  /* If MEM1 and MEM2 are based on different variables, they cannot alias.  */
-  base1 = get_base_address (mem1);
-  base2 = get_base_address (mem2);
-
-  if (base1
-      && !INDIRECT_REF_P (base1)
-      && base2
-      && !INDIRECT_REF_P (base2)
-      && !operand_equal_p (base1, base2, 0))
+  /* Perform basic offset and type-based disambiguation.  */
+  if (!refs_may_alias_p (mem1, mem2))
     return false;
-
-  /* With strict aliasing, it is impossible to access a scalar variable through
-     anything but a pointer dereference or through a union (gcc extension).  */
-  if (flag_strict_aliasing)
-    {
-      if (!INDIRECT_REF_P (mem1)
-	  && base1
-	  && TREE_CODE (TREE_TYPE (base1)) != UNION_TYPE
-	  && SSA_VAR_P (mem2)
-	  && !AGGREGATE_TYPE_P (TREE_TYPE (mem2)))
-	return false;
-      if (!INDIRECT_REF_P (mem2)
-	  && base2
-	  && TREE_CODE (TREE_TYPE (base2)) != UNION_TYPE
-	  && SSA_VAR_P (mem1)
-	  && !AGGREGATE_TYPE_P (TREE_TYPE (mem1)))
-	return false;
-      if (!alias_sets_conflict_p (get_alias_set (mem1), get_alias_set (mem2)))
-	return false;
-    }
 
   /* The expansion of addresses may be a bit expensive, thus we only do
      the check at -O2 and higher optimization levels.  */

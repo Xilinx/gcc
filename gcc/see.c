@@ -1,5 +1,5 @@
 /* Sign extension elimination optimization for GNU compiler.
-   Copyright (C) 2005, 2006, 2007 Free Software Foundation, Inc.
+   Copyright (C) 2005, 2006, 2007, 2008 Free Software Foundation, Inc.
    Contributed by Leehod Baruch <leehod@il.ibm.com>
 
 This file is part of GCC.
@@ -732,7 +732,7 @@ see_get_extension_data (rtx extension, enum machine_mode *source_mode)
 
   /* Don't handle extensions to something other then register or
      subregister.  */
-  if (!REG_P (lhs) && !SUBREG_REG (lhs))
+  if (!REG_P (lhs) && GET_CODE (lhs) != SUBREG)
     return UNKNOWN;
 
   if (GET_CODE (rhs) != SIGN_EXTEND && GET_CODE (rhs) != ZERO_EXTEND)
@@ -1253,7 +1253,7 @@ see_update_leader_extra_info (struct web_entry *first, struct web_entry *second)
 	}
       break;
     default:
-      /* Unknown patern type.  */
+      /* Unknown pattern type.  */
       gcc_unreachable ();
     }
 
@@ -1686,7 +1686,7 @@ see_pre_insert_extensions (struct see_pre_extension_expr **index_map)
 		edge eg = INDEX_EDGE (edge_list, e);
 
 		start_sequence ();
-		emit_insn (PATTERN (expr->se_insn));
+		emit_insn (copy_insn (PATTERN (expr->se_insn)));
 		se_insn = get_insns ();
 		end_sequence ();
 
@@ -1945,7 +1945,7 @@ see_analyze_unmerged_def_local_prop (void **slot, void *b)
 }
 
 
-/* Analyze the properties of a use extension for the LCM and record anic and
+/* Analyze the properties of a use extension for the LCM and record any and
    avail occurrences.
 
    This is a subroutine of see_analyze_ref_local_prop called
@@ -2553,6 +2553,17 @@ see_def_extension_not_merged (struct see_ref_s *curr_ref_s, rtx def_se)
     }
 
   /* The manipulation succeeded.  Store the new manipulated reference.  */
+
+  /* It is possible for dest_reg to appear multiple times in ref_copy. In this
+     case, ref_copy now has invalid sharing. Copying solves the problem.
+     We don't use copy_rtx as an optimization for the common case (no sharing).
+     We can't just use copy_rtx_if_shared since it does nothing on INSNs.
+     Another possible solution would be to make validate_replace_rtx_1
+     public and use it instead of replace_rtx. */
+  reset_used_flags (PATTERN (ref_copy));
+  reset_used_flags (REG_NOTES (ref_copy));
+  PATTERN (ref_copy) = copy_rtx_if_shared (PATTERN (ref_copy));
+  REG_NOTES (ref_copy) = copy_rtx_if_shared (REG_NOTES (ref_copy));
 
   /* Try to simplify the new manipulated insn.  */
   validate_simplify_insn (ref_copy);
@@ -3523,7 +3534,7 @@ see_analyze_one_def (rtx insn, enum machine_mode *source_mode,
 
       /* Don't handle extensions to something other then register or
 	 subregister.  */
-      if (!REG_P (lhs) && !SUBREG_REG (lhs))
+      if (!REG_P (lhs) && GET_CODE (lhs) != SUBREG)
 	return NOT_RELEVANT;
 
       switch (GET_CODE (rhs))

@@ -75,7 +75,8 @@ size_logical (int kind)
 static size_t
 size_character (int length, int kind)
 {
-  return length * kind;
+  int i = gfc_validate_kind (BT_CHARACTER, kind, false);
+  return length * gfc_character_kinds[i].bit_size / 8;
 }
 
 
@@ -100,7 +101,16 @@ gfc_target_expr_size (gfc_expr *e)
     case BT_LOGICAL:
       return size_logical (e->ts.kind);
     case BT_CHARACTER:
-      return size_character (e->value.character.length, e->ts.kind);
+      if (e->expr_type == EXPR_SUBSTRING && e->ref)
+        {
+          int start, end;
+
+          gfc_extract_int (e->ref->u.ss.start, &start);
+          gfc_extract_int (e->ref->u.ss.end, &end);
+          return size_character (MAX(end - start + 1, 0), e->ts.kind);
+        }
+      else
+        return size_character (e->value.character.length, e->ts.kind);
     case BT_HOLLERITH:
       return e->representation.length;
     case BT_DERIVED:
@@ -173,20 +183,19 @@ encode_logical (int kind, int logical, unsigned char *buffer, size_t buffer_size
 }
 
 
-static int
-encode_character (int kind, int length, gfc_char_t *string,
-		  unsigned char *buffer, size_t buffer_size)
+int
+gfc_encode_character (int kind, int length, const gfc_char_t *string,
+		      unsigned char *buffer, size_t buffer_size)
 {
-  char *s;
+  size_t elsize = size_character (1, kind);
+  tree type = gfc_get_char_type (kind);
+  int i;
 
   gcc_assert (buffer_size >= size_character (length, kind));
-  /* FIXME -- when we support wide character types, we'll need to go
-     via integers for them.  For now, we keep the simple memcpy().  */
-  gcc_assert (kind == gfc_default_character_kind);
 
-  s = gfc_widechar_to_char (string, length);
-  memcpy (buffer, s, length);
-  gfc_free (s);
+  for (i = 0; i < length; i++)
+    native_encode_expr (build_int_cst (type, string[i]), &buffer[i*elsize],
+			elsize);
 
   return length;
 }
@@ -231,7 +240,8 @@ gfc_target_encode_expr (gfc_expr *source, unsigned char *buffer,
     return encode_array (source, buffer, buffer_size);
 
   gcc_assert (source->expr_type == EXPR_CONSTANT
-	      || source->expr_type == EXPR_STRUCTURE);
+	      || source->expr_type == EXPR_STRUCTURE
+	      || source->expr_type == EXPR_SUBSTRING);
 
   /* If we already have a target-memory representation, we use that rather 
      than recreating one.  */
@@ -257,9 +267,23 @@ gfc_target_encode_expr (gfc_expr *source, unsigned char *buffer,
       return encode_logical (source->ts.kind, source->value.logical, buffer,
 			     buffer_size);
     case BT_CHARACTER:
-      return encode_character (source->ts.kind, source->value.character.length,
-			       source->value.character.string, buffer,
-			       buffer_size);
+      if (source->expr_type == EXPR_CONSTANT || source->ref == NULL)
+	return gfc_encode_character (source->ts.kind,
+				     source->value.character.length,
+				     source->value.character.string,
+				     buffer, buffer_size);
+      else
+	{
+	  int start, end;
+
+	  gcc_assert (source->expr_type == EXPR_SUBSTRING);
+	  gfc_extract_int (source->ref->u.ss.start, &start);
+	  gfc_extract_int (source->ref->u.ss.end, &end);
+	  return gfc_encode_character (source->ts.kind, MAX(end - start + 1, 0),
+				       &source->value.character.string[start-1],
+				       buffer, buffer_size);
+	}
+
     case BT_DERIVED:
       return encode_derived (source, buffer, buffer_size);
     default:
@@ -342,7 +366,8 @@ gfc_interpret_complex (int kind, unsigned char *buffer, size_t buffer_size,
 {
   int size;
   size = gfc_interpret_float (kind, &buffer[0], buffer_size, real);
-  size += gfc_interpret_float (kind, &buffer[size], buffer_size - size, imaginary);
+  size += gfc_interpret_float (kind, &buffer[size], buffer_size - size,
+			       imaginary);
   return size;
 }
 

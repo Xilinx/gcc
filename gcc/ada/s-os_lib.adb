@@ -452,7 +452,13 @@ package body System.OS_Lib is
 
       begin
          From := Open_Read (Name, Binary);
-         To   := Create_File (To_Name, Binary);
+
+         --  Do not clobber destination file if source file could not be opened
+
+         if From /= Invalid_FD then
+            To := Create_File (To_Name, Binary);
+         end if;
+
          Copy (From, To);
 
          --  Copy attributes
@@ -545,10 +551,14 @@ package body System.OS_Lib is
             if Is_Regular_File (Pathname) then
 
                --  Append mode and destination file exists, append data at the
-               --  end of Pathname.
+               --  end of Pathname. But if we fail to open source file, do not
+               --  touch destination file at all.
 
                From := Open_Read (Name, Binary);
-               To   := Open_Read_Write (Pathname, Binary);
+               if From /= Invalid_FD then
+                  To := Open_Read_Write (Pathname, Binary);
+               end if;
+
                Lseek (To, 0, Seek_End);
 
                Copy (From, To);
@@ -1896,7 +1906,7 @@ package body System.OS_Lib is
         and then Path_Buffer (2) /= Directory_Separator
       then
          declare
-            Cur_Dir : String := Get_Directory ("");
+            Cur_Dir : constant String := Get_Directory ("");
             --  Get the current directory to get the drive letter
 
          begin

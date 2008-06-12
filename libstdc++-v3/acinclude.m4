@@ -860,6 +860,7 @@ AC_DEFUN([GLIBCXX_ENABLE_C99], [
 	tmpf = ctanf(tmpf);
 	tmpf = ctanhf(tmpf);
 	tmpf = cpowf(tmpf, tmpf);
+	tmpf = cprojf(tmpf);
 	d = cabs(tmpd);
 	d = carg(tmpd);
 	tmpd = ccos(tmpd);
@@ -872,6 +873,7 @@ AC_DEFUN([GLIBCXX_ENABLE_C99], [
 	tmpd = ctan(tmpd);
 	tmpd = ctanh(tmpd);
 	tmpd = cpow(tmpd, tmpd);
+	tmpd = cproj(tmpd);
 	ld = cabsl(tmpld);
 	ld = cargl(tmpld);
 	tmpld = ccosl(tmpld);
@@ -884,6 +886,7 @@ AC_DEFUN([GLIBCXX_ENABLE_C99], [
 	tmpld = ctanl(tmpld);
 	tmpld = ctanhl(tmpld);
 	tmpld = cpowl(tmpld, tmpld);
+	tmpld = cprojl(tmpld);
        ],[glibcxx_cv_c99_complex=yes], [glibcxx_cv_c99_complex=no])
   fi
   AC_MSG_RESULT($glibcxx_cv_c99_complex)
@@ -1327,7 +1330,7 @@ AC_DEFUN([GLIBCXX_CHECK_SYSTEM_ERROR], [
 
 m4_pushdef([n_syserr], [1])dnl
 m4_foreach([syserr], [EOWNERDEAD, ENOTRECOVERABLE, ENOLINK, EPROTO, ENODATA,
-		      ENOSR, ENOSTR, ETIME, sys_nerr, EBADMSG, ECANCELED,
+		      ENOSR, ENOSTR, ETIME, EBADMSG, ECANCELED,
 		      EOVERFLOW, ENOTSUP, EIDRM, ETXTBSY],
 [m4_pushdef([SYSERR], m4_toupper(syserr))dnl
 AC_MSG_CHECKING([for syserr])

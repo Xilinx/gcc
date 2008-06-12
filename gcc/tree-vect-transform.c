@@ -216,7 +216,7 @@ vect_estimate_min_profitable_iters (loop_vec_info loop_vinfo)
   /* Add additional cost for the peeled instructions in prologue and epilogue
      loop.
 
-     FORNOW: If we dont know the value of peel_iters for prologue or epilogue
+     FORNOW: If we don't know the value of peel_iters for prologue or epilogue
      at compile-time - we assume it's vf/2 (the worst would be vf-1).
 
      TODO: Build an expression that represents peel_iters for prologue and
@@ -332,7 +332,7 @@ vect_estimate_min_profitable_iters (loop_vec_info loop_vinfo)
      branches.
 
      TODO: The back end may reorder the BBS's differently and reverse
-     conditions/branch directions.  Change the stimates below to
+     conditions/branch directions.  Change the estimates below to
      something more reasonable.  */
 
   if (runtime_test)
@@ -502,7 +502,7 @@ vect_model_reduction_cost (stmt_vec_info stmt_info, enum tree_code reduc_code,
 	  int element_bitsize = tree_low_cst (bitsize, 1);
 	  int nelements = vec_size_in_bits / element_bitsize;
 
-	  optab = optab_for_tree_code (code, vectype);
+	  optab = optab_for_tree_code (code, vectype, optab_default);
 
 	  /* We have a whole vector shift available.  */
 	  if (VECTOR_MODE_P (mode)
@@ -1392,7 +1392,7 @@ vect_get_constant_vectors (slp_tree slp_node, VEC(tree,heap) **vec_oprnds,
      created vectors. It is greater than 1 if unrolling is performed. 
 
      For example, we have two scalar operands, s1 and s2 (e.g., group of
-     strided accesses of size two), while NUINTS is four (i.e., four scalars
+     strided accesses of size two), while NUNITS is four (i.e., four scalars
      of this type can be packed in a vector). The output vector will contain
      two copies of each scalar operand: {s1, s2, s1, s2}. (NUMBER_OF_COPIES
      will be 2).
@@ -1400,7 +1400,7 @@ vect_get_constant_vectors (slp_tree slp_node, VEC(tree,heap) **vec_oprnds,
      If GROUP_SIZE > NUNITS, the scalars will be split into several vectors 
      containing the operands.
 
-     For example, NUINTS is four as before, and the group size is 8 
+     For example, NUNITS is four as before, and the group size is 8
      (s1, s2, ..., s8). We will create two vectors {s1, s2, s3, s4} and
      {s5, s6, s7, s8}.  */
     
@@ -2458,7 +2458,7 @@ vect_create_epilog_for_reduction (tree vect_def, tree stmt,
 	have_whole_vector_shift = false;
       else
 	{
-	  optab optab = optab_for_tree_code (code, vectype);
+	  optab optab = optab_for_tree_code (code, vectype, optab_default);
 	  if (optab_handler (optab, mode)->insn_code == CODE_FOR_nothing)
 	    have_whole_vector_shift = false;
 	}
@@ -2818,7 +2818,7 @@ vectorizable_reduction (tree stmt, block_stmt_iterator *bsi, tree *vec_stmt)
   /* 4. Supportable by target?  */
 
   /* 4.1. check support for the operation in the loop  */
-  optab = optab_for_tree_code (code, vectype);
+  optab = optab_for_tree_code (code, vectype, optab_default);
   if (!optab)
     {
       if (vect_print_dump_info (REPORT_DETAILS))
@@ -2909,7 +2909,7 @@ vectorizable_reduction (tree stmt, block_stmt_iterator *bsi, tree *vec_stmt)
 
   if (!reduction_code_for_scalar_code (orig_code, &epilog_reduc_code))
     return false;
-  reduc_optab = optab_for_tree_code (epilog_reduc_code, vectype);
+  reduc_optab = optab_for_tree_code (epilog_reduc_code, vectype, optab_default);
   if (!reduc_optab)
     {
       if (vect_print_dump_info (REPORT_DETAILS))
@@ -3852,6 +3852,7 @@ vectorizable_operation (tree stmt, block_stmt_iterator *bsi, tree *vec_stmt,
   VEC(tree,heap) *vec_oprnds0 = NULL, *vec_oprnds1 = NULL;
   tree vop0, vop1;
   unsigned int k;
+  bool shift_p = false;
   bool scalar_shift_arg = false;
 
   /* FORNOW: SLP with multiple types is not supported. The SLP analysis verifies
@@ -3896,8 +3897,6 @@ vectorizable_operation (tree stmt, block_stmt_iterator *bsi, tree *vec_stmt,
   if (code == POINTER_PLUS_EXPR)
     code = PLUS_EXPR;
 
-  optab = optab_for_tree_code (code, vectype);
-
   /* Support only unary or binary operations.  */
   op_type = TREE_OPERAND_LENGTH (operation);
   if (op_type != unary_op && op_type != binary_op)
@@ -3925,6 +3924,56 @@ vectorizable_operation (tree stmt, block_stmt_iterator *bsi, tree *vec_stmt,
 	  return false;
 	}
     }
+
+  /* If this is a shift/rotate, determine whether the shift amount is a vector,
+     or scalar.  If the shift/rotate amount is a vector, use the vector/vector
+     shift optabs.  */
+  if (code == LSHIFT_EXPR || code == RSHIFT_EXPR || code == LROTATE_EXPR
+      || code == RROTATE_EXPR)
+    {
+      shift_p = true;
+
+      /* vector shifted by vector */
+      if (dt[1] == vect_loop_def)
+	{
+	  optab = optab_for_tree_code (code, vectype, optab_vector);
+	  if (vect_print_dump_info (REPORT_DETAILS))
+	    fprintf (vect_dump, "vector/vector shift/rotate found.");
+	}
+
+      /* See if the machine has a vector shifted by scalar insn and if not
+	 then see if it has a vector shifted by vector insn */
+      else if (dt[1] == vect_constant_def || dt[1] == vect_invariant_def)
+	{
+	  optab = optab_for_tree_code (code, vectype, optab_scalar);
+	  if (optab
+	      && (optab_handler (optab, TYPE_MODE (vectype))->insn_code
+		  != CODE_FOR_nothing))
+	    {
+	      scalar_shift_arg = true;
+	      if (vect_print_dump_info (REPORT_DETAILS))
+		fprintf (vect_dump, "vector/scalar shift/rotate found.");
+	    }
+	  else
+	    {
+	      optab = optab_for_tree_code (code, vectype, optab_vector);
+	      if (vect_print_dump_info (REPORT_DETAILS)
+		  && optab
+		  && (optab_handler (optab, TYPE_MODE (vectype))->insn_code
+		      != CODE_FOR_nothing))
+		fprintf (vect_dump, "vector/vector shift/rotate found.");
+	    }
+	}
+
+      else
+	{
+	  if (vect_print_dump_info (REPORT_DETAILS))
+	    fprintf (vect_dump, "operand mode requires invariant argument.");
+	  return false;
+	}
+    }
+  else
+    optab = optab_for_tree_code (code, vectype, optab_default);
 
   /* Supportable by target?  */
   if (!optab)
@@ -3958,29 +4007,6 @@ vectorizable_operation (tree stmt, block_stmt_iterator *bsi, tree *vec_stmt,
       if (vect_print_dump_info (REPORT_DETAILS))
 	fprintf (vect_dump, "not worthwhile without SIMD support.");
       return false;
-    }
-
-  if (code == LSHIFT_EXPR || code == RSHIFT_EXPR)
-    {
-      /* FORNOW: not yet supported.  */
-      if (!VECTOR_MODE_P (vec_mode))
-	return false;
-
-      /* Invariant argument is needed for a vector shift
-	 by a scalar shift operand.  */
-      optab_op2_mode = insn_data[icode].operand[2].mode;
-      if (!VECTOR_MODE_P (optab_op2_mode))
-	{
-	  if (dt[1] != vect_constant_def && dt[1] != vect_invariant_def)
-	    {
-	      if (vect_print_dump_info (REPORT_DETAILS))
-	        fprintf (vect_dump, "operand mode requires invariant"
-                                    " argument.");
-	      return false;
-	    }
-
-          scalar_shift_arg = true;
-        }
     }
 
   if (!vec_stmt) /* transformation not required.  */
@@ -4075,8 +4101,7 @@ vectorizable_operation (tree stmt, block_stmt_iterator *bsi, tree *vec_stmt,
       /* Handle uses.  */
       if (j == 0)
 	{
-	  if (op_type == binary_op
-	      && (code == LSHIFT_EXPR || code == RSHIFT_EXPR))
+	  if (op_type == binary_op && scalar_shift_arg)
 	    {
 	      /* Vector shl and shr insn patterns can be defined with scalar 
 		 operand 2 (shift operand). In this case, use constant or loop 
@@ -4456,7 +4481,7 @@ vectorizable_type_promotion (tree stmt, block_stmt_iterator *bsi,
 
       /* Arguments are ready. Create the new vector stmt.  We are creating 
          two vector defs because the widened result does not fit in one vector.
-         The vectorized stmt can be expressed as a call to a taregt builtin,
+         The vectorized stmt can be expressed as a call to a target builtin,
          or a using a tree-code.  */
       /* Generate first half of the widened result:  */
       new_stmt = vect_gen_widened_results_half (code1, vectype_out, decl1, 
@@ -4495,9 +4520,9 @@ vect_strided_store_supported (tree vectype)
       
   /* Check that the operation is supported.  */
   interleave_high_optab = optab_for_tree_code (VEC_INTERLEAVE_HIGH_EXPR, 
-					       vectype);
+					       vectype, optab_default);
   interleave_low_optab = optab_for_tree_code (VEC_INTERLEAVE_LOW_EXPR, 
-					      vectype);
+					      vectype, optab_default);
   if (!interleave_high_optab || !interleave_low_optab)
     {
       if (vect_print_dump_info (REPORT_DETAILS))
@@ -5238,7 +5263,8 @@ vect_strided_load_supported (tree vectype)
 
   mode = (int) TYPE_MODE (vectype);
 
-  perm_even_optab = optab_for_tree_code (VEC_EXTRACT_EVEN_EXPR, vectype);
+  perm_even_optab = optab_for_tree_code (VEC_EXTRACT_EVEN_EXPR, vectype,
+					 optab_default);
   if (!perm_even_optab)
     {
       if (vect_print_dump_info (REPORT_DETAILS))
@@ -5253,7 +5279,8 @@ vect_strided_load_supported (tree vectype)
       return false;
     }
 
-  perm_odd_optab = optab_for_tree_code (VEC_EXTRACT_ODD_EXPR, vectype);
+  perm_odd_optab = optab_for_tree_code (VEC_EXTRACT_ODD_EXPR, vectype,
+					optab_default);
   if (!perm_odd_optab)
     {
       if (vect_print_dump_info (REPORT_DETAILS))
@@ -5446,12 +5473,14 @@ vect_transform_strided_load (tree stmt, VEC(tree,heap) *dr_chain, int size,
 	break;
 
       /* Skip the gaps. Loads created for the gaps will be removed by dead
-       code elimination pass later.
+       code elimination pass later. No need to check for the first stmt in
+       the group, since it always exists.
        DR_GROUP_GAP is the number of steps in elements from the previous
        access (if there is no gap DR_GROUP_GAP is 1). We skip loads that
        correspond to the gaps.
       */
-      if (gap_count < DR_GROUP_GAP (vinfo_for_stmt (next_stmt)))
+      if (next_stmt != first_stmt 
+          && gap_count < DR_GROUP_GAP (vinfo_for_stmt (next_stmt)))
       {
         gap_count++;
         continue;
@@ -5751,7 +5780,8 @@ vectorizable_load (tree stmt, block_stmt_iterator *bsi, tree *vec_stmt,
      nested within an outer-loop that is being vectorized.  */
 
   if (nested_in_vect_loop_p (loop, stmt)
-      && (TREE_INT_CST_LOW (DR_STEP (dr)) % UNITS_PER_SIMD_WORD != 0))
+      && (TREE_INT_CST_LOW (DR_STEP (dr))
+	  % GET_MODE_SIZE (TYPE_MODE (vectype)) != 0))
     {
       gcc_assert (alignment_support_scheme != dr_explicit_realign_optimized);
       compute_in_loop = true;
@@ -6169,7 +6199,7 @@ vectorizable_condition (tree stmt, block_stmt_iterator *bsi, tree *vec_stmt)
   vec_then_clause = vect_get_vec_def_for_operand (then_clause, stmt, NULL);
   vec_else_clause = vect_get_vec_def_for_operand (else_clause, stmt, NULL);
 
-  /* Arguments are ready. create the new vector stmt.  */
+  /* Arguments are ready. Create the new vector stmt.  */
   vec_compare = build2 (TREE_CODE (cond_expr), vectype, 
 			vec_cond_lhs, vec_cond_rhs);
   vec_cond_expr = build3 (VEC_COND_EXPR, vectype, 

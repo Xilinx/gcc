@@ -134,12 +134,15 @@ extern rtx ix86_libcall_value (enum machine_mode);
 extern bool ix86_function_value_regno_p (int);
 extern bool ix86_function_arg_regno_p (int);
 extern int ix86_function_arg_boundary (enum machine_mode, tree);
-extern bool ix86_return_in_memory (const_tree, const_tree);
 extern bool ix86_sol10_return_in_memory (const_tree,const_tree);
-extern bool ix86_i386elf_return_in_memory (const_tree,const_tree);
-extern bool ix86_i386interix_return_in_memory (const_tree,const_tree);
 extern rtx ix86_force_to_memory (enum machine_mode, rtx);
 extern void ix86_free_from_memory (enum machine_mode);
+extern int ix86_cfun_abi (void);
+extern int ix86_function_abi (const_tree);
+extern int ix86_function_type_abi (const_tree);
+extern void ix86_call_abi_override (const_tree);
+extern int ix86_reg_parm_stack_space (const_tree);
+
 extern void ix86_split_fp_branch (enum rtx_code code, rtx, rtx,
 				  rtx, rtx, rtx, rtx);
 extern bool ix86_hard_regno_mode_ok (int, enum machine_mode);
@@ -190,7 +193,8 @@ extern void function_arg_advance (CUMULATIVE_ARGS *, enum machine_mode,
 extern int ix86_return_pops_args (tree, tree, int);
 
 extern int ix86_data_alignment (tree, int);
-extern int ix86_local_alignment (tree, int);
+extern unsigned int ix86_local_alignment (tree, enum machine_mode,
+					  unsigned int);
 extern int ix86_constant_alignment (tree, int);
 extern tree ix86_handle_shared_attribute (tree *, tree, tree, int, bool *);
 extern tree ix86_handle_selectany_attribute (tree *, tree, tree, int, bool *);

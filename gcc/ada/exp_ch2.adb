@@ -193,13 +193,21 @@ package body Exp_Ch2 is
               Unchecked_Convert_To (T,
                 New_Occurrence_Of (Entity (Val), Loc)));
 
-         --  Otherwise get the value, and convert to appropriate type
+         --  If constant is of an integer type, just make an appropriately
+         --  integer literal, which will get the proper type.
+
+         elsif Is_Integer_Type (T) then
+            Rewrite (N,
+              Make_Integer_Literal (Loc,
+                Intval => Expr_Rep_Value (Val)));
+
+         --  Otherwise do unchecked conversion of value to right type
 
          else
             Rewrite (N,
               Unchecked_Convert_To (T,
-                Make_Integer_Literal (Loc,
-                  Intval => Expr_Rep_Value (Val))));
+                 Make_Integer_Literal (Loc,
+                   Intval => Expr_Rep_Value (Val))));
          end if;
 
          Analyze_And_Resolve (N, T);
@@ -469,7 +477,7 @@ package body Exp_Ch2 is
          --  we also generate an extra parameter to hold the Constrained
          --  attribute of the actual. No renaming is generated for this flag.
 
-         --  Calling Node_Possible_Modifications in the expander is dubious,
+         --  Calling Note_Possible_Modification in the expander is dubious,
          --  because this generates a cross-reference entry, and should be
          --  done during semantic processing so it is called in -gnatc mode???
 

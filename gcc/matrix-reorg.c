@@ -1,5 +1,5 @@
 /* Matrix layout transformations.
-   Copyright (C) 2006, 2007 Free Software Foundation, Inc.
+   Copyright (C) 2006, 2007, 2008 Free Software Foundation, Inc.
    Contributed by Razya Ladelsky <razya@il.ibm.com>
    Originally written by Revital Eres and Mustafa Hagog.
    
@@ -410,7 +410,7 @@ mtt_info_eq (const void *mtt1, const void *mtt2)
 static tree
 get_inner_of_cast_expr (tree t)
 {
-  while (TREE_CODE (t) == CONVERT_EXPR || TREE_CODE (t) == NOP_EXPR
+  while (CONVERT_EXPR_P (t)
 	 || TREE_CODE (t) == VIEW_CONVERT_EXPR)
     t = TREE_OPERAND (t, 0);
 
@@ -428,7 +428,7 @@ may_flatten_matrices_1 (tree stmt)
     {
     case GIMPLE_MODIFY_STMT:
       t = GIMPLE_STMT_OPERAND (stmt, 1);
-      while (TREE_CODE (t) == CONVERT_EXPR || TREE_CODE (t) == NOP_EXPR)
+      while (CONVERT_EXPR_P (t))
 	{
 	  if (TREE_TYPE (t) && POINTER_TYPE_P (TREE_TYPE (t)))
 	    {
@@ -1442,8 +1442,7 @@ can_calculate_expr_before_stmt (tree expr, sbitmap visited)
 	  }
 	return res;
       }
-    case NOP_EXPR:
-    case CONVERT_EXPR:
+    CASE_CONVERT:
       res = can_calculate_expr_before_stmt (TREE_OPERAND (expr, 0), visited);
       if (res != NULL_TREE)
 	return build1 (TREE_CODE (expr), TREE_TYPE (expr), res);
@@ -1544,7 +1543,7 @@ check_allocation_function (void **slot, void *data ATTRIBUTE_UNUSED)
 	  mark_min_matrix_escape_level (mi, level, call_stmt);
 	  if (dump_file)
 	    fprintf (dump_file,
-		     "Matrix %s: Cannot calculate the size of allocation. escaping at level %d\n",
+		     "Matrix %s: Cannot calculate the size of allocation, escaping at level %d\n",
 		     get_name (mi->decl), level);
 	  break;
 	}
@@ -2236,6 +2235,7 @@ matrix_reorg (void)
 	    free_dominance_info (CDI_POST_DOMINATORS);
 	    pop_cfun ();
 	    current_function_decl = temp_fn;
+	    bitmap_obstack_release (NULL);
 
 	    return 0;
 	  }
@@ -2250,6 +2250,7 @@ matrix_reorg (void)
 	    free_dominance_info (CDI_POST_DOMINATORS);
 	    pop_cfun ();
 	    current_function_decl = temp_fn;
+	    bitmap_obstack_release (NULL);
 
 	    return 0;
 	  }
@@ -2280,6 +2281,7 @@ matrix_reorg (void)
 	free_dominance_info (CDI_POST_DOMINATORS);
 	pop_cfun ();
 	current_function_decl = temp_fn;
+	bitmap_obstack_release (NULL);
       }
   htab_traverse (matrices_to_reorg, transform_allocation_sites, NULL);
   /* Now transform the accesses.  */
@@ -2300,6 +2302,7 @@ matrix_reorg (void)
 	free_dominance_info (CDI_POST_DOMINATORS);
 	pop_cfun ();
 	current_function_decl = temp_fn;
+	bitmap_obstack_release (NULL);
       }
   htab_traverse (matrices_to_reorg, dump_matrix_reorg_analysis, NULL);
 

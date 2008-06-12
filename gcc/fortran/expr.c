@@ -2573,7 +2573,8 @@ gfc_specification_expr (gfc_expr *e)
 
   if (e->ts.type != BT_INTEGER)
     {
-      gfc_error ("Expression at %L must be of INTEGER type", &e->where);
+      gfc_error ("Expression at %L must be of INTEGER type, found %s",
+		 &e->where, gfc_basic_typename (e->ts.type));
       return FAILURE;
     }
 
@@ -2844,6 +2845,16 @@ gfc_check_assign (gfc_expr *lvalue, gfc_expr *rvalue, int conform)
 		 gfc_typename (&lvalue->ts));
 
       return FAILURE;
+    }
+
+  /* Assignment is the only case where character variables of different
+     kind values can be converted into one another.  */
+  if (lvalue->ts.type == BT_CHARACTER && rvalue->ts.type == BT_CHARACTER)
+    {
+      if (lvalue->ts.kind != rvalue->ts.kind)
+	gfc_convert_chartype (rvalue, &lvalue->ts);
+
+      return SUCCESS;
     }
 
   return gfc_convert_type (rvalue, &lvalue->ts, 1);

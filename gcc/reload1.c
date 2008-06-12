@@ -1454,11 +1454,11 @@ maybe_fix_stack_asms (void)
 	      switch (c)
 		{
 		case '=': case '+': case '*': case '%': case '?': case '!':
-		case '0': case '1': case '2': case '3': case '4': case 'm':
-		case '<': case '>': case 'V': case 'o': case '&': case 'E':
-		case 'F': case 's': case 'i': case 'n': case 'X': case 'I':
-		case 'J': case 'K': case 'L': case 'M': case 'N': case 'O':
-		case 'P':
+		case '0': case '1': case '2': case '3': case '4': case '<':
+		case '>': case 'V': case 'o': case '&': case 'E': case 'F':
+		case 's': case 'i': case 'n': case 'X': case 'I': case 'J':
+		case 'K': case 'L': case 'M': case 'N': case 'O': case 'P':
+		case TARGET_MEM_CONSTRAINT:
 		  break;
 
 		case 'p':
@@ -3316,14 +3316,13 @@ eliminate_regs_in_insn (rtx insn, int replace)
 	     this point.  */
 	  *recog_data.operand_loc[i] = 0;
 
-	/* If an output operand changed from a REG to a MEM and INSN is an
-	   insn, write a CLOBBER insn.  */
+	  /* If an output operand changed from a REG to a MEM and INSN is an
+	     insn, write a CLOBBER insn.  */
 	  if (recog_data.operand_type[i] != OP_IN
 	      && REG_P (orig_operand[i])
 	      && MEM_P (substed_operand[i])
 	      && replace)
-	    emit_insn_after (gen_rtx_CLOBBER (VOIDmode, orig_operand[i]),
-			     insn);
+	    emit_insn_after (gen_clobber (orig_operand[i]), insn);
 	}
     }
 

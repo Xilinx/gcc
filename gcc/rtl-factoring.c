@@ -444,7 +444,7 @@ collect_pattern_seqs (void)
   htab_iterator hti0, hti1, hti2;
   p_hash_bucket hash_bucket;
   p_hash_elem e0, e1;
-#if defined STACK_REGS || defined HAVE_CC0
+#if defined STACK_REGS || defined HAVE_cc0
   basic_block bb;
   bitmap_head dont_collect;
 
@@ -486,7 +486,7 @@ collect_pattern_seqs (void)
 	  }
 	if (insn == BB_HEAD (bb))
 	  break;
-	df_simulate_one_insn_backwards (bb, insn, &live);
+	df_simulate_one_insn (bb, insn, &live);
 	insn = prev;
       }
 
@@ -495,7 +495,7 @@ collect_pattern_seqs (void)
   }
 #endif
 
-#ifdef HAVE_CC0
+#ifdef HAVE_cc0
   /* Mark CC0 setters and users as ineligible for collection into sequences.
      This is an over-conservative fix, since it is OK to include
      a cc0_setter, but only if we also include the corresponding cc0_user,
@@ -515,7 +515,7 @@ collect_pattern_seqs (void)
   }
 #endif
 
-#endif /* defined STACK_REGS || defined HAVE_CC0 */
+#endif /* defined STACK_REGS || defined HAVE_cc0 */
 
   /* Initialize PATTERN_SEQS to empty.  */
   pattern_seqs = 0;
@@ -529,13 +529,13 @@ collect_pattern_seqs (void)
         FOR_EACH_HTAB_ELEMENT (hash_bucket->seq_candidates, e1, p_hash_elem,
                                hti2)
           if (e0 != e1
-#if defined STACK_REGS || defined HAVE_CC0
+#if defined STACK_REGS || defined HAVE_cc0
               && !bitmap_bit_p (&dont_collect, INSN_UID (e0->insn))
               && !bitmap_bit_p (&dont_collect, INSN_UID (e1->insn))
 #endif
              )
             match_seqs (e0, e1);
-#if defined STACK_REGS || defined HAVE_CC0
+#if defined STACK_REGS || defined HAVE_cc0
   /* Free unused data.  */
   bitmap_clear (&dont_collect);
 #endif
@@ -576,7 +576,7 @@ clear_regs_live_in_seq (HARD_REG_SET * regs, rtx insn, int length)
 
   /* Propagate until INSN if found.  */
   for (x = BB_END (bb); x != insn; x = PREV_INSN (x))
-    df_simulate_one_insn_backwards (bb, x, &live);
+    df_simulate_one_insn (bb, x, &live);
 
   /* Clear registers live after INSN.  */
   renumbered_reg_set_to_hard_reg_set (&hlive, &live);
@@ -586,7 +586,7 @@ clear_regs_live_in_seq (HARD_REG_SET * regs, rtx insn, int length)
   for (i = 0; i < length;)
     {
       rtx prev = PREV_INSN (x);
-      df_simulate_one_insn_backwards (bb, x, &live);
+      df_simulate_one_insn (bb, x, &live);
 
       if (INSN_P (x))
         {

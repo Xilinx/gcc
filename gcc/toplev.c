@@ -951,9 +951,12 @@ compile_file (void)
 {
   /* Initialize yet another pass.  */
 
+  ggc_protect_identifiers = true;
+
   init_cgraph ();
   init_final (main_input_filename);
   coverage_init (aux_base_name);
+  statistics_init ();
 
   timevar_push (TV_PARSE);
 
@@ -967,6 +970,8 @@ compile_file (void)
 
   if (flag_syntax_only)
     return;
+
+  ggc_protect_identifiers = false;
 
   lang_hooks.decls.final_write_globals ();
 
@@ -1598,6 +1603,7 @@ general_init (const char *argv0)
   /* This must be done after add_params but before argument processing.  */
   init_ggc_heuristics();
   init_optimization_passes ();
+  statistics_early_init ();
 }
 
 /* Return true if the current target supports -fsection-anchors.  */
@@ -2118,6 +2124,7 @@ finalize (void)
 	fatal_error ("error closing %s: %m", asm_file_name);
     }
 
+  statistics_fini ();
   finish_optimization_passes ();
 
   if (mem_report)

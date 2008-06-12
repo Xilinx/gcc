@@ -315,6 +315,14 @@ static GTY(()) unsigned fde_table_in_use;
    fde_table.  */
 #define FDE_TABLE_INCREMENT 256
 
+/* Get the current fde_table entry we should use.  */
+
+static inline dw_fde_ref
+current_fde (void)
+{
+  return fde_table_in_use ? &fde_table[fde_table_in_use - 1] : NULL;
+}
+
 /* A list of call frame insns for the CIE.  */
 static GTY(()) dw_cfi_ref cie_cfi_head;
 
@@ -641,7 +649,9 @@ add_fde_cfi (const char *label, dw_cfi_ref cfi)
 {
   if (label)
     {
-      dw_fde_ref fde = &fde_table[fde_table_in_use - 1];
+      dw_fde_ref fde = current_fde ();
+
+      gcc_assert (fde != NULL);
 
       if (*label == 0)
 	label = dwarf2out_cfi_label ();
@@ -713,6 +723,7 @@ static void
 lookup_cfa (dw_cfa_location *loc)
 {
   dw_cfi_ref cfi;
+  dw_fde_ref fde;
 
   loc->reg = INVALID_REGNUM;
   loc->offset = 0;
@@ -722,12 +733,10 @@ lookup_cfa (dw_cfa_location *loc)
   for (cfi = cie_cfi_head; cfi; cfi = cfi->dw_cfi_next)
     lookup_cfa_1 (cfi, loc);
 
-  if (fde_table_in_use)
-    {
-      dw_fde_ref fde = &fde_table[fde_table_in_use - 1];
-      for (cfi = fde->dw_fde_cfi; cfi; cfi = cfi->dw_cfi_next)
-	lookup_cfa_1 (cfi, loc);
-    }
+  fde = current_fde ();
+  if (fde)
+    for (cfi = fde->dw_fde_cfi; cfi; cfi = cfi->dw_cfi_next)
+      lookup_cfa_1 (cfi, loc);
 }
 
 /* The current rule for calculating the DWARF2 canonical frame address.  */
@@ -2686,7 +2695,8 @@ dwarf2out_end_epilogue (unsigned int line ATTRIBUTE_UNUSED,
   ASM_GENERATE_INTERNAL_LABEL (label, FUNC_END_LABEL,
 			       current_function_funcdef_no);
   ASM_OUTPUT_LABEL (asm_out_file, label);
-  fde = &fde_table[fde_table_in_use - 1];
+  fde = current_fde ();
+  gcc_assert (fde != NULL);
   fde->dw_fde_end = xstrdup (label);
 }
 
@@ -2739,11 +2749,10 @@ dwarf2out_note_section_used (void)
 void
 dwarf2out_switch_text_section (void)
 {
-  dw_fde_ref fde;
+  dw_fde_ref fde = current_fde ();
 
-  gcc_assert (cfun);
+  gcc_assert (cfun && fde);
 
-  fde = &fde_table[fde_table_in_use - 1];
   fde->dw_fde_switched_sections = true;
   fde->dw_fde_hot_section_label = crtl->subsections.hot_section_label;
   fde->dw_fde_hot_section_end_label = crtl->subsections.hot_section_end_label;
@@ -9604,8 +9613,7 @@ loc_descriptor_from_tree_1 (tree loc, int want_address)
     case COMPOUND_EXPR:
       return loc_descriptor_from_tree_1 (TREE_OPERAND (loc, 1), want_address);
 
-    case NOP_EXPR:
-    case CONVERT_EXPR:
+    CASE_CONVERT:
     case VIEW_CONVERT_EXPR:
     case SAVE_EXPR:
     case GIMPLE_MODIFY_STMT:
@@ -10992,7 +11000,8 @@ convert_cfa_to_fb_loc_list (HOST_WIDE_INT offset)
   dw_cfa_location last_cfa, next_cfa;
   const char *start_label, *last_label, *section;
 
-  fde = &fde_table[fde_table_in_use - 1];
+  fde = current_fde ();
+  gcc_assert (fde != NULL);
 
   section = secname_for_decl (current_function_decl);
   list_tail = &list;
@@ -11139,8 +11148,7 @@ add_bound_info (dw_die_ref subrange_die, enum dwarf_attribute bound_attr, tree b
 	add_AT_unsigned (subrange_die, bound_attr, tree_low_cst (bound, 0));
       break;
 
-    case CONVERT_EXPR:
-    case NOP_EXPR:
+    CASE_CONVERT:
     case VIEW_CONVERT_EXPR:
       add_bound_info (subrange_die, bound_attr, TREE_OPERAND (bound, 0));
       break;
@@ -11824,8 +11832,7 @@ descr_info_loc (tree val, tree base_decl)
 
   switch (TREE_CODE (val))
     {
-    case NOP_EXPR:
-    case CONVERT_EXPR:
+    CASE_CONVERT:
       return descr_info_loc (TREE_OPERAND (val, 0), base_decl);
     case INTEGER_CST:
       if (host_integerp (val, 0))
@@ -12557,7 +12564,7 @@ gen_subprogram_die (tree decl, dw_die_ref context_die)
 	}
       else
 	{  /* Do nothing for now; maybe need to duplicate die, one for
-	      hot section and ond for cold section, then use the hot/cold
+	      hot section and one for cold section, then use the hot/cold
 	      section begin/end labels to generate the aranges...  */
 	  /*
 	    add_AT_lbl_id (subr_die, DW_AT_low_pc, hot_section_label);

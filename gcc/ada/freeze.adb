@@ -29,7 +29,9 @@ with Debug;    use Debug;
 with Einfo;    use Einfo;
 with Elists;   use Elists;
 with Errout;   use Errout;
+with Exp_Ch3;  use Exp_Ch3;
 with Exp_Ch7;  use Exp_Ch7;
+with Exp_Disp; use Exp_Disp;
 with Exp_Pakd; use Exp_Pakd;
 with Exp_Util; use Exp_Util;
 with Exp_Tss;  use Exp_Tss;
@@ -2650,9 +2652,30 @@ package body Freeze is
 
                Validate_Object_Declaration (Declaration_Node (E));
 
-               --  If there is an address clause, check it is valid
+               --  If there is an address clause, check that it is valid
 
                Check_Address_Clause (E);
+
+               --  If the object needs any kind of default initialization, an
+               --  error must be issued if No_Default_Initialization applies.
+               --  The check doesn't apply to imported objects, which are not
+               --  ever default initialized, and is why the check is deferred
+               --  until freezing, at which point we know if Import applies.
+
+               if not Is_Imported (E)
+                 and then not Has_Init_Expression (Declaration_Node (E))
+                 and then
+                   ((Has_Non_Null_Base_Init_Proc (Etype (E))
+                      and then not No_Initialization (Declaration_Node (E))
+                      and then not Is_Value_Type (Etype (E))
+                      and then not Suppress_Init_Proc (Etype (E)))
+                    or else
+                      (Needs_Simple_Initialization (Etype (E))
+                        and then not Is_Internal (E)))
+               then
+                  Check_Restriction
+                    (No_Default_Initialization, Declaration_Node (E));
+               end if;
 
                --  For imported objects, set Is_Public unless there is also an
                --  address clause, which means that there is no external symbol
@@ -3828,12 +3851,36 @@ package body Freeze is
 
    procedure Freeze_Enumeration_Type (Typ : Entity_Id) is
    begin
+      --  By default, if no size clause is present, an enumeration type with
+      --  Convention C is assumed to interface to a C enum, and has integer
+      --  size. This applies to types. For subtypes, verify that its base
+      --  type has no size clause either.
+
       if Has_Foreign_Convention (Typ)
         and then not Has_Size_Clause (Typ)
+        and then not Has_Size_Clause (Base_Type (Typ))
         and then Esize (Typ) < Standard_Integer_Size
       then
          Init_Esize (Typ, Standard_Integer_Size);
+
       else
+         --  If the enumeration type interfaces to C, and it has a size clause
+         --  that specifies less than int size, it warrants a warning. The
+         --  user may intend the C type to be an enum or a char, so this is
+         --  not by itself an error that the Ada compiler can detect, but it
+         --  it is a worth a heads-up. For Boolean and Character types we
+         --  assume that the programmer has the proper C type in mind.
+
+         if Convention (Typ) = Convention_C
+           and then Has_Size_Clause (Typ)
+           and then Esize (Typ) /= Esize (Standard_Integer)
+           and then not Is_Boolean_Type (Typ)
+           and then not Is_Character_Type (Typ)
+         then
+            Error_Msg_N
+              ("C enum types have the size of a C int?", Size_Clause (Typ));
+         end if;
+
          Adjust_Esize_For_Alignment (Typ);
       end if;
    end Freeze_Enumeration_Type;

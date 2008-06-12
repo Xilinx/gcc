@@ -75,6 +75,7 @@ struct pragma_entry
 #define INCL		(1 << 2)
 #define IN_I		(1 << 3)
 #define EXPAND		(1 << 4)
+#define DEPRECATED	(1 << 5)
 
 /* Defines one #-directive, including how to handle it.  */
 typedef void (*directive_handler) (cpp_reader *);
@@ -130,9 +131,9 @@ static void handle_assertion (cpp_reader *, const char *, int);
    counts from all the source code I have lying around (egcs and libc
    CVS as of 1999-05-18, plus grub-0.5.91, linux-2.2.9, and
    pcmcia-cs-3.0.9).  This is no longer important as directive lookup
-   is now O(1).  All extensions other than #warning and #include_next
-   are deprecated.  The name is where the extension appears to have
-   come from.  */
+   is now O(1).  All extensions other than #warning, #include_next,
+   and #import are deprecated.  The name is where the extension
+   appears to have come from.  */
 
 #define DIRECTIVE_TABLE							\
 D(define,	T_DEFINE = 0,	KANDR,     IN_I)	   /* 270554 */ \
@@ -149,11 +150,11 @@ D(error,	T_ERROR,	STDC89,    0)		   /*    475 */ \
 D(pragma,	T_PRAGMA,	STDC89,    IN_I)	   /*    195 */ \
 D(warning,	T_WARNING,	EXTENSION, 0)		   /*     22 */ \
 D(include_next,	T_INCLUDE_NEXT,	EXTENSION, INCL | EXPAND)  /*     19 */ \
-D(ident,	T_IDENT,	EXTENSION, IN_I)	   /*     11 */ \
+D(ident,	T_IDENT,	EXTENSION, IN_I | DEPRECATED) /*     11 */ \
 D(import,	T_IMPORT,	EXTENSION, INCL | EXPAND)  /* 0 ObjC */	\
-D(assert,	T_ASSERT,	EXTENSION, 0)		   /* 0 SVR4 */	\
-D(unassert,	T_UNASSERT,	EXTENSION, 0)		   /* 0 SVR4 */	\
-D(sccs,		T_SCCS,		EXTENSION, IN_I)	   /* 0 SVR4? */
+D(assert,	T_ASSERT,	EXTENSION, DEPRECATED)	   /* 0 SVR4 */	\
+D(unassert,	T_UNASSERT,	EXTENSION, DEPRECATED)	   /* 0 SVR4 */	\
+D(sccs,		T_SCCS,		EXTENSION, IN_I | DEPRECATED) /* 0 SVR4? */
 
 /* #sccs is synonymous with #ident.  */
 #define do_sccs do_ident
@@ -337,11 +338,20 @@ prepare_directive_trad (cpp_reader *pfile)
 static void
 directive_diagnostics (cpp_reader *pfile, const directive *dir, int indented)
 {
-  /* Issue -pedantic warnings for extensions.  */
-  if (CPP_PEDANTIC (pfile)
-      && ! pfile->state.skipping
-      && dir->origin == EXTENSION)
-    cpp_error (pfile, CPP_DL_PEDWARN, "#%s is a GCC extension", dir->name);
+  /* Issue -pedantic or deprecated warnings for extensions.  We let
+     -pedantic take precedence if both are applicable.  */
+  if (! pfile->state.skipping)
+    {
+      if (dir->origin == EXTENSION
+	  && !(dir == &dtable[T_IMPORT] && CPP_OPTION (pfile, objc))
+	  && CPP_PEDANTIC (pfile))
+	cpp_error (pfile, CPP_DL_PEDWARN, "#%s is a GCC extension", dir->name);
+      else if (((dir->flags & DEPRECATED) != 0
+		|| (dir == &dtable[T_IMPORT] && !CPP_OPTION (pfile, objc)))
+	       && CPP_OPTION (pfile, warn_deprecated))
+	cpp_error (pfile, CPP_DL_WARNING, "#%s is a deprecated GCC extension",
+		   dir->name);
+    }
 
   /* Traditionally, a directive is ignored unless its # is in
      column 1.  Therefore in code intended to work with K+R
@@ -1006,14 +1016,20 @@ _cpp_do_file_change (cpp_reader *pfile, enum lc_reason reason,
 static void
 do_diagnostic (cpp_reader *pfile, int code, int print_dir)
 {
-  if (_cpp_begin_message (pfile, code, pfile->cur_token[-1].src_loc, 0))
-    {
-      if (print_dir)
-	fprintf (stderr, "#%s ", pfile->directive->name);
-      pfile->state.prevent_expansion++;
-      cpp_output_line (pfile, stderr);
-      pfile->state.prevent_expansion--;
-    }
+  const unsigned char *dir_name;
+  unsigned char *line;
+  source_location src_loc = pfile->cur_token[-1].src_loc;
+
+  if (print_dir)
+    dir_name = pfile->directive->name;
+  else
+    dir_name = NULL;
+  pfile->state.prevent_expansion++;
+  line = cpp_output_line_to_string (pfile, dir_name);
+  pfile->state.prevent_expansion--;
+
+  cpp_error_with_line (pfile, code, src_loc, 0, "%s", line);
+  free (line);
 }
 
 static void
@@ -1721,7 +1737,7 @@ do_if (cpp_reader *pfile)
   int skip = 1;
 
   if (! pfile->state.skipping)
-    skip = _cpp_parse_expr (pfile) == false;
+    skip = _cpp_parse_expr (pfile, true) == false;
 
   push_conditional (pfile, skip, T_IF, pfile->mi_ind_cmacro);
 }
@@ -1780,15 +1796,23 @@ do_elif (cpp_reader *pfile)
 	}
       ifs->type = T_ELIF;
 
-      /* Only evaluate this if we aren't skipping elses.  During
-	 evaluation, set skipping to false to get lexer warnings.  */
-      if (ifs->skip_elses)
-	pfile->state.skipping = 1;
-      else
+      if (! ifs->was_skipping)
 	{
+	  bool value;
+	  /* The standard mandates that the expression be parsed even
+	     if we are skipping elses at this point -- the lexical
+	     restrictions on #elif only apply to skipped groups, but
+	     this group is not being skipped.  Temporarily set
+	     skipping to false to get lexer warnings.  */
 	  pfile->state.skipping = 0;
-	  pfile->state.skipping = ! _cpp_parse_expr (pfile);
-	  ifs->skip_elses = ! pfile->state.skipping;
+	  value = _cpp_parse_expr (pfile, false);
+	  if (ifs->skip_elses)
+	    pfile->state.skipping = 1;
+	  else
+	    {
+	      pfile->state.skipping = ! value;
+	      ifs->skip_elses = value;
+	    }
 	}
 
       /* Invalidate any controlling macro.  */

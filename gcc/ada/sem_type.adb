@@ -39,6 +39,7 @@ with Sem_Ch6;  use Sem_Ch6;
 with Sem_Ch8;  use Sem_Ch8;
 with Sem_Ch12; use Sem_Ch12;
 with Sem_Disp; use Sem_Disp;
+with Sem_Dist; use Sem_Dist;
 with Sem_Util; use Sem_Util;
 with Stand;    use Stand;
 with Sinfo;    use Sinfo;
@@ -403,10 +404,9 @@ package body Sem_Type is
             return;
          end if;
 
-      --  In an instance, an abstract non-dispatching operation cannot
-      --  be a candidate interpretation, because it could not have been
-      --  one in the generic (it may be a spurious overloading in the
-      --  instance).
+      --  In an instance, an abstract non-dispatching operation cannot be a
+      --  candidate interpretation, because it could not have been one in the
+      --  generic (it may be a spurious overloading in the instance).
 
       elsif In_Instance
         and then Is_Overloadable (E)
@@ -415,13 +415,13 @@ package body Sem_Type is
       then
          return;
 
-      --  An inherited interface operation that is implemented by some
-      --  derived type does not participate in overload resolution, only
-      --  the implementation operation does.
+      --  An inherited interface operation that is implemented by some derived
+      --  type does not participate in overload resolution, only the
+      --  implementation operation does.
 
       elsif Is_Hidden (E)
         and then Is_Subprogram (E)
-        and then Present (Abstract_Interface_Alias (E))
+        and then Present (Interface_Alias (E))
       then
          --  Ada 2005 (AI-251): If this primitive operation corresponds with
          --  an immediate ancestor interface there is no need to add it to the
@@ -431,12 +431,18 @@ package body Sem_Type is
          --  subprograms which are in fact the same.
 
          if not Is_Ancestor
-                  (Find_Dispatching_Type (Abstract_Interface_Alias (E)),
+                  (Find_Dispatching_Type (Interface_Alias (E)),
                    Find_Dispatching_Type (E))
          then
-            Add_One_Interp (N, Abstract_Interface_Alias (E), T);
+            Add_One_Interp (N, Interface_Alias (E), T);
          end if;
 
+         return;
+
+      --  Calling stubs for an RACW operation never participate in resolution,
+      --  they are executed only through dispatching calls.
+
+      elsif Is_RACW_Stub_Type_Operation (E) then
          return;
       end if;
 
@@ -681,9 +687,15 @@ package body Sem_Type is
 
       if All_Interp.Last = First_Interp + 1 then
 
-         --  The original interpretation is in fact not overloaded
+         --  The final interpretation is in fact not overloaded. Note that the
+         --  unique legal interpretation may or may not be the original one,
+         --  so we need to update N's entity and etype now, because once N
+         --  is marked as not overloaded it is also expected to carry the
+         --  proper interpretation.
 
          Set_Is_Overloaded (N, False);
+         Set_Entity (N, All_Interp.Table (First_Interp).Nam);
+         Set_Etype  (N, All_Interp.Table (First_Interp).Typ);
       end if;
    end Collect_Interps;
 
@@ -771,7 +783,7 @@ package body Sem_Type is
 
       --  Literals are compatible with types in  a given "class"
 
-      elsif (T2 = Universal_Integer and then Is_Integer_Type (T1))
+      elsif     (T2 = Universal_Integer and then Is_Integer_Type (T1))
         or else (T2 = Universal_Real    and then Is_Real_Type (T1))
         or else (T2 = Universal_Fixed   and then Is_Fixed_Point_Type (T1))
         or else (T2 = Any_Fixed         and then Is_Fixed_Point_Type (T1))
@@ -837,9 +849,9 @@ package body Sem_Type is
             --  Note: test for presence of E is defense against previous error.
 
             if Present (E)
-              and then Present (Abstract_Interfaces (E))
+              and then Present (Interfaces (E))
             then
-               Elmt := First_Elmt (Abstract_Interfaces (E));
+               Elmt := First_Elmt (Interfaces (E));
                while Present (Elmt) loop
                   if Is_Ancestor (Etype (T1), Node (Elmt)) then
                      return True;
@@ -1020,7 +1032,7 @@ package body Sem_Type is
          return True;
 
       elsif Is_Type (T1)
-        and then  Is_Generic_Actual_Type (T1)
+        and then Is_Generic_Actual_Type (T1)
         and then Full_View_Covers (T2, T1)
       then
          return True;
@@ -2239,11 +2251,11 @@ package body Sem_Type is
          end if;
 
          loop
-            if Present (Abstract_Interfaces (E))
-              and then Present (Abstract_Interfaces (E))
-              and then not Is_Empty_Elmt_List (Abstract_Interfaces (E))
+            if Present (Interfaces (E))
+              and then Present (Interfaces (E))
+              and then not Is_Empty_Elmt_List (Interfaces (E))
             then
-               Elmt := First_Elmt (Abstract_Interfaces (E));
+               Elmt := First_Elmt (Interfaces (E));
                while Present (Elmt) loop
                   AI := Node (Elmt);
 
@@ -2322,7 +2334,7 @@ package body Sem_Type is
                   if Etype (AI) = Iface_Typ then
                      return True;
 
-                  elsif Present (Abstract_Interfaces (Etype (AI)))
+                  elsif Present (Interfaces (Etype (AI)))
                      and then Iface_Present_In_Ancestor (Etype (AI))
                   then
                      return True;

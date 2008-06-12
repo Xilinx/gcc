@@ -82,7 +82,9 @@ AH_TEMPLATE(VERSION, [Version number of package])
 # up critical shell variables.
 GLIBCXX_CONFIGURE
 
-AC_LIBTOOL_DLOPEN
+if test "x${with_newlib}" != "xyes"; then
+  AC_LIBTOOL_DLOPEN
+fi
 AM_PROG_LIBTOOL
 AC_SUBST(enable_shared)
 AC_SUBST(enable_static)
@@ -129,7 +131,7 @@ if $GLIBCXX_IS_NATIVE; then
 
   # Check for available headers.
   AC_CHECK_HEADERS([nan.h ieeefp.h endian.h sys/isa_defs.h machine/endian.h \
-  machine/param.h sys/machine.h fp.h locale.h float.h inttypes.h gconv.h \
+  machine/param.h sys/machine.h fp.h locale.h float.h inttypes.h \
   sys/types.h sys/ipc.h sys/sem.h])
 
   GLIBCXX_CHECK_LINKER_FEATURES

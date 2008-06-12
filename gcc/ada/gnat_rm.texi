@@ -3897,7 +3897,7 @@ the Profile (Ravenscar), the value of Max_Task_Entries is always
 no calls to Task_Identification.Abort_Task.
 
 @item No_Asynchronous_Control
-[RM D.7] There are no semantic dependences on the package
+There are no semantic dependences on the package
 Asynchronous_Task_Control.
 
 @item No_Calendar
@@ -3918,6 +3918,10 @@ Detach_Handler, and Reference).
 Protected objects and access types that designate
 such objects shall be declared only at library level.
 
+@item No_Local_Timing_Events
+[RM D.7] All objects of type Ada.Timing_Events.Timing_Event are
+declared at the library level.
+
 @item No_Protected_Type_Allocators
 There are no allocators for protected types or
 types containing protected subcomponents.
@@ -3930,6 +3934,10 @@ Requeue statements are not allowed.
 
 @item No_Select_Statements
 There are no select_statements.
+
+@item No_Specific_Termination_Handlers
+[RM D.7] There are no calls to Ada.Task_Termination.Set_Specific_Handler
+or to Ada.Task_Termination.Specific_Handler.
 
 @item No_Task_Allocators
 [RM D.7] There are no allocators for task types
@@ -3944,6 +3952,12 @@ directly on the environment task of the partition.
 
 @item No_Task_Termination
 Tasks which terminate are erroneous.
+
+@item No_Unchecked_Conversion
+There are no semantic dependencies on the Ada.Unchecked_Conversion package.
+
+@item No_Unchecked_Deallocation
+There are no semantic dependencies on the Ada.Unchecked_Deallocation package.
 
 @item Simple_Barriers
 Entry barrier condition expressions shall be either static
@@ -5774,7 +5788,8 @@ you can refer to Arg1.Field'Old which yields the value of
 Arg1.Field on entry. The implementation simply involves generating
 an object declaration which captures the value on entry. Any
 prefix is allowed except one of a limited type (since limited
-types cannot be copied to capture their values).
+types cannot be copied to capture their values) or a local variable
+(since it does not exist at subprogram entry time).
 
 The following example shows the use of 'Old to implement
 a test of a postcondition:
@@ -5801,6 +5816,10 @@ package body Old_Pkg is
    end Incr;
 end Old_Pkg;
 @end smallexample
+
+@noindent
+Note that it is allowed to apply 'Old to a constant entity, but this will
+result in a warning, since the old and new values will always be the same.
 
 @node Passed_By_Reference
 @unnumberedsec Passed_By_Reference
@@ -8369,6 +8388,7 @@ of composite objects and the Max/Min attributes.
 
 @item No_Implicit_Dynamic_Code
 @findex No_Implicit_Dynamic_Code
+@cindex trampoline
 This restriction prevents the compiler from building ``trampolines''.
 This is a structure that is built on the stack and contains dynamic
 code to be executed at run time. On some targets, a trampoline is
@@ -8378,6 +8398,17 @@ nested task bodies; primitive operations of nested tagged types.
 Trampolines do not work on machines that prevent execution of stack
 data. For example, on windows systems, enabling DEP (data execution
 protection) will cause trampolines to raise an exception.
+Trampolines are also quite slow at run time.
+
+On many targets, trampolines have been largely eliminated. Look at the
+version of system.ads for your target --- if it has
+Always_Compatible_Rep equal to False, then trampolines are largely
+eliminated. In particular, a trampoline is built for the following
+features: @code{Address} of a nested subprogram;
+@code{Access} or @code{Unrestricted_Access} of a nested subprogram,
+but only if pragma Favor_Top_Level applies, or the access type has a
+foreign-language convention; primitive operations of nested tagged
+types.
 
 @item No_Implicit_Loops
 @findex No_Implicit_Loops

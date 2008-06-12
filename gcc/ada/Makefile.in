@@ -56,17 +56,13 @@
 #      FLEX:    Gnu flex works.
 #      Other miscellaneous tools for obscure targets.
 
-# Tell GNU make 3.79 not to run this directory in parallel.
-# Not all of the required dependencies are present.
-.NOTPARALLEL:
-
 # Suppress smart makes who think they know how to automake Yacc files
 .y.c:
 
 # Variables that exist for you to override.
 # See below for how to change them for certain systems.
 
-# Various ways of specifying flags for compilations:  
+# Various ways of specifying flags for compilations:
 # CFLAGS is for the user to override to, e.g., do a bootstrap with -O2.
 # BOOT_CFLAGS is the value of CFLAGS to pass
 # to the stage2 and stage3 compilations
@@ -143,7 +139,7 @@ shext  =
 hyphen = -
 
 # Define this as & to perform parallel make on a Sequent.
-# Note that this has some bugs, and it seems currently necessary 
+# Note that this has some bugs, and it seems currently necessary
 # to compile all the gen* files first by hand to avoid erroneous results.
 P =
 
@@ -428,7 +424,7 @@ ifeq ($(strip $(filter-out m68k% wrs vx%,$(targ))),)
     s-tratas.adb<s-tratas-default.adb \
     s-trafor.adb<s-trafor-default.adb \
     s-trafor.ads<s-trafor-default.ads \
-    s-tfsetr.adb<s-tfsetr-vxworks.adb 
+    s-tfsetr.adb<s-tfsetr-vxworks.adb
   endif
 endif
 
@@ -462,7 +458,7 @@ ifeq ($(strip $(filter-out powerpc% wrs vxworks,$(targ))),)
     s-trafor.adb<s-trafor-default.adb \
     s-trafor.ads<s-trafor-default.ads \
     s-tratas.adb<s-tratas-default.adb \
-    s-tfsetr.adb<s-tfsetr-vxworks.adb 
+    s-tfsetr.adb<s-tfsetr-vxworks.adb
   endif
 
   ifeq ($(strip $(filter-out rtp,$(THREAD_KIND))),)
@@ -765,7 +761,7 @@ ifeq ($(strip $(filter-out sparc% sun solaris%,$(targ))),)
   else
     LIBGNAT_TARGET_PAIRS = $(LIBGNAT_TARGET_PAIRS_64)
   endif
-  
+
   TOOLS_TARGET_PAIRS=mlib-tgt-specific.adb<mlib-tgt-specific-solaris.adb
 
   EH_MECHANISM=-gcc
@@ -1201,7 +1197,7 @@ LN_S = cp -p
 
 .SUFFIXES: .sym
 
-.o.sym: 
+.o.sym:
 	@ gnu:[bin]vmssymvec $<
 endif
 
@@ -1756,9 +1752,9 @@ ADA_INCLUDE_SRCS =\
  machcode.ads text_io.ads unchconv.ads unchdeal.ads \
  sequenio.ads system.ads memtrack.adb \
  a-[a-o]*.adb a-[p-z]*.adb a-[a-o]*.ads a-[p-z]*.ads g-*.ad? i-*.ad? \
- s-[a-o]*.adb s-[p-z]*.adb s-[a-o]*.ads s-[p-z]*.ads  
+ s-[a-o]*.adb s-[p-z]*.adb s-[a-o]*.ads s-[p-z]*.ads
 
-LIBGNAT=../rts/libgnat.a 
+LIBGNAT=../rts/libgnat.a
 
 GCC_LINK=$(CC) -static-libgcc $(ADA_INCLUDES)
 
@@ -1771,7 +1767,7 @@ ifeq ($(TOOLSCASE),native)
   vpath %.h   ../rts ../
 endif
 
-# in the cross tools case, everything is compiled with the native 
+# in the cross tools case, everything is compiled with the native
 # gnatmake/link. Therefore only -I needs to be modified in ADA_INCLUDES
 ifeq ($(TOOLSCASE),cross)
   vpath %.ads ../
@@ -1780,55 +1776,29 @@ ifeq ($(TOOLSCASE),cross)
   vpath %.h   ../
 endif
 
-../../gnatchop$(exeext): 
-	$(GNATMAKE) -c $(ADA_INCLUDES) gnatchop --GCC="$(CC) $(ALL_ADAFLAGS)"
-	$(GNATBIND) $(ADA_INCLUDES) $(GNATBIND_FLAGS) gnatchop 
-	$(GNATLINK) -v gnatchop -o $@ --GCC="$(GCC_LINK)" $(TOOLS_LIBS)
-
-../../gnat$(exeext): 
-	$(GNATMAKE) -c $(ADA_INCLUDES) gnatcmd --GCC="$(CC) $(ALL_ADAFLAGS)"
-	$(GNATBIND) $(ADA_INCLUDES) $(GNATBIND_FLAGS) gnatcmd 
-	$(GNATLINK) -v gnatcmd -o $@ --GCC="$(GCC_LINK)" $(TOOLS_LIBS)
-
-../../gnatkr$(exeext): 
-	$(GNATMAKE) -c $(ADA_INCLUDES) gnatkr --GCC="$(CC) $(ALL_ADAFLAGS)"
-	$(GNATBIND) $(ADA_INCLUDES) $(GNATBIND_FLAGS) gnatkr 
-	$(GNATLINK) -v gnatkr -o $@ --GCC="$(GCC_LINK)" $(TOOLS_LIBS)
-
-../../gnatls$(exeext): 
-	$(GNATMAKE) -c $(ADA_INCLUDES) gnatls --GCC="$(CC) $(ALL_ADAFLAGS)"
-	$(GNATBIND) $(ADA_INCLUDES) $(GNATBIND_FLAGS) gnatls 
-	$(GNATLINK) -v gnatls -o $@ --GCC="$(GCC_LINK)" $(TOOLS_LIBS)
-
-../../gnatname$(exeext): 
-	$(GNATMAKE) -c $(ADA_INCLUDES) gnatname --GCC="$(CC) $(ALL_ADAFLAGS)"
-	$(GNATBIND) $(ADA_INCLUDES) $(GNATBIND_FLAGS) gnatname 
-	$(GNATLINK) -v gnatname -o $@ --GCC="$(GCC_LINK)" $(TOOLS_LIBS)
-
-../../gprmake$(exeext): 
-	$(GNATMAKE) -c $(ADA_INCLUDES) gprmake --GCC="$(CC) $(ALL_ADAFLAGS)"
-	$(GNATBIND) $(ADA_INCLUDES) $(GNATBIND_FLAGS) gprmake
-	$(GNATLINK) -v gprmake -o $@ --GCC="$(GCC_LINK)" $(TOOLS_LIBS)
-
-../../gnatprep$(exeext): 
-	$(GNATMAKE) -c $(ADA_INCLUDES) gnatprep --GCC="$(CC) $(ALL_ADAFLAGS)"
-	$(GNATBIND) $(ADA_INCLUDES) $(GNATBIND_FLAGS) gnatprep 
-	$(GNATLINK) -v gnatprep -o $@ --GCC="$(GCC_LINK)" $(TOOLS_LIBS)
-
-../../gnatxref$(exeext): 
-	$(GNATMAKE) -c $(ADA_INCLUDES) gnatxref --GCC="$(CC) $(ALL_ADAFLAGS)"
-	$(GNATBIND) $(ADA_INCLUDES) $(GNATBIND_FLAGS) gnatxref 
-	$(GNATLINK) -v gnatxref -o $@ --GCC="$(GCC_LINK)" $(TOOLS_LIBS)
-
-../../gnatfind$(exeext): 
-	$(GNATMAKE) -c $(ADA_INCLUDES) gnatfind --GCC="$(CC) $(ALL_ADAFLAGS)"
-	$(GNATBIND) $(ADA_INCLUDES) $(GNATBIND_FLAGS) gnatfind 
-	$(GNATLINK) -v gnatfind -o $@ --GCC="$(GCC_LINK)" $(TOOLS_LIBS)
-
-../../gnatclean$(exeext): 
-	$(GNATMAKE) -c $(ADA_INCLUDES) gnatclean --GCC="$(CC) $(ALL_ADAFLAGS)"
-	$(GNATBIND) $(ADA_INCLUDES) $(GNATBIND_FLAGS) gnatclean
-	$(GNATLINK) -v gnatclean -o $@ --GCC="$(GCC_LINK)" $(TOOLS_LIBS)
+common-tools:
+	$(GNATMAKE) -c -b $(ADA_INCLUDES) \
+	  --GNATBIND="$(GNATBIND)" --GCC="$(CC) $(ALL_ADAFLAGS)" \
+	  gnatchop gnatcmd gnatkr gnatls gnatprep gnatxref gnatfind gnatname \
+	  gnatclean -bargs $(ADA_INCLUDES) $(GNATBIND_FLAGS)
+	$(GNATLINK) -v gnatcmd -o ../../gnat$(exeext) \
+		--GCC="$(GCC_LINK)" $(TOOLS_LIBS)
+	$(GNATLINK) -v gnatchop -o ../../gnatchop$(exeext) \
+		--GCC="$(GCC_LINK)" $(TOOLS_LIBS)
+	$(GNATLINK) -v gnatkr -o ../../gnatkr$(exeext) \
+		--GCC="$(GCC_LINK)" $(TOOLS_LIBS)
+	$(GNATLINK) -v gnatls -o ../../gnatls$(exeext) \
+		--GCC="$(GCC_LINK)" $(TOOLS_LIBS)
+	$(GNATLINK) -v gnatprep -o ../../gnatprep$(exeext) \
+		--GCC="$(GCC_LINK)" $(TOOLS_LIBS)
+	$(GNATLINK) -v gnatxref -o ../../gnatxref$(exeext) \
+		--GCC="$(GCC_LINK)" $(TOOLS_LIBS)
+	$(GNATLINK) -v gnatfind -o ../../gnatfind$(exeext) \
+		--GCC="$(GCC_LINK)" $(TOOLS_LIBS)
+	$(GNATLINK) -v gnatname -o ../../gnatname$(exeext) \
+		--GCC="$(GCC_LINK)" $(TOOLS_LIBS)
+	$(GNATLINK) -v gnatclean -o ../../gnatclean$(exeext) \
+		--GCC="$(GCC_LINK)" $(TOOLS_LIBS)
 
 ../../gnatsym$(exeext): 
 	$(GNATMAKE) -c $(ADA_INCLUDES) gnatsym --GCC="$(CC) $(ALL_ADAFLAGS)"
@@ -1837,18 +1807,18 @@ endif
 
 ../../gnatdll$(exeext): 
 	$(GNATMAKE) -c $(ADA_INCLUDES) gnatdll --GCC="$(CC) $(ALL_ADAFLAGS)"
-	$(GNATBIND) $(ADA_INCLUDES) $(GNATBIND_FLAGS) $(GNATBIND_FLAGS) gnatdll
+	$(GNATBIND) $(ADA_INCLUDES) $(GNATBIND_FLAGS) gnatdll
 	$(GNATLINK) -v gnatdll -o $@ --GCC="$(GCC_LINK)" $(TOOLS_LIBS)
 
 ../../vxaddr2line$(exeext): targext.o
 	$(GNATMAKE) -c  $(ADA_INCLUDES) vxaddr2line --GCC="$(CC) $(ALL_ADAFLAGS)"
-	$(GNATBIND) $(ADA_INCLUDES) $(GNATBIND_FLAGS) vxaddr2line 
+	$(GNATBIND) $(ADA_INCLUDES) $(GNATBIND_FLAGS) vxaddr2line
 	$(GNATLINK) -v vxaddr2line -o $@ --GCC="$(GCC_LINK)" targext.o $(CLIB)
 
 gnatmake-re:  link.o targext.o
 	$(GNATMAKE) $(ADA_INCLUDES) -u sdefault --GCC="$(CC) $(MOST_ADA_FLAGS)"
 	$(GNATMAKE) -c $(ADA_INCLUDES) gnatmake --GCC="$(CC) $(ALL_ADAFLAGS)"
-	$(GNATBIND) $(ADA_INCLUDES) $(GNATBIND_FLAGS) gnatmake 
+	$(GNATBIND) $(ADA_INCLUDES) $(GNATBIND_FLAGS) gnatmake
 	$(GNATLINK) -v gnatmake -o ../../gnatmake$(exeext) \
 		--GCC="$(GCC_LINK)" $(TOOLS_LIBS)
 
@@ -1856,11 +1826,11 @@ gnatmake-re:  link.o targext.o
 # with the former version of gnatlink itself which cannot override itself.
 gnatlink-re:  link.o targext.o
 	$(GNATMAKE) -c $(ADA_INCLUDES) gnatlink --GCC="$(CC) $(ALL_ADAFLAGS)"
-	$(GNATBIND) $(ADA_INCLUDES) $(GNATBIND_FLAGS) gnatlink 
+	$(GNATBIND) $(ADA_INCLUDES) $(GNATBIND_FLAGS) gnatlink
 	$(GNATLINK) -v gnatlink -o ../../gnatlinknew$(exeext) \
 		    --GCC="$(GCC_LINK)" $(TOOLS_LIBS)
 	$(MV)  ../../gnatlinknew$(exeext)  ../../gnatlink$(exeext)
-  
+
 # Needs to be built with CC=gcc
 # Since the RTL should be built with the latest compiler, remove the
 #  stamp target in the parent directory whenever gnat1 is rebuilt

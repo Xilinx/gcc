@@ -126,7 +126,6 @@ package body Einfo is
    --    Scale_Value                     Uint15
    --    Storage_Size_Variable           Node15
    --    String_Literal_Low_Bound        Node15
-   --    Shared_Var_Read_Proc            Node15
 
    --    Access_Disp_Table               Elist16
    --    Cloned_Subtype                  Node16
@@ -193,7 +192,7 @@ package body Einfo is
    --    Private_View                    Node22
    --    Protected_Formal                Node22
    --    Scope_Depth_Value               Uint22
-   --    Shared_Var_Assign_Proc          Node22
+   --    Shared_Var_Procs_Instance       Node22
 
    --    Associated_Final_Chain          Node23
    --    CR_Discriminant                 Node23
@@ -209,8 +208,8 @@ package body Einfo is
 
    --    Spec_PPC_List                   Node24
 
-   --    Abstract_Interface_Alias        Node25
-   --    Abstract_Interfaces             Elist25
+   --    Interface_Alias                 Node25
+   --    Interfaces                      Elist25
    --    Debug_Renaming_Link             Node25
    --    DT_Offset_To_Top_Func           Node25
    --    Task_Body_Procedure             Node25
@@ -422,7 +421,6 @@ package body Einfo is
    --    Debug_Info_Off                  Flag166
    --    Sec_Stack_Needed_For_Return     Flag167
    --    Materialize_Entity              Flag168
-   --    Function_Returns_With_DSP       Flag169
    --    Is_Known_Valid                  Flag170
 
    --    Is_Hidden_Open_Scope            Flag171
@@ -505,8 +503,9 @@ package body Einfo is
    --    Optimize_Alignment_Space        Flag241
    --    Optimize_Alignment_Time         Flag242
    --    Overlays_Constant               Flag243
+   --    Is_RACW_Stub_Type               Flag244
 
-   --    (unused)                        Flag244
+   --    (unused)                        Flag169
    --    (unused)                        Flag245
    --    (unused)                        Flag246
    --    (unused)                        Flag247
@@ -544,18 +543,6 @@ package body Einfo is
    --------------------------------
    -- Attribute Access Functions --
    --------------------------------
-
-   function Abstract_Interfaces (Id : E) return L is
-   begin
-      pragma Assert (Is_Record_Type (Id));
-      return Elist25 (Id);
-   end Abstract_Interfaces;
-
-   function Abstract_Interface_Alias (Id : E) return E is
-   begin
-      pragma Assert (Is_Subprogram (Id));
-      return Node25 (Id);
-   end Abstract_Interface_Alias;
 
    function Accept_Address (Id : E) return L is
    begin
@@ -1111,13 +1098,6 @@ package body Einfo is
       return Node11 (Id);
    end Full_View;
 
-   function Function_Returns_With_DSP (Id : E) return B is
-   begin
-      pragma Assert
-        (Is_Subprogram (Id) or else Ekind (Id) = E_Subprogram_Type);
-      return Flag169 (Id);
-   end Function_Returns_With_DSP;
-
    function Generic_Homonym (Id : E) return E is
    begin
       pragma Assert (Ekind (Id) = E_Generic_Package);
@@ -1538,6 +1518,18 @@ package body Einfo is
            or else Ekind (Id) = E_Procedure);
       return Flag232 (Id);
    end Implemented_By_Entry;
+
+   function Interfaces (Id : E) return L is
+   begin
+      pragma Assert (Is_Record_Type (Id));
+      return Elist25 (Id);
+   end Interfaces;
+
+   function Interface_Alias (Id : E) return E is
+   begin
+      pragma Assert (Is_Subprogram (Id));
+      return Node25 (Id);
+   end Interface_Alias;
 
    function In_Package_Body (Id : E) return B is
    begin
@@ -1975,6 +1967,12 @@ package body Einfo is
       return Flag189 (Id);
    end Is_Pure_Unit_Access_Type;
 
+   function Is_RACW_Stub_Type (Id : E) return B is
+   begin
+      pragma Assert (Is_Type (Id));
+      return Flag244 (Id);
+   end Is_RACW_Stub_Type;
+
    function Is_Raised (Id : E) return B is
    begin
       pragma Assert (Ekind (Id) = E_Exception);
@@ -2239,7 +2237,7 @@ package body Einfo is
 
    function Non_Binary_Modulus (Id : E) return B is
    begin
-      pragma Assert (Is_Modular_Integer_Type (Id));
+      pragma Assert (Is_Type (Id));
       return Flag58 (Base_Type (Id));
    end Non_Binary_Modulus;
 
@@ -2537,17 +2535,11 @@ package body Einfo is
       return List14 (Id);
    end Shadow_Entities;
 
-   function Shared_Var_Assign_Proc (Id : E) return E is
+   function Shared_Var_Procs_Instance (Id : E) return E is
    begin
       pragma Assert (Ekind (Id) = E_Variable);
       return Node22 (Id);
-   end Shared_Var_Assign_Proc;
-
-   function Shared_Var_Read_Proc (Id : E) return E is
-   begin
-      pragma Assert (Ekind (Id) = E_Variable);
-      return Node15 (Id);
-   end Shared_Var_Read_Proc;
+   end Shared_Var_Procs_Instance;
 
    function Size_Check_Code (Id : E) return N is
    begin
@@ -2941,21 +2933,6 @@ package body Einfo is
    ------------------------------
    -- Attribute Set Procedures --
    ------------------------------
-
-   procedure Set_Abstract_Interfaces (Id : E; V : L) is
-   begin
-      pragma Assert (Is_Record_Type (Id));
-      Set_Elist25 (Id, V);
-   end Set_Abstract_Interfaces;
-
-   procedure Set_Abstract_Interface_Alias (Id : E; V : E) is
-   begin
-      pragma Assert
-        (Is_Hidden (Id)
-          and then
-           (Ekind (Id) = E_Procedure or else Ekind (Id) = E_Function));
-      Set_Node25 (Id, V);
-   end Set_Abstract_Interface_Alias;
 
    procedure Set_Accept_Address (Id : E; V : L) is
    begin
@@ -3521,13 +3498,6 @@ package body Einfo is
       Set_Node11 (Id, V);
    end Set_Full_View;
 
-   procedure Set_Function_Returns_With_DSP (Id : E; V : B := True) is
-   begin
-      pragma Assert
-        (Is_Subprogram (Id) or else Ekind (Id) = E_Subprogram_Type);
-      Set_Flag169 (Id, V);
-   end Set_Function_Returns_With_DSP;
-
    procedure Set_Generic_Homonym (Id : E; V : E) is
    begin
       Set_Node11 (Id, V);
@@ -3961,6 +3931,22 @@ package body Einfo is
            or else Ekind (Id) = E_Procedure);
       Set_Flag232 (Id, V);
    end Set_Implemented_By_Entry;
+
+   procedure Set_Interfaces (Id : E; V : L) is
+   begin
+      pragma Assert (Is_Record_Type (Id));
+      Set_Elist25 (Id, V);
+   end Set_Interfaces;
+
+   procedure Set_Interface_Alias (Id : E; V : E) is
+   begin
+      pragma Assert
+        (Is_Internal (Id)
+          and then Is_Hidden (Id)
+          and then (Ekind (Id) = E_Procedure
+                      or else Ekind (Id) = E_Function));
+      Set_Node25 (Id, V);
+   end Set_Interface_Alias;
 
    procedure Set_In_Package_Body (Id : E; V : B := True) is
    begin
@@ -4424,6 +4410,12 @@ package body Einfo is
       Set_Flag189 (Id, V);
    end Set_Is_Pure_Unit_Access_Type;
 
+   procedure Set_Is_RACW_Stub_Type (Id : E; V : B := True) is
+   begin
+      pragma Assert (Is_Type (Id));
+      Set_Flag244 (Id, V);
+   end Set_Is_RACW_Stub_Type;
+
    procedure Set_Is_Raised (Id : E; V : B := True) is
    begin
       pragma Assert (Ekind (Id) = E_Exception);
@@ -4697,7 +4689,7 @@ package body Einfo is
 
    procedure Set_Non_Binary_Modulus (Id : E; V : B := True) is
    begin
-      pragma Assert (Ekind (Id) = E_Modular_Integer_Type);
+      pragma Assert (Is_Type (Id) and then Id = Base_Type (Id));
       Set_Flag58 (Id, V);
    end Set_Non_Binary_Modulus;
 
@@ -5000,17 +4992,11 @@ package body Einfo is
       Set_List14 (Id, V);
    end Set_Shadow_Entities;
 
-   procedure Set_Shared_Var_Assign_Proc (Id : E; V : E) is
+   procedure Set_Shared_Var_Procs_Instance (Id : E; V : E) is
    begin
       pragma Assert (Ekind (Id) = E_Variable);
       Set_Node22 (Id, V);
-   end Set_Shared_Var_Assign_Proc;
-
-   procedure Set_Shared_Var_Read_Proc (Id : E; V : E) is
-   begin
-      pragma Assert (Ekind (Id) = E_Variable);
-      Set_Node15 (Id, V);
-   end Set_Shared_Var_Read_Proc;
+   end Set_Shared_Var_Procs_Instance;
 
    procedure Set_Size_Check_Code (Id : E; V : N) is
    begin
@@ -7297,11 +7283,9 @@ package body Einfo is
 
    function Next_Tag_Component (Id : E) return E is
       Comp : Entity_Id;
-      Typ  : constant Entity_Id := Scope (Id);
 
    begin
-      pragma Assert (Ekind (Id) = E_Component
-                       and then Is_Tagged_Type (Typ));
+      pragma Assert (Is_Tag (Id));
 
       Comp := Next_Entity (Id);
       while Present (Comp) loop
@@ -7474,7 +7458,6 @@ package body Einfo is
       W ("Can_Use_Internal_Rep",            Flag229 (Id));
       W ("Finalize_Storage_Only",           Flag158 (Id));
       W ("From_With_Type",                  Flag159 (Id));
-      W ("Function_Returns_With_DSP",       Flag169 (Id));
       W ("Has_Aliased_Components",          Flag135 (Id));
       W ("Has_Alignment_Clause",            Flag46  (Id));
       W ("Has_All_Calls_Remote",            Flag79  (Id));
@@ -7621,6 +7604,7 @@ package body Einfo is
       W ("Is_Public",                       Flag10  (Id));
       W ("Is_Pure",                         Flag44  (Id));
       W ("Is_Pure_Unit_Access_Type",        Flag189 (Id));
+      W ("Is_RACW_Stub_Type",               Flag244 (Id));
       W ("Is_Raised",                       Flag224 (Id));
       W ("Is_Remote_Call_Interface",        Flag62  (Id));
       W ("Is_Remote_Types",                 Flag61  (Id));
@@ -8131,9 +8115,6 @@ package body Einfo is
          when E_String_Literal_Subtype                     =>
             Write_Str ("String_Literal_Low_Bound");
 
-         when E_Variable                                   =>
-            Write_Str ("Shared_Var_Read_Proc");
-
          when others                                       =>
             Write_Str ("Field15??");
       end case;
@@ -8506,7 +8487,7 @@ package body Einfo is
             Write_Str ("Private_View");
 
          when E_Variable                                   =>
-            Write_Str ("Shared_Var_Assign_Proc");
+            Write_Str ("Shared_Var_Procs_Instance");
 
          when others                                       =>
             Write_Str ("Field22??");
@@ -8603,13 +8584,13 @@ package body Einfo is
 
          when E_Procedure                                  |
               E_Function                                   =>
-            Write_Str ("Abstract_Interface_Alias");
+            Write_Str ("Interface_Alias");
 
          when E_Record_Type                                |
               E_Record_Subtype                             |
               E_Record_Type_With_Private                   |
               E_Record_Subtype_With_Private                =>
-            Write_Str ("Abstract_Interfaces");
+            Write_Str ("Interfaces");
 
          when Task_Kind                                    =>
             Write_Str ("Task_Body_Procedure");

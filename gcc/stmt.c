@@ -1,6 +1,6 @@
 /* Expands front end tree to back end RTL for GCC
    Copyright (C) 1987, 1988, 1989, 1992, 1993, 1994, 1995, 1996, 1997,
-   1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
+   1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -363,7 +363,7 @@ parse_output_constraint (const char **constraint_p, int operand_num,
 	  }
 	break;
 
-      case 'V':  case 'm':  case 'o':
+      case 'V':  case TARGET_MEM_CONSTRAINT:  case 'o':
 	*allows_mem = true;
 	break;
 
@@ -462,7 +462,7 @@ parse_input_constraint (const char **constraint_p, int input_num,
 	  }
 	break;
 
-      case 'V':  case 'm':  case 'o':
+      case 'V':  case TARGET_MEM_CONSTRAINT:  case 'o':
 	*allows_mem = true;
 	break;
 
@@ -622,7 +622,7 @@ tree_conflicts_with_clobbers_p (tree t, HARD_REG_SET *clobbered_regs)
    STRING is the instruction template.
    OUTPUTS is a list of output arguments (lvalues); INPUTS a list of inputs.
    Each output or input has an expression in the TREE_VALUE and
-   and a tree list in TREE_PURPOSE which in turn contains a constraint
+   a tree list in TREE_PURPOSE which in turn contains a constraint
    name in TREE_VALUE (or NULL_TREE) and a constraint string
    in TREE_PURPOSE.
    CLOBBERS is a list of STRING_CST nodes each naming a hard register
@@ -1775,11 +1775,11 @@ expand_nl_goto_receiver (void)
 {
   /* Clobber the FP when we get here, so we have to make sure it's
      marked as used by this function.  */
-  emit_insn (gen_rtx_USE (VOIDmode, hard_frame_pointer_rtx));
+  emit_use (hard_frame_pointer_rtx);
 
   /* Mark the static chain as clobbered here so life information
      doesn't get messed up for it.  */
-  emit_insn (gen_rtx_CLOBBER (VOIDmode, static_chain_rtx));
+  emit_clobber (static_chain_rtx);
 
 #ifdef HAVE_nonlocal_goto
   if (! HAVE_nonlocal_goto)

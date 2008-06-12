@@ -446,7 +446,17 @@ extern tree x86_mfence;
 #define TARGET_MACHO 0
 
 /* Likewise, for the Windows 64-bit ABI.  */
-#define TARGET_64BIT_MS_ABI 0
+#define TARGET_64BIT_MS_ABI (TARGET_64BIT && ix86_cfun_abi () == MS_ABI)
+
+/* Available call abi.  */
+enum
+{
+  SYSV_ABI = 0,
+  MS_ABI = 1
+};
+
+/* The default abi form used by target.  */
+#define DEFAULT_ABI SYSV_ABI
 
 /* Subtargets may reset this to 1 in order to enable 96-bit long double
    with the rounding mode forced to 53 bits.  */
@@ -478,13 +488,27 @@ extern const char *host_detect_local_cpu (int argc, const char **argv);
 #define HAVE_LOCAL_CPU_DETECT
 #endif
 
+#if TARGET_64BIT_DEFAULT
+#define OPT_ARCH64 "!m32"
+#define OPT_ARCH32 "m32"
+#else
+#define OPT_ARCH64 "m64"
+#define OPT_ARCH32 "!m64"
+#endif
+
 /* Support for configure-time defaults of some command line options.
    The order here is important so that -march doesn't squash the
    tune or cpu values.  */
 #define OPTION_DEFAULT_SPECS					   \
   {"tune", "%{!mtune=*:%{!mcpu=*:%{!march=*:-mtune=%(VALUE)}}}" }, \
+  {"tune_32", "%{" OPT_ARCH32 ":%{!mtune=*:%{!mcpu=*:%{!march=*:-mtune=%(VALUE)}}}}" }, \
+  {"tune_64", "%{" OPT_ARCH64 ":%{!mtune=*:%{!mcpu=*:%{!march=*:-mtune=%(VALUE)}}}}" }, \
   {"cpu", "%{!mtune=*:%{!mcpu=*:%{!march=*:-mtune=%(VALUE)}}}" },  \
-  {"arch", "%{!march=*:-march=%(VALUE)}"}
+  {"cpu_32", "%{" OPT_ARCH32 ":%{!mtune=*:%{!mcpu=*:%{!march=*:-mtune=%(VALUE)}}}}" }, \
+  {"cpu_64", "%{" OPT_ARCH64 ":%{!mtune=*:%{!mcpu=*:%{!march=*:-mtune=%(VALUE)}}}}" }, \
+  {"arch", "%{!march=*:-march=%(VALUE)}"},			   \
+  {"arch_32", "%{" OPT_ARCH32 ":%{!march=*:-march=%(VALUE)}}"},	   \
+  {"arch_64", "%{" OPT_ARCH64 ":%{!march=*:-march=%(VALUE)}}"},
 
 /* Specs for the compiler proper */
 
@@ -804,7 +828,8 @@ enum target_cpu_default
 #define PARM_BOUNDARY BITS_PER_WORD
 
 /* Boundary (in *bits*) on which stack pointer should be aligned.  */
-#define STACK_BOUNDARY BITS_PER_WORD
+#define STACK_BOUNDARY	(TARGET_64BIT && DEFAULT_ABI == MS_ABI ? 128 \
+							       : BITS_PER_WORD)
 
 /* Boundary (in *bits*) on which the stack pointer prefers to be
    aligned; the compiler cannot rely on having this alignment.  */
@@ -902,7 +927,22 @@ enum target_cpu_default
    One use of this macro is to increase alignment of medium-size
    data to make it all fit in fewer cache lines.  */
 
-#define LOCAL_ALIGNMENT(TYPE, ALIGN) ix86_local_alignment ((TYPE), (ALIGN))
+#define LOCAL_ALIGNMENT(TYPE, ALIGN) \
+  ix86_local_alignment ((TYPE), VOIDmode, (ALIGN))
+
+/* If defined, a C expression to compute the alignment for stack slot.
+   TYPE is the data type, MODE is the widest mode available, and ALIGN
+   is the alignment that the slot would ordinarily have.  The value of
+   this macro is used instead of that alignment to align the slot.
+
+   If this macro is not defined, then ALIGN is used when TYPE is NULL,
+   Otherwise, LOCAL_ALIGNMENT will be used.
+
+   One use of this macro is to set alignment of stack slot to the
+   maximum alignment of all possible modes which the slot may have.  */
+
+#define STACK_SLOT_ALIGNMENT(TYPE, MODE, ALIGN) \
+  ix86_local_alignment ((TYPE), (MODE), (ALIGN))
 
 /* If defined, a C expression that gives the alignment boundary, in
    bits, of an argument with the specified mode and type.  If it is
@@ -1029,6 +1069,8 @@ enum target_cpu_default
 #define ORDER_REGS_FOR_LOCAL_ALLOC x86_order_regs_for_local_alloc ()
 
 
+#define OVERRIDE_ABI_FORMAT(FNDECL) ix86_call_abi_override (FNDECL)
+
 /* Macro to conditionally modify fixed_regs/call_used_regs.  */
 #define CONDITIONAL_REGISTER_USAGE					\
 do {									\
@@ -1079,7 +1121,7 @@ do {									\
 	for (i = FIRST_REX_SSE_REG; i <= LAST_REX_SSE_REG; i++)		\
 	  reg_names[i] = "";						\
       }									\
-    if (TARGET_64BIT_MS_ABI)						\
+    if (TARGET_64BIT && DEFAULT_ABI == MS_ABI)				\
       {									\
         call_used_regs[4 /*RSI*/] = 0;                                  \
         call_used_regs[5 /*RDI*/] = 0;                                  \
@@ -1132,7 +1174,7 @@ do {									\
 
 /* ??? No autovectorization into MMX or 3DNOW until we can reliably
    place emms and femms instructions.  */
-#define UNITS_PER_SIMD_WORD (TARGET_SSE ? 16 : UNITS_PER_WORD)
+#define UNITS_PER_SIMD_WORD(MODE) (TARGET_SSE ? 16 : UNITS_PER_WORD)
 
 #define VALID_DFP_MODE_P(MODE) \
   ((MODE) == SDmode || (MODE) == DDmode || (MODE) == TDmode)
@@ -1260,25 +1302,6 @@ do {									\
    : REAL_PIC_OFFSET_TABLE_REGNUM)
 
 #define GOT_SYMBOL_NAME "_GLOBAL_OFFSET_TABLE_"
-
-/* A C expression which can inhibit the returning of certain function
-   values in registers, based on the type of value.  A nonzero value
-   says to return the function value in memory, just as large
-   structures are always returned.  Here TYPE will be a C expression
-   of type `tree', representing the data type of the value.
-
-   Note that values of mode `BLKmode' must be explicitly handled by
-   this macro.  Also, the option `-fpcc-struct-return' takes effect
-   regardless of this macro.  On most systems, it is possible to
-   leave the macro undefined; this causes a default definition to be
-   used, whose value is the constant 1 for `BLKmode' values, and 0
-   otherwise.
-
-   Do not use this macro to indicate that structures and unions
-   should always be returned in memory.  You should instead use
-   `DEFAULT_PCC_STRUCT_RETURN' to indicate this.  */
-
-#define TARGET_RETURN_IN_MEMORY ix86_return_in_memory
 
 /* This is overridden by <cygwin.h>.  */
 #define MS_AGGREGATE_RETURN 0
@@ -1516,14 +1539,13 @@ enum reg_class
 #define SECONDARY_MEMORY_NEEDED(CLASS1, CLASS2, MODE) \
   ix86_secondary_memory_needed ((CLASS1), (CLASS2), (MODE), 1)
 
-/* QImode spills from non-QI registers need a scratch.  This does not
-   happen often -- the only example so far requires an uninitialized
-   pseudo.  */
-
-#define SECONDARY_OUTPUT_RELOAD_CLASS(CLASS, MODE, OUT)			\
-  (((CLASS) == GENERAL_REGS || (CLASS) == LEGACY_REGS			\
-    || (CLASS) == INDEX_REGS) && !TARGET_64BIT && (MODE) == QImode	\
-   ? Q_REGS : NO_REGS)
+/* Get_secondary_mem widens integral modes to BITS_PER_WORD.
+   There is no need to emit full 64 bit move on 64 bit targets
+   for integral modes that can be moved using 32 bit move.  */
+#define SECONDARY_MEMORY_NEEDED_MODE(MODE)			\
+  (GET_MODE_BITSIZE (MODE) < 32 && INTEGRAL_MODE_P (MODE)	\
+   ? mode_for_size (32, GET_MODE_CLASS (MODE), 0)		\
+   : MODE)
 
 /* Return the maximum number of consecutive registers
    needed to represent mode MODE in a register of class CLASS.  */
@@ -1629,7 +1651,9 @@ enum reg_class
    This space can be allocated by the caller, or be a part of the
    machine-dependent stack frame: `OUTGOING_REG_PARM_STACK_SPACE' says
    which.  */
-#define REG_PARM_STACK_SPACE(FNDECL) 0
+#define REG_PARM_STACK_SPACE(FNDECL) ix86_reg_parm_stack_space (FNDECL)
+
+#define OUTGOING_REG_PARM_STACK_SPACE(FNTYPE) (ix86_function_type_abi (FNTYPE) == MS_ABI ? 1 : 0)
 
 /* Value is the number of bytes of arguments automatically
    popped when returning from a subroutine call.
@@ -1691,6 +1715,8 @@ typedef struct ix86_args {
   int maybe_vaarg;		/* true for calls to possibly vardic fncts.  */
   int float_in_sse;		/* 1 if in 32-bit mode SFmode (2 for DFmode) should
 				   be passed in SSE registers.  Otherwise 0.  */
+  int call_abi;			/* Set to SYSV_ABI for sysv abi. Otherwise
+ 				   MS_ABI for ms abi.  */
 } CUMULATIVE_ARGS;
 
 /* Initialize a variable CUM of type CUMULATIVE_ARGS
@@ -1958,9 +1984,22 @@ do {									\
    is also used as the pic register in ELF.  So for now, don't allow more than
    3 registers to be passed in registers.  */
 
-#define REGPARM_MAX (TARGET_64BIT ? 6 : 3)
+/* Abi specific values for REGPARM_MAX and SSE_REGPARM_MAX */
+#define X86_64_REGPARM_MAX 6
+#define X64_REGPARM_MAX 4
+#define X86_32_REGPARM_MAX 3
 
-#define SSE_REGPARM_MAX (TARGET_64BIT ? 8 : (TARGET_SSE ? 3 : 0))
+#define X86_64_SSE_REGPARM_MAX 8
+#define X64_SSE_REGPARM_MAX 4
+#define X86_32_SSE_REGPARM_MAX (TARGET_SSE ? 3 : 0)
+
+#define REGPARM_MAX (TARGET_64BIT ? (TARGET_64BIT_MS_ABI ? X64_REGPARM_MAX \
+							 : X86_64_REGPARM_MAX) \
+				  : X86_32_REGPARM_MAX)
+
+#define SSE_REGPARM_MAX (TARGET_64BIT ? (TARGET_64BIT_MS_ABI ? X64_SSE_REGPARM_MAX \
+							     : X86_64_SSE_REGPARM_MAX) \
+				      : X86_32_SSE_REGPARM_MAX)
 
 #define MMX_REGPARM_MAX (TARGET_64BIT ? 0 : (TARGET_MMX ? 3 : 0))
 
@@ -2452,8 +2491,9 @@ struct machine_function GTY(())
   int save_varrargs_registers;
   int accesses_prev_frame;
   int optimize_mode_switching[MAX_386_ENTITIES];
-  /* Set by ix86_compute_frame_layout and used by prologue/epilogue expander to
-     determine the style used.  */
+  int needs_cld;
+  /* Set by ix86_compute_frame_layout and used by prologue/epilogue
+     expander to determine the style used.  */
   int use_fast_prologue_epilogue;
   /* Number of saved registers USE_FAST_PROLOGUE_EPILOGUE has been computed
      for.  */
@@ -2468,11 +2508,15 @@ struct machine_function GTY(())
      ix86_current_function_calls_tls_descriptor macro for a better
      approximation.  */
   int tls_descriptor_call_expanded_p;
+  /* This value is used for amd64 targets and specifies the current abi
+     to be used. MS_ABI means ms abi. Otherwise SYSV_ABI means sysv abi.  */
+  int call_abi;
 };
 
 #define ix86_stack_locals (cfun->machine->stack_locals)
 #define ix86_save_varrargs_registers (cfun->machine->save_varrargs_registers)
 #define ix86_optimize_mode_switching (cfun->machine->optimize_mode_switching)
+#define ix86_current_function_needs_cld (cfun->machine->needs_cld)
 #define ix86_tls_descriptor_calls_expanded_in_cfun \
   (cfun->machine->tls_descriptor_call_expanded_p)
 /* Since tls_descriptor_call_expanded is not cleared, even if all TLS

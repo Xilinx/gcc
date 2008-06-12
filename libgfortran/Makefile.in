@@ -79,15 +79,15 @@ toolexeclibLTLIBRARIES_INSTALL = $(INSTALL)
 LTLIBRARIES = $(myexeclib_LTLIBRARIES) $(toolexeclib_LTLIBRARIES)
 libgfortran_la_LIBADD =
 am__libgfortran_la_SOURCES_DIST = runtime/backtrace.c \
-	runtime/compile_options.c runtime/environ.c runtime/error.c \
-	runtime/fpu.c runtime/main.c runtime/memory.c runtime/pause.c \
-	runtime/stop.c runtime/string.c runtime/select.c \
-	$(srcdir)/generated/all_l1.c $(srcdir)/generated/all_l2.c \
-	$(srcdir)/generated/all_l4.c $(srcdir)/generated/all_l8.c \
-	$(srcdir)/generated/all_l16.c $(srcdir)/generated/any_l1.c \
-	$(srcdir)/generated/any_l2.c $(srcdir)/generated/any_l4.c \
-	$(srcdir)/generated/any_l8.c $(srcdir)/generated/any_l16.c \
-	$(srcdir)/generated/count_1_l.c \
+	runtime/compile_options.c runtime/convert_char.c \
+	runtime/environ.c runtime/error.c runtime/fpu.c runtime/main.c \
+	runtime/memory.c runtime/pause.c runtime/stop.c \
+	runtime/string.c runtime/select.c $(srcdir)/generated/all_l1.c \
+	$(srcdir)/generated/all_l2.c $(srcdir)/generated/all_l4.c \
+	$(srcdir)/generated/all_l8.c $(srcdir)/generated/all_l16.c \
+	$(srcdir)/generated/any_l1.c $(srcdir)/generated/any_l2.c \
+	$(srcdir)/generated/any_l4.c $(srcdir)/generated/any_l8.c \
+	$(srcdir)/generated/any_l16.c $(srcdir)/generated/count_1_l.c \
 	$(srcdir)/generated/count_2_l.c \
 	$(srcdir)/generated/count_4_l.c \
 	$(srcdir)/generated/count_8_l.c \
@@ -401,8 +401,8 @@ am__libgfortran_la_SOURCES_DIST = runtime/backtrace.c \
 	fpu-target.h io/close.c io/file_pos.c io/format.c io/inquire.c \
 	io/intrinsics.c io/list_read.c io/lock.c io/open.c io/read.c \
 	io/size_from_kind.c io/transfer.c io/unit.c io/unix.c \
-	io/write.c intrinsics/associated.c intrinsics/abort.c \
-	intrinsics/access.c intrinsics/args.c \
+	io/write.c io/fbuf.c intrinsics/associated.c \
+	intrinsics/abort.c intrinsics/access.c intrinsics/args.c \
 	intrinsics/c99_functions.c intrinsics/chdir.c \
 	intrinsics/chmod.c intrinsics/clock.c intrinsics/cpu_time.c \
 	intrinsics/cshift0.c intrinsics/ctime.c \
@@ -567,8 +567,9 @@ am__libgfortran_la_SOURCES_DIST = runtime/backtrace.c \
 	$(srcdir)/generated/misc_specifics.F90 intrinsics/dprod_r8.f90 \
 	intrinsics/f2c_specifics.F90 libgfortran_c.c $(filter-out \
 	%.c,$(prereq_SRC))
-am__objects_1 = backtrace.lo compile_options.lo environ.lo error.lo \
-	fpu.lo main.lo memory.lo pause.lo stop.lo string.lo select.lo
+am__objects_1 = backtrace.lo compile_options.lo convert_char.lo \
+	environ.lo error.lo fpu.lo main.lo memory.lo pause.lo stop.lo \
+	string.lo select.lo
 am__objects_2 = all_l1.lo all_l2.lo all_l4.lo all_l8.lo all_l16.lo
 am__objects_3 = any_l1.lo any_l2.lo any_l4.lo any_l8.lo any_l16.lo
 am__objects_4 = count_1_l.lo count_2_l.lo count_4_l.lo count_8_l.lo \
@@ -691,7 +692,7 @@ am__objects_33 = $(am__objects_2) $(am__objects_3) $(am__objects_4) \
 	$(am__objects_32)
 am__objects_34 = close.lo file_pos.lo format.lo inquire.lo \
 	intrinsics.lo list_read.lo lock.lo open.lo read.lo \
-	size_from_kind.lo transfer.lo unit.lo unix.lo write.lo
+	size_from_kind.lo transfer.lo unit.lo unix.lo write.lo fbuf.lo
 am__objects_35 = associated.lo abort.lo access.lo args.lo \
 	c99_functions.lo chdir.lo chmod.lo clock.lo cpu_time.lo \
 	cshift0.lo ctime.lo date_and_time.lo dtime.lo env.lo \
@@ -920,9 +921,10 @@ ACLOCAL_AMFLAGS = -I .. -I ../config
 gcc_version := $(shell cat $(top_srcdir)/../gcc/BASE-VER)
 @LIBGFOR_USE_SYMVER_FALSE@version_arg = 
 @LIBGFOR_USE_SYMVER_TRUE@version_arg = -Wl,--version-script=$(srcdir)/gfortran.map
+LTLDFLAGS = $(shell $(SHELL) $(top_srcdir)/../libtool-ldflags $(LDFLAGS))
 toolexeclib_LTLIBRARIES = libgfortran.la
 libgfortran_la_LINK = $(LINK)
-libgfortran_la_LDFLAGS = -version-info `grep -v '^\#' $(srcdir)/libtool-version` -lm $(extra_ldflags_libgfortran) $(version_arg)
+libgfortran_la_LDFLAGS = -version-info `grep -v '^\#' $(srcdir)/libtool-version` $(LTLDFLAGS) -lm $(extra_ldflags_libgfortran) $(version_arg)
 myexeclib_LTLIBRARIES = libgfortranbegin.la
 myexeclibdir = $(libdir)/gcc/$(target_alias)/$(gcc_version)$(MULTISUBDIR)
 libgfortranbegin_la_SOURCES = fmain.c
@@ -945,7 +947,8 @@ io/size_from_kind.c \
 io/transfer.c \
 io/unit.c \
 io/unix.c \
-io/write.c
+io/write.c \
+io/fbuf.c
 
 gfor_io_headers = \
 io/io.h
@@ -1015,6 +1018,7 @@ runtime/in_unpack_generic.c
 gfor_src = \
 runtime/backtrace.c \
 runtime/compile_options.c \
+runtime/convert_char.c \
 runtime/environ.c \
 runtime/error.c \
 runtime/fpu.c \
@@ -1759,6 +1763,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/clock.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/close.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/compile_options.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/convert_char.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/count_16_l.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/count_1_l.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/count_2_l.Plo@am__quote@
@@ -1790,6 +1795,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/exponent_r16.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/exponent_r4.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/exponent_r8.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/fbuf.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/file_pos.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/fmain.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/fnum.Plo@am__quote@
@@ -2616,6 +2622,13 @@ compile_options.lo: runtime/compile_options.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='runtime/compile_options.c' object='compile_options.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o compile_options.lo `test -f 'runtime/compile_options.c' || echo '$(srcdir)/'`runtime/compile_options.c
+
+convert_char.lo: runtime/convert_char.c
+@am__fastdepCC_TRUE@	if $(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT convert_char.lo -MD -MP -MF "$(DEPDIR)/convert_char.Tpo" -c -o convert_char.lo `test -f 'runtime/convert_char.c' || echo '$(srcdir)/'`runtime/convert_char.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/convert_char.Tpo" "$(DEPDIR)/convert_char.Plo"; else rm -f "$(DEPDIR)/convert_char.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='runtime/convert_char.c' object='convert_char.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o convert_char.lo `test -f 'runtime/convert_char.c' || echo '$(srcdir)/'`runtime/convert_char.c
 
 environ.lo: runtime/environ.c
 @am__fastdepCC_TRUE@	if $(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT environ.lo -MD -MP -MF "$(DEPDIR)/environ.Tpo" -c -o environ.lo `test -f 'runtime/environ.c' || echo '$(srcdir)/'`runtime/environ.c; \
@@ -5122,6 +5135,13 @@ write.lo: io/write.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='io/write.c' object='write.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o write.lo `test -f 'io/write.c' || echo '$(srcdir)/'`io/write.c
+
+fbuf.lo: io/fbuf.c
+@am__fastdepCC_TRUE@	if $(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT fbuf.lo -MD -MP -MF "$(DEPDIR)/fbuf.Tpo" -c -o fbuf.lo `test -f 'io/fbuf.c' || echo '$(srcdir)/'`io/fbuf.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/fbuf.Tpo" "$(DEPDIR)/fbuf.Plo"; else rm -f "$(DEPDIR)/fbuf.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='io/fbuf.c' object='fbuf.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o fbuf.lo `test -f 'io/fbuf.c' || echo '$(srcdir)/'`io/fbuf.c
 
 associated.lo: intrinsics/associated.c
 @am__fastdepCC_TRUE@	if $(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT associated.lo -MD -MP -MF "$(DEPDIR)/associated.Tpo" -c -o associated.lo `test -f 'intrinsics/associated.c' || echo '$(srcdir)/'`intrinsics/associated.c; \

@@ -1,5 +1,6 @@
 /* Analysis Utilities for Loop Vectorization.
-   Copyright (C) 2003, 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
+   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008 Free Software
+   Foundation, Inc.
    Contributed by Dorit Naishlos <dorit@il.ibm.com>
 
 This file is part of GCC.
@@ -218,8 +219,7 @@ vect_determine_vectorization_factor (loop_vec_info loop_vinfo)
 	      scalar_type = TREE_TYPE (GIMPLE_STMT_OPERAND (stmt, 0));
 
 	      operation = GIMPLE_STMT_OPERAND (stmt, 1);
-	      if (TREE_CODE (operation) == NOP_EXPR
-		  || TREE_CODE (operation) == CONVERT_EXPR
+	      if (CONVERT_EXPR_P (operation)
 		  || TREE_CODE (operation) == WIDEN_MULT_EXPR
 		  || TREE_CODE (operation) == FLOAT_EXPR)
 		{
@@ -510,7 +510,7 @@ vect_analyze_operations (loop_vec_info loop_vinfo)
 	      /* Groups of strided accesses whose size is not a power of 2 are 
 		 not vectorizable yet using loop-vectorization. Therefore, if 
 		 this stmt feeds non-SLP-able stmts (i.e., this stmt has to be 
-		 both SLPed and loop-based vectorzed), the loop cannot be 
+		 both SLPed and loop-based vectorized), the loop cannot be
 		 vectorized.  */
 	      if (STMT_VINFO_STRIDED_ACCESS (stmt_info)
 		  && exact_log2 (DR_GROUP_SIZE (vinfo_for_stmt (
@@ -691,7 +691,7 @@ exist_non_indexing_operands_for_use_p (tree use, tree stmt)
 /* Function vect_analyze_scalar_cycles_1.
 
    Examine the cross iteration def-use cycles of scalar variables
-   in LOOP. LOOP_VINFO represents the loop that is noe being
+   in LOOP. LOOP_VINFO represents the loop that is now being
    considered for vectorization (can be LOOP, or an outer-loop
    enclosing LOOP).  */
 
@@ -1371,6 +1371,7 @@ vect_compute_data_ref_alignment (struct data_reference *dr)
   misalign = DR_INIT (dr);
   aligned_to = DR_ALIGNED_TO (dr);
   base_addr = DR_BASE_ADDRESS (dr);
+  vectype = STMT_VINFO_VECTYPE (stmt_info);
 
   /* In case the dataref is in an inner-loop of the loop that is being
      vectorized (LOOP), we use the base and misalignment information
@@ -1383,7 +1384,7 @@ vect_compute_data_ref_alignment (struct data_reference *dr)
       tree step = DR_STEP (dr);
       HOST_WIDE_INT dr_step = TREE_INT_CST_LOW (step);
     
-      if (dr_step % UNITS_PER_SIMD_WORD == 0)
+      if (dr_step % GET_MODE_SIZE (TYPE_MODE (vectype)) == 0)
         {
           if (vect_print_dump_info (REPORT_ALIGNMENT))
             fprintf (vect_dump, "inner step divides the vector-size.");
@@ -1400,7 +1401,6 @@ vect_compute_data_ref_alignment (struct data_reference *dr)
     }
 
   base = build_fold_indirect_ref (base_addr);
-  vectype = STMT_VINFO_VECTYPE (stmt_info);
   alignment = ssize_int (TYPE_ALIGN (vectype)/BITS_PER_UNIT);
 
   if ((aligned_to && tree_int_cst_compare (aligned_to, alignment) < 0)
@@ -1542,8 +1542,9 @@ vect_update_misalignment_for_peel (struct data_reference *dr,
       && known_alignment_for_access_p (dr_peel))
     {
       int misal = DR_MISALIGNMENT (dr);
+      tree vectype = STMT_VINFO_VECTYPE (stmt_info);
       misal += npeel * dr_size;
-      misal %= UNITS_PER_SIMD_WORD;
+      misal %= GET_MODE_SIZE (TYPE_MODE (vectype));
       SET_DR_MISALIGNMENT (dr, misal);
       return;
     }
@@ -1623,7 +1624,7 @@ vector_alignment_reachable_p (struct data_reference *dr)
       if (!known_alignment_for_access_p (dr))
 	return false;
 
-      elem_size = UNITS_PER_SIMD_WORD / nelements;
+      elem_size = GET_MODE_SIZE (TYPE_MODE (vectype)) / nelements;
       mis_in_elements = DR_MISALIGNMENT (dr) / elem_size;
 
       if ((nelements - mis_in_elements) % DR_GROUP_SIZE (stmt_info))
@@ -2231,7 +2232,13 @@ vect_analyze_group_access (struct data_reference *dr)
       if (dr_step != count_in_bytes)
         {
           if (DR_IS_READ (dr))
-            slp_impossible = true;
+            {
+              slp_impossible = true;
+              /* There is a gap after the last load in the group. This gap is a
+                 difference between the stride and the number of elements. When 
+                 there is no gap, this difference should be 0.  */ 
+              DR_GROUP_GAP (vinfo_for_stmt (stmt)) = stride - count; 
+            }
           else
             {
               if (vect_print_dump_info (REPORT_DETAILS))
@@ -2645,7 +2652,7 @@ vect_build_slp_tree (loop_vec_info loop_vinfo, slp_tree *node,
   enum machine_mode vec_mode;
   tree first_stmt_const_oprnd = NULL_TREE;
   struct data_reference *first_dr;
- 
+
   /* For every stmt in NODE find its def stmt/s.  */
   for (i = 0; VEC_iterate (tree, stmts, i, stmt); i++)
     {
@@ -2701,29 +2708,44 @@ vect_build_slp_tree (loop_vec_info loop_vinfo, slp_tree *node,
 
 	  /* Shift arguments should be equal in all the packed stmts for a 
 	     vector shift with scalar shift operand.  */
-	  if (TREE_CODE (rhs) == LSHIFT_EXPR || TREE_CODE (rhs) == RSHIFT_EXPR)
+	  if (TREE_CODE (rhs) == LSHIFT_EXPR || TREE_CODE (rhs) == RSHIFT_EXPR
+	      || TREE_CODE (rhs) == LROTATE_EXPR
+	      || TREE_CODE (rhs) == RROTATE_EXPR)
 	    {
 	      vec_mode = TYPE_MODE (vectype);
-	      optab = optab_for_tree_code (TREE_CODE (rhs), vectype);
-	      if (!optab)
+
+	      /* First see if we have a vector/vector shift.  */
+	      optab = optab_for_tree_code (TREE_CODE (rhs), vectype,
+					   optab_vector);
+
+	      if (!optab
+		  || (optab->handlers[(int) vec_mode].insn_code
+		      == CODE_FOR_nothing))
 		{
-		  if (vect_print_dump_info (REPORT_SLP))
-		    fprintf (vect_dump, "Build SLP failed: no optab.");
-		  return false;
-		}
-	      icode = (int) optab->handlers[(int) vec_mode].insn_code;
-	      if (icode == CODE_FOR_nothing)
-		{
-		  if (vect_print_dump_info (REPORT_SLP))
-		    fprintf (vect_dump,
-			     "Build SLP failed: op not supported by target.");
-		  return false;
-		}
-	      optab_op2_mode = insn_data[icode].operand[2].mode;
-	      if (!VECTOR_MODE_P (optab_op2_mode))
-		{
-		  need_same_oprnds = true;
-		  first_op1 = TREE_OPERAND (rhs, 1);
+		  /* No vector/vector shift, try for a vector/scalar shift.  */
+		  optab = optab_for_tree_code (TREE_CODE (rhs), vectype,
+					       optab_scalar);
+
+		  if (!optab)
+		    {
+		      if (vect_print_dump_info (REPORT_SLP))
+			fprintf (vect_dump, "Build SLP failed: no optab.");
+		      return false;
+		    }
+		  icode = (int) optab->handlers[(int) vec_mode].insn_code;
+		  if (icode == CODE_FOR_nothing)
+		    {
+		      if (vect_print_dump_info (REPORT_SLP))
+			fprintf (vect_dump,
+				 "Build SLP failed: op not supported by target.");
+		      return false;
+		    }
+		  optab_op2_mode = insn_data[icode].operand[2].mode;
+		  if (!VECTOR_MODE_P (optab_op2_mode))
+		    {
+		      need_same_oprnds = true;
+		      first_op1 = TREE_OPERAND (rhs, 1);
+		    }
 		}
 	    }
 	}
@@ -2777,15 +2799,17 @@ vect_build_slp_tree (loop_vec_info loop_vinfo, slp_tree *node,
 		if (i == 0)
 		  {
 		    /* First stmt of the SLP group should be the first load of 
-		       the interleaving loop if data permutation is not 
-		       allowed.  */
-		    if  (DR_GROUP_FIRST_DR (vinfo_for_stmt (stmt)) != stmt) 
+		       the interleaving loop if data permutation is not allowed.
+		       Check that there is no gap between the loads.  */
+		    if (DR_GROUP_FIRST_DR (vinfo_for_stmt (stmt)) != stmt
+                        || DR_GROUP_GAP (vinfo_for_stmt (stmt)) != 0) 
 		      {
-			/* FORNOW: data permutations are not supported.  */
+			/* FORNOW: data permutations and gaps in loads are not 
+                           supported.  */
 			if (vect_print_dump_info (REPORT_SLP)) 
 			  {
 			    fprintf (vect_dump, "Build SLP failed: strided "
-				     " loads need permutation ");
+				     " loads need permutation or have gaps ");
 			    print_generic_expr (vect_dump, stmt, TDF_SLIM);
 			  }
 
@@ -2812,13 +2836,17 @@ vect_build_slp_tree (loop_vec_info loop_vinfo, slp_tree *node,
 		  }
 		else
 		  {
-		    if (DR_GROUP_NEXT_DR (vinfo_for_stmt (prev_stmt)) != stmt)
+                    /* Check that we have consecutive loads from interleaving
+                       chain and that there is no gap between the loads.  */
+		    if (DR_GROUP_NEXT_DR (vinfo_for_stmt (prev_stmt)) != stmt
+                        || DR_GROUP_GAP (vinfo_for_stmt (stmt)) != 1)
 		      {
-			/* FORNOW: data permutations are not supported.  */
+			/* FORNOW: data permutations and gaps in loads are not
+                           supported.  */
 			if (vect_print_dump_info (REPORT_SLP)) 
 			  {
 			    fprintf (vect_dump, "Build SLP failed: strided "
-				     " loads need permutation ");
+				     " loads need permutation or have gaps ");
 			    print_generic_expr (vect_dump, stmt, TDF_SLIM);
 			  }
 			return false;
@@ -3515,8 +3543,8 @@ vect_stmt_relevant_p (tree stmt, loop_vec_info loop_vinfo,
    Inputs:
    - a USE in STMT in a loop represented by LOOP_VINFO
    - LIVE_P, RELEVANT - enum values to be set in the STMT_VINFO of the stmt 
-     that defined USE. This is dont by calling mark_relevant and passing it
-     the WORKLIST (to add DEF_STMT to the WORKlist in case itis relevant). 
+     that defined USE. This is done by calling mark_relevant and passing it
+     the WORKLIST (to add DEF_STMT to the WORKLIST in case it is relevant).
 
    Outputs:
    Generally, LIVE_P and RELEVANT are used to define the liveness and

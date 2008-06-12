@@ -113,13 +113,8 @@ bool
 is_gimple_mem_rhs (tree t)
 {
   /* If we're dealing with a renamable type, either source or dest must be
-     a renamed variable.  Also force a temporary if the type doesn't need
-     to be stored in memory, since it's cheap and prevents erroneous
-     tailcalls (PR 17526).  */
-  if (is_gimple_reg_type (TREE_TYPE (t))
-      || (TYPE_MODE (TREE_TYPE (t)) != BLKmode
-	  && (TREE_CODE (t) != CALL_EXPR
-              || ! aggregate_value_p (t, t))))
+     a renamed variable.  */
+  if (is_gimple_reg_type (TREE_TYPE (t)))
     return is_gimple_val (t);
   else
     return is_gimple_formal_tmp_rhs (t);
@@ -327,6 +322,7 @@ is_gimple_stmt (tree t)
     case OMP_CRITICAL:
     case OMP_RETURN:
     case OMP_CONTINUE:
+    case OMP_TASK:
     case OMP_ATOMIC_LOAD:
     case OMP_ATOMIC_STORE:
       /* These are always void.  */
@@ -515,8 +511,7 @@ is_gimple_min_lval (tree t)
 bool
 is_gimple_cast (tree t)
 {
-  return (TREE_CODE (t) == NOP_EXPR
-	  || TREE_CODE (t) == CONVERT_EXPR
+  return (CONVERT_EXPR_P (t)
           || TREE_CODE (t) == FIX_TRUNC_EXPR);
 }
 

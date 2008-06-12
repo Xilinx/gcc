@@ -205,6 +205,7 @@ package Exp_Util is
    --  index values. For composite types, the result includes two declarations:
    --  one for a generated function that computes the image without using
    --  concatenation, and one for the variable that holds the result.
+   --
    --  If In_Init_Proc is true, the call is part of the initialization of
    --  a component of a composite type, and the enclosing initialization
    --  procedure must be flagged as using the secondary stack. If In_Init_Proc
@@ -314,6 +315,11 @@ package Exp_Util is
    --  used to ensure that an Itype is properly defined outside a conditional
    --  construct when it is referenced in more than one branch.
 
+   function Entry_Names_OK return Boolean;
+   --  Determine whether it is appropriate to dynamically allocate strings
+   --  which represent entry [family member] names. These strings are created
+   --  by the compiler and used by GDB.
+
    procedure Evolve_And_Then (Cond : in out Node_Id; Cond1 : Node_Id);
    --  Rewrites Cond with the expression: Cond and then Cond1. If Cond is
    --  Empty, then simply returns Cond1 (this allows the use of Empty to
@@ -336,13 +342,6 @@ package Exp_Util is
    --  Build a constrained subtype from the initial value in object
    --  declarations and/or allocations when the type is indefinite (including
    --  class-wide).
-
-   function Find_Interface
-     (T    : Entity_Id;
-      Comp : Entity_Id) return Entity_Id;
-   --  Ada 2005 (AI-251): Given a tagged type and one of its components
-   --  associated with the secondary dispatch table of an abstract interface
-   --  type, return the associated abstract interface type.
 
    function Find_Interface_ADT
      (T     : Entity_Id;
@@ -384,7 +383,7 @@ package Exp_Util is
       Name_Req : Boolean := False);
    --  Force the evaluation of the expression right away. Similar behavior
    --  to Remove_Side_Effects when Variable_Ref is set to TRUE. That is to
-   --  say, it removes the side-effects and capture the values of the
+   --  say, it removes the side-effects and captures the values of the
    --  variables. Remove_Side_Effects guarantees that multiple evaluations
    --  of the same expression won't generate multiple side effects, whereas
    --  Force_Evaluation further guarantees that all evaluations will yield
@@ -457,9 +456,6 @@ package Exp_Util is
    --  Return True if Typ is a library level tagged type. Currently we use
    --  this information to build statically allocated dispatch tables.
 
-   function Is_Predefined_Dispatching_Operation (E : Entity_Id) return Boolean;
-   --  Ada 2005 (AI-251): Determines if E is a predefined primitive operation
-
    function Is_Ref_To_Bit_Packed_Array (N : Node_Id) return Boolean;
    --  Determine whether the node P is a reference to a bit packed array, i.e.
    --  whether the designated object is a component of a bit packed array, or a
@@ -481,7 +477,7 @@ package Exp_Util is
    --  Node N is an object reference. This function returns True if it is
    --  possible that the object may not be aligned according to the normal
    --  default alignment requirement for its type (e.g. if it appears in a
-   --  packed record, or as part of a component that has a component clause.
+   --  packed record, or as part of a component that has a component clause.)
 
    function Is_Renamed_Object (N : Node_Id) return Boolean;
    --  Returns True if the node N is a renamed object. An expression is
@@ -569,12 +565,12 @@ package Exp_Util is
    --  returned only if the replacement is safe.
 
    function Possible_Bit_Aligned_Component (N : Node_Id) return Boolean;
-   --  This function is used in processing the assignment of a record or
-   --  indexed component. The argument N is either the left hand or right
-   --  hand side of an assignment, and this function determines if there
-   --  is a record component reference where the record may be bit aligned
-   --  in a manner that causes trouble for the back end (see description
-   --  of Exp_Util.Component_May_Be_Bit_Aligned for further details).
+   --  This function is used during processing the assignment of a record or
+   --  indexed component. The argument N is either the left hand or right hand
+   --  side of an assignment, and this function determines if there is a record
+   --  component reference where the record may be bit aligned in a manner that
+   --  causes trouble for the back end (see Component_May_Be_Bit_Aligned for
+   --  further details).
 
    procedure Remove_Side_Effects
      (Exp          : Node_Id;

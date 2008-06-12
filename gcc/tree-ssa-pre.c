@@ -2031,9 +2031,8 @@ compute_antic (void)
       gcc_assert (num_iterations < 50);
     }
 
-  if (dump_file && (dump_flags & TDF_STATS))
-    fprintf (dump_file, "compute_antic required %d iterations\n",
-	     num_iterations);
+  statistics_histogram_event (cfun, "compute_antic iterations",
+			      num_iterations);
 
   if (do_partial_partial)
     {
@@ -2061,9 +2060,8 @@ compute_antic (void)
 	  /* Theoretically possible, but *highly* unlikely.  */
 	  gcc_assert (num_iterations < 50);
 	}
-      if (dump_file && (dump_flags & TDF_STATS))
-	fprintf (dump_file, "compute_partial_antic required %d iterations\n",
-		 num_iterations);
+      statistics_histogram_event (cfun, "compute_partial_antic iterations",
+				  num_iterations);
     }
   sbitmap_free (has_abnormal_preds);
   sbitmap_free (changed_blocks);
@@ -2936,8 +2934,7 @@ insert (void)
       new_stuff = false;
       new_stuff = insert_aux (ENTRY_BLOCK_PTR);
     }
-  if (num_iterations > 2 && dump_file && (dump_flags & TDF_STATS))
-    fprintf (dump_file, "insert required %d iterations\n", num_iterations);
+  statistics_histogram_event (cfun, "insert iterations", num_iterations);
 }
 
 
@@ -3174,7 +3171,6 @@ insert_fake_stores (void)
 	      new_tree = build_gimple_modify_stmt (NULL_TREE, lhs);
 	      new_lhs = make_ssa_name (storetemp, new_tree);
 	      GIMPLE_STMT_OPERAND (new_tree, 0) = new_lhs;
-
 	      create_ssa_artificial_load_stmt (new_tree, stmt, false);
 
 	      NECESSARY (new_tree) = 0;
@@ -3497,7 +3493,7 @@ compute_avail (void)
 	  stmt = bsi_stmt (bsi);
 	  ann = stmt_ann (stmt);
 
-	  ann->uid = stmt_uid++;
+	  set_gimple_stmt_uid (stmt, stmt_uid++);
 
 	  /* For regular value numbering, we are only interested in
 	     assignments of the form X_i = EXPR, where EXPR represents
@@ -4019,14 +4015,11 @@ execute_pre (bool do_fre)
   /* Remove all the redundant expressions.  */
   todo |= eliminate ();
 
-  if (dump_file && (dump_flags & TDF_STATS))
-    {
-      fprintf (dump_file, "Insertions: %d\n", pre_stats.insertions);
-      fprintf (dump_file, "PA inserted: %d\n", pre_stats.pa_insert);
-      fprintf (dump_file, "New PHIs: %d\n", pre_stats.phis);
-      fprintf (dump_file, "Eliminated: %d\n", pre_stats.eliminations);
-      fprintf (dump_file, "Constified: %d\n", pre_stats.constified);
-    }
+  statistics_counter_event (cfun, "Insertions", pre_stats.insertions);
+  statistics_counter_event (cfun, "PA inserted", pre_stats.pa_insert);
+  statistics_counter_event (cfun, "New PHIs", pre_stats.phis);
+  statistics_counter_event (cfun, "Eliminated", pre_stats.eliminations);
+  statistics_counter_event (cfun, "Constified", pre_stats.constified);
   bsi_commit_edge_inserts ();
 
   clear_expression_ids ();

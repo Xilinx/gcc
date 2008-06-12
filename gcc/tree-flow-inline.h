@@ -1,5 +1,6 @@
 /* Inline functions for tree-flow.h
-   Copyright (C) 2001, 2003, 2005, 2006, 2007 Free Software Foundation, Inc.
+   Copyright (C) 2001, 2003, 2005, 2006, 2007, 2008 Free Software
+   Foundation, Inc.
    Contributed by Diego Novillo <dnovillo@redhat.com>
 
 This file is part of GCC.
@@ -89,14 +90,6 @@ gimple_nonlocal_all (const struct function *fun)
 {
   gcc_assert (fun && fun->gimple_df);
   return fun->gimple_df->nonlocal_all;
-}
-
-/* Hashtable of variables annotations.  Used for static variables only;
-   local variables have direct pointer in the tree node.  */
-static inline htab_t
-gimple_var_anns (const struct function *fun)
-{
-  return fun->gimple_df->var_anns;
 }
 
 /* Initialize the hashtable iterator HTI to point to hashtable TABLE */
@@ -192,22 +185,9 @@ var_ann (const_tree t)
 {
   var_ann_t ann;
 
-  if (!MTAG_P (t)
-      && (TREE_STATIC (t) || DECL_EXTERNAL (t)))
-    {
-      struct static_var_ann_d *sann
-        = ((struct static_var_ann_d *)
-	   htab_find_with_hash (gimple_var_anns (cfun), t, DECL_UID (t)));
-      if (!sann)
-	return NULL;
-      ann = &sann->ann;
-    }
-  else
-    {
-      if (!t->base.ann)
-	return NULL;
-      ann = (var_ann_t) t->base.ann;
-    }
+  if (!t->base.ann)
+    return NULL;
+  ann = (var_ann_t) t->base.ann;
 
   gcc_assert (ann->common.type == VAR_ANN);
 
@@ -276,6 +256,41 @@ get_stmt_ann (tree stmt)
 {
   stmt_ann_t ann = stmt_ann (stmt);
   return (ann) ? ann : create_stmt_ann (stmt);
+}
+
+/* Set the uid of all non phi function statements.  */
+static inline void
+set_gimple_stmt_uid (tree stmt, unsigned int uid)
+{
+  get_stmt_ann (stmt)->uid = uid;
+}
+
+/* Get the uid of all non phi function statements.  */
+static inline unsigned int
+gimple_stmt_uid (tree stmt)
+{
+  return get_stmt_ann (stmt)->uid;
+}
+
+/* Get the number of the next statement uid to be allocated.  */
+static inline unsigned int
+gimple_stmt_max_uid (struct function *fn)
+{
+  return fn->last_stmt_uid;
+}
+
+/* Set the number of the next statement uid to be allocated.  */
+static inline void
+set_gimple_stmt_max_uid (struct function *fn, unsigned int maxid)
+{
+  fn->last_stmt_uid = maxid;
+}
+
+/* Set the number of the next statement uid to be allocated.  */
+static inline unsigned int
+inc_gimple_stmt_max_uid (struct function *fn)
+{
+  return fn->last_stmt_uid++;
 }
 
 /* Return the annotation type for annotation ANN.  */
@@ -684,7 +699,7 @@ static inline bool
 is_global_var (const_tree t)
 {
   if (MTAG_P (t))
-    return (TREE_STATIC (t) || MTAG_GLOBAL (t));
+    return MTAG_GLOBAL (t);
   else
     return (TREE_STATIC (t) || DECL_EXTERNAL (t));
 }
@@ -861,10 +876,7 @@ factoring_name_p (const_tree name)
 static inline bool
 is_call_clobbered (const_tree var)
 {
-  if (!MTAG_P (var))
-    return var_ann (var)->call_clobbered;
-  else
-    return bitmap_bit_p (gimple_call_clobbered_vars (cfun), DECL_UID (var)); 
+  return var_ann (var)->call_clobbered;
 }
 
 /* Mark variable VAR as being clobbered by function calls.  */
@@ -872,8 +884,7 @@ static inline void
 mark_call_clobbered (tree var, unsigned int escape_type)
 {
   var_ann (var)->escape_mask |= escape_type;
-  if (!MTAG_P (var))
-    var_ann (var)->call_clobbered = true;
+  var_ann (var)->call_clobbered = true;
   bitmap_set_bit (gimple_call_clobbered_vars (cfun), DECL_UID (var));
 }
 
@@ -885,8 +896,7 @@ clear_call_clobbered (tree var)
   ann->escape_mask = 0;
   if (MTAG_P (var))
     MTAG_GLOBAL (var) = 0;
-  if (!MTAG_P (var))
-    var_ann (var)->call_clobbered = false;
+  var_ann (var)->call_clobbered = false;
   bitmap_clear_bit (gimple_call_clobbered_vars (cfun), DECL_UID (var));
 }
 
@@ -1454,7 +1464,7 @@ link_use_stmts_after (use_operand_p head, imm_use_iterator *imm)
 	if (USE_FROM_PTR (use_p) == use)
 	  last_p = move_use_after_head (use_p, head, last_p);
     }
-  /* LInk iter node in after last_p.  */
+  /* Link iter node in after last_p.  */
   if (imm->iter_node.prev != NULL)
     delink_imm_use (&imm->iter_node);
   link_imm_use_to_list (&(imm->iter_node), last_p);
@@ -1545,7 +1555,7 @@ unmodifiable_var_p (const_tree var)
     var = SSA_NAME_VAR (var);
 
   if (MTAG_P (var))
-    return TREE_READONLY (var) && (TREE_STATIC (var) || MTAG_GLOBAL (var));
+    return false;
 
   return TREE_READONLY (var) && (TREE_STATIC (var) || DECL_EXTERNAL (var));
 }
@@ -1580,36 +1590,6 @@ ref_contains_array_ref (const_tree ref)
 
   return false;
 }
-
-
-/* Return true if V is a tree that we can have subvars for.
-   Normally, this is any aggregate type.  Also complex
-   types which are not gimple registers can have subvars.  */
-
-static inline bool
-var_can_have_subvars (const_tree v)
-{
-  /* Volatile variables should never have subvars.  */
-  if (TREE_THIS_VOLATILE (v))
-    return false;
-
-  /* Non decls or memory tags can never have subvars.  */
-  if (!DECL_P (v) || MTAG_P (v))
-    return false;
-
-  /* Aggregates can have subvars.  */
-  if (AGGREGATE_TYPE_P (TREE_TYPE (v)))
-    return true;
-
-  /* Complex types variables which are not also a gimple register can
-    have subvars. */
-  if (TREE_CODE (TREE_TYPE (v)) == COMPLEX_TYPE
-      && !DECL_GIMPLE_REG_P (v))
-    return true;
-
-  return false;
-}
-
 
 /* Return true, if the two ranges [POS1, SIZE1] and [POS2, SIZE2]
    overlap.  SIZE1 and/or SIZE2 can be (unsigned)-1 in which case the
@@ -1719,4 +1699,15 @@ redirect_edge_var_map_result (edge_var_map *v)
 {
   return v->result;
 }
+
+
+/* Return an SSA_NAME node for variable VAR defined in statement STMT
+   in function cfun.  */
+
+static inline tree
+make_ssa_name (tree var, tree stmt)
+{
+  return make_ssa_name_fn (cfun, var, stmt);
+}
+
 #endif /* _TREE_FLOW_INLINE_H  */

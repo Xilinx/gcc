@@ -148,8 +148,7 @@ get_name_for_bit_test (tree candidate)
     {
       tree def_stmt = SSA_NAME_DEF_STMT (candidate);
       if (TREE_CODE (def_stmt) == GIMPLE_MODIFY_STMT
-	  && (TREE_CODE (GIMPLE_STMT_OPERAND (def_stmt, 1)) == NOP_EXPR
-	      || TREE_CODE (GIMPLE_STMT_OPERAND (def_stmt, 1)) == CONVERT_EXPR))
+	  && CONVERT_EXPR_P (GIMPLE_STMT_OPERAND (def_stmt, 1)))
 	{
 	  tree rhs = GIMPLE_STMT_OPERAND (def_stmt, 1);
 	  if (TYPE_PRECISION (TREE_TYPE (rhs))
@@ -202,8 +201,7 @@ recognize_single_bit_test (tree cond_expr, tree *name, tree *bit)
 	if (TREE_CODE (t) != GIMPLE_MODIFY_STMT)
 	  break;
 	t = GIMPLE_STMT_OPERAND (t, 1);
-	if (TREE_CODE (t) == NOP_EXPR
-	    || TREE_CODE (t) == CONVERT_EXPR)
+	if (CONVERT_EXPR_P (t))
 	  t = TREE_OPERAND (t, 0);
       } while (TREE_CODE (t) == SSA_NAME);
 

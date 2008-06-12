@@ -83,7 +83,7 @@ package Rtsfind is
 
    --    Names of the form System_Tasking_xxx are second level children of the
    --    package System.Tasking. For example, System_Tasking_Stages refers to
-   --    refers to the package System.Tasking.Stages.
+   --    the package System.Tasking.Stages.
 
    --    Other names stand for themselves (e.g. System for package System)
 
@@ -144,6 +144,7 @@ package Rtsfind is
       --  Children of Ada.Real_Time
 
       Ada_Real_Time_Delays,
+      Ada_Real_Time_Timing_Events,
 
       --  Children of Ada.Streams
 
@@ -394,7 +395,7 @@ package Rtsfind is
    --  Range of values for children of Ada.Interrupts
 
    subtype Ada_Real_Time_Child is Ada_Child
-     range Ada_Real_Time_Delays .. Ada_Real_Time_Delays;
+     range Ada_Real_Time_Delays .. Ada_Real_Time_Timing_Events;
    --  Range of values for children of Ada.Real_Time
 
    subtype Ada_Streams_Child is Ada_Child
@@ -470,6 +471,12 @@ package Rtsfind is
 
      RE_Null,
 
+     RO_CA_Time,                         -- Ada.Calendar
+
+     RO_CA_Delay_For,                    -- Ada.Calendar.Delays
+     RO_CA_Delay_Until,                  -- Ada.Calendar.Delays
+     RO_CA_To_Duration,                  -- Ada.Calendar.Delays
+
      RE_Set_Deadline,                    -- Ada.Dispatching.EDF
 
      RE_Code_Loc,                        -- Ada.Exceptions
@@ -502,6 +509,16 @@ package Rtsfind is
      RE_Reference,                       -- Ada.Interrupts
 
      RE_Names,                           -- Ada.Interrupts.Names
+
+     RE_Clock,                           -- Ada.Real_Time
+     RE_Time_Span,                       -- Ada.Real_Time
+     RE_Time_Span_Zero,                  -- Ada.Real_Time
+     RO_RT_Time,                         -- Ada.Real_Time
+
+     RO_RT_Delay_Until,                  -- Ada.Real_Time.Delays
+     RO_RT_To_Duration,                  -- Ada.Real_Time.Delays
+
+     RE_Timing_Event,                    -- Ada_Real_Time_Timing_Events
 
      RE_Root_Stream_Type,                -- Ada.Streams
      RE_Stream_Element,                  -- Ada.Streams
@@ -590,23 +607,12 @@ package Rtsfind is
      RE_TK_Tagged,                       -- Ada.Tags
      RE_TK_Task,                         -- Ada.Tags
 
+     RE_Set_Specific_Handler,            -- Ada.Task_Termination
+     RE_Specific_Handler,                -- Ada.Task_Termination
+
      RE_Abort_Task,                      -- Ada.Task_Identification
      RE_Current_Task,                    -- Ada.Task_Identification
      RO_AT_Task_Id,                      -- Ada.Task_Identification
-
-     RO_CA_Time,                         -- Ada.Calendar
-
-     RO_CA_Delay_For,                    -- Ada.Calendar.Delays
-     RO_CA_Delay_Until,                  -- Ada.Calendar.Delays
-     RO_CA_To_Duration,                  -- Ada.Calendar.Delays
-
-     RE_Clock,                           -- Ada.Real_Time
-     RE_Time_Span,                       -- Ada.Real_Time
-     RE_Time_Span_Zero,                  -- Ada.Real_Time
-     RO_RT_Time,                         -- Ada.Real_Time
-
-     RO_RT_Delay_Until,                  -- Ada.Real_Time.Delays
-     RO_RT_To_Duration,                  -- Ada.Real_Time.Delays
 
      RE_Integer_64,                      -- Interfaces
      RE_Unsigned_8,                      -- Interfaces
@@ -1078,6 +1084,7 @@ package Rtsfind is
 
      RE_DSA_Implementation,              -- System.Partition_Interface
      RE_PCS_Version,                     -- System.Partition_Interface
+     RE_Get_RACW,                        -- System.Partition_Interface
      RE_Get_RCI_Package_Receiver,        -- System.Partition_Interface
      RE_Get_Unique_Remote_Pointer,       -- System.Partition_Interface
      RE_RACW_Stub_Type_Access,           -- System.Partition_Interface
@@ -1255,6 +1262,7 @@ package Rtsfind is
      RE_Shared_Var_ROpen,                -- System.Shared_Storage
      RE_Shared_Var_Unlock,               -- System.Shared_Storage
      RE_Shared_Var_WOpen,                -- System.Shared_Storage
+     RE_Shared_Var_Procs,                -- System.Shared_Storage
 
      RE_Abort_Undefer_Direct,            -- System.Standard_Library
      RE_Exception_Code,                  -- System.Standard_Library
@@ -1450,6 +1458,9 @@ package Rtsfind is
      RE_Mul_G,                           -- System.Vax_Float_Operations
      RE_Neg_F,                           -- System.Vax_Float_Operations
      RE_Neg_G,                           -- System.Vax_Float_Operations
+     RE_Return_D,                        -- System.Vax_Float_Operations
+     RE_Return_F,                        -- System.Vax_Float_Operations
+     RE_Return_G,                        -- System.Vax_Float_Operations
      RE_Sub_F,                           -- System.Vax_Float_Operations
      RE_Sub_G,                           -- System.Vax_Float_Operations
 
@@ -1515,7 +1526,9 @@ package Rtsfind is
      RE_Lock_Entries,                    -- Tasking.Protected_Objects.Entries
      RO_PE_Get_Ceiling,                  -- Tasking.Protected_Objects.Entries
      RO_PE_Set_Ceiling,                  -- Tasking.Protected_Objects.Entries
+     RO_PE_Set_Entry_Name,               -- Tasking.Protected_Objects.Entries
      RE_Unlock_Entries,                  -- Tasking.Protected_Objects.Entries
+
      RE_Communication_Block,             -- Protected_Objects.Operations
      RE_Protected_Entry_Call,            -- Protected_Objects.Operations
      RE_Service_Entries,                 -- Protected_Objects.Operations
@@ -1589,15 +1602,22 @@ package Rtsfind is
      RE_Free_Task,                       -- System.Tasking.Stages
      RE_Expunge_Unactivated_Tasks,       -- System.Tasking.Stages
      RE_Move_Activation_Chain,           -- System_Tasking_Stages
+     RO_TS_Set_Entry_Name,               -- System.Tasking.Stages
      RE_Terminated);                     -- System.Tasking.Stages
 
-   --  The following declarations build a table that is indexed by the
-   --  RTE function to determine the unit containing the given entity.
-   --  This table is sorted in order of package names.
+   --  The following declarations build a table that is indexed by the RTE
+   --  function to determine the unit containing the given entity. This table
+   --  is sorted in order of package names.
 
    RE_Unit_Table : array (RE_Id) of RTU_Id := (
 
      RE_Null                             => RTU_Null,
+
+     RO_CA_Time                          => Ada_Calendar,
+
+     RO_CA_Delay_For                     => Ada_Calendar_Delays,
+     RO_CA_Delay_Until                   => Ada_Calendar_Delays,
+     RO_CA_To_Duration                   => Ada_Calendar_Delays,
 
      RE_Set_Deadline                     => Ada_Dispatching_EDF,
 
@@ -1631,6 +1651,16 @@ package Rtsfind is
      RE_Reference                        => Ada_Interrupts,
 
      RE_Names                            => Ada_Interrupts_Names,
+
+     RE_Clock                            => Ada_Real_Time,
+     RE_Time_Span                        => Ada_Real_Time,
+     RE_Time_Span_Zero                   => Ada_Real_Time,
+     RO_RT_Time                          => Ada_Real_Time,
+
+     RO_RT_Delay_Until                   => Ada_Real_Time_Delays,
+     RO_RT_To_Duration                   => Ada_Real_Time_Delays,
+
+     RE_Timing_Event                     => Ada_Real_Time_Timing_Events,
 
      RE_Root_Stream_Type                 => Ada_Streams,
      RE_Stream_Element                   => Ada_Streams,
@@ -1719,21 +1749,12 @@ package Rtsfind is
      RE_TK_Tagged                        => Ada_Tags,
      RE_TK_Task                          => Ada_Tags,
 
+     RE_Set_Specific_Handler             => Ada_Task_Termination,
+     RE_Specific_Handler                 => Ada_Task_Termination,
+
      RE_Abort_Task                       => Ada_Task_Identification,
      RE_Current_Task                     => Ada_Task_Identification,
      RO_AT_Task_Id                       => Ada_Task_Identification,
-
-     RO_CA_Time                          => Ada_Calendar,
-     RO_CA_Delay_For                     => Ada_Calendar_Delays,
-     RO_CA_Delay_Until                   => Ada_Calendar_Delays,
-     RO_CA_To_Duration                   => Ada_Calendar_Delays,
-
-     RE_Clock                            => Ada_Real_Time,
-     RE_Time_Span                        => Ada_Real_Time,
-     RE_Time_Span_Zero                   => Ada_Real_Time,
-     RO_RT_Time                          => Ada_Real_Time,
-     RO_RT_Delay_Until                   => Ada_Real_Time_Delays,
-     RO_RT_To_Duration                   => Ada_Real_Time_Delays,
 
      RE_Integer_64                       => Interfaces,
      RE_Unsigned_8                       => Interfaces,
@@ -2205,6 +2226,7 @@ package Rtsfind is
 
      RE_DSA_Implementation               => System_Partition_Interface,
      RE_PCS_Version                      => System_Partition_Interface,
+     RE_Get_RACW                         => System_Partition_Interface,
      RE_Get_RCI_Package_Receiver         => System_Partition_Interface,
      RE_Get_Unique_Remote_Pointer        => System_Partition_Interface,
      RE_RACW_Stub_Type_Access            => System_Partition_Interface,
@@ -2382,6 +2404,7 @@ package Rtsfind is
      RE_Shared_Var_ROpen                 => System_Shared_Storage,
      RE_Shared_Var_Unlock                => System_Shared_Storage,
      RE_Shared_Var_WOpen                 => System_Shared_Storage,
+     RE_Shared_Var_Procs                 => System_Shared_Storage,
 
      RE_Abort_Undefer_Direct             => System_Standard_Library,
      RE_Exception_Code                   => System_Standard_Library,
@@ -2577,6 +2600,9 @@ package Rtsfind is
      RE_Mul_G                            => System_Vax_Float_Operations,
      RE_Neg_F                            => System_Vax_Float_Operations,
      RE_Neg_G                            => System_Vax_Float_Operations,
+     RE_Return_D                         => System_Vax_Float_Operations,
+     RE_Return_F                         => System_Vax_Float_Operations,
+     RE_Return_G                         => System_Vax_Float_Operations,
      RE_Sub_F                            => System_Vax_Float_Operations,
      RE_Sub_G                            => System_Vax_Float_Operations,
 
@@ -2650,8 +2676,11 @@ package Rtsfind is
        System_Tasking_Protected_Objects_Entries,
      RO_PE_Set_Ceiling                   =>
        System_Tasking_Protected_Objects_Entries,
+     RO_PE_Set_Entry_Name                =>
+       System_Tasking_Protected_Objects_Entries,
      RE_Unlock_Entries                   =>
        System_Tasking_Protected_Objects_Entries,
+
      RE_Communication_Block              =>
        System_Tasking_Protected_Objects_Operations,
      RE_Protected_Entry_Call             =>
@@ -2752,6 +2781,7 @@ package Rtsfind is
      RE_Free_Task                        => System_Tasking_Stages,
      RE_Expunge_Unactivated_Tasks        => System_Tasking_Stages,
      RE_Move_Activation_Chain            => System_Tasking_Stages,
+     RO_TS_Set_Entry_Name                => System_Tasking_Stages,
      RE_Terminated                       => System_Tasking_Stages);
 
    --------------------------------

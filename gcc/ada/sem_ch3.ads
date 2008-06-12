@@ -26,7 +26,7 @@
 with Nlists; use Nlists;
 with Types;  use Types;
 
-package Sem_Ch3  is
+package Sem_Ch3 is
    procedure Analyze_Component_Declaration         (N : Node_Id);
    procedure Analyze_Incomplete_Type_Decl          (N : Node_Id);
    procedure Analyze_Itype_Reference               (N : Node_Id);
@@ -171,6 +171,7 @@ package Sem_Ch3  is
    --  family declaration or a loop iteration. The index is given by an
    --  index declaration (a 'box'), or by a discrete range. The later can
    --  be the name of a discrete type, or a subtype indication.
+   --
    --  Related_Nod is the node where the potential generated implicit types
    --  will be inserted. The 2 last parameters are used for creating the name.
 

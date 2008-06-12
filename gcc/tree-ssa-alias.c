@@ -305,10 +305,7 @@ mark_non_addressable (tree var)
 
   mpt = memory_partition (var);
 
-  if (!MTAG_P (var))
-    var_ann (var)->call_clobbered = false;
-
-  bitmap_clear_bit (gimple_call_clobbered_vars (cfun), DECL_UID (var));
+  clear_call_clobbered (var);
   TREE_ADDRESSABLE (var) = 0;
 
   if (mpt)
@@ -521,6 +518,8 @@ set_initial_properties (struct alias_info *ai)
   referenced_var_iterator rvi;
   tree var;
   tree ptr;
+  bool any_pt_anything = false;
+  enum escape_type pt_anything_mask = 0;
 
   FOR_EACH_REFERENCED_VAR (var, rvi)
     {
@@ -543,8 +542,14 @@ set_initial_properties (struct alias_info *ai)
     {
       struct ptr_info_def *pi = SSA_NAME_PTR_INFO (ptr);
       tree tag = symbol_mem_tag (SSA_NAME_VAR (ptr));
-      
-      if (pi->value_escapes_p)
+
+      /* A pointer that only escapes via a function return does not
+         add to the call clobber or call used solution.
+	 To exclude ESCAPE_TO_PURE_CONST we would need to track
+	 call used variables separately or compute those properly
+	 in the operand scanner.  */
+      if (pi->value_escapes_p
+	  && pi->escape_mask & ~ESCAPE_TO_RETURN)
 	{
 	  /* If PTR escapes then its associated memory tags and
 	     pointed-to variables are call-clobbered.  */
@@ -554,22 +559,16 @@ set_initial_properties (struct alias_info *ai)
 	  if (tag)
 	    mark_call_clobbered (tag, pi->escape_mask);
 
-	  if (pi->pt_vars)
+	  /* Defer to points-to analysis if possible, otherwise
+	     clobber all addressable variables.  Parameters cannot
+	     point to local memory though.
+	     ???  Properly tracking which pointers point to non-local
+	     memory only would make a big difference here.  */
+	  if (!clobber_what_p_points_to (ptr)
+	      && !(pi->escape_mask & ESCAPE_IS_PARM))
 	    {
-	      bitmap_iterator bi;
-	      unsigned int j;	      
-	      EXECUTE_IF_SET_IN_BITMAP (pi->pt_vars, 0, j, bi)
-		{
-		  tree alias = referenced_var (j);
-
-		  /* If you clobber one part of a structure, you
-		     clobber the entire thing.  While this does not make
-		     the world a particularly nice place, it is necessary
-		     in order to allow C/C++ tricks that involve
-		     pointer arithmetic to work.  */
-		  if (!unmodifiable_var_p (alias))
-		    mark_call_clobbered (alias, pi->escape_mask);
-		}
+	      any_pt_anything = true;
+	      pt_anything_mask |= pi->escape_mask;
 	    }
 	}
 
@@ -601,6 +600,21 @@ set_initial_properties (struct alias_info *ai)
 	{
 	  mark_call_clobbered (tag, ESCAPE_IS_GLOBAL);
 	  MTAG_GLOBAL (tag) = true;
+	}
+    }
+
+  /* If a pt_anything pointer escaped we need to mark all addressable
+     variables call clobbered.  */
+  if (any_pt_anything)
+    {
+      bitmap_iterator bi;
+      unsigned int j;
+
+      EXECUTE_IF_SET_IN_BITMAP (gimple_addressable_vars (cfun), 0, j, bi)
+	{
+	  tree var = referenced_var (j);
+	  if (!unmodifiable_var_p (var))
+	    mark_call_clobbered (var, pt_anything_mask);
 	}
     }
 }
@@ -1986,21 +2000,12 @@ reset_alias_info (void)
 	bitmap_set_bit (all_nmts, DECL_UID (var));
 
       /* Since we are about to re-discover call-clobbered
-	 variables, clear the call-clobbered flag.  Variables that
-	 are intrinsically call-clobbered (globals, local statics,
-	 etc) will not be marked by the aliasing code, so we can't
-	 remove them from CALL_CLOBBERED_VARS.  
-
-	 NB: STRUCT_FIELDS are still call clobbered if they are for a
-	 global variable, so we *don't* clear their call clobberedness
-	 just because they are tags, though we will clear it if they
-	 aren't for global variables.  */
-      if (TREE_CODE (var) == NAME_MEMORY_TAG
-	  || TREE_CODE (var) == SYMBOL_MEMORY_TAG
-	  || TREE_CODE (var) == MEMORY_PARTITION_TAG
-	  || !is_global_var (var))
-	clear_call_clobbered (var);
+	 variables, clear the call-clobbered flag.  */
+      clear_call_clobbered (var);
     }
+
+  /* There should be no call-clobbered variable left.  */
+  gcc_assert (bitmap_empty_p (gimple_call_clobbered_vars (cfun)));
 
   /* Clear flow-sensitive points-to information from each SSA name.  */
   for (i = 1; i < num_ssa_names; i++)
@@ -2778,6 +2783,23 @@ may_alias_p (tree ptr, alias_set_type mem_alias_set,
   return true;
 }
 
+/* Return true, if PTR may point to a global variable.  */
+
+bool
+may_point_to_global_var (tree ptr)
+{
+  struct ptr_info_def *pi = SSA_NAME_PTR_INFO (ptr);
+
+  /* If we do not have points-to information for this variable,
+     we have to punt.  */
+  if (!pi
+      || !pi->name_mem_tag)
+    return true;
+
+  /* The name memory tag is marked as global variable if the points-to
+     set contains a global variable.  */
+  return is_global_var (pi->name_mem_tag);
+}
 
 /* Add ALIAS to the set of variables that may alias VAR.  */
 
@@ -2813,6 +2835,8 @@ set_pt_anything (tree ptr)
   struct ptr_info_def *pi = get_ptr_info (ptr);
 
   pi->pt_anything = 1;
+  /* Anything includes global memory.  */
+  pi->pt_global_mem = 1;
   pi->pt_vars = NULL;
 
   /* The pointer used to have a name tag, but we now found it pointing
@@ -2864,8 +2888,7 @@ is_escape_site (tree stmt)
       if (lhs == NULL_TREE)
 	return ESCAPE_UNKNOWN;
 
-      if (TREE_CODE (GIMPLE_STMT_OPERAND (stmt, 1)) == NOP_EXPR
-	  || TREE_CODE (GIMPLE_STMT_OPERAND (stmt, 1)) == CONVERT_EXPR
+      if (CONVERT_EXPR_P (GIMPLE_STMT_OPERAND (stmt, 1))
 	  || TREE_CODE (GIMPLE_STMT_OPERAND (stmt, 1)) == VIEW_CONVERT_EXPR)
 	{
 	  tree from
@@ -2910,12 +2933,12 @@ create_tag_raw (enum tree_code code, tree type, const char *prefix)
 
   tmp_var = build_decl (code, create_tmp_var_name (prefix), type);
 
-  /* Make the variable writable.  */
+  /* Memory tags are always writable and non-static.  */
   TREE_READONLY (tmp_var) = 0;
+  TREE_STATIC (tmp_var) = 0;
 
   /* It doesn't start out global.  */
   MTAG_GLOBAL (tmp_var) = 0;
-  TREE_STATIC (tmp_var) = 0;
   TREE_USED (tmp_var) = 1;
 
   return tmp_var;
@@ -3026,8 +3049,11 @@ get_smt_for (tree ptr, struct alias_info *ai)
   TREE_THIS_VOLATILE (tag) |= TREE_THIS_VOLATILE (tag_type);
 
   /* Make sure that the symbol tag has the same alias set as the
-     pointed-to type.  */
-  gcc_assert (tag_set == get_alias_set (tag));
+     pointed-to type or at least accesses through the pointer will
+     alias that set.  The latter can happen after the vectorizer
+     created pointers of vector type.  */
+  gcc_assert (tag_set == get_alias_set (tag)
+	      || alias_set_subset_of (tag_set, get_alias_set (tag)));
 
   return tag;
 }
@@ -3346,7 +3372,7 @@ may_be_aliased (tree var)
   /* Globally visible variables can have their addresses taken by other
      translation units.  */
   if (MTAG_P (var)
-      && (MTAG_GLOBAL (var) || TREE_PUBLIC (var)))
+      && MTAG_GLOBAL (var))
     return true;
   else if (!MTAG_P (var)
            && (DECL_EXTERNAL (var) || TREE_PUBLIC (var)))
@@ -3406,12 +3432,12 @@ add_may_alias_for_new_tag (tree tag, tree var)
   return tag;
 }
 
-/* Create a new symbol tag for PTR.  Construct the may-alias list of this type
-   tag so that it has the aliasing of VAR, or of the relevant subvars of VAR
-   according to the location accessed by EXPR.
+/* Create a new symbol tag for PTR.  Construct the may-alias list of
+   this type tag so that it has the aliasing of VAR according to the
+   location accessed by EXPR.
 
-   Note, the set of aliases represented by the new symbol tag are not marked
-   for renaming.  */
+   Note, the set of aliases represented by the new symbol tag are not
+   marked for renaming.  */
 
 void
 new_type_alias (tree ptr, tree var, tree expr)
@@ -3434,42 +3460,9 @@ new_type_alias (tree ptr, tree var, tree expr)
   ali = add_may_alias_for_new_tag (tag, var);
 
   set_symbol_mem_tag (ptr, ali);
-  TREE_READONLY (tag) = TREE_READONLY (var);
   MTAG_GLOBAL (tag) = is_global_var (var);
 }
 
-/* ???  Stub.  */
-
-static unsigned int
-create_structure_vars (void)
-{
-  return TODO_rebuild_alias;
-}
-
-static bool
-gate_structure_vars (void)
-{
-  return flag_tree_salias != 0;
-}
-
-struct gimple_opt_pass pass_create_structure_vars = 
-{
- {
-  GIMPLE_PASS,
-  "salias",		 /* name */
-  gate_structure_vars,	 /* gate */
-  create_structure_vars, /* execute */
-  NULL,			 /* sub */
-  NULL,			 /* next */
-  0,			 /* static_pass_number */
-  0,			 /* tv_id */
-  PROP_cfg,		 /* properties_required */
-  0,			 /* properties_provided */
-  0,			 /* properties_destroyed */
-  0,			 /* todo_flags_start */
-  TODO_dump_func	 /* todo_flags_finish */
- }
-};
 
 /* Reset the call_clobbered flags on our referenced vars.  In
    theory, this only needs to be done for globals.  */
@@ -3504,19 +3497,15 @@ struct gimple_opt_pass pass_reset_cc_flags =
  }
 };
 
-static bool
-gate_build_alias (void)
-{
-  return !gate_structure_vars();
-}
 
+/* A dummy pass to cause aliases to be computed via TODO_rebuild_alias.  */
 
 struct gimple_opt_pass pass_build_alias =
 {
  {
   GIMPLE_PASS,
-  "build_alias",            /* name */
-  gate_build_alias,         /* gate */
+  "alias",		    /* name */
+  NULL,			    /* gate */
   NULL,                     /* execute */
   NULL,                     /* sub */
   NULL,                     /* next */
@@ -3526,6 +3515,6 @@ struct gimple_opt_pass pass_build_alias =
   PROP_alias,               /* properties_provided */
   0,                        /* properties_destroyed */
   0,                        /* todo_flags_start */
-  TODO_rebuild_alias        /* todo_flags_finish */
+  TODO_rebuild_alias | TODO_dump_func  /* todo_flags_finish */
  }
 };

@@ -409,9 +409,8 @@ struct df_ref_extract
   enum machine_mode mode;
 };
 
-/* These links are used for two purposes:
-   1) def-use or use-def chains. 
-   2) Multiword hard registers that underly a single hardware register.  */
+/* These links are used for ref-ref chains.  Currently only DEF-USE and
+   USE-DEF chains can be built by DF.  */
 struct df_link
 {
   struct df_ref *ref;
@@ -913,10 +912,9 @@ extern void df_note_add_problem (void);
 extern void df_simulate_find_defs (rtx, bitmap);
 extern void df_simulate_defs (rtx, bitmap);
 extern void df_simulate_uses (rtx, bitmap);
-extern void df_simulate_artificial_refs_at_top (basic_block, bitmap);
-extern void df_simulate_one_insn_forwards (basic_block, rtx, bitmap);
 extern void df_simulate_artificial_refs_at_end (basic_block, bitmap);
-extern void df_simulate_one_insn_backwards (basic_block, rtx, bitmap);
+extern void df_simulate_one_insn (basic_block, rtx, bitmap);
+extern void df_simulate_artificial_refs_at_top (basic_block, bitmap);
 
 /* Functions defined in df-scan.c.  */
 

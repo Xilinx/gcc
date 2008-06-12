@@ -739,7 +739,7 @@ along with GCC; see the file COPYING3.  If not see
 /* By default, only attempt to parallelize bitwise operations, and
    possibly adds/subtracts using bit-twiddling.  */
 #ifndef UNITS_PER_SIMD_WORD
-#define UNITS_PER_SIMD_WORD UNITS_PER_WORD
+#define UNITS_PER_SIMD_WORD(MODE) UNITS_PER_WORD
 #endif
 
 /* Determine whether __cxa_atexit, rather than atexit, is used to
@@ -902,6 +902,10 @@ along with GCC; see the file COPYING3.  If not see
 #define LEGITIMATE_PIC_OPERAND_P(X) 1
 #endif
 
+#ifndef TARGET_MEM_CONSTRAINT
+#define TARGET_MEM_CONSTRAINT 'm'
+#endif
+
 #ifndef REVERSIBLE_CC_MODE
 #define REVERSIBLE_CC_MODE(MODE) 0
 #endif
@@ -938,6 +942,15 @@ along with GCC; see the file COPYING3.  If not see
 
 #ifndef OUTGOING_REG_PARM_STACK_SPACE
 #define OUTGOING_REG_PARM_STACK_SPACE(FNTYPE) 0
+#endif
+
+#ifndef LOCAL_ALIGNMENT
+#define LOCAL_ALIGNMENT(TYPE, ALIGNMENT) ALIGNMENT
+#endif
+
+#ifndef STACK_SLOT_ALIGNMENT
+#define STACK_SLOT_ALIGNMENT(TYPE,MODE,ALIGN) \
+  ((TYPE) ? LOCAL_ALIGNMENT ((TYPE), (ALIGN)) : (ALIGN))
 #endif
 
 #endif  /* ! GCC_DEFAULTS_H */

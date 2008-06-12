@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -847,11 +847,15 @@ package body Inline is
             --  cleanup operations have been delayed, and the subprogram
             --  has been rewritten in the expansion of the enclosing
             --  protected body. It is the corresponding subprogram that
-            --  may require the cleanup operations.
+            --  may require the cleanup operations, so propagate the
+            --  information that triggers cleanup activity.
 
             Set_Uses_Sec_Stack
               (Protected_Body_Subprogram (Scop),
                 Uses_Sec_Stack (Scop));
+            Set_Finalization_Chain_Entity
+              (Protected_Body_Subprogram (Scop),
+                Finalization_Chain_Entity (Scop));
             Scop := Protected_Body_Subprogram (Scop);
          end if;
 
