@@ -31,6 +31,11 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
+;;;;; lines starting with ;;<< are handled by an awk script to split
+;;;;; this into several files
+
+;;<< warmelt-first.bysl
+
 ;;****************************************************************
 ;;       C L A S S E S 
 ;;****************************************************************
@@ -305,6 +310,49 @@
 	   )
 )
 
+;;;;;; export the above classes
+(export_class 				;;in alphabetical order, one per line, for convenience
+ class_any_binding
+ class_class
+ class_class_binding
+ class_clonedsymbol
+ class_container
+ class_ctype
+ class_debuginfo 
+ class_discr 
+ class_environment
+ class_exported_binding
+ class_field
+ class_field_binding
+ class_fixed_binding
+ class_formal_binding
+ class_function_binding
+ class_instance_binding
+ class_keyword
+ class_label_binding
+ class_let_binding
+ class_located
+ class_macro_binding
+ class_named
+ class_normlet_binding
+ class_primitive
+ class_primitive_binding
+ class_proped 
+ class_root
+ class_selector
+ class_selector_binding 
+ class_sexpr
+ class_src
+ class_symbol
+ class_system_data
+ class_tokenizer
+ class_value_binding 
+ )					;end of export class
+
+
+;;>>
+
+;;<< warmelt-macro.bysl
 
 ;;; source application 
 (defclass class_src_apply
@@ -571,6 +619,8 @@
     :fields (
 ))
 
+;;>>
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; ================ normalized representations
 
@@ -579,6 +629,8 @@
 ;; is let y=(g x) in (f a y)
 ;; etc... where y is a cloned symbol
 
+;;<< warm-normal.bysl
+;;; common superclass for normalized representations
 (defclass class_nrep
   :super class_root
   :fields (nrep_loc			;location in source
@@ -960,6 +1012,11 @@
   :fields (nexp_mexp			;normalized exp
 	   
 ))
+
+;;>>
+
+;;<< warmelt-first.bysl
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; module compilation context
 (defclass class_modulcontext
@@ -1017,6 +1074,7 @@
   :fields (
 ))
 
+;;>>
 
 ;;;; value like objects
 (defclass class_objvalue
@@ -1534,10 +1592,10 @@
 (defprimitive zerop (:long i) :long "((" i ") == OL)")
 ;; primitive for testing if debug
 (defprimitive need_dbg (:long depth) :long
-  "(dump_file && (" depth ")>=0 && (" depth ") <= BASILYSDBG_MAXDEPTH)")
+  "(dump_file && basilys_dbgcounter>=count_basilys_debugskip && (" depth ")>=0 && (" depth ") <= BASILYSDBG_MAXDEPTH)")
 
 (defprimitive need_dbglim (:long depth limit) :long
-  "(dump_file && (" depth ")>=0 && (" depth ") < (" limit "))")
+  "(dump_file && basilys_dbgcounter>=count_basilys_debugskip && (" depth ")>=0 && (" depth ") < (" limit "))")
 ;;; debug on dumpfile
 (defprimitive outcstring_dbg (:cstring s) :void
   "basilys_puts(dump_file,(" s "))")
@@ -1904,7 +1962,7 @@
 
 ;; to signal an error in a basilys source with some additional string value
 (defprimitive error_strv (loc :cstring msg :value strv) :void
-  "error(\"BASILYS ERROR: file %s, line %d : %s - %s\","
+  "error(\"BASILYS ERROR [#%ld]: file %s, line %d : %s - %s\", basilys_dbgcounter, "
   " basilys_string_str(basilys_val_mixint(" loc ")), "
   " (int) basilys_num_mixint(" loc "), ("
   msg
@@ -1912,7 +1970,7 @@
   )
 ;; signal a plain error in a basilys source
 (defprimitive error_plain (loc :cstring msg) :void
-  "error(\"BASILYS ERROR: file %s, line %d :: %s \","
+  "error(\"BASILYS ERROR [#%ld]: file %s, line %d :: %s \", basilys_dbgcounter, "
   " basilys_string_str(basilys_val_mixint(" loc ")), "
   " (int) basilys_num_mixint(" loc "), ("
   msg "))"
@@ -3945,6 +4003,7 @@
 		    (if (not (is_a curval class_symbol))
 			(error_plain loc "bad super in defclass"))
 		    (setq supernam curval)
+		    (debug_msg supernam "scan_defclass supernam")
 		    (let ( (superb (find_env env supernam)) )
 ;;; should handle the case when the class is bound in the start environment
 ;;; to a value which happens to be a class
@@ -3963,6 +4022,7 @@
 					      (unsafe_get_field :named_name supernam))))
 			      )
 			    (:else 
+			     (debug_msg superb "scan_defclass superb")
 			     (error_strv loc "invalid super in defclass" 
 					 (unsafe_get_field :named_name supernam))
 			     )
@@ -5172,8 +5232,9 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; debug_msg support
 (defun debug_msg_fun (val :cstring msgstr :long count :cstring filenam :long lineno)
+  (increment_dbgcounter) 
   (if (need_dbg 0) 
-      (let ( (:long dbgcounter (progn (increment_dbgcounter) (the_dbgcounter)))
+      (let ( (:long dbgcounter (progn (the_dbgcounter)))
 	     (sbuf (make_strbuf discr_strbuf)) 
 	     (occmap (make_mapobject discr_mapobjects 50))
 	     (boxedmaxdepth (make_integerbox discr_integer 17)) ;;;; @@@ DEBUGDEPTH
@@ -8315,7 +8376,7 @@
 	(sloc (unsafe_get_field :src_loc recv))
 	(sxnames (unsafe_get_field :sexport_names recv))
 	(bindslist (make_list discr_list))
-	(nvaluexporter (normal_value_exporter env ncx bindslist))
+	(nvaluexporter (normal_value_exporter env ncx sloc bindslist))
 	)
     (multiple_every
      sxnames
@@ -8350,7 +8411,7 @@
 	(sloc (unsafe_get_field :src_loc recv))
 	(sxnames (unsafe_get_field :sexport_names recv))
 	(bindslist (make_list discr_list))
-	(nvaluexporter (normal_value_exporter env ncx bindslist))
+	(nvaluexporter (normal_value_exporter env ncx sloc bindslist))
 	)
     (multiple_every
      sxnames
@@ -8831,9 +8892,12 @@
       (add2sbuf_string sbuf oname)
       (add2sbuf_strconst sbuf "*/")
       (add2sbuf_indentnl sbuf 1)
+      ;; we really initialize the predefined only if it was not initialized
       (cond
        ( (is_a oiopredef class_symbol)
-	 (add2sbuf_strconst sbuf "/*inipredefsym*/ BASILYSG(")
+	 (add2sbuf_strconst sbuf "if (!BASILYSG(")
+	 (add2sbuf_string sbuf (unsafe_get_field :named_name oiopredef))
+	 (add2sbuf_strconst sbuf ")) BASILYSG(")
 	 (add2sbuf_string sbuf (unsafe_get_field :named_name oiopredef))
 	 (add2sbuf_strconst sbuf ") = (void*)&cdat->")
 	 (add2sbuf_string sbuf oname)
@@ -8841,7 +8905,9 @@
 	 (add2sbuf_indentnl sbuf 1)
 	 )
        ( (is_integerbox oiopredef)
-	 (add2sbuf_strconst sbuf "/*inipredefnum*/ basilys_globarr[")
+	 (add2sbuf_strconst sbuf "if (!basilys_globarr[")
+	 (add2sbuf_longdec sbuf (get_int oiopredef))
+	 (add2sbuf_strconst sbuf "]) basilys_globarr[")
 	 (add2sbuf_longdec sbuf (get_int oiopredef))
 	 (add2sbuf_strconst sbuf "] = (void*)&cdat->")
 	 (add2sbuf_string sbuf oname)

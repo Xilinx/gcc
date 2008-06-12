@@ -356,6 +356,11 @@ fbasilys-debug
 Common Report Var(flag_basilys_debug)  Condition(HAVE_PARMAPOLY && HAVE_LIBTOOLDYNL && ENABLE_BASILYSMELT)
 Gives lots of debugging stuff for -fbasilys analysis
 
+; debug skip for above analysis
+fbasilys-debugskip=
+Common Report Var(count_basilys_debugskip)  Condition(HAVE_PARMAPOLY && HAVE_LIBTOOLDYNL && ENABLE_BASILYSMELT)
+Counter of debug prints to skip for -fbasilys-debug
+
 ; dynlib plugin directory for basilys
 fbasilys-dynlibdir=
 Common Report Var(basilys_dynlibdir_string) RejectNegative Joined  Condition(HAVE_PARMAPOLY && HAVE_LIBTOOLDYNL && ENABLE_BASILYSMELT)

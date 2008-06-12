@@ -5643,7 +5643,15 @@ load_basilys_modules_and_do_command (void)
    **/
   while (curmod && curmod[0])
     {
+      /* modules are separated by a semicolon ';' - this should be
+	 acceptable on Unixes and even Windows */
       nextmod = strchr (curmod, ';');
+#if !HAVE_DOS_BASED_FILE_SYSTEM
+      /* for convenience, on non DOS based systems like Unix-es and
+	 Linux, we also accept the colon ':' */
+      if (!nextmod) 
+	nextmod = strchr (curmod, ':');
+#endif
       if (nextmod)
 	{
 	  *nextmod = (char) 0;

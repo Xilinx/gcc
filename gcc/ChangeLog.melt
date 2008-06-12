@@ -1,3 +1,17 @@
+2008-06-12  Basile Starynkevitch  <basile@starynkevitch.net>
+	* common.opt: added fbasilys-debugskip= option.
+
+	* basilys.c: (load_basilys_modules_and_do_command) on non MsDos
+	systems like Linux & unixes, a colon ':' can be used as separator
+	in the init string, in addition of the semi-colon ';'.
+
+	* melt/warm-basilys.bysl: adding ;;<< and ;;>> comments to split
+	into several files. Initial predefs are set only if previously
+	null. Added export_class of main classes. need_dbg uses the
+	count_basilys_debugskip and the basilys_dbgcounter, which is
+	always incremented in debug_msg_fun and displayed in error_*
+	messages.
+
 2008-06-11  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt/warm-basilys.bysl: export_macro normalisation done
