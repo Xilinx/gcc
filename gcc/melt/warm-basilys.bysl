@@ -363,6 +363,9 @@
   :fields (
 ))
 
+
+(compile_warning "the export-s should be moved below, after filling the initial_system_data!" ())
+
 ;;;;;; export the above classes
 (export_class ;;in alphabetical order, one per line, for convenience
  class_any_binding
@@ -950,6 +953,35 @@
   msg "))"
   )
 
+
+;; to signal an inform in a basilys source with some additional string value
+(defprimitive inform_strv (loc :cstring msg :value strv) :void
+  "inform(\"BASILYS INFORM: file %s, line %d : %s - %s\","
+  " basilys_string_str(basilys_val_mixint(" loc ")), "
+  " (int) basilys_num_mixint(" loc "), ("
+  msg
+  "), basilys_string_str((" strv ")))"
+  )
+;; signal a plain inform in a basilys source
+(defprimitive inform_plain (loc :cstring msg) :void
+  "inform(\"BASILYS INFORM: file %s, line %d :: %s \","
+  " basilys_string_str(basilys_val_mixint(" loc ")), "
+  " (int) basilys_num_mixint(" loc "), ("
+  msg "))"
+  )
+
+(defprimitive informsg_strv (:cstring msg :value strv) :void
+  "inform((\"BASILYS INFORM: %s - %s\"), ("
+  msg
+  "), basilys_string_str((" strv ")))"
+  )
+
+(defprimitive informsg_plain (:cstring msg) :void
+  "inform((\"BASILYS INFORM: %s \"), ("
+  msg
+  "))"
+  )
+
 ;;;; export the above primitives
 (export_values				;in alphanumerical order
  !=
@@ -1439,19 +1471,29 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; initial fresh environment maker
 (defun initfresh_envmaker (prevenv)
+  (messageval_dbg "initfresh_envmaker prevenv=" prevenv)
   (debug_msg prevenv "initfresh_envmaker prevenv")
   (let ( (newenv (fresh_env prevenv)) )
     (debug_msg newenv "initfresh_envmaker result newenv")
+    (messageval_dbg "initfresh_envmaker newenv=" newenv)
     (return newenv)
     ))
 
 ;; initial value exporter
 (defun initvalue_exporter (sym val env)
+  (messageval_dbg "initvalue_exporter sym=" sym)
+  (messageval_dbg "initvalue_exporter val=" val)
+  (messageval_dbg "initvalue_exporter env=" env)
   (debug_msg sym "initvalue_exporter sym")
   (debug_msg val "initvalue_exporter val")
   (debug_msg env "initvalue_exporter env")
   (assert_msg "check sym" (is_a sym class_symbol))
-  (assert_msg "check env" (is_a env class_environment))
+  (if (null env)
+      (progn
+	(informsg_strv "exporting value too early with null environment" (unsafe_get_field :named_name sym))
+	(return)
+      ))
+  (assert_msg "check good env" (is_a env class_environment))
   (let ( (valbind (make_instance
 		   class_value_binding
 		   :binder sym
@@ -1469,6 +1511,11 @@
   (debug_msg val "initmacro_exporter val")
   (debug_msg env "initmacro_exporter env")
   (assert_msg "check sym" (is_a sym class_symbol))
+  (if (null env)
+      (progn
+	(informsg_strv "exporting macro too early with null environment" (unsafe_get_field :named_name sym))
+	(return)
+      ))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check val is closure" (is_closure val))
   (let ( (macbind (make_instance
@@ -8959,6 +9006,8 @@
 	(sxnames (unsafe_get_field :sexport_names recv))
 	(bindslist (make_list discr_list))
 	(nvaluexporter (normal_value_exporter env ncx sloc bindslist))
+	(nilnrep (make_instance class_nrep_nil
+				:nrep_loc sloc))
 	)
     (multiple_every
      sxnames
@@ -8969,14 +9018,15 @@
 	(nsym nsymbinds)
 	(normal_exp xnam env ncx sloc)
 	(debug_msg nsym "normexp_export_values nsym")
-	(debug_msg nsymbinds "normexp_export_values nsym")
+	(debug_msg nsymbinds "normexp_export_values nsymbinds")
 	(list_append2list bindslist nsymbinds)
 	(let ( (nexpv (normal_exported_value xnam nsym nvaluexporter env ncx sloc bindslist))
 	       )
 	  (debug_msg nexpv "normexp_export_values nexpv")
 	  ))))
+    (debug_msg nilnrep "normexp_export_values final nilnrep")
     (debug_msg bindslist "normexp_export_values final bindslist")
-    (return () bindslist)
+    (return nilnrep bindslist)
     ))
 	
 
@@ -8994,6 +9044,8 @@
 	(sxnames (unsafe_get_field :sexport_names recv))
 	(bindslist (make_list discr_list))
 	(nvaluexporter (normal_value_exporter env ncx sloc bindslist))
+	(nilnrep (make_instance class_nrep_nil
+				:nrep_loc sloc))
 	)
     (multiple_every
      sxnames
@@ -9041,8 +9093,9 @@
 			    (debug_msg nfld "normexp_export_class nfld")
 			    ))))))))))
        ))
+    (debug_msg nilnrep "normexp_export_class final nilnrep")
     (debug_msg bindslist "normexp_export_class final bindslist")
-    (return () bindslist)
+    (return nilnrep bindslist)
     ))
 (install_method class_src_export_class normal_exp normexp_export_class)
 
@@ -9053,6 +9106,7 @@
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check bindslist" (is_list bindslist))
   (assert_msg "check ncx" (is_a ncx class_normcontext))
+  (debug_msg psloc "normal_macro_exporter start psloc")
   (let ( (csymvalexp (clone_symbol '_macroxporter_))
 	 (nsysdat (make_instance class_nrep_predef
 				 :nrep_loc psloc
@@ -9072,6 +9126,7 @@
 				:nocc_bind cbind))
 	 )
     (list_append bindslist cbind)
+    (debug_msg locsym "normal_macro_exporter return locsym")
     (return locsym)
     ))
 
@@ -9134,6 +9189,7 @@
 	(mvalexp (unsafe_get_field :sexpmac_mval recv))
 	(bindslist (make_list discr_list))
 	(nmacexp (normal_macro_exporter env ncx sloc bindslist))
+	(nrepnil (make_instance class_nrep_nil :nrep_loc sloc))
 	)
     (assert_msg "check mname" (is_a mname class_symbol))
     (multicall 
@@ -9145,8 +9201,9 @@
 	   )
        (debug_msg nexpm "normexp_export_macro nexpm")
        )
-       (debug_msg bindslist "normexp_export_macro final bindslist")
-     (return () bindslist)
+     (debug_msg nrepnil "normexp_export_macro final nrepnil")
+     (debug_msg bindslist "normexp_export_macro final bindslist")
+     (return nrepnil bindslist)
      )))
 (install_method class_src_export_macro normal_exp normexp_export_macro)
 
@@ -9477,25 +9534,29 @@
 (install_method class_root output_c_initpredef outcinitpredef_root)
 
 ;;; output a predef
+(defun output_predef (obpr implbuf :long depth)
+  (cond 
+   ( (is_integerbox obpr)
+     (add2sbuf_strconst implbuf "basilys_globpredef(")
+     (add2sbuf_longdec implbuf (get_int obpr))
+     (add2sbuf_strconst implbuf ")")
+     )
+   ( (is_a obpr class_symbol)
+     (add2sbuf_strconst implbuf "((void*)(BASILYSG(")
+     (add2sbuf_string implbuf (unsafe_get_field :named_name obpr))
+     (add2sbuf_strconst implbuf ")))")
+     )
+   ( :else
+     (debug_msg obpredef "bad obpredef")
+     (assert_msg "invalid obpredef" ())
+     )
+   ))
+
+;;; output code for a predef
 (defun outpucod_predef (obpred declbuf implbuf :long depth)
   (assert_msg "check obpredef" (is_a obpred class_objpredef))
   (let ( (obpr (unsafe_get_field :obpredef obpred)) )
-    (cond 
-     ( (is_integerbox obpr)
-       (add2sbuf_strconst implbuf "basilys_globpredef(")
-       (add2sbuf_longdec implbuf (get_int obpr))
-       (add2sbuf_strconst implbuf ")")
-       )
-     ( (is_a obpr class_symbol)
-       (add2sbuf_strconst implbuf "((void*)(BASILYSG(")
-       (add2sbuf_string implbuf (unsafe_get_field :named_name obpr))
-       (add2sbuf_strconst implbuf ")))")
-       )
-     ( :else
-       (debug_msg obpredef "bad obpredef")
-       (assert_msg "invalid obpredef" ())
-       )
-     )))
+    (output_predef obpr implbuf depth)))
 (install_method class_objpredef output_c_code outpucod_predef)
 
 ;;;; output a nil
@@ -9541,15 +9602,38 @@
       (add2sbuf_string sbuf oname)
       (add2sbuf_strconst sbuf "*/")
       (add2sbuf_indentnl sbuf 1)
-      (if olocvar
+      (if oiopredef
 	  (progn
-	    ; (add2sbuf_strconst sbuf "/*inioblocvar*/ ")
-	    (output_c_code olocvar (the_null) sbuf 1)
-	    (add2sbuf_strconst sbuf " = (void*)&cdat->")
+	    (add2sbuf_strconst sbuf "if (")
+	    (output_predef oiopredef sbuf 1)
+	    (add2sbuf_strconst sbuf " != (void*)&cdat->")
 	    (add2sbuf_string sbuf oname)
+	    (add2sbuf_strconst sbuf ") {")
+	    (add2sbuf_indentnl sbuf 2)
+	    (add2sbuf_strconst sbuf "basilys_assertmsg(\"check.predef length ")
+	    (output_predef oiopredef sbuf 2)
+	    (add2sbuf_strconst sbuf "\", basilys_object_length(")
+	    (output_predef oiopredef sbuf 2)
+	    (add2sbuf_strconst sbuf ") >= ")
+	    (add2sbuf_longdec sbuf (multiple_length odslots))
+	    (add2sbuf_strconst sbuf ");")
+	    (add2sbuf_indentnl sbuf 2)
+	    (add2sbuf_strconst sbuf "};")
+	    (add2sbuf_indentnl sbuf 1)
+	    (output_c_code olocvar (the_null) sbuf 1)
+	    (add2sbuf_strconst sbuf " = ")
+	    (output_predef oiopredef sbuf 1)
 	    (add2sbuf_strconst sbuf ";")
 	    (add2sbuf_indentnl sbuf 1)
-	    ))
+	    )
+	(progn
+					; (add2sbuf_strconst sbuf "/*inioblocvar*/ ")
+	  (output_c_code olocvar (the_null) sbuf 1)
+	  (add2sbuf_strconst sbuf " = (void*)&cdat->")
+	  (add2sbuf_string sbuf oname)
+	  (add2sbuf_strconst sbuf ";")
+	  (add2sbuf_indentnl sbuf 1)
+	  ))
       ;;generate the check that odiscr is non-null 
       (add2sbuf_strconst sbuf " basilys_assertmsg(\"iniobj checkdiscr ")
       (add2sbuf_string sbuf oname)
@@ -9639,6 +9723,10 @@
 	 (add2sbuf_string sbuf oname)
 	 (add2sbuf_strconst sbuf ";")
 	 (add2sbuf_indentnl sbuf 1)
+	 (add2sbuf_strconst sbuf "else fnotice(stderr, \"BASILYS: predefined %s already defined <%s:%d>\\n\", \"")
+	 (add2sbuf_string sbuf (unsafe_get_field :named_name oiopredef))
+	 (add2sbuf_strconst sbuf "\", __FILE__, __LINE__);")
+	 (add2sbuf_indentnl sbuf 1)
 	 )
        ( (is_integerbox oiopredef)
 	 (add2sbuf_strconst sbuf "if (!basilys_globarr[")
@@ -9649,6 +9737,9 @@
 	 (add2sbuf_string sbuf oname)
 	 (add2sbuf_strconst sbuf ";")
 	 (add2sbuf_indentnl sbuf 1)
+	 (add2sbuf_strconst sbuf "else fnotice(\"BASILYS: predefined #%d already defined <%s:%d>\\n\", ")
+	 (add2sbuf_longdec sbuf (get_int oiopredef))
+	 (add2sbuf_strconst sbuf ", __FILE__, __LINE__);")
 	 )
        ( (null oiopredef)
 	 (return (the_null)))
@@ -12027,7 +12118,7 @@
 							    ") && basilys_magic_discr(")
 					  ofreshenv
 					  (make_stringconst discr_verbatimstring 
-							    ") != OBMAG_CLOSURE) warning(0, \"bad basilys fresh_env @%p in system data <%s:%d>\", ")
+							    ") != OBMAG_CLOSURE) warning(0, \"bad BASILYS fresh_env @%p in system data <%s:%d>\", ")
 					  ofreshenv
 					  (make_stringconst discr_verbatimstring ", __FILE__, __LINE__);"))))
 	     ;; generate the apply of ofreshenv

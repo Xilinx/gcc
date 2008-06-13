@@ -4448,7 +4448,15 @@ dylibfound:
   debugeprintf
     ("basilysgc_compile before calling start_module_basilys @%p",
      (void *) dlsy);
-  BASILYS_LOCATION_HERE("basilysgc_compile_dyn before calling module");
+#if ENABLE_CHECKING
+  {
+    static char locbuf[80];
+    memset (locbuf, 0, sizeof(locbuf));
+    snprintf(locbuf, sizeof(locbuf)-1, "%s:%d:basilysgc_compile_dyn before calling module %s", 
+	     basename(__FILE__), __LINE__, modfile);
+    curfram__.flocs = locbuf;
+  }
+#endif
   modulv = (*starout) (mdatav);
   BASILYS_LOCATION_HERE("basilysgc_compile_dyn after calling module");
   debugeprintvalue ("modulv after calling start_module_basilys", modulv);
@@ -5110,6 +5118,10 @@ readstring (struct reading_st *rd)
 	      c = '\"';
 	      rdnext ();
 	      break;
+	    case '\\':
+	      c = '\\';
+	      rdnext ();
+	      break;
 	    case '\n':
 	    case '\r':
 	      skipspace_getc (rd, COMMENT_NO);
@@ -5151,8 +5163,8 @@ readstring (struct reading_st *rd)
 	      }
 	      break;
 	    default:
-	      READ_ERROR ("illegal escape sequence %.10s in string",
-			  &rdcurc () - 1);
+	      READ_ERROR ("illegal escape sequence %.10s in string -- got \\%c (hex %x)",
+			  &rdcurc () - 1, c, c);
 	    }
 	  obstack_1grow (&bstring_obstack, (char) c);
 	}

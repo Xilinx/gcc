@@ -4745,16 +4745,16 @@ warm-basilys-1.c: warm-basilys-0.so cc1$(exeext) $(srcdir)/melt/warm-basilys.bys
 	ls -l $@
 
 ## temporary
-warmelt-first.c: warm-basilys-2.so cc1$(exeext) warmelt-first.bysl
+warmelt-first.c: warm-basilys-3.so cc1$(exeext) warmelt-first.bysl
 	-rm -f $@ 
-	@echo generating warmelt-first using warm-basilys-2
-	$(MELTBASILYSCCINIT1) -fbasilys-init='warm-basilys-2' \
+	@echo generating warmelt-first using warm-basilys-3
+	$(MELTBASILYSCCINIT1) -fbasilys-init='warm-basilys-3' \
 	      -fbasilys-arg=warmelt-first.bysl \
 	      -fbasilys-secondarg=$@
 	ls -l $@
-warmelt-macro.c: warm-basilys-2.so cc1$(exeext) warmelt-macro.bysl warmelt-first.so
-	@echo generating warmelt-macro using warm-basilys-2 
-	$(MELTBASILYSCCFILE1) -fbasilys-init='warm-basilys-2:warmelt-first' \
+warmelt-macro.c: warm-basilys-3.so cc1$(exeext) warmelt-macro.bysl warmelt-first.so
+	@echo generating warmelt-macro using warm-basilys-3
+	$(MELTBASILYSCCFILE1) -fbasilys-init='warm-basilys-3:warmelt-first' \
 	      -fbasilys-arg=warmelt-macro.bysl \
 	      -fbasilys-secondarg=$@
 	ls -l $@

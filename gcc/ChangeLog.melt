@@ -1,4 +1,15 @@
 2008-06-13  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warm-basilys.bysl: all the normexp_export* should return a nrep_nil!
+	output of predefs carefully avoid to overwrite an existing predef.
+	All the export_* should be moved after the filling of initial_system_data.
+
+	* basilys.c:
+	(readstring) forgot to handle \\ escape!
+	(basilysgc_compile_dyn) sets dynamically the flocs before calling the module.
+
+	* Makefile.in: warmelt-macro.c uses warm-basilys-3.so for generation.
+
+2008-06-13  Basile Starynkevitch  <basile@starynkevitch.net>
 	MELT branch merged with trunk r136757
 
 2008-06-13  Basile Starynkevitch  <basile@starynkevitch.net>
