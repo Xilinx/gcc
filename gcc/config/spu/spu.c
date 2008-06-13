@@ -209,6 +209,10 @@ static const char *spu_addr_space_name (int);
 #undef TARGET_ADDR_SPACE_NAME
 #define TARGET_ADDR_SPACE_NAME spu_addr_space_name
 
+static unsigned char spu_addr_space_number (const tree);
+#undef TARGET_ADDR_SPACE_NUMBER
+#define TARGET_ADDR_SPACE_NUMBER spu_addr_space_number
+
 static rtx (* spu_addr_space_conversion_rtl (int, int)) (rtx, rtx);
 #undef TARGET_ADDR_SPACE_CONVERSION_RTL
 #define TARGET_ADDR_SPACE_CONVERSION_RTL spu_addr_space_conversion_rtl
@@ -5945,3 +5949,16 @@ bool spu_valid_addr_space (tree value)
   return false;
 }
 
+static
+unsigned char spu_addr_space_number (tree ident)
+{
+  int i;
+  if (!ident)
+    return 0;
+
+  for (i = 0; spu_address_spaces[i].name; i++)
+    if (strcmp (IDENTIFIER_POINTER (ident), spu_address_spaces[i].name) == 0)
+      return i;
+
+  gcc_unreachable ();
+}
