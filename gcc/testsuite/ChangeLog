@@ -1,8 +1,68 @@
+2008-06-13  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/36476
+	* gfortran.dg/parameter_array_init_4.f90: New.
+
+2008-06-13  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc.c-torture/compile/20080613-1.c: New test.
+
+2008-06-13  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c/36507
+	* gcc.dg/inline-28.c: New test.
+	* gcc.dg/inline-29.c: New test.
+	* gcc.dg/inline-30.c: New test.
+
+2008-06-12  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/36462
+	* gfortran.dg/index_2.f90: New.
+
+2008-06-12  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/discr9.ad[sb]: New test.
+
+2008-06-12  Joseph Myers  <joseph@codesourcery.com>
+
+	* gcc.dg/compat/struct-layout-1.exp (orig_gcc_exec_prefix_saved):
+	Always initialize.
+	* g++.dg/compat/struct-layout-1.exp (orig_gcc_exec_prefix_saved):
+	Always initialize.
+
+2008-06-12  Jakub Jelinek  <jakub@redhat.com>
+
+	PR testsuite/36443
+	* gcc.dg/compat/struct-layout-1.exp: Temporarily unset
+	GCC_EXEC_PREFIX from environment when running $HOSTCC.
+	* g++.dg/compat/struct-layout-1.exp: Likewise.
+
+2008-06-12  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/36345
+	* gcc.c-torture/execute/20020619-1.c: Remove broken part of
+	the testcase.
+
+2008-06-11  Edmar Wienskoski  <edmar@freescale.com>
+
+	PR target/36425
+	* gcc.target/powerpc/e500-1.c: New test case to verify
+	mno-isel option.
+
+2008-06-11  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/specs/varsize_copy.ad[sb]: New test.
+
+2008-06-10  Uros Bizjak  <ubizjak@gmail.com>
+
+	* gcc.target/i386/bt-mask-1.c: New test.
+	* gcc.target/i386/bt-mask-2.c: Ditto.
+
 2008-06-10  Uros Bizjak  <ubizjak@gmail.com>
 
 	PR target/36473
-	* testsuite/gcc.target/i386/bt-1.c: New test.
-	* testsuite/gcc.target/i386/bt-2.c: Ditto.
+	* gcc.target/i386/bt-1.c: New test.
+	* gcc.target/i386/bt-2.c: Ditto.
 
 2008-06-09  Andy Hutchinson  <hutchinsonandy@aim.com>
 

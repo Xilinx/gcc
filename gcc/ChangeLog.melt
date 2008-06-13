@@ -1,4 +1,7 @@
 2008-06-13  Basile Starynkevitch  <basile@starynkevitch.net>
+	MELT branch merged with trunk r136757
+
+2008-06-13  Basile Starynkevitch  <basile@starynkevitch.net>
 {moved TOKENIZER stuff into INITIAL_SYSTEM_DATA]
 
 	* common.opt: variable count_basilys_debugskip_string instead of

@@ -1,3 +1,19 @@
+2008-06-13  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/36476
+	* decl.c (do_parm): Handle init expression for len=*.
+
+2008-06-12  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/36462
+	* trans-intrinsic.c (gfc_conv_intrinsic_index_scan_verify):
+	Fix passing of the BACK= argument.
+
+2008-06-10  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	* cpp.c: Add copyright notice.
+	* cpp.h: Add copyright notice.
+
 2008-06-08  Janus Weil  <janus@gcc.gnu.org>
 
 	PR fortran/36459

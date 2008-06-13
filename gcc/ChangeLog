@@ -1,3 +1,215 @@
+2008-06-13  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR middle-end/36520
+	* builtins.c (get_memory_rtx): Test for the presence of DECL_SIZE_UNIT
+	before evaluating it.
+
+2008-06-13  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c/36507
+	* c-decl.c (merge_decls): Don't clear DECL_EXTERNAL for
+	nested inline functions.
+	(start_decl, start_function): Don't invert DECL_EXTERNAL
+	for nested inline functions.
+
+2008-06-13  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* config/mips/mips.md: Remove TARGET_DEBUG_D_MODE conditions from
+	splits that must be made for correctness.
+
+2008-06-13  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* config/mips/mips.c (BUILTIN_AVAIL_NON_MIPS16): New macro.
+	(AVAIL_NON_MIPS16): Likewise.
+	(mips_builtin_description): Replace target_flags with a predicate.
+	(paired_single, sb1_paired_single, mips3d, dsp, dspr2, dsp_32)
+	(dspr2_32): New availability predicates.
+	(MIPS_BUILTIN): New macro.
+	(DIRECT_BUILTIN, CMP_SCALAR_BUILTINS, CMP_PS_BUILTINS)
+	(CMP_4S_BUILTINS, MOVTF_BUILTINS, CMP_BUILTINS)
+	(DIRECT_NO_TARGET_BUILTIN, BPOSGE_BUILTIN): Use it.
+	Replace the TARGET_FLAGS parameters with AVAIL parameters.
+	(mips_ps_bdesc, mips_sb1_bdesc, mips_dsp_bdesc)
+	(mips_dsp_32only_bdesc): Merge into...
+	(mips_builtins): ...this new array.
+	(mips_bdesc_map, mips_bdesc_arrays): Delete.
+	(mips_init_builtins): Update after above changes.
+	(mips_expand_builtin_1): Merge into...
+	(mips_expand_builtin): ...here and update after above changes.
+
+2008-06-12  Paul Brook  <paul@codesourcery.com>
+
+	* longlong.h (__arm__): Define count_leading_zeros.
+	* config/arm/lib1funcs.asm (xxh, xxl, yyh, yyl): Define.
+	(clzsi2, clzdi2): New functions.
+	* config/arm/bpabi-v6m.S (xxh, xxl, yyh, yyl): Remove.
+	* config/arm/bpabi.S (xxh, xxl, yyh, yyl): Remove.
+	* config/arm/t-strongarm-elf (LIB1ASMFUNCS): Ditto.
+	* config/arm/t-vxworks (LIB1ASMFUNCS): Ditto.
+	* config/arm/t-pe (LIB1ASMFUNCS): Ditto.
+	* config/arm/t-arm-elf (LIB1ASMFUNCS): Ditto.
+	* config/arm/t-arm-coff (LIB1ASMFUNCS): Ditto.
+	* config/arm/t-linux (LIB1ASMFUNCS): Ditto.
+	* config/arm/t-symbian (LIB1ASMFUNCS): Ditto.
+	* config/arm/t-wince-pe (LIB1ASMFUNCS): Ditto.
+
+2008-06-12  Kazu Hirata  <kazu@codesourcery.com>
+
+	* config/m68k/m68k.c (m68k_tune_flags): New.
+	(override_options): Compute m68k_tune_flags.
+	(MULL_COST, MULW_COST): Update for various variants of CFV2.
+	* config/m68k/m68k.h (TUNE_MAC, TUNE_EMAC): New.
+
+2008-06-12  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/36506
+	* omp-low.c (expand_omp_sections): Initialize l2 to avoid bogus
+	warning.
+
+2008-06-12  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* tree-inline.c (copy_body_r): Copy TREE_SIDE_EFFECTS along with
+	TREE_THIS_VOLATILE on INDIRECT_REF nodes.
+
+2008-06-12  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* expr.c (store_field): Do a block copy from BLKmode to BLKmode-like.
+	(get_inner_reference): Use BLKmode for byte-aligned BLKmode bitfields.
+
+2008-06-12  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/36506
+	* omp-low.c (expand_omp_sections): Handle #pragma omp sections with
+	reductions.
+
+2008-06-12  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/36345
+	* tree-flow.h (struct ptr_info_def): Align escape_mask,
+	add memory_tag_needed flag.
+	(may_alias_p): Declare.
+	* tree-ssa-alias.c (may_alias_p): Export.
+	(set_initial_properties): Use memory_tag_needed flag.
+	(update_reference_counts): Likewise.
+	(reset_alias_info): Reset memory_tag_needed flag.
+	(create_name_tags): Check memory_tag_needed flag.
+	(dump_points_to_info_for): Dump it.
+	* tree-ssa-structalias.c (struct variable_info): Remove
+	directly_dereferenced flag.
+	(new_var_info): Do not initialize it.
+	(process_constraint_1): Do not set it.
+	(update_alias_info): Set is_dereferenced flag.
+	(set_uids_in_ptset): Use may_alias_p.
+	(set_used_smts): Check memory_tag_needed flag.
+	(find_what_p_points_to): Likewise.  Pass is_dereferenced flag.
+	* tree-ssa-alias.c (verify_flow_sensitive_alias_info): Check
+	memory_tag_needed flag.
+	* tree-ssa-alias-warnings.c (dsa_named_for): Try to recover
+	from broken design.
+
+2008-06-12  Kai Tietz  <kai.tietz@onevision.com>
+
+	* config/i386/i386.c (ix86_compute_frame_layout): Disable red zone for
+	w64 abi.
+	(ix86_expand_prologue): Likewise.
+	(ix86_force_to_memory): Likewise.
+	(ix86_free_from_memory): Likewise.
+
+2008-06-11  Edmar Wienskoski  <edmar@freescale.com>
+
+	PR target/36425
+	* config/rs6000/rs6000.c (rs6000_override_options): Set
+	rs6000_isel conditionally to the absence of comand line
+	override.
+	* config/rs6000/linuxspe.h (SUBSUBTARGET_OVERRIDE_OPTIONS):
+	Remove duplicate rs6000_isel setting.
+	* config/rs6000/eabispe.h: Ditto.
+
+2008-06-11  Richard Guenther  <rguenther@suse.de>
+
+	* alias.c (get_alias_set): Use the element alias-set for arrays.
+	(record_component_aliases): For arrays and vectors do nothing.
+	* c-common.c (strict_aliasing_warning): Handle the cases
+	of alias set zero explicitly.
+	* Makefile.in (dfp.o-warn): Add -Wno-error.
+
+2008-06-11  Joseph Myers  <joseph@codesourcery.com>
+
+	* config.gcc (all_defaults): Add arch_32 arch_64 cpu_32 cpu_64
+	tune_32 tune_64.
+	(i[34567]86-*-* | x86_64-*-*): Add arch_32 arch_64 cpu_32 cpu_64
+	tune_32 tune_64 to supported_defaults.  Allow values not
+	supporting 64-bit mode for arch_32, cpu_32 and tune_32 for
+	x86_64.  Do not override cpu_32 or cpu_64 values from target name.
+	(i[34567]86-*-linux*, i[34567]86-*-solaris2.1[0-9]*): Only default
+	with_cpu_64 to generic for 64-bit-supporting configurations, not
+	with_cpu.  Remove FIXMEs.
+	* doc/install.texi (--with-cpu-32, --with-cpu-64, --with-arch-32,
+	--with-arch-64, --with-tune-32, --with-tune-64): Document.
+	* config/i386/i386.h (OPT_ARCH32, OPT_ARCH64): Define.
+	(OPTION_DEFAULT_SPECS): Add tune_32, tune_64, cpu_32, cpu_64,
+	arch_32 and arch_64.
+
+2008-06-11  Eric Botcazou  <ebotcazou@adacore.com>
+            Olivier Hainque  <hainque@adacore.com>
+
+	* builtins.c (get_memory_rtx): Accept byte-addressable bitfields.
+	Use DECL_SIZE_UNIT to retrieve the size of the field.
+
+2008-06-11  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/arm/arm.c (arm_init_neon_builtins): Move initialization
+	with function calls after declarations.  Lay out
+	neon_float_type_node before further use.
+
+2008-06-11  Richard Guenther  <rguenther@suse.de>
+
+	* tree-flow.h (may_point_to_global_var): Declare.
+	* tree-ssa-alias.c (may_point_to_global_var): New function.
+	* tree-ssa-sink.c (is_hidden_global_store): Use it.
+
+2008-06-10  Kazu Hirata  <kazu@codesourcery.com>
+
+	* configure.ac: Teach that fido supports .debug_line.
+	* configure: Regenerate.
+
+2008-06-10  Tom Tromey  <tromey@redhat.com>
+
+	* c-lex.c (fe_file_change): Pass SOURCE_LINE to start_source_file
+	debug hook.
+
+2008-06-10  Joseph Myers  <joseph@codesourcery.com>
+
+	* dfp.c (WORDS_BIGENDIAN): Define to 0 if not defined.
+	(encode_decimal64, decode_decimal64, encode_decimal128,
+	decode_decimal128): Reverse order of 32-bit parts of value if host
+	and target endianness differ.
+
+2008-06-10  Vinodha Ramasamy  <vinodha@google.com>
+        * value_prob.c (tree_divmod_fixed_value_transform): Use gcov_type.
+	Avoid division by 0.
+	(tree_mod_pow2_value_transform): Likewise.
+	(tree_ic_transform): Likewise.
+	(tree_stringops_transform): Likewise.
+	(tree_mod_subtract_transform): Likewise.
+	* tree-inline-c (copy_bb): Corrected int type to gcov_type.
+	(copy_edges_for_bb): Likewise.
+	(initialize_cfun): Likewise.
+
+2008-06-10  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.md (*btdi_rex64): Change operand 1 predicate to
+	nonmemory_operand. Add "N" operand constraint.
+	(*btsi): Ditto.
+	(*jcc_btdi_mask_rex64): New instruction and split pattern.
+	(*jcc_btsi_mask): Ditto.
+	(*jcc_btsi_mask_1): Ditto.
+
+2008-06-10  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/rs6000/rs6000.c (build_opaque_vector_type): Set
+	TYPE_CANONICAL for copied element type.
+
 2008-06-10  Uros Bizjak  <ubizjak@gmail.com>
 
 	PR target/36473

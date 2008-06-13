@@ -1114,19 +1114,27 @@ get_memory_rtx (tree exp, tree len)
 	  while (TREE_CODE (inner) == COMPONENT_REF)
 	    {
 	      tree field = TREE_OPERAND (inner, 1);
-	      gcc_assert (! DECL_BIT_FIELD (field));
 	      gcc_assert (TREE_CODE (mem_expr) == COMPONENT_REF);
 	      gcc_assert (field == TREE_OPERAND (mem_expr, 1));
 
+	      /* Bitfields are generally not byte-addressable.  */
+	      gcc_assert (!DECL_BIT_FIELD (field)
+			  || ((tree_low_cst (DECL_FIELD_BIT_OFFSET (field), 1)
+			       % BITS_PER_UNIT) == 0
+			      && host_integerp (DECL_SIZE (field), 0)
+			      && (TREE_INT_CST_LOW (DECL_SIZE (field))
+				  % BITS_PER_UNIT) == 0));
+
+	      /* If we can prove that the memory starting at XEXP (mem, 0) and
+		 ending at XEXP (mem, 0) + LENGTH will fit into this field, we
+		 can keep the COMPONENT_REF in MEM_EXPR.  But be careful with
+		 fields without DECL_SIZE_UNIT like flexible array members.  */
 	      if (length >= 0
-		  && TYPE_SIZE_UNIT (TREE_TYPE (inner))
-		  && host_integerp (TYPE_SIZE_UNIT (TREE_TYPE (inner)), 0))
+		  && DECL_SIZE_UNIT (field)
+		  && host_integerp (DECL_SIZE_UNIT (field), 0))
 		{
 		  HOST_WIDE_INT size
-		    = tree_low_cst (TYPE_SIZE_UNIT (TREE_TYPE (inner)), 0);
-		  /* If we can prove the memory starting at XEXP (mem, 0)
-		     and ending at XEXP (mem, 0) + LENGTH will fit into
-		     this field, we can keep that COMPONENT_REF in MEM_EXPR.  */
+		    = TREE_INT_CST_LOW (DECL_SIZE_UNIT (field));
 		  if (offset <= size
 		      && length <= size
 		      && offset + length <= size)
@@ -1135,7 +1143,7 @@ get_memory_rtx (tree exp, tree len)
 
 	      if (offset >= 0
 		  && host_integerp (DECL_FIELD_OFFSET (field), 0))
-		offset += tree_low_cst (DECL_FIELD_OFFSET (field), 0)
+		offset += TREE_INT_CST_LOW (DECL_FIELD_OFFSET (field))
 			  + tree_low_cst (DECL_FIELD_BIT_OFFSET (field), 1)
 			    / BITS_PER_UNIT;
 	      else

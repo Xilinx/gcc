@@ -1,3 +1,32 @@
+2008-06-12  Tobias Burnus  <burnus@net-b.de>
+
+	* omp_lib.f90.in: Add "implicit none".
+
+2008-06-12  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/36506
+	* testsuite/libgomp.c/reduction-5.c: New test.
+
+2008-06-11  Jakub Jelinek  <jakub@redhat.com>
+
+	* libgomp.h (struct gomp_task): Add in_tied_task field.
+	* task.c (gomp_init_task): Initialize it.
+	(GOMP_task): Likewise.  Call gomp_team_barrier_set_task_pending
+	unconditionally.  Don't call gomp_team_barrier_wake if
+	current task is implicit or if(0) from implicit and number of
+	running tasks is equal to nthreads - 1.
+
+	PR libgomp/36471
+	* omp_lib.f90.in (omp_get_ancestor_thread_num_8,
+	omp_get_team_size_8): Fix pastos.
+
+	PR libgomp/36469
+	* configure.ac: Add AC_CHECK_FUNCS (strtoull).
+	* configure: Regenerated.
+	* config.h.in: Regenerated.
+	* env.c (strtoull): Define to strtoul if HAVE_STRTOULL is not
+	defined.
+
 2008-06-06  Andreas Tobler  <a.tobler@schweiz.org>
 
 	PR bootstrap/36452
