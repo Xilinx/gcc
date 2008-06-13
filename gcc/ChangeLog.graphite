@@ -1,3 +1,16 @@
+2008-06-13  Tobias Grosser  <grosser@fim.uni-passau.de
+
+	* graphite.c (loop_body_to_cloog_stmts): Rename to add_bb_domains.
+	Remove unnecessery cloog data structures. Make a copy of the domain
+	(setup_cloog_loop): Rename to build_loop_iteration_domains. Remove
+	unnecessary cloog data structures. Fix memory leaks. Remove insert
+	into SCOP_LOOP2CLOOG_LOOP as the inserted CloogLoops will never be
+	used.
+	(build_scop_iteration_domain): Remove unnecessary cloog data structures.
+	Fix memory leaks.
+	(graphite_transform_loops): Disable build_scop_dynamic_schedules as it
+	uses SCOP_LOOP2CLOOG_LOOP, that is at the moment not working.
+
 2008-06-12  Tobias Grosser  <grosser@fim.uni-passau.de>
 
 	* graphite.c (find_scop_params): Remove initialize_cloog_names.

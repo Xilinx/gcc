@@ -1653,51 +1653,33 @@ graphite_bb_from_bb (basic_block bb, scop_p scop)
   return NULL;
 }
 
-/* Returns the body of LOOP as a CloogStatement chain.  */
+/* Adds to all bb's in LOOP the DOMAIN.  */
 
-static CloogStatement *
-loop_body_to_cloog_stmts (struct loop *loop, scop_p scop, CloogMatrix *cstr)
+static void
+add_bb_domains (struct loop *loop, scop_p scop, CloogMatrix *domain)
 {
   basic_block *bbs = get_loop_body (loop);
-  CloogStatement *prev = NULL;
-  CloogStatement *res = NULL;
-  static int number = 0;
   unsigned i;
 
-  /* For each bb in the loop, create a CloogStatement.  */
   for (i = 0; i < loop->num_nodes; i++)
     if (bbs[i]->loop_father == loop)
       {
-	CloogStatement *stmt = cloog_statement_alloc (number++);
         graphite_bb_p gbb = graphite_bb_from_bb (bbs[i], scop);
-
-        /* XXX: Only here to sniff the GBB_DOMAIN for changed cloog output.
-           Also remove cstr parameter if not needed any more.  */
-        GBB_DOMAIN (gbb) = cstr;
-
-	if (prev)
-	  prev->next = stmt;
-	else
-	  res = stmt;
-
-	stmt->usr = gbb;
-	prev = stmt;
+        GBB_DOMAIN (gbb) = cloog_matrix_copy (domain);
       }
 
   free (bbs);
-  return res;
 }
 
-/* Converts LOOP in SCOP to cloog's format.  NB_OUTER_LOOPS is the
+/* Builds the constraint matrix for LOOP in SCOP.  NB_OUTER_LOOPS is the
    number of loops surrounding LOOP in SCOP.  OUTER_CSTR gives the
    constraints matrix for the surrounding loops.  */
 
-static CloogLoop *
-setup_cloog_loop (scop_p scop, struct loop *loop, CloogMatrix *outer_cstr,
-		  int nb_outer_loops)
+static void
+build_loop_iteration_domains (scop_p scop, struct loop *loop,
+                              CloogMatrix *outer_cstr, int nb_outer_loops)
 {
   unsigned i, j, row;
-  CloogStatement *stmt;
   CloogMatrix *cstr;
   struct loop_to_cloog_loop_str tmp;
   PTR *slot;
@@ -1736,7 +1718,7 @@ setup_cloog_loop (scop_p scop, struct loop *loop, CloogMatrix *outer_cstr,
 
       /* Leave an empty column in CSTR for the current loop, and then
         copy the parameter columns.  */
-      for (j = loop_col; j < cstr->NbColumns; j++)
+      for (j = loop_col; j < outer_cstr->NbColumns; j++)
         {
           value_init (cstr->p[i][j + 1]);
           value_assign (cstr->p[i][j + 1], outer_cstr->p[i][j]);
@@ -1784,39 +1766,29 @@ setup_cloog_loop (scop_p scop, struct loop *loop, CloogMatrix *outer_cstr,
       value_clear (one);
     }
 
-  res->domain = cloog_domain_matrix2domain (cstr);
+  /* XXX: Disabled, as CloogLoops are only generated in find_transforms.
+     To connect graphite bbs and gimple loops, we have to use a different
+     representation.  */
+  if (0)  
+    { 
+      tmp.loop_num = loop->num;
+      slot = htab_find_slot (SCOP_LOOP2CLOOG_LOOP (scop), &tmp, INSERT);
+        if (!*slot)
+          *slot = new_loop_to_cloog_loop_str (loop->num, loop_col - 1, res);
+    }
 
-  tmp.loop_num = loop->num;
-  slot = htab_find_slot (SCOP_LOOP2CLOOG_LOOP (scop), &tmp, INSERT);
-  if (!*slot)
-    *slot = new_loop_to_cloog_loop_str (loop->num, loop_col - 1, res);
-
-  /* Now set up the other loop constructs.  CLooG is expecting to see
-     a list of loops chained with the res->next pointer.  Don't use
-     res->inner for representing inner loops: this information is
-     contained in the scattering matrix.  */
   if (loop->inner && loop_in_scop_p (loop->inner, scop))
-    res->next = setup_cloog_loop (scop, loop->inner, cstr, nb_outer_loops + 1);
+    build_loop_iteration_domains (scop, loop->inner, cstr, nb_outer_loops + 1);
 
   /* Only go to the next loops, if we are not at the outermost layer.  These
      have to be handled seperately, as we can be sure, that the chain at this
      layer will be connected.  */
   if (nb_outer_loops != 0 && loop->next && loop_in_scop_p (loop->next, scop))
-    {
-      CloogLoop *l = res;
+    build_loop_iteration_domains (scop, loop->next, outer_cstr, nb_outer_loops);
 
-      /* Append at the end of the res->next list.  */
-      while (l->next)
-	l = l->next;
+  add_bb_domains (loop, scop, cstr);
 
-      l->next = setup_cloog_loop (scop, loop->next, outer_cstr, nb_outer_loops);
-    }
-
-  stmt = loop_body_to_cloog_stmts (loop, scop, cstr);
-
-  res->block = cloog_block_alloc (stmt, NULL, 0, NULL, nb_outer_loops + 1);
-  
-  return res;
+  cloog_matrix_free (cstr);
 }
 
 /* Converts the graphite scheduling function into a cloog scattering
@@ -1826,7 +1798,7 @@ setup_cloog_loop (scop_p scop, struct loop *loop, CloogMatrix *outer_cstr,
    SCATTERING_DIMENSIONS specifies the dimensionality of the scattering
    matrix. CLooG 0.14.0 and previous versions require, that all scattering
    functions of one CloogProgram have the same dimensionality, therefore we
-   allow to specify it. (Should be removed in future versions.  */
+   allow to specify it. (Should be removed in future versions)  */
 
 static CloogMatrix *
 schedule_to_scattering (graphite_bb_p gb, int scattering_dimensions) 
@@ -1915,20 +1887,16 @@ build_scop_iteration_domain (scop_p scop)
   /* Build cloog loop for all loops, that are in the uppermost loop layer of
      this SCoP.  */
   for (i = 0; VEC_iterate (loop_p, SCOP_LOOP_NEST(scop), i, loop); i++)
-    {
-      if (!loop_in_scop_p (loop_outer (loop), scop))
-        {
-          /* The outermost constraints is a matrix that has:
-             -first column: eq/ineq boolean
-             -last column: a constant
-             -nb_params_in_scop columns for the parameters used in the scop.  */
-          CloogLoop *next_loop;
-          outer_cstr = cloog_matrix_alloc (0, nb_params_in_scop (scop) + 2);
-          next_loop = setup_cloog_loop (scop, loop, outer_cstr, 0);
-          next_loop->next = SCOP_PROG (scop)->loop;
-          SCOP_PROG (scop)->loop = next_loop; 
-        }
-    }
+    if (!loop_in_scop_p (loop_outer (loop), scop))
+      {
+        /* The outermost constraints is a matrix that has:
+           -first column: eq/ineq boolean
+           -last column: a constant
+           -nb_params_in_scop columns for the parameters used in the scop.  */
+       outer_cstr = cloog_matrix_alloc (0, nb_params_in_scop (scop) + 2);
+       build_loop_iteration_domains (scop, loop, outer_cstr, 0);
+       cloog_matrix_free (outer_cstr);
+     }
 
   return (i != 0);
 }
@@ -2903,7 +2871,10 @@ graphite_transform_loops (void)
 	continue;
 
       build_scop_data_accesses (scop);
-      build_scop_dynamic_schedules (scop);
+
+      /* XXX: Disabled, it does not work at the moment. */
+      if (0)
+        build_scop_dynamic_schedules (scop);
 
       if (dump_file && (dump_flags & TDF_DETAILS))
 	{
