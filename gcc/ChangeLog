@@ -1,3 +1,81 @@
+2008-06-12  Paul Brook  <paul@codesourcery.com>
+
+	* longlong.h (__arm__): Define count_leading_zeros.
+	* config/arm/lib1funcs.asm (xxh, xxl, yyh, yyl): Define.
+	(clzsi2, clzdi2): New functions.
+	* config/arm/bpabi-v6m.S (xxh, xxl, yyh, yyl): Remove.
+	* config/arm/bpabi.S (xxh, xxl, yyh, yyl): Remove.
+	* config/arm/t-strongarm-elf (LIB1ASMFUNCS): Ditto.
+	* config/arm/t-vxworks (LIB1ASMFUNCS): Ditto.
+	* config/arm/t-pe (LIB1ASMFUNCS): Ditto.
+	* config/arm/t-arm-elf (LIB1ASMFUNCS): Ditto.
+	* config/arm/t-arm-coff (LIB1ASMFUNCS): Ditto.
+	* config/arm/t-linux (LIB1ASMFUNCS): Ditto.
+	* config/arm/t-symbian (LIB1ASMFUNCS): Ditto.
+	* config/arm/t-wince-pe (LIB1ASMFUNCS): Ditto.
+
+2008-06-12  Kazu Hirata  <kazu@codesourcery.com>
+
+	* config/m68k/m68k.c (m68k_tune_flags): New.
+	(override_options): Compute m68k_tune_flags.
+	(MULL_COST, MULW_COST): Update for various variants of CFV2.
+	* config/m68k/m68k.h (TUNE_MAC, TUNE_EMAC): New.
+
+2008-06-12  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/36506
+	* omp-low.c (expand_omp_sections): Initialize l2 to avoid bogus
+	warning.
+
+2008-06-12  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* tree-inline.c (copy_body_r): Copy TREE_SIDE_EFFECTS along with
+	TREE_THIS_VOLATILE on INDIRECT_REF nodes.
+
+2008-06-12  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* expr.c (store_field): Do a block copy from BLKmode to BLKmode-like.
+	(get_inner_reference): Use BLKmode for byte-aligned BLKmode bitfields.
+
+2008-06-12  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/36506
+	* omp-low.c (expand_omp_sections): Handle #pragma omp sections with
+	reductions.
+
+2008-06-12  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/36345
+	* tree-flow.h (struct ptr_info_def): Align escape_mask,
+	add memory_tag_needed flag.
+	(may_alias_p): Declare.
+	* tree-ssa-alias.c (may_alias_p): Export.
+	(set_initial_properties): Use memory_tag_needed flag.
+	(update_reference_counts): Likewise.
+	(reset_alias_info): Reset memory_tag_needed flag.
+	(create_name_tags): Check memory_tag_needed flag.
+	(dump_points_to_info_for): Dump it.
+	* tree-ssa-structalias.c (struct variable_info): Remove
+	directly_dereferenced flag.
+	(new_var_info): Do not initialize it.
+	(process_constraint_1): Do not set it.
+	(update_alias_info): Set is_dereferenced flag.
+	(set_uids_in_ptset): Use may_alias_p.
+	(set_used_smts): Check memory_tag_needed flag.
+	(find_what_p_points_to): Likewise.  Pass is_dereferenced flag.
+	* tree-ssa-alias.c (verify_flow_sensitive_alias_info): Check
+	memory_tag_needed flag.
+	* tree-ssa-alias-warnings.c (dsa_named_for): Try to recover
+	from broken design.
+
+2008-06-12  Kai Tietz  <kai.tietz@onevision.com>
+
+	* config/i386/i386.c (ix86_compute_frame_layout): Disable red zone for
+	w64 abi.
+	(ix86_expand_prologue): Likewise.
+	(ix86_force_to_memory): Likewise.
+	(ix86_free_from_memory): Likewise.
+
 2008-06-11  Edmar Wienskoski  <edmar@freescale.com>
 
 	PR target/36425
