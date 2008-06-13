@@ -4673,7 +4673,15 @@ install-melt-headers: melt.encap $(INSTALL_MELT_HEADERS_DIR) install-melt-cc-scr
 ## warm-basilys.c using Clisp on the contrib/cold-basilys.lisp but now
 ## warm-basilys.bysl bootstraps itself
 
-MELTBASILYSCC1= time ./cc1$(exeext) -fbasilys  \
+MELTBASILYSCCINIT1= time ./cc1$(exeext) -fbasilys  \
+	      -fbasilys-dynlibdir=. \
+	      -fbasilys-compile-script=built-melt-cc-script \
+	      -fbasilys-gensrcdir=. \
+	      -fbasilys-tempdir=. \
+	      -fbasilys-command=compileinit  \
+	      -frandom-seed=AbCdEfGhIj
+
+MELTBASILYSCCFILE1= time ./cc1$(exeext) -fbasilys  \
 	      -fbasilys-dynlibdir=. \
 	      -fbasilys-compile-script=built-melt-cc-script \
 	      -fbasilys-gensrcdir=. \
@@ -4697,7 +4705,7 @@ diff-warm-4-5: warm-basilys-4.c warm-basilys-5.c
 warm-basilys-5.c: warm-basilys-4.so cc1$(exeext) $(srcdir)/melt/warm-basilys.bysl
 	rm -f $@
 	@echo generating warm-basilys-5
-	$(MELTBASILYSCC1) -fbasilys-init=$< \
+	$(MELTBASILYSCCINIT1) -fbasilys-init=$< \
 	      -fbasilys-arg=$(srcdir)/melt/warm-basilys.bysl \
 	      -fbasilys-secondarg=$@
 	ls -l $@
@@ -4705,7 +4713,7 @@ warm-basilys-5.c: warm-basilys-4.so cc1$(exeext) $(srcdir)/melt/warm-basilys.bys
 warm-basilys-4.c: warm-basilys-3.so cc1$(exeext) $(srcdir)/melt/warm-basilys.bysl
 	rm -f $@
 	@echo generating warm-basilys-4
-	$(MELTBASILYSCC1) -fbasilys-init=$< \
+	$(MELTBASILYSCCINIT1) -fbasilys-init=$< \
 	      -fbasilys-arg=$(srcdir)/melt/warm-basilys.bysl \
 	      -fbasilys-secondarg=$@
 	ls -l $@
@@ -4713,7 +4721,7 @@ warm-basilys-4.c: warm-basilys-3.so cc1$(exeext) $(srcdir)/melt/warm-basilys.bys
 warm-basilys-3.c: warm-basilys-2.so cc1$(exeext) $(srcdir)/melt/warm-basilys.bysl 
 	rm -f $@
 	@echo generating warm-basilys-3
-	$(MELTBASILYSCC1) -fbasilys-init=$< \
+	$(MELTBASILYSCCINIT1) -fbasilys-init=$< \
 	      -fbasilys-arg=$(srcdir)/melt/warm-basilys.bysl \
 	      -fbasilys-secondarg=$@
 	ls -l $@
@@ -4721,7 +4729,7 @@ warm-basilys-3.c: warm-basilys-2.so cc1$(exeext) $(srcdir)/melt/warm-basilys.bys
 warm-basilys-2.c: warm-basilys-1.so cc1$(exeext) $(srcdir)/melt/warm-basilys.bysl 
 	-rm -f $@
 	@echo generating warm-basilys-2
-	$(MELTBASILYSCC1) -fbasilys-init=$< \
+	$(MELTBASILYSCCINIT1) -fbasilys-init=$< \
 	      -fbasilys-arg=$(srcdir)/melt/warm-basilys.bysl \
 	      -fbasilys-secondarg=$@
 	ls -l $@
@@ -4729,7 +4737,7 @@ warm-basilys-2.c: warm-basilys-1.so cc1$(exeext) $(srcdir)/melt/warm-basilys.bys
 warm-basilys-1.c: warm-basilys-0.so cc1$(exeext) $(srcdir)/melt/warm-basilys.bysl
 	-rm -f $@ 
 	@echo generating warm-basilys-1
-	$(MELTBASILYSCC1) -fbasilys-init=$< \
+	$(MELTBASILYSCCINIT1) -fbasilys-init=$< \
 	      -fbasilys-arg=$(srcdir)/melt/warm-basilys.bysl \
 	      -fbasilys-secondarg=$@
 	ls -l $@
@@ -4738,24 +4746,26 @@ warm-basilys-1.c: warm-basilys-0.so cc1$(exeext) $(srcdir)/melt/warm-basilys.bys
 warmelt-first.c: warm-basilys-2.so cc1$(exeext) warmelt-first.bysl
 	-rm -f $@ 
 	@echo generating warmelt-first using warm-basilys-2
-	$(MELTBASILYSCC1) -fbasilys-init='warm-basilys-2' \
+	$(MELTBASILYSCCINIT1) -fbasilys-init='warm-basilys-2' \
 	      -fbasilys-arg=warmelt-first.bysl \
 	      -fbasilys-secondarg=$@
 	ls -l $@
 warmelt-macro.c: warm-basilys-2.so cc1$(exeext) warmelt-macro.bysl warmelt-first.so
 	@echo generating warmelt-macro using warm-basilys-2 
-	$(MELTBASILYSCC1) -fbasilys-init='warm-basilys-2:warmelt-first' \
+	$(MELTBASILYSCCFILE1) -fbasilys-init='warm-basilys-2:warmelt-first' \
 	      -fbasilys-arg=warmelt-macro.bysl \
 	      -fbasilys-secondarg=$@
 	ls -l $@
 ## temporarily the warmelt*.bysl files are extracted from warm-basilys.bysl
-warmelt-first.bysl warmelt-macro.bysl \
-	warmelt-normal.bysl warmelt-genobj.bysl :  $(srcdir)/melt/warm-basilys.bysl
-	rm -f $@
+WARMELT_FILES= warmelt-first.bysl warmelt-macro.bysl \
+	warmelt-normal.bysl warmelt-genobj.bysl 
+
+$(WARMELT_FILES):  $(srcdir)/melt/warm-basilys.bysl
+	rm -vf $(WARMELT_FILES)
 	gawk '/^;;<</{out=$$2; lin=NR;} \
               /^;;>>/{if ($$2!=out) printf("redir.mismatch line %d expecting %s started line %d\n", NR, out, lin); out=""} \
 	      {if (out && out != "") print > out}' $^
-	wc -l $@
+	wc -l $(WARMELT_FILES)
 
 #### this phony target is given manually to copy the generated
 #### warm-basilys-3.c into the source directory it should be only

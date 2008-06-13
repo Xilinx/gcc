@@ -556,10 +556,10 @@
 (defprimitive zerop (:long i) :long "((" i ") == OL)")
 ;; primitive for testing if debug
 (defprimitive need_dbg (:long depth) :long
-  "(dump_file && basilys_dbgcounter>=count_basilys_debugskip && (" depth ")>=0 && (" depth ") <= BASILYSDBG_MAXDEPTH)")
+  "(flag_basilys_debug && basilys_dbgcounter>=count_basilys_debugskip && (" depth ")>=0 && (" depth ") <= BASILYSDBG_MAXDEPTH)")
 
 (defprimitive need_dbglim (:long depth limit) :long
-  "(dump_file && basilys_dbgcounter>=count_basilys_debugskip && (" depth ")>=0 && (" depth ") < (" limit "))")
+  "(flag_basilys_debug && basilys_dbgcounter>=count_basilys_debugskip && (" depth ")>=0 && (" depth ") < (" limit "))")
 ;;; debug on dumpfile
 (defprimitive outcstring_dbg (:cstring s) :void
   "basilys_puts(dump_file,(" s "))")
@@ -1288,7 +1288,7 @@
   (debug_msg ctyp "install_ctype")
   (assert_msg "check ctyp" (is_a ctyp class_ctype)) 
   (let ( (ckw (unsafe_get_field :ctype_keyword ctyp)) )
-    (assert_msg "check ckw" (is_a ckw class_keyword))
+    (assert_msg "check ctype ckw" (is_a ckw class_keyword))
     (unsafe_put_fields ckw :symb_data ctyp)
     ))
 
@@ -2652,22 +2652,22 @@
 				  :dbgi_occmap occmap
 				  :dbgi_maxdepth boxedmaxdepth))
 	     )
-	(outnum_dbg "!*#" dbgcounter "/")
-	(outnum_dbg "" (-i (the_framedepth) 1) ":")
+	(outnum_err "!*#" dbgcounter "/")
+	(outnum_err "" (-i (the_framedepth) 1) ":")
 	(if filenam
 	    (progn
-	      (outcstring_dbg filenam)
-	      (outnum_dbg ":" lineno ":")
+	      (outcstring_err filenam)
+	      (outnum_err ":" lineno ":")
 	      ))
-	(outcstring_dbg msgstr)
-	(if (>i count 0) (outnum_dbg " !" count ": "))
+	(outcstring_err msgstr)
+	(if (>i count 0) (outnum_err " !" count ": "))
 	(if val 
 	    (dbg_out val dbgi 0)
-	  (outcstring_dbg "() ;;;NIL!!!")
+	  (outcstring_err "() ;;;NIL!!!")
 	  )
-	(outstrbuf_dbg sbuf)
-	(outcstring_dbg ";;;;")
-	(outnewline_dbg)
+	(outstrbuf_err sbuf)
+	(outcstring_err ";;;;")
+	(outnewline_err)
 	)))
 
 ;;;; any binding debug output
@@ -3042,11 +3042,2082 @@
 ;; the fres previous module environment, returning the argument passed
 ;; to the generated start_module_basilys
 (defclass class_src_parent_module_environment
-    :super class_src
-    :fields (
+  :super class_src
+  :fields (
+	   ))
+
+
+
+(defclass class_src_unsafe_replace_module_environment
+  :super class_src
+  :fields (
+	   surmc_freshenv
+	   ))
+
+;;;;;;;;;;;;;;;;;;;; first pass, macro expansion
+
+;;get the n-th son of a sexpr
+(defun sexpr_nth_son (sexp :long n)
+  (if (is_a sexp class_sexpr)
+      (let ( (:long ix 0)
+	     (curpair (list_first (unsafe_get_field :sexp_contents sexp)))
+	     )
+	(forever nthloop
+		 (if (not (is_pair curpair)) (exit nthloop))
+		 (if (==i ix n) (exit nthloop (pair_head curpair)))
+		 (setq ix (+i ix 1))
+		 (setq curpair (pair_tail curpair))
+))))
+
+;;expand all but the first element of a list as a tuple
+(defun expand_restlist_as_tuple (arglist env mexpander)
+  (assert_msg "check end" (is_a env class_environment))
+  (assert_msg "check mexpander" (is_closure mexpander))
+  (assert_msg "check arglist" (is_list arglist))
+  (let ( (:long nbarg (list_length arglist))
+	 (:long ix 0)
+	 (curpair (pair_tail (list_first arglist)))
+	 (tup (make_multiple discr_multiple (-i nbarg 1)))
+	 )
+    (forever exploop
+	     (if (not curpair) (exit exploop))
+	     (assert_msg "check curpair" (is_pair curpair))
+	     (let ( (curarg (pair_head curpair)) 
+		    (curexp (macroexpand_1 curarg env mexpander))
+		    )
+	       (multiple_put_nth tup ix curexp)
+	       (setq ix (+i ix 1))
+	       (setq curpair (pair_tail curpair))
+	     ))
+    tup
+    ))
+
+;;expand all of a pairlist as a tuple
+(defun expand_pairlist_as_tuple (pair env mexpander)
+  (assert_msg "check end" (is_a env class_environment))
+  (assert_msg "check mexpander" (is_closure mexpander))
+  (let ( (:long nbarg (pair_listlength pair))
+	 (:long ix 0)
+	 (tup (make_multiple discr_multiple nbarg)) )
+    (forever exploop
+	     (if (not (is_pair pair)) (exit exploop))
+	     (let ( (curarg (pair_head pair)) 
+		    (curexp (macroexpand_1 curarg env mexpander))
+		    )
+	       (multiple_put_nth tup ix curexp)
+	       (setq ix (+i ix 1))
+	       (setq pair (pair_tail pair))
+	     ))
+    tup 
 ))
 
+
+;;; expand an s-expression known to be an application
+(defun expand_apply (sexpr env mexpander)
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check end" (is_a env class_environment))
+  (assert_msg "check mexpander" (is_closure mexpander))
+  (let ( (scont (unsafe_get_field :sexp_contents sexpr))
+	 (sloc (unsafe_get_field :loca_location sexpr))
+	 (soper (pair_head (list_first scont)))
+	 (xargtup (expand_restlist_as_tuple scont env mexpander))
+	 (xoper (if (is_a soper class_sexpr) 
+		    (macroexpand_1 soper env mexpander) 
+		  soper))
+	 )
+    (make_instance class_src_apply
+		   :src_loc sloc
+		   :sapp_fun xoper
+		   :sapp_args xargtup)))
+     
+
+;;; expand an s-expression known to be a message send
+(defun expand_msend  (opbind sexpr env mexpander)
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check end" (is_a env class_environment))
+  (assert_msg "check mexpander" (is_closure mexpander))
+  (assert_msg "check opbind" (is_a opbind class_selector_binding))
+  (debug_msg sexpr "expand_msend sexpr")
+  (let ( (scont (unsafe_get_field :sexp_contents sexpr))
+	 (sloc (unsafe_get_field :loca_location sexpr))
+	 (spair (pair_tail (list_first scont)))
+	 (seldata (unsafe_get_field :sbind_selectordata opbind))
+	 )
+    (if (not (is_pair spair)) (error_plain sloc "missing reciever expression in message send"))
+    (let ( (xrecv (pair_head spair))
+	   (argtup (expand_pairlist_as_tuple (pair_tail spair) env mexpander)) 
+	   (res (make_instance class_src_msend
+		     :src_loc sloc
+		     :msend_selbind opbind
+		     :msend_recv (if (is_a xrecv class_sexpr)
+				     (macroexpand_1 xrecv env mexpander)
+				   xrecv)
+		     :msend_args argtup
+		     ))
+	   )
+      (debug_msg res "expand_msend res")
+      res
+      )))
+
+;;; expand a keywordfun s-expression
+;;; not implemented yet, but might later be useful for stuff like
+;;;;; (:fieldname obj) to get a field
+;;;;; (:selector recv arg...) to send a message
+(defun expand_keywordfun (sexpr env mexpander)
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check end" (is_a env class_environment))
+  (assert_msg "check mexpander" (is_closure mexpander))
+  (error_plain (unsafe_get_field :loca_location sexpr) "keywordoper not implemented")
+  (assert_msg "@@@  expand_keywordfun NOT IMPLEMENTED" 0)
+)
+
+(defun macroexpand_1 (sexpr env mexpander)
+  (if (null mexpander) (setq mexpander macroexpand_1))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check mexpander" (is_closure mexpander))
+  (if (is_a sexpr class_sexpr)
+      (let ( (scont (unsafe_get_field :sexp_contents sexpr))
+	     (soper (pair_head (list_first scont))) )
+	(debug_msg sexpr "macroexpand_1 sexpr")
+	(debug_msg soper "macroexpand_1 soper")
+	(cond ( (is_a soper class_symbol)
+		(let ( (opbind (find_env env soper)) )
+		  (debug_msg opbind "macroexpand_1 opbind")
+		  (cond ( (is_a opbind class_macro_binding)
+			  (let ( (mexp (unsafe_get_field :mbind_expanser opbind)) )
+			    (assert_msg "check mexp" (is_closure mexp))
+			    (let ( (resm (mexp sexpr env mexpander)) )
+			      (debug_msg resm "macroexpand_1 result for macro resm")
+			      (return resm)
+			      )))
+			( (is_a opbind class_selector_binding)
+			  (let ( (ress (expand_msend opbind sexpr env mexpander)) )
+			    (debug_msg ress "macroexpand_1 result for send ress")
+			    (return ress)
+			    ))
+			( (is_a opbind class_primitive_binding)
+			  (let ( (resp (expand_primitive opbind sexpr env mexpander)) )
+			    (debug_msg resp "macroexpand_1 result for primitive resp")
+			    (return resp)
+			    ))
+			(:else 
+			 ;; this is to catch the case when DEFUN or DEFCLASS is not bound...
+			 (assert_msg "check soper not symbol DEFUN" (!= soper 'defun))
+			 (assert_msg "check soper not symbol DEFCLASS" (!= soper 'defclass))
+			 (assert_msg "check soper not named DEFUN" (not (is_stringconst (unsafe_get_field :named_name soper) "DEFUN")))
+			 (assert_msg "check soper not named DEFCLASS" (not (is_stringconst (unsafe_get_field :named_name soper) "DEFCLASS")))
+			 (let ( (resa (expand_apply sexpr env mexpander))) 
+			   (debug_msg resa "macroexpand_1 result for apply resa")
+			   (return resa)
+			   )
+			 ))))
+	      ( (is_a soper class_keyword)
+		(let ( (resk (expand_keywordfun sexpr env mexpander)) )
+		  (debug_msg resk "macroexpand_1 result for keywordfun resk")
+		  (return resk)))
+	      ;; the empty list is expanded as nil
+	      ( (==i (list_length scont) 0)
+		(debug_msg (the_null) "macroexpand_1 result for null")
+		(return (the_null)))
+	      (:else 
+	       (let ( (resca (expand_apply sexpr env mexpander)) )
+		 (debug_msg resca "macroexpand_1 result complex apply resca")
+		 (return resca)
+		 ))))
+    ;; if the sexpr is not an sexpr return itself
+    (return sexpr)))
+  
+;;; expand a primitive s-expression
+(defun expand_primitive (opbind sexpr env mexpander)
+  (assert_msg "check opbind" (is_a opbind class_primitive_binding))
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check end" (is_a env class_environment))
+  (assert_msg "check mexpander" (is_closure mexpander))
+  (let ( (scont (unsafe_get_field :sexp_contents sexpr))
+	 (sloc (unsafe_get_field :loca_location sexpr))
+	 (soper (pair_head (list_first scont)))
+	 (xargtup (expand_restlist_as_tuple scont env mexpander))
+	 (sprim (unsafe_get_field :pbind_primitive opbind))
+	 )
+    (assert_msg "check sprim" (is_a sprim class_primitive))
+    (make_instance class_src_primitive
+		   :src_loc sloc
+		   :sprim_oper sprim
+		   :sprim_args xargtup)))
+
+
+
+(defun macroexpand_toplevel_list (slist env)
+  ;; (messageval_dbg "macroexpand_toplevel_list Env" env)
+  ;;  (debug_msg  env "macroexpand_toplevel_list env"(the_callcount)) 
+  (debug_msg slist "macroexpand_toplevel_list slist") 
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check slist" (is_list slist))
+  (let ( (xlist (list_map slist 
+			  (lambda (sexp) 
+			    (debug_msg sexp "macroexpand_toplevel_list sexp")
+			    (let ( (mex (macroexpand_1 sexp env macroexpand_1)) 
+				   )
+			      (debug_msg mex "macroexpand_toplevel_list mex")
+			      mex
+			      )))) 
+	 )
+    (debug_msg xlist "macroexpand_toplevel_list res xlist")
+    xlist
+    ))
+
+;;; expand an s-expression into a tuple of formal bindings
+;;; the formalsexp is the sexpr of formals 
+;;; the [optional] checkargs should be set to non-null to check arguments type
+(defun lambda_arg_bindings (formalsexp checkargs)
+  ;; special case for null arglist
+  (if (null formalsexp)
+      (progn
+	(return (make_multiple discr_multiple 0))))
+  (assert_msg "check formalsexp" (is_a formalsexp class_sexpr))
+  (let ( (:long argrk 0)
+	 (argtype ctype_value)
+	 (arglist (unsafe_get_field :sexp_contents formalsexp))
+	 (argloc (unsafe_get_field :loca_location formalsexp))
+	 (argmap (make_mapobject discr_mapobjects (+i 4 (list_length arglist))))
+	 (bndlist (make_list discr_list)) 
+	 (curpair (list_first arglist))
+	 )
+;;; first loop on arg
+    (forever argloop
+	     (if (null curpair) (exit argloop))
+	     (assert_msg "check curpair" (is_pair curpair))
+	     (let ( (curarg (pair_head curpair)) )
+	       (cond
+		( (is_a curarg class_keyword)
+		  (let ( (cty (unsafe_get_field :symb_data curarg)) )
+		    (if (and (is_a cty class_ctype) 
+			     (== (unsafe_get_field :ctype_keyword cty) curarg))
+			(setq argtype cty)
+		      (progn
+			(error_strv argloc "invalid keyword in formal arglist"
+				    (unsafe_get_field :named_name curarg))
+			()
+			)
+		      ))
+		  ()			;to make the compiler happy we explicitly gives nil
+		  )
+		( (is_a curarg class_symbol)
+		  (if (mapobject_get argmap curarg)
+		      (error_strv argloc "duplicate argument in formal arglist"
+				  (unsafe_get_field :named_name curarg)))
+		  (let ( (curbind
+			  (make_instance class_formal_binding 
+					 :binder curarg
+					 :fbind_type argtype)) )
+		    (if checkargs
+			(if (or (not (is_a argtype class_ctype))
+				(not (is_string (unsafe_get_field :ctype_parstring argtype))))
+			    (error_strv argloc "invalid argument type in formal arglist"
+					(unsafe_get_field :named_name curarg))))
+		    (put_int curbind argrk)
+		    (mapobject_put argmap curarg curbind)
+		    (list_append bndlist curbind)
+		    (setq argrk (+i argrk 1))
+		    )
+		  ()
+		  )
+		(:else 
+		 (debug_msg curarg "unexpected argument in formal arglist")
+		 (let ( (discrarg  (discrim curarg) ))
+		   (error_strv argloc "unexepected argument in formal arglist" 
+			       (unsafe_get_field :named_name discrarg))
+		   )
+		 ()
+		 ))
+	       (setq curpair (pair_tail curpair))))
+;;; second loop to fill the bindings tuple
+    (let ( (bndtup (make_multiple discr_multiple argrk)) 
+	   (:long ix 0)
+	   (bndpair (list_first bndlist))
+	   )
+      (forever bndloop
+	       (if (null bndpair) (exit bndloop))
+	       (assert_msg "check bndpair" (is_pair bndpair))
+	       (let ( (curbnd (pair_head bndpair)) )
+		 (assert_msg "check curbnd" (is_a curbnd class_formal_binding))
+		 (multiple_put_nth bndtup ix curbnd)
+		 )
+	       (setq ix (+i ix 1))
+	       (setq bndpair (pair_tail bndpair))
+	       )
+      bndtup
+      )))
+
+
+;;;;;;;;;;;;;;;; install an initial macro expanser
+(defun install_initial_macro (symb expander)
+  (assert_msg "check sexpr" (is_a symb class_symbol))
+  (assert_msg "check expander" (is_closure expander))
+  (let ( (mbind (make_instance class_macro_binding 
+			       :binder symb
+			       :mbind_expanser expander
+			       )) )
+	 (put_env initial_environment mbind)
+))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;; macro expansers
+;; the defprimitive expander
+(defun mexpand_defprimitive (sexpr env mexpander)
+  (debug_msg sexpr "mexpand_defprimitive sexpr")
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check env" (is_a env class_environment))
+  (let ( (cont (unsafe_get_field :sexp_contents sexpr))
+	 (loc  (unsafe_get_field :loca_location sexpr))
+	 (curpair (pair_tail (list_first cont)))
+	 (symb (pair_head curpair))
+	 )
+    (if (is_not_a symb class_symbol)
+	(error_plain loc "missing symbol for defprimitive"))
+    (setq curpair (pair_tail curpair))
+    ;; parse the formal arguments
+    (let ( (btup (lambda_arg_bindings (pair_head curpair) (the_null))) )
+      (setq curpair (pair_tail curpair))
+      ;; parse the type keyword
+      (let ( (typkw  (pair_head curpair)) )
+	(if (is_not_a typkw class_keyword)
+	    (error_plain loc "missing type keyword for defprimitive"))
+	(let ( (cty (unsafe_get_field :symb_data typkw)) )
+	  (if (is_not_a cty class_ctype)
+	      (progn
+		(debug_msg typkw "mexpand_defprimitive bad cty")
+		(error_strv loc "bad type keyword for defprimitive"
+			    (unsafe_get_field :named_name typkw))
+		(return (the_null))
+		))
+	  (if (!= (unsafe_get_field :ctype_keyword cty) typkw)
+	      (progn
+		(debug_msg typkw "mexpand_defprimitive strange typkw")
+		(error_strv loc "invalid type keyword for defprimitive"
+			    (unsafe_get_field :named_name typkw)) 
+		(return (the_null))   
+		))
+	  ;; parse the rest as to be expanded
+	  (setq curpair (pair_tail curpair))
+	  (let ( (:long nbcomp (pair_listlength curpair))
+		 (etuple (make_multiple discr_multiple nbcomp))
+		 (:long ix 0) )
+	    (forever comploop
+		     (if (not (is_pair curpair)) (exit comploop))
+		     (let ( (curhead  (pair_head curpair)) )
+		       (debug_msg curhead "mexpand_defprimitive curhead")
+		       (let ( (curcomp  (macroexpand_1 curhead env mexpander)) )
+			 (debug_msg curcomp "mexpand_defprimitive curcomp")
+			 ;; change string to verbatimstring to ease primitive expansion
+			 ;; and check that each component is e string or a symbol
+			 (cond ( (== (discrim curcomp) discr_string)
+				 (setq curcomp (make_string discr_verbatimstring curcomp))
+				 ())
+			       ( (!= (discrim curcomp) class_symbol)
+				 (error_strv loc "invalid expansion component in primitive"
+					     (unsafe_get_field :named_name symb))
+				 ()))
+			 (multiple_put_nth etuple ix curcomp)
+			 (setq curpair (pair_tail curpair))
+			 (setq ix (+i ix 1)))))
+	    (let ( (sdefpri
+		    (make_instance class_src_defprimitive
+				   :src_loc loc
+				   :sdef_name symb
+				   :sformal_args btup
+				   :sprim_type cty
+				   :sprim_expansion etuple))
+		   (primit
+		    (make_instance class_primitive
+				   :named_name (unsafe_get_field :named_name symb)
+				   :prim_formals btup
+				   :prim_type cty
+				   :prim_expansion etuple))
+		   (pbind
+		    (make_instance class_primitive_binding
+				   :binder symb
+				   :pbind_primdef sdefpri
+				   :pbind_primitive primit
+				   ))
+		   )
+	      (put_env env pbind)
+	      (debug_msg sdefpri "mexpand_defprimitive result sdefpri")
+	      (return sdefpri)
+	      )))))))
+(install_initial_macro 'defprimitive mexpand_defprimitive)
+(export_macro defprimitive mexpand_defprimitive)
+
+
+;;;;;;;;;;;;;;;;;; the defun expander
+(defun mexpand_defun (sexpr env mexpander)
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check env" (is_a env class_environment))
+  (debug_msg sexpr "mexp.defun sexpr")
+  (let ( (cont (unsafe_get_field :sexp_contents sexpr))
+	 (loc  (unsafe_get_field :loca_location sexpr))
+	 (curpair (pair_tail (list_first cont)))
+	 (symb (pair_head curpair))
+	 (newenv (fresh_env env))
+	 )
+    (if (is_not_a symb class_symbol)
+	(error_plain loc "missing symbol for defun"))
+    (setq curpair (pair_tail curpair))
+    ;; parse the formal arguments
+    (let ( (curpairhead (pair_head curpair)) 
+	   (btup 
+	    (cond ( (null curpairhead) 
+		    (make_multiple discr_multiple 0) )
+		  ( (is_a curpairhead class_sexpr)
+		    (lambda_arg_bindings (pair_head curpair) sexpr))
+		  (:else
+		   (debug_msg curpairhead "mexpand_defun strange arglist curpairhead")
+		   (error_plain loc "missing or invalid arglist for DEFUN")
+		   (the_null)
+		   )))
+	   )
+      (if (not (is_multiple btup))
+	  (progn
+	    (debug_msg btup "mexpand_defun strange btup")
+	    (error_plain loc "missing formal arguments for DEFUN")))
+      (multiple_every btup (lambda (fb) (put_env newenv fb)))
+      (setq curpair (pair_tail curpair))
+      (let ( (bodytup (expand_pairlist_as_tuple curpair newenv mexpander)) 
+	     (sdefun
+	      (make_instance class_src_defun
+			     :src_loc loc
+			     :sdef_name symb
+			     :sformal_args btup
+			     :sfun_body bodytup
+			     ))
+	     (fbind 
+	      (make_instance class_function_binding
+			     :binder symb
+			     :fubind_defun sdefun
+			     ))
+	     )
+	(put_env env fbind)
+	sdefun
+	))))
+(install_initial_macro 'defun mexpand_defun)
+(export_macro defun mexpand_defun)
+
+
+;;;;;;;;;;;;;;;; the defclass expander
+
+;; internal routine with multiple results to scan the defclass
+(defun scan_defclass (sexpr env mexpander)
+  (let ( (predef ())
+	 (supernam ())
+	 (superbind ())
+	 (superclass ())
+	 (fieldnams ())
+	 (docstr ())
+	 (cont (unsafe_get_field :sexp_contents sexpr))
+	 (loc  (unsafe_get_field :loca_location sexpr))
+	 (fieldsloc ())
+	 (curpair (pair_tail (list_first cont)))
+	 (symb (pair_head curpair))
+	 )
+    (debug_msg sexpr "scan_defclass sexpr")
+    (if (is_not_a symb class_symbol)
+	(error_plain loc "missing symbol for defclass"))
+    (setq curpair (pair_tail curpair))
+    (forever scanloop
+	     (if (not (is_pair curpair)) (exit scanloop))
+	     (let ( (curkw (pair_head curpair)) )
+	       (if (not (is_a curkw class_keyword)) 
+		   (error_plain loc "expecting keyword in defclass"))
+	       (setq curpair (pair_tail curpair))
+	       (let ( (curval (pair_head curpair)) )
+		 (setq curpair (pair_tail curpair))
+		 (cond 
+		  ( (== curkw ':super)
+		    (if supernam (error_plain loc "duplicate super in defclass"))
+		    (if (not (is_a curval class_symbol))
+			(error_plain loc "bad super in defclass"))
+		    (setq supernam curval)
+		    (debug_msg supernam "scan_defclass supernam")
+		    (let ( (superb (find_env env supernam)) )
+;;; should handle the case when the class is bound in the start environment
+;;; to a value which happens to be a class
+		      (cond ( (is_a superb class_class_binding)
+			      (setq superbind superb) 
+			      (setq superclass (unsafe_get_field :cbind_class superb))
+			      )
+			    ( (is_a superb class_value_binding)
+			      (let ((superval (unsafe_get_field :vbind_value superb)))
+				(if (is_a superval class_class)
+				    (progn
+				      (setq superbind superb)
+				      (setq superclass superval)
+				      )
+				  (error_strv loc "super is not a class in defclass" 
+					      (unsafe_get_field :named_name supernam))))
+			      )
+			    (:else 
+			     (debug_msg superb "scan_defclass superb")
+			     (debug_msg env "scan_defclass env")
+			     (error_strv loc "invalid super in defclass" 
+					 (unsafe_get_field :named_name supernam))
+			     )
+			    )
+		      ))
+		  ( (== curkw ':fields)
+		    (if fieldnams (error_plain loc "duplicate fields in defclass"))
+		    (if curval
+			(if (is_not_a curval class_sexpr)
+			    (error_plain loc "bad fields in defclass")))
+		    (let ( (namlist (if curval (unsafe_get_field :sexp_contents curval)))
+			   (namloc (if curval (unsafe_get_field :loca_location curval)))
+			   (:long nbnam  (list_length namlist))
+			   (:long ix 0)
+			   (nampair (list_first namlist))
+			   (namtupl (make_multiple discr_multiple nbnam)) )
+		      (setq fieldsloc namloc)
+		      (forever namloop
+			       (if (not (is_pair nampair)) (exit namloop))
+			       (let ( (curnam (pair_head nampair)) )
+				 (if (not (is_a curnam class_symbol))
+				     (error_plain namloc "non name field in defclass"))
+				 (multiple_put_nth namtupl ix curnam)
+				 )
+			       (setq nampair (pair_tail nampair))
+			       (setq ix (+i ix 1))
+			       )
+		      (setq fieldnams namtupl)
+		      ))
+		  ( (== curkw ':predef)
+		    (if predef (error_plain loc "duplicate predef in DEFCLASS"))
+		    (setq predef (macroexpand_1 curval env mexpander))
+		    (cond
+		     ( (is_integerbox predef) 
+		       ()
+		       )
+		     ( (is_a predef class_symbol)
+		       ()
+		       )
+		     (:else
+		      (error_plain loc "bad predef in DEFCLASS")
+		      )
+		     )
+		    )
+		  ( (== curkw ':docstr)
+		    (if docstr (error_plain loc "duplicate docstr in DEFCLASS"))
+		    (setq docstr (macroexpand_1 curval env mexpander))
+		    (if (not (is_string docstr))
+			(error_plain loc "bad docstr in DEFCLASS"))
+		    )
+		  (:else
+		   (error_strv loc "invalid keyword in DEFCLASS" 
+			       (unsafe_get_field :named_name curkw))
+		   )
+		  ))))
+    (debug_msg symb "scan_defclass returns symb")
+    (debug_msg loc "scan_defclass returns loc")
+    (debug_msg supernam "scan_defclass returns supernam")
+    (debug_msg superbind "scan_defclass returns superbinds")
+    (debug_msg superclass "scan_defclass returns superclass")
+    (debug_msg predef "scan_defclass returns predef")
+    (debug_msg fieldnams "scan_defclass returns fieldnams")
+    (debug_msg fieldsloc "scan_defclass returns fieldsloc")
+    (debug_msg docstr "scan_defclass returns docstr")
+    (return symb loc supernam superbind superclass predef fieldnams fieldsloc docstr)
+    ))
+
+
+(defun mexpand_defclass (sexpr env mexpander)
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check env" (is_a env class_environment))
+  (debug_msg  sexpr "mexp.defclass sexpr")
+  (multicall 
+   (symb loc supernam superbind superclass predef fieldnams fieldsloc docstr)
+   (scan_defclass sexpr env mexpander)
+   (debug_msg symb "mexp.defclass scanned symb")
+   (debug_msg loc "mexp.defclass scanned loc")
+   (debug_msg supernam "mexp.defclass scanned supernam")
+   (debug_msg superbind "mexp.defclass scanned superbind")
+   (debug_msg superclass "mexp.defclass scanned superclass")
+   (debug_msg predef "mexp.defclass scanned predef")
+   (debug_msg fieldnams "mexp.defclass scanned fieldnams")
+   (debug_msg fieldsloc "mexp.defclass scanned fieldsloc")
+   (debug_msg docstr "mexp.defclass scanned docstr")
+   (assert_msg "check symb" (is_a symb class_symbol))
+   (let ( 
+	 (ancestors (if (is_object superclass)
+			(let ( (superancestors (unsafe_get_field :class_ancestors superclass))
+			       (:long nbsuperanc (multiple_length superancestors))
+			       (anctuple (make_multiple discr_seqclass (+i 1 nbsuperanc)))
+			       (:long ix 0)
+			       )
+			  (assert_msg "check superclass" (is_a superclass class_class))
+			  (assert_msg "check superancestors" (is_multiple superancestors))
+			  (forever ancloop
+				   (if (>=i ix nbsuperanc) (exit ancloop))
+				   (multiple_put_nth anctuple ix (multiple_nth superancestors ix))
+				   (setq ix (+i ix 1))
+				   )
+			  (multiple_put_nth anctuple nbsuperanc superclass)
+			  anctuple
+			  )
+		      (make_multiple discr_seqclass 0)))
+	 (superfields (if (is_object superclass)
+			  (unsafe_get_field :class_fields superclass)))
+	 (:long nbsuperfields (multiple_length superfields))
+	 (:long nbfieldnames (multiple_length fieldnams))
+	 (boxnbsuperfields (make_integerbox discr_integer nbsuperfields))
+	 (fieldstrmap (make_mapstring discr_mapstrings (+i 3 (*i 2 (+i nbsuperfields nbfieldnames)))))
+	 (fieldtup (make_multiple discr_seqfield (+i nbsuperfields nbfieldnames)))
+	 (ownfieldbindings (make_multiple discr_multiple nbfieldnames))
+	 (newclass (make_instance class_class
+				  :named_name (unsafe_get_field :named_name symb)
+				  :class_ancestors ancestors
+				  ;; other fields to be set later
+				  ))
+	 (clabind (make_instance class_class_binding
+				 :binder symb
+				 :cbind_class newclass))
+	 )
+     (put_env env clabind)
+     (debug_msg superfields "expdefclas superfields")
+     (multiple_every 
+      superfields 
+      (lambda (sfld :long ix)
+	(messagenum_dbg "expdefclasupflds ix" ix)
+	(messageval_dbg "expdefclasupfldsval sfld" sfld)
+	(assert_msg "check superfield" (is_a sfld class_field))
+	(multiple_put_nth fieldtup ix sfld)
+	(mapstring_putstr fieldstrmap (unsafe_get_field :named_name sfld) sfld)
+	))
+     (multiple_every
+      fieldnams
+      (lambda (fldnam :long ix)
+	(messagenum_dbg "expdefclafldnam ix" ix)
+	(assert_msg "check fldnam" (is_a fldnam class_symbol))
+	(let ( (fldstr (unsafe_get_field :named_name fldnam)) 
+	       )
+	  (if (mapstring_getstr fieldstrmap fldstr)
+	      (error_strv fieldsloc "duplicate field in deflclass" fldstr))
+	  (let ( (:long fldoff (+i ix (get_int boxnbsuperfields))) 
+		 (newfld (make_instance class_field
+					:named_name fldstr
+					:fld_ownclass newclass
+					)) )
+	    (put_int newfld fldoff)
+	    (messagenum_dbg "expdefclafldnam fldoff" fldoff)
+	    (multiple_put_nth fieldtup fldoff newfld)
+	    (mapstring_putstr fieldstrmap fldstr newfld)
+	    (let ( (newfldbind (make_instance class_field_binding
+					      :binder fldnam
+					      :flbind_clabind clabind
+					      :flbind_field newfld)) )
+	      (put_env env newfldbind)
+	      (multiple_put_nth ownfieldbindings ix newfldbind)
+	      )
+	    ))))
+     (unsafe_put_fields newclass
+			:class_fields fieldtup)
+     (debug_msg newclass "mexp.defclass newclass" )
+     (make_instance class_src_defclass
+		    :src_loc loc
+		    :sdef_name symb
+		    :sobj_predef predef
+		    :sobj_docstr docstr
+		    :sclass_clabind clabind
+		    :sclass_superbind superbind
+		    :sclass_fldbinds ownfieldbindings
+		    ))))
+(install_initial_macro 'defclass mexpand_defclass)
+(export_macro defclass mexpand_defclass)
+
+;;;;;;;;;;;;;;;; the definstance expander
+
+;; internal to parse a field assignment in a given class (or without class, for put_field)
+(defun parse_field_assignment (cla loc fldkw expr env mexpander)
+  (if (not (is_a fldkw class_keyword))
+      (error_plain loc "expecting :fieldname"))
+  (assert_msg "check fldkw" (is_a fldkw class_keyword))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check mexpander" (is_closure mexpander))
+  ;; expr is an sexpr or a symbol or a string or ...
+  (let ( (fldbox (make_box discr_box ())) )
+    ;; if we have a class, find the field inside
+    (if (is_a cla class_class)
+	(multiple_iterate_test
+	 (unsafe_get_field :class_fields cla)
+	 (lambda (cfld :long ix)
+	   (assert_msg "check fld" (is_a cfld class_field))
+	   (if (==s (unsafe_get_field :named_name cfld) 
+		    (unsafe_get_field :named_name fldkw))
+	       (progn 
+		 (box_put fldbox cfld)
+		 ()			; nil to exit to iteration
+		 )
+	       cfld))
+	 )
+	;; othewise, find the field by its bound name
+	(let ( (fldnam (create_symbolstr (unsafe_get_field :named_name fldkw))) 
+	      (fldbind (find_env env fldnam)) 
+	       (fld  (cond 
+		       ( (is_a fldbind class_field_binding)
+			(unsafe_get_field :flbind_field fldbind) )
+		       ( (is_a fldbind class_value_binding)
+			(let ( (vfld (unsafe_get_field :vbind_value fldbind)) )
+			  (if (is_a vfld class_field)
+			      vfld)) )
+		       )) )
+	  (if (is_a fld class_field)
+	      (box_put fldbox fld)
+	      (error_strv loc "invalid field name in field assignment" 
+			  (unsafe_get_field :named_name fldkw)))
+	  ()
+	  ))
+    ;; at last make the field assignment
+    (let ( (fld (box_content fldbox)) )
+      (if (is_a fld class_field)
+	  (let ( (xex (macroexpand_1 expr env mexpander)) )
+	    (make_instance class_src_fieldassign 
+			   :src_loc loc
+			   :sfla_field fld
+			   :sfla_expr xex
+			   ))
+	  (error_strv loc "unknown field name in field assignment"
+		      (unsafe_get_field :named_name fldkw))
+	  ))))
+
+;; the definstance expanser
+(defun mexpand_definstance (sexpr env mexpander)
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check env" (is_a env class_environment))
+  (debug_msg sexpr "mexp.definstance sexpr")
+  (let ( (predef ())
+	 (objnum ())
+	 (fields ())
+	 (fieldnams ())
+	 (cont (unsafe_get_field :sexp_contents sexpr))
+	 (loc  (unsafe_get_field :loca_location sexpr))
+	 (curpair (pair_tail (list_first cont)))
+	 (symb (pair_head curpair))
+	 (claname ())
+	 (cla ())
+	 (clabind ())
+	 )
+    (if (is_not_a symb class_symbol)
+	(error_plain loc "missing symbol for definstance"))
+    (setq curpair (pair_tail curpair))
+    (let ( (nam (pair_head curpair)) )
+      (if (is_not_a nam class_symbol)
+	  (error_plain loc "missing class name for definstance"))
+      (let ( (bnd (find_env env nam)) 
+	     (fldlist (make_list discr_list))
+	     )
+	(cond 
+	 ( (is_a bnd class_class_binding)
+	   (setq clabind bnd)
+	   (setq cla (unsafe_get_field :cbind_class bnd)) )
+	 ( (and (is_a bnd class_value_binding)
+		(is_a (unsafe_get_field :vbind_value bnd) class_class))
+	   (setq clabind bnd)
+	   (setq cla (unsafe_get_field :vbind_value bnd)))
+	 (:else
+	  (error_strv loc "invalid class name for definstance"
+		      (unsafe_get_field :named_name nam))
+	  (return (the_null))
+	  ))
+	(setq claname nam)
+	(assert_msg "check cla" (is_a cla class_class))
+	(setq curpair (pair_tail curpair))
+	(forever insloop
+		 (if (not (is_pair curpair)) (exit insloop))
+		 (let ( (curfkw (pair_head curpair)) )
+		   (if (is_not_a curfkw class_keyword)
+		       (error_plain loc "expecting keyword in definstance"))
+		   (setq curpair (pair_tail curpair))
+		   (let ( (curexp (pair_head curpair)) )
+		     (cond  ( (== curfkw ':obj_num)
+			      (if objnum (error_plain loc "duplicate :obj_num in definstance"))
+			      (setq objnum 
+				    (if (is_a curexp class_sexpr)
+					(macroexpand_1 curexp env mexpander)
+				      curexp))
+			      )
+			    ( (== curfkw ':predef)
+			      (if predef (error_plain loc "duplicate :predef in definstance"))
+			      (setq predef 
+				    (if (is_a curexp class_sexpr)
+					(macroexpand_1 curexp env mexpander)
+				      curexp))
+			      )
+			    (:else 
+			     (let  ( (flda (parse_field_assignment cla loc curfkw curexp env mexpander)) )
+			       (if flda 
+				   (list_append fldlist flda)
+				 )
+			       ))))
+		   (setq curpair (pair_tail curpair))
+		   ))
+	(let ( (fastup (list_to_multiple fldlist discr_multiple)) 
+	       (sinst 
+		(make_instance class_src_definstance
+			       :src_loc loc
+			       :sdef_name symb
+			       :sobj_predef predef
+			       :sinst_class cla
+			       :sinst_clabind clabind
+			       :sinst_objnum objnum
+			       :sinst_fields fastup
+			       ))
+	       (ibind 
+		(make_instance class_instance_binding
+			       :binder symb
+			       :ibind_iclass cla
+			       ))
+	       )
+	  (put_env env ibind)
+	  (debug_msg sinst "mexp.definstance sinst")
+	  (return sinst)
+	  )))))
+(install_initial_macro 'definstance mexpand_definstance)
+(export_macro definstance mexpand_definstance)
+
+
+;; the definstance expanser
+(defun mexpand_defselector (sexpr env mexpander)
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check env" (is_a env class_environment))
+  (debug_msg sexpr "mexp.definstance sexpr")
+  (let ( (predef ())
+	 (objnum ())
+	 (fields ())
+	 (fieldnams ())
+	 (cont (unsafe_get_field :sexp_contents sexpr))
+	 (loc  (unsafe_get_field :loca_location sexpr))
+	 (curpair (pair_tail (list_first cont)))
+	 (symb (pair_head curpair))
+	 (claname ())
+	 (cla ())
+	 (clabind ())
+	 )
+    (if (is_not_a symb class_symbol)
+	(error_plain loc "missing symbol for definstance"))
+    (setq curpair (pair_tail curpair))
+    (let ( (nam (pair_head curpair)) )
+      (if (is_not_a nam class_symbol)
+	  (error_plain loc "missing class name for definstance"))
+      (let ( (bnd (find_env env nam)) 
+	     (fldlist (make_list discr_list))
+	     )
+	(cond 
+	 ( (is_a bnd class_class_binding)
+	   (setq clabind bnd)
+	   (setq cla (unsafe_get_field :cbind_class bnd)) )
+	 ( (and (is_a bnd class_value_binding)
+		(is_a (unsafe_get_field :vbind_value bnd) class_class))
+	   (setq clabind bnd)
+	   (setq cla (unsafe_get_field :vbind_value bnd)))
+	 (:else
+	  (error_strv loc "invalid class name for definstance"
+		      (unsafe_get_field :named_name nam))
+	  (return (the_null))
+	  ))
+	(setq claname nam)
+	(assert_msg "check cla" (is_a cla class_class))
+	(setq curpair (pair_tail curpair))
+	(forever insloop
+		 (if (not (is_pair curpair)) (exit insloop))
+		 (let ( (curfkw (pair_head curpair)) )
+		   (if (is_not_a curfkw class_keyword)
+		       (error_plain loc "expecting keyword in definstance"))
+		   (setq curpair (pair_tail curpair))
+		   (let ( (curexp (pair_head curpair)) )
+		     (cond  ( (== curfkw ':obj_num)
+			      (if curexp (error_plain loc "duplicate :obj_num in definstance"))
+			      (setq objnum 
+				    (if (is_a curexp class_sexpr)
+					(macroexpand_1 curexp env mexpander)
+				      curexp))
+			      )
+			    ( (== curfkw ':predef)
+			      (if curexp (error_plain loc "duplicate :predef in definstance"))
+			      (setq predef 
+				    (if (is_a curexp class_sexpr)
+					(macroexpand_1 curexp env mexpander)
+				      curexp))
+			      )
+			    (:else 
+			     (let  ( (flda (parse_field_assignment cla loc curfkw curexp env mexpander)) )
+			       (if flda 
+				   (list_append fldlist flda)
+				 )
+			       ))))
+		   (setq curpair (pair_tail curpair))
+		   ))
+	(let ( ( fastup (list_to_multiple fldlist discr_multiple)) 
+	       (res (make_instance class_src_defselector
+				   :src_loc loc
+				   :sdef_name symb
+				   :sobj_predef predef
+				   :sinst_class cla
+				   :sinst_clabind clabind
+				   :sinst_objnum objnum
+				   :sinst_fields fastup
+				   ))
+	       (selbind (make_instance class_selector_binding
+				       :binder symb
+				       :sbind_selectordef res
+				       ))
+	       )
+	  (put_env env selbind)
+	  res
+	  )))))
+(install_initial_macro 'defselector mexpand_defselector)
+(export_macro defselector mexpand_defselector)
+
+
+;;;; the make_instance expander
+(defun mexpand_make_instance (sexpr env mexpander)
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check env" (is_a env class_environment))
+  (let ( (fields ())
+	 (fieldnams ())
+	 (cont (unsafe_get_field :sexp_contents sexpr))
+	 (loc  (unsafe_get_field :loca_location sexpr))
+	 (curpair (pair_tail (list_first cont)))
+	 (claname (pair_head curpair))
+	 (cla ())
+	 (clabind ())
+	 )
+    (debug_msg sexpr "mexpand_make_instance start sexpr")
+    (if (is_not_a claname class_symbol)
+	(error_plain loc "missing class symbol for make_instance"))
+    (let ( (bnd (find_env env claname)) 
+	   (fldlist (make_list discr_list))
+	   )
+      (cond 
+       ( (is_a bnd class_class_binding)
+	 (setq clabind bnd)
+	 (setq cla (unsafe_get_field :cbind_class bnd)) 
+	 )
+       ( (and (is_a bnd class_value_binding)
+	      (is_a (unsafe_get_field :vbind_value bnd) class_class))
+	 (setq clabind bnd)
+	 (setq cla (unsafe_get_field :vbind_value bnd))
+	 )
+       (:else
+	(error_strv loc "invalid class name for make_instance"
+		    (unsafe_get_field :named_name claname))
+	(return (the_null))
+	))
+      (assert_msg "check cla" (is_a cla class_class))
+      (setq curpair (pair_tail curpair))
+      (forever insloop
+	       (if (not (is_pair curpair)) (exit insloop))
+	       (let ( (curfkw (pair_head curpair)) )
+		 (if (is_not_a curfkw class_keyword)
+		     (error_plain loc "expecting keyword in MAKE_INSTANCE"))
+		 (setq curpair (pair_tail curpair))
+		 (let ( (curexp (pair_head curpair)) )
+		   (let  ( (flda (parse_field_assignment cla loc curfkw curexp env mexpander)) )
+		     (if flda 
+			 (list_append fldlist flda)
+		       (error_strv loc "bad field name in MAKE_INSTANCE" (unsafe_get_field :named_name curfkw))
+		       ))))
+	       (setq curpair (pair_tail curpair))
+	       )
+      (let ( ( fastup (list_to_multiple fldlist discr_multiple)) )
+	(make_instance class_src_make_instance
+		       :src_loc loc
+		       :smins_class cla
+		       :smins_clabind clabind
+		       :smins_fields fastup)
+	))))
+(install_initial_macro 'make_instance mexpand_make_instance)
+(export_macro make_instance mexpand_make_instance)
+
+
+;;;; the unsafe_put_fields expander
+(defun mexpand_unsafe_put_fields (sexpr env mexpander)
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check env" (is_a env class_environment))
+  (let ( (fields ())
+	 (fieldnams ())
+	 (cont (unsafe_get_field :sexp_contents sexpr))
+	 (loc  (unsafe_get_field :loca_location sexpr))
+	 (curpair (pair_tail (list_first cont)))
+	 (objsrc (pair_head curpair))
+	 (objexp 
+	  (if (is_a objsrc class_sexpr)
+	      (macroexpand_1 objsrc env mexpander)
+	    objsrc))
+	 )
+    (setq curpair (pair_tail curpair))
+    (let ( (fldlist (make_list discr_list))
+	   )
+      (forever insloop
+	       (if (not (is_pair curpair)) (exit insloop))
+	       (let ( (curfkw (pair_head curpair)) )
+		 (if (is_not_a curfkw class_keyword)
+		     (error_plain loc "expecting heyword in unsafe_put_fields"))
+		 (setq curpair (pair_tail curpair))
+		 (let ( (curexp (pair_head curpair)) )
+		   (let  ( (flda (parse_field_assignment () loc curfkw curexp env mexpander)) )
+		     (if flda 
+			 (list_append fldlist flda)
+		       ))))
+	       (setq curpair (pair_tail curpair))
+	       )
+      (let ( ( fastup (list_to_multiple fldlist discr_multiple)) )
+	(make_instance class_src_unsafe_put_fields
+		       :src_loc loc
+		       :suput_obj objexp
+		       :suput_fields fastup)
+	))))
+(install_initial_macro 'unsafe_put_fields mexpand_unsafe_put_fields)
+(export_macro unsafe_put_fields mexpand_unsafe_put_fields)
+
+;;;; the unsafe_get_field expander
+(defun mexpand_unsafe_get_field (sexpr env mexpander)
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check env" (is_a env class_environment))
+  (let ( (cont (unsafe_get_field :sexp_contents sexpr))
+	 (loc  (unsafe_get_field :loca_location sexpr))
+	 (curpair (pair_tail (list_first cont)))
+	 (curfkw (pair_head curpair)) 
+	 )
+    (if (is_not_a curfkw class_keyword)
+	(progn
+	  (error_plain loc "field keyword expected in unsafe_get_field")
+	  (return (the_null))))
+    (setq curpair (pair_tail curpair))
+    (let ( (curexp (pair_head curpair)) )
+      (setq curpair (pair_tail curpair))
+      (if curpair (error_plain loc "unsafe_get_field with more than two sons"))
+      ;; it is not a field assignment but we use the parse_field_assignment
+      ;; routine to get the field and the expression
+      (let  ( (flda (parse_field_assignment () loc curfkw curexp env mexpander)) )
+	(if (not (is_a flda class_src_fieldassign))
+	    (progn 
+	      (error_plain loc "bad field and expression in unsafe_get_field")
+	      (return (the_null))))
+	(let ( (fld (unsafe_get_field :sfla_field flda))
+	       (exp (unsafe_get_field :sfla_expr flda)) )
+	  (make_instance class_src_unsafe_get_field
+			 :src_loc loc
+			 :suget_obj exp
+			 :suget_field fld
+	  ))))))
+(install_initial_macro 'unsafe_get_field mexpand_unsafe_get_field)
+(export_macro unsafe_get_field mexpand_unsafe_get_field)
+
+
+;;;; the setq expander
+(defun mexpand_setq (sexpr env mexpander)
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check env" (is_a env class_environment))
+  (let ( (cont (unsafe_get_field :sexp_contents sexpr))
+	 (loc  (unsafe_get_field :loca_location sexpr))
+	 (curpair (pair_tail (list_first cont)))
+	 (cursym (pair_head curpair)) 
+	 )
+    (if (is_not_a cursym class_symbol)
+	(progn
+	  (error_plain loc "var symbol name expected in setq")
+	  (return (the_null))))
+    (setq curpair (pair_tail curpair))
+    (let ( (curexp (pair_head curpair)) )
+      (setq curpair (pair_tail curpair))
+      (if curpair (error_plain loc "setq with more than two sons"))
+      (make_instance class_src_setq 
+		     :src_loc loc
+		     :sstq_var cursym
+		     :sstq_expr  (macroexpand_1 curexp env mexpander)
+		     )
+)))
+(install_initial_macro 'setq mexpand_setq)
+(export_macro setq mexpand_setq)
+
+;;;;; the if expanser
+(defun mexpand_if (sexpr env mexpander)
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check env" (is_a env class_environment))
+  (debug_msg sexpr "mexpand_if sexpr")
+  (let (
+	(cont (unsafe_get_field :sexp_contents sexpr))
+	(loc  (unsafe_get_field :loca_location sexpr))
+	(curpair (pair_tail (list_first cont)))
+	(curif (pair_head curpair)) )
+    (if (not (is_pair curpair))
+	(error_plain loc "missing condition in IF"))
+    (setq curpair (pair_tail curpair))
+    (if (not (is_pair curpair))
+	(error_plain loc "missing then in IF"))
+    (let ( (xcond (macroexpand_1 curif env mexpander)) )
+      (debug_msg xcond "mexpand_if xcond")
+      (let ( (curthen (pair_head curpair)) )
+	(setq curpair (pair_tail curpair))
+	(let ( (xthen (macroexpand_1 curthen env mexpander)) )
+	  (debug_msg xthen "mexpand_if xthen")
+	  (if (is_pair curpair)
+	      (let ( (curelse (pair_head curpair)) 
+		     (xelse (macroexpand_1 curelse env mexpander)) )
+		(debug_msg xelse "mexpand_if xelse")
+		(setq curpair (pair_tail curpair))
+		(if (is_pair curpair)
+		    (error_plain loc "IF with more than three sons"))
+		(let ( (rese
+			(make_instance class_src_ifelse
+				       :src_loc loc
+				       :sif_test xcond
+				       :sif_then xthen
+				       :sif_else xelse
+				       )) )
+		  (debug_msg rese "mexpand_if with else return rese")
+		  (return rese)))
+	    (let ( (resp (make_instance class_src_if
+					:src_loc loc
+					:sif_test xcond
+					:sif_then xthen)) )
+	      (debug_msg resp "mexpand_if plain return resp")
+	      (return resp))
+	    ))))))
+(install_initial_macro 'if mexpand_if)
+(export_macro if mexpand_if)
+
+;;;;; the cppif expander
+(defun mexpand_cppif (sexpr env mexpander)
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check env" (is_a env class_environment))
+  (debug_msg sexpr "mexpand_cppif sexpr")
+  (let (
+	(cont (unsafe_get_field :sexp_contents sexpr))
+	(loc  (unsafe_get_field :loca_location sexpr))
+	(curpair (pair_tail (list_first cont)))
+	(curif (pair_head curpair)) )
+    (if (not (is_pair curpair))
+	(error_plain loc "missing condition in CPPIF"))
+    (setq curpair (pair_tail curpair))
+    (if (not (is_pair curpair))
+	(error_plain loc "missing then in CPPIF"))
+    (let ( (xcond (macroexpand_1 curif env mexpander)) )
+      (debug_msg xcond "mexpand_cppif xcond")
+      (cond 
+       ( (is_string xcond) ())
+       ( (is_a xcond class_symbol) ())
+       (:else
+	(error_plain loc "invalid cpp-condition in CPPIF - string or symbol expected")
+	(return ())))
+      (let ( (curthen (pair_head curpair)) )
+	(setq curpair (pair_tail curpair))
+	(let ( (xthen (macroexpand_1 curthen env mexpander)) 
+	       (xelse ())
+	       )
+	  (debug_msg xthen "mexpand_cppif xthen")
+	  (if (is_pair curpair)
+	      (let ( (curelse (pair_head curpair)) 
+		     (gotxelse (macroexpand_1 curelse env mexpander)) )
+		(debug_msg gotxelse "mexpand_cppif gotxelse")
+		(setq curpair (pair_tail curpair))
+		(setq xelse gotxelse)
+		(if (is_pair curpair)
+		    (error_plain loc "CPPIF with more than three sons"))))
+	  (let ( (resp (make_instance class_src_cppif
+				      :src_loc loc
+				      :sifp_cond xcond
+				      :sifp_then xthen
+				      :sifp_else xelse
+				      ))
+		 )
+	    (debug_msg resp "mexpand_cppif return resp")
+	    (return resp)
+	    ))))))
+(install_initial_macro 'cppif mexpand_cppif)
+(export_macro cppif mexpand_cppif)
+
+
+
+;;;;; the cond expanser
+(defun mexpand_cond (sexpr env mexpander)
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check env" (is_a env class_environment))
+  (debug_msg sexpr "mexpand_cond sexpr")
+  (let (
+	(cont (unsafe_get_field :sexp_contents sexpr))
+	(loc  (unsafe_get_field :loca_location sexpr))
+	(cexptuple (pairlist_to_multiple 
+		    (pair_tail (list_first cont))
+		    discr_multiple
+		    (lambda (c)
+		      (if (is_not_a c class_sexpr)
+			  (error_plain loc "COND with non-sexpr"))
+		      c
+		      ))) 
+	(:long nbcond (multiple_length cexptuple))
+	(lastcexp (let ( (lx (multiple_nth cexptuple -1)) )
+		    (debug_msg lx "mexpand_cond lastcexp lx")
+		    lx))
+	(:long ix (-i nbcond 1))
+	(res ())
+	)
+    (debug_msg cexptuple "mexpand_cond cexptuple")
+    (forever condloop
+	     (if (<i ix 0) (exit condloop))
+	     (let ( (curcond (multiple_nth cexptuple ix)) )
+	       (debug_msg curcond "mexpand_cond curcond")
+	       (cond  
+		( (and (null res)
+		       (is_a curcond class_sexpr)
+		       (== ':else (pair_head (list_first 
+					      (unsafe_get_field :sexp_contents curcond)))))
+		  (let ( (restpairs 
+			  (pair_tail (list_first (unsafe_get_field :sexp_contents curcond)))) 
+			 )
+		    (if restpairs 
+			(setq res (pairlist_to_progn restpairs 
+						     (unsafe_get_field :loca_location curcond) 
+						     env mexpander)))
+		    (debug_msg res "mexpand_cond res for :else")
+		    ))
+		( (is_a curcond class_sexpr)
+		  (let ( (curcondcont (unsafe_get_field :sexp_contents curcond))
+			 (curcondloc (unsafe_get_field :loca_location curcond)) 
+			 (curcondtest (pair_head (list_first curcondcont)))
+			 (curcondrestpairs (pair_tail (list_first curcondcont))) 
+			 )
+		    (cond ( (null curcondrestpairs)
+			    (setq res (make_instance class_src_or
+						     :src_loc curcondloc
+						     :sor_disj (make_tuple2 discr_multiple 
+									    (macroexpand_1 curcondtest env mexpander)
+									    res)))
+			    (debug_msg res "mexpand_cond res for monoexp cond")
+			    )
+			  ( (null (pair_tail curcondrestpairs))
+			    (setq res (make_instance class_src_ifelse
+						     :src_loc curcondloc
+						     :sif_test (macroexpand_1 curcondtest env mexpander)
+						     :sif_then (macroexpand_1 (pair_head curcondrestpairs) env mexpander)
+						     :sif_else res
+						     ))
+			    (debug_msg res "mexpand_cond res for biexp cond")
+			    )
+			  (:else 
+			    (setq res (make_instance class_src_ifelse
+						     :src_loc curcondloc
+						     :sif_test (macroexpand_1 curcondtest env mexpander)
+						     :sif_then (pairlist_to_progn curcondrestpairs curcondloc env mexpander)
+						     :sif_else res))
+			    (debug_msg res "mexpand_cond res for manyexp cond")
+			   ))
+		    ))
+		(:else ;curcond is not a sexpr 
+		 (setq res (make_instance class_src_or
+					  :src_loc loc
+					  :sor_disj (make_tuple2 discr_multiple curcond res)))
+		 (debug_msg res "mexpand_cond res for nonsexp cond")
+		 )
+		)
+	       )
+	     (setq ix (-i ix 1))
+	     )
+    (debug_msg res "mexpand_cond final res")
+    (return res)
+    ))
+(install_initial_macro 'cond mexpand_cond)
+(export_macro cond mexpand_cond)
+
+;;;; the and expanser
+;;; AND pseudo syntax
+;;; (AND a1) is expanded into a1
+;;; (AND a1 a2) is expansed into (IF a1 a2)
+;;; (AND a1 a2 a3) is expansed into (IF a1 (IF a2 a3))
+(defun mexpand_and (sexpr env mexpander)
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check env" (is_a env class_environment))
+  (debug_msg sexpr "mexpand_and sexpr:" )
+  (let (
+	(cont (unsafe_get_field :sexp_contents sexpr))
+	(loc  (unsafe_get_field :loca_location sexpr))
+	(curpair (pair_tail (list_first cont)))
+	(cxtup (pairlist_to_multiple 
+		curpair
+		discr_multiple
+		(lambda (c) (macroexpand_1 c env mexpander)
+		  )))
+	(:long nbcomp (multiple_length cxtup))
+	)
+    (debug_msg cxtup "mexpand_and cxtup")
+    (if (<i nbcomp 1)
+	(progn
+	  (error_plain loc "AND without sons")
+	  (return))
+      (let ( (res (multiple_nth cxtup (-i nbcomp 1)))
+	     (:long ix (-i nbcomp 2)) )
+	(forever revloop
+		 (if (<i ix 0) (exit revloop))
+		 (let ( (curc (multiple_nth cxtup ix)) )
+		   (setq res 
+			 (make_instance class_src_if
+					:src_loc loc
+					:sif_test curc
+					:sif_then res))
+		   )
+		 (setq ix (-i ix 1))
+		)
+	(debug_msg res "mexpand_and res:")
+	(return res)))))
+(install_initial_macro 'and mexpand_and)
+(export_macro and mexpand_and)
+
+;;;; the or expanser
+(defun mexpand_or (sexpr env mexpander)
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check env" (is_a env class_environment))
+  (debug_msg sexpr "mexpand_or sexpr")
+  (let (
+	(cont (unsafe_get_field :sexp_contents sexpr))
+	(loc  (unsafe_get_field :loca_location sexpr))
+	(cxtup (pairlist_to_multiple 
+		(pair_tail (list_first cont))
+		discr_multiple
+		(lambda (c) (macroexpand_1 c env mexpander)
+		  )))
+	(:long nbcomp (multiple_length cxtup))
+	)
+    (if (<i nbcomp 1)
+	(progn 
+	  (error_plain loc "OR without sons")
+	  (return (the_null)))
+      (let ( (res 
+	      (make_instance class_src_or
+			     :src_loc loc
+			     :sor_disj cxtup)) )
+	(debug_msg res "mexpand_or res")
+	(return res)
+	))))
+(install_initial_macro 'or mexpand_or)
+(export_macro or mexpand_or)
+
+
+;;;;;;;; for LET
+;; internal routine to make a letbinding
+(defun mexpand_letbinding (sexpr env mexpander)
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check env" (is_a env class_environment))
+  (let (
+	(cont (unsafe_get_field :sexp_contents sexpr))
+	(loc  (unsafe_get_field :loca_location sexpr))
+	(ctyp ctype_value)
+	(var ())
+	(expr ())
+	(curpair (list_first cont))
+	(curarg ())
+	)
+    (setq curarg (pair_head curpair))
+    (if (is_a curarg class_keyword)
+	(let ( (cty (unsafe_get_field :symb_data curarg)) )
+	  (if (and (is_a cty class_ctype) 
+		   (== (unsafe_get_field :ctype_keyword cty) curarg))
+	      (setq ctyp cty)
+	    (error_strv loc "letbinding with invalid type keyword"
+			(unsafe_get_field :named_name curarg)))
+	  (setq curpair (pair_tail curpair))
+	  (setq curarg (pair_head curpair))
+	  ))
+    (cond ( (is_a curarg class_keyword)
+	    (error_strv loc "letbinding cannot bind keyword"  
+			(unsafe_get_field :named_name curarg)))
+	  ( (is_a curarg class_symbol)
+	    (setq var curarg)
+	    (setq curpair (pair_tail curpair))
+	    (setq curarg (pair_head curpair))
+	    ))
+    (if (null var) 
+	(error_plain loc "missing variable in letbinding"))
+    (if curarg
+	(progn 
+	  (setq expr (macroexpand_1 curarg env mexpander))
+	  (setq curpair (pair_tail curpair))
+	  (setq curarg (pair_head curpair))
+	  (if curarg (error_plain loc "too long letbinding"))
+	  ))
+    (let ( (letb
+	    (make_instance class_src_letbinding
+			   :src_loc loc
+			   :sletb_type ctyp
+			   :sletb_binder var
+			   :sletb_expr expr)) )
+      (return letb)
+      )))
+
+;;; the LET expander itself
+(defun mexpand_let (sexpr env mexpander)
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check env" (is_a env class_environment))
+  (let (
+	(cont (unsafe_get_field :sexp_contents sexpr))
+	(loc  (unsafe_get_field :loca_location sexpr))
+	(secpair (pair_tail (list_first cont)))
+	(restpair (pair_tail secpair))
+	(bindexpr (pair_head secpair))
+	(newenv (fresh_env env))
+	(bindtup ())
+	(bodytup ())
+	)
+    (if bindexpr 
+	(if (is_a bindexpr class_sexpr) 
+	    (setq bindtup 
+			  (pairlist_to_multiple 
+			   (list_first (unsafe_get_field :sexp_contents bindexpr))
+			   discr_multiple
+			   (lambda (b) (mexpand_letbinding b env mexpander))))
+	  (error_plain loc "missing letbinding-s in LET"))
+      )
+    (multiple_every
+     bindtup
+     (lambda (slb)
+       (assert_msg "mexp.let. check slb" (is_a slb class_src_letbinding))
+       (let (
+	     (sx (unsafe_get_field :sletb_expr slb))
+	     (lb (make_instance class_let_binding
+				:binder (unsafe_get_field :sletb_binder slb)
+				:letbind_type (unsafe_get_field :sletb_type slb)
+				:letbind_expr sx)) )
+	 (assert_msg "mexp.let not list lb" (not (is_list lb)))
+	 (put_env newenv lb)
+	 )))
+    (setq bodytup (pairlist_to_multiple restpair discr_multiple 
+					(lambda (e) (macroexpand_1 e newenv mexpander))))
+    (let ( (letr
+	    (make_instance class_src_let
+			   :src_loc loc
+			   :slet_bindings bindtup
+			   :slet_body bodytup)) )
+      (return letr)
+      )))
+(install_initial_macro 'let mexpand_let)
+(export_macro let mexpand_let)
+
+;;;;;;;; for LAMBDA
+(defun mexpand_lambda (sexpr env mexpander)
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check env" (is_a env class_environment))
+  (let ( (cont (unsafe_get_field :sexp_contents sexpr))
+	 (loc  (unsafe_get_field :loca_location sexpr))
+	 (curpair (pair_tail (list_first cont))) 
+	 (newenv (fresh_env env))
+	 )
+    ;; parse the formal arguments
+    (let ( (argtup (lambda_arg_bindings (pair_head curpair) sexpr)) )
+      (setq curpair (pair_tail curpair))
+      (multiple_every argtup 
+		      (lambda (lb) (put_env newenv lb)))
+      (let ( (bodytup (pairlist_to_multiple curpair discr_multiple 
+					    (lambda (e) (macroexpand_1 e newenv mexpander)))) 
+	     (lambr 
+	      (make_instance class_src_lambda
+			     :src_loc loc
+			     :slam_argbind argtup
+			     :slam_body bodytup))
+	     ) 
+	(return lambr)
+	))))
+(install_initial_macro 'lambda mexpand_lambda)
+(export_macro lambda mexpand_lambda)
+
+;;;;;;;; for MULTICALL
+(defun mexpand_multicall (sexpr env mexpander)
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check env" (is_a env class_environment))
+  (let ( (cont (unsafe_get_field :sexp_contents sexpr))
+	 (loc  (unsafe_get_field :loca_location sexpr))
+	 (curpair (pair_tail (list_first cont))) 
+	 (newenv (fresh_env env))
+	 )
+    ;; parse the formal results
+    (let ( (restup (lambda_arg_bindings (pair_head curpair) sexpr)) )
+      (setq curpair (pair_tail curpair))
+      (let ( (curcallexp (pair_head curpair)) )
+	(if (not (is_a curcallexp class_sexpr))
+	    (error_plain loc "missing called expression in multicall"))
+	(setq curpair (pair_tail curpair))
+	(let ( (curcall (macroexpand_1 curcallexp env mexpander)) )
+	  (multiple_every restup 
+			  (lambda (lb) (put_env newenv lb)
+			    ))
+	  (let ( (bodytup (pairlist_to_multiple curpair discr_multiple 
+						(lambda (e) (macroexpand_1 e newenv mexpander)))) 
+		 (mulcr
+		  (make_instance class_src_multicall
+				 :src_loc loc
+				 :smulc_resbind restup
+				 :smulc_call curcall
+				 :smulc_body bodytup
+				 )) 
+		 )
+	    (return mulcr)
+	    ))))))
+(install_initial_macro 'multicall mexpand_multicall)
+(export_macro multicall mexpand_multicall)
+
+
+;;;;;;;; for QUOTE (only of symbols or keywords)
+(defun mexpand_quote (sexpr env mexpander)
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check env" (is_a env class_environment))
+  (let ( (cont (unsafe_get_field :sexp_contents sexpr))
+	 (loc  (unsafe_get_field :loca_location sexpr))
+	 (curpair (pair_tail (list_first cont))) 
+	 (quoted (pair_head curpair))
+	 )
+    (if (pair_tail curpair)
+	(error_plain loc "QUOTE should have only one symbol argument"))
+    (if (not (is_a quoted class_symbol))
+	(error_plain loc "QUOTE should have a symbol argument - composite quotations unsupported"))
+    (if (is_a quoted class_keyword)
+	(return quoted))
+    (let ( (squ (make_instance class_src_quote
+			       :src_loc loc
+			       :squoted quoted)) )
+      (return squ)
+      )))
+(install_initial_macro 'quote mexpand_quote)
+(export_macro quote mexpand_quote)
+
+;;;;;;;; for COMMENT (only of strings)
+(defun mexpand_comment  (sexpr env mexpander)
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check env" (is_a env class_environment))
+  (let ( (cont (unsafe_get_field :sexp_contents sexpr))
+	 (loc  (unsafe_get_field :loca_location sexpr))
+	 (curpair (pair_tail (list_first cont))) 
+	 (comstr (pair_head curpair))
+	 )
+    (if (pair_tail curpair)
+	(error_plain loc "COMMENT should have only one string argument"))
+    (if (not (is_string comstr))
+	(progn
+	  (error_plain loc "COMMENT should have a string")
+	  (setq comstr ()))
+      )
+    (let ( (scom (make_instance class_src_comment
+			       :src_loc loc
+			       :scomm_str comstr)) )
+      (return scom)
+)))
+(install_initial_macro 'comment mexpand_comment)
+(export_macro comment mexpand_comment)
+
+;;;;;;;; for PROGN
+;; internal routine to make a progn from a pairlist at a location
+(defun pairlist_to_progn (pair loc env mexpander)
+  (assert_msg "check env" (is_a env class_environment))
+  (debug_msg pair "pairlist_to_progn pair")
+  (assert_msg "check_pair" (is_pair pair))
+  (let ( (bodytup (pairlist_to_multiple 
+		   pair 
+		   discr_multiple
+		   (lambda (e) (macroexpand_1 e env mexpander)))) 
+	 (sprogn
+	  (make_instance class_src_progn
+			 :src_loc loc
+			 :sprogn_body bodytup
+			 )) )
+    (debug_msg sprogn "pairlist_to_progn sprogn")
+    (return sprogn)
+))
+
+;; internal routine to make a return from a pairlist at a location
+(defun pairlist_to_return (pair loc env mexpander)
+  (assert_msg "check env" (is_a env class_environment))
+  (let ( (bodytup (pairlist_to_multiple 
+		   pair 
+		   discr_multiple
+		   (lambda (e) (macroexpand_1 e env mexpander)))) )
+    (make_instance class_src_return
+		   :src_loc loc
+		   :sreturn_body bodytup
+		   )
+))
+
+;;;; the progn expanser
+(defun mexpand_progn (sexpr env mexpander)
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (let ( (sloc (unsafe_get_field :loca_location sexpr))
+	 (pairs  (pair_tail
+		  (list_first (unsafe_get_field :sexp_contents sexpr)))) 
+	 )
+    (if (not (is_pair pairs))
+	(progn
+	  (error_plain sloc "empty PROGN")
+	  (return)))
+    (let ( (progr
+	    (pairlist_to_progn pairs
+			       sloc
+			       env
+			       mexpander)) )
+      (return progr)
+      )))
+(install_initial_macro 'progn mexpand_progn)
+(export_macro progn mexpand_progn)
+
+;;;; the return expanser
+(defun mexpand_return (sexpr env mexpander)
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (let ( (retr
+	  (pairlist_to_return (pair_tail (list_first (unsafe_get_field :sexp_contents sexpr)))
+			      (unsafe_get_field :loca_location sexpr)
+			      env
+			      mexpander)) 
+	 )
+    (return retr)
+    ))
+(install_initial_macro 'return mexpand_return)
+(export_macro return mexpand_return)
+
+
+;;;; the forever expanser
+(defun mexpand_forever (sexpr env mexpander)
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (let ( (cont (unsafe_get_field :sexp_contents sexpr))
+	 (loc  (unsafe_get_field :loca_location sexpr))
+	 (curpair (pair_tail (list_first cont))) 
+	 (slabnam (pair_head curpair))
+	 (xlabnam (macroexpand_1 slabnam env mexpander))
+	 (newenv (fresh_env env))
+	 )
+    (if (is_not_a xlabnam class_symbol)
+	(progn
+	  (error_plain loc "missing label in FOREVER")
+	  (return (the_null))))
+    (setq curpair (pair_tail curpair))
+    (let ( (labind (make_instance class_label_binding
+				  :binder xlabnam
+				  :labind_loc loc)) )
+      (put_env newenv labind)
+      (let ( (bodytup (pairlist_to_multiple
+		       curpair
+		       discr_multiple
+		       (lambda (e) (macroexpand_1 e newenv mexpander)))) 
+	     (forr
+	      (make_instance class_src_forever
+			     :src_loc loc
+			     :slabel_bind labind
+			     :sfrv_body bodytup)) 
+	     )
+	(return forr)
+	))))
+(install_initial_macro 'forever mexpand_forever)
+(export_macro forever mexpand_forever)
+
+;;;; the exit expanser
+(defun mexpand_exit (sexpr env mexpander)
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (let ( (cont (unsafe_get_field :sexp_contents sexpr))
+	 (loc  (unsafe_get_field :loca_location sexpr))
+	 (curpair (pair_tail (list_first cont))) 
+	 (slabnam (pair_head curpair))
+	 (xlabnam (macroexpand_1 slabnam env mexpander))
+	 (newenv (fresh_env env))
+	 )
+    (if (is_not_a xlabnam class_symbol)
+	(progn
+	  (error_plain loc "missing label in EXIT")
+	  (return (the_null))))
+    (setq curpair (pair_tail curpair))
+    (let ( (labind (find_env env xlabnam)) )
+      (if (is_not_a labind class_label_binding)
+	  (progn 
+	    (error_strv loc "bad label in EXIT" 
+			(unsafe_get_field :named_name xlabnam))
+	    (return (the_null))))
+      (let ( (bodytup (pairlist_to_multiple
+		       curpair
+		       discr_multiple
+		       (lambda (e) (macroexpand_1 e newenv mexpander)))) 
+	     (exr
+	      (make_instance class_src_exit
+			     :src_loc loc
+			     :slabel_bind labind
+			     :sexi_body bodytup)) 
+	     )
+	(return exr)
+	))))
+(install_initial_macro 'exit mexpand_exit)
+(export_macro exit mexpand_exit)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; compile time warning (compile_warning msg expr)
+;; we don't issue the warning at expansion phase, but at normalization phase.
+(defun  mexpand_compile_warning (sexpr env mexpander)
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (debug_msg sexpr "mexpand_compile_warning sexpr")
+  (let ( (cont (unsafe_get_field :sexp_contents sexpr))
+	(loc  (unsafe_get_field :loca_location sexpr))
+	 (curpair (pair_tail (list_first cont))) 
+	 (smsg (pair_head curpair))
+	 (xmsg (macroexpand_1 smsg env mexpander))
+	 )
+    (if (not (is_string xmsg))
+	(progn
+	  (error_plain loc "missing message string in (COMPILE_WARNING <msg> <exp>)")
+	  (return (the_null))))
+    (setq curpair (pair_tail curpair))
+    (let ( (sexp (pair_head curpair))
+	  (xexp (macroexpand_1 sexp env mexpander))
+	   )
+      (setq curpair (pair_tail curpair))
+      (if (notnull curpair)
+	  (error_plain loc "too many arguments in (COMPILE_WARNING <msg> <exp>)"))
+      (let ( (res (make_instance  class_src_compilewarning
+				  :src_loc loc
+				  :scwarn_msg xmsg
+				  :scwarn_expr xexp
+				  ))
+	    )
+	(debug_msg res "mexpand_compile_warning result")
+	(return res)
+	))))
+(install_initial_macro 'compile_warning mexpand_compile_warning)
+(export_macro compile_warning mexpand_compile_warning)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; assert_msg macro is expanded into other src..
+;;;;;; (assert_msg msg check)
+;;; becomes
+;;;;;; (cppif ENABLE_CHECKING (if check (assert_failed msg filename lineno)) ())
+;;; where assert_failed is a primitive
+
+(defun mexpand_assert_msg (sexpr env mexpander)
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check env" (is_a env class_environment))
+  (debug_msg sexpr "mexpand_assert_msg sexpr")
+  (let (
+	(cont (unsafe_get_field :sexp_contents sexpr))
+	(loc  (unsafe_get_field :loca_location sexpr))
+	(curpair (pair_tail (list_first cont)))
+	(xmsg (macroexpand_1 (pair_head curpair)  env mexpander))
+	(xtest ())
+	(assfail_binding (find_env env 'assert_failed))
+	)
+    (if (is_not_a assfail_binding class_primitive_binding)
+	(progn
+	  (error_plain loc "ASSERT_FAILED not bound to a primitive in  (ASSERT_MSG <msg> <test>)")
+	  (return)))
+    (if (not (is_string xmsg))
+	(error_plain loc "non string message in (ASSERT_MSG <msg> <test>)"))
+    (setq curpair (pair_tail curpair))
+    (if (not (is_pair curpair))
+	(error_plain loc "missing test in (ASSERT_MSG <msg> <test>)"))
+    (setq xtest (macroexpand_1 (pair_head curpair) env mexpander))
+    (if (pair_tail curpair)
+	(error_plain loc "extra arg for (ASSERT_MSG <msg> <test>)"))
+    (let ( (aprim (make_instance 
+		   class_src_primitive
+		   :src_loc loc
+		   :sprim_oper (unsafe_get_field :pbind_primitive assfail_binding)
+		   :sprim_args (make_tuple3 discr_multiple
+					   xmsg
+					   (mixint_val loc)
+					   (make_integerbox discr_integer (get_int loc)))))
+	   (atest (make_instance
+		   class_src_ifelse
+		   :src_loc loc
+		   :sif_test xtest
+		   :sif_then ()
+		   :sif_else aprim))
+	   (acppif (make_instance class_src_cppif
+				  :src_loc loc
+				  :sifp_cond 'ENABLE_CHECKING
+				  :sifp_then atest
+				  :sifp_else ()
+				  )) 
+	   )
+      (debug_msg acppif "mexpand_assert_msg result acppif")
+      (return acppif)
+    )))
+(install_initial_macro 'assert_msg mexpand_assert_msg)
+(export_macro assert_msg mexpand_assert_msg)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; debug_msg macro is expanded into other src..
+;;;;;; (debug_msg val msg [count]) 
+;;; becomes
+;;;;;; (cppif ENABLE_CHECKING (debug_msg_fun val msg count filename lineno) ())
+;;; where count is (the_callcount) if not given
+
+(defun mexpand_debug_msg (sexpr env mexpander)
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check env" (is_a env class_environment))
+  (debug_msg sexpr "mexpand_debug_msg sexpr")
+  (let (
+	(cont (unsafe_get_field :sexp_contents sexpr))
+	(loc  (unsafe_get_field :loca_location sexpr))
+	(curpair (pair_tail (list_first cont)))
+	(xval (macroexpand_1 (pair_head curpair)  env mexpander)) 
+	(xmsg ())
+	(xcount ())
+	)
+    (setq curpair (pair_tail curpair))
+    (if (not (is_pair curpair))
+	(error_plain loc "missing message in DEBUG_MSG"))
+    (setq xmsg  (macroexpand_1 (pair_head curpair) env mexpander))
+    (setq curpair (pair_tail curpair))
+    (if (is_pair curpair)
+	(progn
+	  (setq xcount (macroexpand_1 (pair_head curpair) env mexpander))
+	  (setq curpair (pair_tail curpair))))
+    (if curpair
+	(error_plain loc "too many arguments to DEBUG_MSG"))
+    (if (not (is_string xmsg))
+	(error_plain loc "message argument should be string in DEBUG_MSG"))
+    (if (null xcount)
+	(let ( (conlis (make_list discr_list)) )
+	  (list_append conlis 'the_callcount)
+	  (setq xcount (macroexpand_1 (make_instance class_sexpr 
+						     :sexp_contents conlis
+						     :loca_location loc)
+				      env mexpander))))
+    (let ( (dcall (make_instance 
+		   class_src_apply
+		   :src_loc loc
+		   :sapp_fun 'debug_msg_fun
+		   :sapp_args (make_tuple5 discr_multiple
+					   xval
+					   xmsg
+					   xcount
+					   (mixint_val loc)
+					   (make_integerbox discr_integer (get_int loc)))))
+	   (dcppif (make_instance class_src_cppif
+				  :src_loc loc
+				  :sifp_cond 'ENABLE_CHECKING
+				  :sifp_then dcall
+				  :sifp_else ()
+				  )) 
+	   )
+      (debug_msg dcppif "mexpand_debug_msg result dcppif")
+      (return dcppif)
+      )))
+(install_initial_macro 'debug_msg mexpand_debug_msg)
+(export_macro debug_msg mexpand_debug_msg)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; export_values macro (export_values <symbol> ...)
+(defun mexpand_export_values (sexpr env mexpander)
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check env" (is_a env class_environment))
+  (debug_msg sexpr "mexpand_export_values sexpr")
+  (let (
+	(cont (unsafe_get_field :sexp_contents sexpr))
+	(loc  (unsafe_get_field :loca_location sexpr))
+	(curpair (pair_tail (list_first cont)))
+	(symbtup (pairlist_to_multiple 
+		  curpair discr_multiple
+		  (lambda (s)
+		    (let ( (sym  (macroexpand_1 s env mexpander)) )
+		      (if (is_not_a sym class_symbol)
+			  (progn
+			    (debugmsg sym "mexpand_export_values bad sym")
+			    (error_plain loc "(EXPORT_VALUES <sym>...) expecting symbol")))
+		      sym
+		      ))))
+	(res (make_instance class_src_export_values
+			    :src_loc loc
+			    :sexport_names symbtup))
+	)
+    (debug_msg res "mexpand_export_values result res")
+    (return res)
+    ))
+(install_initial_macro 'export_values mexpand_export_values)
+(export_macro export_values mexpand_export_values)
+
+;;;;
+;;; export_macro macro (export_macro <symbol> <expander>)
+(defun mexpand_export_macro (sexpr env mexpander)
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check env" (is_a env class_environment))
+  (debug_msg sexpr "mexpand_export_macro sexpr")
+  (let (
+	(cont (unsafe_get_field :sexp_contents sexpr))
+	(loc  (unsafe_get_field :loca_location sexpr))
+	(curpair (pair_tail (list_first cont)))
+	(symb (macroexpand_1 (pair_head curpair) env mexpander))
+	)
+    (if (is_not_a symb class_symbol)
+	(error_plain loc "(EXPORT_MACRO <sym> <expander>) expecting symbol"))
+    (setq curpair (pair_tail curpair))
+    (let ( (expv (macroexpand_1 (pair_head curpair) env mexpander)) 
+	   )
+      (if (null expv)
+	  (error_plain loc  "(EXPORT_MACRO <sym> <expander>) expecting expander"))
+      (let ( (res (make_instance class_src_export_macro
+				 :src_loc loc
+				 :sexpmac_mname symb
+				 :sexpmac_mval expv
+		   ))
+	     )
+    (debug_msg res "mexpand_export_macro result res")
+    (return res)
+    ))))
+(install_initial_macro 'export_macro mexpand_export_macro)
+(export_macro export_macro mexpand_export_macro)
+
+;;;;
+;;; export_class macro (export_class <symbol> ...)
+(defun mexpand_export_class (sexpr env mexpander)
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check env" (is_a env class_environment))
+  (debug_msg sexpr "mexpand_export_class sexpr")
+  (let (
+	(cont (unsafe_get_field :sexp_contents sexpr))
+	(loc  (unsafe_get_field :loca_location sexpr))
+	(curpair (pair_tail (list_first cont)))
+	(symbtup (pairlist_to_multiple 
+		  curpair discr_multiple
+		  (lambda (s)
+		    (let ( (sym  (macroexpand_1 s env mexpander)) )
+		      (if (is_not_a sym class_symbol)
+			  (error_plain loc "(EXPORT_CLASS <sym>...) expecting symbol"))
+		      sym
+		      ))))
+	(res (make_instance class_src_export_class
+			    :src_loc loc
+			    :sexport_names symbtup))
+	)
+    (debug_msg res "mexpand_export_class result res")
+    (return res)
+    ))
+(install_initial_macro 'export_class mexpand_export_class)
+(export_macro export_class mexpand_export_class)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;; current_module_environment macro 
+(defun mexpand_current_module_environment (sexpr env mexpander)
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check env" (is_a env class_environment))
+  (debug_msg sexpr "mexpand_current_module_environment sexpr")
+  (let (
+	(cont (unsafe_get_field :sexp_contents sexpr))
+	(loc  (unsafe_get_field :loca_location sexpr))
+	(curpair (pair_tail (list_first cont)))
+	(res (make_instance class_src_current_module_environment
+			    :src_loc loc))
+	)
+    (if (notnull curpair)
+	(error_plain loc "(CURRENT_MODULE_ENVIRONMENT) should not have any argument"))
+    (debug_msg res "mexpand_current_module_environment return res")
+    (return res)
+))
+(install_initial_macro 'current_module_environment mexpand_current_module_environment)
+(export_macro current_module_environment mexpand_current_module_environment)
+
+
+;;;;;;;;;;;;;;;;
+;;;; parent_module_environment macro 
+(defun mexpand_parent_module_environment (sexpr env mexpander)
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check env" (is_a env class_environment))
+  (debug_msg sexpr "mexpand_parent_module_environment sexpr")
+  (let (
+	(cont (unsafe_get_field :sexp_contents sexpr))
+	(loc  (unsafe_get_field :loca_location sexpr))
+	(curpair (pair_tail (list_first cont)))
+	(res (make_instance class_src_parent_module_environment
+			    :src_loc loc))
+	)
+    (if (notnull curpair)
+	(error_plain loc "(PARENT_MODULE_ENVIRONMENT) should not have any argument"))
+    (debug_msg res "mexpand_parent_module_environment return res")
+    (return res)
+))
+(install_initial_macro 'parent_module_environment mexpand_parent_module_environment)
+(export_macro parent_module_environment mexpand_parent_module_environment)
+
+
+;;;;;;;;;;;;;;;;
+;;;; unsafe_replace_module_environment macro
+(defun mexpand_unsafe_replace_module_environment (sexpr env mexpander)
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check env" (is_a env class_environment))
+  (debug_msg sexpr "mexpand_parent_module_environment sexpr")
+  (let (
+	(cont (unsafe_get_field :sexp_contents sexpr))
+	(loc  (unsafe_get_field :loca_location sexpr))
+	(curpair (pair_tail (list_first cont)))
+	(sfreshenv (macroexpand_1 (pair_head curpair) env mexpander))
+	)
+    (if (null curpair) 
+	(error_plain loc "(UNSAFE_REPLACE_MODULE_ENVIRONMENT <freshenv>) missing argument"))
+    (if (null (pair_tail curpair)) 
+	(error_plain loc "(UNSAFE_REPLACE_MODULE_ENVIRONMENT <freshenv>) extra argument"))
+    (let ( (res (make_instance class_src_unsafe_replace_module_environment
+			       :src_loc loc
+			       :surmc_freshenv sfreshenv
+			       ))
+	   )
+      (debug_msg res "mexpand_parent_module_environment returns res")
+      (return res)
+)))
+(install_initial_macro 'unsafe_replace_module_environment mexpand_unsafe_replace_module_environment)
+(export_macro unsafe_replace_module_environment mexpand_unsafe_replace_module_environment)
+
+(export_class  ;classes for source representations, alphabetical order
+ class_src_apply
+ class_src_comment
+ class_src_compilewarning
+ class_src_cppif
+ class_src_current_module_environment
+ class_src_defclass
+ class_src_definstance
+ class_src_defobjcommon
+ class_src_defprimitive
+ class_src_defselector
+ class_src_defun
+ class_src_exit
+ class_src_export_class
+ class_src_export_macro
+ class_src_export_values
+ class_src_exportcommon
+ class_src_fieldassign
+ class_src_forever
+ class_src_if
+ class_src_ifelse
+ class_src_labelled
+ class_src_lambda
+ class_src_let
+ class_src_letbinding
+ class_src_make_instance
+ class_src_msend
+ class_src_multicall
+ class_src_or
+ class_src_parent_module_environment
+ class_src_primitive
+ class_src_progn
+ class_src_progn
+ class_src_quote
+ class_src_return
+ class_src_setq
+ class_src_unsafe_get_field
+ class_src_unsafe_put_fields
+ class_src_unsafe_replace_module_environment
+ class_srcdef
+ class_srcdeformal
+ )			       ;end classes for source representations
+
+(export_values			 ;functions for source representations
+ expand_apply
+ expand_msend  
+ expand_pairlist_as_tuple
+ expand_primitive
+ install_initial_macro
+ lambda_arg_bindings
+ macroexpand_1
+ macroexpand_toplevel_list
+ )			  ;end of functions for source representations
+
 ;;>> warmelt-macro.bysl
+
+;;****************************************************************
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; ================ normalized representations
@@ -3440,7 +5511,17 @@
 	   
 ))
 
+;; normalized replace module environment
+(defclass class_nrep_unsafe_replace_module_environment
+  :super class_nrep_expr
+  :fields (nurme_freshenv
+))
 ;;>> warmelt-normal.bysl
+
+
+;;****************************************************************
+
+;;<< warmelt-genobj.bysl
 
 ;;;; value like objects
 (defclass class_objvalue
@@ -3811,1961 +5892,8 @@
 
 
 
+;;>> warmelt-genobj.bysl
 
-
-
-;;;;;;;;;;;;;;;;;;;; first pass, macro expansion
-
-;;get the n-th son of a sexpr
-(defun sexpr_nth_son (sexp :long n)
-  (if (is_a sexp class_sexpr)
-      (let ( (:long ix 0)
-	     (curpair (list_first (unsafe_get_field :sexp_contents sexp)))
-	     )
-	(forever nthloop
-		 (if (not (is_pair curpair)) (exit nthloop))
-		 (if (==i ix n) (exit nthloop (pair_head curpair)))
-		 (setq ix (+i ix 1))
-		 (setq curpair (pair_tail curpair))
-))))
-
-;;expand all but the first element of a list as a tuple
-(defun expand_restlist_as_tuple (arglist env mexpander)
-  (assert_msg "check end" (is_a env class_environment))
-  (assert_msg "check mexpander" (is_closure mexpander))
-  (assert_msg "check arglist" (is_list arglist))
-  (let ( (:long nbarg (list_length arglist))
-	 (:long ix 0)
-	 (curpair (pair_tail (list_first arglist)))
-	 (tup (make_multiple discr_multiple (-i nbarg 1)))
-	 )
-    (forever exploop
-	     (if (not curpair) (exit exploop))
-	     (assert_msg "check curpair" (is_pair curpair))
-	     (let ( (curarg (pair_head curpair)) 
-		    (curexp (macroexpand_1 curarg env mexpander))
-		    )
-	       (multiple_put_nth tup ix curexp)
-	       (setq ix (+i ix 1))
-	       (setq curpair (pair_tail curpair))
-	     ))
-    tup
-    ))
-
-;;expand all of a pairlist as a tuple
-(defun expand_pairlist_as_tuple (pair env mexpander)
-  (assert_msg "check end" (is_a env class_environment))
-  (assert_msg "check mexpander" (is_closure mexpander))
-  (let ( (:long nbarg (pair_listlength pair))
-	 (:long ix 0)
-	 (tup (make_multiple discr_multiple nbarg)) )
-    (forever exploop
-	     (if (not (is_pair pair)) (exit exploop))
-	     (let ( (curarg (pair_head pair)) 
-		    (curexp (macroexpand_1 curarg env mexpander))
-		    )
-	       (multiple_put_nth tup ix curexp)
-	       (setq ix (+i ix 1))
-	       (setq pair (pair_tail pair))
-	     ))
-    tup 
-))
-
-
-;;; expand an s-expression known to be an application
-(defun expand_apply (sexpr env mexpander)
-  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
-  (assert_msg "check end" (is_a env class_environment))
-  (assert_msg "check mexpander" (is_closure mexpander))
-  (let ( (scont (unsafe_get_field :sexp_contents sexpr))
-	 (sloc (unsafe_get_field :loca_location sexpr))
-	 (soper (pair_head (list_first scont)))
-	 (xargtup (expand_restlist_as_tuple scont env mexpander))
-	 (xoper (if (is_a soper class_sexpr) 
-		    (macroexpand_1 soper env mexpander) 
-		  soper))
-	 )
-    (make_instance class_src_apply
-		   :src_loc sloc
-		   :sapp_fun xoper
-		   :sapp_args xargtup)))
-     
-
-;;; expand an s-expression known to be a message send
-(defun expand_msend  (opbind sexpr env mexpander)
-  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
-  (assert_msg "check end" (is_a env class_environment))
-  (assert_msg "check mexpander" (is_closure mexpander))
-  (assert_msg "check opbind" (is_a opbind class_selector_binding))
-  (debug_msg sexpr "expand_msend sexpr")
-  (let ( (scont (unsafe_get_field :sexp_contents sexpr))
-	 (sloc (unsafe_get_field :loca_location sexpr))
-	 (spair (pair_tail (list_first scont)))
-	 (seldata (unsafe_get_field :sbind_selectordata opbind))
-	 )
-    (if (not (is_pair spair)) (error_plain sloc "missing reciever expression in message send"))
-    (let ( (xrecv (pair_head spair))
-	   (argtup (expand_pairlist_as_tuple (pair_tail spair) env mexpander)) 
-	   (res (make_instance class_src_msend
-		     :src_loc sloc
-		     :msend_selbind opbind
-		     :msend_recv (if (is_a xrecv class_sexpr)
-				     (macroexpand_1 xrecv env mexpander)
-				   xrecv)
-		     :msend_args argtup
-		     ))
-	   )
-      (debug_msg res "expand_msend res")
-      res
-      )))
-
-;;; expand a keywordfun s-expression
-;;; not implemented yet, but might later be useful for stuff like
-;;;;; (:fieldname obj) to get a field
-;;;;; (:selector recv arg...) to send a message
-(defun expand_keywordfun (sexpr env mexpander)
-  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
-  (assert_msg "check end" (is_a env class_environment))
-  (assert_msg "check mexpander" (is_closure mexpander))
-  (error_plain (unsafe_get_field :loca_location sexpr) "keywordoper not implemented")
-  (assert_msg "@@@  expand_keywordfun NOT IMPLEMENTED" 0)
-)
-
-(defun macroexpand_1 (sexpr env mexpander)
-  (if (null mexpander) (setq mexpander macroexpand_1))
-  (assert_msg "check env" (is_a env class_environment))
-  (assert_msg "check mexpander" (is_closure mexpander))
-  (if (is_a sexpr class_sexpr)
-      (let ( (scont (unsafe_get_field :sexp_contents sexpr))
-	     (soper (pair_head (list_first scont))) )
-	(debug_msg sexpr "macroexpand_1 sexpr")
-	(debug_msg soper "macroexpand_1 soper")
-	(cond ( (is_a soper class_symbol)
-		(let ( (opbind (find_env env soper)) )
-		  (debug_msg opbind "macroexpand_1 opbind")
-		  (cond ( (is_a opbind class_macro_binding)
-			  (let ( (mexp (unsafe_get_field :mbind_expanser opbind)) )
-			    (assert_msg "check mexp" (is_closure mexp))
-			    (let ( (resm (mexp sexpr env mexpander)) )
-			      (debug_msg resm "macroexpand_1 result for macro resm")
-			      (return resm)
-			      )))
-			( (is_a opbind class_selector_binding)
-			  (let ( (ress (expand_msend opbind sexpr env mexpander)) )
-			    (debug_msg ress "macroexpand_1 result for send ress")
-			    (return ress)
-			    ))
-			( (is_a opbind class_primitive_binding)
-			  (let ( (resp (expand_primitive opbind sexpr env mexpander)) )
-			    (debug_msg resp "macroexpand_1 result for primitive resp")
-			    (return resp)
-			    ))
-			(:else 
-			 ;; this is to catch the case when DEFUN is not bound...
-			 (assert_msg "check soper not defun" (!= soper 'defun))
-			 (assert_msg "check soper not named DEFUN" (not (is_stringconst (unsafe_get_field :named_name soper) "DEFUN")))
-			 (let ( (resa (expand_apply sexpr env mexpander))) 
-			   (debug_msg resa "macroexpand_1 result for apply resa")
-			   (return resa)
-			   )
-			 ))))
-	      ( (is_a soper class_keyword)
-		(let ( (resk (expand_keywordfun sexpr env mexpander)) )
-		  (debug_msg resk "macroexpand_1 result for keywordfun resk")
-		  (return resk)))
-	      ;; the empty list is expanded as nil
-	      ( (==i (list_length scont) 0)
-		(debug_msg (the_null) "macroexpand_1 result for null")
-		(return (the_null)))
-	      (:else 
-	       (let ( (resca (expand_apply sexpr env mexpander)) )
-		 (debug_msg resca "macroexpand_1 result complex apply resca")
-		 (return resca)
-		 ))))
-    ;; if the sexpr is not an sexpr return itself
-    (return sexpr)))
-  
-;;; expand a primitive s-expression
-(defun expand_primitive (opbind sexpr env mexpander)
-  (assert_msg "check opbind" (is_a opbind class_primitive_binding))
-  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
-  (assert_msg "check end" (is_a env class_environment))
-  (assert_msg "check mexpander" (is_closure mexpander))
-  (let ( (scont (unsafe_get_field :sexp_contents sexpr))
-	 (sloc (unsafe_get_field :loca_location sexpr))
-	 (soper (pair_head (list_first scont)))
-	 (xargtup (expand_restlist_as_tuple scont env mexpander))
-	 (sprim (unsafe_get_field :pbind_primitive opbind))
-	 )
-    (assert_msg "check sprim" (is_a sprim class_primitive))
-    (make_instance class_src_primitive
-		   :src_loc sloc
-		   :sprim_oper sprim
-		   :sprim_args xargtup)))
-
-
-
-(defun macroexpand_toplevel_list (slist env)
-  ;; (messageval_dbg "macroexpand_toplevel_list Env" env)
-  ;;  (debug_msg  env "macroexpand_toplevel_list env"(the_callcount)) 
-  (debug_msg slist "macroexpand_toplevel_list slist") 
-  (assert_msg "check env" (is_a env class_environment))
-  (assert_msg "check slist" (is_list slist))
-  (let ( (xlist (list_map slist 
-			  (lambda (sexp) 
-			    (debug_msg sexp "macroexpand_toplevel_list sexp")
-			    (let ( (mex (macroexpand_1 sexp env macroexpand_1)) 
-				   )
-			      (debug_msg mex "macroexpand_toplevel_list mex")
-			      mex
-			      )))) 
-	 )
-    (debug_msg xlist "macroexpand_toplevel_list res xlist")
-    xlist
-    ))
-
-;;; expand an s-expression into a tuple of formal bindings
-;;; the formalsexp is the sexpr of formals 
-;;; the [optional] checkargs should be set to non-null to check arguments type
-(defun lambda_arg_bindings (formalsexp checkargs)
-  ;; special case for null arglist
-  (if (null formalsexp)
-      (progn
-	(return (make_multiple discr_multiple 0))))
-  (assert_msg "check formalsexp" (is_a formalsexp class_sexpr))
-  (let ( (:long argrk 0)
-	 (argtype ctype_value)
-	 (arglist (unsafe_get_field :sexp_contents formalsexp))
-	 (argloc (unsafe_get_field :loca_location formalsexp))
-	 (argmap (make_mapobject discr_mapobjects (+i 4 (list_length arglist))))
-	 (bndlist (make_list discr_list)) 
-	 (curpair (list_first arglist))
-	 )
-;;; first loop on arg
-    (forever argloop
-	     (if (null curpair) (exit argloop))
-	     (assert_msg "check curpair" (is_pair curpair))
-	     (let ( (curarg (pair_head curpair)) )
-	       (cond
-		( (is_a curarg class_keyword)
-		  (let ( (cty (unsafe_get_field :symb_data curarg)) )
-		    (if (and (is_a cty class_ctype) 
-			     (== (unsafe_get_field :ctype_keyword cty) curarg))
-			(setq argtype cty)
-		      (progn
-			(error_strv argloc "invalid keyword in formal arglist"
-				    (unsafe_get_field :named_name curarg))
-			()
-			)
-		      ))
-		  ()			;to make the compiler happy we explicitly gives nil
-		  )
-		( (is_a curarg class_symbol)
-		  (if (mapobject_get argmap curarg)
-		      (error_strv argloc "duplicate argument in formal arglist"
-				  (unsafe_get_field :named_name curarg)))
-		  (let ( (curbind
-			  (make_instance class_formal_binding 
-					 :binder curarg
-					 :fbind_type argtype)) )
-		    (if checkargs
-			(if (or (not (is_a argtype class_ctype))
-				(not (is_string (unsafe_get_field :ctype_parstring argtype))))
-			    (error_strv argloc "invalid argument type in formal arglist"
-					(unsafe_get_field :named_name curarg))))
-		    (put_int curbind argrk)
-		    (mapobject_put argmap curarg curbind)
-		    (list_append bndlist curbind)
-		    (setq argrk (+i argrk 1))
-		    )
-		  ()
-		  )
-		(:else 
-		 (debug_msg curarg "unexpected argument in formal arglist")
-		 (let ( (discrarg  (discrim curarg) ))
-		   (error_strv argloc "unexepected argument in formal arglist" 
-			       (unsafe_get_field :named_name discrarg))
-		   )
-		 ()
-		 ))
-	       (setq curpair (pair_tail curpair))))
-;;; second loop to fill the bindings tuple
-    (let ( (bndtup (make_multiple discr_multiple argrk)) 
-	   (:long ix 0)
-	   (bndpair (list_first bndlist))
-	   )
-      (forever bndloop
-	       (if (null bndpair) (exit bndloop))
-	       (assert_msg "check bndpair" (is_pair bndpair))
-	       (let ( (curbnd (pair_head bndpair)) )
-		 (assert_msg "check curbnd" (is_a curbnd class_formal_binding))
-		 (multiple_put_nth bndtup ix curbnd)
-		 )
-	       (setq ix (+i ix 1))
-	       (setq bndpair (pair_tail bndpair))
-	       )
-      bndtup
-      )))
-
-
-;;;;;;;;;;;;;;;; install an initial macro expanser
-(defun install_initial_macro (symb expander)
-  (assert_msg "check sexpr" (is_a symb class_symbol))
-  (assert_msg "check expander" (is_closure expander))
-  (let ( (mbind (make_instance class_macro_binding 
-			       :binder symb
-			       :mbind_expanser expander
-			       )) )
-	 (put_env initial_environment mbind)
-))
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;;;;;;;;;;;;;;;;; macro expansers
-;; the defprimitive expander
-(defun mexpand_defprimitive (sexpr env mexpander)
-  (debug_msg sexpr "mexpand_defprimitive sexpr")
-  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
-  (assert_msg "check env" (is_a env class_environment))
-  (let ( (cont (unsafe_get_field :sexp_contents sexpr))
-	 (loc  (unsafe_get_field :loca_location sexpr))
-	 (curpair (pair_tail (list_first cont)))
-	 (symb (pair_head curpair))
-	 )
-    (if (is_not_a symb class_symbol)
-	(error_plain loc "missing symbol for defprimitive"))
-    (setq curpair (pair_tail curpair))
-    ;; parse the formal arguments
-    (let ( (btup (lambda_arg_bindings (pair_head curpair) (the_null))) )
-      (setq curpair (pair_tail curpair))
-      ;; parse the type keyword
-      (let ( (typkw  (pair_head curpair)) )
-	(if (is_not_a typkw class_keyword)
-	    (error_plain loc "missing type keyword for defprimitive"))
-	(let ( (cty (unsafe_get_field :symb_data typkw)) )
-	  (if (is_not_a cty class_ctype)
-	      (progn
-		(debug_msg typkw "mexpand_defprimitive bad cty")
-		(error_strv loc "bad type keyword for defprimitive"
-			    (unsafe_get_field :named_name typkw))
-		(return (the_null))
-		))
-	  (if (!= (unsafe_get_field :ctype_keyword cty) typkw)
-	      (progn
-		(debug_msg typkw "mexpand_defprimitive strange typkw")
-		(error_strv loc "invalid type keyword for defprimitive"
-			    (unsafe_get_field :named_name typkw)) 
-		(return (the_null))   
-		))
-	  ;; parse the rest as to be expanded
-	  (setq curpair (pair_tail curpair))
-	  (let ( (:long nbcomp (pair_listlength curpair))
-		 (etuple (make_multiple discr_multiple nbcomp))
-		 (:long ix 0) )
-	    (forever comploop
-		     (if (not (is_pair curpair)) (exit comploop))
-		     (let ( (curhead  (pair_head curpair)) )
-		       (debug_msg curhead "mexpand_defprimitive curhead")
-		       (let ( (curcomp  (macroexpand_1 curhead env mexpander)) )
-			 (debug_msg curcomp "mexpand_defprimitive curcomp")
-			 ;; change string to verbatimstring to ease primitive expansion
-			 ;; and check that each component is e string or a symbol
-			 (cond ( (== (discrim curcomp) discr_string)
-				 (setq curcomp (make_string discr_verbatimstring curcomp))
-				 ())
-			       ( (!= (discrim curcomp) class_symbol)
-				 (error_strv loc "invalid expansion component in primitive"
-					     (unsafe_get_field :named_name symb))
-				 ()))
-			 (multiple_put_nth etuple ix curcomp)
-			 (setq curpair (pair_tail curpair))
-			 (setq ix (+i ix 1)))))
-	    (let ( (sdefpri
-		    (make_instance class_src_defprimitive
-				   :src_loc loc
-				   :sdef_name symb
-				   :sformal_args btup
-				   :sprim_type cty
-				   :sprim_expansion etuple))
-		   (primit
-		    (make_instance class_primitive
-				   :named_name (unsafe_get_field :named_name symb)
-				   :prim_formals btup
-				   :prim_type cty
-				   :prim_expansion etuple))
-		   (pbind
-		    (make_instance class_primitive_binding
-				   :binder symb
-				   :pbind_primdef sdefpri
-				   :pbind_primitive primit
-				   ))
-		   )
-	      (put_env env pbind)
-	      (debug_msg sdefpri "mexpand_defprimitive result sdefpri")
-	      (return sdefpri)
-	      )))))))
-(install_initial_macro 'defprimitive mexpand_defprimitive)
-
-
-
-;;;;;;;;;;;;;;;;;; the defun expander
-(defun mexpand_defun (sexpr env mexpander)
-  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
-  (assert_msg "check env" (is_a env class_environment))
-  (debug_msg sexpr "mexp.defun sexpr")
-  (let ( (cont (unsafe_get_field :sexp_contents sexpr))
-	 (loc  (unsafe_get_field :loca_location sexpr))
-	 (curpair (pair_tail (list_first cont)))
-	 (symb (pair_head curpair))
-	 (newenv (fresh_env env))
-	 )
-    (if (is_not_a symb class_symbol)
-	(error_plain loc "missing symbol for defun"))
-    (setq curpair (pair_tail curpair))
-    ;; parse the formal arguments
-    (let ( (curpairhead (pair_head curpair)) 
-	   (btup 
-	    (cond ( (null curpairhead) 
-		    (make_multiple discr_multiple 0) )
-		  ( (is_a curpairhead class_sexpr)
-		    (lambda_arg_bindings (pair_head curpair) sexpr))
-		  (:else
-		   (debug_msg curpairhead "mexpand_defun strange arglist curpairhead")
-		   (error_plain loc "missing or invalid arglist for DEFUN")
-		   (the_null)
-		   )))
-	   )
-      (if (not (is_multiple btup))
-	  (progn
-	    (debug_msg btup "mexpand_defun strange btup")
-	    (error_plain loc "missing formal arguments for DEFUN")))
-      (multiple_every btup (lambda (fb) (put_env newenv fb)))
-      (setq curpair (pair_tail curpair))
-      (let ( (bodytup (expand_pairlist_as_tuple curpair newenv mexpander)) 
-	     (sdefun
-	      (make_instance class_src_defun
-			     :src_loc loc
-			     :sdef_name symb
-			     :sformal_args btup
-			     :sfun_body bodytup
-			     ))
-	     (fbind 
-	      (make_instance class_function_binding
-			     :binder symb
-			     :fubind_defun sdefun
-			     ))
-	     )
-	(put_env env fbind)
-	sdefun
-	))))
-(install_initial_macro 'defun mexpand_defun)
-
-
-
-;;;;;;;;;;;;;;;; the defclass expander
-
-;; internal routine with multiple results to scan the defclass
-(defun scan_defclass (sexpr env mexpander)
-  (let ( (predef ())
-	 (supernam ())
-	 (superbind ())
-	 (superclass ())
-	 (fieldnams ())
-	 (docstr ())
-	 (cont (unsafe_get_field :sexp_contents sexpr))
-	 (loc  (unsafe_get_field :loca_location sexpr))
-	 (fieldsloc ())
-	 (curpair (pair_tail (list_first cont)))
-	 (symb (pair_head curpair))
-	 )
-    (debug_msg sexpr "scan_defclass sexpr")
-    (if (is_not_a symb class_symbol)
-	(error_plain loc "missing symbol for defclass"))
-    (setq curpair (pair_tail curpair))
-    (forever scanloop
-	     (if (not (is_pair curpair)) (exit scanloop))
-	     (let ( (curkw (pair_head curpair)) )
-	       (if (not (is_a curkw class_keyword)) 
-		   (error_plain loc "expecting keyword in defclass"))
-	       (setq curpair (pair_tail curpair))
-	       (let ( (curval (pair_head curpair)) )
-		 (setq curpair (pair_tail curpair))
-		 (cond 
-		  ( (== curkw ':super)
-		    (if supernam (error_plain loc "duplicate super in defclass"))
-		    (if (not (is_a curval class_symbol))
-			(error_plain loc "bad super in defclass"))
-		    (setq supernam curval)
-		    (debug_msg supernam "scan_defclass supernam")
-		    (let ( (superb (find_env env supernam)) )
-;;; should handle the case when the class is bound in the start environment
-;;; to a value which happens to be a class
-		      (cond ( (is_a superb class_class_binding)
-			      (setq superbind superb) 
-			      (setq superclass (unsafe_get_field :cbind_class superb))
-			      )
-			    ( (is_a superb class_value_binding)
-			      (let ((superval (unsafe_get_field :vbind_value superb)))
-				(if (is_a superval class_class)
-				    (progn
-				      (setq superbind superb)
-				      (setq superclass superval)
-				      )
-				  (error_strv loc "super is not a class in defclass" 
-					      (unsafe_get_field :named_name supernam))))
-			      )
-			    (:else 
-			     (debug_msg superb "scan_defclass superb")
-			     (error_strv loc "invalid super in defclass" 
-					 (unsafe_get_field :named_name supernam))
-			     )
-			    )
-		      ))
-		  ( (== curkw ':fields)
-		    (if fieldnams (error_plain loc "duplicate fields in defclass"))
-		    (if curval
-			(if (is_not_a curval class_sexpr)
-			    (error_plain loc "bad fields in defclass")))
-		    (let ( (namlist (if curval (unsafe_get_field :sexp_contents curval)))
-			   (namloc (if curval (unsafe_get_field :loca_location curval)))
-			   (:long nbnam  (list_length namlist))
-			   (:long ix 0)
-			   (nampair (list_first namlist))
-			   (namtupl (make_multiple discr_multiple nbnam)) )
-		      (setq fieldsloc namloc)
-		      (forever namloop
-			       (if (not (is_pair nampair)) (exit namloop))
-			       (let ( (curnam (pair_head nampair)) )
-				 (if (not (is_a curnam class_symbol))
-				     (error_plain namloc "non name field in defclass"))
-				 (multiple_put_nth namtupl ix curnam)
-				 )
-			       (setq nampair (pair_tail nampair))
-			       (setq ix (+i ix 1))
-			       )
-		      (setq fieldnams namtupl)
-		      ))
-		  ( (== curkw ':predef)
-		    (if predef (error_plain loc "duplicate predef in DEFCLASS"))
-		    (setq predef (macroexpand_1 curval env mexpander))
-		    (cond
-		     ( (is_integerbox predef) 
-		       ()
-		       )
-		     ( (is_a predef class_symbol)
-		       ()
-		       )
-		     (:else
-		      (error_plain loc "bad predef in DEFCLASS")
-		      )
-		     )
-		    )
-		  ( (== curkw ':docstr)
-		    (if docstr (error_plain loc "duplicate docstr in DEFCLASS"))
-		    (setq docstr (macroexpand_1 curval env mexpander))
-		    (if (not (is_string docstr))
-			(error_plain loc "bad docstr in DEFCLASS"))
-		    )
-		  (:else
-		   (error_strv loc "invalid keyword in DEFCLASS" 
-			       (unsafe_get_field :named_name curkw))
-		   )
-		  ))))
-    (debug_msg symb "scan_defclass returns symb")
-    (debug_msg loc "scan_defclass returns loc")
-    (debug_msg supernam "scan_defclass returns supernam")
-    (debug_msg superbind "scan_defclass returns superbinds")
-    (debug_msg superclass "scan_defclass returns superclass")
-    (debug_msg predef "scan_defclass returns predef")
-    (debug_msg fieldnams "scan_defclass returns fieldnams")
-    (debug_msg fieldsloc "scan_defclass returns fieldsloc")
-    (debug_msg docstr "scan_defclass returns docstr")
-    (return symb loc supernam superbind superclass predef fieldnams fieldsloc docstr)
-    ))
-
-
-(defun mexpand_defclass (sexpr env mexpander)
-  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
-  (assert_msg "check env" (is_a env class_environment))
-  (debug_msg  sexpr "mexp.defclass sexpr")
-  (multicall 
-   (symb loc supernam superbind superclass predef fieldnams fieldsloc docstr)
-   (scan_defclass sexpr env mexpander)
-   (debug_msg symb "mexp.defclass scanned symb")
-   (debug_msg loc "mexp.defclass scanned loc")
-   (debug_msg supernam "mexp.defclass scanned supernam")
-   (debug_msg superbind "mexp.defclass scanned superbind")
-   (debug_msg superclass "mexp.defclass scanned superclass")
-   (debug_msg predef "mexp.defclass scanned predef")
-   (debug_msg fieldnams "mexp.defclass scanned fieldnams")
-   (debug_msg fieldsloc "mexp.defclass scanned fieldsloc")
-   (debug_msg docstr "mexp.defclass scanned docstr")
-   (assert_msg "check symb" (is_a symb class_symbol))
-   (let ( 
-	 (ancestors (if (is_object superclass)
-			(let ( (superancestors (unsafe_get_field :class_ancestors superclass))
-			       (:long nbsuperanc (multiple_length superancestors))
-			       (anctuple (make_multiple discr_seqclass (+i 1 nbsuperanc)))
-			       (:long ix 0)
-			       )
-			  (assert_msg "check superclass" (is_a superclass class_class))
-			  (assert_msg "check superancestors" (is_multiple superancestors))
-			  (forever ancloop
-				   (if (>=i ix nbsuperanc) (exit ancloop))
-				   (multiple_put_nth anctuple ix (multiple_nth superancestors ix))
-				   (setq ix (+i ix 1))
-				   )
-			  (multiple_put_nth anctuple nbsuperanc superclass)
-			  anctuple
-			  )
-		      (make_multiple discr_seqclass 0)))
-	 (superfields (if (is_object superclass)
-			  (unsafe_get_field :class_fields superclass)))
-	 (:long nbsuperfields (multiple_length superfields))
-	 (:long nbfieldnames (multiple_length fieldnams))
-	 (boxnbsuperfields (make_integerbox discr_integer nbsuperfields))
-	 (fieldstrmap (make_mapstring discr_mapstrings (+i 3 (*i 2 (+i nbsuperfields nbfieldnames)))))
-	 (fieldtup (make_multiple discr_seqfield (+i nbsuperfields nbfieldnames)))
-	 (ownfieldbindings (make_multiple discr_multiple nbfieldnames))
-	 (newclass (make_instance class_class
-				  :named_name (unsafe_get_field :named_name symb)
-				  :class_ancestors ancestors
-				  ;; other fields to be set later
-				  ))
-	 (clabind (make_instance class_class_binding
-				 :binder symb
-				 :cbind_class newclass))
-	 )
-     (put_env env clabind)
-     (debug_msg superfields "expdefclas superfields")
-     (multiple_every 
-      superfields 
-      (lambda (sfld :long ix)
-	(messagenum_dbg "expdefclasupflds ix" ix)
-	(messageval_dbg "expdefclasupfldsval sfld" sfld)
-	(assert_msg "check superfield" (is_a sfld class_field))
-	(multiple_put_nth fieldtup ix sfld)
-	(mapstring_putstr fieldstrmap (unsafe_get_field :named_name sfld) sfld)
-	))
-     (multiple_every
-      fieldnams
-      (lambda (fldnam :long ix)
-	(messagenum_dbg "expdefclafldnam ix" ix)
-	(assert_msg "check fldnam" (is_a fldnam class_symbol))
-	(let ( (fldstr (unsafe_get_field :named_name fldnam)) 
-	       )
-	  (if (mapstring_getstr fieldstrmap fldstr)
-	      (error_strv fieldsloc "duplicate field in deflclass" fldstr))
-	  (let ( (:long fldoff (+i ix (get_int boxnbsuperfields))) 
-		 (newfld (make_instance class_field
-					:named_name fldstr
-					:fld_ownclass newclass
-					)) )
-	    (put_int newfld fldoff)
-	    (messagenum_dbg "expdefclafldnam fldoff" fldoff)
-	    (multiple_put_nth fieldtup fldoff newfld)
-	    (mapstring_putstr fieldstrmap fldstr newfld)
-	    (let ( (newfldbind (make_instance class_field_binding
-					      :binder fldnam
-					      :flbind_clabind clabind
-					      :flbind_field newfld)) )
-	      (put_env env newfldbind)
-	      (multiple_put_nth ownfieldbindings ix newfldbind)
-	      )
-	    ))))
-     (unsafe_put_fields newclass
-			:class_fields fieldtup)
-     (debug_msg newclass "mexp.defclass newclass" )
-     (make_instance class_src_defclass
-		    :src_loc loc
-		    :sdef_name symb
-		    :sobj_predef predef
-		    :sobj_docstr docstr
-		    :sclass_clabind clabind
-		    :sclass_superbind superbind
-		    :sclass_fldbinds ownfieldbindings
-		    ))))
-(install_initial_macro 'defclass mexpand_defclass)
-
-
-;;;;;;;;;;;;;;;; the definstance expander
-
-;; internal to parse a field assignment in a given class (or without class, for put_field)
-(defun parse_field_assignment (cla loc fldkw expr env mexpander)
-  (if (not (is_a fldkw class_keyword))
-      (error_plain loc "expecting :fieldname"))
-  (assert_msg "check fldkw" (is_a fldkw class_keyword))
-  (assert_msg "check env" (is_a env class_environment))
-  (assert_msg "check mexpander" (is_closure mexpander))
-  ;; expr is an sexpr or a symbol or a string or ...
-  (let ( (fldbox (make_box discr_box ())) )
-    ;; if we have a class, find the field inside
-    (if (is_a cla class_class)
-	(multiple_iterate_test
-	 (unsafe_get_field :class_fields cla)
-	 (lambda (cfld :long ix)
-	   (assert_msg "check fld" (is_a cfld class_field))
-	   (if (==s (unsafe_get_field :named_name cfld) 
-		    (unsafe_get_field :named_name fldkw))
-	       (progn 
-		 (box_put fldbox cfld)
-		 ()			; nil to exit to iteration
-		 )
-	       cfld))
-	 )
-	;; othewise, find the field by its bound name
-	(let ( (fldnam (create_symbolstr (unsafe_get_field :named_name fldkw))) 
-	      (fldbind (find_env env fldnam)) 
-	       (fld  (cond 
-		       ( (is_a fldbind class_field_binding)
-			(unsafe_get_field :flbind_field fldbind) )
-		       ( (is_a fldbind class_value_binding)
-			(let ( (vfld (unsafe_get_field :vbind_value fldbind)) )
-			  (if (is_a vfld class_field)
-			      vfld)) )
-		       )) )
-	  (if (is_a fld class_field)
-	      (box_put fldbox fld)
-	      (error_strv loc "invalid field name in field assignment" 
-			  (unsafe_get_field :named_name fldkw)))
-	  ()
-	  ))
-    ;; at last make the field assignment
-    (let ( (fld (box_content fldbox)) )
-      (if (is_a fld class_field)
-	  (let ( (xex (macroexpand_1 expr env mexpander)) )
-	    (make_instance class_src_fieldassign 
-			   :src_loc loc
-			   :sfla_field fld
-			   :sfla_expr xex
-			   ))
-	  (error_strv loc "unknown field name in field assignment"
-		      (unsafe_get_field :named_name fldkw))
-	  ))))
-
-;; the definstance expanser
-(defun mexpand_definstance (sexpr env mexpander)
-  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
-  (assert_msg "check env" (is_a env class_environment))
-  (debug_msg sexpr "mexp.definstance sexpr")
-  (let ( (predef ())
-	 (objnum ())
-	 (fields ())
-	 (fieldnams ())
-	 (cont (unsafe_get_field :sexp_contents sexpr))
-	 (loc  (unsafe_get_field :loca_location sexpr))
-	 (curpair (pair_tail (list_first cont)))
-	 (symb (pair_head curpair))
-	 (claname ())
-	 (cla ())
-	 (clabind ())
-	 )
-    (if (is_not_a symb class_symbol)
-	(error_plain loc "missing symbol for definstance"))
-    (setq curpair (pair_tail curpair))
-    (let ( (nam (pair_head curpair)) )
-      (if (is_not_a nam class_symbol)
-	  (error_plain loc "missing class name for definstance"))
-      (let ( (bnd (find_env env nam)) 
-	     (fldlist (make_list discr_list))
-	     )
-	(cond 
-	 ( (is_a bnd class_class_binding)
-	   (setq clabind bnd)
-	   (setq cla (unsafe_get_field :cbind_class bnd)) )
-	 ( (and (is_a bnd class_value_binding)
-		(is_a (unsafe_get_field :vbind_value bnd) class_class))
-	   (setq clabind bnd)
-	   (setq cla (unsafe_get_field :vbind_value bnd)))
-	 (:else
-	  (error_strv loc "invalid class name for definstance"
-		      (unsafe_get_field :named_name nam))
-	  (return (the_null))
-	  ))
-	(setq claname nam)
-	(assert_msg "check cla" (is_a cla class_class))
-	(setq curpair (pair_tail curpair))
-	(forever insloop
-		 (if (not (is_pair curpair)) (exit insloop))
-		 (let ( (curfkw (pair_head curpair)) )
-		   (if (is_not_a curfkw class_keyword)
-		       (error_plain loc "expecting keyword in definstance"))
-		   (setq curpair (pair_tail curpair))
-		   (let ( (curexp (pair_head curpair)) )
-		     (cond  ( (== curfkw ':obj_num)
-			      (if objnum (error_plain loc "duplicate :obj_num in definstance"))
-			      (setq objnum 
-				    (if (is_a curexp class_sexpr)
-					(macroexpand_1 curexp env mexpander)
-				      curexp))
-			      )
-			    ( (== curfkw ':predef)
-			      (if predef (error_plain loc "duplicate :predef in definstance"))
-			      (setq predef 
-				    (if (is_a curexp class_sexpr)
-					(macroexpand_1 curexp env mexpander)
-				      curexp))
-			      )
-			    (:else 
-			     (let  ( (flda (parse_field_assignment cla loc curfkw curexp env mexpander)) )
-			       (if flda 
-				   (list_append fldlist flda)
-				 )
-			       ))))
-		   (setq curpair (pair_tail curpair))
-		   ))
-	(let ( (fastup (list_to_multiple fldlist discr_multiple)) 
-	       (sinst 
-		(make_instance class_src_definstance
-			       :src_loc loc
-			       :sdef_name symb
-			       :sobj_predef predef
-			       :sinst_class cla
-			       :sinst_clabind clabind
-			       :sinst_objnum objnum
-			       :sinst_fields fastup
-			       ))
-	       (ibind 
-		(make_instance class_instance_binding
-			       :binder symb
-			       :ibind_iclass cla
-			       ))
-	       )
-	  (put_env env ibind)
-	  (debug_msg sinst "mexp.definstance sinst")
-	  (return sinst)
-	  )))))
-(install_initial_macro 'definstance mexpand_definstance)
-
-
-
-;; the definstance expanser
-(defun mexpand_defselector (sexpr env mexpander)
-  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
-  (assert_msg "check env" (is_a env class_environment))
-  (debug_msg sexpr "mexp.definstance sexpr")
-  (let ( (predef ())
-	 (objnum ())
-	 (fields ())
-	 (fieldnams ())
-	 (cont (unsafe_get_field :sexp_contents sexpr))
-	 (loc  (unsafe_get_field :loca_location sexpr))
-	 (curpair (pair_tail (list_first cont)))
-	 (symb (pair_head curpair))
-	 (claname ())
-	 (cla ())
-	 (clabind ())
-	 )
-    (if (is_not_a symb class_symbol)
-	(error_plain loc "missing symbol for definstance"))
-    (setq curpair (pair_tail curpair))
-    (let ( (nam (pair_head curpair)) )
-      (if (is_not_a nam class_symbol)
-	  (error_plain loc "missing class name for definstance"))
-      (let ( (bnd (find_env env nam)) 
-	     (fldlist (make_list discr_list))
-	     )
-	(cond 
-	 ( (is_a bnd class_class_binding)
-	   (setq clabind bnd)
-	   (setq cla (unsafe_get_field :cbind_class bnd)) )
-	 ( (and (is_a bnd class_value_binding)
-		(is_a (unsafe_get_field :vbind_value bnd) class_class))
-	   (setq clabind bnd)
-	   (setq cla (unsafe_get_field :vbind_value bnd)))
-	 (:else
-	  (error_strv loc "invalid class name for definstance"
-		      (unsafe_get_field :named_name nam))
-	  (return (the_null))
-	  ))
-	(setq claname nam)
-	(assert_msg "check cla" (is_a cla class_class))
-	(setq curpair (pair_tail curpair))
-	(forever insloop
-		 (if (not (is_pair curpair)) (exit insloop))
-		 (let ( (curfkw (pair_head curpair)) )
-		   (if (is_not_a curfkw class_keyword)
-		       (error_plain loc "expecting keyword in definstance"))
-		   (setq curpair (pair_tail curpair))
-		   (let ( (curexp (pair_head curpair)) )
-		     (cond  ( (== curfkw ':obj_num)
-			      (if curexp (error_plain loc "duplicate :obj_num in definstance"))
-			      (setq objnum 
-				    (if (is_a curexp class_sexpr)
-					(macroexpand_1 curexp env mexpander)
-				      curexp))
-			      )
-			    ( (== curfkw ':predef)
-			      (if curexp (error_plain loc "duplicate :predef in definstance"))
-			      (setq predef 
-				    (if (is_a curexp class_sexpr)
-					(macroexpand_1 curexp env mexpander)
-				      curexp))
-			      )
-			    (:else 
-			     (let  ( (flda (parse_field_assignment cla loc curfkw curexp env mexpander)) )
-			       (if flda 
-				   (list_append fldlist flda)
-				 )
-			       ))))
-		   (setq curpair (pair_tail curpair))
-		   ))
-	(let ( ( fastup (list_to_multiple fldlist discr_multiple)) 
-	       (res (make_instance class_src_defselector
-				   :src_loc loc
-				   :sdef_name symb
-				   :sobj_predef predef
-				   :sinst_class cla
-				   :sinst_clabind clabind
-				   :sinst_objnum objnum
-				   :sinst_fields fastup
-				   ))
-	       (selbind (make_instance class_selector_binding
-				       :binder symb
-				       :sbind_selectordef res
-				       ))
-	       )
-	  (put_env env selbind)
-	  res
-	  )))))
-(install_initial_macro 'defselector mexpand_defselector)
-
-
-
-;;;; the make_instance expander
-(defun mexpand_make_instance (sexpr env mexpander)
-  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
-  (assert_msg "check env" (is_a env class_environment))
-  (let ( (fields ())
-	 (fieldnams ())
-	 (cont (unsafe_get_field :sexp_contents sexpr))
-	 (loc  (unsafe_get_field :loca_location sexpr))
-	 (curpair (pair_tail (list_first cont)))
-	 (claname (pair_head curpair))
-	 (cla ())
-	 (clabind ())
-	 )
-    (debug_msg sexpr "mexpand_make_instance start sexpr")
-    (if (is_not_a claname class_symbol)
-	(error_plain loc "missing class symbol for make_instance"))
-    (let ( (bnd (find_env env claname)) 
-	   (fldlist (make_list discr_list))
-	   )
-      (cond 
-       ( (is_a bnd class_class_binding)
-	 (setq clabind bnd)
-	 (setq cla (unsafe_get_field :cbind_class bnd)) 
-	 )
-       ( (and (is_a bnd class_value_binding)
-	      (is_a (unsafe_get_field :vbind_value bnd) class_class))
-	 (setq clabind bnd)
-	 (setq cla (unsafe_get_field :vbind_value bnd))
-	 )
-       (:else
-	(error_strv loc "invalid class name for make_instance"
-		    (unsafe_get_field :named_name claname))
-	(return (the_null))
-	))
-      (assert_msg "check cla" (is_a cla class_class))
-      (setq curpair (pair_tail curpair))
-      (forever insloop
-	       (if (not (is_pair curpair)) (exit insloop))
-	       (let ( (curfkw (pair_head curpair)) )
-		 (if (is_not_a curfkw class_keyword)
-		     (error_plain loc "expecting keyword in MAKE_INSTANCE"))
-		 (setq curpair (pair_tail curpair))
-		 (let ( (curexp (pair_head curpair)) )
-		   (let  ( (flda (parse_field_assignment cla loc curfkw curexp env mexpander)) )
-		     (if flda 
-			 (list_append fldlist flda)
-		       (error_strv loc "bad field name in MAKE_INSTANCE" (unsafe_get_field :named_name curfkw))
-		       ))))
-	       (setq curpair (pair_tail curpair))
-	       )
-      (let ( ( fastup (list_to_multiple fldlist discr_multiple)) )
-	(make_instance class_src_make_instance
-		       :src_loc loc
-		       :smins_class cla
-		       :smins_clabind clabind
-		       :smins_fields fastup)
-	))))
-(install_initial_macro 'make_instance mexpand_make_instance)
-
-
-
-;;;; the unsafe_put_fields expander
-(defun mexpand_unsafe_put_fields (sexpr env mexpander)
-  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
-  (assert_msg "check env" (is_a env class_environment))
-  (let ( (fields ())
-	 (fieldnams ())
-	 (cont (unsafe_get_field :sexp_contents sexpr))
-	 (loc  (unsafe_get_field :loca_location sexpr))
-	 (curpair (pair_tail (list_first cont)))
-	 (objsrc (pair_head curpair))
-	 (objexp 
-	  (if (is_a objsrc class_sexpr)
-	      (macroexpand_1 objsrc env mexpander)
-	    objsrc))
-	 )
-    (setq curpair (pair_tail curpair))
-    (let ( (fldlist (make_list discr_list))
-	   )
-      (forever insloop
-	       (if (not (is_pair curpair)) (exit insloop))
-	       (let ( (curfkw (pair_head curpair)) )
-		 (if (is_not_a curfkw class_keyword)
-		     (error_plain loc "expecting heyword in unsafe_put_fields"))
-		 (setq curpair (pair_tail curpair))
-		 (let ( (curexp (pair_head curpair)) )
-		   (let  ( (flda (parse_field_assignment () loc curfkw curexp env mexpander)) )
-		     (if flda 
-			 (list_append fldlist flda)
-		       ))))
-	       (setq curpair (pair_tail curpair))
-	       )
-      (let ( ( fastup (list_to_multiple fldlist discr_multiple)) )
-	(make_instance class_src_unsafe_put_fields
-		       :src_loc loc
-		       :suput_obj objexp
-		       :suput_fields fastup)
-	))))
-(install_initial_macro 'unsafe_put_fields mexpand_unsafe_put_fields)
-
-;;;; the unsafe_get_field expander
-(defun mexpand_unsafe_get_field (sexpr env mexpander)
-  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
-  (assert_msg "check env" (is_a env class_environment))
-  (let ( (cont (unsafe_get_field :sexp_contents sexpr))
-	 (loc  (unsafe_get_field :loca_location sexpr))
-	 (curpair (pair_tail (list_first cont)))
-	 (curfkw (pair_head curpair)) 
-	 )
-    (if (is_not_a curfkw class_keyword)
-	(progn
-	  (error_plain loc "field keyword expected in unsafe_get_field")
-	  (return (the_null))))
-    (setq curpair (pair_tail curpair))
-    (let ( (curexp (pair_head curpair)) )
-      (setq curpair (pair_tail curpair))
-      (if curpair (error_plain loc "unsafe_get_field with more than two sons"))
-      ;; it is not a field assignment but we use the parse_field_assignment
-      ;; routine to get the field and the expression
-      (let  ( (flda (parse_field_assignment () loc curfkw curexp env mexpander)) )
-	(if (not (is_a flda class_src_fieldassign))
-	    (progn 
-	      (error_plain loc "bad field and expression in unsafe_get_field")
-	      (return (the_null))))
-	(let ( (fld (unsafe_get_field :sfla_field flda))
-	       (exp (unsafe_get_field :sfla_expr flda)) )
-	  (make_instance class_src_unsafe_get_field
-			 :src_loc loc
-			 :suget_obj exp
-			 :suget_field fld
-	  ))))))
-(install_initial_macro 'unsafe_get_field mexpand_unsafe_get_field)
-
-
-
-;;;; the setq expander
-(defun mexpand_setq (sexpr env mexpander)
-  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
-  (assert_msg "check env" (is_a env class_environment))
-  (let ( (cont (unsafe_get_field :sexp_contents sexpr))
-	 (loc  (unsafe_get_field :loca_location sexpr))
-	 (curpair (pair_tail (list_first cont)))
-	 (cursym (pair_head curpair)) 
-	 )
-    (if (is_not_a cursym class_symbol)
-	(progn
-	  (error_plain loc "var symbol name expected in setq")
-	  (return (the_null))))
-    (setq curpair (pair_tail curpair))
-    (let ( (curexp (pair_head curpair)) )
-      (setq curpair (pair_tail curpair))
-      (if curpair (error_plain loc "setq with more than two sons"))
-      (make_instance class_src_setq 
-		     :src_loc loc
-		     :sstq_var cursym
-		     :sstq_expr  (macroexpand_1 curexp env mexpander)
-		     )
-)))
-(install_initial_macro 'setq mexpand_setq)
-
-;;;;; the if expanser
-(defun mexpand_if (sexpr env mexpander)
-  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
-  (assert_msg "check env" (is_a env class_environment))
-  (debug_msg sexpr "mexpand_if sexpr")
-  (let (
-	(cont (unsafe_get_field :sexp_contents sexpr))
-	(loc  (unsafe_get_field :loca_location sexpr))
-	(curpair (pair_tail (list_first cont)))
-	(curif (pair_head curpair)) )
-    (if (not (is_pair curpair))
-	(error_plain loc "missing condition in IF"))
-    (setq curpair (pair_tail curpair))
-    (if (not (is_pair curpair))
-	(error_plain loc "missing then in IF"))
-    (let ( (xcond (macroexpand_1 curif env mexpander)) )
-      (debug_msg xcond "mexpand_if xcond")
-      (let ( (curthen (pair_head curpair)) )
-	(setq curpair (pair_tail curpair))
-	(let ( (xthen (macroexpand_1 curthen env mexpander)) )
-	  (debug_msg xthen "mexpand_if xthen")
-	  (if (is_pair curpair)
-	      (let ( (curelse (pair_head curpair)) 
-		     (xelse (macroexpand_1 curelse env mexpander)) )
-		(debug_msg xelse "mexpand_if xelse")
-		(setq curpair (pair_tail curpair))
-		(if (is_pair curpair)
-		    (error_plain loc "IF with more than three sons"))
-		(let ( (rese
-			(make_instance class_src_ifelse
-				       :src_loc loc
-				       :sif_test xcond
-				       :sif_then xthen
-				       :sif_else xelse
-				       )) )
-		  (debug_msg rese "mexpand_if with else return rese")
-		  (return rese)))
-	    (let ( (resp (make_instance class_src_if
-					:src_loc loc
-					:sif_test xcond
-					:sif_then xthen)) )
-	      (debug_msg resp "mexpand_if plain return resp")
-	      (return resp))
-	    ))))))
-(install_initial_macro 'if mexpand_if)
-
-;;;;; the cppif expander
-(defun mexpand_cppif (sexpr env mexpander)
-  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
-  (assert_msg "check env" (is_a env class_environment))
-  (debug_msg sexpr "mexpand_cppif sexpr")
-  (let (
-	(cont (unsafe_get_field :sexp_contents sexpr))
-	(loc  (unsafe_get_field :loca_location sexpr))
-	(curpair (pair_tail (list_first cont)))
-	(curif (pair_head curpair)) )
-    (if (not (is_pair curpair))
-	(error_plain loc "missing condition in CPPIF"))
-    (setq curpair (pair_tail curpair))
-    (if (not (is_pair curpair))
-	(error_plain loc "missing then in CPPIF"))
-    (let ( (xcond (macroexpand_1 curif env mexpander)) )
-      (debug_msg xcond "mexpand_cppif xcond")
-      (cond 
-       ( (is_string xcond) ())
-       ( (is_a xcond class_symbol) ())
-       (:else
-	(error_plain loc "invalid cpp-condition in CPPIF - string or symbol expected")
-	(return ())))
-      (let ( (curthen (pair_head curpair)) )
-	(setq curpair (pair_tail curpair))
-	(let ( (xthen (macroexpand_1 curthen env mexpander)) 
-	       (xelse ())
-	       )
-	  (debug_msg xthen "mexpand_cppif xthen")
-	  (if (is_pair curpair)
-	      (let ( (curelse (pair_head curpair)) 
-		     (gotxelse (macroexpand_1 curelse env mexpander)) )
-		(debug_msg gotxelse "mexpand_cppif gotxelse")
-		(setq curpair (pair_tail curpair))
-		(setq xelse gotxelse)
-		(if (is_pair curpair)
-		    (error_plain loc "CPPIF with more than three sons"))))
-	  (let ( (resp (make_instance class_src_cppif
-				      :src_loc loc
-				      :sifp_cond xcond
-				      :sifp_then xthen
-				      :sifp_else xelse
-				      ))
-		 )
-	    (debug_msg resp "mexpand_cppif return resp")
-	    (return resp)
-	    ))))))
-(install_initial_macro 'cppif mexpand_cppif)
-
-
-
-;;;;; the cond expanser
-(defun mexpand_cond (sexpr env mexpander)
-  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
-  (assert_msg "check env" (is_a env class_environment))
-  (debug_msg sexpr "mexpand_cond sexpr")
-  (let (
-	(cont (unsafe_get_field :sexp_contents sexpr))
-	(loc  (unsafe_get_field :loca_location sexpr))
-	(cexptuple (pairlist_to_multiple 
-		    (pair_tail (list_first cont))
-		    discr_multiple
-		    (lambda (c)
-		      (if (is_not_a c class_sexpr)
-			  (error_plain loc "COND with non-sexpr"))
-		      c
-		      ))) 
-	(:long nbcond (multiple_length cexptuple))
-	(lastcexp (let ( (lx (multiple_nth cexptuple -1)) )
-		    (debug_msg lx "mexpand_cond lastcexp lx")
-		    lx))
-	(:long ix (-i nbcond 1))
-	(res ())
-	)
-    (debug_msg cexptuple "mexpand_cond cexptuple")
-    (forever condloop
-	     (if (<i ix 0) (exit condloop))
-	     (let ( (curcond (multiple_nth cexptuple ix)) )
-	       (debug_msg curcond "mexpand_cond curcond")
-	       (cond  
-		( (and (null res)
-		       (is_a curcond class_sexpr)
-		       (== ':else (pair_head (list_first 
-					      (unsafe_get_field :sexp_contents curcond)))))
-		  (let ( (restpairs 
-			  (pair_tail (list_first (unsafe_get_field :sexp_contents curcond)))) 
-			 )
-		    (if restpairs 
-			(setq res (pairlist_to_progn restpairs 
-						     (unsafe_get_field :loca_location curcond) 
-						     env mexpander)))
-		    (debug_msg res "mexpand_cond res for :else")
-		    ))
-		( (is_a curcond class_sexpr)
-		  (let ( (curcondcont (unsafe_get_field :sexp_contents curcond))
-			 (curcondloc (unsafe_get_field :loca_location curcond)) 
-			 (curcondtest (pair_head (list_first curcondcont)))
-			 (curcondrestpairs (pair_tail (list_first curcondcont))) 
-			 )
-		    (cond ( (null curcondrestpairs)
-			    (setq res (make_instance class_src_or
-						     :src_loc curcondloc
-						     :sor_disj (make_tuple2 discr_multiple 
-									    (macroexpand_1 curcondtest env mexpander)
-									    res)))
-			    (debug_msg res "mexpand_cond res for monoexp cond")
-			    )
-			  ( (null (pair_tail curcondrestpairs))
-			    (setq res (make_instance class_src_ifelse
-						     :src_loc curcondloc
-						     :sif_test (macroexpand_1 curcondtest env mexpander)
-						     :sif_then (macroexpand_1 (pair_head curcondrestpairs) env mexpander)
-						     :sif_else res
-						     ))
-			    (debug_msg res "mexpand_cond res for biexp cond")
-			    )
-			  (:else 
-			    (setq res (make_instance class_src_ifelse
-						     :src_loc curcondloc
-						     :sif_test (macroexpand_1 curcondtest env mexpander)
-						     :sif_then (pairlist_to_progn curcondrestpairs curcondloc env mexpander)
-						     :sif_else res))
-			    (debug_msg res "mexpand_cond res for manyexp cond")
-			   ))
-		    ))
-		(:else ;curcond is not a sexpr 
-		 (setq res (make_instance class_src_or
-					  :src_loc loc
-					  :sor_disj (make_tuple2 discr_multiple curcond res)))
-		 (debug_msg res "mexpand_cond res for nonsexp cond")
-		 )
-		)
-	       )
-	     (setq ix (-i ix 1))
-	     )
-    (debug_msg res "mexpand_cond final res")
-    (return res)
-    ))
-(install_initial_macro 'cond mexpand_cond)
-
-
-;;;; the and expanser
-;;; AND pseudo syntax
-;;; (AND a1) is expanded into a1
-;;; (AND a1 a2) is expansed into (IF a1 a2)
-;;; (AND a1 a2 a3) is expansed into (IF a1 (IF a2 a3))
-(defun mexpand_and (sexpr env mexpander)
-  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
-  (assert_msg "check env" (is_a env class_environment))
-  (debug_msg sexpr "mexpand_and sexpr:" )
-  (let (
-	(cont (unsafe_get_field :sexp_contents sexpr))
-	(loc  (unsafe_get_field :loca_location sexpr))
-	(curpair (pair_tail (list_first cont)))
-	(cxtup (pairlist_to_multiple 
-		curpair
-		discr_multiple
-		(lambda (c) (macroexpand_1 c env mexpander)
-		  )))
-	(:long nbcomp (multiple_length cxtup))
-	)
-    (debug_msg cxtup "mexpand_and cxtup")
-    (if (<i nbcomp 1)
-	(progn
-	  (error_plain loc "AND without sons")
-	  (return))
-      (let ( (res (multiple_nth cxtup (-i nbcomp 1)))
-	     (:long ix (-i nbcomp 2)) )
-	(forever revloop
-		 (if (<i ix 0) (exit revloop))
-		 (let ( (curc (multiple_nth cxtup ix)) )
-		   (setq res 
-			 (make_instance class_src_if
-					:src_loc loc
-					:sif_test curc
-					:sif_then res))
-		   )
-		 (setq ix (-i ix 1))
-		)
-	(debug_msg res "mexpand_and res:")
-	(return res)))))
-(install_initial_macro 'and mexpand_and)
-      
-;;;; the or expanser
-(defun mexpand_or (sexpr env mexpander)
-  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
-  (assert_msg "check env" (is_a env class_environment))
-  (debug_msg sexpr "mexpand_or sexpr")
-  (let (
-	(cont (unsafe_get_field :sexp_contents sexpr))
-	(loc  (unsafe_get_field :loca_location sexpr))
-	(cxtup (pairlist_to_multiple 
-		(pair_tail (list_first cont))
-		discr_multiple
-		(lambda (c) (macroexpand_1 c env mexpander)
-		  )))
-	(:long nbcomp (multiple_length cxtup))
-	)
-    (if (<i nbcomp 1)
-	(progn 
-	  (error_plain loc "OR without sons")
-	  (return (the_null)))
-      (let ( (res 
-	      (make_instance class_src_or
-			     :src_loc loc
-			     :sor_disj cxtup)) )
-	(debug_msg res "mexpand_or res")
-	(return res)
-	))))
-(install_initial_macro 'or mexpand_or)
-
-;;;;;;;; for LET
-;; internal routine to make a letbinding
-(defun mexpand_letbinding (sexpr env mexpander)
-  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
-  (assert_msg "check env" (is_a env class_environment))
-  (let (
-	(cont (unsafe_get_field :sexp_contents sexpr))
-	(loc  (unsafe_get_field :loca_location sexpr))
-	(ctyp ctype_value)
-	(var ())
-	(expr ())
-	(curpair (list_first cont))
-	(curarg ())
-	)
-    (setq curarg (pair_head curpair))
-    (if (is_a curarg class_keyword)
-	(let ( (cty (unsafe_get_field :symb_data curarg)) )
-	  (if (and (is_a cty class_ctype) 
-		   (== (unsafe_get_field :ctype_keyword cty) curarg))
-	      (setq ctyp cty)
-	    (error_strv loc "letbinding with invalid type keyword"
-			(unsafe_get_field :named_name curarg)))
-	  (setq curpair (pair_tail curpair))
-	  (setq curarg (pair_head curpair))
-	  ))
-    (cond ( (is_a curarg class_keyword)
-	    (error_strv loc "letbinding cannot bind keyword"  
-			(unsafe_get_field :named_name curarg)))
-	  ( (is_a curarg class_symbol)
-	    (setq var curarg)
-	    (setq curpair (pair_tail curpair))
-	    (setq curarg (pair_head curpair))
-	    ))
-    (if (null var) 
-	(error_plain loc "missing variable in letbinding"))
-    (if curarg
-	(progn 
-	  (setq expr (macroexpand_1 curarg env mexpander))
-	  (setq curpair (pair_tail curpair))
-	  (setq curarg (pair_head curpair))
-	  (if curarg (error_plain loc "too long letbinding"))
-	  ))
-    (let ( (letb
-	    (make_instance class_src_letbinding
-			   :src_loc loc
-			   :sletb_type ctyp
-			   :sletb_binder var
-			   :sletb_expr expr)) )
-      (return letb)
-      )))
-
-;;; the LET expander itself
-(defun mexpand_let (sexpr env mexpander)
-  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
-  (assert_msg "check env" (is_a env class_environment))
-  (let (
-	(cont (unsafe_get_field :sexp_contents sexpr))
-	(loc  (unsafe_get_field :loca_location sexpr))
-	(secpair (pair_tail (list_first cont)))
-	(restpair (pair_tail secpair))
-	(bindexpr (pair_head secpair))
-	(newenv (fresh_env env))
-	(bindtup ())
-	(bodytup ())
-	)
-    (if bindexpr 
-	(if (is_a bindexpr class_sexpr) 
-	    (setq bindtup 
-			  (pairlist_to_multiple 
-			   (list_first (unsafe_get_field :sexp_contents bindexpr))
-			   discr_multiple
-			   (lambda (b) (mexpand_letbinding b env mexpander))))
-	  (error_plain loc "missing letbinding-s in LET"))
-      )
-    (multiple_every
-     bindtup
-     (lambda (slb)
-       (assert_msg "mexp.let. check slb" (is_a slb class_src_letbinding))
-       (let (
-	     (sx (unsafe_get_field :sletb_expr slb))
-	     (lb (make_instance class_let_binding
-				:binder (unsafe_get_field :sletb_binder slb)
-				:letbind_type (unsafe_get_field :sletb_type slb)
-				:letbind_expr sx)) )
-	 (assert_msg "mexp.let not list lb" (not (is_list lb)))
-	 (put_env newenv lb)
-	 )))
-    (setq bodytup (pairlist_to_multiple restpair discr_multiple 
-					(lambda (e) (macroexpand_1 e newenv mexpander))))
-    (let ( (letr
-	    (make_instance class_src_let
-			   :src_loc loc
-			   :slet_bindings bindtup
-			   :slet_body bodytup)) )
-      (return letr)
-      )))
-(install_initial_macro 'let mexpand_let)
-
-
-;;;;;;;; for LAMBDA
-(defun mexpand_lambda (sexpr env mexpander)
-  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
-  (assert_msg "check env" (is_a env class_environment))
-  (let ( (cont (unsafe_get_field :sexp_contents sexpr))
-	 (loc  (unsafe_get_field :loca_location sexpr))
-	 (curpair (pair_tail (list_first cont))) 
-	 (newenv (fresh_env env))
-	 )
-    ;; parse the formal arguments
-    (let ( (argtup (lambda_arg_bindings (pair_head curpair) sexpr)) )
-      (setq curpair (pair_tail curpair))
-      (multiple_every argtup 
-		      (lambda (lb) (put_env newenv lb)))
-      (let ( (bodytup (pairlist_to_multiple curpair discr_multiple 
-					    (lambda (e) (macroexpand_1 e newenv mexpander)))) 
-	     (lambr 
-	      (make_instance class_src_lambda
-			     :src_loc loc
-			     :slam_argbind argtup
-			     :slam_body bodytup))
-	     ) 
-	(return lambr)
-	))))
-(install_initial_macro 'lambda mexpand_lambda)
-      
-
-;;;;;;;; for MULTICALL
-(defun mexpand_multicall (sexpr env mexpander)
-  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
-  (assert_msg "check env" (is_a env class_environment))
-  (let ( (cont (unsafe_get_field :sexp_contents sexpr))
-	 (loc  (unsafe_get_field :loca_location sexpr))
-	 (curpair (pair_tail (list_first cont))) 
-	 (newenv (fresh_env env))
-	 )
-    ;; parse the formal results
-    (let ( (restup (lambda_arg_bindings (pair_head curpair) sexpr)) )
-      (setq curpair (pair_tail curpair))
-      (let ( (curcallexp (pair_head curpair)) )
-	(if (not (is_a curcallexp class_sexpr))
-	    (error_plain loc "missing called expression in multicall"))
-	(setq curpair (pair_tail curpair))
-	(let ( (curcall (macroexpand_1 curcallexp env mexpander)) )
-	  (multiple_every restup 
-			  (lambda (lb) (put_env newenv lb)
-			    ))
-	  (let ( (bodytup (pairlist_to_multiple curpair discr_multiple 
-						(lambda (e) (macroexpand_1 e newenv mexpander)))) 
-		 (mulcr
-		  (make_instance class_src_multicall
-				 :src_loc loc
-				 :smulc_resbind restup
-				 :smulc_call curcall
-				 :smulc_body bodytup
-				 )) 
-		 )
-	    (return mulcr)
-	    ))))))
-(install_initial_macro 'multicall mexpand_multicall)
-
-;;;;;;;; for QUOTE (only of symbols or keywords)
-(defun mexpand_quote (sexpr env mexpander)
-  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
-  (assert_msg "check env" (is_a env class_environment))
-  (let ( (cont (unsafe_get_field :sexp_contents sexpr))
-	 (loc  (unsafe_get_field :loca_location sexpr))
-	 (curpair (pair_tail (list_first cont))) 
-	 (quoted (pair_head curpair))
-	 )
-    (if (pair_tail curpair)
-	(error_plain loc "QUOTE should have only one symbol argument"))
-    (if (not (is_a quoted class_symbol))
-	(error_plain loc "QUOTE should have a symbol argument - composite quotations unsupported"))
-    (if (is_a quoted class_keyword)
-	(return quoted))
-    (let ( (squ (make_instance class_src_quote
-			       :src_loc loc
-			       :squoted quoted)) )
-      (return squ)
-      )))
-(install_initial_macro 'quote mexpand_quote)
-
-;;;;;;;; for COMMENT (only of strings)
-(defun mexpand_comment  (sexpr env mexpander)
-  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
-  (assert_msg "check env" (is_a env class_environment))
-  (let ( (cont (unsafe_get_field :sexp_contents sexpr))
-	 (loc  (unsafe_get_field :loca_location sexpr))
-	 (curpair (pair_tail (list_first cont))) 
-	 (comstr (pair_head curpair))
-	 )
-    (if (pair_tail curpair)
-	(error_plain loc "COMMENT should have only one string argument"))
-    (if (not (is_string comstr))
-	(progn
-	  (error_plain loc "COMMENT should have a string")
-	  (setq comstr ()))
-      )
-    (let ( (scom (make_instance class_src_comment
-			       :src_loc loc
-			       :scomm_str comstr)) )
-      (return scom)
-)))
-(install_initial_macro 'comment mexpand_comment)
-
-
-;;;;;;;; for PROGN
-;; internal routine to make a progn from a pairlist at a location
-(defun pairlist_to_progn (pair loc env mexpander)
-  (assert_msg "check env" (is_a env class_environment))
-  (debug_msg pair "pairlist_to_progn pair")
-  (assert_msg "check_pair" (is_pair pair))
-  (let ( (bodytup (pairlist_to_multiple 
-		   pair 
-		   discr_multiple
-		   (lambda (e) (macroexpand_1 e env mexpander)))) 
-	 (sprogn
-	  (make_instance class_src_progn
-			 :src_loc loc
-			 :sprogn_body bodytup
-			 )) )
-    (debug_msg sprogn "pairlist_to_progn sprogn")
-    (return sprogn)
-))
-
-;; internal routine to make a return from a pairlist at a location
-(defun pairlist_to_return (pair loc env mexpander)
-  (assert_msg "check env" (is_a env class_environment))
-  (let ( (bodytup (pairlist_to_multiple 
-		   pair 
-		   discr_multiple
-		   (lambda (e) (macroexpand_1 e env mexpander)))) )
-    (make_instance class_src_return
-		   :src_loc loc
-		   :sreturn_body bodytup
-		   )
-))
-
-;;;; the progn expanser
-(defun mexpand_progn (sexpr env mexpander)
-  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
-  (let ( (sloc (unsafe_get_field :loca_location sexpr))
-	 (pairs  (pair_tail
-		  (list_first (unsafe_get_field :sexp_contents sexpr)))) 
-	 )
-    (if (not (is_pair pairs))
-	(progn
-	  (error_plain sloc "empty PROGN")
-	  (return)))
-    (let ( (progr
-	    (pairlist_to_progn pairs
-			       sloc
-			       env
-			       mexpander)) )
-      (return progr)
-      )))
-(install_initial_macro 'progn mexpand_progn)
-
-;;;; the return expanser
-(defun mexpand_return (sexpr env mexpander)
-  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
-  (let ( (retr
-	  (pairlist_to_return (pair_tail (list_first (unsafe_get_field :sexp_contents sexpr)))
-			      (unsafe_get_field :loca_location sexpr)
-			      env
-			      mexpander)) 
-	 )
-    (return retr)
-    ))
-(install_initial_macro 'return mexpand_return)
-
-;;;; the forever expanser
-(defun mexpand_forever (sexpr env mexpander)
-  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
-  (let ( (cont (unsafe_get_field :sexp_contents sexpr))
-	 (loc  (unsafe_get_field :loca_location sexpr))
-	 (curpair (pair_tail (list_first cont))) 
-	 (slabnam (pair_head curpair))
-	 (xlabnam (macroexpand_1 slabnam env mexpander))
-	 (newenv (fresh_env env))
-	 )
-    (if (is_not_a xlabnam class_symbol)
-	(progn
-	  (error_plain loc "missing label in FOREVER")
-	  (return (the_null))))
-    (setq curpair (pair_tail curpair))
-    (let ( (labind (make_instance class_label_binding
-				  :binder xlabnam
-				  :labind_loc loc)) )
-      (put_env newenv labind)
-      (let ( (bodytup (pairlist_to_multiple
-		       curpair
-		       discr_multiple
-		       (lambda (e) (macroexpand_1 e newenv mexpander)))) 
-	     (forr
-	      (make_instance class_src_forever
-			     :src_loc loc
-			     :slabel_bind labind
-			     :sfrv_body bodytup)) 
-	     )
-	(return forr)
-	))))
-(install_initial_macro 'forever mexpand_forever)
-
-
-;;;; the exit expanser
-(defun mexpand_exit (sexpr env mexpander)
-  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
-  (let ( (cont (unsafe_get_field :sexp_contents sexpr))
-	 (loc  (unsafe_get_field :loca_location sexpr))
-	 (curpair (pair_tail (list_first cont))) 
-	 (slabnam (pair_head curpair))
-	 (xlabnam (macroexpand_1 slabnam env mexpander))
-	 (newenv (fresh_env env))
-	 )
-    (if (is_not_a xlabnam class_symbol)
-	(progn
-	  (error_plain loc "missing label in EXIT")
-	  (return (the_null))))
-    (setq curpair (pair_tail curpair))
-    (let ( (labind (find_env env xlabnam)) )
-      (if (is_not_a labind class_label_binding)
-	  (progn 
-	    (error_strv loc "bad label in EXIT" 
-			(unsafe_get_field :named_name xlabnam))
-	    (return (the_null))))
-      (let ( (bodytup (pairlist_to_multiple
-		       curpair
-		       discr_multiple
-		       (lambda (e) (macroexpand_1 e newenv mexpander)))) 
-	     (exr
-	      (make_instance class_src_exit
-			     :src_loc loc
-			     :slabel_bind labind
-			     :sexi_body bodytup)) 
-	     )
-	(return exr)
-	))))
-(install_initial_macro 'exit mexpand_exit)
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; compile time warning (compile_warning msg expr)
-;; we don't issue the warning at expansion phase, but at normalization phase.
-(defun  mexpand_compile_warning (sexpr env mexpander)
-  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
-  (debug_msg sexpr "mexpand_compile_warning sexpr")
-  (let ( (cont (unsafe_get_field :sexp_contents sexpr))
-	(loc  (unsafe_get_field :loca_location sexpr))
-	 (curpair (pair_tail (list_first cont))) 
-	 (smsg (pair_head curpair))
-	 (xmsg (macroexpand_1 smsg env mexpander))
-	 )
-    (if (not (is_string xmsg))
-	(progn
-	  (error_plain loc "missing message string in (COMPILE_WARNING <msg> <exp>)")
-	  (return (the_null))))
-    (setq curpair (pair_tail curpair))
-    (let ( (sexp (pair_head curpair))
-	  (xexp (macroexpand_1 sexp env mexpander))
-	   )
-      (setq curpair (pair_tail curpair))
-      (if (notnull curpair)
-	  (error_plain loc "too many arguments in (COMPILE_WARNING <msg> <exp>)"))
-      (let ( (res (make_instance  class_src_compilewarning
-				  :src_loc loc
-				  :scwarn_msg xmsg
-				  :scwarn_expr xexp
-				  ))
-	    )
-	(debug_msg res "mexpand_compile_warning result")
-	(return res)
-	))))
-(install_initial_macro 'compile_warning mexpand_compile_warning)
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; assert_msg macro is expanded into other src..
-;;;;;; (assert_msg msg check)
-;;; becomes
-;;;;;; (cppif ENABLE_CHECKING (if check (assert_failed msg filename lineno)) ())
-;;; where assert_failed is a primitive
-
-(defun mexpand_assert_msg (sexpr env mexpander)
-  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
-  (assert_msg "check env" (is_a env class_environment))
-  (debug_msg sexpr "mexpand_assert_msg sexpr")
-  (let (
-	(cont (unsafe_get_field :sexp_contents sexpr))
-	(loc  (unsafe_get_field :loca_location sexpr))
-	(curpair (pair_tail (list_first cont)))
-	(xmsg (macroexpand_1 (pair_head curpair)  env mexpander))
-	(xtest ())
-	(assfail_binding (find_env env 'assert_failed))
-	)
-    (if (is_not_a assfail_binding class_primitive_binding)
-	(progn
-	  (error_plain loc "ASSERT_FAILED not bound to a primitive in  (ASSERT_MSG <msg> <test>)")
-	  (return)))
-    (if (not (is_string xmsg))
-	(error_plain loc "non string message in (ASSERT_MSG <msg> <test>)"))
-    (setq curpair (pair_tail curpair))
-    (if (not (is_pair curpair))
-	(error_plain loc "missing test in (ASSERT_MSG <msg> <test>)"))
-    (setq xtest (macroexpand_1 (pair_head curpair) env mexpander))
-    (if (pair_tail curpair)
-	(error_plain loc "extra arg for (ASSERT_MSG <msg> <test>)"))
-    (let ( (aprim (make_instance 
-		   class_src_primitive
-		   :src_loc loc
-		   :sprim_oper (unsafe_get_field :pbind_primitive assfail_binding)
-		   :sprim_args (make_tuple3 discr_multiple
-					   xmsg
-					   (mixint_val loc)
-					   (make_integerbox discr_integer (get_int loc)))))
-	   (atest (make_instance
-		   class_src_ifelse
-		   :src_loc loc
-		   :sif_test xtest
-		   :sif_then ()
-		   :sif_else aprim))
-	   (acppif (make_instance class_src_cppif
-				  :src_loc loc
-				  :sifp_cond 'ENABLE_CHECKING
-				  :sifp_then atest
-				  :sifp_else ()
-				  )) 
-	   )
-      (debug_msg acppif "mexpand_assert_msg result acppif")
-      (return acppif)
-    )))
-(install_initial_macro 'assert_msg mexpand_assert_msg)
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; debug_msg macro is expanded into other src..
-;;;;;; (debug_msg val msg [count]) 
-;;; becomes
-;;;;;; (cppif ENABLE_CHECKING (debug_msg_fun val msg count filename lineno) ())
-;;; where count is (the_callcount) if not given
-
-(defun mexpand_debug_msg (sexpr env mexpander)
-  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
-  (assert_msg "check env" (is_a env class_environment))
-  (debug_msg sexpr "mexpand_debug_msg sexpr")
-  (let (
-	(cont (unsafe_get_field :sexp_contents sexpr))
-	(loc  (unsafe_get_field :loca_location sexpr))
-	(curpair (pair_tail (list_first cont)))
-	(xval (macroexpand_1 (pair_head curpair)  env mexpander)) 
-	(xmsg ())
-	(xcount ())
-	)
-    (setq curpair (pair_tail curpair))
-    (if (not (is_pair curpair))
-	(error_plain loc "missing message in DEBUG_MSG"))
-    (setq xmsg  (macroexpand_1 (pair_head curpair) env mexpander))
-    (setq curpair (pair_tail curpair))
-    (if (is_pair curpair)
-	(progn
-	  (setq xcount (macroexpand_1 (pair_head curpair) env mexpander))
-	  (setq curpair (pair_tail curpair))))
-    (if curpair
-	(error_plain loc "too many arguments to DEBUG_MSG"))
-    (if (not (is_string xmsg))
-	(error_plain loc "message argument should be string in DEBUG_MSG"))
-    (if (null xcount)
-	(let ( (conlis (make_list discr_list)) )
-	  (list_append conlis 'the_callcount)
-	  (setq xcount (macroexpand_1 (make_instance class_sexpr 
-						     :sexp_contents conlis
-						     :loca_location loc)
-				      env mexpander))))
-    (let ( (dcall (make_instance 
-		   class_src_apply
-		   :src_loc loc
-		   :sapp_fun 'debug_msg_fun
-		   :sapp_args (make_tuple5 discr_multiple
-					   xval
-					   xmsg
-					   xcount
-					   (mixint_val loc)
-					   (make_integerbox discr_integer (get_int loc)))))
-	   (dcppif (make_instance class_src_cppif
-				  :src_loc loc
-				  :sifp_cond 'ENABLE_CHECKING
-				  :sifp_then dcall
-				  :sifp_else ()
-				  )) 
-	   )
-      (debug_msg dcppif "mexpand_debug_msg result dcppif")
-      (return dcppif)
-      )))
-(install_initial_macro 'debug_msg mexpand_debug_msg)
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; export_values macro (export_values <symbol> ...)
-(defun mexpand_export_values (sexpr env mexpander)
-  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
-  (assert_msg "check env" (is_a env class_environment))
-  (debug_msg sexpr "mexpand_export_values sexpr")
-  (let (
-	(cont (unsafe_get_field :sexp_contents sexpr))
-	(loc  (unsafe_get_field :loca_location sexpr))
-	(curpair (pair_tail (list_first cont)))
-	(symbtup (pairlist_to_multiple 
-		  curpair discr_multiple
-		  (lambda (s)
-		    (let ( (sym  (macroexpand_1 s env mexpander)) )
-		      (if (is_not_a sym class_symbol)
-			  (progn
-			    (debugmsg sym "mexpand_export_values bad sym")
-			    (error_plain loc "(EXPORT_VALUES <sym>...) expecting symbol")))
-		      sym
-		      ))))
-	(res (make_instance class_src_export_values
-			    :src_loc loc
-			    :sexport_names symbtup))
-	)
-    (debug_msg res "mexpand_export_values result res")
-    (return res)
-    ))
-(install_initial_macro 'export_values mexpand_export_values)
-
-;;;;
-;;; export_macro macro (export_macro <symbol> <expander>)
-(defun mexpand_export_macro (sexpr env mexpander)
-  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
-  (assert_msg "check env" (is_a env class_environment))
-  (debug_msg sexpr "mexpand_export_macro sexpr")
-  (let (
-	(cont (unsafe_get_field :sexp_contents sexpr))
-	(loc  (unsafe_get_field :loca_location sexpr))
-	(curpair (pair_tail (list_first cont)))
-	(symb (macroexpand_1 (pair_head curpair) env mexpander))
-	)
-    (if (is_not_a symb class_symbol)
-	(error_plain loc "(EXPORT_MACRO <sym> <expander>) expecting symbol"))
-    (setq curpair (pair_tail curpair))
-    (let ( (expv (macroexpand_1 (pair_head curpair) env mexpander)) 
-	   )
-      (if (null expv)
-	  (error_plain loc  "(EXPORT_MACRO <sym> <expander>) expecting expander"))
-      (let ( (res (make_instance class_src_export_macro
-				 :src_loc loc
-				 :sexpmac_mname symb
-				 :sexpmac_mval expv
-		   ))
-	     )
-    (debug_msg res "mexpand_export_macro result res")
-    (return res)
-    ))))
-(install_initial_macro 'export_macro mexpand_export_macro)
-
-;;;;
-;;; export_class macro (export_class <symbol> ...)
-(defun mexpand_export_class (sexpr env mexpander)
-  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
-  (assert_msg "check env" (is_a env class_environment))
-  (debug_msg sexpr "mexpand_export_class sexpr")
-  (let (
-	(cont (unsafe_get_field :sexp_contents sexpr))
-	(loc  (unsafe_get_field :loca_location sexpr))
-	(curpair (pair_tail (list_first cont)))
-	(symbtup (pairlist_to_multiple 
-		  curpair discr_multiple
-		  (lambda (s)
-		    (let ( (sym  (macroexpand_1 s env mexpander)) )
-		      (if (is_not_a sym class_symbol)
-			  (error_plain loc "(EXPORT_CLASS <sym>...) expecting symbol"))
-		      sym
-		      ))))
-	(res (make_instance class_src_export_class
-			    :src_loc loc
-			    :sexport_names symbtup))
-	)
-    (debug_msg res "mexpand_export_class result res")
-    (return res)
-    ))
-(install_initial_macro 'export_class mexpand_export_class)
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;; current_module_environment macro 
-(defun mexpand_current_module_environment (sexpr env mexpander)
-  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
-  (assert_msg "check env" (is_a env class_environment))
-  (debug_msg sexpr "mexpand_current_module_environment sexpr")
-  (let (
-	(cont (unsafe_get_field :sexp_contents sexpr))
-	(loc  (unsafe_get_field :loca_location sexpr))
-	(curpair (pair_tail (list_first cont)))
-	(res (make_instance class_src_current_module_environment
-			    :src_loc loc))
-	)
-    (if (notnull curpair)
-	(error_plain loc "(CURRENT_MODULE_ENVIRONMENT) should not have any argument"))
-    (debug_msg res "mexpand_current_module_environment return res")
-    (return res)
-))
-(install_initial_macro 'current_module_environment mexpand_current_module_environment)
-
-;;;;;;;;;;;;;;;;
-;;;; parent_module_environment macro 
-(defun mexpand_parent_module_environment (sexpr env mexpander)
-  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
-  (assert_msg "check env" (is_a env class_environment))
-  (debug_msg sexpr "mexpand_parent_module_environment sexpr")
-  (let (
-	(cont (unsafe_get_field :sexp_contents sexpr))
-	(loc  (unsafe_get_field :loca_location sexpr))
-	(curpair (pair_tail (list_first cont)))
-	(res (make_instance class_src_parent_module_environment
-			    :src_loc loc))
-	)
-    (if (notnull curpair)
-	(error_plain loc "(PARENT_MODULE_ENVIRONMENT) should not have any argument"))
-    (debug_msg res "mexpand_parent_module_environment return res")
-    (return res)
-))
-(install_initial_macro 'parent_module_environment mexpand_parent_module_environment)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -8886,6 +9014,50 @@
     (return nquasi)
     ))
 (install_method class_src_parent_module_environment normal_exp normexp_parent_module_environment)
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;;; normalize unsafe_replace_module_environment
+;;;; which can only be called at toplevel, not from inside a function!
+(defun normexp_unsafe_replace_module_environment (recv env ncx psloc)
+  (assert_msg "check parent_module_environment recv" (is_a recv class_src_unsafe_replace_module_environment))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check nctxt" (is_a ncx class_normcontext))
+  (debug_msg recv "normexp_unsafe_replace_module_environment recv")
+  (let ( 
+	(sloc (unsafe_get_field :src_loc recv))
+	(curproc (unsafe_get_field :nctx_curproc ncx))
+	(sfresh (unsafe_get_field :surmc_freshenv ncx))
+	)
+    (if (is_not_a curproc class_nrep_initproc)
+	(progn
+	  (error_plain sloc "(UNSAFE_REPLACE_MODULE_ENVIRONMENT <freshenv>) should be called only at toplevel")
+	  (return)))
+    (multicall
+     (nfresh nbind)
+     (normal_exp sfresh env ncx sloc)
+     (if (null nbind) (setq nbind (make_list discr_list)))
+     (let ( (csym (clone_symbol '_unsafereplacemodulenv_))
+	    (nurme (make_instance class_nrep_unsafe_replace_module_environment
+				  :nrep_loc sloc
+				  :nurme_freshenv nfresh
+				  ))
+	    (cbind (make_instance class_normlet_binding
+				  :letbind_loc sloc
+				  :binder csym
+				  :letbind_type ctype_void
+				  :letbind_expr nurme))
+	    (syocc (make_instance class_nrep_locsymocc
+				  :nrep_loc sloc
+				  :nocc_ctyp ctype_void 
+				  :nocc_symb csym
+				  :nocc_bind cbind) )
+	    )
+       (list_append nbind cbind)
+       (debug_msg nbind "normexp_unsafe_replace_module_environment result nbind")
+       (debug_msg syocc "normexp_unsafe_replace_module_environment result syocc")
+       (return syocc)
+       ))))
+(install_method class_src_unsafe_replace_module_environment normal_exp normexp_unsafe_replace_module_environment)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -13972,7 +14144,23 @@
     (return prevenvloc)))
 (install_method class_nrep_quasidata_parent_module_environment compile_obj compilobj_quasidata_parent_module_environment)
 
-
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defun compilobj_unsafe_replace_module_environment (urme gcx)
+  (assert_msg "check urme" (is_a urme class_nrep_unsafe_replace_module_environment))
+  (assert_msg "check gcx" (is_a gcx class_initgenercontext))
+  (debug_msg urme "compilobj_unsafe_replace_module_environment start urme")
+  (let ( (retloc (unsafe_get_field :gncx_retloc gcx)) 
+	 (nloc (unsafe_get_field :nrep_loc urme))
+	 (nfe (unsafe_get_field :nurme_freshenv urme))
+	 (res (make_instance class_objcompute
+			     :obi_loc nloc
+			     :obdi_destlist (list1 retloc)
+			     :obcpt_expr nfe
+			     ))
+	 )
+    (debug_msg res  "compilobj_unsafe_replace_module_environment return res")
+))
+(install_method class_nrep_unsafe_replace_module_environment compile_obj compilobj_unsafe_replace_module_environment)
 
 
 
@@ -14109,8 +14297,8 @@
 		   :vbind_value val
 		   )) 
 	 )
-    (put_env env valbind)
     (debug_msg valbind "initvalue_exporter valbind")
+    (put_env env valbind)
     (return)
     ))
 
@@ -14171,40 +14359,43 @@
   (debug_msg arg "start compilefile_command arg")
   (debug_msg secarg "start compilefile_command secarg")
   (debug_msg moduldata "start compilefile_command moduldata")
-  (debug_msg discr_string "compilefile_command discr_string")
-  (debug_msg discr_verbatimstring "compilefile_command discr_verbatimstring")
-  (debug_msg initial_environment "before read compilefile_command initial_environment")
-  (debug_msg 'defun "before read compilefile_command defun symbol")
-  (debug_msg 'if "before read compilefile_command if symbol")
-  (debug_msg tokenizer "before read compilefile_command tokenizer")
-  (debug_msg ':value "before read compilefile_command :value keyword")
-  (debug_msg ':void "before read compilefile_command :void keyword")
-  (debug_msg ':long "before read compilefile_command :long keyword")
-  (debug_msg ctype_value "before read compilefile_command ctype_value")
-  (debug_msg ctype_void "before read compilefile_command ctype_void")
-  (debug_msg ctype_long "before read compilefile_command ctype_long")
-  (debug_msg class_selector "before read compilefile_command {class} class_selector")
-  (debug_msg class_nrep_routproc "before read compilefile_command {class} class_nrep_routproc")
-  (debug_msg class_label_binding "before read compilefile_command {class} class_label_binding")
-  (debug_msg named_name "before read compilefile_command {field} named_name")
-  (debug_msg labind_clonsy "before read compilefile_command {field} labind_clonsy")
-  (debug_msg dbg_output "before read compilefile_command dbg_output")
-  (debug_msg (unsafe_get_field :named_name dbg_output) "before read compilefile_command dbg_output's name")
-  (assert_msg "check DBG_OUTPUT's name is string" (is_string (unsafe_get_field :named_name dbg_output)))
-  (let ( (rlist (read_file arg)) 
-	 (basnam (if (is_string secarg) secarg (make_string_nakedbasename discr_string arg)))
-	 (curmodenv (current_module_environment))
-	 (parmodenv (parent_module_environment))
-	 (compenv (if parmodenv curmodenv initial_environment))
-	 ) 
-    (debug_msg rlist "after read compilefile_command rlist")
-    (debug_msg tokenizer "after read compilefile_command tokenizer")
-    (debug_msg initial_environment "after read compilefile_command initial_environment")
-    (debug_msg compenv "compilefile compenv")
-    (compile_list_sexpr rlist compenv basnam)
-    ))
+  (let ( 
+	(curmodenv (current_module_environment))
+	(parmodenv (parent_module_environment))
+	(curenv (if moduldata moduldata initial_environment))
+	)
+    (debug_msg curmodenv "before read compilefile_command curmodenv")
+    (debug_msg parmodenv "before read compilefile_command parmodenv")
+    (debug_msg initial_environment "before read compilefile_command initial_environment")
+    (assert_msg "check curenv" (is_a curenv class_environment))
+    (let ( (rlist (read_file arg)) 
+	   (basnam (if (is_string secarg) secarg (make_string_nakedbasename discr_string arg)))
+	   ) 
+      (debug_msg rlist "after read compilefile_command rlist")
+      (debug_msg tokenizer "after read compilefile_command tokenizer")
+      (debug_msg curmodenv "after read compilefile_command curmodenv")
+       (compile_list_sexpr rlist curenv basnam)
+      )))
 
 (install_initial_command  (stringconst2val discr_string "compilefile") compilefile_command)
+
+;;;;
+
+(defun compileinit_command (dispatcher arg secarg moduldata)
+  (message_dbg "starting compileinit_command")
+  (debug_msg arg "start compileinit_command arg")
+  (debug_msg secarg "start compileinit_command secarg")
+  (debug_msg moduldata "start compileinit_command moduldata")
+  (debug_msg initial_environment "before read compileinit_command initial_environment")
+  (let ( (rlist (read_file arg)) 
+	 (basnam (if (is_string secarg) secarg (make_string_nakedbasename discr_string arg)))
+	 ) 
+    (debug_msg rlist "after read compileinit_command rlist")
+    (debug_msg tokenizer "after read compileinit_command tokenizer")
+    (compile_list_sexpr rlist initial_environment basnam)
+    ))
+
+(install_initial_command  (stringconst2val discr_string "compileinit") compileinit_command)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun showmdata_command (dispatcher arg secarg moduldata)
@@ -14216,5 +14407,13 @@
 ;;;;;;;;;;;;;;;;
 
 (debug_msg initial_system_data "toplevel initial_system_data")
+
+;;; tricky stuff to be able to compile itself.
+
+;;; if the parent module environment is null, we forcibly replace the
+;;; current module environment with the initial environment.
+
+;(if (null (parent_module_environment))
+;    (unsafe_replace_module_environment initial_environment))
 
 ;;; eof warm-basilys.bysl

@@ -1,3 +1,14 @@
+2008-06-13  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* Makefile.in: added compileinit command to generate warm-basilys-*.c
+
+	* basilys.c: (load_basilys_modules_and_do_command) removed gcc_assert dumpfile.
+
+	* melt/warm-basilys.bysl: added compileinit command and
+	unsafe_replace_module_environment feature.  reordered the file.
+
+	* warm-basilys-0.c: regenerated several times.
+
 2008-06-12  Basile Starynkevitch  <basile@starynkevitch.net>
 [beginning to split warm-basilys.bysl into several files using
 export...; not yet working!]

@@ -5694,7 +5694,6 @@ load_basilys_modules_and_do_command (void)
 	   FSYSDAT_FUNDICT && basilys_command_string
 	   && basilys_command_string[0])
     {
-      gcc_assert (dump_file == (FILE *) 0);	/* WHY? */
       debugeprintf
 	("load_basilys_modules_and_do_command sets exit_after_options for command %s",
 	 basilys_command_string);
