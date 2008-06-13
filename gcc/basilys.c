@@ -117,6 +117,7 @@ void* basilys_touched_cache[BASILYS_TOUCHED_CACHE_SIZE];
 bool basilys_prohibit_garbcoll;
 
 long basilys_dbgcounter;
+long basilys_debugskipcount;
 
 void (*basilys_extra_scanrout_p)(void);
 
@@ -4766,22 +4767,22 @@ basilysgc_named_symbol (const char *nam, int create)
     namdup = strcpy (tinybuf, nam);
   else
     namdup = strcpy (xcalloc (namlen + 1, 1), nam);
-  gcc_assert (basilys_magic_discr (BASILYSG (CLASS_TOKENIZER))
+  gcc_assert (basilys_magic_discr (BASILYSG (CLASS_SYSTEM_DATA))
 	      == OBMAG_OBJECT);
-  gcc_assert (basilys_magic_discr (BASILYSG (TOKENIZER)) == OBMAG_OBJECT);
+  gcc_assert (basilys_magic_discr (BASILYSG (INITIAL_SYSTEM_DATA)) == OBMAG_OBJECT);
   for (ix = 0; ix < namlen; ix++)
     if (ISALPHA (namdup[ix]))
       namdup[ix] = TOUPPER (namdup[ix]);
   if (basilys_is_instance_of
-      (BASILYSG (TOKENIZER), BASILYSG (CLASS_TOKENIZER))
-      && BASILYSGOB (TOKENIZER)->obj_len >= FTOK__LAST)
+      (BASILYSG (INITIAL_SYSTEM_DATA), BASILYSG (CLASS_SYSTEM_DATA))
+      && BASILYSGOB (INITIAL_SYSTEM_DATA)->obj_len >= FSYSDAT__LAST)
     {
-      dictv = BASILYSGOB (TOKENIZER)->obj_vartab[FTOK_SYMBDICT];
+      dictv = BASILYSGOB (INITIAL_SYSTEM_DATA)->obj_vartab[FSYSDAT_SYMBOLDICT];
       if (basilys_magic_discr (dictv) == OBMAG_MAPSTRINGS)
 	symbv = basilys_get_mapstrings (dictv, namdup);
       if (symbv || !create)
 	goto end;
-      closv = BASILYSGOB (TOKENIZER)->obj_vartab[FTOK_ADDSYMB];
+      closv = BASILYSGOB (INITIAL_SYSTEM_DATA)->obj_vartab[FSYSDAT_ADDSYMBOL];
       if (basilys_magic_discr (closv) == OBMAG_CLOSURE)
 	{
 	  union basilysparam_un pararg[1];
@@ -4789,7 +4790,7 @@ basilysgc_named_symbol (const char *nam, int create)
 	  nstrv = basilysgc_new_string (BASILYSGOB (DISCR_STRING), namdup);
 	  pararg[0].bp_aptr = (basilys_ptr_t *) & nstrv;
 	  symbv =
-	    basilys_apply (closv, BASILYSG (TOKENIZER), BPARSTR_PTR,
+	    basilys_apply (closv, BASILYSG (INITIAL_SYSTEM_DATA), BPARSTR_PTR,
 			   pararg, "", NULL);
 	  goto end;
 	}
@@ -4823,13 +4824,13 @@ basilysgc_intern_symbol (basilys_ptr_t symb_p)
   nstrv = obj_symbv->obj_vartab[FNAMED_NAME];
   if (basilys_magic_discr (nstrv) != OBMAG_STRING)
     goto fail;
-  if (basilys_magic_discr (BASILYSG (TOKENIZER)) !=
+  if (basilys_magic_discr (BASILYSG (INITIAL_SYSTEM_DATA)) !=
       OBMAG_OBJECT
-      || BASILYSGOB (TOKENIZER)->obj_len < FTOK__LAST
-      || !basilys_is_instance_of (BASILYSG (TOKENIZER),
-				  BASILYSG (CLASS_TOKENIZER)))
+      || BASILYSGOB (INITIAL_SYSTEM_DATA)->obj_len < FSYSDAT__LAST
+      || !basilys_is_instance_of (BASILYSG (INITIAL_SYSTEM_DATA),
+				  BASILYSG (CLASS_SYSTEM_DATA)))
     goto fail;
-  closv = BASILYSGOB (TOKENIZER)->obj_vartab[FTOK_INTERNSYMB];
+  closv = BASILYSGOB (INITIAL_SYSTEM_DATA)->obj_vartab[FSYSDAT_INTERNSYMBOL];
   if (basilys_magic_discr (closv) != OBMAG_CLOSURE)
     goto fail;
   else
@@ -4839,7 +4840,7 @@ basilysgc_intern_symbol (basilys_ptr_t symb_p)
       pararg[0].bp_aptr = (basilys_ptr_t *) & symbv;
       BASILYS_LOCATION_HERE("intern symbol before apply");
       resv =
-	basilys_apply (closv, BASILYSG (TOKENIZER), BPARSTR_PTR,
+	basilys_apply (closv, BASILYSG (INITIAL_SYSTEM_DATA), BPARSTR_PTR,
 		       pararg, "", NULL);
       goto end;
     }
@@ -4875,13 +4876,13 @@ basilysgc_intern_keyword (basilys_ptr_t keyw_p)
   nstrv = obj_keywv->obj_vartab[FNAMED_NAME];
   if (basilys_magic_discr (nstrv) != OBMAG_STRING)
     goto fail;
-  if (basilys_magic_discr (BASILYSG (TOKENIZER)) !=
+  if (basilys_magic_discr (BASILYSG (INITIAL_SYSTEM_DATA)) !=
       OBMAG_OBJECT
-      || BASILYSGOB (TOKENIZER)->obj_len < FTOK__LAST
-      || !basilys_is_instance_of (BASILYSG (TOKENIZER),
-				  BASILYSG (CLASS_TOKENIZER)))
+      || BASILYSGOB (INITIAL_SYSTEM_DATA)->obj_len < FSYSDAT__LAST
+      || !basilys_is_instance_of (BASILYSG (INITIAL_SYSTEM_DATA),
+				  BASILYSG (CLASS_SYSTEM_DATA)))
     goto fail;
-  closv = BASILYSGOB (TOKENIZER)->obj_vartab[FTOK_INTERNKEYW];
+  closv = BASILYSGOB (INITIAL_SYSTEM_DATA)->obj_vartab[FSYSDAT_INTERNKEYW];
   if (basilys_magic_discr (closv) != OBMAG_CLOSURE)
     goto fail;
   else
@@ -4891,7 +4892,7 @@ basilysgc_intern_keyword (basilys_ptr_t keyw_p)
       pararg[0].bp_aptr = (basilys_ptr_t *) & keywv;
       BASILYS_LOCATION_HERE("intern keyword before apply");
       resv =
-	basilys_apply (closv, BASILYSG (TOKENIZER), BPARSTR_PTR,
+	basilys_apply (closv, BASILYSG (INITIAL_SYSTEM_DATA), BPARSTR_PTR,
 		       pararg, "", NULL);
       goto end;
     }
@@ -4940,19 +4941,19 @@ basilysgc_named_keyword (const char *nam, int create)
   for (ix = 0; ix < namlen; ix++)
     if (ISALPHA (namdup[ix]))
       namdup[ix] = TOUPPER (namdup[ix]);
-  gcc_assert (basilys_magic_discr (BASILYSG (CLASS_TOKENIZER))
+  gcc_assert (basilys_magic_discr (BASILYSG (CLASS_SYSTEM_DATA))
 	      == OBMAG_OBJECT);
-  gcc_assert (basilys_magic_discr (BASILYSG (TOKENIZER)) == OBMAG_OBJECT);
+  gcc_assert (basilys_magic_discr (BASILYSG (INITIAL_SYSTEM_DATA)) == OBMAG_OBJECT);
   if (basilys_is_instance_of
-      (BASILYSG (TOKENIZER), BASILYSG (CLASS_TOKENIZER))
-      && BASILYSGOB (TOKENIZER)->obj_len >= FTOK__LAST)
+      (BASILYSG (INITIAL_SYSTEM_DATA), BASILYSG (CLASS_SYSTEM_DATA))
+      && BASILYSGOB (INITIAL_SYSTEM_DATA)->obj_len >= FSYSDAT__LAST)
     {
-      dictv = BASILYSGOB (TOKENIZER)->obj_vartab[FTOK_KEYWDICT];
+      dictv = BASILYSGOB (INITIAL_SYSTEM_DATA)->obj_vartab[FSYSDAT_KEYWDICT];
       if (basilys_magic_discr (dictv) == OBMAG_MAPSTRINGS)
 	keywv = basilys_get_mapstrings (dictv, namdup);
       if (keywv || !create)
 	goto end;
-      closv = BASILYSGOB (TOKENIZER)->obj_vartab[FTOK_ADDKEYW];
+      closv = BASILYSGOB (INITIAL_SYSTEM_DATA)->obj_vartab[FSYSDAT_ADDKEYW];
       if (basilys_magic_discr (closv) == OBMAG_CLOSURE)
 	{
 	  union basilysparam_un pararg[1];
@@ -4960,7 +4961,7 @@ basilysgc_named_keyword (const char *nam, int create)
 	  nstrv = basilysgc_new_string (BASILYSGOB (DISCR_STRING), namdup);
 	  pararg[0].bp_aptr = (basilys_ptr_t *) & nstrv;
 	  keywv =
-	    basilys_apply (closv, BASILYSG (TOKENIZER), BPARSTR_PTR,
+	    basilys_apply (closv, BASILYSG (INITIAL_SYSTEM_DATA), BPARSTR_PTR,
 			   pararg, "", NULL);
 	  goto end;
 	}
@@ -5548,11 +5549,11 @@ do_initial_command (basilys_ptr_t modata_p)
   if (basilys_magic_discr
       ((BASILYSG (INITIAL_SYSTEM_DATA))) != OBMAG_OBJECT
       || BASILYSGOB (INITIAL_SYSTEM_DATA)->obj_len <
-      FSYSDAT_FUNDICT+1
+      FSYSDAT_CMD_FUNDICT+1
       || !BASILYSGOB (INITIAL_SYSTEM_DATA)->obj_vartab
       || !basilys_command_string || !basilys_command_string[0])
     goto end;
-  dictv = BASILYSGOB (INITIAL_SYSTEM_DATA)->obj_vartab[FSYSDAT_FUNDICT];
+  dictv = BASILYSGOB (INITIAL_SYSTEM_DATA)->obj_vartab[FSYSDAT_CMD_FUNDICT];
   debugeprintf ("do_initial_command dictv=%p", dictv);
   debugeprintvalue ("do_initial_command dictv", dictv);
   if (basilys_magic_discr (dictv) != OBMAG_MAPSTRINGS)
@@ -5691,7 +5692,7 @@ load_basilys_modules_and_do_command (void)
   else if (basilys_magic_discr
 	   ((BASILYSG (INITIAL_SYSTEM_DATA))) == OBMAG_OBJECT
 	   && BASILYSGOB (INITIAL_SYSTEM_DATA)->obj_len >=
-	   FSYSDAT_FUNDICT && basilys_command_string
+	   FSYSDAT_CMD_FUNDICT && basilys_command_string
 	   && basilys_command_string[0])
     {
       debugeprintf
@@ -5747,6 +5748,8 @@ basilys_initialize (void)
   const char *randomseed = 0;
   if (inited)
     return;
+  if (count_basilys_debugskip_string != (char*)0)
+    basilys_debugskipcount = atol(count_basilys_debugskip_string);
   seed = 0;
   randomseed = get_random_seed (false);
   gcc_assert (randomseed != (char *) 0);

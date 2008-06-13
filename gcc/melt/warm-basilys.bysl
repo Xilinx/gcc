@@ -143,19 +143,8 @@
 	   )
   )
 
-;; class of tokenizers
-(defclass class_tokenizer
-  :predef CLASS_TOKENIZER
-  :super class_named
-  :fields (tok_symboldict 		; stringmap for symbols
-	   tok_keywdict 			;stringmap for keywords
-	   tok_addsymbol 		;closure to add a symbol of given name
-	   tok_addkeyw		;closure to add a keyword of given name
-	   tok_internsymbol		;closure to intern a symbol
-	   tok_internkeyw		;closure to intern a keyword
-	   ))
 
-;; class of system data
+;; class of system data  -- be careful to keep the FSYSDAT_* identifiers from basilys.h in sync!
 (defclass class_system_data
   :predef CLASS_SYSTEM_DATA
   :super class_named
@@ -163,6 +152,12 @@
 	   sysdata_fresh_env			;closure to make a fresh environment
 	   sysdata_value_exporter		;closure to export a value
 	   sysdata_macro_exporter		;closure to export a macro
+	   sysdata_symboldict 		; stringmap for symbols
+	   sysdata_keywdict 			;stringmap for keywords
+	   sysdata_addsymbol 		;closure to add a symbol of given name
+	   sysdata_addkeyw		;closure to add a keyword of given name
+	   sysdata_internsymbol		;closure to intern a symbol
+	   sysdata_internkeyw		;closure to intern a keyword
 	   ;;;keep these spare slots to easy the addition of other slots
 	   sysdata___spare1
 	   sysdata___spare2
@@ -408,7 +403,6 @@
  class_src
  class_symbol
  class_system_data
- class_tokenizer
  class_value_binding 
  )					;end of export class
 
@@ -556,10 +550,10 @@
 (defprimitive zerop (:long i) :long "((" i ") == OL)")
 ;; primitive for testing if debug
 (defprimitive need_dbg (:long depth) :long
-  "(flag_basilys_debug && basilys_dbgcounter>=count_basilys_debugskip && (" depth ")>=0 && (" depth ") <= BASILYSDBG_MAXDEPTH)")
+  "(flag_basilys_debug && basilys_dbgcounter>=basilys_debugskipcount && (" depth ")>=0 && (" depth ") <= BASILYSDBG_MAXDEPTH)")
 
 (defprimitive need_dbglim (:long depth limit) :long
-  "(flag_basilys_debug && basilys_dbgcounter>=count_basilys_debugskip && (" depth ")>=0 && (" depth ") < (" limit "))")
+  "(flag_basilys_debug && basilys_dbgcounter>=basilys_debugskipcount && (" depth ")>=0 && (" depth ") < (" limit "))")
 ;;; debug on dumpfile
 (defprimitive outcstring_dbg (:cstring s) :void
   "basilys_puts(dump_file,(" s "))")
@@ -1366,27 +1360,29 @@
   (make_box discr_box v))
 
 ;; function to add a new symbol
-(defun add_new_symbol_token (tokz str)
+(defun add_new_symbol_token (syda str)
+  (assert_msg "check syda" (is_a syda class_system_data))
   (let ( (sy (make_instance class_symbol :named_name str)) 
-	 (sydict (unsafe_get_field :tok_symboldict tokz))
+	 (sydict (unsafe_get_field :sysdata_symboldict syda))
 	 )
     (mapstring_putstr sydict str sy)
     sy))
     
 ;; function to add a new keyword
-(defun add_new_keyword_token (tokz str)
+(defun add_new_keyword_token (syda str)
+  (assert_msg "check syda" (is_a syda class_system_data))
   (let ( (kw (make_instance class_keyword :named_name str)) 
-	 (kwdict (unsafe_get_field :tok_keywdict tokz))
+	 (kwdict (unsafe_get_field :sysdata_keywdict syda))
 	 )
     (mapstring_putstr kwdict str kw)
     kw))
     
 ;; function to intern a symbol (or return the previous one)
-(defun intern_symbol (tokz symb)
-  (assert_msg "check tokz" (is_a tokz class_tokenizer))
+(defun intern_symbol (inidat symb)
+  (assert_msg "check inidat" (is_a inidat class_system_data))
   (assert_msg "check sym" (is_a symb class_symbol))
   (let ( (syname (unsafe_get_field :named_name symb)) 
-	 (sydict (unsafe_get_field :tok_symboldict tokz))
+	 (sydict (unsafe_get_field :sysdata_symboldict inidat))
 	 (oldsy (mapstring_getstr sydict syname)) )
     (if oldsy 
 	oldsy 
@@ -1397,11 +1393,11 @@
 ))
 
 ;; function to intern a keyword (or return the previous one)
-(defun intern_keyword (tokz keyw)
-  (assert_msg "check tokz" (is_a tokz class_tokenizer))
+(defun intern_keyword (inidat keyw)
+  (assert_msg "check inidat" (is_a inidat class_system_data))
   (assert_msg "check keyw" (is_a keyw class_keyword))
   (let ( (kwname (unsafe_get_field :named_name keyw)) 
-	 (kwdict (unsafe_get_field :tok_keywdict tokz))
+	 (kwdict (unsafe_get_field :sysdata_keywdict inidat))
 	 (oldkw (mapstring_getstr kwdict kwname)) )
     (if oldkw 
 	oldkw
@@ -1437,17 +1433,71 @@
 		     :named_name synam
 		     :csym_urank (make_integerbox discr_integer i)))))
 
-;; the tokenizer
-(definstance tokenizer class_tokenizer
-  :predef TOKENIZER
-  :named_name  (stringconst2val discr_namestring "TOKENIZER")
-  :tok_symboldict (make_mapstring discr_mapstrings 200)
-  :tok_keywdict (make_mapstring discr_mapstrings 100)
-  :tok_addsymbol add_new_symbol_token
-  :tok_addkeyw  add_new_keyword_token
-  :tok_internsymbol intern_symbol
-  :tok_internkeyw intern_keyword
+
+
+ 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; initial fresh environment maker
+(defun initfresh_envmaker (prevenv)
+  (debug_msg prevenv "initfresh_envmaker prevenv")
+  (let ( (newenv (fresh_env prevenv)) )
+    (debug_msg newenv "initfresh_envmaker result newenv")
+    (return newenv)
+    ))
+
+;; initial value exporter
+(defun initvalue_exporter (sym val env)
+  (debug_msg sym "initvalue_exporter sym")
+  (debug_msg val "initvalue_exporter val")
+  (debug_msg env "initvalue_exporter env")
+  (assert_msg "check sym" (is_a sym class_symbol))
+  (assert_msg "check env" (is_a env class_environment))
+  (let ( (valbind (make_instance
+		   class_value_binding
+		   :binder sym
+		   :vbind_value val
+		   )) 
+	 )
+    (debug_msg valbind "initvalue_exporter valbind")
+    (put_env env valbind)
+    (return)
+    ))
+
+;; initial macro exporter
+(defun initmacro_exporter (sym val env)
+  (debug_msg sym "initmacro_exporter sym")
+  (debug_msg val "initmacro_exporter val")
+  (debug_msg env "initmacro_exporter env")
+  (assert_msg "check sym" (is_a sym class_symbol))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check val is closure" (is_closure val))
+  (let ( (macbind (make_instance
+		   class_macro_binding
+		   :binder sym
+		   :mbind_expanser val))
+	 )
+    (put_env env macbind)
+    (debug_msg macbind "initmacro_exporter macbind")
+    (return)
+    ))
+
+  
+;;;;;;;;;;;;;;;;;;;; initial system data 
+(definstance initial_system_data class_system_data
+  :predef INITIAL_SYSTEM_DATA
+  :named_name (stringconst2val discr_namestring "INITIAL_SYSTEM_DATA")
+  :sysdata_cmd_fundict  (make_mapstring discr_mapstrings 40) ;stringmap for commands
+  :sysdata_fresh_env initfresh_envmaker	;fresh environment maker in module
+  :sysdata_value_exporter initvalue_exporter ;value exporter in module
+  :sysdata_macro_exporter initmacro_exporter ;macro exporter in module
+  :sysdata_symboldict  (make_mapstring discr_mapstrings 600) ;stringmap for symbols
+  :sysdata_keywdict  (make_mapstring discr_mapstrings 100) ;stringmap for keywords
+  :sysdata_addsymbol  add_new_symbol_token ;closure to add a symbol of given name
+  :sysdata_addkeyw add_new_keyword_token ;closure to add a keyword of given name
+  :sysdata_internsymbol	intern_symbol	 ;closure to intern a symbol
+  :sysdata_internkeyw intern_keyword	 ;closure to intern a keyword
   )
+
 
 ;;; iterate fully in map of objects 
 (defun mapobject_every (map f)
@@ -2727,7 +2777,6 @@
  discr_string                         
  discr_verbatimstring                 
  initial_environment                  
- tokenizer                            
  )					;end export discriminants, instances, selectors
 
 
@@ -6094,7 +6143,6 @@
 (defprimitive global_CLASS_PRIMITIVE             () :value "(void*)BASILYSG(CLASS_PRIMITIVE)")
 (defprimitive global_CLASS_FORMAL_BINDING        () :value "(void*)BASILYSG(CLASS_FORMAL_BINDING)")
 (defprimitive global_CLASS_DISCR                 () :value "(void*)BASILYSG(CLASS_DISCR)")
-(defprimitive global_CLASS_TOKENIZER             () :value "(void*)BASILYSG(CLASS_TOKENIZER)")
 (defprimitive global_CLASS_SYSTEM_DATA           () :value "(void*)BASILYSG(CLASS_SYSTEM_DATA)")
 (defprimitive global_ATOM_TRUE                   () :value "(void*)BASILYSG(ATOM_TRUE)")
 (defprimitive global_CTYPE_LONG                  () :value "(void*)BASILYSG(CTYPE_LONG)")
@@ -6102,7 +6150,6 @@
 (defprimitive global_CTYPE_TREE                  () :value "(void*)BASILYSG(CTYPE_TREE)")
 (defprimitive global_CTYPE_VOID                  () :value "(void*)BASILYSG(CTYPE_VOID)")
 (defprimitive global_CTYPE_CSTRING               () :value "(void*)BASILYSG(CTYPE_CSTRING)")
-(defprimitive global_TOKENIZER                   () :value "(void*)BASILYSG(TOKENIZER)")
 (defprimitive global_INITIAL_SYSTEM_DATA  () :value "(void*)BASILYSG(INITIAL_SYSTEM_DATA)")
 
 
@@ -6139,7 +6186,6 @@
     (mapobject_put predefmap (global_CLASS_PRIMITIVE)                'CLASS_PRIMITIVE)
     (mapobject_put predefmap (global_CLASS_FORMAL_BINDING)           'CLASS_FORMAL_BINDING)
     (mapobject_put predefmap (global_CLASS_DISCR)                    'CLASS_DISCR)
-    (mapobject_put predefmap (global_CLASS_TOKENIZER)                'CLASS_TOKENIZER)
     (mapobject_put predefmap (global_CLASS_SYSTEM_DATA)              'CLASS_SYSTEM_DATA)
     (mapobject_put predefmap (global_ATOM_TRUE)                      'ATOM_TRUE)
     (mapobject_put predefmap (global_CTYPE_LONG)                     'CTYPE_LONG)
@@ -6147,7 +6193,6 @@
     (mapobject_put predefmap (global_CTYPE_TREE)                     'CTYPE_TREE)
     (mapobject_put predefmap (global_CTYPE_VOID)                     'CTYPE_VOID)
     (mapobject_put predefmap (global_CTYPE_CSTRING)                  'CTYPE_CSTRING)
-    (mapobject_put predefmap (global_TOKENIZER)                      'TOKENIZER)
     (mapobject_put predefmap (global_INITIAL_SYSTEM_DATA)     'INITIAL_SYSTEM_DATA)
 )
 
@@ -9237,7 +9282,9 @@
 	   (assert_msg "FETCH_PREDEFINED bad predef" ()))
 	  )
     (let ( (npre (make_instance class_nrep_predef
-				:nrep_loc sloc))
+				:nrep_loc sloc
+				:nrpredef spred
+				))
 	   )
       (debug_msg npre "normexp_fetch_predefined result npre")
       (return npre)
@@ -10835,7 +10882,7 @@
       (add2sbuf_string implbuf nsy)
       (add2sbuf_strconst implbuf "*/")
       (add2sbuf_indentnl implbuf depth)
-      (add2sbuf_strconst implbuf "if (BASILYSG(TOKENIZER)) { basilys_ptr_t sy_")
+      (add2sbuf_strconst implbuf "if (BASILYSG(INITIAL_SYSTEM_DATA)) { basilys_ptr_t sy_")
       (add2sbuf_cident implbuf nsy)
       (add2sbuf_strconst implbuf " = basilysgc_named_symbol(\"")
       (add2sbuf_string implbuf nsy)
@@ -10869,7 +10916,7 @@
       (add2sbuf_string implbuf nkw)
       (add2sbuf_strconst implbuf "*/")
       (add2sbuf_indentnl implbuf depth)
-      (add2sbuf_strconst implbuf "if (BASILYSG(TOKENIZER)) { basilys_ptr_t kw_")
+      (add2sbuf_strconst implbuf "if (BASILYSG(INITIAL_SYSTEM_DATA)) { basilys_ptr_t kw_")
       (add2sbuf_cident implbuf nkw)
       (add2sbuf_strconst implbuf " = basilysgc_named_keyword(\"")
       (add2sbuf_string implbuf nkw)
@@ -14421,17 +14468,27 @@
 	 (npred (unsafe_get_field :nstpd_predef nspr))
 	 (nval (unsafe_get_field :nstpd_value nspr))
 	 (oval (compile_obj nval gcx))
-	 (opred (make_instance class_objpredef
-			       :obpredef npred))
+	 ;; we cannot use class_objpredef as an lvalue, we need to call BASILYSG, not BASILYSGOB
+	 (opred (cond 
+		 ( (is_a npred class_symbol)
+		   (make_string discr_verbatimstring (unsafe_get_field :named_name npred)))
+		 ( (is_integerbox npred)
+		   npred)
+		 (:else (assert_msg "unexpected npred" ()))))
+	 (oleft (make_instance class_objexpv
+			       :obx_cont (make_tuple3 discr_multiple
+					  (make_stringconst discr_verbatimstring "BASILYSG(")
+					  opred
+					  (make_stringconst discr_verbatimstring ")"))))
 	 (res (make_instance class_objcompute
 			     :obi_loc nloc
-			     :obdi_destlist (list1 opred)
+			     :obdi_destlist (list1 oleft)
 			     :obcpt_expr oval
-			    ))
+			     ))
 	 )
     (debug_msg res "compilobj_nrep_store_predefined result res")
     res
-))
+    ))
 (install_method class_nrep_store_predefined compile_obj compilobj_nrep_store_predefined)
   
 
@@ -14548,61 +14605,6 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;; initial fresh environment maker
-(defun initfresh_envmaker (prevenv)
-  (debug_msg prevenv "initfresh_envmaker prevenv")
-  (let ( (newenv (fresh_env prevenv)) )
-    (debug_msg newenv "initfresh_envmaker result newenv")
-    (return newenv)
-    ))
-
-;; initial value exporter
-(defun initvalue_exporter (sym val env)
-  (debug_msg sym "initvalue_exporter sym")
-  (debug_msg val "initvalue_exporter val")
-  (debug_msg env "initvalue_exporter env")
-  (assert_msg "check sym" (is_a sym class_symbol))
-  (assert_msg "check env" (is_a env class_environment))
-  (let ( (valbind (make_instance
-		   class_value_binding
-		   :binder sym
-		   :vbind_value val
-		   )) 
-	 )
-    (debug_msg valbind "initvalue_exporter valbind")
-    (put_env env valbind)
-    (return)
-    ))
-
-;; initial macro exporter
-(defun initmacro_exporter (sym val env)
-  (debug_msg sym "initmacro_exporter sym")
-  (debug_msg val "initmacro_exporter val")
-  (debug_msg env "initmacro_exporter env")
-  (assert_msg "check sym" (is_a sym class_symbol))
-  (assert_msg "check env" (is_a env class_environment))
-  (assert_msg "check val is closure" (is_closure val))
-  (let ( (macbind (make_instance
-		   class_macro_binding
-		   :binder sym
-		   :mbind_expanser val))
-	 )
-    (put_env env macbind)
-    (debug_msg macbind "initmacro_exporter macbind")
-    (return)
-    ))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;;;;;;;;;;;;;;;;; initial system data 
-(definstance initial_system_data class_system_data
-  :predef INITIAL_SYSTEM_DATA
-  :named_name (stringconst2val discr_namestring "INITIAL_SYSTEM_DATA")
-  :sysdata_cmd_fundict  (make_mapstring discr_mapstrings 40)
-  :sysdata_fresh_env initfresh_envmaker
-  :sysdata_value_exporter initvalue_exporter
-  :sysdata_macro_exporter initmacro_exporter
-)
-  
 
 (defun install_initial_command (nam fun)
 ;  (messageval_dbg "install_initial_command @@ fun" fun)
@@ -14644,7 +14646,6 @@
 	   (basnam (if (is_string secarg) secarg (make_string_nakedbasename discr_string arg)))
 	   ) 
       (debug_msg rlist "after read compilefile_command rlist")
-      (debug_msg tokenizer "after read compilefile_command tokenizer")
       (debug_msg curmodenv "after read compilefile_command curmodenv")
        (compile_list_sexpr rlist curenv basnam)
       )))
@@ -14663,7 +14664,6 @@
 	 (basnam (if (is_string secarg) secarg (make_string_nakedbasename discr_string arg)))
 	 ) 
     (debug_msg rlist "after read compileinit_command rlist")
-    (debug_msg tokenizer "after read compileinit_command tokenizer")
     (compile_list_sexpr rlist initial_environment basnam)
     ))
 

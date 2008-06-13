@@ -56,6 +56,7 @@ extern void fatal_error (const char *, ...);
  basename(__FILE__), __LINE__, ##__VA_ARGS__)
 
 extern long basilys_dbgcounter;
+extern long basilys_debugskipcount;
 
 #define debugeprintf_raw(Fmt,...) do{if (flag_basilys_debug) \
       {fprintf(stderr, Fmt, ##__VA_ARGS__); fflush(stderr);}}while(0)
@@ -1755,7 +1756,7 @@ basilysgc_compile_dyn (basilys_ptr_t modata_p, const char *srcfile);
 basilys_ptr_t first_module_basilys (basilys_ptr_t);
 
 
-/* get (or create) the symbol of a given name, using the TOKENIZER
+/* get (or create) the symbol of a given name, using the INITIAL_SYSTEM_DATA
    global; the NAM string can be in the GC-allocated heap since it is
    copied */
 enum
@@ -1767,7 +1768,7 @@ enum
 basilys_ptr_t basilysgc_named_symbol (const char *nam, int create);
 
 /* get (or create) the keyword of a given name (without the colon),
-   using the TOKENIZER global; the NAM string can be in the
+   using the INITIAL_SYSTEM_DATA global; the NAM string can be in the
    GC-allocated heap since it is copied */
 basilys_ptr_t basilysgc_named_keyword (const char *nam, int create);
 
@@ -1891,12 +1892,8 @@ enum basilys_globalix_en
   BGLOB_CLASS_FORMAL_BINDING,
   /* the discr class */
   BGLOB_CLASS_DISCR,
-  /* the class of tokenizers */
-  BGLOB_CLASS_TOKENIZER,
   /* the class of system data */
   BGLOB_CLASS_SYSTEM_DATA,
-  /***** for compatibility */
-#define BGLOB_CLASS_COMMAND_DISPATCHER BGLOB_CLASS_SYSTEM_DATA
   /* atom for returning true */
   BGLOB_ATOM_TRUE,
   /**** every ctype should be predefined ****/
@@ -1910,12 +1907,8 @@ enum basilys_globalix_en
   BGLOB_CTYPE_VOID,
   /* ctype of constant cstrings */
   BGLOB_CTYPE_CSTRING,
-  /* the global tokenizer */
-  BGLOB_TOKENIZER,
   /* the initial system data */
   BGLOB_INITIAL_SYSTEM_DATA,
-  /***** for compatibility */
-#define BGLOB_INITIAL_COMMAND_DISPATCHER BGLOB_INITIAL_SYSTEM_DATA
   /**************************** placeholder for last wired */
   BGLOB__LASTWIRED,
   /*****/
@@ -1983,30 +1976,21 @@ enum
   FSEXPR__LAST
 };
 
-/* fields inside a tokenizer */
+/* fields inside the system data - keep in sync with the
+   class_system_data definition in MELT file warmelt-first.bysl or
+   warm-basilys.bysl */
 enum
 {
-  FTOK_SYMBDICT = FNAMED__LAST,	/* the stringdict of symbols */
-  FTOK_KEYWDICT,		/* the stringdict of keywords */
-  FTOK_ADDSYMB,			/* closure to add a new symbol (given its name string) */
-  FTOK_ADDKEYW,			/* closure to add a new keyword */
-  FTOK_INTERNSYMB,		/* closure to intern a (freshly build) symbol */
-  FTOK_INTERNKEYW,		/* closure to intern a keyword */
-  FTOK__LAST
-};
-
-/* fields inside the system data */
-enum
-{
-  FSYSDAT_FUNDICT = FNAMED__LAST,	/* the stringdict of commands */
-#define FCMDIS_FUNDICT FSYSDAT_FUNDICT
-  FSYSDAT_FRESHENV,
-  /***
-   * we comment the two fields below because we do not need them in
-   * basilys.c and they are generated correctly in warm-basilys*.c
-   ***/
-  /* FSYSDAT_VALUEEXPORTER */
-  /* FSYSDAT_MACROEXPORTER */
+  FSYSDAT_CMD_FUNDICT = FNAMED__LAST,	/* the stringdict of commands */
+  FSYSDAT_FRESH_ENV,			/* closure to make a fresh environment */
+  FSYSDAT_VALUE_EXPORTER,	       /* ;closure to export a value */
+  FSYSDAT_MACRO_EXPORTER,	       /* closure to export a macro */
+  FSYSDAT_SYMBOLDICT, 	       /* stringmap for symbols */
+  FSYSDAT_KEYWDICT, 		       /* stringmap for keywords */
+  FSYSDAT_ADDSYMBOL, 	       /* closure to add a symbol of given name */
+  FSYSDAT_ADDKEYW,		/* closure to add a keyword of given name */
+  FSYSDAT_INTERNSYMBOL,	       /* closure to intern a symbol */
+  FSYSDAT_INTERNKEYW,		/* closure to intern a keyword */
   FSYSDAT__LAST
 };
 

@@ -1,4 +1,24 @@
 2008-06-13  Basile Starynkevitch  <basile@starynkevitch.net>
+{moved TOKENIZER stuff into INITIAL_SYSTEM_DATA]
+
+	* common.opt: variable count_basilys_debugskip_string instead of
+	count_basilys_debugskip
+
+	* basilys.h: removed BGLOB_CLASS_TOKENIZER, BGLOB_TOKENIZER, the
+	FTOK_* enum.  enhanced FSYSDAT. Added  basilys_debugskipcount.
+
+	* basilys.c: declared basilys_debugskipcount.
+	(basilysgc_named_symbol, basilysgc_intern_symbol)
+	(basilysgc_named_keyword, basilysgc_intern_keyword): use the
+	INITIAL_SYSTEM_DATA instead of TOKENIZER. (basilys_initialize) set
+	basilys_debugskipcount using count_basilys_debugskip_string.
+
+	* melt/warm-basilys.bysl: removed all tokenizer stuff, using
+	system_data instead. fetch_predefined works on small example.
+
+	* warm-basilys-0.c: regenerated several times.
+
+2008-06-13  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warm-basilys.bysl: added fetch_predefined & store_predefined.
 	exported nrep classes.
 
