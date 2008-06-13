@@ -1,5 +1,9 @@
 2008-06-12  Tobias Grosser  <grosser@fim.uni-passau.de>
 
+	* graphite.c (find_scop_params): Remove initialize_cloog_names.
+
+2008-06-12  Tobias Grosser  <grosser@fim.uni-passau.de>
+
 	* graphite.c (end_scop): Style fix.
 	(schedule_to_scattering): Style and comment fix.
 

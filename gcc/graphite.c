@@ -1600,8 +1600,6 @@ find_scop_parameters (scop_p scop)
   init_walk_dominator_tree (&walk_data);
   walk_dominator_tree (&walk_data, SCOP_ENTRY (scop));
   fini_walk_dominator_tree (&walk_data);
-
-  initialize_cloog_names (scop);
 }
 
 /* Build the context constraints for SCOP: constraints and relations
