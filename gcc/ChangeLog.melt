@@ -1,4 +1,8 @@
 2008-06-13  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warm-basilys.bysl: added fetch_predefined & store_predefined.
+	exported nrep classes.
+
+2008-06-13  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* Makefile.in: added compileinit command to generate warm-basilys-*.c
 

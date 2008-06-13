@@ -3047,12 +3047,25 @@
 	   ))
 
 
-
+;;; forcibly replace the current module environment, only at toplevel.
 (defclass class_src_unsafe_replace_module_environment
   :super class_src
   :fields (
 	   surmc_freshenv
 	   ))
+
+;;; fetch a predefined by its name or rank
+(defclass class_src_fetch_predefined
+  :super class_src
+  :fields (sfepd_predef
+))
+
+;; store into a predefined
+(defclass class_src_store_predefined
+  :super class_src
+  :fields (sstpd_predef
+	   sstpd_value
+))
 
 ;;;;;;;;;;;;;;;;;;;; first pass, macro expansion
 
@@ -5061,6 +5074,69 @@
 (install_initial_macro 'unsafe_replace_module_environment mexpand_unsafe_replace_module_environment)
 (export_macro unsafe_replace_module_environment mexpand_unsafe_replace_module_environment)
 
+
+;;;;;;;;;;;;;;;;
+
+(defun mexpand_fetch_predefined (sexpr env mexpander)
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check env" (is_a env class_environment))
+  (debug_msg sexpr "mexpand_fetch_predefined sexpr")
+  (let (
+	(cont (unsafe_get_field :sexp_contents sexpr))
+	(loc  (unsafe_get_field :loca_location sexpr))
+	(curpair (pair_tail (list_first cont)))
+	(spredef (macroexpand_1 (pair_head curpair) env mexpander))
+	)
+    (if (null curpair) 
+	(error_plain loc "(FETCH_PREDEFINED <predef-name-or-rank>) missing argument"))
+    (if (notnull (pair_tail curpair))
+	(error_plain loc "(FETCH_PREDEFINED <predef-name-or-rank>) extra argument"))
+    (if (not (or (is_a spredef class_symbol) (is_integerbox spredef)))
+	(error_plain loc "(FETCH_PREDEFINED <predef-name-or-rank>) invalid argument"))
+    (let ( (res (make_instance class_src_fetch_predefined
+			       :src_loc loc
+			       :sfepd_predef spredef)) )
+      (debug_msg res "mexpand_fetch_predefined result")
+      (return res)
+      )))
+(install_initial_macro 'fetch_predefined mexpand_fetch_predefined)
+(export_macro fetch_predefined mexpand_fetch_predefined)
+
+;;;;;;;;;;;;;;;;
+(defun mexpand_store_predefined (sexpr env mexpander)
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check env" (is_a env class_environment))
+  (debug_msg sexpr "mexpand_store_predefined sexpr")
+  (let (
+	(cont (unsafe_get_field :sexp_contents sexpr))
+	(loc  (unsafe_get_field :loca_location sexpr))
+	(curpair (pair_tail (list_first cont)))
+	(spredef (macroexpand_1 (pair_head curpair) env mexpander))
+	(sval ())
+	)
+    (if (null curpair) 
+	(error_plain loc "(STORE_PREDEFINED <predef-name-or-rank> <value>) missing predef"))
+    (setq curpair (pair_tail curpair))
+    (if (null curpair) 
+	(error_plain loc "(STORE_PREDEFINED <predef-name-or-rank> <value>) missing predef"))
+    (setq sval (macroexpand_1 (pair_head curpair) env mexpander))
+    (if (notnull (pair_tail curpair))
+	(error_plain loc "(STORE_PREDEFINED <predef-name-or-rank> <value>) extra argument"))
+    (if (not (or (is_a spredef class_symbol) (is_integerbox spredef)))
+	(error_plain loc "(STORE_PREDEFINED <predef-name-or-rank> <value>) invalid predef"))
+    (let ( (res (make_instance class_src_store_predefined
+			       :src_loc loc
+			       :sstpd_predef spredef
+			       :sstpd_value sval
+			       )) )
+      (debug_msg res "mexpand_store_predefined result")
+      (return res)
+      )))
+(install_initial_macro 'store_predefined mexpand_store_predefined)
+(export_macro store_predefined mexpand_store_predefined)
+
+;;;;;;;;;;;;;;;;
+
 (export_class  ;classes for source representations, alphabetical order
  class_src_apply
  class_src_comment
@@ -5516,6 +5592,72 @@
   :super class_nrep_expr
   :fields (nurme_freshenv
 ))
+
+;; normalized store predefined
+(defclass class_nrep_store_predefined
+  :super class_nrep_expr
+  :fields (nstpd_predef
+	   nstpd_value
+))
+
+;;; export all the normalized representations classes
+(export_class ;; normal representations classes in alphabetical order
+ class_nrep
+ class_nrep_anyproc
+ class_nrep_apply
+ class_nrep_chunk
+ class_nrep_closedocc
+ class_nrep_comment 
+ class_nrep_constant
+ class_nrep_constocc
+ class_nrep_cppif
+ class_nrep_data
+ class_nrep_dataclosure
+ class_nrep_datainstance
+ class_nrep_datakeyword
+ class_nrep_dataroutine
+ class_nrep_datastring
+ class_nrep_datasymbol
+ class_nrep_datatuple
+ class_nrep_exit
+ class_nrep_export
+ class_nrep_exportmacro
+ class_nrep_exportval
+ class_nrep_expr
+ class_nrep_fieldacc
+ class_nrep_fieldassign
+ class_nrep_forever
+ class_nrep_if
+ class_nrep_initproc
+ class_nrep_lambda
+ class_nrep_let
+ class_nrep_locsymocc
+ class_nrep_make_instance
+ class_nrep_msend
+ class_nrep_multacc
+ class_nrep_multiapply
+ class_nrep_multimsend
+ class_nrep_nil
+ class_nrep_predef
+ class_nrep_quasiconst_current_module_environment
+ class_nrep_quasiconst_parent_module_environment
+ class_nrep_quasiconstant
+ class_nrep_quasidata
+ class_nrep_quasidata_current_module_environment
+ class_nrep_quasidata_parent_module_environment
+ class_nrep_return
+ class_nrep_routproc
+ class_nrep_setq
+ class_nrep_simple
+ class_nrep_startval
+ class_nrep_store_predefined
+ class_nrep_symocc
+ class_nrep_unsafe_get_field
+ class_nrep_unsafe_put_fields
+ class_nrep_unsafe_replace_module_environment
+ )					;end of export normal classes
+
+
 ;;>> warmelt-normal.bysl
 
 
@@ -9055,9 +9197,117 @@
        (list_append nbind cbind)
        (debug_msg nbind "normexp_unsafe_replace_module_environment result nbind")
        (debug_msg syocc "normexp_unsafe_replace_module_environment result syocc")
-       (return syocc)
+       (return syocc nbind)
        ))))
 (install_method class_src_unsafe_replace_module_environment normal_exp normexp_unsafe_replace_module_environment)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;;; normalize a fetch_predefined
+(defun normexp_fetch_predefined (recv env ncx psloc)
+  (assert_msg "check fetch_predefined recv" (is_a recv class_src_fetch_predefined))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check nctxt" (is_a ncx class_normcontext))
+  (debug_msg recv "normexp_fetch_predefined recv")
+  (let ( 
+	(sloc (unsafe_get_field :src_loc recv))
+	(spred (unsafe_get_field :sfepd_predef recv))
+	(predefmap (unsafe_get_field :nctx_predefmap ncx))
+	)
+    (cond ( (is_a spred class_symbol)
+	    ;; if the spred is a symbol, check that it is a value in the predefmap
+	    (let ( (boxk (make_box discr_box ())) 
+		   )
+	      (mapobject_every predefmap
+			       (lambda (key val)
+				 (if (== val spred) (box_put boxk key))))
+	      (if (null (box_content boxk))
+		  (warning_strv sloc "FETCH_PREDEFINED unknown predef name"
+				(unsafe_get_field :named_name spred)))
+	      )
+	    )
+	  ( (is_integerbox spred)
+	    ;; if spred is an integer, check it
+	    (let ( (:long predrk (get_int spred)) )
+	      (if (or (<=i predrk 0) (>=i predrk (last_globpredef_index)))
+		  (warning_plain sloc "FETCH_PREDEFINED invalid predef rank"))
+	      )
+	    )
+	  (:else
+	   (assert_msg "FETCH_PREDEFINED bad predef" ()))
+	  )
+    (let ( (npre (make_instance class_nrep_predef
+				:nrep_loc sloc))
+	   )
+      (debug_msg npre "normexp_fetch_predefined result npre")
+      (return npre)
+      )))
+(install_method class_src_fetch_predefined normal_exp normexp_fetch_predefined)
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;;; normalize a store_predefined
+(defun normexp_store_predefined (recv env ncx psloc)
+  (assert_msg "check store_predefined recv" (is_a recv class_src_store_predefined))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check nctxt" (is_a ncx class_normcontext))
+  (debug_msg recv "normexp_store_predefined recv")
+  (let ( 
+	(sloc (unsafe_get_field :src_loc recv))
+	(spred (unsafe_get_field :sstpd_predef recv))
+	(sval (unsafe_get_field :sstpd_value recv))
+	(predefmap (unsafe_get_field :nctx_predefmap ncx))
+	)
+    (cond ( (is_a spred class_symbol)
+	    ;; if the spred is a symbol, check that it is a value in the predefmap
+	    (let ( (boxk (make_box discr_box ())) 
+		   )
+	      (mapobject_every predefmap
+			       (lambda (key val)
+				 (if (== val spred) (box_put boxk key))))
+	      (if (null (box_content boxk))
+		  (warning_strv sloc "STORE_PREDEFINED unknown predef name"
+				(unsafe_get_field :named_name spred)))
+	      )
+	    )
+	  ( (is_integerbox spred)
+	    ;; if spred is an integer, check it
+	    (let ( (:long predrk (get_int spred)) )
+	      (if (or (<=i predrk 0) (>=i predrk (last_globpredef_index)))
+		  (warning_plain sloc "STORE_PREDEFINED invalid predef rank"))
+	      )
+	    )
+	  (:else
+	   (assert_msg "STORE_PREDEFINED bad predef" ()))
+	  )
+    (multicall 
+     (nval nbinds)
+     (normal_exp sval env ncx sloc)
+     (if (null nbinds) 
+	 (setq nbinds (make_list discr_list)))
+    (let ( (csym (clone_symbol '_storepredef_))
+	   (nfpre (make_instance class_nrep_store_predefined
+				 :nrep_loc sloc
+				 :nstpd_predef spred
+				 :nstpd_value nval))
+	   (cbind (make_instance class_normlet_binding
+				 :binder csym
+				 :letbind_type ctype_value
+				 :letbind_expr nfpre))
+	   (syocc (make_instance class_nrep_locsymocc
+				 :nrep_loc sloc
+				 :nocc_ctyp ctype_value
+				 :nocc_symb csym
+				 :nocc_bind cbind))
+	   )
+      (list_append nbinds cbind)
+      (debug_msg nbinds "normexp_store_predefined result nbinds")
+      (debug_msg syocc "normexp_store_predefined result syocc")
+      (return syocc nbinds)
+      ))))
+(install_method class_src_store_predefined normal_exp normexp_store_predefined)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -14162,6 +14412,28 @@
 ))
 (install_method class_nrep_unsafe_replace_module_environment compile_obj compilobj_unsafe_replace_module_environment)
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defun compilobj_nrep_store_predefined (nspr gcx)
+  (assert_msg "check nspr" (is_a nspr class_nrep_store_predefined))
+  (assert_msg "check gcx" (is_a gcx class_genercontext))
+  (debug_msg nspr "compilobj_nrep_store_predefined start nspr")
+  (let ( (nloc (unsafe_get_field :nrep_loc nspr))
+	 (npred (unsafe_get_field :nstpd_predef nspr))
+	 (nval (unsafe_get_field :nstpd_value nspr))
+	 (oval (compile_obj nval gcx))
+	 (opred (make_instance class_objpredef
+			       :obpredef npred))
+	 (res (make_instance class_objcompute
+			     :obi_loc nloc
+			     :obdi_destlist (list1 opred)
+			     :obcpt_expr oval
+			    ))
+	 )
+    (debug_msg res "compilobj_nrep_store_predefined result res")
+    res
+))
+(install_method class_nrep_store_predefined compile_obj compilobj_nrep_store_predefined)
+  
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
