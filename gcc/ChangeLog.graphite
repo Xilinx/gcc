@@ -1,3 +1,10 @@
+2008-06-14  Tobias Grosser  <grosser@fim.uni-passau.de
+
+	* graphite.c (print_graphite_bb): Adapt to minimized schedule.
+	(build_scop_canonical_schedules): Build minimized schedule.
+	(schedule_to_scattering): Adapt to minimized schedule.
+	* graphite.h (graphite_bb): Add/Update descriptions.
+
 2008-06-14  Adrien Eliche  <aeliche@isty.uvsq.fr>
 	    Tobias Grosser  <grosser@fim.uni-passau.de
 

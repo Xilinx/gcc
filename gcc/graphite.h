@@ -33,9 +33,84 @@ struct graphite_bb
   basic_block bb;
   scop_p scop;
 
+  /* The static schedule contains the textual order for every loop layer.
+    
+     Example:
+
+     S0
+     for (i ...)
+       {
+         S1
+         for (j ...)
+           {
+             S2
+             S3
+           }
+         S4
+       }
+     S5
+     for (k ...)
+       {
+         S6
+         S7
+         for (l ...)
+           {
+             S8
+           }
+         S9
+       }
+     S10
+
+     Schedules:
+  
+        | Depth       
+     BB | 0  1  2 
+     ------------
+     S0 | 0
+     S1 | 1, 0
+     S2 | 1, 1, 0
+     S3 | 1, 1, 1
+     S4 | 1, 2
+     S5 | 2
+     S6 | 3, 0
+     S7 | 3, 1
+     S8 | 3, 2, 0
+     S9 | 3, 3
+     S10| 4
+
+   Normalization rules:
+     - One SCoP can never contain two bbs with the same schedule timestamp.
+     - All bbs at the same loop depth have a consecutive ordering (no gaps). */
   lambda_vector static_schedule;
-  lambda_vector compressed_alpha_matrix;
-  CloogMatrix *domain;
+
+  /* The iteration domain of this bb. It contains this columns:
+     - In/Eq: If this line is a equation or inequation.
+     - For every loop iterator one column.
+     - One column for every parameter in this SCoP.
+     - The constant column to add integers to the (in)equations.
+
+     Example:
+
+     for (i = a - 7*b + 8; i <= 3*a + 13*b + 20; i++)
+       for (j = 2; j <= 2*i + 5; j++)
+         for (k = 0; k <= 5; k++)
+           S (i,j,k)
+
+     Loop iterators: i, j, k 
+     Parameters: a, b
+      
+     (I)eq   i   j   k   a   b   1
+  
+     1       1   0   0  -1   7   -8    #  i >=  a -  7b +  8
+     1      -1   0   0   3   13  20    #  i <= 3a + 13b + 20
+     1       0   1   0   0   0   -2    #  j >= 2
+     1       2  -1   0   0   0    5    #  j <= 2i + 5
+     1       0   0   1   0   0    0    #  k >= 0 
+     1       0   0  -1   0   0    5    #  k <= 5
+
+     The number of loop iterators may change and is not connected to the
+     number of loops, that surrounded this bb in the gimple code. */
+   CloogMatrix *domain;
 
   /* Lists containing the restrictions of the conditional statements
      dominating this bb. This bb can only be executed, if all conditions
@@ -62,6 +137,7 @@ struct graphite_bb
   VEC (tree, heap) *conditions;
   VEC (tree, heap) *condition_cases;
 
+  lambda_vector compressed_alpha_matrix;
   CloogMatrix *dynamic_schedule;
   VEC (data_reference_p, heap) *data_refs;
 };

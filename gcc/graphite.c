@@ -223,7 +223,8 @@ print_graphite_bb (FILE *file, graphite_bb_p gb, int indent, int verbosity)
   fprintf (file, "\nGBB (\n");
 
   fprintf (file, "       (static schedule: ");
-  print_lambda_vector (file, GBB_STATIC_SCHEDULE (gb), scop_nb_loops (GBB_SCOP (gb)) + 1);
+  print_lambda_vector (file, GBB_STATIC_SCHEDULE (gb),
+                       nb_loops_around_gb (gb) + 1);
   fprintf (file, "       )\n");
 
   print_loops_bb (file, GBB_BB (gb), indent+2, verbosity);
@@ -1377,13 +1378,15 @@ build_scop_dynamic_schedules (scop_p scop)
 
    Static schedules for A to F:
 
-     ? i j k
-   A 0 0 0 0
-   B 1 0 0 0
-   C 1 0 1 0
-   D 1 1 0 0
-   E 1 1 0 1
-   F 2 0 0 0  */
+     DEPTH
+     0 1 2 
+   A 0
+   B 1 0 0
+   C 1 0 1
+   D 1 1 0
+   E 1 1 1 
+   F 2
+*/
 
 static void
 build_scop_canonical_schedules (scop_p scop)
@@ -1396,13 +1399,7 @@ build_scop_canonical_schedules (scop_p scop)
 
   for (i = 0; VEC_iterate (graphite_bb_p, SCOP_BBS (scop), i, gb); i++)
     {
-      struct loop *loop = gbb_loop (gb);
-      int offset = 0;
-
-      /* Shift one step, to make space for outermost layer
-         not contained in any SCoP.  */
-      if (scop_contains_loop (scop, loop))
-        offset = scop_loop_index (scop, gbb_loop (gb)) + 1;
+      int offset = nb_loops_around_gb (gb);
 
       /* After leaving a loop, it is possible that the schedule is not
 	 set at zero.  This loop reinitializes components located
@@ -1417,9 +1414,9 @@ build_scop_canonical_schedules (scop_p scop)
 	    break;
 	  }
 
-      GBB_STATIC_SCHEDULE (gb) = lambda_vector_new (nb);
+      GBB_STATIC_SCHEDULE (gb) = lambda_vector_new (offset + 1);
       lambda_vector_copy (SCOP_STATIC_SCHEDULE (scop), 
-			  GBB_STATIC_SCHEDULE (gb), nb);
+			  GBB_STATIC_SCHEDULE (gb), offset + 1);
 
       ++SCOP_STATIC_SCHEDULE (scop)[offset];
     }
@@ -2115,12 +2112,10 @@ schedule_to_scattering (graphite_bb_p gb, int scattering_dimensions)
   value_init (scat->p[0][col_const]);
   value_set_si (scat->p[0][col_const], -GBB_STATIC_SCHEDULE (gb)[0]);
 
-  loop = gbb_loop (gb);
-
   /* For all surrounding loops.  */
-  for (i = nb_iterators - 1;  i >= 0; i--)
+  for (i = 0;  i < nb_iterators; i++)
     {
-      int schedule = GBB_STATIC_SCHEDULE (gb)[scop_loop_index (scop, loop) + 1];
+      int schedule = GBB_STATIC_SCHEDULE (gb)[i + 1];
 
       /* Iterations of this loop.  */
       value_init (scat->p[2 * i + 1][col_iter_offset + i]);
@@ -2129,8 +2124,6 @@ schedule_to_scattering (graphite_bb_p gb, int scattering_dimensions)
       /* Textual order inside this loop.  */
       value_init (scat->p[2 * i + 2][col_const]);
       value_set_si (scat->p[2 * i + 2][col_const], -schedule);
-
-      loop = loop_outer (loop);
     }
 
   return scat; 
