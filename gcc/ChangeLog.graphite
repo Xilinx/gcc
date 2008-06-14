@@ -1,3 +1,13 @@
+2008-06-14  Adrien Eliche  <aeliche@isty.uvsq.fr>
+	    Tobias Grosser  <grosser@fim.uni-passau.de
+
+	* graphite.c (print_graphite_bb): Add condition printing.
+	(dump_value): New.
+	(dump_gbb_conditions): New.
+	(build_scop_conditions_1): New.
+	(build_scop_conditions): New.
+	* graphite.h (graphite_bb): Add conditions.
+
 2008-06-14  Tobias Grosser  <grosser@fim.uni-passau.de
 
 	* graphite.c (print_graphite_bb):

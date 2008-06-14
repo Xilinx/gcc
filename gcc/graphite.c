@@ -97,6 +97,123 @@ del_loop_to_cloog_loop (void *e)
   free (e);
 }
 
+/* Dump  an integer constant or a SSA_NAME.  */
+
+static void
+dump_value (FILE *file, tree node)
+{
+  long val;
+  enum tree_code code = TREE_CODE (node);
+
+  switch (code)
+  {
+    case INTEGER_CST:
+      val = int_cst_value (node);
+      fprintf (file , "%ld", val);
+      break;
+
+    case SSA_NAME:
+      {
+	tree var = SSA_NAME_VAR (node);
+	if (DECL_NAME (var))
+	  fprintf (file, "%s", IDENTIFIER_POINTER (DECL_NAME (var)));
+	else
+	  {
+	    char c = TREE_CODE (var) == CONST_DECL ? 'C' : 'D';
+	    fprintf (file, "%c.%u", c, DECL_UID (var));
+	  }
+	fprintf (file, "_%d", SSA_NAME_VERSION (node));
+	break;
+      }
+    default:
+      fprintf (file, "?(%s)",tree_code_name[TREE_CODE (node)]);
+      break;
+  }
+}
+
+/* Dump conditions of a graphite basic block.  */
+
+static void
+dump_gbb_conditions (FILE *file, graphite_bb_p gbb)
+{
+  int i;
+  tree stmt;
+  tree cond;
+  VEC (tree, heap) *conditions = gbb->conditions;
+  VEC (tree, heap) *cases = gbb->condition_cases;
+
+  if (VEC_empty (tree, conditions))
+    return;
+
+  fprintf (file, "\n\tbb %d\t: cond = {", gbb->bb->index);
+  for (i = 0; VEC_iterate (tree, conditions, i, stmt); i++)
+    {
+      switch (TREE_CODE (stmt))
+	{
+	case COND_EXPR:
+	  if (VEC_index (tree, cases, i) == NULL_TREE)
+	    fprintf (file, "!(");
+	  cond = TREE_OPERAND (stmt, 0);
+	  dump_value (file, TREE_OPERAND (cond, 0));
+	  switch (TREE_CODE (cond))
+	    {
+	    case NE_EXPR:
+	      fprintf (file, " != ");
+	      break;
+	    case EQ_EXPR:
+	      fprintf (file, " == ");
+	      break;
+	    case LT_EXPR:
+	      fprintf (file, " < ");
+	      break;
+	    case GT_EXPR:
+	      fprintf (file, " > ");
+	      break;
+	    case LE_EXPR:
+	      fprintf (file, " <= ");
+	      break;
+	    case GE_EXPR:
+	      fprintf (file, " >= ");
+	      break;
+	    default:
+	      gcc_unreachable ();
+	      break;
+	    }
+	  dump_value (file, TREE_OPERAND (cond, 1));
+	  if (VEC_index (tree, cases, i) == NULL_TREE)
+	    fprintf (file, ")");
+	  break;
+
+	case SWITCH_EXPR:
+	  cond = VEC_index (tree, cases, i);
+	  if (CASE_LOW (cond) && CASE_HIGH (cond))
+	    {
+	      dump_value (file, TREE_OPERAND (stmt, 0));
+	      fprintf (file, " >= ");
+	      dump_value (file, CASE_LOW (cond));
+	      fprintf (file, "; ");
+	      dump_value (file, TREE_OPERAND (stmt, 0));
+	      fprintf (file, " <= ");
+	      dump_value (file, CASE_HIGH (cond));
+	    }
+	  else if (CASE_LOW (cond))
+	    {
+	      dump_value (file, TREE_OPERAND (stmt, 0));
+	      fprintf (file, " == ");
+	      dump_value (file, CASE_LOW (cond));
+	    }
+	  else 
+	    fprintf (file, "default");
+	  break;
+	default:
+	  gcc_unreachable ();
+	  break;
+    }
+    fprintf (file, "; ");
+  }
+  fprintf (file, "}\n");
+}
+
 /* Print the schedules from SCHED.  */
 
 void
@@ -120,6 +237,10 @@ print_graphite_bb (FILE *file, graphite_bb_p gb, int indent, int verbosity)
   cloog_matrix_print (file, scattering);
   cloog_matrix_free (scattering);
                                                     
+  fprintf (file, "       )\n");
+
+  fprintf (file, "       (conditions: \n");
+  dump_gbb_conditions (dump_file, gb);
   fprintf (file, "       )\n");
 
   fprintf (file, ")\n");
@@ -1074,6 +1195,8 @@ build_graphite_bb (scop_p scop, basic_block bb)
   GBB_SCOP (gb) = scop;
   GBB_DATA_REFS (gb) = NULL; 
   GBB_DOMAIN (gb) = NULL;
+  GBB_CONDITIONS (gb) = NULL;
+  GBB_CONDITION_CASES (gb) = NULL;
 
   /* Store the GRAPHITE representation of the current BB.  */
   VEC_safe_push (graphite_bb_p, heap, SCOP_BBS (scop), gb);
@@ -1793,6 +1916,142 @@ build_loop_iteration_domains (scop_p scop, struct loop *loop,
   add_bb_domains (loop, scop, cstr);
 
   cloog_matrix_free (cstr);
+}
+
+/* Helper recursive function.  */
+
+static void
+build_scop_conditions_1 (VEC (tree, heap) **conditions,
+			 VEC (tree, heap) **cases, basic_block bb, scop_p scop)
+{
+  unsigned i, j;
+  graphite_bb_p gbb;
+  block_stmt_iterator bsi;
+  basic_block bb_child, bb_iter;
+  VEC (basic_block, heap) *dom;
+  
+  /* Make sure we are in the SCoP.  */
+  if (!bb_in_scop_p (bb, scop))
+    return;
+
+  /* Record conditions in graphite_bb.  */
+  gbb = graphite_bb_from_bb (bb, scop);
+  GBB_CONDITIONS (gbb) = VEC_copy (tree, heap, *conditions);
+  GBB_CONDITION_CASES (gbb) = VEC_copy (tree, heap, *cases);
+
+  dom = get_dominated_by (CDI_DOMINATORS, bb);
+
+  for (bsi = bsi_start (bb); !bsi_end_p (bsi); bsi_next (&bsi))
+    {
+      tree stmt = bsi_stmt (bsi);
+      VEC (edge, gc) *edges;
+      edge e;
+
+      switch (TREE_CODE (stmt))
+	{
+	case COND_EXPR:
+	  edges = bb->succs;
+	  for (i = 0; VEC_iterate (edge, edges, i, e); i++)
+	    if ((dominated_by_p (CDI_DOMINATORS, e->dest, bb))
+		&& VEC_length (edge, e->dest->preds) == 1)
+	      {
+		/* Remove the scanned block from the dominator successors.  */
+		for (j = 0; VEC_iterate (basic_block, dom, j, bb_iter); j++)
+		  if (bb_iter == e->dest)
+		    {
+		      VEC_unordered_remove (basic_block, dom, j);
+		      break;
+		    }
+
+		/* Recursively scan the then or else part.  */
+		if (e->flags & EDGE_TRUE_VALUE)
+		  VEC_safe_push (tree, heap, *cases, stmt);
+		else if (e->flags & EDGE_FALSE_VALUE)
+		  VEC_safe_push (tree, heap, *cases, NULL_TREE);
+		else gcc_unreachable ();
+
+		VEC_safe_push (tree, heap, *conditions, stmt);
+		build_scop_conditions_1 (conditions, cases, e->dest, scop);
+		VEC_pop (tree, *conditions);
+		VEC_pop (tree, *cases);
+	      }
+	  break;
+
+	case SWITCH_EXPR:
+	  {
+	    tree vec = SWITCH_LABELS (stmt);
+	    size_t n = TREE_VEC_LENGTH (vec);
+	    size_t n_cases = VEC_length (tree, *conditions);
+
+	    /* In this case switch is not handled.  */
+	    if (SWITCH_BODY (stmt))
+	      break;
+
+	    VEC_safe_grow (tree, heap, *cases, n_cases+1);
+	    VEC_safe_push (tree, heap, *conditions, stmt);
+
+	    for (i = 0; i < n; i++)
+	      {
+		basic_block bb_iter;
+		size_t k;
+		bb_child = label_to_block (CASE_LABEL (TREE_VEC_ELT (vec, i)));
+
+		/* Do not handled multiple values for the same block.  */
+		for (k = 0; k < n; k++)
+		  if (label_to_block (CASE_LABEL (TREE_VEC_ELT (vec, k))) 
+		      == bb_child && i != k)
+		    break;
+		if (k != n)
+		  continue;
+
+		/* Switch cases with more than one predecessor are not handled.
+		 */
+		if (VEC_length (edge, bb_child->preds) != 1)
+		  continue;
+
+		/* Recursively scan the corresponding 'case' block.  */
+		VEC_replace (tree, *cases, n_cases, TREE_VEC_ELT (vec, i));
+		build_scop_conditions_1 (conditions, cases, bb_child, scop);
+
+		/* Remove the scanned block from the dominator successors.  */
+		for (j = 0; VEC_iterate (basic_block, dom, j, bb_iter); j++)
+		  if (bb_iter == bb_child)
+		    {
+		      VEC_unordered_remove (basic_block, dom, j);
+		      break;
+		    }  
+	      }
+
+	    VEC_pop (tree, *conditions);
+	    VEC_pop (tree, *cases);
+	    break;
+	  }
+	default:
+	  break;
+      }
+  }
+
+  /* Scan all immediate dominated successors.  */
+  for (i = 0; VEC_iterate (basic_block, dom, i, bb_child); i++)
+    build_scop_conditions_1 (conditions, cases, bb_child, scop);
+
+  VEC_free (basic_block, heap, dom);
+}
+
+
+/* Record all 'if' and 'switch' conditions in each gbb of SCOP.  
+   TODO: Add this restrictions to the domain matrix.  */
+
+static void
+build_scop_conditions (scop_p scop)
+{
+  VEC (tree, heap) *conditions = NULL;
+  VEC (tree, heap) *cases = NULL;
+
+  build_scop_conditions_1 (&conditions, &cases, SCOP_ENTRY (scop), scop);
+
+  VEC_free (tree, heap, conditions);
+  VEC_free (tree, heap, cases);
 }
 
 /* Converts the graphite scheduling function into a cloog scattering
@@ -2889,6 +3148,7 @@ graphite_transform_loops (void)
 
       if (!build_scop_iteration_domain (scop))
 	continue;
+      build_scop_conditions (scop);
 
       build_scop_data_accesses (scop);
 

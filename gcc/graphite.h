@@ -36,6 +36,32 @@ struct graphite_bb
   lambda_vector static_schedule;
   lambda_vector compressed_alpha_matrix;
   CloogMatrix *domain;
+
+  /* Lists containing the restrictions of the conditional statements
+     dominating this bb. This bb can only be executed, if all conditions
+     are true.
+ 
+     Example:
+ 
+     for (i = 0; i <= 20; i++)
+     {
+       A
+ 
+       if (2i <= 8)
+         B
+     }
+ 
+     So for B there is a additional condition (2i <= 8).
+ 
+     TODO: Add this restrictions to the domain matrix.
+      
+     List of COND_EXPR and SWITCH_EXPR. A COND_EXPR is true only if the 
+     corresponding element in CONDITION_CASES is not NULL_TREE. For a 
+     SWITCH_EXPR the corresponding element in CONDITION_CASES is a 
+     CASE_LABEL_EXPR.  */
+  VEC (tree, heap) *conditions;
+  VEC (tree, heap) *condition_cases;
+
   CloogMatrix *dynamic_schedule;
   VEC (data_reference_p, heap) *data_refs;
 };
@@ -47,6 +73,8 @@ struct graphite_bb
 #define GBB_ALPHA(GBB) GBB->compressed_alpha_matrix
 #define GBB_DYNAMIC_SCHEDULE(GBB) GBB->dynamic_schedule
 #define GBB_DOMAIN(GBB) GBB->domain
+#define GBB_CONDITIONS(GBB) GBB->conditions
+#define GBB_CONDITION_CASES(GBB) GBB->condition_cases
 
 struct loop_to_cloog_loop_str
 {
