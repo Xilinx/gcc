@@ -1,3 +1,10 @@
+2008-06-14  Basile Starynkevitch  <basile@starynkevitch.net>
+	* basilys.h: added BGLOB___SPARE1 to 4 for future safety...
+	added BASILYSGIX macro to be used in predefinited below.
+
+	* melt/warm-basilys.bysl: use a predefinited array of bytes to
+	avoid filling already existing predefined.
+
 2008-06-13  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warm-basilys.bysl: all the normexp_export* should return a nrep_nil!
 	output of predefs carefully avoid to overwrite an existing predef.

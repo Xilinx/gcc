@@ -9723,9 +9723,17 @@
 	 (add2sbuf_string sbuf oname)
 	 (add2sbuf_strconst sbuf ";")
 	 (add2sbuf_indentnl sbuf 1)
-	 (add2sbuf_strconst sbuf "else fnotice(stderr, \"BASILYS: predefined %s already defined <%s:%d>\\n\", \"")
+	 (add2sbuf_strconst sbuf "else {")
+	 (add2sbuf_indentnl sbuf 2)
+	 (add2sbuf_strconst sbuf "BASILYSGIX(predefinited,")
+	 (add2sbuf_string sbuf (unsafe_get_field :named_name oiopredef))
+	 (add2sbuf_strconst sbuf ") = 1;")
+	 (add2sbuf_indentnl sbuf 2)
+	 (add2sbuf_strconst sbuf "fnotice(stderr, \"BASILYS: predefined %s already defined <%s:%d>\\n\", \"")
 	 (add2sbuf_string sbuf (unsafe_get_field :named_name oiopredef))
 	 (add2sbuf_strconst sbuf "\", __FILE__, __LINE__);")
+	 (add2sbuf_indentnl sbuf 2)
+	 (add2sbuf_strconst sbuf "};")
 	 (add2sbuf_indentnl sbuf 1)
 	 )
        ( (is_integerbox oiopredef)
@@ -9737,9 +9745,18 @@
 	 (add2sbuf_string sbuf oname)
 	 (add2sbuf_strconst sbuf ";")
 	 (add2sbuf_indentnl sbuf 1)
-	 (add2sbuf_strconst sbuf "else fnotice(\"BASILYS: predefined #%d already defined <%s:%d>\\n\", ")
+	 (add2sbuf_strconst sbuf "else {")
+	 (add2sbuf_indentnl sbuf 2)
+	 (add2sbuf_strconst sbuf "predefinited[")
+	 (add2sbuf_longdec sbuf (get_int oiopredef))
+	 (add2sbuf_strconst sbuf "] = 1;")
+	 (add2sbuf_indentnl sbuf 2)
+	 (add2sbuf_strconst sbuf "fnotice(\"BASILYS: predefined #%d already defined <%s:%d>\\n\", ")
 	 (add2sbuf_longdec sbuf (get_int oiopredef))
 	 (add2sbuf_strconst sbuf ", __FILE__, __LINE__);")
+	 (add2sbuf_indentnl sbuf 2)
+	 (add2sbuf_strconst sbuf "};")
+	 (add2sbuf_indentnl sbuf 1)
 	 )
        ( (null oiopredef)
 	 (return (the_null)))
@@ -10417,7 +10434,7 @@
     (add2sbuf_indentnl implbuf 0)
     (add2sbuf_indentnl implbuf 0)
     (add2sbuf_indentnl implbuf 0)
-    (add2sbuf_strconst implbuf "static void initialize_module_cdata(initial_frame_st *iniframp__)")
+    (add2sbuf_strconst implbuf "static void initialize_module_cdata(initial_frame_st *iniframp__, char predefinited[])")
     (add2sbuf_indentnl implbuf 0)
     (add2sbuf_strconst implbuf "{")
     (add2sbuf_indentnl implbuf 0)
@@ -10442,6 +10459,8 @@
     (debug_msg idatup "outpucod_initialroutine start idatup")
     (debug_msg irfill "outpucod_initialroutine start irfill")
     (add2sbuf_indentnl implbuf 1)
+    (add2sbuf_strconst implbuf "char predefinited[BGLOB__LASTGLOB+8];")
+    (add2sbuf_indentnl implbuf 1)
     ;; generate the initial frame
     (output_curframe_declstruct_init 
      (lambda (rou dsbuf)
@@ -10451,7 +10470,9 @@
      pini implbuf)
 ;;; output call cdata initializer
     (add2sbuf_indentnl implbuf 1)
-    (add2sbuf_strconst implbuf "initialize_module_cdata(&curfram__);")
+    (add2sbuf_strconst implbuf "memset(predefinited, 0, sizeof(predefinited));")
+    (add2sbuf_indentnl implbuf 1)
+    (add2sbuf_strconst implbuf "initialize_module_cdata(&curfram__, predefinited);")
     (add2sbuf_indentnl implbuf 1)
 ;;; output the body
 ;;;
@@ -13957,6 +13978,7 @@
   (debug_msg odiscr "compil_data_and_slots_fill odiscr")
   (debug_msg irout "compil_data_and_slots_fill irout un")
   (let (
+	(ipredef (if (is_a ndat class_nrep_datainstance) (unsafe_get_field :ninst_predef ndat)))
 	(ibodylis (unsafe_get_field :obrout_body irout))
 	(ifilllis (unsafe_get_field :oirout_fill irout))
 	(locvar (get_free_objlocptr gcx '_valdata_))
@@ -13964,6 +13986,7 @@
 	(nloc (unsafe_get_field :nrep_loc ndat))
 	(dlocbind (unsafe_get_field :ndata_locbind ndat))
 	(locmap (unsafe_get_field :gncx_locmap gcx))
+	(istmtlis ibodylis) ;the statement list to which the putslots are appended
 	;; a tuple to store the objvar for localbinds to be able to clear them later
 	(tupvar (make_multiple discr_multiple (multiple_length locmap)))
 	)
@@ -13972,11 +13995,55 @@
     (unsafe_put_fields obj :oie_locvar locvar)
     (assert_msg "compil_data_and_slots_fill check ifilllis" (is_list ifilllis))
     (assert_msg "compil_data_and_slots_fill check ibodylis" (is_list ibodylis))
-					; (debug_msg dlocbind "compil_data_and_slots_fill dlocbind")
+    ;; if the data is predefined, we fill it conditionally on !predefinited[..]
+    (if ipredef
+	(let ( 
+	      (otestpredef 
+	       (cond 
+		( (is_a ipredef class_symbol)
+		  (make_instance 
+		   class_objexpv
+		   :obx_cont (make_tuple3 discr_multiple
+					  (make_stringconst discr_verbatimstring 
+							    "BASILYSGIX(predefinited,")
+					  (make_string discr_verbatimstring 
+							    (unsafe_get_field :named_name ipredef))
+					  (make_stringconst discr_verbatimstring 
+							    ")")
+					  ))
+		  )
+		( (is_integerbox ipredef)
+		  (make_instance
+		   class_objexpv
+		   :obx_cont (make_tuple3 discr_multiple
+					  (make_stringconst discr_verbatimstring 
+							    "predefinited[")
+					  ipredef
+					  (make_stringconst discr_verbatimstring 
+							    "]")
+					  ))
+		  )
+		))
+	      (initlis (make_list discr_list))
+	      (oblockpredef (make_instance 
+			     class_objcommentedblock
+			     :oblo_bodyl initlis
+			     :ocomblo_comment (make_stringconst discr_string "fill predef slots")))
+	      (ocondpredef (make_instance
+			    class_objcond
+			    :obi_loc nloc
+			    :obcond_test otestpredef
+			    :obcond_then ()
+			    :obcond_else oblockpredef))
+	      )
+	  (setq istmtlis initlis)
+	  (list_append ibodylis ocondpredef)
+	  ))
+    ;; (debug_msg dlocbind "compil_data_and_slots_fill dlocbind")
     (multiple_every
      dlocbind
      (lambda (lbind :long bindrk)
-					; (debug_msg lbind "compil_data_and_slots_fill lbind")
+       ;; (debug_msg lbind "compil_data_and_slots_fill lbind")
        (assert_msg "compil_data_and_slots_fill check lbind" (is_a lbind class_normlet_binding))
        (let ( (bder (unsafe_get_field :binder lbind))
 	      (cty (unsafe_get_field :letbind_type lbind))
@@ -13987,15 +14054,15 @@
 	 (if obva (mapobject_put locmap lbind obva))
 	 (let ( (obmy (if obva (put_objdest obnx obva) obnx)) )
 	   ;; add the modified obmy in the ibodylis
-	   (list_append ibodylis obmy)
+	   (list_append istmtlis obmy)
 	   )
 	 (if obva (multiple_put_nth tupvar bindrk obva))
 	 )))
-    ;; for every non nil slot, append its initialization to the body of irout
+    ;; for every non nil slot, append its initialization to istmtlis
     (multiple_every
      (unsafe_get_field :ninst_slots ndat)
      (lambda (sloval :long slork)
-					;(debug_msg sloval "compil_data_and_slots_fill sloval")
+       ;;(debug_msg sloval "compil_data_and_slots_fill sloval")
        (if sloval
 ;;; add to list inifill the filling in dai of slot#slork by slobj
 	   (let ( (slobj (compile_obj sloval gcx)) 
@@ -14012,10 +14079,10 @@
 				   :oslot_value slobj
 				   )) 
 		   )
-	       (list_append ibodylis oput)
+	       (list_append istmtlis oput)
 	       )))))
     ;; touch the object
-    (list_append ibodylis 
+    (list_append istmtlis 
 		 (make_instance class_objtouch
 				:obi_loc (if nloc nloc (unsafe_get_field :nrep_loc ndat))
 				:otouch_comment comm
@@ -14031,7 +14098,7 @@
 					 :obi_loc nloc
 					 :oclr_vloc obva))
 	     ))))
-    ;;; add the obj as the last instr of the block
+;;; add the obj as the last instr of the block
     (list_append ibodylis obj)
     ;;
     (debug_msg dlocbind "compil_data_and_slots_fill final dlocbind")

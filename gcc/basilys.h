@@ -1911,6 +1911,10 @@ enum basilys_globalix_en
   BGLOB_INITIAL_SYSTEM_DATA,
   /**************************** placeholder for last wired */
   BGLOB__LASTWIRED,
+  BGLOB___SPARE1,
+  BGLOB___SPARE2,
+  BGLOB___SPARE3,
+  BGLOB___SPARE4,
   /*****/
   BGLOB__LASTGLOB
 };
@@ -1998,6 +2002,7 @@ enum
 #define BASILYSG(Glob) basilys_globarr[BGLOB_##Glob]
 #define BASILYSGOB(Glob) ((basilysobject_ptr_t)(BASILYSG(Glob)))
 
+#define BASILYSGIX(Tab,Glob) Tab[BGLOB_##Glob]
 
 /* return the discriminant or class itself */
 static inline basilysobject_ptr_t
