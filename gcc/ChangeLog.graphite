@@ -1,3 +1,14 @@
+2008-06-14  Tobias Grosser  <grosser@fim.uni-passau.de
+
+	* graphite.c (print_graphite_bb):
+	(free_graphite_bb): New.
+	(free_scop): Free bbs.
+	(get_bb_type): Free doms.
+	(build_scop_context): Free context matrix.
+	(build_loop_iteration_domains): Remove unused code.
+	(build_cloog_prog): Free scattering function and blocklist.
+	(find_transform): Free options.
+
 2008-06-13  Tobias Grosser  <grosser@fim.uni-passau.de
 
 	* graphite.c (loop_body_to_cloog_stmts): Rename to add_bb_domains.

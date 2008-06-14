@@ -102,6 +102,7 @@ del_loop_to_cloog_loop (void *e)
 void
 print_graphite_bb (FILE *file, graphite_bb_p gb, int indent, int verbosity)
 {
+  CloogMatrix *scattering;
   fprintf (file, "\nGBB (\n");
 
   fprintf (file, "       (static schedule: ");
@@ -114,9 +115,10 @@ print_graphite_bb (FILE *file, graphite_bb_p gb, int indent, int verbosity)
     dump_data_references (file, GBB_DATA_REFS (gb));
 
   fprintf (file, "       (scattering: \n");
-  cloog_matrix_print (file,
-                      schedule_to_scattering (gb, 2 * nb_loops_around_gb (gb)
-                                                 + 1));
+  scattering = schedule_to_scattering (gb, 2 * nb_loops_around_gb (gb)
+                                          + 1);
+  cloog_matrix_print (file, scattering);
+  cloog_matrix_free (scattering);
                                                     
   fprintf (file, "       )\n");
 
@@ -610,6 +612,16 @@ new_scop (basic_block entry)
   return scop;
 }
 
+/* Free the bb.  */
+
+static void
+free_graphite_bb (struct graphite_bb *gbb)
+{
+  if (GBB_DOMAIN (gbb))
+    cloog_matrix_free (GBB_DOMAIN (gbb));
+}
+
+
 /* Deletes the scop.  */
 
 static void
@@ -617,6 +629,10 @@ free_scop (scop_p scop)
 {
   int i;
   name_tree p;
+  struct graphite_bb *gb;
+
+  for (i = 0; VEC_iterate (graphite_bb_p, SCOP_BBS (scop), i, gb); i++)
+    free_graphite_bb (gb);
 
   VEC_free (graphite_bb_p, heap, SCOP_BBS (scop));
   BITMAP_FREE (SCOP_BBS_B (scop));
@@ -663,6 +679,7 @@ get_bb_type (basic_block bb, struct loop *last_loop)
   int nb_dom = VEC_length (basic_block, dom);
   int nb_suc = VEC_length (edge, bb->succs);
   struct loop *loop = bb->loop_father;
+  VEC_free (basic_block, heap, dom);
 
   /* Check, if we entry into a new loop. */
   if (loop != last_loop)
@@ -1621,6 +1638,7 @@ build_scop_context (scop_p scop)
   value_set_si (matrix->p[0][nb_params + 1], 0);
 
   SCOP_PROG (scop)->context = cloog_domain_matrix2domain (matrix);
+  cloog_matrix_free (matrix);
 }
 
 /* Calculate the number of loops around GB in the current SCOP.  */
@@ -1681,9 +1699,6 @@ build_loop_iteration_domains (scop_p scop, struct loop *loop,
 {
   unsigned i, j, row;
   CloogMatrix *cstr;
-  struct loop_to_cloog_loop_str tmp;
-  PTR *slot;
-  CloogLoop *res = cloog_loop_malloc ();
 
   unsigned nb_rows = outer_cstr->NbRows + 1;
   unsigned nb_cols = outer_cstr->NbColumns + 1;
@@ -1764,17 +1779,6 @@ build_loop_iteration_domains (scop_p scop, struct loop *loop,
       value_set_si (one, 1);
       scan_tree_for_params (scop, nb_iters, cstr, row, one);
       value_clear (one);
-    }
-
-  /* XXX: Disabled, as CloogLoops are only generated in find_transforms.
-     To connect graphite bbs and gimple loops, we have to use a different
-     representation.  */
-  if (0)  
-    { 
-      tmp.loop_num = loop->num;
-      slot = htab_find_slot (SCOP_LOOP2CLOOG_LOOP (scop), &tmp, INSERT);
-        if (!*slot)
-          *slot = new_loop_to_cloog_loop_str (loop->num, loop_col - 1, res);
     }
 
   if (loop->inner && loop_in_scop_p (loop->inner, scop))
@@ -2308,7 +2312,10 @@ build_cloog_prog (scop_p scop)
       /* Add empty domain to all bbs, which do not yet have a domain, as they
          are not part of any loop.  */
       if (domain == NULL)
-	domain = cloog_matrix_alloc (0, nb_params_in_scop (scop) + 2);
+      	{
+          domain = cloog_matrix_alloc (0, nb_params_in_scop (scop) + 2);
+          GBB_DOMAIN (gbb) = domain;
+	}
 
       /* Build loop list.  */
       {
@@ -2327,18 +2334,15 @@ build_cloog_prog (scop_p scop)
         block_list = new_block_list;
       }
 
-      /* XXX: Unused cloog field.  Not necessary for scattering. Just here
-         during developement to document this.  Should be removed in future gcc
-         and cloog versions.  */
-      block->scattering = schedule_to_scattering (gbb, prog->nb_scattdims);
-
       /* Build scattering list.  */
       {
         /* XXX: Replace with cloog_domain_list_alloc(), when available.  */
         CloogDomainList *new_scattering = xmalloc (sizeof (CloogDomainList));
+        CloogMatrix *scat_mat = schedule_to_scattering (gbb, prog->nb_scattdims);
         new_scattering->next = scattering;
-        new_scattering->domain = cloog_domain_matrix2domain (block->scattering);
+        new_scattering->domain = cloog_domain_matrix2domain (scat_mat);
         scattering = new_scattering;
+        cloog_matrix_free (scat_mat);
       }
     }
 
@@ -2361,6 +2365,21 @@ build_cloog_prog (scop_p scop)
 
   /* Iterators corresponding to scalar dimensions have to be extracted.  */
   cloog_names_scalarize (prog->names, prog->nb_scattdims, prog->scaldims);
+  
+  /* Free blocklist.  */
+  {
+    CloogBlockList *next = prog->blocklist;
+	
+    while (next)
+      {
+        CloogBlockList *toDelete = next;
+        next = next->next;
+        toDelete->next = NULL;
+        toDelete->block = NULL;
+        cloog_block_list_free (toDelete);
+      }
+    prog->blocklist = NULL;
+  }
 }
 
 /* Find the right transform for the SCOP, and return a Cloog AST
@@ -2414,6 +2433,7 @@ find_transform (scop_p scop)
       fprintf (dump_file, "]\n");
     }
 
+  cloog_options_free (options);
   return stmt;
 }
 
