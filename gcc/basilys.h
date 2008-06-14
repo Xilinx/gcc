@@ -1894,8 +1894,10 @@ enum basilys_globalix_en
   BGLOB_CLASS_DISCR,
   /* the class of system data */
   BGLOB_CLASS_SYSTEM_DATA,
-  /* atom for returning true */
-  BGLOB_ATOM_TRUE,
+  /* the class of ctypes */
+  BGLOB_CLASS_CTYPE,
+  /* the class of environments */
+  BGLOB_CLASS_ENVIRONMENT,
   /**** every ctype should be predefined ****/
   /* ctype of longs */
   BGLOB_CTYPE_LONG,
@@ -1909,6 +1911,8 @@ enum basilys_globalix_en
   BGLOB_CTYPE_CSTRING,
   /* the initial system data */
   BGLOB_INITIAL_SYSTEM_DATA,
+  /* the atom for true */
+  BGLOB_ATOM_TRUE,
   /**************************** placeholder for last wired */
   BGLOB__LASTWIRED,
   BGLOB___SPARE1,

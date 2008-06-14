@@ -1,4 +1,11 @@
 2008-06-14  Basile Starynkevitch  <basile@starynkevitch.net>
+	* basilys.h: added BGLOB_CLASS_CTYPE &  BGLOB_CLASS_ENVIRONMENT
+
+	* melt/warm-basilys.bysl: moved exports. install_ctype becomes
+	install_ctype_descr. class_ctype & class_environment are
+	predefined. call to initfresh_envmaker generated too late!
+
+2008-06-14  Basile Starynkevitch  <basile@starynkevitch.net>
 	* basilys.h: added BGLOB___SPARE1 to 4 for future safety...
 	added BASILYSGIX macro to be used in predefinited below.
 

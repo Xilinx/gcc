@@ -130,8 +130,10 @@
   :super class_symbol
   :fields ())
 
-;; class of C types keywords
+;; class of C types keywords - it is predefined to ensure
+;; install_ctype_descr always refer to the same class
 (defclass class_ctype
+  :predef CLASS_CTYPE
   :super class_named
   :fields (
 	   ctype_keyword ;the keyword associated to the ctype (e.g. :long)
@@ -140,6 +142,7 @@
 	   ctype_parstring ;the name of the basilys parameter string (eg BPARSTR_LONG)
 	   ctype_argfield ;the name of the basilys argument union field (eg bp_long)
 	   ctype_resfield ;the name of the basilys result union field (eg bp_longptr)
+	   ctype_descr	  ;descriptive string
 	   )
   )
 
@@ -178,8 +181,9 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; ================ classes for environments & bindings
 
-;;;; the class for environments
+;;;; the class for environments - predefined to ensure all environment have the same (super*)class
 (defclass class_environment
+  :predef CLASS_ENVIRONMENT
   :super class_root
   :fields (env_bind			;the map of bindings
 	   env_prev			;the previous environment
@@ -363,51 +367,6 @@
   :fields (
 ))
 
-
-(compile_warning "the export-s should be moved below, after filling the initial_system_data!" ())
-
-;;;;;; export the above classes
-(export_class ;;in alphabetical order, one per line, for convenience
- class_any_binding
- class_class
- class_class_binding
- class_clonedsymbol
- class_container
- class_ctype
- class_debuginfo 
- class_discr 
- class_environment
- class_exported_binding
- class_field
- class_field_binding
- class_fixed_binding
- class_formal_binding
- class_function_binding
- class_genercontext
- class_initgenercontext
- class_instance_binding
- class_keyword
- class_label_binding
- class_let_binding
- class_located
- class_macro_binding
- class_modulcontext
- class_named
- class_normcontext
- class_normlet_binding
- class_objcode
- class_primitive
- class_primitive_binding
- class_proped 
- class_root
- class_selector
- class_selector_binding 
- class_sexpr
- class_src
- class_symbol
- class_system_data
- class_value_binding 
- )					;end of export class
 
 ;; 
 
@@ -982,184 +941,6 @@
   "))"
   )
 
-;;;; export the above primitives
-(export_values				;in alphanumerical order
- !=
- !=i
- %i
- %iraw
- *i
- +i
- -i
- /i
- /iraw
- <=i
- <i
- ==
- ==i
- ==s
- >=i
- >i
- add2sbuf_ccomstrbuf
- add2sbuf_ccomstring
- add2sbuf_cencstrbuf
- add2sbuf_cencstring
- add2sbuf_cident
- add2sbuf_cidentprefix
- add2sbuf_indent
- add2sbuf_indentnl
- add2sbuf_longdec
- add2sbuf_longhex
- add2sbuf_routinedescr
- add2sbuf_sbuf
- add2sbuf_strconst
- add2sbuf_string
- andi
- assert_failed
- assertmsg
- box_content
- box_put
- cbreak_msg
- checkcallstack_msg
- checkval_dbg
- closure_nth
- closure_routine
- closure_size
- create_keywordstr
- create_symbolstr
- discrim
- error_plain
- error_strv
- full_garbcoll
- get_globpredef
- get_int
- get_keywordstr
- get_symbolstr
- ignore
- is_a
- is_box
- is_closure
- is_integerbox
- is_list
- is_list_or_null
- is_mapobject
- is_mapstring
- is_mixint
- is_multiple
- is_multiple_or_null
- is_not_a
- is_not_object
- is_object
- is_pair
- is_routine
- is_strbuf
- is_string
- is_stringconst
- last_globpredef_index
- list_append
- list_first
- list_last
- list_length
- list_popfirst
- list_prepend
- longbacktrace_dbg
- make_box
- make_integerbox
- make_list
- make_mapobject
- make_mapstring
- make_multiple
- make_strbuf
- make_string
- make_string_nakedbasename
- make_stringconst
- make_tuple1
- make_tuple2
- make_tuple3
- make_tuple4
- make_tuple5
- make_tuple6
- make_tuple7
- mapobject_count
- mapobject_get
- mapobject_nth_attr
- mapobject_nth_val
- mapobject_put
- mapobject_remove
- mapobject_size
- mapstring_count
- mapstring_getstr
- mapstring_nth_attrstr
- mapstring_nth_val
- mapstring_putstr
- mapstring_rawget
- mapstring_rawput
- mapstring_rawremove
- mapstring_size
- message_dbg
- messagenum_dbg
- messageval_dbg
- minor_garbcoll
- mixint_val
- multiple_length
- multiple_nth
- multiple_put_nth
- multiple_sort
- need_dbg
- need_dbglim
- negi
- nonzero_hash
- not
- noti
- notnull
- null
- obj_hash
- obj_len
- obj_num
- object_length
- object_nth_field
- ori
- out_cplugin_compiled_timestamp_err
- out_cplugin_md5_checksum_err
- outcstring_dbg
- outcstring_err
- outnewline_dbg
- outnewline_err
- outnum_dbg
- outnum_err
- output_cfile_decl_impl
- outstr_dbg
- outstr_err
- outstrbuf_dbg
- outstrbuf_err
- pair_head
- pair_listlength
- pair_make
- pair_set_head
- pair_tail
- put_int
- read_file
- routine_descr
- routine_nth
- routine_size
- shortbacktrace_dbg
- strbuf2string
- strbuf_usedlength
- string<
- string=
- string>
- string_length
- stringconst2val
- subclass_of
- the_callcount
- the_framedepth
- the_null
- void
- warning_plain
- warning_strv
- xori
- zerop
- )
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;;; the discriminant for name strings
@@ -1310,12 +1091,21 @@
  :disc_super discr_anyrecv
  :named_name (stringconst2val discr_namestring "DISCR_ROUTINE"))
 
-(defun install_ctype (ctyp)
-  (debug_msg ctyp "install_ctype")
+
+;;; by having the install_ctype_descr called inside each ctype
+;;; initialization, we are sure it is called once for each, because
+;;; ctype-s are predefined
+(defun install_ctype_descr (ctyp :cstring descr)
+  (debug_msg ctyp "install_ctype_descr")
   (assert_msg "check ctyp" (is_a ctyp class_ctype)) 
-  (let ( (ckw (unsafe_get_field :ctype_keyword ctyp)) )
+  (if (unsafe_get_field :ctype_descr ctyp)
+      (return))
+  (let ( (ckw (unsafe_get_field :ctype_keyword ctyp)) 
+	 (ds (make_stringconst discr_string descr))
+	 )
     (assert_msg "check ctype ckw" (is_a ckw class_keyword))
     (unsafe_put_fields ckw :symb_data ctyp)
+    ds
     ))
 
 
@@ -1335,7 +1125,7 @@
   :ctype_argfield (stringconst2val discr_namestring "bp_aptr")
   :ctype_resfield (stringconst2val discr_namestring "bp_aptr")
   )
-(install_ctype ctype_value)
+(install_ctype_descr ctype_value "any basilys value pointer")
 
 ;; the C type for long
 (definstance ctype_long class_ctype
@@ -1348,7 +1138,7 @@
   :ctype_argfield (stringconst2val discr_namestring "bp_long")
   :ctype_resfield (stringconst2val discr_namestring "bp_longptr")
   )
-(install_ctype ctype_long)
+(install_ctype_descr ctype_long "C long unboxed integer")
 
 ;; the C type for gcc trees
 (definstance ctype_tree class_ctype
@@ -1361,7 +1151,7 @@
   :ctype_argfield (stringconst2val discr_namestring "bp_tree")
   :ctype_resfield (stringconst2val discr_namestring "bp_treeptr")
   )
-(install_ctype ctype_tree)
+(install_ctype_descr ctype_tree "GCC tree pointer")
 
 ;; the C type for void
 (definstance ctype_void class_ctype
@@ -1371,7 +1161,7 @@
   :ctype_cname  (stringconst2val discr_namestring "void")
   ;; void is never passed as argument or as extra result
   )
-(install_ctype ctype_void)
+(install_ctype_descr ctype_void "void type for side-effecting primitives without results")
 
 ;; the C type for constant C strings
 (definstance ctype_cstring class_ctype
@@ -1383,8 +1173,7 @@
   :ctype_parstring (stringconst2val discr_namestring "BPARSTR_CSTRING")
   :ctype_argfield (stringconst2val discr_namestring "bp_cstring")
   )
-(install_ctype ctype_cstring)
-
+(install_ctype_descr ctype_cstring "C constant strings (statically allocated outside of any heap)")
 
 ;; function to box a value
 
@@ -1473,6 +1262,7 @@
 (defun initfresh_envmaker (prevenv)
   (messageval_dbg "initfresh_envmaker prevenv=" prevenv)
   (debug_msg prevenv "initfresh_envmaker prevenv")
+  (shortbacktrace_dbg "initfresh_envmaker" 15)
   (let ( (newenv (fresh_env prevenv)) )
     (debug_msg newenv "initfresh_envmaker result newenv")
     (messageval_dbg "initfresh_envmaker newenv=" newenv)
@@ -1488,6 +1278,7 @@
   (debug_msg val "initvalue_exporter val")
   (debug_msg env "initvalue_exporter env")
   (assert_msg "check sym" (is_a sym class_symbol))
+  (shortbacktrace_dbg "initvalue_exporter" 15)
   (if (null env)
       (progn
 	(informsg_strv "exporting value too early with null environment" (unsafe_get_field :named_name sym))
@@ -1511,6 +1302,7 @@
   (debug_msg val "initmacro_exporter val")
   (debug_msg env "initmacro_exporter env")
   (assert_msg "check sym" (is_a sym class_symbol))
+  (shortbacktrace_dbg "initmacro_exporter" 15)
   (if (null env)
       (progn
 	(informsg_strv "exporting macro too early with null environment" (unsafe_get_field :named_name sym))
@@ -2794,6 +2586,229 @@
 
 ;;;****************************************************************
 
+;(compile_warning "the export-s should be moved below, after filling the initial_system_data!" ())
+
+;;;;;; export the above classes
+(export_class ;;in alphabetical order, one per line, for convenience
+ class_any_binding
+ class_class
+ class_class_binding
+ class_clonedsymbol
+ class_container
+ class_ctype
+ class_debuginfo 
+ class_discr 
+ class_environment
+ class_exported_binding
+ class_field
+ class_field_binding
+ class_fixed_binding
+ class_formal_binding
+ class_function_binding
+ class_genercontext
+ class_initgenercontext
+ class_instance_binding
+ class_keyword
+ class_label_binding
+ class_let_binding
+ class_located
+ class_macro_binding
+ class_modulcontext
+ class_named
+ class_normcontext
+ class_normlet_binding
+ class_objcode
+ class_primitive
+ class_primitive_binding
+ class_proped 
+ class_root
+ class_selector
+ class_selector_binding 
+ class_sexpr
+ class_src
+ class_symbol
+ class_system_data
+ class_value_binding 
+ )					;end of export class
+
+;;;; export the above primitives
+(export_values				;in alphanumerical order
+ !=
+ !=i
+ %i
+ %iraw
+ *i
+ +i
+ -i
+ /i
+ /iraw
+ <=i
+ <i
+ ==
+ ==i
+ ==s
+ >=i
+ >i
+ add2sbuf_ccomstrbuf
+ add2sbuf_ccomstring
+ add2sbuf_cencstrbuf
+ add2sbuf_cencstring
+ add2sbuf_cident
+ add2sbuf_cidentprefix
+ add2sbuf_indent
+ add2sbuf_indentnl
+ add2sbuf_longdec
+ add2sbuf_longhex
+ add2sbuf_routinedescr
+ add2sbuf_sbuf
+ add2sbuf_strconst
+ add2sbuf_string
+ andi
+ assert_failed
+ assertmsg
+ box_content
+ box_put
+ cbreak_msg
+ checkcallstack_msg
+ checkval_dbg
+ closure_nth
+ closure_routine
+ closure_size
+ create_keywordstr
+ create_symbolstr
+ discrim
+ error_plain
+ error_strv
+ full_garbcoll
+ get_globpredef
+ get_int
+ get_keywordstr
+ get_symbolstr
+ ignore
+ is_a
+ is_box
+ is_closure
+ is_integerbox
+ is_list
+ is_list_or_null
+ is_mapobject
+ is_mapstring
+ is_mixint
+ is_multiple
+ is_multiple_or_null
+ is_not_a
+ is_not_object
+ is_object
+ is_pair
+ is_routine
+ is_strbuf
+ is_string
+ is_stringconst
+ last_globpredef_index
+ list_append
+ list_first
+ list_last
+ list_length
+ list_popfirst
+ list_prepend
+ longbacktrace_dbg
+ make_box
+ make_integerbox
+ make_list
+ make_mapobject
+ make_mapstring
+ make_multiple
+ make_strbuf
+ make_string
+ make_string_nakedbasename
+ make_stringconst
+ make_tuple1
+ make_tuple2
+ make_tuple3
+ make_tuple4
+ make_tuple5
+ make_tuple6
+ make_tuple7
+ mapobject_count
+ mapobject_get
+ mapobject_nth_attr
+ mapobject_nth_val
+ mapobject_put
+ mapobject_remove
+ mapobject_size
+ mapstring_count
+ mapstring_getstr
+ mapstring_nth_attrstr
+ mapstring_nth_val
+ mapstring_putstr
+ mapstring_rawget
+ mapstring_rawput
+ mapstring_rawremove
+ mapstring_size
+ message_dbg
+ messagenum_dbg
+ messageval_dbg
+ minor_garbcoll
+ mixint_val
+ multiple_length
+ multiple_nth
+ multiple_put_nth
+ multiple_sort
+ need_dbg
+ need_dbglim
+ negi
+ nonzero_hash
+ not
+ noti
+ notnull
+ null
+ obj_hash
+ obj_len
+ obj_num
+ object_length
+ object_nth_field
+ ori
+ out_cplugin_compiled_timestamp_err
+ out_cplugin_md5_checksum_err
+ outcstring_dbg
+ outcstring_err
+ outnewline_dbg
+ outnewline_err
+ outnum_dbg
+ outnum_err
+ output_cfile_decl_impl
+ outstr_dbg
+ outstr_err
+ outstrbuf_dbg
+ outstrbuf_err
+ pair_head
+ pair_listlength
+ pair_make
+ pair_set_head
+ pair_tail
+ put_int
+ read_file
+ routine_descr
+ routine_nth
+ routine_size
+ shortbacktrace_dbg
+ strbuf2string
+ strbuf_usedlength
+ string<
+ string=
+ string>
+ string_length
+ stringconst2val
+ subclass_of
+ the_callcount
+ the_framedepth
+ the_null
+ void
+ warning_plain
+ warning_strv
+ xori
+ zerop
+ )
 ;; export the discriminants and instances and selectors defined above
 (export_values				;alphabetical order
  ctype_cstring                        
@@ -2842,7 +2857,7 @@
  find_enclosing_env			
  find_env				
  fresh_env				
- install_ctype				
+ install_ctype_descr				
  install_method				
  intern_keyword				
  intern_symbol				
