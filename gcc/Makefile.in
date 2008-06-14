@@ -4701,6 +4701,8 @@ diff-warm-1-2: warm-basilys-1.c warm-basilys-2.c
 	-diff $^
 diff-warm-2-3: warm-basilys-2.c warm-basilys-3.c
 	-diff $^
+diff-warm-3-4: warm-basilys-3.c warm-basilys-4.c
+	-diff $^
 diff-warm-4-5: warm-basilys-4.c warm-basilys-5.c
 	-diff $^
 

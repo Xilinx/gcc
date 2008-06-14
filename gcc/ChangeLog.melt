@@ -1,3 +1,17 @@
+2008-06-15  Basile Starynkevitch  <basile@starynkevitch.net>
+[unsafe_replace_module_environment construct returns the new module environment]
+
+	* basilys.c: (basilys_output_cfile_decl_impl) emit in a comment at
+	start the date of generation.
+
+	* melt/warm-basilys.bysl: removed classes class_nrep_export*
+	(normal_exported_value) construct a sourcexpr to compute the
+	freshenv if it was nil & normalize it.
+	(normexp_unsafe_replace_module_environment) less buggy.
+	(compilobj_unsafe_replace_module_environment) less buggy.
+
+	* Makefile.in: added diff-warm-3-4 target.
+
 2008-06-14  Basile Starynkevitch  <basile@starynkevitch.net>
 	* basilys.h: added BGLOB_CLASS_CTYPE &  BGLOB_CLASS_ENVIRONMENT
 

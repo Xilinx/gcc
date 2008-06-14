@@ -1262,7 +1262,8 @@
 (defun initfresh_envmaker (prevenv)
   (messageval_dbg "initfresh_envmaker prevenv=" prevenv)
   (debug_msg prevenv "initfresh_envmaker prevenv")
-  (shortbacktrace_dbg "initfresh_envmaker" 15)
+  (if (need_dbg 0) 
+      (shortbacktrace_dbg "initfresh_envmaker" 15))
   (let ( (newenv (fresh_env prevenv)) )
     (debug_msg newenv "initfresh_envmaker result newenv")
     (messageval_dbg "initfresh_envmaker newenv=" newenv)
@@ -1278,7 +1279,8 @@
   (debug_msg val "initvalue_exporter val")
   (debug_msg env "initvalue_exporter env")
   (assert_msg "check sym" (is_a sym class_symbol))
-  (shortbacktrace_dbg "initvalue_exporter" 15)
+  (if (need_dbg 0) 
+      (shortbacktrace_dbg "initvalue_exporter" 15))
   (if (null env)
       (progn
 	(informsg_strv "exporting value too early with null environment" (unsafe_get_field :named_name sym))
@@ -1302,7 +1304,7 @@
   (debug_msg val "initmacro_exporter val")
   (debug_msg env "initmacro_exporter env")
   (assert_msg "check sym" (is_a sym class_symbol))
-  (shortbacktrace_dbg "initmacro_exporter" 15)
+  (if (need_dbg 0) (shortbacktrace_dbg "initmacro_exporter" 15))
   (if (null env)
       (progn
 	(informsg_strv "exporting macro too early with null environment" (unsafe_get_field :named_name sym))
@@ -1336,6 +1338,8 @@
   :sysdata_internsymbol	intern_symbol	 ;closure to intern a symbol
   :sysdata_internkeyw intern_keyword	 ;closure to intern a keyword
   )
+
+
 
 
 ;;; iterate fully in map of objects 
@@ -5678,25 +5682,25 @@
 	   naccm_ix			;index to be accessed (a boxed integer)
 ))
 
-
-;;; normalized export
-(defclass class_nrep_export
-  :super class_nrep
-  :fields (nexp_symdata		;symbol data
-))
-
-;;; normalized exported value
-(defclass class_nrep_exportval
-  :super class_nrep_export
-  :fields (nexp_valdata		;value data
-))
-
-;;; normalized exported macro
-(defclass class_nrep_exportmacro
-  :super class_nrep_export
-  :fields (nexp_mexp			;normalized exp
-	   
-))
+;;-  apprently useless classes
+;;- ;;; normalized export
+;;- (defclass class_nrep_export
+;;-   :super class_nrep
+;;-   :fields (nexp_symdata		;symbol data
+;;- ))
+;;- 
+;;- ;;; normalized exported value
+;;- (defclass class_nrep_exportval
+;;-   :super class_nrep_export
+;;-   :fields (nexp_valdata		;value data
+;;- ))
+;;- 
+;;- ;;; normalized exported macro
+;;- (defclass class_nrep_exportmacro
+;;-   :super class_nrep_export
+;;-   :fields (nexp_mexp			;normalized exp
+;;- 	   
+;;- ))
 
 ;; normalized replace module environment
 (defclass class_nrep_unsafe_replace_module_environment
@@ -5731,9 +5735,6 @@
  class_nrep_datasymbol
  class_nrep_datatuple
  class_nrep_exit
- class_nrep_export
- class_nrep_exportmacro
- class_nrep_exportval
  class_nrep_expr
  class_nrep_fieldacc
  class_nrep_fieldassign
@@ -8970,14 +8971,58 @@
   (assert_msg "check bindslist" (is_list bindslist))
   (let ( (csymexpo (clone_symbol '_exported_))
 	 (symdata (normal_symbol_data sym ncx psloc))
+	 (iniproc (unsafe_get_field :nctx_initproc ncx))
+	 (curproc (unsafe_get_field :nctx_curproc ncx))
+	 ;; we cannot use unsafe_replace_module_environment if not at toplevel
+	 ;;; we want to make a freshenv if the current_module_environment is null; so if at toplevel we expand the equivalent of 
+	 ;; (or (current_module_environment)
+	 ;;     (unsafe_replace_module_environment ((unsafe_get_field
+	 ;;     (predefined initial_system_data) sysdata_fresh_env)
+	 ;;     (current_module_environment))))
 	 (scurenvx (make_instance class_src_current_module_environment
-				  :src_loc psloc))
+			   :src_loc psloc))
+	 (sgetcurenvx
+	  (cond 
+	   ( (== curproc iniproc)
+	     ;; we are at toplevel
+	     (make_instance 
+	      class_src_or
+	      :src_loc psloc
+	      :sor_disj 
+	      (make_tuple2
+	       discr_multiple
+	       scurenvx
+	       (make_instance 
+		class_src_unsafe_replace_module_environment
+		:src_loc psloc
+		:surmc_freshenv 
+		(make_instance 
+		 class_src_apply
+		 :src_loc psloc
+		 :sapp_fun (make_instance
+			    class_src_unsafe_get_field
+			    :src_loc psloc
+			    :suget_obj (make_instance
+					class_src_fetch_predefined
+					:src_loc psloc
+					:sfepd_predef 'initial_system_data
+					)
+			    :suget_field sysdata_fresh_env
+			    )
+		 :sapp_args (make_tuple1 discr_multiple
+					 (make_instance class_src_parent_module_environment
+							:src_loc psloc)
+			     )
+		 ))))
+	     )
+	   (:else 
+	    scurenvx
+	    )))
 	 )
-    (debug_msg scurenvx "normal_exported_value scurenvx")
+    (debug_msg sgetcurenvx "normal_exported_value sgetcurenvx")
     (multicall 
      (ncurenv curenvbinds)
-     ;; we call directly the normalization of the created (current_module_environment) expr
-     (normexp_current_module_environment scurenvx env ncx psloc)
+     (normal_exp sgetcurenvx env ncx psloc)
      (debug_msg ncurenv "normal_exported_value ncurenv")
      (debug_msg curenvbinds "normal_exported_value curenvbinds")
      (list_append2list bindslist curenvbinds)
@@ -9024,6 +9069,7 @@
 	(nilnrep (make_instance class_nrep_nil
 				:nrep_loc sloc))
 	)
+    (debug_msg nvaluexporter "normexp_export_values nvaluexporter")
     (multiple_every
      sxnames
      (lambda (xnam :long ix)
@@ -9035,9 +9081,11 @@
 	(debug_msg nsym "normexp_export_values nsym")
 	(debug_msg nsymbinds "normexp_export_values nsymbinds")
 	(list_append2list bindslist nsymbinds)
+	(debug_msg xnam "normexp_export_values xnam again")
+	(debug_msg bindslist "normexp_export_values before normal_exported_value bindslist")
 	(let ( (nexpv (normal_exported_value xnam nsym nvaluexporter env ncx sloc bindslist))
 	       )
-	  (debug_msg nexpv "normexp_export_values nexpv")
+	  (debug_msg nexpv "normexp_export_values normal_exported_value gave nexpv")
 	  ))))
     (debug_msg nilnrep "normexp_export_values final nilnrep")
     (debug_msg bindslist "normexp_export_values final bindslist")
@@ -9285,16 +9333,19 @@
   (let ( 
 	(sloc (unsafe_get_field :src_loc recv))
 	(curproc (unsafe_get_field :nctx_curproc ncx))
-	(sfresh (unsafe_get_field :surmc_freshenv ncx))
+	(sfresh (unsafe_get_field :surmc_freshenv recv))
 	)
     (if (is_not_a curproc class_nrep_initproc)
 	(progn
 	  (error_plain sloc "(UNSAFE_REPLACE_MODULE_ENVIRONMENT <freshenv>) should be called only at toplevel")
 	  (return)))
+    (debug_msg sfresh "normexp_unsafe_replace_module_environment sfresh")
     (multicall
      (nfresh nbind)
      (normal_exp sfresh env ncx sloc)
      (if (null nbind) (setq nbind (make_list discr_list)))
+     (debug_msg nfresh "normexp_unsafe_replace_module_environment nfresh")
+     (debug_msg nbind "normexp_unsafe_replace_module_environment nbind")
      (let ( (csym (clone_symbol '_unsafereplacemodulenv_))
 	    (nurme (make_instance class_nrep_unsafe_replace_module_environment
 				  :nrep_loc sloc
@@ -9303,11 +9354,11 @@
 	    (cbind (make_instance class_normlet_binding
 				  :letbind_loc sloc
 				  :binder csym
-				  :letbind_type ctype_void
+				  :letbind_type ctype_value
 				  :letbind_expr nurme))
 	    (syocc (make_instance class_nrep_locsymocc
 				  :nrep_loc sloc
-				  :nocc_ctyp ctype_void 
+				  :nocc_ctyp ctype_value
 				  :nocc_symb csym
 				  :nocc_bind cbind) )
 	    )
@@ -13605,8 +13656,9 @@
 (defun putobjdest_null (recv desto)
   (assert_msg "check recv" (null recv))
   (assert_msg "check desto" (is_a desto class_objlocv))
-  (debug_msg recv "putobjdest_integer recv")
-  (debug_msg desto "putobjdest_integer desto")
+  (debug_msg recv "putobjdest_null recv")
+  (debug_msg desto "putobjdest_null desto")
+  (if (need_dbg 0) (shortbacktrace_dbg "putobjdest_null" 15))
   (let ( (destlis (make_list discr_list))
 	 (explis (make_list discr_list))
 	 (typdesto (unsafe_get_field :obv_type desto))
@@ -14622,15 +14674,18 @@
   (let ( (retloc (unsafe_get_field :gncx_retloc gcx)) 
 	 (nloc (unsafe_get_field :nrep_loc urme))
 	 (nfe (unsafe_get_field :nurme_freshenv urme))
+	 (ofe (compile_obj nfe gcx))
 	 (res (make_instance class_objcompute
 			     :obi_loc nloc
 			     :obdi_destlist (list1 retloc)
-			     :obcpt_expr nfe
+			     :obcpt_expr ofe
 			     ))
 	 )
     (debug_msg res  "compilobj_unsafe_replace_module_environment return res")
+    (return res)
 ))
 (install_method class_nrep_unsafe_replace_module_environment compile_obj compilobj_unsafe_replace_module_environment)
+(install_method class_nrep_unsafe_replace_module_environment get_ctype (lambda (recv env) ctype_value))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun compilobj_nrep_store_predefined (nspr gcx)
