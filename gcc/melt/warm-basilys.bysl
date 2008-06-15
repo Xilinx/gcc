@@ -3489,6 +3489,14 @@
 	 (put_env initial_environment mbind)
 ))
 
+;;;;;; warn if a symbol redefines something
+(defun warn_if_redefined (symb env loc)
+  (assert_msg "check symb" (is_a symb class_symbol))
+  (assert_msg "check env" (is_a env class_environment))
+    (if (find_env env symb)
+	(warning_strv loc "symbol redefinition masks previous" 
+		      (unsafe_get_field :named_name symb))
+	))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;; macro expansers
@@ -3570,6 +3578,7 @@
 				   :pbind_primitive primit
 				   ))
 		   )
+	      (warn_if_redefined symb env loc)
 	      (put_env env pbind)
 	      (debug_msg sdefpri "mexpand_defprimitive result sdefpri")
 	      (return sdefpri)
@@ -3625,6 +3634,7 @@
 			     :fubind_defun sdefun
 			     ))
 	     )
+	(warn_if_redefined symb env loc)
 	(put_env env fbind)
 	sdefun
 	))))
@@ -3751,6 +3761,7 @@
     (debug_msg fieldnams "scan_defclass returns fieldnams")
     (debug_msg fieldsloc "scan_defclass returns fieldsloc")
     (debug_msg docstr "scan_defclass returns docstr")
+    (warn_if_redefined symb env loc)
     (return symb loc supernam superbind superclass predef fieldnams fieldsloc docstr)
     ))
 
@@ -3840,6 +3851,7 @@
 					      :binder fldnam
 					      :flbind_clabind clabind
 					      :flbind_field newfld)) )
+	      (warn_if_redefined fldnam env loc)
 	      (put_env env newfldbind)
 	      (multiple_put_nth ownfieldbindings ix newfldbind)
 	      )
@@ -4002,6 +4014,7 @@
 			       :ibind_iclass cla
 			       ))
 	       )
+	  (warn_if_redefined symb env loc)
 	  (put_env env ibind)
 	  (debug_msg sinst "mexp.definstance sinst")
 	  (return sinst)
@@ -4096,6 +4109,7 @@
 				       :sbind_selectordef res
 				       ))
 	       )
+	  (warn_if_redefined symb env loc)
 	  (put_env env selbind)
 	  res
 	  )))))

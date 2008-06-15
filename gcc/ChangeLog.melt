@@ -1,4 +1,8 @@
 2008-06-15  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warm-basilys.bysl: added warning for
+	redefinitions (warn_if_redefined)
+
+2008-06-15  Basile Starynkevitch  <basile@starynkevitch.net>
 [unsafe_replace_module_environment construct returns the new module environment]
 
 	* basilys.c: (basilys_output_cfile_decl_impl) emit in a comment at
