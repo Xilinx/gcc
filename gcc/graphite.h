@@ -28,6 +28,10 @@ DEF_VEC_ALLOC_P (graphite_bb_p, heap);
 DEF_VEC_P(scop_p);
 DEF_VEC_ALLOC_P (scop_p, heap);
 
+static inline int scop_nb_loops (scop_p scop);
+static inline unsigned scop_nb_params (scop_p scop);
+static inline bool scop_contains_loop (scop_p scop, struct loop *loop);
+
 struct graphite_bb
 {
   basic_block bb;
@@ -137,6 +141,52 @@ struct graphite_bb
   VEC (tree, heap) *conditions;
   VEC (tree, heap) *condition_cases;
 
+  /* LOOPS contains for every column in the graphite domain the corresponding
+     gimple loop. If there exists no corresponding gimple loop LOOPS contains
+     NULL. 
+  
+     Example:
+
+     Original code:
+
+     for (i = 0; i <= 20; i++) 
+       for (j = 5; j <= 10; j++)
+         A
+
+     Original domain:
+
+     (I)eq  i  j  1
+     1      1  0  0   # i >= 0
+     1     -1  0  20  # i <= 20
+     1      0  1  0   # j >= 0
+     1      0 -1  10  # j <= 10
+
+     Original loops vector:
+     0         1 
+     Loop i    Loop j
+
+     After some changes (Exchange i and j, strip-mine i):
+     
+     Domain:
+
+     (I)eq  j  ii i  k  1
+     1      0  0  1  0  0   # i >= 0
+     1      0  0 -1  0  20  # i <= 20
+     1      1  0  0  0  0   # j >= 0
+     1     -1  0  0  0  10  # j <= 10
+     1      0 -1  1  0  0   # ii <= i
+     1      0  1 -1  0  1   # ii + 1 >= i 
+     1      0 -1  0  2  0   # ii <= 2k
+     1      0  1  0 -2  0   # ii >= 2k 
+
+     Iterator vector:
+     0        1        2         3
+     Loop j   NULL     Loop i    NULL
+    
+     Means the original loop i is now at column two of the domain and loop j in
+     the original loop nest is now at column 0. Column 1 and 3 are emtpy.  */
+  VEC (loop_p, heap) *loops;
+
   lambda_vector compressed_alpha_matrix;
   CloogMatrix *dynamic_schedule;
   VEC (data_reference_p, heap) *data_refs;
@@ -151,13 +201,7 @@ struct graphite_bb
 #define GBB_DOMAIN(GBB) GBB->domain
 #define GBB_CONDITIONS(GBB) GBB->conditions
 #define GBB_CONDITION_CASES(GBB) GBB->condition_cases
-
-struct loop_to_cloog_loop_str
-{
-  unsigned int loop_num;
-  unsigned int loop_position; /* The column that represents this loop.  */
-  CloogLoop *cloog_loop;
-};
+#define GBB_LOOPS(GBB) GBB->loops
 
 /* Return the loop that contains the basic block GBB.  */
 
@@ -166,6 +210,51 @@ gbb_loop (struct graphite_bb *gbb)
 {
   return GBB_BB (gbb)->loop_father;
 }
+
+/* Calculate the number of loops in GB in the current SCOP.  
+   Only works if GBB_DOMAIN is built.  */
+
+static inline int
+gbb_nb_loops (graphite_bb_p gb)
+{
+  scop_p scop = GBB_SCOP (gb);
+
+  if (GBB_DOMAIN (gb) == NULL)
+    return 0;
+  
+  return GBB_DOMAIN (gb)->NbColumns - scop_nb_params (scop) - 2;
+}
+
+/* Returns the gimple loop, that corresponds to the loop_iterator_INDEX.  
+   If there is no corresponding gimple loop, we return NULL.  */
+
+static inline loop_p
+gbb_loop_at_index (graphite_bb_p gb, int index)
+{
+  return VEC_index (loop_p, GBB_LOOPS (gb), index);
+}
+
+/* Returns the corresponding loop iterator index for a gimple loop.  */
+
+static inline int
+gbb_loop_index (graphite_bb_p gb, loop_p loop)
+{
+  int i;
+  loop_p l;
+
+  for (i = 0; VEC_iterate (loop_p, GBB_LOOPS (gb), i, l); i++)
+    if (loop == l)
+      return i;
+
+  gcc_unreachable();
+}
+
+struct loop_to_cloog_loop_str
+{
+  unsigned int loop_num;
+  unsigned int loop_position; /* The column that represents this loop.  */
+  CloogLoop *cloog_loop;
+};
 
 typedef struct name_tree
 {
@@ -232,7 +321,7 @@ extern void debug_gbb (graphite_bb_p, int);
 extern void dot_scop (scop_p);
 extern void dot_all_scops (void);
 
-/* Return the number of loops contained in SCOP.  */
+/* Return the number of gimple loops contained in SCOP.  */
 
 static inline int
 scop_nb_loops (scop_p scop)
@@ -243,7 +332,7 @@ scop_nb_loops (scop_p scop)
 /* Returns the number of parameters for SCOP.  */
 
 static inline unsigned
-nb_params_in_scop (scop_p scop)
+scop_nb_params (scop_p scop)
 {
   return VEC_length (name_tree, SCOP_PARAMS (scop));
 }
@@ -253,7 +342,7 @@ nb_params_in_scop (scop_p scop)
 static inline int
 scop_dim_domain (scop_p scop)
 {
-  return scop_nb_loops (scop) + nb_params_in_scop (scop) + 1;
+  return scop_nb_loops (scop) + scop_nb_params (scop) + 1;
 }
 
 /* Return the dimension of the domains for GB.  */
@@ -279,7 +368,7 @@ loop_domain_dim (unsigned int loop_num, scop_p scop)
   /* The loop containing the entry of the scop is not always part of
      the SCoP, and it is not registered in SCOP_LOOP2CLOOG_LOOP.  */
   if (!slot)
-    return nb_params_in_scop (scop) + 2;
+    return scop_nb_params (scop) + 2;
 
   return slot->cloog_loop->domain->polyhedron->Dimension + 2;
 }
@@ -300,7 +389,7 @@ ref_nb_loops (data_reference_p ref)
 static inline int
 loop_iteration_vector_dim (unsigned int loop_num, scop_p scop)
 {
-  return loop_domain_dim (loop_num, scop) - 2 - nb_params_in_scop (scop);
+  return loop_domain_dim (loop_num, scop) - 2 - scop_nb_params (scop);
 }
 
 /* Returns the index of LOOP in the domain matrix for the SCOP.  */

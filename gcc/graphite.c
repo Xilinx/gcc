@@ -145,7 +145,7 @@ dump_gbb_conditions (FILE *file, graphite_bb_p gbb)
   if (VEC_empty (tree, conditions))
     return;
 
-  fprintf (file, "\n\tbb %d\t: cond = {", gbb->bb->index);
+  fprintf (file, "\tbb %d\t: cond = {", gbb->bb->index);
   for (i = 0; VEC_iterate (tree, conditions, i, stmt); i++)
     {
       switch (TREE_CODE (stmt))
@@ -220,28 +220,43 @@ void
 print_graphite_bb (FILE *file, graphite_bb_p gb, int indent, int verbosity)
 {
   CloogMatrix *scattering;
+  int i;
+  loop_p loop;
   fprintf (file, "\nGBB (\n");
+
+  print_loops_bb (file, GBB_BB (gb), indent+2, verbosity);
+
+  fprintf (file, "       (domain: \n");
+  if (GBB_DOMAIN (gb))
+    cloog_matrix_print (dump_file, GBB_DOMAIN (gb));
+  fprintf (file, "       )\n");
 
   fprintf (file, "       (static schedule: ");
   print_lambda_vector (file, GBB_STATIC_SCHEDULE (gb),
                        nb_loops_around_gb (gb) + 1);
   fprintf (file, "       )\n");
 
-  print_loops_bb (file, GBB_BB (gb), indent+2, verbosity);
+  fprintf (file, "       (contained loops: \n");
+    for (i = 0; VEC_iterate (loop_p, GBB_LOOPS (gb), i, loop); i++)
+      if (loop == NULL)
+        fprintf (file, "       iterator %d   =>  NULL \n", i); 
+      else
+        fprintf (file, "       iterator %d   =>  loop %d \n", i,
+                 loop->num);
+  fprintf (file, "       )\n");
 
   if (GBB_DATA_REFS (gb))
     dump_data_references (file, GBB_DATA_REFS (gb));
+
+  fprintf (file, "       (conditions: \n");
+  dump_gbb_conditions (dump_file, gb);
+  fprintf (file, "       )\n");
 
   fprintf (file, "       (scattering: \n");
   scattering = schedule_to_scattering (gb, 2 * nb_loops_around_gb (gb)
                                           + 1);
   cloog_matrix_print (file, scattering);
   cloog_matrix_free (scattering);
-                                                    
-  fprintf (file, "       )\n");
-
-  fprintf (file, "       (conditions: \n");
-  dump_gbb_conditions (dump_file, gb);
   fprintf (file, "       )\n");
 
   fprintf (file, ")\n");
@@ -516,8 +531,6 @@ dot_all_scops (void)
 
   system ("dotty /tmp/allscops.dot");
 }
-
-
 
 /* Returns true when LOOP is in SCOP.  */
 
@@ -1198,6 +1211,7 @@ build_graphite_bb (scop_p scop, basic_block bb)
   GBB_DOMAIN (gb) = NULL;
   GBB_CONDITIONS (gb) = NULL;
   GBB_CONDITION_CASES (gb) = NULL;
+  GBB_LOOPS (gb) = NULL;
 
   /* Store the GRAPHITE representation of the current BB.  */
   VEC_safe_push (graphite_bb_p, heap, SCOP_BBS (scop), gb);
@@ -1422,6 +1436,35 @@ build_scop_canonical_schedules (scop_p scop)
     }
 }
 
+/* Build the LOOPS vector for all bbs in SCOP.  */
+
+static void
+build_bb_loops (scop_p scop)
+{
+  graphite_bb_p gb;
+  int i;
+
+  for (i = 0; VEC_iterate (graphite_bb_p, SCOP_BBS (scop), i, gb); i++)
+    {
+      loop_p loop;
+      int depth; 
+
+      depth = nb_loops_around_gb (gb) - 1; 
+     
+      GBB_LOOPS (gb) = VEC_alloc (loop_p, heap, 3);
+      VEC_safe_grow_cleared (loop_p, heap, GBB_LOOPS (gb), depth + 1);
+
+      loop = GBB_BB (gb)->loop_father;  
+
+      while (scop_contains_loop (scop, loop))
+        {
+          VEC_replace (loop_p, GBB_LOOPS (gb), depth, loop);
+          loop = loop_outer (loop);
+          depth--;
+        }
+    }
+}
+
 /* Get the index for parameter VAR in SCOP.  */
 
 static int
@@ -1538,7 +1581,7 @@ scan_tree_for_params (scop_p s, tree e, CloogMatrix *c, int r, Value k)
 
       if (c)
 	{
-          param_col += c->NbColumns - nb_params_in_scop (s);
+          param_col += c->NbColumns - scop_nb_params (s);
 	  value_init (c->p[r][param_col]);
 	  value_assign (c->p[r][param_col], k);
 	}
@@ -1745,7 +1788,7 @@ find_scop_parameters (scop_p scop)
 static void
 build_scop_context (scop_p scop)
 {
-  unsigned nb_params = nb_params_in_scop (scop);
+  unsigned nb_params = scop_nb_params (scop);
   CloogMatrix *matrix = cloog_matrix_alloc (1, nb_params + 2);
 
   /* Insert '0 >= 0' in the context matrix, as it is not allowed to be
@@ -2065,15 +2108,14 @@ schedule_to_scattering (graphite_bb_p gb, int scattering_dimensions)
 {
   int i;
   scop_p scop = GBB_SCOP (gb);
-  struct loop *loop;
 
-  int nb_iterators = nb_loops_around_gb (gb);
+  int nb_iterators = gbb_nb_loops (gb);
 
   /* The cloog scattering matrix consists of these colums:
      1                        col  = Eq/Inq,
      scattering_dimensions    cols = Scattering dimensions,
      nb_iterators             cols = bb's iterators,
-     nb_params_in_scop        cols = Parameters,
+     scop_nb_params        cols = Parameters,
      1                        col  = Constant 1.
 
      Example:
@@ -2081,7 +2123,7 @@ schedule_to_scattering (graphite_bb_p gb, int scattering_dimensions)
      scattering_dimensions = 5
      max_nb_iterators = 2
      nb_iterators = 1 
-     nb_params_in_scop = 2
+     scop_nb_params = 2
 
      Schedule:
      ? i
@@ -2092,7 +2134,7 @@ schedule_to_scattering (graphite_bb_p gb, int scattering_dimensions)
      1   0   0   0   0   0   0   0  -4  = 0
      0   1   0   0   0  -1   0   0   0  = 0
      0   0   1   0   0   0   0   0  -5  = 0  */
-  int nb_params = nb_params_in_scop (scop);
+  int nb_params = scop_nb_params (scop);
   int nb_cols = 1 + scattering_dimensions + nb_iterators + nb_params + 1;
   int col_const = nb_cols - 1; 
   int col_iter_offset = 1 + scattering_dimensions;
@@ -2137,6 +2179,7 @@ static bool
 build_scop_iteration_domain (scop_p scop)
 {
   struct loop *loop;
+  basic_block_p gbb;
   CloogMatrix *outer_cstr;
   int i;
 
@@ -2148,8 +2191,8 @@ build_scop_iteration_domain (scop_p scop)
         /* The outermost constraints is a matrix that has:
            -first column: eq/ineq boolean
            -last column: a constant
-           -nb_params_in_scop columns for the parameters used in the scop.  */
-       outer_cstr = cloog_matrix_alloc (0, nb_params_in_scop (scop) + 2);
+           -scop_nb_params columns for the parameters used in the scop.  */
+       outer_cstr = cloog_matrix_alloc (0, scop_nb_params (scop) + 2);
        build_loop_iteration_domains (scop, loop, outer_cstr, 0);
        cloog_matrix_free (outer_cstr);
      }
@@ -2565,7 +2608,7 @@ build_cloog_prog (scop_p scop)
          are not part of any loop.  */
       if (domain == NULL)
       	{
-          domain = cloog_matrix_alloc (0, nb_params_in_scop (scop) + 2);
+          domain = cloog_matrix_alloc (0, scop_nb_params (scop) + 2);
           GBB_DOMAIN (gbb) = domain;
 	}
 
@@ -2735,11 +2778,11 @@ initialize_dependence_polyhedron (scop_p scop,
   /* Adding 2 columns: one for the eq/neq column, one for constant
      term.  */
   
-  nb_params = nb_params_in_scop (scop);
+  nb_params = scop_nb_params (scop);
   nb_iter1 = domain1->NbColumns - 2 - nb_params;
   nb_iter2 = domain2->NbColumns - 2 - nb_params;
 
-  nb_cols = nb_iter1 + nb_iter2 + nb_params_in_scop (scop) + 2;
+  nb_cols = nb_iter1 + nb_iter2 + scop_nb_params (scop) + 2;
   nb_rows = domain1->NbRows + domain2->NbRows + DR_NUM_DIMENSIONS (a) 
             + 2 * MIN (nb_iter1, nb_iter2);
   dep_constraints = cloog_matrix_alloc (nb_rows, nb_cols);
@@ -3127,6 +3170,7 @@ graphite_transform_loops (void)
       build_scop_bbs (scop);
       build_scop_loop_nests (scop);
       build_scop_canonical_schedules (scop);
+      build_bb_loops (scop);
       find_scop_parameters (scop);
       build_scop_context (scop);
 

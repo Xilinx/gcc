@@ -1,3 +1,18 @@
+2008-06-15  Tobias Grosser  <grosser@fim.uni-passau.de
+
+	* graphite.c (print_graphite_bb): Add output of GBB_LOOPS.
+	(build_graphite_bb): Add GBB_LOOPS and GBB_DOMAIN and reorder.
+	(build_bb_loops): New.
+	(graphite_transform_loops): Add build_bb_loops.
+	(schedule_to_scattering): Use gbb_nb_loops to support changing loop
+	numbers.
+	* graphite.h (graphite_bb): Add loops.
+	(gbb_nb_loops): New.
+	(gbb_loop_at_index): New.
+	(gbb_loop_index): New.
+	(nb_params_in_scop): Renamed to scop_nb_params. Updated all functions
+	using nb_params_in_scop.
+
 2008-06-14  Tobias Grosser  <grosser@fim.uni-passau.de
 
 	* graphite.c (print_graphite_bb): Adapt to minimized schedule.
