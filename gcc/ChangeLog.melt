@@ -1,4 +1,13 @@
 2008-06-15  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warm-basilys.bysl: adding nctx_procurmodenvlist &
+	igncx_procurmodenvlist fields. added an explicit call
+	to (update_current_module_environment_box) which should probably
+	be called update_current_module_environment_container.
+	Its compilation method is not complete.
+
+	* warm-basilys-0.c: regenerated several times.
+
+2008-06-15  Basile Starynkevitch  <basile@starynkevitch.net>
 [start adding update_current_module_environment_box]
 
 	* basilys.h: added BGLOB_CLASS_CONTAINER & FCONTAINER_VALUE and

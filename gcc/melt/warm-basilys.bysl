@@ -335,8 +335,10 @@
 	   nctx_modulcontext		;the module compilation context
 	   nctx_qdatcurmodenvbox ;quasi data for current_module_environment_box
 	   nctx_qdatparmodenv		;quasi data for parent_module_environment
+	   nctx_procurmodenvlist	;list of procedures using the current_module_environment_box construct
 ))
 
+(compile_warning "CURRENT_MODULE_ENVIRONMENT_BOX should be named CURRENT_MODULE_ENVIRONMENT_CONTAINER" ())
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; ================ classes for code generation
 
@@ -360,6 +362,7 @@
   :super class_genercontext
   :fields (igncx_prevenvloc	    ;local for previous environment [parent_module_environment]
 	   igncx_contenvloc	    ;local for the container of environment
+	   igncx_procurmodenvlist   ;list of routine using the current_module_environment_container
 ))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -2668,7 +2671,9 @@
 
 ;;;****************************************************************
 
-;(compile_warning "the export-s should be moved below, after filling the initial_system_data!" ())
+
+
+(update_current_module_environment_box)
 
 ;;;;;; export the above classes
 (export_class ;;in alphabetical order, one per line, for convenience
@@ -5231,6 +5236,9 @@
 (install_initial_macro 'current_module_environment_box mexpand_current_module_environment_box)
 (export_macro current_module_environment_box mexpand_current_module_environment_box)
 
+(install_initial_macro 'current_module_environment_container mexpand_current_module_environment_box)
+(export_macro current_module_environment_container mexpand_current_module_environment_box)
+
 
 ;;;;;;;;;;;;;;;;
 ;;;; parent_module_environment macro 
@@ -5780,6 +5788,8 @@
 (defclass class_nrep_update_current_module_environment_box
   :super class_nrep_expr
   :fields (
+	   nucmeb_expr			;the normalized expression
+					;computing the box
 ))
 
 
@@ -6368,6 +6378,7 @@
 						       )
 		 :nctx_qdatparmodenv (make_instance class_nrep_quasidata_parent_module_environment
 						    )
+		 :nctx_procurmodenvlist (make_list discr_list)
 		 ))
 	   )
       (debug_msg ncx "create_normcontext return ncx")
@@ -9040,6 +9051,7 @@
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check ncx" (is_a ncx class_normcontext))
   (assert_msg "check bindslist" (is_list bindslist))
+  (compile_warning "normal_exported_value should probably be shrinken" ())
   (let ( (csymexpo (clone_symbol '_exported_))
 	 (symdata (normal_symbol_data sym ncx psloc))
 	 (iniproc (unsafe_get_field :nctx_initproc ncx))
@@ -9050,6 +9062,7 @@
 	 ;;     (parent_module_environment)))
 	 (scurenvbox (make_instance class_src_current_module_environment_box
 				    :src_loc psloc))
+	 ;; below is probably useless. See update_current_module_environment_box....
 	 (sgetcurenvbox
 	  (make_instance 
 	   class_src_or
@@ -9265,10 +9278,13 @@
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check ncx" (is_a ncx class_normcontext))
   (assert_msg "check bindslist" (is_list bindslist))
+  (compile_warning "normal_exported_macro should probably be shrinken" ())
   (let ( (csymexpo (clone_symbol '_exportedm_))
 	 (symdata (normal_symbol_data sym ncx psloc))
 	 (scurenvbox (make_instance class_src_current_module_environment_box
 				  :src_loc psloc))
+	 ;; below is not needed any more
+	 ;; below is probably useless. See update_current_module_environment_box....
 	 (sgetcurenvbox
 	  (make_instance 
 	   class_src_or
@@ -9364,6 +9380,7 @@
   (debug_msg recv "normexp_current_module_environment_box recv")
   (let ( 
 	(sloc (unsafe_get_field :src_loc recv))
+	(ncurmodenvlist (unsafe_get_field :nctx_procurmodenvlist ncx))
 	(curproc (unsafe_get_field :nctx_curproc ncx))
 	(qdatcur (unsafe_get_field :nctx_qdatcurmodenvbox ncx))
 	(nquasi (make_instance class_nrep_quasiconst_current_module_environment_box
@@ -9375,7 +9392,11 @@
 	)
     (assert_msg "check qdatcur" (is_a qdatcur class_nrep_quasidata_current_module_environment_box))
     (if (is_a curproc class_nrep_routproc)
-	(list_append (unsafe_get_field :nrpro_const curproc) qdatcur))
+	(progn
+	  (compile_warning "should register the curproc somewhere as using the nquasi" ())
+	  (list_append (unsafe_get_field :nrpro_const curproc) qdatcur)
+	  (list_append ncurmodenvlist curproc)
+	  ))
     (debug_msg nquasi "normexp_current_module_environment_box nquasi")
     (return nquasi)
     ))
@@ -9414,7 +9435,6 @@
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normcontext))
   (debug_msg recv "normexp_update_current_module_environment_box recv")
-  (compile_warning "normexp_update_current_module_environment_box unimplemented" ())
   (let ( 
 	(sloc (unsafe_get_field :src_loc recv))
 	(curproc (unsafe_get_field :nctx_curproc ncx))
@@ -9424,9 +9444,59 @@
 	(progn
 	  (error_plain sloc "(UPDATE_CURRENT_MODULE_ENVIRONMENT_BOX) not at toplevel")
 	  (return)))
-    (warning_plain sloc "normexp_update_current_module_environment_box unimplemented")
-    (return (make_instance class_nrep_nil :nrep_loc sloc))
-    ))
+    (let ( (nup (make_instance class_nrep_update_current_module_environment_box
+			       ;; :ncumeb_expr filled later
+			       :nrep_loc sloc)) 
+	   (csym (clone_symbol 'updatcurmodenvbox_))
+	   (cbind (make_instance class_normlet_binding
+				 :letbind_loc sloc
+				 :binder csym
+				 :letbind_type ctype_void
+				 :letbind_expr nup))
+	   (clocc (make_instance class_nrep_locsymocc
+				 :nrep_loc sloc
+				 :nocc_ctyp ctype_void
+				 :nocc_symb csym
+				 :nocc_bind cbind))
+	   (scurenvbox (make_instance class_src_current_module_environment_box
+				      :src_loc sloc))
+	   (sgetcurenvbox
+	    (make_instance 
+	     class_src_or
+	     :src_loc psloc
+	     :sor_disj 
+	     (make_tuple2
+	      discr_multiple
+	      scurenvbox
+	      (make_instance 
+	       class_src_apply
+	       :src_loc psloc
+	       :sapp_fun (make_instance
+			  class_src_unsafe_get_field
+			  :src_loc psloc
+			  :suget_obj (make_instance
+				      class_src_fetch_predefined
+				      :src_loc psloc
+				      :sfepd_predef 'initial_system_data
+				      )
+			  :suget_field sysdata_cont_fresh_env
+			  )
+	       :sapp_args (make_tuple1 discr_multiple
+				       (make_instance class_src_parent_module_environment
+						      :src_loc psloc)
+				       )))))
+	   )
+      (multicall
+       (ncurenvbox bindlist)
+       (normal_exp sgetcurenvbox env ncx sloc)
+       (list_append bindlist cbind)
+       (unsafe_put_fields nup :nucmeb_expr ncurenvbox)
+       (debug_msg bindlist "normexp_update_current_module_environment_box result bindlist")
+       (debug_msg clocc "normexp_update_current_module_environment_box result clocc")
+       (return clocc bindlist)
+       )
+      )))
+(install_method class_src_update_current_module_environment_box normal_exp normexp_update_current_module_environment_box)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -12197,7 +12267,7 @@
   )
 
 ;;;; compile the initial procedure into an object
-(defun compile2obj_initproc (ipro modctx idata compicache)
+(defun compile2obj_initproc (ipro modctx idata compicache procurmodenvlist)
   (assert_msg "check ipro" (is_a ipro class_nrep_initproc))
   (assert_msg "check idata" (is_list idata))
   (assert_msg "check modctx" (is_a modctx class_modulcontext))
@@ -12224,6 +12294,9 @@
 			    :gncx_freeothermaps (make_mapobject discr_mapobjects 20)
 			    :gncx_compicache compicache
 			    :gncx_modulcontext modctx
+			    :igncx_procurmodenvlist
+			    ;; perhaps we should store not a list of procedures, but their matching routines
+			    (compile_warning "should transform procurmodenvlist into ??" procurmodenvlist)
 			    ))
 	(retinit 
 	 (let ( (reti (get_free_objlocptr gcx '_retinit_)) )
@@ -14778,8 +14851,22 @@
     ))
 (install_method class_nrep_store_predefined compile_obj compilobj_nrep_store_predefined)
   
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
+(defun compilobj_nrep_update_current_module_environment_box (nucmeb gcx)
+  (assert_msg "check nucmeb" (is_a nucmeb class_nrep_update_current_module_environment_box))
+  (assert_msg "check gcx" (is_a gcx class_initgenercontext))
+  (debug_msg nucmeb "compilobj_nrep_update_current_module_environment_box nucmeb")
+  (let ( (nloc (unsafe_get_field :nrep_loc nucmeb))
+	 (nex (unsafe_get_field :nucmeb_expr nucmeb))
+	 )
+    (warning_plain nloc "compilobj_nrep_update_current_module_environment_box unimplemented")
+    (compile_warning 
+     "compilobj_nrep_update_current_module_environment_box should use :igncx_procurmodenvlist" ())
+    (return)
+))
+(install_method class_nrep_update_current_module_environment_box compile_obj compilobj_nrep_update_current_module_environment_box)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -14861,9 +14948,10 @@
 	(assert_msg "check objlist" (is_list objlist))
 	(let ( (inipro (unsafe_get_field :nctx_initproc ncx)) 
 	       (inidata (unsafe_get_field :nctx_datalist ncx))
+	       (procurmodenvlist (unsafe_get_field :nctx_procurmodenvlist ncx))
 	       )
 	  (assert_msg "check inipro" (is_a inipro class_nrep_initproc))
-	  (let ( (iniobj (compile2obj_initproc inipro modctx inidata compicache)) )
+	  (let ( (iniobj (compile2obj_initproc inipro modctx inidata compicache procurmodenvlist)) )
 	    (debug_msg iniobj "compile_list_sexpr iniobj")
 	    (outnum_err "** warm-basilys generated " (list_length objlist) " routines into ")
 	    (outstr_err modnamstr)
