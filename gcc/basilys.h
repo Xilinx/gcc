@@ -802,6 +802,10 @@ basilys_box_content (basilysbox_ptr_t box)
 
 void basilysgc_box_put (basilys_ptr_t box, basilys_ptr_t val);
 
+/* safely return the calue inside a container - instance of CLASS_CONTAINER */
+basilys_ptr_t
+basilys_container_value  (basilys_ptr_t cont);
+
 
 void *basilysgc_raw_new_mappointers (basilysobject_ptr_t discr_p,
 				     unsigned len);
@@ -1913,6 +1917,8 @@ enum basilys_globalix_en
   BGLOB_INITIAL_SYSTEM_DATA,
   /* the atom for true */
   BGLOB_ATOM_TRUE,
+  /* the class of containers */
+  BGLOB_CLASS_CONTAINER,
   /**************************** placeholder for last wired */
   BGLOB__LASTWIRED,
   BGLOB___SPARE1,
@@ -1931,6 +1937,13 @@ extern GTY (()) basilys_ptr_t basilys_globarr[BGLOB__LASTGLOB];
 
 /* *INDENT-ON* */
 
+/* fields inside container */
+enum
+{
+  FCONTAINER_VALUE = 0,
+  FCONTAINER__LAST
+};
+    
 /* fields inside every proped object */
 enum
 {

@@ -1,4 +1,22 @@
 2008-06-15  Basile Starynkevitch  <basile@starynkevitch.net>
+[start adding update_current_module_environment_box]
+
+	* basilys.h: added BGLOB_CLASS_CONTAINER & FCONTAINER_VALUE and
+	declare basilys_container_value.
+
+	* basilys.c: (basilys_container_value) new function.
+
+	* melt/warm-basilys.bysl: class_container is predefined.  field
+	sysdata_box_fresh_env renamed as sysdata_cont_fresh_env.  field
+	igncx_boxenvloc renmed as igncx_contenvloc.  initfresh_boxenvmaker
+	renamed as initfresh_contenvmaker so updated initial_system_data.
+	initvalue_exporter & initmacro_exporter take a contenv as
+	argument. Added some stuff for
+	update_current_module_environment_box, which is not implemented.
+
+	* warm-basilys-0.c: regenerated.
+
+2008-06-15  Basile Starynkevitch  <basile@starynkevitch.net>
 	* basilys.h: renamed  FSYSDAT_FRESH_ENV as  FSYSDAT_BOX_FRESH_ENV
 
 	* melt/warm-basilys.bysl: sysdata_box_fresh_env instead of

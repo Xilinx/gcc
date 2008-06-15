@@ -57,6 +57,7 @@
 ;; arbitrary container as class
 (defclass class_container
   :super class_root
+  :predef CLASS_CONTAINER
   :fields (container_value))
 
 ;; class of named objects
@@ -152,7 +153,7 @@
   :predef CLASS_SYSTEM_DATA
   :super class_named
   :fields (sysdata_cmd_fundict			;stringmap for closures for command dispatching
-	   sysdata_box_fresh_env			;closure to make a fresh environment
+	   sysdata_cont_fresh_env			;closure to make a fresh environment
 	   sysdata_value_exporter		;closure to export a value
 	   sysdata_macro_exporter		;closure to export a macro
 	   sysdata_symboldict 		; stringmap for symbols
@@ -358,7 +359,7 @@
 (defclass class_initgenercontext
   :super class_genercontext
   :fields (igncx_prevenvloc	    ;local for previous environment [parent_module_environment]
-	   igncx_boxenvloc	    ;local for the boxed environment
+	   igncx_contenvloc	    ;local for the container of environment
 ))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1282,28 +1283,29 @@
 
  
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; initial fresh environment box maker
-(defun initfresh_boxenvmaker (prevenv)
-  (debug_msg prevenv "initfresh_boxenvmaker prevenv")
+;; initial fresh environment container maker
+(defun initfresh_contenvmaker (prevenv)
+  (debug_msg prevenv "initfresh_contenvmaker prevenv")
   (if (need_dbg 0) 
-      (shortbacktrace_dbg "initfresh_boxenvmaker" 15))
+      (shortbacktrace_dbg "initfresh_contenvmaker" 15))
   (let ( (newenv (fresh_env prevenv)) 
-	 (newbox (make_box discr_box newenv))
+	 (newcont (make_instance class_container 
+				 :container_value newenv))
 	 )
-    (debug_msg newbox "initfresh_boxenvmaker result newbox")
-    (return newbox)
+    (debug_msg newcont "initfresh_contenvmaker result newcont")
+    (return newcont)
     ))
 
 ;; initial value exporter
-(defun initvalue_exporter (sym val boxenv)
+(defun initvalue_exporter (sym val contenv)
   (debug_msg sym "initvalue_exporter sym")
   (debug_msg val "initvalue_exporter val")
-  (debug_msg boxenv "initvalue_exporter boxenv")
+  (debug_msg contenv "initvalue_exporter contenv")
   (if (need_dbg 0) 
       (shortbacktrace_dbg "initvalue_exporter" 15))
   (assert_msg "check sym" (is_a sym class_symbol))
-  (assert_msg "check boxenv" (is_box boxenv))
-  (let ( (env (box_content boxenv)) )
+  (assert_msg "check contenv" (is_a contenv class_container))
+  (let ( (env (unsafe_get_field :container_value contenv)) )
     (if (null env)
 	(progn
 	  (informsg_strv "exporting value too early with null environment" (unsafe_get_field :named_name sym))
@@ -1322,13 +1324,13 @@
       )))
 
 ;; initial macro exporter
-(defun initmacro_exporter (sym val boxenv)
+(defun initmacro_exporter (sym val contenv)
   (debug_msg sym "initmacro_exporter sym")
   (debug_msg val "initmacro_exporter val")
-  (debug_msg boxenv "initmacro_exporter boxenv")
+  (debug_msg contenv "initmacro_exporter contenv")
   (assert_msg "check sym" (is_a sym class_symbol))
-  (assert_msg "check boxenv" (is_box boxenv))
-  (let ( (env (box_content boxenv)) )
+  (assert_msg "check contenv" (is_a contenv class_container))
+  (let ( (env (unsafe_get_field :container_value contenv)) )
     (if (need_dbg 0) (shortbacktrace_dbg "initmacro_exporter" 15))
     (if (null env)
 	(progn
@@ -1353,7 +1355,7 @@
   :predef INITIAL_SYSTEM_DATA
   :named_name (stringconst2val discr_namestring "INITIAL_SYSTEM_DATA")
   :sysdata_cmd_fundict  (make_mapstring discr_mapstrings 40) ;stringmap for commands
-  :sysdata_box_fresh_env initfresh_boxenvmaker	;fresh environment maker in module
+  :sysdata_cont_fresh_env initfresh_contenvmaker	;fresh environment maker in module
   :sysdata_value_exporter initvalue_exporter ;value exporter in module
   :sysdata_macro_exporter initmacro_exporter ;macro exporter in module
   :sysdata_symboldict  (make_mapstring discr_mapstrings 600) ;stringmap for symbols
@@ -3238,6 +3240,13 @@
 	   ))
 
 
+;; update the current module environment box - only callable at toplevel
+(defclass class_src_update_current_module_environment_box
+  :super class_src
+  :fields (
+))
+
+
 ;;; fetch a predefined by its name or rank
 (defclass class_src_fetch_predefined
   :super class_src
@@ -3654,7 +3663,7 @@
 	      )))))))
 (install_initial_macro 'defprimitive mexpand_defprimitive)
 (export_macro defprimitive mexpand_defprimitive)
-
+(compile_warning "perhaps export_macro should not be used for initial macros?" ())
 
 ;;;;;;;;;;;;;;;;;; the defun expander
 (defun mexpand_defun (sexpr env mexpander)
@@ -5247,6 +5256,29 @@
 
 
 ;;;;;;;;;;;;;;;;
+;;;; update_current_module_environment_box macro 
+(defun mexpand_update_current_module_environment_box  (sexpr env mexpander)
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check env" (is_a env class_environment))
+  (debug_msg sexpr "mexpand_update_current_module_environment_box sexpr")
+  (let (
+	(cont (unsafe_get_field :sexp_contents sexpr))
+	(loc  (unsafe_get_field :loca_location sexpr))
+	(curpair (pair_tail (list_first cont)))
+	(res (make_instance class_src_update_current_module_environment_box
+			    :src_loc loc))
+	)
+    (if (notnull curpair)
+	(error_plain loc "(UPDATE_CURRENT_MODULE_ENVIRONMENT_BOX) should not have any argument"))
+    (debug_msg res "mexpand_update_current_module_environment_box return res")
+    (return res)
+))
+(install_initial_macro 'update_current_module_environment_box mexpand_update_current_module_environment_box)
+(export_macro update_current_module_environment_box mexpand_update_current_module_environment_box)
+
+
+
+;;;;;;;;;;;;;;;;
 
 (defun mexpand_fetch_predefined (sexpr env mexpander)
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
@@ -5737,33 +5769,19 @@
 	   naccm_ix			;index to be accessed (a boxed integer)
 ))
 
-;;-  apprently useless classes
-;;- ;;; normalized export
-;;- (defclass class_nrep_export
-;;-   :super class_nrep
-;;-   :fields (nexp_symdata		;symbol data
-;;- ))
-;;- 
-;;- ;;; normalized exported value
-;;- (defclass class_nrep_exportval
-;;-   :super class_nrep_export
-;;-   :fields (nexp_valdata		;value data
-;;- ))
-;;- 
-;;- ;;; normalized exported macro
-;;- (defclass class_nrep_exportmacro
-;;-   :super class_nrep_export
-;;-   :fields (nexp_mexp			;normalized exp
-;;- 	   
-;;- ))
-
-
 ;; normalized store predefined
 (defclass class_nrep_store_predefined
   :super class_nrep_expr
   :fields (nstpd_predef
 	   nstpd_value
 ))
+
+;; normalized update current module environment box
+(defclass class_nrep_update_current_module_environment_box
+  :super class_nrep_expr
+  :fields (
+))
+
 
 ;;; export all the normalized representations classes
 (export_class ;; normal representations classes in alphabetical order
@@ -5816,6 +5834,7 @@
  class_nrep_symocc
  class_nrep_unsafe_get_field
  class_nrep_unsafe_put_fields
+ class_nrep_update_current_module_environment_box
  )					;end of export normal classes
 
 
@@ -6243,6 +6262,7 @@
 (defprimitive global_DISCR_SEQFIELD              () :value "(void*)BASILYSG(DISCR_SEQFIELD)")
 (defprimitive global_DISCR_METHODMAP             () :value "(void*)BASILYSG(DISCR_METHODMAP)")
 (defprimitive global_CLASS_CLASS                 () :value "(void*)BASILYSG(CLASS_CLASS)")
+(defprimitive global_CLASS_CONTAINER             () :value "(void*)BASILYSG(CLASS_CONTAINER)")
 (defprimitive global_CLASS_ROOT                  () :value "(void*)BASILYSG(CLASS_ROOT)")
 (defprimitive global_CLASS_PROPED                () :value "(void*)BASILYSG(CLASS_PROPED)")
 (defprimitive global_CLASS_NAMED                 () :value "(void*)BASILYSG(CLASS_NAMED)")
@@ -6299,6 +6319,7 @@
     (mapobject_put predefmap (global_CLASS_FORMAL_BINDING)           'CLASS_FORMAL_BINDING)
     (mapobject_put predefmap (global_CLASS_DISCR)                    'CLASS_DISCR)
     (mapobject_put predefmap (global_CLASS_SYSTEM_DATA)              'CLASS_SYSTEM_DATA)
+    (mapobject_put predefmap (global_CLASS_CONTAINER)                'CLASS_CONTAINER)
     (mapobject_put predefmap (global_ATOM_TRUE)                      'ATOM_TRUE)
     (mapobject_put predefmap (global_CTYPE_LONG)                     'CTYPE_LONG)
     (mapobject_put predefmap (global_CTYPE_VALUE)                    'CTYPE_VALUE)
@@ -9025,7 +9046,7 @@
 	 (curproc (unsafe_get_field :nctx_curproc ncx))
 ;;; we want to make a freshenv if the current_module_environment_box is null; so if at toplevel we expand the equivalent of 
 	 ;; (or (current_module_environment_box)
-	 ;;     ((unsafe_get_field (predefined initial_system_data) sysdata_box_fresh_env)
+	 ;;     ((unsafe_get_field (predefined initial_system_data) sysdata_cont_fresh_env)
 	 ;;     (parent_module_environment)))
 	 (scurenvbox (make_instance class_src_current_module_environment_box
 				    :src_loc psloc))
@@ -9048,7 +9069,7 @@
 				    :src_loc psloc
 				    :sfepd_predef 'initial_system_data
 				    )
-			:suget_field sysdata_box_fresh_env
+			:suget_field sysdata_cont_fresh_env
 			)
 	     :sapp_args (make_tuple1 discr_multiple
 				     (make_instance class_src_parent_module_environment
@@ -9062,6 +9083,8 @@
      (normal_exp sgetcurenvbox env ncx psloc)
      (debug_msg ncurenvbox "normal_exported_value ncurenvbox")
      (debug_msg curenvbinds "normal_exported_value curenvbinds")
+     (compile_warning "if we are at toplevel ensure that the curenvbox is transfered to the local there" ())
+     ;;; if we are not at topevel it has no sense to call the cont_fresh_env!
      (list_append2list bindslist curenvbinds)
      (let (
 	   (cbind (make_instance class_normlet_binding
@@ -9265,7 +9288,7 @@
 				    :src_loc psloc
 				    :sfepd_predef 'initial_system_data
 				    )
-			:suget_field sysdata_box_fresh_env
+			:suget_field sysdata_cont_fresh_env
 			)
 	     :sapp_args (make_tuple1 discr_multiple
 				     (make_instance class_src_parent_module_environment
@@ -9384,6 +9407,26 @@
     ))
 (install_method class_src_parent_module_environment normal_exp normexp_parent_module_environment)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;; normalize update_current_module_environment_box
+(defun normexp_update_current_module_environment_box (recv env ncx psloc)
+  (assert_msg "check update_current_module_environment_box recv" (is_a recv class_src_update_current_module_environment_box))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check nctxt" (is_a ncx class_normcontext))
+  (debug_msg recv "normexp_update_current_module_environment_box recv")
+  (compile_warning "normexp_update_current_module_environment_box unimplemented" ())
+  (let ( 
+	(sloc (unsafe_get_field :src_loc recv))
+	(curproc (unsafe_get_field :nctx_curproc ncx))
+	(iniproc (unsafe_get_field :nctx_initproc ncx))
+	)
+    (if (!= curproc iniproc)
+	(progn
+	  (error_plain sloc "(UPDATE_CURRENT_MODULE_ENVIRONMENT_BOX) not at toplevel")
+	  (return)))
+    (warning_plain sloc "normexp_update_current_module_environment_box unimplemented")
+    (return (make_instance class_nrep_nil :nrep_loc sloc))
+    ))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -12188,8 +12231,8 @@
 	   (unsafe_put_fields oinitrout :obrout_retval reti)
 	   reti))
 	(boxloc
-	 (let ( (boxl (get_free_objlocptr gcx '_boxenv_)) )
-	   (unsafe_put_fields gcx :igncx_boxenvloc boxl)
+	 (let ( (boxl (get_free_objlocptr gcx '_contenv_)) )
+	   (unsafe_put_fields gcx :igncx_contenvloc boxl)
 	   boxl))
 	(ofreshenv  (get_free_objlocptr gcx '_freshenv_))
 	(oprevenv  (let ( (preve (get_free_objlocptr gcx '_prevenv_))
@@ -12211,7 +12254,7 @@
 			  (make_instance class_objgetslot
 					 :obdi_destlist (list1 ofreshenv)
 					 :ogetsl_obj initialsystemdata_objpredef 
-					 :ogetsl_field sysdata_box_fresh_env))
+					 :ogetsl_field sysdata_cont_fresh_env))
 	     ;; always generate a test for fresh_env being a closure if the oprevenv exists
 	     (list_append 
 	      bodfel
@@ -12352,7 +12395,7 @@
 		 :obcpt_expr
 		 (make_tuple3 discr_multiple
 		  (make_stringconst discr_verbatimstring
-				    "/*final freshenv unbox*/ basilys_box_content(")
+				    "/*final freshenv get*/ basilys_container_value(")
 		  boxloc	
 		  (make_stringconst discr_verbatimstring ")")	
 		  )
@@ -14684,7 +14727,7 @@
   (assert_msg "check qdcm" (is_a qdcm class_nrep_quasidata_current_module_environment_box))
   (assert_msg "check gcx" (is_a gcx class_initgenercontext))
   (debug_msg qdcm "compilobj_quasidata_current_module_environment_box qdcm")
-  (let ( (locbox (unsafe_get_field :igncx_boxenvloc gcx)) 
+  (let ( (locbox (unsafe_get_field :igncx_contenvloc gcx)) 
 	 )
     (debug_msg locbox "compilobj_quasidata_current_module_environment_box return locbox")
     (return locbox)))

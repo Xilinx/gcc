@@ -2264,6 +2264,17 @@ end:
 #undef valv
 }
 
+/* safely return the content of a container - instance of CLASS_CONTAINER */
+basilys_ptr_t
+basilys_container_value  (basilys_ptr_t cont) 
+{
+  if (basilys_magic_discr(cont) != OBMAG_OBJECT 
+      || ((basilysobject_ptr_t)cont)->obj_len<FCONTAINER__LAST)
+    return 0;
+  if (!basilys_is_instance_of((void*)cont, (void*)BASILYSGOB(CLASS_CONTAINER)))
+    return 0;
+  return ((basilysobject_ptr_t)cont)->obj_vartab[FCONTAINER_VALUE];
+}
 
 /* allocate a multiple of arity 1 */
 basilys_ptr_t
