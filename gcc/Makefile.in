@@ -4750,7 +4750,7 @@ warm-basilys-1.c: warm-basilys-0.so cc1$(exeext) $(srcdir)/melt/warm-basilys.bys
 warmelt-first.c: warm-basilys-3.so cc1$(exeext) warmelt-first.bysl
 	-rm -f $@ 
 	@echo generating warmelt-first using warm-basilys-3
-	$(MELTBASILYSCCINIT1) -fbasilys-init='warm-basilys-3' \
+	$(MELTBASILYSCCFILE1) -fbasilys-init='warm-basilys-3' \
 	      -fbasilys-arg=warmelt-first.bysl \
 	      -fbasilys-secondarg=$@
 	ls -l $@

@@ -864,7 +864,7 @@
 (defprimitive pair_listlength (pa) :long
   "(basilys_pair_listlength((" pa ")))")
 ;; make
-(defprimitive pair_make (discr hd tl) :value
+(defprimitive make_pair (discr hd tl) :value
   "(basilysgc_new_pair((" discr "), (" hd "), (" tl ")))")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -875,6 +875,10 @@
 ;; get the value
 (defprimitive mixint_val (mi) :value
   "(basilys_val_mixint((" mi ")))")
+;; make a mixint
+(defprimitive make_mixint (dis val :long num) :value
+  "(basilysgc_new_mixint((void*)(" dis "), (void*)(" val "), (" num ")))")
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; READ FILE primitive
 (defprimitive read_file (filnam) :value
@@ -898,7 +902,7 @@
 
 ;; to signal an warning in a basilys source with some additional string value
 (defprimitive warning_strv (loc :cstring msg :value strv) :void
-  "warning(0, \"BASILYS WARNING: file %s, line %d : %s - %s\","
+  "warning(0, \"BASILYS WARNING [#%ld]: file %s, line %d : %s - %s\", basilys_dbgcounter,"
   " basilys_string_str(basilys_val_mixint(" loc ")), "
   " (int) basilys_num_mixint(" loc "), ("
   msg
@@ -906,7 +910,7 @@
   )
 ;; signal a plain warning in a basilys source
 (defprimitive warning_plain (loc :cstring msg) :void
-  "warning(0, \"BASILYS WARNING: file %s, line %d :: %s \","
+  "warning(0, \"BASILYS WARNING [#%ld]: file %s, line %d :: %s \", basilys_dbgcounter,"
   " basilys_string_str(basilys_val_mixint(" loc ")), "
   " (int) basilys_num_mixint(" loc "), ("
   msg "))"
@@ -915,7 +919,7 @@
 
 ;; to signal an inform in a basilys source with some additional string value
 (defprimitive inform_strv (loc :cstring msg :value strv) :void
-  "inform(\"BASILYS INFORM: file %s, line %d : %s - %s\","
+  "inform(\"BASILYS INFORM [#%ld]: file %s, line %d : %s - %s\", basilys_dbgcounter,"
   " basilys_string_str(basilys_val_mixint(" loc ")), "
   " (int) basilys_num_mixint(" loc "), ("
   msg
@@ -923,22 +927,26 @@
   )
 ;; signal a plain inform in a basilys source
 (defprimitive inform_plain (loc :cstring msg) :void
-  "inform(\"BASILYS INFORM: file %s, line %d :: %s \","
+  "inform(\"BASILYS INFORM [#%ld]: file %s, line %d :: %s \", basilys_dbgcounter,"
   " basilys_string_str(basilys_val_mixint(" loc ")), "
   " (int) basilys_num_mixint(" loc "), ("
   msg "))"
   )
 
 (defprimitive informsg_strv (:cstring msg :value strv) :void
-  "inform((\"BASILYS INFORM: %s - %s\"), ("
+  "inform((\"BASILYS INFORM [#%ld]: %s - %s\"), basilys_dbgcounter, ("
   msg
   "), basilys_string_str((" strv ")))"
   )
 
 (defprimitive informsg_plain (:cstring msg) :void
-  "inform((\"BASILYS INFORM: %s \"), ("
+  "inform((\"BASILYS INFORM [#%ld]: %s \"),  basilys_dbgcounter, ("
   msg
   "))"
+  )
+
+(defprimitive informsg_long (:cstring msg :long n) :void
+  "inform((\"BASILYS INFORM [#%ld]: %s * %ld\"),  basilys_dbgcounter, ("  msg  "), (" n "))"
   )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1260,21 +1268,21 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; initial fresh environment maker
 (defun initfresh_envmaker (prevenv)
-  (messageval_dbg "initfresh_envmaker prevenv=" prevenv)
+;  (messageval_dbg "initfresh_envmaker prevenv=" prevenv)
   (debug_msg prevenv "initfresh_envmaker prevenv")
   (if (need_dbg 0) 
       (shortbacktrace_dbg "initfresh_envmaker" 15))
   (let ( (newenv (fresh_env prevenv)) )
     (debug_msg newenv "initfresh_envmaker result newenv")
-    (messageval_dbg "initfresh_envmaker newenv=" newenv)
+ ;   (messageval_dbg "initfresh_envmaker newenv=" newenv)
     (return newenv)
     ))
 
 ;; initial value exporter
 (defun initvalue_exporter (sym val env)
-  (messageval_dbg "initvalue_exporter sym=" sym)
-  (messageval_dbg "initvalue_exporter val=" val)
-  (messageval_dbg "initvalue_exporter env=" env)
+;  (messageval_dbg "initvalue_exporter sym=" sym)
+;  (messageval_dbg "initvalue_exporter val=" val)
+;  (messageval_dbg "initvalue_exporter env=" env)
   (debug_msg sym "initvalue_exporter sym")
   (debug_msg val "initvalue_exporter val")
   (debug_msg env "initvalue_exporter env")
@@ -1618,6 +1626,40 @@
     (list_append lis v2)
     (list_append lis v3)
     lis))
+
+;; utility function to make a list of 4
+(defun list4 (v1 v2 v3 v4)
+  (let ( (lis (make_list discr_list))
+	 )
+    (list_append lis v1)
+    (list_append lis v2)
+    (list_append lis v3)
+    (list_append lis v4)
+    lis))
+
+;; utility function to make a list of 5
+(defun list5 (v1 v2 v3 v4 v5)
+  (let ( (lis (make_list discr_list))
+	 )
+    (list_append lis v1)
+    (list_append lis v2)
+    (list_append lis v3)
+    (list_append lis v4)
+    (list_append lis v5)
+    lis))
+
+;; utility function to make a list of 6
+(defun list6 (v1 v2 v3 v4 v5 v6)
+  (let ( (lis (make_list discr_list))
+	 )
+    (list_append lis v1)
+    (list_append lis v2)
+    (list_append lis v3)
+    (list_append lis v4)
+    (list_append lis v5)
+    (list_append lis v6)
+    lis))
+
 
 ;;; installation of a method in a class or discriminant
 (defun install_method (cla sel fun)
@@ -2722,6 +2764,7 @@
  make_mapobject
  make_mapstring
  make_multiple
+ make_pair
  make_strbuf
  make_string
  make_string_nakedbasename
@@ -2787,7 +2830,6 @@
  outstrbuf_err
  pair_head
  pair_listlength
- pair_make
  pair_set_head
  pair_tail
  put_int
@@ -14844,6 +14886,25 @@
   )
 
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; a special function to be called when compiling with compilinit command.
+;;; which magically adds a call to it at end of the read list
+(defun post_initialization (unusedarg :cstring meltfilnam)
+  (let ( (curmodenv (current_module_environment)) )
+    (debug_msg curmodenv "post_initialization curmodenv at start")
+    (shortbacktrace_dbg "post_initialization" 10)
+    (if (is_a curmodenv class_environment)
+	(let ( (curbindmap (unsafe_get_field :env_bind curmodenv))
+	       )
+	  (informsg_long "post_initialzation boundvars num" 
+			 (mapobject_count curbindmap))
+	  )
+      (let ( (curmenvdiscr (discrim curmodenv)) )
+	(informsg_strv "post_initialization strange curmodenv of discr" 
+		       (unsafe_get_field :named_name curmenvdiscr)))
+)))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -14889,7 +14950,7 @@
 	   ) 
       (debug_msg rlist "after read compilefile_command rlist")
       (debug_msg curmodenv "after read compilefile_command curmodenv")
-       (compile_list_sexpr rlist curenv basnam)
+      (compile_list_sexpr rlist curenv basnam)
       )))
 
 (install_initial_command  (stringconst2val discr_string "compilefile") compilefile_command)
@@ -14906,6 +14967,14 @@
 	 (basnam (if (is_string secarg) secarg (make_string_nakedbasename discr_string arg)))
 	 ) 
     (debug_msg rlist "after read compileinit_command rlist")
+    (list_append 
+     rlist 
+     (make_instance
+      class_sexpr
+      :loca_location (make_mixint discr_mixedint 
+				  (make_stringconst discr_string "**builtin post_initialization**")
+				  0)
+      :sexp_contents (list3 'post_initialization (the_null) arg)))
     (compile_list_sexpr rlist initial_environment basnam)
     ))
 

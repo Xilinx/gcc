@@ -6276,7 +6276,7 @@ basilys_dbgshortbacktrace (const char *msg, int maxdepth)
   struct callframe_basilys_st *fr = 0;
   if (maxdepth < 2)
     maxdepth = 2;
-  fprintf (stderr, "\nSHORT BACKTRACE %s;", msg ? msg : "/");
+  fprintf (stderr, "\nSHORT BACKTRACE[#%ld] %s;", basilys_dbgcounter, msg ? msg : "/");
   for (fr = basilys_topframe; fr != NULL && curdepth < maxdepth;
        (fr = fr->prev), (curdepth++))
     {

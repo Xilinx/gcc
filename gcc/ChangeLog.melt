@@ -1,4 +1,18 @@
 2008-06-15  Basile Starynkevitch  <basile@starynkevitch.net>
+[current_module_environment should become
+current_module_environment_box; this will make everything easier]
+
+	* basilys.c: (basilys_dbgshortbacktrace) shows the basilys_dbgcounter
+
+	* melt/warm-basilys.bysl: pair_make renamed as make_pair. added
+	make_mixint. all warnings & inform messages display
+	basilys_dbgcounter; added list4 list5 list6. Added a
+	post_initialization function which is called magically with
+	compileinit commmand.
+
+	* Makefile.in: warmelt-first compiled with compfile!
+
+2008-06-15  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warm-basilys.bysl: added warning for
 	redefinitions (warn_if_redefined)
 
