@@ -1,4 +1,19 @@
 2008-06-15  Basile Starynkevitch  <basile@starynkevitch.net>
+	* basilys.h: renamed  FSYSDAT_FRESH_ENV as  FSYSDAT_BOX_FRESH_ENV
+
+	* melt/warm-basilys.bysl: sysdata_box_fresh_env instead of
+	sysdata_fresh_env nctx_qdatcurmodenvbox instead of
+	nctx_qdatcurmodenv igncx_boxenvloc added warningmsg_plain &
+	warningmsg_strv; initfresh_boxenvmaker inside initial_system_data.
+	removed unsafe_replace_module_environment -- just put the content
+	of the current_module_environment_box.  normal_exported_value &
+	normal_exported_macro are simpler.  post_initialization works
+	badly so issue a warning.
+
+	* warm-basilys-0.c: regenerated twide.
+
+	* Makefile.in: warm-basilys-0.c made from warm-basilys-3 not 2
+
 [current_module_environment should become
 current_module_environment_box; this will make everything easier]
 

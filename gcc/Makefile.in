@@ -4774,11 +4774,11 @@ $(WARMELT_FILES):  $(srcdir)/melt/warm-basilys.bysl
 #### this phony target is given manually to copy the generated
 #### warm-basilys-3.c into the source directory it should be only
 #### explicitly given
-upgrade-warm-basilys: warm-basilys-2.c warm-basilys-3.c
-	@echo upgrade-warm-basilys show diff of warm-basilys-2.c and warm-basilys-3.c
-	-diff warm-basilys-2.c warm-basilys-3.c || true
+upgrade-warm-basilys: warm-basilys-3.c warm-basilys-4.c
+	@echo upgrade-warm-basilys show diff of warm-basilys-3.c and warm-basilys-4.c
+	-diff warm-basilys-3.c warm-basilys-4.c || true
 ## we use unifdef to make the warm-basilys-0.c shorter, because it goes into the SVN source repository
-	-grep -v '^#line' warm-basilys-3.c | unifdef -UMELTGCC_NOLINENUMBERING | sed -e 's:warm-basilys-3:warm-basilys-0:' > warm-basilys-0.c-tmp
+	-grep -v '^#line' warm-basilys-4.c | unifdef -UMELTGCC_NOLINENUMBERING | sed -e 's:warm-basilys-4:warm-basilys-0:' > warm-basilys-0.c-tmp
 	$(SHELL) $(srcdir)/../move-if-change warm-basilys-0.c-tmp $(srcdir)/warm-basilys-0.c
 ## we regenerate warm-basilys-5 to be sure
 	@echo upgrade-warm-basilys remaking again warm-basilys-5

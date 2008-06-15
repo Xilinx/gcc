@@ -1990,7 +1990,7 @@ enum
 enum
 {
   FSYSDAT_CMD_FUNDICT = FNAMED__LAST,	/* the stringdict of commands */
-  FSYSDAT_FRESH_ENV,			/* closure to make a fresh environment */
+  FSYSDAT_BOX_FRESH_ENV,			/* closure to make a fresh environment box */
   FSYSDAT_VALUE_EXPORTER,	       /* ;closure to export a value */
   FSYSDAT_MACRO_EXPORTER,	       /* closure to export a macro */
   FSYSDAT_SYMBOLDICT, 	       /* stringmap for symbols */
