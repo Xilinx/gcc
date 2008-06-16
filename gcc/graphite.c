@@ -2179,7 +2179,6 @@ static bool
 build_scop_iteration_domain (scop_p scop)
 {
   struct loop *loop;
-  basic_block_p gbb;
   CloogMatrix *outer_cstr;
   int i;
 

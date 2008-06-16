@@ -1,5 +1,10 @@
 2008-06-15  Tobias Grosser  <grosser@fim.uni-passau.de
 
+	* graphite.c (build_scop_iteration_domain): Remove forgotten
+	line. (Fixes compile)
+
+2008-06-15  Tobias Grosser  <grosser@fim.uni-passau.de
+
 	* graphite.c (print_graphite_bb): Add output of GBB_LOOPS.
 	(build_graphite_bb): Add GBB_LOOPS and GBB_DOMAIN and reorder.
 	(build_bb_loops): New.
