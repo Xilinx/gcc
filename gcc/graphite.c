@@ -253,7 +253,7 @@ print_graphite_bb (FILE *file, graphite_bb_p gb, int indent, int verbosity)
   fprintf (file, "       )\n");
 
   fprintf (file, "       (scattering: \n");
-  scattering = schedule_to_scattering (gb, 2 * nb_loops_around_gb (gb)
+  scattering = schedule_to_scattering (gb, 2 * gbb_nb_loops (gb)
                                           + 1);
   cloog_matrix_print (file, scattering);
   cloog_matrix_free (scattering);
@@ -1690,7 +1690,7 @@ initialize_cloog_names (scop_p scop)
 {
   unsigned i, nb_params = VEC_length (name_tree, SCOP_PARAMS (scop));
   char **params = XNEWVEC (char *, nb_params);
-  unsigned nb_iterators = scop_nb_loops(scop);
+  unsigned nb_iterators = scop_max_loop_depth (scop);
   unsigned nb_scattering= SCOP_PROG (scop)->nb_scattdims;
   char **iterators = XNEWVEC (char *, nb_iterators);
   char **scattering = XNEWVEC (char *, nb_scattering);
@@ -2576,20 +2576,13 @@ static void
 build_cloog_prog (scop_p scop)
 {
   int i;
-  int max_nb_loops = 0;
+  int max_nb_loops = scop_max_loop_depth (scop);
   graphite_bb_p gbb;
   CloogLoop *loop_list = NULL;
   CloogBlockList *block_list = NULL;
   CloogDomainList *scattering = NULL;
   CloogProgram *prog = SCOP_PROG (scop);
   
-  for (i = 0; VEC_iterate (graphite_bb_p, SCOP_BBS (scop), i, gbb); i++)
-    {
-      int nb_loops = nb_loops_around_gb (gbb);
-      if (max_nb_loops < nb_loops)
-        max_nb_loops = nb_loops;
-    }
-
   prog->nb_scattdims = 2 * max_nb_loops + 1; 
 
   initialize_cloog_names (scop);
@@ -2600,7 +2593,7 @@ build_cloog_prog (scop_p scop)
       CloogMatrix *domain = GBB_DOMAIN (gbb);
       CloogStatement *stmt = cloog_statement_alloc (GBB_BB (gbb)->index);
       CloogBlock *block = cloog_block_alloc (stmt, NULL, 0, NULL,
-					     nb_loops_around_gb (gbb));                           
+					     nb_loops_around_gb (gbb));
       stmt->usr = gbb;
 
       /* Add empty domain to all bbs, which do not yet have a domain, as they
@@ -2703,6 +2696,8 @@ find_transform (scop_p scop)
   /* Enable C pretty-printing mode: normalizes the substitution
      equations for statements */
   options->cpp = 1;
+
+  options->strides = 1;
 
   /* Print the program we insert into cloog. */
   if (dump_file && (dump_flags & TDF_DETAILS))
@@ -3142,6 +3137,175 @@ nb_data_refs_in_scop (scop_p scop)
   return res;
 }
 
+/* Swap the two loops of GBB at index LOOP_ONE and LOOP_TWO.  */
+
+static void 
+graphite_swap_loops (graphite_bb_p gb, int loop_one, int loop_two)
+{
+  unsigned i;
+  loop_p loop_p_one, loop_p_two;
+  CloogMatrix *domain = GBB_DOMAIN (gb);
+  assert (loop_one < gbb_nb_loops (gb));
+  assert (loop_two < gbb_nb_loops (gb));
+  
+  for (i = 0; i < domain->NbRows; i++)
+      value_swap (domain->p[i][loop_one + 1], domain->p[i][loop_two + 1]);
+
+  loop_p_one = VEC_index (loop_p, GBB_LOOPS (gb), loop_one);
+  loop_p_two = VEC_index (loop_p, GBB_LOOPS (gb), loop_two);
+  VEC_replace (loop_p, GBB_LOOPS(gb), loop_one, loop_p_two);
+  VEC_replace (loop_p, GBB_LOOPS(gb), loop_two, loop_p_one);
+}
+
+/* Strip mines the loop of BB at the position (loop depth) LOOP with STRIDE.
+   
+   Example:
+
+   for (i = 0; i <= 20; i++)
+     A
+
+   i   1
+   1   0   #  i >= 0
+  -1   20  #  i <= 20
+
+   Strip mining with stripe stride = 2
+
+   for (ii = 0; ii <= 20; i+=2)
+     for (i = ii; i <= min (20, ii+1); i++)
+       A
+
+   ii  i  ii2  1
+   0   1   0   0   #  i >= 0
+   0  -1   0   20  #  i <= 20
+  -1   1   0   0   #  i >= ii
+   1  -1   0   1   #  i <= ii + stride - 1
+   1   0  -2   0   #  i <= stride 
+  -1   0   2   0   #  i >= stride  */
+  
+static void
+graphite_strip_mine_loop (graphite_bb_p gb, int loop, int stride)
+{
+  unsigned row, col;
+
+  CloogMatrix *domain = GBB_DOMAIN (gb);
+  CloogMatrix *new_domain = cloog_matrix_alloc (domain->NbRows + 4,
+                                                domain->NbColumns + 2);   
+
+  int col_const = new_domain->NbColumns - 1;
+  int col_loop_old = loop + 2; 
+  int col_loop_strip = col_loop_old - 1;
+  int col_loc = col_loop_old + 1; 
+
+  assert (loop <= gbb_nb_loops (gb) - 1);
+  assert (loop >= 0);
+
+  GBB_DOMAIN (gb) = new_domain;
+
+  for (row = 0; row < domain->NbRows; row++)
+    for (col = 0; col < domain->NbColumns; col++)
+      if (col <= (unsigned) loop)
+        {
+          value_init (new_domain->p[row][col]);
+          value_assign (new_domain->p[row][col], domain->p[row][col]);
+        }
+      else if (col == (unsigned) loop + 1)
+        {
+          value_init (new_domain->p[row][col + 1]);
+          value_assign (new_domain->p[row][col + 1], domain->p[row][col]);
+        }
+      else
+        {
+          value_init (new_domain->p[row][col + 2]);
+          value_assign (new_domain->p[row][col + 2], domain->p[row][col]);
+        }
+
+  /* Add strip loop.  */
+  value_init (new_domain->p[row][0]);
+  value_set_si (new_domain->p[row][0], 1);
+  value_init (new_domain->p[row][col_loop_strip]);
+  value_set_si (new_domain->p[row][col_loop_strip], -1);
+  value_init (new_domain->p[row][col_loop_old]);
+  value_set_si (new_domain->p[row][col_loop_old], 1);
+  row++;
+
+  value_init (new_domain->p[row][0]);
+  value_set_si (new_domain->p[row][0], 1);
+  value_init (new_domain->p[row][col_loop_strip]);
+  value_set_si (new_domain->p[row][col_loop_strip], 1);
+  value_init (new_domain->p[row][col_loop_old]);
+  value_set_si (new_domain->p[row][col_loop_old], -1);
+  value_init (new_domain->p[row][col_const]);
+  value_set_si (new_domain->p[row][col_const], stride - 1);
+  row++;
+
+  /* Add local variable to keep linear representation.  */
+  value_init (new_domain->p[row][0]);
+  value_set_si (new_domain->p[row][0], 1);
+  value_init (new_domain->p[row][col_loop_strip]);
+  value_set_si (new_domain->p[row][col_loop_strip], 1);
+  value_init (new_domain->p[row][col_loc]);
+  value_set_si (new_domain->p[row][col_loc], -stride);
+  row++;
+
+  value_init (new_domain->p[row][0]);
+  value_set_si (new_domain->p[row][0], 1);
+  value_init (new_domain->p[row][col_loop_strip]);
+  value_set_si (new_domain->p[row][col_loop_strip], -1);
+  value_init (new_domain->p[row][col_loc]);
+  value_set_si (new_domain->p[row][col_loc], stride);
+
+  cloog_matrix_free (domain);
+
+  /* Update static schedule.  */
+  {
+    int i;
+    int nb_loops = gbb_nb_loops (gb);
+    lambda_vector new_schedule = lambda_vector_new (nb_loops + 1);
+
+    for (i = 0; i <= loop; i++)
+      new_schedule[i] = GBB_STATIC_SCHEDULE (gb)[i];  
+
+    new_schedule[i + 1] = GBB_STATIC_SCHEDULE (gb)[i];  
+
+    for (i = loop + 1; i <= nb_loops - 2; i++)
+      new_schedule[i + 2] = GBB_STATIC_SCHEDULE (gb)[i];  
+
+    GBB_STATIC_SCHEDULE (gb) = new_schedule;
+  
+    /* XXX: Free  old schedule.  */
+  }
+    
+  VEC_safe_insert (loop_p, heap, GBB_LOOPS (gb), loop, NULL);
+  VEC_safe_insert (loop_p, heap, GBB_LOOPS (gb), loop + 2, NULL);
+}
+
+/* Swap for all bb with two loops the both loops.  */
+static void
+graphite_trans_swap_1and2 (scop_p scop)
+{
+  graphite_bb_p gb;
+  int i;
+  
+
+  for (i = 0; VEC_iterate (graphite_bb_p, SCOP_BBS (scop), i, gb); i++)
+    if (gbb_nb_loops (gb) == 2)
+      graphite_swap_loops (gb, 0, 1);
+}
+
+/* Strip mine the innermost loops for all bbs.  */
+static void
+graphite_trans_strip (scop_p scop)
+{
+  graphite_bb_p gb;
+  int i;
+  int loop_depth = scop_max_loop_depth (scop); 
+  for (i = 0; VEC_iterate (graphite_bb_p, SCOP_BBS (scop), i, gb); i++)
+    {
+      int nb_loops = gbb_nb_loops (gb);
+      if (nb_loops >= 1  && nb_loops == loop_depth)
+        graphite_strip_mine_loop (gb, gbb_nb_loops (gb) - 1, 4);
+    }
+}
 /* Perform a set of linear transforms on LOOPS.  */
 
 void
@@ -3184,7 +3348,12 @@ graphite_transform_loops (void)
 
       if (!build_scop_iteration_domain (scop))
 	continue;
+
       build_scop_conditions (scop);
+      
+      if (0)
+        graphite_trans_swap_1and2 (scop);
+      graphite_trans_strip (scop);
 
       build_scop_data_accesses (scop);
 

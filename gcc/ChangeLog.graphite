@@ -1,9 +1,23 @@
-2008-06-15  Tobias Grosser  <grosser@fim.uni-passau.de
+2008-06-16  Tobias Grosser  <grosser@fim.uni-passau.de>
+
+	* graphite.c (print_graphite_bb): Allow changing number of loops
+	in SCoP domain.
+	(initialize_cloog_names): Allow changing number of loops.
+	(build_cloog_prog): Simplify.
+	(find_transform): Enable cloog option --strides.
+	(graphite_swap_loops): New.
+	(graphite_strip_mine_loop): New.
+	(graphite_trans_swap_1and2): New.
+	(graphite_trans_strip): New.
+	(graphite_transform_loops): Add graphite_trans_strip.
+	* graphite.h (scop_max_loop_depth): New.
+
+2008-06-15  Tobias Grosser  <grosser@fim.uni-passau.de>
 
 	* graphite.c (build_scop_iteration_domain): Remove forgotten
 	line. (Fixes compile)
 
-2008-06-15  Tobias Grosser  <grosser@fim.uni-passau.de
+2008-06-15  Tobias Grosser  <grosser@fim.uni-passau.de>
 
 	* graphite.c (print_graphite_bb): Add output of GBB_LOOPS.
 	(build_graphite_bb): Add GBB_LOOPS and GBB_DOMAIN and reorder.
@@ -18,7 +32,7 @@
 	(nb_params_in_scop): Renamed to scop_nb_params. Updated all functions
 	using nb_params_in_scop.
 
-2008-06-14  Tobias Grosser  <grosser@fim.uni-passau.de
+2008-06-14  Tobias Grosser  <grosser@fim.uni-passau.de>
 
 	* graphite.c (print_graphite_bb): Adapt to minimized schedule.
 	(build_scop_canonical_schedules): Build minimized schedule.
@@ -26,7 +40,7 @@
 	* graphite.h (graphite_bb): Add/Update descriptions.
 
 2008-06-14  Adrien Eliche  <aeliche@isty.uvsq.fr>
-	    Tobias Grosser  <grosser@fim.uni-passau.de
+	    Tobias Grosser  <grosser@fim.uni-passau.de>
 
 	* graphite.c (print_graphite_bb): Add condition printing.
 	(dump_value): New.
@@ -35,7 +49,7 @@
 	(build_scop_conditions): New.
 	* graphite.h (graphite_bb): Add conditions.
 
-2008-06-14  Tobias Grosser  <grosser@fim.uni-passau.de
+2008-06-14  Tobias Grosser  <grosser@fim.uni-passau.de>
 
 	* graphite.c (print_graphite_bb):
 	(free_graphite_bb): New.
@@ -46,7 +60,7 @@
 	(build_cloog_prog): Free scattering function and blocklist.
 	(find_transform): Free options.
 
-2008-06-13  Tobias Grosser  <grosser@fim.uni-passau.de
+2008-06-13  Tobias Grosser  <grosser@fim.uni-passau.de>
 
 	* graphite.c (loop_body_to_cloog_stmts): Rename to add_bb_domains.
 	Remove unnecessery cloog data structures. Make a copy of the domain
