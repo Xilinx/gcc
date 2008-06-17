@@ -9393,7 +9393,6 @@
     (assert_msg "check qdatcur" (is_a qdatcur class_nrep_quasidata_current_module_environment_box))
     (if (is_a curproc class_nrep_routproc)
 	(progn
-	  (compile_warning "should register the curproc somewhere as using the nquasi" ())
 	  (list_append (unsafe_get_field :nrpro_const curproc) qdatcur)
 	  (list_append ncurmodenvlist curproc)
 	  ))
@@ -12286,7 +12285,8 @@
 			:obrout_others (make_list discr_list)
 			:oirout_fill (make_list discr_list)
 			))
-	(gcx (make_instance class_initgenercontext
+	(gcx (make_instance 
+	      class_initgenercontext
 			    :gncx_objrout oinitrout
 			    :gncx_locmap locmap
 			    :gncx_freeptrlist (make_list discr_list)
@@ -12295,8 +12295,16 @@
 			    :gncx_compicache compicache
 			    :gncx_modulcontext modctx
 			    :igncx_procurmodenvlist
+			    (list_map 
+			     procurmodenvlist
+			     (lambda (curpro)
+			       (debug_msg curpro "compile2obj_initproc procurmodenvlist curpro")
+			       (let ( (curou (mapobject_get compicache curpro)) )
+				 (debug_msg curou "compile2obj_initproc procurmodenvlist curou")
+				 (assert_msg "check curou" (is_object curou))
+				 (compile_warning "c'est bon curou??" curou)
+				 curou)))
 			    ;; perhaps we should store not a list of procedures, but their matching routines
-			    (compile_warning "should transform procurmodenvlist into ??" procurmodenvlist)
 			    ))
 	(retinit 
 	 (let ( (reti (get_free_objlocptr gcx '_retinit_)) )
@@ -14860,12 +14868,37 @@
   (debug_msg nucmeb "compilobj_nrep_update_current_module_environment_box nucmeb")
   (let ( (nloc (unsafe_get_field :nrep_loc nucmeb))
 	 (nex (unsafe_get_field :nucmeb_expr nucmeb))
+	 (pcml (unsafe_get_field :igncx_procurmodenvlist gcx))
 	 )
-    (warning_plain nloc "compilobj_nrep_update_current_module_environment_box unimplemented")
+    (debug_msg pcml "compilobj.upd.cur.mod.env.box pcml")
+    ;; get the igncx_procurmodenvlist from gcx
+    ;; for each routine of class_procroutineobj  get its nrpro_const list and
+    ;; for each CLASS_NREP_QUASIDATA_CURRENT_MODULE_ENVIRONMENT_BOX there do ....
+    (list_every 
+     pcml
+     (lambda (curout)
+       (debug_msg curout "compilobj.upd.cur.mod.env.box curout")
+       (if (is_a curout class_procroutineobj)
+	   (let (
+		 (curproc (unsafe_get_field :obrout_proc curout))
+		 (cnslis (unsafe_get_field :nrpro_const curproc)) 
+		 )
+	     (debug_msg cnslis "compilobj.upd.cur.mod.env.box cnslis")
+	     (list_every 
+	      cnslis
+	      (lambda (curconst)
+		(debug_msg curconst "compilobj.upd.cur.mod.env.box curconst")
+		(if (is_a curconst class_nrep_quasidata_current_module_environment_box)
+		    (let (
+			  )
+		      )
+		  ))
+	      )))))
+    (warning_plain nloc "compilobj.upd.cur.mod.env.box to be unimplemented")
     (compile_warning 
-     "compilobj_nrep_update_current_module_environment_box should use :igncx_procurmodenvlist" ())
+     "compilobj.upd.cur.mod.env.box @@ NOT FULLY IMPLEMENTED" ())
     (return)
-))
+    ))
 (install_method class_nrep_update_current_module_environment_box compile_obj compilobj_nrep_update_current_module_environment_box)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
