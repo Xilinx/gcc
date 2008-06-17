@@ -3532,6 +3532,12 @@ mips_split_doubleword_move (rtx dest, rtx src)
 	emit_insn (gen_move_doubleword_fprdf (dest, src));
       else if (!TARGET_64BIT && GET_MODE (dest) == V2SFmode)
 	emit_insn (gen_move_doubleword_fprv2sf (dest, src));
+      else if (!TARGET_64BIT && GET_MODE (dest) == V2SImode)
+	emit_insn (gen_move_doubleword_fprv2si (dest, src));
+      else if (!TARGET_64BIT && GET_MODE (dest) == V4HImode)
+	emit_insn (gen_move_doubleword_fprv4hi (dest, src));
+      else if (!TARGET_64BIT && GET_MODE (dest) == V8QImode)
+	emit_insn (gen_move_doubleword_fprv8qi (dest, src));
       else if (TARGET_64BIT && GET_MODE (dest) == TFmode)
 	emit_insn (gen_move_doubleword_fprtf (dest, src));
       else
@@ -8960,6 +8966,14 @@ mips_hard_regno_mode_ok_p (unsigned int regno, enum machine_mode mode)
       if (mode == TFmode && ISA_HAS_8CC)
 	return true;
 
+      /* Allow 64-bit vector modes for Loongson-2E/2F.  */
+      if (TARGET_LOONGSON_VECTORS
+	  && (mode == V2SImode
+	      || mode == V4HImode
+	      || mode == V8QImode
+	      || mode == DImode))
+	return true;
+
       if (class == MODE_FLOAT
 	  || class == MODE_COMPLEX_FLOAT
 	  || class == MODE_VECTOR_FLOAT)
@@ -9322,6 +9336,11 @@ mips_vector_mode_supported_p (enum machine_mode mode)
     case V4QQmode:
     case V4UQQmode:
       return TARGET_DSP;
+
+    case V2SImode:
+    case V4HImode:
+    case V8QImode:
+      return TARGET_LOONGSON_VECTORS;
 
     default:
       return false;
@@ -9759,6 +9778,41 @@ mips_store_data_bypass_p (rtx out_insn, rtx in_insn)
   return !store_data_bypass_p (out_insn, in_insn);
 }
 
+
+/* Variables and flags used in scheduler hooks when tuning for
+   Loongson 2E/2F.  */
+static struct
+{
+  /* Variables to support Loongson 2E/2F round-robin [F]ALU1/2 dispatch
+     strategy.  */
+
+  /* If true, then next ALU1/2 instruction will go to ALU1.  */
+  bool alu1_turn_p;
+
+  /* If true, then next FALU1/2 unstruction will go to FALU1.  */
+  bool falu1_turn_p;
+
+  /* Codes to query if [f]alu{1,2}_core units are subscribed or not.  */
+  int alu1_core_unit_code;
+  int alu2_core_unit_code;
+  int falu1_core_unit_code;
+  int falu2_core_unit_code;
+
+  /* True if current cycle has a multi instruction.
+     This flag is used in mips_ls2_dfa_post_advance_cycle.  */
+  bool cycle_has_multi_p;
+
+  /* Instructions to subscribe ls2_[f]alu{1,2}_turn_enabled units.
+     These are used in mips_ls2_dfa_post_advance_cycle to initialize
+     DFA state.
+     E.g., when alu1_turn_enabled_insn is issued it makes next ALU1/2
+     instruction to go ALU1.  */
+  rtx alu1_turn_enabled_insn;
+  rtx alu2_turn_enabled_insn;
+  rtx falu1_turn_enabled_insn;
+  rtx falu2_turn_enabled_insn;
+} mips_ls2;
+
 /* Implement TARGET_SCHED_ADJUST_COST.  We assume that anti and output
    dependencies have no cost, except on the 20Kc where output-dependence
    is treated like input-dependence.  */
@@ -9809,9 +9863,122 @@ mips_issue_rate (void)
 	 reach the theoretical max of 4.  */
       return 3;
 
+    case PROCESSOR_LOONGSON_2E:
+    case PROCESSOR_LOONGSON_2F:
+      return 4;
+
     default:
       return 1;
     }
+}
+
+/* Implement TARGET_SCHED_INIT_DFA_POST_CYCLE_INSN hook for Loongson2.  */
+
+static void
+mips_ls2_init_dfa_post_cycle_insn (void)
+{
+  start_sequence ();
+  emit_insn (gen_ls2_alu1_turn_enabled_insn ());
+  mips_ls2.alu1_turn_enabled_insn = get_insns ();
+  end_sequence ();
+
+  start_sequence ();
+  emit_insn (gen_ls2_alu2_turn_enabled_insn ());
+  mips_ls2.alu2_turn_enabled_insn = get_insns ();
+  end_sequence ();
+
+  start_sequence ();
+  emit_insn (gen_ls2_falu1_turn_enabled_insn ());
+  mips_ls2.falu1_turn_enabled_insn = get_insns ();
+  end_sequence ();
+
+  start_sequence ();
+  emit_insn (gen_ls2_falu2_turn_enabled_insn ());
+  mips_ls2.falu2_turn_enabled_insn = get_insns ();
+  end_sequence ();
+
+  mips_ls2.alu1_core_unit_code = get_cpu_unit_code ("ls2_alu1_core");
+  mips_ls2.alu2_core_unit_code = get_cpu_unit_code ("ls2_alu2_core");
+  mips_ls2.falu1_core_unit_code = get_cpu_unit_code ("ls2_falu1_core");
+  mips_ls2.falu2_core_unit_code = get_cpu_unit_code ("ls2_falu2_core");
+}
+
+/* Implement TARGET_SCHED_INIT_DFA_POST_CYCLE_INSN hook.
+   Init data used in mips_dfa_post_advance_cycle.  */
+
+static void
+mips_init_dfa_post_cycle_insn (void)
+{
+  if (TUNE_LOONGSON_2EF)
+    mips_ls2_init_dfa_post_cycle_insn ();
+}
+
+/* Initialize STATE when scheduling for Loongson 2E/2F.
+   Support round-robin dispatch scheme by enabling only one of
+   ALU1/ALU2 and one of FALU1/FALU2 units for ALU1/2 and FALU1/2 instructions
+   respectively.  */
+
+static void
+mips_ls2_dfa_post_advance_cycle (state_t state)
+{
+  if (cpu_unit_reservation_p (state, mips_ls2.alu1_core_unit_code))
+    {
+      /* Though there are no non-pipelined ALU1 insns,
+	 we can get an instruction of type 'multi' before reload.  */
+      gcc_assert (mips_ls2.cycle_has_multi_p);
+      mips_ls2.alu1_turn_p = false;
+    }
+
+  mips_ls2.cycle_has_multi_p = false;
+
+  if (cpu_unit_reservation_p (state, mips_ls2.alu2_core_unit_code))
+    /* We have a non-pipelined alu instruction in the core,
+       adjust round-robin counter.  */
+    mips_ls2.alu1_turn_p = true;
+
+  if (mips_ls2.alu1_turn_p)
+    {
+      if (state_transition (state, mips_ls2.alu1_turn_enabled_insn) >= 0)
+	gcc_unreachable ();
+    }
+  else
+    {
+      if (state_transition (state, mips_ls2.alu2_turn_enabled_insn) >= 0)
+	gcc_unreachable ();
+    }
+
+  if (cpu_unit_reservation_p (state, mips_ls2.falu1_core_unit_code))
+    {
+      /* There are no non-pipelined FALU1 insns.  */
+      gcc_unreachable ();
+      mips_ls2.falu1_turn_p = false;
+    }
+
+  if (cpu_unit_reservation_p (state, mips_ls2.falu2_core_unit_code))
+    /* We have a non-pipelined falu instruction in the core,
+       adjust round-robin counter.  */
+    mips_ls2.falu1_turn_p = true;
+
+  if (mips_ls2.falu1_turn_p)
+    {
+      if (state_transition (state, mips_ls2.falu1_turn_enabled_insn) >= 0)
+	gcc_unreachable ();
+    }
+  else
+    {
+      if (state_transition (state, mips_ls2.falu2_turn_enabled_insn) >= 0)
+	gcc_unreachable ();
+    }
+}
+
+/* Implement TARGET_SCHED_DFA_POST_ADVANCE_CYCLE.
+   This hook is being called at the start of each cycle.  */
+
+static void
+mips_dfa_post_advance_cycle (void)
+{
+  if (TUNE_LOONGSON_2EF)
+    mips_ls2_dfa_post_advance_cycle (curr_state);
 }
 
 /* Implement TARGET_SCHED_FIRST_CYCLE_MULTIPASS_DFA_LOOKAHEAD.  This should
@@ -9822,6 +9989,9 @@ mips_multipass_dfa_lookahead (void)
 {
   /* Can schedule up to 4 of the 6 function units in any one cycle.  */
   if (TUNE_SB1)
+    return 4;
+
+  if (TUNE_LOONGSON_2EF)
     return 4;
 
   return 0;
@@ -10084,6 +10254,12 @@ mips_sched_init (FILE *file ATTRIBUTE_UNUSED, int verbose ATTRIBUTE_UNUSED,
   mips_macc_chains_last_hilo = 0;
   vr4130_last_insn = 0;
   mips_74k_agen_init (NULL_RTX);
+
+  /* When scheduling for Loongson2, branch instructions go to ALU1,
+     therefore basic block is most likely to start with round-robin counter
+     pointed to ALU2.  */
+  mips_ls2.alu1_turn_p = false;
+  mips_ls2.falu1_turn_p = true;
 }
 
 /* Implement TARGET_SCHED_REORDER and TARGET_SCHED_REORDER2.  */
@@ -10109,6 +10285,37 @@ mips_sched_reorder (FILE *file ATTRIBUTE_UNUSED, int verbose ATTRIBUTE_UNUSED,
   return mips_issue_rate ();
 }
 
+/* Update round-robin counters for ALU1/2 and FALU1/2.  */
+
+static void
+mips_ls2_variable_issue (rtx insn)
+{
+  if (mips_ls2.alu1_turn_p)
+    {
+      if (cpu_unit_reservation_p (curr_state, mips_ls2.alu1_core_unit_code))
+	mips_ls2.alu1_turn_p = false;
+    }
+  else
+    {
+      if (cpu_unit_reservation_p (curr_state, mips_ls2.alu2_core_unit_code))
+	mips_ls2.alu1_turn_p = true;
+    }
+
+  if (mips_ls2.falu1_turn_p)
+    {
+      if (cpu_unit_reservation_p (curr_state, mips_ls2.falu1_core_unit_code))
+	mips_ls2.falu1_turn_p = false;
+    }
+  else
+    {
+      if (cpu_unit_reservation_p (curr_state, mips_ls2.falu2_core_unit_code))
+	mips_ls2.falu1_turn_p = true;
+    }
+
+  if (recog_memoized (insn) >= 0)
+    mips_ls2.cycle_has_multi_p |= (get_attr_type (insn) == TYPE_MULTI);
+}
+
 /* Implement TARGET_SCHED_VARIABLE_ISSUE.  */
 
 static int
@@ -10124,7 +10331,16 @@ mips_variable_issue (FILE *file ATTRIBUTE_UNUSED, int verbose ATTRIBUTE_UNUSED,
       vr4130_last_insn = insn;
       if (TUNE_74K)
 	mips_74k_agen_init (insn);
+      else if (TUNE_LOONGSON_2EF)
+	mips_ls2_variable_issue (insn);
     }
+
+  /* Instructions of type 'multi' should all be split before
+     the second scheduling pass.  */
+  gcc_assert (!reload_completed
+	      || recog_memoized (insn) < 0
+	      || get_attr_type (insn) != TYPE_MULTI);
+
   return more;
 }
 
@@ -10146,6 +10362,23 @@ mips_prefetch_cookie (rtx write, rtx locality)
   return GEN_INT (INTVAL (write) + 6);
 }
 
+/* Flags that indicate when a built-in function is available.
+
+   BUILTIN_AVAIL_NON_MIPS16
+	The function is available on the current target, but only
+	in non-MIPS16 mode.  */
+#define BUILTIN_AVAIL_NON_MIPS16 1
+
+/* Declare an availability predicate for built-in functions that
+   require non-MIPS16 mode and also require COND to be true.
+   NAME is the main part of the predicate's name.  */
+#define AVAIL_NON_MIPS16(NAME, COND)					\
+ static unsigned int							\
+ mips_builtin_avail_##NAME (void)					\
+ {									\
+   return (COND) ? BUILTIN_AVAIL_NON_MIPS16 : 0;			\
+ }
+
 /* This structure describes a single built-in function.  */
 struct mips_builtin_description {
   /* The code of the main .md file instruction.  See mips_builtin_type
@@ -10164,309 +10397,449 @@ struct mips_builtin_description {
   /* The function's prototype.  */
   enum mips_function_type function_type;
 
-  /* The target flags required for this function.  */
-  int target_flags;
+  /* Whether the function is available.  */
+  unsigned int (*avail) (void);
 };
 
-/* Define a MIPS_BUILTIN_DIRECT function for instruction CODE_FOR_mips_<INSN>.
-   FUNCTION_TYPE and TARGET_FLAGS are mips_builtin_description fields.  */
-#define DIRECT_BUILTIN(INSN, FUNCTION_TYPE, TARGET_FLAGS)		\
-  { CODE_FOR_mips_ ## INSN, 0, "__builtin_mips_" #INSN,			\
-    MIPS_BUILTIN_DIRECT, FUNCTION_TYPE, TARGET_FLAGS }
+AVAIL_NON_MIPS16 (paired_single, TARGET_PAIRED_SINGLE_FLOAT)
+AVAIL_NON_MIPS16 (sb1_paired_single, TARGET_SB1 && TARGET_PAIRED_SINGLE_FLOAT)
+AVAIL_NON_MIPS16 (mips3d, TARGET_MIPS3D)
+AVAIL_NON_MIPS16 (dsp, TARGET_DSP)
+AVAIL_NON_MIPS16 (dspr2, TARGET_DSPR2)
+AVAIL_NON_MIPS16 (dsp_32, !TARGET_64BIT && TARGET_DSP)
+AVAIL_NON_MIPS16 (dspr2_32, !TARGET_64BIT && TARGET_DSPR2)
+AVAIL_NON_MIPS16 (loongson, TARGET_LOONGSON_VECTORS)
+
+/* Construct a mips_builtin_description from the given arguments.
+
+   INSN is the name of the associated instruction pattern, without the
+   leading CODE_FOR_mips_.
+
+   CODE is the floating-point condition code associated with the
+   function.  It can be 'f' if the field is not applicable.
+
+   NAME is the name of the function itself, without the leading
+   "__builtin_mips_".
+
+   BUILTIN_TYPE and FUNCTION_TYPE are mips_builtin_description fields.
+
+   AVAIL is the name of the availability predicate, without the leading
+   mips_builtin_avail_.  */
+#define MIPS_BUILTIN(INSN, COND, NAME, BUILTIN_TYPE,			\
+		     FUNCTION_TYPE, AVAIL)				\
+  { CODE_FOR_mips_ ## INSN, MIPS_FP_COND_ ## COND,			\
+    "__builtin_mips_" NAME, BUILTIN_TYPE, FUNCTION_TYPE,		\
+    mips_builtin_avail_ ## AVAIL }
+
+/* Define __builtin_mips_<INSN>, which is a MIPS_BUILTIN_DIRECT function
+   mapped to instruction CODE_FOR_mips_<INSN>,  FUNCTION_TYPE and AVAIL
+   are as for MIPS_BUILTIN.  */
+#define DIRECT_BUILTIN(INSN, FUNCTION_TYPE, AVAIL)			\
+  MIPS_BUILTIN (INSN, f, #INSN, MIPS_BUILTIN_DIRECT, FUNCTION_TYPE, AVAIL)
 
 /* Define __builtin_mips_<INSN>_<COND>_{s,d} functions, both of which
-   require TARGET_FLAGS.  */
-#define CMP_SCALAR_BUILTINS(INSN, COND, TARGET_FLAGS)			\
-  { CODE_FOR_mips_ ## INSN ## _cond_s, MIPS_FP_COND_ ## COND,		\
-    "__builtin_mips_" #INSN "_" #COND "_s",				\
-    MIPS_BUILTIN_CMP_SINGLE, MIPS_INT_FTYPE_SF_SF, TARGET_FLAGS },	\
-  { CODE_FOR_mips_ ## INSN ## _cond_d, MIPS_FP_COND_ ## COND,		\
-    "__builtin_mips_" #INSN "_" #COND "_d",				\
-    MIPS_BUILTIN_CMP_SINGLE, MIPS_INT_FTYPE_DF_DF, TARGET_FLAGS }
+   are subject to mips_builtin_avail_<AVAIL>.  */
+#define CMP_SCALAR_BUILTINS(INSN, COND, AVAIL)				\
+  MIPS_BUILTIN (INSN ## _cond_s, COND, #INSN "_" #COND "_s",		\
+		MIPS_BUILTIN_CMP_SINGLE, MIPS_INT_FTYPE_SF_SF, AVAIL),	\
+  MIPS_BUILTIN (INSN ## _cond_d, COND, #INSN "_" #COND "_d",		\
+		MIPS_BUILTIN_CMP_SINGLE, MIPS_INT_FTYPE_DF_DF, AVAIL)
 
 /* Define __builtin_mips_{any,all,upper,lower}_<INSN>_<COND>_ps.
-   The lower and upper forms require TARGET_FLAGS while the any and all
-   forms require MASK_MIPS3D.  */
-#define CMP_PS_BUILTINS(INSN, COND, TARGET_FLAGS)			\
-  { CODE_FOR_mips_ ## INSN ## _cond_ps, MIPS_FP_COND_ ## COND,		\
-    "__builtin_mips_any_" #INSN "_" #COND "_ps",			\
-    MIPS_BUILTIN_CMP_ANY, MIPS_INT_FTYPE_V2SF_V2SF, MASK_MIPS3D },	\
-  { CODE_FOR_mips_ ## INSN ## _cond_ps, MIPS_FP_COND_ ## COND,		\
-    "__builtin_mips_all_" #INSN "_" #COND "_ps",			\
-    MIPS_BUILTIN_CMP_ALL, MIPS_INT_FTYPE_V2SF_V2SF, MASK_MIPS3D },	\
-  { CODE_FOR_mips_ ## INSN ## _cond_ps, MIPS_FP_COND_ ## COND,		\
-    "__builtin_mips_lower_" #INSN "_" #COND "_ps",			\
-    MIPS_BUILTIN_CMP_LOWER, MIPS_INT_FTYPE_V2SF_V2SF, TARGET_FLAGS },	\
-  { CODE_FOR_mips_ ## INSN ## _cond_ps, MIPS_FP_COND_ ## COND,		\
-    "__builtin_mips_upper_" #INSN "_" #COND "_ps",			\
-    MIPS_BUILTIN_CMP_UPPER, MIPS_INT_FTYPE_V2SF_V2SF, TARGET_FLAGS }
+   The lower and upper forms are subject to mips_builtin_avail_<AVAIL>
+   while the any and all forms are subject to mips_builtin_avail_mips3d.  */
+#define CMP_PS_BUILTINS(INSN, COND, AVAIL)				\
+  MIPS_BUILTIN (INSN ## _cond_ps, COND, "any_" #INSN "_" #COND "_ps",	\
+		MIPS_BUILTIN_CMP_ANY, MIPS_INT_FTYPE_V2SF_V2SF,		\
+		mips3d),						\
+  MIPS_BUILTIN (INSN ## _cond_ps, COND, "all_" #INSN "_" #COND "_ps",	\
+		MIPS_BUILTIN_CMP_ALL, MIPS_INT_FTYPE_V2SF_V2SF,		\
+		mips3d),						\
+  MIPS_BUILTIN (INSN ## _cond_ps, COND, "lower_" #INSN "_" #COND "_ps",	\
+		MIPS_BUILTIN_CMP_LOWER, MIPS_INT_FTYPE_V2SF_V2SF,	\
+		AVAIL),							\
+  MIPS_BUILTIN (INSN ## _cond_ps, COND, "upper_" #INSN "_" #COND "_ps",	\
+		MIPS_BUILTIN_CMP_UPPER, MIPS_INT_FTYPE_V2SF_V2SF,	\
+		AVAIL)
 
 /* Define __builtin_mips_{any,all}_<INSN>_<COND>_4s.  The functions
-   require MASK_MIPS3D.  */
+   are subject to mips_builtin_avail_mips3d.  */
 #define CMP_4S_BUILTINS(INSN, COND)					\
-  { CODE_FOR_mips_ ## INSN ## _cond_4s, MIPS_FP_COND_ ## COND,		\
-    "__builtin_mips_any_" #INSN "_" #COND "_4s",			\
-    MIPS_BUILTIN_CMP_ANY, MIPS_INT_FTYPE_V2SF_V2SF_V2SF_V2SF,		\
-    MASK_MIPS3D },							\
-  { CODE_FOR_mips_ ## INSN ## _cond_4s, MIPS_FP_COND_ ## COND,		\
-    "__builtin_mips_all_" #INSN "_" #COND "_4s",			\
-    MIPS_BUILTIN_CMP_ALL, MIPS_INT_FTYPE_V2SF_V2SF_V2SF_V2SF,		\
-    MASK_MIPS3D }
+  MIPS_BUILTIN (INSN ## _cond_4s, COND, "any_" #INSN "_" #COND "_4s",	\
+		MIPS_BUILTIN_CMP_ANY,					\
+		MIPS_INT_FTYPE_V2SF_V2SF_V2SF_V2SF, mips3d),		\
+  MIPS_BUILTIN (INSN ## _cond_4s, COND, "all_" #INSN "_" #COND "_4s",	\
+		MIPS_BUILTIN_CMP_ALL,					\
+		MIPS_INT_FTYPE_V2SF_V2SF_V2SF_V2SF, mips3d)
 
 /* Define __builtin_mips_mov{t,f}_<INSN>_<COND>_ps.  The comparison
-   instruction requires TARGET_FLAGS.  */
-#define MOVTF_BUILTINS(INSN, COND, TARGET_FLAGS)			\
-  { CODE_FOR_mips_ ## INSN ## _cond_ps, MIPS_FP_COND_ ## COND,		\
-    "__builtin_mips_movt_" #INSN "_" #COND "_ps",			\
-    MIPS_BUILTIN_MOVT, MIPS_V2SF_FTYPE_V2SF_V2SF_V2SF_V2SF,		\
-    TARGET_FLAGS },							\
-  { CODE_FOR_mips_ ## INSN ## _cond_ps, MIPS_FP_COND_ ## COND,		\
-    "__builtin_mips_movf_" #INSN "_" #COND "_ps",			\
-    MIPS_BUILTIN_MOVF, MIPS_V2SF_FTYPE_V2SF_V2SF_V2SF_V2SF,		\
-    TARGET_FLAGS }
+   instruction requires mips_builtin_avail_<AVAIL>.  */
+#define MOVTF_BUILTINS(INSN, COND, AVAIL)				\
+  MIPS_BUILTIN (INSN ## _cond_ps, COND, "movt_" #INSN "_" #COND "_ps",	\
+		MIPS_BUILTIN_MOVT, MIPS_V2SF_FTYPE_V2SF_V2SF_V2SF_V2SF,	\
+		AVAIL),							\
+  MIPS_BUILTIN (INSN ## _cond_ps, COND, "movf_" #INSN "_" #COND "_ps",	\
+		MIPS_BUILTIN_MOVF, MIPS_V2SF_FTYPE_V2SF_V2SF_V2SF_V2SF,	\
+		AVAIL)
 
 /* Define all the built-in functions related to C.cond.fmt condition COND.  */
 #define CMP_BUILTINS(COND)						\
-  MOVTF_BUILTINS (c, COND, MASK_PAIRED_SINGLE_FLOAT),			\
-  MOVTF_BUILTINS (cabs, COND, MASK_MIPS3D),				\
-  CMP_SCALAR_BUILTINS (cabs, COND, MASK_MIPS3D),			\
-  CMP_PS_BUILTINS (c, COND, MASK_PAIRED_SINGLE_FLOAT),			\
-  CMP_PS_BUILTINS (cabs, COND, MASK_MIPS3D),				\
+  MOVTF_BUILTINS (c, COND, paired_single),				\
+  MOVTF_BUILTINS (cabs, COND, mips3d),					\
+  CMP_SCALAR_BUILTINS (cabs, COND, mips3d),				\
+  CMP_PS_BUILTINS (c, COND, paired_single),				\
+  CMP_PS_BUILTINS (cabs, COND, mips3d),					\
   CMP_4S_BUILTINS (c, COND),						\
   CMP_4S_BUILTINS (cabs, COND)
 
-static const struct mips_builtin_description mips_ps_bdesc[] = {
-  DIRECT_BUILTIN (pll_ps, MIPS_V2SF_FTYPE_V2SF_V2SF, MASK_PAIRED_SINGLE_FLOAT),
-  DIRECT_BUILTIN (pul_ps, MIPS_V2SF_FTYPE_V2SF_V2SF, MASK_PAIRED_SINGLE_FLOAT),
-  DIRECT_BUILTIN (plu_ps, MIPS_V2SF_FTYPE_V2SF_V2SF, MASK_PAIRED_SINGLE_FLOAT),
-  DIRECT_BUILTIN (puu_ps, MIPS_V2SF_FTYPE_V2SF_V2SF, MASK_PAIRED_SINGLE_FLOAT),
-  DIRECT_BUILTIN (cvt_ps_s, MIPS_V2SF_FTYPE_SF_SF, MASK_PAIRED_SINGLE_FLOAT),
-  DIRECT_BUILTIN (cvt_s_pl, MIPS_SF_FTYPE_V2SF, MASK_PAIRED_SINGLE_FLOAT),
-  DIRECT_BUILTIN (cvt_s_pu, MIPS_SF_FTYPE_V2SF, MASK_PAIRED_SINGLE_FLOAT),
-  DIRECT_BUILTIN (abs_ps, MIPS_V2SF_FTYPE_V2SF, MASK_PAIRED_SINGLE_FLOAT),
+/* Define __builtin_mips_<INSN>, which is a MIPS_BUILTIN_DIRECT_NO_TARGET
+   function mapped to instruction CODE_FOR_mips_<INSN>,  FUNCTION_TYPE
+   and AVAIL are as for MIPS_BUILTIN.  */
+#define DIRECT_NO_TARGET_BUILTIN(INSN, FUNCTION_TYPE, AVAIL)		\
+  MIPS_BUILTIN (INSN, f, #INSN,	MIPS_BUILTIN_DIRECT_NO_TARGET,		\
+		FUNCTION_TYPE, AVAIL)
 
-  DIRECT_BUILTIN (alnv_ps, MIPS_V2SF_FTYPE_V2SF_V2SF_INT,
-		  MASK_PAIRED_SINGLE_FLOAT),
-  DIRECT_BUILTIN (addr_ps, MIPS_V2SF_FTYPE_V2SF_V2SF, MASK_MIPS3D),
-  DIRECT_BUILTIN (mulr_ps, MIPS_V2SF_FTYPE_V2SF_V2SF, MASK_MIPS3D),
-  DIRECT_BUILTIN (cvt_pw_ps, MIPS_V2SF_FTYPE_V2SF, MASK_MIPS3D),
-  DIRECT_BUILTIN (cvt_ps_pw, MIPS_V2SF_FTYPE_V2SF, MASK_MIPS3D),
+/* Define __builtin_mips_bposge<VALUE>.  <VALUE> is 32 for the MIPS32 DSP
+   branch instruction.  AVAIL is as for MIPS_BUILTIN.  */
+#define BPOSGE_BUILTIN(VALUE, AVAIL)					\
+  MIPS_BUILTIN (bposge, f, "bposge" #VALUE,				\
+		MIPS_BUILTIN_BPOSGE ## VALUE, MIPS_SI_FTYPE_VOID, AVAIL)
 
-  DIRECT_BUILTIN (recip1_s, MIPS_SF_FTYPE_SF, MASK_MIPS3D),
-  DIRECT_BUILTIN (recip1_d, MIPS_DF_FTYPE_DF, MASK_MIPS3D),
-  DIRECT_BUILTIN (recip1_ps, MIPS_V2SF_FTYPE_V2SF, MASK_MIPS3D),
-  DIRECT_BUILTIN (recip2_s, MIPS_SF_FTYPE_SF_SF, MASK_MIPS3D),
-  DIRECT_BUILTIN (recip2_d, MIPS_DF_FTYPE_DF_DF, MASK_MIPS3D),
-  DIRECT_BUILTIN (recip2_ps, MIPS_V2SF_FTYPE_V2SF_V2SF, MASK_MIPS3D),
+/* Define a Loongson MIPS_BUILTIN_DIRECT function __builtin_loongson_<FN_NAME>
+   for instruction CODE_FOR_loongson_<INSN>.  FUNCTION_TYPE is a
+   builtin_description field.  */
+#define LOONGSON_BUILTIN_ALIAS(INSN, FN_NAME, FUNCTION_TYPE)		\
+  { CODE_FOR_loongson_ ## INSN, 0, "__builtin_loongson_" #FN_NAME,	\
+    MIPS_BUILTIN_DIRECT, FUNCTION_TYPE, mips_builtin_avail_loongson }
 
-  DIRECT_BUILTIN (rsqrt1_s, MIPS_SF_FTYPE_SF, MASK_MIPS3D),
-  DIRECT_BUILTIN (rsqrt1_d, MIPS_DF_FTYPE_DF, MASK_MIPS3D),
-  DIRECT_BUILTIN (rsqrt1_ps, MIPS_V2SF_FTYPE_V2SF, MASK_MIPS3D),
-  DIRECT_BUILTIN (rsqrt2_s, MIPS_SF_FTYPE_SF_SF, MASK_MIPS3D),
-  DIRECT_BUILTIN (rsqrt2_d, MIPS_DF_FTYPE_DF_DF, MASK_MIPS3D),
-  DIRECT_BUILTIN (rsqrt2_ps, MIPS_V2SF_FTYPE_V2SF_V2SF, MASK_MIPS3D),
+/* Define a Loongson MIPS_BUILTIN_DIRECT function __builtin_loongson_<INSN>
+   for instruction CODE_FOR_loongson_<INSN>.  FUNCTION_TYPE is a
+   builtin_description field.  */
+#define LOONGSON_BUILTIN(INSN, FUNCTION_TYPE)				\
+  LOONGSON_BUILTIN_ALIAS (INSN, INSN, FUNCTION_TYPE)
 
-  MIPS_FP_CONDITIONS (CMP_BUILTINS)
-};
-
-/* Built-in functions for the SB-1 processor.  */
+/* Like LOONGSON_BUILTIN, but add _<SUFFIX> to the end of the function name.
+   We use functions of this form when the same insn can be usefully applied
+   to more than one datatype.  */
+#define LOONGSON_BUILTIN_SUFFIX(INSN, SUFFIX, FUNCTION_TYPE)		\
+  LOONGSON_BUILTIN_ALIAS (INSN, INSN ## _ ## SUFFIX, FUNCTION_TYPE)
 
 #define CODE_FOR_mips_sqrt_ps CODE_FOR_sqrtv2sf2
-
-static const struct mips_builtin_description mips_sb1_bdesc[] = {
-  DIRECT_BUILTIN (sqrt_ps, MIPS_V2SF_FTYPE_V2SF, MASK_PAIRED_SINGLE_FLOAT)
-};
-
-/* Built-in functions for the DSP ASE.  */
-
 #define CODE_FOR_mips_addq_ph CODE_FOR_addv2hi3
 #define CODE_FOR_mips_addu_qb CODE_FOR_addv4qi3
 #define CODE_FOR_mips_subq_ph CODE_FOR_subv2hi3
 #define CODE_FOR_mips_subu_qb CODE_FOR_subv4qi3
 #define CODE_FOR_mips_mul_ph CODE_FOR_mulv2hi3
 
-/* Define a MIPS_BUILTIN_DIRECT_NO_TARGET function for instruction
-   CODE_FOR_mips_<INSN>.  FUNCTION_TYPE and TARGET_FLAGS are
-   mips_builtin_description fields.  */
-#define DIRECT_NO_TARGET_BUILTIN(INSN, FUNCTION_TYPE, TARGET_FLAGS)	\
-  { CODE_FOR_mips_ ## INSN, 0, "__builtin_mips_" #INSN,			\
-    MIPS_BUILTIN_DIRECT_NO_TARGET, FUNCTION_TYPE, TARGET_FLAGS }
+#define CODE_FOR_loongson_packsswh CODE_FOR_vec_pack_ssat_v2si
+#define CODE_FOR_loongson_packsshb CODE_FOR_vec_pack_ssat_v4hi
+#define CODE_FOR_loongson_packushb CODE_FOR_vec_pack_usat_v4hi
+#define CODE_FOR_loongson_paddw CODE_FOR_addv2si3
+#define CODE_FOR_loongson_paddh CODE_FOR_addv4hi3
+#define CODE_FOR_loongson_paddb CODE_FOR_addv8qi3
+#define CODE_FOR_loongson_paddsh CODE_FOR_ssaddv4hi3
+#define CODE_FOR_loongson_paddsb CODE_FOR_ssaddv8qi3
+#define CODE_FOR_loongson_paddush CODE_FOR_usaddv4hi3
+#define CODE_FOR_loongson_paddusb CODE_FOR_usaddv8qi3
+#define CODE_FOR_loongson_pmaxsh CODE_FOR_smaxv4hi3
+#define CODE_FOR_loongson_pmaxub CODE_FOR_umaxv8qi3
+#define CODE_FOR_loongson_pminsh CODE_FOR_sminv4hi3
+#define CODE_FOR_loongson_pminub CODE_FOR_uminv8qi3
+#define CODE_FOR_loongson_pmulhuh CODE_FOR_umulv4hi3_highpart
+#define CODE_FOR_loongson_pmulhh CODE_FOR_smulv4hi3_highpart
+#define CODE_FOR_loongson_biadd CODE_FOR_reduc_uplus_v8qi
+#define CODE_FOR_loongson_psubw CODE_FOR_subv2si3
+#define CODE_FOR_loongson_psubh CODE_FOR_subv4hi3
+#define CODE_FOR_loongson_psubb CODE_FOR_subv8qi3
+#define CODE_FOR_loongson_psubsh CODE_FOR_sssubv4hi3
+#define CODE_FOR_loongson_psubsb CODE_FOR_sssubv8qi3
+#define CODE_FOR_loongson_psubush CODE_FOR_ussubv4hi3
+#define CODE_FOR_loongson_psubusb CODE_FOR_ussubv8qi3
+#define CODE_FOR_loongson_punpckhbh CODE_FOR_vec_interleave_highv8qi
+#define CODE_FOR_loongson_punpckhhw CODE_FOR_vec_interleave_highv4hi
+#define CODE_FOR_loongson_punpckhwd CODE_FOR_vec_interleave_highv2si
+#define CODE_FOR_loongson_punpcklbh CODE_FOR_vec_interleave_lowv8qi
+#define CODE_FOR_loongson_punpcklhw CODE_FOR_vec_interleave_lowv4hi
+#define CODE_FOR_loongson_punpcklwd CODE_FOR_vec_interleave_lowv2si
 
-/* Define __builtin_mips_bposge<VALUE>.  <VALUE> is 32 for the MIPS32 DSP
-   branch instruction.  TARGET_FLAGS is a mips_builtin_description field.  */
-#define BPOSGE_BUILTIN(VALUE, TARGET_FLAGS)				\
-  { CODE_FOR_mips_bposge, 0, "__builtin_mips_bposge" #VALUE,		\
-    MIPS_BUILTIN_BPOSGE ## VALUE, MIPS_SI_FTYPE_VOID, TARGET_FLAGS }
+static const struct mips_builtin_description mips_builtins[] = {
+  DIRECT_BUILTIN (pll_ps, MIPS_V2SF_FTYPE_V2SF_V2SF, paired_single),
+  DIRECT_BUILTIN (pul_ps, MIPS_V2SF_FTYPE_V2SF_V2SF, paired_single),
+  DIRECT_BUILTIN (plu_ps, MIPS_V2SF_FTYPE_V2SF_V2SF, paired_single),
+  DIRECT_BUILTIN (puu_ps, MIPS_V2SF_FTYPE_V2SF_V2SF, paired_single),
+  DIRECT_BUILTIN (cvt_ps_s, MIPS_V2SF_FTYPE_SF_SF, paired_single),
+  DIRECT_BUILTIN (cvt_s_pl, MIPS_SF_FTYPE_V2SF, paired_single),
+  DIRECT_BUILTIN (cvt_s_pu, MIPS_SF_FTYPE_V2SF, paired_single),
+  DIRECT_BUILTIN (abs_ps, MIPS_V2SF_FTYPE_V2SF, paired_single),
 
-static const struct mips_builtin_description mips_dsp_bdesc[] = {
-  DIRECT_BUILTIN (addq_ph, MIPS_V2HI_FTYPE_V2HI_V2HI, MASK_DSP),
-  DIRECT_BUILTIN (addq_s_ph, MIPS_V2HI_FTYPE_V2HI_V2HI, MASK_DSP),
-  DIRECT_BUILTIN (addq_s_w, MIPS_SI_FTYPE_SI_SI, MASK_DSP),
-  DIRECT_BUILTIN (addu_qb, MIPS_V4QI_FTYPE_V4QI_V4QI, MASK_DSP),
-  DIRECT_BUILTIN (addu_s_qb, MIPS_V4QI_FTYPE_V4QI_V4QI, MASK_DSP),
-  DIRECT_BUILTIN (subq_ph, MIPS_V2HI_FTYPE_V2HI_V2HI, MASK_DSP),
-  DIRECT_BUILTIN (subq_s_ph, MIPS_V2HI_FTYPE_V2HI_V2HI, MASK_DSP),
-  DIRECT_BUILTIN (subq_s_w, MIPS_SI_FTYPE_SI_SI, MASK_DSP),
-  DIRECT_BUILTIN (subu_qb, MIPS_V4QI_FTYPE_V4QI_V4QI, MASK_DSP),
-  DIRECT_BUILTIN (subu_s_qb, MIPS_V4QI_FTYPE_V4QI_V4QI, MASK_DSP),
-  DIRECT_BUILTIN (addsc, MIPS_SI_FTYPE_SI_SI, MASK_DSP),
-  DIRECT_BUILTIN (addwc, MIPS_SI_FTYPE_SI_SI, MASK_DSP),
-  DIRECT_BUILTIN (modsub, MIPS_SI_FTYPE_SI_SI, MASK_DSP),
-  DIRECT_BUILTIN (raddu_w_qb, MIPS_SI_FTYPE_V4QI, MASK_DSP),
-  DIRECT_BUILTIN (absq_s_ph, MIPS_V2HI_FTYPE_V2HI, MASK_DSP),
-  DIRECT_BUILTIN (absq_s_w, MIPS_SI_FTYPE_SI, MASK_DSP),
-  DIRECT_BUILTIN (precrq_qb_ph, MIPS_V4QI_FTYPE_V2HI_V2HI, MASK_DSP),
-  DIRECT_BUILTIN (precrq_ph_w, MIPS_V2HI_FTYPE_SI_SI, MASK_DSP),
-  DIRECT_BUILTIN (precrq_rs_ph_w, MIPS_V2HI_FTYPE_SI_SI, MASK_DSP),
-  DIRECT_BUILTIN (precrqu_s_qb_ph, MIPS_V4QI_FTYPE_V2HI_V2HI, MASK_DSP),
-  DIRECT_BUILTIN (preceq_w_phl, MIPS_SI_FTYPE_V2HI, MASK_DSP),
-  DIRECT_BUILTIN (preceq_w_phr, MIPS_SI_FTYPE_V2HI, MASK_DSP),
-  DIRECT_BUILTIN (precequ_ph_qbl, MIPS_V2HI_FTYPE_V4QI, MASK_DSP),
-  DIRECT_BUILTIN (precequ_ph_qbr, MIPS_V2HI_FTYPE_V4QI, MASK_DSP),
-  DIRECT_BUILTIN (precequ_ph_qbla, MIPS_V2HI_FTYPE_V4QI, MASK_DSP),
-  DIRECT_BUILTIN (precequ_ph_qbra, MIPS_V2HI_FTYPE_V4QI, MASK_DSP),
-  DIRECT_BUILTIN (preceu_ph_qbl, MIPS_V2HI_FTYPE_V4QI, MASK_DSP),
-  DIRECT_BUILTIN (preceu_ph_qbr, MIPS_V2HI_FTYPE_V4QI, MASK_DSP),
-  DIRECT_BUILTIN (preceu_ph_qbla, MIPS_V2HI_FTYPE_V4QI, MASK_DSP),
-  DIRECT_BUILTIN (preceu_ph_qbra, MIPS_V2HI_FTYPE_V4QI, MASK_DSP),
-  DIRECT_BUILTIN (shll_qb, MIPS_V4QI_FTYPE_V4QI_SI, MASK_DSP),
-  DIRECT_BUILTIN (shll_ph, MIPS_V2HI_FTYPE_V2HI_SI, MASK_DSP),
-  DIRECT_BUILTIN (shll_s_ph, MIPS_V2HI_FTYPE_V2HI_SI, MASK_DSP),
-  DIRECT_BUILTIN (shll_s_w, MIPS_SI_FTYPE_SI_SI, MASK_DSP),
-  DIRECT_BUILTIN (shrl_qb, MIPS_V4QI_FTYPE_V4QI_SI, MASK_DSP),
-  DIRECT_BUILTIN (shra_ph, MIPS_V2HI_FTYPE_V2HI_SI, MASK_DSP),
-  DIRECT_BUILTIN (shra_r_ph, MIPS_V2HI_FTYPE_V2HI_SI, MASK_DSP),
-  DIRECT_BUILTIN (shra_r_w, MIPS_SI_FTYPE_SI_SI, MASK_DSP),
-  DIRECT_BUILTIN (muleu_s_ph_qbl, MIPS_V2HI_FTYPE_V4QI_V2HI, MASK_DSP),
-  DIRECT_BUILTIN (muleu_s_ph_qbr, MIPS_V2HI_FTYPE_V4QI_V2HI, MASK_DSP),
-  DIRECT_BUILTIN (mulq_rs_ph, MIPS_V2HI_FTYPE_V2HI_V2HI, MASK_DSP),
-  DIRECT_BUILTIN (muleq_s_w_phl, MIPS_SI_FTYPE_V2HI_V2HI, MASK_DSP),
-  DIRECT_BUILTIN (muleq_s_w_phr, MIPS_SI_FTYPE_V2HI_V2HI, MASK_DSP),
-  DIRECT_BUILTIN (bitrev, MIPS_SI_FTYPE_SI, MASK_DSP),
-  DIRECT_BUILTIN (insv, MIPS_SI_FTYPE_SI_SI, MASK_DSP),
-  DIRECT_BUILTIN (repl_qb, MIPS_V4QI_FTYPE_SI, MASK_DSP),
-  DIRECT_BUILTIN (repl_ph, MIPS_V2HI_FTYPE_SI, MASK_DSP),
-  DIRECT_NO_TARGET_BUILTIN (cmpu_eq_qb, MIPS_VOID_FTYPE_V4QI_V4QI, MASK_DSP),
-  DIRECT_NO_TARGET_BUILTIN (cmpu_lt_qb, MIPS_VOID_FTYPE_V4QI_V4QI, MASK_DSP),
-  DIRECT_NO_TARGET_BUILTIN (cmpu_le_qb, MIPS_VOID_FTYPE_V4QI_V4QI, MASK_DSP),
-  DIRECT_BUILTIN (cmpgu_eq_qb, MIPS_SI_FTYPE_V4QI_V4QI, MASK_DSP),
-  DIRECT_BUILTIN (cmpgu_lt_qb, MIPS_SI_FTYPE_V4QI_V4QI, MASK_DSP),
-  DIRECT_BUILTIN (cmpgu_le_qb, MIPS_SI_FTYPE_V4QI_V4QI, MASK_DSP),
-  DIRECT_NO_TARGET_BUILTIN (cmp_eq_ph, MIPS_VOID_FTYPE_V2HI_V2HI, MASK_DSP),
-  DIRECT_NO_TARGET_BUILTIN (cmp_lt_ph, MIPS_VOID_FTYPE_V2HI_V2HI, MASK_DSP),
-  DIRECT_NO_TARGET_BUILTIN (cmp_le_ph, MIPS_VOID_FTYPE_V2HI_V2HI, MASK_DSP),
-  DIRECT_BUILTIN (pick_qb, MIPS_V4QI_FTYPE_V4QI_V4QI, MASK_DSP),
-  DIRECT_BUILTIN (pick_ph, MIPS_V2HI_FTYPE_V2HI_V2HI, MASK_DSP),
-  DIRECT_BUILTIN (packrl_ph, MIPS_V2HI_FTYPE_V2HI_V2HI, MASK_DSP),
-  DIRECT_NO_TARGET_BUILTIN (wrdsp, MIPS_VOID_FTYPE_SI_SI, MASK_DSP),
-  DIRECT_BUILTIN (rddsp, MIPS_SI_FTYPE_SI, MASK_DSP),
-  DIRECT_BUILTIN (lbux, MIPS_SI_FTYPE_POINTER_SI, MASK_DSP),
-  DIRECT_BUILTIN (lhx, MIPS_SI_FTYPE_POINTER_SI, MASK_DSP),
-  DIRECT_BUILTIN (lwx, MIPS_SI_FTYPE_POINTER_SI, MASK_DSP),
-  BPOSGE_BUILTIN (32, MASK_DSP),
+  DIRECT_BUILTIN (alnv_ps, MIPS_V2SF_FTYPE_V2SF_V2SF_INT, paired_single),
+  DIRECT_BUILTIN (addr_ps, MIPS_V2SF_FTYPE_V2SF_V2SF, mips3d),
+  DIRECT_BUILTIN (mulr_ps, MIPS_V2SF_FTYPE_V2SF_V2SF, mips3d),
+  DIRECT_BUILTIN (cvt_pw_ps, MIPS_V2SF_FTYPE_V2SF, mips3d),
+  DIRECT_BUILTIN (cvt_ps_pw, MIPS_V2SF_FTYPE_V2SF, mips3d),
 
-  /* The following are for the MIPS DSP ASE REV 2.  */
-  DIRECT_BUILTIN (absq_s_qb, MIPS_V4QI_FTYPE_V4QI, MASK_DSPR2),
-  DIRECT_BUILTIN (addu_ph, MIPS_V2HI_FTYPE_V2HI_V2HI, MASK_DSPR2),
-  DIRECT_BUILTIN (addu_s_ph, MIPS_V2HI_FTYPE_V2HI_V2HI, MASK_DSPR2),
-  DIRECT_BUILTIN (adduh_qb, MIPS_V4QI_FTYPE_V4QI_V4QI, MASK_DSPR2),
-  DIRECT_BUILTIN (adduh_r_qb, MIPS_V4QI_FTYPE_V4QI_V4QI, MASK_DSPR2),
-  DIRECT_BUILTIN (append, MIPS_SI_FTYPE_SI_SI_SI, MASK_DSPR2),
-  DIRECT_BUILTIN (balign, MIPS_SI_FTYPE_SI_SI_SI, MASK_DSPR2),
-  DIRECT_BUILTIN (cmpgdu_eq_qb, MIPS_SI_FTYPE_V4QI_V4QI, MASK_DSPR2),
-  DIRECT_BUILTIN (cmpgdu_lt_qb, MIPS_SI_FTYPE_V4QI_V4QI, MASK_DSPR2),
-  DIRECT_BUILTIN (cmpgdu_le_qb, MIPS_SI_FTYPE_V4QI_V4QI, MASK_DSPR2),
-  DIRECT_BUILTIN (mul_ph, MIPS_V2HI_FTYPE_V2HI_V2HI, MASK_DSPR2),
-  DIRECT_BUILTIN (mul_s_ph, MIPS_V2HI_FTYPE_V2HI_V2HI, MASK_DSPR2),
-  DIRECT_BUILTIN (mulq_rs_w, MIPS_SI_FTYPE_SI_SI, MASK_DSPR2),
-  DIRECT_BUILTIN (mulq_s_ph, MIPS_V2HI_FTYPE_V2HI_V2HI, MASK_DSPR2),
-  DIRECT_BUILTIN (mulq_s_w, MIPS_SI_FTYPE_SI_SI, MASK_DSPR2),
-  DIRECT_BUILTIN (precr_qb_ph, MIPS_V4QI_FTYPE_V2HI_V2HI, MASK_DSPR2),
-  DIRECT_BUILTIN (precr_sra_ph_w, MIPS_V2HI_FTYPE_SI_SI_SI, MASK_DSPR2),
-  DIRECT_BUILTIN (precr_sra_r_ph_w, MIPS_V2HI_FTYPE_SI_SI_SI, MASK_DSPR2),
-  DIRECT_BUILTIN (prepend, MIPS_SI_FTYPE_SI_SI_SI, MASK_DSPR2),
-  DIRECT_BUILTIN (shra_qb, MIPS_V4QI_FTYPE_V4QI_SI, MASK_DSPR2),
-  DIRECT_BUILTIN (shra_r_qb, MIPS_V4QI_FTYPE_V4QI_SI, MASK_DSPR2),
-  DIRECT_BUILTIN (shrl_ph, MIPS_V2HI_FTYPE_V2HI_SI, MASK_DSPR2),
-  DIRECT_BUILTIN (subu_ph, MIPS_V2HI_FTYPE_V2HI_V2HI, MASK_DSPR2),
-  DIRECT_BUILTIN (subu_s_ph, MIPS_V2HI_FTYPE_V2HI_V2HI, MASK_DSPR2),
-  DIRECT_BUILTIN (subuh_qb, MIPS_V4QI_FTYPE_V4QI_V4QI, MASK_DSPR2),
-  DIRECT_BUILTIN (subuh_r_qb, MIPS_V4QI_FTYPE_V4QI_V4QI, MASK_DSPR2),
-  DIRECT_BUILTIN (addqh_ph, MIPS_V2HI_FTYPE_V2HI_V2HI, MASK_DSPR2),
-  DIRECT_BUILTIN (addqh_r_ph, MIPS_V2HI_FTYPE_V2HI_V2HI, MASK_DSPR2),
-  DIRECT_BUILTIN (addqh_w, MIPS_SI_FTYPE_SI_SI, MASK_DSPR2),
-  DIRECT_BUILTIN (addqh_r_w, MIPS_SI_FTYPE_SI_SI, MASK_DSPR2),
-  DIRECT_BUILTIN (subqh_ph, MIPS_V2HI_FTYPE_V2HI_V2HI, MASK_DSPR2),
-  DIRECT_BUILTIN (subqh_r_ph, MIPS_V2HI_FTYPE_V2HI_V2HI, MASK_DSPR2),
-  DIRECT_BUILTIN (subqh_w, MIPS_SI_FTYPE_SI_SI, MASK_DSPR2),
-  DIRECT_BUILTIN (subqh_r_w, MIPS_SI_FTYPE_SI_SI, MASK_DSPR2)
-};
+  DIRECT_BUILTIN (recip1_s, MIPS_SF_FTYPE_SF, mips3d),
+  DIRECT_BUILTIN (recip1_d, MIPS_DF_FTYPE_DF, mips3d),
+  DIRECT_BUILTIN (recip1_ps, MIPS_V2SF_FTYPE_V2SF, mips3d),
+  DIRECT_BUILTIN (recip2_s, MIPS_SF_FTYPE_SF_SF, mips3d),
+  DIRECT_BUILTIN (recip2_d, MIPS_DF_FTYPE_DF_DF, mips3d),
+  DIRECT_BUILTIN (recip2_ps, MIPS_V2SF_FTYPE_V2SF_V2SF, mips3d),
 
-static const struct mips_builtin_description mips_dsp_32only_bdesc[] = {
-  DIRECT_BUILTIN (dpau_h_qbl, MIPS_DI_FTYPE_DI_V4QI_V4QI, MASK_DSP),
-  DIRECT_BUILTIN (dpau_h_qbr, MIPS_DI_FTYPE_DI_V4QI_V4QI, MASK_DSP),
-  DIRECT_BUILTIN (dpsu_h_qbl, MIPS_DI_FTYPE_DI_V4QI_V4QI, MASK_DSP),
-  DIRECT_BUILTIN (dpsu_h_qbr, MIPS_DI_FTYPE_DI_V4QI_V4QI, MASK_DSP),
-  DIRECT_BUILTIN (dpaq_s_w_ph, MIPS_DI_FTYPE_DI_V2HI_V2HI, MASK_DSP),
-  DIRECT_BUILTIN (dpsq_s_w_ph, MIPS_DI_FTYPE_DI_V2HI_V2HI, MASK_DSP),
-  DIRECT_BUILTIN (mulsaq_s_w_ph, MIPS_DI_FTYPE_DI_V2HI_V2HI, MASK_DSP),
-  DIRECT_BUILTIN (dpaq_sa_l_w, MIPS_DI_FTYPE_DI_SI_SI, MASK_DSP),
-  DIRECT_BUILTIN (dpsq_sa_l_w, MIPS_DI_FTYPE_DI_SI_SI, MASK_DSP),
-  DIRECT_BUILTIN (maq_s_w_phl, MIPS_DI_FTYPE_DI_V2HI_V2HI, MASK_DSP),
-  DIRECT_BUILTIN (maq_s_w_phr, MIPS_DI_FTYPE_DI_V2HI_V2HI, MASK_DSP),
-  DIRECT_BUILTIN (maq_sa_w_phl, MIPS_DI_FTYPE_DI_V2HI_V2HI, MASK_DSP),
-  DIRECT_BUILTIN (maq_sa_w_phr, MIPS_DI_FTYPE_DI_V2HI_V2HI, MASK_DSP),
-  DIRECT_BUILTIN (extr_w, MIPS_SI_FTYPE_DI_SI, MASK_DSP),
-  DIRECT_BUILTIN (extr_r_w, MIPS_SI_FTYPE_DI_SI, MASK_DSP),
-  DIRECT_BUILTIN (extr_rs_w, MIPS_SI_FTYPE_DI_SI, MASK_DSP),
-  DIRECT_BUILTIN (extr_s_h, MIPS_SI_FTYPE_DI_SI, MASK_DSP),
-  DIRECT_BUILTIN (extp, MIPS_SI_FTYPE_DI_SI, MASK_DSP),
-  DIRECT_BUILTIN (extpdp, MIPS_SI_FTYPE_DI_SI, MASK_DSP),
-  DIRECT_BUILTIN (shilo, MIPS_DI_FTYPE_DI_SI, MASK_DSP),
-  DIRECT_BUILTIN (mthlip, MIPS_DI_FTYPE_DI_SI, MASK_DSP),
+  DIRECT_BUILTIN (rsqrt1_s, MIPS_SF_FTYPE_SF, mips3d),
+  DIRECT_BUILTIN (rsqrt1_d, MIPS_DF_FTYPE_DF, mips3d),
+  DIRECT_BUILTIN (rsqrt1_ps, MIPS_V2SF_FTYPE_V2SF, mips3d),
+  DIRECT_BUILTIN (rsqrt2_s, MIPS_SF_FTYPE_SF_SF, mips3d),
+  DIRECT_BUILTIN (rsqrt2_d, MIPS_DF_FTYPE_DF_DF, mips3d),
+  DIRECT_BUILTIN (rsqrt2_ps, MIPS_V2SF_FTYPE_V2SF_V2SF, mips3d),
 
-  /* The following are for the MIPS DSP ASE REV 2.  */
-  DIRECT_BUILTIN (dpa_w_ph, MIPS_DI_FTYPE_DI_V2HI_V2HI, MASK_DSPR2),
-  DIRECT_BUILTIN (dps_w_ph, MIPS_DI_FTYPE_DI_V2HI_V2HI, MASK_DSPR2),
-  DIRECT_BUILTIN (madd, MIPS_DI_FTYPE_DI_SI_SI, MASK_DSPR2),
-  DIRECT_BUILTIN (maddu, MIPS_DI_FTYPE_DI_USI_USI, MASK_DSPR2),
-  DIRECT_BUILTIN (msub, MIPS_DI_FTYPE_DI_SI_SI, MASK_DSPR2),
-  DIRECT_BUILTIN (msubu, MIPS_DI_FTYPE_DI_USI_USI, MASK_DSPR2),
-  DIRECT_BUILTIN (mulsa_w_ph, MIPS_DI_FTYPE_DI_V2HI_V2HI, MASK_DSPR2),
-  DIRECT_BUILTIN (mult, MIPS_DI_FTYPE_SI_SI, MASK_DSPR2),
-  DIRECT_BUILTIN (multu, MIPS_DI_FTYPE_USI_USI, MASK_DSPR2),
-  DIRECT_BUILTIN (dpax_w_ph, MIPS_DI_FTYPE_DI_V2HI_V2HI, MASK_DSPR2),
-  DIRECT_BUILTIN (dpsx_w_ph, MIPS_DI_FTYPE_DI_V2HI_V2HI, MASK_DSPR2),
-  DIRECT_BUILTIN (dpaqx_s_w_ph, MIPS_DI_FTYPE_DI_V2HI_V2HI, MASK_DSPR2),
-  DIRECT_BUILTIN (dpaqx_sa_w_ph, MIPS_DI_FTYPE_DI_V2HI_V2HI, MASK_DSPR2),
-  DIRECT_BUILTIN (dpsqx_s_w_ph, MIPS_DI_FTYPE_DI_V2HI_V2HI, MASK_DSPR2),
-  DIRECT_BUILTIN (dpsqx_sa_w_ph, MIPS_DI_FTYPE_DI_V2HI_V2HI, MASK_DSPR2)
-};
+  MIPS_FP_CONDITIONS (CMP_BUILTINS),
 
-/* This structure describes an array of mips_builtin_description entries.  */
-struct mips_bdesc_map {
-  /* The array that this entry describes.  */
-  const struct mips_builtin_description *bdesc;
+  /* Built-in functions for the SB-1 processor.  */
+  DIRECT_BUILTIN (sqrt_ps, MIPS_V2SF_FTYPE_V2SF, sb1_paired_single),
 
-  /* The number of entries in BDESC.  */
-  unsigned int size;
+  /* Built-in functions for the DSP ASE (32-bit and 64-bit).  */
+  DIRECT_BUILTIN (addq_ph, MIPS_V2HI_FTYPE_V2HI_V2HI, dsp),
+  DIRECT_BUILTIN (addq_s_ph, MIPS_V2HI_FTYPE_V2HI_V2HI, dsp),
+  DIRECT_BUILTIN (addq_s_w, MIPS_SI_FTYPE_SI_SI, dsp),
+  DIRECT_BUILTIN (addu_qb, MIPS_V4QI_FTYPE_V4QI_V4QI, dsp),
+  DIRECT_BUILTIN (addu_s_qb, MIPS_V4QI_FTYPE_V4QI_V4QI, dsp),
+  DIRECT_BUILTIN (subq_ph, MIPS_V2HI_FTYPE_V2HI_V2HI, dsp),
+  DIRECT_BUILTIN (subq_s_ph, MIPS_V2HI_FTYPE_V2HI_V2HI, dsp),
+  DIRECT_BUILTIN (subq_s_w, MIPS_SI_FTYPE_SI_SI, dsp),
+  DIRECT_BUILTIN (subu_qb, MIPS_V4QI_FTYPE_V4QI_V4QI, dsp),
+  DIRECT_BUILTIN (subu_s_qb, MIPS_V4QI_FTYPE_V4QI_V4QI, dsp),
+  DIRECT_BUILTIN (addsc, MIPS_SI_FTYPE_SI_SI, dsp),
+  DIRECT_BUILTIN (addwc, MIPS_SI_FTYPE_SI_SI, dsp),
+  DIRECT_BUILTIN (modsub, MIPS_SI_FTYPE_SI_SI, dsp),
+  DIRECT_BUILTIN (raddu_w_qb, MIPS_SI_FTYPE_V4QI, dsp),
+  DIRECT_BUILTIN (absq_s_ph, MIPS_V2HI_FTYPE_V2HI, dsp),
+  DIRECT_BUILTIN (absq_s_w, MIPS_SI_FTYPE_SI, dsp),
+  DIRECT_BUILTIN (precrq_qb_ph, MIPS_V4QI_FTYPE_V2HI_V2HI, dsp),
+  DIRECT_BUILTIN (precrq_ph_w, MIPS_V2HI_FTYPE_SI_SI, dsp),
+  DIRECT_BUILTIN (precrq_rs_ph_w, MIPS_V2HI_FTYPE_SI_SI, dsp),
+  DIRECT_BUILTIN (precrqu_s_qb_ph, MIPS_V4QI_FTYPE_V2HI_V2HI, dsp),
+  DIRECT_BUILTIN (preceq_w_phl, MIPS_SI_FTYPE_V2HI, dsp),
+  DIRECT_BUILTIN (preceq_w_phr, MIPS_SI_FTYPE_V2HI, dsp),
+  DIRECT_BUILTIN (precequ_ph_qbl, MIPS_V2HI_FTYPE_V4QI, dsp),
+  DIRECT_BUILTIN (precequ_ph_qbr, MIPS_V2HI_FTYPE_V4QI, dsp),
+  DIRECT_BUILTIN (precequ_ph_qbla, MIPS_V2HI_FTYPE_V4QI, dsp),
+  DIRECT_BUILTIN (precequ_ph_qbra, MIPS_V2HI_FTYPE_V4QI, dsp),
+  DIRECT_BUILTIN (preceu_ph_qbl, MIPS_V2HI_FTYPE_V4QI, dsp),
+  DIRECT_BUILTIN (preceu_ph_qbr, MIPS_V2HI_FTYPE_V4QI, dsp),
+  DIRECT_BUILTIN (preceu_ph_qbla, MIPS_V2HI_FTYPE_V4QI, dsp),
+  DIRECT_BUILTIN (preceu_ph_qbra, MIPS_V2HI_FTYPE_V4QI, dsp),
+  DIRECT_BUILTIN (shll_qb, MIPS_V4QI_FTYPE_V4QI_SI, dsp),
+  DIRECT_BUILTIN (shll_ph, MIPS_V2HI_FTYPE_V2HI_SI, dsp),
+  DIRECT_BUILTIN (shll_s_ph, MIPS_V2HI_FTYPE_V2HI_SI, dsp),
+  DIRECT_BUILTIN (shll_s_w, MIPS_SI_FTYPE_SI_SI, dsp),
+  DIRECT_BUILTIN (shrl_qb, MIPS_V4QI_FTYPE_V4QI_SI, dsp),
+  DIRECT_BUILTIN (shra_ph, MIPS_V2HI_FTYPE_V2HI_SI, dsp),
+  DIRECT_BUILTIN (shra_r_ph, MIPS_V2HI_FTYPE_V2HI_SI, dsp),
+  DIRECT_BUILTIN (shra_r_w, MIPS_SI_FTYPE_SI_SI, dsp),
+  DIRECT_BUILTIN (muleu_s_ph_qbl, MIPS_V2HI_FTYPE_V4QI_V2HI, dsp),
+  DIRECT_BUILTIN (muleu_s_ph_qbr, MIPS_V2HI_FTYPE_V4QI_V2HI, dsp),
+  DIRECT_BUILTIN (mulq_rs_ph, MIPS_V2HI_FTYPE_V2HI_V2HI, dsp),
+  DIRECT_BUILTIN (muleq_s_w_phl, MIPS_SI_FTYPE_V2HI_V2HI, dsp),
+  DIRECT_BUILTIN (muleq_s_w_phr, MIPS_SI_FTYPE_V2HI_V2HI, dsp),
+  DIRECT_BUILTIN (bitrev, MIPS_SI_FTYPE_SI, dsp),
+  DIRECT_BUILTIN (insv, MIPS_SI_FTYPE_SI_SI, dsp),
+  DIRECT_BUILTIN (repl_qb, MIPS_V4QI_FTYPE_SI, dsp),
+  DIRECT_BUILTIN (repl_ph, MIPS_V2HI_FTYPE_SI, dsp),
+  DIRECT_NO_TARGET_BUILTIN (cmpu_eq_qb, MIPS_VOID_FTYPE_V4QI_V4QI, dsp),
+  DIRECT_NO_TARGET_BUILTIN (cmpu_lt_qb, MIPS_VOID_FTYPE_V4QI_V4QI, dsp),
+  DIRECT_NO_TARGET_BUILTIN (cmpu_le_qb, MIPS_VOID_FTYPE_V4QI_V4QI, dsp),
+  DIRECT_BUILTIN (cmpgu_eq_qb, MIPS_SI_FTYPE_V4QI_V4QI, dsp),
+  DIRECT_BUILTIN (cmpgu_lt_qb, MIPS_SI_FTYPE_V4QI_V4QI, dsp),
+  DIRECT_BUILTIN (cmpgu_le_qb, MIPS_SI_FTYPE_V4QI_V4QI, dsp),
+  DIRECT_NO_TARGET_BUILTIN (cmp_eq_ph, MIPS_VOID_FTYPE_V2HI_V2HI, dsp),
+  DIRECT_NO_TARGET_BUILTIN (cmp_lt_ph, MIPS_VOID_FTYPE_V2HI_V2HI, dsp),
+  DIRECT_NO_TARGET_BUILTIN (cmp_le_ph, MIPS_VOID_FTYPE_V2HI_V2HI, dsp),
+  DIRECT_BUILTIN (pick_qb, MIPS_V4QI_FTYPE_V4QI_V4QI, dsp),
+  DIRECT_BUILTIN (pick_ph, MIPS_V2HI_FTYPE_V2HI_V2HI, dsp),
+  DIRECT_BUILTIN (packrl_ph, MIPS_V2HI_FTYPE_V2HI_V2HI, dsp),
+  DIRECT_NO_TARGET_BUILTIN (wrdsp, MIPS_VOID_FTYPE_SI_SI, dsp),
+  DIRECT_BUILTIN (rddsp, MIPS_SI_FTYPE_SI, dsp),
+  DIRECT_BUILTIN (lbux, MIPS_SI_FTYPE_POINTER_SI, dsp),
+  DIRECT_BUILTIN (lhx, MIPS_SI_FTYPE_POINTER_SI, dsp),
+  DIRECT_BUILTIN (lwx, MIPS_SI_FTYPE_POINTER_SI, dsp),
+  BPOSGE_BUILTIN (32, dsp),
 
-  /* The target processor that supports the functions in BDESC.
-     PROCESSOR_MAX means we enable them for all processors.  */
-  enum processor_type proc;
+  /* The following are for the MIPS DSP ASE REV 2 (32-bit and 64-bit).  */
+  DIRECT_BUILTIN (absq_s_qb, MIPS_V4QI_FTYPE_V4QI, dspr2),
+  DIRECT_BUILTIN (addu_ph, MIPS_V2HI_FTYPE_V2HI_V2HI, dspr2),
+  DIRECT_BUILTIN (addu_s_ph, MIPS_V2HI_FTYPE_V2HI_V2HI, dspr2),
+  DIRECT_BUILTIN (adduh_qb, MIPS_V4QI_FTYPE_V4QI_V4QI, dspr2),
+  DIRECT_BUILTIN (adduh_r_qb, MIPS_V4QI_FTYPE_V4QI_V4QI, dspr2),
+  DIRECT_BUILTIN (append, MIPS_SI_FTYPE_SI_SI_SI, dspr2),
+  DIRECT_BUILTIN (balign, MIPS_SI_FTYPE_SI_SI_SI, dspr2),
+  DIRECT_BUILTIN (cmpgdu_eq_qb, MIPS_SI_FTYPE_V4QI_V4QI, dspr2),
+  DIRECT_BUILTIN (cmpgdu_lt_qb, MIPS_SI_FTYPE_V4QI_V4QI, dspr2),
+  DIRECT_BUILTIN (cmpgdu_le_qb, MIPS_SI_FTYPE_V4QI_V4QI, dspr2),
+  DIRECT_BUILTIN (mul_ph, MIPS_V2HI_FTYPE_V2HI_V2HI, dspr2),
+  DIRECT_BUILTIN (mul_s_ph, MIPS_V2HI_FTYPE_V2HI_V2HI, dspr2),
+  DIRECT_BUILTIN (mulq_rs_w, MIPS_SI_FTYPE_SI_SI, dspr2),
+  DIRECT_BUILTIN (mulq_s_ph, MIPS_V2HI_FTYPE_V2HI_V2HI, dspr2),
+  DIRECT_BUILTIN (mulq_s_w, MIPS_SI_FTYPE_SI_SI, dspr2),
+  DIRECT_BUILTIN (precr_qb_ph, MIPS_V4QI_FTYPE_V2HI_V2HI, dspr2),
+  DIRECT_BUILTIN (precr_sra_ph_w, MIPS_V2HI_FTYPE_SI_SI_SI, dspr2),
+  DIRECT_BUILTIN (precr_sra_r_ph_w, MIPS_V2HI_FTYPE_SI_SI_SI, dspr2),
+  DIRECT_BUILTIN (prepend, MIPS_SI_FTYPE_SI_SI_SI, dspr2),
+  DIRECT_BUILTIN (shra_qb, MIPS_V4QI_FTYPE_V4QI_SI, dspr2),
+  DIRECT_BUILTIN (shra_r_qb, MIPS_V4QI_FTYPE_V4QI_SI, dspr2),
+  DIRECT_BUILTIN (shrl_ph, MIPS_V2HI_FTYPE_V2HI_SI, dspr2),
+  DIRECT_BUILTIN (subu_ph, MIPS_V2HI_FTYPE_V2HI_V2HI, dspr2),
+  DIRECT_BUILTIN (subu_s_ph, MIPS_V2HI_FTYPE_V2HI_V2HI, dspr2),
+  DIRECT_BUILTIN (subuh_qb, MIPS_V4QI_FTYPE_V4QI_V4QI, dspr2),
+  DIRECT_BUILTIN (subuh_r_qb, MIPS_V4QI_FTYPE_V4QI_V4QI, dspr2),
+  DIRECT_BUILTIN (addqh_ph, MIPS_V2HI_FTYPE_V2HI_V2HI, dspr2),
+  DIRECT_BUILTIN (addqh_r_ph, MIPS_V2HI_FTYPE_V2HI_V2HI, dspr2),
+  DIRECT_BUILTIN (addqh_w, MIPS_SI_FTYPE_SI_SI, dspr2),
+  DIRECT_BUILTIN (addqh_r_w, MIPS_SI_FTYPE_SI_SI, dspr2),
+  DIRECT_BUILTIN (subqh_ph, MIPS_V2HI_FTYPE_V2HI_V2HI, dspr2),
+  DIRECT_BUILTIN (subqh_r_ph, MIPS_V2HI_FTYPE_V2HI_V2HI, dspr2),
+  DIRECT_BUILTIN (subqh_w, MIPS_SI_FTYPE_SI_SI, dspr2),
+  DIRECT_BUILTIN (subqh_r_w, MIPS_SI_FTYPE_SI_SI, dspr2),
 
-  /* The functions in BDESC are not supported if any of these
-     target flags are set.  */
-  int unsupported_target_flags;
-};
+  /* Built-in functions for the DSP ASE (32-bit only).  */
+  DIRECT_BUILTIN (dpau_h_qbl, MIPS_DI_FTYPE_DI_V4QI_V4QI, dsp_32),
+  DIRECT_BUILTIN (dpau_h_qbr, MIPS_DI_FTYPE_DI_V4QI_V4QI, dsp_32),
+  DIRECT_BUILTIN (dpsu_h_qbl, MIPS_DI_FTYPE_DI_V4QI_V4QI, dsp_32),
+  DIRECT_BUILTIN (dpsu_h_qbr, MIPS_DI_FTYPE_DI_V4QI_V4QI, dsp_32),
+  DIRECT_BUILTIN (dpaq_s_w_ph, MIPS_DI_FTYPE_DI_V2HI_V2HI, dsp_32),
+  DIRECT_BUILTIN (dpsq_s_w_ph, MIPS_DI_FTYPE_DI_V2HI_V2HI, dsp_32),
+  DIRECT_BUILTIN (mulsaq_s_w_ph, MIPS_DI_FTYPE_DI_V2HI_V2HI, dsp_32),
+  DIRECT_BUILTIN (dpaq_sa_l_w, MIPS_DI_FTYPE_DI_SI_SI, dsp_32),
+  DIRECT_BUILTIN (dpsq_sa_l_w, MIPS_DI_FTYPE_DI_SI_SI, dsp_32),
+  DIRECT_BUILTIN (maq_s_w_phl, MIPS_DI_FTYPE_DI_V2HI_V2HI, dsp_32),
+  DIRECT_BUILTIN (maq_s_w_phr, MIPS_DI_FTYPE_DI_V2HI_V2HI, dsp_32),
+  DIRECT_BUILTIN (maq_sa_w_phl, MIPS_DI_FTYPE_DI_V2HI_V2HI, dsp_32),
+  DIRECT_BUILTIN (maq_sa_w_phr, MIPS_DI_FTYPE_DI_V2HI_V2HI, dsp_32),
+  DIRECT_BUILTIN (extr_w, MIPS_SI_FTYPE_DI_SI, dsp_32),
+  DIRECT_BUILTIN (extr_r_w, MIPS_SI_FTYPE_DI_SI, dsp_32),
+  DIRECT_BUILTIN (extr_rs_w, MIPS_SI_FTYPE_DI_SI, dsp_32),
+  DIRECT_BUILTIN (extr_s_h, MIPS_SI_FTYPE_DI_SI, dsp_32),
+  DIRECT_BUILTIN (extp, MIPS_SI_FTYPE_DI_SI, dsp_32),
+  DIRECT_BUILTIN (extpdp, MIPS_SI_FTYPE_DI_SI, dsp_32),
+  DIRECT_BUILTIN (shilo, MIPS_DI_FTYPE_DI_SI, dsp_32),
+  DIRECT_BUILTIN (mthlip, MIPS_DI_FTYPE_DI_SI, dsp_32),
 
-/* All MIPS-specific built-in functions.  */
-static const struct mips_bdesc_map mips_bdesc_arrays[] = {
-  { mips_ps_bdesc, ARRAY_SIZE (mips_ps_bdesc), PROCESSOR_MAX, 0 },
-  { mips_sb1_bdesc, ARRAY_SIZE (mips_sb1_bdesc), PROCESSOR_SB1, 0 },
-  { mips_dsp_bdesc, ARRAY_SIZE (mips_dsp_bdesc), PROCESSOR_MAX, 0 },
-  { mips_dsp_32only_bdesc, ARRAY_SIZE (mips_dsp_32only_bdesc),
-    PROCESSOR_MAX, MASK_64BIT }
+  /* The following are for the MIPS DSP ASE REV 2 (32-bit only).  */
+  DIRECT_BUILTIN (dpa_w_ph, MIPS_DI_FTYPE_DI_V2HI_V2HI, dspr2_32),
+  DIRECT_BUILTIN (dps_w_ph, MIPS_DI_FTYPE_DI_V2HI_V2HI, dspr2_32),
+  DIRECT_BUILTIN (madd, MIPS_DI_FTYPE_DI_SI_SI, dspr2_32),
+  DIRECT_BUILTIN (maddu, MIPS_DI_FTYPE_DI_USI_USI, dspr2_32),
+  DIRECT_BUILTIN (msub, MIPS_DI_FTYPE_DI_SI_SI, dspr2_32),
+  DIRECT_BUILTIN (msubu, MIPS_DI_FTYPE_DI_USI_USI, dspr2_32),
+  DIRECT_BUILTIN (mulsa_w_ph, MIPS_DI_FTYPE_DI_V2HI_V2HI, dspr2_32),
+  DIRECT_BUILTIN (mult, MIPS_DI_FTYPE_SI_SI, dspr2_32),
+  DIRECT_BUILTIN (multu, MIPS_DI_FTYPE_USI_USI, dspr2_32),
+  DIRECT_BUILTIN (dpax_w_ph, MIPS_DI_FTYPE_DI_V2HI_V2HI, dspr2_32),
+  DIRECT_BUILTIN (dpsx_w_ph, MIPS_DI_FTYPE_DI_V2HI_V2HI, dspr2_32),
+  DIRECT_BUILTIN (dpaqx_s_w_ph, MIPS_DI_FTYPE_DI_V2HI_V2HI, dspr2_32),
+  DIRECT_BUILTIN (dpaqx_sa_w_ph, MIPS_DI_FTYPE_DI_V2HI_V2HI, dspr2_32),
+  DIRECT_BUILTIN (dpsqx_s_w_ph, MIPS_DI_FTYPE_DI_V2HI_V2HI, dspr2_32),
+  DIRECT_BUILTIN (dpsqx_sa_w_ph, MIPS_DI_FTYPE_DI_V2HI_V2HI, dspr2_32),
+
+  /* Builtin functions for ST Microelectronics Loongson-2E/2F cores.  */
+  LOONGSON_BUILTIN (packsswh, MIPS_V4HI_FTYPE_V2SI_V2SI),
+  LOONGSON_BUILTIN (packsshb, MIPS_V8QI_FTYPE_V4HI_V4HI),
+  LOONGSON_BUILTIN (packushb, MIPS_UV8QI_FTYPE_UV4HI_UV4HI),
+  LOONGSON_BUILTIN_SUFFIX (paddw, u, MIPS_UV2SI_FTYPE_UV2SI_UV2SI),
+  LOONGSON_BUILTIN_SUFFIX (paddh, u, MIPS_UV4HI_FTYPE_UV4HI_UV4HI),
+  LOONGSON_BUILTIN_SUFFIX (paddb, u, MIPS_UV8QI_FTYPE_UV8QI_UV8QI),
+  LOONGSON_BUILTIN_SUFFIX (paddw, s, MIPS_V2SI_FTYPE_V2SI_V2SI),
+  LOONGSON_BUILTIN_SUFFIX (paddh, s, MIPS_V4HI_FTYPE_V4HI_V4HI),
+  LOONGSON_BUILTIN_SUFFIX (paddb, s, MIPS_V8QI_FTYPE_V8QI_V8QI),
+  LOONGSON_BUILTIN_SUFFIX (paddd, u, MIPS_UDI_FTYPE_UDI_UDI),
+  LOONGSON_BUILTIN_SUFFIX (paddd, s, MIPS_DI_FTYPE_DI_DI),
+  LOONGSON_BUILTIN (paddsh, MIPS_V4HI_FTYPE_V4HI_V4HI),
+  LOONGSON_BUILTIN (paddsb, MIPS_V8QI_FTYPE_V8QI_V8QI),
+  LOONGSON_BUILTIN (paddush, MIPS_UV4HI_FTYPE_UV4HI_UV4HI),
+  LOONGSON_BUILTIN (paddusb, MIPS_UV8QI_FTYPE_UV8QI_UV8QI),
+  LOONGSON_BUILTIN_ALIAS (pandn_d, pandn_ud, MIPS_UDI_FTYPE_UDI_UDI),
+  LOONGSON_BUILTIN_ALIAS (pandn_w, pandn_uw, MIPS_UV2SI_FTYPE_UV2SI_UV2SI),
+  LOONGSON_BUILTIN_ALIAS (pandn_h, pandn_uh, MIPS_UV4HI_FTYPE_UV4HI_UV4HI),
+  LOONGSON_BUILTIN_ALIAS (pandn_b, pandn_ub, MIPS_UV8QI_FTYPE_UV8QI_UV8QI),
+  LOONGSON_BUILTIN_ALIAS (pandn_d, pandn_sd, MIPS_DI_FTYPE_DI_DI),
+  LOONGSON_BUILTIN_ALIAS (pandn_w, pandn_sw, MIPS_V2SI_FTYPE_V2SI_V2SI),
+  LOONGSON_BUILTIN_ALIAS (pandn_h, pandn_sh, MIPS_V4HI_FTYPE_V4HI_V4HI),
+  LOONGSON_BUILTIN_ALIAS (pandn_b, pandn_sb, MIPS_V8QI_FTYPE_V8QI_V8QI),
+  LOONGSON_BUILTIN (pavgh, MIPS_UV4HI_FTYPE_UV4HI_UV4HI),
+  LOONGSON_BUILTIN (pavgb, MIPS_UV8QI_FTYPE_UV8QI_UV8QI),
+  LOONGSON_BUILTIN_SUFFIX (pcmpeqw, u, MIPS_UV2SI_FTYPE_UV2SI_UV2SI),
+  LOONGSON_BUILTIN_SUFFIX (pcmpeqh, u, MIPS_UV4HI_FTYPE_UV4HI_UV4HI),
+  LOONGSON_BUILTIN_SUFFIX (pcmpeqb, u, MIPS_UV8QI_FTYPE_UV8QI_UV8QI),
+  LOONGSON_BUILTIN_SUFFIX (pcmpeqw, s, MIPS_V2SI_FTYPE_V2SI_V2SI),
+  LOONGSON_BUILTIN_SUFFIX (pcmpeqh, s, MIPS_V4HI_FTYPE_V4HI_V4HI),
+  LOONGSON_BUILTIN_SUFFIX (pcmpeqb, s, MIPS_V8QI_FTYPE_V8QI_V8QI),
+  LOONGSON_BUILTIN_SUFFIX (pcmpgtw, u, MIPS_UV2SI_FTYPE_UV2SI_UV2SI),
+  LOONGSON_BUILTIN_SUFFIX (pcmpgth, u, MIPS_UV4HI_FTYPE_UV4HI_UV4HI),
+  LOONGSON_BUILTIN_SUFFIX (pcmpgtb, u, MIPS_UV8QI_FTYPE_UV8QI_UV8QI),
+  LOONGSON_BUILTIN_SUFFIX (pcmpgtw, s, MIPS_V2SI_FTYPE_V2SI_V2SI),
+  LOONGSON_BUILTIN_SUFFIX (pcmpgth, s, MIPS_V4HI_FTYPE_V4HI_V4HI),
+  LOONGSON_BUILTIN_SUFFIX (pcmpgtb, s, MIPS_V8QI_FTYPE_V8QI_V8QI),
+  LOONGSON_BUILTIN_SUFFIX (pextrh, u, MIPS_UV4HI_FTYPE_UV4HI_USI),
+  LOONGSON_BUILTIN_SUFFIX (pextrh, s, MIPS_V4HI_FTYPE_V4HI_USI),
+  LOONGSON_BUILTIN_SUFFIX (pinsrh_0, u, MIPS_UV4HI_FTYPE_UV4HI_UV4HI),
+  LOONGSON_BUILTIN_SUFFIX (pinsrh_1, u, MIPS_UV4HI_FTYPE_UV4HI_UV4HI),
+  LOONGSON_BUILTIN_SUFFIX (pinsrh_2, u, MIPS_UV4HI_FTYPE_UV4HI_UV4HI),
+  LOONGSON_BUILTIN_SUFFIX (pinsrh_3, u, MIPS_UV4HI_FTYPE_UV4HI_UV4HI),
+  LOONGSON_BUILTIN_SUFFIX (pinsrh_0, s, MIPS_V4HI_FTYPE_V4HI_V4HI),
+  LOONGSON_BUILTIN_SUFFIX (pinsrh_1, s, MIPS_V4HI_FTYPE_V4HI_V4HI),
+  LOONGSON_BUILTIN_SUFFIX (pinsrh_2, s, MIPS_V4HI_FTYPE_V4HI_V4HI),
+  LOONGSON_BUILTIN_SUFFIX (pinsrh_3, s, MIPS_V4HI_FTYPE_V4HI_V4HI),
+  LOONGSON_BUILTIN (pmaddhw, MIPS_V2SI_FTYPE_V4HI_V4HI),
+  LOONGSON_BUILTIN (pmaxsh, MIPS_V4HI_FTYPE_V4HI_V4HI),
+  LOONGSON_BUILTIN (pmaxub, MIPS_UV8QI_FTYPE_UV8QI_UV8QI),
+  LOONGSON_BUILTIN (pminsh, MIPS_V4HI_FTYPE_V4HI_V4HI),
+  LOONGSON_BUILTIN (pminub, MIPS_UV8QI_FTYPE_UV8QI_UV8QI),
+  LOONGSON_BUILTIN_SUFFIX (pmovmskb, u, MIPS_UV8QI_FTYPE_UV8QI),
+  LOONGSON_BUILTIN_SUFFIX (pmovmskb, s, MIPS_V8QI_FTYPE_V8QI),
+  LOONGSON_BUILTIN (pmulhuh, MIPS_UV4HI_FTYPE_UV4HI_UV4HI),
+  LOONGSON_BUILTIN (pmulhh, MIPS_V4HI_FTYPE_V4HI_V4HI),
+  LOONGSON_BUILTIN (pmullh, MIPS_V4HI_FTYPE_V4HI_V4HI),
+  LOONGSON_BUILTIN (pmuluw, MIPS_UDI_FTYPE_UV2SI_UV2SI),
+  LOONGSON_BUILTIN (pasubub, MIPS_UV8QI_FTYPE_UV8QI_UV8QI),
+  LOONGSON_BUILTIN (biadd, MIPS_UV4HI_FTYPE_UV8QI),
+  LOONGSON_BUILTIN (psadbh, MIPS_UV4HI_FTYPE_UV8QI_UV8QI),
+  LOONGSON_BUILTIN_SUFFIX (pshufh, u, MIPS_UV4HI_FTYPE_UV4HI_UV4HI_UQI),
+  LOONGSON_BUILTIN_SUFFIX (pshufh, s, MIPS_V4HI_FTYPE_V4HI_V4HI_UQI),
+  LOONGSON_BUILTIN_SUFFIX (psllh, u, MIPS_UV4HI_FTYPE_UV4HI_UQI),
+  LOONGSON_BUILTIN_SUFFIX (psllh, s, MIPS_V4HI_FTYPE_V4HI_UQI),
+  LOONGSON_BUILTIN_SUFFIX (psllw, u, MIPS_UV2SI_FTYPE_UV2SI_UQI),
+  LOONGSON_BUILTIN_SUFFIX (psllw, s, MIPS_V2SI_FTYPE_V2SI_UQI),
+  LOONGSON_BUILTIN_SUFFIX (psrah, u, MIPS_UV4HI_FTYPE_UV4HI_UQI),
+  LOONGSON_BUILTIN_SUFFIX (psrah, s, MIPS_V4HI_FTYPE_V4HI_UQI),
+  LOONGSON_BUILTIN_SUFFIX (psraw, u, MIPS_UV2SI_FTYPE_UV2SI_UQI),
+  LOONGSON_BUILTIN_SUFFIX (psraw, s, MIPS_V2SI_FTYPE_V2SI_UQI),
+  LOONGSON_BUILTIN_SUFFIX (psrlh, u, MIPS_UV4HI_FTYPE_UV4HI_UQI),
+  LOONGSON_BUILTIN_SUFFIX (psrlh, s, MIPS_V4HI_FTYPE_V4HI_UQI),
+  LOONGSON_BUILTIN_SUFFIX (psrlw, u, MIPS_UV2SI_FTYPE_UV2SI_UQI),
+  LOONGSON_BUILTIN_SUFFIX (psrlw, s, MIPS_V2SI_FTYPE_V2SI_UQI),
+  LOONGSON_BUILTIN_SUFFIX (psubw, u, MIPS_UV2SI_FTYPE_UV2SI_UV2SI),
+  LOONGSON_BUILTIN_SUFFIX (psubh, u, MIPS_UV4HI_FTYPE_UV4HI_UV4HI),
+  LOONGSON_BUILTIN_SUFFIX (psubb, u, MIPS_UV8QI_FTYPE_UV8QI_UV8QI),
+  LOONGSON_BUILTIN_SUFFIX (psubw, s, MIPS_V2SI_FTYPE_V2SI_V2SI),
+  LOONGSON_BUILTIN_SUFFIX (psubh, s, MIPS_V4HI_FTYPE_V4HI_V4HI),
+  LOONGSON_BUILTIN_SUFFIX (psubb, s, MIPS_V8QI_FTYPE_V8QI_V8QI),
+  LOONGSON_BUILTIN_SUFFIX (psubd, u, MIPS_UDI_FTYPE_UDI_UDI),
+  LOONGSON_BUILTIN_SUFFIX (psubd, s, MIPS_DI_FTYPE_DI_DI),
+  LOONGSON_BUILTIN (psubsh, MIPS_V4HI_FTYPE_V4HI_V4HI),
+  LOONGSON_BUILTIN (psubsb, MIPS_V8QI_FTYPE_V8QI_V8QI),
+  LOONGSON_BUILTIN (psubush, MIPS_UV4HI_FTYPE_UV4HI_UV4HI),
+  LOONGSON_BUILTIN (psubusb, MIPS_UV8QI_FTYPE_UV8QI_UV8QI),
+  LOONGSON_BUILTIN_SUFFIX (punpckhbh, u, MIPS_UV8QI_FTYPE_UV8QI_UV8QI),
+  LOONGSON_BUILTIN_SUFFIX (punpckhhw, u, MIPS_UV4HI_FTYPE_UV4HI_UV4HI),
+  LOONGSON_BUILTIN_SUFFIX (punpckhwd, u, MIPS_UV2SI_FTYPE_UV2SI_UV2SI),
+  LOONGSON_BUILTIN_SUFFIX (punpckhbh, s, MIPS_V8QI_FTYPE_V8QI_V8QI),
+  LOONGSON_BUILTIN_SUFFIX (punpckhhw, s, MIPS_V4HI_FTYPE_V4HI_V4HI),
+  LOONGSON_BUILTIN_SUFFIX (punpckhwd, s, MIPS_V2SI_FTYPE_V2SI_V2SI),
+  LOONGSON_BUILTIN_SUFFIX (punpcklbh, u, MIPS_UV8QI_FTYPE_UV8QI_UV8QI),
+  LOONGSON_BUILTIN_SUFFIX (punpcklhw, u, MIPS_UV4HI_FTYPE_UV4HI_UV4HI),
+  LOONGSON_BUILTIN_SUFFIX (punpcklwd, u, MIPS_UV2SI_FTYPE_UV2SI_UV2SI),
+  LOONGSON_BUILTIN_SUFFIX (punpcklbh, s, MIPS_V8QI_FTYPE_V8QI_V8QI),
+  LOONGSON_BUILTIN_SUFFIX (punpcklhw, s, MIPS_V4HI_FTYPE_V4HI_V4HI),
+  LOONGSON_BUILTIN_SUFFIX (punpcklwd, s, MIPS_V2SI_FTYPE_V2SI_V2SI)
 };
 
 /* MODE is a vector mode whose elements have type TYPE.  Return the type
@@ -10475,11 +10848,17 @@ static const struct mips_bdesc_map mips_bdesc_arrays[] = {
 static tree
 mips_builtin_vector_type (tree type, enum machine_mode mode)
 {
-  static tree types[(int) MAX_MACHINE_MODE];
+  static tree types[2 * (int) MAX_MACHINE_MODE];
+  int mode_index;
 
-  if (types[(int) mode] == NULL_TREE)
-    types[(int) mode] = build_vector_type_for_mode (type, mode);
-  return types[(int) mode];
+  mode_index = (int) mode;
+
+  if (TREE_CODE (type) == INTEGER_TYPE && TYPE_UNSIGNED (type))
+    mode_index += MAX_MACHINE_MODE;
+
+  if (types[mode_index] == NULL_TREE)
+    types[mode_index] = build_vector_type_for_mode (type, mode);
+  return types[mode_index];
 }
 
 /* Source-level argument types.  */
@@ -10488,16 +10867,27 @@ mips_builtin_vector_type (tree type, enum machine_mode mode)
 #define MIPS_ATYPE_POINTER ptr_type_node
 
 /* Standard mode-based argument types.  */
+#define MIPS_ATYPE_UQI unsigned_intQI_type_node
 #define MIPS_ATYPE_SI intSI_type_node
 #define MIPS_ATYPE_USI unsigned_intSI_type_node
 #define MIPS_ATYPE_DI intDI_type_node
+#define MIPS_ATYPE_UDI unsigned_intDI_type_node
 #define MIPS_ATYPE_SF float_type_node
 #define MIPS_ATYPE_DF double_type_node
 
 /* Vector argument types.  */
 #define MIPS_ATYPE_V2SF mips_builtin_vector_type (float_type_node, V2SFmode)
 #define MIPS_ATYPE_V2HI mips_builtin_vector_type (intHI_type_node, V2HImode)
+#define MIPS_ATYPE_V2SI mips_builtin_vector_type (intSI_type_node, V2SImode)
 #define MIPS_ATYPE_V4QI mips_builtin_vector_type (intQI_type_node, V4QImode)
+#define MIPS_ATYPE_V4HI mips_builtin_vector_type (intHI_type_node, V4HImode)
+#define MIPS_ATYPE_V8QI mips_builtin_vector_type (intQI_type_node, V8QImode)
+#define MIPS_ATYPE_UV2SI					\
+  mips_builtin_vector_type (unsigned_intSI_type_node, V2SImode)
+#define MIPS_ATYPE_UV4HI					\
+  mips_builtin_vector_type (unsigned_intHI_type_node, V4HImode)
+#define MIPS_ATYPE_UV8QI					\
+  mips_builtin_vector_type (unsigned_intQI_type_node, V8QImode)
 
 /* MIPS_FTYPE_ATYPESN takes N MIPS_FTYPES-like type codes and lists
    their associated MIPS_ATYPEs.  */
@@ -10545,25 +10935,17 @@ static void
 mips_init_builtins (void)
 {
   const struct mips_builtin_description *d;
-  const struct mips_bdesc_map *m;
-  unsigned int offset;
+  unsigned int i;
 
   /* Iterate through all of the bdesc arrays, initializing all of the
      builtin functions.  */
-  offset = 0;
-  for (m = mips_bdesc_arrays;
-       m < &mips_bdesc_arrays[ARRAY_SIZE (mips_bdesc_arrays)];
-       m++)
+  for (i = 0; i < ARRAY_SIZE (mips_builtins); i++)
     {
-      if ((m->proc == PROCESSOR_MAX || m->proc == mips_arch)
-	  && (m->unsupported_target_flags & target_flags) == 0)
-	for (d = m->bdesc; d < &m->bdesc[m->size]; d++)
-	  if ((d->target_flags & target_flags) == d->target_flags)
-	    add_builtin_function (d->name,
-				  mips_build_function_type (d->function_type),
-				  d - m->bdesc + offset,
-				  BUILT_IN_MD, NULL, NULL);
-      offset += m->size;
+      d = &mips_builtins[i];
+      if (d->avail ())
+	add_builtin_function (d->name,
+			      mips_build_function_type (d->function_type),
+			      i, BUILT_IN_MD, NULL, NULL);
     }
 }
 
@@ -10808,41 +11190,6 @@ mips_expand_builtin_bposge (enum mips_builtin_type builtin_type, rtx target)
 				       const1_rtx, const0_rtx);
 }
 
-/* EXP is a CALL_EXPR that calls the function described by BDESC.
-   Expand the call and return an rtx for its return value.
-   TARGET, if nonnull, suggests a good place to put this value.  */
-
-static rtx
-mips_expand_builtin_1 (const struct mips_builtin_description *bdesc,
-		       tree exp, rtx target)
-{
-  switch (bdesc->builtin_type)
-    {
-    case MIPS_BUILTIN_DIRECT:
-      return mips_expand_builtin_direct (bdesc->icode, target, exp, true);
-
-    case MIPS_BUILTIN_DIRECT_NO_TARGET:
-      return mips_expand_builtin_direct (bdesc->icode, target, exp, false);
-
-    case MIPS_BUILTIN_MOVT:
-    case MIPS_BUILTIN_MOVF:
-      return mips_expand_builtin_movtf (bdesc->builtin_type, bdesc->icode,
-					bdesc->cond, target, exp);
-
-    case MIPS_BUILTIN_CMP_ANY:
-    case MIPS_BUILTIN_CMP_ALL:
-    case MIPS_BUILTIN_CMP_UPPER:
-    case MIPS_BUILTIN_CMP_LOWER:
-    case MIPS_BUILTIN_CMP_SINGLE:
-      return mips_expand_builtin_compare (bdesc->builtin_type, bdesc->icode,
-					  bdesc->cond, target, exp);
-
-    case MIPS_BUILTIN_BPOSGE32:
-      return mips_expand_builtin_bposge (bdesc->builtin_type, target);
-    }
-  gcc_unreachable ();
-}
-
 /* Implement TARGET_EXPAND_BUILTIN.  */
 
 static rtx
@@ -10851,25 +11198,44 @@ mips_expand_builtin (tree exp, rtx target, rtx subtarget ATTRIBUTE_UNUSED,
 		     int ignore ATTRIBUTE_UNUSED)
 {
   tree fndecl;
-  unsigned int fcode;
-  const struct mips_bdesc_map *m;
+  unsigned int fcode, avail;
+  const struct mips_builtin_description *d;
 
   fndecl = TREE_OPERAND (CALL_EXPR_FN (exp), 0);
   fcode = DECL_FUNCTION_CODE (fndecl);
+  gcc_assert (fcode < ARRAY_SIZE (mips_builtins));
+  d = &mips_builtins[fcode];
+  avail = d->avail ();
+  gcc_assert (avail != 0);
   if (TARGET_MIPS16)
     {
       error ("built-in function %qs not supported for MIPS16",
 	     IDENTIFIER_POINTER (DECL_NAME (fndecl)));
       return const0_rtx;
     }
-
-  for (m = mips_bdesc_arrays;
-       m < &mips_bdesc_arrays[ARRAY_SIZE (mips_bdesc_arrays)];
-       m++)
+  switch (d->builtin_type)
     {
-      if (fcode < m->size)
-	return mips_expand_builtin_1 (m->bdesc + fcode, exp, target);
-      fcode -= m->size;
+    case MIPS_BUILTIN_DIRECT:
+      return mips_expand_builtin_direct (d->icode, target, exp, true);
+
+    case MIPS_BUILTIN_DIRECT_NO_TARGET:
+      return mips_expand_builtin_direct (d->icode, target, exp, false);
+
+    case MIPS_BUILTIN_MOVT:
+    case MIPS_BUILTIN_MOVF:
+      return mips_expand_builtin_movtf (d->builtin_type, d->icode,
+					d->cond, target, exp);
+
+    case MIPS_BUILTIN_CMP_ANY:
+    case MIPS_BUILTIN_CMP_ALL:
+    case MIPS_BUILTIN_CMP_UPPER:
+    case MIPS_BUILTIN_CMP_LOWER:
+    case MIPS_BUILTIN_CMP_SINGLE:
+      return mips_expand_builtin_compare (d->builtin_type, d->icode,
+					  d->cond, target, exp);
+
+    case MIPS_BUILTIN_BPOSGE32:
+      return mips_expand_builtin_bposge (d->builtin_type, target);
     }
   gcc_unreachable ();
 }
@@ -12637,6 +13003,30 @@ mips_conditional_register_usage (void)
     }
 }
 
+/* Initialize vector TARGET to VALS.  */
+
+void
+mips_expand_vector_init (rtx target, rtx vals)
+{
+  enum machine_mode mode;
+  enum machine_mode inner;
+  unsigned int i, n_elts;
+  rtx mem;
+
+  mode = GET_MODE (target);
+  inner = GET_MODE_INNER (mode);
+  n_elts = GET_MODE_NUNITS (mode);
+
+  gcc_assert (VECTOR_MODE_P (mode));
+
+  mem = assign_stack_temp (mode, GET_MODE_SIZE (mode), 0);
+  for (i = 0; i < n_elts; i++)
+    emit_move_insn (adjust_address_nv (mem, inner, i * GET_MODE_SIZE (inner)),
+                    XVECEXP (vals, 0, i));
+
+  emit_move_insn (target, mem);
+}
+
 /* When generating MIPS16 code, we want to allocate $24 (T_REG) before
    other registers for instructions for which it is possible.  This
    encourages the compiler to use CMP in cases where an XOR would
@@ -12688,6 +13078,10 @@ mips_order_regs_for_local_alloc (void)
 #define TARGET_SCHED_ADJUST_COST mips_adjust_cost
 #undef TARGET_SCHED_ISSUE_RATE
 #define TARGET_SCHED_ISSUE_RATE mips_issue_rate
+#undef TARGET_SCHED_INIT_DFA_POST_CYCLE_INSN
+#define TARGET_SCHED_INIT_DFA_POST_CYCLE_INSN mips_init_dfa_post_cycle_insn
+#undef TARGET_SCHED_DFA_POST_ADVANCE_CYCLE
+#define TARGET_SCHED_DFA_POST_ADVANCE_CYCLE mips_dfa_post_advance_cycle
 #undef TARGET_SCHED_FIRST_CYCLE_MULTIPASS_DFA_LOOKAHEAD
 #define TARGET_SCHED_FIRST_CYCLE_MULTIPASS_DFA_LOOKAHEAD \
   mips_multipass_dfa_lookahead

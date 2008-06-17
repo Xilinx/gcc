@@ -437,6 +437,11 @@ extern int avr_reg_order[];
 }
 
 #define XEXP_(X,Y) (X)
+
+/* LEGITIMIZE_RELOAD_ADDRESS will allow register R26/27 to be used, where it
+   is no worse than normal base pointers R28/29 and R30/31. For example:
+   If base offset is greater than 63 bytes or for R++ or --R addressing.  */
+   
 #define LEGITIMIZE_RELOAD_ADDRESS(X, MODE, OPNUM, TYPE, IND_LEVELS, WIN)    \
 do {									    \
   if (1&&(GET_CODE (X) == POST_INC || GET_CODE (X) == PRE_DEC))	    \
@@ -448,6 +453,7 @@ do {									    \
     }									    \
   if (GET_CODE (X) == PLUS						    \
       && REG_P (XEXP (X, 0))						    \
+      && reg_equiv_constant[REGNO (XEXP (X, 0))] == 0			    \
       && GET_CODE (XEXP (X, 1)) == CONST_INT				    \
       && INTVAL (XEXP (X, 1)) >= 1)					    \
     {									    \
@@ -867,6 +873,8 @@ mmcu=*:-mmcu=%*}"
   mmcu=attiny88|\
   mmcu=at90can*|\
   mmcu=at90pwm*|\
+  mmcu=atmega32c1|\
+  mmcu=atmega32m1|\
   mmcu=at90usb*: -Tdata 0x800100}\
 %{mmcu=atmega640|\
   mmcu=atmega1280|\
@@ -976,6 +984,8 @@ mmcu=*:-mmcu=%*}"
 %{mmcu=at90can64:crtcan64.o%s} \
 %{mmcu=at90pwm216:crt90pwm216.o%s} \
 %{mmcu=at90pwm316:crt90pwm316.o%s} \
+%{mmcu=atmega32c1:crtm32c1.o%s} \
+%{mmcu=atmega32m1:crtm32m1.o%s} \
 %{mmcu=at90usb646:crtusb646.o%s} \
 %{mmcu=at90usb647:crtusb647.o%s} \
 %{mmcu=at94k:crtat94k.o%s} \

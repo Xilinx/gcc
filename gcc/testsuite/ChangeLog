@@ -1,3 +1,66 @@
+2008-06-16  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/36544
+	* gfortran.dg/fseek.f90: Adjust test conditions for variable newline.
+
+2008-06-16  Ira Rosen  <irar@il.ibm.com>
+
+	PR tree-optimization/36493
+	* gcc.dg/vect/pr36493.c: New testcase.
+
+2008-06-15  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/36515
+	* gfortran.dg/no_range_check_2.f90: New test.
+
+2008-06-15  Mark Shinwell  <shinwell@codesourcery.com>
+
+	* lib/target-supports.exp (check_effective_target_mips_loongson): New.
+	* gcc.target/mips/loongson-simd.c: New.
+
+2008-06-14  Simon Martin  <simartin@users.sourceforge.net>
+
+	PR c++/35320
+	* g++.dg/parse/bitfield3.C: New test.
+
+2008-06-14  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/36538
+	* gfortran.dg: namelist_48.f90: New test.
+
+2008-06-14  Simon Martin  <simartin@users.sourceforge.net>
+
+	PR c++/35317
+	* g++.dg/other/dtor2.C: New test.
+
+2008-06-13  Olivier Hainque  <hainque@adacore.com>
+
+	* gnat.dg/task_stack_align.adb: New test.
+
+2008-06-13  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/35863
+	* gfortran.dg/widechar_IO_1.f90: New test.
+	* gfortran.dg/widechar_IO_2.f90: New test.
+	* gfortran.dg/widechar_IO_3.f90: New test.
+	* gfortran.dg/widechar_IO_4.f90: New test.
+
+2008-06-13  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/36476
+	* gfortran.dg/parameter_array_init_4.f90: New.
+
+2008-06-13  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc.c-torture/compile/20080613-1.c: New test.
+
+2008-06-13  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c/36507
+	* gcc.dg/inline-28.c: New test.
+	* gcc.dg/inline-29.c: New test.
+	* gcc.dg/inline-30.c: New test.
+
 2008-06-12  Tobias Burnus  <burnus@net-b.de>
 
 	PR fortran/36462

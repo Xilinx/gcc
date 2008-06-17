@@ -15238,9 +15238,8 @@ cp_parser_member_declaration (cp_parser* parser)
 							 sfk_none)
 				   : NULL,
 				   &decl_specifiers,
-				   width);
-	      /* Apply the attributes.  */
-	      cplus_decl_attributes (&decl, attributes, /*flags=*/0);
+				   width,
+				   attributes);
 	    }
 	  else
 	    {
@@ -19150,11 +19149,10 @@ cp_parser_objc_class_ivars (cp_parser* parser)
 	  attributes = chainon (prefix_attributes, attributes);
 
 	  if (width)
-	    {
 	      /* Create the bitfield declaration.  */
-	      decl = grokbitfield (declarator, &declspecs, width);
-	      cplus_decl_attributes (&decl, attributes, /*flags=*/0);
-	    }
+	      decl = grokbitfield (declarator, &declspecs,
+				   width,
+				   attributes);
 	  else
 	    decl = grokfield (declarator, &declspecs,
 			      NULL_TREE, /*init_const_expr_p=*/false,
@@ -20425,7 +20423,7 @@ cp_parser_omp_for_incr (cp_parser *parser, tree decl)
   return build2 (MODIFY_EXPR, TREE_TYPE (decl), decl, rhs);
 }
 
-/* Parse the restricted form of the for statment allowed by OpenMP.  */
+/* Parse the restricted form of the for statement allowed by OpenMP.  */
 
 static tree
 cp_parser_omp_for_loop (cp_parser *parser, tree clauses, tree *par_clauses)

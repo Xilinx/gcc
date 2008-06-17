@@ -272,13 +272,12 @@ typedef GFC_UINTEGER_4 gfc_char4_t;
    simply equal to the kind parameter itself.  */
 #define GFC_SIZE_OF_CHAR_KIND(kind) (kind)
 
-
 /* This will be 0 on little-endian machines and one on big-endian machines.  */
-extern int l8_to_l4_offset;
-internal_proto(l8_to_l4_offset);
+extern int big_endian;
+internal_proto(big_endian);
 
 #define GFOR_POINTER_TO_L1(p, kind) \
-  (l8_to_l4_offset * (kind - 1) + (GFC_LOGICAL_1 *)(p))
+  (big_endian * (kind - 1) + (GFC_LOGICAL_1 *)(p))
 
 #define GFC_INTEGER_1_HUGE \
   (GFC_INTEGER_1)((((GFC_UINTEGER_1)1) << 7) - 1)
@@ -478,6 +477,7 @@ typedef struct
   size_t record_marker;
   int max_subrecord_length;
   int bounds_check;
+  int range_check;
 }
 compile_options_t;
 

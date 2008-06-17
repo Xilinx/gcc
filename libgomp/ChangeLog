@@ -1,3 +1,12 @@
+2008-06-15  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	* env.c (initialize_env): Always initialize gomp_remaining_threads_lock
+	mutex when HAVE_SYNC_BUILTINS isn't defined.
+
+2008-06-15  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* libgomp.texi (omp_test_lock): Fix typo.
+
 2008-06-12  Tobias Burnus  <burnus@net-b.de>
 
 	* omp_lib.f90.in: Add "implicit none".

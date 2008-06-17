@@ -1,3 +1,223 @@
+2008-06-16  Eric B. Weddington  <eric.weddington@atmel.com>
+
+	* config/avr/avr.c (avr_mcu_t): Add atmega32c1.
+	* config/avr/avr.h (LINK_SPEC, CRT_BINUTILS_SPECS): Likewise.
+	* config/avr/t-avr (MULTILIB_MATCHES): Likewise.
+
+2008-06-16  Eric B. Weddington  <eric.weddington@atmel.com>
+
+	* config/avr/avr.c (avr_mcu_t): Add atmega32m1.
+	* config/avr/avr.h (LINK_SPEC, CRT_BINUTILS_SPECS): Likewise.
+	* config/avr/t-avr (MULTILIB_MATCHES): Likewise. 
+
+2008-06-16  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* Makefile.in (FLAGS_TO_PASS): Add $(datarootdir).
+
+2008-06-16  Ira Rosen  <irar@il.ibm.com>
+
+	PR tree-optimization/36493
+	* tree-vect-transform.c (vect_create_data_ref_ptr): Remove TYPE from
+	the arguments list. Use VECTYPE to create vector pointer.
+	(vectorizable_store): Fail if accesses through a pointer to vectype
+	do not alias the original memory reference operands.
+	Call vect_create_data_ref_ptr without the removed argument.
+	(vectorizable_load): Likewise.
+	(vect_setup_realignment): Call vect_create_data_ref_ptr without the
+	removed argument.
+
+2008-06-015  Andy Hutchinson  <hutchinsonandy@aim.com>
+
+	PR target/36336
+	* config/avr/avr.h (LEGITIMIZE_RELOAD_ADDRESS): Add check for 
+	reg_equiv_constant.
+
+2008-06-15  Maxim Kuvyrkov  <maxim@codesourcery.com>
+
+	* config/mips/loongson2ef.md: New file.
+	* config/mips/mips.md (UNSPEC_LOONGSON_ALU1_TURN_ENABLED_INSN)
+	(UNSPEC_LOONGSON_ALU2_TURN_ENABLED_INSN)
+	(UNSPEC_LOONGSON_FALU1_TURN_ENABLED_INSN)
+	(UNSPEC_LOONGSON_FALU2_TURN_ENABLED_INSN): New constants.
+	(define_attr "cpu"): Rename loongson2e and loongson2f to loongson_2e
+	and loongson_2f.
+	(loongson2ef.md): New include.
+	* config/mips/loongson.md (vec_pack_ssat_<mode>, vec_pack_usat_<mode>)
+	(add<mode>3, paddd, ssadd<mode>3, usadd<mode>3)
+	(loongson_and_not_<mode>, loongson_average_<mode>, loongson_eq_<mode>)
+	(loongson_gt_<mode>, loongson_extract_halfword)
+	(loongson_insert_halfword_0, loongson_insert_halfword_2)
+	(loongson_insert_halfword_3, loongson_mult_add, smax<mode>3)
+	(umax<mode>3, smin<mode>3, umin<mode>3, loongson_move_byte_mask)
+	(umul<mode>3_highpart, smul<mode>3_highpart, loongson_smul_lowpart)
+	(loongson_umul_word, loongson_pasubub, reduc_uplus_<mode>)
+	(loongson_psadbh, loongson_pshufh, loongson_psll<mode>)
+	(loongson_psra<mode>, loongson_psrl<mode>, sub<mode>3, psubd)
+	(sssub<mode>3, ussub<mode>3, vec_interleave_high<mode>)
+	(vec_interleave_low<mode>): Define type attribute.
+	* config/mips/mips.c (mips_ls2): New static variable.
+	(mips_issue_rate): Update to handle tuning for Loongson 2E/2F.
+	(mips_ls2_init_dfa_post_cycle_insn, mips_init_dfa_post_cycle_insn)
+	(sched_ls2_dfa_post_advance_cycle, mips_dfa_post_advance_cycle):
+	Implement target scheduling hooks.
+	(mips_multipass_dfa_lookahead): Update to handle tuning for
+	Loongson 2E/2F.
+	(mips_sched_init): Initialize data for Loongson scheduling.
+	(mips_ls2_variable_issue): New static function.
+	(mips_variable_issue): Update to handle tuning for Loongson 2E/2F.
+	Add sanity check.
+	(TARGET_SCHED_INIT_DFA_POST_CYCLE_INSN)
+	(TARGET_SCHED_DFA_POST_ADVANCE_CYCLE): Override target hooks.
+	* config/mips/mips.h (TUNE_LOONGSON_2EF): New macros.
+	(ISA_HAS_XFER_DELAY, ISA_HAS_FCMP_DELAY, ISA_HAS_HILO_INTERLOCKS):
+	Handle ST Loongson 2E/2F cores.
+	(CPU_UNITS_QUERY): Define macro to enable querying of DFA units.
+
+2008-06-15  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* omp-low.c (extract_omp_for_data): Fix comment typo.
+	* c.opt: Fix typo.
+
+2008-06-15  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* doc/sourcebuild.texi (Config Fragments): Remove obsolete
+	FIXME note about gcc/config.guess.
+	* doc/options.texi (Option file format): Remove non-ASCII bytes.
+	* doc/cpp.texi: Expand TABs, drop indentation outside examples.
+	* doc/cppopts.texi: Likewise.
+	* doc/extend.texi: Likewise.
+	* doc/gcc.texi: Likewise.
+	* doc/gccint.texi: Likewise.
+	* doc/gcov.texi: Likewise.
+	* doc/gty.texi: Likewise.
+	* doc/hostconfig.texi: Likewise.
+	* doc/install.texi: Likewise.
+	* doc/invoke.texi: Likewise.
+	* doc/loop.texi: Likewise.
+	* doc/makefile.texi: Likewise.
+	* doc/md.texi: Likewise.
+	* doc/passes.texi: Likewise.
+	* doc/tm.texi: Likewise.
+	* doc/tree-ssa.texi: Likewise.
+	* doc/trouble.texi: Likewise.
+
+2008-06-15  Mark Shinwell  <shinwell@codesourcery.com>
+	    Nathan Sidwell  <nathan@codesourcery.com>
+	    Maxim Kuvyrkov  <maxim@codesourcery.com>
+	    Richard Sandiford  <rdsandiford@googlemail.com>
+	
+	* config/mips/mips-modes.def: Add V8QI, V4HI and V2SI modes.
+	* config/mips/mips-protos.h (mips_expand_vector_init): New.
+	* config/mips/mips-ftypes.def: Add function types for Loongson-2E/2F
+	builtins.
+	* config/mips/mips.c (mips_split_doubleword_move): Handle new modes.
+	(mips_hard_regno_mode_ok_p): Allow 64-bit vector modes for Loongson.
+	(mips_vector_mode_supported_p): Add V2SImode, V4HImode and
+	V8QImode cases.
+	(LOONGSON_BUILTIN, LOONGSON_BUILTIN_ALIAS): New.
+	(CODE_FOR_loongson_packsswh, CODE_FOR_loongson_packsshb,
+	(CODE_FOR_loongson_packushb, CODE_FOR_loongson_paddw,
+	(CODE_FOR_loongson_paddh, CODE_FOR_loongson_paddb,
+	(CODE_FOR_loongson_paddsh, CODE_FOR_loongson_paddsb)
+	(CODE_FOR_loongson_paddush, CODE_FOR_loongson_paddusb)
+	(CODE_FOR_loongson_pmaxsh, CODE_FOR_loongson_pmaxub)
+	(CODE_FOR_loongson_pminsh, CODE_FOR_loongson_pminub)
+	(CODE_FOR_loongson_pmulhuh, CODE_FOR_loongson_pmulhh)
+	(CODE_FOR_loongson_biadd, CODE_FOR_loongson_psubw)
+	(CODE_FOR_loongson_psubh, CODE_FOR_loongson_psubb)
+	(CODE_FOR_loongson_psubsh, CODE_FOR_loongson_psubsb)
+	(CODE_FOR_loongson_psubush, CODE_FOR_loongson_psubusb)
+	(CODE_FOR_loongson_punpckhbh, CODE_FOR_loongson_punpckhhw)
+	(CODE_FOR_loongson_punpckhwd, CODE_FOR_loongson_punpcklbh)
+	(CODE_FOR_loongson_punpcklhw, CODE_FOR_loongson_punpcklwd): New.
+	(mips_builtins): Add Loongson builtins.
+	(mips_loongson_2ef_bdesc): New.
+	(mips_bdesc_arrays): Add mips_loongson_2ef_bdesc.
+	(mips_builtin_vector_type): Handle unsigned versions of vector modes.
+	(MIPS_ATYPE_UQI, MIPS_ATYPE_UDI, MIPS_ATYPE_V2SI, MIPS_ATYPE_UV2SI)
+	(MIPS_ATYPE_V4HI, MIPS_ATYPE_UV4HI, MIPS_ATYPE_V8QI, MIPS_ATYPE_UV8QI):
+	New.
+	(mips_expand_vector_init): New.
+	* config/mips/mips.h (HAVE_LOONGSON_VECTOR_MODES): New.
+	(TARGET_CPU_CPP_BUILTINS): Define __mips_loongson_vector_rev
+	if appropriate.
+	* config/mips/mips.md: Add unspec numbers for Loongson
+	builtins.  Include loongson.md.
+	(MOVE64): Include Loongson vector modes.
+	(SPLITF): Include Loongson vector modes.
+	(HALFMODE): Handle Loongson vector modes.
+	* config/mips/loongson.md: New.
+	* config/mips/loongson.h: New.
+	* config.gcc: Add loongson.h header for mips*-*-* targets.
+	* doc/extend.texi (MIPS Loongson Built-in Functions): New.
+
+2008-06-14  Joseph Myers  <joseph@codesourcery.com>
+
+	* config.gcc (arc-*-elf*, avr-*-*, fr30-*-elf, frv-*-elf,
+	h8300-*-elf*, h8300-*-*, i[34567]86-*-elf*, x86_64-*-elf*,
+	i[34567]86-*-aout*, i[34567]86-*-coff*, ia64*-*-elf*,
+	iq2000*-*-elf*, m32r-*-elf*, m32rle-*-elf*, m32r-*-linux*,
+	m32rle-*-linux*, m68hc11-*-*|m6811-*-*, m68hc12-*-*|m6812-*-*,
+	m68k-*-coff*, mcore-*-elf, mcore-*-pe*, mipsisa64sr71k-*-elf*,
+	mipsisa64sb1-*-elf* | mipsisa64sb1el-*-elf*, mips-*-elf* |
+	mipsel-*-elf*, mips64-*-elf* | mips64el-*-elf*, mips64vr-*-elf* |
+	mips64vrel-*-elf*, mips64orion-*-elf* | mips64orionel-*-elf*,
+	mipstx39-*-elf* | mipstx39el-*-elf*, mn10300-*-*, pdp11-*-,
+	powerpc-*-elf*, powerpcle-*-elf*, sh-*-elf* | sh[12346l]*-*-elf* |
+	sh-*-symbianelf* | sh[12346l]*-*-symbianelf* | sh-*-linux* |
+	sh[2346lbe]*-*-linux* | sh-*-netbsdelf* | shl*-*-netbsdelf* |
+	sh5-*-netbsd* | sh5l*-*-netbsd* | sh64-*-netbsd* |
+	sh64l*-*-netbsd*, sh-*-*, sparc-*-elf*, sparc64-*-elf*,
+	v850e1-*-*, v850e-*-*, v850-*-*, xstormy16-*-elf, m32c-*-elf*):
+	Remove use_fixproto=yes.
+	(ia64*-*-hpux*): Remove comment about using fixproto.
+	(m68k-*-uclinuxoldabi*, m68k-*-uclinux*): Remove use_fixproto=no.
+
+2008-06-14  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* configure.ac: Update gthr-default.h lazily, to avoid unneeded
+	library rebuilds.
+	* configure: Regenerate.
+
+2008-06-13  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR middle-end/36520
+	* builtins.c (get_memory_rtx): Test for the presence of DECL_SIZE_UNIT
+	before evaluating it.
+
+2008-06-13  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c/36507
+	* c-decl.c (merge_decls): Don't clear DECL_EXTERNAL for
+	nested inline functions.
+	(start_decl, start_function): Don't invert DECL_EXTERNAL
+	for nested inline functions.
+
+2008-06-13  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* config/mips/mips.md: Remove TARGET_DEBUG_D_MODE conditions from
+	splits that must be made for correctness.
+
+2008-06-13  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* config/mips/mips.c (BUILTIN_AVAIL_NON_MIPS16): New macro.
+	(AVAIL_NON_MIPS16): Likewise.
+	(mips_builtin_description): Replace target_flags with a predicate.
+	(paired_single, sb1_paired_single, mips3d, dsp, dspr2, dsp_32)
+	(dspr2_32): New availability predicates.
+	(MIPS_BUILTIN): New macro.
+	(DIRECT_BUILTIN, CMP_SCALAR_BUILTINS, CMP_PS_BUILTINS)
+	(CMP_4S_BUILTINS, MOVTF_BUILTINS, CMP_BUILTINS)
+	(DIRECT_NO_TARGET_BUILTIN, BPOSGE_BUILTIN): Use it.
+	Replace the TARGET_FLAGS parameters with AVAIL parameters.
+	(mips_ps_bdesc, mips_sb1_bdesc, mips_dsp_bdesc)
+	(mips_dsp_32only_bdesc): Merge into...
+	(mips_builtins): ...this new array.
+	(mips_bdesc_map, mips_bdesc_arrays): Delete.
+	(mips_init_builtins): Update after above changes.
+	(mips_expand_builtin_1): Merge into...
+	(mips_expand_builtin): ...here and update after above changes.
+
 2008-06-12  Paul Brook  <paul@codesourcery.com>
 
 	* longlong.h (__arm__): Define count_leading_zeros.
