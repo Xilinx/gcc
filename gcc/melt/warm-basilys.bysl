@@ -5283,6 +5283,9 @@
 ))
 (install_initial_macro 'update_current_module_environment_box mexpand_update_current_module_environment_box)
 (export_macro update_current_module_environment_box mexpand_update_current_module_environment_box)
+;; to prepare the renaming
+(install_initial_macro 'update_current_module_environment_container mexpand_update_current_module_environment_box)
+(export_macro update_current_module_environment_container mexpand_update_current_module_environment_box)
 
 
 
@@ -14869,6 +14872,13 @@
   (let ( (nloc (unsafe_get_field :nrep_loc nucmeb))
 	 (nex (unsafe_get_field :nucmeb_expr nucmeb))
 	 (pcml (unsafe_get_field :igncx_procurmodenvlist gcx))
+	 (obodl (make_list discr_list))
+	 (ocblo (make_instance class_objcommentedblock
+			       :obi_loc nloc
+			       :oblo_bodyl obodl
+			       :ocomblo_comment 
+			       (make_stringconst discr_string "upd.curr.mod.env.box")))
+	 (oex (compile_obj nex gcx))
 	 )
     (debug_msg pcml "compilobj.upd.cur.mod.env.box pcml")
     ;; get the igncx_procurmodenvlist from gcx
@@ -14889,15 +14899,23 @@
 	      (lambda (curconst)
 		(debug_msg curconst "compilobj.upd.cur.mod.env.box curconst")
 		(if (is_a curconst class_nrep_quasidata_current_module_environment_box)
-		    (let (
+		    (let ( (curcobj (compile_obj curconst gcx))
+			   (ocurcomp (make_instance class_objcompute
+						    :obi_loc nloc
+						    :obdi_destlist (list1 curcobj)
+						    :obcpt_expr oex
+						    ))
 			  )
+		      (debug_msg curcobj "compobj.upd.mod.env.box curcobj")
+		      (debug_msg ocurcomp "compobj.upd.mod.env.box ocurcomp")
+		      (list_append obodl ocurcomp)
 		      )
 		  ))
 	      )))))
-    (warning_plain nloc "compilobj.upd.cur.mod.env.box to be unimplemented")
     (compile_warning 
-     "compilobj.upd.cur.mod.env.box @@ NOT FULLY IMPLEMENTED" ())
-    (return)
+     "compilobj.upd.cur.mod.env.box @@ ALMOST IMPLEMENTED" ())
+    (debug_msg ocblo "compobj.upd.mod.env.box result ocblo")
+    (return ocblo)
     ))
 (install_method class_nrep_update_current_module_environment_box compile_obj compilobj_nrep_update_current_module_environment_box)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

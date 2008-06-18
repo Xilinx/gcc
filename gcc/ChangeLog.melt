@@ -1,3 +1,6 @@
+2008-06-18  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warm-basilys.bysl: almost done compilobj_nrep_update_current_module_environment_box
+
 2008-06-17  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warm-basilys.bysl: adding compilobj_nrep_update_current_module_environment_box
 
