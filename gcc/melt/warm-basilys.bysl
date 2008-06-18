@@ -1330,7 +1330,7 @@
 (defun initmacro_exporter (sym val contenv)
   (debug_msg sym "initmacro_exporter sym")
   (debug_msg val "initmacro_exporter val")
-  (debug_msg contenv "initmacro_exporter contenv")
+  ;(debug_msg contenv "initmacro_exporter contenv")
   (assert_msg "check sym" (is_a sym class_symbol))
   (assert_msg "check contenv" (is_a contenv class_container))
   (let ( (env (unsafe_get_field :container_value contenv)) )
@@ -12387,6 +12387,7 @@
 				    :obcpt_expr (make_stringconst discr_verbatimstring "modargp_"))
 		     )
 	)
+      (compile_warning "should add update_current_module_environment here" ())
       ;; we compute the boxloc at first
       (list_append oinibody otestcomputboxloc)
       ;; the tuple to compile the body
@@ -14893,26 +14894,48 @@
 	   (let (
 		 (curproc (unsafe_get_field :obrout_proc curout))
 		 (cnslis (unsafe_get_field :nrpro_const curproc)) 
+		 (datarout (unsafe_get_field :nrpro_datarout curproc))
+		 (odatarout (compile_obj datarout gcx))
+		 (boxcount (make_integerbox discr_integer 0))
+		 (oroutlocvar (unsafe_get_field :oie_locvar odatarout))
 		 )
 	     (debug_msg cnslis "compilobj.upd.cur.mod.env.box cnslis")
+	     (debug_msg odatarout "compilobj.upd.cur.mod.env.box odatarout")
+	     (assert_msg "check odatarout" (is_a odatarout class_objinitroutine))
+	     (debug_msg oroutlocvar "compilobj.upd.cur.mod.env.box oroutlocvar")
 	     (list_every 
 	      cnslis
 	      (lambda (curconst)
 		(debug_msg curconst "compilobj.upd.cur.mod.env.box curconst")
-		(if (is_a curconst class_nrep_quasidata_current_module_environment_box)
-		    (let ( (curcobj (compile_obj curconst gcx))
-			   (ocurcomp (make_instance class_objcompute
-						    :obi_loc nloc
-						    :obdi_destlist (list1 curcobj)
-						    :obcpt_expr oex
-						    ))
-			  )
-		      (debug_msg curcobj "compobj.upd.mod.env.box curcobj")
-		      (debug_msg ocurcomp "compobj.upd.mod.env.box ocurcomp")
-		      (list_append obodl ocurcomp)
+		(let (
+		      (:long curcount (get_int boxcount))
 		      )
-		  ))
-	      )))))
+		  (if (is_a curconst class_nrep_quasidata_current_module_environment_box)
+		      ;; set into oroutlocvar  the constant ranked curcount to oex
+		      ;; and touch it
+		      (let (
+			    (oputrout (make_instance class_objputroutconst
+						     :obi_loc nloc
+						     :oprconst_rout oroutlocvar
+						     :oprconst_off  (make_integerbox discr_integer curcount)
+						     :oprconst_cval oex
+						     ))
+			    (otouchrout (make_instance class_objtouch
+						       :obi_loc nloc
+						       :otouch_val oroutlocvar
+						       :otouch_comment (make_stringconst discr_string "compobj.upd.mod.env.box")
+						       ))
+			    )
+			(debug_msg oputrout "compobj.upd.mod.env.box oputrout")
+			(debug_msg otouchrout "compobj.upd.mod.env.box otouchrout")
+			(list_append obodl oputrout)
+			(list_append obodl otouchrout)
+			)
+		    )
+		  )
+		))
+	     (put_int boxcount (+i (get_int boxcount) 1))
+	     ))))
     (compile_warning 
      "compilobj.upd.cur.mod.env.box @@ ALMOST IMPLEMENTED" ())
     (debug_msg ocblo "compobj.upd.mod.env.box result ocblo")

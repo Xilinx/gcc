@@ -1,4 +1,8 @@
 2008-06-18  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warm-basilys.bysl: adding more into 
+	compilobj_nrep_update_current_module_environment_box which seems to work somehow...
+
+2008-06-18  Basile Starynkevitch  <basile@starynkevitch.net>
 	* doc/gccint.texi: added MELT.
 
 	* doc/melt.texi: new file nearly empty.
