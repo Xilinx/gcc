@@ -1,4 +1,9 @@
 2008-06-18  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warm-basilys.bysl: renamed current_module_environment_box as current_module_environment_container
+
+	* warm-basilys-0.c: regenerated several times.
+
+2008-06-18  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warm-basilys.bysl: adding more into 
 	compilobj_nrep_update_current_module_environment_box which seems to work somehow...
 
