@@ -1,4 +1,12 @@
 2008-06-18  Basile Starynkevitch  <basile@starynkevitch.net>
+	* doc/gccint.texi: added MELT.
+
+	* doc/melt.texi: new file nearly empty.
+
+	* melt/warm-basilys.bysl: initvalue_exporter dont show the contenv anymore.
+	still buggy for compilobj_nrep_update_current_module_environment_box
+
+2008-06-18  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warm-basilys.bysl: almost done compilobj_nrep_update_current_module_environment_box
 
 2008-06-17  Basile Starynkevitch  <basile@starynkevitch.net>

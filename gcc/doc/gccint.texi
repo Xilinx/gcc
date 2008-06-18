@@ -112,6 +112,7 @@ Additional tutorial information is linked to from
 * RTL::             The intermediate representation that most passes work on.
 * Control Flow::    Maintaining and manipulating the control flow graph.
 * Tree SSA::        Analysis and optimization of the tree representation.
+* MELT::            the Middle End Lisp Translator.
 * Loop Analysis and Representation:: Analysis and representation of loops
 * Machine Desc::    How to write machine description instruction patterns.
 * Target Macros::   How to write the machine description C macros and functions.
@@ -143,6 +144,7 @@ Additional tutorial information is linked to from
 @include passes.texi
 @include c-tree.texi
 @include tree-ssa.texi
+@include melt.texi
 @include loop.texi
 @include rtl.texi
 @include cfg.texi
