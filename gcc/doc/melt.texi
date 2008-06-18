@@ -1,0 +1,65 @@
+@c Copyright (c) 2008 Free Software Foundation, Inc.
+@c Free Software Foundation, Inc.
+@c This is part of the GCC manual.
+@c For copying conditions, see the file gcc.texi.
+
+@c ---------------------------------------------------------------------
+@c  MELT
+@c ---------------------------------------------------------------------
+
+@node MELT
+@chapter MELT (Middle End Lisp Tranlator)
+@cindex MELT
+@cindex Middle End Lisp Translator
+
+
+The MELT branch introduces a Lisp dialect to express middle-end analysers. 
+This chapter describes the dialect and how to use it.
+A working knowledge of Scheme or Lisp is presupposed.
+
+MELT was formerly known as Basilys, hence many functions or variables
+have basilys in their name, and the conventional file extensions for
+MELT source files is @code{.bysl}
+
+See the @uref{http://gcc.gnu.org/wiki/MiddleEndLispTranslator,,MELT wiki page}
+
+@menu
+ * Building the MELT branch::   How to build the MELT branch.
+ * Invoking MELT::      command line invocation of MELT
+ * Tutorial about MELT::     Tutorial on how to use MELT.
+ * Reference on MELT::          Small MELT language reference.
+@end menu
+
+@c =======================================================================
+@node Building the MELT branch
+@section Building the MELT branch
+@cindex Building the MELT branch
+
+To compile the MELT branch, you need the libtool dynamic loader and the Parma Polyhedra Library.
+Note that currently MELT is only compiled on Linux machines.
+
+@c =======================================================================
+@node Invoking MELT
+@section Invoking MELT
+@cindex Invoking MELT
+
+This section has to be written.
+
+
+
+@c =======================================================================
+@node Tutorial about MELT
+@section Tutorial about MELT
+@cindex Tutorial about MELT
+
+This section has to be written.
+
+@c =======================================================================
+
+@node Reference on MELT
+@section Reference on MELT
+@cindex Reference on MELT
+
+This section has to be written.
+
+@c =======================================================================
