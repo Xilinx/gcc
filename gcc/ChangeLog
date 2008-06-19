@@ -1,12 +1,3 @@
-2008-06-18  Konrad Trifunovic  <konrad.trifunovic@inria.fr>
-
-        * cfgloopmanip.c (update_dominators_in_loop): Defined.
-          (create_empty_loop_on_edge): Defined.
-        * tree-parloops.c (canonicalize_loop_ivs): Returns tree instead of void.
-        * cfgloop.h (create_empty_loop_on_edge): Declared as extern.
-          (update_dominators_in_loop): Declared as extern
-        * tree-flow.h (canonicalize_loop_ivs): Declared as extern.
-
 2008-05-20  Sebastian Pop  <sebastian.pop@amd.com>
 	    Jan Sjodin  <jan.sjodin@amd.com>
 
