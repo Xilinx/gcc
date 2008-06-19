@@ -7078,7 +7078,7 @@ cp_parser_build_mem_init_list (cp_parser* parser,
     /* *mem_init_list = tree_cons (
        mem,
        mem_ctor_arg_list,
-     *mem_init_list); */
+       *mem_init_list); */
   }
 }
 
