@@ -1,11 +1,31 @@
+2008-06-19  Konrad Trifunovic  <konrad.trifunovic@inria.fr>
+
+        * graphite.c (new_scop): Memory allocation for SCOP_{NEWIVS, OLDIVS}.
+          (free_scop): Memory deallocation for SCOP_NEWIVS, SCOP_OLDIVS.
+          (create_var_name, save_var_name): Newly defined functions.
+          (initialize_cloog_names): Part of the code factored out to
+          save_var_name.
+          (clast_to_gcc_expression): Now handles the case of clast_red_sum
+          in clast_reduction statement.
+          (graphite_create_new_loop): Now takes a new parameter 
+          for outer_loop.
+          (translate_clast): Now also takes the context_loop and bb_exit 
+          parameters. Rewritten the code so that it creates a gimple code 
+          inside the given context.
+          (outermost_loop_layer, graphite_remove_iv, graphite_rename_ivs, 
+          remove_cond_expr, disconnect_cond_expr, 
+          disconnect_virtual_phi_nodes): Newly defined functions.
+        * graphite.h (struct scop): added old_ivs vector.
+          SCOP_OLDIVS: New macro.
+
 2008-06-19  Sebastian Pop  <sebastian.pop@amd.com>
 
 	* cfgloopmanip.c: Add missing function comments, fix formatting.
-
+	
 2008-06-18  Konrad Trifunovic  <konrad.trifunovic@inria.fr>
 
-        * cfgloopmanip.c (update_dominators_in_loop): Defined.
-          (create_empty_loop_on_edge): Defined.
+	* cfgloopmanip.c (update_dominators_in_loop): Defined.
+           (create_empty_loop_on_edge): Defined.
         * tree-parloops.c (canonicalize_loop_ivs): Returns tree instead of void.
         * cfgloop.h (create_empty_loop_on_edge): Declared as extern.
           (update_dominators_in_loop): Declared as extern
