@@ -2687,302 +2687,302 @@
 (update_current_module_environment_container)
 (debug_msg (current_module_environment_container) "cur.mod.env.cont after update")
 ;;;;;; export the above classes
-;;- (export_class ;;in alphabetical order, one per line, for convenience
-;;-  class_any_binding
-;;-  class_class
-;;-  class_class_binding
-;;-  class_clonedsymbol
-;;-  class_container
-;;-  class_ctype
-;;-  class_debuginfo 
-;;-  class_discr 
-;;-  class_environment
-;;-  class_exported_binding
-;;-  class_field
-;;-  class_field_binding
-;;-  class_fixed_binding
-;;-  class_formal_binding
-;;-  class_function_binding
-;;-  class_genercontext
-;;-  class_initgenercontext
-;;-  class_instance_binding
-;;-  class_keyword
-;;-  class_label_binding
-;;-  class_let_binding
-;;-  class_located
-;;-  class_macro_binding
-;;-  class_modulcontext
-;;-  class_named
-;;-  class_normcontext
-;;-  class_normlet_binding
-;;-  class_objcode
-;;-  class_primitive
-;;-  class_primitive_binding
-;;-  class_proped 
-;;-  class_root
-;;-  class_selector
-;;-  class_selector_binding 
-;;-  class_sexpr
-;;-  class_src
-;;-  class_symbol
-;;-  class_system_data
-;;-  class_value_binding 
-;;-  )					;end of export class
-;;- 
-;;- ;;;; export the above primitives
-;;- (export_values				;in alphanumerical order
-;;-  !=
-;;-  !=i
-;;-  %i
-;;-  %iraw
-;;-  *i
-;;-  +i
-;;-  -i
-;;-  /i
-;;-  /iraw
-;;-  <=i
-;;-  <i
-;;-  ==
-;;-  ==i
-;;-  ==s
-;;-  >=i
-;;-  >i
-;;-  add2sbuf_ccomstrbuf
-;;-  add2sbuf_ccomstring
-;;-  add2sbuf_cencstrbuf
-;;-  add2sbuf_cencstring
-;;-  add2sbuf_cident
-;;-  add2sbuf_cidentprefix
-;;-  add2sbuf_indent
-;;-  add2sbuf_indentnl
-;;-  add2sbuf_longdec
-;;-  add2sbuf_longhex
-;;-  add2sbuf_routinedescr
-;;-  add2sbuf_sbuf
-;;-  add2sbuf_strconst
-;;-  add2sbuf_string
-;;-  andi
-;;-  assert_failed
-;;-  assertmsg
-;;-  box_content
-;;-  box_put
-;;-  cbreak_msg
-;;-  checkcallstack_msg
-;;-  checkval_dbg
-;;-  closure_nth
-;;-  closure_routine
-;;-  closure_size
-;;-  create_keywordstr
-;;-  create_symbolstr
-;;-  discrim
-;;-  error_plain
-;;-  error_strv
-;;-  full_garbcoll
-;;-  get_globpredef
-;;-  get_int
-;;-  get_keywordstr
-;;-  get_symbolstr
-;;-  ignore
-;;-  is_a
-;;-  is_box
-;;-  is_closure
-;;-  is_integerbox
-;;-  is_list
-;;-  is_list_or_null
-;;-  is_mapobject
-;;-  is_mapstring
-;;-  is_mixint
-;;-  is_multiple
-;;-  is_multiple_or_null
-;;-  is_not_a
-;;-  is_not_object
-;;-  is_object
-;;-  is_pair
-;;-  is_routine
-;;-  is_strbuf
-;;-  is_string
-;;-  is_stringconst
-;;-  last_globpredef_index
-;;-  list_append
-;;-  list_first
-;;-  list_last
-;;-  list_length
-;;-  list_popfirst
-;;-  list_prepend
-;;-  longbacktrace_dbg
-;;-  make_box
-;;-  make_integerbox
-;;-  make_list
-;;-  make_mapobject
-;;-  make_mapstring
-;;-  make_multiple
-;;-  make_pair
-;;-  make_strbuf
-;;-  make_string
-;;-  make_string_nakedbasename
-;;-  make_stringconst
-;;-  make_tuple1
-;;-  make_tuple2
-;;-  make_tuple3
-;;-  make_tuple4
-;;-  make_tuple5
-;;-  make_tuple6
-;;-  make_tuple7
-;;-  mapobject_count
-;;-  mapobject_get
-;;-  mapobject_nth_attr
-;;-  mapobject_nth_val
-;;-  mapobject_put
-;;-  mapobject_remove
-;;-  mapobject_size
-;;-  mapstring_count
-;;-  mapstring_getstr
-;;-  mapstring_nth_attrstr
-;;-  mapstring_nth_val
-;;-  mapstring_putstr
-;;-  mapstring_rawget
-;;-  mapstring_rawput
-;;-  mapstring_rawremove
-;;-  mapstring_size
-;;-  message_dbg
-;;-  messagenum_dbg
-;;-  messageval_dbg
-;;-  minor_garbcoll
-;;-  mixint_val
-;;-  multiple_length
-;;-  multiple_nth
-;;-  multiple_put_nth
-;;-  multiple_sort
-;;-  need_dbg
-;;-  need_dbglim
-;;-  negi
-;;-  nonzero_hash
-;;-  not
-;;-  noti
-;;-  notnull
-;;-  null
-;;-  obj_hash
-;;-  obj_len
-;;-  obj_num
-;;-  object_length
-;;-  object_nth_field
-;;-  ori
-;;-  out_cplugin_compiled_timestamp_err
-;;-  out_cplugin_md5_checksum_err
-;;-  outcstring_dbg
-;;-  outcstring_err
-;;-  outnewline_dbg
-;;-  outnewline_err
-;;-  outnum_dbg
-;;-  outnum_err
-;;-  output_cfile_decl_impl
-;;-  outstr_dbg
-;;-  outstr_err
-;;-  outstrbuf_dbg
-;;-  outstrbuf_err
-;;-  pair_head
-;;-  pair_listlength
-;;-  pair_set_head
-;;-  pair_tail
-;;-  put_int
-;;-  read_file
-;;-  routine_descr
-;;-  routine_nth
-;;-  routine_size
-;;-  shortbacktrace_dbg
-;;-  strbuf2string
-;;-  strbuf_usedlength
-;;-  string<
-;;-  string=
-;;-  string>
-;;-  string_length
-;;-  stringconst2val
-;;-  subclass_of
-;;-  the_callcount
-;;-  the_framedepth
-;;-  the_null
-;;-  void
-;;-  warning_plain
-;;-  warning_strv
-;;-  xori
-;;-  zerop
-;;-  )
-;;- ;; export the discriminants and instances and selectors defined above
-;;- (export_values				;alphabetical order
-;;-  ctype_cstring                        
-;;-  ctype_long                           
-;;-  ctype_tree                           
-;;-  ctype_value                          
-;;-  ctype_void  
-;;-  dbg_output
-;;-  dbg_outputagain
-;;-  discr_anyrecv                        
-;;-  discr_box                            
-;;-  discr_charinteger                    
-;;-  discr_closure                        
-;;-  discr_integer                        
-;;-  discr_list                           
-;;-  discr_mapobjects                     
-;;-  discr_mapstrings                     
-;;-  discr_methodmap                      
-;;-  discr_mixedint                       
-;;-  discr_multiple                       
-;;-  discr_namestring                     
-;;-  discr_nullrecv                       
-;;-  discr_pair                           
-;;-  discr_routine                        
-;;-  discr_seqclass                       
-;;-  discr_seqfield                       
-;;-  discr_strbuf                         
-;;-  discr_string                         
-;;-  discr_verbatimstring                 
-;;-  initial_environment                  
-;;-  )					;end export discriminants, instances, selectors
-;;- 
-;;- 
-;;- ;; export the functions defined above
-;;- (export_values
-;;-  add_new_keyword_token			
-;;-  add_new_symbol_token			
-;;-  boxval					
-;;-  clone_symbol				
-;;-  compare_obj_ranked			
-;;-  dbg_out				
-;;-  dbg_outobject				
-;;-  debug_msg_fun				
-;;-  debugmsg				
-;;-  displaydebugmsg			
-;;-  find_enclosing_env			
-;;-  find_env				
-;;-  fresh_env				
-;;-  install_ctype_descr				
-;;-  install_method				
-;;-  intern_keyword				
-;;-  intern_symbol				
-;;-  list1					
-;;-  list2					
-;;-  list3					
-;;-  list_append2list			
-;;-  list_every				
-;;-  list_iterate_test			
-;;-  list_map				
-;;-  list_to_multiple			
-;;-  mapobject_every			
-;;-  mapobject_iterate_test			
-;;-  mapstring_every			
-;;-  mapstring_iterate_test			
-;;-  mapstringval_every			
-;;-  mapstringval_iterate_test		
-;;-  multiple_backward_every		
-;;-  multiple_every				
-;;-  multiple_iterate_test			
-;;-  multiple_map				
-;;-  overwrite_env				
-;;-  pairlist_every				
-;;-  pairlist_iterate_test			
-;;-  pairlist_to_multiple			
-;;-  put_env				
-;;-  )
+(export_class ;;in alphabetical order, one per line, for convenience
+ class_any_binding
+ class_class
+ class_class_binding
+ class_clonedsymbol
+ class_container
+ class_ctype
+ class_debuginfo 
+ class_discr 
+ class_environment
+ class_exported_binding
+ class_field
+ class_field_binding
+ class_fixed_binding
+ class_formal_binding
+ class_function_binding
+ class_genercontext
+ class_initgenercontext
+ class_instance_binding
+ class_keyword
+ class_label_binding
+ class_let_binding
+ class_located
+ class_macro_binding
+ class_modulcontext
+ class_named
+ class_normcontext
+ class_normlet_binding
+ class_objcode
+ class_primitive
+ class_primitive_binding
+ class_proped 
+ class_root
+ class_selector
+ class_selector_binding 
+ class_sexpr
+ class_src
+ class_symbol
+ class_system_data
+ class_value_binding 
+ )					;end of export class
+
+;;;; export the above primitives
+(export_values				;in alphanumerical order
+ !=
+ !=i
+ %i
+ %iraw
+ *i
+ +i
+ -i
+ /i
+ /iraw
+ <=i
+ <i
+ ==
+ ==i
+ ==s
+ >=i
+ >i
+ add2sbuf_ccomstrbuf
+ add2sbuf_ccomstring
+ add2sbuf_cencstrbuf
+ add2sbuf_cencstring
+ add2sbuf_cident
+ add2sbuf_cidentprefix
+ add2sbuf_indent
+ add2sbuf_indentnl
+ add2sbuf_longdec
+ add2sbuf_longhex
+ add2sbuf_routinedescr
+ add2sbuf_sbuf
+ add2sbuf_strconst
+ add2sbuf_string
+ andi
+ assert_failed
+ assertmsg
+ box_content
+ box_put
+ cbreak_msg
+ checkcallstack_msg
+ checkval_dbg
+ closure_nth
+ closure_routine
+ closure_size
+ create_keywordstr
+ create_symbolstr
+ discrim
+ error_plain
+ error_strv
+ full_garbcoll
+ get_globpredef
+ get_int
+ get_keywordstr
+ get_symbolstr
+ ignore
+ is_a
+ is_box
+ is_closure
+ is_integerbox
+ is_list
+ is_list_or_null
+ is_mapobject
+ is_mapstring
+ is_mixint
+ is_multiple
+ is_multiple_or_null
+ is_not_a
+ is_not_object
+ is_object
+ is_pair
+ is_routine
+ is_strbuf
+ is_string
+ is_stringconst
+ last_globpredef_index
+ list_append
+ list_first
+ list_last
+ list_length
+ list_popfirst
+ list_prepend
+ longbacktrace_dbg
+ make_box
+ make_integerbox
+ make_list
+ make_mapobject
+ make_mapstring
+ make_multiple
+ make_pair
+ make_strbuf
+ make_string
+ make_string_nakedbasename
+ make_stringconst
+ make_tuple1
+ make_tuple2
+ make_tuple3
+ make_tuple4
+ make_tuple5
+ make_tuple6
+ make_tuple7
+ mapobject_count
+ mapobject_get
+ mapobject_nth_attr
+ mapobject_nth_val
+ mapobject_put
+ mapobject_remove
+ mapobject_size
+ mapstring_count
+ mapstring_getstr
+ mapstring_nth_attrstr
+ mapstring_nth_val
+ mapstring_putstr
+ mapstring_rawget
+ mapstring_rawput
+ mapstring_rawremove
+ mapstring_size
+ message_dbg
+ messagenum_dbg
+ messageval_dbg
+ minor_garbcoll
+ mixint_val
+ multiple_length
+ multiple_nth
+ multiple_put_nth
+ multiple_sort
+ need_dbg
+ need_dbglim
+ negi
+ nonzero_hash
+ not
+ noti
+ notnull
+ null
+ obj_hash
+ obj_len
+ obj_num
+ object_length
+ object_nth_field
+ ori
+ out_cplugin_compiled_timestamp_err
+ out_cplugin_md5_checksum_err
+ outcstring_dbg
+ outcstring_err
+ outnewline_dbg
+ outnewline_err
+ outnum_dbg
+ outnum_err
+ output_cfile_decl_impl
+ outstr_dbg
+ outstr_err
+ outstrbuf_dbg
+ outstrbuf_err
+ pair_head
+ pair_listlength
+ pair_set_head
+ pair_tail
+ put_int
+ read_file
+ routine_descr
+ routine_nth
+ routine_size
+ shortbacktrace_dbg
+ strbuf2string
+ strbuf_usedlength
+ string<
+ string=
+ string>
+ string_length
+ stringconst2val
+ subclass_of
+ the_callcount
+ the_framedepth
+ the_null
+ void
+ warning_plain
+ warning_strv
+ xori
+ zerop
+ )
+;; export the discriminants and instances and selectors defined above
+(export_values				;alphabetical order
+ ctype_cstring                        
+ ctype_long                           
+ ctype_tree                           
+ ctype_value                          
+ ctype_void  
+ dbg_output
+ dbg_outputagain
+ discr_anyrecv                        
+ discr_box                            
+ discr_charinteger                    
+ discr_closure                        
+ discr_integer                        
+ discr_list                           
+ discr_mapobjects                     
+ discr_mapstrings                     
+ discr_methodmap                      
+ discr_mixedint                       
+ discr_multiple                       
+ discr_namestring                     
+ discr_nullrecv                       
+ discr_pair                           
+ discr_routine                        
+ discr_seqclass                       
+ discr_seqfield                       
+ discr_strbuf                         
+ discr_string                         
+ discr_verbatimstring                 
+ initial_environment                  
+ )					;end export discriminants, instances, selectors
+
+
+;; export the functions defined above
+(export_values
+ add_new_keyword_token			
+ add_new_symbol_token			
+ boxval					
+ clone_symbol				
+ compare_obj_ranked			
+ dbg_out				
+ dbg_outobject				
+ debug_msg_fun				
+ debugmsg				
+ displaydebugmsg			
+ find_enclosing_env			
+ find_env				
+ fresh_env				
+ install_ctype_descr				
+ install_method				
+ intern_keyword				
+ intern_symbol				
+ list1					
+ list2					
+ list3					
+ list_append2list			
+ list_every				
+ list_iterate_test			
+ list_map				
+ list_to_multiple			
+ mapobject_every			
+ mapobject_iterate_test			
+ mapstring_every			
+ mapstring_iterate_test			
+ mapstringval_every			
+ mapstringval_iterate_test		
+ multiple_backward_every		
+ multiple_every				
+ multiple_iterate_test			
+ multiple_map				
+ overwrite_env				
+ pairlist_every				
+ pairlist_iterate_test			
+ pairlist_to_multiple			
+ put_env				
+ )
 
 (export_class
   class_root
@@ -9430,16 +9430,19 @@
 			       :ncumeb_comment scomm
 			       )) 
 	   (csym (clone_symbol 'updatcurmodenvbox_))
-	   (cbind (make_instance class_normlet_binding
-				 :letbind_loc sloc
-				 :binder csym
-				 :letbind_type ctype_void
-				 :letbind_expr nup))
-	   (clocc (make_instance class_nrep_locsymocc
-				 :nrep_loc sloc
-				 :nocc_ctyp ctype_void
-				 :nocc_symb csym
-				 :nocc_bind cbind))
+	   (cbind (make_instance 
+		   class_normlet_binding
+		   :letbind_loc sloc
+		   :binder csym
+		   :letbind_type ctype_void
+		   ;; ctype_void because the sideffect is in nup
+		   :letbind_expr nup))
+	   (clocc (make_instance 
+		   class_nrep_locsymocc
+		   :nrep_loc sloc
+		   :nocc_ctyp ctype_void
+		   :nocc_symb csym
+		   :nocc_bind cbind))
 	   (csbuf (let ( (sb (make_strbuf discr_strbuf)) )
 		    (add2sbuf_strconst sb "cur.mod.env.cont : ")
 		    (add2sbuf_string sb scomm)
@@ -11019,11 +11022,15 @@
 	   (add2sbuf_strconst implbuf " = ")
 	   ())))
     (cond ((is_list cexp)
+	   (if (>i (list_length cexp) 2)
+	       (add2sbuf_indentnl implbuf (+i 1 depth)))
 	   (list_every
 	    cexp 
 	    (lambda (expcur) 
 	      (output_c_code expcur declbuf implbuf (get_int boxdepthp1)))))
 	  ((is_multiple cexp)
+	   (if (>i (multiple_length cexp) 2)
+	       (add2sbuf_indentnl implbuf (+i 1 depth)))
 	   (multiple_every
 	    cexp
 	    (lambda (expcur) 
@@ -14887,6 +14894,7 @@
 	 (ncomm (unsafe_get_field :ncumeb_comment nucmeb))
 	 (nex (unsafe_get_field :nucmeb_expr nucmeb))
 	 (pcml (unsafe_get_field :igncx_procurmodenvlist gcx))
+	 (ocontenvloc (unsafe_get_field :igncx_contenvloc gcx))
 	 (csbuf (let ( (sb (make_strbuf discr_strbuf)) 
 		       )
 		  (add2sbuf_strconst sb "upd.cur.mod.env.cont")
@@ -14947,11 +14955,17 @@
 						       :otouch_val oroutlocvar
 						       :otouch_comment (make_stringconst discr_string "compobj.upd.mod.env.box")
 						       ))
+			    (ocopy (make_instance class_objcompute
+						  :obi_loc nloc
+						  :obdi_destlist (list1 ocontenvloc)
+						  :obcpt_expr oex
+						  ))
 			    )
 			(debug_msg oputrout "compobj.upd.mod.env.box oputrout")
 			(debug_msg otouchrout "compobj.upd.mod.env.box otouchrout")
 			(list_append obodl oputrout)
 			(list_append obodl otouchrout)
+			(list_append obodl ocopy)
 			)
 		    )
 		  )

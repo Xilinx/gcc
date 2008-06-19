@@ -1,4 +1,9 @@
 2008-06-20  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warm-basilys.bysl: update of module environment box should
+	change the local in the toplevel containing it! export apparently
+	works!!
+
+2008-06-20  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warm-basilys.bysl: added comments fields in various
 	module_environment stuff to help debugging.
 
