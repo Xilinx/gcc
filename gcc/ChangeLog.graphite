@@ -1,3 +1,7 @@
+2008-06-19  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* cfgloopmanip.c: Add missing function comments, fix formatting.
+
 2008-06-18  Konrad Trifunovic  <konrad.trifunovic@inria.fr>
 
         * cfgloopmanip.c (update_dominators_in_loop): Defined.

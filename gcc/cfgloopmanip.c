@@ -466,9 +466,10 @@ scale_loop_frequencies (struct loop *loop, int num, int den)
   free (bbs);
 }
 
-void update_dominators_in_loop (struct loop* loop)
+/* Recompute dominance information for basic blocks outside LOOP.  */
+
+void update_dominators_in_loop (struct loop *loop)
 {
-  /* Update dominators of blocks outside of LOOP.  */
   VEC (basic_block, heap) *dom_bbs = NULL;
   sbitmap seen;
   basic_block *body;
@@ -501,7 +502,12 @@ void update_dominators_in_loop (struct loop* loop)
   VEC_free (basic_block, heap, dom_bbs);
 }
 
-/* create_empty_loop_on_edge
+/* Creates and returns a new empty loop on ENTRY_EDGE.  A new
+   induction variable is created, with name IV, initial value
+   INITIAL_VALUE, a stride STRIDE and upper bound UPB is created, and
+   the value after its increment is returned in VAR_AFTER.  The outer
+   loop containing this loop is OUTER.
+
    |
    |     -------------                      -----------------------           
    |     |  pred_bb  |                      |  pred_bb            |           
@@ -541,13 +547,13 @@ create_empty_loop_on_edge (edge entry_edge,
   edge exit_e;
   int prob;
 
-  gcc_assert (entry_edge != NULL);
-  gcc_assert (initial_value != NULL);
-  gcc_assert (stride != NULL);
-  gcc_assert (upb != NULL);
-  gcc_assert (iv != NULL);
+  gcc_assert (entry_edge);
+  gcc_assert (initial_value);
+  gcc_assert (stride);
+  gcc_assert (upb);
+  gcc_assert (iv);
 
-  /* Create header, latch and wire up the loop */
+  /* Create header, latch and wire up the loop.  */
   pred_bb = entry_edge->src;
   loop_header = split_edge (entry_edge);
   loop_latch = split_edge (single_succ_edge (loop_header));
@@ -555,21 +561,20 @@ create_empty_loop_on_edge (edge entry_edge,
   make_edge (loop_header, succ_bb, 0);
   redirect_edge_succ_nodup (single_succ_edge (loop_latch), loop_header);
 
-  /* set imm dominator info */
+  /* Set immediate dominator information.  */
   set_immediate_dominator (CDI_DOMINATORS, loop_header, pred_bb);
   set_immediate_dominator (CDI_DOMINATORS, loop_latch, loop_header);
   set_immediate_dominator (CDI_DOMINATORS, succ_bb, loop_header);
 
-  /* init loop structure and put in loop hierarchy */
+  /* Initialize a loop structure and put it in a loop hierarchy.  */
   loop = alloc_loop ();
   loop->header = loop_header;
   loop->latch = loop_latch;
 
   outer = succ_bb->loop_father;
-  add_loop (loop,outer);
-  
+  add_loop (loop, outer);
 
-  /* set frequencies */
+  /* Set frequencies.  */
   freq = EDGE_FREQUENCY (entry_edge);
   cnt = entry_edge->count;
 
@@ -577,10 +582,10 @@ create_empty_loop_on_edge (edge entry_edge,
   scale_loop_frequencies (loop, REG_BR_PROB_BASE - prob, REG_BR_PROB_BASE);
   scale_loop_frequencies (outer, prob, REG_BR_PROB_BASE);
 
-  /* update dominators */
+  /* Update dominators.  */
   update_dominators_in_loop (loop);
 
-  /* construct IV code in loop */
+  /* Construct IV code in loop.  */
   initial_value = force_gimple_operand (initial_value, &stmts, true, iv);
   if (stmts)
     {
@@ -594,14 +599,13 @@ create_empty_loop_on_edge (edge entry_edge,
   *var_after = iv;
   exit_e = single_exit (loop);
   bsi = bsi_last (exit_e->src);
- 
-  
+
   exit_cond = build2 (LT_EXPR, boolean_type_node, upb, iv);
   exit_cond = build3 (COND_EXPR, void_type_node, exit_cond,
 		      NULL_TREE, NULL_TREE);
-  exit_test = TREE_OPERAND(exit_cond, 0);
+  exit_test = TREE_OPERAND (exit_cond, 0);
   exit_test = force_gimple_operand (exit_test, &stmts, true, NULL);
-  TREE_OPERAND (exit_cond,0) = exit_test;
+  TREE_OPERAND (exit_cond, 0) = exit_test;
   if (stmts)
     bsi_insert_after (&bsi, stmts, BSI_NEW_STMT);
 
@@ -609,7 +613,6 @@ create_empty_loop_on_edge (edge entry_edge,
 
   return loop;
 }
-
 
 /* Make area between HEADER_EDGE and LATCH_EDGE a loop by connecting
    latch to header and update loop tree and dominators
