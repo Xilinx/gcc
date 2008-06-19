@@ -1,25 +1,36 @@
+2008-06-20  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warm-basilys.bysl: added comments fields in various
+	module_environment stuff to help debugging.
+
+	* doc/melt.texi: more stuff [unchecked].
+
 2008-06-18  Basile Starynkevitch  <basile@starynkevitch.net>
-	* melt/warm-basilys.bysl: renamed current_module_environment_box as current_module_environment_container
+	* melt/warm-basilys.bysl: renamed current_module_environment_box
+	as current_module_environment_container
 
 	* warm-basilys-0.c: regenerated several times.
 
 2008-06-18  Basile Starynkevitch  <basile@starynkevitch.net>
-	* melt/warm-basilys.bysl: adding more into 
-	compilobj_nrep_update_current_module_environment_box which seems to work somehow...
+	* melt/warm-basilys.bysl: adding more into
+	compilobj_nrep_update_current_module_environment_box which seems
+	to work somehow...
 
 2008-06-18  Basile Starynkevitch  <basile@starynkevitch.net>
 	* doc/gccint.texi: added MELT.
 
 	* doc/melt.texi: new file nearly empty.
 
-	* melt/warm-basilys.bysl: initvalue_exporter dont show the contenv anymore.
-	still buggy for compilobj_nrep_update_current_module_environment_box
+	* melt/warm-basilys.bysl: initvalue_exporter dont show the contenv
+	anymore.  still buggy for
+	compilobj_nrep_update_current_module_environment_box
 
 2008-06-18  Basile Starynkevitch  <basile@starynkevitch.net>
-	* melt/warm-basilys.bysl: almost done compilobj_nrep_update_current_module_environment_box
+	* melt/warm-basilys.bysl: almost done
+	compilobj_nrep_update_current_module_environment_box
 
 2008-06-17  Basile Starynkevitch  <basile@starynkevitch.net>
-	* melt/warm-basilys.bysl: adding compilobj_nrep_update_current_module_environment_box
+	* melt/warm-basilys.bysl: adding
+	compilobj_nrep_update_current_module_environment_box
 
 2008-06-15  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warm-basilys.bysl: adding nctx_procurmodenvlist &

@@ -24,24 +24,111 @@ MELT source files is @code{.bysl}
 See the @uref{http://gcc.gnu.org/wiki/MiddleEndLispTranslator,,MELT wiki page}
 
 @menu
+ * MELT overview::              An overview of MELT.
  * Building the MELT branch::   How to build the MELT branch.
- * Invoking MELT::      command line invocation of MELT
- * Tutorial about MELT::     Tutorial on how to use MELT.
+ * Invoking MELT::              Command line invocation of MELT
+ * Tutorial about MELT::        Tutorial on how to use MELT.
  * Reference on MELT::          Small MELT language reference.
 @end menu
+
+@c =======================================================================
+@node MELT overview
+@section MELT overview
+@cindex MELT overview
+
+
+Any MELT enabling compilation is really a long lasting compilation. It
+is supposed that you use a powerful workstation (or laptop), and that
+the MELT-enabled compilation will run a lot slower than a simple
+@code{gcc -O1} compilation (hopefully doing some useful stuff). Notice
+that a MELT compilation actually generates C code, compile it (using
+another GCC compilation process) to a dynamically loadable library, and
+load its into the MELT compilation process.
+
+@c some sentences copied from the Wiki page. I (Basile) wrote all of them.
+
+The MELT branch contains several (related) stuff. Everything can be
+enabled or disabled at GCC configure time or at GCC run time:
+
+@enumerate
+
+@item a compiler probe, which enable an advanced user to display some of
+the compilers internals data (but not to change them or change the
+GCC compiler's behavior.
+
+@item a Lisp dialect compiled into C code, with which one can code
+sophisticated or prototypical middle end passes.
+
+@item a runtime which extends the GCC infrastructure to support the
+previous items, in particular a generational copying garbage
+collector well suited for the lisp dialect above, which is build
+above the existing GGC (which deals with old values).
+
+@end enumerate
+
+MELT is bootstrapped, in the sense that the translation from the MELT
+dialect to C is coded in MELT (hence the MELT generated C code is
+available from the source code).
+
+The generated C code is including only one file @code{run-basilys.h}
+which includes many GCC include files internal to the compiler. It is
+compiled into a dynamic library by a shell script
+@code{*melt-cc-script*} which invokes the host GCC with appropriate
+flags.
+
+MELT obviously need that the binary (dynamic libraries @code{warm*.so})
+for the MELT translator are already available. More generally, it uses
+several kind of files:
+
+@enumerate
+
+@item the script used to compile generated C files info dynamically loadable stuff.
+This script may be invoked by MELT GCC. In common cases, the first
+argument to the script is the MELT generated input @code{*.c} file and
+the second argument is the MELT loaded output @code{*.so} dynamic
+library.
+
+@item an include directory (passed by @code{-I} to the compiler) 
+containing all the useful GCC headers. This directory is only written by
+the installation procedure.
+
+@item a permanent generated C code directory which contains some essential files, in particular the C form of the MELT translated.
+ 
+@end enumerate
+
 
 @c =======================================================================
 @node Building the MELT branch
 @section Building the MELT branch
 @cindex Building the MELT branch
 
-To compile the MELT branch, you need the libtool dynamic loader and the Parma Polyhedra Library.
+The MELT branch has to be configured appropriately to enable MELT. If
+MELT is disabled at configure time, the MELT branch is essentially the
+GCC trunk. Enabling MELT means passing the @code{-with-ppl --with-ltdl
+--enable-compiler-probe --enable-basilysmelt} flags to the toplevel
+@code{configure}.
+
+Actually, there are two different features enabled: the compiler probe
+and MELT. In practice, you'll need both.
+
+To compile the MELT branch, you need the libtool dynamic loader and the
+Parma Polyhedra Library. The libtool dynamic loader wraps the dynamic
+library loading functions like @code{dlopen} or @code{dlsym}; it is part
+of @uref{http://www.gnu.org/software/libtool,,libtool} (version
+2.x). The Parma Polyhedra Library (PPL) is a free library available
+@uref{http://www.cs.unipr.it/ppl/,,here}, it is a C++ library (GPLv3
+licensed) handling lattices like intervals etc.
+
 Note that currently MELT is only compiled on Linux machines.
 
 @c =======================================================================
 @node Invoking MELT
 @section Invoking MELT
 @cindex Invoking MELT
+
+Without any MELT specific program flags, the MELT variant of gcc behave
+as the trunk. So to get or use MELT features, you need to pass some
+special flags. Most of these flags are starting with @code{-fbasilys}.
 
 This section has to be written.
 
