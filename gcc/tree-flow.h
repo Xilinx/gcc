@@ -1032,6 +1032,7 @@ unsigned int remove_empty_loops (void);
 void tree_ssa_iv_optimize (void);
 unsigned tree_predictive_commoning (void);
 bool parallelize_loops (void);
+tree canonicalize_loop_ivs (struct loop *, htab_t, tree);
 tree create_loop_fn (void);
 basic_block create_omp_parallel_region (edge, edge, tree, unsigned);
 

@@ -279,6 +279,10 @@ extern bool can_duplicate_loop_p (const struct loop *loop);
 #define DLTHE_FLAG_COMPLETTE_PEEL 4	/* Update frequencies expecting
 					   a complete peeling.  */
 
+
+extern struct loop *create_empty_loop_on_edge (edge, tree, tree, 
+                                               tree, tree, tree *, struct loop *);
+extern void update_dominators_in_loop (struct loop* loop);
 extern struct loop * duplicate_loop (struct loop *, struct loop *);
 extern bool duplicate_loop_to_header_edge (struct loop *, edge, 
 					   unsigned, sbitmap, edge,

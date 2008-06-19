@@ -213,7 +213,8 @@ reduction_phi (htab_t reduction_list, tree phi)
 {
   struct reduction_info tmpred, *red;
 
-  if (htab_elements (reduction_list) == 0)
+  if (!reduction_list
+      || htab_elements (reduction_list) == 0)
     return NULL;
 
   tmpred.reduc_phi = phi;
@@ -1362,12 +1363,13 @@ create_loop_fn (void)
   return decl;
 }
 
-/* Bases all the induction variables in LOOP on a single induction variable
-   (unsigned with base 0 and step 1), whose final value is compared with
-   NIT.  The induction variable is incremented in the loop latch.  
-   REDUCTION_LIST describes the reductions in LOOP.  */
+/* Bases all the induction variables in LOOP on a single induction
+   variable (unsigned with base 0 and step 1), whose final value is
+   compared with NIT.  The induction variable is incremented in the
+   loop latch.  REDUCTION_LIST describes the reductions in LOOP.
+   Returns the induction variable that was created for LOOP.  */
 
-static void
+tree
 canonicalize_loop_ivs (struct loop *loop, htab_t reduction_list, tree nit)
 {
   unsigned precision = TYPE_PRECISION (TREE_TYPE (nit));
@@ -1442,6 +1444,8 @@ canonicalize_loop_ivs (struct loop *loop, htab_t reduction_list, tree nit)
       fe->flags = EDGE_TRUE_VALUE;
     }
   COND_EXPR_COND (t) = build2 (LT_EXPR, boolean_type_node, var_before, nit);
+
+  return var_before;
 }
 
 /* Moves the exit condition of LOOP to the beginning of its header, and
