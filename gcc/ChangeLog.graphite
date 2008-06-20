@@ -1,3 +1,5 @@
+2008-06-20  Konrad Trifunovic  <konrad.trifunovic@inria.fr>
+	* graphite.c: Fix formatting.
 2008-06-19  Konrad Trifunovic  <konrad.trifunovic@inria.fr>
 
         * graphite.c (new_scop): Memory allocation for SCOP_{NEWIVS, OLDIVS}.
