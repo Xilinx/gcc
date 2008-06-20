@@ -372,7 +372,7 @@ void
 dot_scop (scop_p scop)
 {
   FILE *stream = fopen ("/tmp/scop.dot", "w");
-  gcc_assert (stream != NULL);
+  gcc_assert (stream);
 
   dot_scop_1 (stream, scop);
   fclose (stream);
@@ -524,7 +524,7 @@ void
 dot_all_scops (void)
 {
   FILE *stream = fopen ("/tmp/allscops.dot", "w");
-  gcc_assert (stream != NULL);
+  gcc_assert (stream);
 
   dot_all_scops_1 (stream);
   fclose (stream);
@@ -2412,16 +2412,19 @@ clast_to_gcc_expression (struct clast_expr *e, tree type,
         switch (r->type)
           {
             case clast_red_sum:
-              assert(r->n >= 1);
-              assert(r->elts[0]->type == expr_term);
-              left = clast_to_gcc_expression (r->elts[0], type, new_ivs, params);
-              assert(r->elts[1]->type == expr_term);
-              right = clast_to_gcc_expression (r->elts[1], type, new_ivs, params);
+              gcc_assert (r->n >= 1);
+              gcc_assert (r->elts[0]->type == expr_term);
+              left = clast_to_gcc_expression (r->elts[0], type, new_ivs, 
+                                              params);
+              gcc_assert (r->elts[1]->type == expr_term);
+              right = clast_to_gcc_expression (r->elts[1], type, new_ivs, 
+                                               params);
               return fold_build2 (PLUS_EXPR, type, left, right);
             case clast_red_min:
             case clast_red_max:
               if (r->n == 1)
-		return clast_to_gcc_expression (r->elts[0], type, new_ivs, params);
+		return clast_to_gcc_expression (r->elts[0], type, new_ivs, 
+                                                params);
 
             default:
               gcc_unreachable ();
@@ -2466,9 +2469,9 @@ clast_to_gcc_expression (struct clast_expr *e, tree type,
 
 
 
-/* Creates a new LOOP corresponding to Cloog's STMT. Inserts an induction 
-   variable for the new LOOP. New LOOP is attached to CFG starting at
-   ENTRY_EDGE. LOOP is inserted into the loop tree and becomes the child
+/* Creates a new LOOP corresponding to Cloog's STMT.  Inserts an induction 
+   variable for the new LOOP.  New LOOP is attached to CFG starting at
+   ENTRY_EDGE.  LOOP is inserted into the loop tree and becomes the child
    loop of the OUTER_LOOP.  */
 
 static struct loop *
@@ -2654,8 +2657,8 @@ disconnect_virtual_phi_nodes (basic_block bb)
 }
 
 /* Translates a CLAST statement STMT to GCC representation.  NEXT_E is
-   the edge where new generated code should be attached. BB_EXIT is the last
-   basic block that defines the scope of code generation. CONTEXT_LOOP is the
+   the edge where new generated code should be attached.  BB_EXIT is the last
+   basic block that defines the scope of code generation.  CONTEXT_LOOP is the
    loop in which the generated code will be placed (might be NULL).  */
 
 static edge
@@ -2692,7 +2695,8 @@ translate_clast (scop_p scop, struct clast_stmt *stmt,
           add_bb_to_loop (bb, context_loop);
          }
 
-	return translate_clast (scop, stmt->next, next_e, bb_exit, context_loop);
+	return translate_clast (scop, stmt->next, next_e, bb_exit, 
+                                context_loop);
       }
 
     case stmt_for:
@@ -2705,18 +2709,20 @@ translate_clast (scop_p scop, struct clast_stmt *stmt,
         block_stmt_iterator bsi;
         basic_block new_header;
 	struct loop *loop = graphite_create_new_loop (scop, next_e,
-						      (struct clast_for *) stmt, context_loop);
+						      (struct clast_for *) stmt,
+                                                      context_loop);
 	edge last_e = single_exit (loop);
         edge old_exit = last_e; 
         
         basic_block header = last_e->src;
         cond_expr = disconnect_cond_expr (header);
 	next_e = translate_clast (scop, ((struct clast_for *) stmt)->body,
-				  single_pred_edge (loop->latch), loop->latch, loop);
+				  single_pred_edge (loop->latch), loop->latch,
+                                  loop);
 	redirect_edge_succ_nodup (next_e, loop->latch);
         set_immediate_dominator (CDI_DOMINATORS, loop->latch, next_e->src);
  
-        /* Transforms WHILE loop into DO loop */
+        /* Transforms WHILE loop into DO loop.  */
         new_header =  single_pred_edge (loop->latch)->src;
         bsi = bsi_last (new_header);
         bsi_insert_after (&bsi, cond_expr, BSI_NEW_STMT);
@@ -2737,11 +2743,13 @@ translate_clast (scop_p scop, struct clast_stmt *stmt,
           }
         free (bbs);
         
-        last_e = translate_clast (scop, stmt->next, last_e, bb_exit, context_loop);
+        last_e = translate_clast (scop, stmt->next, last_e, bb_exit, 
+                                  context_loop);
 	return last_e; 
       }
     case stmt_block:
-      next_e = translate_clast (scop, ((struct clast_block *) stmt)->body, next_e, bb_exit, context_loop);
+      next_e = translate_clast (scop, ((struct clast_block *) stmt)->body, 
+                                next_e, bb_exit, context_loop);
       return translate_clast (scop, stmt->next, next_e, bb_exit, context_loop);
 
     case stmt_guard:
@@ -2920,7 +2928,7 @@ outermost_loop_layer (scop_p scop)
     if (!loop_in_scop_p (loop_outer (loop), scop))
       result = loop;
 
-  assert (result != NULL);
+  gcc_assert (result);
   return result;
 }
 
@@ -3182,47 +3190,36 @@ test_dependence (scop_p scop, graphite_bb_p gb1, graphite_bb_p gb2,
           value_set_si (temp_matrix->p[row][0], 1); /* >= */
           value_oppose (temp_matrix->p[row][p], 
                         GBB_DYNAMIC_SCHEDULE (gb1)->p[j][p - 1]);
-          value_assign (temp_matrix->p[row][loop_iteration_vector_dim (loop_a, scop) + p], 
+          value_assign (temp_matrix->p[row]
+                                      [loop_iteration_vector_dim (loop_a, scop) + p], 
                         GBB_DYNAMIC_SCHEDULE (gb1)->p[j][p - 1]);
           value_set_si (temp_matrix->p[row][temp_matrix->NbColumns - 1], -1);
 
           simplified = cloog_domain_matrix2domain (temp_matrix);
           if (is_empty_polyhedron (simplified))
           {
-            value_assign (dep_constraints->p[j + dep_constraints->NbRows - 2*iter_vector_dim][p], 
+            value_assign (dep_constraints->p[j + dep_constraints->NbRows 
+                                             - 2*iter_vector_dim][p], 
                           GBB_DYNAMIC_SCHEDULE (gb1)->p[j][p - 1]);
           
-            value_oppose (dep_constraints->p[j + dep_constraints->NbRows - 2*iter_vector_dim]
+            value_oppose (dep_constraints->p[j + dep_constraints->NbRows 
+                                             - 2*iter_vector_dim]
                                             [loop_iteration_vector_dim (loop_a, scop) + p], 
                           GBB_DYNAMIC_SCHEDULE (gb2)->p[j][p - 1]);
           }
           else
-            return initialize_data_dependence_polyhedron (true, simplified, p, a, b);           
+            return initialize_data_dependence_polyhedron (true, simplified, 
+                                                          p, a, b);           
           cloog_matrix_free (temp_matrix);
         }
       }
     else if (p < 0)
       {
   
-        /* TODO: do not forget about memory leaks,
-           temp_matrix is a new matrix!  */
-
-        /*
-        for (row = 0; row < iter_vector_dim; row++)
-        {
-          value_assign (dep_constraints->p[row + dep_constraints->NbRows - 2*iter_vector_dim ][-p], 
-                        GBB_DYNAMIC_SCHEDULE (gb1)->p[row][-p -1]);
-          
-          value_oppose (dep_constraints->p[row + dep_constraints->NbRows - 2*iter_vector_dim ]
-                                          [loop_iteration_vector_dim (loop_a, scop) - p], 
-                        GBB_DYNAMIC_SCHEDULE (gb2)->p[row][-p -1]);
-        }
-        */
-        /* simplified = cloog_domain_matrix2domain (temp_matrix); */
-  
         if (statement_precedes_p (scop, gb1, DR_STMT (a), gb2, DR_STMT (b), -p))
           {
-            return initialize_data_dependence_polyhedron (false, simplified, -p, a, b);
+            return initialize_data_dependence_polyhedron (false, simplified, -p,
+                                                          a, b);
             /* VEC_safe_push (ddp_p, heap, ddps, ddp); */
             break;
           }
@@ -3257,9 +3254,13 @@ build_rdg_all_levels (scop_p scop)
       for (bsi = bsi_start (GBB_BB (gb1)); !bsi_end_p (bsi); bsi_next (&bsi))
 	VEC_safe_push (tree, heap, stmts, bsi_stmt (bsi));
 
-      for (i1 = 0; VEC_iterate (data_reference_p, GBB_DATA_REFS (gb1), i1, a); i1++)
+      for (i1 = 0; 
+           VEC_iterate (data_reference_p, GBB_DATA_REFS (gb1), i1, a); 
+           i1++)
 	for (j = 0; VEC_iterate (graphite_bb_p, SCOP_BBS (scop), j, gb2); j++)
-	  for (j1 = 0; VEC_iterate (data_reference_p, GBB_DATA_REFS (gb2), j1, b); j1++)
+	  for (j1 = 0; 
+               VEC_iterate (data_reference_p, GBB_DATA_REFS (gb2), j1, b); 
+               j1++)
 	    if ((!DR_IS_READ (a) || !DR_IS_READ (b)) && dr_may_alias_p (a,b)
 		&& operand_equal_p (DR_BASE_OBJECT (a), DR_BASE_OBJECT (b), 0))
               {
@@ -3352,8 +3353,8 @@ graphite_swap_loops (graphite_bb_p gb, int loop_one, int loop_two)
   unsigned i;
   loop_p loop_p_one, loop_p_two;
   CloogMatrix *domain = GBB_DOMAIN (gb);
-  assert (loop_one < gbb_nb_loops (gb));
-  assert (loop_two < gbb_nb_loops (gb));
+  gcc_assert (loop_one < gbb_nb_loops (gb));
+  gcc_assert (loop_two < gbb_nb_loops (gb));
   
   for (i = 0; i < domain->NbRows; i++)
       value_swap (domain->p[i][loop_one + 1], domain->p[i][loop_two + 1]);
@@ -3403,8 +3404,8 @@ graphite_strip_mine_loop (graphite_bb_p gb, int loop, int stride)
   int col_loop_strip = col_loop_old - 1;
   int col_loc = col_loop_old + 1; 
 
-  assert (loop <= gbb_nb_loops (gb) - 1);
-  assert (loop >= 0);
+  gcc_assert (loop <= gbb_nb_loops (gb) - 1);
+  gcc_assert (loop >= 0);
 
   GBB_DOMAIN (gb) = new_domain;
 
