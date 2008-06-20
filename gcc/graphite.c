@@ -1,23 +1,22 @@
 /* Gimple Represented as Polyhedra.
-   Copyright (C) 2006, 2007 Free Software Foundation, Inc.
+   Copyright (C) 2006, 2007, 2008 Free Software Foundation, Inc.
    Contributed by Sebastian Pop <sebastian.pop@inria.fr>.
 
 This file is part of GCC.
 
-GCC is free software; you can redistribute it and/or modify it under
-the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
-version.
+GCC is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 3, or (at your option)
+any later version.
 
-GCC is distributed in the hope that it will be useful, but WITHOUT ANY
-WARRANTY; without even the implied warranty of MERCHANTABILITY or
-FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
-for more details.
+GCC is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 /* This pass converts GIMPLE to GRAPHITE, performs some loop
    transformations and then converts the resulting representation back
@@ -570,6 +569,18 @@ loop_affine_expr (struct loop *outermost_loop, struct loop *loop, tree expr)
 							  outermost_loop->num));
 }
 
+/* Return true if we can create a data-ref for OP in STMT.  */
+
+static bool
+stmt_simple_memref_for_scop_p (struct loop *loop, tree stmt, tree op)
+{
+  data_reference_p dr = create_data_ref (loop, op, stmt, true);
+  if (!dr)
+    return false;
+
+  free_data_ref (dr);
+  return true;
+}
 
 /* Return true only when STMT is simple enough for being handled by Graphite.
    This depends on outermost_loop, as the parametetrs are initialized relativ
@@ -584,10 +595,12 @@ stmt_simple_for_scop_p (struct loop *outermost_loop, tree stmt)
   /* ASM_EXPR and CALL_EXPR may embed arbitrary side effects.
      Calls have side-effects, except those to const or pure
      functions.  */
-  if ((TREE_CODE (stmt) == CALL_EXPR
-       && !(call_expr_flags (stmt) & (ECF_CONST | ECF_PURE)))
-      || (TREE_CODE (stmt) == ASM_EXPR
-	  && ASM_VOLATILE_P (stmt)))
+  if ((stmt_ann (stmt)
+       && stmt_ann (stmt)->has_volatile_ops)
+      || (get_call_expr_in (stmt) != NULL_TREE
+	  && !(call_expr_flags (get_call_expr_in (stmt))
+	       & (ECF_CONST | ECF_PURE)))
+      || TREE_CODE (stmt) == ASM_EXPR)
     return false;
 
   switch (TREE_CODE (stmt))
@@ -598,22 +611,17 @@ stmt_simple_for_scop_p (struct loop *outermost_loop, tree stmt)
 
     case COND_EXPR:
       {
-	tree opnd0 = TREE_OPERAND (stmt, 0);
+	tree op;
+	ssa_op_iter op_iter;
 
-	switch (TREE_CODE (opnd0))
-	  {
-	  case NE_EXPR:
-	  case EQ_EXPR:
-	  case LT_EXPR:
-	  case GT_EXPR:
-	  case LE_EXPR:
-	  case GE_EXPR:
-	    return (outermost_loop
-		    && loop_affine_expr (outermost_loop, loop, TREE_OPERAND (opnd0, 0))
-		    && loop_affine_expr (outermost_loop, loop, TREE_OPERAND (opnd0, 1)));
-	  default:
+	if (!outermost_loop)
+	  return false;
+
+	FOR_EACH_SSA_TREE_OPERAND (op, stmt, op_iter, SSA_OP_ALL_USES)
+	  if (!loop_affine_expr (outermost_loop, loop, op))
 	    return false;
-	  }
+
+	return true;
       }
 
     case GIMPLE_MODIFY_STMT:
@@ -621,44 +629,15 @@ stmt_simple_for_scop_p (struct loop *outermost_loop, tree stmt)
 	tree opnd0 = GIMPLE_STMT_OPERAND (stmt, 0);
 	tree opnd1 = GIMPLE_STMT_OPERAND (stmt, 1);
 
-	if (TREE_CODE (opnd0) == ARRAY_REF 
-	     || TREE_CODE (opnd0) == INDIRECT_REF
-	     || TREE_CODE (opnd0) == COMPONENT_REF)
-	  {
-	    data_reference_p dr;
+	if ((handled_component_p (opnd0)
+	     || INDIRECT_REF_P (opnd0))
+	    && !stmt_simple_memref_for_scop_p (loop, stmt, opnd0))
+	  return false;
 
-	    dr = create_data_ref (loop, opnd0, stmt, false);
-	    if (!dr)
-	      return false;
-
-	    free_data_ref (dr);
-
-	    if (TREE_CODE (opnd1) == ARRAY_REF 
-		|| TREE_CODE (opnd1) == INDIRECT_REF
-		|| TREE_CODE (opnd1) == COMPONENT_REF)
-	      {
-		dr = create_data_ref (loop, opnd1, stmt, true);
-		if (!dr)
-		  return false;
-
-		free_data_ref (dr);
-		return true;
-	      }
-	  }
-
-	if (TREE_CODE (opnd1) == ARRAY_REF 
-	     || TREE_CODE (opnd1) == INDIRECT_REF
-	     || TREE_CODE (opnd1) == COMPONENT_REF)
-	  {
-	    data_reference_p dr;
-
-	    dr = create_data_ref (loop, opnd1, stmt, true);
-	    if (!dr)
-	      return false;
-
-	    free_data_ref (dr);
-	    return true;
-	  }
+	if ((handled_component_p (opnd1)
+	     || INDIRECT_REF_P (opnd1))
+	    && !stmt_simple_memref_for_scop_p (loop, stmt, opnd1))
+	  return false;
 
 	/* We cannot return (loop_affine_expr (loop, opnd0) &&
 	   loop_affine_expr (loop, opnd1)) because D.1882_16 is
@@ -684,18 +663,10 @@ stmt_simple_for_scop_p (struct loop *outermost_loop, tree stmt)
 	tree args;
 
 	for (args = TREE_OPERAND (stmt, 1); args; args = TREE_CHAIN (args))
-	  if (TREE_CODE (TREE_VALUE (args)) == ARRAY_REF
-	      || TREE_CODE (TREE_VALUE (args)) == INDIRECT_REF
-	      || TREE_CODE (TREE_VALUE (args)) == COMPONENT_REF)
-	    {
-	      data_reference_p dr;
-
-	      dr = create_data_ref (loop, TREE_VALUE (args), stmt, true);
-	      if (!dr)
-		return false;
-
-	      free_data_ref (dr);
-	    }
+	  if ((handled_component_p (TREE_VALUE (args))
+	       || INDIRECT_REF_P (TREE_VALUE (args)))
+	      && !stmt_simple_memref_for_scop_p (loop, stmt, TREE_VALUE (args)))
+	    return false;
 
 	return true;
       }
@@ -787,6 +758,8 @@ free_scop (scop_p scop)
   free (scop);
 }
 
+/* Deletes all scops.  */
+
 static void
 free_scops (VEC (scop_p, heap) *scops)
 {
@@ -807,18 +780,16 @@ free_scops (VEC (scop_p, heap) *scops)
 #define GBB_SIMPLE 6
 #define GBB_LAST 7
 
-/* Detect the tyoe of the bb.  Loop headers are only marked, if they are new.
+/* Detect the type of the bb.  Loop headers are only marked, if they are new.
    This means their loop_father is different to last_loop.  Otherwise they are
    treated like any other bb and their type can be any other type.  */
 
 static int
 get_bb_type (basic_block bb, struct loop *last_loop)
 {
-  VEC (basic_block, heap) *dom = get_dominated_by (CDI_DOMINATORS, bb);
-  int nb_dom = VEC_length (basic_block, dom);
-  int nb_suc = VEC_length (edge, bb->succs);
+  VEC (basic_block, heap) *dom;
+  int nb_dom, nb_suc;
   struct loop *loop = bb->loop_father;
-  VEC_free (basic_block, heap, dom);
 
   /* Check, if we entry into a new loop. */
   if (loop != last_loop)
@@ -831,9 +802,13 @@ get_bb_type (basic_block bb, struct loop *last_loop)
 	return GBB_COND_HEADER;
     }
 
+  dom = get_dominated_by (CDI_DOMINATORS, bb);
+  nb_dom = VEC_length (basic_block, dom);
+  VEC_free (basic_block, heap, dom);
   if (nb_dom == 0)
     return GBB_LAST;
 
+  nb_suc = VEC_length (edge, bb->succs);
   if (nb_dom == 1 && nb_suc == 1)
     return GBB_SIMPLE;
 
@@ -857,7 +832,8 @@ move_scops (VEC (scop_p, heap) **source, VEC (scop_p, heap) **target)
 static bool build_scops_1 (basic_block, VEC (scop_p, heap) **, struct loop *,
 			   struct loop *, basic_block *, bool *);
 
-/* Check if 'exit_bb' is a bb, which follows a loop exit edge.  */ 
+/* Check if 'exit_bb' is a bb, which follows a loop exit edge.
+   ???  Move to cfgloop.c  */ 
 
 static bool
 is_loop_exit (struct loop *loop, basic_block exit_bb)
@@ -879,21 +855,6 @@ is_loop_exit (struct loop *loop, basic_block exit_bb)
   VEC_free (edge, heap, exits);
 
   return is_exit;
-}
-
-/* Check if 'pred' is predecessor of 'succ'.  */
-
-static bool
-is_pred (basic_block pred, basic_block succ)
-{
-  int i;
-  edge e;
-
-  for (i = 0; VEC_iterate (edge, succ->preds, i, e); i++)
-    if (e->src == pred)
-      return true;
-
-  return false;
 }
 
 /* Checks, if a bb can be added to a SCoP.  */
@@ -977,8 +938,7 @@ is_bb_addable (basic_block bb, struct loop *outermost_loop,
     case GBB_COND_HEADER:
     {
       VEC (scop_p, heap) *tmp_scops = VEC_alloc (scop_p, heap, 3);
-      VEC (basic_block, heap) *dominated = get_dominated_by (CDI_DOMINATORS,
-                                                             bb);
+      VEC (basic_block, heap) *dominated;
       int i;
       basic_block dom_bb;
       basic_block last_bb = NULL;
@@ -1067,6 +1027,7 @@ is_bb_addable (basic_block bb, struct loop *outermost_loop,
         }
 
       /* Scan the remaining dominated bbs.  */
+      dominated = get_dominated_by (CDI_DOMINATORS, bb);
       for (i = 0; VEC_iterate (basic_block, dominated, i, dom_bb); i++)
         {
           bool bb_simple_tmp;
@@ -1076,13 +1037,15 @@ is_bb_addable (basic_block bb, struct loop *outermost_loop,
             continue;
 
           /* Ignore the bbs processed above.  */
-          if (is_pred (bb, dom_bb) && VEC_length (edge, dom_bb->preds) == 1)
+          if (single_pred_p (dom_bb)
+	      && single_pred (dom_bb) == bb)
             continue;
 
 	  build_scops_1 (dom_bb, &tmp_scops, loop, outermost_loop, last,
             &bb_simple_tmp);
           *bb_simple = false;
         }
+      VEC_free (basic_block, heap, dominated);
 
       bb_addable &= *bb_simple;
       *next = NULL; 
@@ -1193,7 +1156,7 @@ build_scops_1 (basic_block start, VEC (scop_p, heap) **scops,
 static void
 build_scops (void)
 {
-  struct loop *loop = ENTRY_BLOCK_PTR->loop_father;
+  struct loop *loop = current_loops->tree_root;
   basic_block last;
   bool tmp;
   build_scops_1 (ENTRY_BLOCK_PTR, &current_scops, loop, loop, &last, &tmp);
@@ -1476,14 +1439,16 @@ param_index (tree var, scop_p scop)
 {
   int i;
   name_tree p;
-  name_tree nvar = XNEW (struct name_tree);
+  name_tree nvar;
 
+  /* If this is true why not use simply SSA_NAME_VERSION as index?  */
   gcc_assert (TREE_CODE (var) == SSA_NAME);
 
   for (i = 0; VEC_iterate (name_tree, SCOP_PARAMS (scop), i, p); i++)
     if (p->t == var)
       return i;
 
+  nvar = XNEW (struct name_tree);
   nvar->t = var;
   nvar->name = NULL;
   VEC_safe_push (name_tree, heap, SCOP_PARAMS (scop), nvar);
@@ -1534,10 +1499,8 @@ scan_tree_for_params (scop_p s, tree e, CloogMatrix *c, int r, Value k)
 	    return;
 
 	  default:
-            {
-              scan_tree_for_params (s, left, c, r, k);
-              return;
-            }
+	    scan_tree_for_params (s, left, c, r, k);
+	    return;
 	  }
       }
       break;
@@ -1591,7 +1554,6 @@ scan_tree_for_params (scop_p s, tree e, CloogMatrix *c, int r, Value k)
 	}
       break;
 
-
     case INTEGER_CST:
       if (c)
 	{
@@ -1608,6 +1570,7 @@ scan_tree_for_params (scop_p s, tree e, CloogMatrix *c, int r, Value k)
       break;
 
     default:
+      /* ???  The default cases should be gcc_unreachable ().  */
       break;
     }
 }
@@ -2036,7 +1999,8 @@ build_scop_conditions_1 (VEC (tree, heap) **conditions,
 		  VEC_safe_push (tree, heap, *cases, stmt);
 		else if (e->flags & EDGE_FALSE_VALUE)
 		  VEC_safe_push (tree, heap, *cases, NULL_TREE);
-		else gcc_unreachable ();
+		else
+		  gcc_unreachable ();
 
 		VEC_safe_push (tree, heap, *conditions, stmt);
 		build_scop_conditions_1 (conditions, cases, e->dest, scop);
@@ -2351,7 +2315,8 @@ gmp_cst_to_tree (Value v)
    doing that is that Cloog's pretty printer still assumes that
    variable names are char *strings.  The solution would be to have a
    function pointer for pretty-printing that can be redirected to be
-   print_generic_stmt in our case, or fprintf by default.  */
+   print_generic_stmt in our case, or fprintf by default.
+   ???  Too ugly to live.  */
 
 static tree
 clast_name_to_gcc (const char *name, VEC (name_tree, heap) *new_ivs,
@@ -3078,15 +3043,15 @@ initialize_data_dependence_polyhedron (bool loop_carried,
   struct data_dependence_polyhedron *res;
 
   res = XNEW (struct data_dependence_polyhedron);
-  res -> a = a;
-  res -> b = b;
-  res -> loop_carried = loop_carried;
-  res -> level = level;
+  res->a = a;
+  res->b = b;
+  res->loop_carried = loop_carried;
+  res->level = level;
 
   if (loop_carried)
-    res -> polyhedron = domain; 
+    res->polyhedron = domain; 
   else
-    res -> polyhedron = NULL;
+    res->polyhedron = NULL;
 
   return res;
 }
@@ -3102,7 +3067,7 @@ is_empty_polyhedron (CloogDomain *domain)
   last_column = polyhedron->Dimension + 2;
   last_row = polyhedron->NbConstraints - 1;
 
-  for  (i = 1; i < last_column - 1; i++)
+  for (i = 1; i < last_column - 1; i++)
     if (!value_zero_p (polyhedron->Constraint[last_row][i]))
       return false;
 

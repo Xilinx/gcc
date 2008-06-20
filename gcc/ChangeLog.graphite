@@ -1,3 +1,17 @@
+2008-06-20  Richard Guenther  <rguenther@suse.de>
+
+	* graphite.h: Adjust copyright to GPLv3.
+	* graphite.c: Likewise.
+	(stmt_simple_memref_for_scop_p): Split out from ...
+	(stmt_simple_for_scop_p): ... here.  Fix handling of calls
+	and simplify.
+	(get_bb_type): Optimize.
+	(is_pred): Remove.
+	(is_bb_addable): Fix memleak, replace is_pred call with
+	single_pred.
+	(build_scops): Use current_loops.
+	(param_index): Fix memleak.
+
 2008-06-20  Konrad Trifunovic  <konrad.trifunovic@inria.fr>
 
 	* graphite.c: Fix formatting.
