@@ -4760,14 +4760,25 @@ warmelt-macro.c: warm-basilys-3.so cc1$(exeext) warmelt-macro.bysl warmelt-first
 	      -fbasilys-arg=warmelt-macro.bysl \
 	      -fbasilys-secondarg=$@
 	ls -l $@
+warmelt-normal.c: warm-basilys-3.so cc1$(exeext) warmelt-normal.bysl warmelt-macro.so
+	@echo generating warmelt-macro using warm-basilys-3
+	$(MELTBASILYSCCFILE1) -fbasilys-init='warm-basilys-3:warmelt-first:warmelt-macro' \
+	      -fbasilys-arg=warmelt-normal.bysl \
+	      -fbasilys-secondarg=$@
+	ls -l $@
+warmelt-genobj.c: warm-basilys-3.so cc1$(exeext) warmelt-genobj.bysl warmelt-normal.so
+	@echo generating warmelt-macro using warm-basilys-3
+	$(MELTBASILYSCCFILE1) -fbasilys-init='warm-basilys-3:warmelt-first:warmelt-macro:warmelt-normal' \
+	      -fbasilys-arg=warmelt-genobj.bysl \
+	      -fbasilys-secondarg=$@
+	ls -l $@
 ## temporarily the warmelt*.bysl files are extracted from warm-basilys.bysl
 WARMELT_FILES= warmelt-first.bysl warmelt-macro.bysl \
 	warmelt-normal.bysl warmelt-genobj.bysl 
 
 $(WARMELT_FILES):  $(srcdir)/melt/warm-basilys.bysl
 	rm -vf $(WARMELT_FILES)
-	gawk '/^;;<</{out=$$2; lin=NR;} \
-              /^;;>>/{if ($$2!=out) printf("redir.mismatch line %d expecting %s started line %d\n", NR, out, lin); out=""} \
+	gawk '/^;;@@<</{out=$$2; lin=NR;} \
 	      {if (out && out != "") print > out}' $^
 	wc -l $(WARMELT_FILES)
 

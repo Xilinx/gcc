@@ -31,10 +31,10 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
-;;;;; lines starting with ;;<< are handled by an awk script to split
+;;;;; lines starting with ;;@@<< are handled by an awk script to split
 ;;;;; this into several files
 
-;;<< warmelt-first.bysl
+;;@@<< warmelt-first.bysl
 
 ;;****************************************************************
 ;;       C L A S S E S 
@@ -2994,11 +2994,10 @@
 (export_values
   put_env
   list_map)
-;;>> warmelt-first.bysl
 
 ;;****************************************************************
 
-;;<< warmelt-macro.bysl
+;;@@<< warmelt-macro.bysl
 
 ;;; source application 
 (defclass class_src_apply
@@ -3007,10 +3006,12 @@
 	   sapp_args			;the arguments tuple
 	   ))
 
+
 ;;; source message sending 
 (defclass class_src_msend
   :super class_src
   :fields ( 
+;; the selector binding is needed to get its data...
 	    msend_selbind		;the selector binding
 	    msend_recv			;the reciever
 	    msend_args 			;the tuple of arguments
@@ -3413,6 +3414,7 @@
   (assert_msg "check mexpander" (is_closure mexpander))
   (if (is_a sexpr class_sexpr)
       (let ( (scont (unsafe_get_field :sexp_contents sexpr))
+	     (sloc (unsafe_get_field :loca_location sexpr))
 	     (soper (pair_head (list_first scont))) )
 	(debug_msg sexpr "macroexpand_1 sexpr")
 	(debug_msg soper "macroexpand_1 soper")
@@ -3432,10 +3434,35 @@
 			    (return ress)
 			    ))
 			( (is_a opbind class_primitive_binding)
-			  (let ( (resp (expand_primitive opbind sexpr env mexpander)) )
+			  (let ( (resp (expand_primitive (unsafe_get_field :pbind_primitive opbind) sexpr env mexpander)) )
 			    (debug_msg resp "macroexpand_1 result for primitive resp")
 			    (return resp)
 			    ))
+			( (is_a opbind class_value_binding)
+			  (let ( (val (unsafe_get_field :vbind_value opbind))
+				 )
+			    (cond
+			     ( (is_closure val)
+			       (expand_apply sexpr env mexpander)
+			       )
+			     ( (is_a val class_primitive)
+			       (expand_primitive val sexpr env mexpander)
+			       )
+			     ( (is_a val class_selector)
+			       ;; voir expand_msend
+			       (compile_warning "macroexpand_1 a completer valeur selecteur")
+			       (error_strv sloc "macroexpand_1 val.sel @@ a completer"
+					   (unsafe_get_field :named_name (unsafe_get_field :binder opbind)))
+			       (assert_msg "macroexpand_1 val.sel @@ UNIMPLEMENTED " ())
+			       )
+			     (:else
+			      (error_strv sloc "macroexpand_1 bad valued operation symbol"
+					  (unsafe_get_field :named_name soper))
+			      (inform_strv sloc "macroexpand_1 bad symbol value discr"
+					   (unsafe_get_field :named_name (discrim val)))
+			      (return)
+			      )
+			     )))
 			(:else 
 			 ;; this is to catch the case when DEFUN or DEFCLASS is not bound...
 			 (assert_msg "check soper not symbol DEFUN" (!= soper 'defun))
@@ -3464,8 +3491,8 @@
     (return sexpr)))
   
 ;;; expand a primitive s-expression
-(defun expand_primitive (opbind sexpr env mexpander)
-  (assert_msg "check opbind" (is_a opbind class_primitive_binding))
+(defun expand_primitive (sprim sexpr env mexpander)
+  (assert_msg "check sprim" (is_a sprim class_primitive))
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
   (assert_msg "check end" (is_a env class_environment))
   (assert_msg "check mexpander" (is_closure mexpander))
@@ -3473,9 +3500,7 @@
 	 (sloc (unsafe_get_field :loca_location sexpr))
 	 (soper (pair_head (list_first scont)))
 	 (xargtup (expand_restlist_as_tuple scont env mexpander))
-	 (sprim (unsafe_get_field :pbind_primitive opbind))
 	 )
-    (assert_msg "check sprim" (is_a sprim class_primitive))
     (make_instance class_src_primitive
 		   :src_loc sloc
 		   :sprim_oper sprim
@@ -5050,10 +5075,6 @@
 	(xtest ())
 	(assfail_binding (find_env env 'assert_failed))
 	)
-    (if (is_not_a assfail_binding class_primitive_binding)
-	(progn
-	  (error_plain loc "ASSERT_FAILED not bound to a primitive in  (ASSERT_MSG <msg> <test>)")
-	  (return)))
     (if (not (is_string xmsg))
 	(error_plain loc "non string message in (ASSERT_MSG <msg> <test>)"))
     (setq curpair (pair_tail curpair))
@@ -5062,30 +5083,42 @@
     (setq xtest (macroexpand_1 (pair_head curpair) env mexpander))
     (if (pair_tail curpair)
 	(error_plain loc "extra arg for (ASSERT_MSG <msg> <test>)"))
-    (let ( (aprim (make_instance 
-		   class_src_primitive
-		   :src_loc loc
-		   :sprim_oper (unsafe_get_field :pbind_primitive assfail_binding)
-		   :sprim_args (make_tuple3 discr_multiple
+    (let (
+	  (afprim 
+	   (cond ( (is_a assfail_binding class_primitive_binding)
+		   (unsafe_get_field :pbind_primitive assfail_binding))
+		 ( (and (is_a assfail_binding class_value_binding)
+			(is_a (unsafe_get_field :vbind_value assfail_binding) 
+			      class_primitive))
+		   (unsafe_get_field :vbind_value assfail_binding))
+		 (:else
+		  (error_plain loc "ASSERT_FAILED not bound to a primitive in  (ASSERT_MSG <msg> <test>)")
+		  (return)
+		  )))
+	  (aprim (make_instance 
+		  class_src_primitive
+		  :src_loc loc
+		  :sprim_oper afprim
+		  :sprim_args (make_tuple3 discr_multiple
 					   xmsg
 					   (mixint_val loc)
 					   (make_integerbox discr_integer (get_int loc)))))
-	   (atest (make_instance
-		   class_src_ifelse
-		   :src_loc loc
-		   :sif_test xtest
-		   :sif_then ()
-		   :sif_else aprim))
-	   (acppif (make_instance class_src_cppif
-				  :src_loc loc
-				  :sifp_cond 'ENABLE_CHECKING
-				  :sifp_then atest
-				  :sifp_else ()
-				  )) 
-	   )
+	  (atest (make_instance
+		  class_src_ifelse
+		  :src_loc loc
+		  :sif_test xtest
+		  :sif_then ()
+		  :sif_else aprim))
+	  (acppif (make_instance class_src_cppif
+				 :src_loc loc
+				 :sifp_cond 'ENABLE_CHECKING
+				 :sifp_then atest
+				 :sifp_else ()
+				 )) 
+	  )
       (debug_msg acppif "mexpand_assert_msg result acppif")
       (return acppif)
-    )))
+      )))
 (install_initial_macro 'assert_msg mexpand_assert_msg)
 (export_macro assert_msg mexpand_assert_msg)
 
@@ -5430,10 +5463,10 @@
  macroexpand_toplevel_list
  )			  ;end of functions for source representations
 
-;;>> warmelt-macro.bysl
 
 ;;****************************************************************
 
+;;@@<< warmelt-normal.bysl
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; ================ normalized representations
 
@@ -5442,7 +5475,6 @@
 ;; is let y=(g x) in (f a y)
 ;; etc... where y is a cloned symbol
 
-;;<< warmelt-normal.bysl
 ;;; common superclass for normalized representations
 (defclass class_nrep
   :super class_root
@@ -5878,12 +5910,690 @@
  )					;end of export normal classes
 
 
-;;>> warmelt-normal.bysl
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;; add some data to a normalization context and return it
+(defun add_nctx_data (nctx ndata)
+  (assert_msg "check nctx" (is_a nctx class_normcontext))
+  (assert_msg "check ndata" (is_a ndata class_nrep_data))
+  (assert_msg "fresh ndata" (null (unsafe_get_field :ndata_rank ndata)))
+  (let ( (datlis (unsafe_get_field :nctx_datalist nctx)) )
+    (assert_msg "check datlis" (is_list datlis))
+    (let ( (lastdat (pair_head (list_last datlis)))  )
+      (if (is_a lastdat class_nrep_data)
+	  (let ( (:long lastrk (get_int (unsafe_get_field :ndata_rank lastdat))) )
+	    (assert_msg "check lastrk" (>i lastrk 0))
+	    (let ( (rkbox (make_integerbox discr_integer (+i 1 lastrk))) )
+	      (unsafe_put_fields ndata :ndata_rank rkbox)
+	      ))
+	(let ( (rkbox1 (make_integerbox discr_integer 1)) )
+	  (unsafe_put_fields ndata :ndata_rank rkbox1)
+	  )))
+    (list_append datlis ndata)
+    ndata
+    ))
+
+;;; keep manually this in sync with enum basilys_globalix_en in basilys.h
+(defprimitive global_DISCR_NULLRECV              () :value "(void*)BASILYSG(DISCR_NULLRECV)")
+(defprimitive global_DISCR_STRING                () :value "(void*)BASILYSG(DISCR_STRING)")
+(defprimitive global_DISCR_INTEGER               () :value "(void*)BASILYSG(DISCR_INTEGER)")
+(defprimitive global_DISCR_LIST                  () :value "(void*)BASILYSG(DISCR_LIST)")
+(defprimitive global_DISCR_MULTIPLE              () :value "(void*)BASILYSG(DISCR_MULTIPLE)")
+(defprimitive global_DISCR_BOX                   () :value "(void*)BASILYSG(DISCR_BOX)")
+(defprimitive global_DISCR_MAPOBJECTS            () :value "(void*)BASILYSG(DISCR_MAPOBJECTS)")
+(defprimitive global_DISCR_MAPSTRINGS            () :value "(void*)BASILYSG(DISCR_MAPSTRINGS)")
+(defprimitive global_DISCR_CHARINTEGER           () :value "(void*)BASILYSG(DISCR_CHARINTEGER)")
+(defprimitive global_DISCR_MIXEDINT              () :value "(void*)BASILYSG(DISCR_MIXEDINT)")
+(defprimitive global_DISCR_SEQCLASS              () :value "(void*)BASILYSG(DISCR_SEQCLASS)")
+(defprimitive global_DISCR_CLOSURE               () :value "(void*)BASILYSG(DISCR_CLOSURE)")
+(defprimitive global_DISCR_ROUTINE               () :value "(void*)BASILYSG(DISCR_ROUTINE)")
+(defprimitive global_DISCR_PAIR                  () :value "(void*)BASILYSG(DISCR_PAIR)")
+(defprimitive global_DISCR_NAMESTRING            () :value "(void*)BASILYSG(DISCR_NAMESTRING)")
+(defprimitive global_DISCR_VERBATIMSTRING        () :value "(void*)BASILYSG(DISCR_VERBATIMSTRING)")
+(defprimitive global_DISCR_SEQFIELD              () :value "(void*)BASILYSG(DISCR_SEQFIELD)")
+(defprimitive global_DISCR_METHODMAP             () :value "(void*)BASILYSG(DISCR_METHODMAP)")
+(defprimitive global_CLASS_CLASS                 () :value "(void*)BASILYSG(CLASS_CLASS)")
+(defprimitive global_CLASS_CONTAINER             () :value "(void*)BASILYSG(CLASS_CONTAINER)")
+(defprimitive global_CLASS_ROOT                  () :value "(void*)BASILYSG(CLASS_ROOT)")
+(defprimitive global_CLASS_PROPED                () :value "(void*)BASILYSG(CLASS_PROPED)")
+(defprimitive global_CLASS_NAMED                 () :value "(void*)BASILYSG(CLASS_NAMED)")
+(defprimitive global_CLASS_LOCATED               () :value "(void*)BASILYSG(CLASS_LOCATED)")
+(defprimitive global_CLASS_SYMBOL                () :value "(void*)BASILYSG(CLASS_SYMBOL)")
+(defprimitive global_CLASS_KEYWORD               () :value "(void*)BASILYSG(CLASS_KEYWORD)")
+(defprimitive global_CLASS_SEXPR                 () :value "(void*)BASILYSG(CLASS_SEXPR)")
+(defprimitive global_CLASS_FIELD                 () :value "(void*)BASILYSG(CLASS_FIELD)")
+(defprimitive global_CLASS_SELECTOR              () :value "(void*)BASILYSG(CLASS_SELECTOR)")
+(defprimitive global_CLASS_PRIMITIVE             () :value "(void*)BASILYSG(CLASS_PRIMITIVE)")
+(defprimitive global_CLASS_FORMAL_BINDING        () :value "(void*)BASILYSG(CLASS_FORMAL_BINDING)")
+(defprimitive global_CLASS_DISCR                 () :value "(void*)BASILYSG(CLASS_DISCR)")
+(defprimitive global_CLASS_SYSTEM_DATA           () :value "(void*)BASILYSG(CLASS_SYSTEM_DATA)")
+(defprimitive global_ATOM_TRUE                   () :value "(void*)BASILYSG(ATOM_TRUE)")
+(defprimitive global_CTYPE_LONG                  () :value "(void*)BASILYSG(CTYPE_LONG)")
+(defprimitive global_CTYPE_VALUE                 () :value "(void*)BASILYSG(CTYPE_VALUE)")
+(defprimitive global_CTYPE_TREE                  () :value "(void*)BASILYSG(CTYPE_TREE)")
+(defprimitive global_CTYPE_VOID                  () :value "(void*)BASILYSG(CTYPE_VOID)")
+(defprimitive global_CTYPE_CSTRING               () :value "(void*)BASILYSG(CTYPE_CSTRING)")
+(defprimitive global_INITIAL_SYSTEM_DATA  () :value "(void*)BASILYSG(INITIAL_SYSTEM_DATA)")
+
+
+(defun fill_initial_predefmap (predefmap)
+    ;; manually keep in sync  with enum basilys_globalix_en in basilys.h
+    (mapobject_put predefmap (global_DISCR_NULLRECV)                 'DISCR_NULLRECV)
+    (mapobject_put predefmap (global_DISCR_STRING)                   'DISCR_STRING)
+    (mapobject_put predefmap (global_DISCR_INTEGER)                  'DISCR_INTEGER)
+    (mapobject_put predefmap (global_DISCR_LIST)                     'DISCR_LIST)
+    (mapobject_put predefmap (global_DISCR_MULTIPLE)                 'DISCR_MULTIPLE)
+    (mapobject_put predefmap (global_DISCR_BOX)                      'DISCR_BOX)
+    (mapobject_put predefmap (global_DISCR_MAPOBJECTS)               'DISCR_MAPOBJECTS)
+    (mapobject_put predefmap (global_DISCR_MAPSTRINGS)               'DISCR_MAPSTRINGS)
+    (mapobject_put predefmap (global_DISCR_CHARINTEGER)              'DISCR_CHARINTEGER)
+    (mapobject_put predefmap (global_DISCR_MIXEDINT)                 'DISCR_MIXEDINT)
+    (mapobject_put predefmap (global_DISCR_SEQCLASS)                 'DISCR_SEQCLASS)
+    (mapobject_put predefmap (global_DISCR_CLOSURE)                  'DISCR_CLOSURE)
+    (mapobject_put predefmap (global_DISCR_ROUTINE)                  'DISCR_ROUTINE)
+    (mapobject_put predefmap (global_DISCR_PAIR)                     'DISCR_PAIR)
+    (mapobject_put predefmap (global_DISCR_NAMESTRING)               'DISCR_NAMESTRING)
+    (mapobject_put predefmap (global_DISCR_VERBATIMSTRING)           'DISCR_VERBATIMSTRING)
+    (mapobject_put predefmap (global_DISCR_SEQFIELD)                 'DISCR_SEQFIELD)
+    (mapobject_put predefmap (global_DISCR_METHODMAP)                'DISCR_METHODMAP)
+    (mapobject_put predefmap (global_CLASS_CLASS)                    'CLASS_CLASS)
+    (mapobject_put predefmap (global_CLASS_ROOT)                     'CLASS_ROOT)
+    (mapobject_put predefmap (global_CLASS_PROPED)                   'CLASS_PROPED)
+    (mapobject_put predefmap (global_CLASS_NAMED)                    'CLASS_NAMED)
+    (mapobject_put predefmap (global_CLASS_LOCATED)                  'CLASS_LOCATED)
+    (mapobject_put predefmap (global_CLASS_SYMBOL)                   'CLASS_SYMBOL)
+    (mapobject_put predefmap (global_CLASS_KEYWORD)                  'CLASS_KEYWORD)
+    (mapobject_put predefmap (global_CLASS_SEXPR)                    'CLASS_SEXPR)
+    (mapobject_put predefmap (global_CLASS_FIELD)                    'CLASS_FIELD)
+    (mapobject_put predefmap (global_CLASS_SELECTOR)                 'CLASS_SELECTOR)
+    (mapobject_put predefmap (global_CLASS_PRIMITIVE)                'CLASS_PRIMITIVE)
+    (mapobject_put predefmap (global_CLASS_FORMAL_BINDING)           'CLASS_FORMAL_BINDING)
+    (mapobject_put predefmap (global_CLASS_DISCR)                    'CLASS_DISCR)
+    (mapobject_put predefmap (global_CLASS_SYSTEM_DATA)              'CLASS_SYSTEM_DATA)
+    (mapobject_put predefmap (global_CLASS_CONTAINER)                'CLASS_CONTAINER)
+    (mapobject_put predefmap (global_ATOM_TRUE)                      'ATOM_TRUE)
+    (mapobject_put predefmap (global_CTYPE_LONG)                     'CTYPE_LONG)
+    (mapobject_put predefmap (global_CTYPE_VALUE)                    'CTYPE_VALUE)
+    (mapobject_put predefmap (global_CTYPE_TREE)                     'CTYPE_TREE)
+    (mapobject_put predefmap (global_CTYPE_VOID)                     'CTYPE_VOID)
+    (mapobject_put predefmap (global_CTYPE_CSTRING)                  'CTYPE_CSTRING)
+    (mapobject_put predefmap (global_INITIAL_SYSTEM_DATA)     'INITIAL_SYSTEM_DATA)
+)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; create a normalization context
+(defun create_normcontext (modctx)
+  (let ( (:long maxpredefix (last_globpredef_index))
+	 (:long ix 1)
+	 (predefmap (make_mapobject discr_mapobjects (+i 19 (*i 2 maxpredefix))))
+	 (valmap (make_mapobject discr_mapobjects 350))
+	 )
+    (assert_msg "check modctx" (is_a modctx class_modulcontext))
+    (forever predefloop
+	     (if (>=i ix maxpredefix) (exit predefloop))
+	     (let ( (curpredef (get_globpredef ix)) )
+	       (if (is_object curpredef)
+		   (mapobject_put predefmap curpredef (make_integerbox discr_integer ix)))
+	       )
+	     (setq ix (+i ix 1)))
+    (fill_initial_predefmap predefmap)
+    (let ( (inipro  (make_instance class_nrep_initproc
+				   :ninit_topl (make_list discr_list)
+				   :nrep_loc ()
+				   )) 
+	   (ncx (make_instance 
+		 class_normcontext
+		 :nctx_initproc inipro
+		 :nctx_proclist (make_list discr_list)
+		 :nctx_datalist (make_list discr_list)
+		 :nctx_symbmap  (make_mapstring discr_mapstrings 50)
+		 :nctx_keywmap  (make_mapstring discr_mapstrings 40)
+		 :nctx_predefmap predefmap
+		 :nctx_valmap valmap
+		 :nctx_valbindmap (make_mapobject discr_mapobjects 20)
+		 ;; we need a symbcachemap for the toplevel expressions
+		 :nctx_symbcachemap (make_mapobject discr_mapobjects 30)
+		 :nctx_curproc inipro
+		 :nctx_modulcontext modctx
+		 :nctx_qdatcurmodenvbox (make_instance class_nrep_quasidata_current_module_environment_container
+						       )
+		 :nctx_qdatparmodenv (make_instance class_nrep_quasidata_parent_module_environment
+						    )
+		 :nctx_procurmodenvlist (make_list discr_list)
+		 ))
+	   )
+      (debug_msg ncx "create_normcontext return ncx")
+      (return ncx)
+      )))
+
+
+;;; the normal_exp selector 
+;;;;; expected arguments: 
+;;;   recv = the reciever, eg a sexpr
+;;;   env = the environment 
+;;;   ncx = the normalization context 
+;;;   psloc = (parent) source location
+;;;;; expected results: normalized + binding list 
+;;; IMPORTANT NOTICE: even for simple expressions [like side-effecting
+;;; expressions returning void, e.g. RETURN, EXIT, ... other simple
+;;; side-effecting expressions like SETQ], the normalized should
+;;; always be a simple occurrence, and the work being done in the
+;;; bindings list.
+(defselector normal_exp class_selector
+;  :named_name (stringconst2val discr_namestring "NORMAL_EXP")
+)
+
+;; many stuff are already normalized 
+(defun normexp_identical (recv env ncx psloc)
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check nctxt" (is_a ncx class_normcontext))
+  ;; is a no-op
+  (debug_msg recv "normexp_identical recv")
+  recv)
+
+(install_method discr_anyrecv normal_exp  normexp_identical)
+
+(defun normexp_null (recv env ncx psloc)
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check nctxt" (is_a ncx class_normcontext))
+  (let ( (normnull (make_instance class_nrep_nil :nrep_loc psloc)) )
+    (debug_msg normnull "normexp_null normnull")
+    normnull
+))
+(install_method discr_nullrecv normal_exp normexp_null)
+
+;;; catchall for src
+(defun normexp_src_catchall (recv env ncx psloc)
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check nctxt" (is_a ncx class_normcontext))
+  (debug_msg recv "normexp_src_catchall recv" )
+  (let ( (myclass (discrim recv))
+	 (myclassname (unsafe_get_field :named_name myclass)) )
+    (error_strv (unsafe_get_field :src_loc recv) 
+		"unimplemented normalization for " myclassname)
+    (assert_msg "normexp_src_catchall unimplemented normexp for src" ())
+    ))
+(install_method class_src normal_exp normexp_src_catchall)
+
+;; the selector to compute the ctype of a value in an environment
+;;; argument: environment
+;;;; sometimes this selector is used with a null environment, for
+;;;; instance in the code generation phase
+(defselector get_ctype class_selector
+;  :named_name (stringconst2val discr_namestring "GET_CTYPE")
+)
+
+;;; most stuff are really ctype_value
+(defun gectyp_anyrecv (recv env) ctype_value)
+(install_method discr_anyrecv get_ctype gectyp_anyrecv)
+
+(defun gectyp_root (recv env) ctype_value)
+(install_method class_root get_ctype gectyp_root)
+
+;; integers are ctype_long
+(defun gectyp_integer (recv env) 
+  (debug_msg recv "gectyp_integer recv")
+  ctype_long)
+(install_method discr_integer get_ctype gectyp_integer)
+
+;; strings are ctype_cstring
+(defun gectyp_string (recv env)
+  ctype_cstring)
+(install_method discr_string get_ctype gectyp_string)
+
+;;; normalize a tuple - returning a tuple & a bindinglist
+(defun normalize_tuple (tup env ncx psloc)
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check nctxt" (is_a ncx class_normcontext))
+  (assert_msg "check tup" (is_multiple tup))
+  (debug_msg tup "normalize_tuple tup" )
+  (let ( (bindlist (make_list discr_list)) 
+	 (res (multiple_map
+	       tup 
+	       (lambda (comp :long ix)
+		; (debug_msg comp "normalize_tuple comp")
+		 (multicall 
+		  (norcomp nbinds)
+		  (normal_exp comp env ncx psloc)
+		 ; (debug_msg norcomp "normalize_tuple norcomp")
+		  (assert_msg "check nbinds" (is_list_or_null nbinds))
+		  (assert_msg "check norcomp not nrep_expr" (is_not_a norcomp class_nrep_expr))
+		  (if (is_list nbinds)
+		      (list_every 
+		       nbinds
+		       (lambda (bnd)
+			 (assert_msg "check bnd" (is_a bnd class_any_binding))
+			 (assert_msg "check bindlist" (is_list bindlist))
+			 (list_append bindlist bnd)
+			 ))		
+		    )
+		  norcomp
+		  ))))
+	 )
+    (if (not (is_pair (list_first bindlist)))
+	(setq bindlist ()))
+    (debug_msg res "normalize_tuple res")
+    (debug_msg bindlist "normalize_tuple bindlist" )
+    (return res bindlist)
+    ))
+
+
+;; wrap a normal let around a tuple of normalized expressions and a bindinglist
+(defun wrap_normal_letseq (tupnexp bindlist loc)
+  (assert_msg "check tupnexp" (is_multiple_or_null tupnexp))
+  (assert_msg "check bindlist" (is_list_or_null bindlist))
+  (list_every
+   bindlist 
+   (lambda (cbind) 
+     (if (not (is_a cbind class_normlet_binding))
+	 (progn
+	   (debug_msg tupnexp "wrap_normal_letseq tuplexp")
+	   (debug_msg bindlist "wrap_normal_letseq bindlist")
+	   (debug_msg cbind "wrap_normal_letseq cbind")))
+     (assert_msg "check cbind wrapnormletseq" (is_a cbind class_normlet_binding))))
+  (let ( (wnlet
+	  (make_instance class_nrep_let
+			 :nrep_loc loc
+			 :nlet_bindings (list_to_multiple bindlist)
+			 :nlet_body tupnexp))
+	 )
+    (return wnlet)))
+    
+;; wrap a normal let around a single normalized expression & a bindinglist
+(defun wrap_normal_let1 (nexp bindlist loc)
+  (assert_msg "check bindlist" (is_list_or_null bindlist))
+  (list_every
+   bindlist 
+   (lambda (cbind) 
+     (if (not (is_a cbind class_normlet_binding))
+	 (progn
+	   (debug_msg nexp "wrap_normal_let1 nexp")
+	   (debug_msg bindlist "wrap_normal_let1 bindlist")
+	   (debug_msg cbind "wrap_normal_let1 cbind")))
+     (assert_msg "check cbind wrapnormlet1" (is_a cbind class_normlet_binding))))
+  (if 
+      (and (is_list bindlist)
+	   (is_pair (list_first bindlist)))
+      (let ( (wnlet 
+	      (make_instance class_nrep_let
+			     :nrep_loc loc
+			     :nlet_bindings (list_to_multiple bindlist)
+			     :nlet_body (make_tuple1 discr_multiple nexp)))
+	     )
+	wnlet)
+    nexp
+))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; utility to check that every normalized argument has a passable ctype
+(defun check_ctype_nargs (nargs env sloc)
+  (multiple_every 
+   nargs
+   (lambda (cnarg :long ix) 
+     (let ( (ctyp (get_ctype cnarg env)) )
+       (assert_msg "check_ctype_nargs ctyp" (is_a ctyp class_ctype))
+       (if (not (is_string (unsafe_get_field :ctype_parstring ctyp)))
+	   (error_strv sloc "argument has invalid type" (unsafe_get_field :named_name ctyp))
+     ))
+)))
+
+(export_values
+ create_normcontext
+ normal_exp
+ get_ctype
+ normalize_tuple
+ wrap_normal_letseq
+ wrap_normal_let1
+ check_ctype_nargs
+)
+
+
+; for symbols which are imported from a previous environment (this
+; only happens when compiling stuff which is not this warm-basilys) we
+; should detect them and generate some special data to fetch them, in
+; the start routine, from the given environment (which is the only
+; argument to the start routine). Detecting such symbols is easy : their
+; binding is a class_value_binding
+
+;;;; normalize a symbol occurrence
+(defun normexp_symbol (recv env ncx psloc)
+  (multicall
+   (bind procs)
+   (find_enclosing_env env recv)
+   (assert_msg "normexp_symbol check recv" (is_a recv class_symbol))
+   (if (null bind)
+       (progn
+	 (error_strv psloc "unbound symbol to normalize"
+		     (unsafe_get_field :named_name recv))
+	 (return (the_null))))
+   (if (null psloc)
+       (shortbacktrace_dbg "normex_symbol null psloc" 10)
+     )
+   (let ( (sycmap (unsafe_get_field :nctx_symbcachemap ncx))
+	  (syca (mapobject_get sycmap recv)) )
+     (assert_msg "check sycmap" (is_mapobject sycmap))
+     (cond 
+      ;; check if in the cache
+      (syca syca)	     ;already cached
+      ;; value binding, get/put it into the map
+      ( (is_a bind class_value_binding)
+	(let ( (bvar (mapobject_get (unsafe_get_field :nctx_valbindmap ncx) bind)) )
+	  (debug_msg bind "normexp_symbol value bind")
+	  (if (null bvar)
+	      (let ( (newbvar 
+		      (make_instance class_nrep_startval
+				     :nrep_loc psloc
+				     :nstart_var recv)) )
+		(mapobject_put (unsafe_get_field :nctx_valbindmap ncx) bind newbvar)
+		newbvar)
+	      ))
+	)
+      ;; the procs is a non-empty list, so the symbol is closed
+      ( (and (is_list procs)
+	     (is_pair (list_first procs)))
+	;; check that a closed symbol is always a value
+	(let ( (bty
+		(cond ( (is_a bind class_formal_binding)
+			(unsafe_get_field :fbind_type bind) )
+		      ( (is_a bind class_let_binding)
+			(unsafe_get_field :letbind_type bind))
+		      (:else ()))) 
+	       )
+	  (if bty 
+	      (if (!= bty ctype_value)
+		  (error_strv psloc
+			      "closed variable has non value type (boxing required)"
+			      (unsafe_get_field :named_name recv)
+			      )))
+	  (setq bty ctype_value
+		)
+	  (if (is_a bind class_fixed_binding)
+	      (let ( (fxocc
+		      (make_instance class_nrep_constocc
+				     :nrep_loc psloc
+				     :nocc_symb recv
+				     :nocc_bind bind
+				     :nocc_ctyp ctype_value
+				     :ncloc_procs procs)) )
+		;; cache the result
+		(mapobject_put sycmap recv fxocc)
+		(debug_msg fxocc "normexp_symbol fxocc")
+		;; put the const occurrence if needed in the const list of each proc
+		(list_every
+		 procs
+		 (lambda (pr)
+		   (assert_msg "check pr" (is_a pr class_nrep_anyproc))
+		   (let ( (clbox (make_box discr_box fxocc))
+			  (cnstproc (unsafe_get_field :nrpro_const pr)) )
+		     (list_every 
+		      cnstproc
+		      (lambda (cx) (if (== cx fxocc) (progn (box_put clbox ()) ()))))
+		     (let ( (newcl (box_content clbox)) )
+		       (if newcl (list_append cnstproc newcl))) 
+		     )))
+		fxocc
+		)
+	    (let ( (clocc 
+		    (make_instance class_nrep_closedocc
+				   :nrep_loc psloc
+				   :nocc_symb recv
+				   :nocc_ctyp ctype_value
+				   :nocc_bind bind
+				   :ncloc_procs procs)) 
+		   )
+	      ;; cache the result
+	      (mapobject_put sycmap recv clocc)
+	      ;; put the closed occurrence if needed in the closed list of each proc
+	      (list_every 
+	       procs
+	       (lambda (pr)
+		 (assert_msg "check pr" (is_a pr class_nrep_anyproc))
+		 (let ( (clbox (make_box discr_box clocc))
+			(clobindl (unsafe_get_field :nrpro_closedb pr)) )
+		   (list_every 
+		    clobindl
+		    (lambda (clbnd) (if (== clbnd bind) (progn (box_put clbox ()) ()))))
+		   (let ( (newcl (box_content clbox)) )
+		     (if newcl (list_append clobindl bind))) 
+		   )))
+	      clocc
+	      ) ) ) ) 
+      ;; formal arg is a local
+      ( (is_a bind class_formal_binding)
+	(let ( (syocc
+		(make_instance class_nrep_locsymocc
+			       :nrep_loc psloc
+			       :nocc_ctyp (unsafe_get_field :fbind_type bind) 
+			       :nocc_symb recv
+			       :nocc_bind bind) ) )
+	  ;; cache the result & return it
+	  (mapobject_put sycmap recv syocc)
+	  syocc
+	  ))
+      ;; let binding is a local
+      ( (is_a bind class_let_binding)
+	(let ( (syocc
+		(make_instance class_nrep_locsymocc
+			       :nrep_loc psloc
+			       :nocc_ctyp (unsafe_get_field :letbind_type bind)
+			       :nocc_symb recv
+			       :nocc_bind bind) ) )
+	  ;; cache the result & return it
+	  (mapobject_put sycmap recv syocc)
+	  syocc
+	  ))
+      ;; previous function binding at toplevel
+      ( (is_a bind class_function_binding)
+	(debug_msg bind "normexp_symbol function bind")
+	(let ( (fubdat (unsafe_get_field :fubind_fundata bind)) )
+	  (if (null fubdat)
+	      (error_strv psloc "unresolved forward function reference to"
+			  (unsafe_get_field :named_name recv)
+			  ))
+	  (assert_msg "normexp_symbol check fubdat" (is_a fubdat class_nrep_dataclosure))
+	  ;; cache the result & return it
+	  (mapobject_put sycmap recv fubdat)
+	  fubdat
+	  ))
+      ;; previous primitive binding at toplevel
+      ( (is_a bind class_primitive_binding)
+	(let ( (pribidat (unsafe_get_field :pbind_primdata bind)) )
+	  (if (null pribidat)
+	      (error_strv psloc "unresolved forward primitive reference to"
+			  (unsafe_get_field :named_name recv)
+			  )
+	      )
+	  (assert_msg "normexp_symbol check pribdat" (is_a pribidat class_nrep_datainstance))
+	  ;; cache the result & return it
+	  (mapobject_put sycmap recv pribidat)
+	  pribidat))
+      ;; previous class binding at toplevel
+      ( (is_a bind class_class_binding)
+	(let ( (cldat (unsafe_get_field :cbind_cladata bind)) )
+	  (if (null cldat)
+	      (error_strv psloc "unresolved forward class reference to"
+			  (unsafe_get_field :named_name recv)
+			  )
+	      )
+	  (assert_msg "normexp_symbol check cldat" (is_a cldat class_nrep_datainstance))
+	  ;; cache the result & return it
+	  (mapobject_put sycmap recv cldat)
+	  cldat))
+      ;; previous field binding at toplevel
+      ( (is_a bind class_field_binding)
+	(let ( (fdat (unsafe_get_field :flbind_fdata bind)) )
+	  (if (null fdat)
+	      (error_strv psloc "unresolved forward field reference to"
+			  (unsafe_get_field :named_name recv)
+			  )
+	      )
+	  (assert_msg "normexp_symbol check fdat" (is_a fdat class_nrep_datainstance))
+	  ;; cache the result & return it
+	  (mapobject_put sycmap recv fdat)
+	  fdat))
+      ;; previous selector binding at toplevel
+      ( (is_a bind class_selector_binding)
+	(let ( (seldat (unsafe_get_field :sbind_selectordata bind)) )
+	  (if (null seldat)
+	      (error_strv psloc "unresolved forward selector reference to"
+			  (unsafe_get_field :named_name recv)
+			  )
+	      )
+	  (assert_msg "normexp_symbol check seldat" (is_a seldat class_nrep_datainstance))
+	  ;; cache the result & return it
+	  (mapobject_put sycmap recv seldat)
+	  seldat))
+      ;; previous instance binding at toplevel
+      ( (is_a bind class_instance_binding)
+	(let ( (insdat (unsafe_get_field :ibind_data bind)) )
+	  (if (null insdat)
+	      (error_strv psloc "unresolved forward instance reference to"
+			  (unsafe_get_field :named_name recv)
+			  )
+	      )
+	  (assert_msg "normexp_symbol check insdat" (is_a insdat class_nrep_datainstance))
+	  ;; cache the result & return it
+	  (mapobject_put sycmap recv insdat)
+	  insdat)
+	)
+      ;; all other cases are constants
+      (:else 
+       (debug_msg bind "normexp_symbol const? bind")
+       (let ( (kocc
+	       (make_instance class_nrep_constocc
+			      :nrep_loc psloc
+			      :nocc_ctyp ctype_value
+			      :nocc_symb recv
+			      :nocc_bind bind) ) )
+	 (debug_msg kocc "normexp_symbol kocc" )
+	 ;; cache the result & return it
+	 (mapobject_put sycmap recv kocc)
+	 ;; put the const occurrence if needed in the const list of each proc
+	 (list_every
+	  procs
+	  (lambda (pr)
+	    (debug_msg pr "normexp_symbol const pr")
+	    (assert_msg "check pr" (is_a pr class_nrep_anyproc))
+	    (let ( (clbox (make_box discr_box kocc))
+		   (constproc (unsafe_get_field :nrpro_const pr)) )
+	      (list_every 
+	       constproc
+	       (lambda (cl) (if (== cl kocc) (progn (box_put clbox ()) ()))))
+	      (let ( (newcl (box_content clbox)) )
+		(if newcl (list_append constproc newcl))) 
+	      )))
+	 kocc
+	 ))))))
+
+(install_method class_symbol normal_exp normexp_symbol)
+
+(defun gectyp_symocc (recv env)
+  (assert_msg "check recv" (is_a recv class_nrep_symocc))
+  (unsafe_get_field :nocc_ctyp recv)
+)
+(install_method class_nrep_symocc get_ctype gectyp_symocc)
+
+
+;;; normalize a primitive invocation
+(defun normexp_primitive (recv env ncx psloc)
+  (debug_msg recv "normexp_primitive recv")
+  (assert_msg "check prim recv" (is_a recv class_src_primitive))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check nctxt" (is_a ncx class_normcontext))
+  (let ( (sloc (unsafe_get_field :src_loc recv)) 
+	 (soper (unsafe_get_field :sprim_oper recv))
+	 (sargs (unsafe_get_field :sprim_args recv)) 
+	 )
+    (assert_msg "check soper" (is_a soper class_primitive))
+    (multicall 
+     (nargs nbind)
+     (normalize_tuple sargs env ncx sloc)
+     (let ( (sopnamstr (unsafe_get_field :named_name soper))
+	    (sopformals (unsafe_get_field :prim_formals soper))
+	    (soptype (unsafe_get_field :prim_type soper))
+	    (sopexp (unsafe_get_field :prim_expansion soper)) 
+	    (:long nbarg (multiple_length nargs))
+	    (:long nbexp (multiple_length sopexp))
+	    )
+       (assert_msg "check soptype" (is_a soptype class_ctype))
+       (if (!=i nbarg (multiple_length sopformals))
+	   (progn
+	     (error_strv sloc "length mismatch between formals & actuals in primitive" 
+			 sopnamstr)
+	     (return (the_null)))
+	   )
+       (let ( (bmap (make_mapobject  discr_mapobjects (+i 2 (/iraw (*i 3 nbarg) 2))))
+	      (expargs (make_multiple discr_multiple nbexp))
+	      )
+	 (multiple_every
+	  sopformals
+	  (lambda (forb :long ix)
+	    (assert_msg "check forb" (is_a forb class_formal_binding))
+	    (let ( (forarg (unsafe_get_field :binder forb))
+		   (actarg (multiple_nth nargs ix)) )
+	      (mapobject_put bmap forarg actarg)
+	      )))
+;	 (debug_msg bmap "normexp_primitive bmap in sopexp")
+	 (multiple_every
+	  sopexp
+	  (lambda (excu :long jx)
+;	    (debug_msg excu "normexp_primitive excu in sopexp")
+	    (let ( (exval
+		    (if (is_a excu class_symbol)
+			(let ( (bval (mapobject_get bmap excu)) )
+			  (if (null bval) 
+			      (progn 
+				(debug_msg recv "normexp_primitive recv unbound symbol in expansion")
+				(error_strv sloc "unbound symbol in primitive expansion" 
+					    (unsafe_get_field  :named_name excu))))
+			  bval)
+		      excu)) )
+;	    (debug_msg exval "normexp_primitive exval in sopexp")
+	    (multiple_put_nth expargs jx exval))
+	    ))
+	 (let ( (csym (clone_symbol  (unsafe_get_field :sdef_name soper))) 
+		(cbind (make_instance class_normlet_binding
+				      :letbind_loc sloc
+				      :binder csym
+				      :letbind_type soptype 
+				      :letbind_expr 
+				      (make_instance class_nrep_chunk
+						     :nrep_loc sloc
+						     :nchunk_expansion expargs
+						     :nchunk_primitive soper
+						     ))) 
+		(clocc (make_instance class_nrep_locsymocc
+				      :nrep_loc sloc
+				      :nocc_ctyp soptype
+				      :nocc_symb csym
+				      :nocc_bind cbind)) 
+		)
+	   (if (is_list nbind) 
+	       (list_append nbind cbind)
+	     (progn
+	       (setq nbind (make_list discr_list))
+	       (list_append nbind cbind)
+	       ))
+	   (debug_msg clocc "normexp_primitive result clocc")
+	   (return
+	    clocc
+	    nbind
+	    )))))))
+
+(install_method class_src_primitive normal_exp normexp_primitive)
+(install_method class_nrep_chunk get_ctype 
+		(lambda (recv env)
+		  (let ( ( prim (unsafe_get_field :nchunk_primitive recv)) )
+		    (assert_msg "check prim" (is_a prim class_primitive))
+		    (unsafe_get_field :prim_type prim))))
 
 
 ;;****************************************************************
-
-;;<< warmelt-genobj.bysl
+;;@@<< warmelt-genobj.bysl
 
 ;;;; value like objects
 (defclass class_objvalue
@@ -6254,675 +6964,7 @@
 
 
 
-;;>> warmelt-genobj.bysl
 
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-;;; add some data to a normalization context and return it
-(defun add_nctx_data (nctx ndata)
-  (assert_msg "check nctx" (is_a nctx class_normcontext))
-  (assert_msg "check ndata" (is_a ndata class_nrep_data))
-  (assert_msg "fresh ndata" (null (unsafe_get_field :ndata_rank ndata)))
-  (let ( (datlis (unsafe_get_field :nctx_datalist nctx)) )
-    (assert_msg "check datlis" (is_list datlis))
-    (let ( (lastdat (pair_head (list_last datlis)))  )
-      (if (is_a lastdat class_nrep_data)
-	  (let ( (:long lastrk (get_int (unsafe_get_field :ndata_rank lastdat))) )
-	    (assert_msg "check lastrk" (>i lastrk 0))
-	    (let ( (rkbox (make_integerbox discr_integer (+i 1 lastrk))) )
-	      (unsafe_put_fields ndata :ndata_rank rkbox)
-	      ))
-	(let ( (rkbox1 (make_integerbox discr_integer 1)) )
-	  (unsafe_put_fields ndata :ndata_rank rkbox1)
-	  )))
-    (list_append datlis ndata)
-    ndata
-    ))
-
-;;; keep manually this in sync with enum basilys_globalix_en in basilys.h
-(defprimitive global_DISCR_NULLRECV              () :value "(void*)BASILYSG(DISCR_NULLRECV)")
-(defprimitive global_DISCR_STRING                () :value "(void*)BASILYSG(DISCR_STRING)")
-(defprimitive global_DISCR_INTEGER               () :value "(void*)BASILYSG(DISCR_INTEGER)")
-(defprimitive global_DISCR_LIST                  () :value "(void*)BASILYSG(DISCR_LIST)")
-(defprimitive global_DISCR_MULTIPLE              () :value "(void*)BASILYSG(DISCR_MULTIPLE)")
-(defprimitive global_DISCR_BOX                   () :value "(void*)BASILYSG(DISCR_BOX)")
-(defprimitive global_DISCR_MAPOBJECTS            () :value "(void*)BASILYSG(DISCR_MAPOBJECTS)")
-(defprimitive global_DISCR_MAPSTRINGS            () :value "(void*)BASILYSG(DISCR_MAPSTRINGS)")
-(defprimitive global_DISCR_CHARINTEGER           () :value "(void*)BASILYSG(DISCR_CHARINTEGER)")
-(defprimitive global_DISCR_MIXEDINT              () :value "(void*)BASILYSG(DISCR_MIXEDINT)")
-(defprimitive global_DISCR_SEQCLASS              () :value "(void*)BASILYSG(DISCR_SEQCLASS)")
-(defprimitive global_DISCR_CLOSURE               () :value "(void*)BASILYSG(DISCR_CLOSURE)")
-(defprimitive global_DISCR_ROUTINE               () :value "(void*)BASILYSG(DISCR_ROUTINE)")
-(defprimitive global_DISCR_PAIR                  () :value "(void*)BASILYSG(DISCR_PAIR)")
-(defprimitive global_DISCR_NAMESTRING            () :value "(void*)BASILYSG(DISCR_NAMESTRING)")
-(defprimitive global_DISCR_VERBATIMSTRING        () :value "(void*)BASILYSG(DISCR_VERBATIMSTRING)")
-(defprimitive global_DISCR_SEQFIELD              () :value "(void*)BASILYSG(DISCR_SEQFIELD)")
-(defprimitive global_DISCR_METHODMAP             () :value "(void*)BASILYSG(DISCR_METHODMAP)")
-(defprimitive global_CLASS_CLASS                 () :value "(void*)BASILYSG(CLASS_CLASS)")
-(defprimitive global_CLASS_CONTAINER             () :value "(void*)BASILYSG(CLASS_CONTAINER)")
-(defprimitive global_CLASS_ROOT                  () :value "(void*)BASILYSG(CLASS_ROOT)")
-(defprimitive global_CLASS_PROPED                () :value "(void*)BASILYSG(CLASS_PROPED)")
-(defprimitive global_CLASS_NAMED                 () :value "(void*)BASILYSG(CLASS_NAMED)")
-(defprimitive global_CLASS_LOCATED               () :value "(void*)BASILYSG(CLASS_LOCATED)")
-(defprimitive global_CLASS_SYMBOL                () :value "(void*)BASILYSG(CLASS_SYMBOL)")
-(defprimitive global_CLASS_KEYWORD               () :value "(void*)BASILYSG(CLASS_KEYWORD)")
-(defprimitive global_CLASS_SEXPR                 () :value "(void*)BASILYSG(CLASS_SEXPR)")
-(defprimitive global_CLASS_FIELD                 () :value "(void*)BASILYSG(CLASS_FIELD)")
-(defprimitive global_CLASS_SELECTOR              () :value "(void*)BASILYSG(CLASS_SELECTOR)")
-(defprimitive global_CLASS_PRIMITIVE             () :value "(void*)BASILYSG(CLASS_PRIMITIVE)")
-(defprimitive global_CLASS_FORMAL_BINDING        () :value "(void*)BASILYSG(CLASS_FORMAL_BINDING)")
-(defprimitive global_CLASS_DISCR                 () :value "(void*)BASILYSG(CLASS_DISCR)")
-(defprimitive global_CLASS_SYSTEM_DATA           () :value "(void*)BASILYSG(CLASS_SYSTEM_DATA)")
-(defprimitive global_ATOM_TRUE                   () :value "(void*)BASILYSG(ATOM_TRUE)")
-(defprimitive global_CTYPE_LONG                  () :value "(void*)BASILYSG(CTYPE_LONG)")
-(defprimitive global_CTYPE_VALUE                 () :value "(void*)BASILYSG(CTYPE_VALUE)")
-(defprimitive global_CTYPE_TREE                  () :value "(void*)BASILYSG(CTYPE_TREE)")
-(defprimitive global_CTYPE_VOID                  () :value "(void*)BASILYSG(CTYPE_VOID)")
-(defprimitive global_CTYPE_CSTRING               () :value "(void*)BASILYSG(CTYPE_CSTRING)")
-(defprimitive global_INITIAL_SYSTEM_DATA  () :value "(void*)BASILYSG(INITIAL_SYSTEM_DATA)")
-
-
-(defun fill_initial_predefmap (predefmap)
-    ;; manually keep in sync  with enum basilys_globalix_en in basilys.h
-    (mapobject_put predefmap (global_DISCR_NULLRECV)                 'DISCR_NULLRECV)
-    (mapobject_put predefmap (global_DISCR_STRING)                   'DISCR_STRING)
-    (mapobject_put predefmap (global_DISCR_INTEGER)                  'DISCR_INTEGER)
-    (mapobject_put predefmap (global_DISCR_LIST)                     'DISCR_LIST)
-    (mapobject_put predefmap (global_DISCR_MULTIPLE)                 'DISCR_MULTIPLE)
-    (mapobject_put predefmap (global_DISCR_BOX)                      'DISCR_BOX)
-    (mapobject_put predefmap (global_DISCR_MAPOBJECTS)               'DISCR_MAPOBJECTS)
-    (mapobject_put predefmap (global_DISCR_MAPSTRINGS)               'DISCR_MAPSTRINGS)
-    (mapobject_put predefmap (global_DISCR_CHARINTEGER)              'DISCR_CHARINTEGER)
-    (mapobject_put predefmap (global_DISCR_MIXEDINT)                 'DISCR_MIXEDINT)
-    (mapobject_put predefmap (global_DISCR_SEQCLASS)                 'DISCR_SEQCLASS)
-    (mapobject_put predefmap (global_DISCR_CLOSURE)                  'DISCR_CLOSURE)
-    (mapobject_put predefmap (global_DISCR_ROUTINE)                  'DISCR_ROUTINE)
-    (mapobject_put predefmap (global_DISCR_PAIR)                     'DISCR_PAIR)
-    (mapobject_put predefmap (global_DISCR_NAMESTRING)               'DISCR_NAMESTRING)
-    (mapobject_put predefmap (global_DISCR_VERBATIMSTRING)           'DISCR_VERBATIMSTRING)
-    (mapobject_put predefmap (global_DISCR_SEQFIELD)                 'DISCR_SEQFIELD)
-    (mapobject_put predefmap (global_DISCR_METHODMAP)                'DISCR_METHODMAP)
-    (mapobject_put predefmap (global_CLASS_CLASS)                    'CLASS_CLASS)
-    (mapobject_put predefmap (global_CLASS_ROOT)                     'CLASS_ROOT)
-    (mapobject_put predefmap (global_CLASS_PROPED)                   'CLASS_PROPED)
-    (mapobject_put predefmap (global_CLASS_NAMED)                    'CLASS_NAMED)
-    (mapobject_put predefmap (global_CLASS_LOCATED)                  'CLASS_LOCATED)
-    (mapobject_put predefmap (global_CLASS_SYMBOL)                   'CLASS_SYMBOL)
-    (mapobject_put predefmap (global_CLASS_KEYWORD)                  'CLASS_KEYWORD)
-    (mapobject_put predefmap (global_CLASS_SEXPR)                    'CLASS_SEXPR)
-    (mapobject_put predefmap (global_CLASS_FIELD)                    'CLASS_FIELD)
-    (mapobject_put predefmap (global_CLASS_SELECTOR)                 'CLASS_SELECTOR)
-    (mapobject_put predefmap (global_CLASS_PRIMITIVE)                'CLASS_PRIMITIVE)
-    (mapobject_put predefmap (global_CLASS_FORMAL_BINDING)           'CLASS_FORMAL_BINDING)
-    (mapobject_put predefmap (global_CLASS_DISCR)                    'CLASS_DISCR)
-    (mapobject_put predefmap (global_CLASS_SYSTEM_DATA)              'CLASS_SYSTEM_DATA)
-    (mapobject_put predefmap (global_CLASS_CONTAINER)                'CLASS_CONTAINER)
-    (mapobject_put predefmap (global_ATOM_TRUE)                      'ATOM_TRUE)
-    (mapobject_put predefmap (global_CTYPE_LONG)                     'CTYPE_LONG)
-    (mapobject_put predefmap (global_CTYPE_VALUE)                    'CTYPE_VALUE)
-    (mapobject_put predefmap (global_CTYPE_TREE)                     'CTYPE_TREE)
-    (mapobject_put predefmap (global_CTYPE_VOID)                     'CTYPE_VOID)
-    (mapobject_put predefmap (global_CTYPE_CSTRING)                  'CTYPE_CSTRING)
-    (mapobject_put predefmap (global_INITIAL_SYSTEM_DATA)     'INITIAL_SYSTEM_DATA)
-)
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; create a normalization context
-(defun create_normcontext (modctx)
-  (let ( (:long maxpredefix (last_globpredef_index))
-	 (:long ix 1)
-	 (predefmap (make_mapobject discr_mapobjects (+i 19 (*i 2 maxpredefix))))
-	 (valmap (make_mapobject discr_mapobjects 350))
-	 )
-    (assert_msg "check modctx" (is_a modctx class_modulcontext))
-    (forever predefloop
-	     (if (>=i ix maxpredefix) (exit predefloop))
-	     (let ( (curpredef (get_globpredef ix)) )
-	       (if (is_object curpredef)
-		   (mapobject_put predefmap curpredef (make_integerbox discr_integer ix)))
-	       )
-	     (setq ix (+i ix 1)))
-    (fill_initial_predefmap predefmap)
-    (let ( (inipro  (make_instance class_nrep_initproc
-				   :ninit_topl (make_list discr_list)
-				   :nrep_loc ()
-				   )) 
-	   (ncx (make_instance 
-		 class_normcontext
-		 :nctx_initproc inipro
-		 :nctx_proclist (make_list discr_list)
-		 :nctx_datalist (make_list discr_list)
-		 :nctx_symbmap  (make_mapstring discr_mapstrings 50)
-		 :nctx_keywmap  (make_mapstring discr_mapstrings 40)
-		 :nctx_predefmap predefmap
-		 :nctx_valmap valmap
-		 :nctx_valbindmap (make_mapobject discr_mapobjects 20)
-		 ;; we need a symbcachemap for the toplevel expressions
-		 :nctx_symbcachemap (make_mapobject discr_mapobjects 30)
-		 :nctx_curproc inipro
-		 :nctx_modulcontext modctx
-		 :nctx_qdatcurmodenvbox (make_instance class_nrep_quasidata_current_module_environment_container
-						       )
-		 :nctx_qdatparmodenv (make_instance class_nrep_quasidata_parent_module_environment
-						    )
-		 :nctx_procurmodenvlist (make_list discr_list)
-		 ))
-	   )
-      (debug_msg ncx "create_normcontext return ncx")
-      (return ncx)
-      )))
-
-;;; the normal_exp selector 
-;;;;; expected arguments: 
-;;;   recv = the reciever, eg a sexpr
-;;;   env = the environment 
-;;;   ncx = the normalization context 
-;;;   psloc = (parent) source location
-;;;;; expected results: normalized + binding list 
-;;; IMPORTANT NOTICE: even for simple expressions [like side-effecting
-;;; expressions returning void, e.g. RETURN, EXIT, ... other simple
-;;; side-effecting expressions like SETQ], the normalized should
-;;; always be a simple occurrence, and the work being done in the
-;;; bindings list.
-(defselector normal_exp class_selector
-;  :named_name (stringconst2val discr_namestring "NORMAL_EXP")
-)
-
-;; many stuff are already normalized 
-(defun normexp_identical (recv env ncx psloc)
-  (assert_msg "check env" (is_a env class_environment))
-  (assert_msg "check nctxt" (is_a ncx class_normcontext))
-  ;; is a no-op
-  (debug_msg recv "normexp_identical recv")
-  recv)
-
-(install_method discr_anyrecv normal_exp  normexp_identical)
-
-(defun normexp_null (recv env ncx psloc)
-  (assert_msg "check env" (is_a env class_environment))
-  (assert_msg "check nctxt" (is_a ncx class_normcontext))
-  (let ( (normnull (make_instance class_nrep_nil :nrep_loc psloc)) )
-    (debug_msg normnull "normexp_null normnull")
-    normnull
-))
-(install_method discr_nullrecv normal_exp normexp_null)
-
-;;; catchall for src
-(defun normexp_src_catchall (recv env ncx psloc)
-  (assert_msg "check env" (is_a env class_environment))
-  (assert_msg "check nctxt" (is_a ncx class_normcontext))
-  (debug_msg recv "normexp_src_catchall recv" )
-  (let ( (myclass (discrim recv))
-	 (myclassname (unsafe_get_field :named_name myclass)) )
-    (error_strv (unsafe_get_field :src_loc recv) 
-		"unimplemented normalization for " myclassname)
-    (assert_msg "normexp_src_catchall unimplemented normexp for src" ())
-    ))
-(install_method class_src normal_exp normexp_src_catchall)
-
-;; the selector to compute the ctype of a value in an environment
-;;; argument: environment
-;;;; sometimes this selector is used with a null environment, for
-;;;; instance in the code generation phase
-(defselector get_ctype class_selector
-;  :named_name (stringconst2val discr_namestring "GET_CTYPE")
-)
-;;; most stuff are really ctype_value
-(defun gectyp_anyrecv (recv env) ctype_value)
-(install_method discr_anyrecv get_ctype gectyp_anyrecv)
-
-(defun gectyp_root (recv env) ctype_value)
-(install_method class_root get_ctype gectyp_root)
-
-;; integers are ctype_long
-(defun gectyp_integer (recv env) 
-  (debug_msg recv "gectyp_integer recv")
-  ctype_long)
-(install_method discr_integer get_ctype gectyp_integer)
-
-;; strings are ctype_cstring
-(defun gectyp_string (recv env)
-  ctype_cstring)
-(install_method discr_string get_ctype gectyp_string)
-
-;;; normalize a tuple - returning a tuple & a bindinglist
-(defun normalize_tuple (tup env ncx psloc)
-  (assert_msg "check env" (is_a env class_environment))
-  (assert_msg "check nctxt" (is_a ncx class_normcontext))
-  (assert_msg "check tup" (is_multiple tup))
-  (debug_msg tup "normalize_tuple tup" )
-  (let ( (bindlist (make_list discr_list)) 
-	 (res (multiple_map
-	       tup 
-	       (lambda (comp :long ix)
-		; (debug_msg comp "normalize_tuple comp")
-		 (multicall 
-		  (norcomp nbinds)
-		  (normal_exp comp env ncx psloc)
-		 ; (debug_msg norcomp "normalize_tuple norcomp")
-		  (assert_msg "check nbinds" (is_list_or_null nbinds))
-		  (assert_msg "check norcomp not nrep_expr" (is_not_a norcomp class_nrep_expr))
-		  (if (is_list nbinds)
-		      (list_every 
-		       nbinds
-		       (lambda (bnd)
-			 (assert_msg "check bnd" (is_a bnd class_any_binding))
-			 (assert_msg "check bindlist" (is_list bindlist))
-			 (list_append bindlist bnd)
-			 ))		
-		    )
-		  norcomp
-		  ))))
-	 )
-    (if (not (is_pair (list_first bindlist)))
-	(setq bindlist ()))
-    (debug_msg res "normalize_tuple res")
-    (debug_msg bindlist "normalize_tuple bindlist" )
-    (return res bindlist)
-    ))
-
-
-;; wrap a normal let around a tuple of normalized expressions and a bindinglist
-(defun wrap_normal_letseq (tupnexp bindlist loc)
-  (assert_msg "check tupnexp" (is_multiple_or_null tupnexp))
-  (assert_msg "check bindlist" (is_list_or_null bindlist))
-  (list_every
-   bindlist 
-   (lambda (cbind) 
-     (if (not (is_a cbind class_normlet_binding))
-	 (progn
-	   (debug_msg tupnexp "wrap_normal_letseq tuplexp")
-	   (debug_msg bindlist "wrap_normal_letseq bindlist")
-	   (debug_msg cbind "wrap_normal_letseq cbind")))
-     (assert_msg "check cbind wrapnormletseq" (is_a cbind class_normlet_binding))))
-  (let ( (wnlet
-	  (make_instance class_nrep_let
-			 :nrep_loc loc
-			 :nlet_bindings (list_to_multiple bindlist)
-			 :nlet_body tupnexp))
-	 )
-    (return wnlet)))
-    
-
-;; wrap a normal let around a single normalized expression & a bindinglist
-(defun wrap_normal_let1 (nexp bindlist loc)
-  (assert_msg "check bindlist" (is_list_or_null bindlist))
-  (list_every
-   bindlist 
-   (lambda (cbind) 
-     (if (not (is_a cbind class_normlet_binding))
-	 (progn
-	   (debug_msg nexp "wrap_normal_let1 nexp")
-	   (debug_msg bindlist "wrap_normal_let1 bindlist")
-	   (debug_msg cbind "wrap_normal_let1 cbind")))
-     (assert_msg "check cbind wrapnormlet1" (is_a cbind class_normlet_binding))))
-  (if 
-      (and (is_list bindlist)
-	   (is_pair (list_first bindlist)))
-      (let ( (wnlet 
-	      (make_instance class_nrep_let
-			     :nrep_loc loc
-			     :nlet_bindings (list_to_multiple bindlist)
-			     :nlet_body (make_tuple1 discr_multiple nexp)))
-	     )
-	wnlet)
-    nexp
-))
-
-
-; for symbols which are imported from a previous environment (this
-; only happens when compiling stuff which is not this warm-basilys) we
-; should detect them and generate some special data to fetch them, in
-; the start routine, from the given environment (which is the only
-; argument to the start routine). Detecting such symbols is easy : their
-; binding is a class_value_binding
-
-;;;; normalize a symbol occurrence
-(defun normexp_symbol (recv env ncx psloc)
-  (multicall
-   (bind procs)
-   (find_enclosing_env env recv)
-   (assert_msg "normexp_symbol check recv" (is_a recv class_symbol))
-   (if (null bind)
-       (progn
-	 (error_strv psloc "unbound symbol to normalize"
-		     (unsafe_get_field :named_name recv))
-	 (return (the_null))))
-   (if (null psloc)
-       (shortbacktrace_dbg "normex_symbol null psloc" 10)
-     )
-   (let ( (sycmap (unsafe_get_field :nctx_symbcachemap ncx))
-	  (syca (mapobject_get sycmap recv)) )
-     (assert_msg "check sycmap" (is_mapobject sycmap))
-     (cond 
-      ;; check if in the cache
-      (syca syca)	     ;already cached
-      ;; value binding, get/put it into the map
-      ( (is_a bind class_value_binding)
-	(let ( (bvar (mapobject_get (unsafe_get_field :nctx_valbindmap ncx) bind)) )
-	  (debug_msg bind "normexp_symbol value bind")
-	  (if (null bvar)
-	      (let ( (newbvar 
-		      (make_instance class_nrep_startval
-				     :nrep_loc psloc
-				     :nstart_var recv)) )
-		(mapobject_put (unsafe_get_field :nctx_valbindmap ncx) bind newbvar)
-		newbvar)
-	      ))
-	)
-      ;; the procs is a non-empty list, so the symbol is closed
-      ( (and (is_list procs)
-	     (is_pair (list_first procs)))
-	;; check that a closed symbol is always a value
-	(let ( (bty
-		(cond ( (is_a bind class_formal_binding)
-			(unsafe_get_field :fbind_type bind) )
-		      ( (is_a bind class_let_binding)
-			(unsafe_get_field :letbind_type bind))
-		      (:else ()))) 
-	       )
-	  (if bty 
-	      (if (!= bty ctype_value)
-		  (error_strv psloc
-			      "closed variable has non value type (boxing required)"
-			      (unsafe_get_field :named_name recv)
-			      )))
-	  (setq bty ctype_value
-		)
-	  (if (is_a bind class_fixed_binding)
-	      (let ( (fxocc
-		      (make_instance class_nrep_constocc
-				     :nrep_loc psloc
-				     :nocc_symb recv
-				     :nocc_bind bind
-				     :nocc_ctyp ctype_value
-				     :ncloc_procs procs)) )
-		;; cache the result
-		(mapobject_put sycmap recv fxocc)
-		(debug_msg fxocc "normexp_symbol fxocc")
-		;; put the const occurrence if needed in the const list of each proc
-		(list_every
-		 procs
-		 (lambda (pr)
-		   (assert_msg "check pr" (is_a pr class_nrep_anyproc))
-		   (let ( (clbox (make_box discr_box fxocc))
-			  (cnstproc (unsafe_get_field :nrpro_const pr)) )
-		     (list_every 
-		      cnstproc
-		      (lambda (cx) (if (== cx fxocc) (progn (box_put clbox ()) ()))))
-		     (let ( (newcl (box_content clbox)) )
-		       (if newcl (list_append cnstproc newcl))) 
-		     )))
-		fxocc
-		)
-	    (let ( (clocc 
-		    (make_instance class_nrep_closedocc
-				   :nrep_loc psloc
-				   :nocc_symb recv
-				   :nocc_ctyp ctype_value
-				   :nocc_bind bind
-				   :ncloc_procs procs)) 
-		   )
-	      ;; cache the result
-	      (mapobject_put sycmap recv clocc)
-	      ;; put the closed occurrence if needed in the closed list of each proc
-	      (list_every 
-	       procs
-	       (lambda (pr)
-		 (assert_msg "check pr" (is_a pr class_nrep_anyproc))
-		 (let ( (clbox (make_box discr_box clocc))
-			(clobindl (unsafe_get_field :nrpro_closedb pr)) )
-		   (list_every 
-		    clobindl
-		    (lambda (clbnd) (if (== clbnd bind) (progn (box_put clbox ()) ()))))
-		   (let ( (newcl (box_content clbox)) )
-		     (if newcl (list_append clobindl bind))) 
-		   )))
-	      clocc
-	      ) ) ) ) 
-      ;; formal arg is a local
-      ( (is_a bind class_formal_binding)
-	(let ( (syocc
-		(make_instance class_nrep_locsymocc
-			       :nrep_loc psloc
-			       :nocc_ctyp (unsafe_get_field :fbind_type bind) 
-			       :nocc_symb recv
-			       :nocc_bind bind) ) )
-	  ;; cache the result & return it
-	  (mapobject_put sycmap recv syocc)
-	  syocc
-	  ))
-      ;; let binding is a local
-      ( (is_a bind class_let_binding)
-	(let ( (syocc
-		(make_instance class_nrep_locsymocc
-			       :nrep_loc psloc
-			       :nocc_ctyp (unsafe_get_field :letbind_type bind)
-			       :nocc_symb recv
-			       :nocc_bind bind) ) )
-	  ;; cache the result & return it
-	  (mapobject_put sycmap recv syocc)
-	  syocc
-	  ))
-      ;; previous function binding at toplevel
-      ( (is_a bind class_function_binding)
-	(debug_msg bind "normexp_symbol function bind")
-	(let ( (fubdat (unsafe_get_field :fubind_fundata bind)) )
-	  (if (null fubdat)
-	      (error_strv psloc "unresolved forward function reference to"
-			  (unsafe_get_field :named_name recv)
-			  ))
-	  (assert_msg "normexp_symbol check fubdat" (is_a fubdat class_nrep_dataclosure))
-	  ;; cache the result & return it
-	  (mapobject_put sycmap recv fubdat)
-	  fubdat
-	  ))
-      ;; previous primitive binding at toplevel
-      ( (is_a bind class_primitive_binding)
-	(let ( (pribidat (unsafe_get_field :pbind_primdata bind)) )
-	  (if (null pribidat)
-	      (error_strv psloc "unresolved forward primitive reference to"
-			  (unsafe_get_field :named_name recv)
-			  )
-	      )
-	  (assert_msg "normexp_symbol check pribdat" (is_a pribidat class_nrep_datainstance))
-	  ;; cache the result & return it
-	  (mapobject_put sycmap recv pribidat)
-	  pribidat))
-      ;; previous class binding at toplevel
-      ( (is_a bind class_class_binding)
-	(let ( (cldat (unsafe_get_field :cbind_cladata bind)) )
-	  (if (null cldat)
-	      (error_strv psloc "unresolved forward class reference to"
-			  (unsafe_get_field :named_name recv)
-			  )
-	      )
-	  (assert_msg "normexp_symbol check cldat" (is_a cldat class_nrep_datainstance))
-	  ;; cache the result & return it
-	  (mapobject_put sycmap recv cldat)
-	  cldat))
-      ;; previous field binding at toplevel
-      ( (is_a bind class_field_binding)
-	(let ( (fdat (unsafe_get_field :flbind_fdata bind)) )
-	  (if (null fdat)
-	      (error_strv psloc "unresolved forward field reference to"
-			  (unsafe_get_field :named_name recv)
-			  )
-	      )
-	  (assert_msg "normexp_symbol check fdat" (is_a fdat class_nrep_datainstance))
-	  ;; cache the result & return it
-	  (mapobject_put sycmap recv fdat)
-	  fdat))
-      ;; previous selector binding at toplevel
-      ( (is_a bind class_selector_binding)
-	(let ( (seldat (unsafe_get_field :sbind_selectordata bind)) )
-	  (if (null seldat)
-	      (error_strv psloc "unresolved forward selector reference to"
-			  (unsafe_get_field :named_name recv)
-			  )
-	      )
-	  (assert_msg "normexp_symbol check seldat" (is_a seldat class_nrep_datainstance))
-	  ;; cache the result & return it
-	  (mapobject_put sycmap recv seldat)
-	  seldat))
-      ;; previous instance binding at toplevel
-      ( (is_a bind class_instance_binding)
-	(let ( (insdat (unsafe_get_field :ibind_data bind)) )
-	  (if (null insdat)
-	      (error_strv psloc "unresolved forward instance reference to"
-			  (unsafe_get_field :named_name recv)
-			  )
-	      )
-	  (assert_msg "normexp_symbol check insdat" (is_a insdat class_nrep_datainstance))
-	  ;; cache the result & return it
-	  (mapobject_put sycmap recv insdat)
-	  insdat)
-	)
-      ;; all other cases are constants
-      (:else 
-       (debug_msg bind "normexp_symbol const? bind")
-       (let ( (kocc
-	       (make_instance class_nrep_constocc
-			      :nrep_loc psloc
-			      :nocc_ctyp ctype_value
-			      :nocc_symb recv
-			      :nocc_bind bind) ) )
-	 (debug_msg kocc "normexp_symbol kocc" )
-	 ;; cache the result & return it
-	 (mapobject_put sycmap recv kocc)
-	 ;; put the const occurrence if needed in the const list of each proc
-	 (list_every
-	  procs
-	  (lambda (pr)
-	    (debug_msg pr "normexp_symbol const pr")
-	    (assert_msg "check pr" (is_a pr class_nrep_anyproc))
-	    (let ( (clbox (make_box discr_box kocc))
-		   (constproc (unsafe_get_field :nrpro_const pr)) )
-	      (list_every 
-	       constproc
-	       (lambda (cl) (if (== cl kocc) (progn (box_put clbox ()) ()))))
-	      (let ( (newcl (box_content clbox)) )
-		(if newcl (list_append constproc newcl))) 
-	      )))
-	 kocc
-	 ))))))
-
-(install_method class_symbol normal_exp normexp_symbol)
-
-(defun gectyp_symocc (recv env)
-  (assert_msg "check recv" (is_a recv class_nrep_symocc))
-  (unsafe_get_field :nocc_ctyp recv)
-)
-(install_method class_nrep_symocc get_ctype gectyp_symocc)
-
-
-;;; normalize a primitive invocation
-(defun normexp_primitive (recv env ncx psloc)
-  (debug_msg recv "normexp_primitive recv")
-  (assert_msg "check prim recv" (is_a recv class_src_primitive))
-  (assert_msg "check env" (is_a env class_environment))
-  (assert_msg "check nctxt" (is_a ncx class_normcontext))
-  (let ( (sloc (unsafe_get_field :src_loc recv)) 
-	 (soper (unsafe_get_field :sprim_oper recv))
-	 (sargs (unsafe_get_field :sprim_args recv)) 
-	 )
-    (assert_msg "check soper" (is_a soper class_primitive))
-    (multicall 
-     (nargs nbind)
-     (normalize_tuple sargs env ncx sloc)
-     (let ( (sopnamstr (unsafe_get_field :named_name soper))
-	    (sopformals (unsafe_get_field :prim_formals soper))
-	    (soptype (unsafe_get_field :prim_type soper))
-	    (sopexp (unsafe_get_field :prim_expansion soper)) 
-	    (:long nbarg (multiple_length nargs))
-	    (:long nbexp (multiple_length sopexp))
-	    )
-       (if (!=i nbarg (multiple_length sopformals))
-	   (progn
-	     (error_strv sloc "length mismatch between formals & actuals in primitive" 
-			 sopnamstr)
-	     (return (the_null)))
-	   )
-       (let ( (bmap (make_mapobject  discr_mapobjects (+i 2 (/iraw (*i 3 nbarg) 2))))
-	      (expargs (make_multiple discr_multiple nbexp))
-	      )
-	 (multiple_every
-	  sopformals
-	  (lambda (forb :long ix)
-	    (assert_msg "check forb" (is_a forb class_formal_binding))
-	    (let ( (forarg (unsafe_get_field :binder forb))
-		   (actarg (multiple_nth nargs ix)) )
-	      (mapobject_put bmap forarg actarg)
-	      )))
-;	 (debug_msg bmap "normexp_primitive bmap in sopexp")
-	 (multiple_every
-	  sopexp
-	  (lambda (excu :long jx)
-;	    (debug_msg excu "normexp_primitive excu in sopexp")
-	    (let ( (exval
-		    (if (is_a excu class_symbol)
-			(let ( (bval (mapobject_get bmap excu)) )
-			  (if (null bval) 
-			      (progn 
-				(debug_msg recv "normexp_primitive recv unbound symbol in expansion")
-				(error_strv sloc "unbound symbol in primitive expansion" 
-					    (unsafe_get_field  :named_name excu))))
-			  bval)
-		      excu)) )
-;	    (debug_msg exval "normexp_primitive exval in sopexp")
-	    (multiple_put_nth expargs jx exval))
-	    ))
-	 (let ( (csym (clone_symbol  (unsafe_get_field :sdef_name soper))) 
-		(cbind (make_instance class_normlet_binding
-				      :letbind_loc sloc
-				      :binder csym
-				      :letbind_type soptype 
-				      :letbind_expr 
-				      (make_instance class_nrep_chunk
-						     :nrep_loc sloc
-						     :nchunk_expansion expargs
-						     :nchunk_primitive soper
-						     ))) 
-		(clocc (make_instance class_nrep_locsymocc
-				      :nrep_loc sloc
-				      :nocc_ctyp soptype
-				      :nocc_symb csym
-				      :nocc_bind cbind)) 
-		)
-	   (if (is_list nbind) 
-	       (list_append nbind cbind)
-	     (progn
-	       (setq nbind (make_list discr_list))
-	       (list_append nbind cbind)
-	       ))
-	   (debug_msg clocc "normexp_primitive result clocc")
-	   (return
-	    clocc
-	    nbind
-	    )))))))
-
-(install_method class_src_primitive normal_exp normexp_primitive)
-(install_method class_nrep_chunk get_ctype 
-		(lambda (recv env)
-		  (let ( ( prim (unsafe_get_field :nchunk_primitive recv)) )
-		    (assert_msg "check prim" (is_a prim class_primitive))
-		    (unsafe_get_field :prim_type prim))))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; utility to check that every normalized argument has a passable ctype
-(defun check_ctype_nargs (nargs env sloc)
-  (multiple_every 
-   nargs
-   (lambda (cnarg :long ix) 
-     (let ( (ctyp (get_ctype cnarg env)) )
-       (assert_msg "check_ctype_nargs ctyp" (is_a ctyp class_ctype))
-       (if (not (is_string (unsafe_get_field :ctype_parstring ctyp)))
-	   (error_strv sloc "argument has invalid type" (unsafe_get_field :named_name ctyp))
-     ))
-)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; normalize an application
@@ -7719,13 +7761,25 @@
     (let ( (nvar (normexp_symbol svar env ncx sloc)) 
 	   (varctyp (get_ctype nvar env))
 	   )
+      (debug_msg varctyp "normexp_setq varctyp")
+      (assert_msg "check varctyp" (is_a varctyp class_ctype))
       (multicall
        (nexp nbind)
        (normal_exp sexp env ncx sloc)
        (if (null nbind) (setq nbind (make_list discr_list)))
-       (if (!= varctyp (get_ctype nexp env))
-	   (error_strv sloc "incompatible type for SETQ"
-		       (unsafe_get_field :named_name svar)))
+       (let ( (expctyp (get_ctype nexp env))
+	      )
+	 (debug_msg expctyp "normexp_setq expctyp")
+	 (assert_msg "check expctyp" (is_a expctyp class_ctype))
+	 (if (!= varctyp expctyp)
+	     (progn
+	       (error_strv sloc "incompatible type for SETQ"
+			   (unsafe_get_field :named_name svar))
+	       (inform_strv sloc "left [var] type for incomatible SETQ"
+			    (unsafe_get_field :named_name varctyp))
+	       (inform_strv sloc "right [expr] type for incomatible SETQ"
+			    (unsafe_get_field :named_name expctyp))
+	   )))
        (let ( (csym (clone_symbol 'setq_)) 
 	      (cbind  (make_instance class_normlet_binding
 				     :binder csym
@@ -8671,10 +8725,12 @@
 		      :nstr_string (unsafe_get_field :named_name sname))))
     (fill_data_slot nprimdata prim_formals nargdata)
     (fill_data_slot nprimdata prim_expansion nexpdata)
+    (fill_data_slot nprimdata prim_type
+		    (normal_predef stype ncx sloc "primitive res type"))
 ;;; put the data into the primitive binding
     (if (is_a sprimbind class_primitive_binding)
 	(unsafe_put_fields sprimbind :pbind_primdata nprimdata))
-    (return (the_null))			     ;normalized defprimitive is empty
+    (return (the_null))		     ;normalized defprimitive is empty
     ))
 (install_method class_src_defprimitive normal_exp normexp_defprimitive)
 
