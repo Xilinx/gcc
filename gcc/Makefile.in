@@ -4778,7 +4778,7 @@ WARMELT_FILES= warmelt-first.bysl warmelt-macro.bysl \
 
 $(WARMELT_FILES):  $(srcdir)/melt/warm-basilys.bysl
 	rm -vf $(WARMELT_FILES)
-	gawk '/^;;@@<</{out=$$2; lin=NR;} \
+	gawk '/^;;@@<</{out=$$2; lin=NR; printf ";; -*- lisp -*- from file warm-basilys.bysl line %d\n", NR > out} \
 	      {if (out && out != "") print > out}' $^
 	wc -l $(WARMELT_FILES)
 

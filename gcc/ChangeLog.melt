@@ -1,3 +1,14 @@
+2008-06-22  Basile Starynkevitch  <basile@starynkevitch.net>
+	* Makefile.in: splitting warm-basilys.bysl gives comment with line
+	in resulting warmelt*.bysl
+
+	* melt/warm-basilys.bysl: expand_msend takes an opnam
+	argument. class_src_msend has msend_selsymb instead of
+	msend_selbind.  warning & error messages report location in
+	@file:line: format.  macroexpand_1 deals with selector values.
+
+	* warm-basilys-0.c: regenerated.
+
 2008-06-21  Basile Starynkevitch  <basile@starynkevitch.net>
 	* Makefile.in: added warmelt-normal.c & warmelt-genobj.c targets.
 	splitting warm-basilys.bysl using simpler stuff.

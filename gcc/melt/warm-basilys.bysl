@@ -472,9 +472,6 @@
 (defprimitive create_keywordstr (strv) :value
   "basilysgc_named_keyword( basilys_string_str(" strv "), BASILYS_CREATE)")
 
-;; OBSOLETE runtime assertion with message
-(defprimitive assertmsg (:cstring msg :long cond) :void
-  "basilys_assertmsg(" msg ", ( " cond "))")
 
 ;; runtime assertion with message called by expansion of assert_msg
 (defprimitive assert_failed (:cstring msg :cstring filename :long lineno) :void
@@ -891,7 +888,7 @@
 
 ;; to signal an error in a basilys source with some additional string value
 (defprimitive error_strv (loc :cstring msg :value strv) :void
-  "error(\"BASILYS ERROR [#%ld]: file %s, line %d : %s - %s\", basilys_dbgcounter, "
+  "error(\"BASILYS ERROR [#%ld]: @%s:%d: %s - %s\", basilys_dbgcounter, "
   " basilys_string_str(basilys_val_mixint(" loc ")), "
   " (int) basilys_num_mixint(" loc "), ("
   msg
@@ -899,7 +896,7 @@
   )
 ;; signal a plain error in a basilys source
 (defprimitive error_plain (loc :cstring msg) :void
-  "error(\"BASILYS ERROR [#%ld]: file %s, line %d :: %s \", basilys_dbgcounter, "
+  "error(\"BASILYS ERROR [#%ld]: @%s:%d: %s \", basilys_dbgcounter, "
   " basilys_string_str(basilys_val_mixint(" loc ")), "
   " (int) basilys_num_mixint(" loc "), ("
   msg "))"
@@ -907,7 +904,7 @@
 
 ;; to signal an warning in a basilys source with some additional string value
 (defprimitive warning_strv (loc :cstring msg :value strv) :void
-  "warning(0, \"BASILYS WARNING [#%ld]: file %s, line %d : %s - %s\", basilys_dbgcounter,"
+  "warning(0, \"BASILYS WARNING [#%ld]: @%s:%d: %s - %s\", basilys_dbgcounter,"
   " basilys_string_str(basilys_val_mixint(" loc ")), "
   " (int) basilys_num_mixint(" loc "), ("
   msg
@@ -915,7 +912,7 @@
   )
 ;; signal a plain warning in a basilys source
 (defprimitive warning_plain (loc :cstring msg) :void
-  "warning(0, \"BASILYS WARNING [#%ld]: file %s, line %d :: %s \", basilys_dbgcounter,"
+  "warning(0, \"BASILYS WARNING [#%ld]: @%s:%d:: %s \", basilys_dbgcounter,"
   " basilys_string_str(basilys_val_mixint(" loc ")), "
   " (int) basilys_num_mixint(" loc "), ("
   msg "))"
@@ -939,7 +936,7 @@
 
 ;; to signal an inform in a basilys source with some additional string value
 (defprimitive inform_strv (loc :cstring msg :value strv) :void
-  "inform(\"BASILYS INFORM [#%ld]: file %s, line %d : %s - %s\", basilys_dbgcounter,"
+  "inform(\"BASILYS INFORM [#%ld]: @%s:%d: %s - %s\", basilys_dbgcounter,"
   " basilys_string_str(basilys_val_mixint(" loc ")), "
   " (int) basilys_num_mixint(" loc "), ("
   msg
@@ -947,7 +944,7 @@
   )
 ;; signal a plain inform in a basilys source
 (defprimitive inform_plain (loc :cstring msg) :void
-  "inform(\"BASILYS INFORM [#%ld]: file %s, line %d :: %s \", basilys_dbgcounter,"
+  "inform(\"BASILYS INFORM [#%ld]: @%s:%d::: %s \", basilys_dbgcounter,"
   " basilys_string_str(basilys_val_mixint(" loc ")), "
   " (int) basilys_num_mixint(" loc "), ("
   msg "))"
@@ -2763,7 +2760,6 @@
  add2sbuf_string
  andi
  assert_failed
- assertmsg
  box_content
  box_put
  cbreak_msg
@@ -3011,8 +3007,7 @@
 (defclass class_src_msend
   :super class_src
   :fields ( 
-;; the selector binding is needed to get its data...
-	    msend_selbind		;the selector binding
+	    msend_selsymb		;the selector symbol
 	    msend_recv			;the reciever
 	    msend_args 			;the tuple of arguments
 	   ))
@@ -3369,23 +3364,22 @@
      
 
 ;;; expand an s-expression known to be a message send
-(defun expand_msend  (opbind sexpr env mexpander)
+(defun expand_msend  (opnam sexpr env mexpander)
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
   (assert_msg "check end" (is_a env class_environment))
   (assert_msg "check mexpander" (is_closure mexpander))
-  (assert_msg "check opbind" (is_a opbind class_selector_binding))
+  (assert_msg "check opnam" (is_a opnam class_symbol))
   (debug_msg sexpr "expand_msend sexpr")
   (let ( (scont (unsafe_get_field :sexp_contents sexpr))
 	 (sloc (unsafe_get_field :loca_location sexpr))
 	 (spair (pair_tail (list_first scont)))
-	 (seldata (unsafe_get_field :sbind_selectordata opbind))
 	 )
     (if (not (is_pair spair)) (error_plain sloc "missing reciever expression in message send"))
     (let ( (xrecv (pair_head spair))
 	   (argtup (expand_pairlist_as_tuple (pair_tail spair) env mexpander)) 
 	   (res (make_instance class_src_msend
 		     :src_loc sloc
-		     :msend_selbind opbind
+		     :msend_selsymb opnam
 		     :msend_recv (if (is_a xrecv class_sexpr)
 				     (macroexpand_1 xrecv env mexpander)
 				   xrecv)
@@ -3414,81 +3408,82 @@
   (assert_msg "check mexpander" (is_closure mexpander))
   (if (is_a sexpr class_sexpr)
       (let ( (scont (unsafe_get_field :sexp_contents sexpr))
-	     (sloc (unsafe_get_field :loca_location sexpr))
+	    (sloc (unsafe_get_field :loca_location sexpr))
 	     (soper (pair_head (list_first scont))) )
 	(debug_msg sexpr "macroexpand_1 sexpr")
 	(debug_msg soper "macroexpand_1 soper")
 	(cond ( (is_a soper class_symbol)
-		(let ( (opbind (find_env env soper)) )
-		  (debug_msg opbind "macroexpand_1 opbind")
-		  (cond ( (is_a opbind class_macro_binding)
-			  (let ( (mexp (unsafe_get_field :mbind_expanser opbind)) )
-			    (assert_msg "check mexp" (is_closure mexp))
-			    (let ( (resm (mexp sexpr env mexpander)) )
-			      (debug_msg resm "macroexpand_1 result for macro resm")
-			      (return resm)
-			      )))
-			( (is_a opbind class_selector_binding)
-			  (let ( (ress (expand_msend opbind sexpr env mexpander)) )
-			    (debug_msg ress "macroexpand_1 result for send ress")
-			    (return ress)
-			    ))
-			( (is_a opbind class_primitive_binding)
-			  (let ( (resp (expand_primitive (unsafe_get_field :pbind_primitive opbind) sexpr env mexpander)) )
-			    (debug_msg resp "macroexpand_1 result for primitive resp")
-			    (return resp)
-			    ))
-			( (is_a opbind class_value_binding)
-			  (let ( (val (unsafe_get_field :vbind_value opbind))
-				 )
-			    (cond
-			     ( (is_closure val)
-			       (expand_apply sexpr env mexpander)
-			       )
-			     ( (is_a val class_primitive)
-			       (expand_primitive val sexpr env mexpander)
-			       )
-			     ( (is_a val class_selector)
-			       ;; voir expand_msend
-			       (compile_warning "macroexpand_1 a completer valeur selecteur")
-			       (error_strv sloc "macroexpand_1 val.sel @@ a completer"
-					   (unsafe_get_field :named_name (unsafe_get_field :binder opbind)))
-			       (assert_msg "macroexpand_1 val.sel @@ UNIMPLEMENTED " ())
-			       )
-			     (:else
-			      (error_strv sloc "macroexpand_1 bad valued operation symbol"
-					  (unsafe_get_field :named_name soper))
-			      (inform_strv sloc "macroexpand_1 bad symbol value discr"
-					   (unsafe_get_field :named_name (discrim val)))
-			      (return)
+	       (let ( (opbind (find_env env soper)) )
+		 (debug_msg opbind "macroexpand_1 opbind")
+		 (cond ( (is_a opbind class_macro_binding)
+			(let ( (mexp (unsafe_get_field :mbind_expanser opbind)) )
+			  (assert_msg "check mexp" (is_closure mexp))
+			  (let ( (resm (mexp sexpr env mexpander)) )
+			    (debug_msg resm "macroexpand_1 result for macro resm")
+			    (return resm)
+			    )))
+		       ( (is_a opbind class_selector_binding)
+			(let ( (ress (expand_msend soper sexpr env mexpander)) )
+			  (debug_msg ress "macroexpand_1 result for send ress")
+			  (return ress)
+			  ))
+		       ( (is_a opbind class_primitive_binding)
+			(let ( (resp (expand_primitive (unsafe_get_field :pbind_primitive opbind) sexpr env mexpander)) )
+			  (debug_msg resp "macroexpand_1 result for primitive resp")
+			  (return resp)
+			  ))
+		       ( (is_a opbind class_value_binding)
+			(let ( (val (unsafe_get_field :vbind_value opbind))
 			      )
-			     )))
-			(:else 
-			 ;; this is to catch the case when DEFUN or DEFCLASS is not bound...
-			 (assert_msg "check soper not symbol DEFUN" (!= soper 'defun))
-			 (assert_msg "check soper not symbol DEFCLASS" (!= soper 'defclass))
-			 (assert_msg "check soper not named DEFUN" (not (is_stringconst (unsafe_get_field :named_name soper) "DEFUN")))
-			 (assert_msg "check soper not named DEFCLASS" (not (is_stringconst (unsafe_get_field :named_name soper) "DEFCLASS")))
-			 (let ( (resa (expand_apply sexpr env mexpander))) 
-			   (debug_msg resa "macroexpand_1 result for apply resa")
-			   (return resa)
-			   )
-			 ))))
+			  (cond
+			    ( (is_closure val)
+			     (expand_apply sexpr env mexpander)
+			      )
+			    ( (is_a val class_primitive)
+			     (expand_primitive val sexpr env mexpander)
+			      )
+			    ( (is_a val class_selector) 
+			     (let ( (ress (expand_msend soper sexpr env mexpander)) )
+			       (debug_msg ress "macroexpand_1 result for send ress")
+			       (return ress)
+			       )
+			      )
+			    (:else
+			     (error_strv sloc "macroexpand_1 bad valued operation symbol"
+					 (unsafe_get_field :named_name soper))
+			     (inform_strv sloc "macroexpand_1 bad symbol value discr"
+					  (unsafe_get_field :named_name (discrim val)))
+			     (return)
+			     )
+			    )))
+		       (:else 
+			;; this is to catch the case when DEFUN or
+			;; DEFCLASS is not bound... which only happens
+			;; on big errors
+			(assert_msg "check soper not symbol DEFUN" (!= soper 'defun))
+			(assert_msg "check soper not symbol DEFCLASS" (!= soper 'defclass))
+			(assert_msg "check soper not named DEFUN" (not (is_stringconst (unsafe_get_field :named_name soper) "DEFUN")))
+			(assert_msg "check soper not named DEFCLASS" (not (is_stringconst (unsafe_get_field :named_name soper) "DEFCLASS")))
+			(let ( (resa (expand_apply sexpr env mexpander))) 
+			  (debug_msg resa "macroexpand_1 result for apply resa")
+			  (return resa)
+			  )
+			))))
 	      ( (is_a soper class_keyword)
-		(let ( (resk (expand_keywordfun sexpr env mexpander)) )
-		  (debug_msg resk "macroexpand_1 result for keywordfun resk")
-		  (return resk)))
+	       (let ( (resk (expand_keywordfun sexpr env mexpander)) )
+		 (debug_msg resk "macroexpand_1 result for keywordfun resk")
+		 (return resk)))
 	      ;; the empty list is expanded as nil
 	      ( (==i (list_length scont) 0)
-		(debug_msg (the_null) "macroexpand_1 result for null")
+	       (debug_msg (the_null) "macroexpand_1 result for null")
 		(return (the_null)))
 	      (:else 
 	       (let ( (resca (expand_apply sexpr env mexpander)) )
 		 (debug_msg resca "macroexpand_1 result complex apply resca")
 		 (return resca)
 		 ))))
-    ;; if the sexpr is not an sexpr return itself
-    (return sexpr)))
+      ;; if the sexpr is not an sexpr return itself
+      (return sexpr)))
   
 ;;; expand a primitive s-expression
 (defun expand_primitive (sprim sexpr env mexpander)
@@ -6283,6 +6278,7 @@
       ( (is_a bind class_value_binding)
 	(let ( (bvar (mapobject_get (unsafe_get_field :nctx_valbindmap ncx) bind)) )
 	  (debug_msg bind "normexp_symbol value bind")
+	  (debug_msg procs "normexp_symbol value procs")
 	  (if (null bvar)
 	      (let ( (newbvar 
 		      (make_instance class_nrep_startval
@@ -6549,7 +6545,9 @@
 			      (progn 
 				(debug_msg recv "normexp_primitive recv unbound symbol in expansion")
 				(error_strv sloc "unbound symbol in primitive expansion" 
-					    (unsafe_get_field  :named_name excu))))
+					    (unsafe_get_field  :named_name excu))
+				(error_strv sloc "bad primitive name" sopnamstr)
+				))
 			  bval)
 		      excu)) )
 ;	    (debug_msg exval "normexp_primitive exval in sopexp")
@@ -7020,10 +7018,9 @@
   (assert_msg "check nctxt" (is_a ncx class_normcontext))
   ; (debug_msg ncx "normexp_msend ncx")
   (debug_msg msnd "normexp_msend msnd")
-  (let ( (msbind (unsafe_get_field :msend_selbind msnd))
-	 (msrecv (unsafe_get_field :msend_recv msnd))
+  (let ( (msrecv (unsafe_get_field :msend_recv msnd))
 	 (msargs (unsafe_get_field :msend_args msnd))
-	 (selnam (unsafe_get_field :binder msbind))
+	 (selnam (unsafe_get_field :msend_selsymb msnd))
 	 (curproc (unsafe_get_field :nctx_curproc ncx))
 	 (sloc (unsafe_get_field :src_loc msnd))
 	 (nsel (normexp_symbol selnam env ncx sloc))
@@ -12904,7 +12901,7 @@
 	)
     ;;(debug_msg orout "compilobj constocc orout")
     ;;(debug_msg nloc "compilobj constocc nloc")
-    ;;(debug_msg lastcproc "compilobj constocc lastcproc")
+    (debug_msg lastcproc "compilobj constocc lastcproc")
     (assert_msg "check lastcproc" (is_a lastcproc class_nrep_routproc))
     (let ( (cnstlis (unsafe_get_field :nrpro_const lastcproc)) 
 	   (:long cnstrank -1)
