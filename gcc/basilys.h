@@ -813,31 +813,31 @@ void *basilysgc_raw_new_mappointers (basilysobject_ptr_t discr_p,
 static inline basilys_ptr_t
 basilysgc_new_maptrees (basilysobject_ptr_t discr, unsigned len)
 {
-  if (basilys_magic_discr ((void *) discr) != OBMAG_OBJECT)
+  if (basilys_magic_discr ((basilys_ptr_t) discr) != OBMAG_OBJECT)
     return NULL;
   if (discr->object_magic != OBMAG_MAPTREES)
     return NULL;
-  return basilysgc_raw_new_mappointers (discr, len);
+  return (basilys_ptr_t) basilysgc_raw_new_mappointers (discr, len);
 }
 
 static inline basilys_ptr_t
 basilysgc_new_mapedges (basilysobject_ptr_t discr, unsigned len)
 {
-  if (basilys_magic_discr ((void *) discr) != OBMAG_OBJECT)
+  if (basilys_magic_discr ((basilys_ptr_t) discr) != OBMAG_OBJECT)
     return NULL;
   if (discr->object_magic != OBMAG_MAPEDGES)
     return NULL;
-  return basilysgc_raw_new_mappointers (discr, len);
+  return (basilys_ptr_t) basilysgc_raw_new_mappointers (discr, len);
 }
 
 static inline basilys_ptr_t
 basilysgc_new_mapbasicblocks (basilysobject_ptr_t discr, unsigned len)
 {
-  if (basilys_magic_discr ((void *) discr) != OBMAG_OBJECT)
+  if (basilys_magic_discr ((basilys_ptr_t) discr) != OBMAG_OBJECT)
     return NULL;
   if (discr->object_magic != OBMAG_MAPBASICBLOCKS)
     return NULL;
-  return basilysgc_raw_new_mappointers (discr, len);
+  return (basilys_ptr_t) basilysgc_raw_new_mappointers (discr, len);
 }
 void
 basilysgc_raw_put_mappointers (void *mappointer_p,
@@ -847,7 +847,7 @@ static inline void
 basilysgc_put_maptrees (struct basilysmaptrees_st *map_p,
 			tree attr, basilys_ptr_t valu_p)
 {
-  if (basilys_magic_discr ((void *) map_p) != OBMAG_MAPTREES
+  if (basilys_magic_discr ((basilys_ptr_t) map_p) != OBMAG_MAPTREES
       || !attr || !valu_p)
     return;
   basilysgc_raw_put_mappointers (map_p, attr, valu_p);
@@ -857,7 +857,7 @@ static inline void
 basilysgc_put_mapedges (struct basilysmapedges_st *map_p,
 			edge attr, basilys_ptr_t valu_p)
 {
-  if (basilys_magic_discr ((void *) map_p) != OBMAG_MAPEDGES
+  if (basilys_magic_discr ((basilys_ptr_t) map_p) != OBMAG_MAPEDGES
       || !attr || !valu_p)
     return;
   basilysgc_raw_put_mappointers (map_p, attr, valu_p);
@@ -867,7 +867,7 @@ static inline void
 basilysgc_put_mapbasicblocks (struct basilysmapbasicblocks_st *map_p,
 			      basic_block attr, basilys_ptr_t valu_p)
 {
-  if (basilys_magic_discr ((void *) map_p) != OBMAG_MAPBASICBLOCKS
+  if (basilys_magic_discr ((basilys_ptr_t) map_p) != OBMAG_MAPBASICBLOCKS
       || !attr || !valu_p)
     return;
   basilysgc_raw_put_mappointers (map_p, attr, valu_p);
@@ -880,7 +880,7 @@ basilys_raw_get_mappointers (void *mappointer_p, const void *attr);
 static inline basilys_ptr_t
 basilys_get_maptrees (basilys_ptr_t map_p, tree attr)
 {
-  if (basilys_magic_discr ((void *) map_p) != OBMAG_MAPTREES || !attr)
+  if (basilys_magic_discr ((basilys_ptr_t) map_p) != OBMAG_MAPTREES || !attr)
     return NULL;
   return basilys_raw_get_mappointers (map_p, attr);
 }
@@ -888,7 +888,7 @@ basilys_get_maptrees (basilys_ptr_t map_p, tree attr)
 static inline basilys_ptr_t
 basilys_get_mapedges (basilys_ptr_t map_p, edge attr)
 {
-  if (basilys_magic_discr ((void *) map_p) != OBMAG_MAPEDGES || !attr)
+  if (basilys_magic_discr ((basilys_ptr_t) map_p) != OBMAG_MAPEDGES || !attr)
     return NULL;
   return basilys_raw_get_mappointers (map_p, attr);
 }
@@ -896,7 +896,7 @@ basilys_get_mapedges (basilys_ptr_t map_p, edge attr)
 static inline basilys_ptr_t
 basilys_get_mapbasicblocks (basilys_ptr_t map_p, basic_block attr)
 {
-  if (basilys_magic_discr ((void *) map_p) != OBMAG_MAPBASICBLOCKS || !attr)
+  if (basilys_magic_discr ((basilys_ptr_t) map_p) != OBMAG_MAPBASICBLOCKS || !attr)
     return NULL;
   return basilys_raw_get_mappointers (map_p, attr);
 }
@@ -907,7 +907,7 @@ basilysgc_raw_remove_mappointers (void *mappointer_p, const void *attr);
 static inline basilys_ptr_t
 basilysgc_remove_maptrees (struct basilysmaptrees_st *map, tree attr)
 {
-  if (basilys_magic_discr ((void *) map) != OBMAG_MAPTREES || !attr)
+  if (basilys_magic_discr ((basilys_ptr_t) map) != OBMAG_MAPTREES || !attr)
     return NULL;
   return basilysgc_raw_remove_mappointers (map, attr);
 }
@@ -915,7 +915,7 @@ basilysgc_remove_maptrees (struct basilysmaptrees_st *map, tree attr)
 static inline basilys_ptr_t
 basilysgc_remove_mapedges (struct basilysmaptrees_st *map, edge attr)
 {
-  if (basilys_magic_discr ((void *) map) != OBMAG_MAPEDGES || !attr)
+  if (basilys_magic_discr ((basilys_ptr_t) map) != OBMAG_MAPEDGES || !attr)
     return NULL;
   return basilysgc_raw_remove_mappointers (map, attr);
 }
@@ -924,7 +924,7 @@ static inline basilys_ptr_t
 basilysgc_remove_mapbasicblocks (struct basilysmapbasicblocks_st *map,
 				 basic_block attr)
 {
-  if (basilys_magic_discr ((void *) map) != OBMAG_MAPBASICBLOCKS || !attr)
+  if (basilys_magic_discr ((basilys_ptr_t) map) != OBMAG_MAPBASICBLOCKS || !attr)
     return NULL;
   return basilysgc_raw_remove_mappointers (map, attr);
 }
@@ -1230,7 +1230,7 @@ basilysgc_new_mixint (basilysobject_ptr_t discr_p, basilys_ptr_t val_p,
 static inline basilys_ptr_t
 basilys_val_mixint (basilys_ptr_t mix)
 {
-  struct basilysmixint_st *smix = (void *) mix;
+  struct basilysmixint_st *smix = (struct basilysmixint_st *) mix;
   if (basilys_magic_discr (mix) == OBMAG_MIXINT)
     return smix->ptrval;
   return NULL;
@@ -1239,7 +1239,7 @@ basilys_val_mixint (basilys_ptr_t mix)
 static inline long
 basilys_num_mixint (basilys_ptr_t mix)
 {
-  struct basilysmixint_st *smix = (void *) mix;
+  struct basilysmixint_st *smix = (struct basilysmixint_st *) mix;
   if (basilys_magic_discr (mix) == OBMAG_MIXINT)
     return smix->intval;
   return 0;
@@ -1252,7 +1252,7 @@ basilys_field_object (basilys_ptr_t ob, unsigned off)
 {
   if (basilys_magic_discr (ob) == OBMAG_OBJECT)
     {
-      basilysobject_ptr_t pob = (void *) ob;
+      basilysobject_ptr_t pob = (basilysobject_ptr_t) ob;
       if (off < pob->obj_len)
 	return pob->obj_vartab[off];
     };
@@ -1265,7 +1265,7 @@ basilys_getfield_object_at (basilys_ptr_t ob, unsigned off, const char*msg, cons
 {
   if (basilys_magic_discr (ob) == OBMAG_OBJECT)
     {
-      basilysobject_ptr_t pob = (void *) ob;
+      basilysobject_ptr_t pob = (basilysobject_ptr_t) ob;
       if (off < pob->obj_len)
 	return pob->obj_vartab[off];
       fatal_error("checked field access failed (bad offset %d/%d [%s:%d]) - %s", (int)off, (int)pob->obj_len, fil, lin, msg?msg:"...");
@@ -1274,7 +1274,7 @@ basilys_getfield_object_at (basilys_ptr_t ob, unsigned off, const char*msg, cons
   fatal_error("checked field access failed (not object [%s:%d]) - %s", fil, lin, msg?msg:"...");
   return NULL;
 }
-#define basilys_getfield_object(Obj,Off,Msg) basilys_getfield_object_at((void*)(Obj),(Off),(Msg),__FILE__,__LINE__)
+#define basilys_getfield_object(Obj,Off,Msg) basilys_getfield_object_at((basilysobject_ptr_t)(Obj),(Off),(Msg),__FILE__,__LINE__)
 #else
 #define basilys_getfield_object(Obj,Off,Msg) (((basilysobject_ptr_t)(Obj))->obj_vartab[Off])
 #endif
@@ -1285,7 +1285,7 @@ basilys_object_length (basilys_ptr_t ob)
 {
   if (basilys_magic_discr (ob) == OBMAG_OBJECT)
     {
-      basilysobject_ptr_t pob = (void *) ob;
+      basilysobject_ptr_t pob = (basilysobject_ptr_t) ob;
       return pob->obj_len;
     }
   return 0;
@@ -1357,7 +1357,7 @@ basilys_strbuf_str (basilys_ptr_t v)
 {
   if (basilys_magic_discr (v) == OBMAG_STRBUF)
     {
-      struct basilysstrbuf_st *sb = (void *) v;
+      struct basilysstrbuf_st *sb = (struct basilysstrbuf_st*) v;
       if (sb->bufend >= sb->bufstart)
 	return sb->bufzn + sb->bufstart;
     }
@@ -1369,7 +1369,7 @@ basilys_strbuf_usedlength(basilys_ptr_t v)
 {
   if (basilys_magic_discr (v) == OBMAG_STRBUF)
     {
-      struct basilysstrbuf_st *sb = (void *) v;
+      struct basilysstrbuf_st *sb = (struct basilysstrbuf_st *) v;
       if (sb->bufend >= sb->bufstart)
 	return sb->bufend - sb->bufstart;
     }
@@ -2232,7 +2232,7 @@ static inline void
 basilys_putstrbuf (FILE * f, basilys_ptr_t sb)
 {
   struct basilysstrbuf_st *sbuf = (struct basilysstrbuf_st *) sb;
-  if (f && sbuf && basilys_magic_discr ((void *) sbuf) == OBMAG_STRBUF)
+  if (f && sbuf && basilys_magic_discr ((basilys_ptr_t) sbuf) == OBMAG_STRBUF)
     {
       gcc_assert (sbuf->bufzn);
       if (!sbuf->bufzn || sbuf->bufend <= sbuf->bufstart)
@@ -2261,7 +2261,7 @@ debugvalue_at (const char *fil, int lin, const char *msg, void *val)
   if (flag_basilys_debug)
     {
       fprintf (stderr, "!@%s:%d:\n@! %s @%p/%d= ",
-	       basename (fil), lin, (msg), val, basilys_magic_discr (val));
+	       basename (fil), lin, (msg), val, basilys_magic_discr ((basilys_ptr_t)val));
       basilys_dbgeprint (val);
       fflush (stderr);
     }

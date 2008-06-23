@@ -716,8 +716,8 @@ finish_static_data_member_decl (tree decl,
     VEC_safe_push (tree, gc, pending_statics, decl);
 
   if (LOCAL_CLASS_P (current_class_type))
-    pedwarn ("local class %q#T shall not have static data member %q#D",
-	     current_class_type, decl);
+    permerror ("local class %q#T shall not have static data member %q#D",
+	       current_class_type, decl);
 
   /* Static consts need not be initialized in the class definition.  */
   if (init != NULL_TREE && TYPE_NEEDS_CONSTRUCTING (TREE_TYPE (decl)))
@@ -914,9 +914,10 @@ grokfield (const cp_declarator *declarator,
 
 tree
 grokbitfield (const cp_declarator *declarator,
-	      cp_decl_specifier_seq *declspecs, tree width)
+	      cp_decl_specifier_seq *declspecs, tree width,
+	      tree attrlist)
 {
-  tree value = grokdeclarator (declarator, declspecs, BITFIELD, 0, NULL);
+  tree value = grokdeclarator (declarator, declspecs, BITFIELD, 0, &attrlist);
 
   if (value == error_mark_node) 
     return NULL_TREE; /* friends went bad.  */
@@ -972,6 +973,10 @@ grokbitfield (const cp_declarator *declarator,
     }
 
   DECL_IN_AGGR_P (value) = 1;
+
+  if (attrlist)
+    cplus_decl_attributes (&value, attrlist, /*flags=*/0);
+
   return value;
 }
 
@@ -1228,15 +1233,15 @@ build_anon_union_vars (tree type, tree object)
 	continue;
       if (TREE_CODE (field) != FIELD_DECL)
 	{
-	  pedwarn ("%q+#D invalid; an anonymous union can only "
-		   "have non-static data members", field);
+	  permerror ("%q+#D invalid; an anonymous union can only "
+		     "have non-static data members", field);
 	  continue;
 	}
 
       if (TREE_PRIVATE (field))
-	pedwarn ("private member %q+#D in anonymous union", field);
+	permerror ("private member %q+#D in anonymous union", field);
       else if (TREE_PROTECTED (field))
-	pedwarn ("protected member %q+#D in anonymous union", field);
+	permerror ("protected member %q+#D in anonymous union", field);
 
       if (processing_template_decl)
 	ref = build_min_nt (COMPONENT_REF, object,
@@ -1371,8 +1376,8 @@ coerce_new_type (tree type)
     e = 2;
 
   if (e == 2)
-    pedwarn ("%<operator new%> takes type %<size_t%> (%qT) "
-	     "as first parameter", size_type_node);
+    permerror ("%<operator new%> takes type %<size_t%> (%qT) "
+	       "as first parameter", size_type_node);
 
   switch (e)
   {

@@ -184,7 +184,7 @@ delete_special (struct basilysspecial_st *sp)
     case OBMAG_SPEC_MPFR:
       if (sp->val.sp_mpfr)
 	{
-	  mpfr_clear (sp->val.sp_mpfr);
+	  mpfr_clear ((mpfr_ptr)(sp->val.sp_mpfr));
 	  free (sp->val.sp_mpfr);
 	  sp->val.sp_mpfr = NULL;
 	};
@@ -243,7 +243,7 @@ void *basilys_checkedp_ptr2;
 static inline void *
 forwarded (void *ptr)
 {
-  basilys_ptr_t p = ptr;
+  basilys_ptr_t p = (basilys_ptr_t)ptr;
   if (p && basilys_is_young (p))
     {
       if (p->u_discr == FORWARDED_DISCR)
@@ -520,7 +520,7 @@ basilys_garbcoll (size_t wanted, bool needfull)
   locsiz = basilys_primtab[primix];
   gcc_assert (locsiz > 10);
   blocaltab =
-    ggc_alloc_cleared (sizeof (struct basilocalsptr_st) +
+    (struct basilocalsptr_st *) ggc_alloc_cleared (sizeof (struct basilocalsptr_st) +
 		       locsiz * sizeof (void *));
   blocaltab->lenix = primix;
   for (ix = 0; ix < BGLOB__LASTGLOB; ix++)
@@ -593,7 +593,7 @@ basilys_garbcoll (size_t wanted, bool needfull)
       (unsigned long) MINOR_SIZE_KILOWORD * FULL_FREQ)
     needfull = TRUE;
   basilys_startalz = basilys_curalz =
-    xcalloc (sizeof (void *), wanted / sizeof (void *));
+    (char*) xcalloc (sizeof (void *), wanted / sizeof (void *));
   basilys_endalz = (char *) basilys_curalz + wanted;
   basilys_storalz = ((void **) basilys_endalz) - 2;
   if (needfull)
@@ -677,8 +677,8 @@ forwarded_copy (basilys_ptr_t p)
     {
     case OBMAG_OBJECT:
       {
-	struct basilysobject_st *src = (void *) p;
-	struct basilysobject_st *dst =
+	struct basilysobject_st *src = (struct basilysobject_st *) p;
+	struct basilysobject_st *dst = (struct basilysobject_st *)
 	  ggc_alloc_cleared (offsetof (struct basilysobject_st,
 				       obj__tabfields));
 	unsigned oblen = src->obj_len;
@@ -702,8 +702,8 @@ forwarded_copy (basilys_ptr_t p)
       }
     case OBMAG_DECAY:
       {
-	struct basilysdecay_st *src = (void *) p;
-	struct basilysdecay_st *dst =
+	struct basilysdecay_st *src = (struct basilysdecay_st*) p;
+	struct basilysdecay_st *dst = (struct basilysdecay_st*)
 	  ggc_alloc_cleared (sizeof (struct basilysdecay_st));
 	*dst = *src;
 	n = (basilys_ptr_t) dst;
@@ -711,8 +711,8 @@ forwarded_copy (basilys_ptr_t p)
       }
     case OBMAG_BOX:
       {
-	struct basilysbox_st *src = (void *) p;
-	struct basilysbox_st *dst =
+	struct basilysbox_st *src = (struct basilysbox_st *) p;
+	struct basilysbox_st *dst = (struct basilysbox_st *)
 	  ggc_alloc_cleared (sizeof (struct basilysbox_st));
 	*dst = *src;
 	n = (basilys_ptr_t) dst;
@@ -720,10 +720,10 @@ forwarded_copy (basilys_ptr_t p)
       }
     case OBMAG_MULTIPLE:
       {
-	struct basilysmultiple_st *src = (void *) p;
+	struct basilysmultiple_st *src = (struct basilysmultiple_st *) p;
 	unsigned nbv = src->nbval;
 	int ix;
-	struct basilysmultiple_st *dst =
+	struct basilysmultiple_st *dst = (struct basilysmultiple_st *)
 	  ggc_alloc_cleared (sizeof (struct basilysmultiple_st) +
 			     nbv * sizeof (void *));
 	/* we cannot copy the whole src, because FLEXIBLE_DIM might be
@@ -737,10 +737,10 @@ forwarded_copy (basilys_ptr_t p)
       }
     case OBMAG_CLOSURE:
       {
-	struct basilysclosure_st *src = (void *) p;
+	struct basilysclosure_st *src = (struct basilysclosure_st *) p;
 	unsigned nbv = src->nbval;
 	int ix;
-	struct basilysclosure_st *dst =
+	struct basilysclosure_st *dst = (struct basilysclosure_st *)
 	  ggc_alloc_cleared (sizeof (struct basilysclosure_st) +
 			     nbv * sizeof (void *));
 	dst->discr = src->discr;
@@ -753,10 +753,10 @@ forwarded_copy (basilys_ptr_t p)
       }
     case OBMAG_ROUTINE:
       {
-	struct basilysroutine_st *src = (void *) p;
+	struct basilysroutine_st *src = (struct basilysroutine_st *) p;
 	unsigned nbv = src->nbval;
 	int ix;
-	struct basilysroutine_st *dst =
+	struct basilysroutine_st *dst = (struct basilysroutine_st *)
 	  ggc_alloc_cleared (sizeof (struct basilysroutine_st) +
 			     nbv * sizeof (void *));
 	dst->discr = src->discr;
@@ -771,8 +771,8 @@ forwarded_copy (basilys_ptr_t p)
       }
     case OBMAG_LIST:
       {
-	struct basilyslist_st *src = (void *) p;
-	struct basilyslist_st *dst =
+	struct basilyslist_st *src = (struct basilyslist_st *) p;
+	struct basilyslist_st *dst = (struct basilyslist_st *)
 	  ggc_alloc_cleared (sizeof (struct basilyslist_st));
 	*dst = *src;
 	n = (basilys_ptr_t) dst;
@@ -780,8 +780,8 @@ forwarded_copy (basilys_ptr_t p)
       }
     case OBMAG_PAIR:
       {
-	struct basilyspair_st *src = (void *) p;
-	struct basilyspair_st *dst =
+	struct basilyspair_st *src = (struct basilyspair_st *) p;
+	struct basilyspair_st *dst = (struct basilyspair_st *)
 	  ggc_alloc_cleared (sizeof (struct basilyspair_st));
 	*dst = *src;
 	n = (basilys_ptr_t) dst;
@@ -789,8 +789,8 @@ forwarded_copy (basilys_ptr_t p)
       }
     case OBMAG_TRIPLE:
       {
-	struct basilystriple_st *src = (void *) p;
-	struct basilystriple_st *dst =
+	struct basilystriple_st *src = (struct basilystriple_st *) p;
+	struct basilystriple_st *dst = (struct basilystriple_st *)
 	  ggc_alloc_cleared (sizeof (struct basilystriple_st));
 	*dst = *src;
 	n = (basilys_ptr_t) dst;
@@ -798,8 +798,8 @@ forwarded_copy (basilys_ptr_t p)
       }
     case OBMAG_INT:
       {
-	struct basilysint_st *src = (void *) p;
-	struct basilysint_st *dst =
+	struct basilysint_st *src = (struct basilysint_st *) p;
+	struct basilysint_st *dst = (struct basilysint_st *)
 	  ggc_alloc_cleared (sizeof (struct basilysint_st));
 	*dst = *src;
 	n = (basilys_ptr_t) dst;
@@ -807,8 +807,8 @@ forwarded_copy (basilys_ptr_t p)
       }
     case OBMAG_MIXINT:
       {
-	struct basilysmixint_st *src = (void *) p;
-	struct basilysmixint_st *dst =
+	struct basilysmixint_st *src = (struct basilysmixint_st *) p;
+	struct basilysmixint_st *dst = (struct basilysmixint_st *)
 	  ggc_alloc_cleared (sizeof (struct basilysmixint_st));
 	*dst = *src;
 	n = (basilys_ptr_t) dst;
@@ -816,8 +816,8 @@ forwarded_copy (basilys_ptr_t p)
       }
     case OBMAG_REAL:
       {
-	struct basilysreal_st *src = (void *) p;
-	struct basilysreal_st *dst =
+	struct basilysreal_st *src = (struct basilysreal_st *) p;
+	struct basilysreal_st *dst = (struct basilysreal_st *)
 	  ggc_alloc_cleared (sizeof (struct basilysreal_st));
 	*dst = *src;
 	n = (basilys_ptr_t) dst;
@@ -825,8 +825,8 @@ forwarded_copy (basilys_ptr_t p)
       }
     case ALL_OBMAG_SPECIAL_CASES:
       {
-	struct basilysspecial_st *src = (void *) p;
-	struct basilysspecial_st *dst =
+	struct basilysspecial_st *src = (struct basilysspecial_st *) p;
+	struct basilysspecial_st *dst = (struct basilysspecial_st *)
 	  ggc_alloc_cleared (sizeof (struct basilysspecial_st));
 	*dst = *src;
 	/* add the new copy to the old (major) special list */
@@ -837,9 +837,9 @@ forwarded_copy (basilys_ptr_t p)
       }
     case OBMAG_STRING:
       {
-	struct basilysstring_st *src = (void *) p;
+	struct basilysstring_st *src = (struct basilysstring_st *) p;
 	int srclen = strlen (src->val);
-	struct basilysstring_st *dst =
+	struct basilysstring_st *dst = (struct basilysstring_st *)
 	  ggc_alloc_cleared (sizeof (struct basilysstring_st) + srclen + 1);
 	dst->discr = src->discr;
 	memcpy (dst->val, src->val, srclen);
@@ -848,9 +848,9 @@ forwarded_copy (basilys_ptr_t p)
       }
     case OBMAG_STRBUF:
       {
-	struct basilysstrbuf_st *src = (void *) p;
+	struct basilysstrbuf_st *src = (struct basilysstrbuf_st *) p;
 	unsigned blen = basilys_primtab[src->buflenix];
-	struct basilysstrbuf_st *dst =
+	struct basilysstrbuf_st *dst = (struct basilysstrbuf_st *)
 	  ggc_alloc_cleared (sizeof (struct basilysstrbuf_st));
 	dst->discr = src->discr;
 	dst->bufstart = src->bufstart;
@@ -868,8 +868,8 @@ forwarded_copy (basilys_ptr_t p)
       }
     case OBMAG_TREE:
       {
-	struct basilystree_st *src = (void *) p;
-	struct basilystree_st *dst =
+	struct basilystree_st *src = (struct basilystree_st *) p;
+	struct basilystree_st *dst = (struct basilystree_st *)
 	  ggc_alloc_cleared (sizeof (struct basilystree_st));
 	*dst = *src;
 	n = (basilys_ptr_t) dst;
@@ -877,8 +877,8 @@ forwarded_copy (basilys_ptr_t p)
       }
     case OBMAG_BASICBLOCK:
       {
-	struct basilysbasicblock_st *src = (void *) p;
-	struct basilysbasicblock_st *dst =
+	struct basilysbasicblock_st *src = (struct basilysbasicblock_st *) p;
+	struct basilysbasicblock_st *dst = (struct basilysbasicblock_st *)
 	  ggc_alloc_cleared (sizeof (struct basilysbasicblock_st));
 	*dst = *src;
 	n = (basilys_ptr_t) dst;
@@ -886,8 +886,8 @@ forwarded_copy (basilys_ptr_t p)
       }
     case OBMAG_EDGE:
       {
-	struct basilysedge_st *src = (void *) p;
-	struct basilysedge_st *dst =
+	struct basilysedge_st *src = (struct basilysedge_st *) p;
+	struct basilysedge_st *dst = (struct basilysedge_st *)
 	  ggc_alloc_cleared (sizeof (struct basilysedge_st));
 	*dst = *src;
 	n = (basilys_ptr_t) dst;
@@ -895,9 +895,9 @@ forwarded_copy (basilys_ptr_t p)
       }
     case OBMAG_MAPOBJECTS:
       {
-	struct basilysmapobjects_st *src = (void *) p;
+	struct basilysmapobjects_st *src = (struct basilysmapobjects_st *) p;
 	int siz = basilys_primtab[src->lenix];
-	struct basilysmapobjects_st *dst =
+	struct basilysmapobjects_st *dst = (struct basilysmapobjects_st *)
 	  ggc_alloc_cleared (sizeof (struct basilysmapobjects_st));
 	dst->discr = src->discr;
 	dst->count = src->count;
@@ -914,9 +914,9 @@ forwarded_copy (basilys_ptr_t p)
       }
     case OBMAG_MAPTREES:
       {
-	struct basilysmaptrees_st *src = (void *) p;
+	struct basilysmaptrees_st *src = (struct basilysmaptrees_st *) p;
 	int siz = basilys_primtab[src->lenix];
-	struct basilysmaptrees_st *dst =
+	struct basilysmaptrees_st *dst = (struct basilysmaptrees_st *)
 	  ggc_alloc_cleared (sizeof (struct basilysmaptrees_st));
 	dst->discr = src->discr;
 	dst->count = src->count;
@@ -933,9 +933,9 @@ forwarded_copy (basilys_ptr_t p)
       }
     case OBMAG_MAPSTRINGS:
       {
-	struct basilysmapstrings_st *src = (void *) p;
+	struct basilysmapstrings_st *src = (struct basilysmapstrings_st *) p;
 	int siz = basilys_primtab[src->lenix];
-	struct basilysmapstrings_st *dst =
+	struct basilysmapstrings_st *dst = (struct basilysmapstrings_st *)
 	  ggc_alloc_cleared (sizeof (struct basilysmapstrings_st));
 	dst->discr = src->discr;
 	dst->count = src->count;
@@ -952,9 +952,9 @@ forwarded_copy (basilys_ptr_t p)
       }
     case OBMAG_MAPBASICBLOCKS:
       {
-	struct basilysmapbasicblocks_st *src = (void *) p;
+	struct basilysmapbasicblocks_st *src = (struct basilysmapbasicblocks_st *) p;
 	int siz = basilys_primtab[src->lenix];
-	struct basilysmapbasicblocks_st *dst =
+	struct basilysmapbasicblocks_st *dst = (struct basilysmapbasicblocks_st *)
 	  ggc_alloc_cleared (sizeof (struct basilysmapbasicblocks_st));
 	dst->discr = src->discr;
 	dst->count = src->count;
@@ -971,9 +971,9 @@ forwarded_copy (basilys_ptr_t p)
       }
     case OBMAG_MAPEDGES:
       {
-	struct basilysmapedges_st *src = (void *) p;
+	struct basilysmapedges_st *src = (struct basilysmapedges_st *) p;
 	int siz = basilys_primtab[src->lenix];
-	struct basilysmapedges_st *dst =
+	struct basilysmapedges_st *dst = (struct basilysmapedges_st *)
 	  ggc_alloc_cleared (sizeof (struct basilysmapedges_st));
 	dst->discr = src->discr;
 	dst->count = src->count;
@@ -1040,7 +1040,7 @@ scanning (basilys_ptr_t p)
 	struct basilysobject_st *src = (void *) p;
 	if (basilys_is_young (src->obj_vartab))
 	  {
-	    basilys_ptr_t *newtab =
+	    basilys_ptr_t *newtab = (basilys_ptr_t *)
 	      ggc_alloc_cleared (sizeof (void *) * src->obj_len);
 	    int ix;
 	    for (ix = (int) src->obj_len - 1; ix >= 0; ix--)
@@ -1053,19 +1053,19 @@ scanning (basilys_ptr_t p)
       }
     case OBMAG_DECAY:
       {
-	struct basilysdecay_st *src = (void *) p;
+	struct basilysdecay_st *src = (struct basilysdecay_st *) p;
 	FORWARDED (src->val);
 	break;
       }
     case OBMAG_BOX:
       {
-	struct basilysbox_st *src = (void *) p;
+	struct basilysbox_st *src = (struct basilysbox_st *) p;
 	FORWARDED (src->val);
 	break;
       }
     case OBMAG_MULTIPLE:
       {
-	struct basilysmultiple_st *src = (void *) p;
+	struct basilysmultiple_st *src = (struct basilysmultiple_st *) p;
 	unsigned nbval = src->nbval;
 	int ix;
 	for (ix = (int) nbval - 1; ix >= 0; ix--)
@@ -1074,7 +1074,7 @@ scanning (basilys_ptr_t p)
       }
     case OBMAG_CLOSURE:
       {
-	struct basilysclosure_st *src = (void *) p;
+	struct basilysclosure_st *src = (struct basilysclosure_st *) p;
 	unsigned nbval = src->nbval;
 	int ix;
 	FORWARDED (src->rout);
@@ -1084,7 +1084,7 @@ scanning (basilys_ptr_t p)
       }
     case OBMAG_ROUTINE:
       {
-	struct basilysroutine_st *src = (void *) p;
+	struct basilysroutine_st *src = (struct basilysroutine_st *) p;
 	unsigned nbval = src->nbval;
 	int ix;
 	for (ix = (int) nbval - 1; ix >= 0; ix--)
@@ -1093,21 +1093,21 @@ scanning (basilys_ptr_t p)
       }
     case OBMAG_LIST:
       {
-	struct basilyslist_st *src = (void *) p;
+	struct basilyslist_st *src = (struct basilyslist_st *) p;
 	FORWARDED (src->first);
 	FORWARDED (src->last);
 	break;
       }
     case OBMAG_PAIR:
       {
-	struct basilyspair_st *src = (void *) p;
+	struct basilyspair_st *src = (struct basilyspair_st *) p;
 	FORWARDED (src->hd);
 	FORWARDED (src->tl);
 	break;
       }
     case OBMAG_TRIPLE:
       {
-	struct basilystriple_st *src = (void *) p;
+	struct basilystriple_st *src = (struct basilystriple_st *) p;
 	FORWARDED (src->hd);
 	FORWARDED (src->mi);
 	FORWARDED (src->tl);
@@ -1115,13 +1115,13 @@ scanning (basilys_ptr_t p)
       }
     case ALL_OBMAG_SPECIAL_CASES:
       {
-	struct basilysspecial_st *src = (void *) p;
+	struct basilysspecial_st *src = (struct basilysspecial_st *) p;
 	src->mark = 1;
 	break;
       }
     case OBMAG_MAPOBJECTS:
       {
-	struct basilysmapobjects_st *src = (void *) p;
+	struct basilysmapobjects_st *src = (struct basilysmapobjects_st *) p;
 	int siz, ix;
 	if (!src->entab)
 	  break;
@@ -1129,7 +1129,7 @@ scanning (basilys_ptr_t p)
 	gcc_assert (siz > 0);
 	if (basilys_is_young (src->entab))
 	  {
-	    struct entryobjectsbasilys_st *newtab =
+	    struct entryobjectsbasilys_st *newtab = (struct entryobjectsbasilys_st *)
 	      ggc_alloc_cleared (siz *
 				 sizeof (struct entryobjectsbasilys_st));
 	    memcpy (newtab, src->entab,
@@ -1152,7 +1152,7 @@ scanning (basilys_ptr_t p)
       }
     case OBMAG_MAPTREES:
       {
-	struct basilysmaptrees_st *src = (void *) p;
+	struct basilysmaptrees_st *src = (struct basilysmaptrees_st *) p;
 	int ix, siz;
 	if (!src->entab)
 	  break;
@@ -1160,7 +1160,7 @@ scanning (basilys_ptr_t p)
 	gcc_assert (siz > 0);
 	if (basilys_is_young (src->entab))
 	  {
-	    struct entrytreesbasilys_st *newtab =
+	    struct entrytreesbasilys_st *newtab = (struct entrytreesbasilys_st *)
 	      ggc_alloc_cleared (siz * sizeof (struct entrytreesbasilys_st));
 	    memcpy (newtab, src->entab,
 		    siz * sizeof (struct entrytreesbasilys_st));
@@ -1180,7 +1180,7 @@ scanning (basilys_ptr_t p)
       }
     case OBMAG_MAPSTRINGS:
       {
-	struct basilysmapstrings_st *src = (void *) p;
+	struct basilysmapstrings_st *src = (struct basilysmapstrings_st *) p;
 	int ix, siz;
 	if (!src->entab)
 	  break;
@@ -1189,7 +1189,7 @@ scanning (basilys_ptr_t p)
 	if (basilys_is_young (src->entab))
 	  {
 	    struct entrystringsbasilys_st *newtab
-	      =
+	      = (struct entrystringsbasilys_st *)
 	      ggc_alloc_cleared (siz *
 				 sizeof (struct entrystringsbasilys_st));
 	    memcpy (newtab, src->entab,
@@ -1212,7 +1212,7 @@ scanning (basilys_ptr_t p)
       }
     case OBMAG_MAPBASICBLOCKS:
       {
-	struct basilysmapbasicblocks_st *src = (void *) p;
+	struct basilysmapbasicblocks_st *src = (struct basilysmapbasicblocks_st *) p;
 	int ix, siz;
 	if (!src->entab)
 	  break;
@@ -1221,7 +1221,7 @@ scanning (basilys_ptr_t p)
 	if (basilys_is_young (src->entab))
 	  {
 	    struct entrybasicblocksbasilys_st *newtab
-	      =
+	      = (struct entrybasicblocksbasilys_st*)
 	      ggc_alloc_cleared (siz *
 				 sizeof (struct entrybasicblocksbasilys_st));
 	    memcpy (newtab, src->entab,
@@ -1242,7 +1242,7 @@ scanning (basilys_ptr_t p)
       }
     case OBMAG_MAPEDGES:
       {
-	struct basilysmapedges_st *src = (void *) p;
+	struct basilysmapedges_st *src = (struct basilysmapedges_st *) p;
 	int siz, ix;
 	if (!src->entab)
 	  break;
@@ -1251,7 +1251,7 @@ scanning (basilys_ptr_t p)
 	if (basilys_is_young (src->entab))
 	  {
 	    struct entryedgesbasilys_st *newtab
-	      =
+	      = (struct entryedgesbasilys_st *)
 	      ggc_alloc_cleared (siz * sizeof (struct entryedgesbasilys_st));
 	    memcpy (newtab, src->entab,
 		    siz * sizeof (struct entryedgesbasilys_st));
@@ -1271,13 +1271,13 @@ scanning (basilys_ptr_t p)
       }
     case OBMAG_MIXINT:
       {
-	struct basilysmixint_st *src = (void *) p;
+	struct basilysmixint_st *src = (struct basilysmixint_st *) p;
 	FORWARDED (src->ptrval);
 	break;
       }
     case OBMAG_STRBUF:
       {
-	struct basilysstrbuf_st *src = (void *) p;
+	struct basilysstrbuf_st *src = (struct basilysstrbuf_st *) p;
 	char *oldbufzn = src->bufzn;
 	if (basilys_is_young (oldbufzn))
 	  {

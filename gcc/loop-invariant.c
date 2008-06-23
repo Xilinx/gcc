@@ -18,9 +18,9 @@ along with GCC; see the file COPYING3.  If not see
 <http://www.gnu.org/licenses/>.  */
 
 /* This implements the loop invariant motion pass.  It is very simple
-   (no calls, libcalls, etc.).  This should be sufficient to cleanup things
-   like address arithmetics -- other more complicated invariants should be
-   eliminated on tree level either in tree-ssa-loop-im.c or in tree-ssa-pre.c.
+   (no calls, no loads/stores, etc.).  This should be sufficient to cleanup
+   things like address arithmetics -- other more complicated invariants should
+   be eliminated on GIMPLE either in tree-ssa-loop-im.c or in tree-ssa-pre.c.
 
    We proceed loop by loop -- it is simpler than trying to handle things
    globally and should not lose much.  First we inspect all sets inside loop
@@ -248,7 +248,7 @@ invariant_for_use (struct df_ref *use)
 {
   struct df_link *defs;
   struct df_ref *def;
-  basic_block bb = BLOCK_FOR_INSN (use->insn), def_bb;
+  basic_block bb = DF_REF_BB (use), def_bb;
 
   if (use->flags & DF_REF_READ_WRITE)
     return NULL;
@@ -768,13 +768,14 @@ check_dependency (basic_block bb, struct df_ref *use, bitmap depends_on)
 static bool
 check_dependencies (rtx insn, bitmap depends_on)
 {
+  struct df_insn_info *insn_info = DF_INSN_INFO_GET (insn);
   struct df_ref **use_rec;
   basic_block bb = BLOCK_FOR_INSN (insn);
 
-  for (use_rec = DF_INSN_USES (insn); *use_rec; use_rec++)
+  for (use_rec = DF_INSN_INFO_USES (insn_info); *use_rec; use_rec++)
     if (!check_dependency (bb, *use_rec, depends_on))
       return false;
-  for (use_rec = DF_INSN_EQ_USES (insn); *use_rec; use_rec++)
+  for (use_rec = DF_INSN_INFO_EQ_USES (insn_info); *use_rec; use_rec++)
     if (!check_dependency (bb, *use_rec, depends_on))
       return false;
 	
@@ -794,11 +795,6 @@ find_invariant_insn (rtx insn, bool always_reached, bool always_executed)
   rtx set, dest;
   bool simple = true;
   struct invariant *inv;
-
-  /* Until we get rid of LIBCALLS.  */
-  if (find_reg_note (insn, REG_RETVAL, NULL_RTX)
-      || find_reg_note (insn, REG_LIBCALL, NULL_RTX))
-    return;
 
 #ifdef HAVE_cc0
   /* We can't move a CC0 setter without the user.  */
@@ -855,17 +851,18 @@ find_invariant_insn (rtx insn, bool always_reached, bool always_executed)
 static void
 record_uses (rtx insn)
 {
+  struct df_insn_info *insn_info = DF_INSN_INFO_GET (insn);
   struct df_ref **use_rec;
   struct invariant *inv;
 
-  for (use_rec = DF_INSN_USES (insn); *use_rec; use_rec++)
+  for (use_rec = DF_INSN_INFO_USES (insn_info); *use_rec; use_rec++)
     {
       struct df_ref *use = *use_rec;
       inv = invariant_for_use (use);
       if (inv)
 	record_use (inv->def, DF_REF_REAL_LOC (use), DF_REF_INSN (use));
     }
-  for (use_rec = DF_INSN_EQ_USES (insn); *use_rec; use_rec++)
+  for (use_rec = DF_INSN_INFO_EQ_USES (insn_info); *use_rec; use_rec++)
     {
       struct df_ref *use = *use_rec;
       inv = invariant_for_use (use);

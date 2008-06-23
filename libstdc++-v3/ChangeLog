@@ -1,3 +1,121 @@
+2008-06-22  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/move.h (swap(_Tp (&)[_Nm], _Tp (&)[_Nm])): Add,
+	per DR 809.
+	* include/bits/algorithmfwd.h: Add.
+	* doc/xml/manual/intro.xml: Add an entry for DR 809.
+	* testsuite/25_algorithms/swap/dr809.cc: New.
+
+	* testsuite/25_algorithms/swap/requirements/explicit_instantiation/
+	2.cc: Remove stray empty line.
+
+2008-06-21  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/stl_move.h: Rename to move.h.
+	* include/std/utility: Adjust.
+	* include/ext/vstring_util.h: Likewise.
+	* include/ext/throw_allocator.h: Likewise.
+	* include/ext/pool_allocator.h: Likewise.
+	* include/ext/bitmap_allocator.h: Likewise.
+	* include/ext/new_allocator.h: Likewise.
+	* include/ext/malloc_allocator.h: Likewise.
+	* include/ext/array_allocator.h: Likewise.
+	* include/ext/mt_allocator.h: Likewise.
+	* include/bits/stl_algobase.h: Likewise.
+	* include/bits/stl_heap.h: Likewise.
+	* include/bits/stl_pair.h: Likewise.
+	* include/bits/stl_iterator.h: Likewise.
+	* testsuite/util/testsuite_allocator.h: Likewise.
+	* testsuite/util/testsuite_iterators.h: Likewise.
+	* include/Makefile.am: Likewise.
+	* include/Makefile.in: Regenerate.
+
+2008-06-21  Chris Fairles  <chris.fairles@gmail.com>
+
+	* include/bits/unique_ptr.h: New.
+	* include/std/memory: Adjust.
+	* include/Makefile.am: Add.
+	* testsuite/20_util/unique_ptr/requirements/explicit_instantiation/
+	explicit_instantiation.cc: New.
+	* testsuite/20_util/unique_ptr/assign/assign.cc: Likewise.
+	* include/Makefile.in: Regenerate.
+
+2008-06-21  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* include/c_global/climits, include/tr1/climits: Add parentheses.
+
+2008-06-17  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* configure: Regenerate.
+
+2008-06-17  Chris Fairles  <chris.fairles@gmail.com>
+
+	* include/bits/stl_iterator_base_funcs.h (next, prev): Add in
+	C++0x mode.
+	* testsuite/24_iterators/operations/next.cc: New.
+	* testsuite/24_iterators/operations/prev.cc: Likewise.
+
+2008-06-17  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* src/string_conversions.cc (__to_xstring<>): New.
+	(to_string, to_wstring): Use it.
+
+2008-06-16  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/basic_string.h (stod, stof, stoi, stol, stold, stoll,
+	stoul, stoull, to_string, to_wstring): Declare in C++0x mode.
+	* src/string_conversions.cc: Add.
+	* src/Makefile.am: Update.
+	* config/abi/pre/gnu.ver: Adjust exports.
+	* src/Makefile.in: Regenerate.
+	* testsuite/21_strings/basic_string/numeric_conversions/char/stod.cc:
+	New.
+	* testsuite/21_strings/basic_string/numeric_conversions/char/stof.cc:
+	Likewise.
+	* testsuite/21_strings/basic_string/numeric_conversions/char/stoi.cc:
+	Likewise.
+	* testsuite/21_strings/basic_string/numeric_conversions/char/stol.cc:
+	Likewise.
+	* testsuite/21_strings/basic_string/numeric_conversions/char/stold.cc:
+	Likewise.
+	* testsuite/21_strings/basic_string/numeric_conversions/char/stoll.cc:
+	Likewise.
+	* testsuite/21_strings/basic_string/numeric_conversions/char/stoul.cc:
+	Likewise.
+	* testsuite/21_strings/basic_string/numeric_conversions/char/stoull.cc:
+	Likewise.
+	* testsuite/21_strings/basic_string/numeric_conversions/char/
+	to_string.cc: Likewise.
+	* testsuite/21_strings/basic_string/numeric_conversions/wchar_t/
+	stod.cc: New.
+	* testsuite/21_strings/basic_string/numeric_conversions/wchar_t/
+	stof.cc: Likewise.
+	* testsuite/21_strings/basic_string/numeric_conversions/wchar_t/
+	stoi.cc: Likewise.
+	* testsuite/21_strings/basic_string/numeric_conversions/wchar_t/
+	stol.cc: Likewise.
+	* testsuite/21_strings/basic_string/numeric_conversions/wchar_t/
+	stold.cc: Likewise.
+	* testsuite/21_strings/basic_string/numeric_conversions/wchar_t/
+	stoll.cc: Likewise.
+	* testsuite/21_strings/basic_string/numeric_conversions/wchar_t/
+	stoul.cc: Likewise.
+	* testsuite/21_strings/basic_string/numeric_conversions/wchar_t/
+	stoull.cc: Likewise.
+	* testsuite/21_strings/basic_string/numeric_conversions/wchar_t/
+	to_wstring.cc: Likewise.
+
+2008-06-15  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* include/Makefile.am: Remove trailing white space, fix typo.
+	(parallel_headers): Remove duplicate file, sort entries.
+	* include/Makefile.in: Regenerate.
+
+2008-06-15  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* src/condition_variable.cc (~condition_variable): Drop unused
+	variable.
+
 2008-06-13  Paolo Carlini  <paolo.carlini@oracle.com>
 
 	* include/bits/stl_deque.h (deque<>::push_back(_Args&&...),

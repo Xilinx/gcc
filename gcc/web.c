@@ -105,22 +105,24 @@ union_defs (struct df_ref *use, struct web_entry *def_entry,
  	    struct web_entry *use_entry,
  	    bool (*fun) (struct web_entry *, struct web_entry *))
 {
-  rtx insn = DF_REF_INSN (use);
+  struct df_insn_info *insn_info = DF_REF_INSN_INFO (use);
   struct df_link *link = DF_REF_CHAIN (use);
   struct df_ref **use_link;
   struct df_ref **eq_use_link;
   struct df_ref **def_link;
   rtx set;
 
-  if (insn)
+  if (insn_info)
     {
-      use_link = DF_INSN_USES (insn);
-      eq_use_link = DF_INSN_EQ_USES (insn);
-      def_link = DF_INSN_DEFS (insn);
+      rtx insn = insn_info->insn;
+      use_link = DF_INSN_INFO_USES (insn_info);
+      eq_use_link = DF_INSN_INFO_EQ_USES (insn_info);
+      def_link = DF_INSN_INFO_DEFS (insn_info);
       set = single_set (insn);
     }
   else
     {
+      /* An artificial use.  It links up with nothing.  */
       use_link = NULL;
       eq_use_link = NULL;
       def_link = NULL;
@@ -152,9 +154,7 @@ union_defs (struct df_ref *use, struct web_entry *def_entry,
 	eq_use_link++;
     }
 
-  /* Recognize trivial noop moves and attempt to keep them as noop.
-     While most of noop moves should be removed, we still keep some
-     of them at libcall boundaries and such.  */
+  /* Recognize trivial noop moves and attempt to keep them as noop.  */
 
   if (set
       && SET_SRC (set) == DF_REF_REG (use)
@@ -182,8 +182,8 @@ union_defs (struct df_ref *use, struct web_entry *def_entry,
     {
       struct df_ref **link;
 
-      if (DF_REF_INSN (use))
-	link = DF_INSN_DEFS (DF_REF_INSN (use));
+      if (insn_info)
+	link = DF_INSN_INFO_DEFS (insn_info);
       else
 	link = NULL;
 

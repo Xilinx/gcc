@@ -1,3 +1,219 @@
+2008-06-20  Joseph Myers  <joseph@codesourcery.com>
+
+	* gcc.dg/inline-31.c: New test.
+
+2008-06-19  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	* gfortran.dg/fmt_l.f90: Fix end of line test pattern.
+
+2008-06-19  Andy Hutchinson  <hutchinsonandy@aim.com>
+
+	* lib/target-supports.exp 
+	(check_effective_target_keeps_null_pointer_checks) : New function.
+	* gcc.dg/tree-ssa/20030730-1.c: Use keeps_null_pointer_checks to 
+	determine correct test response.
+	* gcc.dg/tree-ssa/20030730-2.c: Ditto.
+	* gcc.dg/tree-ssa/pr20701.c: Ditto.
+	* gcc.dg/tree-ssa/pr20702.c: Ditto.
+	* gcc.dg/tree-ssa/pr21086.c: Ditto.
+	* gcc.dg/tree-ssa/vrp02.c:: Ditto.
+	* gcc.dg/tree-ssa/vrp07.c:: Ditto.
+	* gcc.dg/tree-ssa/vrp08.c:: Ditto. 
+  
+2008-06-19  Andy Hutchinson  <hutchinsonandy@aim.com>
+
+	* gcc.dg/pragma-pack-4.c: Skip for AVR target.
+
+2008-06-18  Andy Hutchinson  <hutchinsonandy@aim.com>
+
+	* gcc.dg/builtin-apply2.c: Mark skip for avr target.
+	
+2008-06-18  Andy Hutchinson  <hutchinsonandy@aim.com>
+
+	PR c/36571
+	* gcc.dg/builtin-return-1.c: Mark as xfail on AVR.
+	
+2008-06-18  Andy Hutchinson  <hutchinsonandy@aim.com>
+
+	* gcc.dg/tree-ssa/loop-35.c: xfail avr target. Add new avr specific 
+	tests.
+
+2008-06-18  Andy Hutchinson  <hutchinsonandy@aim.com>
+
+	* gcc.dg/tree-ssa/forwprop-6.c: Use long or int to match size of
+	float. Otherwise error.
+	* gcc.dg/tree-ssa/ssa-fre-7.c: Ditto.
+	* gcc.dg/tree-ssa/ssa-fre-8.c: Ditto.
+
+2008-06-18  Andy Hutchinson  <hutchinsonandy@aim.com>
+
+	* gcc.c-torture/execute/20020619-1.c: Correct for targets
+	without 32 bit int.
+
+2008-06-18  Andy Hutchinson  <hutchinsonandy@aim.com>
+
+	* gcc.c-torture/execute/ieee/20000320-1.x: Skip for AVR target.
+	* gcc.c-torture/execute/ieee/rbug.x: Ditto.
+	* gcc.c-torture/execute/ieee/pr30704.x: Add new file. Skip for AVR 
+	target.
+	* gcc.c-torture/execute/ieee/unsafe-fp-assoc-1.x: Ditto.
+
+2008-06-18  Andy Hutchinson  <hutchinsonandy@aim.com>
+
+	PR testsuite/36284
+	* gcc.dg/compat/struct-layout-1_generate.c (switchfiles): Require
+	int32plus for generated main files.
+
+2008-06-18  Andy Hutchinson  <hutchinsonandy@aim.com>
+
+	PR c/36460
+	* gcc.dg/utf32-1.c: Mark xfail for AVR target.
+	* gcc.dg/utf32-2.c: Ditto.
+	* gcc.dg/utf32-3.c: Ditto.
+
+2008-06-18  Andy Hutchinson  <hutchinsonandy@aim.com>
+
+	* gcc.c-torture/compile/limits-fndefn.c: Skip for AVR.
+	* gcc.dg/builtins-config.h: Use standard independent __AVR__ symbol.
+	* gcc.dg/cdce1.c: Skip for AVR.
+	* gcc.dg/cdce2.c: Ditto.
+	* gcc.dg/fold-bitand-1.c: Ignore warnings such as alignment.
+	* gcc.dg/fold-eqandshift-3.c: Use long on AVR.
+	* gcc.dg/fold-overflow-1.c: Skip for AVR.
+	* gcc.dg/multiple-overflow-warn-3.c: Use target independent macro 
+	for ms bit position.
+	* gcc.dg/pch/struct-1.c: Allow for target without 32 bit int.
+	* gcc.dg/tree-ssa/pr33920.c: Add warning check for AVR.
+	* gcc.dg/ucnid-5.c: Skip for AVR.
+	* gcc.dg/Wconversion-5.c: Mark warning xfail for AVR target.
+	* gcc.dg/Wconversion-real-integer.c: Skip for AVR.
+	* gcc.dg/Wconversion-real.c: Ditto.
+	* gcc.dg/wtr-conversion-1.c: Add warning test for AVR.
+	* gcc.dg/utf-cvt.c: Skip tests and mark excess xfail for AVR.
+	* gcc.dg/Wtype-limits-Wextra.c: Ditto.
+	* gcc.dg/Wtype-limits.c: Ditto. 
+   
+2008-06-18  Joseph Myers  <joseph@codesourcery.com>
+
+	* gcc.dg/dfp/convert-bfp-6.c, gcc.dg/dfp/convert-bfp-9.c: XFAIL
+	for lax_strtofp.
+
+2008-06-18  Joseph Myers  <joseph@codesourcery.com>
+
+	* lib/target-supports.exp
+	(check_effective_target_powerpc_hard_double): New.
+	* gcc.dg/tree-ssa/loop-19.c: Use powerpc_hard_double instead of
+	powerpc*-*-*.
+
+2008-06-16  Jan Hubicka  <jh@suse.cz>
+
+	* gcc.dg/weak/weak-2.c: We no longer complain about incompatibilty.
+	* gcc.dg/weak/weak-3.c: We no longer complain about incompatibilty.
+	* gcc.dg/weak/weak-4.c: We no longer complain about incompatibilty.
+	* gcc.dg/weak/weak-5.c: We no longer complain about incompatibilty.
+	* gcc.dg/weak/weak-6.c: Fix thinko in previous change.
+	* gcc.dg/weak/weak-7.c: Likewise.
+
+2008-06-16  Jan Hubicka  <jh@suse.cz>
+
+	* gcc.dg/asm-wide-1.c: Do not require extra errors we output
+	confused by earlier errors.
+	* gcc.target/i386/sseregparm-2.c: Remove markers for errors not
+	output at parsing time.
+	* gcc.target/i386/sseregparm-8.c: Move here compile time errors
+	from gcc.target/i386/sseregparm-2.c.
+	* gcc.dg/weak/weak-6.c: Do not require extra errors we output
+	confused by earlier errors.
+	* gcc.dg/weak/weak-7.c: Likewise.
+
+2008-06-18  Daniel Kraft  <d@domob.eu>
+
+	PR fortran/36517, fortran/36492
+	* gfortran.dg/array_constructor_25.f03:  New test.
+	* gfortran.dg/array_constructor_26.f03:  New test.
+	* gfortran.dg/array_constructor_27.f03:  New test.
+	* gfortran.dg/array_constructor_28.f03:  New test.
+	* gfortran.dg/array_constructor_29.f03:  New test.
+	* gfortran.dg/array_constructor_30.f03:  New test.
+	* gfortran.dg/array_constructor_type_19.f03:  New test.
+	* gfortran.dg/array_constructor_type_20.f03:  New test.
+	* gfortran.dg/array_constructor_type_21.f03:  New test.
+
+2008-06-17  Daniel Kraft  <d@domob.eu>
+
+	PR fortran/36112
+	* gfortran.dg/bounds_check_array_ctor_1.f90:  New test.
+	* gfortran.dg/bounds_check_array_ctor_2.f90:  New test.
+	* gfortran.dg/bounds_check_array_ctor_3.f90:  New test.
+	* gfortran.dg/bounds_check_array_ctor_4.f90:  New test.
+	* gfortran.dg/bounds_check_array_ctor_5.f90:  New test.
+	* gfortran.dg/bounds_check_array_ctor_6.f90:  New test.
+	* gfortran.dg/bounds_check_array_ctor_7.f90:  New test.
+	* gfortran.dg/bounds_check_array_ctor_8.f90:  New test.
+	* gfortran.dg/arrayio_0.f90:  Fixed invalid array constructor.
+	* gfortran.dg/char_cons_len.f90:  Ditto.
+	* gfortran.dg/char_initializer_actual.f90:  Ditto.
+	* gfortran.dg/pr15959.f90:  Ditto.
+	* gfortran.dg/transfer_simplify_2.f90:  Ditto.
+	* gfortran.dg/char_length_1.f90:  Changed expected error messages.
+
+2008-06-17  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/36366
+	* gfortran.dg/used_types_20.f90: New test.
+
+2008-06-16  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/36546
+	* gfortran.dg: namelist_49.f90: New test.
+
+2008-06-16  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/36544
+	* gfortran.dg/fseek.f90: Adjust test conditions for variable newline.
+
+2008-06-16  Ira Rosen  <irar@il.ibm.com>
+
+	PR tree-optimization/36493
+	* gcc.dg/vect/pr36493.c: New testcase.
+
+2008-06-15  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/36515
+	* gfortran.dg/no_range_check_2.f90: New test.
+
+2008-06-15  Mark Shinwell  <shinwell@codesourcery.com>
+
+	* lib/target-supports.exp (check_effective_target_mips_loongson): New.
+	* gcc.target/mips/loongson-simd.c: New.
+
+2008-06-14  Simon Martin  <simartin@users.sourceforge.net>
+
+	PR c++/35320
+	* g++.dg/parse/bitfield3.C: New test.
+
+2008-06-14  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/36538
+	* gfortran.dg: namelist_48.f90: New test.
+
+2008-06-14  Simon Martin  <simartin@users.sourceforge.net>
+
+	PR c++/35317
+	* g++.dg/other/dtor2.C: New test.
+
+2008-06-13  Olivier Hainque  <hainque@adacore.com>
+
+	* gnat.dg/task_stack_align.adb: New test.
+
+2008-06-13  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/35863
+	* gfortran.dg/widechar_IO_1.f90: New test.
+	* gfortran.dg/widechar_IO_2.f90: New test.
+	* gfortran.dg/widechar_IO_3.f90: New test.
+	* gfortran.dg/widechar_IO_4.f90: New test.
+
 2008-06-13  Tobias Burnus  <burnus@net-b.de>
 
 	PR fortran/36476

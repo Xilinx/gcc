@@ -279,7 +279,7 @@ ident_subst (const char* old_name,
   int prefix_len = strlen (prefix);
   int suffix_len = strlen (suffix);
   int i = prefix_len + old_length + suffix_len + 1;
-  char *buffer = alloca (i);
+  char *buffer = (char *) alloca (i);
 
   strcpy (buffer, prefix);
   for (i = 0; i < old_length; i++)
@@ -349,7 +349,7 @@ mangled_classname (const char *prefix, tree type)
        rewriting.  */
     if (illegal_chars != 0)
       {
-	char *buffer = alloca (illegal_chars * 4 + len + 1);
+	char *buffer = (char *) alloca (illegal_chars * 4 + len + 1);
 	int j;
 
 	for (i = 0, j = 0; i < len; i++)
@@ -413,7 +413,7 @@ unmangle_classname (const char *name, int name_length)
 do									\
 {									\
   const char *typename = IDENTIFIER_POINTER (mangled_classname ("", TYPE)); \
-  char *buf = alloca (strlen (typename) + strlen (#NAME "_syms_") + 1);	\
+  char *buf = (char *) alloca (strlen (typename) + strlen (#NAME "_syms_") + 1); \
   tree decl;								\
 									\
   sprintf (buf, #NAME "_%s", typename);					\
@@ -445,7 +445,7 @@ gen_indirect_dispatch_tables (tree type)
   const char *typename = IDENTIFIER_POINTER (mangled_classname ("", type));
   {  
     tree field = NULL;
-    char *buf = alloca (strlen (typename) + strlen ("_catch_classes_") + 1);
+    char *buf = (char *) alloca (strlen (typename) + strlen ("_catch_classes_") + 1);
     tree catch_class_type = make_node (RECORD_TYPE);
 
     sprintf (buf, "_catch_classes_%s", typename);
@@ -759,7 +759,7 @@ add_method_1 (tree this_class, int access_flags, tree name, tree function_type)
   DECL_CONTEXT (fndecl) = this_class;
 
   DECL_LANG_SPECIFIC (fndecl)
-    = ggc_alloc_cleared (sizeof (struct lang_decl));
+    = GGC_CNEW (struct lang_decl);
   DECL_LANG_SPECIFIC (fndecl)->desc = LANG_DECL_FUNC;
 
   /* Initialize the static initializer test table.  */
@@ -1142,7 +1142,13 @@ build_class_ref (tree type)
 	return build_indirect_class_ref (type);
 
       if (type == output_class && flag_indirect_classes)
-	return this_classdollar;
+	{
+	  /* This can be NULL if we see a JNI stub before we see any
+	     other method.  */
+	  if (! this_classdollar)
+	    this_classdollar = build_classdollar_field (output_class);
+	  return this_classdollar;
+	}
       
       if (TREE_CODE (type) == RECORD_TYPE)
 	return build_static_class_ref (type);
@@ -1186,7 +1192,7 @@ build_fieldref_cache_entry (int index, tree fdecl ATTRIBUTE_UNUSED)
 {
   tree decl, decl_name;
   const char *name = IDENTIFIER_POINTER (mangled_classname ("_cpool_", output_class));
-  char *buf = alloca (strlen (name) + 20);
+  char *buf = (char *) alloca (strlen (name) + 20);
   sprintf (buf, "%s_%d_ref", name, index);
   decl_name = get_identifier (buf);
   decl = IDENTIFIER_GLOBAL_VALUE (decl_name);
@@ -1361,8 +1367,8 @@ make_local_function_alias (tree method)
   tree alias;
   
   const char *method_name = IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME (method));
-  char *name = alloca (strlen (method_name) + 2);
-  char *buf = alloca (strlen (method_name) + 128);
+  char *name = (char *) alloca (strlen (method_name) + 2);
+  char *buf = (char *) alloca (strlen (method_name) + 128);
 
   /* Only create aliases for local functions.  */
   if (DECL_EXTERNAL (method))
@@ -2415,7 +2421,7 @@ layout_class (tree this_class)
 	  obstack_grow (&temporary_obstack, buffer, strlen (buffer));
 	}
       obstack_1grow (&temporary_obstack, '\0');
-      report = obstack_finish (&temporary_obstack);
+      report = XOBFINISH (&temporary_obstack, char *);
       cyclic_inheritance_report = ggc_strdup (report);
       obstack_free (&temporary_obstack, report);
       TYPE_SIZE (this_class) = error_mark_node;
@@ -3082,7 +3088,7 @@ java_treetreehash_find (htab_t ht, tree t)
 {
   struct treetreehash_entry *e;
   hashval_t hv = JAVA_TREEHASHHASH_H (t);
-  e = htab_find_with_hash (ht, t, hv);
+  e = (struct treetreehash_entry *) htab_find_with_hash (ht, t, hv);
   if (e == NULL)
     return NULL;
   else
@@ -3099,7 +3105,7 @@ java_treetreehash_new (htab_t ht, tree t)
   e = htab_find_slot_with_hash (ht, t, hv, INSERT);
   if (*e == NULL)
     {
-      tthe = (*ht->alloc_f) (1, sizeof (*tthe));
+      tthe = (struct treetreehash_entry *) (*ht->alloc_f) (1, sizeof (*tthe));
       tthe->key = t;
       *e = tthe;
     }
@@ -3129,7 +3135,7 @@ split_qualified_name (tree *left, tree *right, tree source)
   char *p, *base;
   int l = IDENTIFIER_LENGTH (source);
 
-  base = alloca (l + 1);
+  base = (char *) alloca (l + 1);
   memcpy (base, IDENTIFIER_POINTER (source), l + 1);
 
   /* Breakdown NAME into REMAINDER . IDENTIFIER.  */

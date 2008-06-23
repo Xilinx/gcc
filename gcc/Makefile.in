@@ -790,7 +790,8 @@ RTL_BASE_H = rtl.h rtl.def $(MACHMODE_H) reg-notes.def insn-notes.def \
 RTL_H = $(RTL_BASE_H) genrtl.h
 PARAMS_H = params.h params.def
 BUILTINS_DEF = builtins.def sync-builtins.def omp-builtins.def
-TREE_H = tree.h tree.def $(MACHMODE_H) tree-check.h $(BUILTINS_DEF) \
+TREE_H = tree.h all-tree.def tree.def c-common.def $(lang_tree_files) \
+          $(MACHMODE_H) tree-check.h $(BUILTINS_DEF) \
           input.h statistics.h vec.h treestruct.def $(HASHTAB_H) \
           double-int.h alias.h
 BASIC_BLOCK_H = basic-block.h bitmap.h sbitmap.h varray.h $(PARTITION_H) \
@@ -978,6 +979,7 @@ FLAGS_TO_PASS = \
 	"gcc_tooldir=$(gcc_tooldir)" \
 	"bindir=$(bindir)" \
 	"libexecsubdir=$(libsubdir)" \
+	"datarootdir=$(datarootdir)" \
 	"datadir=$(datadir)" \
 	"localedir=$(localedir)"
 #
@@ -1407,6 +1409,19 @@ endif
 ifneq ($(xmake_file),)
 include $(xmake_file)
 endif
+
+# all-tree.def includes all the tree.def files.
+all-tree.def: s-alltree; @true
+s-alltree: Makefile
+	rm -f tmp-all-tree.def
+	echo '#include "tree.def"' > tmp-all-tree.def
+	echo 'END_OF_BASE_TREE_CODES' >> tmp-all-tree.def
+	echo '#include "c-common.def"' >> tmp-all-tree.def
+	ltf="$(lang_tree_files)"; for f in $$ltf; do \
+	  echo "#include \"$$f\""; \
+	done | sed 's|$(srcdir)/||' >> tmp-all-tree.def
+	$(SHELL) $(srcdir)/../move-if-change tmp-all-tree.def all-tree.def
+	$(STAMP) s-alltree
 
 #
 
@@ -1929,14 +1944,6 @@ gccspec.o: gccspec.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) $(GCC_H)
 
 cppspec.o: cppspec.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) $(GCC_H)
 
-gencheck.h : s-gencheck ; @true
-s-gencheck : Makefile
-	ltf="$(lang_tree_files)"; for f in $$ltf; do \
-	    echo "#include \"$$f\""; \
-	done | sed 's|$(srcdir)/||' > tmp-gencheck.h
-	$(SHELL) $(srcdir)/../move-if-change tmp-gencheck.h gencheck.h
-	$(STAMP) s-gencheck
-
 specs.h : s-specs ; @true
 s-specs : Makefile
 	lsf="$(lang_specs_files)"; for f in $$lsf; do \
@@ -2018,7 +2025,7 @@ langhooks.o : langhooks.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
    langhooks.h $(LANGHOOKS_DEF_H) $(FLAGS_H) $(GGC_H) $(DIAGNOSTIC_H) intl.h \
    $(TREE_GIMPLE_H)
 tree.o : tree.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) $(TREE_H) \
-   $(FLAGS_H) $(FUNCTION_H) $(PARAMS_H) \
+   all-tree.def $(FLAGS_H) $(FUNCTION_H) $(PARAMS_H) \
    toplev.h $(GGC_H) $(HASHTAB_H) $(TARGET_H) output.h $(TM_P_H) langhooks.h \
    $(REAL_H) gt-tree.h tree-iterator.h $(BASIC_BLOCK_H) $(TREE_FLOW_H) \
    $(OBSTACK_H) pointer-set.h fixed-value.h
@@ -3300,7 +3307,7 @@ build/genattrtab.o : genattrtab.c $(RTL_BASE_H) $(OBSTACK_H)		\
 build/genautomata.o : genautomata.c $(RTL_BASE_H) $(OBSTACK_H)		\
   $(BCONFIG_H) $(SYSTEM_H) coretypes.h $(GTM_H) errors.h vec.h		\
   $(HASHTAB_H) gensupport.h
-build/gencheck.o : gencheck.c gencheck.h tree.def $(BCONFIG_H) $(GTM_H)	\
+build/gencheck.o : gencheck.c tree.def $(BCONFIG_H) $(GTM_H)		\
 	$(SYSTEM_H) coretypes.h $(lang_tree_files)
 build/genchecksum.o : genchecksum.c $(BCONFIG_H) $(SYSTEM_H) $(MD5_H)
 build/gencodes.o : gencodes.c $(RTL_BASE_H) $(BCONFIG_H) $(SYSTEM_H)	\
@@ -3924,7 +3931,7 @@ mostlyclean: lang.mostlyclean
 	-rm -f mddeps.mk
 # Delete other built files.
 	-rm -f xsys-protos.hT
-	-rm -f specs.h gencheck.h options.c options.h
+	-rm -f specs.h options.c options.h
 # Delete the stamp and temporary files.
 	-rm -f s-* tmp-* stamp-* stmp-*
 	-rm -f */stamp-* */tmp-*
@@ -4643,17 +4650,22 @@ run-basilys.d: run-basilys.h \
 
 ## copy all the file in the dependency of run-basilys-deps into $(melt_build_include_dir)
 ## but handle the $(srcdir)/config/ files specially by copying them within a config/ directory
+## and the */*-tree.def files such as ada/ada-tree.def cp/cp-tree.def ... likewise
 run-basilys-deps:
 ifdef BASILYSMELT_OBJ
 	$(mkinstalldirs) $(melt_build_include_dir); \
 	for f in $^ ; do \
 	  cf=`echo $$f | sed  "s:$(srcdir)/config/:$(melt_build_include_dir)/config/:"`; \
+	  tf=`echo $$f | sed  "s:$(srcdir)/:$(melt_build_include_dir)/:"`; \
 	  if [ "x$$f" != "x$$cf" ] ;  then  \
 	    $(mkinstalldirs) `dirname $$cf` ; \
 	    cp -p $$f $$cf ; \
+	  elif [ "x$$f" != "x$$tf" ] ;  then  \
+	    $(mkinstalldirs) `dirname $$tf` ; \
+	    cp -p $$f $$tf ; \
 	  else  \
 	    cp -p $$f $(melt_build_include_dir)/ ; \
-		fi; \
+	  fi; \
 	done
 endif
 

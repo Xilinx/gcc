@@ -1,3 +1,13 @@
+2008-06-23  Basile Starynkevitch  <basile@starynkevitch.net>	
+	MELT branch merged with trunk r137030
+
+	* melt/warm-basilys.bysl: some primitives got explicit casts.
+
+	* basilys.h: added casts to avoid implicit conversion from void*
+	disallowed with C++
+
+	* basilys.c: (delete_special, forwarded, scanning) likewise.
+
 2008-06-22  Basile Starynkevitch  <basile@starynkevitch.net>
 	* Makefile.in: splitting warm-basilys.bysl gives comment with line
 	in resulting warmelt*.bysl

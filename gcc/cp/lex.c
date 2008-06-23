@@ -89,9 +89,9 @@ cxx_finish (void)
 }
 
 /* A mapping from tree codes to operator name information.  */
-operator_name_info_t operator_name_info[(int) LAST_CPLUS_TREE_CODE];
+operator_name_info_t operator_name_info[(int) MAX_TREE_CODES];
 /* Similar, but for assignment operators.  */
-operator_name_info_t assignment_operator_name_info[(int) LAST_CPLUS_TREE_CODE];
+operator_name_info_t assignment_operator_name_info[(int) MAX_TREE_CODES];
 
 /* Initialize data structures that keep track of operator names.  */
 
@@ -344,7 +344,7 @@ init_reswords (void)
   for (i = 0; i < ARRAY_SIZE (reswords); i++)
     {
       id = get_identifier (reswords[i].word);
-      C_RID_CODE (id) = reswords[i].rid;
+      C_SET_RID_CODE (id, reswords[i].rid);
       ridpointers [(int) reswords[i].rid] = id;
       if (! (reswords[i].disable & mask))
 	C_IS_RESERVED_WORD (id) = 1;

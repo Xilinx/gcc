@@ -122,7 +122,6 @@ static tree spu_gimplify_va_arg_expr (tree valist, tree type, tree * pre_p,
 				      tree * post_p);
 static int regno_aligned_for_load (int regno);
 static int store_with_one_insn_p (rtx mem);
-static int reg_align (rtx reg);
 static int mem_is_padded_component_ref (rtx x);
 static bool spu_assemble_integer (rtx x, unsigned int size, int aligned_p);
 static void spu_asm_globalize_label (FILE * file, const char *name);
@@ -177,6 +176,8 @@ static int cpat_info(unsigned char *arr, int size, int *prun, int *pstart);
 static enum immediate_class classify_immediate (rtx op,
 						enum machine_mode mode);
 
+static enum machine_mode spu_unwind_word_mode (void);
+
 static enum machine_mode
 spu_libgcc_cmp_return_mode (void);
 
@@ -194,8 +195,8 @@ tree spu_builtin_types[SPU_BTI_MAX];
 #undef TARGET_EXPAND_BUILTIN
 #define TARGET_EXPAND_BUILTIN spu_expand_builtin
 
-#undef TARGET_EH_RETURN_FILTER_MODE
-#define TARGET_EH_RETURN_FILTER_MODE spu_eh_return_filter_mode
+#undef TARGET_UNWIND_WORD_MODE
+#define TARGET_UNWIND_WORD_MODE spu_unwind_word_mode
 
 /* The .8byte directive doesn't seem to work well for a 32 bit
    architecture. */
@@ -3382,6 +3383,7 @@ regno_aligned_for_load (int regno)
 {
   return regno == FRAME_POINTER_REGNUM
     || (frame_pointer_needed && regno == HARD_FRAME_POINTER_REGNUM)
+    || regno == ARG_POINTER_REGNUM
     || regno == STACK_POINTER_REGNUM
     || (regno >= FIRST_VIRTUAL_REGISTER 
 	&& regno <= LAST_VIRTUAL_REGISTER);
@@ -3558,18 +3560,6 @@ spu_expand_mov (rtx * ops, enum machine_mode mode)
   return 0;
 }
 
-static int
-reg_align (rtx reg)
-{
-  /* For now, only frame registers are known to be aligned at all times.
-     We can't trust REGNO_POINTER_ALIGN because optimization will move
-     registers around, potentially changing an "aligned" register in an
-     address to an unaligned register, which would result in an invalid
-     address. */
-  int regno = REGNO (reg);
-  return REGNO_PTR_FRAME_P (regno) ? REGNO_POINTER_ALIGN (regno) : 1;
-}
-
 void
 spu_split_load (rtx * ops)
 {
@@ -3595,9 +3585,9 @@ spu_split_load (rtx * ops)
        */
       p0 = XEXP (addr, 0);
       p1 = XEXP (addr, 1);
-      if (reg_align (p0) < 128)
+      if (REG_P (p0) && !regno_aligned_for_load (REGNO (p0)))
 	{
-	  if (GET_CODE (p1) == REG && reg_align (p1) < 128)
+	  if (REG_P (p1) && !regno_aligned_for_load (REGNO (p1)))
 	    {
 	      emit_insn (gen_addsi3 (ops[3], p0, p1));
 	      rot = ops[3];
@@ -3613,13 +3603,13 @@ spu_split_load (rtx * ops)
 	      p1 = GEN_INT (INTVAL (p1) & -16);
 	      addr = gen_rtx_PLUS (SImode, p0, p1);
 	    }
-	  else if (GET_CODE (p1) == REG && reg_align (p1) < 128)
+	  else if (REG_P (p1) && !regno_aligned_for_load (REGNO (p1)))
 	    rot = p1;
 	}
     }
   else if (GET_CODE (addr) == REG)
     {
-      if (reg_align (addr) < 128)
+      if (!regno_aligned_for_load (REGNO (addr)))
 	rot = addr;
     }
   else if (GET_CODE (addr) == CONST)
@@ -3764,7 +3754,7 @@ spu_split_store (rtx * ops)
       set_mem_alias_set (lmem, 0);
       emit_insn (gen_movti (reg, lmem));
 
-      if (!p0 || reg_align (p0) >= 128)
+      if (!p0 || regno_aligned_for_load (REGNO (p0)))
 	p0 = stack_pointer_rtx;
       if (!p1_lo)
 	p1_lo = const0_rtx;
@@ -4316,12 +4306,10 @@ spu_rtx_costs (rtx x, int code, int outer_code ATTRIBUTE_UNUSED, int *total)
   return true;
 }
 
-enum machine_mode
-spu_eh_return_filter_mode (void)
+static enum machine_mode
+spu_unwind_word_mode (void)
 {
-  /* We would like this to be SImode, but sjlj exceptions seems to work
-     only with word_mode. */
-  return TImode;
+  return SImode;
 }
 
 /* Decide whether we can make a sibling call to a function.  DECL is the

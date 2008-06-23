@@ -1,3 +1,23 @@
+2008-06-20  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	PR ada/36573
+	* s-osinte-hpux-dce.ads (SA_ONSTACK): Define.
+
+2008-06-15  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* gnat_rm.texi (Implementation Defined Characteristics)
+	(Standard Library Routines): Use @smallexample for indented
+	text.  Drop Indentation outside examples.
+	* gnat_ugn.texi: Likewise.
+
+2008-06-13  Olivier Hainque  <hainque@adacore.com>
+
+	* decl.c (FORCE_PREFERRED_STACK_BOUNDARY_IN_MAIN): Define to 0
+	if undefined.
+	(gnat_to_gnu_entity) <case E_Function/Procedure>: Request stack
+	realignment with force_align_arg_pointer attribute on foreign
+	convention subprograms if FORCE_PREFERRED_STACK_BOUNDARY_IN_MAIN.
+	
 2008-06-13  Olivier Hainque  <hainque@adacore.com>
 
 	* utils.c (rest_of_record_type_compilation): When computing

@@ -388,22 +388,22 @@
 
 ;; primitive for converting a string constant into a string value
 (defprimitive stringconst2val (discr :cstring strc) :value
-  " basilysgc_new_string((" discr "), (" strc "))")
+  " basilysgc_new_string((basilysobject_ptr_t)(" discr "), (" strc "))")
 
 
 ;; primitive for testing if an object is a (sub) instance of a class
 (defprimitive is_a (obj cla) :long
-  " basilys_is_instance_of((" obj "), (" cla "))")
+  " basilys_is_instance_of((basilys_ptr_t)(" obj "), (basilys_ptr_t)(" cla "))")
 
 ;; primitive for testing if an object is NOT a (sub) instance of a class
 (defprimitive is_not_a (obj cla) :long
-  " !basilys_is_instance_of((" obj "), (" cla "))")
+  " !basilys_is_instance_of((basilys_ptr_t)(" obj "), (basilys_ptr_t)(" cla "))")
   
 ;; primitive for testing objectness
 (defprimitive is_object (obj) :long
-  " (basilys_magic_discr(" obj ") == OBMAG_OBJECT)")
+  " (basilys_magic_discr((basilys_ptr_t)(" obj ")) == OBMAG_OBJECT)")
 (defprimitive is_not_object (obj) :long
-  " (basilys_magic_discr(" obj ") != OBMAG_OBJECT)")
+  " (basilys_magic_discr((basilys_ptr_t)(" obj ")) != OBMAG_OBJECT)")
   
 
 ;; primitive to return the last predefined index
@@ -416,24 +416,24 @@
 
 ;; primitive to get the discriminant of a value
 (defprimitive discrim (v) :value
-  "(basilys_discr((" v ")))")
+  "(basilys_discr((basilys_ptr_t)(" v ")))")
 
 ;; primitive to get the integer inside a boxed or mixed integer or objnum
 (defprimitive get_int (v) :long
-  "(basilys_get_int((" v ")))")
+  "(basilys_get_int((basilys_ptr_t)(" v ")))")
 ;; primitive to put the integer inside a boxed or mixed integer or objnum
 (defprimitive put_int (v :long i) :void
-  "basilys_put_int((" v "), (" i "))")
+  "basilys_put_int((basilys_ptr_t)(" v "), (" i "))")
 
 ;; primitive to get the hashcode of an object (or 0)
 (defprimitive obj_hash (v) :long
-  "(basilys_obj_hash((" v ")))")
+  "(basilys_obj_hash((basilys_ptr_t)(" v ")))")
 ;; primitive to get the length of an object (or 0)
 (defprimitive obj_len (v) :long
-  "(basilys_obj_len((" v ")))")
+  "(basilys_obj_len((basilys_ptr_t)(" v ")))")
 ;; primitive to get the number of an object (or 0)
 (defprimitive obj_num (v) :long
-  "(basilys_obj_num((" v ")))")
+  "(basilys_obj_num((basilys_ptr_t)(" v ")))")
 ;; primitive to compue a nonzero hash
 (defprimitive nonzero_hash () :long
   "(basilys_nonzerohash())")
@@ -569,79 +569,79 @@
   "(basilys_magic_discr((" v ")) == OBMAG_STRBUF)")
 ;; primitive to add a string const into a strbuf
 (defprimitive add2sbuf_strconst (sbuf :cstring str) :void 
-  "basilysgc_add_strbuf((void*)(" sbuf "), (" str "))")
+  "basilysgc_add_strbuf((struct basilysstrbuf_st *)(" sbuf "), (" str "))")
 ;; primitive to add a string value into a strbuf
 (defprimitive add2sbuf_string (sbuf str) :void 
-  "basilysgc_add_strbuf((void*)(" sbuf "), basilys_string_str(" str "))")
+  "basilysgc_add_strbuf((struct basilysstrbuf_st *)(" sbuf "), basilys_string_str(" str "))")
 
 ;; primitive to add an indentation or space into a strbuf
 (defprimitive add2sbuf_indent (sbuf :long depth) :void
-  "basilysgc_strbuf_add_indent((void*)(" sbuf "), (" depth "), 64)")
+  "basilysgc_strbuf_add_indent((struct basilysstrbuf_st *)(" sbuf "), (" depth "), 64)")
 
 
 ;; primitive to add an indented newline into a strbuf
 (defprimitive add2sbuf_indentnl (sbuf :long depth) :void
-  "basilysgc_strbuf_add_indent((void*)(" sbuf "), (" depth "), 0)")
+  "basilysgc_strbuf_add_indent((struct basilysstrbuf_st *)(" sbuf "), (" depth "), 0)")
 
 
 ;; primitive to add a strbuf into a strbuf
 (defprimitive add2sbuf_sbuf (sbuf asbuf) :void 
-  "basilysgc_add_strbuf((void*)(" sbuf "), basilys_strbuf_str(" asbuf "))")
+  "basilysgc_add_strbuf((struct basilysstrbuf_st *)(" sbuf "), basilys_strbuf_str(" asbuf "))")
 
 ;; primitive to add a string value, C encoded, into a strbuf
 (defprimitive add2sbuf_cencstring (sbuf str) :void 
-  "basilysgc_add_strbuf_cstr((void*)(" sbuf "), basilys_string_str(" str "))")
+  "basilysgc_add_strbuf_cstr((struct basilysstrbuf_st *)(" sbuf "), basilys_string_str(" str "))")
 
 ;; primitive to add a strbuf, C encoded, into a strbuf
 (defprimitive add2sbuf_cencstrbuf (sbuf asbuf) :void 
-  "basilysgc_add_strbuf_cstr((void*)(" sbuf "), basilys_strbuf_str(" asbuf "))")
+  "basilysgc_add_strbuf_cstr((struct basilysstrbuf_st *)(" sbuf "), basilys_strbuf_str(" asbuf "))")
 
 ;; primitive to add a string value, Ccomment encoded, into a strbuf
 (defprimitive add2sbuf_ccomstring (sbuf str) :void 
-  "basilysgc_add_strbuf_ccomment((void*)(" sbuf "), basilys_string_str(" str "))")
+  "basilysgc_add_strbuf_ccomment((struct basilysstrbuf_st *)(" sbuf "), basilys_string_str(" str "))")
 
 ;; primitive to add a strbuf, C encoded, into a strbuf
 (defprimitive add2sbuf_ccomstrbuf (sbuf asbuf) :void 
-  "basilysgc_add_strbuf_ccomment((void*)(" sbuf "), basilys_strbuf_str(" asbuf "))")
+  "basilysgc_add_strbuf_ccomment((struct basilysstrbuf_st *)(" sbuf "), basilys_strbuf_str(" asbuf "))")
 
 
 ;; primitive to add into a strbuf a string as C ident (nonalphanum
 ;; replaced by _)
 (defprimitive add2sbuf_cident (sbuf str) :void
-  "basilysgc_add_strbuf_cident((" sbuf "), basilys_string_str(" str "))")
+  "basilysgc_add_strbuf_cident((struct basilysstrbuf_st *)(" sbuf "), basilys_string_str(" str "))")
 
 ;; primitive to add into a strbuf the prefix of a string as C ident (nonalphanum
 ;; replaced by _) limited by a small length 
 (defprimitive add2sbuf_cidentprefix  (sbuf str :long preflen) :void
-  "basilysgc_add_strbuf_cidentprefix((" sbuf "), basilys_string_str(" str "), (" preflen "))")
+  "basilysgc_add_strbuf_cidentprefix((struct basilysstrbuf_st *)(" sbuf "), basilys_string_str(" str "), (" preflen "))")
 
 ;; primitive to add a long in decimal into a strbuf
 (defprimitive add2sbuf_longdec (sbuf :long num) :void
-  "basilysgc_add_strbuf_dec((void*)(" sbuf "), (" num "))")
+  "basilysgc_add_strbuf_dec((struct basilysstrbuf_st *)(" sbuf "), (" num "))")
 
 ;; primitive to add a long in hex into a strbuf
 (defprimitive add2sbuf_longhex (sbuf :long num) :void
-  "basilysgc_add_strbuf_hex((void*)(" sbuf "), (" num "))")
+  "basilysgc_add_strbuf_hex((struct basilysstrbuf_st *)(" sbuf "), (" num "))")
 
 ;; primitive to add a routine descr into a strbuf
 (defprimitive add2sbuf_routinedescr (sbuf rout) :void
-  "basilysgc_add_strbuf((void*)(" sbuf "), basilys_routine_descrstr(" rout "))")
+  "basilysgc_add_strbuf((struct basilysstrbuf_st *)(" sbuf "), basilys_routine_descrstr(" rout "))")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; STRING primitives
 ;; primitive for testing if a value is a string
 (defprimitive is_string (str) :long
-  " (basilys_magic_discr(" str ") == OBMAG_STRING)")
+  " (basilys_magic_discr((basilys_ptr_t)(" str ")) == OBMAG_STRING)")
 ;; string equal
 (defprimitive ==s (s1 s2) :long
-  "basilys_string_same((" s1 "), (" s2 "))")
+  "basilys_string_same((basilys_ptr_t)(" s1 "), (basilys_ptr_t)(" s2 "))")
 ;;; make a string
 (defprimitive make_string (dis str) :value
-  "(basilysgc_new_stringdup((void*)(" dis "), basilys_string_str((" str "))))")
+  "(basilysgc_new_stringdup((basilys_object_ptr_t)(" dis "), basilys_string_str((" str "))))")
 (defprimitive make_stringconst (dis :cstring cstr) :value
-  "(basilysgc_new_stringdup((void*)(" dis "), (" cstr ")))")
+  "(basilysgc_new_stringdup((basilys_object_ptr_t)(" dis "), (" cstr ")))")
 (defprimitive is_stringconst (str :cstring cs) :long
-  "(basilys_is_string_const((void*)(" str "), (" cs ")))")
+  "(basilys_is_string_const((basilys_object_ptr_t)(" str "), (" cs ")))")
 (defprimitive string_length (str) :long
   "basilys_string_length((" str "))")
 (defprimitive string= (s1 s2) :long "basilys_string_same((" s1 "), (" s2 "))")
@@ -650,7 +650,7 @@
 
 ;;; convert a strbuf into a string
 (defprimitive strbuf2string (dis sbuf) :value
-  "(basilysgc_new_stringdup((void*)(" dis "), basilys_strbuf_str((" sbuf "))))")
+  "(basilysgc_new_stringdup((basilys_object_ptr_t)(" dis "), basilys_strbuf_str((" sbuf "))))")
 ;;; compute the naked basename
 (defprimitive make_string_nakedbasename (dis str) :value
  "(basilysgc_new_string_nakedbasename((basilysobject_ptr_t)(" dis "), basilys_string_str((" str "))))")
@@ -659,7 +659,7 @@
 ;;;;; OBJECT primitives
 ;; primitive to get an object length
 (defprimitive object_length (ob) :long 
-  "((long)basilys_object_length((" ob ")))")
+  "((long)basilys_object_length((basilys_ptr_t)(" ob ")))")
 ;; primitive to get the nth field of an object
 (defprimitive object_nth_field (ob :long n) :value
   "(basilys_field_object((" ob "), (" n ")))")

@@ -1,3 +1,120 @@
+2008-06-20  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
+	    Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/34908
+	PR fortran/36276
+	* scanner.c (preprocessor_line): do not call gfc_free for
+	current_file->filename if it differs from filename.
+
+2008-06-20  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	* arith.c (hollerith2representation): Fix for -Wc++-compat.
+	* array.c (gfc_get_constructor): Likewise.
+	* decl.c (gfc_get_data_variable, gfc_get_data_value, gfc_get_data,
+	create_enum_history, gfc_match_final_decl): Likewise.
+	* error.c (error_char): Likewise.
+	* expr.c (gfc_get_expr, gfc_copy_expr): Likewise.
+	* gfortran.h (gfc_get_charlen, gfc_get_array_spec,
+	gfc_get_component, gfc_get_formal_arglist, gfc_get_actual_arglist,
+	gfc_get_namelist, gfc_get_omp_clauses, gfc_get_interface,
+	gfc_get_common_head, gfc_get_dt_list, gfc_get_array_ref,
+	gfc_get_ref, gfc_get_equiv, gfc_get_case, gfc_get_iterator,
+	gfc_get_alloc, gfc_get_wide_string): Likewise.
+	* interface.c (count_types_test): Likewise.
+	* intrinsic.c (add_char_conversions, gfc_intrinsic_init_1):
+	Likewise.
+	* io.c (gfc_match_open, gfc_match_close, match_filepos, match_io,
+	gfc_match_inquire, gfc_match_wait): Likewise.
+	* match.c (gfc_match, match_forall_iterator): Likewise.
+	* module.c (gfc_get_pointer_info, gfc_get_use_rename, add_fixup,
+	add_true_name, parse_string, write_atom, quote_string,
+	mio_symtree_ref, mio_gmp_real, write_common_0): Likewise.
+	* options.c (gfc_post_options): Likewise.
+	* primary.c (match_integer_constant, match_hollerith_constant,
+	match_boz_constant, match_real_constant,
+	gfc_get_structure_ctor_component, gfc_match_structure_constructor): Likewise.
+	* scanner.c (gfc_widechar_to_char, add_path_to_list,
+	add_file_change, load_line, get_file, preprocessor_line,
+	load_file, unescape_filename, gfc_read_orig_filename): Likewise.
+	* simplify.c (gfc_simplify_ibits, gfc_simplify_ishft,
+	gfc_simplify_ishftc): Likewise.
+	* symbol.c (gfc_get_st_label, gfc_get_namespace, gfc_new_symtree,
+	gfc_get_uop, gfc_new_symbol, save_symbol_data, gfc_get_gsymbol):
+	Likewise.
+	* target-memory.c (gfc_target_interpret_expr): Likewise.
+	* trans-const.c (gfc_build_wide_string_const): Likewise.
+	* trans-expr.c (gfc_add_interface_mapping): Likewise.
+	* trans-intrinsic.c (gfc_conv_intrinsic_conversion,
+	gfc_conv_intrinsic_int, gfc_conv_intrinsic_lib_function,
+	gfc_conv_intrinsic_cmplx, gfc_conv_intrinsic_ctime,
+	gfc_conv_intrinsic_fdate, gfc_conv_intrinsic_ttynam,
+	gfc_conv_intrinsic_minmax, gfc_conv_intrinsic_minmax_char,
+	gfc_conv_intrinsic_ishftc, gfc_conv_intrinsic_index_scan_verify,
+	gfc_conv_intrinsic_merge, gfc_conv_intrinsic_trim): Likewise.
+	* trans.c (gfc_get_backend_locus): Likewise.
+	* trans.h (gfc_get_ss): Likewise.
+
+2008-06-18  Daniel Kraft  <d@domob.eu>
+
+	PR fortran/36517, fortran/36492
+	* array.c (gfc_resolve_character_array_constructor):  Call
+	gfc_set_constant_character_len with changed length-chec argument.
+	* decl.c (gfc_set_constant_character_len):  Changed array argument to
+	be a generic length-checking argument that can be used for correct
+	checking with typespec and in special cases where the should-be length
+	is different from the target length.
+	(build_struct):  Call gfc_set_constant_character_len with changed length
+	checking argument and introduced additional checks for exceptional
+	conditions on invalid code.
+	(add_init_expr_to_sym), (do_parm):  Call gfc_set_constant_character_len
+	with changed argument.
+	* match.h (gfc_set_constant_character_len):  Changed third argument to
+	int for the should-be length rather than bool.
+
+2008-06-17  Daniel Kraft  <d@domob.eu>
+
+	PR fortran/36112
+	* array.c (gfc_resolve_character_array_constructor):  Check that all
+	elements with constant character length have the same one rather than
+	fixing it if no typespec is given, emit an error if they don't.  Changed
+	return type to "try" and return FAILURE for the case above.
+	(gfc_resolve_array_constructor):  Removed unneeded call to
+	gfc_resolve_character_array_constructor in this function.
+	* gfortran.h (gfc_resolve_character_array_constructor):  Returns try.
+	* trans-array.c (get_array_ctor_strlen):  Return length of first element
+	rather than last element.
+	* resolve.c (gfc_resolve_expr):  Handle FAILURE return from
+	gfc_resolve_character_array_constructor.
+
+2008-06-17  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/34396
+	* resolve.c (add_dt_to_dt_list):  New function.
+	(resolve_fl_derived): Call new function for pointer components
+	and when derived type resolved.
+
+2008-06-15  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/36515
+	* trans-decl.c (gfc_generate_function_code): Add range_check to options
+	array.
+
+2008-06-15  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* gfc-internals.texi: Expand TABs, drop indentation outside examples.
+	* gfortran.texi: Likewise.
+	* intrinsic.texi: Likewise.
+	* invoke.texi: Likewise.
+
+2008-06-13  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/35863
+	* trans-io.c (gfc_build_io_library_fndecls): Build declaration for
+	transfer_character_wide which includes passing in the character kind to
+	support wide character IO. (transfer_expr): If the kind == 4, create the
+	argument and build the call.
+	* gfortran.texi: Fix typo.
+
 2008-06-13  Tobias Burnus  <burnus@net-b.de>
 
 	PR fortran/36476
@@ -1030,7 +1147,7 @@
 	(check_init_expr): Remove tests that first argument is an array
 	in the call to scalarize_intrinsic_call.
 
-2008-04-06  Tobias Schlüter  <tobi@gcc.gnu.org>
+2008-04-06  Tobias SchlÃ¼ter  <tobi@gcc.gnu.org>
 
 	PR fortran/35832
 	* io.c (io_tag): Add field 'value'.  Split 'spec' field in
@@ -1189,7 +1306,7 @@
 	function, ensure that the derived type is visible in the same
 	namespace as the function.
 
-2008-03-23  Tobias Schlüter  <tobi@gcc.gnu.org>
+2008-03-23  Tobias SchlÃ¼ter  <tobi@gcc.gnu.org>
 
 	* trans.h: Use fold_build in build1_v, build2_v and build3_v
 	macros.
@@ -1387,7 +1504,7 @@
 	(gfc_call_realloc): Likewise.
 	* trans-io.c (gfc_trans_io_runtime_check): Likewise.
 
-2008-02-24  Tobias Schlüter  <tobi@gcc.gnu.org>
+2008-02-24  Tobias SchlÃ¼ter  <tobi@gcc.gnu.org>
 
 	* arith.c: Update copyright years.
 	* arith.h: Likewise.
@@ -1451,7 +1568,7 @@
 	(gfc_simplify_real): Add call gfc_clear_ts to initialize the
 	temporary gfc_typspec variable.
 
-2008-02-24  Tobias Schlüter  <tobi@gcc.gnu.org>
+2008-02-24  Tobias SchlÃ¼ter  <tobi@gcc.gnu.org>
 
 	* trans-array.c (gfc_conv_descriptor_data_get,
 	gfc_conv_descriptor_data_set_internal,

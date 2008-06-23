@@ -266,6 +266,14 @@ enum mips_code_readable_setting {
 				     || mips_tune == PROCESSOR_74KF1_1  \
 				     || mips_tune == PROCESSOR_74KF3_2)
 #define TUNE_20KC		    (mips_tune == PROCESSOR_20KC)
+#define TUNE_LOONGSON_2EF           (mips_tune == PROCESSOR_LOONGSON_2E	\
+				     || mips_tune == PROCESSOR_LOONGSON_2F)
+
+/* Whether vector modes and intrinsics for ST Microelectronics
+   Loongson-2E/2F processors should be enabled.  In o32 pairs of
+   floating-point registers provide 64-bit values.  */
+#define TARGET_LOONGSON_VECTORS	    (TARGET_HARD_FLOAT_ABI		\
+				     && TARGET_LOONGSON_2EF)
 
 /* True if the pre-reload scheduler should try to create chains of
    multiply-add or multiply-subtract instructions.  For example,
@@ -497,6 +505,10 @@ enum mips_code_readable_setting {
 	  builtin_define_std ("MIPSEL");				\
 	  builtin_define ("_MIPSEL");					\
 	}								\
+                                                                        \
+      /* Whether Loongson vector modes are enabled.  */                 \
+      if (TARGET_LOONGSON_VECTORS)					\
+        builtin_define ("__mips_loongson_vector_rev");                  \
 									\
       /* Macros dependent on the C dialect.  */				\
       if (preprocessing_asm_p ())					\
@@ -733,13 +745,18 @@ enum mips_code_readable_setting {
 				  || ISA_MIPS64)			\
 				 && !TARGET_MIPS16)
 
-/* ISA has the conditional move instructions introduced in mips4.  */
-#define ISA_HAS_CONDMOVE	((ISA_MIPS4				\
+/* ISA has the floating-point conditional move instructions introduced
+   in mips4.  */
+#define ISA_HAS_FP_CONDMOVE	((ISA_MIPS4				\
 				  || ISA_MIPS32				\
 				  || ISA_MIPS32R2			\
 				  || ISA_MIPS64)			\
 				 && !TARGET_MIPS5500			\
 				 && !TARGET_MIPS16)
+
+/* ISA has the integer conditional move instructions introduced in mips4 and
+   ST Loongson 2E/2F.  */
+#define ISA_HAS_CONDMOVE        (ISA_HAS_FP_CONDMOVE || TARGET_LOONGSON_2EF)
 
 /* ISA has LDC1 and SDC1.  */
 #define ISA_HAS_LDC1_SDC1	(!ISA_MIPS1 && !TARGET_MIPS16)
@@ -775,13 +792,25 @@ enum mips_code_readable_setting {
 /* Integer multiply-accumulate instructions should be generated.  */
 #define GENERATE_MADD_MSUB      (ISA_HAS_MADD_MSUB && !TUNE_74K)
 
-/* ISA has floating-point nmadd and nmsub instructions for mode MODE.  */
-#define ISA_HAS_NMADD_NMSUB(MODE) \
+/* ISA has floating-point madd and msub instructions 'd = a * b [+-] c'.  */
+#define ISA_HAS_FP_MADD4_MSUB4  ISA_HAS_FP4
+
+/* ISA has floating-point madd and msub instructions 'c = a * b [+-] c'.  */
+#define ISA_HAS_FP_MADD3_MSUB3  TARGET_LOONGSON_2EF
+
+/* ISA has floating-point nmadd and nmsub instructions
+   'd = -((a * b) [+-] c)'.  */
+#define ISA_HAS_NMADD4_NMSUB4(MODE)					\
 				((ISA_MIPS4				\
 				  || (ISA_MIPS32R2 && (MODE) == V2SFmode) \
 				  || ISA_MIPS64)			\
 				 && (!TARGET_MIPS5400 || TARGET_MAD)	\
 				 && !TARGET_MIPS16)
+
+/* ISA has floating-point nmadd and nmsub instructions
+   'c = -((a * b) [+-] c)'.  */
+#define ISA_HAS_NMADD3_NMSUB3(MODE)					\
+                                TARGET_LOONGSON_2EF
 
 /* ISA has count leading zeroes/ones instruction (not implemented).  */
 #define ISA_HAS_CLZ_CLO		((ISA_MIPS32				\
@@ -881,10 +910,12 @@ enum mips_code_readable_setting {
 				 && !TARGET_MIPS16)
 
 /* Likewise mtc1 and mfc1.  */
-#define ISA_HAS_XFER_DELAY	(mips_isa <= 3)
+#define ISA_HAS_XFER_DELAY	(mips_isa <= 3			\
+				 && !TARGET_LOONGSON_2EF)
 
 /* Likewise floating-point comparisons.  */
-#define ISA_HAS_FCMP_DELAY	(mips_isa <= 3)
+#define ISA_HAS_FCMP_DELAY	(mips_isa <= 3			\
+				 && !TARGET_LOONGSON_2EF)
 
 /* True if mflo and mfhi can be immediately followed by instructions
    which write to the HI and LO registers.
@@ -901,7 +932,8 @@ enum mips_code_readable_setting {
 #define ISA_HAS_HILO_INTERLOCKS	(ISA_MIPS32				\
 				 || ISA_MIPS32R2			\
 				 || ISA_MIPS64				\
-				 || TARGET_MIPS5500)
+				 || TARGET_MIPS5500			\
+				 || TARGET_LOONGSON_2EF)
 
 /* ISA includes synci, jr.hb and jalr.hb.  */
 #define ISA_HAS_SYNCI (ISA_MIPS32R2 && !TARGET_MIPS16)
@@ -3202,3 +3234,6 @@ extern const struct mips_cpu_info *mips_tune_info;
 extern const struct mips_rtx_cost_data *mips_cost;
 extern enum mips_code_readable_setting mips_code_readable;
 #endif
+
+/* Enable querying of DFA units.  */
+#define CPU_UNITS_QUERY 1
