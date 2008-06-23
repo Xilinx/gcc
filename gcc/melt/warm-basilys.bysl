@@ -162,6 +162,7 @@
 	   sysdata_addkeyw		;closure to add a keyword of given name
 	   sysdata_internsymbol		;closure to intern a symbol
 	   sysdata_internkeyw		;closure to intern a keyword
+	   sysdata_value_importer	;closure to import a value
 	   ;;;keep these spare slots to easy the addition of other slots
 	   sysdata___spare1
 	   sysdata___spare2
@@ -325,6 +326,7 @@
   :fields (nctx_initproc		;initial procedure
 	   nctx_proclist		;list of procedures
 	   nctx_datalist		;list of data
+	   nctx_valuelist		;list of imported values
 	   nctx_symbmap			;stringmap of name to interned symbols
 	   nctx_keywmap			;stringmap of name to interned keywords
 	   nctx_symbcachemap		;objmap of cached symbol -> occurrence
@@ -1298,7 +1300,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; initial fresh environment container maker
 (defun initfresh_contenvmaker (prevenv)
-  (debug_msg prevenv "initfresh_contenvmaker prevenv")
+  ;(debug_msg prevenv "initfresh_contenvmaker prevenv")
   (if (need_dbg 0) 
       (shortbacktrace_dbg "initfresh_contenvmaker" 15))
   (let ( (newenv (fresh_env prevenv)) 
@@ -1311,9 +1313,9 @@
 
 ;; initial value exporter
 (defun initvalue_exporter (sym val contenv)
-  (debug_msg sym "initvalue_exporter sym")
-  (debug_msg val "initvalue_exporter val")
-  (debug_msg contenv "initvalue_exporter contenv")
+  ;(debug_msg sym "initvalue_exporter sym")
+  ;(debug_msg val "initvalue_exporter val")
+  ;(debug_msg contenv "initvalue_exporter contenv")
   (if (need_dbg 0) 
       (shortbacktrace_dbg "initvalue_exporter" 15))
   (if (null contenv)
@@ -1342,10 +1344,22 @@
       (return)
       )))
 
+
+;; initial value importer
+(defun initvalue_importer (sym parenv)
+  (assert_msg "check sym" (is_a sym class_symbol))
+  (assert_msg "check parenv" (is_a parenv class_environment))
+  (let ( (valbind (find_env parenv sym))
+	 )
+    (debug_msg valbind "initvalue_importer found valbind")
+    (assert_msg "check valbind" (is_a valbind class_value_binding))
+    (return (unsafe_get_field :vbind_value valbind))
+))
+
 ;; initial macro exporter
 (defun initmacro_exporter (sym val contenv)
-  (debug_msg sym "initmacro_exporter sym")
-  (debug_msg val "initmacro_exporter val")
+ ; (debug_msg sym "initmacro_exporter sym")
+ ; (debug_msg val "initmacro_exporter val")
   ;;(debug_msg contenv "initmacro_exporter contenv")
   (assert_msg "check sym" (is_a sym class_symbol))
   (if (null contenv)
@@ -1389,6 +1403,7 @@
   :sysdata_addkeyw add_new_keyword_token ;closure to add a keyword of given name
   :sysdata_internsymbol	intern_symbol	 ;closure to intern a symbol
   :sysdata_internkeyw intern_keyword	 ;closure to intern a keyword
+  :sysdata_value_importer initvalue_importer
   )
 
 
@@ -2792,6 +2807,8 @@
  get_keywordstr
  get_symbolstr
  ignore
+ inform_plain
+ inform_strv
  is_a
  is_box
  is_closure
@@ -6058,6 +6075,7 @@
 		 :nctx_initproc inipro
 		 :nctx_proclist (make_list discr_list)
 		 :nctx_datalist (make_list discr_list)
+		 :nctx_valuelist (make_list discr_list)
 		 :nctx_symbmap  (make_mapstring discr_mapstrings 50)
 		 :nctx_keywmap  (make_mapstring discr_mapstrings 40)
 		 :nctx_predefmap predefmap
@@ -6104,6 +6122,9 @@
   recv)
 
 (install_method discr_anyrecv normal_exp  normexp_identical)
+
+;; I'm not sure to understand why we need this.
+(install_method discr_string normal_exp  normexp_identical)
 
 (defun normexp_null (recv env ncx psloc)
   (assert_msg "check env" (is_a env class_environment))
@@ -6292,7 +6313,6 @@
 	(let ( (bvar (mapobject_get (unsafe_get_field :nctx_valbindmap ncx) bind)) )
 	  (debug_msg bind "normexp_symbol value bind")
 	  (debug_msg procs "normexp_symbol value procs")
-	  (compile_warning "@@@ A COMPLETER normexp_symbvol value" ())
 	  (if (null bvar)
 	      (let ( (newbvar 
 		      (make_instance class_nrep_startval
@@ -6300,16 +6320,44 @@
 				     :nstart_var recv)) )
 		(mapobject_put (unsafe_get_field :nctx_valbindmap ncx) bind newbvar)
 		(setq bvar newbvar)
+		(list_append (unsafe_get_field :nctx_valuelist ncx) newbvar)
 		))
 	  ;; if procs ia non-empty list, symbol is a "closed" constant for the value
 	  (if (and (is_list procs)
 		   (is_pair (list_first procs)))
-	      (let ( 
+	      (let ( (fxocc
+		      (make_instance class_nrep_constocc
+				     :nrep_loc psloc
+				     :nocc_symb recv
+				     :nocc_bind bind
+				     :nocc_ctyp ctype_value
+				     :ncloc_procs procs))
 		    )
+		;; cache the result
+		(mapobject_put sycmap recv fxocc)
+		(debug_msg fxocc "normexp_symbol value fxocc")
+		;; put the const occurrence if needed in the const list of each proc
+		(list_every
+		 procs
+		 (lambda (pr)
+		   (assert_msg "check pr" (is_a pr class_nrep_anyproc))
+		   (let ( (clbox (make_box discr_box fxocc))
+			  (cnstproc (unsafe_get_field :nrpro_const pr)) )
+		     (list_every 
+		      cnstproc
+		      (lambda (cx) (if (== cx fxocc) (progn (box_put clbox ()) ()))))
+		     (let ( (newcl (box_content clbox)) )
+		       (if newcl (list_append cnstproc newcl))) 
+		     )))
+		fxocc
 		)
 	    ;; otherwise symbol is the direct value
 	    (let ( 
 		  )
+		;; cache the result
+		(mapobject_put sycmap recv bvar)
+		(debug_msg bvar "normexp_symbol value bvar")
+		bvar
 	      )
 	    )))
       ;; the procs is a non-empty list, so the symbol is closed
@@ -6545,7 +6593,7 @@
 			 sopnamstr)
 	     (return (the_null)))
 	   )
-       (let ( (bmap (make_mapobject  discr_mapobjects (+i 2 (/iraw (*i 3 nbarg) 2))))
+       (let ( (bmap (make_mapobject  discr_mapobjects (+i 5 (/iraw (*i 3 nbarg) 2))))
 	      (expargs (make_multiple discr_multiple nbexp))
 	      )
 	 (multiple_every
@@ -6554,26 +6602,29 @@
 	    (assert_msg "check forb" (is_a forb class_formal_binding))
 	    (let ( (forarg (unsafe_get_field :binder forb))
 		   (actarg (multiple_nth nargs ix)) )
+	      (debug_msg forarg "normexp_primitive forarg")
+	      (debug_msg actarg "normexp_primitive actarg")
 	      (mapobject_put bmap forarg actarg)
 	      )))
-;	 (debug_msg bmap "normexp_primitive bmap in sopexp")
+	 (debug_msg bmap "normexp_primitive bmap in sopexp")
 	 (multiple_every
 	  sopexp
 	  (lambda (excu :long jx)
-;	    (debug_msg excu "normexp_primitive excu in sopexp")
+	    (debug_msg excu "normexp_primitive excu in sopexp")
 	    (let ( (exval
 		    (if (is_a excu class_symbol)
 			(let ( (bval (mapobject_get bmap excu)) )
 			  (if (null bval) 
 			      (progn 
 				(debug_msg recv "normexp_primitive recv unbound symbol in expansion")
+				(debug_msg excu "normexp_primitive excu")
 				(error_strv sloc "unbound symbol in primitive expansion" 
 					    (unsafe_get_field  :named_name excu))
 				(error_strv sloc "bad primitive name" sopnamstr)
 				))
 			  bval)
 		      excu)) )
-;	    (debug_msg exval "normexp_primitive exval in sopexp")
+	    (debug_msg exval "normexp_primitive exval in sopexp")
 	    (multiple_put_nth expargs jx exval))
 	    ))
 	 (let ( (csym (clone_symbol  (unsafe_get_field :sdef_name soper))) 
@@ -12343,14 +12394,16 @@
   )
 
 ;;;; compile the initial procedure into an object
-(defun compile2obj_initproc (ipro modctx idata compicache procurmodenvlist)
+(defun compile2obj_initproc (ipro modctx idata compicache procurmodenvlist inivalue)
   (assert_msg "check ipro" (is_a ipro class_nrep_initproc))
   (assert_msg "check idata" (is_list idata))
   (assert_msg "check modctx" (is_a modctx class_modulcontext))
   (assert_msg "check compicache" (is_mapobject compicache))
+  (assert_msg "check inivalue" (is_list inivalue))
   (debug_msg ipro "compile2obj_initproc ipro")
   (debug_msg compicache "compile2obj_initproc compicache")
   (debug_msg procurmodenvlist "compile2obj_initproc start procurmodenvlist")
+  (debug_msg inivalue "compile2obj_initproc start inivalue")
   (let ((locmap (make_mapobject discr_mapobjects 50))
 	(oinibody (make_list discr_list))
 	(oinitrout
@@ -12400,6 +12453,7 @@
 	(ovalueexporter (get_free_objlocptr gcx '_valexport_)) 
 	(omacroexporter (get_free_objlocptr gcx '_macroexport_))
 	)
+    (compile_warning "compile2obj_initproc should do something with inivalue" ())
     (debug_msg boxloc "boxloc is")
     ;; create a commentedblock to compute the new environemnt box in boxloc if it is null 
     (let (
@@ -12965,6 +13019,19 @@
   
 (install_method class_nrep_constocc compile_obj compilobj_nrep_constocc)
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defun compilobj_nrep_startval (nsva gcx)
+  (assert_msg "check gcx" (is_a gcx class_initgenercontext))
+  (assert_msg "check nsva" (is_a nsva class_nrep_startval))
+  (compile_warning "compilobj_nrep_startval unimplemented" ())
+  (debug_msg nsva "compilobj_nrep_startval nsva")
+  (debug_msg gcx "compilobj_nrep_startval gcx")
+  (let ( (var (unsafe_get_field :nstart_var nsva))
+	 )
+    (assert_msg "compilobj_nrep_startval @@@unimplemented@@@" ())
+    ))
+(install_method class_nrep_startval compile_obj compilobj_nrep_startval)
+  
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; compile a quasiconstant
 (defun compilobj_nrep_quasiconstant (nconst gcx)
@@ -15146,11 +15213,12 @@
 	(assert_msg "check objlist" (is_list objlist))
 	(let ( (inipro (unsafe_get_field :nctx_initproc ncx)) 
 	       (inidata (unsafe_get_field :nctx_datalist ncx))
+	       (inivalue (unsafe_get_field :nctx_valuelist ncx))
 	       (procurmodenvlist (unsafe_get_field :nctx_procurmodenvlist ncx))
 	       )
 	  (assert_msg "check inipro" (is_a inipro class_nrep_initproc))
 	  (debug_msg procurmodenvlist "compile_list_sexpr procurmodenvlist")
-	  (let ( (iniobj (compile2obj_initproc inipro modctx inidata compicache procurmodenvlist)) )
+	  (let ( (iniobj (compile2obj_initproc inipro modctx inidata compicache procurmodenvlist inivalue)) )
 	    (debug_msg iniobj "compile_list_sexpr iniobj")
 	    (outnum_err "** warm-basilys generated " (list_length objlist) " routines into ")
 	    (outstr_err modnamstr)
@@ -15284,6 +15352,24 @@
   (message_dbg "ending showmdata_command"))
 (install_initial_command 
  (stringconst2val discr_string "showmdata") showmdata_command)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defun showvar_command (dispatcher arg secarg moduldata)
+  (let ( (sym (get_symbolstr arg)) 
+	 (bind (find_env moduldata sym))
+	 (val (if (is_a bind class_value_binding) 
+		  (unsafe_get_field :vbind_value bind)))
+	 )
+    (debug_msg sym "showvar symbol")
+    (debug_msg bind "showvar binding")
+    (debug_msg val "showvar val")
+    )
+  )
+
+(install_initial_command 
+ (stringconst2val discr_string "showvar") showvar_command)
+
+
 ;;;;;;;;;;;;;;;;
 
 (debug_msg initial_system_data "toplevel initial_system_data")

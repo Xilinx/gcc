@@ -1,4 +1,11 @@
 2008-06-23  Basile Starynkevitch  <basile@starynkevitch.net>
+	[start adding import of values]
+	* melt/warm-basilys.bysl: strangely needed to add a normal_exp
+	method to discr_string.  begin adding stuff for import of values:
+	class_nrep_startval & :nctx_valuelist & inivalue argument to
+	compile2obj_initproc. exporting inform_plain & inform_strv
+
+2008-06-23  Basile Starynkevitch  <basile@starynkevitch.net>
 	[avoid warning about C++ incompatibility]
 	* basilys.h: added casts.
 
