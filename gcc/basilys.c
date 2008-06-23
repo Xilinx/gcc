@@ -254,15 +254,12 @@ forwarded (void *ptr)
   return p;
 }
 
-#if ENABLE_CHECKING
-#define FORWARDED(P) do {if (P) {				\
-      if (debughack_file)					\
-	fprintf(debughack_file,"%s:%d forwarded %p\n", 	\
-		basename(__FILE__), __LINE__, (void*)(P));	\
-      (P) = forwarded((P));} }  while(0)
+#if GCC_VERSION > 4000
+#define FORWARDED(P) do {if (P) { \
+  (P) = (__typeof__(P))forwarded((void*)(P));} } while(0)
 #else
 #define FORWARDED(P) do {if (P) { 		       		\
-      (P) = forwarded((P));} }  while(0)
+       (P) = (basilys_ptr_t)forwarded((basilys_ptr_t)(P));} }  while(0)
 #endif
 static void scanning (basilys_ptr_t);
 
@@ -691,7 +688,7 @@ forwarded_copy (basilys_ptr_t p)
 	dst->obj_vartab = 0;
 	if (oblen > 0)
 	  {
-	    dst->obj_vartab = ggc_alloc_cleared (sizeof (void *) * oblen);
+	    dst->obj_vartab = (basilys_ptr_t*) ggc_alloc_cleared (sizeof (void *) * oblen);
 	    for (ix = (int) oblen - 1; ix >= 0; ix--)
 	      dst->obj_vartab[ix] = src->obj_vartab[ix];
 	  }
@@ -858,7 +855,7 @@ forwarded_copy (basilys_ptr_t p)
 	dst->buflenix = src->buflenix;
 	if (blen > 0)
 	  {
-	    dst->bufzn = ggc_alloc_cleared (1 + blen);
+	    dst->bufzn = (char*)ggc_alloc_cleared (1 + blen);
 	    memcpy (dst->bufzn, src->bufzn, blen);
 	  }
 	else
@@ -904,7 +901,7 @@ forwarded_copy (basilys_ptr_t p)
 	dst->lenix = src->lenix;
 	if (siz > 0 && src->entab)
 	  {
-	    dst->entab = ggc_alloc_cleared (siz * sizeof (dst->entab[0]));
+	    dst->entab = (struct entryobjectsbasilys_st*) ggc_alloc_cleared (siz * sizeof (dst->entab[0]));
 	    memcpy (dst->entab, src->entab, siz * sizeof (dst->entab[0]));
 	  }
 	else
@@ -923,7 +920,7 @@ forwarded_copy (basilys_ptr_t p)
 	dst->lenix = src->lenix;
 	if (siz > 0 && src->entab)
 	  {
-	    dst->entab = ggc_alloc_cleared (siz * sizeof (dst->entab[0]));
+	    dst->entab = (struct entrytreesbasilys_st*) ggc_alloc_cleared (siz * sizeof (dst->entab[0]));
 	    memcpy (dst->entab, src->entab, siz * sizeof (dst->entab[0]));
 	  }
 	else
@@ -942,7 +939,7 @@ forwarded_copy (basilys_ptr_t p)
 	dst->lenix = src->lenix;
 	if (siz > 0 && src->entab)
 	  {
-	    dst->entab = ggc_alloc_cleared (siz * sizeof (dst->entab[0]));
+	    dst->entab = (struct entrystringsbasilys_st*) ggc_alloc_cleared (siz * sizeof (dst->entab[0]));
 	    memcpy (dst->entab, src->entab, siz * sizeof (dst->entab[0]));
 	  }
 	else
@@ -961,7 +958,7 @@ forwarded_copy (basilys_ptr_t p)
 	dst->lenix = src->lenix;
 	if (siz > 0 && src->entab)
 	  {
-	    dst->entab = ggc_alloc_cleared (siz * sizeof (dst->entab[0]));
+	    dst->entab = (struct entrybasicblocksbasilys_st*) ggc_alloc_cleared (siz * sizeof (dst->entab[0]));
 	    memcpy (dst->entab, src->entab, siz * sizeof (dst->entab[0]));
 	  }
 	else
@@ -980,7 +977,7 @@ forwarded_copy (basilys_ptr_t p)
 	dst->lenix = src->lenix;
 	if (siz > 0 && src->entab)
 	  {
-	    dst->entab = ggc_alloc_cleared (siz * sizeof (dst->entab[0]));
+	    dst->entab = (struct entryedgesbasilys_st*) ggc_alloc_cleared (siz * sizeof (dst->entab[0]));
 	    memcpy (dst->entab, src->entab, siz * sizeof (dst->entab[0]));
 	  }
 	else
@@ -1037,7 +1034,7 @@ scanning (basilys_ptr_t p)
     case OBMAG_OBJECT:
       {
 	int ix;
-	struct basilysobject_st *src = (void *) p;
+	struct basilysobject_st *src = (basilysobject_ptr_t) p;
 	if (basilys_is_young (src->obj_vartab))
 	  {
 	    basilys_ptr_t *newtab = (basilys_ptr_t *)
@@ -1284,7 +1281,7 @@ scanning (basilys_ptr_t p)
 	    int bsiz = basilys_primtab[src->buflenix];
 	    if (bsiz > 0)
 	      {
-		char *newbufzn = ggc_alloc_cleared (bsiz + 1);
+		char *newbufzn = (char*)ggc_alloc_cleared (bsiz + 1);
 		memcpy (newbufzn, oldbufzn, bsiz);
 		src->bufzn = newbufzn;
 		memset (oldbufzn, 0, bsiz);
@@ -1417,7 +1414,7 @@ basilysgc_new_int (basilysobject_ptr_t discr_p, long num)
 #define int_newintv ((struct basilysint_st*)(newintv))
   newintv = NULL;
   discrv = (void *) discr_p;
-  if (basilys_magic_discr (discrv) != OBMAG_OBJECT)
+  if (basilys_magic_discr ((basilys_ptr_t)(discrv)) != OBMAG_OBJECT)
     goto end;
   if (object_discrv->object_magic != OBMAG_INT)
     goto end;
@@ -1426,7 +1423,7 @@ basilysgc_new_int (basilysobject_ptr_t discr_p, long num)
   int_newintv->val = num;
 end:
   BASILYS_EXITFRAME ();
-  return newintv;
+  return (basilys_ptr_t)newintv;
 #undef newintv
 #undef discrv
 #undef int_newintv
@@ -1447,17 +1444,17 @@ basilysgc_new_mixint (basilysobject_ptr_t discr_p,
   newmix = NULL;
   discrv = (void *) discr_p;
   valv = val_p;
-  if (basilys_magic_discr (discrv) != OBMAG_OBJECT)
+  if (basilys_magic_discr ((basilys_ptr_t)(discrv)) != OBMAG_OBJECT)
     goto end;
   if (object_discrv->object_magic != OBMAG_MIXINT)
     goto end;
   newmix = basilysgc_allocate (sizeof (struct basilysmixint_st), 0);
   mix_newmix->discr = object_discrv;
   mix_newmix->intval = num;
-  mix_newmix->ptrval = valv;
+  mix_newmix->ptrval = (basilys_ptr_t)valv;
 end:
   BASILYS_EXITFRAME ();
-  return newmix;
+  return (basilys_ptr_t)newmix;
 #undef newmix
 #undef valv
 #undef discrv
@@ -1485,14 +1482,14 @@ basilysgc_new_routine (basilysobject_ptr_t discr_p,
 #define rou_newroutv ((basilysroutine_ptr_t)(newroutv))
   newroutv = NULL;
   discrv = discr_p;
-  if (basilys_magic_discr (discrv) != OBMAG_OBJECT
+  if (basilys_magic_discr ((basilys_ptr_t)(discrv)) != OBMAG_OBJECT
       || obj_discrv->object_magic != OBMAG_ROUTINE || !descr || !descr[0]
       || !proc || len > BASILYS_MAXLEN)
     goto end;
   newroutv =
     basilysgc_allocate (sizeof (struct basilysroutine_st),
 			len * sizeof (void *));
-  rou_newroutv->discr = discrv;
+  rou_newroutv->discr = (basilysobject_ptr_t)discrv;
   rou_newroutv->nbval = len;
   memset (&un, 0, sizeof (un));
   un.fproc = proc;
@@ -1501,7 +1498,7 @@ basilysgc_new_routine (basilysobject_ptr_t discr_p,
   rou_newroutv->routdescr[BASILYS_ROUTDESCR_LEN - 1] = (char) 0;
 end:
   BASILYS_EXITFRAME ();
-  return newroutv;
+  return (basilysroutine_ptr_t)newroutv;
 #undef newroutv
 #undef discrv
 #undef obj_discrv
@@ -1522,19 +1519,19 @@ basilysgc_new_closure (basilysobject_ptr_t discr_p,
   discrv = discr_p;
   routv = rout_p;
   newclosv = NULL;
-  if (basilys_magic_discr (discrv) != OBMAG_OBJECT
+  if (basilys_magic_discr ((basilys_ptr_t)(discrv)) != OBMAG_OBJECT
       || obj_discrv->object_magic != OBMAG_CLOSURE
-      || basilys_magic_discr (routv) != OBMAG_ROUTINE || len > BASILYS_MAXLEN)
+      || basilys_magic_discr ((basilys_ptr_t)(routv)) != OBMAG_ROUTINE || len > BASILYS_MAXLEN)
     goto end;
   newclosv =
     basilysgc_allocate (sizeof (struct basilysclosure_st),
 			sizeof (void *) * len);
-  clo_newclosv->discr = discrv;
-  clo_newclosv->rout = routv;
+  clo_newclosv->discr = (basilysobject_ptr_t)discrv;
+  clo_newclosv->rout = (basilysroutine_ptr_t)routv;
   clo_newclosv->nbval = len;
 end:
   BASILYS_EXITFRAME ();
-  return newclosv;
+  return (basilysclosure_ptr_t)newclosv;
 #undef newclosv
 #undef discrv
 #undef routv
@@ -1555,7 +1552,7 @@ basilysgc_new_strbuf (basilysobject_ptr_t discr_p, const char *str)
 #define buf_newbufv ((struct basilysstrbuf_st*)(newbufv))
   discrv = discr_p;
   newbufv = NULL;
-  if (basilys_magic_discr (discrv) != OBMAG_OBJECT)
+  if (basilys_magic_discr ((basilys_ptr_t)(discrv)) != OBMAG_OBJECT)
     goto end;
   if (((basilysobject_ptr_t) (discrv))->object_magic != OBMAG_STRBUF)
     goto end;
@@ -1568,7 +1565,7 @@ basilysgc_new_strbuf (basilysobject_ptr_t discr_p, const char *str)
   newbufv =
     basilysgc_allocate (offsetof
 			(struct basilysstrbuf_st, buf_space), blen + 1);
-  buf_newbufv->discr = discrv;
+  buf_newbufv->discr = (basilysobject_ptr_t)discrv;
   buf_newbufv->bufzn = buf_newbufv->buf_space;
   buf_newbufv->buflenix = ix;
   buf_newbufv->bufstart = 0;
@@ -1581,7 +1578,7 @@ basilysgc_new_strbuf (basilysobject_ptr_t discr_p, const char *str)
     buf_newbufv->bufend = 0;
 end:
   BASILYS_EXITFRAME ();
-  return newbufv;
+  return (struct basilysstrbuf_st *)newbufv;
 #undef newbufv
 #undef discrv
 #undef buf_newbufv
@@ -1601,7 +1598,7 @@ basilysgc_add_strbuf_raw (struct basilysstrbuf_st *strbuf_p, const char *str)
   strbufv = strbuf_p;
   if (!str)
     goto end;
-  if (basilys_magic_discr (strbufv) != OBMAG_STRBUF)
+  if (basilys_magic_discr ((basilys_ptr_t)(strbufv)) != OBMAG_STRBUF)
     goto end;
   gcc_assert (!basilys_is_young (str));
   slen = strlen (str);
@@ -1664,7 +1661,7 @@ basilysgc_add_strbuf_raw (struct basilysstrbuf_st *strbuf_p, const char *str)
 	  if (!basilys_is_young (buf_strbufv->bufzn))
 	    goto strbuf_in_old_memory;
 	  gcc_assert (basilys_is_young (buf_strbufv));
-	  newb = basilys_allocatereserved (newblen + 1, 0);
+	  newb = (char*)basilys_allocatereserved (newblen + 1, 0);
 	  gcc_assert (basilys_is_young (buf_strbufv));
 	  memcpy (newb, buf_strbufv->bufzn + buf_strbufv->bufstart, siz);
 	  strcpy (newb + siz, str);
@@ -1677,7 +1674,7 @@ basilysgc_add_strbuf_raw (struct basilysstrbuf_st *strbuf_p, const char *str)
 	     by the basilysgc_reserve call above */
 	strbuf_in_old_memory:
 	  gcc_assert (!basilys_is_young (buf_strbufv));
-	  newb = ggc_alloc_cleared (newblen + 1);
+	  newb = (char*) ggc_alloc_cleared (newblen + 1);
 	  memcpy (newb, buf_strbufv->bufzn + buf_strbufv->bufstart, siz);
 	  strcpy (newb + siz, str);
 	  memset (buf_strbufv->bufzn, 0, oldblen);
@@ -1730,7 +1727,7 @@ basilysgc_add_strbuf_cstr (struct basilysstrbuf_st *strbuf_p, const char *str)
   char *cstr = NULL;
   if (!str || !str[0])
     return;
-  cstr = xcalloc (slen + 5, 4);
+  cstr = (char*)xcalloc (slen + 5, 4);
   pd = cstr;
   for (ps = str; *ps; ps++)
     {
@@ -1779,7 +1776,7 @@ basilysgc_add_strbuf_ccomment (struct basilysstrbuf_st
   char *cstr = NULL;
   if (!str || !str[0])
     return;
-  cstr = xcalloc (slen + 4, 4);
+  cstr = (char*)xcalloc (slen + 4, 4);
   pd = cstr;
   for (ps = str; *ps; ps++)
     {
@@ -1821,7 +1818,7 @@ basilysgc_add_strbuf_cident (struct basilysstrbuf_st
       dupstr = tinybuf;
     }
   else
-    dupstr = xcalloc (slen + 2, 1);
+    dupstr = (char*)xcalloc (slen + 2, 1);
   if (str)
     for (ps = (const char *) str, pd = dupstr; *ps; ps++)
       {
@@ -1966,7 +1963,7 @@ basilysgc_strbuf_add_indent (struct basilysstrbuf_st
 #define strbv   curfram__.varptr[0]
 #define strbufv ((struct basilysstrbuf_st*)(strbv))
   strbv = strbuf_p;
-  if (!strbufv || basilys_magic_discr ((void *) strbufv) != OBMAG_STRBUF)
+  if (!strbufv || basilys_magic_discr ((basilys_ptr_t) (strbufv)) != OBMAG_STRBUF)
     goto end;
   if (linethresh > 0 && linethresh < 40)
     linethresh = 40;
@@ -2013,14 +2010,14 @@ basilysgc_new_raw_object (basilysobject_ptr_t klass_p, unsigned len)
 #define obj_klassv   ((basilysobject_ptr_t)(klassv))
   newobjv = NULL;
   klassv = klass_p;
-  if (basilys_magic_discr (klassv) != OBMAG_OBJECT
+  if (basilys_magic_discr ((basilys_ptr_t)(klassv)) != OBMAG_OBJECT
       || obj_klassv->object_magic != OBMAG_OBJECT || len >= SHRT_MAX)
     goto end;
   /* the sizeof below could be the offsetof obj__tabfields */
   newobjv =
     basilysgc_allocate (sizeof (struct basilysobject_st),
 			len * sizeof (void *));
-  obj_newobjv->obj_class = klassv;
+  obj_newobjv->obj_class = (basilysobject_ptr_t)klassv;
   do
     {
       h = basilys_lrand () & BASILYS_MAXHASH;
@@ -2032,7 +2029,7 @@ basilysgc_new_raw_object (basilysobject_ptr_t klass_p, unsigned len)
     obj_newobjv->obj_vartab = obj_newobjv->obj__tabfields;
 end:
   BASILYS_EXITFRAME ();
-  return newobjv;
+  return (basilysobject_ptr_t)newobjv;
 #undef newobjv
 #undef klassv
 #undef obj_newobjv
@@ -2052,7 +2049,7 @@ basilysgc_new_multiple (basilysobject_ptr_t discr_p, unsigned len)
   discrv = (void *) discr_p;
   newmul = NULL;
   gcc_assert (len < BASILYS_MAXLEN);
-  if (basilys_magic_discr (discrv) != OBMAG_OBJECT)
+  if (basilys_magic_discr ((basilys_ptr_t)(discrv)) != OBMAG_OBJECT)
     goto end;
   if (object_discrv->object_magic != OBMAG_MULTIPLE)
     goto end;
@@ -2063,7 +2060,7 @@ basilysgc_new_multiple (basilysobject_ptr_t discr_p, unsigned len)
   mult_newmul->nbval = len;
 end:
   BASILYS_EXITFRAME ();
-  return newmul;
+  return (basilys_ptr_t)newmul;
 #undef newmul
 #undef discr
 #undef mult_newmul
@@ -2072,7 +2069,7 @@ end:
 
 
 void
-basilysgc_multiple_put_nth (basilysmultiple_ptr_t mul_p,
+basilysgc_multiple_put_nth (basilys_ptr_t mul_p,
 			    int n, basilys_ptr_t val_p)
 {
   int ln = 0;
@@ -2083,14 +2080,14 @@ basilysgc_multiple_put_nth (basilysmultiple_ptr_t mul_p,
 #define valv    curfram__.varptr[2]
   mulv = mul_p;
   valv = val_p;
-  if (basilys_magic_discr (mulv) != OBMAG_MULTIPLE)
+  if (basilys_magic_discr ((basilys_ptr_t)(mulv)) != OBMAG_MULTIPLE)
     goto end;
   ln = mult_mulv->nbval;
   if (n < 0)
     n += ln;
   if (n >= 0 && n < ln)
     {
-      mult_mulv->tabval[n] = valv;
+      mult_mulv->tabval[n] = (basilys_ptr_t)valv;
       basilysgc_touch_dest (mulv, valv);
     }
 end:
@@ -2127,8 +2124,8 @@ mulsort_cmp (const void *p1, const void *p2)
   clov = *mulsort_clos_ad;
   ix1 = *(const int *) p1;
   ix2 = *(const int *) p2;
-  val1v = basilys_multiple_nth (mulv, ix1);
-  val2v = basilys_multiple_nth (mulv, ix2);
+  val1v = basilys_multiple_nth ((basilys_ptr_t)mulv, ix1);
+  val2v = basilys_multiple_nth ((basilys_ptr_t)mulv, ix2);
   if (val1v == val2v)
     {
       ok = 1;
@@ -2137,11 +2134,11 @@ mulsort_cmp (const void *p1, const void *p2)
     }
   memset (argtab, 0, sizeof (argtab));
   argtab[0].bp_aptr = (basilys_ptr_t *) & val2v;
-  rescmpv = basilys_apply (clov, val1v, BPARSTR_PTR, argtab, "", NULL);
-  if (basilys_magic_discr (rescmpv) == OBMAG_INT)
+  rescmpv = basilys_apply ((basilysclosure_ptr_t)clov, (basilys_ptr_t)val1v, BPARSTR_PTR, argtab, "", NULL);
+  if (basilys_magic_discr ((basilys_ptr_t)rescmpv) == OBMAG_INT)
     {
       ok = 1;
-      cmp = basilys_get_int (rescmpv);
+      cmp = basilys_get_int ((basilys_ptr_t)rescmpv);
     }
 end:
   BASILYS_EXITFRAME ();
@@ -2172,19 +2169,19 @@ basilysgc_sort_multiple (basilys_ptr_t mult_p, basilys_ptr_t clo_p,
   clov = clo_p;
   discrmv = discrm_p;
   resv = NULL;
-  if (basilys_magic_discr (multv) != OBMAG_MULTIPLE)
+  if (basilys_magic_discr ((basilys_ptr_t)multv) != OBMAG_MULTIPLE)
     goto end;
-  if (basilys_magic_discr (clov) != OBMAG_CLOSURE)
+  if (basilys_magic_discr ((basilys_ptr_t)clov) != OBMAG_CLOSURE)
     goto end;
   if (!discrmv)
     discrmv = BASILYSGOB (DISCR_MULTIPLE);
-  if (basilys_magic_discr (discrmv) != OBMAG_OBJECT)
+  if (basilys_magic_discr ((basilys_ptr_t)discrmv) != OBMAG_OBJECT)
     goto end;
   if (((basilysobject_ptr_t) discrmv)->obj_num != OBMAG_MULTIPLE)
     goto end;
   mulen = (int) (((basilysmultiple_ptr_t) multv)->nbval);
   /* allocate and fill ixtab with indexes */
-  ixtab = xcalloc (mulen + 1, sizeof (ixtab[0]));
+  ixtab = (int*)xcalloc (mulen + 1, sizeof (ixtab[0]));
   for (i = 0; i < (int) mulen; i++)
     ixtab[i] = i;
   mulsort_mult_ad = (basilys_ptr_t *) & multv;
@@ -2192,10 +2189,10 @@ basilysgc_sort_multiple (basilys_ptr_t mult_p, basilys_ptr_t clo_p,
   if (!setjmp (mulsort_escapjmp))
     {
       qsort (ixtab, (size_t) mulen, sizeof (ixtab[0]), mulsort_cmp);
-      resv = basilysgc_new_multiple (discrmv, (unsigned) mulen);
+      resv = basilysgc_new_multiple ((basilysobject_ptr_t)discrmv, (unsigned) mulen);
       for (i = 0; i < (int) mulen; i++)
-	basilysgc_multiple_put_nth (resv, i,
-				    basilys_multiple_nth (multv, ixtab[i]));
+	basilysgc_multiple_put_nth ((basilys_ptr_t)resv, i,
+				    basilys_multiple_nth ((basilys_ptr_t)multv, ixtab[i]));
     }
   else
     {
@@ -2208,7 +2205,7 @@ end:
   mulsort_mult_ad = 0;
   mulsort_clos_ad = 0;
   BASILYS_EXITFRAME ();
-  return resv;
+  return (basilys_ptr_t)resv;
 #undef multv
 #undef clov
 #undef discrmv
@@ -2229,16 +2226,16 @@ basilysgc_new_box (basilysobject_ptr_t discr_p, basilys_ptr_t val_p)
   discrv = (void *) discr_p;
   valv = (void *) val_p;
   boxv = NULL;
-  if (basilys_magic_discr (discrv) != OBMAG_OBJECT)
+  if (basilys_magic_discr ((basilys_ptr_t)discrv) != OBMAG_OBJECT)
     goto end;
   if (object_discrv->object_magic != OBMAG_BOX)
     goto end;
   boxv = basilysgc_allocate (sizeof (struct basilysbox_st), 0);
-  ((struct basilysbox_st *) (boxv))->discr = discrv;
-  ((struct basilysbox_st *) (boxv))->val = valv;
+  ((struct basilysbox_st *) (boxv))->discr = (basilysobject_ptr_t)discrv;
+  ((struct basilysbox_st *) (boxv))->val = (basilys_ptr_t)valv;
 end:
   BASILYS_EXITFRAME ();
-  return boxv;
+  return (basilys_ptr_t)boxv;
 #undef boxv
 #undef discr
 #undef valv
@@ -2254,9 +2251,9 @@ basilysgc_box_put (basilys_ptr_t box_p, basilys_ptr_t val_p)
 #define valv   curfram__.varptr[1]
   boxv = box_p;
   valv = val_p;
-  if (basilys_magic_discr (boxv) != OBMAG_BOX)
+  if (basilys_magic_discr ((basilys_ptr_t)boxv) != OBMAG_BOX)
     goto end;
-  ((basilysbox_ptr_t) boxv)->val = valv;
+  ((basilysbox_ptr_t) boxv)->val = (basilys_ptr_t)valv;
   basilysgc_touch_dest (boxv, valv);
 end:
   BASILYS_EXITFRAME ();
@@ -2271,7 +2268,7 @@ basilys_container_value  (basilys_ptr_t cont)
   if (basilys_magic_discr(cont) != OBMAG_OBJECT 
       || ((basilysobject_ptr_t)cont)->obj_len<FCONTAINER__LAST)
     return 0;
-  if (!basilys_is_instance_of((void*)cont, (void*)BASILYSGOB(CLASS_CONTAINER)))
+  if (!basilys_is_instance_of((basilys_ptr_t)cont, (basilys_ptr_t)BASILYSGOB(CLASS_CONTAINER)))
     return 0;
   return ((basilysobject_ptr_t)cont)->obj_vartab[FCONTAINER_VALUE];
 }
@@ -2289,7 +2286,7 @@ basilysgc_new_mult1 (basilysobject_ptr_t discr_p, basilys_ptr_t v0_p)
   discrv = (void *) discr_p;
   v0 = v0_p;
   newmul = NULL;
-  if (basilys_magic_discr (discrv) != OBMAG_OBJECT)
+  if (basilys_magic_discr ((basilys_ptr_t)discrv) != OBMAG_OBJECT)
     goto end;
   if (object_discrv->object_magic != OBMAG_MULTIPLE)
     goto end;
@@ -2298,10 +2295,10 @@ basilysgc_new_mult1 (basilysobject_ptr_t discr_p, basilys_ptr_t v0_p)
 			sizeof (void *) * 1);
   mult_newmul->discr = object_discrv;
   mult_newmul->nbval = 1;
-  mult_newmul->tabval[0] = v0;
+  mult_newmul->tabval[0] = (basilys_ptr_t)v0;
 end:
   BASILYS_EXITFRAME ();
-  return newmul;
+  return (basilys_ptr_t)newmul;
 #undef newmul
 #undef discr
 #undef v0
@@ -2324,7 +2321,7 @@ basilysgc_new_mult2 (basilysobject_ptr_t discr_p,
   v0 = v0_p;
   v1 = v1_p;
   newmul = NULL;
-  if (basilys_magic_discr (discrv) != OBMAG_OBJECT)
+  if (basilys_magic_discr ((basilys_ptr_t)discrv) != OBMAG_OBJECT)
     goto end;
   if (object_discrv->object_magic != OBMAG_MULTIPLE)
     goto end;
@@ -2333,11 +2330,11 @@ basilysgc_new_mult2 (basilysobject_ptr_t discr_p,
 			sizeof (void *) * 2);
   mult_newmul->discr = object_discrv;
   mult_newmul->nbval = 2;
-  mult_newmul->tabval[0] = v0;
-  mult_newmul->tabval[1] = v1;
+  mult_newmul->tabval[0] = (basilys_ptr_t)v0;
+  mult_newmul->tabval[1] = (basilys_ptr_t)v1;
 end:
   BASILYS_EXITFRAME ();
-  return newmul;
+  return (basilys_ptr_t)newmul;
 #undef newmul
 #undef discr
 #undef v0
@@ -2364,7 +2361,7 @@ basilysgc_new_mult3 (basilysobject_ptr_t discr_p,
   v1 = v1_p;
   v2 = v2_p;
   newmul = NULL;
-  if (basilys_magic_discr (discrv) != OBMAG_OBJECT)
+  if (basilys_magic_discr ((basilys_ptr_t)discrv) != OBMAG_OBJECT)
     goto end;
   if (object_discrv->object_magic != OBMAG_MULTIPLE)
     goto end;
@@ -2373,12 +2370,12 @@ basilysgc_new_mult3 (basilysobject_ptr_t discr_p,
 			sizeof (void *) * 3);
   mult_newmul->discr = object_discrv;
   mult_newmul->nbval = 3;
-  mult_newmul->tabval[0] = v0;
-  mult_newmul->tabval[1] = v1;
-  mult_newmul->tabval[2] = v2;
+  mult_newmul->tabval[0] = (basilys_ptr_t)v0;
+  mult_newmul->tabval[1] = (basilys_ptr_t)v1;
+  mult_newmul->tabval[2] = (basilys_ptr_t)v2;
 end:
   BASILYS_EXITFRAME ();
-  return newmul;
+  return (basilys_ptr_t)newmul;
 #undef newmul
 #undef discrv
 #undef v0
@@ -2408,7 +2405,7 @@ basilysgc_new_mult4 (basilysobject_ptr_t discr_p,
   v2 = v2_p;
   v3 = v3_p;
   newmul = NULL;
-  if (basilys_magic_discr (discrv) != OBMAG_OBJECT)
+  if (basilys_magic_discr ((basilys_ptr_t)discrv) != OBMAG_OBJECT)
     goto end;
   if (object_discrv->object_magic != OBMAG_MULTIPLE)
     goto end;
@@ -2417,13 +2414,13 @@ basilysgc_new_mult4 (basilysobject_ptr_t discr_p,
 			sizeof (void *) * 4);
   mult_newmul->discr = object_discrv;
   mult_newmul->nbval = 4;
-  mult_newmul->tabval[0] = v0;
-  mult_newmul->tabval[1] = v1;
-  mult_newmul->tabval[2] = v2;
-  mult_newmul->tabval[3] = v3;
+  mult_newmul->tabval[0] = (basilys_ptr_t)v0;
+  mult_newmul->tabval[1] = (basilys_ptr_t)v1;
+  mult_newmul->tabval[2] = (basilys_ptr_t)v2;
+  mult_newmul->tabval[3] = (basilys_ptr_t)v3;
 end:
   BASILYS_EXITFRAME ();
-  return newmul;
+  return (basilys_ptr_t)newmul;
 #undef newmul
 #undef discrv
 #undef v0
@@ -2458,7 +2455,7 @@ basilysgc_new_mult5 (basilysobject_ptr_t discr_p,
   v3 = v3_p;
   v4 = v4_p;
   newmul = NULL;
-  if (basilys_magic_discr (discrv) != OBMAG_OBJECT)
+  if (basilys_magic_discr ((basilys_ptr_t)discrv) != OBMAG_OBJECT)
     goto end;
   if (object_discrv->object_magic != OBMAG_MULTIPLE)
     goto end;
@@ -2467,14 +2464,14 @@ basilysgc_new_mult5 (basilysobject_ptr_t discr_p,
 			sizeof (void *) * 5);
   mult_newmul->discr = object_discrv;
   mult_newmul->nbval = 5;
-  mult_newmul->tabval[0] = v0;
-  mult_newmul->tabval[1] = v1;
-  mult_newmul->tabval[2] = v2;
-  mult_newmul->tabval[3] = v3;
-  mult_newmul->tabval[4] = v4;
+  mult_newmul->tabval[0] = (basilys_ptr_t)v0;
+  mult_newmul->tabval[1] = (basilys_ptr_t)v1;
+  mult_newmul->tabval[2] = (basilys_ptr_t)v2;
+  mult_newmul->tabval[3] = (basilys_ptr_t)v3;
+  mult_newmul->tabval[4] = (basilys_ptr_t)v4;
 end:
   BASILYS_EXITFRAME ();
-  return newmul;
+  return (basilys_ptr_t)newmul;
 #undef newmul
 #undef discrv
 #undef v0
@@ -2512,7 +2509,7 @@ basilysgc_new_mult6 (basilysobject_ptr_t discr_p,
   v4 = v4_p;
   v5 = v5_p;
   newmul = NULL;
-  if (basilys_magic_discr (discrv) != OBMAG_OBJECT)
+  if (basilys_magic_discr ((basilys_ptr_t)discrv) != OBMAG_OBJECT)
     goto end;
   if (object_discrv->object_magic != OBMAG_MULTIPLE)
     goto end;
@@ -2521,15 +2518,15 @@ basilysgc_new_mult6 (basilysobject_ptr_t discr_p,
 			sizeof (void *) * 6);
   mult_newmul->discr = object_discrv;
   mult_newmul->nbval = 6;
-  mult_newmul->tabval[0] = v0;
-  mult_newmul->tabval[1] = v1;
-  mult_newmul->tabval[2] = v2;
-  mult_newmul->tabval[3] = v3;
-  mult_newmul->tabval[4] = v4;
-  mult_newmul->tabval[5] = v5;
+  mult_newmul->tabval[0] = (basilys_ptr_t)v0;
+  mult_newmul->tabval[1] = (basilys_ptr_t)v1;
+  mult_newmul->tabval[2] = (basilys_ptr_t)v2;
+  mult_newmul->tabval[3] = (basilys_ptr_t)v3;
+  mult_newmul->tabval[4] = (basilys_ptr_t)v4;
+  mult_newmul->tabval[5] = (basilys_ptr_t)v5;
 end:
   BASILYS_EXITFRAME ();
-  return newmul;
+  return (basilys_ptr_t)newmul;
 #undef newmul
 #undef discrv
 #undef v0
@@ -2570,7 +2567,7 @@ basilysgc_new_mult7 (basilysobject_ptr_t discr_p,
   v5 = v5_p;
   v6 = v6_p;
   newmul = NULL;
-  if (basilys_magic_discr (discrv) != OBMAG_OBJECT)
+  if (basilys_magic_discr ((basilys_ptr_t)discrv) != OBMAG_OBJECT)
     goto end;
   if (object_discrv->object_magic != OBMAG_MULTIPLE)
     goto end;
@@ -2579,16 +2576,16 @@ basilysgc_new_mult7 (basilysobject_ptr_t discr_p,
 			sizeof (void *) * 7);
   mult_newmul->discr = object_discrv;
   mult_newmul->nbval = 7;
-  mult_newmul->tabval[0] = v0;
-  mult_newmul->tabval[1] = v1;
-  mult_newmul->tabval[2] = v2;
-  mult_newmul->tabval[3] = v3;
-  mult_newmul->tabval[4] = v4;
-  mult_newmul->tabval[5] = v5;
-  mult_newmul->tabval[6] = v6;
+  mult_newmul->tabval[0] = (basilys_ptr_t)v0;
+  mult_newmul->tabval[1] = (basilys_ptr_t)v1;
+  mult_newmul->tabval[2] = (basilys_ptr_t)v2;
+  mult_newmul->tabval[3] = (basilys_ptr_t)v3;
+  mult_newmul->tabval[4] = (basilys_ptr_t)v4;
+  mult_newmul->tabval[5] = (basilys_ptr_t)v5;
+  mult_newmul->tabval[6] = (basilys_ptr_t)v6;
 end:
   BASILYS_EXITFRAME ();
-  return newmul;
+  return (basilys_ptr_t)newmul;
 #undef newmul
 #undef discrv
 #undef v0
@@ -2613,7 +2610,7 @@ basilysgc_new_list (basilysobject_ptr_t discr_p)
 #define list_newlist ((struct basilyslist_st*)(newlist))
   discrv = (void *) discr_p;
   newlist = NULL;
-  if (basilys_magic_discr (discrv) != OBMAG_OBJECT)
+  if (basilys_magic_discr ((basilys_ptr_t)discrv) != OBMAG_OBJECT)
     goto end;
   if (object_discrv->object_magic != OBMAG_LIST)
     goto end;
@@ -2623,7 +2620,7 @@ basilysgc_new_list (basilysobject_ptr_t discr_p)
   list_newlist->last = NULL;
 end:
   BASILYS_EXITFRAME ();
-  return newlist;
+  return (basilys_ptr_t)newlist;
 #undef newlist
 #undef discrv
 #undef list_newlist
@@ -2642,18 +2639,18 @@ basilysgc_new_pair (basilysobject_ptr_t discr_p, void *head_p, void *tail_p)
   discrv = discr_p;
   headv = head_p;
   tailv = tail_p;
-  if (basilys_magic_discr (discrv) != OBMAG_OBJECT
+  if (basilys_magic_discr ((basilys_ptr_t)discrv) != OBMAG_OBJECT
       || ((basilysobject_ptr_t) (discrv))->object_magic != OBMAG_PAIR)
     goto end;
-  if (basilys_magic_discr (tailv) != OBMAG_PAIR)
+  if (basilys_magic_discr ((basilys_ptr_t)tailv) != OBMAG_PAIR)
     tailv = NULL;
   pairv = basilysgc_allocate (sizeof (struct basilyspair_st), 0);
-  ((struct basilyspair_st *) (pairv))->discr = discrv;
-  ((struct basilyspair_st *) (pairv))->hd = headv;
-  ((struct basilyspair_st *) (pairv))->tl = tailv;
+  ((struct basilyspair_st *) (pairv))->discr = (basilysobject_ptr_t)discrv;
+  ((struct basilyspair_st *) (pairv))->hd = (basilys_ptr_t)headv;
+  ((struct basilyspair_st *) (pairv))->tl = (struct basilyspair_st*)tailv;
 end:
   BASILYS_EXITFRAME ();
-  return pairv;
+  return (basilys_ptr_t)pairv;
 #undef pairv
 #undef headv
 #undef tailv
@@ -2669,9 +2666,9 @@ basilysgc_pair_set_head (basilys_ptr_t pair_p, void *head_p)
 #define headv   curfram__.varptr[1]
   pairv = pair_p;
   headv = head_p;
-  if (basilys_magic_discr (pairv) != OBMAG_PAIR)
+  if (basilys_magic_discr ((basilys_ptr_t)pairv) != OBMAG_PAIR)
     goto end;
-  ((struct basilyspair_st *) pairv)->hd = headv;
+  ((struct basilyspair_st *) pairv)->hd = (basilys_ptr_t)headv;
   basilysgc_touch_dest (pairv, headv);
 end:
   BASILYS_EXITFRAME ();
@@ -2692,23 +2689,23 @@ basilysgc_append_list (basilys_ptr_t list_p, basilys_ptr_t valu_p)
 #define list_list ((struct basilyslist_st*)(list))
   list = list_p;
   valu = valu_p;
-  if (basilys_magic_discr (list) != OBMAG_LIST || !BASILYSGOB (DISCR_PAIR))
+  if (basilys_magic_discr ((basilys_ptr_t)list) != OBMAG_LIST || !BASILYSGOB (DISCR_PAIR))
     goto end;
   pairv = basilysgc_allocate (sizeof (struct basilyspair_st), 0);
   pai_pairv->discr = BASILYSGOB (DISCR_PAIR);
-  pai_pairv->hd = valu;
+  pai_pairv->hd = (basilys_ptr_t)valu;
   pai_pairv->tl = NULL;
-  gcc_assert (basilys_magic_discr (pairv) == OBMAG_PAIR);
+  gcc_assert (basilys_magic_discr ((basilys_ptr_t)pairv) == OBMAG_PAIR);
   lastv = list_list->last;
   if (basilys_magic_discr ((basilys_ptr_t) lastv) == OBMAG_PAIR)
     {
       gcc_assert (((struct basilyspair_st *) lastv)->tl == NULL);
-      ((struct basilyspair_st *) lastv)->tl = pairv;
+      ((struct basilyspair_st *) lastv)->tl = (struct basilyspair_st*)pairv;
       basilysgc_touch_dest (lastv, pairv);
     }
   else
-    list_list->first = pairv;
-  list_list->last = pairv;
+    list_list->first = (struct basilyspair_st*)pairv;
+  list_list->last = (struct basilyspair_st*) pairv;
   basilysgc_touch_dest (list, pairv);
 end:
   BASILYS_EXITFRAME ();
@@ -2732,22 +2729,22 @@ basilysgc_prepend_list (basilys_ptr_t list_p, basilys_ptr_t valu_p)
 #define list_list ((struct basilyslist_st*)(list))
   list = list_p;
   valu = valu_p;
-  if (basilys_magic_discr (list) != OBMAG_LIST || !BASILYSGOB (DISCR_PAIR))
+  if (basilys_magic_discr ((basilys_ptr_t)list) != OBMAG_LIST || !BASILYSGOB (DISCR_PAIR))
     goto end;
   pairv = basilysgc_allocate (sizeof (struct basilyspair_st), 0);
   pai_pairv->discr = BASILYSGOB (DISCR_PAIR);
-  pai_pairv->hd = valu;
+  pai_pairv->hd = (basilys_ptr_t)valu;
   pai_pairv->tl = NULL;
-  gcc_assert (basilys_magic_discr (pairv) == OBMAG_PAIR);
+  gcc_assert (basilys_magic_discr ((basilys_ptr_t)pairv) == OBMAG_PAIR);
   firstv = (basilys_ptr_t) (list_list->first);
-  if (basilys_magic_discr (firstv) == OBMAG_PAIR)
+  if (basilys_magic_discr ((basilys_ptr_t)firstv) == OBMAG_PAIR)
     {
-      pai_pairv->tl = firstv;
+      pai_pairv->tl = (struct basilyspair_st*)firstv;
       basilysgc_touch_dest (pairv, firstv);
     }
   else
-    list_list->last = pairv;
-  list_list->first = pairv;
+    list_list->last = (struct basilyspair_st*)pairv;
+  list_list->first = (struct basilyspair_st*) pairv;
   basilysgc_touch_dest (list, pairv);
 end:
   BASILYS_EXITFRAME ();
@@ -2769,7 +2766,7 @@ basilysgc_popfirst_list (basilys_ptr_t list_p)
 #define pai_pairv ((struct basilyspair_st*)(pairv))
 #define list_list ((struct basilyslist_st*)(list))
   list = list_p;
-  if (basilys_magic_discr (list) != OBMAG_LIST)
+  if (basilys_magic_discr ((basilys_ptr_t)list) != OBMAG_LIST)
     goto end;
   pairv = list_list->first;
   if (basilys_magic_discr ((basilys_ptr_t) pairv) != OBMAG_PAIR)
@@ -2788,7 +2785,7 @@ basilysgc_popfirst_list (basilys_ptr_t list_p)
   basilysgc_touch (list);
 end:
   BASILYS_EXITFRAME ();
-  return valu;
+  return (basilys_ptr_t)valu;
 #undef list
 #undef value
 #undef list_list
@@ -2851,7 +2848,7 @@ basilysgc_new_mapobjects (basilysobject_ptr_t discr_p, unsigned len)
     };
 end:
   BASILYS_EXITFRAME ();
-  return newmapv;
+  return (basilys_ptr_t)newmapv;
 #undef discrv
 #undef newmapv
 #undef object_discrv
@@ -2922,12 +2919,12 @@ basilysgc_put_mapobjects (basilysmapobjects_ptr_t
 	  basilysgc_reserve (lensiz + 20);
 	  if (!basilys_is_young (mapobjectv))
 	    goto alloc_old_smallmapobj;
-	  map_mapobjectv->entab = basilys_allocatereserved (lensiz, 0);
+	  map_mapobjectv->entab = (struct entryobjectsbasilys_st*)basilys_allocatereserved (lensiz, 0);
 	}
       else
 	{
 	alloc_old_smallmapobj:
-	  map_mapobjectv->entab = ggc_alloc_cleared (lensiz);
+	  map_mapobjectv->entab = (struct entryobjectsbasilys_st*)ggc_alloc_cleared (lensiz);
 	}
       map_mapobjectv->lenix = 1;
       basilysgc_touch (map_mapobjectv);
@@ -2949,12 +2946,12 @@ basilysgc_put_mapobjects (basilysmapobjects_ptr_t
 	  basilysgc_reserve (newlensiz + 100);
 	  if (!basilys_is_young (map_mapobjectv))
 	    goto alloc_old_mapobj;
-	  newtab = basilys_allocatereserved (newlensiz, 0);
+	  newtab = (struct entryobjectsbasilys_st*) basilys_allocatereserved (newlensiz, 0);
 	}
       else
 	{
 	alloc_old_mapobj:
-	  newtab = ggc_alloc_cleared (newlensiz);
+	  newtab = (struct entryobjectsbasilys_st*) ggc_alloc_cleared (newlensiz);
 	};
       oldtab = map_mapobjectv->entab;
       for (ix = 0; ix < len; ix++)
@@ -2989,10 +2986,10 @@ basilysgc_put_mapobjects (basilysmapobjects_ptr_t
   gcc_assert (ix >= 0);
   if (map_mapobjectv->entab[ix].e_at != attrobjectv)
     {
-      map_mapobjectv->entab[ix].e_at = attrobjectv;
+      map_mapobjectv->entab[ix].e_at = (basilysobject_ptr_t)attrobjectv;
       map_mapobjectv->count++;
     }
-  map_mapobjectv->entab[ix].e_va = valuv;
+  map_mapobjectv->entab[ix].e_va = (basilys_ptr_t)valuv;
   basilysgc_touch_dest (map_mapobjectv, attrobjectv);
   basilysgc_touch_dest (map_mapobjectv, valuv);
 end:
@@ -3039,7 +3036,7 @@ basilysgc_remove_mapobjects (basilysmapobjects_ptr_t
   ix = unsafe_index_mapobject (map_mapobjectv->entab, attrobject_p, len);
   if (ix < 0 || map_mapobjectv->entab[ix].e_at != attrobjectv)
     goto end;
-  map_mapobjectv->entab[ix].e_at = (void *) HTAB_DELETED_ENTRY;
+  map_mapobjectv->entab[ix].e_at = (basilysobject_ptr_t) HTAB_DELETED_ENTRY;
   valuv = map_mapobjectv->entab[ix].e_va;
   map_mapobjectv->entab[ix].e_va = NULL;
   map_mapobjectv->count--;
@@ -3061,12 +3058,12 @@ basilysgc_remove_mapobjects (basilysmapobjects_ptr_t
 	  basilysgc_reserve (newlensiz + 10 * sizeof (void *));
 	  if (!basilys_is_young (map_mapobjectv))
 	    goto alloc_old_entries;
-	  newtab = basilys_allocatereserved (newlensiz, 0);
+	  newtab = (struct entryobjectsbasilys_st*) basilys_allocatereserved (newlensiz, 0);
 	}
       else
 	{
 	alloc_old_entries:
-	  newtab = ggc_alloc_cleared (newlensiz);
+	  newtab = (struct entryobjectsbasilys_st*) ggc_alloc_cleared (newlensiz);
 	}
       oldtab = map_mapobjectv->entab;
       for (ix = 0; ix < len; ix++)
@@ -3090,7 +3087,7 @@ basilysgc_remove_mapobjects (basilysmapobjects_ptr_t
   basilysgc_touch (map_mapobjectv);
 end:
   BASILYS_EXITFRAME ();
-  return valuv;
+  return (basilys_ptr_t)valuv;
 #undef discrv
 #undef mapobjectv
 #undef attrobjectv
@@ -3176,7 +3173,7 @@ basilysgc_new_mapstrings (basilysobject_ptr_t discr_p, unsigned len)
 	   (primlen = (int) basilys_primtab[lenix]) != 0
 	   && primlen <= (int) len; lenix++);
       /* the newmapv is always young */
-      mapstring_newmapv->entab =
+      mapstring_newmapv->entab = (struct entrystringsbasilys_st*)
 	basilysgc_allocate (primlen *
 			    sizeof (struct entrystringsbasilys_st), 0);
       mapstring_newmapv->lenix = lenix;
@@ -3184,7 +3181,7 @@ basilysgc_new_mapstrings (basilysobject_ptr_t discr_p, unsigned len)
     }
 end:
   BASILYS_EXITFRAME ();
-  return newmapv;
+  return (basilys_ptr_t)newmapv;
 #undef discrv
 #undef newmapv
 #undef object_discrv
@@ -3220,7 +3217,7 @@ basilysgc_put_mapstrings (struct basilysmapstrings_st
       attrdup = strcpy (tinybuf, attr);
     }
   else
-    attrdup = strcpy (xcalloc (atlen + 1, 1), attr);
+    attrdup = strcpy ((char*)xcalloc (atlen + 1, 1), attr);
   if (!map_mapstringv->entab)
     {
       size_t lensiz = 0;
@@ -3231,12 +3228,12 @@ basilysgc_put_mapstrings (struct basilysmapstrings_st
 	  basilysgc_reserve (lensiz + 16 * sizeof (void *));
 	  if (!basilys_is_young (mapstringv))
 	    goto alloc_old_small_mapstring;
-	  map_mapstringv->entab = basilys_allocatereserved (lensiz, 0);
+	  map_mapstringv->entab = (struct entrystringsbasilys_st*) basilys_allocatereserved (lensiz, 0);
 	}
       else
 	{
 	alloc_old_small_mapstring:
-	  map_mapstringv->entab = ggc_alloc_cleared (lensiz);
+	  map_mapstringv->entab = (struct entrystringsbasilys_st*) ggc_alloc_cleared (lensiz);
 	}
       map_mapstringv->lenix = 1;
       basilysgc_touch (map_mapstringv);
@@ -3256,12 +3253,12 @@ basilysgc_put_mapstrings (struct basilysmapstrings_st
 	  basilysgc_reserve (newlensiz + 10 * sizeof (void *));
 	  if (!basilys_is_young (mapstringv))
 	    goto alloc_old_mapstring;
-	  newtab = basilys_allocatereserved (newlensiz, 0);
+	  newtab = (struct entrystringsbasilys_st *) basilys_allocatereserved (newlensiz, 0);
 	}
       else
 	{
 	alloc_old_mapstring:
-	  newtab = ggc_alloc_cleared (newlensiz);
+	  newtab = (struct entrystringsbasilys_st *) ggc_alloc_cleared (newlensiz);
 	};
       oldtab = map_mapstringv->entab;
       for (ix = 0; ix < len; ix++)
@@ -3289,12 +3286,12 @@ basilysgc_put_mapstrings (struct basilysmapstrings_st
   if (!map_mapstringv->entab[ix].e_at
       || map_mapstringv->entab[ix].e_at == HTAB_DELETED_ENTRY)
     {
-      char *newat = basilysgc_allocate (atlen + 1, 0);
+      char *newat = (char*)basilysgc_allocate (atlen + 1, 0);
       strcpy (newat, attrdup);
       map_mapstringv->entab[ix].e_at = newat;
       map_mapstringv->count++;
     }
-  map_mapstringv->entab[ix].e_va = valuv;
+  map_mapstringv->entab[ix].e_va = (basilys_ptr_t)valuv;
   basilysgc_touch_dest (map_mapstringv, valuv);
 end:
   if (attrdup && attrdup != tinybuf)
@@ -3364,14 +3361,14 @@ basilysgc_remove_mapstrings (struct basilysmapstrings_st *
       attrdup = strcpy (tinybuf, attr);
     }
   else
-    attrdup = strcpy (xcalloc (atlen + 1, 1), attr);
+    attrdup = strcpy ((char*)xcalloc (atlen + 1, 1), attr);
   ix = unsafe_index_mapstring (map_mapstringv->entab, attrdup, len);
   if (ix < 0 || !(oldat = map_mapstringv->entab[ix].e_at)
       || oldat == HTAB_DELETED_ENTRY)
     goto end;
   if (!basilys_is_young (oldat))
-    ggc_free (oldat);
-  map_mapstringv->entab[ix].e_at = (void *) HTAB_DELETED_ENTRY;
+    ggc_free ((char*)oldat);
+  map_mapstringv->entab[ix].e_at = (char*) HTAB_DELETED_ENTRY;
   valuv = map_mapstringv->entab[ix].e_va;
   map_mapstringv->entab[ix].e_va = NULL;
   map_mapstringv->count--;
@@ -3391,12 +3388,12 @@ basilysgc_remove_mapstrings (struct basilysmapstrings_st *
 	  basilysgc_reserve (newlensiz + 10 * sizeof (void *));
 	  if (!basilys_is_young (mapstringv))
 	    goto alloc_old_mapstring_newtab;
-	  newtab = basilys_allocatereserved (newlensiz, 0);
+	  newtab = (struct entrystringsbasilys_st *) basilys_allocatereserved (newlensiz, 0);
 	}
       else
 	{
 	alloc_old_mapstring_newtab:
-	  newtab = ggc_alloc_cleared (newlensiz);
+	  newtab = (struct entrystringsbasilys_st *) ggc_alloc_cleared (newlensiz);
 	}
       oldtab = map_mapstringv->entab;
       for (ix = 0; ix < len; ix++)
@@ -3421,7 +3418,7 @@ end:
   if (attrdup && attrdup != tinybuf)
     free (attrdup);
   BASILYS_EXITFRAME ();
-  return valuv;
+  return (basilys_ptr_t)valuv;
 #undef discrv
 #undef mapstringv
 #undef valuv
@@ -3571,12 +3568,12 @@ basilysgc_raw_put_mappointers (void *mappointer_p,
 	  basilysgc_reserve (lensiz + 10 * sizeof (void *));
 	  if (!basilys_is_young (mappointerv))
 	    goto alloc_old_mappointer_small_entab;
-	  map_mappointerv->entab = basilys_allocatereserved (lensiz, 0);
+	  map_mappointerv->entab = (struct entrypointerbasilys_st*)basilys_allocatereserved (lensiz, 0);
 	}
       else
 	{
 	alloc_old_mappointer_small_entab:
-	  map_mappointerv->entab =
+	  map_mappointerv->entab = (struct entrypointerbasilys_st*)
 	    ggc_alloc_cleared (len * sizeof (struct entrypointerbasilys_st));
 	}
       map_mappointerv->lenix = 1;
@@ -3597,12 +3594,12 @@ basilysgc_raw_put_mappointers (void *mappointer_p,
 	  basilysgc_reserve (newlensiz + 10 * sizeof (void *));
 	  if (!basilys_is_young (mappointerv))
 	    goto alloc_old_mappointer_entab;
-	  newtab = basilys_allocatereserved (newlensiz, 0);
+	  newtab = (struct entrypointerbasilys_st*)basilys_allocatereserved (newlensiz, 0);
 	}
       else
 	{
 	alloc_old_mappointer_entab:
-	  newtab =
+	  newtab = (struct entrypointerbasilys_st*)
 	    ggc_alloc_cleared (newlen *
 			       sizeof (struct entrypointerbasilys_st));
 	}
@@ -3635,7 +3632,7 @@ basilysgc_raw_put_mappointers (void *mappointer_p,
       map_mappointerv->entab[ix].e_at = attr;
       map_mappointerv->count++;
     }
-  map_mappointerv->entab[ix].e_va = valuv;
+  map_mappointerv->entab[ix].e_va = (basilys_ptr_t)valuv;
   basilysgc_touch_dest (map_mappointerv, valuv);
   BASILYS_EXITFRAME ();
 #undef discrv
@@ -3650,7 +3647,7 @@ basilys_raw_get_mappointers (void *map, const void *attr)
 {
   long ix = 0, len = 0;
   const void *oldat = NULL;
-  struct basilysmappointers_st *mappointer_p = map;
+  struct basilysmappointers_st *mappointer_p = (struct basilysmappointers_st*)map;
   if (!mappointer_p->entab)
     return NULL;
   len = basilys_primtab[mappointer_p->lenix];
@@ -3682,7 +3679,7 @@ basilysgc_raw_remove_mappointers (void *mappointer_p, const void *attr)
   if (len <= 0)
     goto end;
   ix = unsafe_index_mappointer (map_mappointerv->entab, attr, len);
-  if (ix < 0 || !(oldat = map_mappointerv->entab[ix].e_at)
+  if (ix < 0 || !(oldat = (const char*)map_mappointerv->entab[ix].e_at)
       || oldat == HTAB_DELETED_ENTRY)
     goto end;
   map_mappointerv->entab[ix].e_at = (void *) HTAB_DELETED_ENTRY;
@@ -3705,12 +3702,12 @@ basilysgc_raw_remove_mappointers (void *mappointer_p, const void *attr)
 	  basilysgc_reserve (newlensiz + 10 * sizeof (void *));
 	  if (!basilys_is_young (mappointerv))
 	    goto allocate_old_newtab_mappointer;
-	  newtab = basilys_allocatereserved (newlensiz, 0);
+	  newtab = (struct entrypointerbasilys_st *) basilys_allocatereserved (newlensiz, 0);
 	}
       else
 	{
 	allocate_old_newtab_mappointer:
-	  newtab =
+	  newtab = (struct entrypointerbasilys_st *)
 	    ggc_alloc_cleared (newlen *
 			       sizeof (struct entrypointerbasilys_st));
 	};
@@ -3735,7 +3732,7 @@ basilysgc_raw_remove_mappointers (void *mappointer_p, const void *attr)
   basilysgc_touch (map_mappointerv);
 end:
   BASILYS_EXITFRAME ();
-  return valuv;
+  return (basilys_ptr_t) valuv;
 #undef discrv
 #undef mappointerv
 #undef valuv
@@ -3806,7 +3803,7 @@ basilysgc_new_string (basilysobject_ptr_t discr_p, const char *str)
     goto end;
   slen = strlen (str);
   discrv = discr_p;
-  if (basilys_magic_discr (discrv) != OBMAG_OBJECT)
+  if (basilys_magic_discr ((basilys_ptr_t)discrv) != OBMAG_OBJECT)
     goto end;
   if (obj_discrv->object_magic != OBMAG_STRING)
     goto end;
@@ -3815,7 +3812,7 @@ basilysgc_new_string (basilysobject_ptr_t discr_p, const char *str)
   strcpy (str_strv->val, str);
 end:
   BASILYS_EXITFRAME ();
-  return strv;
+  return (basilys_ptr_t)strv;
 #undef discrv
 #undef strv
 #undef obj_discrv
@@ -3837,7 +3834,7 @@ basilysgc_new_stringdup (basilysobject_ptr_t discr_p, const char *str)
   if (!str)
     goto end;
   discrv = discr_p;
-  if (basilys_magic_discr (discrv) != OBMAG_OBJECT)
+  if (basilys_magic_discr ((basilys_ptr_t)discrv) != OBMAG_OBJECT)
     goto end;
   if (obj_discrv->object_magic != OBMAG_STRING)
     goto end;
@@ -3848,7 +3845,7 @@ basilysgc_new_stringdup (basilysobject_ptr_t discr_p, const char *str)
       strcop = strcpy (tinybuf, str);
     }
   else
-    strcop = strcpy (xcalloc (1, slen + 1), str);
+    strcop = strcpy ((char*)xcalloc (1, slen + 1), str);
   strv = basilysgc_allocate (sizeof (struct basilysstring_st), slen + 1);
   str_strv->discr = obj_discrv;
   strcpy (str_strv->val, strcop);
@@ -3857,7 +3854,7 @@ end:
     free (strcop);
   memset (tinybuf, 0, sizeof (tinybuf));
   BASILYS_EXITFRAME ();
-  return strv;
+  return (basilys_ptr_t)strv;
 #undef discrv
 #undef strv
 #undef obj_discrv
@@ -3882,7 +3879,7 @@ basilysgc_new_string_nakedbasename (basilysobject_ptr_t
   if (!str)
     goto end;
   discrv = discr_p;
-  if (basilys_magic_discr (discrv) != OBMAG_OBJECT)
+  if (basilys_magic_discr ((basilys_ptr_t)discrv) != OBMAG_OBJECT)
     goto end;
   if (obj_discrv->object_magic != OBMAG_STRING)
     goto end;
@@ -3893,7 +3890,7 @@ basilysgc_new_string_nakedbasename (basilysobject_ptr_t
       strcop = strcpy (tinybuf, str);
     }
   else
-    strcop = strcpy (xcalloc (1, slen + 1), str);
+    strcop = strcpy ((char*)xcalloc (1, slen + 1), str);
   basestr = (const char *) lbasename (strcop);
   dot = strchr (basestr, '.');
   if (dot)
@@ -3908,7 +3905,7 @@ end:
     free (strcop);
   memset (tinybuf, 0, sizeof (tinybuf));
   BASILYS_EXITFRAME ();
-  return strv;
+  return (basilys_ptr_t)strv;
 #undef discrv
 #undef strv
 #undef obj_discrv
@@ -3948,9 +3945,9 @@ basilys_apply (basilysclosure_ptr_t clos_p,
     }
 #endif
   memset (&ufun, 0, sizeof (ufun));
-  if (basilys_magic_discr ((void *) clos_p) != OBMAG_CLOSURE)
+  if (basilys_magic_discr ((basilys_ptr_t) clos_p) != OBMAG_CLOSURE)
     return NULL;
-  if (basilys_magic_discr ((void *) clos_p->rout) !=
+  if (basilys_magic_discr ((basilys_ptr_t) (clos_p->rout)) !=
       OBMAG_ROUTINE || !clos_p->rout->routaddr)
     return NULL;
   memcpy (&ufun.funad, clos_p->rout->routaddr,
@@ -4011,9 +4008,9 @@ basilysgc_send (basilys_ptr_t recv_p,
 #ifdef ENABLE_CHECKING
   (void) sendnum;		/* to use it */
 #endif
-  if (basilys_magic_discr (selv) != OBMAG_OBJECT)
+  if (basilys_magic_discr ((basilys_ptr_t)selv) != OBMAG_OBJECT)
     goto end;
-  if (!basilys_is_instance_of (selv, BASILYSG (CLASS_SELECTOR)))
+  if (!basilys_is_instance_of ((basilys_ptr_t)selv, (basilys_ptr_t)BASILYSGOB (CLASS_SELECTOR)))
     goto end;
 #if 0 && ENABLE_CHECKING
   debugeprintf ("send #%ld recv %p", sendnum, (void *) recv);
@@ -4033,7 +4030,7 @@ basilysgc_send (basilys_ptr_t recv_p,
     };
   while (discrv)
     {
-      gcc_assert (basilys_magic_discr (discrv) == OBMAG_OBJECT);
+      gcc_assert (basilys_magic_discr ((basilys_ptr_t)discrv) == OBMAG_OBJECT);
       gcc_assert (obj_discrv->obj_len >= FDISCR__LAST);
 #if 0 && ENABLE_CHECKING
       debugeprintf ("send #%ld discrv %p <%s>",
@@ -4041,30 +4038,27 @@ basilysgc_send (basilys_ptr_t recv_p,
 		    basilys_string_str (obj_discrv->obj_vartab[FNAMED_NAME]));
 #endif
       mapv = obj_discrv->obj_vartab[FDISCR_METHODICT];
-      if (basilys_magic_discr (mapv) == OBMAG_MAPOBJECTS)
+      if (basilys_magic_discr ((basilys_ptr_t)mapv) == OBMAG_MAPOBJECTS)
 	{
-	  closv = basilys_get_mapobjects (mapv, selv);
+	  closv = (basilys_ptr_t)basilys_get_mapobjects ((basilysmapobjects_ptr_t)mapv, (basilysobject_ptr_t)selv);
 	}
       else
 	{
 	  closv = obj_discrv->obj_vartab[FDISCR_SENDER];
-	  if (basilys_magic_discr (closv) == OBMAG_CLOSURE)
+	  if (basilys_magic_discr ((basilys_ptr_t)closv) == OBMAG_CLOSURE)
 	    {
 	      union basilysparam_un pararg[1];
 	      pararg[0].bp_aptr = (basilys_ptr_t *) & selv;
-	      resv = basilys_apply (closv, recv, BPARSTR_PTR, pararg,
+	      resv = basilys_apply ((basilysclosure_ptr_t)closv, (basilys_ptr_t)recv, BPARSTR_PTR, pararg,
 				    "", NULL);
 	      closv = resv;
 	    }
 	}
-      if (basilys_magic_discr (closv) == OBMAG_CLOSURE)
+      if (basilys_magic_discr ((basilys_ptr_t)closv) == OBMAG_CLOSURE)
 	{
-#if 0 && ENABLE_CHECKING
-	  debugeprintf ("send #%ld applying closv %p", sendnum, closv);
-#endif
 	  /* NAUGHTY TRICK: assign to dirty (see comments near start of function) */
-	  closure_dirtyptr = closv;
-	  recv_dirtyptr = recv;
+	  closure_dirtyptr = (basilysclosure_ptr_t)closv;
+	  recv_dirtyptr = (basilys_ptr_t)recv;
 	  /*** OLD CODE: 
 	  resv =
 	    basilys_apply (closv, recv, xargdescr_, xargtab_,
@@ -4086,7 +4080,7 @@ end:
   if (closure_dirtyptr)
     return basilys_apply (closure_dirtyptr, recv_dirtyptr, xargdescr_,
 			  xargtab_, xresdescr_, xrestab_);
-  return resv;
+  return (basilys_ptr_t)resv;
 #undef recv
 #undef selv
 #undef closv
@@ -4468,13 +4462,13 @@ dylibfound:
     curfram__.flocs = locbuf;
   }
 #endif
-  modulv = (*starout) (mdatav);
+  modulv = (*starout) ((basilys_ptr_t)mdatav);
   BASILYS_LOCATION_HERE("basilysgc_compile_dyn after calling module");
   debugeprintvalue ("modulv after calling start_module_basilys", modulv);
   debugeprintf("basilysgc_compile_dyn returns modulv %p", (void*) modulv);
   /* we never free  plainstuffpath and we never release the shared library! */
   BASILYS_EXITFRAME ();
-  return modulv;
+  return (basilys_ptr_t)modulv;
 #undef mdatav
 #undef modulv
 }
@@ -4728,12 +4722,12 @@ readagain:
   if (!compv && !got)
     READ_ERROR ("unexpected stuff in seq %.20s ... started line %d",
 		&rdcurc (), startlin);
-  basilysgc_append_list (seqv, compv);
+  basilysgc_append_list ((basilys_ptr_t)seqv, (basilys_ptr_t)compv);
   nbcomp++;
   goto readagain;
 end:
   BASILYS_EXITFRAME ();
-  return seqv;
+  return (basilys_ptr_t)seqv;
 #undef compv
 #undef seqv
 }
@@ -4749,15 +4743,15 @@ makesexpr (struct reading_st *rd, int lineno, basilys_ptr_t contents_p)
 #define contsv   curfram__.varptr[1]
 #define locmixv curfram__.varptr[2]
   contsv = contents_p;
-  gcc_assert (basilys_magic_discr (contsv) == OBMAG_LIST);
+  gcc_assert (basilys_magic_discr ((basilys_ptr_t)contsv) == OBMAG_LIST);
   locmixv = basilysgc_new_mixint (BASILYSGOB (DISCR_MIXEDINT),
 				  *rd->rpfilnam, (long) lineno);
   sexprv = basilysgc_new_raw_object (BASILYSGOB (CLASS_SEXPR), FSEXPR__LAST);
-  ((basilysobject_ptr_t) (sexprv))->obj_vartab[FSEXPR_LOCATION] = locmixv;
-  ((basilysobject_ptr_t) (sexprv))->obj_vartab[FSEXPR_CONTENTS] = contsv;
+  ((basilysobject_ptr_t) (sexprv))->obj_vartab[FSEXPR_LOCATION] = (basilys_ptr_t)locmixv;
+  ((basilysobject_ptr_t) (sexprv))->obj_vartab[FSEXPR_CONTENTS] = (basilys_ptr_t)contsv;
   basilysgc_touch (sexprv);
   BASILYS_EXITFRAME ();
-  return sexprv;
+  return (basilys_ptr_t)sexprv;
 #undef sexprv
 #undef contsv
 #undef locmixv
@@ -4785,7 +4779,7 @@ basilysgc_named_symbol (const char *nam, int create)
   if (namlen < (int) sizeof (tinybuf) - 2)
     namdup = strcpy (tinybuf, nam);
   else
-    namdup = strcpy (xcalloc (namlen + 1, 1), nam);
+    namdup = strcpy ((char*)xcalloc (namlen + 1, 1), nam);
   gcc_assert (basilys_magic_discr (BASILYSG (CLASS_SYSTEM_DATA))
 	      == OBMAG_OBJECT);
   gcc_assert (basilys_magic_discr (BASILYSG (INITIAL_SYSTEM_DATA)) == OBMAG_OBJECT);
@@ -4797,19 +4791,19 @@ basilysgc_named_symbol (const char *nam, int create)
       && BASILYSGOB (INITIAL_SYSTEM_DATA)->obj_len >= FSYSDAT__LAST)
     {
       dictv = BASILYSGOB (INITIAL_SYSTEM_DATA)->obj_vartab[FSYSDAT_SYMBOLDICT];
-      if (basilys_magic_discr (dictv) == OBMAG_MAPSTRINGS)
-	symbv = basilys_get_mapstrings (dictv, namdup);
+      if (basilys_magic_discr ((basilys_ptr_t)dictv) == OBMAG_MAPSTRINGS)
+	symbv = basilys_get_mapstrings ((struct basilysmapstrings_st*)dictv, namdup);
       if (symbv || !create)
 	goto end;
       closv = BASILYSGOB (INITIAL_SYSTEM_DATA)->obj_vartab[FSYSDAT_ADDSYMBOL];
-      if (basilys_magic_discr (closv) == OBMAG_CLOSURE)
+      if (basilys_magic_discr ((basilys_ptr_t)closv) == OBMAG_CLOSURE)
 	{
 	  union basilysparam_un pararg[1];
 	  memset (&pararg, 0, sizeof (pararg));
 	  nstrv = basilysgc_new_string (BASILYSGOB (DISCR_STRING), namdup);
 	  pararg[0].bp_aptr = (basilys_ptr_t *) & nstrv;
 	  symbv =
-	    basilys_apply (closv, BASILYSG (INITIAL_SYSTEM_DATA), BPARSTR_PTR,
+	    basilys_apply ((basilysclosure_ptr_t)closv, (basilys_ptr_t)BASILYSG (INITIAL_SYSTEM_DATA), BPARSTR_PTR,
 			   pararg, "", NULL);
 	  goto end;
 	}
@@ -4818,7 +4812,7 @@ end:;
   if (namdup && namdup != tinybuf)
     free (namdup);
   BASILYS_EXITFRAME ();
-  return symbv;
+  return (basilys_ptr_t)symbv;
 #undef symbv
 #undef dictv
 #undef closv
@@ -4836,12 +4830,12 @@ basilysgc_intern_symbol (basilys_ptr_t symb_p)
 #define resv     curfram__.varptr[4]
 #define obj_symbv    ((basilysobject_ptr_t)(symbv))
   symbv = symb_p;
-  if (basilys_magic_discr (symbv) != OBMAG_OBJECT
+  if (basilys_magic_discr ((basilys_ptr_t)symbv) != OBMAG_OBJECT
       || obj_symbv->obj_len < FSYMB__LAST
-      || !basilys_is_instance_of (symbv, BASILYSG (CLASS_SYMBOL)))
+      || !basilys_is_instance_of ((basilys_ptr_t)symbv, (basilys_ptr_t)BASILYSG (CLASS_SYMBOL)))
     goto fail;
   nstrv = obj_symbv->obj_vartab[FNAMED_NAME];
-  if (basilys_magic_discr (nstrv) != OBMAG_STRING)
+  if (basilys_magic_discr ((basilys_ptr_t)nstrv) != OBMAG_STRING)
     goto fail;
   if (basilys_magic_discr (BASILYSG (INITIAL_SYSTEM_DATA)) !=
       OBMAG_OBJECT
@@ -4850,7 +4844,7 @@ basilysgc_intern_symbol (basilys_ptr_t symb_p)
 				  BASILYSG (CLASS_SYSTEM_DATA)))
     goto fail;
   closv = BASILYSGOB (INITIAL_SYSTEM_DATA)->obj_vartab[FSYSDAT_INTERNSYMBOL];
-  if (basilys_magic_discr (closv) != OBMAG_CLOSURE)
+  if (basilys_magic_discr ((basilys_ptr_t)closv) != OBMAG_CLOSURE)
     goto fail;
   else
     {
@@ -4859,7 +4853,7 @@ basilysgc_intern_symbol (basilys_ptr_t symb_p)
       pararg[0].bp_aptr = (basilys_ptr_t *) & symbv;
       BASILYS_LOCATION_HERE("intern symbol before apply");
       resv =
-	basilys_apply (closv, BASILYSG (INITIAL_SYSTEM_DATA), BPARSTR_PTR,
+	basilys_apply ((basilysclosure_ptr_t)closv, (basilys_ptr_t)BASILYSG (INITIAL_SYSTEM_DATA), BPARSTR_PTR,
 		       pararg, "", NULL);
       goto end;
     }
@@ -4867,7 +4861,7 @@ fail:
   resv = NULL;
 end:;
   BASILYS_EXITFRAME ();
-  return resv;
+  return (basilys_ptr_t)resv;
 #undef symbv
 #undef dictv
 #undef closv
@@ -4888,12 +4882,12 @@ basilysgc_intern_keyword (basilys_ptr_t keyw_p)
 #define resv     curfram__.varptr[4]
 #define obj_keywv    ((basilysobject_ptr_t)(keywv))
   keywv = keyw_p;
-  if (basilys_magic_discr (keywv) != OBMAG_OBJECT
+  if (basilys_magic_discr ((basilys_ptr_t)keywv) != OBMAG_OBJECT
       || obj_keywv->obj_len < FSYMB__LAST
-      || !basilys_is_instance_of (keywv, BASILYSG (CLASS_KEYWORD)))
+      || !basilys_is_instance_of ((basilys_ptr_t)keywv, (basilys_ptr_t)BASILYSG (CLASS_KEYWORD)))
     goto fail;
   nstrv = obj_keywv->obj_vartab[FNAMED_NAME];
-  if (basilys_magic_discr (nstrv) != OBMAG_STRING)
+  if (basilys_magic_discr ((basilys_ptr_t)nstrv) != OBMAG_STRING)
     goto fail;
   if (basilys_magic_discr (BASILYSG (INITIAL_SYSTEM_DATA)) !=
       OBMAG_OBJECT
@@ -4902,7 +4896,7 @@ basilysgc_intern_keyword (basilys_ptr_t keyw_p)
 				  BASILYSG (CLASS_SYSTEM_DATA)))
     goto fail;
   closv = BASILYSGOB (INITIAL_SYSTEM_DATA)->obj_vartab[FSYSDAT_INTERNKEYW];
-  if (basilys_magic_discr (closv) != OBMAG_CLOSURE)
+  if (basilys_magic_discr ((basilys_ptr_t)closv) != OBMAG_CLOSURE)
     goto fail;
   else
     {
@@ -4911,7 +4905,7 @@ basilysgc_intern_keyword (basilys_ptr_t keyw_p)
       pararg[0].bp_aptr = (basilys_ptr_t *) & keywv;
       BASILYS_LOCATION_HERE("intern keyword before apply");
       resv =
-	basilys_apply (closv, BASILYSG (INITIAL_SYSTEM_DATA), BPARSTR_PTR,
+	basilys_apply ((basilysclosure_ptr_t)closv, (basilys_ptr_t)BASILYSG (INITIAL_SYSTEM_DATA), BPARSTR_PTR,
 		       pararg, "", NULL);
       goto end;
     }
@@ -4919,7 +4913,7 @@ fail:
   resv = NULL;
 end:;
   BASILYS_EXITFRAME ();
-  return resv;
+  return (basilys_ptr_t)resv;
 #undef symbv
 #undef dictv
 #undef closv
@@ -4956,7 +4950,7 @@ basilysgc_named_keyword (const char *nam, int create)
   if (namlen < (int) sizeof (tinybuf) - 2)
     namdup = strcpy (tinybuf, nam);
   else
-    namdup = strcpy (xcalloc (namlen + 1, 1), nam);
+    namdup = strcpy ((char*)xcalloc (namlen + 1, 1), nam);
   for (ix = 0; ix < namlen; ix++)
     if (ISALPHA (namdup[ix]))
       namdup[ix] = TOUPPER (namdup[ix]);
@@ -4968,19 +4962,19 @@ basilysgc_named_keyword (const char *nam, int create)
       && BASILYSGOB (INITIAL_SYSTEM_DATA)->obj_len >= FSYSDAT__LAST)
     {
       dictv = BASILYSGOB (INITIAL_SYSTEM_DATA)->obj_vartab[FSYSDAT_KEYWDICT];
-      if (basilys_magic_discr (dictv) == OBMAG_MAPSTRINGS)
-	keywv = basilys_get_mapstrings (dictv, namdup);
+      if (basilys_magic_discr ((basilys_ptr_t)dictv) == OBMAG_MAPSTRINGS)
+	keywv = basilys_get_mapstrings ((struct basilysmapstrings_st*)dictv, namdup);
       if (keywv || !create)
 	goto end;
       closv = BASILYSGOB (INITIAL_SYSTEM_DATA)->obj_vartab[FSYSDAT_ADDKEYW];
-      if (basilys_magic_discr (closv) == OBMAG_CLOSURE)
+      if (basilys_magic_discr ((basilys_ptr_t)closv) == OBMAG_CLOSURE)
 	{
 	  union basilysparam_un pararg[1];
 	  memset (&pararg, 0, sizeof (pararg));
 	  nstrv = basilysgc_new_string (BASILYSGOB (DISCR_STRING), namdup);
 	  pararg[0].bp_aptr = (basilys_ptr_t *) & nstrv;
 	  keywv =
-	    basilys_apply (closv, BASILYSG (INITIAL_SYSTEM_DATA), BPARSTR_PTR,
+	    basilys_apply ((basilysclosure_ptr_t)closv, (basilys_ptr_t)BASILYSG (INITIAL_SYSTEM_DATA), BPARSTR_PTR,
 			   pararg, "", NULL);
 	  goto end;
 	}
@@ -4989,7 +4983,7 @@ end:;
   if (namdup && namdup != tinybuf)
     free (namdup);
   BASILYS_EXITFRAME ();
-  return keywv;
+  return (basilys_ptr_t)keywv;
 #undef keywv
 #undef dictv
 #undef closv
@@ -5010,9 +5004,9 @@ readsexpr (struct reading_st *rd, int endc)
     READ_ERROR ("eof in s-expr (lin%d)", lineno);
   c = skipspace_getc (rd, COMMENT_SKIP);
   contv = readseqlist (rd, endc);
-  sexprv = makesexpr (rd, lineno, contv);
+  sexprv = makesexpr (rd, lineno, (basilys_ptr_t)contv);
   BASILYS_EXITFRAME ();
-  return sexprv;
+  return (basilys_ptr_t)sexprv;
 #undef sexprv
 #undef contv
 #undef locmixv
@@ -5045,7 +5039,7 @@ readassoc (struct reading_st *rd)
       bool gotat = FALSE, gotva = FALSE;
       ln = rd->rlineno;
       attrv = readval (rd, &gotat);
-      if (!gotat || !attrv || basilys_magic_discr (attrv) != OBMAG_OBJECT)
+      if (!gotat || !attrv || basilys_magic_discr ((basilys_ptr_t)attrv) != OBMAG_OBJECT)
 	READ_ERROR ("bad attribute in mapoobject line %d", ln);
       c = skipspace_getc (rd, COMMENT_SKIP);
       if (c != '=')
@@ -5063,7 +5057,7 @@ readassoc (struct reading_st *rd)
   if (c == '}')
     rdnext ();
   BASILYS_EXITFRAME ();
-  return mapv;
+  return (basilys_ptr_t)mapv;
 #undef mapv
 #undef attrv
 #undef valv
@@ -5189,7 +5183,7 @@ readstring (struct reading_st *rd)
   strv = basilysgc_new_string (BASILYSGOB (DISCR_STRING), cstr);
   obstack_free (&bstring_obstack, cstr);
   BASILYS_EXITFRAME ();
-  return strv;
+  return (basilys_ptr_t)strv;
 #undef strv
 #undef str_strv
 }
@@ -5267,12 +5261,12 @@ readhashescape (struct reading_st *rd)
     {
       int ln = 0, ix = 0;
       listv = readseqlist (rd, ')');
-      ln = basilys_list_length (listv);
+      ln = basilys_list_length ((basilys_ptr_t)listv);
       gcc_assert (ln >= 0);
       readv = basilysgc_new_multiple (BASILYSGOB (DISCR_MULTIPLE), ln);
       for ((ix = 0), (pairv =
 		      ((struct basilyslist_st *) (listv))->first);
-	   ix < ln && basilys_magic_discr (pairv) == OBMAG_PAIR;
+	   ix < ln && basilys_magic_discr ((basilys_ptr_t)pairv) == OBMAG_PAIR;
 	   pairv = ((struct basilyspair_st *) (pairv))->tl)
 	((struct basilysmultiple_st *) (readv))->tabval[ix++] =
 	  ((struct basilyspair_st *) (pairv))->hd;
@@ -5341,7 +5335,7 @@ readhashescape (struct reading_st *rd)
   else
     READ_ERROR ("invalid escape %.20s", &rdcurc ());
   BASILYS_EXITFRAME ();
-  return readv;
+  return (basilys_ptr_t)readv;
 #undef readv
 #undef listv
 #undef compv
@@ -5430,9 +5424,9 @@ readval (struct reading_st *rd, bool * pgot)
 	READ_ERROR ("expecting value after quote %.20s", &rdcurc ());
       seqv = basilysgc_new_list (BASILYSGOB (DISCR_LIST));
       altv = basilysgc_named_symbol ("quote", BASILYS_CREATE);
-      basilysgc_append_list (seqv, altv);
-      basilysgc_append_list (seqv, compv);
-      readv = makesexpr (rd, lineno, seqv);
+      basilysgc_append_list ((basilys_ptr_t)seqv, (basilys_ptr_t)altv);
+      basilysgc_append_list ((basilys_ptr_t)seqv, (basilys_ptr_t)compv);
+      readv = makesexpr (rd, lineno, (basilys_ptr_t)seqv);
       *pgot = TRUE;
       goto end;
     }
@@ -5446,9 +5440,9 @@ readval (struct reading_st *rd, bool * pgot)
 	READ_ERROR ("expecting value after backquote %.20s", &rdcurc ());
       seqv = basilysgc_new_list (BASILYSGOB (DISCR_LIST));
       altv = basilysgc_named_symbol ("backquote", BASILYS_CREATE);
-      basilysgc_append_list (seqv, altv);
-      basilysgc_append_list (seqv, compv);
-      readv = makesexpr (rd, lineno, seqv);
+      basilysgc_append_list ((basilys_ptr_t)seqv, (basilys_ptr_t)altv);
+      basilysgc_append_list ((basilys_ptr_t)seqv, (basilys_ptr_t)compv);
+      readv = makesexpr (rd, lineno, (basilys_ptr_t)seqv);
       *pgot = TRUE;
       goto end;
     }
@@ -5462,9 +5456,9 @@ readval (struct reading_st *rd, bool * pgot)
 	READ_ERROR ("expecting value after comma %.20s", &rdcurc ());
       seqv = basilysgc_new_list (BASILYSGOB (DISCR_LIST));
       altv = basilysgc_named_symbol ("comma", BASILYS_CREATE);
-      basilysgc_append_list (seqv, altv);
-      basilysgc_append_list (seqv, compv);
-      readv = makesexpr (rd, lineno, seqv);
+      basilysgc_append_list ((basilys_ptr_t)seqv, (basilys_ptr_t)altv);
+      basilysgc_append_list ((basilys_ptr_t)seqv, (basilys_ptr_t)compv);
+      readv = makesexpr (rd, lineno, (basilys_ptr_t)seqv);
       *pgot = TRUE;
       goto end;
     }
@@ -5497,7 +5491,7 @@ end:
       *nam = 0;
       obstack_free (&bname_obstack, nam);
     };
-  return readv;
+  return (basilys_ptr_t)readv;
 #undef readv
 #undef compv
 #undef seqv
@@ -5544,12 +5538,12 @@ basilysgc_read_file (const char *filnam, const char *locnam)
       valv = readval (rd, &got);
       if (!got)
 	READ_ERROR ("no value read %.20s", &rdcurc ());
-      basilysgc_append_list (seqv, valv);
+      basilysgc_append_list ((basilys_ptr_t)seqv, (basilys_ptr_t)valv);
     };
   rd = 0;
 end:
   BASILYS_EXITFRAME ();
-  return seqv;
+  return (basilys_ptr_t)seqv;
 #undef vecshv
 #undef genv
 #undef locnamv
@@ -5579,11 +5573,11 @@ do_initial_command (basilys_ptr_t modata_p)
   dictv = BASILYSGOB (INITIAL_SYSTEM_DATA)->obj_vartab[FSYSDAT_CMD_FUNDICT];
   debugeprintf ("do_initial_command dictv=%p", dictv);
   debugeprintvalue ("do_initial_command dictv", dictv);
-  if (basilys_magic_discr (dictv) != OBMAG_MAPSTRINGS)
+  if (basilys_magic_discr ((basilys_ptr_t)dictv) != OBMAG_MAPSTRINGS)
     goto end;
-  closv = basilys_get_mapstrings (dictv, basilys_command_string);
+  closv = basilys_get_mapstrings ((struct basilysmapstrings_st*)dictv, basilys_command_string);
   debugeprintf ("do_initial_command closv=%p", closv);
-  if (basilys_magic_discr (closv) != OBMAG_CLOSURE)
+  if (basilys_magic_discr ((basilys_ptr_t)closv) != OBMAG_CLOSURE)
     {
       error ("no closure for basilys command %s", basilys_command_string);
       goto end;
@@ -5616,8 +5610,8 @@ do_initial_command (basilys_ptr_t modata_p)
     pararg[2].bp_aptr = (basilys_ptr_t *) & modatav;
     debugeprintf ("do_initial_command before apply closv %p", closv);
     BASILYS_LOCATION_HERE("do_initial_command before apply");
-    (void) basilys_apply (closv,
-			  BASILYSG
+    (void) basilys_apply ((basilysclosure_ptr_t)closv,
+			  (basilys_ptr_t)BASILYSG
 			  (INITIAL_SYSTEM_DATA),
 			  BPARSTR_PTR BPARSTR_PTR BPARSTR_PTR, pararg, "",
 			  NULL);
@@ -5657,7 +5651,6 @@ load_basilys_modules_and_do_command (void)
     {
       fflush (stderr);
 #define modatv curfram__.varptr[0]
-      debugeprintf ("load_initial_basilys_modules sets dump_file to stderr");
       dump_file = stderr;
       fflush (stderr);
     }
@@ -5702,7 +5695,7 @@ load_basilys_modules_and_do_command (void)
 	}
       debugeprintf ("load_initial_basilys_modules curmod %s before", curmod);
       BASILYS_LOCATION_HERE("load_initial_basilys_modules before compile_dyn");
-      modatv = basilysgc_compile_dyn (modatv, curmod);
+      modatv = basilysgc_compile_dyn ((basilys_ptr_t)modatv, curmod);
       debugeprintf ("load_initial_basilys_modules curmod %s loaded modatv %p", curmod, (void*)modatv);
       curmod = nextmod;
     }
@@ -5723,7 +5716,7 @@ load_basilys_modules_and_do_command (void)
 	 basilys_command_string);
       exit_after_options = 1;
       BASILYS_LOCATION_HERE("load_initial_basilys_modules before do_initial_command");
-      do_initial_command (modatv);
+      do_initial_command ((basilys_ptr_t)modatv);
       debugeprintf
 	("load_basilys_modules_and_do_command after do_initial_command (will exit after options) command_string %s",
 	 basilys_command_string);
@@ -5794,8 +5787,8 @@ basilys_initialize (void)
     gcc_assert (basilys_startalz == NULL && basilys_endalz == NULL);
     gcc_assert (wantedwords * sizeof (void *) >
 		300 * BGLOB__LASTGLOB * sizeof (struct basilysobject_st));
-    basilys_curalz = basilys_startalz =
-      xcalloc (sizeof (void *), wantedwords);
+    basilys_curalz = (char*)  xcalloc (sizeof (void *), wantedwords);
+    basilys_startalz = basilys_curalz;
     basilys_endalz = (char *) basilys_curalz + wantedwords * sizeof (void *);
     basilys_storalz = ((void **) basilys_endalz) - 2;
     basilys_newspeclist = NULL;
@@ -5838,7 +5831,7 @@ basilys_finalize (void)
 static void
 discr_out (struct debugprint_basilys_st *dp, basilysobject_ptr_t odiscr)
 {
-  int dmag = basilys_magic_discr ((void *) odiscr);
+  int dmag = basilys_magic_discr ((basilys_ptr_t) odiscr);
   struct basilysstring_st *str = NULL;
   if (dmag != OBMAG_OBJECT)
     {

@@ -462,15 +462,15 @@
 
 ;; primitive to get or create a symbol from a string value
 (defprimitive get_symbolstr (strv) :value
-  "basilysgc_named_symbol( basilys_string_str(" strv "), BASILYS_GET)")
+  "basilysgc_named_symbol( basilys_string_str((basilys_ptr_t)(" strv ")), BASILYS_GET)")
 (defprimitive create_symbolstr (strv) :value
-  "basilysgc_named_symbol( basilys_string_str(" strv "), BASILYS_CREATE)")
+  "basilysgc_named_symbol( basilys_string_str((basilys_ptr_t)(" strv ")), BASILYS_CREATE)")
 
 ;; primitive to get or create a keyword from a string value
 (defprimitive get_keywordstr (strv) :value
-  "basilysgc_named_keyword( basilys_string_str(" strv "), BASILYS_GET)")
+  "basilysgc_named_keyword( basilys_string_str((basilys_ptr_t)(" strv ")), BASILYS_GET)")
 (defprimitive create_keywordstr (strv) :value
-  "basilysgc_named_keyword( basilys_string_str(" strv "), BASILYS_CREATE)")
+  "basilysgc_named_keyword( basilys_string_str((basilys_ptr_t)(" strv ")), BASILYS_CREATE)")
 
 
 ;; runtime assertion with message called by expansion of assert_msg
@@ -524,9 +524,9 @@
 (defprimitive outnum_dbg (:cstring pref :long l :cstring suf) :void
   "basilys_putnum(dump_file,(" pref "), (" l "), (" suf "))")
 (defprimitive outstr_dbg (str) :void
-  "basilys_putstr(dump_file,(" str "))")
+  "basilys_putstr(dump_file,(basilys_ptr_t)(" str "))")
 (defprimitive outstrbuf_dbg (sbuf) :void
-  "basilys_putstrbuf(dump_file,(" sbuf "))")
+  "basilys_putstrbuf(dump_file,(basilys_ptr_t)(" sbuf "))")
 (defprimitive outnewline_dbg () :void
   "basilys_newlineflush(dump_file)")
 ;;; output on stderr
@@ -535,14 +535,15 @@
 (defprimitive outcstring_err (:cstring s) :void
   "basilys_puts(stderr,(" s "))")
 (defprimitive outstrbuf_err (sbuf) :void
-  "basilys_putstrbuf(stderr,(" sbuf "))")
+  "basilys_putstrbuf(stderr,(basilys_ptr_t)(" sbuf "))")
 (defprimitive outnewline_err () :void
   "basilys_newlineflush(stderr)")
 (defprimitive outstr_err (str) :void
-  "basilys_putstr(stderr,(" str "))")
+  "basilys_putstr(stderr, (basilys_ptr_t)(" str "))")
 
 (defprimitive output_cfile_decl_impl (uninam declbuf implbuf) :void
-  "basilys_output_cfile_decl_impl((" uninam "), (" declbuf "), (" implbuf "))")
+  "basilys_output_cfile_decl_impl((basilys_ptr_t)(" uninam 
+  "), (basilys_ptr_t)(" declbuf "), (basilys_ptr_t)(" implbuf "))")
 
 (defprimitive message_dbg (:cstring msg) :void
   "debugeputs((" msg "))")
@@ -563,16 +564,16 @@
 (defprimitive make_strbuf (discr) :value
   "basilysgc_new_strbuf((basilysobject_ptr_t)(" discr "), (char*)0)")
 (defprimitive strbuf_usedlength (sbuf) :long
-  "basilys_strbuf_usedlength((" sbuf "))")
+  "basilys_strbuf_usedlength((basilys_ptr_t)(" sbuf "))")
 
 (defprimitive is_strbuf (v) :long
-  "(basilys_magic_discr((" v ")) == OBMAG_STRBUF)")
+  "(basilys_magic_discr((basilys_ptr_t)(" v ")) == OBMAG_STRBUF)")
 ;; primitive to add a string const into a strbuf
 (defprimitive add2sbuf_strconst (sbuf :cstring str) :void 
   "basilysgc_add_strbuf((struct basilysstrbuf_st *)(" sbuf "), (" str "))")
 ;; primitive to add a string value into a strbuf
 (defprimitive add2sbuf_string (sbuf str) :void 
-  "basilysgc_add_strbuf((struct basilysstrbuf_st *)(" sbuf "), basilys_string_str(" str "))")
+  "basilysgc_add_strbuf((struct basilysstrbuf_st *)(" sbuf "), basilys_string_str((basilys_ptr_t)(" str ")))")
 
 ;; primitive to add an indentation or space into a strbuf
 (defprimitive add2sbuf_indent (sbuf :long depth) :void
@@ -590,30 +591,33 @@
 
 ;; primitive to add a string value, C encoded, into a strbuf
 (defprimitive add2sbuf_cencstring (sbuf str) :void 
-  "basilysgc_add_strbuf_cstr((struct basilysstrbuf_st *)(" sbuf "), basilys_string_str(" str "))")
+  "basilysgc_add_strbuf_cstr((struct basilysstrbuf_st *)(" sbuf "), basilys_string_str((basilys_ptr_t)(" str ")))")
 
 ;; primitive to add a strbuf, C encoded, into a strbuf
 (defprimitive add2sbuf_cencstrbuf (sbuf asbuf) :void 
-  "basilysgc_add_strbuf_cstr((struct basilysstrbuf_st *)(" sbuf "), basilys_strbuf_str(" asbuf "))")
+  "basilysgc_add_strbuf_cstr((struct basilysstrbuf_st *)(" sbuf "), basilys_strbuf_str((basilys_ptr_t)(" asbuf ")))")
 
 ;; primitive to add a string value, Ccomment encoded, into a strbuf
 (defprimitive add2sbuf_ccomstring (sbuf str) :void 
-  "basilysgc_add_strbuf_ccomment((struct basilysstrbuf_st *)(" sbuf "), basilys_string_str(" str "))")
+  "basilysgc_add_strbuf_ccomment((struct basilysstrbuf_st *)(" sbuf
+  "), basilys_string_str((basilys_ptr_t)(" str ")))")
 
 ;; primitive to add a strbuf, C encoded, into a strbuf
 (defprimitive add2sbuf_ccomstrbuf (sbuf asbuf) :void 
-  "basilysgc_add_strbuf_ccomment((struct basilysstrbuf_st *)(" sbuf "), basilys_strbuf_str(" asbuf "))")
+  "basilysgc_add_strbuf_ccomment((struct basilysstrbuf_st *)(" sbuf 
+  "), basilys_strbuf_str((basilys_ptr_t)(" asbuf ")))")
 
 
 ;; primitive to add into a strbuf a string as C ident (nonalphanum
 ;; replaced by _)
 (defprimitive add2sbuf_cident (sbuf str) :void
-  "basilysgc_add_strbuf_cident((struct basilysstrbuf_st *)(" sbuf "), basilys_string_str(" str "))")
+  "basilysgc_add_strbuf_cident((struct basilysstrbuf_st *)(" sbuf 
+  "), basilys_string_str((basilys_ptr_t)(" str ")))")
 
 ;; primitive to add into a strbuf the prefix of a string as C ident (nonalphanum
 ;; replaced by _) limited by a small length 
 (defprimitive add2sbuf_cidentprefix  (sbuf str :long preflen) :void
-  "basilysgc_add_strbuf_cidentprefix((struct basilysstrbuf_st *)(" sbuf "), basilys_string_str(" str "), (" preflen "))")
+  "basilysgc_add_strbuf_cidentprefix((struct basilysstrbuf_st *)(" sbuf "), basilys_string_str((basilys_ptr_t)(" str ")), (" preflen "))")
 
 ;; primitive to add a long in decimal into a strbuf
 (defprimitive add2sbuf_longdec (sbuf :long num) :void
@@ -625,7 +629,7 @@
 
 ;; primitive to add a routine descr into a strbuf
 (defprimitive add2sbuf_routinedescr (sbuf rout) :void
-  "basilysgc_add_strbuf((struct basilysstrbuf_st *)(" sbuf "), basilys_routine_descrstr(" rout "))")
+  "basilysgc_add_strbuf((struct basilysstrbuf_st *)(" sbuf "), basilys_routine_descrstr((basilys_ptr_t)(" rout ")))")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; STRING primitives
@@ -637,23 +641,25 @@
   "basilys_string_same((basilys_ptr_t)(" s1 "), (basilys_ptr_t)(" s2 "))")
 ;;; make a string
 (defprimitive make_string (dis str) :value
-  "(basilysgc_new_stringdup((basilys_object_ptr_t)(" dis "), basilys_string_str((" str "))))")
+  "(basilysgc_new_stringdup((basilysobject_ptr_t)(" dis 
+  "), basilys_string_str((basilys_ptr_t)(" str "))))")
 (defprimitive make_stringconst (dis :cstring cstr) :value
-  "(basilysgc_new_stringdup((basilys_object_ptr_t)(" dis "), (" cstr ")))")
+  "(basilysgc_new_stringdup((basilysobject_ptr_t)(" dis "), (" cstr ")))")
 (defprimitive is_stringconst (str :cstring cs) :long
-  "(basilys_is_string_const((basilys_object_ptr_t)(" str "), (" cs ")))")
+  "(basilys_is_string_const((basilys_ptr_t)(" str "), (" cs ")))")
 (defprimitive string_length (str) :long
-  "basilys_string_length((" str "))")
+  "basilys_string_length((basilys_ptr_t)(" str "))")
 (defprimitive string= (s1 s2) :long "basilys_string_same((" s1 "), (" s2 "))")
-(defprimitive string< (s1 s2) :long "basilys_string_less((" s1 "), (" s2 "))")
-(defprimitive string> (s1 s2) :long "basilys_string_less((" s2 "), (" s1 "))")
+(defprimitive string< (s1 s2) :long "basilys_string_less((basilys_ptr_t)(" s1 "), (basilys_ptr_t)(" s2 "))")
+(defprimitive string> (s1 s2) :long "basilys_string_less((basilys_ptr_t)(" s2 "), (basilys_ptr_t)(" s1 "))")
 
 ;;; convert a strbuf into a string
 (defprimitive strbuf2string (dis sbuf) :value
-  "(basilysgc_new_stringdup((basilys_object_ptr_t)(" dis "), basilys_strbuf_str((" sbuf "))))")
+  "(basilysgc_new_stringdup((basilysobject_ptr_t)(" dis 
+  "), basilys_strbuf_str((basilys_ptr_t)(" sbuf "))))")
 ;;; compute the naked basename
 (defprimitive make_string_nakedbasename (dis str) :value
- "(basilysgc_new_string_nakedbasename((basilysobject_ptr_t)(" dis "), basilys_string_str((" str "))))")
+ "(basilysgc_new_string_nakedbasename((basilysobject_ptr_t)(" dis "), basilys_string_str((basilys_ptr_t)(" str "))))")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; OBJECT primitives
@@ -662,118 +668,125 @@
   "((long)basilys_object_length((basilys_ptr_t)(" ob ")))")
 ;; primitive to get the nth field of an object
 (defprimitive object_nth_field (ob :long n) :value
-  "(basilys_field_object((" ob "), (" n ")))")
+  "(basilys_field_object((basilys_ptr_t)(" ob "), (" n ")))")
 
 (defprimitive subclass_of (cl1 cl2) :long
-  "basilys_is_subclass_of((" cl1 "), (" cl2 "))")
+  "basilys_is_subclass_of((basilysobject_ptr_t)(" cl1 "), (basilysobject_ptr_t)(" cl2 "))")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;; MULTIPLEs primitives
 ;;;; test
 (defprimitive is_multiple (mul) :long
- "(basilys_magic_discr((" mul  ")) == OBMAG_MULTIPLE)")
+ "(basilys_magic_discr((basilys_ptr_t)(" mul  ")) == OBMAG_MULTIPLE)")
 (defprimitive is_multiple_or_null (mul) :long
- "((" mul ") == NULL || (basilys_magic_discr((" mul  ")) == OBMAG_MULTIPLE))")
+ "((" mul ") == NULL || (basilys_magic_discr((basilys_ptr_t)(" mul  ")) == OBMAG_MULTIPLE))")
 ;;; make
 (defprimitive make_multiple (discr :long ln) :value
   "(basilysgc_new_multiple((basilysobject_ptr_t)(" discr "), (" ln ")))")
 (defprimitive make_tuple1 (discr v1) :value
-  "(basilysgc_new_mult1((basilysobject_ptr_t)(" discr "),(" v1 ")))")
+  "(basilysgc_new_mult1((basilysobject_ptr_t)(" discr
+  "), (basilys_ptr_t)(" v1 ")))")
 (defprimitive make_tuple2 (discr v1 v2) :value
-  "(basilysgc_new_mult2((basilysobject_ptr_t)(" discr "),(" v1 "), (" v2 ")))")
+  "(basilysgc_new_mult2((basilysobject_ptr_t)(" discr
+  "), (basilys_ptr_t)(" v1 "),  (basilys_ptr_t)(" v2 ")))")
 (defprimitive make_tuple3 (discr v1 v2 v3) :value
-  "(basilysgc_new_mult3((basilysobject_ptr_t)(" discr "),(" v1 "), (" v2  "), (" v3 ")))")
+  "(basilysgc_new_mult3((basilysobject_ptr_t)(" discr
+  "), (basilys_ptr_t)(" v1 "),  (basilys_ptr_t)(" v2  "),  (basilys_ptr_t)(" v3 ")))")
 (defprimitive make_tuple4 (discr v1 v2 v3 v4) :value
-  "(basilysgc_new_mult4((basilysobject_ptr_t)(" discr "),(" v1 "), (" v2  "), (" v3  "), (" v4 ")))")
+  "(basilysgc_new_mult4((basilysobject_ptr_t)(" discr
+  "), (basilys_ptr_t)(" v1 "),  (basilys_ptr_t)(" v2  "),  (basilys_ptr_t)(" v3  "),  (basilys_ptr_t)(" v4 ")))")
 (defprimitive make_tuple5 (discr v1 v2 v3 v4 v5) :value
-  "(basilysgc_new_mult5((basilysobject_ptr_t)(" discr "),(" v1 "), (" v2  "), (" v3  "), (" v4  "), (" v5 ")))")
+  "(basilysgc_new_mult5((basilysobject_ptr_t)(" discr 
+  "), (basilys_ptr_t)(" v1 "),  (basilys_ptr_t)(" v2 
+  "),  (basilys_ptr_t)(" v3  "),  (basilys_ptr_t)(" v4 
+  "),  (basilys_ptr_t)(" v5 ")))")
 (defprimitive make_tuple6 (discr v1 v2 v3 v4 v5 v6) :value
-  "(basilysgc_new_mult6((basilysobject_ptr_t)(" discr "),(" v1 "), (" v2  "), (" 
-  v3  "), (" v4  "), (" v5  "), (" v6 ")))")
+  "(basilysgc_new_mult6((basilysobject_ptr_t)(" discr "), (basilys_ptr_t)(" v1 "),  (basilys_ptr_t)(" v2  "),  (basilys_ptr_t)(" 
+  v3  "),  (basilys_ptr_t)(" v4  "),  (basilys_ptr_t)(" v5  "),  (basilys_ptr_t)(" v6 ")))")
 (defprimitive make_tuple7 (discr v1 v2 v3 v4 v5 v6 v7) :value
-  "(basilysgc_new_mult7((basilysobject_ptr_t)(" discr "),(" v1 "), (" v2  "), (" v3  "), (" v4  
-  "), (" v5  "), (" v6  "), (" v7 ")))")
+  "(basilysgc_new_mult7((basilysobject_ptr_t)(" discr "), (basilys_ptr_t)(" v1 "),  (basilys_ptr_t)(" v2  "),  (basilys_ptr_t)(" v3  "),  (basilys_ptr_t)(" v4  
+  "),  (basilys_ptr_t)(" v5  "),  (basilys_ptr_t)(" v6  "),  (basilys_ptr_t)(" v7 ")))")
 ;; primitive to get the nth  in a multiple
 (defprimitive multiple_nth (mul :long n) :value
-    "(basilys_multiple_nth((void*)(" mul "), (" n ")))")
+    "(basilys_multiple_nth((basilys_ptr_t)(" mul "), (" n ")))")
 ;; primitive to get the length of a multiple
 (defprimitive multiple_length (v) :long
-  "(basilys_multiple_length((void*)(" v ")))")
+  "(basilys_multiple_length((basilys_ptr_t)(" v ")))")
 ;; be careful to avoid circularities
 (defprimitive multiple_put_nth (mul :long n :value v) :void
-  " basilysgc_multiple_put_nth((void*)(" mul "), (" n "), (void*)(" v "))")
+  " basilysgc_multiple_put_nth((basilys_ptr_t)(" mul "), (" n "), (basilys_ptr_t)(" v "))")
 ;; sort a multiple, the compare function should return a boxed integer
 (defprimitive multiple_sort (mul cmp discrm) :value
-  " basilysgc_sort_multiple((" mul "), (" cmp "),( " discrm "))")
+  " basilysgc_sort_multiple((basilys_ptr_t)(" mul "), (basilys_ptr_t)(" cmp "), (basilys_ptr_t)( " discrm "))")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;; MAPOBJECTs primitives
 ;;;; test
 (defprimitive is_mapobject (map) :long
- "(basilys_magic_discr((" map  ")) == OBMAG_MAPOBJECTS)")
+ "(basilys_magic_discr((basilys_ptr_t)(" map  ")) == OBMAG_MAPOBJECTS)")
 ;; primitive to get the allocated size of a mapobject
 (defprimitive mapobject_size (map) :long
-  "(basilys_size_mapobjects((void*)(" map ")))")
+  "(basilys_size_mapobjects((basilysmapobjects_ptr_t)(" map ")))")
 ;; primitive to get the attribute count of a mapobject
 (defprimitive mapobject_count (map) :long
-  "(basilys_count_mapobjects((void*)(" map ")))")
+  "(basilys_count_mapobjects((basilysmapobjects_ptr_t)(" map ")))")
 ;; primitive to get the nth attribute of a mapobject
 (defprimitive mapobject_nth_attr (map :long n) :value
-  "(basilys_nthattr_mapobjects((void*)(" map "), (int)(" n ")))")
+  "(basilys_nthattr_mapobjects((basilysmapobjects_ptr_t)(" map "), (int)(" n ")))")
 ;; primitive to get the nth value of a mapobject
 (defprimitive mapobject_nth_val (map :long n) :value
-  "(basilys_nthval_mapobjects((void*)(" map "), (int)(" n ")))")
+  "(basilys_nthval_mapobjects((basilysmapobjects_ptr_t)(" map "), (int)(" n ")))")
 ;; primitive to get the value of an attribute in a mapobject
 (defprimitive mapobject_get (map attr) :value
-  "(basilys_get_mapobjects((void*)(" map "), (" attr ")))")
+  "(basilys_get_mapobjects((basilysmapobjects_ptr_t)(" map "), (basilysobject_ptr_t)(" attr ")))")
 ;; primitive for making a new map of objects
 (defprimitive make_mapobject (discr :long len) :value
-  " (basilysgc_new_mapobjects( (void*) (" discr "), (" len ")))")
+  " (basilysgc_new_mapobjects( (basilysobject_ptr_t) (" discr "), (" len ")))")
 ;; primitive for putting into a map of objects
 (defprimitive mapobject_put (map key val) :void
- " basilysgc_put_mapobjects( (void*) (" map "), (" key "), (" val "))")
-;; primivite for removing from a map of objects
+ " basilysgc_put_mapobjects( (basilysmapobjects_ptr_t) (" map "), (basilysobject_ptr_t) (" key "), (basilys_ptr_t)(" val "))")
+;; primitive for removing from a map of objects
 (defprimitive mapobject_remove (map key) :void
-  " basilysgc_remove_mapobjects( (void*) (" map "), (" key "))")
+  " basilysgc_remove_mapobjects( (basilysmapobjects_ptr_t) (" map "), (basilysobject_ptr_t)(" key "))")
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;; MAPSTRINGs primitive
 ;; test
 (defprimitive is_mapstring (map) :long
-"(basilys_magic_discr((" map ")) == OBMAG_MAPSTRINGS)")
+"(basilys_magic_discr((basilys_ptr_t)(" map ")) == OBMAG_MAPSTRINGS)")
 ;; primitive to get the allocated size of a mapstring
 (defprimitive mapstring_size (map) :long 
-  "(basilys_size_mapstrings(" map "))")
+  "(basilys_size_mapstrings((struct basilysmapstrings_st*)(" map ")))")
 ;; primitive to get the attribute count of a mapstring
 (defprimitive mapstring_count (map) :long
-  "(basilys_count_mapstrings(" map "))")
+  "(basilys_count_mapstrings((struct basilysmapstrings_st*)(" map ")))")
 ;; get an entry in a mapstring from a C string
 (defprimitive mapstring_rawget (map :cstring cstr) :value
-  "(basilys_get_mapstrings((void*)(" map "), (" cstr ")))")
+  "(basilys_get_mapstrings((struct basilysmapstrings_st*)(" map "), (" cstr ")))")
 ;; primitive for making a new map of strings
 (defprimitive make_mapstring (discr :long len) :value
   " (basilysgc_new_mapstrings( (basilysobject_ptr_t) (" discr "), (" len ")))")
 ;; primitive for putting into a map of strings
 (defprimitive mapstring_rawput (map :cstring key :value val) :void
- " basilysgc_put_mapstrings( (void*) (" map "), (" key "), (" val "))")
+ " basilysgc_put_mapstrings( (struct basilysmapstrings_st *) (" map "), (" key "), (basilys_ptr_t) (" val "))")
 (defprimitive mapstring_putstr (map keystr val) :void
-  " basilysgc_put_mapstrings((void*) (" map "), basilys_string_str(" keystr "), (" val "))")
+  " basilysgc_put_mapstrings((struct basilysmapstrings_st *) (" map "), basilys_string_str((basilys_ptr_t)(" keystr ")), (basilys_ptr_t)(" val "))")
 (defprimitive mapstring_getstr (map keystr) :value
-  "(basilys_get_mapstrings((void*)(" map "), basilys_string_str(" keystr ")))")
+  "(basilys_get_mapstrings((struct basilysmapstrings_st*)(" map "), basilys_string_str((basilys_ptr_t)(" keystr "))))")
 ;; primivite for removing from a map of strings
 (defprimitive mapstring_rawremove (map :cstring key) :void
-  " basilysgc_remove_mapstrings( (void*) (" map "), (" key "))")
+  " basilysgc_remove_mapstrings( (struct basilysmapstrings_st*) (" map "), (" key "))")
 
 ;; primitive to make the nth stringattr of a mapobject
 (defprimitive mapstring_nth_attrstr (map sdicr :long n) :value
-  "(basilysgc_new_stringdup((void*)(" sdicr "), basilys_nthattrraw_mapstrings((" map "), (int)(" n "))))")
+  "(basilysgc_new_stringdup((basilysobject_ptr_t)(" sdicr "), basilys_nthattrraw_mapstrings((struct basilysmapstrings_st*)(" map "), (int)(" n "))))")
 ;; primitive to get the nth value of a mapobject
 (defprimitive mapstring_nth_val (map :long n) :value
-  "(basilys_nthval_mapstrings((" map "), (int)(" n ")))")
+  "(basilys_nthval_mapstrings((struct basilysmapstrings_st*)(" map "), (int)(" n ")))")
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;; ROUTINEs primitives
 ;; test
 (defprimitive is_routine (rou) :long
-"(basils_magic_discr((" rou ")) == OBMAG_ROUTINE)")
+"(basils_magic_discr((basilys_ptr_t)(" rou ")) == OBMAG_ROUTINE)")
 ;;; descriptive string of a routine
 (defprimitive routine_descr (rou) :value
   "(basilysgc_new_stringdup(basilys_routine_descrstr((" rou "))))")
@@ -788,133 +801,133 @@
 ;;;;;; CLOSUREs primitives
 ;; test
 (defprimitive is_closure (clo) :long
-  " (basilys_magic_discr((" clo ")) == OBMAG_CLOSURE)")
+  " (basilys_magic_discr((basilys_ptr_t)(" clo ")) == OBMAG_CLOSURE)")
 (defprimitive closure_size (clo) :long
-  " (basilys_closure_size((" clo ")))")
+  " (basilys_closure_size((basilys_ptr_t)(" clo ")))")
 (defprimitive closure_routine (clo) :value
- " (basilys_closure_routine((" clo ")))")
+ " (basilys_closure_routine((basilys_ptr_t)(" clo ")))")
 (defprimitive closure_nth (clo :long ix) :value
-  "(basilys_closure_nth((" clo "), (int)(" ix ")))")
+  "(basilys_closure_nth((basilys_ptr_t)(" clo "), (int)(" ix ")))")
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;; boxed INTEGERs primitives
 ;; test
 (defprimitive is_integerbox (ib) :long
-  "(basilys_magic_discr((void*)(" ib ")) == OBMAG_INT)")
+  "(basilys_magic_discr((basilys_ptr_t)(" ib ")) == OBMAG_INT)")
 ;; to get the boxed integer use get_int
 ;; make
 (defprimitive make_integerbox (discr :long n) :value
-  "(basilysgc_new_int((void*)(" discr "), (" n ")))")
+  "(basilysgc_new_int((basilysobject_ptr_t)(" discr "), (" n ")))")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; BOX primitives (boxed values)
 ;; test
 (defprimitive is_box (bx) :long
-  "(basilys_magic_discr((" bx ")) == OBMAG_BOX)")
+  "(basilys_magic_discr((basilys_ptr_t)(" bx ")) == OBMAG_BOX)")
 ;; safe fetch content
 (defprimitive box_content (box) :value
-  "basilys_box_content((void*)(" box "))")
+  "basilys_box_content((basilysbox_ptr_t)(" box "))")
 ;; put into a box
 (defprimitive box_put (box val) :void
-  "basilysgc_box_put((void*)(" box "), (" val "))")
+  "basilysgc_box_put((basilys_ptr_t)(" box "), (basilys_ptr_t)(" val "))")
 ;; make a box
 (defprimitive make_box (discr valb) :value
-  "basilysgc_new_box((void*)(" discr "), (void*)(" valb "))")
+  "basilysgc_new_box((basilysobject_ptr_t)(" discr "), (basilys_ptr_t)(" valb "))")
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; LIST primitives
 ;; test
 (defprimitive is_list (li) :long
-  "(basilys_magic_discr((" li ")) == OBMAG_LIST)")
+  "(basilys_magic_discr((basilys_ptr_t)(" li ")) == OBMAG_LIST)")
 (defprimitive is_list_or_null (li) :long
-  "((" li ") == NULL || (basilys_magic_discr((" li ")) == OBMAG_LIST))")
+  "((" li ") == NULL || (basilys_magic_discr((basilys_ptr_t)(" li ")) == OBMAG_LIST))")
 ;; first pair of list
 (defprimitive list_first (li) :value
-  "(basilys_list_first((" li ")))")
+  "(basilys_list_first((basilys_ptr_t)(" li ")))")
 ;; last pair of list
 (defprimitive list_last (li) :value
-"(basilys_list_last((" li ")))")
+"(basilys_list_last((basilys_ptr_t)(" li ")))")
 ;; length of list
 (defprimitive list_length (li) :long
-"(basilys_list_length((" li ")))")
+"(basilys_list_length((basilys_ptr_t)(" li ")))")
 ;; append into list
 (defprimitive list_append (li el) :void
-"basilysgc_append_list((" li "), (" el "))")
+"basilysgc_append_list((basilys_ptr_t)(" li "), (basilys_ptr_t)(" el "))")
 ;; prepend into list
 (defprimitive list_prepend (li el) :void
-"basilysgc_prepend_list((" li "), (" el "))")
+"basilysgc_prepend_list((basilys_ptr_t)(" li "), (basilys_ptr_t)(" el "))")
 ;; pop first from list
 (defprimitive list_popfirst (li) :value
-  "(basilysgc_popfirst_list((" li ")))")
+  "(basilysgc_popfirst_list((basilys_ptr_t)(" li ")))")
 ;; make list
 (defprimitive make_list (discr) :value
-"(basilysgc_new_list((void*)(" discr ")))")
+"(basilysgc_new_list((basilysobject_ptr_t)(" discr ")))")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; PAIR primitives
 ;; test
 (defprimitive is_pair (pa) :long
-  "(basilys_magic_discr((" pa ")) == OBMAG_PAIR)")
+  "(basilys_magic_discr((basilys_ptr_t)(" pa ")) == OBMAG_PAIR)")
 ;; head
 (defprimitive pair_head (pa) :value
-  "(basilys_pair_head((" pa ")))")
+  "(basilys_pair_head((basilys_ptr_t)(" pa ")))")
 ;; tail
 (defprimitive pair_tail (pa) :value
-  "(basilys_pair_tail((" pa ")))")
+  "(basilys_pair_tail((basilys_ptr_t)(" pa ")))")
 ;; change the head of a pair
 (defprimitive pair_set_head (pa hd) :void
-  "basilysgc_pair_set_head((" pa "), (" hd "))")
+  "basilysgc_pair_set_head((basilys_ptr_t)(" pa "), (" hd "))")
 ;; length of a pair list
 (defprimitive pair_listlength (pa) :long
-  "(basilys_pair_listlength((" pa ")))")
+  "(basilys_pair_listlength((basilys_ptr_t)(" pa ")))")
 ;; make
 (defprimitive make_pair (discr hd tl) :value
-  "(basilysgc_new_pair((" discr "), (" hd "), (" tl ")))")
+  "(basilysgc_new_pair((basilysobject_ptr_t)(" discr "), (basilys_ptr_t)(" hd "), (basilys_ptr_t)(" tl ")))")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;; MIXINT primitives (use get_int to get the integer)
 ;; test
 (defprimitive is_mixint (mi) :long
-  "(basilys_magic_discr((" mi ")) == OBMAG_MIXINT)")
+  "(basilys_magic_discr((basilys_ptr_t)(" mi ")) == OBMAG_MIXINT)")
 ;; get the value
 (defprimitive mixint_val (mi) :value
-  "(basilys_val_mixint((" mi ")))")
+  "(basilys_val_mixint((basilys_ptr_t)(" mi ")))")
 ;; make a mixint
 (defprimitive make_mixint (dis val :long num) :value
-  "(basilysgc_new_mixint((void*)(" dis "), (void*)(" val "), (" num ")))")
+  "(basilysgc_new_mixint((basilysobject_ptr_t)(" dis "), (basilys_ptr_t)(" val "), (" num ")))")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; READ FILE primitive
 (defprimitive read_file (filnam) :value
-  "(basilysgc_read_file (basilys_string_str((" filnam ")), (char*)0))")
+  "(basilysgc_read_file (basilys_string_str((basilys_ptr_t)(" filnam ")), (char*)0))")
 
 ;; to signal an error in a basilys source with some additional string value
 (defprimitive error_strv (loc :cstring msg :value strv) :void
-  "error(\"BASILYS ERROR [#%ld]: @%s:%d: %s - %s\", basilys_dbgcounter, "
-  " basilys_string_str(basilys_val_mixint(" loc ")), "
-  " (int) basilys_num_mixint(" loc "), ("
+  "error(\"BASILYS ERROR [#%ld]: @%s:%d:: %s - %s\", basilys_dbgcounter, "
+  " basilys_string_str(basilys_val_mixint((basilys_ptr_t)(" loc "))), "
+  " (int) basilys_num_mixint((basilys_ptr_t)(" loc ")), ("
   msg
-  "), basilys_string_str((" strv ")))"
+  "), basilys_string_str((basilys_ptr_t)(" strv ")))"
   )
 ;; signal a plain error in a basilys source
 (defprimitive error_plain (loc :cstring msg) :void
-  "error(\"BASILYS ERROR [#%ld]: @%s:%d: %s \", basilys_dbgcounter, "
-  " basilys_string_str(basilys_val_mixint(" loc ")), "
-  " (int) basilys_num_mixint(" loc "), ("
+  "error(\"BASILYS ERROR [#%ld]: @%s:%d:: %s \", basilys_dbgcounter, "
+  " basilys_string_str(basilys_val_mixint((basilys_ptr_t)(" loc "))), "
+  " (int) basilys_num_mixint((basilys_ptr_t)(" loc ")), ("
   msg "))"
   )
 
 ;; to signal an warning in a basilys source with some additional string value
 (defprimitive warning_strv (loc :cstring msg :value strv) :void
-  "warning(0, \"BASILYS WARNING [#%ld]: @%s:%d: %s - %s\", basilys_dbgcounter,"
-  " basilys_string_str(basilys_val_mixint(" loc ")), "
-  " (int) basilys_num_mixint(" loc "), ("
+  "warning(0, \"BASILYS WARNING [#%ld]: @%s:%d:: %s - %s\", basilys_dbgcounter,"
+  " basilys_string_str(basilys_val_mixint((basilys_ptr_t)(" loc "))), "
+  " (int) basilys_num_mixint((basilys_ptr_t)(" loc ")), ("
   msg
-  "), basilys_string_str((" strv ")))"
+  "), basilys_string_str((basilys_ptr_t)(" strv ")))"
   )
 ;; signal a plain warning in a basilys source
 (defprimitive warning_plain (loc :cstring msg) :void
   "warning(0, \"BASILYS WARNING [#%ld]: @%s:%d:: %s \", basilys_dbgcounter,"
-  " basilys_string_str(basilys_val_mixint(" loc ")), "
-  " (int) basilys_num_mixint(" loc "), ("
+  " basilys_string_str(basilys_val_mixint((basilys_ptr_t)(" loc "))), "
+  " (int) basilys_num_mixint((basilys_ptr_t)(" loc ")), ("
   msg "))"
   )
 
@@ -930,30 +943,30 @@
 (defprimitive warningmsg_strv (:cstring msg :value strv) :void
   "warning(0, \"BASILYS WARNING [#%ld]::: %s - %s\", basilys_dbgcounter, ("
   msg 
-  "), basilys_string_str((" strv ")))"
+  "), basilys_string_str((basilys_ptr_t)(" strv ")))"
   )
 
 
 ;; to signal an inform in a basilys source with some additional string value
 (defprimitive inform_strv (loc :cstring msg :value strv) :void
   "inform(\"BASILYS INFORM [#%ld]: @%s:%d: %s - %s\", basilys_dbgcounter,"
-  " basilys_string_str(basilys_val_mixint(" loc ")), "
-  " (int) basilys_num_mixint(" loc "), ("
+  " basilys_string_str(basilys_val_mixint((basilys_ptr_t)(" loc "))), "
+  " (int) basilys_num_mixint((basilys_ptr_t)(" loc ")), ("
   msg
-  "), basilys_string_str((" strv ")))"
+  "), basilys_string_str((basilys_ptr_t)(" strv ")))"
   )
 ;; signal a plain inform in a basilys source
 (defprimitive inform_plain (loc :cstring msg) :void
   "inform(\"BASILYS INFORM [#%ld]: @%s:%d::: %s \", basilys_dbgcounter,"
-  " basilys_string_str(basilys_val_mixint(" loc ")), "
-  " (int) basilys_num_mixint(" loc "), ("
+  " basilys_string_str(basilys_val_mixint((basilys_ptr_t)(" loc "))), "
+  " (int) basilys_num_mixint((basilys_ptr_t)(" loc ")), ("
   msg "))"
   )
 
 (defprimitive informsg_strv (:cstring msg :value strv) :void
   "inform((\"BASILYS INFORM [#%ld]: %s - %s\"), basilys_dbgcounter, ("
   msg
-  "), basilys_string_str((" strv ")))"
+  "), basilys_string_str((basilys_ptr_t)(" strv ")))"
   )
 
 (defprimitive informsg_plain (:cstring msg) :void
@@ -6279,15 +6292,26 @@
 	(let ( (bvar (mapobject_get (unsafe_get_field :nctx_valbindmap ncx) bind)) )
 	  (debug_msg bind "normexp_symbol value bind")
 	  (debug_msg procs "normexp_symbol value procs")
+	  (compile_warning "@@@ A COMPLETER normexp_symbvol value" ())
 	  (if (null bvar)
 	      (let ( (newbvar 
 		      (make_instance class_nrep_startval
 				     :nrep_loc psloc
 				     :nstart_var recv)) )
 		(mapobject_put (unsafe_get_field :nctx_valbindmap ncx) bind newbvar)
-		newbvar)
-	      ))
-	)
+		(setq bvar newbvar)
+		))
+	  ;; if procs ia non-empty list, symbol is a "closed" constant for the value
+	  (if (and (is_list procs)
+		   (is_pair (list_first procs)))
+	      (let ( 
+		    )
+		)
+	    ;; otherwise symbol is the direct value
+	    (let ( 
+		  )
+	      )
+	    )))
       ;; the procs is a non-empty list, so the symbol is closed
       ( (and (is_list procs)
 	     (is_pair (list_first procs)))
@@ -6305,8 +6329,7 @@
 			      "closed variable has non value type (boxing required)"
 			      (unsafe_get_field :named_name recv)
 			      )))
-	  (setq bty ctype_value
-		)
+	  (setq bty ctype_value)
 	  (if (is_a bind class_fixed_binding)
 	      (let ( (fxocc
 		      (make_instance class_nrep_constocc
@@ -6402,7 +6425,7 @@
 	      (error_strv psloc "unresolved forward primitive reference to"
 			  (unsafe_get_field :named_name recv)
 			  )
-	      )
+	    )
 	  (assert_msg "normexp_symbol check pribdat" (is_a pribidat class_nrep_datainstance))
 	  ;; cache the result & return it
 	  (mapobject_put sycmap recv pribidat)
@@ -6414,7 +6437,7 @@
 	      (error_strv psloc "unresolved forward class reference to"
 			  (unsafe_get_field :named_name recv)
 			  )
-	      )
+	    )
 	  (assert_msg "normexp_symbol check cldat" (is_a cldat class_nrep_datainstance))
 	  ;; cache the result & return it
 	  (mapobject_put sycmap recv cldat)
@@ -6426,7 +6449,7 @@
 	      (error_strv psloc "unresolved forward field reference to"
 			  (unsafe_get_field :named_name recv)
 			  )
-	      )
+	    )
 	  (assert_msg "normexp_symbol check fdat" (is_a fdat class_nrep_datainstance))
 	  ;; cache the result & return it
 	  (mapobject_put sycmap recv fdat)
@@ -6438,7 +6461,7 @@
 	      (error_strv psloc "unresolved forward selector reference to"
 			  (unsafe_get_field :named_name recv)
 			  )
-	      )
+	    )
 	  (assert_msg "normexp_symbol check seldat" (is_a seldat class_nrep_datainstance))
 	  ;; cache the result & return it
 	  (mapobject_put sycmap recv seldat)
@@ -6450,7 +6473,7 @@
 	      (error_strv psloc "unresolved forward instance reference to"
 			  (unsafe_get_field :named_name recv)
 			  )
-	      )
+	    )
 	  (assert_msg "normexp_symbol check insdat" (is_a insdat class_nrep_datainstance))
 	  ;; cache the result & return it
 	  (mapobject_put sycmap recv insdat)
@@ -9696,7 +9719,8 @@
   (debug_msg recv "putobjdest_catchall_anydiscr recv@@  " )
   (debug_msg desto "putobjdest_catchall_anydiscr desto@@  " )
   (outcstring_err "* putobjdest unimplemented reciever discriminant ")
-  (let ( (discr (discrim recv)) ) (outstr_err (unsafe_get_field :named_name discr)))
+  (let ( (discr (discrim recv)) ) 
+    (outstr_err (unsafe_get_field :named_name discr)))
   (outnewline_err)
   (assert_msg "@@ unexpected catchall putobjdest anydiscr" ()))
 (install_method discr_anyrecv put_objdest putobjdest_catchall_anydiscr)
@@ -9844,15 +9868,15 @@
 	  (progn
 	    (add2sbuf_strconst sbuf "if (")
 	    (output_predef oiopredef sbuf 1)
-	    (add2sbuf_strconst sbuf " != (void*)&cdat->")
+	    (add2sbuf_strconst sbuf " != (basilys_ptr_t)&cdat->")
 	    (add2sbuf_string sbuf oname)
 	    (add2sbuf_strconst sbuf ") {")
 	    (add2sbuf_indentnl sbuf 2)
 	    (add2sbuf_strconst sbuf "basilys_assertmsg(\"check.predef length ")
 	    (output_predef oiopredef sbuf 2)
-	    (add2sbuf_strconst sbuf "\", basilys_object_length(")
+	    (add2sbuf_strconst sbuf "\", basilys_object_length((basilys_ptr_t)(")
 	    (output_predef oiopredef sbuf 2)
-	    (add2sbuf_strconst sbuf ") >= ")
+	    (add2sbuf_strconst sbuf ")) >= ")
 	    (add2sbuf_longdec sbuf (multiple_length odslots))
 	    (add2sbuf_strconst sbuf ");")
 	    (add2sbuf_indentnl sbuf 2)
@@ -9881,9 +9905,9 @@
       (add2sbuf_indentnl sbuf 1)
       (add2sbuf_strconst sbuf " cdat->")
       (add2sbuf_string sbuf oname)
-      (add2sbuf_strconst sbuf ".obj_class = ")
+      (add2sbuf_strconst sbuf ".obj_class = (basilysobject_ptr_t)(")
       (output_c_code odiscr (the_null) sbuf 1)
-      (add2sbuf_strconst sbuf ";")
+      (add2sbuf_strconst sbuf ");")
       (add2sbuf_indentnl sbuf 1)
       (if odobnum
 	  (progn
@@ -9957,7 +9981,7 @@
 	 (add2sbuf_string sbuf (unsafe_get_field :named_name oiopredef))
 	 (add2sbuf_strconst sbuf ")) BASILYSG(")
 	 (add2sbuf_string sbuf (unsafe_get_field :named_name oiopredef))
-	 (add2sbuf_strconst sbuf ") = (void*)&cdat->")
+	 (add2sbuf_strconst sbuf ") = (basilys_ptr_t)&cdat->")
 	 (add2sbuf_string sbuf oname)
 	 (add2sbuf_strconst sbuf ";")
 	 (add2sbuf_indentnl sbuf 1)
@@ -10039,9 +10063,9 @@
 	  ))
     (add2sbuf_strconst sbuf " cdat->")
     (add2sbuf_string sbuf cnam)
-    (add2sbuf_strconst sbuf ".discr = ")
+    (add2sbuf_strconst sbuf ".discr = (basilysobject_ptr_t)(")
     (output_c_code (unsafe_get_field :oie_discr recv) (the_null) sbuf 1)
-    (add2sbuf_strconst sbuf ";")
+    (add2sbuf_strconst sbuf ");")
     (add2sbuf_indentnl sbuf 1)
     (add2sbuf_strconst sbuf " cdat->")
     (add2sbuf_string sbuf cnam)
@@ -10081,9 +10105,9 @@
 	  ))
     (add2sbuf_strconst sbuf " cdat->")
     (add2sbuf_string sbuf cnam)
-    (add2sbuf_strconst sbuf ".discr = ")
+    (add2sbuf_strconst sbuf ".discr = (basilysobject_ptr_t)(")
     (output_c_code (unsafe_get_field :oie_discr recv) (the_null) sbuf 1)
-    (add2sbuf_strconst sbuf ";")
+    (add2sbuf_strconst sbuf ");")
     (add2sbuf_indentnl sbuf 1)
     (add2sbuf_strconst sbuf " cdat->")
     (add2sbuf_string sbuf cnam)
@@ -10128,9 +10152,9 @@
 	  ))
     (add2sbuf_strconst sbuf " cdat->")
     (add2sbuf_string sbuf cnam)
-    (add2sbuf_strconst sbuf ".discr = ")
+    (add2sbuf_strconst sbuf ".discr = (basilysobject_ptr_t)(")
     (output_c_code (unsafe_get_field :oie_discr recv) (the_null) sbuf 1)
-    (add2sbuf_strconst sbuf ";")
+    (add2sbuf_strconst sbuf ");")
     (add2sbuf_indentnl sbuf 1)
     (add2sbuf_strconst sbuf " strncpy(cdat->")
     (add2sbuf_string sbuf cnam)
@@ -10213,9 +10237,9 @@
 	  ))
     (add2sbuf_strconst sbuf " cdat->")
     (add2sbuf_string sbuf cnam)
-    (add2sbuf_strconst sbuf ".discr = ")
+    (add2sbuf_strconst sbuf ".discr = (basilysobject_ptr_t)(")
     (output_c_code (unsafe_get_field :oie_discr recv) (the_null) sbuf 1)
-    (add2sbuf_strconst sbuf ";")
+    (add2sbuf_strconst sbuf ");")
     (add2sbuf_indentnl sbuf 1)
     (add2sbuf_strconst sbuf " strcpy(cdat->")
     (add2sbuf_string sbuf cnam)
@@ -10305,7 +10329,7 @@
 	      (add2sbuf_strconst implbuf ":")
 	      (add2sbuf_longdec implbuf (get_int loc))))
 	(if msg (progn
-		  (add2sbuf_strconst implbuf ": @")
+		  (add2sbuf_strconst implbuf ":: @")
 		  (add2sbuf_strconst implbuf msg)
 		  ))
 	(add2sbuf_strconst implbuf "\"")
@@ -10468,9 +10492,9 @@
 	(progn
 	  (add2sbuf_strconst implbuf "  curfram__.clos = closp_;")
 	  (add2sbuf_indentnl implbuf 0)))
-    (add2sbuf_strconst implbuf " curfram__.prev = (void*) basilys_topframe;")
+    (add2sbuf_strconst implbuf " curfram__.prev = (struct callframe_basilys_st *) basilys_topframe;")
     (add2sbuf_indentnl implbuf 0)
-    (add2sbuf_strconst implbuf " basilys_topframe = (void*) &curfram__;")
+    (add2sbuf_strconst implbuf " basilys_topframe = (struct callframe_basilys_st *) &curfram__;")
     (add2sbuf_indentnl implbuf 0)
     ))
 
@@ -10571,13 +10595,13 @@
     (add2sbuf_strconst implbuf "basilys_trace_end(\"")
     (add2sbuf_string implbuf ofunam)
     (add2sbuf_strconst implbuf "\", callcount);")
-    (add2sbuf_strconst implbuf "  basilys_topframe = (void *) curfram__.prev;")
+    (add2sbuf_strconst implbuf "  basilys_topframe = (struct callframe_basilys_st*) curfram__.prev;")
     (add2sbuf_indentnl implbuf 0)
-    (add2sbuf_strconst implbuf " return ")
+    (add2sbuf_strconst implbuf " return (basilys_ptr_t)(")
     (if oretval 
 	(output_c_code oretval declbuf implbuf 1)
       (add2sbuf_strconst implbuf "/*noretval*/ NULL"))
-    (add2sbuf_strconst implbuf ";")
+    (add2sbuf_strconst implbuf ");")
     (add2sbuf_indentnl implbuf 0)
     (add2sbuf_strconst implbuf "#undef callcount")
     (add2sbuf_indentnl implbuf 0)
@@ -10616,7 +10640,7 @@
 ;;; output the cdata structure fill
 (defun output_curframe_cdat_fill (idatup implbuf)
   ;; generate the allocation of cdat
-  (add2sbuf_strconst implbuf " cdat = basilysgc_allocate(sizeof(*cdat),0);")
+  (add2sbuf_strconst implbuf " cdat = (struct cdata_st*) basilysgc_allocate(sizeof(*cdat),0);")
   (add2sbuf_indentnl implbuf 1)
   (add2sbuf_strconst implbuf " basilys_prohibit_garbcoll = TRUE;")
   (add2sbuf_indentnl implbuf 1)
@@ -10733,7 +10757,7 @@
     (add2sbuf_indentnl implbuf 0)
     (add2sbuf_strconst implbuf " goto labend_rout;")
     (add2sbuf_indentnl implbuf 0)
-    (add2sbuf_strconst implbuf "labend_rout:  basilys_topframe = (void *) curfram__.prev;")
+    (add2sbuf_strconst implbuf "labend_rout:  basilys_topframe = (struct callframe_basilys_st *) curfram__.prev;")
     (add2sbuf_indentnl implbuf 0)
     (add2sbuf_strconst implbuf " return ")
     (if oretval 
@@ -10780,7 +10804,7 @@
 	(progn
 	  (assert_msg "check ctybind first" (== ctybind ctype_value))
 	  (output_c_code oloc declbuf implbuf depth)
-	  (add2sbuf_strconst implbuf " = firstargp_;")
+	  (add2sbuf_strconst implbuf " = (basilys_ptr_t) firstargp_;")
 	  (add2sbuf_indentnl implbuf depth)
 	  )
       (let (
@@ -10806,9 +10830,9 @@
 	      (add2sbuf_longdec implbuf (-i rkbind 1))
 	      (add2sbuf_strconst implbuf "].bp_aptr)) : NULL;")		
 	      (add2sbuf_indentnl implbuf depth)
-	      (add2sbuf_strconst implbuf "gcc_assert(basilys_discr(")
+	      (add2sbuf_strconst implbuf "gcc_assert(basilys_discr((basilys_ptr_t)(")
 	      (output_c_code oloc declbuf implbuf depth)
-	      (add2sbuf_strconst implbuf ") != NULL);")	
+	      (add2sbuf_strconst implbuf ")) != NULL);")	
 	      (add2sbuf_indentnl implbuf depth)
 	      )
 	  (progn
@@ -11188,9 +11212,9 @@
 	 (add2sbuf_string implbuf nsy)
 	 (add2sbuf_strconst implbuf "*/")
 	 (add2sbuf_indentnl implbuf depth)
-	  (add2sbuf_strconst implbuf "(void) basilysgc_intern_symbol(")
+	  (add2sbuf_strconst implbuf "(void) basilysgc_intern_symbol((basilys_ptr_t)(")
 	 (output_c_code oilocv declbuf implbuf depth)
-	 (add2sbuf_strconst implbuf ");")
+	 (add2sbuf_strconst implbuf "));")
 	 (add2sbuf_indentnl implbuf depth))
 ))
 (install_method class_objinternsymbol output_c_code outpucod_objinternsymbol)
@@ -11211,9 +11235,9 @@
 	 (add2sbuf_string implbuf nsy)
 	 (add2sbuf_strconst implbuf "*/")
 	 (add2sbuf_indentnl implbuf depth)
-	 (add2sbuf_strconst implbuf "(void) basilysgc_intern_keyword(")
+	 (add2sbuf_strconst implbuf "(void) basilysgc_intern_keyword((basilys_ptr_t)(")
 	 (output_c_code oilocv declbuf implbuf depth)
-	 (add2sbuf_strconst implbuf ");")
+	 (add2sbuf_strconst implbuf "));")
 	 (add2sbuf_indentnl implbuf depth))
 ))
 (install_method class_objinternkeyword output_c_code outpucod_objinternkeyword)
@@ -11350,9 +11374,9 @@
        (output_c_code curdest declbuf implbuf (get_int boxdepthp1))
        (add2sbuf_strconst implbuf " = ")))
     ;; output the apply and the closure
-    (add2sbuf_strconst implbuf " basilys_apply ((void*)(")
+    (add2sbuf_strconst implbuf " basilys_apply ((basilysclosure_ptr_t)(")
     (output_c_code oclos declbuf implbuf (+i 1 depth))
-    (add2sbuf_strconst implbuf "), (")
+    (add2sbuf_strconst implbuf "), (basilys_ptr_t)(")
     ;; output the first argument
     (let ( (firstarg (multiple_nth oargs 0)) )
       (output_c_code firstarg declbuf implbuf (+i 1 depth))
@@ -11442,9 +11466,9 @@
      (lambda (curdest) 
        (output_c_code curdest declbuf implbuf (get_int boxdepthp1))
        (add2sbuf_strconst implbuf " = ")))
-    (add2sbuf_strconst implbuf "basilysgc_send((")
+    (add2sbuf_strconst implbuf "basilysgc_send((basilys_ptr_t)(")
     (output_c_code orecv declbuf implbuf (+i depth 1))
-    (add2sbuf_strconst implbuf "), (")
+    (add2sbuf_strconst implbuf "), (basilys_ptr_t)(")
     (output_c_code osel declbuf implbuf (+i depth 1))
     (add2sbuf_strconst implbuf "), (")
     ;; output the argdescr string
@@ -11590,9 +11614,9 @@
        (output_c_code curdest declbuf implbuf (get_int boxdepthp1))
        (add2sbuf_strconst implbuf " = ")))
     ;; output the apply and the closure
-    (add2sbuf_strconst implbuf " basilys_apply ((void*)(")
+    (add2sbuf_strconst implbuf " basilys_apply ((basilysclosure_ptr_t)(")
     (output_c_code oclos declbuf implbuf (+i 1 depth))
-    (add2sbuf_strconst implbuf "), (")
+    (add2sbuf_strconst implbuf "), (basilys_ptr_t)(")
     ;; output the first argument
     (let ( (firstarg (multiple_nth oargs 0)) )
       (output_c_code firstarg declbuf implbuf (+i 1 depth))
@@ -11748,9 +11772,9 @@
        (output_c_code curdest declbuf implbuf (get_int boxdepthp1))
        (add2sbuf_strconst implbuf " = ")))
     ;; output the send and the reciever
-    (add2sbuf_strconst implbuf " basilysgc_send ((void*)(")
+    (add2sbuf_strconst implbuf " basilysgc_send ((basilys_ptr_t)(")
     (output_c_code orecv declbuf implbuf (+i 1 depth))
-    (add2sbuf_strconst implbuf "), ((void*)(")
+    (add2sbuf_strconst implbuf "), ((basilys_ptr_t)(")
     ;; output the selector
     (output_c_code osel declbuf implbuf (+i 1 depth))
     (add2sbuf_strconst implbuf ")), (")
@@ -11819,7 +11843,7 @@
        (output_c_code dst declbuf implbuf (get_int boxdepthp1))
        (add2sbuf_strconst implbuf " =")))
     (add2sbuf_indentnl implbuf (+i depth 1))
-    (add2sbuf_strconst implbuf "basilysgc_new_raw_object((void*)(")
+    (add2sbuf_strconst implbuf "basilysgc_new_raw_object((basilysobject_ptr_t)(")
     (output_c_code iclass declbuf implbuf (get_int boxdepthp1))
     (add2sbuf_strconst implbuf "), (")
     (output_c_code ilen  declbuf implbuf (get_int boxdepthp1))
@@ -11895,25 +11919,25 @@
     (output_location iloc implbuf depth "putuple")
     (add2sbuf_strconst implbuf "/*putupl*/")
     (add2sbuf_indentnl implbuf depth)
-    (add2sbuf_strconst implbuf "basilys_assertmsg(\"putupl checktup\", basilys_magic_discr(")
+    (add2sbuf_strconst implbuf "basilys_assertmsg(\"putupl checktup\", basilys_magic_discr((basilys_ptr_t)(")
     (output_c_code otup declbuf implbuf depth)
-    (add2sbuf_strconst implbuf ")== OBMAG_MULTIPLE);")
+    (add2sbuf_strconst implbuf "))== OBMAG_MULTIPLE);")
     (add2sbuf_indentnl implbuf depth)
     (add2sbuf_strconst implbuf "basilys_assertmsg(\"putupl checkoff\", (")
     (output_c_code ooff declbuf implbuf depth)
     (add2sbuf_strconst implbuf ">=0 && ")
     (output_c_code ooff declbuf implbuf depth)
-    (add2sbuf_strconst implbuf "< basilys_multiple_length(")
+    (add2sbuf_strconst implbuf "< basilys_multiple_length((basilys_ptr_t)(")
     (output_c_code otup declbuf implbuf depth)
-    (add2sbuf_strconst implbuf ")));")
+    (add2sbuf_strconst implbuf "))));")
     (add2sbuf_indentnl implbuf depth)
-    (add2sbuf_strconst implbuf "/*putuple*/ ((basilysmultiple_ptr_t)(")
+    (add2sbuf_strconst implbuf "((basilysmultiple_ptr_t)(")
     (output_c_code otup declbuf implbuf depth)
     (add2sbuf_strconst implbuf "))->tabval[")
     (output_c_code ooff declbuf implbuf depth)
-    (add2sbuf_strconst implbuf "] = ")
+    (add2sbuf_strconst implbuf "] = (basilys_ptr_t)(")
     (output_c_code oval declbuf implbuf depth)
-    (add2sbuf_strconst implbuf ";")
+    (add2sbuf_strconst implbuf ");")
     (add2sbuf_indentnl implbuf depth)
     )
   )
@@ -11936,7 +11960,7 @@
      (lambda (dst) 
        (output_c_code dst declbuf implbuf (get_int boxdepthp1))
        (add2sbuf_strconst implbuf " = ")))
-    (add2sbuf_strconst implbuf "basilys_getfield_object((")
+    (add2sbuf_strconst implbuf "basilys_getfield_object((basilys_ptr_t)(")
     (output_c_code oobj declbuf implbuf depth)
     (add2sbuf_strconst implbuf "), ")
     (add2sbuf_longdec implbuf (get_int ofield))
@@ -11966,17 +11990,17 @@
 	(progn
 	  (add2sbuf_strconst implbuf " ")
 	  (add2sbuf_string implbuf (unsafe_get_field :named_name odata))))
-    (add2sbuf_strconst implbuf "\", basilys_magic_discr(")
+    (add2sbuf_strconst implbuf "\", basilys_magic_discr((basilys_ptr_t)(")
     (output_c_code odata declbuf implbuf depth)
-    (add2sbuf_strconst implbuf ") == OBMAG_OBJECT);")
+    (add2sbuf_strconst implbuf ")) == OBMAG_OBJECT);")
     (add2sbuf_indentnl implbuf depth)
     (add2sbuf_strconst implbuf "basilys_assertmsg(\"putslot checkoff\", (")
     (output_c_code ooff declbuf implbuf depth)
     (add2sbuf_strconst implbuf ">=0 && ")
     (output_c_code ooff declbuf implbuf depth)
-    (add2sbuf_strconst implbuf "< basilys_object_length(")
+    (add2sbuf_strconst implbuf "< basilys_object_length((basilys_ptr_t)(")
     (output_c_code odata declbuf implbuf depth)
-    (add2sbuf_strconst implbuf ")));")
+    (add2sbuf_strconst implbuf "))));")
     (add2sbuf_indentnl implbuf depth)
     (add2sbuf_strconst implbuf "((basilysobject_ptr_t)(")
     (output_c_code odata declbuf implbuf depth)
@@ -11987,10 +12011,10 @@
 	  (add2sbuf_strconst implbuf " /*")
 	  (add2sbuf_string implbuf (unsafe_get_field :named_name ofield))
 	  (add2sbuf_strconst implbuf "*/")))
-    (add2sbuf_strconst implbuf "] =")
+    (add2sbuf_strconst implbuf "] = (basilys_ptr_t)(")
     (add2sbuf_indentnl implbuf (+i 1 depth))
     (output_c_code oval declbuf implbuf (+i 1 depth))
-    (add2sbuf_strconst implbuf ";")
+    (add2sbuf_strconst implbuf ");")
     (add2sbuf_indentnl implbuf depth)
     ))
 (install_method class_objputslot output_c_code outpucod_objputslot)
@@ -12006,19 +12030,19 @@
     (output_location oloc implbuf depth "putclosurout")
     (add2sbuf_strconst implbuf "/*putclosurout*/")
     (add2sbuf_indentnl implbuf depth)
-    (add2sbuf_strconst implbuf "basilys_assertmsg(\"putclosrout checkclo\", basilys_magic_discr(")
+    (add2sbuf_strconst implbuf "basilys_assertmsg(\"putclosrout checkclo\", basilys_magic_discr((basilys_ptr_t)(")
     (output_c_code oclos declbuf implbuf depth)
-    (add2sbuf_strconst implbuf ") == OBMAG_CLOSURE);")
+    (add2sbuf_strconst implbuf ")) == OBMAG_CLOSURE);")
     (add2sbuf_indentnl implbuf depth)
-    (add2sbuf_strconst implbuf "basilys_assertmsg(\"putclosrout checkrout\", basilys_magic_discr(")
+    (add2sbuf_strconst implbuf "basilys_assertmsg(\"putclosrout checkrout\", basilys_magic_discr((basilys_ptr_t)(")
     (output_c_code orout declbuf implbuf depth)
-    (add2sbuf_strconst implbuf ") == OBMAG_ROUTINE);")
+    (add2sbuf_strconst implbuf ")) == OBMAG_ROUTINE);")
     (add2sbuf_indentnl implbuf depth)
     (add2sbuf_strconst implbuf "((basilysclosure_ptr_t)")
     (output_c_code oclos declbuf implbuf depth)
-    (add2sbuf_strconst implbuf ")->rout = ")
+    (add2sbuf_strconst implbuf ")->rout = (basilysroutine_ptr_t) (")
     (output_c_code orout declbuf implbuf depth)
-    (add2sbuf_strconst implbuf ";")
+    (add2sbuf_strconst implbuf ");")
     (add2sbuf_indentnl implbuf depth)
     )
 )
@@ -12033,25 +12057,27 @@
 	 (ooff (unsafe_get_field :opclov_off opclov))
 	 (ocval (unsafe_get_field :opclov_cval opclov)) )
     (output_location oloc implbuf depth "putclosedv")
-    (add2sbuf_strconst implbuf "/*putclosv checkclo*/ basilys_assertmsg(\"putclosv checkclo\", basilys_magic_discr(")
-    (output_c_code oclos declbuf implbuf depth)
-    (add2sbuf_strconst implbuf ") == OBMAG_CLOSURE);")
+    (add2sbuf_strconst implbuf "/*putclosv*/")
     (add2sbuf_indentnl implbuf depth)
-    (add2sbuf_strconst implbuf "/*putclosv checkoff*/ basilys_assertmsg(\"putclosv checkoff\", ")
+    (add2sbuf_strconst implbuf "basilys_assertmsg(\"putclosv checkclo\", basilys_magic_discr((basilys_ptr_t)(")
+    (output_c_code oclos declbuf implbuf depth)
+    (add2sbuf_strconst implbuf ")) == OBMAG_CLOSURE);")
+    (add2sbuf_indentnl implbuf depth)
+    (add2sbuf_strconst implbuf "basilys_assertmsg(\"putclosv checkoff\", ")
     (output_c_code ooff declbuf implbuf depth)
     (add2sbuf_strconst implbuf ">= 0 && ")
     (output_c_code ooff declbuf implbuf depth)
-    (add2sbuf_strconst implbuf "< basilys_closure_size( ")
+    (add2sbuf_strconst implbuf "< basilys_closure_size((basilys_ptr_t) (")
     (output_c_code oclos declbuf implbuf depth)
-    (add2sbuf_strconst implbuf "));")
+    (add2sbuf_strconst implbuf ")));")
     (add2sbuf_indentnl implbuf depth)
-    (add2sbuf_strconst implbuf "/*putclosval*/ ((basilysclosure_ptr_t)")
+    (add2sbuf_strconst implbuf "((basilysclosure_ptr_t)")
     (output_c_code oclos declbuf implbuf depth)
     (add2sbuf_strconst implbuf ")->tabval[")
     (output_c_code ooff declbuf implbuf depth)
-    (add2sbuf_strconst implbuf "] = ")
+    (add2sbuf_strconst implbuf "] = (basilys_ptr_t)(")
     (output_c_code ocval declbuf implbuf depth)
-    (add2sbuf_strconst implbuf ";")
+    (add2sbuf_strconst implbuf ");")
     (add2sbuf_indentnl implbuf depth)
     ))
 (install_method class_objputclosedv output_c_code outpucod_objputclosedv)
@@ -12067,17 +12093,17 @@
     (output_location oloc implbuf depth "putroutconst")
     (add2sbuf_strconst implbuf "/*putroutconst*/")
     (add2sbuf_indentnl implbuf depth)
-    (add2sbuf_strconst implbuf "basilys_assertmsg(\"putroutconst checkrout\", basilys_magic_discr(")
+    (add2sbuf_strconst implbuf "basilys_assertmsg(\"putroutconst checkrout\", basilys_magic_discr((basilys_ptr_t)(")
     (output_c_code orout declbuf implbuf depth)
-    (add2sbuf_strconst implbuf ") == OBMAG_ROUTINE);")
+    (add2sbuf_strconst implbuf ")) == OBMAG_ROUTINE);")
     (add2sbuf_indentnl implbuf depth)
     (add2sbuf_strconst implbuf "((basilysroutine_ptr_t)")
     (output_c_code orout declbuf implbuf depth)
     (add2sbuf_strconst implbuf ")->tabval[")
     (output_c_code ooff declbuf implbuf depth)
-    (add2sbuf_strconst implbuf "] = ")
+    (add2sbuf_strconst implbuf "] = (basilys_ptr_t)(")
     (output_c_code ocval declbuf implbuf depth)
-    (add2sbuf_strconst implbuf ";")
+    (add2sbuf_strconst implbuf ");")
     (add2sbuf_indentnl implbuf depth)
     )
   )
@@ -12112,9 +12138,10 @@
     (add2sbuf_longdec implbuf (get_int orank))
     (add2sbuf_strconst implbuf "].")
     (add2sbuf_string implbuf (unsafe_get_field :ctype_resfield octyp))
-    (add2sbuf_strconst implbuf ") = ")
+    (add2sbuf_strconst implbuf ") = (")
+    (if (== octyp ctype_value) (add2sbuf_strconst implbuf "basilys_ptr_t) ("))
     (output_c_code ovloc declbuf implbuf depth)
-    (add2sbuf_strconst implbuf ";")
+    (add2sbuf_strconst implbuf ");")
     (add2sbuf_indentnl implbuf depth)
     ))
 (install_method class_objputxtraresult output_c_code  outpucod_objputxtraresult)
@@ -12396,10 +12423,10 @@
 							    "if ((") 
 					  oprevenv
 					  (make_stringconst discr_verbatimstring 
-							    ") && basilys_magic_discr(")
+							    ") && basilys_magic_discr((basilys_ptr_t)(")
 					  ofreshenv
 					  (make_stringconst discr_verbatimstring 
-							    ") != OBMAG_CLOSURE) warning(0, \"bad BASILYS fresh_env @%p in system data <%s:%d>\", ")
+							    ")) != OBMAG_CLOSURE) warning(0, \"bad BASILYS fresh_env @%p in system data <%s:%d>\", ")
 					  ofreshenv
 					  (make_stringconst discr_verbatimstring ", __FILE__, __LINE__);"))))
 	     ;; generate the apply of ofreshenv
@@ -12526,9 +12553,9 @@
 		 :obcpt_expr
 		 (make_tuple3 discr_multiple
 		  (make_stringconst discr_verbatimstring
-				    "/*final freshenv get*/ basilys_container_value(")
+				    "/*final freshenv get*/ basilys_container_value((basilys_ptr_t)(")
 		  boxloc	
-		  (make_stringconst discr_verbatimstring ")")	
+		  (make_stringconst discr_verbatimstring "))")	
 		  )
 		 ))
 	       )
@@ -13350,7 +13377,7 @@
 	    (let ( 
 		  (tcont 
 		    (make_tuple5 discr_multiple  
-				 (make_stringconst discr_verbatimstring "/*fieldacc*/(basilys_field_object((")
+				 (make_stringconst discr_verbatimstring "/*fieldacc*/(basilys_field_object((basilys_ptr_t)(")
 				 cobj
 				 (make_stringconst discr_verbatimstring "),")
 				 boxfldoff

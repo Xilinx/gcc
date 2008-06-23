@@ -26,6 +26,12 @@ Boston, MA 02110-1301, USA.  */
 /* usual GCC middle-end includes, copied from basilys.c */
 
 #include "config.h"
+
+/* this is intended to pass -DDISABLE_CHECKING explicitly */
+#ifdef DISABLE_CHECKING
+#undef ENABLE_CHECKING
+#endif
+
 #include "system.h"
 #include "coretypes.h"
 #include "obstack.h"

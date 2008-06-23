@@ -1,4 +1,16 @@
-2008-06-23  Basile Starynkevitch  <basile@starynkevitch.net>	
+2008-06-23  Basile Starynkevitch  <basile@starynkevitch.net>
+	[avoid warning about C++ incompatibility]
+	* basilys.h: added casts.
+
+	* basilys.c: (FORWARDED, forwarded_copy, scanning)
+	(basilysgc_new_int, basilysgc_new_mixint, basilysgc_new_routine)
+	(basilysgc_new_closure, basilysgc_new_strbuf, ...) added many casts.
+
+	* melt/warm-basilys.bysl: added many casts.
+
+	* warm-basilys-0.c: regenerated.
+
+2008-06-23  Basile Starynkevitch  <basile@starynkevitch.net>
 	MELT branch merged with trunk r137030
 
 	* melt/warm-basilys.bysl: some primitives got explicit casts.

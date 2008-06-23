@@ -753,28 +753,28 @@ basilys_magic_discr (basilys_ptr_t p)
 
 /* return the nth of a multiple (starting from 0) */
 static inline basilys_ptr_t
-basilys_multiple_nth (basilysmultiple_ptr_t mul, int n)
+basilys_multiple_nth (basilys_ptr_t mul, int n)
 {
-  if (!mul || mul->discr->object_magic != OBMAG_MULTIPLE)
+  if (!mul || ((basilysmultiple_ptr_t)mul)->discr->object_magic != OBMAG_MULTIPLE)
     return NULL;
-  if (n >= 0 && n < (int) mul->nbval)
-    return mul->tabval[n];
-  else if (n < 0 && n + (int) mul->nbval >= 0)
-    return mul->tabval[n + mul->nbval];
+  if (n >= 0 && n < (int) ((basilysmultiple_ptr_t)mul)->nbval)
+    return ((basilysmultiple_ptr_t)mul)->tabval[n];
+  else if (n < 0 && n + (int) ((basilysmultiple_ptr_t)mul)->nbval >= 0)
+    return ((basilysmultiple_ptr_t)mul)->tabval[n + ((basilysmultiple_ptr_t)mul)->nbval];
   return NULL;
 }
 
 /* set the nth of a multiple (but beware of circularities!) */
-void basilysgc_multiple_put_nth (basilysmultiple_ptr_t mul, int n,
+void basilysgc_multiple_put_nth (basilys_ptr_t mul, int n,
 				 basilys_ptr_t val);
 
 /* return the length of a multiple */
 static inline int
-basilys_multiple_length (basilysmultiple_ptr_t mul)
+basilys_multiple_length (basilys_ptr_t mul)
 {
-  if (!mul || mul->discr->object_magic != OBMAG_MULTIPLE)
+  if (!mul || ((basilysmultiple_ptr_t)mul)->discr->object_magic != OBMAG_MULTIPLE)
     return 0;
-  return mul->nbval;
+  return ((basilysmultiple_ptr_t)mul)->nbval;
 }
 
 /* sort a multiple MUL using as compare function the closure CMPCLO
@@ -1274,7 +1274,7 @@ basilys_getfield_object_at (basilys_ptr_t ob, unsigned off, const char*msg, cons
   fatal_error("checked field access failed (not object [%s:%d]) - %s", fil, lin, msg?msg:"...");
   return NULL;
 }
-#define basilys_getfield_object(Obj,Off,Msg) basilys_getfield_object_at((basilysobject_ptr_t)(Obj),(Off),(Msg),__FILE__,__LINE__)
+#define basilys_getfield_object(Obj,Off,Msg) basilys_getfield_object_at((basilys_ptr_t)(Obj),(Off),(Msg),__FILE__,__LINE__)
 #else
 #define basilys_getfield_object(Obj,Off,Msg) (((basilysobject_ptr_t)(Obj))->obj_vartab[Off])
 #endif
@@ -2110,17 +2110,17 @@ extern basilys_ptr_t basilys_jmpval;
   void*  /* a basilys_ptr_t */ varptr[NBVAR];	\
 } curfram__
 /* initialize the current callframe and link it at top */
-#define BASILYS_INITFRAME_AT(NBVAR,CLOS,FIL,LIN) do {		\
-  static char locbuf_##LIN[64];					\
-  if (!locbuf_##LIN[0])						\
-    snprintf(locbuf_##LIN, sizeof(locbuf_##LIN)-1, "%s:%d",	\
-	     basename(FIL), (int)LIN);				\
-  memset(&curfram__, 0, sizeof(curfram__));			\
-  curfram__.nbvar = (NBVAR);					\
-  curfram__.flocs = locbuf_##LIN;				\
-  curfram__.prev = basilys_topframe;				\
-  curfram__.clos = (CLOS);					\
-  basilys_topframe = ((void*)&curfram__);			\
+#define BASILYS_INITFRAME_AT(NBVAR,CLOS,FIL,LIN) do {			\
+  static char locbuf_##LIN[64];						\
+  if (!locbuf_##LIN[0])							\
+    snprintf(locbuf_##LIN, sizeof(locbuf_##LIN)-1, "%s:%d",		\
+	     basename(FIL), (int)LIN);					\
+  memset(&curfram__, 0, sizeof(curfram__));				\
+  curfram__.nbvar = (NBVAR);						\
+  curfram__.flocs = locbuf_##LIN;					\
+  curfram__.prev = (struct callframe_basilys_st*) basilys_topframe;	\
+  curfram__.clos = (CLOS);						\
+  basilys_topframe = ((struct callframe_basilys_st*)&curfram__);	\
 } while(0)
 #define BASILYS_INITFRAME(NBVAR,CLOS) BASILYS_INITFRAME_AT(NBVAR,CLOS,__FILE__,__LINE__)
 #define BASILYS_LOCATION(LOCS) do{curfram__.flocs= LOCS;}while(0)
@@ -2144,12 +2144,12 @@ extern basilys_ptr_t basilys_jmpval;
 #define BASILYS_LOCATION(LOCS) do{}while(0)
 #define BASILYS_LOCATION_HERE(MSG) do{}while(0)
 /* initialize the current callframe and link it at top */
-#define BASILYS_INITFRAME(NBVAR,CLOS) do {	\
-  memset(&curfram__, 0, sizeof(curfram__));	\
-  curfram__.nbvar = (NBVAR);			\
-  curfram__.prev = basilys_topframe;		\
-  curfram__.clos = (CLOS);			\
-  basilys_topframe = ((void*)&curfram__);	\
+#define BASILYS_INITFRAME(NBVAR,CLOS) do {				\
+  memset(&curfram__, 0, sizeof(curfram__));				\
+  curfram__.nbvar = (NBVAR);						\
+  curfram__.prev = (struct callframe_basilys_st*)basilys_topframe;	\
+  curfram__.clos = (CLOS);						\
+  basilys_topframe = ((void*)&curfram__);				\
 } while(0)
 #endif
 
@@ -2160,7 +2160,7 @@ extern basilys_ptr_t basilys_jmpval;
 
 /* exit the current frame and return */
 #define BASILYS_EXITFRAME() do {		\
-  basilys_topframe = curfram__.prev;		\
+    basilys_topframe = (struct callframe_basilys_st*)(curfram__.prev);	\
 } while(0)
 
 /****
