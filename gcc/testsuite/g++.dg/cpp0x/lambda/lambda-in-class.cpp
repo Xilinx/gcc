@@ -1,4 +1,8 @@
-#include "call.h"
+// { dg-do "compile" }
+// { dg-options "-std=c++0x"}
+
+template<typename F>
+void call(F f) { f(); }
 
 class C {
   private:
@@ -25,6 +29,8 @@ class C {
 
 int main() {
   C c;
+
+  call([this] () -> void {}); // { dg-error: "cannot capture `this' outside of class method" }
 
   return 0;
 }

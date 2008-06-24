@@ -1,4 +1,9 @@
-#include "call.h"
+// { dg-do "compile" }
+// { dg-options "-std=c++0x"}
+
+
+template<typename F>
+void call(F f) { f(); }
 
 int main() {
   int i = 1, j = 2;
