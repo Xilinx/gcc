@@ -364,7 +364,8 @@
   :super class_genercontext
   :fields (igncx_prevenvloc	    ;local for previous environment [parent_module_environment]
 	   igncx_contenvloc	    ;local for the container of environment
-	   igncx_procurmodenvlist   ;list of routine using the current_module_environment_container
+	   igncx_procurmodenvlist   ;list of routines using the current_module_environment_container
+	   igncx_importmap	    ;mapping of imported symbols to locvars
 ))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -5774,9 +5775,10 @@
 
 ;; normal static start value
 ;; obtained from an initial binding
-(defclass class_nrep_startval
+(defclass class_nrep_importedval
   :super class_nrep_simple
-  :fields (nstart_var		    ;the variable
+  :fields (nimport_symb		    ;the symbol
+	   nimport_sydata	    ;the symbol data
 	   ))
 
 ;; normal  occurrence of a symbol 
@@ -5926,7 +5928,7 @@
  class_nrep_routproc
  class_nrep_setq
  class_nrep_simple
- class_nrep_startval
+ class_nrep_importedval
  class_nrep_store_predefined
  class_nrep_symocc
  class_nrep_unsafe_get_field
@@ -6315,9 +6317,10 @@
 	  (debug_msg procs "normexp_symbol value procs")
 	  (if (null bvar)
 	      (let ( (newbvar 
-		      (make_instance class_nrep_startval
+		      (make_instance class_nrep_importedval
 				     :nrep_loc psloc
-				     :nstart_var recv)) )
+				     :nimport_symb recv
+				     :nimport_sydata (normal_symbol_data recv ncx psloc))) )
 		(mapobject_put (unsafe_get_field :nctx_valbindmap ncx) bind newbvar)
 		(setq bvar newbvar)
 		(list_append (unsafe_get_field :nctx_valuelist ncx) newbvar)
@@ -12394,16 +12397,16 @@
   )
 
 ;;;; compile the initial procedure into an object
-(defun compile2obj_initproc (ipro modctx idata compicache procurmodenvlist inivalue)
+(defun compile2obj_initproc (ipro modctx idata compicache procurmodenvlist importvalues)
   (assert_msg "check ipro" (is_a ipro class_nrep_initproc))
   (assert_msg "check idata" (is_list idata))
   (assert_msg "check modctx" (is_a modctx class_modulcontext))
   (assert_msg "check compicache" (is_mapobject compicache))
-  (assert_msg "check inivalue" (is_list inivalue))
+  (assert_msg "check importvalues" (is_list importvalues))
   (debug_msg ipro "compile2obj_initproc ipro")
   (debug_msg compicache "compile2obj_initproc compicache")
   (debug_msg procurmodenvlist "compile2obj_initproc start procurmodenvlist")
-  (debug_msg inivalue "compile2obj_initproc start inivalue")
+  (debug_msg importvalues "compile2obj_initproc start importvalues")
   (let ((locmap (make_mapobject discr_mapobjects 50))
 	(oinibody (make_list discr_list))
 	(oinitrout
@@ -12416,26 +12419,28 @@
 			:obrout_others (make_list discr_list)
 			:oirout_fill (make_list discr_list)
 			))
+	(importmap (make_mapobject discr_mapobjects 50))
 	(gcx (make_instance 
 	      class_initgenercontext
-			    :gncx_objrout oinitrout
-			    :gncx_locmap locmap
-			    :gncx_freeptrlist (make_list discr_list)
-			    :gncx_freelonglist (make_list discr_list)
-			    :gncx_freeothermaps (make_mapobject discr_mapobjects 20)
-			    :gncx_compicache compicache
-			    :gncx_modulcontext modctx
-			    :igncx_procurmodenvlist
-			    (list_map 
-			     procurmodenvlist
-			     (lambda (curpro)
-			       (debug_msg curpro "compile2obj_initproc procurmodenvlist curpro")
-			       (let ( (curou (mapobject_get compicache curpro)) )
-				 (debug_msg curou "compile2obj_initproc procurmodenvlist curou")
-				 (assert_msg "check curou" (is_object curou))
-				 curou)))
-			    ;; perhaps we should store not a list of procedures, but their matching routines
-			    ))
+	      :gncx_objrout oinitrout
+	      :gncx_locmap locmap
+	      :gncx_freeptrlist (make_list discr_list)
+	      :gncx_freelonglist (make_list discr_list)
+	      :gncx_freeothermaps (make_mapobject discr_mapobjects 20)
+	      :gncx_compicache compicache
+	      :gncx_modulcontext modctx
+	      :igncx_procurmodenvlist
+	      (list_map 
+	       procurmodenvlist
+	       (lambda (curpro)
+		 (debug_msg curpro "compile2obj_initproc procurmodenvlist curpro")
+		 (let ( (curou (mapobject_get compicache curpro)) )
+		   (debug_msg curou "compile2obj_initproc procurmodenvlist curou")
+		   (assert_msg "check curou" (is_object curou))
+		   curou)))
+	      ;; perhaps we should store not a list of procedures, but their matching routines
+	      :igncx_importmap importmap
+	      ))
 	(retinit 
 	 (let ( (reti (get_free_objlocptr gcx '_retinit_)) )
 	   (unsafe_put_fields gcx :gncx_retloc reti)
@@ -12452,8 +12457,8 @@
 		     preve))
 	(ovalueexporter (get_free_objlocptr gcx '_valexport_)) 
 	(omacroexporter (get_free_objlocptr gcx '_macroexport_))
+	(ovalueimporter (get_free_objlocptr gcx '_valimport_))
 	)
-    (compile_warning "compile2obj_initproc should do something with inivalue" ())
     (debug_msg boxloc "boxloc is")
     ;; create a commentedblock to compute the new environemnt box in boxloc if it is null 
     (let (
@@ -12502,6 +12507,20 @@
 			  :obcond_test boxloc
 			  :obcond_then (the_null)
 			  :obcond_else ocomputboxloc))
+	  ;;
+	  (limplocv
+	   (list_map 
+	    importvalues
+	    (lambda (ival)
+	      (debug_msg ival "compile2obj_initproc imported ival")
+	      (assert_msg "check ival" (is_a ival class_nrep_importedval))
+	      (let ( (isym (unsafe_get_field :nimport_symb ival)) 
+		     (ilocv (get_free_objlocptr gcx isym))
+		     )
+		(debug_msg ilocv "compile2obj_initproc imported ilocv")
+		(mapobject_put importmap isym ilocv)
+		ilocv
+		))))
 	  )
       (debug_msg otestcomputboxloc "compile2obj_initproc otestcomputboxloc")
       ;; the body starts by getting the previous environment from the
@@ -12532,7 +12551,7 @@
 	(unsafe_put_fields oinitrout
 			   :oirout_data odatatup)
 	(assert_msg "check toplis" (is_list_or_null toplis))
-;;; compile the toplevels
+	;; compile the toplevels
 	(let ( (objtoplis 
 		(list_map
 		 toplis
@@ -12566,6 +12585,30 @@
 			(debug_msg ogsy "compile2obj_initproc added symbol getting ogsy")
 			))
 		    )))))
+	  ;; get the value importer if needed
+	  (if (>i (mapobject_count importmap) 0)
+	      (list_append oinibody
+			   (make_instance class_objgetslot
+					  :obdi_destlist (list1 ovalueimporter)
+					  :ogetsl_obj initialsystemdata_objpredef 
+					  :ogetsl_field sysdata_value_importer)))
+	  ;; generate the getting of imported values
+	  (list_every
+	   importvalues
+	   (lambda (curimport)
+	     (debug_msg curimport "compile2obj_initproc curimport")
+	      (assert_msg "check curimport" (is_a curimport class_nrep_importedval))
+	     (let ( (impsym (unsafe_get_field :nimport_symb curimport)) 
+		    (impsydat (unsafe_get_field :nimport_sydata curimport))
+		    (osymdat (compile_obj impsydat gcx))
+		    (oimplocv (mapobject_get importmap impsym))
+		    (oimpappl (make_instance class_objapply
+					     :obdi_destlist (list1 oimplocv)
+			     :obapp_clos ovalueimporter
+			     :obapp_args (make_tuple2 discr_multiple osymdat oprevenv)))
+		    )
+	       (list_append oinibody oimpappl)
+	     )))
 	  ;; append the compiled toplevel
 	  (list_every 
 	   objtoplis
@@ -12606,11 +12649,11 @@
 		 :obdi_destlist (list1 retinit)
 		 :obcpt_expr
 		 (make_tuple3 discr_multiple
-		  (make_stringconst discr_verbatimstring
-				    "/*final freshenv get*/ basilys_container_value((basilys_ptr_t)(")
-		  boxloc	
-		  (make_stringconst discr_verbatimstring "))")	
-		  )
+			      (make_stringconst discr_verbatimstring
+						"/*final freshenv get*/ basilys_container_value((basilys_ptr_t)(")
+			      boxloc	
+			      (make_stringconst discr_verbatimstring "))")	
+			      )
 		 ))
 	       )
 	  (debug_msg osetretinit "compile2obj_initproc adding osetretinit")
@@ -13020,17 +13063,18 @@
 (install_method class_nrep_constocc compile_obj compilobj_nrep_constocc)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defun compilobj_nrep_startval (nsva gcx)
+(defun compilobj_nrep_importedval (nsva gcx)
   (assert_msg "check gcx" (is_a gcx class_initgenercontext))
-  (assert_msg "check nsva" (is_a nsva class_nrep_startval))
-  (compile_warning "compilobj_nrep_startval unimplemented" ())
-  (debug_msg nsva "compilobj_nrep_startval nsva")
-  (debug_msg gcx "compilobj_nrep_startval gcx")
-  (let ( (var (unsafe_get_field :nstart_var nsva))
+  (assert_msg "check nsva" (is_a nsva class_nrep_importedval))
+  (debug_msg nsva "compilobj_nrep_importedval nsva")
+  (debug_msg gcx "compilobj_nrep_importedval gcx")
+  (let ( (var (unsafe_get_field :nimport_symb nsva))
+	 (olocv (mapobject_get (unsafe_get_field :igncx_importmap gcx) var))
 	 )
-    (assert_msg "compilobj_nrep_startval @@@unimplemented@@@" ())
+    (debug_msg olocv "compilobj_nrep_importedval result olocv")
+    (return olocv)
     ))
-(install_method class_nrep_startval compile_obj compilobj_nrep_startval)
+(install_method class_nrep_importedval compile_obj compilobj_nrep_importedval)
   
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; compile a quasiconstant
@@ -13804,11 +13848,18 @@
 ;;; compile value bindings
 (defun compilobj_value_binding  (bind gcx)
   (assert_msg "check bind" (is_a bind class_value_binding))
-  (assert_msg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check gcx" (is_a gcx class_initgenercontext))
   (debug_msg bind "compilobj_value_binding bind")
-  (assert_msg "@@unimplemented compilobj_value_binding" ())
+  (let ( (sym (unsafe_get_field :binder bind))
+	 (importmap (unsafe_get_field :igncx_importmap gcx))
+	 (olocv (mapobject_get importmap sym))
+	 )
+    (debug_msg olocv "compilobj_value_binding olocv")
+    (assert_msg "check olocv" (is_a olocv class_objlocv))
+    (return olocv)
+    )
 )
-(install_method class_value_binding compile_obj compilobj_value_binding )
+(install_method class_value_binding compile_obj compilobj_value_binding)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; compile selector bindings
@@ -15213,12 +15264,12 @@
 	(assert_msg "check objlist" (is_list objlist))
 	(let ( (inipro (unsafe_get_field :nctx_initproc ncx)) 
 	       (inidata (unsafe_get_field :nctx_datalist ncx))
-	       (inivalue (unsafe_get_field :nctx_valuelist ncx))
+	       (importvalues (unsafe_get_field :nctx_valuelist ncx))
 	       (procurmodenvlist (unsafe_get_field :nctx_procurmodenvlist ncx))
 	       )
 	  (assert_msg "check inipro" (is_a inipro class_nrep_initproc))
 	  (debug_msg procurmodenvlist "compile_list_sexpr procurmodenvlist")
-	  (let ( (iniobj (compile2obj_initproc inipro modctx inidata compicache procurmodenvlist inivalue)) )
+	  (let ( (iniobj (compile2obj_initproc inipro modctx inidata compicache procurmodenvlist importvalues)) )
 	    (debug_msg iniobj "compile_list_sexpr iniobj")
 	    (outnum_err "** warm-basilys generated " (list_length objlist) " routines into ")
 	    (outstr_err modnamstr)

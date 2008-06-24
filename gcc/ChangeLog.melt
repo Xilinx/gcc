@@ -1,3 +1,7 @@
+2008-06-24  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warm-basilys.bysl: import of values coded but buggy.
+	crashes for warmelt-macro.
+
 2008-06-23  Basile Starynkevitch  <basile@starynkevitch.net>
 	[start adding import of values]
 	* melt/warm-basilys.bysl: strangely needed to add a normal_exp
