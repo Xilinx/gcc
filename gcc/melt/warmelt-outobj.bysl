@@ -2440,6 +2440,126 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; compile a list of sexpressions as a module starting from a given environment
+(defun compile_list_sexpr (lsexp inienv modnamstr)
+  (message_dbg "starting  compile_list_sexpr")
+  (debug_msg lsexp "\n\n\n*%*%* compile_list_sexpr lsexp" ) ;list of sexpr
+  (debug_msg inienv "compile_list_sexpr inienv") ;initial environment
+  (debug_msg modnamstr "compile_list_sexpr modnamstr") ;module name
+  (assert_msg "check lsexp" (is_list lsexp))
+  (assert_msg "check modnamstr" (is_string modnamstr))
+  (assert_msg "check inienv" (is_a inienv class_environment))
+  (let (
+	(modctx (make_instance class_modulcontext
+			       :mocx_modulename modnamstr))
+	(ncx (create_normcontext modctx)) )
+    (debug_msg ncx "compile_list_sexpr initial ncx")
+    (assert_msg "check ncx" (is_a ncx class_normcontext))
+    (let ( (xlist (macroexpand_toplevel_list lsexp inienv)) 
+	   (firstx (pair_head (list_first xlist)))
+	   (firstloc (if (is_a firstx class_src) (unsafe_get_field :src_loc firstx)))
+	   (iniproc (unsafe_get_field :nctx_initproc ncx))
+	   (declbuf (make_strbuf discr_strbuf))
+	   (implbuf (make_strbuf discr_strbuf)) 
+	   ;; make an update_current_module_environment at the very beginning
+	   (ucmeb1 (make_instance class_src_update_current_module_environment_container
+				  :src_loc firstloc
+				  :sucme_comment (make_stringconst discr_string "at very start")
+				  ))
+	   )
+      (list_prepend xlist ucmeb1)
+      (debug_msg xlist "after macroexpansion compile_list_sexpr seq")
+      (debug_msg inienv "after macroexpansion compile_list_sexpr inienv")
+      (assert_msg "check iniproc" (is_a iniproc class_nrep_initproc))
+      (assert_msg "check xlist" (is_list xlist))
+      (list_every
+       xlist
+       (lambda (sexp :long ix)
+	 (debug_msg sexp "compile_list_sexpr sexp")
+	 (let (
+	       (psloc (if (is_a sexp class_located) (unsafe_get_field :loca_location sexp)))
+	       )
+	   ;; special hack to handle toplevel comment specially; the generated comment goes into the declbuf
+	   ;; practically useful to copy a copyright notice into the generated C code
+	   (if (is_a sexp class_src_comment)
+	       (let ( (sloc (unsafe_get_field :src_loc sexp))
+		      (scomm (unsafe_get_field :scomm_str sexp)) 
+		      )
+		 (add2sbuf_indentnl declbuf 0)
+		 (add2sbuf_strconst declbuf "/**!!** ")
+		 (add2sbuf_ccomstring declbuf scomm)
+		 (add2sbuf_strconst declbuf "**!!**/")
+		 (add2sbuf_indentnl declbuf 0)
+		 )
+;;; otherwise, normalize etc.
+	     (multicall 
+	      (nexp nbind)
+	      (normal_exp sexp inienv ncx psloc)	    
+	      (debug_msg nexp "compile_list_sexpr nexp")    
+	      (debug_msg nbind "compile_list_sexpr nbind")
+	      (if (and (is_a nexp class_nrep)
+		       (not (is_a nexp class_nrep_anyproc)))
+		  (let ( (wnexp (wrap_normal_let1 nexp nbind psloc)) )
+		    (debug_msg wnexp "compile_list_sexpr wnexp")
+		    (list_append (unsafe_get_field :ninit_topl iniproc) 
+				 wnexp)
+		    )))))))
+      (let ( (prolist (unsafe_get_field :nctx_proclist ncx)) 
+	     (objlist (make_list discr_list))
+	     (compicache (make_mapobject discr_mapobjects (+i 10 (*i 20 (list_length xlist)))))
+	     (countbox (make_integerbox discr_integer 0))
+	     ) 
+	(debug_msg prolist "compile_list_sexpr prolist")  
+	(assert_msg "check prolist" (is_list prolist))
+	(list_every
+	 prolist
+	 (lambda (pro)
+	   (assert_msg "check pro" (is_a pro class_nrep_anyproc))
+	   (debug_msg pro "compile_list_sexpr pro")
+	   (put_int countbox (+i (get_int countbox) 1))
+	   (let ( (objpro (compile2obj_procedure pro modctx compicache (get_int countbox))) )
+	     (debug_msg objpro "compile_list_sexpr objpro")
+	     (debug_msg pro "compile_list_sexpr done pro")
+	     (list_append objlist objpro)
+	     ;;(debug_msg compicache "compile_list_sexpr compicache")
+	     )))
+	(debug_msg objlist "compile_list_sexpr objlist")  
+	(assert_msg "check objlist" (is_list objlist))
+	(let ( (inipro (unsafe_get_field :nctx_initproc ncx)) 
+	       (inidata (unsafe_get_field :nctx_datalist ncx))
+	       (importvalues (unsafe_get_field :nctx_valuelist ncx))
+	       (procurmodenvlist (unsafe_get_field :nctx_procurmodenvlist ncx))
+	       )
+	  (assert_msg "check inipro" (is_a inipro class_nrep_initproc))
+	  (debug_msg procurmodenvlist "compile_list_sexpr procurmodenvlist")
+	  (let ( (iniobj (compile2obj_initproc inipro modctx inidata compicache procurmodenvlist importvalues)) )
+	    (debug_msg iniobj "compile_list_sexpr iniobj")
+	    (outnum_err "** warm-basilys generated " (list_length objlist) " routines into ")
+	    (outstr_err modnamstr)
+	    (outnewline_err)
+	    (outcstring_err "** from ")
+	    (out_cplugin_compiled_timestamp_err)
+	    (outnewline_err)
+	    (outcstring_err "** of checksum ")
+	    (out_cplugin_md5_checksum_err)
+	    (outnewline_err)
+;;;
+	    (list_every
+	     objlist
+	     (lambda (obel)
+	       (debug_msg obel "compile_list_sexpr obel")
+	       (output_c_code obel declbuf implbuf 0)))
+	    (debug_msg modnamstr "compile_list_sexpr final modnamstr") 
+	    (debug_msg iniobj "compile_list_sexpr outputting iniobj")
+	    (output_c_code iniobj declbuf implbuf 0)
+	    (output_cfile_decl_impl modnamstr declbuf implbuf)
+	    (informsg_strv "warm-basilys generated module" modnamstr)
+	    )))))
+  (message_dbg "ended compile_list_sexpr")
+  )
+
+
 
 (defun install_initial_command (nam fun)
 ;  (messageval_dbg "install_initial_command @@ fun" fun)
@@ -2576,6 +2696,7 @@
 
 (export_values 
  install_initial_command
+ compile_list_sexpr
 )
 ;;;;;;;;;;;;;;;;
 

@@ -1,8 +1,30 @@
 2008-06-25  Basile Starynkevitch  <basile@starynkevitch.net>
+	[continue splitting stuff into several modules]
+
+	* Makefile.in: added rules for warmelt-*-3 stuff & upgrade-warmelt
+
+	* melt/warmelt-first.bysl: more exports. initvalue_exporter check
+	if overriding. initvalue_importer less verbose.  !!! some classes
+	should never be redefined so a redefinition_handling is needed !!!
+
+	* melt/warmelt-macro.bysl: preparing for redefinition_handling
+	macro - to be implemented.
+
+	* melt/warmelt-normal.bysl: missing exports.
+
+	* melt/warmelt-genobj.bysl: compile2obj_initproc &
+	compile2obj_procedure defined & exported here. compile_list_sexpr
+	moved below.
+
+	* melt/warmelt-outobj.bysl: added the moved compile_list_sexpr
+
+	* warm-basilys-0.c: regenerated from above warmelt*.bysl
+
+2008-06-25  Basile Starynkevitch  <basile@starynkevitch.net>
 	[splitting warm-basilys.bysl into several files]
 	* warm-basilys-0.c: regenerated.
 
-	* Makefile.in: added rules for monolitical build of
+	* Makefile.in: added rules for monolithical build of
 	warm-basilys-*.c from catenation of warmelt*.bysl
 
 	* melt/warm-basilys.bysl: deleted file, because split into following

@@ -296,6 +296,8 @@
 	   labind_res			;result localvar
 ))
 
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; ================  source program elements
 
@@ -1323,17 +1325,17 @@
 
 ;; initial value exporter
 (defun initvalue_exporter (sym val contenv)
-  ;(debug_msg sym "initvalue_exporter sym")
-  ;(debug_msg val "initvalue_exporter val")
-  ;(debug_msg contenv "initvalue_exporter contenv")
-  (if (need_dbg 0) 
-      (shortbacktrace_dbg "initvalue_exporter" 15))
+  ;;(debug_msg sym "initvalue_exporter sym")
+  ;;(debug_msg val "initvalue_exporter val")
+  ;;(debug_msg contenv "initvalue_exporter contenv")
+  ;;(if (need_dbg 0) 
+  ;;    (shortbacktrace_dbg "initvalue_exporter" 15))
   (if (null contenv)
       (progn
 	(if (parent_module_environment)
 	    (warningmsg_strv "exporting value too early with null environment container"  (unsafe_get_field :named_name sym)))
-      (return)
-      ))
+	(return)
+	))
   (assert_msg "check sym" (is_a sym class_symbol))
   (assert_msg "check contenv" (is_a contenv class_container))
   (let ( (env (unsafe_get_field :container_value contenv)) )
@@ -1343,13 +1345,70 @@
 	  (return)
 	  ))
     (assert_msg "check good env" (is_a env class_environment))
-    (let ( (valbind (make_instance
-		     class_value_binding
-		     :binder sym
-		     :vbind_value val
-		     )) 
-	   )
+    (let (
+	  (parenv (parent_module_environment))
+	  (prevbind (if parenv (find_env parenv sym)))
+	  (valbind (make_instance
+		    class_value_binding
+		    :binder sym
+		    :vbind_value val
+		    )) 
+	  (symnam (unsafe_get_field :named_name sym))
+	  )
       (debug_msg valbind "initvalue_exporter valbind")
+      (debug_msg prevbind "initvalue_exporter prevbind")
+      (cond 
+       ( (null prevbind) () )
+       ( (and 
+	  (is_a prevbind class_selector_binding)
+	  (is_a val class_selector))
+	 (warningmsg_strv "not exporting previous bound selector" symnam)
+	 (return))
+       ( (and
+	  (is_a prevbind class_instance_binding)
+	  (is_object val))
+	 (warningmsg_strv "not exporting previous bound instance" symnam)
+	 (return))
+       ( (and
+	  (is_a prevbind class_primitive_binding)
+	  (is_a val class_primitive))
+	 (warningmsg_strv "not exporting previous bound primitive" symnam)
+	 (return))
+       ( (and
+	  (is_a prevbind class_function_binding)
+	  (is_closure val))
+	 (warningmsg_strv "not exporting previous bound function" symnam)
+	 (return))
+       ( (and
+	  (is_a prevbind class_class_binding)
+	  (is_a val class_class))
+	 (warningmsg_strv "not exporting previous bound class" symnam)
+	 (return))
+       ( (and
+	  (is_a prevbind class_field_binding)
+	  (is_a val class_class))
+	 (warningmsg_strv "not exporting previous bound field" symnam)
+	 (return)
+	 )
+       ( (and
+	  (is_a prevbind class_instance_binding)
+	  (is_object val))
+	 (warningmsg_strv "not exporting previous bound instance" symnam)
+	 (return)
+	 )
+       (  (is_a prevbind class_value_binding)
+	  (let ( (preval (unsafe_get_field :vbind_value prevbind))
+		 (prevdiscr (discrim preval))
+		 (curdiscr (discrim val))
+		 )
+	    (if (== prevdiscr curdiscr)
+		(progn
+		  (warningmsg_strv "not exporting previous bound homogenous value" symnam)
+		  (warningmsg_strv "common value discrim" 
+				   (unsafe_get_field :named_name prevdiscr))
+		  (return)))
+	    ))
+       )
       (put_env env valbind)
       (return)
       )))
@@ -1359,11 +1418,11 @@
 (defun initvalue_importer (sym parenv)
   (debug_msg sym "initvalue_importer sym")
   (assert_msg "check sym" (is_a sym class_symbol))
-  (shortbacktrace_dbg "initvalue_importer" 15)
-  (outcstring_err "importing value ")
-  (outstr_err (unsafe_get_field :named_name sym))
-  (outnewline_err)
-  (outnewline_err)
+  (if (need_dbg 0) (shortbacktrace_dbg "initvalue_importer" 15))
+  ;(outcstring_err "importing value ")
+  ;(outstr_err (unsafe_get_field :named_name sym))
+  ;(outnewline_err)
+  ;(outnewline_err)
   (debug_msg parenv "initvalue_importer parenv")
   (assert_msg "check parenv" (is_a parenv class_environment))
   (let ( (valbind (find_env parenv sym))
@@ -1387,7 +1446,7 @@
 	))
   (assert_msg "check contenv" (is_a contenv class_container))
   (let ( (env (unsafe_get_field :container_value contenv)) )
-    (if (need_dbg 0) (shortbacktrace_dbg "initmacro_exporter" 15))
+    ;(if (need_dbg 0) (shortbacktrace_dbg "initmacro_exporter" 15))
     (if (null env)
 	(progn
 	  (informsg_strv "exporting macro too early with null environment" (unsafe_get_field :named_name sym))
@@ -1772,6 +1831,11 @@
 ;;; reciever: any object (already output)
 ;;; arguments: the debuginfo (instance of class_debuginfo), the depth (long)
 (defselector dbg_outputagain class_selector
+)
+
+
+;;; selector to get the value, e.g. in a binding
+(defselector get_value class_selector
 )
 
 (defun dbg_outobject (obj dbgi :long depth)
@@ -2408,6 +2472,8 @@
 	  (add2sbuf_strconst sbuf "}")
 	  ))))
 (install_method class_named  dbg_output dbgout_namedobject_method)
+;;; we explicitly export dbgout_namedobject_method needed afterwards
+(export_values dbgout_namedobject_method)
 
 ;;;; named object debug outputagain
 (defun dbgoutagain_namedobject_method (self dbgi :long depth)
@@ -2832,6 +2898,8 @@
  discrim
  error_plain
  error_strv
+ errormsg_plain
+ errormsg_strv
  full_garbcoll
  get_globpredef
  get_int
@@ -2840,6 +2908,9 @@
  ignore
  inform_plain
  inform_strv
+ informsg_long
+ informsg_plain
+ informsg_strv
  is_a
  is_box
  is_closure
@@ -2993,8 +3064,10 @@
  discr_strbuf                         
  discr_string                         
  discr_verbatimstring                 
+ get_value
  initial_environment                  
- )					;end export discriminants, instances, selectors
+ initial_system_data
+ )    ;;;end export discriminants, instances, selectors
 
 
 ;; export the functions defined above

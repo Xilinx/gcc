@@ -453,6 +453,7 @@
  class_nrep_multimsend
  class_nrep_nil
  class_nrep_predef
+ class_nrep_progn
  class_nrep_quasiconst_current_module_environment_container
  class_nrep_quasiconst_parent_module_environment
  class_nrep_quasiconstant
@@ -824,6 +825,7 @@
  wrap_normal_letseq
  wrap_normal_let1
  check_ctype_nargs
+ compile_obj
 )
 
 

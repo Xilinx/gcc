@@ -648,9 +648,9 @@
 
 ;;;;;;;;;;;;;;;; install an initial macro expanser
 (defun install_initial_macro (symb expander)
-  (assert_msg "check sexpr" (is_a symb class_symbol))
-  (assert_msg "check expander" (is_closure expander))
   (debug_msg symb "install_initial_macro symb")
+  (assert_msg "check symb" (is_a symb class_symbol))
+  (assert_msg "check expander" (is_closure expander))
 ;  (debug_msg expander "install_initial_macro expander")
   (let ( (mbind (make_instance class_macro_binding 
 			       :binder symb
@@ -660,6 +660,25 @@
 	 (debug_msg symb "install_initial_macro done symb")
 ))
 
+(compile_warning "warn_if_redefined should perhaps return true if redefined" ())
+;; basically, we need a mode where any redefinition is ignored
+
+;; (redefinition_handling ....) NOT YET IMPLEMENTED
+;; perhaps the argument could be the name of an imported closure, or a keyword
+(compile_warning "mexpand_redefinition_handling NOT IMPLEMENTED YET" ())
+(defun mexpand_redefinition_handling (sexpr env mexpander)
+  (debug_msg sexpr "mexpand_redefinition_handling sexpr")
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (let ( (cont (unsafe_get_field :sexp_contents sexpr))
+	 (loc  (unsafe_get_field :loca_location sexpr))
+	 )
+    (warning_plain loc "(REDEFINITION_HANDLING ....) @@ NOT IMPLEMENTED YET")
+    (return)
+))
+(install_initial_macro 'redefinition_handling mexpand_redefinition_handling)
+(export_macro redefinition_handling mexpand_redefinition_handling)
+
+;;;;;;;;;;;;;;;;
 ;;;;;; warn if a symbol redefines something
 (defun warn_if_redefined (symb env loc)
   (assert_msg "check symb" (is_a symb class_symbol))

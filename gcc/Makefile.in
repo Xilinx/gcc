@@ -4682,13 +4682,20 @@ endif
 ## we have to invoke make recursively, because run-basilys.d is a -include-d dependency file
 ifdef BASILYSMELT_OBJ
 melt.encap: run-basilys.d 
+	echo melt.encap making run-basilys-deps built-melt-cc-script 
 	$(MAKE) run-basilys-deps built-melt-cc-script 
 # this is working probably only on Linux machines (hosts); we should use libtool here also!
-	$(MAKE) warm-basilys-2.so
-#	$(MAKE) warmelt-genobj.so
+	echo melt.encap making warm-basilys-3.so
+	$(MAKE) warm-basilys-3.so
+	echo melt.encap making warmelt-first-1.so
+	$(MAKE) warmelt-first-1.so
+	echo melt.encap making warmelt-normal-2.so
+	$(MAKE) warmelt-normal-2.so
+	echo melt.encap making warmelt-outobj-3.so
+	$(MAKE) warmelt-outobj-3.so
+	echo melt.encap done
 
-
-.PHONY: install-melt-headers update-warm-basilys diff-warm-1-2 diff-warm-2-3  diff-warm-4-5
+.PHONY: install-melt-headers update-warm-basilys diff-warm-1-2 diff-warm-2-3  diff-warm-4-5 diff-warmelt-2-3
 
 install-melt-headers: melt.encap $(INSTALL_MELT_HEADERS_DIR) install-melt-cc-script
 
@@ -4737,6 +4744,18 @@ WARMELT_FILES= \
 
 WARMELT_SRCFILES= $(patsubst %.bysl, $(srcdir)/melt/%.bysl, $(WARMELT_FILES))
 WARMELT_SRCARGLIST:=$(shell echo $(realpath $(WARMELT_SRCFILES))|sed 's: :,:g')
+WARMELT_BASE= $(basename $(WARMELT_FILES))
+WARMELT_BASELIST:=$(shell echo $(WARMELT_BASE)|sed 's: :,:g')
+WARMELT_BASE1= $(patsubst %, %-1, $(WARMELT_BASE))
+WARMELT_BASE1SO= $(patsubst %, %-1.so, $(WARMELT_BASE))
+WARMELT_BASE1ROW:=$(shell echo $(WARMELT_BASE1)|sed 's/ /:/g')
+WARMELT_BASE2= $(patsubst %, %-2, $(WARMELT_BASE))
+WARMELT_BASE2SO= $(patsubst %, %-2.so, $(WARMELT_BASE))
+WARMELT_BASE2ROW:=$(shell echo $(WARMELT_BASE2)|sed 's/ /:/g')
+WARMELT_BASE3= $(patsubst %, %-3, $(WARMELT_BASE))
+WARMELT_BASE3SO= $(patsubst %, %-3.so, $(WARMELT_BASE))
+WARMELT_BASE3ROW:=$(shell echo $(WARMELT_BASE3)|sed 's/ /:/g')
+
 warm-basilys-5.c: warm-basilys-4.so cc1$(exeext) $(WARMELT_SRCFILES)
 	rm -f $@
 	@echo generating warm-basilys-5
@@ -4778,40 +4797,70 @@ warm-basilys-1.c: warm-basilys-0.so cc1$(exeext) $(WARMELT_SRCFILES)
 	ls -l $@
 
 ## temporary
-warmelt-first.c: warm-basilys-3.so cc1$(exeext) $(srcdir)/melt/warmelt-first.bysl
-	-rm -f $@ 
+warmelt-%.so: warmelt-%.c built-melt-cc-script
+	echo Melt building $@ from $<
+	./built-melt-cc-script $< $@
+
+
+warmelt-%-1.c:  $(srcdir)/melt/warmelt-%.bysl warm-basilys-3.so cc1$(exeext)
+	@echo generating $@ using warm-basilys-3 
+	-rm -f $@
+	$(MELTBASILYSCCFILE1) -fbasilys-init='warm-basilys-3' \
+	      -fbasilys-arg=$< \
+	      -fbasilys-secondarg=$@
+	ls -l $@
+
+warmelt-first-1.c: $(srcdir)/melt/warmelt-first.bysl  warm-basilys-3.so cc1$(exeext)
+	-rm -f $@
 	@echo generating warmelt-first using warm-basilys-3
+	@echo WARMELT_BASE= $WARMELT_BASE
 	$(MELTBASILYSCCINIT1) -fbasilys-init='warm-basilys-3' \
-	      -fbasilys-arg=warmelt-first.bysl \
+	      -fbasilys-arg=$< \
 	      -fbasilys-secondarg=$@
 	ls -l $@
-warmelt-macro.c: warm-basilys-3.so warmelt-first.so cc1$(exeext) $(srcdir)/melt/warmelt-macro.bysl 
-	@echo generating warmelt-normal using warm-basilys-3 warmelt-first 
-	$(MELTBASILYSCCFILE1) -fbasilys-init='warm-basilys-3:warmelt-first' \
-	      -fbasilys-arg=warmelt-macro.bysl \
+
+warmelt-%-2.c: $(srcdir)/melt/warmelt-%.bysl $(WARMELT_BASE1SO)  cc1$(exeext) 
+	@echo generating $@ using $(WARMELT_BASE1SO)
+	-rm -f $@
+	$(MELTBASILYSCCINIT1) -fbasilys-init=$(WARMELT_BASE1ROW) \
+	      -fbasilys-arg=$< \
 	      -fbasilys-secondarg=$@
 	ls -l $@
-warmelt-normal.c: warm-basilys-3.so warmelt-macro.so cc1$(exeext) $(srcdir)/melt/warmelt-normal.bysl 
-	@echo generating warmelt-normal using warm-basilys-3 warmelt-first 
-	$(MELTBASILYSCCFILE1) -fbasilys-init='warm-basilys-3:warmelt-first:warmelt-macro' \
-	      -fbasilys-arg=warmelt-normal.bysl \
+warmelt-first-2.c: $(srcdir)/melt/warmelt-first.bysl $(WARMELT_BASE1SO) cc1$(exeext)
+	-rm -f $@ 
+	@echo generating $@ using $(WARMELT_BASE1SO)
+	$(MELTBASILYSCCINIT1) -fbasilys-init=$(WARMELT_BASE1ROW) \
+	      -fbasilys-arg=$< \
 	      -fbasilys-secondarg=$@
 	ls -l $@
-warmelt-genobj.c: warm-basilys-3.so warmelt-normal.so cc1$(exeext) $(srcdir)/melt/warmelt-genobj.bysl
-	@echo generating warmelt-genobj using warm-basilys-3 warmelt-first warmelt-normal
-	$(MELTBASILYSCCFILE1) -fbasilys-init='warm-basilys-3:warmelt-first:warmelt-macro:warmelt-normal' \
-	      -fbasilys-arg=warmelt-genobj.bysl \
+
+
+warmelt-%-3.c: $(srcdir)/melt/warmelt-%.bysl $(WARMELT_BASE2SO)  cc1$(exeext) 
+	@echo generating $@ using $(WARMELT_BASE2SO)
+	-rm -f $@
+	$(MELTBASILYSCCINIT1) -fbasilys-init=$(WARMELT_BASE2ROW) \
+	      -fbasilys-arg=$< \
 	      -fbasilys-secondarg=$@
 	ls -l $@
-warmelt-outobj.c: warm-basilys-3.so cc1$(exeext) $(srcdir)/melt/warmelt-outobj.bysl warmelt-normal.so
-	@echo generating warmelt-genobj using warm-basilys-3 warmelt-first warmelt-normal warmelt-genobj
-	$(MELTBASILYSCCFILE1) -fbasilys-init='warm-basilys-3:warmelt-first:warmelt-macro:warmelt-normal:warmelt-genobj' \
-	      -fbasilys-arg=warmelt-genobj.bysl \
+warmelt-first-3.c: $(srcdir)/melt/warmelt-first.bysl $(WARMELT_BASE2SO) cc1$(exeext)
+	-rm -f $@ 
+	@echo generating $@ using $(WARMELT_BASE1SO)
+	$(MELTBASILYSCCINIT1) -fbasilys-init=$(WARMELT_BASE2ROW) \
+	      -fbasilys-arg=$< \
 	      -fbasilys-secondarg=$@
 	ls -l $@
+
+diff-warmelt-2-3: $(WARMELT_BASE3SO)
+	echo WARMELT_BASE3ROW= $(WARMELT_BASE3ROW)
+	for f in $(WARMELT_BASE); do; \
+	  diff $$f-2.c $$f-3.c || true; \
+	done
+
+
 #### this phony target is given manually to copy the generated
 #### warm-basilys-3.c into the source directory it should be only
 #### explicitly given
+.PHONY: upgrade-warm-basilys upgrade-warmelt
 upgrade-warm-basilys: warm-basilys-3.c warm-basilys-4.c
 	@echo upgrade-warm-basilys show diff of warm-basilys-3.c and warm-basilys-4.c
 	-diff warm-basilys-3.c warm-basilys-4.c || true
@@ -4821,6 +4870,16 @@ upgrade-warm-basilys: warm-basilys-3.c warm-basilys-4.c
 ## we regenerate warm-basilys-5 to be sure
 	@echo upgrade-warm-basilys remaking again warm-basilys-5
 	$(MAKE) warm-basilys-5.so
+
+upgrade-warmelt: $(WARMELT_BASE3SO)
+	@echo upgrade-warmelt show diff of "warmelt-*2.c & warmelt-*3.c"
+	for f in $(WARMELT_BASE); do; \
+	  diff $$f-2.c $$f-3.c || true; \
+	done
+	for f in $(WARMELT_BASE); do; \
+	  grep -v '^#line' $$f-3.c | unifdef -UMELTGCC_NOLINENUMBERING | sed -e 's:$$f-3:$$f-0:' > $$f-0.c-tmp ; \
+	  $(SHELL) $(srcdir)/../move-if-change $$f-0.c-tmp $(srcdir)/$$f-0.c; \
+	done
 
 ## one of the intall-melt-headers-{tar,cpio,cp} targets below is
 ## triggered by install-melt-headers target above
