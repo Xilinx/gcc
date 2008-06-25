@@ -5654,12 +5654,14 @@ end:
 static void
 do_initial_command (basilys_ptr_t modata_p)
 {
-  BASILYS_ENTERFRAME (5, NULL);
+  BASILYS_ENTERFRAME (7, NULL);
 #define dictv     curfram__.varptr[0]
 #define closv     curfram__.varptr[1]
 #define cstrv     curfram__.varptr[2]
-#define csecstrv  curfram__.varptr[3]
-#define modatav   curfram__.varptr[4]
+#define arglv     curfram__.varptr[3]
+#define csecstrv  curfram__.varptr[4]
+#define modatav   curfram__.varptr[5]
+#define curargv   curfram__.varptr[6]
   modatav = modata_p;
   debugeprintf ("do_initial_command command_string %s modatav %p",
 		basilys_command_string, (void *) modatav);
@@ -5686,15 +5688,45 @@ do_initial_command (basilys_ptr_t modata_p)
     };
   debugeprintf ("do_initial_command argument_string %s",
 		basilys_argument_string);
+  debugeprintf ("do_initial_command arglist_string %s",
+		basilys_arglist_string);
   debugeprintf ("do_initial_command secondargument_string %s",
 		basilys_secondargument_string);
+  if (basilys_argument_string && basilys_argument_string[0] 
+      && basilys_arglist_string && basilys_arglist_string[0])
+    {
+      error("cannot have both -fbasilys-arg=%s & -fbasilys-arglist=%s given as program arguments",
+	    basilys_argument_string, basilys_arglist_string);
+      goto end;
+    }
   {
     union basilysparam_un pararg[3];
     memset (pararg, 0, sizeof (pararg));
-    cstrv =
-      basilysgc_new_string (BASILYSGOB (DISCR_STRING),
-			    basilys_argument_string);
-    pararg[0].bp_aptr = (basilys_ptr_t *) & cstrv;
+    if (basilys_argument_string && basilys_argument_string[0])
+      {
+	cstrv =
+	  basilysgc_new_string (BASILYSGOB (DISCR_STRING),
+				basilys_argument_string);
+	pararg[0].bp_aptr = (basilys_ptr_t *) & cstrv;
+      }
+    else if (basilys_arglist_string && basilys_arglist_string[0]) 
+      {
+	char *comma=0;
+	char *pc = 0;
+	arglv = basilysgc_new_list(BASILYSGOB(DISCR_LIST));
+	for (pc = basilys_arglist_string; 
+	     pc; pc=comma?(comma+1):0) 
+	  {
+	    comma = strchr(pc, ',');
+	    if (comma) 
+	      *comma = (char)0;
+	    curargv = basilysgc_new_string (BASILYSGOB (DISCR_STRING), pc);
+	    if (comma) 
+	      *comma = ',';
+	    basilysgc_append_list(arglv, curargv);
+	  }
+	pararg[0].bp_aptr = (basilys_ptr_t *) & arglv;
+      };
     if (basilys_secondargument_string && basilys_secondargument_string[0])
       {
 	csecstrv =
@@ -5727,6 +5759,8 @@ end:
 #undef cstrv
 #undef csecstrv
 #undef modatav
+#undef arglv
+#undef curargv
 }
 
 

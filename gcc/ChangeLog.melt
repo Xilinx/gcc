@@ -1,4 +1,14 @@
 2008-06-25  Basile Starynkevitch  <basile@starynkevitch.net>
+	* common.opt: added -fbasilys-arglist= & basilys_arglist_string
+
+	* basilys.c: (do_initial_command) handle basilys_arglist_string.
+
+	* melt/warm-basilys.bysl: added errormsg_plain & errormsg_strv.
+	compileinit_command & compilefile_command handle arglist.
+
+	* warm-basilys-0.c: regenerated.
+
+2008-06-25  Basile Starynkevitch  <basile@starynkevitch.net>
 	[still buggy for warmelt-genobj.so]
 
 	* basilys.c: more casts for C++ compatibility.

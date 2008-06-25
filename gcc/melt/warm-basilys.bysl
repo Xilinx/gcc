@@ -937,14 +937,28 @@
 
 ;; signal a plain warning 
 (defprimitive warningmsg_plain (:cstring msg) :void
-  "warning(0, \"BASILYS WARNING [#%ld]::: %s \", basilys_dbgcounter, ("
+  "warning(0, \"BASILYS WARNING MSG [#%ld]::: %s \", basilys_dbgcounter, ("
   msg "))"
   )
 
 
 ;; signal a plain warning 
 (defprimitive warningmsg_strv (:cstring msg :value strv) :void
-  "warning(0, \"BASILYS WARNING [#%ld]::: %s - %s\", basilys_dbgcounter, ("
+  "warning(0, \"BASILYS WARNING MSG [#%ld]::: %s - %s\", basilys_dbgcounter, ("
+  msg 
+  "), basilys_string_str((basilys_ptr_t)(" strv ")))"
+  )
+
+;; signal a plain error 
+(defprimitive errormsg_plain (:cstring msg) :void
+  "error(\"BASILYS ERROR MSG [#%ld]::: %s \", basilys_dbgcounter, ("
+  msg "))"
+  )
+
+
+;; signal a plain error
+(defprimitive errormsg_strv (:cstring msg :value strv) :void
+  "error(\"BASILYS ERROR MSG [#%ld]::: %s - %s\", basilys_dbgcounter, ("
   msg 
   "), basilys_string_str((basilys_ptr_t)(" strv ")))"
   )
@@ -15379,9 +15393,29 @@
     (debug_msg parmodenv "before read compilefile_command parmodenv")
     (debug_msg initial_environment "before read compilefile_command initial_environment")
     (assert_msg "check curenv" (is_a curenv class_environment))
-    (let ( (rlist (read_file arg)) 
-	   (basnam (if (is_string secarg) secarg (make_string_nakedbasename discr_string arg)))
-	   ) 
+    (let ( (rlist (make_list discr_list))
+	   (basnam (cond
+		    ( (is_string secarg) secarg)
+		    ( (is_string arg) (make_string_nakedbasename discr_string arg))
+		    (:else
+		     (errormsg_plain "explicit -fbasilys-secondarg should be specified with -fbasilys-arglist")
+		     (return)
+		     )))
+	   )
+      (cond 
+       ((is_string arg) 
+	(list_append2list rlist (read_file arg)))
+       ((is_list arg)
+	(list_every arg 
+		    (lambda (curarg)
+		      (informsg_strv "reading from file" curarg)
+		      (let ( (curead (read_file curarg))
+			     )
+			(debug_msg curead "compilefile_command curead")
+			(assert_msg "check rlist" (is_list rlist))
+			(assert_msg "check curead" (is_list_or_null curead))
+			(list_append2list rlist curead)))))
+       )
       (debug_msg rlist "after read compilefile_command rlist")
       (debug_msg curenv "after read compilefile_command curenv")
       (compile_list_sexpr rlist curenv basnam)
@@ -15397,9 +15431,29 @@
   (debug_msg secarg "start compileinit_command secarg")
   (debug_msg moduldata "start compileinit_command moduldata")
   (debug_msg initial_environment "before read compileinit_command initial_environment")
-  (let ( (rlist (read_file arg)) 
-	 (basnam (if (is_string secarg) secarg (make_string_nakedbasename discr_string arg)))
-	 ) 
+  (let ( (rlist (make_list discr_list))
+	 (basnam (cond
+		  ( (is_string secarg) secarg)
+		  ( (is_string arg) (make_string_nakedbasename discr_string arg))
+		  (:else
+		   (errormsg_plain "explicit -fbasilys-secondarg should be specified with -fbasilys-arglist")
+		   (return)
+		   )))
+	 )
+    (cond 
+     ((is_string arg) 
+      (list_append2list rlist (read_file arg)))
+     ((is_list arg)
+      (list_every arg 
+		  (lambda (curarg)
+		    (informsg_strv "reading from file" curarg)
+		    (let ( (curead (read_file curarg))
+			   )
+		      (assert_msg "check rlist" (is_list rlist))
+		      (assert_msg "check curead" (is_list_or_null curead))
+		      (debug_msg curead "compileinit_command curead")
+		      (list_append2list rlist curead)))))
+     )
     (debug_msg rlist "after read compileinit_command rlist")
     (list_append 
      rlist 
@@ -15408,7 +15462,7 @@
       :loca_location (make_mixint discr_mixedint 
 				  (make_stringconst discr_string "**builtin post_initialization**")
 				  0)
-      :sexp_contents (list3 'post_initialization (the_null) arg)))
+      :sexp_contents (list3 'post_initialization (the_null) basnam)))
     (compile_list_sexpr rlist initial_environment basnam)
     ))
 

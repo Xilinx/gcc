@@ -341,6 +341,11 @@ fbasilys-arg=
 Common Report Var(basilys_argument_string) RejectNegative Joined  Condition(HAVE_PARMAPOLY && HAVE_LIBTOOLDYNL && ENABLE_BASILYSMELT)
 Initial argument for basilys analysis 
 
+; argument list string for basilys
+fbasilys-arglist=
+Common Report Var(basilys_arglist_string) RejectNegative Joined  Condition(HAVE_PARMAPOLY && HAVE_LIBTOOLDYNL && ENABLE_BASILYSMELT)
+Initial comma separated argument list for basilys analysis 
+
 ; command string for basilys
 fbasilys-command=
 Common Report Var(basilys_command_string) RejectNegative Joined  Condition(HAVE_PARMAPOLY && HAVE_LIBTOOLDYNL & ENABLE_BASILYSMELT)
