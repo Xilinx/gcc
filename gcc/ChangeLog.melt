@@ -1,4 +1,19 @@
 2008-06-25  Basile Starynkevitch  <basile@starynkevitch.net>
+	[splitting warm-basilys.bysl into several files]
+	* warm-basilys-0.c: regenerated.
+
+	* Makefile.in: added rules for monolitical build of
+	warm-basilys-*.c from catenation of warmelt*.bysl
+
+	* melt/warm-basilys.bysl: deleted file, because split into following
+
+	* melt/warmelt-first.bysl: new file.
+	* melt/warmelt-macro.bysl: new file.
+	* melt/warmelt-normal.bysl: new file.
+	* melt/warmelt-genobj.bysl: new file.
+	* melt/warmelt-outobj.bysl: new file.
+
+2008-06-25  Basile Starynkevitch  <basile@starynkevitch.net>
 	MELT branch merged with trunk r137105
 
 2008-06-25  Basile Starynkevitch  <basile@starynkevitch.net>

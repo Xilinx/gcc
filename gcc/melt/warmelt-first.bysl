@@ -1,0 +1,3045 @@
+;; -*- Lisp -*-
+;; file warmelt-first.bysl
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(comment "
+    Copyright 2008 Free Software Foundation, Inc.
+    Contributed by Basile Starynkevitch <basile@starynkevitch.net>
+
+    This file is part of GCC.
+
+    GCC is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 3, or (at your option)
+    any later version.
+
+    GCC is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with GCC; see the file COPYING3.  If not see
+    <http://www.gnu.org/licenses/>.
+")
+
+;; the copyright notice above apply both to warmelt-first.bysl and 
+;; to the generated file warm-basilys*.c or warmelt-first*.c
+
+;;    This file is the first part of a bootstrapping compiler for the
+;;    basilys/MELT lisp dialect, compiler which should be able to
+;;    compile itself (into generated C file[s])
+;;    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+;;****************************************************************
+;;       C L A S S E S 
+;;****************************************************************
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;; ================ general classes
+
+;; root class
+(defclass class_root 
+  :predef CLASS_ROOT)
+
+;; class of everything with a property table
+(defclass class_proped 
+ :super class_root 
+ :fields (prop_table)
+ :predef CLASS_PROPED)
+
+
+;; arbitrary container as class
+(defclass class_container
+  :super class_root
+  :predef CLASS_CONTAINER
+  :fields (container_value))
+
+;; class of named objects
+(defclass class_named 
+  :super class_proped 
+  :fields (named_name) 
+  :predef CLASS_NAMED)
+ 
+;; class of discriminants
+(defclass class_discr 
+  :super class_named 
+  :fields (disc_methodict 
+	   disc_sender 
+	   disc_super)
+  :predef CLASS_DISCR)
+ 
+;; class of classes
+(defclass class_class
+   :super class_discr
+   :fields (class_ancestors class_fields class_objnumdescr class_data)
+   :predef CLASS_CLASS)
+ 
+;; class of fields
+(defclass class_field
+  ;; the fields' objnum is its offset
+   :super class_named
+   :fields (fld_ownclass fld_typinfo)
+   :predef CLASS_FIELD)
+ 
+;; class of primitive
+(defclass class_primitive
+   :super class_named
+   :fields (prim_formals prim_type prim_expansion)
+   :predef CLASS_PRIMITIVE)
+ 
+;; class of located stuff
+(defclass class_located
+  :super class_proped
+  :fields (loca_location)
+  :predef CLASS_LOCATED)
+
+;; class of source expressions
+(defclass class_sexpr
+  :super class_located
+  :fields (sexp_contents		;list of contents
+	   )
+  :predef CLASS_SEXPR)
+
+;; class of message selectors
+(defclass class_selector
+  :super class_named
+  :fields (sel_signature sel_data)
+  :predef CLASS_SELECTOR)
+
+
+;; class of symbols
+(defclass class_symbol
+  :predef CLASS_SYMBOL
+  :super class_named
+  :fields (symb_data))
+
+;; class of generated (ie cloned) symbols - like lisp gensym
+(defclass class_clonedsymbol
+  :super class_symbol
+  :fields (csym_urank			;unique rank as a boxed integer
+	   ))
+
+;; class of keyword symbols
+(defclass class_keyword
+  :predef CLASS_KEYWORD
+  :super class_symbol
+  :fields ())
+
+;; class of C types keywords - it is predefined to ensure
+;; install_ctype_descr always refer to the same class
+(defclass class_ctype
+  :predef CLASS_CTYPE
+  :super class_named
+  :fields (
+	   ctype_keyword ;the keyword associated to the ctype (e.g. :long)
+	   ctype_cname	 ;the name for C of the type (eg long)
+	   ctype_parchar ;the name of the basilys parameter char (eg BPAR_LONG)
+	   ctype_parstring ;the name of the basilys parameter string (eg BPARSTR_LONG)
+	   ctype_argfield ;the name of the basilys argument union field (eg bp_long)
+	   ctype_resfield ;the name of the basilys result union field (eg bp_longptr)
+	   ctype_descr	  ;descriptive string
+	   )
+  )
+
+
+;; class of system data  -- be careful to keep the FSYSDAT_* identifiers from basilys.h in sync!
+(defclass class_system_data
+  :predef CLASS_SYSTEM_DATA
+  :super class_named
+  :fields (sysdata_cmd_fundict			;stringmap for closures for command dispatching
+	   sysdata_cont_fresh_env			;closure to make a fresh environment
+	   sysdata_value_exporter		;closure to export a value
+	   sysdata_macro_exporter		;closure to export a macro
+	   sysdata_symboldict 		; stringmap for symbols
+	   sysdata_keywdict 			;stringmap for keywords
+	   sysdata_addsymbol 		;closure to add a symbol of given name
+	   sysdata_addkeyw		;closure to add a keyword of given name
+	   sysdata_internsymbol		;closure to intern a symbol
+	   sysdata_internkeyw		;closure to intern a keyword
+	   sysdata_value_importer	;closure to import a value
+	   ;;;keep these spare slots to ease the addition of other slots
+	   sysdata___spare1
+	   sysdata___spare2
+	   sysdata___spare3
+	   sysdata___spare4
+	   ))
+
+
+;; class for debug information (used for debug_msg & dbgout* stuff)
+(defclass class_debuginfo 
+  :super class_root
+  :fields (dbgi_sbuf 			;the produced stringbuf
+	   dbgi_occmap ;the occurrence map (to avoid outputing twice the same object)
+	   dbgi_maxdepth ;the boxed integer maximal depth
+	   )
+)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;; ================ classes for environments & bindings
+
+;;;; the class for environments - predefined to ensure all environment have the same (super*)class
+(defclass class_environment
+  :predef CLASS_ENVIRONMENT
+  :super class_root
+  :fields (env_bind			;the map of bindings
+	   env_prev			;the previous environment
+	   env_proc			;the procedure of this environment
+))
+
+;; the (super-)class of any binding
+(defclass class_any_binding
+  :super class_root
+  :fields (binder)
+)
+
+;;; superclass of exported bindings
+(defclass class_exported_binding
+  :super class_any_binding
+  :fields ( )
+)
+
+;; macro binding
+(defclass class_macro_binding
+  :super class_exported_binding
+  :fields (mbind_expanser))
+
+
+;; value binding - as exported 
+(defclass class_value_binding
+  :super class_exported_binding
+  :fields (vbind_value
+))
+
+; formal binding (used in generated defprimitive)
+(defclass class_formal_binding
+  :super class_any_binding
+  :fields (fbind_type)
+  ;;the obj_num is the argument rank
+  :predef CLASS_FORMAL_BINDING)
+
+
+;;; fixed bindings are defined in a compilation unit and can be implemented as constants in routine
+(defclass class_fixed_binding
+  :super class_any_binding
+  :fields ()
+)
+
+;; selector binding
+(defclass class_selector_binding
+  :super class_fixed_binding
+  :fields (sbind_selectordef 		;the "source" defselector
+	   sbind_selectordata		;the compiled data
+	   ;; maybe we need an selectorval for the actual value
+	   )
+)
+
+;; primitive binding
+(defclass class_primitive_binding
+  :super class_fixed_binding
+  :fields (pbind_primdef		;the source defprimitive
+	   pbind_primitive		;the primitive proper
+	   pbind_primdata		;the primitive data as compiled
+))
+
+
+;; function binding
+(defclass class_function_binding
+  :super class_fixed_binding
+  :fields (fubind_defun ;the source definition
+	   fubind_fundata		;compiled data
+))
+
+;; class binding
+(defclass class_class_binding
+  :super class_fixed_binding
+  :fields (cbind_defclass ;the source definition
+	   cbind_class			;the built class
+	   cbind_cladata		;compiled data
+))
+
+;; field binding
+(defclass class_field_binding
+  :super class_fixed_binding
+  :fields (flbind_clabind		;the class binding
+	   flbind_field			;the field proper
+	   flbind_fdata			;the compiled field data
+))
+
+;; instance binding
+(defclass class_instance_binding
+  :super class_fixed_binding
+  :fields ( ibind_iclass		;the instance's class
+	    ibind_data			;the compiled data
+	    ))
+
+;; let binding
+(defclass class_let_binding
+  :super class_any_binding
+  :fields (letbind_type			;the ctype 
+	   letbind_expr			;the expression
+	   letbind_loc			;the optional src location
+	   ))
+
+;; normalized let binding
+(defclass class_normlet_binding
+  :super class_let_binding
+  :fields  ())				;no additional field, but
+					;letbind_expr is "normal"
+
+;; label binding
+(defclass class_label_binding
+  :super class_any_binding
+  :fields (labind_loc			;location of the label
+;;; following fields are filled later in the compilation phase
+	   labind_clonsy		;unique cloned symbol
+	   labind_res			;result localvar
+))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;; ================  source program elements
+
+;; common superclass of source elements
+(defclass class_src 
+  :super class_root
+  :fields (src_loc			;the source location (if any)
+	   )
+)
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; module compilation context
+(defclass class_modulcontext
+  :super class_root
+  :fields (mocx_modulename		;the module name
+))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; normalization context
+(defclass class_normcontext
+  :super class_root
+  :fields (nctx_initproc		;initial procedure
+	   nctx_proclist		;list of procedures
+	   nctx_datalist		;list of data
+	   nctx_valuelist		;list of imported values
+	   nctx_symbmap			;stringmap of name to interned symbols
+	   nctx_keywmap			;stringmap of name to interned keywords
+	   nctx_symbcachemap		;objmap of cached symbol -> occurrence
+	   nctx_predefmap		;objmap of predef -> boxedrank or symbols
+	   nctx_valmap			;objmap of values -> data 
+	   nctx_valbindmap 		;objmap of value binding -> data
+	   nctx_curproc			;current procedure
+	   nctx_modulcontext		;the module compilation context
+	   nctx_qdatcurmodenvbox ;quasi data for current_module_environment_container
+	   nctx_qdatparmodenv		;quasi data for parent_module_environment
+	   nctx_procurmodenvlist	;list of procedures using the current_module_environment_container construct
+))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;; ================ classes for code generation
+
+
+;;; code generation context
+(defclass class_genercontext
+  :super class_root
+  :fields ( gncx_objrout 		;the containing object routine
+	    gncx_locmap			;objmap from normal bindings to locals
+	    gncx_freeptrlist		;list of freed local pointers
+	    gncx_freelonglist		;list of freed local longs
+	    gncx_freeothermaps		;map keyed by ctypes of list of freed local others
+	    gncx_retloc			;return location
+	    gncx_compicache		;cache map of procedure to compiled routines
+	    gncx_modulcontext		;the module compilation context
+))
+
+
+;; code generation context for initial routine
+(defclass class_initgenercontext
+  :super class_genercontext
+  :fields (igncx_prevenvloc	    ;local for previous environment [parent_module_environment]
+	   igncx_contenvloc	    ;local for the container of environment
+	   igncx_procurmodenvlist   ;list of routines using the current_module_environment_container
+	   igncx_importmap	    ;mapping of imported symbols to locvars
+))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;; common superclass for objcode
+(defclass class_objcode
+  :super class_root
+  :fields (
+))
+
+
+;; 
+
+;;****************************************************************
+;;       P R I M I T I V E S 
+;;****************************************************************
+
+;; primitive to ignore a value
+(defprimitive ignore (v) :void
+  "/*ignore*/(" v ")")
+
+;; primitive to return a void
+(defprimitive void () :void "/*void*/0")
+
+;; primitive for converting a string constant into a string value
+(defprimitive stringconst2val (discr :cstring strc) :value
+  " basilysgc_new_string((basilysobject_ptr_t)(" discr "), (" strc "))")
+
+
+;; primitive for testing if an object is a (sub) instance of a class
+(defprimitive is_a (obj cla) :long
+  " basilys_is_instance_of((basilys_ptr_t)(" obj "), (basilys_ptr_t)(" cla "))")
+
+;; primitive for testing if an object is NOT a (sub) instance of a class
+(defprimitive is_not_a (obj cla) :long
+  " !basilys_is_instance_of((basilys_ptr_t)(" obj "), (basilys_ptr_t)(" cla "))")
+  
+;; primitive for testing objectness
+(defprimitive is_object (obj) :long
+  " (basilys_magic_discr((basilys_ptr_t)(" obj ")) == OBMAG_OBJECT)")
+(defprimitive is_not_object (obj) :long
+  " (basilys_magic_discr((basilys_ptr_t)(" obj ")) != OBMAG_OBJECT)")
+  
+
+;; primitive to return the last predefined index
+(defprimitive last_globpredef_index () :long
+  "BGLOB__LASTGLOB")
+
+;; primitive to safely return a global predef by its index
+(defprimitive get_globpredef (:long ix) :value
+  "(basilys_globpredef((" ix ")))")
+
+;; primitive to get the discriminant of a value
+(defprimitive discrim (v) :value
+  "(basilys_discr((basilys_ptr_t)(" v ")))")
+
+;; primitive to get the integer inside a boxed or mixed integer or objnum
+(defprimitive get_int (v) :long
+  "(basilys_get_int((basilys_ptr_t)(" v ")))")
+;; primitive to put the integer inside a boxed or mixed integer or objnum
+(defprimitive put_int (v :long i) :void
+  "basilys_put_int((basilys_ptr_t)(" v "), (" i "))")
+
+;; primitive to get the hashcode of an object (or 0)
+(defprimitive obj_hash (v) :long
+  "(basilys_obj_hash((basilys_ptr_t)(" v ")))")
+;; primitive to get the length of an object (or 0)
+(defprimitive obj_len (v) :long
+  "(basilys_obj_len((basilys_ptr_t)(" v ")))")
+;; primitive to get the number of an object (or 0)
+(defprimitive obj_num (v) :long
+  "(basilys_obj_num((basilys_ptr_t)(" v ")))")
+;; primitive to compue a nonzero hash
+(defprimitive nonzero_hash () :long
+  "(basilys_nonzerohash())")
+
+;; primitive for identity and non-identity test
+(defprimitive == (a b) :long "((" a ") == (" b "))")
+(defprimitive != (a b) :long "((" a ") != (" b "))")
+
+;; primitive always returning nil
+(defprimitive the_null () :value "(NULL)")
+
+;;; the call counter - do not redefine the name, it is used by expansion of debug_msg macro!
+(defprimitive the_callcount () :long "callcount")
+;;; the current frame depth
+(defprimitive the_framedepth () :long "(basilys_curframdepth())")
+
+;;; the timestamp of compilation & md5 checksum of the generated C file
+(defprimitive out_cplugin_compiled_timestamp_err () :void "basilys_puts(stderr,basilys_compiled_timestamp)")
+(defprimitive out_cplugin_md5_checksum_err () :void "basilys_puts(stderr,basilys_md5)")
+
+;; primitive to force garbage collection
+(defprimitive minor_garbcoll (:long siz) :void 
+  "basilys_garbcoll((" siz "), BASILYS_MINOR_OR_FULL)")
+(defprimitive full_garbcoll (:long siz) :void
+  "basilys_garbcoll((" siz "), BASILYS_NEED_FULL)")
+
+;; primitive to get or create a symbol from a string value
+(defprimitive get_symbolstr (strv) :value
+  "basilysgc_named_symbol( basilys_string_str((basilys_ptr_t)(" strv ")), BASILYS_GET)")
+(defprimitive create_symbolstr (strv) :value
+  "basilysgc_named_symbol( basilys_string_str((basilys_ptr_t)(" strv ")), BASILYS_CREATE)")
+
+;; primitive to get or create a keyword from a string value
+(defprimitive get_keywordstr (strv) :value
+  "basilysgc_named_keyword( basilys_string_str((basilys_ptr_t)(" strv ")), BASILYS_GET)")
+(defprimitive create_keywordstr (strv) :value
+  "basilysgc_named_keyword( basilys_string_str((basilys_ptr_t)(" strv ")), BASILYS_CREATE)")
+
+
+;; runtime assertion with message called by expansion of assert_msg
+(defprimitive assert_failed (:cstring msg :cstring filename :long lineno) :void
+  "basilys_assert_failed((" msg "),(" filename "),(" lineno "), __FUNCTION__)")
+
+;; check explicitly the call stack  
+(defprimitive checkcallstack_msg (:cstring msg) :void
+ "basilys_check_call_frames(BASILYS_ANYWHERE, (" msg "))")
+;; for breakpoint
+(defprimitive cbreak_msg (:cstring msg) :void
+ "basilys_cbreak(" msg ")")
+
+;;; less, lessorequal, greater, greaterorequal, equal, different number 
+(defprimitive <i (:long a b) :long "((" a ") < (" b "))")
+(defprimitive <=i (:long a b) :long "((" a ") <= (" b "))")
+(defprimitive ==i (:long a b) :long "((" a ") == (" b "))")
+(defprimitive >i (:long a b) :long "((" a ") > (" b "))")
+(defprimitive >=i (:long a b) :long "((" a ") >= (" b "))")
+(defprimitive !=i (:long a b) :long "((" a ") != (" b "))")
+;;; integer arithmetic
+(defprimitive +i (:long a b) :long "((" a ") + (" b "))")
+(defprimitive -i (:long a b) :long "((" a ") - (" b "))")
+(defprimitive *i (:long a b) :long "((" a ") * (" b "))")
+(defprimitive andi (:long a b) :long "((" a ") & (" b "))")
+(defprimitive ori (:long a b) :long "((" a ") | (" b "))")
+(defprimitive xori (:long a b) :long "((" a ") ^ (" b "))")
+(defprimitive negi (:long i) :long "(-(" i "))")
+(defprimitive noti (:long i) :long "(~(" i "))")
+
+(defprimitive /i (:long a b) :long "(basilys_idiv((" a "), (" b ")))")
+(defprimitive %i (:long a b) :long "(basilys_imod((" a "), (" b ")))")
+(defprimitive /iraw (:long a b)  :long "((" a ") / (" b "))")
+(defprimitive %iraw (:long a b)  :long "((" a ") % (" b "))")
+;; boolean not
+(defprimitive not (:long i) :long "(!(" i "))")
+;;; nullity test (for values)
+(defprimitive null (v) :long "((" v ") == NULL)")
+(defprimitive notnull (v) :long "((" v ") != NULL)")
+;;; zero test (for numbers)
+(defprimitive zerop (:long i) :long "((" i ") == OL)")
+;; primitive for testing if debug
+(defprimitive need_dbg (:long depth) :long
+  "(flag_basilys_debug && basilys_dbgcounter>=basilys_debugskipcount && (" depth ")>=0 && (" depth ") <= BASILYSDBG_MAXDEPTH)")
+
+(defprimitive need_dbglim (:long depth limit) :long
+  "(flag_basilys_debug && basilys_dbgcounter>=basilys_debugskipcount && (" depth ")>=0 && (" depth ") < (" limit "))")
+;;; debug on dumpfile
+(defprimitive outcstring_dbg (:cstring s) :void
+  "basilys_puts(dump_file,(" s "))")
+(defprimitive outnum_dbg (:cstring pref :long l :cstring suf) :void
+  "basilys_putnum(dump_file,(" pref "), (" l "), (" suf "))")
+(defprimitive outstr_dbg (str) :void
+  "basilys_putstr(dump_file,(basilys_ptr_t)(" str "))")
+(defprimitive outstrbuf_dbg (sbuf) :void
+  "basilys_putstrbuf(dump_file,(basilys_ptr_t)(" sbuf "))")
+(defprimitive outnewline_dbg () :void
+  "basilys_newlineflush(dump_file)")
+;;; output on stderr
+(defprimitive outnum_err (:cstring pref :long l :cstring suf) :void
+  "basilys_putnum(stderr,(" pref "), (" l "), (" suf "))")
+(defprimitive outcstring_err (:cstring s) :void
+  "basilys_puts(stderr,(" s "))")
+(defprimitive outstrbuf_err (sbuf) :void
+  "basilys_putstrbuf(stderr,(basilys_ptr_t)(" sbuf "))")
+(defprimitive outnewline_err () :void
+  "basilys_newlineflush(stderr)")
+(defprimitive outstr_err (str) :void
+  "basilys_putstr(stderr, (basilys_ptr_t)(" str "))")
+
+(defprimitive output_cfile_decl_impl (uninam declbuf implbuf) :void
+  "basilys_output_cfile_decl_impl((basilys_ptr_t)(" uninam 
+  "), (basilys_ptr_t)(" declbuf "), (basilys_ptr_t)(" implbuf "))")
+
+(defprimitive message_dbg (:cstring msg) :void
+  "debugeputs((" msg "))")
+(defprimitive messagenum_dbg (:cstring msg :long i) :void
+  "debugnum((" msg "), (" i "))")
+(defprimitive messageval_dbg (:cstring msg :value val) :void
+  "debugvalue((" msg "), ((void*)(" val ")))")
+(defprimitive longbacktrace_dbg (:cstring msg :long maxdepth) :void
+  "debugbacktrace((" msg "), (int)(" maxdepth "))")
+(defprimitive shortbacktrace_dbg (:cstring msg :long maxdepth) :void
+  "basilys_dbgshortbacktrace((" msg "), (" maxdepth "))")
+(defprimitive checkval_dbg (val :cstring msg) :value
+  "basilys_checked_assignmsg((" val "),(" msg "))")
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;; STRBUF primitives
+;; primitive to make a strbuf
+(defprimitive make_strbuf (discr) :value
+  "basilysgc_new_strbuf((basilysobject_ptr_t)(" discr "), (char*)0)")
+(defprimitive strbuf_usedlength (sbuf) :long
+  "basilys_strbuf_usedlength((basilys_ptr_t)(" sbuf "))")
+
+(defprimitive is_strbuf (v) :long
+  "(basilys_magic_discr((basilys_ptr_t)(" v ")) == OBMAG_STRBUF)")
+;; primitive to add a string const into a strbuf
+(defprimitive add2sbuf_strconst (sbuf :cstring str) :void 
+  "basilysgc_add_strbuf((struct basilysstrbuf_st *)(" sbuf "), (" str "))")
+;; primitive to add a string value into a strbuf
+(defprimitive add2sbuf_string (sbuf str) :void 
+  "basilysgc_add_strbuf((struct basilysstrbuf_st *)(" sbuf "), basilys_string_str((basilys_ptr_t)(" str ")))")
+
+;; primitive to add an indentation or space into a strbuf
+(defprimitive add2sbuf_indent (sbuf :long depth) :void
+  "basilysgc_strbuf_add_indent((struct basilysstrbuf_st *)(" sbuf "), (" depth "), 64)")
+
+
+;; primitive to add an indented newline into a strbuf
+(defprimitive add2sbuf_indentnl (sbuf :long depth) :void
+  "basilysgc_strbuf_add_indent((struct basilysstrbuf_st *)(" sbuf "), (" depth "), 0)")
+
+
+;; primitive to add a strbuf into a strbuf
+(defprimitive add2sbuf_sbuf (sbuf asbuf) :void 
+  "basilysgc_add_strbuf((struct basilysstrbuf_st *)(" sbuf "), basilys_strbuf_str(" asbuf "))")
+
+;; primitive to add a string value, C encoded, into a strbuf
+(defprimitive add2sbuf_cencstring (sbuf str) :void 
+  "basilysgc_add_strbuf_cstr((struct basilysstrbuf_st *)(" sbuf "), basilys_string_str((basilys_ptr_t)(" str ")))")
+
+;; primitive to add a strbuf, C encoded, into a strbuf
+(defprimitive add2sbuf_cencstrbuf (sbuf asbuf) :void 
+  "basilysgc_add_strbuf_cstr((struct basilysstrbuf_st *)(" sbuf "), basilys_strbuf_str((basilys_ptr_t)(" asbuf ")))")
+
+;; primitive to add a string value, Ccomment encoded, into a strbuf
+(defprimitive add2sbuf_ccomstring (sbuf str) :void 
+  "basilysgc_add_strbuf_ccomment((struct basilysstrbuf_st *)(" sbuf
+  "), basilys_string_str((basilys_ptr_t)(" str ")))")
+
+;; primitive to add a strbuf, C encoded, into a strbuf
+(defprimitive add2sbuf_ccomstrbuf (sbuf asbuf) :void 
+  "basilysgc_add_strbuf_ccomment((struct basilysstrbuf_st *)(" sbuf 
+  "), basilys_strbuf_str((basilys_ptr_t)(" asbuf ")))")
+
+
+;; primitive to add into a strbuf a string as C ident (nonalphanum
+;; replaced by _)
+(defprimitive add2sbuf_cident (sbuf str) :void
+  "basilysgc_add_strbuf_cident((struct basilysstrbuf_st *)(" sbuf 
+  "), basilys_string_str((basilys_ptr_t)(" str ")))")
+
+;; primitive to add into a strbuf the prefix of a string as C ident (nonalphanum
+;; replaced by _) limited by a small length 
+(defprimitive add2sbuf_cidentprefix  (sbuf str :long preflen) :void
+  "basilysgc_add_strbuf_cidentprefix((struct basilysstrbuf_st *)(" sbuf "), basilys_string_str((basilys_ptr_t)(" str ")), (" preflen "))")
+
+;; primitive to add a long in decimal into a strbuf
+(defprimitive add2sbuf_longdec (sbuf :long num) :void
+  "basilysgc_add_strbuf_dec((struct basilysstrbuf_st *)(" sbuf "), (" num "))")
+
+;; primitive to add a long in hex into a strbuf
+(defprimitive add2sbuf_longhex (sbuf :long num) :void
+  "basilysgc_add_strbuf_hex((struct basilysstrbuf_st *)(" sbuf "), (" num "))")
+
+;; primitive to add a routine descr into a strbuf
+(defprimitive add2sbuf_routinedescr (sbuf rout) :void
+  "basilysgc_add_strbuf((struct basilysstrbuf_st *)(" sbuf "), basilys_routine_descrstr((basilys_ptr_t)(" rout ")))")
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; STRING primitives
+;; primitive for testing if a value is a string
+(defprimitive is_string (str) :long
+  " (basilys_magic_discr((basilys_ptr_t)(" str ")) == OBMAG_STRING)")
+;; string equal
+(defprimitive ==s (s1 s2) :long
+  "basilys_string_same((basilys_ptr_t)(" s1 "), (basilys_ptr_t)(" s2 "))")
+;;; make a string
+(defprimitive make_string (dis str) :value
+  "(basilysgc_new_stringdup((basilysobject_ptr_t)(" dis 
+  "), basilys_string_str((basilys_ptr_t)(" str "))))")
+(defprimitive make_stringconst (dis :cstring cstr) :value
+  "(basilysgc_new_stringdup((basilysobject_ptr_t)(" dis "), (" cstr ")))")
+(defprimitive is_stringconst (str :cstring cs) :long
+  "(basilys_is_string_const((basilys_ptr_t)(" str "), (" cs ")))")
+(defprimitive string_length (str) :long
+  "basilys_string_length((basilys_ptr_t)(" str "))")
+(defprimitive string= (s1 s2) :long "basilys_string_same((" s1 "), (" s2 "))")
+(defprimitive string< (s1 s2) :long "basilys_string_less((basilys_ptr_t)(" s1 "), (basilys_ptr_t)(" s2 "))")
+(defprimitive string> (s1 s2) :long "basilys_string_less((basilys_ptr_t)(" s2 "), (basilys_ptr_t)(" s1 "))")
+
+;;; convert a strbuf into a string
+(defprimitive strbuf2string (dis sbuf) :value
+  "(basilysgc_new_stringdup((basilysobject_ptr_t)(" dis 
+  "), basilys_strbuf_str((basilys_ptr_t)(" sbuf "))))")
+;;; compute the naked basename
+(defprimitive make_string_nakedbasename (dis str) :value
+ "(basilysgc_new_string_nakedbasename((basilysobject_ptr_t)(" dis "), basilys_string_str((basilys_ptr_t)(" str "))))")
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; OBJECT primitives
+;; primitive to get an object length
+(defprimitive object_length (ob) :long 
+  "((long)basilys_object_length((basilys_ptr_t)(" ob ")))")
+;; primitive to get the nth field of an object
+(defprimitive object_nth_field (ob :long n) :value
+  "(basilys_field_object((basilys_ptr_t)(" ob "), (" n ")))")
+
+(defprimitive subclass_of (cl1 cl2) :long
+  "basilys_is_subclass_of((basilysobject_ptr_t)(" cl1 "), (basilysobject_ptr_t)(" cl2 "))")
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;; MULTIPLEs primitives
+;;;; test
+(defprimitive is_multiple (mul) :long
+ "(basilys_magic_discr((basilys_ptr_t)(" mul  ")) == OBMAG_MULTIPLE)")
+(defprimitive is_multiple_or_null (mul) :long
+ "((" mul ") == NULL || (basilys_magic_discr((basilys_ptr_t)(" mul  ")) == OBMAG_MULTIPLE))")
+;;; make
+(defprimitive make_multiple (discr :long ln) :value
+  "(basilysgc_new_multiple((basilysobject_ptr_t)(" discr "), (" ln ")))")
+(defprimitive make_tuple1 (discr v1) :value
+  "(basilysgc_new_mult1((basilysobject_ptr_t)(" discr
+  "), (basilys_ptr_t)(" v1 ")))")
+(defprimitive make_tuple2 (discr v1 v2) :value
+  "(basilysgc_new_mult2((basilysobject_ptr_t)(" discr
+  "), (basilys_ptr_t)(" v1 "),  (basilys_ptr_t)(" v2 ")))")
+(defprimitive make_tuple3 (discr v1 v2 v3) :value
+  "(basilysgc_new_mult3((basilysobject_ptr_t)(" discr
+  "), (basilys_ptr_t)(" v1 "),  (basilys_ptr_t)(" v2  "),  (basilys_ptr_t)(" v3 ")))")
+(defprimitive make_tuple4 (discr v1 v2 v3 v4) :value
+  "(basilysgc_new_mult4((basilysobject_ptr_t)(" discr
+  "), (basilys_ptr_t)(" v1 "),  (basilys_ptr_t)(" v2  "),  (basilys_ptr_t)(" v3  "),  (basilys_ptr_t)(" v4 ")))")
+(defprimitive make_tuple5 (discr v1 v2 v3 v4 v5) :value
+  "(basilysgc_new_mult5((basilysobject_ptr_t)(" discr 
+  "), (basilys_ptr_t)(" v1 "),  (basilys_ptr_t)(" v2 
+  "),  (basilys_ptr_t)(" v3  "),  (basilys_ptr_t)(" v4 
+  "),  (basilys_ptr_t)(" v5 ")))")
+(defprimitive make_tuple6 (discr v1 v2 v3 v4 v5 v6) :value
+  "(basilysgc_new_mult6((basilysobject_ptr_t)(" discr "), (basilys_ptr_t)(" v1 "),  (basilys_ptr_t)(" v2  "),  (basilys_ptr_t)(" 
+  v3  "),  (basilys_ptr_t)(" v4  "),  (basilys_ptr_t)(" v5  "),  (basilys_ptr_t)(" v6 ")))")
+(defprimitive make_tuple7 (discr v1 v2 v3 v4 v5 v6 v7) :value
+  "(basilysgc_new_mult7((basilysobject_ptr_t)(" discr "), (basilys_ptr_t)(" v1 "),  (basilys_ptr_t)(" v2  "),  (basilys_ptr_t)(" v3  "),  (basilys_ptr_t)(" v4  
+  "),  (basilys_ptr_t)(" v5  "),  (basilys_ptr_t)(" v6  "),  (basilys_ptr_t)(" v7 ")))")
+;; primitive to get the nth  in a multiple
+(defprimitive multiple_nth (mul :long n) :value
+    "(basilys_multiple_nth((basilys_ptr_t)(" mul "), (" n ")))")
+;; primitive to get the length of a multiple
+(defprimitive multiple_length (v) :long
+  "(basilys_multiple_length((basilys_ptr_t)(" v ")))")
+;; be careful to avoid circularities
+(defprimitive multiple_put_nth (mul :long n :value v) :void
+  " basilysgc_multiple_put_nth((basilys_ptr_t)(" mul "), (" n "), (basilys_ptr_t)(" v "))")
+;; sort a multiple, the compare function should return a boxed integer
+(defprimitive multiple_sort (mul cmp discrm) :value
+  " basilysgc_sort_multiple((basilys_ptr_t)(" mul "), (basilys_ptr_t)(" cmp "), (basilys_ptr_t)( " discrm "))")
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;; MAPOBJECTs primitives
+;;;; test
+(defprimitive is_mapobject (map) :long
+ "(basilys_magic_discr((basilys_ptr_t)(" map  ")) == OBMAG_MAPOBJECTS)")
+;; primitive to get the allocated size of a mapobject
+(defprimitive mapobject_size (map) :long
+  "(basilys_size_mapobjects((basilysmapobjects_ptr_t)(" map ")))")
+;; primitive to get the attribute count of a mapobject
+(defprimitive mapobject_count (map) :long
+  "(basilys_count_mapobjects((basilysmapobjects_ptr_t)(" map ")))")
+;; primitive to get the nth attribute of a mapobject
+(defprimitive mapobject_nth_attr (map :long n) :value
+  "(basilys_nthattr_mapobjects((basilysmapobjects_ptr_t)(" map "), (int)(" n ")))")
+;; primitive to get the nth value of a mapobject
+(defprimitive mapobject_nth_val (map :long n) :value
+  "(basilys_nthval_mapobjects((basilysmapobjects_ptr_t)(" map "), (int)(" n ")))")
+;; primitive to get the value of an attribute in a mapobject
+(defprimitive mapobject_get (map attr) :value
+  "(basilys_get_mapobjects((basilysmapobjects_ptr_t)(" map "), (basilysobject_ptr_t)(" attr ")))")
+;; primitive for making a new map of objects
+(defprimitive make_mapobject (discr :long len) :value
+  " (basilysgc_new_mapobjects( (basilysobject_ptr_t) (" discr "), (" len ")))")
+;; primitive for putting into a map of objects
+(defprimitive mapobject_put (map key val) :void
+ " basilysgc_put_mapobjects( (basilysmapobjects_ptr_t) (" map "), (basilysobject_ptr_t) (" key "), (basilys_ptr_t)(" val "))")
+;; primitive for removing from a map of objects
+(defprimitive mapobject_remove (map key) :void
+  " basilysgc_remove_mapobjects( (basilysmapobjects_ptr_t) (" map "), (basilysobject_ptr_t)(" key "))")
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;; MAPSTRINGs primitive
+;; test
+(defprimitive is_mapstring (map) :long
+"(basilys_magic_discr((basilys_ptr_t)(" map ")) == OBMAG_MAPSTRINGS)")
+;; primitive to get the allocated size of a mapstring
+(defprimitive mapstring_size (map) :long 
+  "(basilys_size_mapstrings((struct basilysmapstrings_st*)(" map ")))")
+;; primitive to get the attribute count of a mapstring
+(defprimitive mapstring_count (map) :long
+  "(basilys_count_mapstrings((struct basilysmapstrings_st*)(" map ")))")
+;; get an entry in a mapstring from a C string
+(defprimitive mapstring_rawget (map :cstring cstr) :value
+  "(basilys_get_mapstrings((struct basilysmapstrings_st*)(" map "), (" cstr ")))")
+;; primitive for making a new map of strings
+(defprimitive make_mapstring (discr :long len) :value
+  " (basilysgc_new_mapstrings( (basilysobject_ptr_t) (" discr "), (" len ")))")
+;; primitive for putting into a map of strings
+(defprimitive mapstring_rawput (map :cstring key :value val) :void
+ " basilysgc_put_mapstrings( (struct basilysmapstrings_st *) (" map "), (" key "), (basilys_ptr_t) (" val "))")
+(defprimitive mapstring_putstr (map keystr val) :void
+  " basilysgc_put_mapstrings((struct basilysmapstrings_st *) (" map "), basilys_string_str((basilys_ptr_t)(" keystr ")), (basilys_ptr_t)(" val "))")
+(defprimitive mapstring_getstr (map keystr) :value
+  "(basilys_get_mapstrings((struct basilysmapstrings_st*)(" map "), basilys_string_str((basilys_ptr_t)(" keystr "))))")
+;; primivite for removing from a map of strings
+(defprimitive mapstring_rawremove (map :cstring key) :void
+  " basilysgc_remove_mapstrings( (struct basilysmapstrings_st*) (" map "), (" key "))")
+
+;; primitive to make the nth stringattr of a mapobject
+(defprimitive mapstring_nth_attrstr (map sdicr :long n) :value
+  "(basilysgc_new_stringdup((basilysobject_ptr_t)(" sdicr "), basilys_nthattrraw_mapstrings((struct basilysmapstrings_st*)(" map "), (int)(" n "))))")
+;; primitive to get the nth value of a mapobject
+(defprimitive mapstring_nth_val (map :long n) :value
+  "(basilys_nthval_mapstrings((struct basilysmapstrings_st*)(" map "), (int)(" n ")))")
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;; ROUTINEs primitives
+;; test
+(defprimitive is_routine (rou) :long
+"(basils_magic_discr((basilys_ptr_t)(" rou ")) == OBMAG_ROUTINE)")
+;;; descriptive string of a routine
+(defprimitive routine_descr (rou) :value
+  "(basilysgc_new_stringdup(basilys_routine_descrstr((" rou "))))")
+;;; size of a routine
+(defprimitive routine_size  (rou) :long
+  "(basilys_routine_size((" rou ")))")
+;;; nth comp in routine
+(defprimitive routine_nth (rou :long ix) :value
+"(basilys_routine_nth((" rou "), (int) (" ix ")))")
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;; CLOSUREs primitives
+;; test
+(defprimitive is_closure (clo) :long
+  " (basilys_magic_discr((basilys_ptr_t)(" clo ")) == OBMAG_CLOSURE)")
+(defprimitive closure_size (clo) :long
+  " (basilys_closure_size((basilys_ptr_t)(" clo ")))")
+(defprimitive closure_routine (clo) :value
+ " (basilys_closure_routine((basilys_ptr_t)(" clo ")))")
+(defprimitive closure_nth (clo :long ix) :value
+  "(basilys_closure_nth((basilys_ptr_t)(" clo "), (int)(" ix ")))")
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;; boxed INTEGERs primitives
+;; test
+(defprimitive is_integerbox (ib) :long
+  "(basilys_magic_discr((basilys_ptr_t)(" ib ")) == OBMAG_INT)")
+;; to get the boxed integer use get_int
+;; make
+(defprimitive make_integerbox (discr :long n) :value
+  "(basilysgc_new_int((basilysobject_ptr_t)(" discr "), (" n ")))")
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; BOX primitives (boxed values)
+;; test
+(defprimitive is_box (bx) :long
+  "(basilys_magic_discr((basilys_ptr_t)(" bx ")) == OBMAG_BOX)")
+;; safe fetch content
+(defprimitive box_content (box) :value
+  "basilys_box_content((basilysbox_ptr_t)(" box "))")
+;; put into a box
+(defprimitive box_put (box val) :void
+  "basilysgc_box_put((basilys_ptr_t)(" box "), (basilys_ptr_t)(" val "))")
+;; make a box
+(defprimitive make_box (discr valb) :value
+  "basilysgc_new_box((basilysobject_ptr_t)(" discr "), (basilys_ptr_t)(" valb "))")
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; LIST primitives
+;; test
+(defprimitive is_list (li) :long
+  "(basilys_magic_discr((basilys_ptr_t)(" li ")) == OBMAG_LIST)")
+(defprimitive is_list_or_null (li) :long
+  "((" li ") == NULL || (basilys_magic_discr((basilys_ptr_t)(" li ")) == OBMAG_LIST))")
+;; first pair of list
+(defprimitive list_first (li) :value
+  "(basilys_list_first((basilys_ptr_t)(" li ")))")
+;; last pair of list
+(defprimitive list_last (li) :value
+"(basilys_list_last((basilys_ptr_t)(" li ")))")
+;; length of list
+(defprimitive list_length (li) :long
+"(basilys_list_length((basilys_ptr_t)(" li ")))")
+;; append into list
+(defprimitive list_append (li el) :void
+"basilysgc_append_list((basilys_ptr_t)(" li "), (basilys_ptr_t)(" el "))")
+;; prepend into list
+(defprimitive list_prepend (li el) :void
+"basilysgc_prepend_list((basilys_ptr_t)(" li "), (basilys_ptr_t)(" el "))")
+;; pop first from list
+(defprimitive list_popfirst (li) :value
+  "(basilysgc_popfirst_list((basilys_ptr_t)(" li ")))")
+;; make list
+(defprimitive make_list (discr) :value
+"(basilysgc_new_list((basilysobject_ptr_t)(" discr ")))")
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; PAIR primitives
+;; test
+(defprimitive is_pair (pa) :long
+  "(basilys_magic_discr((basilys_ptr_t)(" pa ")) == OBMAG_PAIR)")
+;; head
+(defprimitive pair_head (pa) :value
+  "(basilys_pair_head((basilys_ptr_t)(" pa ")))")
+;; tail
+(defprimitive pair_tail (pa) :value
+  "(basilys_pair_tail((basilys_ptr_t)(" pa ")))")
+;; change the head of a pair
+(defprimitive pair_set_head (pa hd) :void
+  "basilysgc_pair_set_head((basilys_ptr_t)(" pa "), (" hd "))")
+;; length of a pair list
+(defprimitive pair_listlength (pa) :long
+  "(basilys_pair_listlength((basilys_ptr_t)(" pa ")))")
+;; make
+(defprimitive make_pair (discr hd tl) :value
+  "(basilysgc_new_pair((basilysobject_ptr_t)(" discr "), (basilys_ptr_t)(" hd "), (basilys_ptr_t)(" tl ")))")
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;; MIXINT primitives (use get_int to get the integer)
+;; test
+(defprimitive is_mixint (mi) :long
+  "(basilys_magic_discr((basilys_ptr_t)(" mi ")) == OBMAG_MIXINT)")
+;; get the value
+(defprimitive mixint_val (mi) :value
+  "(basilys_val_mixint((basilys_ptr_t)(" mi ")))")
+;; make a mixint
+(defprimitive make_mixint (dis val :long num) :value
+  "(basilysgc_new_mixint((basilysobject_ptr_t)(" dis "), (basilys_ptr_t)(" val "), (" num ")))")
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; READ FILE primitive
+(defprimitive read_file (filnam) :value
+  "(basilysgc_read_file (basilys_string_str((basilys_ptr_t)(" filnam ")), (char*)0))")
+
+;; to signal an error in a basilys source with some additional string value
+(defprimitive error_strv (loc :cstring msg :value strv) :void
+  "error(\"BASILYS ERROR [#%ld]: @%s:%d:: %s - %s\", basilys_dbgcounter, "
+  " basilys_string_str(basilys_val_mixint((basilys_ptr_t)(" loc "))), "
+  " (int) basilys_num_mixint((basilys_ptr_t)(" loc ")), ("
+  msg
+  "), basilys_string_str((basilys_ptr_t)(" strv ")))"
+  )
+;; signal a plain error in a basilys source
+(defprimitive error_plain (loc :cstring msg) :void
+  "error(\"BASILYS ERROR [#%ld]: @%s:%d:: %s \", basilys_dbgcounter, "
+  " basilys_string_str(basilys_val_mixint((basilys_ptr_t)(" loc "))), "
+  " (int) basilys_num_mixint((basilys_ptr_t)(" loc ")), ("
+  msg "))"
+  )
+
+;; to signal an warning in a basilys source with some additional string value
+(defprimitive warning_strv (loc :cstring msg :value strv) :void
+  "warning(0, \"BASILYS WARNING [#%ld]: @%s:%d:: %s - %s\", basilys_dbgcounter,"
+  " basilys_string_str(basilys_val_mixint((basilys_ptr_t)(" loc "))), "
+  " (int) basilys_num_mixint((basilys_ptr_t)(" loc ")), ("
+  msg
+  "), basilys_string_str((basilys_ptr_t)(" strv ")))"
+  )
+;; signal a plain warning in a basilys source
+(defprimitive warning_plain (loc :cstring msg) :void
+  "warning(0, \"BASILYS WARNING [#%ld]: @%s:%d:: %s \", basilys_dbgcounter,"
+  " basilys_string_str(basilys_val_mixint((basilys_ptr_t)(" loc "))), "
+  " (int) basilys_num_mixint((basilys_ptr_t)(" loc ")), ("
+  msg "))"
+  )
+
+
+;; signal a plain warning 
+(defprimitive warningmsg_plain (:cstring msg) :void
+  "warning(0, \"BASILYS WARNING MSG [#%ld]::: %s \", basilys_dbgcounter, ("
+  msg "))"
+  )
+
+
+;; signal a plain warning 
+(defprimitive warningmsg_strv (:cstring msg :value strv) :void
+  "warning(0, \"BASILYS WARNING MSG [#%ld]::: %s - %s\", basilys_dbgcounter, ("
+  msg 
+  "), basilys_string_str((basilys_ptr_t)(" strv ")))"
+  )
+
+;; signal a plain error 
+(defprimitive errormsg_plain (:cstring msg) :void
+  "error(\"BASILYS ERROR MSG [#%ld]::: %s \", basilys_dbgcounter, ("
+  msg "))"
+  )
+
+
+;; signal a plain error
+(defprimitive errormsg_strv (:cstring msg :value strv) :void
+  "error(\"BASILYS ERROR MSG [#%ld]::: %s - %s\", basilys_dbgcounter, ("
+  msg 
+  "), basilys_string_str((basilys_ptr_t)(" strv ")))"
+  )
+
+
+;; to signal an inform in a basilys source with some additional string value
+(defprimitive inform_strv (loc :cstring msg :value strv) :void
+  "inform(\"BASILYS INFORM [#%ld]: @%s:%d: %s - %s\", basilys_dbgcounter,"
+  " basilys_string_str(basilys_val_mixint((basilys_ptr_t)(" loc "))), "
+  " (int) basilys_num_mixint((basilys_ptr_t)(" loc ")), ("
+  msg
+  "), basilys_string_str((basilys_ptr_t)(" strv ")))"
+  )
+;; signal a plain inform in a basilys source
+(defprimitive inform_plain (loc :cstring msg) :void
+  "inform(\"BASILYS INFORM [#%ld]: @%s:%d::: %s \", basilys_dbgcounter,"
+  " basilys_string_str(basilys_val_mixint((basilys_ptr_t)(" loc "))), "
+  " (int) basilys_num_mixint((basilys_ptr_t)(" loc ")), ("
+  msg "))"
+  )
+
+(defprimitive informsg_strv (:cstring msg :value strv) :void
+  "inform((\"BASILYS INFORM [#%ld]: %s - %s\"), basilys_dbgcounter, ("
+  msg
+  "), basilys_string_str((basilys_ptr_t)(" strv ")))"
+  )
+
+(defprimitive informsg_plain (:cstring msg) :void
+  "inform((\"BASILYS INFORM [#%ld]: %s \"),  basilys_dbgcounter, ("
+  msg
+  "))"
+  )
+
+(defprimitive informsg_long (:cstring msg :long n) :void
+  "inform((\"BASILYS INFORM [#%ld]: %s * %ld\"),  basilys_dbgcounter, ("  msg  "), (" n "))"
+  )
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;; the discriminant for name strings
+(definstance discr_namestring class_discr
+ :predef DISCR_NAMESTRING
+ :obj_num OBMAG_STRING
+;;; :named_name (stringconst2val discr_namestring "DISCR_NAMESTRING")
+;;; :disc_super discr_string   ;; forward reference not allowed
+)
+
+;;; the discriminant for strings
+(definstance discr_string class_discr
+ :predef DISCR_STRING
+ :obj_num OBMAG_STRING
+ :named_name (stringconst2val discr_namestring "DISCR_STRING"))
+
+(unsafe_put_fields discr_namestring :disc_super discr_string)
+(unsafe_put_fields discr_namestring :named_name
+		   (stringconst2val discr_namestring "DISCR_NAMESTRING"))
+;;; the discriminant for verbatim strings (used for defprimitive)
+(definstance discr_verbatimstring class_discr
+ :obj_num OBMAG_STRING
+ :predef DISCR_VERBATIMSTRING
+ :named_name (stringconst2val discr_namestring "DISCR_VERBATIMSTRING")
+ :disc_super discr_string
+)
+
+;;; the discriminant for any reciever (used for sending to everything)
+(definstance discr_anyrecv class_discr
+  :named_name (stringconst2val discr_namestring "DISCR_ANYRECV")
+)
+
+(unsafe_put_fields discr_string :disc_super discr_anyrecv)
+
+;;; the discriminant for null reciever (used for sending to nil)
+(definstance discr_nullrecv class_discr
+  :predef DISCR_NULLRECV
+  :disc_super discr_anyrecv
+  :named_name (stringconst2val discr_namestring "DISCR_NULLRECV"))
+
+;;; the discriminant for strbuf
+(definstance discr_strbuf class_discr
+ :obj_num OBMAG_STRBUF  
+ :disc_super discr_anyrecv
+ :named_name (stringconst2val discr_namestring "DISCR_STRBUF"))
+
+;;; the discriminant for integers
+(definstance discr_integer class_discr
+ :predef DISCR_INTEGER
+ :obj_num OBMAG_INT 
+ :disc_super discr_anyrecv
+ :named_name (stringconst2val discr_namestring "DISCR_INTEGER"))
+
+;;; the discriminant for lists
+(definstance discr_list class_discr
+  :predef DISCR_LIST
+  :obj_num OBMAG_LIST 
+  :disc_super discr_anyrecv
+  :named_name (stringconst2val discr_namestring "DISCR_LIST"))
+
+;;; the discriminant for pairs
+(definstance discr_pair class_discr
+  :predef DISCR_PAIR
+  :obj_num OBMAG_PAIR 
+  :disc_super discr_anyrecv
+  :named_name (stringconst2val discr_namestring "DISCR_PAIR"))
+
+;;; the discriminant for multiples
+(definstance discr_multiple class_discr
+  :predef DISCR_MULTIPLE
+  :obj_num OBMAG_MULTIPLE
+  :disc_super discr_anyrecv
+  :named_name (stringconst2val discr_namestring "DISCR_MULTIPLE"))
+
+;;; the discriminant for sequence of fields
+(definstance discr_seqfield class_discr
+  :predef DISCR_SEQFIELD
+  :obj_num OBMAG_MULTIPLE
+  :named_name (stringconst2val discr_namestring "DISCR_SEQFIELD")
+  :disc_super discr_multiple
+)
+
+;;; the discriminant for boxes
+(definstance discr_box class_discr
+  :predef DISCR_BOX
+  :obj_num OBMAG_BOX
+  :disc_super discr_anyrecv
+  :named_name (stringconst2val discr_namestring "DISCR_BOX"))
+
+;;; the discriminant for maps of objects
+(definstance discr_mapobjects class_discr
+  :predef DISCR_MAPOBJECTS
+  :obj_num OBMAG_MAPOBJECTS
+  :disc_super discr_anyrecv
+  :named_name (stringconst2val discr_namestring "DISCR_MAPOBJECTS"))
+
+;;; the discriminant for maps of strings
+(definstance discr_mapstrings class_discr
+  :predef DISCR_MAPSTRINGS
+  :obj_num OBMAG_MAPSTRINGS
+  :disc_super discr_anyrecv
+  :named_name (stringconst2val discr_namestring "DISCR_MAPSTRINGS"))
+
+;;; the discriminant for sequence of classes 
+(definstance discr_seqclass class_discr
+  :predef DISCR_SEQCLASS
+  :obj_num OBMAG_MULTIPLE
+  :named_name (stringconst2val discr_namestring "DISCR_SEQCLASS")
+  :disc_super discr_multiple
+)
+
+
+;;; the discriminant for method dictionnary maps
+(definstance discr_methodmap class_discr
+  :predef DISCR_METHODMAP
+  :obj_num OBMAG_MAPOBJECTS
+  :disc_super discr_mapobjects
+  :named_name (stringconst2val discr_namestring "DISCR_METHODMAP"))
+
+;;; the discriminant for charcode integers
+(definstance discr_charinteger class_discr
+ :predef DISCR_CHARINTEGER
+ :obj_num OBMAG_INT
+ :named_name (stringconst2val discr_namestring "DISCR_CHARINTEGER")
+ :disc_super discr_integer
+)
+
+
+;;; the discriminant for mixedintegers
+(definstance discr_mixedint class_discr
+ :predef DISCR_MIXEDINT
+ :obj_num OBMAG_MIXINT
+ :disc_super discr_anyrecv
+ :named_name (stringconst2val discr_namestring "DISCR_MIXEDINT"))
+
+
+;;; the discriminant for closures
+(definstance discr_closure class_discr
+ :predef DISCR_CLOSURE
+ :obj_num OBMAG_CLOSURE
+ :disc_super discr_anyrecv
+ :named_name (stringconst2val discr_namestring "DISCR_CLOSURE"))
+
+;;; the discriminant for routines
+(definstance discr_routine class_discr
+ :predef DISCR_ROUTINE
+ :obj_num OBMAG_ROUTINE
+ :disc_super discr_anyrecv
+ :named_name (stringconst2val discr_namestring "DISCR_ROUTINE"))
+
+
+;;; by having the install_ctype_descr called inside each ctype
+;;; initialization, we are sure it is called once for each, because
+;;; ctype-s are predefined
+(defun install_ctype_descr (ctyp :cstring descr)
+  ;(debug_msg ctyp "install_ctype_descr")
+  (assert_msg "check ctyp" (is_a ctyp class_ctype)) 
+  (if (unsafe_get_field :ctype_descr ctyp)
+      (return))
+  (let ( (ckw (unsafe_get_field :ctype_keyword ctyp)) 
+	 (ds (make_stringconst discr_string descr))
+	 )
+    (assert_msg "check ctype ckw" (is_a ckw class_keyword))
+    (unsafe_put_fields ckw :symb_data ctyp)
+    ds
+    ))
+
+
+;;; every ctype should be predefined. normexp_defprimitive requires this
+;;; while predef are somehow costly, we don't have that much many ctype-s
+;;; and each of them nearly requires some code in basilys.h
+;;; which should be enhanced for any new ctype
+;; the C type for values
+(definstance ctype_value class_ctype
+  :predef CTYPE_VALUE
+  :named_name  (stringconst2val discr_namestring "CTYPE_VALUE")
+  :ctype_keyword (quote :value)
+  :ctype_cname  (stringconst2val discr_namestring "basilys_ptr_t")
+  :ctype_parchar (stringconst2val discr_namestring "BPAR_PTR")
+  :ctype_parstring (stringconst2val discr_namestring "BPARSTR_PTR")
+  ;; value have to be passed specially, we need to pass the address of the pointer
+  :ctype_argfield (stringconst2val discr_namestring "bp_aptr")
+  :ctype_resfield (stringconst2val discr_namestring "bp_aptr")
+  )
+(install_ctype_descr ctype_value "any basilys value pointer")
+
+;; the C type for long
+(definstance ctype_long class_ctype
+  :predef CTYPE_LONG
+  :named_name  (stringconst2val discr_namestring "CTYPE_LONG")
+  :ctype_keyword (quote :long)
+  :ctype_cname  (stringconst2val discr_namestring "long")
+  :ctype_parchar (stringconst2val discr_namestring "BPAR_LONG")
+  :ctype_parstring (stringconst2val discr_namestring "BPARSTR_LONG")
+  :ctype_argfield (stringconst2val discr_namestring "bp_long")
+  :ctype_resfield (stringconst2val discr_namestring "bp_longptr")
+  )
+(install_ctype_descr ctype_long "C long unboxed integer")
+
+;; the C type for gcc trees
+(definstance ctype_tree class_ctype
+  :predef CTYPE_TREE
+  :named_name  (stringconst2val discr_namestring "CTYPE_TREE")
+  :ctype_keyword ':tree
+  :ctype_cname  (stringconst2val discr_namestring "tree")
+  :ctype_parchar (stringconst2val discr_namestring "BPAR_TREE")
+  :ctype_parstring (stringconst2val discr_namestring "BPARSTR_TREE")
+  :ctype_argfield (stringconst2val discr_namestring "bp_tree")
+  :ctype_resfield (stringconst2val discr_namestring "bp_treeptr")
+  )
+(install_ctype_descr ctype_tree "GCC tree pointer")
+
+;; the C type for void
+(definstance ctype_void class_ctype
+  :predef CTYPE_VOID
+  :named_name  (stringconst2val discr_namestring "CTYPE_VOID")
+  :ctype_keyword ':void
+  :ctype_cname  (stringconst2val discr_namestring "void")
+  ;; void is never passed as argument or as extra result
+  )
+(install_ctype_descr ctype_void "void type for side-effecting primitives without results")
+
+;; the C type for constant C strings
+(definstance ctype_cstring class_ctype
+  :predef CTYPE_CSTRING
+  :named_name  (stringconst2val discr_namestring "CTYPE_CSTRING")
+  :ctype_keyword ':cstring
+  :ctype_cname  (stringconst2val discr_namestring "const char*")
+  :ctype_parchar (stringconst2val discr_namestring "BPAR_CSTRING")
+  :ctype_parstring (stringconst2val discr_namestring "BPARSTR_CSTRING")
+  :ctype_argfield (stringconst2val discr_namestring "bp_cstring")
+  )
+(install_ctype_descr ctype_cstring "C constant strings (statically allocated outside of any heap)")
+
+;; function to box a value
+
+(defun boxval (v) 
+  (make_box discr_box v))
+
+;; function to add a new symbol
+(defun add_new_symbol_token (syda str)
+  (assert_msg "check syda" (is_a syda class_system_data))
+  (let ( (sy (make_instance class_symbol :named_name str)) 
+	 (sydict (unsafe_get_field :sysdata_symboldict syda))
+	 )
+    (mapstring_putstr sydict str sy)
+    sy))
+    
+;; function to add a new keyword
+(defun add_new_keyword_token (syda str)
+  (assert_msg "check syda" (is_a syda class_system_data))
+  (let ( (kw (make_instance class_keyword :named_name str)) 
+	 (kwdict (unsafe_get_field :sysdata_keywdict syda))
+	 )
+    (mapstring_putstr kwdict str kw)
+    kw))
+    
+;; function to intern a symbol (or return the previous one)
+(defun intern_symbol (inidat symb)
+  (assert_msg "check inidat" (is_a inidat class_system_data))
+  (assert_msg "check sym" (is_a symb class_symbol))
+  (let ( (syname (unsafe_get_field :named_name symb)) 
+	 (sydict (unsafe_get_field :sysdata_symboldict inidat))
+	 (oldsy (mapstring_getstr sydict syname)) )
+    (if oldsy 
+	oldsy 
+      (progn 
+		(mapstring_putstr sydict syname symb) 
+;		(messageval_dbg "warm interning symbol" symb)
+		symb))
+))
+
+;; function to intern a keyword (or return the previous one)
+(defun intern_keyword (inidat keyw)
+  (assert_msg "check inidat" (is_a inidat class_system_data))
+  (assert_msg "check keyw" (is_a keyw class_keyword))
+  (let ( (kwname (unsafe_get_field :named_name keyw)) 
+	 (kwdict (unsafe_get_field :sysdata_keywdict inidat))
+	 (oldkw (mapstring_getstr kwdict kwname)) )
+    (if oldkw 
+	oldkw
+      (progn (mapstring_putstr kwdict kwname keyw) keyw))
+))
+
+;;; container of a mapstring for cloning symbol, maping symbol names to boxed integer
+(definstance container_clonemapstring class_container
+  :container_value (make_mapstring discr_mapstrings 200)
+)
+
+(defun clone_symbol (symb)
+  (let ( (mapstr (unsafe_get_field :container_value container_clonemapstring)) 
+	 (synam (cond
+		 ( (is_a symb class_named) 
+		   (unsafe_get_field :named_name symb))
+		 ( (is_string symb) 
+		   symb)
+		 (:else 
+		  ;(debug_msg symb "clone_symbol bad symb")
+		  (assert_msg "invalid symb in clone_symbol" ())
+		  (the_null))))
+	 (boxi (mapstring_getstr mapstr synam)) )
+    (assert_msg "check synam" (is_string synam))
+    (if (not (is_integerbox boxi))
+	(progn 
+	  (setq boxi (make_integerbox discr_integer 0))
+	  (mapstring_putstr mapstr synam boxi)))
+    (let ( (:long i (get_int boxi)) )
+      (setq i (+i i 1))
+      (put_int boxi i)
+      (make_instance class_clonedsymbol
+		     :named_name synam
+		     :csym_urank (make_integerbox discr_integer i)))))
+
+
+
+ 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; initial fresh environment container maker
+(defun initfresh_contenvmaker (prevenv)
+  ;(debug_msg prevenv "initfresh_contenvmaker prevenv")
+  (if (need_dbg 0) 
+      (shortbacktrace_dbg "initfresh_contenvmaker" 15))
+  (let ( (newenv (fresh_env prevenv)) 
+	 (newcont (make_instance class_container 
+				 :container_value newenv))
+	 )
+    (debug_msg newcont "initfresh_contenvmaker result newcont")
+    (return newcont)
+    ))
+
+;; initial value exporter
+(defun initvalue_exporter (sym val contenv)
+  ;(debug_msg sym "initvalue_exporter sym")
+  ;(debug_msg val "initvalue_exporter val")
+  ;(debug_msg contenv "initvalue_exporter contenv")
+  (if (need_dbg 0) 
+      (shortbacktrace_dbg "initvalue_exporter" 15))
+  (if (null contenv)
+      (progn
+	(if (parent_module_environment)
+	    (warningmsg_strv "exporting value too early with null environment container"  (unsafe_get_field :named_name sym)))
+      (return)
+      ))
+  (assert_msg "check sym" (is_a sym class_symbol))
+  (assert_msg "check contenv" (is_a contenv class_container))
+  (let ( (env (unsafe_get_field :container_value contenv)) )
+    (if  (and (null env) (parent_module_environment))
+	(progn
+	  (informsg_strv "exporting value too early with null environment" (unsafe_get_field :named_name sym))
+	  (return)
+	  ))
+    (assert_msg "check good env" (is_a env class_environment))
+    (let ( (valbind (make_instance
+		     class_value_binding
+		     :binder sym
+		     :vbind_value val
+		     )) 
+	   )
+      (debug_msg valbind "initvalue_exporter valbind")
+      (put_env env valbind)
+      (return)
+      )))
+
+
+;; initial value importer
+(defun initvalue_importer (sym parenv)
+  (debug_msg sym "initvalue_importer sym")
+  (assert_msg "check sym" (is_a sym class_symbol))
+  (shortbacktrace_dbg "initvalue_importer" 15)
+  (outcstring_err "importing value ")
+  (outstr_err (unsafe_get_field :named_name sym))
+  (outnewline_err)
+  (outnewline_err)
+  (debug_msg parenv "initvalue_importer parenv")
+  (assert_msg "check parenv" (is_a parenv class_environment))
+  (let ( (valbind (find_env parenv sym))
+	 )
+    (debug_msg valbind "initvalue_importer found valbind")
+    (assert_msg "check valbind" (is_a valbind class_value_binding))
+    (return (unsafe_get_field :vbind_value valbind))
+))
+
+;; initial macro exporter
+(defun initmacro_exporter (sym val contenv)
+ ; (debug_msg sym "initmacro_exporter sym")
+ ; (debug_msg val "initmacro_exporter val")
+  ;;(debug_msg contenv "initmacro_exporter contenv")
+  (assert_msg "check sym" (is_a sym class_symbol))
+  (if (null contenv)
+      (progn
+	(if (parent_module_environment)
+	    (warningmsg_strv "exporting macro too early with null environment container"  (unsafe_get_field :named_name sym)))
+	(return)
+	))
+  (assert_msg "check contenv" (is_a contenv class_container))
+  (let ( (env (unsafe_get_field :container_value contenv)) )
+    (if (need_dbg 0) (shortbacktrace_dbg "initmacro_exporter" 15))
+    (if (null env)
+	(progn
+	  (informsg_strv "exporting macro too early with null environment" (unsafe_get_field :named_name sym))
+	  (return)
+	  ))
+    (assert_msg "check env" (is_a env class_environment))
+    (assert_msg "check val is closure" (is_closure val))
+    (let ( (macbind (make_instance
+		     class_macro_binding
+		     :binder sym
+		     :mbind_expanser val))
+	   )
+      (put_env env macbind)
+      (debug_msg macbind "initmacro_exporter macbind")
+      (return)
+      )))
+
+  
+;;;;;;;;;;;;;;;;;;;; initial system data 
+(definstance initial_system_data class_system_data
+  :predef INITIAL_SYSTEM_DATA
+  :named_name (stringconst2val discr_namestring "INITIAL_SYSTEM_DATA")
+  :sysdata_cmd_fundict  (make_mapstring discr_mapstrings 40) ;stringmap for commands
+  :sysdata_cont_fresh_env initfresh_contenvmaker	;fresh environment maker in module
+  :sysdata_value_exporter initvalue_exporter ;value exporter in module
+  :sysdata_macro_exporter initmacro_exporter ;macro exporter in module
+  :sysdata_symboldict  (make_mapstring discr_mapstrings 600) ;stringmap for symbols
+  :sysdata_keywdict  (make_mapstring discr_mapstrings 100) ;stringmap for keywords
+  :sysdata_addsymbol  add_new_symbol_token ;closure to add a symbol of given name
+  :sysdata_addkeyw add_new_keyword_token ;closure to add a keyword of given name
+  :sysdata_internsymbol	intern_symbol	 ;closure to intern a symbol
+  :sysdata_internkeyw intern_keyword	 ;closure to intern a keyword
+  :sysdata_value_importer initvalue_importer
+  )
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;; general purpose utility functions
+
+
+
+;;; iterate fully in map of objects 
+(defun mapobject_every (map f)
+  (if (is_mapobject map)
+      (if (is_closure f)
+	  (let ( (:long ix 0) )
+	    (forever maploop
+		     (if (>=i ix (mapobject_size map)) (exit maploop))
+		     (let ( (curat (mapobject_nth_attr map ix))
+			    (curval (mapobject_nth_val map ix)) )
+		       (if curat  (f curat curval))
+		       )
+		     (setq ix (+i ix 1))
+		     )))))
+
+;;; iterate & test over a map of objects - if the called f returns nil the
+;;; iteration is stopped and returns the "failing" attr
+(defun mapobject_iterate_test (map f)
+  (if (is_mapobject map)
+      (if (is_closure f)
+	  (let ( (:long ix 0) )
+	    (forever maploop
+		     (if (>=i ix (mapobject_size map)) (exit maploop))
+		     (let ( (curat (mapobject_nth_attr map ix))
+			    (curval (mapobject_nth_val map ix)) )
+		       (if curat 
+			   (if (null (f curat curval))
+			       (return curat))
+			 ))
+		     (setq ix (+i ix 1))
+		     )))))
+
+;;; iterate fully in a map of strings
+(defun mapstring_every (map f)
+  (if (is_mapstring map)
+      (if (is_closure f)
+	  (let ( (:long ix 0) )
+	    (forever maploop
+		     (if (>=i ix (mapstring_size map)) 
+			 (exit maploop))
+		     (let ( (curat (mapstring_nth_attrstr map discr_string ix))
+			    (curval (mapstring_nth_val map ix)) )
+		       (if curat (f curat curval))
+		       )
+		     (setq ix (+i ix 1))
+		     )))))
+
+;;; iterate & test over a map of strings - if the called f returns nil the
+;;; iteration is stopped
+(defun mapstring_iterate_test (map f)
+  (if (is_mapstring map)
+      (if (is_closure f)
+	  (let ( (:long ix 0) )
+	    (forever maploop
+		     (if (>=i ix (mapstring_size map)) 
+			 (exit maploop))
+		     (let ( (curat (mapstring_nth_attrstr map discr_string ix))
+			    (curval (mapstring_nth_val map ix)) )
+		       (if curat 
+			   (if (null (f curat curval))
+			       (return curat)
+			     )))
+		     (setq ix (+i ix 1))
+		     )))))
+
+;;; iterate fully in a dictionnary ie on the value in a map of strings 
+(defun mapstringval_every (map f)
+  (if (is_mapstring map)
+      (if (is_closure f)
+	  (let ( (:long ix 0) )
+	    (forever maploop
+		     (if (>=i ix (mapstring_size map)) 
+			 (exit maploop))
+		     (let ( (curval (mapstring_nth_val map ix)) )
+		       (if curval  (f curval)))
+		     (setq ix (+i ix 1))
+		     )))))
+
+;;; iterate & test over a dictionnary ie on the value in a map of strings - if
+;;; the called f returns nil the iteration is stooped
+(defun mapstringval_iterate_test (map f)
+  (if (is_mapstring map)
+      (if (is_closure f)
+	  (let ( (:long ix 0) )
+	    (forever maploop
+		     (if (>=i ix (mapstring_size map)) (exit maploop))
+		     (let ( (curval (mapstring_nth_val map ix)) )
+		       (if curval 
+			   (if (null (f curval))
+			       (return curval)
+			     )))
+		     (setq ix (+i ix 1))
+		     )))))
+
+
+;;; full iterator on a list
+(defun list_every (lis f)
+  (if (is_list lis)
+      (if (is_closure f)
+	  (let ( (curpair (list_first lis)) )
+	    (forever lisloop
+		     (if (is_pair curpair)
+			 (let ( (curhead (pair_head curpair))
+				(curtail (pair_tail curpair))
+				)
+			   (f curhead)
+			   (setq curpair curtail))
+		       (exit lisloop)))))))
+
+;;; iterator on a list, if the called f returns nil the iteration is stopped
+(defun list_iterate_test (lis f)
+  (if (is_list lis)
+      (if (is_closure f)
+	  (let ( (curpair (list_first lis)) )
+	    (forever lisloop
+		     (if (not (is_pair curpair)) (exit lisloop))
+		     (let ( (curelem (pair_head curpair)) )
+		       (if (null (f curelem)) (return curelem)))
+		       (setq curpair (pair_tail curpair)))))))
+
+;; add to a destination list a source list
+(defun list_append2list (dlist slist)
+  (if (not (is_list slist)) (return dlist))
+  (if (not (is_list dlist)) (setq dlist (make_list discr_list)))
+  (list_every slist 
+		(lambda (e) (list_append dlist e)))
+  dlist)
+
+;;; full iterator on a pairlist  if the called f returns nil the iteration is stopped
+(defun pairlist_every (pair f)
+  (if (is_closure f)
+      (forever pairloop
+	       (if (not (is_pair pair)) (exit pairloop))
+	       (f (pair_head pair)) 
+	       (setq pair (pair_tail pair)))))
+		   
+;;; tested iterator on a pairlist  if the called f returns nil the iteration is stopped
+(defun pairlist_iterate_test (pair f)
+      (if (is_closure f)
+	  (forever pairloop
+		   (if (not (is_pair pair)) (exit pairloop))
+		     (let ( (curelem (pair_head pair)) )
+		       (if (null (f curelem)) (return curelem)))
+		       (setq pair (pair_tail pair)))))
+		   
+;;; map on a list (list_map lis f) where lis is (e1 ... en) is ((f e1) .... (f en))
+(defun list_map (lis f)
+  (if (is_list lis)
+      (if (is_closure f)
+	  (let ( (reslis (make_list discr_list)) 
+		 (curpair (list_first lis)) )
+	    (forever lisloop
+		     (if (not (is_pair curpair)) (exit lisloop reslis))
+		     (let ( (curelem (pair_head curpair)) )
+		       (list_append reslis (f curelem)))
+		     (setq curpair (pair_tail curpair)))
+	    ))))
+		    
+;;; translate a list to a multiple - with each element transformed by a function f (default the identity)
+(defun list_to_multiple (lis disc f)
+  (if (null disc) (setq disc discr_multiple))
+  (if (is_list lis)
+      (let ( (:long ln (list_length lis))
+	     (tup (make_multiple disc ln))
+	     (ixb (make_integerbox discr_integer 0))
+	     (curpair (list_first lis)) )
+	(list_every 
+	 lis
+	 (lambda (c) 
+	   (let ( (:long ix (get_int ixb)) 
+		  (tc (if (is_closure f) (f c) c))
+		  )
+	     (put_int ixb (+i ix 1))
+	     (multiple_put_nth tup ix tc))
+	   ))
+	tup
+	)))
+
+;;; translate a pairlist to a tuple - with each element transformed by a function f (default the identity)
+(defun pairlist_to_multiple (pair disc f)
+  (if (null disc) (setq disc discr_multiple))
+  (let ( (:long ln 0) )
+    (let ( (curpair pair) )
+      (forever loopln
+	       (if (not (is_pair curpair)) (exit loopln))
+	       (setq ln (+i ln 1))
+	       (setq curpair (pair_tail curpair))))
+    (let ( (tup (make_multiple disc ln))
+	   (:long ix 0) 
+	   (curpair pair)
+	   )
+      (forever loopfi
+	       (if (not (is_pair curpair)) (exit loopfi))
+	       (let ( (c (pair_head curpair))
+		      (tc (if (is_closure f) (f c) c)) )
+		 (multiple_put_nth tup ix tc)
+		 (setq ix (+i ix 1))
+		 (setq curpair (pair_tail curpair))))
+      (return tup)
+      )))
+
+;;; full iterator on tuple - 
+;;; the function is called with the component and its index
+(defun multiple_every (tup f)
+  (if (is_multiple tup)
+      (if (is_closure f)
+	  (let ( (:long ln (multiple_length tup))
+		 (:long ix 0) )
+	    (forever tuploop
+		     (if (>=i ix ln) (exit tuploop))
+		     (f  (multiple_nth tup ix) ix)
+		     (setq ix (+i ix 1)))))))
+
+;; full iterator backward
+(defun multiple_backward_every (tup f)
+  (if (is_multiple tup)
+      (if (is_closure f)
+	  (let ( (:long ln (multiple_length tup))
+		 (:long ix (-i ln 1)) )
+	    (forever tuploop
+		     (if (<i ix 0) (exit tuploop))
+		     (f  (multiple_nth tup ix) ix)
+		     (setq ix (-i ix 1)))))))
+
+;;; iterator on tuple , if the called f returns nil the iteration is stopped
+;;; the function is called with the component and its index
+(defun multiple_iterate_test (tup f)
+  (if (is_multiple tup)
+      (if (is_closure f)
+	  (let ( (:long ln (multiple_length tup))
+		 (:long ix 0) )
+	    (forever tuploop
+		     (if (>=i ix ln) (exit tuploop))
+		     (let ( (curcomp (multiple_nth tup ix)) )
+		       (if (null (f curcomp ix)) 
+			   (return curcomp)))
+		     (setq ix (+i ix 1)))))))
+
+;;; map on tuple -- with tup= (t0 t1 ... t_n-1) return ((f t0 0) (f t1 1) ... (f t_n-1 n-1)
+(defun multiple_map (tup f)
+  (if (is_multiple tup)
+      (if (is_closure f)
+	  (let ( (:long ln (multiple_length tup))
+		 (:long ix 0) 
+		 (res (make_multiple discr_multiple ln))
+		 )
+	    (forever tuploop
+		     (if (>=i ix ln) (exit tuploop res))
+		     (let ( (curcomp (multiple_nth tup ix)) )
+		       (multiple_put_nth res ix (f curcomp ix)))
+		     (setq ix (+i ix 1)))
+	    ))))
+		     
+
+;; utility function to make a list of 1
+(defun list1 (v1)
+  (let ( (lis (make_list discr_list))
+	 )
+    (list_append lis v1)
+    lis))
+
+;; utility function to make a list of 2
+(defun list2 (v1 v2)
+  (let ( (lis (make_list discr_list))
+	 )
+    (list_append lis v1)
+    (list_append lis v2)
+    lis))
+
+;; utility function to make a list of 3
+(defun list3 (v1 v2 v3)
+  (let ( (lis (make_list discr_list))
+	 )
+    (list_append lis v1)
+    (list_append lis v2)
+    (list_append lis v3)
+    lis))
+
+;; utility function to make a list of 4
+(defun list4 (v1 v2 v3 v4)
+  (let ( (lis (make_list discr_list))
+	 )
+    (list_append lis v1)
+    (list_append lis v2)
+    (list_append lis v3)
+    (list_append lis v4)
+    lis))
+
+;; utility function to make a list of 5
+(defun list5 (v1 v2 v3 v4 v5)
+  (let ( (lis (make_list discr_list))
+	 )
+    (list_append lis v1)
+    (list_append lis v2)
+    (list_append lis v3)
+    (list_append lis v4)
+    (list_append lis v5)
+    lis))
+
+;; utility function to make a list of 6
+(defun list6 (v1 v2 v3 v4 v5 v6)
+  (let ( (lis (make_list discr_list))
+	 )
+    (list_append lis v1)
+    (list_append lis v2)
+    (list_append lis v3)
+    (list_append lis v4)
+    (list_append lis v5)
+    (list_append lis v6)
+    lis))
+
+
+;;; installation of a method in a class or discriminant
+(defun install_method (cla sel fun)
+  (if 
+      (is_a cla class_discr)
+      (if 
+	  (is_a sel class_selector)
+	  (if 
+	      (is_closure fun)
+	      (let 
+		  ( (mapdict 
+		     (unsafe_get_field :disc_methodict cla)) )
+		(if (is_mapobject mapdict)
+		    (mapobject_put mapdict sel fun)
+		  (let ( (newmapdict (make_mapobject discr_methodmap 35)) )
+		    (unsafe_put_fields cla :disc_methodict newmapdict)
+		    (mapobject_put newmapdict sel fun)
+		    ))))))
+  )
+
+
+
+
+;;; selector to output for debugging
+;;; reciever: any object or value
+;;; arguments: the debuginfo (instance of class_debuginfo), the depth (long)
+(defselector dbg_output class_selector
+)
+
+
+;;; selector to output again for debugging
+;;; reciever: any object (already output)
+;;; arguments: the debuginfo (instance of class_debuginfo), the depth (long)
+(defselector dbg_outputagain class_selector
+)
+
+(defun dbg_outobject (obj dbgi :long depth)
+  (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
+  (let ( (occmap (unsafe_get_field :dbgi_occmap dbgi)) )
+    (if (is_mapobject occmap)
+	(let ( (occ (mapobject_get occmap obj)) )
+	  (checkcallstack_msg "in dbg_outobject")
+	  (if (is_integerbox occ)
+	      (progn
+		(dbg_outputagain obj dbgi depth)
+		(put_int occ (+i (get_int occ) 1))
+		)
+	    (let ( (newocc (make_integerbox discr_integer 1)) )
+	      (mapobject_put occmap obj newocc)
+	      (checkcallstack_msg "in dbg_outobject output")
+	      (dbg_output obj dbgi depth)
+	      )))))
+  )
+(defun dbg_out (obj dbgi  :long depth) 
+  (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
+  (checkcallstack_msg "start dbg_out")
+  (let ( (sbuf (unsafe_get_field :dbgi_sbuf dbgi))
+	 (discr (discrim obj))
+	 )
+    (if (need_dbglim depth (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
+	(if (is_object obj)
+	    (progn
+	      ;; (checkcallstack_msg "start dbg_out outobject")
+	      (dbg_outobject obj dbgi depth)
+	      )
+	  (if obj
+	      (progn
+		;; (checkcallstack_msg "start dbg_out output")
+		(dbg_output obj dbgi depth)
+		)
+	    (if (is_strbuf sbuf) (add2sbuf_strconst sbuf "()")
+	      )))
+      (if (is_strbuf sbuf)
+	  (add2sbuf_strconst sbuf "..")
+	))))
+  
+;; utility to dump fields in an object from a given rank
+(defun dbgout_fields (obj dbgi :long depth rank)
+  (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
+  (assert_msg "check obj" (is_object obj))
+  (let ( (:long nbf (object_length obj)) 
+	 (cla (discrim obj))
+	 (:long ix rank)
+	 (clafieldseq (unsafe_get_field :class_fields cla))
+	 (sbuf  (unsafe_get_field :dbgi_sbuf dbgi))
+	 )
+    (assert_msg "check sbuf" (is_strbuf sbuf))
+    (if (<i ix 0) (setq ix 0))
+    (if (need_dbglim depth (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
+	(forever fldloop
+		 (if (>=i ix nbf)
+		     (exit fldloop))
+		 (let ( (curfld (multiple_nth clafieldseq ix))
+			(curval (object_nth_field obj ix))
+			)
+		   (if curval
+		       (let ( (:long curulen (strbuf_usedlength sbuf)) )
+			 (add2sbuf_indent sbuf depth)
+			 (add2sbuf_string sbuf (unsafe_get_field :named_name curfld))
+			 (add2sbuf_strconst sbuf "=")
+			 (dbg_out curval dbgi (+i depth 1))
+			 (let ( (:long deltalen (-i (strbuf_usedlength sbuf) curulen)) )
+			   (if  (>i deltalen 80)
+			       (add2sbuf_indentnl sbuf depth)))
+			 )))
+		 (setq ix (+i ix 1))
+		 )
+      )))
+
+;; null debug output
+(defun dbgout_null_method  (self dbgi :long depth)
+  (let (  (sbuf  (unsafe_get_field :dbgi_sbuf dbgi))
+	  )
+    (add2sbuf_strconst sbuf "()")))
+(install_method discr_nullrecv dbg_output dbgout_null_method)
+(install_method discr_nullrecv dbg_outputagain dbgout_null_method)
+
+;; string debug output
+(defun dbgout_string_method (self dbgi :long depth)
+  (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
+  (let ( (dis (discrim self)) 
+	 (sbuf  (unsafe_get_field :dbgi_sbuf dbgi))
+	 )
+    (if (== dis DISCR_STRING)
+	(progn
+	  (add2sbuf_strconst sbuf " \"")
+	  (add2sbuf_cencstring sbuf self)
+	  (add2sbuf_strconst sbuf "\"")
+	  )
+      (progn
+	(add2sbuf_strconst sbuf " |")
+	(add2sbuf_string sbuf (unsafe_get_field :named_name dis))
+	(add2sbuf_strconst sbuf "\"")
+	(add2sbuf_cencstring sbuf self)
+	(add2sbuf_strconst sbuf "\"")
+	))))
+
+(install_method discr_string  dbg_output dbgout_string_method)
+;(install_method discr_namestring  dbg_output dbgout_string_method)
+;(install_method discr_verbatimstring  dbg_output dbgout_string_method)
+
+;; integer debug output
+(defun dbgout_integer_method (self dbgi :long depth)
+  (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
+  (let ( (dis (discrim self)) 
+	 (sbuf  (unsafe_get_field :dbgi_sbuf dbgi))
+	 )
+    (if (== dis DISCR_INTEGER)
+	(progn 
+	  (add2sbuf_strconst sbuf " #")
+	  (add2sbuf_longdec sbuf (get_int self)))
+      (progn
+	(add2sbuf_strconst sbuf " |")
+	(add2sbuf_string sbuf (unsafe_get_field :named_name dis))
+	(add2sbuf_strconst sbuf "#")
+	(add2sbuf_longdec sbuf (get_int self)))
+      )))
+
+(install_method discr_integer dbg_output dbgout_integer_method)
+(install_method discr_charinteger dbg_output dbgout_integer_method)
+
+;; mixint debug value
+(defun dbgout_mixint_method (self dbgi :long depth)
+  (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
+  (let ( (dis (discrim self)) 
+	 (sbuf  (unsafe_get_field :dbgi_sbuf dbgi))
+	 )
+    (if (== dis DISCR_MIXEDINT)
+	(progn 
+	  (add2sbuf_strconst sbuf " #[")
+	  (add2sbuf_longdec sbuf (get_int self)))
+      (progn
+	(add2sbuf_strconst sbuf " |")
+	(add2sbuf_string sbuf (unsafe_get_field :named_name dis))
+	(add2sbuf_strconst sbuf "#[")
+	(add2sbuf_longdec sbuf (get_int self)))
+      )
+    (if  (need_dbglim depth (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
+	(progn
+	  (add2sbuf_strconst sbuf ",")
+	  (dbg_out (mixint_val self) dbgi (+i depth 1))
+	  )
+      (add2sbuf_strconst sbuf ",..")
+      )
+    (add2sbuf_strconst sbuf "]")
+    ))
+(install_method discr_mixedint dbg_output dbgout_mixint_method)
+
+;; multiple debug out
+(defun dbgout_multiple_method (self dbgi :long depth)
+  (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
+  (let ( (dis (discrim self)) 
+	 (sbuf (unsafe_get_field :dbgi_sbuf dbgi))
+	 )
+    (if (== dis DISCR_MULTIPLE)
+	(add2sbuf_strconst sbuf " *")
+      (progn
+	(add2sbuf_strconst sbuf " |")
+	(add2sbuf_string sbuf (unsafe_get_field :named_name dis))
+	(add2sbuf_strconst sbuf "*")))
+    (let ( (:long ln (multiple_length self)) )
+      (add2sbuf_longdec sbuf ln)
+      (add2sbuf_strconst sbuf "[")
+      (if (need_dbg depth)
+	  (let ( (:long ix 0) )
+	    (forever comploop
+		     (if (>=i ix ln) (exit comploop))
+		     (add2sbuf_indent sbuf depth)
+		     (let ( (:long curulen (strbuf_usedlength sbuf)) )
+		       (dbg_out  (multiple_nth self ix) dbgi (+i 1 depth))
+		       (and (>i (-i (strbuf_usedlength sbuf) curulen) 100)
+			    (<i ix (-i ln 1))
+			    (add2sbuf_indentnl sbuf (+i 1 depth))))
+		     (setq ix (+i ix 1))
+		     ))
+	(add2sbuf_strconst sbuf "..")
+	)
+      (add2sbuf_strconst sbuf "]")
+      )))
+
+(install_method discr_multiple dbg_output dbgout_multiple_method)
+
+;; routine debug out - don't print the routine components
+(defun dbgout_routine_method (self dbgi :long depth)
+  (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
+  (let ( (dis (discrim self)) 
+	 (sbuf (unsafe_get_field :dbgi_sbuf dbgi))
+	 )
+    (if (== dis DISCR_ROUTINE)
+	(add2sbuf_strconst sbuf " *rou[%")
+      (progn
+	(add2sbuf_strconst sbuf " |")
+	(add2sbuf_string sbuf (unsafe_get_field :named_name dis))
+	(add2sbuf_strconst sbuf "[%")))
+    (add2sbuf_routinedescr sbuf self)
+    (add2sbuf_strconst sbuf "%]")
+    )
+  )
+
+(install_method discr_routine dbg_output dbgout_routine_method)
+
+;; closure debug out 
+(defun dbgout_closure_method (self dbgi :long depth)
+  (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
+  (let ( (dis (discrim self)) 
+	 (:long oldmaxdepth (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
+	 (sbuf  (unsafe_get_field :dbgi_sbuf dbgi)) )
+    (if (== dis DISCR_CLOSURE)
+	(add2sbuf_strconst sbuf " *clo<")
+      (progn
+	(add2sbuf_strconst sbuf " |")
+	(add2sbuf_string sbuf (unsafe_get_field :named_name dis))
+	(add2sbuf_strconst sbuf "*clo<")))
+    (put_int (unsafe_get_field :dbgi_maxdepth dbgi) 2)
+    (dbg_out (closure_routine self) dbgi depth)
+    (put_int (unsafe_get_field :dbgi_maxdepth dbgi) oldmaxdepth)
+    (if (need_dbglim depth (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
+	(let ((:long ix 0))
+	  (add2sbuf_strconst sbuf "/")
+	  (add2sbuf_longdec sbuf (closure_size self))
+	  (forever outloop
+		   (if (>=i ix (closure_size self))
+		       (exit outloop))
+		   (add2sbuf_indent sbuf depth)
+		   (let ( (:long curulen (strbuf_usedlength sbuf)) )
+		     (dbg_out (closure_nth self ix) dbgi (+i depth 1))
+		     (if (>i (-i (strbuf_usedlength sbuf) curulen) 100)
+			 (add2sbuf_indentnl sbuf (+i 1 depth))))
+		   (setq ix (+i ix 1))
+		   )))
+    (add2sbuf_strconst sbuf ">")
+    ))
+
+(install_method discr_closure dbg_output dbgout_closure_method)      
+
+
+
+;; list debug out 
+(defun dbgout_list_method (self dbgi :long depth)
+  (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
+  (let ( (dis (discrim self)) 
+	 (sbuf  (unsafe_get_field :dbgi_sbuf dbgi)) )
+    (if (== dis DISCR_LIST)
+	(add2sbuf_strconst sbuf " *li(")
+      (progn
+	(add2sbuf_strconst sbuf " |")
+	(add2sbuf_string sbuf (unsafe_get_field :named_name dis))
+	(add2sbuf_strconst sbuf "(")))
+    (let (
+	  (curpair (list_first self))
+	  (:long ix 0) 
+	  )
+      (checkcallstack_msg "before loop dbgout_list_method")
+      (if (need_dbglim depth (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
+	  (forever listloop
+		   (checkcallstack_msg "start loop dbgout_list_method")
+		   (if (>i ix 300)
+		       (progn
+			 (add2sbuf_strconst sbuf "...")
+			 (exit listloop)))
+		   (if (not (is_pair curpair)) (exit listloop))
+		   (add2sbuf_indent sbuf depth)
+		   (let ( (:long curulen (strbuf_usedlength sbuf)) )
+		     (dbg_out (pair_head curpair) dbgi (+i depth 1))
+		     (setq curpair (pair_tail curpair))
+		     (checkcallstack_msg "near endloop dbgout_list_method")
+		     (if (not curpair)
+			 (exit listloop))
+		     (setq ix (+i ix 1))
+		     (if (>i (-i (strbuf_usedlength sbuf) curulen) 100)
+			 (add2sbuf_indentnl sbuf (+i 1 depth))))
+		   ))
+      (checkcallstack_msg "end dbgout_list_method")
+      (add2sbuf_strconst sbuf ")")))
+  )
+(install_method discr_list dbg_output dbgout_list_method)      
+
+;; pair debug output
+(defun dbgout_pair_method (self dbgi :long depth)
+  (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
+  (let ( (dis (discrim self)) 
+	 (sbuf  (unsafe_get_field :dbgi_sbuf dbgi)) )
+    (if (== dis DISCR_PAIR)
+	(add2sbuf_strconst sbuf " *pa(.")
+      (progn
+	(add2sbuf_strconst sbuf " |")
+	(add2sbuf_string sbuf (unsafe_get_field :named_name dis))
+	(add2sbuf_strconst sbuf "(.")))
+    (if (need_dbglim depth (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
+	(progn
+	  (dbg_out (pair_head self) dbgi (+i depth 1))
+	  (add2sbuf_indent sbuf depth)
+	  (dbg_out (pair_tail self) dbgi (+i depth 1))))
+    (add2sbuf_strconst sbuf ".)")))
+	
+(install_method discr_pair dbg_output dbgout_pair_method)      
+
+;; box debug output
+(defun dbgout_box_method (self dbgi :long depth)
+  (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
+  (let ( (dis (discrim self)) 
+	 (sbuf  (unsafe_get_field :dbgi_sbuf dbgi)) )
+    (if (== dis DISCR_BOX)
+	(add2sbuf_strconst sbuf " *box[<")
+      (progn
+	(add2sbuf_strconst sbuf " |")
+	(add2sbuf_string sbuf (unsafe_get_field :named_name dis))
+	(add2sbuf_strconst sbuf "[<")))
+    (if (need_dbglim depth (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
+	(dbg_out (box_content self) dbgi (+i depth 1)))
+    (add2sbuf_strconst sbuf ">]")))
+	
+(install_method discr_box dbg_output dbgout_box_method)      
+
+
+;;; the cold compiler prefers this way... to have an internal function
+;;; to output an entry...
+(defun dbgoutinternal_mapobj_entry (at va dbgi nextdepthbox)
+  (let ( (:long nextdepth (get_int nextdepthbox))
+	 (:long oldmaxdepth (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
+	 (sbuf  (unsafe_get_field :dbgi_sbuf dbgi)) )
+    (assert_msg "check sbuf" (is_strbuf sbuf))
+    (add2sbuf_indentnl sbuf nextdepth)
+    (add2sbuf_strconst sbuf "**")  
+    (put_int (unsafe_get_field :dbgi_maxdepth dbgi) 0)
+    (dbg_outobject at dbgi nextdepth)
+    (put_int (unsafe_get_field :dbgi_maxdepth dbgi) oldmaxdepth)
+    (add2sbuf_strconst sbuf " ==")  
+    (add2sbuf_indent sbuf (+i nextdepth 1))
+    (dbg_out va dbgi nextdepth)
+    (add2sbuf_strconst sbuf "; ")
+    ))
+
+;; an internal compare function used to display mapobject-s & mapstring-s in a canonical order.
+(defun compare_obj_ranked (x1 bxrk1 x2 bxrk2 vless veq vgreat)
+  (if (== x1 x2)
+      (return veq)
+    (let ( (x1dis (discrim x1))
+	   (x2dis (discrim x2))
+	   (:long rk1 (get_int bxrk1))
+	   (:long rk2 (get_int bxrk2))
+	   )
+      (cond ( (!= x1dis x2dis)
+	      (if (string< (unsafe_get_field :named_name x1dis) 
+			   (unsafe_get_field :named_name x2dis))
+		  (return vless)
+		(return vgreat)
+		))
+	    ( (is_a x1 class_clonedsymbol)
+	      (let ( (n1 (unsafe_get_field :named_name x1))
+		     (n2 (unsafe_get_field :named_name x2)) )
+		(cond ( (string< n1 n2)
+			(return vless))
+		      ( (string> n1 n2)
+			(return vgreat))
+		      (:else 
+		       (let (
+			     (yr1 (unsafe_get_field :csym_urank x1))
+			     (yr2 (unsafe_get_field :csym_urank x2))
+			     (:long nr1 (get_int yr1))
+			     (:long nr2 (get_int yr2))
+			     )
+			 (cond ( (<i nr1 nr2)
+				 (return vless))
+			       ( (>i nr1 nr2)
+				 (return vgreat))
+			       (:else 
+				;; this should not happen, two distinct cloned symbols with same name & rank
+				(assert_msg "corrupted same cloned symbols" ())
+				(return (the_null)))
+			       ))))
+		))
+	    ( (is_a x1 class_named)
+	      (let ( (n1 (unsafe_get_field :named_name x1))
+		     (n2 (unsafe_get_field :named_name x2))
+		     )
+		(cond ( (string< n1 n2)
+			(return vless))
+		      ( (string> n1 n2)
+			(return vgreat))
+		      ( (<i rk1 rk2)
+			(return vless))
+		      ( (>i rk1 rk2)
+			(return vgreat))
+		      (:else 
+		       (return veq)))
+		)
+	      )
+	    ( (is_a x1 class_any_binding)
+	      (let ( (bsy1 (unsafe_get_field :binder x1))
+		     (bsy2 (unsafe_get_field :binder x1)) )
+		(return (compare_obj_ranked bsy1 bxrk1 bsy2 bxrk2 vless veq vgreat))))
+	    ( (is_string x1)
+	      (cond ( (string< x1 x2)
+		      (return vless))
+		    ( (string> x1 x2)
+		      (return vgreat))
+		    ( (<i rk1 rk2)
+		      (return vless))
+		    ( (>i rk1 rk2)
+		      (return vgreat))
+		    (:else 
+		     (return veq))))
+	    ( (<i rk1 rk2)
+	      (return vless))
+	    ( (>i rk1 rk2)
+	      (return vgreat))
+	    (:else
+	     (return veq))
+	    ))))
+
+
+
+
+(defun dbgout_mapobject_method (self dbgi :long depth)
+  (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
+  (let ( (dis (discrim self)) 
+	 (sbuf  (unsafe_get_field :dbgi_sbuf dbgi))
+	 (:long mapcount (mapobject_count self))
+	 )
+    (if (== dis DISCR_MAPOBJECTS)
+	(add2sbuf_strconst sbuf " {")
+      (progn
+	(add2sbuf_strconst sbuf " |")
+	(add2sbuf_string sbuf (unsafe_get_field :named_name dis))
+	(add2sbuf_strconst sbuf "{")))
+    (add2sbuf_strconst sbuf "/")
+    (add2sbuf_longdec sbuf (mapobject_count self))
+    (if (need_dbglim depth (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
+	(let (
+	      (nextdepthbox (make_integerbox discr_integer (+i 1 depth)))
+	      (countbox (make_integerbox discr_integer 0))
+	      (boxedone (make_integerbox discr_integer 1))
+	      (boxedzero (make_integerbox discr_integer 0))
+	      (boxedminusone (make_integerbox discr_integer -1))
+	      (tupl (make_multiple discr_multiple mapcount))
+	      )
+	  ;; fill the tupl with (attribute value rank) entries
+	  (mapobject_every
+	   self
+	   (lambda (at va)
+	     (let ( (:long curcount (get_int countbox)) 
+		    (ent (make_tuple3 discr_multiple 
+				      at va 
+				      (make_integerbox discr_integer curcount)))
+		    )
+	       (multiple_put_nth tupl curcount ent)
+	       (put_int countbox (+i curcount 1))
+	       )))
+	  (assert_msg "check tupl" (is_multiple tupl))
+;;; sort the tuple and output in sorted order
+	  (let ( (sortupl 
+		  (multiple_sort 
+		   tupl
+		   (lambda (e1 e2)
+		     (let ( (e1at (multiple_nth e1 0))
+			    (e1va (multiple_nth e1 1))
+			    (e1rk (multiple_nth e1 2))
+			    (e2at (multiple_nth e2 0))
+			    (e2va (multiple_nth e2 1))
+			    (e2rk (multiple_nth e2 2))
+			    )
+		       (compare_obj_ranked e1at e1rk e2at e2rk boxedminusone boxedzero boxedone)
+		       ))
+		   discr_multiple
+		   ))
+		 )
+	    (assert_msg "check sortupl" (is_multiple sortupl))
+	    (multiple_every 
+	     sortupl
+	     (lambda (el :long ix)
+	       (let ( (elat (multiple_nth el 0))
+		      (elva (multiple_nth el 1)) )
+		 (dbgoutinternal_mapobj_entry elat elva dbgi nextdepthbox)
+		 )))
+	    )
+	  (add2sbuf_strconst sbuf "}")))))
+(install_method discr_mapobjects dbg_output dbgout_mapobject_method)
+
+
+
+
+;; multiple debug out
+(defun dbgout_mapstring_method (self dbgi :long depth)
+  (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
+  (let ( (dis (discrim self)) 
+	 (sbuf (unsafe_get_field :dbgi_sbuf dbgi))
+	 (:long ix 0)
+	 (:long mapcount (mapstring_count self))
+	 (nextdepthbox (make_integerbox discr_integer (+i 1 depth)))
+	 (countbox (make_integerbox discr_integer 0))
+	 (boxedone (make_integerbox discr_integer 1))
+	 (boxedzero (make_integerbox discr_integer 0))
+	 (boxedminusone (make_integerbox discr_integer -1))
+	 (tupl (make_multiple discr_multiple mapcount))
+	 )
+    (if (== dis DISCR_MAPSTRINGS)
+	(add2sbuf_strconst sbuf " <(")
+      (progn
+	(add2sbuf_strconst sbuf " |")
+	(add2sbuf_string sbuf (unsafe_get_field :named_name dis))
+	(add2sbuf_strconst sbuf "<(")))
+    (add2sbuf_strconst sbuf "/")
+    (add2sbuf_longdec sbuf mapcount)
+    ;; fill the tuple with string, value, rank triples
+    (mapstring_every 
+     self
+     (lambda (str val)
+       (let ( (:long curcount (get_int countbox)) 
+	      (ent (make_tuple3 discr_multiple 
+				str val 
+				(make_integerbox discr_integer curcount)))
+	      )
+	 (multiple_put_nth tupl curcount ent)
+	 (put_int countbox (+i curcount 1))
+	 )))
+    ;; sort the tuple and display it
+    (let ( (sortupl
+	    (multiple_sort 
+	     tupl
+	     (lambda (e1 e2)
+	       (let ( (e1at (multiple_nth e1 0))
+		      (e1va (multiple_nth e1 1))
+		      (e1rk (multiple_nth e1 2))
+		      (e2at (multiple_nth e2 0))
+		      (e2va (multiple_nth e2 1))
+		      (e2rk (multiple_nth e2 2))
+		      )
+		 (compare_obj_ranked e1at e1rk e2at e2rk boxedminusone boxedzero boxedone)
+		 ))
+	     discr_multiple
+	     ))
+	   )
+      (assert_msg "check sortupl" (is_multiple sortupl)) 
+      (multiple_every 
+       sortupl
+       (lambda (el :long ix)
+	 (let ( (curstr (multiple_nth el 0))
+		(curval (multiple_nth el 1)) 
+		(:long nextdepth (get_int nextdepthbox))
+		)
+	   (if (and (is_string curstr) (notnull curval))
+	       (progn
+		 (add2sbuf_indentnl sbuf nextdepth)
+		 (add2sbuf_strconst sbuf "!*")
+		 (dbg_out curstr dbgi nextdepth)
+		 (add2sbuf_strconst sbuf " => ")  
+		 (add2sbuf_indent sbuf nextdepth)
+		 (dbg_out curval dbgi (+i nextdepth 1))
+		 ))))))
+    (add2sbuf_strconst sbuf " )>")))
+(install_method discr_mapstrings dbg_output dbgout_mapstring_method)
+
+
+;;;; generic object debug
+(defun dbgout_anyobject_method (self dbgi :long depth)
+  (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
+  (let ( (dis (discrim self)) 
+	 (sbuf  (unsafe_get_field :dbgi_sbuf dbgi)) ) 
+    (add2sbuf_strconst sbuf "|")
+    (add2sbuf_string sbuf (unsafe_get_field :named_name dis))
+    (add2sbuf_strconst sbuf "/")
+    (add2sbuf_longhex sbuf (obj_hash self))
+    (let ( (:long onum (obj_num self)) )
+      (if onum
+	  (progn
+	    (add2sbuf_strconst sbuf "#")
+	    (add2sbuf_longdec sbuf onum))))
+    (add2sbuf_strconst sbuf "{")
+    (if (need_dbglim depth (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
+	(dbgout_fields self dbgi (+i depth 1) 0)
+      )
+    (add2sbuf_strconst sbuf "}")
+    ))
+(install_method class_root  dbg_output dbgout_anyobject_method)
+
+;;;; generic value debug
+(defun dbgout_anyrecv_method (self dbgi :long depth)
+  (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
+  (let ( (dis (discrim self)) 
+	 (sbuf  (unsafe_get_field :dbgi_sbuf dbgi)) ) 
+    (add2sbuf_strconst sbuf " ?.")
+    (if (is_a dis class_named) (add2sbuf_string sbuf (unsafe_get_field :named_name dis)))
+    (add2sbuf_strconst sbuf ".? ")
+    ))
+(install_method discr_anyrecv dbg_output dbgout_anyrecv_method)
+
+;;; generic object debug outputagain
+(defun dbgoutagain_anyobject_method (self dbgi :long depth)
+  (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
+  (let ( (dis (discrim self)) 
+	 (sbuf  (unsafe_get_field :dbgi_sbuf dbgi)) )  
+    (add2sbuf_strconst sbuf " ^^|")
+    (add2sbuf_string sbuf (unsafe_get_field :named_name dis))
+    (add2sbuf_strconst sbuf "/")
+    (add2sbuf_longhex sbuf (obj_hash self))
+    ))
+(install_method class_root  dbg_outputagain dbgoutagain_anyobject_method)
+	
+;;;; named object debug
+(defun dbgout_namedobject_method (self dbgi :long depth)
+  (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
+  (let ( (dis (discrim self)) 
+	 (sbuf  (unsafe_get_field :dbgi_sbuf dbgi))
+	 (onam (unsafe_get_field :named_name self))
+	 (oprop (unsafe_get_field :prop_table self))
+	 ) 
+    (assert_msg "check sbuf" (is_strbuf sbuf))
+    (add2sbuf_strconst sbuf "`")
+    (add2sbuf_string sbuf onam)
+    (add2sbuf_strconst sbuf "|")
+    (add2sbuf_string sbuf (unsafe_get_field :named_name dis))
+    (add2sbuf_strconst sbuf "/")
+    (add2sbuf_longhex sbuf (obj_hash self))
+    (if (need_dbglim depth (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
+	(let ( (:long onum (obj_num self)) )
+	  (if onum
+	      (progn
+		(add2sbuf_strconst sbuf "#")
+		(add2sbuf_longdec sbuf onum)))
+	  (add2sbuf_strconst sbuf "{")
+	  (if oprop
+	      (progn 
+		(add2sbuf_strconst sbuf "prop=")
+		(dbg_out oprop dbgi (+i depth 3))
+		))
+	  (dbgout_fields self dbgi (+i depth 3) 2)
+	  (add2sbuf_strconst sbuf "}")
+	  ))))
+(install_method class_named  dbg_output dbgout_namedobject_method)
+
+;;;; named object debug outputagain
+(defun dbgoutagain_namedobject_method (self dbgi :long depth)
+  (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
+  (let ( (dis (discrim self)) 
+	 (sbuf  (unsafe_get_field :dbgi_sbuf dbgi))
+	 (onam (unsafe_get_field :named_name self)) 
+	 )
+    (add2sbuf_strconst sbuf " ^^`")
+    (add2sbuf_string sbuf onam)
+    (add2sbuf_strconst sbuf "|")
+    (add2sbuf_string sbuf (unsafe_get_field :named_name dis))
+    (add2sbuf_strconst sbuf "/")
+    (add2sbuf_longhex sbuf (obj_hash self))
+    ))
+(install_method class_named dbg_outputagain dbgoutagain_namedobject_method)
+
+;;;; symbol output debug & again
+(defun dbgout_symbol_method (self dbgi :long depth)
+  (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
+  (assert_msg "check self" (is_a self class_symbol))
+  (if (<=i depth 0)
+      (dbgout_namedobject_method self dbgi 0)
+    (dbgoutagain_symbol_method self dbgi depth)))
+(install_method class_symbol dbg_output dbgout_symbol_method)
+
+(defun dbgoutagain_symbol_method (self dbgi :long depth)
+  (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
+  (assert_msg "check self" (is_a self class_symbol))
+  (let ( (sbuf  (unsafe_get_field :dbgi_sbuf dbgi))
+	 (onam (unsafe_get_field :named_name self))
+	 )	
+    (add2sbuf_strconst sbuf " $")
+    (add2sbuf_string sbuf onam)
+    (add2sbuf_strconst sbuf "/")
+    (add2sbuf_longhex sbuf (obj_hash self))))
+(install_method class_symbol dbg_outputagain dbgoutagain_symbol_method)
+
+;;;; keyword output debug & again
+(defun dbgout_keyword_method (self dbgi :long depth)
+  (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
+  (assert_msg "check self" (is_a self class_keyword))
+  (if (<=i depth 0)
+      (dbgout_namedobject_method self dbgi 0)
+    (dbgoutagain_keyword_method self dbgi depth)))
+(install_method class_keyword dbg_output dbgout_keyword_method)
+
+(defun dbgoutagain_keyword_method (self dbgi :long depth)
+  (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
+  (assert_msg "check self" (is_a self class_keyword))
+  (let ( (sbuf  (unsafe_get_field :dbgi_sbuf dbgi))
+	 (onam (unsafe_get_field :named_name self))
+	 )	
+    (add2sbuf_strconst sbuf " $:")
+    (add2sbuf_string sbuf onam)
+    (add2sbuf_strconst sbuf "/")
+    (add2sbuf_longhex sbuf (obj_hash self))))
+(install_method class_keyword dbg_outputagain dbgoutagain_keyword_method)
+
+;;;; clonedsymbol output debug & again
+(defun dbgout_clonedsymbol_method (self dbgi :long depth)
+  (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
+  (assert_msg "check self" (is_a self class_clonedsymbol))
+  (if (<=i depth 0)
+      (dbgout_namedobject_method self dbgi 0)
+    (dbgoutagain_clonedsymbol_method self dbgi depth)
+    ))
+(install_method class_clonedsymbol dbg_output dbgout_clonedsymbol_method)
+
+(defun dbgoutagain_clonedsymbol_method (self dbgi :long depth)
+  (let ( (dis (discrim self)) 
+	 (sbuf  (unsafe_get_field :dbgi_sbuf dbgi))
+	 (ourank (unsafe_get_field :csym_urank self))
+	 (:long lrk (get_int ourank))
+	 (onam (unsafe_get_field :named_name self)) )
+    (add2sbuf_strconst sbuf " $$")
+    (add2sbuf_string sbuf onam)
+    (add2sbuf_strconst sbuf ":")
+    (add2sbuf_longdec sbuf lrk)
+    (add2sbuf_strconst sbuf "/")
+    (add2sbuf_longhex sbuf (obj_hash self))))
+(install_method class_clonedsymbol dbg_outputagain dbgoutagain_clonedsymbol_method)
+
+;;;; ctype output debug & again
+(defun dbgout_ctype_method (self dbgi :long depth)
+  (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
+  (assert_msg "check self" (is_a self class_ctype))
+  (if (<=i depth 0)
+      (dbgout_namedobject_method self dbgi 0)
+    (dbgoutagain_ctype_method self dbgi depth)
+))
+(install_method class_ctype dbg_output dbgout_ctype_method)
+
+(defun dbgoutagain_ctype_method (self dbgi :long depth)
+  (let ( (dis (discrim self)) 
+	 (sbuf  (unsafe_get_field :dbgi_sbuf dbgi))
+	 (onam (unsafe_get_field :named_name self)) )
+    (add2sbuf_strconst sbuf " $!")
+    (add2sbuf_string sbuf onam)
+    (add2sbuf_strconst sbuf "!/")
+    (add2sbuf_longhex sbuf (obj_hash self))))
+(install_method class_ctype dbg_outputagain dbgoutagain_ctype_method)
+  
+;;;;;;;;;;;;;;;;;;;;;;;; debug message function
+(defprimitive the_dbgcounter () :long "basilys_dbgcounter")
+(defprimitive increment_dbgcounter () :void "(void) ++basilys_dbgcounter")
+
+(defun displaydebugmsg (val :cstring msgstr :long count)
+  ;; don't work yet, because internal test for debugging...
+  (let ( (:long dbgcounter (progn (increment_dbgcounter) (the_dbgcounter)))
+	 (sbuf (make_strbuf discr_strbuf)) 
+	 (occmap (make_mapobject discr_mapobjects 50))
+	 (boxedmaxdepth (make_integerbox discr_integer 14))
+	 (dbgi (make_instance class_debuginfo
+			      :dbgi_sbuf sbuf
+			      :dbgi_occmap occmap
+			      :dbgi_maxdepth boxedmaxdepth))
+	 )
+    (outnum_err "!*#" dbgcounter "/")
+    (outnum_err "" (-i (the_framedepth) 1) ":")
+    (outcstring_err msgstr)
+    (if (>i count 0) (outnum_err " !" count ": "))
+    (dbg_output val dbgi 0)
+    (outstrbuf_err sbuf)
+    (outnewline_err)
+    ))
+
+
+(defun debugmsg (val :cstring msgstr :long count)
+  (if (need_dbg 0) 
+      (let ( (:long dbgcounter (progn (increment_dbgcounter) (the_dbgcounter)))
+	     (sbuf (make_strbuf discr_strbuf)) 
+	     (occmap (make_mapobject discr_mapobjects 50))
+	     (boxedmaxdepth (make_integerbox discr_integer 17)) ;;;; @@@ DEBUGDEPTH
+	     (dbgi (make_instance class_debuginfo
+				  :dbgi_sbuf sbuf
+				  :dbgi_occmap occmap
+				  :dbgi_maxdepth boxedmaxdepth))
+	     )
+	(outnum_dbg "!*#" dbgcounter "/")
+	(outnum_dbg "" (-i (the_framedepth) 1) ":")
+	(outcstring_dbg msgstr)
+	(if (>i count 0) (outnum_dbg " !" count ": "))
+	(dbg_out val dbgi 0)
+	(outstrbuf_dbg sbuf)
+	(outnewline_dbg)
+	)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+;; make a fresh environment 
+(defun fresh_env (parenv)
+  (if (or (null parenv) (is_a parenv class_environment))
+      (make_instance class_environment 
+		     :env_bind (make_mapobject discr_mapobjects 6)
+		     :env_prev parenv)))
+
+;; the initial environment
+(definstance initial_environment class_environment
+  :env_bind  (make_mapobject discr_mapobjects 500)
+)
+
+;; find a binding inside an environment
+(defun find_env (env binder)
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check binder" (is_object binder))
+  (forever findloop
+	   (if (is_not_a env class_environment)
+	       (exit findloop ()))
+	   (assert_msg "check env obj" (is_object env))
+	   (let ( (bindmap 
+		   (unsafe_get_field :env_bind env)) )
+	     (assert_msg "check bindmap" (is_mapobject bindmap))
+	     (let ( (bnd 
+		     (mapobject_get bindmap binder)) )
+	       (if bnd 
+		   (exit findloop bnd))
+	       ))
+	   (setq env (unsafe_get_field :env_prev env))
+	   )
+  )
+
+; find a binding inside an environment and also returns the reversed list of enclosing procedures
+(defun find_enclosing_env (env binder)
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check binder" (is_object binder))
+  (let ( (proclist (make_list discr_list)) )
+  (forever findloop
+	   (if (is_not_a env class_environment) (exit findloop))
+	   (let ( (bindmap (unsafe_get_field :env_bind env)) 
+		  (eproc (unsafe_get_field :env_proc env))
+		  )
+	     (assert_msg "check bindmap" (is_mapobject bindmap))
+	     (let ( (bnd (mapobject_get bindmap binder)) )
+	       (if bnd (return bnd proclist)))
+	     (if eproc (list_prepend proclist eproc))
+	     (setq env (unsafe_get_field :env_prev env))
+	       ))))
+
+;; put a binding at top of an environment
+(defun put_env (env binding)
+  (assert_msg "check binding is obj" (is_object binding))
+  (assert_msg "check env is obj" (is_object env))
+  (assert_msg "check env" (is_a env class_environment))
+  (if (not (is_a binding class_any_binding))
+      (progn
+	(debug_msg binding "put_env invalid binding")
+	(shortbacktrace_dbg "put_env invalid binding" 15)))
+  (assert_msg "check binding" (is_a binding class_any_binding))
+  (let ( (bindmap (unsafe_get_field :env_bind env)) 
+	 (binder (unsafe_get_field :binder binding))
+	 )
+    (if (not (is_object binder))
+	(progn
+	  (debug_msg binding "put_env bad binder in binding")
+	  (debug_msg binder "put_env bad binder")
+	  (shortbacktrace_dbg "put_env  bad binder in binding" 5)))
+    (assert_msg "check bindmap" (is_mapobject bindmap))
+    (assert_msg "check binder" (is_object binder))
+    (mapobject_put bindmap binder binding)
+    ))
+
+;; overwrite a binding in the environment where it has been already bind
+(defun overwrite_env (env binding)
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check binding" (is_a binding class_any_binding))
+  (let ( (binder  (unsafe_get_field :binder binding)) )
+    (assert_msg "check binder" (is_object binder))
+    (forever findloop
+	     (if (not (is_a env class_environment)) (exit findloop))
+	     (let ( (bindmap (unsafe_get_field :env_bind env)) )
+	       (assert_msg "check bindmap" (is_mapobject bindmap))
+	       (let ( (oldbinding (mapobject_get bindmap binder)) )
+		 (if oldbinding 
+		     (progn 
+		       (mapobject_put bindmap binder binding)
+		       (exit findloop oldbinding))
+		   ))
+	       (setq env (unsafe_get_field :env_prev env))
+	       ))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; debug_msg support
+(defun debug_msg_fun (val :cstring msgstr :long count :cstring filenam :long lineno)
+  (increment_dbgcounter) 
+  (if (need_dbg 0) 
+      (let ( (:long dbgcounter (progn (the_dbgcounter)))
+	     (sbuf (make_strbuf discr_strbuf)) 
+	     (occmap (make_mapobject discr_mapobjects 50))
+	     (boxedmaxdepth (make_integerbox discr_integer 17)) ;;;; @@@ DEBUGDEPTH
+	     (dbgi (make_instance class_debuginfo
+				  :dbgi_sbuf sbuf
+				  :dbgi_occmap occmap
+				  :dbgi_maxdepth boxedmaxdepth))
+	     )
+	(outnum_err "!*#" dbgcounter "/")
+	(outnum_err "" (-i (the_framedepth) 1) ":")
+	(if filenam
+	    (progn
+	      (outcstring_err filenam)
+	      (outnum_err ":" lineno ":")
+	      ))
+	(outcstring_err msgstr)
+	(if (>i count 0) (outnum_err " !" count ": "))
+	(if val 
+	    (dbg_out val dbgi 0)
+	  (outcstring_err "() ;;;NIL!!!")
+	  )
+	(outstrbuf_err sbuf)
+	(outcstring_err ";;;;")
+	(outnewline_err)
+	)))
+
+;;;; any binding debug output
+(defun dbgout_anybinding_method (self dbgi :long depth)
+  (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
+  (assert_msg "check self" (is_a self class_any_binding))
+  (let ( (dis (discrim self)) 
+	 (sbuf  (unsafe_get_field :dbgi_sbuf dbgi)) 
+	 (binder (unsafe_get_field :binder self))
+	 ) 
+    (add2sbuf_indent sbuf depth)
+    (add2sbuf_strconst sbuf "[~")
+    (add2sbuf_string sbuf (unsafe_get_field :named_name dis))
+    (add2sbuf_strconst sbuf "/")
+    (add2sbuf_longhex sbuf (obj_hash self))
+    (add2sbuf_strconst sbuf ":")
+    (dbg_outputagain binder dbgi (+i depth 2))
+    (if (need_dbglim depth (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
+	(progn
+	  (add2sbuf_strconst sbuf "; ")
+	  (dbgout_fields self dbgi (+i depth 1) 1)
+	  ))
+    (add2sbuf_strconst sbuf "~]")
+    ))
+(install_method class_any_binding dbg_output dbgout_anybinding_method)
+(install_method class_any_binding dbg_outputagain dbgout_anybinding_method)
+
+;;;****************************************************************
+
+(debug_msg (current_module_environment_container) "cur.mod.env.cont before update")
+(update_current_module_environment_container)
+(debug_msg (current_module_environment_container) "cur.mod.env.cont after update")
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; a special function to be called when compiling with compilinit command.
+;;; which magically adds a call to it at end of the read list
+(defun post_initialization (unusedarg :cstring meltfilnam)
+  (let ( (curmodenvcont (current_module_environment_container)) )
+    (if (not (is_a curmodenvcont class_container))
+	(progn
+	  (warningmsg_strv "post_initialization strange curmodenvcont of discr"
+			   (unsafe_get_field :named_name (discrim curmodenvcont)))
+	  (return)
+	  ))
+    (debug_msg curmodenvcont "post_initialization curmodenvcont at start")
+    ;(shortbacktrace_dbg "post_initialization" 10)
+    (assert_msg "check curmodenvcont" (is_a curmodenvcont class_container))
+    (let ( (curmodenv (unsafe_get_field :container_value curmodenvcont)) )
+      (if (is_a curmodenv class_environment)
+	  (let ( (curbindmap (unsafe_get_field :env_bind curmodenv))
+		 )
+	    (informsg_long "post_initialization boundvars num" 
+			   (mapobject_count curbindmap))
+	    )
+	(let ( (curmenvdiscr (discrim curmodenv)) )
+	  (informsg_strv "post_initialization strange curmodenv of discr" 
+			 (unsafe_get_field :named_name curmenvdiscr)))
+	)))
+  )
+
+
+;;;;;; export the above classes
+(export_class ;;in alphabetical order, one per line, for convenience
+ class_any_binding
+ class_class
+ class_class_binding
+ class_clonedsymbol
+ class_container
+ class_ctype
+ class_debuginfo 
+ class_discr 
+ class_environment
+ class_exported_binding
+ class_field
+ class_field_binding
+ class_fixed_binding
+ class_formal_binding
+ class_function_binding
+ class_genercontext
+ class_initgenercontext
+ class_instance_binding
+ class_keyword
+ class_label_binding
+ class_let_binding
+ class_located
+ class_macro_binding
+ class_modulcontext
+ class_named
+ class_normcontext
+ class_normlet_binding
+ class_objcode
+ class_primitive
+ class_primitive_binding
+ class_proped 
+ class_root
+ class_selector
+ class_selector_binding 
+ class_sexpr
+ class_src
+ class_symbol
+ class_system_data
+ class_value_binding 
+ )					;end of export class
+
+;;;; export the above primitives
+(export_values				;in alphanumerical order
+ !=
+ !=i
+ %i
+ %iraw
+ *i
+ +i
+ -i
+ /i
+ /iraw
+ <=i
+ <i
+ ==
+ ==i
+ ==s
+ >=i
+ >i
+ add2sbuf_ccomstrbuf
+ add2sbuf_ccomstring
+ add2sbuf_cencstrbuf
+ add2sbuf_cencstring
+ add2sbuf_cident
+ add2sbuf_cidentprefix
+ add2sbuf_indent
+ add2sbuf_indentnl
+ add2sbuf_longdec
+ add2sbuf_longhex
+ add2sbuf_routinedescr
+ add2sbuf_sbuf
+ add2sbuf_strconst
+ add2sbuf_string
+ andi
+ assert_failed
+ box_content
+ box_put
+ cbreak_msg
+ checkcallstack_msg
+ checkval_dbg
+ closure_nth
+ closure_routine
+ closure_size
+ create_keywordstr
+ create_symbolstr
+ discrim
+ error_plain
+ error_strv
+ full_garbcoll
+ get_globpredef
+ get_int
+ get_keywordstr
+ get_symbolstr
+ ignore
+ inform_plain
+ inform_strv
+ is_a
+ is_box
+ is_closure
+ is_integerbox
+ is_list
+ is_list_or_null
+ is_mapobject
+ is_mapstring
+ is_mixint
+ is_multiple
+ is_multiple_or_null
+ is_not_a
+ is_not_object
+ is_object
+ is_pair
+ is_routine
+ is_strbuf
+ is_string
+ is_stringconst
+ last_globpredef_index
+ list_append
+ list_first
+ list_last
+ list_length
+ list_popfirst
+ list_prepend
+ longbacktrace_dbg
+ make_box
+ make_integerbox
+ make_list
+ make_mapobject
+ make_mapstring
+ make_multiple
+ make_pair
+ make_strbuf
+ make_string
+ make_string_nakedbasename
+ make_stringconst
+ make_tuple1
+ make_tuple2
+ make_tuple3
+ make_tuple4
+ make_tuple5
+ make_tuple6
+ make_tuple7
+ mapobject_count
+ mapobject_get
+ mapobject_nth_attr
+ mapobject_nth_val
+ mapobject_put
+ mapobject_remove
+ mapobject_size
+ mapstring_count
+ mapstring_getstr
+ mapstring_nth_attrstr
+ mapstring_nth_val
+ mapstring_putstr
+ mapstring_rawget
+ mapstring_rawput
+ mapstring_rawremove
+ mapstring_size
+ message_dbg
+ messagenum_dbg
+ messageval_dbg
+ minor_garbcoll
+ mixint_val
+ multiple_length
+ multiple_nth
+ multiple_put_nth
+ multiple_sort
+ need_dbg
+ need_dbglim
+ negi
+ nonzero_hash
+ not
+ noti
+ notnull
+ null
+ obj_hash
+ obj_len
+ obj_num
+ object_length
+ object_nth_field
+ ori
+ out_cplugin_compiled_timestamp_err
+ out_cplugin_md5_checksum_err
+ outcstring_dbg
+ outcstring_err
+ outnewline_dbg
+ outnewline_err
+ outnum_dbg
+ outnum_err
+ output_cfile_decl_impl
+ outstr_dbg
+ outstr_err
+ outstrbuf_dbg
+ outstrbuf_err
+ pair_head
+ pair_listlength
+ pair_set_head
+ pair_tail
+ put_int
+ read_file
+ routine_descr
+ routine_nth
+ routine_size
+ shortbacktrace_dbg
+ strbuf2string
+ strbuf_usedlength
+ string<
+ string=
+ string>
+ string_length
+ stringconst2val
+ subclass_of
+ the_callcount
+ the_framedepth
+ the_null
+ void
+ warning_plain
+ warning_strv
+ xori
+ zerop
+ )
+;; export the discriminants and instances and selectors defined above
+(export_values				;alphabetical order
+ ctype_cstring                        
+ ctype_long                           
+ ctype_tree                           
+ ctype_value                          
+ ctype_void  
+ dbg_output
+ dbg_outputagain
+ discr_anyrecv                        
+ discr_box                            
+ discr_charinteger                    
+ discr_closure                        
+ discr_integer                        
+ discr_list                           
+ discr_mapobjects                     
+ discr_mapstrings                     
+ discr_methodmap                      
+ discr_mixedint                       
+ discr_multiple                       
+ discr_namestring                     
+ discr_nullrecv                       
+ discr_pair                           
+ discr_routine                        
+ discr_seqclass                       
+ discr_seqfield                       
+ discr_strbuf                         
+ discr_string                         
+ discr_verbatimstring                 
+ initial_environment                  
+ )					;end export discriminants, instances, selectors
+
+
+;; export the functions defined above
+(export_values
+ add_new_keyword_token			
+ add_new_symbol_token			
+ boxval					
+ clone_symbol				
+ compare_obj_ranked			
+ dbg_out				
+ dbg_outobject				
+ debug_msg_fun				
+ debugmsg				
+ displaydebugmsg			
+ find_enclosing_env			
+ find_env				
+ fresh_env				
+ install_ctype_descr				
+ install_method				
+ intern_keyword				
+ intern_symbol				
+ list1					
+ list2					
+ list3					
+ list_append2list			
+ list_every				
+ list_iterate_test			
+ list_map				
+ list_to_multiple			
+ mapobject_every			
+ mapobject_iterate_test			
+ mapstring_every			
+ mapstring_iterate_test			
+ mapstringval_every			
+ mapstringval_iterate_test		
+ multiple_backward_every		
+ multiple_every				
+ multiple_iterate_test			
+ multiple_map				
+ overwrite_env				
+ pairlist_every				
+ pairlist_iterate_test			
+ pairlist_to_multiple	
+ post_initialization
+ put_env				
+ )
+
+;; eof warmelt-first.bysl
