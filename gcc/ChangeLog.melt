@@ -1,4 +1,7 @@
 2008-06-25  Basile Starynkevitch  <basile@starynkevitch.net>
+	MELT branch merged with trunk r137105
+
+2008-06-25  Basile Starynkevitch  <basile@starynkevitch.net>
 	* common.opt: added -fbasilys-arglist= & basilys_arglist_string
 
 	* basilys.c: (do_initial_command) handle basilys_arglist_string.

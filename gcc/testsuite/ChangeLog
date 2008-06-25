@@ -1,3 +1,39 @@
+2008-06-25  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.c-torture/compile/20080625-1.c: New testcase.
+
+2008-06-25  Richard Guenther  <rguenther@suse.de>
+
+	* g++.dg/torture/20080625-1.C: New testcase.
+
+2008-06-24  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/36371
+	* gfortran.dg/data_array_5.f90: New test.
+
+2008-06-24  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/warn5.adb: New test.
+
+2008-06-24  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/36504
+	* gcc.dg/pr36504.c: New test.
+
+2008-06-23  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR middle-end/PR36584
+	* testsuite/gcc.dg/pr36584.c: New test.
+	* testsuite/gcc.target/i386/local2.c: Remove invalid test.
+
+2008-06-23  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/36533
+	* gcc.target/i386/pr36533.c: New test.
+
+	PR tree-optimization/36508
+	* gcc.dg/pr36508.c: New test.
+
 2008-06-20  Joseph Myers  <joseph@codesourcery.com>
 
 	* gcc.dg/inline-31.c: New test.

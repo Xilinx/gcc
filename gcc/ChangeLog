@@ -1,3 +1,113 @@
+2008-06-25  Richard Guenther  <rguenther@suse.de>
+
+	* tree-ssa-structalias.c (fieldoff_compare): Make sure to
+	not overflow the result type.
+
+2008-06-25  Richard Guenther  <rguenther@suse.de>
+
+	* tree-vn.c (vn_add): Handle TRUTH_*_EXPR.
+	(vn_lookup): Likewise.
+
+2008-06-25  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/35518
+	* fold-const.c (fold_ternary): Strip trivial BIT_FIELD_REFs.
+	* tree-sra.c (instantiate_element): Use fold_build3 to build
+	BIT_FIELD_REFs.
+	(try_instantiate_multiple_fields): Likewise.
+
+2008-06-24  Andrew Pinski  <andrew_pinski@playstation.sony.com>
+
+	* config/rs6000/rs6000.md: Change all string instruction's clobber to
+	be early clobbers.
+
+2008-06-24  Andrew Pinski  <andrew_pinski@playstation.sony.com>
+
+	* config/rs6000/rs6000.c (rs6000_emit_epilogue): Set
+	use_backchain_to_restore_sp to true
+	if the offset of the link register save area would go over the 32k - 1
+	offset limit of the load
+	instructions.
+
+2008-06-25  Hans-Peter Nilsson  <hp@axis.com>
+
+	* doc/invoke.texi (Optimize Options) <fstrict-aliasing>: Add
+	anchor for the type-punning blurb.  Cross-reference "Structures
+	unions enumerations and bit-fields implementation".  Provide a
+	cast-through-pointer example.  Make final sentence self-contained.
+	* doc/implement-c.texi (Structures unions enumerations and
+	bit-fields implementation): Cross-reference the type-punning blurb
+	in the -fstrict-aliasing documentation.
+
+2008-06-24  Andrew Pinski  <andrew_pinski@playstation.sony.com>
+
+	PR middle-end/36594
+	* builtins.c (expand_builtin_nonlocal_goto): Stabilize the address of
+	the memory instead of the memory itself for the save area.
+
+2008-06-24  Olivier Hainque  <hainque@adacore.com>
+            Nicolas Roche  <roche@adacore.com>
+
+	* gengtype.c (srcdir_len): size_t instead of int.
+	(get_file_realbasename): New function.  For F a filename, the real
+	basename of F, with all the path components stripped.
+	(get_file_srcdir_relative_path): New function.  For F a filename, the
+	relative path to F from $(srcdir).
+	(get_file_basename): Rewrite using get_file_srcdir_relative_path and
+	get_file_realbasename.  Adjust the head comment.
+	(get_prefix_langdir_index): New function. For F a filename, return the
+	lang_dir_names[] relative index of the language directory that is
+	a prefix in F.
+	(get_file_langdir): For F a filename, return the name of the language
+	directory where F is located.
+	(get_file_gtfilename): New function. The gt- output file name for an
+	input filename F.
+	(get_output_file_with_visibility): Replace in-line computations with
+	uses of get_file_gtfilename and get_prefix_langdir_index.
+	* Makefile.in (GTFILES_H): Adjust to match what gengtype generates.
+
+2008-06-24  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/36504
+	* tree-ssa-loop-prefetch.c (gather_memory_references_ref): Skip
+	references without base address.
+
+2008-06-23  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR middle-end/PR36584
+	* calls.c (expand_call): Increase alignment for recursive functions.
+
+2008-06-23  Anatoly Sokolov  <aesok@post.ru>
+
+	* config/avr/avr.c (avr_function_value): Add new 'outgoing' argument.
+	(TARGET_FUNCTION_VALUE): New define.
+	* config/avr/avr-protos.h (avr_function_value): Remove declaration.
+	* config/avr/avr.h (FUNCTION_VALUE): Remove.
+
+2008-06-23  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.md (fmodxf3): Change sequence of move instructions.
+	(fmod<mode>3): Ditto.
+	(remainderxf3): Ditto.
+	(remainder<mode>3): Ditto.
+
+2008-06-23  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/36533
+	* emit-rtl.c (set_reg_attrs_from_value): Do nothing if
+	REG is a hard register.
+
+	PR tree-optimization/36508
+	* tree-ssa-pre.c (compute_antic): Allow num_iterations up to
+	499, don't check it at all in release compilers.
+
+2008-06-23  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.md (*fop_<mode>_1_i387): Use SSE_FLOAT_MODE_P
+	together with SSE_TARGET_MATH to disable insn pattern.
+	(*fop_<MODEF:mode>_2_i387): Ditto.
+	(*fop_<MODEF:mode>_3_i387): Ditto.
+
 2008-06-22  Andy Hutchinson  <hutchinsonandy@aim.com>
 
 	* config/avr/avr.h (SUPPORTS_INIT_PRIORITY): Define.
@@ -116,8 +226,7 @@
 
 	* ggc.h (GGC_RESIZEVAR): New, reorder macros.
 	* tracer.c (tail_duplicate): Fix for -Wc++-compat.
-	* tree-affine.c (aff_combination_expand, free_name_expansion):
-	Likewise.
+	* tree-affine.c (aff_combination_expand, free_name_expansion): Likewise.
 	* tree-cfg.c (replace_by_duplicate_decl, replace_ssa_name,
 	move_stmt_r, new_label_mapper): Likewise.
 	* tree-complex.c (cvc_lookup): Likewise.
@@ -143,10 +252,8 @@
 	create_stores_for_reduction, create_loads_and_stores_for_name):
 	Likewise.
 	* tree-phinodes.c (allocate_phi_node): Likewise.
-	* tree-predcom.c (order_drefs, execute_pred_commoning_cbck):
-	Likewise.
-	* tree-sra.c (sra_elt_hash, sra_elt_eq, lookup_element):
-	Likewise.
+	* tree-predcom.c (order_drefs, execute_pred_commoning_cbck): Likewise.
+	* tree-sra.c (sra_elt_hash, sra_elt_eq, lookup_element): Likewise.
 	* tree-ssa-alias.c (get_mem_sym_stats_for): Likewise.
 	* tree-ssa-coalesce.c (compare_pairs): Likewise.
 	* tree-ssa-loop-im.c (mem_ref_in_stmt, memref_hash, memref_eq,
@@ -176,8 +283,7 @@
 	unshare_variable, variable_union_info_cmp_pos, variable_union,
 	dataflow_set_different_1, dataflow_set_different_2,
 	vt_find_locations, variable_was_changed, set_variable_part,
-	emit_notes_for_differences_1, emit_notes_for_differences_2):
-	Likewise.
+	emit_notes_for_differences_1, emit_notes_for_differences_2): Likewise.
 	* varasm.c (prefix_name, emutls_decl, section_entry_eq,
 	section_entry_hash, object_block_entry_eq,
 	object_block_entry_hash, create_block_symbol,
