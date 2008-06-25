@@ -1,3 +1,13 @@
+2008-06-25  Basile Starynkevitch  <basile@starynkevitch.net>
+	[still buggy for warmelt-genobj.so]
+
+	* basilys.c: more casts for C++ compatibility.
+	(basilys_assert_failed) more robust when msg or filnam or fun is incorrectly NULL.
+
+	* Makefile.in: removed warmelt-macro.bysl -merged into warmelt-first.bysl
+
+	* melt/warm-basilys.bysl: reordered somehow. Added missing exports.
+
 2008-06-24  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warm-basilys.bysl: import of values coded but buggy.
 	crashes for warmelt-macro.

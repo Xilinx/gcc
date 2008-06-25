@@ -4676,7 +4676,7 @@ melt.encap: run-basilys.d
 	$(MAKE) run-basilys-deps built-melt-cc-script 
 # this is working probably only on Linux machines (hosts); we should use libtool here also!
 	$(MAKE) warm-basilys-2.so
-#	$(MAKE) warmelt-macro.so
+#	$(MAKE) warmelt-genobj.so
 
 
 .PHONY: install-melt-headers update-warm-basilys diff-warm-1-2 diff-warm-2-3  diff-warm-4-5
@@ -4762,36 +4762,30 @@ warm-basilys-1.c: warm-basilys-0.so cc1$(exeext) $(srcdir)/melt/warm-basilys.bys
 warmelt-first.c: warm-basilys-3.so cc1$(exeext) warmelt-first.bysl
 	-rm -f $@ 
 	@echo generating warmelt-first using warm-basilys-3
-	$(MELTBASILYSCCFILE1) -fbasilys-init='warm-basilys-3' \
+	$(MELTBASILYSCCINIT1) -fbasilys-init='warm-basilys-3' \
 	      -fbasilys-arg=warmelt-first.bysl \
 	      -fbasilys-secondarg=$@
 	ls -l $@
-warmelt-macro.c: warm-basilys-3.so cc1$(exeext) warmelt-macro.bysl warmelt-first.so
-	@echo generating warmelt-macro using warm-basilys-3
+warmelt-normal.c: warm-basilys-3.so cc1$(exeext) warmelt-normal.bysl 
+	@echo generating warmelt-normal using warm-basilys-3 warmelt-first 
 	$(MELTBASILYSCCFILE1) -fbasilys-init='warm-basilys-3:warmelt-first' \
-	      -fbasilys-arg=warmelt-macro.bysl \
-	      -fbasilys-secondarg=$@
-	ls -l $@
-warmelt-normal.c: warm-basilys-3.so cc1$(exeext) warmelt-normal.bysl warmelt-macro.so
-	@echo generating warmelt-macro using warm-basilys-3
-	$(MELTBASILYSCCFILE1) -fbasilys-init='warm-basilys-3:warmelt-first:warmelt-macro' \
 	      -fbasilys-arg=warmelt-normal.bysl \
 	      -fbasilys-secondarg=$@
 	ls -l $@
 warmelt-genobj.c: warm-basilys-3.so cc1$(exeext) warmelt-genobj.bysl warmelt-normal.so
-	@echo generating warmelt-macro using warm-basilys-3
-	$(MELTBASILYSCCFILE1) -fbasilys-init='warm-basilys-3:warmelt-first:warmelt-macro:warmelt-normal' \
+	@echo generating warmelt-genobj using warm-basilys-3 warmelt-first warmelt-normal
+	$(MELTBASILYSCCFILE1) -fbasilys-init='warm-basilys-3:warmelt-first:warmelt-normal' \
 	      -fbasilys-arg=warmelt-genobj.bysl \
 	      -fbasilys-secondarg=$@
 	ls -l $@
 ## temporarily the warmelt*.bysl files are extracted from warm-basilys.bysl
-WARMELT_FILES= warmelt-first.bysl warmelt-macro.bysl \
-	warmelt-normal.bysl warmelt-genobj.bysl 
+WARMELT_FILES= warmelt-first.bysl warmelt-normal.bysl warmelt-genobj.bysl 
 
-$(WARMELT_FILES):  $(srcdir)/melt/warm-basilys.bysl
-	rm -vf $(WARMELT_FILES)
-	gawk '/^;;@@<</{out=$$2; lin=NR; printf ";; -*- lisp -*- from file warm-basilys.bysl line %d\n", NR > out} \
-	      {if (out && out != "") print > out}' $^
+$(WARMELT_FILES):  $(srcdir)/melt/warm-basilys.bysl Makefile
+	rm -vf $(WARMELT_FILES) $(patsubst %.bysl, %.c, $(WARMELT_FILES)) $(patsubst %.bysl, %.so, $(WARMELT_FILES))
+	gawk '/^;;@@<</{out=$$2; prevlin=lin; lin=NR; printf ";; -*- lisp -*- from file warm-basilys.bysl line %d\n", NR > out; \
+		if (prevlin>0) printf "** %s : %d lines starting at warm-basilys.bysl:%d\n", out, prevlin-NR, NR;} \
+	      {if (out && out != "") print > out}' $(srcdir)/melt/warm-basilys.bysl
 	wc -l $(WARMELT_FILES)
 
 #### this phony target is given manually to copy the generated

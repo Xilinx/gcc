@@ -163,7 +163,7 @@
 	   sysdata_internsymbol		;closure to intern a symbol
 	   sysdata_internkeyw		;closure to intern a keyword
 	   sysdata_value_importer	;closure to import a value
-	   ;;;keep these spare slots to easy the addition of other slots
+	   ;;;keep these spare slots to ease the addition of other slots
 	   sysdata___spare1
 	   sysdata___spare2
 	   sysdata___spare3
@@ -1348,7 +1348,14 @@
 
 ;; initial value importer
 (defun initvalue_importer (sym parenv)
+  (debug_msg sym "initvalue_importer sym")
   (assert_msg "check sym" (is_a sym class_symbol))
+  (shortbacktrace_dbg "initvalue_importer" 15)
+  (outcstring_err "importing value ")
+  (outstr_err (unsafe_get_field :named_name sym))
+  (outnewline_err)
+  (outnewline_err)
+  (debug_msg parenv "initvalue_importer parenv")
   (assert_msg "check parenv" (is_a parenv class_environment))
   (let ( (valbind (find_env parenv sym))
 	 )
@@ -3011,20 +3018,10 @@
  put_env				
  )
 
-(export_class
-  class_root
-  class_class
-  class_field
-  class_symbol
-  class_discr)
 
-(export_values
-  put_env
-  list_map)
 
 ;;****************************************************************
 
-;;@@<< warmelt-macro.bysl
 
 ;;; source application 
 (defclass class_src_apply
@@ -3405,7 +3402,8 @@
 	 (sloc (unsafe_get_field :loca_location sexpr))
 	 (spair (pair_tail (list_first scont)))
 	 )
-    (if (not (is_pair spair)) (error_plain sloc "missing reciever expression in message send"))
+    (if (not (is_pair spair))
+	(error_plain sloc "missing reciever expression in message send"))
     (let ( (xrecv (pair_head spair))
 	   (argtup (expand_pairlist_as_tuple (pair_tail spair) env mexpander)) 
 	   (res (make_instance class_src_msend
@@ -3641,11 +3639,14 @@
 (defun install_initial_macro (symb expander)
   (assert_msg "check sexpr" (is_a symb class_symbol))
   (assert_msg "check expander" (is_closure expander))
+  (debug_msg symb "install_initial_macro symb")
+;  (debug_msg expander "install_initial_macro expander")
   (let ( (mbind (make_instance class_macro_binding 
 			       :binder symb
 			       :mbind_expanser expander
 			       )) )
 	 (put_env initial_environment mbind)
+	 (debug_msg symb "install_initial_macro done symb")
 ))
 
 ;;;;;; warn if a symbol redefines something
@@ -3744,7 +3745,7 @@
 	      )))))))
 (install_initial_macro 'defprimitive mexpand_defprimitive)
 (export_macro defprimitive mexpand_defprimitive)
-(compile_warning "perhaps export_macro should not be used for initial macros?" ())
+
 
 ;;;;;;;;;;;;;;;;;; the defun expander
 (defun mexpand_defun (sexpr env mexpander)
@@ -5453,6 +5454,7 @@
  class_src_export_macro
  class_src_export_values
  class_src_exportcommon
+ class_src_fetch_predefined
  class_src_fieldassign
  class_src_forever
  class_src_if
@@ -5472,8 +5474,10 @@
  class_src_quote
  class_src_return
  class_src_setq
+ class_src_store_predefined
  class_src_unsafe_get_field
  class_src_unsafe_put_fields
+ class_src_update_current_module_environment_container
  class_srcdef
  class_srcdeformal
  )			       ;end classes for source representations
@@ -6158,6 +6162,15 @@
 ;  :named_name (stringconst2val discr_namestring "GET_CTYPE")
 )
 
+;;; selector to compile a normalized stuff into an object
+;;; reciever: the normalized stuff
+;;; arguments: 
+;;;; * GCX the code generation context
+;;; result = the obj instruction or value
+
+(defselector compile_obj class_selector
+)
+
 ;;; most stuff are really ctype_value
 (defun gectyp_anyrecv (recv env) ctype_value)
 (install_method discr_anyrecv get_ctype gectyp_anyrecv)
@@ -6627,6 +6640,14 @@
 				))
 			  bval)
 		      excu)) )
+	      (if (null exval)
+		  (progn
+		    (warning_strv sloc "null expansion of primitive argument for"
+				  sopnamstr)
+		    (if (is_a excu class_named) 
+			(warning_strv sloc "null primitive original piece is"
+				      (unsafe_get_field :named_name excu)))
+		    ))
 	    (debug_msg exval "normexp_primitive exval in sopexp")
 	    (multiple_put_nth expargs jx exval))
 	    ))
@@ -6665,377 +6686,6 @@
 		  (let ( ( prim (unsafe_get_field :nchunk_primitive recv)) )
 		    (assert_msg "check prim" (is_a prim class_primitive))
 		    (unsafe_get_field :prim_type prim))))
-
-
-;;****************************************************************
-;;@@<< warmelt-genobj.bysl
-
-;;;; value like objects
-(defclass class_objvalue
-  :super class_objcode
-  :fields ( obv_type			;the ctype
-))
-
-
-;;; pure values are side-effect free
-(defclass class_objpurevalue
-  :super class_objvalue
-  :fields ())
-
-;; object local variable
-(defclass class_objlocv
-  :super class_objpurevalue
-  :fields (obl_off			;offset in frame
-	   obl_proc			;containing procedure
-	   obl_cname			;symbolic cname string
-))
-
-
-;; closed occurrence
-(defclass class_objcloccv
-  :super class_objpurevalue
-  :fields (obc_off			;offset in closure
-	   obc_proc			;containing procedure
-	   obc_name			;symbolic name
-))
-
-
-;; constant [closed] occurrence
-(defclass class_objconstv
-  :super class_objcloccv
-  :fields (
-))
-
-;; predefined object
-(defclass class_objpredef
-  :super class_objpurevalue
-  :fields (obpredef
-))
-
-;; nil
-(defclass class_objnil
-  :super class_objpurevalue
-  :fields ())
-
-;; initial element 
-(defclass class_objinitelem
-  :super class_objpurevalue
-  :fields (oie_cname 			;symbolic cname string - fieldname in cdat
-	   oie_data			;normal data
-	   oie_discr			;compiled discriminant
-	   oie_locvar			;initial routine's local variable
-	   ;; the size, if any is the obj_num
-))
-
-;;; initial object - see BASILYS_OBJECT_STRUCT in basilys.h
-(defclass class_objinitobject
-  :super class_objinitelem
-  :fields (
-	   oio_predef			;the predef name or number to contain this object
-))
-
-
-;;; initial multiple - see BASILYS_MULTIPLE_STRUCT in basilys.h
-(defclass class_objinitmultiple
-  :super class_objinitelem
-  :fields (
-	   ;; we may need to tuple of compiled values for accessing
-	   ;; the nth at compilation time in compilobj_nrep_multacc
-	   oim_tupval			;tuple of compiled values
-))
-
-;;; initial closure - see BASILYS_CLOSURE_STRUCT in basilys.h
-(defclass class_objinitclosure 
-  :super  class_objinitelem
-  :fields (
-))
-
-;;; initial routine - see  BASILYS_ROUTINE_STRUCT in basilys.h
-(defclass class_objinitroutine
-  :super class_objinitelem
-  :fields (
-	   oir_procroutine		;the procroutine associated
-))
-
-;;; initial string - see BASILYS_STRING_STRUCT in basilys.h
-(defclass class_objinitstring
-  :super class_objinitelem
-  :fields (
-))
-
-
-;; expanded value
-(defclass class_objexpv
-  :super class_objvalue
-  :fields (obx_cont
-))
-
-;; expanded value with location 
-(defclass class_objlocatedexpv
-  :super class_objexpv
-  :fields (obcx_loc			;optional location
-))
-
-;;;; instructions
-(defclass class_objinstr
-  :super class_objcode
-  :fields (obi_loc			;src location
-))
-
-
-;;;; instructions with a list of destinations (computes, calls, sends, etc...)
-(defclass class_objdestinstr
-  :super class_objinstr
-  :fields (obdi_destlist		;a list of destination lovations
-))
-
-;;; compute instruction
-(defclass class_objcompute
-  :super class_objdestinstr
-  :fields (obcpt_expr			;expression list or object or tuple
-))
-
-;; get argument instruction
-(defclass class_objgetarg
-  :super class_objinstr
-  :fields (obarg_obloc			;objlocation
-	   obarg_bind			;formal binding
-))
-
-
-;; put extra result instruction
-(defclass class_objputxtraresult
-  :super class_objinstr
-  :fields (obxres_rank 			;boxed rank
-	   obxres_obloc			;objlocation
-))
-
-;; final return
-(defclass class_objfinalreturn
-  :super class_objinstr
-  :fields (				;no argument
-))
-
-;; clear instruction
-(defclass class_objclear
-  :super class_objinstr
-  :fields (oclr_vloc			;varlocation to clear
-))
-
-;; block instruction
-(defclass class_objblock
-  :super class_objinstr
-  :fields ( oblo_bodyl			;body list
-	    oblo_epil			;epilogue list
-))
-
-;; a block with a comment string appearing in the generated code
-(defclass class_objcommentedblock
-  :super class_objblock
-  :fields ( ocomblo_comment		;the comment string
-))
-
-;; looping block
-(defclass class_objloop
-  :super class_objblock		 ;the body is looped, not the epilogue
-  :fields (obloop_label		 ;cloned symbol
-	   obloop_resv		 ;the result of the loop
-))
-
-;; exit a loop
-(defclass class_objexit
-  :super class_objinstr
-  :fields (obexit_label			;cloned symbol for goto destination
-))
-
-;; conditional instruction
-(defclass class_objcond
-  :super class_objinstr
-  :fields (obcond_test
-	   obcond_then
-	   obcond_else
-))
-
-;; preprocessor conditional instruction
-(defclass class_objcppif
-  :super class_objinstr
-  :fields (obifp_cond
-	   obifp_then
-	   obifp_else
-))
-
-;;; keyword & symbol intern instruction
-(defclass class_objinterncommon
-  :super class_objinstr
-  :fields (obintern_iobj			;the objinitobject for
-						;the symbol or keyword
-))
-
-(defclass class_objinternsymbol
-  :super class_objinterncommon
-  :fields (
-))
-
-(defclass class_objinternkeyword
-  :super class_objinterncommon
-  :fields (
-))
-
-;;; keyword & symbol getnamed instruction
-(defclass class_objgetnamedcommon
-  :super class_objinstr
-  :fields (obgnamed_iobj		;the objinitobject for the
-					;symbol or keyword
-))
-
-(defclass class_objgetnamedsymbol
-  :super class_objgetnamedcommon
-  :fields (
-))
-
-(defclass class_objgetnamedkeyword
-  :super class_objgetnamedcommon
-  :fields (
-))
-
-;;; apply instruction
-(defclass class_objapply
-  :super class_objdestinstr
-  :fields (obapp_clos			;closure to be applied
-	   obapp_args			;argument tuple
-))
-
-;;; multiapply instruction
-(defclass class_objmultiapply
-  :super class_objapply
-  :fields (obmultapp_xres		;extraresult tuple
-))
-
-;;; message send instruction
-(defclass class_objmsend
-  :super class_objdestinstr
-  :fields (obmsnd_sel			;selector object (compiled)
-	   obmsnd_recv			;message reciever (compiled)
-	   obmsnd_args 			;argument tuple (compiled)
-))
-
-;;; multisend instruction
-(defclass class_objmultimsend
-  :super class_objmsend
-  :fields (obmultsnd_xres		;extraresult tuple
-))
-
-;; raw object allocation instruction
-(defclass class_objrawallocobj
-  :super class_objdestinstr
-  :fields (
-	   obrallobj_class		;the class data
-	   obrallobj_len		;the boxed integer length
-))
-
-
-;; new closure allocation
-(defclass class_objnewclosure
-  :super class_objdestinstr
-  :fields (obnclo_discr		     ;the discriminant
-	   obnclo_rout		     ;the routine
-	   obnclo_len		     ;the boxed integer length
-))
-
-;; put a component inside a tuple
-(defclass class_objputuple
-  :super class_objinstr
-  :fields (oputu_tupled			;the tuple data
-	   oputu_offset			;numerical offset
-	   oputu_value			;the new value
-))
-
-;; put a slot inside an object
-(defclass class_objputslot
-  :super class_objinstr
-  :fields ( oslot_odata			;the object data to put
-	    oslot_offset		;numerical offset
-	    oslot_field			;the [optional] field (only for generated comment)
-	    oslot_value			;the new value
-))
-
-
-;; get a slot from an object
-(defclass class_objgetslot
-  :super class_objdestinstr
-  :fields (ogetsl_obj		   ;the object to get from
-	   ogetsl_field		   ;the fieldname
-))
-
-;; put the routine inside a closure
-(defclass class_objputclosurout
-  :super class_objinstr
-  :fields (opclor_clos			;the closure data
-	   opclor_rout			;the routine data
-))
-
-;; put a closed value inside a closure
-(defclass class_objputclosedv
-  :super class_objinstr
-  :fields (opclov_clos			;the closure data or local
-	   opclov_off 			;the boxed offset
-	   opclov_cval			;the closed value
-))
-
-;; put a constant value inside a routine
-(defclass class_objputroutconst
-  :super class_objinstr
-  :fields (oprconst_rout	 ;the routine data
-	   oprconst_off		 ;the boxed offset
-	   oprconst_cval	 ;the constant value
-))
-
-;; touch a value, with a tiny comment
-(defclass class_objtouch
-  :super class_objinstr
-  :fields (otouch_val
-	   otouch_comment
-))
-
-;; set a predef
-(defclass class_objsetpredef
- :super class_objinstr
- :fields ( ospr_object			;the object 
-	   ospr_predef			;its predef rank
-))
-
-
-;;; routines
-(defclass class_routineobj
-  :super class_named
-  :fields (obrout_proc			;the associated procedure
-	   obrout_body			;the body (a list)
-	   obrout_nbval			;the boxed number of value pointers
-	   obrout_nblong		;the boxed number of longs
-	   ;;; if double are needed, we might later add some obrout_nbdouble
-	   obrout_others		;the list of other (nonvalue,
-					;nonlongs) locals (usually C
-					;pointers like tree-s,
-					;cstrings, ...)
-	   obrout_retval		;the main return value
-))
-
-;; procedure routine
-(defclass class_procroutineobj
-  :super class_routineobj
-  :fields (oprout_getargs		;the get arguments tuple of instructions
-	   oprout_loc			;the source location
-	   oprout_funam			;function name
-))
-
-;; initial routine
-(defclass class_initialroutineobj
-  :super class_routineobj
-  :fields (
-	   oirout_data			;the tuple of initial data
-	   oirout_fill			;the fill of the data (a list of instr)
-))
-
 
 
 
@@ -9731,14 +9381,379 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
-;;; selector to compile a normalized stuff into an object
-;;; reciever: the normalized stuff
-;;; arguments: 
-;;;; * GCX the code generation context
-;;; result = the obj instruction or value
 
-(defselector compile_obj class_selector
-)
+
+;;****************************************************************
+;;@@<< warmelt-genobj.bysl
+
+;;;; value like objects
+(defclass class_objvalue
+  :super class_objcode
+  :fields ( obv_type			;the ctype
+))
+
+
+;;; pure values are side-effect free
+(defclass class_objpurevalue
+  :super class_objvalue
+  :fields ())
+
+;; object local variable
+(defclass class_objlocv
+  :super class_objpurevalue
+  :fields (obl_off			;offset in frame
+	   obl_proc			;containing procedure
+	   obl_cname			;symbolic cname string
+))
+
+
+;; closed occurrence
+(defclass class_objcloccv
+  :super class_objpurevalue
+  :fields (obc_off			;offset in closure
+	   obc_proc			;containing procedure
+	   obc_name			;symbolic name
+))
+
+
+;; constant [closed] occurrence
+(defclass class_objconstv
+  :super class_objcloccv
+  :fields (
+))
+
+;; predefined object
+(defclass class_objpredef
+  :super class_objpurevalue
+  :fields (obpredef
+))
+
+;; nil
+(defclass class_objnil
+  :super class_objpurevalue
+  :fields ())
+
+;; initial element 
+(defclass class_objinitelem
+  :super class_objpurevalue
+  :fields (oie_cname 			;symbolic cname string - fieldname in cdat
+	   oie_data			;normal data
+	   oie_discr			;compiled discriminant
+	   oie_locvar			;initial routine's local variable
+	   ;; the size, if any is the obj_num
+))
+
+;;; initial object - see BASILYS_OBJECT_STRUCT in basilys.h
+(defclass class_objinitobject
+  :super class_objinitelem
+  :fields (
+	   oio_predef			;the predef name or number to contain this object
+))
+
+
+;;; initial multiple - see BASILYS_MULTIPLE_STRUCT in basilys.h
+(defclass class_objinitmultiple
+  :super class_objinitelem
+  :fields (
+	   ;; we may need to tuple of compiled values for accessing
+	   ;; the nth at compilation time in compilobj_nrep_multacc
+	   oim_tupval			;tuple of compiled values
+))
+
+;;; initial closure - see BASILYS_CLOSURE_STRUCT in basilys.h
+(defclass class_objinitclosure 
+  :super  class_objinitelem
+  :fields (
+))
+
+;;; initial routine - see  BASILYS_ROUTINE_STRUCT in basilys.h
+(defclass class_objinitroutine
+  :super class_objinitelem
+  :fields (
+	   oir_procroutine		;the procroutine associated
+))
+
+;;; initial string - see BASILYS_STRING_STRUCT in basilys.h
+(defclass class_objinitstring
+  :super class_objinitelem
+  :fields (
+))
+
+
+;; expanded value
+(defclass class_objexpv
+  :super class_objvalue
+  :fields (obx_cont
+))
+
+;; expanded value with location 
+(defclass class_objlocatedexpv
+  :super class_objexpv
+  :fields (obcx_loc			;optional location
+))
+
+;;;; instructions
+(defclass class_objinstr
+  :super class_objcode
+  :fields (obi_loc			;src location
+))
+
+
+;;;; instructions with a list of destinations (computes, calls, sends, etc...)
+(defclass class_objdestinstr
+  :super class_objinstr
+  :fields (obdi_destlist		;a list of destination lovations
+))
+
+;;; compute instruction
+(defclass class_objcompute
+  :super class_objdestinstr
+  :fields (obcpt_expr			;expression list or object or tuple
+))
+
+;; get argument instruction
+(defclass class_objgetarg
+  :super class_objinstr
+  :fields (obarg_obloc			;objlocation
+	   obarg_bind			;formal binding
+))
+
+
+;; put extra result instruction
+(defclass class_objputxtraresult
+  :super class_objinstr
+  :fields (obxres_rank 			;boxed rank
+	   obxres_obloc			;objlocation
+))
+
+;; final return
+(defclass class_objfinalreturn
+  :super class_objinstr
+  :fields (				;no argument
+))
+
+;; clear instruction
+(defclass class_objclear
+  :super class_objinstr
+  :fields (oclr_vloc			;varlocation to clear
+))
+
+;; block instruction
+(defclass class_objblock
+  :super class_objinstr
+  :fields ( oblo_bodyl			;body list
+	    oblo_epil			;epilogue list
+))
+
+;; a block with a comment string appearing in the generated code
+(defclass class_objcommentedblock
+  :super class_objblock
+  :fields ( ocomblo_comment		;the comment string
+))
+
+;; looping block
+(defclass class_objloop
+  :super class_objblock		 ;the body is looped, not the epilogue
+  :fields (obloop_label		 ;cloned symbol
+	   obloop_resv		 ;the result of the loop
+))
+
+;; exit a loop
+(defclass class_objexit
+  :super class_objinstr
+  :fields (obexit_label			;cloned symbol for goto destination
+))
+
+;; conditional instruction
+(defclass class_objcond
+  :super class_objinstr
+  :fields (obcond_test
+	   obcond_then
+	   obcond_else
+))
+
+;; preprocessor conditional instruction
+(defclass class_objcppif
+  :super class_objinstr
+  :fields (obifp_cond
+	   obifp_then
+	   obifp_else
+))
+
+;;; keyword & symbol intern instruction
+(defclass class_objinterncommon
+  :super class_objinstr
+  :fields (obintern_iobj			;the objinitobject for
+						;the symbol or keyword
+))
+
+(defclass class_objinternsymbol
+  :super class_objinterncommon
+  :fields (
+))
+
+(defclass class_objinternkeyword
+  :super class_objinterncommon
+  :fields (
+))
+
+;;; keyword & symbol getnamed instruction
+(defclass class_objgetnamedcommon
+  :super class_objinstr
+  :fields (obgnamed_iobj		;the objinitobject for the
+					;symbol or keyword
+))
+
+(defclass class_objgetnamedsymbol
+  :super class_objgetnamedcommon
+  :fields (
+))
+
+(defclass class_objgetnamedkeyword
+  :super class_objgetnamedcommon
+  :fields (
+))
+
+;;; apply instruction
+(defclass class_objapply
+  :super class_objdestinstr
+  :fields (obapp_clos			;closure to be applied
+	   obapp_args			;argument tuple
+))
+
+;;; multiapply instruction
+(defclass class_objmultiapply
+  :super class_objapply
+  :fields (obmultapp_xres		;extraresult tuple
+))
+
+;;; message send instruction
+(defclass class_objmsend
+  :super class_objdestinstr
+  :fields (obmsnd_sel			;selector object (compiled)
+	   obmsnd_recv			;message reciever (compiled)
+	   obmsnd_args 			;argument tuple (compiled)
+))
+
+;;; multisend instruction
+(defclass class_objmultimsend
+  :super class_objmsend
+  :fields (obmultsnd_xres		;extraresult tuple
+))
+
+;; raw object allocation instruction
+(defclass class_objrawallocobj
+  :super class_objdestinstr
+  :fields (
+	   obrallobj_class		;the class data
+	   obrallobj_len		;the boxed integer length
+))
+
+
+;; new closure allocation
+(defclass class_objnewclosure
+  :super class_objdestinstr
+  :fields (obnclo_discr		     ;the discriminant
+	   obnclo_rout		     ;the routine
+	   obnclo_len		     ;the boxed integer length
+))
+
+;; put a component inside a tuple
+(defclass class_objputuple
+  :super class_objinstr
+  :fields (oputu_tupled			;the tuple data
+	   oputu_offset			;numerical offset
+	   oputu_value			;the new value
+))
+
+;; put a slot inside an object
+(defclass class_objputslot
+  :super class_objinstr
+  :fields ( oslot_odata			;the object data to put
+	    oslot_offset		;numerical offset
+	    oslot_field			;the [optional] field (only for generated comment)
+	    oslot_value			;the new value
+))
+
+
+;; get a slot from an object
+(defclass class_objgetslot
+  :super class_objdestinstr
+  :fields (ogetsl_obj		   ;the object to get from
+	   ogetsl_field		   ;the fieldname
+))
+
+;; put the routine inside a closure
+(defclass class_objputclosurout
+  :super class_objinstr
+  :fields (opclor_clos			;the closure data
+	   opclor_rout			;the routine data
+))
+
+;; put a closed value inside a closure
+(defclass class_objputclosedv
+  :super class_objinstr
+  :fields (opclov_clos			;the closure data or local
+	   opclov_off 			;the boxed offset
+	   opclov_cval			;the closed value
+))
+
+;; put a constant value inside a routine
+(defclass class_objputroutconst
+  :super class_objinstr
+  :fields (oprconst_rout	 ;the routine data
+	   oprconst_off		 ;the boxed offset
+	   oprconst_cval	 ;the constant value
+))
+
+;; touch a value, with a tiny comment
+(defclass class_objtouch
+  :super class_objinstr
+  :fields (otouch_val
+	   otouch_comment
+))
+
+;; set a predef
+(defclass class_objsetpredef
+ :super class_objinstr
+ :fields ( ospr_object			;the object 
+	   ospr_predef			;its predef rank
+))
+
+
+;;; routines
+(defclass class_routineobj
+  :super class_named
+  :fields (obrout_proc			;the associated procedure
+	   obrout_body			;the body (a list)
+	   obrout_nbval			;the boxed number of value pointers
+	   obrout_nblong		;the boxed number of longs
+	   ;;; if double are needed, we might later add some obrout_nbdouble
+	   obrout_others		;the list of other (nonvalue,
+					;nonlongs) locals (usually C
+					;pointers like tree-s,
+					;cstrings, ...)
+	   obrout_retval		;the main return value
+))
+
+;; procedure routine
+(defclass class_procroutineobj
+  :super class_routineobj
+  :fields (oprout_getargs		;the get arguments tuple of instructions
+	   oprout_loc			;the source location
+	   oprout_funam			;function name
+))
+
+;; initial routine
+(defclass class_initialroutineobj
+  :super class_routineobj
+  :fields (
+	   oirout_data			;the tuple of initial data
+	   oirout_fill			;the fill of the data (a list of instr)
+))
+
+
+
 ;; a catchall method for nrep-s (normal representations) each should
 ;; be separately compiled with its own method so this should never be
 ;; called
@@ -13072,6 +13087,8 @@
 	 (olocv (mapobject_get (unsafe_get_field :igncx_importmap gcx) var))
 	 )
     (debug_msg olocv "compilobj_nrep_importedval result olocv")
+    (assert_msg "check var" (is_a var class_symbol))
+    (assert_msg "check olocv" (is_a olocv class_objlocv))
     (return olocv)
     ))
 (install_method class_nrep_importedval compile_obj compilobj_nrep_importedval)
@@ -15290,6 +15307,7 @@
 	    (debug_msg iniobj "compile_list_sexpr outputting iniobj")
 	    (output_c_code iniobj declbuf implbuf 0)
 	    (output_cfile_decl_impl modnamstr declbuf implbuf)
+	    (informsg_strv "warm-basilys generated module" modnamstr)
 	    )))))
   (message_dbg "ended compile_list_sexpr")
   )
