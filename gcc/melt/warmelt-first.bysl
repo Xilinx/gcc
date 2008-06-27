@@ -786,16 +786,16 @@
 ;;;;;; ROUTINEs primitives
 ;; test
 (defprimitive is_routine (rou) :long
-"(basils_magic_discr((basilys_ptr_t)(" rou ")) == OBMAG_ROUTINE)")
+"(basilys_magic_discr((basilys_ptr_t)(" rou ")) == OBMAG_ROUTINE)")
 ;;; descriptive string of a routine
 (defprimitive routine_descr (rou) :value
-  "(basilysgc_new_stringdup(basilys_routine_descrstr((" rou "))))")
+  "(basilysgc_new_stringdup(basilys_routine_descrstr((basilys_ptr_t)(" rou "))))")
 ;;; size of a routine
 (defprimitive routine_size  (rou) :long
-  "(basilys_routine_size((" rou ")))")
+  "(basilys_routine_size((basilys_ptr_t)(" rou ")))")
 ;;; nth comp in routine
 (defprimitive routine_nth (rou :long ix) :value
-"(basilys_routine_nth((" rou "), (int) (" ix ")))")
+"(basilys_routine_nth((basilys_ptr_t)(" rou "), (int) (" ix ")))")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;; CLOSUREs primitives
@@ -1738,7 +1738,30 @@
 		       (multiple_put_nth res ix (f curcomp ix)))
 		     (setq ix (+i ix 1)))
 	    ))))
-		     
+	
+;;; full iterator on closures  
+;;; the function is called with the component and its index
+(defun closure_every (clo f)
+  (if (is_closure clo)
+      (if (is_closure f)
+	  (let ( (:long ln (closure_size clo))
+		 (:long ix 0) )
+	    (forever cloloop
+		     (if (>=i ix ln) (exit cloloop))
+		     (f  (closure_nth clo ix) ix)
+		     (setq ix (+i ix 1)))))))	     
+
+;;; full iterator on routine  
+;;; the function is called with the component and its index
+(defun routine_every (rou f)
+  (if (is_routine rou)
+      (if (is_closure f)
+	  (let ( (:long ln (routine_size rou))
+		 (:long ix 0) )
+	    (forever rouloop
+		     (if (>=i ix ln) (exit rouloop))
+		     (f  (routine_nth rou ix) ix)
+		     (setq ix (+i ix 1)))))))	     
 
 ;; utility function to make a list of 1
 (defun list1 (v1)
@@ -2024,11 +2047,12 @@
 
 (install_method discr_multiple dbg_output dbgout_multiple_method)
 
-;; routine debug out - don't print the routine components
+;; routine debug out - don't print the routine components if depth is >0
 (defun dbgout_routine_method (self dbgi :long depth)
   (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
   (let ( (dis (discrim self)) 
 	 (sbuf (unsafe_get_field :dbgi_sbuf dbgi))
+	 (boxdepthp1 (make_integerbox discr_integer (+i depth 1)))
 	 )
     (if (== dis DISCR_ROUTINE)
 	(add2sbuf_strconst sbuf " *rou[%")
@@ -2037,6 +2061,13 @@
 	(add2sbuf_string sbuf (unsafe_get_field :named_name dis))
 	(add2sbuf_strconst sbuf "[%")))
     (add2sbuf_routinedescr sbuf self)
+    (if (<i depth 2)
+	(routine_every self 
+		       (lambda (comp :long ix)
+			 (add2sbuf_indent sbuf (get_int boxdepthp1))
+			 (dbg_out comp dbgi (get_int boxdepthp1))
+			 ))
+      )
     (add2sbuf_strconst sbuf "%]")
     )
   )
@@ -2776,6 +2807,10 @@
 ;;;****************************************************************
 
 (debug_msg (current_module_environment_container) "cur.mod.env.cont before update")
+;; before the update_current_module_environment_container below, most
+;; constants for current_module_environment_container or
+;; parent_module_environment are null because there is not enough
+;; stuff yet to build them.
 (update_current_module_environment_container)
 (debug_msg (current_module_environment_container) "cur.mod.env.cont after update")
 
@@ -3075,7 +3110,8 @@
  add_new_keyword_token			
  add_new_symbol_token			
  boxval					
- clone_symbol				
+ clone_symbol
+ closure_every
  compare_obj_ranked			
  dbg_out				
  dbg_outobject				
@@ -3112,7 +3148,10 @@
  pairlist_iterate_test			
  pairlist_to_multiple	
  post_initialization
- put_env				
+ put_env
+ routine_every
  )
 
+(debug_msg class_symbol "at end of warmelt-first our Class_Symbol")
+(debug_msg (fetch_predefined CLASS_SYMBOL) "at end of warmelt-first predefined Class_Symbol")
 ;; eof warmelt-first.bysl

@@ -1,3 +1,22 @@
+2008-06-27  Basile Starynkevitch  <basile@starynkevitch.net>
+	[still buggy; I believe the constants in routines or closed
+	values in closures are messed up when something is redefined]
+
+	* Makefile.in: removing -frandom-seed in our cc1 melt invocations.
+
+	* melt/warmelt-first.bysl: added closure_every routine_every
+
+	* melt/warmelt-macro.bysl: added debugging messages to find out
+	why install_initial_macro gets corrupted.
+
+	* melt/warmelt-normal.bysl: likewise.
+
+	* melt/warmelt-genobj.bysl: likewise. Added objputroutconstnotnull
+	& objputclosednotnullv which also check that teh constant or
+	closed value is not null.
+
+	* melt/warmelt-outobj.bysl: likewise.
+
 2008-06-26  Basile Starynkevitch  <basile@starynkevitch.net>
 	* Makefile.in: using MELTBASILYSCCFILE1 not MELTBASILYSCCINIT1 for
 	most warmelt*.c stuff except the warmelt-first.bysl

@@ -29,6 +29,10 @@
 ;;    compile itself (into generated C file[s])
 ;;    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(assert_msg "check class_symbol" (is_a class_symbol class_class))
+(debug_msg class_symbol "start of warmelt-normal class_symbol")
+(debug_msg install_initial_macro "at start of warmelt-normal Install_Initial_Macro")
+
 ;;;; ================ normalized representations
 
 
@@ -3909,6 +3913,11 @@
       (return syocc nbinds)
       ))))
 (install_method class_src_store_predefined normal_exp normexp_store_predefined)
+
+(assert_msg "check class_symbol" (is_a class_symbol class_class))
+(debug_msg class_symbol "end of warmelt-normal our Class_Symbol")
+(debug_msg (fetch_predefined CLASS_SYMBOL) "end of warmelt-normal predefined Class_Symbol")
+(debug_msg install_initial_macro "at end of warmelt-normal Install_Initial_Macro")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; eof warmelt-normal.bysl

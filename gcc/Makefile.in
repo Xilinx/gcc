@@ -4710,16 +4710,16 @@ MELTBASILYSCCINIT1= time ./cc1$(exeext) -fbasilys  \
 	      -fbasilys-compile-script=built-melt-cc-script \
 	      -fbasilys-gensrcdir=. \
 	      -fbasilys-tempdir=. \
-	      -fbasilys-command=compileinit  \
-	      -frandom-seed=AbCdEfGhIj
+	      -fbasilys-command=compileinit  
+#	      -frandom-seed=$$RANDOM
 
 MELTBASILYSCCFILE1= time ./cc1$(exeext) -fbasilys  \
 	      -fbasilys-dynlibdir=. \
 	      -fbasilys-compile-script=built-melt-cc-script \
 	      -fbasilys-gensrcdir=. \
 	      -fbasilys-tempdir=. \
-	      -fbasilys-command=compilefile  \
-	      -frandom-seed=AbCdEfGhIj
+	      -fbasilys-command=compilefile  
+#	      -frandom-seed=$$RANDOM
 
 warm%.so: warm%.c built-melt-cc-script
 	./built-melt-cc-script $< $@

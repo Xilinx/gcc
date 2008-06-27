@@ -29,6 +29,11 @@
 ;;    compile itself (into generated C file[s])
 ;;    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+
+(debug_msg class_symbol "at start of warmelt-genobj Class_Symbol")
+(debug_msg (fetch_predefined CLASS_SYMBOL) "start of warmelt-genobj predefined Class_Symbol")
+
+
 ;;;; value like objects
 (defclass class_objvalue
   :super class_objcode
@@ -341,12 +346,24 @@
 	   opclov_cval			;the closed value
 ))
 
+;; likewise, but check that the closed value is notnull
+(defclass class_objputclosednotnullv
+  :super class_objputclosedv
+  :fields (
+))
+
 ;; put a constant value inside a routine
 (defclass class_objputroutconst
   :super class_objinstr
   :fields (oprconst_rout	 ;the routine data
 	   oprconst_off		 ;the boxed offset
 	   oprconst_cval	 ;the constant value
+))
+
+;; likewise, but check that the constant is notnull
+(defclass class_objputroutconstnotnull
+  :super class_objputroutconst
+  :fields (
 ))
 
 ;; touch a value, with a tiny comment
@@ -437,9 +454,11 @@
  class_objnil
  class_objpredef
  class_objpurevalue
+ class_objputclosednotnullv
  class_objputclosedv
  class_objputclosurout
  class_objputroutconst
+ class_objputroutconstnotnull
  class_objputslot
  class_objputuple
  class_objputxtraresult
@@ -3272,7 +3291,7 @@
 	(if nam (progn
 		  (add2sbuf_strconst nambuf "__")
 		  (add2sbuf_cident nambuf (unsafe_get_field :named_name nam))))
-	;(debug_msg ndrou "compilobj_dataroutine encore ndrou")
+	;;(debug_msg ndrou "compilobj_dataroutine encore ndrou")
 	(let (
 	      (oirout 
 	       (make_instance class_objinitroutine
@@ -3306,11 +3325,21 @@
 			      (:long off (get_int bxoff))
 			      ) 
 			  (if oconstx 
-			      (let ( (iput (make_instance class_objputroutconst
-							  :obi_loc nloc
-							  :oprconst_rout oirout
-							  :oprconst_off (make_integerbox discr_integer off)
-							  :oprconst_cval oconstx)) ) 
+			      (let (
+				    (iput
+				     (if (is_a cnstbind class_fixed_binding)
+					 (make_instance class_objputroutconstnotnull
+							:obi_loc nloc
+							:oprconst_rout oirout
+							:oprconst_off (make_integerbox discr_integer off)
+							:oprconst_cval oconstx)
+				       (make_instance class_objputroutconst
+						      :obi_loc nloc
+						      :oprconst_rout oirout
+						      :oprconst_off (make_integerbox discr_integer off)
+						      :oprconst_cval oconstx)
+				       )) 
+				    ) 
 				(list_append inibody iput)
 				(put_int bxoff (+i off 1))))))
 		      )
@@ -3498,6 +3527,10 @@
     (return ocblo)
     ))
 (install_method class_nrep_update_current_module_environment_container compile_obj compilobj_nrep_update_current_module_environment_container)
+
+
+(debug_msg class_symbol "at end of warmelt-genobj Class_Symbol")
+(debug_msg (fetch_predefined CLASS_SYMBOL) "end of warmelt-genobj predefined Class_Symbol")
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

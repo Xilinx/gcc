@@ -29,6 +29,10 @@
 ;;    compile itself (into generated C file[s])
 ;;    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+
+(debug_msg class_symbol "at start of warmelt-outobj Class_Symbol")
+(debug_msg (fetch_predefined CLASS_SYMBOL) "start of warmelt-outobj predefined Class_Symbol")
+
 (defun outdeclinit_root (recv sbuf)
   (debug_msg recv "outdeclinit_root recv")
   (assert_msg "outdeclinit_root unimplemented catchall" ())
@@ -2302,6 +2306,45 @@
 (install_method class_objputclosedv output_c_code outpucod_objputclosedv)
 
 
+;;; output the putting of a nonull closed value
+(defun outpucod_objputclosednotnullv (opclov declbuf implbuf :long depth)
+  (assert_msg "check opclor" (is_a opclov class_objputclosednotnullv))
+  (debug_msg opclov "outpucod_objputclosednotnullv")
+  (let ( (oloc (unsafe_get_field :obi_loc opclov))
+	 (oclos (unsafe_get_field :opclov_clos opclov))
+	 (ooff (unsafe_get_field :opclov_off opclov))
+	 (ocval (unsafe_get_field :opclov_cval opclov)) )
+    (output_location oloc implbuf depth "putclosednotnullv")
+    (add2sbuf_strconst implbuf "/*putclosvnotnull*/")
+    (add2sbuf_indentnl implbuf depth)
+    (add2sbuf_strconst implbuf "basilys_assertmsg(\"putclosvnotnull checkclo\", basilys_magic_discr((basilys_ptr_t)(")
+    (output_c_code oclos declbuf implbuf depth)
+    (add2sbuf_strconst implbuf ")) == OBMAG_CLOSURE);")
+    (add2sbuf_indentnl implbuf depth)
+    (add2sbuf_strconst implbuf "basilys_assertmsg(\"putclosvnotnull checknotnullval\", NULL != ")
+    (output_c_code ocval declbuf implbuf depth)
+    (add2sbuf_strconst implbuf ");")
+    (add2sbuf_indentnl implbuf depth)
+    (add2sbuf_strconst implbuf "basilys_assertmsg(\"putclosvnotnull checkoff\", ")
+    (output_c_code ooff declbuf implbuf depth)
+    (add2sbuf_strconst implbuf ">= 0 && ")
+    (output_c_code ooff declbuf implbuf depth)
+    (add2sbuf_strconst implbuf "< basilys_closure_size((basilys_ptr_t) (")
+    (output_c_code oclos declbuf implbuf depth)
+    (add2sbuf_strconst implbuf ")));")
+    (add2sbuf_indentnl implbuf depth)
+    (add2sbuf_strconst implbuf "((basilysclosure_ptr_t)")
+    (output_c_code oclos declbuf implbuf depth)
+    (add2sbuf_strconst implbuf ")->tabval[")
+    (output_c_code ooff declbuf implbuf depth)
+    (add2sbuf_strconst implbuf "] = (basilys_ptr_t)(")
+    (output_c_code ocval declbuf implbuf depth)
+    (add2sbuf_strconst implbuf ");")
+    (add2sbuf_indentnl implbuf depth)
+    ))
+(install_method class_objputclosednotnullv output_c_code outpucod_objputclosednotnullv)
+
+
 ;; output the putting of a constant value inside a routine
 (defun outpucod_objputroutconst (oprconst declbuf implbuf :long depth)
   (assert_msg "check oprconst" (is_a oprconst class_objputroutconst))
@@ -2316,6 +2359,7 @@
     (output_c_code orout declbuf implbuf depth)
     (add2sbuf_strconst implbuf ")) == OBMAG_ROUTINE);")
     (add2sbuf_indentnl implbuf depth)
+    (add2sbuf_indentnl implbuf depth)
     (add2sbuf_strconst implbuf "((basilysroutine_ptr_t)")
     (output_c_code orout declbuf implbuf depth)
     (add2sbuf_strconst implbuf ")->tabval[")
@@ -2327,6 +2371,37 @@
     )
   )
 (install_method class_objputroutconst output_c_code outpucod_objputroutconst)
+
+;; output the putting of a nonnull constant value inside a routine
+(defun outpucod_objputroutconstnotnull (oprconst declbuf implbuf :long depth)
+  (assert_msg "check oprconst" (is_a oprconst class_objputroutconstnotnull))
+  (let ( (oloc (unsafe_get_field :obi_loc oprconst))
+	 (orout (unsafe_get_field :oprconst_rout oprconst))
+	 (ooff (unsafe_get_field :oprconst_off oprconst))
+	 (ocval (unsafe_get_field :oprconst_cval oprconst)) )
+    (assert_msg "check notnull ocval" (notnull ocval))
+    (output_location oloc implbuf depth "putroutconstnotnull")
+    (add2sbuf_strconst implbuf "/*putroutconstnotnull*/")
+    (add2sbuf_indentnl implbuf depth)
+    (add2sbuf_strconst implbuf "basilys_assertmsg(\"putroutconstnotnull checkrout\", basilys_magic_discr((basilys_ptr_t)(")
+    (output_c_code orout declbuf implbuf depth)
+    (add2sbuf_strconst implbuf ")) == OBMAG_ROUTINE);")
+    (add2sbuf_indentnl implbuf depth)
+    (add2sbuf_strconst implbuf "basilys_assertmsg(\"putroutconstnotnull notnullconst\", NULL != ")
+    (output_c_code ocval declbuf implbuf depth)
+    (add2sbuf_strconst implbuf ");")
+    (add2sbuf_indentnl implbuf depth)
+    (add2sbuf_strconst implbuf "((basilysroutine_ptr_t)")
+    (output_c_code orout declbuf implbuf depth)
+    (add2sbuf_strconst implbuf ")->tabval[")
+    (output_c_code ooff declbuf implbuf depth)
+    (add2sbuf_strconst implbuf "] = (basilys_ptr_t)(")
+    (output_c_code ocval declbuf implbuf depth)
+    (add2sbuf_strconst implbuf ");")
+    (add2sbuf_indentnl implbuf depth)
+    )
+  )
+(install_method class_objputroutconstnotnull output_c_code outpucod_objputroutconstnotnull)
 
 
 
@@ -2701,5 +2776,8 @@
 ;;;;;;;;;;;;;;;;
 
 (debug_msg initial_system_data "toplevel initial_system_data")
+
+(debug_msg class_symbol "at end of warmelt-outobj Class_Symbol")
+(debug_msg (fetch_predefined CLASS_SYMBOL) "end of warmelt-outobj predefined Class_Symbol")
 
 ;;; eof warmelt-outobj.bysl

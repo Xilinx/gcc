@@ -31,6 +31,10 @@
 
 
 
+(assert_msg "check class_symbol" (is_a class_symbol class_class))
+(debug_msg class_symbol "start of warmelt-macro our Class_Symbol")
+(debug_msg (fetch_predefined CLASS_SYMBOL) "start of warmelt-macro predefined Class_Symbol")
+
 ;;****************************************************************
 
 
@@ -646,9 +650,23 @@
       )))
 
 
+
+
 ;;;;;;;;;;;;;;;; install an initial macro expanser
 (defun install_initial_macro (symb expander)
   (debug_msg symb "install_initial_macro symb")
+  (if (is_not_a symb class_symbol)
+      (progn
+	(debug_msg (discrim symb) "install_initial_macro bad symb class")
+	(debug_msg class_symbol "install_initial_macro expected class_symbol")
+	(debug_msg install_initial_macro "install_initial_macro itself Install_Initial_Macro")
+	(debug_msg (closure_routine install_initial_macro) "install_initial_macro routine in Install_Initial_Macro")
+	(messageval_dbg "install_initial_macro bad symb is" symb)
+	(messageval_dbg "install_initial_macro bad symb class is" (discrim symb))
+	(messageval_dbg "install_initial_macro bad class_symbol is" class_symbol)
+	(messageval_dbg "install_initial_macro itself is Install_Initial_Macro" install_initial_macro)
+	(assert_msg "check good symb" (is_a symb class_symbol))
+	))
   (assert_msg "check symb" (is_a symb class_symbol))
   (assert_msg "check expander" (is_closure expander))
 ;  (debug_msg expander "install_initial_macro expander")
@@ -660,6 +678,9 @@
 	 (debug_msg symb "install_initial_macro done symb")
 ))
 
+(debug_msg install_initial_macro "install_initial_macro itself in warmelt-macro after def Install_Initial_Macro")
+(debug_msg (closure_routine install_initial_macro) "install_initial_macro itself in warmelt-macro after def Install_Initial_Macro routgine")
+
 (compile_warning "warn_if_redefined should perhaps return true if redefined" ())
 ;; basically, we need a mode where any redefinition is ignored
 
@@ -670,7 +691,7 @@
   (debug_msg sexpr "mexpand_redefinition_handling sexpr")
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
   (let ( (cont (unsafe_get_field :sexp_contents sexpr))
-	 (loc  (unsafe_get_field :loca_location sexpr))
+	 (loc  (unsafe_get_field :loca_location sexpr)) 
 	 )
     (warning_plain loc "(REDEFINITION_HANDLING ....) @@ NOT IMPLEMENTED YET")
     (return)
@@ -2523,4 +2544,8 @@
  macroexpand_toplevel_list
  )			  ;end of functions for source representations
 
+(debug_msg class_symbol "at end of warmelt-macro Class_Symbol")
+(debug_msg (fetch_predefined CLASS_SYMBOL) "end of warmelt-macro predefined Class_Symbol")
+(debug_msg install_initial_macro "at end of warmelt-macro Install_Initial_Macro")
+(debug_msg (closure_routine install_initial_macro) "at end of warmelt-macro Install_Initial_Macro routine")
 ;; eof warmelt-macro.bysl
