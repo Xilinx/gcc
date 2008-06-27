@@ -13,7 +13,9 @@
 
 	* melt/warmelt-genobj.bysl: likewise. Added objputroutconstnotnull
 	& objputclosednotnullv which also check that teh constant or
-	closed value is not null.
+	closed value is not null. This check cannot be done everytime,
+	notably because of first occurrence of
+	update_current_module_environment_container in warmelt-first.bysl
 
 	* melt/warmelt-outobj.bysl: likewise.
 
