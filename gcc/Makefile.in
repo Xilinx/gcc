@@ -4682,6 +4682,8 @@ endif
 ## we have to invoke make recursively, because run-basilys.d is a -include-d dependency file
 ifdef BASILYSMELT_OBJ
 melt.encap: run-basilys.d 
+	echo melt.encap making Makefile
+	$(MAKE) Makefile
 	echo melt.encap making run-basilys-deps built-melt-cc-script 
 	$(MAKE) run-basilys-deps built-melt-cc-script 
 # this is working probably only on Linux machines (hosts); we should use libtool here also!
@@ -4802,19 +4804,19 @@ warmelt-%.so: warmelt-%.c built-melt-cc-script
 	./built-melt-cc-script $< $@
 
 
-warmelt-%-1.c:  $(srcdir)/melt/warmelt-%.bysl warm-basilys-3.so cc1$(exeext)
-	@echo generating $@ using warm-basilys-3 
+warmelt-%-1.c:  $(srcdir)/melt/warmelt-%.bysl warm-basilys-2.so cc1$(exeext)
+	@echo generating $@ using warm-basilys-2
 	-rm -f $@
-	$(MELTBASILYSCCFILE1) -fbasilys-init='warm-basilys-3' \
+	$(MELTBASILYSCCFILE1) -fbasilys-init='warm-basilys-2' \
 	      -fbasilys-arg=$< \
 	      -fbasilys-secondarg=$@
 	ls -l $@
 
-warmelt-first-1.c: $(srcdir)/melt/warmelt-first.bysl  warm-basilys-3.so cc1$(exeext)
+warmelt-first-1.c: $(srcdir)/melt/warmelt-first.bysl  warm-basilys-2.so cc1$(exeext)
 	-rm -f $@
-	@echo generating warmelt-first using warm-basilys-3
+	@echo generating warmelt-first using warm-basilys-2
 	@echo WARMELT_BASE= $WARMELT_BASE
-	$(MELTBASILYSCCINIT1) -fbasilys-init='warm-basilys-3' \
+	$(MELTBASILYSCCINIT1) -fbasilys-init='warm-basilys-2' \
 	      -fbasilys-arg=$< \
 	      -fbasilys-secondarg=$@
 	ls -l $@
@@ -4822,7 +4824,7 @@ warmelt-first-1.c: $(srcdir)/melt/warmelt-first.bysl  warm-basilys-3.so cc1$(exe
 warmelt-%-2.c: $(srcdir)/melt/warmelt-%.bysl $(WARMELT_BASE1SO)  cc1$(exeext) 
 	@echo generating $@ using $(WARMELT_BASE1SO)
 	-rm -f $@
-	$(MELTBASILYSCCINIT1) -fbasilys-init=$(WARMELT_BASE1ROW) \
+	$(MELTBASILYSCCFILE1) -fbasilys-init=$(WARMELT_BASE1ROW) \
 	      -fbasilys-arg=$< \
 	      -fbasilys-secondarg=$@
 	ls -l $@
@@ -4838,7 +4840,7 @@ warmelt-first-2.c: $(srcdir)/melt/warmelt-first.bysl $(WARMELT_BASE1SO) cc1$(exe
 warmelt-%-3.c: $(srcdir)/melt/warmelt-%.bysl $(WARMELT_BASE2SO)  cc1$(exeext) 
 	@echo generating $@ using $(WARMELT_BASE2SO)
 	-rm -f $@
-	$(MELTBASILYSCCINIT1) -fbasilys-init=$(WARMELT_BASE2ROW) \
+	$(MELTBASILYSCCFILE1) -fbasilys-init=$(WARMELT_BASE2ROW) \
 	      -fbasilys-arg=$< \
 	      -fbasilys-secondarg=$@
 	ls -l $@

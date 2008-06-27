@@ -1,3 +1,7 @@
+2008-06-26  Basile Starynkevitch  <basile@starynkevitch.net>
+	* Makefile.in: using MELTBASILYSCCFILE1 not MELTBASILYSCCINIT1 for
+	most warmelt*.c stuff except the warmelt-first.bysl
+
 2008-06-25  Basile Starynkevitch  <basile@starynkevitch.net>
 	[continue splitting stuff into several modules]
 
