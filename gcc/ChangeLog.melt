@@ -1,3 +1,23 @@
+2008-06-29  Basile Starynkevitch  <basile@starynkevitch.net>
+	[still buggy - the initial routine has a prolog before allocation
+	of cdata and a body after the allocation & filling of cdata]
+
+	* basilys.h: added basilys_checkmsg & declared
+	basilys_check_failed
+
+	* basilys.c: (basilys_check_failed) new function.
+
+	* Makefile.in: using .SECONDARY for the generated warm*.c files.
+
+	* melt/warmelt-first.bysl: less verbose export & import functions.
+
+	* melt/warmelt-genobj.bysl: added class_objcommentinstr &
+	oirout_prolog in class_initialroutineobj and generate the prolog
+	in compile2obj_initproc
+
+	* melt/warmelt-outobj.bysl: outputting better the
+	class_objcommentinstr & class_initialroutineobj
+
 2008-06-27  Basile Starynkevitch  <basile@starynkevitch.net>
 	[still buggy; I believe the constants in routines or closed
 	values in closures are messed up when something is redefined]

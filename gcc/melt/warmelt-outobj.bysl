@@ -913,6 +913,7 @@
   (let ( 
 	(idatup (unsafe_get_field :oirout_data pini)) 
 	(irfill (unsafe_get_field :oirout_fill pini))
+	(iprolog (unsafe_get_field :oirout_prolog pini))
 	(oretval (unsafe_get_field :obrout_retval pini))
 	) 
     (add2sbuf_indentnl declbuf 0)
@@ -961,6 +962,21 @@
        (add2sbuf_strconst dsbuf "initial_frame_st ")
        )
      pini implbuf)
+;;; output the prologue
+;;;
+    (add2sbuf_strconst implbuf "/**initial routine prologue**/")
+    (add2sbuf_indentnl implbuf 0)
+    (list_every
+     iprolog
+     (lambda (curprol)
+	 (debug_msg curprol "outpucod_initialroutine curprol")
+	 (if (and curprol (not (is_a curprol class_objpurevalue)))
+	     (progn
+	       (output_c_code curprol declbuf implbuf 1)
+	       (add2sbuf_indentnl implbuf 1))
+       )))
+    (add2sbuf_strconst implbuf "/**initial routine cdata initializer**/")
+    (add2sbuf_indentnl implbuf 0)
 ;;; output call cdata initializer
     (add2sbuf_indentnl implbuf 1)
     (add2sbuf_strconst implbuf "memset(predefinited, 0, sizeof(predefinited));")
@@ -969,7 +985,7 @@
     (add2sbuf_indentnl implbuf 1)
 ;;; output the body
 ;;;
-    (add2sbuf_strconst implbuf "/*initial routine body*/")
+    (add2sbuf_strconst implbuf "/**initial routine body**/")
     (add2sbuf_indentnl implbuf 0)
     (let ( (ibody (unsafe_get_field :obrout_body pini)) 
 	   )
@@ -1181,6 +1197,24 @@
   (debug_msg oblo "outpucod_objblock done oblo")
   )
 (install_method class_objblock output_c_code outpucod_objblock)
+
+
+(defun outpucod_objcommentinstr (obci declbuf implbuf :long depth)
+  (assert_msg "check obci" (is_a obci class_objcommentinstr))
+  (let ( (oloc (unsafe_get_field :obi_loc obci))
+	 (coms (unsafe_get_field :obci_comment obci))
+	 (comstr (let ( (sbu (make_strbuf discr_strbuf)) )
+		   (add2sbuf_ccomstring sbu coms)
+		   (strbuf2string discr_string sbu)
+		   ))
+	 )
+    (output_location oloc implbuf depth "comment")
+    (add2sbuf_strconst implbuf "/**COMMENT: ")
+    (add2sbuf_string implbuf comstr)
+    (add2sbuf_strconst implbuf " **/;")
+    (add2sbuf_indentnl implbuf depth)
+))
+(install_method class_objcommentinstr output_c_code outpucod_objcommentinstr)
 
 ;; output code for objcommentedblock
 (defun outpucod_objcommentedblock (oblo declbuf implbuf :long depth)
@@ -2350,6 +2384,7 @@
   (assert_msg "check oprconst" (is_a oprconst class_objputroutconst))
   (let ( (oloc (unsafe_get_field :obi_loc oprconst))
 	 (orout (unsafe_get_field :oprconst_rout oprconst))
+	 (oroutnam (if (is_a orout class_objinitroutine) (unsafe_get_field :oie_cname orout)))
 	 (ooff (unsafe_get_field :oprconst_off oprconst))
 	 (ocval (unsafe_get_field :oprconst_cval oprconst)) )
     (output_location oloc implbuf depth "putroutconst")
@@ -2359,6 +2394,13 @@
     (output_c_code orout declbuf implbuf depth)
     (add2sbuf_strconst implbuf ")) == OBMAG_ROUTINE);")
     (add2sbuf_indentnl implbuf depth)
+    (add2sbuf_strconst implbuf "basilys_checkmsg(\"putroutconst constnull.")
+    (if (is_string oroutnam) (add2sbuf_string implbuf oroutnam))
+    (add2sbuf_strconst implbuf "#")
+    (output_c_code ooff declbuf implbuf depth)
+    (add2sbuf_strconst implbuf "\", NULL != (")
+    (output_c_code ocval declbuf implbuf depth)
+    (add2sbuf_strconst implbuf "));")
     (add2sbuf_indentnl implbuf depth)
     (add2sbuf_strconst implbuf "((basilysroutine_ptr_t)")
     (output_c_code orout declbuf implbuf depth)

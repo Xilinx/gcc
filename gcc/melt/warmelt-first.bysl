@@ -96,10 +96,11 @@
 
 ;; class of source expressions
 (defclass class_sexpr
+  :predef CLASS_SEXPR
   :super class_located
   :fields (sexp_contents		;list of contents
 	   )
-  :predef CLASS_SEXPR)
+)
 
 ;; class of message selectors
 (defclass class_selector
@@ -1330,88 +1331,88 @@
   ;;(debug_msg contenv "initvalue_exporter contenv")
   ;;(if (need_dbg 0) 
   ;;    (shortbacktrace_dbg "initvalue_exporter" 15))
-  (if (null contenv)
-      (progn
-	(if (parent_module_environment)
-	    (warningmsg_strv "exporting value too early with null environment container"  (unsafe_get_field :named_name sym)))
-	(return)
-	))
-  (assert_msg "check sym" (is_a sym class_symbol))
-  (assert_msg "check contenv" (is_a contenv class_container))
-  (let ( (env (unsafe_get_field :container_value contenv)) )
-    (if  (and (null env) (parent_module_environment))
+  (let ( (parenv (parent_module_environment)) )
+    (if (null contenv)
 	(progn
-	  (informsg_strv "exporting value too early with null environment" (unsafe_get_field :named_name sym))
+	  (if parenv
+	      (warningmsg_strv "exporting value too early with null environment container"  (unsafe_get_field :named_name sym)))
 	  (return)
 	  ))
-    (assert_msg "check good env" (is_a env class_environment))
-    (let (
-	  (parenv (parent_module_environment))
-	  (prevbind (if parenv (find_env parenv sym)))
-	  (valbind (make_instance
-		    class_value_binding
-		    :binder sym
-		    :vbind_value val
-		    )) 
-	  (symnam (unsafe_get_field :named_name sym))
-	  )
-      (debug_msg valbind "initvalue_exporter valbind")
-      (debug_msg prevbind "initvalue_exporter prevbind")
-      (cond 
-       ( (null prevbind) () )
-       ( (and 
-	  (is_a prevbind class_selector_binding)
-	  (is_a val class_selector))
-	 (warningmsg_strv "not exporting previous bound selector" symnam)
-	 (return))
-       ( (and
-	  (is_a prevbind class_instance_binding)
-	  (is_object val))
-	 (warningmsg_strv "not exporting previous bound instance" symnam)
-	 (return))
-       ( (and
-	  (is_a prevbind class_primitive_binding)
-	  (is_a val class_primitive))
-	 (warningmsg_strv "not exporting previous bound primitive" symnam)
-	 (return))
-       ( (and
-	  (is_a prevbind class_function_binding)
-	  (is_closure val))
-	 (warningmsg_strv "not exporting previous bound function" symnam)
-	 (return))
-       ( (and
-	  (is_a prevbind class_class_binding)
-	  (is_a val class_class))
-	 (warningmsg_strv "not exporting previous bound class" symnam)
-	 (return))
-       ( (and
-	  (is_a prevbind class_field_binding)
-	  (is_a val class_class))
-	 (warningmsg_strv "not exporting previous bound field" symnam)
-	 (return)
-	 )
-       ( (and
-	  (is_a prevbind class_instance_binding)
-	  (is_object val))
-	 (warningmsg_strv "not exporting previous bound instance" symnam)
-	 (return)
-	 )
-       (  (is_a prevbind class_value_binding)
-	  (let ( (preval (unsafe_get_field :vbind_value prevbind))
-		 (prevdiscr (discrim preval))
-		 (curdiscr (discrim val))
-		 )
-	    (if (== prevdiscr curdiscr)
-		(progn
-		  (warningmsg_strv "not exporting previous bound homogenous value" symnam)
-		  (warningmsg_strv "common value discrim" 
-				   (unsafe_get_field :named_name prevdiscr))
-		  (return)))
+    (assert_msg "check sym" (is_a sym class_symbol))
+    (assert_msg "check contenv" (is_a contenv class_container))
+    (let ( (env (unsafe_get_field :container_value contenv)) )
+      (if  (and (null env) parenv)
+	  (progn
+	    (informsg_strv "exporting value too early with null environment" (unsafe_get_field :named_name sym))
+	    (return)
 	    ))
-       )
-      (put_env env valbind)
-      (return)
-      )))
+      (assert_msg "check good env" (is_a env class_environment))
+      (let (
+	    (prevbind (if parenv (find_env parenv sym)))
+	    (valbind (make_instance
+		      class_value_binding
+		      :binder sym
+		      :vbind_value val
+		      )) 
+	    (symnam (unsafe_get_field :named_name sym))
+	    )
+	(debug_msg valbind "initvalue_exporter valbind")
+	(debug_msg prevbind "initvalue_exporter prevbind")
+	(cond 
+	 ( (null prevbind) () )
+	 ( (and 
+	    (is_a prevbind class_selector_binding)
+	    (is_a val class_selector))
+	   (warningmsg_strv "not exporting previous bound selector" symnam)
+	   (return))
+	 ( (and
+	    (is_a prevbind class_instance_binding)
+	    (is_object val))
+	   (warningmsg_strv "not exporting previous bound instance" symnam)
+	   (return))
+	 ( (and
+	    (is_a prevbind class_primitive_binding)
+	    (is_a val class_primitive))
+	   (warningmsg_strv "not exporting previous bound primitive" symnam)
+	   (return))
+	 ( (and
+	    (is_a prevbind class_function_binding)
+	    (is_closure val))
+	   (warningmsg_strv "not exporting previous bound function" symnam)
+	   (return))
+	 ( (and
+	    (is_a prevbind class_class_binding)
+	    (is_a val class_class))
+	   (warningmsg_strv "not exporting previous bound class" symnam)
+	   (return))
+	 ( (and
+	    (is_a prevbind class_field_binding)
+	    (is_a val class_class))
+	   (warningmsg_strv "not exporting previous bound field" symnam)
+	   (return)
+	   )
+	 ( (and
+	    (is_a prevbind class_instance_binding)
+	    (is_object val))
+	   (warningmsg_strv "not exporting previous bound instance" symnam)
+	   (return)
+	   )
+	 (  (is_a prevbind class_value_binding)
+	    (let ( (preval (unsafe_get_field :vbind_value prevbind))
+		   (prevdiscr (discrim preval))
+		   (curdiscr (discrim val))
+		   )
+	      (if (== prevdiscr curdiscr)
+		  (progn
+		    (warningmsg_strv "not exporting previous bound homogenous value" symnam)
+		    (warningmsg_strv "common value discrim" 
+				     (unsafe_get_field :named_name prevdiscr))
+		    (return)))
+	      ))
+	 )
+	(put_env env valbind)
+	(return)
+	))))
 
 
 ;; initial value importer

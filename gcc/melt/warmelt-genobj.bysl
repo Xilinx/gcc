@@ -146,6 +146,11 @@
   :fields (obi_loc			;src location
 ))
 
+(defclass class_objcommentinstr		;just a comment, useful only for debugging our generator
+  :super class_objinstr
+  :fields (obci_comment
+))
+
 
 ;;;; instructions with a list of destinations (computes, calls, sends, etc...)
 (defclass class_objdestinstr
@@ -409,6 +414,7 @@
   :super class_routineobj
   :fields (
 	   oirout_data			;the tuple of initial data
+	   oirout_prolog       ;the prologue (list of instr) before filling the data. Imports should go here!
 	   oirout_fill			;the fill of the data (a list of instr)
 ))
 
@@ -421,6 +427,7 @@
  class_objclear
  class_objcloccv
  class_objcommentedblock
+ class_objcommentinstr
  class_objcompute
  class_objcond
  class_objconstv
@@ -732,6 +739,11 @@
   :obpredef 'INITIAL_SYSTEM_DATA
   )
 
+(defun append_comment (ilist comstr iloc)
+  (list_append ilist (make_instance class_objcommentinstr :obi_loc iloc :obci_comment comstr)))
+(defun append_commentconst (ilist :cstring comment :value iloc)
+   (list_append ilist (make_instance class_objcommentinstr :obi_loc iloc :obci_comment (make_stringconst discr_string comment))))
+
 ;;;; compile the initial procedure into an object
 (defun compile2obj_initproc (ipro modctx idata compicache procurmodenvlist importvalues)
   (assert_msg "check ipro" (is_a ipro class_nrep_initproc))
@@ -744,6 +756,7 @@
   (debug_msg procurmodenvlist "compile2obj_initproc start procurmodenvlist")
   (debug_msg importvalues "compile2obj_initproc start importvalues")
   (let ((locmap (make_mapobject discr_mapobjects 50))
+	(oiniprolog (make_list discr_list))
 	(oinibody (make_list discr_list))
 	(oinitrout
 	 (make_instance class_initialroutineobj
@@ -754,6 +767,7 @@
 			:obrout_nblong (make_integerbox discr_integer 0)
 			:obrout_others (make_list discr_list)
 			:oirout_fill (make_list discr_list)
+			:oirout_prolog oiniprolog
 			))
 	(importmap (make_mapobject discr_mapobjects 50))
 	(gcx (make_instance 
@@ -795,6 +809,7 @@
 	(omacroexporter (get_free_objlocptr gcx '_macroexport_))
 	(ovalueimporter (get_free_objlocptr gcx '_valimport_))
 	)
+    (append_commentconst oinibody "start of oinibody")
     (debug_msg boxloc "boxloc is")
     ;; create a commentedblock to compute the new environemnt box in boxloc if it is null 
     (let (
@@ -802,6 +817,7 @@
 	  (ocomputboxloc
 	   (let ( (bodfel (make_list discr_list)) 
 		  )
+	     (append_commentconst bodfel "start computing boxloc")
 	     ;; retrieve the fresh_env from the systemdata
 	     (list_append bodfel
 			  (make_instance class_objgetslot
@@ -837,10 +853,19 @@
 			    :oblo_epil (the_null)
 			    :ocomblo_comment (make_stringconst discr_string "compute fresh module environment")))
 	   )
-	  ;; cond to test boxloc & compute it if null
+	  ;; cond to test boxloc & compute it if null and if the initial_system_data is a valid object
 	  (otestcomputboxloc 
 	   (make_instance class_objcond
-			  :obcond_test boxloc
+			  :obcond_test
+			  (make_instance
+			   class_objexpv 
+			   :obx_cont (make_tuple2 
+				      discr_multiple
+				      boxloc
+				      (make_stringconst discr_verbatimstring
+							" || basilys_object_length((basilys_ptr_t)BASILYSG(INITIAL_SYSTEM_DATA))<FSYSDAT_BOX_FRESH_ENV"
+						   )
+				      ))
 			  :obcond_then (the_null)
 			  :obcond_else ocomputboxloc))
 	  ;;
@@ -859,18 +884,20 @@
 		))))
 	  )
       (debug_msg otestcomputboxloc "compile2obj_initproc otestcomputboxloc")
-      ;; the body starts by getting the previous environment from the
+      ;; the prologue starts by getting the previous environment from the
       ;; modargp_ unique argument
       (let ( (lisdest (make_list discr_list)) )
 	(list_append lisdest oprevenv)
-	(list_append oinibody
+	(append_commentconst oiniprolog "get previous environment")
+	(list_append oiniprolog
 		     (make_instance class_objcompute
 				    :obdi_destlist lisdest
 				    :obcpt_expr (make_stringconst discr_verbatimstring "modargp_"))
 		     )
 	)
+      (append_commentconst oiniprolog "compute boxloc")
       ;; we compute the boxloc at first
-      (list_append oinibody otestcomputboxloc)
+      (list_append oiniprolog otestcomputboxloc)
       ;; the tuple to compile the body
       (let (
 	    (odatatup 
@@ -897,6 +924,7 @@
 		     otop)))) 
 	       )
 	  ;; generate the getting of symbols & keywords
+	  (append_commentconst oiniprolog "get symbols & keywords")
 	  (multiple_every
 	   odatatup
 	   (lambda (curpdat :long curk) 
@@ -910,48 +938,60 @@
 		      (let ( (ogkw (make_instance class_objgetnamedkeyword
 						  :obgnamed_iobj curpdat))
 			     )
-			(list_append oinibody ogkw)
+			(list_append oiniprolog ogkw)
 			(debug_msg ogkw "compile2obj_initproc added keyword getting ogkw")
 			))
 		    ( (is_a odat class_nrep_datasymbol)
 		      (let ( (ogsy (make_instance class_objgetnamedsymbol
 						  :obgnamed_iobj curpdat))
 			     )
-			(list_append oinibody ogsy)
+			(list_append oiniprolog ogsy)
 			(debug_msg ogsy "compile2obj_initproc added symbol getting ogsy")
 			))
 		    )))))
 	  ;; get the value importer if needed
 	  (if (>i (mapobject_count importmap) 0)
-	      (list_append oinibody
-			   (make_instance class_objgetslot
-					  :obdi_destlist (list1 ovalueimporter)
-					  :ogetsl_obj initialsystemdata_objpredef 
-					  :ogetsl_field sysdata_value_importer)))
-	  ;; generate the getting of imported values
-	  (list_every
-	   importvalues
-	   (lambda (curimport)
-	     (debug_msg curimport "compile2obj_initproc curimport")
-	      (assert_msg "check curimport" (is_a curimport class_nrep_importedval))
-	     (let ( (impsym (unsafe_get_field :nimport_symb curimport)) 
-		    (impsydat (unsafe_get_field :nimport_sydata curimport))
-		    (osymdat (compile_obj impsydat gcx))
-		    (oimplocv (mapobject_get importmap impsym))
-		    (oimpappl (make_instance class_objapply
-					     :obdi_destlist (list1 oimplocv)
-			     :obapp_clos ovalueimporter
-			     :obapp_args (make_tuple2 discr_multiple osymdat oprevenv)))
-		    )
-	       (list_append oinibody oimpappl)
-	     )))
+	      (progn
+		(append_commentconst oiniprolog "get the value importer")
+		(list_append oiniprolog
+			     (make_instance class_objgetslot
+					    :obdi_destlist (list1 ovalueimporter)
+					    :ogetsl_obj initialsystemdata_objpredef 
+					    :ogetsl_field sysdata_value_importer))
+		))
+	  (if (>i (list_length importvalues) 0)
+	      (progn
+		(append_commentconst oiniprolog "before getting imported values")
+		;; generate the getting of imported values
+		(list_every
+		 importvalues
+		 (lambda (curimport)
+		   (debug_msg curimport "compile2obj_initproc curimport")
+		   (assert_msg "check curimport" (is_a curimport class_nrep_importedval))
+		   (let ( (impsym (unsafe_get_field :nimport_symb curimport)) 
+			  (impsydat (unsafe_get_field :nimport_sydata curimport))
+			  (osymdat (compile_obj impsydat gcx))
+			  (oimplocv (mapobject_get importmap impsym))
+			  (oimpappl (make_instance class_objapply
+						   :obdi_destlist (list1 oimplocv)
+						   :obapp_clos ovalueimporter
+						   :obapp_args (make_tuple2 discr_multiple osymdat oprevenv)))
+			  )
+		     (list_append oiniprolog oimpappl)
+		     )))
+		(append_commentconst oiniprolog "after getting imported values")
+		))
 	  ;; append the compiled toplevel
+	  (append_commentconst oinibody "before toplevel body")
 	  (list_every 
 	   objtoplis
 	   (lambda (curobjt)
 	     (list_append oinibody curobjt)))
+	  (append_commentconst oinibody "after toplevel body")
 	  ;; we compute the boxloc again
+	  (append_commentconst oinibody "compute boxloc again")
 	  (list_append oinibody otestcomputboxloc)
+	  (append_commentconst oinibody "intern symbols")
 	  ;; generate interning of symbols & keywords
 	  (multiple_every
 	   odatatup
@@ -977,7 +1017,8 @@
 			(debug_msg oisy "compile2obj_initproc added symbol interning oisy")
 			))
 		    )))))
-	  )		   ;end of toplevels
+	  )				;end of toplevels
+	(append_commentconst oinibody "set retinit from boxloc")
 	;; emit setting the retinit from the boxloc
 	(let ( (osetretinit
 		(make_instance 
@@ -995,6 +1036,7 @@
 	  (debug_msg osetretinit "compile2obj_initproc adding osetretinit")
 	  (list_append oinibody osetretinit))
 ;;; ending
+	(append_commentconst oinibody "end the initproc")
 	(debug_msg oinibody "compile2obj_initproc final oinibody")
 	(debug_msg gcx "compile2obj_initproc final gcx")
 	(debug_msg oinitrout "compile2obj_initproc final oinitrout")
@@ -1488,7 +1530,7 @@
 	 (str (let ( (sbuf (make_strbuf discr_strbuf)) )
 		(add2sbuf_strconst sbuf "/*quasi.cur.mod.env.cont ")
 		(add2sbuf_ccomstring sbuf scomm)
-		(add2sbuf_strconst sbuf "*/")
+		(add2sbuf_strconst sbuf "*/\n")
 		(strbuf2string discr_verbatimstring sbuf)
 		)
 	      )

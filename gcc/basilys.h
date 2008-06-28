@@ -1795,16 +1795,23 @@ void
 basilys_assert_failed (const char *msg, const char *filnam, int lineno,
 		       const char *fun)
   ATTRIBUTE_NORETURN;
+void
+basilys_check_failed (const char *msg, const char *filnam, int lineno,
+		      const char *fun);
 enum { BASILYS_ANYWHERE=0, BASILYS_NOYOUNG };
 void  basilys_check_call_frames_at(int youngflag, const char*msg, const char*filenam, int lineno);
 #define basilys_assertmsg(MSG,EXPR)   \
   (!(EXPR)?(basilys_assert_failed((MSG),__FILE__,__LINE__,__FUNCTION__), 0):0)
+#define basilys_checkmsg(MSG,EXPR)   \
+  (!(EXPR)?(basilys_check_failed((MSG),__FILE__,__LINE__,__FUNCTION__), 0):0)
 #define basilys_check_call_frames(YNG,MSG)				\
   ((void)(basilys_check_call_frames_at((YNG),(MSG),__FILE__,__LINE__)))
 #else
 /* Include EXPR, so that unused variable warnings do not occur.  */
 #define basilys_assertmsg(MSG,EXPR) ((void)(0 && (MSG) && (EXPR)))
 #define basilys_assert_failed(MSG,FIL,LIN,FUN) ((void)(0 && (MSG)))
+#define basilys_checkmsg(MSG,EXPR) ((void)(0 && (MSG) && (EXPR)))
+#define basilys_check_failed(MSG,FIL,LIN,FUN) ((void)(0 && (MSG)))
 #define basilys_check_call_frames(YNG,MSG) (void)(0)
 #endif
 

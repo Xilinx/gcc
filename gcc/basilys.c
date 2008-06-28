@@ -6577,6 +6577,29 @@ basilys_assert_failed (const char *msg, const char *filnam,
 	       basename (filnam), lineno, fun, msg);
 }
 
+void
+basilys_check_failed (const char *msg, const char *filnam,
+		       int lineno, const char *fun)
+{
+  static char msgbuf[500];
+  if (!msg)
+    msg = "??no-msg??";
+  if (!filnam)
+    filnam = "??no-filnam??";
+  if (!fun)
+    fun = "??no-func??";
+  if (basilys_dbgcounter > 0)
+    snprintf (msgbuf, sizeof (msgbuf) - 1,
+	      "%s:%d: BASILYS CHECK #!%ld: %s {%s}", basename (filnam),
+	      lineno, basilys_dbgcounter, fun, msg);
+  else
+    snprintf (msgbuf, sizeof (msgbuf) - 1, "%s:%d: BASILYS CHECK: %s {%s}",
+	      basename (filnam), lineno, fun, msg);
+  basilys_dbgshortbacktrace (msgbuf, 100);
+  warning (0, "%s:%d: BASILYS CHECK FAILED <%s> : %s\n",
+	       basename (filnam), lineno, fun, msg);
+}
+
 
 /* this function does the bulk of the work; return additional TODOs to
    the pass machinery */
