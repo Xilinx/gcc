@@ -1,3 +1,30 @@
+2008-06-30  Basile Starynkevitch  <basile@starynkevitch.net>
+	[still buggy - duplicate homonymous symbols!]
+
+	* basilys.h: added obj_serial when ENABLE_CHECKING & basilys_obj_serial routine.
+
+	* basilys.c: added basilys_object_set_serial. Added & commented
+	code to detect in mapobjects entries with the same hash & key
+	class as the attribute.
+
+	* Makefile.in: the frandom-seed is made from the md5 of *bysl sources.
+
+	* melt/warmelt-first.bysl: added class_described_environment
+	obj_serial. Less verbose dbgoutput for mapobjects. dbgout print
+	the serial if nonzero. debug_msg prints !!!!****#### .
+	initfresh_contenvmaker takes the unboxed module string as 2nd
+	argument.
+
+	* melt/warmelt-macro.bysl: mexpand_assert_msg check that
+	assert_failed is appropriately bound with more debug messages.
+
+	* melt/warmelt-normal.bysl: the sysdata_cont_fresh_env in the
+	initial_system_data is called with the name of the module as
+	second argment.
+
+	* melt/warmelt-outobj.bysl: output call to
+	basilys_object_set_serial
+
 2008-06-29  Basile Starynkevitch  <basile@starynkevitch.net>
 	[still buggy - the initial routine has a prolog before allocation
 	of cdata and a body after the allocation & filling of cdata]

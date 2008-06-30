@@ -188,6 +188,11 @@
 	   env_proc			;the procedure of this environment
 ))
 
+(defclass class_described_environment
+  :super class_environment
+  :fields (denv_descr
+))
+
 ;; the (super-)class of any binding
 (defclass class_any_binding
   :super class_root
@@ -435,7 +440,10 @@
 ;; primitive to get the number of an object (or 0)
 (defprimitive obj_num (v) :long
   "(basilys_obj_num((basilys_ptr_t)(" v ")))")
-;; primitive to compue a nonzero hash
+;; primitive to get the serial of an object (or 0 when ENABLE_CHECKING is not set)
+(defprimitive obj_serial (v):long
+  "(basilys_obj_serial((basilys_ptr_t)(" v ")))")
+;; primitive to compute a nonzero hash
 (defprimitive nonzero_hash () :long
   "(basilys_nonzerohash())")
 
@@ -1312,12 +1320,14 @@
  
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; initial fresh environment container maker
-(defun initfresh_contenvmaker (prevenv)
+(defun initfresh_contenvmaker (prevenv :cstring modnam)
   ;(debug_msg prevenv "initfresh_contenvmaker prevenv")
   (if (need_dbg 0) 
       (shortbacktrace_dbg "initfresh_contenvmaker" 15))
-  (let ( (newenv (fresh_env prevenv)) 
-	 (newcont (make_instance class_container 
+  (let (
+	(descr (if modnam (make_stringconst discr_string modnam)))
+	(newenv (fresh_env prevenv descr)) 
+	(newcont (make_instance class_container 
 				 :container_value newenv))
 	 )
     (debug_msg newcont "initfresh_contenvmaker result newcont")
@@ -2189,23 +2199,6 @@
 (install_method discr_box dbg_output dbgout_box_method)      
 
 
-;;; the cold compiler prefers this way... to have an internal function
-;;; to output an entry...
-(defun dbgoutinternal_mapobj_entry (at va dbgi nextdepthbox)
-  (let ( (:long nextdepth (get_int nextdepthbox))
-	 (:long oldmaxdepth (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
-	 (sbuf  (unsafe_get_field :dbgi_sbuf dbgi)) )
-    (assert_msg "check sbuf" (is_strbuf sbuf))
-    (add2sbuf_indentnl sbuf nextdepth)
-    (add2sbuf_strconst sbuf "**")  
-    (put_int (unsafe_get_field :dbgi_maxdepth dbgi) 0)
-    (dbg_outobject at dbgi nextdepth)
-    (put_int (unsafe_get_field :dbgi_maxdepth dbgi) oldmaxdepth)
-    (add2sbuf_strconst sbuf " ==")  
-    (add2sbuf_indent sbuf (+i nextdepth 1))
-    (dbg_out va dbgi nextdepth)
-    (add2sbuf_strconst sbuf "; ")
-    ))
 
 ;; an internal compare function used to display mapobject-s & mapstring-s in a canonical order.
 (defun compare_obj_ranked (x1 bxrk1 x2 bxrk2 vless veq vgreat)
@@ -2302,9 +2295,9 @@
 	(add2sbuf_strconst sbuf "{")))
     (add2sbuf_strconst sbuf "/")
     (add2sbuf_longdec sbuf (mapobject_count self))
-    (if (need_dbglim depth (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
+    (if (need_dbglim (+i depth 2) (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
 	(let (
-	      (nextdepthbox (make_integerbox discr_integer (+i 1 depth)))
+	      (nextdepthbox (make_integerbox discr_integer (+i 2 depth)))
 	      (countbox (make_integerbox discr_integer 0))
 	      (boxedone (make_integerbox discr_integer 1))
 	      (boxedzero (make_integerbox discr_integer 0))
@@ -2347,9 +2340,21 @@
 	     (lambda (el :long ix)
 	       (let ( (elat (multiple_nth el 0))
 		      (elva (multiple_nth el 1)) )
-		 (dbgoutinternal_mapobj_entry elat elva dbgi nextdepthbox)
-		 )))
-	    )
+		 (let ( (:long nextdepth (get_int nextdepthbox))
+			(:long oldmaxdepth (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
+			(sbuf  (unsafe_get_field :dbgi_sbuf dbgi)) )
+
+		   (assert_msg "check sbuf" (is_strbuf sbuf))
+		   (add2sbuf_indentnl sbuf nextdepth)
+		   (add2sbuf_strconst sbuf "**")  
+		   (put_int (unsafe_get_field :dbgi_maxdepth dbgi) 0)
+		   (dbg_outobject elat dbgi nextdepth)
+		   (put_int (unsafe_get_field :dbgi_maxdepth dbgi) oldmaxdepth)
+		   (add2sbuf_strconst sbuf " ==")  
+		   (add2sbuf_indent sbuf (+i nextdepth 1))
+		   (dbg_out elva dbgi (+i nextdepth 2))
+		   (add2sbuf_strconst sbuf "; ")
+		   )))))
 	  (add2sbuf_strconst sbuf "}")))))
 (install_method discr_mapobjects dbg_output dbgout_mapobject_method)
 
@@ -2363,7 +2368,7 @@
 	 (sbuf (unsafe_get_field :dbgi_sbuf dbgi))
 	 (:long ix 0)
 	 (:long mapcount (mapstring_count self))
-	 (nextdepthbox (make_integerbox discr_integer (+i 1 depth)))
+	 (nextdepthbox (make_integerbox discr_integer (+i 2 depth)))
 	 (countbox (make_integerbox discr_integer 0))
 	 (boxedone (make_integerbox discr_integer 1))
 	 (boxedzero (make_integerbox discr_integer 0))
@@ -2378,52 +2383,54 @@
 	(add2sbuf_strconst sbuf "<(")))
     (add2sbuf_strconst sbuf "/")
     (add2sbuf_longdec sbuf mapcount)
-    ;; fill the tuple with string, value, rank triples
-    (mapstring_every 
-     self
-     (lambda (str val)
-       (let ( (:long curcount (get_int countbox)) 
-	      (ent (make_tuple3 discr_multiple 
-				str val 
-				(make_integerbox discr_integer curcount)))
-	      )
-	 (multiple_put_nth tupl curcount ent)
-	 (put_int countbox (+i curcount 1))
-	 )))
-    ;; sort the tuple and display it
-    (let ( (sortupl
-	    (multiple_sort 
-	     tupl
-	     (lambda (e1 e2)
-	       (let ( (e1at (multiple_nth e1 0))
-		      (e1va (multiple_nth e1 1))
-		      (e1rk (multiple_nth e1 2))
-		      (e2at (multiple_nth e2 0))
-		      (e2va (multiple_nth e2 1))
-		      (e2rk (multiple_nth e2 2))
+    (if (need_dbg (+i depth 2))
+	(progn
+	  ;; fill the tuple with string, value, rank triples
+	  (mapstring_every 
+	   self
+	   (lambda (str val)
+	     (let ( (:long curcount (get_int countbox)) 
+		    (ent (make_tuple3 discr_multiple 
+				      str val 
+				      (make_integerbox discr_integer curcount)))
+		    )
+	       (multiple_put_nth tupl curcount ent)
+	       (put_int countbox (+i curcount 1))
+	       )))
+	  ;; sort the tuple and display it
+	  (let ( (sortupl
+		  (multiple_sort 
+		   tupl
+		   (lambda (e1 e2)
+		     (let ( (e1at (multiple_nth e1 0))
+			    (e1va (multiple_nth e1 1))
+			    (e1rk (multiple_nth e1 2))
+			    (e2at (multiple_nth e2 0))
+			    (e2va (multiple_nth e2 1))
+			    (e2rk (multiple_nth e2 2))
+			    )
+		       (compare_obj_ranked e1at e1rk e2at e2rk boxedminusone boxedzero boxedone)
+		       ))
+		   discr_multiple
+		   ))
+		 )
+	    (assert_msg "check sortupl" (is_multiple sortupl)) 
+	    (multiple_every 
+	     sortupl
+	     (lambda (el :long ix)
+	       (let ( (curstr (multiple_nth el 0))
+		      (curval (multiple_nth el 1)) 
+		      (:long nextdepth (get_int nextdepthbox))
 		      )
-		 (compare_obj_ranked e1at e1rk e2at e2rk boxedminusone boxedzero boxedone)
-		 ))
-	     discr_multiple
-	     ))
-	   )
-      (assert_msg "check sortupl" (is_multiple sortupl)) 
-      (multiple_every 
-       sortupl
-       (lambda (el :long ix)
-	 (let ( (curstr (multiple_nth el 0))
-		(curval (multiple_nth el 1)) 
-		(:long nextdepth (get_int nextdepthbox))
-		)
-	   (if (and (is_string curstr) (notnull curval))
-	       (progn
-		 (add2sbuf_indentnl sbuf nextdepth)
-		 (add2sbuf_strconst sbuf "!*")
-		 (dbg_out curstr dbgi nextdepth)
-		 (add2sbuf_strconst sbuf " => ")  
-		 (add2sbuf_indent sbuf nextdepth)
-		 (dbg_out curval dbgi (+i nextdepth 1))
-		 ))))))
+		 (if (and (is_string curstr) (notnull curval))
+		     (progn
+		       (add2sbuf_indentnl sbuf nextdepth)
+		       (add2sbuf_strconst sbuf "!*")
+		       (dbg_out curstr dbgi nextdepth)
+		       (add2sbuf_strconst sbuf " => ")  
+		       (add2sbuf_indent sbuf nextdepth)
+		       (dbg_out curval dbgi (+i nextdepth 2))
+		       ))))))))
     (add2sbuf_strconst sbuf " )>")))
 (install_method discr_mapstrings dbg_output dbgout_mapstring_method)
 
@@ -2437,11 +2444,18 @@
     (add2sbuf_string sbuf (unsafe_get_field :named_name dis))
     (add2sbuf_strconst sbuf "/")
     (add2sbuf_longhex sbuf (obj_hash self))
-    (let ( (:long onum (obj_num self)) )
+    (let ( (:long onum (obj_num self)) 
+	   (:long oserial (obj_serial self))
+	   )
       (if onum
 	  (progn
 	    (add2sbuf_strconst sbuf "#")
-	    (add2sbuf_longdec sbuf onum))))
+	    (add2sbuf_longdec sbuf onum)))
+      (if oserial
+	  (progn
+	    (add2sbuf_strconst sbuf "##")
+	    (add2sbuf_longdec sbuf oserial)))
+      )
     (add2sbuf_strconst sbuf "{")
     (if (need_dbglim depth (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
 	(dbgout_fields self dbgi (+i depth 1) 0)
@@ -2465,11 +2479,18 @@
 (defun dbgoutagain_anyobject_method (self dbgi :long depth)
   (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
   (let ( (dis (discrim self)) 
-	 (sbuf  (unsafe_get_field :dbgi_sbuf dbgi)) )  
+	 (sbuf  (unsafe_get_field :dbgi_sbuf dbgi)) 
+	 (:long oserial (obj_serial self))
+	 )  
     (add2sbuf_strconst sbuf " ^^|")
     (add2sbuf_string sbuf (unsafe_get_field :named_name dis))
     (add2sbuf_strconst sbuf "/")
     (add2sbuf_longhex sbuf (obj_hash self))
+    (if oserial 
+	(progn
+	  (add2sbuf_strconst sbuf "##")
+	  (add2sbuf_longdec sbuf oserial)
+	  ))
     ))
 (install_method class_root  dbg_outputagain dbgoutagain_anyobject_method)
 	
@@ -2489,11 +2510,16 @@
     (add2sbuf_strconst sbuf "/")
     (add2sbuf_longhex sbuf (obj_hash self))
     (if (need_dbglim depth (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
-	(let ( (:long onum (obj_num self)) )
+	(let ( (:long onum (obj_num self)) 
+	       (:long oserial (obj_serial self)) )
 	  (if onum
 	      (progn
 		(add2sbuf_strconst sbuf "#")
 		(add2sbuf_longdec sbuf onum)))
+	  (if oserial
+	      (progn
+		(add2sbuf_strconst sbuf "##")
+		(add2sbuf_longdec sbuf oserial)))
 	  (add2sbuf_strconst sbuf "{")
 	  (if oprop
 	      (progn 
@@ -2513,6 +2539,7 @@
   (let ( (dis (discrim self)) 
 	 (sbuf  (unsafe_get_field :dbgi_sbuf dbgi))
 	 (onam (unsafe_get_field :named_name self)) 
+	 (:long oserial (obj_serial self))
 	 )
     (add2sbuf_strconst sbuf " ^^`")
     (add2sbuf_string sbuf onam)
@@ -2520,6 +2547,11 @@
     (add2sbuf_string sbuf (unsafe_get_field :named_name dis))
     (add2sbuf_strconst sbuf "/")
     (add2sbuf_longhex sbuf (obj_hash self))
+    (if oserial
+	(progn
+	  (add2sbuf_strconst sbuf "##")
+	  (add2sbuf_longdec sbuf oserial)
+	  ))
     ))
 (install_method class_named dbg_outputagain dbgoutagain_namedobject_method)
 
@@ -2537,11 +2569,18 @@
   (assert_msg "check self" (is_a self class_symbol))
   (let ( (sbuf  (unsafe_get_field :dbgi_sbuf dbgi))
 	 (onam (unsafe_get_field :named_name self))
+	 (:long oserial (obj_serial self))
 	 )	
     (add2sbuf_strconst sbuf " $")
     (add2sbuf_string sbuf onam)
     (add2sbuf_strconst sbuf "/")
-    (add2sbuf_longhex sbuf (obj_hash self))))
+    (add2sbuf_longhex sbuf (obj_hash self))
+    (if oserial
+	(progn
+	  (add2sbuf_strconst sbuf "##")
+	  (add2sbuf_longdec sbuf oserial)
+	  ))
+    ))
 (install_method class_symbol dbg_outputagain dbgoutagain_symbol_method)
 
 ;;;; keyword output debug & again
@@ -2558,11 +2597,18 @@
   (assert_msg "check self" (is_a self class_keyword))
   (let ( (sbuf  (unsafe_get_field :dbgi_sbuf dbgi))
 	 (onam (unsafe_get_field :named_name self))
+	 (:long oserial (obj_serial self))
 	 )	
     (add2sbuf_strconst sbuf " $:")
     (add2sbuf_string sbuf onam)
     (add2sbuf_strconst sbuf "/")
-    (add2sbuf_longhex sbuf (obj_hash self))))
+    (add2sbuf_longhex sbuf (obj_hash self))
+    (if oserial
+	(progn
+	  (add2sbuf_strconst sbuf "##")
+	  (add2sbuf_longdec sbuf oserial)
+	  ))
+    ))
 (install_method class_keyword dbg_outputagain dbgoutagain_keyword_method)
 
 ;;;; clonedsymbol output debug & again
@@ -2580,13 +2626,20 @@
 	 (sbuf  (unsafe_get_field :dbgi_sbuf dbgi))
 	 (ourank (unsafe_get_field :csym_urank self))
 	 (:long lrk (get_int ourank))
+	 (:long oserial (obj_serial self))
 	 (onam (unsafe_get_field :named_name self)) )
     (add2sbuf_strconst sbuf " $$")
     (add2sbuf_string sbuf onam)
     (add2sbuf_strconst sbuf ":")
     (add2sbuf_longdec sbuf lrk)
     (add2sbuf_strconst sbuf "/")
-    (add2sbuf_longhex sbuf (obj_hash self))))
+    (add2sbuf_longhex sbuf (obj_hash self))
+    (if oserial
+	(progn
+	  (add2sbuf_strconst sbuf "##")
+	  (add2sbuf_longdec sbuf oserial)
+	  ))
+    ))
 (install_method class_clonedsymbol dbg_outputagain dbgoutagain_clonedsymbol_method)
 
 ;;;; ctype output debug & again
@@ -2602,11 +2655,18 @@
 (defun dbgoutagain_ctype_method (self dbgi :long depth)
   (let ( (dis (discrim self)) 
 	 (sbuf  (unsafe_get_field :dbgi_sbuf dbgi))
+	 (:long oserial (obj_serial self))
 	 (onam (unsafe_get_field :named_name self)) )
     (add2sbuf_strconst sbuf " $!")
     (add2sbuf_string sbuf onam)
     (add2sbuf_strconst sbuf "!/")
-    (add2sbuf_longhex sbuf (obj_hash self))))
+    (add2sbuf_longhex sbuf (obj_hash self))
+    (if oserial
+	(progn
+	  (add2sbuf_strconst sbuf "##")
+	  (add2sbuf_longdec sbuf oserial)
+	  ))
+    ))
 (install_method class_ctype dbg_outputagain dbgoutagain_ctype_method)
   
 ;;;;;;;;;;;;;;;;;;;;;;;; debug message function
@@ -2638,14 +2698,14 @@
   (if (need_dbg 0) 
       (let ( (:long dbgcounter (progn (increment_dbgcounter) (the_dbgcounter)))
 	     (sbuf (make_strbuf discr_strbuf)) 
-	     (occmap (make_mapobject discr_mapobjects 50))
-	     (boxedmaxdepth (make_integerbox discr_integer 17)) ;;;; @@@ DEBUGDEPTH
+	     (occmap (make_mapobject discr_mapobjects 53))
+	     (boxedmaxdepth (make_integerbox discr_integer 10)) ;;;; @@@ DEBUGDEPTH
 	     (dbgi (make_instance class_debuginfo
 				  :dbgi_sbuf sbuf
 				  :dbgi_occmap occmap
 				  :dbgi_maxdepth boxedmaxdepth))
 	     )
-	(outnum_dbg "!*#" dbgcounter "/")
+	(outnum_dbg "!!!***###" dbgcounter "/")
 	(outnum_dbg "" (-i (the_framedepth) 1) ":")
 	(outcstring_dbg msgstr)
 	(if (>i count 0) (outnum_dbg " !" count ": "))
@@ -2658,35 +2718,69 @@
 
 
 ;; make a fresh environment 
-(defun fresh_env (parenv)
+(defun fresh_env (parenv descr)		;usually descr is not given
   (if (or (null parenv) (is_a parenv class_environment))
+      (if descr
+	  (make_instance class_described_environment
+		     :env_bind (make_mapobject discr_mapobjects 26)
+		     :env_prev parenv
+		     :denv_descr descr)
       (make_instance class_environment 
 		     :env_bind (make_mapobject discr_mapobjects 6)
-		     :env_prev parenv)))
+		     :env_prev parenv))))
 
 ;; the initial environment
-(definstance initial_environment class_environment
+(definstance initial_environment class_described_environment
   :env_bind  (make_mapobject discr_mapobjects 500)
+  :denv_descr (make_stringconst discr_string "Initial Environment")
 )
 
 ;; find a binding inside an environment
 (defun find_env (env binder)
-  (assert_msg "check env" (is_a env class_environment))
-  (assert_msg "check binder" (is_object binder))
-  (forever findloop
-	   (if (is_not_a env class_environment)
-	       (exit findloop ()))
-	   (assert_msg "check env obj" (is_object env))
-	   (let ( (bindmap 
-		   (unsafe_get_field :env_bind env)) )
-	     (assert_msg "check bindmap" (is_mapobject bindmap))
-	     (let ( (bnd 
-		     (mapobject_get bindmap binder)) )
-	       (if bnd 
-		   (exit findloop bnd))
-	       ))
-	   (setq env (unsafe_get_field :env_prev env))
-	   )
+  (assert_msg "check arg env" (is_a env class_environment))
+  (assert_msg "check arg binder" (is_object binder))
+  (forever
+   findloop
+   (if (null env)
+       (exit findloop ()))
+   (assert_msg "check env obj" (is_object env))
+   (assert_msg "check good env" (is_a env class_environment))
+   (let ( (bindmap 
+	   (unsafe_get_field :env_bind env)) )
+     (assert_msg "check bindmap" (is_mapobject bindmap))
+     (let ( (bnd 
+	     (mapobject_get bindmap binder)) )
+       (if bnd 
+	   (exit findloop bnd))
+       ))
+   (setq env (unsafe_get_field :env_prev env))
+   )
+  )
+
+;; find a binding inside an environment with debugging 
+(defun find_env_debug (env binder)
+  (assert_msg "check arg env" (is_a env class_environment))
+  (assert_msg "check arg binder" (is_object binder))
+  (debug_msg env "find_env_debug initial env")
+  (debug_msg binder "find_env_debug binder")
+  (forever
+   findloop
+   (if (null env)
+       (exit findloop ()))
+   (debug_msg env "find_env_debug current env")
+   (assert_msg "check env obj" (is_object env))
+   (assert_msg "check good env" (is_a env class_environment))
+   (let ( (bindmap 
+	   (unsafe_get_field :env_bind env)) )
+     (assert_msg "check bindmap" (is_mapobject bindmap))
+     (let ( (bnd 
+	     (mapobject_get bindmap binder)) )
+       (debug_msg bnd "find_env_debug current bnd")
+       (if bnd 
+	   (exit findloop bnd))
+       ))
+   (setq env (unsafe_get_field :env_prev env))
+   )
   )
 
 ; find a binding inside an environment and also returns the reversed list of enclosing procedures
@@ -2762,7 +2856,7 @@
 				  :dbgi_occmap occmap
 				  :dbgi_maxdepth boxedmaxdepth))
 	     )
-	(outnum_err "!*#" dbgcounter "/")
+	(outnum_err "!!!!****####" dbgcounter "/")
 	(outnum_err "" (-i (the_framedepth) 1) ":")
 	(if filenam
 	    (progn
@@ -2777,6 +2871,10 @@
 	  )
 	(outstrbuf_err sbuf)
 	(outcstring_err ";;;;")
+	(if (>i (strbuf_usedlength sbuf) 800)
+	    (progn
+	      (outnum_err "####" dbgcounter "---")
+	      (outnewline_err)))
 	(outnewline_err)
 	)))
 
@@ -2853,6 +2951,7 @@
  class_container
  class_ctype
  class_debuginfo 
+ class_described_environment
  class_discr 
  class_environment
  class_exported_binding
@@ -3121,6 +3220,7 @@
  displaydebugmsg			
  find_enclosing_env			
  find_env				
+ find_env_debug
  fresh_env				
  install_ctype_descr				
  install_method				

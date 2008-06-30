@@ -324,6 +324,9 @@ GTY (())
 /* discriminate the basilys_un containing it as discr */
 #define object_magic obj_num
   unsigned short obj_len;
+#if ENABLE_CHECKING
+  unsigned long obj_serial;
+#endif
   basilys_ptr_t *GTY ((length ("%h.obj_len"))) obj_vartab;
   /* the following field is usually the value of obj_vartab (for
      objects in the young zone), to allocate the object and its fields
@@ -331,6 +334,20 @@ GTY (())
   basilys_ptr_t GTY ((length ("0"))) obj__tabfields[FLEXIBLE_DIM];
 };
 
+#if ENABLE_CHECKING
+#define BASILYS_OBJECT_STRUCT(N) {		\
+  basilysobject_ptr_t obj_class;		\
+  unsigned obj_hash;				\
+  unsigned short obj_num;			\
+  unsigned short obj_len;			\
+  unsigned long obj_serial;                     \
+  basilys_ptr_t* obj_vartab;			\
+  basilys_ptr_t obj__tabfields[N];		\
+  long _gap; }
+
+void basilys_object_set_serial(basilysobject_ptr_t ob);
+
+#else
 #define BASILYS_OBJECT_STRUCT(N) {		\
   basilysobject_ptr_t obj_class;		\
   unsigned obj_hash;				\
@@ -339,7 +356,9 @@ GTY (())
   basilys_ptr_t* obj_vartab;			\
   basilys_ptr_t obj__tabfields[N];		\
   long _gap; }
-
+/* set serial is a nop */
+static inline void basilys_object_set_serial(basilysobject_ptr_t ob) {}
+#endif
 
 /* some types, including objects, strbuf, stringmaps, objectmaps, all
    the other *maps, contain a pointer to a non value; this pointer
@@ -1188,6 +1207,16 @@ basilys_obj_hash (basilys_ptr_t v)
 {
   if (basilys_magic_discr (v) == OBMAG_OBJECT)
     return ((basilysobject_ptr_t) (v))->obj_hash;
+  return 0;
+}
+
+static inline unsigned long
+basilys_obj_serial (basilys_ptr_t v)
+{
+#if ENABLE_CHECKING
+  if (basilys_magic_discr (v) == OBMAG_OBJECT)
+    return ((basilysobject_ptr_t) (v))->obj_serial;
+#endif
   return 0;
 }
 

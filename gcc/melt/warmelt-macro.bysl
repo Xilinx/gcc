@@ -2151,7 +2151,8 @@
 	(curpair (pair_tail (list_first cont)))
 	(xmsg (macroexpand_1 (pair_head curpair)  env mexpander))
 	(xtest ())
-	(assfail_binding (find_env env 'assert_failed))
+	(assfail_symb 'assert_failed)
+	(assfail_binding (find_env env assfail_symb))
 	)
     (if (not (is_string xmsg))
 	(error_plain loc "non string message in (ASSERT_MSG <msg> <test>)"))
@@ -2163,16 +2164,26 @@
 	(error_plain loc "extra arg for (ASSERT_MSG <msg> <test>)"))
     (let (
 	  (afprim 
-	   (cond ( (is_a assfail_binding class_primitive_binding)
-		   (unsafe_get_field :pbind_primitive assfail_binding))
-		 ( (and (is_a assfail_binding class_value_binding)
-			(is_a (unsafe_get_field :vbind_value assfail_binding) 
-			      class_primitive))
-		   (unsafe_get_field :vbind_value assfail_binding))
-		 (:else
-		  (error_plain loc "ASSERT_FAILED not bound to a primitive in  (ASSERT_MSG <msg> <test>)")
-		  (return)
-		  )))
+	   (cond 
+	    ( (null assfail_binding)
+	      (error_plain loc "unbound ASSERT_FAILED in (ASSERT_MSG <msg> <test>)")
+	      (debug_msg env "mexpand_assert_msg env without assert_failed")
+	      (debug_msg (discrim env) "mexpand_assert_msg env's class without assert_failed")
+	      (debug_msg  (find_env_debug env assfail_symb) "mexpand_assert_msg findenvdbg give")
+	      (debug_msg assfail_symb "mexpand_assert_msg ASSERT_FAILED symbol")
+	      (assert_msg "assfail_binding nul! @@" ())
+	      (return))
+	    ( (is_a assfail_binding class_primitive_binding)
+	      (unsafe_get_field :pbind_primitive assfail_binding))
+	    ( (and (is_a assfail_binding class_value_binding)
+		   (is_a (unsafe_get_field :vbind_value assfail_binding) 
+			 class_primitive))
+	      (unsafe_get_field :vbind_value assfail_binding))
+	    (:else
+	     (debug_msg assfail_binding "bad assfail_binding")
+	     (error_plain loc "ASSERT_FAILED not bound to a primitive in  (ASSERT_MSG <msg> <test>)")
+	     (return)
+	     )))
 	  (aprim (make_instance 
 		  class_src_primitive
 		  :src_loc loc

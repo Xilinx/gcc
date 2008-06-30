@@ -3736,6 +3736,8 @@
 	(scomm (unsafe_get_field :sucme_comment recv))
 	(curproc (unsafe_get_field :nctx_curproc ncx))
 	(iniproc (unsafe_get_field :nctx_initproc ncx))
+	(modctx (unsafe_get_field :nctx_modulcontext ncx))
+	(modnam (if (is_a modctx class_modulcontext) (unsafe_get_field :mocx_modulename modctx)))
 	)
     (if (!= curproc iniproc)
 	(progn
@@ -3788,9 +3790,10 @@
 				      )
 			  :suget_field sysdata_cont_fresh_env
 			  )
-	       :sapp_args (make_tuple1 discr_multiple
+	       :sapp_args (make_tuple2 discr_multiple
 				       (make_instance class_src_parent_module_environment
 						      :src_loc psloc)
+				       modnam
 				       )))))
 	   )
       (multicall

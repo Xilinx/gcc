@@ -4721,12 +4721,25 @@ MELTBASILYSCCFILE1= time ./cc1$(exeext) -fbasilys  \
 	      -fbasilys-command=compilefile  
 #	      -frandom-seed=$$RANDOM
 
+MELTBASILYSCCSHOW1= time ./cc1$(exeext) -fbasilys  \
+	      -fbasilys-dynlibdir=. \
+	      -fbasilys-compile-script=built-melt-cc-script \
+	      -fbasilys-gensrcdir=. \
+	      -fbasilys-tempdir=. \
+	      -fbasilys-command=showmdata  
+#	      -frandom-seed=$$RANDOM
+
 warm%.so: warm%.c built-melt-cc-script
 	./built-melt-cc-script $< $@
 
 warm%-n.so : warm%.c built-melt-cc-script
 	./built-melt-cc-script -DMELTGCC_NOLINENUMBERING $< $@
 
+warm-basilys-0.so: $(srcdir)/warm-basilys-0.c built-melt-cc-script
+	./built-melt-cc-script $< $@
+
+warm%-n.so : warm%.c built-melt-cc-script
+	./built-melt-cc-script -DMELTGCC_NOLINENUMBERING $< $@
 diff-warm-1-2: warm-basilys-1.c warm-basilys-2.c
 	-diff $^
 diff-warm-2-3: warm-basilys-2.c warm-basilys-3.c
@@ -4810,12 +4823,11 @@ warmelt-%.so: warmelt-%.c built-melt-cc-script
 	echo Melt building $@ from $<
 	./built-melt-cc-script $< $@
 
-
 warmelt-%-1.c:  $(srcdir)/melt/warmelt-%.bysl warm-basilys-2.so cc1$(exeext)
 	@echo generating $@ using warm-basilys-2
 	-rm -f $@
 	$(MELTBASILYSCCFILE1) -fbasilys-init='warm-basilys-2' \
-	      -fbasilys-arg=$< \
+	      -fbasilys-arg=$< -frandom-seed=$(shell md5sum $< | cut -b-24) \
 	      -fbasilys-secondarg=$@
 	ls -l $@
 
@@ -4828,15 +4840,18 @@ warmelt-first-1.c: $(srcdir)/melt/warmelt-first.bysl  warm-basilys-2.so cc1$(exe
 	      -fbasilys-secondarg=$@
 	ls -l $@
 
+####
 warmelt-%-2.c: $(srcdir)/melt/warmelt-%.bysl $(WARMELT_BASE1SO)  cc1$(exeext) 
 	@echo generating $@ using $(WARMELT_BASE1SO)
 	-rm -f $@
 	$(MELTBASILYSCCFILE1) -fbasilys-init=$(WARMELT_BASE1ROW) \
-	      -fbasilys-arg=$< \
+	      -fbasilys-arg=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
 	      -fbasilys-secondarg=$@
 	ls -l $@
 warmelt-first-2.c: $(srcdir)/melt/warmelt-first.bysl $(WARMELT_BASE1SO) cc1$(exeext)
 	-rm -f $@ 
+	@echo test showmdata using $(WARMELT_BASE1SO)
+	$(MELTBASILYSCCSHOW1) -fbasilys-init=$(WARMELT_BASE1ROW)
 	@echo generating $@ using $(WARMELT_BASE1SO)
 	$(MELTBASILYSCCINIT1) -fbasilys-init=$(WARMELT_BASE1ROW) \
 	      -fbasilys-arg=$< \
@@ -4844,21 +4859,24 @@ warmelt-first-2.c: $(srcdir)/melt/warmelt-first.bysl $(WARMELT_BASE1SO) cc1$(exe
 	ls -l $@
 
 
+####
 warmelt-%-3.c: $(srcdir)/melt/warmelt-%.bysl $(WARMELT_BASE2SO)  cc1$(exeext) 
 	@echo generating $@ using $(WARMELT_BASE2SO)
 	-rm -f $@
 	$(MELTBASILYSCCFILE1) -fbasilys-init=$(WARMELT_BASE2ROW) \
-	      -fbasilys-arg=$< \
+	      -fbasilys-arg=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
 	      -fbasilys-secondarg=$@
 	ls -l $@
 warmelt-first-3.c: $(srcdir)/melt/warmelt-first.bysl $(WARMELT_BASE2SO) cc1$(exeext)
 	-rm -f $@ 
-	@echo generating $@ using $(WARMELT_BASE1SO)
+	@echo generating $@ using $(WARMELT_BASE2SO)
 	$(MELTBASILYSCCINIT1) -fbasilys-init=$(WARMELT_BASE2ROW) \
 	      -fbasilys-arg=$< \
 	      -fbasilys-secondarg=$@
 	ls -l $@
 
+
+####
 diff-warmelt-2-3: $(WARMELT_BASE3SO)
 	echo WARMELT_BASE3ROW= $(WARMELT_BASE3ROW)
 	for f in $(WARMELT_BASE); do; \

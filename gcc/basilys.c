@@ -686,6 +686,9 @@ forwarded_copy (basilys_ptr_t p)
 	dst->obj_hash = src->obj_hash;
 	dst->obj_num = src->obj_num;
 	dst->obj_len = src->obj_len;
+#if ENABLE_CHECKING
+	dst->obj_serial = src->obj_serial;
+#endif
 	dst->obj_vartab = 0;
 	if (oblen > 0)
 	  {
@@ -1387,6 +1390,9 @@ unsafe_index_mapobject (struct entryobjectsbasilys_st *tab,
 {
   int da = 0, ix = 0, frix = -1;
   unsigned h = 0;
+#if ENABLE_CHECKING
+  static long samehashcnt;
+#endif
   if (!tab)
     return -1;
   da = attr->obj_class->object_magic;
@@ -1411,6 +1417,26 @@ unsafe_index_mapobject (struct entryobjectsbasilys_st *tab,
 	    frix = ix;
 	  return frix;
 	}
+#if 0 && ENABLE_CHECKING
+      /* this to help hunt bugs on wrongly homonymous objects of same hash & class */
+      else if (curat->obj_hash == attr->obj_hash && curat->obj_class == attr->obj_class) 
+	{
+	  samehashcnt++;
+	  if (flag_basilys_debug || (samehashcnt < 16 || samehashcnt % 16 == 0))
+	    {
+	      basilys_checkmsg("similar gotten & found attr", curat == attr);
+	      dbgprintf("unprobable #%ld gotten %p ##%ld & found attr %p ##%ld of same hash %#x & class %p [%s]",
+			samehashcnt, (void*)attr, attr->obj_serial, (void*)curat, curat->obj_serial,
+			curat->obj_hash, (void*) curat->obj_class, 
+			basilys_string_str(curat->obj_class->obj_vartab[FNAMED_NAME]));
+	      if (basilys_is_instance_of((basilys_ptr_t)attr, (basilys_ptr_t)BASILYSGOB(CLASS_NAMED)))
+		dbgprintf("gotten attr named %s found attr named %s",
+			  basilys_string_str(attr->obj_vartab[FNAMED_NAME]),
+			  basilys_string_str(curat->obj_vartab[FNAMED_NAME]));
+	      basilys_dbgshortbacktrace("gotten & found attr of same hash & class", 15);
+	    }
+	}
+#endif
     }
   for (ix = 0; ix < (int) h; ix++)
     {
@@ -1428,6 +1454,25 @@ unsafe_index_mapobject (struct entryobjectsbasilys_st *tab,
 	    frix = ix;
 	  return frix;
 	}
+#if 0 && ENABLE_CHECKING
+      else if (curat->obj_hash == attr->obj_hash && curat->obj_class == attr->obj_class) 
+	{
+	  samehashcnt++;
+	  if (flag_basilys_debug || (samehashcnt < 16 || samehashcnt % 16 == 0))
+	    {
+	      basilys_checkmsg("similar gotten & found attr", curat == attr);
+	      dbgprintf("unprobable #%ld gotten %p ##%ld & found attr %p ##%ld of same hash %#x & class %p [%s]",
+			samehashcnt, (void*)attr, attr->obj_serial, (void*)curat, curat->obj_serial, 
+			curat->obj_hash, (void*) curat->obj_class, 
+			basilys_string_str(curat->obj_class->obj_vartab[FNAMED_NAME]));
+	      if (basilys_is_instance_of((basilys_ptr_t)attr, (basilys_ptr_t)BASILYSGOB(CLASS_NAMED)))
+		dbgprintf("gotten attr named %s found attr named %s",
+			  basilys_string_str(attr->obj_vartab[FNAMED_NAME]),
+			  basilys_string_str(curat->obj_vartab[FNAMED_NAME]));
+	      basilys_dbgshortbacktrace("gotten & found attr of same hash & class", 15);
+	    }
+	}
+#endif
     }
   if (frix >= 0)
     return frix;		/* found some place in a table with
@@ -2034,6 +2079,34 @@ end:
 
 /***************/
 
+#if ENABLE_CHECKING
+
+/* just for debugging */
+unsigned long basilys_serial_1,  basilys_serial_2, basilys_serial_3;
+void basilys_object_set_serial(basilysobject_ptr_t ob) {
+  static unsigned long cnt;
+  if (ob && ob->obj_serial==0) 
+    ob->obj_serial = ++cnt;
+  else
+    return;
+  if (basilys_serial_1>0 && cnt == basilys_serial_1) 
+    {
+      debugeprintf("set serial_1 ob=%p ##%ld", (void*)ob, cnt);
+      gcc_assert(ob);
+    }
+  else if  (basilys_serial_2>0 && cnt == basilys_serial_1) 
+    {
+      debugeprintf("set serial_2 ob=%p ##%ld", (void*)ob, cnt);
+      gcc_assert(ob);
+    }
+  else if  (basilys_serial_3>0 && cnt == basilys_serial_3) 
+    {
+      debugeprintf("set serial_3 ob=%p ##%ld", (void*)ob, cnt);
+      gcc_assert(ob);
+    }
+}
+#endif
+
 basilysobject_ptr_t
 basilysgc_new_raw_object (basilysobject_ptr_t klass_p, unsigned len)
 {
@@ -2060,6 +2133,7 @@ basilysgc_new_raw_object (basilysobject_ptr_t klass_p, unsigned len)
   while (h == 0);
   obj_newobjv->obj_hash = h;
   obj_newobjv->obj_len = len;
+  basilys_object_set_serial(obj_newobjv);
   if (len > 0)
     obj_newobjv->obj_vartab = obj_newobjv->obj__tabfields;
 end:
@@ -4530,7 +4604,6 @@ dylibfound:
       ("basilysgc_compile failed to lt_dlsym start_module_basilys in modfile=%s plainstuff=%s - %s",
        modfile, plainstuffpath, lt_dlerror ());
   starout = (startroutine_t *) dlsy;
-  debugeprintvalue ("mdatav before calling start_module_basilys", mdatav);
   debugeprintf
     ("basilysgc_compile before calling start_module_basilys @%p",
      (void *) dlsy);
@@ -4546,7 +4619,6 @@ dylibfound:
 #endif
   modulv = (*starout) ((basilys_ptr_t) mdatav);
   BASILYS_LOCATION_HERE ("basilysgc_compile_dyn after calling module");
-  debugeprintvalue ("modulv after calling start_module_basilys", modulv);
   debugeprintf ("basilysgc_compile_dyn returns modulv %p", (void *) modulv);
   /* we never free  plainstuffpath and we never release the shared library! */
   BASILYS_EXITFRAME ();
@@ -4871,9 +4943,10 @@ basilysgc_named_symbol (const char *nam, int create)
   for (ix = 0; ix < namlen; ix++)
     if (ISALPHA (namdup[ix]))
       namdup[ix] = TOUPPER (namdup[ix]);
-  if (basilys_is_instance_of
+  if (BASILYSG (INITIAL_SYSTEM_DATA) != 0 
+      && basilys_is_instance_of
       (BASILYSG (INITIAL_SYSTEM_DATA), BASILYSG (CLASS_SYSTEM_DATA))
-      && BASILYSGOB (INITIAL_SYSTEM_DATA)->obj_len >= FSYSDAT__LAST)
+      && basilys_object_length((basilys_ptr_t)BASILYSG (INITIAL_SYSTEM_DATA)) >= FSYSDAT__LAST)
     {
       dictv =
 	BASILYSGOB (INITIAL_SYSTEM_DATA)->obj_vartab[FSYSDAT_SYMBOLDICT];
@@ -4897,7 +4970,7 @@ basilysgc_named_symbol (const char *nam, int create)
 	  goto end;
 	}
     }
-end:;
+ end:;
   if (namdup && namdup != tinybuf)
     free (namdup);
   BASILYS_EXITFRAME ();
@@ -4929,7 +5002,7 @@ basilysgc_intern_symbol (basilys_ptr_t symb_p)
     goto fail;
   if (basilys_magic_discr (BASILYSG (INITIAL_SYSTEM_DATA)) !=
       OBMAG_OBJECT
-      || BASILYSGOB (INITIAL_SYSTEM_DATA)->obj_len < FSYSDAT__LAST
+      || basilys_object_length((basilys_ptr_t)BASILYSGOB (INITIAL_SYSTEM_DATA)) < FSYSDAT__LAST
       || !basilys_is_instance_of (BASILYSG (INITIAL_SYSTEM_DATA),
 				  BASILYSG (CLASS_SYSTEM_DATA)))
     goto fail;
@@ -4974,7 +5047,7 @@ basilysgc_intern_keyword (basilys_ptr_t keyw_p)
 #define obj_keywv    ((basilysobject_ptr_t)(keywv))
   keywv = keyw_p;
   if (basilys_magic_discr ((basilys_ptr_t) keywv) != OBMAG_OBJECT
-      || obj_keywv->obj_len < FSYMB__LAST
+      || basilys_object_length((basilys_ptr_t)obj_keywv) < FSYMB__LAST
       || !basilys_is_instance_of ((basilys_ptr_t) keywv,
 				  (basilys_ptr_t) BASILYSG (CLASS_KEYWORD)))
     goto fail;
@@ -5723,7 +5796,7 @@ do_initial_command (basilys_ptr_t modata_p)
 	    curargv = basilysgc_new_string (BASILYSGOB (DISCR_STRING), pc);
 	    if (comma) 
 	      *comma = ',';
-	    basilysgc_append_list(arglv, curargv);
+	    basilysgc_append_list((basilys_ptr_t)arglv, (basilys_ptr_t)curargv);
 	  }
 	pararg[0].bp_aptr = (basilys_ptr_t *) & arglv;
       };
@@ -6105,6 +6178,10 @@ basilys_debug_out (struct debugprint_basilys_st *dp,
 	fprintf (dp->dfil, "/L%dH%d", p->obj_len, p->obj_hash);
 	if (p->obj_num)
 	  fprintf (dp->dfil, "N%d", p->obj_num);
+#if ENABLE_CHECKING
+	if (p->obj_serial)
+	  fprintf(dp->dfil, "S##%ld", p->obj_serial);
+#endif
 	if (named)
 	  fprintf (dp->dfil, "<#%s>",
 		   ((struct basilysstring_st *) (p->obj_vartab

@@ -212,6 +212,10 @@
       (add2sbuf_string sbuf oname)
       (add2sbuf_strconst sbuf ".obj__tabfields;")
       (add2sbuf_indentnl sbuf 1)
+      (add2sbuf_strconst sbuf "basilys_object_set_serial((basilysobject_ptr_t) (&cdat->")
+      (add2sbuf_string sbuf oname)
+      (add2sbuf_strconst sbuf "));")
+      (add2sbuf_indentnl sbuf 1)
       ;; output the fill
       )
     )
