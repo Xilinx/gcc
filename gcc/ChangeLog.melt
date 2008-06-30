@@ -1,4 +1,19 @@
 2008-06-30  Basile Starynkevitch  <basile@starynkevitch.net>
+	[apparently warmelt-*-3.c generated ok!]
+
+	* basilys.c: added  basilys_countserial.
+	(basilys_object_set_serial) updated to use it.
+
+	* melt/warmelt-first.bysl: added debug_msg in find_env_debug.
+
+	* melt/warmelt-outobj.bysl: outcinitfill_objinitobject only sets
+	the locvar if it was nil, hence if it was an already gotten symbol
+	it is not overwritten. outpucod_objgetnamedsymbol only sets the
+	locvar if it was nil.
+
+	* Makefile.in; also generates the warmelt-*-1-n.so
+
+2008-06-30  Basile Starynkevitch  <basile@starynkevitch.net>
 	[still buggy - duplicate homonymous symbols!]
 
 	* basilys.h: added obj_serial when ENABLE_CHECKING & basilys_obj_serial routine.

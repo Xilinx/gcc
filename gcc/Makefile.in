@@ -4763,6 +4763,7 @@ WARMELT_BASE= $(basename $(WARMELT_FILES))
 WARMELT_BASELIST:=$(shell echo $(WARMELT_BASE)|sed 's: :,:g')
 WARMELT_BASE1= $(patsubst %, %-1, $(WARMELT_BASE))
 WARMELT_BASE1SO= $(patsubst %, %-1.so, $(WARMELT_BASE))
+WARMELT_BASE1NSO= $(patsubst %, %-1-n.so, $(WARMELT_BASE))
 WARMELT_BASE1C= $(patsubst %, %-1.c, $(WARMELT_BASE))
 WARMELT_BASE1ROW:=$(shell echo $(WARMELT_BASE1)|sed 's/ /:/g')
 WARMELT_BASE2= $(patsubst %, %-2, $(WARMELT_BASE))
@@ -4841,7 +4842,7 @@ warmelt-first-1.c: $(srcdir)/melt/warmelt-first.bysl  warm-basilys-2.so cc1$(exe
 	ls -l $@
 
 ####
-warmelt-%-2.c: $(srcdir)/melt/warmelt-%.bysl $(WARMELT_BASE1SO)  cc1$(exeext) 
+warmelt-%-2.c: $(srcdir)/melt/warmelt-%.bysl $(WARMELT_BASE1SO)  cc1$(exeext) $(WARMELT_BASE1NSO)
 	@echo generating $@ using $(WARMELT_BASE1SO)
 	-rm -f $@
 	$(MELTBASILYSCCFILE1) -fbasilys-init=$(WARMELT_BASE1ROW) \

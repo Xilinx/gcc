@@ -2083,25 +2083,26 @@ end:
 
 /* just for debugging */
 unsigned long basilys_serial_1,  basilys_serial_2, basilys_serial_3;
+unsigned long basilys_countserial;
+
 void basilys_object_set_serial(basilysobject_ptr_t ob) {
-  static unsigned long cnt;
   if (ob && ob->obj_serial==0) 
-    ob->obj_serial = ++cnt;
+    ob->obj_serial = ++basilys_countserial;
   else
     return;
-  if (basilys_serial_1>0 && cnt == basilys_serial_1) 
+  if (basilys_serial_1>0 && basilys_countserial == basilys_serial_1) 
     {
-      debugeprintf("set serial_1 ob=%p ##%ld", (void*)ob, cnt);
+      debugeprintf("set serial_1 ob=%p ##%ld", (void*)ob, basilys_countserial);
       gcc_assert(ob);
     }
-  else if  (basilys_serial_2>0 && cnt == basilys_serial_1) 
+  else if  (basilys_serial_2>0 && basilys_countserial == basilys_serial_1) 
     {
-      debugeprintf("set serial_2 ob=%p ##%ld", (void*)ob, cnt);
+      debugeprintf("set serial_2 ob=%p ##%ld", (void*)ob, basilys_countserial);
       gcc_assert(ob);
     }
-  else if  (basilys_serial_3>0 && cnt == basilys_serial_3) 
+  else if  (basilys_serial_3>0 && basilys_countserial == basilys_serial_3) 
     {
-      debugeprintf("set serial_3 ob=%p ##%ld", (void*)ob, cnt);
+      debugeprintf("set serial_3 ob=%p ##%ld", (void*)ob, basilys_countserial);
       gcc_assert(ob);
     }
 }
