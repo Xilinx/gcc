@@ -461,7 +461,8 @@ GTY (())
 {
   basilysobject_ptr_t discr;
   char routdescr[BASILYS_ROUTDESCR_LEN];
-  long GTY ((skip)) routaddr[1 + sizeof (basilysroutfun_t *) / sizeof (long)];
+  long GTY ((skip)) routaddr[1 + 2* sizeof (basilysroutfun_t *) / sizeof (long)];
+  basilys_ptr_t routdata;
   unsigned nbval;
   basilys_ptr_t GTY ((length ("%h.nbval"))) tabval[FLEXIBLE_DIM];
 };
@@ -469,7 +470,8 @@ GTY (())
 #define BASILYS_ROUTINE_STRUCT(N) {				\
   basilysobject_ptr_t discr;					\
   char routdescr[BASILYS_ROUTDESCR_LEN];			\
-  long routaddr[1+sizeof(basilysroutfun_t *)/sizeof(long)];	\
+  long routaddr[1+2*sizeof(basilysroutfun_t *)/sizeof(long)];	\
+  basilys_ptr_t routdata;					\
   unsigned nbval;						\
   basilys_ptr_t tabval[N];					\
   long _gap; }
@@ -1350,6 +1352,21 @@ basilys_object_length (basilys_ptr_t ob)
   return 0;
 }
 
+/* get safely the nth field of an object or NULL */
+static inline basilys_ptr_t
+basilys_object_nth_field(basilys_ptr_t ob, int rk) 
+{
+  if (basilys_magic_discr (ob) == OBMAG_OBJECT)
+    {
+      basilysobject_ptr_t pob = (basilysobject_ptr_t) ob;
+      if (rk<0) 
+	rk += pob->obj_len;
+      if (rk>=0 && rk<pob->obj_len) 
+	return (basilys_ptr_t)(pob->obj_vartab[rk]);
+    }
+  return NULL;
+}
+
 /* allocate a new string (or null if bad DISCR or null STR) initialized from
    _static_ (non gc-ed) memory STR  */
 basilys_ptr_t basilysgc_new_string (basilysobject_ptr_t discr,
@@ -1621,6 +1638,16 @@ basilysroutine_ptr_t basilysgc_new_routine (basilysobject_ptr_t discr_p,
 					    unsigned len, const char *descr,
 					    basilysroutfun_t * proc);
 
+
+void basilysgc_set_routine_data(basilys_ptr_t rout_p, basilys_ptr_t data_p);
+
+static inline basilys_ptr_t 
+basilys_routine_data(basilys_ptr_t rout)
+{
+  if (rout && ((basilysroutine_ptr_t) rout)->discr->obj_num == OBMAG_ROUTINE)
+    return ((basilysroutine_ptr_t) rout)->routdata;
+  return NULL;
+}
 
 static inline char *
 basilys_routine_descrstr (basilys_ptr_t rout)
@@ -1985,6 +2012,8 @@ enum basilys_globalix_en
   BGLOB_ATOM_TRUE,
   /* the class of containers */
   BGLOB_CLASS_CONTAINER,
+  /* the class of basilys GCC compiler passes */
+  BGLOB_CLASS_GCC_PASS,
   /**************************** placeholder for last wired */
   BGLOB__LASTWIRED,
   BGLOB___SPARE1,
@@ -2078,7 +2107,18 @@ enum
   FSYSDAT_ADDKEYW,		/* closure to add a keyword of given name */
   FSYSDAT_INTERNSYMBOL,	       /* closure to intern a symbol */
   FSYSDAT_INTERNKEYW,		/* closure to intern a keyword */
+  FSYSDAT_VALUE_IMPORTER,	/* closure to import a value */
+  FSYSDAT_PASS_DICT,		/* dictionnary of passes */
   FSYSDAT__LAST
+};
+
+
+/* fields inside GCC passes */
+enum {
+  FGCCPASS_GATE = FNAMED__LAST,	/* the fate closure */
+  FGCCPASS_EXEC,		/* the execute closure */
+  FGCCPASS_DATA,		/* extra data */
+  FGCCPASS__LAST
 };
 
 /* BASILYSG(Foo) is the global of index BGLOB_Foo */

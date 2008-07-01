@@ -400,10 +400,21 @@ extern struct simple_ipa_opt_pass pass_early_local_passes;
 extern struct simple_ipa_opt_pass pass_ipa_increase_alignment;
 extern struct simple_ipa_opt_pass pass_ipa_function_and_variable_visibility;
 
-/* Basilys  passes */
+
+
+/**** Basilys/MELT  passes *****/
 #if ENABLE_BASILYSMELT
-extern struct simple_ipa_opt_pass pass_basilys;
-#endif
+/* at end of lowering passes */
+extern struct gimple_opt_pass pass_basilys_lowering;
+/* at end of early optimisations */
+extern struct gimple_opt_pass pass_basilys_earlyopt;
+/* at end of interprocedural optimisations */
+extern struct simple_ipa_opt_pass pass_basilys_ipa;
+/* at end of late optimisations */
+extern struct gimple_opt_pass pass_basilys_lateopt;
+#endif /*ENABLE_BASILYSMELT*/
+
+
 
 extern struct gimple_opt_pass pass_all_optimizations;
 extern struct gimple_opt_pass pass_cleanup_cfg_post_optimizing;

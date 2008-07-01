@@ -159,6 +159,7 @@
 	   sysdata_internsymbol		;closure to intern a symbol
 	   sysdata_internkeyw		;closure to intern a keyword
 	   sysdata_value_importer	;closure to import a value
+	   sysdata_pass_dict		;stringmap for passes
 	   ;;;keep these spare slots to ease the addition of other slots
 	   sysdata___spare1
 	   sysdata___spare2
@@ -303,7 +304,16 @@
 ))
 
 
-
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;; ================ GCC compiler passes
+(defclass class_gcc_pass
+  :predef CLASS_GCC_PASS
+  :super class_named
+  :fields (gccpass_gate			;closure for gate
+	   gccpass_exec			;closure for execution
+	   gccpass_data			;extra data
+))
+  
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; ================  source program elements
 
@@ -908,35 +918,58 @@
 (defprimitive read_file (filnam) :value
   "(basilysgc_read_file (basilys_string_str((basilys_ptr_t)(" filnam ")), (char*)0))")
 
+
+;;;; from GCC chat on july 1st 2008
+
+;;!   <basile> can I call error("%H", (location_t*)NULL, ...) or should I pass &loc with loc set to NULL?
+;;!   <iant_work> if you pass NULL you will get a SIGSEGV
+;;!   <tromey> yeah, don't pass NULL
+
+;;!   <basile> I'm not sure to understand the %H thing. Does it means
+;;!   replace input_location by the argument, or does it tells just
+;;!   ignore input_location?
+
+;;!   <iant_work> you can think of it as ignoring input_location
+;;!   <iant_work> it does not change input_location
+;;!   <basile> when reading a file myself, how should I add locations?
+;;!   <iant_work> call linemap_line_start at the start of each line
+;;!   <iant_work> each time you want a location_t call LINEMAP_POSITION_FOR_COLUMN
+;;!   <tromey> read libcpp/include/line-map.h
+;;!   <tromey> first do a linemap_add to "enter" your source file
+;;!   <tromey> then add the locations you care about
+;;!   <tromey> when entering your file you probably want LC_RENAME, btw
+;;!   <tromey> if MELT reads multiple lisp source files then you will need multiple linemap_add calls
+;;!   ; ;;;;
+
 ;; to signal an error in a basilys source with some additional string value
 (defprimitive error_strv (loc :cstring msg :value strv) :void
-  "error(\"BASILYS ERROR [#%ld]: @%s:%d:: %s - %s\", basilys_dbgcounter, "
+  "error(\"%s:%d:: BASILYS ERROR [#%ld]: %s - %s\", "
   " basilys_string_str(basilys_val_mixint((basilys_ptr_t)(" loc "))), "
-  " (int) basilys_num_mixint((basilys_ptr_t)(" loc ")), ("
+  " (int) basilys_num_mixint((basilys_ptr_t)(" loc ")), basilys_dbgcounter, ("
   msg
   "), basilys_string_str((basilys_ptr_t)(" strv ")))"
   )
 ;; signal a plain error in a basilys source
 (defprimitive error_plain (loc :cstring msg) :void
-  "error(\"BASILYS ERROR [#%ld]: @%s:%d:: %s \", basilys_dbgcounter, "
+  "error(\"%s:%d:: BASILYS ERROR [#%ld]: @%s \", "
   " basilys_string_str(basilys_val_mixint((basilys_ptr_t)(" loc "))), "
-  " (int) basilys_num_mixint((basilys_ptr_t)(" loc ")), ("
+  " (int) basilys_num_mixint((basilys_ptr_t)(" loc ")), basilys_dbgcounter, ("
   msg "))"
   )
 
 ;; to signal an warning in a basilys source with some additional string value
 (defprimitive warning_strv (loc :cstring msg :value strv) :void
-  "warning(0, \"BASILYS WARNING [#%ld]: @%s:%d:: %s - %s\", basilys_dbgcounter,"
+  "warning(0, \"%s:%d:: BASILYS WARNING [#%ld]: @ %s - %s\", "
   " basilys_string_str(basilys_val_mixint((basilys_ptr_t)(" loc "))), "
-  " (int) basilys_num_mixint((basilys_ptr_t)(" loc ")), ("
+  " (int) basilys_num_mixint((basilys_ptr_t)(" loc ")), basilys_dbgcounter, ("
   msg
   "), basilys_string_str((basilys_ptr_t)(" strv ")))"
   )
 ;; signal a plain warning in a basilys source
 (defprimitive warning_plain (loc :cstring msg) :void
-  "warning(0, \"BASILYS WARNING [#%ld]: @%s:%d:: %s \", basilys_dbgcounter,"
+  "warning(0, \"%s:%d:: BASILYS WARNING [#%ld]: @ %s \","
   " basilys_string_str(basilys_val_mixint((basilys_ptr_t)(" loc "))), "
-  " (int) basilys_num_mixint((basilys_ptr_t)(" loc ")), ("
+  " (int) basilys_num_mixint((basilys_ptr_t)(" loc ")),  basilys_dbgcounter, ("
   msg "))"
   )
 
@@ -972,16 +1005,16 @@
 
 ;; to signal an inform in a basilys source with some additional string value
 (defprimitive inform_strv (loc :cstring msg :value strv) :void
-  "inform(\"BASILYS INFORM [#%ld]: @%s:%d: %s - %s\", basilys_dbgcounter,"
+  "inform(\"%s:%d:: BASILYS INFORM [#%ld]: @%s - %s\", "
   " basilys_string_str(basilys_val_mixint((basilys_ptr_t)(" loc "))), "
-  " (int) basilys_num_mixint((basilys_ptr_t)(" loc ")), ("
+  " (int) basilys_num_mixint((basilys_ptr_t)(" loc ")), basilys_dbgcounter, ("
   msg
   "), basilys_string_str((basilys_ptr_t)(" strv ")))"
   )
 ;; signal a plain inform in a basilys source
 (defprimitive inform_plain (loc :cstring msg) :void
-  "inform(\"BASILYS INFORM [#%ld]: @%s:%d::: %s \", basilys_dbgcounter,"
-  " basilys_string_str(basilys_val_mixint((basilys_ptr_t)(" loc "))), "
+  "inform(\"%s:%d::: BASILYS INFORM [#%ld]: @ %s \", "
+  " basilys_string_str(basilys_val_mixint((basilys_ptr_t)(" loc "))), basilys_dbgcounter, "
   " (int) basilys_num_mixint((basilys_ptr_t)(" loc ")), ("
   msg "))"
   )

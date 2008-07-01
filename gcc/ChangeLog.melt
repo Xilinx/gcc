@@ -1,4 +1,26 @@
 2008-07-01  Basile Starynkevitch  <basile@starynkevitch.net>
+	* basilys.c: added pass_basilys_ipa, pass_basilys_lowering,
+	pass_basilys_earlyopt, pass_basilys_lateopt.
+	(basilysgc_set_routine_data, dispatch_gate_basilys)
+	(dispatch_execute_basilys)
+	(gate_basilys_lowering, execute_basilys_lowering)
+	(gate_basilys_earlyopt, execute_basilys_earlyopt)
+	(gate_basilys_lateopt, execute_basilys_lateopt, gate_basilys_ipa)
+	(execute_basilys_ipa): new functions.
+
+	* basilys.h: added FGCCPASS_* enum for fields in CLASS_GCC_PASS.
+	(basilys_routine_data) new function. added routdata inside routines.
+	routaddr made a little bigger for future use.
+
+	* tree-passes.h: added pass_basilys_lowering,
+	pass_basilys_earlyopt, pass_basilys_ipa,
+	pass_basilys_lateopt. removed pass_basilys.
+
+	* passes.c: likewise.
+
+	* melt/warmelt-first.bysl: added class_gcc_pass & sysdata_pass_dict.
+
+2008-07-01  Basile Starynkevitch  <basile@starynkevitch.net>
 	MELT branch merged with trunk r137318
 
 2008-07-01  Basile Starynkevitch  <basile@starynkevitch.net>

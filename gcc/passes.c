@@ -524,6 +524,7 @@ init_optimization_passes (void)
   NEXT_PASS (pass_warn_function_return);
   NEXT_PASS (pass_build_cgraph_edges);
   NEXT_PASS (pass_inline_parameters);
+  NEXT_PASS (pass_basilys_lowering);
   *p = NULL;
 
   /* Interprocedural optimization passes. 
@@ -576,6 +577,9 @@ init_optimization_passes (void)
 	  NEXT_PASS (pass_simple_dse);
 	  NEXT_PASS (pass_tail_recursion);
 	  NEXT_PASS (pass_convert_switch);
+#if ENABLE_BASILYSMELT
+	  NEXT_PASS (pass_basilys_earlyopt);
+#endif /*ENABLE_BASILYSMELT*/
           NEXT_PASS (pass_profile);
 	  NEXT_PASS (pass_release_ssa_names);
 	}
@@ -591,8 +595,8 @@ init_optimization_passes (void)
   NEXT_PASS (pass_ipa_pta);
   NEXT_PASS (pass_ipa_struct_reorg); 
 #if ENABLE_BASILYSMELT
-  NEXT_PASS (pass_basilys); 
-#endif
+  NEXT_PASS (pass_basilys_ipa); 
+#endif /*ENABLE_BASILYSMELT*/
   *p = NULL;
 
   /* These passes are run after IPA passes on every function that is being
@@ -718,6 +722,9 @@ init_optimization_passes (void)
       NEXT_PASS (pass_tail_calls);
       NEXT_PASS (pass_rename_ssa_copies);
       NEXT_PASS (pass_uncprop);
+#if ENABLE_BASILYSMELT
+      NEXT_PASS (pass_basilys_lateopt); 
+#endif /*ENABLE_BASILYSMELT*/
       NEXT_PASS (pass_del_ssa);
       NEXT_PASS (pass_nrv);
       NEXT_PASS (pass_mark_used_blocks);
