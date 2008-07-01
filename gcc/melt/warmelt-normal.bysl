@@ -22,7 +22,7 @@
 ")
 
 ;; the copyright notice above apply both to warmelt-normal.bysl and 
-;; to the generated file warm-basilys*.c or warmelt-normal*.c
+;; to the generated file  warmelt-normal*.c
 
 ;;    This file is the third part of a bootstrapping compiler for the
 ;;    basilys/MELT lisp dialect, compiler which should be able to
@@ -834,7 +834,7 @@
 
 
 ; for symbols which are imported from a previous environment (this
-; only happens when compiling stuff which is not this warm-basilys) we
+; only happens when compiling stuff which is not this warmelt-*) we
 ; should detect them and generate some special data to fetch them, in
 ; the start routine, from the given environment (which is the only
 ; argument to the start routine). Detecting such symbols is easy : their

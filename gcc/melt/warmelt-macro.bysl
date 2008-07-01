@@ -22,7 +22,7 @@
 ")
 
 ;; the copyright notice above apply both to warmelt-macro.bysl and 
-;; to the generated file warm-basilys*.c or warmelt-macro*.c
+;; to the generated file or warmelt-macro*.c
 
 ;;    This file is the second part of a bootstrapping compiler for the
 ;;    basilys/MELT lisp dialect, compiler which should be able to

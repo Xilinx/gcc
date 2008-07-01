@@ -14,39 +14,9 @@ needed to compile the MELT generated C code).
 The MELT source files -a lisp like code- are *.bysl (sorry for the messy suffix).
 
 
-I am sorry for all this temporary mess. As soon as warm-basilys.bysl
-is debugged, it should bootstrap itself in the following sense:
-
-  a *generated* warm-basilys.c exists somewhere; it is quite big (>300KLOC)
-
-  this generated file should be compiled (successfully) by the above
-  basilys-gcc script into a warm-basilys.so (to be put in a place to be defined)
-
-  this warm-basilys.so is dynamically loaded by cc1 thru 
-
- gcc/cc1  -fbasilys -fbasilys-init=warm-basilys.so \
-          -fbasilys-command=compileseq -fbasilys-arg=warm-basilys.bysl \
-	  -frandom-seed=AbCdEfGhIj
-
-for debugging I usually add the  -fbasilys-debug -fdump-ipa-basilys flags which should not be needed
-
+See the gcc/doc/melt.texi  file.
 
 #### comments and questions to <basile@starynkevitch.net> 
 
 
 ##################################################################
-
-NOTES about bugs in melt:
-
-rev135773. 22-May-2008: 
-
-Apparently, all (unsafe_put_fields ...)  expressions are indeed
-compiled by warm-basilys.bysl.
-
-But in normexp_forever the 
-    (unsafe_put_fields slbind :labind_clonsy resy)
-expression is apparently compiled *after* the multiapply - this should not happen!
-
-FIXED by having every normalization function, even
-normexp_unsafe_put_fields, return a simple local occurrence (of void
-type).

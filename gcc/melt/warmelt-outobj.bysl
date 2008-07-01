@@ -22,7 +22,7 @@
 ")
 
 ;; the copyright notice above apply both to warmelt-outobj.bysl and 
-;; to the generated file warm-basilys*.c or warmelt-outobj*.c
+;; to the generated file  warmelt-outobj*.c
 
 ;;    This file is the fifth part of a bootstrapping compiler for the
 ;;    basilys/MELT lisp dialect, compiler which should be able to
@@ -2662,7 +2662,7 @@
 	  (debug_msg procurmodenvlist "compile_list_sexpr procurmodenvlist")
 	  (let ( (iniobj (compile2obj_initproc inipro modctx inidata compicache procurmodenvlist importvalues)) )
 	    (debug_msg iniobj "compile_list_sexpr iniobj")
-	    (outnum_err "** warm-basilys generated " (list_length objlist) " routines into ")
+	    (outnum_err "** warmelt generated " (list_length objlist) " routines into ")
 	    (outstr_err modnamstr)
 	    (outnewline_err)
 	    (outcstring_err "** from ")
@@ -2681,7 +2681,7 @@
 	    (debug_msg iniobj "compile_list_sexpr outputting iniobj")
 	    (output_c_code iniobj declbuf implbuf 0)
 	    (output_cfile_decl_impl modnamstr declbuf implbuf)
-	    (informsg_strv "warm-basilys generated module" modnamstr)
+	    (informsg_strv "warmelt generated module" modnamstr)
 	    )))))
   (message_dbg "ended compile_list_sexpr")
   )

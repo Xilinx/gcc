@@ -23,7 +23,7 @@
 ")
 
 ;; the copyright notice above apply both to warmelt-first.bysl and 
-;; to the generated file warm-basilys*.c or warmelt-first*.c
+;; to the generated file  warmelt-first*.c
 
 ;;    This file is the first part of a bootstrapping compiler for the
 ;;    basilys/MELT lisp dialect, compiler which should be able to

@@ -1,4 +1,33 @@
 2008-07-01  Basile Starynkevitch  <basile@starynkevitch.net>
+	[removed warm-basilys, which is replaced by warmelt-*]
+
+	* warm-basilys-0.c: removed this generated file.
+
+	* warmelt-first-0.c: new file generated with upgrade-warmelt target.
+
+	* warmelt-macro-0.c: new file generated with upgrade-warmelt target.
+
+	* warmelt-normal-0.c: new file generated with upgrade-warmelt target.
+
+	* warmelt-genobj-0.c: new file generated with upgrade-warmelt target.
+
+	* warmelt-outobj-0.c: new file generated with upgrade-warmelt target.
+
+	* Makefile.in: removed mention of warm-basilys* files. Working upgrade-warmelt target.
+
+	* melt/warmelt-first.bysl: removed mention of warm-basilys* files
+
+	* melt/warmelt-macro.bysl: removed mention of warm-basilys* files
+
+	* melt/warmelt-normal.bysl: removed mention of warm-basilys* files
+
+	* melt/warmelt-genobj.bysl: removed mention of warm-basilys* files
+
+	* melt/warmelt-outobj.bysl: removed mention of warm-basilys* files
+
+	* melt/README-MELT: updated.
+
+2008-07-01  Basile Starynkevitch  <basile@starynkevitch.net>
 	* doc/melt.texi: describes MELT -fbasilys* flags.
 
 	* doc/invoke.texi: mentions briefly -fbasilys* flags.
