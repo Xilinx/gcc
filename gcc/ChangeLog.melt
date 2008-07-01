@@ -1,4 +1,27 @@
 2008-07-01  Basile Starynkevitch  <basile@starynkevitch.net>
+	[MELT objects are by default fixed length unless
+	BASILYS_HAS_OBJ_TAB_FIELDS is set in basilys.h]
+
+	* basilys.h: added BASILYS_HAS_OBJ_TAB_FIELDS to support fixed
+	length objects to gain one word & indirection in each MELT object.
+
+	* basilys.c: (forwarded_copy,scanning,basilysgc_new_raw_object)
+	using BASILYS_HAS_OBJ_TAB_FIELDS for fixed length objects.
+
+	* warmelt-first-0.c: regenerated twice.
+
+	* warmelt-macro-0.c: regenerated twice.
+
+	* warmelt-normal-0.c: regenerated twice.
+
+	* warmelt-genobj-0.c: regenerated twice.
+
+	* warmelt-outobj-0.c: regenerated twice.
+
+	* melt/warmelt-outobj.bysl: added support of
+	BASILYS_HAS_OBJ_TAB_FIELDS.
+
+2008-07-01  Basile Starynkevitch  <basile@starynkevitch.net>
 	[removed warm-basilys, which is replaced by warmelt-*]
 
 	* warm-basilys-0.c: removed this generated file.

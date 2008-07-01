@@ -1,5 +1,5 @@
 /* GCC BASILYS GENERATED FILE warmelt-genobj-3.c - DO NOT EDIT */
-/* generated on Tue Jul  1 11:15:36 2008 */
+/* generated on Tue Jul  1 13:59:27 2008 */
 
 #include "run-basilys.h"
 
@@ -49183,7 +49183,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_1__DEBUG_MSG_FUN.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_1__DEBUG_MSG_FUN.obj_hash = 938829072;
   cdat->dsym_1__DEBUG_MSG_FUN.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_1__DEBUG_MSG_FUN.obj_vartab =  cdat->dsym_1__DEBUG_MSG_FUN.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_1__DEBUG_MSG_FUN));
  
  /*inistring dstr_2__DEBUG_MSG_FUN*/
@@ -49197,7 +49199,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_3__CLASS_SYMBOL.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_3__CLASS_SYMBOL.obj_hash = 53524182;
   cdat->dsym_3__CLASS_SYMBOL.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_3__CLASS_SYMBOL.obj_vartab =  cdat->dsym_3__CLASS_SYMBOL.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_3__CLASS_SYMBOL));
  
  /*inistring dstr_4__CLASS_SYMBOL*/
@@ -49211,7 +49215,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_5__CLASS_OBJVALUE.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_5__CLASS_OBJVALUE.obj_hash = 1057853242;
   cdat->dsym_5__CLASS_OBJVALUE.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_5__CLASS_OBJVALUE.obj_vartab =  cdat->dsym_5__CLASS_OBJVALUE.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_5__CLASS_OBJVALUE));
  
  /*inistring dstr_6__CLASS_OBJVALUE*/
@@ -49225,7 +49231,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_7__CLASS_OBJCODE.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_7__CLASS_OBJCODE.obj_hash = 357013557;
   cdat->dsym_7__CLASS_OBJCODE.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_7__CLASS_OBJCODE.obj_vartab =  cdat->dsym_7__CLASS_OBJCODE.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_7__CLASS_OBJCODE));
  
  /*inistring dstr_8__CLASS_OBJCODE*/
@@ -49242,7 +49250,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_9__CLASS_OBJVALUE.obj_num = OBMAG_OBJECT;
   cdat->dobj_9__CLASS_OBJVALUE.obj_hash = 237859538;
   cdat->dobj_9__CLASS_OBJVALUE.obj_len = 9;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_9__CLASS_OBJVALUE.obj_vartab =  cdat->dobj_9__CLASS_OBJVALUE.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_9__CLASS_OBJVALUE));
  
  /*inistring dstr_10__CLASS_OBJVALUE*/
@@ -49264,7 +49274,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_13__OBV_TYPE.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_13__OBV_TYPE.obj_hash = 139676463;
   cdat->dsym_13__OBV_TYPE.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_13__OBV_TYPE.obj_vartab =  cdat->dsym_13__OBV_TYPE.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_13__OBV_TYPE));
  
  /*inistring dstr_14__OBV_TYPE*/
@@ -49281,7 +49293,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_15__OBV_TYPE.obj_num = 0;
   cdat->dobj_15__OBV_TYPE.obj_hash = 959719482;
   cdat->dobj_15__OBV_TYPE.obj_len = 4;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_15__OBV_TYPE.obj_vartab =  cdat->dobj_15__OBV_TYPE.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_15__OBV_TYPE));
  
  /*inistring dstr_16__OBV_TYPE*/
@@ -49295,7 +49309,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_17__CLASS_OBJPUREVALUE.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_17__CLASS_OBJPUREVALUE.obj_hash = 439671425;
   cdat->dsym_17__CLASS_OBJPUREVALUE.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_17__CLASS_OBJPUREVALUE.obj_vartab =  cdat->dsym_17__CLASS_OBJPUREVALUE.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_17__CLASS_OBJPUREVALUE));
  
  /*inistring dstr_18__CLASS_OBJPUREVAL*/
@@ -49312,7 +49328,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_19__CLASS_OBJPUREVALUE.obj_num = OBMAG_OBJECT;
   cdat->dobj_19__CLASS_OBJPUREVALUE.obj_hash = 32465361;
   cdat->dobj_19__CLASS_OBJPUREVALUE.obj_len = 9;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_19__CLASS_OBJPUREVALUE.obj_vartab =  cdat->dobj_19__CLASS_OBJPUREVALUE.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_19__CLASS_OBJPUREVALUE));
  
  /*inistring dstr_20__CLASS_OBJPUREVAL*/
@@ -49334,7 +49352,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_23__CLASS_OBJLOCV.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_23__CLASS_OBJLOCV.obj_hash = 259875989;
   cdat->dsym_23__CLASS_OBJLOCV.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_23__CLASS_OBJLOCV.obj_vartab =  cdat->dsym_23__CLASS_OBJLOCV.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_23__CLASS_OBJLOCV));
  
  /*inistring dstr_24__CLASS_OBJLOCV*/
@@ -49351,7 +49371,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_25__CLASS_OBJLOCV.obj_num = OBMAG_OBJECT;
   cdat->dobj_25__CLASS_OBJLOCV.obj_hash = 921922320;
   cdat->dobj_25__CLASS_OBJLOCV.obj_len = 9;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_25__CLASS_OBJLOCV.obj_vartab =  cdat->dobj_25__CLASS_OBJLOCV.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_25__CLASS_OBJLOCV));
  
  /*inistring dstr_26__CLASS_OBJLOCV*/
@@ -49373,7 +49395,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_29__OBL_OFF.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_29__OBL_OFF.obj_hash = 452398508;
   cdat->dsym_29__OBL_OFF.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_29__OBL_OFF.obj_vartab =  cdat->dsym_29__OBL_OFF.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_29__OBL_OFF));
  
  /*inistring dstr_30__OBL_OFF*/
@@ -49390,7 +49414,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_31__OBL_OFF.obj_num = 1;
   cdat->dobj_31__OBL_OFF.obj_hash = 472896271;
   cdat->dobj_31__OBL_OFF.obj_len = 4;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_31__OBL_OFF.obj_vartab =  cdat->dobj_31__OBL_OFF.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_31__OBL_OFF));
  
  /*inistring dstr_32__OBL_OFF*/
@@ -49404,7 +49430,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_33__OBL_PROC.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_33__OBL_PROC.obj_hash = 397032469;
   cdat->dsym_33__OBL_PROC.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_33__OBL_PROC.obj_vartab =  cdat->dsym_33__OBL_PROC.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_33__OBL_PROC));
  
  /*inistring dstr_34__OBL_PROC*/
@@ -49421,7 +49449,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_35__OBL_PROC.obj_num = 2;
   cdat->dobj_35__OBL_PROC.obj_hash = 203832984;
   cdat->dobj_35__OBL_PROC.obj_len = 4;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_35__OBL_PROC.obj_vartab =  cdat->dobj_35__OBL_PROC.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_35__OBL_PROC));
  
  /*inistring dstr_36__OBL_PROC*/
@@ -49435,7 +49465,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_37__OBL_CNAME.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_37__OBL_CNAME.obj_hash = 1037789480;
   cdat->dsym_37__OBL_CNAME.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_37__OBL_CNAME.obj_vartab =  cdat->dsym_37__OBL_CNAME.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_37__OBL_CNAME));
  
  /*inistring dstr_38__OBL_CNAME*/
@@ -49452,7 +49484,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_39__OBL_CNAME.obj_num = 3;
   cdat->dobj_39__OBL_CNAME.obj_hash = 898386691;
   cdat->dobj_39__OBL_CNAME.obj_len = 4;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_39__OBL_CNAME.obj_vartab =  cdat->dobj_39__OBL_CNAME.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_39__OBL_CNAME));
  
  /*inistring dstr_40__OBL_CNAME*/
@@ -49466,7 +49500,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_41__CLASS_OBJCLOCCV.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_41__CLASS_OBJCLOCCV.obj_hash = 195863179;
   cdat->dsym_41__CLASS_OBJCLOCCV.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_41__CLASS_OBJCLOCCV.obj_vartab =  cdat->dsym_41__CLASS_OBJCLOCCV.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_41__CLASS_OBJCLOCCV));
  
  /*inistring dstr_42__CLASS_OBJCLOCCV*/
@@ -49483,7 +49519,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_43__CLASS_OBJCLOCCV.obj_num = OBMAG_OBJECT;
   cdat->dobj_43__CLASS_OBJCLOCCV.obj_hash = 895070876;
   cdat->dobj_43__CLASS_OBJCLOCCV.obj_len = 9;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_43__CLASS_OBJCLOCCV.obj_vartab =  cdat->dobj_43__CLASS_OBJCLOCCV.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_43__CLASS_OBJCLOCCV));
  
  /*inistring dstr_44__CLASS_OBJCLOCCV*/
@@ -49505,7 +49543,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_47__OBC_OFF.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_47__OBC_OFF.obj_hash = 258307413;
   cdat->dsym_47__OBC_OFF.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_47__OBC_OFF.obj_vartab =  cdat->dsym_47__OBC_OFF.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_47__OBC_OFF));
  
  /*inistring dstr_48__OBC_OFF*/
@@ -49522,7 +49562,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_49__OBC_OFF.obj_num = 1;
   cdat->dobj_49__OBC_OFF.obj_hash = 390045217;
   cdat->dobj_49__OBC_OFF.obj_len = 4;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_49__OBC_OFF.obj_vartab =  cdat->dobj_49__OBC_OFF.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_49__OBC_OFF));
  
  /*inistring dstr_50__OBC_OFF*/
@@ -49536,7 +49578,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_51__OBC_PROC.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_51__OBC_PROC.obj_hash = 835315740;
   cdat->dsym_51__OBC_PROC.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_51__OBC_PROC.obj_vartab =  cdat->dsym_51__OBC_PROC.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_51__OBC_PROC));
  
  /*inistring dstr_52__OBC_PROC*/
@@ -49553,7 +49597,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_53__OBC_PROC.obj_num = 2;
   cdat->dobj_53__OBC_PROC.obj_hash = 144311784;
   cdat->dobj_53__OBC_PROC.obj_len = 4;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_53__OBC_PROC.obj_vartab =  cdat->dobj_53__OBC_PROC.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_53__OBC_PROC));
  
  /*inistring dstr_54__OBC_PROC*/
@@ -49567,7 +49613,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_55__OBC_NAME.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_55__OBC_NAME.obj_hash = 376794807;
   cdat->dsym_55__OBC_NAME.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_55__OBC_NAME.obj_vartab =  cdat->dsym_55__OBC_NAME.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_55__OBC_NAME));
  
  /*inistring dstr_56__OBC_NAME*/
@@ -49584,7 +49632,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_57__OBC_NAME.obj_num = 3;
   cdat->dobj_57__OBC_NAME.obj_hash = 709711245;
   cdat->dobj_57__OBC_NAME.obj_len = 4;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_57__OBC_NAME.obj_vartab =  cdat->dobj_57__OBC_NAME.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_57__OBC_NAME));
  
  /*inistring dstr_58__OBC_NAME*/
@@ -49598,7 +49648,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_59__CLASS_OBJCONSTV.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_59__CLASS_OBJCONSTV.obj_hash = 125371776;
   cdat->dsym_59__CLASS_OBJCONSTV.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_59__CLASS_OBJCONSTV.obj_vartab =  cdat->dsym_59__CLASS_OBJCONSTV.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_59__CLASS_OBJCONSTV));
  
  /*inistring dstr_60__CLASS_OBJCONSTV*/
@@ -49615,7 +49667,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_61__CLASS_OBJCONSTV.obj_num = OBMAG_OBJECT;
   cdat->dobj_61__CLASS_OBJCONSTV.obj_hash = 704858371;
   cdat->dobj_61__CLASS_OBJCONSTV.obj_len = 9;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_61__CLASS_OBJCONSTV.obj_vartab =  cdat->dobj_61__CLASS_OBJCONSTV.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_61__CLASS_OBJCONSTV));
  
  /*inistring dstr_62__CLASS_OBJCONSTV*/
@@ -49637,7 +49691,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_65__CLASS_OBJPREDEF.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_65__CLASS_OBJPREDEF.obj_hash = 416230155;
   cdat->dsym_65__CLASS_OBJPREDEF.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_65__CLASS_OBJPREDEF.obj_vartab =  cdat->dsym_65__CLASS_OBJPREDEF.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_65__CLASS_OBJPREDEF));
  
  /*inistring dstr_66__CLASS_OBJPREDEF*/
@@ -49654,7 +49710,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_67__CLASS_OBJPREDEF.obj_num = OBMAG_OBJECT;
   cdat->dobj_67__CLASS_OBJPREDEF.obj_hash = 363168377;
   cdat->dobj_67__CLASS_OBJPREDEF.obj_len = 9;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_67__CLASS_OBJPREDEF.obj_vartab =  cdat->dobj_67__CLASS_OBJPREDEF.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_67__CLASS_OBJPREDEF));
  
  /*inistring dstr_68__CLASS_OBJPREDEF*/
@@ -49676,7 +49734,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_71__OBPREDEF.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_71__OBPREDEF.obj_hash = 465714734;
   cdat->dsym_71__OBPREDEF.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_71__OBPREDEF.obj_vartab =  cdat->dsym_71__OBPREDEF.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_71__OBPREDEF));
  
  /*inistring dstr_72__OBPREDEF*/
@@ -49693,7 +49753,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_73__OBPREDEF.obj_num = 1;
   cdat->dobj_73__OBPREDEF.obj_hash = 437127808;
   cdat->dobj_73__OBPREDEF.obj_len = 4;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_73__OBPREDEF.obj_vartab =  cdat->dobj_73__OBPREDEF.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_73__OBPREDEF));
  
  /*inistring dstr_74__OBPREDEF*/
@@ -49707,7 +49769,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_75__CLASS_OBJNIL.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_75__CLASS_OBJNIL.obj_hash = 621637507;
   cdat->dsym_75__CLASS_OBJNIL.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_75__CLASS_OBJNIL.obj_vartab =  cdat->dsym_75__CLASS_OBJNIL.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_75__CLASS_OBJNIL));
  
  /*inistring dstr_76__CLASS_OBJNIL*/
@@ -49724,7 +49788,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_77__CLASS_OBJNIL.obj_num = OBMAG_OBJECT;
   cdat->dobj_77__CLASS_OBJNIL.obj_hash = 1047848379;
   cdat->dobj_77__CLASS_OBJNIL.obj_len = 9;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_77__CLASS_OBJNIL.obj_vartab =  cdat->dobj_77__CLASS_OBJNIL.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_77__CLASS_OBJNIL));
  
  /*inistring dstr_78__CLASS_OBJNIL*/
@@ -49746,7 +49812,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_81__CLASS_OBJINITELEM.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_81__CLASS_OBJINITELEM.obj_hash = 129631203;
   cdat->dsym_81__CLASS_OBJINITELEM.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_81__CLASS_OBJINITELEM.obj_vartab =  cdat->dsym_81__CLASS_OBJINITELEM.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_81__CLASS_OBJINITELEM));
  
  /*inistring dstr_82__CLASS_OBJINITELE*/
@@ -49763,7 +49831,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_83__CLASS_OBJINITELEM.obj_num = OBMAG_OBJECT;
   cdat->dobj_83__CLASS_OBJINITELEM.obj_hash = 177504913;
   cdat->dobj_83__CLASS_OBJINITELEM.obj_len = 9;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_83__CLASS_OBJINITELEM.obj_vartab =  cdat->dobj_83__CLASS_OBJINITELEM.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_83__CLASS_OBJINITELEM));
  
  /*inistring dstr_84__CLASS_OBJINITELE*/
@@ -49785,7 +49855,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_87__OIE_CNAME.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_87__OIE_CNAME.obj_hash = 681239945;
   cdat->dsym_87__OIE_CNAME.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_87__OIE_CNAME.obj_vartab =  cdat->dsym_87__OIE_CNAME.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_87__OIE_CNAME));
  
  /*inistring dstr_88__OIE_CNAME*/
@@ -49802,7 +49874,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_89__OIE_CNAME.obj_num = 1;
   cdat->dobj_89__OIE_CNAME.obj_hash = 572156009;
   cdat->dobj_89__OIE_CNAME.obj_len = 4;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_89__OIE_CNAME.obj_vartab =  cdat->dobj_89__OIE_CNAME.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_89__OIE_CNAME));
  
  /*inistring dstr_90__OIE_CNAME*/
@@ -49816,7 +49890,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_91__OIE_DATA.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_91__OIE_DATA.obj_hash = 660720415;
   cdat->dsym_91__OIE_DATA.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_91__OIE_DATA.obj_vartab =  cdat->dsym_91__OIE_DATA.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_91__OIE_DATA));
  
  /*inistring dstr_92__OIE_DATA*/
@@ -49833,7 +49909,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_93__OIE_DATA.obj_num = 2;
   cdat->dobj_93__OIE_DATA.obj_hash = 412816233;
   cdat->dobj_93__OIE_DATA.obj_len = 4;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_93__OIE_DATA.obj_vartab =  cdat->dobj_93__OIE_DATA.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_93__OIE_DATA));
  
  /*inistring dstr_94__OIE_DATA*/
@@ -49847,7 +49925,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_95__OIE_DISCR.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_95__OIE_DISCR.obj_hash = 281892028;
   cdat->dsym_95__OIE_DISCR.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_95__OIE_DISCR.obj_vartab =  cdat->dsym_95__OIE_DISCR.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_95__OIE_DISCR));
  
  /*inistring dstr_96__OIE_DISCR*/
@@ -49864,7 +49944,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_97__OIE_DISCR.obj_num = 3;
   cdat->dobj_97__OIE_DISCR.obj_hash = 670376286;
   cdat->dobj_97__OIE_DISCR.obj_len = 4;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_97__OIE_DISCR.obj_vartab =  cdat->dobj_97__OIE_DISCR.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_97__OIE_DISCR));
  
  /*inistring dstr_98__OIE_DISCR*/
@@ -49878,7 +49960,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_99__OIE_LOCVAR.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_99__OIE_LOCVAR.obj_hash = 500660715;
   cdat->dsym_99__OIE_LOCVAR.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_99__OIE_LOCVAR.obj_vartab =  cdat->dsym_99__OIE_LOCVAR.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_99__OIE_LOCVAR));
  
  /*inistring dstr_100__OIE_LOCVAR*/
@@ -49895,7 +49979,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_101__OIE_LOCVAR.obj_num = 4;
   cdat->dobj_101__OIE_LOCVAR.obj_hash = 722399635;
   cdat->dobj_101__OIE_LOCVAR.obj_len = 4;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_101__OIE_LOCVAR.obj_vartab =  cdat->dobj_101__OIE_LOCVAR.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_101__OIE_LOCVAR));
  
  /*inistring dstr_102__OIE_LOCVAR*/
@@ -49909,7 +49995,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_103__CLASS_OBJINITOBJECT.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_103__CLASS_OBJINITOBJECT.obj_hash = 532827978;
   cdat->dsym_103__CLASS_OBJINITOBJECT.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_103__CLASS_OBJINITOBJECT.obj_vartab =  cdat->dsym_103__CLASS_OBJINITOBJECT.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_103__CLASS_OBJINITOBJECT));
  
  /*inistring dstr_104__CLASS_OBJINITOBJ*/
@@ -49926,7 +50014,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_105__CLASS_OBJINITOBJECT.obj_num = OBMAG_OBJECT;
   cdat->dobj_105__CLASS_OBJINITOBJECT.obj_hash = 694906992;
   cdat->dobj_105__CLASS_OBJINITOBJECT.obj_len = 9;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_105__CLASS_OBJINITOBJECT.obj_vartab =  cdat->dobj_105__CLASS_OBJINITOBJECT.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_105__CLASS_OBJINITOBJECT));
  
  /*inistring dstr_106__CLASS_OBJINITOBJ*/
@@ -49948,7 +50038,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_109__OIO_PREDEF.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_109__OIO_PREDEF.obj_hash = 818392308;
   cdat->dsym_109__OIO_PREDEF.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_109__OIO_PREDEF.obj_vartab =  cdat->dsym_109__OIO_PREDEF.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_109__OIO_PREDEF));
  
  /*inistring dstr_110__OIO_PREDEF*/
@@ -49965,7 +50057,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_111__OIO_PREDEF.obj_num = 5;
   cdat->dobj_111__OIO_PREDEF.obj_hash = 985315201;
   cdat->dobj_111__OIO_PREDEF.obj_len = 4;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_111__OIO_PREDEF.obj_vartab =  cdat->dobj_111__OIO_PREDEF.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_111__OIO_PREDEF));
  
  /*inistring dstr_112__OIO_PREDEF*/
@@ -49979,7 +50073,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_113__CLASS_OBJINITMULTIPLE.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_113__CLASS_OBJINITMULTIPLE.obj_hash = 864635026;
   cdat->dsym_113__CLASS_OBJINITMULTIPLE.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_113__CLASS_OBJINITMULTIPLE.obj_vartab =  cdat->dsym_113__CLASS_OBJINITMULTIPLE.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_113__CLASS_OBJINITMULTIPLE));
  
  /*inistring dstr_114__CLASS_OBJINITMUL*/
@@ -49996,7 +50092,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_115__CLASS_OBJINITMULTIPLE.obj_num = OBMAG_OBJECT;
   cdat->dobj_115__CLASS_OBJINITMULTIPLE.obj_hash = 787965436;
   cdat->dobj_115__CLASS_OBJINITMULTIPLE.obj_len = 9;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_115__CLASS_OBJINITMULTIPLE.obj_vartab =  cdat->dobj_115__CLASS_OBJINITMULTIPLE.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_115__CLASS_OBJINITMULTIPLE));
  
  /*inistring dstr_116__CLASS_OBJINITMUL*/
@@ -50018,7 +50116,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_119__OIM_TUPVAL.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_119__OIM_TUPVAL.obj_hash = 975810084;
   cdat->dsym_119__OIM_TUPVAL.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_119__OIM_TUPVAL.obj_vartab =  cdat->dsym_119__OIM_TUPVAL.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_119__OIM_TUPVAL));
  
  /*inistring dstr_120__OIM_TUPVAL*/
@@ -50035,7 +50135,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_121__OIM_TUPVAL.obj_num = 5;
   cdat->dobj_121__OIM_TUPVAL.obj_hash = 97715255;
   cdat->dobj_121__OIM_TUPVAL.obj_len = 4;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_121__OIM_TUPVAL.obj_vartab =  cdat->dobj_121__OIM_TUPVAL.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_121__OIM_TUPVAL));
  
  /*inistring dstr_122__OIM_TUPVAL*/
@@ -50049,7 +50151,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_123__CLASS_OBJINITCLOSURE.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_123__CLASS_OBJINITCLOSURE.obj_hash = 952363892;
   cdat->dsym_123__CLASS_OBJINITCLOSURE.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_123__CLASS_OBJINITCLOSURE.obj_vartab =  cdat->dsym_123__CLASS_OBJINITCLOSURE.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_123__CLASS_OBJINITCLOSURE));
  
  /*inistring dstr_124__CLASS_OBJINITCLO*/
@@ -50066,7 +50170,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_125__CLASS_OBJINITCLOSURE.obj_num = OBMAG_OBJECT;
   cdat->dobj_125__CLASS_OBJINITCLOSURE.obj_hash = 619968277;
   cdat->dobj_125__CLASS_OBJINITCLOSURE.obj_len = 9;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_125__CLASS_OBJINITCLOSURE.obj_vartab =  cdat->dobj_125__CLASS_OBJINITCLOSURE.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_125__CLASS_OBJINITCLOSURE));
  
  /*inistring dstr_126__CLASS_OBJINITCLO*/
@@ -50088,7 +50194,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_129__CLASS_OBJINITROUTINE.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_129__CLASS_OBJINITROUTINE.obj_hash = 527007550;
   cdat->dsym_129__CLASS_OBJINITROUTINE.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_129__CLASS_OBJINITROUTINE.obj_vartab =  cdat->dsym_129__CLASS_OBJINITROUTINE.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_129__CLASS_OBJINITROUTINE));
  
  /*inistring dstr_130__CLASS_OBJINITROU*/
@@ -50105,7 +50213,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_131__CLASS_OBJINITROUTINE.obj_num = OBMAG_OBJECT;
   cdat->dobj_131__CLASS_OBJINITROUTINE.obj_hash = 449292965;
   cdat->dobj_131__CLASS_OBJINITROUTINE.obj_len = 9;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_131__CLASS_OBJINITROUTINE.obj_vartab =  cdat->dobj_131__CLASS_OBJINITROUTINE.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_131__CLASS_OBJINITROUTINE));
  
  /*inistring dstr_132__CLASS_OBJINITROU*/
@@ -50127,7 +50237,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_135__OIR_PROCROUTINE.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_135__OIR_PROCROUTINE.obj_hash = 508339861;
   cdat->dsym_135__OIR_PROCROUTINE.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_135__OIR_PROCROUTINE.obj_vartab =  cdat->dsym_135__OIR_PROCROUTINE.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_135__OIR_PROCROUTINE));
  
  /*inistring dstr_136__OIR_PROCROUTINE*/
@@ -50144,7 +50256,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_137__OIR_PROCROUTINE.obj_num = 5;
   cdat->dobj_137__OIR_PROCROUTINE.obj_hash = 1064074257;
   cdat->dobj_137__OIR_PROCROUTINE.obj_len = 4;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_137__OIR_PROCROUTINE.obj_vartab =  cdat->dobj_137__OIR_PROCROUTINE.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_137__OIR_PROCROUTINE));
  
  /*inistring dstr_138__OIR_PROCROUTINE*/
@@ -50158,7 +50272,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_139__CLASS_OBJINITSTRING.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_139__CLASS_OBJINITSTRING.obj_hash = 1067075981;
   cdat->dsym_139__CLASS_OBJINITSTRING.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_139__CLASS_OBJINITSTRING.obj_vartab =  cdat->dsym_139__CLASS_OBJINITSTRING.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_139__CLASS_OBJINITSTRING));
  
  /*inistring dstr_140__CLASS_OBJINITSTR*/
@@ -50175,7 +50291,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_141__CLASS_OBJINITSTRING.obj_num = OBMAG_OBJECT;
   cdat->dobj_141__CLASS_OBJINITSTRING.obj_hash = 1030004492;
   cdat->dobj_141__CLASS_OBJINITSTRING.obj_len = 9;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_141__CLASS_OBJINITSTRING.obj_vartab =  cdat->dobj_141__CLASS_OBJINITSTRING.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_141__CLASS_OBJINITSTRING));
  
  /*inistring dstr_142__CLASS_OBJINITSTR*/
@@ -50197,7 +50315,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_145__CLASS_OBJEXPV.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_145__CLASS_OBJEXPV.obj_hash = 134484056;
   cdat->dsym_145__CLASS_OBJEXPV.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_145__CLASS_OBJEXPV.obj_vartab =  cdat->dsym_145__CLASS_OBJEXPV.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_145__CLASS_OBJEXPV));
  
  /*inistring dstr_146__CLASS_OBJEXPV*/
@@ -50214,7 +50334,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_147__CLASS_OBJEXPV.obj_num = OBMAG_OBJECT;
   cdat->dobj_147__CLASS_OBJEXPV.obj_hash = 855453694;
   cdat->dobj_147__CLASS_OBJEXPV.obj_len = 9;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_147__CLASS_OBJEXPV.obj_vartab =  cdat->dobj_147__CLASS_OBJEXPV.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_147__CLASS_OBJEXPV));
  
  /*inistring dstr_148__CLASS_OBJEXPV*/
@@ -50236,7 +50358,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_151__OBX_CONT.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_151__OBX_CONT.obj_hash = 1046796445;
   cdat->dsym_151__OBX_CONT.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_151__OBX_CONT.obj_vartab =  cdat->dsym_151__OBX_CONT.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_151__OBX_CONT));
  
  /*inistring dstr_152__OBX_CONT*/
@@ -50253,7 +50377,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_153__OBX_CONT.obj_num = 1;
   cdat->dobj_153__OBX_CONT.obj_hash = 744738636;
   cdat->dobj_153__OBX_CONT.obj_len = 4;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_153__OBX_CONT.obj_vartab =  cdat->dobj_153__OBX_CONT.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_153__OBX_CONT));
  
  /*inistring dstr_154__OBX_CONT*/
@@ -50267,7 +50393,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_155__CLASS_OBJLOCATEDEXPV.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_155__CLASS_OBJLOCATEDEXPV.obj_hash = 564704332;
   cdat->dsym_155__CLASS_OBJLOCATEDEXPV.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_155__CLASS_OBJLOCATEDEXPV.obj_vartab =  cdat->dsym_155__CLASS_OBJLOCATEDEXPV.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_155__CLASS_OBJLOCATEDEXPV));
  
  /*inistring dstr_156__CLASS_OBJLOCATED*/
@@ -50284,7 +50412,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_157__CLASS_OBJLOCATEDEXPV.obj_num = OBMAG_OBJECT;
   cdat->dobj_157__CLASS_OBJLOCATEDEXPV.obj_hash = 322717285;
   cdat->dobj_157__CLASS_OBJLOCATEDEXPV.obj_len = 9;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_157__CLASS_OBJLOCATEDEXPV.obj_vartab =  cdat->dobj_157__CLASS_OBJLOCATEDEXPV.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_157__CLASS_OBJLOCATEDEXPV));
  
  /*inistring dstr_158__CLASS_OBJLOCATED*/
@@ -50306,7 +50436,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_161__OBCX_LOC.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_161__OBCX_LOC.obj_hash = 685813382;
   cdat->dsym_161__OBCX_LOC.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_161__OBCX_LOC.obj_vartab =  cdat->dsym_161__OBCX_LOC.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_161__OBCX_LOC));
  
  /*inistring dstr_162__OBCX_LOC*/
@@ -50323,7 +50455,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_163__OBCX_LOC.obj_num = 2;
   cdat->dobj_163__OBCX_LOC.obj_hash = 1066334448;
   cdat->dobj_163__OBCX_LOC.obj_len = 4;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_163__OBCX_LOC.obj_vartab =  cdat->dobj_163__OBCX_LOC.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_163__OBCX_LOC));
  
  /*inistring dstr_164__OBCX_LOC*/
@@ -50337,7 +50471,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_165__CLASS_OBJINSTR.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_165__CLASS_OBJINSTR.obj_hash = 310627895;
   cdat->dsym_165__CLASS_OBJINSTR.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_165__CLASS_OBJINSTR.obj_vartab =  cdat->dsym_165__CLASS_OBJINSTR.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_165__CLASS_OBJINSTR));
  
  /*inistring dstr_166__CLASS_OBJINSTR*/
@@ -50354,7 +50490,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_167__CLASS_OBJINSTR.obj_num = OBMAG_OBJECT;
   cdat->dobj_167__CLASS_OBJINSTR.obj_hash = 186619116;
   cdat->dobj_167__CLASS_OBJINSTR.obj_len = 9;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_167__CLASS_OBJINSTR.obj_vartab =  cdat->dobj_167__CLASS_OBJINSTR.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_167__CLASS_OBJINSTR));
  
  /*inistring dstr_168__CLASS_OBJINSTR*/
@@ -50376,7 +50514,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_171__OBI_LOC.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_171__OBI_LOC.obj_hash = 551041921;
   cdat->dsym_171__OBI_LOC.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_171__OBI_LOC.obj_vartab =  cdat->dsym_171__OBI_LOC.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_171__OBI_LOC));
  
  /*inistring dstr_172__OBI_LOC*/
@@ -50393,7 +50533,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_173__OBI_LOC.obj_num = 0;
   cdat->dobj_173__OBI_LOC.obj_hash = 819117727;
   cdat->dobj_173__OBI_LOC.obj_len = 4;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_173__OBI_LOC.obj_vartab =  cdat->dobj_173__OBI_LOC.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_173__OBI_LOC));
  
  /*inistring dstr_174__OBI_LOC*/
@@ -50407,7 +50549,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_175__CLASS_OBJCOMMENTINSTR.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_175__CLASS_OBJCOMMENTINSTR.obj_hash = 564818642;
   cdat->dsym_175__CLASS_OBJCOMMENTINSTR.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_175__CLASS_OBJCOMMENTINSTR.obj_vartab =  cdat->dsym_175__CLASS_OBJCOMMENTINSTR.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_175__CLASS_OBJCOMMENTINSTR));
  
  /*inistring dstr_176__CLASS_OBJCOMMENT*/
@@ -50424,7 +50568,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_177__CLASS_OBJCOMMENTINSTR.obj_num = OBMAG_OBJECT;
   cdat->dobj_177__CLASS_OBJCOMMENTINSTR.obj_hash = 186381776;
   cdat->dobj_177__CLASS_OBJCOMMENTINSTR.obj_len = 9;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_177__CLASS_OBJCOMMENTINSTR.obj_vartab =  cdat->dobj_177__CLASS_OBJCOMMENTINSTR.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_177__CLASS_OBJCOMMENTINSTR));
  
  /*inistring dstr_178__CLASS_OBJCOMMENT*/
@@ -50446,7 +50592,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_181__OBCI_COMMENT.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_181__OBCI_COMMENT.obj_hash = 761330428;
   cdat->dsym_181__OBCI_COMMENT.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_181__OBCI_COMMENT.obj_vartab =  cdat->dsym_181__OBCI_COMMENT.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_181__OBCI_COMMENT));
  
  /*inistring dstr_182__OBCI_COMMENT*/
@@ -50463,7 +50611,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_183__OBCI_COMMENT.obj_num = 1;
   cdat->dobj_183__OBCI_COMMENT.obj_hash = 714736600;
   cdat->dobj_183__OBCI_COMMENT.obj_len = 4;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_183__OBCI_COMMENT.obj_vartab =  cdat->dobj_183__OBCI_COMMENT.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_183__OBCI_COMMENT));
  
  /*inistring dstr_184__OBCI_COMMENT*/
@@ -50477,7 +50627,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_185__CLASS_OBJDESTINSTR.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_185__CLASS_OBJDESTINSTR.obj_hash = 395205738;
   cdat->dsym_185__CLASS_OBJDESTINSTR.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_185__CLASS_OBJDESTINSTR.obj_vartab =  cdat->dsym_185__CLASS_OBJDESTINSTR.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_185__CLASS_OBJDESTINSTR));
  
  /*inistring dstr_186__CLASS_OBJDESTINS*/
@@ -50494,7 +50646,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_187__CLASS_OBJDESTINSTR.obj_num = OBMAG_OBJECT;
   cdat->dobj_187__CLASS_OBJDESTINSTR.obj_hash = 770112899;
   cdat->dobj_187__CLASS_OBJDESTINSTR.obj_len = 9;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_187__CLASS_OBJDESTINSTR.obj_vartab =  cdat->dobj_187__CLASS_OBJDESTINSTR.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_187__CLASS_OBJDESTINSTR));
  
  /*inistring dstr_188__CLASS_OBJDESTINS*/
@@ -50516,7 +50670,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_191__OBDI_DESTLIST.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_191__OBDI_DESTLIST.obj_hash = 180038599;
   cdat->dsym_191__OBDI_DESTLIST.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_191__OBDI_DESTLIST.obj_vartab =  cdat->dsym_191__OBDI_DESTLIST.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_191__OBDI_DESTLIST));
  
  /*inistring dstr_192__OBDI_DESTLIST*/
@@ -50533,7 +50689,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_193__OBDI_DESTLIST.obj_num = 1;
   cdat->dobj_193__OBDI_DESTLIST.obj_hash = 415275067;
   cdat->dobj_193__OBDI_DESTLIST.obj_len = 4;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_193__OBDI_DESTLIST.obj_vartab =  cdat->dobj_193__OBDI_DESTLIST.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_193__OBDI_DESTLIST));
  
  /*inistring dstr_194__OBDI_DESTLIST*/
@@ -50547,7 +50705,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_195__CLASS_OBJCOMPUTE.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_195__CLASS_OBJCOMPUTE.obj_hash = 943434547;
   cdat->dsym_195__CLASS_OBJCOMPUTE.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_195__CLASS_OBJCOMPUTE.obj_vartab =  cdat->dsym_195__CLASS_OBJCOMPUTE.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_195__CLASS_OBJCOMPUTE));
  
  /*inistring dstr_196__CLASS_OBJCOMPUTE*/
@@ -50564,7 +50724,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_197__CLASS_OBJCOMPUTE.obj_num = OBMAG_OBJECT;
   cdat->dobj_197__CLASS_OBJCOMPUTE.obj_hash = 70953770;
   cdat->dobj_197__CLASS_OBJCOMPUTE.obj_len = 9;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_197__CLASS_OBJCOMPUTE.obj_vartab =  cdat->dobj_197__CLASS_OBJCOMPUTE.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_197__CLASS_OBJCOMPUTE));
  
  /*inistring dstr_198__CLASS_OBJCOMPUTE*/
@@ -50586,7 +50748,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_201__OBCPT_EXPR.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_201__OBCPT_EXPR.obj_hash = 913600920;
   cdat->dsym_201__OBCPT_EXPR.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_201__OBCPT_EXPR.obj_vartab =  cdat->dsym_201__OBCPT_EXPR.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_201__OBCPT_EXPR));
  
  /*inistring dstr_202__OBCPT_EXPR*/
@@ -50603,7 +50767,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_203__OBCPT_EXPR.obj_num = 2;
   cdat->dobj_203__OBCPT_EXPR.obj_hash = 585647149;
   cdat->dobj_203__OBCPT_EXPR.obj_len = 4;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_203__OBCPT_EXPR.obj_vartab =  cdat->dobj_203__OBCPT_EXPR.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_203__OBCPT_EXPR));
  
  /*inistring dstr_204__OBCPT_EXPR*/
@@ -50617,7 +50783,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_205__CLASS_OBJGETARG.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_205__CLASS_OBJGETARG.obj_hash = 596373581;
   cdat->dsym_205__CLASS_OBJGETARG.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_205__CLASS_OBJGETARG.obj_vartab =  cdat->dsym_205__CLASS_OBJGETARG.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_205__CLASS_OBJGETARG));
  
  /*inistring dstr_206__CLASS_OBJGETARG*/
@@ -50634,7 +50802,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_207__CLASS_OBJGETARG.obj_num = OBMAG_OBJECT;
   cdat->dobj_207__CLASS_OBJGETARG.obj_hash = 500398667;
   cdat->dobj_207__CLASS_OBJGETARG.obj_len = 9;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_207__CLASS_OBJGETARG.obj_vartab =  cdat->dobj_207__CLASS_OBJGETARG.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_207__CLASS_OBJGETARG));
  
  /*inistring dstr_208__CLASS_OBJGETARG*/
@@ -50656,7 +50826,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_211__OBARG_OBLOC.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_211__OBARG_OBLOC.obj_hash = 699379031;
   cdat->dsym_211__OBARG_OBLOC.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_211__OBARG_OBLOC.obj_vartab =  cdat->dsym_211__OBARG_OBLOC.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_211__OBARG_OBLOC));
  
  /*inistring dstr_212__OBARG_OBLOC*/
@@ -50673,7 +50845,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_213__OBARG_OBLOC.obj_num = 1;
   cdat->dobj_213__OBARG_OBLOC.obj_hash = 167583534;
   cdat->dobj_213__OBARG_OBLOC.obj_len = 4;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_213__OBARG_OBLOC.obj_vartab =  cdat->dobj_213__OBARG_OBLOC.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_213__OBARG_OBLOC));
  
  /*inistring dstr_214__OBARG_OBLOC*/
@@ -50687,7 +50861,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_215__OBARG_BIND.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_215__OBARG_BIND.obj_hash = 537792589;
   cdat->dsym_215__OBARG_BIND.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_215__OBARG_BIND.obj_vartab =  cdat->dsym_215__OBARG_BIND.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_215__OBARG_BIND));
  
  /*inistring dstr_216__OBARG_BIND*/
@@ -50704,7 +50880,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_217__OBARG_BIND.obj_num = 2;
   cdat->dobj_217__OBARG_BIND.obj_hash = 991936966;
   cdat->dobj_217__OBARG_BIND.obj_len = 4;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_217__OBARG_BIND.obj_vartab =  cdat->dobj_217__OBARG_BIND.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_217__OBARG_BIND));
  
  /*inistring dstr_218__OBARG_BIND*/
@@ -50718,7 +50896,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_219__CLASS_OBJPUTXTRARESULT.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_219__CLASS_OBJPUTXTRARESULT.obj_hash = 66172370;
   cdat->dsym_219__CLASS_OBJPUTXTRARESULT.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_219__CLASS_OBJPUTXTRARESULT.obj_vartab =  cdat->dsym_219__CLASS_OBJPUTXTRARESULT.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_219__CLASS_OBJPUTXTRARESULT));
  
  /*inistring dstr_220__CLASS_OBJPUTXTRA*/
@@ -50735,7 +50915,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_221__CLASS_OBJPUTXTRARESULT.obj_num = OBMAG_OBJECT;
   cdat->dobj_221__CLASS_OBJPUTXTRARESULT.obj_hash = 812257021;
   cdat->dobj_221__CLASS_OBJPUTXTRARESULT.obj_len = 9;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_221__CLASS_OBJPUTXTRARESULT.obj_vartab =  cdat->dobj_221__CLASS_OBJPUTXTRARESULT.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_221__CLASS_OBJPUTXTRARESULT));
  
  /*inistring dstr_222__CLASS_OBJPUTXTRA*/
@@ -50757,7 +50939,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_225__OBXRES_RANK.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_225__OBXRES_RANK.obj_hash = 1046282203;
   cdat->dsym_225__OBXRES_RANK.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_225__OBXRES_RANK.obj_vartab =  cdat->dsym_225__OBXRES_RANK.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_225__OBXRES_RANK));
  
  /*inistring dstr_226__OBXRES_RANK*/
@@ -50774,7 +50958,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_227__OBXRES_RANK.obj_num = 1;
   cdat->dobj_227__OBXRES_RANK.obj_hash = 120238413;
   cdat->dobj_227__OBXRES_RANK.obj_len = 4;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_227__OBXRES_RANK.obj_vartab =  cdat->dobj_227__OBXRES_RANK.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_227__OBXRES_RANK));
  
  /*inistring dstr_228__OBXRES_RANK*/
@@ -50788,7 +50974,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_229__OBXRES_OBLOC.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_229__OBXRES_OBLOC.obj_hash = 1017197592;
   cdat->dsym_229__OBXRES_OBLOC.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_229__OBXRES_OBLOC.obj_vartab =  cdat->dsym_229__OBXRES_OBLOC.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_229__OBXRES_OBLOC));
  
  /*inistring dstr_230__OBXRES_OBLOC*/
@@ -50805,7 +50993,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_231__OBXRES_OBLOC.obj_num = 2;
   cdat->dobj_231__OBXRES_OBLOC.obj_hash = 1000622305;
   cdat->dobj_231__OBXRES_OBLOC.obj_len = 4;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_231__OBXRES_OBLOC.obj_vartab =  cdat->dobj_231__OBXRES_OBLOC.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_231__OBXRES_OBLOC));
  
  /*inistring dstr_232__OBXRES_OBLOC*/
@@ -50819,7 +51009,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_233__CLASS_OBJFINALRETURN.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_233__CLASS_OBJFINALRETURN.obj_hash = 650464089;
   cdat->dsym_233__CLASS_OBJFINALRETURN.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_233__CLASS_OBJFINALRETURN.obj_vartab =  cdat->dsym_233__CLASS_OBJFINALRETURN.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_233__CLASS_OBJFINALRETURN));
  
  /*inistring dstr_234__CLASS_OBJFINALRE*/
@@ -50836,7 +51028,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_235__CLASS_OBJFINALRETURN.obj_num = OBMAG_OBJECT;
   cdat->dobj_235__CLASS_OBJFINALRETURN.obj_hash = 1071522851;
   cdat->dobj_235__CLASS_OBJFINALRETURN.obj_len = 9;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_235__CLASS_OBJFINALRETURN.obj_vartab =  cdat->dobj_235__CLASS_OBJFINALRETURN.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_235__CLASS_OBJFINALRETURN));
  
  /*inistring dstr_236__CLASS_OBJFINALRE*/
@@ -50858,7 +51052,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_239__CLASS_OBJCLEAR.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_239__CLASS_OBJCLEAR.obj_hash = 1071635108;
   cdat->dsym_239__CLASS_OBJCLEAR.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_239__CLASS_OBJCLEAR.obj_vartab =  cdat->dsym_239__CLASS_OBJCLEAR.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_239__CLASS_OBJCLEAR));
  
  /*inistring dstr_240__CLASS_OBJCLEAR*/
@@ -50875,7 +51071,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_241__CLASS_OBJCLEAR.obj_num = OBMAG_OBJECT;
   cdat->dobj_241__CLASS_OBJCLEAR.obj_hash = 670199536;
   cdat->dobj_241__CLASS_OBJCLEAR.obj_len = 9;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_241__CLASS_OBJCLEAR.obj_vartab =  cdat->dobj_241__CLASS_OBJCLEAR.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_241__CLASS_OBJCLEAR));
  
  /*inistring dstr_242__CLASS_OBJCLEAR*/
@@ -50897,7 +51095,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_245__OCLR_VLOC.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_245__OCLR_VLOC.obj_hash = 73469244;
   cdat->dsym_245__OCLR_VLOC.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_245__OCLR_VLOC.obj_vartab =  cdat->dsym_245__OCLR_VLOC.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_245__OCLR_VLOC));
  
  /*inistring dstr_246__OCLR_VLOC*/
@@ -50914,7 +51114,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_247__OCLR_VLOC.obj_num = 1;
   cdat->dobj_247__OCLR_VLOC.obj_hash = 550939850;
   cdat->dobj_247__OCLR_VLOC.obj_len = 4;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_247__OCLR_VLOC.obj_vartab =  cdat->dobj_247__OCLR_VLOC.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_247__OCLR_VLOC));
  
  /*inistring dstr_248__OCLR_VLOC*/
@@ -50928,7 +51130,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_249__CLASS_OBJBLOCK.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_249__CLASS_OBJBLOCK.obj_hash = 827902126;
   cdat->dsym_249__CLASS_OBJBLOCK.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_249__CLASS_OBJBLOCK.obj_vartab =  cdat->dsym_249__CLASS_OBJBLOCK.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_249__CLASS_OBJBLOCK));
  
  /*inistring dstr_250__CLASS_OBJBLOCK*/
@@ -50945,7 +51149,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_251__CLASS_OBJBLOCK.obj_num = OBMAG_OBJECT;
   cdat->dobj_251__CLASS_OBJBLOCK.obj_hash = 220415291;
   cdat->dobj_251__CLASS_OBJBLOCK.obj_len = 9;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_251__CLASS_OBJBLOCK.obj_vartab =  cdat->dobj_251__CLASS_OBJBLOCK.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_251__CLASS_OBJBLOCK));
  
  /*inistring dstr_252__CLASS_OBJBLOCK*/
@@ -50967,7 +51173,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_255__OBLO_BODYL.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_255__OBLO_BODYL.obj_hash = 670858523;
   cdat->dsym_255__OBLO_BODYL.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_255__OBLO_BODYL.obj_vartab =  cdat->dsym_255__OBLO_BODYL.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_255__OBLO_BODYL));
  
  /*inistring dstr_256__OBLO_BODYL*/
@@ -50984,7 +51192,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_257__OBLO_BODYL.obj_num = 1;
   cdat->dobj_257__OBLO_BODYL.obj_hash = 798462800;
   cdat->dobj_257__OBLO_BODYL.obj_len = 4;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_257__OBLO_BODYL.obj_vartab =  cdat->dobj_257__OBLO_BODYL.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_257__OBLO_BODYL));
  
  /*inistring dstr_258__OBLO_BODYL*/
@@ -50998,7 +51208,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_259__OBLO_EPIL.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_259__OBLO_EPIL.obj_hash = 1173969;
   cdat->dsym_259__OBLO_EPIL.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_259__OBLO_EPIL.obj_vartab =  cdat->dsym_259__OBLO_EPIL.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_259__OBLO_EPIL));
  
  /*inistring dstr_260__OBLO_EPIL*/
@@ -51015,7 +51227,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_261__OBLO_EPIL.obj_num = 2;
   cdat->dobj_261__OBLO_EPIL.obj_hash = 854550456;
   cdat->dobj_261__OBLO_EPIL.obj_len = 4;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_261__OBLO_EPIL.obj_vartab =  cdat->dobj_261__OBLO_EPIL.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_261__OBLO_EPIL));
  
  /*inistring dstr_262__OBLO_EPIL*/
@@ -51029,7 +51243,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_263__CLASS_OBJCOMMENTEDBLOCK.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_263__CLASS_OBJCOMMENTEDBLOCK.obj_hash = 94800260;
   cdat->dsym_263__CLASS_OBJCOMMENTEDBLOCK.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_263__CLASS_OBJCOMMENTEDBLOCK.obj_vartab =  cdat->dsym_263__CLASS_OBJCOMMENTEDBLOCK.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_263__CLASS_OBJCOMMENTEDBLOCK));
  
  /*inistring dstr_264__CLASS_OBJCOMMENT*/
@@ -51046,7 +51262,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_265__CLASS_OBJCOMMENTEDBLOCK.obj_num = OBMAG_OBJECT;
   cdat->dobj_265__CLASS_OBJCOMMENTEDBLOCK.obj_hash = 321471289;
   cdat->dobj_265__CLASS_OBJCOMMENTEDBLOCK.obj_len = 9;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_265__CLASS_OBJCOMMENTEDBLOCK.obj_vartab =  cdat->dobj_265__CLASS_OBJCOMMENTEDBLOCK.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_265__CLASS_OBJCOMMENTEDBLOCK));
  
  /*inistring dstr_266__CLASS_OBJCOMMENT*/
@@ -51068,7 +51286,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_269__OCOMBLO_COMMENT.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_269__OCOMBLO_COMMENT.obj_hash = 712376266;
   cdat->dsym_269__OCOMBLO_COMMENT.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_269__OCOMBLO_COMMENT.obj_vartab =  cdat->dsym_269__OCOMBLO_COMMENT.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_269__OCOMBLO_COMMENT));
  
  /*inistring dstr_270__OCOMBLO_COMMENT*/
@@ -51085,7 +51305,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_271__OCOMBLO_COMMENT.obj_num = 3;
   cdat->dobj_271__OCOMBLO_COMMENT.obj_hash = 717093932;
   cdat->dobj_271__OCOMBLO_COMMENT.obj_len = 4;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_271__OCOMBLO_COMMENT.obj_vartab =  cdat->dobj_271__OCOMBLO_COMMENT.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_271__OCOMBLO_COMMENT));
  
  /*inistring dstr_272__OCOMBLO_COMMENT*/
@@ -51099,7 +51321,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_273__CLASS_OBJLOOP.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_273__CLASS_OBJLOOP.obj_hash = 763853388;
   cdat->dsym_273__CLASS_OBJLOOP.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_273__CLASS_OBJLOOP.obj_vartab =  cdat->dsym_273__CLASS_OBJLOOP.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_273__CLASS_OBJLOOP));
  
  /*inistring dstr_274__CLASS_OBJLOOP*/
@@ -51116,7 +51340,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_275__CLASS_OBJLOOP.obj_num = OBMAG_OBJECT;
   cdat->dobj_275__CLASS_OBJLOOP.obj_hash = 1038884659;
   cdat->dobj_275__CLASS_OBJLOOP.obj_len = 9;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_275__CLASS_OBJLOOP.obj_vartab =  cdat->dobj_275__CLASS_OBJLOOP.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_275__CLASS_OBJLOOP));
  
  /*inistring dstr_276__CLASS_OBJLOOP*/
@@ -51138,7 +51364,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_279__OBLOOP_LABEL.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_279__OBLOOP_LABEL.obj_hash = 684962223;
   cdat->dsym_279__OBLOOP_LABEL.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_279__OBLOOP_LABEL.obj_vartab =  cdat->dsym_279__OBLOOP_LABEL.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_279__OBLOOP_LABEL));
  
  /*inistring dstr_280__OBLOOP_LABEL*/
@@ -51155,7 +51383,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_281__OBLOOP_LABEL.obj_num = 3;
   cdat->dobj_281__OBLOOP_LABEL.obj_hash = 904460045;
   cdat->dobj_281__OBLOOP_LABEL.obj_len = 4;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_281__OBLOOP_LABEL.obj_vartab =  cdat->dobj_281__OBLOOP_LABEL.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_281__OBLOOP_LABEL));
  
  /*inistring dstr_282__OBLOOP_LABEL*/
@@ -51169,7 +51399,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_283__OBLOOP_RESV.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_283__OBLOOP_RESV.obj_hash = 70873018;
   cdat->dsym_283__OBLOOP_RESV.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_283__OBLOOP_RESV.obj_vartab =  cdat->dsym_283__OBLOOP_RESV.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_283__OBLOOP_RESV));
  
  /*inistring dstr_284__OBLOOP_RESV*/
@@ -51186,7 +51418,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_285__OBLOOP_RESV.obj_num = 4;
   cdat->dobj_285__OBLOOP_RESV.obj_hash = 986743155;
   cdat->dobj_285__OBLOOP_RESV.obj_len = 4;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_285__OBLOOP_RESV.obj_vartab =  cdat->dobj_285__OBLOOP_RESV.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_285__OBLOOP_RESV));
  
  /*inistring dstr_286__OBLOOP_RESV*/
@@ -51200,7 +51434,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_287__CLASS_OBJEXIT.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_287__CLASS_OBJEXIT.obj_hash = 635210442;
   cdat->dsym_287__CLASS_OBJEXIT.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_287__CLASS_OBJEXIT.obj_vartab =  cdat->dsym_287__CLASS_OBJEXIT.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_287__CLASS_OBJEXIT));
  
  /*inistring dstr_288__CLASS_OBJEXIT*/
@@ -51217,7 +51453,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_289__CLASS_OBJEXIT.obj_num = OBMAG_OBJECT;
   cdat->dobj_289__CLASS_OBJEXIT.obj_hash = 805001807;
   cdat->dobj_289__CLASS_OBJEXIT.obj_len = 9;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_289__CLASS_OBJEXIT.obj_vartab =  cdat->dobj_289__CLASS_OBJEXIT.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_289__CLASS_OBJEXIT));
  
  /*inistring dstr_290__CLASS_OBJEXIT*/
@@ -51239,7 +51477,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_293__OBEXIT_LABEL.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_293__OBEXIT_LABEL.obj_hash = 737884684;
   cdat->dsym_293__OBEXIT_LABEL.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_293__OBEXIT_LABEL.obj_vartab =  cdat->dsym_293__OBEXIT_LABEL.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_293__OBEXIT_LABEL));
  
  /*inistring dstr_294__OBEXIT_LABEL*/
@@ -51256,7 +51496,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_295__OBEXIT_LABEL.obj_num = 1;
   cdat->dobj_295__OBEXIT_LABEL.obj_hash = 673686671;
   cdat->dobj_295__OBEXIT_LABEL.obj_len = 4;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_295__OBEXIT_LABEL.obj_vartab =  cdat->dobj_295__OBEXIT_LABEL.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_295__OBEXIT_LABEL));
  
  /*inistring dstr_296__OBEXIT_LABEL*/
@@ -51270,7 +51512,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_297__CLASS_OBJCOND.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_297__CLASS_OBJCOND.obj_hash = 545823211;
   cdat->dsym_297__CLASS_OBJCOND.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_297__CLASS_OBJCOND.obj_vartab =  cdat->dsym_297__CLASS_OBJCOND.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_297__CLASS_OBJCOND));
  
  /*inistring dstr_298__CLASS_OBJCOND*/
@@ -51287,7 +51531,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_299__CLASS_OBJCOND.obj_num = OBMAG_OBJECT;
   cdat->dobj_299__CLASS_OBJCOND.obj_hash = 803491608;
   cdat->dobj_299__CLASS_OBJCOND.obj_len = 9;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_299__CLASS_OBJCOND.obj_vartab =  cdat->dobj_299__CLASS_OBJCOND.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_299__CLASS_OBJCOND));
  
  /*inistring dstr_300__CLASS_OBJCOND*/
@@ -51309,7 +51555,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_303__OBCOND_TEST.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_303__OBCOND_TEST.obj_hash = 1013458796;
   cdat->dsym_303__OBCOND_TEST.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_303__OBCOND_TEST.obj_vartab =  cdat->dsym_303__OBCOND_TEST.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_303__OBCOND_TEST));
  
  /*inistring dstr_304__OBCOND_TEST*/
@@ -51326,7 +51574,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_305__OBCOND_TEST.obj_num = 1;
   cdat->dobj_305__OBCOND_TEST.obj_hash = 1045635063;
   cdat->dobj_305__OBCOND_TEST.obj_len = 4;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_305__OBCOND_TEST.obj_vartab =  cdat->dobj_305__OBCOND_TEST.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_305__OBCOND_TEST));
  
  /*inistring dstr_306__OBCOND_TEST*/
@@ -51340,7 +51590,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_307__OBCOND_THEN.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_307__OBCOND_THEN.obj_hash = 735778030;
   cdat->dsym_307__OBCOND_THEN.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_307__OBCOND_THEN.obj_vartab =  cdat->dsym_307__OBCOND_THEN.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_307__OBCOND_THEN));
  
  /*inistring dstr_308__OBCOND_THEN*/
@@ -51357,7 +51609,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_309__OBCOND_THEN.obj_num = 2;
   cdat->dobj_309__OBCOND_THEN.obj_hash = 84533336;
   cdat->dobj_309__OBCOND_THEN.obj_len = 4;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_309__OBCOND_THEN.obj_vartab =  cdat->dobj_309__OBCOND_THEN.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_309__OBCOND_THEN));
  
  /*inistring dstr_310__OBCOND_THEN*/
@@ -51371,7 +51625,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_311__OBCOND_ELSE.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_311__OBCOND_ELSE.obj_hash = 130863960;
   cdat->dsym_311__OBCOND_ELSE.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_311__OBCOND_ELSE.obj_vartab =  cdat->dsym_311__OBCOND_ELSE.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_311__OBCOND_ELSE));
  
  /*inistring dstr_312__OBCOND_ELSE*/
@@ -51388,7 +51644,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_313__OBCOND_ELSE.obj_num = 3;
   cdat->dobj_313__OBCOND_ELSE.obj_hash = 522338681;
   cdat->dobj_313__OBCOND_ELSE.obj_len = 4;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_313__OBCOND_ELSE.obj_vartab =  cdat->dobj_313__OBCOND_ELSE.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_313__OBCOND_ELSE));
  
  /*inistring dstr_314__OBCOND_ELSE*/
@@ -51402,7 +51660,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_315__CLASS_OBJCPPIF.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_315__CLASS_OBJCPPIF.obj_hash = 418843843;
   cdat->dsym_315__CLASS_OBJCPPIF.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_315__CLASS_OBJCPPIF.obj_vartab =  cdat->dsym_315__CLASS_OBJCPPIF.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_315__CLASS_OBJCPPIF));
  
  /*inistring dstr_316__CLASS_OBJCPPIF*/
@@ -51419,7 +51679,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_317__CLASS_OBJCPPIF.obj_num = OBMAG_OBJECT;
   cdat->dobj_317__CLASS_OBJCPPIF.obj_hash = 165215947;
   cdat->dobj_317__CLASS_OBJCPPIF.obj_len = 9;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_317__CLASS_OBJCPPIF.obj_vartab =  cdat->dobj_317__CLASS_OBJCPPIF.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_317__CLASS_OBJCPPIF));
  
  /*inistring dstr_318__CLASS_OBJCPPIF*/
@@ -51441,7 +51703,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_321__OBIFP_COND.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_321__OBIFP_COND.obj_hash = 366560212;
   cdat->dsym_321__OBIFP_COND.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_321__OBIFP_COND.obj_vartab =  cdat->dsym_321__OBIFP_COND.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_321__OBIFP_COND));
  
  /*inistring dstr_322__OBIFP_COND*/
@@ -51458,7 +51722,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_323__OBIFP_COND.obj_num = 1;
   cdat->dobj_323__OBIFP_COND.obj_hash = 1073578985;
   cdat->dobj_323__OBIFP_COND.obj_len = 4;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_323__OBIFP_COND.obj_vartab =  cdat->dobj_323__OBIFP_COND.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_323__OBIFP_COND));
  
  /*inistring dstr_324__OBIFP_COND*/
@@ -51472,7 +51738,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_325__OBIFP_THEN.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_325__OBIFP_THEN.obj_hash = 596133818;
   cdat->dsym_325__OBIFP_THEN.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_325__OBIFP_THEN.obj_vartab =  cdat->dsym_325__OBIFP_THEN.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_325__OBIFP_THEN));
  
  /*inistring dstr_326__OBIFP_THEN*/
@@ -51489,7 +51757,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_327__OBIFP_THEN.obj_num = 2;
   cdat->dobj_327__OBIFP_THEN.obj_hash = 716166919;
   cdat->dobj_327__OBIFP_THEN.obj_len = 4;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_327__OBIFP_THEN.obj_vartab =  cdat->dobj_327__OBIFP_THEN.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_327__OBIFP_THEN));
  
  /*inistring dstr_328__OBIFP_THEN*/
@@ -51503,7 +51773,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_329__OBIFP_ELSE.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_329__OBIFP_ELSE.obj_hash = 967265882;
   cdat->dsym_329__OBIFP_ELSE.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_329__OBIFP_ELSE.obj_vartab =  cdat->dsym_329__OBIFP_ELSE.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_329__OBIFP_ELSE));
  
  /*inistring dstr_330__OBIFP_ELSE*/
@@ -51520,7 +51792,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_331__OBIFP_ELSE.obj_num = 3;
   cdat->dobj_331__OBIFP_ELSE.obj_hash = 86357068;
   cdat->dobj_331__OBIFP_ELSE.obj_len = 4;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_331__OBIFP_ELSE.obj_vartab =  cdat->dobj_331__OBIFP_ELSE.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_331__OBIFP_ELSE));
  
  /*inistring dstr_332__OBIFP_ELSE*/
@@ -51534,7 +51808,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_333__CLASS_OBJINTERNCOMMON.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_333__CLASS_OBJINTERNCOMMON.obj_hash = 712376266;
   cdat->dsym_333__CLASS_OBJINTERNCOMMON.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_333__CLASS_OBJINTERNCOMMON.obj_vartab =  cdat->dsym_333__CLASS_OBJINTERNCOMMON.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_333__CLASS_OBJINTERNCOMMON));
  
  /*inistring dstr_334__CLASS_OBJINTERNC*/
@@ -51551,7 +51827,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_335__CLASS_OBJINTERNCOMMON.obj_num = OBMAG_OBJECT;
   cdat->dobj_335__CLASS_OBJINTERNCOMMON.obj_hash = 191667654;
   cdat->dobj_335__CLASS_OBJINTERNCOMMON.obj_len = 9;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_335__CLASS_OBJINTERNCOMMON.obj_vartab =  cdat->dobj_335__CLASS_OBJINTERNCOMMON.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_335__CLASS_OBJINTERNCOMMON));
  
  /*inistring dstr_336__CLASS_OBJINTERNC*/
@@ -51573,7 +51851,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_339__OBINTERN_IOBJ.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_339__OBINTERN_IOBJ.obj_hash = 257736327;
   cdat->dsym_339__OBINTERN_IOBJ.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_339__OBINTERN_IOBJ.obj_vartab =  cdat->dsym_339__OBINTERN_IOBJ.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_339__OBINTERN_IOBJ));
  
  /*inistring dstr_340__OBINTERN_IOBJ*/
@@ -51590,7 +51870,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_341__OBINTERN_IOBJ.obj_num = 1;
   cdat->dobj_341__OBINTERN_IOBJ.obj_hash = 45816098;
   cdat->dobj_341__OBINTERN_IOBJ.obj_len = 4;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_341__OBINTERN_IOBJ.obj_vartab =  cdat->dobj_341__OBINTERN_IOBJ.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_341__OBINTERN_IOBJ));
  
  /*inistring dstr_342__OBINTERN_IOBJ*/
@@ -51604,7 +51886,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_343__CLASS_OBJINTERNSYMBOL.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_343__CLASS_OBJINTERNSYMBOL.obj_hash = 881953204;
   cdat->dsym_343__CLASS_OBJINTERNSYMBOL.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_343__CLASS_OBJINTERNSYMBOL.obj_vartab =  cdat->dsym_343__CLASS_OBJINTERNSYMBOL.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_343__CLASS_OBJINTERNSYMBOL));
  
  /*inistring dstr_344__CLASS_OBJINTERNS*/
@@ -51621,7 +51905,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_345__CLASS_OBJINTERNSYMBOL.obj_num = OBMAG_OBJECT;
   cdat->dobj_345__CLASS_OBJINTERNSYMBOL.obj_hash = 777948279;
   cdat->dobj_345__CLASS_OBJINTERNSYMBOL.obj_len = 9;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_345__CLASS_OBJINTERNSYMBOL.obj_vartab =  cdat->dobj_345__CLASS_OBJINTERNSYMBOL.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_345__CLASS_OBJINTERNSYMBOL));
  
  /*inistring dstr_346__CLASS_OBJINTERNS*/
@@ -51643,7 +51929,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_349__CLASS_OBJINTERNKEYWORD.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_349__CLASS_OBJINTERNKEYWORD.obj_hash = 606725080;
   cdat->dsym_349__CLASS_OBJINTERNKEYWORD.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_349__CLASS_OBJINTERNKEYWORD.obj_vartab =  cdat->dsym_349__CLASS_OBJINTERNKEYWORD.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_349__CLASS_OBJINTERNKEYWORD));
  
  /*inistring dstr_350__CLASS_OBJINTERNK*/
@@ -51660,7 +51948,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_351__CLASS_OBJINTERNKEYWORD.obj_num = OBMAG_OBJECT;
   cdat->dobj_351__CLASS_OBJINTERNKEYWORD.obj_hash = 543644246;
   cdat->dobj_351__CLASS_OBJINTERNKEYWORD.obj_len = 9;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_351__CLASS_OBJINTERNKEYWORD.obj_vartab =  cdat->dobj_351__CLASS_OBJINTERNKEYWORD.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_351__CLASS_OBJINTERNKEYWORD));
  
  /*inistring dstr_352__CLASS_OBJINTERNK*/
@@ -51682,7 +51972,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_355__CLASS_OBJGETNAMEDCOMMON.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_355__CLASS_OBJGETNAMEDCOMMON.obj_hash = 116002660;
   cdat->dsym_355__CLASS_OBJGETNAMEDCOMMON.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_355__CLASS_OBJGETNAMEDCOMMON.obj_vartab =  cdat->dsym_355__CLASS_OBJGETNAMEDCOMMON.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_355__CLASS_OBJGETNAMEDCOMMON));
  
  /*inistring dstr_356__CLASS_OBJGETNAME*/
@@ -51699,7 +51991,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_357__CLASS_OBJGETNAMEDCOMMON.obj_num = OBMAG_OBJECT;
   cdat->dobj_357__CLASS_OBJGETNAMEDCOMMON.obj_hash = 664669558;
   cdat->dobj_357__CLASS_OBJGETNAMEDCOMMON.obj_len = 9;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_357__CLASS_OBJGETNAMEDCOMMON.obj_vartab =  cdat->dobj_357__CLASS_OBJGETNAMEDCOMMON.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_357__CLASS_OBJGETNAMEDCOMMON));
  
  /*inistring dstr_358__CLASS_OBJGETNAME*/
@@ -51721,7 +52015,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_361__OBGNAMED_IOBJ.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_361__OBGNAMED_IOBJ.obj_hash = 477166523;
   cdat->dsym_361__OBGNAMED_IOBJ.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_361__OBGNAMED_IOBJ.obj_vartab =  cdat->dsym_361__OBGNAMED_IOBJ.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_361__OBGNAMED_IOBJ));
  
  /*inistring dstr_362__OBGNAMED_IOBJ*/
@@ -51738,7 +52034,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_363__OBGNAMED_IOBJ.obj_num = 1;
   cdat->dobj_363__OBGNAMED_IOBJ.obj_hash = 332083001;
   cdat->dobj_363__OBGNAMED_IOBJ.obj_len = 4;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_363__OBGNAMED_IOBJ.obj_vartab =  cdat->dobj_363__OBGNAMED_IOBJ.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_363__OBGNAMED_IOBJ));
  
  /*inistring dstr_364__OBGNAMED_IOBJ*/
@@ -51752,7 +52050,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_365__CLASS_OBJGETNAMEDSYMBOL.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_365__CLASS_OBJGETNAMEDSYMBOL.obj_hash = 552748717;
   cdat->dsym_365__CLASS_OBJGETNAMEDSYMBOL.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_365__CLASS_OBJGETNAMEDSYMBOL.obj_vartab =  cdat->dsym_365__CLASS_OBJGETNAMEDSYMBOL.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_365__CLASS_OBJGETNAMEDSYMBOL));
  
  /*inistring dstr_366__CLASS_OBJGETNAME*/
@@ -51769,7 +52069,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_367__CLASS_OBJGETNAMEDSYMBOL.obj_num = OBMAG_OBJECT;
   cdat->dobj_367__CLASS_OBJGETNAMEDSYMBOL.obj_hash = 939078878;
   cdat->dobj_367__CLASS_OBJGETNAMEDSYMBOL.obj_len = 9;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_367__CLASS_OBJGETNAMEDSYMBOL.obj_vartab =  cdat->dobj_367__CLASS_OBJGETNAMEDSYMBOL.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_367__CLASS_OBJGETNAMEDSYMBOL));
  
  /*inistring dstr_368__CLASS_OBJGETNAME*/
@@ -51791,7 +52093,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_371__CLASS_OBJGETNAMEDKEYWORD.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_371__CLASS_OBJGETNAMEDKEYWORD.obj_hash = 877025959;
   cdat->dsym_371__CLASS_OBJGETNAMEDKEYWORD.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_371__CLASS_OBJGETNAMEDKEYWORD.obj_vartab =  cdat->dsym_371__CLASS_OBJGETNAMEDKEYWORD.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_371__CLASS_OBJGETNAMEDKEYWORD));
  
  /*inistring dstr_372__CLASS_OBJGETNAME*/
@@ -51808,7 +52112,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_373__CLASS_OBJGETNAMEDKEYWORD.obj_num = OBMAG_OBJECT;
   cdat->dobj_373__CLASS_OBJGETNAMEDKEYWORD.obj_hash = 475030340;
   cdat->dobj_373__CLASS_OBJGETNAMEDKEYWORD.obj_len = 9;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_373__CLASS_OBJGETNAMEDKEYWORD.obj_vartab =  cdat->dobj_373__CLASS_OBJGETNAMEDKEYWORD.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_373__CLASS_OBJGETNAMEDKEYWORD));
  
  /*inistring dstr_374__CLASS_OBJGETNAME*/
@@ -51830,7 +52136,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_377__CLASS_OBJAPPLY.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_377__CLASS_OBJAPPLY.obj_hash = 734111989;
   cdat->dsym_377__CLASS_OBJAPPLY.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_377__CLASS_OBJAPPLY.obj_vartab =  cdat->dsym_377__CLASS_OBJAPPLY.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_377__CLASS_OBJAPPLY));
  
  /*inistring dstr_378__CLASS_OBJAPPLY*/
@@ -51847,7 +52155,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_379__CLASS_OBJAPPLY.obj_num = OBMAG_OBJECT;
   cdat->dobj_379__CLASS_OBJAPPLY.obj_hash = 598915491;
   cdat->dobj_379__CLASS_OBJAPPLY.obj_len = 9;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_379__CLASS_OBJAPPLY.obj_vartab =  cdat->dobj_379__CLASS_OBJAPPLY.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_379__CLASS_OBJAPPLY));
  
  /*inistring dstr_380__CLASS_OBJAPPLY*/
@@ -51869,7 +52179,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_383__OBAPP_CLOS.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_383__OBAPP_CLOS.obj_hash = 213258240;
   cdat->dsym_383__OBAPP_CLOS.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_383__OBAPP_CLOS.obj_vartab =  cdat->dsym_383__OBAPP_CLOS.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_383__OBAPP_CLOS));
  
  /*inistring dstr_384__OBAPP_CLOS*/
@@ -51886,7 +52198,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_385__OBAPP_CLOS.obj_num = 2;
   cdat->dobj_385__OBAPP_CLOS.obj_hash = 330308369;
   cdat->dobj_385__OBAPP_CLOS.obj_len = 4;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_385__OBAPP_CLOS.obj_vartab =  cdat->dobj_385__OBAPP_CLOS.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_385__OBAPP_CLOS));
  
  /*inistring dstr_386__OBAPP_CLOS*/
@@ -51900,7 +52214,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_387__OBAPP_ARGS.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_387__OBAPP_ARGS.obj_hash = 542637104;
   cdat->dsym_387__OBAPP_ARGS.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_387__OBAPP_ARGS.obj_vartab =  cdat->dsym_387__OBAPP_ARGS.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_387__OBAPP_ARGS));
  
  /*inistring dstr_388__OBAPP_ARGS*/
@@ -51917,7 +52233,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_389__OBAPP_ARGS.obj_num = 3;
   cdat->dobj_389__OBAPP_ARGS.obj_hash = 573488031;
   cdat->dobj_389__OBAPP_ARGS.obj_len = 4;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_389__OBAPP_ARGS.obj_vartab =  cdat->dobj_389__OBAPP_ARGS.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_389__OBAPP_ARGS));
  
  /*inistring dstr_390__OBAPP_ARGS*/
@@ -51931,7 +52249,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_391__CLASS_OBJMULTIAPPLY.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_391__CLASS_OBJMULTIAPPLY.obj_hash = 718205837;
   cdat->dsym_391__CLASS_OBJMULTIAPPLY.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_391__CLASS_OBJMULTIAPPLY.obj_vartab =  cdat->dsym_391__CLASS_OBJMULTIAPPLY.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_391__CLASS_OBJMULTIAPPLY));
  
  /*inistring dstr_392__CLASS_OBJMULTIAP*/
@@ -51948,7 +52268,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_393__CLASS_OBJMULTIAPPLY.obj_num = OBMAG_OBJECT;
   cdat->dobj_393__CLASS_OBJMULTIAPPLY.obj_hash = 322872332;
   cdat->dobj_393__CLASS_OBJMULTIAPPLY.obj_len = 9;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_393__CLASS_OBJMULTIAPPLY.obj_vartab =  cdat->dobj_393__CLASS_OBJMULTIAPPLY.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_393__CLASS_OBJMULTIAPPLY));
  
  /*inistring dstr_394__CLASS_OBJMULTIAP*/
@@ -51970,7 +52292,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_397__OBMULTAPP_XRES.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_397__OBMULTAPP_XRES.obj_hash = 526257932;
   cdat->dsym_397__OBMULTAPP_XRES.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_397__OBMULTAPP_XRES.obj_vartab =  cdat->dsym_397__OBMULTAPP_XRES.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_397__OBMULTAPP_XRES));
  
  /*inistring dstr_398__OBMULTAPP_XRES*/
@@ -51987,7 +52311,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_399__OBMULTAPP_XRES.obj_num = 4;
   cdat->dobj_399__OBMULTAPP_XRES.obj_hash = 254517688;
   cdat->dobj_399__OBMULTAPP_XRES.obj_len = 4;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_399__OBMULTAPP_XRES.obj_vartab =  cdat->dobj_399__OBMULTAPP_XRES.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_399__OBMULTAPP_XRES));
  
  /*inistring dstr_400__OBMULTAPP_XRES*/
@@ -52001,7 +52327,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_401__CLASS_OBJMSEND.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_401__CLASS_OBJMSEND.obj_hash = 664056168;
   cdat->dsym_401__CLASS_OBJMSEND.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_401__CLASS_OBJMSEND.obj_vartab =  cdat->dsym_401__CLASS_OBJMSEND.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_401__CLASS_OBJMSEND));
  
  /*inistring dstr_402__CLASS_OBJMSEND*/
@@ -52018,7 +52346,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_403__CLASS_OBJMSEND.obj_num = OBMAG_OBJECT;
   cdat->dobj_403__CLASS_OBJMSEND.obj_hash = 646516751;
   cdat->dobj_403__CLASS_OBJMSEND.obj_len = 9;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_403__CLASS_OBJMSEND.obj_vartab =  cdat->dobj_403__CLASS_OBJMSEND.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_403__CLASS_OBJMSEND));
  
  /*inistring dstr_404__CLASS_OBJMSEND*/
@@ -52040,7 +52370,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_407__OBMSND_SEL.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_407__OBMSND_SEL.obj_hash = 594478819;
   cdat->dsym_407__OBMSND_SEL.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_407__OBMSND_SEL.obj_vartab =  cdat->dsym_407__OBMSND_SEL.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_407__OBMSND_SEL));
  
  /*inistring dstr_408__OBMSND_SEL*/
@@ -52057,7 +52389,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_409__OBMSND_SEL.obj_num = 2;
   cdat->dobj_409__OBMSND_SEL.obj_hash = 859396303;
   cdat->dobj_409__OBMSND_SEL.obj_len = 4;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_409__OBMSND_SEL.obj_vartab =  cdat->dobj_409__OBMSND_SEL.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_409__OBMSND_SEL));
  
  /*inistring dstr_410__OBMSND_SEL*/
@@ -52071,7 +52405,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_411__OBMSND_RECV.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_411__OBMSND_RECV.obj_hash = 763738999;
   cdat->dsym_411__OBMSND_RECV.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_411__OBMSND_RECV.obj_vartab =  cdat->dsym_411__OBMSND_RECV.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_411__OBMSND_RECV));
  
  /*inistring dstr_412__OBMSND_RECV*/
@@ -52088,7 +52424,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_413__OBMSND_RECV.obj_num = 3;
   cdat->dobj_413__OBMSND_RECV.obj_hash = 27363258;
   cdat->dobj_413__OBMSND_RECV.obj_len = 4;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_413__OBMSND_RECV.obj_vartab =  cdat->dobj_413__OBMSND_RECV.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_413__OBMSND_RECV));
  
  /*inistring dstr_414__OBMSND_RECV*/
@@ -52102,7 +52440,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_415__OBMSND_ARGS.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_415__OBMSND_ARGS.obj_hash = 816679069;
   cdat->dsym_415__OBMSND_ARGS.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_415__OBMSND_ARGS.obj_vartab =  cdat->dsym_415__OBMSND_ARGS.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_415__OBMSND_ARGS));
  
  /*inistring dstr_416__OBMSND_ARGS*/
@@ -52119,7 +52459,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_417__OBMSND_ARGS.obj_num = 4;
   cdat->dobj_417__OBMSND_ARGS.obj_hash = 123294774;
   cdat->dobj_417__OBMSND_ARGS.obj_len = 4;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_417__OBMSND_ARGS.obj_vartab =  cdat->dobj_417__OBMSND_ARGS.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_417__OBMSND_ARGS));
  
  /*inistring dstr_418__OBMSND_ARGS*/
@@ -52133,7 +52475,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_419__CLASS_OBJMULTIMSEND.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_419__CLASS_OBJMULTIMSEND.obj_hash = 441055573;
   cdat->dsym_419__CLASS_OBJMULTIMSEND.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_419__CLASS_OBJMULTIMSEND.obj_vartab =  cdat->dsym_419__CLASS_OBJMULTIMSEND.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_419__CLASS_OBJMULTIMSEND));
  
  /*inistring dstr_420__CLASS_OBJMULTIMS*/
@@ -52150,7 +52494,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_421__CLASS_OBJMULTIMSEND.obj_num = OBMAG_OBJECT;
   cdat->dobj_421__CLASS_OBJMULTIMSEND.obj_hash = 737654682;
   cdat->dobj_421__CLASS_OBJMULTIMSEND.obj_len = 9;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_421__CLASS_OBJMULTIMSEND.obj_vartab =  cdat->dobj_421__CLASS_OBJMULTIMSEND.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_421__CLASS_OBJMULTIMSEND));
  
  /*inistring dstr_422__CLASS_OBJMULTIMS*/
@@ -52172,7 +52518,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_425__OBMULTSND_XRES.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_425__OBMULTSND_XRES.obj_hash = 677859903;
   cdat->dsym_425__OBMULTSND_XRES.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_425__OBMULTSND_XRES.obj_vartab =  cdat->dsym_425__OBMULTSND_XRES.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_425__OBMULTSND_XRES));
  
  /*inistring dstr_426__OBMULTSND_XRES*/
@@ -52189,7 +52537,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_427__OBMULTSND_XRES.obj_num = 5;
   cdat->dobj_427__OBMULTSND_XRES.obj_hash = 614024108;
   cdat->dobj_427__OBMULTSND_XRES.obj_len = 4;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_427__OBMULTSND_XRES.obj_vartab =  cdat->dobj_427__OBMULTSND_XRES.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_427__OBMULTSND_XRES));
  
  /*inistring dstr_428__OBMULTSND_XRES*/
@@ -52203,7 +52553,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_429__CLASS_OBJRAWALLOCOBJ.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_429__CLASS_OBJRAWALLOCOBJ.obj_hash = 795830730;
   cdat->dsym_429__CLASS_OBJRAWALLOCOBJ.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_429__CLASS_OBJRAWALLOCOBJ.obj_vartab =  cdat->dsym_429__CLASS_OBJRAWALLOCOBJ.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_429__CLASS_OBJRAWALLOCOBJ));
  
  /*inistring dstr_430__CLASS_OBJRAWALLO*/
@@ -52220,7 +52572,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_431__CLASS_OBJRAWALLOCOBJ.obj_num = OBMAG_OBJECT;
   cdat->dobj_431__CLASS_OBJRAWALLOCOBJ.obj_hash = 363983680;
   cdat->dobj_431__CLASS_OBJRAWALLOCOBJ.obj_len = 9;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_431__CLASS_OBJRAWALLOCOBJ.obj_vartab =  cdat->dobj_431__CLASS_OBJRAWALLOCOBJ.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_431__CLASS_OBJRAWALLOCOBJ));
  
  /*inistring dstr_432__CLASS_OBJRAWALLO*/
@@ -52242,7 +52596,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_435__OBRALLOBJ_CLASS.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_435__OBRALLOBJ_CLASS.obj_hash = 979210452;
   cdat->dsym_435__OBRALLOBJ_CLASS.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_435__OBRALLOBJ_CLASS.obj_vartab =  cdat->dsym_435__OBRALLOBJ_CLASS.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_435__OBRALLOBJ_CLASS));
  
  /*inistring dstr_436__OBRALLOBJ_CLASS*/
@@ -52259,7 +52615,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_437__OBRALLOBJ_CLASS.obj_num = 2;
   cdat->dobj_437__OBRALLOBJ_CLASS.obj_hash = 408420727;
   cdat->dobj_437__OBRALLOBJ_CLASS.obj_len = 4;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_437__OBRALLOBJ_CLASS.obj_vartab =  cdat->dobj_437__OBRALLOBJ_CLASS.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_437__OBRALLOBJ_CLASS));
  
  /*inistring dstr_438__OBRALLOBJ_CLASS*/
@@ -52273,7 +52631,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_439__OBRALLOBJ_LEN.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_439__OBRALLOBJ_LEN.obj_hash = 11225066;
   cdat->dsym_439__OBRALLOBJ_LEN.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_439__OBRALLOBJ_LEN.obj_vartab =  cdat->dsym_439__OBRALLOBJ_LEN.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_439__OBRALLOBJ_LEN));
  
  /*inistring dstr_440__OBRALLOBJ_LEN*/
@@ -52290,7 +52650,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_441__OBRALLOBJ_LEN.obj_num = 3;
   cdat->dobj_441__OBRALLOBJ_LEN.obj_hash = 792267708;
   cdat->dobj_441__OBRALLOBJ_LEN.obj_len = 4;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_441__OBRALLOBJ_LEN.obj_vartab =  cdat->dobj_441__OBRALLOBJ_LEN.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_441__OBRALLOBJ_LEN));
  
  /*inistring dstr_442__OBRALLOBJ_LEN*/
@@ -52304,7 +52666,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_443__CLASS_OBJNEWCLOSURE.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_443__CLASS_OBJNEWCLOSURE.obj_hash = 699586028;
   cdat->dsym_443__CLASS_OBJNEWCLOSURE.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_443__CLASS_OBJNEWCLOSURE.obj_vartab =  cdat->dsym_443__CLASS_OBJNEWCLOSURE.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_443__CLASS_OBJNEWCLOSURE));
  
  /*inistring dstr_444__CLASS_OBJNEWCLOS*/
@@ -52321,7 +52685,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_445__CLASS_OBJNEWCLOSURE.obj_num = OBMAG_OBJECT;
   cdat->dobj_445__CLASS_OBJNEWCLOSURE.obj_hash = 894942165;
   cdat->dobj_445__CLASS_OBJNEWCLOSURE.obj_len = 9;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_445__CLASS_OBJNEWCLOSURE.obj_vartab =  cdat->dobj_445__CLASS_OBJNEWCLOSURE.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_445__CLASS_OBJNEWCLOSURE));
  
  /*inistring dstr_446__CLASS_OBJNEWCLOS*/
@@ -52343,7 +52709,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_449__OBNCLO_DISCR.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_449__OBNCLO_DISCR.obj_hash = 388790245;
   cdat->dsym_449__OBNCLO_DISCR.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_449__OBNCLO_DISCR.obj_vartab =  cdat->dsym_449__OBNCLO_DISCR.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_449__OBNCLO_DISCR));
  
  /*inistring dstr_450__OBNCLO_DISCR*/
@@ -52360,7 +52728,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_451__OBNCLO_DISCR.obj_num = 2;
   cdat->dobj_451__OBNCLO_DISCR.obj_hash = 203062324;
   cdat->dobj_451__OBNCLO_DISCR.obj_len = 4;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_451__OBNCLO_DISCR.obj_vartab =  cdat->dobj_451__OBNCLO_DISCR.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_451__OBNCLO_DISCR));
  
  /*inistring dstr_452__OBNCLO_DISCR*/
@@ -52374,7 +52744,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_453__OBNCLO_ROUT.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_453__OBNCLO_ROUT.obj_hash = 513939265;
   cdat->dsym_453__OBNCLO_ROUT.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_453__OBNCLO_ROUT.obj_vartab =  cdat->dsym_453__OBNCLO_ROUT.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_453__OBNCLO_ROUT));
  
  /*inistring dstr_454__OBNCLO_ROUT*/
@@ -52391,7 +52763,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_455__OBNCLO_ROUT.obj_num = 3;
   cdat->dobj_455__OBNCLO_ROUT.obj_hash = 840468688;
   cdat->dobj_455__OBNCLO_ROUT.obj_len = 4;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_455__OBNCLO_ROUT.obj_vartab =  cdat->dobj_455__OBNCLO_ROUT.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_455__OBNCLO_ROUT));
  
  /*inistring dstr_456__OBNCLO_ROUT*/
@@ -52405,7 +52779,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_457__OBNCLO_LEN.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_457__OBNCLO_LEN.obj_hash = 488324648;
   cdat->dsym_457__OBNCLO_LEN.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_457__OBNCLO_LEN.obj_vartab =  cdat->dsym_457__OBNCLO_LEN.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_457__OBNCLO_LEN));
  
  /*inistring dstr_458__OBNCLO_LEN*/
@@ -52422,7 +52798,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_459__OBNCLO_LEN.obj_num = 4;
   cdat->dobj_459__OBNCLO_LEN.obj_hash = 959201564;
   cdat->dobj_459__OBNCLO_LEN.obj_len = 4;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_459__OBNCLO_LEN.obj_vartab =  cdat->dobj_459__OBNCLO_LEN.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_459__OBNCLO_LEN));
  
  /*inistring dstr_460__OBNCLO_LEN*/
@@ -52436,7 +52814,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_461__CLASS_OBJPUTUPLE.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_461__CLASS_OBJPUTUPLE.obj_hash = 419131762;
   cdat->dsym_461__CLASS_OBJPUTUPLE.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_461__CLASS_OBJPUTUPLE.obj_vartab =  cdat->dsym_461__CLASS_OBJPUTUPLE.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_461__CLASS_OBJPUTUPLE));
  
  /*inistring dstr_462__CLASS_OBJPUTUPLE*/
@@ -52453,7 +52833,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_463__CLASS_OBJPUTUPLE.obj_num = OBMAG_OBJECT;
   cdat->dobj_463__CLASS_OBJPUTUPLE.obj_hash = 749675080;
   cdat->dobj_463__CLASS_OBJPUTUPLE.obj_len = 9;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_463__CLASS_OBJPUTUPLE.obj_vartab =  cdat->dobj_463__CLASS_OBJPUTUPLE.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_463__CLASS_OBJPUTUPLE));
  
  /*inistring dstr_464__CLASS_OBJPUTUPLE*/
@@ -52475,7 +52857,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_467__OPUTU_TUPLED.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_467__OPUTU_TUPLED.obj_hash = 1004801678;
   cdat->dsym_467__OPUTU_TUPLED.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_467__OPUTU_TUPLED.obj_vartab =  cdat->dsym_467__OPUTU_TUPLED.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_467__OPUTU_TUPLED));
  
  /*inistring dstr_468__OPUTU_TUPLED*/
@@ -52492,7 +52876,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_469__OPUTU_TUPLED.obj_num = 1;
   cdat->dobj_469__OPUTU_TUPLED.obj_hash = 347611406;
   cdat->dobj_469__OPUTU_TUPLED.obj_len = 4;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_469__OPUTU_TUPLED.obj_vartab =  cdat->dobj_469__OPUTU_TUPLED.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_469__OPUTU_TUPLED));
  
  /*inistring dstr_470__OPUTU_TUPLED*/
@@ -52506,7 +52892,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_471__OPUTU_OFFSET.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_471__OPUTU_OFFSET.obj_hash = 213297802;
   cdat->dsym_471__OPUTU_OFFSET.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_471__OPUTU_OFFSET.obj_vartab =  cdat->dsym_471__OPUTU_OFFSET.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_471__OPUTU_OFFSET));
  
  /*inistring dstr_472__OPUTU_OFFSET*/
@@ -52523,7 +52911,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_473__OPUTU_OFFSET.obj_num = 2;
   cdat->dobj_473__OPUTU_OFFSET.obj_hash = 100156850;
   cdat->dobj_473__OPUTU_OFFSET.obj_len = 4;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_473__OPUTU_OFFSET.obj_vartab =  cdat->dobj_473__OPUTU_OFFSET.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_473__OPUTU_OFFSET));
  
  /*inistring dstr_474__OPUTU_OFFSET*/
@@ -52537,7 +52927,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_475__OPUTU_VALUE.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_475__OPUTU_VALUE.obj_hash = 106335513;
   cdat->dsym_475__OPUTU_VALUE.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_475__OPUTU_VALUE.obj_vartab =  cdat->dsym_475__OPUTU_VALUE.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_475__OPUTU_VALUE));
  
  /*inistring dstr_476__OPUTU_VALUE*/
@@ -52554,7 +52946,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_477__OPUTU_VALUE.obj_num = 3;
   cdat->dobj_477__OPUTU_VALUE.obj_hash = 414957088;
   cdat->dobj_477__OPUTU_VALUE.obj_len = 4;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_477__OPUTU_VALUE.obj_vartab =  cdat->dobj_477__OPUTU_VALUE.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_477__OPUTU_VALUE));
  
  /*inistring dstr_478__OPUTU_VALUE*/
@@ -52568,7 +52962,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_479__CLASS_OBJPUTSLOT.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_479__CLASS_OBJPUTSLOT.obj_hash = 382942903;
   cdat->dsym_479__CLASS_OBJPUTSLOT.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_479__CLASS_OBJPUTSLOT.obj_vartab =  cdat->dsym_479__CLASS_OBJPUTSLOT.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_479__CLASS_OBJPUTSLOT));
  
  /*inistring dstr_480__CLASS_OBJPUTSLOT*/
@@ -52585,7 +52981,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_481__CLASS_OBJPUTSLOT.obj_num = OBMAG_OBJECT;
   cdat->dobj_481__CLASS_OBJPUTSLOT.obj_hash = 819208478;
   cdat->dobj_481__CLASS_OBJPUTSLOT.obj_len = 9;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_481__CLASS_OBJPUTSLOT.obj_vartab =  cdat->dobj_481__CLASS_OBJPUTSLOT.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_481__CLASS_OBJPUTSLOT));
  
  /*inistring dstr_482__CLASS_OBJPUTSLOT*/
@@ -52607,7 +53005,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_485__OSLOT_ODATA.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_485__OSLOT_ODATA.obj_hash = 583613196;
   cdat->dsym_485__OSLOT_ODATA.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_485__OSLOT_ODATA.obj_vartab =  cdat->dsym_485__OSLOT_ODATA.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_485__OSLOT_ODATA));
  
  /*inistring dstr_486__OSLOT_ODATA*/
@@ -52624,7 +53024,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_487__OSLOT_ODATA.obj_num = 1;
   cdat->dobj_487__OSLOT_ODATA.obj_hash = 855845119;
   cdat->dobj_487__OSLOT_ODATA.obj_len = 4;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_487__OSLOT_ODATA.obj_vartab =  cdat->dobj_487__OSLOT_ODATA.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_487__OSLOT_ODATA));
  
  /*inistring dstr_488__OSLOT_ODATA*/
@@ -52638,7 +53040,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_489__OSLOT_OFFSET.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_489__OSLOT_OFFSET.obj_hash = 210542424;
   cdat->dsym_489__OSLOT_OFFSET.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_489__OSLOT_OFFSET.obj_vartab =  cdat->dsym_489__OSLOT_OFFSET.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_489__OSLOT_OFFSET));
  
  /*inistring dstr_490__OSLOT_OFFSET*/
@@ -52655,7 +53059,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_491__OSLOT_OFFSET.obj_num = 2;
   cdat->dobj_491__OSLOT_OFFSET.obj_hash = 117807489;
   cdat->dobj_491__OSLOT_OFFSET.obj_len = 4;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_491__OSLOT_OFFSET.obj_vartab =  cdat->dobj_491__OSLOT_OFFSET.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_491__OSLOT_OFFSET));
  
  /*inistring dstr_492__OSLOT_OFFSET*/
@@ -52669,7 +53075,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_493__OSLOT_FIELD.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_493__OSLOT_FIELD.obj_hash = 59532467;
   cdat->dsym_493__OSLOT_FIELD.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_493__OSLOT_FIELD.obj_vartab =  cdat->dsym_493__OSLOT_FIELD.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_493__OSLOT_FIELD));
  
  /*inistring dstr_494__OSLOT_FIELD*/
@@ -52686,7 +53094,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_495__OSLOT_FIELD.obj_num = 3;
   cdat->dobj_495__OSLOT_FIELD.obj_hash = 166281501;
   cdat->dobj_495__OSLOT_FIELD.obj_len = 4;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_495__OSLOT_FIELD.obj_vartab =  cdat->dobj_495__OSLOT_FIELD.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_495__OSLOT_FIELD));
  
  /*inistring dstr_496__OSLOT_FIELD*/
@@ -52700,7 +53110,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_497__OSLOT_VALUE.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_497__OSLOT_VALUE.obj_hash = 544636827;
   cdat->dsym_497__OSLOT_VALUE.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_497__OSLOT_VALUE.obj_vartab =  cdat->dsym_497__OSLOT_VALUE.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_497__OSLOT_VALUE));
  
  /*inistring dstr_498__OSLOT_VALUE*/
@@ -52717,7 +53129,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_499__OSLOT_VALUE.obj_num = 4;
   cdat->dobj_499__OSLOT_VALUE.obj_hash = 851210348;
   cdat->dobj_499__OSLOT_VALUE.obj_len = 4;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_499__OSLOT_VALUE.obj_vartab =  cdat->dobj_499__OSLOT_VALUE.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_499__OSLOT_VALUE));
  
  /*inistring dstr_500__OSLOT_VALUE*/
@@ -52731,7 +53145,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_501__CLASS_OBJGETSLOT.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_501__CLASS_OBJGETSLOT.obj_hash = 1004612742;
   cdat->dsym_501__CLASS_OBJGETSLOT.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_501__CLASS_OBJGETSLOT.obj_vartab =  cdat->dsym_501__CLASS_OBJGETSLOT.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_501__CLASS_OBJGETSLOT));
  
  /*inistring dstr_502__CLASS_OBJGETSLOT*/
@@ -52748,7 +53164,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_503__CLASS_OBJGETSLOT.obj_num = OBMAG_OBJECT;
   cdat->dobj_503__CLASS_OBJGETSLOT.obj_hash = 503669222;
   cdat->dobj_503__CLASS_OBJGETSLOT.obj_len = 9;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_503__CLASS_OBJGETSLOT.obj_vartab =  cdat->dobj_503__CLASS_OBJGETSLOT.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_503__CLASS_OBJGETSLOT));
  
  /*inistring dstr_504__CLASS_OBJGETSLOT*/
@@ -52770,7 +53188,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_507__OGETSL_OBJ.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_507__OGETSL_OBJ.obj_hash = 312793848;
   cdat->dsym_507__OGETSL_OBJ.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_507__OGETSL_OBJ.obj_vartab =  cdat->dsym_507__OGETSL_OBJ.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_507__OGETSL_OBJ));
  
  /*inistring dstr_508__OGETSL_OBJ*/
@@ -52787,7 +53207,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_509__OGETSL_OBJ.obj_num = 2;
   cdat->dobj_509__OGETSL_OBJ.obj_hash = 247797636;
   cdat->dobj_509__OGETSL_OBJ.obj_len = 4;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_509__OGETSL_OBJ.obj_vartab =  cdat->dobj_509__OGETSL_OBJ.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_509__OGETSL_OBJ));
  
  /*inistring dstr_510__OGETSL_OBJ*/
@@ -52801,7 +53223,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_511__OGETSL_FIELD.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_511__OGETSL_FIELD.obj_hash = 148796144;
   cdat->dsym_511__OGETSL_FIELD.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_511__OGETSL_FIELD.obj_vartab =  cdat->dsym_511__OGETSL_FIELD.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_511__OGETSL_FIELD));
  
  /*inistring dstr_512__OGETSL_FIELD*/
@@ -52818,7 +53242,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_513__OGETSL_FIELD.obj_num = 3;
   cdat->dobj_513__OGETSL_FIELD.obj_hash = 280307189;
   cdat->dobj_513__OGETSL_FIELD.obj_len = 4;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_513__OGETSL_FIELD.obj_vartab =  cdat->dobj_513__OGETSL_FIELD.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_513__OGETSL_FIELD));
  
  /*inistring dstr_514__OGETSL_FIELD*/
@@ -52832,7 +53258,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_515__CLASS_OBJPUTCLOSUROUT.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_515__CLASS_OBJPUTCLOSUROUT.obj_hash = 331144291;
   cdat->dsym_515__CLASS_OBJPUTCLOSUROUT.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_515__CLASS_OBJPUTCLOSUROUT.obj_vartab =  cdat->dsym_515__CLASS_OBJPUTCLOSUROUT.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_515__CLASS_OBJPUTCLOSUROUT));
  
  /*inistring dstr_516__CLASS_OBJPUTCLOS*/
@@ -52849,7 +53277,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_517__CLASS_OBJPUTCLOSUROUT.obj_num = OBMAG_OBJECT;
   cdat->dobj_517__CLASS_OBJPUTCLOSUROUT.obj_hash = 607776694;
   cdat->dobj_517__CLASS_OBJPUTCLOSUROUT.obj_len = 9;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_517__CLASS_OBJPUTCLOSUROUT.obj_vartab =  cdat->dobj_517__CLASS_OBJPUTCLOSUROUT.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_517__CLASS_OBJPUTCLOSUROUT));
  
  /*inistring dstr_518__CLASS_OBJPUTCLOS*/
@@ -52871,7 +53301,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_521__OPCLOR_CLOS.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_521__OPCLOR_CLOS.obj_hash = 100988035;
   cdat->dsym_521__OPCLOR_CLOS.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_521__OPCLOR_CLOS.obj_vartab =  cdat->dsym_521__OPCLOR_CLOS.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_521__OPCLOR_CLOS));
  
  /*inistring dstr_522__OPCLOR_CLOS*/
@@ -52888,7 +53320,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_523__OPCLOR_CLOS.obj_num = 1;
   cdat->dobj_523__OPCLOR_CLOS.obj_hash = 137813024;
   cdat->dobj_523__OPCLOR_CLOS.obj_len = 4;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_523__OPCLOR_CLOS.obj_vartab =  cdat->dobj_523__OPCLOR_CLOS.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_523__OPCLOR_CLOS));
  
  /*inistring dstr_524__OPCLOR_CLOS*/
@@ -52902,7 +53336,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_525__OPCLOR_ROUT.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_525__OPCLOR_ROUT.obj_hash = 726732435;
   cdat->dsym_525__OPCLOR_ROUT.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_525__OPCLOR_ROUT.obj_vartab =  cdat->dsym_525__OPCLOR_ROUT.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_525__OPCLOR_ROUT));
  
  /*inistring dstr_526__OPCLOR_ROUT*/
@@ -52919,7 +53355,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_527__OPCLOR_ROUT.obj_num = 2;
   cdat->dobj_527__OPCLOR_ROUT.obj_hash = 261624274;
   cdat->dobj_527__OPCLOR_ROUT.obj_len = 4;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_527__OPCLOR_ROUT.obj_vartab =  cdat->dobj_527__OPCLOR_ROUT.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_527__OPCLOR_ROUT));
  
  /*inistring dstr_528__OPCLOR_ROUT*/
@@ -52933,7 +53371,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_529__CLASS_OBJPUTCLOSEDV.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_529__CLASS_OBJPUTCLOSEDV.obj_hash = 870174829;
   cdat->dsym_529__CLASS_OBJPUTCLOSEDV.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_529__CLASS_OBJPUTCLOSEDV.obj_vartab =  cdat->dsym_529__CLASS_OBJPUTCLOSEDV.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_529__CLASS_OBJPUTCLOSEDV));
  
  /*inistring dstr_530__CLASS_OBJPUTCLOS*/
@@ -52950,7 +53390,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_531__CLASS_OBJPUTCLOSEDV.obj_num = OBMAG_OBJECT;
   cdat->dobj_531__CLASS_OBJPUTCLOSEDV.obj_hash = 125993779;
   cdat->dobj_531__CLASS_OBJPUTCLOSEDV.obj_len = 9;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_531__CLASS_OBJPUTCLOSEDV.obj_vartab =  cdat->dobj_531__CLASS_OBJPUTCLOSEDV.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_531__CLASS_OBJPUTCLOSEDV));
  
  /*inistring dstr_532__CLASS_OBJPUTCLOS*/
@@ -52972,7 +53414,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_535__OPCLOV_CLOS.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_535__OPCLOV_CLOS.obj_hash = 814017682;
   cdat->dsym_535__OPCLOV_CLOS.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_535__OPCLOV_CLOS.obj_vartab =  cdat->dsym_535__OPCLOV_CLOS.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_535__OPCLOV_CLOS));
  
  /*inistring dstr_536__OPCLOV_CLOS*/
@@ -52989,7 +53433,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_537__OPCLOV_CLOS.obj_num = 1;
   cdat->dobj_537__OPCLOV_CLOS.obj_hash = 586020401;
   cdat->dobj_537__OPCLOV_CLOS.obj_len = 4;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_537__OPCLOV_CLOS.obj_vartab =  cdat->dobj_537__OPCLOV_CLOS.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_537__OPCLOV_CLOS));
  
  /*inistring dstr_538__OPCLOV_CLOS*/
@@ -53003,7 +53449,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_539__OPCLOV_OFF.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_539__OPCLOV_OFF.obj_hash = 914704130;
   cdat->dsym_539__OPCLOV_OFF.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_539__OPCLOV_OFF.obj_vartab =  cdat->dsym_539__OPCLOV_OFF.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_539__OPCLOV_OFF));
  
  /*inistring dstr_540__OPCLOV_OFF*/
@@ -53020,7 +53468,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_541__OPCLOV_OFF.obj_num = 2;
   cdat->dobj_541__OPCLOV_OFF.obj_hash = 715082018;
   cdat->dobj_541__OPCLOV_OFF.obj_len = 4;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_541__OPCLOV_OFF.obj_vartab =  cdat->dobj_541__OPCLOV_OFF.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_541__OPCLOV_OFF));
  
  /*inistring dstr_542__OPCLOV_OFF*/
@@ -53034,7 +53484,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_543__OPCLOV_CVAL.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_543__OPCLOV_CVAL.obj_hash = 453088809;
   cdat->dsym_543__OPCLOV_CVAL.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_543__OPCLOV_CVAL.obj_vartab =  cdat->dsym_543__OPCLOV_CVAL.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_543__OPCLOV_CVAL));
  
  /*inistring dstr_544__OPCLOV_CVAL*/
@@ -53051,7 +53503,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_545__OPCLOV_CVAL.obj_num = 3;
   cdat->dobj_545__OPCLOV_CVAL.obj_hash = 599030708;
   cdat->dobj_545__OPCLOV_CVAL.obj_len = 4;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_545__OPCLOV_CVAL.obj_vartab =  cdat->dobj_545__OPCLOV_CVAL.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_545__OPCLOV_CVAL));
  
  /*inistring dstr_546__OPCLOV_CVAL*/
@@ -53065,7 +53519,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_547__CLASS_OBJPUTCLOSEDNOTNULLV.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_547__CLASS_OBJPUTCLOSEDNOTNULLV.obj_hash = 674443590;
   cdat->dsym_547__CLASS_OBJPUTCLOSEDNOTNULLV.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_547__CLASS_OBJPUTCLOSEDNOTNULLV.obj_vartab =  cdat->dsym_547__CLASS_OBJPUTCLOSEDNOTNULLV.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_547__CLASS_OBJPUTCLOSEDNOTNULLV));
  
  /*inistring dstr_548__CLASS_OBJPUTCLOS*/
@@ -53082,7 +53538,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_549__CLASS_OBJPUTCLOSEDNOTNULLV.obj_num = OBMAG_OBJECT;
   cdat->dobj_549__CLASS_OBJPUTCLOSEDNOTNULLV.obj_hash = 1040071080;
   cdat->dobj_549__CLASS_OBJPUTCLOSEDNOTNULLV.obj_len = 9;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_549__CLASS_OBJPUTCLOSEDNOTNULLV.obj_vartab =  cdat->dobj_549__CLASS_OBJPUTCLOSEDNOTNULLV.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_549__CLASS_OBJPUTCLOSEDNOTNULLV));
  
  /*inistring dstr_550__CLASS_OBJPUTCLOS*/
@@ -53104,7 +53562,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_553__CLASS_OBJPUTROUTCONST.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_553__CLASS_OBJPUTROUTCONST.obj_hash = 815485494;
   cdat->dsym_553__CLASS_OBJPUTROUTCONST.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_553__CLASS_OBJPUTROUTCONST.obj_vartab =  cdat->dsym_553__CLASS_OBJPUTROUTCONST.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_553__CLASS_OBJPUTROUTCONST));
  
  /*inistring dstr_554__CLASS_OBJPUTROUT*/
@@ -53121,7 +53581,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_555__CLASS_OBJPUTROUTCONST.obj_num = OBMAG_OBJECT;
   cdat->dobj_555__CLASS_OBJPUTROUTCONST.obj_hash = 988059627;
   cdat->dobj_555__CLASS_OBJPUTROUTCONST.obj_len = 9;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_555__CLASS_OBJPUTROUTCONST.obj_vartab =  cdat->dobj_555__CLASS_OBJPUTROUTCONST.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_555__CLASS_OBJPUTROUTCONST));
  
  /*inistring dstr_556__CLASS_OBJPUTROUT*/
@@ -53143,7 +53605,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_559__OPRCONST_ROUT.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_559__OPRCONST_ROUT.obj_hash = 511449421;
   cdat->dsym_559__OPRCONST_ROUT.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_559__OPRCONST_ROUT.obj_vartab =  cdat->dsym_559__OPRCONST_ROUT.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_559__OPRCONST_ROUT));
  
  /*inistring dstr_560__OPRCONST_ROUT*/
@@ -53160,7 +53624,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_561__OPRCONST_ROUT.obj_num = 1;
   cdat->dobj_561__OPRCONST_ROUT.obj_hash = 819311176;
   cdat->dobj_561__OPRCONST_ROUT.obj_len = 4;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_561__OPRCONST_ROUT.obj_vartab =  cdat->dobj_561__OPRCONST_ROUT.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_561__OPRCONST_ROUT));
  
  /*inistring dstr_562__OPRCONST_ROUT*/
@@ -53174,7 +53640,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_563__OPRCONST_OFF.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_563__OPRCONST_OFF.obj_hash = 732701010;
   cdat->dsym_563__OPRCONST_OFF.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_563__OPRCONST_OFF.obj_vartab =  cdat->dsym_563__OPRCONST_OFF.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_563__OPRCONST_OFF));
  
  /*inistring dstr_564__OPRCONST_OFF*/
@@ -53191,7 +53659,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_565__OPRCONST_OFF.obj_num = 2;
   cdat->dobj_565__OPRCONST_OFF.obj_hash = 412894726;
   cdat->dobj_565__OPRCONST_OFF.obj_len = 4;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_565__OPRCONST_OFF.obj_vartab =  cdat->dobj_565__OPRCONST_OFF.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_565__OPRCONST_OFF));
  
  /*inistring dstr_566__OPRCONST_OFF*/
@@ -53205,7 +53675,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_567__OPRCONST_CVAL.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_567__OPRCONST_CVAL.obj_hash = 509800729;
   cdat->dsym_567__OPRCONST_CVAL.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_567__OPRCONST_CVAL.obj_vartab =  cdat->dsym_567__OPRCONST_CVAL.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_567__OPRCONST_CVAL));
  
  /*inistring dstr_568__OPRCONST_CVAL*/
@@ -53222,7 +53694,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_569__OPRCONST_CVAL.obj_num = 3;
   cdat->dobj_569__OPRCONST_CVAL.obj_hash = 335723271;
   cdat->dobj_569__OPRCONST_CVAL.obj_len = 4;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_569__OPRCONST_CVAL.obj_vartab =  cdat->dobj_569__OPRCONST_CVAL.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_569__OPRCONST_CVAL));
  
  /*inistring dstr_570__OPRCONST_CVAL*/
@@ -53236,7 +53710,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_571__CLASS_OBJPUTROUTCONSTNOTNULL.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_571__CLASS_OBJPUTROUTCONSTNOTNULL.obj_hash = 698971949;
   cdat->dsym_571__CLASS_OBJPUTROUTCONSTNOTNULL.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_571__CLASS_OBJPUTROUTCONSTNOTNULL.obj_vartab =  cdat->dsym_571__CLASS_OBJPUTROUTCONSTNOTNULL.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_571__CLASS_OBJPUTROUTCONSTNOTNULL));
  
  /*inistring dstr_572__CLASS_OBJPUTROUT*/
@@ -53253,7 +53729,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_573__CLASS_OBJPUTROUTCONSTNOTNULL.obj_num = OBMAG_OBJECT;
   cdat->dobj_573__CLASS_OBJPUTROUTCONSTNOTNULL.obj_hash = 186860152;
   cdat->dobj_573__CLASS_OBJPUTROUTCONSTNOTNULL.obj_len = 9;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_573__CLASS_OBJPUTROUTCONSTNOTNULL.obj_vartab =  cdat->dobj_573__CLASS_OBJPUTROUTCONSTNOTNULL.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_573__CLASS_OBJPUTROUTCONSTNOTNULL));
  
  /*inistring dstr_574__CLASS_OBJPUTROUT*/
@@ -53275,7 +53753,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_577__CLASS_OBJTOUCH.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_577__CLASS_OBJTOUCH.obj_hash = 643155770;
   cdat->dsym_577__CLASS_OBJTOUCH.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_577__CLASS_OBJTOUCH.obj_vartab =  cdat->dsym_577__CLASS_OBJTOUCH.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_577__CLASS_OBJTOUCH));
  
  /*inistring dstr_578__CLASS_OBJTOUCH*/
@@ -53292,7 +53772,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_579__CLASS_OBJTOUCH.obj_num = OBMAG_OBJECT;
   cdat->dobj_579__CLASS_OBJTOUCH.obj_hash = 988000676;
   cdat->dobj_579__CLASS_OBJTOUCH.obj_len = 9;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_579__CLASS_OBJTOUCH.obj_vartab =  cdat->dobj_579__CLASS_OBJTOUCH.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_579__CLASS_OBJTOUCH));
  
  /*inistring dstr_580__CLASS_OBJTOUCH*/
@@ -53314,7 +53796,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_583__OTOUCH_VAL.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_583__OTOUCH_VAL.obj_hash = 756535232;
   cdat->dsym_583__OTOUCH_VAL.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_583__OTOUCH_VAL.obj_vartab =  cdat->dsym_583__OTOUCH_VAL.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_583__OTOUCH_VAL));
  
  /*inistring dstr_584__OTOUCH_VAL*/
@@ -53331,7 +53815,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_585__OTOUCH_VAL.obj_num = 1;
   cdat->dobj_585__OTOUCH_VAL.obj_hash = 935132252;
   cdat->dobj_585__OTOUCH_VAL.obj_len = 4;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_585__OTOUCH_VAL.obj_vartab =  cdat->dobj_585__OTOUCH_VAL.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_585__OTOUCH_VAL));
  
  /*inistring dstr_586__OTOUCH_VAL*/
@@ -53345,7 +53831,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_587__OTOUCH_COMMENT.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_587__OTOUCH_COMMENT.obj_hash = 649717129;
   cdat->dsym_587__OTOUCH_COMMENT.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_587__OTOUCH_COMMENT.obj_vartab =  cdat->dsym_587__OTOUCH_COMMENT.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_587__OTOUCH_COMMENT));
  
  /*inistring dstr_588__OTOUCH_COMMENT*/
@@ -53362,7 +53850,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_589__OTOUCH_COMMENT.obj_num = 2;
   cdat->dobj_589__OTOUCH_COMMENT.obj_hash = 131545331;
   cdat->dobj_589__OTOUCH_COMMENT.obj_len = 4;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_589__OTOUCH_COMMENT.obj_vartab =  cdat->dobj_589__OTOUCH_COMMENT.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_589__OTOUCH_COMMENT));
  
  /*inistring dstr_590__OTOUCH_COMMENT*/
@@ -53376,7 +53866,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_591__CLASS_OBJSETPREDEF.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_591__CLASS_OBJSETPREDEF.obj_hash = 287625349;
   cdat->dsym_591__CLASS_OBJSETPREDEF.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_591__CLASS_OBJSETPREDEF.obj_vartab =  cdat->dsym_591__CLASS_OBJSETPREDEF.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_591__CLASS_OBJSETPREDEF));
  
  /*inistring dstr_592__CLASS_OBJSETPRED*/
@@ -53393,7 +53885,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_593__CLASS_OBJSETPREDEF.obj_num = OBMAG_OBJECT;
   cdat->dobj_593__CLASS_OBJSETPREDEF.obj_hash = 3658796;
   cdat->dobj_593__CLASS_OBJSETPREDEF.obj_len = 9;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_593__CLASS_OBJSETPREDEF.obj_vartab =  cdat->dobj_593__CLASS_OBJSETPREDEF.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_593__CLASS_OBJSETPREDEF));
  
  /*inistring dstr_594__CLASS_OBJSETPRED*/
@@ -53415,7 +53909,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_597__OSPR_OBJECT.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_597__OSPR_OBJECT.obj_hash = 410793032;
   cdat->dsym_597__OSPR_OBJECT.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_597__OSPR_OBJECT.obj_vartab =  cdat->dsym_597__OSPR_OBJECT.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_597__OSPR_OBJECT));
  
  /*inistring dstr_598__OSPR_OBJECT*/
@@ -53432,7 +53928,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_599__OSPR_OBJECT.obj_num = 1;
   cdat->dobj_599__OSPR_OBJECT.obj_hash = 174231205;
   cdat->dobj_599__OSPR_OBJECT.obj_len = 4;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_599__OSPR_OBJECT.obj_vartab =  cdat->dobj_599__OSPR_OBJECT.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_599__OSPR_OBJECT));
  
  /*inistring dstr_600__OSPR_OBJECT*/
@@ -53446,7 +53944,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_601__OSPR_PREDEF.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_601__OSPR_PREDEF.obj_hash = 674986323;
   cdat->dsym_601__OSPR_PREDEF.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_601__OSPR_PREDEF.obj_vartab =  cdat->dsym_601__OSPR_PREDEF.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_601__OSPR_PREDEF));
  
  /*inistring dstr_602__OSPR_PREDEF*/
@@ -53463,7 +53963,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_603__OSPR_PREDEF.obj_num = 2;
   cdat->dobj_603__OSPR_PREDEF.obj_hash = 136697790;
   cdat->dobj_603__OSPR_PREDEF.obj_len = 4;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_603__OSPR_PREDEF.obj_vartab =  cdat->dobj_603__OSPR_PREDEF.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_603__OSPR_PREDEF));
  
  /*inistring dstr_604__OSPR_PREDEF*/
@@ -53477,7 +53979,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_605__CLASS_ROUTINEOBJ.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_605__CLASS_ROUTINEOBJ.obj_hash = 302625151;
   cdat->dsym_605__CLASS_ROUTINEOBJ.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_605__CLASS_ROUTINEOBJ.obj_vartab =  cdat->dsym_605__CLASS_ROUTINEOBJ.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_605__CLASS_ROUTINEOBJ));
  
  /*inistring dstr_606__CLASS_ROUTINEOBJ*/
@@ -53491,7 +53995,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_607__CLASS_NAMED.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_607__CLASS_NAMED.obj_hash = 60407004;
   cdat->dsym_607__CLASS_NAMED.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_607__CLASS_NAMED.obj_vartab =  cdat->dsym_607__CLASS_NAMED.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_607__CLASS_NAMED));
  
  /*inistring dstr_608__CLASS_NAMED*/
@@ -53508,7 +54014,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_609__CLASS_ROUTINEOBJ.obj_num = OBMAG_OBJECT;
   cdat->dobj_609__CLASS_ROUTINEOBJ.obj_hash = 238366776;
   cdat->dobj_609__CLASS_ROUTINEOBJ.obj_len = 9;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_609__CLASS_ROUTINEOBJ.obj_vartab =  cdat->dobj_609__CLASS_ROUTINEOBJ.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_609__CLASS_ROUTINEOBJ));
  
  /*inistring dstr_610__CLASS_ROUTINEOBJ*/
@@ -53530,7 +54038,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_613__OBROUT_PROC.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_613__OBROUT_PROC.obj_hash = 407621219;
   cdat->dsym_613__OBROUT_PROC.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_613__OBROUT_PROC.obj_vartab =  cdat->dsym_613__OBROUT_PROC.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_613__OBROUT_PROC));
  
  /*inistring dstr_614__OBROUT_PROC*/
@@ -53547,7 +54057,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_615__OBROUT_PROC.obj_num = 2;
   cdat->dobj_615__OBROUT_PROC.obj_hash = 611189365;
   cdat->dobj_615__OBROUT_PROC.obj_len = 4;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_615__OBROUT_PROC.obj_vartab =  cdat->dobj_615__OBROUT_PROC.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_615__OBROUT_PROC));
  
  /*inistring dstr_616__OBROUT_PROC*/
@@ -53561,7 +54073,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_617__OBROUT_BODY.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_617__OBROUT_BODY.obj_hash = 271133814;
   cdat->dsym_617__OBROUT_BODY.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_617__OBROUT_BODY.obj_vartab =  cdat->dsym_617__OBROUT_BODY.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_617__OBROUT_BODY));
  
  /*inistring dstr_618__OBROUT_BODY*/
@@ -53578,7 +54092,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_619__OBROUT_BODY.obj_num = 3;
   cdat->dobj_619__OBROUT_BODY.obj_hash = 341479057;
   cdat->dobj_619__OBROUT_BODY.obj_len = 4;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_619__OBROUT_BODY.obj_vartab =  cdat->dobj_619__OBROUT_BODY.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_619__OBROUT_BODY));
  
  /*inistring dstr_620__OBROUT_BODY*/
@@ -53592,7 +54108,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_621__OBROUT_NBVAL.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_621__OBROUT_NBVAL.obj_hash = 275635470;
   cdat->dsym_621__OBROUT_NBVAL.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_621__OBROUT_NBVAL.obj_vartab =  cdat->dsym_621__OBROUT_NBVAL.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_621__OBROUT_NBVAL));
  
  /*inistring dstr_622__OBROUT_NBVAL*/
@@ -53609,7 +54127,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_623__OBROUT_NBVAL.obj_num = 4;
   cdat->dobj_623__OBROUT_NBVAL.obj_hash = 34084483;
   cdat->dobj_623__OBROUT_NBVAL.obj_len = 4;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_623__OBROUT_NBVAL.obj_vartab =  cdat->dobj_623__OBROUT_NBVAL.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_623__OBROUT_NBVAL));
  
  /*inistring dstr_624__OBROUT_NBVAL*/
@@ -53623,7 +54143,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_625__OBROUT_NBLONG.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_625__OBROUT_NBLONG.obj_hash = 873816186;
   cdat->dsym_625__OBROUT_NBLONG.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_625__OBROUT_NBLONG.obj_vartab =  cdat->dsym_625__OBROUT_NBLONG.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_625__OBROUT_NBLONG));
  
  /*inistring dstr_626__OBROUT_NBLONG*/
@@ -53640,7 +54162,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_627__OBROUT_NBLONG.obj_num = 5;
   cdat->dobj_627__OBROUT_NBLONG.obj_hash = 983248598;
   cdat->dobj_627__OBROUT_NBLONG.obj_len = 4;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_627__OBROUT_NBLONG.obj_vartab =  cdat->dobj_627__OBROUT_NBLONG.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_627__OBROUT_NBLONG));
  
  /*inistring dstr_628__OBROUT_NBLONG*/
@@ -53654,7 +54178,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_629__OBROUT_OTHERS.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_629__OBROUT_OTHERS.obj_hash = 83520399;
   cdat->dsym_629__OBROUT_OTHERS.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_629__OBROUT_OTHERS.obj_vartab =  cdat->dsym_629__OBROUT_OTHERS.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_629__OBROUT_OTHERS));
  
  /*inistring dstr_630__OBROUT_OTHERS*/
@@ -53671,7 +54197,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_631__OBROUT_OTHERS.obj_num = 6;
   cdat->dobj_631__OBROUT_OTHERS.obj_hash = 1019916297;
   cdat->dobj_631__OBROUT_OTHERS.obj_len = 4;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_631__OBROUT_OTHERS.obj_vartab =  cdat->dobj_631__OBROUT_OTHERS.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_631__OBROUT_OTHERS));
  
  /*inistring dstr_632__OBROUT_OTHERS*/
@@ -53685,7 +54213,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_633__OBROUT_RETVAL.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_633__OBROUT_RETVAL.obj_hash = 354531664;
   cdat->dsym_633__OBROUT_RETVAL.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_633__OBROUT_RETVAL.obj_vartab =  cdat->dsym_633__OBROUT_RETVAL.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_633__OBROUT_RETVAL));
  
  /*inistring dstr_634__OBROUT_RETVAL*/
@@ -53702,7 +54232,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_635__OBROUT_RETVAL.obj_num = 7;
   cdat->dobj_635__OBROUT_RETVAL.obj_hash = 660657490;
   cdat->dobj_635__OBROUT_RETVAL.obj_len = 4;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_635__OBROUT_RETVAL.obj_vartab =  cdat->dobj_635__OBROUT_RETVAL.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_635__OBROUT_RETVAL));
  
  /*inistring dstr_636__OBROUT_RETVAL*/
@@ -53716,7 +54248,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_637__CLASS_PROCROUTINEOBJ.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_637__CLASS_PROCROUTINEOBJ.obj_hash = 171301749;
   cdat->dsym_637__CLASS_PROCROUTINEOBJ.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_637__CLASS_PROCROUTINEOBJ.obj_vartab =  cdat->dsym_637__CLASS_PROCROUTINEOBJ.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_637__CLASS_PROCROUTINEOBJ));
  
  /*inistring dstr_638__CLASS_PROCROUTIN*/
@@ -53733,7 +54267,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_639__CLASS_PROCROUTINEOBJ.obj_num = OBMAG_OBJECT;
   cdat->dobj_639__CLASS_PROCROUTINEOBJ.obj_hash = 889978509;
   cdat->dobj_639__CLASS_PROCROUTINEOBJ.obj_len = 9;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_639__CLASS_PROCROUTINEOBJ.obj_vartab =  cdat->dobj_639__CLASS_PROCROUTINEOBJ.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_639__CLASS_PROCROUTINEOBJ));
  
  /*inistring dstr_640__CLASS_PROCROUTIN*/
@@ -53755,7 +54291,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_643__OPROUT_GETARGS.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_643__OPROUT_GETARGS.obj_hash = 508312057;
   cdat->dsym_643__OPROUT_GETARGS.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_643__OPROUT_GETARGS.obj_vartab =  cdat->dsym_643__OPROUT_GETARGS.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_643__OPROUT_GETARGS));
  
  /*inistring dstr_644__OPROUT_GETARGS*/
@@ -53772,7 +54310,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_645__OPROUT_GETARGS.obj_num = 8;
   cdat->dobj_645__OPROUT_GETARGS.obj_hash = 828251033;
   cdat->dobj_645__OPROUT_GETARGS.obj_len = 4;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_645__OPROUT_GETARGS.obj_vartab =  cdat->dobj_645__OPROUT_GETARGS.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_645__OPROUT_GETARGS));
  
  /*inistring dstr_646__OPROUT_GETARGS*/
@@ -53786,7 +54326,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_647__OPROUT_LOC.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_647__OPROUT_LOC.obj_hash = 1041994650;
   cdat->dsym_647__OPROUT_LOC.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_647__OPROUT_LOC.obj_vartab =  cdat->dsym_647__OPROUT_LOC.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_647__OPROUT_LOC));
  
  /*inistring dstr_648__OPROUT_LOC*/
@@ -53803,7 +54345,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_649__OPROUT_LOC.obj_num = 9;
   cdat->dobj_649__OPROUT_LOC.obj_hash = 111885980;
   cdat->dobj_649__OPROUT_LOC.obj_len = 4;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_649__OPROUT_LOC.obj_vartab =  cdat->dobj_649__OPROUT_LOC.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_649__OPROUT_LOC));
  
  /*inistring dstr_650__OPROUT_LOC*/
@@ -53817,7 +54361,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_651__OPROUT_FUNAM.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_651__OPROUT_FUNAM.obj_hash = 829875206;
   cdat->dsym_651__OPROUT_FUNAM.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_651__OPROUT_FUNAM.obj_vartab =  cdat->dsym_651__OPROUT_FUNAM.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_651__OPROUT_FUNAM));
  
  /*inistring dstr_652__OPROUT_FUNAM*/
@@ -53834,7 +54380,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_653__OPROUT_FUNAM.obj_num = 10;
   cdat->dobj_653__OPROUT_FUNAM.obj_hash = 1063975060;
   cdat->dobj_653__OPROUT_FUNAM.obj_len = 4;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_653__OPROUT_FUNAM.obj_vartab =  cdat->dobj_653__OPROUT_FUNAM.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_653__OPROUT_FUNAM));
  
  /*inistring dstr_654__OPROUT_FUNAM*/
@@ -53848,7 +54396,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_655__CLASS_INITIALROUTINEOBJ.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_655__CLASS_INITIALROUTINEOBJ.obj_hash = 149718249;
   cdat->dsym_655__CLASS_INITIALROUTINEOBJ.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_655__CLASS_INITIALROUTINEOBJ.obj_vartab =  cdat->dsym_655__CLASS_INITIALROUTINEOBJ.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_655__CLASS_INITIALROUTINEOBJ));
  
  /*inistring dstr_656__CLASS_INITIALROU*/
@@ -53865,7 +54415,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_657__CLASS_INITIALROUTINEOBJ.obj_num = OBMAG_OBJECT;
   cdat->dobj_657__CLASS_INITIALROUTINEOBJ.obj_hash = 294113381;
   cdat->dobj_657__CLASS_INITIALROUTINEOBJ.obj_len = 9;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_657__CLASS_INITIALROUTINEOBJ.obj_vartab =  cdat->dobj_657__CLASS_INITIALROUTINEOBJ.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_657__CLASS_INITIALROUTINEOBJ));
  
  /*inistring dstr_658__CLASS_INITIALROU*/
@@ -53887,7 +54439,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_661__OIROUT_DATA.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_661__OIROUT_DATA.obj_hash = 518220617;
   cdat->dsym_661__OIROUT_DATA.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_661__OIROUT_DATA.obj_vartab =  cdat->dsym_661__OIROUT_DATA.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_661__OIROUT_DATA));
  
  /*inistring dstr_662__OIROUT_DATA*/
@@ -53904,7 +54458,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_663__OIROUT_DATA.obj_num = 8;
   cdat->dobj_663__OIROUT_DATA.obj_hash = 487102783;
   cdat->dobj_663__OIROUT_DATA.obj_len = 4;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_663__OIROUT_DATA.obj_vartab =  cdat->dobj_663__OIROUT_DATA.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_663__OIROUT_DATA));
  
  /*inistring dstr_664__OIROUT_DATA*/
@@ -53918,7 +54474,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_665__OIROUT_PROLOG.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_665__OIROUT_PROLOG.obj_hash = 441114313;
   cdat->dsym_665__OIROUT_PROLOG.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_665__OIROUT_PROLOG.obj_vartab =  cdat->dsym_665__OIROUT_PROLOG.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_665__OIROUT_PROLOG));
  
  /*inistring dstr_666__OIROUT_PROLOG*/
@@ -53935,7 +54493,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_667__OIROUT_PROLOG.obj_num = 9;
   cdat->dobj_667__OIROUT_PROLOG.obj_hash = 302674132;
   cdat->dobj_667__OIROUT_PROLOG.obj_len = 4;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_667__OIROUT_PROLOG.obj_vartab =  cdat->dobj_667__OIROUT_PROLOG.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_667__OIROUT_PROLOG));
  
  /*inistring dstr_668__OIROUT_PROLOG*/
@@ -53949,7 +54509,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_669__OIROUT_FILL.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_669__OIROUT_FILL.obj_hash = 857346910;
   cdat->dsym_669__OIROUT_FILL.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_669__OIROUT_FILL.obj_vartab =  cdat->dsym_669__OIROUT_FILL.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_669__OIROUT_FILL));
  
  /*inistring dstr_670__OIROUT_FILL*/
@@ -53966,7 +54528,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_671__OIROUT_FILL.obj_num = 10;
   cdat->dobj_671__OIROUT_FILL.obj_hash = 211243085;
   cdat->dobj_671__OIROUT_FILL.obj_len = 4;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_671__OIROUT_FILL.obj_vartab =  cdat->dobj_671__OIROUT_FILL.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_671__OIROUT_FILL));
  
  /*inistring dstr_672__OIROUT_FILL*/
@@ -53980,7 +54544,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_673__OUTPUT_C_DECLINIT.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_673__OUTPUT_C_DECLINIT.obj_hash = 1046624755;
   cdat->dsym_673__OUTPUT_C_DECLINIT.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_673__OUTPUT_C_DECLINIT.obj_vartab =  cdat->dsym_673__OUTPUT_C_DECLINIT.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_673__OUTPUT_C_DECLINIT));
  
  /*inistring dstr_674__OUTPUT_C_DECLINI*/
@@ -53994,7 +54560,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_675__CLASS_SELECTOR.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_675__CLASS_SELECTOR.obj_hash = 100646971;
   cdat->dsym_675__CLASS_SELECTOR.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_675__CLASS_SELECTOR.obj_vartab =  cdat->dsym_675__CLASS_SELECTOR.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_675__CLASS_SELECTOR));
  
  /*inistring dstr_676__CLASS_SELECTOR*/
@@ -54010,7 +54578,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_677__OUTPUT_C_DECLINIT.obj_class = (basilysobject_ptr_t)(/*_.CLASS_SELECTOR__V12*/ curfptr[11]);
   cdat->dobj_677__OUTPUT_C_DECLINIT.obj_hash = 835431082;
   cdat->dobj_677__OUTPUT_C_DECLINIT.obj_len = 4;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_677__OUTPUT_C_DECLINIT.obj_vartab =  cdat->dobj_677__OUTPUT_C_DECLINIT.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_677__OUTPUT_C_DECLINIT));
  
  /*inistring dstr_678__OUTPUT_C_DECLINI*/
@@ -54024,7 +54594,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_679__PUT_OBJDEST.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_679__PUT_OBJDEST.obj_hash = 830731085;
   cdat->dsym_679__PUT_OBJDEST.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_679__PUT_OBJDEST.obj_vartab =  cdat->dsym_679__PUT_OBJDEST.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_679__PUT_OBJDEST));
  
  /*inistring dstr_680__PUT_OBJDEST*/
@@ -54040,7 +54612,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_681__PUT_OBJDEST.obj_class = (basilysobject_ptr_t)(/*_.CLASS_SELECTOR__V12*/ curfptr[11]);
   cdat->dobj_681__PUT_OBJDEST.obj_hash = 105347311;
   cdat->dobj_681__PUT_OBJDEST.obj_len = 4;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_681__PUT_OBJDEST.obj_vartab =  cdat->dobj_681__PUT_OBJDEST.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_681__PUT_OBJDEST));
  
  /*inistring dstr_682__PUT_OBJDEST*/
@@ -54054,7 +54628,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_683__OUTPUT_C_CODE.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_683__OUTPUT_C_CODE.obj_hash = 137415526;
   cdat->dsym_683__OUTPUT_C_CODE.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_683__OUTPUT_C_CODE.obj_vartab =  cdat->dsym_683__OUTPUT_C_CODE.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_683__OUTPUT_C_CODE));
  
  /*inistring dstr_684__OUTPUT_C_CODE*/
@@ -54070,7 +54646,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_685__OUTPUT_C_CODE.obj_class = (basilysobject_ptr_t)(/*_.CLASS_SELECTOR__V12*/ curfptr[11]);
   cdat->dobj_685__OUTPUT_C_CODE.obj_hash = 194983607;
   cdat->dobj_685__OUTPUT_C_CODE.obj_len = 4;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_685__OUTPUT_C_CODE.obj_vartab =  cdat->dobj_685__OUTPUT_C_CODE.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_685__OUTPUT_C_CODE));
  
  /*inistring dstr_686__OUTPUT_C_CODE*/
@@ -54084,7 +54662,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_687__OUTPUT_C_INITFILL.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_687__OUTPUT_C_INITFILL.obj_hash = 553878238;
   cdat->dsym_687__OUTPUT_C_INITFILL.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_687__OUTPUT_C_INITFILL.obj_vartab =  cdat->dsym_687__OUTPUT_C_INITFILL.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_687__OUTPUT_C_INITFILL));
  
  /*inistring dstr_688__OUTPUT_C_INITFIL*/
@@ -54100,7 +54680,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_689__OUTPUT_C_INITFILL.obj_class = (basilysobject_ptr_t)(/*_.CLASS_SELECTOR__V12*/ curfptr[11]);
   cdat->dobj_689__OUTPUT_C_INITFILL.obj_hash = 251432150;
   cdat->dobj_689__OUTPUT_C_INITFILL.obj_len = 4;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_689__OUTPUT_C_INITFILL.obj_vartab =  cdat->dobj_689__OUTPUT_C_INITFILL.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_689__OUTPUT_C_INITFILL));
  
  /*inistring dstr_690__OUTPUT_C_INITFIL*/
@@ -54114,7 +54696,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_691__OUTPUT_C_INITPREDEF.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_691__OUTPUT_C_INITPREDEF.obj_hash = 963494394;
   cdat->dsym_691__OUTPUT_C_INITPREDEF.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_691__OUTPUT_C_INITPREDEF.obj_vartab =  cdat->dsym_691__OUTPUT_C_INITPREDEF.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_691__OUTPUT_C_INITPREDEF));
  
  /*inistring dstr_692__OUTPUT_C_INITPRE*/
@@ -54130,7 +54714,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_693__OUTPUT_C_INITPREDEF.obj_class = (basilysobject_ptr_t)(/*_.CLASS_SELECTOR__V12*/ curfptr[11]);
   cdat->dobj_693__OUTPUT_C_INITPREDEF.obj_hash = 827471551;
   cdat->dobj_693__OUTPUT_C_INITPREDEF.obj_len = 4;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_693__OUTPUT_C_INITPREDEF.obj_vartab =  cdat->dobj_693__OUTPUT_C_INITPREDEF.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_693__OUTPUT_C_INITPREDEF));
  
  /*inistring dstr_694__OUTPUT_C_INITPRE*/
@@ -54156,7 +54742,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_697__DISPLAYDEBUGMSG.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_697__DISPLAYDEBUGMSG.obj_hash = 784680112;
   cdat->dsym_697__DISPLAYDEBUGMSG.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_697__DISPLAYDEBUGMSG.obj_vartab =  cdat->dsym_697__DISPLAYDEBUGMSG.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_697__DISPLAYDEBUGMSG));
  
  /*inistring dstr_698__DISPLAYDEBUGMSG*/
@@ -54170,7 +54758,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_699__INSTALL_METHOD.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_699__INSTALL_METHOD.obj_hash = 680699224;
   cdat->dsym_699__INSTALL_METHOD.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_699__INSTALL_METHOD.obj_vartab =  cdat->dsym_699__INSTALL_METHOD.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_699__INSTALL_METHOD));
  
  /*inistring dstr_700__INSTALL_METHOD*/
@@ -54184,7 +54774,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_701__CLASS_NREP.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_701__CLASS_NREP.obj_hash = 704846736;
   cdat->dsym_701__CLASS_NREP.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_701__CLASS_NREP.obj_vartab =  cdat->dsym_701__CLASS_NREP.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_701__CLASS_NREP));
  
  /*inistring dstr_702__CLASS_NREP*/
@@ -54198,7 +54790,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_703__COMPILE_OBJ.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_703__COMPILE_OBJ.obj_hash = 749017560;
   cdat->dsym_703__COMPILE_OBJ.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_703__COMPILE_OBJ.obj_vartab =  cdat->dsym_703__COMPILE_OBJ.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_703__COMPILE_OBJ));
  
  /*inistring dstr_704__COMPILE_OBJ*/
@@ -54236,7 +54830,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_709__DISCR_ANYRECV.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_709__DISCR_ANYRECV.obj_hash = 88765237;
   cdat->dsym_709__DISCR_ANYRECV.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_709__DISCR_ANYRECV.obj_vartab =  cdat->dsym_709__DISCR_ANYRECV.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_709__DISCR_ANYRECV));
  
  /*inistring dstr_710__DISCR_ANYRECV*/
@@ -54262,7 +54858,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_713__GET_CTYPE.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_713__GET_CTYPE.obj_hash = 747649571;
   cdat->dsym_713__GET_CTYPE.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_713__GET_CTYPE.obj_vartab =  cdat->dsym_713__GET_CTYPE.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_713__GET_CTYPE));
  
  /*inistring dstr_714__GET_CTYPE*/
@@ -54288,7 +54886,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_717__CTYPE_VALUE.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_717__CTYPE_VALUE.obj_hash = 11062864;
   cdat->dsym_717__CTYPE_VALUE.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_717__CTYPE_VALUE.obj_vartab =  cdat->dsym_717__CTYPE_VALUE.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_717__CTYPE_VALUE));
  
  /*inistring dstr_718__CTYPE_VALUE*/
@@ -54314,7 +54914,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_721__DBGOUT_NAMEDOBJECT_METHOD.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_721__DBGOUT_NAMEDOBJECT_METHOD.obj_hash = 359355803;
   cdat->dsym_721__DBGOUT_NAMEDOBJECT_METHOD.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_721__DBGOUT_NAMEDOBJECT_METHOD.obj_vartab =  cdat->dsym_721__DBGOUT_NAMEDOBJECT_METHOD.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_721__DBGOUT_NAMEDOBJECT_METHOD));
  
  /*inistring dstr_722__DBGOUT_NAMEDOBJE*/
@@ -54328,7 +54930,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_723__DBG_OUTPUT.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_723__DBG_OUTPUT.obj_hash = 225394304;
   cdat->dsym_723__DBG_OUTPUT.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_723__DBG_OUTPUT.obj_vartab =  cdat->dsym_723__DBG_OUTPUT.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_723__DBG_OUTPUT));
  
  /*inistring dstr_724__DBG_OUTPUT*/
@@ -54354,7 +54958,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_727__DISCR_LIST.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_727__DISCR_LIST.obj_hash = 98407634;
   cdat->dsym_727__DISCR_LIST.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_727__DISCR_LIST.obj_vartab =  cdat->dsym_727__DISCR_LIST.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_727__DISCR_LIST));
  
  /*inistring dstr_728__DISCR_LIST*/
@@ -54392,7 +54998,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_733__CLASS_NREP_ROUTPROC.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_733__CLASS_NREP_ROUTPROC.obj_hash = 959677762;
   cdat->dsym_733__CLASS_NREP_ROUTPROC.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_733__CLASS_NREP_ROUTPROC.obj_vartab =  cdat->dsym_733__CLASS_NREP_ROUTPROC.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_733__CLASS_NREP_ROUTPROC));
  
  /*inistring dstr_734__CLASS_NREP_ROUTP*/
@@ -54406,7 +55014,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_735__CLASS_MODULCONTEXT.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_735__CLASS_MODULCONTEXT.obj_hash = 827706478;
   cdat->dsym_735__CLASS_MODULCONTEXT.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_735__CLASS_MODULCONTEXT.obj_vartab =  cdat->dsym_735__CLASS_MODULCONTEXT.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_735__CLASS_MODULCONTEXT));
  
  /*inistring dstr_736__CLASS_MODULCONTE*/
@@ -54420,7 +55030,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_737__DISCR_STRBUF.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_737__DISCR_STRBUF.obj_hash = 492035674;
   cdat->dsym_737__DISCR_STRBUF.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_737__DISCR_STRBUF.obj_vartab =  cdat->dsym_737__DISCR_STRBUF.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_737__DISCR_STRBUF));
  
  /*inistring dstr_738__DISCR_STRBUF*/
@@ -54434,7 +55046,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_739__DISCR_STRING.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_739__DISCR_STRING.obj_hash = 100436219;
   cdat->dsym_739__DISCR_STRING.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_739__DISCR_STRING.obj_vartab =  cdat->dsym_739__DISCR_STRING.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_739__DISCR_STRING));
  
  /*inistring dstr_740__DISCR_STRING*/
@@ -54448,7 +55062,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_741__DISCR_INTEGER.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_741__DISCR_INTEGER.obj_hash = 119182103;
   cdat->dsym_741__DISCR_INTEGER.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_741__DISCR_INTEGER.obj_vartab =  cdat->dsym_741__DISCR_INTEGER.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_741__DISCR_INTEGER));
  
  /*inistring dstr_742__DISCR_INTEGER*/
@@ -54462,7 +55078,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_743__DISCR_MAPOBJECTS.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_743__DISCR_MAPOBJECTS.obj_hash = 95669218;
   cdat->dsym_743__DISCR_MAPOBJECTS.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_743__DISCR_MAPOBJECTS.obj_vartab =  cdat->dsym_743__DISCR_MAPOBJECTS.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_743__DISCR_MAPOBJECTS));
  
  /*inistring dstr_744__DISCR_MAPOBJECTS*/
@@ -54476,7 +55094,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_745__CLASS_GENERCONTEXT.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_745__CLASS_GENERCONTEXT.obj_hash = 970384742;
   cdat->dsym_745__CLASS_GENERCONTEXT.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_745__CLASS_GENERCONTEXT.obj_vartab =  cdat->dsym_745__CLASS_GENERCONTEXT.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_745__CLASS_GENERCONTEXT));
  
  /*inistring dstr_746__CLASS_GENERCONTE*/
@@ -54490,7 +55110,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_747__RETVAL_.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_747__RETVAL_.obj_hash = 101078457;
   cdat->dsym_747__RETVAL_.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_747__RETVAL_.obj_vartab =  cdat->dsym_747__RETVAL_.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_747__RETVAL_));
  
  /*inistring dstr_748__RETVAL_*/
@@ -54504,7 +55126,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_749__MULTIPLE_MAP.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_749__MULTIPLE_MAP.obj_hash = 218301686;
   cdat->dsym_749__MULTIPLE_MAP.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_749__MULTIPLE_MAP.obj_vartab =  cdat->dsym_749__MULTIPLE_MAP.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_749__MULTIPLE_MAP));
  
  /*inistring dstr_750__MULTIPLE_MAP*/
@@ -54525,7 +55149,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_752__CLASS_FORMAL_BINDING.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_752__CLASS_FORMAL_BINDING.obj_hash = 3733780;
   cdat->dsym_752__CLASS_FORMAL_BINDING.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_752__CLASS_FORMAL_BINDING.obj_vartab =  cdat->dsym_752__CLASS_FORMAL_BINDING.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_752__CLASS_FORMAL_BINDING));
  
  /*inistring dstr_753__CLASS_FORMAL_BIN*/
@@ -54539,7 +55165,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_754__CTYPE_LONG.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_754__CTYPE_LONG.obj_hash = 64180850;
   cdat->dsym_754__CTYPE_LONG.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_754__CTYPE_LONG.obj_vartab =  cdat->dsym_754__CTYPE_LONG.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_754__CTYPE_LONG));
  
  /*inistring dstr_755__CTYPE_LONG*/
@@ -54553,7 +55181,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_756__LIST_EVERY.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_756__LIST_EVERY.obj_hash = 942863429;
   cdat->dsym_756__LIST_EVERY.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_756__LIST_EVERY.obj_vartab =  cdat->dsym_756__LIST_EVERY.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_756__LIST_EVERY));
  
  /*inistring dstr_757__LIST_EVERY*/
@@ -54574,7 +55204,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_759__INITIALSYSTEMDATA_OBJPREDEF.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_759__INITIALSYSTEMDATA_OBJPREDEF.obj_hash = 358147021;
   cdat->dsym_759__INITIALSYSTEMDATA_OBJPREDEF.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_759__INITIALSYSTEMDATA_OBJPREDEF.obj_vartab =  cdat->dsym_759__INITIALSYSTEMDATA_OBJPREDEF.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_759__INITIALSYSTEMDATA_OBJPREDEF));
  
  /*inistring dstr_760__INITIALSYSTEMDAT*/
@@ -54590,7 +55222,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_761__INITIALSYSTEMDATA_OBJPREDEF.obj_class = (basilysobject_ptr_t)(/*_.VALDATA___V172*/ curfptr[171]);
   cdat->dobj_761__INITIALSYSTEMDATA_OBJPREDEF.obj_hash = 953210165;
   cdat->dobj_761__INITIALSYSTEMDATA_OBJPREDEF.obj_len = 2;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_761__INITIALSYSTEMDATA_OBJPREDEF.obj_vartab =  cdat->dobj_761__INITIALSYSTEMDATA_OBJPREDEF.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_761__INITIALSYSTEMDATA_OBJPREDEF));
  
  /*iniobj dsym_762__INITIAL_SYSTEM_DATA*/
@@ -54599,7 +55233,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_762__INITIAL_SYSTEM_DATA.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_762__INITIAL_SYSTEM_DATA.obj_hash = 771349808;
   cdat->dsym_762__INITIAL_SYSTEM_DATA.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_762__INITIAL_SYSTEM_DATA.obj_vartab =  cdat->dsym_762__INITIAL_SYSTEM_DATA.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_762__INITIAL_SYSTEM_DATA));
  
  /*inistring dstr_763__INITIAL_SYSTEM_D*/
@@ -54649,7 +55285,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_770__CLASS_NREP_INITPROC.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_770__CLASS_NREP_INITPROC.obj_hash = 915122709;
   cdat->dsym_770__CLASS_NREP_INITPROC.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_770__CLASS_NREP_INITPROC.obj_vartab =  cdat->dsym_770__CLASS_NREP_INITPROC.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_770__CLASS_NREP_INITPROC));
  
  /*inistring dstr_771__CLASS_NREP_INITP*/
@@ -54663,7 +55301,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_772__CLASS_INITGENERCONTEXT.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_772__CLASS_INITGENERCONTEXT.obj_hash = 813082126;
   cdat->dsym_772__CLASS_INITGENERCONTEXT.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_772__CLASS_INITGENERCONTEXT.obj_vartab =  cdat->dsym_772__CLASS_INITGENERCONTEXT.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_772__CLASS_INITGENERCONTEXT));
  
  /*inistring dstr_773__CLASS_INITGENERC*/
@@ -54677,7 +55317,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_774__LIST_MAP.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_774__LIST_MAP.obj_hash = 941133477;
   cdat->dsym_774__LIST_MAP.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_774__LIST_MAP.obj_vartab =  cdat->dsym_774__LIST_MAP.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_774__LIST_MAP));
  
  /*inistring dstr_775__LIST_MAP*/
@@ -54698,7 +55340,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_777__RETINIT_.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_777__RETINIT_.obj_hash = 103322274;
   cdat->dsym_777__RETINIT_.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_777__RETINIT_.obj_vartab =  cdat->dsym_777__RETINIT_.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_777__RETINIT_));
  
  /*inistring dstr_778__RETINIT_*/
@@ -54712,7 +55356,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_779__CONTENV_.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_779__CONTENV_.obj_hash = 332262066;
   cdat->dsym_779__CONTENV_.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_779__CONTENV_.obj_vartab =  cdat->dsym_779__CONTENV_.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_779__CONTENV_));
  
  /*inistring dstr_780__CONTENV_*/
@@ -54726,7 +55372,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_781__FRESHENV_.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_781__FRESHENV_.obj_hash = 796121246;
   cdat->dsym_781__FRESHENV_.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_781__FRESHENV_.obj_vartab =  cdat->dsym_781__FRESHENV_.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_781__FRESHENV_));
  
  /*inistring dstr_782__FRESHENV_*/
@@ -54740,7 +55388,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_783__PREVENV_.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_783__PREVENV_.obj_hash = 72124100;
   cdat->dsym_783__PREVENV_.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_783__PREVENV_.obj_vartab =  cdat->dsym_783__PREVENV_.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_783__PREVENV_));
  
  /*inistring dstr_784__PREVENV_*/
@@ -54754,7 +55404,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_785__VALEXPORT_.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_785__VALEXPORT_.obj_hash = 587366079;
   cdat->dsym_785__VALEXPORT_.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_785__VALEXPORT_.obj_vartab =  cdat->dsym_785__VALEXPORT_.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_785__VALEXPORT_));
  
  /*inistring dstr_786__VALEXPORT_*/
@@ -54768,7 +55420,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_787__MACROEXPORT_.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_787__MACROEXPORT_.obj_hash = 1046105123;
   cdat->dsym_787__MACROEXPORT_.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_787__MACROEXPORT_.obj_vartab =  cdat->dsym_787__MACROEXPORT_.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_787__MACROEXPORT_));
  
  /*inistring dstr_788__MACROEXPORT_*/
@@ -54782,7 +55436,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_789__VALIMPORT_.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_789__VALIMPORT_.obj_hash = 1009523468;
   cdat->dsym_789__VALIMPORT_.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_789__VALIMPORT_.obj_vartab =  cdat->dsym_789__VALIMPORT_.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_789__VALIMPORT_));
  
  /*inistring dstr_790__VALIMPORT_*/
@@ -54796,7 +55452,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_791__LIST1.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_791__LIST1.obj_hash = 547472310;
   cdat->dsym_791__LIST1.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_791__LIST1.obj_vartab =  cdat->dsym_791__LIST1.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_791__LIST1));
  
  /*inistring dstr_792__LIST1*/
@@ -54810,7 +55468,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_793__SYSDATA_CONT_FRESH_ENV.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_793__SYSDATA_CONT_FRESH_ENV.obj_hash = 628092944;
   cdat->dsym_793__SYSDATA_CONT_FRESH_ENV.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_793__SYSDATA_CONT_FRESH_ENV.obj_vartab =  cdat->dsym_793__SYSDATA_CONT_FRESH_ENV.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_793__SYSDATA_CONT_FRESH_ENV));
  
  /*inistring dstr_794__SYSDATA_CONT_FRE*/
@@ -54824,7 +55484,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_795__DISCR_MULTIPLE.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_795__DISCR_MULTIPLE.obj_hash = 91864583;
   cdat->dsym_795__DISCR_MULTIPLE.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_795__DISCR_MULTIPLE.obj_vartab =  cdat->dsym_795__DISCR_MULTIPLE.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_795__DISCR_MULTIPLE));
  
  /*inistring dstr_796__DISCR_MULTIPLE*/
@@ -54838,7 +55500,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_797__DISCR_VERBATIMSTRING.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_797__DISCR_VERBATIMSTRING.obj_hash = 6759605;
   cdat->dsym_797__DISCR_VERBATIMSTRING.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_797__DISCR_VERBATIMSTRING.obj_vartab =  cdat->dsym_797__DISCR_VERBATIMSTRING.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_797__DISCR_VERBATIMSTRING));
  
  /*inistring dstr_798__DISCR_VERBATIMST*/
@@ -54859,7 +55523,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_800__CLASS_NREP_IMPORTEDVAL.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_800__CLASS_NREP_IMPORTEDVAL.obj_hash = 143332453;
   cdat->dsym_800__CLASS_NREP_IMPORTEDVAL.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_800__CLASS_NREP_IMPORTEDVAL.obj_vartab =  cdat->dsym_800__CLASS_NREP_IMPORTEDVAL.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_800__CLASS_NREP_IMPORTEDVAL));
  
  /*inistring dstr_801__CLASS_NREP_IMPOR*/
@@ -54873,7 +55539,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_802__LIST_TO_MULTIPLE.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_802__LIST_TO_MULTIPLE.obj_hash = 987171205;
   cdat->dsym_802__LIST_TO_MULTIPLE.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_802__LIST_TO_MULTIPLE.obj_vartab =  cdat->dsym_802__LIST_TO_MULTIPLE.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_802__LIST_TO_MULTIPLE));
  
  /*inistring dstr_803__LIST_TO_MULTIPLE*/
@@ -54894,7 +55562,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_805__CLASS_NREP_DATA.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_805__CLASS_NREP_DATA.obj_hash = 746568035;
   cdat->dsym_805__CLASS_NREP_DATA.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_805__CLASS_NREP_DATA.obj_vartab =  cdat->dsym_805__CLASS_NREP_DATA.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_805__CLASS_NREP_DATA));
  
  /*inistring dstr_806__CLASS_NREP_DATA*/
@@ -54915,7 +55585,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_808__MULTIPLE_EVERY.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_808__MULTIPLE_EVERY.obj_hash = 130098745;
   cdat->dsym_808__MULTIPLE_EVERY.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_808__MULTIPLE_EVERY.obj_vartab =  cdat->dsym_808__MULTIPLE_EVERY.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_808__MULTIPLE_EVERY));
  
  /*inistring dstr_809__MULTIPLE_EVERY*/
@@ -54936,7 +55608,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_811__CLASS_NREP_DATAKEYWORD.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_811__CLASS_NREP_DATAKEYWORD.obj_hash = 755124591;
   cdat->dsym_811__CLASS_NREP_DATAKEYWORD.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_811__CLASS_NREP_DATAKEYWORD.obj_vartab =  cdat->dsym_811__CLASS_NREP_DATAKEYWORD.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_811__CLASS_NREP_DATAKEYWORD));
  
  /*inistring dstr_812__CLASS_NREP_DATAK*/
@@ -54950,7 +55624,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_813__CLASS_NREP_DATASYMBOL.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_813__CLASS_NREP_DATASYMBOL.obj_hash = 55902456;
   cdat->dsym_813__CLASS_NREP_DATASYMBOL.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_813__CLASS_NREP_DATASYMBOL.obj_vartab =  cdat->dsym_813__CLASS_NREP_DATASYMBOL.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_813__CLASS_NREP_DATASYMBOL));
  
  /*inistring dstr_814__CLASS_NREP_DATAS*/
@@ -54964,7 +55640,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_815__SYSDATA_VALUE_IMPORTER.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_815__SYSDATA_VALUE_IMPORTER.obj_hash = 705328400;
   cdat->dsym_815__SYSDATA_VALUE_IMPORTER.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_815__SYSDATA_VALUE_IMPORTER.obj_vartab =  cdat->dsym_815__SYSDATA_VALUE_IMPORTER.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_815__SYSDATA_VALUE_IMPORTER));
  
  /*inistring dstr_816__SYSDATA_VALUE_IM*/
@@ -54999,7 +55677,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_820__COMPILE2OBJ_INITPROC.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_820__COMPILE2OBJ_INITPROC.obj_hash = 795051323;
   cdat->dsym_820__COMPILE2OBJ_INITPROC.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_820__COMPILE2OBJ_INITPROC.obj_vartab =  cdat->dsym_820__COMPILE2OBJ_INITPROC.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_820__COMPILE2OBJ_INITPROC));
  
  /*inistring dstr_821__COMPILE2OBJ_INIT*/
@@ -55013,7 +55693,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_822__COMPILE2OBJ_PROCEDURE.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_822__COMPILE2OBJ_PROCEDURE.obj_hash = 315972622;
   cdat->dsym_822__COMPILE2OBJ_PROCEDURE.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_822__COMPILE2OBJ_PROCEDURE.obj_vartab =  cdat->dsym_822__COMPILE2OBJ_PROCEDURE.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_822__COMPILE2OBJ_PROCEDURE));
  
  /*inistring dstr_823__COMPILE2OBJ_PROC*/
@@ -55063,7 +55745,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_830__CLASS_CTYPE.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_830__CLASS_CTYPE.obj_hash = 78610803;
   cdat->dsym_830__CLASS_CTYPE.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_830__CLASS_CTYPE.obj_vartab =  cdat->dsym_830__CLASS_CTYPE.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_830__CLASS_CTYPE));
  
  /*inistring dstr_831__CLASS_CTYPE*/
@@ -55077,7 +55761,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_832__CTYPE_VOID.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_832__CTYPE_VOID.obj_hash = 94242002;
   cdat->dsym_832__CTYPE_VOID.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_832__CTYPE_VOID.obj_vartab =  cdat->dsym_832__CTYPE_VOID.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_832__CTYPE_VOID));
  
  /*inistring dstr_833__CTYPE_VOID*/
@@ -55103,7 +55789,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_836__CLASS_ANY_BINDING.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_836__CLASS_ANY_BINDING.obj_hash = 935770;
   cdat->dsym_836__CLASS_ANY_BINDING.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_836__CLASS_ANY_BINDING.obj_vartab =  cdat->dsym_836__CLASS_ANY_BINDING.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_836__CLASS_ANY_BINDING));
  
  /*inistring dstr_837__CLASS_ANY_BINDIN*/
@@ -55117,7 +55805,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_838__CLASS_LET_BINDING.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_838__CLASS_LET_BINDING.obj_hash = 373730517;
   cdat->dsym_838__CLASS_LET_BINDING.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_838__CLASS_LET_BINDING.obj_vartab =  cdat->dsym_838__CLASS_LET_BINDING.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_838__CLASS_LET_BINDING));
  
  /*inistring dstr_839__CLASS_LET_BINDIN*/
@@ -55143,7 +55833,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_842__CLASS_NREP_CHUNK.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_842__CLASS_NREP_CHUNK.obj_hash = 877025959;
   cdat->dsym_842__CLASS_NREP_CHUNK.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_842__CLASS_NREP_CHUNK.obj_vartab =  cdat->dsym_842__CLASS_NREP_CHUNK.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_842__CLASS_NREP_CHUNK));
  
  /*inistring dstr_843__CLASS_NREP_CHUNK*/
@@ -55157,7 +55849,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_844__CLASS_PRIMITIVE.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_844__CLASS_PRIMITIVE.obj_hash = 102527506;
   cdat->dsym_844__CLASS_PRIMITIVE.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_844__CLASS_PRIMITIVE.obj_vartab =  cdat->dsym_844__CLASS_PRIMITIVE.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_844__CLASS_PRIMITIVE));
  
  /*inistring dstr_845__CLASS_PRIMITIVE*/
@@ -55190,7 +55884,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_849__CLASS_NREP_NIL.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_849__CLASS_NREP_NIL.obj_hash = 607452589;
   cdat->dsym_849__CLASS_NREP_NIL.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_849__CLASS_NREP_NIL.obj_vartab =  cdat->dsym_849__CLASS_NREP_NIL.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_849__CLASS_NREP_NIL));
  
  /*inistring dstr_850__CLASS_NREP_NIL*/
@@ -55216,7 +55912,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_853__CLASS_NREP_COMMENT.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_853__CLASS_NREP_COMMENT.obj_hash = 351814368;
   cdat->dsym_853__CLASS_NREP_COMMENT.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_853__CLASS_NREP_COMMENT.obj_vartab =  cdat->dsym_853__CLASS_NREP_COMMENT.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_853__CLASS_NREP_COMMENT));
  
  /*inistring dstr_854__CLASS_NREP_COMME*/
@@ -55242,7 +55940,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_857__CLASS_NREP_LOCSYMOCC.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_857__CLASS_NREP_LOCSYMOCC.obj_hash = 614887922;
   cdat->dsym_857__CLASS_NREP_LOCSYMOCC.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_857__CLASS_NREP_LOCSYMOCC.obj_vartab =  cdat->dsym_857__CLASS_NREP_LOCSYMOCC.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_857__CLASS_NREP_LOCSYMOCC));
  
  /*inistring dstr_858__CLASS_NREP_LOCSY*/
@@ -55268,7 +55968,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_861__CLASS_NREP_CLOSEDOCC.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_861__CLASS_NREP_CLOSEDOCC.obj_hash = 907150232;
   cdat->dsym_861__CLASS_NREP_CLOSEDOCC.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_861__CLASS_NREP_CLOSEDOCC.obj_vartab =  cdat->dsym_861__CLASS_NREP_CLOSEDOCC.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_861__CLASS_NREP_CLOSEDOCC));
  
  /*inistring dstr_862__CLASS_NREP_CLOSE*/
@@ -55294,7 +55996,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_865__CLASS_NREP_CONSTOCC.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_865__CLASS_NREP_CONSTOCC.obj_hash = 1065884175;
   cdat->dsym_865__CLASS_NREP_CONSTOCC.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_865__CLASS_NREP_CONSTOCC.obj_vartab =  cdat->dsym_865__CLASS_NREP_CONSTOCC.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_865__CLASS_NREP_CONSTOCC));
  
  /*inistring dstr_866__CLASS_NREP_CONST*/
@@ -55332,7 +56036,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_871__CLASS_NREP_QUASICONSTANT.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_871__CLASS_NREP_QUASICONSTANT.obj_hash = 430834528;
   cdat->dsym_871__CLASS_NREP_QUASICONSTANT.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_871__CLASS_NREP_QUASICONSTANT.obj_vartab =  cdat->dsym_871__CLASS_NREP_QUASICONSTANT.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_871__CLASS_NREP_QUASICONSTANT));
  
  /*inistring dstr_872__CLASS_NREP_QUASI*/
@@ -55358,7 +56064,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_875__CLASS_NREP_QUASICONST_CURRENT_MODULE_ENVIRONMENT_CONTAINER.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_875__CLASS_NREP_QUASICONST_CURRENT_MODULE_ENVIRONMENT_CONTAINER.obj_hash = 576407711;
   cdat->dsym_875__CLASS_NREP_QUASICONST_CURRENT_MODULE_ENVIRONMENT_CONTAINER.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_875__CLASS_NREP_QUASICONST_CURRENT_MODULE_ENVIRONMENT_CONTAINER.obj_vartab =  cdat->dsym_875__CLASS_NREP_QUASICONST_CURRENT_MODULE_ENVIRONMENT_CONTAINER.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_875__CLASS_NREP_QUASICONST_CURRENT_MODULE_ENVIRONMENT_CONTAINER));
  
  /*inistring dstr_876__CLASS_NREP_QUASI*/
@@ -55384,7 +56092,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_879__CLASS_NREP_FOREVER.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_879__CLASS_NREP_FOREVER.obj_hash = 590813330;
   cdat->dsym_879__CLASS_NREP_FOREVER.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_879__CLASS_NREP_FOREVER.obj_vartab =  cdat->dsym_879__CLASS_NREP_FOREVER.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_879__CLASS_NREP_FOREVER));
  
  /*inistring dstr_880__CLASS_NREP_FOREV*/
@@ -55398,7 +56108,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_881__CLASS_LABEL_BINDING.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_881__CLASS_LABEL_BINDING.obj_hash = 513737494;
   cdat->dsym_881__CLASS_LABEL_BINDING.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_881__CLASS_LABEL_BINDING.obj_vartab =  cdat->dsym_881__CLASS_LABEL_BINDING.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_881__CLASS_LABEL_BINDING));
  
  /*inistring dstr_882__CLASS_LABEL_BIND*/
@@ -55412,7 +56124,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_883__CLASS_CLONEDSYMBOL.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_883__CLASS_CLONEDSYMBOL.obj_hash = 101008864;
   cdat->dsym_883__CLASS_CLONEDSYMBOL.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_883__CLASS_CLONEDSYMBOL.obj_vartab =  cdat->dsym_883__CLASS_CLONEDSYMBOL.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_883__CLASS_CLONEDSYMBOL));
  
  /*inistring dstr_884__CLASS_CLONEDSYMB*/
@@ -55445,7 +56159,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_888__CLASS_NREP_EXIT.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_888__CLASS_NREP_EXIT.obj_hash = 563709683;
   cdat->dsym_888__CLASS_NREP_EXIT.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_888__CLASS_NREP_EXIT.obj_vartab =  cdat->dsym_888__CLASS_NREP_EXIT.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_888__CLASS_NREP_EXIT));
  
  /*inistring dstr_889__CLASS_NREP_EXIT*/
@@ -55483,7 +56199,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_894__CLASS_NREP_LET.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_894__CLASS_NREP_LET.obj_hash = 726308322;
   cdat->dsym_894__CLASS_NREP_LET.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_894__CLASS_NREP_LET.obj_vartab =  cdat->dsym_894__CLASS_NREP_LET.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_894__CLASS_NREP_LET));
  
  /*inistring dstr_895__CLASS_NREP_LET*/
@@ -55504,7 +56222,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_897__CLASS_NORMLET_BINDING.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_897__CLASS_NORMLET_BINDING.obj_hash = 17546439;
   cdat->dsym_897__CLASS_NORMLET_BINDING.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_897__CLASS_NORMLET_BINDING.obj_vartab =  cdat->dsym_897__CLASS_NORMLET_BINDING.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_897__CLASS_NORMLET_BINDING));
  
  /*inistring dstr_898__CLASS_NORMLET_BI*/
@@ -55518,7 +56238,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_899__CLASS_SEXPR.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_899__CLASS_SEXPR.obj_hash = 53411612;
   cdat->dsym_899__CLASS_SEXPR.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_899__CLASS_SEXPR.obj_vartab =  cdat->dsym_899__CLASS_SEXPR.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_899__CLASS_SEXPR));
  
  /*inistring dstr_900__CLASS_SEXPR*/
@@ -55558,7 +56280,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_905__CLASS_NREP_SETQ.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_905__CLASS_NREP_SETQ.obj_hash = 314084823;
   cdat->dsym_905__CLASS_NREP_SETQ.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_905__CLASS_NREP_SETQ.obj_vartab =  cdat->dsym_905__CLASS_NREP_SETQ.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_905__CLASS_NREP_SETQ));
  
  /*inistring dstr_906__CLASS_NREP_SETQ*/
@@ -55584,7 +56308,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_909__CLASS_NREP_PROGN.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_909__CLASS_NREP_PROGN.obj_hash = 378668026;
   cdat->dsym_909__CLASS_NREP_PROGN.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_909__CLASS_NREP_PROGN.obj_vartab =  cdat->dsym_909__CLASS_NREP_PROGN.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_909__CLASS_NREP_PROGN));
  
  /*inistring dstr_910__CLASS_NREP_PROGN*/
@@ -55617,7 +56343,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_914__CLASS_NREP_MULTACC.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_914__CLASS_NREP_MULTACC.obj_hash = 444787444;
   cdat->dsym_914__CLASS_NREP_MULTACC.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_914__CLASS_NREP_MULTACC.obj_vartab =  cdat->dsym_914__CLASS_NREP_MULTACC.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_914__CLASS_NREP_MULTACC));
  
  /*inistring dstr_915__CLASS_NREP_MULTA*/
@@ -55650,7 +56378,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_919__CLASS_NREP_FIELDACC.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_919__CLASS_NREP_FIELDACC.obj_hash = 571372072;
   cdat->dsym_919__CLASS_NREP_FIELDACC.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_919__CLASS_NREP_FIELDACC.obj_vartab =  cdat->dsym_919__CLASS_NREP_FIELDACC.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_919__CLASS_NREP_FIELDACC));
  
  /*inistring dstr_920__CLASS_NREP_FIELD*/
@@ -55671,7 +56401,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_922__CLASS_FIELD.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_922__CLASS_FIELD.obj_hash = 523073;
   cdat->dsym_922__CLASS_FIELD.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_922__CLASS_FIELD.obj_vartab =  cdat->dsym_922__CLASS_FIELD.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_922__CLASS_FIELD));
  
  /*inistring dstr_923__CLASS_FIELD*/
@@ -55685,7 +56417,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_924__CLASS_NREP_DATAINSTANCE.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_924__CLASS_NREP_DATAINSTANCE.obj_hash = 475932459;
   cdat->dsym_924__CLASS_NREP_DATAINSTANCE.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_924__CLASS_NREP_DATAINSTANCE.obj_vartab =  cdat->dsym_924__CLASS_NREP_DATAINSTANCE.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_924__CLASS_NREP_DATAINSTANCE));
  
  /*inistring dstr_925__CLASS_NREP_DATAI*/
@@ -55711,7 +56445,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_928__CLASS_NREP_UNSAFE_GET_FIELD.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_928__CLASS_NREP_UNSAFE_GET_FIELD.obj_hash = 71587717;
   cdat->dsym_928__CLASS_NREP_UNSAFE_GET_FIELD.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_928__CLASS_NREP_UNSAFE_GET_FIELD.obj_vartab =  cdat->dsym_928__CLASS_NREP_UNSAFE_GET_FIELD.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_928__CLASS_NREP_UNSAFE_GET_FIELD));
  
  /*inistring dstr_929__CLASS_NREP_UNSAF*/
@@ -55737,7 +56473,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_932__CLASS_NREP_UNSAFE_PUT_FIELDS.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_932__CLASS_NREP_UNSAFE_PUT_FIELDS.obj_hash = 7092667;
   cdat->dsym_932__CLASS_NREP_UNSAFE_PUT_FIELDS.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_932__CLASS_NREP_UNSAFE_PUT_FIELDS.obj_vartab =  cdat->dsym_932__CLASS_NREP_UNSAFE_PUT_FIELDS.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_932__CLASS_NREP_UNSAFE_PUT_FIELDS));
  
  /*inistring dstr_933__CLASS_NREP_UNSAF*/
@@ -55758,7 +56496,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_935__CLASS_NREP_FIELDASSIGN.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_935__CLASS_NREP_FIELDASSIGN.obj_hash = 500200612;
   cdat->dsym_935__CLASS_NREP_FIELDASSIGN.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_935__CLASS_NREP_FIELDASSIGN.obj_vartab =  cdat->dsym_935__CLASS_NREP_FIELDASSIGN.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_935__CLASS_NREP_FIELDASSIGN));
  
  /*inistring dstr_936__CLASS_NREP_FIELD*/
@@ -55784,7 +56524,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_939__CLASS_NREP_APPLY.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_939__CLASS_NREP_APPLY.obj_hash = 866094506;
   cdat->dsym_939__CLASS_NREP_APPLY.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_939__CLASS_NREP_APPLY.obj_vartab =  cdat->dsym_939__CLASS_NREP_APPLY.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_939__CLASS_NREP_APPLY));
  
  /*inistring dstr_940__CLASS_NREP_APPLY*/
@@ -55817,7 +56559,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_944__CLASS_NREP_MULTIAPPLY.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_944__CLASS_NREP_MULTIAPPLY.obj_hash = 257736327;
   cdat->dsym_944__CLASS_NREP_MULTIAPPLY.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_944__CLASS_NREP_MULTIAPPLY.obj_vartab =  cdat->dsym_944__CLASS_NREP_MULTIAPPLY.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_944__CLASS_NREP_MULTIAPPLY));
  
  /*inistring dstr_945__CLASS_NREP_MULTI*/
@@ -55878,7 +56622,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_953__CLASS_NREP_MSEND.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_953__CLASS_NREP_MSEND.obj_hash = 263475785;
   cdat->dsym_953__CLASS_NREP_MSEND.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_953__CLASS_NREP_MSEND.obj_vartab =  cdat->dsym_953__CLASS_NREP_MSEND.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_953__CLASS_NREP_MSEND));
  
  /*inistring dstr_954__CLASS_NREP_MSEND*/
@@ -55911,7 +56657,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_958__CLASS_NREP_MULTIMSEND.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_958__CLASS_NREP_MULTIMSEND.obj_hash = 247075982;
   cdat->dsym_958__CLASS_NREP_MULTIMSEND.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_958__CLASS_NREP_MULTIMSEND.obj_vartab =  cdat->dsym_958__CLASS_NREP_MULTIMSEND.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_958__CLASS_NREP_MULTIMSEND));
  
  /*inistring dstr_959__CLASS_NREP_MULTI*/
@@ -55984,7 +56732,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_969__CLASS_VALUE_BINDING.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_969__CLASS_VALUE_BINDING.obj_hash = 952021086;
   cdat->dsym_969__CLASS_VALUE_BINDING.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_969__CLASS_VALUE_BINDING.obj_vartab =  cdat->dsym_969__CLASS_VALUE_BINDING.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_969__CLASS_VALUE_BINDING));
  
  /*inistring dstr_970__CLASS_VALUE_BIND*/
@@ -56010,7 +56760,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_973__CLASS_SELECTOR_BINDING.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_973__CLASS_SELECTOR_BINDING.obj_hash = 80713028;
   cdat->dsym_973__CLASS_SELECTOR_BINDING.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_973__CLASS_SELECTOR_BINDING.obj_vartab =  cdat->dsym_973__CLASS_SELECTOR_BINDING.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_973__CLASS_SELECTOR_BINDING));
  
  /*inistring dstr_974__CLASS_SELECTOR_B*/
@@ -56036,7 +56788,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_977__CLASS_PRIMITIVE_BINDING.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_977__CLASS_PRIMITIVE_BINDING.obj_hash = 648418829;
   cdat->dsym_977__CLASS_PRIMITIVE_BINDING.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_977__CLASS_PRIMITIVE_BINDING.obj_vartab =  cdat->dsym_977__CLASS_PRIMITIVE_BINDING.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_977__CLASS_PRIMITIVE_BINDING));
  
  /*inistring dstr_978__CLASS_PRIMITIVE_*/
@@ -56062,7 +56816,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_981__CLASS_FUNCTION_BINDING.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_981__CLASS_FUNCTION_BINDING.obj_hash = 942362333;
   cdat->dsym_981__CLASS_FUNCTION_BINDING.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_981__CLASS_FUNCTION_BINDING.obj_vartab =  cdat->dsym_981__CLASS_FUNCTION_BINDING.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_981__CLASS_FUNCTION_BINDING));
  
  /*inistring dstr_982__CLASS_FUNCTION_B*/
@@ -56088,7 +56844,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_985__CLASS_CLASS_BINDING.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_985__CLASS_CLASS_BINDING.obj_hash = 848133131;
   cdat->dsym_985__CLASS_CLASS_BINDING.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_985__CLASS_CLASS_BINDING.obj_vartab =  cdat->dsym_985__CLASS_CLASS_BINDING.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_985__CLASS_CLASS_BINDING));
  
  /*inistring dstr_986__CLASS_CLASS_BIND*/
@@ -56114,7 +56872,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_989__CLASS_FIELD_BINDING.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_989__CLASS_FIELD_BINDING.obj_hash = 412002748;
   cdat->dsym_989__CLASS_FIELD_BINDING.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_989__CLASS_FIELD_BINDING.obj_vartab =  cdat->dsym_989__CLASS_FIELD_BINDING.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_989__CLASS_FIELD_BINDING));
  
  /*inistring dstr_990__CLASS_FIELD_BIND*/
@@ -56140,7 +56900,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_993__CLASS_INSTANCE_BINDING.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_993__CLASS_INSTANCE_BINDING.obj_hash = 401143458;
   cdat->dsym_993__CLASS_INSTANCE_BINDING.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_993__CLASS_INSTANCE_BINDING.obj_vartab =  cdat->dsym_993__CLASS_INSTANCE_BINDING.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_993__CLASS_INSTANCE_BINDING));
  
  /*inistring dstr_994__CLASS_INSTANCE_B*/
@@ -56190,7 +56952,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_1001__DISCR_NULLRECV.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_1001__DISCR_NULLRECV.obj_hash = 39603699;
   cdat->dsym_1001__DISCR_NULLRECV.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_1001__DISCR_NULLRECV.obj_vartab =  cdat->dsym_1001__DISCR_NULLRECV.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_1001__DISCR_NULLRECV));
  
  /*inistring dstr_1002__DISCR_NULLRECV*/
@@ -56252,7 +57016,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_1011__CLASS_NREP_IF.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_1011__CLASS_NREP_IF.obj_hash = 942597626;
   cdat->dsym_1011__CLASS_NREP_IF.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_1011__CLASS_NREP_IF.obj_vartab =  cdat->dsym_1011__CLASS_NREP_IF.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_1011__CLASS_NREP_IF));
  
  /*inistring dstr_1012__CLASS_NREP_IF*/
@@ -56290,7 +57056,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_1017__CLASS_NREP_CPPIF.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_1017__CLASS_NREP_CPPIF.obj_hash = 768655685;
   cdat->dsym_1017__CLASS_NREP_CPPIF.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_1017__CLASS_NREP_CPPIF.obj_vartab =  cdat->dsym_1017__CLASS_NREP_CPPIF.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_1017__CLASS_NREP_CPPIF));
  
  /*inistring dstr_1018__CLASS_NREP_CPPIF*/
@@ -56328,7 +57096,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_1023__CLASS_NREP_RETURN.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_1023__CLASS_NREP_RETURN.obj_hash = 622944524;
   cdat->dsym_1023__CLASS_NREP_RETURN.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_1023__CLASS_NREP_RETURN.obj_vartab =  cdat->dsym_1023__CLASS_NREP_RETURN.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_1023__CLASS_NREP_RETURN));
  
  /*inistring dstr_1024__CLASS_NREP_RETUR*/
@@ -56356,7 +57126,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_1027__DISCRCLOSURE_OBJPREDEF.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_1027__DISCRCLOSURE_OBJPREDEF.obj_hash = 78252136;
   cdat->dsym_1027__DISCRCLOSURE_OBJPREDEF.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_1027__DISCRCLOSURE_OBJPREDEF.obj_vartab =  cdat->dsym_1027__DISCRCLOSURE_OBJPREDEF.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_1027__DISCRCLOSURE_OBJPREDEF));
  
  /*inistring dstr_1028__DISCRCLOSURE_OBJ*/
@@ -56372,7 +57144,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dobj_1029__DISCRCLOSURE_OBJPREDEF.obj_class = (basilysobject_ptr_t)(/*_.VALDATA___V172*/ curfptr[171]);
   cdat->dobj_1029__DISCRCLOSURE_OBJPREDEF.obj_hash = 656247273;
   cdat->dobj_1029__DISCRCLOSURE_OBJPREDEF.obj_len = 2;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_1029__DISCRCLOSURE_OBJPREDEF.obj_vartab =  cdat->dobj_1029__DISCRCLOSURE_OBJPREDEF.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_1029__DISCRCLOSURE_OBJPREDEF));
  
  /*iniobj dsym_1030__DISCR_CLOSURE*/
@@ -56381,7 +57155,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_1030__DISCR_CLOSURE.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_1030__DISCR_CLOSURE.obj_hash = 99248147;
   cdat->dsym_1030__DISCR_CLOSURE.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_1030__DISCR_CLOSURE.obj_vartab =  cdat->dsym_1030__DISCR_CLOSURE.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_1030__DISCR_CLOSURE));
  
  /*inistring dstr_1031__DISCR_CLOSURE*/
@@ -56407,7 +57183,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_1034__CLASS_NREP_LAMBDA.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_1034__CLASS_NREP_LAMBDA.obj_hash = 16774872;
   cdat->dsym_1034__CLASS_NREP_LAMBDA.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_1034__CLASS_NREP_LAMBDA.obj_vartab =  cdat->dsym_1034__CLASS_NREP_LAMBDA.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_1034__CLASS_NREP_LAMBDA));
  
  /*inistring dstr_1035__CLASS_NREP_LAMBD*/
@@ -56440,7 +57218,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_1039__CLASS_NREP_MAKE_INSTANCE.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_1039__CLASS_NREP_MAKE_INSTANCE.obj_hash = 480653236;
   cdat->dsym_1039__CLASS_NREP_MAKE_INSTANCE.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_1039__CLASS_NREP_MAKE_INSTANCE.obj_vartab =  cdat->dsym_1039__CLASS_NREP_MAKE_INSTANCE.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_1039__CLASS_NREP_MAKE_INSTANCE));
  
  /*inistring dstr_1040__CLASS_NREP_MAKE_*/
@@ -56454,7 +57234,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_1041__CLASS_CLASS.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_1041__CLASS_CLASS.obj_hash = 60141292;
   cdat->dsym_1041__CLASS_CLASS.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_1041__CLASS_CLASS.obj_vartab =  cdat->dsym_1041__CLASS_CLASS.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_1041__CLASS_CLASS));
  
  /*inistring dstr_1042__CLASS_CLASS*/
@@ -56468,7 +57250,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_1043__INST.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_1043__INST.obj_hash = 36500330;
   cdat->dsym_1043__INST.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_1043__INST.obj_vartab =  cdat->dsym_1043__INST.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_1043__INST));
  
  /*inistring dstr_1044__INST*/
@@ -56513,7 +57297,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_1050__CLASS_NREP_PREDEF.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_1050__CLASS_NREP_PREDEF.obj_hash = 422259469;
   cdat->dsym_1050__CLASS_NREP_PREDEF.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_1050__CLASS_NREP_PREDEF.obj_vartab =  cdat->dsym_1050__CLASS_NREP_PREDEF.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_1050__CLASS_NREP_PREDEF));
  
  /*inistring dstr_1051__CLASS_NREP_PREDE*/
@@ -56539,7 +57325,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_1054__VALDATA_.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_1054__VALDATA_.obj_hash = 49606842;
   cdat->dsym_1054__VALDATA_.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_1054__VALDATA_.obj_vartab =  cdat->dsym_1054__VALDATA_.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_1054__VALDATA_));
  
  /*inistring dstr_1055__VALDATA_*/
@@ -56553,7 +57341,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_1056__VALUEDATA_.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_1056__VALUEDATA_.obj_hash = 46272601;
   cdat->dsym_1056__VALUEDATA_.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_1056__VALUEDATA_.obj_vartab =  cdat->dsym_1056__VALUEDATA_.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_1056__VALUEDATA_));
  
  /*inistring dstr_1057__VALUEDATA_*/
@@ -56643,7 +57433,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_1070__CLASS_NREP_DATATUPLE.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_1070__CLASS_NREP_DATATUPLE.obj_hash = 100529129;
   cdat->dsym_1070__CLASS_NREP_DATATUPLE.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_1070__CLASS_NREP_DATATUPLE.obj_vartab =  cdat->dsym_1070__CLASS_NREP_DATATUPLE.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_1070__CLASS_NREP_DATATUPLE));
  
  /*inistring dstr_1071__CLASS_NREP_DATAT*/
@@ -56664,7 +57456,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_1073__VALTUP_.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_1073__VALTUP_.obj_hash = 21536389;
   cdat->dsym_1073__VALTUP_.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_1073__VALTUP_.obj_vartab =  cdat->dsym_1073__VALTUP_.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_1073__VALTUP_));
  
  /*inistring dstr_1074__VALTUP_*/
@@ -56678,7 +57472,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_1075__INITUP_.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_1075__INITUP_.obj_hash = 117725906;
   cdat->dsym_1075__INITUP_.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_1075__INITUP_.obj_vartab =  cdat->dsym_1075__INITUP_.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_1075__INITUP_));
  
  /*inistring dstr_1076__INITUP_*/
@@ -56711,7 +57507,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_1080__CLASS_NREP_DATASTRING.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_1080__CLASS_NREP_DATASTRING.obj_hash = 1030159655;
   cdat->dsym_1080__CLASS_NREP_DATASTRING.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_1080__CLASS_NREP_DATASTRING.obj_vartab =  cdat->dsym_1080__CLASS_NREP_DATASTRING.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_1080__CLASS_NREP_DATASTRING));
  
  /*inistring dstr_1081__CLASS_NREP_DATAS*/
@@ -56725,7 +57523,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_1082__VALSTR_.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_1082__VALSTR_.obj_hash = 24192176;
   cdat->dsym_1082__VALSTR_.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_1082__VALSTR_.obj_vartab =  cdat->dsym_1082__VALSTR_.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_1082__VALSTR_));
  
  /*inistring dstr_1083__VALSTR_*/
@@ -56751,7 +57551,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_1086__CLASS_NREP_DATACLOSURE.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_1086__CLASS_NREP_DATACLOSURE.obj_hash = 206205313;
   cdat->dsym_1086__CLASS_NREP_DATACLOSURE.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_1086__CLASS_NREP_DATACLOSURE.obj_vartab =  cdat->dsym_1086__CLASS_NREP_DATACLOSURE.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_1086__CLASS_NREP_DATACLOSURE));
  
  /*inistring dstr_1087__CLASS_NREP_DATAC*/
@@ -56765,7 +57567,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_1088__VALCLO_.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_1088__VALCLO_.obj_hash = 107460852;
   cdat->dsym_1088__VALCLO_.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_1088__VALCLO_.obj_vartab =  cdat->dsym_1088__VALCLO_.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_1088__VALCLO_));
  
  /*inistring dstr_1089__VALCLO_*/
@@ -56779,7 +57583,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_1090__DATACLOSURE_.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_1090__DATACLOSURE_.obj_hash = 12102076;
   cdat->dsym_1090__DATACLOSURE_.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_1090__DATACLOSURE_.obj_vartab =  cdat->dsym_1090__DATACLOSURE_.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_1090__DATACLOSURE_));
  
  /*inistring dstr_1091__DATACLOSURE_*/
@@ -56793,7 +57599,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_1092__CLASS_NREP_DATAROUTINE.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_1092__CLASS_NREP_DATAROUTINE.obj_hash = 675830344;
   cdat->dsym_1092__CLASS_NREP_DATAROUTINE.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_1092__CLASS_NREP_DATAROUTINE.obj_vartab =  cdat->dsym_1092__CLASS_NREP_DATAROUTINE.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_1092__CLASS_NREP_DATAROUTINE));
  
  /*inistring dstr_1093__CLASS_NREP_DATAR*/
@@ -56826,7 +57634,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_1097__VALROUT_.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_1097__VALROUT_.obj_hash = 99461589;
   cdat->dsym_1097__VALROUT_.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_1097__VALROUT_.obj_vartab =  cdat->dsym_1097__VALROUT_.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_1097__VALROUT_));
  
  /*inistring dstr_1098__VALROUT_*/
@@ -56840,7 +57650,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_1099__IROUTVAL_.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_1099__IROUTVAL_.obj_hash = 80558693;
   cdat->dsym_1099__IROUTVAL_.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_1099__IROUTVAL_.obj_vartab =  cdat->dsym_1099__IROUTVAL_.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_1099__IROUTVAL_));
  
  /*inistring dstr_1100__IROUTVAL_*/
@@ -56861,7 +57673,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_1102__CLASS_FIXED_BINDING.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_1102__CLASS_FIXED_BINDING.obj_hash = 179808938;
   cdat->dsym_1102__CLASS_FIXED_BINDING.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_1102__CLASS_FIXED_BINDING.obj_vartab =  cdat->dsym_1102__CLASS_FIXED_BINDING.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_1102__CLASS_FIXED_BINDING));
  
  /*inistring dstr_1103__CLASS_FIXED_BIND*/
@@ -56875,7 +57689,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_1104__CLASS_NREP_QUASIDATA.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_1104__CLASS_NREP_QUASIDATA.obj_hash = 752535427;
   cdat->dsym_1104__CLASS_NREP_QUASIDATA.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_1104__CLASS_NREP_QUASIDATA.obj_vartab =  cdat->dsym_1104__CLASS_NREP_QUASIDATA.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_1104__CLASS_NREP_QUASIDATA));
  
  /*inistring dstr_1105__CLASS_NREP_QUASI*/
@@ -56901,7 +57717,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_1108__CLASS_NREP_QUASIDATA_CURRENT_MODULE_ENVIRONMENT_CONTAINER.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_1108__CLASS_NREP_QUASIDATA_CURRENT_MODULE_ENVIRONMENT_CONTAINER.obj_hash = 940676789;
   cdat->dsym_1108__CLASS_NREP_QUASIDATA_CURRENT_MODULE_ENVIRONMENT_CONTAINER.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_1108__CLASS_NREP_QUASIDATA_CURRENT_MODULE_ENVIRONMENT_CONTAINER.obj_vartab =  cdat->dsym_1108__CLASS_NREP_QUASIDATA_CURRENT_MODULE_ENVIRONMENT_CONTAINER.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_1108__CLASS_NREP_QUASIDATA_CURRENT_MODULE_ENVIRONMENT_CONTAINER));
  
  /*inistring dstr_1109__CLASS_NREP_QUASI*/
@@ -56927,7 +57745,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_1112__CLASS_NREP_QUASIDATA_PARENT_MODULE_ENVIRONMENT.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_1112__CLASS_NREP_QUASIDATA_PARENT_MODULE_ENVIRONMENT.obj_hash = 876593992;
   cdat->dsym_1112__CLASS_NREP_QUASIDATA_PARENT_MODULE_ENVIRONMENT.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_1112__CLASS_NREP_QUASIDATA_PARENT_MODULE_ENVIRONMENT.obj_vartab =  cdat->dsym_1112__CLASS_NREP_QUASIDATA_PARENT_MODULE_ENVIRONMENT.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_1112__CLASS_NREP_QUASIDATA_PARENT_MODULE_ENVIRONMENT));
  
  /*inistring dstr_1113__CLASS_NREP_QUASI*/
@@ -56953,7 +57773,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_1116__CLASS_NREP_STORE_PREDEFINED.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_1116__CLASS_NREP_STORE_PREDEFINED.obj_hash = 391152767;
   cdat->dsym_1116__CLASS_NREP_STORE_PREDEFINED.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_1116__CLASS_NREP_STORE_PREDEFINED.obj_vartab =  cdat->dsym_1116__CLASS_NREP_STORE_PREDEFINED.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_1116__CLASS_NREP_STORE_PREDEFINED));
  
  /*inistring dstr_1117__CLASS_NREP_STORE*/
@@ -56979,7 +57801,9 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   cdat->dsym_1120__CLASS_NREP_UPDATE_CURRENT_MODULE_ENVIRONMENT_CONTAINER.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL))));
   cdat->dsym_1120__CLASS_NREP_UPDATE_CURRENT_MODULE_ENVIRONMENT_CONTAINER.obj_hash = 1007630346;
   cdat->dsym_1120__CLASS_NREP_UPDATE_CURRENT_MODULE_ENVIRONMENT_CONTAINER.obj_len = 3;
+#if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dsym_1120__CLASS_NREP_UPDATE_CURRENT_MODULE_ENVIRONMENT_CONTAINER.obj_vartab =  cdat->dsym_1120__CLASS_NREP_UPDATE_CURRENT_MODULE_ENVIRONMENT_CONTAINER.obj__tabfields;
+#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
  basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_1120__CLASS_NREP_UPDATE_CURRENT_MODULE_ENVIRONMENT_CONTAINER));
  
  /*inistring dstr_1121__CLASS_NREP_UPDAT*/
