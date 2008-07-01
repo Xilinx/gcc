@@ -6620,35 +6620,6 @@ basilys_output_cfile_decl_impl (basilys_ptr_t unitnam,
   free (dotcpercentnam);
 }
 
-/* this function decides if Basile's analysis is done. Currently we
-   check for -fbasilys flag; but we should also check for
-   -fwhole-program flag */
-static bool
-gate_basilys (void)
-{
-#if HAVE_PARMAPOLY && HAVE_LIBTOOLDYNL
-  /*@@@ we need to check the whole program flag @@@ */
-  if (!flag_basilys)
-    return 0;
-  if (!flag_whole_program && flag_basilys)
-    {
-      static int warnedonce;
-      if (!warnedonce)
-	{
-	  warnedonce = 1;
-	  warning (OPT_Wall, "-fbasilys flag passed without -fwhole-program");
-	};
-    }
-  return flag_basilys;
-#else /* no HAVE_PARMAPOLY or no HAVE_LIBTOOLDYNL */
-#warning  no HAVE_PARMAPOLY or no HAVE_LIBTOOLDYNL
-  if (flag_basilys)
-    fatal_error ("-fbasilys flag specified, \
-but GCC configured without Parma Polyhedra Library or LibTool Dynamic Loader");
-  return 0;
-#endif
-}
-
 void
 basilys_assert_failed (const char *msg, const char *filnam,
 		       int lineno, const char *fun)
@@ -6695,6 +6666,36 @@ basilys_check_failed (const char *msg, const char *filnam,
 	       basename (filnam), lineno, fun, msg);
 }
 
+
+
+/* this function decides if Basile's analysis is done. Currently we
+   check for -fbasilys flag; but we should also check for
+   -fwhole-program flag */
+static bool
+gate_basilys (void)
+{
+#if HAVE_PARMAPOLY && HAVE_LIBTOOLDYNL
+  /*@@@ we need to check the whole program flag @@@ */
+  if (!flag_basilys)
+    return 0;
+  if (!flag_whole_program && flag_basilys)
+    {
+      static int warnedonce;
+      if (!warnedonce)
+	{
+	  warnedonce = 1;
+	  warning (OPT_Wall, "-fbasilys flag passed without -fwhole-program");
+	};
+    }
+  return flag_basilys;
+#else /* no HAVE_PARMAPOLY or no HAVE_LIBTOOLDYNL */
+#warning  no HAVE_PARMAPOLY or no HAVE_LIBTOOLDYNL
+  if (flag_basilys)
+    fatal_error ("-fbasilys flag specified, \
+but GCC configured without Parma Polyhedra Library or LibTool Dynamic Loader");
+  return 0;
+#endif
+}
 
 /* this function does the bulk of the work; return additional TODOs to
    the pass machinery */

@@ -1,4 +1,18 @@
 2008-07-01  Basile Starynkevitch  <basile@starynkevitch.net>
+	[added GDBM support in configure & configure.ac,
+	BASILYS_HAS_OBJ_TAB_FIELDS is now prohibited]
+
+	* basilys.h: prohibit BASILYS_HAS_OBJ_TAB_FIELDS because of gengtype.
+
+	* basilys.c: idem.
+
+	* configure.ac: added GDBM support.
+
+	* configure: regenerated.
+
+	* Makefile.in: added GDBM.
+
+2008-07-01  Basile Starynkevitch  <basile@starynkevitch.net>
 	[MELT objects are by default fixed length unless
 	BASILYS_HAS_OBJ_TAB_FIELDS is set in basilys.h]
 

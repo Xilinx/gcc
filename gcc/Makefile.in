@@ -284,10 +284,15 @@ GMPINC = @GMPINC@
 PPLLIBS = @ppllibs@
 PPLINC = @pplinc@
 
-# How to file LTDL (LibTool DynLoader)
+# How to find LTDL (LibTool DynLoader)
 LTDLLIBS = @ltdllibs@
 LTDLINC = @ltdlinc@
 LTDL_LDFLAGS= @ltdl_ldflags@
+
+# How to file GDBM
+GDBMLIBS = @gdbmlibs@
+GDBMINC = @gdbminc@
+GDBM_LDFLAGS= @gdbm_ldflags@
 #### end of Basilys stuff
 
 CPPLIB = ../libcpp/libcpp.a
@@ -891,7 +896,7 @@ BUILD_LIBDEPS= $(BUILD_LIBIBERTY)
 # How to link with both our special library facilities
 # and the system's installed libraries.
 LIBS = @LIBS@ $(CPPLIB) $(LIBINTL) $(LIBICONV) $(LIBIBERTY) $(LIBDECNUMBER) \
-     $(PPLLIBS) $(GMPLIBS)  $(LTDLLIBS) $(GMPLIBS)
+     $(PPLLIBS) $(GMPLIBS)  $(LTDLLIBS) $(GDBMLIBS) $(GMPLIBS)
 
 # Any system libraries needed just for GNAT.
 SYSLIBS = @GNAT_LIBEXC@

@@ -447,6 +447,71 @@ AC_SUBST(ltdl_ldflags)
 # for debugging only
 echo '%!%' after LTDL LIBS= $LIBS  CFLAGS= $CFLAGS
 
+################
+# Check for GDBM (GNU DBM - sort of database (actually inderxed file)
+gdbmlibs="-lgdbm"
+gdbminc=
+have_gdbm=yes
+
+AC_ARG_WITH(gdbm, [  --with-gdbm=PATH        Specify prefix directory for installed LibTool Dynamic Loader library
+                          Equivalent to --with-gdbm-include=PATH/include
+                          plus --with-gdbm-lib=PATH/lib])
+
+AC_ARG_WITH(gdbm_include, [  --with-gdbm-include=PATH Specify directory for installed GDBM include files])
+AC_ARG_WITH(gdbm_lib, [  --with-gdbm-lib=PATH     Specify the directory for the installed GDBM library])
+
+
+if test "x$with_gdbm" != x; then
+  gdbmlibs="-L$with_gdbm/lib -lgdbm"
+  gdbminc="-I$with_gdbm/include"
+fi
+
+if test "x$gdbm_include" != x; then
+  gdbminc="-I$gdbm_include $gdbminc"
+fi
+
+if test "x$gdbm_lib" != x; then
+   gdbmlibs="-L$gdbm_lib -lgdbm  $gdbmlibs"
+fi
+
+gdbm_ldflags=""
+
+saved_CFLAGS="$CFLAGS"
+saved_LIBS="$LIBS"
+saved_LDFLAGS="$LD_FLAGS"
+CFLAGS="$CFLAGS $gdbminc"
+LIBS="$LIBS $gdbmlibs"
+LDFLAGS="$LDFLAGS -rdynamic"
+AC_MSG_CHECKING([for  LibTool Dynamic Loader])
+AC_TRY_LINK([#include <gdbm.h>],[
+  GDBM_FILE f;
+  f = gdb_open("testfor.gdbm", 0, 0, GDBM_WRCREAT, 0);
+], [AC_MSG_RESULT([yes]); have_gdbm=yes], [AC_MSG_RESULT([no]); have_gdbm=no])
+
+if test "x$have_gdbm" != xyes; then
+  AC_MSG_WARN([Some passes of GCC require GDBM.
+Try the --with-gdbm option to specify the installed GDBM location.
+Copies of this library source code can be found at its respective
+hosting site as well as at ftp://gcc.gnu.org/pub/gcc/infrastructure/.
+See also http://gcc.gnu.org/install/prerequisites.html for additional info.])
+else
+   AC_DEFINE(HAVE_GDBM, 1,
+	     [Define if GDBM is in use.])
+fi
+
+CFLAGS="$saved_CFLAGS"
+LIBS="$saved_LIBS"
+LDFLAGS="$saved_LDFLAGS"
+
+# Flags needed for GDBM
+AC_SUBST(gdbmlibs)
+AC_SUBST(gdbminc)
+AC_SUBST(gdbm_ldflags)
+
+
+# for debugging only
+echo '%!%' after GDBM LIBS= $LIBS  CFLAGS= $CFLAGS
+
 # ------------------------
 # Compiler probing support
 # ------------------------
@@ -521,15 +586,13 @@ AC_SUBST(COMPILER_PROBE_OBJECT)
 enabled_basilysmelt=no
 BASILYSMELT_OBJECT=
 
-AC_ARG_ENABLE(basilysmelt,
-[  --enable-basilysmelt		Enable Basilys/MELT passes;
-   				This enable complex (sciptable) passes using the Middle End Lisp Translator feature 
-				(which dynamically translates the MELT lisp dialect into C plug-in like code);
-				This requires PPL (Parma Polyhedra Library) and LTDL (LibTool Dynamic Loader) support.
-				The compiler-probe feature is also recommended.
-],
-enabled_basilysmelt=$enableval,
-enabled_basilysmelt=no)
+AC_ARG_ENABLE(basilysmelt, [ --enable-basilysmelt Enable Basilys/MELT
+passes; This enable complex (sciptable) passes using the Middle End
+Lisp Translator feature (which dynamically translates the MELT lisp
+dialect into C plug-in like code); This requires PPL (Parma Polyhedra
+Library), GDBM and LTDL (LibTool Dynamic Loader) support.  The
+compiler-probe feature is also recommended.  ],
+enabled_basilysmelt=$enableval, enabled_basilysmelt=no)
 
 if test "$enabled_basilysmelt" = "yes" ; then
    AC_MSG_CHECKING([for features required for basilysmelt])

@@ -331,20 +331,14 @@ GTY (())
 #if ENABLE_CHECKING
   unsigned long obj_serial;
 #endif
-#if BASILYS_HAS_OBJ_TAB_FIELDS
-  basilys_ptr_t *GTY ((length ("%h.obj_len"))) obj_vartab;
-  /* the following field is usually the value of obj_vartab (for
-     objects in the young zone), to allocate the object and its fields
-     at once; hence its GTY-ed length is zero */
-  basilys_ptr_t GTY ((length ("0"))) obj__tabfields[FLEXIBLE_DIM];
-#else
   basilys_ptr_t GTY ((length ("%h.obj_len"))) obj_vartab[FLEXIBLE_DIM];
-#endif
 };
 
 #if ENABLE_CHECKING
 
 #if BASILYS_HAS_OBJ_TAB_FIELDS
+#error BASILYS_HAS_OBJ_TAB_FIELDS is no longer supported, because gengtype dislike CPP conditionals.
+/* 
 #define BASILYS_OBJECT_STRUCT(N) {		\
   basilysobject_ptr_t obj_class;		\
   unsigned obj_hash;				\
@@ -354,6 +348,7 @@ GTY (())
   basilys_ptr_t* obj_vartab;			\
   basilys_ptr_t obj__tabfields[N];		\
   long _gap; }
+*/
 #else /*!BASILYS_HAS_OBJ_TAB_FIELDS*/
 #define BASILYS_OBJECT_STRUCT(N) {		\
   basilysobject_ptr_t obj_class;		\
@@ -370,6 +365,8 @@ void basilys_object_set_serial(basilysobject_ptr_t ob);
 #else /*!ENABLE_CHECKING*/
 
 #if BASILYS_HAS_OBJ_TAB_FIELDS
+#error BASILYS_HAS_OBJ_TAB_FIELDS is no longer supported, because gengtype dislike CPP conditionals.
+/*
 #define BASILYS_OBJECT_STRUCT(N) {		\
   basilysobject_ptr_t obj_class;		\
   unsigned obj_hash;				\
@@ -378,6 +375,7 @@ void basilys_object_set_serial(basilysobject_ptr_t ob);
   basilys_ptr_t* obj_vartab;			\
   basilys_ptr_t obj__tabfields[N];		\
   long _gap; }
+*/
 #else /*!BASILYS_HAS_OBJ_TAB_FIELDS*/
 #define BASILYS_OBJECT_STRUCT(N) {		\
   basilysobject_ptr_t obj_class;		\
