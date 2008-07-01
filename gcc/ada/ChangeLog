@@ -1,3 +1,27 @@
+2008-06-27  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	* ada-tree.h (SET_TYPE_LANG_SPECIFIC, SET_DECL_LANG_SPECIFIC): Fix
+	-Wc++-compat warnings.
+	* adaint.c (__gnat_locate_regular_file, __gnat_locate_exec,
+	__gnat_locate_exec_on_path): Likewise.
+	* decl.c (annotate_value): Likewise.
+	* misc.c (gnat_handle_option): Likewise.
+	* trans.c (gnat_to_gnu, extract_encoding, decode_name,
+	post_error_ne_tree): Likewise.
+
+2008-06-27  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* utils.c (convert) <CONSTRUCTOR>: When converting it to a packable
+	version of its type, attempt to first convert its elements.
+
+2008-06-26  Chris Proctor  <chrisp_42@bigpond.com>
+
+	* Makefile.in: Fix *86 kfreebsd target specific pairs.
+
+2008-06-25  Samuel Tardieu  <sam@rfc1149.net>
+
+	* Makefile.in: Use mlib-tgt-specific-linux.adb for sh4 as well.
+
 2008-06-24  Eric Botcazou  <ebotcazou@adacore.com>
 
 	* utils2.c (known_alignment): Derive the alignment from pointed-to

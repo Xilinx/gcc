@@ -160,10 +160,8 @@ coverageexts = .{gcda,gcno}
 # STRICT_WARN are the additional warning flags to
 # apply to the back end and the C front end, which may be compiled
 # with other compilers.
-# CXX_COMPAT_WARN are C++ source compatibility warnings.
 LOOSE_WARN = @loose_warn@
 STRICT_WARN = @strict_warn@
-CXX_COMPAT_WARN = @cxx_compat_warn@
 
 # This is set by --enable-checking.  The idea is to catch forgotten
 # "extern" tags in header files.
@@ -189,6 +187,10 @@ build/gengtype-lex.o-warn = -Wno-error
 SYSCALLS.c.X-warn = -Wno-strict-prototypes -Wno-error
 # dfp.c contains alias violations
 dfp.o-warn = -Wno-error
+# bitmap.c contains -Wc++compat warnings.
+bitmap.o-warn = -Wno-error
+# dominance.c contains a -Wc++compat warning.
+dominance.o-warn = -Wno-error
 
 ## basilys.c contain tricky stuff 
 basilys.o-warn = -Wno-error
@@ -2754,7 +2756,7 @@ cfgrtl.o : cfgrtl.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) $(RTL_H) \
    tree-pass.h $(DF_H)
 cfganal.o : cfganal.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) $(RTL_H) \
    $(BASIC_BLOCK_H) hard-reg-set.h insn-config.h $(RECOG_H) $(TM_P_H) \
-   $(TIMEVAR_H) $(OBSTACK_H) toplev.h
+   $(TIMEVAR_H) $(OBSTACK_H) toplev.h vecprim.h
 cfgbuild.o : cfgbuild.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) $(RTL_H) \
    $(FLAGS_H) $(BASIC_BLOCK_H) $(REGS_H) hard-reg-set.h output.h toplev.h \
    $(FUNCTION_H) except.h $(TIMEVAR_H) $(TREE_H)
@@ -3243,7 +3245,7 @@ GTFILES_H = $(subst /,-, \
 	    $(shell echo $(patsubst $(srcdir)/%,gt-%, \
 			   $(patsubst %.c,%.h, \
 			     $(filter %.c, $(GTFILES)))) \
-			| sed -e "s;/[^ ]*/;/;g" -e "s;gt-config/;gt-;g"))
+			| sed -e "s|/[^ ]*/|/|g" -e "s|gt-config/|gt-|g"))
 
 GTFILES_LANG_H = $(patsubst [%], gtype-%.h, $(filter [%], $(GTFILES)))
 ALL_GTFILES_H := $(sort $(GTFILES_H) $(GTFILES_LANG_H))

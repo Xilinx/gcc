@@ -1,5 +1,5 @@
 /* Data and Control Flow Analysis for Trees.
-   Copyright (C) 2001, 2003, 2004, 2005, 2006, 2007
+   Copyright (C) 2001, 2003, 2004, 2005, 2006, 2007, 2008
    Free Software Foundation, Inc.
    Contributed by Diego Novillo <dnovillo@redhat.com>
 
@@ -161,6 +161,10 @@ struct gimple_df GTY(())
   /* Call clobbered variables in the function.  If bit I is set, then
      REFERENCED_VARS (I) is call-clobbered.  */
   bitmap call_clobbered_vars;
+
+  /* Call-used variables in the function.  If bit I is set, then
+     REFERENCED_VARS (I) is call-used at pure function call-sites.  */
+  bitmap call_used_vars;
 
   /* Addressable variables in the function.  If bit I is set, then
      REFERENCED_VARS (I) has had its address taken.  Note that
@@ -788,7 +792,7 @@ extern void replace_uses_by (tree, tree);
 extern void start_recording_case_labels (void);
 extern void end_recording_case_labels (void);
 extern basic_block move_sese_region_to_fn (struct function *, basic_block,
-				           basic_block);
+				           basic_block, tree);
 void remove_edge_and_dominated_blocks (edge);
 void mark_virtual_ops_in_bb (basic_block);
 
@@ -1173,7 +1177,8 @@ tree gimple_fold_indirect_ref (tree);
 
 /* In tree-ssa-structalias.c */
 bool find_what_p_points_to (tree);
-bool clobber_what_p_points_to (tree);
+bool clobber_what_escaped (void);
+void compute_call_used_vars (void);
 
 /* In tree-ssa-live.c */
 extern void remove_unused_locals (void);

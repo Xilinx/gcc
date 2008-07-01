@@ -1,3 +1,27 @@
+2008-06-29  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR fortran/36341
+	* iresolve.c (gfc_resolve_matmul): Copy shapes
+	from arguments.
+
+2008-06-29  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	* invoke.texi: Add documentation for runtime behavior of
+	-fno-range-check.
+
+2008-06-28  Daniel Kraft  <d@domob.eu>
+
+	* gfc-internals.texi (section gfc_code):  Extended documentation about
+	gfc_code in the internal datastructures chapter including details about
+	how IF, DO and SELECT blocks look like and an example for how the
+	block-chaining works.
+
+2008-06-25  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/36526
+	* interface.c (check_intents):  Correct error where the actual
+	arg was checked for a pointer argument, rather than the formal.
+
 2008-06-24  Paul Thomas  <pault@gcc.gnu.org>
 
 	PR fortran/34371

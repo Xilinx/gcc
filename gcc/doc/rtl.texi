@@ -1527,7 +1527,7 @@ with @code{CONST_FIXED_VALUE_LOW}.
 @item (const_vector:@var{m} [@var{x0} @var{x1} @dots{}])
 Represents a vector constant.  The square brackets stand for the vector
 containing the constant elements.  @var{x0}, @var{x1} and so on are
-the @code{const_int} or @code{const_double} elements.
+the @code{const_int}, @code{const_double} or @code{const_fixed} elements.
 
 The number of units in a @code{const_vector} is obtained with the macro
 @code{CONST_VECTOR_NUNITS} as in @code{CONST_VECTOR_NUNITS (@var{v})}.
@@ -3188,11 +3188,9 @@ represents @var{x} before @var{x} is modified.  @var{x} must be a
 @var{m} must be the machine mode for pointers on the machine in use.
 
 The expression @var{y} must be one of three forms:
-@table @code
 @code{(plus:@var{m} @var{x} @var{z})},
 @code{(minus:@var{m} @var{x} @var{z})}, or
 @code{(plus:@var{m} @var{x} @var{i})},
-@end table
 where @var{z} is an index register and @var{i} is a constant.
 
 Here is an example of its use:

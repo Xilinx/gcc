@@ -3801,7 +3801,7 @@ struct no_conflict_data
 static void
 no_conflict_move_test (rtx dest, const_rtx set, void *p0)
 {
-  struct no_conflict_data *p= p0;
+  struct no_conflict_data *p= (struct no_conflict_data *) p0;
 
   /* If this inns directly contributes to setting the target, it must stay.  */
   if (reg_overlap_mentioned_p (p->target, dest))
@@ -5463,7 +5463,7 @@ gen_libfunc (optab optable, const char *opname, int suffix, enum machine_mode mo
   unsigned opname_len = strlen (opname);
   const char *mname = GET_MODE_NAME (mode);
   unsigned mname_len = strlen (mname);
-  char *libfunc_name = alloca (2 + opname_len + mname_len + 1 + 1);
+  char *libfunc_name = XALLOCAVEC (char, 2 + opname_len + mname_len + 1 + 1);
   char *p;
   const char *q;
 
@@ -5511,7 +5511,7 @@ gen_fp_libfunc (optab optable, const char *opname, char suffix,
     gen_libfunc (optable, opname, suffix, mode);
   if (DECIMAL_FLOAT_MODE_P (mode))
     {
-      dec_opname = alloca (sizeof (DECIMAL_PREFIX) + strlen (opname));
+      dec_opname = XALLOCAVEC (char, sizeof (DECIMAL_PREFIX) + strlen (opname));
       /* For BID support, change the name to have either a bid_ or dpd_ prefix
 	 depending on the low level floating format used.  */
       memcpy (dec_opname, DECIMAL_PREFIX, sizeof (DECIMAL_PREFIX) - 1);
@@ -5579,7 +5579,7 @@ gen_intv_fp_libfunc (optab optable, const char *name, char suffix,
   if (GET_MODE_CLASS (mode) == MODE_INT)
     {
       int len = strlen (name);
-      char *v_name = alloca (len + 2);
+      char *v_name = XALLOCAVEC (char, len + 2);
       strcpy (v_name, name);
       v_name[len] = 'v';
       v_name[len + 1] = 0;
@@ -5683,13 +5683,13 @@ gen_interclass_conv_libfunc (convert_optab tab,
 
   mname_len = strlen (GET_MODE_NAME (tmode)) + strlen (GET_MODE_NAME (fmode));
 
-  nondec_name = alloca (2 + opname_len + mname_len + 1 + 1);
+  nondec_name = XALLOCAVEC (char, 2 + opname_len + mname_len + 1 + 1);
   nondec_name[0] = '_';
   nondec_name[1] = '_';
   memcpy (&nondec_name[2], opname, opname_len);
   nondec_suffix = nondec_name + opname_len + 2;
 
-  dec_name = alloca (2 + dec_len + opname_len + mname_len + 1 + 1);
+  dec_name = XALLOCAVEC (char, 2 + dec_len + opname_len + mname_len + 1 + 1);
   dec_name[0] = '_';
   dec_name[1] = '_';
   memcpy (&dec_name[2], DECIMAL_PREFIX, dec_len);
@@ -5808,13 +5808,13 @@ gen_intraclass_conv_libfunc (convert_optab tab, const char *opname,
 
   mname_len = strlen (GET_MODE_NAME (tmode)) + strlen (GET_MODE_NAME (fmode));
 
-  nondec_name = alloca (2 + opname_len + mname_len + 1 + 1);
+  nondec_name = XALLOCAVEC (char, 2 + opname_len + mname_len + 1 + 1);
   nondec_name[0] = '_';
   nondec_name[1] = '_';
   memcpy (&nondec_name[2], opname, opname_len);
   nondec_suffix = nondec_name + opname_len + 2;
 
-  dec_name = alloca (2 + dec_len + opname_len + mname_len + 1 + 1);
+  dec_name = XALLOCAVEC (char, 2 + dec_len + opname_len + mname_len + 1 + 1);
   dec_name[0] = '_';
   dec_name[1] = '_';
   memcpy (&dec_name[2], DECIMAL_PREFIX, dec_len);
@@ -5984,28 +5984,58 @@ gen_satfractuns_conv_libfunc (convert_optab tab,
   gen_interclass_conv_libfunc (tab, opname, tmode, fmode);
 }
 
+/* A table of previously-created libfuncs, hashed by name.  */
+static GTY ((param_is (union tree_node))) htab_t libfunc_decls;
+
+/* Hashtable callbacks for libfunc_decls.  */
+
+static hashval_t
+libfunc_decl_hash (const void *entry)
+{
+  return htab_hash_string (IDENTIFIER_POINTER (DECL_NAME ((const_tree) entry)));
+}
+
+static int
+libfunc_decl_eq (const void *entry1, const void *entry2)
+{
+  return DECL_NAME ((const_tree) entry1) == (const_tree) entry2;
+}
+
 rtx
 init_one_libfunc (const char *name)
 {
-  rtx symbol;
+  tree id, decl;
+  void **slot;
+  hashval_t hash;
 
-  /* Create a FUNCTION_DECL that can be passed to
-     targetm.encode_section_info.  */
-  /* ??? We don't have any type information except for this is
-     a function.  Pretend this is "int foo()".  */
-  tree decl = build_decl (FUNCTION_DECL, get_identifier (name),
-			  build_function_type (integer_type_node, NULL_TREE));
-  DECL_ARTIFICIAL (decl) = 1;
-  DECL_EXTERNAL (decl) = 1;
-  TREE_PUBLIC (decl) = 1;
+  if (libfunc_decls == NULL)
+    libfunc_decls = htab_create_ggc (37, libfunc_decl_hash,
+				     libfunc_decl_eq, NULL);
 
-  symbol = XEXP (DECL_RTL (decl), 0);
+  /* See if we have already created a libfunc decl for this function.  */
+  id = get_identifier (name);
+  hash = htab_hash_string (name);
+  slot = htab_find_slot_with_hash (libfunc_decls, id, hash, INSERT);
+  decl = (tree) *slot;
+  if (decl == NULL)
+    {
+      /* Create a new decl, so that it can be passed to
+	 targetm.encode_section_info.  */
+      /* ??? We don't have any type information except for this is
+	 a function.  Pretend this is "int foo()".  */
+      decl = build_decl (FUNCTION_DECL, get_identifier (name),
+			 build_function_type (integer_type_node, NULL_TREE));
+      DECL_ARTIFICIAL (decl) = 1;
+      DECL_EXTERNAL (decl) = 1;
+      TREE_PUBLIC (decl) = 1;
 
-  /* Zap the nonsensical SYMBOL_REF_DECL for this.  What we're left with
-     are the flags assigned by targetm.encode_section_info.  */
-  SET_SYMBOL_REF_DECL (symbol, 0);
+      /* Zap the nonsensical SYMBOL_REF_DECL for this.  What we're left with
+	 are the flags assigned by targetm.encode_section_info.  */
+      SET_SYMBOL_REF_DECL (XEXP (DECL_RTL (decl), 0), NULL);
 
-  return symbol;
+      *slot = decl;
+    }
+  return XEXP (DECL_RTL (decl), 0);
 }
 
 /* Call this to reset the function entry for one optab (OPTABLE) in mode
@@ -6026,7 +6056,7 @@ set_optab_libfunc (optab optable, enum machine_mode mode, const char *name)
     val = 0;
   slot = (struct libfunc_entry **) htab_find_slot (libfunc_hash, &e, INSERT);
   if (*slot == NULL)
-    *slot = ggc_alloc (sizeof (struct libfunc_entry));
+    *slot = GGC_NEW (struct libfunc_entry);
   (*slot)->optab = (size_t) (optable - &optab_table[0]);
   (*slot)->mode1 = mode;
   (*slot)->mode2 = VOIDmode;
@@ -6053,7 +6083,7 @@ set_conv_libfunc (convert_optab optable, enum machine_mode tmode,
     val = 0;
   slot = (struct libfunc_entry **) htab_find_slot (libfunc_hash, &e, INSERT);
   if (*slot == NULL)
-    *slot = ggc_alloc (sizeof (struct libfunc_entry));
+    *slot = GGC_NEW (struct libfunc_entry);
   (*slot)->optab = (size_t) (optable - &convert_optab_table[0]);
   (*slot)->mode1 = tmode;
   (*slot)->mode2 = fmode;

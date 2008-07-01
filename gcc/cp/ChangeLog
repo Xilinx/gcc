@@ -1,3 +1,33 @@
+2008-06-30  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/36662
+	* decl2.c (is_late_template_attribute): If the first attribute
+	argument is IDENTIFIER_NODE, don't consider it when checking
+	if arguments are value or type dependent.
+
+2008-06-29  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/36655
+	* pt.c (do_type_instantiation): In c++0x mode do not warn for
+	extern template.
+
+2008-06-29  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	* Make-lang.in (cp-warn): Delete $(CXX_COMPAT_WARN).
+
+2008-06-28  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/36364
+	* repo.c (repo_emit_p): Put const static data members initialized
+	by const expr into *.rpo file, just return 2 if IDENTIFIER_REPO_CHOSEN
+	for it is 0.
+
+2008-06-27  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/36655
+	* pt.c (do_decl_instantiation): In c++0x mode do not warn for
+	extern template.
+
 2008-06-24  Jonathan Wakely  <jwakely.gcc@gmail.com>
 
 	PR c++/23194

@@ -1,3 +1,136 @@
+2008-06-30  Andy Hutchinson  <hutchinsonandy@aim.com>
+
+	PR target/36598
+	* gcc.dg/memcpy-1.c: Mark test XFAIL for avr target.
+
+2008-06-30 Uros Bizjak  <ubizjak@gmail.com>
+
+	* gcc.target/i386/movti.c: New test.
+
+2008-06-30  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/36662
+	* g++.dg/ext/altivec-16.C: New test.
+
+2008-06-30  Ira Rosen  <irar@il.ibm.com>
+
+	PR tree-optimization/36648
+	* g++.dg/vect/pr36648.cc: New testcase.
+
+2008-06-29  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/36655
+	* g++.dg/cpp0x/extern_template-2.C: New.
+	* g++.dg/cpp0x/extern_template.C: Rename to...
+	* g++.dg/cpp0x/extern_template-1.C: ... this.
+
+2008-06-29  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR fortran/36341
+	* gfortran.dg/matmul_bounds_1.f90:  New test.
+
+2008-06-29  Jakub Jelinek  <jakub@redhat.com>
+
+	PR testsuite/36620
+	* gcc.dg/pr36504.c: Add -w to dg-options.
+
+2008-06-29  Ira Rosen  <irar@il.ibm.com>
+
+	* gcc.dg/vect/pr36493.c: Require vect_long.
+
+2008-06-28  Jerry DeLisle <jvdelisle@gcc.gnu.org>
+
+	* gfortran.dg/namelist_50.f90: New test.
+
+2008-06-28  Joseph Myers  <joseph@codesourcery.com>
+
+	* gcc.c-torture/compile/20080628-1.c: New test.
+
+2008-06-28  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.c-torture/execute/pta-field-1.c: Add return 0.
+	* gcc.c-torture/execute/pta-field-2.c: Likewise.
+
+2008-06-28  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.dg/tree-ssa/pr24287.c: Remove XFAIL.
+
+2008-06-27  Mark Mitchell  <mark@codesourcery.com>
+
+	* g++.dg/abi/arm_cxa_vec2.C: New test.
+
+2008-06-28  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/36364
+	* g++.dg/template/repo9.C: New test.
+
+2008-06-27  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/36655
+	* g++.dg/cpp0x/extern_template.C: New.
+
+2008-06-27  Jakub Jelinek  <jakub@redhat.com>
+
+	* gcc.dg/gomp/pr27388-3.c: Adjust dg-final.
+
+2008-06-27  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/36400
+	PR tree-optimization/36373
+	PR tree-optimization/36344
+	* gcc.dg/torture/pr36373-1.c: New testcase.
+	* gcc.dg/torture/pr36373-2.c: Likewise.
+	* gcc.dg/torture/pr36373-3.c: Likewise.
+	* gcc.dg/torture/pr36373-4.c: Likewise.
+	* gcc.dg/torture/pr36373-5.c: Likewise.
+	* gcc.dg/torture/pr36373-6.c: Likewise.
+	* gcc.dg/torture/pr36373-7.c: Likewise.
+	* gcc.dg/torture/pr36373-8.c: Likewise.
+	* gcc.dg/torture/pr36373-9.c: Likewise.
+	* gcc.dg/torture/pr36373-10.c: Likewise.
+	* gcc.dg/torture/pr36400.c: Likewise.
+	* gcc.c-torture/execute/pta-field-1.c: Likewise.
+	* gcc.c-torture/execute/pta-field-2.c: Likewise.
+	* gcc.dg/tree-ssa/loadpre8.c: Remove XFAIL.
+	* gcc.dg/tree-ssa/pr24287.c: XFAIL.
+
+2008-06-27  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/aggr9.ad[sb]: New test.
+	* gnat.dg/aggr9_pkg.ads: New helper.
+
+2008-06-27  Olivier Hainque  <hainque@adacore.com>
+
+	* gnat.dg/aligned_vla.adb: New test.
+
+2008-06-26  Joseph Myers  <joseph@codesourcery.com>
+
+	* gcc.dg/inline-32.c, gcc.dg/inline-32a.c: New tests.
+
+2008-06-26  Ira Rosen  <irar@il.ibm.com>
+
+	* lib/target-supports.exp
+	(check_effective_target_vect_cmdline_needed): Add SPU to the list
+	of targets that do not need command line argument to enable SIMD.
+
+2008-06-26  Ira Rosen  <irar@il.ibm.com>
+
+	* gcc.dg/vect/vect.exp: Run tests with -funroll-loops for SPU in case
+	of -O3.
+
+2008-06-26  Ira Rosen  <irar@il.ibm.com>
+
+	PR target/36510
+	* gcc.dg/vect/costmodel/ppc/costmodel-vect-31d.c: Change the loop
+	bound.
+	* gcc.dg/vect/costmodel/ppc/costmodel-vect-76c.c,
+	gcc.dg/vect/costmodel/ppc/costmodel-vect-68d.c: Likewise.
+
+2008-06-25  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/36526
+	* gfortran.dg/proc_formal_proc_2.f90: New test.
+
 2008-06-25  Richard Guenther  <rguenther@suse.de>
 
 	* gcc.c-torture/compile/20080625-1.c: New testcase.
@@ -22,9 +155,9 @@
 
 2008-06-23  Uros Bizjak  <ubizjak@gmail.com>
 
-	PR middle-end/PR36584
-	* testsuite/gcc.dg/pr36584.c: New test.
-	* testsuite/gcc.target/i386/local2.c: Remove invalid test.
+	PR middle-end/36584
+	* gcc.dg/pr36584.c: New test.
+	* gcc.target/i386/local2.c: Remove invalid test.
 
 2008-06-23  Jakub Jelinek  <jakub@redhat.com>
 
@@ -55,7 +188,7 @@
 	* gcc.dg/tree-ssa/vrp02.c:: Ditto.
 	* gcc.dg/tree-ssa/vrp07.c:: Ditto.
 	* gcc.dg/tree-ssa/vrp08.c:: Ditto. 
-  
+
 2008-06-19  Andy Hutchinson  <hutchinsonandy@aim.com>
 
 	* gcc.dg/pragma-pack-4.c: Skip for AVR target.
@@ -63,12 +196,12 @@
 2008-06-18  Andy Hutchinson  <hutchinsonandy@aim.com>
 
 	* gcc.dg/builtin-apply2.c: Mark skip for avr target.
-	
+
 2008-06-18  Andy Hutchinson  <hutchinsonandy@aim.com>
 
 	PR c/36571
 	* gcc.dg/builtin-return-1.c: Mark as xfail on AVR.
-	
+
 2008-06-18  Andy Hutchinson  <hutchinsonandy@aim.com>
 
 	* gcc.dg/tree-ssa/loop-35.c: xfail avr target. Add new avr specific 
@@ -128,7 +261,7 @@
 	* gcc.dg/utf-cvt.c: Skip tests and mark excess xfail for AVR.
 	* gcc.dg/Wtype-limits-Wextra.c: Ditto.
 	* gcc.dg/Wtype-limits.c: Ditto. 
-   
+
 2008-06-18  Joseph Myers  <joseph@codesourcery.com>
 
 	* gcc.dg/dfp/convert-bfp-6.c, gcc.dg/dfp/convert-bfp-9.c: XFAIL
@@ -372,7 +505,7 @@
 
 	PR fortran/36459
 	* gfortran.dg/proc_decl_16.f90: New.
-	
+
 2008-06-08  Tobias Burnus  <burnus@net-b.de>
 
 	PR fortran/35830
@@ -654,7 +787,7 @@
 	* gfortran.dg/gomp/reduction3.f90: Fixed invalid code.
 	* gfortran.dg/proc_decl_12.f90: New:
 	* gfortran.dg/external_procedures_1.f90: Fixed error message.
-	
+
 2008-05-28  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
 
 	PR fortran/36319
@@ -816,8 +949,8 @@
 
 2008-05-23  Rafael Espindola  <espindola@google.com>
 
-	* gcc/testsuite/gcc.c-torture/compile/20080522-1.c: Move to gcc.dg.
-	* gcc/testsuite/gcc.dg/20080522-1.c: Moved from gcc.c-torture.
+	* gcc.c-torture/compile/20080522-1.c: Move to gcc.dg.
+	* gcc.dg/20080522-1.c: Moved from gcc.c-torture.
 
 2008-05-23  Paul Brook  <paul@codesourcery.com>
 	    Carlos O'Donell  <carlos@codesourcery.com>
@@ -954,7 +1087,7 @@
 
 	* gcc.dg/array-quals-1.c: xfail read only section
 	check for avr target. 
-   
+
 2008-05-20  Andy Hutchinson  <hutchinsonandy@aim.com>
 
 	PR testsuite/34889
@@ -972,7 +1105,7 @@
 2008-05-20  Andy Hutchinson  <hutchinsonandy@aim.com>
 
 	* gcc.dg/builtins-config.h: AVR does not have C99 runtime. 
-  
+
 2008-05-20  Janis Johnson  <janis187@us.ibm.com>
 
 	PR testsuite/22523
@@ -1035,7 +1168,7 @@
 	    Sebastian Pop  <sebastian.pop@amd.com>
 
 	PR tree-optimization/36206
-	* testsuite/gfortran.dg/pr36206.f: New.
+	* gfortran.dg/pr36206.f: New.
 
 2008-05-20  Arnaud Charlet  <charlet@adacore.com>
 
@@ -1639,7 +1772,7 @@
 
 2008-05-08  Sa Liu  <saliu@de.ibm.com>
 
-	* testsuite/gcc.target/spu/subti3.c: New.
+	* gcc.target/spu/subti3.c: New.
 
 2008-05-08  Richard Guenther  <rguenther@suse.de>
 
@@ -1706,7 +1839,7 @@
 2008-05-06  Olivier Hainque  <hainque@adacore.com>
 
 	* gnat.dg/fatp_sra.adb: New test.
-	
+
 2008-05-05  Andrew Pinski  <andrew_pinski@playstation.sony.com>
 
 	PR middle-end/36141
@@ -1778,23 +1911,23 @@
 2008-05-01  Simon Baldwin <simonb@google.com>
 
 	PR bootstrap/36108
-	* testsuite/gcc.dg/Warray-bounds.c: Removed frontend warnings update.
-	* testsuite/g++.dg/warn/Warray-bounds.c: Ditto.
-	* testsuite/gcc.dg/Warray-bounds-noopt.c: Removed testcase.
-	* testsuite/g++.dg/warn/Warray-bounds-noopt.c: Ditto.
+	* gcc.dg/Warray-bounds.c: Removed frontend warnings update.
+	* g++.dg/warn/Warray-bounds.c: Ditto.
+	* gcc.dg/Warray-bounds-noopt.c: Removed testcase.
+	* g++.dg/warn/Warray-bounds-noopt.c: Ditto.
 
 2008-05-01  Bud Davis  <bdavis9659@sbcglobal.net>
 
-	PR fortran/PR35940	
+	PR fortran/35940	
 	* gfortran.dg/index.f90: New test.
 
 2008-05-01  Simon Baldwin <simonb@google.com>
 
-	* testsuite/gcc.dg/Warray-bounds.c: Updated for frontend warnings,
+	* gcc.dg/Warray-bounds.c: Updated for frontend warnings,
 	additional tests for arrays of size 0 and size 1.
-	* testsuite/g++.dg/warn/Warray-bounds.c: Ditto.
-	* testsuite/gcc.dg/Warray-bounds-noopt.c: New testcase.
-	* testsuite/g++.dg/warn/Warray-bounds-noopt.c: Ditto.
+	* g++.dg/warn/Warray-bounds.c: Ditto.
+	* gcc.dg/Warray-bounds-noopt.c: New testcase.
+	* g++.dg/warn/Warray-bounds-noopt.c: Ditto.
 
 2008-05-01  Richard Guenther  <rguenther@suse.de>
 
@@ -1865,7 +1998,7 @@
 
 2008-04-29  Kai Tietz  <kai.tietz@onevision.com>
 
-	* testsuite/gcc.dg/sync-2.c: Set dg-options "-ansi".
+	* gcc.dg/sync-2.c: Set dg-options "-ansi".
 
 2008-04-29  Jakub Jelinek  <jakub@redhat.com>
 
@@ -1935,7 +2068,7 @@
 
 2008-04-26  George Helffrich  <george@gcc.gnu.org>
 
-	PRs fortran/PR35154, fortran/PR23057
+	PRs fortran/35154, fortran/23057
 	* gfortran.dg/debug/pr35154-stabs.f:  New test case for
 	.stabs functionality.
 	* gfortran.dg/debug/pr35154-dwarf2.f:  New test case for
@@ -2166,7 +2299,7 @@
 	PR fortran/35882
 	* gfortran.dg/continuation_5.f: Add some comment lines.
 	* gfortran.dg/continuation_3.f90: Add some comment lines.
-	
+
 2008-04-20  Thomas Koenig  <tkoenig@gcc.gnu.org>
 
 	PR libfortran/35960
@@ -2195,7 +2328,7 @@
 	PR fortran/35892
 	* gfortran.dg/pr35154-dwarf2.f: Remove.
 	* gfortran.dg/pr35154-stabs.f: Remove.
-	
+
 2008-04-18  Ian Lance Taylor  <iant@google.com>
 
 	PR tree-optimization/35977
@@ -2269,7 +2402,7 @@
 2008-04-17  Christian Bruel  <christian.bruel@st.com>
 
 	* gcc.dg/long-long-compare-1.c: New testcase. 
-	
+
 2008-04-16  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
 
 	PR fortran/35724
@@ -2392,7 +2525,7 @@
 	* gfortran.dg/continuation_3.f90: Update test.
 	* gfortran.dg/continuation_5.f: Update test.
 	* gfortran.dg/continuation_10.f90: New test.
-	
+
 2008-04-13  Thomas Koenig  <tkoenig@gcc.gnu.org>
 
 	PR libfortran/32972
@@ -2401,7 +2534,7 @@
 	* gfortran.dg/intrinsic_spread_1.f90:  Likewise.
 	* gfortran.dg/intrinsic_pack_1.f90:  Likewise.
 	* gfortran.dg/intrinsic_unpack_1.f90:  Likewise.
-	
+
 2008-04-13  Samuel Tardieu  <sam@rfc1149.net> 
 
 	PR ada/17985
@@ -2853,7 +2986,7 @@
 2008-03-29  Laurent GUERBY  <laurent@guerby.net>
 
 	* gnat.dg/socket2.adb: Remove since identical to socket1.adb.
-	
+
 2008-03-29  Paul Thomas  <pault@gcc.gnu.org>
 
 	PR fortran/35698
@@ -3014,7 +3147,7 @@
 
 	PR objc/29197
 	* objc.dg/method-20.m: New testcase.
-	
+
 2008-03-25  Richard Sandiford  <rsandifo@nildram.co.uk>
 
 	PR rtl-optimization/35232
@@ -3288,8 +3421,8 @@
 2008-03-19  Richard Guenther  <rguenther@suse.de>
 
 	PR middle-end/35609
-	* gcc.dg/testsuite/uninit-15.c: New testcase.
-	* gcc.dg/testsuite/uninit-16.c: Likewise.
+	* gcc.dg/uninit-15.c: New testcase.
+	* gcc.dg/uninit-16.c: Likewise.
 
 2008-03-18  Mikulas Patocka  <mikulas@artax.karlin.mff.cuni.cz>
 
@@ -3448,7 +3581,7 @@
 
 2008-03-13  Alon Dayan  <alond@il.ibm.com>
 	    Olga Golovanevsky  <olga@il.ibm.com>
-	
+
 	PR tree-optimization/35041
 	* gcc.dg/struct/wo_prof_double_malloc.c: New test.
 
@@ -3782,7 +3915,7 @@
 	* g++.dg/cpp/string-2.C: This is a warning now.
 	* g++.dg/cpp/pedantic-errors.C: -pedantic-errors is not enabled by
 	default, so add it.
-	
+
 2008-03-01  Douglas Gregor  <doug.gregor@gmail.com>
 
 	* g++.dg/cpp0x/auto1.C: New.
@@ -3931,15 +4064,15 @@
 	__builtin_stdarg_start.
 	* pr17301-1.c: Likewise.
 	* pr17301-2.c: Likewise.
-		
+
 2008-02-26  Manuel Lopez-Ibanez  <manu@gcc.gnu.org>
-	
+
 	* gcc.dg/pr34351.c: New.
-	
+
 2008-02-26  Manuel Lopez-Ibanez  <manu@gcc.gnu.org>
 
 	* gcc.dg/Wlarger-than2.c: New.
-	
+
 2008-02-26  Paolo Carlini  <pcarlini@suse.de>
 
 	PR c++/35323
@@ -3979,9 +4112,9 @@
 	* gcc.dg/Wswitch-error.c: New.
 	* gcc.dg/20011021-1.c: Use two directives to match two different
 	messages.
-	
+
 2008-02-26  Manuel Lopez-Ibanez  <manu@gcc.gnu.org>
-	
+
 	PR 28322
 	* gcc.dg/pr28322.c: New.
 	* gcc.dg/pr28322-2.c: New.
@@ -4151,7 +4284,7 @@
 
 	PR libfortran/35132
 	* gfortran.dg/streamio_15.f90: New test.
-	
+
 2008-02-20  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
 
 	PR libfortran/35036
@@ -4229,7 +4362,7 @@
 
 	PR target/33555
 	* gcc.target/i386/pr33555.c: New test.
-	
+
 2008-02-18  H.J. Lu  <hongjiu.lu@intel.com>
 
 	PR target/35189
@@ -4489,7 +4622,7 @@
 
 	* lib/target-supports.exp (check_effective_target_hard_float): Remove
 	special case for xtensa-*-*.
-	
+
 2008-02-05  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
 
 	PR fortran/35037
@@ -5009,7 +5142,7 @@
 
 	PR tree-optimization/34701
 	* gcc.dg/struct/wo_prof_array_field.c: New test.
-	
+
 2008-01-20  Paolo Carlini  <pcarlini@suse.de>
 
 	PR c++/34891
@@ -5051,7 +5184,7 @@
 
 	PR libfortran/34795
 	* gfortran.dg/inquire_13.f90: New test.
-	
+
 	PR libfortran/34659
 	* gfortran.dg/continuation_9.f90: New test.
 
@@ -5259,7 +5392,7 @@
 	* gfortran.dg/argument_checking_14.f90: New.
 
 2008-01-15  Thomas Koenig  <tkoenig@gcc.gnu.org>
-	
+
 	PR libfortran/34671
 	* gfortran.dg/anyallcount_1.f90:  New test.
 
@@ -5304,7 +5437,7 @@
 	PR c++/34052
 	* g++.dg/cpp0x/vt-34052.C: New.
 	* g++.dg/template/ttp26.C: New.
-	
+
 2008-01-14  Eric Botcazou  <ebotcazou@adacore.com>
 
 	* gnat.dg/rep_clause2.ad[sb]: New test.
@@ -5315,7 +5448,7 @@
 	PR c++/24924
 	* g++.dg/cpp/pedantic-errors.C: Delete.
 	* g++.dg/cpp/permissive.C: Delete.
-	
+
 2008-01-14  Eric Botcazou  <ebotcazou@adacore.com>
 
 	* gcc.c-torture/compile/20080114-1.c: New test.

@@ -206,7 +206,9 @@ static void build_insn_chain (void);
 
    This will normally be called with ELIM_SET as the file static
    variable eliminable_regset, and NO_GLOBAL_SET as the file static
-   variable NO_GLOBAL_ALLOC_REGS.  */
+   variable NO_GLOBAL_ALLOC_REGS.
+
+   It also initializes global flag frame_pointer_needed.  */
 
 static void
 compute_regsets (HARD_REG_SET *elim_set, 
@@ -216,16 +218,24 @@ compute_regsets (HARD_REG_SET *elim_set,
 /* Like regs_ever_live, but 1 if a reg is set or clobbered from an asm.
    Unlike regs_ever_live, elements of this array corresponding to
    eliminable regs like the frame pointer are set if an asm sets them.  */
-  char *regs_asm_clobbered = alloca (FIRST_PSEUDO_REGISTER * sizeof (char));
+  char *regs_asm_clobbered = XALLOCAVEC (char, FIRST_PSEUDO_REGISTER);
 
 #ifdef ELIMINABLE_REGS
   static const struct {const int from, to; } eliminables[] = ELIMINABLE_REGS;
   size_t i;
 #endif
+
+  /* FIXME: If EXIT_IGNORE_STACK is set, we will not save and restore
+     sp for alloca.  So we can't eliminate the frame pointer in that
+     case.  At some point, we should improve this by emitting the
+     sp-adjusting insns for this case.  */
   int need_fp
     = (! flag_omit_frame_pointer
        || (cfun->calls_alloca && EXIT_IGNORE_STACK)
+       || crtl->accesses_prior_frames
        || FRAME_POINTER_REQUIRED);
+
+  frame_pointer_needed = need_fp;
 
   max_regno = max_reg_num ();
   compact_blocks ();
