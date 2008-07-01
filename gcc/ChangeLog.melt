@@ -1,4 +1,11 @@
 2008-07-01  Basile Starynkevitch  <basile@starynkevitch.net>
+	[MELT doc builds correctly but is empty.]
+
+	* Makefile.in: added melt.texi to TEXI_GCCINT_FILES
+
+	* doc/melt.texi: formatted ok but nearly empty.
+
+2008-07-01  Basile Starynkevitch  <basile@starynkevitch.net>
 	MELT branch merged with trunk r137307
 
 2008-06-30  Basile Starynkevitch  <basile@starynkevitch.net>

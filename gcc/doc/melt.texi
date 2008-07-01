@@ -8,7 +8,7 @@
 @c ---------------------------------------------------------------------
 
 @node MELT
-@chapter MELT (Middle End Lisp Tranlator)
+@chapter MELT: Middle End Lisp Translator
 @cindex MELT
 @cindex Middle End Lisp Translator
 
@@ -24,26 +24,42 @@ MELT source files is @code{.bysl}
 See the @uref{http://gcc.gnu.org/wiki/MiddleEndLispTranslator,,MELT wiki page}
 
 @menu
- * MELT overview::              An overview of MELT.
- * Building the MELT branch::   How to build the MELT branch.
- * Invoking MELT::              Command line invocation of MELT
- * Tutorial about MELT::        Tutorial on how to use MELT.
- * Reference on MELT::          Small MELT language reference.
+* MELT Prerequisites and Deficiencies::       Prerequisites and topics not yet covered in this MELT chapter.
+* MELT overview::                             An overview of MELT.
+* Building the MELT branch::                  configuration and building requirements and instructions for MELT.
+* Invoking MELT::                             Invoking MELT.
+* Tutorial about MELT::                       Tutorial describing MELT.
+* Reference on MELT::                         MELT language reference.
 @end menu
 
-@c =======================================================================
+@c ----------------------------------------------------------------
+@c MELT Prerequisites and Deficiencies
+@c ----------------------------------------------------------------
+
+@node MELT Prerequisites and Deficiencies
+@section MELT Prerequisites and Deficiencies
+
+A working knowledge of Scheme or Lisp is presupposed.
+
+This chapter is incomplete.
+
+@c ----------------------------------------------------------------
+@c MELT Overview
+@c ----------------------------------------------------------------
+
 @node MELT overview
 @section MELT overview
 @cindex MELT overview
 
-
 Any MELT enabling compilation is really a long lasting compilation. It
-is supposed that you use a powerful workstation (or laptop), and that
-the MELT-enabled compilation will run a lot slower than a simple
-@code{gcc -O1} compilation (hopefully doing some useful stuff). Notice
-that a MELT compilation actually generates C code, compile it (using
-another GCC compilation process) to a dynamically loadable library, and
-load its into the MELT compilation process.
+is supposed that you use a powerful workstation (or laptop) with
+enough memory (at least 4Gigabytes of RAM is receommended on a 64 bits
+machine like x86-64), and that the MELT-enabled compilation will run a
+lot slower than a simple @code{gcc -O1} compilation (hopefully doing
+some useful stuff). Notice that a MELT compilation actually generates
+C code, compile it (using another GCC compilation process) to a
+dynamically loadable library, and load its into the MELT compilation
+process.
 
 @c some sentences copied from the Wiki page. I (Basile) wrote all of them.
 
