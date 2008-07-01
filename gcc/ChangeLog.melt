@@ -1,4 +1,9 @@
 2008-07-01  Basile Starynkevitch  <basile@starynkevitch.net>
+	* doc/melt.texi: describes MELT -fbasilys* flags.
+
+	* doc/invoke.texi: mentions briefly -fbasilys* flags.
+
+2008-07-01  Basile Starynkevitch  <basile@starynkevitch.net>
 	[MELT doc builds correctly but is empty.]
 
 	* Makefile.in: added melt.texi to TEXI_GCCINT_FILES
