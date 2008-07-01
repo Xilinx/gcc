@@ -1,4 +1,7 @@
 2008-07-01  Basile Starynkevitch  <basile@starynkevitch.net>
+	MELT branch merged with trunk r137318
+
+2008-07-01  Basile Starynkevitch  <basile@starynkevitch.net>
 	[added GDBM support in configure & configure.ac,
 	BASILYS_HAS_OBJ_TAB_FIELDS is now prohibited]
 
