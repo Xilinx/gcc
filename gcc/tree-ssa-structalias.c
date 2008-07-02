@@ -209,24 +209,6 @@ struct variable_info
   /* ID of this variable  */
   unsigned int id;
 
-  /* Name of this variable */
-  const char *name;
-
-  /* Tree that this variable is associated with.  */
-  tree decl;
-
-  /* Offset of this variable, in bits, from the base variable  */
-  unsigned HOST_WIDE_INT offset;
-
-  /* Size of the variable, in bits.  */
-  unsigned HOST_WIDE_INT size;
-
-  /* Full size of the base variable, in bits.  */
-  unsigned HOST_WIDE_INT fullsize;
-
-  /* A link to the variable for the next field in this structure.  */
-  struct variable_info *next;
-
   /* True if this is a variable created by the constraint analysis, such as
      heap variables and constraints we had to break up.  */
   unsigned int is_artificial_var:1;
@@ -248,16 +230,34 @@ struct variable_info
      variable.  This is used for C++ placement new.  */
   unsigned int no_tbaa_pruning : 1;
 
+  /* Variable id this was collapsed to due to type unsafety.  Zero if
+     this variable was not collapsed.  This should be unused completely
+     after build_succ_graph, or something is broken.  */
+  unsigned int collapsed_to;
+
+  /* A link to the variable for the next field in this structure.  */
+  struct variable_info *next;
+
+  /* Offset of this variable, in bits, from the base variable  */
+  unsigned HOST_WIDE_INT offset;
+
+  /* Size of the variable, in bits.  */
+  unsigned HOST_WIDE_INT size;
+
+  /* Full size of the base variable, in bits.  */
+  unsigned HOST_WIDE_INT fullsize;
+
+  /* Name of this variable */
+  const char *name;
+
+  /* Tree that this variable is associated with.  */
+  tree decl;
+
   /* Points-to set for this variable.  */
   bitmap solution;
 
   /* Old points-to set for this variable.  */
   bitmap oldsolution;
-
-  /* Variable id this was collapsed to due to type unsafety.  This
-     should be unused completely after build_succ_graph, or something
-     is broken.  */
-  struct variable_info *collapsed_to;
 };
 typedef struct variable_info *varinfo_t;
 
@@ -289,8 +289,8 @@ get_varinfo_fc (unsigned int n)
 {
   varinfo_t v = VEC_index (varinfo_t, varmap, n);
 
-  if (v->collapsed_to)
-    return v->collapsed_to;
+  if (v->collapsed_to != 0)
+    return get_varinfo (v->collapsed_to);
   return v;
 }
 
@@ -385,7 +385,7 @@ new_var_info (tree t, unsigned int id, const char *name)
   ret->solution = BITMAP_ALLOC (&pta_obstack);
   ret->oldsolution = BITMAP_ALLOC (&oldpta_obstack);
   ret->next = NULL;
-  ret->collapsed_to = NULL;
+  ret->collapsed_to = 0;
   return ret;
 }
 
@@ -904,11 +904,8 @@ add_implicit_graph_edge (constraint_graph_t graph, unsigned int to,
   if (!graph->implicit_preds[to])
     graph->implicit_preds[to] = BITMAP_ALLOC (&predbitmap_obstack);
 
-  if (!bitmap_bit_p (graph->implicit_preds[to], from))
-    {
-      stats.num_implicit_edges++;
-      bitmap_set_bit (graph->implicit_preds[to], from);
-    }
+  if (bitmap_set_bit (graph->implicit_preds[to], from))
+    stats.num_implicit_edges++;
 }
 
 /* Add a predecessor graph edge to GRAPH, going from TO to FROM if
@@ -921,8 +918,7 @@ add_pred_graph_edge (constraint_graph_t graph, unsigned int to,
 {
   if (!graph->preds[to])
     graph->preds[to] = BITMAP_ALLOC (&predbitmap_obstack);
-  if (!bitmap_bit_p (graph->preds[to], from))
-    bitmap_set_bit (graph->preds[to], from);
+  bitmap_set_bit (graph->preds[to], from);
 }
 
 /* Add a graph edge to GRAPH, going from FROM to TO if
@@ -943,12 +939,11 @@ add_graph_edge (constraint_graph_t graph, unsigned int to,
 
       if (!graph->succs[from])
 	graph->succs[from] = BITMAP_ALLOC (&pta_obstack);
-      if (!bitmap_bit_p (graph->succs[from], to))
+      if (bitmap_set_bit (graph->succs[from], to))
 	{
 	  r = true;
 	  if (to < FIRST_REF_NODE && from < FIRST_REF_NODE)
 	    stats.num_edges++;
-	  bitmap_set_bit (graph->succs[from], to);
 	}
       return r;
     }
@@ -1405,13 +1400,11 @@ do_sd_constraint (constraint_graph_t graph, constraint_t c,
   unsigned int j;
   bitmap_iterator bi;
 
- if (bitmap_bit_p (delta, anything_id))
-   {
-     flag = !bitmap_bit_p (sol, anything_id);
-     if (flag)
-       bitmap_set_bit (sol, anything_id);
-     goto done;
-   }
+  if (bitmap_bit_p (delta, anything_id))
+    {
+      flag |= bitmap_set_bit (sol, anything_id);
+      goto done;
+    }
 
   /* For each variable j in delta (Sol(y)), add
      an edge in the graph from j to x, and union Sol(j) into Sol(x).  */
@@ -1436,13 +1429,9 @@ do_sd_constraint (constraint_graph_t graph, constraint_t c,
 	  /* Merging the solution from ESCAPED needlessly increases
 	     the set.  Use ESCAPED as representative instead.
 	     Same for CALLUSED.  */
-	  else if ((get_varinfo (t)->id == escaped_id
-		    || get_varinfo (t)->id == callused_id)
-		   && !bitmap_bit_p (sol, get_varinfo (t)->id))
-	    {
-	      bitmap_set_bit (sol, get_varinfo (t)->id);
-	      flag = true;
-	    }
+	  else if (get_varinfo (t)->id == escaped_id
+		   || get_varinfo (t)->id == callused_id)
+	    flag |= bitmap_set_bit (sol, get_varinfo (t)->id);
 	  else if (add_graph_edge (graph, lhs, t))
 	    flag |= bitmap_ior_into (sol, get_varinfo (t)->solution);
 	}
@@ -1486,14 +1475,11 @@ do_ds_constraint (constraint_t c, bitmap delta)
 	   continue;
 	 t = find (v->id);
 
-	 if (!bitmap_bit_p (get_varinfo (t)->solution, anything_id))
+	 if (bitmap_set_bit (get_varinfo (t)->solution, anything_id)
+	     && !TEST_BIT (changed, t))
 	   {
-	     bitmap_set_bit (get_varinfo (t)->solution, anything_id);
-	     if (!TEST_BIT (changed, t))
-	       {
-		 SET_BIT (changed, t);
-		 changed_count++;
-	       }
+	     SET_BIT (changed, t);
+	     changed_count++;
 	   }
        }
      return;
@@ -3137,8 +3123,8 @@ collapse_rest_of_var (unsigned int var)
 	fprintf (dump_file, "Type safety: Collapsing var %s into %s\n",
 		 field->name, currvar->name);
 
-      gcc_assert (!field->collapsed_to);
-      field->collapsed_to = currvar;
+      gcc_assert (field->collapsed_to == 0);
+      field->collapsed_to = currvar->id;
     }
 
   currvar->next = NULL;

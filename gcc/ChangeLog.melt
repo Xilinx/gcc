@@ -1,4 +1,9 @@
 2008-07-02  Basile Starynkevitch  <basile@starynkevitch.net>
+	MELT branch merged with trunk r137357
+
+	* c-common.c: correctly added handle_melt_attribute - still empty.
+
+2008-07-02  Basile Starynkevitch  <basile@starynkevitch.net>
 	* basilys.h: added basilysgc_load_modulelist
 
 	* basilys.c: (basilysgc_load_modulelist) new function.

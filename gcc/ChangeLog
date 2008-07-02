@@ -1,3 +1,111 @@
+2008-07-02  Richard Guenther  <rguenther@suse.de>
+
+	* tree-ssa-structalias.c (struct variable_info): Reorder
+	to fill padding on 64bit hosts.  Make collapsed_to an int.
+	(get_varinfo_fc): Deal with that.
+	(new_var_info): Likewise.
+	(collapse_rest_of_var): Likewise.
+
+2008-07-02  Joshua Sumali  <jsumali@redhat.com>
+
+	* doc/install.texi (--enable-java-home): Document.
+	(--enable-aot-compile-rpm): Likewise.
+	(--with-arch-directory): Likewise.
+	(--with-os-directory): Likewise.
+	(--with-origin-name): Likewise.
+	(--with-arch-suffix): Likewise.
+	(--with-jvm-root-dir): Likewise.
+	(--with-jvm-jar-dir): Likewise.
+	(--with-python-dir): Likewise.
+
+2008-07-02  Richard Guenther  <rguenther@suse.de>
+
+	* tree-ssa-forwprop.c (can_propagate_from): Exclude loads
+	from decls explicitly.  Merge operand checking from tuples.
+
+2008-07-02  Martin Jambor  <mjambor@suse.cz>
+
+	* tree-switch-conversion.c: Included timevar.h which I forgot before.
+	
+2008-07-02  Martin Jambor  <mjambor@suse.cz>
+
+	* tree-switch-conversion.c: Included timevar.h
+	(pass_convert_switch): Added a timevar id (TV_TREE_SWITCH_CONVERSION).
+
+	* timevar.def: Added TV_TREE_SWITCH_CONVERSION.
+
+2008-07-02  Martin Jambor  <mjambor@suse.cz>
+
+	* tree-switch-conversion.c: Corrected various comments and
+	whitespace issues
+	(build_constructors): Fixed minor formatting mistakes.
+
+	* invoke.texi (Optimize Options): Corrected the
+	switch-conversion-max-branch-ratio parameter.
+
+2008-07-02  Mark Shinwell  <shinwell@codesourcery.com>
+
+	* final.c (asm_insn_count): Return zero for an empty asm body.
+
+2008-07-02  Richard Guenther  <rguenther@suse.de>
+
+	* bitmap.h (bitmap_set_bit): Return bool.
+	(bitmap_clear_bit): Likewise.
+	* bitmap.c (bitmap_set_bit): Return if the bit changed.  Only
+	write to the bitmap if it would.
+	(bitmap_clear_bit): Likewise.
+	* tree-ssa-structalias.c (add_implicit_graph_edge): Use
+	bitmap_set_bit return value.
+	(add_pred_graph_edge): Likewise.
+	(add_graph_edge): Likewise.
+	(do_sd_constraint): Likewise.
+	(do_ds_constraint): Likewise.
+
+2008-07-02  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	* config/alpha/alpha.c (alpha_need_linkage, alpha_use_linkage):
+	Fix -Wc++-compat and/or -Wcast-qual warnings.
+	* config/i386/netware.c (gen_stdcall_or_fastcall_decoration,
+	gen_regparm_prefix): Likewise.
+	* vmsdbgout.c (write_modbeg, lookup_filename,
+	vmsdbgout_source_line, vmsdbgout_init): Likewise.
+
+2008-07-02  Danny Smith  <dannysmith@users.sourceforge.net>
+
+	* config/i386/mingw32.h (TARGET_USE_JCR_SECTION): Undef to let
+	defaults.h definition apply.
+
+2008-07-01  Daniel Jacobowitz  <dan@codesourcery.com>
+
+	* function.c (assign_parm_remove_parallels): New.
+	(assign_parm_setup_block_p): Do not return true for non-BLKmode
+	PARALLELs.
+	(assign_parm_setup_block): Do not handle them.
+	(assign_parm_setup_reg, assign_parm_setup_stack): Call
+	assign_parm_remove_parallels.
+
+2008-07-01  Daniel Jacobowitz  <dan@codesourcery.com>
+
+	* c-typeck.c (convert_for_assignment): Use
+	vector_targets_convertible_p.
+	* c-common.c (vector_targets_convertible_p): New.
+	* c-common.h (vector_targets_convertible_p): New prototype.
+	* config/rs6000/rs6000.c (rs6000_is_opaque_type): Do not check
+	opaque_p_V2SI_type_node.
+
+2008-07-01  Steve Ellcey  <sje@cup.hp.com>
+
+	* config/ia64/ia64.c (ia64_cannot_force_const_mem): Do not allow
+	RFmode constants.
+
+2008-07-01  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.c (ix86_build_signbit_mask): Generate TImode and
+	TFmode constants via two element DImode vector for hosts with
+	HOST_BITS_PER_WIDE_INT < 64.
+	(ix86_init_builtins): Define __builtin_fabsq and __builtin_copysignq
+	also for HOST_BITS_PER_WIDE_INT < 64.
+
 2008-07-01  Richard Guenther  <rguenther@suse.de>
 
 	PR tree-optimization/36666
@@ -14,8 +122,7 @@
 	if the results address is not taken.
 	(do_deref): Use get_constraint_exp_for_temp.
 	(get_constraint_for_1): Rename from ...
-	(get_constraint_for): ... this.  Add the old function as
-	wrapper.
+	(get_constraint_for): ... this.  Add the old function as wrapper.
 	(do_structure_copy): Use get_constraint_for_1.
 
 2008-07-01  Martin Jambor  <mjambor@suse.cz>
@@ -39,25 +146,23 @@
 	* config/darwin-driver.c (darwin_default_min_version): Fix
 	-Wc++-compat warnings.
 
-2008-06-30 Uros Bizjak  <ubizjak@gmail.com>
+2008-06-30  Uros Bizjak  <ubizjak@gmail.com>
 
 	* config/i386/i386.md (*movti_rex64): Add "!" to "r" constraint
 	of operand 0.
 
 2008-06-30  Kenneth Zadeck <zadeck@naturalbridge.com>
 
-	* ifcvt.c (cond_move_process_if_block): Free vectors on false
-	return.
+	* ifcvt.c (cond_move_process_if_block): Free vectors on false return.
 	
 2008-06-30  Kenneth Zadeck <zadeck@naturalbridge.com>
 
 	PR rtl-optimization/34744
-	* df-scan.c (df_scan_free_ref_vec, df_scan_free_mws_vec): New
-	macros.
+	* df-scan.c (df_scan_free_ref_vec, df_scan_free_mws_vec): New macros.
        	(df_scan_free_internal): Free data structures not
 	allocated in storage pools.
 	(df_mw_hardreg_chain_delete_eq_uses): Use df_scan_free_mws_vec.
-	(df_refs_add_to_chains): Use df_scan_free_ref_vec and 
+	(df_refs_add_to_chains): Use df_scan_free_ref_vec and
 	df_scan_free_mws_vec.
 	* dse.c (dse_step6): Free offset_map_p and offset_map_n
 	unconditionally.
@@ -202,7 +307,7 @@
 	* doc/rtl.texi (const_vector): Document const_fixed as legitimate
 	element type of const_vector.
 
-2008-06-28 Uros Bizjak  <ubizjak@gmail.com>
+2008-06-28  Uros Bizjak  <ubizjak@gmail.com>
 
 	* config/i386/i386.md (addti3, adddi3, addsi3, addhi3, addqi3):
 	Remove FLAGS_REG clobber from expander pattern.
@@ -266,7 +371,7 @@
 	(init_one_libfunc): Reuse decls and SYMBOL_REFs when asked
 	for the same function twice.
 
-2008-06-27 Uros Bizjak  <ubizjak@gmail.com>
+2008-06-27  Uros Bizjak  <ubizjak@gmail.com>
 
 	* config/i386/i386.md (ashlti3, ashrti3, lshrti3): Expand using
 	ix86_expand_binary_operator directly.
@@ -833,7 +938,7 @@
 	have_similar_memory_accesses_1, ref_base_address_1): Likewise.
 	* tree-ssa-phiopt.c (name_to_bb_hash): Likewise.
 
-2008-06-25 Uros Bizjak  <ubizjak@gmail.com>
+2008-06-25  Uros Bizjak  <ubizjak@gmail.com>
 
 	PR target/36627
 	* config/i386/i386.md : Change constraints of HImode and QImode
@@ -2155,7 +2260,7 @@
 	* config/vax/vaxv.h: Remove.
 	* config/windiss.h: Remove.
 
-2008-06-06 Uros Bizjak <ubizjak@gmail.com>
+2008-06-06  Uros Bizjak <ubizjak@gmail.com>
 
 	PR rtl-optimization/36438
 	* cse.c (fold_rtx) [ASHIFT, LSHIFTRT, ASHIFTRT]: Break out early
