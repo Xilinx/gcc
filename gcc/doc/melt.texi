@@ -237,7 +237,20 @@ This flag sets the initial MELT modules. They are separated by
 semi-colons or (on Unix only) colons. So @code{-fbasilys-init=foo:bar}
 or @code{'-fbasilys-init=foo;bar'} (quotes are useful for the shell
 running GCC) load first the @code{foo} module and then the @code{bar}
-module.
+module. A module starting with an at sign @code{@@} is handled as a
+module list file. The @code{.modlis} extension is added, and then a
+file is seeked by that name. This file is read line by line (with
+empty or blank lines skipped, and comment lines starting with an hash
+@code{#} skipped). Each line is the name of a module do be load in
+sequence. For example, @code{-fbasilys-init=@@mylist:bar} with a file
+@file{mylist.modlis} containing
+@example
+# file mylist.modlis ; just a comment
+alpha
+beta
+@end example
+would have the same effect as @code{-fbasilys-init=alpha:beta:bar}. 
+Notice that modules are seeked in several directories.
 
 @item -fbasilys-tempdir=
 @gccoptlist{-fbasilys-tempdir=}

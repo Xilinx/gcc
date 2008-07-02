@@ -1323,7 +1323,7 @@ MOSTLYCLEANFILES = insn-flags.h insn-config.h insn-codes.h \
  $(EXTRA_PARTS) $(EXTRA_PROGRAMS) gcc-cross$(exeext) \
  protoize$(exeext) unprotoize$(exeext) \
  $(SPECS) collect2$(exeext) \
- run-basilys.d  \
+ run-basilys.d warmelt*.modlis \
  gcov-iov$(build_exeext) gcov$(exeext) gcov-dump$(exeext) \
  *.so \
  *.[0-9][0-9].* *.[si] *-checksum.c libbackend.a libgcc.mk
@@ -4790,54 +4790,71 @@ warmelt-%.so: warmelt-%.c built-melt-cc-script
 	echo Melt building $@ from $<
 	./built-melt-cc-script $< $@
 
-warmelt-%-1.c:  $(srcdir)/melt/warmelt-%.bysl $(WARMELT_BASE0SO)  cc1$(exeext)
+warmelt0.modlis: $(WARMELT_BASE0SO)
+	date +"#$@ generated %c" > $@-tmp
+	for f in  $(WARMELT_BASE0); do echo $$f >> $@-tmp; done
+	$(SHELL) $(srcdir)/../move-if-change $@-tmp $@
+
+##
+
+warmelt1.modlis: $(WARMELT_BASE1SO)
+	date +"#$@ generated %c" > $@-tmp
+	for f in  $(WARMELT_BASE1); do echo $$f >> $@-tmp; done
+	$(SHELL) $(srcdir)/../move-if-change $@-tmp $@
+
+warmelt-%-1.c:  $(srcdir)/melt/warmelt-%.bysl warmelt0.modlis cc1$(exeext) $(WARMELT_BASE0SO) 
 	@echo generating $@ using $(WARMELT_BASE0) 
 	-rm -f $@
-	$(MELTBASILYSCCFILE1) -fbasilys-init="$(WARMELT_BASE0ROW)" \
+	$(MELTBASILYSCCFILE1) -fbasilys-init=$(WARMELT_BASE0ROW) \
 	      -fbasilys-arg=$< -frandom-seed=$(shell md5sum $< | cut -b-24) \
 	      -fbasilys-secondarg=$@
 	ls -l $@
 
-warmelt-first-1.c: $(srcdir)/melt/warmelt-first.bysl $(WARMELT_BASE0SO)  cc1$(exeext)
+warmelt-first-1.c: $(srcdir)/melt/warmelt-first.bysl warmelt0.modlis   cc1$(exeext)  $(WARMELT_BASE0SO)
 	-rm -f $@
 	@echo generating warmelt-first using $(WARMELT_BASE0) 
 	@echo WARMELT_BASE0= $(WARMELT_BASE0) WARMELT_BASE0ROW= $(WARMELT_BASE0ROW)
-	$(MELTBASILYSCCINIT1) -fbasilys-init="$(WARMELT_BASE0ROW)" \
+	$(MELTBASILYSCCINIT1) -fbasilys-init=$(WARMELT_BASE0ROW) \
 	      -fbasilys-arg=$< \
 	      -fbasilys-secondarg=$@
 	ls -l $@
 
 ####
-warmelt-%-2.c: $(srcdir)/melt/warmelt-%.bysl $(WARMELT_BASE1SO)  cc1$(exeext) $(WARMELT_BASE1NSO)
+warmelt2.modlis: $(WARMELT_BASE2SO)
+	date +"#$@ generated %c" > $@-tmp
+	for f in  $(WARMELT_BASE2); do echo $$f >> $@-tmp; done
+	$(SHELL) $(srcdir)/../move-if-change $@-tmp $@
+
+warmelt-%-2.c: $(srcdir)/melt/warmelt-%.bysl warmelt1.modlis $(WARMELT_BASE1SO)  cc1$(exeext) $(WARMELT_BASE1NSO)
 	@echo generating $@ using $(WARMELT_BASE1SO)
 	-rm -f $@
-	$(MELTBASILYSCCFILE1) -fbasilys-init="$(WARMELT_BASE1ROW)" \
+	$(MELTBASILYSCCFILE1) -fbasilys-init="@warmelt1" \
 	      -fbasilys-arg=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
 	      -fbasilys-secondarg=$@
 	ls -l $@
-warmelt-first-2.c: $(srcdir)/melt/warmelt-first.bysl $(WARMELT_BASE1SO) cc1$(exeext)
+warmelt-first-2.c: $(srcdir)/melt/warmelt-first.bysl warmelt1.modlis $(WARMELT_BASE1SO) cc1$(exeext)
 	-rm -f $@ 
 	@echo test showmdata using $(WARMELT_BASE1SO)
-	$(MELTBASILYSCCSHOW1) -fbasilys-init="$(WARMELT_BASE1ROW)"
+	$(MELTBASILYSCCSHOW1) -fbasilys-init="@warmelt1"
 	@echo generating $@ using $(WARMELT_BASE1SO)
-	$(MELTBASILYSCCINIT1) -fbasilys-init="$(WARMELT_BASE1ROW)" \
+	$(MELTBASILYSCCINIT1) -fbasilys-init="@warmelt1" \
 	      -fbasilys-arg=$< \
 	      -fbasilys-secondarg=$@
 	ls -l $@
 
 
 ####
-warmelt-%-3.c: $(srcdir)/melt/warmelt-%.bysl $(WARMELT_BASE2SO)  cc1$(exeext) 
+warmelt-%-3.c: $(srcdir)/melt/warmelt-%.bysl  warmelt2.modlis $(WARMELT_BASE2SO)  cc1$(exeext) 
 	@echo generating $@ using $(WARMELT_BASE2SO)
 	-rm -f $@
-	$(MELTBASILYSCCFILE1) -fbasilys-init="$(WARMELT_BASE2ROW)" \
+	$(MELTBASILYSCCFILE1) -fbasilys-init="@warmelt2" \
 	      -fbasilys-arg=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
 	      -fbasilys-secondarg=$@
 	ls -l $@
 warmelt-first-3.c: $(srcdir)/melt/warmelt-first.bysl $(WARMELT_BASE2SO) cc1$(exeext)
 	-rm -f $@ 
 	@echo generating $@ using $(WARMELT_BASE2SO)
-	$(MELTBASILYSCCINIT1) -fbasilys-init="$(WARMELT_BASE2ROW)" \
+	$(MELTBASILYSCCINIT1) -fbasilys-init="@warmelt2" \
 	      -fbasilys-arg=$< \
 	      -fbasilys-secondarg=$@
 	ls -l $@

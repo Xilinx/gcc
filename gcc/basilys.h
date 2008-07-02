@@ -1842,6 +1842,11 @@ char* basilys_tempdir_path(const char* basnam);
 basilys_ptr_t
 basilysgc_compile_dyn (basilys_ptr_t modata_p, const char *srcfile);
 
+/* load a list of modules from a file whose basename MODLISTBASE is
+   given without its suffix '.modlis' */
+basilys_ptr_t
+basilysgc_load_modulelist(basilys_ptr_t modata_p, const char *modlistbase);
+
 /* first_module_basilys is the function start_module_basilys in first-basilys.c */
 basilys_ptr_t first_module_basilys (basilys_ptr_t);
 

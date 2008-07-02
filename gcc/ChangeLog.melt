@@ -1,3 +1,21 @@
+2008-07-02  Basile Starynkevitch  <basile@starynkevitch.net>
+	* basilys.h: added basilysgc_load_modulelist
+
+	* basilys.c: (basilysgc_load_modulelist) new function.
+	(do_initial_command) uses it.
+	(basilys_finalize) clear the temporary directory.
+	(dispatch_gate_basilys) added cast.
+
+	* doc/melt.texi: document the -fbasilys-init=@ trick to load a module list.
+
+	* Makefile.in: use module lists. warmelt*.modlis are removed on clean.
+
+	* configure.ac: corrected GDBM stuff.
+
+	* configure: regenerated.
+
+	* c-common.c: (handle_melt_attribute) new empty function.
+
 2008-07-01  Basile Starynkevitch  <basile@starynkevitch.net>
 	* basilys.c: added pass_basilys_ipa, pass_basilys_lowering,
 	pass_basilys_earlyopt, pass_basilys_lateopt.

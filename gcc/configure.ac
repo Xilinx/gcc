@@ -482,10 +482,10 @@ saved_LDFLAGS="$LD_FLAGS"
 CFLAGS="$CFLAGS $gdbminc"
 LIBS="$LIBS $gdbmlibs"
 LDFLAGS="$LDFLAGS -rdynamic"
-AC_MSG_CHECKING([for  LibTool Dynamic Loader])
+AC_MSG_CHECKING([for GDBM])
 AC_TRY_LINK([#include <gdbm.h>],[
   GDBM_FILE f;
-  f = gdb_open("testfor.gdbm", 0, 0, GDBM_WRCREAT, 0);
+  f = gdbm_open("testfor.gdbm", 0, 0, GDBM_WRCREAT, 0);
 ], [AC_MSG_RESULT([yes]); have_gdbm=yes], [AC_MSG_RESULT([no]); have_gdbm=no])
 
 if test "x$have_gdbm" != xyes; then

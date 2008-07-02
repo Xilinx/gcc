@@ -50,6 +50,7 @@ along with GCC; see the file COPYING3.   If not see
 
 #include "compiler-probe.h"
 
+#include <dirent.h>
 
 #if HAVE_PARMAPOLY
 #include <ppl_c.h>
@@ -995,7 +996,8 @@ forwarded_copy (basilys_ptr_t p)
 	    dst->entab =
 	      (struct entrybasicblocksbasilys_st *) ggc_alloc_cleared (siz *
 								       sizeof
-								       (dst->entab
+								       (dst->
+									entab
 									[0]));
 	    memcpy (dst->entab, src->entab, siz * sizeof (dst->entab[0]));
 	  }
@@ -1446,15 +1448,15 @@ unsafe_index_mapobject (struct entryobjectsbasilys_st *tab,
 		 samehashcnt, (void *) attr, attr->obj_serial, (void *) curat,
 		 curat->obj_serial, curat->obj_hash,
 		 (void *) curat->obj_class,
-		 basilys_string_str (curat->obj_class->
-				     obj_vartab[FNAMED_NAME]));
+		 basilys_string_str (curat->
+				     obj_class->obj_vartab[FNAMED_NAME]));
 	      if (basilys_is_instance_of
 		  ((basilys_ptr_t) attr,
 		   (basilys_ptr_t) BASILYSGOB (CLASS_NAMED)))
 		dbgprintf ("gotten attr named %s found attr named %s",
 			   basilys_string_str (attr->obj_vartab[FNAMED_NAME]),
-			   basilys_string_str (curat->
-					       obj_vartab[FNAMED_NAME]));
+			   basilys_string_str (curat->obj_vartab
+					       [FNAMED_NAME]));
 	      basilys_dbgshortbacktrace
 		("gotten & found attr of same hash & class", 15);
 	    }
@@ -1491,15 +1493,15 @@ unsafe_index_mapobject (struct entryobjectsbasilys_st *tab,
 		 samehashcnt, (void *) attr, attr->obj_serial, (void *) curat,
 		 curat->obj_serial, curat->obj_hash,
 		 (void *) curat->obj_class,
-		 basilys_string_str (curat->obj_class->
-				     obj_vartab[FNAMED_NAME]));
+		 basilys_string_str (curat->
+				     obj_class->obj_vartab[FNAMED_NAME]));
 	      if (basilys_is_instance_of
 		  ((basilys_ptr_t) attr,
 		   (basilys_ptr_t) BASILYSGOB (CLASS_NAMED)))
 		dbgprintf ("gotten attr named %s found attr named %s",
 			   basilys_string_str (attr->obj_vartab[FNAMED_NAME]),
-			   basilys_string_str (curat->
-					       obj_vartab[FNAMED_NAME]));
+			   basilys_string_str (curat->obj_vartab
+					       [FNAMED_NAME]));
 	      basilys_dbgshortbacktrace
 		("gotten & found attr of same hash & class", 15);
 	    }
@@ -4685,6 +4687,101 @@ dylibfound:
 #undef modulv
 }
 
+
+#define MODLIS_SUFFIX ".modlis"
+
+basilys_ptr_t
+basilysgc_load_modulelist (basilys_ptr_t modata_p, const char *modlistbase)
+{
+  char *modlistpath = 0;
+  FILE *filmod = 0;
+  /* @@@ ugly, we should have a getline function */
+  char linbuf[1024];
+  BASILYS_ENTERFRAME (1, NULL);
+  memset (linbuf, 0, sizeof (linbuf));
+#define mdatav curfram__.varptr[0]
+  mdatav = modata_p;
+  /* first check directly for the file */
+  modlistpath = concat (modlistbase, MODLIS_SUFFIX, NULL);
+  if (IS_ABSOLUTE_PATH (modlistpath) || !access (modlistpath, R_OK))
+    goto loadit;
+  free (modlistpath);
+  modlistpath = 0;
+  /* check for module list in melt_source_dir */
+  modlistpath = concat (melt_source_dir,
+			"/", modlistbase, MODLIS_SUFFIX, NULL);
+  if (!access (modlistpath, R_OK))
+    goto loadit;
+  free (modlistpath);
+  modlistpath = 0;
+  /* check for module list in dynamic library dir */
+  if (basilys_dynlibdir_string && basilys_dynlibdir_string[0])
+    {
+      modlistpath = concat (basilys_dynlibdir_string,
+			    "/", modlistbase, MODLIS_SUFFIX, NULL);
+      if (!access (modlistpath, R_OK))
+	goto loadit;
+    }
+  free (modlistpath);
+  modlistpath = 0;
+  /* check for module list in gensrcdir */
+  if (basilys_gensrcdir_string && basilys_gensrcdir_string[0])
+    {
+      /* check for modfile in the gensrcdir */
+      modlistpath =
+	concat (basilys_gensrcdir_string, "/", modlistbase, MODLIS_SUFFIX,
+		NULL);
+      if (!access (modlistpath, R_OK))
+	goto loadit;
+    }
+  free (modlistpath);
+  modlistpath = 0;
+  /* check in the temporary directory */
+  modlistpath = basilys_tempdir_path (modlistbase);
+  modlistpath = reconcat (modlistpath, MODLIS_SUFFIX, NULL);
+  if (!access (modlistpath, R_OK))
+    goto loadit;
+  free (modlistpath);
+  modlistpath = 0;
+  if (!modlistpath)
+    goto end;
+loadit:
+  filmod = fopen (modlistpath, "r");
+  dbgprintf ("reading module list '%s'", modlistpath);
+  if (!filmod)
+    fatal_error ("failed to open basilys module list file %s - %m",
+		 modlistpath);
+#if ENABLE_CHECKING
+  {
+    static char locbuf[80];
+    memset (locbuf, 0, sizeof (locbuf));
+    snprintf (locbuf, sizeof (locbuf) - 1,
+	      "%s:%d:basilysgc_load_modulelist before reading module list : %s",
+	      basename (__FILE__), __LINE__, modlistpath);
+    curfram__.flocs = locbuf;
+  }
+#endif
+  while (!feof (filmod))
+    {
+      char *pc = 0;
+      memset (linbuf, 0, sizeof (linbuf));
+      fgets (linbuf, sizeof (linbuf) - 1, filmod);
+      pc = strchr (linbuf, '\n');
+      if (pc)
+	*pc = (char) 0;
+      /* maybe we should not skip spaces */
+      for (pc = linbuf; *pc && ISSPACE (*pc); pc++);
+      if (*pc == '#' || *pc == (char) 0)
+	continue;
+      dbgprintf ("in module list %s loading module '%s'", modlistbase, pc);
+      mdatav = basilysgc_compile_dyn ((basilys_ptr_t) mdatav, pc);
+    }
+end:
+  BASILYS_EXITFRAME ();
+  return (basilys_ptr_t) mdatav;
+#undef mdatav
+}
+
 /*************** initial load machinery *******************/
 
 
@@ -5633,7 +5730,7 @@ readval (struct reading_st *rd, bool * pgot)
       readv = readsexpr (rd, ']');
       *pgot = TRUE;
       goto end;
-    }				/* end if '(' */
+    }				/* end if '[' */
   else if (c == '{')
     {
       rdnext ();
@@ -5968,9 +6065,23 @@ load_basilys_modules_and_do_command (void)
       debugeprintf ("load_initial_basilys_modules curmod %s before", curmod);
       BASILYS_LOCATION_HERE
 	("load_initial_basilys_modules before compile_dyn");
-      modatv = basilysgc_compile_dyn ((basilys_ptr_t) modatv, curmod);
-      debugeprintf ("load_initial_basilys_modules curmod %s loaded modatv %p",
-		    curmod, (void *) modatv);
+      if (curmod[0] == '@' && curmod[1])
+	{
+	  /* read the file which contains a list of modules, one per
+	     non empty, non comment line */
+	  modatv =
+	    basilysgc_load_modulelist ((basilys_ptr_t) modatv, curmod + 1);
+	  debugeprintf
+	    ("load_initial_basilys_modules curmod %s loaded modulist %p",
+	     curmod, (void *) modatv);
+	}
+      else
+	{
+	  modatv = basilysgc_compile_dyn ((basilys_ptr_t) modatv, curmod);
+	  debugeprintf
+	    ("load_initial_basilys_modules curmod %s loaded modatv %p",
+	     curmod, (void *) modatv);
+	}
       curmod = nextmod;
     }
   /**
@@ -6088,6 +6199,10 @@ basilys_initialize (void)
 }
 
 
+typedef char *char_p;
+
+DEF_VEC_P (char_p);
+DEF_VEC_ALLOC_P (char_p, heap);
 
 /****
  * finalize basilys. Called from toplevel.c after all is done
@@ -6097,7 +6212,31 @@ basilys_finalize (void)
 {
   debugeprintf ("basilys_finalize with %ld GarbColl, %ld fullGc",
 		basilys_nb_garbcoll, basilys_nb_full_garbcoll);
-#warning we should clear our temporary directory here
+  if (tempdir_basilys)
+    {
+      DIR *tdir = opendir (tempdir_basilys);
+      VEC (char_p, heap) * dirvec = 0;
+      struct dirent *dent = 0;
+      if (!tdir)
+	fatal_error ("failed to open tempdir %s %m", tempdir_basilys);
+      dirvec = VEC_alloc (char_p, heap, 30);
+      while ((dent = readdir (tdir)) != NULL)
+	{
+	  if (dent->d_name[0] && dent->d_name[0] != '.')
+	    /* this skips  '.' & '..' and we have no  .* file */
+	    VEC_safe_push (char_p, heap, dirvec,
+			   concat (tempdir_basilys, "/", dent->d_name, NULL));
+	}
+      closedir (tdir);
+      while (!VEC_empty (char_p, dirvec))
+	{
+	  char *tfilnam = VEC_pop (char_p, dirvec);
+	  remove (tfilnam);
+	  free (tfilnam);
+	};
+      VEC_free (char_p, heap, dirvec);
+    }
+  rmdir (tempdir_basilys);
 }
 
 
@@ -6735,15 +6874,19 @@ dispatch_gate_basilys (const char *passname)
     basilys_object_nth_field ((basilys_ptr_t)
 			      BASILYSGOB (INITIAL_SYSTEM_DATA),
 			      FSYSDAT_PASS_DICT);
-  passv = basilys_get_mapstrings ((basilys_ptr_t) passdictv, passname);
+  passv =
+    basilys_get_mapstrings ((struct basilysmapstrings_st *) passdictv,
+			    passname);
   if (basilys_is_instance_of
-      (passv, (basilys_ptr_t) BASILYSGOB (CLASS_GCC_PASS)))
+      ((basilys_ptr_t) passv, (basilys_ptr_t) BASILYSGOB (CLASS_GCC_PASS)))
     {
       gatev = basilys_object_nth_field ((basilys_ptr_t) passv, FGCCPASS_GATE);
       if (basilys_magic_discr ((basilys_ptr_t) gatev) == OBMAG_CLOSURE)
 	{
 	  resvalv =
-	    basilys_apply (gatev, passv, "", (union basilysparam_un *) 0, "",
+	    basilys_apply ((struct basilysclosure_st *) gatev,
+			   (basilys_ptr_t) passv, "",
+			   (union basilysparam_un *) 0, "",
 			   (union basilysparam_un *) 0);
 	  res = (resvalv != NULL);
 	  /* force a minor GC to be sure that nothing is in the young region */
@@ -6775,9 +6918,11 @@ dispatch_execute_basilys (const char *passname)
     basilys_object_nth_field ((basilys_ptr_t)
 			      BASILYSGOB (INITIAL_SYSTEM_DATA),
 			      FSYSDAT_PASS_DICT);
-  passv = basilys_get_mapstrings ((basilys_ptr_t) passdictv, passname);
+  passv =
+    basilys_get_mapstrings ((struct basilysmapstrings_st *) passdictv,
+			    passname);
   if (basilys_is_instance_of
-      (passv, (basilys_ptr_t) BASILYSGOB (CLASS_GCC_PASS)))
+      ((basilys_ptr_t) passv, (basilys_ptr_t) BASILYSGOB (CLASS_GCC_PASS)))
     {
       execuv =
 	basilys_object_nth_field ((basilys_ptr_t) passv, FGCCPASS_EXEC);
@@ -6787,9 +6932,11 @@ dispatch_execute_basilys (const char *passname)
 	  memset (&restab, 0, sizeof (restab));
 	  restab[0].bp_longptr = &todol;
 	  /* apply with one extra long result */
-	  resvalv = basilys_apply (execuv, passv, "",
-				   (union basilysparam_un *) 0,
-				   BPARSTR_LONG "", restab);
+	  resvalv =
+	    basilys_apply ((struct basilysclosure_st *) execuv,
+			   (basilys_ptr_t) passv, "",
+			   (union basilysparam_un *) 0, BPARSTR_LONG "",
+			   restab);
 	  if (resvalv)
 	    restodo = (unsigned int) todol;
 	  /* force a minor GC to be sure that nothing is in the young region */
@@ -6798,6 +6945,7 @@ dispatch_execute_basilys (const char *passname)
     }
 end:
   BASILYS_EXITFRAME ();
+  return restodo;
 }
 
 /* decide if basilys_lowering pass has to be run */

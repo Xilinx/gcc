@@ -7400,8 +7400,8 @@ saved_LDFLAGS="$LD_FLAGS"
 CFLAGS="$CFLAGS $gdbminc"
 LIBS="$LIBS $gdbmlibs"
 LDFLAGS="$LDFLAGS -rdynamic"
-echo "$as_me:$LINENO: checking for  LibTool Dynamic Loader" >&5
-echo $ECHO_N "checking for  LibTool Dynamic Loader... $ECHO_C" >&6
+echo "$as_me:$LINENO: checking for GDBM" >&5
+echo $ECHO_N "checking for GDBM... $ECHO_C" >&6
 cat >conftest.$ac_ext <<_ACEOF
 /* confdefs.h.  */
 _ACEOF
@@ -7414,7 +7414,7 @@ main ()
 {
 
   GDBM_FILE f;
-  f = gdb_open("testfor.gdbm", 0, 0, GDBM_WRCREAT, 0);
+  f = gdbm_open("testfor.gdbm", 0, 0, GDBM_WRCREAT, 0);
 
   ;
   return 0;

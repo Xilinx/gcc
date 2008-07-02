@@ -575,6 +575,10 @@ static tree handle_sentinel_attribute (tree *, tree, tree, int, bool *);
 static tree handle_type_generic_attribute (tree *, tree, tree, int, bool *);
 static tree handle_alloc_size_attribute (tree *, tree, tree, int, bool *);
 
+#if ENABLE_BASILYSMELT
+static tree handle_melt_attribute(tree *, tree, tree, int, bool *);
+#endif
+
 static void check_function_nonnull (tree, int, tree *);
 static void check_nonnull_arg (void *, tree, unsigned HOST_WIDE_INT);
 static bool nonnull_check_p (tree, unsigned HOST_WIDE_INT);
@@ -684,6 +688,12 @@ const struct attribute_spec c_common_attribute_table[] =
 			      handle_error_attribute },
   { "error",		      1, 1, true,  false, false,
 			      handle_error_attribute },
+
+#if ENABLE_BASILYSMELT
+  { "melt",                   1, 1, true, true, true,
+                              handle_melt_attribute },
+#endif /* ENABLE_BASILYSMELT */
+
   { NULL,                     0, 0, false, false, false, NULL }
 };
 
@@ -5882,6 +5892,21 @@ handle_tls_model_attribute (tree *node, tree name, tree args,
     error ("tls_model argument must be one of \"local-exec\", \"initial-exec\", \"local-dynamic\" or \"global-dynamic\"");
 
   DECL_TLS_MODEL (decl) = kind;
+  return NULL_TREE;
+}
+
+
+/* handle a "melt" attribute 
+ */
+static tree
+handle_melt_attribute(tree *node, tree name,
+					 tree ARG_UNUSED (args),
+					 int ARG_UNUSED (flags),
+					 bool *no_add_attrs)
+{
+  warning(0, "melt attribute not implemented");
+  /* perhaps we should call some closure on it */
+#warning dont know how to handle_melt_attribute
   return NULL_TREE;
 }
 
