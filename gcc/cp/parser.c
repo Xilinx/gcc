@@ -6658,6 +6658,8 @@ cp_parser_lambda_expression (cp_parser* parser)
   /* The construction expression (primary-expression) */
   tree construction_expr;
 
+  tree lambda_expr = build0 (LAMBDA_EXPR, NULL_TREE);
+
   type = TREE_CHAIN (type);
 
   construction_expr = build_functional_cast (
@@ -7128,9 +7130,27 @@ cp_parser_lambda_external_reference_clause (cp_parser* parser,
   cp_parameter_declarator** ctor_param_list_tail = ctor_param_list;
   /* Need commas after the first local reference. */
   bool first = true;
+  /* Can capture enclosing class using `this' keyword. */
+  bool captures_this_p = false;
+
+  enum default_capture_code_type {NO_DEFAULT, COPY_DEFAULT, REF_DEFAULT};
+  enum default_capture_code_type default_capture_code = NO_DEFAULT;
 
   /* Eat the leading `['. */
   cp_lexer_consume_token (parser->lexer);
+
+  /* Record default capture mode. */
+  if (cp_lexer_next_token_is (parser->lexer, CPP_AND))
+    default_capture_code = REF_DEFAULT;
+  else if (cp_lexer_next_token_is (parser->lexer, CPP_EQ))
+    default_capture_code = COPY_DEFAULT;
+
+  if (default_capture_code != NO_DEFAULT)
+  {
+    cp_lexer_consume_token (parser->lexer);
+    if (cp_lexer_next_token_is (parser->lexer, CPP_COMMA))
+      cp_lexer_consume_token (parser->lexer);
+  }
 
   /* For each external reference, we need to
        1. Create member (later)
@@ -7141,8 +7161,6 @@ cp_parser_lambda_external_reference_clause (cp_parser* parser,
 
   while (cp_lexer_next_token_is_not (parser->lexer, CPP_CLOSE_SQUARE))
   {
-    enum storage_code_type {BY_COPY, BY_REF, BY_RVALUE_REF};
-
     cp_id_kind idk = CP_ID_KIND_NONE;
     const char* error_msg;
 
@@ -7152,12 +7170,21 @@ cp_parser_lambda_external_reference_clause (cp_parser* parser,
     tree eref_init_expr;
     tree eref_type;
 
+    enum storage_code_type {BY_COPY, BY_REF, BY_RVALUE_REF};
     enum storage_code_type storage_code = BY_COPY;
 
     if (!first)
       cp_parser_require (parser, CPP_COMMA, "`,'");
     else
       first = false;
+
+    /* Possibly capture `this'. */
+    if (cp_lexer_next_token_is_keyword (parser->lexer, RID_THIS))
+    {
+      captures_this_p = true;
+      cp_lexer_consume_token (parser->lexer);
+      continue;
+    }
 
     /* Remember whether we want to take this as a reference or not. */
     if (cp_lexer_next_token_is (parser->lexer, CPP_AND))
