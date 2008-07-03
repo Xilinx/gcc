@@ -2114,6 +2114,7 @@ enum
   FSYSDAT_INTERNKEYW,		/* closure to intern a keyword */
   FSYSDAT_VALUE_IMPORTER,	/* closure to import a value */
   FSYSDAT_PASS_DICT,		/* dictionnary of passes */
+  FSYSDAT_EXIT_FINALIZER,	/* closure to call at exit */
   FSYSDAT__LAST
 };
 

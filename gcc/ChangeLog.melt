@@ -1,4 +1,21 @@
 2008-07-03  Basile Starynkevitch  <basile@starynkevitch.net>
+	* basilys.h: added  FSYSDAT_EXIT_FINALIZER
+
+	* basilys.c: (do_finalize_basilys) new function.
+	(basilys_finalize) call it.
+
+	* melt/warmelt_first.bysl: added class_finalization,
+	system_finalization, at_exit_first, at_exit_last,
+	init_exitfinalizer
+
+	* melt/warmelt-outobj.bysl: removed the BASILYS_HAS_OBJ_TAB_FIELDS
+	thing.
+
+	* melt/ana-matcher.bysl: new empty file.
+
+	* melt/ana-base.bysl: added install_gcc_pass & the passes.
+
+2008-07-03  Basile Starynkevitch  <basile@starynkevitch.net>
 	* common.opt: added -fbasilys-gdbmstate
 
 	* doc/melt.texi: document -fbasilys-gdbmstate.

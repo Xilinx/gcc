@@ -160,6 +160,7 @@
 	   sysdata_internkeyw		;closure to intern a keyword
 	   sysdata_value_importer	;closure to import a value
 	   sysdata_pass_dict		;stringmap for passes
+	   sysdata_exit_finalizer ;;closure to be called after the passes, at finalization
 	   ;;;keep these spare slots to ease the addition of other slots
 	   sysdata___spare1
 	   sysdata___spare2
@@ -1508,6 +1509,64 @@
       (return)
       )))
 
+(defclass class_finalization
+  :super class_named
+  :fields (final_first
+	   final_last
+	   final_data
+	   ))
+
+(definstance system_finalization class_finalization
+  :named_name (make_stringconst discr_string "system_finalization")
+  :final_first (make_list discr_list)
+  :final_last (make_list discr_list)
+)
+
+(defun init_exitfinalizer ()
+  (debug_msg system_finalization "init_exitfinalizer system_finalization at start")
+  (let ( (firstlist (unsafe_get_field :final_first system_finalization))
+	 (lastlist (unsafe_get_field :final_last system_finalization))
+	 (revlastlist (make_list discr_list))
+	 (rescont (make_instance class_container))
+	 )
+;;; call the first routines in natural order
+    (list_every 
+     firstlist
+     (lambda (firstproc)
+       (let ( (prevres (unsafe_get_field :container_value rescont)) 
+	      (nextres (firstproc prevres system_finalization))
+	      )
+	 (unsafe_put_fields rescont :container_value nextres)
+	 )))
+;;; reverse the last list
+    (list_every 
+     lastlist 
+     (lambda (lastproc)
+       (if (is_closure lastproc) (list_prepend revlastlist lastproc))))
+;;; call the last routines in reverse order
+    (list_every
+     revlastlist
+     (lambda (lastproc)
+       (let ( (prevres (unsafe_get_field :container_value rescont)) 
+	      (nextres (lastproc prevres system_finalization))
+	      )
+	 (unsafe_put_fields rescont :container_value nextres)
+	 )))
+    (debug_msg rescont "init_exitfinalizer ending rescont")
+    ))
+
+
+(defun at_exit_first (fun)
+  (let ( (firstlist (unsafe_get_field :final_first system_finalization))
+	 )
+    (if (is_closure fun) (list_append firstlist fun)))
+)  
+
+(defun at_exit_last (fun)
+  (let ( (lastlist (unsafe_get_field :final_last system_finalization))
+	 )
+    (if (is_closure fun) (list_append lastlist fun)))
+)
   
 ;;;;;;;;;;;;;;;;;;;; initial system data 
 (definstance initial_system_data class_system_data
@@ -1524,6 +1583,8 @@
   :sysdata_internsymbol	intern_symbol	 ;closure to intern a symbol
   :sysdata_internkeyw intern_keyword	 ;closure to intern a keyword
   :sysdata_value_importer initvalue_importer
+  :sysdata_pass_dict (make_mapstring discr_mapstrings 100) ;stringmap for gcc passes
+  :sysdata_exit_finalizer init_exitfinalizer
   )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -2992,6 +3053,7 @@
  class_field
  class_field_binding
  class_fixed_binding
+ class_finalization
  class_formal_binding
  class_function_binding
  class_genercontext
@@ -3236,13 +3298,16 @@
  get_value
  initial_environment                  
  initial_system_data
+ system_finalization
  )    ;;;end export discriminants, instances, selectors
 
 
 ;; export the functions defined above
 (export_values
  add_new_keyword_token			
- add_new_symbol_token			
+ add_new_symbol_token	
+ at_exit_first
+ at_exit_last
  boxval					
  clone_symbol
  closure_every

@@ -46,4 +46,50 @@
 (defprimitive put_gdbmstate (key data) :value
   "basilysgc_put_gdbmstate((basilys_ptr_t)(" key "), (basilys_ptr_t)(" data "))")
 
+(defun install_gcc_pass (pass)
+  (assert_msg "check pass" (is_a pass class_gcc_pass))
+  (mapstring_put (unsafe_get_field :sysdata_pass_dict initial_system_data)
+		 (unsafe_get_field :named_name pass)
+		 pass)
+  (debug_msg pass "installed gcc pass")
+)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;; G C C      P A S S E S 
+;; the named_name of passes is builtin in gcc/basilys.c [lowercase]
+
+
+;;;;;;;;;;;;;;;;;; lowering pass
+;; the CFG is available, but the tree is not in SSA form
+(definstance basilys_lowering_gccpass 
+  class_gcc_pass
+  :named_name (make_stringconst discr_string "basilys-lowering")
+  :gccpass_data ()
+)
+(install_gcc_pass basilys_lowering_gccpass)
+
+;;;;;;;;;;;;;;;;;; ipa (interprocedural analysis) pass
+;; the CFG is available & tree is in SSA form
+(definstance basilys_ipa_gccpass 
+  class_gcc_pass
+  :named_name (make_stringconst discr_string "basilys-ipa")
+  :gccpass_data ()
+)
+(install_gcc_pass basilys_ipa_gccpass)
+
+
+
+(export_values
+ fetch_gdbmstate
+ fetch_gdbmstate_constr
+ put_gdbmstate
+ put_gdbmstate_constr
+ install_gcc_pass
+ basilys_lowering_gccpass
+ basilys_ipa_gccpass
+)
+
+(export_class
+ class_analysis_state
+)
 ;; eof ana-base.bysl

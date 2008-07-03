@@ -6214,6 +6214,25 @@ basilys_initialize (void)
 }
 
 
+static void
+do_finalize_basilys(void)
+{
+  BASILYS_ENTERFRAME(1, NULL);
+#define finclosv curfram__.varptr[0]
+  finclosv = basilys_field_object ((basilys_ptr_t)BASILYSGOB(INITIAL_SYSTEM_DATA),
+				   FSYSDAT_EXIT_FINALIZER);
+  if (basilys_magic_discr(finclosv) == OBMAG_CLOSURE)
+    {
+      BASILYS_LOCATION_HERE("do_finalize_basilys before applying final closure");
+      (void) basilys_apply ((basilysclosure_ptr_t) finclosv,
+			    (basilys_ptr_t) NULL,
+			    "", NULL, "", NULL);
+      basilys_garbcoll(0, BASILYS_NEED_FULL);
+    }
+ end:
+  BASILYS_EXITFRAME();
+#undef finclosv
+}
 
 
 typedef char *char_p;
@@ -6227,6 +6246,7 @@ DEF_VEC_ALLOC_P (char_p, heap);
 void
 basilys_finalize (void)
 {
+  do_finalize_basilys();
   debugeprintf ("basilys_finalize with %ld GarbColl, %ld fullGc",
 		basilys_nb_garbcoll, basilys_nb_full_garbcoll);
   if (gdbm_basilys)
