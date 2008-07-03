@@ -254,11 +254,6 @@ DEFTREECODE (TYPEID_EXPR, "typeid_expr", tcc_expression, 1)
    is only needed for diagnostics.  */
 DEFTREECODE (NON_DEPENDENT_EXPR, "non_dependent_expr", tcc_expression, 1)
 
-/* A lambda expression.  This is a C++0x extension.
-   Operand 0 is a TREE_LIST of VAR_DECL representing the capture-list.
-   Operand 1 is the FUNCTION_DECL for the rest of the lambda.  */
-DEFTREECODE (LAMBDA_EXPR, "lambda_expr", tcc_expression, 2)
-
 /* CTOR_INITIALIZER is a placeholder in template code for a call to
    setup_vtbl_pointer (and appears in all functions, not just ctors).  */
 DEFTREECODE (CTOR_INITIALIZER, "ctor_initializer", tcc_expression, 1)
@@ -420,6 +415,10 @@ DEFTREECODE (ARGUMENT_PACK_SELECT, "argument_pack_select", tcc_exceptional, 0)
 
 /* Represents a trait expression during template expansion.  */
 DEFTREECODE (TRAIT_EXPR, "trait_expr", tcc_exceptional, 0)
+
+/* A lambda expression.  This is a C++0x extension.
+   Trying a new design around a tcc_expression of 0 operands. */
+DEFTREECODE (LAMBDA_EXPR, "lambda_expr", tcc_expression, 0)
 
 /* The declared type of an expression.  This is a C++0x extension.
    DECLTYPE_TYPE_EXPR is the expression whose type we are computing.

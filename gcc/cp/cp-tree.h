@@ -515,6 +515,42 @@ struct tree_trait_expr GTY (())
   enum cp_trait_kind kind;
 };
 
+/* The capture-list, excluding `this'.  */
+#define LAMBDA_EXPR_CAPTURE_LIST(NODE) \
+  (((struct tree_lambda_expr *)LAMBDA_EXPR_CHECK (NODE))->capture_list)
+
+/* Predicate tracking whether `this' is in the effective capture set.  */
+#define LAMBDA_EXPR_CAPTURES_THIS_P(NODE) \
+  (((struct tree_lambda_expr *)LAMBDA_EXPR_CHECK (NODE))->captures_this_p)
+
+/* The initializers for the captures.  This is a GNU extension.  */
+#define LAMBDA_EXPR_CAPTURE_INIT_LIST(NODE) \
+  (((struct tree_lambda_expr *)LAMBDA_EXPR_CHECK (NODE))->capture_init_list)
+
+/* The list of parameters to the lambda function.  */
+#define LAMBDA_EXPR_PARAM_LIST(NODE) \
+  (((struct tree_lambda_expr *)LAMBDA_EXPR_CHECK (NODE))->param_list)
+
+/* The exception specifier.  */
+#define LAMBDA_EXPR_EXCEPTION_SPEC(NODE) \
+  (((struct tree_lambda_expr *)LAMBDA_EXPR_CHECK (NODE))->exception_spec)
+
+/* The return type.  */
+#define LAMBDA_EXPR_RETURN_TYPE(NODE) \
+  (((struct tree_lambda_expr *)LAMBDA_EXPR_CHECK (NODE))->return_type)
+
+struct tree_lambda_expr GTY (())
+{
+  struct tree_common common;
+  /* tree_list */
+  tree capture_list;
+  bool captures_this_p;
+  tree capture_init_list;
+  /*cp_parameter_declarator* param_list;*/
+  tree exception_spec;
+  tree return_type;
+};
+
 enum cp_tree_node_structure_enum {
   TS_CP_GENERIC,
   TS_CP_IDENTIFIER,
@@ -528,6 +564,7 @@ enum cp_tree_node_structure_enum {
   TS_CP_STATIC_ASSERT,
   TS_CP_ARGUMENT_PACK_SELECT,
   TS_CP_TRAIT_EXPR,
+  TS_CP_LAMBDA_EXPR,
   LAST_TS_CP_ENUM
 };
 
@@ -549,6 +586,8 @@ union lang_tree_node GTY((desc ("cp_tree_node_structure (&%h)"),
     argument_pack_select;
   struct tree_trait_expr GTY ((tag ("TS_CP_TRAIT_EXPR")))
     trait_expression;
+  struct tree_lambda_expr GTY ((tag ("TS_CP_LAMBDA_EXPR")))
+    lambda_expression;
 };
 
 
