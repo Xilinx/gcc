@@ -230,6 +230,12 @@ skipped, so are not printed.
 @opindex fbasilys-gensrcdir=
 This flag sets the directory containing MELT generated C files.
 
+@item -fbasilys-gdbmstate=
+@gccoptlist{-fbasilys-gdbmstate=}
+@opindex fbasilys-gdbmstate=
+This flag sets the GDBM indexed file containing global state. It
+should always be specified when needed, because there is no default.
+
 @item -fbasilys-init=
 @gccoptlist{-fbasilys-init=}
 @opindex fbasilys-init=

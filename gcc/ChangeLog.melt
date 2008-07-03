@@ -1,4 +1,20 @@
 2008-07-03  Basile Starynkevitch  <basile@starynkevitch.net>
+	* common.opt: added -fbasilys-gdbmstate
+
+	* doc/melt.texi: document -fbasilys-gdbmstate.
+
+	* basilys.h: declare basilys_has_gdbmstate,
+	basilysgc_fetch_gdbmstate_constr, basilysgc_fetch_gdbmstate,
+	basilysgc_put_gdbmstate_constr, basilysgc_put_gdbmstate
+
+	* basilys.c:
+	(basilys_has_gdbmstate, basilysgc_fetch_gdbmstate_constr)
+	(basilysgc_fetch_gdbmstate, basilysgc_put_gdbmstate_constr)
+	(basilysgc_put_gdbmstate) new functions.
+
+	* melt/ana-base.bysl: new file.
+
+2008-07-03  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* Makefile.in: -fbasilys-tempdir are seperate sudirectories
 

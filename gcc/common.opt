@@ -371,6 +371,12 @@ fbasilys-dynlibdir=
 Common Report Var(basilys_dynlibdir_string) RejectNegative Joined  Condition(HAVE_PARMAPOLY && HAVE_LIBTOOLDYNL && ENABLE_BASILYSMELT)
 Dynlib plugin directory for basilys
 
+
+; shared GDBM indexed file to keep state
+fbasilys-gdbmstate=
+Common Report Var(basilys_gdbmstate_string) RejectNegative Joined  Condition(HAVE_PARMAPOLY && HAVE_LIBTOOLDYNL && ENABLE_BASILYSMELT)
+Shared GDBM state indexed file. Should be explicitly given.
+
 ; generated source directory for basilys
 fbasilys-gensrcdir=
 Common Report Var(basilys_gensrcdir_string) RejectNegative Joined  Condition(HAVE_PARMAPOLY && HAVE_LIBTOOLDYNL && ENABLE_BASILYSMELT)

@@ -2440,5 +2440,33 @@ void basilys_cbreak_at(const char*msg, const char*fil, int lin);
 #define basilys_trace_end(Msg,Cnt) do{}while(0)
 #endif /*ENABLE_CHECKING*/
 
+
+
+/** handling GDBM state store; if there is none, these routines do
+    nothing (and return NULL if needed); the GDBM database is lazily
+    opened at first needed call. pointer key & data can be string,
+    strbuf, or named instances (in which case the string name is
+    used) **/
+
+/* true if there is a GDBM state; side effect, open it */
+bool basilys_has_gdbmstate(void);
+
+/* return a string value associated to a constant key, or null if none */
+basilys_ptr_t basilysgc_fetch_gdbmstate_constr(const char*key);
+
+/* return a string value associated to a pointer key [string, strbuf, named] or null if none */
+basilys_ptr_t basilysgc_fetch_gdbmstate (basilys_ptr_t key_p);
+
+/* store or remove a constant key; if the value pointer is nil, remove
+   it; if it s a string, strbuf, named, put it, eventually replacing
+   the previous one; otherwise do nothing */
+void basilysgc_put_gdbmstate_constr (const char *key, basilys_ptr_t data_p);
+
+/* store or remove a pointer key (string, strbuf, or named value); if
+   the value pointer is nil, remove it; if it s a string, strbuf,
+   named, put it, eventually replacing the previous one; otherwise do
+   nothing */
+void basilysgc_put_gdbmstate (basilys_ptr_t key_p, basilys_ptr_t data_p);
+
 #endif /*BASILYS_INCLUDED_ */
 /* eof basilys.h */
