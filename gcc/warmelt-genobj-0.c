@@ -1,5 +1,5 @@
 /* GCC BASILYS GENERATED FILE warmelt-genobj-3.c - DO NOT EDIT */
-/* generated on Tue Jul  1 13:59:27 2008 */
+/* generated on Thu Jul  3 08:50:55 2008 */
 
 #include "run-basilys.h"
 
@@ -49248,7 +49248,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_9__CLASS_OBJVALUE", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_9__CLASS_OBJVALUE.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_9__CLASS_OBJVALUE.obj_num = OBMAG_OBJECT;
-  cdat->dobj_9__CLASS_OBJVALUE.obj_hash = 237859538;
+  cdat->dobj_9__CLASS_OBJVALUE.obj_hash = 1059597395;
   cdat->dobj_9__CLASS_OBJVALUE.obj_len = 9;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_9__CLASS_OBJVALUE.obj_vartab =  cdat->dobj_9__CLASS_OBJVALUE.obj__tabfields;
@@ -49291,7 +49291,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_15__OBV_TYPE", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_15__OBV_TYPE.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_15__OBV_TYPE.obj_num = 0;
-  cdat->dobj_15__OBV_TYPE.obj_hash = 959719482;
+  cdat->dobj_15__OBV_TYPE.obj_hash = 479264529;
   cdat->dobj_15__OBV_TYPE.obj_len = 4;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_15__OBV_TYPE.obj_vartab =  cdat->dobj_15__OBV_TYPE.obj__tabfields;
@@ -49326,7 +49326,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_19__CLASS_OBJPUREVALUE", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_19__CLASS_OBJPUREVALUE.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_19__CLASS_OBJPUREVALUE.obj_num = OBMAG_OBJECT;
-  cdat->dobj_19__CLASS_OBJPUREVALUE.obj_hash = 32465361;
+  cdat->dobj_19__CLASS_OBJPUREVALUE.obj_hash = 338024061;
   cdat->dobj_19__CLASS_OBJPUREVALUE.obj_len = 9;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_19__CLASS_OBJPUREVALUE.obj_vartab =  cdat->dobj_19__CLASS_OBJPUREVALUE.obj__tabfields;
@@ -49369,7 +49369,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_25__CLASS_OBJLOCV", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_25__CLASS_OBJLOCV.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_25__CLASS_OBJLOCV.obj_num = OBMAG_OBJECT;
-  cdat->dobj_25__CLASS_OBJLOCV.obj_hash = 921922320;
+  cdat->dobj_25__CLASS_OBJLOCV.obj_hash = 130587593;
   cdat->dobj_25__CLASS_OBJLOCV.obj_len = 9;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_25__CLASS_OBJLOCV.obj_vartab =  cdat->dobj_25__CLASS_OBJLOCV.obj__tabfields;
@@ -49412,7 +49412,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_31__OBL_OFF", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_31__OBL_OFF.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_31__OBL_OFF.obj_num = 1;
-  cdat->dobj_31__OBL_OFF.obj_hash = 472896271;
+  cdat->dobj_31__OBL_OFF.obj_hash = 581367166;
   cdat->dobj_31__OBL_OFF.obj_len = 4;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_31__OBL_OFF.obj_vartab =  cdat->dobj_31__OBL_OFF.obj__tabfields;
@@ -49447,7 +49447,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_35__OBL_PROC", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_35__OBL_PROC.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_35__OBL_PROC.obj_num = 2;
-  cdat->dobj_35__OBL_PROC.obj_hash = 203832984;
+  cdat->dobj_35__OBL_PROC.obj_hash = 625158997;
   cdat->dobj_35__OBL_PROC.obj_len = 4;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_35__OBL_PROC.obj_vartab =  cdat->dobj_35__OBL_PROC.obj__tabfields;
@@ -49482,7 +49482,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_39__OBL_CNAME", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_39__OBL_CNAME.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_39__OBL_CNAME.obj_num = 3;
-  cdat->dobj_39__OBL_CNAME.obj_hash = 898386691;
+  cdat->dobj_39__OBL_CNAME.obj_hash = 487615262;
   cdat->dobj_39__OBL_CNAME.obj_len = 4;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_39__OBL_CNAME.obj_vartab =  cdat->dobj_39__OBL_CNAME.obj__tabfields;
@@ -49517,7 +49517,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_43__CLASS_OBJCLOCCV", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_43__CLASS_OBJCLOCCV.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_43__CLASS_OBJCLOCCV.obj_num = OBMAG_OBJECT;
-  cdat->dobj_43__CLASS_OBJCLOCCV.obj_hash = 895070876;
+  cdat->dobj_43__CLASS_OBJCLOCCV.obj_hash = 376364833;
   cdat->dobj_43__CLASS_OBJCLOCCV.obj_len = 9;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_43__CLASS_OBJCLOCCV.obj_vartab =  cdat->dobj_43__CLASS_OBJCLOCCV.obj__tabfields;
@@ -49560,7 +49560,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_49__OBC_OFF", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_49__OBC_OFF.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_49__OBC_OFF.obj_num = 1;
-  cdat->dobj_49__OBC_OFF.obj_hash = 390045217;
+  cdat->dobj_49__OBC_OFF.obj_hash = 616070251;
   cdat->dobj_49__OBC_OFF.obj_len = 4;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_49__OBC_OFF.obj_vartab =  cdat->dobj_49__OBC_OFF.obj__tabfields;
@@ -49595,7 +49595,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_53__OBC_PROC", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_53__OBC_PROC.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_53__OBC_PROC.obj_num = 2;
-  cdat->dobj_53__OBC_PROC.obj_hash = 144311784;
+  cdat->dobj_53__OBC_PROC.obj_hash = 1060427765;
   cdat->dobj_53__OBC_PROC.obj_len = 4;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_53__OBC_PROC.obj_vartab =  cdat->dobj_53__OBC_PROC.obj__tabfields;
@@ -49630,7 +49630,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_57__OBC_NAME", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_57__OBC_NAME.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_57__OBC_NAME.obj_num = 3;
-  cdat->dobj_57__OBC_NAME.obj_hash = 709711245;
+  cdat->dobj_57__OBC_NAME.obj_hash = 83255891;
   cdat->dobj_57__OBC_NAME.obj_len = 4;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_57__OBC_NAME.obj_vartab =  cdat->dobj_57__OBC_NAME.obj__tabfields;
@@ -49665,7 +49665,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_61__CLASS_OBJCONSTV", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_61__CLASS_OBJCONSTV.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_61__CLASS_OBJCONSTV.obj_num = OBMAG_OBJECT;
-  cdat->dobj_61__CLASS_OBJCONSTV.obj_hash = 704858371;
+  cdat->dobj_61__CLASS_OBJCONSTV.obj_hash = 323963490;
   cdat->dobj_61__CLASS_OBJCONSTV.obj_len = 9;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_61__CLASS_OBJCONSTV.obj_vartab =  cdat->dobj_61__CLASS_OBJCONSTV.obj__tabfields;
@@ -49708,7 +49708,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_67__CLASS_OBJPREDEF", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_67__CLASS_OBJPREDEF.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_67__CLASS_OBJPREDEF.obj_num = OBMAG_OBJECT;
-  cdat->dobj_67__CLASS_OBJPREDEF.obj_hash = 363168377;
+  cdat->dobj_67__CLASS_OBJPREDEF.obj_hash = 770635032;
   cdat->dobj_67__CLASS_OBJPREDEF.obj_len = 9;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_67__CLASS_OBJPREDEF.obj_vartab =  cdat->dobj_67__CLASS_OBJPREDEF.obj__tabfields;
@@ -49751,7 +49751,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_73__OBPREDEF", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_73__OBPREDEF.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_73__OBPREDEF.obj_num = 1;
-  cdat->dobj_73__OBPREDEF.obj_hash = 437127808;
+  cdat->dobj_73__OBPREDEF.obj_hash = 1056052126;
   cdat->dobj_73__OBPREDEF.obj_len = 4;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_73__OBPREDEF.obj_vartab =  cdat->dobj_73__OBPREDEF.obj__tabfields;
@@ -49786,7 +49786,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_77__CLASS_OBJNIL", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_77__CLASS_OBJNIL.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_77__CLASS_OBJNIL.obj_num = OBMAG_OBJECT;
-  cdat->dobj_77__CLASS_OBJNIL.obj_hash = 1047848379;
+  cdat->dobj_77__CLASS_OBJNIL.obj_hash = 679862326;
   cdat->dobj_77__CLASS_OBJNIL.obj_len = 9;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_77__CLASS_OBJNIL.obj_vartab =  cdat->dobj_77__CLASS_OBJNIL.obj__tabfields;
@@ -49829,7 +49829,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_83__CLASS_OBJINITELEM", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_83__CLASS_OBJINITELEM.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_83__CLASS_OBJINITELEM.obj_num = OBMAG_OBJECT;
-  cdat->dobj_83__CLASS_OBJINITELEM.obj_hash = 177504913;
+  cdat->dobj_83__CLASS_OBJINITELEM.obj_hash = 675792835;
   cdat->dobj_83__CLASS_OBJINITELEM.obj_len = 9;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_83__CLASS_OBJINITELEM.obj_vartab =  cdat->dobj_83__CLASS_OBJINITELEM.obj__tabfields;
@@ -49872,7 +49872,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_89__OIE_CNAME", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_89__OIE_CNAME.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_89__OIE_CNAME.obj_num = 1;
-  cdat->dobj_89__OIE_CNAME.obj_hash = 572156009;
+  cdat->dobj_89__OIE_CNAME.obj_hash = 309869439;
   cdat->dobj_89__OIE_CNAME.obj_len = 4;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_89__OIE_CNAME.obj_vartab =  cdat->dobj_89__OIE_CNAME.obj__tabfields;
@@ -49907,7 +49907,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_93__OIE_DATA", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_93__OIE_DATA.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_93__OIE_DATA.obj_num = 2;
-  cdat->dobj_93__OIE_DATA.obj_hash = 412816233;
+  cdat->dobj_93__OIE_DATA.obj_hash = 392511234;
   cdat->dobj_93__OIE_DATA.obj_len = 4;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_93__OIE_DATA.obj_vartab =  cdat->dobj_93__OIE_DATA.obj__tabfields;
@@ -49942,7 +49942,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_97__OIE_DISCR", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_97__OIE_DISCR.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_97__OIE_DISCR.obj_num = 3;
-  cdat->dobj_97__OIE_DISCR.obj_hash = 670376286;
+  cdat->dobj_97__OIE_DISCR.obj_hash = 1045400021;
   cdat->dobj_97__OIE_DISCR.obj_len = 4;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_97__OIE_DISCR.obj_vartab =  cdat->dobj_97__OIE_DISCR.obj__tabfields;
@@ -49977,7 +49977,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_101__OIE_LOCVAR", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_101__OIE_LOCVAR.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_101__OIE_LOCVAR.obj_num = 4;
-  cdat->dobj_101__OIE_LOCVAR.obj_hash = 722399635;
+  cdat->dobj_101__OIE_LOCVAR.obj_hash = 153584415;
   cdat->dobj_101__OIE_LOCVAR.obj_len = 4;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_101__OIE_LOCVAR.obj_vartab =  cdat->dobj_101__OIE_LOCVAR.obj__tabfields;
@@ -50012,7 +50012,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_105__CLASS_OBJINITOBJECT", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_105__CLASS_OBJINITOBJECT.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_105__CLASS_OBJINITOBJECT.obj_num = OBMAG_OBJECT;
-  cdat->dobj_105__CLASS_OBJINITOBJECT.obj_hash = 694906992;
+  cdat->dobj_105__CLASS_OBJINITOBJECT.obj_hash = 525548473;
   cdat->dobj_105__CLASS_OBJINITOBJECT.obj_len = 9;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_105__CLASS_OBJINITOBJECT.obj_vartab =  cdat->dobj_105__CLASS_OBJINITOBJECT.obj__tabfields;
@@ -50055,7 +50055,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_111__OIO_PREDEF", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_111__OIO_PREDEF.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_111__OIO_PREDEF.obj_num = 5;
-  cdat->dobj_111__OIO_PREDEF.obj_hash = 985315201;
+  cdat->dobj_111__OIO_PREDEF.obj_hash = 268475041;
   cdat->dobj_111__OIO_PREDEF.obj_len = 4;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_111__OIO_PREDEF.obj_vartab =  cdat->dobj_111__OIO_PREDEF.obj__tabfields;
@@ -50090,7 +50090,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_115__CLASS_OBJINITMULTIPLE", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_115__CLASS_OBJINITMULTIPLE.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_115__CLASS_OBJINITMULTIPLE.obj_num = OBMAG_OBJECT;
-  cdat->dobj_115__CLASS_OBJINITMULTIPLE.obj_hash = 787965436;
+  cdat->dobj_115__CLASS_OBJINITMULTIPLE.obj_hash = 639799399;
   cdat->dobj_115__CLASS_OBJINITMULTIPLE.obj_len = 9;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_115__CLASS_OBJINITMULTIPLE.obj_vartab =  cdat->dobj_115__CLASS_OBJINITMULTIPLE.obj__tabfields;
@@ -50133,7 +50133,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_121__OIM_TUPVAL", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_121__OIM_TUPVAL.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_121__OIM_TUPVAL.obj_num = 5;
-  cdat->dobj_121__OIM_TUPVAL.obj_hash = 97715255;
+  cdat->dobj_121__OIM_TUPVAL.obj_hash = 657271369;
   cdat->dobj_121__OIM_TUPVAL.obj_len = 4;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_121__OIM_TUPVAL.obj_vartab =  cdat->dobj_121__OIM_TUPVAL.obj__tabfields;
@@ -50168,7 +50168,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_125__CLASS_OBJINITCLOSURE", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_125__CLASS_OBJINITCLOSURE.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_125__CLASS_OBJINITCLOSURE.obj_num = OBMAG_OBJECT;
-  cdat->dobj_125__CLASS_OBJINITCLOSURE.obj_hash = 619968277;
+  cdat->dobj_125__CLASS_OBJINITCLOSURE.obj_hash = 304364306;
   cdat->dobj_125__CLASS_OBJINITCLOSURE.obj_len = 9;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_125__CLASS_OBJINITCLOSURE.obj_vartab =  cdat->dobj_125__CLASS_OBJINITCLOSURE.obj__tabfields;
@@ -50211,7 +50211,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_131__CLASS_OBJINITROUTINE", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_131__CLASS_OBJINITROUTINE.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_131__CLASS_OBJINITROUTINE.obj_num = OBMAG_OBJECT;
-  cdat->dobj_131__CLASS_OBJINITROUTINE.obj_hash = 449292965;
+  cdat->dobj_131__CLASS_OBJINITROUTINE.obj_hash = 422543145;
   cdat->dobj_131__CLASS_OBJINITROUTINE.obj_len = 9;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_131__CLASS_OBJINITROUTINE.obj_vartab =  cdat->dobj_131__CLASS_OBJINITROUTINE.obj__tabfields;
@@ -50254,7 +50254,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_137__OIR_PROCROUTINE", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_137__OIR_PROCROUTINE.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_137__OIR_PROCROUTINE.obj_num = 5;
-  cdat->dobj_137__OIR_PROCROUTINE.obj_hash = 1064074257;
+  cdat->dobj_137__OIR_PROCROUTINE.obj_hash = 396348549;
   cdat->dobj_137__OIR_PROCROUTINE.obj_len = 4;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_137__OIR_PROCROUTINE.obj_vartab =  cdat->dobj_137__OIR_PROCROUTINE.obj__tabfields;
@@ -50289,7 +50289,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_141__CLASS_OBJINITSTRING", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_141__CLASS_OBJINITSTRING.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_141__CLASS_OBJINITSTRING.obj_num = OBMAG_OBJECT;
-  cdat->dobj_141__CLASS_OBJINITSTRING.obj_hash = 1030004492;
+  cdat->dobj_141__CLASS_OBJINITSTRING.obj_hash = 96375630;
   cdat->dobj_141__CLASS_OBJINITSTRING.obj_len = 9;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_141__CLASS_OBJINITSTRING.obj_vartab =  cdat->dobj_141__CLASS_OBJINITSTRING.obj__tabfields;
@@ -50332,7 +50332,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_147__CLASS_OBJEXPV", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_147__CLASS_OBJEXPV.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_147__CLASS_OBJEXPV.obj_num = OBMAG_OBJECT;
-  cdat->dobj_147__CLASS_OBJEXPV.obj_hash = 855453694;
+  cdat->dobj_147__CLASS_OBJEXPV.obj_hash = 982695300;
   cdat->dobj_147__CLASS_OBJEXPV.obj_len = 9;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_147__CLASS_OBJEXPV.obj_vartab =  cdat->dobj_147__CLASS_OBJEXPV.obj__tabfields;
@@ -50375,7 +50375,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_153__OBX_CONT", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_153__OBX_CONT.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_153__OBX_CONT.obj_num = 1;
-  cdat->dobj_153__OBX_CONT.obj_hash = 744738636;
+  cdat->dobj_153__OBX_CONT.obj_hash = 1040693380;
   cdat->dobj_153__OBX_CONT.obj_len = 4;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_153__OBX_CONT.obj_vartab =  cdat->dobj_153__OBX_CONT.obj__tabfields;
@@ -50410,7 +50410,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_157__CLASS_OBJLOCATEDEXPV", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_157__CLASS_OBJLOCATEDEXPV.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_157__CLASS_OBJLOCATEDEXPV.obj_num = OBMAG_OBJECT;
-  cdat->dobj_157__CLASS_OBJLOCATEDEXPV.obj_hash = 322717285;
+  cdat->dobj_157__CLASS_OBJLOCATEDEXPV.obj_hash = 900447420;
   cdat->dobj_157__CLASS_OBJLOCATEDEXPV.obj_len = 9;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_157__CLASS_OBJLOCATEDEXPV.obj_vartab =  cdat->dobj_157__CLASS_OBJLOCATEDEXPV.obj__tabfields;
@@ -50453,7 +50453,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_163__OBCX_LOC", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_163__OBCX_LOC.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_163__OBCX_LOC.obj_num = 2;
-  cdat->dobj_163__OBCX_LOC.obj_hash = 1066334448;
+  cdat->dobj_163__OBCX_LOC.obj_hash = 363488595;
   cdat->dobj_163__OBCX_LOC.obj_len = 4;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_163__OBCX_LOC.obj_vartab =  cdat->dobj_163__OBCX_LOC.obj__tabfields;
@@ -50488,7 +50488,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_167__CLASS_OBJINSTR", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_167__CLASS_OBJINSTR.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_167__CLASS_OBJINSTR.obj_num = OBMAG_OBJECT;
-  cdat->dobj_167__CLASS_OBJINSTR.obj_hash = 186619116;
+  cdat->dobj_167__CLASS_OBJINSTR.obj_hash = 765749187;
   cdat->dobj_167__CLASS_OBJINSTR.obj_len = 9;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_167__CLASS_OBJINSTR.obj_vartab =  cdat->dobj_167__CLASS_OBJINSTR.obj__tabfields;
@@ -50531,7 +50531,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_173__OBI_LOC", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_173__OBI_LOC.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_173__OBI_LOC.obj_num = 0;
-  cdat->dobj_173__OBI_LOC.obj_hash = 819117727;
+  cdat->dobj_173__OBI_LOC.obj_hash = 123256340;
   cdat->dobj_173__OBI_LOC.obj_len = 4;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_173__OBI_LOC.obj_vartab =  cdat->dobj_173__OBI_LOC.obj__tabfields;
@@ -50566,7 +50566,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_177__CLASS_OBJCOMMENTINSTR", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_177__CLASS_OBJCOMMENTINSTR.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_177__CLASS_OBJCOMMENTINSTR.obj_num = OBMAG_OBJECT;
-  cdat->dobj_177__CLASS_OBJCOMMENTINSTR.obj_hash = 186381776;
+  cdat->dobj_177__CLASS_OBJCOMMENTINSTR.obj_hash = 853670408;
   cdat->dobj_177__CLASS_OBJCOMMENTINSTR.obj_len = 9;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_177__CLASS_OBJCOMMENTINSTR.obj_vartab =  cdat->dobj_177__CLASS_OBJCOMMENTINSTR.obj__tabfields;
@@ -50609,7 +50609,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_183__OBCI_COMMENT", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_183__OBCI_COMMENT.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_183__OBCI_COMMENT.obj_num = 1;
-  cdat->dobj_183__OBCI_COMMENT.obj_hash = 714736600;
+  cdat->dobj_183__OBCI_COMMENT.obj_hash = 274838175;
   cdat->dobj_183__OBCI_COMMENT.obj_len = 4;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_183__OBCI_COMMENT.obj_vartab =  cdat->dobj_183__OBCI_COMMENT.obj__tabfields;
@@ -50644,7 +50644,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_187__CLASS_OBJDESTINSTR", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_187__CLASS_OBJDESTINSTR.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_187__CLASS_OBJDESTINSTR.obj_num = OBMAG_OBJECT;
-  cdat->dobj_187__CLASS_OBJDESTINSTR.obj_hash = 770112899;
+  cdat->dobj_187__CLASS_OBJDESTINSTR.obj_hash = 637836602;
   cdat->dobj_187__CLASS_OBJDESTINSTR.obj_len = 9;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_187__CLASS_OBJDESTINSTR.obj_vartab =  cdat->dobj_187__CLASS_OBJDESTINSTR.obj__tabfields;
@@ -50687,7 +50687,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_193__OBDI_DESTLIST", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_193__OBDI_DESTLIST.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_193__OBDI_DESTLIST.obj_num = 1;
-  cdat->dobj_193__OBDI_DESTLIST.obj_hash = 415275067;
+  cdat->dobj_193__OBDI_DESTLIST.obj_hash = 943639436;
   cdat->dobj_193__OBDI_DESTLIST.obj_len = 4;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_193__OBDI_DESTLIST.obj_vartab =  cdat->dobj_193__OBDI_DESTLIST.obj__tabfields;
@@ -50722,7 +50722,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_197__CLASS_OBJCOMPUTE", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_197__CLASS_OBJCOMPUTE.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_197__CLASS_OBJCOMPUTE.obj_num = OBMAG_OBJECT;
-  cdat->dobj_197__CLASS_OBJCOMPUTE.obj_hash = 70953770;
+  cdat->dobj_197__CLASS_OBJCOMPUTE.obj_hash = 488556540;
   cdat->dobj_197__CLASS_OBJCOMPUTE.obj_len = 9;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_197__CLASS_OBJCOMPUTE.obj_vartab =  cdat->dobj_197__CLASS_OBJCOMPUTE.obj__tabfields;
@@ -50765,7 +50765,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_203__OBCPT_EXPR", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_203__OBCPT_EXPR.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_203__OBCPT_EXPR.obj_num = 2;
-  cdat->dobj_203__OBCPT_EXPR.obj_hash = 585647149;
+  cdat->dobj_203__OBCPT_EXPR.obj_hash = 878078908;
   cdat->dobj_203__OBCPT_EXPR.obj_len = 4;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_203__OBCPT_EXPR.obj_vartab =  cdat->dobj_203__OBCPT_EXPR.obj__tabfields;
@@ -50800,7 +50800,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_207__CLASS_OBJGETARG", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_207__CLASS_OBJGETARG.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_207__CLASS_OBJGETARG.obj_num = OBMAG_OBJECT;
-  cdat->dobj_207__CLASS_OBJGETARG.obj_hash = 500398667;
+  cdat->dobj_207__CLASS_OBJGETARG.obj_hash = 73182545;
   cdat->dobj_207__CLASS_OBJGETARG.obj_len = 9;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_207__CLASS_OBJGETARG.obj_vartab =  cdat->dobj_207__CLASS_OBJGETARG.obj__tabfields;
@@ -50843,7 +50843,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_213__OBARG_OBLOC", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_213__OBARG_OBLOC.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_213__OBARG_OBLOC.obj_num = 1;
-  cdat->dobj_213__OBARG_OBLOC.obj_hash = 167583534;
+  cdat->dobj_213__OBARG_OBLOC.obj_hash = 373999941;
   cdat->dobj_213__OBARG_OBLOC.obj_len = 4;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_213__OBARG_OBLOC.obj_vartab =  cdat->dobj_213__OBARG_OBLOC.obj__tabfields;
@@ -50878,7 +50878,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_217__OBARG_BIND", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_217__OBARG_BIND.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_217__OBARG_BIND.obj_num = 2;
-  cdat->dobj_217__OBARG_BIND.obj_hash = 991936966;
+  cdat->dobj_217__OBARG_BIND.obj_hash = 582760769;
   cdat->dobj_217__OBARG_BIND.obj_len = 4;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_217__OBARG_BIND.obj_vartab =  cdat->dobj_217__OBARG_BIND.obj__tabfields;
@@ -50913,7 +50913,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_221__CLASS_OBJPUTXTRARESULT", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_221__CLASS_OBJPUTXTRARESULT.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_221__CLASS_OBJPUTXTRARESULT.obj_num = OBMAG_OBJECT;
-  cdat->dobj_221__CLASS_OBJPUTXTRARESULT.obj_hash = 812257021;
+  cdat->dobj_221__CLASS_OBJPUTXTRARESULT.obj_hash = 25818125;
   cdat->dobj_221__CLASS_OBJPUTXTRARESULT.obj_len = 9;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_221__CLASS_OBJPUTXTRARESULT.obj_vartab =  cdat->dobj_221__CLASS_OBJPUTXTRARESULT.obj__tabfields;
@@ -50956,7 +50956,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_227__OBXRES_RANK", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_227__OBXRES_RANK.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_227__OBXRES_RANK.obj_num = 1;
-  cdat->dobj_227__OBXRES_RANK.obj_hash = 120238413;
+  cdat->dobj_227__OBXRES_RANK.obj_hash = 599476778;
   cdat->dobj_227__OBXRES_RANK.obj_len = 4;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_227__OBXRES_RANK.obj_vartab =  cdat->dobj_227__OBXRES_RANK.obj__tabfields;
@@ -50991,7 +50991,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_231__OBXRES_OBLOC", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_231__OBXRES_OBLOC.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_231__OBXRES_OBLOC.obj_num = 2;
-  cdat->dobj_231__OBXRES_OBLOC.obj_hash = 1000622305;
+  cdat->dobj_231__OBXRES_OBLOC.obj_hash = 277517608;
   cdat->dobj_231__OBXRES_OBLOC.obj_len = 4;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_231__OBXRES_OBLOC.obj_vartab =  cdat->dobj_231__OBXRES_OBLOC.obj__tabfields;
@@ -51026,7 +51026,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_235__CLASS_OBJFINALRETURN", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_235__CLASS_OBJFINALRETURN.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_235__CLASS_OBJFINALRETURN.obj_num = OBMAG_OBJECT;
-  cdat->dobj_235__CLASS_OBJFINALRETURN.obj_hash = 1071522851;
+  cdat->dobj_235__CLASS_OBJFINALRETURN.obj_hash = 661359899;
   cdat->dobj_235__CLASS_OBJFINALRETURN.obj_len = 9;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_235__CLASS_OBJFINALRETURN.obj_vartab =  cdat->dobj_235__CLASS_OBJFINALRETURN.obj__tabfields;
@@ -51069,7 +51069,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_241__CLASS_OBJCLEAR", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_241__CLASS_OBJCLEAR.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_241__CLASS_OBJCLEAR.obj_num = OBMAG_OBJECT;
-  cdat->dobj_241__CLASS_OBJCLEAR.obj_hash = 670199536;
+  cdat->dobj_241__CLASS_OBJCLEAR.obj_hash = 211084320;
   cdat->dobj_241__CLASS_OBJCLEAR.obj_len = 9;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_241__CLASS_OBJCLEAR.obj_vartab =  cdat->dobj_241__CLASS_OBJCLEAR.obj__tabfields;
@@ -51112,7 +51112,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_247__OCLR_VLOC", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_247__OCLR_VLOC.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_247__OCLR_VLOC.obj_num = 1;
-  cdat->dobj_247__OCLR_VLOC.obj_hash = 550939850;
+  cdat->dobj_247__OCLR_VLOC.obj_hash = 17769209;
   cdat->dobj_247__OCLR_VLOC.obj_len = 4;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_247__OCLR_VLOC.obj_vartab =  cdat->dobj_247__OCLR_VLOC.obj__tabfields;
@@ -51147,7 +51147,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_251__CLASS_OBJBLOCK", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_251__CLASS_OBJBLOCK.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_251__CLASS_OBJBLOCK.obj_num = OBMAG_OBJECT;
-  cdat->dobj_251__CLASS_OBJBLOCK.obj_hash = 220415291;
+  cdat->dobj_251__CLASS_OBJBLOCK.obj_hash = 38754870;
   cdat->dobj_251__CLASS_OBJBLOCK.obj_len = 9;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_251__CLASS_OBJBLOCK.obj_vartab =  cdat->dobj_251__CLASS_OBJBLOCK.obj__tabfields;
@@ -51190,7 +51190,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_257__OBLO_BODYL", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_257__OBLO_BODYL.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_257__OBLO_BODYL.obj_num = 1;
-  cdat->dobj_257__OBLO_BODYL.obj_hash = 798462800;
+  cdat->dobj_257__OBLO_BODYL.obj_hash = 955524399;
   cdat->dobj_257__OBLO_BODYL.obj_len = 4;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_257__OBLO_BODYL.obj_vartab =  cdat->dobj_257__OBLO_BODYL.obj__tabfields;
@@ -51225,7 +51225,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_261__OBLO_EPIL", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_261__OBLO_EPIL.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_261__OBLO_EPIL.obj_num = 2;
-  cdat->dobj_261__OBLO_EPIL.obj_hash = 854550456;
+  cdat->dobj_261__OBLO_EPIL.obj_hash = 753352733;
   cdat->dobj_261__OBLO_EPIL.obj_len = 4;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_261__OBLO_EPIL.obj_vartab =  cdat->dobj_261__OBLO_EPIL.obj__tabfields;
@@ -51260,7 +51260,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_265__CLASS_OBJCOMMENTEDBLOCK", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_265__CLASS_OBJCOMMENTEDBLOCK.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_265__CLASS_OBJCOMMENTEDBLOCK.obj_num = OBMAG_OBJECT;
-  cdat->dobj_265__CLASS_OBJCOMMENTEDBLOCK.obj_hash = 321471289;
+  cdat->dobj_265__CLASS_OBJCOMMENTEDBLOCK.obj_hash = 532289022;
   cdat->dobj_265__CLASS_OBJCOMMENTEDBLOCK.obj_len = 9;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_265__CLASS_OBJCOMMENTEDBLOCK.obj_vartab =  cdat->dobj_265__CLASS_OBJCOMMENTEDBLOCK.obj__tabfields;
@@ -51303,7 +51303,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_271__OCOMBLO_COMMENT", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_271__OCOMBLO_COMMENT.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_271__OCOMBLO_COMMENT.obj_num = 3;
-  cdat->dobj_271__OCOMBLO_COMMENT.obj_hash = 717093932;
+  cdat->dobj_271__OCOMBLO_COMMENT.obj_hash = 85524770;
   cdat->dobj_271__OCOMBLO_COMMENT.obj_len = 4;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_271__OCOMBLO_COMMENT.obj_vartab =  cdat->dobj_271__OCOMBLO_COMMENT.obj__tabfields;
@@ -51338,7 +51338,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_275__CLASS_OBJLOOP", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_275__CLASS_OBJLOOP.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_275__CLASS_OBJLOOP.obj_num = OBMAG_OBJECT;
-  cdat->dobj_275__CLASS_OBJLOOP.obj_hash = 1038884659;
+  cdat->dobj_275__CLASS_OBJLOOP.obj_hash = 424611465;
   cdat->dobj_275__CLASS_OBJLOOP.obj_len = 9;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_275__CLASS_OBJLOOP.obj_vartab =  cdat->dobj_275__CLASS_OBJLOOP.obj__tabfields;
@@ -51381,7 +51381,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_281__OBLOOP_LABEL", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_281__OBLOOP_LABEL.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_281__OBLOOP_LABEL.obj_num = 3;
-  cdat->dobj_281__OBLOOP_LABEL.obj_hash = 904460045;
+  cdat->dobj_281__OBLOOP_LABEL.obj_hash = 436106971;
   cdat->dobj_281__OBLOOP_LABEL.obj_len = 4;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_281__OBLOOP_LABEL.obj_vartab =  cdat->dobj_281__OBLOOP_LABEL.obj__tabfields;
@@ -51416,7 +51416,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_285__OBLOOP_RESV", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_285__OBLOOP_RESV.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_285__OBLOOP_RESV.obj_num = 4;
-  cdat->dobj_285__OBLOOP_RESV.obj_hash = 986743155;
+  cdat->dobj_285__OBLOOP_RESV.obj_hash = 798879885;
   cdat->dobj_285__OBLOOP_RESV.obj_len = 4;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_285__OBLOOP_RESV.obj_vartab =  cdat->dobj_285__OBLOOP_RESV.obj__tabfields;
@@ -51451,7 +51451,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_289__CLASS_OBJEXIT", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_289__CLASS_OBJEXIT.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_289__CLASS_OBJEXIT.obj_num = OBMAG_OBJECT;
-  cdat->dobj_289__CLASS_OBJEXIT.obj_hash = 805001807;
+  cdat->dobj_289__CLASS_OBJEXIT.obj_hash = 840220076;
   cdat->dobj_289__CLASS_OBJEXIT.obj_len = 9;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_289__CLASS_OBJEXIT.obj_vartab =  cdat->dobj_289__CLASS_OBJEXIT.obj__tabfields;
@@ -51494,7 +51494,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_295__OBEXIT_LABEL", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_295__OBEXIT_LABEL.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_295__OBEXIT_LABEL.obj_num = 1;
-  cdat->dobj_295__OBEXIT_LABEL.obj_hash = 673686671;
+  cdat->dobj_295__OBEXIT_LABEL.obj_hash = 880920206;
   cdat->dobj_295__OBEXIT_LABEL.obj_len = 4;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_295__OBEXIT_LABEL.obj_vartab =  cdat->dobj_295__OBEXIT_LABEL.obj__tabfields;
@@ -51529,7 +51529,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_299__CLASS_OBJCOND", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_299__CLASS_OBJCOND.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_299__CLASS_OBJCOND.obj_num = OBMAG_OBJECT;
-  cdat->dobj_299__CLASS_OBJCOND.obj_hash = 803491608;
+  cdat->dobj_299__CLASS_OBJCOND.obj_hash = 73674971;
   cdat->dobj_299__CLASS_OBJCOND.obj_len = 9;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_299__CLASS_OBJCOND.obj_vartab =  cdat->dobj_299__CLASS_OBJCOND.obj__tabfields;
@@ -51572,7 +51572,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_305__OBCOND_TEST", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_305__OBCOND_TEST.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_305__OBCOND_TEST.obj_num = 1;
-  cdat->dobj_305__OBCOND_TEST.obj_hash = 1045635063;
+  cdat->dobj_305__OBCOND_TEST.obj_hash = 91710687;
   cdat->dobj_305__OBCOND_TEST.obj_len = 4;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_305__OBCOND_TEST.obj_vartab =  cdat->dobj_305__OBCOND_TEST.obj__tabfields;
@@ -51607,7 +51607,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_309__OBCOND_THEN", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_309__OBCOND_THEN.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_309__OBCOND_THEN.obj_num = 2;
-  cdat->dobj_309__OBCOND_THEN.obj_hash = 84533336;
+  cdat->dobj_309__OBCOND_THEN.obj_hash = 882350018;
   cdat->dobj_309__OBCOND_THEN.obj_len = 4;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_309__OBCOND_THEN.obj_vartab =  cdat->dobj_309__OBCOND_THEN.obj__tabfields;
@@ -51642,7 +51642,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_313__OBCOND_ELSE", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_313__OBCOND_ELSE.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_313__OBCOND_ELSE.obj_num = 3;
-  cdat->dobj_313__OBCOND_ELSE.obj_hash = 522338681;
+  cdat->dobj_313__OBCOND_ELSE.obj_hash = 817736739;
   cdat->dobj_313__OBCOND_ELSE.obj_len = 4;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_313__OBCOND_ELSE.obj_vartab =  cdat->dobj_313__OBCOND_ELSE.obj__tabfields;
@@ -51677,7 +51677,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_317__CLASS_OBJCPPIF", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_317__CLASS_OBJCPPIF.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_317__CLASS_OBJCPPIF.obj_num = OBMAG_OBJECT;
-  cdat->dobj_317__CLASS_OBJCPPIF.obj_hash = 165215947;
+  cdat->dobj_317__CLASS_OBJCPPIF.obj_hash = 687220678;
   cdat->dobj_317__CLASS_OBJCPPIF.obj_len = 9;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_317__CLASS_OBJCPPIF.obj_vartab =  cdat->dobj_317__CLASS_OBJCPPIF.obj__tabfields;
@@ -51720,7 +51720,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_323__OBIFP_COND", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_323__OBIFP_COND.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_323__OBIFP_COND.obj_num = 1;
-  cdat->dobj_323__OBIFP_COND.obj_hash = 1073578985;
+  cdat->dobj_323__OBIFP_COND.obj_hash = 931690439;
   cdat->dobj_323__OBIFP_COND.obj_len = 4;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_323__OBIFP_COND.obj_vartab =  cdat->dobj_323__OBIFP_COND.obj__tabfields;
@@ -51755,7 +51755,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_327__OBIFP_THEN", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_327__OBIFP_THEN.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_327__OBIFP_THEN.obj_num = 2;
-  cdat->dobj_327__OBIFP_THEN.obj_hash = 716166919;
+  cdat->dobj_327__OBIFP_THEN.obj_hash = 514632629;
   cdat->dobj_327__OBIFP_THEN.obj_len = 4;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_327__OBIFP_THEN.obj_vartab =  cdat->dobj_327__OBIFP_THEN.obj__tabfields;
@@ -51790,7 +51790,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_331__OBIFP_ELSE", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_331__OBIFP_ELSE.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_331__OBIFP_ELSE.obj_num = 3;
-  cdat->dobj_331__OBIFP_ELSE.obj_hash = 86357068;
+  cdat->dobj_331__OBIFP_ELSE.obj_hash = 783803612;
   cdat->dobj_331__OBIFP_ELSE.obj_len = 4;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_331__OBIFP_ELSE.obj_vartab =  cdat->dobj_331__OBIFP_ELSE.obj__tabfields;
@@ -51825,7 +51825,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_335__CLASS_OBJINTERNCOMMON", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_335__CLASS_OBJINTERNCOMMON.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_335__CLASS_OBJINTERNCOMMON.obj_num = OBMAG_OBJECT;
-  cdat->dobj_335__CLASS_OBJINTERNCOMMON.obj_hash = 191667654;
+  cdat->dobj_335__CLASS_OBJINTERNCOMMON.obj_hash = 228528552;
   cdat->dobj_335__CLASS_OBJINTERNCOMMON.obj_len = 9;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_335__CLASS_OBJINTERNCOMMON.obj_vartab =  cdat->dobj_335__CLASS_OBJINTERNCOMMON.obj__tabfields;
@@ -51868,7 +51868,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_341__OBINTERN_IOBJ", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_341__OBINTERN_IOBJ.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_341__OBINTERN_IOBJ.obj_num = 1;
-  cdat->dobj_341__OBINTERN_IOBJ.obj_hash = 45816098;
+  cdat->dobj_341__OBINTERN_IOBJ.obj_hash = 151700182;
   cdat->dobj_341__OBINTERN_IOBJ.obj_len = 4;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_341__OBINTERN_IOBJ.obj_vartab =  cdat->dobj_341__OBINTERN_IOBJ.obj__tabfields;
@@ -51903,7 +51903,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_345__CLASS_OBJINTERNSYMBOL", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_345__CLASS_OBJINTERNSYMBOL.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_345__CLASS_OBJINTERNSYMBOL.obj_num = OBMAG_OBJECT;
-  cdat->dobj_345__CLASS_OBJINTERNSYMBOL.obj_hash = 777948279;
+  cdat->dobj_345__CLASS_OBJINTERNSYMBOL.obj_hash = 697471388;
   cdat->dobj_345__CLASS_OBJINTERNSYMBOL.obj_len = 9;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_345__CLASS_OBJINTERNSYMBOL.obj_vartab =  cdat->dobj_345__CLASS_OBJINTERNSYMBOL.obj__tabfields;
@@ -51946,7 +51946,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_351__CLASS_OBJINTERNKEYWORD", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_351__CLASS_OBJINTERNKEYWORD.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_351__CLASS_OBJINTERNKEYWORD.obj_num = OBMAG_OBJECT;
-  cdat->dobj_351__CLASS_OBJINTERNKEYWORD.obj_hash = 543644246;
+  cdat->dobj_351__CLASS_OBJINTERNKEYWORD.obj_hash = 232070490;
   cdat->dobj_351__CLASS_OBJINTERNKEYWORD.obj_len = 9;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_351__CLASS_OBJINTERNKEYWORD.obj_vartab =  cdat->dobj_351__CLASS_OBJINTERNKEYWORD.obj__tabfields;
@@ -51989,7 +51989,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_357__CLASS_OBJGETNAMEDCOMMON", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_357__CLASS_OBJGETNAMEDCOMMON.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_357__CLASS_OBJGETNAMEDCOMMON.obj_num = OBMAG_OBJECT;
-  cdat->dobj_357__CLASS_OBJGETNAMEDCOMMON.obj_hash = 664669558;
+  cdat->dobj_357__CLASS_OBJGETNAMEDCOMMON.obj_hash = 496958673;
   cdat->dobj_357__CLASS_OBJGETNAMEDCOMMON.obj_len = 9;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_357__CLASS_OBJGETNAMEDCOMMON.obj_vartab =  cdat->dobj_357__CLASS_OBJGETNAMEDCOMMON.obj__tabfields;
@@ -52032,7 +52032,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_363__OBGNAMED_IOBJ", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_363__OBGNAMED_IOBJ.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_363__OBGNAMED_IOBJ.obj_num = 1;
-  cdat->dobj_363__OBGNAMED_IOBJ.obj_hash = 332083001;
+  cdat->dobj_363__OBGNAMED_IOBJ.obj_hash = 197270611;
   cdat->dobj_363__OBGNAMED_IOBJ.obj_len = 4;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_363__OBGNAMED_IOBJ.obj_vartab =  cdat->dobj_363__OBGNAMED_IOBJ.obj__tabfields;
@@ -52067,7 +52067,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_367__CLASS_OBJGETNAMEDSYMBOL", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_367__CLASS_OBJGETNAMEDSYMBOL.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_367__CLASS_OBJGETNAMEDSYMBOL.obj_num = OBMAG_OBJECT;
-  cdat->dobj_367__CLASS_OBJGETNAMEDSYMBOL.obj_hash = 939078878;
+  cdat->dobj_367__CLASS_OBJGETNAMEDSYMBOL.obj_hash = 254626177;
   cdat->dobj_367__CLASS_OBJGETNAMEDSYMBOL.obj_len = 9;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_367__CLASS_OBJGETNAMEDSYMBOL.obj_vartab =  cdat->dobj_367__CLASS_OBJGETNAMEDSYMBOL.obj__tabfields;
@@ -52110,7 +52110,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_373__CLASS_OBJGETNAMEDKEYWORD", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_373__CLASS_OBJGETNAMEDKEYWORD.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_373__CLASS_OBJGETNAMEDKEYWORD.obj_num = OBMAG_OBJECT;
-  cdat->dobj_373__CLASS_OBJGETNAMEDKEYWORD.obj_hash = 475030340;
+  cdat->dobj_373__CLASS_OBJGETNAMEDKEYWORD.obj_hash = 334505043;
   cdat->dobj_373__CLASS_OBJGETNAMEDKEYWORD.obj_len = 9;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_373__CLASS_OBJGETNAMEDKEYWORD.obj_vartab =  cdat->dobj_373__CLASS_OBJGETNAMEDKEYWORD.obj__tabfields;
@@ -52153,7 +52153,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_379__CLASS_OBJAPPLY", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_379__CLASS_OBJAPPLY.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_379__CLASS_OBJAPPLY.obj_num = OBMAG_OBJECT;
-  cdat->dobj_379__CLASS_OBJAPPLY.obj_hash = 598915491;
+  cdat->dobj_379__CLASS_OBJAPPLY.obj_hash = 483528127;
   cdat->dobj_379__CLASS_OBJAPPLY.obj_len = 9;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_379__CLASS_OBJAPPLY.obj_vartab =  cdat->dobj_379__CLASS_OBJAPPLY.obj__tabfields;
@@ -52196,7 +52196,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_385__OBAPP_CLOS", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_385__OBAPP_CLOS.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_385__OBAPP_CLOS.obj_num = 2;
-  cdat->dobj_385__OBAPP_CLOS.obj_hash = 330308369;
+  cdat->dobj_385__OBAPP_CLOS.obj_hash = 1071395359;
   cdat->dobj_385__OBAPP_CLOS.obj_len = 4;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_385__OBAPP_CLOS.obj_vartab =  cdat->dobj_385__OBAPP_CLOS.obj__tabfields;
@@ -52231,7 +52231,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_389__OBAPP_ARGS", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_389__OBAPP_ARGS.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_389__OBAPP_ARGS.obj_num = 3;
-  cdat->dobj_389__OBAPP_ARGS.obj_hash = 573488031;
+  cdat->dobj_389__OBAPP_ARGS.obj_hash = 922999532;
   cdat->dobj_389__OBAPP_ARGS.obj_len = 4;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_389__OBAPP_ARGS.obj_vartab =  cdat->dobj_389__OBAPP_ARGS.obj__tabfields;
@@ -52266,7 +52266,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_393__CLASS_OBJMULTIAPPLY", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_393__CLASS_OBJMULTIAPPLY.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_393__CLASS_OBJMULTIAPPLY.obj_num = OBMAG_OBJECT;
-  cdat->dobj_393__CLASS_OBJMULTIAPPLY.obj_hash = 322872332;
+  cdat->dobj_393__CLASS_OBJMULTIAPPLY.obj_hash = 757961256;
   cdat->dobj_393__CLASS_OBJMULTIAPPLY.obj_len = 9;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_393__CLASS_OBJMULTIAPPLY.obj_vartab =  cdat->dobj_393__CLASS_OBJMULTIAPPLY.obj__tabfields;
@@ -52309,7 +52309,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_399__OBMULTAPP_XRES", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_399__OBMULTAPP_XRES.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_399__OBMULTAPP_XRES.obj_num = 4;
-  cdat->dobj_399__OBMULTAPP_XRES.obj_hash = 254517688;
+  cdat->dobj_399__OBMULTAPP_XRES.obj_hash = 931254316;
   cdat->dobj_399__OBMULTAPP_XRES.obj_len = 4;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_399__OBMULTAPP_XRES.obj_vartab =  cdat->dobj_399__OBMULTAPP_XRES.obj__tabfields;
@@ -52344,7 +52344,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_403__CLASS_OBJMSEND", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_403__CLASS_OBJMSEND.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_403__CLASS_OBJMSEND.obj_num = OBMAG_OBJECT;
-  cdat->dobj_403__CLASS_OBJMSEND.obj_hash = 646516751;
+  cdat->dobj_403__CLASS_OBJMSEND.obj_hash = 870722990;
   cdat->dobj_403__CLASS_OBJMSEND.obj_len = 9;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_403__CLASS_OBJMSEND.obj_vartab =  cdat->dobj_403__CLASS_OBJMSEND.obj__tabfields;
@@ -52387,7 +52387,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_409__OBMSND_SEL", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_409__OBMSND_SEL.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_409__OBMSND_SEL.obj_num = 2;
-  cdat->dobj_409__OBMSND_SEL.obj_hash = 859396303;
+  cdat->dobj_409__OBMSND_SEL.obj_hash = 1022162743;
   cdat->dobj_409__OBMSND_SEL.obj_len = 4;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_409__OBMSND_SEL.obj_vartab =  cdat->dobj_409__OBMSND_SEL.obj__tabfields;
@@ -52422,7 +52422,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_413__OBMSND_RECV", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_413__OBMSND_RECV.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_413__OBMSND_RECV.obj_num = 3;
-  cdat->dobj_413__OBMSND_RECV.obj_hash = 27363258;
+  cdat->dobj_413__OBMSND_RECV.obj_hash = 1027495846;
   cdat->dobj_413__OBMSND_RECV.obj_len = 4;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_413__OBMSND_RECV.obj_vartab =  cdat->dobj_413__OBMSND_RECV.obj__tabfields;
@@ -52457,7 +52457,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_417__OBMSND_ARGS", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_417__OBMSND_ARGS.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_417__OBMSND_ARGS.obj_num = 4;
-  cdat->dobj_417__OBMSND_ARGS.obj_hash = 123294774;
+  cdat->dobj_417__OBMSND_ARGS.obj_hash = 728802771;
   cdat->dobj_417__OBMSND_ARGS.obj_len = 4;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_417__OBMSND_ARGS.obj_vartab =  cdat->dobj_417__OBMSND_ARGS.obj__tabfields;
@@ -52492,7 +52492,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_421__CLASS_OBJMULTIMSEND", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_421__CLASS_OBJMULTIMSEND.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_421__CLASS_OBJMULTIMSEND.obj_num = OBMAG_OBJECT;
-  cdat->dobj_421__CLASS_OBJMULTIMSEND.obj_hash = 737654682;
+  cdat->dobj_421__CLASS_OBJMULTIMSEND.obj_hash = 160691621;
   cdat->dobj_421__CLASS_OBJMULTIMSEND.obj_len = 9;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_421__CLASS_OBJMULTIMSEND.obj_vartab =  cdat->dobj_421__CLASS_OBJMULTIMSEND.obj__tabfields;
@@ -52535,7 +52535,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_427__OBMULTSND_XRES", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_427__OBMULTSND_XRES.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_427__OBMULTSND_XRES.obj_num = 5;
-  cdat->dobj_427__OBMULTSND_XRES.obj_hash = 614024108;
+  cdat->dobj_427__OBMULTSND_XRES.obj_hash = 105341607;
   cdat->dobj_427__OBMULTSND_XRES.obj_len = 4;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_427__OBMULTSND_XRES.obj_vartab =  cdat->dobj_427__OBMULTSND_XRES.obj__tabfields;
@@ -52570,7 +52570,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_431__CLASS_OBJRAWALLOCOBJ", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_431__CLASS_OBJRAWALLOCOBJ.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_431__CLASS_OBJRAWALLOCOBJ.obj_num = OBMAG_OBJECT;
-  cdat->dobj_431__CLASS_OBJRAWALLOCOBJ.obj_hash = 363983680;
+  cdat->dobj_431__CLASS_OBJRAWALLOCOBJ.obj_hash = 986271929;
   cdat->dobj_431__CLASS_OBJRAWALLOCOBJ.obj_len = 9;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_431__CLASS_OBJRAWALLOCOBJ.obj_vartab =  cdat->dobj_431__CLASS_OBJRAWALLOCOBJ.obj__tabfields;
@@ -52613,7 +52613,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_437__OBRALLOBJ_CLASS", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_437__OBRALLOBJ_CLASS.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_437__OBRALLOBJ_CLASS.obj_num = 2;
-  cdat->dobj_437__OBRALLOBJ_CLASS.obj_hash = 408420727;
+  cdat->dobj_437__OBRALLOBJ_CLASS.obj_hash = 953827284;
   cdat->dobj_437__OBRALLOBJ_CLASS.obj_len = 4;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_437__OBRALLOBJ_CLASS.obj_vartab =  cdat->dobj_437__OBRALLOBJ_CLASS.obj__tabfields;
@@ -52648,7 +52648,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_441__OBRALLOBJ_LEN", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_441__OBRALLOBJ_LEN.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_441__OBRALLOBJ_LEN.obj_num = 3;
-  cdat->dobj_441__OBRALLOBJ_LEN.obj_hash = 792267708;
+  cdat->dobj_441__OBRALLOBJ_LEN.obj_hash = 868980076;
   cdat->dobj_441__OBRALLOBJ_LEN.obj_len = 4;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_441__OBRALLOBJ_LEN.obj_vartab =  cdat->dobj_441__OBRALLOBJ_LEN.obj__tabfields;
@@ -52683,7 +52683,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_445__CLASS_OBJNEWCLOSURE", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_445__CLASS_OBJNEWCLOSURE.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_445__CLASS_OBJNEWCLOSURE.obj_num = OBMAG_OBJECT;
-  cdat->dobj_445__CLASS_OBJNEWCLOSURE.obj_hash = 894942165;
+  cdat->dobj_445__CLASS_OBJNEWCLOSURE.obj_hash = 139263141;
   cdat->dobj_445__CLASS_OBJNEWCLOSURE.obj_len = 9;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_445__CLASS_OBJNEWCLOSURE.obj_vartab =  cdat->dobj_445__CLASS_OBJNEWCLOSURE.obj__tabfields;
@@ -52726,7 +52726,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_451__OBNCLO_DISCR", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_451__OBNCLO_DISCR.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_451__OBNCLO_DISCR.obj_num = 2;
-  cdat->dobj_451__OBNCLO_DISCR.obj_hash = 203062324;
+  cdat->dobj_451__OBNCLO_DISCR.obj_hash = 697733587;
   cdat->dobj_451__OBNCLO_DISCR.obj_len = 4;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_451__OBNCLO_DISCR.obj_vartab =  cdat->dobj_451__OBNCLO_DISCR.obj__tabfields;
@@ -52761,7 +52761,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_455__OBNCLO_ROUT", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_455__OBNCLO_ROUT.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_455__OBNCLO_ROUT.obj_num = 3;
-  cdat->dobj_455__OBNCLO_ROUT.obj_hash = 840468688;
+  cdat->dobj_455__OBNCLO_ROUT.obj_hash = 750605130;
   cdat->dobj_455__OBNCLO_ROUT.obj_len = 4;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_455__OBNCLO_ROUT.obj_vartab =  cdat->dobj_455__OBNCLO_ROUT.obj__tabfields;
@@ -52796,7 +52796,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_459__OBNCLO_LEN", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_459__OBNCLO_LEN.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_459__OBNCLO_LEN.obj_num = 4;
-  cdat->dobj_459__OBNCLO_LEN.obj_hash = 959201564;
+  cdat->dobj_459__OBNCLO_LEN.obj_hash = 966676921;
   cdat->dobj_459__OBNCLO_LEN.obj_len = 4;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_459__OBNCLO_LEN.obj_vartab =  cdat->dobj_459__OBNCLO_LEN.obj__tabfields;
@@ -52831,7 +52831,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_463__CLASS_OBJPUTUPLE", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_463__CLASS_OBJPUTUPLE.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_463__CLASS_OBJPUTUPLE.obj_num = OBMAG_OBJECT;
-  cdat->dobj_463__CLASS_OBJPUTUPLE.obj_hash = 749675080;
+  cdat->dobj_463__CLASS_OBJPUTUPLE.obj_hash = 336017809;
   cdat->dobj_463__CLASS_OBJPUTUPLE.obj_len = 9;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_463__CLASS_OBJPUTUPLE.obj_vartab =  cdat->dobj_463__CLASS_OBJPUTUPLE.obj__tabfields;
@@ -52874,7 +52874,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_469__OPUTU_TUPLED", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_469__OPUTU_TUPLED.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_469__OPUTU_TUPLED.obj_num = 1;
-  cdat->dobj_469__OPUTU_TUPLED.obj_hash = 347611406;
+  cdat->dobj_469__OPUTU_TUPLED.obj_hash = 523741334;
   cdat->dobj_469__OPUTU_TUPLED.obj_len = 4;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_469__OPUTU_TUPLED.obj_vartab =  cdat->dobj_469__OPUTU_TUPLED.obj__tabfields;
@@ -52909,7 +52909,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_473__OPUTU_OFFSET", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_473__OPUTU_OFFSET.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_473__OPUTU_OFFSET.obj_num = 2;
-  cdat->dobj_473__OPUTU_OFFSET.obj_hash = 100156850;
+  cdat->dobj_473__OPUTU_OFFSET.obj_hash = 924030528;
   cdat->dobj_473__OPUTU_OFFSET.obj_len = 4;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_473__OPUTU_OFFSET.obj_vartab =  cdat->dobj_473__OPUTU_OFFSET.obj__tabfields;
@@ -52944,7 +52944,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_477__OPUTU_VALUE", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_477__OPUTU_VALUE.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_477__OPUTU_VALUE.obj_num = 3;
-  cdat->dobj_477__OPUTU_VALUE.obj_hash = 414957088;
+  cdat->dobj_477__OPUTU_VALUE.obj_hash = 1047889590;
   cdat->dobj_477__OPUTU_VALUE.obj_len = 4;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_477__OPUTU_VALUE.obj_vartab =  cdat->dobj_477__OPUTU_VALUE.obj__tabfields;
@@ -52979,7 +52979,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_481__CLASS_OBJPUTSLOT", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_481__CLASS_OBJPUTSLOT.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_481__CLASS_OBJPUTSLOT.obj_num = OBMAG_OBJECT;
-  cdat->dobj_481__CLASS_OBJPUTSLOT.obj_hash = 819208478;
+  cdat->dobj_481__CLASS_OBJPUTSLOT.obj_hash = 924114427;
   cdat->dobj_481__CLASS_OBJPUTSLOT.obj_len = 9;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_481__CLASS_OBJPUTSLOT.obj_vartab =  cdat->dobj_481__CLASS_OBJPUTSLOT.obj__tabfields;
@@ -53022,7 +53022,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_487__OSLOT_ODATA", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_487__OSLOT_ODATA.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_487__OSLOT_ODATA.obj_num = 1;
-  cdat->dobj_487__OSLOT_ODATA.obj_hash = 855845119;
+  cdat->dobj_487__OSLOT_ODATA.obj_hash = 426203327;
   cdat->dobj_487__OSLOT_ODATA.obj_len = 4;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_487__OSLOT_ODATA.obj_vartab =  cdat->dobj_487__OSLOT_ODATA.obj__tabfields;
@@ -53057,7 +53057,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_491__OSLOT_OFFSET", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_491__OSLOT_OFFSET.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_491__OSLOT_OFFSET.obj_num = 2;
-  cdat->dobj_491__OSLOT_OFFSET.obj_hash = 117807489;
+  cdat->dobj_491__OSLOT_OFFSET.obj_hash = 557576936;
   cdat->dobj_491__OSLOT_OFFSET.obj_len = 4;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_491__OSLOT_OFFSET.obj_vartab =  cdat->dobj_491__OSLOT_OFFSET.obj__tabfields;
@@ -53092,7 +53092,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_495__OSLOT_FIELD", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_495__OSLOT_FIELD.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_495__OSLOT_FIELD.obj_num = 3;
-  cdat->dobj_495__OSLOT_FIELD.obj_hash = 166281501;
+  cdat->dobj_495__OSLOT_FIELD.obj_hash = 1722898;
   cdat->dobj_495__OSLOT_FIELD.obj_len = 4;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_495__OSLOT_FIELD.obj_vartab =  cdat->dobj_495__OSLOT_FIELD.obj__tabfields;
@@ -53127,7 +53127,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_499__OSLOT_VALUE", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_499__OSLOT_VALUE.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_499__OSLOT_VALUE.obj_num = 4;
-  cdat->dobj_499__OSLOT_VALUE.obj_hash = 851210348;
+  cdat->dobj_499__OSLOT_VALUE.obj_hash = 559587463;
   cdat->dobj_499__OSLOT_VALUE.obj_len = 4;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_499__OSLOT_VALUE.obj_vartab =  cdat->dobj_499__OSLOT_VALUE.obj__tabfields;
@@ -53162,7 +53162,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_503__CLASS_OBJGETSLOT", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_503__CLASS_OBJGETSLOT.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_503__CLASS_OBJGETSLOT.obj_num = OBMAG_OBJECT;
-  cdat->dobj_503__CLASS_OBJGETSLOT.obj_hash = 503669222;
+  cdat->dobj_503__CLASS_OBJGETSLOT.obj_hash = 814925544;
   cdat->dobj_503__CLASS_OBJGETSLOT.obj_len = 9;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_503__CLASS_OBJGETSLOT.obj_vartab =  cdat->dobj_503__CLASS_OBJGETSLOT.obj__tabfields;
@@ -53205,7 +53205,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_509__OGETSL_OBJ", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_509__OGETSL_OBJ.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_509__OGETSL_OBJ.obj_num = 2;
-  cdat->dobj_509__OGETSL_OBJ.obj_hash = 247797636;
+  cdat->dobj_509__OGETSL_OBJ.obj_hash = 632614866;
   cdat->dobj_509__OGETSL_OBJ.obj_len = 4;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_509__OGETSL_OBJ.obj_vartab =  cdat->dobj_509__OGETSL_OBJ.obj__tabfields;
@@ -53240,7 +53240,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_513__OGETSL_FIELD", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_513__OGETSL_FIELD.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_513__OGETSL_FIELD.obj_num = 3;
-  cdat->dobj_513__OGETSL_FIELD.obj_hash = 280307189;
+  cdat->dobj_513__OGETSL_FIELD.obj_hash = 737456269;
   cdat->dobj_513__OGETSL_FIELD.obj_len = 4;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_513__OGETSL_FIELD.obj_vartab =  cdat->dobj_513__OGETSL_FIELD.obj__tabfields;
@@ -53275,7 +53275,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_517__CLASS_OBJPUTCLOSUROUT", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_517__CLASS_OBJPUTCLOSUROUT.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_517__CLASS_OBJPUTCLOSUROUT.obj_num = OBMAG_OBJECT;
-  cdat->dobj_517__CLASS_OBJPUTCLOSUROUT.obj_hash = 607776694;
+  cdat->dobj_517__CLASS_OBJPUTCLOSUROUT.obj_hash = 989012361;
   cdat->dobj_517__CLASS_OBJPUTCLOSUROUT.obj_len = 9;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_517__CLASS_OBJPUTCLOSUROUT.obj_vartab =  cdat->dobj_517__CLASS_OBJPUTCLOSUROUT.obj__tabfields;
@@ -53318,7 +53318,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_523__OPCLOR_CLOS", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_523__OPCLOR_CLOS.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_523__OPCLOR_CLOS.obj_num = 1;
-  cdat->dobj_523__OPCLOR_CLOS.obj_hash = 137813024;
+  cdat->dobj_523__OPCLOR_CLOS.obj_hash = 930599264;
   cdat->dobj_523__OPCLOR_CLOS.obj_len = 4;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_523__OPCLOR_CLOS.obj_vartab =  cdat->dobj_523__OPCLOR_CLOS.obj__tabfields;
@@ -53353,7 +53353,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_527__OPCLOR_ROUT", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_527__OPCLOR_ROUT.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_527__OPCLOR_ROUT.obj_num = 2;
-  cdat->dobj_527__OPCLOR_ROUT.obj_hash = 261624274;
+  cdat->dobj_527__OPCLOR_ROUT.obj_hash = 993732622;
   cdat->dobj_527__OPCLOR_ROUT.obj_len = 4;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_527__OPCLOR_ROUT.obj_vartab =  cdat->dobj_527__OPCLOR_ROUT.obj__tabfields;
@@ -53388,7 +53388,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_531__CLASS_OBJPUTCLOSEDV", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_531__CLASS_OBJPUTCLOSEDV.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_531__CLASS_OBJPUTCLOSEDV.obj_num = OBMAG_OBJECT;
-  cdat->dobj_531__CLASS_OBJPUTCLOSEDV.obj_hash = 125993779;
+  cdat->dobj_531__CLASS_OBJPUTCLOSEDV.obj_hash = 28614418;
   cdat->dobj_531__CLASS_OBJPUTCLOSEDV.obj_len = 9;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_531__CLASS_OBJPUTCLOSEDV.obj_vartab =  cdat->dobj_531__CLASS_OBJPUTCLOSEDV.obj__tabfields;
@@ -53431,7 +53431,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_537__OPCLOV_CLOS", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_537__OPCLOV_CLOS.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_537__OPCLOV_CLOS.obj_num = 1;
-  cdat->dobj_537__OPCLOV_CLOS.obj_hash = 586020401;
+  cdat->dobj_537__OPCLOV_CLOS.obj_hash = 82750135;
   cdat->dobj_537__OPCLOV_CLOS.obj_len = 4;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_537__OPCLOV_CLOS.obj_vartab =  cdat->dobj_537__OPCLOV_CLOS.obj__tabfields;
@@ -53466,7 +53466,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_541__OPCLOV_OFF", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_541__OPCLOV_OFF.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_541__OPCLOV_OFF.obj_num = 2;
-  cdat->dobj_541__OPCLOV_OFF.obj_hash = 715082018;
+  cdat->dobj_541__OPCLOV_OFF.obj_hash = 332014031;
   cdat->dobj_541__OPCLOV_OFF.obj_len = 4;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_541__OPCLOV_OFF.obj_vartab =  cdat->dobj_541__OPCLOV_OFF.obj__tabfields;
@@ -53501,7 +53501,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_545__OPCLOV_CVAL", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_545__OPCLOV_CVAL.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_545__OPCLOV_CVAL.obj_num = 3;
-  cdat->dobj_545__OPCLOV_CVAL.obj_hash = 599030708;
+  cdat->dobj_545__OPCLOV_CVAL.obj_hash = 842808990;
   cdat->dobj_545__OPCLOV_CVAL.obj_len = 4;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_545__OPCLOV_CVAL.obj_vartab =  cdat->dobj_545__OPCLOV_CVAL.obj__tabfields;
@@ -53536,7 +53536,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_549__CLASS_OBJPUTCLOSEDNOTNULLV", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_549__CLASS_OBJPUTCLOSEDNOTNULLV.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_549__CLASS_OBJPUTCLOSEDNOTNULLV.obj_num = OBMAG_OBJECT;
-  cdat->dobj_549__CLASS_OBJPUTCLOSEDNOTNULLV.obj_hash = 1040071080;
+  cdat->dobj_549__CLASS_OBJPUTCLOSEDNOTNULLV.obj_hash = 3258321;
   cdat->dobj_549__CLASS_OBJPUTCLOSEDNOTNULLV.obj_len = 9;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_549__CLASS_OBJPUTCLOSEDNOTNULLV.obj_vartab =  cdat->dobj_549__CLASS_OBJPUTCLOSEDNOTNULLV.obj__tabfields;
@@ -53579,7 +53579,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_555__CLASS_OBJPUTROUTCONST", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_555__CLASS_OBJPUTROUTCONST.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_555__CLASS_OBJPUTROUTCONST.obj_num = OBMAG_OBJECT;
-  cdat->dobj_555__CLASS_OBJPUTROUTCONST.obj_hash = 988059627;
+  cdat->dobj_555__CLASS_OBJPUTROUTCONST.obj_hash = 268933739;
   cdat->dobj_555__CLASS_OBJPUTROUTCONST.obj_len = 9;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_555__CLASS_OBJPUTROUTCONST.obj_vartab =  cdat->dobj_555__CLASS_OBJPUTROUTCONST.obj__tabfields;
@@ -53622,7 +53622,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_561__OPRCONST_ROUT", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_561__OPRCONST_ROUT.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_561__OPRCONST_ROUT.obj_num = 1;
-  cdat->dobj_561__OPRCONST_ROUT.obj_hash = 819311176;
+  cdat->dobj_561__OPRCONST_ROUT.obj_hash = 960258173;
   cdat->dobj_561__OPRCONST_ROUT.obj_len = 4;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_561__OPRCONST_ROUT.obj_vartab =  cdat->dobj_561__OPRCONST_ROUT.obj__tabfields;
@@ -53657,7 +53657,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_565__OPRCONST_OFF", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_565__OPRCONST_OFF.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_565__OPRCONST_OFF.obj_num = 2;
-  cdat->dobj_565__OPRCONST_OFF.obj_hash = 412894726;
+  cdat->dobj_565__OPRCONST_OFF.obj_hash = 493340716;
   cdat->dobj_565__OPRCONST_OFF.obj_len = 4;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_565__OPRCONST_OFF.obj_vartab =  cdat->dobj_565__OPRCONST_OFF.obj__tabfields;
@@ -53692,7 +53692,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_569__OPRCONST_CVAL", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_569__OPRCONST_CVAL.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_569__OPRCONST_CVAL.obj_num = 3;
-  cdat->dobj_569__OPRCONST_CVAL.obj_hash = 335723271;
+  cdat->dobj_569__OPRCONST_CVAL.obj_hash = 1065239330;
   cdat->dobj_569__OPRCONST_CVAL.obj_len = 4;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_569__OPRCONST_CVAL.obj_vartab =  cdat->dobj_569__OPRCONST_CVAL.obj__tabfields;
@@ -53727,7 +53727,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_573__CLASS_OBJPUTROUTCONSTNOTNULL", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_573__CLASS_OBJPUTROUTCONSTNOTNULL.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_573__CLASS_OBJPUTROUTCONSTNOTNULL.obj_num = OBMAG_OBJECT;
-  cdat->dobj_573__CLASS_OBJPUTROUTCONSTNOTNULL.obj_hash = 186860152;
+  cdat->dobj_573__CLASS_OBJPUTROUTCONSTNOTNULL.obj_hash = 710851189;
   cdat->dobj_573__CLASS_OBJPUTROUTCONSTNOTNULL.obj_len = 9;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_573__CLASS_OBJPUTROUTCONSTNOTNULL.obj_vartab =  cdat->dobj_573__CLASS_OBJPUTROUTCONSTNOTNULL.obj__tabfields;
@@ -53770,7 +53770,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_579__CLASS_OBJTOUCH", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_579__CLASS_OBJTOUCH.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_579__CLASS_OBJTOUCH.obj_num = OBMAG_OBJECT;
-  cdat->dobj_579__CLASS_OBJTOUCH.obj_hash = 988000676;
+  cdat->dobj_579__CLASS_OBJTOUCH.obj_hash = 1000075428;
   cdat->dobj_579__CLASS_OBJTOUCH.obj_len = 9;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_579__CLASS_OBJTOUCH.obj_vartab =  cdat->dobj_579__CLASS_OBJTOUCH.obj__tabfields;
@@ -53813,7 +53813,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_585__OTOUCH_VAL", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_585__OTOUCH_VAL.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_585__OTOUCH_VAL.obj_num = 1;
-  cdat->dobj_585__OTOUCH_VAL.obj_hash = 935132252;
+  cdat->dobj_585__OTOUCH_VAL.obj_hash = 737142716;
   cdat->dobj_585__OTOUCH_VAL.obj_len = 4;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_585__OTOUCH_VAL.obj_vartab =  cdat->dobj_585__OTOUCH_VAL.obj__tabfields;
@@ -53848,7 +53848,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_589__OTOUCH_COMMENT", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_589__OTOUCH_COMMENT.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_589__OTOUCH_COMMENT.obj_num = 2;
-  cdat->dobj_589__OTOUCH_COMMENT.obj_hash = 131545331;
+  cdat->dobj_589__OTOUCH_COMMENT.obj_hash = 39633214;
   cdat->dobj_589__OTOUCH_COMMENT.obj_len = 4;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_589__OTOUCH_COMMENT.obj_vartab =  cdat->dobj_589__OTOUCH_COMMENT.obj__tabfields;
@@ -53883,7 +53883,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_593__CLASS_OBJSETPREDEF", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_593__CLASS_OBJSETPREDEF.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_593__CLASS_OBJSETPREDEF.obj_num = OBMAG_OBJECT;
-  cdat->dobj_593__CLASS_OBJSETPREDEF.obj_hash = 3658796;
+  cdat->dobj_593__CLASS_OBJSETPREDEF.obj_hash = 672106386;
   cdat->dobj_593__CLASS_OBJSETPREDEF.obj_len = 9;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_593__CLASS_OBJSETPREDEF.obj_vartab =  cdat->dobj_593__CLASS_OBJSETPREDEF.obj__tabfields;
@@ -53926,7 +53926,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_599__OSPR_OBJECT", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_599__OSPR_OBJECT.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_599__OSPR_OBJECT.obj_num = 1;
-  cdat->dobj_599__OSPR_OBJECT.obj_hash = 174231205;
+  cdat->dobj_599__OSPR_OBJECT.obj_hash = 736457600;
   cdat->dobj_599__OSPR_OBJECT.obj_len = 4;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_599__OSPR_OBJECT.obj_vartab =  cdat->dobj_599__OSPR_OBJECT.obj__tabfields;
@@ -53961,7 +53961,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_603__OSPR_PREDEF", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_603__OSPR_PREDEF.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_603__OSPR_PREDEF.obj_num = 2;
-  cdat->dobj_603__OSPR_PREDEF.obj_hash = 136697790;
+  cdat->dobj_603__OSPR_PREDEF.obj_hash = 91158293;
   cdat->dobj_603__OSPR_PREDEF.obj_len = 4;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_603__OSPR_PREDEF.obj_vartab =  cdat->dobj_603__OSPR_PREDEF.obj__tabfields;
@@ -54012,7 +54012,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_609__CLASS_ROUTINEOBJ", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_609__CLASS_ROUTINEOBJ.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_609__CLASS_ROUTINEOBJ.obj_num = OBMAG_OBJECT;
-  cdat->dobj_609__CLASS_ROUTINEOBJ.obj_hash = 238366776;
+  cdat->dobj_609__CLASS_ROUTINEOBJ.obj_hash = 663039927;
   cdat->dobj_609__CLASS_ROUTINEOBJ.obj_len = 9;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_609__CLASS_ROUTINEOBJ.obj_vartab =  cdat->dobj_609__CLASS_ROUTINEOBJ.obj__tabfields;
@@ -54055,7 +54055,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_615__OBROUT_PROC", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_615__OBROUT_PROC.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_615__OBROUT_PROC.obj_num = 2;
-  cdat->dobj_615__OBROUT_PROC.obj_hash = 611189365;
+  cdat->dobj_615__OBROUT_PROC.obj_hash = 631706522;
   cdat->dobj_615__OBROUT_PROC.obj_len = 4;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_615__OBROUT_PROC.obj_vartab =  cdat->dobj_615__OBROUT_PROC.obj__tabfields;
@@ -54090,7 +54090,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_619__OBROUT_BODY", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_619__OBROUT_BODY.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_619__OBROUT_BODY.obj_num = 3;
-  cdat->dobj_619__OBROUT_BODY.obj_hash = 341479057;
+  cdat->dobj_619__OBROUT_BODY.obj_hash = 549827042;
   cdat->dobj_619__OBROUT_BODY.obj_len = 4;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_619__OBROUT_BODY.obj_vartab =  cdat->dobj_619__OBROUT_BODY.obj__tabfields;
@@ -54125,7 +54125,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_623__OBROUT_NBVAL", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_623__OBROUT_NBVAL.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_623__OBROUT_NBVAL.obj_num = 4;
-  cdat->dobj_623__OBROUT_NBVAL.obj_hash = 34084483;
+  cdat->dobj_623__OBROUT_NBVAL.obj_hash = 14463942;
   cdat->dobj_623__OBROUT_NBVAL.obj_len = 4;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_623__OBROUT_NBVAL.obj_vartab =  cdat->dobj_623__OBROUT_NBVAL.obj__tabfields;
@@ -54160,7 +54160,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_627__OBROUT_NBLONG", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_627__OBROUT_NBLONG.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_627__OBROUT_NBLONG.obj_num = 5;
-  cdat->dobj_627__OBROUT_NBLONG.obj_hash = 983248598;
+  cdat->dobj_627__OBROUT_NBLONG.obj_hash = 63740624;
   cdat->dobj_627__OBROUT_NBLONG.obj_len = 4;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_627__OBROUT_NBLONG.obj_vartab =  cdat->dobj_627__OBROUT_NBLONG.obj__tabfields;
@@ -54195,7 +54195,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_631__OBROUT_OTHERS", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_631__OBROUT_OTHERS.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_631__OBROUT_OTHERS.obj_num = 6;
-  cdat->dobj_631__OBROUT_OTHERS.obj_hash = 1019916297;
+  cdat->dobj_631__OBROUT_OTHERS.obj_hash = 122859261;
   cdat->dobj_631__OBROUT_OTHERS.obj_len = 4;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_631__OBROUT_OTHERS.obj_vartab =  cdat->dobj_631__OBROUT_OTHERS.obj__tabfields;
@@ -54230,7 +54230,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_635__OBROUT_RETVAL", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_635__OBROUT_RETVAL.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_635__OBROUT_RETVAL.obj_num = 7;
-  cdat->dobj_635__OBROUT_RETVAL.obj_hash = 660657490;
+  cdat->dobj_635__OBROUT_RETVAL.obj_hash = 666156608;
   cdat->dobj_635__OBROUT_RETVAL.obj_len = 4;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_635__OBROUT_RETVAL.obj_vartab =  cdat->dobj_635__OBROUT_RETVAL.obj__tabfields;
@@ -54265,7 +54265,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_639__CLASS_PROCROUTINEOBJ", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_639__CLASS_PROCROUTINEOBJ.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_639__CLASS_PROCROUTINEOBJ.obj_num = OBMAG_OBJECT;
-  cdat->dobj_639__CLASS_PROCROUTINEOBJ.obj_hash = 889978509;
+  cdat->dobj_639__CLASS_PROCROUTINEOBJ.obj_hash = 586852251;
   cdat->dobj_639__CLASS_PROCROUTINEOBJ.obj_len = 9;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_639__CLASS_PROCROUTINEOBJ.obj_vartab =  cdat->dobj_639__CLASS_PROCROUTINEOBJ.obj__tabfields;
@@ -54308,7 +54308,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_645__OPROUT_GETARGS", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_645__OPROUT_GETARGS.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_645__OPROUT_GETARGS.obj_num = 8;
-  cdat->dobj_645__OPROUT_GETARGS.obj_hash = 828251033;
+  cdat->dobj_645__OPROUT_GETARGS.obj_hash = 360184423;
   cdat->dobj_645__OPROUT_GETARGS.obj_len = 4;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_645__OPROUT_GETARGS.obj_vartab =  cdat->dobj_645__OPROUT_GETARGS.obj__tabfields;
@@ -54343,7 +54343,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_649__OPROUT_LOC", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_649__OPROUT_LOC.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_649__OPROUT_LOC.obj_num = 9;
-  cdat->dobj_649__OPROUT_LOC.obj_hash = 111885980;
+  cdat->dobj_649__OPROUT_LOC.obj_hash = 803779702;
   cdat->dobj_649__OPROUT_LOC.obj_len = 4;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_649__OPROUT_LOC.obj_vartab =  cdat->dobj_649__OPROUT_LOC.obj__tabfields;
@@ -54378,7 +54378,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_653__OPROUT_FUNAM", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_653__OPROUT_FUNAM.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_653__OPROUT_FUNAM.obj_num = 10;
-  cdat->dobj_653__OPROUT_FUNAM.obj_hash = 1063975060;
+  cdat->dobj_653__OPROUT_FUNAM.obj_hash = 147728966;
   cdat->dobj_653__OPROUT_FUNAM.obj_len = 4;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_653__OPROUT_FUNAM.obj_vartab =  cdat->dobj_653__OPROUT_FUNAM.obj__tabfields;
@@ -54413,7 +54413,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_657__CLASS_INITIALROUTINEOBJ", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_657__CLASS_INITIALROUTINEOBJ.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_657__CLASS_INITIALROUTINEOBJ.obj_num = OBMAG_OBJECT;
-  cdat->dobj_657__CLASS_INITIALROUTINEOBJ.obj_hash = 294113381;
+  cdat->dobj_657__CLASS_INITIALROUTINEOBJ.obj_hash = 617137142;
   cdat->dobj_657__CLASS_INITIALROUTINEOBJ.obj_len = 9;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_657__CLASS_INITIALROUTINEOBJ.obj_vartab =  cdat->dobj_657__CLASS_INITIALROUTINEOBJ.obj__tabfields;
@@ -54456,7 +54456,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_663__OIROUT_DATA", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_663__OIROUT_DATA.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_663__OIROUT_DATA.obj_num = 8;
-  cdat->dobj_663__OIROUT_DATA.obj_hash = 487102783;
+  cdat->dobj_663__OIROUT_DATA.obj_hash = 872941268;
   cdat->dobj_663__OIROUT_DATA.obj_len = 4;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_663__OIROUT_DATA.obj_vartab =  cdat->dobj_663__OIROUT_DATA.obj__tabfields;
@@ -54491,7 +54491,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_667__OIROUT_PROLOG", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_667__OIROUT_PROLOG.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_667__OIROUT_PROLOG.obj_num = 9;
-  cdat->dobj_667__OIROUT_PROLOG.obj_hash = 302674132;
+  cdat->dobj_667__OIROUT_PROLOG.obj_hash = 1061495419;
   cdat->dobj_667__OIROUT_PROLOG.obj_len = 4;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_667__OIROUT_PROLOG.obj_vartab =  cdat->dobj_667__OIROUT_PROLOG.obj__tabfields;
@@ -54526,7 +54526,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
   basilys_assertmsg("iniobj checkdiscr dobj_671__OIROUT_FILL", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_671__OIROUT_FILL.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_671__OIROUT_FILL.obj_num = 10;
-  cdat->dobj_671__OIROUT_FILL.obj_hash = 211243085;
+  cdat->dobj_671__OIROUT_FILL.obj_hash = 517018922;
   cdat->dobj_671__OIROUT_FILL.obj_len = 4;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_671__OIROUT_FILL.obj_vartab =  cdat->dobj_671__OIROUT_FILL.obj__tabfields;
@@ -54576,7 +54576,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
  if (!/*_.VALDATA___V782*/ curfptr[781]) /*_.VALDATA___V782*/ curfptr[781] = (void*)&cdat->dobj_677__OUTPUT_C_DECLINIT;
   basilys_assertmsg("iniobj checkdiscr dobj_677__OUTPUT_C_DECLINIT", NULL != (void*)/*_.CLASS_SELECTOR__V12*/ curfptr[11]);
   cdat->dobj_677__OUTPUT_C_DECLINIT.obj_class = (basilysobject_ptr_t)(/*_.CLASS_SELECTOR__V12*/ curfptr[11]);
-  cdat->dobj_677__OUTPUT_C_DECLINIT.obj_hash = 835431082;
+  cdat->dobj_677__OUTPUT_C_DECLINIT.obj_hash = 508237491;
   cdat->dobj_677__OUTPUT_C_DECLINIT.obj_len = 4;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_677__OUTPUT_C_DECLINIT.obj_vartab =  cdat->dobj_677__OUTPUT_C_DECLINIT.obj__tabfields;
@@ -54610,7 +54610,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
  if (!/*_.VALDATA___V786*/ curfptr[785]) /*_.VALDATA___V786*/ curfptr[785] = (void*)&cdat->dobj_681__PUT_OBJDEST;
   basilys_assertmsg("iniobj checkdiscr dobj_681__PUT_OBJDEST", NULL != (void*)/*_.CLASS_SELECTOR__V12*/ curfptr[11]);
   cdat->dobj_681__PUT_OBJDEST.obj_class = (basilysobject_ptr_t)(/*_.CLASS_SELECTOR__V12*/ curfptr[11]);
-  cdat->dobj_681__PUT_OBJDEST.obj_hash = 105347311;
+  cdat->dobj_681__PUT_OBJDEST.obj_hash = 451167315;
   cdat->dobj_681__PUT_OBJDEST.obj_len = 4;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_681__PUT_OBJDEST.obj_vartab =  cdat->dobj_681__PUT_OBJDEST.obj__tabfields;
@@ -54644,7 +54644,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
  if (!/*_.VALDATA___V790*/ curfptr[789]) /*_.VALDATA___V790*/ curfptr[789] = (void*)&cdat->dobj_685__OUTPUT_C_CODE;
   basilys_assertmsg("iniobj checkdiscr dobj_685__OUTPUT_C_CODE", NULL != (void*)/*_.CLASS_SELECTOR__V12*/ curfptr[11]);
   cdat->dobj_685__OUTPUT_C_CODE.obj_class = (basilysobject_ptr_t)(/*_.CLASS_SELECTOR__V12*/ curfptr[11]);
-  cdat->dobj_685__OUTPUT_C_CODE.obj_hash = 194983607;
+  cdat->dobj_685__OUTPUT_C_CODE.obj_hash = 341294391;
   cdat->dobj_685__OUTPUT_C_CODE.obj_len = 4;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_685__OUTPUT_C_CODE.obj_vartab =  cdat->dobj_685__OUTPUT_C_CODE.obj__tabfields;
@@ -54678,7 +54678,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
  if (!/*_.VALDATA___V794*/ curfptr[793]) /*_.VALDATA___V794*/ curfptr[793] = (void*)&cdat->dobj_689__OUTPUT_C_INITFILL;
   basilys_assertmsg("iniobj checkdiscr dobj_689__OUTPUT_C_INITFILL", NULL != (void*)/*_.CLASS_SELECTOR__V12*/ curfptr[11]);
   cdat->dobj_689__OUTPUT_C_INITFILL.obj_class = (basilysobject_ptr_t)(/*_.CLASS_SELECTOR__V12*/ curfptr[11]);
-  cdat->dobj_689__OUTPUT_C_INITFILL.obj_hash = 251432150;
+  cdat->dobj_689__OUTPUT_C_INITFILL.obj_hash = 1059023354;
   cdat->dobj_689__OUTPUT_C_INITFILL.obj_len = 4;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_689__OUTPUT_C_INITFILL.obj_vartab =  cdat->dobj_689__OUTPUT_C_INITFILL.obj__tabfields;
@@ -54712,7 +54712,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
  if (!/*_.VALDATA___V798*/ curfptr[797]) /*_.VALDATA___V798*/ curfptr[797] = (void*)&cdat->dobj_693__OUTPUT_C_INITPREDEF;
   basilys_assertmsg("iniobj checkdiscr dobj_693__OUTPUT_C_INITPREDEF", NULL != (void*)/*_.CLASS_SELECTOR__V12*/ curfptr[11]);
   cdat->dobj_693__OUTPUT_C_INITPREDEF.obj_class = (basilysobject_ptr_t)(/*_.CLASS_SELECTOR__V12*/ curfptr[11]);
-  cdat->dobj_693__OUTPUT_C_INITPREDEF.obj_hash = 827471551;
+  cdat->dobj_693__OUTPUT_C_INITPREDEF.obj_hash = 208121392;
   cdat->dobj_693__OUTPUT_C_INITPREDEF.obj_len = 4;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_693__OUTPUT_C_INITPREDEF.obj_vartab =  cdat->dobj_693__OUTPUT_C_INITPREDEF.obj__tabfields;
@@ -55220,7 +55220,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
  if (!/*_.VALDATA___V872*/ curfptr[871]) /*_.VALDATA___V872*/ curfptr[871] = (void*)&cdat->dobj_761__INITIALSYSTEMDATA_OBJPREDEF;
   basilys_assertmsg("iniobj checkdiscr dobj_761__INITIALSYSTEMDATA_OBJPREDEF", NULL != (void*)/*_.VALDATA___V172*/ curfptr[171]);
   cdat->dobj_761__INITIALSYSTEMDATA_OBJPREDEF.obj_class = (basilysobject_ptr_t)(/*_.VALDATA___V172*/ curfptr[171]);
-  cdat->dobj_761__INITIALSYSTEMDATA_OBJPREDEF.obj_hash = 953210165;
+  cdat->dobj_761__INITIALSYSTEMDATA_OBJPREDEF.obj_hash = 512794441;
   cdat->dobj_761__INITIALSYSTEMDATA_OBJPREDEF.obj_len = 2;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_761__INITIALSYSTEMDATA_OBJPREDEF.obj_vartab =  cdat->dobj_761__INITIALSYSTEMDATA_OBJPREDEF.obj__tabfields;
@@ -57142,7 +57142,7 @@ static void initialize_module_cdata(initial_frame_st *iniframp__, char predefini
  if (!/*_.VALDATA___V1134*/ curfptr[1133]) /*_.VALDATA___V1134*/ curfptr[1133] = (void*)&cdat->dobj_1029__DISCRCLOSURE_OBJPREDEF;
   basilys_assertmsg("iniobj checkdiscr dobj_1029__DISCRCLOSURE_OBJPREDEF", NULL != (void*)/*_.VALDATA___V172*/ curfptr[171]);
   cdat->dobj_1029__DISCRCLOSURE_OBJPREDEF.obj_class = (basilysobject_ptr_t)(/*_.VALDATA___V172*/ curfptr[171]);
-  cdat->dobj_1029__DISCRCLOSURE_OBJPREDEF.obj_hash = 656247273;
+  cdat->dobj_1029__DISCRCLOSURE_OBJPREDEF.obj_hash = 599552313;
   cdat->dobj_1029__DISCRCLOSURE_OBJPREDEF.obj_len = 2;
 #if BASILYS_HAS_OBJ_TAB_FIELDS
   cdat->dobj_1029__DISCRCLOSURE_OBJPREDEF.obj_vartab =  cdat->dobj_1029__DISCRCLOSURE_OBJPREDEF.obj__tabfields;

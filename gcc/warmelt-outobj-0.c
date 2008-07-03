@@ -1,5 +1,5 @@
 /* GCC BASILYS GENERATED FILE warmelt-outobj-3.c - DO NOT EDIT */
-/* generated on Tue Jul  1 13:57:18 2008 */
+/* generated on Thu Jul  3 08:18:09 2008 */
 
 #include "run-basilys.h"
 
@@ -10651,7 +10651,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:1041: @block");
        /*_.NAMED_NAME__V26*/ curfptr[25] = basilys_getfield_object((basilys_ptr_t)(/*_.CTYBIND__V13*/ curfptr[12]), 1, "NAMED_NAME");
        ;
        
-       error("BASILYS ERROR [#%ld]: @%s:%d:: %s - %s", basilys_dbgcounter,  basilys_string_str(basilys_val_mixint((basilys_ptr_t)(/*_.OLOC__V10*/ curfptr[9]))),  (int) basilys_num_mixint((basilys_ptr_t)(/*_.OLOC__V10*/ curfptr[9])), ( "impossible argument ctype"), basilys_string_str((basilys_ptr_t)(/*_.NAMED_NAME__V26*/ curfptr[25])));
+       error("%s:%d:: BASILYS ERROR [#%ld]: %s - %s",  basilys_string_str(basilys_val_mixint((basilys_ptr_t)(/*_.OLOC__V10*/ curfptr[9]))),  (int) basilys_num_mixint((basilys_ptr_t)(/*_.OLOC__V10*/ curfptr[9])), basilys_dbgcounter, ( "impossible argument ctype"), basilys_string_str((basilys_ptr_t)(/*_.NAMED_NAME__V26*/ curfptr[25])));
        /*epilog*/
        
        BASILYS_LOCATION("warmelt-outobj.bysl:1066: @clear");

@@ -256,7 +256,9 @@ Notice that modules are seeked in several directories.
 @gccoptlist{-fbasilys-tempdir=}
 @opindex fbasilys-tempdir=
 @end table
-This flags sets the temporary MELT directory. If specified it is not cleaned.
+This flags sets the temporary MELT directory. If specified it is not
+cleaned. If it does not exist, it is mkdir-ed and cleaned. Avoid
+setting it to a non-empty directory.
 
 
 

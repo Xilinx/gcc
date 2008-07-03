@@ -1,3 +1,22 @@
+2008-07-03  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* Makefile.in: -fbasilys-tempdir are seperate sudirectories
+
+	* basilys.c: (basilys_tempdir_path) sets the made_tempdir_basilys flag.
+	(basilys_finalize) rmdir when made_tempdir_basilys.
+
+	* doc/melt.texi: more about -fbasilys-tempdir.
+
+	* warmelt-first-0.c: regenerated.
+
+	* warmelt-macro-0.c: regenerated.
+
+	* warmelt-normal-0.c: regenerated.
+
+	* warmelt-genobj-0.c: regenerated.
+
+	* warmelt-outobj-0.c: regenerated.
+
 2008-07-02  Basile Starynkevitch  <basile@starynkevitch.net>
 	MELT branch merged with trunk r137357
 

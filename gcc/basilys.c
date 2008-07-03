@@ -4306,7 +4306,7 @@ end:
 
 /* our temporary directory */
 static char *tempdir_basilys;
-
+static bool made_tempdir_basilys;
 /* returns malloc-ed path inside a temporary directory, with a given basename  */
 char *
 basilys_tempdir_path (const char *basnam)
@@ -4315,9 +4315,17 @@ basilys_tempdir_path (const char *basnam)
   char *cdir = 0;
   extern char *choose_tmpdir (void);	/* from libiberty/choose-temp.c */
   gcc_assert (basnam && (ISALNUM (basnam[0]) || basnam[0] == '_'));
-  if (basilys_tempdir_string && basilys_tempdir_string[0])
-    return concat (basilys_tempdir_string, "/", basnam, NULL);
-  if (!tempdir_basilys)
+  if (basilys_tempdir_string && basilys_tempdir_string[0]) 
+    {
+      if (access(basilys_tempdir_string, F_OK))
+	{
+	  if (mkdir(basilys_tempdir_string, 0600))
+	    fatal_error("failed to mkdir basilys_tempdir %s - %m", basilys_tempdir_string);
+	  made_tempdir_basilys = true;
+	}
+      return concat (basilys_tempdir_string, "/", basnam, NULL);
+    }
+if (!tempdir_basilys)
     {
       char tbuf[80];
       /* usually this loop runs only once */
@@ -4330,11 +4338,12 @@ basilys_tempdir_path (const char *basnam)
 	      free (cdir);
 	      cdir = NULL;
 	    };
-	  snprintf (tbuf, sizeof (tbuf) - 1, "Melt%d-%d", (int) getpid (), n);
+	  snprintf (tbuf, sizeof (tbuf) - 1, "Meltmpd%d-%d", (int) getpid (), n);
 	  cdir = concat (choose_tmpdir (), "/", tbuf, NULL);
 	  if (!mkdir (cdir, 0600))
 	    {
 	      tempdir_basilys = cdir;
+	      made_tempdir_basilys = true;
 	      break;
 	    }
 	}
@@ -6236,7 +6245,13 @@ basilys_finalize (void)
 	};
       VEC_free (char_p, heap, dirvec);
     }
-  rmdir (tempdir_basilys);
+  if (made_tempdir_basilys) 
+    {
+      if (rmdir (tempdir_basilys))
+	/* @@@ I don't know if it should be a warning or a fatal error -
+	   we are finalizing! */
+	warning(0, "failed to rmdir basilys tempdir %s - %m", tempdir_basilys);
+    }
 }
 
 

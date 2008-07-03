@@ -3979,6 +3979,8 @@ mostlyclean: lang.mostlyclean
 	-rm -f gt-*
 # Delete genchecksum outputs
 	-rm -f *-checksum.c
+# Delete all MELT/Basilys temporary directories
+	-rm -rf _tempmeltdir_*
 
 # Delete all files made by compilation
 # that don't exist in the distribution.
@@ -4716,7 +4718,7 @@ MELTBASILYSCCINIT1= time ./cc1$(exeext) -fbasilys  \
 	      -fbasilys-dynlibdir=. \
 	      -fbasilys-compile-script=built-melt-cc-script \
 	      -fbasilys-gensrcdir=. \
-	      -fbasilys-tempdir=. \
+	      -fbasilys-tempdir=_tempmeltdir_$$$$ \
 	      -fbasilys-command=compileinit  
 #	      -frandom-seed=$$RANDOM
 
@@ -4724,7 +4726,7 @@ MELTBASILYSCCFILE1= time ./cc1$(exeext) -fbasilys  \
 	      -fbasilys-dynlibdir=. \
 	      -fbasilys-compile-script=built-melt-cc-script \
 	      -fbasilys-gensrcdir=. \
-	      -fbasilys-tempdir=. \
+	      -fbasilys-tempdir=_tempmeltdir_$$$$ \
 	      -fbasilys-command=compilefile  
 #	      -frandom-seed=$$RANDOM
 
@@ -4732,7 +4734,7 @@ MELTBASILYSCCSHOW1= time ./cc1$(exeext) -fbasilys  \
 	      -fbasilys-dynlibdir=. \
 	      -fbasilys-compile-script=built-melt-cc-script \
 	      -fbasilys-gensrcdir=. \
-	      -fbasilys-tempdir=. \
+	      -fbasilys-tempdir=_tempmeltdir_$$$$ \
 	      -fbasilys-command=showmdata  
 #	      -frandom-seed=$$RANDOM
 
