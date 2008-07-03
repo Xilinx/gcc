@@ -515,15 +515,25 @@ struct tree_trait_expr GTY (())
   enum cp_trait_kind kind;
 };
 
-/* The capture-list, excluding `this'.  */
-#define LAMBDA_EXPR_CAPTURE_LIST(NODE) \
-  (((struct tree_lambda_expr *)LAMBDA_EXPR_CHECK (NODE))->capture_list)
+/* The default method of implicit capture.  */
+#define LAMBDA_EXPR_DEFAULT_CAPTURE_MODE(NODE) \
+  (((struct tree_lambda_expr *)LAMBDA_EXPR_CHECK (NODE))->default_capture_mode)
 
 /* Predicate tracking whether `this' is in the effective capture set.  */
 #define LAMBDA_EXPR_CAPTURES_THIS_P(NODE) \
   (((struct tree_lambda_expr *)LAMBDA_EXPR_CHECK (NODE))->captures_this_p)
 
-/* The initializers for the captures.  This is a GNU extension.  */
+/* The capture-list, excluding `this'.
+   tree_list 
+     purpose: name (IDENTIFIER_NODE)
+     value: type (including reference)  */
+#define LAMBDA_EXPR_CAPTURE_LIST(NODE) \
+  (((struct tree_lambda_expr *)LAMBDA_EXPR_CHECK (NODE))->capture_list)
+
+/* The initializers for the captures.  This is a GNU extension.
+   tree_list 
+     purpose: expr
+     value: none  */
 #define LAMBDA_EXPR_CAPTURE_INIT_LIST(NODE) \
   (((struct tree_lambda_expr *)LAMBDA_EXPR_CHECK (NODE))->capture_init_list)
 
@@ -539,12 +549,18 @@ struct tree_trait_expr GTY (())
 #define LAMBDA_EXPR_RETURN_TYPE(NODE) \
   (((struct tree_lambda_expr *)LAMBDA_EXPR_CHECK (NODE))->return_type)
 
+enum cp_lambda_default_capture_mode_type {
+  CPLD_NONE,
+  CPLD_COPY,
+  CPLD_REFERENCE
+};
+
 struct tree_lambda_expr GTY (())
 {
   struct tree_common common;
-  /* tree_list */
-  tree capture_list;
+  enum cp_lambda_default_capture_mode_type default_capture_mode;
   bool captures_this_p;
+  tree capture_list;
   tree capture_init_list;
   /*cp_parameter_declarator* param_list;*/
   tree exception_spec;

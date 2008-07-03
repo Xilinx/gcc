@@ -1627,13 +1627,15 @@ static tree cp_parser_builtin_offsetof
 static tree cp_parser_lambda_expression
   (cp_parser *);
 static tree cp_parser_lambda_class_definition
-  (cp_parser *, tree *);
+  (cp_parser *, tree *, tree *);
 static void cp_parser_lambda_head
-  (cp_parser *, cp_parameter_declarator **, tree *, cp_decl_specifier_seq *, cp_parameter_declarator **, tree *);
+  (cp_parser *, tree *,
+   cp_parameter_declarator **, tree *,
+   cp_decl_specifier_seq *, cp_parameter_declarator **, tree *);
+static void cp_parser_lambda_external_reference_clause
+  (cp_parser *, tree *, cp_parameter_declarator **, tree *);
 static cp_parameter_declarator *cp_parser_lambda_parameter_clause
   (cp_parser *);
-static void cp_parser_lambda_external_reference_clause
-  (cp_parser *, cp_parameter_declarator **, tree *);
 static void cp_parser_build_mem_init_list
   (cp_parser *, cp_parameter_declarator *, tree *);
 static tree cp_parser_lambda_body
@@ -6647,18 +6649,32 @@ cp_parser_trait_expr (cp_parser* parser, enum rid keyword)
   return finish_trait_expr (kind, type1, type2);
 }
 
+static tree
+build_lambda_expr (void)
+{
+  tree lambda_expr = build0 (LAMBDA_EXPR, NULL_TREE);
+  LAMBDA_EXPR_DEFAULT_CAPTURE_MODE (lambda_expr) = CPLD_NONE;
+  LAMBDA_EXPR_CAPTURES_THIS_P      (lambda_expr) = false;
+  LAMBDA_EXPR_CAPTURE_LIST         (lambda_expr) = NULL_TREE;
+  LAMBDA_EXPR_CAPTURE_INIT_LIST    (lambda_expr) = NULL_TREE;
+  LAMBDA_EXPR_EXCEPTION_SPEC       (lambda_expr) = NULL_TREE;
+  LAMBDA_EXPR_RETURN_TYPE          (lambda_expr) = NULL_TREE;
+  return lambda_expr;
+}
+
 /* Parse a lambda expression */
 static tree
 cp_parser_lambda_expression (cp_parser* parser)
 {
+  tree lambda_expr = build_lambda_expr ();
   /* Arguments to the constructor */
   tree ctor_arg_list = NULL_TREE;
   /* The lambda class definition */
-  tree type = cp_parser_lambda_class_definition (parser, &ctor_arg_list);
+  tree type = cp_parser_lambda_class_definition (parser,
+    &lambda_expr,
+    &ctor_arg_list);
   /* The construction expression (primary-expression) */
   tree construction_expr;
-
-  tree lambda_expr = build0 (LAMBDA_EXPR, NULL_TREE);
 
   type = TREE_CHAIN (type);
 
@@ -6673,6 +6689,7 @@ cp_parser_lambda_expression (cp_parser* parser)
 
 static tree
 cp_parser_lambda_class_definition (cp_parser* parser,
+    tree* lambda_expr,
     tree* ctor_arg_list)
 {
   unsigned int saved_num_template_parameter_lists;
@@ -6692,6 +6709,7 @@ cp_parser_lambda_class_definition (cp_parser* parser,
   cp_decl_specifier_seq fco_return_type_specs;
 
   cp_parser_lambda_head (parser,
+      lambda_expr,
       &fco_param_list,
       &fco_exception_spec,
       &fco_return_type_specs,
@@ -7086,6 +7104,7 @@ cp_parser_build_mem_init_list (cp_parser* parser,
 
 static void
 cp_parser_lambda_head (cp_parser* parser,
+    tree* lambda_expr,
     cp_parameter_declarator** fco_param_list,
     tree* fco_exception_spec,
     cp_decl_specifier_seq* fco_return_type_specs,
@@ -7094,6 +7113,7 @@ cp_parser_lambda_head (cp_parser* parser,
 {
   /* Parse local references */
   cp_parser_lambda_external_reference_clause (parser,
+      lambda_expr,
       ctor_param_list,
       ctor_arg_list);
 
@@ -7102,10 +7122,12 @@ cp_parser_lambda_head (cp_parser* parser,
 
   /* Parse exception specification */
   *fco_exception_spec = cp_parser_exception_specification_opt (parser);
+  LAMBDA_EXPR_EXCEPTION_SPEC (*lambda_expr) = *fco_exception_spec;
 
   /* Parse return type clause */
   cp_parser_lambda_return_type_clause_opt (parser,
       fco_return_type_specs);
+  LAMBDA_EXPR_RETURN_TYPE (*lambda_expr) = fco_return_type_specs->type;
 }
 
 static cp_parameter_declarator*
@@ -7124,28 +7146,24 @@ cp_parser_lambda_parameter_clause (cp_parser* parser)
 
 static void
 cp_parser_lambda_external_reference_clause (cp_parser* parser,
+    tree* lambda_expr,
     cp_parameter_declarator** ctor_param_list,
     tree* ctor_arg_list)
 {
   cp_parameter_declarator** ctor_param_list_tail = ctor_param_list;
   /* Need commas after the first local reference. */
   bool first = true;
-  /* Can capture enclosing class using `this' keyword. */
-  bool captures_this_p = false;
-
-  enum default_capture_code_type {NO_DEFAULT, COPY_DEFAULT, REF_DEFAULT};
-  enum default_capture_code_type default_capture_code = NO_DEFAULT;
 
   /* Eat the leading `['. */
   cp_lexer_consume_token (parser->lexer);
 
   /* Record default capture mode. */
   if (cp_lexer_next_token_is (parser->lexer, CPP_AND))
-    default_capture_code = REF_DEFAULT;
+    LAMBDA_EXPR_DEFAULT_CAPTURE_MODE (*lambda_expr) = CPLD_REFERENCE;
   else if (cp_lexer_next_token_is (parser->lexer, CPP_EQ))
-    default_capture_code = COPY_DEFAULT;
+    LAMBDA_EXPR_DEFAULT_CAPTURE_MODE (*lambda_expr) = CPLD_COPY;
 
-  if (default_capture_code != NO_DEFAULT)
+  if (LAMBDA_EXPR_DEFAULT_CAPTURE_MODE (*lambda_expr) != CPLD_NONE)
   {
     cp_lexer_consume_token (parser->lexer);
     if (cp_lexer_next_token_is (parser->lexer, CPP_COMMA))
@@ -7181,7 +7199,7 @@ cp_parser_lambda_external_reference_clause (cp_parser* parser,
     /* Possibly capture `this'. */
     if (cp_lexer_next_token_is_keyword (parser->lexer, RID_THIS))
     {
-      captures_this_p = true;
+      LAMBDA_EXPR_CAPTURES_THIS_P (*lambda_expr) = true;
       cp_lexer_consume_token (parser->lexer);
       continue;
     }
@@ -7258,6 +7276,15 @@ cp_parser_lambda_external_reference_clause (cp_parser* parser,
           eref_init_expr);
       continue;
     }
+
+    tree_cons (
+      eref_id,
+      eref_type,
+      LAMBDA_EXPR_CAPTURE_LIST (*lambda_expr));
+    tree_cons (
+      eref_init_expr,
+      NULL_TREE,
+      LAMBDA_EXPR_CAPTURE_INIT_LIST (*lambda_expr));
 
     clear_decl_specs (&eref_type_specs);
     eref_type_specs.type = eref_type;
