@@ -1630,7 +1630,7 @@ static tree cp_parser_lambda_class_definition
   (cp_parser *, tree, tree *);
 static void cp_parser_lambda_head
   (cp_parser *, tree,
-   cp_parameter_declarator **, tree *,
+   cp_parameter_declarator **,
    cp_decl_specifier_seq *, cp_parameter_declarator **, tree *);
 static void cp_parser_lambda_external_reference_clause
   (cp_parser *, tree, cp_parameter_declarator **, tree *);
@@ -6705,13 +6705,11 @@ cp_parser_lambda_class_definition (cp_parser* parser,
 
   cp_parameter_declarator* ctor_param_list = no_parameters;
   cp_parameter_declarator* fco_param_list  = no_parameters;
-  tree fco_exception_spec = NULL_TREE;
   cp_decl_specifier_seq fco_return_type_specs;
 
   cp_parser_lambda_head (parser,
       lambda_expr,
       &fco_param_list,
-      &fco_exception_spec,
       &fco_return_type_specs,
       &ctor_param_list,
       ctor_arg_list);
@@ -6834,7 +6832,7 @@ cp_parser_lambda_class_definition (cp_parser* parser,
         fco_declarator,
         fco_param_list,
         /*cv_qualifiers=*/TYPE_QUAL_CONST,
-        fco_exception_spec);
+        LAMBDA_EXPR_EXCEPTION_SPEC (lambda_expr));
 
     parser->in_declarator_p = saved_in_declarator_p;
     parser->default_arg_ok_p = saved_default_arg_ok_p;
@@ -7106,7 +7104,6 @@ static void
 cp_parser_lambda_head (cp_parser* parser,
     tree lambda_expr,
     cp_parameter_declarator** fco_param_list,
-    tree* fco_exception_spec,
     cp_decl_specifier_seq* fco_return_type_specs,
     cp_parameter_declarator** ctor_param_list,
     tree* ctor_arg_list)
@@ -7121,8 +7118,8 @@ cp_parser_lambda_head (cp_parser* parser,
   *fco_param_list = cp_parser_lambda_parameter_clause (parser);
 
   /* Parse exception specification */
-  *fco_exception_spec = cp_parser_exception_specification_opt (parser);
-  LAMBDA_EXPR_EXCEPTION_SPEC (lambda_expr) = *fco_exception_spec;
+  LAMBDA_EXPR_EXCEPTION_SPEC (lambda_expr)
+    = cp_parser_exception_specification_opt (parser);
 
   /* Parse return type clause */
   cp_parser_lambda_return_type_clause_opt (parser,
