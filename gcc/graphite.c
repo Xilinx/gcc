@@ -1548,7 +1548,7 @@ scan_tree_for_params (scop_p s, tree e, CloogMatrix *c, int r, Value k)
 
       if (c)
 	{
-          param_col += c->NbColumns - scop_nb_params (s);
+          param_col += c->NbColumns - scop_nb_params (s) - 1;
 	  value_init (c->p[r][param_col]);
 	  value_assign (c->p[r][param_col], k);
 	}

@@ -1,3 +1,8 @@
+2008-07-04  Tobias Grosser  <grosser@fim.uni-passau.de>
+
+	* graphite.c (scan_tree_for_params): Fix insertion of parameters into
+	the domain matrix.  This makes scop-0.c work again.
+
 2008-06-20  Richard Guenther  <rguenther@suse.de>
 
 	* graphite.h: Adjust copyright to GPLv3.
