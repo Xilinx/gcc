@@ -1627,13 +1627,13 @@ static tree cp_parser_builtin_offsetof
 static tree cp_parser_lambda_expression
   (cp_parser *);
 static tree cp_parser_lambda_class_definition
-  (cp_parser *, tree *, tree *);
+  (cp_parser *, tree, tree *);
 static void cp_parser_lambda_head
-  (cp_parser *, tree *,
+  (cp_parser *, tree,
    cp_parameter_declarator **, tree *,
    cp_decl_specifier_seq *, cp_parameter_declarator **, tree *);
 static void cp_parser_lambda_external_reference_clause
-  (cp_parser *, tree *, cp_parameter_declarator **, tree *);
+  (cp_parser *, tree, cp_parameter_declarator **, tree *);
 static cp_parameter_declarator *cp_parser_lambda_parameter_clause
   (cp_parser *);
 static void cp_parser_build_mem_init_list
@@ -6671,7 +6671,7 @@ cp_parser_lambda_expression (cp_parser* parser)
   tree ctor_arg_list = NULL_TREE;
   /* The lambda class definition */
   tree type = cp_parser_lambda_class_definition (parser,
-    &lambda_expr,
+    lambda_expr,
     &ctor_arg_list);
   /* The construction expression (primary-expression) */
   tree construction_expr;
@@ -6689,7 +6689,7 @@ cp_parser_lambda_expression (cp_parser* parser)
 
 static tree
 cp_parser_lambda_class_definition (cp_parser* parser,
-    tree* lambda_expr,
+    tree lambda_expr,
     tree* ctor_arg_list)
 {
   unsigned int saved_num_template_parameter_lists;
@@ -7104,7 +7104,7 @@ cp_parser_build_mem_init_list (cp_parser* parser,
 
 static void
 cp_parser_lambda_head (cp_parser* parser,
-    tree* lambda_expr,
+    tree lambda_expr,
     cp_parameter_declarator** fco_param_list,
     tree* fco_exception_spec,
     cp_decl_specifier_seq* fco_return_type_specs,
@@ -7122,12 +7122,12 @@ cp_parser_lambda_head (cp_parser* parser,
 
   /* Parse exception specification */
   *fco_exception_spec = cp_parser_exception_specification_opt (parser);
-  LAMBDA_EXPR_EXCEPTION_SPEC (*lambda_expr) = *fco_exception_spec;
+  LAMBDA_EXPR_EXCEPTION_SPEC (lambda_expr) = *fco_exception_spec;
 
   /* Parse return type clause */
   cp_parser_lambda_return_type_clause_opt (parser,
       fco_return_type_specs);
-  LAMBDA_EXPR_RETURN_TYPE (*lambda_expr) = fco_return_type_specs->type;
+  LAMBDA_EXPR_RETURN_TYPE (lambda_expr) = fco_return_type_specs->type;
 }
 
 static cp_parameter_declarator*
@@ -7146,7 +7146,7 @@ cp_parser_lambda_parameter_clause (cp_parser* parser)
 
 static void
 cp_parser_lambda_external_reference_clause (cp_parser* parser,
-    tree* lambda_expr,
+    tree lambda_expr,
     cp_parameter_declarator** ctor_param_list,
     tree* ctor_arg_list)
 {
@@ -7159,11 +7159,11 @@ cp_parser_lambda_external_reference_clause (cp_parser* parser,
 
   /* Record default capture mode. */
   if (cp_lexer_next_token_is (parser->lexer, CPP_AND))
-    LAMBDA_EXPR_DEFAULT_CAPTURE_MODE (*lambda_expr) = CPLD_REFERENCE;
+    LAMBDA_EXPR_DEFAULT_CAPTURE_MODE (lambda_expr) = CPLD_REFERENCE;
   else if (cp_lexer_next_token_is (parser->lexer, CPP_EQ))
-    LAMBDA_EXPR_DEFAULT_CAPTURE_MODE (*lambda_expr) = CPLD_COPY;
+    LAMBDA_EXPR_DEFAULT_CAPTURE_MODE (lambda_expr) = CPLD_COPY;
 
-  if (LAMBDA_EXPR_DEFAULT_CAPTURE_MODE (*lambda_expr) != CPLD_NONE)
+  if (LAMBDA_EXPR_DEFAULT_CAPTURE_MODE (lambda_expr) != CPLD_NONE)
   {
     cp_lexer_consume_token (parser->lexer);
     if (cp_lexer_next_token_is (parser->lexer, CPP_COMMA))
@@ -7199,7 +7199,7 @@ cp_parser_lambda_external_reference_clause (cp_parser* parser,
     /* Possibly capture `this'. */
     if (cp_lexer_next_token_is_keyword (parser->lexer, RID_THIS))
     {
-      LAMBDA_EXPR_CAPTURES_THIS_P (*lambda_expr) = true;
+      LAMBDA_EXPR_CAPTURES_THIS_P (lambda_expr) = true;
       cp_lexer_consume_token (parser->lexer);
       continue;
     }
@@ -7280,11 +7280,11 @@ cp_parser_lambda_external_reference_clause (cp_parser* parser,
     tree_cons (
       eref_id,
       eref_type,
-      LAMBDA_EXPR_CAPTURE_LIST (*lambda_expr));
+      LAMBDA_EXPR_CAPTURE_LIST (lambda_expr));
     tree_cons (
       eref_init_expr,
       NULL_TREE,
-      LAMBDA_EXPR_CAPTURE_INIT_LIST (*lambda_expr));
+      LAMBDA_EXPR_CAPTURE_INIT_LIST (lambda_expr));
 
     clear_decl_specs (&eref_type_specs);
     eref_type_specs.type = eref_type;
