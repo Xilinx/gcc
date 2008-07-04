@@ -525,15 +525,15 @@ struct tree_trait_expr GTY (())
 
 /* The capture-list, excluding `this'.
    tree_list 
-     purpose: name (IDENTIFIER_NODE)
-     value: type (including reference)  */
+     value: name (IDENTIFIER_NODE)
+     purpose: type (including reference)  */
 #define LAMBDA_EXPR_CAPTURE_LIST(NODE) \
   (((struct tree_lambda_expr *)LAMBDA_EXPR_CHECK (NODE))->capture_list)
 
 /* The initializers for the captures.  This is a GNU extension.
    tree_list 
-     purpose: expr
-     value: none  */
+     value: expr
+     purpose: none  */
 #define LAMBDA_EXPR_CAPTURE_INIT_LIST(NODE) \
   (((struct tree_lambda_expr *)LAMBDA_EXPR_CHECK (NODE))->capture_init_list)
 
@@ -3677,8 +3677,6 @@ extern GTY(()) VEC(tree,gc) *local_classes;
 #define VTABLE_DELTA_NAME	"__delta"
 #define VTABLE_PFN_NAME		"__pfn"
 
-#define LAMBDANAME_FORMAT "__lambda_%d"
-
 #if !defined(NO_DOLLAR_IN_LABEL) || !defined(NO_DOT_IN_LABEL)
 
 #define VTABLE_NAME_P(ID_NODE) (IDENTIFIER_POINTER (ID_NODE)[1] == 'v' \
@@ -4246,7 +4244,6 @@ extern void push_switch				(tree);
 extern void pop_switch				(void);
 extern tree pushtag				(tree, tree, tag_scope);
 extern tree make_anon_name			(void);
-extern tree make_lambda_name	(void);
 extern int decls_match				(tree, tree);
 extern tree duplicate_decls			(tree, tree, bool);
 extern tree pushdecl_top_level_maybe_friend	(tree, bool);
