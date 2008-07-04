@@ -525,15 +525,15 @@ struct tree_trait_expr GTY (())
 
 /* The capture-list, excluding `this'.
    tree_list 
-     purpose: name (IDENTIFIER_NODE)
-     value: type (including reference)  */
+     value: name (IDENTIFIER_NODE)
+     purpose: type (including reference)  */
 #define LAMBDA_EXPR_CAPTURE_LIST(NODE) \
   (((struct tree_lambda_expr *)LAMBDA_EXPR_CHECK (NODE))->capture_list)
 
 /* The initializers for the captures.  This is a GNU extension.
    tree_list 
-     purpose: expr
-     value: none  */
+     value: expr
+     purpose: none  */
 #define LAMBDA_EXPR_CAPTURE_INIT_LIST(NODE) \
   (((struct tree_lambda_expr *)LAMBDA_EXPR_CHECK (NODE))->capture_init_list)
 
