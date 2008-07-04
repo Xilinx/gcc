@@ -1627,13 +1627,13 @@ static tree cp_parser_builtin_offsetof
 static tree cp_parser_lambda_expression
   (cp_parser *);
 static tree cp_parser_lambda_class_definition
-  (cp_parser *, tree *, tree *);
+  (cp_parser *, tree, tree *);
 static void cp_parser_lambda_head
-  (cp_parser *, tree *,
+  (cp_parser *, tree,
    cp_parameter_declarator **,
    cp_decl_specifier_seq *, cp_parameter_declarator **, tree *);
 static void cp_parser_lambda_external_reference_clause
-  (cp_parser *, tree *, cp_parameter_declarator **, tree *);
+  (cp_parser *, tree, cp_parameter_declarator **, tree *);
 static cp_parameter_declarator *cp_parser_lambda_parameter_clause
   (cp_parser *);
 static void cp_parser_build_mem_init_list
@@ -7162,7 +7162,8 @@ cp_parser_lambda_external_reference_clause (cp_parser* parser,
   cp_lexer_consume_token (parser->lexer);
 
   /* Record default capture mode. */
-  if (cp_lexer_next_token_is (parser->lexer, CPP_AND))
+  if (cp_lexer_next_token_is (parser->lexer, CPP_AND)
+      && cp_lexer_peek_nth_token (parser->lexer, 2)->type != CPP_NAME)
     LAMBDA_EXPR_DEFAULT_CAPTURE_MODE (lambda_expr) = CPLD_REFERENCE;
   else if (cp_lexer_next_token_is (parser->lexer, CPP_EQ))
     LAMBDA_EXPR_DEFAULT_CAPTURE_MODE (lambda_expr) = CPLD_COPY;
