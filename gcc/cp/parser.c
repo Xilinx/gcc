@@ -6662,6 +6662,92 @@ build_lambda_expr (void)
   return lambda_expr;
 }
 
+static void
+build_lambda_class (
+    tree lambda_expr,
+    cp_parameter_declarator** return_ctor_param_list) 
+{
+  cp_parameter_declarator* ctor_param_list = no_parameters;
+
+  /* Turn capture list into class members and constructor parameters.  */
+  {
+    cp_parameter_declarator** ctor_param_list_tail = &ctor_param_list;
+    tree capture = NULL_TREE;
+
+    /* Members are private */
+    current_access_specifier = access_private_node;
+
+    for (capture = LAMBDA_EXPR_CAPTURE_LIST (lambda_expr);
+         capture;
+         capture = TREE_CHAIN (capture))
+    {
+      /* Get a decl_specifier_seq and declarator.  */
+      cp_decl_specifier_seq capture_decl_specs;
+      cp_declarator* capture_declarator;
+      /* Weird bug where the code changes somehow before getting here.  */
+      TREE_SET_CODE (capture, TREE_LIST);
+      tree capture_type = TREE_VALUE (capture);
+      tree capture_id = TREE_PURPOSE (capture);
+
+      clear_decl_specs (&capture_decl_specs);
+      capture_decl_specs.type = capture_type;
+
+      capture_declarator = make_id_declarator (
+          NULL_TREE,
+          capture_id,
+          sfk_none);
+
+      /* TODO: support rvalue-reference captures.  */
+      /*
+      if (storage_code == BY_RVALUE_REF)
+        eref_declarator = make_reference_declarator (
+            /*cv_qualifiers=/TYPE_UNQUALIFIED,
+            eref_declarator,
+            /*rvalue_ref=/true);
+            */
+
+      {
+        /* Build parameter.  */
+        cp_parameter_declarator* ctor_param = make_parameter_declarator (
+            &capture_decl_specs,
+            capture_declarator,
+            /*default_argument=*/NULL_TREE);
+
+        /* Append to parameter list.  */
+        *ctor_param_list_tail = ctor_param;
+        ctor_param_list_tail = &ctor_param->next;
+
+      }
+
+      {
+        /********************************************
+         * Create members
+         * - member_specification_opt
+         * + member_declaration
+         ********************************************/
+        /* Add member.  */
+        tree mem_decl;
+
+        capture_decl_specs.storage_class = sc_mutable;
+
+        mem_decl = grokfield (
+            capture_declarator,
+            &capture_decl_specs,
+            /*initializer=*/NULL_TREE,
+            /*init_const_expr_p=*/true,
+            /*asm_specification=*/NULL_TREE,
+            /*attributes=*/NULL_TREE);
+
+        finish_member_declaration (mem_decl);
+      }
+
+    }
+
+  }
+
+  *return_ctor_param_list = ctor_param_list;
+}
+
 /* Parse a lambda expression */
 static tree
 cp_parser_lambda_expression (cp_parser* parser)
@@ -6762,45 +6848,10 @@ cp_parser_lambda_class_definition (cp_parser* parser,
     current_class_type = type;
   }
 
-  /********************************************
-   * Create members
-   * - member_specification_opt
-   * + member_declaration
-   ********************************************/
   {
-    cp_parameter_declarator* decl_list;
-
-    /* Members are private */
-    current_access_specifier = access_private_node;
-
-    for (decl_list = ctor_param_list;
-        decl_list && decl_list->declarator;
-        decl_list = decl_list->next)
-    {
-      cp_decl_specifier_seq eref_type_specs;
-      cp_declarator* eref_declarator;
-      tree mem_decl;
-
-      /* Get the old type and identifier back. */
-      /* TODO: perform a deep copy? */
-      eref_type_specs = decl_list->decl_specifiers;
-      cp_parser_set_storage_class (parser, &eref_type_specs, RID_MUTABLE);
-
-      eref_declarator = decl_list->declarator;
-      while (eref_declarator->kind != cdk_id)
-        eref_declarator = eref_declarator->declarator;
-
-      mem_decl = grokfield (
-          eref_declarator,
-          &eref_type_specs,
-          /*initializer=*/NULL_TREE,
-          /*init_const_expr_p=*/true,
-          /*asm_specification=*/NULL_TREE,
-          /*attributes=*/NULL_TREE);
-
-      if (mem_decl)
-        finish_member_declaration (mem_decl);
-    }
+    build_lambda_class (
+        lambda_expr,
+        &ctor_param_list);
   }
 
   /********************************************
@@ -7147,7 +7198,6 @@ cp_parser_lambda_external_reference_clause (cp_parser* parser,
     cp_parameter_declarator** ctor_param_list,
     tree* ctor_arg_list)
 {
-  cp_parameter_declarator** ctor_param_list_tail = ctor_param_list;
   /* Need commas after the first local reference. */
   bool first = true;
 
@@ -7180,11 +7230,9 @@ cp_parser_lambda_external_reference_clause (cp_parser* parser,
     cp_id_kind idk = CP_ID_KIND_NONE;
     const char* error_msg;
 
-    cp_decl_specifier_seq eref_type_specs;
-    cp_declarator* eref_declarator;
-    tree eref_id;
-    tree eref_init_expr;
-    tree eref_type;
+    tree capture_id;
+    tree capture_init_expr;
+    tree capture_init_type;
 
     enum storage_code_type {BY_COPY, BY_REF, BY_RVALUE_REF};
     enum storage_code_type storage_code = BY_COPY;
@@ -7212,42 +7260,30 @@ cp_parser_lambda_external_reference_clause (cp_parser* parser,
       cp_lexer_consume_token (parser->lexer);
 
     /* Get the identifier. */
-    eref_id = cp_parser_identifier (parser);
-
-    /* Turn into a declarator. */
-    eref_declarator = make_id_declarator (
-        NULL_TREE,
-        eref_id,
-        sfk_none);
-
-    if (storage_code == BY_RVALUE_REF)
-      eref_declarator = make_reference_declarator (
-          /*cv_qualifiers=*/TYPE_UNQUALIFIED,
-          eref_declarator,
-          /*rvalue_ref=*/true);
+    capture_id = cp_parser_identifier (parser);
 
     /* Find the initializer for this external reference. */
     if (cp_lexer_next_token_is (parser->lexer, CPP_EQ))
     {
       /* An explicit expression exists. */
       cp_lexer_consume_token (parser->lexer);
-      eref_init_expr = cp_parser_assignment_expression (parser,
+      capture_init_expr = cp_parser_assignment_expression (parser,
           /*cast_p=*/true);
     }
     else
     {
       /* Turn the identifier into an id-expression. */
-      eref_init_expr = cp_parser_lookup_name (parser,
-          eref_id,
+      capture_init_expr = cp_parser_lookup_name (parser,
+          capture_id,
           none_type,
           /*is_template=*/false,
           /*is_namespace=*/false,
           /*check_dependency=*/true,
           /*ambiguous_decls=*/NULL);
 
-      eref_init_expr = finish_id_expression (
-          eref_id,
-          eref_init_expr,
+      capture_init_expr = finish_id_expression (
+          capture_id,
+          capture_init_expr,
           parser->scope,
           &idk,
           /*integral_constant_expression_p=*/false,
@@ -7261,46 +7297,32 @@ cp_parser_lambda_external_reference_clause (cp_parser* parser,
     }
 
     /* Get the type. */
-    eref_type = finish_decltype_type (
-        eref_init_expr,
+    capture_init_type = finish_decltype_type (
+        capture_init_expr,
         /*id_expression_or_member_access_p=*/false);
 
     /* May come as a reference, so strip it down if desired. */
     if (storage_code != BY_REF)
-      eref_type = non_reference (eref_type);
-    else if (TREE_CODE (eref_type) != REFERENCE_TYPE)
+      capture_init_type = non_reference (capture_init_type);
+    else if (TREE_CODE (capture_init_type) != REFERENCE_TYPE)
     {
       error ("%qE cannot be used to initialize a non-const reference",
-          eref_init_expr);
+          capture_init_expr);
       continue;
     }
 
-    tree_cons (
-      eref_id,
-      eref_type,
+    LAMBDA_EXPR_CAPTURE_LIST (lambda_expr) = tree_cons (
+      capture_id,
+      capture_init_type,
       LAMBDA_EXPR_CAPTURE_LIST (lambda_expr));
-    tree_cons (
-      eref_init_expr,
+    LAMBDA_EXPR_CAPTURE_INIT_LIST (lambda_expr) = tree_cons (
       NULL_TREE,
+      capture_init_expr,
       LAMBDA_EXPR_CAPTURE_INIT_LIST (lambda_expr));
-
-    clear_decl_specs (&eref_type_specs);
-    eref_type_specs.type = eref_type;
-
-    /* Add to ctor_param_list */
-    {
-      cp_parameter_declarator* ctor_param = make_parameter_declarator (
-          &eref_type_specs,
-          eref_declarator,
-          /*default_argument=*/NULL_TREE);
-
-      *ctor_param_list_tail = ctor_param;
-      ctor_param_list_tail = &ctor_param->next;
-    }
 
     /* Add to ctor_arg_list */
     {
-      tree ctor_arg = eref_init_expr;
+      tree ctor_arg = capture_init_expr;
 
       *ctor_arg_list = tree_cons (NULL_TREE, ctor_arg, *ctor_arg_list);
     }
