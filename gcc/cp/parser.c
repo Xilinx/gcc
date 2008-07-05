@@ -1632,7 +1632,7 @@ static void cp_parser_lambda_head
   (cp_parser *, tree,
    cp_parameter_declarator **,
    cp_decl_specifier_seq *, cp_parameter_declarator **, tree *);
-static void cp_parser_lambda_external_reference_clause
+static void cp_parser_lambda_capture_list
   (cp_parser *, tree, cp_parameter_declarator **, tree *);
 static cp_parameter_declarator *cp_parser_lambda_parameter_clause
   (cp_parser *);
@@ -6669,8 +6669,13 @@ build_lambda_class (
 {
   cp_parameter_declarator* ctor_param_list = no_parameters;
 
-  /* Turn capture list into class members and constructor parameters.  */
   {
+    /* For each capture, we need to
+         1. Create member
+         2. Add to ctor_param_list
+         3. Add to ctor_arg_list
+         4. Create mem_initializer, add to list
+     */
     cp_parameter_declarator** ctor_param_list_tail = &ctor_param_list;
     tree capture = NULL_TREE;
 
@@ -6699,10 +6704,10 @@ build_lambda_class (
 
       /* TODO: support rvalue-reference captures.  */
       /*
-      if (storage_code == BY_RVALUE_REF)
-        eref_declarator = make_reference_declarator (
+      if (capture_kind == BY_RVALUE_REF)
+        capture_declarator = make_reference_declarator (
             /*cv_qualifiers=/TYPE_UNQUALIFIED,
-            eref_declarator,
+            capture_declarator,
             /*rvalue_ref=/true);
             */
 
@@ -7160,7 +7165,7 @@ cp_parser_lambda_head (cp_parser* parser,
     tree* ctor_arg_list)
 {
   /* Parse local references */
-  cp_parser_lambda_external_reference_clause (parser,
+  cp_parser_lambda_capture_list (parser,
       lambda_expr,
       ctor_param_list,
       ctor_arg_list);
@@ -7193,7 +7198,7 @@ cp_parser_lambda_parameter_clause (cp_parser* parser)
 }
 
 static void
-cp_parser_lambda_external_reference_clause (cp_parser* parser,
+cp_parser_lambda_capture_list (cp_parser* parser,
     tree lambda_expr,
     cp_parameter_declarator** ctor_param_list,
     tree* ctor_arg_list)
@@ -7218,13 +7223,6 @@ cp_parser_lambda_external_reference_clause (cp_parser* parser,
       cp_lexer_consume_token (parser->lexer);
   }
 
-  /* For each external reference, we need to
-       1. Create member (later)
-       2. Add to ctor_param_list
-       3. Add to ctor_arg_list
-       4. Create mem_initializer, add to list (later)
-   */
-
   while (cp_lexer_next_token_is_not (parser->lexer, CPP_CLOSE_SQUARE))
   {
     cp_id_kind idk = CP_ID_KIND_NONE;
@@ -7234,8 +7232,8 @@ cp_parser_lambda_external_reference_clause (cp_parser* parser,
     tree capture_init_expr;
     tree capture_init_type;
 
-    enum storage_code_type {BY_COPY, BY_REF, BY_RVALUE_REF};
-    enum storage_code_type storage_code = BY_COPY;
+    enum capture_kind_type {BY_COPY, BY_REF, BY_RVALUE_REF};
+    enum capture_kind_type capture_kind = BY_COPY;
 
     if (!first)
       cp_parser_require (parser, CPP_COMMA, "`,'");
@@ -7252,17 +7250,17 @@ cp_parser_lambda_external_reference_clause (cp_parser* parser,
 
     /* Remember whether we want to take this as a reference or not. */
     if (cp_lexer_next_token_is (parser->lexer, CPP_AND))
-      storage_code = BY_REF;
+      capture_kind = BY_REF;
     else if (cp_lexer_next_token_is (parser->lexer, CPP_AND_AND))
-      storage_code = BY_RVALUE_REF;
+      capture_kind = BY_RVALUE_REF;
 
-    if (storage_code != BY_COPY)
+    if (capture_kind != BY_COPY)
       cp_lexer_consume_token (parser->lexer);
 
     /* Get the identifier. */
     capture_id = cp_parser_identifier (parser);
 
-    /* Find the initializer for this external reference. */
+    /* Find the initializer for this capture.  */
     if (cp_lexer_next_token_is (parser->lexer, CPP_EQ))
     {
       /* An explicit expression exists. */
@@ -7302,8 +7300,10 @@ cp_parser_lambda_external_reference_clause (cp_parser* parser,
         /*id_expression_or_member_access_p=*/false);
 
     /* May come as a reference, so strip it down if desired. */
-    if (storage_code != BY_REF)
+    if (capture_kind != BY_REF)
+    {
       capture_init_type = non_reference (capture_init_type);
+    }
     else if (TREE_CODE (capture_init_type) != REFERENCE_TYPE)
     {
       error ("%qE cannot be used to initialize a non-const reference",
