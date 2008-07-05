@@ -7164,7 +7164,6 @@ cp_parser_lambda_head (cp_parser* parser,
     cp_parameter_declarator** ctor_param_list,
     tree* ctor_arg_list)
 {
-  /* Parse local references */
   cp_parser_lambda_capture_list (parser,
       lambda_expr,
       ctor_param_list,
@@ -7203,7 +7202,7 @@ cp_parser_lambda_capture_list (cp_parser* parser,
     cp_parameter_declarator** ctor_param_list,
     tree* ctor_arg_list)
 {
-  /* Need commas after the first local reference. */
+  /* Need commas after the first capture.  */
   bool first = true;
 
   /* Eat the leading `['. */
