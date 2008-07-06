@@ -1628,13 +1628,11 @@ static tree cp_parser_lambda_expression
   (cp_parser *);
 static tree cp_parser_lambda_class_definition
   (cp_parser *, tree);
-static void cp_parser_lambda_head
+static void cp_parser_lambda_introducer
+  (cp_parser *, tree);
+static void cp_parser_lambda_parameter_declaration
   (cp_parser *, tree,
    cp_parameter_declarator **);
-static void cp_parser_lambda_capture_list
-  (cp_parser *, tree);
-static cp_parameter_declarator *cp_parser_lambda_parameter_clause
-  (cp_parser *);
 static void cp_parser_build_mem_init_list
   (cp_parser *, cp_parameter_declarator *, tree *);
 static tree cp_parser_lambda_body
@@ -6790,7 +6788,8 @@ cp_parser_lambda_class_definition (cp_parser* parser,
   cp_parameter_declarator* fco_param_list  = no_parameters;
   cp_decl_specifier_seq fco_return_type_specs;
 
-  cp_parser_lambda_head (parser,
+  cp_parser_lambda_introducer (parser, lambda_expr);
+  cp_parser_lambda_parameter_declaration (parser,
       lambda_expr,
       &fco_param_list);
 
@@ -7155,44 +7154,7 @@ cp_parser_build_mem_init_list (cp_parser* parser,
 }
 
 static void
-cp_parser_lambda_head (cp_parser* parser,
-    tree lambda_expr,
-    cp_parameter_declarator** fco_param_list)
-{
-  cp_parser_lambda_capture_list (parser, lambda_expr);
-
-  /* Parse parameters */
-  *fco_param_list = cp_parser_lambda_parameter_clause (parser);
-
-  /* Parse optional exception specification */
-  LAMBDA_EXPR_EXCEPTION_SPEC (lambda_expr)
-    = cp_parser_exception_specification_opt (parser);
-
-  /* Parse optional return type clause */
-  if (cp_lexer_next_token_is (parser->lexer, CPP_DEREF))
-  {
-    cp_lexer_consume_token (parser->lexer);
-    LAMBDA_EXPR_RETURN_TYPE (lambda_expr) = cp_parser_type_id (parser);
-  }
-
-}
-
-static cp_parameter_declarator*
-cp_parser_lambda_parameter_clause (cp_parser* parser)
-{
-  cp_parameter_declarator* parameters = no_parameters;
-  bool is_error = false;
-
-  cp_parser_require (parser, CPP_OPEN_PAREN, "`('");
-  if (cp_lexer_next_token_is_not (parser->lexer, CPP_CLOSE_PAREN))
-    parameters = cp_parser_parameter_declaration_list (parser, &is_error);
-  cp_parser_require (parser, CPP_CLOSE_PAREN, "`)'");
-
-  return (is_error) ? (no_parameters) : (parameters);
-}
-
-static void
-cp_parser_lambda_capture_list (cp_parser* parser, tree lambda_expr)
+cp_parser_lambda_introducer (cp_parser* parser, tree lambda_expr)
 {
   /* Need commas after the first capture.  */
   bool first = true;
@@ -7314,6 +7276,38 @@ cp_parser_lambda_capture_list (cp_parser* parser, tree lambda_expr)
   }
 
   cp_parser_require (parser, CPP_CLOSE_SQUARE, "`]'");
+
+}
+
+static void
+cp_parser_lambda_parameter_declaration (cp_parser* parser,
+    tree lambda_expr,
+    cp_parameter_declarator** fco_param_list)
+{
+
+  cp_parser_require (parser, CPP_OPEN_PAREN, "`('");
+
+  /* Parse optional parameters.  */
+  if (cp_lexer_next_token_is_not (parser->lexer, CPP_CLOSE_PAREN))
+  {
+    bool is_error = false;
+    *fco_param_list = cp_parser_parameter_declaration_list (parser, &is_error);
+    if (is_error)
+      *fco_param_list = no_parameters;
+  }
+
+  cp_parser_require (parser, CPP_CLOSE_PAREN, "`)'");
+
+  /* Parse optional exception specification.  */
+  LAMBDA_EXPR_EXCEPTION_SPEC (lambda_expr)
+    = cp_parser_exception_specification_opt (parser);
+
+  /* Parse optional return type clause.  */
+  if (cp_lexer_next_token_is (parser->lexer, CPP_DEREF))
+  {
+    cp_lexer_consume_token (parser->lexer);
+    LAMBDA_EXPR_RETURN_TYPE (lambda_expr) = cp_parser_type_id (parser);
+  }
 
 }
 
