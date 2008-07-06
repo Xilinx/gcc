@@ -1631,9 +1631,9 @@ static tree cp_parser_lambda_class_definition
 static void cp_parser_lambda_head
   (cp_parser *, tree,
    cp_parameter_declarator **,
-   cp_decl_specifier_seq *, cp_parameter_declarator **);
+   cp_decl_specifier_seq *);
 static void cp_parser_lambda_capture_list
-  (cp_parser *, tree, cp_parameter_declarator **);
+  (cp_parser *, tree);
 static cp_parameter_declarator *cp_parser_lambda_parameter_clause
   (cp_parser *);
 static void cp_parser_build_mem_init_list
@@ -6705,9 +6705,9 @@ build_lambda_class (
       /*
       if (capture_kind == BY_RVALUE_REF)
         capture_declarator = make_reference_declarator (
-            /*cv_qualifiers=/TYPE_UNQUALIFIED,
+            /cv_qualifiers=/TYPE_UNQUALIFIED,
             capture_declarator,
-            /*rvalue_ref=/true);
+            /rvalue_ref=/true);
             */
 
       {
@@ -6796,8 +6796,7 @@ cp_parser_lambda_class_definition (cp_parser* parser,
   cp_parser_lambda_head (parser,
       lambda_expr,
       &fco_param_list,
-      &fco_return_type_specs,
-      &ctor_param_list);
+      &fco_return_type_specs);
 
   /* TODO: Move out to surrounding non-function, non-class scope. */
   push_to_top_level ();
@@ -7154,12 +7153,9 @@ static void
 cp_parser_lambda_head (cp_parser* parser,
     tree lambda_expr,
     cp_parameter_declarator** fco_param_list,
-    cp_decl_specifier_seq* fco_return_type_specs,
-    cp_parameter_declarator** ctor_param_list)
+    cp_decl_specifier_seq* fco_return_type_specs)
 {
-  cp_parser_lambda_capture_list (parser,
-      lambda_expr,
-      ctor_param_list);
+  cp_parser_lambda_capture_list (parser, lambda_expr);
 
   /* Parse parameters */
   *fco_param_list = cp_parser_lambda_parameter_clause (parser);
@@ -7189,9 +7185,7 @@ cp_parser_lambda_parameter_clause (cp_parser* parser)
 }
 
 static void
-cp_parser_lambda_capture_list (cp_parser* parser,
-    tree lambda_expr,
-    cp_parameter_declarator** ctor_param_list)
+cp_parser_lambda_capture_list (cp_parser* parser, tree lambda_expr)
 {
   /* Need commas after the first capture.  */
   bool first = true;
