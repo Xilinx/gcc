@@ -6652,7 +6652,7 @@ cp_parser_trait_expr (cp_parser* parser, enum rid keyword)
 static tree
 build_lambda_expr (void)
 {
-  tree lambda_expr = build0 (LAMBDA_EXPR, NULL_TREE);
+  tree lambda_expr = make_node (LAMBDA_EXPR);
   LAMBDA_EXPR_DEFAULT_CAPTURE_MODE (lambda_expr) = CPLD_NONE;
   LAMBDA_EXPR_CAPTURES_THIS_P      (lambda_expr) = false;
   LAMBDA_EXPR_CAPTURE_LIST         (lambda_expr) = NULL_TREE;

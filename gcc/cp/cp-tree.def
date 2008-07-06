@@ -418,7 +418,7 @@ DEFTREECODE (TRAIT_EXPR, "trait_expr", tcc_exceptional, 0)
 
 /* A lambda expression.  This is a C++0x extension.
    Trying a new design around a tcc_expression of 0 operands. */
-DEFTREECODE (LAMBDA_EXPR, "lambda_expr", tcc_expression, 0)
+DEFTREECODE (LAMBDA_EXPR, "lambda_expr", tcc_exceptional, 0)
 
 /* The declared type of an expression.  This is a C++0x extension.
    DECLTYPE_TYPE_EXPR is the expression whose type we are computing.
