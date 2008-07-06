@@ -6706,15 +6706,6 @@ cp_parser_lambda_class_definition (cp_parser* parser,
   cp_parameter_declarator* ctor_param_list = no_parameters;
   cp_decl_specifier_seq fco_return_type_specs;
 
-  clear_decl_specs (&fco_return_type_specs);
-  if (LAMBDA_EXPR_RETURN_TYPE (lambda_expr))
-  {
-    fco_return_type_specs.type = LAMBDA_EXPR_RETURN_TYPE (lambda_expr);
-    fco_return_type_specs.any_specifiers_p = true;
-    /* TODO: do we need cp_parser_set_decl_spec_type()? */
-    /* TODO: do we need grokdeclarator()? */
-  }
-
   /* TODO: Move out to surrounding non-function, non-class scope. */
   push_to_top_level ();
 
@@ -6862,6 +6853,15 @@ cp_parser_lambda_class_definition (cp_parser* parser,
     saved_default_arg_ok_p = parser->default_arg_ok_p;
     parser->default_arg_ok_p = true;
 
+    clear_decl_specs (&fco_return_type_specs);
+    if (LAMBDA_EXPR_RETURN_TYPE (lambda_expr))
+    {
+      fco_return_type_specs.type = LAMBDA_EXPR_RETURN_TYPE (lambda_expr);
+      fco_return_type_specs.any_specifiers_p = true;
+      /* TODO: do we need cp_parser_set_decl_spec_type()? */
+      /* TODO: do we need grokdeclarator()? */
+    }
+
     fco_name = ansi_opname (CALL_EXPR);
     fco_declarator = make_id_declarator (
         parser->scope,
@@ -7004,7 +7004,7 @@ cp_parser_lambda_class_definition (cp_parser* parser,
       fco_body_expr = cp_parser_expression (parser, /*cast_p=*/false);
       cp_parser_require (parser, CPP_CLOSE_PAREN, "`)'");
 
-      if (!fco_return_type_specs.any_specifiers_p)
+      if (!LAMBDA_EXPR_RETURN_TYPE (lambda_expr))
       {
         tree fco_return_type;
         tree fco_return_decl;
