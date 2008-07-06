@@ -1627,13 +1627,13 @@ static tree cp_parser_builtin_offsetof
 static tree cp_parser_lambda_expression
   (cp_parser *);
 static tree cp_parser_lambda_class_definition
-  (cp_parser *, tree, tree *);
+  (cp_parser *, tree);
 static void cp_parser_lambda_head
   (cp_parser *, tree,
    cp_parameter_declarator **,
-   cp_decl_specifier_seq *, cp_parameter_declarator **, tree *);
+   cp_decl_specifier_seq *, cp_parameter_declarator **);
 static void cp_parser_lambda_capture_list
-  (cp_parser *, tree, cp_parameter_declarator **, tree *);
+  (cp_parser *, tree, cp_parameter_declarator **);
 static cp_parameter_declarator *cp_parser_lambda_parameter_clause
   (cp_parser *);
 static void cp_parser_build_mem_init_list
@@ -6673,8 +6673,7 @@ build_lambda_class (
     /* For each capture, we need to
          1. Create member
          2. Add to ctor_param_list
-         3. Add to ctor_arg_list
-         4. Create mem_initializer, add to list
+         3. Create mem_initializer, add to list
      */
     cp_parameter_declarator** ctor_param_list_tail = &ctor_param_list;
     tree capture = NULL_TREE;
@@ -6758,12 +6757,9 @@ static tree
 cp_parser_lambda_expression (cp_parser* parser)
 {
   tree lambda_expr = build_lambda_expr ();
-  /* Arguments to the constructor */
-  tree ctor_arg_list = NULL_TREE;
   /* The lambda class definition */
   tree type = cp_parser_lambda_class_definition (parser,
-    lambda_expr,
-    &ctor_arg_list);
+    lambda_expr);
   /* The construction expression (primary-expression) */
   tree construction_expr;
 
@@ -6771,7 +6767,7 @@ cp_parser_lambda_expression (cp_parser* parser)
 
   construction_expr = build_functional_cast (
     type,
-    ctor_arg_list,
+    LAMBDA_EXPR_CAPTURE_INIT_LIST (lambda_expr),
     tf_warning_or_error
   );
 
@@ -6780,8 +6776,7 @@ cp_parser_lambda_expression (cp_parser* parser)
 
 static tree
 cp_parser_lambda_class_definition (cp_parser* parser,
-    tree lambda_expr,
-    tree* ctor_arg_list)
+    tree lambda_expr)
 {
   unsigned int saved_num_template_parameter_lists;
   bool         saved_in_function_body;
@@ -6802,8 +6797,7 @@ cp_parser_lambda_class_definition (cp_parser* parser,
       lambda_expr,
       &fco_param_list,
       &fco_return_type_specs,
-      &ctor_param_list,
-      ctor_arg_list);
+      &ctor_param_list);
 
   /* TODO: Move out to surrounding non-function, non-class scope. */
   push_to_top_level ();
@@ -7161,13 +7155,11 @@ cp_parser_lambda_head (cp_parser* parser,
     tree lambda_expr,
     cp_parameter_declarator** fco_param_list,
     cp_decl_specifier_seq* fco_return_type_specs,
-    cp_parameter_declarator** ctor_param_list,
-    tree* ctor_arg_list)
+    cp_parameter_declarator** ctor_param_list)
 {
   cp_parser_lambda_capture_list (parser,
       lambda_expr,
-      ctor_param_list,
-      ctor_arg_list);
+      ctor_param_list);
 
   /* Parse parameters */
   *fco_param_list = cp_parser_lambda_parameter_clause (parser);
@@ -7199,8 +7191,7 @@ cp_parser_lambda_parameter_clause (cp_parser* parser)
 static void
 cp_parser_lambda_capture_list (cp_parser* parser,
     tree lambda_expr,
-    cp_parameter_declarator** ctor_param_list,
-    tree* ctor_arg_list)
+    cp_parameter_declarator** ctor_param_list)
 {
   /* Need commas after the first capture.  */
   bool first = true;
@@ -7319,19 +7310,10 @@ cp_parser_lambda_capture_list (cp_parser* parser,
       capture_init_expr,
       LAMBDA_EXPR_CAPTURE_INIT_LIST (lambda_expr));
 
-    /* Add to ctor_arg_list */
-    {
-      tree ctor_arg = capture_init_expr;
-
-      *ctor_arg_list = tree_cons (NULL_TREE, ctor_arg, *ctor_arg_list);
-    }
-
   }
 
   cp_parser_require (parser, CPP_CLOSE_SQUARE, "`]'");
 
-  /* Arguments were built in reverse order */
-  *ctor_arg_list = nreverse(*ctor_arg_list);
 }
 
 static tree
