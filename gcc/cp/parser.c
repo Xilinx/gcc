@@ -1626,17 +1626,17 @@ static tree cp_parser_builtin_offsetof
   (cp_parser *);
 static tree cp_parser_lambda_expression
   (cp_parser *);
-static tree cp_parser_lambda_class_definition
-  (cp_parser *, tree);
 static void cp_parser_lambda_introducer
   (cp_parser *, tree);
 static void cp_parser_lambda_parameter_declaration
   (cp_parser *, tree,
    cp_parameter_declarator **);
-static void cp_parser_build_mem_init_list
-  (cp_parser *, cp_parameter_declarator *, tree *);
 static tree cp_parser_lambda_body
   (cp_parser *, cp_decl_specifier_seq *, cp_declarator *, bool *);
+static tree cp_parser_lambda_class_definition
+  (cp_parser *, tree, cp_parameter_declarator *);
+static void cp_parser_build_mem_init_list
+  (cp_parser *, cp_parameter_declarator *, tree *);
 
 /* Statements [gram.stmt.stmt]  */
 
@@ -6662,12 +6662,20 @@ static tree
 cp_parser_lambda_expression (cp_parser* parser)
 {
   tree lambda_expr = build_lambda_expr ();
+  cp_parameter_declarator* fco_param_list = no_parameters;
   /* The lambda class definition */
-  tree type = cp_parser_lambda_class_definition (parser,
-    lambda_expr);
+  tree type;
   /* The construction expression (primary-expression) */
   tree construction_expr;
 
+  cp_parser_lambda_introducer (parser, lambda_expr);
+  cp_parser_lambda_parameter_declaration (parser,
+      lambda_expr,
+      &fco_param_list);
+
+  type = cp_parser_lambda_class_definition (parser,
+      lambda_expr,
+      fco_param_list);
   type = TREE_CHAIN (type);
 
   construction_expr = build_functional_cast (
@@ -6681,7 +6689,8 @@ cp_parser_lambda_expression (cp_parser* parser)
 
 static tree
 cp_parser_lambda_class_definition (cp_parser* parser,
-    tree lambda_expr)
+    tree lambda_expr,
+    cp_parameter_declarator* fco_param_list)
 {
   unsigned int saved_num_template_parameter_lists;
   bool         saved_in_function_body;
@@ -6695,13 +6704,7 @@ cp_parser_lambda_class_definition (cp_parser* parser,
   bool expression_body_p;
 
   cp_parameter_declarator* ctor_param_list = no_parameters;
-  cp_parameter_declarator* fco_param_list  = no_parameters;
   cp_decl_specifier_seq fco_return_type_specs;
-
-  cp_parser_lambda_introducer (parser, lambda_expr);
-  cp_parser_lambda_parameter_declaration (parser,
-      lambda_expr,
-      &fco_param_list);
 
   clear_decl_specs (&fco_return_type_specs);
   if (LAMBDA_EXPR_RETURN_TYPE (lambda_expr))
