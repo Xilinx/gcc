@@ -6657,96 +6657,6 @@ build_lambda_expr (void)
   return lambda_expr;
 }
 
-static void
-build_lambda_class (
-    tree lambda_expr,
-    cp_parameter_declarator** return_ctor_param_list) 
-{
-  cp_parameter_declarator* ctor_param_list = no_parameters;
-
-  {
-    /* For each capture, we need to
-         1. Create member
-         2. Add to ctor_param_list
-         3. Create mem_initializer, add to list
-     */
-    cp_parameter_declarator** ctor_param_list_tail = &ctor_param_list;
-    tree capture = NULL_TREE;
-
-    /* Members are private */
-    current_access_specifier = access_private_node;
-
-    for (capture = LAMBDA_EXPR_CAPTURE_LIST (lambda_expr);
-         capture;
-         capture = TREE_CHAIN (capture))
-    {
-      /* Get a decl_specifier_seq and declarator.  */
-      cp_decl_specifier_seq capture_decl_specs;
-      cp_declarator* capture_declarator;
-      /* Weird bug where the code changes somehow before getting here.  */
-      TREE_SET_CODE (capture, TREE_LIST);
-      tree capture_type = TREE_VALUE (capture);
-      tree capture_id = TREE_PURPOSE (capture);
-
-      clear_decl_specs (&capture_decl_specs);
-      capture_decl_specs.type = capture_type;
-
-      capture_declarator = make_id_declarator (
-          NULL_TREE,
-          capture_id,
-          sfk_none);
-
-      /* TODO: support rvalue-reference captures.  */
-      /*
-      if (capture_kind == BY_RVALUE_REFERENCE)
-        capture_declarator = make_reference_declarator (
-            /cv_qualifiers=/TYPE_UNQUALIFIED,
-            capture_declarator,
-            /rvalue_ref=/true);
-            */
-
-      {
-        /* Build parameter.  */
-        cp_parameter_declarator* ctor_param = make_parameter_declarator (
-            &capture_decl_specs,
-            capture_declarator,
-            /*default_argument=*/NULL_TREE);
-
-        /* Append to parameter list.  */
-        *ctor_param_list_tail = ctor_param;
-        ctor_param_list_tail = &ctor_param->next;
-
-      }
-
-      {
-        /********************************************
-         * Create members
-         * - member_specification_opt
-         * + member_declaration
-         ********************************************/
-        /* Add member.  */
-        tree mem_decl;
-
-        capture_decl_specs.storage_class = sc_mutable;
-
-        mem_decl = grokfield (
-            capture_declarator,
-            &capture_decl_specs,
-            /*initializer=*/NULL_TREE,
-            /*init_const_expr_p=*/true,
-            /*asm_specification=*/NULL_TREE,
-            /*attributes=*/NULL_TREE);
-
-        finish_member_declaration (mem_decl);
-      }
-
-    }
-
-  }
-
-  *return_ctor_param_list = ctor_param_list;
-}
-
 /* Parse a lambda expression */
 static tree
 cp_parser_lambda_expression (cp_parser* parser)
@@ -6850,10 +6760,84 @@ cp_parser_lambda_class_definition (cp_parser* parser,
     current_class_type = type;
   }
 
+  /* For each capture, we need to
+       1. Create member
+       2. Add to ctor_param_list
+       3. Create mem_initializer, add to list
+   */
   {
-    build_lambda_class (
-        lambda_expr,
-        &ctor_param_list);
+    cp_parameter_declarator** ctor_param_list_tail = &ctor_param_list;
+    tree capture = NULL_TREE;
+
+    /* Members are private */
+    current_access_specifier = access_private_node;
+
+    for (capture = LAMBDA_EXPR_CAPTURE_LIST (lambda_expr);
+         capture;
+         capture = TREE_CHAIN (capture))
+    {
+      /* Get a decl_specifier_seq and declarator.  */
+      cp_decl_specifier_seq capture_decl_specs;
+      cp_declarator* capture_declarator;
+      /* Weird bug where the code changes somehow before getting here.  */
+      TREE_SET_CODE (capture, TREE_LIST);
+      tree capture_type = TREE_VALUE (capture);
+      tree capture_id = TREE_PURPOSE (capture);
+
+      clear_decl_specs (&capture_decl_specs);
+      capture_decl_specs.type = capture_type;
+
+      capture_declarator = make_id_declarator (
+          NULL_TREE,
+          capture_id,
+          sfk_none);
+
+      /* TODO: support rvalue-reference captures.  */
+      /*
+      if (capture_kind == BY_RVALUE_REFERENCE)
+        capture_declarator = make_reference_declarator (
+            /cv_qualifiers=/TYPE_UNQUALIFIED,
+            capture_declarator,
+            /rvalue_ref=/true);
+            */
+
+      {
+        /* Build parameter.  */
+        cp_parameter_declarator* ctor_param = make_parameter_declarator (
+            &capture_decl_specs,
+            capture_declarator,
+            /*default_argument=*/NULL_TREE);
+
+        /* Append to parameter list.  */
+        *ctor_param_list_tail = ctor_param;
+        ctor_param_list_tail = &ctor_param->next;
+
+      }
+
+      {
+        /********************************************
+         * Create members
+         * - member_specification_opt
+         * + member_declaration
+         ********************************************/
+        /* Add member.  */
+        tree mem_decl;
+
+        capture_decl_specs.storage_class = sc_mutable;
+
+        mem_decl = grokfield (
+            capture_declarator,
+            &capture_decl_specs,
+            /*initializer=*/NULL_TREE,
+            /*init_const_expr_p=*/true,
+            /*asm_specification=*/NULL_TREE,
+            /*attributes=*/NULL_TREE);
+
+        finish_member_declaration (mem_decl);
+      }
+
+    }
+
   }
 
   /********************************************
