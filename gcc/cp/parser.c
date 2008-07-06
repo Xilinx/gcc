@@ -1630,8 +1630,7 @@ static tree cp_parser_lambda_class_definition
   (cp_parser *, tree);
 static void cp_parser_lambda_head
   (cp_parser *, tree,
-   cp_parameter_declarator **,
-   cp_decl_specifier_seq *);
+   cp_parameter_declarator **);
 static void cp_parser_lambda_capture_list
   (cp_parser *, tree);
 static cp_parameter_declarator *cp_parser_lambda_parameter_clause
@@ -1640,8 +1639,6 @@ static void cp_parser_build_mem_init_list
   (cp_parser *, cp_parameter_declarator *, tree *);
 static tree cp_parser_lambda_body
   (cp_parser *, cp_decl_specifier_seq *, cp_declarator *, bool *);
-static void cp_parser_lambda_return_type_clause_opt
-  (cp_parser *, cp_decl_specifier_seq *);
 
 /* Statements [gram.stmt.stmt]  */
 
@@ -6795,8 +6792,16 @@ cp_parser_lambda_class_definition (cp_parser* parser,
 
   cp_parser_lambda_head (parser,
       lambda_expr,
-      &fco_param_list,
-      &fco_return_type_specs);
+      &fco_param_list);
+
+  clear_decl_specs (&fco_return_type_specs);
+  if (LAMBDA_EXPR_RETURN_TYPE (lambda_expr))
+  {
+    fco_return_type_specs.type = LAMBDA_EXPR_RETURN_TYPE (lambda_expr);
+    fco_return_type_specs.any_specifiers_p = true;
+    /* TODO: do we need cp_parser_set_decl_spec_type()? */
+    /* TODO: do we need grokdeclarator()? */
+  }
 
   /* TODO: Move out to surrounding non-function, non-class scope. */
   push_to_top_level ();
@@ -7152,22 +7157,24 @@ cp_parser_build_mem_init_list (cp_parser* parser,
 static void
 cp_parser_lambda_head (cp_parser* parser,
     tree lambda_expr,
-    cp_parameter_declarator** fco_param_list,
-    cp_decl_specifier_seq* fco_return_type_specs)
+    cp_parameter_declarator** fco_param_list)
 {
   cp_parser_lambda_capture_list (parser, lambda_expr);
 
   /* Parse parameters */
   *fco_param_list = cp_parser_lambda_parameter_clause (parser);
 
-  /* Parse exception specification */
+  /* Parse optional exception specification */
   LAMBDA_EXPR_EXCEPTION_SPEC (lambda_expr)
     = cp_parser_exception_specification_opt (parser);
 
-  /* Parse return type clause */
-  cp_parser_lambda_return_type_clause_opt (parser,
-      fco_return_type_specs);
-  LAMBDA_EXPR_RETURN_TYPE (lambda_expr) = fco_return_type_specs->type;
+  /* Parse optional return type clause */
+  if (cp_lexer_next_token_is (parser->lexer, CPP_DEREF))
+  {
+    cp_lexer_consume_token (parser->lexer);
+    LAMBDA_EXPR_RETURN_TYPE (lambda_expr) = cp_parser_type_id (parser);
+  }
+
 }
 
 static cp_parameter_declarator*
@@ -7359,36 +7366,6 @@ cp_parser_lambda_body (cp_parser* parser,
   }
 
   return fco_decl;
-}
-
-static void
-cp_parser_lambda_return_type_clause_opt (cp_parser* parser,
-    cp_decl_specifier_seq* fco_return_type_specs)
-{
-  tree type_id;
-
-  clear_decl_specs (fco_return_type_specs);
-
-  if (cp_lexer_next_token_is_not (parser->lexer, CPP_DEREF)) return;
-  cp_lexer_consume_token (parser->lexer);
-
-  if (cp_lexer_next_token_is (parser->lexer, CPP_OPEN_PAREN))
-  {
-    cp_lexer_consume_token (parser->lexer);
-    type_id = cp_parser_type_id (parser);
-    cp_parser_require (parser, CPP_CLOSE_PAREN, "`)'");
-  }
-  else
-  {
-    tree nelts;
-    type_id = cp_parser_new_type_id (parser, &nelts);
-    /* TODO: not sure how to use nelts */
-  }
-
-  fco_return_type_specs->type = type_id;
-  fco_return_type_specs->any_specifiers_p = true;
-  /* TODO: do we need cp_parser_set_decl_spec_type()? */
-  /* TODO: do we need grokdeclarator()? */
 }
 
 
