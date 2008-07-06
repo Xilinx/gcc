@@ -6698,7 +6698,7 @@ build_lambda_class (
 
       /* TODO: support rvalue-reference captures.  */
       /*
-      if (capture_kind == BY_RVALUE_REF)
+      if (capture_kind == BY_RVALUE_REFERENCE)
         capture_declarator = make_reference_declarator (
             /cv_qualifiers=/TYPE_UNQUALIFIED,
             capture_declarator,
@@ -7178,14 +7178,15 @@ cp_parser_lambda_introducer (cp_parser* parser, tree lambda_expr)
 
   while (cp_lexer_next_token_is_not (parser->lexer, CPP_CLOSE_SQUARE))
   {
-    cp_id_kind idk = CP_ID_KIND_NONE;
-    const char* error_msg;
-
     tree capture_id;
     tree capture_init_expr;
     tree capture_init_type;
 
-    enum capture_kind_type {BY_COPY, BY_REF, BY_RVALUE_REF};
+    enum capture_kind_type {
+      BY_COPY,
+      BY_REFERENCE,
+      BY_RVALUE_REFERENCE
+    };
     enum capture_kind_type capture_kind = BY_COPY;
 
     if (!first)
@@ -7203,9 +7204,9 @@ cp_parser_lambda_introducer (cp_parser* parser, tree lambda_expr)
 
     /* Remember whether we want to take this as a reference or not. */
     if (cp_lexer_next_token_is (parser->lexer, CPP_AND))
-      capture_kind = BY_REF;
+      capture_kind = BY_REFERENCE;
     else if (cp_lexer_next_token_is (parser->lexer, CPP_AND_AND))
-      capture_kind = BY_RVALUE_REF;
+      capture_kind = BY_RVALUE_REFERENCE;
 
     if (capture_kind != BY_COPY)
       cp_lexer_consume_token (parser->lexer);
@@ -7223,6 +7224,9 @@ cp_parser_lambda_introducer (cp_parser* parser, tree lambda_expr)
     }
     else
     {
+      cp_id_kind idk = CP_ID_KIND_NONE;
+      const char* error_msg;
+
       /* Turn the identifier into an id-expression. */
       capture_init_expr = cp_parser_lookup_name (parser,
           capture_id,
@@ -7253,13 +7257,14 @@ cp_parser_lambda_introducer (cp_parser* parser, tree lambda_expr)
         /*id_expression_or_member_access_p=*/false);
 
     /* May come as a reference, so strip it down if desired. */
-    if (capture_kind != BY_REF)
+    if (capture_kind != BY_REFERENCE)
     {
       capture_init_type = non_reference (capture_init_type);
     }
     else if (TREE_CODE (capture_init_type) != REFERENCE_TYPE)
     {
-      error ("%qE cannot be used to initialize a non-const reference",
+      error (
+          "%qE cannot be used to initialize a non-const reference",
           capture_init_expr);
       continue;
     }
