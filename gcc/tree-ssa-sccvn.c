@@ -261,7 +261,7 @@ VN_INFO_GET (tree name)
 {
   vn_ssa_aux_t newinfo;
 
-  newinfo = obstack_alloc (&vn_ssa_aux_obstack, sizeof (struct vn_ssa_aux));
+  newinfo = XOBNEW (&vn_ssa_aux_obstack, struct vn_ssa_aux);
   memset (newinfo, 0, sizeof (struct vn_ssa_aux));
   if (SSA_NAME_VERSION (name) >= VEC_length (vn_ssa_aux_t, vn_ssa_aux_table))
     VEC_safe_grow (vn_ssa_aux_t, heap, vn_ssa_aux_table,
@@ -277,7 +277,7 @@ VN_INFO_GET (tree name)
 static void
 free_phi (void *vp)
 {
-  vn_phi_t phi = vp;
+  vn_phi_t phi = (vn_phi_t) vp;
   VEC_free (tree, heap, phi->phiargs);
 }
 
@@ -286,11 +286,11 @@ free_phi (void *vp)
 static void
 free_reference (void *vp)
 {
-  vn_reference_t vr = vp;
+  vn_reference_t vr = (vn_reference_t) vp;
   VEC_free (vn_reference_op_s, heap, vr->operands);
 }
 
-/* Compare two reference operands P1 and P2 for equality.  return true if
+/* Compare two reference operands P1 and P2 for equality.  Return true if
    they are equal, and false otherwise.  */
 
 static int
@@ -304,7 +304,7 @@ vn_reference_op_eq (const void *p1, const void *p2)
     && expressions_equal_p (vro1->op1, vro2->op1);
 }
 
-/* Compute the hash for a reference operand VRO1  */
+/* Compute the hash for a reference operand VRO1.  */
 
 static hashval_t
 vn_reference_op_compute_hash (const vn_reference_op_t vro1)
@@ -386,7 +386,7 @@ vn_reference_eq (const void *p1, const void *p2)
   return true;
 }
 
-/* Place the vuses from STMT into *result */
+/* Place the vuses from STMT into *result.  */
 
 static inline void
 vuses_to_vec (tree stmt, VEC (tree, gc) **result)
@@ -418,7 +418,7 @@ copy_vuses_from_stmt (tree stmt)
   return vuses;
 }
 
-/* Place the vdefs from STMT into *result */
+/* Place the vdefs from STMT into *result.  */
 
 static inline void
 vdefs_to_vec (tree stmt, VEC (tree, gc) **result)
@@ -921,7 +921,7 @@ vn_nary_op_insert (tree op, tree result)
   vn_nary_op_t vno1;
   unsigned i;
 
-  vno1 = obstack_alloc (&current_info->nary_obstack,
+  vno1 = (vn_nary_op_t) obstack_alloc (&current_info->nary_obstack,
 			(sizeof (struct vn_nary_op_s)
 			 - sizeof (tree) * (4 - length)));
   vno1->opcode = TREE_CODE (op);

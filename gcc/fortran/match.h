@@ -33,6 +33,8 @@ extern gfc_symbol *gfc_new_block;
    separate.  */
 extern gfc_st_label *gfc_statement_label;
 
+extern int gfc_matching_procptr_assignment;
+
 /****************** All gfc_match* routines *****************/
 
 /* match.c.  */
@@ -147,7 +149,7 @@ match gfc_match_final_decl (void);
 match gfc_match_implicit_none (void);
 match gfc_match_implicit (void);
 
-void gfc_set_constant_character_len (int, gfc_expr *, bool);
+void gfc_set_constant_character_len (int, gfc_expr *, int);
 
 /* Matchers for attribute declarations.  */
 match gfc_match_allocatable (void);

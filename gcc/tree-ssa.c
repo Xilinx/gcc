@@ -63,7 +63,7 @@ redirect_edge_var_map_add (edge e, tree result, tree def)
     edge_var_maps = pointer_map_create ();
 
   slot = pointer_map_insert (edge_var_maps, e);
-  old_head = head = *slot;
+  old_head = head = (edge_var_map_vector) *slot;
   if (!head)
     {
       head = VEC_alloc (edge_var_map, heap, 5);
@@ -96,7 +96,7 @@ redirect_edge_var_map_clear (edge e)
 
   if (slot)
     {
-      head = *slot;
+      head = (edge_var_map_vector) *slot;
       VEC_free (edge_var_map, heap, head);
       *slot = NULL;
     }
@@ -121,7 +121,7 @@ redirect_edge_var_map_dup (edge newe, edge olde)
   old_slot = pointer_map_contains (edge_var_maps, olde);
   if (!old_slot)
     return;
-  head = *old_slot;
+  head = (edge_var_map_vector) *old_slot;
 
   if (head)
     *new_slot = VEC_copy (edge_var_map, heap, head);
@@ -937,6 +937,7 @@ init_tree_ssa (struct function *fn)
   fn->gimple_df->default_defs = htab_create_ggc (20, uid_ssaname_map_hash, 
 				                 uid_ssaname_map_eq, NULL);
   fn->gimple_df->call_clobbered_vars = BITMAP_GGC_ALLOC ();
+  fn->gimple_df->call_used_vars = BITMAP_GGC_ALLOC ();
   fn->gimple_df->addressable_vars = BITMAP_GGC_ALLOC ();
   init_ssanames (fn, 0);
   init_phinodes ();
@@ -1009,6 +1010,7 @@ delete_tree_ssa (void)
   htab_delete (cfun->gimple_df->default_defs);
   cfun->gimple_df->default_defs = NULL;
   cfun->gimple_df->call_clobbered_vars = NULL;
+  cfun->gimple_df->call_used_vars = NULL;
   cfun->gimple_df->addressable_vars = NULL;
   cfun->gimple_df->modified_noreturn_calls = NULL;
   if (gimple_aliases_computed_p (cfun))

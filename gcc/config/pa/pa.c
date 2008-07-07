@@ -538,7 +538,7 @@ pa_init_builtins (void)
 static struct machine_function *
 pa_init_machine_status (void)
 {
-  return ggc_alloc_cleared (sizeof (machine_function));
+  return GGC_CNEW (machine_function);
 }
 
 /* If FROM is a probable pointer register, mark TO as a probable
@@ -694,8 +694,7 @@ legitimize_pic_address (rtx orig, enum machine_mode mode, rtx reg)
 	    orig = XEXP (XEXP (orig, 0), 0);
 	  /* Extract CODE_LABEL.  */
 	  orig = XEXP (orig, 0);
-	  REG_NOTES (insn) = gen_rtx_INSN_LIST (REG_LABEL_OPERAND, orig,
-						REG_NOTES (insn));
+	  add_reg_note (insn, REG_LABEL_OPERAND, orig);
 	  LABEL_NUSES (orig)++;
 	}
       crtl->uses_pic_offset_table = 1;
@@ -7861,7 +7860,7 @@ hppa_encode_label (rtx sym)
   int len = strlen (str) + 1;
   char *newstr, *p;
 
-  p = newstr = alloca (len + 1);
+  p = newstr = XALLOCAVEC (char, len + 1);
   *p++ = '@';
   strcpy (p, str);
 

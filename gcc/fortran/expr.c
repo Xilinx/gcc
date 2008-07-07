@@ -33,7 +33,7 @@ gfc_get_expr (void)
 {
   gfc_expr *e;
 
-  e = gfc_getmem (sizeof (gfc_expr));
+  e = XCNEW (gfc_expr);
   gfc_clear_ts (&e->ts);
   e->shape = NULL;
   e->ref = NULL;
@@ -414,7 +414,7 @@ gfc_copy_expr (gfc_expr *p)
       /* Copy target representation, if it exists.  */
       if (p->representation.string)
 	{
-	  c = gfc_getmem (p->representation.length + 1);
+	  c = XCNEWVEC (char, p->representation.length + 1);
 	  q->representation.string = c;
 	  memcpy (c, p->representation.string, (p->representation.length + 1));
 	}
@@ -2829,6 +2829,7 @@ gfc_check_assign (gfc_expr *lvalue, gfc_expr *rvalue, int conform)
   if (gfc_compare_types (&lvalue->ts, &rvalue->ts))
     return SUCCESS;
 
+  /* Only DATA Statements come here.  */
   if (!conform)
     {
       /* Numeric can be converted to any other numeric. And Hollerith can be
@@ -2840,9 +2841,9 @@ gfc_check_assign (gfc_expr *lvalue, gfc_expr *rvalue, int conform)
       if (lvalue->ts.type == BT_LOGICAL && rvalue->ts.type == BT_LOGICAL)
 	return SUCCESS;
 
-      gfc_error ("Incompatible types in assignment at %L; attempted assignment "
-		 "of %s to %s", &rvalue->where, gfc_typename (&rvalue->ts),
-		 gfc_typename (&lvalue->ts));
+      gfc_error ("Incompatible types in DATA statement at %L; attempted "
+		 "conversion of %s to %s", &lvalue->where,
+		 gfc_typename (&rvalue->ts), gfc_typename (&lvalue->ts));
 
       return FAILURE;
     }
@@ -2873,7 +2874,8 @@ gfc_check_pointer_assign (gfc_expr *lvalue, gfc_expr *rvalue)
   int is_pure;
   int pointer, check_intent_in;
 
-  if (lvalue->symtree->n.sym->ts.type == BT_UNKNOWN)
+  if (lvalue->symtree->n.sym->ts.type == BT_UNKNOWN
+      && !lvalue->symtree->n.sym->attr.proc_pointer)
     {
       gfc_error ("Pointer assignment target is not a POINTER at %L",
 		 &lvalue->where);
@@ -2893,7 +2895,8 @@ gfc_check_pointer_assign (gfc_expr *lvalue, gfc_expr *rvalue)
   /* Check INTENT(IN), unless the object itself is the component or
      sub-component of a pointer.  */
   check_intent_in = 1;
-  pointer = lvalue->symtree->n.sym->attr.pointer;
+  pointer = lvalue->symtree->n.sym->attr.pointer
+	      | lvalue->symtree->n.sym->attr.proc_pointer;
 
   for (ref = lvalue->ref; ref; ref = ref->next)
     {
@@ -2930,6 +2933,10 @@ gfc_check_pointer_assign (gfc_expr *lvalue, gfc_expr *rvalue)
      kind, etc for lvalue and rvalue must match, and rvalue must be a
      pure variable if we're in a pure function.  */
   if (rvalue->expr_type == EXPR_NULL && rvalue->ts.type == BT_UNKNOWN)
+    return SUCCESS;
+
+  /* TODO checks on rvalue for a procedure pointer assignment.  */
+  if (lvalue->symtree->n.sym->attr.proc_pointer)
     return SUCCESS;
 
   if (!gfc_compare_types (&lvalue->ts, &rvalue->ts))
@@ -3023,7 +3030,7 @@ gfc_check_assign_symbol (gfc_symbol *sym, gfc_expr *rvalue)
   lvalue.symtree->n.sym = sym;
   lvalue.where = sym->declared_at;
 
-  if (sym->attr.pointer)
+  if (sym->attr.pointer || sym->attr.proc_pointer)
     r = gfc_check_pointer_assign (&lvalue, rvalue);
   else
     r = gfc_check_assign (&lvalue, rvalue, 1);

@@ -200,9 +200,8 @@ try_auto_increment (rtx insn, rtx inc_insn, rtx inc_insn_set, rtx reg,
 		  if (note)
 		    PUT_MODE (note, REG_UNUSED);
 
-		  REG_NOTES (insn)
-		    = gen_rtx_EXPR_LIST (REG_INC,
-					 reg, REG_NOTES (insn));
+		  add_reg_note (insn, REG_INC, reg);
+
 		  if (! inc_insn_set)
 		    delete_insn (inc_insn);
 		  return 1;
@@ -916,7 +915,7 @@ reg_is_remote_constant_p (rtx reg, rtx insn)
   if (!reg_set_in_bb)
     {
       max_reg_computed = max = max_reg_num ();
-      reg_set_in_bb = xcalloc (max, sizeof (*reg_set_in_bb));
+      reg_set_in_bb = XCNEWVEC (basic_block, max);
 
       FOR_EACH_BB (bb)
 	FOR_BB_INSNS (bb, p)

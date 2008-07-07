@@ -281,6 +281,7 @@ enum ix86_tune_indices {
   X86_TUNE_NOT_UNPAIRABLE,
   X86_TUNE_NOT_VECTORMODE,
   X86_TUNE_USE_VECTOR_CONVERTS,
+  X86_TUNE_FUSE_CMP_AND_BRANCH,
 
   X86_TUNE_LAST
 };
@@ -363,7 +364,10 @@ extern unsigned int ix86_tune_features[X86_TUNE_LAST];
 #define	TARGET_MOVE_M1_VIA_OR	ix86_tune_features[X86_TUNE_MOVE_M1_VIA_OR]
 #define TARGET_NOT_UNPAIRABLE	ix86_tune_features[X86_TUNE_NOT_UNPAIRABLE]
 #define TARGET_NOT_VECTORMODE	ix86_tune_features[X86_TUNE_NOT_VECTORMODE]
-#define TARGET_USE_VECTOR_CONVERTS ix86_tune_features[X86_TUNE_USE_VECTOR_CONVERTS]
+#define TARGET_USE_VECTOR_CONVERTS \
+	ix86_tune_features[X86_TUNE_USE_VECTOR_CONVERTS]
+#define TARGET_FUSE_CMP_AND_BRANCH \
+	ix86_tune_features[X86_TUNE_FUSE_CMP_AND_BRANCH]
 
 /* Feature tests against the various architecture variations.  */
 enum ix86_arch_indices {
@@ -449,7 +453,7 @@ extern tree x86_mfence;
 #define TARGET_64BIT_MS_ABI (TARGET_64BIT && ix86_cfun_abi () == MS_ABI)
 
 /* Available call abi.  */
-enum
+enum calling_abi
 {
   SYSV_ABI = 0,
   MS_ABI = 1
@@ -2551,6 +2555,11 @@ struct machine_function GTY(())
 /* Cost of conditional branch.  */
 #undef TARG_COND_BRANCH_COST
 #define TARG_COND_BRANCH_COST           ix86_cost->branch_cost
+
+/* Enum through the target specific extra va_list types. Please, do not
+   iterate the base va_list type name.  */
+#define TARGET_ENUM_VA_LIST(IDX, PNAME, PTYPE) \
+  (!TARGET_64BIT ? 0 : ix86_enum_va_list (IDX, PNAME, PTYPE))
 
 /* Cost of any scalar operation, excluding load and store.  */
 #undef TARG_SCALAR_STMT_COST

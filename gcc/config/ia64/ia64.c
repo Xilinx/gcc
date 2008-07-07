@@ -781,6 +781,8 @@ ia64_legitimate_constant_p (rtx x)
 static bool
 ia64_cannot_force_const_mem (rtx x)
 {
+  if (GET_MODE (x) == RFmode)
+    return true;
   return tls_symbolic_operand_type (x) != 0;
 }
 
@@ -1117,8 +1119,8 @@ ia64_split_tmode (rtx out[2], rtx in, bool reversed, bool dead)
 	    }
 	  else
 	    {
-	      p[0] = (((unsigned HOST_WIDE_INT) l[3]) << 32) + l[2];
-	      p[1] = (((unsigned HOST_WIDE_INT) l[1]) << 32) + l[0];
+	      p[0] = (((unsigned HOST_WIDE_INT) l[1]) << 32) + l[0];
+	      p[1] = (((unsigned HOST_WIDE_INT) l[3]) << 32) + l[2];
 	    }
 	  out[0] = GEN_INT (p[0]);
 	  out[1] = GEN_INT (p[1]);
@@ -5248,7 +5250,7 @@ void ia64_init_expanders (void)
 static struct machine_function *
 ia64_init_machine_status (void)
 {
-  return ggc_alloc_cleared (sizeof (struct machine_function));
+  return GGC_CNEW (struct machine_function);
 }
 
 static enum attr_itanium_class ia64_safe_itanium_class (rtx);
@@ -6772,7 +6774,7 @@ ia64_h_i_d_extended (void)
     {
       int new_max_uid = get_max_uid () + 1;
 
-      spec_check_no = xrecalloc (spec_check_no, new_max_uid,
+      spec_check_no = (int *) xrecalloc (spec_check_no, new_max_uid,
 				 max_uid, sizeof (*spec_check_no));
       max_uid = new_max_uid;
     }
@@ -6781,14 +6783,14 @@ ia64_h_i_d_extended (void)
     {
       int new_clocks_length = get_max_uid () + 1;
       
-      stops_p = xrecalloc (stops_p, new_clocks_length, clocks_length, 1);
+      stops_p = (char *) xrecalloc (stops_p, new_clocks_length, clocks_length, 1);
       
       if (ia64_tune == PROCESSOR_ITANIUM)
 	{
-	  clocks = xrecalloc (clocks, new_clocks_length, clocks_length,
-			      sizeof (int));
-	  add_cycles = xrecalloc (add_cycles, new_clocks_length, clocks_length,
-				  sizeof (int));
+	  clocks = (int *) xrecalloc (clocks, new_clocks_length, clocks_length,
+				      sizeof (int));
+	  add_cycles = (int *) xrecalloc (add_cycles, new_clocks_length,
+					  clocks_length, sizeof (int));
 	}
       
       clocks_length = new_clocks_length;
@@ -7410,7 +7412,7 @@ get_free_bundle_state (void)
     }
   else
     {
-      result = xmalloc (sizeof (struct bundle_state));
+      result = XNEW (struct bundle_state);
       result->dfa_state = xmalloc (dfa_state_size);
       result->allocated_states_chain = allocated_bundle_states_chain;
       allocated_bundle_states_chain = result;
@@ -7920,8 +7922,7 @@ bundling (FILE *dump, int verbose, rtx prev_head_insn, rtx tail)
   bundling_p = 1;
   dfa_clean_insn_cache ();
   initiate_bundle_state_table ();
-  index_to_bundle_states = xmalloc ((insn_num + 2)
-				    * sizeof (struct bundle_state *));
+  index_to_bundle_states = XNEWVEC (struct bundle_state *, insn_num + 2);
   /* First (forward) pass -- generation of bundle states.  */
   curr_state = get_free_bundle_state ();
   curr_state->insn = NULL;
@@ -8612,11 +8613,11 @@ ia64_reorg (void)
       PREV_INSN (ia64_nop) = NEXT_INSN (ia64_nop) = NULL_RTX;
       recog_memoized (ia64_nop);
       clocks_length = get_max_uid () + 1;
-      stops_p = xcalloc (1, clocks_length);
+      stops_p = XCNEWVEC (char, clocks_length);
       if (ia64_tune == PROCESSOR_ITANIUM)
 	{
-	  clocks = xcalloc (clocks_length, sizeof (int));
-	  add_cycles = xcalloc (clocks_length, sizeof (int));
+	  clocks = XCNEWVEC (int, clocks_length);
+	  add_cycles = XCNEWVEC (int, clocks_length);
 	}
       if (ia64_tune == PROCESSOR_ITANIUM2)
 	{

@@ -1123,11 +1123,6 @@ noop_move_p (const_rtx insn)
   if (find_reg_note (insn, REG_EQUAL, NULL_RTX))
     return 0;
 
-  /* For now treat an insn with a REG_RETVAL note as a
-     special insn which should not be considered a no-op.  */
-  if (find_reg_note (insn, REG_RETVAL, NULL_RTX))
-    return 0;
-
   if (GET_CODE (pat) == SET && set_noop_p (pat))
     return 1;
 
@@ -1847,6 +1842,34 @@ find_regno_fusage (const_rtx insn, enum rtx_code code, unsigned int regno)
 }
 
 
+/* Add register note with kind KIND and datum DATUM to INSN.  */
+
+void
+add_reg_note (rtx insn, enum reg_note kind, rtx datum)
+{
+  rtx note;
+
+  switch (kind)
+    {
+    case REG_CC_SETTER:
+    case REG_CC_USER:
+    case REG_LABEL_TARGET:
+    case REG_LABEL_OPERAND:
+      /* These types of register notes use an INSN_LIST rather than an
+	 EXPR_LIST, so that copying is done right and dumps look
+	 better.  */
+      note = alloc_INSN_LIST (datum, REG_NOTES (insn));
+      PUT_REG_NOTE_KIND (note, kind);
+      break;
+
+    default:
+      note = alloc_EXPR_LIST (kind, datum, REG_NOTES (insn));
+      break;
+    }
+
+  REG_NOTES (insn) = note;
+}
+
 /* Remove register note NOTE from the REG_NOTES of INSN.  */
 
 void
@@ -3271,7 +3294,7 @@ struct parms_set_data
 static void
 parms_set (rtx x, const_rtx pat ATTRIBUTE_UNUSED, void *data)
 {
-  struct parms_set_data *d = data;
+  struct parms_set_data *const d = (struct parms_set_data *) data;
   if (REG_P (x) && REGNO (x) < FIRST_PSEUDO_REGISTER
       && TEST_HARD_REG_BIT (d->regs, REGNO (x)))
     {

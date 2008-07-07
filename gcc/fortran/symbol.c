@@ -410,11 +410,17 @@ check_conflict (symbol_attribute *attr, const char *name, locus *where)
 	  case FL_BLOCK_DATA:
 	  case FL_MODULE:
 	  case FL_LABEL:
-	  case FL_PROCEDURE:
 	  case FL_DERIVED:
 	  case FL_PARAMETER:
             a1 = gfc_code2string (flavors, attr->flavor);
             a2 = save;
+	    goto conflict;
+
+	  case FL_PROCEDURE:
+	    if (attr->proc_pointer)
+	      break;
+	    a1 = gfc_code2string (flavors, attr->flavor);
+	    a2 = save;
 	    goto conflict;
 
 	  case FL_VARIABLE:
@@ -557,13 +563,6 @@ check_conflict (symbol_attribute *attr, const char *name, locus *where)
   conf (procedure, value)
   conf (procedure, volatile_)
   conf (procedure, entry)
-  /* TODO: Implement procedure pointers.  */
-  if (attr->procedure && attr->pointer)
-    {
-      gfc_error ("Fortran 2003: Procedure pointers at %L are "
-		 "not yet implemented in gfortran", where);
-      return FAILURE;
-    }
 
   a1 = gfc_code2string (flavors, attr->flavor);
 
@@ -619,11 +618,11 @@ check_conflict (symbol_attribute *attr, const char *name, locus *where)
       break;
 
     case FL_PROCEDURE:
-      conf2 (intent);
+      if (!attr->proc_pointer)
+        conf2 (intent);
 
       if (attr->subroutine)
 	{
-	  conf2 (pointer);
 	  conf2 (target);
 	  conf2 (allocatable);
 	  conf2 (result);
@@ -866,6 +865,12 @@ gfc_add_external (symbol_attribute *attr, locus *where)
       return FAILURE;
     }
 
+  if (attr->pointer && attr->if_source != IFSRC_IFBODY)
+    {
+      attr->pointer = 0;
+      attr->proc_pointer = 1;
+    }
+
   attr->external = 1;
 
   return check_conflict (attr, NULL, where);
@@ -916,7 +921,20 @@ gfc_add_pointer (symbol_attribute *attr, locus *where)
   if (check_used (attr, NULL, where))
     return FAILURE;
 
-  attr->pointer = 1;
+  if (attr->pointer && !(attr->if_source == IFSRC_IFBODY
+      && gfc_find_state (COMP_INTERFACE) == FAILURE))
+    {
+      duplicate_attr ("POINTER", where);
+      return FAILURE;
+    }
+
+  if (attr->procedure || (attr->external && attr->if_source != IFSRC_IFBODY)
+      || (attr->if_source == IFSRC_IFBODY
+      && gfc_find_state (COMP_INTERFACE) == FAILURE))
+    attr->proc_pointer = 1;
+  else
+    attr->pointer = 1;
+
   return check_conflict (attr, NULL, where);
 }
 
@@ -1641,6 +1659,8 @@ gfc_copy_attr (symbol_attribute *dest, symbol_attribute *src, locus *where)
     goto fail;
   if (src->intrinsic && gfc_add_intrinsic (dest, where) == FAILURE)
     goto fail;
+  if (src->proc_pointer)
+    dest->proc_pointer = 1;
 
   return SUCCESS;
 
@@ -1950,7 +1970,7 @@ gfc_get_st_label (int labelno)
 	lp = lp->right;
     }
 
-  lp = gfc_getmem (sizeof (gfc_st_label));
+  lp = XCNEW (gfc_st_label);
 
   lp->value = labelno;
   lp->defined = ST_LABEL_UNKNOWN;
@@ -2116,7 +2136,7 @@ gfc_get_namespace (gfc_namespace *parent, int parent_types)
   gfc_intrinsic_op in;
   int i;
 
-  ns = gfc_getmem (sizeof (gfc_namespace));
+  ns = XCNEW (gfc_namespace);
   ns->sym_root = NULL;
   ns->uop_root = NULL;
   ns->finalizers = NULL;
@@ -2184,7 +2204,7 @@ gfc_new_symtree (gfc_symtree **root, const char *name)
 {
   gfc_symtree *st;
 
-  st = gfc_getmem (sizeof (gfc_symtree));
+  st = XCNEW (gfc_symtree);
   st->name = gfc_get_string (name);
 
   gfc_insert_bbt (root, st, compare_symtree);
@@ -2259,7 +2279,7 @@ gfc_get_uop (const char *name)
 
   st = gfc_new_symtree (&gfc_current_ns->uop_root, name);
 
-  uop = st->n.uop = gfc_getmem (sizeof (gfc_user_op));
+  uop = st->n.uop = XCNEW (gfc_user_op);
   uop->name = gfc_get_string (name);
   uop->access = ACCESS_UNKNOWN;
   uop->ns = gfc_current_ns;
@@ -2321,7 +2341,7 @@ gfc_new_symbol (const char *name, gfc_namespace *ns)
 {
   gfc_symbol *p;
 
-  p = gfc_getmem (sizeof (gfc_symbol));
+  p = XCNEW (gfc_symbol);
 
   gfc_clear_ts (&p->ts);
   gfc_clear_attr (&p->attr);
@@ -2434,7 +2454,7 @@ save_symbol_data (gfc_symbol *sym)
   if (sym->new || sym->old_symbol != NULL)
     return;
 
-  sym->old_symbol = gfc_getmem (sizeof (gfc_symbol));
+  sym->old_symbol = XCNEW (gfc_symbol);
   *(sym->old_symbol) = *sym;
 
   sym->tlink = changed_syms;
@@ -3197,7 +3217,7 @@ gfc_get_gsymbol (const char *name)
   if (s != NULL)
     return s;
 
-  s = gfc_getmem (sizeof (gfc_gsymbol));
+  s = XCNEW (gfc_gsymbol);
   s->type = GSYM_UNKNOWN;
   s->name = gfc_get_string (name);
 
@@ -3574,7 +3594,7 @@ static void
 gen_fptr_param (gfc_formal_arglist **head,
                 gfc_formal_arglist **tail,
                 const char *module_name,
-                gfc_namespace *ns, const char *f_ptr_name)
+                gfc_namespace *ns, const char *f_ptr_name, int proc)
 {
   gfc_symbol *param_sym = NULL;
   gfc_symtree *param_symtree = NULL;
@@ -3593,7 +3613,10 @@ gen_fptr_param (gfc_formal_arglist **head,
 
   /* Set up the necessary fields for the fptr output param sym.  */
   param_sym->refs++;
-  param_sym->attr.pointer = 1;
+  if (proc)
+    param_sym->attr.proc_pointer = 1;
+  else
+    param_sym->attr.pointer = 1;
   param_sym->attr.dummy = 1;
   param_sym->attr.use_assoc = 1;
 
@@ -3773,21 +3796,23 @@ build_formal_args (gfc_symbol *new_proc_sym,
   gfc_current_ns->proc_name = new_proc_sym;
 
   /* Generate the params.  */
-  if ((old_sym->intmod_sym_id == ISOCBINDING_F_POINTER) ||
-      (old_sym->intmod_sym_id == ISOCBINDING_F_PROCPOINTER))
+  if (old_sym->intmod_sym_id == ISOCBINDING_F_PROCPOINTER)
     {
       gen_cptr_param (&head, &tail, (const char *) new_proc_sym->module,
 		      gfc_current_ns, "cptr", old_sym->intmod_sym_id);
       gen_fptr_param (&head, &tail, (const char *) new_proc_sym->module,
-		      gfc_current_ns, "fptr");
-
+		      gfc_current_ns, "fptr", 1);
+    }
+  else if (old_sym->intmod_sym_id == ISOCBINDING_F_POINTER)
+    {
+      gen_cptr_param (&head, &tail, (const char *) new_proc_sym->module,
+		      gfc_current_ns, "cptr", old_sym->intmod_sym_id);
+      gen_fptr_param (&head, &tail, (const char *) new_proc_sym->module,
+		      gfc_current_ns, "fptr", 0);
       /* If we're dealing with c_f_pointer, it has an optional third arg.  */
-      if (old_sym->intmod_sym_id == ISOCBINDING_F_POINTER)
-	{
-	  gen_shape_param (&head, &tail,
-			   (const char *) new_proc_sym->module,
-			   gfc_current_ns, "shape");
-	}
+      gen_shape_param (&head, &tail,(const char *) new_proc_sym->module,
+		       gfc_current_ns, "shape");
+
     }
   else if (old_sym->intmod_sym_id == ISOCBINDING_ASSOCIATED)
     {

@@ -273,6 +273,12 @@ environment to your ``good'' shell prior to running
 @command{zsh} is not a fully compliant POSIX shell and will not
 work when configuring GCC@.
 
+@item A POSIX or SVR4 awk
+
+Necessary for creating some of the generated source files for GCC@.
+If in doubt, use a recent GNU awk version, as some of the older ones
+are broken.  GNU awk version 3.1.5 is known to work.
+
 @item GNU binutils
 
 Necessary in some circumstances, optional in others.  See the
@@ -1349,14 +1355,13 @@ forward to maintain the port.
 @itemx --enable-decimal-float=dpd
 @itemx --disable-decimal-float
 Enable (or disable) support for the C decimal floating point extension
-that is in the IEEE 754R extension to the IEEE754 floating point
-standard.  This is enabled by default only on PowerPC, i386, and
-x86_64 GNU/Linux systems.  Other systems may also support it, but
-require the user to specifically enable it.  You can optionally
-control which decimal floating point format is used (either @samp{bid}
-or @samp{dpd}).  The @samp{bid} (binary integer decimal) format is
-default on i386 and x86_64 systems, and the @samp{dpd} (densely packed
-decimal) format is default on PowerPC systems.
+that is in the IEEE 754-2008 standard.  This is enabled by default only
+on PowerPC, i386, and x86_64 GNU/Linux systems.  Other systems may also
+support it, but require the user to specifically enable it.  You can
+optionally control which decimal floating point format is used (either
+@samp{bid} or @samp{dpd}).  The @samp{bid} (binary integer decimal)
+format is default on i386 and x86_64 systems, and the @samp{dpd}
+(densely packed decimal) format is default on PowerPC systems.
 
 @item --enable-fixed-point
 @itemx --disable-fixed-point
@@ -1602,6 +1607,45 @@ Use installed @samp{zlib} rather than that included with GCC@.
 @item --with-win32-nlsapi=ansi, unicows or unicode
 Indicates how MinGW @samp{libgcj} translates between UNICODE
 characters and the Win32 API@.
+
+@item --enable-java-home
+If enabled, this creates a JPackage compatible SDK environment during install.
+Note that if --enable-java-home is used, --with-arch-directory=ARCH must also
+be specified.
+
+@item --with-arch-directory=ARCH
+Specifies the name to use for the @file{jre/lib/ARCH} directory in the SDK 
+environment created when --enable-java-home is passed. Typical names for this 
+directory include i386, amd64, ia64, etc.
+
+@item --with-os-directory=DIR
+Specifies the OS directory for the SDK include directory. This is set to auto
+detect, and is typically 'linux'.
+
+@item --with-origin-name=NAME
+Specifies the JPackage origin name. This defaults to the 'gcj' in
+java-1.5.0-gcj.
+
+@item --with-arch-suffix=SUFFIX
+Specifies the suffix for the sdk directory. Defaults to the empty string. 
+Examples include '.x86_64' in 'java-1.5.0-gcj-1.5.0.0.x86_64'.
+
+@item --with-jvm-root-dir=DIR
+Specifies where to install the SDK. Default is $(prefix)/lib/jvm.
+
+@item --with-jvm-jar-dir=DIR
+Specifies where to install jars. Default is $(prefix)/lib/jvm-exports.
+
+@item --with-python-dir=DIR
+Specifies where to install the Python modules used for aot-compile. DIR should
+not include the prefix used in installation. For example, if the Python modules
+are to be installed in /usr/lib/python2.5/site-packages, then 
+--with-python-dir=/lib/python2.5/site-packages should be passed. If this is
+not specified, then the Python modules are installed in $(prefix)/share/python.
+
+@item --enable-aot-compile-rpm
+Adds aot-compile-rpm to the list of installed scripts.
+
 @table @code
 @item ansi
 Use the single-byte @code{char} and the Win32 A functions natively,
@@ -2585,6 +2629,12 @@ information are.
 @uref{#xtensa-x-linux,,xtensa-*-linux*}
 @item
 @uref{#windows,,Microsoft Windows}
+@item
+@uref{#x-x-cygwin,,*-*-cygwin}
+@item
+@uref{#x-x-interix,,*-*-interix}
+@item
+@uref{#x-x-mingw,,*-*-mingw}
 @item
 @uref{#os2,,OS/2}
 @item
@@ -4015,7 +4065,64 @@ respects, this target is the same as the
 @html
 <hr />
 @end html
-@heading @anchor{windows}Microsoft Windows (32-bit)
+@heading @anchor{windows}Microsoft Windows
+
+@subheading Intel 16-bit versions
+The 16-bit versions of Microsoft Windows, such as Windows 3.1, are not 
+supported.
+
+However, the 32-bit port has limited support for Microsoft 
+Windows 3.11 in the Win32s environment, as a target only.  See below.
+
+@subheading Intel 32-bit versions
+
+The 32-bit versions of Windows, including Windows 95, Windows NT, Windows 
+XP, and Windows Vista, are supported by several different target 
+platforms.  These targets differ in which Windows subsystem they target 
+and which C libraries are used.
+
+@itemize
+@item Cygwin @uref{#x-x-cygwin,,*-*-cygwin}: Cygwin provides a user-space 
+Linux API emulation layer in the Win32 subsystem.
+@item Interix @uref{#x-x-interix,,*-*-interix}: The Interix subsystem 
+provides native support for POSIX.
+@item MinGW @uref{#x-x-mingw,,*-*-mingw}: MinGW is a native GCC port for 
+the Win32 subsystem that provides a subset of POSIX.
+@item MKS i386-pc-mks: NuTCracker from MKS.  See 
+@uref{http://www.mkssoftware.com/} for more information.
+@end itemize
+
+@subheading Intel 64-bit versions
+
+GCC contains support for x86-64 using the mingw-w64
+runtime library, available from @uref{http://mingw-w64.sourceforge.net/}.
+This library should be used with the target triple x86_64-pc-mingw32.
+
+Presently Windows for Itanium is not supported.
+
+@subheading Windows CE
+
+Windows CE is supported as a target only on ARM (arm-wince-pe), Hitachi 
+SuperH (sh-wince-pe), and MIPS (mips-wince-pe).
+
+@subheading Other Windows Platforms
+
+GCC no longer supports Windows NT on the Alpha or PowerPC.
+
+GCC no longer supports the Windows POSIX subsystem.  However, it does 
+support the Interix subsystem.  See above.
+
+Old target names including *-*-winnt and *-*-windowsnt are no longer used.
+
+PW32 (i386-pc-pw32) support was never completed, and the project seems to 
+be inactive.  See @uref{http://pw32.sourceforge.net/} for more information.
+
+UWIN support has been removed due to a lack of maintenance.
+
+@html
+<hr />
+@end html
+@heading @anchor{x-x-cygwin}*-*-cygwin
 
 Ports of GCC are included with the
 @uref{http://www.cygwin.com/,,Cygwin environment}.
@@ -4023,7 +4130,26 @@ Ports of GCC are included with the
 GCC will build under Cygwin without modification; it does not build
 with Microsoft's C++ compiler and there are no plans to make it do so.
 
-For MinGW, GCC will build with and support only MinGW runtime 3.12 and later.
+Cygwin can be compiled with i?86-pc-cygwin.
+
+@html
+<hr />
+@end html
+@heading @anchor{x-x-interix}*-*-interix
+
+The Interix target is used by OpenNT, Interix, Services For UNIX (SFU), 
+and Subsystem for UNIX-based Applications (SUA).  Applications compiled 
+with this target run in the Interix subsystem, which is separate from 
+the Win32 subsystem.  This target was last known to work in GCC 3.3.
+
+For more information, see @uref{http://www.interix.com/}.
+
+@html
+<hr />
+@end html
+@heading @anchor{x-x-mingw32}*-*-mingw32
+
+GCC will build with and support only MinGW runtime 3.12 and later.
 Earlier versions of headers are incompatible with the new default semantics
 of @code{extern inline} in @code{-std=c99} and @code{-std=gnu99} modes.
 

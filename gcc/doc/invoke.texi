@@ -359,10 +359,10 @@ Objective-C and Objective-C++ Dialects}.
 -ftree-loop-distribution @gol
 -ftree-loop-ivcanon -ftree-loop-linear -ftree-loop-optimize @gol
 -ftree-parallelize-loops=@var{n} -ftree-pre -ftree-reassoc @gol
--ftree-sink -ftree-sra -ftree-store-ccp -ftree-ter @gol
--ftree-vect-loop-version -ftree-vectorize -ftree-vrp -funit-at-a-time @gol
--funroll-all-loops -funroll-loops -funsafe-loop-optimizations @gol
--funsafe-math-optimizations -funswitch-loops @gol
+-ftree-sink -ftree-sra -ftree-store-ccp -ftree-switch-conversion @gol
+-ftree-ter -ftree-vect-loop-version -ftree-vectorize -ftree-vrp @gol
+-funit-at-a-time -funroll-all-loops -funroll-loops @gol
+-funsafe-loop-optimizations -funsafe-math-optimizations -funswitch-loops @gol
 -fvariable-expansion-in-unroller -fvect-cost-model -fvpt -fweb @gol
 -fwhole-program @gol
 --param @var{name}=@var{value}
@@ -5197,6 +5197,7 @@ also turns on the following optimization flags:
 -fsched-interblock  -fsched-spec @gol
 -fschedule-insns  -fschedule-insns2 @gol
 -fstrict-aliasing -fstrict-overflow @gol
+-ftree-switch-conversion @gol
 -ftree-pre @gol
 -ftree-vrp}
 
@@ -5871,6 +5872,11 @@ pass operates on both local scalar variables and memory stores and
 loads (global variables, structures, arrays, etc).  This flag is
 enabled by default at @option{-O2} and higher.
 
+@item -ftree-switch-conversion
+Perform conversion of simple initializations in a switch to
+initializations from a scalar array.  This flag is enabled by default
+at @option{-O2} and higher.
+
 @item -ftree-dce
 @opindex ftree-dce
 Perform dead code elimination (DCE) on trees.  This flag is enabled by
@@ -6149,7 +6155,7 @@ example, an @code{unsigned int} can alias an @code{int}, but not a
 @code{void*} or a @code{double}.  A character type may alias any other
 type.
 
-Pay special attention to code like this:
+@anchor{Type-punning}Pay special attention to code like this:
 @smallexample
 union a_union @{
   int i;
@@ -6166,7 +6172,8 @@ The practice of reading from a different union member than the one most
 recently written to (called ``type-punning'') is common.  Even with
 @option{-fstrict-aliasing}, type-punning is allowed, provided the memory
 is accessed through the union type.  So, the code above will work as
-expected.  However, this code might not:
+expected.  @xref{Structures unions enumerations and bit-fields
+implementation}.  However, this code might not:
 @smallexample
 int f() @{
   a_union t;
@@ -6177,7 +6184,18 @@ int f() @{
 @}
 @end smallexample
 
-Enabled at levels @option{-O2}, @option{-O3}, @option{-Os}.
+Similarly, access by taking the address, casting the resulting pointer
+and dereferencing the result has undefined behavior, even if the cast
+uses a union type, e.g.:
+@smallexample
+int f() @{
+  double d = 3.0;
+  return ((union a_union *) &d)->i;
+@}
+@end smallexample
+
+The @option{-fstrict-aliasing} option is enabled at levels
+@option{-O2}, @option{-O3}, @option{-Os}.
 
 @item -fstrict-overflow
 @opindex fstrict-overflow
@@ -7308,7 +7326,8 @@ duplicated when threading jumps.
 
 @item max-fields-for-field-sensitive
 Maximum number of fields in a structure we will treat in
-a field sensitive manner during pointer analysis.
+a field sensitive manner during pointer analysis.  The default is zero
+for -O0, and -O1 and 100 for -Os, -O2, and -O3.
 
 @item prefetch-latency
 Estimate on average number of instructions that are executed before
@@ -7334,6 +7353,11 @@ default, this should always be 1, which uses a more efficient internal
 mechanism for comparing types in C++ and Objective-C++.  However, if
 bugs in the canonical type system are causing compilation failures,
 set this value to 0 to disable canonical types.
+
+@item switch-conversion-max-branch-ratio
+Switch initialization conversion will refuse to create arrays that are
+bigger than @option{switch-conversion-max-branch-ratio} times the number of
+branches in the switch.
 
 @item max-partial-antic-length
 Maximum length of the partial antic set computed during the tree
@@ -11975,6 +11999,11 @@ The special value @samp{from-abi} selects the
 most compatible architecture for the selected ABI (that is,
 @samp{mips1} for 32-bit ABIs and @samp{mips3} for 64-bit ABIs)@.
 
+Native Linux/GNU toolchains also support the value @samp{native},
+which selects the best architecture option for the host processor.
+@option{-march=native} has no effect if GCC does not recognize
+the processor.
+
 In processor names, a final @samp{000} can be abbreviated as @samp{k}
 (for example, @samp{-march=r2k}).  Prefixes are optional, and
 @samp{vr} may be written @samp{r}.
@@ -12997,11 +13026,11 @@ Supported values for @var{cpu_type} are @samp{401}, @samp{403},
 @samp{604e}, @samp{620}, @samp{630}, @samp{740}, @samp{7400},
 @samp{7450}, @samp{750}, @samp{801}, @samp{821}, @samp{823},
 @samp{860}, @samp{970}, @samp{8540}, @samp{e300c2}, @samp{e300c3},
-@samp{ec603e}, @samp{G3}, @samp{G4}, @samp{G5}, @samp{power},
-@samp{power2}, @samp{power3}, @samp{power4}, @samp{power5},
-@samp{power5+}, @samp{power6}, @samp{power6x}, @samp{common},
-@samp{powerpc}, @samp{powerpc64}, @samp{rios}, @samp{rios1},
-@samp{rios2}, @samp{rsc}, and @samp{rs64}.
+@samp{e500mc}, @samp{ec603e}, @samp{G3}, @samp{G4}, @samp{G5},
+@samp{power}, @samp{power2}, @samp{power3}, @samp{power4},
+@samp{power5}, @samp{power5+}, @samp{power6}, @samp{power6x},
+@samp{common}, @samp{powerpc}, @samp{powerpc64}, @samp{rios},
+@samp{rios1}, @samp{rios2}, @samp{rsc}, and @samp{rs64}.
 
 @option{-mcpu=common} selects a completely generic processor.  Code
 generated under this option will run on any POWER or PowerPC processor.

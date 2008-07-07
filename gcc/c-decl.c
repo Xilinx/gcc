@@ -1765,8 +1765,7 @@ merge_decls (tree newdecl, tree olddecl, tree newtype, tree oldtype)
 	  || !DECL_EXTERNAL (olddecl))
       && DECL_EXTERNAL (newdecl)
       && !lookup_attribute ("gnu_inline", DECL_ATTRIBUTES (newdecl))
-      && (DECL_CONTEXT (newdecl) == NULL_TREE
-	  || TREE_CODE (DECL_CONTEXT (newdecl)) != FUNCTION_DECL))
+      && !current_function_decl)
     DECL_EXTERNAL (newdecl) = 0;
 
   if (DECL_EXTERNAL (newdecl))
@@ -1914,9 +1913,9 @@ merge_decls (tree newdecl, tree olddecl, tree newtype, tree oldtype)
   /* If we changed a function from DECL_EXTERNAL to !DECL_EXTERNAL,
      and the definition is coming from the old version, cgraph needs
      to be called again.  */
-  if (extern_changed && !new_is_definition 
+  if (extern_changed && !new_is_definition
       && TREE_CODE (olddecl) == FUNCTION_DECL && DECL_INITIAL (olddecl))
-    cgraph_finalize_function (olddecl, false);
+    cgraph_mark_if_needed (olddecl);
 }
 
 /* Handle when a new declaration NEWDECL has the same name as an old

@@ -2809,8 +2809,19 @@ gimplify_modify_expr_to_memcpy (tree *expr_p, tree size, bool want_value)
 static enum gimplify_status
 gimplify_modify_expr_to_memset (tree *expr_p, tree size, bool want_value)
 {
-  tree t, to, to_ptr;
+  tree t, from, to, to_ptr;
 
+  /* Assert our assumptions, to abort instead of producing wrong code
+     silently if they are not met.  Beware that the RHS CONSTRUCTOR might
+     not be immediately exposed.  */
+  from = GENERIC_TREE_OPERAND (*expr_p, 1);  
+  if (TREE_CODE (from) == WITH_SIZE_EXPR)
+    from = TREE_OPERAND (from, 0);
+
+  gcc_assert (TREE_CODE (from) == CONSTRUCTOR
+	      && VEC_empty (constructor_elt, CONSTRUCTOR_ELTS (from)));
+
+  /* Now proceed.  */
   to = GENERIC_TREE_OPERAND (*expr_p, 0);
 
   to_ptr = build_fold_addr_expr (to);
@@ -4308,14 +4319,20 @@ gimplify_asm_expr (tree *expr_p, tree *pre_p, tree *post_p)
   for (i = 0, link = ASM_OUTPUTS (expr); link; ++i, link = TREE_CHAIN (link))
     {
       size_t constraint_len;
+      bool ok;
       oconstraints[i] = constraint
 	= TREE_STRING_POINTER (TREE_VALUE (TREE_PURPOSE (link)));
       constraint_len = strlen (constraint);
       if (constraint_len == 0)
         continue;
 
-      parse_output_constraint (&constraint, i, 0, 0,
-			       &allows_mem, &allows_reg, &is_inout);
+      ok = parse_output_constraint (&constraint, i, 0, 0,
+				    &allows_mem, &allows_reg, &is_inout);
+      if (!ok)
+	{
+	  ret = GS_ERROR;
+	  is_inout = false;
+	}
 
       if (!allows_reg && allows_mem)
 	mark_addressable (TREE_VALUE (link));
@@ -5043,15 +5060,16 @@ omp_is_private (struct gimplify_omp_ctx *ctx, tree decl)
 	    error ("iteration variable %qs should not be reduction",
 		   IDENTIFIER_POINTER (DECL_NAME (decl)));
 	}
-      return true;
+      return (ctx == gimplify_omp_ctxp
+	      || (ctx->region_type == ORT_COMBINED_PARALLEL
+		  && gimplify_omp_ctxp->outer_context == ctx));
     }
 
   if (ctx->region_type != ORT_WORKSHARE)
     return false;
   else if (ctx->outer_context)
     return omp_is_private (ctx->outer_context, decl);
-  else
-    return !is_global_var (decl);
+  return false;
 }
 
 /* Return true if DECL is private within a parallel region

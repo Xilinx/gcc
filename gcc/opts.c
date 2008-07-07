@@ -651,7 +651,7 @@ static void
 add_input_filename (const char *filename)
 {
   num_in_fnames++;
-  in_fnames = xrealloc (in_fnames, num_in_fnames * sizeof (in_fnames[0]));
+  in_fnames = XRESIZEVEC (const char *, in_fnames, num_in_fnames);
   in_fnames[num_in_fnames - 1] = filename;
 }
 
@@ -822,6 +822,13 @@ decode_options (unsigned int argc, const char **argv)
       flag_merge_constants = 0;
     }
 
+  if (!no_unit_at_a_time_default)
+    {
+      flag_unit_at_a_time = 1;
+      if (!optimize)
+        flag_toplevel_reorder = 0;
+    }
+
   if (optimize >= 1)
     {
       flag_defer_pop = 1;
@@ -848,8 +855,6 @@ decode_options (unsigned int argc, const char **argv)
       flag_tree_fre = 1;
       flag_tree_copy_prop = 1;
       flag_tree_sink = 1;
-      if (!no_unit_at_a_time_default)
-        flag_unit_at_a_time = 1;
 
       if (!optimize_size)
 	{
@@ -886,6 +891,7 @@ decode_options (unsigned int argc, const char **argv)
       flag_reorder_functions = 1;
       flag_tree_store_ccp = 1;
       flag_tree_vrp = 1;
+      flag_tree_switch_conversion = 1;
 
       if (!optimize_size)
 	{
@@ -897,6 +903,9 @@ decode_options (unsigned int argc, const char **argv)
 
       /* Allow more virtual operators to increase alias precision.  */
       set_param_value ("max-aliased-vops", 500);
+
+      /* Track fields in field-sensitive alias analysis.  */
+      set_param_value ("max-fields-for-field-sensitive", 100);
     }
 
   if (optimize >= 3)
@@ -1129,7 +1138,7 @@ print_filtered_help (unsigned int include_flags,
     }
 
   if (!printed)
-    printed = xcalloc (1, cl_options_count);
+    printed = XCNEWVAR (char, cl_options_count);
 
   for (i = 0; i < cl_options_count; i++)
     {
@@ -2138,7 +2147,7 @@ get_option_state (int option, struct cl_option_state *state)
       state->data = *(const char **) cl_options[option].flag_var;
       if (state->data == 0)
 	state->data = "";
-      state->size = strlen (state->data) + 1;
+      state->size = strlen ((const char *) state->data) + 1;
       break;
     }
   return true;

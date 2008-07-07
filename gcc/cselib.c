@@ -78,7 +78,6 @@ static htab_t cselib_hash_table;
 /* This is a global so we don't have to pass this through every function.
    It is used in new_elt_loc_list to set SETTING_INSN.  */
 static rtx cselib_current_insn;
-static bool cselib_current_insn_in_libcall;
 
 /* Every new unknown value gets a unique number.  */
 static unsigned int next_unknown_value;
@@ -143,7 +142,7 @@ static inline struct elt_list *
 new_elt_list (struct elt_list *next, cselib_val *elt)
 {
   struct elt_list *el;
-  el = pool_alloc (elt_list_pool);
+  el = (struct elt_list *) pool_alloc (elt_list_pool);
   el->next = next;
   el->elt = elt;
   return el;
@@ -156,11 +155,10 @@ static inline struct elt_loc_list *
 new_elt_loc_list (struct elt_loc_list *next, rtx loc)
 {
   struct elt_loc_list *el;
-  el = pool_alloc (elt_loc_list_pool);
+  el = (struct elt_loc_list *) pool_alloc (elt_loc_list_pool);
   el->next = next;
   el->loc = loc;
   el->setting_insn = cselib_current_insn;
-  el->in_libcall = cselib_current_insn_in_libcall;
   return el;
 }
 
@@ -234,7 +232,7 @@ entry_and_rtx_equal_p (const void *entry, const void *x_arg)
 {
   struct elt_loc_list *l;
   const cselib_val *const v = (const cselib_val *) entry;
-  rtx x = (rtx) x_arg;
+  rtx x = CONST_CAST_RTX ((const_rtx)x_arg);
   enum machine_mode mode = GET_MODE (x);
 
   gcc_assert (GET_CODE (x) != CONST_INT && GET_CODE (x) != CONST_FIXED
@@ -751,7 +749,7 @@ cselib_hash_rtx (rtx x, int create)
 static inline cselib_val *
 new_cselib_val (unsigned int value, enum machine_mode mode)
 {
-  cselib_val *e = pool_alloc (cselib_val_pool);
+  cselib_val *e = (cselib_val *) pool_alloc (cselib_val_pool);
 
   gcc_assert (value);
 
@@ -761,7 +759,7 @@ new_cselib_val (unsigned int value, enum machine_mode mode)
      precisely when we can have VALUE RTXen (when cselib is active)
      so we don't need to put them in garbage collected memory.
      ??? Why should a VALUE be an RTX in the first place?  */
-  e->val_rtx = pool_alloc (value_pool);
+  e->val_rtx = (rtx) pool_alloc (value_pool);
   memset (e->val_rtx, 0, RTX_HDR_SIZE);
   PUT_CODE (e->val_rtx, VALUE);
   PUT_MODE (e->val_rtx, mode);
@@ -1655,8 +1653,6 @@ cselib_process_insn (rtx insn)
   int i;
   rtx x;
 
-  if (find_reg_note (insn, REG_LIBCALL, NULL))
-    cselib_current_insn_in_libcall = true;
   cselib_current_insn = insn;
 
   /* Forget everything at a CODE_LABEL, a volatile asm, or a setjmp.  */
@@ -1667,16 +1663,12 @@ cselib_process_insn (rtx insn)
 	  && GET_CODE (PATTERN (insn)) == ASM_OPERANDS
 	  && MEM_VOLATILE_P (PATTERN (insn))))
     {
-      if (find_reg_note (insn, REG_RETVAL, NULL))
-        cselib_current_insn_in_libcall = false;
       cselib_clear_table ();
       return;
     }
 
   if (! INSN_P (insn))
     {
-      if (find_reg_note (insn, REG_RETVAL, NULL))
-        cselib_current_insn_in_libcall = false;
       cselib_current_insn = 0;
       return;
     }
@@ -1719,8 +1711,6 @@ cselib_process_insn (rtx insn)
       if (GET_CODE (XEXP (x, 0)) == CLOBBER)
 	cselib_invalidate_rtx (XEXP (XEXP (x, 0), 0));
 
-  if (find_reg_note (insn, REG_RETVAL, NULL))
-    cselib_current_insn_in_libcall = false;
   cselib_current_insn = 0;
 
   if (n_useless_values > MAX_USELESS_VALUES
@@ -1769,7 +1759,6 @@ cselib_init (bool record_memory)
   n_used_regs = 0;
   cselib_hash_table = htab_create (31, get_value_hash,
 				   entry_and_rtx_equal_p, NULL);
-  cselib_current_insn_in_libcall = false;
 }
 
 /* Called when the current user is done with cselib.  */

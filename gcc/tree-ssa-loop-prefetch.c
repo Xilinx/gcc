@@ -457,6 +457,9 @@ gather_memory_references_ref (struct loop *loop, struct mem_ref_group **refs,
   HOST_WIDE_INT step, delta;
   struct mem_ref_group *agrp;
 
+  if (get_base_address (ref) == NULL)
+    return false;
+
   if (!analyze_ref (loop, &ref, &base, &step, &delta, stmt))
     return false;
 
@@ -1355,7 +1358,7 @@ determine_loop_nest_reuse (struct loop *loop, struct mem_ref_group *refs,
   for (i = 0; VEC_iterate (data_reference_p, datarefs, i, dr); i++)
     {
       dist = self_reuse_distance (dr, loop_data_size, n, loop);
-      ref = dr->aux;
+      ref = (struct mem_ref *) dr->aux;
       if (ref->reuse_distance > dist)
 	ref->reuse_distance = dist;
 
@@ -1370,8 +1373,8 @@ determine_loop_nest_reuse (struct loop *loop, struct mem_ref_group *refs,
       if (DDR_ARE_DEPENDENT (dep) == chrec_known)
 	continue;
 
-      ref = DDR_A (dep)->aux;
-      refb = DDR_B (dep)->aux;
+      ref = (struct mem_ref *) DDR_A (dep)->aux;
+      refb = (struct mem_ref *) DDR_B (dep)->aux;
 
       if (DDR_ARE_DEPENDENT (dep) == chrec_dont_know
 	  || DDR_NUM_DIST_VECTS (dep) == 0)

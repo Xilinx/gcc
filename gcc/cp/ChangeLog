@@ -1,3 +1,166 @@
+2008-07-03  Richard Guenther  <rguenther@suse.de>
+
+	PR c++/36128
+	* typeck.c (cp_build_function_call): Move code to verify
+	builtin function arguments ...
+	* call.c (build_cxx_call): ... here.
+
+2008-07-02  Jason Merrill  <jason@redhat.com>
+
+	* Make-lang.in (cp/typeck2.o): Add $(REAL_H) dependency.
+
+	Implement WG21 N2672, Initializer List proposed wording
+	* cp-tree.h (enum cp_tree_index): Add CPTI_INIT_LIST_TYPE.
+	(struct lang_type_class): Add has_list_ctor bitfield.
+	(TYPE_HAS_LIST_CTOR): New macro.
+	(BRACE_ENCLOSED_INITIALIZER_P): Expect init_list_type_node.
+	(CONSTRUCTOR_IS_DIRECT_INIT): New macro.
+	(LOOKUP_NO_NARROWING): New macro.
+	(LOOKUP_NO_COPY_CTOR_CONVERSION): New macro.
+	* parser.c (cp_parse_braced_list): Split out from...
+	(cp_parser_initializer_clause): ...here.
+	(cp_parser_postfix_expression): Build up CONSTRUCTOR for compound 
+	literal here.
+	(cp_lexer_next_token_is_not_keyword): New fn.
+	(cp_parser_parenthesized_expression_list): Handle { }.
+	(cp_parser_new_expression, cp_parser_new_initializer): Likewise.
+	(cp_parser_assignment_expression, cp_parser_condition): Likewise.
+	(cp_parser_jump_statement, cp_parser_simple_declaration): Likewise.
+	(cp_parser_mem_initializer, cp_parser_init_declarator): Likewise.
+	(cp_parser_initializer, cp_parser_functional_cast): Likewise.
+	(cp_parser_omp_for_loop, cp_parser_cache_group): Likewise.
+	(cp_parser_save_member_function_body): Likewise.
+	* call.c (conversion_kind): Add ck_list, ck_aggr.
+	(struct conversion): Add check_narrowing bitfield, conversion list.
+	(build_list_conv): New fn.
+	(build_aggr_conv): New fn.
+	(implicit_conversion): Call them.
+	(standard_conversion): Set check_narrowing if appropriate.
+	(add_function_candidate): Handle LOOKUP_NO_COPY_CTOR_CONVERSION.
+	(build_user_type_conversion_1): When converting from an init list,
+	we allow additional conversions except when calling a copy ctor.
+	(convert_like_real): Calling an explicit ctor for an init list is 
+	ill-formed.  Handle ck_list and ck_addr.  Check narrowing.
+	(build_new_method_call): If CONSTRUCTOR_IS_DIRECT_INIT is set and
+	class doesn't have a list ctor, break the {} into a TREE_LIST.
+	(compare_ics): ck_list is better than other UDCs.
+	(set_up_extended_ref_temp): Split out from initialize_reference.
+	(is_std_init_list): New fn.
+	(is_list_ctor): New fn.
+	* decl.c (cxx_init_decl_processing): Create init_list_type_node.
+	(reshape_init_array_1): Pass it to build_constructor.
+	(reshape_init_class): Ditto.
+	(initialize_artificial_var): Pass the appropriate type.
+	(build_aggr_init_full_exprs): Split out from...
+	(check_initializer): ...here.  Handle new semantics.
+	(build_init_list_var_init): New subroutine of check_initializer.
+	(grokdeclarator): Converting constructors can have more than one parm.
+	(grok_special_member_properties): Set TYPE_HAS_LIST_CTOR.
+	* init.c (expand_default_init): Only do digest_init for aggregates.
+	* rtti.c (tinfo_base_init): Pass init_list_type_node to 
+	build_constructor_from_list.
+	(generic_initializer, ptr_initializer): Ditto.
+	(ptm_initializer, class_initializer): Ditto.
+	(get_pseudo_ti_init): Ditto.
+	* error.c (dump_type): Handle init_list_type_node.
+	(maybe_warn_cpp0x): New fn.
+	(maybe_varn_variadic_templates): Call it.
+	* cvt.c (ocp_convert): Handle conversion from { }.
+	* tree.c (build_array_of_n_type): New fn.
+	* typeck2.c (store_init_value): Use init_list_type_node.
+	(digest_init): Likewise.
+	(check_narrowing): New fn.
+	* semantics.c: (finish_compound_literal): Take CONSTRUCTOR instead 
+	of vector of constructor elts.  Handle non-aggregate types.  Make
+	constant literals static.
+	* pt.c: (tsubst_copy_and_build): Adjust.
+	(unify): Handle { }.
+	* name-lookup.c (arg_assoc_type): Handle init_list_type_node.
+	
+2008-07-01  Daniel Jacobowitz  <dan@codesourcery.com>
+
+	* typeck.c (comp_ptr_ttypes_real): Use vector_targets_convertible_p.
+	(comp_ptr_ttypes_const): Likewise.
+
+2008-07-01  Andrew Haley  <aph@redhat.com>
+
+	* decl.c (finish_constructor_body): Don't set the return value of
+	the constructor if the constructor is that of a Java type.
+
+2008-06-30  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/36662
+	* decl2.c (is_late_template_attribute): If the first attribute
+	argument is IDENTIFIER_NODE, don't consider it when checking
+	if arguments are value or type dependent.
+
+2008-06-29  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/36655
+	* pt.c (do_type_instantiation): In c++0x mode do not warn for
+	extern template.
+
+2008-06-29  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	* Make-lang.in (cp-warn): Delete $(CXX_COMPAT_WARN).
+
+2008-06-28  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/36364
+	* repo.c (repo_emit_p): Put const static data members initialized
+	by const expr into *.rpo file, just return 2 if IDENTIFIER_REPO_CHOSEN
+	for it is 0.
+
+2008-06-27  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/36655
+	* pt.c (do_decl_instantiation): In c++0x mode do not warn for
+	extern template.
+
+2008-06-24  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	PR c++/23194
+	* typeck.c (cp_build_function_call): Show example syntax in
+	diagnostic.
+
+2008-06-21  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* typeck.c (composite_pointer_type_r, cxx_sizeof_expr,
+	cxx_alignof_expr, check_template_keyword, cp_build_binary_op,
+	pointer_diff, cp_build_unary_op, build_x_compound_expr_from_list,
+	build_reinterpret_cast_1, cp_build_c_cast, check_return_expr): Change
+	pedwarn to permerror.
+	* init.c (perform_member_init, build_new_1, build_new): Likewise.
+	* decl.c (warn_extern_redeclared_static, duplicate_decls,
+	* identify_goto, check_previous_goto_1, check_goto, define_label,
+	check_tag_decl, start_decl, check_class_member_definition_namespace,
+	grokfndecl, grokdeclarator): Likewise.
+	* except.c (check_handlers): Likewise.
+	* typeck2.c (digest_init): Likewise.
+	* pt.c (check_specialization_namespace,
+	check_explicit_instantiation_namespace,
+	maybe_process_partial_specialization, check_explicit_specialization,
+	convert_template_argument, do_decl_instantiation,
+	do_type_instantiation, instantiate_decl): Likewise.
+	* semantics.c (finish_template_type_parm): Likewise.
+	* name-lookup.c (pushdecl_maybe_friend,
+	check_for_out_of_scope_variable): Likewise.
+	* decl2.c (finish_static_data_member_decl, build_anon_union_vars,
+	coerce_new_type): Likewise.
+	* parser.c (cp_parser_nested_name_specifier_opt,
+	cp_parser_mem_initializer, cp_parser_elaborated_type_specifier,
+	cp_parser_class_head, cp_parser_check_class_key): Likewise.
+	(cp_parser_parameter_declaration): Check flag_permissive instead of
+	flag_pedantic_errors.
+	* call.c (joust): Change pedwarn to warning.
+	* friend.c (make_friend_class): Likewise.
+
+2008-06-16  Jan Hubicka  <jh@suse.cz>
+
+	* method.c: Include cgraph.h.
+	(use_thunk): Use cgraph_add_new_function instead of calling backend
+	directly.
+
 2008-06-15  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
 
 	* parser.c: Fix comment typo.

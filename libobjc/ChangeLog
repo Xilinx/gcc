@@ -1,3 +1,11 @@
+2008-07-06  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* Makefile.in (install-info): New stub target.
+
+2008-06-17  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* configure: Regenerate.
+
 2008-06-14  Kai Tietz  <kai.tietz@onevision.com>
 
 	* exception.c (PERSONALITY_FUNCTION): Remove extra decrement

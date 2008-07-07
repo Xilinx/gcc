@@ -28,9 +28,9 @@ along with GCC; see the file COPYING3.  If not see
 
 /* Macros to access allocate memory for gfc_data_variable,
    gfc_data_value and gfc_data.  */
-#define gfc_get_data_variable() gfc_getmem (sizeof (gfc_data_variable))
-#define gfc_get_data_value() gfc_getmem (sizeof (gfc_data_value))
-#define gfc_get_data() gfc_getmem( sizeof (gfc_data))
+#define gfc_get_data_variable() XCNEW (gfc_data_variable)
+#define gfc_get_data_value() XCNEW (gfc_data_value)
+#define gfc_get_data() XCNEW (gfc_data)
 
 
 /* This flag is set if an old-style length selector is matched
@@ -1084,10 +1084,12 @@ build_sym (const char *name, gfc_charlen *cl,
 
 
 /* Set character constant to the given length. The constant will be padded or
-   truncated.  */
+   truncated.  If we're inside an array constructor without a typespec, we
+   additionally check that all elements have the same length; check_len -1
+   means no checking.  */
 
 void
-gfc_set_constant_character_len (int len, gfc_expr *expr, bool array)
+gfc_set_constant_character_len (int len, gfc_expr *expr, int check_len)
 {
   gfc_char_t *s;
   int slen;
@@ -1110,10 +1112,11 @@ gfc_set_constant_character_len (int len, gfc_expr *expr, bool array)
 
       /* Apply the standard by 'hand' otherwise it gets cleared for
 	 initializers.  */
-      if (array && slen < len && !(gfc_option.allow_std & GFC_STD_GNU))
+      if (check_len != -1 && slen != check_len
+          && !(gfc_option.allow_std & GFC_STD_GNU))
 	gfc_error_now ("The CHARACTER elements of the array constructor "
 		       "at %L must have the same length (%d/%d)",
-			&expr->where, slen, len);
+			&expr->where, slen, check_len);
 
       s[len] = '\0';
       gfc_free (expr->value.character.string);
@@ -1137,7 +1140,7 @@ create_enum_history (gfc_symbol *sym, gfc_expr *init)
   enumerator_history *new_enum_history;
   gcc_assert (sym != NULL && init != NULL);
 
-  new_enum_history = gfc_getmem (sizeof (enumerator_history));
+  new_enum_history = XCNEW (enumerator_history);
 
   new_enum_history->sym = sym;
   new_enum_history->initializer = init;
@@ -1269,7 +1272,7 @@ add_init_expr_to_sym (const char *name, gfc_expr **initp, locus *var_locus)
 	      gfc_constructor * p;
 
 	      if (init->expr_type == EXPR_CONSTANT)
-		gfc_set_constant_character_len (len, init, false);
+		gfc_set_constant_character_len (len, init, -1);
 	      else if (init->expr_type == EXPR_ARRAY)
 		{
 		  /* Build a new charlen to prevent simplification from
@@ -1280,7 +1283,7 @@ add_init_expr_to_sym (const char *name, gfc_expr **initp, locus *var_locus)
 		  init->ts.cl->length = gfc_copy_expr (sym->ts.cl->length);
 
 		  for (p = init->value.constructor; p; p = p->next)
-		    gfc_set_constant_character_len (len, p->expr, false);
+		    gfc_set_constant_character_len (len, p->expr, -1);
 		}
 	    }
 	}
@@ -1402,19 +1405,48 @@ build_struct (const char *name, gfc_charlen *cl, gfc_expr **init,
 
   /* Should this ever get more complicated, combine with similar section
      in add_init_expr_to_sym into a separate function.  */
-  if (c->ts.type == BT_CHARACTER && !c->pointer && c->initializer)
+  if (c->ts.type == BT_CHARACTER && !c->pointer && c->initializer && c->ts.cl
+      && c->ts.cl->length && c->ts.cl->length->expr_type == EXPR_CONSTANT)
     {
-      int len = mpz_get_si (c->ts.cl->length->value.integer);
+      int len;
+
+      gcc_assert (c->ts.cl && c->ts.cl->length);
+      gcc_assert (c->ts.cl->length->expr_type == EXPR_CONSTANT);
+      gcc_assert (c->ts.cl->length->ts.type == BT_INTEGER);
+
+      len = mpz_get_si (c->ts.cl->length->value.integer);
 
       if (c->initializer->expr_type == EXPR_CONSTANT)
-	gfc_set_constant_character_len (len, c->initializer, false);
+	gfc_set_constant_character_len (len, c->initializer, -1);
       else if (mpz_cmp (c->ts.cl->length->value.integer,
 			c->initializer->ts.cl->length->value.integer))
 	{
+	  bool has_ts;
 	  gfc_constructor *ctor = c->initializer->value.constructor;
-	  for (;ctor ; ctor = ctor->next)
-	    if (ctor->expr->expr_type == EXPR_CONSTANT)
-	      gfc_set_constant_character_len (len, ctor->expr, true);
+
+	  bool first = true;
+	  int first_len;
+
+	  has_ts = (c->initializer->ts.cl
+		    && c->initializer->ts.cl->length_from_typespec);
+
+	  for (; ctor; ctor = ctor->next)
+	    {
+	      /* Remember the length of the first element for checking that
+		 all elements *in the constructor* have the same length.  This
+		 need not be the length of the LHS!  */
+	      if (first)
+		{
+		  gcc_assert (ctor->expr->expr_type == EXPR_CONSTANT);
+		  gcc_assert (ctor->expr->ts.type == BT_CHARACTER);
+		  first_len = ctor->expr->value.character.length;
+		  first = false;
+		}
+
+	      if (ctor->expr->expr_type == EXPR_CONSTANT)
+		gfc_set_constant_character_len (len, ctor->expr,
+						has_ts ? -1 : first_len);
+	    }
 	}
     }
 
@@ -4033,6 +4065,7 @@ match_procedure_decl (void)
   locus old_loc, entry_loc;
   gfc_symbol *sym, *proc_if = NULL;
   int num;
+  gfc_expr *initializer = NULL;
 
   old_loc = entry_loc = gfc_current_locus;
 
@@ -4151,7 +4184,7 @@ got_ts:
 	    return MATCH_ERROR;
 	}
 
-      if (!sym->attr.pointer && gfc_add_external (&sym->attr, NULL) == FAILURE)
+      if (gfc_add_external (&sym->attr, NULL) == FAILURE)
 	return MATCH_ERROR;
       if (gfc_add_proc (&sym->attr, sym->name, NULL) == FAILURE)
 	return MATCH_ERROR;
@@ -4171,6 +4204,40 @@ got_ts:
 	  sym->attr.function = sym->ts.interface->attr.function;
 	}
 
+      if (gfc_match (" =>") == MATCH_YES)
+	{
+	  if (!current_attr.pointer)
+	    {
+	      gfc_error ("Initialization at %C isn't for a pointer variable");
+	      m = MATCH_ERROR;
+	      goto cleanup;
+	    }
+
+	  m = gfc_match_null (&initializer);
+	  if (m == MATCH_NO)
+	    {
+	      gfc_error ("Pointer initialization requires a NULL() at %C");
+	      m = MATCH_ERROR;
+	    }
+
+	  if (gfc_pure (NULL))
+	    {
+	      gfc_error ("Initialization of pointer at %C is not allowed in "
+			 "a PURE procedure");
+	      m = MATCH_ERROR;
+	    }
+
+	  if (m != MATCH_YES)
+	    goto cleanup;
+
+	  if (add_init_expr_to_sym (sym->name, &initializer, &gfc_current_locus)
+	      != SUCCESS)
+	    goto cleanup;
+
+	}
+
+      gfc_set_sym_referenced (sym);
+
       if (gfc_match_eos () == MATCH_YES)
 	return MATCH_YES;
       if (gfc_match_char (',') != MATCH_YES)
@@ -4180,6 +4247,11 @@ got_ts:
 syntax:
   gfc_error ("Syntax error in PROCEDURE statement at %C");
   return MATCH_ERROR;
+
+cleanup:
+  /* Free stuff up and return.  */
+  gfc_free_expr (initializer);
+  return m;
 }
 
 
@@ -5822,7 +5894,7 @@ do_parm (void)
       && init->expr_type == EXPR_CONSTANT
       && init->ts.type == BT_CHARACTER)
     gfc_set_constant_character_len (
-      mpz_get_si (sym->ts.cl->length->value.integer), init, false);
+      mpz_get_si (sym->ts.cl->length->value.integer), init, -1);
   else if (sym->ts.type == BT_CHARACTER && sym->ts.cl != NULL
 	   && sym->ts.cl->length == NULL)
 	{
@@ -6593,7 +6665,7 @@ gfc_match_final_decl (void)
       /* Add this symbol to the list of finalizers.  */
       gcc_assert (gfc_current_block ()->f2k_derived);
       ++sym->refs;
-      f = gfc_getmem (sizeof (gfc_finalizer));     
+      f = XCNEW (gfc_finalizer);
       f->procedure = sym;
       f->where = gfc_current_locus;
       f->next = gfc_current_block ()->f2k_derived->finalizers;

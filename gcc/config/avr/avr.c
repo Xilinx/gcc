@@ -71,6 +71,7 @@ static void avr_file_start (void);
 static void avr_file_end (void);
 static void avr_asm_function_end_prologue (FILE *);
 static void avr_asm_function_begin_epilogue (FILE *);
+static rtx avr_function_value (const_tree, const_tree, bool);
 static void avr_insert_attributes (tree, tree *);
 static void avr_asm_init_sections (void);
 static unsigned int avr_section_type_flags (tree, const char *, int);
@@ -173,6 +174,7 @@ static const struct mcu_type_s avr_mcu_types[] = {
     /* Classic + MOVW, <= 8K.  */
   { "avr25",        ARCH_AVR25, NULL },
   { "attiny13",     ARCH_AVR25, "__AVR_ATtiny13__" },
+  { "attiny13a",    ARCH_AVR25, "__AVR_ATtiny13A__" },
   { "attiny2313",   ARCH_AVR25, "__AVR_ATtiny2313__" },
   { "attiny24",     ARCH_AVR25, "__AVR_ATtiny24__" },
   { "attiny44",     ARCH_AVR25, "__AVR_ATtiny44__" },
@@ -199,6 +201,7 @@ static const struct mcu_type_s avr_mcu_types[] = {
   { "avr35",        ARCH_AVR35, NULL },
   { "at90usb82",    ARCH_AVR35, "__AVR_AT90USB82__" },
   { "at90usb162",   ARCH_AVR35, "__AVR_AT90USB162__" },
+  { "attiny167",    ARCH_AVR35, "__AVR_ATtiny167__" },
     /* Enhanced, <= 8K.  */
   { "avr4",         ARCH_AVR4, NULL },
   { "atmega8",      ARCH_AVR4, "__AVR_ATmega8__" },
@@ -239,7 +242,6 @@ static const struct mcu_type_s avr_mcu_types[] = {
   { "atmega329p",   ARCH_AVR5, "__AVR_ATmega329P__" },
   { "atmega3290",   ARCH_AVR5, "__AVR_ATmega3290__" },
   { "atmega3290p",  ARCH_AVR5, "__AVR_ATmega3290P__" },
-  { "atmega32hvb",  ARCH_AVR5, "__AVR_ATmega32HVB__" },
   { "atmega406",    ARCH_AVR5, "__AVR_ATmega406__" },
   { "atmega64",     ARCH_AVR5, "__AVR_ATmega64__" },
   { "atmega640",    ARCH_AVR5, "__AVR_ATmega640__" },
@@ -256,6 +258,7 @@ static const struct mcu_type_s avr_mcu_types[] = {
   { "at90pwm316",   ARCH_AVR5, "__AVR_AT90PWM316__" },
   { "atmega32m1",   ARCH_AVR5, "__AVR_ATmega32M1__" },
   { "atmega32c1",   ARCH_AVR5, "__AVR_ATmega32C1__" },
+  { "atmega32u4",   ARCH_AVR5, "__AVR_ATmega32U4__" },
   { "at90usb646",   ARCH_AVR5, "__AVR_AT90USB646__" },
   { "at90usb647",   ARCH_AVR5, "__AVR_AT90USB647__" },
   { "at94k",        ARCH_AVR5, "__AVR_AT94K__" },
@@ -306,6 +309,8 @@ int avr_case_values_threshold = 30000;
 #define TARGET_ASM_FUNCTION_END_PROLOGUE avr_asm_function_end_prologue
 #undef TARGET_ASM_FUNCTION_BEGIN_EPILOGUE
 #define TARGET_ASM_FUNCTION_BEGIN_EPILOGUE avr_asm_function_begin_epilogue
+#undef TARGET_FUNCTION_VALUE
+#define TARGET_FUNCTION_VALUE avr_function_value
 #undef TARGET_ATTRIBUTE_TABLE
 #define TARGET_ATTRIBUTE_TABLE avr_attribute_table
 #undef TARGET_ASM_FUNCTION_RODATA_SECTION
@@ -5701,7 +5706,9 @@ avr_libcall_value (enum machine_mode mode)
    function returns a value of data type VALTYPE.  */
 
 rtx
-avr_function_value (const_tree type, const_tree func ATTRIBUTE_UNUSED)
+avr_function_value (const_tree type, 
+		    const_tree func ATTRIBUTE_UNUSED, 
+		    bool outgoing ATTRIBUTE_UNUSED)
 {
   unsigned int offs;
   

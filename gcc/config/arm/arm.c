@@ -166,6 +166,7 @@ static bool arm_default_short_enums (void);
 static bool arm_align_anon_bitfield (void);
 static bool arm_return_in_msb (const_tree);
 static bool arm_must_pass_in_stack (enum machine_mode, const_tree);
+static bool arm_return_in_memory (const_tree, const_tree);
 #ifdef TARGET_UNWIND_INFO
 static void arm_unwind_emit (FILE *, rtx);
 static bool arm_output_ttype (rtx);
@@ -332,6 +333,9 @@ static bool arm_allocate_stack_slots_for_args (void);
 
 #undef TARGET_RETURN_IN_MSB
 #define TARGET_RETURN_IN_MSB arm_return_in_msb
+
+#undef TARGET_RETURN_IN_MEMORY
+#define TARGET_RETURN_IN_MEMORY arm_return_in_memory
 
 #undef TARGET_MUST_PASS_IN_STACK
 #define TARGET_MUST_PASS_IN_STACK arm_must_pass_in_stack
@@ -2747,9 +2751,9 @@ arm_apply_result_size (void)
 }
 
 /* Decide whether a type should be returned in memory (true)
-   or in a register (false).  This is called by the macro
+   or in a register (false).  This is called as the target hook
    TARGET_RETURN_IN_MEMORY.  */
-bool
+static bool
 arm_return_in_memory (const_tree type, const_tree fntype ATTRIBUTE_UNUSED)
 {
   HOST_WIDE_INT size;
@@ -15605,8 +15609,8 @@ arm_expand_unop_builtin (enum insn_code icode,
 static int
 neon_builtin_compare (const void *a, const void *b)
 {
-  const neon_builtin_datum *key = a;
-  const neon_builtin_datum *memb = b;
+  const neon_builtin_datum *const key = (const neon_builtin_datum *) a;
+  const neon_builtin_datum *const memb = (const neon_builtin_datum *) b;
   unsigned int soughtcode = key->base_fcode;
 
   if (soughtcode >= memb->base_fcode
@@ -15625,7 +15629,8 @@ locate_neon_builtin_icode (int fcode, neon_itype *itype)
   int idx;
 
   key.base_fcode = fcode;
-  found = bsearch (&key, &neon_builtin_data[0], ARRAY_SIZE (neon_builtin_data),
+  found = (neon_builtin_datum *)
+    bsearch (&key, &neon_builtin_data[0], ARRAY_SIZE (neon_builtin_data),
 		   sizeof (neon_builtin_data[0]), neon_builtin_compare);
   gcc_assert (found);
   idx = fcode - (int) found->base_fcode;

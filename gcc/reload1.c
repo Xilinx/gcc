@@ -498,7 +498,7 @@ init_reload (void)
 
   /* Initialize obstack for our rtl allocation.  */
   gcc_obstack_init (&reload_obstack);
-  reload_startobj = obstack_alloc (&reload_obstack, 0);
+  reload_startobj = XOBNEWVAR (&reload_obstack, char, 0);
 
   INIT_REG_SET (&spilled_pseudos);
   INIT_REG_SET (&pseudos_counted);
@@ -515,7 +515,7 @@ new_insn_chain (void)
 
   if (unused_insn_chains == 0)
     {
-      c = obstack_alloc (&reload_obstack, sizeof (struct insn_chain));
+      c = XOBNEW (&reload_obstack, struct insn_chain);
       INIT_REG_SET (&c->live_throughout);
       INIT_REG_SET (&c->dead_or_set);
     }
@@ -633,7 +633,7 @@ has_nonexceptional_receiver (void)
     return true;
   
   /* First determine which blocks can reach exit via normal paths.  */
-  tos = worklist = xmalloc (sizeof (basic_block) * (n_basic_blocks + 1));
+  tos = worklist = XNEWVEC (basic_block, n_basic_blocks + 1);
 
   FOR_EACH_BB (bb)
     bb->flags &= ~BB_REACHABLE;
@@ -710,7 +710,7 @@ reload (rtx first, int global)
 
   failure = 0;
 
-  reload_firstobj = obstack_alloc (&reload_obstack, 0);
+  reload_firstobj = XOBNEWVAR (&reload_obstack, char, 0);
 
   /* Make sure that the last insn in the chain
      is not something that needs reloading.  */
@@ -1031,7 +1031,7 @@ reload (rtx first, int global)
 	{
 	  save_call_clobbered_regs ();
 	  /* That might have allocated new insn_chain structures.  */
-	  reload_firstobj = obstack_alloc (&reload_obstack, 0);
+	  reload_firstobj = XOBNEWVAR (&reload_obstack, char, 0);
 	}
 
       calculate_needs_all_insns (global);
@@ -1219,9 +1219,8 @@ reload (rtx first, int global)
      notes.  Delete all CLOBBER insns, except those that refer to the return
      value and the special mem:BLK CLOBBERs added to prevent the scheduler
      from misarranging variable-array code, and simplify (subreg (reg))
-     operands.  Also remove all REG_RETVAL and REG_LIBCALL notes since they
-     are no longer useful or accurate.  Strip and regenerate REG_INC notes
-     that may have been moved around.  */
+     operands.  Strip and regenerate REG_INC notes that may have been moved
+     around.  */
 
   for (insn = first; insn; insn = NEXT_INSN (insn))
     if (INSN_P (insn))
@@ -1274,9 +1273,7 @@ reload (rtx first, int global)
 	  {
 	    if (REG_NOTE_KIND (*pnote) == REG_DEAD
 		|| REG_NOTE_KIND (*pnote) == REG_UNUSED
-		|| REG_NOTE_KIND (*pnote) == REG_INC
-		|| REG_NOTE_KIND (*pnote) == REG_RETVAL
-		|| REG_NOTE_KIND (*pnote) == REG_LIBCALL)
+		|| REG_NOTE_KIND (*pnote) == REG_INC)
 	      *pnote = XEXP (*pnote, 1);
 	    else
 	      pnote = &XEXP (*pnote, 1);
@@ -1503,10 +1500,9 @@ static void
 copy_reloads (struct insn_chain *chain)
 {
   chain->n_reloads = n_reloads;
-  chain->rld = obstack_alloc (&reload_obstack,
-			      n_reloads * sizeof (struct reload));
+  chain->rld = XOBNEWVEC (&reload_obstack, struct reload, n_reloads);
   memcpy (chain->rld, rld, n_reloads * sizeof (struct reload));
-  reload_insn_firstobj = obstack_alloc (&reload_obstack, 0);
+  reload_insn_firstobj = XOBNEWVAR (&reload_obstack, char, 0);
 }
 
 /* Walk the chain of insns, and determine for each whether it needs reloads
@@ -1520,7 +1516,7 @@ calculate_needs_all_insns (int global)
 
   something_needs_elimination = 0;
 
-  reload_insn_firstobj = obstack_alloc (&reload_obstack, 0);
+  reload_insn_firstobj = XOBNEWVAR (&reload_obstack, char, 0);
   for (chain = reload_insn_chain; chain != 0; chain = next)
     {
       rtx insn = chain->insn;
@@ -3699,7 +3695,9 @@ elimination_target_reg_p (rtx x)
   return false;
 }
 
-/* Initialize the table of registers to eliminate.  */
+/* Initialize the table of registers to eliminate.
+   Pre-condition: global flag frame_pointer_needed has been set before
+   calling this function.  */
 
 static void
 init_elim_table (void)
@@ -3710,20 +3708,7 @@ init_elim_table (void)
 #endif
 
   if (!reg_eliminate)
-    reg_eliminate = xcalloc (sizeof (struct elim_table), NUM_ELIMINABLE_REGS);
-
-  /* Does this function require a frame pointer?  */
-
-  frame_pointer_needed = (! flag_omit_frame_pointer
-			  /* ?? If EXIT_IGNORE_STACK is set, we will not save
-			     and restore sp for alloca.  So we can't eliminate
-			     the frame pointer in that case.  At some point,
-			     we should improve this by emitting the
-			     sp-adjusting insns for this case.  */
-			  || (cfun->calls_alloca
-			      && EXIT_IGNORE_STACK)
-			  || crtl->accesses_prior_frames
-			  || FRAME_POINTER_REQUIRED);
+    reg_eliminate = XCNEWVEC (struct elim_table, NUM_ELIMINABLE_REGS);
 
   num_eliminable = 0;
 
@@ -4015,8 +4000,7 @@ fixup_eh_region_note (rtx insn, rtx prev, rtx next)
     if (INSN_P (i) && i != insn && may_trap_p (PATTERN (i)))
       {
 	trap_count++;
-	REG_NOTES (i)
-	  = gen_rtx_EXPR_LIST (REG_EH_REGION, XEXP (note, 0), REG_NOTES (i));
+	add_reg_note (i, REG_EH_REGION, XEXP (note, 0));
       }
 }
 
@@ -4250,9 +4234,7 @@ reload_as_needed (int live_known)
 			}
 		      if (n == 1)
 			{
-			  REG_NOTES (p)
-			    = gen_rtx_EXPR_LIST (REG_INC, reload_reg,
-						 REG_NOTES (p));
+			  add_reg_note (p, REG_INC, reload_reg);
 			  /* Mark this as having an output reload so that the
 			     REG_INC processing code below won't invalidate
 			     the reload for inheritance.  */
@@ -8550,8 +8532,7 @@ add_auto_inc_notes (rtx insn, rtx x)
 
   if (code == MEM && auto_inc_p (XEXP (x, 0)))
     {
-      REG_NOTES (insn)
-	= gen_rtx_EXPR_LIST (REG_INC, XEXP (XEXP (x, 0), 0), REG_NOTES (insn));
+      add_reg_note (insn, REG_INC, XEXP (XEXP (x, 0), 0));
       return;
     }
 
@@ -8578,9 +8559,7 @@ copy_eh_notes (rtx insn, rtx x)
       for (; x != 0; x = NEXT_INSN (x))
 	{
 	  if (may_trap_p (PATTERN (x)))
-	    REG_NOTES (x)
-	      = gen_rtx_EXPR_LIST (REG_EH_REGION, XEXP (eh_note, 0),
-				   REG_NOTES (x));
+	    add_reg_note (x, REG_EH_REGION, XEXP (eh_note, 0));
 	}
     }
 }

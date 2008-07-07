@@ -42,6 +42,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "function.h"
 #include "expr.h"
 #include "optabs.h"
+#include "libfuncs.h"
 #include "flags.h"
 #include "reload.h"
 #include "tm_p.h"
@@ -441,7 +442,7 @@ const struct mips_rtx_cost_data *mips_cost;
 static int mips_base_target_flags;
 
 /* True if MIPS16 is the default mode.  */
-static bool mips_base_mips16;
+bool mips_base_mips16;
 
 /* The ambient values of other global variables.  */
 static int mips_base_delayed_branch; /* flag_delayed_branch */
@@ -2120,6 +2121,21 @@ mips_const_insns (rtx x)
     }
 }
 
+/* X is a doubleword constant that can be handled by splitting it into
+   two words and loading each word separately.  Return the number of
+   instructions required to do this.  */
+
+int
+mips_split_const_insns (rtx x)
+{
+  unsigned int low, high;
+
+  low = mips_const_insns (mips_subword (x, false));
+  high = mips_const_insns (mips_subword (x, true));
+  gcc_assert (low > 0 && high > 0);
+  return low + high;
+}
+
 /* Return the number of instructions needed to implement INSN,
    given that it loads from or stores to MEM.  Count extended
    MIPS16 instructions as two instructions.  */
@@ -3286,7 +3302,7 @@ mips_rtx_costs (rtx x, int code, int outer_code, int *total)
 
     case MINUS:
       if (float_mode_p
-	  && ISA_HAS_NMADD_NMSUB (mode)
+	  && (ISA_HAS_NMADD4_NMSUB4 (mode) || ISA_HAS_NMADD3_NMSUB3 (mode))
 	  && TARGET_FUSED_MADD
 	  && !HONOR_NANS (mode)
 	  && !HONOR_SIGNED_ZEROS (mode))
@@ -3337,7 +3353,7 @@ mips_rtx_costs (rtx x, int code, int outer_code, int *total)
 
     case NEG:
       if (float_mode_p
-	  && ISA_HAS_NMADD_NMSUB (mode)
+	  && (ISA_HAS_NMADD4_NMSUB4 (mode) || ISA_HAS_NMADD3_NMSUB3 (mode))
 	  && TARGET_FUSED_MADD
 	  && !HONOR_NANS (mode)
 	  && HONOR_SIGNED_ZEROS (mode))
@@ -5832,7 +5848,7 @@ mips_block_move_straight (rtx dest, rtx src, HOST_WIDE_INT length)
   delta = bits / BITS_PER_UNIT;
 
   /* Allocate a buffer for the temporary registers.  */
-  regs = alloca (sizeof (rtx) * length / delta);
+  regs = XALLOCAVEC (rtx, length / delta);
 
   /* Load as many BITS-sized chunks as possible.  Use a normal load if
      the source has enough alignment, otherwise use left/right pairs.  */
@@ -9424,6 +9440,11 @@ mips_init_libfuncs (void)
   else
     /* Register the gofast functions if selected using --enable-gofast.  */
     gofast_maybe_init_libfuncs ();
+
+  /* The MIPS16 ISA does not have an encoding for "sync", so we rely
+     on an external non-MIPS16 routine to implement __sync_synchronize.  */
+  if (TARGET_MIPS16)
+    synchronize_libfunc = init_one_libfunc ("__sync_synchronize");
 }
 
 /* Return the length of INSN.  LENGTH is the initial length computed by
@@ -11422,7 +11443,8 @@ struct mips16_rewrite_pool_refs_info {
 static int
 mips16_rewrite_pool_refs (rtx *x, void *data)
 {
-  struct mips16_rewrite_pool_refs_info *info = data;
+  struct mips16_rewrite_pool_refs_info *info =
+    (struct mips16_rewrite_pool_refs_info *) data;
 
   if (force_to_mem_operand (*x, Pmode))
     {
@@ -11597,7 +11619,7 @@ static int
 mips_sim_wait_regs_2 (rtx *x, void *data)
 {
   if (REG_P (*x))
-    mips_sim_wait_reg (data, mips_sim_insn, *x);
+    mips_sim_wait_reg ((struct mips_sim *) data, mips_sim_insn, *x);
   return 0;
 }
 
@@ -11651,7 +11673,7 @@ mips_sim_record_set (rtx x, const_rtx pat ATTRIBUTE_UNUSED, void *data)
 {
   struct mips_sim *state;
 
-  state = data;
+  state = (struct mips_sim *) data;
   if (REG_P (x))
     {
       unsigned int regno, end_regno;
@@ -12311,8 +12333,14 @@ mips_output_mi_thunk (FILE *file, tree thunk_fndecl ATTRIBUTE_UNUSED,
 }
 
 /* The last argument passed to mips_set_mips16_mode, or negative if the
-   function hasn't been called yet.  */
-static GTY(()) int was_mips16_p = -1;
+   function hasn't been called yet.
+
+   There are two copies of this information.  One is saved and restored
+   by the PCH process while the other is specific to this compiler
+   invocation.  The information calculated by mips_set_mips16_mode
+   is invalid unless the two variables are the same.  */
+static int was_mips16_p = -1;
+static GTY(()) int was_mips16_pch_p = -1;
 
 /* Set up the target-dependent global state so that it matches the
    current function's ISA mode.  */
@@ -12320,7 +12348,8 @@ static GTY(()) int was_mips16_p = -1;
 static void
 mips_set_mips16_mode (int mips16_p)
 {
-  if (mips16_p == was_mips16_p)
+  if (mips16_p == was_mips16_p
+      && mips16_p == was_mips16_pch_p)
     return;
 
   /* Restore base settings of various flags.  */
@@ -12395,11 +12424,12 @@ mips_set_mips16_mode (int mips16_p)
   /* (Re)initialize MIPS target internals for new ISA.  */
   mips_init_relocs ();
 
-  if (was_mips16_p >= 0)
+  if (was_mips16_p >= 0 || was_mips16_pch_p >= 0)
     /* Reinitialize target-dependent state.  */
     target_reinit ();
 
   was_mips16_p = mips16_p;
+  was_mips16_pch_p = mips16_p;
 }
 
 /* Implement TARGET_SET_CURRENT_FUNCTION.  Decide whether the current
@@ -12605,6 +12635,10 @@ mips_override_options (void)
 {
   int i, start, regno, mode;
 
+  /* Process flags as though we were generating non-MIPS16 code.  */
+  mips_base_mips16 = TARGET_MIPS16;
+  target_flags &= ~MASK_MIPS16;
+
 #ifdef SUBTARGET_OVERRIDE_OPTIONS
   SUBTARGET_OVERRIDE_OPTIONS;
 #endif
@@ -12750,14 +12784,6 @@ mips_override_options (void)
       target_flags &= ~MASK_ABICALLS;
     }
 
-  /* MIPS16 cannot generate PIC yet.  */
-  if (TARGET_MIPS16 && (flag_pic || TARGET_ABICALLS))
-    {
-      sorry ("MIPS16 PIC");
-      target_flags &= ~MASK_ABICALLS;
-      flag_pic = flag_pie = flag_shlib = 0;
-    }
-
   if (TARGET_ABICALLS)
     /* We need to set flag_pic for executables as well as DSOs
        because we may reference symbols that are not defined in
@@ -12785,7 +12811,7 @@ mips_override_options (void)
     {
       if (!TARGET_GPOPT)
 	{
-	  if (!TARGET_MIPS16 && !TARGET_EXPLICIT_RELOCS)
+	  if (!TARGET_EXPLICIT_RELOCS)
 	    error ("%<-mno-gpopt%> needs %<-mexplicit-relocs%>");
 
 	  TARGET_LOCAL_SDATA = false;
@@ -12889,7 +12915,6 @@ mips_override_options (void)
     target_flags |= MASK_FIX_R4400;
 
   /* Save base state of options.  */
-  mips_base_mips16 = TARGET_MIPS16;
   mips_base_target_flags = target_flags;
   mips_base_delayed_branch = flag_delayed_branch;
   mips_base_schedule_insns = flag_schedule_insns;
@@ -12899,8 +12924,11 @@ mips_override_options (void)
   mips_base_align_jumps = align_jumps;
   mips_base_align_functions = align_functions;
 
-  /* Now select the ISA mode.  */
-  mips_set_mips16_mode (mips_base_mips16);
+  /* Now select the ISA mode.
+
+     Do all CPP-sensitive stuff in non-MIPS16 mode; we'll switch to
+     MIPS16 mode afterwards if need be.  */
+  mips_set_mips16_mode (false);
 
   /* We call dbr_schedule from within mips_reorg.  */
   flag_delayed_branch = 0;

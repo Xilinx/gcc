@@ -308,6 +308,26 @@ sra_type_can_be_decomposed_p (tree type)
   return false;
 }
 
+/* Returns true if the TYPE is one of the available va_list types.
+   Otherwise it returns false.
+   Note, that for multiple calling conventions there can be more
+   than just one va_list type present.  */
+
+static bool
+is_va_list_type (tree type)
+{
+  tree h;
+
+  if (type == NULL_TREE)
+    return false;
+  h = targetm.canonical_va_list_type (type);
+  if (h == NULL_TREE)
+    return false;
+  if (TYPE_MAIN_VARIANT (type) == TYPE_MAIN_VARIANT (h))
+	 return true;
+  return false;
+}
+
 /* Return true if DECL can be decomposed into a set of independent
    (though not necessarily scalar) variables.  */
 
@@ -360,9 +380,7 @@ decl_can_be_decomposed_p (tree var)
      tree-stdarg.c, as the decomposition is truly a win.  This could also
      be fixed if the stdarg pass ran early, but this can't be done until
      we've aliasing information early too.  See PR 30791.  */
-  if (early_sra
-      && TYPE_MAIN_VARIANT (TREE_TYPE (var))
-	 == TYPE_MAIN_VARIANT (va_list_type_node))
+  if (early_sra && is_va_list_type (TREE_TYPE (var)))
     return false;
 
   return true;
@@ -487,7 +505,7 @@ sra_hash_tree (tree t)
 static hashval_t
 sra_elt_hash (const void *x)
 {
-  const struct sra_elt *e = x;
+  const struct sra_elt *const e = (const struct sra_elt *) x;
   const struct sra_elt *p;
   hashval_t h;
 
@@ -510,8 +528,8 @@ sra_elt_hash (const void *x)
 static int
 sra_elt_eq (const void *x, const void *y)
 {
-  const struct sra_elt *a = x;
-  const struct sra_elt *b = y;
+  const struct sra_elt *const a = (const struct sra_elt *) x;
+  const struct sra_elt *const b = (const struct sra_elt *) y;
   tree ae, be;
   const struct sra_elt *ap = a->parent;
   const struct sra_elt *bp = b->parent;
@@ -592,7 +610,7 @@ lookup_element (struct sra_elt *parent, tree child, tree type,
   elt = *slot;
   if (!elt && insert == INSERT)
     {
-      *slot = elt = obstack_alloc (&sra_obstack, sizeof (*elt));
+      *slot = elt = XOBNEW (&sra_obstack, struct sra_elt);
       memset (elt, 0, sizeof (*elt));
 
       elt->parent = parent;
@@ -1284,13 +1302,13 @@ instantiate_element (struct sra_elt *elt)
       DECL_SIZE_UNIT (var) = DECL_SIZE_UNIT (elt->element);
 
       elt->in_bitfld_block = 1;
-      elt->replacement = build3 (BIT_FIELD_REF, elt->type, var,
-				 DECL_SIZE (var),
-				 BYTES_BIG_ENDIAN
-				 ? size_binop (MINUS_EXPR,
-					       TYPE_SIZE (elt->type),
-					       DECL_SIZE (var))
-				 : bitsize_int (0));
+      elt->replacement = fold_build3 (BIT_FIELD_REF, elt->type, var,
+				      DECL_SIZE (var),
+				      BYTES_BIG_ENDIAN
+				      ? size_binop (MINUS_EXPR,
+						    TYPE_SIZE (elt->type),
+						    DECL_SIZE (var))
+				      : bitsize_int (0));
     }
 
   /* For vectors, if used on the left hand side with BIT_FIELD_REF,
@@ -1698,8 +1716,7 @@ try_instantiate_multiple_fields (struct sra_elt *elt, tree f)
     type = build_nonstandard_integer_type (size, 1);
   gcc_assert (type);
   var = build3 (BIT_FIELD_REF, type, NULL_TREE,
-		bitsize_int (size),
-		bitsize_int (bit));
+		bitsize_int (size), bitsize_int (bit));
 
   block = instantiate_missing_elements_1 (elt, var, type);
   gcc_assert (block && block->is_scalar);
@@ -1709,10 +1726,10 @@ try_instantiate_multiple_fields (struct sra_elt *elt, tree f)
   if ((bit & ~alchk)
       || (HOST_WIDE_INT)size != tree_low_cst (DECL_SIZE (var), 1))
     {
-      block->replacement = build3 (BIT_FIELD_REF,
-				   TREE_TYPE (block->element), var,
-				   bitsize_int (size),
-				   bitsize_int (bit & ~alchk));
+      block->replacement = fold_build3 (BIT_FIELD_REF,
+					TREE_TYPE (block->element), var,
+					bitsize_int (size),
+					bitsize_int (bit & ~alchk));
     }
 
   block->in_bitfld_block = 2;
@@ -1727,14 +1744,14 @@ try_instantiate_multiple_fields (struct sra_elt *elt, tree f)
 
       gcc_assert (fld && fld->is_scalar && !fld->replacement);
 
-      fld->replacement = build3 (BIT_FIELD_REF, field_type, var,
-				 DECL_SIZE (f),
-				 bitsize_int
-				 ((TREE_INT_CST_LOW (DECL_FIELD_OFFSET (f))
-				   * BITS_PER_UNIT
-				   + (TREE_INT_CST_LOW
-				      (DECL_FIELD_BIT_OFFSET (f))))
-				  & ~alchk));
+      fld->replacement = fold_build3 (BIT_FIELD_REF, field_type, var,
+				      DECL_SIZE (f),
+				      bitsize_int
+				      ((TREE_INT_CST_LOW (DECL_FIELD_OFFSET (f))
+					* BITS_PER_UNIT
+					+ (TREE_INT_CST_LOW
+					   (DECL_FIELD_BIT_OFFSET (f))))
+				       & ~alchk));
       fld->in_bitfld_block = 1;
     }
 

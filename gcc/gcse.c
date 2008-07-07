@@ -519,7 +519,7 @@ static void free_reg_set_mem (void);
 static void record_one_set (int, rtx);
 static void record_set_info (rtx, const_rtx, void *);
 static void compute_sets (void);
-static void hash_scan_insn (rtx, struct hash_table *, int);
+static void hash_scan_insn (rtx, struct hash_table *);
 static void hash_scan_set (rtx, rtx, struct hash_table *);
 static void hash_scan_clobber (rtx, rtx, struct hash_table *);
 static void hash_scan_call (rtx, rtx, struct hash_table *);
@@ -635,10 +635,23 @@ static void clear_modify_mem_tables (void);
 static void free_modify_mem_tables (void);
 static rtx gcse_emit_move_after (rtx, rtx, rtx);
 static void local_cprop_find_used_regs (rtx *, void *);
-static bool do_local_cprop (rtx, rtx, bool, rtx*);
-static bool adjust_libcall_notes (rtx, rtx, rtx, rtx*);
+static bool do_local_cprop (rtx, rtx, bool);
 static void local_cprop_pass (bool);
 static bool is_too_expensive (const char *);
+
+#define GNEW(T)			((T *) gmalloc (sizeof (T)))
+#define GCNEW(T)		((T *) gcalloc (1, sizeof (T)))
+
+#define GNEWVEC(T, N)		((T *) gmalloc (sizeof (T) * (N)))
+#define GCNEWVEC(T, N)		((T *) gcalloc ((N), sizeof (T)))
+#define GRESIZEVEC(T, P, N)	((T *) grealloc ((void *) (P), sizeof (T) * (N)))
+
+#define GNEWVAR(T, S)		((T *) gmalloc ((S)))
+#define GCNEWVAR(T, S)		((T *) gcalloc (1, (S)))
+#define GRESIZEVAR(T, P, S)	((T *) grealloc ((P), (S)))
+
+#define GOBNEW(T)		((T *) gcse_alloc (sizeof (T)))
+#define GOBNEWVAR(T, S)		((T *) gcse_alloc ((S)))
 
 
 /* Entry point for global common subexpression elimination.
@@ -699,7 +712,7 @@ gcse_main (rtx f ATTRIBUTE_UNUSED)
   pass = 0;
   initial_bytes_used = bytes_used;
   max_pass_bytes = 0;
-  gcse_obstack_bottom = gcse_alloc (1);
+  gcse_obstack_bottom = GOBNEWVAR (char, 1);
   changed = 1;
   while (changed && pass < MAX_GCSE_PASSES)
     {
@@ -737,8 +750,8 @@ gcse_main (rtx f ATTRIBUTE_UNUSED)
 	  if (changed)
 	    {
 	      free_modify_mem_tables ();
-	      modify_mem_list = gcalloc (last_basic_block, sizeof (rtx));
-	      canon_modify_mem_list = gcalloc (last_basic_block, sizeof (rtx));
+	      modify_mem_list = GCNEWVEC (rtx, last_basic_block);
+	      canon_modify_mem_list = GCNEWVEC (rtx, last_basic_block);
 	    }
 	  free_reg_set_mem ();
 	  alloc_reg_set_mem (max_reg_num ());
@@ -932,7 +945,7 @@ alloc_gcse_mem (void)
      but we should never see those anyway, so this is OK.)  */
 
   max_uid = get_max_uid ();
-  uid_cuid = gcalloc (max_uid + 1, sizeof (int));
+  uid_cuid = GCNEWVEC (int, max_uid + 1);
   i = 0;
   FOR_EACH_BB (bb)
     FOR_BB_INSNS (bb, insn)
@@ -952,8 +965,8 @@ alloc_gcse_mem (void)
   reg_set_in_block = sbitmap_vector_alloc (last_basic_block, max_gcse_regno);
   /* Allocate array to keep a list of insns which modify memory in each
      basic block.  */
-  modify_mem_list = gcalloc (last_basic_block, sizeof (rtx));
-  canon_modify_mem_list = gcalloc (last_basic_block, sizeof (rtx));
+  modify_mem_list = GCNEWVEC (rtx, last_basic_block);
+  canon_modify_mem_list = GCNEWVEC (rtx, last_basic_block);
   modify_mem_list_set = BITMAP_ALLOC (NULL);
   blocks_with_calls = BITMAP_ALLOC (NULL);
 }
@@ -1077,7 +1090,7 @@ static void
 alloc_reg_set_mem (int n_regs)
 {
   reg_set_table_size = n_regs + REG_SET_TABLE_SLOP;
-  reg_set_table = gcalloc (reg_set_table_size, sizeof (struct reg_set *));
+  reg_set_table = GCNEWVEC (struct reg_set *, reg_set_table_size);
 
   gcc_obstack_init (&reg_set_obstack);
 }
@@ -1102,14 +1115,13 @@ record_one_set (int regno, rtx insn)
     {
       int new_size = regno + REG_SET_TABLE_SLOP;
 
-      reg_set_table = grealloc (reg_set_table,
-				new_size * sizeof (struct reg_set *));
+      reg_set_table = GRESIZEVEC (struct reg_set *, reg_set_table, new_size);
       memset (reg_set_table + reg_set_table_size, 0,
 	      (new_size - reg_set_table_size) * sizeof (struct reg_set *));
       reg_set_table_size = new_size;
     }
 
-  new_reg_info = obstack_alloc (&reg_set_obstack, sizeof (struct reg_set));
+  new_reg_info = XOBNEW (&reg_set_obstack, struct reg_set);
   bytes_used += sizeof (struct reg_set);
   new_reg_info->bb_index = BLOCK_NUM (insn);
   new_reg_info->next = reg_set_table[regno];
@@ -1510,7 +1522,7 @@ insert_expr_in_table (rtx x, enum machine_mode mode, rtx insn, int antic_p,
 
   if (! found)
     {
-      cur_expr = gcse_alloc (sizeof (struct expr));
+      cur_expr = GOBNEW (struct expr);
       bytes_used += sizeof (struct expr);
       if (table->table[hash] == NULL)
 	/* This is the first pattern that hashed to this index.  */
@@ -1543,7 +1555,7 @@ insert_expr_in_table (rtx x, enum machine_mode mode, rtx insn, int antic_p,
       else
 	{
 	  /* First occurrence of this expression in this basic block.  */
-	  antic_occr = gcse_alloc (sizeof (struct occr));
+	  antic_occr = GOBNEW (struct occr);
 	  bytes_used += sizeof (struct occr);
 	  antic_occr->insn = insn;
 	  antic_occr->next = cur_expr->antic_occr;
@@ -1567,7 +1579,7 @@ insert_expr_in_table (rtx x, enum machine_mode mode, rtx insn, int antic_p,
       else
 	{
 	  /* First occurrence of this expression in this basic block.  */
-	  avail_occr = gcse_alloc (sizeof (struct occr));
+	  avail_occr = GOBNEW (struct occr);
 	  bytes_used += sizeof (struct occr);
 	  avail_occr->insn = insn;
 	  avail_occr->next = cur_expr->avail_occr;
@@ -1607,7 +1619,7 @@ insert_set_in_table (rtx x, rtx insn, struct hash_table *table)
 
   if (! found)
     {
-      cur_expr = gcse_alloc (sizeof (struct expr));
+      cur_expr = GOBNEW (struct expr);
       bytes_used += sizeof (struct expr);
       if (table->table[hash] == NULL)
 	/* This is the first pattern that hashed to this index.  */
@@ -1640,7 +1652,7 @@ insert_set_in_table (rtx x, rtx insn, struct hash_table *table)
   else
     {
       /* First occurrence of this expression in this basic block.  */
-      cur_occr = gcse_alloc (sizeof (struct occr));
+      cur_occr = GOBNEW (struct occr);
       bytes_used += sizeof (struct occr);
 
 	  cur_occr->insn = insn;
@@ -1838,18 +1850,13 @@ hash_scan_call (rtx x ATTRIBUTE_UNUSED, rtx insn ATTRIBUTE_UNUSED,
    are also in the PARALLEL.  Later.
 
    If SET_P is nonzero, this is for the assignment hash table,
-   otherwise it is for the expression hash table.
-   If IN_LIBCALL_BLOCK nonzero, we are in a libcall block, and should
-   not record any expressions.  */
+   otherwise it is for the expression hash table.  */
 
 static void
-hash_scan_insn (rtx insn, struct hash_table *table, int in_libcall_block)
+hash_scan_insn (rtx insn, struct hash_table *table)
 {
   rtx pat = PATTERN (insn);
   int i;
-
-  if (in_libcall_block)
-    return;
 
   /* Pick out the sets of INSN and for other forms of instructions record
      what's been modified.  */
@@ -1884,8 +1891,8 @@ dump_hash_table (FILE *file, const char *name, struct hash_table *table)
   unsigned int *hash_val;
   struct expr *expr;
 
-  flat_table = xcalloc (table->n_elems, sizeof (struct expr *));
-  hash_val = xmalloc (table->n_elems * sizeof (unsigned int));
+  flat_table = XCNEWVEC (struct expr *, table->n_elems);
+  hash_val = XNEWVEC (unsigned int, table->n_elems);
 
   for (i = 0; i < (int) table->size; i++)
     for (expr = table->table[i]; expr != NULL; expr = expr->next_same_hash)
@@ -2054,7 +2061,7 @@ compute_hash_table_work (struct hash_table *table)
   /* re-Cache any INSN_LIST nodes we have allocated.  */
   clear_modify_mem_tables ();
   /* Some working arrays used to track first and last set in each block.  */
-  reg_avail_info = gmalloc (max_gcse_regno * sizeof (struct reg_avail_info));
+  reg_avail_info = GNEWVEC (struct reg_avail_info, max_gcse_regno);
 
   for (i = 0; i < max_gcse_regno; ++i)
     reg_avail_info[i].last_bb = NULL;
@@ -2063,7 +2070,6 @@ compute_hash_table_work (struct hash_table *table)
     {
       rtx insn;
       unsigned int regno;
-      int in_libcall_block;
 
       /* First pass over the instructions records information used to
 	 determine when registers and memory are first and last set.
@@ -2094,18 +2100,9 @@ compute_hash_table_work (struct hash_table *table)
 		       BB_HEAD (current_bb), table);
 
       /* The next pass builds the hash table.  */
-      in_libcall_block = 0;
       FOR_BB_INSNS (current_bb, insn)
 	if (INSN_P (insn))
-	  {
-	    if (find_reg_note (insn, REG_LIBCALL, NULL_RTX))
-	      in_libcall_block = 1;
-	    else if (table->set_p && find_reg_note (insn, REG_RETVAL, NULL_RTX))
-	      in_libcall_block = 0;
-	    hash_scan_insn (insn, table, in_libcall_block);
-	    if (!table->set_p && find_reg_note (insn, REG_RETVAL, NULL_RTX))
-	      in_libcall_block = 0;
-	  }
+	  hash_scan_insn (insn, table);
     }
 
   free (reg_avail_info);
@@ -2132,7 +2129,7 @@ alloc_hash_table (int n_insns, struct hash_table *table, int set_p)
      ??? Later take some measurements.  */
   table->size |= 1;
   n = table->size * sizeof (struct expr *);
-  table->table = gmalloc (n);
+  table->table = GNEWVAR (struct expr *, n);
   table->set_p = set_p;
 }
 
@@ -3077,11 +3074,11 @@ local_cprop_find_used_regs (rtx *xptr, void *data)
   find_used_regs (xptr, data);
 }
 
-/* LIBCALL_SP is a zero-terminated array of insns at the end of a libcall;
-   their REG_EQUAL notes need updating.  */
+/* Try to perform local const/copy propagation on X in INSN.
+   If ALTER_JUMPS is false, changing jump insns is not allowed.  */
 
 static bool
-do_local_cprop (rtx x, rtx insn, bool alter_jumps, rtx *libcall_sp)
+do_local_cprop (rtx x, rtx insn, bool alter_jumps)
 {
   rtx newreg = NULL, newcnst = NULL;
 
@@ -3102,10 +3099,6 @@ do_local_cprop (rtx x, rtx insn, bool alter_jumps, rtx *libcall_sp)
 	  rtx this_rtx = l->loc;
 	  rtx note;
 
-	  /* Don't CSE non-constant values out of libcall blocks.  */
-	  if (l->in_libcall && ! CONSTANT_P (this_rtx))
-	    continue;
-
 	  if (gcse_constant_p (this_rtx))
 	    newcnst = this_rtx;
 	  if (REG_P (this_rtx) && REGNO (this_rtx) >= FIRST_PSEUDO_REGISTER
@@ -3120,16 +3113,6 @@ do_local_cprop (rtx x, rtx insn, bool alter_jumps, rtx *libcall_sp)
 	}
       if (newcnst && constprop_register (insn, x, newcnst, alter_jumps))
 	{
-	  /* If we find a case where we can't fix the retval REG_EQUAL notes
-	     match the new register, we either have to abandon this replacement
-	     or fix delete_trivially_dead_insns to preserve the setting insn,
-	     or make it delete the REG_EQUAL note, and fix up all passes that
-	     require the REG_EQUAL note there.  */
-	  bool adjusted;
-
-	  adjusted = adjust_libcall_notes (x, newcnst, insn, libcall_sp);
-	  gcc_assert (adjusted);
-	  
 	  if (dump_file != NULL)
 	    {
 	      fprintf (dump_file, "LOCAL CONST-PROP: Replacing reg %d in ",
@@ -3144,7 +3127,6 @@ do_local_cprop (rtx x, rtx insn, bool alter_jumps, rtx *libcall_sp)
 	}
       else if (newreg && newreg != x && try_replace_reg (x, newreg, insn))
 	{
-	  adjust_libcall_notes (x, newreg, insn, libcall_sp);
 	  if (dump_file != NULL)
 	    {
 	      fprintf (dump_file,
@@ -3159,47 +3141,6 @@ do_local_cprop (rtx x, rtx insn, bool alter_jumps, rtx *libcall_sp)
   return false;
 }
 
-/* LIBCALL_SP is a zero-terminated array of insns at the end of a libcall;
-   their REG_EQUAL notes need updating to reflect that OLDREG has been
-   replaced with NEWVAL in INSN.  Return true if all substitutions could
-   be made.  */
-static bool
-adjust_libcall_notes (rtx oldreg, rtx newval, rtx insn, rtx *libcall_sp)
-{
-  rtx end;
-
-  while ((end = *libcall_sp++))
-    {
-      rtx note = find_reg_equal_equiv_note (end);
-
-      if (! note)
-	continue;
-
-      if (REG_P (newval))
-	{
-	  if (reg_set_between_p (newval, PREV_INSN (insn), end))
-	    {
-	      do
-		{
-		  note = find_reg_equal_equiv_note (end);
-		  if (! note)
-		    continue;
-		  if (reg_mentioned_p (newval, XEXP (note, 0)))
-		    return false;
-		}
-	      while ((end = *libcall_sp++));
-	      return true;
-	    }
-	}
-      XEXP (note, 0) = simplify_replace_rtx (XEXP (note, 0), oldreg, newval);
-      df_notes_rescan (end);
-      insn = end;
-    }
-  return true;
-}
-
-#define MAX_NESTED_LIBCALLS 9
-
 /* Do local const/copy propagation (i.e. within each basic block).
    If ALTER_JUMPS is true, allow propagating into jump insns, which
    could modify the CFG.  */
@@ -3210,29 +3151,16 @@ local_cprop_pass (bool alter_jumps)
   basic_block bb;
   rtx insn;
   struct reg_use *reg_used;
-  rtx libcall_stack[MAX_NESTED_LIBCALLS + 1], *libcall_sp;
   bool changed = false;
 
   cselib_init (false);
-  libcall_sp = &libcall_stack[MAX_NESTED_LIBCALLS];
-  *libcall_sp = 0;
   FOR_EACH_BB (bb)
     {
       FOR_BB_INSNS (bb, insn)
 	{
 	  if (INSN_P (insn))
 	    {
-	      rtx note = find_reg_note (insn, REG_LIBCALL, NULL_RTX);
-
-	      if (note)
-		{
-		  gcc_assert (libcall_sp != libcall_stack);
-		  *--libcall_sp = XEXP (note, 0);
-		}
-	      note = find_reg_note (insn, REG_RETVAL, NULL_RTX);
-	      if (note)
-		libcall_sp++;
-	      note = find_reg_equal_equiv_note (insn);
+	      rtx note = find_reg_equal_equiv_note (insn);
 	      do
 		{
 		  reg_use_count = 0;
@@ -3244,8 +3172,7 @@ local_cprop_pass (bool alter_jumps)
 		  for (reg_used = &reg_use_table[0]; reg_use_count > 0;
 		       reg_used++, reg_use_count--)
 		    {
-		      if (do_local_cprop (reg_used->reg_rtx, insn, alter_jumps,
-					  libcall_sp))
+		      if (do_local_cprop (reg_used->reg_rtx, insn, alter_jumps))
 			{
 			  changed = true;
 			  break;
@@ -3259,10 +3186,8 @@ local_cprop_pass (bool alter_jumps)
 	  cselib_process_insn (insn);
 	}
 
-      /* Forget everything at the end of a basic block.  Make sure we are
-	 not inside a libcall, they should never cross basic blocks.  */
+      /* Forget everything at the end of a basic block.  */
       cselib_clear_table ();
-      gcc_assert (libcall_sp == &libcall_stack[MAX_NESTED_LIBCALLS]);
     }
 
   cselib_finish ();
@@ -4637,9 +4562,8 @@ add_label_notes (rtx x, rtx insn)
 	 such a LABEL_REF, so we don't have to handle REG_LABEL_TARGET
 	 notes.  */
       gcc_assert (!JUMP_P (insn));
-      REG_NOTES (insn)
-	= gen_rtx_INSN_LIST (REG_LABEL_OPERAND, XEXP (x, 0),
-			     REG_NOTES (insn));
+      add_reg_note (insn, REG_LABEL_OPERAND, XEXP (x, 0));
+
       if (LABEL_P (XEXP (x, 0)))
 	LABEL_NUSES (XEXP (x, 0))++;
 
@@ -5076,14 +5000,15 @@ static hashval_t
 pre_ldst_expr_hash (const void *p)
 {
   int do_not_record_p = 0;
-  const struct ls_expr *x = p;
+  const struct ls_expr *const x = (const struct ls_expr *) p;
   return hash_rtx (x->pattern, GET_MODE (x->pattern), &do_not_record_p, NULL, false);
 }
 
 static int
 pre_ldst_expr_eq (const void *p1, const void *p2)
 {
-  const struct ls_expr *ptr1 = p1, *ptr2 = p2;
+  const struct ls_expr *const ptr1 = (const struct ls_expr *) p1,
+    *const ptr2 = (const struct ls_expr *) p2;
   return expr_equiv_p (ptr1->pattern, ptr2->pattern);
 }
 
@@ -5205,7 +5130,7 @@ find_rtx_in_ldst (rtx x)
   slot = htab_find_slot (pre_ldst_table, &e, NO_INSERT);
   if (!slot || ((struct ls_expr *)*slot)->invalid)
     return NULL;
-  return *slot;
+  return (struct ls_expr *) *slot;
 }
 
 /* Assign each element of the list of mems a monotonically increasing value.  */
@@ -5513,7 +5438,7 @@ static void
 reg_set_info (rtx dest, const_rtx setter ATTRIBUTE_UNUSED,
 	      void *data)
 {
-  sbitmap bb_reg = data;
+  sbitmap bb_reg = (sbitmap) data;
 
   if (GET_CODE (dest) == SUBREG)
     dest = SUBREG_REG (dest);
@@ -5533,7 +5458,7 @@ static void
 reg_clear_last_set (rtx dest, const_rtx setter ATTRIBUTE_UNUSED,
 	      void *data)
 {
-  int *dead_vec = data;
+  int *dead_vec = (int *) data;
 
   if (GET_CODE (dest) == SUBREG)
     dest = SUBREG_REG (dest);
@@ -6376,7 +6301,7 @@ remove_reachable_equiv_notes (basic_block bb, struct ls_expr *smexpr)
 static void
 replace_store_insn (rtx reg, rtx del, basic_block bb, struct ls_expr *smexpr)
 {
-  rtx insn, mem, note, set, ptr, pair;
+  rtx insn, mem, note, set, ptr;
 
   mem = smexpr->pattern;
   insn = gen_move_insn (reg, SET_SRC (single_set (del)));
@@ -6388,24 +6313,8 @@ replace_store_insn (rtx reg, rtx del, basic_block bb, struct ls_expr *smexpr)
 	break;
       }
 
-  /* Move the notes from the deleted insn to its replacement, and patch
-     up the LIBCALL notes.  */
+  /* Move the notes from the deleted insn to its replacement.  */
   REG_NOTES (insn) = REG_NOTES (del);
-
-  note = find_reg_note (insn, REG_RETVAL, NULL_RTX);
-  if (note)
-    {
-      pair = XEXP (note, 0);
-      note = find_reg_note (pair, REG_LIBCALL, NULL_RTX);
-      XEXP (note, 0) = insn;
-    }
-  note = find_reg_note (insn, REG_LIBCALL, NULL_RTX);
-  if (note)
-    {
-      pair = XEXP (note, 0);
-      note = find_reg_note (pair, REG_RETVAL, NULL_RTX);
-      XEXP (note, 0) = insn;
-    }
 
   /* Emit the insn AFTER all the notes are transferred.
      This is cheaper since we avoid df rescanning for the note change.  */

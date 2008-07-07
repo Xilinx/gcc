@@ -1068,8 +1068,7 @@ mark_jump_label_1 (rtx x, rtx insn, bool in_mem, bool is_target)
 		   a label, except for the primary target of a jump,
 		   must have such a note.  */
 		if (! find_reg_note (insn, kind, label))
-		  REG_NOTES (insn)
-		    = gen_rtx_INSN_LIST (kind, label, REG_NOTES (insn));
+		  add_reg_note (insn, kind, label);
 	      }
 	  }
 	return;
@@ -1324,6 +1323,15 @@ redirect_exp_1 (rtx *loc, rtx olabel, rtx nlabel, rtx insn)
       && XEXP (SET_SRC (x), 0) == olabel)
     {
       validate_change (insn, loc, gen_rtx_RETURN (VOIDmode), 1);
+      return;
+    }
+
+  if (code == IF_THEN_ELSE)
+    {
+      /* Skip the condition of an IF_THEN_ELSE.  We only want to
+         change jump destinations, not eventual label comparisons.  */
+      redirect_exp_1 (&XEXP (x, 1), olabel, nlabel, insn);
+      redirect_exp_1 (&XEXP (x, 2), olabel, nlabel, insn);
       return;
     }
 

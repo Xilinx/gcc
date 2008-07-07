@@ -388,6 +388,9 @@
 #define TARGET_LIBGCC_CMP_RETURN_MODE  default_libgcc_cmp_return_mode
 #define TARGET_LIBGCC_SHIFT_COUNT_MODE default_libgcc_shift_count_mode
 
+/* In unwind-generic.h.  */
+#define TARGET_UNWIND_WORD_MODE default_unwind_word_mode
+
 /* In tree.c.  */
 #define TARGET_MERGE_DECL_ATTRIBUTES merge_decl_attributes
 #define TARGET_MERGE_TYPE_ATTRIBUTES merge_type_attributes
@@ -537,6 +540,8 @@
 #define TARGET_MACHINE_DEPENDENT_REORG 0
 
 #define TARGET_BUILD_BUILTIN_VA_LIST std_build_builtin_va_list
+#define TARGET_FN_ABI_VA_LIST std_fn_abi_va_list
+#define TARGET_CANONICAL_VA_LIST_TYPE std_canonical_va_list_type
 #define TARGET_EXPAND_BUILTIN_VA_START 0
 
 #define TARGET_GET_PCH_VALIDITY default_get_pch_validity
@@ -781,6 +786,7 @@
   TARGET_EH_RETURN_FILTER_MODE,			\
   TARGET_LIBGCC_CMP_RETURN_MODE,                \
   TARGET_LIBGCC_SHIFT_COUNT_MODE,               \
+  TARGET_UNWIND_WORD_MODE,			\
   TARGET_MERGE_DECL_ATTRIBUTES,			\
   TARGET_MERGE_TYPE_ATTRIBUTES,			\
   TARGET_ATTRIBUTE_TABLE,			\
@@ -841,6 +847,8 @@
   TARGET_CC_MODES_COMPATIBLE,			\
   TARGET_MACHINE_DEPENDENT_REORG,		\
   TARGET_BUILD_BUILTIN_VA_LIST,			\
+  TARGET_FN_ABI_VA_LIST,			\
+  TARGET_CANONICAL_VA_LIST_TYPE,			\
   TARGET_EXPAND_BUILTIN_VA_START,		\
   TARGET_GIMPLIFY_VA_ARG_EXPR,			\
   TARGET_GET_PCH_VALIDITY,			\

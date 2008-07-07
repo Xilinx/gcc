@@ -160,10 +160,8 @@ coverageexts = .{gcda,gcno}
 # STRICT_WARN are the additional warning flags to
 # apply to the back end and the C front end, which may be compiled
 # with other compilers.
-# CXX_COMPAT_WARN are C++ source compatibility warnings.
 LOOSE_WARN = @loose_warn@
 STRICT_WARN = @strict_warn@
-CXX_COMPAT_WARN = @cxx_compat_warn@
 
 # This is set by --enable-checking.  The idea is to catch forgotten
 # "extern" tags in header files.
@@ -189,6 +187,10 @@ build/gengtype-lex.o-warn = -Wno-error
 SYSCALLS.c.X-warn = -Wno-strict-prototypes -Wno-error
 # dfp.c contains alias violations
 dfp.o-warn = -Wno-error
+# bitmap.c contains -Wc++compat warnings.
+bitmap.o-warn = -Wno-error
+# dominance.c contains a -Wc++compat warning.
+dominance.o-warn = -Wno-error
 
 # All warnings have to be shut off in stage1 if the compiler used then
 # isn't gcc; configure determines that.  WARN_CFLAGS will be either
@@ -772,7 +774,8 @@ RTL_BASE_H = rtl.h rtl.def $(MACHMODE_H) reg-notes.def insn-notes.def \
 RTL_H = $(RTL_BASE_H) genrtl.h
 PARAMS_H = params.h params.def
 BUILTINS_DEF = builtins.def sync-builtins.def omp-builtins.def
-TREE_H = tree.h tree.def $(MACHMODE_H) tree-check.h $(BUILTINS_DEF) \
+TREE_H = tree.h all-tree.def tree.def c-common.def $(lang_tree_files) \
+          $(MACHMODE_H) tree-check.h $(BUILTINS_DEF) \
           input.h statistics.h vec.h treestruct.def $(HASHTAB_H) \
           double-int.h alias.h
 BASIC_BLOCK_H = basic-block.h bitmap.h sbitmap.h varray.h $(PARTITION_H) \
@@ -1173,6 +1176,7 @@ OBJS-common = \
 	tree-profile.o \
 	tree-scalar-evolution.o \
 	tree-sra.o \
+	tree-switch-conversion.o \
 	tree-ssa-address.o \
 	tree-ssa-alias.o \
 	tree-ssa-alias-warnings.o \
@@ -1375,6 +1379,19 @@ endif
 ifneq ($(xmake_file),)
 include $(xmake_file)
 endif
+
+# all-tree.def includes all the tree.def files.
+all-tree.def: s-alltree; @true
+s-alltree: Makefile
+	rm -f tmp-all-tree.def
+	echo '#include "tree.def"' > tmp-all-tree.def
+	echo 'END_OF_BASE_TREE_CODES' >> tmp-all-tree.def
+	echo '#include "c-common.def"' >> tmp-all-tree.def
+	ltf="$(lang_tree_files)"; for f in $$ltf; do \
+	  echo "#include \"$$f\""; \
+	done | sed 's|$(srcdir)/||' >> tmp-all-tree.def
+	$(SHELL) $(srcdir)/../move-if-change tmp-all-tree.def all-tree.def
+	$(STAMP) s-alltree
 
 #
 
@@ -1647,6 +1664,8 @@ libgcc.mvars: config.status Makefile $(LIB2ADD) $(LIB2ADD_ST) specs \
 	echo SHLIB_MAPFILES = '$(call srcdirify,$(SHLIB_MAPFILES))' >> tmp-libgcc.mvars
 	echo SHLIB_NM_FLAGS = '$(SHLIB_NM_FLAGS)' >> tmp-libgcc.mvars
 	echo LIBGCC2_CFLAGS = '$(LIBGCC2_CFLAGS)' >> tmp-libgcc.mvars
+	echo LIBGCC_SYNC = '$(LIBGCC_SYNC)' >> tmp-libgcc.mvars
+	echo LIBGCC_SYNC_CFLAGS = '$(LIBGCC_SYNC_CFLAGS)' >> tmp-libgcc.mvars
 	echo CRTSTUFF_CFLAGS = '$(CRTSTUFF_CFLAGS)' >> tmp-libgcc.mvars
 	echo CRTSTUFF_T_CFLAGS = '$(CRTSTUFF_T_CFLAGS)' >> tmp-libgcc.mvars
 	echo CRTSTUFF_T_CFLAGS_S = '$(CRTSTUFF_T_CFLAGS_S)' >> tmp-libgcc.mvars
@@ -1895,14 +1914,6 @@ gccspec.o: gccspec.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) $(GCC_H)
 
 cppspec.o: cppspec.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) $(GCC_H)
 
-gencheck.h : s-gencheck ; @true
-s-gencheck : Makefile
-	ltf="$(lang_tree_files)"; for f in $$ltf; do \
-	    echo "#include \"$$f\""; \
-	done | sed 's|$(srcdir)/||' > tmp-gencheck.h
-	$(SHELL) $(srcdir)/../move-if-change tmp-gencheck.h gencheck.h
-	$(STAMP) s-gencheck
-
 specs.h : s-specs ; @true
 s-specs : Makefile
 	lsf="$(lang_specs_files)"; for f in $$lsf; do \
@@ -1984,7 +1995,7 @@ langhooks.o : langhooks.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
    langhooks.h $(LANGHOOKS_DEF_H) $(FLAGS_H) $(GGC_H) $(DIAGNOSTIC_H) intl.h \
    $(TREE_GIMPLE_H)
 tree.o : tree.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) $(TREE_H) \
-   $(FLAGS_H) $(FUNCTION_H) $(PARAMS_H) \
+   all-tree.def $(FLAGS_H) $(FUNCTION_H) $(PARAMS_H) \
    toplev.h $(GGC_H) $(HASHTAB_H) $(TARGET_H) output.h $(TM_P_H) langhooks.h \
    $(REAL_H) gt-tree.h tree-iterator.h $(BASIC_BLOCK_H) $(TREE_FLOW_H) \
    $(OBSTACK_H) pointer-set.h fixed-value.h
@@ -2621,6 +2632,11 @@ tree-sra.o : tree-sra.c $(CONFIG_H) $(SYSTEM_H) $(TREE_H) $(RTL_H) \
     $(TIMEVAR_H) $(TM_H) coretypes.h $(TREE_DUMP_H) $(TREE_GIMPLE_H) \
     langhooks.h tree-pass.h $(FLAGS_H) $(EXPR_H) $(BASIC_BLOCK_H) \
     bitmap.h $(GGC_H) hard-reg-set.h $(OBSTACK_H) $(PARAMS_H) $(TARGET_H)
+tree-switch-conversion.o : tree-switch-conversion.c $(CONFIG_H) $(SYSTEM_H) \
+    $(TREE_H) $(TM_P_H) $(TREE_FLOW_H) $(DIAGNOSTIC_H) $(TREE_INLINE_H) \
+    $(TIMEVAR_H) $(TM_H) coretypes.h $(TREE_DUMP_H) $(TREE_GIMPLE_H) \
+    tree-pass.h $(FLAGS_H) $(EXPR_H) $(BASIC_BLOCK_H) output.h \
+    $(GGC_H) $(OBSTACK_H) $(PARAMS_H) $(CPPLIB_H) $(PARAMS_H)
 tree-complex.o : tree-complex.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TREE_H) \
     $(TM_H) $(RTL_H) $(REAL_H) $(FLAGS_H) $(TREE_FLOW_H) $(TREE_GIMPLE_H) \
     tree-iterator.h tree-pass.h tree-ssa-propagate.h $(DIAGNOSTIC_H)
@@ -2689,7 +2705,7 @@ cfgrtl.o : cfgrtl.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) $(RTL_H) \
    tree-pass.h $(DF_H)
 cfganal.o : cfganal.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) $(RTL_H) \
    $(BASIC_BLOCK_H) hard-reg-set.h insn-config.h $(RECOG_H) $(TM_P_H) \
-   $(TIMEVAR_H) $(OBSTACK_H) toplev.h
+   $(TIMEVAR_H) $(OBSTACK_H) toplev.h vecprim.h
 cfgbuild.o : cfgbuild.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) $(RTL_H) \
    $(FLAGS_H) $(BASIC_BLOCK_H) $(REGS_H) hard-reg-set.h output.h toplev.h \
    $(FUNCTION_H) except.h $(TIMEVAR_H) $(TREE_H)
@@ -3165,8 +3181,17 @@ GTFILES = $(CPP_ID_DATA_H) $(srcdir)/input.h $(srcdir)/coretypes.h \
   $(srcdir)/targhooks.c $(out_file) $(srcdir)/passes.c $(srcdir)/cgraphunit.c \
   @all_gtfiles@
 
-GTFILES_H = $(subst /,-, $(patsubst $(srcdir)/%,gt-%, $(patsubst %.c,%.h, \
-		  $(filter %.c, $(GTFILES)))))
+# Compute the list of GT header files from the corresponding C sources,
+# possibly nested within config or language subdirectories.  Match gengtype's
+# behavior in this respect: gt-LANG-file.h for "file" anywhere within a LANG
+# language subdir, gt-file.h otherwise (no subdir indication for config/
+# related sources).
+
+GTFILES_H = $(subst /,-, \
+	    $(shell echo $(patsubst $(srcdir)/%,gt-%, \
+			   $(patsubst %.c,%.h, \
+			     $(filter %.c, $(GTFILES)))) \
+			| sed -e "s|/[^ ]*/|/|g" -e "s|gt-config/|gt-|g"))
 
 GTFILES_LANG_H = $(patsubst [%], gtype-%.h, $(filter [%], $(GTFILES)))
 ALL_GTFILES_H := $(sort $(GTFILES_H) $(GTFILES_LANG_H))
@@ -3239,7 +3264,7 @@ build/genattrtab.o : genattrtab.c $(RTL_BASE_H) $(OBSTACK_H)		\
 build/genautomata.o : genautomata.c $(RTL_BASE_H) $(OBSTACK_H)		\
   $(BCONFIG_H) $(SYSTEM_H) coretypes.h $(GTM_H) errors.h vec.h		\
   $(HASHTAB_H) gensupport.h
-build/gencheck.o : gencheck.c gencheck.h tree.def $(BCONFIG_H) $(GTM_H)	\
+build/gencheck.o : gencheck.c tree.def $(BCONFIG_H) $(GTM_H)		\
 	$(SYSTEM_H) coretypes.h $(lang_tree_files)
 build/genchecksum.o : genchecksum.c $(BCONFIG_H) $(SYSTEM_H) $(MD5_H)
 build/gencodes.o : gencodes.c $(RTL_BASE_H) $(BCONFIG_H) $(SYSTEM_H)	\
@@ -3863,7 +3888,7 @@ mostlyclean: lang.mostlyclean
 	-rm -f mddeps.mk
 # Delete other built files.
 	-rm -f xsys-protos.hT
-	-rm -f specs.h gencheck.h options.c options.h
+	-rm -f specs.h options.c options.h
 # Delete the stamp and temporary files.
 	-rm -f s-* tmp-* stamp-* stmp-*
 	-rm -f */stamp-* */tmp-*

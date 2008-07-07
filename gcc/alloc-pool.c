@@ -81,13 +81,15 @@ static htab_t alloc_pool_hash;
 static hashval_t
 hash_descriptor (const void *p)
 {
-  const struct alloc_pool_descriptor *d = p;
+  const struct alloc_pool_descriptor *const d =
+    (const struct alloc_pool_descriptor * )p;
   return htab_hash_pointer (d->name);
 }
 static int
 eq_descriptor (const void *p1, const void *p2)
 {
-  const struct alloc_pool_descriptor *d = p1;
+  const struct alloc_pool_descriptor *const d =
+    (const struct alloc_pool_descriptor *) p1;
   return d->name == p2;
 }
 
@@ -106,7 +108,7 @@ alloc_pool_descriptor (const char *name)
 			      1);
   if (*slot)
     return *slot;
-  *slot = xcalloc (sizeof (**slot), 1);
+  *slot = XCNEW (struct alloc_pool_descriptor);
   (*slot)->name = name;
   return *slot;
 }
@@ -119,7 +121,7 @@ alloc_pool
 create_alloc_pool (const char *name, size_t size, size_t num)
 {
   alloc_pool pool;
-  size_t pool_size, header_size;
+  size_t header_size;
 #ifdef GATHER_STATISTICS
   struct alloc_pool_descriptor *desc;
 #endif
@@ -141,11 +143,8 @@ create_alloc_pool (const char *name, size_t size, size_t num)
   /* Um, we can't really allocate 0 elements per block.  */
   gcc_assert (num);
 
-  /* Find the size of the pool structure, and the name.  */
-  pool_size = sizeof (struct alloc_pool_def);
-
-  /* and allocate that much memory.  */
-  pool = xmalloc (pool_size);
+  /* Allocate memory for the pool structure.  */
+  pool = XNEW (struct alloc_pool_def);
 
   /* Now init the various pieces of our pool structure.  */
   pool->name = /*xstrdup (name)*/name;

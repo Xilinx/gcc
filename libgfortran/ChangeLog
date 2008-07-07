@@ -1,3 +1,24 @@
+2008-07-01  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/36676
+	* io/list_read.c (find_nml_name): Use eat_separator instead of eat_line.
+	
+2008-06-28  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/36657
+	* io/list_read.c (read_character): Check for '!' along with separators.
+	(find_nml_name): Likewise and eat the comment if found.
+
+2008-06-17  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* configure: Regenerate.
+
+2008-06-16  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/36546
+	* io/list_read.c (eat_separator): Add tab character to condition
+	for looping past whitespace.
+
 2008-06-14  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
 
 	PR fortran/36515

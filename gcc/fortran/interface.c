@@ -795,7 +795,7 @@ count_types_test (gfc_formal_arglist *f1, gfc_formal_arglist *f2)
 
   /* Build an array of integers that gives the same integer to
      arguments of the same type/rank.  */
-  arg = gfc_getmem (n1 * sizeof (arginfo));
+  arg = XCNEWVEC (arginfo, n1);
 
   f = f1;
   for (i = 0; i < n1; i++, f = f->next)
@@ -1959,6 +1959,17 @@ compare_actual_formal (gfc_actual_arglist **ap, gfc_formal_arglist *formal,
 	  return  0;
 	}
 
+      /* Satisfy 12.4.1.3 by ensuring that a procedure pointer actual argument
+	 is provided for a procedure pointer formal argument.  */
+      if (f->sym->attr.proc_pointer
+	  && !a->expr->symtree->n.sym->attr.proc_pointer)
+	{
+	  if (where)
+	    gfc_error ("Expected a procedure pointer for argument '%s' at %L",
+		       f->sym->name, &a->expr->where);
+	  return 0;
+	}
+
       /* Satisfy 12.4.1.2 by ensuring that a procedure actual argument is
 	 provided for a procedure formal argument.  */
       if (a->expr->ts.type != BT_PROCEDURE
@@ -2379,7 +2390,7 @@ check_intents (gfc_formal_arglist *f, gfc_actual_arglist *a)
 	      return FAILURE;
 	    }
 
-	  if (a->expr->symtree->n.sym->attr.pointer)
+	  if (f->sym->attr.pointer)
 	    {
 	      gfc_error ("Procedure argument at %L is local to a PURE "
 			 "procedure and has the POINTER attribute",

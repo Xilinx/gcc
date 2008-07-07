@@ -845,8 +845,7 @@ expand_builtin_longjmp (rtx buf_addr, rtx value)
 
       if (JUMP_P (insn))
 	{
-	  REG_NOTES (insn) = alloc_EXPR_LIST (REG_NON_LOCAL_GOTO, const0_rtx,
-					      REG_NOTES (insn));
+	  add_reg_note (insn, REG_NON_LOCAL_GOTO, const0_rtx);
 	  break;
 	}
       else if (CALL_P (insn))
@@ -873,6 +872,9 @@ expand_builtin_nonlocal_goto (tree exp)
   r_label = convert_memory_address (Pmode, r_label);
   r_save_area = expand_normal (t_save_area);
   r_save_area = convert_memory_address (Pmode, r_save_area);
+  /* Copy the address of the save location to a register just in case it was based
+    on the frame pointer.   */
+  r_save_area = copy_to_reg (r_save_area);
   r_fp = gen_rtx_MEM (Pmode, r_save_area);
   r_sp = gen_rtx_MEM (STACK_SAVEAREA_MODE (SAVE_NONLOCAL),
 		      plus_constant (r_save_area, GET_MODE_SIZE (Pmode)));
@@ -926,8 +928,7 @@ expand_builtin_nonlocal_goto (tree exp)
     {
       if (JUMP_P (insn))
 	{
-	  REG_NOTES (insn) = alloc_EXPR_LIST (REG_NON_LOCAL_GOTO,
-					      const0_rtx, REG_NOTES (insn));
+	  add_reg_note (insn, REG_NON_LOCAL_GOTO, const0_rtx);
 	  break;
 	}
       else if (CALL_P (insn))
@@ -1289,7 +1290,7 @@ result_vector (int savep, rtx result)
   int regno, size, align, nelts;
   enum machine_mode mode;
   rtx reg, mem;
-  rtx *savevec = alloca (FIRST_PSEUDO_REGISTER * sizeof (rtx));
+  rtx *savevec = XALLOCAVEC (rtx, FIRST_PSEUDO_REGISTER);
 
   size = nelts = 0;
   for (regno = 0; regno < FIRST_PSEUDO_REGISTER; regno++)
@@ -1945,48 +1946,7 @@ expand_builtin_mathfn (tree exp, rtx target, rtx subtarget)
 
   before_call = get_last_insn ();
 
-  target = expand_call (exp, target, target == const0_rtx);
-
-  /* If this is a sqrt operation and we don't care about errno, try to
-     attach a REG_EQUAL note with a SQRT rtx to the emitted libcall.
-     This allows the semantics of the libcall to be visible to the RTL
-     optimizers.  */
-  if (builtin_optab == sqrt_optab && !errno_set)
-    {
-      /* Search backwards through the insns emitted by expand_call looking
-	 for the instruction with the REG_RETVAL note.  */
-      rtx last = get_last_insn ();
-      while (last != before_call)
-	{
-	  if (find_reg_note (last, REG_RETVAL, NULL))
-	    {
-	      rtx note = find_reg_note (last, REG_EQUAL, NULL);
-	      /* Check that the REQ_EQUAL note is an EXPR_LIST with
-		 two elements, i.e. symbol_ref(sqrt) and the operand.  */
-	      if (note
-		  && GET_CODE (note) == EXPR_LIST
-		  && GET_CODE (XEXP (note, 0)) == EXPR_LIST
-		  && XEXP (XEXP (note, 0), 1) != NULL_RTX
-		  && XEXP (XEXP (XEXP (note, 0), 1), 1) == NULL_RTX)
-		{
-		  rtx operand = XEXP (XEXP (XEXP (note, 0), 1), 0);
-		  /* Check operand is a register with expected mode.  */
-		  if (operand
-		      && REG_P (operand)
-		      && GET_MODE (operand) == mode)
-		    {
-		      /* Replace the REG_EQUAL note with a SQRT rtx.  */
-		      rtx equiv = gen_rtx_SQRT (mode, operand);
-		      set_unique_reg_note (last, REG_EQUAL, equiv);
-		    }
-		}
-	      break;
-	    }
-	  last = PREV_INSN (last);
-	}
-    }
-
-  return target;
+  return expand_call (exp, target, target == const0_rtx);
 }
 
 /* Expand a call to the builtin binary math functions (pow and atan2).
@@ -3365,11 +3325,13 @@ expand_builtin_memcpy (tree exp, rtx target, enum machine_mode mode)
 	  && GET_CODE (len_rtx) == CONST_INT
 	  && (unsigned HOST_WIDE_INT) INTVAL (len_rtx) <= strlen (src_str) + 1
 	  && can_store_by_pieces (INTVAL (len_rtx), builtin_memcpy_read_str,
-				  (void *) src_str, dest_align, false))
+				  CONST_CAST (char *, src_str),
+				  dest_align, false))
 	{
 	  dest_mem = store_by_pieces (dest_mem, INTVAL (len_rtx),
 				      builtin_memcpy_read_str,
-				      (void *) src_str, dest_align, false, 0);
+				      CONST_CAST (char *, src_str),
+				      dest_align, false, 0);
 	  dest_mem = force_operand (XEXP (dest_mem, 0), NULL_RTX);
 	  dest_mem = convert_memory_address (ptr_mode, dest_mem);
 	  return dest_mem;
@@ -3478,14 +3440,15 @@ expand_builtin_mempcpy_args (tree dest, tree src, tree len, tree type,
 	  && GET_CODE (len_rtx) == CONST_INT
 	  && (unsigned HOST_WIDE_INT) INTVAL (len_rtx) <= strlen (src_str) + 1
 	  && can_store_by_pieces (INTVAL (len_rtx), builtin_memcpy_read_str,
-				  (void *) src_str, dest_align, false))
+				  CONST_CAST (char *, src_str),
+				  dest_align, false))
 	{
 	  dest_mem = get_memory_rtx (dest, len);
 	  set_mem_align (dest_mem, dest_align);
 	  dest_mem = store_by_pieces (dest_mem, INTVAL (len_rtx),
 				      builtin_memcpy_read_str,
-				      (void *) src_str, dest_align,
-				      false, endp);
+				      CONST_CAST (char *, src_str),
+				      dest_align, false, endp);
 	  dest_mem = force_operand (XEXP (dest_mem, 0), NULL_RTX);
 	  dest_mem = convert_memory_address (ptr_mode, dest_mem);
 	  return dest_mem;
@@ -3827,13 +3790,14 @@ expand_builtin_strncpy (tree exp, rtx target, enum machine_mode mode)
 	  if (!p || dest_align == 0 || !host_integerp (len, 1)
 	      || !can_store_by_pieces (tree_low_cst (len, 1),
 				       builtin_strncpy_read_str,
-				       (void *) p, dest_align, false))
+				       CONST_CAST (char *, p),
+				       dest_align, false))
 	    return NULL_RTX;
 
 	  dest_mem = get_memory_rtx (dest, len);
 	  store_by_pieces (dest_mem, tree_low_cst (len, 1),
 			   builtin_strncpy_read_str,
-			   (void *) p, dest_align, false, 0);
+			   CONST_CAST (char *, p), dest_align, false, 0);
 	  dest_mem = force_operand (XEXP (dest_mem, 0), NULL_RTX);
 	  dest_mem = convert_memory_address (ptr_mode, dest_mem);
 	  return dest_mem;
@@ -3851,7 +3815,7 @@ builtin_memset_read_str (void *data, HOST_WIDE_INT offset ATTRIBUTE_UNUSED,
 			 enum machine_mode mode)
 {
   const char *c = (const char *) data;
-  char *p = alloca (GET_MODE_SIZE (mode));
+  char *p = XALLOCAVEC (char, GET_MODE_SIZE (mode));
 
   memset (p, *c, GET_MODE_SIZE (mode));
 
@@ -3875,7 +3839,7 @@ builtin_memset_gen_str (void *data, HOST_WIDE_INT offset ATTRIBUTE_UNUSED,
   if (size == 1)
     return (rtx) data;
 
-  p = alloca (size);
+  p = XALLOCAVEC (char, size);
   memset (p, 1, size);
   coeff = c_readstr (p, mode);
 
@@ -4659,18 +4623,22 @@ expand_builtin_next_arg (void)
 static tree
 stabilize_va_list (tree valist, int needs_lvalue)
 {
-  if (TREE_CODE (va_list_type_node) == ARRAY_TYPE)
+  tree vatype = targetm.canonical_va_list_type (TREE_TYPE (valist));
+
+  gcc_assert (vatype != NULL_TREE);
+
+  if (TREE_CODE (vatype) == ARRAY_TYPE)
     {
       if (TREE_SIDE_EFFECTS (valist))
 	valist = save_expr (valist);
 
       /* For this case, the backends will be expecting a pointer to
-	 TREE_TYPE (va_list_type_node), but it's possible we've
-	 actually been given an array (an actual va_list_type_node).
+	 vatype, but it's possible we've actually been given an array
+	 (an actual TARGET_CANONICAL_VA_LIST_TYPE (valist)).
 	 So fix it.  */
       if (TREE_CODE (TREE_TYPE (valist)) == ARRAY_TYPE)
 	{
-	  tree p1 = build_pointer_type (TREE_TYPE (va_list_type_node));
+	  tree p1 = build_pointer_type (TREE_TYPE (vatype));
 	  valist = build_fold_addr_expr_with_type (valist, p1);
 	}
     }
@@ -4683,7 +4651,7 @@ stabilize_va_list (tree valist, int needs_lvalue)
 	  if (! TREE_SIDE_EFFECTS (valist))
 	    return valist;
 
-	  pt = build_pointer_type (va_list_type_node);
+	  pt = build_pointer_type (vatype);
 	  valist = fold_build1 (ADDR_EXPR, pt, valist);
 	  TREE_SIDE_EFFECTS (valist) = 1;
 	}
@@ -4702,6 +4670,47 @@ tree
 std_build_builtin_va_list (void)
 {
   return ptr_type_node;
+}
+
+/* The "standard" abi va_list is va_list_type_node.  */
+
+tree
+std_fn_abi_va_list (tree fndecl ATTRIBUTE_UNUSED)
+{
+  return va_list_type_node;
+}
+
+/* The "standard" type of va_list is va_list_type_node.  */
+
+tree
+std_canonical_va_list_type (tree type)
+{
+  tree wtype, htype;
+
+  if (INDIRECT_REF_P (type))
+    type = TREE_TYPE (type);
+  else if (POINTER_TYPE_P (type) && POINTER_TYPE_P (TREE_TYPE(type)))
+    type = TREE_TYPE (type);
+
+  wtype = va_list_type_node;
+  htype = type;
+  if (TREE_CODE (wtype) == ARRAY_TYPE)
+    {
+      /* If va_list is an array type, the argument may have decayed
+	 to a pointer type, e.g. by being passed to another function.
+	 In that case, unwrap both types so that we can compare the
+	 underlying records.  */
+      if (TREE_CODE (htype) == ARRAY_TYPE
+	  || POINTER_TYPE_P (htype))
+	{
+	  wtype = TREE_TYPE (wtype);
+	  htype = TREE_TYPE (htype);
+	}
+    }
+  if (TYPE_MAIN_VARIANT (wtype) == TYPE_MAIN_VARIANT (htype))
+    return va_list_type_node;
+
+  return NULL_TREE;
 }
 
 /* The "standard" implementation of va_start: just assign `nextarg' to
@@ -4859,33 +4868,18 @@ dummy_object (tree type)
 enum gimplify_status
 gimplify_va_arg_expr (tree *expr_p, tree *pre_p, tree *post_p)
 {
-  tree promoted_type, want_va_type, have_va_type;
+  tree promoted_type, have_va_type;
   tree valist = TREE_OPERAND (*expr_p, 0);
   tree type = TREE_TYPE (*expr_p);
   tree t;
 
   /* Verify that valist is of the proper type.  */
-  want_va_type = va_list_type_node;
   have_va_type = TREE_TYPE (valist);
-
   if (have_va_type == error_mark_node)
     return GS_ERROR;
+  have_va_type = targetm.canonical_va_list_type (have_va_type);
 
-  if (TREE_CODE (want_va_type) == ARRAY_TYPE)
-    {
-      /* If va_list is an array type, the argument may have decayed
-	 to a pointer type, e.g. by being passed to another function.
-	 In that case, unwrap both types so that we can compare the
-	 underlying records.  */
-      if (TREE_CODE (have_va_type) == ARRAY_TYPE
-	  || POINTER_TYPE_P (have_va_type))
-	{
-	  want_va_type = TREE_TYPE (want_va_type);
-	  have_va_type = TREE_TYPE (have_va_type);
-	}
-    }
-
-  if (TYPE_MAIN_VARIANT (want_va_type) != TYPE_MAIN_VARIANT (have_va_type))
+  if (have_va_type == NULL_TREE)
     {
       error ("first argument to %<va_arg%> not of type %<va_list%>");
       return GS_ERROR;
@@ -4893,7 +4887,7 @@ gimplify_va_arg_expr (tree *expr_p, tree *pre_p, tree *post_p)
 
   /* Generate a diagnostic for requesting data of a type that cannot
      be passed through `...' due to type promotion at the call site.  */
-  else if ((promoted_type = lang_hooks.types.type_promotes_to (type))
+  if ((promoted_type = lang_hooks.types.type_promotes_to (type))
 	   != type)
     {
       static bool gave_help;
@@ -4925,15 +4919,15 @@ gimplify_va_arg_expr (tree *expr_p, tree *pre_p, tree *post_p)
     {
       /* Make it easier for the backends by protecting the valist argument
 	 from multiple evaluations.  */
-      if (TREE_CODE (va_list_type_node) == ARRAY_TYPE)
+      if (TREE_CODE (have_va_type) == ARRAY_TYPE)
 	{
 	  /* For this case, the backends will be expecting a pointer to
-	     TREE_TYPE (va_list_type_node), but it's possible we've
-	     actually been given an array (an actual va_list_type_node).
+	     TREE_TYPE (abi), but it's possible we've
+	     actually been given an array (an actual TARGET_FN_ABI_VA_LIST).
 	     So fix it.  */
 	  if (TREE_CODE (TREE_TYPE (valist)) == ARRAY_TYPE)
 	    {
-	      tree p1 = build_pointer_type (TREE_TYPE (va_list_type_node));
+	      tree p1 = build_pointer_type (TREE_TYPE (have_va_type));
 	      valist = build_fold_addr_expr_with_type (valist, p1);
 	    }
 	  gimplify_expr (&valist, pre_p, post_p, is_gimple_val, fb_rvalue);
@@ -4981,9 +4975,11 @@ expand_builtin_va_copy (tree exp)
   dst = stabilize_va_list (dst, 1);
   src = stabilize_va_list (src, 0);
 
-  if (TREE_CODE (va_list_type_node) != ARRAY_TYPE)
+  gcc_assert (cfun != NULL && cfun->decl != NULL_TREE);
+
+  if (TREE_CODE (targetm.fn_abi_va_list (cfun->decl)) != ARRAY_TYPE)
     {
-      t = build2 (MODIFY_EXPR, va_list_type_node, dst, src);
+      t = build2 (MODIFY_EXPR, targetm.fn_abi_va_list (cfun->decl), dst, src);
       TREE_SIDE_EFFECTS (t) = 1;
       expand_expr (t, const0_rtx, VOIDmode, EXPAND_NORMAL);
     }
@@ -4994,8 +4990,8 @@ expand_builtin_va_copy (tree exp)
       /* Evaluate to pointers.  */
       dstb = expand_expr (dst, NULL_RTX, Pmode, EXPAND_NORMAL);
       srcb = expand_expr (src, NULL_RTX, Pmode, EXPAND_NORMAL);
-      size = expand_expr (TYPE_SIZE_UNIT (va_list_type_node), NULL_RTX,
-			  VOIDmode, EXPAND_NORMAL);
+      size = expand_expr (TYPE_SIZE_UNIT (targetm.fn_abi_va_list (cfun->decl)),
+      		  NULL_RTX, VOIDmode, EXPAND_NORMAL);
 
       dstb = convert_memory_address (Pmode, dstb);
       srcb = convert_memory_address (Pmode, srcb);
@@ -5003,10 +4999,10 @@ expand_builtin_va_copy (tree exp)
       /* "Dereference" to BLKmode memories.  */
       dstb = gen_rtx_MEM (BLKmode, dstb);
       set_mem_alias_set (dstb, get_alias_set (TREE_TYPE (TREE_TYPE (dst))));
-      set_mem_align (dstb, TYPE_ALIGN (va_list_type_node));
+      set_mem_align (dstb, TYPE_ALIGN (targetm.fn_abi_va_list (cfun->decl)));
       srcb = gen_rtx_MEM (BLKmode, srcb);
       set_mem_alias_set (srcb, get_alias_set (TREE_TYPE (TREE_TYPE (src))));
-      set_mem_align (srcb, TYPE_ALIGN (va_list_type_node));
+      set_mem_align (srcb, TYPE_ALIGN (targetm.fn_abi_va_list (cfun->decl)));
 
       /* Copy.  */
       emit_block_move (dstb, srcb, size, BLOCK_OP_NORMAL);
@@ -5349,7 +5345,7 @@ expand_builtin_printf (tree exp, rtx target, enum machine_mode mode,
 	    {
 	      /* Create a NUL-terminated string that's one char shorter
 		 than the original, stripping off the trailing '\n'.  */
-	      char *newstr = alloca (len);
+	      char *newstr = XALLOCAVEC (char, len);
 	      memcpy (newstr, fmt_str, len - 1);
 	      newstr[len - 1] = 0;
 	      arg = build_string_literal (len, newstr);
@@ -6032,6 +6028,12 @@ expand_builtin_synchronize (void)
       return;
     }
 #endif
+
+  if (synchronize_libfunc != NULL_RTX)
+    {
+      emit_library_call (synchronize_libfunc, LCT_NORMAL, VOIDmode, 0);
+      return;
+    }
 
   /* If no explicit memory barrier instruction is available, create an
      empty asm stmt with a memory clobber.  */
@@ -8940,7 +8942,7 @@ fold_builtin_memchr (tree arg1, tree arg2, tree len, tree type)
 	  if (target_char_cast (arg2, &c))
 	    return NULL_TREE;
 
-	  r = memchr (p1, c, tree_low_cst (len, 1));
+	  r = (char *) memchr (p1, c, tree_low_cst (len, 1));
 
 	  if (r == NULL)
 	    return build_int_cst (TREE_TYPE (arg1), 0);
@@ -10790,7 +10792,7 @@ rewrite_call_expr (tree exp, int skip, tree fndecl, int n, ...)
       int i, j;
       va_list ap;
 
-      buffer = alloca (nargs * sizeof (tree));
+      buffer = XALLOCAVEC (tree, nargs);
       va_start (ap, n);
       for (i = 0; i < n; i++)
 	buffer[i] = va_arg (ap, tree);
@@ -12507,7 +12509,7 @@ fold_builtin_printf (tree fndecl, tree fmt, tree arg, bool ignore,
 	    {
 	      /* Create a NUL-terminated string that's one char shorter
 		 than the original, stripping off the trailing '\n'.  */
-	      char *newstr = alloca (len);
+	      char *newstr = XALLOCAVEC (char, len);
 	      memcpy (newstr, str, len - 1);
 	      newstr[len - 1] = 0;
 
