@@ -88,6 +88,17 @@
    :fields (prim_formals prim_type prim_expansion)
    :predef CLASS_PRIMITIVE)
  
+;; class of C iterators
+(defclass class_citerator
+  :super class_named
+  :fields (citer_start_formals		;the formal start arguments
+	   citer_state			;the symbol representing the iterator state
+	   citer_body_formals 		;the formal body arguments
+	   citer_expbefore		;expansion before body
+	   citer_expafter		;expansion after body
+	   )
+  :predef CLASS_CITERATOR)
+
 ;; class of located stuff
 (defclass class_located
   :super class_proped
@@ -248,6 +259,14 @@
   :fields (pbind_primdef		;the source defprimitive
 	   pbind_primitive		;the primitive proper
 	   pbind_primdata		;the primitive data as compiled
+))
+
+;; citerator binding
+(defclass class_citerator_binding
+  :super class_fixed_binding
+  :fields (cbind_citerdef		;the source defciterator
+	   cbind_citerator		;the citerator proper
+	   cbind_citerdata		;the citerator data as compiled
 ))
 
 
@@ -3040,6 +3059,8 @@
 ;;;;;; export the above classes
 (export_class ;;in alphabetical order, one per line, for convenience
  class_any_binding
+ class_citerator
+ class_citerator_binding
  class_class
  class_class_binding
  class_clonedsymbol
@@ -3052,8 +3073,8 @@
  class_exported_binding
  class_field
  class_field_binding
- class_fixed_binding
  class_finalization
+ class_fixed_binding
  class_formal_binding
  class_function_binding
  class_genercontext

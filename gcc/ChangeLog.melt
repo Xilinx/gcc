@@ -1,3 +1,29 @@
+2008-07-07  Basile Starynkevitch  <basile@starynkevitch.net>
+	[adding CITERATORs]
+
+	* basilys.h: added BGLOB_CLASS_CITERATOR
+
+	* melt/warmelt-first.bysl: added class_citerator &
+	class_citerator_binding
+
+	* melt/warmelt-macro.bysl: adding defciterator & better error
+	messsages for defprimitive
+
+	* melt/warmelt-normal.bysl: added CLASS_CITERATOR predef name
+
+	* melt/ana-base.bysl: adding basilys_earlyopt_gccpass &
+	basilys_lateopt_gccpass
+
+	* warmelt-first-0.c: regenerated.
+
+	* warmelt-macro-0.c: regenerated.
+
+	* warmelt-normal-0.c: regenerated.
+
+	* warmelt-genobj-0.c: regenerated.
+
+	* warmelt-outobj-0.c: regenerated.
+
 2008-07-03  Basile Starynkevitch  <basile@starynkevitch.net>
 	* basilys.h: added  FSYSDAT_EXIT_FINALIZER
 

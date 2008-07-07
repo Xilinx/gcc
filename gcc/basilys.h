@@ -1928,8 +1928,9 @@ enum basilys_globalix_en
   /************************* wired predefined */
   /****@@@ MAYBE SHOULD GO IN A SEPARATE FILE??? ***/
   /***
-   * don't forget to fill these objects in warm-basilys.bysl file
-   * and to define the appropriate global_* primitives near create_normcontext function
+   * don't forget to fill these objects in warmelt*.bysl file and to
+   * define the appropriate global_* primitives near
+   * create_normcontext function in warmelt-normal.bysl
    * e.g. (defprimitive global_DISCR_NULLRECV ....)
    ***/
   /* the pseudo discriminant using for sending to null pointers */
@@ -2019,6 +2020,8 @@ enum basilys_globalix_en
   BGLOB_CLASS_CONTAINER,
   /* the class of basilys GCC compiler passes */
   BGLOB_CLASS_GCC_PASS,
+  /* the class of C iterators */
+  BGLOB_CLASS_CITERATOR,
   /**************************** placeholder for last wired */
   BGLOB__LASTWIRED,
   BGLOB___SPARE1,

@@ -62,6 +62,15 @@
 	   sprim_args			;the arguments tuple
 	   ))
 
+;;; source citerator invocation
+(defclass class_src_citeration
+  :super class_src
+  :fields (sciter_oper			;the citerator operation
+	   sciter_args			;the citerator input tuple
+	   sciter_varbind		;tuple of formal local var bindings
+	   sciter_body			;tuple for body
+	   ))
+
 ;;; source progn
 (defclass class_src_progn
   :super class_src
@@ -140,6 +149,12 @@
   :super class_srcdeformal
   :fields (sprim_type			;result type of primitive
 	   sprim_expansion		;primitive expansion
+))
+
+;;; define a citerator
+(defclass class_src_defciterator
+  :super class_srcdeformal		;the sformal_args is the start arguments
+  :fields (sciterdef_citerator		;the citerator
 ))
 
 ;; define an object (common to instance, class, selector)
@@ -722,7 +737,7 @@
 	 (symb (pair_head curpair))
 	 )
     (if (is_not_a symb class_symbol)
-	(error_plain loc "missing symbol for defprimitive"))
+	(error_plain loc "missing symbol for (DEFPRIMITIVE symb args type expansion...)"))
     (setq curpair (pair_tail curpair))
     ;; parse the formal arguments
     (let ( (btup (lambda_arg_bindings (pair_head curpair) (the_null))) )
@@ -730,12 +745,12 @@
       ;; parse the type keyword
       (let ( (typkw  (pair_head curpair)) )
 	(if (is_not_a typkw class_keyword)
-	    (error_plain loc "missing type keyword for defprimitive"))
+	    (error_plain loc "missing type keyword for (DEFPRIMITIVE symb args type expansion...)"))
 	(let ( (cty (unsafe_get_field :symb_data typkw)) )
 	  (if (is_not_a cty class_ctype)
 	      (progn
 		(debug_msg typkw "mexpand_defprimitive bad cty")
-		(error_strv loc "bad type keyword for defprimitive"
+		(error_strv loc "bad type keyword for "
 			    (unsafe_get_field :named_name typkw))
 		(return (the_null))
 		))
@@ -797,6 +812,90 @@
 (install_initial_macro 'defprimitive mexpand_defprimitive)
 (export_macro defprimitive mexpand_defprimitive)
 
+
+#|
+;; the defciterator expander
+;;(DEFCITERATOR symb startformals statesymb varformals expbefore expafter)
+(defun mexpand_defciterator (sexpr env mexpander)
+  (debug_msg sexpr "mexpand_defciterator sexpr")
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check env" (is_a env class_environment))
+  (let ( (cont (unsafe_get_field :sexp_contents sexpr))
+	 (loc  (unsafe_get_field :loca_location sexpr))
+	 (curpair (pair_tail (list_first cont)))
+	 (symb (pair_head curpair))
+	 ;; the following variables are set later by setq
+	 (bstartup ())		     ;the start formals tuple
+	 (statsymb ())		     ;the state symbol
+	 (blocvtup ())		     ;the local var formals tuple
+	 (expbef ())		     ;the tuple expansion before tuple
+	 (expaft ())		     ;the tuple expansion after tuple
+	 )
+    (if (is_not_a symb class_symbol)
+	(progn
+	  (error_plain loc "missing symbol for (DEFCITERATOR symb startformals statesymb locformals expbefore expafter)")
+	  (return)
+	  ))
+    (setq curpair (pair_tail curpair))
+    ;; parse the formal start arguments
+    (setq bstartup (lambda_arg_bindings (pair_head curpair) ()))
+    (setq curpair (pair_tail curpair))
+    (setq statsymb (pair_head curpair))
+    (if (is_not_a statsymb class_symbol)
+	(progn
+	  (error_plain loc "missing statsymb for (DEFCITERATOR symb startformals statesymb locformals expbefore expafter)")
+	  (return)))
+    (setq curpair (pair_tail curpair))
+    (setq blocvtup  (lambda_arg_bindings (pair_head curpair) ()))
+    (setq curpair (pair_tail curpair))
+    ;; parse the before expansion
+    (let ( (sexpbef (pair_head curpair)) )
+      (if (is_not_a sexpbef class_sexpr)
+	  (progn
+	    (error_plain loc "missing before expansion for  (DEFCITERATOR symb startformals statesymb locformals expbefore expafter)")
+	    (return)))
+      (setq expbef 
+	    (expand_pairlist_as_tuple (list_first (unsafe_get_field :sexp_contents sexpbef)) env mexpander))
+      )
+    (setq curpair (pair_tail curpair))
+    ;; parse the after expansion
+    (let ( (sexpaft (pair_head curpair)) )
+      (if (is_not_a sexpaft class_sexpr)
+	  (progn
+	    (error_plain loc "missing after expansion for  (DEFCITERATOR symb startformals statesymb locformals expbefore expafter)")
+	    (return)))
+      (setq expaft 
+	    (expand_pairlist_as_tuple (list_first (unsafe_get_field :sexp_contents sexpaft)) env mexpander))
+      )
+    ;; make the citerator and binding
+    (let ( (citer (make_instance class_citerator
+				 :named_name (unsafe_get_field :named_name symb)
+				 :citer_start_formals bstartup
+				 :citer_state statsymb
+				 :citer_body_formals blocvtup
+				 :citer_expbefore expbef
+				 :citer_expafter expaft
+				 ))
+	   (citbind (make_instance class_citerator_binding
+				   :binder symb
+				   ;; :cbind_citerdef bound later
+				   :cbind_citerator citer
+				   :cbind_citerdata ()
+				   ))
+	   (srcit (make_instance class_src_defciterator
+				 :src_loc loc
+				 :sdef_name symb
+				 :sformal_args bstartup
+				 :sciterdef_citerator citer))
+	   )
+      (unsafe_put_fields citbind :cbind_citerdef srcit)
+      (put_env env citbind)
+      (debug_msg citer "parsed citerator citer")
+      (return srcit)
+      )))
+(install_initial_macro 'defciterator mexpand_defciterator)
+(export_macro defciterator mexpand_defciterator)
+|#
 
 ;;;;;;;;;;;;;;;;;; the defun expander
 (defun mexpand_defun (sexpr env mexpander)
@@ -2501,10 +2600,12 @@
 
 (export_class  ;classes for source representations, alphabetical order
  class_src_apply
+ class_src_citeration
  class_src_comment
  class_src_compilewarning
  class_src_cppif
  class_src_current_module_environment_container
+ class_src_defciterator
  class_src_defclass
  class_src_definstance
  class_src_defobjcommon

@@ -78,13 +78,46 @@
 (install_gcc_pass basilys_ipa_gccpass)
 
 
+;;;;;;;;;;;;;;;;;; early optimisation pass
+;; code in SSA
+(definstance basilys_earlyopt_gccpass
+  class_gcc_pass
+  :named_name (make_stringconst discr_string "basilys-earlyopt")
+  :gccpass_data ()
+)
+(install_gcc_pass basilys_earlyopt_gccpass)
 
+;;;;;;;;;;;;;;;;;; late optimisation pass
+;; code in SSA, soon to be removed
+(definstance basilys_lateopt_gccpass class_gcc_pass
+  :named_name (make_stringconst discr_string "basilys-lateopt")
+  :gccpass_data ()
+)
+(install_gcc_pass basilys_lateopt_gccpass)
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; iterators needed in our analysis
+
+;;; an iterator is simply something which translates to a for loop in
+;;; C. It usually binds some variables (locate to the iterated body)
+;;; to some C stuff.
+
+;;; Be careful to not declare any iterator related stuff in
+;;; warmelt*.bysl file, because we want to be able to bootstrap
+;;; Basilys/MELT (ie to generate the warmelt*.c files) even when GCC
+;;; internal representation changes a little.
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (export_values
  fetch_gdbmstate
  fetch_gdbmstate_constr
  put_gdbmstate
  put_gdbmstate_constr
  install_gcc_pass
+ basilys_earlyopt_gccpass
+ basilys_lateopt_gccpass
  basilys_lowering_gccpass
  basilys_ipa_gccpass
 )
