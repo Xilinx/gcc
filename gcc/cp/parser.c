@@ -6756,10 +6756,9 @@ cp_parser_lambda_class_definition (cp_parser* parser,
   }
 
   /* For each capture, we need to
-       1. Create member
-       2. Add to ctor_param_list
-       3. Create mem_initializer, add to list
-   */
+       1. Add to ctor_param_list
+       2. Create member
+       3. Add to mem_initializer_list (later) */
   {
     cp_parameter_declarator** ctor_param_list_tail = &ctor_param_list;
     tree capture = NULL_TREE;
