@@ -1771,7 +1771,9 @@ make_anon_name (void)
 }
 
 /* This code is practically identical to that for creating
-   anonymous names, but is just used for lambdas instead. */
+   anonymous names, but is just used for lambdas instead.  This is necessary
+   because anonymous names are recognized and cannot be passed to template
+   functions.  */
 
 static GTY(()) int lambda_cnt = 0;
 
