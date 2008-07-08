@@ -1716,6 +1716,10 @@ unsigned int ix86_preferred_stack_boundary;
 /* Values 1-5: see jump.c */
 int ix86_branch_cost;
 
+/* Calling abi specific va_list type nodes.  */
+static GTY(()) tree sysv_va_list_type_node;
+static GTY(()) tree ms_va_list_type_node;
+
 /* Variables which are this size or smaller are put in the data/bss
    or ldata/lbss sections.  */
 
@@ -2774,9 +2778,8 @@ override_options (void)
     set_param_value ("l2-cache-size", ix86_cost->l2_cache_size);
 
   /* If using typedef char *va_list, signal that __builtin_va_start (&ap, 0)
-     can be optimized to ap = __builtin_next_arg (0).
-     For abi switching it should be corrected.  */
-  if (!TARGET_64BIT || DEFAULT_ABI == MS_ABI)
+     can be optimized to ap = __builtin_next_arg (0).  */
+  if (!TARGET_64BIT)
     targetm.expand_builtin_va_start = NULL;
 
   if (TARGET_64BIT)
@@ -3201,7 +3204,7 @@ ix86_handle_cconv_attribute (tree *node, tree name,
   if (TARGET_64BIT)
     {
       /* Do not warn when emulating the MS ABI.  */
-      if (TREE_CODE (*node) != FUNCTION_TYPE || !ix86_function_type_abi (*node))
+      if (TREE_CODE (*node) != FUNCTION_TYPE || ix86_function_type_abi (*node)!=MS_ABI)
 	warning (OPT_Wattributes, "%qs attribute ignored",
 	         IDENTIFIER_POINTER (name));
       *no_add_attrs = true;
@@ -3603,9 +3606,6 @@ ix86_function_type_abi (const_tree fntype)
         abi = lookup_attribute ("ms_abi", TYPE_ATTRIBUTES (fntype)) ? MS_ABI : SYSV_ABI;
       else
         abi = lookup_attribute ("sysv_abi", TYPE_ATTRIBUTES (fntype)) ? SYSV_ABI : MS_ABI;
-
-      if (DEFAULT_ABI == MS_ABI && abi == SYSV_ABI)
-        sorry ("using sysv calling convention on target w64 is not supported");
 
       return abi;
     }
@@ -4746,7 +4746,8 @@ contains_aligned_value_p (tree type)
   enum machine_mode mode = TYPE_MODE (type);
   if (((TARGET_SSE && SSE_REG_MODE_P (mode))
        || mode == TDmode
-       || mode == TFmode)
+       || mode == TFmode
+       || mode == TCmode)
       && (!TYPE_USER_ALIGN (type) || TYPE_ALIGN (type) > 128))
     return true;
   if (TYPE_ALIGN (type) < 128)
@@ -5173,13 +5174,16 @@ ix86_struct_value_rtx (tree type, int incoming ATTRIBUTE_UNUSED)
 
 /* Create the va_list data type.  */
 
+/* Returns the calling convention specific va_list date type.
+   The argument ABI can be DEFAULT_ABI, MS_ABI, or SYSV_ABI.  */
+
 static tree
-ix86_build_builtin_va_list (void)
+ix86_build_builtin_va_list_abi (enum calling_abi abi)
 {
   tree f_gpr, f_fpr, f_ovf, f_sav, record, type_decl;
 
   /* For i386 we use plain pointer to argument area.  */
-  if (!TARGET_64BIT || ix86_cfun_abi () == MS_ABI)
+  if (!TARGET_64BIT || abi == MS_ABI)
     return build_pointer_type (char_type_node);
 
   record = (*lang_hooks.types.make_type) (RECORD_TYPE);
@@ -5213,6 +5217,51 @@ ix86_build_builtin_va_list (void)
 
   /* The correct type is an array type of one element.  */
   return build_array_type (record, build_index_type (size_zero_node));
+}
+
+/* Setup the builtin va_list data type and for 64-bit the additional
+   calling convention specific va_list data types.  */
+
+static tree
+ix86_build_builtin_va_list (void)
+{
+  tree ret = ix86_build_builtin_va_list_abi (DEFAULT_ABI);
+
+  /* Initialize abi specific va_list builtin types.  */
+  if (TARGET_64BIT)
+    {
+      tree t;
+      if (DEFAULT_ABI == MS_ABI)
+        {
+          t = ix86_build_builtin_va_list_abi (SYSV_ABI);
+          if (TREE_CODE (t) != RECORD_TYPE)
+            t = build_variant_type_copy (t);
+          sysv_va_list_type_node = t;
+        }
+      else
+        {
+          t = ret;
+          if (TREE_CODE (t) != RECORD_TYPE)
+            t = build_variant_type_copy (t);
+          sysv_va_list_type_node = t;
+        }
+      if (DEFAULT_ABI != MS_ABI)
+        {
+          t = ix86_build_builtin_va_list_abi (MS_ABI);
+          if (TREE_CODE (t) != RECORD_TYPE)
+            t = build_variant_type_copy (t);
+          ms_va_list_type_node = t;
+        }
+      else
+        {
+          t = ret;
+          if (TREE_CODE (t) != RECORD_TYPE)
+            t = build_variant_type_copy (t);
+          ms_va_list_type_node = t;
+        }
+    }
+
+  return ret;
 }
 
 /* Worker function for TARGET_SETUP_INCOMING_VARARGS.  */
@@ -5359,6 +5408,21 @@ ix86_setup_incoming_varargs (CUMULATIVE_ARGS *cum, enum machine_mode mode,
     setup_incoming_varargs_64 (&next_cum);
 }
 
+/* Checks if TYPE is of kind va_list char *.  */
+
+static bool
+is_va_list_char_pointer (tree type)
+{
+  tree canonic;
+
+  /* For 32-bit it is always true.  */
+  if (!TARGET_64BIT)
+    return true;
+  canonic = ix86_canonical_va_list_type (type);
+  return (canonic == ms_va_list_type_node
+          || (DEFAULT_ABI == MS_ABI && canonic == va_list_type_node));
+}
+
 /* Implement va_start.  */
 
 static void
@@ -5370,13 +5434,13 @@ ix86_va_start (tree valist, rtx nextarg)
   tree type;
 
   /* Only 64bit target needs something special.  */
-  if (!TARGET_64BIT || cfun->machine->call_abi == MS_ABI)
+  if (!TARGET_64BIT || is_va_list_char_pointer (TREE_TYPE (valist)))
     {
       std_expand_builtin_va_start (valist, nextarg);
       return;
     }
 
-  f_gpr = TYPE_FIELDS (TREE_TYPE (va_list_type_node));
+  f_gpr = TYPE_FIELDS (TREE_TYPE (sysv_va_list_type_node));
   f_fpr = TREE_CHAIN (f_gpr);
   f_ovf = TREE_CHAIN (f_fpr);
   f_sav = TREE_CHAIN (f_ovf);
@@ -5449,10 +5513,10 @@ ix86_gimplify_va_arg (tree valist, tree type, tree *pre_p, tree *post_p)
   enum machine_mode nat_mode;
 
   /* Only 64bit target needs something special.  */
-  if (!TARGET_64BIT || cfun->machine->call_abi == MS_ABI)
+  if (!TARGET_64BIT || is_va_list_char_pointer (TREE_TYPE (valist)))
     return std_gimplify_va_arg_expr (valist, type, pre_p, post_p);
 
-  f_gpr = TYPE_FIELDS (TREE_TYPE (va_list_type_node));
+  f_gpr = TYPE_FIELDS (TREE_TYPE (sysv_va_list_type_node));
   f_fpr = TREE_CHAIN (f_gpr);
   f_ovf = TREE_CHAIN (f_fpr);
   f_sav = TREE_CHAIN (f_ovf);
@@ -17103,7 +17167,8 @@ ix86_data_alignment (tree type, int align)
 
       if (TYPE_MODE (type) == DCmode && align < 64)
 	return 64;
-      if (TYPE_MODE (type) == XCmode && align < 128)
+      if ((TYPE_MODE (type) == XCmode
+	   || TYPE_MODE (type) == TCmode) && align < 128)
 	return 128;
     }
   else if ((TREE_CODE (type) == RECORD_TYPE
@@ -17169,7 +17234,8 @@ ix86_local_alignment (tree type, enum machine_mode mode,
     {
       if (TYPE_MODE (type) == DCmode && align < 64)
 	return 64;
-      if (TYPE_MODE (type) == XCmode && align < 128)
+      if ((TYPE_MODE (type) == XCmode
+	   || TYPE_MODE (type) == TCmode) && align < 128)
 	return 128;
     }
   else if ((TREE_CODE (type) == RECORD_TYPE
@@ -20213,6 +20279,55 @@ ix86_init_mmx_sse_builtins (void)
     }
 }
 
+/* Internal method for ix86_init_builtins.  */
+
+static void
+ix86_init_builtins_va_builtins_abi (void)
+{
+  tree ms_va_ref, sysv_va_ref;
+  tree fnvoid_va_end_ms, fnvoid_va_end_sysv;
+  tree fnvoid_va_start_ms, fnvoid_va_start_sysv;
+  tree fnvoid_va_copy_ms, fnvoid_va_copy_sysv;
+  tree fnattr_ms = NULL_TREE, fnattr_sysv = NULL_TREE;
+
+  if (!TARGET_64BIT)
+    return;
+  fnattr_ms = build_tree_list (get_identifier ("ms_abi"), NULL_TREE);
+  fnattr_sysv = build_tree_list (get_identifier ("sysv_abi"), NULL_TREE);
+  ms_va_ref = build_reference_type (ms_va_list_type_node);
+  sysv_va_ref =
+    build_pointer_type (TREE_TYPE (sysv_va_list_type_node));
+
+  fnvoid_va_end_ms =
+    build_function_type_list (void_type_node, ms_va_ref, NULL_TREE);
+  fnvoid_va_start_ms =
+    build_varargs_function_type_list (void_type_node, ms_va_ref, NULL_TREE);
+  fnvoid_va_end_sysv =
+    build_function_type_list (void_type_node, sysv_va_ref, NULL_TREE);
+  fnvoid_va_start_sysv =
+    build_varargs_function_type_list (void_type_node, sysv_va_ref,
+    				       NULL_TREE);
+  fnvoid_va_copy_ms =
+    build_function_type_list (void_type_node, ms_va_ref, ms_va_list_type_node,
+    			      NULL_TREE);
+  fnvoid_va_copy_sysv =
+    build_function_type_list (void_type_node, sysv_va_ref,
+    			      sysv_va_ref, NULL_TREE);
+
+  add_builtin_function ("__builtin_ms_va_start", fnvoid_va_start_ms,
+  			BUILT_IN_VA_START, BUILT_IN_NORMAL, NULL, fnattr_ms);
+  add_builtin_function ("__builtin_ms_va_end", fnvoid_va_end_ms,
+  			BUILT_IN_VA_END, BUILT_IN_NORMAL, NULL, fnattr_ms);
+  add_builtin_function ("__builtin_ms_va_copy", fnvoid_va_copy_ms,
+			BUILT_IN_VA_COPY, BUILT_IN_NORMAL, NULL, fnattr_ms);
+  add_builtin_function ("__builtin_sysv_va_start", fnvoid_va_start_sysv,
+  			BUILT_IN_VA_START, BUILT_IN_NORMAL, NULL, fnattr_sysv);
+  add_builtin_function ("__builtin_sysv_va_end", fnvoid_va_end_sysv,
+  			BUILT_IN_VA_END, BUILT_IN_NORMAL, NULL, fnattr_sysv);
+  add_builtin_function ("__builtin_sysv_va_copy", fnvoid_va_copy_sysv,
+			BUILT_IN_VA_COPY, BUILT_IN_NORMAL, NULL, fnattr_sysv);
+}
+
 static void
 ix86_init_builtins (void)
 {
@@ -20247,19 +20362,31 @@ ix86_init_builtins (void)
 			       NULL, NULL_TREE);
   ix86_builtins[(int) IX86_BUILTIN_INFQ] = decl;
 
+  /* We will expand them to normal call if SSE2 isn't available since
+     they are used by libgcc. */
   ftype = build_function_type_list (float128_type_node,
 				    float128_type_node,
 				    NULL_TREE);
-  def_builtin_const (OPTION_MASK_ISA_SSE2, "__builtin_fabsq", ftype, IX86_BUILTIN_FABSQ);
+  decl = add_builtin_function ("__builtin_fabsq", ftype,
+			       IX86_BUILTIN_FABSQ, BUILT_IN_MD,
+			       "__fabstf2", NULL_TREE);
+  ix86_builtins[(int) IX86_BUILTIN_FABSQ] = decl;
+  TREE_READONLY (decl) = 1;
 
   ftype = build_function_type_list (float128_type_node,
 				    float128_type_node,
 				    float128_type_node,
 				    NULL_TREE);
-  def_builtin_const (OPTION_MASK_ISA_SSE2, "__builtin_copysignq", ftype, IX86_BUILTIN_COPYSIGNQ);
+  decl = add_builtin_function ("__builtin_copysignq", ftype,
+			       IX86_BUILTIN_COPYSIGNQ, BUILT_IN_MD,
+			       "__copysigntf3", NULL_TREE);
+  ix86_builtins[(int) IX86_BUILTIN_COPYSIGNQ] = decl;
+  TREE_READONLY (decl) = 1;
 
   if (TARGET_MMX)
     ix86_init_mmx_sse_builtins ();
+  if (TARGET_64BIT)
+    ix86_init_builtins_va_builtins_abi ();
 }
 
 /* Errors in the source file can cause expand_expr to return const0_rtx
@@ -21610,7 +21737,16 @@ ix86_expand_builtin (tree exp, rtx target, rtx subtarget ATTRIBUTE_UNUSED,
        i < ARRAY_SIZE (bdesc_args);
        i++, d++)
     if (d->code == fcode)
-      return ix86_expand_args_builtin (d, exp, target);
+      switch (fcode)
+	{
+	case IX86_BUILTIN_FABSQ:
+	case IX86_BUILTIN_COPYSIGNQ:
+	  if (!TARGET_SSE2)
+	    /* Emit a normal call if SSE2 isn't available.  */
+	    return expand_call (exp, target, ignore);
+	default:
+	  return ix86_expand_args_builtin (d, exp, target);
+	}
 
   for (i = 0, d = bdesc_comi; i < ARRAY_SIZE (bdesc_comi); i++, d++)
     if (d->code == fcode)
@@ -23073,6 +23209,54 @@ x86_order_regs_for_local_alloc (void)
       at all.  */
    while (pos < FIRST_PSEUDO_REGISTER)
      reg_alloc_order [pos++] = 0;
+}
+
+/* Handle a "ms_abi" or "sysv" attribute; arguments as in
+   struct attribute_spec.handler.  */
+static tree
+ix86_handle_abi_attribute (tree *node, tree name,
+			      tree args ATTRIBUTE_UNUSED,
+			      int flags ATTRIBUTE_UNUSED, bool *no_add_attrs)
+{
+  if (TREE_CODE (*node) != FUNCTION_TYPE
+      && TREE_CODE (*node) != METHOD_TYPE
+      && TREE_CODE (*node) != FIELD_DECL
+      && TREE_CODE (*node) != TYPE_DECL)
+    {
+      warning (OPT_Wattributes, "%qs attribute only applies to functions",
+	       IDENTIFIER_POINTER (name));
+      *no_add_attrs = true;
+      return NULL_TREE;
+    }
+  if (!TARGET_64BIT)
+    {
+      warning (OPT_Wattributes, "%qs attribute only available for 64-bit",
+	       IDENTIFIER_POINTER (name));
+      *no_add_attrs = true;
+      return NULL_TREE;
+    }
+
+  /* Can combine regparm with all attributes but fastcall.  */
+  if (is_attribute_p ("ms_abi", name))
+    {
+      if (lookup_attribute ("sysv_abi", TYPE_ATTRIBUTES (*node)))
+        {
+	  error ("ms_abi and sysv_abi attributes are not compatible");
+	}
+
+      return NULL_TREE;
+    }
+  else if (is_attribute_p ("sysv_abi", name))
+    {
+      if (lookup_attribute ("ms_abi", TYPE_ATTRIBUTES (*node)))
+        {
+	  error ("ms_abi and sysv_abi attributes are not compatible");
+	}
+
+      return NULL_TREE;
+    }
+
+  return NULL_TREE;
 }
 
 /* Handle a "ms_struct" or "gcc_struct" attribute; arguments as in
@@ -25884,6 +26068,10 @@ static const struct attribute_spec ix86_attribute_table[] =
 #ifdef SUBTARGET_ATTRIBUTE_TABLE
   SUBTARGET_ATTRIBUTE_TABLE,
 #endif
+  /* ms_abi and sysv_abi calling convention function attributes.  */
+  { "ms_abi", 0, 0, false, true, true, ix86_handle_abi_attribute },
+  { "sysv_abi", 0, 0, false, true, true, ix86_handle_abi_attribute },
+  /* End element.  */
   { NULL,        0, 0, false, false, false, NULL }
 };
 
@@ -25909,6 +26097,128 @@ x86_builtin_vectorization_cost (bool runtime_test)
     }
   else
     return 0;
+}
+
+/* This function returns the calling abi specific va_list type node.
+   It returns  the FNDECL specific va_list type.  */
+
+tree
+ix86_fn_abi_va_list (tree fndecl)
+{
+  int abi;
+
+  if (!TARGET_64BIT)
+    return va_list_type_node;
+  gcc_assert (fndecl != NULL_TREE);
+  abi = ix86_function_abi ((const_tree) fndecl);
+
+  if (abi == MS_ABI)
+    return ms_va_list_type_node;
+  else
+    return sysv_va_list_type_node;
+}
+
+/* Returns the canonical va_list type specified by TYPE. If there
+   is no valid TYPE provided, it return NULL_TREE.  */
+
+tree
+ix86_canonical_va_list_type (tree type)
+{
+  tree wtype, htype;
+
+  /* Resolve references and pointers to va_list type.  */
+  if (INDIRECT_REF_P (type))
+    type = TREE_TYPE (type);
+  else if (POINTER_TYPE_P (type) && POINTER_TYPE_P (TREE_TYPE(type)))
+    type = TREE_TYPE (type);
+
+  if (TARGET_64BIT)
+    {
+      wtype = va_list_type_node;
+	  gcc_assert (wtype != NULL_TREE);
+      htype = type;
+      if (TREE_CODE (wtype) == ARRAY_TYPE)
+	{
+	  /* If va_list is an array type, the argument may have decayed
+	     to a pointer type, e.g. by being passed to another function.
+	     In that case, unwrap both types so that we can compare the
+	     underlying records.  */
+	  if (TREE_CODE (htype) == ARRAY_TYPE
+	      || POINTER_TYPE_P (htype))
+	    {
+	      wtype = TREE_TYPE (wtype);
+	      htype = TREE_TYPE (htype);
+	    }
+	}
+      if (TYPE_MAIN_VARIANT (wtype) == TYPE_MAIN_VARIANT (htype))
+	return va_list_type_node;
+      wtype = sysv_va_list_type_node;
+	  gcc_assert (wtype != NULL_TREE);
+      htype = type;
+      if (TREE_CODE (wtype) == ARRAY_TYPE)
+	{
+	  /* If va_list is an array type, the argument may have decayed
+	     to a pointer type, e.g. by being passed to another function.
+	     In that case, unwrap both types so that we can compare the
+	     underlying records.  */
+	  if (TREE_CODE (htype) == ARRAY_TYPE
+	      || POINTER_TYPE_P (htype))
+	    {
+	      wtype = TREE_TYPE (wtype);
+	      htype = TREE_TYPE (htype);
+	    }
+	}
+      if (TYPE_MAIN_VARIANT (wtype) == TYPE_MAIN_VARIANT (htype))
+	return sysv_va_list_type_node;
+      wtype = ms_va_list_type_node;
+	  gcc_assert (wtype != NULL_TREE);
+      htype = type;
+      if (TREE_CODE (wtype) == ARRAY_TYPE)
+	{
+	  /* If va_list is an array type, the argument may have decayed
+	     to a pointer type, e.g. by being passed to another function.
+	     In that case, unwrap both types so that we can compare the
+	     underlying records.  */
+	  if (TREE_CODE (htype) == ARRAY_TYPE
+	      || POINTER_TYPE_P (htype))
+	    {
+	      wtype = TREE_TYPE (wtype);
+	      htype = TREE_TYPE (htype);
+	    }
+	}
+      if (TYPE_MAIN_VARIANT (wtype) == TYPE_MAIN_VARIANT (htype))
+	return ms_va_list_type_node;
+      return NULL_TREE;
+    }
+  return std_canonical_va_list_type (type);
+}
+
+/* Iterate through the target-specific builtin types for va_list.
+    IDX denotes the iterator, *PTREE is set to the result type of
+    the va_list builtin, and *PNAME to its internal type.
+    Returns zero if there is no element for this index, otherwise
+    IDX should be increased upon the next call.
+    Note, do not iterate a base builtin's name like __builtin_va_list.
+    Used from c_common_nodes_and_builtins.  */
+
+int
+ix86_enum_va_list (int idx, const char **pname, tree *ptree)
+{
+  if (!TARGET_64BIT)
+    return 0;
+  switch (idx) {
+  case 0:
+    *ptree = ms_va_list_type_node;
+    *pname = "__builtin_ms_va_list";
+    break;
+  case 1:
+    *ptree = sysv_va_list_type_node;
+    *pname = "__builtin_sysv_va_list";
+    break;
+  default:
+    return 0;
+  }
+  return 1;
 }
 
 /* Initialize the GCC target structure.  */
@@ -26038,6 +26348,12 @@ x86_builtin_vectorization_cost (bool runtime_test)
 
 #undef TARGET_BUILD_BUILTIN_VA_LIST
 #define TARGET_BUILD_BUILTIN_VA_LIST ix86_build_builtin_va_list
+
+#undef TARGET_FN_ABI_VA_LIST
+#define TARGET_FN_ABI_VA_LIST ix86_fn_abi_va_list
+
+#undef TARGET_CANONICAL_VA_LIST_TYPE
+#define TARGET_CANONICAL_VA_LIST_TYPE ix86_canonical_va_list_type
 
 #undef TARGET_EXPAND_BUILTIN_VA_START
 #define TARGET_EXPAND_BUILTIN_VA_START ix86_va_start

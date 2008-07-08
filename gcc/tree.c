@@ -1827,6 +1827,24 @@ tree_cons_stat (tree purpose, tree value, tree chain MEM_STAT_DECL)
   return node;
 }
 
+/* Return the elements of a CONSTRUCTOR as a TREE_LIST.  */
+
+tree
+ctor_to_list (tree ctor)
+{
+  tree list = NULL_TREE;
+  tree *p = &list;
+  unsigned ix;
+  tree purpose, val;
+
+  FOR_EACH_CONSTRUCTOR_ELT (CONSTRUCTOR_ELTS (ctor), ix, purpose, val)
+    {
+      *p = build_tree_list (purpose, val);
+      p = &TREE_CHAIN (*p);
+    }
+
+  return list;
+}
 
 /* Return the size nominally occupied by an object of type TYPE
    when it resides in memory.  The value is measured in units of bytes,
@@ -7377,7 +7395,16 @@ build_common_tree_nodes_2 (int short_double)
   complex_long_double_type_node = build_complex_type (long_double_type_node);
 
 /* Make fixed-point nodes based on sat/non-sat and signed/unsigned.  */
-#define MAKE_FIXED_TYPE_NODE(KIND,WIDTH,SIZE) \
+#define MAKE_FIXED_TYPE_NODE(KIND,SIZE) \
+  sat_ ## KIND ## _type_node = \
+    make_sat_signed_ ## KIND ## _type (SIZE); \
+  sat_unsigned_ ## KIND ## _type_node = \
+    make_sat_unsigned_ ## KIND ## _type (SIZE); \
+  KIND ## _type_node = make_signed_ ## KIND ## _type (SIZE); \
+  unsigned_ ## KIND ## _type_node = \
+    make_unsigned_ ## KIND ## _type (SIZE);
+
+#define MAKE_FIXED_TYPE_NODE_WIDTH(KIND,WIDTH,SIZE) \
   sat_ ## WIDTH ## KIND ## _type_node = \
     make_sat_signed_ ## KIND ## _type (SIZE); \
   sat_unsigned_ ## WIDTH ## KIND ## _type_node = \
@@ -7388,10 +7415,10 @@ build_common_tree_nodes_2 (int short_double)
 
 /* Make fixed-point type nodes based on four different widths.  */
 #define MAKE_FIXED_TYPE_NODE_FAMILY(N1,N2) \
-  MAKE_FIXED_TYPE_NODE (N1, short_, SHORT_ ## N2 ## _TYPE_SIZE) \
-  MAKE_FIXED_TYPE_NODE (N1, , N2 ## _TYPE_SIZE) \
-  MAKE_FIXED_TYPE_NODE (N1, long_, LONG_ ## N2 ## _TYPE_SIZE) \
-  MAKE_FIXED_TYPE_NODE (N1, long_long_, LONG_LONG_ ## N2 ## _TYPE_SIZE)
+  MAKE_FIXED_TYPE_NODE_WIDTH (N1, short_, SHORT_ ## N2 ## _TYPE_SIZE) \
+  MAKE_FIXED_TYPE_NODE (N1, N2 ## _TYPE_SIZE) \
+  MAKE_FIXED_TYPE_NODE_WIDTH (N1, long_, LONG_ ## N2 ## _TYPE_SIZE) \
+  MAKE_FIXED_TYPE_NODE_WIDTH (N1, long_long_, LONG_LONG_ ## N2 ## _TYPE_SIZE)
 
 /* Make fixed-point mode nodes based on sat/non-sat and signed/unsigned.  */
 #define MAKE_FIXED_MODE_NODE(KIND,NAME,MODE) \

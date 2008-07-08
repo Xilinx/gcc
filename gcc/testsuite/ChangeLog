@@ -1,3 +1,264 @@
+2008-07-07  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* gcc.dg/compat/struct-layout-1_generate.c (vector_types): Add
+	v32qi, v16hi, v8si, v4di, v8sf, v4df, u32qi, u16hi, u8si, u4di,
+	u8sf and u4df.
+
+	* gcc.dg/compat/union-m128-1_main.c: Run only on x86.  Remove
+	__x86_64__ check.  Include "cpuid.h".
+	(main): Check SSE2 at runtime.
+
+	* gcc.dg/compat/union-m128-1_x.c: Compile with -msse2.  Remove
+	__x86_64__ check.
+	* gcc.dg/compat/union-m128-1_y.c: Likewise.
+
+	* gcc.dg/compat/vector-1_x.c: Add 32byte vector tests.
+	* gcc.dg/compat/vector-1_y.c: Likewise.
+	* gcc.dg/compat/vector-2_x.c: Likewise.
+	* gcc.dg/compat/vector-2_y.c: Likewise.
+
+	* gcc.dg/compat/vector-1a_main.c: New.
+	* gcc.dg/compat/vector-1a_x.c: Likewise.
+	* gcc.dg/compat/vector-1a_y.c: Likewise.
+	* gcc.dg/compat/vector-2a_main.c: Likewise.
+	* gcc.dg/compat/vector-2a_x.c: Likewise.
+	* gcc.dg/compat/vector-2a_y.c: Likewise.
+
+	* gcc.dg/compat/vector-defs.h (v32qi): New.
+	(v16hi): Likewise.
+	(v8si): Likewise.
+	(v4di): Likewise.
+	(v8sf): Likewise.
+	(v4df): Likewise.
+	(u32qi): Likewise.
+	(u16hi): Likewise.
+	(u8si): Likewise.
+	(u4di): Likewise.
+	(u8sf): Likewise.
+	(u4df): Likewise.
+
+	* lib/compat.exp (compat-get-options-main): Support dg-skip-if.
+
+2008-07-07  Andy Hutchinson  <hutchinsonandy@aim.com>
+
+	* gcc.c-torture/compile/20080625-1.c: Skip for AVR target.
+	* gcc.dg/torture/pr36373-10.c: Correct test where target pointer 
+	is not same size as unsigned long. 
+
+2008-07-07  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR fortran/36670
+	* gfortran.dg/product_sum_bounds_1.f90:  New test case.
+
+2008-07-07  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR fortran/36341
+	PR fortran/34670
+	* gfortran.dg/matmul_bounds_2.f90:  New test.
+	* gfortran.dg/matmul_bounds_3.f90:  New test.
+	* gfortran.dg/matmul_bounds_4.f90:  New test.
+	* gfortran.dg/matmul_bounds_5.f90:  New test.
+
+2008-07-07  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.dg/torture/pta-ptrarith-1.c: New testcase.
+	* gcc.dg/torture/pta-ptrarith-2.c: Likewise.
+	* gcc.dg/torture/ipa-pta-1.c: Likewise.
+
+2008-07-07  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/36726
+	* gfortran.dg/gomp/pr36726.f90: New test.
+
+2008-07-06  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* gcc.target/mips/gcc-have-sync-compare-and-swap-1.c: Expect the
+	macros to be defined for MIPS16 too.
+	* gcc.target/mips/gcc-have-sync-compare-and-swap-2.c: Likewise.
+	* gcc.target/mips/gcc-have-sync-compare-and-swap-3.c: New test.
+	* gcc.target/mips/gcc-have-sync-compare-and-swap-4.c: Likewise.
+
+2008-07-06  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.dg/tree-ssa/pta-callused.c: Adjust testcase.
+
+2008-07-06  Kai Tietz  <kai.tietz@onevision.com>
+
+	* gcc.dg/callabi/callabi.h: New.
+	* gcc.dg/callabi/vaarg-1.c: New.
+	* gcc.dg/callabi/vaarg-2.c: New.
+	* gcc.dg/callabi/vaarg-3.c: New.
+	* gcc.dg/callabi/func-1.c: New.
+
+2008-07-05  Andrew Pinski  <andrew_pinski@playstation.sony.com>
+
+	* g++.dg/tree-ssa/ptrmemfield.C: New testcase.
+
+2008-07-05  Joseph Myers  <joseph@codesourcery.com>
+
+	* lib/gcc-dg.exp (remove-build-file): Remove files on remote host
+	as well as on build.
+
+2008-07-04  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.dg/tree-ssa/pta-callused.c: New testcase.
+
+2008-07-04  Richard Sandiford  <richard@codesourcery.com>
+
+	* gcc.target/m68k/interrupt-2.c: New file.
+	* gcc.dg/tree-ssa/20040204-1.c: Don't XFAIL for m68k*-*-*.
+
+2008-07-03  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* gcc.dg/compat/struct-by-value-17a_x.c: Remove duplicated code.
+	* gcc.dg/compat/struct-by-value-17a_y.c: Likewise.
+
+2008-07-03  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/loop_optimization3.adb: New test.
+	* gnat.dg/loop_optimization3_pkg.ad[sb]: New helper.
+
+2008-07-03  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/36710
+	* gcc.target/i386/float128-2.c: New test.
+
+2008-07-03  Michael Meissner  <gnu@the-meissners.org>
+
+	PR middle-end/35736
+	* gcc.dg/pr35736.c: New file.
+
+2008-07-03  Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>
+
+	* gcc.dg/pr28243.c: Skip on SPU.
+	* gcc.dg/torture/pr25947-1.c: Likewise.
+	* gcc.dg/20030702-1.c: Likewise.
+	* g++.old-deja/g++.other/comdat5.C: Likewise.
+	* g++.old-deja/g++.other/local-alloc1.C: Likewise.
+	* g++.dg/opt/vt1.C: Likewise.
+
+2008-07-03  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* gcc.dg/compat/struct-by-value-17a_main.c: Remove duplicated code.
+
+2008-07-03  H.J. Lu  <hongjiu.lu@intel.com>
+	    Uros Bizjak  <ubizjak@gmail.com>
+
+	* gcc.target/i386/float128-1.c: New.
+
+2008-07-03  Andrew Haley  <aph@redhat.com>
+
+	PR preprocessor/33305
+	* gcc.dg/cpp/avoidpaste1.c: Use dg-options "-ansi" to avoid
+	"-pedantic".
+	* gcc.dg/cpp/avoidpaste2.c: Likewise
+	* gcc.dg/cpp/20000519-1.c: Likewise.
+	* g++.dg/ext/gnu-inline-global-reject.C: Likewise.
+	* gcc.dg/cpp/c99-empty-macro-args.c: New test.
+	* gcc.dg/cpp/c90-empty-macro-args.c: New test.
+
+2008-07-03  Richard Guenther  <rguenther@suse.de>
+
+	PR c++/36128
+	* g++.dg/other/builtin1.C: New testcase.
+
+2008-07-02  Joseph Myers  <joseph@codesourcery.com>
+
+	* g++.dg/compat/struct-layout-1.exp: Compile generator on build system.
+	* gcc.dg/compat/struct-layout-1.exp: Likewise.
+	* objc.dg/gnu-encoding/gnu-encoding.exp: Likewise.
+
+2008-07-02  Andy Hutchinson  <hutchinsonandy@aim.com>
+
+	PR testsuite/36285
+	* gcc.dg/compat/struct-by-value-16_x.c: Move some tests to new file 
+	to reduce code size.
+	* gcc.dg/compat/struct-by-value-16_y.c: Ditto.
+	* gcc.dg/compat/struct-by-value-16a_main.c: New file.
+	* gcc.dg/compat/struct-by-value-16a_x.c: Ditto.
+	* gcc.dg/compat/struct-by-value-16a_y.c: Ditto.
+	* gcc.dg/compat/struct-by-value-17_x.c: Move some tests to new file 
+	to reduce code size.
+	* gcc.dg/compat/struct-by-value-17_y.c: Ditto.
+	* gcc.dg/compat/struct-by-value-17a_main.c: New file.
+	* gcc.dg/compat/struct-by-value-17a_x.c: Ditto.
+	* gcc.dg/compat/struct-by-value-17a_y.c: Ditto.
+	* gcc.dg/compat/struct-by-value-18_x.c: Move some tests to new file 
+	to reduce code size.
+	* gcc.dg/compat/struct-by-value-18_y.c: Ditto.
+	* gcc.dg/compat/struct-by-value-18a_main.c: New file.
+	* gcc.dg/compat/struct-by-value-18a_x.c: Ditto.
+	* gcc.dg/compat/struct-by-value-18a_y.c: Ditto.
+
+
+2008-07-02  Andy Hutchinson  <hutchinsonandy@aim.com>
+
+	* gcc.dg/pr36227.c: Correct test for targets where long is
+	not the same size as pointer.
+
+2008-07-02  Kaz Kojima  <kkojima@gcc.gnu.org>
+
+	* g++.dg/cdce3.C: Test long double math functions for
+	large_long_double target only.  Skip pow10 and exp10
+	functions for *-*-darwin*.
+
+2008-07-02  Janus Weil  <janus@gcc.gnu.org>
+	    Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/32580
+	* gfortran.dg/c_f_pointer_tests_3.f90: Updated.
+	* gfortran.dg/proc_decl_1.f90: Updated.
+	* gfortran.dg/proc_ptr_1.f90: New.
+	* gfortran.dg/proc_ptr_2.f90: New.
+	* gfortran.dg/proc_ptr_3.f90: New.
+	* gfortran.dg/proc_ptr_4.f90: New.
+	* gfortran.dg/proc_ptr_5.f90: New.
+	* gfortran.dg/proc_ptr_6.f90: New.
+	* gfortran.dg/proc_ptr_7.f90: New.
+	* gfortran.dg/proc_ptr_8.f90: New.
+
+2008-07-02  Joseph Myers  <joseph@codesourcery.com>
+
+	* gcc.target/arm/neon/polytypes.c: Use dg-message separately from
+	dg-error to match separate messages.
+
+2008-07-02  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* g++.dg/abi/mangle24.C: Remove -mmmx.
+	* gcc.dg/const-float80-ped.c: Likewise.
+	* gcc.dg/const-float80.c: Likewise.
+	* gcc.dg/torture/fp-int-convert-float80.c: Likewise.
+
+	* g++.dg/abi/mangle25.C: Enable x86.
+	* gcc.dg/const-float128-ped.c: Likewise.
+	* gcc.dg/const-float128.c: Likewise.
+	* gcc.dg/torture/fp-int-convert-float128.c: Likewise.
+	* gcc.target/i386/pr32191.c: Likewise.
+	* gcc.target/i386/pr32268.c: Likewise.
+
+2008-07-02  Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>
+
+	PR target/36698
+	* gcc.c-torture/compile/20001226-1.c: XFAIL -O0 case on SPU.
+
+	* gcc.dg/pr27095.c: Provide target-specific regexp for SPU.
+
+2008-07-02  Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>
+
+	* lib/compat.exp (compat-execute): Add -ffunction-sections
+	and -Wl,--auto-overlay when building for spu-*-elf*.
+
+2008-07-02  Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>
+
+	* gcc.dg/nrv3.c (S): Increase size of padding for SPU.
+	* g++.dg/opt/temp1.C (struct T): Likewise.
+
+2008-07-02  Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>
+
+	* gcc.c-torture/execute/20030222-1.x: New file.
+	* gcc.dg/tree-ssa/ssa-fre-3.c: Disable test on SPU.
+	* gcc.dg/lower-subreg-1.c: Likewise.
+
 2008-07-02  Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>
 
 	SPU single-precision FP does not support subnormals:

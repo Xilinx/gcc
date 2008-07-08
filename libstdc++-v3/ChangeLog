@@ -1,3 +1,98 @@
+2008-07-08  Chris Fairles  <chris.fairles@gmail.com>
+
+        * include/std/type_traits: Add common_type.
+        * testsuite/20_util/common_type/requirements/
+	explicit_instantiation.cc: New.
+        * testsuite/20_util/common_type/requirements/
+	typedefs-1.cc: Likewise.
+
+2008-07-07  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* testsuite/lib/libstdc++.exp (check_v3_target_stdint): New.
+	* testsuite/lib/dg-options.exp (dg-require-cstdint): New.
+	* testsuite/20_util/ratio/cons/cons1.cc: Use it.
+	* testsuite/20_util/ratio/cons/cons_overflow.cc: Likewise.
+	* testsuite/20_util/ratio/operations/ops1.cc: Likewise.
+	* testsuite/20_util/ratio/operations/ops2.cc: Likewise.
+	* testsuite/20_util/ratio/operations/ops3.cc: Likewise.
+	* testsuite/20_util/ratio/operations/ops_overflow.cc: Likewise.
+	* testsuite/20_util/ratio/comparisons/comp1.cc: Likewise.
+	* testsuite/20_util/ratio/comparisons/comp2.cc: Likewise.
+
+	* include/std/type_traits: Fix comment typo.
+
+2008-07-06  Roger Sayle  <roger@eyesopen.com>
+
+	* include/std/system_error (is_error_code_enum): Use identifier
+	_Tp instead of _T to avoid conflict with system macro on Darwin.
+	(is_error_condition_enum): Likewise.
+
+2008-07-05  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/postypes.h: Do not include <stdint.h>.
+
+	* include/Makefile.am: Reorder.
+
+2008-07-05  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/std/ratio: Prefer __INTMAX_MAX__ to INTMAX_MAX (INTMAX_MIN).
+
+2008-07-05  Chris Fairles  <chris.fairles@gmail.com>
+
+        * include/std/ratio: Documentation for std::ratio class. Add conditions 
+        to ratio_less to prevent overflow.
+        * testsuite/20_util/ratio/comparisons/comp2.cc: New.
+        * testsuite/20_util/ratio/cons/cons_overflow.cc: Update dg-error line
+        numbers.
+
+2008-07-04  Chris Fairles  <chris.fairles@gmail.com>
+
+	* include/std/ratio: New, per N2661.
+	* include/Makefile.am: Update.
+	* include/Makefile.in: Regenerate.
+	* testsuite/20_util/ratio/cons/cons1.cc: New.
+	* testsuite/20_util/ratio/cons/cons_overflow.cc: Likewise.
+	* testsuite/20_util/ratio/operations/ops1.cc: Likewise.
+	* testsuite/20_util/ratio/operations/ops2.cc: Likewise.
+	* testsuite/20_util/ratio/operations/ops3.cc: Likewise.
+	* testsuite/20_util/ratio/operations/ops_overflow.cc: Likewise.
+	* testsuite/20_util/ratio/comparisons/comp1.cc: Likewise.
+
+2008-07-04  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/36616
+	* testsuite/22_locale/time_put/put/char/4.cc: Just use es_ES instead.
+	* testsuite/22_locale/time_put/put/wchar_t/4.cc: Likewise.
+	
+2008-07-03  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* testsuite/21_strings/basic_string/numeric_conversions/char/stof.cc:
+	Improve check on long double limits.
+	* testsuite/21_strings/basic_string/numeric_conversions/char/stod.cc:
+	Likewise.
+	* testsuite/21_strings/basic_string/numeric_conversions/wchar_t/
+	stof.cc: Likewise.
+	* testsuite/21_strings/basic_string/numeric_conversions/wchar_t/
+	stod.cc: Likewise.
+
+2008-07-03  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* libsupc++/Makefile.am: Add initializer_list to the headers.
+	* libsupc++/Makefile.in: Regenerate.
+
+	* libsupc++/initializer_list: Minor cosmetic changes.
+
+2008-07-02  Jason Merrill  <jason@redhat.com>
+
+	* libsupc++/initializer_list: Uglify and wrap in 
+	__GXX_EXPERIMENTAL_CXX0X__.
+	* include/bits/stl_map.h (insert(initializer_list)): Wrap.
+
+2008-07-02  Jason Merrill  <jason@redhat.com>
+
+	* libsupc++/initializer_list: New file.
+	* include/bits/stl_map.h (insert(initializer_list)): New method.
+
 2008-06-30  Alfred E. Heggestad  <aeh@db.org>
 
 	* include/backward/backward_warning.h: Fix typo.
