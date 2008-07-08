@@ -6644,6 +6644,7 @@ cp_parser_trait_expr (cp_parser* parser, enum rid keyword)
   return finish_trait_expr (kind, type1, type2);
 }
 
+/* TODO: move this to the right place, wherever that is.  */
 static tree
 build_lambda_expr (void)
 {
