@@ -7190,7 +7190,7 @@ cp_parser_lambda_introducer (cp_parser* parser, tree lambda_expr)
       continue;
     }
 
-    /* Remember whether we want to take this as a reference or not. */
+    /* Remember whether we want to capture as a reference or not. */
     if (cp_lexer_next_token_is (parser->lexer, CPP_AND))
       capture_kind = BY_REFERENCE;
     else if (cp_lexer_next_token_is (parser->lexer, CPP_AND_AND))
