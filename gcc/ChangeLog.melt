@@ -1,3 +1,7 @@
+2008-07-08  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-macro.bysl: added mexpand_defciterator
+	expand_citeration and extended macroexpand_1
+
 2008-07-07  Basile Starynkevitch  <basile@starynkevitch.net>
 	[adding CITERATORs]
 

@@ -449,6 +449,66 @@
       res
       )))
 
+
+;; every citeration is (symbol (startargs) (varformals) body...)
+;; expand an s-expression known to be a citeration
+(defun expand_citeration (citer sexpr env mexpander)
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check end" (is_a env class_environment))
+  (assert_msg "check mexpander" (is_closure mexpander))
+  (assert_msg "check citer" (is_a citer class_citerator))
+  (debug_msg sexpr "expand_citeration sexpr")
+  (let ( (scont (unsafe_get_field :sexp_contents sexpr))
+	 (sloc (unsafe_get_field :loca_location sexpr))
+	 (spair (pair_tail (list_first scont)))
+	 (stargs ())		;set to the tuple of start expressions
+	 (varformals ())	;set to the varformals binding tuple
+	 (bodytup ())		;set to the body tuple
+	 )
+    ;; parse the startargs
+    (if  (is_pair spair)
+	(let ( (starexp (pair_head spair)) )
+	  (if (is_a starexp class_sexpr)
+	      (let ( (stacont (unsafe_get_field :sexp_contents starexp))
+		     )
+		(setq stargs (expand_pairlist_as_tuple (list_first stacont) env mexpander))
+		)
+	    (setq stargs (if starexp (make_tuple1 discr_multiple 
+						  (macroexpand_1 starexp env mexpander)
+						  ))))
+	  (setq spair (pair_tail spair))
+	  )
+      (progn
+	(error_strv sloc "missing startargs expression in citeration"
+		    (unsafe_get_field :named_name citer))
+	(return)
+	))
+    ;; parse the varformals
+    (if  (is_pair spair)
+	(let ( (varexp (pair_head spair)) )
+	  (setq spair (pair_tail spair))
+	  (setq varformals (lambda_arg_bindings varexp))
+	  )
+      (progn
+	(error_strv sloc "missing varformals in citeration"
+		    (unsafe_get_field :named_name citer))
+	(return)
+	))
+    ;; parse the body
+    (setq bodytup (expand_pairlist_as_tuple spair env mexpander))
+    ;; build & return the result
+    (let ( (sciter (make_instance class_src_citeration
+				  :src_loc sloc
+				  :sciter_oper citer
+				  :sciter_args stargs
+				  :sciter_varbind varformals
+				  :sciter_body bodytup))
+	   )
+      (debug_msg sciter "expand_citeration result sciter")
+      (return sciter)
+      )))
+
+
 ;;; expand a keywordfun s-expression
 ;;; not implemented yet, but might later be useful for stuff like
 ;;;;; (:fieldname obj) to get a field
@@ -491,6 +551,13 @@
 			  (debug_msg resp "macroexpand_1 result for primitive resp")
 			  (return resp)
 			  ))
+		       ( (is_a opbind class_citerator_binding)
+			 (let ( (citer (unsafe_get_field :cbind_citerator opbind))
+				(resc (expand_citeration citer sexpr env mexpander))
+			       )
+			   (debug_msg resc "macroexpand_1 result for citerator resc")
+			   (return resc)
+			   ))
 		       ( (is_a opbind class_value_binding)
 			(let ( (val (unsafe_get_field :vbind_value opbind))
 			      )
@@ -507,6 +574,10 @@
 			       (return ress)
 			       )
 			      )
+			    ( (is_a val class_citerator)
+			      (let ( (resc (expand_citeration val sexpr env mexpander)) )
+				(debug_msg resc "macroexpand_1 result for send resc")
+				(return resc)))
 			    (:else
 			     (error_strv sloc "macroexpand_1 bad valued operation symbol"
 					 (unsafe_get_field :named_name soper))
@@ -584,6 +655,7 @@
 ;;; expand an s-expression into a tuple of formal bindings
 ;;; the formalsexp is the sexpr of formals 
 ;;; the [optional] checkargs should be set to non-null to check arguments type
+;;; usually checkargs is just missing
 (defun lambda_arg_bindings (formalsexp checkargs)
   ;; special case for null arglist
   (if (null formalsexp)
@@ -813,7 +885,7 @@
 (export_macro defprimitive mexpand_defprimitive)
 
 
-#|
+
 ;; the defciterator expander
 ;;(DEFCITERATOR symb startformals statesymb varformals expbefore expafter)
 (defun mexpand_defciterator (sexpr env mexpander)
@@ -838,7 +910,7 @@
 	  ))
     (setq curpair (pair_tail curpair))
     ;; parse the formal start arguments
-    (setq bstartup (lambda_arg_bindings (pair_head curpair) ()))
+    (setq bstartup (lambda_arg_bindings (pair_head curpair)))
     (setq curpair (pair_tail curpair))
     (setq statsymb (pair_head curpair))
     (if (is_not_a statsymb class_symbol)
@@ -846,7 +918,7 @@
 	  (error_plain loc "missing statsymb for (DEFCITERATOR symb startformals statesymb locformals expbefore expafter)")
 	  (return)))
     (setq curpair (pair_tail curpair))
-    (setq blocvtup  (lambda_arg_bindings (pair_head curpair) ()))
+    (setq blocvtup  (lambda_arg_bindings (pair_head curpair)))
     (setq curpair (pair_tail curpair))
     ;; parse the before expansion
     (let ( (sexpbef (pair_head curpair)) )
@@ -895,7 +967,7 @@
       )))
 (install_initial_macro 'defciterator mexpand_defciterator)
 (export_macro defciterator mexpand_defciterator)
-|#
+
 
 ;;;;;;;;;;;;;;;;;; the defun expander
 (defun mexpand_defun (sexpr env mexpander)
