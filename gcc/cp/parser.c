@@ -6774,8 +6774,6 @@ cp_parser_lambda_class_definition (cp_parser* parser,
       /* Get a decl_specifier_seq and declarator.  */
       cp_decl_specifier_seq capture_decl_specs;
       cp_declarator* capture_declarator;
-      /* Weird bug where the code changes somehow before getting here.  */
-      TREE_SET_CODE (capture, TREE_LIST);
       tree capture_type = TREE_VALUE (capture);
       tree capture_id = TREE_PURPOSE (capture);
 
