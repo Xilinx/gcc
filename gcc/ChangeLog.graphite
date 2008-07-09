@@ -1,3 +1,25 @@
+2008-07-09  Tobias Grosser  <grosser@fim.uni-passau.de>
+
+	* graphite.c (print_graphite_bb): Correct printing of static schedule.
+	(graphite_swap_loops): int -> unsigned
+	(graphite_strip_mine_loop): int -> unsigned, Fix SCHEDULE
+	(graphite_transformations): New.
+	(graphite_transform_loops): Move to graphite_transformations.
+
+2008-07-04  Tobias Grosser  <grosser@fim.uni-passau.de>
+
+	* graphite.c (graphite_swap_loop): Change parameters from int to
+	unsigned.
+	(graphite_move_loop): New.
+	(graphite_strip_mine_loop): Change parameters from int to unsigned.
+	(graphite_trans_swap_1and2): Update comment.
+	(graphite_loop_block): New.
+	(graphite_trans_loop_block): New.
+	(graphite_transform_loops): Insert loop blocking (disabled by default),
+	and add comment.
+	* graphite.h (gbb_nb_loops): Return unsigned.
+	* testsuite/gcc.dg/graphite/scop-matmult.c: New.
+
 2008-07-04  Tobias Grosser  <grosser@fim.uni-passau.de>
 
 	* graphite.c (scan_tree_for_params): Fix insertion of parameters into

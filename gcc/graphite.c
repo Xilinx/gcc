@@ -232,7 +232,7 @@ print_graphite_bb (FILE *file, graphite_bb_p gb, int indent, int verbosity)
 
   fprintf (file, "       (static schedule: ");
   print_lambda_vector (file, GBB_STATIC_SCHEDULE (gb),
-                       nb_loops_around_gb (gb) + 1);
+                       gbb_nb_loops (gb) + 1);
   fprintf (file, "       )\n");
 
   fprintf (file, "       (contained loops: \n");
@@ -3310,10 +3310,11 @@ nb_data_refs_in_scop (scop_p scop)
   return res;
 }
 
-/* Swap the two loops of GBB at index LOOP_ONE and LOOP_TWO.  */
+/* Swap the two loops of GBB at index LOOP_ONE and LOOP_TWO.  We do not edit the
+   static schedule.  */
 
 static void 
-graphite_swap_loops (graphite_bb_p gb, int loop_one, int loop_two)
+graphite_swap_loops (graphite_bb_p gb, unsigned loop_one, unsigned loop_two)
 {
   unsigned i;
   loop_p loop_p_one, loop_p_two;
@@ -3356,7 +3357,7 @@ graphite_swap_loops (graphite_bb_p gb, int loop_one, int loop_two)
   -1   0   2   0   #  i >= stride  */
   
 static void
-graphite_strip_mine_loop (graphite_bb_p gb, int loop, int stride)
+graphite_strip_mine_loop (graphite_bb_p gb, unsigned loop, unsigned stride)
 {
   unsigned row, col;
 
@@ -3364,24 +3365,23 @@ graphite_strip_mine_loop (graphite_bb_p gb, int loop, int stride)
   CloogMatrix *new_domain = cloog_matrix_alloc (domain->NbRows + 4,
                                                 domain->NbColumns + 2);   
 
-  int col_const = new_domain->NbColumns - 1;
-  int col_loop_old = loop + 2; 
-  int col_loop_strip = col_loop_old - 1;
-  int col_loc = col_loop_old + 1; 
+  unsigned col_const = new_domain->NbColumns - 1;
+  unsigned col_loop_old = loop + 2; 
+  unsigned col_loop_strip = col_loop_old - 1;
+  unsigned col_loc = col_loop_old + 1; 
 
   gcc_assert (loop <= gbb_nb_loops (gb) - 1);
-  gcc_assert (loop >= 0);
 
   GBB_DOMAIN (gb) = new_domain;
 
   for (row = 0; row < domain->NbRows; row++)
     for (col = 0; col < domain->NbColumns; col++)
-      if (col <= (unsigned) loop)
+      if (col <= loop)
         {
           value_init (new_domain->p[row][col]);
           value_assign (new_domain->p[row][col], domain->p[row][col]);
         }
-      else if (col == (unsigned) loop + 1)
+      else if (col == loop + 1)
         {
           value_init (new_domain->p[row][col + 1]);
           value_assign (new_domain->p[row][col + 1], domain->p[row][col]);
@@ -3431,14 +3431,12 @@ graphite_strip_mine_loop (graphite_bb_p gb, int loop, int stride)
 
   /* Update static schedule.  */
   {
-    int i;
-    int nb_loops = gbb_nb_loops (gb);
+    unsigned i;
+    unsigned nb_loops = gbb_nb_loops (gb);
     lambda_vector new_schedule = lambda_vector_new (nb_loops + 1);
 
     for (i = 0; i <= loop; i++)
       new_schedule[i] = GBB_STATIC_SCHEDULE (gb)[i];  
-
-    new_schedule[i + 1] = GBB_STATIC_SCHEDULE (gb)[i];  
 
     for (i = loop + 1; i <= nb_loops - 2; i++)
       new_schedule[i + 2] = GBB_STATIC_SCHEDULE (gb)[i];  
@@ -3452,13 +3450,13 @@ graphite_strip_mine_loop (graphite_bb_p gb, int loop, int stride)
   VEC_safe_insert (loop_p, heap, GBB_LOOPS (gb), loop + 2, NULL);
 }
 
-/* Swap for all bb with two loops the both loops.  */
+/* For all bb with two loops swap these two loops.  */
+
 static void
 graphite_trans_swap_1and2 (scop_p scop)
 {
   graphite_bb_p gb;
   int i;
-  
 
   for (i = 0; VEC_iterate (graphite_bb_p, SCOP_BBS (scop), i, gb); i++)
     if (gbb_nb_loops (gb) == 2)
@@ -3466,6 +3464,7 @@ graphite_trans_swap_1and2 (scop_p scop)
 }
 
 /* Strip mine the innermost loops for all bbs.  */
+
 static void
 graphite_trans_strip (scop_p scop)
 {
@@ -3479,6 +3478,24 @@ graphite_trans_strip (scop_p scop)
         graphite_strip_mine_loop (gb, gbb_nb_loops (gb) - 1, 4);
     }
 }
+
+/* Apply graphite transformations.  */
+
+static void
+graphite_transformations (scop_p scop)
+{
+      /* XXX: This functions are able to show some loop
+         transformations.  They blindly enable the named transformation
+         on all bbs, without checking dependencies or if these
+         transformations are valid at all. So disable the transformations, that
+         may generate invalid code by default.  */ 
+         
+      if (0) 
+        graphite_trans_swap_1and2 (scop);
+
+      graphite_trans_strip (scop);
+}
+
 /* Perform a set of linear transforms on LOOPS.  */
 
 void
@@ -3523,11 +3540,6 @@ graphite_transform_loops (void)
 	continue;
 
       build_scop_conditions (scop);
-      
-      if (0)
-        graphite_trans_swap_1and2 (scop);
-      graphite_trans_strip (scop);
-
       build_scop_data_accesses (scop);
 
       /* XXX: Disabled, it does not work at the moment. */
@@ -3542,6 +3554,8 @@ graphite_transform_loops (void)
 
       if (0)
 	build_rdg_all_levels (scop);
+
+      graphite_transformations (scop);
 
       gloog (scop, find_transform (scop));
     }

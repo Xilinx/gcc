@@ -213,7 +213,7 @@ gbb_loop (struct graphite_bb *gbb)
 /* Calculate the number of loops in GB in the current SCOP.  
    Only works if GBB_DOMAIN is built.  */
 
-static inline int
+static inline unsigned 
 gbb_nb_loops (graphite_bb_p gb)
 {
   scop_p scop = GBB_SCOP (gb);
