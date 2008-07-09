@@ -2888,7 +2888,61 @@
 	))))
 (install_method class_keyword normal_exp normexp_keyword)
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; utilities for normalization of DEFPRIMITIVE & DEFCITERATOR
+;;;; fill the normal formal args
+(defun fill_normal_formals (sargs nargtuple formsymbmap env ncx sloc)
+  (multiple_every
+   sargs
+   (lambda (fargb :long ix)
+     (assert_msg "check fargb" (is_a fargb class_formal_binding))
+     (let ( (ftyp (unsafe_get_field :fbind_type fargb)) 
+	    (fsymb (unsafe_get_field :binder fargb))
+	    (fdataslot (create_data_slots class_formal_binding))
+	    (fargdata 
+	     (make_instance 
+	      class_nrep_datainstance
+	      :nrep_loc sloc
+	      :ndata_discrx (normal_predef class_formal_binding ncx sloc "class_formal_binding") 
+	      :ninst_hash (make_integerbox discr_integer (nonzero_hash))
+	      :ninst_slots fdataslot
+	      :ninst_objnum (make_integerbox discr_integer ix)
+	      ))
+	    (fsymbdata (normal_symbol_data fsymb ncx sloc))
+	    (ftypdata (normal_predef ftyp ncx sloc "primitive arg type"))
+	    )
+       (assert_msg "check ftyp" (is_a ftyp class_ctype))
+       (add_nctx_data ncx fargdata)
+       (fill_data_slot fargdata binder fsymbdata)
+       (fill_data_slot fargdata fbind_type ftypdata)
+       (multiple_put_nth nargtuple ix fargdata)
+       (mapobject_put formsymbmap fsymb fargdata)
+       )))
+  )
 
+(defun fill_normal_expansion (sexp nexptuple ncx sloc)
+  (multiple_every
+   sexp
+   (lambda (expcomp :long ix)
+     (let ( (discrcomp (discrim expcomp)) 
+	    (compdata 
+	     (cond ( (== discrcomp discr_verbatimstring)
+		     (add_nctx_data ncx
+				    (make_instance 
+				     class_nrep_datastring
+				     :ndata_discrx (normal_predef discr_verbatimstring ncx sloc "discr_verbatimstring") 
+				     :nstr_string expcomp
+				     )))
+		   ( (== discrcomp class_symbol)
+		     (normal_symbol_data expcomp ncx sloc)
+		     )
+		   ( :else 
+		     (debug_msg expcomp "bad component in C code expansion expcomp")
+		     (error_plain sloc "unexpected component in C code expansion"))))
+	    )
+       (multiple_put_nth nexptuple ix compdata)
+       )))
+  )
 
 ;;;;;; normalize a DEFPRIMITIVE
 (defun normexp_defprimitive (recv env ncx psloc)
@@ -2925,61 +2979,16 @@
 				   :ninst_slots nslotuple)) 
 	 (nsymdata (normal_symbol_data sname ncx sloc))
 	 ;; map of formal symbol -> data of formal_binding
-	 (formsymbmap (make_mapobject discr_mapobjects (*i (multiple_length sargs) 2)))
+	 (formsymbmap (make_mapobject discr_mapobjects (+i 3 (*i (multiple_length sargs) 2))))
 	 )
     (add_nctx_data ncx nprimdata)
     (add_nctx_data ncx nexpdata)
     (add_nctx_data ncx nargdata)
     ;; dont add nsymdata, it has already been added
     ;; fill the formal arguments of the data
-    (multiple_every
-     sargs
-     (lambda (fargb :long ix)
-       (assert_msg "check fargb" (is_a fargb class_formal_binding))
-       (let ( (ftyp (unsafe_get_field :fbind_type fargb)) 
-	      (fsymb (unsafe_get_field :binder fargb))
-	      (fdataslot (create_data_slots class_formal_binding))
-	      (fargdata 
-	       (make_instance 
-		class_nrep_datainstance
-		:nrep_loc sloc
-		:ndata_discrx (normal_predef class_formal_binding ncx sloc "class_formal_binding") 
-		:ninst_hash (make_integerbox discr_integer (nonzero_hash))
-		:ninst_slots fdataslot
-		:ninst_objnum (make_integerbox discr_integer ix)
-		))
-	      (fsymbdata (normal_symbol_data fsymb ncx sloc))
-	      (ftypdata (normal_predef ftyp ncx sloc "primitive arg type"))
-	      )
-	 (assert_msg "check ftyp" (is_a ftyp class_ctype))
-	 (add_nctx_data ncx fargdata)
-	 (fill_data_slot fargdata binder fsymbdata)
-	 (fill_data_slot fargdata fbind_type ftypdata)
-	 (multiple_put_nth nargtuple ix fargdata)
-	 (mapobject_put formsymbmap fsymb fargdata)
-	 )))
+    (fill_normal_formals sargs nargtuple formsymbmap env ncx sloc)
     ;; fill the expansion of the data
-    (multiple_every
-     sexp
-     (lambda (expcomp :long ix)
-       (debug_msg expcomp "normexp_defprimitive expcomp")
-       (let ( (discrcomp (discrim expcomp)) 
-	      (compdata 
-	       (cond ( (== discrcomp discr_verbatimstring)
-		       (add_nctx_data ncx
-				      (make_instance 
-				       class_nrep_datastring
-				       :ndata_discrx (normal_predef discr_verbatimstring ncx sloc "discr_verbatimstring") 
-				       :nstr_string expcomp
-				       )))
-		     ( (== discrcomp class_symbol)
-		       (normal_symbol_data expcomp ncx sloc)
-		       )
-		     ( :else 
-		       (error_plain sloc "unexpected component in primitive expansion"))))
-	      )
-	 (multiple_put_nth nexptuple ix compdata)
-	 )))
+    (fill_normal_expansion sexp nexptuple ncx sloc)
 ;;; fill the primitive data    
     (fill_data_slot nprimdata named_name 
 		    (add_nctx_data 
@@ -3000,6 +3009,115 @@
 (install_method class_src_defprimitive normal_exp normexp_defprimitive)
 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;; normalize a DEFCITERATOR
+(defun normexp_defciterator (recv env ncx psloc)
+  (assert_msg "check defciterator recv" (is_a recv class_src_defciterator))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check nctxt" (is_a ncx class_normcontext))
+  (let ( 
+	(sloc (unsafe_get_field :src_loc recv))
+	(sname (unsafe_get_field :sdef_name recv))
+	(sciter (let ( (sc (unsafe_get_field :sciterdef_citerator recv)) )
+		  (assert_msg "check sciter" (is_a sc class_citerator))
+		  sc))
+	(citstafor (unsafe_get_field :citer_start_formals sciter))
+	(slotup (make_multiple discr_multiple
+			       (multiple_length (unsafe_get_field :class_fields class_citerator))))
+	(formstatup (make_multiple discr_multiple
+				   (multiple_length citstafor)))
+	(citbodfor (unsafe_get_field :citer_body_formals sciter))
+	(formbodtup (make_multiple discr_multiple 
+				   (multiple_length citbodfor)))
+	(citstatsy (unsafe_get_field :citer_state sciter))
+	(citexpbef (unsafe_get_field :citer_expbefore sciter))
+	(expbeftup (make_multiple discr_multiple (multiple_length citexpbef)))
+	(citexpaft (unsafe_get_field :citer_expafter sciter))
+	(expafttup (make_multiple discr_multiple (multiple_length citexpaft)))
+	;; map of formal symbol -> data of formal_binding
+	(formsymbmap (make_mapobject discr_mapobjects
+				     (+i 5 (*i (+i (multiple_length citstafor) (multiple_length citbodfor)) 2))))
+	(namstrdata (make_instance class_nrep_datastring
+				   :nrep_loc sloc
+				   :ndata_discrx (normal_predef discr_string ncx sloc "discr_string") 
+				   :nstr_string (unsafe_get_field :named_name sname)))
+	(insdata (make_instance class_nrep_datainstance
+				:nrep_loc sloc
+				:ndata_name sname
+				:ndata_discrx (normal_predef class_citerator ncx sloc "class_citerator") 
+				:ninst_hash (make_integerbox discr_integer (nonzero_hash))
+				:ninst_slots slotup
+				)) 
+	)
+    (add_nctx_data ncx insdata)
+    (add_nctx_data ncx namstrdata)
+;;; fill the named_name of insdata
+    (multiple_put_nth slotup (get_int named_name) namstrdata)
+;;; fill the citer_start_formals of insdata
+    (fill_normal_formals citstafor formstatup formsymbmap env ncx sloc)
+    (let ( (nstatupdata (make_instance class_nrep_datatuple
+				       :nrep_loc sloc
+				       :ndata_name sname
+				       :ndata_discrx (normal_predef discr_multiple ncx sloc "discr_multiple")
+				       :ntup_comp formstatup))
+	   )
+      (add_nctx_data ncx nstatupdata)
+      (multiple_put_nth slotup (get_int citer_start_formals) 
+			nstatupdata)
+      )
+;;; fill the citer_state
+    (assert_msg "check citstatsy" (is_a citstatsy class_symbol))
+    (let ( (nstatsydata (normal_symbol_data citstatsy ncx sloc)) )
+      (multiple_put_nth slotup (get_int citer_state) 
+			nstatsydata)
+      )
+;;; fill the citer_body_formals of insdata
+    (fill_normal_formals citbodfor formbodtup formsymbmap env ncx sloc)
+    (let ( (nbodtupdata (make_instance class_nrep_datatuple
+				       :nrep_loc sloc
+				       :ndata_name sname
+				       :ndata_discrx (normal_predef discr_multiple ncx sloc "discr_multiple")
+				       :ntup_comp formbodtup))
+	   )
+      (add_nctx_data ncx nbodtupdata)
+      (multiple_put_nth slotup (get_int citer_body_formals) nbodtupdata)
+      )
+;;; fill the citer_expbefore of insdata
+    (fill_normal_expansion citexpbef expbeftup ncx sloc)
+    (let ( (nbeftupdata  (make_instance class_nrep_datatuple
+				       :nrep_loc sloc
+				       :ndata_name sname
+				       :ndata_discrx (normal_predef discr_multiple ncx sloc "discr_multiple")
+				       :ntup_comp expbeftup))
+	   )
+      (add_nctx_data ncx nbeftupdata)
+      (multiple_put_nth slotup (get_int citer_expbefore) nbeftupdata)
+      )
+;;; fill the citer_expafter of insdata
+    (fill_normal_expansion citexpaft expafttup ncx sloc)
+    (let ( (nafttupdata  (make_instance class_nrep_datatuple
+				       :nrep_loc sloc
+				       :ndata_name sname
+				       :ndata_discrx (normal_predef discr_multiple ncx sloc "discr_multiple")
+				       :ntup_comp expafttup))
+	   )
+      (add_nctx_data ncx nafttupdata)
+      (multiple_put_nth slotup (get_int citer_expafter) nafttupdata)
+      )
+;;;;;;;
+    ;; return the data
+    (debug_msg insdata "normexp_defciterator return insdata")
+    (return insdata)
+    ))
+(install_method class_src_defciterator normal_exp normexp_defciterator)
+
+
+;;;;;; normalize a citeration
+(defun normexp_citeration (recv env ncx psloc)
+  (assert_msg "@@unimplemented normexp_citeration" ())
+)
+(install_method class_src_citeration normal_exp normexp_citeration)
+(compile_warning "normexp_citeration NOT IMPLEMENTED" ())
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;

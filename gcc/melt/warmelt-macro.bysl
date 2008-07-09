@@ -796,9 +796,32 @@
 		      (unsafe_get_field :named_name symb))
 	))
 
+;;;;;;;;;;;;;;;;
+;;;;;; parse a pairlist as a C code expansion, return a tuple
+(defun parse_pairlist_c_code_expansion (loc curpair)
+  (let ( (:long nbcomp (pair_listlength curpair))
+	 (etuple (make_multiple discr_multiple nbcomp))
+	 (:long ix 0) )
+    (forever comploop
+	     (if (not (is_pair curpair)) (exit comploop))
+	     (let ( (curhead  (pair_head curpair)) )
+	       ;; change string to verbatimstring to ease later expansion
+	       ;; and check that each component is e string or a symbol
+	       (cond ( (== (discrim curhead) discr_string)
+		       (setq curhead (make_string discr_verbatimstring curhead))
+		       ())
+		     ( (!= (discrim curhead) class_symbol)
+		       (error_plain loc "invalid expansion component in C code expansion")
+		       ()))
+	       (multiple_put_nth etuple ix curhead)
+	       (setq curpair (pair_tail curpair))
+	       (setq ix (+i ix 1))))
+  (return etuple)
+  ))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;; macro expansers
-;; the defprimitive expander
+  ;; the defprimitive expander
 (defun mexpand_defprimitive (sexpr env mexpander)
   (debug_msg sexpr "mexpand_defprimitive sexpr")
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
@@ -835,52 +858,33 @@
 		))
 	  ;; parse the rest as to be expanded
 	  (setq curpair (pair_tail curpair))
-	  (let ( (:long nbcomp (pair_listlength curpair))
-		 (etuple (make_multiple discr_multiple nbcomp))
-		 (:long ix 0) )
-	    (forever comploop
-		     (if (not (is_pair curpair)) (exit comploop))
-		     (let ( (curhead  (pair_head curpair)) )
-		       (debug_msg curhead "mexpand_defprimitive curhead")
-		       (let ( (curcomp  (macroexpand_1 curhead env mexpander)) )
-			 (debug_msg curcomp "mexpand_defprimitive curcomp")
-			 ;; change string to verbatimstring to ease primitive expansion
-			 ;; and check that each component is e string or a symbol
-			 (cond ( (== (discrim curcomp) discr_string)
-				 (setq curcomp (make_string discr_verbatimstring curcomp))
-				 ())
-			       ( (!= (discrim curcomp) class_symbol)
-				 (error_strv loc "invalid expansion component in primitive"
-					     (unsafe_get_field :named_name symb))
-				 ()))
-			 (multiple_put_nth etuple ix curcomp)
-			 (setq curpair (pair_tail curpair))
-			 (setq ix (+i ix 1)))))
-	    (let ( (sdefpri
-		    (make_instance class_src_defprimitive
-				   :src_loc loc
-				   :sdef_name symb
-				   :sformal_args btup
-				   :sprim_type cty
-				   :sprim_expansion etuple))
-		   (primit
-		    (make_instance class_primitive
-				   :named_name (unsafe_get_field :named_name symb)
-				   :prim_formals btup
-				   :prim_type cty
-				   :prim_expansion etuple))
-		   (pbind
-		    (make_instance class_primitive_binding
-				   :binder symb
-				   :pbind_primdef sdefpri
-				   :pbind_primitive primit
-				   ))
-		   )
-	      (warn_if_redefined symb env loc)
-	      (put_env env pbind)
-	      (debug_msg sdefpri "mexpand_defprimitive result sdefpri")
-	      (return sdefpri)
-	      )))))))
+	  (let (
+		(etuple (parse_pairlist_c_code_expansion loc curpair))
+		(sdefpri
+		 (make_instance class_src_defprimitive
+				:src_loc loc
+				:sdef_name symb
+				:sformal_args btup
+				:sprim_type cty
+				:sprim_expansion etuple))
+		(primit
+		 (make_instance class_primitive
+				:named_name (unsafe_get_field :named_name symb)
+				:prim_formals btup
+				:prim_type cty
+				:prim_expansion etuple))
+		(pbind
+		 (make_instance class_primitive_binding
+				:binder symb
+				:pbind_primdef sdefpri
+				:pbind_primitive primit
+				))
+		)
+	    (warn_if_redefined symb env loc)
+	    (put_env env pbind)
+	    (debug_msg sdefpri "mexpand_defprimitive result sdefpri")
+	    (return sdefpri)
+	    ))))))
 (install_initial_macro 'defprimitive mexpand_defprimitive)
 (export_macro defprimitive mexpand_defprimitive)
 
@@ -926,8 +930,7 @@
 	  (progn
 	    (error_plain loc "missing before expansion for  (DEFCITERATOR symb startformals statesymb locformals expbefore expafter)")
 	    (return)))
-      (setq expbef 
-	    (expand_pairlist_as_tuple (list_first (unsafe_get_field :sexp_contents sexpbef)) env mexpander))
+      (setq expbef (parse_pairlist_c_code_expansion loc (list_first (unsafe_get_field :sexp_contents sexpbef))))
       )
     (setq curpair (pair_tail curpair))
     ;; parse the after expansion
@@ -936,8 +939,7 @@
 	  (progn
 	    (error_plain loc "missing after expansion for  (DEFCITERATOR symb startformals statesymb locformals expbefore expafter)")
 	    (return)))
-      (setq expaft 
-	    (expand_pairlist_as_tuple (list_first (unsafe_get_field :sexp_contents sexpaft)) env mexpander))
+      (setq expaft  (parse_pairlist_c_code_expansion loc (list_first (unsafe_get_field :sexp_contents sexpaft))))
       )
     ;; make the citerator and binding
     (let ( (citer (make_instance class_citerator
