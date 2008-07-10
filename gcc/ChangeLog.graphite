@@ -1,5 +1,13 @@
 2008-07-10  Harsha Jagasia  <harsha.jagasia@amd.com>
 
+	* testsuite/gfortran.dg/graphite/scop-1.f: Update to reduced test case.
+
+	* testsuite/gfortran.dg/graphite/graphite.exp: Use DEFAULT_GRAPHITE_FLAGS.
+
+	* testsuite/gcc.dg/graphite/scop-15.c: Update to reduced test case.
+
+2008-07-10  Harsha Jagasia  <harsha.jagasia@amd.com>
+
 	* graphite.c (scan_tree_for_params): Do not assert any more if MULT_EXPR 
 	parameter is negative.
 

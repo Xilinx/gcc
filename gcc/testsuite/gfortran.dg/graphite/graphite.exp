@@ -20,20 +20,17 @@
 load_lib gfortran-dg.exp
 
 # If a testcase doesn't have special options, use these.
-global DEFAULT_FFLAGS
-if ![info exists DEFAULT_FFLAGS] then {
-    set DEFAULT_FFLAGS " -pedantic-errors"
-}
+set DEFAULT_GRAPHITE_FLAGS ""
 
 # Initialize `dg'.
 dg-init
 
 # Main loop.
 gfortran-dg-runtest [lsort \
-       [glob -nocomplain $srcdir/$subdir/*.\[fF\]{,90,95,03,08} ] ] $DEFAULT_FFLAGS
+       [glob -nocomplain $srcdir/$subdir/*.\[fF\]{,90,95,03,08} ] ] $DEFAULT_GRAPHITE_FLAGS
 
 gfortran-dg-runtest [lsort \
-       [glob -nocomplain $srcdir/$subdir/g77/*.\[fF\] ] ] $DEFAULT_FFLAGS
+       [glob -nocomplain $srcdir/$subdir/g77/*.\[fF\] ] ] $DEFAULT_GRAPHITE_FLAGS
 
 
 # All done.
