@@ -1,5 +1,20 @@
 2008-07-10  Tobias Grosser  <grosser@fim.uni-passau.de>
 
+	* graphite.c (graphite_trans_bb_swap_loops): Rename from
+	graphite_swap_loops.
+	(graphite_trans_bb_move_loop): New.
+	(graphite_trans_bb_strip_mine): Rename from graphite_strip_mine_loop.
+	(graphite_trans_bb_block): New.
+	(graphite_trans_loop_block): New.
+	(graphite_trans_scop_swap_1and2): Rename from graphite_trans_swap_1and2.
+	(graphite_trans_scop_strip): Rename from graphite_trans_strip.
+	(graphite_trans_scop_block): New.
+	(graphite_apply_transformations): Rename from graphite_transformations.
+
+	* testsuite/gcc.dg/graphite/scop-matmult.c: New.
+	
+2008-07-10  Tobias Grosser  <grosser@fim.uni-passau.de>
+
 	* graphite.c (gbb_compare): New.
 	(graphite_sort_gbbs): New.
 	(gbb_can_be_ignored): New.

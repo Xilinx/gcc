@@ -3392,7 +3392,7 @@ gbb_can_be_ignored (graphite_bb_p gb)
   return true;
 }
 
-/* Remove all bbs with empty body from SCOP.  */
+/* Remove all ignoreable gbbs from SCOP.  */
 
 static void
 scop_remove_ignoreable_gbbs (scop_p scop)
@@ -3436,25 +3436,123 @@ scop_remove_ignoreable_gbbs (scop_p scop)
   graphite_sort_gbbs (scop);
 }
 
-/* Swap the two loops of GBB at index LOOP_ONE and LOOP_TWO.  We do not edit the
-   static schedule.  */
+/*******************************************************************************
+                          Graphite BB transformations
+*******************************************************************************/
+
+/* Swap the two loops of GBB at index LOOP_ONE and LOOP_TWO.
+   This transformartion is only valid, if the loop nest between i and k is
+   perfect nested. Therefore we do not need to change the static schedule.
+
+   Example:
+
+   for (i = 0; i < 50; i++)
+     for (j ...)
+       for (k = 5; k < 100; k++)
+         A
+
+   To swap i and k call:
+
+   graphite_trans_bb_swap_loops (gb, 0, 2)
+
+   for (k = 5; k < 100; k++)
+     for (j ...)
+       for (i = 0; i < 50; i++)
+         A
+
+   XXX: Does not check validity.  Necessary?  */
 
 static void 
-graphite_swap_loops (graphite_bb_p gb, unsigned loop_one, unsigned loop_two)
+graphite_trans_bb_swap_loops (graphite_bb_p gb, unsigned loop_one,
+unsigned loop_two)
 {
   unsigned i;
   loop_p loop_p_one, loop_p_two;
   CloogMatrix *domain = GBB_DOMAIN (gb);
+
   gcc_assert (loop_one < gbb_nb_loops (gb));
   gcc_assert (loop_two < gbb_nb_loops (gb));
-  
+
+  /* Move domain columns.  */  
   for (i = 0; i < domain->NbRows; i++)
       value_swap (domain->p[i][loop_one + 1], domain->p[i][loop_two + 1]);
 
+   /* Update LOOPS vector.  */
   loop_p_one = VEC_index (loop_p, GBB_LOOPS (gb), loop_one);
   loop_p_two = VEC_index (loop_p, GBB_LOOPS (gb), loop_two);
   VEC_replace (loop_p, GBB_LOOPS(gb), loop_one, loop_p_two);
   VEC_replace (loop_p, GBB_LOOPS(gb), loop_two, loop_p_one);
+}
+
+/* Move the loop at index LOOP and insert it before index NEW_LOOP_POS.
+   This transformartion is only valid, if the loop nest between i and k is
+   perfect nested. Therefore we do not need to change the static schedule.
+
+   Example:
+
+   for (i = 0; i < 50; i++)
+     for (j ...)
+       for (k = 5; k < 100; k++)
+         A
+
+   To move k before i use:
+
+   graphite_trans_bb_move_loop (A, 2, 0)
+
+   for (k = 5; k < 100; k++)
+     for (i = 0; i < 50; i++)
+       for (j ...)
+         A
+
+   And to move k back:
+
+   graphite_trans_bb_move_loop (A, 0, 2)
+
+   XXX: Does not check validity. Necessary?  */
+
+static void
+graphite_trans_bb_move_loop (graphite_bb_p gb, unsigned loop,
+unsigned new_loop_pos)
+{
+  CloogMatrix *domain = GBB_DOMAIN (gb);
+  unsigned row, j;
+  loop_p tmp_loop_p;
+
+  gcc_assert (loop < gbb_nb_loops (gb));
+  gcc_assert (new_loop_pos < gbb_nb_loops (gb));
+
+  /* Update LOOPS vector.  */
+  tmp_loop_p = VEC_index (loop_p, GBB_LOOPS (gb), loop);
+  VEC_ordered_remove (loop_p, GBB_LOOPS (gb), loop);
+  VEC_safe_insert (loop_p, heap, GBB_LOOPS (gb), new_loop_pos, tmp_loop_p);
+
+  /* Move the domain columns.  */
+  if (loop < new_loop_pos)
+    for (row = 0; row < domain->NbRows; row++)
+      {
+        Value tmp;
+        value_init (tmp);
+        value_assign (tmp, domain->p[row][loop + 1]);
+   
+        for (j = loop ; j < new_loop_pos - 1; j++)
+          value_assign (domain->p[row][j + 1], domain->p[row][j + 2]);
+
+        value_assign (domain->p[row][new_loop_pos], tmp);
+        value_clear (tmp);
+      }
+  else
+    for (row = 0; row < domain->NbRows; row++)
+      {
+        Value tmp;
+        value_init (tmp);
+        value_assign (tmp, domain->p[row][loop + 1]);
+
+        for (j = loop ; j > new_loop_pos; j--)
+          value_assign (domain->p[row][j + 1], domain->p[row][j]);
+     
+        value_assign (domain->p[row][new_loop_pos + 1], tmp);
+        value_clear (tmp);
+      }
 }
 
 /* Strip mines the loop of BB at the position (loop depth) LOOP with STRIDE.
@@ -3468,10 +3566,10 @@ graphite_swap_loops (graphite_bb_p gb, unsigned loop_one, unsigned loop_two)
    1   0   #  i >= 0
   -1   20  #  i <= 20
 
-   Strip mining with stripe stride = 2
+   Strip mining with stripe stride = 4 
 
-   for (ii = 0; ii <= 20; i+=2)
-     for (i = ii; i <= min (20, ii+1); i++)
+   for (ii = 0; ii <= 20; i+=4)
+     for (i = ii; i <= min (20, ii+2); i++)
        A
 
    ii  i  ii2  1
@@ -3480,10 +3578,12 @@ graphite_swap_loops (graphite_bb_p gb, unsigned loop_one, unsigned loop_two)
   -1   1   0   0   #  i >= ii
    1  -1   0   1   #  i <= ii + stride - 1
    1   0  -2   0   #  i <= stride 
-  -1   0   2   0   #  i >= stride  */
+  -1   0   2   0   #  i >= stride 
+
+  Always valid, but not always a performance improvement.  */
   
 static void
-graphite_strip_mine_loop (graphite_bb_p gb, unsigned loop, unsigned stride)
+graphite_trans_bb_strip_mine (graphite_bb_p gb, unsigned loop, unsigned stride)
 {
   unsigned row, col;
 
@@ -3499,7 +3599,8 @@ graphite_strip_mine_loop (graphite_bb_p gb, unsigned loop, unsigned stride)
   gcc_assert (loop <= gbb_nb_loops (gb) - 1);
 
   GBB_DOMAIN (gb) = new_domain;
-
+ 
+  /* Move domain.  */
   for (row = 0; row < domain->NbRows; row++)
     for (col = 0; col < domain->NbColumns; col++)
       if (col <= loop)
@@ -3569,30 +3670,94 @@ graphite_strip_mine_loop (graphite_bb_p gb, unsigned loop, unsigned stride)
 
     GBB_STATIC_SCHEDULE (gb) = new_schedule;
   
-    /* XXX: Free  old schedule.  */
+    /* XXX: Free  old schedule.  How?  */
   }
     
   VEC_safe_insert (loop_p, heap, GBB_LOOPS (gb), loop, NULL);
   VEC_safe_insert (loop_p, heap, GBB_LOOPS (gb), loop + 2, NULL);
 }
 
+/* Loop block the LOOPS innermost loops of BB with stride size STRIDE. 
+
+   Example
+
+   for (i = 0; i <= 50; i++=4) 
+     for (k = 0; k <= 100; k++=4) 
+       for (l = 0; l <= 200; l++=4) 
+         A
+
+   To strip mine the two inner most loops with stride = 4 call:
+
+   graphite_trans_bb_block (A, 4, 2) 
+
+   for (i = 0; i <= 50; i++) 
+     for (kk = 0; kk <= 100; kk+=4) 
+       for (ll = 0; ll <= 200; ll+=4) 
+         for (k = kk; k <= min (100, kk + 3); k++) 
+           for (l = ll; l <= min (200, ll + 3); l++) 
+             A
+
+   XXX: Does not check validity. Necessary?  */
+
+static void
+graphite_trans_bb_block (graphite_bb_p gb, unsigned stride, unsigned loops)
+{
+  unsigned i;
+  unsigned nb_loops = gbb_nb_loops (gb);
+  unsigned start = nb_loops - loops;
+
+  /* Strip mine loops.  */
+  for (i = 0; i < nb_loops - start; i++)
+    graphite_trans_bb_strip_mine (gb, start + 3 * i, stride);
+
+  /* Interchange loops.  */
+  for (i = 1; i < nb_loops - start; i++)
+    graphite_trans_bb_move_loop (gb, start + 3 * i, start + i);
+}
+
+/*******************************************************************************
+                          Graphite LOOP transformations
+*******************************************************************************/
+
+/* Loop block a loop nest. Calculate the optimal stride size (TODO).  */
+
+static void
+graphite_trans_loop_block (VEC (graphite_bb_p, heap) *bbs, int loops)
+{
+  graphite_bb_p gb;
+  int i;
+
+  /* TODO: - Calculate the stride size automatically.
+           - Only block, if there are sufficient iterations.  */
+  int stride_size = 64;
+
+  for (i = 0; VEC_iterate (graphite_bb_p, bbs, i, gb); i++)
+    graphite_trans_bb_block (gb, stride_size, loops);
+}
+
+/*******************************************************************************
+                          Graphite SCOP transformations
+*******************************************************************************/
+
+/* SIMPLE EXAMPLE  */
 /* For all bb with two loops swap these two loops.  */
 
 static void
-graphite_trans_swap_1and2 (scop_p scop)
+graphite_trans_scop_swap_1and2 (scop_p scop)
 {
   graphite_bb_p gb;
   int i;
 
   for (i = 0; VEC_iterate (graphite_bb_p, SCOP_BBS (scop), i, gb); i++)
     if (gbb_nb_loops (gb) == 2)
-      graphite_swap_loops (gb, 0, 1);
+      graphite_trans_bb_swap_loops (gb, 0, 1);
 }
 
-/* Strip mine the innermost loops for all bbs.  */
+/* SIMPLE EXAMPLE  */
+/* Strip mine all innermost loops with stride = 4.  */
 
 static void
-graphite_trans_strip (scop_p scop)
+graphite_trans_scop_strip (scop_p scop)
 {
   graphite_bb_p gb;
   int i;
@@ -3601,14 +3766,133 @@ graphite_trans_strip (scop_p scop)
     {
       int nb_loops = gbb_nb_loops (gb);
       if (nb_loops >= 1  && nb_loops == loop_depth)
-        graphite_strip_mine_loop (gb, gbb_nb_loops (gb) - 1, 4);
+        graphite_trans_bb_strip_mine (gb, gbb_nb_loops (gb) - 1, 4);
     }
+}
+
+
+/* Loop block all bbs.  
+   XXX: Does not contain dependency checks. */
+
+static void
+graphite_trans_scop_block (scop_p scop)
+{
+  graphite_bb_p gb;
+  int i, j;
+  int last_nb_loops;
+  int nb_loops;
+  bool perfect = true;
+
+  VEC (graphite_bb_p, heap) *bbs = VEC_alloc (graphite_bb_p, heap, 3);
+  int max_schedule = scop_max_loop_depth (scop) + 1;
+  lambda_vector last_schedule = lambda_vector_new (max_schedule);
+
+  /* Get the data of the first bb.  */
+  gb = VEC_index (graphite_bb_p, SCOP_BBS (scop), 0); 
+  last_nb_loops = gbb_nb_loops (gb);
+  lambda_vector_copy (GBB_STATIC_SCHEDULE (gb), last_schedule,
+                      last_nb_loops + 1);
+  VEC_safe_push (graphite_bb_p, heap, bbs, gb);
+  
+  for (i = 0; VEC_iterate (graphite_bb_p, SCOP_BBS (scop), i, gb); i++)
+    {
+      /* We did the first bb before.  */
+      if (i == 0)
+        continue;
+
+      nb_loops = gbb_nb_loops (gb);
+
+      /* If the number of loops is unchanged and only the last element of the
+         schedule changes, we stay in the loop nest.  */
+      if (nb_loops == last_nb_loops 
+          && (last_schedule [nb_loops + 1]
+              != GBB_STATIC_SCHEDULE (gb)[nb_loops + 1]))
+        {
+          VEC_safe_push (graphite_bb_p, heap, bbs, gb);
+          continue;
+        }
+
+      /* Otherwise, we left the innermost loop. So check, if the last bb was in
+         a perfect loop nest and how many loops are contained in this perfect
+         loop nest. 
+         
+         Count the number of zeros from the end of the schedule. They are the
+         number of surrounding loops.
+
+         Example:
+         last_bb  2 3 2 0 0 0 0 3
+         bb       2 4 0
+                        <------  j = 4
+        
+         last_bb  2 3 2 0 0 0 0 3
+         bb       2 3 2 0 1
+                            <--  j = 2
+
+         If there is no zero, there were other bbs in outer loops and the loop
+         nest is not perfect.  */
+      for (j = last_nb_loops - 1; j >= 0; j--)
+        {
+          if (last_schedule [j] != 0
+              || (j <= nb_loops && GBB_STATIC_SCHEDULE (gb)[j] == 1))
+            {
+              j--;
+              break;
+            }
+        }
+      
+      j++;
+
+      /* Found perfect loop nest.  */
+      if (perfect && last_nb_loops - j > 0)
+        graphite_trans_loop_block (bbs, last_nb_loops - j);
+ 
+      /* Check if we start with a new loop.
+
+         Example:
+  
+         last_bb  2 3 2 0 0 0 0 3
+         bb       2 3 2 0 0 1 0
+        
+         Here we start with the loop "2 3 2 0 0 1" 
+
+         last_bb  2 3 2 0 0 0 0 3
+         bb       2 3 2 0 0 1 
+
+         But here not, so the loop nest can never be perfect.  */
+
+      perfect = (GBB_STATIC_SCHEDULE (gb)[nb_loops] == 0);
+
+      /* Update the last_bb infos.  We do not do that for the bbs in the same
+         loop, as the data we use is not changed.  */
+      last_nb_loops = nb_loops;
+      lambda_vector_copy (GBB_STATIC_SCHEDULE (gb), last_schedule,
+                          nb_loops + 1);
+      VEC_truncate (graphite_bb_p, bbs, 0);
+      VEC_safe_push (graphite_bb_p, heap, bbs, gb);
+    }
+
+    /* Check if the last loop nest was perfect.  It is the same check as above,
+       but the comparision with the next bb is missing.  */
+      for (j = last_nb_loops - 1; j >= 0; j--)
+        if (last_schedule [j] != 0)
+          {
+            j--;
+            break;
+          }
+
+      j++;
+
+      /* Found perfect loop nest.  */
+      if (last_nb_loops - j > 0)
+        graphite_trans_loop_block (bbs, last_nb_loops - j);
+    VEC_free (graphite_bb_p, heap, bbs);
+
 }
 
 /* Apply graphite transformations.  */
 
 static void
-graphite_transformations (scop_p scop)
+graphite_apply_transformations (scop_p scop)
 {
   /* Sort the list of bbs.  Keep them always sorted.  */
   graphite_sort_gbbs (scop);
@@ -3621,10 +3905,15 @@ graphite_transformations (scop_p scop)
      may generate invalid code by default.  */ 
          
   if (0) 
-    graphite_trans_swap_1and2 (scop);
+    graphite_trans_scop_swap_1and2 (scop);
 
   if (0)
-    graphite_trans_strip (scop);
+    graphite_trans_scop_strip (scop);
+
+  /* Enabled by default to get tested. At the moment this is not save for all
+     scops, as we do not check dependencies.  */
+  if (1)
+    graphite_trans_scop_block (scop);
 }
 
 /* Perform a set of linear transforms on LOOPS.  */
@@ -3686,7 +3975,7 @@ graphite_transform_loops (void)
       if (0)
 	build_rdg_all_levels (scop);
 
-      graphite_transformations (scop);
+      graphite_apply_transformations (scop);
 
       gloog (scop, find_transform (scop));
     }
