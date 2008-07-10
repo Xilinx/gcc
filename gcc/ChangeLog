@@ -1,3 +1,446 @@
+2008-07-09  Doug Kwan  <dougkwan@google.com>
+
+	Revert:
+	2008-07-08  Doug Kwan  <dougkwan@google.com>
+
+	* config/arm/arm.opt (mandroid): New option.
+	* config/arm/bpabi.h (ANDROID_LINK_SPEC): New macro.
+	(LINK_SPEC): Enable Android specific behaviour when -mandroid is used.
+	(CC1_SPEC): Same.
+	(CC1PLUS_SPEC): Same.
+	(LIB_SPEC): Same.
+	(STARTFILE_SPEC): Same.
+	(ENDFILE_SPEC): Same.
+	(TARGET_BPABI_CPP_BUILTINS): Define __ANDROID__ when -mandroid is
+	used.
+
+2008-07-09  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	PR target/35802
+	* config/mips/mips.h (reg_class): Remove V1_REG.
+	(REG_CLASS_NAMES, REG_CLASS_CONTENTS): Update accordingly.
+	* config/mips/mips.c (mips_regno_to_class): Map $3 to M16_NA_REGS
+	instead of V1_REGS.
+	(mips_get_tp): New function.
+	(mips_legitimize_tls_address): Use it.
+	* config/mips/constraints.md (v): Delete.
+	* config/mips/mips.md (TLS_GET_TP_REGNUM): New constant.
+	(tls_get_tp_<mode>): Allow any GPR destination and clobber $3.
+	After reload, split into a move and ...
+	(*tls_get_tp_<mode>_split): ...this new instruction.
+
+2008-07-09  David Daney  <ddaney@avtrex.com>
+
+	* config/mips/driver-native.c: Include coretypes.h and tm.h.
+
+2008-07-09  Jakub Jelinek  <jakub@redhat.com>
+
+	* gimplify.c (struct gimplify_ctx): Move to tree-gimple.h.
+	(push_gimplify_context): Don't allocate temp_htab nor c itself here.
+	Add c argument.
+	(pop_gimplify_context): Check c->temp_htab instead of optimize whether
+	htab_delete should be called.  Don't free c.
+	(lookup_tmp_var): Create temp_htab lazily.
+	(gimplify_scan_omp_clauses, gimplify_omp_parallel, gimplify_omp_task,
+	gimplify_body, force_gimple_operand): Adjust push_gimplify_context
+	callers.
+	* omp-low.c (lower_omp_sections, lower_omp_single, lower_omp_master,
+	lower_omp_ordered, lower_omp_critical, lower_omp_for,
+	create_task_copyfn, lower_omp_taskreg, execute_lower_omp): 
+	* tree-ssa-ccp.c (convert_to_gimple_builtin): Likewise.
+	* tree-sra.c (generate_element_init): Likewise.
+	* tree-mudflap.c (execute_mudflap_function_ops,
+	execute_mudflap_function_decls): Likewise.
+	* tree-inline.c (setup_one_parameter, optimize_inline_calls): Likewise.
+	* tree-gimple.h (struct gimplify_ctx): New type.
+	(push_gimplify_context): Adjust prototype.
+
+2008-07-09  Daniel Berlin  <dberlin@dberlin.org>
+
+	* tree-ssa-pre.c (phi_translate_1): Update placement of
+	add_to_value calls.
+
+2008-07-09  Anatoly Sokolov  <aesok@post.ru>
+
+	* target.h (struct gcc_target): Add hard_regno_scratch_ok field.
+	* target-def.h (TARGET_HARD_REGNO_SCRATCH_OK): New.
+	(TARGET_INITIALIZER): Use TARGET_HARD_REGNO_SCRATCH_OK.
+	* targhooks.c (default_hard_regno_scratch_ok): New function.
+	* targhooks.h (default_hard_regno_scratch_ok): Declare function.
+	* doc/tm.texi: Document TARGET_HARD_REGNO_SCRATCH_OK hook.
+	* recog.c:  Include "target.h".
+	(peep2_find_free_register): Add check for global regs. Add target
+	specific check.
+	* Makefile.in (recog.o): Depend on target.h.
+
+2008-07-09  Kaz Kojima  <kkojima@gcc.gnu.org>
+
+	* config/sh/sh.c (sh_canonical_va_list_type): New.
+	(TARGET_CANONICAL_VA_LIST_TYPE): Define.
+
+2008-07-09  Raksit Ashok <raksit@google.com>
+
+	* doc/invoke.texi (Option Summary): Mention new option
+	-Wdisallowed-function-list=...
+	(Warning Options): Document -Wdisallowed-function-list=...
+	* common.opt (Wdisallowed-function-list=): New flag.
+	* flags.h (warn_disallowed_functions): External definition of new
+	boolean warning flag.
+	(warn_if_disallowed_function_p): Declare new function.
+	* opts.c (warning_disallowed_functions): New static variable.
+	(warn_disallowed_functions): New boolean warning flag.
+	(warn_if_disallowed_function_p): New function.
+	(add_comma_separated_to_vector): Rename
+	add_instrument_functions_exclude_list to this.
+	(common_handle_option): Handle new option. Rename calls to
+	add_instrument_functions_exclude_list into calls to
+	add_comma_separated_to_vector.
+	* c-parser.c (c_parser_postfix_expression_after_primary): New warning
+	based on flag warn_disallowed_functions.
+
+2008-07-09  Christian Bruel  <christian.bruel@st.com>
+
+	* final.c (get_attr_length_1): Call get_attr_length_1 with fallback_fn
+	 instead of get_attr_length.
+
+2008-07-09  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	* genattrtab.c (insert_right_side, evaluate_eq_attr): Avoid C++
+	keywords.
+	* genemit.c (gen_insn): Likewise.
+	* gengtype.c (note_def_vec): Likewise.
+	* gengtype.h (note_def_vec): Likewise.
+	* genoutput.c (struct data, output_insn_data, process_template,
+	gen_expand, gen_split, note_constraint): Likewise.
+	* genrecog.c (new_decision, add_to_sequence, factor_tests,
+	make_insn_sequence): Likewise.
+	* gensupport.c (record_insn_name): Likewise.
+
+2008-07-08  Doug Kwan  <dougkwan@google.com>
+
+	* config/arm/arm.opt (mandroid): New option.
+	* config/arm/bpabi.h (ANDROID_LINK_SPEC): New macro.
+	(LINK_SPEC): Enable Android specific behaviour when -mandroid is used.
+	(CC1_SPEC): Same.
+	(CC1PLUS_SPEC): Same.
+	(LIB_SPEC): Same.
+	(STARTFILE_SPEC): Same.
+	(ENDFILE_SPEC): Same.
+	(TARGET_BPABI_CPP_BUILTINS): Define __ANDROID__ when -mandroid is
+	used.
+
+2008-07-08  Raksit Ashok  <raksit@google.com>
+
+	* expr.c (emit_block_move_via_movmem): Fix expected_align parameter.
+	(set_storage_via_setmem): Fix expected_align parameter.
+	* doc/invoke.texi (i386 and x86-64 Options): Add a couple of options
+	missing from the list.
+	* doc/md.texi (movmem): Explicitly state that expected alignment is
+	to be expressed in bytes.
+	(setmem): Explicitly state that expected alignment is to be expressed
+	in bytes.
+
+2008-07-08  Joseph Myers  <joseph@codesourcery.com>
+
+	* reload.c (find_reloads_subreg_address): Do not require validity
+	of address in original mode before reloading address.
+
+2008-07-07  Tianwei Sheng  <tianweis@google.com>
+
+	* df-core.c (df_remove_problem): Adjust the access to avoid out of
+	bounds array access.
+
+2008-07-08  Jakub Jelinek  <jakub@redhat.com>
+
+	* tree-sra.c (sra_build_assignment): Handle CONVERT_EXPR_P
+	dst.
+
+2008-07-05  Daniel Berlin  <dberlin@dberlin.org>
+	
+	Fix PR tree-optimization/23455
+	Fix PR tree-optimization/35286
+	Fix PR tree-optimization/35287
+	* Makefile.in (OBJS-common): Remove tree-vn.o.
+	tree-vn.o: Remove.
+	* dbgcnt.def: Add treepre_insert debug counter.
+	* gcc/tree-flow.h (add_to_value): Updated for other changes.
+	(debug_value_expressions): Ditto.
+	(print_value_expressions): Ditto.
+	* tree-pretty-print.c (dump_generic_node): Updated for
+	VALUE_HANDLE removal.
+	* tree-ssa-dom.c (record_equality): Ditto.
+	(cprop_operand): Ditto.
+	(lookup_avail_expr): Ditto.
+	* tree-ssa-threadedge.c
+	(record_temporary_equivalences_from_stmts_at_dest): Ditto.
+	(simplify_control_stmt_condition): Ditto.
+	* tree.c (tree_code_size): Ditto.
+	(tree_node_structure): Ditto.
+	(iterative_hash_expr): Ditto.
+	* tree.def: Ditto.
+	* tree.h (VALUE_HANDLE_ID): Ditto.
+	(VALUE_HANDLE_EXPR_SET): Ditto.
+	(struct tree_value_handle): Ditto.
+	(union tree_node): Ditto.
+	* treestruct.def: Ditto.
+	* tree-vn.c: Removed.
+	* tree-ssa-pre.c: Rewritten entirely.
+	* tree-ssa-sccvn.c (constant_to_value_id): New hashtable.
+	(constant_value_ids): Ditto.
+	(vn_nary_op_t): Moved to header.
+	(vn_phi_t): Ditto.
+	(vn_reference_op_t): Ditto
+	(vn_reference_t): Ditto.
+	(next_value_id): New variable.
+	(VN_INFO): Add an assert.
+	(vn_constant_eq): New function.
+	(vn_constant_hash): Ditto.
+	(get_or_alloc_constant_value_id): Ditto.
+	(value_id_constant_p): Ditto.
+	(vn_reference_compute_hash): De-staticify.
+	(copy_reference_ops_from_ref): Don't use get_callee_fndecl.
+	Disable some code with a FIXME.
+	Remove VALUE_HANDLE use.
+	(valueize_refs): Update opcode if it changes from ssa name to
+	constant.
+	(vn_reference_lookup_1): Add new argument.
+	(vn_reference_lookup):  Ditto.
+	(vn_reference_lookup_pieces): New function.
+	(vn_reference_insert): Add return type. Modify to deal with value
+	ids.
+	(vn_reference_insert_pieces):  New function.
+	(vn_nary_op_compute_hash): De-staticify.
+	(vn_nary_op_eq): Ditto.
+	(vn_nary_op_lookup_pieces): New function.
+	(vn_nary_op_lookup): Add new argument.  
+	(vn_nary_op_insert_pieces): New function.
+	(vn_nary_op_insert): Add return type. Modify to deal with value
+	ids.
+	(vn_phi_insert): Ditto.
+	(visit_unary_op): Update for callee changes.
+	(visit_binary_op): Ditto.
+	(visit_reference_op_load): Ditto.
+	(visit_reference_op_store): Ditto.
+	(init_scc_vn): Init next_value_id, constant_to_value_id and
+	constant_value_ids. 
+	(free_scc_vn): Free them.
+	(set_hashtable_value_ids): New function.
+	(run_scc_vn): Use it.
+	(get_max_value_id): New function.
+	(get_next_value_id): Ditto.
+	(expressions_equal_p): Moved from tree-vn.c
+	(sort_vuses): Ditto.
+	(sort_vuses_heap): Ditto.
+	* tree-ssa-sccvn.h: Structures moved from tree-ssa-sccvn.c (noted
+	above).
+	* tree.c (iterative_hash_hashval_t): Made non-static
+	* tree.h (iterative_hash_hashval_t): Declare it.
+	
+2008-07-08  Martin Jambor  <mjambor@suse.cz>
+
+	* ipa-cp.c (ipcp_init_cloned_node): Call ipa_check_create_node_params
+	instead of ipa_create_node_params.
+	(ipcp_driver): Allocate infos with ipa_check_create_node_params and
+	ipa_check_create_edge_args, free them with
+	free_all_ipa_structures_after_ipa_cp, call ipa_register_cgraph_hooks.
+
+	* ipa-prop.c: Include flags.h and tree-inline.h.
+	(ipa_node_params_vector): New variable.
+	(ipa_edge_args_vector): New variable.
+	(edge_removal_hook_holder): New variable.
+	(node_removal_hook_holder): New variable.
+	(edge_duplication_hook_holder): New variable.
+	(node_duplication_hook_holder): New variable.
+	(ipa_detect_param_modifications): Check for presence of modified flags.
+	(ipa_compute_jump_functions): Check for presence of jump functions.
+	(ipa_free_edge_args_substructures): New function.
+	(ipa_create_node_params): Removed.
+	(ipa_free_all_edge_args): Changed to deallocate the on-the-side vector.
+	(ipa_free_node_params_substructures): New function.
+	(ipa_free_all_node_params): Changed to deallocate the on-the-side
+	vector.
+	(ipa_edge_removal_hook): New function.
+	(ipa_node_removal_hook): New function.
+	(duplicate_array): New function.
+	(ipa_edge_duplication_hook): New function.
+	(ipa_node_duplication_hook): New function.
+	(ipa_register_cgraph_hooks): New function.
+	(ipa_unregister_cgraph_hooks): New function.
+	(free_all_ipa_structures_after_ipa_cp): New function.
+	
+	* ipa-prop.h: Include vec.h.
+	(ipa_node_params_t): New typedef with vector types for it.
+	(ipa_edge_args_t):  New typedef with vector types for it.
+	(IPA_NODE_REF): Changed to access an on-the-side vector.
+	(IPA_EDGE_REF): Changed to access an on-the-side vector.
+	(ipa_check_create_node_params): New function.
+	(ipa_check_create_edge_args): New function.
+	
+	* Makefile.in (IPA_PROP_H): New variable for ipa-prop.h.  Converted
+	all users.
+	
+2008-07-07  Tom Tromey  <tromey@redhat.com>
+
+	* configure, config.in: Rebuilt.
+	* configure.ac: Don't check for scandir or alphasort.
+
+2008-07-07  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/arm/arm.c (arm_init_neon_builtins): Register built-in
+	types immediately after creating them.
+
+2008-07-07  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/arm/aout.h (DOLLARS_IN_IDENTIFIERS): Remove.
+
+2008-07-07  Fernando Pereira <fernando@cs.ucla.edu>
+
+        * tree-ssa-structalias.c (compute_points_to_sets): Add call to
+        dump_constraint_graph.
+        (dump_constraint_edge): New function.
+        (dump_constraint_graph): New function.
+        (debug_constraint_graph): New function.
+        (dump_constraint): Removed useless comparison.
+        * tree-ssa-structalias.h (dump_constraint_edge): Declare.
+        (dump_constraint_graph): Declare.
+        (debug_constraint_graph): Declare.
+        * tree-dump.c (struct dump_option_value_info): Declare
+        TDF_GRAPH.
+
+2008-07-07  Kai Tietz  <kai.tietz@onevision.com>
+
+	* config/i386/i386.c (is_va_list_char_pointer): New.
+	(ix86_va_start): Replace compare with ms_va_list_type_node
+	by is_va_list_char_pointer.
+	(ix86_gimplify_va_arg): Likewise.
+
+2008-07-07  Martin Jambor  <mjambor@suse.cz>
+
+	* cgraph.c (cgraph_edge_max_uid): New variable.
+	(struct cgraph_edge_hook_list): New type.
+	(struct cgraph_node_hook_list): New type.
+	(struct cgraph_2edge_hook_list): New type.
+	(struct cgraph_2node_hook_list): New type.
+	(first_cgraph_edge_removal_hook): New variable.
+	(first_cgraph_node_removal_hook): New variable.
+	(first_cgraph_edge_duplicated_hook): New variable.
+	(first_cgraph_node_duplicated_hook): New variable.
+	(cgraph_add_edge_removal_hook): New function.
+	(cgraph_remove_edge_removal_hook): New function.
+	(cgraph_call_edge_removal_hooks):  New function.
+	(cgraph_add_node_removal_hook):  New function.
+	(cgraph_remove_node_removal_hook):  New function.
+	(cgraph_call_node_removal_hooks):  New function.
+	(cgraph_add_edge_duplication_hook):  New function.
+	(cgraph_remove_edge_duplication_hook):  New function.
+	(cgraph_call_edge_duplication_hooks):  New function.
+	(cgraph_add_node_duplication_hook):  New function.
+	(cgraph_remove_node_duplication_hook):  New function.
+	(cgraph_call_node_duplication_hooks):  New function.
+	(cgraph_create_edge): Assign to edge uid.
+	(cgraph_remove_edge): Call edge removal hooks.
+	(cgraph_node_remove_callees): Call edge removal hooks.
+	(cgraph_node_remove_callers): Call edge removal hooks.
+	(cgraph_remove_node): Call node removal hooks.
+	(cgraph_clone_edge): Call edge duplication hooks.
+	(cgraph_clone_node): Call node duplication hooks.
+
+	* cgraph.h (cgraph_edge): New field uid.
+	(cgraph_edge_hook): New type.
+	(cgraph_node_hook): New type.
+	(cgraph_2edge_hook): New type.
+	(cgraph_2node_hook): New type.
+
+2008-07-07  Andreas Tobler  <a.tobler@schweiz.org>
+
+	* config.in: Regenerate.
+
+2008-07-07  Vladimir Prus  <vladimir@codesourcery.com>
+
+	* gcc.c (print_sysroot): New.
+	(option_map, display_help, process_command): Handle the
+	-print-sysroot option.
+	(main): Print the sysroot if requested.
+	* doc/invoke.texi (Debugging Options): Document -print-sysroot.
+	
+2008-07-07  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	PR target/34780
+	* unwind-pe.h (size_of_encoded_value): add attribute unused.
+
+2008-07-07  Daniel Jacobowitz  <dan@codesourcery.com>
+
+	* function.c (assign_parm_remove_parallels): Check mode of
+	entry_parm.
+	(assign_parm_setup_block_p): Also check mode of entry_parm.
+
+2008-07-07  Richard Guenther  <rguenther@suse.de>
+
+	* tree-ssa-structalias.h (set_used_smts): Remove.
+	* tree-ssa-structalias.c (used_smts): Likewise.
+	(set_used_smts): Likewise.
+	* tree-ssa-alias.c (compute_flow_sensitive_aliasing): Remove
+	call to set_used_smts.
+
+2008-07-07  Richard Guenther  <rguenther@suse.de>
+
+	* tree-ssa-structalias.c (struct variable_info): Add is_full_var flag.
+	(new_var_info): Set it to false.
+	(solution_set_add): Correctly handle pointers outside a var and
+	inside a field.
+	(type_safe): Treat variables with is_full_var properly.
+	(do_sd_constraint): Likewise.
+	(do_ds_constraint): Likewise.
+	(process_constraint): Remove zeroing offset for !use_field_sensitive.
+	(get_constraint_for_ptr_offset): New function.
+	(get_constraint_for_component_ref): For addresses at least include
+	the last field of the variable.  Handle is_full_vars properly.
+	(get_constraint_for_1): Factor common code, handle POINTER_PLUS_EXPR.
+	(handle_ptr_arith): Remove.
+	(find_func_aliases): Simplify assignment handling.
+	(create_function_info_for): For parameter and result varinfos set
+	is_full_var flag.
+	(create_variable_info_for): Set is_full_var flag whenever we
+	just created a single varinfo for a decl.
+	(init_alias_vars): Initialize use_field_sensitive from
+	max-fields-for-field-sensitive parameter.
+
+2008-07-07  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/36713
+	* tree-flow-inline.h (is_call_used): New function.
+	* tree-nrv.c (dest_safe_for_nrv_p): Use it.
+	* tree-tailcall.c (suitable_for_tail_opt_p): Likewise.
+	* tree-outof-ssa.c (create_temp): Set call-used flag if required.
+
+2008-07-07  Maxim Kuvyrkov  <maxim@codesourcery.com>
+
+	* config/m68k/m68k.c (m68k_return_in_memory): Fix arguments types.
+	
+2008-07-07  Mark Shinwell  <shinwell@codesourcery.com>
+
+	* config/m68k/lb1sf68.asm: Add PIC macros for Linux targets.
+
+2008-07-07  Maxim Kuvyrkov  <maxim@codesourcery.com>
+	    Nathan Sidwell  <nathan@codesourcery.com>
+
+	* config.gcc (m68k-*-linux*): Add with_arch.  Add sysroot-suffix.h
+	to tm_file.  Add m68k/t-floatlib, m68k/t-linux & m68k/t-mlibs to
+	tmake_file.
+	* config/m68k/t-linux: New.
+	* doc/install.texi: Document m68k-*-linux is now multilibbed by
+	default.
+
+2008-07-07  Nathan Sidwell  <nathan@codesourcery.com>
+
+	* config/m68k/t-cf (MULTILIB_EXTRA_OPTS): Add no-mac.
+	* config/m68k/m68k-devices.def: Remove multilibs that only differ
+	by MAC/EMAC.
+
+2008-07-06  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	* gcc.c (execute): Fix -Wc++-compat warning.
+
 2008-07-06  H.J. Lu  <hongjiu.lu@intel.com>
 
 	PR target/36720

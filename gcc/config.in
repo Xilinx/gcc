@@ -180,12 +180,6 @@
 #endif
 
 
-/* Define to 1 if you have the `alphasort' function. */
-#ifndef USED_FOR_TARGET
-#undef HAVE_ALPHASORT
-#endif
-
-
 /* Define if your assembler supports cmpb. */
 #ifndef USED_FOR_TARGET
 #undef HAVE_AS_CMPB
@@ -1122,12 +1116,6 @@
 #endif
 
 
-/* Define to 1 if you have the `scandir' function. */
-#ifndef USED_FOR_TARGET
-#undef HAVE_SCANDIR
-#endif
-
-
 /* Define to 1 if you have the `setlocale' function. */
 #ifndef USED_FOR_TARGET
 #undef HAVE_SETLOCALE
@@ -1515,6 +1503,12 @@
 /* Enable general extensions on Solaris.  */
 #ifndef __EXTENSIONS__
 # undef __EXTENSIONS__
+#endif
+
+
+/* Define to `char *' if <sys/types.h> does not define. */
+#ifndef USED_FOR_TARGET
+#undef caddr_t
 #endif
 
 

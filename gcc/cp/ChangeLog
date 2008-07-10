@@ -1,3 +1,26 @@
+2008-07-09  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/36760
+	* pt.c (tsubst_function_type): Remove warning for type qualifiers
+	on function return type.
+
+2008-07-09  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/36760
+	* pt.c (tsubst_function_type): Don't warn for type qualifiers
+	on function return type in case of system header.
+
+2008-07-09  Raksit Ashok <raksit@google.com>
+
+	* parser.c (cp_parser_postfix_expression): New warning based on flag
+	warn_disallowed_functions.
+
+2008-07-08  Simon Martin  <simartin@users.sourceforge.net>
+
+	PR c++/34963
+	* decl.c (grokdeclarator): Reset storage_class and staticp for friend
+	functions declared with a storage class qualifier.
+
 2008-07-03  Richard Guenther  <rguenther@suse.de>
 
 	PR c++/36128

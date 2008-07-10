@@ -100,3 +100,4 @@ extern tree default_emutls_var_init (tree, tree, tree);
 extern const char *default_addr_space_name (int);
 extern unsigned char default_addr_space_number (const tree);
 extern rtx (*default_addr_space_conversion_rtl (int, int)) (rtx, rtx);
+extern bool default_hard_regno_scratch_ok (unsigned int);

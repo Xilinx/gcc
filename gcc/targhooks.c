@@ -719,4 +719,10 @@ unsigned char default_addr_space_number (const tree ident ATTRIBUTE_UNUSED)
   gcc_unreachable ();
 }
 
+bool
+default_hard_regno_scratch_ok (unsigned int regno ATTRIBUTE_UNUSED)
+{
+  return true;
+}
+
 #include "gt-targhooks.h"

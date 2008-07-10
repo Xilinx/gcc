@@ -231,8 +231,9 @@ Objective-C and Objective-C++ Dialects}.
 -Wno-attributes -Wc++-compat -Wc++0x-compat -Wcast-align  -Wcast-qual  @gol
 -Wchar-subscripts -Wclobbered  -Wcomment @gol
 -Wconversion  -Wcoverage-mismatch  -Wno-deprecated  @gol
--Wno-deprecated-declarations -Wdisabled-optimization  -Wno-div-by-zero  @gol
--Wempty-body  -Wenum-compare -Wno-endif-labels @gol
+-Wno-deprecated-declarations -Wdisabled-optimization  @gol
+-Wdisallowed-function-list=@var{sym},@var{sym},@dots{} @gol
+-Wno-div-by-zero -Wempty-body  -Wenum-compare -Wno-endif-labels @gol
 -Werror  -Werror=* @gol
 -Wfatal-errors  -Wfloat-equal  -Wformat  -Wformat=2 @gol
 -Wno-format-contains-nul -Wno-format-extra-args -Wformat-nonliteral @gol
@@ -310,7 +311,7 @@ Objective-C and Objective-C++ Dialects}.
 -p  -pg  -print-file-name=@var{library}  -print-libgcc-file-name @gol
 -print-multi-directory  -print-multi-lib @gol
 -print-prog-name=@var{program}  -print-search-dirs  -Q @gol
--print-sysroot-headers-suffix @gol
+-print-sysroot -print-sysroot-headers-suffix @gol
 -save-temps  -time}
 
 @item Optimization Options
@@ -559,6 +560,7 @@ Objective-C and Objective-C++ Dialects}.
 -maes -mpclmul @gol
 -msse4a -m3dnow -mpopcnt -mabm -msse5 @gol
 -mthreads  -mno-align-stringops  -minline-all-stringops @gol
+-minline-stringops-dynamically -mstringop-strategy=@var{alg} @gol
 -mpush-args  -maccumulate-outgoing-args  -m128bit-long-double @gol
 -m96bit-long-double  -mregparm=@var{num}  -msseregparm @gol
 -mveclibabi=@var{type} -mpc32 -mpc64 -mpc80 -mstackrealign @gol
@@ -4103,6 +4105,13 @@ minimum maximum, so we do not diagnose overlength strings in C++@.
 
 This option is implied by @option{-pedantic}, and can be disabled with
 @option{-Wno-overlength-strings}.
+
+@item -Wdisallowed-function-list=@var{sym},@var{sym},@dots{}
+@opindex Wdisallowed-function-list
+
+If any of @var{sym} is called, GCC will issue a warning. This can be useful
+in enforcing coding conventions that ban calls to certain functions, for
+example, @code{alloca}, @code{malloc}, etc.
 @end table
 
 @node Debugging Options
@@ -5061,6 +5070,14 @@ components where @command{gcc} expects to find them, or you can set the environm
 variable @env{GCC_EXEC_PREFIX} to the directory where you installed them.
 Don't forget the trailing @samp{/}.
 @xref{Environment Variables}.
+
+@item -print-sysroot
+@opindex print-sysroot
+Print the target sysroot directory that will be used during
+compilation.  This is the target sysroot specified either at configure
+time or or using the @option{--sysroot} option, possibly with an extra
+suffix that depends on compilation options.  If no target sysroot is
+specified, the option prints nothing.
 
 @item -print-sysroot-headers-suffix
 @opindex print-sysroot-headers-suffix
