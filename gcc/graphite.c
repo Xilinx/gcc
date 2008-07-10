@@ -1546,7 +1546,7 @@ scan_tree_for_params (scop_p s, tree e, CloogMatrix *c, int r, Value k)
 	{
 	  Value val;
 
-	  gcc_assert (host_integerp (TREE_OPERAND (e, 1), 1));
+	  gcc_assert (host_integerp (TREE_OPERAND (e, 1), 0));
 
 	  value_init (val);
 	  value_set_si (val, int_cst_value (TREE_OPERAND (e, 1)));
@@ -1558,7 +1558,7 @@ scan_tree_for_params (scop_p s, tree e, CloogMatrix *c, int r, Value k)
 	{
 	  Value val;
 
-	  gcc_assert (host_integerp (TREE_OPERAND (e, 0), 1));
+	  gcc_assert (host_integerp (TREE_OPERAND (e, 0), 0));
 
 	  value_init (val);
 	  value_set_si (val, int_cst_value (TREE_OPERAND (e, 0)));

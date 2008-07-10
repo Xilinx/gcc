@@ -1,5 +1,16 @@
 2008-07-10  Harsha Jagasia  <harsha.jagasia@amd.com>
 
+	* graphite.c (scan_tree_for_params): Do not assert any more if MULT_EXPR 
+	parameter is negative.
+
+	* testsuite/gfortran.dg/graphite/scop-1.f: New.
+
+	* testsuite/gfortran.dg/graphite/graphite.exp: New.
+
+	* testsuite/gcc.dg/graphite/scop-15.c: New.
+
+2008-07-10  Harsha Jagasia  <harsha.jagasia@amd.com>
+
 	* graphite.c (is_bb_addable): Fix segfault in spec gzip and reformat.
 
 2008-07-10  Tobias Grosser  <grosser@fim.uni-passau.de>
