@@ -377,6 +377,33 @@ lambda_vector_matrix_mult (lambda_vector vect, int m, lambda_matrix mat,
       dest[i] += mat[j][i] * vect[j];
 }
 
+/* Compare two vectors returning an integer less than, equal to, or
+   greater than zero if the first argument is considered to be respectively
+   less than, equal to, or greater than the second.  
+   We use the lexicografic order.  */
+
+static inline int
+lambda_vector_compare (lambda_vector vec1, int length1, lambda_vector vec2,
+                       int length2)
+{
+  int min_length;
+  int i;
+
+  if (length1 < length2)
+    min_length = length1;
+  else
+    min_length = length2;
+
+  for (i = 0; i < min_length; i++)
+    if (vec1[i] < vec2[i])
+      return -1;
+    else if (vec1[i] > vec2[i])
+      return 1;
+    else
+      continue;
+
+  return length1 - length2;
+}
 
 /* Print out a vector VEC of length N to OUTFILE.  */
 
