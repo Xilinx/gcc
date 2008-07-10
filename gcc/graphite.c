@@ -932,7 +932,7 @@ is_bb_addable (basic_block bb, struct loop *outermost_loop,
         else 
           free_scops (tmp_scops);
 
-        return bb_addable;
+	break;
       }
 
     case GBB_LOOP_MULT_EXIT_HEADER:
@@ -962,7 +962,7 @@ is_bb_addable (basic_block bb, struct loop *outermost_loop,
         move_scops (&tmp_scops, scops);
         VEC_free (edge, heap, exits);
 
-        return bb_addable;
+	break;
       }
     case GBB_COND_HEADER:
     {
@@ -1050,9 +1050,16 @@ is_bb_addable (basic_block bb, struct loop *outermost_loop,
           if (dominated_by_p (CDI_DOMINATORS, last_bb, bb) && last_bb != bb)
             *next = last_bb;
           else
-            *next = NULL; 
+	    {
+	      *next = NULL;
 
-          return bb_addable;
+	      if (*last == NULL)
+		{
+		  *bb_simple = false;
+		  bb_addable = false;
+		}
+	    }
+	  break;
         }
 
       /* Scan the remaining dominated bbs.  */
@@ -1080,7 +1087,7 @@ is_bb_addable (basic_block bb, struct loop *outermost_loop,
       *next = NULL; 
       move_scops (&tmp_scops, scops);
 
-      return bb_addable;
+      break;
     }
     default:
       gcc_unreachable ();

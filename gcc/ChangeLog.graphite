@@ -1,3 +1,7 @@
+2008-07-10  Harsha Jagasia  <harsha.jagasia@amd.com>
+
+	* graphite.c (is_bb_addable): Fix segfault in spec gzip and reformat.
+
 2008-07-10  Tobias Grosser  <grosser@fim.uni-passau.de>
 
 	* graphite.c (graphite_trans_bb_swap_loops): Rename from
