@@ -1,3 +1,11 @@
+2008-07-11  Ben Elliston  <bje@au.ibm.com>
+
+	* rtl.h (struct rtx_def): Rename `ea' to `addr_space'.
+	(MEM_EA_P): Rename from this ..
+	(MEM_ADDR_SPACE): .. to this.
+	* emit-rtl.c (set_mem_attributes_minus_bitops): Update callers.
+	* config/spu/spu.c (spu_expand_mov): Likewise.
+
 2008-06-13  Ben Elliston  <bje@au.ibm.com>
 
 	* config/spu/spu.c (TARGET_ADDR_SPACE_NUMBER): Define.

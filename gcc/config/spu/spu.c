@@ -3830,12 +3830,12 @@ spu_expand_mov (rtx * ops, enum machine_mode mode)
 
       if (MEM_P (ops[0]))
 	{
- 	  if (MEM_EA_P (ops[0]))
+ 	  if (MEM_ADDR_SPACE (ops[0]))
  	    ops[0] = expand_ea_mem (ops[0], true);
  	}
       else if (MEM_P (ops[1]))
 	{
- 	  if (MEM_EA_P (ops[1]))
+ 	  if (MEM_ADDR_SPACE (ops[1]))
  	    ops[1] = expand_ea_mem (ops[1], false);
  	}
 
