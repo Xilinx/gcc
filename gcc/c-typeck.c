@@ -8174,7 +8174,7 @@ build_binary_op (enum tree_code code, tree orig_op0, tree orig_op1,
 		 pointer also.  */
 	      if (OTHER_ADDR_SPACE_POINTER_TYPE_P (type0))
 		result_type = build_pointer_type
-		  (build_qualified_type (void_type_node, TYPE_QUAL_EA));
+		  (build_qualified_type (void_type_node, TYPE_QUAL_ADDRSPACE));
 	    }
 	  else if (VOID_TYPE_P (tt1))
 	    {
@@ -8188,7 +8188,7 @@ build_binary_op (enum tree_code code, tree orig_op0, tree orig_op1,
 		 pointer also.  */
 	      if (OTHER_ADDR_SPACE_POINTER_TYPE_P (type1))
 		result_type = build_pointer_type
-		  (build_qualified_type (void_type_node, TYPE_QUAL_EA));
+		  (build_qualified_type (void_type_node, TYPE_QUAL_ADDRSPACE));
 	    }
 	  else
 	    /* Avoid warning about the volatile ObjC EH puts on decls.  */

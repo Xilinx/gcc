@@ -2330,18 +2330,18 @@ struct tree_block GTY(())
    combined by bitwise-or to form the complete set of qualifiers for a
    type.  */
 
-#define TYPE_UNQUALIFIED   0x0
-#define TYPE_QUAL_CONST    0x1
-#define TYPE_QUAL_VOLATILE 0x2
-#define TYPE_QUAL_RESTRICT 0x4
-#define TYPE_QUAL_EA	   0x8
+#define TYPE_UNQUALIFIED    0x0
+#define TYPE_QUAL_CONST     0x1
+#define TYPE_QUAL_VOLATILE  0x2
+#define TYPE_QUAL_RESTRICT  0x4
+#define TYPE_QUAL_ADDRSPACE 0x8
 
 /* The set of type qualifiers for this type.  */
 #define TYPE_QUALS(NODE)					\
   ((TYPE_READONLY (NODE) * TYPE_QUAL_CONST)			\
    | (TYPE_VOLATILE (NODE) * TYPE_QUAL_VOLATILE)		\
    | (TYPE_RESTRICT (NODE) * TYPE_QUAL_RESTRICT)		\
-   | ((TYPE_ADDR_SPACE (NODE) > 0) * TYPE_QUAL_EA))
+   | ((TYPE_ADDR_SPACE (NODE) > 0) * TYPE_QUAL_ADDRSPACE))
 
 /* These flags are available for each language front end to use internally.  */
 #define TYPE_LANG_FLAG_0(NODE) (TYPE_CHECK (NODE)->type.lang_flag_0)

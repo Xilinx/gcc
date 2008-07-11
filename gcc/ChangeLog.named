@@ -1,5 +1,15 @@
 2008-07-11  Ben Elliston  <bje@au.ibm.com>
 
+	* tree.c (set_type_quals): TYPE_QUAL_EA -> TYPE_QUAL_ADDRSPACE.
+	* tree.h: Likewise.
+	(TYPE_QUALS): Likewise.
+	* tree-ssa-loop-ivopts.c (generic_type_for): Likewise.
+	* c-decl.c (quals_from_declspecs): Likewise.
+	(grokdeclarator): Likewise.
+	* c-typeck.c (build_binary_op): Likewise.
+
+2008-07-11  Ben Elliston  <bje@au.ibm.com>
+
 	* rtl.h (struct rtx_def): Rename `ea' to `addr_space'.
 	(MEM_EA_P): Rename from this ..
 	(MEM_ADDR_SPACE): .. to this.

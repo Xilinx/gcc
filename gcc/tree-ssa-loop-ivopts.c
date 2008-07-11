@@ -1997,7 +1997,7 @@ generic_type_for (tree type)
 
   if (OTHER_ADDR_SPACE_POINTER_TYPE_P (type))
     return build_pointer_type
-      (build_qualified_type (void_type_node, TYPE_QUAL_EA));
+      (build_qualified_type (void_type_node, TYPE_QUAL_ADDRSPACE));
 
   if (TYPE_UNSIGNED (type))
     return type;
