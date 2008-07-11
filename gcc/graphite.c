@@ -99,7 +99,7 @@ del_loop_to_cloog_loop (void *e)
 /* Compares two graphite bbs and returns an integer less than, equal to, or
    greater than zero if the first argument is considered to be respectively
    less than, equal to, or greater than the second. 
-   We compare using the lexicografic order of the static schedules.  */
+   We compare using the lexicographic order of the static schedules.  */
 
 static int 
 gbb_compare (const void *p_1, const void *p_2)
@@ -734,6 +734,7 @@ new_scop (basic_block entry)
 
   gcc_assert (entry);
   SCOP_ENTRY (scop) = entry;
+  SCOP_EXIT (scop) = NULL;
   SCOP_BBS (scop) = VEC_alloc (graphite_bb_p, heap, 3);
   SCOP_NEWIVS (scop) = VEC_alloc (name_tree, heap, 3);
   SCOP_OLDIVS (scop) = VEC_alloc (name_tree, heap, 3);
@@ -858,9 +859,6 @@ move_scops (VEC (scop_p, heap) **source, VEC (scop_p, heap) **target)
   VEC_free (scop_p, heap, *source);
 }
 
-static bool build_scops_1 (basic_block, VEC (scop_p, heap) **, struct loop *,
-			   struct loop *, basic_block *, bool *);
-
 /* Check if 'exit_bb' is a bb, which follows a loop exit edge.
    ???  Move to cfgloop.c  */ 
 
@@ -886,53 +884,72 @@ is_loop_exit (struct loop *loop, basic_block exit_bb)
   return is_exit;
 }
 
-/* Checks, if a bb can be added to a SCoP.  */
+struct scopdet_info
+{
+  basic_block last;
+  basic_block next;
 
-static bool
-is_bb_addable (basic_block bb, struct loop *outermost_loop,
-	       VEC (scop_p, heap) **scops, int type, basic_block *next,
-	       bool *bb_simple, basic_block *last, tree *stmt)
+  /* The bb or one of its children contains open loop exits. That means
+     loop exit nodes, that are not surrounded by a loop dominated by bb.  */ 
+  bool exits;
+
+  /* The bb or one of its children contains only structures we can handle.  */ 
+  bool difficult;
+};
+
+static struct scopdet_info build_scops_1 (basic_block, VEC (scop_p, heap) **,
+                                          struct loop *, struct loop *);
+
+/* Checks, if a bb can be added to a SCoP.  */
+static struct scopdet_info 
+scopdet_bb_info (basic_block bb, struct loop *outermost_loop,
+	         VEC (scop_p, heap) **scops, int type, tree *stmt)
+	       
 {
   struct loop *loop = bb->loop_father;
-  bool bb_addable;
+  struct scopdet_info result;
 
   *stmt = harmful_stmt_in_bb (outermost_loop, bb);
-  bb_addable = (*stmt == NULL_TREE);
+  result.difficult = (*stmt != NULL_TREE);
+  result.last = NULL;
 
   switch (type)
     {
     case GBB_LAST:
-      *next = NULL;
-      *last = bb;
-      *bb_simple = bb_addable;
+      result.next = NULL;
+      result.exits = false;
+      result.last = bb;
       break;
 
     case GBB_SIMPLE:
-      *next = VEC_last (edge, bb->succs)->dest;
-      *last = bb;
-      *bb_simple = bb_addable;
+      result.next = single_succ (bb);
+      result.exits = false;
+      result.last = bb;
       break;
 
     case GBB_LOOP_SING_EXIT_HEADER:
       {
         VEC (scop_p, heap) *tmp_scops = VEC_alloc (scop_p, heap, 3);
+        struct scopdet_info sinfo;
 
-        bb_addable = build_scops_1 (bb, &tmp_scops, loop, outermost_loop, last,
-                                  bb_simple);
+        sinfo = build_scops_1 (bb, &tmp_scops, loop, outermost_loop);
 
-        *next = single_exit (bb->loop_father)->dest;
+        result.last = single_exit (bb->loop_father)->src;
+        result.next = single_exit (bb->loop_father)->dest;
 
-        if (!dominated_by_p (CDI_DOMINATORS, *next, bb))
-          *next = NULL;
+        /* If we do not dominate result.next, remove it.  Another bb dominates
+           it and will call the scop detection for this bb.  */
+        if (!dominated_by_p (CDI_DOMINATORS, result.next, bb))
+          result.next = NULL;
 
-        *last = single_exit (bb->loop_father)->src;
-
-        if (!bb_addable)
+        if (sinfo.difficult)
           move_scops (&tmp_scops, scops);
         else 
           free_scops (tmp_scops);
 
-	break;
+        result.exits = false;
+        result.difficult |= sinfo.difficult;
+        break;
       }
 
     case GBB_LOOP_MULT_EXIT_HEADER:
@@ -945,47 +962,72 @@ is_bb_addable (basic_block bb, struct loop *outermost_loop,
         VEC (edge, heap) *exits = get_loop_exit_edges (loop);
         edge e;
         int i;
-
-        bb_addable = build_scops_1 (bb, &tmp_scops, loop, outermost_loop, last,
-                                  bb_simple);
+        build_scops_1 (bb, &tmp_scops, loop, outermost_loop);
 
         for (i = 0; VEC_iterate (edge, exits, i, e); i++)
           if (dominated_by_p (CDI_DOMINATORS, e->dest, e->src)
               && e->dest->loop_father == loop_outer (loop))
             build_scops_1 (e->dest, &tmp_scops, e->dest->loop_father,
-                           outermost_loop, last, bb_simple);
+                           outermost_loop);
 
-        *next = NULL; 
-        *last = NULL;
-        *bb_simple = false;
-        bb_addable = false;
+        result.next = NULL; 
+        result.last = NULL;
+        result.difficult = true;
+        result.exits = false;
         move_scops (&tmp_scops, scops);
         VEC_free (edge, heap, exits);
-
-	break;
+        break;
       }
     case GBB_COND_HEADER:
     {
       VEC (scop_p, heap) *tmp_scops = VEC_alloc (scop_p, heap, 3);
+      struct scopdet_info sinfo;
       VEC (basic_block, heap) *dominated;
       int i;
       basic_block dom_bb;
       basic_block last_bb = NULL;
       edge e;
-      *bb_simple = true;
+      result.exits = false;
  
       /* First check the successors of bb, and check if it is possible to join
          the different branches.  */
       for (i = 0; VEC_iterate (edge, bb->succs, i, e); i++)
         {
-          bool bb_simple_tmp;
-          basic_block next_tmp;
           dom_bb = e->dest;
 
           /* Ignore loop exits.  They will be handled after the loop body.  */
-          if (is_loop_exit (bb->loop_father, dom_bb))
+          if (is_loop_exit (loop, dom_bb))
             {
-              bb_addable = false;
+              result.exits = true;
+              continue;
+            }
+
+          /* Do not follow edges, that lead to the end of the conditions block.
+             In this case e.g. the edge from 0 => 6.  Only check if all ways
+             lead to the same node (6), that we can verify, if we can fuse the
+             condition later. 
+
+             Example:
+
+               0
+              /|\
+             | | \
+             1 2 |
+             | | |
+             3 4 |
+             \ | /
+               6  */
+
+          if (!single_pred_p (dom_bb))
+            {
+              /* Check, if edge leads direct to the end of this condition.  If
+                 this is true, the condition stays joinable.  */
+              if (!last_bb)
+                last_bb = dom_bb;
+
+              if (dom_bb != last_bb)
+                result.difficult = true;
+
               continue;
             }
 
@@ -993,98 +1035,80 @@ is_bb_addable (basic_block bb, struct loop *outermost_loop,
              the bb, that dominates this bb.  */
           if (!dominated_by_p (CDI_DOMINATORS, dom_bb, bb))
             {
-              /* Check, if edge leads direct to the end of this condition.  If
-                 this is true, the condition stays joinable.  */
-              if (!last_bb)
-                last_bb = dom_bb;
-
-              if (dom_bb != last_bb)
-                *bb_simple = false;
-
+              result.difficult = true;
               continue;
             }
 
-          /* Ignore edges, which jump forward.  */
-          if (VEC_length (edge, dom_bb->preds) > 1)
-            {
 
-              /* Check, if edge leads direct to the end of this condition.  If
-                 this is true, the condition stays joinable.  */
-              if (!last_bb)
-                last_bb = dom_bb;
-
-              if (dom_bb != last_bb)
-                *bb_simple = false;
-
-              continue;
-            }
-
-	  bb_addable &= build_scops_1 (dom_bb, &tmp_scops, loop, outermost_loop,
-                                       last, &bb_simple_tmp);
-          *bb_simple &= bb_simple_tmp; 
+	  sinfo = build_scops_1 (dom_bb, &tmp_scops, loop, outermost_loop);
+                  
+          result.exits |= sinfo.exits;
+          result.last = sinfo.last;
+          result.difficult |= sinfo.difficult; 
           
           /* Checks, if all branches end at the same point. If that is true, the
-             condition stays joinable.  */
-          if (*last &&  VEC_length (edge, (*last)->succs) == 1)
+             condition stays joinable.  Have a look at the example above.  */
+
+          if (sinfo.last && single_succ_p (sinfo.last))
             {
-              next_tmp = VEC_last (edge, (*last)->succs)->dest;
+              basic_block next_tmp = single_succ (sinfo.last);
                   
               if (!last_bb)
                 last_bb = next_tmp;
 
               if (next_tmp != last_bb)
-                *bb_simple = false;
+                result.difficult = true;
             }
           else
-            *bb_simple = false;
+            result.difficult = true;
         }
 
-      bb_addable &= *bb_simple;
-
-      /* If the condition is joinable, break and return the endpoint of the
-         condition.  */
-      if (bb_addable && *bb_simple)
+      /* If the condition is joinable.  */
+      if (!result.exits && !result.difficult)
         {
           /* Only return a next pointer, if we dominate this pointer.  Otherwise
              it will be handled by the bb dominating it.  */ 
           if (dominated_by_p (CDI_DOMINATORS, last_bb, bb) && last_bb != bb)
-            *next = last_bb;
+            result.next = last_bb;
           else
-	    {
-	      *next = NULL;
+            result.next = NULL; 
 
-	      if (*last == NULL)
-		{
-		  *bb_simple = false;
-		  bb_addable = false;
-		}
-	    }
-	  break;
+          break;
         }
 
-      /* Scan the remaining dominated bbs.  */
+      /* Scan the remaining bbs, dominated by bb.  */
       dominated = get_dominated_by (CDI_DOMINATORS, bb);
+
       for (i = 0; VEC_iterate (basic_block, dominated, i, dom_bb); i++)
         {
-          bool bb_simple_tmp;
-
           /* Ignore loop exits.  They will be handled after the loop body.  */
-          if (is_loop_exit (bb->loop_father, dom_bb))
-            continue;
+          if (is_loop_exit (loop, dom_bb))
+            {
+              result.exits = true;
+              continue;
+            }
 
           /* Ignore the bbs processed above.  */
-          if (single_pred_p (dom_bb)
-	      && single_pred (dom_bb) == bb)
+          if (single_pred_p (dom_bb) && single_pred (dom_bb) == bb)
             continue;
 
-	  build_scops_1 (dom_bb, &tmp_scops, loop, outermost_loop, last,
-            &bb_simple_tmp);
-          *bb_simple = false;
+          /* Ignore edges leaving the loop nest.  The will be handled above by
+             LOOP_HEADERS.  */
+          if (loop_depth (loop) > loop_depth (dom_bb->loop_father))
+	    sinfo = build_scops_1 (dom_bb, &tmp_scops, loop_outer (loop),
+                                   outermost_loop);
+          else
+	    sinfo = build_scops_1 (dom_bb, &tmp_scops, loop, outermost_loop);
+                                           
+                                     
+          result.exits |= sinfo.exits; 
+          result.difficult = true;
+          result.last = NULL;
         }
+
       VEC_free (basic_block, heap, dominated);
 
-      bb_addable &= *bb_simple;
-      *next = NULL; 
+      result.next = NULL; 
       move_scops (&tmp_scops, scops);
 
       break;
@@ -1093,7 +1117,7 @@ is_bb_addable (basic_block bb, struct loop *outermost_loop,
       gcc_unreachable ();
     }
 
-  return bb_addable;
+  return result;
 }
 
 /* End SCOP with basic block EXIT, and split EXIT before STMT when
@@ -1123,68 +1147,83 @@ end_scop (scop_p scop, basic_block exit, basic_block *last, tree stmt)
       exit = e->dest;
       *last = e->dest;
     }
-
   SCOP_EXIT (scop) = exit;
 }
 
 /* Creates the SCoPs and writes entry and exit points for every SCoP.  */
 
-static bool 
+static struct scopdet_info 
 build_scops_1 (basic_block start, VEC (scop_p, heap) **scops,
-	       struct loop *loop, struct loop *outermost_loop,
-	       basic_block *last, bool *all_simple)
+	       struct loop *loop, struct loop *outermost_loop)
 {
   basic_block current = start;
-  basic_block next = NULL;
-  scop_p open_scop = NULL;
-  
-  bool in_scop = false;
 
-  bool all_addable = true;
-  *all_simple = true; 
+  bool in_scop = false;
+  scop_p open_scop = NULL;
+  tree stmt;
+  struct scopdet_info sinfo;
+
+  /* Initialize result */ 
+  struct scopdet_info result;
+  result.exits = false;
+  result.difficult = false;
+  result.next = NULL;
+  result.last = NULL;
 
   /* Loop over the dominance tree.  If we meet a difficult bb jump out of the
      SCoP, after that jump back in.  Loop and condition header start a new 
      layer and can only be added, if all bbs in deeper layers are simple.  */
-
   while (current != NULL)
     {
       int type = get_bb_type (current, loop);
-      bool bb_simple;
-      bool bb_addable;
-      tree stmt;
 
-      bb_addable = is_bb_addable (current, outermost_loop, scops, type,
-				  &next, &bb_simple, last, &stmt);  
-
-      if (!in_scop && bb_addable)
+      sinfo = scopdet_bb_info (current, outermost_loop, scops, type,
+			       &stmt);  
+      
+      if (!in_scop && !(sinfo.exits || sinfo.difficult))
         {
           open_scop = new_scop (current);
           VEC_safe_push (scop_p, heap, *scops, open_scop); 
           in_scop = true;
         }
-      else if (in_scop && !bb_addable)
+      else if (in_scop && (sinfo.exits || sinfo.difficult))
         {
-          end_scop (open_scop, current, last, stmt);
+          end_scop (open_scop, current, &sinfo.last, stmt);
           in_scop = false;
         }
 
-      if (!in_scop)
-        all_addable &= false;
+      result.difficult |= sinfo.difficult;
+      result.exits |= sinfo.exits;
 
-      *all_simple &= bb_simple;
-
-      if (next == NULL && in_scop)
-        end_scop (open_scop, VEC_last (edge, (*last)->succs)->dest, last,
-		  stmt);
-
-      current = next;
+      current = sinfo.next;
     }
 
-  if ((start->loop_father->header == start) && *all_simple)
-    return true;
+  /* Finish the SCOP, if it is left open.  The exit is the bb, that
+     postdominates sinfo.last. If no such bb exists, we use info.last
+     or delete the scop.  */
+  if (in_scop)
+    {
+      int i;
+      edge e;
+      for (i = 0; VEC_iterate (edge, sinfo.last->succs, i, e); i++)
+        if (dominated_by_p (CDI_POST_DOMINATORS, sinfo.last, e->dest))
+          end_scop (open_scop, e->dest, &sinfo.last, stmt);
+      if (!SCOP_EXIT (open_scop))
+        {
+          if (SCOP_ENTRY (open_scop) != sinfo.last)
+            /* What du we pass here?  */
+            end_scop (open_scop, sinfo.last, NULL, stmt);
+          else
+            {
+              VEC_pop (scop_p, *scops);
+              free_scop (open_scop);
+            }
+        }
+    }
+              
+  result.last = sinfo.last;
 
-  return all_addable;
+  return result;
 }
 
 /* Find static control parts.  */
@@ -1193,9 +1232,7 @@ static void
 build_scops (void)
 {
   struct loop *loop = current_loops->tree_root;
-  basic_block last;
-  bool tmp;
-  build_scops_1 (ENTRY_BLOCK_PTR, &current_scops, loop, loop, &last, &tmp);
+  build_scops_1 (ENTRY_BLOCK_PTR, &current_scops, loop, loop);
 }
 
 
@@ -3879,7 +3916,7 @@ graphite_trans_scop_block (scop_p scop)
     }
 
     /* Check if the last loop nest was perfect.  It is the same check as above,
-       but the comparision with the next bb is missing.  */
+       but the comparison with the next bb is missing.  */
       for (j = last_nb_loops - 1; j >= 0; j--)
         if (last_schedule [j] != 0)
           {

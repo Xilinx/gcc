@@ -380,7 +380,7 @@ lambda_vector_matrix_mult (lambda_vector vect, int m, lambda_matrix mat,
 /* Compare two vectors returning an integer less than, equal to, or
    greater than zero if the first argument is considered to be respectively
    less than, equal to, or greater than the second.  
-   We use the lexicografic order.  */
+   We use the lexicographic order.  */
 
 static inline int
 lambda_vector_compare (lambda_vector vec1, int length1, lambda_vector vec2,

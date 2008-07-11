@@ -1,3 +1,14 @@
+2008-07-11  Tobias Grosser  <grosser@fim.uni-passau.de>
+
+	* graphite.c (new_scop): Initialize SCOP_EXIT.
+	(scopdet_info): Add.
+	(scopdet_bb_info): Rename from is_bb_addable. Cleanup, bugfixes.
+	(build_scops_1): Cleanup, bugfixes.
+	(build_scops): Cleanup.
+	
+	* testsuite/gcc.dg/graphite/scop-matmult.c: Remove duplicated code.
+	* testsuite/gcc.dg/graphite/scop-15.c: Add SCoP numbers.
+
 2008-07-10  Harsha Jagasia  <harsha.jagasia@amd.com>
 
 	* testsuite/gfortran.dg/graphite/scop-1.f: Update to reduced test case.
