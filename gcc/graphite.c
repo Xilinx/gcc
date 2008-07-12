@@ -3459,6 +3459,7 @@ scop_remove_ignoreable_gbbs (scop_p scop)
       if (gbb_can_be_ignored (gb))
         {
           /* Mark gbb for remove.  */
+          bitmap_clear_bit (SCOP_BBS_B (scop), gb->bb->index);
           GBB_SCOP (gb) = NULL;
           last_schedule [nb_loops]--;
         }
@@ -3830,6 +3831,9 @@ graphite_trans_scop_block (scop_p scop)
   VEC (graphite_bb_p, heap) *bbs = VEC_alloc (graphite_bb_p, heap, 3);
   int max_schedule = scop_max_loop_depth (scop) + 1;
   lambda_vector last_schedule = lambda_vector_new (max_schedule);
+
+  if (VEC_length (graphite_bb_p, SCOP_BBS (scop)) == 0)
+    return;
 
   /* Get the data of the first bb.  */
   gb = VEC_index (graphite_bb_p, SCOP_BBS (scop), 0); 
