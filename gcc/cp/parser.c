@@ -6984,9 +6984,9 @@ cp_parser_lambda_class_definition (cp_parser* parser,
 
       fco_compound_stmt = begin_compound_stmt (0);
 
-      cp_parser_require (parser, CPP_OPEN_PAREN, "`('");
+      cp_parser_require (parser, CPP_OPEN_PAREN, "%<(%>");
       fco_body_expr = cp_parser_expression (parser, /*cast_p=*/false);
-      cp_parser_require (parser, CPP_CLOSE_PAREN, "`)'");
+      cp_parser_require (parser, CPP_CLOSE_PAREN, "%<)%>");
 
       if (!LAMBDA_EXPR_RETURN_TYPE (lambda_expr))
       {
@@ -7161,7 +7161,7 @@ cp_parser_lambda_introducer (cp_parser* parser, tree lambda_expr)
     enum capture_kind_type capture_kind = BY_COPY;
 
     if (!first)
-      cp_parser_require (parser, CPP_COMMA, "`,'");
+      cp_parser_require (parser, CPP_COMMA, "%<,%>");
     else
       first = false;
 
@@ -7251,7 +7251,7 @@ cp_parser_lambda_introducer (cp_parser* parser, tree lambda_expr)
 
   }
 
-  cp_parser_require (parser, CPP_CLOSE_SQUARE, "`]'");
+  cp_parser_require (parser, CPP_CLOSE_SQUARE, "%<]%>");
 
 }
 
@@ -7261,7 +7261,7 @@ cp_parser_lambda_parameter_declaration (cp_parser* parser,
     cp_parameter_declarator** fco_param_list)
 {
 
-  cp_parser_require (parser, CPP_OPEN_PAREN, "`('");
+  cp_parser_require (parser, CPP_OPEN_PAREN, "%<(%>");
 
   /* Parse optional parameters.  */
   if (cp_lexer_next_token_is_not (parser->lexer, CPP_CLOSE_PAREN))
@@ -7272,7 +7272,7 @@ cp_parser_lambda_parameter_declaration (cp_parser* parser,
       *fco_param_list = no_parameters;
   }
 
-  cp_parser_require (parser, CPP_CLOSE_PAREN, "`)'");
+  cp_parser_require (parser, CPP_CLOSE_PAREN, "%<)%>");
 
   /* Parse optional exception specification.  */
   LAMBDA_EXPR_EXCEPTION_SPEC (lambda_expr)
