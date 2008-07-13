@@ -6644,20 +6644,6 @@ cp_parser_trait_expr (cp_parser* parser, enum rid keyword)
   return finish_trait_expr (kind, type1, type2);
 }
 
-/* TODO: move this to the right place, wherever that is.  */
-static tree
-build_lambda_expr (void)
-{
-  tree lambda_expr = make_node (LAMBDA_EXPR);
-  LAMBDA_EXPR_DEFAULT_CAPTURE_MODE (lambda_expr) = CPLD_NONE;
-  LAMBDA_EXPR_CAPTURES_THIS_P      (lambda_expr) = false;
-  LAMBDA_EXPR_CAPTURE_LIST         (lambda_expr) = NULL_TREE;
-  LAMBDA_EXPR_CAPTURE_INIT_LIST    (lambda_expr) = NULL_TREE;
-  LAMBDA_EXPR_EXCEPTION_SPEC       (lambda_expr) = NULL_TREE;
-  LAMBDA_EXPR_RETURN_TYPE          (lambda_expr) = NULL_TREE;
-  return lambda_expr;
-}
-
 /* Parse a lambda expression */
 static tree
 cp_parser_lambda_expression (cp_parser* parser)

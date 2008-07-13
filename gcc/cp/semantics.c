@@ -4494,4 +4494,19 @@ finish_trait_expr (cp_trait_kind kind, tree type1, tree type2)
 	  ? boolean_true_node : boolean_false_node);
 }
 
+/* Initialize a lambda expression.  */
+
+tree
+build_lambda_expr (void)
+{
+  tree lambda_expr = make_node (LAMBDA_EXPR);
+  LAMBDA_EXPR_DEFAULT_CAPTURE_MODE (lambda_expr) = CPLD_NONE;
+  LAMBDA_EXPR_CAPTURES_THIS_P      (lambda_expr) = false;
+  LAMBDA_EXPR_CAPTURE_LIST         (lambda_expr) = NULL_TREE;
+  LAMBDA_EXPR_CAPTURE_INIT_LIST    (lambda_expr) = NULL_TREE;
+  LAMBDA_EXPR_EXCEPTION_SPEC       (lambda_expr) = NULL_TREE;
+  LAMBDA_EXPR_RETURN_TYPE          (lambda_expr) = NULL_TREE;
+  return lambda_expr;
+}
+
 #include "gt-cp-semantics.h"
