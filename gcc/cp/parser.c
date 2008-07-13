@@ -7113,14 +7113,10 @@ cp_parser_build_mem_init_list (cp_parser* parser,
     mem_ctor_arg_list = tree_cons (NULL_TREE, mem_ctor_arg, NULL_TREE);
 
     /* Put it all together now. */
-    mem_init = build_tree_list (mem, mem_ctor_arg_list);
-    TREE_CHAIN (mem_init) = *mem_init_list;
-    *mem_init_list = mem_init;
-    /* TODO: is above the same as */
-    /* *mem_init_list = tree_cons (
+    *mem_init_list = tree_cons (
        mem,
        mem_ctor_arg_list,
-       *mem_init_list); */
+       *mem_init_list);
   }
 }
 
