@@ -1,3 +1,135 @@
+2008-07-14  Ben Elliston  <bje@au.ibm.com>
+
+	* c-common.h (C_CPP_HASHNODE): New macro.
+	* coretypes.h (struct cpp_token): Forward declare.
+	* doc/extend.texi (PowerPC AltiVec Built-in Functions): Document
+	the context-sensitive keyword method.
+	* config/rs6000/rs6000-c.c (__vector_keyword, vector_keyword,
+	__pixel_keyword, pixel_keyword, __bool_keyword, bool_keyword,
+	expand_bool_pixel): New.
+	(altivec_categorize_keyword): New function.
+	(init_vector_keywords): New function.
+	(rs6000_macro_to_expand): Likewise.
+	(rs6000_cpu_cpp_builtins): Enable context-sensitive macros if not
+	compiling an ISO C dialect.
+
+2008-07-13  Daniel Berlin  <dberlin@dberlin.org>
+
+	* tree-ssa-pre.c (fully_constant_expression): Add fold_convert
+	calls.
+	(create_expression_by_pieces): Fix typo.
+	(do_regular_insertion): Use debug counter here too.
+
+2008-07-14  Hans-Peter Nilsson  <hp@axis.com>
+
+	PR target/35492.
+	* config/cris/cris.h (CRIS_CONST_OK_FOR_LETTER_P): Renamed from
+	CONST_OK_FOR_LETTER_P.  All port-local users changed.
+	(CONST_OK_FOR_CONSTRAINT_P): Define; implement Kc as old K,
+	implement Kp matching power-of-two.
+	(CONSTRAINT_LEN): Define to match.
+	* config/cris/cris.md: Replace all use of constraint K with Kc.
+	("*btst*): Use Kp for operand 0 of last alternative.
+
+2008-07-13  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	PR testsuite/36440
+	* tree-call-cdce.c (check_target_format): Accept MIPS single, double
+	and quad formats.
+
+2008-07-13  Jan Hubicka  <jh@suse.cz>
+
+	* tree.c (decl_assembler_name_equal): Expect assembler name of decl
+	to be mangled too.
+
+2008-07-13  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/36811
+	* langhooks.c (lhd_print_error_function): Deal with recursive
+	BLOCK trees.
+
+2008-07-12  Jan Hubicka  <jh@suse.cz>
+
+	* cgraph.c (assembler_name_hash): New static var.
+	(hash_node_by_assembler_name, eq_assembler_name): New.
+	(cgraph_node_for_asm): Use hashtable.
+	(cgraph_remove_node): Maintain hashtable.
+	(change_decl_assembler_name): Sanity check that names are not changing
+	after aliasing was processed.
+	* cgraph.h (varpoon_node): Add next GGC marker.
+	* tree.c (decl_assembler_name_equal): Constify.
+	(decl_assembler_name_hash): New.
+	* tree.h (decl_assembler_name_equal): Constify.
+	(decl_assembler_name_hash): Update.
+
+2008-07-12  David Daney  <ddaney@avtrex.com>
+
+	* config/mips/driver-native.c (host_detect_local_cpu): Handle
+	sb1 and r5000 cpus.
+
+2008-07-12  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* doc/md.texi: Document the MIPS "v" constraint.
+	* config/mips/mips.h (reg_class): Revert last change.
+	(REG_CLASS_NAMES): Likewise.
+	(REG_CLASS_CONTENTS): Likewise.
+	* config/mips/mips.c (mips_regno_to_class): Likewise.
+	* config/mips/constraints.md (v): Likewise, but add documentation.
+	Add a comment to say that this constraint should not be used in
+	gcc code.
+
+2008-07-11  DJ Delorie  <dj@redhat.com>
+
+	* config/h8300/h8300.md (length): Fix branch offset limit.
+
+2008-07-11  Anatoly Sokolov  <aesok@post.ru>	
+
+	* config/avr/avr-protos.h (avr_peep2_scratch_safe): Remove prototype.
+	* config/avr/avr.c (avr_peep2_scratch_safe): Remove.
+	(avr_hard_regno_scratch_ok): New function.
+	(TARGET_HARD_REGNO_SCRATCH_OK): Define.
+	* config/avr/avr.md (all peepholes that request a scratch register):
+	Remove avr_peep2_scratch_safe use.
+
+2008-07-11  Tom Tromey  <tromey@redhat.com>
+	    Ian Lance Taylor  <iant@google.com>
+
+	* c-common.h (enum rid): Add RID_CXX_COMPAT_WARN.
+	(struct c_common_resword): Define.
+	(D_CONLY, D_CXXONLY, D_C99, D_CXX0X, D_EXT, D_EXT89): Define.
+	(D_ASM, D_OBJC, D_CXX_OBJC, D_CXXWARN): Define.
+	(c_common_reswords, num_c_common_reswords): Declare.
+	* c-common.c (c_common_reswords): New global const array.
+	(num_c_common_reswords): New const int.
+	* c-parser.c (struct resword, reswords): Don't define.
+	(D_C89, D_EXT, D_EXT89, D_OBJC): Don't define.
+	(c_parse_init): Clarify mask code.  Use c_common_reswords rather
+	than reswords.  If warning about C++ keywords, give them a special
+	RID code.
+	(c_lex_one_token): Warn about C++ keywords.  Call
+	objc_is_reserved_word rather than OBJC_IS_AT_KEYWORD.
+	(c_parser_external_declaration): Look for RID_xxx rather than
+	RID_AT_xxx, for ObjC++ keywords which are also C++ keywords.
+	(c_parser_statement_after_labels): Likewise.
+	(c_parser_objc_class_instance_variables): Likewise.
+	(c_parser_objc_class_declaration): Likewise.
+	(c_parser_objc_try_catch_statement): Likewise.
+	* c-decl.c (c_print_identifier): Ignore RID_CXX_COMPAT_WARN.
+	(declspecs_add_type): Likewise.
+
+2008-07-11  Angelo Graziosi  <angelo.graziosi@alice.it>
+
+	* ggc-page.c (alloc_page):
+	Substituting xmalloc, xcalloc with
+	XNEWVEC and XCNEWVAR macros which add the
+	needed casts.
+
+2008-07-11  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/36765
+	* tree-ssa-alias.c (compute_flow_insensitive_aliasing): Add
+	aliases from HEAP vars to SMTs.
+
 2008-07-10  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
 
 	* Makefile.in (LOOSE_WARN, STRICT_WARN): Update comments.
