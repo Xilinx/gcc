@@ -6799,19 +6799,16 @@ cp_parser_lambda_class_definition (cp_parser* parser,
          * + member_declaration
          ********************************************/
         /* Add member.  */
-        tree mem_decl;
+        tree member = make_node (FIELD_DECL);
 
-        capture_decl_specs.storage_class = sc_mutable;
+        DECL_NAME (member) = capture_id;
+        TREE_TYPE (member) = capture_type;
+        DECL_CONTEXT (member) = type;
+        DECL_MUTABLE_P (member) = 1;
 
-        mem_decl = grokfield (
-            capture_declarator,
-            &capture_decl_specs,
-            /*initializer=*/NULL_TREE,
-            /*init_const_expr_p=*/true,
-            /*asm_specification=*/NULL_TREE,
-            /*attributes=*/NULL_TREE);
+        TREE_CHAIN (member) = TYPE_FIELDS (type);
+        TYPE_FIELDS (type) = member;
 
-        finish_member_declaration (mem_decl);
       }
 
     }
