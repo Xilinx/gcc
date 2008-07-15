@@ -146,6 +146,7 @@ typedef struct mem_attrs GTY(())
   rtx offset;			/* Offset from start of DECL, as CONST_INT.  */
   rtx size;			/* Size in bytes, as a CONST_INT.  */
   unsigned int align;		/* Alignment of MEM in bits.  */
+  unsigned char addrspace;	/* Address space (0 for generic.  */
 } mem_attrs;
 
 /* Structure used to describe the attributes of a REG in similar way as
@@ -309,8 +310,6 @@ struct rtx_def GTY((chain_next ("RTX_NEXT (&%h)"),
      1 in a SYMBOL_REF for a weak symbol. 
      1 in a CALL_INSN logically equivalent to ECF_PURE and DECL_PURE_P. */ 
   unsigned return_val : 1;
-  /* 1 in a MEM if it is in the extended address space.  */
-  unsigned char addr_space;
 
   /* The first element of the operands of this rtx.
      The number of operands and their types are controlled
@@ -1152,10 +1151,6 @@ do {									\
   (RTL_FLAG_CHECK3("MEM_VOLATILE_P", (RTX), MEM, ASM_OPERANDS,		\
 		   ASM_INPUT)->volatil)
 
-/* 1 if RTX is a mem belonging to the extended address space.  */
-#define MEM_ADDR_SPACE(RTX)							\
-  (RTL_FLAG_CHECK1("MEM_ADDR_SPACE", (RTX), MEM)->addr_space)
-
 /* 1 if RTX is a mem that refers to an aggregate, either to the
    aggregate itself or to a field of the aggregate.  If zero, RTX may
    or may not be such a reference.  */
@@ -1212,6 +1207,10 @@ do {						\
 /* For a MEM rtx, the offset from the start of MEM_EXPR, if known, as a
    RTX that is always a CONST_INT.  */
 #define MEM_OFFSET(RTX) (MEM_ATTRS (RTX) == 0 ? 0 : MEM_ATTRS (RTX)->offset)
+
+/* For a MEM rtx, the address space.  If 0, the MEM belongs to the
+   generic address space.  */
+#define MEM_ADDR_SPACE(RTX) (MEM_ATTRS (RTX) == 0 ? 0 : MEM_ATTRS (RTX)->addrspace)
 
 /* For a MEM rtx, the size in bytes of the MEM, if known, as an RTX that
    is always a CONST_INT.  */

@@ -1,3 +1,18 @@
+2008-07-15  Ben Elliston  <bje@au.ibm.com>
+
+	* doc/rtl.texi (Special Accessors): Document MEM_ADDR_SPACE.
+	* rtl.h (MEM_ADDR_SPACE): Re-define to use mem_attrs.
+	(struct rtx_def): Move addr_space field from here ..
+	(struct mem_attrs): .. to here.
+	* emit-rtl.c (set_mem_attributes_minus_bitpos,
+	set_mem_attrs_from_reg, set_mem_alias_set, set_mem_align,
+	set_mem_expr, set_mem_offset, set_mem_size, change_address,
+	adjust_address_1, offset_address, widen_memory_access): Update
+	all callers.
+	(set_mem_addr_space): New.
+	(get_mem_attrs): Add address space parameter, set attrs.
+	* emit-rtl.h (set_mem_addr_space): New.
+
 2008-07-11  Ben Elliston  <bje@au.ibm.com>
 
 	* tree.c (set_type_quals): TYPE_QUAL_EA -> TYPE_QUAL_ADDRSPACE.
