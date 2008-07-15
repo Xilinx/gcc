@@ -6741,11 +6741,7 @@ cp_parser_lambda_class_definition (cp_parser* parser,
     current_class_type = type;
   }
 
-  /*tree ctor_parm_type_list = NULL_TREE;*/
-  tree ctor_parm_type_list = tree_cons (
-      NULL_TREE,
-      void_type_node,
-      NULL_TREE);
+  tree ctor_parm_type_list = void_list_node;
   tree ctor_parm_list = NULL_TREE;
   tree ctor_init_list = NULL_TREE;
 
@@ -6755,30 +6751,14 @@ cp_parser_lambda_class_definition (cp_parser* parser,
        3. Add member to class
        4. Add member-initializer to ctor_init_list  */
   {
-    cp_parameter_declarator** ctor_param_list_tail = &ctor_param_list;
     tree capture = NULL_TREE;
-
-    /* Members are private */
-    /* TODO: find out how to use this.  */
-    current_access_specifier = access_private_node;
 
     for (capture = LAMBDA_EXPR_CAPTURE_LIST (lambda_expr);
          capture;
          capture = TREE_CHAIN (capture))
     {
-      /* Get a decl_specifier_seq and declarator.  */
-      cp_decl_specifier_seq capture_decl_specs;
-      cp_declarator* capture_declarator;
       tree capture_type = TREE_VALUE (capture);
       tree capture_id = TREE_PURPOSE (capture);
-
-      clear_decl_specs (&capture_decl_specs);
-      capture_decl_specs.type = capture_type;
-
-      capture_declarator = make_id_declarator (
-          NULL_TREE,
-          capture_id,
-          sfk_none);
 
       /* TODO: support rvalue-reference captures.  */
       /*
@@ -6788,15 +6768,6 @@ cp_parser_lambda_class_definition (cp_parser* parser,
             capture_declarator,
             /rvalue_ref=/true);
             */
-
-      /* Build parameter.  */
-      cp_parameter_declarator* ctor_param = make_parameter_declarator (
-          &capture_decl_specs,
-          capture_declarator,
-          /*default_argument=*/NULL_TREE);
-      /* Append to parameter list.  */
-      *ctor_param_list_tail = ctor_param;
-      ctor_param_list_tail = &ctor_param->next;
 
       /* Make constructor parameter.  */
       tree ctor_parm = cp_build_parm_decl (
@@ -6850,18 +6821,9 @@ cp_parser_lambda_class_definition (cp_parser* parser,
 
   }
 
-  /*
   tree real_ctor_type = build_method_type_directly (
       type,
       void_type_node,
-      ctor_parm_type_list);
-      */
-  tree real_ctor_type = make_node (METHOD_TYPE);
-  TREE_TYPE (real_ctor_type) = void_type_node;
-  TYPE_METHOD_BASETYPE (real_ctor_type) = TYPE_MAIN_VARIANT (type);
-  TYPE_ARG_TYPES (real_ctor_type) = tree_cons (
-      NULL_TREE,
-      build_pointer_type (type),
       ctor_parm_type_list);
 
   /* Finish ctor_parm_list with `this' and plug it in.  */
@@ -6878,15 +6840,20 @@ cp_parser_lambda_class_definition (cp_parser* parser,
   DECL_CONTEXT (real_ctor) = type;
   TREE_PUBLIC (real_ctor) = 1;
   DECL_EXTERNAL (real_ctor) = 1;
+  /* TODO: are these necessary?  */
   DECL_DECLARED_INLINE_P (real_ctor) = 1;
   DECL_IN_AGGR_P (real_ctor) = 1;
+  DECL_INITIALIZED_IN_CLASS_P (real_ctor) = 1;
   grok_ctor_properties (type, real_ctor);
   /*
-  DECL_RESULT (real_ctor) = build_lang_decl (
+  tree real_ctor_result = build_lang_decl (
       RESULT_DECL,
       /name=/NULL_TREE,
-      void_type_node);
+      / TODO: is the macro necessary? /
+      TYPE_MAIN_VARIANT (void_type_node));
+  DECL_ARTIFICIAL (real_ctor_result) = 1;
   DECL_IGNORED_P (DECL_RESULT (real_ctor)) = 1;
+  DECL_RESULT (real_ctor) = real_ctor_result;
   */
 
   /********************************************
@@ -6944,40 +6911,6 @@ cp_parser_lambda_class_definition (cp_parser* parser,
   }
 
   /********************************************
-   * Start the constructor
-   * - member_specification_opt
-   * + member_declaration
-   ********************************************/
-  {
-    tree ctor_name;
-    cp_decl_specifier_seq ctor_decl_specs;
-    cp_declarator* ctor_declarator;
-
-    clear_decl_specs (&ctor_decl_specs);
-    ctor_name = constructor_name (type);
-    ctor_declarator = make_id_declarator (
-        parser->scope,
-        ctor_name,
-        sfk_constructor);
-    ctor_declarator = make_call_declarator (
-        ctor_declarator,
-        ctor_param_list,
-        /*cv_quals=*/0,
-        /*exception_specification=*/NULL_TREE);
-
-    current_access_specifier = access_public_node;
-
-    ctor_decl = start_method (
-        &ctor_decl_specs,
-        ctor_declarator,
-        /*attributes=*/NULL_TREE);
-    DECL_INITIALIZED_IN_CLASS_P (ctor_decl) = 1;
-    finish_method (ctor_decl);
-
-    finish_member_declaration (ctor_decl);
-  }
-
-  /********************************************
    * Finish the class (part 1)
    * - class_specifier
    ********************************************/
@@ -7004,19 +6937,11 @@ cp_parser_lambda_class_definition (cp_parser* parser,
 
     /* Let the front end know that we are going to be defining this
        function. */
-    start_preparsed_function (
-        ctor_decl,
-        NULL_TREE,
-        SF_PRE_PARSED | SF_INCLASS_INLINE);
+    current_function_decl = real_ctor;
 
     ctor_body = begin_function_body ();
 
-    cp_parser_build_mem_init_list (parser,
-        ctor_param_list,
-        &mem_init_list);
-
-    /* gcc_assert (DECL_CONSTRUCTOR_P (current_function_decl)); */
-    finish_mem_initializers (mem_init_list);
+    finish_mem_initializers (ctor_init_list);
 
     finish_function_body (ctor_body);
 
