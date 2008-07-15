@@ -6741,15 +6741,39 @@ cp_parser_lambda_class_definition (cp_parser* parser,
     current_class_type = type;
   }
 
+  tree real_ctor_type = make_node (METHOD_TYPE);
+  TREE_TYPE (real_ctor_type) = void_type_node;
+  TYPE_METHOD_BASETYPE (real_ctor_type) = type;
+
+  tree real_ctor = build_decl (
+      FUNCTION_DECL,
+      constructor_name (type),
+      real_ctor_type);
+
+  DECL_RESULT (real_ctor) = build_decl (
+      RESULT_DECL,
+      /*name=*/NULL_TREE,
+      void_type_node);
+  DECL_IGNORED_P (DECL_RESULT (real_ctor)) = 1;
+
+  tree ctor_parm_type_list = tree_cons(
+      NULL_TREE,
+      void_type_node,
+      NULL_TREE);
+  tree ctor_parm_list = NULL_TREE;
+  tree ctor_init_list = NULL_TREE;
+
   /* For each capture, we need to
-       1. Add to ctor_param_list
-       2. Create member
-       3. Add to mem_initializer_list (later) */
+       1. Add parm to ctor_parm_list
+       2. Add type to ctor_parm_type_list
+       3. Add member to class
+       4. Add member-initializer to ctor_init_list  */
   {
     cp_parameter_declarator** ctor_param_list_tail = &ctor_param_list;
     tree capture = NULL_TREE;
 
     /* Members are private */
+    /* TODO: find out how to use this.  */
     current_access_specifier = access_private_node;
 
     for (capture = LAMBDA_EXPR_CAPTURE_LIST (lambda_expr);
@@ -6779,26 +6803,37 @@ cp_parser_lambda_class_definition (cp_parser* parser,
             /rvalue_ref=/true);
             */
 
-      {
         /* Build parameter.  */
         cp_parameter_declarator* ctor_param = make_parameter_declarator (
             &capture_decl_specs,
             capture_declarator,
             /*default_argument=*/NULL_TREE);
-
         /* Append to parameter list.  */
         *ctor_param_list_tail = ctor_param;
         ctor_param_list_tail = &ctor_param->next;
 
-      }
+      /* Make constructor parameter.  */
+      tree ctor_parm = build_decl (
+          PARM_DECL,
+          capture_id,
+          capture_type);
+      DECL_CONTEXT (ctor_parm) = real_ctor;
+      DECL_ARG_TYPE (ctor_parm) = capture_type;
 
-      {
-        /********************************************
-         * Create members
-         * - member_specification_opt
-         * + member_declaration
-         ********************************************/
-        /* Add member.  */
+      /* Remember it for later, before we chain things on to it.  */
+      tree member_ctor_arg = copy_node (ctor_parm);
+
+      /* Add to constructor parameter list.  */
+      TREE_CHAIN (ctor_parm) = ctor_parm_list;
+      ctor_parm_list = ctor_parm;
+
+      /* Add its type to the list.  */
+      ctor_parm_type_list = tree_cons (
+          NULL_TREE,
+          capture_type,
+          ctor_parm_type_list);
+
+      /* Make member variable.  */
         tree member = make_node (FIELD_DECL);
 
         DECL_NAME (member) = capture_id;
@@ -6806,12 +6841,43 @@ cp_parser_lambda_class_definition (cp_parser* parser,
         DECL_CONTEXT (member) = type;
         DECL_MUTABLE_P (member) = 1;
 
+      /* Add to class.  */
         TREE_CHAIN (member) = TYPE_FIELDS (type);
         TYPE_FIELDS (type) = member;
 
-      }
+      /* In the member-initializer-list for the constructor, the arguments to a
+       * member's constructor consist of the corresponding parameter.  */
+      /* TODO: this should trigger a complaint about late declaration, but it
+       * doesn't.  Won't fix it until it does.  */
+      tree member_ctor_arg_list = tree_cons (
+          NULL_TREE,
+          member_ctor_arg,
+          NULL_TREE);
+
+      /* Add the member-initializer to the list.  */
+      ctor_init_list = tree_cons (
+          member,
+          member_ctor_arg_list,
+          ctor_init_list); 
 
     }
+
+    /* Finish ctor_parm_type_list with `this' and plug it in.  */
+    ctor_parm_type_list = tree_cons (
+        NULL_TREE,
+        build_pointer_type (type),
+        ctor_parm_type_list);
+
+    /* build_this_parm uses TYPE_ARG_TYPES (real_ctor_type), so must set it
+     * first.  */
+    TYPE_ARG_TYPES (real_ctor_type) = ctor_parm_type_list;
+
+    /* Finish ctor_parm_list with `this' and plug it in.  */
+    tree this_parm = build_this_parm (real_ctor_type, 0);
+    TREE_CHAIN (this_parm) = ctor_parm_list;
+    ctor_parm_list = this_parm;
+
+    DECL_ARGUMENTS (real_ctor) = ctor_parm_list;
 
   }
 
@@ -7079,9 +7145,12 @@ cp_parser_build_mem_init_list (cp_parser* parser,
     eref_id = eref_declarator->u.id.unqualified_name;
 
     /* What member are we initializing? */
+    /* Gets the FIELD_DECL */
     mem = expand_member_init (eref_id);
 
     /* What parameter are we using to initialize it? */
+    /* Probably gets a PARM_DECL */
+    /* mark_used (mem_ctor_arg); */
     mem_ctor_arg = cp_parser_lookup_name (parser,
         eref_id,
         none_type,
@@ -7089,20 +7158,6 @@ cp_parser_build_mem_init_list (cp_parser* parser,
         /*is_namespace=*/false,
         /*check_dependency=*/true,
         /*ambiguous_decls=*/NULL);
-
-    mem_ctor_arg = finish_id_expression (
-        eref_id,
-        mem_ctor_arg,
-        parser->scope,
-        &idk,
-        /*integral_constant_expression_p=*/false,
-        /*allow_non_integral_constant_expression_p=*/false,
-        /*non_integral_constant_expression_p=*/NULL,
-        /*template_p=*/false,
-        /*done=*/true,
-        /*address_p=*/false,
-        /*template_arg_p=*/false,
-        &error_msg);
 
     mem_ctor_arg_list = tree_cons (NULL_TREE, mem_ctor_arg, NULL_TREE);
 
