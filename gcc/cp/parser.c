@@ -6741,21 +6741,8 @@ cp_parser_lambda_class_definition (cp_parser* parser,
     current_class_type = type;
   }
 
-  tree real_ctor_type = make_node (METHOD_TYPE);
-  TREE_TYPE (real_ctor_type) = void_type_node;
-  TYPE_METHOD_BASETYPE (real_ctor_type) = type;
-
-  tree real_ctor = build_decl (
-      FUNCTION_DECL,
-      constructor_name (type),
-      real_ctor_type);
-  DECL_RESULT (real_ctor) = build_decl (
-      RESULT_DECL,
-      /*name=*/NULL_TREE,
-      void_type_node);
-  DECL_IGNORED_P (DECL_RESULT (real_ctor)) = 1;
-
-  tree ctor_parm_type_list = tree_cons(
+  /*tree ctor_parm_type_list = NULL_TREE;*/
+  tree ctor_parm_type_list = tree_cons (
       NULL_TREE,
       void_type_node,
       NULL_TREE);
@@ -6812,12 +6799,11 @@ cp_parser_lambda_class_definition (cp_parser* parser,
       ctor_param_list_tail = &ctor_param->next;
 
       /* Make constructor parameter.  */
-      tree ctor_parm = build_decl (
-          PARM_DECL,
+      tree ctor_parm = cp_build_parm_decl (
           capture_id,
           capture_type);
-      DECL_CONTEXT (ctor_parm) = real_ctor;
-      DECL_ARG_TYPE (ctor_parm) = capture_type;
+      /* TODO: unnecessary?  */
+      /*DECL_CONTEXT (ctor_parm) = real_ctor;*/
 
       /* Remember it for later, before we chain things on to it.  */
       tree member_ctor_arg = copy_node (ctor_parm);
@@ -6862,24 +6848,46 @@ cp_parser_lambda_class_definition (cp_parser* parser,
 
     }
 
-    /* Finish ctor_parm_type_list with `this' and plug it in.  */
-    ctor_parm_type_list = tree_cons (
-        NULL_TREE,
-        build_pointer_type (type),
-        ctor_parm_type_list);
-
-    /* build_this_parm uses TYPE_ARG_TYPES (real_ctor_type), so must set it
-     * first.  */
-    TYPE_ARG_TYPES (real_ctor_type) = ctor_parm_type_list;
-
-    /* Finish ctor_parm_list with `this' and plug it in.  */
-    tree this_parm = build_this_parm (real_ctor_type, 0);
-    TREE_CHAIN (this_parm) = ctor_parm_list;
-    ctor_parm_list = this_parm;
-
-    DECL_ARGUMENTS (real_ctor) = ctor_parm_list;
-
   }
+
+  /*
+  tree real_ctor_type = build_method_type_directly (
+      type,
+      void_type_node,
+      ctor_parm_type_list);
+      */
+  tree real_ctor_type = make_node (METHOD_TYPE);
+  TREE_TYPE (real_ctor_type) = void_type_node;
+  TYPE_METHOD_BASETYPE (real_ctor_type) = TYPE_MAIN_VARIANT (type);
+  TYPE_ARG_TYPES (real_ctor_type) = tree_cons (
+      NULL_TREE,
+      build_pointer_type (type),
+      ctor_parm_type_list);
+
+  /* Finish ctor_parm_list with `this' and plug it in.  */
+  tree this_parm = build_this_parm (real_ctor_type, /*quals=*/0);
+  TREE_CHAIN (this_parm) = ctor_parm_list;
+  ctor_parm_list = this_parm;
+
+  tree real_ctor = build_lang_decl (
+      FUNCTION_DECL,
+      constructor_name (type),
+      real_ctor_type);
+  DECL_ARGUMENTS (real_ctor) = ctor_parm_list;
+  DECL_CONSTRUCTOR_P (real_ctor) = 1;
+  DECL_CONTEXT (real_ctor) = type;
+  TREE_PUBLIC (real_ctor) = 1;
+  DECL_EXTERNAL (real_ctor) = 1;
+  DECL_DECLARED_INLINE_P (real_ctor) = 1;
+  DECL_IN_AGGR_P (real_ctor) = 1;
+  grok_ctor_properties (type, real_ctor);
+  /*
+  DECL_RESULT (real_ctor) = build_lang_decl (
+      RESULT_DECL,
+      /name=/NULL_TREE,
+      void_type_node);
+  DECL_IGNORED_P (DECL_RESULT (real_ctor)) = 1;
+  */
 
   /********************************************
    * Start the function call operator
@@ -7061,7 +7069,7 @@ cp_parser_lambda_class_definition (cp_parser* parser,
         TREE_TYPE (TREE_TYPE (fco_decl)) = fco_return_type;
 
         /* Must redo some work from start_preparsed_function. */
-        fco_return_decl = build_decl (
+        fco_return_decl = build_lang_decl (
             RESULT_DECL,
             0,
             TYPE_MAIN_VARIANT (fco_return_type));
