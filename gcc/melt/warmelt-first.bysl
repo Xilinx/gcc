@@ -1834,6 +1834,21 @@
 		     (f  (multiple_nth tup ix) ix)
 		     (setq ix (-i ix 1)))))))
 
+
+;; iterator on two tuples
+(defun multiple_every_both (tup1 tup2 f)
+  (if (is_multiple tup1)
+      (if (is_multiple tup2)
+	  (if (is_closure f)
+	      (let ( (:long ln1 (multiple_length tup1))
+		     (:long ln2 (multiple_length tup2))
+		     (:long ix 0) )
+		(forever tuploop
+			 (if (>=i ix ln1) (exit tuploop))
+			 (if (>=i ix ln2) (exit tuploop))
+			 (f (multiple_nth tup1 ix) (multiple_nth tup2 ix) ix)
+			 (setq ix (+i ix 1))))))))
+
 ;;; iterator on tuple , if the called f returns nil the iteration is stopped
 ;;; the function is called with the component and its index
 (defun multiple_iterate_test (tup f)
@@ -3362,6 +3377,7 @@
  mapstringval_iterate_test		
  multiple_backward_every		
  multiple_every				
+ multiple_every_both				
  multiple_iterate_test			
  multiple_map				
  overwrite_env				

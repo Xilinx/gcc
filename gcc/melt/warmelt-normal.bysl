@@ -3114,8 +3114,52 @@
 
 ;;;;;; normalize a citeration
 (defun normexp_citeration (recv env ncx psloc)
+  (debug_msg recv "normexp_citeration recv")
+  (assert_msg "check citeration recv" (is_a recv class_src_citeration))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check nctxt" (is_a ncx class_normcontext))
+  (let ( (sloc (unsafe_get_field :src_loc recv))
+	 (soper (unsafe_get_field :sciter_oper recv))
+	 (sargs (unsafe_get_field :sciter_args recv))
+	 (svbind (unsafe_get_field :sciter_varbind recv))
+	 (sbody (unsafe_get_field :sciter_body recv))
+	 (bodyenv (fresh_env env))
+	 )
+    (assert_msg "check soper" (is_a soper class_citerator))
+    (multicall
+     (nargs nbindings)
+     (normalize_tuple sargs env ncx sloc)
+     (debug_msg nargs "normexp_citeration nargs")
+     (debug_msg nbindings "normexp_citeration nbindings")
+     (let ( (starformals (unsafe_get_field :citer_start_formals soper)) )
+       (debug_msg starformals "normexp_citeration starformals")
+       (if (!= (multiple_length starformals) (multiple_length nargs))
+	   (progn
+	     (error_strv sloc "start formals and actuals length mismatch in citerator" (unsafe_get_field :named_name soper))
+	     (return)))
+       #|
+       (multiple_every_both 
+	nargs startformals
+	(lambda (curnarg curform :long ix)
+	  (debug_msg curnarg "normexp_citeration curnarg")
+	  (debug_msg curform "normexp_citeration curform")
+	  (assert_msg "check curform" (is_a curform class_formal_binding))
+	  (let ( (curctyp (get_ctype curnarg env)) 
+		 (formctyp (unsafe_get_field :fbind_type curform))
+		 (formbind (unsafe_get_field :binder curform))
+		 )
+	    (if (!= curctyp formctyp)
+		(progn
+		  (error_strv sloc "formal and actual type mismatch in citerator" (unsafe_get_field :named_name soper))
+		  (inform_strv sloc "mismatched citerator formal argument" (unsafe_get_field :named_name formbind))))
+	    ))
+	)
+       |#	       
+       )
+     )
+    )
   (assert_msg "@@unimplemented normexp_citeration" ())
-)
+  )
 (install_method class_src_citeration normal_exp normexp_citeration)
 (compile_warning "normexp_citeration NOT IMPLEMENTED" ())
 

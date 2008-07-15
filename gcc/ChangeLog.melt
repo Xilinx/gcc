@@ -1,4 +1,19 @@
 2008-07-15  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-first.bysl: added multiple_every_both.
+
+	* melt/warmelt-normal.bysl: adding normexp_citeration.
+
+	* warmelt-first-0.c: regenerated.
+
+	* warmelt-macro-0.c: regenerated.
+
+	* warmelt-normal-0.c: regenerated.
+
+	* warmelt-genobj-0.c: regenerated.
+
+	* warmelt-outobj-0.c: regenerated.
+
+2008-07-15  Basile Starynkevitch  <basile@starynkevitch.net>
 	MELT branch merged with trunk r137813
 
 2008-07-09  Basile Starynkevitch  <basile@starynkevitch.net>
