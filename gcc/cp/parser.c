@@ -6944,9 +6944,6 @@ cp_parser_lambda_class_definition (cp_parser* parser,
     /* gcc_assert (DECL_CONSTRUCTOR_P (current_function_decl)); */
     finish_mem_initializers (mem_init_list);
 
-    ctor_compound_stmt = begin_compound_stmt (0);
-    finish_compound_stmt (ctor_compound_stmt);
-
     finish_function_body (ctor_body);
 
     /* Finish the function and generate code for it if necessary. */
