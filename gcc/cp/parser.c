@@ -6749,7 +6749,6 @@ cp_parser_lambda_class_definition (cp_parser* parser,
       FUNCTION_DECL,
       constructor_name (type),
       real_ctor_type);
-
   DECL_RESULT (real_ctor) = build_decl (
       RESULT_DECL,
       /*name=*/NULL_TREE,
@@ -6803,14 +6802,14 @@ cp_parser_lambda_class_definition (cp_parser* parser,
             /rvalue_ref=/true);
             */
 
-        /* Build parameter.  */
-        cp_parameter_declarator* ctor_param = make_parameter_declarator (
-            &capture_decl_specs,
-            capture_declarator,
-            /*default_argument=*/NULL_TREE);
-        /* Append to parameter list.  */
-        *ctor_param_list_tail = ctor_param;
-        ctor_param_list_tail = &ctor_param->next;
+      /* Build parameter.  */
+      cp_parameter_declarator* ctor_param = make_parameter_declarator (
+          &capture_decl_specs,
+          capture_declarator,
+          /*default_argument=*/NULL_TREE);
+      /* Append to parameter list.  */
+      *ctor_param_list_tail = ctor_param;
+      ctor_param_list_tail = &ctor_param->next;
 
       /* Make constructor parameter.  */
       tree ctor_parm = build_decl (
@@ -6834,16 +6833,17 @@ cp_parser_lambda_class_definition (cp_parser* parser,
           ctor_parm_type_list);
 
       /* Make member variable.  */
-        tree member = make_node (FIELD_DECL);
+      tree member = make_node (FIELD_DECL);
 
-        DECL_NAME (member) = capture_id;
-        TREE_TYPE (member) = capture_type;
-        DECL_CONTEXT (member) = type;
-        DECL_MUTABLE_P (member) = 1;
+      DECL_NAME (member) = capture_id;
+      TREE_TYPE (member) = capture_type;
+      DECL_CONTEXT (member) = type;
+      DECL_MUTABLE_P (member) = 1;
+      TREE_PRIVATE (member) = 1;
 
       /* Add to class.  */
-        TREE_CHAIN (member) = TYPE_FIELDS (type);
-        TYPE_FIELDS (type) = member;
+      TREE_CHAIN (member) = TYPE_FIELDS (type);
+      TYPE_FIELDS (type) = member;
 
       /* In the member-initializer-list for the constructor, the arguments to a
        * member's constructor consist of the corresponding parameter.  */
