@@ -1,4 +1,7 @@
 2008-07-15  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normal.bysl: adding normexp_citeration.
+
+2008-07-15  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-first.bysl: added multiple_every_both.
 
 	* melt/warmelt-normal.bysl: adding normexp_citeration.

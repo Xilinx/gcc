@@ -3123,6 +3123,7 @@
 	 (sargs (unsafe_get_field :sciter_args recv))
 	 (svbind (unsafe_get_field :sciter_varbind recv))
 	 (sbody (unsafe_get_field :sciter_body recv))
+	 (nbndtup (make_multiple discr_multiple (multiple_length svbind)))
 	 (bodyenv (fresh_env env))
 	 )
     (assert_msg "check soper" (is_a soper class_citerator))
@@ -3137,24 +3138,31 @@
 	   (progn
 	     (error_strv sloc "start formals and actuals length mismatch in citerator" (unsafe_get_field :named_name soper))
 	     (return)))
-       #|
        (multiple_every_both 
-	nargs startformals
-	(lambda (curnarg curform :long ix)
+	nargs starformals
+	(lambda (curnarg curforb :long ix)
 	  (debug_msg curnarg "normexp_citeration curnarg")
-	  (debug_msg curform "normexp_citeration curform")
-	  (assert_msg "check curform" (is_a curform class_formal_binding))
+	  (debug_msg curforb "normexp_citeration curforb")
+	  (assert_msg "check curforb" (is_a curforb class_formal_binding))
 	  (let ( (curctyp (get_ctype curnarg env)) 
-		 (formctyp (unsafe_get_field :fbind_type curform))
-		 (formbind (unsafe_get_field :binder curform))
+		 (formctyp (unsafe_get_field :fbind_type curforb))
+		 (formarg (unsafe_get_field :binder curforb))
 		 )
-	    (if (!= curctyp formctyp)
-		(progn
-		  (error_strv sloc "formal and actual type mismatch in citerator" (unsafe_get_field :named_name soper))
-		  (inform_strv sloc "mismatched citerator formal argument" (unsafe_get_field :named_name formbind))))
+	    (if (== curctyp formctyp)
+		(let ( (nlbind (make_instance class_normlet_binding
+					      :letbind_loc sloc
+					      :binder formarg
+					      :letbind_type curctyp
+					      :letbind_expr curnarg
+					      )) )
+		  (multiple_put_nth nbndtup ix nlbind)
+		  (put_env bodyenv curforb)
+		  )
+	      (progn
+		(error_strv sloc "formal and actual type mismatch in citerator" (unsafe_get_field :named_name soper))
+		(inform_strv sloc "mismatched citerator formal argument" (unsafe_get_field :named_name formarg))))
 	    ))
 	)
-       |#	       
        )
      )
     )
