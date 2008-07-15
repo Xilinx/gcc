@@ -1,3 +1,22 @@
+2008-07-14  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* Make-lang.in (gfortranspec.o): Fix dependencies.
+
+2008-07-13  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/36725
+	* io.c: Add error check for g0 edit descriptor followed by '.'.
+
+2008-07-12  Daniel Kraft  <d@domob.eu>
+
+	* resolve.c (resolve_fl_derived):  Allow pointer components to empty
+	derived types fixing a missing part of PR fortran/33221.
+
+2008-07-10  Daniel Kraft  <d@domob.eu>
+
+	* gfc-internals.texi (section gfc_expr):  Created documentation about
+	the gfc_expr internal data structure.
+
 2008-07-07  Thomas Koenig  <tkoenig@gcc.gnu.org>
 
 	PR fortran/36670

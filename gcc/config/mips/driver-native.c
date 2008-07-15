@@ -19,6 +19,8 @@ along with GCC; see the file COPYING3.  If not see
 
 #include "config.h"
 #include "system.h"
+#include "coretypes.h"
+#include "tm.h"
 
 /* This will be called by the spec parser in gcc.c when it sees
    a %:local_cpu_detect(args) construct.  Currently it will be called
@@ -61,6 +63,10 @@ host_detect_local_cpu (int argc, const char **argv)
 	else if (strstr (buf, "Godson2 V0.3") != NULL
 		 || strstr (buf, "Loongson-2 V0.3") != NULL)
 	  cpu = "loongson2f";
+	else if (strstr (buf, "SiByte SB1") != NULL)
+	  cpu = "sb1";
+	else if (strstr (buf, "R5000") != NULL)
+	  cpu = "r5000";
 	break;
       }
 

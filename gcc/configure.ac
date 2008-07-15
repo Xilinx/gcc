@@ -630,8 +630,8 @@ AC_SUBST(BASILYSMELT_OBJECT)
 # So, we only use -pedantic if we can disable those warnings.
 
 ACX_PROG_CC_WARNING_OPTS([-W -Wall -Wwrite-strings -Wstrict-prototypes \
-	  -Wmissing-prototypes -Wcast-qual -Wc++-compat], [loose_warn])
-ACX_PROG_CC_WARNING_OPTS([-Wold-style-definition \
+	  -Wmissing-prototypes -Wcast-qual], [loose_warn])
+ACX_PROG_CC_WARNING_OPTS([-Wold-style-definition -Wc++-compat \
                           -Wmissing-format-attribute], [strict_warn])
 ACX_PROG_CC_WARNING_ALMOST_PEDANTIC([-Wno-long-long -Wno-variadic-macros \
 				     -Wno-overlength-strings], [strict_warn])

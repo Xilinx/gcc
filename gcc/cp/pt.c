@@ -8765,13 +8765,6 @@ tsubst_function_type (tree t,
   if (arg_types == error_mark_node)
     return error_mark_node;
 
-  if (TYPE_QUALS (return_type) != TYPE_UNQUALIFIED
-      && in_decl != NULL_TREE
-      && !TREE_NO_WARNING (in_decl)
-      && (SCALAR_TYPE_P (return_type) || VOID_TYPE_P (return_type)))
-    warning (OPT_Wignored_qualifiers,
-            "type qualifiers ignored on function return type");
-
   /* Construct a new type node and return it.  */
   if (TREE_CODE (t) == FUNCTION_TYPE)
     fntype = build_function_type (return_type, arg_types);
@@ -9750,7 +9743,7 @@ tsubst_qualified_id (tree qualified_id, tree args,
       if (complain & tf_error)
 	qualified_name_lookup_error (scope,
 				     TREE_OPERAND (qualified_id, 1),
-				     expr);
+				     expr, input_location);
       return error_mark_node;
     }
 
@@ -9759,7 +9752,7 @@ tsubst_qualified_id (tree qualified_id, tree args,
 
   if (expr == error_mark_node && complain & tf_error)
     qualified_name_lookup_error (scope, TREE_OPERAND (qualified_id, 1),
-				 expr);
+				 expr, input_location);
   else if (TYPE_P (scope))
     {
       expr = (adjust_result_of_qualified_name_lookup
@@ -10491,7 +10484,7 @@ tsubst_expr (tree t, tree args, tsubst_flags_t complain, tree in_decl,
 					  /*is_type_p=*/false,
 					  /*complain=*/false);
 	    if (decl == error_mark_node || TREE_CODE (decl) == TREE_LIST)
-	      qualified_name_lookup_error (scope, name, decl);
+	      qualified_name_lookup_error (scope, name, decl, input_location);
 	    else
 	      do_local_using_decl (decl, scope, name);
 	  }
@@ -10938,7 +10931,8 @@ tsubst_copy_and_build (tree t,
 				     /*done=*/true,
 				     /*address_p=*/false,
 				     /*template_arg_p=*/false,
-				     &error_msg);
+				     &error_msg,
+				     input_location);
 	if (error_msg)
 	  error (error_msg);
 	if (!function_p && TREE_CODE (decl) == IDENTIFIER_NODE)
@@ -11467,7 +11461,8 @@ tsubst_copy_and_build (tree t,
 	      }
 	    else
 	      {
-		qualified_name_lookup_error (object_type, tmpl, member);
+		qualified_name_lookup_error (object_type, tmpl, member,
+					     input_location);
 		return error_mark_node;
 	      }
 	  }

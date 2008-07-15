@@ -347,12 +347,19 @@ decl_assembler_name (tree decl)
 /* Compare ASMNAME with the DECL_ASSEMBLER_NAME of DECL.  */
 
 bool
-decl_assembler_name_equal (tree decl, tree asmname)
+decl_assembler_name_equal (tree decl, const_tree asmname)
 {
   tree decl_asmname = DECL_ASSEMBLER_NAME (decl);
+  const char *decl_str;
+  const char *asmname_str;
+  bool test = false;
 
   if (decl_asmname == asmname)
     return true;
+
+  decl_str = IDENTIFIER_POINTER (decl_asmname);
+  asmname_str = IDENTIFIER_POINTER (asmname);
+  
 
   /* If the target assembler name was set by the user, things are trickier.
      We have a leading '*' to begin with.  After that, it's arguable what
@@ -360,22 +367,57 @@ decl_assembler_name_equal (tree decl, tree asmname)
      historically been doing the wrong thing in assemble_alias by always
      printing the leading underscore.  Since we're not changing that, make
      sure user_label_prefix follows the '*' before matching.  */
-  if (IDENTIFIER_POINTER (decl_asmname)[0] == '*')
+  if (decl_str[0] == '*')
     {
-      const char *decl_str = IDENTIFIER_POINTER (decl_asmname) + 1;
+      size_t ulp_len = strlen (user_label_prefix);
+
+      decl_str ++;
+
+      if (ulp_len == 0)
+	test = true;
+      else if (strncmp (decl_str, user_label_prefix, ulp_len) == 0)
+	decl_str += ulp_len, test=true;
+      else
+	decl_str --;
+    }
+  if (asmname_str[0] == '*')
+    {
+      size_t ulp_len = strlen (user_label_prefix);
+
+      asmname_str ++;
+
+      if (ulp_len == 0)
+	test = true;
+      else if (strncmp (asmname_str, user_label_prefix, ulp_len) == 0)
+	asmname_str += ulp_len, test=true;
+      else
+	asmname_str --;
+    }
+
+  if (!test)
+    return false;
+  return strcmp (decl_str, asmname_str) == 0;
+}
+
+/* Hash asmnames ignoring the user specified marks.  */
+
+hashval_t
+decl_assembler_name_hash (const_tree asmname)
+{
+  if (IDENTIFIER_POINTER (asmname)[0] == '*')
+    {
+      const char *decl_str = IDENTIFIER_POINTER (asmname) + 1;
       size_t ulp_len = strlen (user_label_prefix);
 
       if (ulp_len == 0)
 	;
       else if (strncmp (decl_str, user_label_prefix, ulp_len) == 0)
 	decl_str += ulp_len;
-      else
-	return false;
 
-      return strcmp (decl_str, IDENTIFIER_POINTER (asmname)) == 0;
+      return htab_hash_string (decl_str);
     }
 
-  return false;
+  return htab_hash_string (IDENTIFIER_POINTER (asmname));
 }
 
 /* Compute the number of bytes occupied by a tree with code CODE.
@@ -462,7 +504,6 @@ tree_code_size (enum tree_code code)
 
 	case STATEMENT_LIST:	return sizeof (struct tree_statement_list);
 	case BLOCK:		return sizeof (struct tree_block);
-	case VALUE_HANDLE:	return sizeof (struct tree_value_handle);
 	case CONSTRUCTOR:	return sizeof (struct tree_constructor);
 
 	default:
@@ -2387,7 +2428,6 @@ tree_node_structure (const_tree t)
     case BLOCK:			return TS_BLOCK;
     case CONSTRUCTOR:		return TS_CONSTRUCTOR;
     case TREE_BINFO:		return TS_BINFO;
-    case VALUE_HANDLE:		return TS_VALUE_HANDLE;
     case OMP_CLAUSE:		return TS_OMP_CLAUSE;
 
     default:
@@ -3639,7 +3679,7 @@ build_decl_attribute_variant (tree ddecl, tree attribute)
 
 
 /* Produce good hash value combining VAL and VAL2.  */
-static inline hashval_t
+hashval_t
 iterative_hash_hashval_t (hashval_t val, hashval_t val2)
 {
   /* the golden ratio; an arbitrary value.  */
@@ -5358,7 +5398,6 @@ iterative_hash_expr (const_tree t, hashval_t val)
       return iterative_hash_expr (TREE_VECTOR_CST_ELTS (t), val);
 
     case SSA_NAME:
-    case VALUE_HANDLE:
       /* we can just compare by pointer.  */
       return iterative_hash_pointer (t, val);
 
