@@ -6733,7 +6733,6 @@ cp_parser_lambda_class_definition (cp_parser* parser,
     /* Start the class. */
     type = begin_class_definition (type, NULL_TREE);
 
-    /* TODO: look into push_class, pop_class */
     current_class_type = type;
   }
 
@@ -6787,34 +6786,17 @@ cp_parser_lambda_class_definition (cp_parser* parser,
           ctor_parm_type_list);
 
       /* Make member variable.  */
-      /*
-      tree member = make_node (FIELD_DECL);
-      DECL_NAME (member) = capture_id;
-      TREE_TYPE (member) = capture_type;
-      */
       tree member = build_lang_decl (
           FIELD_DECL,
           capture_id,
           capture_type);
       DECL_MUTABLE_P (member) = 1;
 
-      /*
-      DECL_CONTEXT (member) = type;
-      TREE_PRIVATE (member) = 1;
-      */
-
       /* Add to class.  */
       finish_member_declaration (member);
 
-      /*
-      TREE_CHAIN (member) = TYPE_FIELDS (type);
-      TYPE_FIELDS (type) = member;
-      */
-
       /* In the member-initializer-list for the constructor, the arguments to a
        * member's constructor consist of the corresponding parameter.  */
-      /* TODO: this should trigger a complaint about late declaration, but it
-       * doesn't.  Won't fix it until it does.  */
       tree member_ctor_arg_list = tree_cons (
           NULL_TREE,
           ctor_parm,
@@ -6912,23 +6894,8 @@ cp_parser_lambda_class_definition (cp_parser* parser,
 
   /*DECL_EXTERNAL (ctor) = 1;*/
   /*DECL_INITIALIZED_IN_CLASS_P (ctor) = 1;*/
-  /*grok_ctor_properties (type, ctor);*/
-  /*
-  tree ctor_result = build_lang_decl (
-      RESULT_DECL,
-      /name=/NULL_TREE,
-      / TODO: is the macro necessary? /
-      TYPE_MAIN_VARIANT (void_type_node));
-  DECL_ARTIFICIAL (ctor_result) = 1;
-  DECL_IGNORED_P (DECL_RESULT (ctor)) = 1;
-  DECL_RESULT (ctor) = ctor_result;
-  */
 
   finish_decl (ctor, NULL_TREE, NULL_TREE);
-  /*
-  begin_scope (sk_function_parms, ctor);
-  finish_method (ctor);
-  */
   current_access_specifier = access_public_node;
   finish_member_declaration (ctor);
 
