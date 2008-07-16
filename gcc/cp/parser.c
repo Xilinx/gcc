@@ -6810,6 +6810,9 @@ cp_parser_lambda_class_definition (cp_parser* parser,
 
     }
 
+    /* Built parameters in reverse order.  */
+    ctor_parm_list = nreverse (ctor_parm_list);
+
   }
 
   /********************************************
