@@ -1635,8 +1635,6 @@ static tree cp_parser_lambda_body
   (cp_parser *, cp_decl_specifier_seq *, cp_declarator *, bool *);
 static tree cp_parser_lambda_class_definition
   (cp_parser *, tree, cp_parameter_declarator *);
-static void cp_parser_build_mem_init_list
-  (cp_parser *, cp_parameter_declarator *, tree *);
 
 /* Statements [gram.stmt.stmt]  */
 
@@ -6686,11 +6684,9 @@ cp_parser_lambda_class_definition (cp_parser* parser,
   tree enclosing_class_type = current_class_type;
   tree type;
   tree fco_decl;
-  tree ctor_decl;
 
   bool expression_body_p;
 
-  cp_parameter_declarator* ctor_param_list = no_parameters;
   cp_decl_specifier_seq fco_return_type_specs;
 
   /* TODO: Move out to surrounding non-function, non-class scope. */
@@ -6956,19 +6952,14 @@ cp_parser_lambda_class_definition (cp_parser* parser,
    * + mem_initializer_list
    ********************************************/
   {
-    tree mem_init_list = NULL_TREE;
-    tree ctor_body;
-    tree ctor_compound_stmt;
-    tree ctor_fn;
-
     /* Let the front end know that we are going to be defining this
-       function. */
+       function.  */
     start_preparsed_function (
         ctor,
         NULL_TREE,
         SF_PRE_PARSED | SF_INCLASS_INLINE);
 
-    ctor_body = begin_function_body ();
+    tree ctor_body = begin_function_body ();
 
     finish_mem_initializers (ctor_init_list);
 
@@ -6976,7 +6967,7 @@ cp_parser_lambda_class_definition (cp_parser* parser,
 
     /* Finish the function and generate code for it if necessary. */
     /* 3 == (1 | 2) == (ctor_initializer_p && inline_p) */
-    ctor_fn = finish_function (3);
+    tree ctor_fn = finish_function (3);
     expand_or_defer_fn (ctor_fn);
   }
 
@@ -7077,58 +7068,6 @@ cp_parser_lambda_class_definition (cp_parser* parser,
   pop_from_top_level ();
 
   return type;
-}
-
-static void
-cp_parser_build_mem_init_list (cp_parser* parser,
-    cp_parameter_declarator* decl_list,
-    tree* mem_init_list)
-{
-
-  for (;
-      decl_list && decl_list->declarator;
-      decl_list = decl_list->next)
-  {
-    cp_declarator* eref_declarator;
-    tree eref_id;
-
-    tree mem;
-    tree mem_ctor_arg;
-    tree mem_ctor_arg_list = NULL_TREE;
-    tree mem_init;
-
-    cp_id_kind idk = CP_ID_KIND_NONE;
-    const char* error_msg;
-
-    /* Get the old identifier back. */
-    eref_declarator = decl_list->declarator;
-    while (eref_declarator->kind != cdk_id)
-      eref_declarator = eref_declarator->declarator;
-    eref_id = eref_declarator->u.id.unqualified_name;
-
-    /* What member are we initializing? */
-    /* Gets the FIELD_DECL */
-    mem = expand_member_init (eref_id);
-
-    /* What parameter are we using to initialize it? */
-    /* Probably gets a PARM_DECL */
-    /* mark_used (mem_ctor_arg); */
-    mem_ctor_arg = cp_parser_lookup_name (parser,
-        eref_id,
-        none_type,
-        /*is_template=*/false,
-        /*is_namespace=*/false,
-        /*check_dependency=*/true,
-        /*ambiguous_decls=*/NULL);
-
-    mem_ctor_arg_list = tree_cons (NULL_TREE, mem_ctor_arg, NULL_TREE);
-
-    /* Put it all together now. */
-    *mem_init_list = tree_cons (
-       mem,
-       mem_ctor_arg_list,
-       *mem_init_list);
-  }
 }
 
 static void
