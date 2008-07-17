@@ -1,3 +1,81 @@
+2008-07-16  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* testsuite/30_threads/recursive_mutex/cons/assign_neg.cc: Adjust
+	dg-error lines.
+	* testsuite/30_threads/recursive_mutex/cons/copy_neg.cc: Likewise.
+	* testsuite/20_util/duration/cons/1_neg.cc: Likewise.
+
+	* include/tr1_impl/type_traits: Fix comment typo.
+
+2008-07-16  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/unique_ptr.h: Remove stray character.
+
+2008-07-15  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* doc/doxygen/user.cfg.in: Add complex, ratio,
+	intializer_list.
+	(PREDEFINED): Add _GLIBCXX_USE_C99_STDINT_TR1.
+	* doc/doxygen/doxygroups.cc: Add std::chrono.
+	* include/bits/unique_ptr.h (default_delete, unique_ptr): Add markup.
+	* libsupc++/initializer_list (initializer_list): Same.
+	* include/std/ratio: Same.
+	* include/std/chrono: Same.
+	* include/std/complex: Disambiguate file markup.
+
+2008-07-15  Chris Fairles  <chris.fairles@gmail.com>
+
+        * include/std/chrono: New, as per N2661.
+        * src/chrono.cc: New.
+        * include/Makefile.am: Update.
+        * src/Makefile.am: Likewise.
+        * include/Makefile.in: Regenerate.
+        * src/Makefile.in: Likewise.
+        * acinclude.m4: Add tests for clock_gettime and gettimeofday that
+	define _GLIBCXX_HAS_CLOCK_GETTIME and/or _GLIBCXX_HAS_GETTIMEOFDAY.
+        * configure.ac: Use them.
+        * configure: Regenerate.
+        * config.h.in: Likewise.
+        * config/abi/pre/gnu.ver: Add symbols for system_clock::now() and
+        system_clock::is_monotonic.
+        * testsuite/20_util/duration/cons/1.cc: New.
+        * testsuite/20_util/duration/cons/2.cc: Likewise.
+        * testsuite/20_util/duration/cons/1_neg.cc: Likewise.
+        * testsuite/20_util/duration/requirements/explicit_instantiation/
+        explicit_instantiation.cc: Likewise.
+        * testsuite/20_util/duration/arithmetic/1.cc: Likewise.
+        * testsuite/20_util/duration/arithmetic/2.cc: Likewise.
+        * testsuite/20_util/duration/comparisons/1.cc: Likewise.
+        * testsuite/20_util/time_point/requirements/explicit_instantiation/
+        explicit_instantiation.cc: Likewise.
+        * testsuite/20_util/time_point/1.cc: Likewise.
+        * testsuite/20_util/time_point/2.cc: Likewise.
+        * testsuite/20_util/time_point/3.cc: Likewise.
+        * testsuite/20_util/clocks/1.cc: Likewise.
+        * testsuite/17_intro/headers/c++200x/all_multiple_inclusion.cc: Add
+        missing headers.
+        * testsuite/17_intro/headers/c++200x/all.cc: Likewise.
+        * include/precompiled/stdc++.h: Likewise and remove <date_time>.
+        * doc/doxygen/user.cfg.in: Likewise.
+
+2008-07-15  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/36832
+	* include/ext/rope (_Destroy_const): Add.
+	(rope<>::copy): Call it.
+	* testsuite/ext/rope/36832.cc: New.
+
+2008-07-15  Johannes Singler  <singler@ira.uka.de>
+
+        * include/parallel/find_selectors.h:
+        Correct name for include guard #ifndef.
+        * include/parallel/balanced_quicksort.h: Likewise.
+        * include/parallel/unique_copy.h: Likewise.
+        * include/parallel/multiway_mergesort.h: Likewise.
+        * include/parallel/checkers.h: Likewise.
+        * include/parallel/[various files]:
+        Add/correct comment for #endif of include guard (at end of file) 
+
 2008-07-12  Paolo Carlini  <paolo.carlini@oracle.com>
 
 	* include/std/date_time: Remove, per N2549, in WP.
@@ -28,7 +106,7 @@
 	PR libstdc++/36451
 	* doc/xml/manual/allocator.xml: Fix links.
 	* doc/html/*: Regenerate.
-	
+
 2008-07-09  Joseph Myers  <joseph@codesourcery.com>
 
 	* libsupc++/unwind-cxx.h (__is_gxx_forced_unwind_class,
@@ -44,7 +122,7 @@
 	PR libstdc++/36552
 	* include/ext/pb_ds/detail/left_child_next_sibling_heap_/
 	null_metadata.hpp: Remove self-include.
-	
+
 2008-07-09  Joseph Myers  <joseph@codesourcery.com>
 
 	* testsuite/20_util/make_signed/requirements/typedefs-2.cc,

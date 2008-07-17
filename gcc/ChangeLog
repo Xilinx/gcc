@@ -1,3 +1,204 @@
+2008-07-17  Roman Zippel <zippel@linux-m68k.org>
+
+	PR target/25343
+	* config/host-linux.c (TRY_EMPTY_VM_SPACE): Define for __mc68000__.
+
+2008-07-17  Paolo Bonzini  <bonzini@gnu.org>
+
+	PR rtl-optimization/36753
+	* fwprop.c (use_killed_between): Don't shortcut
+	single-definition global registers.
+
+2008-07-16  Jan Hubicka  <jh@suse.cz>
+
+	* cgraph.h (varpool_empty_needed_queue): Declare.
+	* cgraphunit.c (output_in_order): Mark all variables as needed;
+	empty the queue.
+	* varpool.c (varpool_assemble_node): Update debug queue.
+	(varpool_assemble_pending_decls): Don't do it here.
+	(varpool_empty_needed_queue):  New function.
+
+2008-07-16  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	* recog.c (peephole2_optimize): Fix formatting.
+
+2008-07-16  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	* c-pch.c (get_ident): Avoid C++ keywords.
+	* combine-stack-adj.c (single_set_for_csa): Likewise.
+	* final.c (asm_insn_count, final_scan_insn, alter_subreg,
+	output_asm_insn): Likewise.
+	* reload.c (push_secondary_reload, find_reusable_reload,
+	push_reload, combine_reloads, find_reloads,
+	debug_reload_to_stream): Likewise.
+	* reload.h (struct reload): Likewise.
+	* reload1.c (reload_reg_class_lower, find_reg, find_reload_regs,
+	allocate_reload_reg, choose_reload_regs, emit_input_reload_insns,
+	emit_output_reload_insns): Likewise.
+	* targhooks.c (default_secondary_reload): Likewise.
+	* varasm.c (section_entry_eq, object_block_entry_eq): Likewise.
+
+2008-07-16  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	* recog.c (validate_change_1, validate_change,
+	validate_unshare_change, validate_replace_rtx_1, struct
+	funny_match, constrain_operands, peephole2_optimize): Avoid C++
+	keywords.
+	* reload.c (push_secondary_reload, secondary_reload_class,
+	scratch_reload_class, find_valid_class, find_reusable_reload,
+	push_reload, find_dummy_reload, find_reloads_address_1,
+	find_reloads_address_part, find_equiv_reg): Likewise.
+	* reload1.c (spill_failure, eliminate_regs_1, allocate_reload_reg,
+	choose_reload_regs): Likewise.
+	* rtlanal.c (replace_rtx, nonzero_bits1, num_sign_bit_copies1):
+	Likewise.
+	* rtlhooks.c (gen_lowpart_if_possible): Likewise.
+	* sched-ebb.c (add_deps_for_risky_insns): Likewise.
+	* sched-rgn.c (concat_INSN_LIST): Likewise.
+	* stor-layout.c (mode_for_size, mode_for_size_tree,
+	smallest_mode_for_size): Likewise.
+
+2008-07-16  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	* cfg.c (dump_reg_info): Avoid C++ keywords.
+	* dwarf2asm.c (dw2_force_const_mem,
+	dw2_asm_output_encoded_addr_rtx): Likewise.
+	* except.c (gen_eh_region, add_action_record, output_ttype):
+	Likewise.
+	* expmed.c (expand_shift): Likewise.
+	* global.c (find_reg): Likewise.
+	* graph.c (draw_edge): Likewise.
+	* local-alloc.c (reg_meets_class_p, find_free_reg): Likewise.
+	* optabs.c (expand_binop, expand_twoval_unop, expand_twoval_binop,
+	widen_clz, widen_bswap, expand_parity, expand_unop,
+	emit_cmp_and_jump_insn_1): Likewise.
+	* postreload.c (reload_cse_simplify_operands): Likewise.
+	* ra.h (add_neighbor): Likewise.
+	* reg-stack.c (remove_regno_note, change_stack): Likewise.
+	* regclass.c (memory_move_secondary_cost, dump_regclass, regclass,
+	record_reg_classes, copy_cost, record_address_regs,
+	invalid_mode_change_p): Likewise.
+	* regrename.c (regrename_optimize, scan_rtx_reg,
+	dump_def_use_chain, find_oldest_value_reg,
+	replace_oldest_value_reg, copyprop_hardreg_forward_1): Likewise.
+
+2008-07-16  David Edelsohn  <edelsohn@gnu.org>
+
+	* config/rs6000/rs6000.c (processor_target_table): Remove duplicate
+	MASK_POWERPC64 for power4 in previous commit.
+
+2008-07-16  Olivier Hainque  <hainque@adacore.com>
+
+	* collect2.c (scan_prog_file, COFF version): Use CONST_CAST
+	instead of bare conversion to cast const-ness away.
+
+2008-07-16  Anatoly Sokolov  <aesok@post.ru>
+
+	* config/xtensa/xtensa.h (FUNCTION_OUTGOING_VALUE,
+	XTENSA_FUNCTION_VALUE, XTENSA_FUNCTION_VALUE): Remove.
+	* config/xtensa/xtensa.c (xtensa_function_value): New function.
+	(TARGET_FUNCTION_VALUE): Define.
+
+2008-07-16  David Edelsohn  <edelsohn@gnu.org>
+
+	* config/rs6000/rs6000.c (processor_target_table): Add
+	MASK_PPC_GPOPT for power4, power5, power5+, power6, and power6x.
+
+2008-07-16  Joseph Myers  <joseph@codesourcery.com>
+
+	PR target/36827
+	* config/m32c/m32c.c (BIG_FB_ADJ): Move definition earlier.
+	(m32c_legitimate_address_p): Handle "++rii" addresses created by
+	m32c_legitimize_reload_address.
+
+2007-07-16  Rafael Avila de Espindola  <espindola@google.com>
+
+       * c-decl.c (merge_decls): Keep DECL_SOURCE_LOCATION and
+       DECL_IN_SYSTEM_HEADER in sync.
+
+2008-07-15  Daniel Berlin  <dberlin@dberlin.org>
+
+	* tree-ssa-sccvn.c (expressions_equal_p): Check type equality.
+	* tree-ssa-pre.c (pre_expr_eq): Ditto
+	(get_constant_for_value_id): Take a type as an argument.
+	(fully_constant_expression): Pass in type.
+	(find_or_generate_expression): Short circuit constant case.
+	(create_expression_by_pieces): Remove special casing of
+	pointer_plus.
+	(do_regular_insertion): Short circuit constant case.
+	(do_partial_partial_insertion): Ditto.
+
+2008-07-15  Kaz Kojima  <kkojima@gcc.gnu.org>
+
+	PR target/36782
+	* config/sh/sh.md (symGOT_load): Don't add REG_EQUAL note.
+
+2008-07-15  Bob Wilson  <bob.wilson@acm.org>
+	
+	* config/xtensa/libgcc-xtensa.ver: New file.
+	* config/xtensa/t-linux (SHLIB_MAPFILES): Append libgcc-xtensa.ver.
+	
+2008-07-15  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	* df-problems.c (df_set_note): Avoid C++ keywords.
+	* df-scan.c (df_ref_change_reg_with_loc_1): Likewise.
+	* dse.c (record_store, remove_useless_values): Likewise.
+	* emit-rtl.c (gen_reg_rtx, update_reg_offset, gen_rtx_REG_offset,
+	gen_reg_rtx_offset, operand_subword, change_address_1,
+	change_address, adjust_address_1, offset_address,
+	widen_memory_access, emit_copy_of_insn_after): Likewise.
+	* explow.c (round_push, allocate_dynamic_stack_space): Likewise.
+	* fwprop.c (should_replace_address, propagate_rtx_1,
+	propagate_rtx, try_fwprop_subst, forward_propagate_and_simplify):
+	Likewise.
+	* gcse.c (cprop_jump, find_implicit_sets, bypass_block,
+	gcse_emit_move_after, update_ld_motion_stores): Likewise.
+	* lcm.c (compute_insert_delete, pre_edge_lcm,
+	compute_rev_insert_delete, pre_edge_rev_lcm): Likewise.
+	* lower-subreg.c (resolve_reg_notes): Likewise.
+	* mode-switching.c (optimize_mode_switching): Likewise.
+
+2008-07-15  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	* bt-load.c (add_btr_def, migrate_btr_def,
+	branch_target_load_optimize): Avoid C++ keywords.
+	* caller-save.c (insert_restore, insert_save, insert_one_insn):
+	Likewise.
+	* combine.c (subst, simplify_set, make_extraction,
+	make_compound_operation, known_cond, simplify_shift_const_1):
+	Likewise.
+	* cse.c (make_regs_eqv, merge_equiv_classes, validate_canon_reg,
+	fold_rtx, equiv_constant, cse_insn, cse_process_notes_1):
+	Likewise.
+
+2008-07-15  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/36369
+	* c-common.c (strict_aliasing_warning): Do not warn for
+	TYPE_REF_CAN_ALIAS_ALL pointers.
+	(c_common_get_alias_set): may_alias types are not special.
+	* tree.c (build_pointer_type_for_mode): Look up the may_alias
+	attribute and set can_ref_all accordingly.
+	(build_reference_type_for_mode): Likewise.
+	* doc/extend.texi (may_alias): Clarify.
+
+2008-07-15  Kaz Kojima  <kkojima@gcc.gnu.org>
+
+	PR target/36780
+	* config/sh/sh.h (GO_IF_LEGITIMATE_ADDRESS): Allow
+	(plus (plus (reg) (const_int)) (const_int)) when reload_in_progress.
+
+2008-07-15  Andrew Pinski  <andrew_pinski@playstation.sony.com>
+
+	PR target/31568
+	* config/rs6000/rs6000.c (print_operand <case 'y'>): Don't use
+	gcc_assert, instead call output_operand_lossage.
+
+2008-07-15  Kai Tietz  <kai.tietz@onevision.com>
+
+	* builtins.c (std_canonical_va_list): Treat structure based
+	va_list types.
+
 2008-07-15  Ben Elliston  <bje@au.ibm.com>
 
 	* emit-rtl.c (set_mem_attributes_minus_bitpos): Improve comment.

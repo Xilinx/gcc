@@ -1637,8 +1637,8 @@ reload_reg_class_lower (const void *r1p, const void *r2p)
     return t;
 
   /* Count all solitary classes before non-solitary ones.  */
-  t = ((reg_class_size[(int) rld[r2].class] == 1)
-       - (reg_class_size[(int) rld[r1].class] == 1));
+  t = ((reg_class_size[(int) rld[r2].rclass] == 1)
+       - (reg_class_size[(int) rld[r1].rclass] == 1));
   if (t != 0)
     return t;
 
@@ -1648,7 +1648,7 @@ reload_reg_class_lower (const void *r1p, const void *r2p)
     return t;
 
   /* Consider reloads in order of increasing reg-class number.  */
-  t = (int) rld[r1].class - (int) rld[r2].class;
+  t = (int) rld[r1].rclass - (int) rld[r2].rclass;
   if (t != 0)
     return t;
 
@@ -1777,7 +1777,7 @@ find_reg (struct insn_chain *chain, int order)
 
   COPY_HARD_REG_SET (not_usable, bad_spill_regs);
   IOR_HARD_REG_SET (not_usable, bad_spill_regs_global);
-  IOR_COMPL_HARD_REG_SET (not_usable, reg_class_contents[rl->class]);
+  IOR_COMPL_HARD_REG_SET (not_usable, reg_class_contents[rl->rclass]);
 
   CLEAR_HARD_REG_SET (used_by_other_reload);
   for (k = 0; k < order; k++)
@@ -1918,7 +1918,7 @@ find_reload_regs (struct insn_chain *chain)
 	  {
 	    if (dump_file)
 	      fprintf (dump_file, "reload failure for reload %d\n", r);
-	    spill_failure (chain->insn, rld[r].class);
+	    spill_failure (chain->insn, rld[r].rclass);
 	    failure = 1;
 	    return;
 	  }
@@ -1976,16 +1976,16 @@ delete_caller_save_insns (void)
    INSN should be one of the insns which needed this particular spill reg.  */
 
 static void
-spill_failure (rtx insn, enum reg_class class)
+spill_failure (rtx insn, enum reg_class rclass)
 {
   if (asm_noperands (PATTERN (insn)) >= 0)
     error_for_asm (insn, "can't find a register in class %qs while "
 		   "reloading %<asm%>",
-		   reg_class_names[class]);
+		   reg_class_names[rclass]);
   else
     {
       error ("unable to find a register to spill in class %qs",
-	     reg_class_names[class]);
+	     reg_class_names[rclass]);
 
       if (dump_file)
 	{
@@ -2394,7 +2394,7 @@ eliminate_regs_1 (rtx x, enum machine_mode mem_mode, rtx insn,
   enum rtx_code code = GET_CODE (x);
   struct elim_table *ep;
   int regno;
-  rtx new;
+  rtx new_rtx;
   int i, j;
   const char *fmt;
   int copied = 0;
@@ -2523,15 +2523,15 @@ eliminate_regs_1 (rtx x, enum machine_mode mem_mode, rtx insn,
 		     && reg_equiv_constant[REGNO (new0)] != 0)
 	      new0 = reg_equiv_constant[REGNO (new0)];
 
-	    new = form_sum (new0, new1);
+	    new_rtx = form_sum (new0, new1);
 
 	    /* As above, if we are not inside a MEM we do not want to
 	       turn a PLUS into something else.  We might try to do so here
 	       for an addition of 0 if we aren't optimizing.  */
-	    if (! mem_mode && GET_CODE (new) != PLUS)
-	      return gen_rtx_PLUS (GET_MODE (x), new, const0_rtx);
+	    if (! mem_mode && GET_CODE (new_rtx) != PLUS)
+	      return gen_rtx_PLUS (GET_MODE (x), new_rtx, const0_rtx);
 	    else
-	      return new;
+	      return new_rtx;
 	  }
       }
       return x;
@@ -2588,8 +2588,8 @@ eliminate_regs_1 (rtx x, enum machine_mode mem_mode, rtx insn,
       /* If we have something in XEXP (x, 0), the usual case, eliminate it.  */
       if (XEXP (x, 0))
 	{
-	  new = eliminate_regs_1 (XEXP (x, 0), mem_mode, insn, true);
-	  if (new != XEXP (x, 0))
+	  new_rtx = eliminate_regs_1 (XEXP (x, 0), mem_mode, insn, true);
+	  if (new_rtx != XEXP (x, 0))
 	    {
 	      /* If this is a REG_DEAD note, it is not valid anymore.
 		 Using the eliminated version could result in creating a
@@ -2599,7 +2599,7 @@ eliminate_regs_1 (rtx x, enum machine_mode mem_mode, rtx insn,
 			? eliminate_regs_1 (XEXP (x, 1), mem_mode, insn, true)
 			: NULL_RTX);
 
-	      x = gen_rtx_EXPR_LIST (REG_NOTE_KIND (x), new, XEXP (x, 1));
+	      x = gen_rtx_EXPR_LIST (REG_NOTE_KIND (x), new_rtx, XEXP (x, 1));
 	    }
 	}
 
@@ -2611,10 +2611,10 @@ eliminate_regs_1 (rtx x, enum machine_mode mem_mode, rtx insn,
 	 strictly needed, but it simplifies the code.  */
       if (XEXP (x, 1))
 	{
-	  new = eliminate_regs_1 (XEXP (x, 1), mem_mode, insn, true);
-	  if (new != XEXP (x, 1))
+	  new_rtx = eliminate_regs_1 (XEXP (x, 1), mem_mode, insn, true);
+	  if (new_rtx != XEXP (x, 1))
 	    return
-	      gen_rtx_fmt_ee (GET_CODE (x), GET_MODE (x), XEXP (x, 0), new);
+	      gen_rtx_fmt_ee (GET_CODE (x), GET_MODE (x), XEXP (x, 0), new_rtx);
 	}
       return x;
 
@@ -2636,13 +2636,13 @@ eliminate_regs_1 (rtx x, enum machine_mode mem_mode, rtx insn,
       if (GET_CODE (XEXP (x, 1)) == PLUS
 	  && XEXP (XEXP (x, 1), 0) == XEXP (x, 0))
 	{
-	  rtx new = eliminate_regs_1 (XEXP (XEXP (x, 1), 1), mem_mode,
+	  rtx new_rtx = eliminate_regs_1 (XEXP (XEXP (x, 1), 1), mem_mode,
 				      insn, true);
 
-	  if (new != XEXP (XEXP (x, 1), 1))
+	  if (new_rtx != XEXP (XEXP (x, 1), 1))
 	    return gen_rtx_fmt_ee (code, GET_MODE (x), XEXP (x, 0),
 				   gen_rtx_PLUS (GET_MODE (x),
-						 XEXP (x, 0), new));
+						 XEXP (x, 0), new_rtx));
 	}
       return x;
 
@@ -2660,9 +2660,9 @@ eliminate_regs_1 (rtx x, enum machine_mode mem_mode, rtx insn,
     case POPCOUNT:
     case PARITY:
     case BSWAP:
-      new = eliminate_regs_1 (XEXP (x, 0), mem_mode, insn, false);
-      if (new != XEXP (x, 0))
-	return gen_rtx_fmt_e (code, GET_MODE (x), new);
+      new_rtx = eliminate_regs_1 (XEXP (x, 0), mem_mode, insn, false);
+      if (new_rtx != XEXP (x, 0))
+	return gen_rtx_fmt_e (code, GET_MODE (x), new_rtx);
       return x;
 
     case SUBREG:
@@ -2678,17 +2678,17 @@ eliminate_regs_1 (rtx x, enum machine_mode mem_mode, rtx insn,
 	  && reg_equiv_memory_loc != 0
 	  && reg_equiv_memory_loc[REGNO (SUBREG_REG (x))] != 0)
 	{
-	  new = SUBREG_REG (x);
+	  new_rtx = SUBREG_REG (x);
 	}
       else
-	new = eliminate_regs_1 (SUBREG_REG (x), mem_mode, insn, false);
+	new_rtx = eliminate_regs_1 (SUBREG_REG (x), mem_mode, insn, false);
 
-      if (new != SUBREG_REG (x))
+      if (new_rtx != SUBREG_REG (x))
 	{
 	  int x_size = GET_MODE_SIZE (GET_MODE (x));
-	  int new_size = GET_MODE_SIZE (GET_MODE (new));
+	  int new_size = GET_MODE_SIZE (GET_MODE (new_rtx));
 
-	  if (MEM_P (new)
+	  if (MEM_P (new_rtx)
 	      && ((x_size < new_size
 #ifdef WORD_REGISTER_OPERATIONS
 		   /* On these machines, combine can create rtl of the form
@@ -2704,9 +2704,9 @@ eliminate_regs_1 (rtx x, enum machine_mode mem_mode, rtx insn,
 		   )
 		  || x_size == new_size)
 	      )
-	    return adjust_address_nv (new, GET_MODE (x), SUBREG_BYTE (x));
+	    return adjust_address_nv (new_rtx, GET_MODE (x), SUBREG_BYTE (x));
 	  else
-	    return gen_rtx_SUBREG (GET_MODE (x), new, SUBREG_BYTE (x));
+	    return gen_rtx_SUBREG (GET_MODE (x), new_rtx, SUBREG_BYTE (x));
 	}
 
       return x;
@@ -2722,9 +2722,9 @@ eliminate_regs_1 (rtx x, enum machine_mode mem_mode, rtx insn,
 
     case USE:
       /* Handle insn_list USE that a call to a pure function may generate.  */
-      new = eliminate_regs_1 (XEXP (x, 0), 0, insn, false);
-      if (new != XEXP (x, 0))
-	return gen_rtx_USE (GET_MODE (x), new);
+      new_rtx = eliminate_regs_1 (XEXP (x, 0), 0, insn, false);
+      if (new_rtx != XEXP (x, 0))
+	return gen_rtx_USE (GET_MODE (x), new_rtx);
       return x;
 
     case CLOBBER:
@@ -2743,21 +2743,21 @@ eliminate_regs_1 (rtx x, enum machine_mode mem_mode, rtx insn,
     {
       if (*fmt == 'e')
 	{
-	  new = eliminate_regs_1 (XEXP (x, i), mem_mode, insn, false);
-	  if (new != XEXP (x, i) && ! copied)
+	  new_rtx = eliminate_regs_1 (XEXP (x, i), mem_mode, insn, false);
+	  if (new_rtx != XEXP (x, i) && ! copied)
 	    {
 	      x = shallow_copy_rtx (x);
 	      copied = 1;
 	    }
-	  XEXP (x, i) = new;
+	  XEXP (x, i) = new_rtx;
 	}
       else if (*fmt == 'E')
 	{
 	  int copied_vec = 0;
 	  for (j = 0; j < XVECLEN (x, i); j++)
 	    {
-	      new = eliminate_regs_1 (XVECEXP (x, i, j), mem_mode, insn, false);
-	      if (new != XVECEXP (x, i, j) && ! copied_vec)
+	      new_rtx = eliminate_regs_1 (XVECEXP (x, i, j), mem_mode, insn, false);
+	      if (new_rtx != XVECEXP (x, i, j) && ! copied_vec)
 		{
 		  rtvec new_v = gen_rtvec_v (XVECLEN (x, i),
 					     XVEC (x, i)->elem);
@@ -2769,7 +2769,7 @@ eliminate_regs_1 (rtx x, enum machine_mode mem_mode, rtx insn,
 		  XVEC (x, i) = new_v;
 		  copied_vec = 1;
 		}
-	      XVECEXP (x, i, j) = new;
+	      XVECEXP (x, i, j) = new_rtx;
 	    }
 	}
     }
@@ -5474,7 +5474,7 @@ allocate_reload_reg (struct insn_chain *chain ATTRIBUTE_UNUSED, int r,
 
       for (count = 0; count < n_spills; count++)
 	{
-	  int class = (int) rld[r].class;
+	  int rclass = (int) rld[r].rclass;
 	  int regnum;
 
 	  i++;
@@ -5491,7 +5491,7 @@ allocate_reload_reg (struct insn_chain *chain ATTRIBUTE_UNUSED, int r,
 		   && free_for_value_p (regnum, rld[r].mode, rld[r].opnum,
 					rld[r].when_needed, rld[r].in,
 					rld[r].out, r, 1)))
-	      && TEST_HARD_REG_BIT (reg_class_contents[class], regnum)
+	      && TEST_HARD_REG_BIT (reg_class_contents[rclass], regnum)
 	      && HARD_REGNO_MODE_OK (regnum, rld[r].mode)
 	      /* Look first for regs to share, then for unshared.  But
 		 don't share regs used for inherited reloads; they are
@@ -5521,7 +5521,7 @@ allocate_reload_reg (struct insn_chain *chain ATTRIBUTE_UNUSED, int r,
 	      while (nr > 1)
 		{
 		  int regno = regnum + nr - 1;
-		  if (!(TEST_HARD_REG_BIT (reg_class_contents[class], regno)
+		  if (!(TEST_HARD_REG_BIT (reg_class_contents[rclass], regno)
 			&& spill_reg_order[regno] >= 0
 			&& reload_reg_free_p (regno, rld[r].opnum,
 					      rld[r].when_needed)))
@@ -5647,7 +5647,7 @@ choose_reload_regs (struct insn_chain *chain)
 	{
 	  max_group_size = MAX (rld[j].nregs, max_group_size);
 	  group_class
-	    = reg_class_superunion[(int) rld[j].class][(int) group_class];
+	    = reg_class_superunion[(int) rld[j].rclass][(int) group_class];
 	}
 
       save_reload_reg_rtx[j] = rld[j].reg_rtx;
@@ -5793,7 +5793,7 @@ choose_reload_regs (struct insn_chain *chain)
 #endif
 		  )
 		{
-		  enum reg_class class = rld[r].class, last_class;
+		  enum reg_class rclass = rld[r].rclass, last_class;
 		  rtx last_reg = reg_last_reload_reg[regno];
 		  enum machine_mode need_mode;
 
@@ -5814,18 +5814,18 @@ choose_reload_regs (struct insn_chain *chain)
 		      && reg_reloaded_contents[i] == regno
 		      && TEST_HARD_REG_BIT (reg_reloaded_valid, i)
 		      && HARD_REGNO_MODE_OK (i, rld[r].mode)
-		      && (TEST_HARD_REG_BIT (reg_class_contents[(int) class], i)
+		      && (TEST_HARD_REG_BIT (reg_class_contents[(int) rclass], i)
 			  /* Even if we can't use this register as a reload
 			     register, we might use it for reload_override_in,
 			     if copying it to the desired class is cheap
 			     enough.  */
-			  || ((REGISTER_MOVE_COST (mode, last_class, class)
-			       < MEMORY_MOVE_COST (mode, class, 1))
-			      && (secondary_reload_class (1, class, mode,
+			  || ((REGISTER_MOVE_COST (mode, last_class, rclass)
+			       < MEMORY_MOVE_COST (mode, rclass, 1))
+			      && (secondary_reload_class (1, rclass, mode,
 							  last_reg)
 				  == NO_REGS)
 #ifdef SECONDARY_MEMORY_NEEDED
-			      && ! SECONDARY_MEMORY_NEEDED (last_class, class,
+			      && ! SECONDARY_MEMORY_NEEDED (last_class, rclass,
 							    mode)
 #endif
 			      ))
@@ -5857,7 +5857,7 @@ choose_reload_regs (struct insn_chain *chain)
 
 			  bad_for_class = 0;
 			  for (k = 0; k < nr; k++)
-			    bad_for_class |= ! TEST_HARD_REG_BIT (reg_class_contents[(int) rld[r].class],
+			    bad_for_class |= ! TEST_HARD_REG_BIT (reg_class_contents[(int) rld[r].rclass],
 								  i+k);
 
 			  /* We found a register that contains the
@@ -5939,7 +5939,7 @@ choose_reload_regs (struct insn_chain *chain)
 		  || REG_P (rld[r].in)
 		  || MEM_P (rld[r].in))
 	      && (rld[r].nregs == max_group_size
-		  || ! reg_classes_intersect_p (rld[r].class, group_class)))
+		  || ! reg_classes_intersect_p (rld[r].rclass, group_class)))
 	    search_equiv = rld[r].in;
 	  /* If this is an output reload from a simple move insn, look
 	     if an equivalence for the input is available.  */
@@ -5956,7 +5956,7 @@ choose_reload_regs (struct insn_chain *chain)
 	  if (search_equiv)
 	    {
 	      rtx equiv
-		= find_equiv_reg (search_equiv, insn, rld[r].class,
+		= find_equiv_reg (search_equiv, insn, rld[r].rclass,
 				  -1, NULL, 0, rld[r].mode);
 	      int regno = 0;
 
@@ -5997,7 +5997,7 @@ choose_reload_regs (struct insn_chain *chain)
 		    {
 		      regs_used |= TEST_HARD_REG_BIT (reload_reg_used_at_all,
 						      i);
-		      bad_for_class |= ! TEST_HARD_REG_BIT (reg_class_contents[(int) rld[r].class],
+		      bad_for_class |= ! TEST_HARD_REG_BIT (reg_class_contents[(int) rld[r].rclass],
 							   i);
 		    }
 
@@ -6135,9 +6135,9 @@ choose_reload_regs (struct insn_chain *chain)
 		  || rld[s].optional)
 		continue;
 
-	      if ((rld[s].class != rld[r].class
-		   && reg_classes_intersect_p (rld[r].class,
-					       rld[s].class))
+	      if ((rld[s].rclass != rld[r].rclass
+		   && reg_classes_intersect_p (rld[r].rclass,
+					       rld[s].rclass))
 		  || rld[s].nregs < rld[r].nregs)
 		break;
 	    }
@@ -6818,7 +6818,7 @@ emit_input_reload_insns (struct insn_chain *chain, struct reload *rl,
 
 	  sri.icode = CODE_FOR_nothing;
 	  sri.prev_sri = NULL;
-	  new_class = targetm.secondary_reload (1, real_oldequiv, rl->class,
+	  new_class = targetm.secondary_reload (1, real_oldequiv, rl->rclass,
 						mode, &sri);
 
 	  if (new_class == NO_REGS && sri.icode == CODE_FOR_nothing)
@@ -7008,7 +7008,7 @@ emit_output_reload_insns (struct insn_chain *chain, struct reload *rl,
 	  && reg_equiv_mem[REGNO (old)] != 0)
 	real_old = reg_equiv_mem[REGNO (old)];
 
-      if (secondary_reload_class (0, rl->class, mode, real_old) != NO_REGS)
+      if (secondary_reload_class (0, rl->rclass, mode, real_old) != NO_REGS)
 	{
 	  rtx second_reloadreg = reloadreg;
 	  reloadreg = rld[secondary_reload].reg_rtx;
