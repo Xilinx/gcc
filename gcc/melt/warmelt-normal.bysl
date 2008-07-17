@@ -202,6 +202,17 @@
 ))
 
 
+;; normalized citeration
+(defclass class_nrep_citeration
+  :super class_nrep_expr
+  :fields (nciter_citerator		;the citerator
+	   nciter_locbindings		;the local bindings
+	   nciter_chunkbefore		;the expansed chunk before
+	   nciter_body			;the normalized body
+	   nciter_bodbindings		;normalized body bindings
+	   nciter_chunkafter		;the expansed chunk after
+))
+
 ;;; procedures
 (defclass class_nrep_anyproc
   :super class_nrep
@@ -427,6 +438,7 @@
  class_nrep_anyproc
  class_nrep_apply
  class_nrep_chunk
+ class_nrep_citeration
  class_nrep_closedocc
  class_nrep_comment 
  class_nrep_constant
@@ -1167,7 +1179,7 @@
 	 (multiple_every
 	  sopexp
 	  (lambda (excu :long jx)
-	    (debug_msg excu "normexp_primitive excu in sopexp")
+	    ;(debug_msg excu "normexp_primitive excu in sopexp")
 	    (let ( (exval
 		    (if (is_a excu class_symbol)
 			(let ( (bval (mapobject_get bmap excu)) )
@@ -1189,7 +1201,7 @@
 			(warning_strv sloc "null primitive original piece is"
 				      (unsafe_get_field :named_name excu)))
 		    ))
-	    (debug_msg exval "normexp_primitive exval in sopexp")
+	    ;(debug_msg exval "normexp_primitive exval in sopexp")
 	    (multiple_put_nth expargs jx exval))
 	    ))
 	 (let ( (csym (clone_symbol  (unsafe_get_field :sdef_name soper))) 
@@ -3112,6 +3124,7 @@
 (install_method class_src_defciterator normal_exp normexp_defciterator)
 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;; normalize a citeration
 (defun normexp_citeration (recv env ncx psloc)
   (debug_msg recv "normexp_citeration recv")
@@ -3162,103 +3175,143 @@
 		(inform_strv sloc "mismatched citerator start formal argument" (unsafe_get_field :named_name formarg))))
 	    ))
 	)
-       )
-     (debug_msg nbndtup "normexp_citeration nbndtup")
-     ;; bind the local vars
-     (debug_msg svbind "normexp_citeration svbind")
-     (let ( (citbform (unsafe_get_field :citer_body_formals soper))
-	    (:long nbcitbform (multiple_length citbform))
-	    (nlocbindtup (make_multiple discr_multiple nbcitbform))
-	    (nsymocctup (make_multiple discr_multiple nbcitbform))
-	    )
-       (debug_msg citbform "normexp_citeration citbform")
-       (if (!= nbcitbform (multiple_length svbind))
-	   (progn
-	     (error_strv sloc "body formals and actuals length mismatch in citerator" (unsafe_get_field :named_name soper))
-	     (return)))
-       (multiple_every_both 
-	svbind citbform
-	(lambda (curvbind curbform :long ix)
-	  (debug_msg curvbind "normexp_citeration curvbind")
-	  (debug_msg curbform "normexp_citeration curbform")
-	  (assert_msg "check curvbind" (is_a curvbind class_formal_binding))
-	  (assert_msg "check curbform" (is_a curbform class_formal_binding))
-	  (let ( (curvsym (unsafe_get_field :binder curvbind))
-		 (curctyp (unsafe_get_field :fbind_type curvbind))
-		 (curvfor (unsafe_get_field :binder curbform))
-		 )
-	    (if (== curctyp (unsafe_get_field :fbind_type curbform))
-		(let ( (csym (clone_symbol curvsym)) 
-		       (nlvbind (make_instance class_normlet_binding
-					       :letbind_loc sloc
-					       :binder csym
-					       :letbind_type curctyp
-					       :letbind_expr ()
-					       ))
-		       (clocc (make_instance class_nrep_locsymocc
-					     :nrep_loc sloc
-					     :nocc_ctyp curctyp
-					     :nocc_symb csym
-					     :nocc_bind nlvbind))
-		       )
-		  (multiple_put_nth nlocbindtup ix nlvbind)
-		  (multiple_put_nth nsymocctup ix clocc)
-		  )
-	      (progn
-		(error_strv sloc "local formal and actual type mismatch in citerator" (unsafe_get_field :named_name soper))
-		(inform_strv sloc "mismatched citerator local variable" 
-			     (unsafe_get_field :named_name (unsafe_get_field :binder curvbind)))
-		))
-	    )
-	  (put_env bodyenv curvbind)
-	  ))
-       (debug_msg nlocbindtup "normexp_citeration nlocbindtup")
-       (debug_msg nsymocctup "normexp_citeration nsymocctup")
-       (multicall
-	(nbody nbodbindings)
-	(normalize_tuple sbody bodyenv ncx sloc)
-	(debug_msg nbody "normexp_citeration nbody")
-	(debug_msg nbodbindings "normexp_citeration nbodbindings")
-	(let ( (citstate (unsafe_get_field :citer_state soper))
-	       (citgenstate (clone_symbol citstate))
-	       (citexpbefore (unsafe_get_field :citer_expbefore soper))
-	       (citexpafter (unsafe_get_field :citer_expafter soper))
-	       (citlocmap (make_mapobject discr_mapobjects (+i 10 nbcitbform)))
-	       (citexpander 
-		(lambda (xtup)
-		  (multiple_map 
-		   xtup 
-		   (lambda (curelem :long ix)
-		     (if (is_a curelem class_symbol)
-			 (let ( (exelem (mapobject_get citlocmap curelem)) )
-			   (if (null exelem)
-			       (debug_msg curelem "normexp_citeration bad curelem"))
-			   (assert_msg "check exelem in citeration" exelem)
-			   exelem)
-		       curelem)
-		     ))
+       (debug_msg nbndtup "normexp_citeration nbndtup")
+       ;; bind the local vars
+       (debug_msg svbind "normexp_citeration svbind")
+       (let ( (citbform (unsafe_get_field :citer_body_formals soper))
+	      (:long nbcitbform (multiple_length citbform))
+	      (nlocbindtup (make_multiple discr_multiple nbcitbform))
+	      (nsymocctup (make_multiple discr_multiple nbcitbform))
+	      )
+	 (debug_msg citbform "normexp_citeration citbform")
+	 (if (!= nbcitbform (multiple_length svbind))
+	     (progn
+	       (error_strv sloc "body formals and actuals length mismatch in citerator" (unsafe_get_field :named_name soper))
+	       (return)))
+	 (multiple_every_both 
+	  svbind citbform
+	  (lambda (curvbind curbform :long ix)
+	    (debug_msg curvbind "normexp_citeration curvbind")
+	    (debug_msg curbform "normexp_citeration curbform")
+	    (assert_msg "check curvbind" (is_a curvbind class_formal_binding))
+	    (assert_msg "check curbform" (is_a curbform class_formal_binding))
+	    (let ( (curvsym (unsafe_get_field :binder curvbind))
+		   (curctyp (unsafe_get_field :fbind_type curvbind))
+		   (curvfor (unsafe_get_field :binder curbform))
+		   )
+	      (if (== curctyp (unsafe_get_field :fbind_type curbform))
+		  (let ( (nlvbind (make_instance class_normlet_binding
+						 :letbind_loc sloc
+						 :binder curvsym
+						 :letbind_type curctyp
+						 :letbind_expr ()
+						 ))
+			 (clocc (make_instance class_nrep_locsymocc
+					       :nrep_loc sloc
+					       :nocc_ctyp curctyp
+					       :nocc_symb curvsym
+					       :nocc_bind nlvbind))
+			 )
+		    (multiple_put_nth nlocbindtup ix nlvbind)
+		    (multiple_put_nth nsymocctup ix clocc)
+		    )
+		(progn
+		  (error_strv sloc "local formal and actual type mismatch in citerator" (unsafe_get_field :named_name soper))
+		  (inform_strv sloc "mismatched citerator local variable" 
+			       (unsafe_get_field :named_name (unsafe_get_field :binder curvbind)))
 		  ))
-	       )
-	  (compile_warning "in normexp_citeration maybe citgenstate should be a void locsymocc?" ())
-	  (mapobject_put citlocmap citstate citgenstate)
-	  (multiple_every_both 
-	   svbind nsymocctup
-	   (lambda (curvloc cursymocc :long ix)
-	     (mapobject_put citlocmap (unsafe_get_field :binder curvloc) cursymocc)
-	     ))
-	  (debug_msg citlocmap "normexp_citeration citlocmap")
-	  )
-	)
-       )
-     )
-    )
+	      )
+	    (put_env bodyenv curvbind)
+	    ))
+	 (debug_msg nlocbindtup "normexp_citeration nlocbindtup")
+	 (debug_msg nsymocctup "normexp_citeration nsymocctup")
+	 (multicall
+	  (nbody nbodbindings)
+	  (normalize_tuple sbody bodyenv ncx sloc)
+	  (debug_msg nbody "normexp_citeration nbody")
+	  (debug_msg nbodbindings "normexp_citeration nbodbindings")
+	  (let ( (citstate (unsafe_get_field :citer_state soper))
+		 (citstsym (clone_symbol citstate))
+		 (citstbind (make_instance class_normlet_binding
+					   :letbind_loc sloc
+					   :binder citstsym
+					   :letbind_type ctype_void
+					   :letbind_expr ()))
+		 (citstocc (make_instance class_nrep_locsymocc
+					  :nrep_loc sloc
+					  :nocc_ctyp ctype_void
+					  :nocc_symb citstsym
+					  :nocc_bind citstbind))
+		 (citexpbefore (unsafe_get_field :citer_expbefore soper))
+		 (citexpafter (unsafe_get_field :citer_expafter soper))
+		 (citlocmap (make_mapobject discr_mapobjects (+i 10 nbcitbform)))
+		 (citexpander 
+		  (lambda (xtup)
+		    (debug_msg xtup "normexp_citeration exanding xtup")
+		    (multiple_map 
+		     xtup 
+		     (lambda (curelem :long ix)
+		       (if (is_a curelem class_symbol)
+			   (let ( (exelem (mapobject_get citlocmap curelem)) )
+			     (if (null exelem)
+				 (debug_msg curelem "normexp_citeration bad curelem"))
+			     (assert_msg "check exelem in citeration" exelem)
+			     exelem)
+			 curelem)
+		       ))
+		    ))
+		 )
+	    (mapobject_put citlocmap citstate citstocc)
+	    (debug_msg starformals "normexp_citeration starformals again")
+	    (debug_msg nsymocctup "normexp_citeration nsymocctup again")
+	    (multiple_every_both 
+	     starformals nargs
+	     (lambda (curvloc curnarg :long ix)
+	       (debug_msg curvloc "normexp_citeration curvloc")
+	       (debug_msg curnarg "normexp_citeration curnarg")
+	       (mapobject_put citlocmap (unsafe_get_field :binder curvloc) curnarg)
+	       ))
+	    (debug_msg citlocmap "normexp_citeration citlocmap middle")
+	    (debug_msg citbform "normexp_citeration citbform again")
+	    (multiple_every
+	     citbform
+	     (lambda (curformb :long ix)
+	       (assert_msg "check curform" (is_a curformb class_formal_binding))
+	       (mapobject_put citlocmap
+			      (unsafe_get_field :binder curformb)
+			      (multiple_nth  nsymocctup ix))
+			    
+	       ))
+	    (debug_msg citlocmap "normexp_citeration citlocmap done")
+	    (let ( (chkbefore (citexpander citexpbefore))
+		   (chkafter (citexpander citexpafter))
+		   )
+	      (debug_msg chkbefore "normexp_citeration chkbefore")
+	      (debug_msg chkafter "normexp_citeration chkafter")
+	      (let ( (nciter
+		      (make_instance  class_nrep_citeration
+				      :nrep_loc sloc
+				      :nciter_citerator soper
+				      :nciter_locbindings nlocbindtup
+				      :nciter_chunkbefore chkbefore
+				      :nciter_body nbody
+				      :nciter_bodbindings nbodbindings
+				      :nciter_chunkafter chkafter
+				      ))
+		     )
+		(debug_msg nciter "normexp_citeration nciter")
+		))))))))
   (assert_msg "@@unimplemented normexp_citeration" ())
   )
 (install_method class_src_citeration normal_exp normexp_citeration)
 (compile_warning "normexp_citeration NOT IMPLEMENTED" ())
 
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;; normalize a DEFCLASS
 (defun normexp_defclass (recv env ncx psloc)
   (assert_msg "check defclass recv" (is_a recv class_src_defclass))
