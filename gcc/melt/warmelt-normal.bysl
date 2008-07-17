@@ -3156,12 +3156,98 @@
 					      :letbind_expr curnarg
 					      )) )
 		  (multiple_put_nth nbndtup ix nlbind)
-		  (put_env bodyenv curforb)
 		  )
 	      (progn
-		(error_strv sloc "formal and actual type mismatch in citerator" (unsafe_get_field :named_name soper))
-		(inform_strv sloc "mismatched citerator formal argument" (unsafe_get_field :named_name formarg))))
+		(error_strv sloc "start formal and actual type mismatch in citerator" (unsafe_get_field :named_name soper))
+		(inform_strv sloc "mismatched citerator start formal argument" (unsafe_get_field :named_name formarg))))
 	    ))
+	)
+       )
+     (debug_msg nbndtup "normexp_citeration nbndtup")
+     ;; bind the local vars
+     (debug_msg svbind "normexp_citeration svbind")
+     (let ( (citbform (unsafe_get_field :citer_body_formals soper))
+	    (:long nbcitbform (multiple_length citbform))
+	    (nlocbindtup (make_multiple discr_multiple nbcitbform))
+	    (nsymocctup (make_multiple discr_multiple nbcitbform))
+	    )
+       (debug_msg citbform "normexp_citeration citbform")
+       (if (!= nbcitbform (multiple_length svbind))
+	   (progn
+	     (error_strv sloc "body formals and actuals length mismatch in citerator" (unsafe_get_field :named_name soper))
+	     (return)))
+       (multiple_every_both 
+	svbind citbform
+	(lambda (curvbind curbform :long ix)
+	  (debug_msg curvbind "normexp_citeration curvbind")
+	  (debug_msg curbform "normexp_citeration curbform")
+	  (assert_msg "check curvbind" (is_a curvbind class_formal_binding))
+	  (assert_msg "check curbform" (is_a curbform class_formal_binding))
+	  (let ( (curvsym (unsafe_get_field :binder curvbind))
+		 (curctyp (unsafe_get_field :fbind_type curvbind))
+		 (curvfor (unsafe_get_field :binder curbform))
+		 )
+	    (if (== curctyp (unsafe_get_field :fbind_type curbform))
+		(let ( (csym (clone_symbol curvsym)) 
+		       (nlvbind (make_instance class_normlet_binding
+					       :letbind_loc sloc
+					       :binder csym
+					       :letbind_type curctyp
+					       :letbind_expr ()
+					       ))
+		       (clocc (make_instance class_nrep_locsymocc
+					     :nrep_loc sloc
+					     :nocc_ctyp curctyp
+					     :nocc_symb csym
+					     :nocc_bind nlvbind))
+		       )
+		  (multiple_put_nth nlocbindtup ix nlvbind)
+		  (multiple_put_nth nsymocctup ix clocc)
+		  )
+	      (progn
+		(error_strv sloc "local formal and actual type mismatch in citerator" (unsafe_get_field :named_name soper))
+		(inform_strv sloc "mismatched citerator local variable" 
+			     (unsafe_get_field :named_name (unsafe_get_field :binder curvbind)))
+		))
+	    )
+	  (put_env bodyenv curvbind)
+	  ))
+       (debug_msg nlocbindtup "normexp_citeration nlocbindtup")
+       (debug_msg nsymocctup "normexp_citeration nsymocctup")
+       (multicall
+	(nbody nbodbindings)
+	(normalize_tuple sbody bodyenv ncx sloc)
+	(debug_msg nbody "normexp_citeration nbody")
+	(debug_msg nbodbindings "normexp_citeration nbodbindings")
+	(let ( (citstate (unsafe_get_field :citer_state soper))
+	       (citgenstate (clone_symbol citstate))
+	       (citexpbefore (unsafe_get_field :citer_expbefore soper))
+	       (citexpafter (unsafe_get_field :citer_expafter soper))
+	       (citlocmap (make_mapobject discr_mapobjects (+i 10 nbcitbform)))
+	       (citexpander 
+		(lambda (xtup)
+		  (multiple_map 
+		   xtup 
+		   (lambda (curelem :long ix)
+		     (if (is_a curelem class_symbol)
+			 (let ( (exelem (mapobject_get citlocmap curelem)) )
+			   (if (null exelem)
+			       (debug_msg curelem "normexp_citeration bad curelem"))
+			   (assert_msg "check exelem in citeration" exelem)
+			   exelem)
+		       curelem)
+		     ))
+		  ))
+	       )
+	  (compile_warning "in normexp_citeration maybe citgenstate should be a void locsymocc?" ())
+	  (mapobject_put citlocmap citstate citgenstate)
+	  (multiple_every_both 
+	   svbind nsymocctup
+	   (lambda (curvloc cursymocc :long ix)
+	     (mapobject_put citlocmap (unsafe_get_field :binder curvloc) cursymocc)
+	     ))
+	  (debug_msg citlocmap "normexp_citeration citlocmap")
+	  )
 	)
        )
      )
