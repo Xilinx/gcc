@@ -413,6 +413,14 @@ loop_iteration_vector_dim (unsigned int loop_num, scop_p scop)
   return loop_domain_dim (loop_num, scop) - 2 - scop_nb_params (scop);
 }
 
+/* Checks, if SCOP contains LOOP.  */
+
+static inline bool
+scop_contains_loop (scop_p scop, struct loop *loop)
+{
+  return bitmap_bit_p (SCOP_LOOPS (scop), loop->num);
+}
+
 /* Returns the index of LOOP in the domain matrix for the SCOP.  */
 
 static inline int
@@ -421,7 +429,7 @@ scop_loop_index (scop_p scop, struct loop *loop)
   unsigned i;
   struct loop *l;
 
-  gcc_assert (bitmap_bit_p (SCOP_LOOPS (scop), loop->num));
+  gcc_assert (scop_contains_loop (scop, loop));
 
   for (i = 0; VEC_iterate (loop_p, SCOP_LOOP_NEST (scop), i, l); i++)
     if (l == loop)
@@ -430,12 +438,41 @@ scop_loop_index (scop_p scop, struct loop *loop)
   gcc_unreachable();
 }
 
-/* Checks, if SCOP contains LOOP.  */
+/* Return the index of innermost loop that contains the basic block
+   GBB.  */
 
-static inline bool
-scop_contains_loop (scop_p scop, struct loop *loop)
+static inline int
+gbb_inner_most_loop_index (scop_p scop, graphite_bb_p gb)
 {
-  return bitmap_bit_p (SCOP_LOOPS (scop), loop->num);
+  return scop_loop_index(scop, gbb_loop (gb));
+}
+
+/* Return the outermost loop that contains the loop LOOP.  The outer
+   loops are searched until a sibling for the outer loop is found.  */
+
+static struct loop *
+outer_most_loop_1 (scop_p scop, struct loop* loop, struct loop* current_outer)
+{
+  return (!scop_contains_loop (scop, loop)) ? current_outer :
+    (loop->next != NULL) ? loop :
+    outer_most_loop_1 (scop, loop_outer (loop), loop);
+}
+
+/* Return the outermost loop that contains the loop LOOP.  */
+
+static struct loop *
+outer_most_loop (scop_p scop, struct loop *loop)
+{
+  return outer_most_loop_1 (scop, loop, NULL);
+}
+
+/* Return the index of the outermost loop that contains the basic
+   block BB.  */
+
+static inline int
+gbb_outer_most_loop_index (scop_p scop, graphite_bb_p gb)
+{
+  return scop_loop_index (scop, outer_most_loop (scop, gbb_loop (gb)));
 }
 
 /* Associate a POLYHEDRON dependence description to two data

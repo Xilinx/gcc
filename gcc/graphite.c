@@ -3722,6 +3722,49 @@ graphite_trans_bb_strip_mine (graphite_bb_p gb, unsigned loop, unsigned stride)
   VEC_safe_insert (loop_p, heap, GBB_LOOPS (gb), loop + 2, NULL);
 }
 
+/* Interchange legaility code.  */
+
+static bool
+is_interchange_valid (scop_p scop, unsigned loop_a, unsigned loop_b)
+{
+  bool res;
+  VEC (ddr_p, heap) *dependence_relations;
+  VEC (data_reference_p, heap) *datarefs;
+
+  struct loop *nest = VEC_index (loop_p, SCOP_LOOP_NEST (scop), loop_a);
+  unsigned depth = perfect_loop_nest_depth (nest);
+  lambda_trans_matrix trans;
+
+  gcc_assert (loop_a < loop_b);
+
+  dependence_relations = VEC_alloc (ddr_p, heap, 10 * 10);
+  datarefs = VEC_alloc (data_reference_p, heap, 10);
+
+  if (!compute_data_dependences_for_loop (nest, true, &datarefs,
+					  &dependence_relations))
+    gcc_unreachable ();
+
+  if (dump_file && (dump_flags & TDF_DETAILS))
+    dump_ddrs (dump_file, dependence_relations);
+
+  trans = lambda_trans_matrix_new (depth, depth);
+  lambda_matrix_id (LTM_MATRIX (trans), depth);
+
+  lambda_matrix_row_exchange (LTM_MATRIX (trans), 0, loop_b - loop_a);
+
+  if (!lambda_transform_legal_p (trans, depth, dependence_relations))
+    {
+      lambda_matrix_row_exchange (LTM_MATRIX (trans), 0, loop_b - loop_a);
+      res = false;
+    }
+  else
+    res = true;
+
+  free_dependence_relations (dependence_relations);
+  free_data_refs (datarefs);
+  return res;
+}
+
 /* Loop block the LOOPS innermost loops of BB with stride size STRIDE. 
 
    Example
@@ -3741,15 +3784,32 @@ graphite_trans_bb_strip_mine (graphite_bb_p gb, unsigned loop, unsigned stride)
          for (k = kk; k <= min (100, kk + 3); k++) 
            for (l = ll; l <= min (200, ll + 3); l++) 
              A
-
-   XXX: Does not check validity. Necessary?  */
+*/
 
 static void
 graphite_trans_bb_block (graphite_bb_p gb, unsigned stride, unsigned loops)
 {
-  unsigned i;
+  unsigned i, j;
   unsigned nb_loops = gbb_nb_loops (gb);
   unsigned start = nb_loops - loops;
+  scop_p scop = GBB_SCOP (gb);
+  unsigned outer_most_loop_index_for_gb;
+
+  if (!scop_contains_loop (scop, gbb_loop (gb)))
+    return;
+
+  outer_most_loop_index_for_gb = gbb_outer_most_loop_index (scop, gb);
+
+  for (i = outer_most_loop_index_for_gb; i < outer_most_loop_index_for_gb + loops; i++)
+    for (j = i + 1; j < outer_most_loop_index_for_gb + loops; j++)
+      if (!is_interchange_valid (scop, i, j))
+	{
+	  if (dump_file && (dump_flags & TDF_DETAILS))
+	    fprintf (dump_file, "\nInterchange not valid for loops %d and %d:\n", i, j);
+	  return;
+	}
+      else if (dump_file && (dump_flags & TDF_DETAILS))
+	fprintf (dump_file, "\nInterchange valid for loops %d and %d:\n", i, j);
 
   /* Strip mine loops.  */
   for (i = 0; i < nb_loops - start; i++)

@@ -1153,6 +1153,7 @@ bool sra_type_can_be_decomposed_p (tree);
 
 /* In tree-loop-linear.c  */
 extern void linear_transform_loops (void);
+extern unsigned perfect_loop_nest_depth (struct loop *);
 
 /* In graphite.c  */
 extern void graphite_transform_loops (void);
