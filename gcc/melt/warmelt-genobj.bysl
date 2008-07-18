@@ -1751,7 +1751,17 @@
 
 (install_method class_nrep_let compile_obj compilobj_nrep_let)
 
-
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+#|
+(defun compilobj_nrep_citeraton (rciter gcx)
+  (assert_msg "check rciter" (is_a rciter class_nrep_citeration))
+  (assert_msg "check gcx" (is_a gcx class_genercontext))
+  (debug_msg rciter "compilobj_nrep_citerator rciter")
+  (debug_msg gcx "compilobj_nrep_citerator gcx")
+  (assert_msg "compilobj_nrep_citerator @@unimplemented" ())
+  )
+(install_method class_nrep_citeration compile_obj compilobj_nrep_citeraton)
+|#
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; compile a setq
 (defun compilobj_nrep_setq (nsq gcx)

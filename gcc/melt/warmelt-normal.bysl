@@ -3124,6 +3124,7 @@
 (install_method class_src_defciterator normal_exp normexp_defciterator)
 
 
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;; normalize a citeration
 (defun normexp_citeration (recv env ncx psloc)
@@ -3298,13 +3299,27 @@
 				      :nciter_bodbindings nbodbindings
 				      :nciter_chunkafter chkafter
 				      ))
+		     (csym (clone_symbol (unsafe_get_field :named_name soper)))
+		     (cbind (make_instance class_normlet_binding
+					   :letbind_loc sloc
+					   :binder csym
+					   :letbind_type ctype_void
+					   :letbind_expr nciter))
+		     (clocc (make_instance class_nrep_locsymocc
+					   :nrep_loc sloc
+					   :nocc_ctyp ctype_void
+					   :nocc_symb csym
+					   :nocc_bind cbind))
 		     )
+		(list_append nbindings cbind)
 		(debug_msg nciter "normexp_citeration nciter")
+		(debug_msg clocc "normexp_citeration result clocc")
+		(debug_msg nbindings "normexp_citeration result nbindings")
+		(return clocc nbindings)
 		))))))))
-  (assert_msg "@@unimplemented normexp_citeration" ())
   )
 (install_method class_src_citeration normal_exp normexp_citeration)
-(compile_warning "normexp_citeration NOT IMPLEMENTED" ())
+
 
 
 

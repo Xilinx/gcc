@@ -1,3 +1,18 @@
+2008-07-18  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normal.bysl: added normexp_citeration - not tested yet.
+
+	* melt/warmelt-genobj.bysl: should compile normexp_citeration.
+
+	* warmelt-first-0.c: regenerated.
+
+	* warmelt-macro-0.c: regenerated.
+
+	* warmelt-normal-0.c: regenerated.
+
+	* warmelt-genobj-0.c: regenerated.
+
+	* warmelt-outobj-0.c: regenerated.
+
 2008-07-17  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normal.bysl: still adding normexp_citeration.
 
