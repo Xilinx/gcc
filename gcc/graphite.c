@@ -3722,6 +3722,43 @@ graphite_trans_bb_strip_mine (graphite_bb_p gb, unsigned loop, unsigned stride)
   VEC_safe_insert (loop_p, heap, GBB_LOOPS (gb), loop + 2, NULL);
 }
 
+/* Returns true when the strip mining of LOOP_INDEX by STRIDE is
+   profitable or undecidable.  */
+
+static bool
+strip_mine_profitable_p (graphite_bb_p gb, unsigned stride,
+			 unsigned loop_index)
+{
+  bool res = true;
+  edge exit = NULL;
+  tree niter;
+  loop_p loop;
+  long niter_val;
+
+  loop = VEC_index (loop_p, GBB_LOOPS (gb), loop_index);
+  exit = single_exit (loop);
+
+  niter = find_loop_niter (loop, &exit);
+  if (niter == chrec_dont_know 
+      || TREE_CODE (niter) != INTEGER_CST)
+    return true;
+  
+  niter_val = int_cst_value (niter);
+
+  if (niter_val < stride)
+    {
+      res = false;
+      if (dump_file && (dump_flags & TDF_DETAILS))
+	{
+	  fprintf (dump_file, "\nStrip Mining is not profitable for loop %d:",
+		   loop_index);
+	  fprintf (dump_file, "number of iterations is too low.\n");
+	}
+    }
+  
+  return res;
+}
+ 
 /* Interchange legaility code.  */
 
 static bool
@@ -3813,7 +3850,8 @@ graphite_trans_bb_block (graphite_bb_p gb, unsigned stride, unsigned loops)
 
   /* Strip mine loops.  */
   for (i = 0; i < nb_loops - start; i++)
-    graphite_trans_bb_strip_mine (gb, start + 3 * i, stride);
+    if (strip_mine_profitable_p (gb, stride, start + 3 * i))
+      graphite_trans_bb_strip_mine (gb, start + 3 * i, stride);
 
   /* Interchange loops.  */
   for (i = 1; i < nb_loops - start; i++)

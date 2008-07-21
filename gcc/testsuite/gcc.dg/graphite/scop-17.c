@@ -1,10 +1,9 @@
 /* { dg-do compile } */ 
 /* { dg-options "-O2 -fgraphite -fdump-tree-graphite-all" } */
-#include <stdio.h>
 #define N 100000
+void foo (int);
 int test ()
 {
-
   int a[N][N];
   unsigned i, j;
 
@@ -18,8 +17,7 @@ int test ()
 
   for (i = 0; i < N; i++) 
     for (j = 0; j < N; j++)
-      printf("For i=%d and j=%d, a=%d\n", i, j, a[i][j]); 
-
+      foo (a[i][j]); 
 }
 
 /* { dg-final { scan-tree-dump-times "Interchange not valid for loops 2 and 3:" 1 "graphite"} } */

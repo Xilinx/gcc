@@ -1,3 +1,13 @@
+2008-07-21  Dwarakanath Rajagopal  <dwarak.rajagopal@amd.com>
+	    Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite.c (strip_mine_profitable_p): New.
+	(graphite_trans_bb_block): Disable strip mining if not profitable.
+
+	* testsuite/gcc.dg/graphite/scop-18.c: New.
+	* testsuite/gcc.dg/graphite/scop-17.c: Fixed.
+	* testsuite/gcc.dg/graphite/scop-16.c: Fixed.
+
 2008-07-17  Harsha Jagasia  <harsha.jagasia@amd.com>
 	    Jan Sjodin  <jan.sjodin@amd.com>
 	    Sebastian Pop  <sebastian.pop@amd.com>
