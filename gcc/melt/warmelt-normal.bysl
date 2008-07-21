@@ -3144,6 +3144,7 @@
     (multicall
      (nargs nbindings)
      (normalize_tuple sargs env ncx sloc)
+     (if (null nbindings) (setq nbindings (make_list discr_list)))
      (debug_msg nargs "normexp_citeration nargs")
      (debug_msg nbindings "normexp_citeration nbindings")
      (let ( (starformals (unsafe_get_field :citer_start_formals soper)) )

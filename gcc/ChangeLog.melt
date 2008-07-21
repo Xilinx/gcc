@@ -1,3 +1,8 @@
+2008-07-21  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normal.bysl: added normexp_citeration.
+
+	* melt/warmelt-genobj.bysl: adding compilation of citerations.
+
 2008-07-18  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normal.bysl: added normexp_citeration - not tested yet.
 

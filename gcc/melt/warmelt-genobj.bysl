@@ -30,10 +30,6 @@
 ;;    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
-(debug_msg class_symbol "at start of warmelt-genobj Class_Symbol")
-(debug_msg (fetch_predefined CLASS_SYMBOL) "start of warmelt-genobj predefined Class_Symbol")
-
-
 ;;;; value like objects
 (defclass class_objvalue
   :super class_objcode
@@ -191,6 +187,8 @@
   :fields (oclr_vloc			;varlocation to clear
 ))
 
+
+
 ;; block instruction
 (defclass class_objblock
   :super class_objinstr
@@ -216,6 +214,14 @@
   :super class_objinstr
   :fields (obexit_label			;cloned symbol for goto destination
 ))
+
+;; citeration block
+(defclass class_objciterblock
+  :super class_objblock
+  :fields (obciter_citer
+	   obciter_before
+	   obciter_after
+	   ))
 
 ;; conditional instruction
 (defclass class_objcond
@@ -424,6 +430,7 @@
  class_initialroutineobj
  class_objapply
  class_objblock
+ class_objciterblock
  class_objclear
  class_objcloccv
  class_objcommentedblock
@@ -1752,16 +1759,50 @@
 (install_method class_nrep_let compile_obj compilobj_nrep_let)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-#|
-(defun compilobj_nrep_citeraton (rciter gcx)
-  (assert_msg "check rciter" (is_a rciter class_nrep_citeration))
+
+(defun compilobj_nrep_citeration (nciter gcx)
+  (assert_msg "check nciter" (is_a nciter class_nrep_citeration))
   (assert_msg "check gcx" (is_a gcx class_genercontext))
-  (debug_msg rciter "compilobj_nrep_citerator rciter")
-  (debug_msg gcx "compilobj_nrep_citerator gcx")
-  (assert_msg "compilobj_nrep_citerator @@unimplemented" ())
+  (debug_msg nciter "compilobj_nrep_citeration nciter")
+  (let ( (loc (unsafe_get_field :nrep_loc nciter))
+	 (citer (unsafe_get_field :nciter_citerator nciter))
+	 (nlocbind (unsafe_get_field :nciter_locbindings nciter))
+	 (nchkbef (unsafe_get_field :nciter_chunkbefore nciter))
+	 (nbody (unsafe_get_field :nciter_body nciter))
+	 (nbodbind (unsafe_get_field :nciter_bodbindings nciter))
+	 (nchkafter (unsafe_get_field :nciter_chunkafter nciter))
+	 )
+    (debug_msg nlocbind "compilobj_nrep_citeration nlocbind")
+    (assert_msg "check citer" (is_a citer class_citerator))
+    (multiple_every
+     nlocbind
+     (lambda (nlbnd :long ix)
+       (debug_msg nlbnd "compilobj_nrep_citeration current nlocbinding nlbnd")
+       (assert_msg "check nlbnd in compilobj_nrep_citeration" (is_a nlbnd class_normlet_binding))
+       (let ( (bder (unsafe_get_field :binder nlbnd))
+	      (cty (unsafe_get_field :letbind_type nlbnd))
+	      (nexp (unsafe_get_field :letbind_expr nlbnd))
+	      (oblva (get_free_objloctyped gcx bder cty))
+	      )
+	 (debug_msg oblva "compilobj_nrep_citeration current obva")
+	 )))
+    (multiple_every
+     nbodbind
+     (lambda (nbbnd :long ix)
+       (debug_msg nbbnd "compilobj_nrep_citeration current nbodbinding nbbnd")
+       (assert_msg "check nbbnd in compilobj_nrep_citeration" (is_a nbbnd class_normlet_binding))
+       (let ( (bder (unsafe_get_field :binder nbbnd))
+	      (cty (unsafe_get_field :letbind_type nbbnd))
+	      (nexp (unsafe_get_field :letbind_expr nbbnd))
+	      (obbva (get_free_objloctyped gcx bder cty))
+	      )
+	 (debug_msg obbva "compilobj_nrep_citeration current obbva")
+	 )))
+    )
+  (assert_msg "compilobj_nrep_citeration @@unimplemented" ())
   )
-(install_method class_nrep_citeration compile_obj compilobj_nrep_citeraton)
-|#
+(install_method class_nrep_citeration compile_obj compilobj_nrep_citeration)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; compile a setq
 (defun compilobj_nrep_setq (nsq gcx)
