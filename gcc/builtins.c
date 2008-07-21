@@ -98,8 +98,8 @@ static rtx expand_builtin_mathfn_3 (tree, rtx, rtx);
 static rtx expand_builtin_interclass_mathfn (tree, rtx, rtx);
 static rtx expand_builtin_sincos (tree);
 static rtx expand_builtin_cexpi (tree, rtx, rtx);
-static rtx expand_builtin_int_roundingfn (tree, rtx, rtx);
-static rtx expand_builtin_int_roundingfn_2 (tree, rtx, rtx);
+static rtx expand_builtin_int_roundingfn (tree, rtx);
+static rtx expand_builtin_int_roundingfn_2 (tree, rtx);
 static rtx expand_builtin_args_info (tree);
 static rtx expand_builtin_next_arg (void);
 static rtx expand_builtin_va_start (tree);
@@ -2464,11 +2464,10 @@ expand_builtin_cexpi (tree exp, rtx target, rtx subtarget)
    do not need to worry about setting errno to EDOM.
    If expanding via optab fails, lower expression to (int)(floor(x)).
    EXP is the expression that is a call to the builtin function;
-   if convenient, the result should be placed in TARGET.  SUBTARGET may
-   be used as the target for computing one of EXP's operands.  */
+   if convenient, the result should be placed in TARGET.  */
 
 static rtx
-expand_builtin_int_roundingfn (tree exp, rtx target, rtx subtarget)
+expand_builtin_int_roundingfn (tree exp, rtx target)
 {
   convert_optab builtin_optab;
   rtx op0, insns, tmp;
@@ -2511,7 +2510,7 @@ expand_builtin_int_roundingfn (tree exp, rtx target, rtx subtarget)
      side-effects more the once.  */
   CALL_EXPR_ARG (exp, 0) = arg = builtin_save_expr (arg);
 
-  op0 = expand_expr (arg, subtarget, VOIDmode, EXPAND_NORMAL);
+  op0 = expand_expr (arg, NULL, VOIDmode, EXPAND_NORMAL);
 
   start_sequence ();
 
@@ -2592,11 +2591,10 @@ expand_builtin_int_roundingfn (tree exp, rtx target, rtx subtarget)
    conversion (lrint).
    Return 0 if a normal call should be emitted rather than expanding the
    function in-line.  EXP is the expression that is a call to the builtin
-   function; if convenient, the result should be placed in TARGET.
-   SUBTARGET may be used as the target for computing one of EXP's operands.  */
+   function; if convenient, the result should be placed in TARGET.  */
 
 static rtx
-expand_builtin_int_roundingfn_2 (tree exp, rtx target, rtx subtarget)
+expand_builtin_int_roundingfn_2 (tree exp, rtx target)
 {
   convert_optab builtin_optab;
   rtx op0, insns;
@@ -2635,7 +2633,7 @@ expand_builtin_int_roundingfn_2 (tree exp, rtx target, rtx subtarget)
      side-effects more the once.  */
   CALL_EXPR_ARG (exp, 0) = arg = builtin_save_expr (arg);
 
-  op0 = expand_expr (arg, subtarget, VOIDmode, EXPAND_NORMAL);
+  op0 = expand_expr (arg, NULL, VOIDmode, EXPAND_NORMAL);
 
   start_sequence ();
 
@@ -4691,10 +4689,12 @@ std_canonical_va_list_type (tree type)
     type = TREE_TYPE (type);
   else if (POINTER_TYPE_P (type) && POINTER_TYPE_P (TREE_TYPE(type)))
     type = TREE_TYPE (type);
-
   wtype = va_list_type_node;
   htype = type;
-  if (TREE_CODE (wtype) == ARRAY_TYPE)
+  /* Treat structure va_list types.  */
+  if (TREE_CODE (wtype) == RECORD_TYPE && POINTER_TYPE_P (htype))
+    htype = TREE_TYPE (htype);
+  else if (TREE_CODE (wtype) == ARRAY_TYPE)
     {
       /* If va_list is an array type, the argument may have decayed
 	 to a pointer type, e.g. by being passed to another function.
@@ -4773,7 +4773,16 @@ std_gimplify_va_arg_expr (tree valist, tree type, tree *pre_p, tree *post_p)
     type = build_pointer_type (type);
 
   align = PARM_BOUNDARY / BITS_PER_UNIT;
-  boundary = FUNCTION_ARG_BOUNDARY (TYPE_MODE (type), type) / BITS_PER_UNIT;
+  boundary = FUNCTION_ARG_BOUNDARY (TYPE_MODE (type), type);
+
+  /* When we align parameter on stack for caller, if the parameter
+     alignment is beyond PREFERRED_STACK_BOUNDARY, it will be
+     aligned at PREFERRED_STACK_BOUNDARY.  We will match callee
+     here with caller.  */
+  if (boundary > PREFERRED_STACK_BOUNDARY)
+    boundary = PREFERRED_STACK_BOUNDARY;
+
+  boundary /= BITS_PER_UNIT;
 
   /* Hoist the valist value into a temporary for the moment.  */
   valist_tmp = get_initialized_tmp_var (valist, pre_p, NULL);
@@ -6196,7 +6205,7 @@ expand_builtin (tree exp, rtx target, rtx subtarget, enum machine_mode mode,
     CASE_FLT_FN (BUILT_IN_LLCEIL):
     CASE_FLT_FN (BUILT_IN_LFLOOR):
     CASE_FLT_FN (BUILT_IN_LLFLOOR):
-      target = expand_builtin_int_roundingfn (exp, target, subtarget);
+      target = expand_builtin_int_roundingfn (exp, target);
       if (target)
 	return target;
       break;
@@ -6205,7 +6214,7 @@ expand_builtin (tree exp, rtx target, rtx subtarget, enum machine_mode mode,
     CASE_FLT_FN (BUILT_IN_LLRINT):
     CASE_FLT_FN (BUILT_IN_LROUND):
     CASE_FLT_FN (BUILT_IN_LLROUND):
-      target = expand_builtin_int_roundingfn_2 (exp, target, subtarget);
+      target = expand_builtin_int_roundingfn_2 (exp, target);
       if (target)
 	return target;
       break;
