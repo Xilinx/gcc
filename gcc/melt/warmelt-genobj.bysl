@@ -399,12 +399,12 @@
 	   obrout_body			;the body (a list)
 	   obrout_nbval			;the boxed number of value pointers
 	   obrout_nblong		;the boxed number of longs
-;	   obrout_nbciter		;the boxed counter of citerations
 	   obrout_others		;the list of other (nonvalue,
 					;nonlongs) locals (usually C
 					;pointers like tree-s,
 					;cstrings, ...)
 	   obrout_retval		;the main return value
+;	   obrout_cntciter		;the boxed counter of citerations
 ))
 
 ;; procedure routine
@@ -666,8 +666,8 @@
 				 :obrout_body obodylist
 				 :obrout_nbval (make_integerbox discr_integer 0)
 				 :obrout_nblong (make_integerbox discr_integer 0)
-;				 :obrout_nbciter (make_integerbox discr_integer 0)
 				 :obrout_others (make_list discr_list)
+;				 :obrout_cntciter (make_integerbox discr_integer 0)
 				 :oprout_loc nloc
 				 :oprout_funam routfunam
 				 )) 
@@ -773,8 +773,8 @@
 			:obrout_body oinibody
 			:obrout_nbval (make_integerbox discr_integer 0)
 			:obrout_nblong (make_integerbox discr_integer 0)
-;			:obrout_nbciter (make_integerbox discr_integer 0)
 			:obrout_others (make_list discr_list)
+;			:obrout_cntciter (make_integerbox discr_integer 0)
 			:oirout_fill (make_list discr_list)
 			:oirout_prolog oiniprolog
 			))

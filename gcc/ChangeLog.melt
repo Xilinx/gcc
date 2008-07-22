@@ -1,4 +1,13 @@
 2008-07-22  Basile Starynkevitch  <basile@starynkevitch.net>
+	[the stage1 melt is built using previous modules of itself]
+	* Makefile.in: warmelt-macro-1 built using warmelt-first-1.so [not
+	-0.so] warmelt-normal-1 build using warmelt-first-1.so &
+	warmelt-macro-1.so ...
+
+	* melt/warmelt-genobj.bysl: will add obrout_cntciter field at end
+	of class_routineobj
+
+2008-07-22  Basile Starynkevitch  <basile@starynkevitch.net>
 	MERGED WITH TRUNK rev138050
 
 	* compiler-probe.c: more C++ friendly.

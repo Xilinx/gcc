@@ -4841,19 +4841,68 @@ warmelt1.modlis: $(WARMELT_BASE1SO)
 	for f in  $(WARMELT_BASE1); do echo $$f >> $@-tmp; done
 	$(SHELL) $(srcdir)/../move-if-change $@-tmp $@
 
-warmelt-%-1.c:  $(srcdir)/melt/warmelt-%.bysl warmelt0.modlis cc1$(exeext) $(WARMELT_BASE0SO) 
-	@echo generating $@ using $(WARMELT_BASE0) 
-	-rm -f $@
-	$(MELTBASILYSCCFILE1) -fbasilys-init=$(WARMELT_BASE0ROW) \
-	      -fbasilys-arg=$< -frandom-seed=$(shell md5sum $< | cut -b-24) \
-	      -fbasilys-secondarg=$@
-	ls -l $@
+
+### we need ad hoc rules, since warmelt-first-1 is build using the
+### warmelt*0.c files from SVN repository but warmelt-macro-1 is build
+### using wamelt-first-1.so
 
 warmelt-first-1.c: $(srcdir)/melt/warmelt-first.bysl warmelt0.modlis   cc1$(exeext)  $(WARMELT_BASE0SO)
 	-rm -f $@
 	@echo generating warmelt-first using $(WARMELT_BASE0) 
 	@echo WARMELT_BASE0= $(WARMELT_BASE0) WARMELT_BASE0ROW= $(WARMELT_BASE0ROW)
 	$(MELTBASILYSCCINIT1) -fbasilys-init=$(WARMELT_BASE0ROW) \
+	      -fbasilys-arg=$< \
+	      -fbasilys-secondarg=$@
+	ls -l $@
+
+warmelt-macro-1.c: $(srcdir)/melt/warmelt-macro.bysl cc1$(exeext) \
+	 warmelt-first-1.so  \
+	 warmelt-macro-0.so  \
+	 warmelt-normal-0.so \
+	 warmelt-genobj-0.so \
+	 warmelt-outobj-0.so 
+	-rm -f $@
+	$(MELTBASILYSCCFILE1) \
+	-fbasilys-init=warmelt-first-1:warmelt-macro-0:warmelt-normal-0:warmelt-genobj-0:warmelt-outobj-0 \
+	      -fbasilys-arg=$< \
+	      -fbasilys-secondarg=$@
+	ls -l $@
+
+warmelt-normal-1.c: $(srcdir)/melt/warmelt-normal.bysl cc1$(exeext) \
+	 warmelt-first-1.so  \
+	 warmelt-macro-1.so  \
+	 warmelt-normal-0.so \
+	 warmelt-genobj-0.so \
+	 warmelt-outobj-0.so 
+	-rm -f $@
+	$(MELTBASILYSCCFILE1) \
+	-fbasilys-init=warmelt-first-1:warmelt-macro-1:warmelt-normal-0:warmelt-genobj-0:warmelt-outobj-0 \
+	      -fbasilys-arg=$< \
+	      -fbasilys-secondarg=$@
+	ls -l $@
+
+warmelt-genobj-1.c: $(srcdir)/melt/warmelt-genobj.bysl cc1$(exeext) \
+	 warmelt-first-1.so  \
+	 warmelt-macro-1.so  \
+	 warmelt-normal-1.so \
+	 warmelt-genobj-0.so \
+	 warmelt-outobj-0.so 
+	-rm -f $@
+	$(MELTBASILYSCCFILE1) \
+	-fbasilys-init=warmelt-first-1:warmelt-macro-1:warmelt-normal-1:warmelt-genobj-0:warmelt-outobj-0 \
+	      -fbasilys-arg=$< \
+	      -fbasilys-secondarg=$@
+	ls -l $@
+
+warmelt-outobj-1.c: $(srcdir)/melt/warmelt-outobj.bysl cc1$(exeext) \
+	 warmelt-first-1.so  \
+	 warmelt-macro-1.so  \
+	 warmelt-normal-1.so \
+	 warmelt-genobj-1.so \
+	 warmelt-outobj-0.so 
+	-rm -f $@
+	$(MELTBASILYSCCFILE1) \
+	-fbasilys-init=warmelt-first-1:warmelt-macro-1:warmelt-normal-1:warmelt-genobj-1:warmelt-outobj-0 \
 	      -fbasilys-arg=$< \
 	      -fbasilys-secondarg=$@
 	ls -l $@
