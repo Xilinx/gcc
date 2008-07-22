@@ -1,4 +1,19 @@
-2008-07-21  Basile Starynkevitch  <basile@starynkevitch.net>
+2008-07-22  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normal.bysl: added nciter_statocc field.
+
+	* melt/warmelt-genobj.bysl: adding compilation of citerations.
+
+	* warmelt-first-0.c: regenerated twice.
+
+	* warmelt-macro-0.c: regenerated twice.
+
+	* warmelt-normal-0.c: regenerated twice.
+
+	* warmelt-genobj-0.c: regenerated twice.
+
+	* warmelt-outobj-0.c: regenerated twice.
+
+008-07-21  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normal.bysl: added normexp_citeration.
 
 	* melt/warmelt-genobj.bysl: adding compilation of citerations.

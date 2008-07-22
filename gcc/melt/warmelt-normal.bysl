@@ -209,9 +209,11 @@
 	   nciter_locbindings		;the local bindings
 	   nciter_chunkbefore		;the expansed chunk before
 	   nciter_body			;the normalized body
+	   nciter_statocc		;the state local occurrence
 	   nciter_bodbindings		;normalized body bindings
 	   nciter_chunkafter		;the expansed chunk after
 ))
+
 
 ;;; procedures
 (defclass class_nrep_anyproc
@@ -3297,6 +3299,7 @@
 				      :nciter_locbindings nlocbindtup
 				      :nciter_chunkbefore chkbefore
 				      :nciter_body nbody
+				      :nciter_statocc citstocc
 				      :nciter_bodbindings nbodbindings
 				      :nciter_chunkafter chkafter
 				      ))

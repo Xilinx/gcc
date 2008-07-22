@@ -399,7 +399,7 @@
 	   obrout_body			;the body (a list)
 	   obrout_nbval			;the boxed number of value pointers
 	   obrout_nblong		;the boxed number of longs
-	   ;;; if double are needed, we might later add some obrout_nbdouble
+;	   obrout_nbciter		;the boxed counter of citerations
 	   obrout_others		;the list of other (nonvalue,
 					;nonlongs) locals (usually C
 					;pointers like tree-s,
@@ -666,6 +666,7 @@
 				 :obrout_body obodylist
 				 :obrout_nbval (make_integerbox discr_integer 0)
 				 :obrout_nblong (make_integerbox discr_integer 0)
+;				 :obrout_nbciter (make_integerbox discr_integer 0)
 				 :obrout_others (make_list discr_list)
 				 :oprout_loc nloc
 				 :oprout_funam routfunam
@@ -772,6 +773,7 @@
 			:obrout_body oinibody
 			:obrout_nbval (make_integerbox discr_integer 0)
 			:obrout_nblong (make_integerbox discr_integer 0)
+;			:obrout_nbciter (make_integerbox discr_integer 0)
 			:obrout_others (make_list discr_list)
 			:oirout_fill (make_list discr_list)
 			:oirout_prolog oiniprolog
@@ -1768,9 +1770,27 @@
 	 (citer (unsafe_get_field :nciter_citerator nciter))
 	 (nlocbind (unsafe_get_field :nciter_locbindings nciter))
 	 (nchkbef (unsafe_get_field :nciter_chunkbefore nciter))
+	 (nstatocc (let ( (ns (unsafe_get_field :nciter_statocc nciter)) ) 
+		     (assert_msg "check nstatocc" (is_a ns class_nrep_locsymocc))
+		     (debug_msg ns "compilobj_nrep_citeration nstatocc")
+		     ns))
 	 (nbody (unsafe_get_field :nciter_body nciter))
 	 (nbodbind (unsafe_get_field :nciter_bodbindings nciter))
-	 (nchkafter (unsafe_get_field :nciter_chunkafter nciter))
+	 (nchkaft (unsafe_get_field :nciter_chunkafter nciter))
+	 (nstatbind (let ( (bi (unsafe_get_field :nocc_bind nstatocc)) )
+		      (assert_msg "check nstatbind" (is_a bi class_normlet_binding))
+		      bi))
+	 (nstatsy (unsafe_get_field :binder nstatbind))
+	 (ostat (get_free_objloctyped gcx nstatsy (unsafe_get_field :nocc_ctyp nstatocc)))
+	 (obodl (make_list discr_list))
+	 (oepil (make_list discr_list))
+	 (ocblock (make_instance class_objciterblock
+				 :obi_loc loc
+				 :oblo_bodyl obodl
+				 :oblo_epil oepil
+				 :obciter_before ()
+				 :obciter_after ()
+				 ))
 	 )
     (debug_msg nlocbind "compilobj_nrep_citeration nlocbind")
     (assert_msg "check citer" (is_a citer class_citerator))
@@ -1784,8 +1804,36 @@
 	      (nexp (unsafe_get_field :letbind_expr nlbnd))
 	      (oblva (get_free_objloctyped gcx bder cty))
 	      )
-	 (debug_msg oblva "compilobj_nrep_citeration current obva")
+	 (debug_msg bder "compilobj_nrep_citeration current local binder")
+	 (debug_msg oblva "compilobj_nrep_citeration current oblva")
+	 (if (!= cty ctype_void)
+	       (mapobject_put (unsafe_get_field  :gncx_locmap gcx) nlbnd oblva))
 	 )))
+    (debug_msg ocblock "compilobj_nrep_citeration ocblock start")
+    (unsafe_put_fields 
+     ocblock
+     :obciter_before (multiple_map 
+		      nchkbef 
+		      (lambda (cbef :long ix)
+			(if (is_string cbef) cbef
+			  (progn
+			    (debug_msg cbef "compilobj_nrep_citeration cbef")
+			    (let ( (obef (compile_obj cbef gcx)) )
+			      (debug_msg obef "compilobj_nrep_citeration obef")
+			      obef
+			      )))))
+     :obciter_after (multiple_map
+		     nchkaft 
+		     (lambda (caft :long ix)
+		       (if (is_string caft) caft
+			 (progn
+			   (debug_msg caft "compilobj_nrep_citeration caft")
+			   (let ( (oaft (compile_obj caft gcx)) )
+			     (debug_msg oaft "compilobj_nrep_citeration oaft")
+			     oaft
+			     )))))
+     )
+    (debug_msg ocblock "compilobj_nrep_citeration ocblock filled before&after chunks")
     (multiple_every
      nbodbind
      (lambda (nbbnd :long ix)
@@ -1797,6 +1845,8 @@
 	      (obbva (get_free_objloctyped gcx bder cty))
 	      )
 	 (debug_msg obbva "compilobj_nrep_citeration current obbva")
+	 (if (!= cty ctype_void)
+	       (mapobject_put (unsafe_get_field  :gncx_locmap gcx) nbbnd obbva))
 	 )))
     )
   (assert_msg "compilobj_nrep_citeration @@unimplemented" ())
