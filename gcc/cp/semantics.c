@@ -4677,8 +4677,20 @@ classtype_has_nothrow_assign_or_copy_p (tree type, bool assign_p)
     return false;
 
   for (; fns; fns = OVL_NEXT (fns))
-    if (!TREE_NOTHROW (OVL_CURRENT (fns)))
-      return false;
+    {
+      tree fn = OVL_CURRENT (fns);
+ 
+      if (assign_p)
+	{
+	  if (copy_fn_p (fn) == 0)
+	    continue;
+	}
+      else if (copy_fn_p (fn) <= 0)
+	continue;
+
+      if (!TYPE_NOTHROW_P (TREE_TYPE (fn)))
+	return false;
+    }
 
   return true;
 }
@@ -4712,7 +4724,8 @@ trait_expr_value (cp_trait_kind kind, tree type1, tree type2)
       type1 = strip_array_types (type1);
       return (trait_expr_value (CPTK_HAS_TRIVIAL_CONSTRUCTOR, type1, type2) 
 	      || (CLASS_TYPE_P (type1)
-		  && (t = locate_ctor (type1, NULL)) && TREE_NOTHROW (t)));
+		  && (t = locate_ctor (type1, NULL))
+		  && TYPE_NOTHROW_P (TREE_TYPE (t))));
 
     case CPTK_HAS_TRIVIAL_CONSTRUCTOR:
       type1 = strip_array_types (type1);

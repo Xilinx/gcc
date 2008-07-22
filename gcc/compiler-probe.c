@@ -1,5 +1,5 @@
 /* Compiler probe
-   Copyright (C) 2007 Free Software Foundation, Inc.
+   Copyright (C) 2007,2008 Free Software Foundation, Inc.
    Contributed by Basile Starynkevitch <basile@starynkevitch.net>
 
 This file is part of GCC.
@@ -213,22 +213,22 @@ static struct drand48_data randata;
 static hashval_t
 hash_proberequest (const void *d)
 {
-  const struct proberequesthentry_st *p = d;
+  const struct proberequesthentry_st *p = (const struct proberequesthentry_st *) d;
   return htab_hash_string (p->verb);
 }
 
 static int
 eq_proberequest (const void *dx, const void *dy)
 {
-  const struct proberequesthentry_st *px = dx;
-  const struct proberequesthentry_st *py = dy;
+  const struct proberequesthentry_st *px = (const struct proberequesthentry_st *) dx;
+  const struct proberequesthentry_st *py = (const struct proberequesthentry_st *) dy;
   return !strcmp (px->verb, py->verb);
 }
 
 static void
 del_proberequest (void *d)
 {
-  struct proberequesthentry_st *p = d;
+  struct proberequesthentry_st *p = (const struct proberequesthentry_st *) d;
   gcc_assert (p && p->verb);
   free ((void *) p->verb);
   p->verb = NULL;
@@ -242,22 +242,22 @@ del_proberequest (void *d)
 static hashval_t
 hash_filename (const void *d)
 {
-  const struct filenamehentry_st *p = d;
+  const struct filenamehentry_st *p = (struct filenamehentry_st *) d;
   return htab_hash_string (p->file);
 }
 
 static int
 eq_filename (const void *dx, const void *dy)
 {
-  const struct filenamehentry_st *px = dx;
-  const struct filenamehentry_st *py = dy;
+  const struct filenamehentry_st *px = (struct filenamehentry_st *) dx;
+  const struct filenamehentry_st *py = (struct filenamehentry_st *) dy;
   return !strcmp (px->file, py->file);
 }
 
 static void
 del_filename (void *d)
 {
-  struct filenamehentry_st *p = d;
+  struct filenamehentry_st *p = (struct filenamehentry_st *) d;
   gcc_assert (p && p->file && p->rank > 0);
   free ((void *) p->file);
   p->file = NULL;
@@ -269,7 +269,7 @@ del_filename (void *d)
 static hashval_t
 hash_infopoint (const void *d)
 {
-  const struct infopointhentry_st *ifp = d;
+  const struct infopointhentry_st *ifp = (const struct infopointhentry_st *) d;
   return (hashval_t)
     (((long) (ifp->infp_filerank << 12)) ^ ((long) ifp->infp_lineno));
 }
@@ -277,8 +277,8 @@ hash_infopoint (const void *d)
 static int
 eq_infopoint (const void *dx, const void *dy)
 {
-  const struct infopointhentry_st *ifx = dx;
-  const struct infopointhentry_st *ify = dy;
+  const struct infopointhentry_st *ifx = (const struct infopointhentry_st *) dx;
+  const struct infopointhentry_st *ify = (const struct infopointhentry_st *) dy;
   return ifx->infp_lineno == ify->infp_lineno
     && ifx->infp_filerank == ify->infp_filerank;
 }
@@ -461,7 +461,7 @@ comprobe_register_unchecked (const char *verb,
   if (*slotptr == HTAB_EMPTY_ENTRY || (*slotptr) == HTAB_DELETED_ENTRY)
     {
       struct proberequesthentry_st *newslot;
-      newslot = xcalloc (sizeof (struct proberequesthentry_st), 1);
+      newslot = (struct proberequesthentry_st *) xcalloc (sizeof (struct proberequesthentry_st), 1);
       newslot->verb = xstrdup (verb);
       newslot->rout = handler;
       newslot->data = data;
@@ -530,7 +530,7 @@ comprobe_infopoint_add_display (int infoptrank,
     return;
   msgl = strlen (msg);
   gcc_assert (infp->infp_num == infoptrank);
-  dch = xcalloc (sizeof (*dch) + msgl, 1);
+  dch = (displaychoice_ptr_t) xcalloc (sizeof (*dch) + msgl, 1);
   dch->di_data = data;
   dch->di_magic = DI_MAGIC;
   dch->di_fun = dispfun;
@@ -553,7 +553,7 @@ comprobe_display_add_navigator (struct comprobe_infodisplay_st *idi,
   msgl = strlen (msg);
   if (!idi->idis_navig)
     idi->idis_navig = VEC_alloc (displaychoice_ptr_t, heap, 3);
-  dch = xcalloc (sizeof (*dch) + msgl, 1);
+  dch = (displaychoice_ptr_t) xcalloc (sizeof (*dch) + msgl, 1);
   dch->di_data = data;
   dch->di_fun = navfun;
   dch->di_magic = DI_MAGIC;
@@ -890,9 +890,8 @@ read_probe_requests (struct comprobe_whatpos_st *wp, unsigned millisec)
 	  if (newsiz > 0)
 	    {
 	      struct proberequest_buffer_st *newbuf;
-	      newbuf = xcalloc (1,
-				sizeof (struct
-					proberequest_buffer_st) + newsiz - 1);
+	      newbuf = (struct proberequest_buffer_st *)
+		xcalloc (1, sizeof (struct proberequest_buffer_st) + newsiz - 1);
 	      newbuf->len = newsiz;
 	      if (proberequest_buf)
 		{
@@ -954,7 +953,7 @@ read_probe_requests (struct comprobe_whatpos_st *wp, unsigned millisec)
 			((rlen + 2 * PIPE_BUF) | (PROBUF_GRAN - 1)) + 1;
 		      if (newsiz < proberequest_buf->len && newsiz > rlen)
 			{
-			  proberequest_buf =
+			  proberequest_buf = (struct proberequest_buffer_st *)
 			    xrealloc (proberequest_buf, newsiz);
 			  proberequest_buf->len = newsiz;
 			}
@@ -1086,7 +1085,7 @@ newinfodialog_reqfun (struct comprobe_whatpos_st *wp ATTRIBUTE_UNUSED,
   if ((int) VEC_length (infodisplay_ptr_t, infodisplay_vector) <= dialrk)
     VEC_safe_grow_cleared (infodisplay_ptr_t, heap, infodisplay_vector,
 			   5 * dialrk / 4 + 16);
-  idisp = xcalloc (sizeof (*idisp), 1);
+  idisp = (infodisplay_ptr_t) xcalloc (sizeof (*idisp), 1);
   idisp->idis_num = dialrk;
   idisp->idis_infp = ip;
   VEC_replace (infodisplay_ptr_t, infodisplay_vector, dialrk, idisp);
@@ -1631,7 +1630,7 @@ comprobe_file_rank (const char *filename)
     {
       struct filenamehentry_st *newslot = 0;
       const char *dupfilename = xstrdup (filename);
-      newslot = xcalloc (sizeof (*newslot), 1);
+      newslot = (struct filenamehentry_st *) xcalloc (sizeof (*newslot), 1);
       if (files_varr.last + 1 >= files_varr.size)
 	{
 	  int newsiz = ((5 * files_varr.last) / 4 + 50) | 0x1f;
@@ -1693,7 +1692,7 @@ comprobe_infopoint_rank (int filerank, int lineno)
   if (*slotptr == HTAB_EMPTY_ENTRY || (*slotptr) == HTAB_DELETED_ENTRY)
     {
       struct infopointhentry_st *newslot = 0;
-      newslot = xcalloc (sizeof (*newslot), 1);
+      newslot = ( struct infopointhentry_st *) xcalloc (sizeof (*newslot), 1);
       /* dont use index 0 */
       if (VEC_length (infopoint_ptr_t, infopoint_vector) == 0)
 	VEC_safe_push (infopoint_ptr_t, heap, infopoint_vector,

@@ -469,13 +469,13 @@ perform_member_init (tree member, tree init)
 {
   tree decl;
   tree type = TREE_TYPE (member);
-  bool explicit;
+  bool is_explicit;
 
-  explicit = (init != NULL_TREE);
+  is_explicit = (init != NULL_TREE);
 
   /* Effective C++ rule 12 requires that all data members be
      initialized.  */
-  if (warn_ecpp && !explicit && TREE_CODE (type) != ARRAY_TYPE)
+  if (warn_ecpp && !is_explicit && TREE_CODE (type) != ARRAY_TYPE)
     warning (OPT_Weffc__, "%J%qD should be initialized in the member initialization "
 	     "list", current_function_decl, member);
 
@@ -503,7 +503,7 @@ perform_member_init (tree member, tree init)
     }
   else if (TYPE_NEEDS_CONSTRUCTING (type))
     {
-      if (explicit
+      if (is_explicit
 	  && TREE_CODE (type) == ARRAY_TYPE
 	  && init != NULL_TREE
 	  && TREE_CHAIN (init) == NULL_TREE
@@ -523,7 +523,7 @@ perform_member_init (tree member, tree init)
     {
       if (init == NULL_TREE)
 	{
-	  if (explicit)
+	  if (is_explicit)
 	    {
 	      init = build_default_init (type, /*nelts=*/NULL_TREE);
 	      if (TREE_CODE (type) == REFERENCE_TYPE)
@@ -1578,7 +1578,7 @@ build_offset_ref (tree type, tree member, bool address_p)
 	   a class derived from that class (_class.base.init_).  */
       if (DECL_NONSTATIC_MEMBER_FUNCTION_P (member))
 	{
-	  /* Build a representation of a the qualified name suitable
+	  /* Build a representation of the qualified name suitable
 	     for use as the operand to "&" -- even though the "&" is
 	     not actually present.  */
 	  member = build2 (OFFSET_REF, TREE_TYPE (member), decl, member);

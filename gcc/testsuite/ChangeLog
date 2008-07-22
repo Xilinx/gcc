@@ -1,3 +1,169 @@
+2008-07-22  Manuel Lopez-Ibanez  <manu@gcc.gnu.org>
+
+	PR 28079
+	* gcc.dg/cpp/line6.c: New.
+	
+2008-07-21  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* gfortran.dg/fmt_g0_3.f08: Fix typo in expected error message.
+
+2008-07-21  Paolo Carlini  <paolo.carlini@oracle.com>
+
+        PR c++/36871
+	PR c++/36872
+        * g++.dg/ext/has_nothrow_copy.C: Rename to...
+        * g++.dg/ext/has_nothrow_copy-1.C: ... this.
+        * g++.dg/ext/has_nothrow_copy-2.C: New.
+        * g++.dg/ext/has_nothrow_copy-3.C: Likewise.
+        * g++.dg/ext/has_nothrow_copy-4.C: Likewise.
+        * g++.dg/ext/has_nothrow_copy-5.C: Likewise.
+        * g++.dg/ext/has_nothrow_copy-6.C: Likewise.
+        * g++.dg/ext/has_nothrow_copy-7.C: Likewise.
+
+2008-07-21  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR libfortran/36773
+	* gfortran.dg/zero_sized_5.f90:  New test case.
+
+2008-07-21  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/36870
+	* g++.dg/ext/has_nothrow_assign_odr.C: New.
+	* g++.dg/ext/has_nothrow_copy_odr.C: Likewise.
+	* g++.dg/ext/has_nothrow_constructor_odr.C: Likewise.
+	* g++.dg/ext/has_nothrow_assign.C: Adjust.
+	* g++.dg/ext/has_nothrow_copy.C: Likewise.
+	* g++.dg/ext/has_nothrow_constructor.C: Likewise.
+
+2008-07-17  Andreas Krebbel  <krebbel1@de.ibm.com>
+
+	PR target/36822
+	* gcc.target/s390/pr36822.c: New testcase.
+
+2008-07-21  Hans-Peter Nilsson  <hp@axis.com>
+
+	PR middle-end/36143
+	* g++.dg/tree-ssa/pr19637.C: XFAIL.
+
+	PR rtl-optimization/33642
+	* gcc.c-torture/compile/pr11832.c: Skip for CRIS.
+	* gcc.c-torture/compile/pr33009.c: Likewise.
+
+	PR middle-end/36509
+	* gcc.dg/Wstrict-aliasing-float-ptr-int-obj.c: XFAIL.
+
+2008-07-20  Andrew Pinski  <andrew_pinski@playstation.sony.com>
+
+	PR tree-opt/36879
+	* gcc.c-torture/execute/20080719-1.c: New testcase.
+
+2008-07-20  Hans-Peter Nilsson  <hp@axis.com>
+
+	* gcc.dg/tree-ssa/data-dep-1.c: XFAIL.
+
+2008-07-20  Daniel Berlin  <dberlin@dberlin.org>
+
+	* gcc.dg/tree-ssa/ssa-fre-7.c: XFAIL.
+	* gcc.dg/tree-ssa/ssa-fre-8.c: Ditto.
+	* gcc.dg/tree-ssa/ssa-fre-9.c: Ditto.
+	* gcc.dg/tree-ssa/ssa-fre-13.c: Ditto.
+	* gcc.dg/tree-ssa/ssa-fre-14.c: Ditto.
+	* gcc.dg/tree-ssa/ssa-fre-17.c: Ditto.
+	* gcc.dg/tree-ssa/ssa-pre-15.c: Ditto.
+	* gcc.dg/tree-ssa/loadpre1.c: PASS.
+
+2008-07-19  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/36877
+	* gcc.dg/gomp/atomic-11.c: New test.
+
+2008-07-19  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/36795
+	* char_expr_1.f90: New.
+	* char_expr_2.f90: New.
+
+2008-07-19  Olivier Hainque  <hainque@adacore.com>
+
+	* gcc.dg/mallign.c: New test.
+	* gnat.dg/allocator_maxalign1.adb: New test.
+	* gnat.dg/test_allocator_maxalign2.adb: Main caller for ...
+	* gnat.dg/allocator_maxalign2.ad[bs]: New test.
+
+2008-07-19  Tobias Burnus  <burnus@net-b.de>
+
+	* gfortran.dg/intrinsic_argument_conformance_2.f90: New.
+	* gfortran.dg/zero_sized_1.f90: Fix conformance bugs.
+
+2008-07-18  Kris Van Hees  <kris.van.hees@oracle.com>
+
+	* g++.dg/ext/utf-array.C: Fix broken merge/checkin.
+	* g++.dg/ext/utf-array-short-wchar.C: Idem
+	* gcc.dg/utf-array.c: Idem
+	* gcc.dg/utf-array-short-wchar.c: Idem
+
+2008-07-18  Joseph Myers  <joseph@codesourcery.com>
+
+	* gcc.dg/fshort-wchar.c: Use -Wl,--no-wchar-size-warning on
+	arm*-*-*eabi.
+
+2008-07-18  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/36786
+	* gcc.target/i386/pr36786.c: New test.
+
+2008-07-18  Dodji Seketeli  <dseketel@redhat.com>
+
+	PR c++/36407
+	* g++.dg/conversion/op5.C: New testcase.
+
+2008-07-18  Kris Van Hees  <kris.van.hees@oracle.com>
+
+	* g++.dg/ext/utf-array.C: Fix broken merge/checkin.
+	* g++.dg/ext/utf-array-short-wchar.C: Idem
+	* gcc.dg/utf-array.c: Idem
+	* gcc.dg/utf-array-short-wchar.c: Idem
+
+2008-07-18  Kris Van Hees  <kris.van.hees@oracle.com>
+
+	Tests for char16_t and char32_t support.
+	* g++.dg/ext/utf-array.C: New
+	* g++.dg/ext/utf-array-short-wchar.C: New
+	* g++.dg/ext/utf-rtti.C: New
+	* g++.dg/ext/utf-type.c: New
+	* gcc.dg/utf-array.c: New
+	* gcc.dg/utf-array-short-wchar.c: New
+	* gcc.dg/utf-inc-init.c: New
+	* gcc.dg/utf-type.c: New
+
+2008-07-18  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR middle-end/36859
+	* gcc.target/i386/vararg-2.c: New.
+
+2008-07-18  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR middle-end/36858
+	* gcc.target/i386/vararg-1.c: New.
+
+2008-07-18  Tobias Burnus  <burnus@net-b.de>
+
+	* gfortran.dg/parameter_array_init_4.f90: Silence pedantic warning.
+
+2008-07-17  Olivier Hainque  <hainque@adacore.com>
+
+	* gnat.dg/tree_static_def.ad[bs]: Support for ...
+	* gnat.dg/tree_static_use.adb: New test.
+	* gnat.dg/decl_ctx_def.ads: Support for ...
+	* gnat.dg/decl_ctx_use.ad[bs]: New test.
+
+2008-07-17  Julian Brown  <julian@codesourcery.com>
+	    Mark Mitchell  <mark@codesourcery.com>
+
+	* g++.dg/ext/visibility/arm3.C: Add explanatory text. Skip on
+	non-DLL targets.
+	* g++.dg/ext/visibility/arm1.C: Skip on non-DLL targets.
+
 2008-07-17  Paolo Carlini  <paolo.carlini@oracle.com>
 
 	PR c++/36855

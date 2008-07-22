@@ -65,24 +65,24 @@ gfc_free_actual_arglist (gfc_actual_arglist *a1)
 gfc_actual_arglist *
 gfc_copy_actual_arglist (gfc_actual_arglist *p)
 {
-  gfc_actual_arglist *head, *tail, *new;
+  gfc_actual_arglist *head, *tail, *new_arg;
 
   head = tail = NULL;
 
   for (; p; p = p->next)
     {
-      new = gfc_get_actual_arglist ();
-      *new = *p;
+      new_arg = gfc_get_actual_arglist ();
+      *new_arg = *p;
 
-      new->expr = gfc_copy_expr (p->expr);
-      new->next = NULL;
+      new_arg->expr = gfc_copy_expr (p->expr);
+      new_arg->next = NULL;
 
       if (head == NULL)
-	head = new;
+	head = new_arg;
       else
-	tail->next = new;
+	tail->next = new_arg;
 
-      tail = new;
+      tail = new_arg;
     }
 
   return head;
@@ -480,7 +480,7 @@ gfc_copy_expr (gfc_expr *p)
       break;
 
     case EXPR_OP:
-      switch (q->value.op.operator)
+      switch (q->value.op.op)
 	{
 	case INTRINSIC_NOT:
 	case INTRINSIC_PARENTHESES:
@@ -659,7 +659,7 @@ gfc_type_convert_binary (gfc_expr *e)
       e->ts = op1->ts;
 
       /* Special case for ** operator.  */
-      if (e->value.op.operator == INTRINSIC_POWER)
+      if (e->value.op.op == INTRINSIC_POWER)
 	goto done;
 
       gfc_convert_type (e->value.op.op2, &e->ts, 2);
@@ -830,12 +830,12 @@ simplify_intrinsic_op (gfc_expr *p, int type)
   gfc_intrinsic_op op;
   gfc_expr *op1, *op2, *result;
 
-  if (p->value.op.operator == INTRINSIC_USER)
+  if (p->value.op.op == INTRINSIC_USER)
     return SUCCESS;
 
   op1 = p->value.op.op1;
   op2 = p->value.op.op2;
-  op  = p->value.op.operator;
+  op  = p->value.op.op;
 
   if (gfc_simplify_expr (op1, type) == FAILURE)
     return FAILURE;
@@ -1840,7 +1840,7 @@ check_intrinsic_op (gfc_expr *e, try (*check_function) (gfc_expr *))
   if ((*check_function) (op1) == FAILURE)
     return FAILURE;
 
-  switch (e->value.op.operator)
+  switch (e->value.op.op)
     {
     case INTRINSIC_UPLUS:
     case INTRINSIC_UMINUS:
@@ -1883,7 +1883,7 @@ check_intrinsic_op (gfc_expr *e, try (*check_function) (gfc_expr *))
       if (!numeric_type (et0 (op1)) || !numeric_type (et0 (op2)))
 	goto not_numeric;
 
-      if (e->value.op.operator == INTRINSIC_POWER
+      if (e->value.op.op == INTRINSIC_POWER
 	  && check_function == check_init_expr && et0 (op2) != BT_INTEGER)
 	{
 	  if (gfc_notify_std (GFC_STD_F2003,"Fortran 2003: Noninteger "
@@ -3000,9 +3000,9 @@ gfc_check_pointer_assign (gfc_expr *lvalue, gfc_expr *rvalue)
       return FAILURE;
     }
 
-  if (attr.protected && attr.use_assoc)
+  if (attr.is_protected && attr.use_assoc)
     {
-      gfc_error ("Pointer assigment target has PROTECTED "
+      gfc_error ("Pointer assignment target has PROTECTED "
 		 "attribute at %L", &rvalue->where);
       return FAILURE;
     }

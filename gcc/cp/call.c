@@ -3416,7 +3416,7 @@ build_conditional_expr (tree arg1, tree arg2, tree arg3,
 
   /* [expr.cond]
 
-     The first expr ession is implicitly converted to bool (clause
+     The first expression is implicitly converted to bool (clause
      _conv_).  */
   arg1 = perform_implicit_conversion (boolean_type_node, arg1, complain);
 
@@ -4510,7 +4510,9 @@ convert_like_real (conversion *convs, tree expr, tree fn, int argnum,
   if (convs->bad_p
       && convs->kind != ck_user
       && convs->kind != ck_ambig
-      && convs->kind != ck_ref_bind)
+      && convs->kind != ck_ref_bind
+      && convs->kind != ck_rvalue
+      && convs->kind != ck_base)
     {
       conversion *t = convs;
       for (; t; t = convs->u.next)

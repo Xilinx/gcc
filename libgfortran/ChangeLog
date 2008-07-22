@@ -1,3 +1,40 @@
+2008-07-22  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR libfortran/36890
+	* io/file_pos.c:  Declare READ_CHUNK as signed to avoid
+	signed/unsigned comparison warning in formatted_backspace.
+
+2008-07-21  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR libfortran/36773
+	* intrinsics/cshift0.c (cshift0):  Return early if size of array
+	is zero.
+	* intrinsics/eoshift0.c (eoshift0):  Return early if size of
+	return array is zero.
+	* intrinsics/eoshift2.c (eoshift2):  Likewise.
+	* m4/eoshift1.m4 (eoshift1):  Return early if size of array
+	is zero.
+	* m4/eoshift3.m4 (eoshift3):  Likewise.
+	* m4/eoshift2.m4 (eoshift2):  Return early if size of return
+	array is zero.
+	* m4/eoshift4.m4 (eoshift2):  Return early if size of return
+	array is zero.
+	* generated/cshift1_16.c: Regenerated.
+	* generated/cshift1_4.c: Regenerated.
+	* generated/cshift1_8.c: Regenerated.
+	* generated/eoshift1_16.c: Regenerated.
+	* generated/eoshift1_4.c: Regenerated.
+	* generated/eoshift1_8.c: Regenerated.
+	* generated/eoshift3_16.c: Regenerated.
+	* generated/eoshift3_4.c: Regenerated.
+	* generated/eoshift3_8.c: Regenerated.
+
+2008-07-20  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/36857
+	* io/write_float.def: Comment out locale dependent code and fix general
+	comments.
+	
 2008-07-07  Thomas Koenig  <tkoenig@gcc.gnu.org>
 
 	PR fortran/36341

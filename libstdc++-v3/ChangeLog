@@ -1,3 +1,116 @@
+2008-07-21  Jason Merrill  <jason@redhat.com>
+
+	Add initializer_list support as per N2679.
+	* include/debug/unordered_map: Add initializer_list support.
+	* include/debug/safe_association.h: Likewise.
+	* include/debug/unordered_set: Likewise.
+	* include/debug/vector: Likewise.
+	* include/debug/deque: Likewise.
+	* include/debug/map.h: Likewise.
+	* include/debug/set.h: Likewise.
+	* include/debug/string: Likewise.
+	* include/debug/list: Likewise.
+	* include/debug/multimap.h: Likewise.
+	* include/tr1_impl/unordered_map: Likewise.
+	* include/tr1_impl/hashtable: Likewise.
+	* include/tr1_impl/unordered_set: Likewise.
+	* include/tr1_impl/regex: Likewise.
+	* include/std/valarray: Likewise.
+	* include/std/unordered_map: Likewise.
+	* include/std/unordered_set: Likewise.
+	* include/bits/stl_list.h: Likewise.
+	* include/bits/stl_map.h: Likewise.
+	* include/bits/stl_set.h: Likewise.
+	* include/bits/basic_string.h: Likewise.
+	* include/bits/basic_string.tcc: Likewise.
+	* include/bits/stl_multimap.h: Likewise.
+	* include/bits/stl_vector.h: Likewise.
+	* include/bits/stl_deque.h: Likewise.
+	* include/bits/stl_multiset.h: Likewise.
+	* include/bits/stl_bvector.h: Likewise.
+	* include/ext/vstring.h: Likewise.
+	* include/ext/rc_string_base.h: Likewise.
+	* include/ext/sso_string_base.h: Likewise.
+	* src/Makefile.am (w?string-inst): Build with -std=gnu++0x.
+	* src/Makefile.in: Likewise.
+	* config/abi/pre/gnu.ver: Add new w?string exports.
+	* testsuite/21_strings/basic_string/init-list.cc: New test.
+	* testsuite/23_containers/vector/init-list.cc: New test.
+	* testsuite/23_containers/deque/init-list.cc: New test.
+	* testsuite/23_containers/list/init-list.cc: New test.
+	* testsuite/23_containers/map/init-list.cc: New test.
+	* testsuite/23_containers/multimap/init-list.cc: New test.
+	* testsuite/23_containers/set/init-list.cc: New test.
+	* testsuite/23_containers/multiset/init-list.cc: New test.
+	* testsuite/23_containers/unordered_map/init-list.cc: New test.
+	* testsuite/23_containers/unordered_multimap/init-list.cc: New test.
+	* testsuite/23_containers/unordered_set/init-list.cc: New test.
+	* testsuite/23_containers/unordered_multiset/init-list.cc: New test.
+	* testsuite/26_numerics/valarray/init-list.cc: New test.
+	* testsuite/28_regex/init-list.cc: New test.
+	* testsuite/ext/vstring/init-list.cc: New test.
+	* testsuite/23_containers/vector/requirements/dr438/assign_neg.cc:
+	Update error lineno.
+	* testsuite/23_containers/vector/requirements/dr438/insert_neg.cc:
+	Update error lineno.
+	* testsuite/23_containers/vector/requirements/dr438/constructor_1_neg.cc:
+	Update error lineno.
+	* testsuite/23_containers/vector/requirements/dr438/constructor_2_neg.cc:
+	Update error lineno.
+	* testsuite/23_containers/deque/requirements/dr438/assign_neg.cc:
+	Update error lineno.
+	* testsuite/23_containers/deque/requirements/dr438/insert_neg.cc:
+	Update error lineno.
+	* testsuite/23_containers/deque/requirements/dr438/constructor_1_neg.cc:
+	Update error lineno.
+	* testsuite/23_containers/deque/requirements/dr438/constructor_2_neg.cc:
+	Update error lineno.
+	* testsuite/23_containers/list/requirements/dr438/assign_neg.cc:
+	Update error lineno.
+	* testsuite/23_containers/list/requirements/dr438/insert_neg.cc:
+	Update error lineno.
+	* testsuite/23_containers/list/requirements/dr438/constructor_1_neg.cc:
+	Update error lineno.
+	* testsuite/23_containers/list/requirements/dr438/constructor_2_neg.cc:
+	Update error lineno.
+	
+2008-07-21  Mark Mitchell  <mark@codesourcery.com>
+
+	* config/os/gnu-linux/arm-eabi-extra.ver: New file.
+	* configure.host: Use it for arm*-*-linux-*eabi.
+
+2008-07-19  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/ext/pb_ds/detail/binomial_heap_base_/debug_fn_imps.hpp
+	(assert_node_consistent): Avoid ambiguous else warning.
+
+	* include/ext/pb_ds/detail/debug_map_base.hpp: Include <iostream>.
+
+	* include/bits/c++config: In debug-mode (and parallel-mode) set
+	_GLIBCXX_EXTERN_TEMPLATE to -1, not 0, thus disabling extern
+	templates only for basic_string (per libstdc++/21674).
+	* include/bits/basic_string.tcc: Use extern templates when
+	_GLIBCXX_EXTERN_TEMPLATE > 0.
+
+2008-07-18  Kris Van Hees  <kris.van.hees@oracle.com>
+	    Holger Hopp  <holger.hopp@sap.com>
+
+	* config/abi/pre/gnu.ver: Support char16_t and char32_t.
+	* testsuite/util/testsuite_abi.cc (check_version): Add
+	CXXABI_1.3.3 to known_versions.
+
+2008-07-16  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/debug/vector (insert(iterator, _Tp&&), push_back(_Tp&&)):
+	Enable only when _Tp != bool.
+
+	* testsuite/25_algorithms/heap/1.cc: Avoid unused variable warnings.
+
+2008-07-18  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* testsuite/lib/libstdc++.exp (check_v3_target_c_std): Avoid unused
+	variable warnings leading to spurious fails of the test.
+
 2008-07-16  Paolo Carlini  <paolo.carlini@oracle.com>
 
 	* testsuite/30_threads/recursive_mutex/cons/assign_neg.cc: Adjust

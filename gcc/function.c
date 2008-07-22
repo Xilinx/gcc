@@ -3258,13 +3258,13 @@ locate_and_pad_parm (enum machine_mode passed_mode, tree type, int in_regs,
     = type ? size_in_bytes (type) : size_int (GET_MODE_SIZE (passed_mode));
   where_pad = FUNCTION_ARG_PADDING (passed_mode, type);
   boundary = FUNCTION_ARG_BOUNDARY (passed_mode, type);
+  if (boundary > PREFERRED_STACK_BOUNDARY)
+    boundary = PREFERRED_STACK_BOUNDARY;
   locate->where_pad = where_pad;
   locate->boundary = boundary;
 
   /* Remember if the outgoing parameter requires extra alignment on the
      calling function side.  */
-  if (boundary > PREFERRED_STACK_BOUNDARY)
-    boundary = PREFERRED_STACK_BOUNDARY;
   if (crtl->stack_alignment_needed < boundary)
     crtl->stack_alignment_needed = boundary;
 
@@ -3763,22 +3763,12 @@ DEF_VEC_ALLOC_P(function_p,heap);
 
 static VEC(function_p,heap) *cfun_stack;
 
-/* We save the value of in_system_header here when pushing the first
-   function on the cfun stack, and we restore it from here when
-   popping the last function.  */
-
-static bool saved_in_system_header;
-
 /* Push the current cfun onto the stack, and set cfun to new_cfun.  */
 
 void
 push_cfun (struct function *new_cfun)
 {
-  if (cfun == NULL)
-    saved_in_system_header = in_system_header;
   VEC_safe_push (function_p, heap, cfun_stack, cfun);
-  if (new_cfun)
-    in_system_header = DECL_IN_SYSTEM_HEADER (new_cfun->decl);
   set_cfun (new_cfun);
 }
 
@@ -3788,8 +3778,6 @@ void
 pop_cfun (void)
 {
   struct function *new_cfun = VEC_pop (function_p, cfun_stack);
-  in_system_header = ((new_cfun == NULL) ? saved_in_system_header
-		      : DECL_IN_SYSTEM_HEADER (new_cfun->decl));
   set_cfun (new_cfun);
 }
 
@@ -3867,11 +3855,7 @@ allocate_struct_function (tree fndecl, bool abstract_p)
 void
 push_struct_function (tree fndecl)
 {
-  if (cfun == NULL)
-    saved_in_system_header = in_system_header;
   VEC_safe_push (function_p, heap, cfun_stack, cfun);
-  if (fndecl)
-    in_system_header = DECL_IN_SYSTEM_HEADER (fndecl);
   allocate_struct_function (fndecl, false);
 }
 

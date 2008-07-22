@@ -1,3 +1,83 @@
+2008-07-21  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* call.c: Fix comment typos.
+	* class.c: Likewise.
+	* cp-tree.h: Likewise.
+	* cxx-pretty-print.c: Likewise.
+	* decl.c: Likewise.
+	* init.c: Likewise.
+	* name-lookup.c: Likewise.
+	* operators.def: Likewise.
+	* parser.c: Likewise.
+	* pt.c: Likewise.
+	* tree.c: Likewise.
+	* typeck.c: Likewise.
+
+2008-07-21  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/36871
+	PR c++/36872
+	* semantics.c (classtype_has_nothrow_assign_or_copy_p): Only check
+	copy constructors and copy assignment operators proper.
+
+2008-07-21  Rafael Avila de Espindola  <espindola@google.com>
+
+	* parser.c (cp_token): Remove in_system_header.
+	(eof_token): Remove in_system_header.
+	(cp_lexer_get_preprocessor_token): Don't set in_system_header.
+	(cp_lexer_set_source_position_from_token): Don't set in_system_header.
+	(cp_parser_member_declaration):  Use in_system_header_at.
+	* pt.c (lookup_template_class): Don't set DECL_IN_SYSTEM_HEADER.
+	(pop_tinst_level): Don't set in_system_header.
+	(instantiate_class_template): Don't set in_system_header.
+	(instantiate_decl): Don't set in_system_header.
+	(instantiate_pending_templates): Don't set in_system_header.
+
+2008-07-21  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/36870
+	* semantics.c (classtype_has_nothrow_assign_or_copy_p): Use
+	TYPE_NOTHROW_P, not TREE_NOTHROW.
+	(trait_expr_value): Likewise.
+
+2008-07-18  Dodji Seketeli  <dseketel@redhat.com>
+
+	PR c++/36407
+	* call.c (convert_like_real): Don't take the error code path
+	  when a rvalue or base conversion has the bad_p field set.
+
+2008-07-18  Kris Van Hees  <kris.van.hees@oracle.com>
+
+	* rtti.c (emit_support_tinfos): Add char16_type_node and
+	char32_type_node.
+	* typeck2.c (digest_init): Support char16_t and char32_t.
+
+2008-07-18  Kavih R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	* cvt.c (convert_to_void): Avoid C++ keywords.
+	* decl.c (walk_namespaces_r, wrapup_globals_for_namespace):
+	Likewise.
+	* friend.c (is_friend): Likewise.
+	* init.c (perform_member_init): Likewise.
+	* mangle.c (write_template_prefix, write_template_template_param):
+	Likewise.
+	* name-lookup.c (do_namespace_alias, do_using_directive,
+	parse_using_directive, ambiguous_decl, arg_assoc): Likewise.
+	* parser.c (cp_parser_template_id, cp_parser_namespace_definition,
+	cp_parser_objc_typename, cp_parser_objc_method_keyword_params):
+	Likewise.
+	* pt.c (is_specialization_of_friend, lookup_template_class,
+	push_tinst_level, instantiate_class_template,
+	tsubst_copy_and_build): Likewise.
+	* tree.c (add_stmt_to_compound): Likewise.
+	* typeck.c (finish_class_member_access_expr): Likewise.
+
+2008-07-17  Julian Brown  <julian@codesourcery.com>
+	    Mark Mitchell  <mark@codesourcery.com>
+
+	* decl2.c (determine_visibility): Allow target to override
+	visibility of class data.
+
 2008-07-17  Paolo Carlini  <paolo.carlini@oracle.com>
 
 	PR c++/36855
@@ -33,9 +113,9 @@
 2008-07-11  Dodji Seketeli  <dseketel@redhat.com>
 
 	PR c++/31754
-	* cp-tree.h (struct cp_decl_specifier_seq): add a location field. It
+	* cp-tree.h (struct cp_decl_specifier_seq): Add a location field. It
 	carries the location of the primary type.
-	* parser.c (cp_parser_check_type_definition): update documentation.
+	* parser.c (cp_parser_check_type_definition): Update documentation.
 	(cp_parser_check_for_definition_in_return_type,
 	cp_parser_check_for_invalid_template_id,
 	cp_parser_set_decl_spec_type,
@@ -43,18 +123,18 @@
 	cp_parser_diagnose_invalid_type_name,
 	cp_parser_new_expression, cp_parser_explicit_instantiation,
 	cp_parser_type_specifier, cp_parser_simple_type_specifier,
-	cp_parser_omp_for_loop, cp_parser_pragma): use location in error messages.
-
+	cp_parser_omp_for_loop, cp_parser_pragma): Use location in error
+	messages.
 
 2008-07-11 Dodji Seketeli <dseketel@redhat.com>
 
 	PR c++/31754
 	* pt.c, semantic.c:
 	* semantic.c (qualified_name_lookup_error, finish_id_expression):
-	add a location_t parameter so that
+	Add a location_t parameter so that
 	error message can have a more accurate location.
-	* cp-tree.h: updated prototype
-	* pt.c (tsubst_qualified_id): use location in error messages.
+	* cp-tree.h: Updated prototype
+	* pt.c (tsubst_qualified_id): Use location in error messages.
 	* parser.c (cp_parser_postfix_expression,
 	cp_parser_objc_statement, cp_parser_trait_expr,
 	cp_parser_token_is_class_key,
@@ -77,8 +157,8 @@
 	cp_parser_function_specifier_opt, cp_parser_decltype,
 	cp_parser_mem_initializer_list, cp_parser_mem_initializer,
 	cp_parser_mem_initializer_id, cp_parser_template_parameter,
-	cp_parser_type_parameter, cp_parser_template_id, cp_parser_template_name,
-	cp_parser_template_argument): likewise.
+	cp_parser_type_parameter, cp_parser_template_id,
+	cp_parser_template_name, cp_parser_template_argument): Likewise.
 
 2008-07-09  Paolo Carlini  <paolo.carlini@oracle.com>
 

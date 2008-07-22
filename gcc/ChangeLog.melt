@@ -1,4 +1,11 @@
 2008-07-22  Basile Starynkevitch  <basile@starynkevitch.net>
+	MERGED WITH TRUNK rev138050
+
+	* compiler-probe.c: more C++ friendly.
+
+	* passes.c: merged with trunk.
+
+2008-07-22  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normal.bysl: added nciter_statocc field.
 
 	* melt/warmelt-genobj.bysl: adding compilation of citerations.

@@ -37,7 +37,7 @@ typedef enum
 {
   GFC_DEP_ERROR,
   GFC_DEP_EQUAL,	/* Identical Ranges.  */
-  GFC_DEP_FORWARD,	/* eg. a(1:3), a(2:4).  */
+  GFC_DEP_FORWARD,	/* e.g., a(1:3), a(2:4).  */
   GFC_DEP_OVERLAP,	/* May overlap in some other way.  */
   GFC_DEP_NODEP		/* Distinct ranges.  */
 }
@@ -76,15 +76,15 @@ gfc_dep_compare_expr (gfc_expr *e1, gfc_expr *e2)
   int i;
 
   if (e1->expr_type == EXPR_OP
-      && (e1->value.op.operator == INTRINSIC_UPLUS
-	  || e1->value.op.operator == INTRINSIC_PARENTHESES))
+      && (e1->value.op.op == INTRINSIC_UPLUS
+	  || e1->value.op.op == INTRINSIC_PARENTHESES))
     return gfc_dep_compare_expr (e1->value.op.op1, e2);
   if (e2->expr_type == EXPR_OP
-      && (e2->value.op.operator == INTRINSIC_UPLUS
-	  || e2->value.op.operator == INTRINSIC_PARENTHESES))
+      && (e2->value.op.op == INTRINSIC_UPLUS
+	  || e2->value.op.op == INTRINSIC_PARENTHESES))
     return gfc_dep_compare_expr (e1, e2->value.op.op1);
 
-  if (e1->expr_type == EXPR_OP && e1->value.op.operator == INTRINSIC_PLUS)
+  if (e1->expr_type == EXPR_OP && e1->value.op.op == INTRINSIC_PLUS)
     {
       /* Compare X+C vs. X.  */
       if (e1->value.op.op2->expr_type == EXPR_CONSTANT
@@ -93,7 +93,7 @@ gfc_dep_compare_expr (gfc_expr *e1, gfc_expr *e2)
 	return mpz_sgn (e1->value.op.op2->value.integer);
 
       /* Compare P+Q vs. R+S.  */
-      if (e2->expr_type == EXPR_OP && e2->value.op.operator == INTRINSIC_PLUS)
+      if (e2->expr_type == EXPR_OP && e2->value.op.op == INTRINSIC_PLUS)
 	{
 	  int l, r;
 
@@ -126,7 +126,7 @@ gfc_dep_compare_expr (gfc_expr *e1, gfc_expr *e2)
     }
 
   /* Compare X vs. X+C.  */
-  if (e2->expr_type == EXPR_OP && e2->value.op.operator == INTRINSIC_PLUS)
+  if (e2->expr_type == EXPR_OP && e2->value.op.op == INTRINSIC_PLUS)
     {
       if (e2->value.op.op2->expr_type == EXPR_CONSTANT
 	  && e2->value.op.op2->ts.type == BT_INTEGER
@@ -135,7 +135,7 @@ gfc_dep_compare_expr (gfc_expr *e1, gfc_expr *e2)
     }
 
   /* Compare X-C vs. X.  */
-  if (e1->expr_type == EXPR_OP && e1->value.op.operator == INTRINSIC_MINUS)
+  if (e1->expr_type == EXPR_OP && e1->value.op.op == INTRINSIC_MINUS)
     {
       if (e1->value.op.op2->expr_type == EXPR_CONSTANT
 	  && e1->value.op.op2->ts.type == BT_INTEGER
@@ -143,7 +143,7 @@ gfc_dep_compare_expr (gfc_expr *e1, gfc_expr *e2)
 	return -mpz_sgn (e1->value.op.op2->value.integer);
 
       /* Compare P-Q vs. R-S.  */
-      if (e2->expr_type == EXPR_OP && e2->value.op.operator == INTRINSIC_MINUS)
+      if (e2->expr_type == EXPR_OP && e2->value.op.op == INTRINSIC_MINUS)
 	{
 	  int l, r;
 
@@ -163,7 +163,7 @@ gfc_dep_compare_expr (gfc_expr *e1, gfc_expr *e2)
     }
 
   /* Compare X vs. X-C.  */
-  if (e2->expr_type == EXPR_OP && e2->value.op.operator == INTRINSIC_MINUS)
+  if (e2->expr_type == EXPR_OP && e2->value.op.op == INTRINSIC_MINUS)
     {
       if (e2->value.op.op2->expr_type == EXPR_CONSTANT
 	  && e2->value.op.op2->ts.type == BT_INTEGER
@@ -196,7 +196,7 @@ gfc_dep_compare_expr (gfc_expr *e1, gfc_expr *e2)
 
     case EXPR_OP:
       /* Intrinsic operators are the same if their operands are the same.  */
-      if (e1->value.op.operator != e2->value.op.operator)
+      if (e1->value.op.op != e2->value.op.op)
 	return -2;
       if (e1->value.op.op2 == 0)
 	{
@@ -523,7 +523,7 @@ gfc_check_fncall_dependency (gfc_expr *other, sym_intent intent,
 
 
 /* Return 1 if e1 and e2 are equivalenced arrays, either
-   directly or indirectly; ie. equivalence (a,b) for a and b
+   directly or indirectly; i.e., equivalence (a,b) for a and b
    or equivalence (a,c),(b,c).  This function uses the equiv_
    lists, generated in trans-common(add_equivalences), that are
    guaranteed to pick up indirect equivalences.  We explicitly
@@ -1183,7 +1183,7 @@ gfc_dep_resolver (gfc_ref *lref, gfc_ref *rref)
   while (lref && rref)
     {
       /* We're resolving from the same base symbol, so both refs should be
-	 the same type.  We traverse the reference chain intil we find ranges
+	 the same type.  We traverse the reference chain until we find ranges
 	 that are not equal.  */
       gcc_assert (lref->type == rref->type);
       switch (lref->type)
