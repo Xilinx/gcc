@@ -1,3 +1,32 @@
+2008-07-23  Basile Starynkevitch  <basile@starynkevitch.net>
+	[preparing ability to compute dynamically & generate field offsets
+	& class length for warm*0.so to permit extension of internal
+	classes in the compiler; regenerated warmelt*0.c with constant for
+	fields offsets & class lengths]
+
+	* basilys.h: (basilys_make_raw_object) new function.
+
+	* melt/warmelt-first.bysl: add mocx_expfieldict &
+	mocx_expclassdict in class_modulcontext
+
+	* melt/warmelt-macro.bysl: better check of formals in lambda.
+
+	* melt/warmelt-normal.bysl: exported classes & fields are added into modulcontext
+
+	* melt/warmelt-genobj.bysl: added obrallobj_classname field.
+
+	* melt/warmelt-outobj.bysl: added output_exported_offsets
+
+	* warmelt-first-0.c: regenerated.
+
+	* warmelt-macro-0.c: regenerated.
+
+	* warmelt-normal-0.c: regenerated.
+
+	* warmelt-genobj-0.c: regenerated.
+
+	* warmelt-outobj-0.c: regenerated.
+
 2008-07-22  Basile Starynkevitch  <basile@starynkevitch.net>
 	[the stage1 melt is built using previous modules of itself]
 	* Makefile.in: warmelt-macro-1 built using warmelt-first-1.so [not

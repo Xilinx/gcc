@@ -42,14 +42,10 @@
 
 (defun outpucod_objinielem (obielem  declbuf implbuf :long depth)
   (assert_msg "check obelem" (is_a obielem class_objinitelem))
-  ;;(debug_msg obielem "outpucod_objinielem obielem")
   (let ( (olocvar (unsafe_get_field :oie_locvar obielem))
 	 (cnam (unsafe_get_field :oie_cname obielem)) )
     (assert_msg "check cnam" (is_string cnam))
     (assert_msg "check olocvar"  olocvar)
-  ;  (add2sbuf_strconst implbuf "/*obielem ")
-  ;  (add2sbuf_string implbuf cnam)
-  ;  (add2sbuf_strconst implbuf "*/ ")
     (output_c_code olocvar declbuf implbuf depth)
     )
 )
@@ -2101,6 +2097,7 @@
   (debug_msg oralob "outpucod_objrawallocobj oralob")
   (let ( (iloc (unsafe_get_field :obi_loc oralob))
 	 (iclass (unsafe_get_field :obrallobj_class oralob))
+	 (iclaname (unsafe_get_field :obrallobj_classname oralob))
 	 (ilen (unsafe_get_field :obrallobj_len oralob))
 	 (destlist (unsafe_get_field :obdi_destlist oralob)) 
 	 (boxdepthp1 (make_integerbox discr_integer (+i depth 1)))
@@ -2114,11 +2111,13 @@
        (output_c_code dst declbuf implbuf (get_int boxdepthp1))
        (add2sbuf_strconst implbuf " =")))
     (add2sbuf_indentnl implbuf (+i depth 1))
-    (add2sbuf_strconst implbuf "basilysgc_new_raw_object((basilysobject_ptr_t)(")
+    (add2sbuf_strconst implbuf "basilys_make_raw_object((basilys_ptr_t)(")
     (output_c_code iclass declbuf implbuf (get_int boxdepthp1))
     (add2sbuf_strconst implbuf "), (")
     (output_c_code ilen  declbuf implbuf (get_int boxdepthp1))
-    (add2sbuf_strconst implbuf "));")
+    (add2sbuf_strconst implbuf "), (\"")
+    (add2sbuf_cencstring implbuf iclaname) 
+    (add2sbuf_strconst implbuf "\"));")
     (add2sbuf_indentnl implbuf depth)
 ))
 (install_method class_objrawallocobj output_c_code outpucod_objrawallocobj)
@@ -2570,6 +2569,69 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defun sorted_named_dict_tuple (dic)
+  (let ( (:long dicnt (mapstring_count dic))
+	 (entlist (make_list discr_list)) 
+	 (boxzero (make_integerbox discr_integer 0))
+	 (boxneg (make_integerbox discr_integer -1))
+	 (boxpos (make_integerbox discr_integer 1))
+	 )
+    (mapstring_every dic 
+		     (lambda (nam ent) 
+		       (assert_msg "check ent named" (is_a ent class_named))
+		       (list_append entlist ent)))
+    (let ( (rawtup (list_to_multiple entlist))
+	   (comp (lambda (e1 e2)
+		   (let ( (n1 (unsafe_get_field :named_name e1))
+			 (n2 (unsafe_get_field :named_name e2)) )
+		     (cond ((string< n1 n2) boxneg)
+			   ((string= n1 n2) boxzero)
+			   (:else boxpos))
+		   )))
+	   )
+      (multiple_sort rawtup comp discr_multiple)
+    )
+))
+
+(defun output_exported_offsets (modctx declbuf implbuf)
+  (debug_msg modctx "output_exported_offsets modctx")
+  (assert_msg "check modctx" (is_a modctx class_modulcontext))
+  (let ( (sortedfields (sorted_named_dict_tuple
+			(unsafe_get_field :mocx_expfieldict modctx)))
+	 (sortedclasses (sorted_named_dict_tuple
+			 (unsafe_get_field :mocx_expclassdict modctx)))
+	 )
+    (add2sbuf_indentnl implbuf 0)
+    (add2sbuf_strconst implbuf "/* exported field offsets */")
+    (multiple_every 
+     sortedfields
+     (lambda (fld :long ix)
+       (assert_msg "check fld" (is_a fld class_field))
+       (add2sbuf_indentnl implbuf 0)
+       (add2sbuf_strconst implbuf "const int fieldoff__")
+       (add2sbuf_cident implbuf (unsafe_get_field :named_name fld))
+       (add2sbuf_strconst implbuf " = ")
+       (add2sbuf_longdec implbuf (get_int fld))
+       (add2sbuf_strconst implbuf ";")
+       ))
+    (add2sbuf_indentnl implbuf 0)
+    (add2sbuf_indentnl implbuf 0)
+    (add2sbuf_strconst implbuf "/* exported class lengths */")
+    (multiple_every
+     sortedclasses
+     (lambda (cla :long ix)
+       (assert_msg "check cla" (is_a cla class_class))
+       (add2sbuf_indentnl implbuf 0)
+       (add2sbuf_strconst implbuf "const int classlen__")
+       (add2sbuf_cident implbuf (unsafe_get_field :named_name cla))
+       (add2sbuf_strconst implbuf " = ")	
+       (add2sbuf_longdec implbuf 
+			 (multiple_length (unsafe_get_field :class_fields cla)))
+       (add2sbuf_strconst implbuf ";")
+       ))
+    (add2sbuf_indentnl implbuf 0)
+    ))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; compile a list of sexpressions as a module starting from a given environment
@@ -2583,7 +2645,10 @@
   (assert_msg "check inienv" (is_a inienv class_environment))
   (let (
 	(modctx (make_instance class_modulcontext
-			       :mocx_modulename modnamstr))
+			       :mocx_modulename modnamstr
+			       :mocx_expfieldict (make_mapstring discr_mapstrings 90)
+			       :mocx_expclassdict (make_mapstring discr_mapstrings 40)
+			       ))
 	(ncx (create_normcontext modctx)) )
     (debug_msg ncx "compile_list_sexpr initial ncx")
     (assert_msg "check ncx" (is_a ncx class_normcontext))
@@ -2684,6 +2749,7 @@
 	    (debug_msg modnamstr "compile_list_sexpr final modnamstr") 
 	    (debug_msg iniobj "compile_list_sexpr outputting iniobj")
 	    (output_c_code iniobj declbuf implbuf 0)
+	    (output_exported_offsets modctx declbuf implbuf)
 	    (output_cfile_decl_impl modnamstr declbuf implbuf)
 	    (informsg_strv "warmelt generated module" modnamstr)
 	    )))))

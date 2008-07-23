@@ -1320,6 +1320,10 @@ basilys_field_object (basilys_ptr_t ob, unsigned off)
   return NULL;
 }
 
+/* allocate a new raw object of given KLASS (unchecked) with LEN slots */
+basilysobject_ptr_t basilysgc_new_raw_object (basilysobject_ptr_t klass_p,
+					      unsigned len);
+
 #if ENABLE_CHECKING
 static inline basilys_ptr_t
 basilys_getfield_object_at (basilys_ptr_t ob, unsigned off, const char*msg, const char*fil, int lin)
@@ -1335,9 +1339,14 @@ basilys_getfield_object_at (basilys_ptr_t ob, unsigned off, const char*msg, cons
   fatal_error("checked field access failed (not object [%s:%d]) - %s", fil, lin, msg?msg:"...");
   return NULL;
 }
+static inline basilys_ptr_t
+basilys_make_raw_object(basilys_ptr_t klas, int len, const char*clanam) {
+  return (basilys_ptr_t)basilysgc_new_raw_object((basilysobject_ptr_t)klas,len);
+}
 #define basilys_getfield_object(Obj,Off,Msg) basilys_getfield_object_at((basilys_ptr_t)(Obj),(Off),(Msg),__FILE__,__LINE__)
 #else
 #define basilys_getfield_object(Obj,Off,Msg) (((basilysobject_ptr_t)(Obj))->obj_vartab[Off])
+#define basilys_make_raw_object(Klas,Len) ((basilys_ptr_t)basilysgc_new_raw_object(Klas,Len))
 #endif
 
 /* get (safely) the length of an object */
@@ -1755,9 +1764,6 @@ basilys_list_last (basilys_ptr_t lis)
   return NULL;
 }
 
-/* allocate a new raw object of given KLASS (unchecked) with LEN slots */
-basilysobject_ptr_t basilysgc_new_raw_object (basilysobject_ptr_t klass_p,
-					      unsigned len);
 
 
 /***** STRBUF ie string buffers *****/

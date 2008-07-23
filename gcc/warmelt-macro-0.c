@@ -1,5 +1,5 @@
 /* GCC BASILYS GENERATED FILE warmelt-macro-3.c - DO NOT EDIT */
-/* generated on Tue Jul 22 14:33:46 2008 */
+/* generated on Wed Jul 23 17:01:31 2008 */
 
 #include "run-basilys.h"
 
@@ -1647,7 +1647,7 @@ BASILYS_LOCATION("warmelt-macro.bysl:406: @block");
    
    BASILYS_LOCATION("warmelt-macro.bysl:418: @rawallocobj");
    /*rawallocobj*/ /*_.INST__V20*/ curfptr[19] =
-    basilysgc_new_raw_object((basilysobject_ptr_t)((/*!CLASS_SRC_APPLY*/ curfrout->tabval[4])), (3));
+    basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_SRC_APPLY*/ curfrout->tabval[4])), (3), ("CLASS_SRC_APPLY"));
    ;
    
    BASILYS_LOCATION("warmelt-macro.bysl:418: @putslot");
@@ -2122,7 +2122,7 @@ BASILYS_LOCATION("warmelt-macro.bysl:425: @block");
     
     BASILYS_LOCATION("warmelt-macro.bysl:439: @rawallocobj");
     /*rawallocobj*/ /*_.INST__V28*/ curfptr[27] =
-     basilysgc_new_raw_object((basilysobject_ptr_t)((/*!CLASS_SRC_MSEND*/ curfrout->tabval[5])), (4));
+     basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_SRC_MSEND*/ curfrout->tabval[5])), (4), ("CLASS_SRC_MSEND"));
     ;
     
     BASILYS_LOCATION("warmelt-macro.bysl:439: @putslot");
@@ -2913,7 +2913,7 @@ BASILYS_LOCATION("warmelt-macro.bysl:455: @block");
     
     BASILYS_LOCATION("warmelt-macro.bysl:500: @rawallocobj");
     /*rawallocobj*/ /*_.INST__V56*/ curfptr[31] =
-     basilysgc_new_raw_object((basilysobject_ptr_t)((/*!CLASS_SRC_CITERATION*/ curfrout->tabval[8])), (5));
+     basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_SRC_CITERATION*/ curfrout->tabval[8])), (5), ("CLASS_SRC_CITERATION"));
     ;
     
     BASILYS_LOCATION("warmelt-macro.bysl:500: @putslot");
@@ -5693,7 +5693,7 @@ BASILYS_LOCATION("warmelt-macro.bysl:619: @block");
    
    BASILYS_LOCATION("warmelt-macro.bysl:629: @rawallocobj");
    /*rawallocobj*/ /*_.INST__V21*/ curfptr[20] =
-    basilysgc_new_raw_object((basilysobject_ptr_t)((/*!CLASS_SRC_PRIMITIVE*/ curfrout->tabval[4])), (3));
+    basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_SRC_PRIMITIVE*/ curfrout->tabval[4])), (3), ("CLASS_SRC_PRIMITIVE"));
    ;
    
    BASILYS_LOCATION("warmelt-macro.bysl:629: @putslot");
@@ -6687,7 +6687,7 @@ BASILYS_LOCATION("warmelt-macro.bysl:659: @block");
            
            BASILYS_LOCATION("warmelt-macro.bysl:697: @rawallocobj");
            /*rawallocobj*/ /*_.INST__V36*/ curfptr[27] =
-            basilysgc_new_raw_object((basilysobject_ptr_t)((/*!CLASS_FORMAL_BINDING*/ curfrout->tabval[8])), (2));
+            basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_FORMAL_BINDING*/ curfrout->tabval[8])), (2), ("CLASS_FORMAL_BINDING"));
            ;
            
            BASILYS_LOCATION("warmelt-macro.bysl:697: @putslot");
@@ -7702,7 +7702,7 @@ BASILYS_LOCATION("warmelt-macro.bysl:743: @block");
    
    BASILYS_LOCATION("warmelt-macro.bysl:760: @rawallocobj");
    /*rawallocobj*/ /*_.INST__V27*/ curfptr[18] =
-    basilysgc_new_raw_object((basilysobject_ptr_t)((/*!CLASS_MACRO_BINDING*/ curfrout->tabval[3])), (2));
+    basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_MACRO_BINDING*/ curfrout->tabval[3])), (2), ("CLASS_MACRO_BINDING"));
    ;
    
    BASILYS_LOCATION("warmelt-macro.bysl:760: @putslot");
@@ -9053,7 +9053,7 @@ BASILYS_LOCATION("warmelt-macro.bysl:825: @block");
        
        BASILYS_LOCATION("warmelt-macro.bysl:864: @rawallocobj");
        /*rawallocobj*/ /*_.INST__V49*/ curfptr[48] =
-        basilysgc_new_raw_object((basilysobject_ptr_t)((/*!CLASS_SRC_DEFPRIMITIVE*/ curfrout->tabval[8])), (5));
+        basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_SRC_DEFPRIMITIVE*/ curfrout->tabval[8])), (5), ("CLASS_SRC_DEFPRIMITIVE"));
        ;
        
        BASILYS_LOCATION("warmelt-macro.bysl:864: @putslot");
@@ -9107,7 +9107,7 @@ BASILYS_LOCATION("warmelt-macro.bysl:825: @block");
        
        BASILYS_LOCATION("warmelt-macro.bysl:871: @rawallocobj");
        /*rawallocobj*/ /*_.INST__V52*/ curfptr[51] =
-        basilysgc_new_raw_object((basilysobject_ptr_t)((/*!CLASS_PRIMITIVE*/ curfrout->tabval[9])), (5));
+        basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_PRIMITIVE*/ curfrout->tabval[9])), (5), ("CLASS_PRIMITIVE"));
        ;
        
        BASILYS_LOCATION("warmelt-macro.bysl:871: @putslot");
@@ -9149,7 +9149,7 @@ BASILYS_LOCATION("warmelt-macro.bysl:825: @block");
        
        BASILYS_LOCATION("warmelt-macro.bysl:877: @rawallocobj");
        /*rawallocobj*/ /*_.INST__V54*/ curfptr[53] =
-        basilysgc_new_raw_object((basilysobject_ptr_t)((/*!CLASS_PRIMITIVE_BINDING*/ curfrout->tabval[10])), (4));
+        basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_PRIMITIVE_BINDING*/ curfrout->tabval[10])), (4), ("CLASS_PRIMITIVE_BINDING"));
        ;
        
        BASILYS_LOCATION("warmelt-macro.bysl:877: @putslot");
@@ -9951,7 +9951,7 @@ BASILYS_LOCATION("warmelt-macro.bysl:895: @block");
     
     BASILYS_LOCATION("warmelt-macro.bysl:945: @rawallocobj");
     /*rawallocobj*/ /*_.INST__V67*/ curfptr[58] =
-     basilysgc_new_raw_object((basilysobject_ptr_t)((/*!CLASS_CITERATOR*/ curfrout->tabval[6])), (7));
+     basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_CITERATOR*/ curfrout->tabval[6])), (7), ("CLASS_CITERATOR"));
     ;
     
     BASILYS_LOCATION("warmelt-macro.bysl:945: @putslot");
@@ -10009,7 +10009,7 @@ BASILYS_LOCATION("warmelt-macro.bysl:895: @block");
     
     BASILYS_LOCATION("warmelt-macro.bysl:953: @rawallocobj");
     /*rawallocobj*/ /*_.INST__V69*/ curfptr[62] =
-     basilysgc_new_raw_object((basilysobject_ptr_t)((/*!CLASS_CITERATOR_BINDING*/ curfrout->tabval[7])), (4));
+     basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_CITERATOR_BINDING*/ curfrout->tabval[7])), (4), ("CLASS_CITERATOR_BINDING"));
     ;
     
     BASILYS_LOCATION("warmelt-macro.bysl:953: @putslot");
@@ -10043,7 +10043,7 @@ BASILYS_LOCATION("warmelt-macro.bysl:895: @block");
     
     BASILYS_LOCATION("warmelt-macro.bysl:959: @rawallocobj");
     /*rawallocobj*/ /*_.INST__V71*/ curfptr[70] =
-     basilysgc_new_raw_object((basilysobject_ptr_t)((/*!CLASS_SRC_DEFCITERATOR*/ curfrout->tabval[8])), (4));
+     basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_SRC_DEFCITERATOR*/ curfrout->tabval[8])), (4), ("CLASS_SRC_DEFCITERATOR"));
     ;
     
     BASILYS_LOCATION("warmelt-macro.bysl:959: @putslot");
@@ -10824,7 +10824,7 @@ BASILYS_LOCATION("warmelt-macro.bysl:975: @block");
      
      BASILYS_LOCATION("warmelt-macro.bysl:1009: @rawallocobj");
      /*rawallocobj*/ /*_.INST__V41*/ curfptr[40] =
-      basilysgc_new_raw_object((basilysobject_ptr_t)((/*!CLASS_SRC_DEFUN*/ curfrout->tabval[11])), (4));
+      basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_SRC_DEFUN*/ curfrout->tabval[11])), (4), ("CLASS_SRC_DEFUN"));
      ;
      
      BASILYS_LOCATION("warmelt-macro.bysl:1009: @putslot");
@@ -10866,7 +10866,7 @@ BASILYS_LOCATION("warmelt-macro.bysl:975: @block");
      
      BASILYS_LOCATION("warmelt-macro.bysl:1016: @rawallocobj");
      /*rawallocobj*/ /*_.INST__V43*/ curfptr[42] =
-      basilysgc_new_raw_object((basilysobject_ptr_t)((/*!CLASS_FUNCTION_BINDING*/ curfrout->tabval[12])), (3));
+      basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_FUNCTION_BINDING*/ curfrout->tabval[12])), (3), ("CLASS_FUNCTION_BINDING"));
      ;
      
      BASILYS_LOCATION("warmelt-macro.bysl:1016: @putslot");
@@ -13810,7 +13810,7 @@ BASILYS_LOCATION("warmelt-macro.bysl:1153: @block");
      
      BASILYS_LOCATION("warmelt-macro.bysl:1196: @rawallocobj");
      /*rawallocobj*/ /*_.INST__V62*/ curfptr[61] =
-      basilysgc_new_raw_object((basilysobject_ptr_t)((/*!CLASS_CLASS*/ curfrout->tabval[6])), (9));
+      basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_CLASS*/ curfrout->tabval[6])), (9), ("CLASS_CLASS"));
      ;
      
      BASILYS_LOCATION("warmelt-macro.bysl:1196: @putslot");
@@ -13836,7 +13836,7 @@ BASILYS_LOCATION("warmelt-macro.bysl:1153: @block");
      
      BASILYS_LOCATION("warmelt-macro.bysl:1201: @rawallocobj");
      /*rawallocobj*/ /*_.INST__V64*/ curfptr[63] =
-      basilysgc_new_raw_object((basilysobject_ptr_t)((/*!CLASS_CLASS_BINDING*/ curfrout->tabval[11])), (4));
+      basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_CLASS_BINDING*/ curfrout->tabval[11])), (4), ("CLASS_CLASS_BINDING"));
      ;
      
      BASILYS_LOCATION("warmelt-macro.bysl:1201: @putslot");
@@ -14091,7 +14091,7 @@ BASILYS_LOCATION("warmelt-macro.bysl:1153: @block");
      
      BASILYS_LOCATION("warmelt-macro.bysl:1246: @rawallocobj");
      /*rawallocobj*/ /*_.INST__V77*/ curfptr[76] =
-      basilysgc_new_raw_object((basilysobject_ptr_t)((/*!CLASS_SRC_DEFCLASS*/ curfrout->tabval[22])), (7));
+      basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_SRC_DEFCLASS*/ curfrout->tabval[22])), (7), ("CLASS_SRC_DEFCLASS"));
      ;
      
      BASILYS_LOCATION("warmelt-macro.bysl:1246: @putslot");
@@ -14590,7 +14590,7 @@ BASILYS_LOCATION("warmelt-macro.bysl:1218: @block");
     
     BASILYS_LOCATION("warmelt-macro.bysl:1226: @rawallocobj");
     /*rawallocobj*/ /*_.INST__V8*/ curfptr[7] =
-     basilysgc_new_raw_object((basilysobject_ptr_t)((/*!CLASS_FIELD*/ curfrout->tabval[1])), (4));
+     basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_FIELD*/ curfrout->tabval[1])), (4), ("CLASS_FIELD"));
     ;
     
     BASILYS_LOCATION("warmelt-macro.bysl:1226: @putslot");
@@ -14627,7 +14627,7 @@ BASILYS_LOCATION("warmelt-macro.bysl:1218: @block");
      
      BASILYS_LOCATION("warmelt-macro.bysl:1234: @rawallocobj");
      /*rawallocobj*/ /*_.INST__V10*/ curfptr[9] =
-      basilysgc_new_raw_object((basilysobject_ptr_t)((/*!CLASS_FIELD_BINDING*/ curfrout->tabval[2])), (4));
+      basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_FIELD_BINDING*/ curfrout->tabval[2])), (4), ("CLASS_FIELD_BINDING"));
      ;
      
      BASILYS_LOCATION("warmelt-macro.bysl:1234: @putslot");
@@ -15250,7 +15250,7 @@ BASILYS_LOCATION("warmelt-macro.bysl:1261: @block");
        
        BASILYS_LOCATION("warmelt-macro.bysl:1304: @rawallocobj");
        /*rawallocobj*/ /*_.INST__V38*/ curfptr[23] =
-        basilysgc_new_raw_object((basilysobject_ptr_t)((/*!CLASS_SRC_FIELDASSIGN*/ curfrout->tabval[12])), (3));
+        basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_SRC_FIELDASSIGN*/ curfrout->tabval[12])), (3), ("CLASS_SRC_FIELDASSIGN"));
        ;
        
        BASILYS_LOCATION("warmelt-macro.bysl:1304: @putslot");
@@ -16441,7 +16441,7 @@ BASILYS_LOCATION("warmelt-macro.bysl:1314: @block");
       
       BASILYS_LOCATION("warmelt-macro.bysl:1386: @rawallocobj");
       /*rawallocobj*/ /*_.INST__V75*/ curfptr[58] =
-       basilysgc_new_raw_object((basilysobject_ptr_t)((/*!CLASS_SRC_DEFINSTANCE*/ curfrout->tabval[16])), (8));
+       basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_SRC_DEFINSTANCE*/ curfrout->tabval[16])), (8), ("CLASS_SRC_DEFINSTANCE"));
       ;
       
       BASILYS_LOCATION("warmelt-macro.bysl:1386: @putslot");
@@ -16507,7 +16507,7 @@ BASILYS_LOCATION("warmelt-macro.bysl:1314: @block");
       
       BASILYS_LOCATION("warmelt-macro.bysl:1396: @rawallocobj");
       /*rawallocobj*/ /*_.INST__V77*/ curfptr[54] =
-       basilysgc_new_raw_object((basilysobject_ptr_t)((/*!CLASS_INSTANCE_BINDING*/ curfrout->tabval[17])), (3));
+       basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_INSTANCE_BINDING*/ curfrout->tabval[17])), (3), ("CLASS_INSTANCE_BINDING"));
       ;
       
       BASILYS_LOCATION("warmelt-macro.bysl:1396: @putslot");
@@ -17642,7 +17642,7 @@ BASILYS_LOCATION("warmelt-macro.bysl:1411: @block");
       
       BASILYS_LOCATION("warmelt-macro.bysl:1482: @rawallocobj");
       /*rawallocobj*/ /*_.INST__V75*/ curfptr[58] =
-       basilysgc_new_raw_object((basilysobject_ptr_t)((/*!CLASS_SRC_DEFSELECTOR*/ curfrout->tabval[16])), (8));
+       basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_SRC_DEFSELECTOR*/ curfrout->tabval[16])), (8), ("CLASS_SRC_DEFSELECTOR"));
       ;
       
       BASILYS_LOCATION("warmelt-macro.bysl:1482: @putslot");
@@ -17708,7 +17708,7 @@ BASILYS_LOCATION("warmelt-macro.bysl:1411: @block");
       
       BASILYS_LOCATION("warmelt-macro.bysl:1491: @rawallocobj");
       /*rawallocobj*/ /*_.INST__V77*/ curfptr[54] =
-       basilysgc_new_raw_object((basilysobject_ptr_t)((/*!CLASS_SELECTOR_BINDING*/ curfrout->tabval[17])), (3));
+       basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_SELECTOR_BINDING*/ curfrout->tabval[17])), (3), ("CLASS_SELECTOR_BINDING"));
       ;
       
       BASILYS_LOCATION("warmelt-macro.bysl:1491: @putslot");
@@ -18563,7 +18563,7 @@ BASILYS_LOCATION("warmelt-macro.bysl:1505: @block");
      
      BASILYS_LOCATION("warmelt-macro.bysl:1555: @rawallocobj");
      /*rawallocobj*/ /*_.INST__V56*/ curfptr[46] =
-      basilysgc_new_raw_object((basilysobject_ptr_t)((/*!CLASS_SRC_MAKE_INSTANCE*/ curfrout->tabval[13])), (4));
+      basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_SRC_MAKE_INSTANCE*/ curfrout->tabval[13])), (4), ("CLASS_SRC_MAKE_INSTANCE"));
      ;
      
      BASILYS_LOCATION("warmelt-macro.bysl:1555: @putslot");
@@ -19100,7 +19100,7 @@ BASILYS_LOCATION("warmelt-macro.bysl:1566: @block");
      
      BASILYS_LOCATION("warmelt-macro.bysl:1597: @rawallocobj");
      /*rawallocobj*/ /*_.INST__V35*/ curfptr[28] =
-      basilysgc_new_raw_object((basilysobject_ptr_t)((/*!CLASS_SRC_UNSAFE_PUT_FIELDS*/ curfrout->tabval[8])), (3));
+      basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_SRC_UNSAFE_PUT_FIELDS*/ curfrout->tabval[8])), (3), ("CLASS_SRC_UNSAFE_PUT_FIELDS"));
      ;
      
      BASILYS_LOCATION("warmelt-macro.bysl:1597: @putslot");
@@ -19551,7 +19551,7 @@ BASILYS_LOCATION("warmelt-macro.bysl:1606: @block");
       
       BASILYS_LOCATION("warmelt-macro.bysl:1631: @rawallocobj");
       /*rawallocobj*/ /*_.INST__V35*/ curfptr[34] =
-       basilysgc_new_raw_object((basilysobject_ptr_t)((/*!CLASS_SRC_UNSAFE_GET_FIELD*/ curfrout->tabval[5])), (3));
+       basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_SRC_UNSAFE_GET_FIELD*/ curfrout->tabval[5])), (3), ("CLASS_SRC_UNSAFE_GET_FIELD"));
       ;
       
       BASILYS_LOCATION("warmelt-macro.bysl:1631: @putslot");
@@ -19952,7 +19952,7 @@ BASILYS_LOCATION("warmelt-macro.bysl:1641: @block");
     
     BASILYS_LOCATION("warmelt-macro.bysl:1657: @rawallocobj");
     /*rawallocobj*/ /*_.INST__V27*/ curfptr[26] =
-     basilysgc_new_raw_object((basilysobject_ptr_t)((/*!CLASS_SRC_SETQ*/ curfrout->tabval[3])), (3));
+     basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_SRC_SETQ*/ curfrout->tabval[3])), (3), ("CLASS_SRC_SETQ"));
     ;
     
     BASILYS_LOCATION("warmelt-macro.bysl:1657: @putslot");
@@ -20537,7 +20537,7 @@ BASILYS_LOCATION("warmelt-macro.bysl:1667: @block");
           
           BASILYS_LOCATION("warmelt-macro.bysl:1695: @rawallocobj");
           /*rawallocobj*/ /*_.INST__V41*/ curfptr[40] =
-           basilysgc_new_raw_object((basilysobject_ptr_t)((/*!CLASS_SRC_IFELSE*/ curfrout->tabval[4])), (4));
+           basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_SRC_IFELSE*/ curfrout->tabval[4])), (4), ("CLASS_SRC_IFELSE"));
           ;
           
           BASILYS_LOCATION("warmelt-macro.bysl:1695: @putslot");
@@ -20680,7 +20680,7 @@ BASILYS_LOCATION("warmelt-macro.bysl:1667: @block");
          
          BASILYS_LOCATION("warmelt-macro.bysl:1703: @rawallocobj");
          /*rawallocobj*/ /*_.INST__V47*/ curfptr[42] =
-          basilysgc_new_raw_object((basilysobject_ptr_t)((/*!CLASS_SRC_IF*/ curfrout->tabval[5])), (3));
+          basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_SRC_IF*/ curfrout->tabval[5])), (3), ("CLASS_SRC_IF"));
          ;
          
          BASILYS_LOCATION("warmelt-macro.bysl:1703: @putslot");
@@ -21465,7 +21465,7 @@ BASILYS_LOCATION("warmelt-macro.bysl:1714: @block");
        
        BASILYS_LOCATION("warmelt-macro.bysl:1750: @rawallocobj");
        /*rawallocobj*/ /*_.INST__V45*/ curfptr[37] =
-        basilysgc_new_raw_object((basilysobject_ptr_t)((/*!CLASS_SRC_CPPIF*/ curfrout->tabval[5])), (4));
+        basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_SRC_CPPIF*/ curfrout->tabval[5])), (4), ("CLASS_SRC_CPPIF"));
        ;
        
        BASILYS_LOCATION("warmelt-macro.bysl:1750: @putslot");
@@ -22373,7 +22373,7 @@ BASILYS_LOCATION("warmelt-macro.bysl:1766: @block");
              
              BASILYS_LOCATION("warmelt-macro.bysl:1814: @rawallocobj");
              /*rawallocobj*/ /*_.INST__V59*/ curfptr[58] =
-              basilysgc_new_raw_object((basilysobject_ptr_t)((/*!CLASS_SRC_OR*/ curfrout->tabval[9])), (2));
+              basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_SRC_OR*/ curfrout->tabval[9])), (2), ("CLASS_SRC_OR"));
              ;
              
              BASILYS_LOCATION("warmelt-macro.bysl:1814: @putslot");
@@ -22515,7 +22515,7 @@ BASILYS_LOCATION("warmelt-macro.bysl:1766: @block");
                
                BASILYS_LOCATION("warmelt-macro.bysl:1822: @rawallocobj");
                /*rawallocobj*/ /*_.INST__V70*/ curfptr[69] =
-                basilysgc_new_raw_object((basilysobject_ptr_t)((/*!CLASS_SRC_IFELSE*/ curfrout->tabval[11])), (4));
+                basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_SRC_IFELSE*/ curfrout->tabval[11])), (4), ("CLASS_SRC_IFELSE"));
                ;
                
                BASILYS_LOCATION("warmelt-macro.bysl:1822: @putslot");
@@ -22664,7 +22664,7 @@ BASILYS_LOCATION("warmelt-macro.bysl:1766: @block");
                
                BASILYS_LOCATION("warmelt-macro.bysl:1831: @rawallocobj");
                /*rawallocobj*/ /*_.INST__V78*/ curfptr[61] =
-                basilysgc_new_raw_object((basilysobject_ptr_t)((/*!CLASS_SRC_IFELSE*/ curfrout->tabval[11])), (4));
+                basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_SRC_IFELSE*/ curfrout->tabval[11])), (4), ("CLASS_SRC_IFELSE"));
                ;
                
                BASILYS_LOCATION("warmelt-macro.bysl:1831: @putslot");
@@ -22833,7 +22833,7 @@ BASILYS_LOCATION("warmelt-macro.bysl:1766: @block");
           
           BASILYS_LOCATION("warmelt-macro.bysl:1840: @rawallocobj");
           /*rawallocobj*/ /*_.INST__V85*/ curfptr[60] =
-           basilysgc_new_raw_object((basilysobject_ptr_t)((/*!CLASS_SRC_OR*/ curfrout->tabval[9])), (2));
+           basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_SRC_OR*/ curfrout->tabval[9])), (2), ("CLASS_SRC_OR"));
           ;
           
           BASILYS_LOCATION("warmelt-macro.bysl:1840: @putslot");
@@ -23583,7 +23583,7 @@ BASILYS_LOCATION("warmelt-macro.bysl:1860: @block");
          
          BASILYS_LOCATION("warmelt-macro.bysl:1886: @rawallocobj");
          /*rawallocobj*/ /*_.INST__V31*/ curfptr[30] =
-          basilysgc_new_raw_object((basilysobject_ptr_t)((/*!CLASS_SRC_IF*/ curfrout->tabval[7])), (3));
+          basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_SRC_IF*/ curfrout->tabval[7])), (3), ("CLASS_SRC_IF"));
          ;
          
          BASILYS_LOCATION("warmelt-macro.bysl:1886: @putslot");
@@ -24187,7 +24187,7 @@ BASILYS_LOCATION("warmelt-macro.bysl:1899: @block");
       
       BASILYS_LOCATION("warmelt-macro.bysl:1918: @rawallocobj");
       /*rawallocobj*/ /*_.INST__V25*/ curfptr[21] =
-       basilysgc_new_raw_object((basilysobject_ptr_t)((/*!CLASS_SRC_OR*/ curfrout->tabval[7])), (2));
+       basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_SRC_OR*/ curfrout->tabval[7])), (2), ("CLASS_SRC_OR"));
       ;
       
       BASILYS_LOCATION("warmelt-macro.bysl:1918: @putslot");
@@ -24932,7 +24932,7 @@ BASILYS_LOCATION("warmelt-macro.bysl:1930: @block");
     
     BASILYS_LOCATION("warmelt-macro.bysl:1971: @rawallocobj");
     /*rawallocobj*/ /*_.INST__V47*/ curfptr[27] =
-     basilysgc_new_raw_object((basilysobject_ptr_t)((/*!CLASS_SRC_LETBINDING*/ curfrout->tabval[7])), (4));
+     basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_SRC_LETBINDING*/ curfrout->tabval[7])), (4), ("CLASS_SRC_LETBINDING"));
     ;
     
     BASILYS_LOCATION("warmelt-macro.bysl:1971: @putslot");
@@ -25434,7 +25434,7 @@ BASILYS_LOCATION("warmelt-macro.bysl:1980: @block");
     
     BASILYS_LOCATION("warmelt-macro.bysl:2018: @rawallocobj");
     /*rawallocobj*/ /*_.INST__V36*/ curfptr[35] =
-     basilysgc_new_raw_object((basilysobject_ptr_t)((/*!CLASS_SRC_LET*/ curfrout->tabval[14])), (3));
+     basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_SRC_LET*/ curfrout->tabval[14])), (3), ("CLASS_SRC_LET"));
     ;
     
     BASILYS_LOCATION("warmelt-macro.bysl:2018: @putslot");
@@ -25760,7 +25760,7 @@ BASILYS_LOCATION("warmelt-macro.bysl:2004: @block");
    
    BASILYS_LOCATION("warmelt-macro.bysl:2008: @rawallocobj");
    /*rawallocobj*/ /*_.INST__V10*/ curfptr[9] =
-    basilysgc_new_raw_object((basilysobject_ptr_t)((/*!CLASS_LET_BINDING*/ curfrout->tabval[1])), (4));
+    basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_LET_BINDING*/ curfrout->tabval[1])), (4), ("CLASS_LET_BINDING"));
    ;
    
    BASILYS_LOCATION("warmelt-macro.bysl:2008: @putslot");
@@ -26006,8 +26006,8 @@ rout_46_MEXPAND_LAMBDA(basilysclosure_ptr_t closp_, basilys_ptr_t firstargp_, co
   struct callframe_basilys_st *prev;
 #define CURFRAM_NBVARPTR 29
   void* varptr[29];
-#define CURFRAM_NBVARNUM 2
-  long varnum[2];
+#define CURFRAM_NBVARNUM 5
+  long varnum[5];
 /*others*/
   long _spare_; }
   curfram__;
@@ -26157,37 +26157,75 @@ BASILYS_LOCATION("warmelt-macro.bysl:2028: @block");
    /*_.NEWENV__V14*/ curfptr[13] =  basilys_apply ((basilysclosure_ptr_t)((/*!FRESH_ENV*/ curfrout->tabval[2])), (basilys_ptr_t)(/*_.ENV__V3*/ curfptr[2]), (""), (union basilysparam_un*)0, "", (union basilysparam_un*)0);
    }
   ;
+  /*_.FORMALS__V15*/ curfptr[14] = 
+   (basilys_pair_head((basilys_ptr_t)(/*_.CURPAIR__V13*/ curfptr[12])));;
+  /*_#NOTNULL__L3*/ curfnum[0] = 
+   ((/*_.FORMALS__V15*/ curfptr[14]) != NULL);;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2037: @block");
+  BASILYS_LOCATION("warmelt-macro.bysl:2038: @cond");
+  /*cond*/ if (/*_#NOTNULL__L3*/ curfnum[0]) /*then*/ {
+  
+  BASILYS_LOCATION("warmelt-macro.bysl:2038: @cond.then");
+  
+   BASILYS_LOCATION("warmelt-macro.bysl:2038: @block");
+   /*block*/{
+    /*_#IS_NOT_A__L5*/ curfnum[4] = 
+      !basilys_is_instance_of((basilys_ptr_t)(/*_.FORMALS__V15*/ curfptr[14]), (basilys_ptr_t)((/*!CLASS_SEXPR*/ curfrout->tabval[0])));;
+    /*_#IF___L4*/ curfnum[3] = /*_#IS_NOT_A__L5*/ curfnum[4];;
+    /*epilog*/
+    
+    BASILYS_LOCATION("warmelt-macro.bysl:2038: @clear");
+    /*clear*/ /*_#IS_NOT_A__L5*/ curfnum[4] = 0 ;}
+   ;
+  } else {
+  BASILYS_LOCATION("warmelt-macro.bysl:2038: @cond.else");
+  
+   /*_#IF___L4*/ curfnum[3] = 0;;
+   }
+  ;
+  
+  BASILYS_LOCATION("warmelt-macro.bysl:2038: @cond");
+  /*cond*/ if (/*_#IF___L4*/ curfnum[3]) /*then*/ {
+  
+  BASILYS_LOCATION("warmelt-macro.bysl:2038: @cond.then");
+  
+   BASILYS_LOCATION("warmelt-macro.bysl:2038: @block");
+   /*block*/{
+    
+    error("%s:%d:: BASILYS ERROR [#%ld]: @%s ",  basilys_string_str(basilys_val_mixint((basilys_ptr_t)(/*_.LOC__V11*/ curfptr[10]))),  (int) basilys_num_mixint((basilys_ptr_t)(/*_.LOC__V11*/ curfptr[10])), basilys_dbgcounter, ( "missing formal argument list in (LAMBDA (arglist...) body...)"));
+    /*epilog*/}
+   ;
+  } /*noelse*/
+  ;
+  
+  BASILYS_LOCATION("warmelt-macro.bysl:2040: @block");
   /*block*/{
-   /*_.PAIR_HEAD__V16*/ curfptr[15] = 
-    (basilys_pair_head((basilys_ptr_t)(/*_.CURPAIR__V13*/ curfptr[12])));;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2037: @apply");
+   BASILYS_LOCATION("warmelt-macro.bysl:2040: @apply");
    /*apply*/{
     union basilysparam_un argtab[1];
     memset(&argtab, 0, sizeof(argtab));
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2037: @apply.arg");
+    BASILYS_LOCATION("warmelt-macro.bysl:2040: @apply.arg");
     argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.SEXPR__V2*/ curfptr[1];
-    /*_.ARGTUP__V17*/ curfptr[16] =  basilys_apply ((basilysclosure_ptr_t)((/*!LAMBDA_ARG_BINDINGS*/ curfrout->tabval[3])), (basilys_ptr_t)(/*_.PAIR_HEAD__V16*/ curfptr[15]), (BPARSTR_PTR ""), argtab, "", (union basilysparam_un*)0);
+    /*_.ARGTUP__V17*/ curfptr[16] =  basilys_apply ((basilysclosure_ptr_t)((/*!LAMBDA_ARG_BINDINGS*/ curfrout->tabval[3])), (basilys_ptr_t)(/*_.FORMALS__V15*/ curfptr[14]), (BPARSTR_PTR ""), argtab, "", (union basilysparam_un*)0);
     }
    ;
    /*_.PAIR_TAIL__V18*/ curfptr[17] = 
     (basilys_pair_tail((basilys_ptr_t)(/*_.CURPAIR__V13*/ curfptr[12])));;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2038: @compute");
+   BASILYS_LOCATION("warmelt-macro.bysl:2041: @compute");
    /*_.CURPAIR__V13*/ curfptr[12] = /*_.SETQ___V19*/ curfptr[18] = /*_.PAIR_TAIL__V18*/ curfptr[17];;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2040: @block");
+   BASILYS_LOCATION("warmelt-macro.bysl:2043: @block");
    /*block*/{
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2040: @newclosure");
+    BASILYS_LOCATION("warmelt-macro.bysl:2043: @newclosure");
      /*newclosure*/ /*_.LAMBDA___V21*/ curfptr[20] =
      basilysgc_new_closure((basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_CLOSURE)))), (basilysroutine_ptr_t)((/*!konst_6*/ curfrout->tabval[6])), (1));
     ;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2040: @putclosedv");
+    BASILYS_LOCATION("warmelt-macro.bysl:2043: @putclosedv");
     /*putclosv*/
     basilys_assertmsg("putclosv checkclo", basilys_magic_discr((basilys_ptr_t)(/*_.LAMBDA___V21*/ curfptr[20])) == OBMAG_CLOSURE);
     basilys_assertmsg("putclosv checkoff", 0>= 0 && 0< basilys_closure_size((basilys_ptr_t) (/*_.LAMBDA___V21*/ curfptr[20])));
@@ -26196,36 +26234,36 @@ BASILYS_LOCATION("warmelt-macro.bysl:2028: @block");
     /*_.LAMBDA___V20*/ curfptr[19] = /*_.LAMBDA___V21*/ curfptr[20];;}
    ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2039: @apply");
+   BASILYS_LOCATION("warmelt-macro.bysl:2042: @apply");
    /*apply*/{
     union basilysparam_un argtab[1];
     memset(&argtab, 0, sizeof(argtab));
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2039: @apply.arg");
+    BASILYS_LOCATION("warmelt-macro.bysl:2042: @apply.arg");
     argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.LAMBDA___V20*/ curfptr[19];
     /*_.MULTIPLE_EVERY__V22*/ curfptr[21] =  basilys_apply ((basilysclosure_ptr_t)((/*!MULTIPLE_EVERY*/ curfrout->tabval[4])), (basilys_ptr_t)(/*_.ARGTUP__V17*/ curfptr[16]), (BPARSTR_PTR ""), argtab, "", (union basilysparam_un*)0);
     }
    ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2041: @block");
+   BASILYS_LOCATION("warmelt-macro.bysl:2044: @block");
    /*block*/{
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2042: @block");
+    BASILYS_LOCATION("warmelt-macro.bysl:2045: @block");
     /*block*/{
      
-     BASILYS_LOCATION("warmelt-macro.bysl:2042: @newclosure");
+     BASILYS_LOCATION("warmelt-macro.bysl:2045: @newclosure");
       /*newclosure*/ /*_.LAMBDA___V25*/ curfptr[24] =
       basilysgc_new_closure((basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_CLOSURE)))), (basilysroutine_ptr_t)((/*!konst_10*/ curfrout->tabval[10])), (2));
      ;
      
-     BASILYS_LOCATION("warmelt-macro.bysl:2042: @putclosedv");
+     BASILYS_LOCATION("warmelt-macro.bysl:2045: @putclosedv");
      /*putclosv*/
      basilys_assertmsg("putclosv checkclo", basilys_magic_discr((basilys_ptr_t)(/*_.LAMBDA___V25*/ curfptr[24])) == OBMAG_CLOSURE);
      basilys_assertmsg("putclosv checkoff", 0>= 0 && 0< basilys_closure_size((basilys_ptr_t) (/*_.LAMBDA___V25*/ curfptr[24])));
      ((basilysclosure_ptr_t)/*_.LAMBDA___V25*/ curfptr[24])->tabval[0] = (basilys_ptr_t)(/*_.NEWENV__V14*/ curfptr[13]);
      ;
      
-     BASILYS_LOCATION("warmelt-macro.bysl:2042: @putclosedv");
+     BASILYS_LOCATION("warmelt-macro.bysl:2045: @putclosedv");
      /*putclosv*/
      basilys_assertmsg("putclosv checkclo", basilys_magic_discr((basilys_ptr_t)(/*_.LAMBDA___V25*/ curfptr[24])) == OBMAG_CLOSURE);
      basilys_assertmsg("putclosv checkoff", 1>= 0 && 1< basilys_closure_size((basilys_ptr_t) (/*_.LAMBDA___V25*/ curfptr[24])));
@@ -26234,28 +26272,28 @@ BASILYS_LOCATION("warmelt-macro.bysl:2028: @block");
      /*_.LAMBDA___V24*/ curfptr[23] = /*_.LAMBDA___V25*/ curfptr[24];;}
     ;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2041: @apply");
+    BASILYS_LOCATION("warmelt-macro.bysl:2044: @apply");
     /*apply*/{
      union basilysparam_un argtab[2];
      memset(&argtab, 0, sizeof(argtab));
      
-     BASILYS_LOCATION("warmelt-macro.bysl:2041: @apply.arg");
+     BASILYS_LOCATION("warmelt-macro.bysl:2044: @apply.arg");
      argtab[0].bp_aptr = (basilys_ptr_t*) &(/*!DISCR_MULTIPLE*/ curfrout->tabval[8]);
-     BASILYS_LOCATION("warmelt-macro.bysl:2041: @apply.arg");
+     BASILYS_LOCATION("warmelt-macro.bysl:2044: @apply.arg");
      argtab[1].bp_aptr = (basilys_ptr_t*) &/*_.LAMBDA___V24*/ curfptr[23];
      /*_.BODYTUP__V26*/ curfptr[25] =  basilys_apply ((basilysclosure_ptr_t)((/*!PAIRLIST_TO_MULTIPLE*/ curfrout->tabval[7])), (basilys_ptr_t)(/*_.CURPAIR__V13*/ curfptr[12]), (BPARSTR_PTR BPARSTR_PTR ""), argtab, "", (union basilysparam_un*)0);
      }
     ;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2044: @block");
+    BASILYS_LOCATION("warmelt-macro.bysl:2047: @block");
     /*block*/{
      
-     BASILYS_LOCATION("warmelt-macro.bysl:2044: @rawallocobj");
+     BASILYS_LOCATION("warmelt-macro.bysl:2047: @rawallocobj");
      /*rawallocobj*/ /*_.INST__V28*/ curfptr[27] =
-      basilysgc_new_raw_object((basilysobject_ptr_t)((/*!CLASS_SRC_LAMBDA*/ curfrout->tabval[11])), (3));
+      basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_SRC_LAMBDA*/ curfrout->tabval[11])), (3), ("CLASS_SRC_LAMBDA"));
      ;
      
-     BASILYS_LOCATION("warmelt-macro.bysl:2044: @putslot");
+     BASILYS_LOCATION("warmelt-macro.bysl:2047: @putslot");
      /*putslot*/
      basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V28*/ curfptr[27])) == OBMAG_OBJECT);
      basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V28*/ curfptr[27]))));
@@ -26263,7 +26301,7 @@ BASILYS_LOCATION("warmelt-macro.bysl:2028: @block");
       /*_.LOC__V11*/ curfptr[10]);
      ;
      
-     BASILYS_LOCATION("warmelt-macro.bysl:2044: @putslot");
+     BASILYS_LOCATION("warmelt-macro.bysl:2047: @putslot");
      /*putslot*/
      basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V28*/ curfptr[27])) == OBMAG_OBJECT);
      basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V28*/ curfptr[27]))));
@@ -26271,7 +26309,7 @@ BASILYS_LOCATION("warmelt-macro.bysl:2028: @block");
       /*_.ARGTUP__V17*/ curfptr[16]);
      ;
      
-     BASILYS_LOCATION("warmelt-macro.bysl:2044: @putslot");
+     BASILYS_LOCATION("warmelt-macro.bysl:2047: @putslot");
      /*putslot*/
      basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V28*/ curfptr[27])) == OBMAG_OBJECT);
      basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V28*/ curfptr[27]))));
@@ -26281,54 +26319,51 @@ BASILYS_LOCATION("warmelt-macro.bysl:2028: @block");
      /*_.LAMBR__V27*/ curfptr[26] = /*_.INST__V28*/ curfptr[27];;}
     ;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2049: @block");
+    BASILYS_LOCATION("warmelt-macro.bysl:2052: @block");
     /*block*/{
      /*_.RETVAL___V1*/ curfptr[0] = /*_.LAMBR__V27*/ curfptr[26];;
      
-     BASILYS_LOCATION("warmelt-macro.bysl:2049: @finalreturn");
+     BASILYS_LOCATION("warmelt-macro.bysl:2052: @finalreturn");
      ;
      /*finalret*/ goto labend_rout ;}
     ;
     /*_.LET___V23*/ curfptr[22] = /*_.RETURN___V29*/ curfptr[28];;
     /*epilog*/
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2041: @clear");
+    BASILYS_LOCATION("warmelt-macro.bysl:2044: @clear");
     /*clear*/ /*_.LAMBDA___V24*/ curfptr[23] = 0 ;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2041: @clear");
+    BASILYS_LOCATION("warmelt-macro.bysl:2044: @clear");
     /*clear*/ /*_.BODYTUP__V26*/ curfptr[25] = 0 ;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2041: @clear");
+    BASILYS_LOCATION("warmelt-macro.bysl:2044: @clear");
     /*clear*/ /*_.LAMBR__V27*/ curfptr[26] = 0 ;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2041: @clear");
+    BASILYS_LOCATION("warmelt-macro.bysl:2044: @clear");
     /*clear*/ /*_.RETURN___V29*/ curfptr[28] = 0 ;}
    ;
-   /*_.LET___V15*/ curfptr[14] = /*_.LET___V23*/ curfptr[22];;
+   /*_.LET___V16*/ curfptr[15] = /*_.LET___V23*/ curfptr[22];;
    /*epilog*/
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2037: @clear");
-   /*clear*/ /*_.PAIR_HEAD__V16*/ curfptr[15] = 0 ;
-   
-   BASILYS_LOCATION("warmelt-macro.bysl:2037: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2040: @clear");
    /*clear*/ /*_.ARGTUP__V17*/ curfptr[16] = 0 ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2037: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2040: @clear");
    /*clear*/ /*_.PAIR_TAIL__V18*/ curfptr[17] = 0 ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2037: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2040: @clear");
    /*clear*/ /*_.SETQ___V19*/ curfptr[18] = 0 ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2037: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2040: @clear");
    /*clear*/ /*_.LAMBDA___V20*/ curfptr[19] = 0 ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2037: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2040: @clear");
    /*clear*/ /*_.MULTIPLE_EVERY__V22*/ curfptr[21] = 0 ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2037: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2040: @clear");
    /*clear*/ /*_.LET___V23*/ curfptr[22] = 0 ;}
   ;
-  /*_.LET___V9*/ curfptr[7] = /*_.LET___V15*/ curfptr[14];;
+  /*_.LET___V9*/ curfptr[7] = /*_.LET___V16*/ curfptr[15];;
   /*epilog*/
   
   BASILYS_LOCATION("warmelt-macro.bysl:2031: @clear");
@@ -26347,7 +26382,16 @@ BASILYS_LOCATION("warmelt-macro.bysl:2028: @block");
   /*clear*/ /*_.NEWENV__V14*/ curfptr[13] = 0 ;
   
   BASILYS_LOCATION("warmelt-macro.bysl:2031: @clear");
-  /*clear*/ /*_.LET___V15*/ curfptr[14] = 0 ;}
+  /*clear*/ /*_.FORMALS__V15*/ curfptr[14] = 0 ;
+  
+  BASILYS_LOCATION("warmelt-macro.bysl:2031: @clear");
+  /*clear*/ /*_#NOTNULL__L3*/ curfnum[0] = 0 ;
+  
+  BASILYS_LOCATION("warmelt-macro.bysl:2031: @clear");
+  /*clear*/ /*_#IF___L4*/ curfnum[3] = 0 ;
+  
+  BASILYS_LOCATION("warmelt-macro.bysl:2031: @clear");
+  /*clear*/ /*_.LET___V16*/ curfptr[15] = 0 ;}
  ;
  
  BASILYS_LOCATION("warmelt-macro.bysl:2028: @block");
@@ -26418,38 +26462,38 @@ basilys_trace_start("LAMBDA_", callcount);
 
  /*getarg#0*/
  
- BASILYS_LOCATION("warmelt-macro.bysl:2040: @getarg");
+ BASILYS_LOCATION("warmelt-macro.bysl:2043: @getarg");
  /*_.LB__V2*/ curfptr[1] = (basilys_ptr_t) firstargp_;
  ;
  goto lab_endgetargs;
 lab_endgetargs:;
 /*body*/
 
-BASILYS_LOCATION("warmelt-macro.bysl:2040: @block");
+BASILYS_LOCATION("warmelt-macro.bysl:2043: @block");
 /*block*/{
  
- BASILYS_LOCATION("warmelt-macro.bysl:2040: @apply");
+ BASILYS_LOCATION("warmelt-macro.bysl:2043: @apply");
  /*apply*/{
   union basilysparam_un argtab[1];
   memset(&argtab, 0, sizeof(argtab));
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2040: @apply.arg");
+  BASILYS_LOCATION("warmelt-macro.bysl:2043: @apply.arg");
   argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.LB__V2*/ curfptr[1];
   /*_.PUT_ENV__V3*/ curfptr[2] =  basilys_apply ((basilysclosure_ptr_t)((/*!PUT_ENV*/ curfrout->tabval[0])), (basilys_ptr_t)((/*~NEWENV*/ curfclos->tabval[0])), (BPARSTR_PTR ""), argtab, "", (union basilysparam_un*)0);
   }
  ;
  
- BASILYS_LOCATION("warmelt-macro.bysl:2040: @block");
+ BASILYS_LOCATION("warmelt-macro.bysl:2043: @block");
  /*block*/{
   /*_.RETVAL___V1*/ curfptr[0] = /*_.PUT_ENV__V3*/ curfptr[2];;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2040: @finalreturn");
+  BASILYS_LOCATION("warmelt-macro.bysl:2043: @finalreturn");
   ;
   /*finalret*/ goto labend_rout ;}
  ;
  /*epilog*/
  
- BASILYS_LOCATION("warmelt-macro.bysl:2040: @clear");
+ BASILYS_LOCATION("warmelt-macro.bysl:2043: @clear");
  /*clear*/ /*_.PUT_ENV__V3*/ curfptr[2] = 0 ;}
 
 ;
@@ -26501,40 +26545,40 @@ basilys_trace_start("LAMBDA_", callcount);
 
  /*getarg#0*/
  
- BASILYS_LOCATION("warmelt-macro.bysl:2042: @getarg");
+ BASILYS_LOCATION("warmelt-macro.bysl:2045: @getarg");
  /*_.E__V2*/ curfptr[1] = (basilys_ptr_t) firstargp_;
  ;
  goto lab_endgetargs;
 lab_endgetargs:;
 /*body*/
 
-BASILYS_LOCATION("warmelt-macro.bysl:2042: @block");
+BASILYS_LOCATION("warmelt-macro.bysl:2045: @block");
 /*block*/{
  
- BASILYS_LOCATION("warmelt-macro.bysl:2042: @apply");
+ BASILYS_LOCATION("warmelt-macro.bysl:2045: @apply");
  /*apply*/{
   union basilysparam_un argtab[2];
   memset(&argtab, 0, sizeof(argtab));
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2042: @apply.arg");
+  BASILYS_LOCATION("warmelt-macro.bysl:2045: @apply.arg");
   argtab[0].bp_aptr = (basilys_ptr_t*) &(/*~NEWENV*/ curfclos->tabval[0]);
-  BASILYS_LOCATION("warmelt-macro.bysl:2042: @apply.arg");
+  BASILYS_LOCATION("warmelt-macro.bysl:2045: @apply.arg");
   argtab[1].bp_aptr = (basilys_ptr_t*) &(/*~MEXPANDER*/ curfclos->tabval[1]);
   /*_.MACROEXPAND_1__V3*/ curfptr[2] =  basilys_apply ((basilysclosure_ptr_t)((/*!MACROEXPAND_1*/ curfrout->tabval[0])), (basilys_ptr_t)(/*_.E__V2*/ curfptr[1]), (BPARSTR_PTR BPARSTR_PTR ""), argtab, "", (union basilysparam_un*)0);
   }
  ;
  
- BASILYS_LOCATION("warmelt-macro.bysl:2042: @block");
+ BASILYS_LOCATION("warmelt-macro.bysl:2045: @block");
  /*block*/{
   /*_.RETVAL___V1*/ curfptr[0] = /*_.MACROEXPAND_1__V3*/ curfptr[2];;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2042: @finalreturn");
+  BASILYS_LOCATION("warmelt-macro.bysl:2045: @finalreturn");
   ;
   /*finalret*/ goto labend_rout ;}
  ;
  /*epilog*/
  
- BASILYS_LOCATION("warmelt-macro.bysl:2042: @clear");
+ BASILYS_LOCATION("warmelt-macro.bysl:2045: @clear");
  /*clear*/ /*_.MACROEXPAND_1__V3*/ curfptr[2] = 0 ;}
 
 ;
@@ -26586,12 +26630,12 @@ basilys_trace_start("MEXPAND_MULTICALL", callcount);
 
  /*getarg#0*/
  
- BASILYS_LOCATION("warmelt-macro.bysl:2055: @getarg");
+ BASILYS_LOCATION("warmelt-macro.bysl:2058: @getarg");
  /*_.SEXPR__V2*/ curfptr[1] = (basilys_ptr_t) firstargp_;
  
  /*getarg#1*/
  
- BASILYS_LOCATION("warmelt-macro.bysl:2055: @getarg");
+ BASILYS_LOCATION("warmelt-macro.bysl:2058: @getarg");
  if (xargdescr_[0] != BPAR_PTR) goto lab_endgetargs;
  /*_.ENV__V3*/ curfptr[2] = (xargtab_[0].bp_aptr) ? (*(xargtab_[0].bp_aptr)) : NULL;
  gcc_assert(basilys_discr((basilys_ptr_t)(/*_.ENV__V3*/ curfptr[2])) != NULL);
@@ -26599,7 +26643,7 @@ basilys_trace_start("MEXPAND_MULTICALL", callcount);
  
  /*getarg#2*/
  
- BASILYS_LOCATION("warmelt-macro.bysl:2055: @getarg");
+ BASILYS_LOCATION("warmelt-macro.bysl:2058: @getarg");
  if (xargdescr_[1] != BPAR_PTR) goto lab_endgetargs;
  /*_.MEXPANDER__V4*/ curfptr[3] = (xargtab_[1].bp_aptr) ? (*(xargtab_[1].bp_aptr)) : NULL;
  gcc_assert(basilys_discr((basilys_ptr_t)(/*_.MEXPANDER__V4*/ curfptr[3])) != NULL);
@@ -26609,32 +26653,32 @@ basilys_trace_start("MEXPAND_MULTICALL", callcount);
 lab_endgetargs:;
 /*body*/
 
-BASILYS_LOCATION("warmelt-macro.bysl:2055: @block");
+BASILYS_LOCATION("warmelt-macro.bysl:2058: @block");
 /*block*/{
  
  #if ENABLE_CHECKING
   
- BASILYS_LOCATION("warmelt-macro.bysl:2056: @cppif.then");
+ BASILYS_LOCATION("warmelt-macro.bysl:2059: @cppif.then");
  
-  BASILYS_LOCATION("warmelt-macro.bysl:2056: @block");
+  BASILYS_LOCATION("warmelt-macro.bysl:2059: @block");
   /*block*/{
    /*_#IS_A__L1*/ curfnum[0] = 
      basilys_is_instance_of((basilys_ptr_t)(/*_.SEXPR__V2*/ curfptr[1]), (basilys_ptr_t)((/*!CLASS_SEXPR*/ curfrout->tabval[0])));;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2056: @cond");
+   BASILYS_LOCATION("warmelt-macro.bysl:2059: @cond");
    /*cond*/ if (/*_#IS_A__L1*/ curfnum[0]) /*then*/ {
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2056: @cond.then");
+   BASILYS_LOCATION("warmelt-macro.bysl:2059: @cond.then");
    /*_.IFELSE___V6*/ curfptr[5] = (/*nil*/NULL);;
    } else {
-   BASILYS_LOCATION("warmelt-macro.bysl:2056: @cond.else");
+   BASILYS_LOCATION("warmelt-macro.bysl:2059: @cond.else");
    
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2056: @block");
+    BASILYS_LOCATION("warmelt-macro.bysl:2059: @block");
     /*block*/{
      /*block*/{
       
-      basilys_assert_failed(( "check sexpr"),( "warmelt-macro.bysl"),(2056), __FUNCTION__);
+      basilys_assert_failed(( "check sexpr"),( "warmelt-macro.bysl"),(2059), __FUNCTION__);
       /*clear*/ /*_.IFELSE___V6*/ curfptr[5] = 0 ;}
      ;
      /*epilog*/}
@@ -26644,42 +26688,42 @@ BASILYS_LOCATION("warmelt-macro.bysl:2055: @block");
    /*_.IFCPP___V5*/ curfptr[4] = /*_.IFELSE___V6*/ curfptr[5];;
    /*epilog*/
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2056: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2059: @clear");
    /*clear*/ /*_#IS_A__L1*/ curfnum[0] = 0 ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2056: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2059: @clear");
    /*clear*/ /*_.IFELSE___V6*/ curfptr[5] = 0 ;}
   
   #else /*ENABLE_CHECKING*/
   
- BASILYS_LOCATION("warmelt-macro.bysl:2056: @cppif.else");
+ BASILYS_LOCATION("warmelt-macro.bysl:2059: @cppif.else");
  /*_.IFCPP___V5*/ curfptr[4] = (/*nil*/NULL);
   #endif /*ENABLE_CHECKING*/
   ;
  
  #if ENABLE_CHECKING
   
- BASILYS_LOCATION("warmelt-macro.bysl:2057: @cppif.then");
+ BASILYS_LOCATION("warmelt-macro.bysl:2060: @cppif.then");
  
-  BASILYS_LOCATION("warmelt-macro.bysl:2057: @block");
+  BASILYS_LOCATION("warmelt-macro.bysl:2060: @block");
   /*block*/{
    /*_#IS_A__L2*/ curfnum[0] = 
      basilys_is_instance_of((basilys_ptr_t)(/*_.ENV__V3*/ curfptr[2]), (basilys_ptr_t)((/*!CLASS_ENVIRONMENT*/ curfrout->tabval[1])));;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2057: @cond");
+   BASILYS_LOCATION("warmelt-macro.bysl:2060: @cond");
    /*cond*/ if (/*_#IS_A__L2*/ curfnum[0]) /*then*/ {
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2057: @cond.then");
+   BASILYS_LOCATION("warmelt-macro.bysl:2060: @cond.then");
    /*_.IFELSE___V8*/ curfptr[7] = (/*nil*/NULL);;
    } else {
-   BASILYS_LOCATION("warmelt-macro.bysl:2057: @cond.else");
+   BASILYS_LOCATION("warmelt-macro.bysl:2060: @cond.else");
    
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2057: @block");
+    BASILYS_LOCATION("warmelt-macro.bysl:2060: @block");
     /*block*/{
      /*block*/{
       
-      basilys_assert_failed(( "check env"),( "warmelt-macro.bysl"),(2057), __FUNCTION__);
+      basilys_assert_failed(( "check env"),( "warmelt-macro.bysl"),(2060), __FUNCTION__);
       /*clear*/ /*_.IFELSE___V8*/ curfptr[7] = 0 ;}
      ;
      /*epilog*/}
@@ -26689,27 +26733,27 @@ BASILYS_LOCATION("warmelt-macro.bysl:2055: @block");
    /*_.IFCPP___V7*/ curfptr[5] = /*_.IFELSE___V8*/ curfptr[7];;
    /*epilog*/
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2057: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2060: @clear");
    /*clear*/ /*_#IS_A__L2*/ curfnum[0] = 0 ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2057: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2060: @clear");
    /*clear*/ /*_.IFELSE___V8*/ curfptr[7] = 0 ;}
   
   #else /*ENABLE_CHECKING*/
   
- BASILYS_LOCATION("warmelt-macro.bysl:2057: @cppif.else");
+ BASILYS_LOCATION("warmelt-macro.bysl:2060: @cppif.else");
  /*_.IFCPP___V7*/ curfptr[5] = (/*nil*/NULL);
   #endif /*ENABLE_CHECKING*/
   ;
  
- BASILYS_LOCATION("warmelt-macro.bysl:2058: @block");
+ BASILYS_LOCATION("warmelt-macro.bysl:2061: @block");
  /*block*/{
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2058: @getslot");
+  BASILYS_LOCATION("warmelt-macro.bysl:2061: @getslot");
   /*_.CONT__V10*/ curfptr[9] = basilys_getfield_object((basilys_ptr_t)(/*_.SEXPR__V2*/ curfptr[1]), 2, "SEXP_CONTENTS");
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2059: @getslot");
+  BASILYS_LOCATION("warmelt-macro.bysl:2062: @getslot");
   /*_.LOC__V11*/ curfptr[10] = basilys_getfield_object((basilys_ptr_t)(/*_.SEXPR__V2*/ curfptr[1]), 1, "LOCA_LOCATION");
   ;
   /*_.LIST_FIRST__V12*/ curfptr[11] = 
@@ -26717,23 +26761,23 @@ BASILYS_LOCATION("warmelt-macro.bysl:2055: @block");
   /*_.CURPAIR__V13*/ curfptr[12] = 
    (basilys_pair_tail((basilys_ptr_t)(/*_.LIST_FIRST__V12*/ curfptr[11])));;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2061: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2064: @apply");
   /*apply*/{
    /*_.NEWENV__V14*/ curfptr[13] =  basilys_apply ((basilysclosure_ptr_t)((/*!FRESH_ENV*/ curfrout->tabval[2])), (basilys_ptr_t)(/*_.ENV__V3*/ curfptr[2]), (""), (union basilysparam_un*)0, "", (union basilysparam_un*)0);
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2064: @block");
+  BASILYS_LOCATION("warmelt-macro.bysl:2067: @block");
   /*block*/{
    /*_.PAIR_HEAD__V16*/ curfptr[15] = 
     (basilys_pair_head((basilys_ptr_t)(/*_.CURPAIR__V13*/ curfptr[12])));;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2064: @apply");
+   BASILYS_LOCATION("warmelt-macro.bysl:2067: @apply");
    /*apply*/{
     union basilysparam_un argtab[1];
     memset(&argtab, 0, sizeof(argtab));
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2064: @apply.arg");
+    BASILYS_LOCATION("warmelt-macro.bysl:2067: @apply.arg");
     argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.SEXPR__V2*/ curfptr[1];
     /*_.RESTUP__V17*/ curfptr[16] =  basilys_apply ((basilysclosure_ptr_t)((/*!LAMBDA_ARG_BINDINGS*/ curfrout->tabval[3])), (basilys_ptr_t)(/*_.PAIR_HEAD__V16*/ curfptr[15]), (BPARSTR_PTR ""), argtab, "", (union basilysparam_un*)0);
     }
@@ -26741,10 +26785,10 @@ BASILYS_LOCATION("warmelt-macro.bysl:2055: @block");
    /*_.PAIR_TAIL__V18*/ curfptr[17] = 
     (basilys_pair_tail((basilys_ptr_t)(/*_.CURPAIR__V13*/ curfptr[12])));;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2065: @compute");
+   BASILYS_LOCATION("warmelt-macro.bysl:2068: @compute");
    /*_.CURPAIR__V13*/ curfptr[12] = /*_.SETQ___V19*/ curfptr[18] = /*_.PAIR_TAIL__V18*/ curfptr[17];;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2066: @block");
+   BASILYS_LOCATION("warmelt-macro.bysl:2069: @block");
    /*block*/{
     /*_.CURCALLEXP__V21*/ curfptr[20] = 
      (basilys_pair_head((basilys_ptr_t)(/*_.CURPAIR__V13*/ curfptr[12])));;
@@ -26753,12 +26797,12 @@ BASILYS_LOCATION("warmelt-macro.bysl:2055: @block");
     /*_#NOT__L4*/ curfnum[3] = 
      (!(/*_#IS_A__L3*/ curfnum[0]));;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2067: @cond");
+    BASILYS_LOCATION("warmelt-macro.bysl:2070: @cond");
     /*cond*/ if (/*_#NOT__L4*/ curfnum[3]) /*then*/ {
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2067: @cond.then");
+    BASILYS_LOCATION("warmelt-macro.bysl:2070: @cond.then");
     
-     BASILYS_LOCATION("warmelt-macro.bysl:2067: @block");
+     BASILYS_LOCATION("warmelt-macro.bysl:2070: @block");
      /*block*/{
       
       error("%s:%d:: BASILYS ERROR [#%ld]: @%s ",  basilys_string_str(basilys_val_mixint((basilys_ptr_t)(/*_.LOC__V11*/ curfptr[10]))),  (int) basilys_num_mixint((basilys_ptr_t)(/*_.LOC__V11*/ curfptr[10])), basilys_dbgcounter, ( "missing called expression in multicall"));
@@ -26769,34 +26813,34 @@ BASILYS_LOCATION("warmelt-macro.bysl:2055: @block");
     /*_.PAIR_TAIL__V22*/ curfptr[21] = 
      (basilys_pair_tail((basilys_ptr_t)(/*_.CURPAIR__V13*/ curfptr[12])));;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2069: @compute");
+    BASILYS_LOCATION("warmelt-macro.bysl:2072: @compute");
     /*_.CURPAIR__V13*/ curfptr[12] = /*_.SETQ___V23*/ curfptr[22] = /*_.PAIR_TAIL__V22*/ curfptr[21];;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2070: @block");
+    BASILYS_LOCATION("warmelt-macro.bysl:2073: @block");
     /*block*/{
      
-     BASILYS_LOCATION("warmelt-macro.bysl:2070: @apply");
+     BASILYS_LOCATION("warmelt-macro.bysl:2073: @apply");
      /*apply*/{
       union basilysparam_un argtab[2];
       memset(&argtab, 0, sizeof(argtab));
       
-      BASILYS_LOCATION("warmelt-macro.bysl:2070: @apply.arg");
+      BASILYS_LOCATION("warmelt-macro.bysl:2073: @apply.arg");
       argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.ENV__V3*/ curfptr[2];
-      BASILYS_LOCATION("warmelt-macro.bysl:2070: @apply.arg");
+      BASILYS_LOCATION("warmelt-macro.bysl:2073: @apply.arg");
       argtab[1].bp_aptr = (basilys_ptr_t*) &/*_.MEXPANDER__V4*/ curfptr[3];
       /*_.CURCALL__V25*/ curfptr[24] =  basilys_apply ((basilysclosure_ptr_t)((/*!MACROEXPAND_1*/ curfrout->tabval[4])), (basilys_ptr_t)(/*_.CURCALLEXP__V21*/ curfptr[20]), (BPARSTR_PTR BPARSTR_PTR ""), argtab, "", (union basilysparam_un*)0);
       }
      ;
      
-     BASILYS_LOCATION("warmelt-macro.bysl:2072: @block");
+     BASILYS_LOCATION("warmelt-macro.bysl:2075: @block");
      /*block*/{
       
-      BASILYS_LOCATION("warmelt-macro.bysl:2072: @newclosure");
+      BASILYS_LOCATION("warmelt-macro.bysl:2075: @newclosure");
        /*newclosure*/ /*_.LAMBDA___V27*/ curfptr[26] =
        basilysgc_new_closure((basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_CLOSURE)))), (basilysroutine_ptr_t)((/*!konst_7*/ curfrout->tabval[7])), (1));
       ;
       
-      BASILYS_LOCATION("warmelt-macro.bysl:2072: @putclosedv");
+      BASILYS_LOCATION("warmelt-macro.bysl:2075: @putclosedv");
       /*putclosv*/
       basilys_assertmsg("putclosv checkclo", basilys_magic_discr((basilys_ptr_t)(/*_.LAMBDA___V27*/ curfptr[26])) == OBMAG_CLOSURE);
       basilys_assertmsg("putclosv checkoff", 0>= 0 && 0< basilys_closure_size((basilys_ptr_t) (/*_.LAMBDA___V27*/ curfptr[26])));
@@ -26805,36 +26849,36 @@ BASILYS_LOCATION("warmelt-macro.bysl:2055: @block");
       /*_.LAMBDA___V26*/ curfptr[25] = /*_.LAMBDA___V27*/ curfptr[26];;}
      ;
      
-     BASILYS_LOCATION("warmelt-macro.bysl:2071: @apply");
+     BASILYS_LOCATION("warmelt-macro.bysl:2074: @apply");
      /*apply*/{
       union basilysparam_un argtab[1];
       memset(&argtab, 0, sizeof(argtab));
       
-      BASILYS_LOCATION("warmelt-macro.bysl:2071: @apply.arg");
+      BASILYS_LOCATION("warmelt-macro.bysl:2074: @apply.arg");
       argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.LAMBDA___V26*/ curfptr[25];
       /*_.MULTIPLE_EVERY__V28*/ curfptr[27] =  basilys_apply ((basilysclosure_ptr_t)((/*!MULTIPLE_EVERY*/ curfrout->tabval[5])), (basilys_ptr_t)(/*_.RESTUP__V17*/ curfptr[16]), (BPARSTR_PTR ""), argtab, "", (union basilysparam_un*)0);
       }
      ;
      
-     BASILYS_LOCATION("warmelt-macro.bysl:2074: @block");
+     BASILYS_LOCATION("warmelt-macro.bysl:2077: @block");
      /*block*/{
       
-      BASILYS_LOCATION("warmelt-macro.bysl:2075: @block");
+      BASILYS_LOCATION("warmelt-macro.bysl:2078: @block");
       /*block*/{
        
-       BASILYS_LOCATION("warmelt-macro.bysl:2075: @newclosure");
+       BASILYS_LOCATION("warmelt-macro.bysl:2078: @newclosure");
         /*newclosure*/ /*_.LAMBDA___V31*/ curfptr[30] =
         basilysgc_new_closure((basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_CLOSURE)))), (basilysroutine_ptr_t)((/*!konst_11*/ curfrout->tabval[11])), (2));
        ;
        
-       BASILYS_LOCATION("warmelt-macro.bysl:2075: @putclosedv");
+       BASILYS_LOCATION("warmelt-macro.bysl:2078: @putclosedv");
        /*putclosv*/
        basilys_assertmsg("putclosv checkclo", basilys_magic_discr((basilys_ptr_t)(/*_.LAMBDA___V31*/ curfptr[30])) == OBMAG_CLOSURE);
        basilys_assertmsg("putclosv checkoff", 0>= 0 && 0< basilys_closure_size((basilys_ptr_t) (/*_.LAMBDA___V31*/ curfptr[30])));
        ((basilysclosure_ptr_t)/*_.LAMBDA___V31*/ curfptr[30])->tabval[0] = (basilys_ptr_t)(/*_.NEWENV__V14*/ curfptr[13]);
        ;
        
-       BASILYS_LOCATION("warmelt-macro.bysl:2075: @putclosedv");
+       BASILYS_LOCATION("warmelt-macro.bysl:2078: @putclosedv");
        /*putclosv*/
        basilys_assertmsg("putclosv checkclo", basilys_magic_discr((basilys_ptr_t)(/*_.LAMBDA___V31*/ curfptr[30])) == OBMAG_CLOSURE);
        basilys_assertmsg("putclosv checkoff", 1>= 0 && 1< basilys_closure_size((basilys_ptr_t) (/*_.LAMBDA___V31*/ curfptr[30])));
@@ -26843,28 +26887,28 @@ BASILYS_LOCATION("warmelt-macro.bysl:2055: @block");
        /*_.LAMBDA___V30*/ curfptr[29] = /*_.LAMBDA___V31*/ curfptr[30];;}
       ;
       
-      BASILYS_LOCATION("warmelt-macro.bysl:2074: @apply");
+      BASILYS_LOCATION("warmelt-macro.bysl:2077: @apply");
       /*apply*/{
        union basilysparam_un argtab[2];
        memset(&argtab, 0, sizeof(argtab));
        
-       BASILYS_LOCATION("warmelt-macro.bysl:2074: @apply.arg");
+       BASILYS_LOCATION("warmelt-macro.bysl:2077: @apply.arg");
        argtab[0].bp_aptr = (basilys_ptr_t*) &(/*!DISCR_MULTIPLE*/ curfrout->tabval[9]);
-       BASILYS_LOCATION("warmelt-macro.bysl:2074: @apply.arg");
+       BASILYS_LOCATION("warmelt-macro.bysl:2077: @apply.arg");
        argtab[1].bp_aptr = (basilys_ptr_t*) &/*_.LAMBDA___V30*/ curfptr[29];
        /*_.BODYTUP__V32*/ curfptr[31] =  basilys_apply ((basilysclosure_ptr_t)((/*!PAIRLIST_TO_MULTIPLE*/ curfrout->tabval[8])), (basilys_ptr_t)(/*_.CURPAIR__V13*/ curfptr[12]), (BPARSTR_PTR BPARSTR_PTR ""), argtab, "", (union basilysparam_un*)0);
        }
       ;
       
-      BASILYS_LOCATION("warmelt-macro.bysl:2077: @block");
+      BASILYS_LOCATION("warmelt-macro.bysl:2080: @block");
       /*block*/{
        
-       BASILYS_LOCATION("warmelt-macro.bysl:2077: @rawallocobj");
+       BASILYS_LOCATION("warmelt-macro.bysl:2080: @rawallocobj");
        /*rawallocobj*/ /*_.INST__V34*/ curfptr[33] =
-        basilysgc_new_raw_object((basilysobject_ptr_t)((/*!CLASS_SRC_MULTICALL*/ curfrout->tabval[12])), (4));
+        basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_SRC_MULTICALL*/ curfrout->tabval[12])), (4), ("CLASS_SRC_MULTICALL"));
        ;
        
-       BASILYS_LOCATION("warmelt-macro.bysl:2077: @putslot");
+       BASILYS_LOCATION("warmelt-macro.bysl:2080: @putslot");
        /*putslot*/
        basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V34*/ curfptr[33])) == OBMAG_OBJECT);
        basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V34*/ curfptr[33]))));
@@ -26872,7 +26916,7 @@ BASILYS_LOCATION("warmelt-macro.bysl:2055: @block");
         /*_.LOC__V11*/ curfptr[10]);
        ;
        
-       BASILYS_LOCATION("warmelt-macro.bysl:2077: @putslot");
+       BASILYS_LOCATION("warmelt-macro.bysl:2080: @putslot");
        /*putslot*/
        basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V34*/ curfptr[33])) == OBMAG_OBJECT);
        basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V34*/ curfptr[33]))));
@@ -26880,7 +26924,7 @@ BASILYS_LOCATION("warmelt-macro.bysl:2055: @block");
         /*_.RESTUP__V17*/ curfptr[16]);
        ;
        
-       BASILYS_LOCATION("warmelt-macro.bysl:2077: @putslot");
+       BASILYS_LOCATION("warmelt-macro.bysl:2080: @putslot");
        /*putslot*/
        basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V34*/ curfptr[33])) == OBMAG_OBJECT);
        basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V34*/ curfptr[33]))));
@@ -26888,7 +26932,7 @@ BASILYS_LOCATION("warmelt-macro.bysl:2055: @block");
         /*_.CURCALL__V25*/ curfptr[24]);
        ;
        
-       BASILYS_LOCATION("warmelt-macro.bysl:2077: @putslot");
+       BASILYS_LOCATION("warmelt-macro.bysl:2080: @putslot");
        /*putslot*/
        basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V34*/ curfptr[33])) == OBMAG_OBJECT);
        basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)(/*_.INST__V34*/ curfptr[33]))));
@@ -26898,122 +26942,122 @@ BASILYS_LOCATION("warmelt-macro.bysl:2055: @block");
        /*_.MULCR__V33*/ curfptr[32] = /*_.INST__V34*/ curfptr[33];;}
       ;
       
-      BASILYS_LOCATION("warmelt-macro.bysl:2084: @block");
+      BASILYS_LOCATION("warmelt-macro.bysl:2087: @block");
       /*block*/{
        /*_.RETVAL___V1*/ curfptr[0] = /*_.MULCR__V33*/ curfptr[32];;
        
-       BASILYS_LOCATION("warmelt-macro.bysl:2084: @finalreturn");
+       BASILYS_LOCATION("warmelt-macro.bysl:2087: @finalreturn");
        ;
        /*finalret*/ goto labend_rout ;}
       ;
       /*_.LET___V29*/ curfptr[28] = /*_.RETURN___V35*/ curfptr[34];;
       /*epilog*/
       
-      BASILYS_LOCATION("warmelt-macro.bysl:2074: @clear");
+      BASILYS_LOCATION("warmelt-macro.bysl:2077: @clear");
       /*clear*/ /*_.LAMBDA___V30*/ curfptr[29] = 0 ;
       
-      BASILYS_LOCATION("warmelt-macro.bysl:2074: @clear");
+      BASILYS_LOCATION("warmelt-macro.bysl:2077: @clear");
       /*clear*/ /*_.BODYTUP__V32*/ curfptr[31] = 0 ;
       
-      BASILYS_LOCATION("warmelt-macro.bysl:2074: @clear");
+      BASILYS_LOCATION("warmelt-macro.bysl:2077: @clear");
       /*clear*/ /*_.MULCR__V33*/ curfptr[32] = 0 ;
       
-      BASILYS_LOCATION("warmelt-macro.bysl:2074: @clear");
+      BASILYS_LOCATION("warmelt-macro.bysl:2077: @clear");
       /*clear*/ /*_.RETURN___V35*/ curfptr[34] = 0 ;}
      ;
      /*_.LET___V24*/ curfptr[23] = /*_.LET___V29*/ curfptr[28];;
      /*epilog*/
      
-     BASILYS_LOCATION("warmelt-macro.bysl:2070: @clear");
+     BASILYS_LOCATION("warmelt-macro.bysl:2073: @clear");
      /*clear*/ /*_.CURCALL__V25*/ curfptr[24] = 0 ;
      
-     BASILYS_LOCATION("warmelt-macro.bysl:2070: @clear");
+     BASILYS_LOCATION("warmelt-macro.bysl:2073: @clear");
      /*clear*/ /*_.LAMBDA___V26*/ curfptr[25] = 0 ;
      
-     BASILYS_LOCATION("warmelt-macro.bysl:2070: @clear");
+     BASILYS_LOCATION("warmelt-macro.bysl:2073: @clear");
      /*clear*/ /*_.MULTIPLE_EVERY__V28*/ curfptr[27] = 0 ;
      
-     BASILYS_LOCATION("warmelt-macro.bysl:2070: @clear");
+     BASILYS_LOCATION("warmelt-macro.bysl:2073: @clear");
      /*clear*/ /*_.LET___V29*/ curfptr[28] = 0 ;}
     ;
     /*_.LET___V20*/ curfptr[19] = /*_.LET___V24*/ curfptr[23];;
     /*epilog*/
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2066: @clear");
+    BASILYS_LOCATION("warmelt-macro.bysl:2069: @clear");
     /*clear*/ /*_.CURCALLEXP__V21*/ curfptr[20] = 0 ;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2066: @clear");
+    BASILYS_LOCATION("warmelt-macro.bysl:2069: @clear");
     /*clear*/ /*_#IS_A__L3*/ curfnum[0] = 0 ;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2066: @clear");
+    BASILYS_LOCATION("warmelt-macro.bysl:2069: @clear");
     /*clear*/ /*_#NOT__L4*/ curfnum[3] = 0 ;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2066: @clear");
+    BASILYS_LOCATION("warmelt-macro.bysl:2069: @clear");
     /*clear*/ /*_.PAIR_TAIL__V22*/ curfptr[21] = 0 ;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2066: @clear");
+    BASILYS_LOCATION("warmelt-macro.bysl:2069: @clear");
     /*clear*/ /*_.SETQ___V23*/ curfptr[22] = 0 ;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2066: @clear");
+    BASILYS_LOCATION("warmelt-macro.bysl:2069: @clear");
     /*clear*/ /*_.LET___V24*/ curfptr[23] = 0 ;}
    ;
    /*_.LET___V15*/ curfptr[14] = /*_.LET___V20*/ curfptr[19];;
    /*epilog*/
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2064: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2067: @clear");
    /*clear*/ /*_.PAIR_HEAD__V16*/ curfptr[15] = 0 ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2064: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2067: @clear");
    /*clear*/ /*_.RESTUP__V17*/ curfptr[16] = 0 ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2064: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2067: @clear");
    /*clear*/ /*_.PAIR_TAIL__V18*/ curfptr[17] = 0 ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2064: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2067: @clear");
    /*clear*/ /*_.SETQ___V19*/ curfptr[18] = 0 ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2064: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2067: @clear");
    /*clear*/ /*_.LET___V20*/ curfptr[19] = 0 ;}
   ;
   /*_.LET___V9*/ curfptr[7] = /*_.LET___V15*/ curfptr[14];;
   /*epilog*/
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2058: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2061: @clear");
   /*clear*/ /*_.CONT__V10*/ curfptr[9] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2058: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2061: @clear");
   /*clear*/ /*_.LOC__V11*/ curfptr[10] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2058: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2061: @clear");
   /*clear*/ /*_.LIST_FIRST__V12*/ curfptr[11] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2058: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2061: @clear");
   /*clear*/ /*_.CURPAIR__V13*/ curfptr[12] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2058: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2061: @clear");
   /*clear*/ /*_.NEWENV__V14*/ curfptr[13] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2058: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2061: @clear");
   /*clear*/ /*_.LET___V15*/ curfptr[14] = 0 ;}
  ;
  
- BASILYS_LOCATION("warmelt-macro.bysl:2055: @block");
+ BASILYS_LOCATION("warmelt-macro.bysl:2058: @block");
  /*block*/{
   /*_.RETVAL___V1*/ curfptr[0] = /*_.LET___V9*/ curfptr[7];;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2055: @finalreturn");
+  BASILYS_LOCATION("warmelt-macro.bysl:2058: @finalreturn");
   ;
   /*finalret*/ goto labend_rout ;}
  ;
  /*epilog*/
  
- BASILYS_LOCATION("warmelt-macro.bysl:2055: @clear");
+ BASILYS_LOCATION("warmelt-macro.bysl:2058: @clear");
  /*clear*/ /*_.IFCPP___V5*/ curfptr[4] = 0 ;
  
- BASILYS_LOCATION("warmelt-macro.bysl:2055: @clear");
+ BASILYS_LOCATION("warmelt-macro.bysl:2058: @clear");
  /*clear*/ /*_.IFCPP___V7*/ curfptr[5] = 0 ;
  
- BASILYS_LOCATION("warmelt-macro.bysl:2055: @clear");
+ BASILYS_LOCATION("warmelt-macro.bysl:2058: @clear");
  /*clear*/ /*_.LET___V9*/ curfptr[7] = 0 ;}
 
 ;
@@ -27065,38 +27109,38 @@ basilys_trace_start("LAMBDA_", callcount);
 
  /*getarg#0*/
  
- BASILYS_LOCATION("warmelt-macro.bysl:2072: @getarg");
+ BASILYS_LOCATION("warmelt-macro.bysl:2075: @getarg");
  /*_.LB__V2*/ curfptr[1] = (basilys_ptr_t) firstargp_;
  ;
  goto lab_endgetargs;
 lab_endgetargs:;
 /*body*/
 
-BASILYS_LOCATION("warmelt-macro.bysl:2072: @block");
+BASILYS_LOCATION("warmelt-macro.bysl:2075: @block");
 /*block*/{
  
- BASILYS_LOCATION("warmelt-macro.bysl:2072: @apply");
+ BASILYS_LOCATION("warmelt-macro.bysl:2075: @apply");
  /*apply*/{
   union basilysparam_un argtab[1];
   memset(&argtab, 0, sizeof(argtab));
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2072: @apply.arg");
+  BASILYS_LOCATION("warmelt-macro.bysl:2075: @apply.arg");
   argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.LB__V2*/ curfptr[1];
   /*_.PUT_ENV__V3*/ curfptr[2] =  basilys_apply ((basilysclosure_ptr_t)((/*!PUT_ENV*/ curfrout->tabval[0])), (basilys_ptr_t)((/*~NEWENV*/ curfclos->tabval[0])), (BPARSTR_PTR ""), argtab, "", (union basilysparam_un*)0);
   }
  ;
  
- BASILYS_LOCATION("warmelt-macro.bysl:2072: @block");
+ BASILYS_LOCATION("warmelt-macro.bysl:2075: @block");
  /*block*/{
   /*_.RETVAL___V1*/ curfptr[0] = /*_.PUT_ENV__V3*/ curfptr[2];;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2072: @finalreturn");
+  BASILYS_LOCATION("warmelt-macro.bysl:2075: @finalreturn");
   ;
   /*finalret*/ goto labend_rout ;}
  ;
  /*epilog*/
  
- BASILYS_LOCATION("warmelt-macro.bysl:2072: @clear");
+ BASILYS_LOCATION("warmelt-macro.bysl:2075: @clear");
  /*clear*/ /*_.PUT_ENV__V3*/ curfptr[2] = 0 ;}
 
 ;
@@ -27148,40 +27192,40 @@ basilys_trace_start("LAMBDA_", callcount);
 
  /*getarg#0*/
  
- BASILYS_LOCATION("warmelt-macro.bysl:2075: @getarg");
+ BASILYS_LOCATION("warmelt-macro.bysl:2078: @getarg");
  /*_.E__V2*/ curfptr[1] = (basilys_ptr_t) firstargp_;
  ;
  goto lab_endgetargs;
 lab_endgetargs:;
 /*body*/
 
-BASILYS_LOCATION("warmelt-macro.bysl:2075: @block");
+BASILYS_LOCATION("warmelt-macro.bysl:2078: @block");
 /*block*/{
  
- BASILYS_LOCATION("warmelt-macro.bysl:2075: @apply");
+ BASILYS_LOCATION("warmelt-macro.bysl:2078: @apply");
  /*apply*/{
   union basilysparam_un argtab[2];
   memset(&argtab, 0, sizeof(argtab));
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2075: @apply.arg");
+  BASILYS_LOCATION("warmelt-macro.bysl:2078: @apply.arg");
   argtab[0].bp_aptr = (basilys_ptr_t*) &(/*~NEWENV*/ curfclos->tabval[0]);
-  BASILYS_LOCATION("warmelt-macro.bysl:2075: @apply.arg");
+  BASILYS_LOCATION("warmelt-macro.bysl:2078: @apply.arg");
   argtab[1].bp_aptr = (basilys_ptr_t*) &(/*~MEXPANDER*/ curfclos->tabval[1]);
   /*_.MACROEXPAND_1__V3*/ curfptr[2] =  basilys_apply ((basilysclosure_ptr_t)((/*!MACROEXPAND_1*/ curfrout->tabval[0])), (basilys_ptr_t)(/*_.E__V2*/ curfptr[1]), (BPARSTR_PTR BPARSTR_PTR ""), argtab, "", (union basilysparam_un*)0);
   }
  ;
  
- BASILYS_LOCATION("warmelt-macro.bysl:2075: @block");
+ BASILYS_LOCATION("warmelt-macro.bysl:2078: @block");
  /*block*/{
   /*_.RETVAL___V1*/ curfptr[0] = /*_.MACROEXPAND_1__V3*/ curfptr[2];;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2075: @finalreturn");
+  BASILYS_LOCATION("warmelt-macro.bysl:2078: @finalreturn");
   ;
   /*finalret*/ goto labend_rout ;}
  ;
  /*epilog*/
  
- BASILYS_LOCATION("warmelt-macro.bysl:2075: @clear");
+ BASILYS_LOCATION("warmelt-macro.bysl:2078: @clear");
  /*clear*/ /*_.MACROEXPAND_1__V3*/ curfptr[2] = 0 ;}
 
 ;
@@ -27233,12 +27277,12 @@ basilys_trace_start("MEXPAND_QUOTE", callcount);
 
  /*getarg#0*/
  
- BASILYS_LOCATION("warmelt-macro.bysl:2091: @getarg");
+ BASILYS_LOCATION("warmelt-macro.bysl:2094: @getarg");
  /*_.SEXPR__V2*/ curfptr[1] = (basilys_ptr_t) firstargp_;
  
  /*getarg#1*/
  
- BASILYS_LOCATION("warmelt-macro.bysl:2091: @getarg");
+ BASILYS_LOCATION("warmelt-macro.bysl:2094: @getarg");
  if (xargdescr_[0] != BPAR_PTR) goto lab_endgetargs;
  /*_.ENV__V3*/ curfptr[2] = (xargtab_[0].bp_aptr) ? (*(xargtab_[0].bp_aptr)) : NULL;
  gcc_assert(basilys_discr((basilys_ptr_t)(/*_.ENV__V3*/ curfptr[2])) != NULL);
@@ -27246,7 +27290,7 @@ basilys_trace_start("MEXPAND_QUOTE", callcount);
  
  /*getarg#2*/
  
- BASILYS_LOCATION("warmelt-macro.bysl:2091: @getarg");
+ BASILYS_LOCATION("warmelt-macro.bysl:2094: @getarg");
  if (xargdescr_[1] != BPAR_PTR) goto lab_endgetargs;
  /*_.MEXPANDER__V4*/ curfptr[3] = (xargtab_[1].bp_aptr) ? (*(xargtab_[1].bp_aptr)) : NULL;
  gcc_assert(basilys_discr((basilys_ptr_t)(/*_.MEXPANDER__V4*/ curfptr[3])) != NULL);
@@ -27256,32 +27300,32 @@ basilys_trace_start("MEXPAND_QUOTE", callcount);
 lab_endgetargs:;
 /*body*/
 
-BASILYS_LOCATION("warmelt-macro.bysl:2091: @block");
+BASILYS_LOCATION("warmelt-macro.bysl:2094: @block");
 /*block*/{
  
  #if ENABLE_CHECKING
   
- BASILYS_LOCATION("warmelt-macro.bysl:2092: @cppif.then");
+ BASILYS_LOCATION("warmelt-macro.bysl:2095: @cppif.then");
  
-  BASILYS_LOCATION("warmelt-macro.bysl:2092: @block");
+  BASILYS_LOCATION("warmelt-macro.bysl:2095: @block");
   /*block*/{
    /*_#IS_A__L1*/ curfnum[0] = 
      basilys_is_instance_of((basilys_ptr_t)(/*_.SEXPR__V2*/ curfptr[1]), (basilys_ptr_t)((/*!CLASS_SEXPR*/ curfrout->tabval[0])));;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2092: @cond");
+   BASILYS_LOCATION("warmelt-macro.bysl:2095: @cond");
    /*cond*/ if (/*_#IS_A__L1*/ curfnum[0]) /*then*/ {
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2092: @cond.then");
+   BASILYS_LOCATION("warmelt-macro.bysl:2095: @cond.then");
    /*_.IFELSE___V6*/ curfptr[5] = (/*nil*/NULL);;
    } else {
-   BASILYS_LOCATION("warmelt-macro.bysl:2092: @cond.else");
+   BASILYS_LOCATION("warmelt-macro.bysl:2095: @cond.else");
    
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2092: @block");
+    BASILYS_LOCATION("warmelt-macro.bysl:2095: @block");
     /*block*/{
      /*block*/{
       
-      basilys_assert_failed(( "check sexpr"),( "warmelt-macro.bysl"),(2092), __FUNCTION__);
+      basilys_assert_failed(( "check sexpr"),( "warmelt-macro.bysl"),(2095), __FUNCTION__);
       /*clear*/ /*_.IFELSE___V6*/ curfptr[5] = 0 ;}
      ;
      /*epilog*/}
@@ -27291,42 +27335,42 @@ BASILYS_LOCATION("warmelt-macro.bysl:2091: @block");
    /*_.IFCPP___V5*/ curfptr[4] = /*_.IFELSE___V6*/ curfptr[5];;
    /*epilog*/
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2092: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2095: @clear");
    /*clear*/ /*_#IS_A__L1*/ curfnum[0] = 0 ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2092: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2095: @clear");
    /*clear*/ /*_.IFELSE___V6*/ curfptr[5] = 0 ;}
   
   #else /*ENABLE_CHECKING*/
   
- BASILYS_LOCATION("warmelt-macro.bysl:2092: @cppif.else");
+ BASILYS_LOCATION("warmelt-macro.bysl:2095: @cppif.else");
  /*_.IFCPP___V5*/ curfptr[4] = (/*nil*/NULL);
   #endif /*ENABLE_CHECKING*/
   ;
  
  #if ENABLE_CHECKING
   
- BASILYS_LOCATION("warmelt-macro.bysl:2093: @cppif.then");
+ BASILYS_LOCATION("warmelt-macro.bysl:2096: @cppif.then");
  
-  BASILYS_LOCATION("warmelt-macro.bysl:2093: @block");
+  BASILYS_LOCATION("warmelt-macro.bysl:2096: @block");
   /*block*/{
    /*_#IS_A__L2*/ curfnum[0] = 
      basilys_is_instance_of((basilys_ptr_t)(/*_.ENV__V3*/ curfptr[2]), (basilys_ptr_t)((/*!CLASS_ENVIRONMENT*/ curfrout->tabval[1])));;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2093: @cond");
+   BASILYS_LOCATION("warmelt-macro.bysl:2096: @cond");
    /*cond*/ if (/*_#IS_A__L2*/ curfnum[0]) /*then*/ {
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2093: @cond.then");
+   BASILYS_LOCATION("warmelt-macro.bysl:2096: @cond.then");
    /*_.IFELSE___V8*/ curfptr[7] = (/*nil*/NULL);;
    } else {
-   BASILYS_LOCATION("warmelt-macro.bysl:2093: @cond.else");
+   BASILYS_LOCATION("warmelt-macro.bysl:2096: @cond.else");
    
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2093: @block");
+    BASILYS_LOCATION("warmelt-macro.bysl:2096: @block");
     /*block*/{
      /*block*/{
       
-      basilys_assert_failed(( "check env"),( "warmelt-macro.bysl"),(2093), __FUNCTION__);
+      basilys_assert_failed(( "check env"),( "warmelt-macro.bysl"),(2096), __FUNCTION__);
       /*clear*/ /*_.IFELSE___V8*/ curfptr[7] = 0 ;}
      ;
      /*epilog*/}
@@ -27336,27 +27380,27 @@ BASILYS_LOCATION("warmelt-macro.bysl:2091: @block");
    /*_.IFCPP___V7*/ curfptr[5] = /*_.IFELSE___V8*/ curfptr[7];;
    /*epilog*/
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2093: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2096: @clear");
    /*clear*/ /*_#IS_A__L2*/ curfnum[0] = 0 ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2093: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2096: @clear");
    /*clear*/ /*_.IFELSE___V8*/ curfptr[7] = 0 ;}
   
   #else /*ENABLE_CHECKING*/
   
- BASILYS_LOCATION("warmelt-macro.bysl:2093: @cppif.else");
+ BASILYS_LOCATION("warmelt-macro.bysl:2096: @cppif.else");
  /*_.IFCPP___V7*/ curfptr[5] = (/*nil*/NULL);
   #endif /*ENABLE_CHECKING*/
   ;
  
- BASILYS_LOCATION("warmelt-macro.bysl:2094: @block");
+ BASILYS_LOCATION("warmelt-macro.bysl:2097: @block");
  /*block*/{
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2094: @getslot");
+  BASILYS_LOCATION("warmelt-macro.bysl:2097: @getslot");
   /*_.CONT__V10*/ curfptr[9] = basilys_getfield_object((basilys_ptr_t)(/*_.SEXPR__V2*/ curfptr[1]), 2, "SEXP_CONTENTS");
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2095: @getslot");
+  BASILYS_LOCATION("warmelt-macro.bysl:2098: @getslot");
   /*_.LOC__V11*/ curfptr[10] = basilys_getfield_object((basilys_ptr_t)(/*_.SEXPR__V2*/ curfptr[1]), 1, "LOCA_LOCATION");
   ;
   /*_.LIST_FIRST__V12*/ curfptr[11] = 
@@ -27368,12 +27412,12 @@ BASILYS_LOCATION("warmelt-macro.bysl:2091: @block");
   /*_.PAIR_TAIL__V15*/ curfptr[14] = 
    (basilys_pair_tail((basilys_ptr_t)(/*_.CURPAIR__V13*/ curfptr[12])));;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2099: @cond");
+  BASILYS_LOCATION("warmelt-macro.bysl:2102: @cond");
   /*cond*/ if (/*_.PAIR_TAIL__V15*/ curfptr[14]) /*then*/ {
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2099: @cond.then");
+  BASILYS_LOCATION("warmelt-macro.bysl:2102: @cond.then");
   
-   BASILYS_LOCATION("warmelt-macro.bysl:2099: @block");
+   BASILYS_LOCATION("warmelt-macro.bysl:2102: @block");
    /*block*/{
     
     error("%s:%d:: BASILYS ERROR [#%ld]: @%s ",  basilys_string_str(basilys_val_mixint((basilys_ptr_t)(/*_.LOC__V11*/ curfptr[10]))),  (int) basilys_num_mixint((basilys_ptr_t)(/*_.LOC__V11*/ curfptr[10])), basilys_dbgcounter, ( "QUOTE should have only one symbol argument"));
@@ -27386,12 +27430,12 @@ BASILYS_LOCATION("warmelt-macro.bysl:2091: @block");
   /*_#NOT__L4*/ curfnum[3] = 
    (!(/*_#IS_A__L3*/ curfnum[0]));;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2101: @cond");
+  BASILYS_LOCATION("warmelt-macro.bysl:2104: @cond");
   /*cond*/ if (/*_#NOT__L4*/ curfnum[3]) /*then*/ {
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2101: @cond.then");
+  BASILYS_LOCATION("warmelt-macro.bysl:2104: @cond.then");
   
-   BASILYS_LOCATION("warmelt-macro.bysl:2101: @block");
+   BASILYS_LOCATION("warmelt-macro.bysl:2104: @block");
    /*block*/{
     
     error("%s:%d:: BASILYS ERROR [#%ld]: @%s ",  basilys_string_str(basilys_val_mixint((basilys_ptr_t)(/*_.LOC__V11*/ curfptr[10]))),  (int) basilys_num_mixint((basilys_ptr_t)(/*_.LOC__V11*/ curfptr[10])), basilys_dbgcounter, ( "QUOTE should have a symbol argument - composite quotations unsupported"));
@@ -27402,47 +27446,47 @@ BASILYS_LOCATION("warmelt-macro.bysl:2091: @block");
   /*_#IS_A__L5*/ curfnum[4] = 
     basilys_is_instance_of((basilys_ptr_t)(/*_.QUOTED__V14*/ curfptr[13]), (basilys_ptr_t)((/*!CLASS_KEYWORD*/ curfrout->tabval[3])));;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2103: @cond");
+  BASILYS_LOCATION("warmelt-macro.bysl:2106: @cond");
   /*cond*/ if (/*_#IS_A__L5*/ curfnum[4]) /*then*/ {
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2103: @cond.then");
+  BASILYS_LOCATION("warmelt-macro.bysl:2106: @cond.then");
   
-   BASILYS_LOCATION("warmelt-macro.bysl:2103: @block");
+   BASILYS_LOCATION("warmelt-macro.bysl:2106: @block");
    /*block*/{
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2104: @block");
+    BASILYS_LOCATION("warmelt-macro.bysl:2107: @block");
     /*block*/{
      /*_.RETVAL___V1*/ curfptr[0] = /*_.QUOTED__V14*/ curfptr[13];;
      
-     BASILYS_LOCATION("warmelt-macro.bysl:2104: @finalreturn");
+     BASILYS_LOCATION("warmelt-macro.bysl:2107: @finalreturn");
      ;
      /*finalret*/ goto labend_rout ;}
     ;
     /*_.IF___V16*/ curfptr[15] = /*_.RETURN___V17*/ curfptr[16];;
     /*epilog*/
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2103: @clear");
+    BASILYS_LOCATION("warmelt-macro.bysl:2106: @clear");
     /*clear*/ /*_.RETURN___V17*/ curfptr[16] = 0 ;}
    ;
   } else {
-  BASILYS_LOCATION("warmelt-macro.bysl:2103: @cond.else");
+  BASILYS_LOCATION("warmelt-macro.bysl:2106: @cond.else");
   
    /*_.IF___V16*/ curfptr[15] = NULL;;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2105: @block");
+  BASILYS_LOCATION("warmelt-macro.bysl:2108: @block");
   /*block*/{
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2105: @block");
+   BASILYS_LOCATION("warmelt-macro.bysl:2108: @block");
    /*block*/{
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2105: @rawallocobj");
+    BASILYS_LOCATION("warmelt-macro.bysl:2108: @rawallocobj");
     /*rawallocobj*/ /*_.INST__V20*/ curfptr[19] =
-     basilysgc_new_raw_object((basilysobject_ptr_t)((/*!CLASS_SRC_QUOTE*/ curfrout->tabval[4])), (2));
+     basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_SRC_QUOTE*/ curfrout->tabval[4])), (2), ("CLASS_SRC_QUOTE"));
     ;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2105: @putslot");
+    BASILYS_LOCATION("warmelt-macro.bysl:2108: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V20*/ curfptr[19])) == OBMAG_OBJECT);
     basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V20*/ curfptr[19]))));
@@ -27450,7 +27494,7 @@ BASILYS_LOCATION("warmelt-macro.bysl:2091: @block");
      /*_.LOC__V11*/ curfptr[10]);
     ;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2105: @putslot");
+    BASILYS_LOCATION("warmelt-macro.bysl:2108: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V20*/ curfptr[19])) == OBMAG_OBJECT);
     basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V20*/ curfptr[19]))));
@@ -27460,77 +27504,77 @@ BASILYS_LOCATION("warmelt-macro.bysl:2091: @block");
     /*_.SQU__V19*/ curfptr[18] = /*_.INST__V20*/ curfptr[19];;}
    ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2108: @block");
+   BASILYS_LOCATION("warmelt-macro.bysl:2111: @block");
    /*block*/{
     /*_.RETVAL___V1*/ curfptr[0] = /*_.SQU__V19*/ curfptr[18];;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2108: @finalreturn");
+    BASILYS_LOCATION("warmelt-macro.bysl:2111: @finalreturn");
     ;
     /*finalret*/ goto labend_rout ;}
    ;
    /*_.LET___V18*/ curfptr[16] = /*_.RETURN___V21*/ curfptr[20];;
    /*epilog*/
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2105: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2108: @clear");
    /*clear*/ /*_.SQU__V19*/ curfptr[18] = 0 ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2105: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2108: @clear");
    /*clear*/ /*_.RETURN___V21*/ curfptr[20] = 0 ;}
   ;
   /*_.LET___V9*/ curfptr[7] = /*_.LET___V18*/ curfptr[16];;
   /*epilog*/
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2094: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2097: @clear");
   /*clear*/ /*_.CONT__V10*/ curfptr[9] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2094: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2097: @clear");
   /*clear*/ /*_.LOC__V11*/ curfptr[10] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2094: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2097: @clear");
   /*clear*/ /*_.LIST_FIRST__V12*/ curfptr[11] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2094: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2097: @clear");
   /*clear*/ /*_.CURPAIR__V13*/ curfptr[12] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2094: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2097: @clear");
   /*clear*/ /*_.QUOTED__V14*/ curfptr[13] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2094: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2097: @clear");
   /*clear*/ /*_.PAIR_TAIL__V15*/ curfptr[14] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2094: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2097: @clear");
   /*clear*/ /*_#IS_A__L3*/ curfnum[0] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2094: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2097: @clear");
   /*clear*/ /*_#NOT__L4*/ curfnum[3] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2094: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2097: @clear");
   /*clear*/ /*_#IS_A__L5*/ curfnum[4] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2094: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2097: @clear");
   /*clear*/ /*_.IF___V16*/ curfptr[15] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2094: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2097: @clear");
   /*clear*/ /*_.LET___V18*/ curfptr[16] = 0 ;}
  ;
  
- BASILYS_LOCATION("warmelt-macro.bysl:2091: @block");
+ BASILYS_LOCATION("warmelt-macro.bysl:2094: @block");
  /*block*/{
   /*_.RETVAL___V1*/ curfptr[0] = /*_.LET___V9*/ curfptr[7];;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2091: @finalreturn");
+  BASILYS_LOCATION("warmelt-macro.bysl:2094: @finalreturn");
   ;
   /*finalret*/ goto labend_rout ;}
  ;
  /*epilog*/
  
- BASILYS_LOCATION("warmelt-macro.bysl:2091: @clear");
+ BASILYS_LOCATION("warmelt-macro.bysl:2094: @clear");
  /*clear*/ /*_.IFCPP___V5*/ curfptr[4] = 0 ;
  
- BASILYS_LOCATION("warmelt-macro.bysl:2091: @clear");
+ BASILYS_LOCATION("warmelt-macro.bysl:2094: @clear");
  /*clear*/ /*_.IFCPP___V7*/ curfptr[5] = 0 ;
  
- BASILYS_LOCATION("warmelt-macro.bysl:2091: @clear");
+ BASILYS_LOCATION("warmelt-macro.bysl:2094: @clear");
  /*clear*/ /*_.LET___V9*/ curfptr[7] = 0 ;}
 
 ;
@@ -27582,12 +27626,12 @@ basilys_trace_start("MEXPAND_COMMENT", callcount);
 
  /*getarg#0*/
  
- BASILYS_LOCATION("warmelt-macro.bysl:2114: @getarg");
+ BASILYS_LOCATION("warmelt-macro.bysl:2117: @getarg");
  /*_.SEXPR__V2*/ curfptr[1] = (basilys_ptr_t) firstargp_;
  
  /*getarg#1*/
  
- BASILYS_LOCATION("warmelt-macro.bysl:2114: @getarg");
+ BASILYS_LOCATION("warmelt-macro.bysl:2117: @getarg");
  if (xargdescr_[0] != BPAR_PTR) goto lab_endgetargs;
  /*_.ENV__V3*/ curfptr[2] = (xargtab_[0].bp_aptr) ? (*(xargtab_[0].bp_aptr)) : NULL;
  gcc_assert(basilys_discr((basilys_ptr_t)(/*_.ENV__V3*/ curfptr[2])) != NULL);
@@ -27595,7 +27639,7 @@ basilys_trace_start("MEXPAND_COMMENT", callcount);
  
  /*getarg#2*/
  
- BASILYS_LOCATION("warmelt-macro.bysl:2114: @getarg");
+ BASILYS_LOCATION("warmelt-macro.bysl:2117: @getarg");
  if (xargdescr_[1] != BPAR_PTR) goto lab_endgetargs;
  /*_.MEXPANDER__V4*/ curfptr[3] = (xargtab_[1].bp_aptr) ? (*(xargtab_[1].bp_aptr)) : NULL;
  gcc_assert(basilys_discr((basilys_ptr_t)(/*_.MEXPANDER__V4*/ curfptr[3])) != NULL);
@@ -27605,32 +27649,32 @@ basilys_trace_start("MEXPAND_COMMENT", callcount);
 lab_endgetargs:;
 /*body*/
 
-BASILYS_LOCATION("warmelt-macro.bysl:2114: @block");
+BASILYS_LOCATION("warmelt-macro.bysl:2117: @block");
 /*block*/{
  
  #if ENABLE_CHECKING
   
- BASILYS_LOCATION("warmelt-macro.bysl:2115: @cppif.then");
+ BASILYS_LOCATION("warmelt-macro.bysl:2118: @cppif.then");
  
-  BASILYS_LOCATION("warmelt-macro.bysl:2115: @block");
+  BASILYS_LOCATION("warmelt-macro.bysl:2118: @block");
   /*block*/{
    /*_#IS_A__L1*/ curfnum[0] = 
      basilys_is_instance_of((basilys_ptr_t)(/*_.SEXPR__V2*/ curfptr[1]), (basilys_ptr_t)((/*!CLASS_SEXPR*/ curfrout->tabval[0])));;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2115: @cond");
+   BASILYS_LOCATION("warmelt-macro.bysl:2118: @cond");
    /*cond*/ if (/*_#IS_A__L1*/ curfnum[0]) /*then*/ {
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2115: @cond.then");
+   BASILYS_LOCATION("warmelt-macro.bysl:2118: @cond.then");
    /*_.IFELSE___V6*/ curfptr[5] = (/*nil*/NULL);;
    } else {
-   BASILYS_LOCATION("warmelt-macro.bysl:2115: @cond.else");
+   BASILYS_LOCATION("warmelt-macro.bysl:2118: @cond.else");
    
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2115: @block");
+    BASILYS_LOCATION("warmelt-macro.bysl:2118: @block");
     /*block*/{
      /*block*/{
       
-      basilys_assert_failed(( "check sexpr"),( "warmelt-macro.bysl"),(2115), __FUNCTION__);
+      basilys_assert_failed(( "check sexpr"),( "warmelt-macro.bysl"),(2118), __FUNCTION__);
       /*clear*/ /*_.IFELSE___V6*/ curfptr[5] = 0 ;}
      ;
      /*epilog*/}
@@ -27640,42 +27684,42 @@ BASILYS_LOCATION("warmelt-macro.bysl:2114: @block");
    /*_.IFCPP___V5*/ curfptr[4] = /*_.IFELSE___V6*/ curfptr[5];;
    /*epilog*/
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2115: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2118: @clear");
    /*clear*/ /*_#IS_A__L1*/ curfnum[0] = 0 ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2115: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2118: @clear");
    /*clear*/ /*_.IFELSE___V6*/ curfptr[5] = 0 ;}
   
   #else /*ENABLE_CHECKING*/
   
- BASILYS_LOCATION("warmelt-macro.bysl:2115: @cppif.else");
+ BASILYS_LOCATION("warmelt-macro.bysl:2118: @cppif.else");
  /*_.IFCPP___V5*/ curfptr[4] = (/*nil*/NULL);
   #endif /*ENABLE_CHECKING*/
   ;
  
  #if ENABLE_CHECKING
   
- BASILYS_LOCATION("warmelt-macro.bysl:2116: @cppif.then");
+ BASILYS_LOCATION("warmelt-macro.bysl:2119: @cppif.then");
  
-  BASILYS_LOCATION("warmelt-macro.bysl:2116: @block");
+  BASILYS_LOCATION("warmelt-macro.bysl:2119: @block");
   /*block*/{
    /*_#IS_A__L2*/ curfnum[0] = 
      basilys_is_instance_of((basilys_ptr_t)(/*_.ENV__V3*/ curfptr[2]), (basilys_ptr_t)((/*!CLASS_ENVIRONMENT*/ curfrout->tabval[1])));;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2116: @cond");
+   BASILYS_LOCATION("warmelt-macro.bysl:2119: @cond");
    /*cond*/ if (/*_#IS_A__L2*/ curfnum[0]) /*then*/ {
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2116: @cond.then");
+   BASILYS_LOCATION("warmelt-macro.bysl:2119: @cond.then");
    /*_.IFELSE___V8*/ curfptr[7] = (/*nil*/NULL);;
    } else {
-   BASILYS_LOCATION("warmelt-macro.bysl:2116: @cond.else");
+   BASILYS_LOCATION("warmelt-macro.bysl:2119: @cond.else");
    
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2116: @block");
+    BASILYS_LOCATION("warmelt-macro.bysl:2119: @block");
     /*block*/{
      /*block*/{
       
-      basilys_assert_failed(( "check env"),( "warmelt-macro.bysl"),(2116), __FUNCTION__);
+      basilys_assert_failed(( "check env"),( "warmelt-macro.bysl"),(2119), __FUNCTION__);
       /*clear*/ /*_.IFELSE___V8*/ curfptr[7] = 0 ;}
      ;
      /*epilog*/}
@@ -27685,27 +27729,27 @@ BASILYS_LOCATION("warmelt-macro.bysl:2114: @block");
    /*_.IFCPP___V7*/ curfptr[5] = /*_.IFELSE___V8*/ curfptr[7];;
    /*epilog*/
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2116: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2119: @clear");
    /*clear*/ /*_#IS_A__L2*/ curfnum[0] = 0 ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2116: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2119: @clear");
    /*clear*/ /*_.IFELSE___V8*/ curfptr[7] = 0 ;}
   
   #else /*ENABLE_CHECKING*/
   
- BASILYS_LOCATION("warmelt-macro.bysl:2116: @cppif.else");
+ BASILYS_LOCATION("warmelt-macro.bysl:2119: @cppif.else");
  /*_.IFCPP___V7*/ curfptr[5] = (/*nil*/NULL);
   #endif /*ENABLE_CHECKING*/
   ;
  
- BASILYS_LOCATION("warmelt-macro.bysl:2117: @block");
+ BASILYS_LOCATION("warmelt-macro.bysl:2120: @block");
  /*block*/{
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2117: @getslot");
+  BASILYS_LOCATION("warmelt-macro.bysl:2120: @getslot");
   /*_.CONT__V10*/ curfptr[9] = basilys_getfield_object((basilys_ptr_t)(/*_.SEXPR__V2*/ curfptr[1]), 2, "SEXP_CONTENTS");
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2118: @getslot");
+  BASILYS_LOCATION("warmelt-macro.bysl:2121: @getslot");
   /*_.LOC__V11*/ curfptr[10] = basilys_getfield_object((basilys_ptr_t)(/*_.SEXPR__V2*/ curfptr[1]), 1, "LOCA_LOCATION");
   ;
   /*_.LIST_FIRST__V12*/ curfptr[11] = 
@@ -27717,12 +27761,12 @@ BASILYS_LOCATION("warmelt-macro.bysl:2114: @block");
   /*_.PAIR_TAIL__V15*/ curfptr[14] = 
    (basilys_pair_tail((basilys_ptr_t)(/*_.CURPAIR__V13*/ curfptr[12])));;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2122: @cond");
+  BASILYS_LOCATION("warmelt-macro.bysl:2125: @cond");
   /*cond*/ if (/*_.PAIR_TAIL__V15*/ curfptr[14]) /*then*/ {
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2122: @cond.then");
+  BASILYS_LOCATION("warmelt-macro.bysl:2125: @cond.then");
   
-   BASILYS_LOCATION("warmelt-macro.bysl:2122: @block");
+   BASILYS_LOCATION("warmelt-macro.bysl:2125: @block");
    /*block*/{
     
     error("%s:%d:: BASILYS ERROR [#%ld]: @%s ",  basilys_string_str(basilys_val_mixint((basilys_ptr_t)(/*_.LOC__V11*/ curfptr[10]))),  (int) basilys_num_mixint((basilys_ptr_t)(/*_.LOC__V11*/ curfptr[10])), basilys_dbgcounter, ( "COMMENT should have only one string argument"));
@@ -27735,51 +27779,51 @@ BASILYS_LOCATION("warmelt-macro.bysl:2114: @block");
   /*_#NOT__L4*/ curfnum[3] = 
    (!(/*_#IS_STRING__L3*/ curfnum[0]));;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2124: @cond");
+  BASILYS_LOCATION("warmelt-macro.bysl:2127: @cond");
   /*cond*/ if (/*_#NOT__L4*/ curfnum[3]) /*then*/ {
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2124: @cond.then");
+  BASILYS_LOCATION("warmelt-macro.bysl:2127: @cond.then");
   
-   BASILYS_LOCATION("warmelt-macro.bysl:2124: @block");
+   BASILYS_LOCATION("warmelt-macro.bysl:2127: @block");
    /*block*/{
     
     error("%s:%d:: BASILYS ERROR [#%ld]: @%s ",  basilys_string_str(basilys_val_mixint((basilys_ptr_t)(/*_.LOC__V11*/ curfptr[10]))),  (int) basilys_num_mixint((basilys_ptr_t)(/*_.LOC__V11*/ curfptr[10])), basilys_dbgcounter, ( "COMMENT should have a string"));
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2127: @compute");
+    BASILYS_LOCATION("warmelt-macro.bysl:2130: @compute");
     /*_.COMSTR__V14*/ curfptr[13] = /*_.SETQ___V17*/ curfptr[16] = (/*nil*/NULL);;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2125: @block");
+    BASILYS_LOCATION("warmelt-macro.bysl:2128: @block");
     /*block*/{
      /*_.PROGN___V18*/ curfptr[17] = /*_.SETQ___V17*/ curfptr[16];;}
     ;
     /*_.IF___V16*/ curfptr[15] = /*_.PROGN___V18*/ curfptr[17];;
     /*epilog*/
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2124: @clear");
+    BASILYS_LOCATION("warmelt-macro.bysl:2127: @clear");
     /*clear*/ /*_.SETQ___V17*/ curfptr[16] = 0 ;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2124: @clear");
+    BASILYS_LOCATION("warmelt-macro.bysl:2127: @clear");
     /*clear*/ /*_.PROGN___V18*/ curfptr[17] = 0 ;}
    ;
   } else {
-  BASILYS_LOCATION("warmelt-macro.bysl:2124: @cond.else");
+  BASILYS_LOCATION("warmelt-macro.bysl:2127: @cond.else");
   
    /*_.IF___V16*/ curfptr[15] = NULL;;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2129: @block");
+  BASILYS_LOCATION("warmelt-macro.bysl:2132: @block");
   /*block*/{
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2129: @block");
+   BASILYS_LOCATION("warmelt-macro.bysl:2132: @block");
    /*block*/{
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2129: @rawallocobj");
+    BASILYS_LOCATION("warmelt-macro.bysl:2132: @rawallocobj");
     /*rawallocobj*/ /*_.INST__V21*/ curfptr[20] =
-     basilysgc_new_raw_object((basilysobject_ptr_t)((/*!CLASS_SRC_COMMENT*/ curfrout->tabval[2])), (2));
+     basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_SRC_COMMENT*/ curfrout->tabval[2])), (2), ("CLASS_SRC_COMMENT"));
     ;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2129: @putslot");
+    BASILYS_LOCATION("warmelt-macro.bysl:2132: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V21*/ curfptr[20])) == OBMAG_OBJECT);
     basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V21*/ curfptr[20]))));
@@ -27787,7 +27831,7 @@ BASILYS_LOCATION("warmelt-macro.bysl:2114: @block");
      /*_.LOC__V11*/ curfptr[10]);
     ;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2129: @putslot");
+    BASILYS_LOCATION("warmelt-macro.bysl:2132: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V21*/ curfptr[20])) == OBMAG_OBJECT);
     basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V21*/ curfptr[20]))));
@@ -27797,74 +27841,74 @@ BASILYS_LOCATION("warmelt-macro.bysl:2114: @block");
     /*_.SCOM__V20*/ curfptr[17] = /*_.INST__V21*/ curfptr[20];;}
    ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2132: @block");
+   BASILYS_LOCATION("warmelt-macro.bysl:2135: @block");
    /*block*/{
     /*_.RETVAL___V1*/ curfptr[0] = /*_.SCOM__V20*/ curfptr[17];;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2132: @finalreturn");
+    BASILYS_LOCATION("warmelt-macro.bysl:2135: @finalreturn");
     ;
     /*finalret*/ goto labend_rout ;}
    ;
    /*_.LET___V19*/ curfptr[16] = /*_.RETURN___V22*/ curfptr[21];;
    /*epilog*/
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2129: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2132: @clear");
    /*clear*/ /*_.SCOM__V20*/ curfptr[17] = 0 ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2129: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2132: @clear");
    /*clear*/ /*_.RETURN___V22*/ curfptr[21] = 0 ;}
   ;
   /*_.LET___V9*/ curfptr[7] = /*_.LET___V19*/ curfptr[16];;
   /*epilog*/
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2117: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2120: @clear");
   /*clear*/ /*_.CONT__V10*/ curfptr[9] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2117: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2120: @clear");
   /*clear*/ /*_.LOC__V11*/ curfptr[10] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2117: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2120: @clear");
   /*clear*/ /*_.LIST_FIRST__V12*/ curfptr[11] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2117: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2120: @clear");
   /*clear*/ /*_.CURPAIR__V13*/ curfptr[12] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2117: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2120: @clear");
   /*clear*/ /*_.COMSTR__V14*/ curfptr[13] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2117: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2120: @clear");
   /*clear*/ /*_.PAIR_TAIL__V15*/ curfptr[14] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2117: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2120: @clear");
   /*clear*/ /*_#IS_STRING__L3*/ curfnum[0] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2117: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2120: @clear");
   /*clear*/ /*_#NOT__L4*/ curfnum[3] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2117: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2120: @clear");
   /*clear*/ /*_.IF___V16*/ curfptr[15] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2117: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2120: @clear");
   /*clear*/ /*_.LET___V19*/ curfptr[16] = 0 ;}
  ;
  
- BASILYS_LOCATION("warmelt-macro.bysl:2114: @block");
+ BASILYS_LOCATION("warmelt-macro.bysl:2117: @block");
  /*block*/{
   /*_.RETVAL___V1*/ curfptr[0] = /*_.LET___V9*/ curfptr[7];;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2114: @finalreturn");
+  BASILYS_LOCATION("warmelt-macro.bysl:2117: @finalreturn");
   ;
   /*finalret*/ goto labend_rout ;}
  ;
  /*epilog*/
  
- BASILYS_LOCATION("warmelt-macro.bysl:2114: @clear");
+ BASILYS_LOCATION("warmelt-macro.bysl:2117: @clear");
  /*clear*/ /*_.IFCPP___V5*/ curfptr[4] = 0 ;
  
- BASILYS_LOCATION("warmelt-macro.bysl:2114: @clear");
+ BASILYS_LOCATION("warmelt-macro.bysl:2117: @clear");
  /*clear*/ /*_.IFCPP___V7*/ curfptr[5] = 0 ;
  
- BASILYS_LOCATION("warmelt-macro.bysl:2114: @clear");
+ BASILYS_LOCATION("warmelt-macro.bysl:2117: @clear");
  /*clear*/ /*_.LET___V9*/ curfptr[7] = 0 ;}
 
 ;
@@ -27916,12 +27960,12 @@ basilys_trace_start("PAIRLIST_TO_PROGN", callcount);
 
  /*getarg#0*/
  
- BASILYS_LOCATION("warmelt-macro.bysl:2139: @getarg");
+ BASILYS_LOCATION("warmelt-macro.bysl:2142: @getarg");
  /*_.PAIR__V2*/ curfptr[1] = (basilys_ptr_t) firstargp_;
  
  /*getarg#1*/
  
- BASILYS_LOCATION("warmelt-macro.bysl:2139: @getarg");
+ BASILYS_LOCATION("warmelt-macro.bysl:2142: @getarg");
  if (xargdescr_[0] != BPAR_PTR) goto lab_endgetargs;
  /*_.LOC__V3*/ curfptr[2] = (xargtab_[0].bp_aptr) ? (*(xargtab_[0].bp_aptr)) : NULL;
  gcc_assert(basilys_discr((basilys_ptr_t)(/*_.LOC__V3*/ curfptr[2])) != NULL);
@@ -27929,7 +27973,7 @@ basilys_trace_start("PAIRLIST_TO_PROGN", callcount);
  
  /*getarg#2*/
  
- BASILYS_LOCATION("warmelt-macro.bysl:2139: @getarg");
+ BASILYS_LOCATION("warmelt-macro.bysl:2142: @getarg");
  if (xargdescr_[1] != BPAR_PTR) goto lab_endgetargs;
  /*_.ENV__V4*/ curfptr[3] = (xargtab_[1].bp_aptr) ? (*(xargtab_[1].bp_aptr)) : NULL;
  gcc_assert(basilys_discr((basilys_ptr_t)(/*_.ENV__V4*/ curfptr[3])) != NULL);
@@ -27937,7 +27981,7 @@ basilys_trace_start("PAIRLIST_TO_PROGN", callcount);
  
  /*getarg#3*/
  
- BASILYS_LOCATION("warmelt-macro.bysl:2139: @getarg");
+ BASILYS_LOCATION("warmelt-macro.bysl:2142: @getarg");
  if (xargdescr_[2] != BPAR_PTR) goto lab_endgetargs;
  /*_.MEXPANDER__V5*/ curfptr[4] = (xargtab_[2].bp_aptr) ? (*(xargtab_[2].bp_aptr)) : NULL;
  gcc_assert(basilys_discr((basilys_ptr_t)(/*_.MEXPANDER__V5*/ curfptr[4])) != NULL);
@@ -27947,32 +27991,32 @@ basilys_trace_start("PAIRLIST_TO_PROGN", callcount);
 lab_endgetargs:;
 /*body*/
 
-BASILYS_LOCATION("warmelt-macro.bysl:2139: @block");
+BASILYS_LOCATION("warmelt-macro.bysl:2142: @block");
 /*block*/{
  
  #if ENABLE_CHECKING
   
- BASILYS_LOCATION("warmelt-macro.bysl:2140: @cppif.then");
+ BASILYS_LOCATION("warmelt-macro.bysl:2143: @cppif.then");
  
-  BASILYS_LOCATION("warmelt-macro.bysl:2140: @block");
+  BASILYS_LOCATION("warmelt-macro.bysl:2143: @block");
   /*block*/{
    /*_#IS_A__L1*/ curfnum[0] = 
      basilys_is_instance_of((basilys_ptr_t)(/*_.ENV__V4*/ curfptr[3]), (basilys_ptr_t)((/*!CLASS_ENVIRONMENT*/ curfrout->tabval[0])));;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2140: @cond");
+   BASILYS_LOCATION("warmelt-macro.bysl:2143: @cond");
    /*cond*/ if (/*_#IS_A__L1*/ curfnum[0]) /*then*/ {
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2140: @cond.then");
+   BASILYS_LOCATION("warmelt-macro.bysl:2143: @cond.then");
    /*_.IFELSE___V7*/ curfptr[6] = (/*nil*/NULL);;
    } else {
-   BASILYS_LOCATION("warmelt-macro.bysl:2140: @cond.else");
+   BASILYS_LOCATION("warmelt-macro.bysl:2143: @cond.else");
    
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2140: @block");
+    BASILYS_LOCATION("warmelt-macro.bysl:2143: @block");
     /*block*/{
      /*block*/{
       
-      basilys_assert_failed(( "check env"),( "warmelt-macro.bysl"),(2140), __FUNCTION__);
+      basilys_assert_failed(( "check env"),( "warmelt-macro.bysl"),(2143), __FUNCTION__);
       /*clear*/ /*_.IFELSE___V7*/ curfptr[6] = 0 ;}
      ;
      /*epilog*/}
@@ -27982,83 +28026,83 @@ BASILYS_LOCATION("warmelt-macro.bysl:2139: @block");
    /*_.IFCPP___V6*/ curfptr[5] = /*_.IFELSE___V7*/ curfptr[6];;
    /*epilog*/
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2140: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2143: @clear");
    /*clear*/ /*_#IS_A__L1*/ curfnum[0] = 0 ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2140: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2143: @clear");
    /*clear*/ /*_.IFELSE___V7*/ curfptr[6] = 0 ;}
   
   #else /*ENABLE_CHECKING*/
   
- BASILYS_LOCATION("warmelt-macro.bysl:2140: @cppif.else");
+ BASILYS_LOCATION("warmelt-macro.bysl:2143: @cppif.else");
  /*_.IFCPP___V6*/ curfptr[5] = (/*nil*/NULL);
   #endif /*ENABLE_CHECKING*/
   ;
  
  #if ENABLE_CHECKING
   
- BASILYS_LOCATION("warmelt-macro.bysl:2141: @cppif.then");
+ BASILYS_LOCATION("warmelt-macro.bysl:2144: @cppif.then");
  
-  BASILYS_LOCATION("warmelt-macro.bysl:2141: @block");
+  BASILYS_LOCATION("warmelt-macro.bysl:2144: @block");
   /*block*/{
    /*_#THE_CALLCOUNT__L2*/ curfnum[0] = 
     callcount;;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2141: @apply");
+   BASILYS_LOCATION("warmelt-macro.bysl:2144: @apply");
    /*apply*/{
     union basilysparam_un argtab[4];
     memset(&argtab, 0, sizeof(argtab));
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2141: @apply.arg");
+    BASILYS_LOCATION("warmelt-macro.bysl:2144: @apply.arg");
     argtab[0].bp_cstring =  "pairlist_to_progn pair";
-    BASILYS_LOCATION("warmelt-macro.bysl:2141: @apply.arg");
+    BASILYS_LOCATION("warmelt-macro.bysl:2144: @apply.arg");
     argtab[1].bp_long = /*_#THE_CALLCOUNT__L2*/ curfnum[0];
-    BASILYS_LOCATION("warmelt-macro.bysl:2141: @apply.arg");
+    BASILYS_LOCATION("warmelt-macro.bysl:2144: @apply.arg");
     argtab[2].bp_cstring =  "warmelt-macro.bysl";
-    BASILYS_LOCATION("warmelt-macro.bysl:2141: @apply.arg");
-    argtab[3].bp_long = 2141;
+    BASILYS_LOCATION("warmelt-macro.bysl:2144: @apply.arg");
+    argtab[3].bp_long = 2144;
     /*_.DEBUG_MSG_FUN__V9*/ curfptr[8] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[1])), (basilys_ptr_t)(/*_.PAIR__V2*/ curfptr[1]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
     }
    ;
    /*_.IFCPP___V8*/ curfptr[6] = /*_.DEBUG_MSG_FUN__V9*/ curfptr[8];;
    /*epilog*/
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2141: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2144: @clear");
    /*clear*/ /*_#THE_CALLCOUNT__L2*/ curfnum[0] = 0 ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2141: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2144: @clear");
    /*clear*/ /*_.DEBUG_MSG_FUN__V9*/ curfptr[8] = 0 ;}
   
   #else /*ENABLE_CHECKING*/
   
- BASILYS_LOCATION("warmelt-macro.bysl:2141: @cppif.else");
+ BASILYS_LOCATION("warmelt-macro.bysl:2144: @cppif.else");
  /*_.IFCPP___V8*/ curfptr[6] = (/*nil*/NULL);
   #endif /*ENABLE_CHECKING*/
   ;
  
  #if ENABLE_CHECKING
   
- BASILYS_LOCATION("warmelt-macro.bysl:2142: @cppif.then");
+ BASILYS_LOCATION("warmelt-macro.bysl:2145: @cppif.then");
  
-  BASILYS_LOCATION("warmelt-macro.bysl:2142: @block");
+  BASILYS_LOCATION("warmelt-macro.bysl:2145: @block");
   /*block*/{
    /*_#IS_PAIR__L3*/ curfnum[0] = 
     (basilys_magic_discr((basilys_ptr_t)(/*_.PAIR__V2*/ curfptr[1])) == OBMAG_PAIR);;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2142: @cond");
+   BASILYS_LOCATION("warmelt-macro.bysl:2145: @cond");
    /*cond*/ if (/*_#IS_PAIR__L3*/ curfnum[0]) /*then*/ {
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2142: @cond.then");
+   BASILYS_LOCATION("warmelt-macro.bysl:2145: @cond.then");
    /*_.IFELSE___V11*/ curfptr[10] = (/*nil*/NULL);;
    } else {
-   BASILYS_LOCATION("warmelt-macro.bysl:2142: @cond.else");
+   BASILYS_LOCATION("warmelt-macro.bysl:2145: @cond.else");
    
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2142: @block");
+    BASILYS_LOCATION("warmelt-macro.bysl:2145: @block");
     /*block*/{
      /*block*/{
       
-      basilys_assert_failed(( "check_pair"),( "warmelt-macro.bysl"),(2142), __FUNCTION__);
+      basilys_assert_failed(( "check_pair"),( "warmelt-macro.bysl"),(2145), __FUNCTION__);
       /*clear*/ /*_.IFELSE___V11*/ curfptr[10] = 0 ;}
      ;
      /*epilog*/}
@@ -28068,38 +28112,38 @@ BASILYS_LOCATION("warmelt-macro.bysl:2139: @block");
    /*_.IFCPP___V10*/ curfptr[8] = /*_.IFELSE___V11*/ curfptr[10];;
    /*epilog*/
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2142: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2145: @clear");
    /*clear*/ /*_#IS_PAIR__L3*/ curfnum[0] = 0 ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2142: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2145: @clear");
    /*clear*/ /*_.IFELSE___V11*/ curfptr[10] = 0 ;}
   
   #else /*ENABLE_CHECKING*/
   
- BASILYS_LOCATION("warmelt-macro.bysl:2142: @cppif.else");
+ BASILYS_LOCATION("warmelt-macro.bysl:2145: @cppif.else");
  /*_.IFCPP___V10*/ curfptr[8] = (/*nil*/NULL);
   #endif /*ENABLE_CHECKING*/
   ;
  
- BASILYS_LOCATION("warmelt-macro.bysl:2143: @block");
+ BASILYS_LOCATION("warmelt-macro.bysl:2146: @block");
  /*block*/{
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2146: @block");
+  BASILYS_LOCATION("warmelt-macro.bysl:2149: @block");
   /*block*/{
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2146: @newclosure");
+   BASILYS_LOCATION("warmelt-macro.bysl:2149: @newclosure");
     /*newclosure*/ /*_.LAMBDA___V14*/ curfptr[13] =
     basilysgc_new_closure((basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_CLOSURE)))), (basilysroutine_ptr_t)((/*!konst_5*/ curfrout->tabval[5])), (2));
    ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2146: @putclosedv");
+   BASILYS_LOCATION("warmelt-macro.bysl:2149: @putclosedv");
    /*putclosv*/
    basilys_assertmsg("putclosv checkclo", basilys_magic_discr((basilys_ptr_t)(/*_.LAMBDA___V14*/ curfptr[13])) == OBMAG_CLOSURE);
    basilys_assertmsg("putclosv checkoff", 0>= 0 && 0< basilys_closure_size((basilys_ptr_t) (/*_.LAMBDA___V14*/ curfptr[13])));
    ((basilysclosure_ptr_t)/*_.LAMBDA___V14*/ curfptr[13])->tabval[0] = (basilys_ptr_t)(/*_.ENV__V4*/ curfptr[3]);
    ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2146: @putclosedv");
+   BASILYS_LOCATION("warmelt-macro.bysl:2149: @putclosedv");
    /*putclosv*/
    basilys_assertmsg("putclosv checkclo", basilys_magic_discr((basilys_ptr_t)(/*_.LAMBDA___V14*/ curfptr[13])) == OBMAG_CLOSURE);
    basilys_assertmsg("putclosv checkoff", 1>= 0 && 1< basilys_closure_size((basilys_ptr_t) (/*_.LAMBDA___V14*/ curfptr[13])));
@@ -28108,28 +28152,28 @@ BASILYS_LOCATION("warmelt-macro.bysl:2139: @block");
    /*_.LAMBDA___V13*/ curfptr[12] = /*_.LAMBDA___V14*/ curfptr[13];;}
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2143: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2146: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2143: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2146: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &(/*!DISCR_MULTIPLE*/ curfrout->tabval[3]);
-   BASILYS_LOCATION("warmelt-macro.bysl:2143: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2146: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &/*_.LAMBDA___V13*/ curfptr[12];
    /*_.BODYTUP__V15*/ curfptr[14] =  basilys_apply ((basilysclosure_ptr_t)((/*!PAIRLIST_TO_MULTIPLE*/ curfrout->tabval[2])), (basilys_ptr_t)(/*_.PAIR__V2*/ curfptr[1]), (BPARSTR_PTR BPARSTR_PTR ""), argtab, "", (union basilysparam_un*)0);
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2148: @block");
+  BASILYS_LOCATION("warmelt-macro.bysl:2151: @block");
   /*block*/{
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2148: @rawallocobj");
+   BASILYS_LOCATION("warmelt-macro.bysl:2151: @rawallocobj");
    /*rawallocobj*/ /*_.INST__V17*/ curfptr[16] =
-    basilysgc_new_raw_object((basilysobject_ptr_t)((/*!CLASS_SRC_PROGN*/ curfrout->tabval[6])), (2));
+    basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_SRC_PROGN*/ curfrout->tabval[6])), (2), ("CLASS_SRC_PROGN"));
    ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2148: @putslot");
+   BASILYS_LOCATION("warmelt-macro.bysl:2151: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V17*/ curfptr[16])) == OBMAG_OBJECT);
    basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V17*/ curfptr[16]))));
@@ -28137,7 +28181,7 @@ BASILYS_LOCATION("warmelt-macro.bysl:2139: @block");
     /*_.LOC__V3*/ curfptr[2]);
    ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2148: @putslot");
+   BASILYS_LOCATION("warmelt-macro.bysl:2151: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V17*/ curfptr[16])) == OBMAG_OBJECT);
    basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V17*/ curfptr[16]))));
@@ -28149,92 +28193,92 @@ BASILYS_LOCATION("warmelt-macro.bysl:2139: @block");
   
   #if ENABLE_CHECKING
    
-  BASILYS_LOCATION("warmelt-macro.bysl:2152: @cppif.then");
+  BASILYS_LOCATION("warmelt-macro.bysl:2155: @cppif.then");
   
-   BASILYS_LOCATION("warmelt-macro.bysl:2152: @block");
+   BASILYS_LOCATION("warmelt-macro.bysl:2155: @block");
    /*block*/{
     /*_#THE_CALLCOUNT__L4*/ curfnum[0] = 
      callcount;;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2152: @apply");
+    BASILYS_LOCATION("warmelt-macro.bysl:2155: @apply");
     /*apply*/{
      union basilysparam_un argtab[4];
      memset(&argtab, 0, sizeof(argtab));
      
-     BASILYS_LOCATION("warmelt-macro.bysl:2152: @apply.arg");
+     BASILYS_LOCATION("warmelt-macro.bysl:2155: @apply.arg");
      argtab[0].bp_cstring =  "pairlist_to_progn sprogn";
-     BASILYS_LOCATION("warmelt-macro.bysl:2152: @apply.arg");
+     BASILYS_LOCATION("warmelt-macro.bysl:2155: @apply.arg");
      argtab[1].bp_long = /*_#THE_CALLCOUNT__L4*/ curfnum[0];
-     BASILYS_LOCATION("warmelt-macro.bysl:2152: @apply.arg");
+     BASILYS_LOCATION("warmelt-macro.bysl:2155: @apply.arg");
      argtab[2].bp_cstring =  "warmelt-macro.bysl";
-     BASILYS_LOCATION("warmelt-macro.bysl:2152: @apply.arg");
-     argtab[3].bp_long = 2152;
+     BASILYS_LOCATION("warmelt-macro.bysl:2155: @apply.arg");
+     argtab[3].bp_long = 2155;
      /*_.DEBUG_MSG_FUN__V19*/ curfptr[18] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[1])), (basilys_ptr_t)(/*_.SPROGN__V16*/ curfptr[15]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
      }
     ;
     /*_.IFCPP___V18*/ curfptr[17] = /*_.DEBUG_MSG_FUN__V19*/ curfptr[18];;
     /*epilog*/
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2152: @clear");
+    BASILYS_LOCATION("warmelt-macro.bysl:2155: @clear");
     /*clear*/ /*_#THE_CALLCOUNT__L4*/ curfnum[0] = 0 ;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2152: @clear");
+    BASILYS_LOCATION("warmelt-macro.bysl:2155: @clear");
     /*clear*/ /*_.DEBUG_MSG_FUN__V19*/ curfptr[18] = 0 ;}
    
    #else /*ENABLE_CHECKING*/
    
-  BASILYS_LOCATION("warmelt-macro.bysl:2152: @cppif.else");
+  BASILYS_LOCATION("warmelt-macro.bysl:2155: @cppif.else");
   /*_.IFCPP___V18*/ curfptr[17] = (/*nil*/NULL);
    #endif /*ENABLE_CHECKING*/
    ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2153: @block");
+  BASILYS_LOCATION("warmelt-macro.bysl:2156: @block");
   /*block*/{
    /*_.RETVAL___V1*/ curfptr[0] = /*_.SPROGN__V16*/ curfptr[15];;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2153: @finalreturn");
+   BASILYS_LOCATION("warmelt-macro.bysl:2156: @finalreturn");
    ;
    /*finalret*/ goto labend_rout ;}
   ;
   /*_.LET___V12*/ curfptr[10] = /*_.RETURN___V20*/ curfptr[18];;
   /*epilog*/
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2143: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2146: @clear");
   /*clear*/ /*_.LAMBDA___V13*/ curfptr[12] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2143: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2146: @clear");
   /*clear*/ /*_.BODYTUP__V15*/ curfptr[14] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2143: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2146: @clear");
   /*clear*/ /*_.SPROGN__V16*/ curfptr[15] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2143: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2146: @clear");
   /*clear*/ /*_.IFCPP___V18*/ curfptr[17] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2143: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2146: @clear");
   /*clear*/ /*_.RETURN___V20*/ curfptr[18] = 0 ;}
  ;
  
- BASILYS_LOCATION("warmelt-macro.bysl:2139: @block");
+ BASILYS_LOCATION("warmelt-macro.bysl:2142: @block");
  /*block*/{
   /*_.RETVAL___V1*/ curfptr[0] = /*_.LET___V12*/ curfptr[10];;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2139: @finalreturn");
+  BASILYS_LOCATION("warmelt-macro.bysl:2142: @finalreturn");
   ;
   /*finalret*/ goto labend_rout ;}
  ;
  /*epilog*/
  
- BASILYS_LOCATION("warmelt-macro.bysl:2139: @clear");
+ BASILYS_LOCATION("warmelt-macro.bysl:2142: @clear");
  /*clear*/ /*_.IFCPP___V6*/ curfptr[5] = 0 ;
  
- BASILYS_LOCATION("warmelt-macro.bysl:2139: @clear");
+ BASILYS_LOCATION("warmelt-macro.bysl:2142: @clear");
  /*clear*/ /*_.IFCPP___V8*/ curfptr[6] = 0 ;
  
- BASILYS_LOCATION("warmelt-macro.bysl:2139: @clear");
+ BASILYS_LOCATION("warmelt-macro.bysl:2142: @clear");
  /*clear*/ /*_.IFCPP___V10*/ curfptr[8] = 0 ;
  
- BASILYS_LOCATION("warmelt-macro.bysl:2139: @clear");
+ BASILYS_LOCATION("warmelt-macro.bysl:2142: @clear");
  /*clear*/ /*_.LET___V12*/ curfptr[10] = 0 ;}
 
 ;
@@ -28286,40 +28330,40 @@ basilys_trace_start("LAMBDA_", callcount);
 
  /*getarg#0*/
  
- BASILYS_LOCATION("warmelt-macro.bysl:2146: @getarg");
+ BASILYS_LOCATION("warmelt-macro.bysl:2149: @getarg");
  /*_.E__V2*/ curfptr[1] = (basilys_ptr_t) firstargp_;
  ;
  goto lab_endgetargs;
 lab_endgetargs:;
 /*body*/
 
-BASILYS_LOCATION("warmelt-macro.bysl:2146: @block");
+BASILYS_LOCATION("warmelt-macro.bysl:2149: @block");
 /*block*/{
  
- BASILYS_LOCATION("warmelt-macro.bysl:2146: @apply");
+ BASILYS_LOCATION("warmelt-macro.bysl:2149: @apply");
  /*apply*/{
   union basilysparam_un argtab[2];
   memset(&argtab, 0, sizeof(argtab));
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2146: @apply.arg");
+  BASILYS_LOCATION("warmelt-macro.bysl:2149: @apply.arg");
   argtab[0].bp_aptr = (basilys_ptr_t*) &(/*~ENV*/ curfclos->tabval[0]);
-  BASILYS_LOCATION("warmelt-macro.bysl:2146: @apply.arg");
+  BASILYS_LOCATION("warmelt-macro.bysl:2149: @apply.arg");
   argtab[1].bp_aptr = (basilys_ptr_t*) &(/*~MEXPANDER*/ curfclos->tabval[1]);
   /*_.MACROEXPAND_1__V3*/ curfptr[2] =  basilys_apply ((basilysclosure_ptr_t)((/*!MACROEXPAND_1*/ curfrout->tabval[0])), (basilys_ptr_t)(/*_.E__V2*/ curfptr[1]), (BPARSTR_PTR BPARSTR_PTR ""), argtab, "", (union basilysparam_un*)0);
   }
  ;
  
- BASILYS_LOCATION("warmelt-macro.bysl:2146: @block");
+ BASILYS_LOCATION("warmelt-macro.bysl:2149: @block");
  /*block*/{
   /*_.RETVAL___V1*/ curfptr[0] = /*_.MACROEXPAND_1__V3*/ curfptr[2];;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2146: @finalreturn");
+  BASILYS_LOCATION("warmelt-macro.bysl:2149: @finalreturn");
   ;
   /*finalret*/ goto labend_rout ;}
  ;
  /*epilog*/
  
- BASILYS_LOCATION("warmelt-macro.bysl:2146: @clear");
+ BASILYS_LOCATION("warmelt-macro.bysl:2149: @clear");
  /*clear*/ /*_.MACROEXPAND_1__V3*/ curfptr[2] = 0 ;}
 
 ;
@@ -28371,12 +28415,12 @@ basilys_trace_start("PAIRLIST_TO_RETURN", callcount);
 
  /*getarg#0*/
  
- BASILYS_LOCATION("warmelt-macro.bysl:2157: @getarg");
+ BASILYS_LOCATION("warmelt-macro.bysl:2160: @getarg");
  /*_.PAIR__V2*/ curfptr[1] = (basilys_ptr_t) firstargp_;
  
  /*getarg#1*/
  
- BASILYS_LOCATION("warmelt-macro.bysl:2157: @getarg");
+ BASILYS_LOCATION("warmelt-macro.bysl:2160: @getarg");
  if (xargdescr_[0] != BPAR_PTR) goto lab_endgetargs;
  /*_.LOC__V3*/ curfptr[2] = (xargtab_[0].bp_aptr) ? (*(xargtab_[0].bp_aptr)) : NULL;
  gcc_assert(basilys_discr((basilys_ptr_t)(/*_.LOC__V3*/ curfptr[2])) != NULL);
@@ -28384,7 +28428,7 @@ basilys_trace_start("PAIRLIST_TO_RETURN", callcount);
  
  /*getarg#2*/
  
- BASILYS_LOCATION("warmelt-macro.bysl:2157: @getarg");
+ BASILYS_LOCATION("warmelt-macro.bysl:2160: @getarg");
  if (xargdescr_[1] != BPAR_PTR) goto lab_endgetargs;
  /*_.ENV__V4*/ curfptr[3] = (xargtab_[1].bp_aptr) ? (*(xargtab_[1].bp_aptr)) : NULL;
  gcc_assert(basilys_discr((basilys_ptr_t)(/*_.ENV__V4*/ curfptr[3])) != NULL);
@@ -28392,7 +28436,7 @@ basilys_trace_start("PAIRLIST_TO_RETURN", callcount);
  
  /*getarg#3*/
  
- BASILYS_LOCATION("warmelt-macro.bysl:2157: @getarg");
+ BASILYS_LOCATION("warmelt-macro.bysl:2160: @getarg");
  if (xargdescr_[2] != BPAR_PTR) goto lab_endgetargs;
  /*_.MEXPANDER__V5*/ curfptr[4] = (xargtab_[2].bp_aptr) ? (*(xargtab_[2].bp_aptr)) : NULL;
  gcc_assert(basilys_discr((basilys_ptr_t)(/*_.MEXPANDER__V5*/ curfptr[4])) != NULL);
@@ -28402,32 +28446,32 @@ basilys_trace_start("PAIRLIST_TO_RETURN", callcount);
 lab_endgetargs:;
 /*body*/
 
-BASILYS_LOCATION("warmelt-macro.bysl:2157: @block");
+BASILYS_LOCATION("warmelt-macro.bysl:2160: @block");
 /*block*/{
  
  #if ENABLE_CHECKING
   
- BASILYS_LOCATION("warmelt-macro.bysl:2158: @cppif.then");
+ BASILYS_LOCATION("warmelt-macro.bysl:2161: @cppif.then");
  
-  BASILYS_LOCATION("warmelt-macro.bysl:2158: @block");
+  BASILYS_LOCATION("warmelt-macro.bysl:2161: @block");
   /*block*/{
    /*_#IS_A__L1*/ curfnum[0] = 
      basilys_is_instance_of((basilys_ptr_t)(/*_.ENV__V4*/ curfptr[3]), (basilys_ptr_t)((/*!CLASS_ENVIRONMENT*/ curfrout->tabval[0])));;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2158: @cond");
+   BASILYS_LOCATION("warmelt-macro.bysl:2161: @cond");
    /*cond*/ if (/*_#IS_A__L1*/ curfnum[0]) /*then*/ {
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2158: @cond.then");
+   BASILYS_LOCATION("warmelt-macro.bysl:2161: @cond.then");
    /*_.IFELSE___V7*/ curfptr[6] = (/*nil*/NULL);;
    } else {
-   BASILYS_LOCATION("warmelt-macro.bysl:2158: @cond.else");
+   BASILYS_LOCATION("warmelt-macro.bysl:2161: @cond.else");
    
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2158: @block");
+    BASILYS_LOCATION("warmelt-macro.bysl:2161: @block");
     /*block*/{
      /*block*/{
       
-      basilys_assert_failed(( "check env"),( "warmelt-macro.bysl"),(2158), __FUNCTION__);
+      basilys_assert_failed(( "check env"),( "warmelt-macro.bysl"),(2161), __FUNCTION__);
       /*clear*/ /*_.IFELSE___V7*/ curfptr[6] = 0 ;}
      ;
      /*epilog*/}
@@ -28437,38 +28481,38 @@ BASILYS_LOCATION("warmelt-macro.bysl:2157: @block");
    /*_.IFCPP___V6*/ curfptr[5] = /*_.IFELSE___V7*/ curfptr[6];;
    /*epilog*/
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2158: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2161: @clear");
    /*clear*/ /*_#IS_A__L1*/ curfnum[0] = 0 ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2158: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2161: @clear");
    /*clear*/ /*_.IFELSE___V7*/ curfptr[6] = 0 ;}
   
   #else /*ENABLE_CHECKING*/
   
- BASILYS_LOCATION("warmelt-macro.bysl:2158: @cppif.else");
+ BASILYS_LOCATION("warmelt-macro.bysl:2161: @cppif.else");
  /*_.IFCPP___V6*/ curfptr[5] = (/*nil*/NULL);
   #endif /*ENABLE_CHECKING*/
   ;
  
- BASILYS_LOCATION("warmelt-macro.bysl:2159: @block");
+ BASILYS_LOCATION("warmelt-macro.bysl:2162: @block");
  /*block*/{
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2162: @block");
+  BASILYS_LOCATION("warmelt-macro.bysl:2165: @block");
   /*block*/{
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2162: @newclosure");
+   BASILYS_LOCATION("warmelt-macro.bysl:2165: @newclosure");
     /*newclosure*/ /*_.LAMBDA___V10*/ curfptr[9] =
     basilysgc_new_closure((basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_CLOSURE)))), (basilysroutine_ptr_t)((/*!konst_4*/ curfrout->tabval[4])), (2));
    ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2162: @putclosedv");
+   BASILYS_LOCATION("warmelt-macro.bysl:2165: @putclosedv");
    /*putclosv*/
    basilys_assertmsg("putclosv checkclo", basilys_magic_discr((basilys_ptr_t)(/*_.LAMBDA___V10*/ curfptr[9])) == OBMAG_CLOSURE);
    basilys_assertmsg("putclosv checkoff", 0>= 0 && 0< basilys_closure_size((basilys_ptr_t) (/*_.LAMBDA___V10*/ curfptr[9])));
    ((basilysclosure_ptr_t)/*_.LAMBDA___V10*/ curfptr[9])->tabval[0] = (basilys_ptr_t)(/*_.ENV__V4*/ curfptr[3]);
    ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2162: @putclosedv");
+   BASILYS_LOCATION("warmelt-macro.bysl:2165: @putclosedv");
    /*putclosv*/
    basilys_assertmsg("putclosv checkclo", basilys_magic_discr((basilys_ptr_t)(/*_.LAMBDA___V10*/ curfptr[9])) == OBMAG_CLOSURE);
    basilys_assertmsg("putclosv checkoff", 1>= 0 && 1< basilys_closure_size((basilys_ptr_t) (/*_.LAMBDA___V10*/ curfptr[9])));
@@ -28477,28 +28521,28 @@ BASILYS_LOCATION("warmelt-macro.bysl:2157: @block");
    /*_.LAMBDA___V9*/ curfptr[8] = /*_.LAMBDA___V10*/ curfptr[9];;}
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2159: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2162: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2159: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2162: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &(/*!DISCR_MULTIPLE*/ curfrout->tabval[2]);
-   BASILYS_LOCATION("warmelt-macro.bysl:2159: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2162: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &/*_.LAMBDA___V9*/ curfptr[8];
    /*_.BODYTUP__V11*/ curfptr[10] =  basilys_apply ((basilysclosure_ptr_t)((/*!PAIRLIST_TO_MULTIPLE*/ curfrout->tabval[1])), (basilys_ptr_t)(/*_.PAIR__V2*/ curfptr[1]), (BPARSTR_PTR BPARSTR_PTR ""), argtab, "", (union basilysparam_un*)0);
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2163: @block");
+  BASILYS_LOCATION("warmelt-macro.bysl:2166: @block");
   /*block*/{
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2163: @rawallocobj");
+   BASILYS_LOCATION("warmelt-macro.bysl:2166: @rawallocobj");
    /*rawallocobj*/ /*_.INST__V13*/ curfptr[12] =
-    basilysgc_new_raw_object((basilysobject_ptr_t)((/*!CLASS_SRC_RETURN*/ curfrout->tabval[5])), (2));
+    basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_SRC_RETURN*/ curfrout->tabval[5])), (2), ("CLASS_SRC_RETURN"));
    ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2163: @putslot");
+   BASILYS_LOCATION("warmelt-macro.bysl:2166: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V13*/ curfptr[12])) == OBMAG_OBJECT);
    basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V13*/ curfptr[12]))));
@@ -28506,7 +28550,7 @@ BASILYS_LOCATION("warmelt-macro.bysl:2157: @block");
     /*_.LOC__V3*/ curfptr[2]);
    ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2163: @putslot");
+   BASILYS_LOCATION("warmelt-macro.bysl:2166: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V13*/ curfptr[12])) == OBMAG_OBJECT);
    basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V13*/ curfptr[12]))));
@@ -28518,30 +28562,30 @@ BASILYS_LOCATION("warmelt-macro.bysl:2157: @block");
   /*_.LET___V8*/ curfptr[6] = /*_.INST___V12*/ curfptr[11];;
   /*epilog*/
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2159: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2162: @clear");
   /*clear*/ /*_.LAMBDA___V9*/ curfptr[8] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2159: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2162: @clear");
   /*clear*/ /*_.BODYTUP__V11*/ curfptr[10] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2159: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2162: @clear");
   /*clear*/ /*_.INST___V12*/ curfptr[11] = 0 ;}
  ;
  
- BASILYS_LOCATION("warmelt-macro.bysl:2157: @block");
+ BASILYS_LOCATION("warmelt-macro.bysl:2160: @block");
  /*block*/{
   /*_.RETVAL___V1*/ curfptr[0] = /*_.LET___V8*/ curfptr[6];;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2157: @finalreturn");
+  BASILYS_LOCATION("warmelt-macro.bysl:2160: @finalreturn");
   ;
   /*finalret*/ goto labend_rout ;}
  ;
  /*epilog*/
  
- BASILYS_LOCATION("warmelt-macro.bysl:2157: @clear");
+ BASILYS_LOCATION("warmelt-macro.bysl:2160: @clear");
  /*clear*/ /*_.IFCPP___V6*/ curfptr[5] = 0 ;
  
- BASILYS_LOCATION("warmelt-macro.bysl:2157: @clear");
+ BASILYS_LOCATION("warmelt-macro.bysl:2160: @clear");
  /*clear*/ /*_.LET___V8*/ curfptr[6] = 0 ;}
 
 ;
@@ -28593,40 +28637,40 @@ basilys_trace_start("LAMBDA_", callcount);
 
  /*getarg#0*/
  
- BASILYS_LOCATION("warmelt-macro.bysl:2162: @getarg");
+ BASILYS_LOCATION("warmelt-macro.bysl:2165: @getarg");
  /*_.E__V2*/ curfptr[1] = (basilys_ptr_t) firstargp_;
  ;
  goto lab_endgetargs;
 lab_endgetargs:;
 /*body*/
 
-BASILYS_LOCATION("warmelt-macro.bysl:2162: @block");
+BASILYS_LOCATION("warmelt-macro.bysl:2165: @block");
 /*block*/{
  
- BASILYS_LOCATION("warmelt-macro.bysl:2162: @apply");
+ BASILYS_LOCATION("warmelt-macro.bysl:2165: @apply");
  /*apply*/{
   union basilysparam_un argtab[2];
   memset(&argtab, 0, sizeof(argtab));
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2162: @apply.arg");
+  BASILYS_LOCATION("warmelt-macro.bysl:2165: @apply.arg");
   argtab[0].bp_aptr = (basilys_ptr_t*) &(/*~ENV*/ curfclos->tabval[0]);
-  BASILYS_LOCATION("warmelt-macro.bysl:2162: @apply.arg");
+  BASILYS_LOCATION("warmelt-macro.bysl:2165: @apply.arg");
   argtab[1].bp_aptr = (basilys_ptr_t*) &(/*~MEXPANDER*/ curfclos->tabval[1]);
   /*_.MACROEXPAND_1__V3*/ curfptr[2] =  basilys_apply ((basilysclosure_ptr_t)((/*!MACROEXPAND_1*/ curfrout->tabval[0])), (basilys_ptr_t)(/*_.E__V2*/ curfptr[1]), (BPARSTR_PTR BPARSTR_PTR ""), argtab, "", (union basilysparam_un*)0);
   }
  ;
  
- BASILYS_LOCATION("warmelt-macro.bysl:2162: @block");
+ BASILYS_LOCATION("warmelt-macro.bysl:2165: @block");
  /*block*/{
   /*_.RETVAL___V1*/ curfptr[0] = /*_.MACROEXPAND_1__V3*/ curfptr[2];;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2162: @finalreturn");
+  BASILYS_LOCATION("warmelt-macro.bysl:2165: @finalreturn");
   ;
   /*finalret*/ goto labend_rout ;}
  ;
  /*epilog*/
  
- BASILYS_LOCATION("warmelt-macro.bysl:2162: @clear");
+ BASILYS_LOCATION("warmelt-macro.bysl:2165: @clear");
  /*clear*/ /*_.MACROEXPAND_1__V3*/ curfptr[2] = 0 ;}
 
 ;
@@ -28678,12 +28722,12 @@ basilys_trace_start("MEXPAND_PROGN", callcount);
 
  /*getarg#0*/
  
- BASILYS_LOCATION("warmelt-macro.bysl:2170: @getarg");
+ BASILYS_LOCATION("warmelt-macro.bysl:2173: @getarg");
  /*_.SEXPR__V2*/ curfptr[1] = (basilys_ptr_t) firstargp_;
  
  /*getarg#1*/
  
- BASILYS_LOCATION("warmelt-macro.bysl:2170: @getarg");
+ BASILYS_LOCATION("warmelt-macro.bysl:2173: @getarg");
  if (xargdescr_[0] != BPAR_PTR) goto lab_endgetargs;
  /*_.ENV__V3*/ curfptr[2] = (xargtab_[0].bp_aptr) ? (*(xargtab_[0].bp_aptr)) : NULL;
  gcc_assert(basilys_discr((basilys_ptr_t)(/*_.ENV__V3*/ curfptr[2])) != NULL);
@@ -28691,7 +28735,7 @@ basilys_trace_start("MEXPAND_PROGN", callcount);
  
  /*getarg#2*/
  
- BASILYS_LOCATION("warmelt-macro.bysl:2170: @getarg");
+ BASILYS_LOCATION("warmelt-macro.bysl:2173: @getarg");
  if (xargdescr_[1] != BPAR_PTR) goto lab_endgetargs;
  /*_.MEXPANDER__V4*/ curfptr[3] = (xargtab_[1].bp_aptr) ? (*(xargtab_[1].bp_aptr)) : NULL;
  gcc_assert(basilys_discr((basilys_ptr_t)(/*_.MEXPANDER__V4*/ curfptr[3])) != NULL);
@@ -28701,32 +28745,32 @@ basilys_trace_start("MEXPAND_PROGN", callcount);
 lab_endgetargs:;
 /*body*/
 
-BASILYS_LOCATION("warmelt-macro.bysl:2170: @block");
+BASILYS_LOCATION("warmelt-macro.bysl:2173: @block");
 /*block*/{
  
  #if ENABLE_CHECKING
   
- BASILYS_LOCATION("warmelt-macro.bysl:2171: @cppif.then");
+ BASILYS_LOCATION("warmelt-macro.bysl:2174: @cppif.then");
  
-  BASILYS_LOCATION("warmelt-macro.bysl:2171: @block");
+  BASILYS_LOCATION("warmelt-macro.bysl:2174: @block");
   /*block*/{
    /*_#IS_A__L1*/ curfnum[0] = 
      basilys_is_instance_of((basilys_ptr_t)(/*_.SEXPR__V2*/ curfptr[1]), (basilys_ptr_t)((/*!CLASS_SEXPR*/ curfrout->tabval[0])));;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2171: @cond");
+   BASILYS_LOCATION("warmelt-macro.bysl:2174: @cond");
    /*cond*/ if (/*_#IS_A__L1*/ curfnum[0]) /*then*/ {
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2171: @cond.then");
+   BASILYS_LOCATION("warmelt-macro.bysl:2174: @cond.then");
    /*_.IFELSE___V6*/ curfptr[5] = (/*nil*/NULL);;
    } else {
-   BASILYS_LOCATION("warmelt-macro.bysl:2171: @cond.else");
+   BASILYS_LOCATION("warmelt-macro.bysl:2174: @cond.else");
    
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2171: @block");
+    BASILYS_LOCATION("warmelt-macro.bysl:2174: @block");
     /*block*/{
      /*block*/{
       
-      basilys_assert_failed(( "check sexpr"),( "warmelt-macro.bysl"),(2171), __FUNCTION__);
+      basilys_assert_failed(( "check sexpr"),( "warmelt-macro.bysl"),(2174), __FUNCTION__);
       /*clear*/ /*_.IFELSE___V6*/ curfptr[5] = 0 ;}
      ;
      /*epilog*/}
@@ -28736,27 +28780,27 @@ BASILYS_LOCATION("warmelt-macro.bysl:2170: @block");
    /*_.IFCPP___V5*/ curfptr[4] = /*_.IFELSE___V6*/ curfptr[5];;
    /*epilog*/
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2171: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2174: @clear");
    /*clear*/ /*_#IS_A__L1*/ curfnum[0] = 0 ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2171: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2174: @clear");
    /*clear*/ /*_.IFELSE___V6*/ curfptr[5] = 0 ;}
   
   #else /*ENABLE_CHECKING*/
   
- BASILYS_LOCATION("warmelt-macro.bysl:2171: @cppif.else");
+ BASILYS_LOCATION("warmelt-macro.bysl:2174: @cppif.else");
  /*_.IFCPP___V5*/ curfptr[4] = (/*nil*/NULL);
   #endif /*ENABLE_CHECKING*/
   ;
  
- BASILYS_LOCATION("warmelt-macro.bysl:2172: @block");
+ BASILYS_LOCATION("warmelt-macro.bysl:2175: @block");
  /*block*/{
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2172: @getslot");
+  BASILYS_LOCATION("warmelt-macro.bysl:2175: @getslot");
   /*_.SLOC__V8*/ curfptr[7] = basilys_getfield_object((basilys_ptr_t)(/*_.SEXPR__V2*/ curfptr[1]), 1, "LOCA_LOCATION");
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2174: @getslot");
+  BASILYS_LOCATION("warmelt-macro.bysl:2177: @getslot");
   /*_.SEXP_CONTENTS__V9*/ curfptr[8] = basilys_getfield_object((basilys_ptr_t)(/*_.SEXPR__V2*/ curfptr[1]), 2, "SEXP_CONTENTS");
   ;
   /*_.LIST_FIRST__V10*/ curfptr[9] = 
@@ -28768,122 +28812,122 @@ BASILYS_LOCATION("warmelt-macro.bysl:2170: @block");
   /*_#NOT__L3*/ curfnum[2] = 
    (!(/*_#IS_PAIR__L2*/ curfnum[0]));;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2176: @cond");
+  BASILYS_LOCATION("warmelt-macro.bysl:2179: @cond");
   /*cond*/ if (/*_#NOT__L3*/ curfnum[2]) /*then*/ {
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2176: @cond.then");
+  BASILYS_LOCATION("warmelt-macro.bysl:2179: @cond.then");
   
-   BASILYS_LOCATION("warmelt-macro.bysl:2176: @block");
+   BASILYS_LOCATION("warmelt-macro.bysl:2179: @block");
    /*block*/{
     
     error("%s:%d:: BASILYS ERROR [#%ld]: @%s ",  basilys_string_str(basilys_val_mixint((basilys_ptr_t)(/*_.SLOC__V8*/ curfptr[7]))),  (int) basilys_num_mixint((basilys_ptr_t)(/*_.SLOC__V8*/ curfptr[7])), basilys_dbgcounter, ( "empty PROGN"));
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2179: @block");
+    BASILYS_LOCATION("warmelt-macro.bysl:2182: @block");
     /*block*/{
      /*_.RETVAL___V1*/ curfptr[0] = NULL;;
      
-     BASILYS_LOCATION("warmelt-macro.bysl:2179: @finalreturn");
+     BASILYS_LOCATION("warmelt-macro.bysl:2182: @finalreturn");
      ;
      /*finalret*/ goto labend_rout ;}
     ;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2177: @block");
+    BASILYS_LOCATION("warmelt-macro.bysl:2180: @block");
     /*block*/{
      /*_.PROGN___V14*/ curfptr[13] = /*_.RETURN___V13*/ curfptr[12];;}
     ;
     /*_.IF___V12*/ curfptr[11] = /*_.PROGN___V14*/ curfptr[13];;
     /*epilog*/
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2176: @clear");
+    BASILYS_LOCATION("warmelt-macro.bysl:2179: @clear");
     /*clear*/ /*_.RETURN___V13*/ curfptr[12] = 0 ;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2176: @clear");
+    BASILYS_LOCATION("warmelt-macro.bysl:2179: @clear");
     /*clear*/ /*_.PROGN___V14*/ curfptr[13] = 0 ;}
    ;
   } else {
-  BASILYS_LOCATION("warmelt-macro.bysl:2176: @cond.else");
+  BASILYS_LOCATION("warmelt-macro.bysl:2179: @cond.else");
   
    /*_.IF___V12*/ curfptr[11] = NULL;;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2180: @block");
+  BASILYS_LOCATION("warmelt-macro.bysl:2183: @block");
   /*block*/{
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2181: @apply");
+   BASILYS_LOCATION("warmelt-macro.bysl:2184: @apply");
    /*apply*/{
     union basilysparam_un argtab[3];
     memset(&argtab, 0, sizeof(argtab));
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2181: @apply.arg");
+    BASILYS_LOCATION("warmelt-macro.bysl:2184: @apply.arg");
     argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.SLOC__V8*/ curfptr[7];
-    BASILYS_LOCATION("warmelt-macro.bysl:2181: @apply.arg");
+    BASILYS_LOCATION("warmelt-macro.bysl:2184: @apply.arg");
     argtab[1].bp_aptr = (basilys_ptr_t*) &/*_.ENV__V3*/ curfptr[2];
-    BASILYS_LOCATION("warmelt-macro.bysl:2181: @apply.arg");
+    BASILYS_LOCATION("warmelt-macro.bysl:2184: @apply.arg");
     argtab[2].bp_aptr = (basilys_ptr_t*) &/*_.MEXPANDER__V4*/ curfptr[3];
     /*_.PROGR__V16*/ curfptr[13] =  basilys_apply ((basilysclosure_ptr_t)((/*!PAIRLIST_TO_PROGN*/ curfrout->tabval[1])), (basilys_ptr_t)(/*_.PAIRS__V11*/ curfptr[10]), (BPARSTR_PTR BPARSTR_PTR BPARSTR_PTR ""), argtab, "", (union basilysparam_un*)0);
     }
    ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2185: @block");
+   BASILYS_LOCATION("warmelt-macro.bysl:2188: @block");
    /*block*/{
     /*_.RETVAL___V1*/ curfptr[0] = /*_.PROGR__V16*/ curfptr[13];;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2185: @finalreturn");
+    BASILYS_LOCATION("warmelt-macro.bysl:2188: @finalreturn");
     ;
     /*finalret*/ goto labend_rout ;}
    ;
    /*_.LET___V15*/ curfptr[12] = /*_.RETURN___V17*/ curfptr[16];;
    /*epilog*/
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2180: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2183: @clear");
    /*clear*/ /*_.PROGR__V16*/ curfptr[13] = 0 ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2180: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2183: @clear");
    /*clear*/ /*_.RETURN___V17*/ curfptr[16] = 0 ;}
   ;
   /*_.LET___V7*/ curfptr[5] = /*_.LET___V15*/ curfptr[12];;
   /*epilog*/
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2172: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2175: @clear");
   /*clear*/ /*_.SLOC__V8*/ curfptr[7] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2172: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2175: @clear");
   /*clear*/ /*_.SEXP_CONTENTS__V9*/ curfptr[8] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2172: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2175: @clear");
   /*clear*/ /*_.LIST_FIRST__V10*/ curfptr[9] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2172: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2175: @clear");
   /*clear*/ /*_.PAIRS__V11*/ curfptr[10] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2172: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2175: @clear");
   /*clear*/ /*_#IS_PAIR__L2*/ curfnum[0] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2172: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2175: @clear");
   /*clear*/ /*_#NOT__L3*/ curfnum[2] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2172: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2175: @clear");
   /*clear*/ /*_.IF___V12*/ curfptr[11] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2172: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2175: @clear");
   /*clear*/ /*_.LET___V15*/ curfptr[12] = 0 ;}
  ;
  
- BASILYS_LOCATION("warmelt-macro.bysl:2170: @block");
+ BASILYS_LOCATION("warmelt-macro.bysl:2173: @block");
  /*block*/{
   /*_.RETVAL___V1*/ curfptr[0] = /*_.LET___V7*/ curfptr[5];;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2170: @finalreturn");
+  BASILYS_LOCATION("warmelt-macro.bysl:2173: @finalreturn");
   ;
   /*finalret*/ goto labend_rout ;}
  ;
  /*epilog*/
  
- BASILYS_LOCATION("warmelt-macro.bysl:2170: @clear");
+ BASILYS_LOCATION("warmelt-macro.bysl:2173: @clear");
  /*clear*/ /*_.IFCPP___V5*/ curfptr[4] = 0 ;
  
- BASILYS_LOCATION("warmelt-macro.bysl:2170: @clear");
+ BASILYS_LOCATION("warmelt-macro.bysl:2173: @clear");
  /*clear*/ /*_.LET___V7*/ curfptr[5] = 0 ;}
 
 ;
@@ -28935,12 +28979,12 @@ basilys_trace_start("MEXPAND_RETURN", callcount);
 
  /*getarg#0*/
  
- BASILYS_LOCATION("warmelt-macro.bysl:2191: @getarg");
+ BASILYS_LOCATION("warmelt-macro.bysl:2194: @getarg");
  /*_.SEXPR__V2*/ curfptr[1] = (basilys_ptr_t) firstargp_;
  
  /*getarg#1*/
  
- BASILYS_LOCATION("warmelt-macro.bysl:2191: @getarg");
+ BASILYS_LOCATION("warmelt-macro.bysl:2194: @getarg");
  if (xargdescr_[0] != BPAR_PTR) goto lab_endgetargs;
  /*_.ENV__V3*/ curfptr[2] = (xargtab_[0].bp_aptr) ? (*(xargtab_[0].bp_aptr)) : NULL;
  gcc_assert(basilys_discr((basilys_ptr_t)(/*_.ENV__V3*/ curfptr[2])) != NULL);
@@ -28948,7 +28992,7 @@ basilys_trace_start("MEXPAND_RETURN", callcount);
  
  /*getarg#2*/
  
- BASILYS_LOCATION("warmelt-macro.bysl:2191: @getarg");
+ BASILYS_LOCATION("warmelt-macro.bysl:2194: @getarg");
  if (xargdescr_[1] != BPAR_PTR) goto lab_endgetargs;
  /*_.MEXPANDER__V4*/ curfptr[3] = (xargtab_[1].bp_aptr) ? (*(xargtab_[1].bp_aptr)) : NULL;
  gcc_assert(basilys_discr((basilys_ptr_t)(/*_.MEXPANDER__V4*/ curfptr[3])) != NULL);
@@ -28958,32 +29002,32 @@ basilys_trace_start("MEXPAND_RETURN", callcount);
 lab_endgetargs:;
 /*body*/
 
-BASILYS_LOCATION("warmelt-macro.bysl:2191: @block");
+BASILYS_LOCATION("warmelt-macro.bysl:2194: @block");
 /*block*/{
  
  #if ENABLE_CHECKING
   
- BASILYS_LOCATION("warmelt-macro.bysl:2192: @cppif.then");
+ BASILYS_LOCATION("warmelt-macro.bysl:2195: @cppif.then");
  
-  BASILYS_LOCATION("warmelt-macro.bysl:2192: @block");
+  BASILYS_LOCATION("warmelt-macro.bysl:2195: @block");
   /*block*/{
    /*_#IS_A__L1*/ curfnum[0] = 
      basilys_is_instance_of((basilys_ptr_t)(/*_.SEXPR__V2*/ curfptr[1]), (basilys_ptr_t)((/*!CLASS_SEXPR*/ curfrout->tabval[0])));;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2192: @cond");
+   BASILYS_LOCATION("warmelt-macro.bysl:2195: @cond");
    /*cond*/ if (/*_#IS_A__L1*/ curfnum[0]) /*then*/ {
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2192: @cond.then");
+   BASILYS_LOCATION("warmelt-macro.bysl:2195: @cond.then");
    /*_.IFELSE___V6*/ curfptr[5] = (/*nil*/NULL);;
    } else {
-   BASILYS_LOCATION("warmelt-macro.bysl:2192: @cond.else");
+   BASILYS_LOCATION("warmelt-macro.bysl:2195: @cond.else");
    
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2192: @block");
+    BASILYS_LOCATION("warmelt-macro.bysl:2195: @block");
     /*block*/{
      /*block*/{
       
-      basilys_assert_failed(( "check sexpr"),( "warmelt-macro.bysl"),(2192), __FUNCTION__);
+      basilys_assert_failed(( "check sexpr"),( "warmelt-macro.bysl"),(2195), __FUNCTION__);
       /*clear*/ /*_.IFELSE___V6*/ curfptr[5] = 0 ;}
      ;
      /*epilog*/}
@@ -28993,23 +29037,23 @@ BASILYS_LOCATION("warmelt-macro.bysl:2191: @block");
    /*_.IFCPP___V5*/ curfptr[4] = /*_.IFELSE___V6*/ curfptr[5];;
    /*epilog*/
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2192: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2195: @clear");
    /*clear*/ /*_#IS_A__L1*/ curfnum[0] = 0 ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2192: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2195: @clear");
    /*clear*/ /*_.IFELSE___V6*/ curfptr[5] = 0 ;}
   
   #else /*ENABLE_CHECKING*/
   
- BASILYS_LOCATION("warmelt-macro.bysl:2192: @cppif.else");
+ BASILYS_LOCATION("warmelt-macro.bysl:2195: @cppif.else");
  /*_.IFCPP___V5*/ curfptr[4] = (/*nil*/NULL);
   #endif /*ENABLE_CHECKING*/
   ;
  
- BASILYS_LOCATION("warmelt-macro.bysl:2193: @block");
+ BASILYS_LOCATION("warmelt-macro.bysl:2196: @block");
  /*block*/{
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2194: @getslot");
+  BASILYS_LOCATION("warmelt-macro.bysl:2197: @getslot");
   /*_.SEXP_CONTENTS__V8*/ curfptr[7] = basilys_getfield_object((basilys_ptr_t)(/*_.SEXPR__V2*/ curfptr[1]), 2, "SEXP_CONTENTS");
   ;
   /*_.LIST_FIRST__V9*/ curfptr[8] = 
@@ -29017,69 +29061,69 @@ BASILYS_LOCATION("warmelt-macro.bysl:2191: @block");
   /*_.PAIR_TAIL__V10*/ curfptr[9] = 
    (basilys_pair_tail((basilys_ptr_t)(/*_.LIST_FIRST__V9*/ curfptr[8])));;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2195: @getslot");
+  BASILYS_LOCATION("warmelt-macro.bysl:2198: @getslot");
   /*_.LOCA_LOCATION__V11*/ curfptr[10] = basilys_getfield_object((basilys_ptr_t)(/*_.SEXPR__V2*/ curfptr[1]), 1, "LOCA_LOCATION");
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2194: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2197: @apply");
   /*apply*/{
    union basilysparam_un argtab[3];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2194: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2197: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.LOCA_LOCATION__V11*/ curfptr[10];
-   BASILYS_LOCATION("warmelt-macro.bysl:2194: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2197: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &/*_.ENV__V3*/ curfptr[2];
-   BASILYS_LOCATION("warmelt-macro.bysl:2194: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2197: @apply.arg");
    argtab[2].bp_aptr = (basilys_ptr_t*) &/*_.MEXPANDER__V4*/ curfptr[3];
    /*_.RETR__V12*/ curfptr[11] =  basilys_apply ((basilysclosure_ptr_t)((/*!PAIRLIST_TO_RETURN*/ curfrout->tabval[1])), (basilys_ptr_t)(/*_.PAIR_TAIL__V10*/ curfptr[9]), (BPARSTR_PTR BPARSTR_PTR BPARSTR_PTR ""), argtab, "", (union basilysparam_un*)0);
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2199: @block");
+  BASILYS_LOCATION("warmelt-macro.bysl:2202: @block");
   /*block*/{
    /*_.RETVAL___V1*/ curfptr[0] = /*_.RETR__V12*/ curfptr[11];;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2199: @finalreturn");
+   BASILYS_LOCATION("warmelt-macro.bysl:2202: @finalreturn");
    ;
    /*finalret*/ goto labend_rout ;}
   ;
   /*_.LET___V7*/ curfptr[5] = /*_.RETURN___V13*/ curfptr[12];;
   /*epilog*/
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2193: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2196: @clear");
   /*clear*/ /*_.SEXP_CONTENTS__V8*/ curfptr[7] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2193: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2196: @clear");
   /*clear*/ /*_.LIST_FIRST__V9*/ curfptr[8] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2193: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2196: @clear");
   /*clear*/ /*_.PAIR_TAIL__V10*/ curfptr[9] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2193: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2196: @clear");
   /*clear*/ /*_.LOCA_LOCATION__V11*/ curfptr[10] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2193: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2196: @clear");
   /*clear*/ /*_.RETR__V12*/ curfptr[11] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2193: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2196: @clear");
   /*clear*/ /*_.RETURN___V13*/ curfptr[12] = 0 ;}
  ;
  
- BASILYS_LOCATION("warmelt-macro.bysl:2191: @block");
+ BASILYS_LOCATION("warmelt-macro.bysl:2194: @block");
  /*block*/{
   /*_.RETVAL___V1*/ curfptr[0] = /*_.LET___V7*/ curfptr[5];;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2191: @finalreturn");
+  BASILYS_LOCATION("warmelt-macro.bysl:2194: @finalreturn");
   ;
   /*finalret*/ goto labend_rout ;}
  ;
  /*epilog*/
  
- BASILYS_LOCATION("warmelt-macro.bysl:2191: @clear");
+ BASILYS_LOCATION("warmelt-macro.bysl:2194: @clear");
  /*clear*/ /*_.IFCPP___V5*/ curfptr[4] = 0 ;
  
- BASILYS_LOCATION("warmelt-macro.bysl:2191: @clear");
+ BASILYS_LOCATION("warmelt-macro.bysl:2194: @clear");
  /*clear*/ /*_.LET___V7*/ curfptr[5] = 0 ;}
 
 ;
@@ -29131,12 +29175,12 @@ basilys_trace_start("MEXPAND_FOREVER", callcount);
 
  /*getarg#0*/
  
- BASILYS_LOCATION("warmelt-macro.bysl:2206: @getarg");
+ BASILYS_LOCATION("warmelt-macro.bysl:2209: @getarg");
  /*_.SEXPR__V2*/ curfptr[1] = (basilys_ptr_t) firstargp_;
  
  /*getarg#1*/
  
- BASILYS_LOCATION("warmelt-macro.bysl:2206: @getarg");
+ BASILYS_LOCATION("warmelt-macro.bysl:2209: @getarg");
  if (xargdescr_[0] != BPAR_PTR) goto lab_endgetargs;
  /*_.ENV__V3*/ curfptr[2] = (xargtab_[0].bp_aptr) ? (*(xargtab_[0].bp_aptr)) : NULL;
  gcc_assert(basilys_discr((basilys_ptr_t)(/*_.ENV__V3*/ curfptr[2])) != NULL);
@@ -29144,7 +29188,7 @@ basilys_trace_start("MEXPAND_FOREVER", callcount);
  
  /*getarg#2*/
  
- BASILYS_LOCATION("warmelt-macro.bysl:2206: @getarg");
+ BASILYS_LOCATION("warmelt-macro.bysl:2209: @getarg");
  if (xargdescr_[1] != BPAR_PTR) goto lab_endgetargs;
  /*_.MEXPANDER__V4*/ curfptr[3] = (xargtab_[1].bp_aptr) ? (*(xargtab_[1].bp_aptr)) : NULL;
  gcc_assert(basilys_discr((basilys_ptr_t)(/*_.MEXPANDER__V4*/ curfptr[3])) != NULL);
@@ -29154,32 +29198,32 @@ basilys_trace_start("MEXPAND_FOREVER", callcount);
 lab_endgetargs:;
 /*body*/
 
-BASILYS_LOCATION("warmelt-macro.bysl:2206: @block");
+BASILYS_LOCATION("warmelt-macro.bysl:2209: @block");
 /*block*/{
  
  #if ENABLE_CHECKING
   
- BASILYS_LOCATION("warmelt-macro.bysl:2207: @cppif.then");
+ BASILYS_LOCATION("warmelt-macro.bysl:2210: @cppif.then");
  
-  BASILYS_LOCATION("warmelt-macro.bysl:2207: @block");
+  BASILYS_LOCATION("warmelt-macro.bysl:2210: @block");
   /*block*/{
    /*_#IS_A__L1*/ curfnum[0] = 
      basilys_is_instance_of((basilys_ptr_t)(/*_.SEXPR__V2*/ curfptr[1]), (basilys_ptr_t)((/*!CLASS_SEXPR*/ curfrout->tabval[0])));;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2207: @cond");
+   BASILYS_LOCATION("warmelt-macro.bysl:2210: @cond");
    /*cond*/ if (/*_#IS_A__L1*/ curfnum[0]) /*then*/ {
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2207: @cond.then");
+   BASILYS_LOCATION("warmelt-macro.bysl:2210: @cond.then");
    /*_.IFELSE___V6*/ curfptr[5] = (/*nil*/NULL);;
    } else {
-   BASILYS_LOCATION("warmelt-macro.bysl:2207: @cond.else");
+   BASILYS_LOCATION("warmelt-macro.bysl:2210: @cond.else");
    
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2207: @block");
+    BASILYS_LOCATION("warmelt-macro.bysl:2210: @block");
     /*block*/{
      /*block*/{
       
-      basilys_assert_failed(( "check sexpr"),( "warmelt-macro.bysl"),(2207), __FUNCTION__);
+      basilys_assert_failed(( "check sexpr"),( "warmelt-macro.bysl"),(2210), __FUNCTION__);
       /*clear*/ /*_.IFELSE___V6*/ curfptr[5] = 0 ;}
      ;
      /*epilog*/}
@@ -29189,27 +29233,27 @@ BASILYS_LOCATION("warmelt-macro.bysl:2206: @block");
    /*_.IFCPP___V5*/ curfptr[4] = /*_.IFELSE___V6*/ curfptr[5];;
    /*epilog*/
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2207: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2210: @clear");
    /*clear*/ /*_#IS_A__L1*/ curfnum[0] = 0 ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2207: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2210: @clear");
    /*clear*/ /*_.IFELSE___V6*/ curfptr[5] = 0 ;}
   
   #else /*ENABLE_CHECKING*/
   
- BASILYS_LOCATION("warmelt-macro.bysl:2207: @cppif.else");
+ BASILYS_LOCATION("warmelt-macro.bysl:2210: @cppif.else");
  /*_.IFCPP___V5*/ curfptr[4] = (/*nil*/NULL);
   #endif /*ENABLE_CHECKING*/
   ;
  
- BASILYS_LOCATION("warmelt-macro.bysl:2208: @block");
+ BASILYS_LOCATION("warmelt-macro.bysl:2211: @block");
  /*block*/{
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2208: @getslot");
+  BASILYS_LOCATION("warmelt-macro.bysl:2211: @getslot");
   /*_.CONT__V8*/ curfptr[7] = basilys_getfield_object((basilys_ptr_t)(/*_.SEXPR__V2*/ curfptr[1]), 2, "SEXP_CONTENTS");
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2209: @getslot");
+  BASILYS_LOCATION("warmelt-macro.bysl:2212: @getslot");
   /*_.LOC__V9*/ curfptr[8] = basilys_getfield_object((basilys_ptr_t)(/*_.SEXPR__V2*/ curfptr[1]), 1, "LOCA_LOCATION");
   ;
   /*_.LIST_FIRST__V10*/ curfptr[9] = 
@@ -29219,20 +29263,20 @@ BASILYS_LOCATION("warmelt-macro.bysl:2206: @block");
   /*_.SLABNAM__V12*/ curfptr[11] = 
    (basilys_pair_head((basilys_ptr_t)(/*_.CURPAIR__V11*/ curfptr[10])));;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2212: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2215: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2212: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2215: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.ENV__V3*/ curfptr[2];
-   BASILYS_LOCATION("warmelt-macro.bysl:2212: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2215: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &/*_.MEXPANDER__V4*/ curfptr[3];
    /*_.XLABNAM__V13*/ curfptr[12] =  basilys_apply ((basilysclosure_ptr_t)((/*!MACROEXPAND_1*/ curfrout->tabval[1])), (basilys_ptr_t)(/*_.SLABNAM__V12*/ curfptr[11]), (BPARSTR_PTR BPARSTR_PTR ""), argtab, "", (union basilysparam_un*)0);
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2213: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2216: @apply");
   /*apply*/{
    /*_.NEWENV__V14*/ curfptr[13] =  basilys_apply ((basilysclosure_ptr_t)((/*!FRESH_ENV*/ curfrout->tabval[2])), (basilys_ptr_t)(/*_.ENV__V3*/ curfptr[2]), (""), (union basilysparam_un*)0, "", (union basilysparam_un*)0);
    }
@@ -29240,45 +29284,45 @@ BASILYS_LOCATION("warmelt-macro.bysl:2206: @block");
   /*_#IS_NOT_A__L2*/ curfnum[0] = 
     !basilys_is_instance_of((basilys_ptr_t)(/*_.XLABNAM__V13*/ curfptr[12]), (basilys_ptr_t)((/*!CLASS_SYMBOL*/ curfrout->tabval[3])));;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2215: @cond");
+  BASILYS_LOCATION("warmelt-macro.bysl:2218: @cond");
   /*cond*/ if (/*_#IS_NOT_A__L2*/ curfnum[0]) /*then*/ {
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2215: @cond.then");
+  BASILYS_LOCATION("warmelt-macro.bysl:2218: @cond.then");
   
-   BASILYS_LOCATION("warmelt-macro.bysl:2215: @block");
+   BASILYS_LOCATION("warmelt-macro.bysl:2218: @block");
    /*block*/{
     
     error("%s:%d:: BASILYS ERROR [#%ld]: @%s ",  basilys_string_str(basilys_val_mixint((basilys_ptr_t)(/*_.LOC__V9*/ curfptr[8]))),  (int) basilys_num_mixint((basilys_ptr_t)(/*_.LOC__V9*/ curfptr[8])), basilys_dbgcounter, ( "missing label in FOREVER"));
     /*_.THE_NULL__V16*/ curfptr[15] = 
      (NULL);;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2218: @block");
+    BASILYS_LOCATION("warmelt-macro.bysl:2221: @block");
     /*block*/{
      /*_.RETVAL___V1*/ curfptr[0] = /*_.THE_NULL__V16*/ curfptr[15];;
      
-     BASILYS_LOCATION("warmelt-macro.bysl:2218: @finalreturn");
+     BASILYS_LOCATION("warmelt-macro.bysl:2221: @finalreturn");
      ;
      /*finalret*/ goto labend_rout ;}
     ;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2216: @block");
+    BASILYS_LOCATION("warmelt-macro.bysl:2219: @block");
     /*block*/{
      /*_.PROGN___V18*/ curfptr[17] = /*_.RETURN___V17*/ curfptr[16];;}
     ;
     /*_.IF___V15*/ curfptr[14] = /*_.PROGN___V18*/ curfptr[17];;
     /*epilog*/
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2215: @clear");
+    BASILYS_LOCATION("warmelt-macro.bysl:2218: @clear");
     /*clear*/ /*_.THE_NULL__V16*/ curfptr[15] = 0 ;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2215: @clear");
+    BASILYS_LOCATION("warmelt-macro.bysl:2218: @clear");
     /*clear*/ /*_.RETURN___V17*/ curfptr[16] = 0 ;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2215: @clear");
+    BASILYS_LOCATION("warmelt-macro.bysl:2218: @clear");
     /*clear*/ /*_.PROGN___V18*/ curfptr[17] = 0 ;}
    ;
   } else {
-  BASILYS_LOCATION("warmelt-macro.bysl:2215: @cond.else");
+  BASILYS_LOCATION("warmelt-macro.bysl:2218: @cond.else");
   
    /*_.IF___V15*/ curfptr[14] = NULL;;
    }
@@ -29286,21 +29330,21 @@ BASILYS_LOCATION("warmelt-macro.bysl:2206: @block");
   /*_.PAIR_TAIL__V19*/ curfptr[15] = 
    (basilys_pair_tail((basilys_ptr_t)(/*_.CURPAIR__V11*/ curfptr[10])));;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2219: @compute");
+  BASILYS_LOCATION("warmelt-macro.bysl:2222: @compute");
   /*_.CURPAIR__V11*/ curfptr[10] = /*_.SETQ___V20*/ curfptr[16] = /*_.PAIR_TAIL__V19*/ curfptr[15];;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2220: @block");
+  BASILYS_LOCATION("warmelt-macro.bysl:2223: @block");
   /*block*/{
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2220: @block");
+   BASILYS_LOCATION("warmelt-macro.bysl:2223: @block");
    /*block*/{
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2220: @rawallocobj");
+    BASILYS_LOCATION("warmelt-macro.bysl:2223: @rawallocobj");
     /*rawallocobj*/ /*_.INST__V23*/ curfptr[22] =
-     basilysgc_new_raw_object((basilysobject_ptr_t)((/*!CLASS_LABEL_BINDING*/ curfrout->tabval[4])), (4));
+     basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_LABEL_BINDING*/ curfrout->tabval[4])), (4), ("CLASS_LABEL_BINDING"));
     ;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2220: @putslot");
+    BASILYS_LOCATION("warmelt-macro.bysl:2223: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V23*/ curfptr[22])) == OBMAG_OBJECT);
     basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V23*/ curfptr[22]))));
@@ -29308,7 +29352,7 @@ BASILYS_LOCATION("warmelt-macro.bysl:2206: @block");
      /*_.XLABNAM__V13*/ curfptr[12]);
     ;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2220: @putslot");
+    BASILYS_LOCATION("warmelt-macro.bysl:2223: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V23*/ curfptr[22])) == OBMAG_OBJECT);
     basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V23*/ curfptr[22]))));
@@ -29318,36 +29362,36 @@ BASILYS_LOCATION("warmelt-macro.bysl:2206: @block");
     /*_.LABIND__V22*/ curfptr[21] = /*_.INST__V23*/ curfptr[22];;}
    ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2223: @apply");
+   BASILYS_LOCATION("warmelt-macro.bysl:2226: @apply");
    /*apply*/{
     union basilysparam_un argtab[1];
     memset(&argtab, 0, sizeof(argtab));
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2223: @apply.arg");
+    BASILYS_LOCATION("warmelt-macro.bysl:2226: @apply.arg");
     argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.LABIND__V22*/ curfptr[21];
     /*_.PUT_ENV__V24*/ curfptr[23] =  basilys_apply ((basilysclosure_ptr_t)((/*!PUT_ENV*/ curfrout->tabval[5])), (basilys_ptr_t)(/*_.NEWENV__V14*/ curfptr[13]), (BPARSTR_PTR ""), argtab, "", (union basilysparam_un*)0);
     }
    ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2224: @block");
+   BASILYS_LOCATION("warmelt-macro.bysl:2227: @block");
    /*block*/{
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2227: @block");
+    BASILYS_LOCATION("warmelt-macro.bysl:2230: @block");
     /*block*/{
      
-     BASILYS_LOCATION("warmelt-macro.bysl:2227: @newclosure");
+     BASILYS_LOCATION("warmelt-macro.bysl:2230: @newclosure");
       /*newclosure*/ /*_.LAMBDA___V27*/ curfptr[26] =
       basilysgc_new_closure((basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_CLOSURE)))), (basilysroutine_ptr_t)((/*!konst_9*/ curfrout->tabval[9])), (2));
      ;
      
-     BASILYS_LOCATION("warmelt-macro.bysl:2227: @putclosedv");
+     BASILYS_LOCATION("warmelt-macro.bysl:2230: @putclosedv");
      /*putclosv*/
      basilys_assertmsg("putclosv checkclo", basilys_magic_discr((basilys_ptr_t)(/*_.LAMBDA___V27*/ curfptr[26])) == OBMAG_CLOSURE);
      basilys_assertmsg("putclosv checkoff", 0>= 0 && 0< basilys_closure_size((basilys_ptr_t) (/*_.LAMBDA___V27*/ curfptr[26])));
      ((basilysclosure_ptr_t)/*_.LAMBDA___V27*/ curfptr[26])->tabval[0] = (basilys_ptr_t)(/*_.NEWENV__V14*/ curfptr[13]);
      ;
      
-     BASILYS_LOCATION("warmelt-macro.bysl:2227: @putclosedv");
+     BASILYS_LOCATION("warmelt-macro.bysl:2230: @putclosedv");
      /*putclosv*/
      basilys_assertmsg("putclosv checkclo", basilys_magic_discr((basilys_ptr_t)(/*_.LAMBDA___V27*/ curfptr[26])) == OBMAG_CLOSURE);
      basilys_assertmsg("putclosv checkoff", 1>= 0 && 1< basilys_closure_size((basilys_ptr_t) (/*_.LAMBDA___V27*/ curfptr[26])));
@@ -29356,28 +29400,28 @@ BASILYS_LOCATION("warmelt-macro.bysl:2206: @block");
      /*_.LAMBDA___V26*/ curfptr[25] = /*_.LAMBDA___V27*/ curfptr[26];;}
     ;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2224: @apply");
+    BASILYS_LOCATION("warmelt-macro.bysl:2227: @apply");
     /*apply*/{
      union basilysparam_un argtab[2];
      memset(&argtab, 0, sizeof(argtab));
      
-     BASILYS_LOCATION("warmelt-macro.bysl:2224: @apply.arg");
+     BASILYS_LOCATION("warmelt-macro.bysl:2227: @apply.arg");
      argtab[0].bp_aptr = (basilys_ptr_t*) &(/*!DISCR_MULTIPLE*/ curfrout->tabval[7]);
-     BASILYS_LOCATION("warmelt-macro.bysl:2224: @apply.arg");
+     BASILYS_LOCATION("warmelt-macro.bysl:2227: @apply.arg");
      argtab[1].bp_aptr = (basilys_ptr_t*) &/*_.LAMBDA___V26*/ curfptr[25];
      /*_.BODYTUP__V28*/ curfptr[27] =  basilys_apply ((basilysclosure_ptr_t)((/*!PAIRLIST_TO_MULTIPLE*/ curfrout->tabval[6])), (basilys_ptr_t)(/*_.CURPAIR__V11*/ curfptr[10]), (BPARSTR_PTR BPARSTR_PTR ""), argtab, "", (union basilysparam_un*)0);
      }
     ;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2229: @block");
+    BASILYS_LOCATION("warmelt-macro.bysl:2232: @block");
     /*block*/{
      
-     BASILYS_LOCATION("warmelt-macro.bysl:2229: @rawallocobj");
+     BASILYS_LOCATION("warmelt-macro.bysl:2232: @rawallocobj");
      /*rawallocobj*/ /*_.INST__V30*/ curfptr[29] =
-      basilysgc_new_raw_object((basilysobject_ptr_t)((/*!CLASS_SRC_FOREVER*/ curfrout->tabval[10])), (3));
+      basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_SRC_FOREVER*/ curfrout->tabval[10])), (3), ("CLASS_SRC_FOREVER"));
      ;
      
-     BASILYS_LOCATION("warmelt-macro.bysl:2229: @putslot");
+     BASILYS_LOCATION("warmelt-macro.bysl:2232: @putslot");
      /*putslot*/
      basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V30*/ curfptr[29])) == OBMAG_OBJECT);
      basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V30*/ curfptr[29]))));
@@ -29385,7 +29429,7 @@ BASILYS_LOCATION("warmelt-macro.bysl:2206: @block");
       /*_.LOC__V9*/ curfptr[8]);
      ;
      
-     BASILYS_LOCATION("warmelt-macro.bysl:2229: @putslot");
+     BASILYS_LOCATION("warmelt-macro.bysl:2232: @putslot");
      /*putslot*/
      basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V30*/ curfptr[29])) == OBMAG_OBJECT);
      basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V30*/ curfptr[29]))));
@@ -29393,7 +29437,7 @@ BASILYS_LOCATION("warmelt-macro.bysl:2206: @block");
       /*_.LABIND__V22*/ curfptr[21]);
      ;
      
-     BASILYS_LOCATION("warmelt-macro.bysl:2229: @putslot");
+     BASILYS_LOCATION("warmelt-macro.bysl:2232: @putslot");
      /*putslot*/
      basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V30*/ curfptr[29])) == OBMAG_OBJECT);
      basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V30*/ curfptr[29]))));
@@ -29403,95 +29447,95 @@ BASILYS_LOCATION("warmelt-macro.bysl:2206: @block");
      /*_.FORR__V29*/ curfptr[28] = /*_.INST__V30*/ curfptr[29];;}
     ;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2234: @block");
+    BASILYS_LOCATION("warmelt-macro.bysl:2237: @block");
     /*block*/{
      /*_.RETVAL___V1*/ curfptr[0] = /*_.FORR__V29*/ curfptr[28];;
      
-     BASILYS_LOCATION("warmelt-macro.bysl:2234: @finalreturn");
+     BASILYS_LOCATION("warmelt-macro.bysl:2237: @finalreturn");
      ;
      /*finalret*/ goto labend_rout ;}
     ;
     /*_.LET___V25*/ curfptr[24] = /*_.RETURN___V31*/ curfptr[30];;
     /*epilog*/
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2224: @clear");
+    BASILYS_LOCATION("warmelt-macro.bysl:2227: @clear");
     /*clear*/ /*_.LAMBDA___V26*/ curfptr[25] = 0 ;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2224: @clear");
+    BASILYS_LOCATION("warmelt-macro.bysl:2227: @clear");
     /*clear*/ /*_.BODYTUP__V28*/ curfptr[27] = 0 ;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2224: @clear");
+    BASILYS_LOCATION("warmelt-macro.bysl:2227: @clear");
     /*clear*/ /*_.FORR__V29*/ curfptr[28] = 0 ;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2224: @clear");
+    BASILYS_LOCATION("warmelt-macro.bysl:2227: @clear");
     /*clear*/ /*_.RETURN___V31*/ curfptr[30] = 0 ;}
    ;
    /*_.LET___V21*/ curfptr[17] = /*_.LET___V25*/ curfptr[24];;
    /*epilog*/
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2220: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2223: @clear");
    /*clear*/ /*_.LABIND__V22*/ curfptr[21] = 0 ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2220: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2223: @clear");
    /*clear*/ /*_.PUT_ENV__V24*/ curfptr[23] = 0 ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2220: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2223: @clear");
    /*clear*/ /*_.LET___V25*/ curfptr[24] = 0 ;}
   ;
   /*_.LET___V7*/ curfptr[5] = /*_.LET___V21*/ curfptr[17];;
   /*epilog*/
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2208: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2211: @clear");
   /*clear*/ /*_.CONT__V8*/ curfptr[7] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2208: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2211: @clear");
   /*clear*/ /*_.LOC__V9*/ curfptr[8] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2208: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2211: @clear");
   /*clear*/ /*_.LIST_FIRST__V10*/ curfptr[9] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2208: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2211: @clear");
   /*clear*/ /*_.CURPAIR__V11*/ curfptr[10] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2208: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2211: @clear");
   /*clear*/ /*_.SLABNAM__V12*/ curfptr[11] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2208: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2211: @clear");
   /*clear*/ /*_.XLABNAM__V13*/ curfptr[12] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2208: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2211: @clear");
   /*clear*/ /*_.NEWENV__V14*/ curfptr[13] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2208: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2211: @clear");
   /*clear*/ /*_#IS_NOT_A__L2*/ curfnum[0] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2208: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2211: @clear");
   /*clear*/ /*_.IF___V15*/ curfptr[14] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2208: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2211: @clear");
   /*clear*/ /*_.PAIR_TAIL__V19*/ curfptr[15] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2208: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2211: @clear");
   /*clear*/ /*_.SETQ___V20*/ curfptr[16] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2208: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2211: @clear");
   /*clear*/ /*_.LET___V21*/ curfptr[17] = 0 ;}
  ;
  
- BASILYS_LOCATION("warmelt-macro.bysl:2206: @block");
+ BASILYS_LOCATION("warmelt-macro.bysl:2209: @block");
  /*block*/{
   /*_.RETVAL___V1*/ curfptr[0] = /*_.LET___V7*/ curfptr[5];;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2206: @finalreturn");
+  BASILYS_LOCATION("warmelt-macro.bysl:2209: @finalreturn");
   ;
   /*finalret*/ goto labend_rout ;}
  ;
  /*epilog*/
  
- BASILYS_LOCATION("warmelt-macro.bysl:2206: @clear");
+ BASILYS_LOCATION("warmelt-macro.bysl:2209: @clear");
  /*clear*/ /*_.IFCPP___V5*/ curfptr[4] = 0 ;
  
- BASILYS_LOCATION("warmelt-macro.bysl:2206: @clear");
+ BASILYS_LOCATION("warmelt-macro.bysl:2209: @clear");
  /*clear*/ /*_.LET___V7*/ curfptr[5] = 0 ;}
 
 ;
@@ -29543,40 +29587,40 @@ basilys_trace_start("LAMBDA_", callcount);
 
  /*getarg#0*/
  
- BASILYS_LOCATION("warmelt-macro.bysl:2227: @getarg");
+ BASILYS_LOCATION("warmelt-macro.bysl:2230: @getarg");
  /*_.E__V2*/ curfptr[1] = (basilys_ptr_t) firstargp_;
  ;
  goto lab_endgetargs;
 lab_endgetargs:;
 /*body*/
 
-BASILYS_LOCATION("warmelt-macro.bysl:2227: @block");
+BASILYS_LOCATION("warmelt-macro.bysl:2230: @block");
 /*block*/{
  
- BASILYS_LOCATION("warmelt-macro.bysl:2227: @apply");
+ BASILYS_LOCATION("warmelt-macro.bysl:2230: @apply");
  /*apply*/{
   union basilysparam_un argtab[2];
   memset(&argtab, 0, sizeof(argtab));
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2227: @apply.arg");
+  BASILYS_LOCATION("warmelt-macro.bysl:2230: @apply.arg");
   argtab[0].bp_aptr = (basilys_ptr_t*) &(/*~NEWENV*/ curfclos->tabval[0]);
-  BASILYS_LOCATION("warmelt-macro.bysl:2227: @apply.arg");
+  BASILYS_LOCATION("warmelt-macro.bysl:2230: @apply.arg");
   argtab[1].bp_aptr = (basilys_ptr_t*) &(/*~MEXPANDER*/ curfclos->tabval[1]);
   /*_.MACROEXPAND_1__V3*/ curfptr[2] =  basilys_apply ((basilysclosure_ptr_t)((/*!MACROEXPAND_1*/ curfrout->tabval[0])), (basilys_ptr_t)(/*_.E__V2*/ curfptr[1]), (BPARSTR_PTR BPARSTR_PTR ""), argtab, "", (union basilysparam_un*)0);
   }
  ;
  
- BASILYS_LOCATION("warmelt-macro.bysl:2227: @block");
+ BASILYS_LOCATION("warmelt-macro.bysl:2230: @block");
  /*block*/{
   /*_.RETVAL___V1*/ curfptr[0] = /*_.MACROEXPAND_1__V3*/ curfptr[2];;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2227: @finalreturn");
+  BASILYS_LOCATION("warmelt-macro.bysl:2230: @finalreturn");
   ;
   /*finalret*/ goto labend_rout ;}
  ;
  /*epilog*/
  
- BASILYS_LOCATION("warmelt-macro.bysl:2227: @clear");
+ BASILYS_LOCATION("warmelt-macro.bysl:2230: @clear");
  /*clear*/ /*_.MACROEXPAND_1__V3*/ curfptr[2] = 0 ;}
 
 ;
@@ -29628,12 +29672,12 @@ basilys_trace_start("MEXPAND_EXIT", callcount);
 
  /*getarg#0*/
  
- BASILYS_LOCATION("warmelt-macro.bysl:2240: @getarg");
+ BASILYS_LOCATION("warmelt-macro.bysl:2243: @getarg");
  /*_.SEXPR__V2*/ curfptr[1] = (basilys_ptr_t) firstargp_;
  
  /*getarg#1*/
  
- BASILYS_LOCATION("warmelt-macro.bysl:2240: @getarg");
+ BASILYS_LOCATION("warmelt-macro.bysl:2243: @getarg");
  if (xargdescr_[0] != BPAR_PTR) goto lab_endgetargs;
  /*_.ENV__V3*/ curfptr[2] = (xargtab_[0].bp_aptr) ? (*(xargtab_[0].bp_aptr)) : NULL;
  gcc_assert(basilys_discr((basilys_ptr_t)(/*_.ENV__V3*/ curfptr[2])) != NULL);
@@ -29641,7 +29685,7 @@ basilys_trace_start("MEXPAND_EXIT", callcount);
  
  /*getarg#2*/
  
- BASILYS_LOCATION("warmelt-macro.bysl:2240: @getarg");
+ BASILYS_LOCATION("warmelt-macro.bysl:2243: @getarg");
  if (xargdescr_[1] != BPAR_PTR) goto lab_endgetargs;
  /*_.MEXPANDER__V4*/ curfptr[3] = (xargtab_[1].bp_aptr) ? (*(xargtab_[1].bp_aptr)) : NULL;
  gcc_assert(basilys_discr((basilys_ptr_t)(/*_.MEXPANDER__V4*/ curfptr[3])) != NULL);
@@ -29651,32 +29695,32 @@ basilys_trace_start("MEXPAND_EXIT", callcount);
 lab_endgetargs:;
 /*body*/
 
-BASILYS_LOCATION("warmelt-macro.bysl:2240: @block");
+BASILYS_LOCATION("warmelt-macro.bysl:2243: @block");
 /*block*/{
  
  #if ENABLE_CHECKING
   
- BASILYS_LOCATION("warmelt-macro.bysl:2241: @cppif.then");
+ BASILYS_LOCATION("warmelt-macro.bysl:2244: @cppif.then");
  
-  BASILYS_LOCATION("warmelt-macro.bysl:2241: @block");
+  BASILYS_LOCATION("warmelt-macro.bysl:2244: @block");
   /*block*/{
    /*_#IS_A__L1*/ curfnum[0] = 
      basilys_is_instance_of((basilys_ptr_t)(/*_.SEXPR__V2*/ curfptr[1]), (basilys_ptr_t)((/*!CLASS_SEXPR*/ curfrout->tabval[0])));;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2241: @cond");
+   BASILYS_LOCATION("warmelt-macro.bysl:2244: @cond");
    /*cond*/ if (/*_#IS_A__L1*/ curfnum[0]) /*then*/ {
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2241: @cond.then");
+   BASILYS_LOCATION("warmelt-macro.bysl:2244: @cond.then");
    /*_.IFELSE___V6*/ curfptr[5] = (/*nil*/NULL);;
    } else {
-   BASILYS_LOCATION("warmelt-macro.bysl:2241: @cond.else");
+   BASILYS_LOCATION("warmelt-macro.bysl:2244: @cond.else");
    
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2241: @block");
+    BASILYS_LOCATION("warmelt-macro.bysl:2244: @block");
     /*block*/{
      /*block*/{
       
-      basilys_assert_failed(( "check sexpr"),( "warmelt-macro.bysl"),(2241), __FUNCTION__);
+      basilys_assert_failed(( "check sexpr"),( "warmelt-macro.bysl"),(2244), __FUNCTION__);
       /*clear*/ /*_.IFELSE___V6*/ curfptr[5] = 0 ;}
      ;
      /*epilog*/}
@@ -29686,27 +29730,27 @@ BASILYS_LOCATION("warmelt-macro.bysl:2240: @block");
    /*_.IFCPP___V5*/ curfptr[4] = /*_.IFELSE___V6*/ curfptr[5];;
    /*epilog*/
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2241: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2244: @clear");
    /*clear*/ /*_#IS_A__L1*/ curfnum[0] = 0 ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2241: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2244: @clear");
    /*clear*/ /*_.IFELSE___V6*/ curfptr[5] = 0 ;}
   
   #else /*ENABLE_CHECKING*/
   
- BASILYS_LOCATION("warmelt-macro.bysl:2241: @cppif.else");
+ BASILYS_LOCATION("warmelt-macro.bysl:2244: @cppif.else");
  /*_.IFCPP___V5*/ curfptr[4] = (/*nil*/NULL);
   #endif /*ENABLE_CHECKING*/
   ;
  
- BASILYS_LOCATION("warmelt-macro.bysl:2242: @block");
+ BASILYS_LOCATION("warmelt-macro.bysl:2245: @block");
  /*block*/{
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2242: @getslot");
+  BASILYS_LOCATION("warmelt-macro.bysl:2245: @getslot");
   /*_.CONT__V8*/ curfptr[7] = basilys_getfield_object((basilys_ptr_t)(/*_.SEXPR__V2*/ curfptr[1]), 2, "SEXP_CONTENTS");
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2243: @getslot");
+  BASILYS_LOCATION("warmelt-macro.bysl:2246: @getslot");
   /*_.LOC__V9*/ curfptr[8] = basilys_getfield_object((basilys_ptr_t)(/*_.SEXPR__V2*/ curfptr[1]), 1, "LOCA_LOCATION");
   ;
   /*_.LIST_FIRST__V10*/ curfptr[9] = 
@@ -29716,20 +29760,20 @@ BASILYS_LOCATION("warmelt-macro.bysl:2240: @block");
   /*_.SLABNAM__V12*/ curfptr[11] = 
    (basilys_pair_head((basilys_ptr_t)(/*_.CURPAIR__V11*/ curfptr[10])));;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2246: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2249: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2246: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2249: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.ENV__V3*/ curfptr[2];
-   BASILYS_LOCATION("warmelt-macro.bysl:2246: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2249: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &/*_.MEXPANDER__V4*/ curfptr[3];
    /*_.XLABNAM__V13*/ curfptr[12] =  basilys_apply ((basilysclosure_ptr_t)((/*!MACROEXPAND_1*/ curfrout->tabval[1])), (basilys_ptr_t)(/*_.SLABNAM__V12*/ curfptr[11]), (BPARSTR_PTR BPARSTR_PTR ""), argtab, "", (union basilysparam_un*)0);
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2247: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2250: @apply");
   /*apply*/{
    /*_.NEWENV__V14*/ curfptr[13] =  basilys_apply ((basilysclosure_ptr_t)((/*!FRESH_ENV*/ curfrout->tabval[2])), (basilys_ptr_t)(/*_.ENV__V3*/ curfptr[2]), (""), (union basilysparam_un*)0, "", (union basilysparam_un*)0);
    }
@@ -29737,45 +29781,45 @@ BASILYS_LOCATION("warmelt-macro.bysl:2240: @block");
   /*_#IS_NOT_A__L2*/ curfnum[0] = 
     !basilys_is_instance_of((basilys_ptr_t)(/*_.XLABNAM__V13*/ curfptr[12]), (basilys_ptr_t)((/*!CLASS_SYMBOL*/ curfrout->tabval[3])));;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2249: @cond");
+  BASILYS_LOCATION("warmelt-macro.bysl:2252: @cond");
   /*cond*/ if (/*_#IS_NOT_A__L2*/ curfnum[0]) /*then*/ {
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2249: @cond.then");
+  BASILYS_LOCATION("warmelt-macro.bysl:2252: @cond.then");
   
-   BASILYS_LOCATION("warmelt-macro.bysl:2249: @block");
+   BASILYS_LOCATION("warmelt-macro.bysl:2252: @block");
    /*block*/{
     
     error("%s:%d:: BASILYS ERROR [#%ld]: @%s ",  basilys_string_str(basilys_val_mixint((basilys_ptr_t)(/*_.LOC__V9*/ curfptr[8]))),  (int) basilys_num_mixint((basilys_ptr_t)(/*_.LOC__V9*/ curfptr[8])), basilys_dbgcounter, ( "missing label in EXIT"));
     /*_.THE_NULL__V16*/ curfptr[15] = 
      (NULL);;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2252: @block");
+    BASILYS_LOCATION("warmelt-macro.bysl:2255: @block");
     /*block*/{
      /*_.RETVAL___V1*/ curfptr[0] = /*_.THE_NULL__V16*/ curfptr[15];;
      
-     BASILYS_LOCATION("warmelt-macro.bysl:2252: @finalreturn");
+     BASILYS_LOCATION("warmelt-macro.bysl:2255: @finalreturn");
      ;
      /*finalret*/ goto labend_rout ;}
     ;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2250: @block");
+    BASILYS_LOCATION("warmelt-macro.bysl:2253: @block");
     /*block*/{
      /*_.PROGN___V18*/ curfptr[17] = /*_.RETURN___V17*/ curfptr[16];;}
     ;
     /*_.IF___V15*/ curfptr[14] = /*_.PROGN___V18*/ curfptr[17];;
     /*epilog*/
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2249: @clear");
+    BASILYS_LOCATION("warmelt-macro.bysl:2252: @clear");
     /*clear*/ /*_.THE_NULL__V16*/ curfptr[15] = 0 ;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2249: @clear");
+    BASILYS_LOCATION("warmelt-macro.bysl:2252: @clear");
     /*clear*/ /*_.RETURN___V17*/ curfptr[16] = 0 ;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2249: @clear");
+    BASILYS_LOCATION("warmelt-macro.bysl:2252: @clear");
     /*clear*/ /*_.PROGN___V18*/ curfptr[17] = 0 ;}
    ;
   } else {
-  BASILYS_LOCATION("warmelt-macro.bysl:2249: @cond.else");
+  BASILYS_LOCATION("warmelt-macro.bysl:2252: @cond.else");
   
    /*_.IF___V15*/ curfptr[14] = NULL;;
    }
@@ -29783,18 +29827,18 @@ BASILYS_LOCATION("warmelt-macro.bysl:2240: @block");
   /*_.PAIR_TAIL__V19*/ curfptr[15] = 
    (basilys_pair_tail((basilys_ptr_t)(/*_.CURPAIR__V11*/ curfptr[10])));;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2253: @compute");
+  BASILYS_LOCATION("warmelt-macro.bysl:2256: @compute");
   /*_.CURPAIR__V11*/ curfptr[10] = /*_.SETQ___V20*/ curfptr[16] = /*_.PAIR_TAIL__V19*/ curfptr[15];;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2254: @block");
+  BASILYS_LOCATION("warmelt-macro.bysl:2257: @block");
   /*block*/{
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2254: @apply");
+   BASILYS_LOCATION("warmelt-macro.bysl:2257: @apply");
    /*apply*/{
     union basilysparam_un argtab[1];
     memset(&argtab, 0, sizeof(argtab));
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2254: @apply.arg");
+    BASILYS_LOCATION("warmelt-macro.bysl:2257: @apply.arg");
     argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.XLABNAM__V13*/ curfptr[12];
     /*_.LABIND__V22*/ curfptr[21] =  basilys_apply ((basilysclosure_ptr_t)((/*!FIND_ENV*/ curfrout->tabval[4])), (basilys_ptr_t)(/*_.ENV__V3*/ curfptr[2]), (BPARSTR_PTR ""), argtab, "", (union basilysparam_un*)0);
     }
@@ -29802,15 +29846,15 @@ BASILYS_LOCATION("warmelt-macro.bysl:2240: @block");
    /*_#IS_NOT_A__L3*/ curfnum[2] = 
      !basilys_is_instance_of((basilys_ptr_t)(/*_.LABIND__V22*/ curfptr[21]), (basilys_ptr_t)((/*!CLASS_LABEL_BINDING*/ curfrout->tabval[5])));;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2255: @cond");
+   BASILYS_LOCATION("warmelt-macro.bysl:2258: @cond");
    /*cond*/ if (/*_#IS_NOT_A__L3*/ curfnum[2]) /*then*/ {
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2255: @cond.then");
+   BASILYS_LOCATION("warmelt-macro.bysl:2258: @cond.then");
    
-    BASILYS_LOCATION("warmelt-macro.bysl:2255: @block");
+    BASILYS_LOCATION("warmelt-macro.bysl:2258: @block");
     /*block*/{
      
-     BASILYS_LOCATION("warmelt-macro.bysl:2258: @getslot");
+     BASILYS_LOCATION("warmelt-macro.bysl:2261: @getslot");
      /*_.NAMED_NAME__V24*/ curfptr[23] = basilys_getfield_object((basilys_ptr_t)(/*_.XLABNAM__V13*/ curfptr[12]), 1, "NAMED_NAME");
      ;
      
@@ -29818,60 +29862,60 @@ BASILYS_LOCATION("warmelt-macro.bysl:2240: @block");
      /*_.THE_NULL__V25*/ curfptr[24] = 
       (NULL);;
      
-     BASILYS_LOCATION("warmelt-macro.bysl:2259: @block");
+     BASILYS_LOCATION("warmelt-macro.bysl:2262: @block");
      /*block*/{
       /*_.RETVAL___V1*/ curfptr[0] = /*_.THE_NULL__V25*/ curfptr[24];;
       
-      BASILYS_LOCATION("warmelt-macro.bysl:2259: @finalreturn");
+      BASILYS_LOCATION("warmelt-macro.bysl:2262: @finalreturn");
       ;
       /*finalret*/ goto labend_rout ;}
      ;
      
-     BASILYS_LOCATION("warmelt-macro.bysl:2256: @block");
+     BASILYS_LOCATION("warmelt-macro.bysl:2259: @block");
      /*block*/{
       /*_.PROGN___V27*/ curfptr[26] = /*_.RETURN___V26*/ curfptr[25];;}
      ;
      /*_.IF___V23*/ curfptr[22] = /*_.PROGN___V27*/ curfptr[26];;
      /*epilog*/
      
-     BASILYS_LOCATION("warmelt-macro.bysl:2255: @clear");
+     BASILYS_LOCATION("warmelt-macro.bysl:2258: @clear");
      /*clear*/ /*_.NAMED_NAME__V24*/ curfptr[23] = 0 ;
      
-     BASILYS_LOCATION("warmelt-macro.bysl:2255: @clear");
+     BASILYS_LOCATION("warmelt-macro.bysl:2258: @clear");
      /*clear*/ /*_.THE_NULL__V25*/ curfptr[24] = 0 ;
      
-     BASILYS_LOCATION("warmelt-macro.bysl:2255: @clear");
+     BASILYS_LOCATION("warmelt-macro.bysl:2258: @clear");
      /*clear*/ /*_.RETURN___V26*/ curfptr[25] = 0 ;
      
-     BASILYS_LOCATION("warmelt-macro.bysl:2255: @clear");
+     BASILYS_LOCATION("warmelt-macro.bysl:2258: @clear");
      /*clear*/ /*_.PROGN___V27*/ curfptr[26] = 0 ;}
     ;
    } else {
-   BASILYS_LOCATION("warmelt-macro.bysl:2255: @cond.else");
+   BASILYS_LOCATION("warmelt-macro.bysl:2258: @cond.else");
    
     /*_.IF___V23*/ curfptr[22] = NULL;;
     }
    ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2260: @block");
+   BASILYS_LOCATION("warmelt-macro.bysl:2263: @block");
    /*block*/{
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2263: @block");
+    BASILYS_LOCATION("warmelt-macro.bysl:2266: @block");
     /*block*/{
      
-     BASILYS_LOCATION("warmelt-macro.bysl:2263: @newclosure");
+     BASILYS_LOCATION("warmelt-macro.bysl:2266: @newclosure");
       /*newclosure*/ /*_.LAMBDA___V30*/ curfptr[25] =
       basilysgc_new_closure((basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_CLOSURE)))), (basilysroutine_ptr_t)((/*!konst_9*/ curfrout->tabval[9])), (2));
      ;
      
-     BASILYS_LOCATION("warmelt-macro.bysl:2263: @putclosedv");
+     BASILYS_LOCATION("warmelt-macro.bysl:2266: @putclosedv");
      /*putclosv*/
      basilys_assertmsg("putclosv checkclo", basilys_magic_discr((basilys_ptr_t)(/*_.LAMBDA___V30*/ curfptr[25])) == OBMAG_CLOSURE);
      basilys_assertmsg("putclosv checkoff", 0>= 0 && 0< basilys_closure_size((basilys_ptr_t) (/*_.LAMBDA___V30*/ curfptr[25])));
      ((basilysclosure_ptr_t)/*_.LAMBDA___V30*/ curfptr[25])->tabval[0] = (basilys_ptr_t)(/*_.NEWENV__V14*/ curfptr[13]);
      ;
      
-     BASILYS_LOCATION("warmelt-macro.bysl:2263: @putclosedv");
+     BASILYS_LOCATION("warmelt-macro.bysl:2266: @putclosedv");
      /*putclosv*/
      basilys_assertmsg("putclosv checkclo", basilys_magic_discr((basilys_ptr_t)(/*_.LAMBDA___V30*/ curfptr[25])) == OBMAG_CLOSURE);
      basilys_assertmsg("putclosv checkoff", 1>= 0 && 1< basilys_closure_size((basilys_ptr_t) (/*_.LAMBDA___V30*/ curfptr[25])));
@@ -29880,28 +29924,28 @@ BASILYS_LOCATION("warmelt-macro.bysl:2240: @block");
      /*_.LAMBDA___V29*/ curfptr[24] = /*_.LAMBDA___V30*/ curfptr[25];;}
     ;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2260: @apply");
+    BASILYS_LOCATION("warmelt-macro.bysl:2263: @apply");
     /*apply*/{
      union basilysparam_un argtab[2];
      memset(&argtab, 0, sizeof(argtab));
      
-     BASILYS_LOCATION("warmelt-macro.bysl:2260: @apply.arg");
+     BASILYS_LOCATION("warmelt-macro.bysl:2263: @apply.arg");
      argtab[0].bp_aptr = (basilys_ptr_t*) &(/*!DISCR_MULTIPLE*/ curfrout->tabval[7]);
-     BASILYS_LOCATION("warmelt-macro.bysl:2260: @apply.arg");
+     BASILYS_LOCATION("warmelt-macro.bysl:2263: @apply.arg");
      argtab[1].bp_aptr = (basilys_ptr_t*) &/*_.LAMBDA___V29*/ curfptr[24];
      /*_.BODYTUP__V31*/ curfptr[26] =  basilys_apply ((basilysclosure_ptr_t)((/*!PAIRLIST_TO_MULTIPLE*/ curfrout->tabval[6])), (basilys_ptr_t)(/*_.CURPAIR__V11*/ curfptr[10]), (BPARSTR_PTR BPARSTR_PTR ""), argtab, "", (union basilysparam_un*)0);
      }
     ;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2265: @block");
+    BASILYS_LOCATION("warmelt-macro.bysl:2268: @block");
     /*block*/{
      
-     BASILYS_LOCATION("warmelt-macro.bysl:2265: @rawallocobj");
+     BASILYS_LOCATION("warmelt-macro.bysl:2268: @rawallocobj");
      /*rawallocobj*/ /*_.INST__V33*/ curfptr[32] =
-      basilysgc_new_raw_object((basilysobject_ptr_t)((/*!CLASS_SRC_EXIT*/ curfrout->tabval[10])), (3));
+      basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_SRC_EXIT*/ curfrout->tabval[10])), (3), ("CLASS_SRC_EXIT"));
      ;
      
-     BASILYS_LOCATION("warmelt-macro.bysl:2265: @putslot");
+     BASILYS_LOCATION("warmelt-macro.bysl:2268: @putslot");
      /*putslot*/
      basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V33*/ curfptr[32])) == OBMAG_OBJECT);
      basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V33*/ curfptr[32]))));
@@ -29909,7 +29953,7 @@ BASILYS_LOCATION("warmelt-macro.bysl:2240: @block");
       /*_.LOC__V9*/ curfptr[8]);
      ;
      
-     BASILYS_LOCATION("warmelt-macro.bysl:2265: @putslot");
+     BASILYS_LOCATION("warmelt-macro.bysl:2268: @putslot");
      /*putslot*/
      basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V33*/ curfptr[32])) == OBMAG_OBJECT);
      basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V33*/ curfptr[32]))));
@@ -29917,7 +29961,7 @@ BASILYS_LOCATION("warmelt-macro.bysl:2240: @block");
       /*_.LABIND__V22*/ curfptr[21]);
      ;
      
-     BASILYS_LOCATION("warmelt-macro.bysl:2265: @putslot");
+     BASILYS_LOCATION("warmelt-macro.bysl:2268: @putslot");
      /*putslot*/
      basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V33*/ curfptr[32])) == OBMAG_OBJECT);
      basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V33*/ curfptr[32]))));
@@ -29927,98 +29971,98 @@ BASILYS_LOCATION("warmelt-macro.bysl:2240: @block");
      /*_.EXR__V32*/ curfptr[31] = /*_.INST__V33*/ curfptr[32];;}
     ;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2270: @block");
+    BASILYS_LOCATION("warmelt-macro.bysl:2273: @block");
     /*block*/{
      /*_.RETVAL___V1*/ curfptr[0] = /*_.EXR__V32*/ curfptr[31];;
      
-     BASILYS_LOCATION("warmelt-macro.bysl:2270: @finalreturn");
+     BASILYS_LOCATION("warmelt-macro.bysl:2273: @finalreturn");
      ;
      /*finalret*/ goto labend_rout ;}
     ;
     /*_.LET___V28*/ curfptr[23] = /*_.RETURN___V34*/ curfptr[33];;
     /*epilog*/
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2260: @clear");
+    BASILYS_LOCATION("warmelt-macro.bysl:2263: @clear");
     /*clear*/ /*_.LAMBDA___V29*/ curfptr[24] = 0 ;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2260: @clear");
+    BASILYS_LOCATION("warmelt-macro.bysl:2263: @clear");
     /*clear*/ /*_.BODYTUP__V31*/ curfptr[26] = 0 ;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2260: @clear");
+    BASILYS_LOCATION("warmelt-macro.bysl:2263: @clear");
     /*clear*/ /*_.EXR__V32*/ curfptr[31] = 0 ;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2260: @clear");
+    BASILYS_LOCATION("warmelt-macro.bysl:2263: @clear");
     /*clear*/ /*_.RETURN___V34*/ curfptr[33] = 0 ;}
    ;
    /*_.LET___V21*/ curfptr[17] = /*_.LET___V28*/ curfptr[23];;
    /*epilog*/
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2254: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2257: @clear");
    /*clear*/ /*_.LABIND__V22*/ curfptr[21] = 0 ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2254: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2257: @clear");
    /*clear*/ /*_#IS_NOT_A__L3*/ curfnum[2] = 0 ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2254: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2257: @clear");
    /*clear*/ /*_.IF___V23*/ curfptr[22] = 0 ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2254: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2257: @clear");
    /*clear*/ /*_.LET___V28*/ curfptr[23] = 0 ;}
   ;
   /*_.LET___V7*/ curfptr[5] = /*_.LET___V21*/ curfptr[17];;
   /*epilog*/
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2242: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2245: @clear");
   /*clear*/ /*_.CONT__V8*/ curfptr[7] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2242: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2245: @clear");
   /*clear*/ /*_.LOC__V9*/ curfptr[8] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2242: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2245: @clear");
   /*clear*/ /*_.LIST_FIRST__V10*/ curfptr[9] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2242: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2245: @clear");
   /*clear*/ /*_.CURPAIR__V11*/ curfptr[10] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2242: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2245: @clear");
   /*clear*/ /*_.SLABNAM__V12*/ curfptr[11] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2242: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2245: @clear");
   /*clear*/ /*_.XLABNAM__V13*/ curfptr[12] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2242: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2245: @clear");
   /*clear*/ /*_.NEWENV__V14*/ curfptr[13] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2242: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2245: @clear");
   /*clear*/ /*_#IS_NOT_A__L2*/ curfnum[0] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2242: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2245: @clear");
   /*clear*/ /*_.IF___V15*/ curfptr[14] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2242: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2245: @clear");
   /*clear*/ /*_.PAIR_TAIL__V19*/ curfptr[15] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2242: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2245: @clear");
   /*clear*/ /*_.SETQ___V20*/ curfptr[16] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2242: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2245: @clear");
   /*clear*/ /*_.LET___V21*/ curfptr[17] = 0 ;}
  ;
  
- BASILYS_LOCATION("warmelt-macro.bysl:2240: @block");
+ BASILYS_LOCATION("warmelt-macro.bysl:2243: @block");
  /*block*/{
   /*_.RETVAL___V1*/ curfptr[0] = /*_.LET___V7*/ curfptr[5];;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2240: @finalreturn");
+  BASILYS_LOCATION("warmelt-macro.bysl:2243: @finalreturn");
   ;
   /*finalret*/ goto labend_rout ;}
  ;
  /*epilog*/
  
- BASILYS_LOCATION("warmelt-macro.bysl:2240: @clear");
+ BASILYS_LOCATION("warmelt-macro.bysl:2243: @clear");
  /*clear*/ /*_.IFCPP___V5*/ curfptr[4] = 0 ;
  
- BASILYS_LOCATION("warmelt-macro.bysl:2240: @clear");
+ BASILYS_LOCATION("warmelt-macro.bysl:2243: @clear");
  /*clear*/ /*_.LET___V7*/ curfptr[5] = 0 ;}
 
 ;
@@ -30070,40 +30114,40 @@ basilys_trace_start("LAMBDA_", callcount);
 
  /*getarg#0*/
  
- BASILYS_LOCATION("warmelt-macro.bysl:2263: @getarg");
+ BASILYS_LOCATION("warmelt-macro.bysl:2266: @getarg");
  /*_.E__V2*/ curfptr[1] = (basilys_ptr_t) firstargp_;
  ;
  goto lab_endgetargs;
 lab_endgetargs:;
 /*body*/
 
-BASILYS_LOCATION("warmelt-macro.bysl:2263: @block");
+BASILYS_LOCATION("warmelt-macro.bysl:2266: @block");
 /*block*/{
  
- BASILYS_LOCATION("warmelt-macro.bysl:2263: @apply");
+ BASILYS_LOCATION("warmelt-macro.bysl:2266: @apply");
  /*apply*/{
   union basilysparam_un argtab[2];
   memset(&argtab, 0, sizeof(argtab));
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2263: @apply.arg");
+  BASILYS_LOCATION("warmelt-macro.bysl:2266: @apply.arg");
   argtab[0].bp_aptr = (basilys_ptr_t*) &(/*~NEWENV*/ curfclos->tabval[0]);
-  BASILYS_LOCATION("warmelt-macro.bysl:2263: @apply.arg");
+  BASILYS_LOCATION("warmelt-macro.bysl:2266: @apply.arg");
   argtab[1].bp_aptr = (basilys_ptr_t*) &(/*~MEXPANDER*/ curfclos->tabval[1]);
   /*_.MACROEXPAND_1__V3*/ curfptr[2] =  basilys_apply ((basilysclosure_ptr_t)((/*!MACROEXPAND_1*/ curfrout->tabval[0])), (basilys_ptr_t)(/*_.E__V2*/ curfptr[1]), (BPARSTR_PTR BPARSTR_PTR ""), argtab, "", (union basilysparam_un*)0);
   }
  ;
  
- BASILYS_LOCATION("warmelt-macro.bysl:2263: @block");
+ BASILYS_LOCATION("warmelt-macro.bysl:2266: @block");
  /*block*/{
   /*_.RETVAL___V1*/ curfptr[0] = /*_.MACROEXPAND_1__V3*/ curfptr[2];;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2263: @finalreturn");
+  BASILYS_LOCATION("warmelt-macro.bysl:2266: @finalreturn");
   ;
   /*finalret*/ goto labend_rout ;}
  ;
  /*epilog*/
  
- BASILYS_LOCATION("warmelt-macro.bysl:2263: @clear");
+ BASILYS_LOCATION("warmelt-macro.bysl:2266: @clear");
  /*clear*/ /*_.MACROEXPAND_1__V3*/ curfptr[2] = 0 ;}
 
 ;
@@ -30155,12 +30199,12 @@ basilys_trace_start("MEXPAND_COMPILE_WARNING", callcount);
 
  /*getarg#0*/
  
- BASILYS_LOCATION("warmelt-macro.bysl:2278: @getarg");
+ BASILYS_LOCATION("warmelt-macro.bysl:2281: @getarg");
  /*_.SEXPR__V2*/ curfptr[1] = (basilys_ptr_t) firstargp_;
  
  /*getarg#1*/
  
- BASILYS_LOCATION("warmelt-macro.bysl:2278: @getarg");
+ BASILYS_LOCATION("warmelt-macro.bysl:2281: @getarg");
  if (xargdescr_[0] != BPAR_PTR) goto lab_endgetargs;
  /*_.ENV__V3*/ curfptr[2] = (xargtab_[0].bp_aptr) ? (*(xargtab_[0].bp_aptr)) : NULL;
  gcc_assert(basilys_discr((basilys_ptr_t)(/*_.ENV__V3*/ curfptr[2])) != NULL);
@@ -30168,7 +30212,7 @@ basilys_trace_start("MEXPAND_COMPILE_WARNING", callcount);
  
  /*getarg#2*/
  
- BASILYS_LOCATION("warmelt-macro.bysl:2278: @getarg");
+ BASILYS_LOCATION("warmelt-macro.bysl:2281: @getarg");
  if (xargdescr_[1] != BPAR_PTR) goto lab_endgetargs;
  /*_.MEXPANDER__V4*/ curfptr[3] = (xargtab_[1].bp_aptr) ? (*(xargtab_[1].bp_aptr)) : NULL;
  gcc_assert(basilys_discr((basilys_ptr_t)(/*_.MEXPANDER__V4*/ curfptr[3])) != NULL);
@@ -30178,32 +30222,32 @@ basilys_trace_start("MEXPAND_COMPILE_WARNING", callcount);
 lab_endgetargs:;
 /*body*/
 
-BASILYS_LOCATION("warmelt-macro.bysl:2278: @block");
+BASILYS_LOCATION("warmelt-macro.bysl:2281: @block");
 /*block*/{
  
  #if ENABLE_CHECKING
   
- BASILYS_LOCATION("warmelt-macro.bysl:2279: @cppif.then");
+ BASILYS_LOCATION("warmelt-macro.bysl:2282: @cppif.then");
  
-  BASILYS_LOCATION("warmelt-macro.bysl:2279: @block");
+  BASILYS_LOCATION("warmelt-macro.bysl:2282: @block");
   /*block*/{
    /*_#IS_A__L1*/ curfnum[0] = 
      basilys_is_instance_of((basilys_ptr_t)(/*_.SEXPR__V2*/ curfptr[1]), (basilys_ptr_t)((/*!CLASS_SEXPR*/ curfrout->tabval[0])));;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2279: @cond");
+   BASILYS_LOCATION("warmelt-macro.bysl:2282: @cond");
    /*cond*/ if (/*_#IS_A__L1*/ curfnum[0]) /*then*/ {
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2279: @cond.then");
+   BASILYS_LOCATION("warmelt-macro.bysl:2282: @cond.then");
    /*_.IFELSE___V6*/ curfptr[5] = (/*nil*/NULL);;
    } else {
-   BASILYS_LOCATION("warmelt-macro.bysl:2279: @cond.else");
+   BASILYS_LOCATION("warmelt-macro.bysl:2282: @cond.else");
    
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2279: @block");
+    BASILYS_LOCATION("warmelt-macro.bysl:2282: @block");
     /*block*/{
      /*block*/{
       
-      basilys_assert_failed(( "check sexpr"),( "warmelt-macro.bysl"),(2279), __FUNCTION__);
+      basilys_assert_failed(( "check sexpr"),( "warmelt-macro.bysl"),(2282), __FUNCTION__);
       /*clear*/ /*_.IFELSE___V6*/ curfptr[5] = 0 ;}
      ;
      /*epilog*/}
@@ -30213,68 +30257,68 @@ BASILYS_LOCATION("warmelt-macro.bysl:2278: @block");
    /*_.IFCPP___V5*/ curfptr[4] = /*_.IFELSE___V6*/ curfptr[5];;
    /*epilog*/
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2279: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2282: @clear");
    /*clear*/ /*_#IS_A__L1*/ curfnum[0] = 0 ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2279: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2282: @clear");
    /*clear*/ /*_.IFELSE___V6*/ curfptr[5] = 0 ;}
   
   #else /*ENABLE_CHECKING*/
   
- BASILYS_LOCATION("warmelt-macro.bysl:2279: @cppif.else");
+ BASILYS_LOCATION("warmelt-macro.bysl:2282: @cppif.else");
  /*_.IFCPP___V5*/ curfptr[4] = (/*nil*/NULL);
   #endif /*ENABLE_CHECKING*/
   ;
  
  #if ENABLE_CHECKING
   
- BASILYS_LOCATION("warmelt-macro.bysl:2280: @cppif.then");
+ BASILYS_LOCATION("warmelt-macro.bysl:2283: @cppif.then");
  
-  BASILYS_LOCATION("warmelt-macro.bysl:2280: @block");
+  BASILYS_LOCATION("warmelt-macro.bysl:2283: @block");
   /*block*/{
    /*_#THE_CALLCOUNT__L2*/ curfnum[0] = 
     callcount;;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2280: @apply");
+   BASILYS_LOCATION("warmelt-macro.bysl:2283: @apply");
    /*apply*/{
     union basilysparam_un argtab[4];
     memset(&argtab, 0, sizeof(argtab));
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2280: @apply.arg");
+    BASILYS_LOCATION("warmelt-macro.bysl:2283: @apply.arg");
     argtab[0].bp_cstring =  "mexpand_compile_warning sexpr";
-    BASILYS_LOCATION("warmelt-macro.bysl:2280: @apply.arg");
+    BASILYS_LOCATION("warmelt-macro.bysl:2283: @apply.arg");
     argtab[1].bp_long = /*_#THE_CALLCOUNT__L2*/ curfnum[0];
-    BASILYS_LOCATION("warmelt-macro.bysl:2280: @apply.arg");
+    BASILYS_LOCATION("warmelt-macro.bysl:2283: @apply.arg");
     argtab[2].bp_cstring =  "warmelt-macro.bysl";
-    BASILYS_LOCATION("warmelt-macro.bysl:2280: @apply.arg");
-    argtab[3].bp_long = 2280;
+    BASILYS_LOCATION("warmelt-macro.bysl:2283: @apply.arg");
+    argtab[3].bp_long = 2283;
     /*_.DEBUG_MSG_FUN__V8*/ curfptr[7] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[1])), (basilys_ptr_t)(/*_.SEXPR__V2*/ curfptr[1]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
     }
    ;
    /*_.IFCPP___V7*/ curfptr[5] = /*_.DEBUG_MSG_FUN__V8*/ curfptr[7];;
    /*epilog*/
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2280: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2283: @clear");
    /*clear*/ /*_#THE_CALLCOUNT__L2*/ curfnum[0] = 0 ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2280: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2283: @clear");
    /*clear*/ /*_.DEBUG_MSG_FUN__V8*/ curfptr[7] = 0 ;}
   
   #else /*ENABLE_CHECKING*/
   
- BASILYS_LOCATION("warmelt-macro.bysl:2280: @cppif.else");
+ BASILYS_LOCATION("warmelt-macro.bysl:2283: @cppif.else");
  /*_.IFCPP___V7*/ curfptr[5] = (/*nil*/NULL);
   #endif /*ENABLE_CHECKING*/
   ;
  
- BASILYS_LOCATION("warmelt-macro.bysl:2281: @block");
+ BASILYS_LOCATION("warmelt-macro.bysl:2284: @block");
  /*block*/{
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2281: @getslot");
+  BASILYS_LOCATION("warmelt-macro.bysl:2284: @getslot");
   /*_.CONT__V10*/ curfptr[9] = basilys_getfield_object((basilys_ptr_t)(/*_.SEXPR__V2*/ curfptr[1]), 2, "SEXP_CONTENTS");
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2282: @getslot");
+  BASILYS_LOCATION("warmelt-macro.bysl:2285: @getslot");
   /*_.LOC__V11*/ curfptr[10] = basilys_getfield_object((basilys_ptr_t)(/*_.SEXPR__V2*/ curfptr[1]), 1, "LOCA_LOCATION");
   ;
   /*_.LIST_FIRST__V12*/ curfptr[11] = 
@@ -30284,14 +30328,14 @@ BASILYS_LOCATION("warmelt-macro.bysl:2278: @block");
   /*_.SMSG__V14*/ curfptr[13] = 
    (basilys_pair_head((basilys_ptr_t)(/*_.CURPAIR__V13*/ curfptr[12])));;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2285: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2288: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2285: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2288: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.ENV__V3*/ curfptr[2];
-   BASILYS_LOCATION("warmelt-macro.bysl:2285: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2288: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &/*_.MEXPANDER__V4*/ curfptr[3];
    /*_.XMSG__V15*/ curfptr[14] =  basilys_apply ((basilysclosure_ptr_t)((/*!MACROEXPAND_1*/ curfrout->tabval[2])), (basilys_ptr_t)(/*_.SMSG__V14*/ curfptr[13]), (BPARSTR_PTR BPARSTR_PTR ""), argtab, "", (union basilysparam_un*)0);
    }
@@ -30301,45 +30345,45 @@ BASILYS_LOCATION("warmelt-macro.bysl:2278: @block");
   /*_#NOT__L4*/ curfnum[3] = 
    (!(/*_#IS_STRING__L3*/ curfnum[0]));;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2287: @cond");
+  BASILYS_LOCATION("warmelt-macro.bysl:2290: @cond");
   /*cond*/ if (/*_#NOT__L4*/ curfnum[3]) /*then*/ {
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2287: @cond.then");
+  BASILYS_LOCATION("warmelt-macro.bysl:2290: @cond.then");
   
-   BASILYS_LOCATION("warmelt-macro.bysl:2287: @block");
+   BASILYS_LOCATION("warmelt-macro.bysl:2290: @block");
    /*block*/{
     
     error("%s:%d:: BASILYS ERROR [#%ld]: @%s ",  basilys_string_str(basilys_val_mixint((basilys_ptr_t)(/*_.LOC__V11*/ curfptr[10]))),  (int) basilys_num_mixint((basilys_ptr_t)(/*_.LOC__V11*/ curfptr[10])), basilys_dbgcounter, ( "missing message string in (COMPILE_WARNING <msg> <exp>)"));
     /*_.THE_NULL__V17*/ curfptr[16] = 
      (NULL);;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2290: @block");
+    BASILYS_LOCATION("warmelt-macro.bysl:2293: @block");
     /*block*/{
      /*_.RETVAL___V1*/ curfptr[0] = /*_.THE_NULL__V17*/ curfptr[16];;
      
-     BASILYS_LOCATION("warmelt-macro.bysl:2290: @finalreturn");
+     BASILYS_LOCATION("warmelt-macro.bysl:2293: @finalreturn");
      ;
      /*finalret*/ goto labend_rout ;}
     ;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2288: @block");
+    BASILYS_LOCATION("warmelt-macro.bysl:2291: @block");
     /*block*/{
      /*_.PROGN___V19*/ curfptr[18] = /*_.RETURN___V18*/ curfptr[17];;}
     ;
     /*_.IF___V16*/ curfptr[15] = /*_.PROGN___V19*/ curfptr[18];;
     /*epilog*/
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2287: @clear");
+    BASILYS_LOCATION("warmelt-macro.bysl:2290: @clear");
     /*clear*/ /*_.THE_NULL__V17*/ curfptr[16] = 0 ;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2287: @clear");
+    BASILYS_LOCATION("warmelt-macro.bysl:2290: @clear");
     /*clear*/ /*_.RETURN___V18*/ curfptr[17] = 0 ;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2287: @clear");
+    BASILYS_LOCATION("warmelt-macro.bysl:2290: @clear");
     /*clear*/ /*_.PROGN___V19*/ curfptr[18] = 0 ;}
    ;
   } else {
-  BASILYS_LOCATION("warmelt-macro.bysl:2287: @cond.else");
+  BASILYS_LOCATION("warmelt-macro.bysl:2290: @cond.else");
   
    /*_.IF___V16*/ curfptr[15] = NULL;;
    }
@@ -30347,22 +30391,22 @@ BASILYS_LOCATION("warmelt-macro.bysl:2278: @block");
   /*_.PAIR_TAIL__V20*/ curfptr[16] = 
    (basilys_pair_tail((basilys_ptr_t)(/*_.CURPAIR__V13*/ curfptr[12])));;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2291: @compute");
+  BASILYS_LOCATION("warmelt-macro.bysl:2294: @compute");
   /*_.CURPAIR__V13*/ curfptr[12] = /*_.SETQ___V21*/ curfptr[17] = /*_.PAIR_TAIL__V20*/ curfptr[16];;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2292: @block");
+  BASILYS_LOCATION("warmelt-macro.bysl:2295: @block");
   /*block*/{
    /*_.SEXP__V23*/ curfptr[22] = 
     (basilys_pair_head((basilys_ptr_t)(/*_.CURPAIR__V13*/ curfptr[12])));;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2293: @apply");
+   BASILYS_LOCATION("warmelt-macro.bysl:2296: @apply");
    /*apply*/{
     union basilysparam_un argtab[2];
     memset(&argtab, 0, sizeof(argtab));
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2293: @apply.arg");
+    BASILYS_LOCATION("warmelt-macro.bysl:2296: @apply.arg");
     argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.ENV__V3*/ curfptr[2];
-    BASILYS_LOCATION("warmelt-macro.bysl:2293: @apply.arg");
+    BASILYS_LOCATION("warmelt-macro.bysl:2296: @apply.arg");
     argtab[1].bp_aptr = (basilys_ptr_t*) &/*_.MEXPANDER__V4*/ curfptr[3];
     /*_.XEXP__V24*/ curfptr[23] =  basilys_apply ((basilysclosure_ptr_t)((/*!MACROEXPAND_1*/ curfrout->tabval[2])), (basilys_ptr_t)(/*_.SEXP__V23*/ curfptr[22]), (BPARSTR_PTR BPARSTR_PTR ""), argtab, "", (union basilysparam_un*)0);
     }
@@ -30370,17 +30414,17 @@ BASILYS_LOCATION("warmelt-macro.bysl:2278: @block");
    /*_.PAIR_TAIL__V25*/ curfptr[24] = 
     (basilys_pair_tail((basilys_ptr_t)(/*_.CURPAIR__V13*/ curfptr[12])));;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2295: @compute");
+   BASILYS_LOCATION("warmelt-macro.bysl:2298: @compute");
    /*_.CURPAIR__V13*/ curfptr[12] = /*_.SETQ___V26*/ curfptr[25] = /*_.PAIR_TAIL__V25*/ curfptr[24];;
    /*_#NOTNULL__L5*/ curfnum[4] = 
     ((/*_.CURPAIR__V13*/ curfptr[12]) != NULL);;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2296: @cond");
+   BASILYS_LOCATION("warmelt-macro.bysl:2299: @cond");
    /*cond*/ if (/*_#NOTNULL__L5*/ curfnum[4]) /*then*/ {
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2296: @cond.then");
+   BASILYS_LOCATION("warmelt-macro.bysl:2299: @cond.then");
    
-    BASILYS_LOCATION("warmelt-macro.bysl:2296: @block");
+    BASILYS_LOCATION("warmelt-macro.bysl:2299: @block");
     /*block*/{
      
      error("%s:%d:: BASILYS ERROR [#%ld]: @%s ",  basilys_string_str(basilys_val_mixint((basilys_ptr_t)(/*_.LOC__V11*/ curfptr[10]))),  (int) basilys_num_mixint((basilys_ptr_t)(/*_.LOC__V11*/ curfptr[10])), basilys_dbgcounter, ( "too many arguments in (COMPILE_WARNING <msg> <exp>)"));
@@ -30389,18 +30433,18 @@ BASILYS_LOCATION("warmelt-macro.bysl:2278: @block");
    } /*noelse*/
    ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2298: @block");
+   BASILYS_LOCATION("warmelt-macro.bysl:2301: @block");
    /*block*/{
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2298: @block");
+    BASILYS_LOCATION("warmelt-macro.bysl:2301: @block");
     /*block*/{
      
-     BASILYS_LOCATION("warmelt-macro.bysl:2298: @rawallocobj");
+     BASILYS_LOCATION("warmelt-macro.bysl:2301: @rawallocobj");
      /*rawallocobj*/ /*_.INST__V29*/ curfptr[28] =
-      basilysgc_new_raw_object((basilysobject_ptr_t)((/*!CLASS_SRC_COMPILEWARNING*/ curfrout->tabval[3])), (3));
+      basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_SRC_COMPILEWARNING*/ curfrout->tabval[3])), (3), ("CLASS_SRC_COMPILEWARNING"));
      ;
      
-     BASILYS_LOCATION("warmelt-macro.bysl:2298: @putslot");
+     BASILYS_LOCATION("warmelt-macro.bysl:2301: @putslot");
      /*putslot*/
      basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V29*/ curfptr[28])) == OBMAG_OBJECT);
      basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V29*/ curfptr[28]))));
@@ -30408,7 +30452,7 @@ BASILYS_LOCATION("warmelt-macro.bysl:2278: @block");
       /*_.LOC__V11*/ curfptr[10]);
      ;
      
-     BASILYS_LOCATION("warmelt-macro.bysl:2298: @putslot");
+     BASILYS_LOCATION("warmelt-macro.bysl:2301: @putslot");
      /*putslot*/
      basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V29*/ curfptr[28])) == OBMAG_OBJECT);
      basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V29*/ curfptr[28]))));
@@ -30416,7 +30460,7 @@ BASILYS_LOCATION("warmelt-macro.bysl:2278: @block");
       /*_.XMSG__V15*/ curfptr[14]);
      ;
      
-     BASILYS_LOCATION("warmelt-macro.bysl:2298: @putslot");
+     BASILYS_LOCATION("warmelt-macro.bysl:2301: @putslot");
      /*putslot*/
      basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V29*/ curfptr[28])) == OBMAG_OBJECT);
      basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V29*/ curfptr[28]))));
@@ -30428,143 +30472,143 @@ BASILYS_LOCATION("warmelt-macro.bysl:2278: @block");
     
     #if ENABLE_CHECKING
      
-    BASILYS_LOCATION("warmelt-macro.bysl:2304: @cppif.then");
+    BASILYS_LOCATION("warmelt-macro.bysl:2307: @cppif.then");
     
-     BASILYS_LOCATION("warmelt-macro.bysl:2304: @block");
+     BASILYS_LOCATION("warmelt-macro.bysl:2307: @block");
      /*block*/{
       /*_#THE_CALLCOUNT__L6*/ curfnum[5] = 
        callcount;;
       
-      BASILYS_LOCATION("warmelt-macro.bysl:2304: @apply");
+      BASILYS_LOCATION("warmelt-macro.bysl:2307: @apply");
       /*apply*/{
        union basilysparam_un argtab[4];
        memset(&argtab, 0, sizeof(argtab));
        
-       BASILYS_LOCATION("warmelt-macro.bysl:2304: @apply.arg");
+       BASILYS_LOCATION("warmelt-macro.bysl:2307: @apply.arg");
        argtab[0].bp_cstring =  "mexpand_compile_warning result";
-       BASILYS_LOCATION("warmelt-macro.bysl:2304: @apply.arg");
+       BASILYS_LOCATION("warmelt-macro.bysl:2307: @apply.arg");
        argtab[1].bp_long = /*_#THE_CALLCOUNT__L6*/ curfnum[5];
-       BASILYS_LOCATION("warmelt-macro.bysl:2304: @apply.arg");
+       BASILYS_LOCATION("warmelt-macro.bysl:2307: @apply.arg");
        argtab[2].bp_cstring =  "warmelt-macro.bysl";
-       BASILYS_LOCATION("warmelt-macro.bysl:2304: @apply.arg");
-       argtab[3].bp_long = 2304;
+       BASILYS_LOCATION("warmelt-macro.bysl:2307: @apply.arg");
+       argtab[3].bp_long = 2307;
        /*_.DEBUG_MSG_FUN__V31*/ curfptr[30] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[1])), (basilys_ptr_t)(/*_.RES__V28*/ curfptr[27]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
        }
       ;
       /*_.IFCPP___V30*/ curfptr[29] = /*_.DEBUG_MSG_FUN__V31*/ curfptr[30];;
       /*epilog*/
       
-      BASILYS_LOCATION("warmelt-macro.bysl:2304: @clear");
+      BASILYS_LOCATION("warmelt-macro.bysl:2307: @clear");
       /*clear*/ /*_#THE_CALLCOUNT__L6*/ curfnum[5] = 0 ;
       
-      BASILYS_LOCATION("warmelt-macro.bysl:2304: @clear");
+      BASILYS_LOCATION("warmelt-macro.bysl:2307: @clear");
       /*clear*/ /*_.DEBUG_MSG_FUN__V31*/ curfptr[30] = 0 ;}
      
      #else /*ENABLE_CHECKING*/
      
-    BASILYS_LOCATION("warmelt-macro.bysl:2304: @cppif.else");
+    BASILYS_LOCATION("warmelt-macro.bysl:2307: @cppif.else");
     /*_.IFCPP___V30*/ curfptr[29] = (/*nil*/NULL);
      #endif /*ENABLE_CHECKING*/
      ;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2305: @block");
+    BASILYS_LOCATION("warmelt-macro.bysl:2308: @block");
     /*block*/{
      /*_.RETVAL___V1*/ curfptr[0] = /*_.RES__V28*/ curfptr[27];;
      
-     BASILYS_LOCATION("warmelt-macro.bysl:2305: @finalreturn");
+     BASILYS_LOCATION("warmelt-macro.bysl:2308: @finalreturn");
      ;
      /*finalret*/ goto labend_rout ;}
     ;
     /*_.LET___V27*/ curfptr[26] = /*_.RETURN___V32*/ curfptr[30];;
     /*epilog*/
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2298: @clear");
+    BASILYS_LOCATION("warmelt-macro.bysl:2301: @clear");
     /*clear*/ /*_.RES__V28*/ curfptr[27] = 0 ;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2298: @clear");
+    BASILYS_LOCATION("warmelt-macro.bysl:2301: @clear");
     /*clear*/ /*_.IFCPP___V30*/ curfptr[29] = 0 ;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2298: @clear");
+    BASILYS_LOCATION("warmelt-macro.bysl:2301: @clear");
     /*clear*/ /*_.RETURN___V32*/ curfptr[30] = 0 ;}
    ;
    /*_.LET___V22*/ curfptr[18] = /*_.LET___V27*/ curfptr[26];;
    /*epilog*/
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2292: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2295: @clear");
    /*clear*/ /*_.SEXP__V23*/ curfptr[22] = 0 ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2292: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2295: @clear");
    /*clear*/ /*_.XEXP__V24*/ curfptr[23] = 0 ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2292: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2295: @clear");
    /*clear*/ /*_.PAIR_TAIL__V25*/ curfptr[24] = 0 ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2292: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2295: @clear");
    /*clear*/ /*_.SETQ___V26*/ curfptr[25] = 0 ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2292: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2295: @clear");
    /*clear*/ /*_#NOTNULL__L5*/ curfnum[4] = 0 ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2292: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2295: @clear");
    /*clear*/ /*_.LET___V27*/ curfptr[26] = 0 ;}
   ;
   /*_.LET___V9*/ curfptr[7] = /*_.LET___V22*/ curfptr[18];;
   /*epilog*/
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2281: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2284: @clear");
   /*clear*/ /*_.CONT__V10*/ curfptr[9] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2281: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2284: @clear");
   /*clear*/ /*_.LOC__V11*/ curfptr[10] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2281: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2284: @clear");
   /*clear*/ /*_.LIST_FIRST__V12*/ curfptr[11] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2281: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2284: @clear");
   /*clear*/ /*_.CURPAIR__V13*/ curfptr[12] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2281: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2284: @clear");
   /*clear*/ /*_.SMSG__V14*/ curfptr[13] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2281: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2284: @clear");
   /*clear*/ /*_.XMSG__V15*/ curfptr[14] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2281: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2284: @clear");
   /*clear*/ /*_#IS_STRING__L3*/ curfnum[0] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2281: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2284: @clear");
   /*clear*/ /*_#NOT__L4*/ curfnum[3] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2281: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2284: @clear");
   /*clear*/ /*_.IF___V16*/ curfptr[15] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2281: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2284: @clear");
   /*clear*/ /*_.PAIR_TAIL__V20*/ curfptr[16] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2281: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2284: @clear");
   /*clear*/ /*_.SETQ___V21*/ curfptr[17] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2281: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2284: @clear");
   /*clear*/ /*_.LET___V22*/ curfptr[18] = 0 ;}
  ;
  
- BASILYS_LOCATION("warmelt-macro.bysl:2278: @block");
+ BASILYS_LOCATION("warmelt-macro.bysl:2281: @block");
  /*block*/{
   /*_.RETVAL___V1*/ curfptr[0] = /*_.LET___V9*/ curfptr[7];;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2278: @finalreturn");
+  BASILYS_LOCATION("warmelt-macro.bysl:2281: @finalreturn");
   ;
   /*finalret*/ goto labend_rout ;}
  ;
  /*epilog*/
  
- BASILYS_LOCATION("warmelt-macro.bysl:2278: @clear");
+ BASILYS_LOCATION("warmelt-macro.bysl:2281: @clear");
  /*clear*/ /*_.IFCPP___V5*/ curfptr[4] = 0 ;
  
- BASILYS_LOCATION("warmelt-macro.bysl:2278: @clear");
+ BASILYS_LOCATION("warmelt-macro.bysl:2281: @clear");
  /*clear*/ /*_.IFCPP___V7*/ curfptr[5] = 0 ;
  
- BASILYS_LOCATION("warmelt-macro.bysl:2278: @clear");
+ BASILYS_LOCATION("warmelt-macro.bysl:2281: @clear");
  /*clear*/ /*_.LET___V9*/ curfptr[7] = 0 ;}
 
 ;
@@ -30616,12 +30660,12 @@ basilys_trace_start("MEXPAND_ASSERT_MSG", callcount);
 
  /*getarg#0*/
  
- BASILYS_LOCATION("warmelt-macro.bysl:2317: @getarg");
+ BASILYS_LOCATION("warmelt-macro.bysl:2320: @getarg");
  /*_.SEXPR__V2*/ curfptr[1] = (basilys_ptr_t) firstargp_;
  
  /*getarg#1*/
  
- BASILYS_LOCATION("warmelt-macro.bysl:2317: @getarg");
+ BASILYS_LOCATION("warmelt-macro.bysl:2320: @getarg");
  if (xargdescr_[0] != BPAR_PTR) goto lab_endgetargs;
  /*_.ENV__V3*/ curfptr[2] = (xargtab_[0].bp_aptr) ? (*(xargtab_[0].bp_aptr)) : NULL;
  gcc_assert(basilys_discr((basilys_ptr_t)(/*_.ENV__V3*/ curfptr[2])) != NULL);
@@ -30629,7 +30673,7 @@ basilys_trace_start("MEXPAND_ASSERT_MSG", callcount);
  
  /*getarg#2*/
  
- BASILYS_LOCATION("warmelt-macro.bysl:2317: @getarg");
+ BASILYS_LOCATION("warmelt-macro.bysl:2320: @getarg");
  if (xargdescr_[1] != BPAR_PTR) goto lab_endgetargs;
  /*_.MEXPANDER__V4*/ curfptr[3] = (xargtab_[1].bp_aptr) ? (*(xargtab_[1].bp_aptr)) : NULL;
  gcc_assert(basilys_discr((basilys_ptr_t)(/*_.MEXPANDER__V4*/ curfptr[3])) != NULL);
@@ -30639,32 +30683,32 @@ basilys_trace_start("MEXPAND_ASSERT_MSG", callcount);
 lab_endgetargs:;
 /*body*/
 
-BASILYS_LOCATION("warmelt-macro.bysl:2317: @block");
+BASILYS_LOCATION("warmelt-macro.bysl:2320: @block");
 /*block*/{
  
  #if ENABLE_CHECKING
   
- BASILYS_LOCATION("warmelt-macro.bysl:2318: @cppif.then");
+ BASILYS_LOCATION("warmelt-macro.bysl:2321: @cppif.then");
  
-  BASILYS_LOCATION("warmelt-macro.bysl:2318: @block");
+  BASILYS_LOCATION("warmelt-macro.bysl:2321: @block");
   /*block*/{
    /*_#IS_A__L1*/ curfnum[0] = 
      basilys_is_instance_of((basilys_ptr_t)(/*_.SEXPR__V2*/ curfptr[1]), (basilys_ptr_t)((/*!CLASS_SEXPR*/ curfrout->tabval[0])));;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2318: @cond");
+   BASILYS_LOCATION("warmelt-macro.bysl:2321: @cond");
    /*cond*/ if (/*_#IS_A__L1*/ curfnum[0]) /*then*/ {
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2318: @cond.then");
+   BASILYS_LOCATION("warmelt-macro.bysl:2321: @cond.then");
    /*_.IFELSE___V6*/ curfptr[5] = (/*nil*/NULL);;
    } else {
-   BASILYS_LOCATION("warmelt-macro.bysl:2318: @cond.else");
+   BASILYS_LOCATION("warmelt-macro.bysl:2321: @cond.else");
    
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2318: @block");
+    BASILYS_LOCATION("warmelt-macro.bysl:2321: @block");
     /*block*/{
      /*block*/{
       
-      basilys_assert_failed(( "check sexpr"),( "warmelt-macro.bysl"),(2318), __FUNCTION__);
+      basilys_assert_failed(( "check sexpr"),( "warmelt-macro.bysl"),(2321), __FUNCTION__);
       /*clear*/ /*_.IFELSE___V6*/ curfptr[5] = 0 ;}
      ;
      /*epilog*/}
@@ -30674,42 +30718,42 @@ BASILYS_LOCATION("warmelt-macro.bysl:2317: @block");
    /*_.IFCPP___V5*/ curfptr[4] = /*_.IFELSE___V6*/ curfptr[5];;
    /*epilog*/
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2318: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2321: @clear");
    /*clear*/ /*_#IS_A__L1*/ curfnum[0] = 0 ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2318: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2321: @clear");
    /*clear*/ /*_.IFELSE___V6*/ curfptr[5] = 0 ;}
   
   #else /*ENABLE_CHECKING*/
   
- BASILYS_LOCATION("warmelt-macro.bysl:2318: @cppif.else");
+ BASILYS_LOCATION("warmelt-macro.bysl:2321: @cppif.else");
  /*_.IFCPP___V5*/ curfptr[4] = (/*nil*/NULL);
   #endif /*ENABLE_CHECKING*/
   ;
  
  #if ENABLE_CHECKING
   
- BASILYS_LOCATION("warmelt-macro.bysl:2319: @cppif.then");
+ BASILYS_LOCATION("warmelt-macro.bysl:2322: @cppif.then");
  
-  BASILYS_LOCATION("warmelt-macro.bysl:2319: @block");
+  BASILYS_LOCATION("warmelt-macro.bysl:2322: @block");
   /*block*/{
    /*_#IS_A__L2*/ curfnum[0] = 
      basilys_is_instance_of((basilys_ptr_t)(/*_.ENV__V3*/ curfptr[2]), (basilys_ptr_t)((/*!CLASS_ENVIRONMENT*/ curfrout->tabval[1])));;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2319: @cond");
+   BASILYS_LOCATION("warmelt-macro.bysl:2322: @cond");
    /*cond*/ if (/*_#IS_A__L2*/ curfnum[0]) /*then*/ {
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2319: @cond.then");
+   BASILYS_LOCATION("warmelt-macro.bysl:2322: @cond.then");
    /*_.IFELSE___V8*/ curfptr[7] = (/*nil*/NULL);;
    } else {
-   BASILYS_LOCATION("warmelt-macro.bysl:2319: @cond.else");
+   BASILYS_LOCATION("warmelt-macro.bysl:2322: @cond.else");
    
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2319: @block");
+    BASILYS_LOCATION("warmelt-macro.bysl:2322: @block");
     /*block*/{
      /*block*/{
       
-      basilys_assert_failed(( "check env"),( "warmelt-macro.bysl"),(2319), __FUNCTION__);
+      basilys_assert_failed(( "check env"),( "warmelt-macro.bysl"),(2322), __FUNCTION__);
       /*clear*/ /*_.IFELSE___V8*/ curfptr[7] = 0 ;}
      ;
      /*epilog*/}
@@ -30719,68 +30763,68 @@ BASILYS_LOCATION("warmelt-macro.bysl:2317: @block");
    /*_.IFCPP___V7*/ curfptr[5] = /*_.IFELSE___V8*/ curfptr[7];;
    /*epilog*/
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2319: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2322: @clear");
    /*clear*/ /*_#IS_A__L2*/ curfnum[0] = 0 ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2319: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2322: @clear");
    /*clear*/ /*_.IFELSE___V8*/ curfptr[7] = 0 ;}
   
   #else /*ENABLE_CHECKING*/
   
- BASILYS_LOCATION("warmelt-macro.bysl:2319: @cppif.else");
+ BASILYS_LOCATION("warmelt-macro.bysl:2322: @cppif.else");
  /*_.IFCPP___V7*/ curfptr[5] = (/*nil*/NULL);
   #endif /*ENABLE_CHECKING*/
   ;
  
  #if ENABLE_CHECKING
   
- BASILYS_LOCATION("warmelt-macro.bysl:2320: @cppif.then");
+ BASILYS_LOCATION("warmelt-macro.bysl:2323: @cppif.then");
  
-  BASILYS_LOCATION("warmelt-macro.bysl:2320: @block");
+  BASILYS_LOCATION("warmelt-macro.bysl:2323: @block");
   /*block*/{
    /*_#THE_CALLCOUNT__L3*/ curfnum[0] = 
     callcount;;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2320: @apply");
+   BASILYS_LOCATION("warmelt-macro.bysl:2323: @apply");
    /*apply*/{
     union basilysparam_un argtab[4];
     memset(&argtab, 0, sizeof(argtab));
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2320: @apply.arg");
+    BASILYS_LOCATION("warmelt-macro.bysl:2323: @apply.arg");
     argtab[0].bp_cstring =  "mexpand_assert_msg sexpr";
-    BASILYS_LOCATION("warmelt-macro.bysl:2320: @apply.arg");
+    BASILYS_LOCATION("warmelt-macro.bysl:2323: @apply.arg");
     argtab[1].bp_long = /*_#THE_CALLCOUNT__L3*/ curfnum[0];
-    BASILYS_LOCATION("warmelt-macro.bysl:2320: @apply.arg");
+    BASILYS_LOCATION("warmelt-macro.bysl:2323: @apply.arg");
     argtab[2].bp_cstring =  "warmelt-macro.bysl";
-    BASILYS_LOCATION("warmelt-macro.bysl:2320: @apply.arg");
-    argtab[3].bp_long = 2320;
+    BASILYS_LOCATION("warmelt-macro.bysl:2323: @apply.arg");
+    argtab[3].bp_long = 2323;
     /*_.DEBUG_MSG_FUN__V10*/ curfptr[9] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[2])), (basilys_ptr_t)(/*_.SEXPR__V2*/ curfptr[1]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
     }
    ;
    /*_.IFCPP___V9*/ curfptr[7] = /*_.DEBUG_MSG_FUN__V10*/ curfptr[9];;
    /*epilog*/
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2320: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2323: @clear");
    /*clear*/ /*_#THE_CALLCOUNT__L3*/ curfnum[0] = 0 ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2320: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2323: @clear");
    /*clear*/ /*_.DEBUG_MSG_FUN__V10*/ curfptr[9] = 0 ;}
   
   #else /*ENABLE_CHECKING*/
   
- BASILYS_LOCATION("warmelt-macro.bysl:2320: @cppif.else");
+ BASILYS_LOCATION("warmelt-macro.bysl:2323: @cppif.else");
  /*_.IFCPP___V9*/ curfptr[7] = (/*nil*/NULL);
   #endif /*ENABLE_CHECKING*/
   ;
  
- BASILYS_LOCATION("warmelt-macro.bysl:2321: @block");
+ BASILYS_LOCATION("warmelt-macro.bysl:2324: @block");
  /*block*/{
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2322: @getslot");
+  BASILYS_LOCATION("warmelt-macro.bysl:2325: @getslot");
   /*_.CONT__V12*/ curfptr[11] = basilys_getfield_object((basilys_ptr_t)(/*_.SEXPR__V2*/ curfptr[1]), 2, "SEXP_CONTENTS");
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2323: @getslot");
+  BASILYS_LOCATION("warmelt-macro.bysl:2326: @getslot");
   /*_.LOC__V13*/ curfptr[12] = basilys_getfield_object((basilys_ptr_t)(/*_.SEXPR__V2*/ curfptr[1]), 1, "LOCA_LOCATION");
   ;
   /*_.LIST_FIRST__V14*/ curfptr[13] = 
@@ -30790,14 +30834,14 @@ BASILYS_LOCATION("warmelt-macro.bysl:2317: @block");
   /*_.PAIR_HEAD__V16*/ curfptr[15] = 
    (basilys_pair_head((basilys_ptr_t)(/*_.CURPAIR__V15*/ curfptr[14])));;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2325: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2328: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2325: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2328: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.ENV__V3*/ curfptr[2];
-   BASILYS_LOCATION("warmelt-macro.bysl:2325: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2328: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &/*_.MEXPANDER__V4*/ curfptr[3];
    /*_.XMSG__V17*/ curfptr[16] =  basilys_apply ((basilysclosure_ptr_t)((/*!MACROEXPAND_1*/ curfrout->tabval[3])), (basilys_ptr_t)(/*_.PAIR_HEAD__V16*/ curfptr[15]), (BPARSTR_PTR BPARSTR_PTR ""), argtab, "", (union basilysparam_un*)0);
    }
@@ -30805,12 +30849,12 @@ BASILYS_LOCATION("warmelt-macro.bysl:2317: @block");
   /*_.XTEST__V18*/ curfptr[17] = (/*nil*/NULL);;
   /*_.ASSFAIL_SYMB__V19*/ curfptr[18] = (/*!konst_4_ASSERT_FAILED*/ curfrout->tabval[4]);;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2328: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2331: @apply");
   /*apply*/{
    union basilysparam_un argtab[1];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2328: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2331: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.ASSFAIL_SYMB__V19*/ curfptr[18];
    /*_.ASSFAIL_BINDING__V20*/ curfptr[19] =  basilys_apply ((basilysclosure_ptr_t)((/*!FIND_ENV*/ curfrout->tabval[5])), (basilys_ptr_t)(/*_.ENV__V3*/ curfptr[2]), (BPARSTR_PTR ""), argtab, "", (union basilysparam_un*)0);
    }
@@ -30820,12 +30864,12 @@ BASILYS_LOCATION("warmelt-macro.bysl:2317: @block");
   /*_#NOT__L5*/ curfnum[4] = 
    (!(/*_#IS_STRING__L4*/ curfnum[0]));;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2330: @cond");
+  BASILYS_LOCATION("warmelt-macro.bysl:2333: @cond");
   /*cond*/ if (/*_#NOT__L5*/ curfnum[4]) /*then*/ {
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2330: @cond.then");
+  BASILYS_LOCATION("warmelt-macro.bysl:2333: @cond.then");
   
-   BASILYS_LOCATION("warmelt-macro.bysl:2330: @block");
+   BASILYS_LOCATION("warmelt-macro.bysl:2333: @block");
    /*block*/{
     
     error("%s:%d:: BASILYS ERROR [#%ld]: @%s ",  basilys_string_str(basilys_val_mixint((basilys_ptr_t)(/*_.LOC__V13*/ curfptr[12]))),  (int) basilys_num_mixint((basilys_ptr_t)(/*_.LOC__V13*/ curfptr[12])), basilys_dbgcounter, ( "non string message in (ASSERT_MSG <msg> <test>)"));
@@ -30836,19 +30880,19 @@ BASILYS_LOCATION("warmelt-macro.bysl:2317: @block");
   /*_.PAIR_TAIL__V21*/ curfptr[20] = 
    (basilys_pair_tail((basilys_ptr_t)(/*_.CURPAIR__V15*/ curfptr[14])));;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2332: @compute");
+  BASILYS_LOCATION("warmelt-macro.bysl:2335: @compute");
   /*_.CURPAIR__V15*/ curfptr[14] = /*_.SETQ___V22*/ curfptr[21] = /*_.PAIR_TAIL__V21*/ curfptr[20];;
   /*_#IS_PAIR__L6*/ curfnum[5] = 
    (basilys_magic_discr((basilys_ptr_t)(/*_.CURPAIR__V15*/ curfptr[14])) == OBMAG_PAIR);;
   /*_#NOT__L7*/ curfnum[6] = 
    (!(/*_#IS_PAIR__L6*/ curfnum[5]));;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2333: @cond");
+  BASILYS_LOCATION("warmelt-macro.bysl:2336: @cond");
   /*cond*/ if (/*_#NOT__L7*/ curfnum[6]) /*then*/ {
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2333: @cond.then");
+  BASILYS_LOCATION("warmelt-macro.bysl:2336: @cond.then");
   
-   BASILYS_LOCATION("warmelt-macro.bysl:2333: @block");
+   BASILYS_LOCATION("warmelt-macro.bysl:2336: @block");
    /*block*/{
     
     error("%s:%d:: BASILYS ERROR [#%ld]: @%s ",  basilys_string_str(basilys_val_mixint((basilys_ptr_t)(/*_.LOC__V13*/ curfptr[12]))),  (int) basilys_num_mixint((basilys_ptr_t)(/*_.LOC__V13*/ curfptr[12])), basilys_dbgcounter, ( "missing test in (ASSERT_MSG <msg> <test>)"));
@@ -30859,30 +30903,30 @@ BASILYS_LOCATION("warmelt-macro.bysl:2317: @block");
   /*_.PAIR_HEAD__V23*/ curfptr[22] = 
    (basilys_pair_head((basilys_ptr_t)(/*_.CURPAIR__V15*/ curfptr[14])));;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2335: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2338: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2335: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2338: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.ENV__V3*/ curfptr[2];
-   BASILYS_LOCATION("warmelt-macro.bysl:2335: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2338: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &/*_.MEXPANDER__V4*/ curfptr[3];
    /*_.MACROEXPAND_1__V24*/ curfptr[23] =  basilys_apply ((basilysclosure_ptr_t)((/*!MACROEXPAND_1*/ curfrout->tabval[3])), (basilys_ptr_t)(/*_.PAIR_HEAD__V23*/ curfptr[22]), (BPARSTR_PTR BPARSTR_PTR ""), argtab, "", (union basilysparam_un*)0);
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2335: @compute");
+  BASILYS_LOCATION("warmelt-macro.bysl:2338: @compute");
   /*_.XTEST__V18*/ curfptr[17] = /*_.SETQ___V25*/ curfptr[24] = /*_.MACROEXPAND_1__V24*/ curfptr[23];;
   /*_.PAIR_TAIL__V26*/ curfptr[25] = 
    (basilys_pair_tail((basilys_ptr_t)(/*_.CURPAIR__V15*/ curfptr[14])));;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2336: @cond");
+  BASILYS_LOCATION("warmelt-macro.bysl:2339: @cond");
   /*cond*/ if (/*_.PAIR_TAIL__V26*/ curfptr[25]) /*then*/ {
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2336: @cond.then");
+  BASILYS_LOCATION("warmelt-macro.bysl:2339: @cond.then");
   
-   BASILYS_LOCATION("warmelt-macro.bysl:2336: @block");
+   BASILYS_LOCATION("warmelt-macro.bysl:2339: @block");
    /*block*/{
     
     error("%s:%d:: BASILYS ERROR [#%ld]: @%s ",  basilys_string_str(basilys_val_mixint((basilys_ptr_t)(/*_.LOC__V13*/ curfptr[12]))),  (int) basilys_num_mixint((basilys_ptr_t)(/*_.LOC__V13*/ curfptr[12])), basilys_dbgcounter, ( "extra arg for (ASSERT_MSG <msg> <test>)"));
@@ -30891,162 +30935,20 @@ BASILYS_LOCATION("warmelt-macro.bysl:2317: @block");
   } /*noelse*/
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2338: @block");
+  BASILYS_LOCATION("warmelt-macro.bysl:2341: @block");
   /*block*/{
    /*_#NULL__L8*/ curfnum[7] = 
     ((/*_.ASSFAIL_BINDING__V20*/ curfptr[19]) == NULL);;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2341: @cond");
+   BASILYS_LOCATION("warmelt-macro.bysl:2344: @cond");
    /*cond*/ if (/*_#NULL__L8*/ curfnum[7]) /*then*/ {
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2341: @cond.then");
+   BASILYS_LOCATION("warmelt-macro.bysl:2344: @cond.then");
    
-    BASILYS_LOCATION("warmelt-macro.bysl:2341: @block");
+    BASILYS_LOCATION("warmelt-macro.bysl:2344: @block");
     /*block*/{
      
      error("%s:%d:: BASILYS ERROR [#%ld]: @%s ",  basilys_string_str(basilys_val_mixint((basilys_ptr_t)(/*_.LOC__V13*/ curfptr[12]))),  (int) basilys_num_mixint((basilys_ptr_t)(/*_.LOC__V13*/ curfptr[12])), basilys_dbgcounter, ( "unbound ASSERT_FAILED in (ASSERT_MSG <msg> <test>)"));
-     
-     #if ENABLE_CHECKING
-      
-     BASILYS_LOCATION("warmelt-macro.bysl:2343: @cppif.then");
-     
-      BASILYS_LOCATION("warmelt-macro.bysl:2343: @block");
-      /*block*/{
-       /*_#THE_CALLCOUNT__L9*/ curfnum[8] = 
-        callcount;;
-       
-       BASILYS_LOCATION("warmelt-macro.bysl:2343: @apply");
-       /*apply*/{
-        union basilysparam_un argtab[4];
-        memset(&argtab, 0, sizeof(argtab));
-        
-        BASILYS_LOCATION("warmelt-macro.bysl:2343: @apply.arg");
-        argtab[0].bp_cstring =  "mexpand_assert_msg env without assert_failed";
-        BASILYS_LOCATION("warmelt-macro.bysl:2343: @apply.arg");
-        argtab[1].bp_long = /*_#THE_CALLCOUNT__L9*/ curfnum[8];
-        BASILYS_LOCATION("warmelt-macro.bysl:2343: @apply.arg");
-        argtab[2].bp_cstring =  "warmelt-macro.bysl";
-        BASILYS_LOCATION("warmelt-macro.bysl:2343: @apply.arg");
-        argtab[3].bp_long = 2343;
-        /*_.DEBUG_MSG_FUN__V30*/ curfptr[29] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[2])), (basilys_ptr_t)(/*_.ENV__V3*/ curfptr[2]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
-        }
-       ;
-       /*_.IFCPP___V29*/ curfptr[28] = /*_.DEBUG_MSG_FUN__V30*/ curfptr[29];;
-       /*epilog*/
-       
-       BASILYS_LOCATION("warmelt-macro.bysl:2343: @clear");
-       /*clear*/ /*_#THE_CALLCOUNT__L9*/ curfnum[8] = 0 ;
-       
-       BASILYS_LOCATION("warmelt-macro.bysl:2343: @clear");
-       /*clear*/ /*_.DEBUG_MSG_FUN__V30*/ curfptr[29] = 0 ;}
-      
-      #else /*ENABLE_CHECKING*/
-      
-     BASILYS_LOCATION("warmelt-macro.bysl:2343: @cppif.else");
-     /*_.IFCPP___V29*/ curfptr[28] = (/*nil*/NULL);
-      #endif /*ENABLE_CHECKING*/
-      ;
-     
-     #if ENABLE_CHECKING
-      
-     BASILYS_LOCATION("warmelt-macro.bysl:2344: @cppif.then");
-     
-      BASILYS_LOCATION("warmelt-macro.bysl:2344: @block");
-      /*block*/{
-       /*_.DISCRIM__V32*/ curfptr[31] = 
-        (basilys_discr((basilys_ptr_t)(/*_.ENV__V3*/ curfptr[2])));;
-       /*_#THE_CALLCOUNT__L10*/ curfnum[8] = 
-        callcount;;
-       
-       BASILYS_LOCATION("warmelt-macro.bysl:2344: @apply");
-       /*apply*/{
-        union basilysparam_un argtab[4];
-        memset(&argtab, 0, sizeof(argtab));
-        
-        BASILYS_LOCATION("warmelt-macro.bysl:2344: @apply.arg");
-        argtab[0].bp_cstring =  "mexpand_assert_msg env\'s class without assert_failed";
-        BASILYS_LOCATION("warmelt-macro.bysl:2344: @apply.arg");
-        argtab[1].bp_long = /*_#THE_CALLCOUNT__L10*/ curfnum[8];
-        BASILYS_LOCATION("warmelt-macro.bysl:2344: @apply.arg");
-        argtab[2].bp_cstring =  "warmelt-macro.bysl";
-        BASILYS_LOCATION("warmelt-macro.bysl:2344: @apply.arg");
-        argtab[3].bp_long = 2344;
-        /*_.DEBUG_MSG_FUN__V33*/ curfptr[32] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[2])), (basilys_ptr_t)(/*_.DISCRIM__V32*/ curfptr[31]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
-        }
-       ;
-       /*_.IFCPP___V31*/ curfptr[29] = /*_.DEBUG_MSG_FUN__V33*/ curfptr[32];;
-       /*epilog*/
-       
-       BASILYS_LOCATION("warmelt-macro.bysl:2344: @clear");
-       /*clear*/ /*_.DISCRIM__V32*/ curfptr[31] = 0 ;
-       
-       BASILYS_LOCATION("warmelt-macro.bysl:2344: @clear");
-       /*clear*/ /*_#THE_CALLCOUNT__L10*/ curfnum[8] = 0 ;
-       
-       BASILYS_LOCATION("warmelt-macro.bysl:2344: @clear");
-       /*clear*/ /*_.DEBUG_MSG_FUN__V33*/ curfptr[32] = 0 ;}
-      
-      #else /*ENABLE_CHECKING*/
-      
-     BASILYS_LOCATION("warmelt-macro.bysl:2344: @cppif.else");
-     /*_.IFCPP___V31*/ curfptr[29] = (/*nil*/NULL);
-      #endif /*ENABLE_CHECKING*/
-      ;
-     
-     #if ENABLE_CHECKING
-      
-     BASILYS_LOCATION("warmelt-macro.bysl:2345: @cppif.then");
-     
-      BASILYS_LOCATION("warmelt-macro.bysl:2345: @block");
-      /*block*/{
-       
-       BASILYS_LOCATION("warmelt-macro.bysl:2345: @apply");
-       /*apply*/{
-        union basilysparam_un argtab[1];
-        memset(&argtab, 0, sizeof(argtab));
-        
-        BASILYS_LOCATION("warmelt-macro.bysl:2345: @apply.arg");
-        argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.ASSFAIL_SYMB__V19*/ curfptr[18];
-        /*_.FIND_ENV_DEBUG__V35*/ curfptr[32] =  basilys_apply ((basilysclosure_ptr_t)((/*!FIND_ENV_DEBUG*/ curfrout->tabval[6])), (basilys_ptr_t)(/*_.ENV__V3*/ curfptr[2]), (BPARSTR_PTR ""), argtab, "", (union basilysparam_un*)0);
-        }
-       ;
-       /*_#THE_CALLCOUNT__L11*/ curfnum[8] = 
-        callcount;;
-       
-       BASILYS_LOCATION("warmelt-macro.bysl:2345: @apply");
-       /*apply*/{
-        union basilysparam_un argtab[4];
-        memset(&argtab, 0, sizeof(argtab));
-        
-        BASILYS_LOCATION("warmelt-macro.bysl:2345: @apply.arg");
-        argtab[0].bp_cstring =  "mexpand_assert_msg findenvdbg give";
-        BASILYS_LOCATION("warmelt-macro.bysl:2345: @apply.arg");
-        argtab[1].bp_long = /*_#THE_CALLCOUNT__L11*/ curfnum[8];
-        BASILYS_LOCATION("warmelt-macro.bysl:2345: @apply.arg");
-        argtab[2].bp_cstring =  "warmelt-macro.bysl";
-        BASILYS_LOCATION("warmelt-macro.bysl:2345: @apply.arg");
-        argtab[3].bp_long = 2345;
-        /*_.DEBUG_MSG_FUN__V36*/ curfptr[35] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[2])), (basilys_ptr_t)(/*_.FIND_ENV_DEBUG__V35*/ curfptr[32]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
-        }
-       ;
-       /*_.IFCPP___V34*/ curfptr[31] = /*_.DEBUG_MSG_FUN__V36*/ curfptr[35];;
-       /*epilog*/
-       
-       BASILYS_LOCATION("warmelt-macro.bysl:2345: @clear");
-       /*clear*/ /*_.FIND_ENV_DEBUG__V35*/ curfptr[32] = 0 ;
-       
-       BASILYS_LOCATION("warmelt-macro.bysl:2345: @clear");
-       /*clear*/ /*_#THE_CALLCOUNT__L11*/ curfnum[8] = 0 ;
-       
-       BASILYS_LOCATION("warmelt-macro.bysl:2345: @clear");
-       /*clear*/ /*_.DEBUG_MSG_FUN__V36*/ curfptr[35] = 0 ;}
-      
-      #else /*ENABLE_CHECKING*/
-      
-     BASILYS_LOCATION("warmelt-macro.bysl:2345: @cppif.else");
-     /*_.IFCPP___V34*/ curfptr[31] = (/*nil*/NULL);
-      #endif /*ENABLE_CHECKING*/
-      ;
      
      #if ENABLE_CHECKING
       
@@ -31054,7 +30956,7 @@ BASILYS_LOCATION("warmelt-macro.bysl:2317: @block");
      
       BASILYS_LOCATION("warmelt-macro.bysl:2346: @block");
       /*block*/{
-       /*_#THE_CALLCOUNT__L12*/ curfnum[8] = 
+       /*_#THE_CALLCOUNT__L9*/ curfnum[8] = 
         callcount;;
        
        BASILYS_LOCATION("warmelt-macro.bysl:2346: @apply");
@@ -31063,29 +30965,29 @@ BASILYS_LOCATION("warmelt-macro.bysl:2317: @block");
         memset(&argtab, 0, sizeof(argtab));
         
         BASILYS_LOCATION("warmelt-macro.bysl:2346: @apply.arg");
-        argtab[0].bp_cstring =  "mexpand_assert_msg ASSERT_FAILED symbol";
+        argtab[0].bp_cstring =  "mexpand_assert_msg env without assert_failed";
         BASILYS_LOCATION("warmelt-macro.bysl:2346: @apply.arg");
-        argtab[1].bp_long = /*_#THE_CALLCOUNT__L12*/ curfnum[8];
+        argtab[1].bp_long = /*_#THE_CALLCOUNT__L9*/ curfnum[8];
         BASILYS_LOCATION("warmelt-macro.bysl:2346: @apply.arg");
         argtab[2].bp_cstring =  "warmelt-macro.bysl";
         BASILYS_LOCATION("warmelt-macro.bysl:2346: @apply.arg");
         argtab[3].bp_long = 2346;
-        /*_.DEBUG_MSG_FUN__V38*/ curfptr[35] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[2])), (basilys_ptr_t)(/*_.ASSFAIL_SYMB__V19*/ curfptr[18]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
+        /*_.DEBUG_MSG_FUN__V30*/ curfptr[29] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[2])), (basilys_ptr_t)(/*_.ENV__V3*/ curfptr[2]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
         }
        ;
-       /*_.IFCPP___V37*/ curfptr[32] = /*_.DEBUG_MSG_FUN__V38*/ curfptr[35];;
+       /*_.IFCPP___V29*/ curfptr[28] = /*_.DEBUG_MSG_FUN__V30*/ curfptr[29];;
        /*epilog*/
        
        BASILYS_LOCATION("warmelt-macro.bysl:2346: @clear");
-       /*clear*/ /*_#THE_CALLCOUNT__L12*/ curfnum[8] = 0 ;
+       /*clear*/ /*_#THE_CALLCOUNT__L9*/ curfnum[8] = 0 ;
        
        BASILYS_LOCATION("warmelt-macro.bysl:2346: @clear");
-       /*clear*/ /*_.DEBUG_MSG_FUN__V38*/ curfptr[35] = 0 ;}
+       /*clear*/ /*_.DEBUG_MSG_FUN__V30*/ curfptr[29] = 0 ;}
       
       #else /*ENABLE_CHECKING*/
       
      BASILYS_LOCATION("warmelt-macro.bysl:2346: @cppif.else");
-     /*_.IFCPP___V37*/ curfptr[32] = (/*nil*/NULL);
+     /*_.IFCPP___V29*/ curfptr[28] = (/*nil*/NULL);
       #endif /*ENABLE_CHECKING*/
       ;
      
@@ -31095,21 +30997,163 @@ BASILYS_LOCATION("warmelt-macro.bysl:2317: @block");
      
       BASILYS_LOCATION("warmelt-macro.bysl:2347: @block");
       /*block*/{
+       /*_.DISCRIM__V32*/ curfptr[31] = 
+        (basilys_discr((basilys_ptr_t)(/*_.ENV__V3*/ curfptr[2])));;
+       /*_#THE_CALLCOUNT__L10*/ curfnum[8] = 
+        callcount;;
        
-       BASILYS_LOCATION("warmelt-macro.bysl:2347: @cond");
+       BASILYS_LOCATION("warmelt-macro.bysl:2347: @apply");
+       /*apply*/{
+        union basilysparam_un argtab[4];
+        memset(&argtab, 0, sizeof(argtab));
+        
+        BASILYS_LOCATION("warmelt-macro.bysl:2347: @apply.arg");
+        argtab[0].bp_cstring =  "mexpand_assert_msg env\'s class without assert_failed";
+        BASILYS_LOCATION("warmelt-macro.bysl:2347: @apply.arg");
+        argtab[1].bp_long = /*_#THE_CALLCOUNT__L10*/ curfnum[8];
+        BASILYS_LOCATION("warmelt-macro.bysl:2347: @apply.arg");
+        argtab[2].bp_cstring =  "warmelt-macro.bysl";
+        BASILYS_LOCATION("warmelt-macro.bysl:2347: @apply.arg");
+        argtab[3].bp_long = 2347;
+        /*_.DEBUG_MSG_FUN__V33*/ curfptr[32] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[2])), (basilys_ptr_t)(/*_.DISCRIM__V32*/ curfptr[31]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
+        }
+       ;
+       /*_.IFCPP___V31*/ curfptr[29] = /*_.DEBUG_MSG_FUN__V33*/ curfptr[32];;
+       /*epilog*/
+       
+       BASILYS_LOCATION("warmelt-macro.bysl:2347: @clear");
+       /*clear*/ /*_.DISCRIM__V32*/ curfptr[31] = 0 ;
+       
+       BASILYS_LOCATION("warmelt-macro.bysl:2347: @clear");
+       /*clear*/ /*_#THE_CALLCOUNT__L10*/ curfnum[8] = 0 ;
+       
+       BASILYS_LOCATION("warmelt-macro.bysl:2347: @clear");
+       /*clear*/ /*_.DEBUG_MSG_FUN__V33*/ curfptr[32] = 0 ;}
+      
+      #else /*ENABLE_CHECKING*/
+      
+     BASILYS_LOCATION("warmelt-macro.bysl:2347: @cppif.else");
+     /*_.IFCPP___V31*/ curfptr[29] = (/*nil*/NULL);
+      #endif /*ENABLE_CHECKING*/
+      ;
+     
+     #if ENABLE_CHECKING
+      
+     BASILYS_LOCATION("warmelt-macro.bysl:2348: @cppif.then");
+     
+      BASILYS_LOCATION("warmelt-macro.bysl:2348: @block");
+      /*block*/{
+       
+       BASILYS_LOCATION("warmelt-macro.bysl:2348: @apply");
+       /*apply*/{
+        union basilysparam_un argtab[1];
+        memset(&argtab, 0, sizeof(argtab));
+        
+        BASILYS_LOCATION("warmelt-macro.bysl:2348: @apply.arg");
+        argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.ASSFAIL_SYMB__V19*/ curfptr[18];
+        /*_.FIND_ENV_DEBUG__V35*/ curfptr[32] =  basilys_apply ((basilysclosure_ptr_t)((/*!FIND_ENV_DEBUG*/ curfrout->tabval[6])), (basilys_ptr_t)(/*_.ENV__V3*/ curfptr[2]), (BPARSTR_PTR ""), argtab, "", (union basilysparam_un*)0);
+        }
+       ;
+       /*_#THE_CALLCOUNT__L11*/ curfnum[8] = 
+        callcount;;
+       
+       BASILYS_LOCATION("warmelt-macro.bysl:2348: @apply");
+       /*apply*/{
+        union basilysparam_un argtab[4];
+        memset(&argtab, 0, sizeof(argtab));
+        
+        BASILYS_LOCATION("warmelt-macro.bysl:2348: @apply.arg");
+        argtab[0].bp_cstring =  "mexpand_assert_msg findenvdbg give";
+        BASILYS_LOCATION("warmelt-macro.bysl:2348: @apply.arg");
+        argtab[1].bp_long = /*_#THE_CALLCOUNT__L11*/ curfnum[8];
+        BASILYS_LOCATION("warmelt-macro.bysl:2348: @apply.arg");
+        argtab[2].bp_cstring =  "warmelt-macro.bysl";
+        BASILYS_LOCATION("warmelt-macro.bysl:2348: @apply.arg");
+        argtab[3].bp_long = 2348;
+        /*_.DEBUG_MSG_FUN__V36*/ curfptr[35] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[2])), (basilys_ptr_t)(/*_.FIND_ENV_DEBUG__V35*/ curfptr[32]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
+        }
+       ;
+       /*_.IFCPP___V34*/ curfptr[31] = /*_.DEBUG_MSG_FUN__V36*/ curfptr[35];;
+       /*epilog*/
+       
+       BASILYS_LOCATION("warmelt-macro.bysl:2348: @clear");
+       /*clear*/ /*_.FIND_ENV_DEBUG__V35*/ curfptr[32] = 0 ;
+       
+       BASILYS_LOCATION("warmelt-macro.bysl:2348: @clear");
+       /*clear*/ /*_#THE_CALLCOUNT__L11*/ curfnum[8] = 0 ;
+       
+       BASILYS_LOCATION("warmelt-macro.bysl:2348: @clear");
+       /*clear*/ /*_.DEBUG_MSG_FUN__V36*/ curfptr[35] = 0 ;}
+      
+      #else /*ENABLE_CHECKING*/
+      
+     BASILYS_LOCATION("warmelt-macro.bysl:2348: @cppif.else");
+     /*_.IFCPP___V34*/ curfptr[31] = (/*nil*/NULL);
+      #endif /*ENABLE_CHECKING*/
+      ;
+     
+     #if ENABLE_CHECKING
+      
+     BASILYS_LOCATION("warmelt-macro.bysl:2349: @cppif.then");
+     
+      BASILYS_LOCATION("warmelt-macro.bysl:2349: @block");
+      /*block*/{
+       /*_#THE_CALLCOUNT__L12*/ curfnum[8] = 
+        callcount;;
+       
+       BASILYS_LOCATION("warmelt-macro.bysl:2349: @apply");
+       /*apply*/{
+        union basilysparam_un argtab[4];
+        memset(&argtab, 0, sizeof(argtab));
+        
+        BASILYS_LOCATION("warmelt-macro.bysl:2349: @apply.arg");
+        argtab[0].bp_cstring =  "mexpand_assert_msg ASSERT_FAILED symbol";
+        BASILYS_LOCATION("warmelt-macro.bysl:2349: @apply.arg");
+        argtab[1].bp_long = /*_#THE_CALLCOUNT__L12*/ curfnum[8];
+        BASILYS_LOCATION("warmelt-macro.bysl:2349: @apply.arg");
+        argtab[2].bp_cstring =  "warmelt-macro.bysl";
+        BASILYS_LOCATION("warmelt-macro.bysl:2349: @apply.arg");
+        argtab[3].bp_long = 2349;
+        /*_.DEBUG_MSG_FUN__V38*/ curfptr[35] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[2])), (basilys_ptr_t)(/*_.ASSFAIL_SYMB__V19*/ curfptr[18]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
+        }
+       ;
+       /*_.IFCPP___V37*/ curfptr[32] = /*_.DEBUG_MSG_FUN__V38*/ curfptr[35];;
+       /*epilog*/
+       
+       BASILYS_LOCATION("warmelt-macro.bysl:2349: @clear");
+       /*clear*/ /*_#THE_CALLCOUNT__L12*/ curfnum[8] = 0 ;
+       
+       BASILYS_LOCATION("warmelt-macro.bysl:2349: @clear");
+       /*clear*/ /*_.DEBUG_MSG_FUN__V38*/ curfptr[35] = 0 ;}
+      
+      #else /*ENABLE_CHECKING*/
+      
+     BASILYS_LOCATION("warmelt-macro.bysl:2349: @cppif.else");
+     /*_.IFCPP___V37*/ curfptr[32] = (/*nil*/NULL);
+      #endif /*ENABLE_CHECKING*/
+      ;
+     
+     #if ENABLE_CHECKING
+      
+     BASILYS_LOCATION("warmelt-macro.bysl:2350: @cppif.then");
+     
+      BASILYS_LOCATION("warmelt-macro.bysl:2350: @block");
+      /*block*/{
+       
+       BASILYS_LOCATION("warmelt-macro.bysl:2350: @cond");
        /*cond*/ if ((/*nil*/NULL)) /*then*/ {
        
-       BASILYS_LOCATION("warmelt-macro.bysl:2347: @cond.then");
+       BASILYS_LOCATION("warmelt-macro.bysl:2350: @cond.then");
        /*_.IFELSE___V40*/ curfptr[39] = (/*nil*/NULL);;
        } else {
-       BASILYS_LOCATION("warmelt-macro.bysl:2347: @cond.else");
+       BASILYS_LOCATION("warmelt-macro.bysl:2350: @cond.else");
        
         
-        BASILYS_LOCATION("warmelt-macro.bysl:2347: @block");
+        BASILYS_LOCATION("warmelt-macro.bysl:2350: @block");
         /*block*/{
          /*block*/{
           
-          basilys_assert_failed(( "assfail_binding nul! @@"),( "warmelt-macro.bysl"),(2347), __FUNCTION__);
+          basilys_assert_failed(( "assfail_binding nul! @@"),( "warmelt-macro.bysl"),(2350), __FUNCTION__);
           /*clear*/ /*_.IFELSE___V40*/ curfptr[39] = 0 ;}
          ;
          /*epilog*/}
@@ -31119,97 +31163,97 @@ BASILYS_LOCATION("warmelt-macro.bysl:2317: @block");
        /*_.IFCPP___V39*/ curfptr[35] = /*_.IFELSE___V40*/ curfptr[39];;
        /*epilog*/
        
-       BASILYS_LOCATION("warmelt-macro.bysl:2347: @clear");
+       BASILYS_LOCATION("warmelt-macro.bysl:2350: @clear");
        /*clear*/ /*_.IFELSE___V40*/ curfptr[39] = 0 ;}
       
       #else /*ENABLE_CHECKING*/
       
-     BASILYS_LOCATION("warmelt-macro.bysl:2347: @cppif.else");
+     BASILYS_LOCATION("warmelt-macro.bysl:2350: @cppif.else");
      /*_.IFCPP___V39*/ curfptr[35] = (/*nil*/NULL);
       #endif /*ENABLE_CHECKING*/
       ;
      
-     BASILYS_LOCATION("warmelt-macro.bysl:2348: @block");
+     BASILYS_LOCATION("warmelt-macro.bysl:2351: @block");
      /*block*/{
       /*_.RETVAL___V1*/ curfptr[0] = NULL;;
       
-      BASILYS_LOCATION("warmelt-macro.bysl:2348: @finalreturn");
+      BASILYS_LOCATION("warmelt-macro.bysl:2351: @finalreturn");
       ;
       /*finalret*/ goto labend_rout ;}
      ;
      
-     BASILYS_LOCATION("warmelt-macro.bysl:2341: @block");
+     BASILYS_LOCATION("warmelt-macro.bysl:2344: @block");
      /*block*/{
       /*_.PROGN___V42*/ curfptr[41] = /*_.RETURN___V41*/ curfptr[39];;}
      ;
      /*_.AFPRIM__V28*/ curfptr[27] = /*_.PROGN___V42*/ curfptr[41];;
      /*epilog*/
      
-     BASILYS_LOCATION("warmelt-macro.bysl:2341: @clear");
+     BASILYS_LOCATION("warmelt-macro.bysl:2344: @clear");
      /*clear*/ /*_.IFCPP___V29*/ curfptr[28] = 0 ;
      
-     BASILYS_LOCATION("warmelt-macro.bysl:2341: @clear");
+     BASILYS_LOCATION("warmelt-macro.bysl:2344: @clear");
      /*clear*/ /*_.IFCPP___V31*/ curfptr[29] = 0 ;
      
-     BASILYS_LOCATION("warmelt-macro.bysl:2341: @clear");
+     BASILYS_LOCATION("warmelt-macro.bysl:2344: @clear");
      /*clear*/ /*_.IFCPP___V34*/ curfptr[31] = 0 ;
      
-     BASILYS_LOCATION("warmelt-macro.bysl:2341: @clear");
+     BASILYS_LOCATION("warmelt-macro.bysl:2344: @clear");
      /*clear*/ /*_.IFCPP___V37*/ curfptr[32] = 0 ;
      
-     BASILYS_LOCATION("warmelt-macro.bysl:2341: @clear");
+     BASILYS_LOCATION("warmelt-macro.bysl:2344: @clear");
      /*clear*/ /*_.IFCPP___V39*/ curfptr[35] = 0 ;
      
-     BASILYS_LOCATION("warmelt-macro.bysl:2341: @clear");
+     BASILYS_LOCATION("warmelt-macro.bysl:2344: @clear");
      /*clear*/ /*_.RETURN___V41*/ curfptr[39] = 0 ;
      
-     BASILYS_LOCATION("warmelt-macro.bysl:2341: @clear");
+     BASILYS_LOCATION("warmelt-macro.bysl:2344: @clear");
      /*clear*/ /*_.PROGN___V42*/ curfptr[41] = 0 ;}
     ;
    } else {
-   BASILYS_LOCATION("warmelt-macro.bysl:2341: @cond.else");
+   BASILYS_LOCATION("warmelt-macro.bysl:2344: @cond.else");
    
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2341: @block");
+    BASILYS_LOCATION("warmelt-macro.bysl:2344: @block");
     /*block*/{
      /*_#IS_A__L13*/ curfnum[8] = 
        basilys_is_instance_of((basilys_ptr_t)(/*_.ASSFAIL_BINDING__V20*/ curfptr[19]), (basilys_ptr_t)((/*!CLASS_PRIMITIVE_BINDING*/ curfrout->tabval[7])));;
      
-     BASILYS_LOCATION("warmelt-macro.bysl:2349: @cond");
+     BASILYS_LOCATION("warmelt-macro.bysl:2352: @cond");
      /*cond*/ if (/*_#IS_A__L13*/ curfnum[8]) /*then*/ {
      
-     BASILYS_LOCATION("warmelt-macro.bysl:2349: @cond.then");
+     BASILYS_LOCATION("warmelt-macro.bysl:2352: @cond.then");
      
-      BASILYS_LOCATION("warmelt-macro.bysl:2349: @block");
+      BASILYS_LOCATION("warmelt-macro.bysl:2352: @block");
       /*block*/{
        
-       BASILYS_LOCATION("warmelt-macro.bysl:2350: @getslot");
+       BASILYS_LOCATION("warmelt-macro.bysl:2353: @getslot");
        /*_.PBIND_PRIMITIVE__V44*/ curfptr[29] = basilys_getfield_object((basilys_ptr_t)(/*_.ASSFAIL_BINDING__V20*/ curfptr[19]), 2, "PBIND_PRIMITIVE");
        ;
        /*_.IFELSE___V43*/ curfptr[28] = /*_.PBIND_PRIMITIVE__V44*/ curfptr[29];;
        /*epilog*/
        
-       BASILYS_LOCATION("warmelt-macro.bysl:2349: @clear");
+       BASILYS_LOCATION("warmelt-macro.bysl:2352: @clear");
        /*clear*/ /*_.PBIND_PRIMITIVE__V44*/ curfptr[29] = 0 ;}
       ;
      } else {
-     BASILYS_LOCATION("warmelt-macro.bysl:2349: @cond.else");
+     BASILYS_LOCATION("warmelt-macro.bysl:2352: @cond.else");
      
       
-      BASILYS_LOCATION("warmelt-macro.bysl:2349: @block");
+      BASILYS_LOCATION("warmelt-macro.bysl:2352: @block");
       /*block*/{
        /*_#IS_A__L14*/ curfnum[13] = 
          basilys_is_instance_of((basilys_ptr_t)(/*_.ASSFAIL_BINDING__V20*/ curfptr[19]), (basilys_ptr_t)((/*!CLASS_VALUE_BINDING*/ curfrout->tabval[8])));;
        
-       BASILYS_LOCATION("warmelt-macro.bysl:2351: @cond");
+       BASILYS_LOCATION("warmelt-macro.bysl:2354: @cond");
        /*cond*/ if (/*_#IS_A__L14*/ curfnum[13]) /*then*/ {
        
-       BASILYS_LOCATION("warmelt-macro.bysl:2351: @cond.then");
+       BASILYS_LOCATION("warmelt-macro.bysl:2354: @cond.then");
        
-        BASILYS_LOCATION("warmelt-macro.bysl:2351: @block");
+        BASILYS_LOCATION("warmelt-macro.bysl:2354: @block");
         /*block*/{
          
-         BASILYS_LOCATION("warmelt-macro.bysl:2352: @getslot");
+         BASILYS_LOCATION("warmelt-macro.bysl:2355: @getslot");
          /*_.VBIND_VALUE__V45*/ curfptr[31] = basilys_getfield_object((basilys_ptr_t)(/*_.ASSFAIL_BINDING__V20*/ curfptr[19]), 1, "VBIND_VALUE");
          ;
          /*_#IS_A__L16*/ curfnum[15] = 
@@ -31217,109 +31261,109 @@ BASILYS_LOCATION("warmelt-macro.bysl:2317: @block");
          /*_#IF___L15*/ curfnum[14] = /*_#IS_A__L16*/ curfnum[15];;
          /*epilog*/
          
-         BASILYS_LOCATION("warmelt-macro.bysl:2351: @clear");
+         BASILYS_LOCATION("warmelt-macro.bysl:2354: @clear");
          /*clear*/ /*_.VBIND_VALUE__V45*/ curfptr[31] = 0 ;
          
-         BASILYS_LOCATION("warmelt-macro.bysl:2351: @clear");
+         BASILYS_LOCATION("warmelt-macro.bysl:2354: @clear");
          /*clear*/ /*_#IS_A__L16*/ curfnum[15] = 0 ;}
         ;
        } else {
-       BASILYS_LOCATION("warmelt-macro.bysl:2351: @cond.else");
+       BASILYS_LOCATION("warmelt-macro.bysl:2354: @cond.else");
        
         /*_#IF___L15*/ curfnum[14] = 0;;
         }
        ;
        
-       BASILYS_LOCATION("warmelt-macro.bysl:2351: @cond");
+       BASILYS_LOCATION("warmelt-macro.bysl:2354: @cond");
        /*cond*/ if (/*_#IF___L15*/ curfnum[14]) /*then*/ {
        
-       BASILYS_LOCATION("warmelt-macro.bysl:2351: @cond.then");
+       BASILYS_LOCATION("warmelt-macro.bysl:2354: @cond.then");
        
-        BASILYS_LOCATION("warmelt-macro.bysl:2351: @block");
+        BASILYS_LOCATION("warmelt-macro.bysl:2354: @block");
         /*block*/{
          
-         BASILYS_LOCATION("warmelt-macro.bysl:2354: @getslot");
+         BASILYS_LOCATION("warmelt-macro.bysl:2357: @getslot");
          /*_.VBIND_VALUE__V47*/ curfptr[35] = basilys_getfield_object((basilys_ptr_t)(/*_.ASSFAIL_BINDING__V20*/ curfptr[19]), 1, "VBIND_VALUE");
          ;
          /*_.IFELSE___V46*/ curfptr[32] = /*_.VBIND_VALUE__V47*/ curfptr[35];;
          /*epilog*/
          
-         BASILYS_LOCATION("warmelt-macro.bysl:2351: @clear");
+         BASILYS_LOCATION("warmelt-macro.bysl:2354: @clear");
          /*clear*/ /*_.VBIND_VALUE__V47*/ curfptr[35] = 0 ;}
         ;
        } else {
-       BASILYS_LOCATION("warmelt-macro.bysl:2351: @cond.else");
+       BASILYS_LOCATION("warmelt-macro.bysl:2354: @cond.else");
        
         
-        BASILYS_LOCATION("warmelt-macro.bysl:2351: @block");
+        BASILYS_LOCATION("warmelt-macro.bysl:2354: @block");
         /*block*/{
          
          #if ENABLE_CHECKING
           
-         BASILYS_LOCATION("warmelt-macro.bysl:2356: @cppif.then");
+         BASILYS_LOCATION("warmelt-macro.bysl:2359: @cppif.then");
          
-          BASILYS_LOCATION("warmelt-macro.bysl:2356: @block");
+          BASILYS_LOCATION("warmelt-macro.bysl:2359: @block");
           /*block*/{
            /*_#THE_CALLCOUNT__L17*/ curfnum[15] = 
             callcount;;
            
-           BASILYS_LOCATION("warmelt-macro.bysl:2356: @apply");
+           BASILYS_LOCATION("warmelt-macro.bysl:2359: @apply");
            /*apply*/{
             union basilysparam_un argtab[4];
             memset(&argtab, 0, sizeof(argtab));
             
-            BASILYS_LOCATION("warmelt-macro.bysl:2356: @apply.arg");
+            BASILYS_LOCATION("warmelt-macro.bysl:2359: @apply.arg");
             argtab[0].bp_cstring =  "bad assfail_binding";
-            BASILYS_LOCATION("warmelt-macro.bysl:2356: @apply.arg");
+            BASILYS_LOCATION("warmelt-macro.bysl:2359: @apply.arg");
             argtab[1].bp_long = /*_#THE_CALLCOUNT__L17*/ curfnum[15];
-            BASILYS_LOCATION("warmelt-macro.bysl:2356: @apply.arg");
+            BASILYS_LOCATION("warmelt-macro.bysl:2359: @apply.arg");
             argtab[2].bp_cstring =  "warmelt-macro.bysl";
-            BASILYS_LOCATION("warmelt-macro.bysl:2356: @apply.arg");
-            argtab[3].bp_long = 2356;
+            BASILYS_LOCATION("warmelt-macro.bysl:2359: @apply.arg");
+            argtab[3].bp_long = 2359;
             /*_.DEBUG_MSG_FUN__V49*/ curfptr[41] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[2])), (basilys_ptr_t)(/*_.ASSFAIL_BINDING__V20*/ curfptr[19]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
             }
            ;
            /*_.IFCPP___V48*/ curfptr[39] = /*_.DEBUG_MSG_FUN__V49*/ curfptr[41];;
            /*epilog*/
            
-           BASILYS_LOCATION("warmelt-macro.bysl:2356: @clear");
+           BASILYS_LOCATION("warmelt-macro.bysl:2359: @clear");
            /*clear*/ /*_#THE_CALLCOUNT__L17*/ curfnum[15] = 0 ;
            
-           BASILYS_LOCATION("warmelt-macro.bysl:2356: @clear");
+           BASILYS_LOCATION("warmelt-macro.bysl:2359: @clear");
            /*clear*/ /*_.DEBUG_MSG_FUN__V49*/ curfptr[41] = 0 ;}
           
           #else /*ENABLE_CHECKING*/
           
-         BASILYS_LOCATION("warmelt-macro.bysl:2356: @cppif.else");
+         BASILYS_LOCATION("warmelt-macro.bysl:2359: @cppif.else");
          /*_.IFCPP___V48*/ curfptr[39] = (/*nil*/NULL);
           #endif /*ENABLE_CHECKING*/
           ;
          
          error("%s:%d:: BASILYS ERROR [#%ld]: @%s ",  basilys_string_str(basilys_val_mixint((basilys_ptr_t)(/*_.LOC__V13*/ curfptr[12]))),  (int) basilys_num_mixint((basilys_ptr_t)(/*_.LOC__V13*/ curfptr[12])), basilys_dbgcounter, ( "ASSERT_FAILED not bound to a primitive in  (ASSERT_MSG <msg> <test>)"));
          
-         BASILYS_LOCATION("warmelt-macro.bysl:2358: @block");
+         BASILYS_LOCATION("warmelt-macro.bysl:2361: @block");
          /*block*/{
           /*_.RETVAL___V1*/ curfptr[0] = NULL;;
           
-          BASILYS_LOCATION("warmelt-macro.bysl:2358: @finalreturn");
+          BASILYS_LOCATION("warmelt-macro.bysl:2361: @finalreturn");
           ;
           /*finalret*/ goto labend_rout ;}
          ;
          
-         BASILYS_LOCATION("warmelt-macro.bysl:2355: @block");
+         BASILYS_LOCATION("warmelt-macro.bysl:2358: @block");
          /*block*/{
           /*_.PROGN___V51*/ curfptr[31] = /*_.RETURN___V50*/ curfptr[29];;}
          ;
          /*_.IFELSE___V46*/ curfptr[32] = /*_.PROGN___V51*/ curfptr[31];;
          /*epilog*/
          
-         BASILYS_LOCATION("warmelt-macro.bysl:2351: @clear");
+         BASILYS_LOCATION("warmelt-macro.bysl:2354: @clear");
          /*clear*/ /*_.IFCPP___V48*/ curfptr[39] = 0 ;
          
-         BASILYS_LOCATION("warmelt-macro.bysl:2351: @clear");
+         BASILYS_LOCATION("warmelt-macro.bysl:2354: @clear");
          /*clear*/ /*_.RETURN___V50*/ curfptr[29] = 0 ;
          
-         BASILYS_LOCATION("warmelt-macro.bysl:2351: @clear");
+         BASILYS_LOCATION("warmelt-macro.bysl:2354: @clear");
          /*clear*/ /*_.PROGN___V51*/ curfptr[31] = 0 ;}
         ;
         }
@@ -31327,13 +31371,13 @@ BASILYS_LOCATION("warmelt-macro.bysl:2317: @block");
        /*_.IFELSE___V43*/ curfptr[28] = /*_.IFELSE___V46*/ curfptr[32];;
        /*epilog*/
        
-       BASILYS_LOCATION("warmelt-macro.bysl:2349: @clear");
+       BASILYS_LOCATION("warmelt-macro.bysl:2352: @clear");
        /*clear*/ /*_#IS_A__L14*/ curfnum[13] = 0 ;
        
-       BASILYS_LOCATION("warmelt-macro.bysl:2349: @clear");
+       BASILYS_LOCATION("warmelt-macro.bysl:2352: @clear");
        /*clear*/ /*_#IF___L15*/ curfnum[14] = 0 ;
        
-       BASILYS_LOCATION("warmelt-macro.bysl:2349: @clear");
+       BASILYS_LOCATION("warmelt-macro.bysl:2352: @clear");
        /*clear*/ /*_.IFELSE___V46*/ curfptr[32] = 0 ;}
       ;
       }
@@ -31341,10 +31385,10 @@ BASILYS_LOCATION("warmelt-macro.bysl:2317: @block");
      /*_.AFPRIM__V28*/ curfptr[27] = /*_.IFELSE___V43*/ curfptr[28];;
      /*epilog*/
      
-     BASILYS_LOCATION("warmelt-macro.bysl:2341: @clear");
+     BASILYS_LOCATION("warmelt-macro.bysl:2344: @clear");
      /*clear*/ /*_#IS_A__L13*/ curfnum[8] = 0 ;
      
-     BASILYS_LOCATION("warmelt-macro.bysl:2341: @clear");
+     BASILYS_LOCATION("warmelt-macro.bysl:2344: @clear");
      /*clear*/ /*_.IFELSE___V43*/ curfptr[28] = 0 ;}
     ;
     }
@@ -31358,15 +31402,15 @@ BASILYS_LOCATION("warmelt-macro.bysl:2317: @block");
    /*_.MAKE_TUPLE3__V54*/ curfptr[39] = 
     (basilysgc_new_mult3((basilysobject_ptr_t)((/*!DISCR_MULTIPLE*/ curfrout->tabval[11])), (basilys_ptr_t)(/*_.XMSG__V17*/ curfptr[16]),  (basilys_ptr_t)(/*_.MIXINT_VAL__V52*/ curfptr[35]),  (basilys_ptr_t)(/*_.MAKE_INTEGERBOX__V53*/ curfptr[41])));;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2360: @block");
+   BASILYS_LOCATION("warmelt-macro.bysl:2363: @block");
    /*block*/{
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2360: @rawallocobj");
+    BASILYS_LOCATION("warmelt-macro.bysl:2363: @rawallocobj");
     /*rawallocobj*/ /*_.INST__V56*/ curfptr[31] =
-     basilysgc_new_raw_object((basilysobject_ptr_t)((/*!CLASS_SRC_PRIMITIVE*/ curfrout->tabval[10])), (3));
+     basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_SRC_PRIMITIVE*/ curfrout->tabval[10])), (3), ("CLASS_SRC_PRIMITIVE"));
     ;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2360: @putslot");
+    BASILYS_LOCATION("warmelt-macro.bysl:2363: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V56*/ curfptr[31])) == OBMAG_OBJECT);
     basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V56*/ curfptr[31]))));
@@ -31374,7 +31418,7 @@ BASILYS_LOCATION("warmelt-macro.bysl:2317: @block");
      /*_.LOC__V13*/ curfptr[12]);
     ;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2360: @putslot");
+    BASILYS_LOCATION("warmelt-macro.bysl:2363: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V56*/ curfptr[31])) == OBMAG_OBJECT);
     basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V56*/ curfptr[31]))));
@@ -31382,7 +31426,7 @@ BASILYS_LOCATION("warmelt-macro.bysl:2317: @block");
      /*_.AFPRIM__V28*/ curfptr[27]);
     ;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2360: @putslot");
+    BASILYS_LOCATION("warmelt-macro.bysl:2363: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V56*/ curfptr[31])) == OBMAG_OBJECT);
     basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V56*/ curfptr[31]))));
@@ -31392,15 +31436,15 @@ BASILYS_LOCATION("warmelt-macro.bysl:2317: @block");
     /*_.APRIM__V55*/ curfptr[29] = /*_.INST__V56*/ curfptr[31];;}
    ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2368: @block");
+   BASILYS_LOCATION("warmelt-macro.bysl:2371: @block");
    /*block*/{
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2368: @rawallocobj");
+    BASILYS_LOCATION("warmelt-macro.bysl:2371: @rawallocobj");
     /*rawallocobj*/ /*_.INST__V58*/ curfptr[28] =
-     basilysgc_new_raw_object((basilysobject_ptr_t)((/*!CLASS_SRC_IFELSE*/ curfrout->tabval[13])), (4));
+     basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_SRC_IFELSE*/ curfrout->tabval[13])), (4), ("CLASS_SRC_IFELSE"));
     ;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2368: @putslot");
+    BASILYS_LOCATION("warmelt-macro.bysl:2371: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V58*/ curfptr[28])) == OBMAG_OBJECT);
     basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V58*/ curfptr[28]))));
@@ -31408,7 +31452,7 @@ BASILYS_LOCATION("warmelt-macro.bysl:2317: @block");
      /*_.LOC__V13*/ curfptr[12]);
     ;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2368: @putslot");
+    BASILYS_LOCATION("warmelt-macro.bysl:2371: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V58*/ curfptr[28])) == OBMAG_OBJECT);
     basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V58*/ curfptr[28]))));
@@ -31416,7 +31460,7 @@ BASILYS_LOCATION("warmelt-macro.bysl:2317: @block");
      /*_.XTEST__V18*/ curfptr[17]);
     ;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2368: @putslot");
+    BASILYS_LOCATION("warmelt-macro.bysl:2371: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V58*/ curfptr[28])) == OBMAG_OBJECT);
     basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V58*/ curfptr[28]))));
@@ -31424,7 +31468,7 @@ BASILYS_LOCATION("warmelt-macro.bysl:2317: @block");
      (/*nil*/NULL));
     ;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2368: @putslot");
+    BASILYS_LOCATION("warmelt-macro.bysl:2371: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V58*/ curfptr[28])) == OBMAG_OBJECT);
     basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)(/*_.INST__V58*/ curfptr[28]))));
@@ -31434,15 +31478,15 @@ BASILYS_LOCATION("warmelt-macro.bysl:2317: @block");
     /*_.ATEST__V57*/ curfptr[32] = /*_.INST__V58*/ curfptr[28];;}
    ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2374: @block");
+   BASILYS_LOCATION("warmelt-macro.bysl:2377: @block");
    /*block*/{
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2374: @rawallocobj");
+    BASILYS_LOCATION("warmelt-macro.bysl:2377: @rawallocobj");
     /*rawallocobj*/ /*_.INST__V60*/ curfptr[59] =
-     basilysgc_new_raw_object((basilysobject_ptr_t)((/*!CLASS_SRC_CPPIF*/ curfrout->tabval[14])), (4));
+     basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_SRC_CPPIF*/ curfrout->tabval[14])), (4), ("CLASS_SRC_CPPIF"));
     ;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2374: @putslot");
+    BASILYS_LOCATION("warmelt-macro.bysl:2377: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V60*/ curfptr[59])) == OBMAG_OBJECT);
     basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V60*/ curfptr[59]))));
@@ -31450,7 +31494,7 @@ BASILYS_LOCATION("warmelt-macro.bysl:2317: @block");
      /*_.LOC__V13*/ curfptr[12]);
     ;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2374: @putslot");
+    BASILYS_LOCATION("warmelt-macro.bysl:2377: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V60*/ curfptr[59])) == OBMAG_OBJECT);
     basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V60*/ curfptr[59]))));
@@ -31458,7 +31502,7 @@ BASILYS_LOCATION("warmelt-macro.bysl:2317: @block");
      (/*!konst_15_ENABLE_CHECKING*/ curfrout->tabval[15]));
     ;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2374: @putslot");
+    BASILYS_LOCATION("warmelt-macro.bysl:2377: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V60*/ curfptr[59])) == OBMAG_OBJECT);
     basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V60*/ curfptr[59]))));
@@ -31466,7 +31510,7 @@ BASILYS_LOCATION("warmelt-macro.bysl:2317: @block");
      /*_.ATEST__V57*/ curfptr[32]);
     ;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2374: @putslot");
+    BASILYS_LOCATION("warmelt-macro.bysl:2377: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V60*/ curfptr[59])) == OBMAG_OBJECT);
     basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)(/*_.INST__V60*/ curfptr[59]))));
@@ -31478,173 +31522,173 @@ BASILYS_LOCATION("warmelt-macro.bysl:2317: @block");
    
    #if ENABLE_CHECKING
     
-   BASILYS_LOCATION("warmelt-macro.bysl:2381: @cppif.then");
+   BASILYS_LOCATION("warmelt-macro.bysl:2384: @cppif.then");
    
-    BASILYS_LOCATION("warmelt-macro.bysl:2381: @block");
+    BASILYS_LOCATION("warmelt-macro.bysl:2384: @block");
     /*block*/{
      /*_#THE_CALLCOUNT__L19*/ curfnum[13] = 
       callcount;;
      
-     BASILYS_LOCATION("warmelt-macro.bysl:2381: @apply");
+     BASILYS_LOCATION("warmelt-macro.bysl:2384: @apply");
      /*apply*/{
       union basilysparam_un argtab[4];
       memset(&argtab, 0, sizeof(argtab));
       
-      BASILYS_LOCATION("warmelt-macro.bysl:2381: @apply.arg");
+      BASILYS_LOCATION("warmelt-macro.bysl:2384: @apply.arg");
       argtab[0].bp_cstring =  "mexpand_assert_msg result acppif";
-      BASILYS_LOCATION("warmelt-macro.bysl:2381: @apply.arg");
+      BASILYS_LOCATION("warmelt-macro.bysl:2384: @apply.arg");
       argtab[1].bp_long = /*_#THE_CALLCOUNT__L19*/ curfnum[13];
-      BASILYS_LOCATION("warmelt-macro.bysl:2381: @apply.arg");
+      BASILYS_LOCATION("warmelt-macro.bysl:2384: @apply.arg");
       argtab[2].bp_cstring =  "warmelt-macro.bysl";
-      BASILYS_LOCATION("warmelt-macro.bysl:2381: @apply.arg");
-      argtab[3].bp_long = 2381;
+      BASILYS_LOCATION("warmelt-macro.bysl:2384: @apply.arg");
+      argtab[3].bp_long = 2384;
       /*_.DEBUG_MSG_FUN__V62*/ curfptr[61] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[2])), (basilys_ptr_t)(/*_.ACPPIF__V59*/ curfptr[58]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
       }
      ;
      /*_.IFCPP___V61*/ curfptr[60] = /*_.DEBUG_MSG_FUN__V62*/ curfptr[61];;
      /*epilog*/
      
-     BASILYS_LOCATION("warmelt-macro.bysl:2381: @clear");
+     BASILYS_LOCATION("warmelt-macro.bysl:2384: @clear");
      /*clear*/ /*_#THE_CALLCOUNT__L19*/ curfnum[13] = 0 ;
      
-     BASILYS_LOCATION("warmelt-macro.bysl:2381: @clear");
+     BASILYS_LOCATION("warmelt-macro.bysl:2384: @clear");
      /*clear*/ /*_.DEBUG_MSG_FUN__V62*/ curfptr[61] = 0 ;}
     
     #else /*ENABLE_CHECKING*/
     
-   BASILYS_LOCATION("warmelt-macro.bysl:2381: @cppif.else");
+   BASILYS_LOCATION("warmelt-macro.bysl:2384: @cppif.else");
    /*_.IFCPP___V61*/ curfptr[60] = (/*nil*/NULL);
     #endif /*ENABLE_CHECKING*/
     ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2382: @block");
+   BASILYS_LOCATION("warmelt-macro.bysl:2385: @block");
    /*block*/{
     /*_.RETVAL___V1*/ curfptr[0] = /*_.ACPPIF__V59*/ curfptr[58];;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2382: @finalreturn");
+    BASILYS_LOCATION("warmelt-macro.bysl:2385: @finalreturn");
     ;
     /*finalret*/ goto labend_rout ;}
    ;
    /*_.LET___V27*/ curfptr[26] = /*_.RETURN___V63*/ curfptr[61];;
    /*epilog*/
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2338: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2341: @clear");
    /*clear*/ /*_#NULL__L8*/ curfnum[7] = 0 ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2338: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2341: @clear");
    /*clear*/ /*_.AFPRIM__V28*/ curfptr[27] = 0 ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2338: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2341: @clear");
    /*clear*/ /*_.MIXINT_VAL__V52*/ curfptr[35] = 0 ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2338: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2341: @clear");
    /*clear*/ /*_#GET_INT__L18*/ curfnum[15] = 0 ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2338: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2341: @clear");
    /*clear*/ /*_.MAKE_INTEGERBOX__V53*/ curfptr[41] = 0 ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2338: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2341: @clear");
    /*clear*/ /*_.MAKE_TUPLE3__V54*/ curfptr[39] = 0 ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2338: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2341: @clear");
    /*clear*/ /*_.APRIM__V55*/ curfptr[29] = 0 ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2338: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2341: @clear");
    /*clear*/ /*_.ATEST__V57*/ curfptr[32] = 0 ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2338: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2341: @clear");
    /*clear*/ /*_.ACPPIF__V59*/ curfptr[58] = 0 ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2338: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2341: @clear");
    /*clear*/ /*_.IFCPP___V61*/ curfptr[60] = 0 ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2338: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2341: @clear");
    /*clear*/ /*_.RETURN___V63*/ curfptr[61] = 0 ;}
   ;
   /*_.LET___V11*/ curfptr[9] = /*_.LET___V27*/ curfptr[26];;
   /*epilog*/
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2321: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2324: @clear");
   /*clear*/ /*_.CONT__V12*/ curfptr[11] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2321: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2324: @clear");
   /*clear*/ /*_.LOC__V13*/ curfptr[12] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2321: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2324: @clear");
   /*clear*/ /*_.LIST_FIRST__V14*/ curfptr[13] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2321: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2324: @clear");
   /*clear*/ /*_.CURPAIR__V15*/ curfptr[14] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2321: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2324: @clear");
   /*clear*/ /*_.PAIR_HEAD__V16*/ curfptr[15] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2321: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2324: @clear");
   /*clear*/ /*_.XMSG__V17*/ curfptr[16] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2321: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2324: @clear");
   /*clear*/ /*_.XTEST__V18*/ curfptr[17] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2321: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2324: @clear");
   /*clear*/ /*_.ASSFAIL_SYMB__V19*/ curfptr[18] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2321: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2324: @clear");
   /*clear*/ /*_.ASSFAIL_BINDING__V20*/ curfptr[19] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2321: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2324: @clear");
   /*clear*/ /*_#IS_STRING__L4*/ curfnum[0] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2321: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2324: @clear");
   /*clear*/ /*_#NOT__L5*/ curfnum[4] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2321: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2324: @clear");
   /*clear*/ /*_.PAIR_TAIL__V21*/ curfptr[20] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2321: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2324: @clear");
   /*clear*/ /*_.SETQ___V22*/ curfptr[21] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2321: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2324: @clear");
   /*clear*/ /*_#IS_PAIR__L6*/ curfnum[5] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2321: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2324: @clear");
   /*clear*/ /*_#NOT__L7*/ curfnum[6] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2321: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2324: @clear");
   /*clear*/ /*_.PAIR_HEAD__V23*/ curfptr[22] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2321: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2324: @clear");
   /*clear*/ /*_.MACROEXPAND_1__V24*/ curfptr[23] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2321: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2324: @clear");
   /*clear*/ /*_.SETQ___V25*/ curfptr[24] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2321: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2324: @clear");
   /*clear*/ /*_.PAIR_TAIL__V26*/ curfptr[25] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2321: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2324: @clear");
   /*clear*/ /*_.LET___V27*/ curfptr[26] = 0 ;}
  ;
  
- BASILYS_LOCATION("warmelt-macro.bysl:2317: @block");
+ BASILYS_LOCATION("warmelt-macro.bysl:2320: @block");
  /*block*/{
   /*_.RETVAL___V1*/ curfptr[0] = /*_.LET___V11*/ curfptr[9];;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2317: @finalreturn");
+  BASILYS_LOCATION("warmelt-macro.bysl:2320: @finalreturn");
   ;
   /*finalret*/ goto labend_rout ;}
  ;
  /*epilog*/
  
- BASILYS_LOCATION("warmelt-macro.bysl:2317: @clear");
+ BASILYS_LOCATION("warmelt-macro.bysl:2320: @clear");
  /*clear*/ /*_.IFCPP___V5*/ curfptr[4] = 0 ;
  
- BASILYS_LOCATION("warmelt-macro.bysl:2317: @clear");
+ BASILYS_LOCATION("warmelt-macro.bysl:2320: @clear");
  /*clear*/ /*_.IFCPP___V7*/ curfptr[5] = 0 ;
  
- BASILYS_LOCATION("warmelt-macro.bysl:2317: @clear");
+ BASILYS_LOCATION("warmelt-macro.bysl:2320: @clear");
  /*clear*/ /*_.IFCPP___V9*/ curfptr[7] = 0 ;
  
- BASILYS_LOCATION("warmelt-macro.bysl:2317: @clear");
+ BASILYS_LOCATION("warmelt-macro.bysl:2320: @clear");
  /*clear*/ /*_.LET___V11*/ curfptr[9] = 0 ;}
 
 ;
@@ -31696,12 +31740,12 @@ basilys_trace_start("MEXPAND_DEBUG_MSG", callcount);
 
  /*getarg#0*/
  
- BASILYS_LOCATION("warmelt-macro.bysl:2394: @getarg");
+ BASILYS_LOCATION("warmelt-macro.bysl:2397: @getarg");
  /*_.SEXPR__V2*/ curfptr[1] = (basilys_ptr_t) firstargp_;
  
  /*getarg#1*/
  
- BASILYS_LOCATION("warmelt-macro.bysl:2394: @getarg");
+ BASILYS_LOCATION("warmelt-macro.bysl:2397: @getarg");
  if (xargdescr_[0] != BPAR_PTR) goto lab_endgetargs;
  /*_.ENV__V3*/ curfptr[2] = (xargtab_[0].bp_aptr) ? (*(xargtab_[0].bp_aptr)) : NULL;
  gcc_assert(basilys_discr((basilys_ptr_t)(/*_.ENV__V3*/ curfptr[2])) != NULL);
@@ -31709,7 +31753,7 @@ basilys_trace_start("MEXPAND_DEBUG_MSG", callcount);
  
  /*getarg#2*/
  
- BASILYS_LOCATION("warmelt-macro.bysl:2394: @getarg");
+ BASILYS_LOCATION("warmelt-macro.bysl:2397: @getarg");
  if (xargdescr_[1] != BPAR_PTR) goto lab_endgetargs;
  /*_.MEXPANDER__V4*/ curfptr[3] = (xargtab_[1].bp_aptr) ? (*(xargtab_[1].bp_aptr)) : NULL;
  gcc_assert(basilys_discr((basilys_ptr_t)(/*_.MEXPANDER__V4*/ curfptr[3])) != NULL);
@@ -31719,32 +31763,32 @@ basilys_trace_start("MEXPAND_DEBUG_MSG", callcount);
 lab_endgetargs:;
 /*body*/
 
-BASILYS_LOCATION("warmelt-macro.bysl:2394: @block");
+BASILYS_LOCATION("warmelt-macro.bysl:2397: @block");
 /*block*/{
  
  #if ENABLE_CHECKING
   
- BASILYS_LOCATION("warmelt-macro.bysl:2395: @cppif.then");
+ BASILYS_LOCATION("warmelt-macro.bysl:2398: @cppif.then");
  
-  BASILYS_LOCATION("warmelt-macro.bysl:2395: @block");
+  BASILYS_LOCATION("warmelt-macro.bysl:2398: @block");
   /*block*/{
    /*_#IS_A__L1*/ curfnum[0] = 
      basilys_is_instance_of((basilys_ptr_t)(/*_.SEXPR__V2*/ curfptr[1]), (basilys_ptr_t)((/*!CLASS_SEXPR*/ curfrout->tabval[0])));;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2395: @cond");
+   BASILYS_LOCATION("warmelt-macro.bysl:2398: @cond");
    /*cond*/ if (/*_#IS_A__L1*/ curfnum[0]) /*then*/ {
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2395: @cond.then");
+   BASILYS_LOCATION("warmelt-macro.bysl:2398: @cond.then");
    /*_.IFELSE___V6*/ curfptr[5] = (/*nil*/NULL);;
    } else {
-   BASILYS_LOCATION("warmelt-macro.bysl:2395: @cond.else");
+   BASILYS_LOCATION("warmelt-macro.bysl:2398: @cond.else");
    
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2395: @block");
+    BASILYS_LOCATION("warmelt-macro.bysl:2398: @block");
     /*block*/{
      /*block*/{
       
-      basilys_assert_failed(( "check sexpr"),( "warmelt-macro.bysl"),(2395), __FUNCTION__);
+      basilys_assert_failed(( "check sexpr"),( "warmelt-macro.bysl"),(2398), __FUNCTION__);
       /*clear*/ /*_.IFELSE___V6*/ curfptr[5] = 0 ;}
      ;
      /*epilog*/}
@@ -31754,42 +31798,42 @@ BASILYS_LOCATION("warmelt-macro.bysl:2394: @block");
    /*_.IFCPP___V5*/ curfptr[4] = /*_.IFELSE___V6*/ curfptr[5];;
    /*epilog*/
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2395: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2398: @clear");
    /*clear*/ /*_#IS_A__L1*/ curfnum[0] = 0 ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2395: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2398: @clear");
    /*clear*/ /*_.IFELSE___V6*/ curfptr[5] = 0 ;}
   
   #else /*ENABLE_CHECKING*/
   
- BASILYS_LOCATION("warmelt-macro.bysl:2395: @cppif.else");
+ BASILYS_LOCATION("warmelt-macro.bysl:2398: @cppif.else");
  /*_.IFCPP___V5*/ curfptr[4] = (/*nil*/NULL);
   #endif /*ENABLE_CHECKING*/
   ;
  
  #if ENABLE_CHECKING
   
- BASILYS_LOCATION("warmelt-macro.bysl:2396: @cppif.then");
+ BASILYS_LOCATION("warmelt-macro.bysl:2399: @cppif.then");
  
-  BASILYS_LOCATION("warmelt-macro.bysl:2396: @block");
+  BASILYS_LOCATION("warmelt-macro.bysl:2399: @block");
   /*block*/{
    /*_#IS_A__L2*/ curfnum[0] = 
      basilys_is_instance_of((basilys_ptr_t)(/*_.ENV__V3*/ curfptr[2]), (basilys_ptr_t)((/*!CLASS_ENVIRONMENT*/ curfrout->tabval[1])));;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2396: @cond");
+   BASILYS_LOCATION("warmelt-macro.bysl:2399: @cond");
    /*cond*/ if (/*_#IS_A__L2*/ curfnum[0]) /*then*/ {
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2396: @cond.then");
+   BASILYS_LOCATION("warmelt-macro.bysl:2399: @cond.then");
    /*_.IFELSE___V8*/ curfptr[7] = (/*nil*/NULL);;
    } else {
-   BASILYS_LOCATION("warmelt-macro.bysl:2396: @cond.else");
+   BASILYS_LOCATION("warmelt-macro.bysl:2399: @cond.else");
    
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2396: @block");
+    BASILYS_LOCATION("warmelt-macro.bysl:2399: @block");
     /*block*/{
      /*block*/{
       
-      basilys_assert_failed(( "check env"),( "warmelt-macro.bysl"),(2396), __FUNCTION__);
+      basilys_assert_failed(( "check env"),( "warmelt-macro.bysl"),(2399), __FUNCTION__);
       /*clear*/ /*_.IFELSE___V8*/ curfptr[7] = 0 ;}
      ;
      /*epilog*/}
@@ -31799,68 +31843,68 @@ BASILYS_LOCATION("warmelt-macro.bysl:2394: @block");
    /*_.IFCPP___V7*/ curfptr[5] = /*_.IFELSE___V8*/ curfptr[7];;
    /*epilog*/
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2396: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2399: @clear");
    /*clear*/ /*_#IS_A__L2*/ curfnum[0] = 0 ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2396: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2399: @clear");
    /*clear*/ /*_.IFELSE___V8*/ curfptr[7] = 0 ;}
   
   #else /*ENABLE_CHECKING*/
   
- BASILYS_LOCATION("warmelt-macro.bysl:2396: @cppif.else");
+ BASILYS_LOCATION("warmelt-macro.bysl:2399: @cppif.else");
  /*_.IFCPP___V7*/ curfptr[5] = (/*nil*/NULL);
   #endif /*ENABLE_CHECKING*/
   ;
  
  #if ENABLE_CHECKING
   
- BASILYS_LOCATION("warmelt-macro.bysl:2397: @cppif.then");
+ BASILYS_LOCATION("warmelt-macro.bysl:2400: @cppif.then");
  
-  BASILYS_LOCATION("warmelt-macro.bysl:2397: @block");
+  BASILYS_LOCATION("warmelt-macro.bysl:2400: @block");
   /*block*/{
    /*_#THE_CALLCOUNT__L3*/ curfnum[0] = 
     callcount;;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2397: @apply");
+   BASILYS_LOCATION("warmelt-macro.bysl:2400: @apply");
    /*apply*/{
     union basilysparam_un argtab[4];
     memset(&argtab, 0, sizeof(argtab));
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2397: @apply.arg");
+    BASILYS_LOCATION("warmelt-macro.bysl:2400: @apply.arg");
     argtab[0].bp_cstring =  "mexpand_debug_msg sexpr";
-    BASILYS_LOCATION("warmelt-macro.bysl:2397: @apply.arg");
+    BASILYS_LOCATION("warmelt-macro.bysl:2400: @apply.arg");
     argtab[1].bp_long = /*_#THE_CALLCOUNT__L3*/ curfnum[0];
-    BASILYS_LOCATION("warmelt-macro.bysl:2397: @apply.arg");
+    BASILYS_LOCATION("warmelt-macro.bysl:2400: @apply.arg");
     argtab[2].bp_cstring =  "warmelt-macro.bysl";
-    BASILYS_LOCATION("warmelt-macro.bysl:2397: @apply.arg");
-    argtab[3].bp_long = 2397;
+    BASILYS_LOCATION("warmelt-macro.bysl:2400: @apply.arg");
+    argtab[3].bp_long = 2400;
     /*_.DEBUG_MSG_FUN__V10*/ curfptr[9] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[2])), (basilys_ptr_t)(/*_.SEXPR__V2*/ curfptr[1]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
     }
    ;
    /*_.IFCPP___V9*/ curfptr[7] = /*_.DEBUG_MSG_FUN__V10*/ curfptr[9];;
    /*epilog*/
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2397: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2400: @clear");
    /*clear*/ /*_#THE_CALLCOUNT__L3*/ curfnum[0] = 0 ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2397: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2400: @clear");
    /*clear*/ /*_.DEBUG_MSG_FUN__V10*/ curfptr[9] = 0 ;}
   
   #else /*ENABLE_CHECKING*/
   
- BASILYS_LOCATION("warmelt-macro.bysl:2397: @cppif.else");
+ BASILYS_LOCATION("warmelt-macro.bysl:2400: @cppif.else");
  /*_.IFCPP___V9*/ curfptr[7] = (/*nil*/NULL);
   #endif /*ENABLE_CHECKING*/
   ;
  
- BASILYS_LOCATION("warmelt-macro.bysl:2398: @block");
+ BASILYS_LOCATION("warmelt-macro.bysl:2401: @block");
  /*block*/{
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2399: @getslot");
+  BASILYS_LOCATION("warmelt-macro.bysl:2402: @getslot");
   /*_.CONT__V12*/ curfptr[11] = basilys_getfield_object((basilys_ptr_t)(/*_.SEXPR__V2*/ curfptr[1]), 2, "SEXP_CONTENTS");
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2400: @getslot");
+  BASILYS_LOCATION("warmelt-macro.bysl:2403: @getslot");
   /*_.LOC__V13*/ curfptr[12] = basilys_getfield_object((basilys_ptr_t)(/*_.SEXPR__V2*/ curfptr[1]), 1, "LOCA_LOCATION");
   ;
   /*_.LIST_FIRST__V14*/ curfptr[13] = 
@@ -31870,14 +31914,14 @@ BASILYS_LOCATION("warmelt-macro.bysl:2394: @block");
   /*_.PAIR_HEAD__V16*/ curfptr[15] = 
    (basilys_pair_head((basilys_ptr_t)(/*_.CURPAIR__V15*/ curfptr[14])));;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2402: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2405: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2402: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2405: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.ENV__V3*/ curfptr[2];
-   BASILYS_LOCATION("warmelt-macro.bysl:2402: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2405: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &/*_.MEXPANDER__V4*/ curfptr[3];
    /*_.XVAL__V17*/ curfptr[16] =  basilys_apply ((basilysclosure_ptr_t)((/*!MACROEXPAND_1*/ curfrout->tabval[3])), (basilys_ptr_t)(/*_.PAIR_HEAD__V16*/ curfptr[15]), (BPARSTR_PTR BPARSTR_PTR ""), argtab, "", (union basilysparam_un*)0);
    }
@@ -31887,19 +31931,19 @@ BASILYS_LOCATION("warmelt-macro.bysl:2394: @block");
   /*_.PAIR_TAIL__V20*/ curfptr[19] = 
    (basilys_pair_tail((basilys_ptr_t)(/*_.CURPAIR__V15*/ curfptr[14])));;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2406: @compute");
+  BASILYS_LOCATION("warmelt-macro.bysl:2409: @compute");
   /*_.CURPAIR__V15*/ curfptr[14] = /*_.SETQ___V21*/ curfptr[20] = /*_.PAIR_TAIL__V20*/ curfptr[19];;
   /*_#IS_PAIR__L4*/ curfnum[0] = 
    (basilys_magic_discr((basilys_ptr_t)(/*_.CURPAIR__V15*/ curfptr[14])) == OBMAG_PAIR);;
   /*_#NOT__L5*/ curfnum[4] = 
    (!(/*_#IS_PAIR__L4*/ curfnum[0]));;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2407: @cond");
+  BASILYS_LOCATION("warmelt-macro.bysl:2410: @cond");
   /*cond*/ if (/*_#NOT__L5*/ curfnum[4]) /*then*/ {
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2407: @cond.then");
+  BASILYS_LOCATION("warmelt-macro.bysl:2410: @cond.then");
   
-   BASILYS_LOCATION("warmelt-macro.bysl:2407: @block");
+   BASILYS_LOCATION("warmelt-macro.bysl:2410: @block");
    /*block*/{
     
     error("%s:%d:: BASILYS ERROR [#%ld]: @%s ",  basilys_string_str(basilys_val_mixint((basilys_ptr_t)(/*_.LOC__V13*/ curfptr[12]))),  (int) basilys_num_mixint((basilys_ptr_t)(/*_.LOC__V13*/ curfptr[12])), basilys_dbgcounter, ( "missing message in DEBUG_MSG"));
@@ -31910,98 +31954,98 @@ BASILYS_LOCATION("warmelt-macro.bysl:2394: @block");
   /*_.PAIR_HEAD__V22*/ curfptr[21] = 
    (basilys_pair_head((basilys_ptr_t)(/*_.CURPAIR__V15*/ curfptr[14])));;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2409: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2412: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2409: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2412: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.ENV__V3*/ curfptr[2];
-   BASILYS_LOCATION("warmelt-macro.bysl:2409: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2412: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &/*_.MEXPANDER__V4*/ curfptr[3];
    /*_.MACROEXPAND_1__V23*/ curfptr[22] =  basilys_apply ((basilysclosure_ptr_t)((/*!MACROEXPAND_1*/ curfrout->tabval[3])), (basilys_ptr_t)(/*_.PAIR_HEAD__V22*/ curfptr[21]), (BPARSTR_PTR BPARSTR_PTR ""), argtab, "", (union basilysparam_un*)0);
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2409: @compute");
+  BASILYS_LOCATION("warmelt-macro.bysl:2412: @compute");
   /*_.XMSG__V18*/ curfptr[17] = /*_.SETQ___V24*/ curfptr[23] = /*_.MACROEXPAND_1__V23*/ curfptr[22];;
   /*_.PAIR_TAIL__V25*/ curfptr[24] = 
    (basilys_pair_tail((basilys_ptr_t)(/*_.CURPAIR__V15*/ curfptr[14])));;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2410: @compute");
+  BASILYS_LOCATION("warmelt-macro.bysl:2413: @compute");
   /*_.CURPAIR__V15*/ curfptr[14] = /*_.SETQ___V26*/ curfptr[25] = /*_.PAIR_TAIL__V25*/ curfptr[24];;
   /*_#IS_PAIR__L6*/ curfnum[5] = 
    (basilys_magic_discr((basilys_ptr_t)(/*_.CURPAIR__V15*/ curfptr[14])) == OBMAG_PAIR);;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2411: @cond");
+  BASILYS_LOCATION("warmelt-macro.bysl:2414: @cond");
   /*cond*/ if (/*_#IS_PAIR__L6*/ curfnum[5]) /*then*/ {
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2411: @cond.then");
+  BASILYS_LOCATION("warmelt-macro.bysl:2414: @cond.then");
   
-   BASILYS_LOCATION("warmelt-macro.bysl:2411: @block");
+   BASILYS_LOCATION("warmelt-macro.bysl:2414: @block");
    /*block*/{
     /*_.PAIR_HEAD__V28*/ curfptr[27] = 
      (basilys_pair_head((basilys_ptr_t)(/*_.CURPAIR__V15*/ curfptr[14])));;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2413: @apply");
+    BASILYS_LOCATION("warmelt-macro.bysl:2416: @apply");
     /*apply*/{
      union basilysparam_un argtab[2];
      memset(&argtab, 0, sizeof(argtab));
      
-     BASILYS_LOCATION("warmelt-macro.bysl:2413: @apply.arg");
+     BASILYS_LOCATION("warmelt-macro.bysl:2416: @apply.arg");
      argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.ENV__V3*/ curfptr[2];
-     BASILYS_LOCATION("warmelt-macro.bysl:2413: @apply.arg");
+     BASILYS_LOCATION("warmelt-macro.bysl:2416: @apply.arg");
      argtab[1].bp_aptr = (basilys_ptr_t*) &/*_.MEXPANDER__V4*/ curfptr[3];
      /*_.MACROEXPAND_1__V29*/ curfptr[28] =  basilys_apply ((basilysclosure_ptr_t)((/*!MACROEXPAND_1*/ curfrout->tabval[3])), (basilys_ptr_t)(/*_.PAIR_HEAD__V28*/ curfptr[27]), (BPARSTR_PTR BPARSTR_PTR ""), argtab, "", (union basilysparam_un*)0);
      }
     ;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2413: @compute");
+    BASILYS_LOCATION("warmelt-macro.bysl:2416: @compute");
     /*_.XCOUNT__V19*/ curfptr[18] = /*_.SETQ___V30*/ curfptr[29] = /*_.MACROEXPAND_1__V29*/ curfptr[28];;
     /*_.PAIR_TAIL__V31*/ curfptr[30] = 
      (basilys_pair_tail((basilys_ptr_t)(/*_.CURPAIR__V15*/ curfptr[14])));;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2414: @compute");
+    BASILYS_LOCATION("warmelt-macro.bysl:2417: @compute");
     /*_.CURPAIR__V15*/ curfptr[14] = /*_.SETQ___V32*/ curfptr[31] = /*_.PAIR_TAIL__V31*/ curfptr[30];;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2412: @block");
+    BASILYS_LOCATION("warmelt-macro.bysl:2415: @block");
     /*block*/{
      /*_.PROGN___V33*/ curfptr[32] = /*_.SETQ___V32*/ curfptr[31];;}
     ;
     /*_.IF___V27*/ curfptr[26] = /*_.PROGN___V33*/ curfptr[32];;
     /*epilog*/
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2411: @clear");
+    BASILYS_LOCATION("warmelt-macro.bysl:2414: @clear");
     /*clear*/ /*_.PAIR_HEAD__V28*/ curfptr[27] = 0 ;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2411: @clear");
+    BASILYS_LOCATION("warmelt-macro.bysl:2414: @clear");
     /*clear*/ /*_.MACROEXPAND_1__V29*/ curfptr[28] = 0 ;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2411: @clear");
+    BASILYS_LOCATION("warmelt-macro.bysl:2414: @clear");
     /*clear*/ /*_.SETQ___V30*/ curfptr[29] = 0 ;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2411: @clear");
+    BASILYS_LOCATION("warmelt-macro.bysl:2414: @clear");
     /*clear*/ /*_.PAIR_TAIL__V31*/ curfptr[30] = 0 ;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2411: @clear");
+    BASILYS_LOCATION("warmelt-macro.bysl:2414: @clear");
     /*clear*/ /*_.SETQ___V32*/ curfptr[31] = 0 ;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2411: @clear");
+    BASILYS_LOCATION("warmelt-macro.bysl:2414: @clear");
     /*clear*/ /*_.PROGN___V33*/ curfptr[32] = 0 ;}
    ;
   } else {
-  BASILYS_LOCATION("warmelt-macro.bysl:2411: @cond.else");
+  BASILYS_LOCATION("warmelt-macro.bysl:2414: @cond.else");
   
    /*_.IF___V27*/ curfptr[26] = NULL;;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2415: @cond");
+  BASILYS_LOCATION("warmelt-macro.bysl:2418: @cond");
   /*cond*/ if (/*_.CURPAIR__V15*/ curfptr[14]) /*then*/ {
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2415: @cond.then");
+  BASILYS_LOCATION("warmelt-macro.bysl:2418: @cond.then");
   
-   BASILYS_LOCATION("warmelt-macro.bysl:2415: @block");
+   BASILYS_LOCATION("warmelt-macro.bysl:2418: @block");
    /*block*/{
     
     error("%s:%d:: BASILYS ERROR [#%ld]: @%s ",  basilys_string_str(basilys_val_mixint((basilys_ptr_t)(/*_.LOC__V13*/ curfptr[12]))),  (int) basilys_num_mixint((basilys_ptr_t)(/*_.LOC__V13*/ curfptr[12])), basilys_dbgcounter, ( "too many arguments to DEBUG_MSG"));
@@ -32014,12 +32058,12 @@ BASILYS_LOCATION("warmelt-macro.bysl:2394: @block");
   /*_#NOT__L8*/ curfnum[7] = 
    (!(/*_#IS_STRING__L7*/ curfnum[6]));;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2417: @cond");
+  BASILYS_LOCATION("warmelt-macro.bysl:2420: @cond");
   /*cond*/ if (/*_#NOT__L8*/ curfnum[7]) /*then*/ {
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2417: @cond.then");
+  BASILYS_LOCATION("warmelt-macro.bysl:2420: @cond.then");
   
-   BASILYS_LOCATION("warmelt-macro.bysl:2417: @block");
+   BASILYS_LOCATION("warmelt-macro.bysl:2420: @block");
    /*block*/{
     
     error("%s:%d:: BASILYS ERROR [#%ld]: @%s ",  basilys_string_str(basilys_val_mixint((basilys_ptr_t)(/*_.LOC__V13*/ curfptr[12]))),  (int) basilys_num_mixint((basilys_ptr_t)(/*_.LOC__V13*/ curfptr[12])), basilys_dbgcounter, ( "message argument should be string in DEBUG_MSG"));
@@ -32030,30 +32074,30 @@ BASILYS_LOCATION("warmelt-macro.bysl:2394: @block");
   /*_#NULL__L9*/ curfnum[8] = 
    ((/*_.XCOUNT__V19*/ curfptr[18]) == NULL);;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2419: @cond");
+  BASILYS_LOCATION("warmelt-macro.bysl:2422: @cond");
   /*cond*/ if (/*_#NULL__L9*/ curfnum[8]) /*then*/ {
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2419: @cond.then");
+  BASILYS_LOCATION("warmelt-macro.bysl:2422: @cond.then");
   
-   BASILYS_LOCATION("warmelt-macro.bysl:2419: @block");
+   BASILYS_LOCATION("warmelt-macro.bysl:2422: @block");
    /*block*/{
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2420: @block");
+    BASILYS_LOCATION("warmelt-macro.bysl:2423: @block");
     /*block*/{
      /*_.CONLIS__V36*/ curfptr[29] = 
       (basilysgc_new_list((basilysobject_ptr_t)((/*!DISCR_LIST*/ curfrout->tabval[4]))));;
      
      basilysgc_append_list((basilys_ptr_t)(/*_.CONLIS__V36*/ curfptr[29]), (basilys_ptr_t)((/*!konst_5_THE_CALLCOUNT*/ curfrout->tabval[5])));
      
-     BASILYS_LOCATION("warmelt-macro.bysl:2422: @block");
+     BASILYS_LOCATION("warmelt-macro.bysl:2425: @block");
      /*block*/{
       
-      BASILYS_LOCATION("warmelt-macro.bysl:2422: @rawallocobj");
+      BASILYS_LOCATION("warmelt-macro.bysl:2425: @rawallocobj");
       /*rawallocobj*/ /*_.INST__V38*/ curfptr[31] =
-       basilysgc_new_raw_object((basilysobject_ptr_t)((/*!CLASS_SEXPR*/ curfrout->tabval[0])), (3));
+       basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_SEXPR*/ curfrout->tabval[0])), (3), ("CLASS_SEXPR"));
       ;
       
-      BASILYS_LOCATION("warmelt-macro.bysl:2422: @putslot");
+      BASILYS_LOCATION("warmelt-macro.bysl:2425: @putslot");
       /*putslot*/
       basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V38*/ curfptr[31])) == OBMAG_OBJECT);
       basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V38*/ curfptr[31]))));
@@ -32061,7 +32105,7 @@ BASILYS_LOCATION("warmelt-macro.bysl:2394: @block");
        /*_.CONLIS__V36*/ curfptr[29]);
       ;
       
-      BASILYS_LOCATION("warmelt-macro.bysl:2422: @putslot");
+      BASILYS_LOCATION("warmelt-macro.bysl:2425: @putslot");
       /*putslot*/
       basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V38*/ curfptr[31])) == OBMAG_OBJECT);
       basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V38*/ curfptr[31]))));
@@ -32071,50 +32115,50 @@ BASILYS_LOCATION("warmelt-macro.bysl:2394: @block");
       /*_.INST___V37*/ curfptr[30] = /*_.INST__V38*/ curfptr[31];;}
      ;
      
-     BASILYS_LOCATION("warmelt-macro.bysl:2422: @apply");
+     BASILYS_LOCATION("warmelt-macro.bysl:2425: @apply");
      /*apply*/{
       union basilysparam_un argtab[2];
       memset(&argtab, 0, sizeof(argtab));
       
-      BASILYS_LOCATION("warmelt-macro.bysl:2422: @apply.arg");
+      BASILYS_LOCATION("warmelt-macro.bysl:2425: @apply.arg");
       argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.ENV__V3*/ curfptr[2];
-      BASILYS_LOCATION("warmelt-macro.bysl:2422: @apply.arg");
+      BASILYS_LOCATION("warmelt-macro.bysl:2425: @apply.arg");
       argtab[1].bp_aptr = (basilys_ptr_t*) &/*_.MEXPANDER__V4*/ curfptr[3];
       /*_.MACROEXPAND_1__V39*/ curfptr[32] =  basilys_apply ((basilysclosure_ptr_t)((/*!MACROEXPAND_1*/ curfrout->tabval[3])), (basilys_ptr_t)(/*_.INST___V37*/ curfptr[30]), (BPARSTR_PTR BPARSTR_PTR ""), argtab, "", (union basilysparam_un*)0);
       }
      ;
      
-     BASILYS_LOCATION("warmelt-macro.bysl:2422: @compute");
+     BASILYS_LOCATION("warmelt-macro.bysl:2425: @compute");
      /*_.XCOUNT__V19*/ curfptr[18] = /*_.SETQ___V40*/ curfptr[39] = /*_.MACROEXPAND_1__V39*/ curfptr[32];;
      /*_.LET___V35*/ curfptr[28] = /*_.SETQ___V40*/ curfptr[39];;
      /*epilog*/
      
-     BASILYS_LOCATION("warmelt-macro.bysl:2420: @clear");
+     BASILYS_LOCATION("warmelt-macro.bysl:2423: @clear");
      /*clear*/ /*_.CONLIS__V36*/ curfptr[29] = 0 ;
      
-     BASILYS_LOCATION("warmelt-macro.bysl:2420: @clear");
+     BASILYS_LOCATION("warmelt-macro.bysl:2423: @clear");
      /*clear*/ /*_.INST___V37*/ curfptr[30] = 0 ;
      
-     BASILYS_LOCATION("warmelt-macro.bysl:2420: @clear");
+     BASILYS_LOCATION("warmelt-macro.bysl:2423: @clear");
      /*clear*/ /*_.MACROEXPAND_1__V39*/ curfptr[32] = 0 ;
      
-     BASILYS_LOCATION("warmelt-macro.bysl:2420: @clear");
+     BASILYS_LOCATION("warmelt-macro.bysl:2423: @clear");
      /*clear*/ /*_.SETQ___V40*/ curfptr[39] = 0 ;}
     ;
     /*_.IF___V34*/ curfptr[27] = /*_.LET___V35*/ curfptr[28];;
     /*epilog*/
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2419: @clear");
+    BASILYS_LOCATION("warmelt-macro.bysl:2422: @clear");
     /*clear*/ /*_.LET___V35*/ curfptr[28] = 0 ;}
    ;
   } else {
-  BASILYS_LOCATION("warmelt-macro.bysl:2419: @cond.else");
+  BASILYS_LOCATION("warmelt-macro.bysl:2422: @cond.else");
   
    /*_.IF___V34*/ curfptr[27] = NULL;;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2426: @block");
+  BASILYS_LOCATION("warmelt-macro.bysl:2429: @block");
   /*block*/{
    /*_.MIXINT_VAL__V42*/ curfptr[30] = 
     (basilys_val_mixint((basilys_ptr_t)(/*_.LOC__V13*/ curfptr[12])));;
@@ -32125,15 +32169,15 @@ BASILYS_LOCATION("warmelt-macro.bysl:2394: @block");
    /*_.MAKE_TUPLE5__V44*/ curfptr[39] = 
     (basilysgc_new_mult5((basilysobject_ptr_t)((/*!DISCR_MULTIPLE*/ curfrout->tabval[8])), (basilys_ptr_t)(/*_.XVAL__V17*/ curfptr[16]),  (basilys_ptr_t)(/*_.XMSG__V18*/ curfptr[17]),  (basilys_ptr_t)(/*_.XCOUNT__V19*/ curfptr[18]),  (basilys_ptr_t)(/*_.MIXINT_VAL__V42*/ curfptr[30]),  (basilys_ptr_t)(/*_.MAKE_INTEGERBOX__V43*/ curfptr[32])));;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2426: @block");
+   BASILYS_LOCATION("warmelt-macro.bysl:2429: @block");
    /*block*/{
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2426: @rawallocobj");
+    BASILYS_LOCATION("warmelt-macro.bysl:2429: @rawallocobj");
     /*rawallocobj*/ /*_.INST__V46*/ curfptr[45] =
-     basilysgc_new_raw_object((basilysobject_ptr_t)((/*!CLASS_SRC_APPLY*/ curfrout->tabval[6])), (3));
+     basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_SRC_APPLY*/ curfrout->tabval[6])), (3), ("CLASS_SRC_APPLY"));
     ;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2426: @putslot");
+    BASILYS_LOCATION("warmelt-macro.bysl:2429: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V46*/ curfptr[45])) == OBMAG_OBJECT);
     basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V46*/ curfptr[45]))));
@@ -32141,7 +32185,7 @@ BASILYS_LOCATION("warmelt-macro.bysl:2394: @block");
      /*_.LOC__V13*/ curfptr[12]);
     ;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2426: @putslot");
+    BASILYS_LOCATION("warmelt-macro.bysl:2429: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V46*/ curfptr[45])) == OBMAG_OBJECT);
     basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V46*/ curfptr[45]))));
@@ -32149,7 +32193,7 @@ BASILYS_LOCATION("warmelt-macro.bysl:2394: @block");
      (/*!konst_7_DEBUG_MSG_FUN*/ curfrout->tabval[7]));
     ;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2426: @putslot");
+    BASILYS_LOCATION("warmelt-macro.bysl:2429: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V46*/ curfptr[45])) == OBMAG_OBJECT);
     basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V46*/ curfptr[45]))));
@@ -32159,15 +32203,15 @@ BASILYS_LOCATION("warmelt-macro.bysl:2394: @block");
     /*_.DCALL__V45*/ curfptr[28] = /*_.INST__V46*/ curfptr[45];;}
    ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2436: @block");
+   BASILYS_LOCATION("warmelt-macro.bysl:2439: @block");
    /*block*/{
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2436: @rawallocobj");
+    BASILYS_LOCATION("warmelt-macro.bysl:2439: @rawallocobj");
     /*rawallocobj*/ /*_.INST__V48*/ curfptr[47] =
-     basilysgc_new_raw_object((basilysobject_ptr_t)((/*!CLASS_SRC_CPPIF*/ curfrout->tabval[10])), (4));
+     basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_SRC_CPPIF*/ curfrout->tabval[10])), (4), ("CLASS_SRC_CPPIF"));
     ;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2436: @putslot");
+    BASILYS_LOCATION("warmelt-macro.bysl:2439: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V48*/ curfptr[47])) == OBMAG_OBJECT);
     basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V48*/ curfptr[47]))));
@@ -32175,7 +32219,7 @@ BASILYS_LOCATION("warmelt-macro.bysl:2394: @block");
      /*_.LOC__V13*/ curfptr[12]);
     ;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2436: @putslot");
+    BASILYS_LOCATION("warmelt-macro.bysl:2439: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V48*/ curfptr[47])) == OBMAG_OBJECT);
     basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V48*/ curfptr[47]))));
@@ -32183,7 +32227,7 @@ BASILYS_LOCATION("warmelt-macro.bysl:2394: @block");
      (/*!konst_11_ENABLE_CHECKING*/ curfrout->tabval[11]));
     ;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2436: @putslot");
+    BASILYS_LOCATION("warmelt-macro.bysl:2439: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V48*/ curfptr[47])) == OBMAG_OBJECT);
     basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V48*/ curfptr[47]))));
@@ -32191,7 +32235,7 @@ BASILYS_LOCATION("warmelt-macro.bysl:2394: @block");
      /*_.DCALL__V45*/ curfptr[28]);
     ;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2436: @putslot");
+    BASILYS_LOCATION("warmelt-macro.bysl:2439: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V48*/ curfptr[47])) == OBMAG_OBJECT);
     basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)(/*_.INST__V48*/ curfptr[47]))));
@@ -32203,176 +32247,176 @@ BASILYS_LOCATION("warmelt-macro.bysl:2394: @block");
    
    #if ENABLE_CHECKING
     
-   BASILYS_LOCATION("warmelt-macro.bysl:2443: @cppif.then");
+   BASILYS_LOCATION("warmelt-macro.bysl:2446: @cppif.then");
    
-    BASILYS_LOCATION("warmelt-macro.bysl:2443: @block");
+    BASILYS_LOCATION("warmelt-macro.bysl:2446: @block");
     /*block*/{
      /*_#THE_CALLCOUNT__L11*/ curfnum[10] = 
       callcount;;
      
-     BASILYS_LOCATION("warmelt-macro.bysl:2443: @apply");
+     BASILYS_LOCATION("warmelt-macro.bysl:2446: @apply");
      /*apply*/{
       union basilysparam_un argtab[4];
       memset(&argtab, 0, sizeof(argtab));
       
-      BASILYS_LOCATION("warmelt-macro.bysl:2443: @apply.arg");
+      BASILYS_LOCATION("warmelt-macro.bysl:2446: @apply.arg");
       argtab[0].bp_cstring =  "mexpand_debug_msg result dcppif";
-      BASILYS_LOCATION("warmelt-macro.bysl:2443: @apply.arg");
+      BASILYS_LOCATION("warmelt-macro.bysl:2446: @apply.arg");
       argtab[1].bp_long = /*_#THE_CALLCOUNT__L11*/ curfnum[10];
-      BASILYS_LOCATION("warmelt-macro.bysl:2443: @apply.arg");
+      BASILYS_LOCATION("warmelt-macro.bysl:2446: @apply.arg");
       argtab[2].bp_cstring =  "warmelt-macro.bysl";
-      BASILYS_LOCATION("warmelt-macro.bysl:2443: @apply.arg");
-      argtab[3].bp_long = 2443;
+      BASILYS_LOCATION("warmelt-macro.bysl:2446: @apply.arg");
+      argtab[3].bp_long = 2446;
       /*_.DEBUG_MSG_FUN__V50*/ curfptr[49] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[2])), (basilys_ptr_t)(/*_.DCPPIF__V47*/ curfptr[46]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
       }
      ;
      /*_.IFCPP___V49*/ curfptr[48] = /*_.DEBUG_MSG_FUN__V50*/ curfptr[49];;
      /*epilog*/
      
-     BASILYS_LOCATION("warmelt-macro.bysl:2443: @clear");
+     BASILYS_LOCATION("warmelt-macro.bysl:2446: @clear");
      /*clear*/ /*_#THE_CALLCOUNT__L11*/ curfnum[10] = 0 ;
      
-     BASILYS_LOCATION("warmelt-macro.bysl:2443: @clear");
+     BASILYS_LOCATION("warmelt-macro.bysl:2446: @clear");
      /*clear*/ /*_.DEBUG_MSG_FUN__V50*/ curfptr[49] = 0 ;}
     
     #else /*ENABLE_CHECKING*/
     
-   BASILYS_LOCATION("warmelt-macro.bysl:2443: @cppif.else");
+   BASILYS_LOCATION("warmelt-macro.bysl:2446: @cppif.else");
    /*_.IFCPP___V49*/ curfptr[48] = (/*nil*/NULL);
     #endif /*ENABLE_CHECKING*/
     ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2444: @block");
+   BASILYS_LOCATION("warmelt-macro.bysl:2447: @block");
    /*block*/{
     /*_.RETVAL___V1*/ curfptr[0] = /*_.DCPPIF__V47*/ curfptr[46];;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2444: @finalreturn");
+    BASILYS_LOCATION("warmelt-macro.bysl:2447: @finalreturn");
     ;
     /*finalret*/ goto labend_rout ;}
    ;
    /*_.LET___V41*/ curfptr[29] = /*_.RETURN___V51*/ curfptr[49];;
    /*epilog*/
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2426: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2429: @clear");
    /*clear*/ /*_.MIXINT_VAL__V42*/ curfptr[30] = 0 ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2426: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2429: @clear");
    /*clear*/ /*_#GET_INT__L10*/ curfnum[9] = 0 ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2426: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2429: @clear");
    /*clear*/ /*_.MAKE_INTEGERBOX__V43*/ curfptr[32] = 0 ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2426: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2429: @clear");
    /*clear*/ /*_.MAKE_TUPLE5__V44*/ curfptr[39] = 0 ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2426: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2429: @clear");
    /*clear*/ /*_.DCALL__V45*/ curfptr[28] = 0 ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2426: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2429: @clear");
    /*clear*/ /*_.DCPPIF__V47*/ curfptr[46] = 0 ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2426: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2429: @clear");
    /*clear*/ /*_.IFCPP___V49*/ curfptr[48] = 0 ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2426: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2429: @clear");
    /*clear*/ /*_.RETURN___V51*/ curfptr[49] = 0 ;}
   ;
   /*_.LET___V11*/ curfptr[9] = /*_.LET___V41*/ curfptr[29];;
   /*epilog*/
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2398: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2401: @clear");
   /*clear*/ /*_.CONT__V12*/ curfptr[11] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2398: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2401: @clear");
   /*clear*/ /*_.LOC__V13*/ curfptr[12] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2398: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2401: @clear");
   /*clear*/ /*_.LIST_FIRST__V14*/ curfptr[13] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2398: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2401: @clear");
   /*clear*/ /*_.CURPAIR__V15*/ curfptr[14] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2398: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2401: @clear");
   /*clear*/ /*_.PAIR_HEAD__V16*/ curfptr[15] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2398: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2401: @clear");
   /*clear*/ /*_.XVAL__V17*/ curfptr[16] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2398: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2401: @clear");
   /*clear*/ /*_.XMSG__V18*/ curfptr[17] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2398: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2401: @clear");
   /*clear*/ /*_.XCOUNT__V19*/ curfptr[18] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2398: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2401: @clear");
   /*clear*/ /*_.PAIR_TAIL__V20*/ curfptr[19] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2398: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2401: @clear");
   /*clear*/ /*_.SETQ___V21*/ curfptr[20] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2398: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2401: @clear");
   /*clear*/ /*_#IS_PAIR__L4*/ curfnum[0] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2398: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2401: @clear");
   /*clear*/ /*_#NOT__L5*/ curfnum[4] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2398: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2401: @clear");
   /*clear*/ /*_.PAIR_HEAD__V22*/ curfptr[21] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2398: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2401: @clear");
   /*clear*/ /*_.MACROEXPAND_1__V23*/ curfptr[22] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2398: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2401: @clear");
   /*clear*/ /*_.SETQ___V24*/ curfptr[23] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2398: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2401: @clear");
   /*clear*/ /*_.PAIR_TAIL__V25*/ curfptr[24] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2398: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2401: @clear");
   /*clear*/ /*_.SETQ___V26*/ curfptr[25] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2398: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2401: @clear");
   /*clear*/ /*_#IS_PAIR__L6*/ curfnum[5] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2398: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2401: @clear");
   /*clear*/ /*_.IF___V27*/ curfptr[26] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2398: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2401: @clear");
   /*clear*/ /*_#IS_STRING__L7*/ curfnum[6] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2398: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2401: @clear");
   /*clear*/ /*_#NOT__L8*/ curfnum[7] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2398: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2401: @clear");
   /*clear*/ /*_#NULL__L9*/ curfnum[8] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2398: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2401: @clear");
   /*clear*/ /*_.IF___V34*/ curfptr[27] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2398: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2401: @clear");
   /*clear*/ /*_.LET___V41*/ curfptr[29] = 0 ;}
  ;
  
- BASILYS_LOCATION("warmelt-macro.bysl:2394: @block");
+ BASILYS_LOCATION("warmelt-macro.bysl:2397: @block");
  /*block*/{
   /*_.RETVAL___V1*/ curfptr[0] = /*_.LET___V11*/ curfptr[9];;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2394: @finalreturn");
+  BASILYS_LOCATION("warmelt-macro.bysl:2397: @finalreturn");
   ;
   /*finalret*/ goto labend_rout ;}
  ;
  /*epilog*/
  
- BASILYS_LOCATION("warmelt-macro.bysl:2394: @clear");
+ BASILYS_LOCATION("warmelt-macro.bysl:2397: @clear");
  /*clear*/ /*_.IFCPP___V5*/ curfptr[4] = 0 ;
  
- BASILYS_LOCATION("warmelt-macro.bysl:2394: @clear");
+ BASILYS_LOCATION("warmelt-macro.bysl:2397: @clear");
  /*clear*/ /*_.IFCPP___V7*/ curfptr[5] = 0 ;
  
- BASILYS_LOCATION("warmelt-macro.bysl:2394: @clear");
+ BASILYS_LOCATION("warmelt-macro.bysl:2397: @clear");
  /*clear*/ /*_.IFCPP___V9*/ curfptr[7] = 0 ;
  
- BASILYS_LOCATION("warmelt-macro.bysl:2394: @clear");
+ BASILYS_LOCATION("warmelt-macro.bysl:2397: @clear");
  /*clear*/ /*_.LET___V11*/ curfptr[9] = 0 ;}
 
 ;
@@ -32424,12 +32468,12 @@ basilys_trace_start("MEXPAND_EXPORT_VALUES", callcount);
 
  /*getarg#0*/
  
- BASILYS_LOCATION("warmelt-macro.bysl:2451: @getarg");
+ BASILYS_LOCATION("warmelt-macro.bysl:2454: @getarg");
  /*_.SEXPR__V2*/ curfptr[1] = (basilys_ptr_t) firstargp_;
  
  /*getarg#1*/
  
- BASILYS_LOCATION("warmelt-macro.bysl:2451: @getarg");
+ BASILYS_LOCATION("warmelt-macro.bysl:2454: @getarg");
  if (xargdescr_[0] != BPAR_PTR) goto lab_endgetargs;
  /*_.ENV__V3*/ curfptr[2] = (xargtab_[0].bp_aptr) ? (*(xargtab_[0].bp_aptr)) : NULL;
  gcc_assert(basilys_discr((basilys_ptr_t)(/*_.ENV__V3*/ curfptr[2])) != NULL);
@@ -32437,7 +32481,7 @@ basilys_trace_start("MEXPAND_EXPORT_VALUES", callcount);
  
  /*getarg#2*/
  
- BASILYS_LOCATION("warmelt-macro.bysl:2451: @getarg");
+ BASILYS_LOCATION("warmelt-macro.bysl:2454: @getarg");
  if (xargdescr_[1] != BPAR_PTR) goto lab_endgetargs;
  /*_.MEXPANDER__V4*/ curfptr[3] = (xargtab_[1].bp_aptr) ? (*(xargtab_[1].bp_aptr)) : NULL;
  gcc_assert(basilys_discr((basilys_ptr_t)(/*_.MEXPANDER__V4*/ curfptr[3])) != NULL);
@@ -32447,32 +32491,32 @@ basilys_trace_start("MEXPAND_EXPORT_VALUES", callcount);
 lab_endgetargs:;
 /*body*/
 
-BASILYS_LOCATION("warmelt-macro.bysl:2451: @block");
+BASILYS_LOCATION("warmelt-macro.bysl:2454: @block");
 /*block*/{
  
  #if ENABLE_CHECKING
   
- BASILYS_LOCATION("warmelt-macro.bysl:2452: @cppif.then");
+ BASILYS_LOCATION("warmelt-macro.bysl:2455: @cppif.then");
  
-  BASILYS_LOCATION("warmelt-macro.bysl:2452: @block");
+  BASILYS_LOCATION("warmelt-macro.bysl:2455: @block");
   /*block*/{
    /*_#IS_A__L1*/ curfnum[0] = 
      basilys_is_instance_of((basilys_ptr_t)(/*_.SEXPR__V2*/ curfptr[1]), (basilys_ptr_t)((/*!CLASS_SEXPR*/ curfrout->tabval[0])));;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2452: @cond");
+   BASILYS_LOCATION("warmelt-macro.bysl:2455: @cond");
    /*cond*/ if (/*_#IS_A__L1*/ curfnum[0]) /*then*/ {
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2452: @cond.then");
+   BASILYS_LOCATION("warmelt-macro.bysl:2455: @cond.then");
    /*_.IFELSE___V6*/ curfptr[5] = (/*nil*/NULL);;
    } else {
-   BASILYS_LOCATION("warmelt-macro.bysl:2452: @cond.else");
+   BASILYS_LOCATION("warmelt-macro.bysl:2455: @cond.else");
    
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2452: @block");
+    BASILYS_LOCATION("warmelt-macro.bysl:2455: @block");
     /*block*/{
      /*block*/{
       
-      basilys_assert_failed(( "check sexpr"),( "warmelt-macro.bysl"),(2452), __FUNCTION__);
+      basilys_assert_failed(( "check sexpr"),( "warmelt-macro.bysl"),(2455), __FUNCTION__);
       /*clear*/ /*_.IFELSE___V6*/ curfptr[5] = 0 ;}
      ;
      /*epilog*/}
@@ -32482,42 +32526,42 @@ BASILYS_LOCATION("warmelt-macro.bysl:2451: @block");
    /*_.IFCPP___V5*/ curfptr[4] = /*_.IFELSE___V6*/ curfptr[5];;
    /*epilog*/
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2452: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2455: @clear");
    /*clear*/ /*_#IS_A__L1*/ curfnum[0] = 0 ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2452: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2455: @clear");
    /*clear*/ /*_.IFELSE___V6*/ curfptr[5] = 0 ;}
   
   #else /*ENABLE_CHECKING*/
   
- BASILYS_LOCATION("warmelt-macro.bysl:2452: @cppif.else");
+ BASILYS_LOCATION("warmelt-macro.bysl:2455: @cppif.else");
  /*_.IFCPP___V5*/ curfptr[4] = (/*nil*/NULL);
   #endif /*ENABLE_CHECKING*/
   ;
  
  #if ENABLE_CHECKING
   
- BASILYS_LOCATION("warmelt-macro.bysl:2453: @cppif.then");
+ BASILYS_LOCATION("warmelt-macro.bysl:2456: @cppif.then");
  
-  BASILYS_LOCATION("warmelt-macro.bysl:2453: @block");
+  BASILYS_LOCATION("warmelt-macro.bysl:2456: @block");
   /*block*/{
    /*_#IS_A__L2*/ curfnum[0] = 
      basilys_is_instance_of((basilys_ptr_t)(/*_.ENV__V3*/ curfptr[2]), (basilys_ptr_t)((/*!CLASS_ENVIRONMENT*/ curfrout->tabval[1])));;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2453: @cond");
+   BASILYS_LOCATION("warmelt-macro.bysl:2456: @cond");
    /*cond*/ if (/*_#IS_A__L2*/ curfnum[0]) /*then*/ {
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2453: @cond.then");
+   BASILYS_LOCATION("warmelt-macro.bysl:2456: @cond.then");
    /*_.IFELSE___V8*/ curfptr[7] = (/*nil*/NULL);;
    } else {
-   BASILYS_LOCATION("warmelt-macro.bysl:2453: @cond.else");
+   BASILYS_LOCATION("warmelt-macro.bysl:2456: @cond.else");
    
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2453: @block");
+    BASILYS_LOCATION("warmelt-macro.bysl:2456: @block");
     /*block*/{
      /*block*/{
       
-      basilys_assert_failed(( "check env"),( "warmelt-macro.bysl"),(2453), __FUNCTION__);
+      basilys_assert_failed(( "check env"),( "warmelt-macro.bysl"),(2456), __FUNCTION__);
       /*clear*/ /*_.IFELSE___V8*/ curfptr[7] = 0 ;}
      ;
      /*epilog*/}
@@ -32527,68 +32571,68 @@ BASILYS_LOCATION("warmelt-macro.bysl:2451: @block");
    /*_.IFCPP___V7*/ curfptr[5] = /*_.IFELSE___V8*/ curfptr[7];;
    /*epilog*/
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2453: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2456: @clear");
    /*clear*/ /*_#IS_A__L2*/ curfnum[0] = 0 ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2453: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2456: @clear");
    /*clear*/ /*_.IFELSE___V8*/ curfptr[7] = 0 ;}
   
   #else /*ENABLE_CHECKING*/
   
- BASILYS_LOCATION("warmelt-macro.bysl:2453: @cppif.else");
+ BASILYS_LOCATION("warmelt-macro.bysl:2456: @cppif.else");
  /*_.IFCPP___V7*/ curfptr[5] = (/*nil*/NULL);
   #endif /*ENABLE_CHECKING*/
   ;
  
  #if ENABLE_CHECKING
   
- BASILYS_LOCATION("warmelt-macro.bysl:2454: @cppif.then");
+ BASILYS_LOCATION("warmelt-macro.bysl:2457: @cppif.then");
  
-  BASILYS_LOCATION("warmelt-macro.bysl:2454: @block");
+  BASILYS_LOCATION("warmelt-macro.bysl:2457: @block");
   /*block*/{
    /*_#THE_CALLCOUNT__L3*/ curfnum[0] = 
     callcount;;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2454: @apply");
+   BASILYS_LOCATION("warmelt-macro.bysl:2457: @apply");
    /*apply*/{
     union basilysparam_un argtab[4];
     memset(&argtab, 0, sizeof(argtab));
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2454: @apply.arg");
+    BASILYS_LOCATION("warmelt-macro.bysl:2457: @apply.arg");
     argtab[0].bp_cstring =  "mexpand_export_values sexpr";
-    BASILYS_LOCATION("warmelt-macro.bysl:2454: @apply.arg");
+    BASILYS_LOCATION("warmelt-macro.bysl:2457: @apply.arg");
     argtab[1].bp_long = /*_#THE_CALLCOUNT__L3*/ curfnum[0];
-    BASILYS_LOCATION("warmelt-macro.bysl:2454: @apply.arg");
+    BASILYS_LOCATION("warmelt-macro.bysl:2457: @apply.arg");
     argtab[2].bp_cstring =  "warmelt-macro.bysl";
-    BASILYS_LOCATION("warmelt-macro.bysl:2454: @apply.arg");
-    argtab[3].bp_long = 2454;
+    BASILYS_LOCATION("warmelt-macro.bysl:2457: @apply.arg");
+    argtab[3].bp_long = 2457;
     /*_.DEBUG_MSG_FUN__V10*/ curfptr[9] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[2])), (basilys_ptr_t)(/*_.SEXPR__V2*/ curfptr[1]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
     }
    ;
    /*_.IFCPP___V9*/ curfptr[7] = /*_.DEBUG_MSG_FUN__V10*/ curfptr[9];;
    /*epilog*/
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2454: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2457: @clear");
    /*clear*/ /*_#THE_CALLCOUNT__L3*/ curfnum[0] = 0 ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2454: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2457: @clear");
    /*clear*/ /*_.DEBUG_MSG_FUN__V10*/ curfptr[9] = 0 ;}
   
   #else /*ENABLE_CHECKING*/
   
- BASILYS_LOCATION("warmelt-macro.bysl:2454: @cppif.else");
+ BASILYS_LOCATION("warmelt-macro.bysl:2457: @cppif.else");
  /*_.IFCPP___V9*/ curfptr[7] = (/*nil*/NULL);
   #endif /*ENABLE_CHECKING*/
   ;
  
- BASILYS_LOCATION("warmelt-macro.bysl:2455: @block");
+ BASILYS_LOCATION("warmelt-macro.bysl:2458: @block");
  /*block*/{
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2456: @getslot");
+  BASILYS_LOCATION("warmelt-macro.bysl:2459: @getslot");
   /*_.CONT__V12*/ curfptr[11] = basilys_getfield_object((basilys_ptr_t)(/*_.SEXPR__V2*/ curfptr[1]), 2, "SEXP_CONTENTS");
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2457: @getslot");
+  BASILYS_LOCATION("warmelt-macro.bysl:2460: @getslot");
   /*_.LOC__V13*/ curfptr[12] = basilys_getfield_object((basilys_ptr_t)(/*_.SEXPR__V2*/ curfptr[1]), 1, "LOCA_LOCATION");
   ;
   /*_.LIST_FIRST__V14*/ curfptr[13] = 
@@ -32596,29 +32640,29 @@ BASILYS_LOCATION("warmelt-macro.bysl:2451: @block");
   /*_.CURPAIR__V15*/ curfptr[14] = 
    (basilys_pair_tail((basilys_ptr_t)(/*_.LIST_FIRST__V14*/ curfptr[13])));;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2461: @block");
+  BASILYS_LOCATION("warmelt-macro.bysl:2464: @block");
   /*block*/{
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2461: @newclosure");
+   BASILYS_LOCATION("warmelt-macro.bysl:2464: @newclosure");
     /*newclosure*/ /*_.LAMBDA___V17*/ curfptr[16] =
     basilysgc_new_closure((basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_CLOSURE)))), (basilysroutine_ptr_t)((/*!konst_8*/ curfrout->tabval[8])), (3));
    ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2461: @putclosedv");
+   BASILYS_LOCATION("warmelt-macro.bysl:2464: @putclosedv");
    /*putclosv*/
    basilys_assertmsg("putclosv checkclo", basilys_magic_discr((basilys_ptr_t)(/*_.LAMBDA___V17*/ curfptr[16])) == OBMAG_CLOSURE);
    basilys_assertmsg("putclosv checkoff", 0>= 0 && 0< basilys_closure_size((basilys_ptr_t) (/*_.LAMBDA___V17*/ curfptr[16])));
    ((basilysclosure_ptr_t)/*_.LAMBDA___V17*/ curfptr[16])->tabval[0] = (basilys_ptr_t)(/*_.ENV__V3*/ curfptr[2]);
    ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2461: @putclosedv");
+   BASILYS_LOCATION("warmelt-macro.bysl:2464: @putclosedv");
    /*putclosv*/
    basilys_assertmsg("putclosv checkclo", basilys_magic_discr((basilys_ptr_t)(/*_.LAMBDA___V17*/ curfptr[16])) == OBMAG_CLOSURE);
    basilys_assertmsg("putclosv checkoff", 1>= 0 && 1< basilys_closure_size((basilys_ptr_t) (/*_.LAMBDA___V17*/ curfptr[16])));
    ((basilysclosure_ptr_t)/*_.LAMBDA___V17*/ curfptr[16])->tabval[1] = (basilys_ptr_t)(/*_.MEXPANDER__V4*/ curfptr[3]);
    ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2461: @putclosedv");
+   BASILYS_LOCATION("warmelt-macro.bysl:2464: @putclosedv");
    /*putclosv*/
    basilys_assertmsg("putclosv checkclo", basilys_magic_discr((basilys_ptr_t)(/*_.LAMBDA___V17*/ curfptr[16])) == OBMAG_CLOSURE);
    basilys_assertmsg("putclosv checkoff", 2>= 0 && 2< basilys_closure_size((basilys_ptr_t) (/*_.LAMBDA___V17*/ curfptr[16])));
@@ -32627,28 +32671,28 @@ BASILYS_LOCATION("warmelt-macro.bysl:2451: @block");
    /*_.LAMBDA___V16*/ curfptr[15] = /*_.LAMBDA___V17*/ curfptr[16];;}
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2459: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2462: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2459: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2462: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &(/*!DISCR_MULTIPLE*/ curfrout->tabval[4]);
-   BASILYS_LOCATION("warmelt-macro.bysl:2459: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2462: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &/*_.LAMBDA___V16*/ curfptr[15];
    /*_.SYMBTUP__V18*/ curfptr[17] =  basilys_apply ((basilysclosure_ptr_t)((/*!PAIRLIST_TO_MULTIPLE*/ curfrout->tabval[3])), (basilys_ptr_t)(/*_.CURPAIR__V15*/ curfptr[14]), (BPARSTR_PTR BPARSTR_PTR ""), argtab, "", (union basilysparam_un*)0);
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2469: @block");
+  BASILYS_LOCATION("warmelt-macro.bysl:2472: @block");
   /*block*/{
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2469: @rawallocobj");
+   BASILYS_LOCATION("warmelt-macro.bysl:2472: @rawallocobj");
    /*rawallocobj*/ /*_.INST__V20*/ curfptr[19] =
-    basilysgc_new_raw_object((basilysobject_ptr_t)((/*!CLASS_SRC_EXPORT_VALUES*/ curfrout->tabval[9])), (2));
+    basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_SRC_EXPORT_VALUES*/ curfrout->tabval[9])), (2), ("CLASS_SRC_EXPORT_VALUES"));
    ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2469: @putslot");
+   BASILYS_LOCATION("warmelt-macro.bysl:2472: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V20*/ curfptr[19])) == OBMAG_OBJECT);
    basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V20*/ curfptr[19]))));
@@ -32656,7 +32700,7 @@ BASILYS_LOCATION("warmelt-macro.bysl:2451: @block");
     /*_.LOC__V13*/ curfptr[12]);
    ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2469: @putslot");
+   BASILYS_LOCATION("warmelt-macro.bysl:2472: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V20*/ curfptr[19])) == OBMAG_OBJECT);
    basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V20*/ curfptr[19]))));
@@ -32668,104 +32712,104 @@ BASILYS_LOCATION("warmelt-macro.bysl:2451: @block");
   
   #if ENABLE_CHECKING
    
-  BASILYS_LOCATION("warmelt-macro.bysl:2473: @cppif.then");
+  BASILYS_LOCATION("warmelt-macro.bysl:2476: @cppif.then");
   
-   BASILYS_LOCATION("warmelt-macro.bysl:2473: @block");
+   BASILYS_LOCATION("warmelt-macro.bysl:2476: @block");
    /*block*/{
     /*_#THE_CALLCOUNT__L4*/ curfnum[0] = 
      callcount;;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2473: @apply");
+    BASILYS_LOCATION("warmelt-macro.bysl:2476: @apply");
     /*apply*/{
      union basilysparam_un argtab[4];
      memset(&argtab, 0, sizeof(argtab));
      
-     BASILYS_LOCATION("warmelt-macro.bysl:2473: @apply.arg");
+     BASILYS_LOCATION("warmelt-macro.bysl:2476: @apply.arg");
      argtab[0].bp_cstring =  "mexpand_export_values result res";
-     BASILYS_LOCATION("warmelt-macro.bysl:2473: @apply.arg");
+     BASILYS_LOCATION("warmelt-macro.bysl:2476: @apply.arg");
      argtab[1].bp_long = /*_#THE_CALLCOUNT__L4*/ curfnum[0];
-     BASILYS_LOCATION("warmelt-macro.bysl:2473: @apply.arg");
+     BASILYS_LOCATION("warmelt-macro.bysl:2476: @apply.arg");
      argtab[2].bp_cstring =  "warmelt-macro.bysl";
-     BASILYS_LOCATION("warmelt-macro.bysl:2473: @apply.arg");
-     argtab[3].bp_long = 2473;
+     BASILYS_LOCATION("warmelt-macro.bysl:2476: @apply.arg");
+     argtab[3].bp_long = 2476;
      /*_.DEBUG_MSG_FUN__V22*/ curfptr[21] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[2])), (basilys_ptr_t)(/*_.RES__V19*/ curfptr[18]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
      }
     ;
     /*_.IFCPP___V21*/ curfptr[20] = /*_.DEBUG_MSG_FUN__V22*/ curfptr[21];;
     /*epilog*/
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2473: @clear");
+    BASILYS_LOCATION("warmelt-macro.bysl:2476: @clear");
     /*clear*/ /*_#THE_CALLCOUNT__L4*/ curfnum[0] = 0 ;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2473: @clear");
+    BASILYS_LOCATION("warmelt-macro.bysl:2476: @clear");
     /*clear*/ /*_.DEBUG_MSG_FUN__V22*/ curfptr[21] = 0 ;}
    
    #else /*ENABLE_CHECKING*/
    
-  BASILYS_LOCATION("warmelt-macro.bysl:2473: @cppif.else");
+  BASILYS_LOCATION("warmelt-macro.bysl:2476: @cppif.else");
   /*_.IFCPP___V21*/ curfptr[20] = (/*nil*/NULL);
    #endif /*ENABLE_CHECKING*/
    ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2474: @block");
+  BASILYS_LOCATION("warmelt-macro.bysl:2477: @block");
   /*block*/{
    /*_.RETVAL___V1*/ curfptr[0] = /*_.RES__V19*/ curfptr[18];;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2474: @finalreturn");
+   BASILYS_LOCATION("warmelt-macro.bysl:2477: @finalreturn");
    ;
    /*finalret*/ goto labend_rout ;}
   ;
   /*_.LET___V11*/ curfptr[9] = /*_.RETURN___V23*/ curfptr[21];;
   /*epilog*/
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2455: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2458: @clear");
   /*clear*/ /*_.CONT__V12*/ curfptr[11] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2455: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2458: @clear");
   /*clear*/ /*_.LOC__V13*/ curfptr[12] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2455: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2458: @clear");
   /*clear*/ /*_.LIST_FIRST__V14*/ curfptr[13] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2455: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2458: @clear");
   /*clear*/ /*_.CURPAIR__V15*/ curfptr[14] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2455: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2458: @clear");
   /*clear*/ /*_.LAMBDA___V16*/ curfptr[15] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2455: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2458: @clear");
   /*clear*/ /*_.SYMBTUP__V18*/ curfptr[17] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2455: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2458: @clear");
   /*clear*/ /*_.RES__V19*/ curfptr[18] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2455: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2458: @clear");
   /*clear*/ /*_.IFCPP___V21*/ curfptr[20] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2455: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2458: @clear");
   /*clear*/ /*_.RETURN___V23*/ curfptr[21] = 0 ;}
  ;
  
- BASILYS_LOCATION("warmelt-macro.bysl:2451: @block");
+ BASILYS_LOCATION("warmelt-macro.bysl:2454: @block");
  /*block*/{
   /*_.RETVAL___V1*/ curfptr[0] = /*_.LET___V11*/ curfptr[9];;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2451: @finalreturn");
+  BASILYS_LOCATION("warmelt-macro.bysl:2454: @finalreturn");
   ;
   /*finalret*/ goto labend_rout ;}
  ;
  /*epilog*/
  
- BASILYS_LOCATION("warmelt-macro.bysl:2451: @clear");
+ BASILYS_LOCATION("warmelt-macro.bysl:2454: @clear");
  /*clear*/ /*_.IFCPP___V5*/ curfptr[4] = 0 ;
  
- BASILYS_LOCATION("warmelt-macro.bysl:2451: @clear");
+ BASILYS_LOCATION("warmelt-macro.bysl:2454: @clear");
  /*clear*/ /*_.IFCPP___V7*/ curfptr[5] = 0 ;
  
- BASILYS_LOCATION("warmelt-macro.bysl:2451: @clear");
+ BASILYS_LOCATION("warmelt-macro.bysl:2454: @clear");
  /*clear*/ /*_.IFCPP___V9*/ curfptr[7] = 0 ;
  
- BASILYS_LOCATION("warmelt-macro.bysl:2451: @clear");
+ BASILYS_LOCATION("warmelt-macro.bysl:2454: @clear");
  /*clear*/ /*_.LET___V11*/ curfptr[9] = 0 ;}
 
 ;
@@ -32817,27 +32861,27 @@ basilys_trace_start("LAMBDA_", callcount);
 
  /*getarg#0*/
  
- BASILYS_LOCATION("warmelt-macro.bysl:2461: @getarg");
+ BASILYS_LOCATION("warmelt-macro.bysl:2464: @getarg");
  /*_.S__V2*/ curfptr[1] = (basilys_ptr_t) firstargp_;
  ;
  goto lab_endgetargs;
 lab_endgetargs:;
 /*body*/
 
-BASILYS_LOCATION("warmelt-macro.bysl:2461: @block");
+BASILYS_LOCATION("warmelt-macro.bysl:2464: @block");
 /*block*/{
  
- BASILYS_LOCATION("warmelt-macro.bysl:2462: @block");
+ BASILYS_LOCATION("warmelt-macro.bysl:2465: @block");
  /*block*/{
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2462: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2465: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2462: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2465: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &(/*~ENV*/ curfclos->tabval[0]);
-   BASILYS_LOCATION("warmelt-macro.bysl:2462: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2465: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &(/*~MEXPANDER*/ curfclos->tabval[1]);
    /*_.SYM__V4*/ curfptr[3] =  basilys_apply ((basilysclosure_ptr_t)((/*!MACROEXPAND_1*/ curfrout->tabval[0])), (basilys_ptr_t)(/*_.S__V2*/ curfptr[1]), (BPARSTR_PTR BPARSTR_PTR ""), argtab, "", (union basilysparam_un*)0);
    }
@@ -32845,20 +32889,20 @@ BASILYS_LOCATION("warmelt-macro.bysl:2461: @block");
   /*_#IS_NOT_A__L1*/ curfnum[0] = 
     !basilys_is_instance_of((basilys_ptr_t)(/*_.SYM__V4*/ curfptr[3]), (basilys_ptr_t)((/*!CLASS_SYMBOL*/ curfrout->tabval[1])));;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2463: @cond");
+  BASILYS_LOCATION("warmelt-macro.bysl:2466: @cond");
   /*cond*/ if (/*_#IS_NOT_A__L1*/ curfnum[0]) /*then*/ {
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2463: @cond.then");
+  BASILYS_LOCATION("warmelt-macro.bysl:2466: @cond.then");
   
-   BASILYS_LOCATION("warmelt-macro.bysl:2463: @block");
+   BASILYS_LOCATION("warmelt-macro.bysl:2466: @block");
    /*block*/{
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2465: @apply");
+    BASILYS_LOCATION("warmelt-macro.bysl:2468: @apply");
     /*apply*/{
      union basilysparam_un argtab[1];
      memset(&argtab, 0, sizeof(argtab));
      
-     BASILYS_LOCATION("warmelt-macro.bysl:2465: @apply.arg");
+     BASILYS_LOCATION("warmelt-macro.bysl:2468: @apply.arg");
      argtab[0].bp_cstring =  "mexpand_export_values bad sym";
      /*_.DEBUGMSG__V5*/ curfptr[4] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUGMSG*/ curfrout->tabval[2])), (basilys_ptr_t)(/*_.SYM__V4*/ curfptr[3]), (BPARSTR_CSTRING ""), argtab, "", (union basilysparam_un*)0);
      }
@@ -32866,12 +32910,12 @@ BASILYS_LOCATION("warmelt-macro.bysl:2461: @block");
     
     error("%s:%d:: BASILYS ERROR [#%ld]: @%s ",  basilys_string_str(basilys_val_mixint((basilys_ptr_t)((/*~LOC*/ curfclos->tabval[2])))),  (int) basilys_num_mixint((basilys_ptr_t)((/*~LOC*/ curfclos->tabval[2]))), basilys_dbgcounter, ( "(EXPORT_VALUES <sym>...) expecting symbol"));
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2464: @block");
+    BASILYS_LOCATION("warmelt-macro.bysl:2467: @block");
     /*block*/{}
     ;
     /*epilog*/
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2463: @clear");
+    BASILYS_LOCATION("warmelt-macro.bysl:2466: @clear");
     /*clear*/ /*_.DEBUGMSG__V5*/ curfptr[4] = 0 ;}
    ;
   } /*noelse*/
@@ -32879,24 +32923,24 @@ BASILYS_LOCATION("warmelt-macro.bysl:2461: @block");
   /*_.LET___V3*/ curfptr[2] = /*_.SYM__V4*/ curfptr[3];;
   /*epilog*/
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2462: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2465: @clear");
   /*clear*/ /*_.SYM__V4*/ curfptr[3] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2462: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2465: @clear");
   /*clear*/ /*_#IS_NOT_A__L1*/ curfnum[0] = 0 ;}
  ;
  
- BASILYS_LOCATION("warmelt-macro.bysl:2461: @block");
+ BASILYS_LOCATION("warmelt-macro.bysl:2464: @block");
  /*block*/{
   /*_.RETVAL___V1*/ curfptr[0] = /*_.LET___V3*/ curfptr[2];;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2461: @finalreturn");
+  BASILYS_LOCATION("warmelt-macro.bysl:2464: @finalreturn");
   ;
   /*finalret*/ goto labend_rout ;}
  ;
  /*epilog*/
  
- BASILYS_LOCATION("warmelt-macro.bysl:2461: @clear");
+ BASILYS_LOCATION("warmelt-macro.bysl:2464: @clear");
  /*clear*/ /*_.LET___V3*/ curfptr[2] = 0 ;}
 
 ;
@@ -32948,12 +32992,12 @@ basilys_trace_start("MEXPAND_EXPORT_MACRO", callcount);
 
  /*getarg#0*/
  
- BASILYS_LOCATION("warmelt-macro.bysl:2481: @getarg");
+ BASILYS_LOCATION("warmelt-macro.bysl:2484: @getarg");
  /*_.SEXPR__V2*/ curfptr[1] = (basilys_ptr_t) firstargp_;
  
  /*getarg#1*/
  
- BASILYS_LOCATION("warmelt-macro.bysl:2481: @getarg");
+ BASILYS_LOCATION("warmelt-macro.bysl:2484: @getarg");
  if (xargdescr_[0] != BPAR_PTR) goto lab_endgetargs;
  /*_.ENV__V3*/ curfptr[2] = (xargtab_[0].bp_aptr) ? (*(xargtab_[0].bp_aptr)) : NULL;
  gcc_assert(basilys_discr((basilys_ptr_t)(/*_.ENV__V3*/ curfptr[2])) != NULL);
@@ -32961,7 +33005,7 @@ basilys_trace_start("MEXPAND_EXPORT_MACRO", callcount);
  
  /*getarg#2*/
  
- BASILYS_LOCATION("warmelt-macro.bysl:2481: @getarg");
+ BASILYS_LOCATION("warmelt-macro.bysl:2484: @getarg");
  if (xargdescr_[1] != BPAR_PTR) goto lab_endgetargs;
  /*_.MEXPANDER__V4*/ curfptr[3] = (xargtab_[1].bp_aptr) ? (*(xargtab_[1].bp_aptr)) : NULL;
  gcc_assert(basilys_discr((basilys_ptr_t)(/*_.MEXPANDER__V4*/ curfptr[3])) != NULL);
@@ -32971,32 +33015,32 @@ basilys_trace_start("MEXPAND_EXPORT_MACRO", callcount);
 lab_endgetargs:;
 /*body*/
 
-BASILYS_LOCATION("warmelt-macro.bysl:2481: @block");
+BASILYS_LOCATION("warmelt-macro.bysl:2484: @block");
 /*block*/{
  
  #if ENABLE_CHECKING
   
- BASILYS_LOCATION("warmelt-macro.bysl:2482: @cppif.then");
+ BASILYS_LOCATION("warmelt-macro.bysl:2485: @cppif.then");
  
-  BASILYS_LOCATION("warmelt-macro.bysl:2482: @block");
+  BASILYS_LOCATION("warmelt-macro.bysl:2485: @block");
   /*block*/{
    /*_#IS_A__L1*/ curfnum[0] = 
      basilys_is_instance_of((basilys_ptr_t)(/*_.SEXPR__V2*/ curfptr[1]), (basilys_ptr_t)((/*!CLASS_SEXPR*/ curfrout->tabval[0])));;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2482: @cond");
+   BASILYS_LOCATION("warmelt-macro.bysl:2485: @cond");
    /*cond*/ if (/*_#IS_A__L1*/ curfnum[0]) /*then*/ {
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2482: @cond.then");
+   BASILYS_LOCATION("warmelt-macro.bysl:2485: @cond.then");
    /*_.IFELSE___V6*/ curfptr[5] = (/*nil*/NULL);;
    } else {
-   BASILYS_LOCATION("warmelt-macro.bysl:2482: @cond.else");
+   BASILYS_LOCATION("warmelt-macro.bysl:2485: @cond.else");
    
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2482: @block");
+    BASILYS_LOCATION("warmelt-macro.bysl:2485: @block");
     /*block*/{
      /*block*/{
       
-      basilys_assert_failed(( "check sexpr"),( "warmelt-macro.bysl"),(2482), __FUNCTION__);
+      basilys_assert_failed(( "check sexpr"),( "warmelt-macro.bysl"),(2485), __FUNCTION__);
       /*clear*/ /*_.IFELSE___V6*/ curfptr[5] = 0 ;}
      ;
      /*epilog*/}
@@ -33006,42 +33050,42 @@ BASILYS_LOCATION("warmelt-macro.bysl:2481: @block");
    /*_.IFCPP___V5*/ curfptr[4] = /*_.IFELSE___V6*/ curfptr[5];;
    /*epilog*/
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2482: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2485: @clear");
    /*clear*/ /*_#IS_A__L1*/ curfnum[0] = 0 ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2482: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2485: @clear");
    /*clear*/ /*_.IFELSE___V6*/ curfptr[5] = 0 ;}
   
   #else /*ENABLE_CHECKING*/
   
- BASILYS_LOCATION("warmelt-macro.bysl:2482: @cppif.else");
+ BASILYS_LOCATION("warmelt-macro.bysl:2485: @cppif.else");
  /*_.IFCPP___V5*/ curfptr[4] = (/*nil*/NULL);
   #endif /*ENABLE_CHECKING*/
   ;
  
  #if ENABLE_CHECKING
   
- BASILYS_LOCATION("warmelt-macro.bysl:2483: @cppif.then");
+ BASILYS_LOCATION("warmelt-macro.bysl:2486: @cppif.then");
  
-  BASILYS_LOCATION("warmelt-macro.bysl:2483: @block");
+  BASILYS_LOCATION("warmelt-macro.bysl:2486: @block");
   /*block*/{
    /*_#IS_A__L2*/ curfnum[0] = 
      basilys_is_instance_of((basilys_ptr_t)(/*_.ENV__V3*/ curfptr[2]), (basilys_ptr_t)((/*!CLASS_ENVIRONMENT*/ curfrout->tabval[1])));;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2483: @cond");
+   BASILYS_LOCATION("warmelt-macro.bysl:2486: @cond");
    /*cond*/ if (/*_#IS_A__L2*/ curfnum[0]) /*then*/ {
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2483: @cond.then");
+   BASILYS_LOCATION("warmelt-macro.bysl:2486: @cond.then");
    /*_.IFELSE___V8*/ curfptr[7] = (/*nil*/NULL);;
    } else {
-   BASILYS_LOCATION("warmelt-macro.bysl:2483: @cond.else");
+   BASILYS_LOCATION("warmelt-macro.bysl:2486: @cond.else");
    
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2483: @block");
+    BASILYS_LOCATION("warmelt-macro.bysl:2486: @block");
     /*block*/{
      /*block*/{
       
-      basilys_assert_failed(( "check env"),( "warmelt-macro.bysl"),(2483), __FUNCTION__);
+      basilys_assert_failed(( "check env"),( "warmelt-macro.bysl"),(2486), __FUNCTION__);
       /*clear*/ /*_.IFELSE___V8*/ curfptr[7] = 0 ;}
      ;
      /*epilog*/}
@@ -33051,68 +33095,68 @@ BASILYS_LOCATION("warmelt-macro.bysl:2481: @block");
    /*_.IFCPP___V7*/ curfptr[5] = /*_.IFELSE___V8*/ curfptr[7];;
    /*epilog*/
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2483: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2486: @clear");
    /*clear*/ /*_#IS_A__L2*/ curfnum[0] = 0 ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2483: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2486: @clear");
    /*clear*/ /*_.IFELSE___V8*/ curfptr[7] = 0 ;}
   
   #else /*ENABLE_CHECKING*/
   
- BASILYS_LOCATION("warmelt-macro.bysl:2483: @cppif.else");
+ BASILYS_LOCATION("warmelt-macro.bysl:2486: @cppif.else");
  /*_.IFCPP___V7*/ curfptr[5] = (/*nil*/NULL);
   #endif /*ENABLE_CHECKING*/
   ;
  
  #if ENABLE_CHECKING
   
- BASILYS_LOCATION("warmelt-macro.bysl:2484: @cppif.then");
+ BASILYS_LOCATION("warmelt-macro.bysl:2487: @cppif.then");
  
-  BASILYS_LOCATION("warmelt-macro.bysl:2484: @block");
+  BASILYS_LOCATION("warmelt-macro.bysl:2487: @block");
   /*block*/{
    /*_#THE_CALLCOUNT__L3*/ curfnum[0] = 
     callcount;;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2484: @apply");
+   BASILYS_LOCATION("warmelt-macro.bysl:2487: @apply");
    /*apply*/{
     union basilysparam_un argtab[4];
     memset(&argtab, 0, sizeof(argtab));
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2484: @apply.arg");
+    BASILYS_LOCATION("warmelt-macro.bysl:2487: @apply.arg");
     argtab[0].bp_cstring =  "mexpand_export_macro sexpr";
-    BASILYS_LOCATION("warmelt-macro.bysl:2484: @apply.arg");
+    BASILYS_LOCATION("warmelt-macro.bysl:2487: @apply.arg");
     argtab[1].bp_long = /*_#THE_CALLCOUNT__L3*/ curfnum[0];
-    BASILYS_LOCATION("warmelt-macro.bysl:2484: @apply.arg");
+    BASILYS_LOCATION("warmelt-macro.bysl:2487: @apply.arg");
     argtab[2].bp_cstring =  "warmelt-macro.bysl";
-    BASILYS_LOCATION("warmelt-macro.bysl:2484: @apply.arg");
-    argtab[3].bp_long = 2484;
+    BASILYS_LOCATION("warmelt-macro.bysl:2487: @apply.arg");
+    argtab[3].bp_long = 2487;
     /*_.DEBUG_MSG_FUN__V10*/ curfptr[9] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[2])), (basilys_ptr_t)(/*_.SEXPR__V2*/ curfptr[1]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
     }
    ;
    /*_.IFCPP___V9*/ curfptr[7] = /*_.DEBUG_MSG_FUN__V10*/ curfptr[9];;
    /*epilog*/
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2484: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2487: @clear");
    /*clear*/ /*_#THE_CALLCOUNT__L3*/ curfnum[0] = 0 ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2484: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2487: @clear");
    /*clear*/ /*_.DEBUG_MSG_FUN__V10*/ curfptr[9] = 0 ;}
   
   #else /*ENABLE_CHECKING*/
   
- BASILYS_LOCATION("warmelt-macro.bysl:2484: @cppif.else");
+ BASILYS_LOCATION("warmelt-macro.bysl:2487: @cppif.else");
  /*_.IFCPP___V9*/ curfptr[7] = (/*nil*/NULL);
   #endif /*ENABLE_CHECKING*/
   ;
  
- BASILYS_LOCATION("warmelt-macro.bysl:2485: @block");
+ BASILYS_LOCATION("warmelt-macro.bysl:2488: @block");
  /*block*/{
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2486: @getslot");
+  BASILYS_LOCATION("warmelt-macro.bysl:2489: @getslot");
   /*_.CONT__V12*/ curfptr[11] = basilys_getfield_object((basilys_ptr_t)(/*_.SEXPR__V2*/ curfptr[1]), 2, "SEXP_CONTENTS");
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2487: @getslot");
+  BASILYS_LOCATION("warmelt-macro.bysl:2490: @getslot");
   /*_.LOC__V13*/ curfptr[12] = basilys_getfield_object((basilys_ptr_t)(/*_.SEXPR__V2*/ curfptr[1]), 1, "LOCA_LOCATION");
   ;
   /*_.LIST_FIRST__V14*/ curfptr[13] = 
@@ -33122,14 +33166,14 @@ BASILYS_LOCATION("warmelt-macro.bysl:2481: @block");
   /*_.PAIR_HEAD__V16*/ curfptr[15] = 
    (basilys_pair_head((basilys_ptr_t)(/*_.CURPAIR__V15*/ curfptr[14])));;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2489: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2492: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2489: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2492: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.ENV__V3*/ curfptr[2];
-   BASILYS_LOCATION("warmelt-macro.bysl:2489: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2492: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &/*_.MEXPANDER__V4*/ curfptr[3];
    /*_.SYMB__V17*/ curfptr[16] =  basilys_apply ((basilysclosure_ptr_t)((/*!MACROEXPAND_1*/ curfrout->tabval[3])), (basilys_ptr_t)(/*_.PAIR_HEAD__V16*/ curfptr[15]), (BPARSTR_PTR BPARSTR_PTR ""), argtab, "", (union basilysparam_un*)0);
    }
@@ -33137,12 +33181,12 @@ BASILYS_LOCATION("warmelt-macro.bysl:2481: @block");
   /*_#IS_NOT_A__L4*/ curfnum[0] = 
     !basilys_is_instance_of((basilys_ptr_t)(/*_.SYMB__V17*/ curfptr[16]), (basilys_ptr_t)((/*!CLASS_SYMBOL*/ curfrout->tabval[4])));;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2491: @cond");
+  BASILYS_LOCATION("warmelt-macro.bysl:2494: @cond");
   /*cond*/ if (/*_#IS_NOT_A__L4*/ curfnum[0]) /*then*/ {
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2491: @cond.then");
+  BASILYS_LOCATION("warmelt-macro.bysl:2494: @cond.then");
   
-   BASILYS_LOCATION("warmelt-macro.bysl:2491: @block");
+   BASILYS_LOCATION("warmelt-macro.bysl:2494: @block");
    /*block*/{
     
     error("%s:%d:: BASILYS ERROR [#%ld]: @%s ",  basilys_string_str(basilys_val_mixint((basilys_ptr_t)(/*_.LOC__V13*/ curfptr[12]))),  (int) basilys_num_mixint((basilys_ptr_t)(/*_.LOC__V13*/ curfptr[12])), basilys_dbgcounter, ( "(EXPORT_MACRO <sym> <expander>) expecting symbol"));
@@ -33153,22 +33197,22 @@ BASILYS_LOCATION("warmelt-macro.bysl:2481: @block");
   /*_.PAIR_TAIL__V18*/ curfptr[17] = 
    (basilys_pair_tail((basilys_ptr_t)(/*_.CURPAIR__V15*/ curfptr[14])));;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2493: @compute");
+  BASILYS_LOCATION("warmelt-macro.bysl:2496: @compute");
   /*_.CURPAIR__V15*/ curfptr[14] = /*_.SETQ___V19*/ curfptr[18] = /*_.PAIR_TAIL__V18*/ curfptr[17];;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2494: @block");
+  BASILYS_LOCATION("warmelt-macro.bysl:2497: @block");
   /*block*/{
    /*_.PAIR_HEAD__V21*/ curfptr[20] = 
     (basilys_pair_head((basilys_ptr_t)(/*_.CURPAIR__V15*/ curfptr[14])));;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2494: @apply");
+   BASILYS_LOCATION("warmelt-macro.bysl:2497: @apply");
    /*apply*/{
     union basilysparam_un argtab[2];
     memset(&argtab, 0, sizeof(argtab));
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2494: @apply.arg");
+    BASILYS_LOCATION("warmelt-macro.bysl:2497: @apply.arg");
     argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.ENV__V3*/ curfptr[2];
-    BASILYS_LOCATION("warmelt-macro.bysl:2494: @apply.arg");
+    BASILYS_LOCATION("warmelt-macro.bysl:2497: @apply.arg");
     argtab[1].bp_aptr = (basilys_ptr_t*) &/*_.MEXPANDER__V4*/ curfptr[3];
     /*_.EXPV__V22*/ curfptr[21] =  basilys_apply ((basilysclosure_ptr_t)((/*!MACROEXPAND_1*/ curfrout->tabval[3])), (basilys_ptr_t)(/*_.PAIR_HEAD__V21*/ curfptr[20]), (BPARSTR_PTR BPARSTR_PTR ""), argtab, "", (union basilysparam_un*)0);
     }
@@ -33176,12 +33220,12 @@ BASILYS_LOCATION("warmelt-macro.bysl:2481: @block");
    /*_#NULL__L5*/ curfnum[4] = 
     ((/*_.EXPV__V22*/ curfptr[21]) == NULL);;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2496: @cond");
+   BASILYS_LOCATION("warmelt-macro.bysl:2499: @cond");
    /*cond*/ if (/*_#NULL__L5*/ curfnum[4]) /*then*/ {
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2496: @cond.then");
+   BASILYS_LOCATION("warmelt-macro.bysl:2499: @cond.then");
    
-    BASILYS_LOCATION("warmelt-macro.bysl:2496: @block");
+    BASILYS_LOCATION("warmelt-macro.bysl:2499: @block");
     /*block*/{
      
      error("%s:%d:: BASILYS ERROR [#%ld]: @%s ",  basilys_string_str(basilys_val_mixint((basilys_ptr_t)(/*_.LOC__V13*/ curfptr[12]))),  (int) basilys_num_mixint((basilys_ptr_t)(/*_.LOC__V13*/ curfptr[12])), basilys_dbgcounter, ( "(EXPORT_MACRO <sym> <expander>) expecting expander"));
@@ -33190,18 +33234,18 @@ BASILYS_LOCATION("warmelt-macro.bysl:2481: @block");
    } /*noelse*/
    ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2498: @block");
+   BASILYS_LOCATION("warmelt-macro.bysl:2501: @block");
    /*block*/{
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2498: @block");
+    BASILYS_LOCATION("warmelt-macro.bysl:2501: @block");
     /*block*/{
      
-     BASILYS_LOCATION("warmelt-macro.bysl:2498: @rawallocobj");
+     BASILYS_LOCATION("warmelt-macro.bysl:2501: @rawallocobj");
      /*rawallocobj*/ /*_.INST__V25*/ curfptr[24] =
-      basilysgc_new_raw_object((basilysobject_ptr_t)((/*!CLASS_SRC_EXPORT_MACRO*/ curfrout->tabval[5])), (3));
+      basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_SRC_EXPORT_MACRO*/ curfrout->tabval[5])), (3), ("CLASS_SRC_EXPORT_MACRO"));
      ;
      
-     BASILYS_LOCATION("warmelt-macro.bysl:2498: @putslot");
+     BASILYS_LOCATION("warmelt-macro.bysl:2501: @putslot");
      /*putslot*/
      basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V25*/ curfptr[24])) == OBMAG_OBJECT);
      basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V25*/ curfptr[24]))));
@@ -33209,7 +33253,7 @@ BASILYS_LOCATION("warmelt-macro.bysl:2481: @block");
       /*_.LOC__V13*/ curfptr[12]);
      ;
      
-     BASILYS_LOCATION("warmelt-macro.bysl:2498: @putslot");
+     BASILYS_LOCATION("warmelt-macro.bysl:2501: @putslot");
      /*putslot*/
      basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V25*/ curfptr[24])) == OBMAG_OBJECT);
      basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V25*/ curfptr[24]))));
@@ -33217,7 +33261,7 @@ BASILYS_LOCATION("warmelt-macro.bysl:2481: @block");
       /*_.SYMB__V17*/ curfptr[16]);
      ;
      
-     BASILYS_LOCATION("warmelt-macro.bysl:2498: @putslot");
+     BASILYS_LOCATION("warmelt-macro.bysl:2501: @putslot");
      /*putslot*/
      basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V25*/ curfptr[24])) == OBMAG_OBJECT);
      basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V25*/ curfptr[24]))));
@@ -33229,134 +33273,134 @@ BASILYS_LOCATION("warmelt-macro.bysl:2481: @block");
     
     #if ENABLE_CHECKING
      
-    BASILYS_LOCATION("warmelt-macro.bysl:2504: @cppif.then");
+    BASILYS_LOCATION("warmelt-macro.bysl:2507: @cppif.then");
     
-     BASILYS_LOCATION("warmelt-macro.bysl:2504: @block");
+     BASILYS_LOCATION("warmelt-macro.bysl:2507: @block");
      /*block*/{
       /*_#THE_CALLCOUNT__L6*/ curfnum[5] = 
        callcount;;
       
-      BASILYS_LOCATION("warmelt-macro.bysl:2504: @apply");
+      BASILYS_LOCATION("warmelt-macro.bysl:2507: @apply");
       /*apply*/{
        union basilysparam_un argtab[4];
        memset(&argtab, 0, sizeof(argtab));
        
-       BASILYS_LOCATION("warmelt-macro.bysl:2504: @apply.arg");
+       BASILYS_LOCATION("warmelt-macro.bysl:2507: @apply.arg");
        argtab[0].bp_cstring =  "mexpand_export_macro result res";
-       BASILYS_LOCATION("warmelt-macro.bysl:2504: @apply.arg");
+       BASILYS_LOCATION("warmelt-macro.bysl:2507: @apply.arg");
        argtab[1].bp_long = /*_#THE_CALLCOUNT__L6*/ curfnum[5];
-       BASILYS_LOCATION("warmelt-macro.bysl:2504: @apply.arg");
+       BASILYS_LOCATION("warmelt-macro.bysl:2507: @apply.arg");
        argtab[2].bp_cstring =  "warmelt-macro.bysl";
-       BASILYS_LOCATION("warmelt-macro.bysl:2504: @apply.arg");
-       argtab[3].bp_long = 2504;
+       BASILYS_LOCATION("warmelt-macro.bysl:2507: @apply.arg");
+       argtab[3].bp_long = 2507;
        /*_.DEBUG_MSG_FUN__V27*/ curfptr[26] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[2])), (basilys_ptr_t)(/*_.RES__V24*/ curfptr[23]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
        }
       ;
       /*_.IFCPP___V26*/ curfptr[25] = /*_.DEBUG_MSG_FUN__V27*/ curfptr[26];;
       /*epilog*/
       
-      BASILYS_LOCATION("warmelt-macro.bysl:2504: @clear");
+      BASILYS_LOCATION("warmelt-macro.bysl:2507: @clear");
       /*clear*/ /*_#THE_CALLCOUNT__L6*/ curfnum[5] = 0 ;
       
-      BASILYS_LOCATION("warmelt-macro.bysl:2504: @clear");
+      BASILYS_LOCATION("warmelt-macro.bysl:2507: @clear");
       /*clear*/ /*_.DEBUG_MSG_FUN__V27*/ curfptr[26] = 0 ;}
      
      #else /*ENABLE_CHECKING*/
      
-    BASILYS_LOCATION("warmelt-macro.bysl:2504: @cppif.else");
+    BASILYS_LOCATION("warmelt-macro.bysl:2507: @cppif.else");
     /*_.IFCPP___V26*/ curfptr[25] = (/*nil*/NULL);
      #endif /*ENABLE_CHECKING*/
      ;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2505: @block");
+    BASILYS_LOCATION("warmelt-macro.bysl:2508: @block");
     /*block*/{
      /*_.RETVAL___V1*/ curfptr[0] = /*_.RES__V24*/ curfptr[23];;
      
-     BASILYS_LOCATION("warmelt-macro.bysl:2505: @finalreturn");
+     BASILYS_LOCATION("warmelt-macro.bysl:2508: @finalreturn");
      ;
      /*finalret*/ goto labend_rout ;}
     ;
     /*_.LET___V23*/ curfptr[22] = /*_.RETURN___V28*/ curfptr[26];;
     /*epilog*/
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2498: @clear");
+    BASILYS_LOCATION("warmelt-macro.bysl:2501: @clear");
     /*clear*/ /*_.RES__V24*/ curfptr[23] = 0 ;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2498: @clear");
+    BASILYS_LOCATION("warmelt-macro.bysl:2501: @clear");
     /*clear*/ /*_.IFCPP___V26*/ curfptr[25] = 0 ;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2498: @clear");
+    BASILYS_LOCATION("warmelt-macro.bysl:2501: @clear");
     /*clear*/ /*_.RETURN___V28*/ curfptr[26] = 0 ;}
    ;
    /*_.LET___V20*/ curfptr[19] = /*_.LET___V23*/ curfptr[22];;
    /*epilog*/
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2494: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2497: @clear");
    /*clear*/ /*_.PAIR_HEAD__V21*/ curfptr[20] = 0 ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2494: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2497: @clear");
    /*clear*/ /*_.EXPV__V22*/ curfptr[21] = 0 ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2494: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2497: @clear");
    /*clear*/ /*_#NULL__L5*/ curfnum[4] = 0 ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2494: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2497: @clear");
    /*clear*/ /*_.LET___V23*/ curfptr[22] = 0 ;}
   ;
   /*_.LET___V11*/ curfptr[9] = /*_.LET___V20*/ curfptr[19];;
   /*epilog*/
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2485: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2488: @clear");
   /*clear*/ /*_.CONT__V12*/ curfptr[11] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2485: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2488: @clear");
   /*clear*/ /*_.LOC__V13*/ curfptr[12] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2485: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2488: @clear");
   /*clear*/ /*_.LIST_FIRST__V14*/ curfptr[13] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2485: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2488: @clear");
   /*clear*/ /*_.CURPAIR__V15*/ curfptr[14] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2485: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2488: @clear");
   /*clear*/ /*_.PAIR_HEAD__V16*/ curfptr[15] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2485: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2488: @clear");
   /*clear*/ /*_.SYMB__V17*/ curfptr[16] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2485: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2488: @clear");
   /*clear*/ /*_#IS_NOT_A__L4*/ curfnum[0] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2485: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2488: @clear");
   /*clear*/ /*_.PAIR_TAIL__V18*/ curfptr[17] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2485: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2488: @clear");
   /*clear*/ /*_.SETQ___V19*/ curfptr[18] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2485: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2488: @clear");
   /*clear*/ /*_.LET___V20*/ curfptr[19] = 0 ;}
  ;
  
- BASILYS_LOCATION("warmelt-macro.bysl:2481: @block");
+ BASILYS_LOCATION("warmelt-macro.bysl:2484: @block");
  /*block*/{
   /*_.RETVAL___V1*/ curfptr[0] = /*_.LET___V11*/ curfptr[9];;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2481: @finalreturn");
+  BASILYS_LOCATION("warmelt-macro.bysl:2484: @finalreturn");
   ;
   /*finalret*/ goto labend_rout ;}
  ;
  /*epilog*/
  
- BASILYS_LOCATION("warmelt-macro.bysl:2481: @clear");
+ BASILYS_LOCATION("warmelt-macro.bysl:2484: @clear");
  /*clear*/ /*_.IFCPP___V5*/ curfptr[4] = 0 ;
  
- BASILYS_LOCATION("warmelt-macro.bysl:2481: @clear");
+ BASILYS_LOCATION("warmelt-macro.bysl:2484: @clear");
  /*clear*/ /*_.IFCPP___V7*/ curfptr[5] = 0 ;
  
- BASILYS_LOCATION("warmelt-macro.bysl:2481: @clear");
+ BASILYS_LOCATION("warmelt-macro.bysl:2484: @clear");
  /*clear*/ /*_.IFCPP___V9*/ curfptr[7] = 0 ;
  
- BASILYS_LOCATION("warmelt-macro.bysl:2481: @clear");
+ BASILYS_LOCATION("warmelt-macro.bysl:2484: @clear");
  /*clear*/ /*_.LET___V11*/ curfptr[9] = 0 ;}
 
 ;
@@ -33408,12 +33452,12 @@ basilys_trace_start("MEXPAND_EXPORT_CLASS", callcount);
 
  /*getarg#0*/
  
- BASILYS_LOCATION("warmelt-macro.bysl:2512: @getarg");
+ BASILYS_LOCATION("warmelt-macro.bysl:2515: @getarg");
  /*_.SEXPR__V2*/ curfptr[1] = (basilys_ptr_t) firstargp_;
  
  /*getarg#1*/
  
- BASILYS_LOCATION("warmelt-macro.bysl:2512: @getarg");
+ BASILYS_LOCATION("warmelt-macro.bysl:2515: @getarg");
  if (xargdescr_[0] != BPAR_PTR) goto lab_endgetargs;
  /*_.ENV__V3*/ curfptr[2] = (xargtab_[0].bp_aptr) ? (*(xargtab_[0].bp_aptr)) : NULL;
  gcc_assert(basilys_discr((basilys_ptr_t)(/*_.ENV__V3*/ curfptr[2])) != NULL);
@@ -33421,7 +33465,7 @@ basilys_trace_start("MEXPAND_EXPORT_CLASS", callcount);
  
  /*getarg#2*/
  
- BASILYS_LOCATION("warmelt-macro.bysl:2512: @getarg");
+ BASILYS_LOCATION("warmelt-macro.bysl:2515: @getarg");
  if (xargdescr_[1] != BPAR_PTR) goto lab_endgetargs;
  /*_.MEXPANDER__V4*/ curfptr[3] = (xargtab_[1].bp_aptr) ? (*(xargtab_[1].bp_aptr)) : NULL;
  gcc_assert(basilys_discr((basilys_ptr_t)(/*_.MEXPANDER__V4*/ curfptr[3])) != NULL);
@@ -33431,32 +33475,32 @@ basilys_trace_start("MEXPAND_EXPORT_CLASS", callcount);
 lab_endgetargs:;
 /*body*/
 
-BASILYS_LOCATION("warmelt-macro.bysl:2512: @block");
+BASILYS_LOCATION("warmelt-macro.bysl:2515: @block");
 /*block*/{
  
  #if ENABLE_CHECKING
   
- BASILYS_LOCATION("warmelt-macro.bysl:2513: @cppif.then");
+ BASILYS_LOCATION("warmelt-macro.bysl:2516: @cppif.then");
  
-  BASILYS_LOCATION("warmelt-macro.bysl:2513: @block");
+  BASILYS_LOCATION("warmelt-macro.bysl:2516: @block");
   /*block*/{
    /*_#IS_A__L1*/ curfnum[0] = 
      basilys_is_instance_of((basilys_ptr_t)(/*_.SEXPR__V2*/ curfptr[1]), (basilys_ptr_t)((/*!CLASS_SEXPR*/ curfrout->tabval[0])));;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2513: @cond");
+   BASILYS_LOCATION("warmelt-macro.bysl:2516: @cond");
    /*cond*/ if (/*_#IS_A__L1*/ curfnum[0]) /*then*/ {
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2513: @cond.then");
+   BASILYS_LOCATION("warmelt-macro.bysl:2516: @cond.then");
    /*_.IFELSE___V6*/ curfptr[5] = (/*nil*/NULL);;
    } else {
-   BASILYS_LOCATION("warmelt-macro.bysl:2513: @cond.else");
+   BASILYS_LOCATION("warmelt-macro.bysl:2516: @cond.else");
    
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2513: @block");
+    BASILYS_LOCATION("warmelt-macro.bysl:2516: @block");
     /*block*/{
      /*block*/{
       
-      basilys_assert_failed(( "check sexpr"),( "warmelt-macro.bysl"),(2513), __FUNCTION__);
+      basilys_assert_failed(( "check sexpr"),( "warmelt-macro.bysl"),(2516), __FUNCTION__);
       /*clear*/ /*_.IFELSE___V6*/ curfptr[5] = 0 ;}
      ;
      /*epilog*/}
@@ -33466,42 +33510,42 @@ BASILYS_LOCATION("warmelt-macro.bysl:2512: @block");
    /*_.IFCPP___V5*/ curfptr[4] = /*_.IFELSE___V6*/ curfptr[5];;
    /*epilog*/
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2513: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2516: @clear");
    /*clear*/ /*_#IS_A__L1*/ curfnum[0] = 0 ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2513: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2516: @clear");
    /*clear*/ /*_.IFELSE___V6*/ curfptr[5] = 0 ;}
   
   #else /*ENABLE_CHECKING*/
   
- BASILYS_LOCATION("warmelt-macro.bysl:2513: @cppif.else");
+ BASILYS_LOCATION("warmelt-macro.bysl:2516: @cppif.else");
  /*_.IFCPP___V5*/ curfptr[4] = (/*nil*/NULL);
   #endif /*ENABLE_CHECKING*/
   ;
  
  #if ENABLE_CHECKING
   
- BASILYS_LOCATION("warmelt-macro.bysl:2514: @cppif.then");
+ BASILYS_LOCATION("warmelt-macro.bysl:2517: @cppif.then");
  
-  BASILYS_LOCATION("warmelt-macro.bysl:2514: @block");
+  BASILYS_LOCATION("warmelt-macro.bysl:2517: @block");
   /*block*/{
    /*_#IS_A__L2*/ curfnum[0] = 
      basilys_is_instance_of((basilys_ptr_t)(/*_.ENV__V3*/ curfptr[2]), (basilys_ptr_t)((/*!CLASS_ENVIRONMENT*/ curfrout->tabval[1])));;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2514: @cond");
+   BASILYS_LOCATION("warmelt-macro.bysl:2517: @cond");
    /*cond*/ if (/*_#IS_A__L2*/ curfnum[0]) /*then*/ {
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2514: @cond.then");
+   BASILYS_LOCATION("warmelt-macro.bysl:2517: @cond.then");
    /*_.IFELSE___V8*/ curfptr[7] = (/*nil*/NULL);;
    } else {
-   BASILYS_LOCATION("warmelt-macro.bysl:2514: @cond.else");
+   BASILYS_LOCATION("warmelt-macro.bysl:2517: @cond.else");
    
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2514: @block");
+    BASILYS_LOCATION("warmelt-macro.bysl:2517: @block");
     /*block*/{
      /*block*/{
       
-      basilys_assert_failed(( "check env"),( "warmelt-macro.bysl"),(2514), __FUNCTION__);
+      basilys_assert_failed(( "check env"),( "warmelt-macro.bysl"),(2517), __FUNCTION__);
       /*clear*/ /*_.IFELSE___V8*/ curfptr[7] = 0 ;}
      ;
      /*epilog*/}
@@ -33511,68 +33555,68 @@ BASILYS_LOCATION("warmelt-macro.bysl:2512: @block");
    /*_.IFCPP___V7*/ curfptr[5] = /*_.IFELSE___V8*/ curfptr[7];;
    /*epilog*/
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2514: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2517: @clear");
    /*clear*/ /*_#IS_A__L2*/ curfnum[0] = 0 ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2514: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2517: @clear");
    /*clear*/ /*_.IFELSE___V8*/ curfptr[7] = 0 ;}
   
   #else /*ENABLE_CHECKING*/
   
- BASILYS_LOCATION("warmelt-macro.bysl:2514: @cppif.else");
+ BASILYS_LOCATION("warmelt-macro.bysl:2517: @cppif.else");
  /*_.IFCPP___V7*/ curfptr[5] = (/*nil*/NULL);
   #endif /*ENABLE_CHECKING*/
   ;
  
  #if ENABLE_CHECKING
   
- BASILYS_LOCATION("warmelt-macro.bysl:2515: @cppif.then");
+ BASILYS_LOCATION("warmelt-macro.bysl:2518: @cppif.then");
  
-  BASILYS_LOCATION("warmelt-macro.bysl:2515: @block");
+  BASILYS_LOCATION("warmelt-macro.bysl:2518: @block");
   /*block*/{
    /*_#THE_CALLCOUNT__L3*/ curfnum[0] = 
     callcount;;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2515: @apply");
+   BASILYS_LOCATION("warmelt-macro.bysl:2518: @apply");
    /*apply*/{
     union basilysparam_un argtab[4];
     memset(&argtab, 0, sizeof(argtab));
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2515: @apply.arg");
+    BASILYS_LOCATION("warmelt-macro.bysl:2518: @apply.arg");
     argtab[0].bp_cstring =  "mexpand_export_class sexpr";
-    BASILYS_LOCATION("warmelt-macro.bysl:2515: @apply.arg");
+    BASILYS_LOCATION("warmelt-macro.bysl:2518: @apply.arg");
     argtab[1].bp_long = /*_#THE_CALLCOUNT__L3*/ curfnum[0];
-    BASILYS_LOCATION("warmelt-macro.bysl:2515: @apply.arg");
+    BASILYS_LOCATION("warmelt-macro.bysl:2518: @apply.arg");
     argtab[2].bp_cstring =  "warmelt-macro.bysl";
-    BASILYS_LOCATION("warmelt-macro.bysl:2515: @apply.arg");
-    argtab[3].bp_long = 2515;
+    BASILYS_LOCATION("warmelt-macro.bysl:2518: @apply.arg");
+    argtab[3].bp_long = 2518;
     /*_.DEBUG_MSG_FUN__V10*/ curfptr[9] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[2])), (basilys_ptr_t)(/*_.SEXPR__V2*/ curfptr[1]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
     }
    ;
    /*_.IFCPP___V9*/ curfptr[7] = /*_.DEBUG_MSG_FUN__V10*/ curfptr[9];;
    /*epilog*/
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2515: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2518: @clear");
    /*clear*/ /*_#THE_CALLCOUNT__L3*/ curfnum[0] = 0 ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2515: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2518: @clear");
    /*clear*/ /*_.DEBUG_MSG_FUN__V10*/ curfptr[9] = 0 ;}
   
   #else /*ENABLE_CHECKING*/
   
- BASILYS_LOCATION("warmelt-macro.bysl:2515: @cppif.else");
+ BASILYS_LOCATION("warmelt-macro.bysl:2518: @cppif.else");
  /*_.IFCPP___V9*/ curfptr[7] = (/*nil*/NULL);
   #endif /*ENABLE_CHECKING*/
   ;
  
- BASILYS_LOCATION("warmelt-macro.bysl:2516: @block");
+ BASILYS_LOCATION("warmelt-macro.bysl:2519: @block");
  /*block*/{
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2517: @getslot");
+  BASILYS_LOCATION("warmelt-macro.bysl:2520: @getslot");
   /*_.CONT__V12*/ curfptr[11] = basilys_getfield_object((basilys_ptr_t)(/*_.SEXPR__V2*/ curfptr[1]), 2, "SEXP_CONTENTS");
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2518: @getslot");
+  BASILYS_LOCATION("warmelt-macro.bysl:2521: @getslot");
   /*_.LOC__V13*/ curfptr[12] = basilys_getfield_object((basilys_ptr_t)(/*_.SEXPR__V2*/ curfptr[1]), 1, "LOCA_LOCATION");
   ;
   /*_.LIST_FIRST__V14*/ curfptr[13] = 
@@ -33580,29 +33624,29 @@ BASILYS_LOCATION("warmelt-macro.bysl:2512: @block");
   /*_.CURPAIR__V15*/ curfptr[14] = 
    (basilys_pair_tail((basilys_ptr_t)(/*_.LIST_FIRST__V14*/ curfptr[13])));;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2522: @block");
+  BASILYS_LOCATION("warmelt-macro.bysl:2525: @block");
   /*block*/{
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2522: @newclosure");
+   BASILYS_LOCATION("warmelt-macro.bysl:2525: @newclosure");
     /*newclosure*/ /*_.LAMBDA___V17*/ curfptr[16] =
     basilysgc_new_closure((basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_CLOSURE)))), (basilysroutine_ptr_t)((/*!konst_7*/ curfrout->tabval[7])), (3));
    ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2522: @putclosedv");
+   BASILYS_LOCATION("warmelt-macro.bysl:2525: @putclosedv");
    /*putclosv*/
    basilys_assertmsg("putclosv checkclo", basilys_magic_discr((basilys_ptr_t)(/*_.LAMBDA___V17*/ curfptr[16])) == OBMAG_CLOSURE);
    basilys_assertmsg("putclosv checkoff", 0>= 0 && 0< basilys_closure_size((basilys_ptr_t) (/*_.LAMBDA___V17*/ curfptr[16])));
    ((basilysclosure_ptr_t)/*_.LAMBDA___V17*/ curfptr[16])->tabval[0] = (basilys_ptr_t)(/*_.ENV__V3*/ curfptr[2]);
    ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2522: @putclosedv");
+   BASILYS_LOCATION("warmelt-macro.bysl:2525: @putclosedv");
    /*putclosv*/
    basilys_assertmsg("putclosv checkclo", basilys_magic_discr((basilys_ptr_t)(/*_.LAMBDA___V17*/ curfptr[16])) == OBMAG_CLOSURE);
    basilys_assertmsg("putclosv checkoff", 1>= 0 && 1< basilys_closure_size((basilys_ptr_t) (/*_.LAMBDA___V17*/ curfptr[16])));
    ((basilysclosure_ptr_t)/*_.LAMBDA___V17*/ curfptr[16])->tabval[1] = (basilys_ptr_t)(/*_.MEXPANDER__V4*/ curfptr[3]);
    ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2522: @putclosedv");
+   BASILYS_LOCATION("warmelt-macro.bysl:2525: @putclosedv");
    /*putclosv*/
    basilys_assertmsg("putclosv checkclo", basilys_magic_discr((basilys_ptr_t)(/*_.LAMBDA___V17*/ curfptr[16])) == OBMAG_CLOSURE);
    basilys_assertmsg("putclosv checkoff", 2>= 0 && 2< basilys_closure_size((basilys_ptr_t) (/*_.LAMBDA___V17*/ curfptr[16])));
@@ -33611,28 +33655,28 @@ BASILYS_LOCATION("warmelt-macro.bysl:2512: @block");
    /*_.LAMBDA___V16*/ curfptr[15] = /*_.LAMBDA___V17*/ curfptr[16];;}
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2520: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2523: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2520: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2523: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &(/*!DISCR_MULTIPLE*/ curfrout->tabval[4]);
-   BASILYS_LOCATION("warmelt-macro.bysl:2520: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2523: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &/*_.LAMBDA___V16*/ curfptr[15];
    /*_.SYMBTUP__V18*/ curfptr[17] =  basilys_apply ((basilysclosure_ptr_t)((/*!PAIRLIST_TO_MULTIPLE*/ curfrout->tabval[3])), (basilys_ptr_t)(/*_.CURPAIR__V15*/ curfptr[14]), (BPARSTR_PTR BPARSTR_PTR ""), argtab, "", (union basilysparam_un*)0);
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2528: @block");
+  BASILYS_LOCATION("warmelt-macro.bysl:2531: @block");
   /*block*/{
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2528: @rawallocobj");
+   BASILYS_LOCATION("warmelt-macro.bysl:2531: @rawallocobj");
    /*rawallocobj*/ /*_.INST__V20*/ curfptr[19] =
-    basilysgc_new_raw_object((basilysobject_ptr_t)((/*!CLASS_SRC_EXPORT_CLASS*/ curfrout->tabval[8])), (2));
+    basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_SRC_EXPORT_CLASS*/ curfrout->tabval[8])), (2), ("CLASS_SRC_EXPORT_CLASS"));
    ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2528: @putslot");
+   BASILYS_LOCATION("warmelt-macro.bysl:2531: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V20*/ curfptr[19])) == OBMAG_OBJECT);
    basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V20*/ curfptr[19]))));
@@ -33640,7 +33684,7 @@ BASILYS_LOCATION("warmelt-macro.bysl:2512: @block");
     /*_.LOC__V13*/ curfptr[12]);
    ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2528: @putslot");
+   BASILYS_LOCATION("warmelt-macro.bysl:2531: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V20*/ curfptr[19])) == OBMAG_OBJECT);
    basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V20*/ curfptr[19]))));
@@ -33652,104 +33696,104 @@ BASILYS_LOCATION("warmelt-macro.bysl:2512: @block");
   
   #if ENABLE_CHECKING
    
-  BASILYS_LOCATION("warmelt-macro.bysl:2532: @cppif.then");
+  BASILYS_LOCATION("warmelt-macro.bysl:2535: @cppif.then");
   
-   BASILYS_LOCATION("warmelt-macro.bysl:2532: @block");
+   BASILYS_LOCATION("warmelt-macro.bysl:2535: @block");
    /*block*/{
     /*_#THE_CALLCOUNT__L4*/ curfnum[0] = 
      callcount;;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2532: @apply");
+    BASILYS_LOCATION("warmelt-macro.bysl:2535: @apply");
     /*apply*/{
      union basilysparam_un argtab[4];
      memset(&argtab, 0, sizeof(argtab));
      
-     BASILYS_LOCATION("warmelt-macro.bysl:2532: @apply.arg");
+     BASILYS_LOCATION("warmelt-macro.bysl:2535: @apply.arg");
      argtab[0].bp_cstring =  "mexpand_export_class result res";
-     BASILYS_LOCATION("warmelt-macro.bysl:2532: @apply.arg");
+     BASILYS_LOCATION("warmelt-macro.bysl:2535: @apply.arg");
      argtab[1].bp_long = /*_#THE_CALLCOUNT__L4*/ curfnum[0];
-     BASILYS_LOCATION("warmelt-macro.bysl:2532: @apply.arg");
+     BASILYS_LOCATION("warmelt-macro.bysl:2535: @apply.arg");
      argtab[2].bp_cstring =  "warmelt-macro.bysl";
-     BASILYS_LOCATION("warmelt-macro.bysl:2532: @apply.arg");
-     argtab[3].bp_long = 2532;
+     BASILYS_LOCATION("warmelt-macro.bysl:2535: @apply.arg");
+     argtab[3].bp_long = 2535;
      /*_.DEBUG_MSG_FUN__V22*/ curfptr[21] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[2])), (basilys_ptr_t)(/*_.RES__V19*/ curfptr[18]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
      }
     ;
     /*_.IFCPP___V21*/ curfptr[20] = /*_.DEBUG_MSG_FUN__V22*/ curfptr[21];;
     /*epilog*/
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2532: @clear");
+    BASILYS_LOCATION("warmelt-macro.bysl:2535: @clear");
     /*clear*/ /*_#THE_CALLCOUNT__L4*/ curfnum[0] = 0 ;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2532: @clear");
+    BASILYS_LOCATION("warmelt-macro.bysl:2535: @clear");
     /*clear*/ /*_.DEBUG_MSG_FUN__V22*/ curfptr[21] = 0 ;}
    
    #else /*ENABLE_CHECKING*/
    
-  BASILYS_LOCATION("warmelt-macro.bysl:2532: @cppif.else");
+  BASILYS_LOCATION("warmelt-macro.bysl:2535: @cppif.else");
   /*_.IFCPP___V21*/ curfptr[20] = (/*nil*/NULL);
    #endif /*ENABLE_CHECKING*/
    ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2533: @block");
+  BASILYS_LOCATION("warmelt-macro.bysl:2536: @block");
   /*block*/{
    /*_.RETVAL___V1*/ curfptr[0] = /*_.RES__V19*/ curfptr[18];;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2533: @finalreturn");
+   BASILYS_LOCATION("warmelt-macro.bysl:2536: @finalreturn");
    ;
    /*finalret*/ goto labend_rout ;}
   ;
   /*_.LET___V11*/ curfptr[9] = /*_.RETURN___V23*/ curfptr[21];;
   /*epilog*/
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2516: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2519: @clear");
   /*clear*/ /*_.CONT__V12*/ curfptr[11] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2516: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2519: @clear");
   /*clear*/ /*_.LOC__V13*/ curfptr[12] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2516: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2519: @clear");
   /*clear*/ /*_.LIST_FIRST__V14*/ curfptr[13] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2516: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2519: @clear");
   /*clear*/ /*_.CURPAIR__V15*/ curfptr[14] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2516: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2519: @clear");
   /*clear*/ /*_.LAMBDA___V16*/ curfptr[15] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2516: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2519: @clear");
   /*clear*/ /*_.SYMBTUP__V18*/ curfptr[17] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2516: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2519: @clear");
   /*clear*/ /*_.RES__V19*/ curfptr[18] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2516: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2519: @clear");
   /*clear*/ /*_.IFCPP___V21*/ curfptr[20] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2516: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2519: @clear");
   /*clear*/ /*_.RETURN___V23*/ curfptr[21] = 0 ;}
  ;
  
- BASILYS_LOCATION("warmelt-macro.bysl:2512: @block");
+ BASILYS_LOCATION("warmelt-macro.bysl:2515: @block");
  /*block*/{
   /*_.RETVAL___V1*/ curfptr[0] = /*_.LET___V11*/ curfptr[9];;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2512: @finalreturn");
+  BASILYS_LOCATION("warmelt-macro.bysl:2515: @finalreturn");
   ;
   /*finalret*/ goto labend_rout ;}
  ;
  /*epilog*/
  
- BASILYS_LOCATION("warmelt-macro.bysl:2512: @clear");
+ BASILYS_LOCATION("warmelt-macro.bysl:2515: @clear");
  /*clear*/ /*_.IFCPP___V5*/ curfptr[4] = 0 ;
  
- BASILYS_LOCATION("warmelt-macro.bysl:2512: @clear");
+ BASILYS_LOCATION("warmelt-macro.bysl:2515: @clear");
  /*clear*/ /*_.IFCPP___V7*/ curfptr[5] = 0 ;
  
- BASILYS_LOCATION("warmelt-macro.bysl:2512: @clear");
+ BASILYS_LOCATION("warmelt-macro.bysl:2515: @clear");
  /*clear*/ /*_.IFCPP___V9*/ curfptr[7] = 0 ;
  
- BASILYS_LOCATION("warmelt-macro.bysl:2512: @clear");
+ BASILYS_LOCATION("warmelt-macro.bysl:2515: @clear");
  /*clear*/ /*_.LET___V11*/ curfptr[9] = 0 ;}
 
 ;
@@ -33801,27 +33845,27 @@ basilys_trace_start("LAMBDA_", callcount);
 
  /*getarg#0*/
  
- BASILYS_LOCATION("warmelt-macro.bysl:2522: @getarg");
+ BASILYS_LOCATION("warmelt-macro.bysl:2525: @getarg");
  /*_.S__V2*/ curfptr[1] = (basilys_ptr_t) firstargp_;
  ;
  goto lab_endgetargs;
 lab_endgetargs:;
 /*body*/
 
-BASILYS_LOCATION("warmelt-macro.bysl:2522: @block");
+BASILYS_LOCATION("warmelt-macro.bysl:2525: @block");
 /*block*/{
  
- BASILYS_LOCATION("warmelt-macro.bysl:2523: @block");
+ BASILYS_LOCATION("warmelt-macro.bysl:2526: @block");
  /*block*/{
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2523: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2526: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2523: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2526: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &(/*~ENV*/ curfclos->tabval[0]);
-   BASILYS_LOCATION("warmelt-macro.bysl:2523: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2526: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &(/*~MEXPANDER*/ curfclos->tabval[1]);
    /*_.SYM__V4*/ curfptr[3] =  basilys_apply ((basilysclosure_ptr_t)((/*!MACROEXPAND_1*/ curfrout->tabval[0])), (basilys_ptr_t)(/*_.S__V2*/ curfptr[1]), (BPARSTR_PTR BPARSTR_PTR ""), argtab, "", (union basilysparam_un*)0);
    }
@@ -33829,12 +33873,12 @@ BASILYS_LOCATION("warmelt-macro.bysl:2522: @block");
   /*_#IS_NOT_A__L1*/ curfnum[0] = 
     !basilys_is_instance_of((basilys_ptr_t)(/*_.SYM__V4*/ curfptr[3]), (basilys_ptr_t)((/*!CLASS_SYMBOL*/ curfrout->tabval[1])));;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2524: @cond");
+  BASILYS_LOCATION("warmelt-macro.bysl:2527: @cond");
   /*cond*/ if (/*_#IS_NOT_A__L1*/ curfnum[0]) /*then*/ {
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2524: @cond.then");
+  BASILYS_LOCATION("warmelt-macro.bysl:2527: @cond.then");
   
-   BASILYS_LOCATION("warmelt-macro.bysl:2524: @block");
+   BASILYS_LOCATION("warmelt-macro.bysl:2527: @block");
    /*block*/{
     
     error("%s:%d:: BASILYS ERROR [#%ld]: @%s ",  basilys_string_str(basilys_val_mixint((basilys_ptr_t)((/*~LOC*/ curfclos->tabval[2])))),  (int) basilys_num_mixint((basilys_ptr_t)((/*~LOC*/ curfclos->tabval[2]))), basilys_dbgcounter, ( "(EXPORT_CLASS <sym>...) expecting symbol"));
@@ -33845,24 +33889,24 @@ BASILYS_LOCATION("warmelt-macro.bysl:2522: @block");
   /*_.LET___V3*/ curfptr[2] = /*_.SYM__V4*/ curfptr[3];;
   /*epilog*/
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2523: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2526: @clear");
   /*clear*/ /*_.SYM__V4*/ curfptr[3] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2523: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2526: @clear");
   /*clear*/ /*_#IS_NOT_A__L1*/ curfnum[0] = 0 ;}
  ;
  
- BASILYS_LOCATION("warmelt-macro.bysl:2522: @block");
+ BASILYS_LOCATION("warmelt-macro.bysl:2525: @block");
  /*block*/{
   /*_.RETVAL___V1*/ curfptr[0] = /*_.LET___V3*/ curfptr[2];;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2522: @finalreturn");
+  BASILYS_LOCATION("warmelt-macro.bysl:2525: @finalreturn");
   ;
   /*finalret*/ goto labend_rout ;}
  ;
  /*epilog*/
  
- BASILYS_LOCATION("warmelt-macro.bysl:2522: @clear");
+ BASILYS_LOCATION("warmelt-macro.bysl:2525: @clear");
  /*clear*/ /*_.LET___V3*/ curfptr[2] = 0 ;}
 
 ;
@@ -33914,12 +33958,12 @@ basilys_trace_start("MEXPAND_CURRENT_MODULE_ENVIRONMENT_CONTAINER", callcount);
 
  /*getarg#0*/
  
- BASILYS_LOCATION("warmelt-macro.bysl:2540: @getarg");
+ BASILYS_LOCATION("warmelt-macro.bysl:2543: @getarg");
  /*_.SEXPR__V2*/ curfptr[1] = (basilys_ptr_t) firstargp_;
  
  /*getarg#1*/
  
- BASILYS_LOCATION("warmelt-macro.bysl:2540: @getarg");
+ BASILYS_LOCATION("warmelt-macro.bysl:2543: @getarg");
  if (xargdescr_[0] != BPAR_PTR) goto lab_endgetargs;
  /*_.ENV__V3*/ curfptr[2] = (xargtab_[0].bp_aptr) ? (*(xargtab_[0].bp_aptr)) : NULL;
  gcc_assert(basilys_discr((basilys_ptr_t)(/*_.ENV__V3*/ curfptr[2])) != NULL);
@@ -33927,7 +33971,7 @@ basilys_trace_start("MEXPAND_CURRENT_MODULE_ENVIRONMENT_CONTAINER", callcount);
  
  /*getarg#2*/
  
- BASILYS_LOCATION("warmelt-macro.bysl:2540: @getarg");
+ BASILYS_LOCATION("warmelt-macro.bysl:2543: @getarg");
  if (xargdescr_[1] != BPAR_PTR) goto lab_endgetargs;
  /*_.MEXPANDER__V4*/ curfptr[3] = (xargtab_[1].bp_aptr) ? (*(xargtab_[1].bp_aptr)) : NULL;
  gcc_assert(basilys_discr((basilys_ptr_t)(/*_.MEXPANDER__V4*/ curfptr[3])) != NULL);
@@ -33937,32 +33981,32 @@ basilys_trace_start("MEXPAND_CURRENT_MODULE_ENVIRONMENT_CONTAINER", callcount);
 lab_endgetargs:;
 /*body*/
 
-BASILYS_LOCATION("warmelt-macro.bysl:2540: @block");
+BASILYS_LOCATION("warmelt-macro.bysl:2543: @block");
 /*block*/{
  
  #if ENABLE_CHECKING
   
- BASILYS_LOCATION("warmelt-macro.bysl:2541: @cppif.then");
+ BASILYS_LOCATION("warmelt-macro.bysl:2544: @cppif.then");
  
-  BASILYS_LOCATION("warmelt-macro.bysl:2541: @block");
+  BASILYS_LOCATION("warmelt-macro.bysl:2544: @block");
   /*block*/{
    /*_#IS_A__L1*/ curfnum[0] = 
      basilys_is_instance_of((basilys_ptr_t)(/*_.SEXPR__V2*/ curfptr[1]), (basilys_ptr_t)((/*!CLASS_SEXPR*/ curfrout->tabval[0])));;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2541: @cond");
+   BASILYS_LOCATION("warmelt-macro.bysl:2544: @cond");
    /*cond*/ if (/*_#IS_A__L1*/ curfnum[0]) /*then*/ {
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2541: @cond.then");
+   BASILYS_LOCATION("warmelt-macro.bysl:2544: @cond.then");
    /*_.IFELSE___V6*/ curfptr[5] = (/*nil*/NULL);;
    } else {
-   BASILYS_LOCATION("warmelt-macro.bysl:2541: @cond.else");
+   BASILYS_LOCATION("warmelt-macro.bysl:2544: @cond.else");
    
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2541: @block");
+    BASILYS_LOCATION("warmelt-macro.bysl:2544: @block");
     /*block*/{
      /*block*/{
       
-      basilys_assert_failed(( "check sexpr"),( "warmelt-macro.bysl"),(2541), __FUNCTION__);
+      basilys_assert_failed(( "check sexpr"),( "warmelt-macro.bysl"),(2544), __FUNCTION__);
       /*clear*/ /*_.IFELSE___V6*/ curfptr[5] = 0 ;}
      ;
      /*epilog*/}
@@ -33972,42 +34016,42 @@ BASILYS_LOCATION("warmelt-macro.bysl:2540: @block");
    /*_.IFCPP___V5*/ curfptr[4] = /*_.IFELSE___V6*/ curfptr[5];;
    /*epilog*/
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2541: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2544: @clear");
    /*clear*/ /*_#IS_A__L1*/ curfnum[0] = 0 ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2541: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2544: @clear");
    /*clear*/ /*_.IFELSE___V6*/ curfptr[5] = 0 ;}
   
   #else /*ENABLE_CHECKING*/
   
- BASILYS_LOCATION("warmelt-macro.bysl:2541: @cppif.else");
+ BASILYS_LOCATION("warmelt-macro.bysl:2544: @cppif.else");
  /*_.IFCPP___V5*/ curfptr[4] = (/*nil*/NULL);
   #endif /*ENABLE_CHECKING*/
   ;
  
  #if ENABLE_CHECKING
   
- BASILYS_LOCATION("warmelt-macro.bysl:2542: @cppif.then");
+ BASILYS_LOCATION("warmelt-macro.bysl:2545: @cppif.then");
  
-  BASILYS_LOCATION("warmelt-macro.bysl:2542: @block");
+  BASILYS_LOCATION("warmelt-macro.bysl:2545: @block");
   /*block*/{
    /*_#IS_A__L2*/ curfnum[0] = 
      basilys_is_instance_of((basilys_ptr_t)(/*_.ENV__V3*/ curfptr[2]), (basilys_ptr_t)((/*!CLASS_ENVIRONMENT*/ curfrout->tabval[1])));;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2542: @cond");
+   BASILYS_LOCATION("warmelt-macro.bysl:2545: @cond");
    /*cond*/ if (/*_#IS_A__L2*/ curfnum[0]) /*then*/ {
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2542: @cond.then");
+   BASILYS_LOCATION("warmelt-macro.bysl:2545: @cond.then");
    /*_.IFELSE___V8*/ curfptr[7] = (/*nil*/NULL);;
    } else {
-   BASILYS_LOCATION("warmelt-macro.bysl:2542: @cond.else");
+   BASILYS_LOCATION("warmelt-macro.bysl:2545: @cond.else");
    
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2542: @block");
+    BASILYS_LOCATION("warmelt-macro.bysl:2545: @block");
     /*block*/{
      /*block*/{
       
-      basilys_assert_failed(( "check env"),( "warmelt-macro.bysl"),(2542), __FUNCTION__);
+      basilys_assert_failed(( "check env"),( "warmelt-macro.bysl"),(2545), __FUNCTION__);
       /*clear*/ /*_.IFELSE___V8*/ curfptr[7] = 0 ;}
      ;
      /*epilog*/}
@@ -34017,68 +34061,68 @@ BASILYS_LOCATION("warmelt-macro.bysl:2540: @block");
    /*_.IFCPP___V7*/ curfptr[5] = /*_.IFELSE___V8*/ curfptr[7];;
    /*epilog*/
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2542: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2545: @clear");
    /*clear*/ /*_#IS_A__L2*/ curfnum[0] = 0 ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2542: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2545: @clear");
    /*clear*/ /*_.IFELSE___V8*/ curfptr[7] = 0 ;}
   
   #else /*ENABLE_CHECKING*/
   
- BASILYS_LOCATION("warmelt-macro.bysl:2542: @cppif.else");
+ BASILYS_LOCATION("warmelt-macro.bysl:2545: @cppif.else");
  /*_.IFCPP___V7*/ curfptr[5] = (/*nil*/NULL);
   #endif /*ENABLE_CHECKING*/
   ;
  
  #if ENABLE_CHECKING
   
- BASILYS_LOCATION("warmelt-macro.bysl:2543: @cppif.then");
+ BASILYS_LOCATION("warmelt-macro.bysl:2546: @cppif.then");
  
-  BASILYS_LOCATION("warmelt-macro.bysl:2543: @block");
+  BASILYS_LOCATION("warmelt-macro.bysl:2546: @block");
   /*block*/{
    /*_#THE_CALLCOUNT__L3*/ curfnum[0] = 
     callcount;;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2543: @apply");
+   BASILYS_LOCATION("warmelt-macro.bysl:2546: @apply");
    /*apply*/{
     union basilysparam_un argtab[4];
     memset(&argtab, 0, sizeof(argtab));
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2543: @apply.arg");
+    BASILYS_LOCATION("warmelt-macro.bysl:2546: @apply.arg");
     argtab[0].bp_cstring =  "mexpand_current_module_environment_container sexpr";
-    BASILYS_LOCATION("warmelt-macro.bysl:2543: @apply.arg");
+    BASILYS_LOCATION("warmelt-macro.bysl:2546: @apply.arg");
     argtab[1].bp_long = /*_#THE_CALLCOUNT__L3*/ curfnum[0];
-    BASILYS_LOCATION("warmelt-macro.bysl:2543: @apply.arg");
+    BASILYS_LOCATION("warmelt-macro.bysl:2546: @apply.arg");
     argtab[2].bp_cstring =  "warmelt-macro.bysl";
-    BASILYS_LOCATION("warmelt-macro.bysl:2543: @apply.arg");
-    argtab[3].bp_long = 2543;
+    BASILYS_LOCATION("warmelt-macro.bysl:2546: @apply.arg");
+    argtab[3].bp_long = 2546;
     /*_.DEBUG_MSG_FUN__V10*/ curfptr[9] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[2])), (basilys_ptr_t)(/*_.SEXPR__V2*/ curfptr[1]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
     }
    ;
    /*_.IFCPP___V9*/ curfptr[7] = /*_.DEBUG_MSG_FUN__V10*/ curfptr[9];;
    /*epilog*/
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2543: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2546: @clear");
    /*clear*/ /*_#THE_CALLCOUNT__L3*/ curfnum[0] = 0 ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2543: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2546: @clear");
    /*clear*/ /*_.DEBUG_MSG_FUN__V10*/ curfptr[9] = 0 ;}
   
   #else /*ENABLE_CHECKING*/
   
- BASILYS_LOCATION("warmelt-macro.bysl:2543: @cppif.else");
+ BASILYS_LOCATION("warmelt-macro.bysl:2546: @cppif.else");
  /*_.IFCPP___V9*/ curfptr[7] = (/*nil*/NULL);
   #endif /*ENABLE_CHECKING*/
   ;
  
- BASILYS_LOCATION("warmelt-macro.bysl:2544: @block");
+ BASILYS_LOCATION("warmelt-macro.bysl:2547: @block");
  /*block*/{
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2545: @getslot");
+  BASILYS_LOCATION("warmelt-macro.bysl:2548: @getslot");
   /*_.CONT__V12*/ curfptr[11] = basilys_getfield_object((basilys_ptr_t)(/*_.SEXPR__V2*/ curfptr[1]), 2, "SEXP_CONTENTS");
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2546: @getslot");
+  BASILYS_LOCATION("warmelt-macro.bysl:2549: @getslot");
   /*_.LOC__V13*/ curfptr[12] = basilys_getfield_object((basilys_ptr_t)(/*_.SEXPR__V2*/ curfptr[1]), 1, "LOCA_LOCATION");
   ;
   /*_.LIST_FIRST__V14*/ curfptr[13] = 
@@ -34086,15 +34130,15 @@ BASILYS_LOCATION("warmelt-macro.bysl:2540: @block");
   /*_.CURPAIR__V15*/ curfptr[14] = 
    (basilys_pair_tail((basilys_ptr_t)(/*_.LIST_FIRST__V14*/ curfptr[13])));;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2548: @block");
+  BASILYS_LOCATION("warmelt-macro.bysl:2551: @block");
   /*block*/{
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2548: @rawallocobj");
+   BASILYS_LOCATION("warmelt-macro.bysl:2551: @rawallocobj");
    /*rawallocobj*/ /*_.INST__V17*/ curfptr[16] =
-    basilysgc_new_raw_object((basilysobject_ptr_t)((/*!CLASS_SRC_CURRENT_MODULE_ENVIRONMENT_CONTAINER*/ curfrout->tabval[3])), (2));
+    basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_SRC_CURRENT_MODULE_ENVIRONMENT_CONTAINER*/ curfrout->tabval[3])), (2), ("CLASS_SRC_CURRENT_MODULE_ENVIRONMENT_CONTAINER"));
    ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2548: @putslot");
+   BASILYS_LOCATION("warmelt-macro.bysl:2551: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V17*/ curfptr[16])) == OBMAG_OBJECT);
    basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V17*/ curfptr[16]))));
@@ -34106,12 +34150,12 @@ BASILYS_LOCATION("warmelt-macro.bysl:2540: @block");
   /*_#NOTNULL__L4*/ curfnum[0] = 
    ((/*_.CURPAIR__V15*/ curfptr[14]) != NULL);;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2551: @cond");
+  BASILYS_LOCATION("warmelt-macro.bysl:2554: @cond");
   /*cond*/ if (/*_#NOTNULL__L4*/ curfnum[0]) /*then*/ {
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2551: @cond.then");
+  BASILYS_LOCATION("warmelt-macro.bysl:2554: @cond.then");
   
-   BASILYS_LOCATION("warmelt-macro.bysl:2551: @block");
+   BASILYS_LOCATION("warmelt-macro.bysl:2554: @block");
    /*block*/{
     
     error("%s:%d:: BASILYS ERROR [#%ld]: @%s ",  basilys_string_str(basilys_val_mixint((basilys_ptr_t)(/*_.LOC__V13*/ curfptr[12]))),  (int) basilys_num_mixint((basilys_ptr_t)(/*_.LOC__V13*/ curfptr[12])), basilys_dbgcounter, ( "(CURRENT_MODULE_ENVIRONMENT_CONTAINER) should not have any argument"));
@@ -34122,101 +34166,101 @@ BASILYS_LOCATION("warmelt-macro.bysl:2540: @block");
   
   #if ENABLE_CHECKING
    
-  BASILYS_LOCATION("warmelt-macro.bysl:2553: @cppif.then");
+  BASILYS_LOCATION("warmelt-macro.bysl:2556: @cppif.then");
   
-   BASILYS_LOCATION("warmelt-macro.bysl:2553: @block");
+   BASILYS_LOCATION("warmelt-macro.bysl:2556: @block");
    /*block*/{
     /*_#THE_CALLCOUNT__L5*/ curfnum[4] = 
      callcount;;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2553: @apply");
+    BASILYS_LOCATION("warmelt-macro.bysl:2556: @apply");
     /*apply*/{
      union basilysparam_un argtab[4];
      memset(&argtab, 0, sizeof(argtab));
      
-     BASILYS_LOCATION("warmelt-macro.bysl:2553: @apply.arg");
+     BASILYS_LOCATION("warmelt-macro.bysl:2556: @apply.arg");
      argtab[0].bp_cstring =  "mexpand_current_module_environment_container return res";
-     BASILYS_LOCATION("warmelt-macro.bysl:2553: @apply.arg");
+     BASILYS_LOCATION("warmelt-macro.bysl:2556: @apply.arg");
      argtab[1].bp_long = /*_#THE_CALLCOUNT__L5*/ curfnum[4];
-     BASILYS_LOCATION("warmelt-macro.bysl:2553: @apply.arg");
+     BASILYS_LOCATION("warmelt-macro.bysl:2556: @apply.arg");
      argtab[2].bp_cstring =  "warmelt-macro.bysl";
-     BASILYS_LOCATION("warmelt-macro.bysl:2553: @apply.arg");
-     argtab[3].bp_long = 2553;
+     BASILYS_LOCATION("warmelt-macro.bysl:2556: @apply.arg");
+     argtab[3].bp_long = 2556;
      /*_.DEBUG_MSG_FUN__V19*/ curfptr[18] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[2])), (basilys_ptr_t)(/*_.RES__V16*/ curfptr[15]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
      }
     ;
     /*_.IFCPP___V18*/ curfptr[17] = /*_.DEBUG_MSG_FUN__V19*/ curfptr[18];;
     /*epilog*/
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2553: @clear");
+    BASILYS_LOCATION("warmelt-macro.bysl:2556: @clear");
     /*clear*/ /*_#THE_CALLCOUNT__L5*/ curfnum[4] = 0 ;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2553: @clear");
+    BASILYS_LOCATION("warmelt-macro.bysl:2556: @clear");
     /*clear*/ /*_.DEBUG_MSG_FUN__V19*/ curfptr[18] = 0 ;}
    
    #else /*ENABLE_CHECKING*/
    
-  BASILYS_LOCATION("warmelt-macro.bysl:2553: @cppif.else");
+  BASILYS_LOCATION("warmelt-macro.bysl:2556: @cppif.else");
   /*_.IFCPP___V18*/ curfptr[17] = (/*nil*/NULL);
    #endif /*ENABLE_CHECKING*/
    ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2554: @block");
+  BASILYS_LOCATION("warmelt-macro.bysl:2557: @block");
   /*block*/{
    /*_.RETVAL___V1*/ curfptr[0] = /*_.RES__V16*/ curfptr[15];;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2554: @finalreturn");
+   BASILYS_LOCATION("warmelt-macro.bysl:2557: @finalreturn");
    ;
    /*finalret*/ goto labend_rout ;}
   ;
   /*_.LET___V11*/ curfptr[9] = /*_.RETURN___V20*/ curfptr[18];;
   /*epilog*/
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2544: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2547: @clear");
   /*clear*/ /*_.CONT__V12*/ curfptr[11] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2544: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2547: @clear");
   /*clear*/ /*_.LOC__V13*/ curfptr[12] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2544: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2547: @clear");
   /*clear*/ /*_.LIST_FIRST__V14*/ curfptr[13] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2544: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2547: @clear");
   /*clear*/ /*_.CURPAIR__V15*/ curfptr[14] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2544: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2547: @clear");
   /*clear*/ /*_.RES__V16*/ curfptr[15] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2544: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2547: @clear");
   /*clear*/ /*_#NOTNULL__L4*/ curfnum[0] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2544: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2547: @clear");
   /*clear*/ /*_.IFCPP___V18*/ curfptr[17] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2544: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2547: @clear");
   /*clear*/ /*_.RETURN___V20*/ curfptr[18] = 0 ;}
  ;
  
- BASILYS_LOCATION("warmelt-macro.bysl:2540: @block");
+ BASILYS_LOCATION("warmelt-macro.bysl:2543: @block");
  /*block*/{
   /*_.RETVAL___V1*/ curfptr[0] = /*_.LET___V11*/ curfptr[9];;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2540: @finalreturn");
+  BASILYS_LOCATION("warmelt-macro.bysl:2543: @finalreturn");
   ;
   /*finalret*/ goto labend_rout ;}
  ;
  /*epilog*/
  
- BASILYS_LOCATION("warmelt-macro.bysl:2540: @clear");
+ BASILYS_LOCATION("warmelt-macro.bysl:2543: @clear");
  /*clear*/ /*_.IFCPP___V5*/ curfptr[4] = 0 ;
  
- BASILYS_LOCATION("warmelt-macro.bysl:2540: @clear");
+ BASILYS_LOCATION("warmelt-macro.bysl:2543: @clear");
  /*clear*/ /*_.IFCPP___V7*/ curfptr[5] = 0 ;
  
- BASILYS_LOCATION("warmelt-macro.bysl:2540: @clear");
+ BASILYS_LOCATION("warmelt-macro.bysl:2543: @clear");
  /*clear*/ /*_.IFCPP___V9*/ curfptr[7] = 0 ;
  
- BASILYS_LOCATION("warmelt-macro.bysl:2540: @clear");
+ BASILYS_LOCATION("warmelt-macro.bysl:2543: @clear");
  /*clear*/ /*_.LET___V11*/ curfptr[9] = 0 ;}
 
 ;
@@ -34268,12 +34312,12 @@ basilys_trace_start("MEXPAND_PARENT_MODULE_ENVIRONMENT", callcount);
 
  /*getarg#0*/
  
- BASILYS_LOCATION("warmelt-macro.bysl:2565: @getarg");
+ BASILYS_LOCATION("warmelt-macro.bysl:2568: @getarg");
  /*_.SEXPR__V2*/ curfptr[1] = (basilys_ptr_t) firstargp_;
  
  /*getarg#1*/
  
- BASILYS_LOCATION("warmelt-macro.bysl:2565: @getarg");
+ BASILYS_LOCATION("warmelt-macro.bysl:2568: @getarg");
  if (xargdescr_[0] != BPAR_PTR) goto lab_endgetargs;
  /*_.ENV__V3*/ curfptr[2] = (xargtab_[0].bp_aptr) ? (*(xargtab_[0].bp_aptr)) : NULL;
  gcc_assert(basilys_discr((basilys_ptr_t)(/*_.ENV__V3*/ curfptr[2])) != NULL);
@@ -34281,7 +34325,7 @@ basilys_trace_start("MEXPAND_PARENT_MODULE_ENVIRONMENT", callcount);
  
  /*getarg#2*/
  
- BASILYS_LOCATION("warmelt-macro.bysl:2565: @getarg");
+ BASILYS_LOCATION("warmelt-macro.bysl:2568: @getarg");
  if (xargdescr_[1] != BPAR_PTR) goto lab_endgetargs;
  /*_.MEXPANDER__V4*/ curfptr[3] = (xargtab_[1].bp_aptr) ? (*(xargtab_[1].bp_aptr)) : NULL;
  gcc_assert(basilys_discr((basilys_ptr_t)(/*_.MEXPANDER__V4*/ curfptr[3])) != NULL);
@@ -34291,32 +34335,32 @@ basilys_trace_start("MEXPAND_PARENT_MODULE_ENVIRONMENT", callcount);
 lab_endgetargs:;
 /*body*/
 
-BASILYS_LOCATION("warmelt-macro.bysl:2565: @block");
+BASILYS_LOCATION("warmelt-macro.bysl:2568: @block");
 /*block*/{
  
  #if ENABLE_CHECKING
   
- BASILYS_LOCATION("warmelt-macro.bysl:2566: @cppif.then");
+ BASILYS_LOCATION("warmelt-macro.bysl:2569: @cppif.then");
  
-  BASILYS_LOCATION("warmelt-macro.bysl:2566: @block");
+  BASILYS_LOCATION("warmelt-macro.bysl:2569: @block");
   /*block*/{
    /*_#IS_A__L1*/ curfnum[0] = 
      basilys_is_instance_of((basilys_ptr_t)(/*_.SEXPR__V2*/ curfptr[1]), (basilys_ptr_t)((/*!CLASS_SEXPR*/ curfrout->tabval[0])));;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2566: @cond");
+   BASILYS_LOCATION("warmelt-macro.bysl:2569: @cond");
    /*cond*/ if (/*_#IS_A__L1*/ curfnum[0]) /*then*/ {
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2566: @cond.then");
+   BASILYS_LOCATION("warmelt-macro.bysl:2569: @cond.then");
    /*_.IFELSE___V6*/ curfptr[5] = (/*nil*/NULL);;
    } else {
-   BASILYS_LOCATION("warmelt-macro.bysl:2566: @cond.else");
+   BASILYS_LOCATION("warmelt-macro.bysl:2569: @cond.else");
    
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2566: @block");
+    BASILYS_LOCATION("warmelt-macro.bysl:2569: @block");
     /*block*/{
      /*block*/{
       
-      basilys_assert_failed(( "check sexpr"),( "warmelt-macro.bysl"),(2566), __FUNCTION__);
+      basilys_assert_failed(( "check sexpr"),( "warmelt-macro.bysl"),(2569), __FUNCTION__);
       /*clear*/ /*_.IFELSE___V6*/ curfptr[5] = 0 ;}
      ;
      /*epilog*/}
@@ -34326,42 +34370,42 @@ BASILYS_LOCATION("warmelt-macro.bysl:2565: @block");
    /*_.IFCPP___V5*/ curfptr[4] = /*_.IFELSE___V6*/ curfptr[5];;
    /*epilog*/
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2566: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2569: @clear");
    /*clear*/ /*_#IS_A__L1*/ curfnum[0] = 0 ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2566: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2569: @clear");
    /*clear*/ /*_.IFELSE___V6*/ curfptr[5] = 0 ;}
   
   #else /*ENABLE_CHECKING*/
   
- BASILYS_LOCATION("warmelt-macro.bysl:2566: @cppif.else");
+ BASILYS_LOCATION("warmelt-macro.bysl:2569: @cppif.else");
  /*_.IFCPP___V5*/ curfptr[4] = (/*nil*/NULL);
   #endif /*ENABLE_CHECKING*/
   ;
  
  #if ENABLE_CHECKING
   
- BASILYS_LOCATION("warmelt-macro.bysl:2567: @cppif.then");
+ BASILYS_LOCATION("warmelt-macro.bysl:2570: @cppif.then");
  
-  BASILYS_LOCATION("warmelt-macro.bysl:2567: @block");
+  BASILYS_LOCATION("warmelt-macro.bysl:2570: @block");
   /*block*/{
    /*_#IS_A__L2*/ curfnum[0] = 
      basilys_is_instance_of((basilys_ptr_t)(/*_.ENV__V3*/ curfptr[2]), (basilys_ptr_t)((/*!CLASS_ENVIRONMENT*/ curfrout->tabval[1])));;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2567: @cond");
+   BASILYS_LOCATION("warmelt-macro.bysl:2570: @cond");
    /*cond*/ if (/*_#IS_A__L2*/ curfnum[0]) /*then*/ {
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2567: @cond.then");
+   BASILYS_LOCATION("warmelt-macro.bysl:2570: @cond.then");
    /*_.IFELSE___V8*/ curfptr[7] = (/*nil*/NULL);;
    } else {
-   BASILYS_LOCATION("warmelt-macro.bysl:2567: @cond.else");
+   BASILYS_LOCATION("warmelt-macro.bysl:2570: @cond.else");
    
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2567: @block");
+    BASILYS_LOCATION("warmelt-macro.bysl:2570: @block");
     /*block*/{
      /*block*/{
       
-      basilys_assert_failed(( "check env"),( "warmelt-macro.bysl"),(2567), __FUNCTION__);
+      basilys_assert_failed(( "check env"),( "warmelt-macro.bysl"),(2570), __FUNCTION__);
       /*clear*/ /*_.IFELSE___V8*/ curfptr[7] = 0 ;}
      ;
      /*epilog*/}
@@ -34371,68 +34415,68 @@ BASILYS_LOCATION("warmelt-macro.bysl:2565: @block");
    /*_.IFCPP___V7*/ curfptr[5] = /*_.IFELSE___V8*/ curfptr[7];;
    /*epilog*/
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2567: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2570: @clear");
    /*clear*/ /*_#IS_A__L2*/ curfnum[0] = 0 ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2567: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2570: @clear");
    /*clear*/ /*_.IFELSE___V8*/ curfptr[7] = 0 ;}
   
   #else /*ENABLE_CHECKING*/
   
- BASILYS_LOCATION("warmelt-macro.bysl:2567: @cppif.else");
+ BASILYS_LOCATION("warmelt-macro.bysl:2570: @cppif.else");
  /*_.IFCPP___V7*/ curfptr[5] = (/*nil*/NULL);
   #endif /*ENABLE_CHECKING*/
   ;
  
  #if ENABLE_CHECKING
   
- BASILYS_LOCATION("warmelt-macro.bysl:2568: @cppif.then");
+ BASILYS_LOCATION("warmelt-macro.bysl:2571: @cppif.then");
  
-  BASILYS_LOCATION("warmelt-macro.bysl:2568: @block");
+  BASILYS_LOCATION("warmelt-macro.bysl:2571: @block");
   /*block*/{
    /*_#THE_CALLCOUNT__L3*/ curfnum[0] = 
     callcount;;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2568: @apply");
+   BASILYS_LOCATION("warmelt-macro.bysl:2571: @apply");
    /*apply*/{
     union basilysparam_un argtab[4];
     memset(&argtab, 0, sizeof(argtab));
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2568: @apply.arg");
+    BASILYS_LOCATION("warmelt-macro.bysl:2571: @apply.arg");
     argtab[0].bp_cstring =  "mexpand_parent_module_environment sexpr";
-    BASILYS_LOCATION("warmelt-macro.bysl:2568: @apply.arg");
+    BASILYS_LOCATION("warmelt-macro.bysl:2571: @apply.arg");
     argtab[1].bp_long = /*_#THE_CALLCOUNT__L3*/ curfnum[0];
-    BASILYS_LOCATION("warmelt-macro.bysl:2568: @apply.arg");
+    BASILYS_LOCATION("warmelt-macro.bysl:2571: @apply.arg");
     argtab[2].bp_cstring =  "warmelt-macro.bysl";
-    BASILYS_LOCATION("warmelt-macro.bysl:2568: @apply.arg");
-    argtab[3].bp_long = 2568;
+    BASILYS_LOCATION("warmelt-macro.bysl:2571: @apply.arg");
+    argtab[3].bp_long = 2571;
     /*_.DEBUG_MSG_FUN__V10*/ curfptr[9] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[2])), (basilys_ptr_t)(/*_.SEXPR__V2*/ curfptr[1]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
     }
    ;
    /*_.IFCPP___V9*/ curfptr[7] = /*_.DEBUG_MSG_FUN__V10*/ curfptr[9];;
    /*epilog*/
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2568: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2571: @clear");
    /*clear*/ /*_#THE_CALLCOUNT__L3*/ curfnum[0] = 0 ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2568: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2571: @clear");
    /*clear*/ /*_.DEBUG_MSG_FUN__V10*/ curfptr[9] = 0 ;}
   
   #else /*ENABLE_CHECKING*/
   
- BASILYS_LOCATION("warmelt-macro.bysl:2568: @cppif.else");
+ BASILYS_LOCATION("warmelt-macro.bysl:2571: @cppif.else");
  /*_.IFCPP___V9*/ curfptr[7] = (/*nil*/NULL);
   #endif /*ENABLE_CHECKING*/
   ;
  
- BASILYS_LOCATION("warmelt-macro.bysl:2569: @block");
+ BASILYS_LOCATION("warmelt-macro.bysl:2572: @block");
  /*block*/{
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2570: @getslot");
+  BASILYS_LOCATION("warmelt-macro.bysl:2573: @getslot");
   /*_.CONT__V12*/ curfptr[11] = basilys_getfield_object((basilys_ptr_t)(/*_.SEXPR__V2*/ curfptr[1]), 2, "SEXP_CONTENTS");
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2571: @getslot");
+  BASILYS_LOCATION("warmelt-macro.bysl:2574: @getslot");
   /*_.LOC__V13*/ curfptr[12] = basilys_getfield_object((basilys_ptr_t)(/*_.SEXPR__V2*/ curfptr[1]), 1, "LOCA_LOCATION");
   ;
   /*_.LIST_FIRST__V14*/ curfptr[13] = 
@@ -34440,15 +34484,15 @@ BASILYS_LOCATION("warmelt-macro.bysl:2565: @block");
   /*_.CURPAIR__V15*/ curfptr[14] = 
    (basilys_pair_tail((basilys_ptr_t)(/*_.LIST_FIRST__V14*/ curfptr[13])));;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2573: @block");
+  BASILYS_LOCATION("warmelt-macro.bysl:2576: @block");
   /*block*/{
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2573: @rawallocobj");
+   BASILYS_LOCATION("warmelt-macro.bysl:2576: @rawallocobj");
    /*rawallocobj*/ /*_.INST__V17*/ curfptr[16] =
-    basilysgc_new_raw_object((basilysobject_ptr_t)((/*!CLASS_SRC_PARENT_MODULE_ENVIRONMENT*/ curfrout->tabval[3])), (1));
+    basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_SRC_PARENT_MODULE_ENVIRONMENT*/ curfrout->tabval[3])), (1), ("CLASS_SRC_PARENT_MODULE_ENVIRONMENT"));
    ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2573: @putslot");
+   BASILYS_LOCATION("warmelt-macro.bysl:2576: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V17*/ curfptr[16])) == OBMAG_OBJECT);
    basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V17*/ curfptr[16]))));
@@ -34460,12 +34504,12 @@ BASILYS_LOCATION("warmelt-macro.bysl:2565: @block");
   /*_#NOTNULL__L4*/ curfnum[0] = 
    ((/*_.CURPAIR__V15*/ curfptr[14]) != NULL);;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2576: @cond");
+  BASILYS_LOCATION("warmelt-macro.bysl:2579: @cond");
   /*cond*/ if (/*_#NOTNULL__L4*/ curfnum[0]) /*then*/ {
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2576: @cond.then");
+  BASILYS_LOCATION("warmelt-macro.bysl:2579: @cond.then");
   
-   BASILYS_LOCATION("warmelt-macro.bysl:2576: @block");
+   BASILYS_LOCATION("warmelt-macro.bysl:2579: @block");
    /*block*/{
     
     error("%s:%d:: BASILYS ERROR [#%ld]: @%s ",  basilys_string_str(basilys_val_mixint((basilys_ptr_t)(/*_.LOC__V13*/ curfptr[12]))),  (int) basilys_num_mixint((basilys_ptr_t)(/*_.LOC__V13*/ curfptr[12])), basilys_dbgcounter, ( "(PARENT_MODULE_ENVIRONMENT) should not have any argument"));
@@ -34476,101 +34520,101 @@ BASILYS_LOCATION("warmelt-macro.bysl:2565: @block");
   
   #if ENABLE_CHECKING
    
-  BASILYS_LOCATION("warmelt-macro.bysl:2578: @cppif.then");
+  BASILYS_LOCATION("warmelt-macro.bysl:2581: @cppif.then");
   
-   BASILYS_LOCATION("warmelt-macro.bysl:2578: @block");
+   BASILYS_LOCATION("warmelt-macro.bysl:2581: @block");
    /*block*/{
     /*_#THE_CALLCOUNT__L5*/ curfnum[4] = 
      callcount;;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2578: @apply");
+    BASILYS_LOCATION("warmelt-macro.bysl:2581: @apply");
     /*apply*/{
      union basilysparam_un argtab[4];
      memset(&argtab, 0, sizeof(argtab));
      
-     BASILYS_LOCATION("warmelt-macro.bysl:2578: @apply.arg");
+     BASILYS_LOCATION("warmelt-macro.bysl:2581: @apply.arg");
      argtab[0].bp_cstring =  "mexpand_parent_module_environment return res";
-     BASILYS_LOCATION("warmelt-macro.bysl:2578: @apply.arg");
+     BASILYS_LOCATION("warmelt-macro.bysl:2581: @apply.arg");
      argtab[1].bp_long = /*_#THE_CALLCOUNT__L5*/ curfnum[4];
-     BASILYS_LOCATION("warmelt-macro.bysl:2578: @apply.arg");
+     BASILYS_LOCATION("warmelt-macro.bysl:2581: @apply.arg");
      argtab[2].bp_cstring =  "warmelt-macro.bysl";
-     BASILYS_LOCATION("warmelt-macro.bysl:2578: @apply.arg");
-     argtab[3].bp_long = 2578;
+     BASILYS_LOCATION("warmelt-macro.bysl:2581: @apply.arg");
+     argtab[3].bp_long = 2581;
      /*_.DEBUG_MSG_FUN__V19*/ curfptr[18] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[2])), (basilys_ptr_t)(/*_.RES__V16*/ curfptr[15]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
      }
     ;
     /*_.IFCPP___V18*/ curfptr[17] = /*_.DEBUG_MSG_FUN__V19*/ curfptr[18];;
     /*epilog*/
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2578: @clear");
+    BASILYS_LOCATION("warmelt-macro.bysl:2581: @clear");
     /*clear*/ /*_#THE_CALLCOUNT__L5*/ curfnum[4] = 0 ;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2578: @clear");
+    BASILYS_LOCATION("warmelt-macro.bysl:2581: @clear");
     /*clear*/ /*_.DEBUG_MSG_FUN__V19*/ curfptr[18] = 0 ;}
    
    #else /*ENABLE_CHECKING*/
    
-  BASILYS_LOCATION("warmelt-macro.bysl:2578: @cppif.else");
+  BASILYS_LOCATION("warmelt-macro.bysl:2581: @cppif.else");
   /*_.IFCPP___V18*/ curfptr[17] = (/*nil*/NULL);
    #endif /*ENABLE_CHECKING*/
    ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2579: @block");
+  BASILYS_LOCATION("warmelt-macro.bysl:2582: @block");
   /*block*/{
    /*_.RETVAL___V1*/ curfptr[0] = /*_.RES__V16*/ curfptr[15];;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2579: @finalreturn");
+   BASILYS_LOCATION("warmelt-macro.bysl:2582: @finalreturn");
    ;
    /*finalret*/ goto labend_rout ;}
   ;
   /*_.LET___V11*/ curfptr[9] = /*_.RETURN___V20*/ curfptr[18];;
   /*epilog*/
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2569: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2572: @clear");
   /*clear*/ /*_.CONT__V12*/ curfptr[11] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2569: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2572: @clear");
   /*clear*/ /*_.LOC__V13*/ curfptr[12] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2569: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2572: @clear");
   /*clear*/ /*_.LIST_FIRST__V14*/ curfptr[13] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2569: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2572: @clear");
   /*clear*/ /*_.CURPAIR__V15*/ curfptr[14] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2569: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2572: @clear");
   /*clear*/ /*_.RES__V16*/ curfptr[15] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2569: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2572: @clear");
   /*clear*/ /*_#NOTNULL__L4*/ curfnum[0] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2569: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2572: @clear");
   /*clear*/ /*_.IFCPP___V18*/ curfptr[17] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2569: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2572: @clear");
   /*clear*/ /*_.RETURN___V20*/ curfptr[18] = 0 ;}
  ;
  
- BASILYS_LOCATION("warmelt-macro.bysl:2565: @block");
+ BASILYS_LOCATION("warmelt-macro.bysl:2568: @block");
  /*block*/{
   /*_.RETVAL___V1*/ curfptr[0] = /*_.LET___V11*/ curfptr[9];;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2565: @finalreturn");
+  BASILYS_LOCATION("warmelt-macro.bysl:2568: @finalreturn");
   ;
   /*finalret*/ goto labend_rout ;}
  ;
  /*epilog*/
  
- BASILYS_LOCATION("warmelt-macro.bysl:2565: @clear");
+ BASILYS_LOCATION("warmelt-macro.bysl:2568: @clear");
  /*clear*/ /*_.IFCPP___V5*/ curfptr[4] = 0 ;
  
- BASILYS_LOCATION("warmelt-macro.bysl:2565: @clear");
+ BASILYS_LOCATION("warmelt-macro.bysl:2568: @clear");
  /*clear*/ /*_.IFCPP___V7*/ curfptr[5] = 0 ;
  
- BASILYS_LOCATION("warmelt-macro.bysl:2565: @clear");
+ BASILYS_LOCATION("warmelt-macro.bysl:2568: @clear");
  /*clear*/ /*_.IFCPP___V9*/ curfptr[7] = 0 ;
  
- BASILYS_LOCATION("warmelt-macro.bysl:2565: @clear");
+ BASILYS_LOCATION("warmelt-macro.bysl:2568: @clear");
  /*clear*/ /*_.LET___V11*/ curfptr[9] = 0 ;}
 
 ;
@@ -34622,12 +34666,12 @@ basilys_trace_start("MEXPAND_UPDATE_CURRENT_MODULE_ENVIRONMENT_CONTAINER", callc
 
  /*getarg#0*/
  
- BASILYS_LOCATION("warmelt-macro.bysl:2588: @getarg");
+ BASILYS_LOCATION("warmelt-macro.bysl:2591: @getarg");
  /*_.SEXPR__V2*/ curfptr[1] = (basilys_ptr_t) firstargp_;
  
  /*getarg#1*/
  
- BASILYS_LOCATION("warmelt-macro.bysl:2588: @getarg");
+ BASILYS_LOCATION("warmelt-macro.bysl:2591: @getarg");
  if (xargdescr_[0] != BPAR_PTR) goto lab_endgetargs;
  /*_.ENV__V3*/ curfptr[2] = (xargtab_[0].bp_aptr) ? (*(xargtab_[0].bp_aptr)) : NULL;
  gcc_assert(basilys_discr((basilys_ptr_t)(/*_.ENV__V3*/ curfptr[2])) != NULL);
@@ -34635,7 +34679,7 @@ basilys_trace_start("MEXPAND_UPDATE_CURRENT_MODULE_ENVIRONMENT_CONTAINER", callc
  
  /*getarg#2*/
  
- BASILYS_LOCATION("warmelt-macro.bysl:2588: @getarg");
+ BASILYS_LOCATION("warmelt-macro.bysl:2591: @getarg");
  if (xargdescr_[1] != BPAR_PTR) goto lab_endgetargs;
  /*_.MEXPANDER__V4*/ curfptr[3] = (xargtab_[1].bp_aptr) ? (*(xargtab_[1].bp_aptr)) : NULL;
  gcc_assert(basilys_discr((basilys_ptr_t)(/*_.MEXPANDER__V4*/ curfptr[3])) != NULL);
@@ -34645,32 +34689,32 @@ basilys_trace_start("MEXPAND_UPDATE_CURRENT_MODULE_ENVIRONMENT_CONTAINER", callc
 lab_endgetargs:;
 /*body*/
 
-BASILYS_LOCATION("warmelt-macro.bysl:2588: @block");
+BASILYS_LOCATION("warmelt-macro.bysl:2591: @block");
 /*block*/{
  
  #if ENABLE_CHECKING
   
- BASILYS_LOCATION("warmelt-macro.bysl:2589: @cppif.then");
+ BASILYS_LOCATION("warmelt-macro.bysl:2592: @cppif.then");
  
-  BASILYS_LOCATION("warmelt-macro.bysl:2589: @block");
+  BASILYS_LOCATION("warmelt-macro.bysl:2592: @block");
   /*block*/{
    /*_#IS_A__L1*/ curfnum[0] = 
      basilys_is_instance_of((basilys_ptr_t)(/*_.SEXPR__V2*/ curfptr[1]), (basilys_ptr_t)((/*!CLASS_SEXPR*/ curfrout->tabval[0])));;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2589: @cond");
+   BASILYS_LOCATION("warmelt-macro.bysl:2592: @cond");
    /*cond*/ if (/*_#IS_A__L1*/ curfnum[0]) /*then*/ {
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2589: @cond.then");
+   BASILYS_LOCATION("warmelt-macro.bysl:2592: @cond.then");
    /*_.IFELSE___V6*/ curfptr[5] = (/*nil*/NULL);;
    } else {
-   BASILYS_LOCATION("warmelt-macro.bysl:2589: @cond.else");
+   BASILYS_LOCATION("warmelt-macro.bysl:2592: @cond.else");
    
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2589: @block");
+    BASILYS_LOCATION("warmelt-macro.bysl:2592: @block");
     /*block*/{
      /*block*/{
       
-      basilys_assert_failed(( "check sexpr"),( "warmelt-macro.bysl"),(2589), __FUNCTION__);
+      basilys_assert_failed(( "check sexpr"),( "warmelt-macro.bysl"),(2592), __FUNCTION__);
       /*clear*/ /*_.IFELSE___V6*/ curfptr[5] = 0 ;}
      ;
      /*epilog*/}
@@ -34680,42 +34724,42 @@ BASILYS_LOCATION("warmelt-macro.bysl:2588: @block");
    /*_.IFCPP___V5*/ curfptr[4] = /*_.IFELSE___V6*/ curfptr[5];;
    /*epilog*/
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2589: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2592: @clear");
    /*clear*/ /*_#IS_A__L1*/ curfnum[0] = 0 ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2589: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2592: @clear");
    /*clear*/ /*_.IFELSE___V6*/ curfptr[5] = 0 ;}
   
   #else /*ENABLE_CHECKING*/
   
- BASILYS_LOCATION("warmelt-macro.bysl:2589: @cppif.else");
+ BASILYS_LOCATION("warmelt-macro.bysl:2592: @cppif.else");
  /*_.IFCPP___V5*/ curfptr[4] = (/*nil*/NULL);
   #endif /*ENABLE_CHECKING*/
   ;
  
  #if ENABLE_CHECKING
   
- BASILYS_LOCATION("warmelt-macro.bysl:2590: @cppif.then");
+ BASILYS_LOCATION("warmelt-macro.bysl:2593: @cppif.then");
  
-  BASILYS_LOCATION("warmelt-macro.bysl:2590: @block");
+  BASILYS_LOCATION("warmelt-macro.bysl:2593: @block");
   /*block*/{
    /*_#IS_A__L2*/ curfnum[0] = 
      basilys_is_instance_of((basilys_ptr_t)(/*_.ENV__V3*/ curfptr[2]), (basilys_ptr_t)((/*!CLASS_ENVIRONMENT*/ curfrout->tabval[1])));;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2590: @cond");
+   BASILYS_LOCATION("warmelt-macro.bysl:2593: @cond");
    /*cond*/ if (/*_#IS_A__L2*/ curfnum[0]) /*then*/ {
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2590: @cond.then");
+   BASILYS_LOCATION("warmelt-macro.bysl:2593: @cond.then");
    /*_.IFELSE___V8*/ curfptr[7] = (/*nil*/NULL);;
    } else {
-   BASILYS_LOCATION("warmelt-macro.bysl:2590: @cond.else");
+   BASILYS_LOCATION("warmelt-macro.bysl:2593: @cond.else");
    
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2590: @block");
+    BASILYS_LOCATION("warmelt-macro.bysl:2593: @block");
     /*block*/{
      /*block*/{
       
-      basilys_assert_failed(( "check env"),( "warmelt-macro.bysl"),(2590), __FUNCTION__);
+      basilys_assert_failed(( "check env"),( "warmelt-macro.bysl"),(2593), __FUNCTION__);
       /*clear*/ /*_.IFELSE___V8*/ curfptr[7] = 0 ;}
      ;
      /*epilog*/}
@@ -34725,68 +34769,68 @@ BASILYS_LOCATION("warmelt-macro.bysl:2588: @block");
    /*_.IFCPP___V7*/ curfptr[5] = /*_.IFELSE___V8*/ curfptr[7];;
    /*epilog*/
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2590: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2593: @clear");
    /*clear*/ /*_#IS_A__L2*/ curfnum[0] = 0 ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2590: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2593: @clear");
    /*clear*/ /*_.IFELSE___V8*/ curfptr[7] = 0 ;}
   
   #else /*ENABLE_CHECKING*/
   
- BASILYS_LOCATION("warmelt-macro.bysl:2590: @cppif.else");
+ BASILYS_LOCATION("warmelt-macro.bysl:2593: @cppif.else");
  /*_.IFCPP___V7*/ curfptr[5] = (/*nil*/NULL);
   #endif /*ENABLE_CHECKING*/
   ;
  
  #if ENABLE_CHECKING
   
- BASILYS_LOCATION("warmelt-macro.bysl:2591: @cppif.then");
+ BASILYS_LOCATION("warmelt-macro.bysl:2594: @cppif.then");
  
-  BASILYS_LOCATION("warmelt-macro.bysl:2591: @block");
+  BASILYS_LOCATION("warmelt-macro.bysl:2594: @block");
   /*block*/{
    /*_#THE_CALLCOUNT__L3*/ curfnum[0] = 
     callcount;;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2591: @apply");
+   BASILYS_LOCATION("warmelt-macro.bysl:2594: @apply");
    /*apply*/{
     union basilysparam_un argtab[4];
     memset(&argtab, 0, sizeof(argtab));
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2591: @apply.arg");
+    BASILYS_LOCATION("warmelt-macro.bysl:2594: @apply.arg");
     argtab[0].bp_cstring =  "mexpand_update_current_module_environment_container sexpr";
-    BASILYS_LOCATION("warmelt-macro.bysl:2591: @apply.arg");
+    BASILYS_LOCATION("warmelt-macro.bysl:2594: @apply.arg");
     argtab[1].bp_long = /*_#THE_CALLCOUNT__L3*/ curfnum[0];
-    BASILYS_LOCATION("warmelt-macro.bysl:2591: @apply.arg");
+    BASILYS_LOCATION("warmelt-macro.bysl:2594: @apply.arg");
     argtab[2].bp_cstring =  "warmelt-macro.bysl";
-    BASILYS_LOCATION("warmelt-macro.bysl:2591: @apply.arg");
-    argtab[3].bp_long = 2591;
+    BASILYS_LOCATION("warmelt-macro.bysl:2594: @apply.arg");
+    argtab[3].bp_long = 2594;
     /*_.DEBUG_MSG_FUN__V10*/ curfptr[9] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[2])), (basilys_ptr_t)(/*_.SEXPR__V2*/ curfptr[1]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
     }
    ;
    /*_.IFCPP___V9*/ curfptr[7] = /*_.DEBUG_MSG_FUN__V10*/ curfptr[9];;
    /*epilog*/
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2591: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2594: @clear");
    /*clear*/ /*_#THE_CALLCOUNT__L3*/ curfnum[0] = 0 ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2591: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2594: @clear");
    /*clear*/ /*_.DEBUG_MSG_FUN__V10*/ curfptr[9] = 0 ;}
   
   #else /*ENABLE_CHECKING*/
   
- BASILYS_LOCATION("warmelt-macro.bysl:2591: @cppif.else");
+ BASILYS_LOCATION("warmelt-macro.bysl:2594: @cppif.else");
  /*_.IFCPP___V9*/ curfptr[7] = (/*nil*/NULL);
   #endif /*ENABLE_CHECKING*/
   ;
  
- BASILYS_LOCATION("warmelt-macro.bysl:2592: @block");
+ BASILYS_LOCATION("warmelt-macro.bysl:2595: @block");
  /*block*/{
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2593: @getslot");
+  BASILYS_LOCATION("warmelt-macro.bysl:2596: @getslot");
   /*_.LOC__V12*/ curfptr[11] = basilys_getfield_object((basilys_ptr_t)(/*_.SEXPR__V2*/ curfptr[1]), 1, "LOCA_LOCATION");
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2594: @getslot");
+  BASILYS_LOCATION("warmelt-macro.bysl:2597: @getslot");
   /*_.CONT__V13*/ curfptr[12] = basilys_getfield_object((basilys_ptr_t)(/*_.SEXPR__V2*/ curfptr[1]), 2, "SEXP_CONTENTS");
   ;
   /*_.LIST_FIRST__V14*/ curfptr[13] = 
@@ -34794,15 +34838,15 @@ BASILYS_LOCATION("warmelt-macro.bysl:2588: @block");
   /*_.CURPAIR__V15*/ curfptr[14] = 
    (basilys_pair_tail((basilys_ptr_t)(/*_.LIST_FIRST__V14*/ curfptr[13])));;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2596: @block");
+  BASILYS_LOCATION("warmelt-macro.bysl:2599: @block");
   /*block*/{
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2596: @rawallocobj");
+   BASILYS_LOCATION("warmelt-macro.bysl:2599: @rawallocobj");
    /*rawallocobj*/ /*_.INST__V17*/ curfptr[16] =
-    basilysgc_new_raw_object((basilysobject_ptr_t)((/*!CLASS_SRC_UPDATE_CURRENT_MODULE_ENVIRONMENT_CONTAINER*/ curfrout->tabval[3])), (2));
+    basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_SRC_UPDATE_CURRENT_MODULE_ENVIRONMENT_CONTAINER*/ curfrout->tabval[3])), (2), ("CLASS_SRC_UPDATE_CURRENT_MODULE_ENVIRONMENT_CONTAINER"));
    ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2596: @putslot");
+   BASILYS_LOCATION("warmelt-macro.bysl:2599: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V17*/ curfptr[16])) == OBMAG_OBJECT);
    basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V17*/ curfptr[16]))));
@@ -34814,12 +34858,12 @@ BASILYS_LOCATION("warmelt-macro.bysl:2588: @block");
   /*_#NOTNULL__L4*/ curfnum[0] = 
    ((/*_.CURPAIR__V15*/ curfptr[14]) != NULL);;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2599: @cond");
+  BASILYS_LOCATION("warmelt-macro.bysl:2602: @cond");
   /*cond*/ if (/*_#NOTNULL__L4*/ curfnum[0]) /*then*/ {
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2599: @cond.then");
+  BASILYS_LOCATION("warmelt-macro.bysl:2602: @cond.then");
   
-   BASILYS_LOCATION("warmelt-macro.bysl:2599: @block");
+   BASILYS_LOCATION("warmelt-macro.bysl:2602: @block");
    /*block*/{
     
     error("%s:%d:: BASILYS ERROR [#%ld]: @%s ",  basilys_string_str(basilys_val_mixint((basilys_ptr_t)(/*_.LOC__V12*/ curfptr[11]))),  (int) basilys_num_mixint((basilys_ptr_t)(/*_.LOC__V12*/ curfptr[11])), basilys_dbgcounter, ( "(UPDATE_CURRENT_MODULE_ENVIRONMENT_CONTAINER) should not have any argument"));
@@ -34830,101 +34874,101 @@ BASILYS_LOCATION("warmelt-macro.bysl:2588: @block");
   
   #if ENABLE_CHECKING
    
-  BASILYS_LOCATION("warmelt-macro.bysl:2601: @cppif.then");
+  BASILYS_LOCATION("warmelt-macro.bysl:2604: @cppif.then");
   
-   BASILYS_LOCATION("warmelt-macro.bysl:2601: @block");
+   BASILYS_LOCATION("warmelt-macro.bysl:2604: @block");
    /*block*/{
     /*_#THE_CALLCOUNT__L5*/ curfnum[4] = 
      callcount;;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2601: @apply");
+    BASILYS_LOCATION("warmelt-macro.bysl:2604: @apply");
     /*apply*/{
      union basilysparam_un argtab[4];
      memset(&argtab, 0, sizeof(argtab));
      
-     BASILYS_LOCATION("warmelt-macro.bysl:2601: @apply.arg");
+     BASILYS_LOCATION("warmelt-macro.bysl:2604: @apply.arg");
      argtab[0].bp_cstring =  "mexpand_update_current_module_environment_container return res";
-     BASILYS_LOCATION("warmelt-macro.bysl:2601: @apply.arg");
+     BASILYS_LOCATION("warmelt-macro.bysl:2604: @apply.arg");
      argtab[1].bp_long = /*_#THE_CALLCOUNT__L5*/ curfnum[4];
-     BASILYS_LOCATION("warmelt-macro.bysl:2601: @apply.arg");
+     BASILYS_LOCATION("warmelt-macro.bysl:2604: @apply.arg");
      argtab[2].bp_cstring =  "warmelt-macro.bysl";
-     BASILYS_LOCATION("warmelt-macro.bysl:2601: @apply.arg");
-     argtab[3].bp_long = 2601;
+     BASILYS_LOCATION("warmelt-macro.bysl:2604: @apply.arg");
+     argtab[3].bp_long = 2604;
      /*_.DEBUG_MSG_FUN__V19*/ curfptr[18] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[2])), (basilys_ptr_t)(/*_.RES__V16*/ curfptr[15]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
      }
     ;
     /*_.IFCPP___V18*/ curfptr[17] = /*_.DEBUG_MSG_FUN__V19*/ curfptr[18];;
     /*epilog*/
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2601: @clear");
+    BASILYS_LOCATION("warmelt-macro.bysl:2604: @clear");
     /*clear*/ /*_#THE_CALLCOUNT__L5*/ curfnum[4] = 0 ;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2601: @clear");
+    BASILYS_LOCATION("warmelt-macro.bysl:2604: @clear");
     /*clear*/ /*_.DEBUG_MSG_FUN__V19*/ curfptr[18] = 0 ;}
    
    #else /*ENABLE_CHECKING*/
    
-  BASILYS_LOCATION("warmelt-macro.bysl:2601: @cppif.else");
+  BASILYS_LOCATION("warmelt-macro.bysl:2604: @cppif.else");
   /*_.IFCPP___V18*/ curfptr[17] = (/*nil*/NULL);
    #endif /*ENABLE_CHECKING*/
    ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2602: @block");
+  BASILYS_LOCATION("warmelt-macro.bysl:2605: @block");
   /*block*/{
    /*_.RETVAL___V1*/ curfptr[0] = /*_.RES__V16*/ curfptr[15];;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2602: @finalreturn");
+   BASILYS_LOCATION("warmelt-macro.bysl:2605: @finalreturn");
    ;
    /*finalret*/ goto labend_rout ;}
   ;
   /*_.LET___V11*/ curfptr[9] = /*_.RETURN___V20*/ curfptr[18];;
   /*epilog*/
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2592: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2595: @clear");
   /*clear*/ /*_.LOC__V12*/ curfptr[11] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2592: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2595: @clear");
   /*clear*/ /*_.CONT__V13*/ curfptr[12] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2592: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2595: @clear");
   /*clear*/ /*_.LIST_FIRST__V14*/ curfptr[13] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2592: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2595: @clear");
   /*clear*/ /*_.CURPAIR__V15*/ curfptr[14] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2592: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2595: @clear");
   /*clear*/ /*_.RES__V16*/ curfptr[15] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2592: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2595: @clear");
   /*clear*/ /*_#NOTNULL__L4*/ curfnum[0] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2592: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2595: @clear");
   /*clear*/ /*_.IFCPP___V18*/ curfptr[17] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2592: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2595: @clear");
   /*clear*/ /*_.RETURN___V20*/ curfptr[18] = 0 ;}
  ;
  
- BASILYS_LOCATION("warmelt-macro.bysl:2588: @block");
+ BASILYS_LOCATION("warmelt-macro.bysl:2591: @block");
  /*block*/{
   /*_.RETVAL___V1*/ curfptr[0] = /*_.LET___V11*/ curfptr[9];;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2588: @finalreturn");
+  BASILYS_LOCATION("warmelt-macro.bysl:2591: @finalreturn");
   ;
   /*finalret*/ goto labend_rout ;}
  ;
  /*epilog*/
  
- BASILYS_LOCATION("warmelt-macro.bysl:2588: @clear");
+ BASILYS_LOCATION("warmelt-macro.bysl:2591: @clear");
  /*clear*/ /*_.IFCPP___V5*/ curfptr[4] = 0 ;
  
- BASILYS_LOCATION("warmelt-macro.bysl:2588: @clear");
+ BASILYS_LOCATION("warmelt-macro.bysl:2591: @clear");
  /*clear*/ /*_.IFCPP___V7*/ curfptr[5] = 0 ;
  
- BASILYS_LOCATION("warmelt-macro.bysl:2588: @clear");
+ BASILYS_LOCATION("warmelt-macro.bysl:2591: @clear");
  /*clear*/ /*_.IFCPP___V9*/ curfptr[7] = 0 ;
  
- BASILYS_LOCATION("warmelt-macro.bysl:2588: @clear");
+ BASILYS_LOCATION("warmelt-macro.bysl:2591: @clear");
  /*clear*/ /*_.LET___V11*/ curfptr[9] = 0 ;}
 
 ;
@@ -34976,12 +35020,12 @@ basilys_trace_start("MEXPAND_FETCH_PREDEFINED", callcount);
 
  /*getarg#0*/
  
- BASILYS_LOCATION("warmelt-macro.bysl:2615: @getarg");
+ BASILYS_LOCATION("warmelt-macro.bysl:2618: @getarg");
  /*_.SEXPR__V2*/ curfptr[1] = (basilys_ptr_t) firstargp_;
  
  /*getarg#1*/
  
- BASILYS_LOCATION("warmelt-macro.bysl:2615: @getarg");
+ BASILYS_LOCATION("warmelt-macro.bysl:2618: @getarg");
  if (xargdescr_[0] != BPAR_PTR) goto lab_endgetargs;
  /*_.ENV__V3*/ curfptr[2] = (xargtab_[0].bp_aptr) ? (*(xargtab_[0].bp_aptr)) : NULL;
  gcc_assert(basilys_discr((basilys_ptr_t)(/*_.ENV__V3*/ curfptr[2])) != NULL);
@@ -34989,7 +35033,7 @@ basilys_trace_start("MEXPAND_FETCH_PREDEFINED", callcount);
  
  /*getarg#2*/
  
- BASILYS_LOCATION("warmelt-macro.bysl:2615: @getarg");
+ BASILYS_LOCATION("warmelt-macro.bysl:2618: @getarg");
  if (xargdescr_[1] != BPAR_PTR) goto lab_endgetargs;
  /*_.MEXPANDER__V4*/ curfptr[3] = (xargtab_[1].bp_aptr) ? (*(xargtab_[1].bp_aptr)) : NULL;
  gcc_assert(basilys_discr((basilys_ptr_t)(/*_.MEXPANDER__V4*/ curfptr[3])) != NULL);
@@ -34999,32 +35043,32 @@ basilys_trace_start("MEXPAND_FETCH_PREDEFINED", callcount);
 lab_endgetargs:;
 /*body*/
 
-BASILYS_LOCATION("warmelt-macro.bysl:2615: @block");
+BASILYS_LOCATION("warmelt-macro.bysl:2618: @block");
 /*block*/{
  
  #if ENABLE_CHECKING
   
- BASILYS_LOCATION("warmelt-macro.bysl:2616: @cppif.then");
+ BASILYS_LOCATION("warmelt-macro.bysl:2619: @cppif.then");
  
-  BASILYS_LOCATION("warmelt-macro.bysl:2616: @block");
+  BASILYS_LOCATION("warmelt-macro.bysl:2619: @block");
   /*block*/{
    /*_#IS_A__L1*/ curfnum[0] = 
      basilys_is_instance_of((basilys_ptr_t)(/*_.SEXPR__V2*/ curfptr[1]), (basilys_ptr_t)((/*!CLASS_SEXPR*/ curfrout->tabval[0])));;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2616: @cond");
+   BASILYS_LOCATION("warmelt-macro.bysl:2619: @cond");
    /*cond*/ if (/*_#IS_A__L1*/ curfnum[0]) /*then*/ {
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2616: @cond.then");
+   BASILYS_LOCATION("warmelt-macro.bysl:2619: @cond.then");
    /*_.IFELSE___V6*/ curfptr[5] = (/*nil*/NULL);;
    } else {
-   BASILYS_LOCATION("warmelt-macro.bysl:2616: @cond.else");
+   BASILYS_LOCATION("warmelt-macro.bysl:2619: @cond.else");
    
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2616: @block");
+    BASILYS_LOCATION("warmelt-macro.bysl:2619: @block");
     /*block*/{
      /*block*/{
       
-      basilys_assert_failed(( "check sexpr"),( "warmelt-macro.bysl"),(2616), __FUNCTION__);
+      basilys_assert_failed(( "check sexpr"),( "warmelt-macro.bysl"),(2619), __FUNCTION__);
       /*clear*/ /*_.IFELSE___V6*/ curfptr[5] = 0 ;}
      ;
      /*epilog*/}
@@ -35034,42 +35078,42 @@ BASILYS_LOCATION("warmelt-macro.bysl:2615: @block");
    /*_.IFCPP___V5*/ curfptr[4] = /*_.IFELSE___V6*/ curfptr[5];;
    /*epilog*/
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2616: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2619: @clear");
    /*clear*/ /*_#IS_A__L1*/ curfnum[0] = 0 ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2616: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2619: @clear");
    /*clear*/ /*_.IFELSE___V6*/ curfptr[5] = 0 ;}
   
   #else /*ENABLE_CHECKING*/
   
- BASILYS_LOCATION("warmelt-macro.bysl:2616: @cppif.else");
+ BASILYS_LOCATION("warmelt-macro.bysl:2619: @cppif.else");
  /*_.IFCPP___V5*/ curfptr[4] = (/*nil*/NULL);
   #endif /*ENABLE_CHECKING*/
   ;
  
  #if ENABLE_CHECKING
   
- BASILYS_LOCATION("warmelt-macro.bysl:2617: @cppif.then");
+ BASILYS_LOCATION("warmelt-macro.bysl:2620: @cppif.then");
  
-  BASILYS_LOCATION("warmelt-macro.bysl:2617: @block");
+  BASILYS_LOCATION("warmelt-macro.bysl:2620: @block");
   /*block*/{
    /*_#IS_A__L2*/ curfnum[0] = 
      basilys_is_instance_of((basilys_ptr_t)(/*_.ENV__V3*/ curfptr[2]), (basilys_ptr_t)((/*!CLASS_ENVIRONMENT*/ curfrout->tabval[1])));;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2617: @cond");
+   BASILYS_LOCATION("warmelt-macro.bysl:2620: @cond");
    /*cond*/ if (/*_#IS_A__L2*/ curfnum[0]) /*then*/ {
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2617: @cond.then");
+   BASILYS_LOCATION("warmelt-macro.bysl:2620: @cond.then");
    /*_.IFELSE___V8*/ curfptr[7] = (/*nil*/NULL);;
    } else {
-   BASILYS_LOCATION("warmelt-macro.bysl:2617: @cond.else");
+   BASILYS_LOCATION("warmelt-macro.bysl:2620: @cond.else");
    
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2617: @block");
+    BASILYS_LOCATION("warmelt-macro.bysl:2620: @block");
     /*block*/{
      /*block*/{
       
-      basilys_assert_failed(( "check env"),( "warmelt-macro.bysl"),(2617), __FUNCTION__);
+      basilys_assert_failed(( "check env"),( "warmelt-macro.bysl"),(2620), __FUNCTION__);
       /*clear*/ /*_.IFELSE___V8*/ curfptr[7] = 0 ;}
      ;
      /*epilog*/}
@@ -35079,68 +35123,68 @@ BASILYS_LOCATION("warmelt-macro.bysl:2615: @block");
    /*_.IFCPP___V7*/ curfptr[5] = /*_.IFELSE___V8*/ curfptr[7];;
    /*epilog*/
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2617: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2620: @clear");
    /*clear*/ /*_#IS_A__L2*/ curfnum[0] = 0 ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2617: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2620: @clear");
    /*clear*/ /*_.IFELSE___V8*/ curfptr[7] = 0 ;}
   
   #else /*ENABLE_CHECKING*/
   
- BASILYS_LOCATION("warmelt-macro.bysl:2617: @cppif.else");
+ BASILYS_LOCATION("warmelt-macro.bysl:2620: @cppif.else");
  /*_.IFCPP___V7*/ curfptr[5] = (/*nil*/NULL);
   #endif /*ENABLE_CHECKING*/
   ;
  
  #if ENABLE_CHECKING
   
- BASILYS_LOCATION("warmelt-macro.bysl:2618: @cppif.then");
+ BASILYS_LOCATION("warmelt-macro.bysl:2621: @cppif.then");
  
-  BASILYS_LOCATION("warmelt-macro.bysl:2618: @block");
+  BASILYS_LOCATION("warmelt-macro.bysl:2621: @block");
   /*block*/{
    /*_#THE_CALLCOUNT__L3*/ curfnum[0] = 
     callcount;;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2618: @apply");
+   BASILYS_LOCATION("warmelt-macro.bysl:2621: @apply");
    /*apply*/{
     union basilysparam_un argtab[4];
     memset(&argtab, 0, sizeof(argtab));
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2618: @apply.arg");
+    BASILYS_LOCATION("warmelt-macro.bysl:2621: @apply.arg");
     argtab[0].bp_cstring =  "mexpand_fetch_predefined sexpr";
-    BASILYS_LOCATION("warmelt-macro.bysl:2618: @apply.arg");
+    BASILYS_LOCATION("warmelt-macro.bysl:2621: @apply.arg");
     argtab[1].bp_long = /*_#THE_CALLCOUNT__L3*/ curfnum[0];
-    BASILYS_LOCATION("warmelt-macro.bysl:2618: @apply.arg");
+    BASILYS_LOCATION("warmelt-macro.bysl:2621: @apply.arg");
     argtab[2].bp_cstring =  "warmelt-macro.bysl";
-    BASILYS_LOCATION("warmelt-macro.bysl:2618: @apply.arg");
-    argtab[3].bp_long = 2618;
+    BASILYS_LOCATION("warmelt-macro.bysl:2621: @apply.arg");
+    argtab[3].bp_long = 2621;
     /*_.DEBUG_MSG_FUN__V10*/ curfptr[9] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[2])), (basilys_ptr_t)(/*_.SEXPR__V2*/ curfptr[1]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
     }
    ;
    /*_.IFCPP___V9*/ curfptr[7] = /*_.DEBUG_MSG_FUN__V10*/ curfptr[9];;
    /*epilog*/
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2618: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2621: @clear");
    /*clear*/ /*_#THE_CALLCOUNT__L3*/ curfnum[0] = 0 ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2618: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2621: @clear");
    /*clear*/ /*_.DEBUG_MSG_FUN__V10*/ curfptr[9] = 0 ;}
   
   #else /*ENABLE_CHECKING*/
   
- BASILYS_LOCATION("warmelt-macro.bysl:2618: @cppif.else");
+ BASILYS_LOCATION("warmelt-macro.bysl:2621: @cppif.else");
  /*_.IFCPP___V9*/ curfptr[7] = (/*nil*/NULL);
   #endif /*ENABLE_CHECKING*/
   ;
  
- BASILYS_LOCATION("warmelt-macro.bysl:2619: @block");
+ BASILYS_LOCATION("warmelt-macro.bysl:2622: @block");
  /*block*/{
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2620: @getslot");
+  BASILYS_LOCATION("warmelt-macro.bysl:2623: @getslot");
   /*_.CONT__V12*/ curfptr[11] = basilys_getfield_object((basilys_ptr_t)(/*_.SEXPR__V2*/ curfptr[1]), 2, "SEXP_CONTENTS");
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2621: @getslot");
+  BASILYS_LOCATION("warmelt-macro.bysl:2624: @getslot");
   /*_.LOC__V13*/ curfptr[12] = basilys_getfield_object((basilys_ptr_t)(/*_.SEXPR__V2*/ curfptr[1]), 1, "LOCA_LOCATION");
   ;
   /*_.LIST_FIRST__V14*/ curfptr[13] = 
@@ -35150,14 +35194,14 @@ BASILYS_LOCATION("warmelt-macro.bysl:2615: @block");
   /*_.PAIR_HEAD__V16*/ curfptr[15] = 
    (basilys_pair_head((basilys_ptr_t)(/*_.CURPAIR__V15*/ curfptr[14])));;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2623: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2626: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2623: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2626: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.ENV__V3*/ curfptr[2];
-   BASILYS_LOCATION("warmelt-macro.bysl:2623: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2626: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &/*_.MEXPANDER__V4*/ curfptr[3];
    /*_.SPREDEF__V17*/ curfptr[16] =  basilys_apply ((basilysclosure_ptr_t)((/*!MACROEXPAND_1*/ curfrout->tabval[3])), (basilys_ptr_t)(/*_.PAIR_HEAD__V16*/ curfptr[15]), (BPARSTR_PTR BPARSTR_PTR ""), argtab, "", (union basilysparam_un*)0);
    }
@@ -35165,12 +35209,12 @@ BASILYS_LOCATION("warmelt-macro.bysl:2615: @block");
   /*_#NULL__L4*/ curfnum[0] = 
    ((/*_.CURPAIR__V15*/ curfptr[14]) == NULL);;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2625: @cond");
+  BASILYS_LOCATION("warmelt-macro.bysl:2628: @cond");
   /*cond*/ if (/*_#NULL__L4*/ curfnum[0]) /*then*/ {
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2625: @cond.then");
+  BASILYS_LOCATION("warmelt-macro.bysl:2628: @cond.then");
   
-   BASILYS_LOCATION("warmelt-macro.bysl:2625: @block");
+   BASILYS_LOCATION("warmelt-macro.bysl:2628: @block");
    /*block*/{
     
     error("%s:%d:: BASILYS ERROR [#%ld]: @%s ",  basilys_string_str(basilys_val_mixint((basilys_ptr_t)(/*_.LOC__V13*/ curfptr[12]))),  (int) basilys_num_mixint((basilys_ptr_t)(/*_.LOC__V13*/ curfptr[12])), basilys_dbgcounter, ( "(FETCH_PREDEFINED <predef-name-or-rank>) missing argument"));
@@ -35183,12 +35227,12 @@ BASILYS_LOCATION("warmelt-macro.bysl:2615: @block");
   /*_#NOTNULL__L5*/ curfnum[4] = 
    ((/*_.PAIR_TAIL__V18*/ curfptr[17]) != NULL);;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2627: @cond");
+  BASILYS_LOCATION("warmelt-macro.bysl:2630: @cond");
   /*cond*/ if (/*_#NOTNULL__L5*/ curfnum[4]) /*then*/ {
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2627: @cond.then");
+  BASILYS_LOCATION("warmelt-macro.bysl:2630: @cond.then");
   
-   BASILYS_LOCATION("warmelt-macro.bysl:2627: @block");
+   BASILYS_LOCATION("warmelt-macro.bysl:2630: @block");
    /*block*/{
     
     error("%s:%d:: BASILYS ERROR [#%ld]: @%s ",  basilys_string_str(basilys_val_mixint((basilys_ptr_t)(/*_.LOC__V13*/ curfptr[12]))),  (int) basilys_num_mixint((basilys_ptr_t)(/*_.LOC__V13*/ curfptr[12])), basilys_dbgcounter, ( "(FETCH_PREDEFINED <predef-name-or-rank>) extra argument"));
@@ -35199,23 +35243,23 @@ BASILYS_LOCATION("warmelt-macro.bysl:2615: @block");
   /*_#IS_A__L6*/ curfnum[5] = 
     basilys_is_instance_of((basilys_ptr_t)(/*_.SPREDEF__V17*/ curfptr[16]), (basilys_ptr_t)((/*!CLASS_SYMBOL*/ curfrout->tabval[4])));;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2629: @cond");
+  BASILYS_LOCATION("warmelt-macro.bysl:2632: @cond");
   /*cond*/ if (/*_#IS_A__L6*/ curfnum[5]) /*then*/ {
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2629: @cond.then");
+  BASILYS_LOCATION("warmelt-macro.bysl:2632: @cond.then");
   /*_#OR___L7*/ curfnum[6] = /*_#IS_A__L6*/ curfnum[5];;
   } else {
-  BASILYS_LOCATION("warmelt-macro.bysl:2629: @cond.else");
+  BASILYS_LOCATION("warmelt-macro.bysl:2632: @cond.else");
   
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2629: @block");
+   BASILYS_LOCATION("warmelt-macro.bysl:2632: @block");
    /*block*/{
     /*_#IS_INTEGERBOX__L8*/ curfnum[7] = 
      (basilys_magic_discr((basilys_ptr_t)(/*_.SPREDEF__V17*/ curfptr[16])) == OBMAG_INT);;
     /*_#OR___L7*/ curfnum[6] = /*_#IS_INTEGERBOX__L8*/ curfnum[7];;
     /*epilog*/
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2629: @clear");
+    BASILYS_LOCATION("warmelt-macro.bysl:2632: @clear");
     /*clear*/ /*_#IS_INTEGERBOX__L8*/ curfnum[7] = 0 ;}
    ;
    }
@@ -35223,12 +35267,12 @@ BASILYS_LOCATION("warmelt-macro.bysl:2615: @block");
   /*_#NOT__L9*/ curfnum[7] = 
    (!(/*_#OR___L7*/ curfnum[6]));;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2629: @cond");
+  BASILYS_LOCATION("warmelt-macro.bysl:2632: @cond");
   /*cond*/ if (/*_#NOT__L9*/ curfnum[7]) /*then*/ {
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2629: @cond.then");
+  BASILYS_LOCATION("warmelt-macro.bysl:2632: @cond.then");
   
-   BASILYS_LOCATION("warmelt-macro.bysl:2629: @block");
+   BASILYS_LOCATION("warmelt-macro.bysl:2632: @block");
    /*block*/{
     
     error("%s:%d:: BASILYS ERROR [#%ld]: @%s ",  basilys_string_str(basilys_val_mixint((basilys_ptr_t)(/*_.LOC__V13*/ curfptr[12]))),  (int) basilys_num_mixint((basilys_ptr_t)(/*_.LOC__V13*/ curfptr[12])), basilys_dbgcounter, ( "(FETCH_PREDEFINED <predef-name-or-rank>) invalid argument"));
@@ -35237,18 +35281,18 @@ BASILYS_LOCATION("warmelt-macro.bysl:2615: @block");
   } /*noelse*/
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2631: @block");
+  BASILYS_LOCATION("warmelt-macro.bysl:2634: @block");
   /*block*/{
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2631: @block");
+   BASILYS_LOCATION("warmelt-macro.bysl:2634: @block");
    /*block*/{
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2631: @rawallocobj");
+    BASILYS_LOCATION("warmelt-macro.bysl:2634: @rawallocobj");
     /*rawallocobj*/ /*_.INST__V21*/ curfptr[20] =
-     basilysgc_new_raw_object((basilysobject_ptr_t)((/*!CLASS_SRC_FETCH_PREDEFINED*/ curfrout->tabval[5])), (2));
+     basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_SRC_FETCH_PREDEFINED*/ curfrout->tabval[5])), (2), ("CLASS_SRC_FETCH_PREDEFINED"));
     ;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2631: @putslot");
+    BASILYS_LOCATION("warmelt-macro.bysl:2634: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V21*/ curfptr[20])) == OBMAG_OBJECT);
     basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V21*/ curfptr[20]))));
@@ -35256,7 +35300,7 @@ BASILYS_LOCATION("warmelt-macro.bysl:2615: @block");
      /*_.LOC__V13*/ curfptr[12]);
     ;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2631: @putslot");
+    BASILYS_LOCATION("warmelt-macro.bysl:2634: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V21*/ curfptr[20])) == OBMAG_OBJECT);
     basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V21*/ curfptr[20]))));
@@ -35268,128 +35312,128 @@ BASILYS_LOCATION("warmelt-macro.bysl:2615: @block");
    
    #if ENABLE_CHECKING
     
-   BASILYS_LOCATION("warmelt-macro.bysl:2634: @cppif.then");
+   BASILYS_LOCATION("warmelt-macro.bysl:2637: @cppif.then");
    
-    BASILYS_LOCATION("warmelt-macro.bysl:2634: @block");
+    BASILYS_LOCATION("warmelt-macro.bysl:2637: @block");
     /*block*/{
      /*_#THE_CALLCOUNT__L10*/ curfnum[9] = 
       callcount;;
      
-     BASILYS_LOCATION("warmelt-macro.bysl:2634: @apply");
+     BASILYS_LOCATION("warmelt-macro.bysl:2637: @apply");
      /*apply*/{
       union basilysparam_un argtab[4];
       memset(&argtab, 0, sizeof(argtab));
       
-      BASILYS_LOCATION("warmelt-macro.bysl:2634: @apply.arg");
+      BASILYS_LOCATION("warmelt-macro.bysl:2637: @apply.arg");
       argtab[0].bp_cstring =  "mexpand_fetch_predefined result";
-      BASILYS_LOCATION("warmelt-macro.bysl:2634: @apply.arg");
+      BASILYS_LOCATION("warmelt-macro.bysl:2637: @apply.arg");
       argtab[1].bp_long = /*_#THE_CALLCOUNT__L10*/ curfnum[9];
-      BASILYS_LOCATION("warmelt-macro.bysl:2634: @apply.arg");
+      BASILYS_LOCATION("warmelt-macro.bysl:2637: @apply.arg");
       argtab[2].bp_cstring =  "warmelt-macro.bysl";
-      BASILYS_LOCATION("warmelt-macro.bysl:2634: @apply.arg");
-      argtab[3].bp_long = 2634;
+      BASILYS_LOCATION("warmelt-macro.bysl:2637: @apply.arg");
+      argtab[3].bp_long = 2637;
       /*_.DEBUG_MSG_FUN__V23*/ curfptr[22] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[2])), (basilys_ptr_t)(/*_.RES__V20*/ curfptr[19]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
       }
      ;
      /*_.IFCPP___V22*/ curfptr[21] = /*_.DEBUG_MSG_FUN__V23*/ curfptr[22];;
      /*epilog*/
      
-     BASILYS_LOCATION("warmelt-macro.bysl:2634: @clear");
+     BASILYS_LOCATION("warmelt-macro.bysl:2637: @clear");
      /*clear*/ /*_#THE_CALLCOUNT__L10*/ curfnum[9] = 0 ;
      
-     BASILYS_LOCATION("warmelt-macro.bysl:2634: @clear");
+     BASILYS_LOCATION("warmelt-macro.bysl:2637: @clear");
      /*clear*/ /*_.DEBUG_MSG_FUN__V23*/ curfptr[22] = 0 ;}
     
     #else /*ENABLE_CHECKING*/
     
-   BASILYS_LOCATION("warmelt-macro.bysl:2634: @cppif.else");
+   BASILYS_LOCATION("warmelt-macro.bysl:2637: @cppif.else");
    /*_.IFCPP___V22*/ curfptr[21] = (/*nil*/NULL);
     #endif /*ENABLE_CHECKING*/
     ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2635: @block");
+   BASILYS_LOCATION("warmelt-macro.bysl:2638: @block");
    /*block*/{
     /*_.RETVAL___V1*/ curfptr[0] = /*_.RES__V20*/ curfptr[19];;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2635: @finalreturn");
+    BASILYS_LOCATION("warmelt-macro.bysl:2638: @finalreturn");
     ;
     /*finalret*/ goto labend_rout ;}
    ;
    /*_.LET___V19*/ curfptr[18] = /*_.RETURN___V24*/ curfptr[22];;
    /*epilog*/
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2631: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2634: @clear");
    /*clear*/ /*_.RES__V20*/ curfptr[19] = 0 ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2631: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2634: @clear");
    /*clear*/ /*_.IFCPP___V22*/ curfptr[21] = 0 ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2631: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2634: @clear");
    /*clear*/ /*_.RETURN___V24*/ curfptr[22] = 0 ;}
   ;
   /*_.LET___V11*/ curfptr[9] = /*_.LET___V19*/ curfptr[18];;
   /*epilog*/
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2619: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2622: @clear");
   /*clear*/ /*_.CONT__V12*/ curfptr[11] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2619: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2622: @clear");
   /*clear*/ /*_.LOC__V13*/ curfptr[12] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2619: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2622: @clear");
   /*clear*/ /*_.LIST_FIRST__V14*/ curfptr[13] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2619: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2622: @clear");
   /*clear*/ /*_.CURPAIR__V15*/ curfptr[14] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2619: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2622: @clear");
   /*clear*/ /*_.PAIR_HEAD__V16*/ curfptr[15] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2619: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2622: @clear");
   /*clear*/ /*_.SPREDEF__V17*/ curfptr[16] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2619: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2622: @clear");
   /*clear*/ /*_#NULL__L4*/ curfnum[0] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2619: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2622: @clear");
   /*clear*/ /*_.PAIR_TAIL__V18*/ curfptr[17] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2619: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2622: @clear");
   /*clear*/ /*_#NOTNULL__L5*/ curfnum[4] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2619: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2622: @clear");
   /*clear*/ /*_#IS_A__L6*/ curfnum[5] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2619: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2622: @clear");
   /*clear*/ /*_#OR___L7*/ curfnum[6] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2619: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2622: @clear");
   /*clear*/ /*_#NOT__L9*/ curfnum[7] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2619: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2622: @clear");
   /*clear*/ /*_.LET___V19*/ curfptr[18] = 0 ;}
  ;
  
- BASILYS_LOCATION("warmelt-macro.bysl:2615: @block");
+ BASILYS_LOCATION("warmelt-macro.bysl:2618: @block");
  /*block*/{
   /*_.RETVAL___V1*/ curfptr[0] = /*_.LET___V11*/ curfptr[9];;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2615: @finalreturn");
+  BASILYS_LOCATION("warmelt-macro.bysl:2618: @finalreturn");
   ;
   /*finalret*/ goto labend_rout ;}
  ;
  /*epilog*/
  
- BASILYS_LOCATION("warmelt-macro.bysl:2615: @clear");
+ BASILYS_LOCATION("warmelt-macro.bysl:2618: @clear");
  /*clear*/ /*_.IFCPP___V5*/ curfptr[4] = 0 ;
  
- BASILYS_LOCATION("warmelt-macro.bysl:2615: @clear");
+ BASILYS_LOCATION("warmelt-macro.bysl:2618: @clear");
  /*clear*/ /*_.IFCPP___V7*/ curfptr[5] = 0 ;
  
- BASILYS_LOCATION("warmelt-macro.bysl:2615: @clear");
+ BASILYS_LOCATION("warmelt-macro.bysl:2618: @clear");
  /*clear*/ /*_.IFCPP___V9*/ curfptr[7] = 0 ;
  
- BASILYS_LOCATION("warmelt-macro.bysl:2615: @clear");
+ BASILYS_LOCATION("warmelt-macro.bysl:2618: @clear");
  /*clear*/ /*_.LET___V11*/ curfptr[9] = 0 ;}
 
 ;
@@ -35441,12 +35485,12 @@ basilys_trace_start("MEXPAND_STORE_PREDEFINED", callcount);
 
  /*getarg#0*/
  
- BASILYS_LOCATION("warmelt-macro.bysl:2641: @getarg");
+ BASILYS_LOCATION("warmelt-macro.bysl:2644: @getarg");
  /*_.SEXPR__V2*/ curfptr[1] = (basilys_ptr_t) firstargp_;
  
  /*getarg#1*/
  
- BASILYS_LOCATION("warmelt-macro.bysl:2641: @getarg");
+ BASILYS_LOCATION("warmelt-macro.bysl:2644: @getarg");
  if (xargdescr_[0] != BPAR_PTR) goto lab_endgetargs;
  /*_.ENV__V3*/ curfptr[2] = (xargtab_[0].bp_aptr) ? (*(xargtab_[0].bp_aptr)) : NULL;
  gcc_assert(basilys_discr((basilys_ptr_t)(/*_.ENV__V3*/ curfptr[2])) != NULL);
@@ -35454,7 +35498,7 @@ basilys_trace_start("MEXPAND_STORE_PREDEFINED", callcount);
  
  /*getarg#2*/
  
- BASILYS_LOCATION("warmelt-macro.bysl:2641: @getarg");
+ BASILYS_LOCATION("warmelt-macro.bysl:2644: @getarg");
  if (xargdescr_[1] != BPAR_PTR) goto lab_endgetargs;
  /*_.MEXPANDER__V4*/ curfptr[3] = (xargtab_[1].bp_aptr) ? (*(xargtab_[1].bp_aptr)) : NULL;
  gcc_assert(basilys_discr((basilys_ptr_t)(/*_.MEXPANDER__V4*/ curfptr[3])) != NULL);
@@ -35464,32 +35508,32 @@ basilys_trace_start("MEXPAND_STORE_PREDEFINED", callcount);
 lab_endgetargs:;
 /*body*/
 
-BASILYS_LOCATION("warmelt-macro.bysl:2641: @block");
+BASILYS_LOCATION("warmelt-macro.bysl:2644: @block");
 /*block*/{
  
  #if ENABLE_CHECKING
   
- BASILYS_LOCATION("warmelt-macro.bysl:2642: @cppif.then");
+ BASILYS_LOCATION("warmelt-macro.bysl:2645: @cppif.then");
  
-  BASILYS_LOCATION("warmelt-macro.bysl:2642: @block");
+  BASILYS_LOCATION("warmelt-macro.bysl:2645: @block");
   /*block*/{
    /*_#IS_A__L1*/ curfnum[0] = 
      basilys_is_instance_of((basilys_ptr_t)(/*_.SEXPR__V2*/ curfptr[1]), (basilys_ptr_t)((/*!CLASS_SEXPR*/ curfrout->tabval[0])));;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2642: @cond");
+   BASILYS_LOCATION("warmelt-macro.bysl:2645: @cond");
    /*cond*/ if (/*_#IS_A__L1*/ curfnum[0]) /*then*/ {
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2642: @cond.then");
+   BASILYS_LOCATION("warmelt-macro.bysl:2645: @cond.then");
    /*_.IFELSE___V6*/ curfptr[5] = (/*nil*/NULL);;
    } else {
-   BASILYS_LOCATION("warmelt-macro.bysl:2642: @cond.else");
+   BASILYS_LOCATION("warmelt-macro.bysl:2645: @cond.else");
    
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2642: @block");
+    BASILYS_LOCATION("warmelt-macro.bysl:2645: @block");
     /*block*/{
      /*block*/{
       
-      basilys_assert_failed(( "check sexpr"),( "warmelt-macro.bysl"),(2642), __FUNCTION__);
+      basilys_assert_failed(( "check sexpr"),( "warmelt-macro.bysl"),(2645), __FUNCTION__);
       /*clear*/ /*_.IFELSE___V6*/ curfptr[5] = 0 ;}
      ;
      /*epilog*/}
@@ -35499,42 +35543,42 @@ BASILYS_LOCATION("warmelt-macro.bysl:2641: @block");
    /*_.IFCPP___V5*/ curfptr[4] = /*_.IFELSE___V6*/ curfptr[5];;
    /*epilog*/
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2642: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2645: @clear");
    /*clear*/ /*_#IS_A__L1*/ curfnum[0] = 0 ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2642: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2645: @clear");
    /*clear*/ /*_.IFELSE___V6*/ curfptr[5] = 0 ;}
   
   #else /*ENABLE_CHECKING*/
   
- BASILYS_LOCATION("warmelt-macro.bysl:2642: @cppif.else");
+ BASILYS_LOCATION("warmelt-macro.bysl:2645: @cppif.else");
  /*_.IFCPP___V5*/ curfptr[4] = (/*nil*/NULL);
   #endif /*ENABLE_CHECKING*/
   ;
  
  #if ENABLE_CHECKING
   
- BASILYS_LOCATION("warmelt-macro.bysl:2643: @cppif.then");
+ BASILYS_LOCATION("warmelt-macro.bysl:2646: @cppif.then");
  
-  BASILYS_LOCATION("warmelt-macro.bysl:2643: @block");
+  BASILYS_LOCATION("warmelt-macro.bysl:2646: @block");
   /*block*/{
    /*_#IS_A__L2*/ curfnum[0] = 
      basilys_is_instance_of((basilys_ptr_t)(/*_.ENV__V3*/ curfptr[2]), (basilys_ptr_t)((/*!CLASS_ENVIRONMENT*/ curfrout->tabval[1])));;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2643: @cond");
+   BASILYS_LOCATION("warmelt-macro.bysl:2646: @cond");
    /*cond*/ if (/*_#IS_A__L2*/ curfnum[0]) /*then*/ {
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2643: @cond.then");
+   BASILYS_LOCATION("warmelt-macro.bysl:2646: @cond.then");
    /*_.IFELSE___V8*/ curfptr[7] = (/*nil*/NULL);;
    } else {
-   BASILYS_LOCATION("warmelt-macro.bysl:2643: @cond.else");
+   BASILYS_LOCATION("warmelt-macro.bysl:2646: @cond.else");
    
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2643: @block");
+    BASILYS_LOCATION("warmelt-macro.bysl:2646: @block");
     /*block*/{
      /*block*/{
       
-      basilys_assert_failed(( "check env"),( "warmelt-macro.bysl"),(2643), __FUNCTION__);
+      basilys_assert_failed(( "check env"),( "warmelt-macro.bysl"),(2646), __FUNCTION__);
       /*clear*/ /*_.IFELSE___V8*/ curfptr[7] = 0 ;}
      ;
      /*epilog*/}
@@ -35544,68 +35588,68 @@ BASILYS_LOCATION("warmelt-macro.bysl:2641: @block");
    /*_.IFCPP___V7*/ curfptr[5] = /*_.IFELSE___V8*/ curfptr[7];;
    /*epilog*/
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2643: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2646: @clear");
    /*clear*/ /*_#IS_A__L2*/ curfnum[0] = 0 ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2643: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2646: @clear");
    /*clear*/ /*_.IFELSE___V8*/ curfptr[7] = 0 ;}
   
   #else /*ENABLE_CHECKING*/
   
- BASILYS_LOCATION("warmelt-macro.bysl:2643: @cppif.else");
+ BASILYS_LOCATION("warmelt-macro.bysl:2646: @cppif.else");
  /*_.IFCPP___V7*/ curfptr[5] = (/*nil*/NULL);
   #endif /*ENABLE_CHECKING*/
   ;
  
  #if ENABLE_CHECKING
   
- BASILYS_LOCATION("warmelt-macro.bysl:2644: @cppif.then");
+ BASILYS_LOCATION("warmelt-macro.bysl:2647: @cppif.then");
  
-  BASILYS_LOCATION("warmelt-macro.bysl:2644: @block");
+  BASILYS_LOCATION("warmelt-macro.bysl:2647: @block");
   /*block*/{
    /*_#THE_CALLCOUNT__L3*/ curfnum[0] = 
     callcount;;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2644: @apply");
+   BASILYS_LOCATION("warmelt-macro.bysl:2647: @apply");
    /*apply*/{
     union basilysparam_un argtab[4];
     memset(&argtab, 0, sizeof(argtab));
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2644: @apply.arg");
+    BASILYS_LOCATION("warmelt-macro.bysl:2647: @apply.arg");
     argtab[0].bp_cstring =  "mexpand_store_predefined sexpr";
-    BASILYS_LOCATION("warmelt-macro.bysl:2644: @apply.arg");
+    BASILYS_LOCATION("warmelt-macro.bysl:2647: @apply.arg");
     argtab[1].bp_long = /*_#THE_CALLCOUNT__L3*/ curfnum[0];
-    BASILYS_LOCATION("warmelt-macro.bysl:2644: @apply.arg");
+    BASILYS_LOCATION("warmelt-macro.bysl:2647: @apply.arg");
     argtab[2].bp_cstring =  "warmelt-macro.bysl";
-    BASILYS_LOCATION("warmelt-macro.bysl:2644: @apply.arg");
-    argtab[3].bp_long = 2644;
+    BASILYS_LOCATION("warmelt-macro.bysl:2647: @apply.arg");
+    argtab[3].bp_long = 2647;
     /*_.DEBUG_MSG_FUN__V10*/ curfptr[9] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[2])), (basilys_ptr_t)(/*_.SEXPR__V2*/ curfptr[1]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
     }
    ;
    /*_.IFCPP___V9*/ curfptr[7] = /*_.DEBUG_MSG_FUN__V10*/ curfptr[9];;
    /*epilog*/
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2644: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2647: @clear");
    /*clear*/ /*_#THE_CALLCOUNT__L3*/ curfnum[0] = 0 ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2644: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2647: @clear");
    /*clear*/ /*_.DEBUG_MSG_FUN__V10*/ curfptr[9] = 0 ;}
   
   #else /*ENABLE_CHECKING*/
   
- BASILYS_LOCATION("warmelt-macro.bysl:2644: @cppif.else");
+ BASILYS_LOCATION("warmelt-macro.bysl:2647: @cppif.else");
  /*_.IFCPP___V9*/ curfptr[7] = (/*nil*/NULL);
   #endif /*ENABLE_CHECKING*/
   ;
  
- BASILYS_LOCATION("warmelt-macro.bysl:2645: @block");
+ BASILYS_LOCATION("warmelt-macro.bysl:2648: @block");
  /*block*/{
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2646: @getslot");
+  BASILYS_LOCATION("warmelt-macro.bysl:2649: @getslot");
   /*_.CONT__V12*/ curfptr[11] = basilys_getfield_object((basilys_ptr_t)(/*_.SEXPR__V2*/ curfptr[1]), 2, "SEXP_CONTENTS");
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2647: @getslot");
+  BASILYS_LOCATION("warmelt-macro.bysl:2650: @getslot");
   /*_.LOC__V13*/ curfptr[12] = basilys_getfield_object((basilys_ptr_t)(/*_.SEXPR__V2*/ curfptr[1]), 1, "LOCA_LOCATION");
   ;
   /*_.LIST_FIRST__V14*/ curfptr[13] = 
@@ -35615,14 +35659,14 @@ BASILYS_LOCATION("warmelt-macro.bysl:2641: @block");
   /*_.PAIR_HEAD__V16*/ curfptr[15] = 
    (basilys_pair_head((basilys_ptr_t)(/*_.CURPAIR__V15*/ curfptr[14])));;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2649: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2652: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2649: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2652: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.ENV__V3*/ curfptr[2];
-   BASILYS_LOCATION("warmelt-macro.bysl:2649: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2652: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &/*_.MEXPANDER__V4*/ curfptr[3];
    /*_.SPREDEF__V17*/ curfptr[16] =  basilys_apply ((basilysclosure_ptr_t)((/*!MACROEXPAND_1*/ curfrout->tabval[3])), (basilys_ptr_t)(/*_.PAIR_HEAD__V16*/ curfptr[15]), (BPARSTR_PTR BPARSTR_PTR ""), argtab, "", (union basilysparam_un*)0);
    }
@@ -35631,29 +35675,8 @@ BASILYS_LOCATION("warmelt-macro.bysl:2641: @block");
   /*_#NULL__L4*/ curfnum[0] = 
    ((/*_.CURPAIR__V15*/ curfptr[14]) == NULL);;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2652: @cond");
-  /*cond*/ if (/*_#NULL__L4*/ curfnum[0]) /*then*/ {
-  
-  BASILYS_LOCATION("warmelt-macro.bysl:2652: @cond.then");
-  
-   BASILYS_LOCATION("warmelt-macro.bysl:2652: @block");
-   /*block*/{
-    
-    error("%s:%d:: BASILYS ERROR [#%ld]: @%s ",  basilys_string_str(basilys_val_mixint((basilys_ptr_t)(/*_.LOC__V13*/ curfptr[12]))),  (int) basilys_num_mixint((basilys_ptr_t)(/*_.LOC__V13*/ curfptr[12])), basilys_dbgcounter, ( "(STORE_PREDEFINED <predef-name-or-rank> <value>) missing predef"));
-    /*epilog*/}
-   ;
-  } /*noelse*/
-  ;
-  /*_.PAIR_TAIL__V19*/ curfptr[18] = 
-   (basilys_pair_tail((basilys_ptr_t)(/*_.CURPAIR__V15*/ curfptr[14])));;
-  
-  BASILYS_LOCATION("warmelt-macro.bysl:2654: @compute");
-  /*_.CURPAIR__V15*/ curfptr[14] = /*_.SETQ___V20*/ curfptr[19] = /*_.PAIR_TAIL__V19*/ curfptr[18];;
-  /*_#NULL__L5*/ curfnum[4] = 
-   ((/*_.CURPAIR__V15*/ curfptr[14]) == NULL);;
-  
   BASILYS_LOCATION("warmelt-macro.bysl:2655: @cond");
-  /*cond*/ if (/*_#NULL__L5*/ curfnum[4]) /*then*/ {
+  /*cond*/ if (/*_#NULL__L4*/ curfnum[0]) /*then*/ {
   
   BASILYS_LOCATION("warmelt-macro.bysl:2655: @cond.then");
   
@@ -35665,35 +35688,56 @@ BASILYS_LOCATION("warmelt-macro.bysl:2641: @block");
    ;
   } /*noelse*/
   ;
+  /*_.PAIR_TAIL__V19*/ curfptr[18] = 
+   (basilys_pair_tail((basilys_ptr_t)(/*_.CURPAIR__V15*/ curfptr[14])));;
+  
+  BASILYS_LOCATION("warmelt-macro.bysl:2657: @compute");
+  /*_.CURPAIR__V15*/ curfptr[14] = /*_.SETQ___V20*/ curfptr[19] = /*_.PAIR_TAIL__V19*/ curfptr[18];;
+  /*_#NULL__L5*/ curfnum[4] = 
+   ((/*_.CURPAIR__V15*/ curfptr[14]) == NULL);;
+  
+  BASILYS_LOCATION("warmelt-macro.bysl:2658: @cond");
+  /*cond*/ if (/*_#NULL__L5*/ curfnum[4]) /*then*/ {
+  
+  BASILYS_LOCATION("warmelt-macro.bysl:2658: @cond.then");
+  
+   BASILYS_LOCATION("warmelt-macro.bysl:2658: @block");
+   /*block*/{
+    
+    error("%s:%d:: BASILYS ERROR [#%ld]: @%s ",  basilys_string_str(basilys_val_mixint((basilys_ptr_t)(/*_.LOC__V13*/ curfptr[12]))),  (int) basilys_num_mixint((basilys_ptr_t)(/*_.LOC__V13*/ curfptr[12])), basilys_dbgcounter, ( "(STORE_PREDEFINED <predef-name-or-rank> <value>) missing predef"));
+    /*epilog*/}
+   ;
+  } /*noelse*/
+  ;
   /*_.PAIR_HEAD__V21*/ curfptr[20] = 
    (basilys_pair_head((basilys_ptr_t)(/*_.CURPAIR__V15*/ curfptr[14])));;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2657: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2660: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2657: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2660: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.ENV__V3*/ curfptr[2];
-   BASILYS_LOCATION("warmelt-macro.bysl:2657: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2660: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &/*_.MEXPANDER__V4*/ curfptr[3];
    /*_.MACROEXPAND_1__V22*/ curfptr[21] =  basilys_apply ((basilysclosure_ptr_t)((/*!MACROEXPAND_1*/ curfrout->tabval[3])), (basilys_ptr_t)(/*_.PAIR_HEAD__V21*/ curfptr[20]), (BPARSTR_PTR BPARSTR_PTR ""), argtab, "", (union basilysparam_un*)0);
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2657: @compute");
+  BASILYS_LOCATION("warmelt-macro.bysl:2660: @compute");
   /*_.SVAL__V18*/ curfptr[17] = /*_.SETQ___V23*/ curfptr[22] = /*_.MACROEXPAND_1__V22*/ curfptr[21];;
   /*_.PAIR_TAIL__V24*/ curfptr[23] = 
    (basilys_pair_tail((basilys_ptr_t)(/*_.CURPAIR__V15*/ curfptr[14])));;
   /*_#NOTNULL__L6*/ curfnum[5] = 
    ((/*_.PAIR_TAIL__V24*/ curfptr[23]) != NULL);;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2658: @cond");
+  BASILYS_LOCATION("warmelt-macro.bysl:2661: @cond");
   /*cond*/ if (/*_#NOTNULL__L6*/ curfnum[5]) /*then*/ {
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2658: @cond.then");
+  BASILYS_LOCATION("warmelt-macro.bysl:2661: @cond.then");
   
-   BASILYS_LOCATION("warmelt-macro.bysl:2658: @block");
+   BASILYS_LOCATION("warmelt-macro.bysl:2661: @block");
    /*block*/{
     
     error("%s:%d:: BASILYS ERROR [#%ld]: @%s ",  basilys_string_str(basilys_val_mixint((basilys_ptr_t)(/*_.LOC__V13*/ curfptr[12]))),  (int) basilys_num_mixint((basilys_ptr_t)(/*_.LOC__V13*/ curfptr[12])), basilys_dbgcounter, ( "(STORE_PREDEFINED <predef-name-or-rank> <value>) extra argument"));
@@ -35704,23 +35748,23 @@ BASILYS_LOCATION("warmelt-macro.bysl:2641: @block");
   /*_#IS_A__L7*/ curfnum[6] = 
     basilys_is_instance_of((basilys_ptr_t)(/*_.SPREDEF__V17*/ curfptr[16]), (basilys_ptr_t)((/*!CLASS_SYMBOL*/ curfrout->tabval[4])));;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2660: @cond");
+  BASILYS_LOCATION("warmelt-macro.bysl:2663: @cond");
   /*cond*/ if (/*_#IS_A__L7*/ curfnum[6]) /*then*/ {
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2660: @cond.then");
+  BASILYS_LOCATION("warmelt-macro.bysl:2663: @cond.then");
   /*_#OR___L8*/ curfnum[7] = /*_#IS_A__L7*/ curfnum[6];;
   } else {
-  BASILYS_LOCATION("warmelt-macro.bysl:2660: @cond.else");
+  BASILYS_LOCATION("warmelt-macro.bysl:2663: @cond.else");
   
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2660: @block");
+   BASILYS_LOCATION("warmelt-macro.bysl:2663: @block");
    /*block*/{
     /*_#IS_INTEGERBOX__L9*/ curfnum[8] = 
      (basilys_magic_discr((basilys_ptr_t)(/*_.SPREDEF__V17*/ curfptr[16])) == OBMAG_INT);;
     /*_#OR___L8*/ curfnum[7] = /*_#IS_INTEGERBOX__L9*/ curfnum[8];;
     /*epilog*/
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2660: @clear");
+    BASILYS_LOCATION("warmelt-macro.bysl:2663: @clear");
     /*clear*/ /*_#IS_INTEGERBOX__L9*/ curfnum[8] = 0 ;}
    ;
    }
@@ -35728,12 +35772,12 @@ BASILYS_LOCATION("warmelt-macro.bysl:2641: @block");
   /*_#NOT__L10*/ curfnum[8] = 
    (!(/*_#OR___L8*/ curfnum[7]));;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2660: @cond");
+  BASILYS_LOCATION("warmelt-macro.bysl:2663: @cond");
   /*cond*/ if (/*_#NOT__L10*/ curfnum[8]) /*then*/ {
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2660: @cond.then");
+  BASILYS_LOCATION("warmelt-macro.bysl:2663: @cond.then");
   
-   BASILYS_LOCATION("warmelt-macro.bysl:2660: @block");
+   BASILYS_LOCATION("warmelt-macro.bysl:2663: @block");
    /*block*/{
     
     error("%s:%d:: BASILYS ERROR [#%ld]: @%s ",  basilys_string_str(basilys_val_mixint((basilys_ptr_t)(/*_.LOC__V13*/ curfptr[12]))),  (int) basilys_num_mixint((basilys_ptr_t)(/*_.LOC__V13*/ curfptr[12])), basilys_dbgcounter, ( "(STORE_PREDEFINED <predef-name-or-rank> <value>) invalid predef"));
@@ -35742,18 +35786,18 @@ BASILYS_LOCATION("warmelt-macro.bysl:2641: @block");
   } /*noelse*/
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2662: @block");
+  BASILYS_LOCATION("warmelt-macro.bysl:2665: @block");
   /*block*/{
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2662: @block");
+   BASILYS_LOCATION("warmelt-macro.bysl:2665: @block");
    /*block*/{
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2662: @rawallocobj");
+    BASILYS_LOCATION("warmelt-macro.bysl:2665: @rawallocobj");
     /*rawallocobj*/ /*_.INST__V27*/ curfptr[26] =
-     basilysgc_new_raw_object((basilysobject_ptr_t)((/*!CLASS_SRC_STORE_PREDEFINED*/ curfrout->tabval[5])), (3));
+     basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_SRC_STORE_PREDEFINED*/ curfrout->tabval[5])), (3), ("CLASS_SRC_STORE_PREDEFINED"));
     ;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2662: @putslot");
+    BASILYS_LOCATION("warmelt-macro.bysl:2665: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V27*/ curfptr[26])) == OBMAG_OBJECT);
     basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V27*/ curfptr[26]))));
@@ -35761,7 +35805,7 @@ BASILYS_LOCATION("warmelt-macro.bysl:2641: @block");
      /*_.LOC__V13*/ curfptr[12]);
     ;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2662: @putslot");
+    BASILYS_LOCATION("warmelt-macro.bysl:2665: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V27*/ curfptr[26])) == OBMAG_OBJECT);
     basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V27*/ curfptr[26]))));
@@ -35769,7 +35813,7 @@ BASILYS_LOCATION("warmelt-macro.bysl:2641: @block");
      /*_.SPREDEF__V17*/ curfptr[16]);
     ;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2662: @putslot");
+    BASILYS_LOCATION("warmelt-macro.bysl:2665: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V27*/ curfptr[26])) == OBMAG_OBJECT);
     basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V27*/ curfptr[26]))));
@@ -35781,149 +35825,149 @@ BASILYS_LOCATION("warmelt-macro.bysl:2641: @block");
    
    #if ENABLE_CHECKING
     
-   BASILYS_LOCATION("warmelt-macro.bysl:2667: @cppif.then");
+   BASILYS_LOCATION("warmelt-macro.bysl:2670: @cppif.then");
    
-    BASILYS_LOCATION("warmelt-macro.bysl:2667: @block");
+    BASILYS_LOCATION("warmelt-macro.bysl:2670: @block");
     /*block*/{
      /*_#THE_CALLCOUNT__L11*/ curfnum[10] = 
       callcount;;
      
-     BASILYS_LOCATION("warmelt-macro.bysl:2667: @apply");
+     BASILYS_LOCATION("warmelt-macro.bysl:2670: @apply");
      /*apply*/{
       union basilysparam_un argtab[4];
       memset(&argtab, 0, sizeof(argtab));
       
-      BASILYS_LOCATION("warmelt-macro.bysl:2667: @apply.arg");
+      BASILYS_LOCATION("warmelt-macro.bysl:2670: @apply.arg");
       argtab[0].bp_cstring =  "mexpand_store_predefined result";
-      BASILYS_LOCATION("warmelt-macro.bysl:2667: @apply.arg");
+      BASILYS_LOCATION("warmelt-macro.bysl:2670: @apply.arg");
       argtab[1].bp_long = /*_#THE_CALLCOUNT__L11*/ curfnum[10];
-      BASILYS_LOCATION("warmelt-macro.bysl:2667: @apply.arg");
+      BASILYS_LOCATION("warmelt-macro.bysl:2670: @apply.arg");
       argtab[2].bp_cstring =  "warmelt-macro.bysl";
-      BASILYS_LOCATION("warmelt-macro.bysl:2667: @apply.arg");
-      argtab[3].bp_long = 2667;
+      BASILYS_LOCATION("warmelt-macro.bysl:2670: @apply.arg");
+      argtab[3].bp_long = 2670;
       /*_.DEBUG_MSG_FUN__V29*/ curfptr[28] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[2])), (basilys_ptr_t)(/*_.RES__V26*/ curfptr[25]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
       }
      ;
      /*_.IFCPP___V28*/ curfptr[27] = /*_.DEBUG_MSG_FUN__V29*/ curfptr[28];;
      /*epilog*/
      
-     BASILYS_LOCATION("warmelt-macro.bysl:2667: @clear");
+     BASILYS_LOCATION("warmelt-macro.bysl:2670: @clear");
      /*clear*/ /*_#THE_CALLCOUNT__L11*/ curfnum[10] = 0 ;
      
-     BASILYS_LOCATION("warmelt-macro.bysl:2667: @clear");
+     BASILYS_LOCATION("warmelt-macro.bysl:2670: @clear");
      /*clear*/ /*_.DEBUG_MSG_FUN__V29*/ curfptr[28] = 0 ;}
     
     #else /*ENABLE_CHECKING*/
     
-   BASILYS_LOCATION("warmelt-macro.bysl:2667: @cppif.else");
+   BASILYS_LOCATION("warmelt-macro.bysl:2670: @cppif.else");
    /*_.IFCPP___V28*/ curfptr[27] = (/*nil*/NULL);
     #endif /*ENABLE_CHECKING*/
     ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2668: @block");
+   BASILYS_LOCATION("warmelt-macro.bysl:2671: @block");
    /*block*/{
     /*_.RETVAL___V1*/ curfptr[0] = /*_.RES__V26*/ curfptr[25];;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2668: @finalreturn");
+    BASILYS_LOCATION("warmelt-macro.bysl:2671: @finalreturn");
     ;
     /*finalret*/ goto labend_rout ;}
    ;
    /*_.LET___V25*/ curfptr[24] = /*_.RETURN___V30*/ curfptr[28];;
    /*epilog*/
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2662: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2665: @clear");
    /*clear*/ /*_.RES__V26*/ curfptr[25] = 0 ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2662: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2665: @clear");
    /*clear*/ /*_.IFCPP___V28*/ curfptr[27] = 0 ;
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2662: @clear");
+   BASILYS_LOCATION("warmelt-macro.bysl:2665: @clear");
    /*clear*/ /*_.RETURN___V30*/ curfptr[28] = 0 ;}
   ;
   /*_.LET___V11*/ curfptr[9] = /*_.LET___V25*/ curfptr[24];;
   /*epilog*/
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2645: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2648: @clear");
   /*clear*/ /*_.CONT__V12*/ curfptr[11] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2645: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2648: @clear");
   /*clear*/ /*_.LOC__V13*/ curfptr[12] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2645: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2648: @clear");
   /*clear*/ /*_.LIST_FIRST__V14*/ curfptr[13] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2645: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2648: @clear");
   /*clear*/ /*_.CURPAIR__V15*/ curfptr[14] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2645: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2648: @clear");
   /*clear*/ /*_.PAIR_HEAD__V16*/ curfptr[15] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2645: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2648: @clear");
   /*clear*/ /*_.SPREDEF__V17*/ curfptr[16] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2645: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2648: @clear");
   /*clear*/ /*_.SVAL__V18*/ curfptr[17] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2645: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2648: @clear");
   /*clear*/ /*_#NULL__L4*/ curfnum[0] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2645: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2648: @clear");
   /*clear*/ /*_.PAIR_TAIL__V19*/ curfptr[18] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2645: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2648: @clear");
   /*clear*/ /*_.SETQ___V20*/ curfptr[19] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2645: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2648: @clear");
   /*clear*/ /*_#NULL__L5*/ curfnum[4] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2645: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2648: @clear");
   /*clear*/ /*_.PAIR_HEAD__V21*/ curfptr[20] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2645: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2648: @clear");
   /*clear*/ /*_.MACROEXPAND_1__V22*/ curfptr[21] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2645: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2648: @clear");
   /*clear*/ /*_.SETQ___V23*/ curfptr[22] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2645: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2648: @clear");
   /*clear*/ /*_.PAIR_TAIL__V24*/ curfptr[23] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2645: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2648: @clear");
   /*clear*/ /*_#NOTNULL__L6*/ curfnum[5] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2645: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2648: @clear");
   /*clear*/ /*_#IS_A__L7*/ curfnum[6] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2645: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2648: @clear");
   /*clear*/ /*_#OR___L8*/ curfnum[7] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2645: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2648: @clear");
   /*clear*/ /*_#NOT__L10*/ curfnum[8] = 0 ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2645: @clear");
+  BASILYS_LOCATION("warmelt-macro.bysl:2648: @clear");
   /*clear*/ /*_.LET___V25*/ curfptr[24] = 0 ;}
  ;
  
- BASILYS_LOCATION("warmelt-macro.bysl:2641: @block");
+ BASILYS_LOCATION("warmelt-macro.bysl:2644: @block");
  /*block*/{
   /*_.RETVAL___V1*/ curfptr[0] = /*_.LET___V11*/ curfptr[9];;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2641: @finalreturn");
+  BASILYS_LOCATION("warmelt-macro.bysl:2644: @finalreturn");
   ;
   /*finalret*/ goto labend_rout ;}
  ;
  /*epilog*/
  
- BASILYS_LOCATION("warmelt-macro.bysl:2641: @clear");
+ BASILYS_LOCATION("warmelt-macro.bysl:2644: @clear");
  /*clear*/ /*_.IFCPP___V5*/ curfptr[4] = 0 ;
  
- BASILYS_LOCATION("warmelt-macro.bysl:2641: @clear");
+ BASILYS_LOCATION("warmelt-macro.bysl:2644: @clear");
  /*clear*/ /*_.IFCPP___V7*/ curfptr[5] = 0 ;
  
- BASILYS_LOCATION("warmelt-macro.bysl:2641: @clear");
+ BASILYS_LOCATION("warmelt-macro.bysl:2644: @clear");
  /*clear*/ /*_.IFCPP___V9*/ curfptr[7] = 0 ;
  
- BASILYS_LOCATION("warmelt-macro.bysl:2641: @clear");
+ BASILYS_LOCATION("warmelt-macro.bysl:2644: @clear");
  /*clear*/ /*_.LET___V11*/ curfptr[9] = 0 ;}
 
 ;
@@ -36910,7 +36954,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_9__CLASS_SRC));
   basilys_assertmsg("iniobj checkdiscr dobj_11__CLASS_SRC_APPLY", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_11__CLASS_SRC_APPLY.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_11__CLASS_SRC_APPLY.obj_num = OBMAG_OBJECT;
-  cdat->dobj_11__CLASS_SRC_APPLY.obj_hash = 934537843;
+  cdat->dobj_11__CLASS_SRC_APPLY.obj_hash = 441547410;
   cdat->dobj_11__CLASS_SRC_APPLY.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_11__CLASS_SRC_APPLY));
  
@@ -36947,7 +36991,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_15__SAPP_FUN));
   basilys_assertmsg("iniobj checkdiscr dobj_17__SAPP_FUN", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_17__SAPP_FUN.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_17__SAPP_FUN.obj_num = 1;
-  cdat->dobj_17__SAPP_FUN.obj_hash = 602378287;
+  cdat->dobj_17__SAPP_FUN.obj_hash = 922203217;
   cdat->dobj_17__SAPP_FUN.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_17__SAPP_FUN));
  
@@ -36976,7 +37020,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_19__SAPP_ARGS));
   basilys_assertmsg("iniobj checkdiscr dobj_21__SAPP_ARGS", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_21__SAPP_ARGS.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_21__SAPP_ARGS.obj_num = 2;
-  cdat->dobj_21__SAPP_ARGS.obj_hash = 565802702;
+  cdat->dobj_21__SAPP_ARGS.obj_hash = 431542797;
   cdat->dobj_21__SAPP_ARGS.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_21__SAPP_ARGS));
  
@@ -37005,7 +37049,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_23__CLASS_SRC_MSEND
   basilys_assertmsg("iniobj checkdiscr dobj_25__CLASS_SRC_MSEND", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_25__CLASS_SRC_MSEND.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_25__CLASS_SRC_MSEND.obj_num = OBMAG_OBJECT;
-  cdat->dobj_25__CLASS_SRC_MSEND.obj_hash = 540519622;
+  cdat->dobj_25__CLASS_SRC_MSEND.obj_hash = 249490524;
   cdat->dobj_25__CLASS_SRC_MSEND.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_25__CLASS_SRC_MSEND));
  
@@ -37042,7 +37086,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_29__MSEND_SELSYMB))
   basilys_assertmsg("iniobj checkdiscr dobj_31__MSEND_SELSYMB", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_31__MSEND_SELSYMB.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_31__MSEND_SELSYMB.obj_num = 1;
-  cdat->dobj_31__MSEND_SELSYMB.obj_hash = 220415317;
+  cdat->dobj_31__MSEND_SELSYMB.obj_hash = 755524513;
   cdat->dobj_31__MSEND_SELSYMB.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_31__MSEND_SELSYMB));
  
@@ -37071,7 +37115,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_33__MSEND_RECV));
   basilys_assertmsg("iniobj checkdiscr dobj_35__MSEND_RECV", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_35__MSEND_RECV.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_35__MSEND_RECV.obj_num = 2;
-  cdat->dobj_35__MSEND_RECV.obj_hash = 1048130;
+  cdat->dobj_35__MSEND_RECV.obj_hash = 126851360;
   cdat->dobj_35__MSEND_RECV.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_35__MSEND_RECV));
  
@@ -37100,7 +37144,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_37__MSEND_ARGS));
   basilys_assertmsg("iniobj checkdiscr dobj_39__MSEND_ARGS", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_39__MSEND_ARGS.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_39__MSEND_ARGS.obj_num = 3;
-  cdat->dobj_39__MSEND_ARGS.obj_hash = 590471804;
+  cdat->dobj_39__MSEND_ARGS.obj_hash = 694846402;
   cdat->dobj_39__MSEND_ARGS.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_39__MSEND_ARGS));
  
@@ -37129,7 +37173,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_41__CLASS_SRC_PRIMI
   basilys_assertmsg("iniobj checkdiscr dobj_43__CLASS_SRC_PRIMITIVE", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_43__CLASS_SRC_PRIMITIVE.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_43__CLASS_SRC_PRIMITIVE.obj_num = OBMAG_OBJECT;
-  cdat->dobj_43__CLASS_SRC_PRIMITIVE.obj_hash = 888837474;
+  cdat->dobj_43__CLASS_SRC_PRIMITIVE.obj_hash = 718432367;
   cdat->dobj_43__CLASS_SRC_PRIMITIVE.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_43__CLASS_SRC_PRIMITIVE));
  
@@ -37166,7 +37210,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_47__SPRIM_OPER));
   basilys_assertmsg("iniobj checkdiscr dobj_49__SPRIM_OPER", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_49__SPRIM_OPER.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_49__SPRIM_OPER.obj_num = 1;
-  cdat->dobj_49__SPRIM_OPER.obj_hash = 589670847;
+  cdat->dobj_49__SPRIM_OPER.obj_hash = 479027714;
   cdat->dobj_49__SPRIM_OPER.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_49__SPRIM_OPER));
  
@@ -37195,7 +37239,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_51__SPRIM_ARGS));
   basilys_assertmsg("iniobj checkdiscr dobj_53__SPRIM_ARGS", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_53__SPRIM_ARGS.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_53__SPRIM_ARGS.obj_num = 2;
-  cdat->dobj_53__SPRIM_ARGS.obj_hash = 349811815;
+  cdat->dobj_53__SPRIM_ARGS.obj_hash = 910866077;
   cdat->dobj_53__SPRIM_ARGS.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_53__SPRIM_ARGS));
  
@@ -37224,7 +37268,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_55__CLASS_SRC_CITER
   basilys_assertmsg("iniobj checkdiscr dobj_57__CLASS_SRC_CITERATION", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_57__CLASS_SRC_CITERATION.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_57__CLASS_SRC_CITERATION.obj_num = OBMAG_OBJECT;
-  cdat->dobj_57__CLASS_SRC_CITERATION.obj_hash = 783584476;
+  cdat->dobj_57__CLASS_SRC_CITERATION.obj_hash = 313330130;
   cdat->dobj_57__CLASS_SRC_CITERATION.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_57__CLASS_SRC_CITERATION));
  
@@ -37261,7 +37305,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_61__SCITER_OPER));
   basilys_assertmsg("iniobj checkdiscr dobj_63__SCITER_OPER", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_63__SCITER_OPER.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_63__SCITER_OPER.obj_num = 1;
-  cdat->dobj_63__SCITER_OPER.obj_hash = 762076010;
+  cdat->dobj_63__SCITER_OPER.obj_hash = 100247880;
   cdat->dobj_63__SCITER_OPER.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_63__SCITER_OPER));
  
@@ -37290,7 +37334,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_65__SCITER_ARGS));
   basilys_assertmsg("iniobj checkdiscr dobj_67__SCITER_ARGS", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_67__SCITER_ARGS.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_67__SCITER_ARGS.obj_num = 2;
-  cdat->dobj_67__SCITER_ARGS.obj_hash = 994086743;
+  cdat->dobj_67__SCITER_ARGS.obj_hash = 189682380;
   cdat->dobj_67__SCITER_ARGS.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_67__SCITER_ARGS));
  
@@ -37319,7 +37363,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_69__SCITER_VARBIND)
   basilys_assertmsg("iniobj checkdiscr dobj_71__SCITER_VARBIND", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_71__SCITER_VARBIND.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_71__SCITER_VARBIND.obj_num = 3;
-  cdat->dobj_71__SCITER_VARBIND.obj_hash = 124191022;
+  cdat->dobj_71__SCITER_VARBIND.obj_hash = 792716974;
   cdat->dobj_71__SCITER_VARBIND.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_71__SCITER_VARBIND));
  
@@ -37348,7 +37392,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_73__SCITER_BODY));
   basilys_assertmsg("iniobj checkdiscr dobj_75__SCITER_BODY", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_75__SCITER_BODY.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_75__SCITER_BODY.obj_num = 4;
-  cdat->dobj_75__SCITER_BODY.obj_hash = 828719952;
+  cdat->dobj_75__SCITER_BODY.obj_hash = 627737863;
   cdat->dobj_75__SCITER_BODY.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_75__SCITER_BODY));
  
@@ -37377,7 +37421,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_77__CLASS_SRC_PROGN
   basilys_assertmsg("iniobj checkdiscr dobj_79__CLASS_SRC_PROGN", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_79__CLASS_SRC_PROGN.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_79__CLASS_SRC_PROGN.obj_num = OBMAG_OBJECT;
-  cdat->dobj_79__CLASS_SRC_PROGN.obj_hash = 467663518;
+  cdat->dobj_79__CLASS_SRC_PROGN.obj_hash = 937344768;
   cdat->dobj_79__CLASS_SRC_PROGN.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_79__CLASS_SRC_PROGN));
  
@@ -37414,7 +37458,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_83__SPROGN_BODY));
   basilys_assertmsg("iniobj checkdiscr dobj_85__SPROGN_BODY", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_85__SPROGN_BODY.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_85__SPROGN_BODY.obj_num = 1;
-  cdat->dobj_85__SPROGN_BODY.obj_hash = 207910947;
+  cdat->dobj_85__SPROGN_BODY.obj_hash = 274022383;
   cdat->dobj_85__SPROGN_BODY.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_85__SPROGN_BODY));
  
@@ -37443,7 +37487,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_87__CLASS_SRC_RETUR
   basilys_assertmsg("iniobj checkdiscr dobj_89__CLASS_SRC_RETURN", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_89__CLASS_SRC_RETURN.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_89__CLASS_SRC_RETURN.obj_num = OBMAG_OBJECT;
-  cdat->dobj_89__CLASS_SRC_RETURN.obj_hash = 988179016;
+  cdat->dobj_89__CLASS_SRC_RETURN.obj_hash = 414119947;
   cdat->dobj_89__CLASS_SRC_RETURN.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_89__CLASS_SRC_RETURN));
  
@@ -37480,7 +37524,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_93__SRETURN_BODY));
   basilys_assertmsg("iniobj checkdiscr dobj_95__SRETURN_BODY", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_95__SRETURN_BODY.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_95__SRETURN_BODY.obj_num = 1;
-  cdat->dobj_95__SRETURN_BODY.obj_hash = 261784369;
+  cdat->dobj_95__SRETURN_BODY.obj_hash = 697624771;
   cdat->dobj_95__SRETURN_BODY.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_95__SRETURN_BODY));
  
@@ -37509,7 +37553,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_97__CLASS_SRC_SETQ)
   basilys_assertmsg("iniobj checkdiscr dobj_99__CLASS_SRC_SETQ", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_99__CLASS_SRC_SETQ.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_99__CLASS_SRC_SETQ.obj_num = OBMAG_OBJECT;
-  cdat->dobj_99__CLASS_SRC_SETQ.obj_hash = 973707954;
+  cdat->dobj_99__CLASS_SRC_SETQ.obj_hash = 188761318;
   cdat->dobj_99__CLASS_SRC_SETQ.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_99__CLASS_SRC_SETQ));
  
@@ -37546,7 +37590,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_103__SSTQ_VAR));
   basilys_assertmsg("iniobj checkdiscr dobj_105__SSTQ_VAR", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_105__SSTQ_VAR.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_105__SSTQ_VAR.obj_num = 1;
-  cdat->dobj_105__SSTQ_VAR.obj_hash = 725503985;
+  cdat->dobj_105__SSTQ_VAR.obj_hash = 766818603;
   cdat->dobj_105__SSTQ_VAR.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_105__SSTQ_VAR));
  
@@ -37575,7 +37619,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_107__SSTQ_EXPR));
   basilys_assertmsg("iniobj checkdiscr dobj_109__SSTQ_EXPR", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_109__SSTQ_EXPR.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_109__SSTQ_EXPR.obj_num = 2;
-  cdat->dobj_109__SSTQ_EXPR.obj_hash = 928968373;
+  cdat->dobj_109__SSTQ_EXPR.obj_hash = 621029566;
   cdat->dobj_109__SSTQ_EXPR.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_109__SSTQ_EXPR));
  
@@ -37604,7 +37648,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_111__CLASS_SRC_COMM
   basilys_assertmsg("iniobj checkdiscr dobj_113__CLASS_SRC_COMMENT", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_113__CLASS_SRC_COMMENT.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_113__CLASS_SRC_COMMENT.obj_num = OBMAG_OBJECT;
-  cdat->dobj_113__CLASS_SRC_COMMENT.obj_hash = 688994621;
+  cdat->dobj_113__CLASS_SRC_COMMENT.obj_hash = 464965122;
   cdat->dobj_113__CLASS_SRC_COMMENT.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_113__CLASS_SRC_COMMENT));
  
@@ -37641,7 +37685,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_117__SCOMM_STR));
   basilys_assertmsg("iniobj checkdiscr dobj_119__SCOMM_STR", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_119__SCOMM_STR.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_119__SCOMM_STR.obj_num = 1;
-  cdat->dobj_119__SCOMM_STR.obj_hash = 1054891669;
+  cdat->dobj_119__SCOMM_STR.obj_hash = 252513133;
   cdat->dobj_119__SCOMM_STR.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_119__SCOMM_STR));
  
@@ -37670,7 +37714,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_121__CLASS_SRC_QUOT
   basilys_assertmsg("iniobj checkdiscr dobj_123__CLASS_SRC_QUOTE", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_123__CLASS_SRC_QUOTE.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_123__CLASS_SRC_QUOTE.obj_num = OBMAG_OBJECT;
-  cdat->dobj_123__CLASS_SRC_QUOTE.obj_hash = 693724733;
+  cdat->dobj_123__CLASS_SRC_QUOTE.obj_hash = 38099561;
   cdat->dobj_123__CLASS_SRC_QUOTE.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_123__CLASS_SRC_QUOTE));
  
@@ -37707,7 +37751,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_127__SQUOTED));
   basilys_assertmsg("iniobj checkdiscr dobj_129__SQUOTED", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_129__SQUOTED.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_129__SQUOTED.obj_num = 1;
-  cdat->dobj_129__SQUOTED.obj_hash = 420600096;
+  cdat->dobj_129__SQUOTED.obj_hash = 680572706;
   cdat->dobj_129__SQUOTED.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_129__SQUOTED));
  
@@ -37736,7 +37780,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_131__CLASS_SRC_EXPO
   basilys_assertmsg("iniobj checkdiscr dobj_133__CLASS_SRC_EXPORTCOMMON", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_133__CLASS_SRC_EXPORTCOMMON.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_133__CLASS_SRC_EXPORTCOMMON.obj_num = OBMAG_OBJECT;
-  cdat->dobj_133__CLASS_SRC_EXPORTCOMMON.obj_hash = 574851916;
+  cdat->dobj_133__CLASS_SRC_EXPORTCOMMON.obj_hash = 456318152;
   cdat->dobj_133__CLASS_SRC_EXPORTCOMMON.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_133__CLASS_SRC_EXPORTCOMMON));
  
@@ -37773,7 +37817,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_137__SEXPORT_NAMES)
   basilys_assertmsg("iniobj checkdiscr dobj_139__SEXPORT_NAMES", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_139__SEXPORT_NAMES.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_139__SEXPORT_NAMES.obj_num = 1;
-  cdat->dobj_139__SEXPORT_NAMES.obj_hash = 32215751;
+  cdat->dobj_139__SEXPORT_NAMES.obj_hash = 669114482;
   cdat->dobj_139__SEXPORT_NAMES.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_139__SEXPORT_NAMES));
  
@@ -37802,7 +37846,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_141__CLASS_SRC_EXPO
   basilys_assertmsg("iniobj checkdiscr dobj_143__CLASS_SRC_EXPORT_VALUES", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_143__CLASS_SRC_EXPORT_VALUES.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_143__CLASS_SRC_EXPORT_VALUES.obj_num = OBMAG_OBJECT;
-  cdat->dobj_143__CLASS_SRC_EXPORT_VALUES.obj_hash = 348124427;
+  cdat->dobj_143__CLASS_SRC_EXPORT_VALUES.obj_hash = 277597363;
   cdat->dobj_143__CLASS_SRC_EXPORT_VALUES.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_143__CLASS_SRC_EXPORT_VALUES));
  
@@ -37839,7 +37883,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_147__CLASS_SRC_EXPO
   basilys_assertmsg("iniobj checkdiscr dobj_149__CLASS_SRC_EXPORT_CLASS", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_149__CLASS_SRC_EXPORT_CLASS.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_149__CLASS_SRC_EXPORT_CLASS.obj_num = OBMAG_OBJECT;
-  cdat->dobj_149__CLASS_SRC_EXPORT_CLASS.obj_hash = 109393896;
+  cdat->dobj_149__CLASS_SRC_EXPORT_CLASS.obj_hash = 968573922;
   cdat->dobj_149__CLASS_SRC_EXPORT_CLASS.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_149__CLASS_SRC_EXPORT_CLASS));
  
@@ -37876,7 +37920,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_153__CLASS_SRC_EXPO
   basilys_assertmsg("iniobj checkdiscr dobj_155__CLASS_SRC_EXPORT_MACRO", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_155__CLASS_SRC_EXPORT_MACRO.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_155__CLASS_SRC_EXPORT_MACRO.obj_num = OBMAG_OBJECT;
-  cdat->dobj_155__CLASS_SRC_EXPORT_MACRO.obj_hash = 1038854141;
+  cdat->dobj_155__CLASS_SRC_EXPORT_MACRO.obj_hash = 428749992;
   cdat->dobj_155__CLASS_SRC_EXPORT_MACRO.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_155__CLASS_SRC_EXPORT_MACRO));
  
@@ -37913,7 +37957,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_159__SEXPMAC_MNAME)
   basilys_assertmsg("iniobj checkdiscr dobj_161__SEXPMAC_MNAME", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_161__SEXPMAC_MNAME.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_161__SEXPMAC_MNAME.obj_num = 1;
-  cdat->dobj_161__SEXPMAC_MNAME.obj_hash = 848925732;
+  cdat->dobj_161__SEXPMAC_MNAME.obj_hash = 603706737;
   cdat->dobj_161__SEXPMAC_MNAME.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_161__SEXPMAC_MNAME));
  
@@ -37942,7 +37986,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_163__SEXPMAC_MVAL))
   basilys_assertmsg("iniobj checkdiscr dobj_165__SEXPMAC_MVAL", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_165__SEXPMAC_MVAL.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_165__SEXPMAC_MVAL.obj_num = 2;
-  cdat->dobj_165__SEXPMAC_MVAL.obj_hash = 421030245;
+  cdat->dobj_165__SEXPMAC_MVAL.obj_hash = 746018215;
   cdat->dobj_165__SEXPMAC_MVAL.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_165__SEXPMAC_MVAL));
  
@@ -37971,7 +38015,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_167__CLASS_SRCDEF))
   basilys_assertmsg("iniobj checkdiscr dobj_169__CLASS_SRCDEF", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_169__CLASS_SRCDEF.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_169__CLASS_SRCDEF.obj_num = OBMAG_OBJECT;
-  cdat->dobj_169__CLASS_SRCDEF.obj_hash = 907171260;
+  cdat->dobj_169__CLASS_SRCDEF.obj_hash = 805449611;
   cdat->dobj_169__CLASS_SRCDEF.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_169__CLASS_SRCDEF));
  
@@ -38008,7 +38052,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_173__SDEF_NAME));
   basilys_assertmsg("iniobj checkdiscr dobj_175__SDEF_NAME", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_175__SDEF_NAME.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_175__SDEF_NAME.obj_num = 1;
-  cdat->dobj_175__SDEF_NAME.obj_hash = 341983289;
+  cdat->dobj_175__SDEF_NAME.obj_hash = 669390775;
   cdat->dobj_175__SDEF_NAME.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_175__SDEF_NAME));
  
@@ -38037,7 +38081,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_177__CLASS_SRCDEFOR
   basilys_assertmsg("iniobj checkdiscr dobj_179__CLASS_SRCDEFORMAL", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_179__CLASS_SRCDEFORMAL.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_179__CLASS_SRCDEFORMAL.obj_num = OBMAG_OBJECT;
-  cdat->dobj_179__CLASS_SRCDEFORMAL.obj_hash = 120100451;
+  cdat->dobj_179__CLASS_SRCDEFORMAL.obj_hash = 91278617;
   cdat->dobj_179__CLASS_SRCDEFORMAL.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_179__CLASS_SRCDEFORMAL));
  
@@ -38074,7 +38118,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_183__SFORMAL_ARGS))
   basilys_assertmsg("iniobj checkdiscr dobj_185__SFORMAL_ARGS", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_185__SFORMAL_ARGS.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_185__SFORMAL_ARGS.obj_num = 2;
-  cdat->dobj_185__SFORMAL_ARGS.obj_hash = 471592169;
+  cdat->dobj_185__SFORMAL_ARGS.obj_hash = 1050454935;
   cdat->dobj_185__SFORMAL_ARGS.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_185__SFORMAL_ARGS));
  
@@ -38103,7 +38147,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_187__CLASS_SRC_DEFU
   basilys_assertmsg("iniobj checkdiscr dobj_189__CLASS_SRC_DEFUN", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_189__CLASS_SRC_DEFUN.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_189__CLASS_SRC_DEFUN.obj_num = OBMAG_OBJECT;
-  cdat->dobj_189__CLASS_SRC_DEFUN.obj_hash = 96708917;
+  cdat->dobj_189__CLASS_SRC_DEFUN.obj_hash = 199765382;
   cdat->dobj_189__CLASS_SRC_DEFUN.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_189__CLASS_SRC_DEFUN));
  
@@ -38140,7 +38184,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_193__SFUN_BODY));
   basilys_assertmsg("iniobj checkdiscr dobj_195__SFUN_BODY", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_195__SFUN_BODY.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_195__SFUN_BODY.obj_num = 3;
-  cdat->dobj_195__SFUN_BODY.obj_hash = 180462193;
+  cdat->dobj_195__SFUN_BODY.obj_hash = 480059501;
   cdat->dobj_195__SFUN_BODY.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_195__SFUN_BODY));
  
@@ -38169,7 +38213,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_197__CLASS_SRC_DEFP
   basilys_assertmsg("iniobj checkdiscr dobj_199__CLASS_SRC_DEFPRIMITIVE", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_199__CLASS_SRC_DEFPRIMITIVE.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_199__CLASS_SRC_DEFPRIMITIVE.obj_num = OBMAG_OBJECT;
-  cdat->dobj_199__CLASS_SRC_DEFPRIMITIVE.obj_hash = 1042565787;
+  cdat->dobj_199__CLASS_SRC_DEFPRIMITIVE.obj_hash = 180234442;
   cdat->dobj_199__CLASS_SRC_DEFPRIMITIVE.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_199__CLASS_SRC_DEFPRIMITIVE));
  
@@ -38206,7 +38250,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_203__SPRIM_TYPE));
   basilys_assertmsg("iniobj checkdiscr dobj_205__SPRIM_TYPE", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_205__SPRIM_TYPE.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_205__SPRIM_TYPE.obj_num = 3;
-  cdat->dobj_205__SPRIM_TYPE.obj_hash = 1004681705;
+  cdat->dobj_205__SPRIM_TYPE.obj_hash = 127221916;
   cdat->dobj_205__SPRIM_TYPE.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_205__SPRIM_TYPE));
  
@@ -38235,7 +38279,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_207__SPRIM_EXPANSIO
   basilys_assertmsg("iniobj checkdiscr dobj_209__SPRIM_EXPANSION", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_209__SPRIM_EXPANSION.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_209__SPRIM_EXPANSION.obj_num = 4;
-  cdat->dobj_209__SPRIM_EXPANSION.obj_hash = 1019741242;
+  cdat->dobj_209__SPRIM_EXPANSION.obj_hash = 717136464;
   cdat->dobj_209__SPRIM_EXPANSION.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_209__SPRIM_EXPANSION));
  
@@ -38264,7 +38308,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_211__CLASS_SRC_DEFC
   basilys_assertmsg("iniobj checkdiscr dobj_213__CLASS_SRC_DEFCITERATOR", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_213__CLASS_SRC_DEFCITERATOR.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_213__CLASS_SRC_DEFCITERATOR.obj_num = OBMAG_OBJECT;
-  cdat->dobj_213__CLASS_SRC_DEFCITERATOR.obj_hash = 112167415;
+  cdat->dobj_213__CLASS_SRC_DEFCITERATOR.obj_hash = 42259218;
   cdat->dobj_213__CLASS_SRC_DEFCITERATOR.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_213__CLASS_SRC_DEFCITERATOR));
  
@@ -38301,7 +38345,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_217__SCITERDEF_CITE
   basilys_assertmsg("iniobj checkdiscr dobj_219__SCITERDEF_CITERATOR", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_219__SCITERDEF_CITERATOR.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_219__SCITERDEF_CITERATOR.obj_num = 3;
-  cdat->dobj_219__SCITERDEF_CITERATOR.obj_hash = 754626758;
+  cdat->dobj_219__SCITERDEF_CITERATOR.obj_hash = 429861884;
   cdat->dobj_219__SCITERDEF_CITERATOR.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_219__SCITERDEF_CITERATOR));
  
@@ -38330,7 +38374,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_221__CLASS_SRC_DEFO
   basilys_assertmsg("iniobj checkdiscr dobj_223__CLASS_SRC_DEFOBJCOMMON", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_223__CLASS_SRC_DEFOBJCOMMON.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_223__CLASS_SRC_DEFOBJCOMMON.obj_num = OBMAG_OBJECT;
-  cdat->dobj_223__CLASS_SRC_DEFOBJCOMMON.obj_hash = 475653758;
+  cdat->dobj_223__CLASS_SRC_DEFOBJCOMMON.obj_hash = 785083622;
   cdat->dobj_223__CLASS_SRC_DEFOBJCOMMON.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_223__CLASS_SRC_DEFOBJCOMMON));
  
@@ -38367,7 +38411,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_227__SOBJ_PREDEF));
   basilys_assertmsg("iniobj checkdiscr dobj_229__SOBJ_PREDEF", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_229__SOBJ_PREDEF.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_229__SOBJ_PREDEF.obj_num = 2;
-  cdat->dobj_229__SOBJ_PREDEF.obj_hash = 983662594;
+  cdat->dobj_229__SOBJ_PREDEF.obj_hash = 522978633;
   cdat->dobj_229__SOBJ_PREDEF.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_229__SOBJ_PREDEF));
  
@@ -38396,7 +38440,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_231__SOBJ_DOCSTR));
   basilys_assertmsg("iniobj checkdiscr dobj_233__SOBJ_DOCSTR", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_233__SOBJ_DOCSTR.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_233__SOBJ_DOCSTR.obj_num = 3;
-  cdat->dobj_233__SOBJ_DOCSTR.obj_hash = 349562300;
+  cdat->dobj_233__SOBJ_DOCSTR.obj_hash = 378096146;
   cdat->dobj_233__SOBJ_DOCSTR.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_233__SOBJ_DOCSTR));
  
@@ -38425,7 +38469,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_235__CLASS_SRC_DEFC
   basilys_assertmsg("iniobj checkdiscr dobj_237__CLASS_SRC_DEFCLASS", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_237__CLASS_SRC_DEFCLASS.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_237__CLASS_SRC_DEFCLASS.obj_num = OBMAG_OBJECT;
-  cdat->dobj_237__CLASS_SRC_DEFCLASS.obj_hash = 588611430;
+  cdat->dobj_237__CLASS_SRC_DEFCLASS.obj_hash = 1021539105;
   cdat->dobj_237__CLASS_SRC_DEFCLASS.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_237__CLASS_SRC_DEFCLASS));
  
@@ -38462,7 +38506,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_241__SCLASS_CLABIND
   basilys_assertmsg("iniobj checkdiscr dobj_243__SCLASS_CLABIND", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_243__SCLASS_CLABIND.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_243__SCLASS_CLABIND.obj_num = 4;
-  cdat->dobj_243__SCLASS_CLABIND.obj_hash = 1007071554;
+  cdat->dobj_243__SCLASS_CLABIND.obj_hash = 715111817;
   cdat->dobj_243__SCLASS_CLABIND.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_243__SCLASS_CLABIND));
  
@@ -38491,7 +38535,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_245__SCLASS_SUPERBI
   basilys_assertmsg("iniobj checkdiscr dobj_247__SCLASS_SUPERBIND", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_247__SCLASS_SUPERBIND.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_247__SCLASS_SUPERBIND.obj_num = 5;
-  cdat->dobj_247__SCLASS_SUPERBIND.obj_hash = 298705112;
+  cdat->dobj_247__SCLASS_SUPERBIND.obj_hash = 487625113;
   cdat->dobj_247__SCLASS_SUPERBIND.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_247__SCLASS_SUPERBIND));
  
@@ -38520,7 +38564,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_249__SCLASS_FLDBIND
   basilys_assertmsg("iniobj checkdiscr dobj_251__SCLASS_FLDBINDS", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_251__SCLASS_FLDBINDS.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_251__SCLASS_FLDBINDS.obj_num = 6;
-  cdat->dobj_251__SCLASS_FLDBINDS.obj_hash = 278943593;
+  cdat->dobj_251__SCLASS_FLDBINDS.obj_hash = 624709199;
   cdat->dobj_251__SCLASS_FLDBINDS.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_251__SCLASS_FLDBINDS));
  
@@ -38549,7 +38593,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_253__CLASS_SRC_DEFI
   basilys_assertmsg("iniobj checkdiscr dobj_255__CLASS_SRC_DEFINSTANCE", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_255__CLASS_SRC_DEFINSTANCE.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_255__CLASS_SRC_DEFINSTANCE.obj_num = OBMAG_OBJECT;
-  cdat->dobj_255__CLASS_SRC_DEFINSTANCE.obj_hash = 1066937510;
+  cdat->dobj_255__CLASS_SRC_DEFINSTANCE.obj_hash = 892821991;
   cdat->dobj_255__CLASS_SRC_DEFINSTANCE.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_255__CLASS_SRC_DEFINSTANCE));
  
@@ -38586,7 +38630,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_259__SINST_CLASS));
   basilys_assertmsg("iniobj checkdiscr dobj_261__SINST_CLASS", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_261__SINST_CLASS.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_261__SINST_CLASS.obj_num = 4;
-  cdat->dobj_261__SINST_CLASS.obj_hash = 428594906;
+  cdat->dobj_261__SINST_CLASS.obj_hash = 526591227;
   cdat->dobj_261__SINST_CLASS.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_261__SINST_CLASS));
  
@@ -38615,7 +38659,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_263__SINST_CLABIND)
   basilys_assertmsg("iniobj checkdiscr dobj_265__SINST_CLABIND", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_265__SINST_CLABIND.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_265__SINST_CLABIND.obj_num = 5;
-  cdat->dobj_265__SINST_CLABIND.obj_hash = 334050402;
+  cdat->dobj_265__SINST_CLABIND.obj_hash = 416601533;
   cdat->dobj_265__SINST_CLABIND.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_265__SINST_CLABIND));
  
@@ -38644,7 +38688,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_267__SINST_OBJNUM))
   basilys_assertmsg("iniobj checkdiscr dobj_269__SINST_OBJNUM", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_269__SINST_OBJNUM.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_269__SINST_OBJNUM.obj_num = 6;
-  cdat->dobj_269__SINST_OBJNUM.obj_hash = 8619180;
+  cdat->dobj_269__SINST_OBJNUM.obj_hash = 388203774;
   cdat->dobj_269__SINST_OBJNUM.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_269__SINST_OBJNUM));
  
@@ -38673,7 +38717,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_271__SINST_FIELDS))
   basilys_assertmsg("iniobj checkdiscr dobj_273__SINST_FIELDS", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_273__SINST_FIELDS.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_273__SINST_FIELDS.obj_num = 7;
-  cdat->dobj_273__SINST_FIELDS.obj_hash = 1045323504;
+  cdat->dobj_273__SINST_FIELDS.obj_hash = 982468280;
   cdat->dobj_273__SINST_FIELDS.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_273__SINST_FIELDS));
  
@@ -38702,7 +38746,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_275__CLASS_SRC_DEFS
   basilys_assertmsg("iniobj checkdiscr dobj_277__CLASS_SRC_DEFSELECTOR", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_277__CLASS_SRC_DEFSELECTOR.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_277__CLASS_SRC_DEFSELECTOR.obj_num = OBMAG_OBJECT;
-  cdat->dobj_277__CLASS_SRC_DEFSELECTOR.obj_hash = 358539543;
+  cdat->dobj_277__CLASS_SRC_DEFSELECTOR.obj_hash = 446398717;
   cdat->dobj_277__CLASS_SRC_DEFSELECTOR.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_277__CLASS_SRC_DEFSELECTOR));
  
@@ -38739,7 +38783,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_281__CLASS_SRC_FIEL
   basilys_assertmsg("iniobj checkdiscr dobj_283__CLASS_SRC_FIELDASSIGN", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_283__CLASS_SRC_FIELDASSIGN.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_283__CLASS_SRC_FIELDASSIGN.obj_num = OBMAG_OBJECT;
-  cdat->dobj_283__CLASS_SRC_FIELDASSIGN.obj_hash = 333172047;
+  cdat->dobj_283__CLASS_SRC_FIELDASSIGN.obj_hash = 233844292;
   cdat->dobj_283__CLASS_SRC_FIELDASSIGN.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_283__CLASS_SRC_FIELDASSIGN));
  
@@ -38776,7 +38820,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_287__SFLA_FIELD));
   basilys_assertmsg("iniobj checkdiscr dobj_289__SFLA_FIELD", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_289__SFLA_FIELD.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_289__SFLA_FIELD.obj_num = 1;
-  cdat->dobj_289__SFLA_FIELD.obj_hash = 292209632;
+  cdat->dobj_289__SFLA_FIELD.obj_hash = 309026098;
   cdat->dobj_289__SFLA_FIELD.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_289__SFLA_FIELD));
  
@@ -38805,7 +38849,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_291__SFLA_EXPR));
   basilys_assertmsg("iniobj checkdiscr dobj_293__SFLA_EXPR", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_293__SFLA_EXPR.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_293__SFLA_EXPR.obj_num = 2;
-  cdat->dobj_293__SFLA_EXPR.obj_hash = 654108010;
+  cdat->dobj_293__SFLA_EXPR.obj_hash = 377519055;
   cdat->dobj_293__SFLA_EXPR.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_293__SFLA_EXPR));
  
@@ -38834,7 +38878,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_295__CLASS_SRC_MAKE
   basilys_assertmsg("iniobj checkdiscr dobj_297__CLASS_SRC_MAKE_INSTANCE", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_297__CLASS_SRC_MAKE_INSTANCE.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_297__CLASS_SRC_MAKE_INSTANCE.obj_num = OBMAG_OBJECT;
-  cdat->dobj_297__CLASS_SRC_MAKE_INSTANCE.obj_hash = 244382935;
+  cdat->dobj_297__CLASS_SRC_MAKE_INSTANCE.obj_hash = 497726860;
   cdat->dobj_297__CLASS_SRC_MAKE_INSTANCE.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_297__CLASS_SRC_MAKE_INSTANCE));
  
@@ -38871,7 +38915,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_301__SMINS_CLASS));
   basilys_assertmsg("iniobj checkdiscr dobj_303__SMINS_CLASS", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_303__SMINS_CLASS.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_303__SMINS_CLASS.obj_num = 1;
-  cdat->dobj_303__SMINS_CLASS.obj_hash = 1003434831;
+  cdat->dobj_303__SMINS_CLASS.obj_hash = 713380111;
   cdat->dobj_303__SMINS_CLASS.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_303__SMINS_CLASS));
  
@@ -38900,7 +38944,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_305__SMINS_CLABIND)
   basilys_assertmsg("iniobj checkdiscr dobj_307__SMINS_CLABIND", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_307__SMINS_CLABIND.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_307__SMINS_CLABIND.obj_num = 2;
-  cdat->dobj_307__SMINS_CLABIND.obj_hash = 131101196;
+  cdat->dobj_307__SMINS_CLABIND.obj_hash = 253287963;
   cdat->dobj_307__SMINS_CLABIND.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_307__SMINS_CLABIND));
  
@@ -38929,7 +38973,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_309__SMINS_FIELDS))
   basilys_assertmsg("iniobj checkdiscr dobj_311__SMINS_FIELDS", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_311__SMINS_FIELDS.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_311__SMINS_FIELDS.obj_num = 3;
-  cdat->dobj_311__SMINS_FIELDS.obj_hash = 202106840;
+  cdat->dobj_311__SMINS_FIELDS.obj_hash = 91626422;
   cdat->dobj_311__SMINS_FIELDS.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_311__SMINS_FIELDS));
  
@@ -38958,7 +39002,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_313__CLASS_SRC_UNSA
   basilys_assertmsg("iniobj checkdiscr dobj_315__CLASS_SRC_UNSAFE_GET_FIELD", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_315__CLASS_SRC_UNSAFE_GET_FIELD.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_315__CLASS_SRC_UNSAFE_GET_FIELD.obj_num = OBMAG_OBJECT;
-  cdat->dobj_315__CLASS_SRC_UNSAFE_GET_FIELD.obj_hash = 878382911;
+  cdat->dobj_315__CLASS_SRC_UNSAFE_GET_FIELD.obj_hash = 576710734;
   cdat->dobj_315__CLASS_SRC_UNSAFE_GET_FIELD.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_315__CLASS_SRC_UNSAFE_GET_FIELD));
  
@@ -38995,7 +39039,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_319__SUGET_OBJ));
   basilys_assertmsg("iniobj checkdiscr dobj_321__SUGET_OBJ", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_321__SUGET_OBJ.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_321__SUGET_OBJ.obj_num = 1;
-  cdat->dobj_321__SUGET_OBJ.obj_hash = 513097061;
+  cdat->dobj_321__SUGET_OBJ.obj_hash = 447737091;
   cdat->dobj_321__SUGET_OBJ.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_321__SUGET_OBJ));
  
@@ -39024,7 +39068,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_323__SUGET_FIELD));
   basilys_assertmsg("iniobj checkdiscr dobj_325__SUGET_FIELD", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_325__SUGET_FIELD.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_325__SUGET_FIELD.obj_num = 2;
-  cdat->dobj_325__SUGET_FIELD.obj_hash = 839348446;
+  cdat->dobj_325__SUGET_FIELD.obj_hash = 210025878;
   cdat->dobj_325__SUGET_FIELD.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_325__SUGET_FIELD));
  
@@ -39053,7 +39097,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_327__CLASS_SRC_UNSA
   basilys_assertmsg("iniobj checkdiscr dobj_329__CLASS_SRC_UNSAFE_PUT_FIELDS", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_329__CLASS_SRC_UNSAFE_PUT_FIELDS.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_329__CLASS_SRC_UNSAFE_PUT_FIELDS.obj_num = OBMAG_OBJECT;
-  cdat->dobj_329__CLASS_SRC_UNSAFE_PUT_FIELDS.obj_hash = 9060880;
+  cdat->dobj_329__CLASS_SRC_UNSAFE_PUT_FIELDS.obj_hash = 292215383;
   cdat->dobj_329__CLASS_SRC_UNSAFE_PUT_FIELDS.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_329__CLASS_SRC_UNSAFE_PUT_FIELDS));
  
@@ -39090,7 +39134,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_333__SUPUT_OBJ));
   basilys_assertmsg("iniobj checkdiscr dobj_335__SUPUT_OBJ", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_335__SUPUT_OBJ.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_335__SUPUT_OBJ.obj_num = 1;
-  cdat->dobj_335__SUPUT_OBJ.obj_hash = 155386944;
+  cdat->dobj_335__SUPUT_OBJ.obj_hash = 569755776;
   cdat->dobj_335__SUPUT_OBJ.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_335__SUPUT_OBJ));
  
@@ -39119,7 +39163,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_337__SUPUT_FIELDS))
   basilys_assertmsg("iniobj checkdiscr dobj_339__SUPUT_FIELDS", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_339__SUPUT_FIELDS.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_339__SUPUT_FIELDS.obj_num = 2;
-  cdat->dobj_339__SUPUT_FIELDS.obj_hash = 923345202;
+  cdat->dobj_339__SUPUT_FIELDS.obj_hash = 796969084;
   cdat->dobj_339__SUPUT_FIELDS.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_339__SUPUT_FIELDS));
  
@@ -39148,7 +39192,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_341__CLASS_SRC_IF))
   basilys_assertmsg("iniobj checkdiscr dobj_343__CLASS_SRC_IF", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_343__CLASS_SRC_IF.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_343__CLASS_SRC_IF.obj_num = OBMAG_OBJECT;
-  cdat->dobj_343__CLASS_SRC_IF.obj_hash = 445922136;
+  cdat->dobj_343__CLASS_SRC_IF.obj_hash = 211664455;
   cdat->dobj_343__CLASS_SRC_IF.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_343__CLASS_SRC_IF));
  
@@ -39185,7 +39229,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_347__SIF_TEST));
   basilys_assertmsg("iniobj checkdiscr dobj_349__SIF_TEST", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_349__SIF_TEST.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_349__SIF_TEST.obj_num = 1;
-  cdat->dobj_349__SIF_TEST.obj_hash = 101450874;
+  cdat->dobj_349__SIF_TEST.obj_hash = 936530771;
   cdat->dobj_349__SIF_TEST.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_349__SIF_TEST));
  
@@ -39214,7 +39258,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_351__SIF_THEN));
   basilys_assertmsg("iniobj checkdiscr dobj_353__SIF_THEN", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_353__SIF_THEN.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_353__SIF_THEN.obj_num = 2;
-  cdat->dobj_353__SIF_THEN.obj_hash = 695986573;
+  cdat->dobj_353__SIF_THEN.obj_hash = 687318967;
   cdat->dobj_353__SIF_THEN.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_353__SIF_THEN));
  
@@ -39243,7 +39287,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_355__CLASS_SRC_IFEL
   basilys_assertmsg("iniobj checkdiscr dobj_357__CLASS_SRC_IFELSE", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_357__CLASS_SRC_IFELSE.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_357__CLASS_SRC_IFELSE.obj_num = OBMAG_OBJECT;
-  cdat->dobj_357__CLASS_SRC_IFELSE.obj_hash = 753791814;
+  cdat->dobj_357__CLASS_SRC_IFELSE.obj_hash = 308887977;
   cdat->dobj_357__CLASS_SRC_IFELSE.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_357__CLASS_SRC_IFELSE));
  
@@ -39280,7 +39324,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_361__SIF_ELSE));
   basilys_assertmsg("iniobj checkdiscr dobj_363__SIF_ELSE", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_363__SIF_ELSE.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_363__SIF_ELSE.obj_num = 3;
-  cdat->dobj_363__SIF_ELSE.obj_hash = 334026675;
+  cdat->dobj_363__SIF_ELSE.obj_hash = 557593266;
   cdat->dobj_363__SIF_ELSE.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_363__SIF_ELSE));
  
@@ -39309,7 +39353,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_365__CLASS_SRC_OR))
   basilys_assertmsg("iniobj checkdiscr dobj_367__CLASS_SRC_OR", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_367__CLASS_SRC_OR.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_367__CLASS_SRC_OR.obj_num = OBMAG_OBJECT;
-  cdat->dobj_367__CLASS_SRC_OR.obj_hash = 828835189;
+  cdat->dobj_367__CLASS_SRC_OR.obj_hash = 408248211;
   cdat->dobj_367__CLASS_SRC_OR.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_367__CLASS_SRC_OR));
  
@@ -39346,7 +39390,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_371__SOR_DISJ));
   basilys_assertmsg("iniobj checkdiscr dobj_373__SOR_DISJ", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_373__SOR_DISJ.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_373__SOR_DISJ.obj_num = 1;
-  cdat->dobj_373__SOR_DISJ.obj_hash = 178916265;
+  cdat->dobj_373__SOR_DISJ.obj_hash = 33419538;
   cdat->dobj_373__SOR_DISJ.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_373__SOR_DISJ));
  
@@ -39375,7 +39419,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_375__CLASS_SRC_CPPI
   basilys_assertmsg("iniobj checkdiscr dobj_377__CLASS_SRC_CPPIF", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_377__CLASS_SRC_CPPIF.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_377__CLASS_SRC_CPPIF.obj_num = OBMAG_OBJECT;
-  cdat->dobj_377__CLASS_SRC_CPPIF.obj_hash = 193147843;
+  cdat->dobj_377__CLASS_SRC_CPPIF.obj_hash = 1036424279;
   cdat->dobj_377__CLASS_SRC_CPPIF.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_377__CLASS_SRC_CPPIF));
  
@@ -39412,7 +39456,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_381__SIFP_COND));
   basilys_assertmsg("iniobj checkdiscr dobj_383__SIFP_COND", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_383__SIFP_COND.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_383__SIFP_COND.obj_num = 1;
-  cdat->dobj_383__SIFP_COND.obj_hash = 571835228;
+  cdat->dobj_383__SIFP_COND.obj_hash = 137526781;
   cdat->dobj_383__SIFP_COND.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_383__SIFP_COND));
  
@@ -39441,7 +39485,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_385__SIFP_THEN));
   basilys_assertmsg("iniobj checkdiscr dobj_387__SIFP_THEN", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_387__SIFP_THEN.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_387__SIFP_THEN.obj_num = 2;
-  cdat->dobj_387__SIFP_THEN.obj_hash = 565870127;
+  cdat->dobj_387__SIFP_THEN.obj_hash = 125661776;
   cdat->dobj_387__SIFP_THEN.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_387__SIFP_THEN));
  
@@ -39470,7 +39514,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_389__SIFP_ELSE));
   basilys_assertmsg("iniobj checkdiscr dobj_391__SIFP_ELSE", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_391__SIFP_ELSE.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_391__SIFP_ELSE.obj_num = 3;
-  cdat->dobj_391__SIFP_ELSE.obj_hash = 1054108314;
+  cdat->dobj_391__SIFP_ELSE.obj_hash = 49031460;
   cdat->dobj_391__SIFP_ELSE.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_391__SIFP_ELSE));
  
@@ -39499,7 +39543,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_393__CLASS_SRC_LETB
   basilys_assertmsg("iniobj checkdiscr dobj_395__CLASS_SRC_LETBINDING", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_395__CLASS_SRC_LETBINDING.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_395__CLASS_SRC_LETBINDING.obj_num = OBMAG_OBJECT;
-  cdat->dobj_395__CLASS_SRC_LETBINDING.obj_hash = 977656946;
+  cdat->dobj_395__CLASS_SRC_LETBINDING.obj_hash = 814421480;
   cdat->dobj_395__CLASS_SRC_LETBINDING.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_395__CLASS_SRC_LETBINDING));
  
@@ -39536,7 +39580,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_399__SLETB_TYPE));
   basilys_assertmsg("iniobj checkdiscr dobj_401__SLETB_TYPE", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_401__SLETB_TYPE.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_401__SLETB_TYPE.obj_num = 1;
-  cdat->dobj_401__SLETB_TYPE.obj_hash = 10570750;
+  cdat->dobj_401__SLETB_TYPE.obj_hash = 458842495;
   cdat->dobj_401__SLETB_TYPE.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_401__SLETB_TYPE));
  
@@ -39565,7 +39609,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_403__SLETB_BINDER))
   basilys_assertmsg("iniobj checkdiscr dobj_405__SLETB_BINDER", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_405__SLETB_BINDER.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_405__SLETB_BINDER.obj_num = 2;
-  cdat->dobj_405__SLETB_BINDER.obj_hash = 145537084;
+  cdat->dobj_405__SLETB_BINDER.obj_hash = 822012472;
   cdat->dobj_405__SLETB_BINDER.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_405__SLETB_BINDER));
  
@@ -39594,7 +39638,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_407__SLETB_EXPR));
   basilys_assertmsg("iniobj checkdiscr dobj_409__SLETB_EXPR", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_409__SLETB_EXPR.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_409__SLETB_EXPR.obj_num = 3;
-  cdat->dobj_409__SLETB_EXPR.obj_hash = 823708061;
+  cdat->dobj_409__SLETB_EXPR.obj_hash = 198884059;
   cdat->dobj_409__SLETB_EXPR.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_409__SLETB_EXPR));
  
@@ -39623,7 +39667,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_411__CLASS_SRC_LET)
   basilys_assertmsg("iniobj checkdiscr dobj_413__CLASS_SRC_LET", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_413__CLASS_SRC_LET.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_413__CLASS_SRC_LET.obj_num = OBMAG_OBJECT;
-  cdat->dobj_413__CLASS_SRC_LET.obj_hash = 764959090;
+  cdat->dobj_413__CLASS_SRC_LET.obj_hash = 666742266;
   cdat->dobj_413__CLASS_SRC_LET.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_413__CLASS_SRC_LET));
  
@@ -39660,7 +39704,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_417__SLET_BINDINGS)
   basilys_assertmsg("iniobj checkdiscr dobj_419__SLET_BINDINGS", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_419__SLET_BINDINGS.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_419__SLET_BINDINGS.obj_num = 1;
-  cdat->dobj_419__SLET_BINDINGS.obj_hash = 458625815;
+  cdat->dobj_419__SLET_BINDINGS.obj_hash = 314173550;
   cdat->dobj_419__SLET_BINDINGS.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_419__SLET_BINDINGS));
  
@@ -39689,7 +39733,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_421__SLET_BODY));
   basilys_assertmsg("iniobj checkdiscr dobj_423__SLET_BODY", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_423__SLET_BODY.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_423__SLET_BODY.obj_num = 2;
-  cdat->dobj_423__SLET_BODY.obj_hash = 635540533;
+  cdat->dobj_423__SLET_BODY.obj_hash = 369593022;
   cdat->dobj_423__SLET_BODY.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_423__SLET_BODY));
  
@@ -39718,7 +39762,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_425__CLASS_SRC_LAMB
   basilys_assertmsg("iniobj checkdiscr dobj_427__CLASS_SRC_LAMBDA", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_427__CLASS_SRC_LAMBDA.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_427__CLASS_SRC_LAMBDA.obj_num = OBMAG_OBJECT;
-  cdat->dobj_427__CLASS_SRC_LAMBDA.obj_hash = 1010791597;
+  cdat->dobj_427__CLASS_SRC_LAMBDA.obj_hash = 975187661;
   cdat->dobj_427__CLASS_SRC_LAMBDA.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_427__CLASS_SRC_LAMBDA));
  
@@ -39755,7 +39799,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_431__SLAM_ARGBIND))
   basilys_assertmsg("iniobj checkdiscr dobj_433__SLAM_ARGBIND", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_433__SLAM_ARGBIND.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_433__SLAM_ARGBIND.obj_num = 1;
-  cdat->dobj_433__SLAM_ARGBIND.obj_hash = 670085812;
+  cdat->dobj_433__SLAM_ARGBIND.obj_hash = 252972609;
   cdat->dobj_433__SLAM_ARGBIND.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_433__SLAM_ARGBIND));
  
@@ -39784,7 +39828,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_435__SLAM_BODY));
   basilys_assertmsg("iniobj checkdiscr dobj_437__SLAM_BODY", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_437__SLAM_BODY.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_437__SLAM_BODY.obj_num = 2;
-  cdat->dobj_437__SLAM_BODY.obj_hash = 570037451;
+  cdat->dobj_437__SLAM_BODY.obj_hash = 499978886;
   cdat->dobj_437__SLAM_BODY.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_437__SLAM_BODY));
  
@@ -39813,7 +39857,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_439__CLASS_SRC_MULT
   basilys_assertmsg("iniobj checkdiscr dobj_441__CLASS_SRC_MULTICALL", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_441__CLASS_SRC_MULTICALL.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_441__CLASS_SRC_MULTICALL.obj_num = OBMAG_OBJECT;
-  cdat->dobj_441__CLASS_SRC_MULTICALL.obj_hash = 152474072;
+  cdat->dobj_441__CLASS_SRC_MULTICALL.obj_hash = 197038246;
   cdat->dobj_441__CLASS_SRC_MULTICALL.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_441__CLASS_SRC_MULTICALL));
  
@@ -39850,7 +39894,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_445__SMULC_RESBIND)
   basilys_assertmsg("iniobj checkdiscr dobj_447__SMULC_RESBIND", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_447__SMULC_RESBIND.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_447__SMULC_RESBIND.obj_num = 1;
-  cdat->dobj_447__SMULC_RESBIND.obj_hash = 475716108;
+  cdat->dobj_447__SMULC_RESBIND.obj_hash = 345862652;
   cdat->dobj_447__SMULC_RESBIND.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_447__SMULC_RESBIND));
  
@@ -39879,7 +39923,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_449__SMULC_CALL));
   basilys_assertmsg("iniobj checkdiscr dobj_451__SMULC_CALL", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_451__SMULC_CALL.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_451__SMULC_CALL.obj_num = 2;
-  cdat->dobj_451__SMULC_CALL.obj_hash = 567380224;
+  cdat->dobj_451__SMULC_CALL.obj_hash = 750191386;
   cdat->dobj_451__SMULC_CALL.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_451__SMULC_CALL));
  
@@ -39908,7 +39952,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_453__SMULC_BODY));
   basilys_assertmsg("iniobj checkdiscr dobj_455__SMULC_BODY", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_455__SMULC_BODY.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_455__SMULC_BODY.obj_num = 3;
-  cdat->dobj_455__SMULC_BODY.obj_hash = 849073544;
+  cdat->dobj_455__SMULC_BODY.obj_hash = 411153341;
   cdat->dobj_455__SMULC_BODY.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_455__SMULC_BODY));
  
@@ -39937,7 +39981,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_457__CLASS_SRC_LABE
   basilys_assertmsg("iniobj checkdiscr dobj_459__CLASS_SRC_LABELLED", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_459__CLASS_SRC_LABELLED.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_459__CLASS_SRC_LABELLED.obj_num = OBMAG_OBJECT;
-  cdat->dobj_459__CLASS_SRC_LABELLED.obj_hash = 923456446;
+  cdat->dobj_459__CLASS_SRC_LABELLED.obj_hash = 335065847;
   cdat->dobj_459__CLASS_SRC_LABELLED.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_459__CLASS_SRC_LABELLED));
  
@@ -39974,7 +40018,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_463__SLABEL_BIND));
   basilys_assertmsg("iniobj checkdiscr dobj_465__SLABEL_BIND", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_465__SLABEL_BIND.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_465__SLABEL_BIND.obj_num = 1;
-  cdat->dobj_465__SLABEL_BIND.obj_hash = 97502687;
+  cdat->dobj_465__SLABEL_BIND.obj_hash = 139276197;
   cdat->dobj_465__SLABEL_BIND.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_465__SLABEL_BIND));
  
@@ -40003,7 +40047,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_467__CLASS_SRC_FORE
   basilys_assertmsg("iniobj checkdiscr dobj_469__CLASS_SRC_FOREVER", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_469__CLASS_SRC_FOREVER.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_469__CLASS_SRC_FOREVER.obj_num = OBMAG_OBJECT;
-  cdat->dobj_469__CLASS_SRC_FOREVER.obj_hash = 224305316;
+  cdat->dobj_469__CLASS_SRC_FOREVER.obj_hash = 448631089;
   cdat->dobj_469__CLASS_SRC_FOREVER.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_469__CLASS_SRC_FOREVER));
  
@@ -40040,7 +40084,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_473__SFRV_BODY));
   basilys_assertmsg("iniobj checkdiscr dobj_475__SFRV_BODY", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_475__SFRV_BODY.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_475__SFRV_BODY.obj_num = 2;
-  cdat->dobj_475__SFRV_BODY.obj_hash = 623424855;
+  cdat->dobj_475__SFRV_BODY.obj_hash = 179377490;
   cdat->dobj_475__SFRV_BODY.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_475__SFRV_BODY));
  
@@ -40069,7 +40113,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_477__CLASS_SRC_EXIT
   basilys_assertmsg("iniobj checkdiscr dobj_479__CLASS_SRC_EXIT", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_479__CLASS_SRC_EXIT.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_479__CLASS_SRC_EXIT.obj_num = OBMAG_OBJECT;
-  cdat->dobj_479__CLASS_SRC_EXIT.obj_hash = 625655001;
+  cdat->dobj_479__CLASS_SRC_EXIT.obj_hash = 35707645;
   cdat->dobj_479__CLASS_SRC_EXIT.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_479__CLASS_SRC_EXIT));
  
@@ -40106,7 +40150,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_483__SEXI_BODY));
   basilys_assertmsg("iniobj checkdiscr dobj_485__SEXI_BODY", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_485__SEXI_BODY.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_485__SEXI_BODY.obj_num = 2;
-  cdat->dobj_485__SEXI_BODY.obj_hash = 873861463;
+  cdat->dobj_485__SEXI_BODY.obj_hash = 504686312;
   cdat->dobj_485__SEXI_BODY.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_485__SEXI_BODY));
  
@@ -40135,7 +40179,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_487__CLASS_SRC_COMP
   basilys_assertmsg("iniobj checkdiscr dobj_489__CLASS_SRC_COMPILEWARNING", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_489__CLASS_SRC_COMPILEWARNING.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_489__CLASS_SRC_COMPILEWARNING.obj_num = OBMAG_OBJECT;
-  cdat->dobj_489__CLASS_SRC_COMPILEWARNING.obj_hash = 394619915;
+  cdat->dobj_489__CLASS_SRC_COMPILEWARNING.obj_hash = 764554095;
   cdat->dobj_489__CLASS_SRC_COMPILEWARNING.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_489__CLASS_SRC_COMPILEWARNING));
  
@@ -40172,7 +40216,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_493__SCWARN_MSG));
   basilys_assertmsg("iniobj checkdiscr dobj_495__SCWARN_MSG", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_495__SCWARN_MSG.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_495__SCWARN_MSG.obj_num = 1;
-  cdat->dobj_495__SCWARN_MSG.obj_hash = 553016508;
+  cdat->dobj_495__SCWARN_MSG.obj_hash = 660236663;
   cdat->dobj_495__SCWARN_MSG.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_495__SCWARN_MSG));
  
@@ -40201,7 +40245,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_497__SCWARN_EXPR));
   basilys_assertmsg("iniobj checkdiscr dobj_499__SCWARN_EXPR", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_499__SCWARN_EXPR.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_499__SCWARN_EXPR.obj_num = 2;
-  cdat->dobj_499__SCWARN_EXPR.obj_hash = 435178234;
+  cdat->dobj_499__SCWARN_EXPR.obj_hash = 749427191;
   cdat->dobj_499__SCWARN_EXPR.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_499__SCWARN_EXPR));
  
@@ -40230,7 +40274,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_501__CLASS_SRC_CURR
   basilys_assertmsg("iniobj checkdiscr dobj_503__CLASS_SRC_CURRENT_MODULE_ENVIRONMENT_CONTAINER", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_503__CLASS_SRC_CURRENT_MODULE_ENVIRONMENT_CONTAINER.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_503__CLASS_SRC_CURRENT_MODULE_ENVIRONMENT_CONTAINER.obj_num = OBMAG_OBJECT;
-  cdat->dobj_503__CLASS_SRC_CURRENT_MODULE_ENVIRONMENT_CONTAINER.obj_hash = 809528106;
+  cdat->dobj_503__CLASS_SRC_CURRENT_MODULE_ENVIRONMENT_CONTAINER.obj_hash = 1068259715;
   cdat->dobj_503__CLASS_SRC_CURRENT_MODULE_ENVIRONMENT_CONTAINER.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_503__CLASS_SRC_CURRENT_MODULE_ENVIRONMENT_CONTAINER));
  
@@ -40267,7 +40311,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_507__CMEC_COMMENT))
   basilys_assertmsg("iniobj checkdiscr dobj_509__CMEC_COMMENT", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_509__CMEC_COMMENT.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_509__CMEC_COMMENT.obj_num = 1;
-  cdat->dobj_509__CMEC_COMMENT.obj_hash = 484668891;
+  cdat->dobj_509__CMEC_COMMENT.obj_hash = 218655155;
   cdat->dobj_509__CMEC_COMMENT.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_509__CMEC_COMMENT));
  
@@ -40296,7 +40340,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_511__CLASS_SRC_PARE
   basilys_assertmsg("iniobj checkdiscr dobj_513__CLASS_SRC_PARENT_MODULE_ENVIRONMENT", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_513__CLASS_SRC_PARENT_MODULE_ENVIRONMENT.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_513__CLASS_SRC_PARENT_MODULE_ENVIRONMENT.obj_num = OBMAG_OBJECT;
-  cdat->dobj_513__CLASS_SRC_PARENT_MODULE_ENVIRONMENT.obj_hash = 991718705;
+  cdat->dobj_513__CLASS_SRC_PARENT_MODULE_ENVIRONMENT.obj_hash = 955170630;
   cdat->dobj_513__CLASS_SRC_PARENT_MODULE_ENVIRONMENT.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_513__CLASS_SRC_PARENT_MODULE_ENVIRONMENT));
  
@@ -40333,7 +40377,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_517__CLASS_SRC_UPDA
   basilys_assertmsg("iniobj checkdiscr dobj_519__CLASS_SRC_UPDATE_CURRENT_MODULE_ENVIRONMENT_CONTAINER", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_519__CLASS_SRC_UPDATE_CURRENT_MODULE_ENVIRONMENT_CONTAINER.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_519__CLASS_SRC_UPDATE_CURRENT_MODULE_ENVIRONMENT_CONTAINER.obj_num = OBMAG_OBJECT;
-  cdat->dobj_519__CLASS_SRC_UPDATE_CURRENT_MODULE_ENVIRONMENT_CONTAINER.obj_hash = 123288510;
+  cdat->dobj_519__CLASS_SRC_UPDATE_CURRENT_MODULE_ENVIRONMENT_CONTAINER.obj_hash = 725589537;
   cdat->dobj_519__CLASS_SRC_UPDATE_CURRENT_MODULE_ENVIRONMENT_CONTAINER.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_519__CLASS_SRC_UPDATE_CURRENT_MODULE_ENVIRONMENT_CONTAINER));
  
@@ -40370,7 +40414,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_523__SUCME_COMMENT)
   basilys_assertmsg("iniobj checkdiscr dobj_525__SUCME_COMMENT", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_525__SUCME_COMMENT.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_525__SUCME_COMMENT.obj_num = 1;
-  cdat->dobj_525__SUCME_COMMENT.obj_hash = 798801109;
+  cdat->dobj_525__SUCME_COMMENT.obj_hash = 941685790;
   cdat->dobj_525__SUCME_COMMENT.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_525__SUCME_COMMENT));
  
@@ -40399,7 +40443,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_527__CLASS_SRC_FETC
   basilys_assertmsg("iniobj checkdiscr dobj_529__CLASS_SRC_FETCH_PREDEFINED", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_529__CLASS_SRC_FETCH_PREDEFINED.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_529__CLASS_SRC_FETCH_PREDEFINED.obj_num = OBMAG_OBJECT;
-  cdat->dobj_529__CLASS_SRC_FETCH_PREDEFINED.obj_hash = 859020705;
+  cdat->dobj_529__CLASS_SRC_FETCH_PREDEFINED.obj_hash = 807187683;
   cdat->dobj_529__CLASS_SRC_FETCH_PREDEFINED.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_529__CLASS_SRC_FETCH_PREDEFINED));
  
@@ -40436,7 +40480,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_533__SFEPD_PREDEF))
   basilys_assertmsg("iniobj checkdiscr dobj_535__SFEPD_PREDEF", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_535__SFEPD_PREDEF.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_535__SFEPD_PREDEF.obj_num = 1;
-  cdat->dobj_535__SFEPD_PREDEF.obj_hash = 41282000;
+  cdat->dobj_535__SFEPD_PREDEF.obj_hash = 240605717;
   cdat->dobj_535__SFEPD_PREDEF.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_535__SFEPD_PREDEF));
  
@@ -40465,7 +40509,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_537__CLASS_SRC_STOR
   basilys_assertmsg("iniobj checkdiscr dobj_539__CLASS_SRC_STORE_PREDEFINED", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_539__CLASS_SRC_STORE_PREDEFINED.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_539__CLASS_SRC_STORE_PREDEFINED.obj_num = OBMAG_OBJECT;
-  cdat->dobj_539__CLASS_SRC_STORE_PREDEFINED.obj_hash = 801528243;
+  cdat->dobj_539__CLASS_SRC_STORE_PREDEFINED.obj_hash = 960882352;
   cdat->dobj_539__CLASS_SRC_STORE_PREDEFINED.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_539__CLASS_SRC_STORE_PREDEFINED));
  
@@ -40502,7 +40546,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_543__SSTPD_PREDEF))
   basilys_assertmsg("iniobj checkdiscr dobj_545__SSTPD_PREDEF", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_545__SSTPD_PREDEF.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_545__SSTPD_PREDEF.obj_num = 1;
-  cdat->dobj_545__SSTPD_PREDEF.obj_hash = 360161024;
+  cdat->dobj_545__SSTPD_PREDEF.obj_hash = 25972870;
   cdat->dobj_545__SSTPD_PREDEF.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_545__SSTPD_PREDEF));
  
@@ -40531,7 +40575,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_547__SSTPD_VALUE));
   basilys_assertmsg("iniobj checkdiscr dobj_549__SSTPD_VALUE", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_549__SSTPD_VALUE.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_549__SSTPD_VALUE.obj_num = 2;
-  cdat->dobj_549__SSTPD_VALUE.obj_hash = 462102234;
+  cdat->dobj_549__SSTPD_VALUE.obj_hash = 350449961;
   cdat->dobj_549__SSTPD_VALUE.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_549__SSTPD_VALUE));
  
@@ -41846,14 +41890,14 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_752__LET));
  /*inirout drout_756__LAMBDA_*/
  /*_.VALROUT___V811*/ curfptr[810] = (void*)&cdat->drout_756__LAMBDA_;
   cdat->drout_756__LAMBDA_.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
-  strncpy(cdat->drout_756__LAMBDA_.routdescr, "LAMBDA_ @warmelt-macro.bysl:2040",  BASILYS_ROUTDESCR_LEN - 1);
+  strncpy(cdat->drout_756__LAMBDA_.routdescr, "LAMBDA_ @warmelt-macro.bysl:2043",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_756__LAMBDA_.nbval = 1;
  *(basilysroutfun_t **) (cdat->drout_756__LAMBDA_.routaddr) = rout_47_LAMBDA_;
  
  /*inirout drout_757__LAMBDA_*/
  /*_.VALROUT___V812*/ curfptr[811] = (void*)&cdat->drout_757__LAMBDA_;
   cdat->drout_757__LAMBDA_.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
-  strncpy(cdat->drout_757__LAMBDA_.routdescr, "LAMBDA_ @warmelt-macro.bysl:2042",  BASILYS_ROUTDESCR_LEN - 1);
+  strncpy(cdat->drout_757__LAMBDA_.routdescr, "LAMBDA_ @warmelt-macro.bysl:2045",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_757__LAMBDA_.nbval = 1;
  *(basilysroutfun_t **) (cdat->drout_757__LAMBDA_.routaddr) = rout_48_LAMBDA_;
  
@@ -41873,7 +41917,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_758__LAMBDA));
  /*inirout drout_760__MEXPAND_MULTICALL*/
  /*_.VALROUT___V816*/ curfptr[815] = (void*)&cdat->drout_760__MEXPAND_MULTICALL;
   cdat->drout_760__MEXPAND_MULTICALL.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
-  strncpy(cdat->drout_760__MEXPAND_MULTICALL.routdescr, "MEXPAND_MULTICALL @warmelt-macro.bysl:2055",  BASILYS_ROUTDESCR_LEN - 1);
+  strncpy(cdat->drout_760__MEXPAND_MULTICALL.routdescr, "MEXPAND_MULTICALL @warmelt-macro.bysl:2058",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_760__MEXPAND_MULTICALL.nbval = 13;
  *(basilysroutfun_t **) (cdat->drout_760__MEXPAND_MULTICALL.routaddr) = rout_49_MEXPAND_MULTICALL;
  
@@ -41885,14 +41929,14 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_758__LAMBDA));
  /*inirout drout_762__LAMBDA_*/
  /*_.VALROUT___V817*/ curfptr[816] = (void*)&cdat->drout_762__LAMBDA_;
   cdat->drout_762__LAMBDA_.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
-  strncpy(cdat->drout_762__LAMBDA_.routdescr, "LAMBDA_ @warmelt-macro.bysl:2072",  BASILYS_ROUTDESCR_LEN - 1);
+  strncpy(cdat->drout_762__LAMBDA_.routdescr, "LAMBDA_ @warmelt-macro.bysl:2075",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_762__LAMBDA_.nbval = 1;
  *(basilysroutfun_t **) (cdat->drout_762__LAMBDA_.routaddr) = rout_50_LAMBDA_;
  
  /*inirout drout_763__LAMBDA_*/
  /*_.VALROUT___V818*/ curfptr[817] = (void*)&cdat->drout_763__LAMBDA_;
   cdat->drout_763__LAMBDA_.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
-  strncpy(cdat->drout_763__LAMBDA_.routdescr, "LAMBDA_ @warmelt-macro.bysl:2075",  BASILYS_ROUTDESCR_LEN - 1);
+  strncpy(cdat->drout_763__LAMBDA_.routdescr, "LAMBDA_ @warmelt-macro.bysl:2078",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_763__LAMBDA_.nbval = 1;
  *(basilysroutfun_t **) (cdat->drout_763__LAMBDA_.routaddr) = rout_51_LAMBDA_;
  
@@ -41912,7 +41956,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_764__MULTICALL));
  /*inirout drout_766__MEXPAND_QUOTE*/
  /*_.VALROUT___V822*/ curfptr[821] = (void*)&cdat->drout_766__MEXPAND_QUOTE;
   cdat->drout_766__MEXPAND_QUOTE.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
-  strncpy(cdat->drout_766__MEXPAND_QUOTE.routdescr, "MEXPAND_QUOTE @warmelt-macro.bysl:2091",  BASILYS_ROUTDESCR_LEN - 1);
+  strncpy(cdat->drout_766__MEXPAND_QUOTE.routdescr, "MEXPAND_QUOTE @warmelt-macro.bysl:2094",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_766__MEXPAND_QUOTE.nbval = 5;
  *(basilysroutfun_t **) (cdat->drout_766__MEXPAND_QUOTE.routaddr) = rout_52_MEXPAND_QUOTE;
  
@@ -41937,7 +41981,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_768__QUOTE));
  /*inirout drout_770__MEXPAND_COMMENT*/
  /*_.VALROUT___V826*/ curfptr[825] = (void*)&cdat->drout_770__MEXPAND_COMMENT;
   cdat->drout_770__MEXPAND_COMMENT.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
-  strncpy(cdat->drout_770__MEXPAND_COMMENT.routdescr, "MEXPAND_COMMENT @warmelt-macro.bysl:2114",  BASILYS_ROUTDESCR_LEN - 1);
+  strncpy(cdat->drout_770__MEXPAND_COMMENT.routdescr, "MEXPAND_COMMENT @warmelt-macro.bysl:2117",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_770__MEXPAND_COMMENT.nbval = 3;
  *(basilysroutfun_t **) (cdat->drout_770__MEXPAND_COMMENT.routaddr) = rout_53_MEXPAND_COMMENT;
  
@@ -41962,7 +42006,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_772__COMMENT));
  /*inirout drout_774__PAIRLIST_TO_PROGN*/
  /*_.VALROUT___V782*/ curfptr[781] = (void*)&cdat->drout_774__PAIRLIST_TO_PROGN;
   cdat->drout_774__PAIRLIST_TO_PROGN.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
-  strncpy(cdat->drout_774__PAIRLIST_TO_PROGN.routdescr, "PAIRLIST_TO_PROGN @warmelt-macro.bysl:2139",  BASILYS_ROUTDESCR_LEN - 1);
+  strncpy(cdat->drout_774__PAIRLIST_TO_PROGN.routdescr, "PAIRLIST_TO_PROGN @warmelt-macro.bysl:2142",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_774__PAIRLIST_TO_PROGN.nbval = 7;
  *(basilysroutfun_t **) (cdat->drout_774__PAIRLIST_TO_PROGN.routaddr) = rout_54_PAIRLIST_TO_PROGN;
  
@@ -41974,14 +42018,14 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_772__COMMENT));
  /*inirout drout_776__LAMBDA_*/
  /*_.VALROUT___V783*/ curfptr[782] = (void*)&cdat->drout_776__LAMBDA_;
   cdat->drout_776__LAMBDA_.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
-  strncpy(cdat->drout_776__LAMBDA_.routdescr, "LAMBDA_ @warmelt-macro.bysl:2146",  BASILYS_ROUTDESCR_LEN - 1);
+  strncpy(cdat->drout_776__LAMBDA_.routdescr, "LAMBDA_ @warmelt-macro.bysl:2149",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_776__LAMBDA_.nbval = 1;
  *(basilysroutfun_t **) (cdat->drout_776__LAMBDA_.routaddr) = rout_55_LAMBDA_;
  
  /*inirout drout_777__PAIRLIST_TO_RETURN*/
  /*_.VALROUT___V830*/ curfptr[829] = (void*)&cdat->drout_777__PAIRLIST_TO_RETURN;
   cdat->drout_777__PAIRLIST_TO_RETURN.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
-  strncpy(cdat->drout_777__PAIRLIST_TO_RETURN.routdescr, "PAIRLIST_TO_RETURN @warmelt-macro.bysl:2157",  BASILYS_ROUTDESCR_LEN - 1);
+  strncpy(cdat->drout_777__PAIRLIST_TO_RETURN.routdescr, "PAIRLIST_TO_RETURN @warmelt-macro.bysl:2160",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_777__PAIRLIST_TO_RETURN.nbval = 6;
  *(basilysroutfun_t **) (cdat->drout_777__PAIRLIST_TO_RETURN.routaddr) = rout_56_PAIRLIST_TO_RETURN;
  
@@ -41993,14 +42037,14 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_772__COMMENT));
  /*inirout drout_779__LAMBDA_*/
  /*_.VALROUT___V831*/ curfptr[830] = (void*)&cdat->drout_779__LAMBDA_;
   cdat->drout_779__LAMBDA_.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
-  strncpy(cdat->drout_779__LAMBDA_.routdescr, "LAMBDA_ @warmelt-macro.bysl:2162",  BASILYS_ROUTDESCR_LEN - 1);
+  strncpy(cdat->drout_779__LAMBDA_.routdescr, "LAMBDA_ @warmelt-macro.bysl:2165",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_779__LAMBDA_.nbval = 1;
  *(basilysroutfun_t **) (cdat->drout_779__LAMBDA_.routaddr) = rout_57_LAMBDA_;
  
  /*inirout drout_780__MEXPAND_PROGN*/
  /*_.VALROUT___V833*/ curfptr[832] = (void*)&cdat->drout_780__MEXPAND_PROGN;
   cdat->drout_780__MEXPAND_PROGN.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
-  strncpy(cdat->drout_780__MEXPAND_PROGN.routdescr, "MEXPAND_PROGN @warmelt-macro.bysl:2170",  BASILYS_ROUTDESCR_LEN - 1);
+  strncpy(cdat->drout_780__MEXPAND_PROGN.routdescr, "MEXPAND_PROGN @warmelt-macro.bysl:2173",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_780__MEXPAND_PROGN.nbval = 2;
  *(basilysroutfun_t **) (cdat->drout_780__MEXPAND_PROGN.routaddr) = rout_58_MEXPAND_PROGN;
  
@@ -42025,7 +42069,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_782__PROGN));
  /*inirout drout_784__MEXPAND_RETURN*/
  /*_.VALROUT___V837*/ curfptr[836] = (void*)&cdat->drout_784__MEXPAND_RETURN;
   cdat->drout_784__MEXPAND_RETURN.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
-  strncpy(cdat->drout_784__MEXPAND_RETURN.routdescr, "MEXPAND_RETURN @warmelt-macro.bysl:2191",  BASILYS_ROUTDESCR_LEN - 1);
+  strncpy(cdat->drout_784__MEXPAND_RETURN.routdescr, "MEXPAND_RETURN @warmelt-macro.bysl:2194",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_784__MEXPAND_RETURN.nbval = 2;
  *(basilysroutfun_t **) (cdat->drout_784__MEXPAND_RETURN.routaddr) = rout_59_MEXPAND_RETURN;
  
@@ -42050,7 +42094,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_786__RETURN));
  /*inirout drout_788__MEXPAND_FOREVER*/
  /*_.VALROUT___V841*/ curfptr[840] = (void*)&cdat->drout_788__MEXPAND_FOREVER;
   cdat->drout_788__MEXPAND_FOREVER.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
-  strncpy(cdat->drout_788__MEXPAND_FOREVER.routdescr, "MEXPAND_FOREVER @warmelt-macro.bysl:2206",  BASILYS_ROUTDESCR_LEN - 1);
+  strncpy(cdat->drout_788__MEXPAND_FOREVER.routdescr, "MEXPAND_FOREVER @warmelt-macro.bysl:2209",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_788__MEXPAND_FOREVER.nbval = 11;
  *(basilysroutfun_t **) (cdat->drout_788__MEXPAND_FOREVER.routaddr) = rout_60_MEXPAND_FOREVER;
  
@@ -42075,7 +42119,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_790__CLASS_LABEL_BI
  /*inirout drout_792__LAMBDA_*/
  /*_.VALROUT___V842*/ curfptr[841] = (void*)&cdat->drout_792__LAMBDA_;
   cdat->drout_792__LAMBDA_.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
-  strncpy(cdat->drout_792__LAMBDA_.routdescr, "LAMBDA_ @warmelt-macro.bysl:2227",  BASILYS_ROUTDESCR_LEN - 1);
+  strncpy(cdat->drout_792__LAMBDA_.routdescr, "LAMBDA_ @warmelt-macro.bysl:2230",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_792__LAMBDA_.nbval = 1;
  *(basilysroutfun_t **) (cdat->drout_792__LAMBDA_.routaddr) = rout_61_LAMBDA_;
  
@@ -42095,7 +42139,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_793__FOREVER));
  /*inirout drout_795__MEXPAND_EXIT*/
  /*_.VALROUT___V848*/ curfptr[847] = (void*)&cdat->drout_795__MEXPAND_EXIT;
   cdat->drout_795__MEXPAND_EXIT.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
-  strncpy(cdat->drout_795__MEXPAND_EXIT.routdescr, "MEXPAND_EXIT @warmelt-macro.bysl:2240",  BASILYS_ROUTDESCR_LEN - 1);
+  strncpy(cdat->drout_795__MEXPAND_EXIT.routdescr, "MEXPAND_EXIT @warmelt-macro.bysl:2243",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_795__MEXPAND_EXIT.nbval = 11;
  *(basilysroutfun_t **) (cdat->drout_795__MEXPAND_EXIT.routaddr) = rout_62_MEXPAND_EXIT;
  
@@ -42107,7 +42151,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_793__FOREVER));
  /*inirout drout_797__LAMBDA_*/
  /*_.VALROUT___V849*/ curfptr[848] = (void*)&cdat->drout_797__LAMBDA_;
   cdat->drout_797__LAMBDA_.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
-  strncpy(cdat->drout_797__LAMBDA_.routdescr, "LAMBDA_ @warmelt-macro.bysl:2263",  BASILYS_ROUTDESCR_LEN - 1);
+  strncpy(cdat->drout_797__LAMBDA_.routdescr, "LAMBDA_ @warmelt-macro.bysl:2266",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_797__LAMBDA_.nbval = 1;
  *(basilysroutfun_t **) (cdat->drout_797__LAMBDA_.routaddr) = rout_63_LAMBDA_;
  
@@ -42127,7 +42171,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_798__EXIT));
  /*inirout drout_800__MEXPAND_COMPILE_WARNING*/
  /*_.VALROUT___V853*/ curfptr[852] = (void*)&cdat->drout_800__MEXPAND_COMPILE_WARNING;
   cdat->drout_800__MEXPAND_COMPILE_WARNING.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
-  strncpy(cdat->drout_800__MEXPAND_COMPILE_WARNING.routdescr, "MEXPAND_COMPILE_WARNING @warmelt-macro.bysl:2278",  BASILYS_ROUTDESCR_LEN - 1);
+  strncpy(cdat->drout_800__MEXPAND_COMPILE_WARNING.routdescr, "MEXPAND_COMPILE_WARNING @warmelt-macro.bysl:2281",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_800__MEXPAND_COMPILE_WARNING.nbval = 4;
  *(basilysroutfun_t **) (cdat->drout_800__MEXPAND_COMPILE_WARNING.routaddr) = rout_64_MEXPAND_COMPILE_WARNING;
  
@@ -42152,7 +42196,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_802__COMPILE_WARNIN
  /*inirout drout_804__MEXPAND_ASSERT_MSG*/
  /*_.VALROUT___V857*/ curfptr[856] = (void*)&cdat->drout_804__MEXPAND_ASSERT_MSG;
   cdat->drout_804__MEXPAND_ASSERT_MSG.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
-  strncpy(cdat->drout_804__MEXPAND_ASSERT_MSG.routdescr, "MEXPAND_ASSERT_MSG @warmelt-macro.bysl:2317",  BASILYS_ROUTDESCR_LEN - 1);
+  strncpy(cdat->drout_804__MEXPAND_ASSERT_MSG.routdescr, "MEXPAND_ASSERT_MSG @warmelt-macro.bysl:2320",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_804__MEXPAND_ASSERT_MSG.nbval = 16;
  *(basilysroutfun_t **) (cdat->drout_804__MEXPAND_ASSERT_MSG.routaddr) = rout_65_MEXPAND_ASSERT_MSG;
  
@@ -42216,7 +42260,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_812__ASSERT_MSG));
  /*inirout drout_814__MEXPAND_DEBUG_MSG*/
  /*_.VALROUT___V867*/ curfptr[866] = (void*)&cdat->drout_814__MEXPAND_DEBUG_MSG;
   cdat->drout_814__MEXPAND_DEBUG_MSG.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
-  strncpy(cdat->drout_814__MEXPAND_DEBUG_MSG.routdescr, "MEXPAND_DEBUG_MSG @warmelt-macro.bysl:2394",  BASILYS_ROUTDESCR_LEN - 1);
+  strncpy(cdat->drout_814__MEXPAND_DEBUG_MSG.routdescr, "MEXPAND_DEBUG_MSG @warmelt-macro.bysl:2397",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_814__MEXPAND_DEBUG_MSG.nbval = 12;
  *(basilysroutfun_t **) (cdat->drout_814__MEXPAND_DEBUG_MSG.routaddr) = rout_66_MEXPAND_DEBUG_MSG;
  
@@ -42254,7 +42298,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_818__DEBUG_MSG));
  /*inirout drout_820__MEXPAND_EXPORT_VALUES*/
  /*_.VALROUT___V873*/ curfptr[872] = (void*)&cdat->drout_820__MEXPAND_EXPORT_VALUES;
   cdat->drout_820__MEXPAND_EXPORT_VALUES.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
-  strncpy(cdat->drout_820__MEXPAND_EXPORT_VALUES.routdescr, "MEXPAND_EXPORT_VALUES @warmelt-macro.bysl:2451",  BASILYS_ROUTDESCR_LEN - 1);
+  strncpy(cdat->drout_820__MEXPAND_EXPORT_VALUES.routdescr, "MEXPAND_EXPORT_VALUES @warmelt-macro.bysl:2454",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_820__MEXPAND_EXPORT_VALUES.nbval = 10;
  *(basilysroutfun_t **) (cdat->drout_820__MEXPAND_EXPORT_VALUES.routaddr) = rout_67_MEXPAND_EXPORT_VALUES;
  
@@ -42266,7 +42310,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_818__DEBUG_MSG));
  /*inirout drout_822__LAMBDA_*/
  /*_.VALROUT___V874*/ curfptr[873] = (void*)&cdat->drout_822__LAMBDA_;
   cdat->drout_822__LAMBDA_.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
-  strncpy(cdat->drout_822__LAMBDA_.routdescr, "LAMBDA_ @warmelt-macro.bysl:2461",  BASILYS_ROUTDESCR_LEN - 1);
+  strncpy(cdat->drout_822__LAMBDA_.routdescr, "LAMBDA_ @warmelt-macro.bysl:2464",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_822__LAMBDA_.nbval = 3;
  *(basilysroutfun_t **) (cdat->drout_822__LAMBDA_.routaddr) = rout_68_LAMBDA_;
  
@@ -42299,7 +42343,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_825__EXPORT_VALUES)
  /*inirout drout_827__MEXPAND_EXPORT_MACRO*/
  /*_.VALROUT___V880*/ curfptr[879] = (void*)&cdat->drout_827__MEXPAND_EXPORT_MACRO;
   cdat->drout_827__MEXPAND_EXPORT_MACRO.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
-  strncpy(cdat->drout_827__MEXPAND_EXPORT_MACRO.routdescr, "MEXPAND_EXPORT_MACRO @warmelt-macro.bysl:2481",  BASILYS_ROUTDESCR_LEN - 1);
+  strncpy(cdat->drout_827__MEXPAND_EXPORT_MACRO.routdescr, "MEXPAND_EXPORT_MACRO @warmelt-macro.bysl:2484",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_827__MEXPAND_EXPORT_MACRO.nbval = 6;
  *(basilysroutfun_t **) (cdat->drout_827__MEXPAND_EXPORT_MACRO.routaddr) = rout_69_MEXPAND_EXPORT_MACRO;
  
@@ -42324,7 +42368,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_829__EXPORT_MACRO))
  /*inirout drout_831__MEXPAND_EXPORT_CLASS*/
  /*_.VALROUT___V884*/ curfptr[883] = (void*)&cdat->drout_831__MEXPAND_EXPORT_CLASS;
   cdat->drout_831__MEXPAND_EXPORT_CLASS.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
-  strncpy(cdat->drout_831__MEXPAND_EXPORT_CLASS.routdescr, "MEXPAND_EXPORT_CLASS @warmelt-macro.bysl:2512",  BASILYS_ROUTDESCR_LEN - 1);
+  strncpy(cdat->drout_831__MEXPAND_EXPORT_CLASS.routdescr, "MEXPAND_EXPORT_CLASS @warmelt-macro.bysl:2515",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_831__MEXPAND_EXPORT_CLASS.nbval = 9;
  *(basilysroutfun_t **) (cdat->drout_831__MEXPAND_EXPORT_CLASS.routaddr) = rout_70_MEXPAND_EXPORT_CLASS;
  
@@ -42336,7 +42380,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_829__EXPORT_MACRO))
  /*inirout drout_833__LAMBDA_*/
  /*_.VALROUT___V885*/ curfptr[884] = (void*)&cdat->drout_833__LAMBDA_;
   cdat->drout_833__LAMBDA_.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
-  strncpy(cdat->drout_833__LAMBDA_.routdescr, "LAMBDA_ @warmelt-macro.bysl:2522",  BASILYS_ROUTDESCR_LEN - 1);
+  strncpy(cdat->drout_833__LAMBDA_.routdescr, "LAMBDA_ @warmelt-macro.bysl:2525",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_833__LAMBDA_.nbval = 2;
  *(basilysroutfun_t **) (cdat->drout_833__LAMBDA_.routaddr) = rout_71_LAMBDA_;
  
@@ -42356,7 +42400,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_834__EXPORT_CLASS))
  /*inirout drout_836__MEXPAND_CURRENT_MODULE_ENVIRONMENT_CONTAINER*/
  /*_.VALROUT___V889*/ curfptr[888] = (void*)&cdat->drout_836__MEXPAND_CURRENT_MODULE_ENVIRONMENT_CONTAINER;
   cdat->drout_836__MEXPAND_CURRENT_MODULE_ENVIRONMENT_CONTAINER.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
-  strncpy(cdat->drout_836__MEXPAND_CURRENT_MODULE_ENVIRONMENT_CONTAINER.routdescr, "MEXPAND_CURRENT_MODULE_ENVIRONMENT_CONTAINER @warmelt-macro.bysl:2540",  BASILYS_ROUTDESCR_LEN - 1);
+  strncpy(cdat->drout_836__MEXPAND_CURRENT_MODULE_ENVIRONMENT_CONTAINER.routdescr, "MEXPAND_CURRENT_MODULE_ENVIRONMENT_CONTAINER @warmelt-macro.bysl:2543",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_836__MEXPAND_CURRENT_MODULE_ENVIRONMENT_CONTAINER.nbval = 4;
  *(basilysroutfun_t **) (cdat->drout_836__MEXPAND_CURRENT_MODULE_ENVIRONMENT_CONTAINER.routaddr) = rout_72_MEXPAND_CURRENT_MODULE_ENVIRONMENT_CONTAINER;
  
@@ -42381,7 +42425,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_838__CURRENT_MODULE
  /*inirout drout_840__MEXPAND_PARENT_MODULE_ENVIRONMENT*/
  /*_.VALROUT___V893*/ curfptr[892] = (void*)&cdat->drout_840__MEXPAND_PARENT_MODULE_ENVIRONMENT;
   cdat->drout_840__MEXPAND_PARENT_MODULE_ENVIRONMENT.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
-  strncpy(cdat->drout_840__MEXPAND_PARENT_MODULE_ENVIRONMENT.routdescr, "MEXPAND_PARENT_MODULE_ENVIRONMENT @warmelt-macro.bysl:2565",  BASILYS_ROUTDESCR_LEN - 1);
+  strncpy(cdat->drout_840__MEXPAND_PARENT_MODULE_ENVIRONMENT.routdescr, "MEXPAND_PARENT_MODULE_ENVIRONMENT @warmelt-macro.bysl:2568",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_840__MEXPAND_PARENT_MODULE_ENVIRONMENT.nbval = 4;
  *(basilysroutfun_t **) (cdat->drout_840__MEXPAND_PARENT_MODULE_ENVIRONMENT.routaddr) = rout_73_MEXPAND_PARENT_MODULE_ENVIRONMENT;
  
@@ -42406,7 +42450,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_842__PARENT_MODULE_
  /*inirout drout_844__MEXPAND_UPDATE_CURRENT_MODULE_ENVIRONMENT_CONTAINER*/
  /*_.VALROUT___V897*/ curfptr[896] = (void*)&cdat->drout_844__MEXPAND_UPDATE_CURRENT_MODULE_ENVIRONMENT_CONTAINER;
   cdat->drout_844__MEXPAND_UPDATE_CURRENT_MODULE_ENVIRONMENT_CONTAINER.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
-  strncpy(cdat->drout_844__MEXPAND_UPDATE_CURRENT_MODULE_ENVIRONMENT_CONTAINER.routdescr, "MEXPAND_UPDATE_CURRENT_MODULE_ENVIRONMENT_CONTAINER @warmelt-macro.bysl:2588",  BASILYS_ROUTDESCR_LEN - 1);
+  strncpy(cdat->drout_844__MEXPAND_UPDATE_CURRENT_MODULE_ENVIRONMENT_CONTAINER.routdescr, "MEXPAND_UPDATE_CURRENT_MODULE_ENVIRONMENT_CONTAINER @warmelt-macro.bysl:2591",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_844__MEXPAND_UPDATE_CURRENT_MODULE_ENVIRONMENT_CONTAINER.nbval = 4;
  *(basilysroutfun_t **) (cdat->drout_844__MEXPAND_UPDATE_CURRENT_MODULE_ENVIRONMENT_CONTAINER.routaddr) = rout_74_MEXPAND_UPDATE_CURRENT_MODULE_ENVIRONMENT_CONTAINER;
  
@@ -42431,7 +42475,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_846__UPDATE_CURRENT
  /*inirout drout_848__MEXPAND_FETCH_PREDEFINED*/
  /*_.VALROUT___V901*/ curfptr[900] = (void*)&cdat->drout_848__MEXPAND_FETCH_PREDEFINED;
   cdat->drout_848__MEXPAND_FETCH_PREDEFINED.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
-  strncpy(cdat->drout_848__MEXPAND_FETCH_PREDEFINED.routdescr, "MEXPAND_FETCH_PREDEFINED @warmelt-macro.bysl:2615",  BASILYS_ROUTDESCR_LEN - 1);
+  strncpy(cdat->drout_848__MEXPAND_FETCH_PREDEFINED.routdescr, "MEXPAND_FETCH_PREDEFINED @warmelt-macro.bysl:2618",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_848__MEXPAND_FETCH_PREDEFINED.nbval = 6;
  *(basilysroutfun_t **) (cdat->drout_848__MEXPAND_FETCH_PREDEFINED.routaddr) = rout_75_MEXPAND_FETCH_PREDEFINED;
  
@@ -42456,7 +42500,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_850__FETCH_PREDEFIN
  /*inirout drout_852__MEXPAND_STORE_PREDEFINED*/
  /*_.VALROUT___V905*/ curfptr[904] = (void*)&cdat->drout_852__MEXPAND_STORE_PREDEFINED;
   cdat->drout_852__MEXPAND_STORE_PREDEFINED.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
-  strncpy(cdat->drout_852__MEXPAND_STORE_PREDEFINED.routdescr, "MEXPAND_STORE_PREDEFINED @warmelt-macro.bysl:2641",  BASILYS_ROUTDESCR_LEN - 1);
+  strncpy(cdat->drout_852__MEXPAND_STORE_PREDEFINED.routdescr, "MEXPAND_STORE_PREDEFINED @warmelt-macro.bysl:2644",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_852__MEXPAND_STORE_PREDEFINED.nbval = 6;
  *(basilysroutfun_t **) (cdat->drout_852__MEXPAND_STORE_PREDEFINED.routaddr) = rout_76_MEXPAND_STORE_PREDEFINED;
  
@@ -52548,68 +52592,68 @@ initial_frame_st   curfram__;
  ((basilysroutine_ptr_t)/*_.VALROUT___V777*/ curfptr[776])->tabval[7] = (basilys_ptr_t)(/*_.VALDATA___V779*/ curfptr[778]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2139: @putroutconst");
+ BASILYS_LOCATION("warmelt-macro.bysl:2142: @putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V782*/ curfptr[781])) == OBMAG_ROUTINE);
  basilys_checkmsg("putroutconst constnull.drout_774__PAIRLIST_TO_PROGN#0", NULL != (/*_.CLASS_ENVIRONMENT__V13*/ curfptr[12]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V782*/ curfptr[781])->tabval[0] = (basilys_ptr_t)(/*_.CLASS_ENVIRONMENT__V13*/ curfptr[12]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2139: @putroutconst");
+ BASILYS_LOCATION("warmelt-macro.bysl:2142: @putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V782*/ curfptr[781])) == OBMAG_ROUTINE);
  basilys_checkmsg("putroutconst constnull.drout_774__PAIRLIST_TO_PROGN#1", NULL != (/*_.DEBUG_MSG_FUN__V10*/ curfptr[9]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V782*/ curfptr[781])->tabval[1] = (basilys_ptr_t)(/*_.DEBUG_MSG_FUN__V10*/ curfptr[9]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2139: @putroutconst");
+ BASILYS_LOCATION("warmelt-macro.bysl:2142: @putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V782*/ curfptr[781])) == OBMAG_ROUTINE);
  basilys_checkmsg("putroutconst constnull.drout_774__PAIRLIST_TO_PROGN#2", NULL != (/*_.PAIRLIST_TO_MULTIPLE__V49*/ curfptr[48]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V782*/ curfptr[781])->tabval[2] = (basilys_ptr_t)(/*_.PAIRLIST_TO_MULTIPLE__V49*/ curfptr[48]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2139: @putroutconst");
+ BASILYS_LOCATION("warmelt-macro.bysl:2142: @putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V782*/ curfptr[781])) == OBMAG_ROUTINE);
  basilys_checkmsg("putroutconst constnull.drout_774__PAIRLIST_TO_PROGN#3", NULL != (/*_.DISCR_MULTIPLE__V14*/ curfptr[13]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V782*/ curfptr[781])->tabval[3] = (basilys_ptr_t)(/*_.DISCR_MULTIPLE__V14*/ curfptr[13]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2139: @putroutconstnotnull");
+ BASILYS_LOCATION("warmelt-macro.bysl:2142: @putroutconstnotnull");
  /*putroutconstnotnull*/
  basilys_assertmsg("putroutconstnotnull checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V782*/ curfptr[781])) == OBMAG_ROUTINE);
  basilys_assertmsg("putroutconstnotnull notnullconst", NULL != /*_.VALCLO___V609*/ curfptr[608]);
  ((basilysroutine_ptr_t)/*_.VALROUT___V782*/ curfptr[781])->tabval[4] = (basilys_ptr_t)(/*_.VALCLO___V609*/ curfptr[608]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2146: @putroutconstnotnull");
+ BASILYS_LOCATION("warmelt-macro.bysl:2149: @putroutconstnotnull");
  /*putroutconstnotnull*/
  basilys_assertmsg("putroutconstnotnull checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V783*/ curfptr[782])) == OBMAG_ROUTINE);
  basilys_assertmsg("putroutconstnotnull notnullconst", NULL != /*_.VALCLO___V609*/ curfptr[608]);
  ((basilysroutine_ptr_t)/*_.VALROUT___V783*/ curfptr[782])->tabval[0] = (basilys_ptr_t)(/*_.VALCLO___V609*/ curfptr[608]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2146: @touch");
+ BASILYS_LOCATION("warmelt-macro.bysl:2149: @touch");
  /*touch:IROUTVAL_*/
  basilysgc_touch(/*_.VALROUT___V783*/ curfptr[782]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2139: @putroutconst");
+ BASILYS_LOCATION("warmelt-macro.bysl:2142: @putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V782*/ curfptr[781])) == OBMAG_ROUTINE);
  basilys_checkmsg("putroutconst constnull.drout_774__PAIRLIST_TO_PROGN#5", NULL != (/*_.VALROUT___V783*/ curfptr[782]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V782*/ curfptr[781])->tabval[5] = (basilys_ptr_t)(/*_.VALROUT___V783*/ curfptr[782]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2139: @putroutconstnotnull");
+ BASILYS_LOCATION("warmelt-macro.bysl:2142: @putroutconstnotnull");
  /*putroutconstnotnull*/
  basilys_assertmsg("putroutconstnotnull checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V782*/ curfptr[781])) == OBMAG_ROUTINE);
  basilys_assertmsg("putroutconstnotnull notnullconst", NULL != /*_.VALDATA___V132*/ curfptr[131]);
  ((basilysroutine_ptr_t)/*_.VALROUT___V782*/ curfptr[781])->tabval[6] = (basilys_ptr_t)(/*_.VALDATA___V132*/ curfptr[131]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2139: @touch");
+ BASILYS_LOCATION("warmelt-macro.bysl:2142: @touch");
  /*touch:IROUTVAL_*/
  basilysgc_touch(/*_.VALROUT___V782*/ curfptr[781]);
  
@@ -53158,14 +53202,14 @@ initial_frame_st   curfram__;
  ((basilysroutine_ptr_t)/*_.VALROUT___V810*/ curfptr[809])->tabval[5] = (basilys_ptr_t)(/*_.PUT_ENV__V31*/ curfptr[30]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2040: @putroutconst");
+ BASILYS_LOCATION("warmelt-macro.bysl:2043: @putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V811*/ curfptr[810])) == OBMAG_ROUTINE);
  basilys_checkmsg("putroutconst constnull.drout_756__LAMBDA_#0", NULL != (/*_.PUT_ENV__V31*/ curfptr[30]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V811*/ curfptr[810])->tabval[0] = (basilys_ptr_t)(/*_.PUT_ENV__V31*/ curfptr[30]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2040: @touch");
+ BASILYS_LOCATION("warmelt-macro.bysl:2043: @touch");
  /*touch:IROUTVAL_*/
  basilysgc_touch(/*_.VALROUT___V811*/ curfptr[810]);
  
@@ -53198,14 +53242,14 @@ initial_frame_st   curfram__;
  ((basilysroutine_ptr_t)/*_.VALROUT___V810*/ curfptr[809])->tabval[9] = (basilys_ptr_t)(/*_.VALCLO___V609*/ curfptr[608]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2042: @putroutconstnotnull");
+ BASILYS_LOCATION("warmelt-macro.bysl:2045: @putroutconstnotnull");
  /*putroutconstnotnull*/
  basilys_assertmsg("putroutconstnotnull checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V812*/ curfptr[811])) == OBMAG_ROUTINE);
  basilys_assertmsg("putroutconstnotnull notnullconst", NULL != /*_.VALCLO___V609*/ curfptr[608]);
  ((basilysroutine_ptr_t)/*_.VALROUT___V812*/ curfptr[811])->tabval[0] = (basilys_ptr_t)(/*_.VALCLO___V609*/ curfptr[608]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2042: @touch");
+ BASILYS_LOCATION("warmelt-macro.bysl:2045: @touch");
  /*touch:IROUTVAL_*/
  basilysgc_touch(/*_.VALROUT___V812*/ curfptr[811]);
  
@@ -53246,122 +53290,122 @@ initial_frame_st   curfram__;
  basilysgc_touch(/*_.VALDATA___V814*/ curfptr[813]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2055: @putroutconst");
+ BASILYS_LOCATION("warmelt-macro.bysl:2058: @putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V816*/ curfptr[815])) == OBMAG_ROUTINE);
  basilys_checkmsg("putroutconst constnull.drout_760__MEXPAND_MULTICALL#0", NULL != (/*_.CLASS_SEXPR__V12*/ curfptr[11]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V816*/ curfptr[815])->tabval[0] = (basilys_ptr_t)(/*_.CLASS_SEXPR__V12*/ curfptr[11]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2055: @putroutconst");
+ BASILYS_LOCATION("warmelt-macro.bysl:2058: @putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V816*/ curfptr[815])) == OBMAG_ROUTINE);
  basilys_checkmsg("putroutconst constnull.drout_760__MEXPAND_MULTICALL#1", NULL != (/*_.CLASS_ENVIRONMENT__V13*/ curfptr[12]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V816*/ curfptr[815])->tabval[1] = (basilys_ptr_t)(/*_.CLASS_ENVIRONMENT__V13*/ curfptr[12]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2055: @putroutconst");
+ BASILYS_LOCATION("warmelt-macro.bysl:2058: @putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V816*/ curfptr[815])) == OBMAG_ROUTINE);
  basilys_checkmsg("putroutconst constnull.drout_760__MEXPAND_MULTICALL#2", NULL != (/*_.FRESH_ENV__V35*/ curfptr[34]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V816*/ curfptr[815])->tabval[2] = (basilys_ptr_t)(/*_.FRESH_ENV__V35*/ curfptr[34]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2055: @putroutconstnotnull");
+ BASILYS_LOCATION("warmelt-macro.bysl:2058: @putroutconstnotnull");
  /*putroutconstnotnull*/
  basilys_assertmsg("putroutconstnotnull checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V816*/ curfptr[815])) == OBMAG_ROUTINE);
  basilys_assertmsg("putroutconstnotnull notnullconst", NULL != /*_.VALCLO___V620*/ curfptr[619]);
  ((basilysroutine_ptr_t)/*_.VALROUT___V816*/ curfptr[815])->tabval[3] = (basilys_ptr_t)(/*_.VALCLO___V620*/ curfptr[619]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2055: @putroutconstnotnull");
+ BASILYS_LOCATION("warmelt-macro.bysl:2058: @putroutconstnotnull");
  /*putroutconstnotnull*/
  basilys_assertmsg("putroutconstnotnull checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V816*/ curfptr[815])) == OBMAG_ROUTINE);
  basilys_assertmsg("putroutconstnotnull notnullconst", NULL != /*_.VALCLO___V609*/ curfptr[608]);
  ((basilysroutine_ptr_t)/*_.VALROUT___V816*/ curfptr[815])->tabval[4] = (basilys_ptr_t)(/*_.VALCLO___V609*/ curfptr[608]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2055: @putroutconst");
+ BASILYS_LOCATION("warmelt-macro.bysl:2058: @putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V816*/ curfptr[815])) == OBMAG_ROUTINE);
  basilys_checkmsg("putroutconst constnull.drout_760__MEXPAND_MULTICALL#5", NULL != (/*_.MULTIPLE_EVERY__V36*/ curfptr[35]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V816*/ curfptr[815])->tabval[5] = (basilys_ptr_t)(/*_.MULTIPLE_EVERY__V36*/ curfptr[35]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2055: @putroutconst");
+ BASILYS_LOCATION("warmelt-macro.bysl:2058: @putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V816*/ curfptr[815])) == OBMAG_ROUTINE);
  basilys_checkmsg("putroutconst constnull.drout_760__MEXPAND_MULTICALL#6", NULL != (/*_.PUT_ENV__V31*/ curfptr[30]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V816*/ curfptr[815])->tabval[6] = (basilys_ptr_t)(/*_.PUT_ENV__V31*/ curfptr[30]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2072: @putroutconst");
+ BASILYS_LOCATION("warmelt-macro.bysl:2075: @putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V817*/ curfptr[816])) == OBMAG_ROUTINE);
  basilys_checkmsg("putroutconst constnull.drout_762__LAMBDA_#0", NULL != (/*_.PUT_ENV__V31*/ curfptr[30]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V817*/ curfptr[816])->tabval[0] = (basilys_ptr_t)(/*_.PUT_ENV__V31*/ curfptr[30]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2072: @touch");
+ BASILYS_LOCATION("warmelt-macro.bysl:2075: @touch");
  /*touch:IROUTVAL_*/
  basilysgc_touch(/*_.VALROUT___V817*/ curfptr[816]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2055: @putroutconst");
+ BASILYS_LOCATION("warmelt-macro.bysl:2058: @putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V816*/ curfptr[815])) == OBMAG_ROUTINE);
  basilys_checkmsg("putroutconst constnull.drout_760__MEXPAND_MULTICALL#7", NULL != (/*_.VALROUT___V817*/ curfptr[816]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V816*/ curfptr[815])->tabval[7] = (basilys_ptr_t)(/*_.VALROUT___V817*/ curfptr[816]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2055: @putroutconst");
+ BASILYS_LOCATION("warmelt-macro.bysl:2058: @putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V816*/ curfptr[815])) == OBMAG_ROUTINE);
  basilys_checkmsg("putroutconst constnull.drout_760__MEXPAND_MULTICALL#8", NULL != (/*_.PAIRLIST_TO_MULTIPLE__V49*/ curfptr[48]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V816*/ curfptr[815])->tabval[8] = (basilys_ptr_t)(/*_.PAIRLIST_TO_MULTIPLE__V49*/ curfptr[48]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2055: @putroutconst");
+ BASILYS_LOCATION("warmelt-macro.bysl:2058: @putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V816*/ curfptr[815])) == OBMAG_ROUTINE);
  basilys_checkmsg("putroutconst constnull.drout_760__MEXPAND_MULTICALL#9", NULL != (/*_.DISCR_MULTIPLE__V14*/ curfptr[13]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V816*/ curfptr[815])->tabval[9] = (basilys_ptr_t)(/*_.DISCR_MULTIPLE__V14*/ curfptr[13]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2055: @putroutconstnotnull");
+ BASILYS_LOCATION("warmelt-macro.bysl:2058: @putroutconstnotnull");
  /*putroutconstnotnull*/
  basilys_assertmsg("putroutconstnotnull checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V816*/ curfptr[815])) == OBMAG_ROUTINE);
  basilys_assertmsg("putroutconstnotnull notnullconst", NULL != /*_.VALCLO___V609*/ curfptr[608]);
  ((basilysroutine_ptr_t)/*_.VALROUT___V816*/ curfptr[815])->tabval[10] = (basilys_ptr_t)(/*_.VALCLO___V609*/ curfptr[608]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2075: @putroutconstnotnull");
+ BASILYS_LOCATION("warmelt-macro.bysl:2078: @putroutconstnotnull");
  /*putroutconstnotnull*/
  basilys_assertmsg("putroutconstnotnull checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V818*/ curfptr[817])) == OBMAG_ROUTINE);
  basilys_assertmsg("putroutconstnotnull notnullconst", NULL != /*_.VALCLO___V609*/ curfptr[608]);
  ((basilysroutine_ptr_t)/*_.VALROUT___V818*/ curfptr[817])->tabval[0] = (basilys_ptr_t)(/*_.VALCLO___V609*/ curfptr[608]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2075: @touch");
+ BASILYS_LOCATION("warmelt-macro.bysl:2078: @touch");
  /*touch:IROUTVAL_*/
  basilysgc_touch(/*_.VALROUT___V818*/ curfptr[817]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2055: @putroutconst");
+ BASILYS_LOCATION("warmelt-macro.bysl:2058: @putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V816*/ curfptr[815])) == OBMAG_ROUTINE);
  basilys_checkmsg("putroutconst constnull.drout_760__MEXPAND_MULTICALL#11", NULL != (/*_.VALROUT___V818*/ curfptr[817]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V816*/ curfptr[815])->tabval[11] = (basilys_ptr_t)(/*_.VALROUT___V818*/ curfptr[817]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2055: @putroutconstnotnull");
+ BASILYS_LOCATION("warmelt-macro.bysl:2058: @putroutconstnotnull");
  /*putroutconstnotnull*/
  basilys_assertmsg("putroutconstnotnull checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V816*/ curfptr[815])) == OBMAG_ROUTINE);
  basilys_assertmsg("putroutconstnotnull notnullconst", NULL != /*_.VALDATA___V494*/ curfptr[493]);
  ((basilysroutine_ptr_t)/*_.VALROUT___V816*/ curfptr[815])->tabval[12] = (basilys_ptr_t)(/*_.VALDATA___V494*/ curfptr[493]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2055: @touch");
+ BASILYS_LOCATION("warmelt-macro.bysl:2058: @touch");
  /*touch:IROUTVAL_*/
  basilysgc_touch(/*_.VALROUT___V816*/ curfptr[815]);
  
@@ -53383,42 +53427,42 @@ initial_frame_st   curfram__;
  basilysgc_touch(/*_.VALDATA___V820*/ curfptr[819]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2091: @putroutconst");
+ BASILYS_LOCATION("warmelt-macro.bysl:2094: @putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V822*/ curfptr[821])) == OBMAG_ROUTINE);
  basilys_checkmsg("putroutconst constnull.drout_766__MEXPAND_QUOTE#0", NULL != (/*_.CLASS_SEXPR__V12*/ curfptr[11]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V822*/ curfptr[821])->tabval[0] = (basilys_ptr_t)(/*_.CLASS_SEXPR__V12*/ curfptr[11]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2091: @putroutconst");
+ BASILYS_LOCATION("warmelt-macro.bysl:2094: @putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V822*/ curfptr[821])) == OBMAG_ROUTINE);
  basilys_checkmsg("putroutconst constnull.drout_766__MEXPAND_QUOTE#1", NULL != (/*_.CLASS_ENVIRONMENT__V13*/ curfptr[12]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V822*/ curfptr[821])->tabval[1] = (basilys_ptr_t)(/*_.CLASS_ENVIRONMENT__V13*/ curfptr[12]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2091: @putroutconst");
+ BASILYS_LOCATION("warmelt-macro.bysl:2094: @putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V822*/ curfptr[821])) == OBMAG_ROUTINE);
  basilys_checkmsg("putroutconst constnull.drout_766__MEXPAND_QUOTE#2", NULL != (/*_.CLASS_SYMBOL__V8*/ curfptr[7]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V822*/ curfptr[821])->tabval[2] = (basilys_ptr_t)(/*_.CLASS_SYMBOL__V8*/ curfptr[7]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2091: @putroutconst");
+ BASILYS_LOCATION("warmelt-macro.bysl:2094: @putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V822*/ curfptr[821])) == OBMAG_ROUTINE);
  basilys_checkmsg("putroutconst constnull.drout_766__MEXPAND_QUOTE#3", NULL != (/*_.CLASS_KEYWORD__V24*/ curfptr[23]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V822*/ curfptr[821])->tabval[3] = (basilys_ptr_t)(/*_.CLASS_KEYWORD__V24*/ curfptr[23]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2091: @putroutconstnotnull");
+ BASILYS_LOCATION("warmelt-macro.bysl:2094: @putroutconstnotnull");
  /*putroutconstnotnull*/
  basilys_assertmsg("putroutconstnotnull checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V822*/ curfptr[821])) == OBMAG_ROUTINE);
  basilys_assertmsg("putroutconstnotnull notnullconst", NULL != /*_.VALDATA___V176*/ curfptr[175]);
  ((basilysroutine_ptr_t)/*_.VALROUT___V822*/ curfptr[821])->tabval[4] = (basilys_ptr_t)(/*_.VALDATA___V176*/ curfptr[175]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2091: @touch");
+ BASILYS_LOCATION("warmelt-macro.bysl:2094: @touch");
  /*touch:IROUTVAL_*/
  basilysgc_touch(/*_.VALROUT___V822*/ curfptr[821]);
  
@@ -53440,28 +53484,28 @@ initial_frame_st   curfram__;
  basilysgc_touch(/*_.VALDATA___V824*/ curfptr[823]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2114: @putroutconst");
+ BASILYS_LOCATION("warmelt-macro.bysl:2117: @putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V826*/ curfptr[825])) == OBMAG_ROUTINE);
  basilys_checkmsg("putroutconst constnull.drout_770__MEXPAND_COMMENT#0", NULL != (/*_.CLASS_SEXPR__V12*/ curfptr[11]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V826*/ curfptr[825])->tabval[0] = (basilys_ptr_t)(/*_.CLASS_SEXPR__V12*/ curfptr[11]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2114: @putroutconst");
+ BASILYS_LOCATION("warmelt-macro.bysl:2117: @putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V826*/ curfptr[825])) == OBMAG_ROUTINE);
  basilys_checkmsg("putroutconst constnull.drout_770__MEXPAND_COMMENT#1", NULL != (/*_.CLASS_ENVIRONMENT__V13*/ curfptr[12]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V826*/ curfptr[825])->tabval[1] = (basilys_ptr_t)(/*_.CLASS_ENVIRONMENT__V13*/ curfptr[12]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2114: @putroutconstnotnull");
+ BASILYS_LOCATION("warmelt-macro.bysl:2117: @putroutconstnotnull");
  /*putroutconstnotnull*/
  basilys_assertmsg("putroutconstnotnull checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V826*/ curfptr[825])) == OBMAG_ROUTINE);
  basilys_assertmsg("putroutconstnotnull notnullconst", NULL != /*_.VALDATA___V166*/ curfptr[165]);
  ((basilysroutine_ptr_t)/*_.VALROUT___V826*/ curfptr[825])->tabval[2] = (basilys_ptr_t)(/*_.VALDATA___V166*/ curfptr[165]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2114: @touch");
+ BASILYS_LOCATION("warmelt-macro.bysl:2117: @touch");
  /*touch:IROUTVAL_*/
  basilysgc_touch(/*_.VALROUT___V826*/ curfptr[825]);
  
@@ -53483,61 +53527,61 @@ initial_frame_st   curfram__;
  basilysgc_touch(/*_.VALDATA___V828*/ curfptr[827]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2157: @putroutconst");
+ BASILYS_LOCATION("warmelt-macro.bysl:2160: @putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V830*/ curfptr[829])) == OBMAG_ROUTINE);
  basilys_checkmsg("putroutconst constnull.drout_777__PAIRLIST_TO_RETURN#0", NULL != (/*_.CLASS_ENVIRONMENT__V13*/ curfptr[12]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V830*/ curfptr[829])->tabval[0] = (basilys_ptr_t)(/*_.CLASS_ENVIRONMENT__V13*/ curfptr[12]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2157: @putroutconst");
+ BASILYS_LOCATION("warmelt-macro.bysl:2160: @putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V830*/ curfptr[829])) == OBMAG_ROUTINE);
  basilys_checkmsg("putroutconst constnull.drout_777__PAIRLIST_TO_RETURN#1", NULL != (/*_.PAIRLIST_TO_MULTIPLE__V49*/ curfptr[48]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V830*/ curfptr[829])->tabval[1] = (basilys_ptr_t)(/*_.PAIRLIST_TO_MULTIPLE__V49*/ curfptr[48]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2157: @putroutconst");
+ BASILYS_LOCATION("warmelt-macro.bysl:2160: @putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V830*/ curfptr[829])) == OBMAG_ROUTINE);
  basilys_checkmsg("putroutconst constnull.drout_777__PAIRLIST_TO_RETURN#2", NULL != (/*_.DISCR_MULTIPLE__V14*/ curfptr[13]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V830*/ curfptr[829])->tabval[2] = (basilys_ptr_t)(/*_.DISCR_MULTIPLE__V14*/ curfptr[13]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2157: @putroutconstnotnull");
+ BASILYS_LOCATION("warmelt-macro.bysl:2160: @putroutconstnotnull");
  /*putroutconstnotnull*/
  basilys_assertmsg("putroutconstnotnull checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V830*/ curfptr[829])) == OBMAG_ROUTINE);
  basilys_assertmsg("putroutconstnotnull notnullconst", NULL != /*_.VALCLO___V609*/ curfptr[608]);
  ((basilysroutine_ptr_t)/*_.VALROUT___V830*/ curfptr[829])->tabval[3] = (basilys_ptr_t)(/*_.VALCLO___V609*/ curfptr[608]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2162: @putroutconstnotnull");
+ BASILYS_LOCATION("warmelt-macro.bysl:2165: @putroutconstnotnull");
  /*putroutconstnotnull*/
  basilys_assertmsg("putroutconstnotnull checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V831*/ curfptr[830])) == OBMAG_ROUTINE);
  basilys_assertmsg("putroutconstnotnull notnullconst", NULL != /*_.VALCLO___V609*/ curfptr[608]);
  ((basilysroutine_ptr_t)/*_.VALROUT___V831*/ curfptr[830])->tabval[0] = (basilys_ptr_t)(/*_.VALCLO___V609*/ curfptr[608]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2162: @touch");
+ BASILYS_LOCATION("warmelt-macro.bysl:2165: @touch");
  /*touch:IROUTVAL_*/
  basilysgc_touch(/*_.VALROUT___V831*/ curfptr[830]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2157: @putroutconst");
+ BASILYS_LOCATION("warmelt-macro.bysl:2160: @putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V830*/ curfptr[829])) == OBMAG_ROUTINE);
  basilys_checkmsg("putroutconst constnull.drout_777__PAIRLIST_TO_RETURN#4", NULL != (/*_.VALROUT___V831*/ curfptr[830]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V830*/ curfptr[829])->tabval[4] = (basilys_ptr_t)(/*_.VALROUT___V831*/ curfptr[830]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2157: @putroutconstnotnull");
+ BASILYS_LOCATION("warmelt-macro.bysl:2160: @putroutconstnotnull");
  /*putroutconstnotnull*/
  basilys_assertmsg("putroutconstnotnull checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V830*/ curfptr[829])) == OBMAG_ROUTINE);
  basilys_assertmsg("putroutconstnotnull notnullconst", NULL != /*_.VALDATA___V142*/ curfptr[141]);
  ((basilysroutine_ptr_t)/*_.VALROUT___V830*/ curfptr[829])->tabval[5] = (basilys_ptr_t)(/*_.VALDATA___V142*/ curfptr[141]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2157: @touch");
+ BASILYS_LOCATION("warmelt-macro.bysl:2160: @touch");
  /*touch:IROUTVAL_*/
  basilysgc_touch(/*_.VALROUT___V830*/ curfptr[829]);
  
@@ -53550,21 +53594,21 @@ initial_frame_st   curfram__;
  basilysgc_touch(/*_.VALCLO___V832*/ curfptr[831]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2170: @putroutconst");
+ BASILYS_LOCATION("warmelt-macro.bysl:2173: @putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V833*/ curfptr[832])) == OBMAG_ROUTINE);
  basilys_checkmsg("putroutconst constnull.drout_780__MEXPAND_PROGN#0", NULL != (/*_.CLASS_SEXPR__V12*/ curfptr[11]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V833*/ curfptr[832])->tabval[0] = (basilys_ptr_t)(/*_.CLASS_SEXPR__V12*/ curfptr[11]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2170: @putroutconstnotnull");
+ BASILYS_LOCATION("warmelt-macro.bysl:2173: @putroutconstnotnull");
  /*putroutconstnotnull*/
  basilys_assertmsg("putroutconstnotnull checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V833*/ curfptr[832])) == OBMAG_ROUTINE);
  basilys_assertmsg("putroutconstnotnull notnullconst", NULL != /*_.VALCLO___V781*/ curfptr[780]);
  ((basilysroutine_ptr_t)/*_.VALROUT___V833*/ curfptr[832])->tabval[1] = (basilys_ptr_t)(/*_.VALCLO___V781*/ curfptr[780]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2170: @touch");
+ BASILYS_LOCATION("warmelt-macro.bysl:2173: @touch");
  /*touch:IROUTVAL_*/
  basilysgc_touch(/*_.VALROUT___V833*/ curfptr[832]);
  
@@ -53586,21 +53630,21 @@ initial_frame_st   curfram__;
  basilysgc_touch(/*_.VALDATA___V835*/ curfptr[834]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2191: @putroutconst");
+ BASILYS_LOCATION("warmelt-macro.bysl:2194: @putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V837*/ curfptr[836])) == OBMAG_ROUTINE);
  basilys_checkmsg("putroutconst constnull.drout_784__MEXPAND_RETURN#0", NULL != (/*_.CLASS_SEXPR__V12*/ curfptr[11]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V837*/ curfptr[836])->tabval[0] = (basilys_ptr_t)(/*_.CLASS_SEXPR__V12*/ curfptr[11]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2191: @putroutconstnotnull");
+ BASILYS_LOCATION("warmelt-macro.bysl:2194: @putroutconstnotnull");
  /*putroutconstnotnull*/
  basilys_assertmsg("putroutconstnotnull checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V837*/ curfptr[836])) == OBMAG_ROUTINE);
  basilys_assertmsg("putroutconstnotnull notnullconst", NULL != /*_.VALCLO___V832*/ curfptr[831]);
  ((basilysroutine_ptr_t)/*_.VALROUT___V837*/ curfptr[836])->tabval[1] = (basilys_ptr_t)(/*_.VALCLO___V832*/ curfptr[831]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2191: @touch");
+ BASILYS_LOCATION("warmelt-macro.bysl:2194: @touch");
  /*touch:IROUTVAL_*/
  basilysgc_touch(/*_.VALROUT___V837*/ curfptr[836]);
  
@@ -53622,96 +53666,96 @@ initial_frame_st   curfram__;
  basilysgc_touch(/*_.VALDATA___V839*/ curfptr[838]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2206: @putroutconst");
+ BASILYS_LOCATION("warmelt-macro.bysl:2209: @putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V841*/ curfptr[840])) == OBMAG_ROUTINE);
  basilys_checkmsg("putroutconst constnull.drout_788__MEXPAND_FOREVER#0", NULL != (/*_.CLASS_SEXPR__V12*/ curfptr[11]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V841*/ curfptr[840])->tabval[0] = (basilys_ptr_t)(/*_.CLASS_SEXPR__V12*/ curfptr[11]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2206: @putroutconstnotnull");
+ BASILYS_LOCATION("warmelt-macro.bysl:2209: @putroutconstnotnull");
  /*putroutconstnotnull*/
  basilys_assertmsg("putroutconstnotnull checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V841*/ curfptr[840])) == OBMAG_ROUTINE);
  basilys_assertmsg("putroutconstnotnull notnullconst", NULL != /*_.VALCLO___V609*/ curfptr[608]);
  ((basilysroutine_ptr_t)/*_.VALROUT___V841*/ curfptr[840])->tabval[1] = (basilys_ptr_t)(/*_.VALCLO___V609*/ curfptr[608]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2206: @putroutconst");
+ BASILYS_LOCATION("warmelt-macro.bysl:2209: @putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V841*/ curfptr[840])) == OBMAG_ROUTINE);
  basilys_checkmsg("putroutconst constnull.drout_788__MEXPAND_FOREVER#2", NULL != (/*_.FRESH_ENV__V35*/ curfptr[34]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V841*/ curfptr[840])->tabval[2] = (basilys_ptr_t)(/*_.FRESH_ENV__V35*/ curfptr[34]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2206: @putroutconst");
+ BASILYS_LOCATION("warmelt-macro.bysl:2209: @putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V841*/ curfptr[840])) == OBMAG_ROUTINE);
  basilys_checkmsg("putroutconst constnull.drout_788__MEXPAND_FOREVER#3", NULL != (/*_.CLASS_SYMBOL__V8*/ curfptr[7]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V841*/ curfptr[840])->tabval[3] = (basilys_ptr_t)(/*_.CLASS_SYMBOL__V8*/ curfptr[7]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2206: @putroutconst");
+ BASILYS_LOCATION("warmelt-macro.bysl:2209: @putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V841*/ curfptr[840])) == OBMAG_ROUTINE);
  basilys_checkmsg("putroutconst constnull.drout_788__MEXPAND_FOREVER#4", NULL != (/*_.CLASS_LABEL_BINDING__V51*/ curfptr[50]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V841*/ curfptr[840])->tabval[4] = (basilys_ptr_t)(/*_.CLASS_LABEL_BINDING__V51*/ curfptr[50]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2206: @putroutconst");
+ BASILYS_LOCATION("warmelt-macro.bysl:2209: @putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V841*/ curfptr[840])) == OBMAG_ROUTINE);
  basilys_checkmsg("putroutconst constnull.drout_788__MEXPAND_FOREVER#5", NULL != (/*_.PUT_ENV__V31*/ curfptr[30]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V841*/ curfptr[840])->tabval[5] = (basilys_ptr_t)(/*_.PUT_ENV__V31*/ curfptr[30]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2206: @putroutconst");
+ BASILYS_LOCATION("warmelt-macro.bysl:2209: @putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V841*/ curfptr[840])) == OBMAG_ROUTINE);
  basilys_checkmsg("putroutconst constnull.drout_788__MEXPAND_FOREVER#6", NULL != (/*_.PAIRLIST_TO_MULTIPLE__V49*/ curfptr[48]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V841*/ curfptr[840])->tabval[6] = (basilys_ptr_t)(/*_.PAIRLIST_TO_MULTIPLE__V49*/ curfptr[48]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2206: @putroutconst");
+ BASILYS_LOCATION("warmelt-macro.bysl:2209: @putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V841*/ curfptr[840])) == OBMAG_ROUTINE);
  basilys_checkmsg("putroutconst constnull.drout_788__MEXPAND_FOREVER#7", NULL != (/*_.DISCR_MULTIPLE__V14*/ curfptr[13]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V841*/ curfptr[840])->tabval[7] = (basilys_ptr_t)(/*_.DISCR_MULTIPLE__V14*/ curfptr[13]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2206: @putroutconstnotnull");
+ BASILYS_LOCATION("warmelt-macro.bysl:2209: @putroutconstnotnull");
  /*putroutconstnotnull*/
  basilys_assertmsg("putroutconstnotnull checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V841*/ curfptr[840])) == OBMAG_ROUTINE);
  basilys_assertmsg("putroutconstnotnull notnullconst", NULL != /*_.VALCLO___V609*/ curfptr[608]);
  ((basilysroutine_ptr_t)/*_.VALROUT___V841*/ curfptr[840])->tabval[8] = (basilys_ptr_t)(/*_.VALCLO___V609*/ curfptr[608]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2227: @putroutconstnotnull");
+ BASILYS_LOCATION("warmelt-macro.bysl:2230: @putroutconstnotnull");
  /*putroutconstnotnull*/
  basilys_assertmsg("putroutconstnotnull checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V842*/ curfptr[841])) == OBMAG_ROUTINE);
  basilys_assertmsg("putroutconstnotnull notnullconst", NULL != /*_.VALCLO___V609*/ curfptr[608]);
  ((basilysroutine_ptr_t)/*_.VALROUT___V842*/ curfptr[841])->tabval[0] = (basilys_ptr_t)(/*_.VALCLO___V609*/ curfptr[608]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2227: @touch");
+ BASILYS_LOCATION("warmelt-macro.bysl:2230: @touch");
  /*touch:IROUTVAL_*/
  basilysgc_touch(/*_.VALROUT___V842*/ curfptr[841]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2206: @putroutconst");
+ BASILYS_LOCATION("warmelt-macro.bysl:2209: @putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V841*/ curfptr[840])) == OBMAG_ROUTINE);
  basilys_checkmsg("putroutconst constnull.drout_788__MEXPAND_FOREVER#9", NULL != (/*_.VALROUT___V842*/ curfptr[841]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V841*/ curfptr[840])->tabval[9] = (basilys_ptr_t)(/*_.VALROUT___V842*/ curfptr[841]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2206: @putroutconstnotnull");
+ BASILYS_LOCATION("warmelt-macro.bysl:2209: @putroutconstnotnull");
  /*putroutconstnotnull*/
  basilys_assertmsg("putroutconstnotnull checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V841*/ curfptr[840])) == OBMAG_ROUTINE);
  basilys_assertmsg("putroutconstnotnull notnullconst", NULL != /*_.VALDATA___V522*/ curfptr[521]);
  ((basilysroutine_ptr_t)/*_.VALROUT___V841*/ curfptr[840])->tabval[10] = (basilys_ptr_t)(/*_.VALDATA___V522*/ curfptr[521]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2206: @touch");
+ BASILYS_LOCATION("warmelt-macro.bysl:2209: @touch");
  /*touch:IROUTVAL_*/
  basilysgc_touch(/*_.VALROUT___V841*/ curfptr[840]);
  
@@ -53742,96 +53786,96 @@ initial_frame_st   curfram__;
  basilysgc_touch(/*_.VALDATA___V846*/ curfptr[845]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2240: @putroutconst");
+ BASILYS_LOCATION("warmelt-macro.bysl:2243: @putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V848*/ curfptr[847])) == OBMAG_ROUTINE);
  basilys_checkmsg("putroutconst constnull.drout_795__MEXPAND_EXIT#0", NULL != (/*_.CLASS_SEXPR__V12*/ curfptr[11]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V848*/ curfptr[847])->tabval[0] = (basilys_ptr_t)(/*_.CLASS_SEXPR__V12*/ curfptr[11]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2240: @putroutconstnotnull");
+ BASILYS_LOCATION("warmelt-macro.bysl:2243: @putroutconstnotnull");
  /*putroutconstnotnull*/
  basilys_assertmsg("putroutconstnotnull checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V848*/ curfptr[847])) == OBMAG_ROUTINE);
  basilys_assertmsg("putroutconstnotnull notnullconst", NULL != /*_.VALCLO___V609*/ curfptr[608]);
  ((basilysroutine_ptr_t)/*_.VALROUT___V848*/ curfptr[847])->tabval[1] = (basilys_ptr_t)(/*_.VALCLO___V609*/ curfptr[608]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2240: @putroutconst");
+ BASILYS_LOCATION("warmelt-macro.bysl:2243: @putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V848*/ curfptr[847])) == OBMAG_ROUTINE);
  basilys_checkmsg("putroutconst constnull.drout_795__MEXPAND_EXIT#2", NULL != (/*_.FRESH_ENV__V35*/ curfptr[34]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V848*/ curfptr[847])->tabval[2] = (basilys_ptr_t)(/*_.FRESH_ENV__V35*/ curfptr[34]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2240: @putroutconst");
+ BASILYS_LOCATION("warmelt-macro.bysl:2243: @putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V848*/ curfptr[847])) == OBMAG_ROUTINE);
  basilys_checkmsg("putroutconst constnull.drout_795__MEXPAND_EXIT#3", NULL != (/*_.CLASS_SYMBOL__V8*/ curfptr[7]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V848*/ curfptr[847])->tabval[3] = (basilys_ptr_t)(/*_.CLASS_SYMBOL__V8*/ curfptr[7]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2240: @putroutconst");
+ BASILYS_LOCATION("warmelt-macro.bysl:2243: @putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V848*/ curfptr[847])) == OBMAG_ROUTINE);
  basilys_checkmsg("putroutconst constnull.drout_795__MEXPAND_EXIT#4", NULL != (/*_.FIND_ENV__V16*/ curfptr[15]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V848*/ curfptr[847])->tabval[4] = (basilys_ptr_t)(/*_.FIND_ENV__V16*/ curfptr[15]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2240: @putroutconst");
+ BASILYS_LOCATION("warmelt-macro.bysl:2243: @putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V848*/ curfptr[847])) == OBMAG_ROUTINE);
  basilys_checkmsg("putroutconst constnull.drout_795__MEXPAND_EXIT#5", NULL != (/*_.CLASS_LABEL_BINDING__V51*/ curfptr[50]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V848*/ curfptr[847])->tabval[5] = (basilys_ptr_t)(/*_.CLASS_LABEL_BINDING__V51*/ curfptr[50]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2240: @putroutconst");
+ BASILYS_LOCATION("warmelt-macro.bysl:2243: @putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V848*/ curfptr[847])) == OBMAG_ROUTINE);
  basilys_checkmsg("putroutconst constnull.drout_795__MEXPAND_EXIT#6", NULL != (/*_.PAIRLIST_TO_MULTIPLE__V49*/ curfptr[48]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V848*/ curfptr[847])->tabval[6] = (basilys_ptr_t)(/*_.PAIRLIST_TO_MULTIPLE__V49*/ curfptr[48]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2240: @putroutconst");
+ BASILYS_LOCATION("warmelt-macro.bysl:2243: @putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V848*/ curfptr[847])) == OBMAG_ROUTINE);
  basilys_checkmsg("putroutconst constnull.drout_795__MEXPAND_EXIT#7", NULL != (/*_.DISCR_MULTIPLE__V14*/ curfptr[13]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V848*/ curfptr[847])->tabval[7] = (basilys_ptr_t)(/*_.DISCR_MULTIPLE__V14*/ curfptr[13]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2240: @putroutconstnotnull");
+ BASILYS_LOCATION("warmelt-macro.bysl:2243: @putroutconstnotnull");
  /*putroutconstnotnull*/
  basilys_assertmsg("putroutconstnotnull checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V848*/ curfptr[847])) == OBMAG_ROUTINE);
  basilys_assertmsg("putroutconstnotnull notnullconst", NULL != /*_.VALCLO___V609*/ curfptr[608]);
  ((basilysroutine_ptr_t)/*_.VALROUT___V848*/ curfptr[847])->tabval[8] = (basilys_ptr_t)(/*_.VALCLO___V609*/ curfptr[608]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2263: @putroutconstnotnull");
+ BASILYS_LOCATION("warmelt-macro.bysl:2266: @putroutconstnotnull");
  /*putroutconstnotnull*/
  basilys_assertmsg("putroutconstnotnull checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V849*/ curfptr[848])) == OBMAG_ROUTINE);
  basilys_assertmsg("putroutconstnotnull notnullconst", NULL != /*_.VALCLO___V609*/ curfptr[608]);
  ((basilysroutine_ptr_t)/*_.VALROUT___V849*/ curfptr[848])->tabval[0] = (basilys_ptr_t)(/*_.VALCLO___V609*/ curfptr[608]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2263: @touch");
+ BASILYS_LOCATION("warmelt-macro.bysl:2266: @touch");
  /*touch:IROUTVAL_*/
  basilysgc_touch(/*_.VALROUT___V849*/ curfptr[848]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2240: @putroutconst");
+ BASILYS_LOCATION("warmelt-macro.bysl:2243: @putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V848*/ curfptr[847])) == OBMAG_ROUTINE);
  basilys_checkmsg("putroutconst constnull.drout_795__MEXPAND_EXIT#9", NULL != (/*_.VALROUT___V849*/ curfptr[848]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V848*/ curfptr[847])->tabval[9] = (basilys_ptr_t)(/*_.VALROUT___V849*/ curfptr[848]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2240: @putroutconstnotnull");
+ BASILYS_LOCATION("warmelt-macro.bysl:2243: @putroutconstnotnull");
  /*putroutconstnotnull*/
  basilys_assertmsg("putroutconstnotnull checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V848*/ curfptr[847])) == OBMAG_ROUTINE);
  basilys_assertmsg("putroutconstnotnull notnullconst", NULL != /*_.VALDATA___V532*/ curfptr[531]);
  ((basilysroutine_ptr_t)/*_.VALROUT___V848*/ curfptr[847])->tabval[10] = (basilys_ptr_t)(/*_.VALDATA___V532*/ curfptr[531]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2240: @touch");
+ BASILYS_LOCATION("warmelt-macro.bysl:2243: @touch");
  /*touch:IROUTVAL_*/
  basilysgc_touch(/*_.VALROUT___V848*/ curfptr[847]);
  
@@ -53853,35 +53897,35 @@ initial_frame_st   curfram__;
  basilysgc_touch(/*_.VALDATA___V851*/ curfptr[850]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2278: @putroutconst");
+ BASILYS_LOCATION("warmelt-macro.bysl:2281: @putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V853*/ curfptr[852])) == OBMAG_ROUTINE);
  basilys_checkmsg("putroutconst constnull.drout_800__MEXPAND_COMPILE_WARNING#0", NULL != (/*_.CLASS_SEXPR__V12*/ curfptr[11]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V853*/ curfptr[852])->tabval[0] = (basilys_ptr_t)(/*_.CLASS_SEXPR__V12*/ curfptr[11]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2278: @putroutconst");
+ BASILYS_LOCATION("warmelt-macro.bysl:2281: @putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V853*/ curfptr[852])) == OBMAG_ROUTINE);
  basilys_checkmsg("putroutconst constnull.drout_800__MEXPAND_COMPILE_WARNING#1", NULL != (/*_.DEBUG_MSG_FUN__V10*/ curfptr[9]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V853*/ curfptr[852])->tabval[1] = (basilys_ptr_t)(/*_.DEBUG_MSG_FUN__V10*/ curfptr[9]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2278: @putroutconstnotnull");
+ BASILYS_LOCATION("warmelt-macro.bysl:2281: @putroutconstnotnull");
  /*putroutconstnotnull*/
  basilys_assertmsg("putroutconstnotnull checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V853*/ curfptr[852])) == OBMAG_ROUTINE);
  basilys_assertmsg("putroutconstnotnull notnullconst", NULL != /*_.VALCLO___V609*/ curfptr[608]);
  ((basilysroutine_ptr_t)/*_.VALROUT___V853*/ curfptr[852])->tabval[2] = (basilys_ptr_t)(/*_.VALCLO___V609*/ curfptr[608]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2278: @putroutconstnotnull");
+ BASILYS_LOCATION("warmelt-macro.bysl:2281: @putroutconstnotnull");
  /*putroutconstnotnull*/
  basilys_assertmsg("putroutconstnotnull checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V853*/ curfptr[852])) == OBMAG_ROUTINE);
  basilys_assertmsg("putroutconstnotnull notnullconst", NULL != /*_.VALDATA___V542*/ curfptr[541]);
  ((basilysroutine_ptr_t)/*_.VALROUT___V853*/ curfptr[852])->tabval[3] = (basilys_ptr_t)(/*_.VALDATA___V542*/ curfptr[541]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2278: @touch");
+ BASILYS_LOCATION("warmelt-macro.bysl:2281: @touch");
  /*touch:IROUTVAL_*/
  basilysgc_touch(/*_.VALROUT___V853*/ curfptr[852]);
  
@@ -53903,28 +53947,28 @@ initial_frame_st   curfram__;
  basilysgc_touch(/*_.VALDATA___V855*/ curfptr[854]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2317: @putroutconst");
+ BASILYS_LOCATION("warmelt-macro.bysl:2320: @putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V857*/ curfptr[856])) == OBMAG_ROUTINE);
  basilys_checkmsg("putroutconst constnull.drout_804__MEXPAND_ASSERT_MSG#0", NULL != (/*_.CLASS_SEXPR__V12*/ curfptr[11]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V857*/ curfptr[856])->tabval[0] = (basilys_ptr_t)(/*_.CLASS_SEXPR__V12*/ curfptr[11]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2317: @putroutconst");
+ BASILYS_LOCATION("warmelt-macro.bysl:2320: @putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V857*/ curfptr[856])) == OBMAG_ROUTINE);
  basilys_checkmsg("putroutconst constnull.drout_804__MEXPAND_ASSERT_MSG#1", NULL != (/*_.CLASS_ENVIRONMENT__V13*/ curfptr[12]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V857*/ curfptr[856])->tabval[1] = (basilys_ptr_t)(/*_.CLASS_ENVIRONMENT__V13*/ curfptr[12]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2317: @putroutconst");
+ BASILYS_LOCATION("warmelt-macro.bysl:2320: @putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V857*/ curfptr[856])) == OBMAG_ROUTINE);
  basilys_checkmsg("putroutconst constnull.drout_804__MEXPAND_ASSERT_MSG#2", NULL != (/*_.DEBUG_MSG_FUN__V10*/ curfptr[9]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V857*/ curfptr[856])->tabval[2] = (basilys_ptr_t)(/*_.DEBUG_MSG_FUN__V10*/ curfptr[9]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2317: @putroutconstnotnull");
+ BASILYS_LOCATION("warmelt-macro.bysl:2320: @putroutconstnotnull");
  /*putroutconstnotnull*/
  basilys_assertmsg("putroutconstnotnull checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V857*/ curfptr[856])) == OBMAG_ROUTINE);
  basilys_assertmsg("putroutconstnotnull notnullconst", NULL != /*_.VALCLO___V609*/ curfptr[608]);
@@ -53940,77 +53984,77 @@ initial_frame_st   curfram__;
  basilysgc_touch(/*_.VALDATA___V858*/ curfptr[857]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2317: @putroutconst");
+ BASILYS_LOCATION("warmelt-macro.bysl:2320: @putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V857*/ curfptr[856])) == OBMAG_ROUTINE);
  basilys_checkmsg("putroutconst constnull.drout_804__MEXPAND_ASSERT_MSG#4", NULL != (/*_.VALDATA___V858*/ curfptr[857]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V857*/ curfptr[856])->tabval[4] = (basilys_ptr_t)(/*_.VALDATA___V858*/ curfptr[857]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2317: @putroutconst");
+ BASILYS_LOCATION("warmelt-macro.bysl:2320: @putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V857*/ curfptr[856])) == OBMAG_ROUTINE);
  basilys_checkmsg("putroutconst constnull.drout_804__MEXPAND_ASSERT_MSG#5", NULL != (/*_.FIND_ENV__V16*/ curfptr[15]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V857*/ curfptr[856])->tabval[5] = (basilys_ptr_t)(/*_.FIND_ENV__V16*/ curfptr[15]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2317: @putroutconst");
+ BASILYS_LOCATION("warmelt-macro.bysl:2320: @putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V857*/ curfptr[856])) == OBMAG_ROUTINE);
  basilys_checkmsg("putroutconst constnull.drout_804__MEXPAND_ASSERT_MSG#6", NULL != (/*_.FIND_ENV_DEBUG__V52*/ curfptr[51]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V857*/ curfptr[856])->tabval[6] = (basilys_ptr_t)(/*_.FIND_ENV_DEBUG__V52*/ curfptr[51]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2317: @putroutconst");
+ BASILYS_LOCATION("warmelt-macro.bysl:2320: @putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V857*/ curfptr[856])) == OBMAG_ROUTINE);
  basilys_checkmsg("putroutconst constnull.drout_804__MEXPAND_ASSERT_MSG#7", NULL != (/*_.CLASS_PRIMITIVE_BINDING__V19*/ curfptr[18]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V857*/ curfptr[856])->tabval[7] = (basilys_ptr_t)(/*_.CLASS_PRIMITIVE_BINDING__V19*/ curfptr[18]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2317: @putroutconst");
+ BASILYS_LOCATION("warmelt-macro.bysl:2320: @putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V857*/ curfptr[856])) == OBMAG_ROUTINE);
  basilys_checkmsg("putroutconst constnull.drout_804__MEXPAND_ASSERT_MSG#8", NULL != (/*_.CLASS_VALUE_BINDING__V21*/ curfptr[20]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V857*/ curfptr[856])->tabval[8] = (basilys_ptr_t)(/*_.CLASS_VALUE_BINDING__V21*/ curfptr[20]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2317: @putroutconst");
+ BASILYS_LOCATION("warmelt-macro.bysl:2320: @putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V857*/ curfptr[856])) == OBMAG_ROUTINE);
  basilys_checkmsg("putroutconst constnull.drout_804__MEXPAND_ASSERT_MSG#9", NULL != (/*_.CLASS_PRIMITIVE__V22*/ curfptr[21]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V857*/ curfptr[856])->tabval[9] = (basilys_ptr_t)(/*_.CLASS_PRIMITIVE__V22*/ curfptr[21]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2317: @putroutconstnotnull");
+ BASILYS_LOCATION("warmelt-macro.bysl:2320: @putroutconstnotnull");
  /*putroutconstnotnull*/
  basilys_assertmsg("putroutconstnotnull checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V857*/ curfptr[856])) == OBMAG_ROUTINE);
  basilys_assertmsg("putroutconstnotnull notnullconst", NULL != /*_.VALDATA___V96*/ curfptr[95]);
  ((basilysroutine_ptr_t)/*_.VALROUT___V857*/ curfptr[856])->tabval[10] = (basilys_ptr_t)(/*_.VALDATA___V96*/ curfptr[95]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2317: @putroutconst");
+ BASILYS_LOCATION("warmelt-macro.bysl:2320: @putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V857*/ curfptr[856])) == OBMAG_ROUTINE);
  basilys_checkmsg("putroutconst constnull.drout_804__MEXPAND_ASSERT_MSG#11", NULL != (/*_.DISCR_MULTIPLE__V14*/ curfptr[13]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V857*/ curfptr[856])->tabval[11] = (basilys_ptr_t)(/*_.DISCR_MULTIPLE__V14*/ curfptr[13]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2317: @putroutconst");
+ BASILYS_LOCATION("warmelt-macro.bysl:2320: @putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V857*/ curfptr[856])) == OBMAG_ROUTINE);
  basilys_checkmsg("putroutconst constnull.drout_804__MEXPAND_ASSERT_MSG#12", NULL != (/*_.DISCR_INTEGER__V40*/ curfptr[39]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V857*/ curfptr[856])->tabval[12] = (basilys_ptr_t)(/*_.DISCR_INTEGER__V40*/ curfptr[39]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2317: @putroutconstnotnull");
+ BASILYS_LOCATION("warmelt-macro.bysl:2320: @putroutconstnotnull");
  /*putroutconstnotnull*/
  basilys_assertmsg("putroutconstnotnull checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V857*/ curfptr[856])) == OBMAG_ROUTINE);
  basilys_assertmsg("putroutconstnotnull notnullconst", NULL != /*_.VALDATA___V410*/ curfptr[409]);
  ((basilysroutine_ptr_t)/*_.VALROUT___V857*/ curfptr[856])->tabval[13] = (basilys_ptr_t)(/*_.VALDATA___V410*/ curfptr[409]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2317: @putroutconstnotnull");
+ BASILYS_LOCATION("warmelt-macro.bysl:2320: @putroutconstnotnull");
  /*putroutconstnotnull*/
  basilys_assertmsg("putroutconstnotnull checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V857*/ curfptr[856])) == OBMAG_ROUTINE);
  basilys_assertmsg("putroutconstnotnull notnullconst", NULL != /*_.VALDATA___V430*/ curfptr[429]);
@@ -54026,14 +54070,14 @@ initial_frame_st   curfram__;
  basilysgc_touch(/*_.VALDATA___V860*/ curfptr[859]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2317: @putroutconst");
+ BASILYS_LOCATION("warmelt-macro.bysl:2320: @putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V857*/ curfptr[856])) == OBMAG_ROUTINE);
  basilys_checkmsg("putroutconst constnull.drout_804__MEXPAND_ASSERT_MSG#15", NULL != (/*_.VALDATA___V860*/ curfptr[859]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V857*/ curfptr[856])->tabval[15] = (basilys_ptr_t)(/*_.VALDATA___V860*/ curfptr[859]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2317: @touch");
+ BASILYS_LOCATION("warmelt-macro.bysl:2320: @touch");
  /*touch:IROUTVAL_*/
  basilysgc_touch(/*_.VALROUT___V857*/ curfptr[856]);
  
@@ -54064,35 +54108,35 @@ initial_frame_st   curfram__;
  basilysgc_touch(/*_.VALDATA___V865*/ curfptr[864]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2394: @putroutconst");
+ BASILYS_LOCATION("warmelt-macro.bysl:2397: @putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V867*/ curfptr[866])) == OBMAG_ROUTINE);
  basilys_checkmsg("putroutconst constnull.drout_814__MEXPAND_DEBUG_MSG#0", NULL != (/*_.CLASS_SEXPR__V12*/ curfptr[11]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V867*/ curfptr[866])->tabval[0] = (basilys_ptr_t)(/*_.CLASS_SEXPR__V12*/ curfptr[11]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2394: @putroutconst");
+ BASILYS_LOCATION("warmelt-macro.bysl:2397: @putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V867*/ curfptr[866])) == OBMAG_ROUTINE);
  basilys_checkmsg("putroutconst constnull.drout_814__MEXPAND_DEBUG_MSG#1", NULL != (/*_.CLASS_ENVIRONMENT__V13*/ curfptr[12]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V867*/ curfptr[866])->tabval[1] = (basilys_ptr_t)(/*_.CLASS_ENVIRONMENT__V13*/ curfptr[12]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2394: @putroutconst");
+ BASILYS_LOCATION("warmelt-macro.bysl:2397: @putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V867*/ curfptr[866])) == OBMAG_ROUTINE);
  basilys_checkmsg("putroutconst constnull.drout_814__MEXPAND_DEBUG_MSG#2", NULL != (/*_.DEBUG_MSG_FUN__V10*/ curfptr[9]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V867*/ curfptr[866])->tabval[2] = (basilys_ptr_t)(/*_.DEBUG_MSG_FUN__V10*/ curfptr[9]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2394: @putroutconstnotnull");
+ BASILYS_LOCATION("warmelt-macro.bysl:2397: @putroutconstnotnull");
  /*putroutconstnotnull*/
  basilys_assertmsg("putroutconstnotnull checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V867*/ curfptr[866])) == OBMAG_ROUTINE);
  basilys_assertmsg("putroutconstnotnull notnullconst", NULL != /*_.VALCLO___V609*/ curfptr[608]);
  ((basilysroutine_ptr_t)/*_.VALROUT___V867*/ curfptr[866])->tabval[3] = (basilys_ptr_t)(/*_.VALCLO___V609*/ curfptr[608]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2394: @putroutconst");
+ BASILYS_LOCATION("warmelt-macro.bysl:2397: @putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V867*/ curfptr[866])) == OBMAG_ROUTINE);
  basilys_checkmsg("putroutconst constnull.drout_814__MEXPAND_DEBUG_MSG#4", NULL != (/*_.DISCR_LIST__V28*/ curfptr[27]));
@@ -54108,56 +54152,56 @@ initial_frame_st   curfram__;
  basilysgc_touch(/*_.VALDATA___V868*/ curfptr[867]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2394: @putroutconst");
+ BASILYS_LOCATION("warmelt-macro.bysl:2397: @putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V867*/ curfptr[866])) == OBMAG_ROUTINE);
  basilys_checkmsg("putroutconst constnull.drout_814__MEXPAND_DEBUG_MSG#5", NULL != (/*_.VALDATA___V868*/ curfptr[867]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V867*/ curfptr[866])->tabval[5] = (basilys_ptr_t)(/*_.VALDATA___V868*/ curfptr[867]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2394: @putroutconstnotnull");
+ BASILYS_LOCATION("warmelt-macro.bysl:2397: @putroutconstnotnull");
  /*putroutconstnotnull*/
  basilys_assertmsg("putroutconstnotnull checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V867*/ curfptr[866])) == OBMAG_ROUTINE);
  basilys_assertmsg("putroutconstnotnull notnullconst", NULL != /*_.VALDATA___V64*/ curfptr[63]);
  ((basilysroutine_ptr_t)/*_.VALROUT___V867*/ curfptr[866])->tabval[6] = (basilys_ptr_t)(/*_.VALDATA___V64*/ curfptr[63]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2394: @putroutconst");
+ BASILYS_LOCATION("warmelt-macro.bysl:2397: @putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V867*/ curfptr[866])) == OBMAG_ROUTINE);
  basilys_checkmsg("putroutconst constnull.drout_814__MEXPAND_DEBUG_MSG#7", NULL != (/*_.VALDATA___V58*/ curfptr[57]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V867*/ curfptr[866])->tabval[7] = (basilys_ptr_t)(/*_.VALDATA___V58*/ curfptr[57]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2394: @putroutconst");
+ BASILYS_LOCATION("warmelt-macro.bysl:2397: @putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V867*/ curfptr[866])) == OBMAG_ROUTINE);
  basilys_checkmsg("putroutconst constnull.drout_814__MEXPAND_DEBUG_MSG#8", NULL != (/*_.DISCR_MULTIPLE__V14*/ curfptr[13]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V867*/ curfptr[866])->tabval[8] = (basilys_ptr_t)(/*_.DISCR_MULTIPLE__V14*/ curfptr[13]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2394: @putroutconst");
+ BASILYS_LOCATION("warmelt-macro.bysl:2397: @putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V867*/ curfptr[866])) == OBMAG_ROUTINE);
  basilys_checkmsg("putroutconst constnull.drout_814__MEXPAND_DEBUG_MSG#9", NULL != (/*_.DISCR_INTEGER__V40*/ curfptr[39]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V867*/ curfptr[866])->tabval[9] = (basilys_ptr_t)(/*_.DISCR_INTEGER__V40*/ curfptr[39]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2394: @putroutconstnotnull");
+ BASILYS_LOCATION("warmelt-macro.bysl:2397: @putroutconstnotnull");
  /*putroutconstnotnull*/
  basilys_assertmsg("putroutconstnotnull checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V867*/ curfptr[866])) == OBMAG_ROUTINE);
  basilys_assertmsg("putroutconstnotnull notnullconst", NULL != /*_.VALDATA___V430*/ curfptr[429]);
  ((basilysroutine_ptr_t)/*_.VALROUT___V867*/ curfptr[866])->tabval[10] = (basilys_ptr_t)(/*_.VALDATA___V430*/ curfptr[429]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2394: @putroutconst");
+ BASILYS_LOCATION("warmelt-macro.bysl:2397: @putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V867*/ curfptr[866])) == OBMAG_ROUTINE);
  basilys_checkmsg("putroutconst constnull.drout_814__MEXPAND_DEBUG_MSG#11", NULL != (/*_.VALDATA___V860*/ curfptr[859]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V867*/ curfptr[866])->tabval[11] = (basilys_ptr_t)(/*_.VALDATA___V860*/ curfptr[859]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2394: @touch");
+ BASILYS_LOCATION("warmelt-macro.bysl:2397: @touch");
  /*touch:IROUTVAL_*/
  basilysgc_touch(/*_.VALROUT___V867*/ curfptr[866]);
  
@@ -54179,103 +54223,103 @@ initial_frame_st   curfram__;
  basilysgc_touch(/*_.VALDATA___V871*/ curfptr[870]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2451: @putroutconst");
+ BASILYS_LOCATION("warmelt-macro.bysl:2454: @putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V873*/ curfptr[872])) == OBMAG_ROUTINE);
  basilys_checkmsg("putroutconst constnull.drout_820__MEXPAND_EXPORT_VALUES#0", NULL != (/*_.CLASS_SEXPR__V12*/ curfptr[11]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V873*/ curfptr[872])->tabval[0] = (basilys_ptr_t)(/*_.CLASS_SEXPR__V12*/ curfptr[11]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2451: @putroutconst");
+ BASILYS_LOCATION("warmelt-macro.bysl:2454: @putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V873*/ curfptr[872])) == OBMAG_ROUTINE);
  basilys_checkmsg("putroutconst constnull.drout_820__MEXPAND_EXPORT_VALUES#1", NULL != (/*_.CLASS_ENVIRONMENT__V13*/ curfptr[12]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V873*/ curfptr[872])->tabval[1] = (basilys_ptr_t)(/*_.CLASS_ENVIRONMENT__V13*/ curfptr[12]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2451: @putroutconst");
+ BASILYS_LOCATION("warmelt-macro.bysl:2454: @putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V873*/ curfptr[872])) == OBMAG_ROUTINE);
  basilys_checkmsg("putroutconst constnull.drout_820__MEXPAND_EXPORT_VALUES#2", NULL != (/*_.DEBUG_MSG_FUN__V10*/ curfptr[9]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V873*/ curfptr[872])->tabval[2] = (basilys_ptr_t)(/*_.DEBUG_MSG_FUN__V10*/ curfptr[9]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2451: @putroutconst");
+ BASILYS_LOCATION("warmelt-macro.bysl:2454: @putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V873*/ curfptr[872])) == OBMAG_ROUTINE);
  basilys_checkmsg("putroutconst constnull.drout_820__MEXPAND_EXPORT_VALUES#3", NULL != (/*_.PAIRLIST_TO_MULTIPLE__V49*/ curfptr[48]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V873*/ curfptr[872])->tabval[3] = (basilys_ptr_t)(/*_.PAIRLIST_TO_MULTIPLE__V49*/ curfptr[48]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2451: @putroutconst");
+ BASILYS_LOCATION("warmelt-macro.bysl:2454: @putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V873*/ curfptr[872])) == OBMAG_ROUTINE);
  basilys_checkmsg("putroutconst constnull.drout_820__MEXPAND_EXPORT_VALUES#4", NULL != (/*_.DISCR_MULTIPLE__V14*/ curfptr[13]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V873*/ curfptr[872])->tabval[4] = (basilys_ptr_t)(/*_.DISCR_MULTIPLE__V14*/ curfptr[13]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2451: @putroutconstnotnull");
+ BASILYS_LOCATION("warmelt-macro.bysl:2454: @putroutconstnotnull");
  /*putroutconstnotnull*/
  basilys_assertmsg("putroutconstnotnull checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V873*/ curfptr[872])) == OBMAG_ROUTINE);
  basilys_assertmsg("putroutconstnotnull notnullconst", NULL != /*_.VALCLO___V609*/ curfptr[608]);
  ((basilysroutine_ptr_t)/*_.VALROUT___V873*/ curfptr[872])->tabval[5] = (basilys_ptr_t)(/*_.VALCLO___V609*/ curfptr[608]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2451: @putroutconst");
+ BASILYS_LOCATION("warmelt-macro.bysl:2454: @putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V873*/ curfptr[872])) == OBMAG_ROUTINE);
  basilys_checkmsg("putroutconst constnull.drout_820__MEXPAND_EXPORT_VALUES#6", NULL != (/*_.CLASS_SYMBOL__V8*/ curfptr[7]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V873*/ curfptr[872])->tabval[6] = (basilys_ptr_t)(/*_.CLASS_SYMBOL__V8*/ curfptr[7]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2451: @putroutconst");
+ BASILYS_LOCATION("warmelt-macro.bysl:2454: @putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V873*/ curfptr[872])) == OBMAG_ROUTINE);
  basilys_checkmsg("putroutconst constnull.drout_820__MEXPAND_EXPORT_VALUES#7", NULL != (/*_.DEBUGMSG__V53*/ curfptr[52]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V873*/ curfptr[872])->tabval[7] = (basilys_ptr_t)(/*_.DEBUGMSG__V53*/ curfptr[52]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2461: @putroutconstnotnull");
+ BASILYS_LOCATION("warmelt-macro.bysl:2464: @putroutconstnotnull");
  /*putroutconstnotnull*/
  basilys_assertmsg("putroutconstnotnull checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V874*/ curfptr[873])) == OBMAG_ROUTINE);
  basilys_assertmsg("putroutconstnotnull notnullconst", NULL != /*_.VALCLO___V609*/ curfptr[608]);
  ((basilysroutine_ptr_t)/*_.VALROUT___V874*/ curfptr[873])->tabval[0] = (basilys_ptr_t)(/*_.VALCLO___V609*/ curfptr[608]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2461: @putroutconst");
+ BASILYS_LOCATION("warmelt-macro.bysl:2464: @putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V874*/ curfptr[873])) == OBMAG_ROUTINE);
  basilys_checkmsg("putroutconst constnull.drout_822__LAMBDA_#1", NULL != (/*_.CLASS_SYMBOL__V8*/ curfptr[7]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V874*/ curfptr[873])->tabval[1] = (basilys_ptr_t)(/*_.CLASS_SYMBOL__V8*/ curfptr[7]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2461: @putroutconst");
+ BASILYS_LOCATION("warmelt-macro.bysl:2464: @putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V874*/ curfptr[873])) == OBMAG_ROUTINE);
  basilys_checkmsg("putroutconst constnull.drout_822__LAMBDA_#2", NULL != (/*_.DEBUGMSG__V53*/ curfptr[52]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V874*/ curfptr[873])->tabval[2] = (basilys_ptr_t)(/*_.DEBUGMSG__V53*/ curfptr[52]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2461: @touch");
+ BASILYS_LOCATION("warmelt-macro.bysl:2464: @touch");
  /*touch:IROUTVAL_*/
  basilysgc_touch(/*_.VALROUT___V874*/ curfptr[873]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2451: @putroutconst");
+ BASILYS_LOCATION("warmelt-macro.bysl:2454: @putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V873*/ curfptr[872])) == OBMAG_ROUTINE);
  basilys_checkmsg("putroutconst constnull.drout_820__MEXPAND_EXPORT_VALUES#8", NULL != (/*_.VALROUT___V874*/ curfptr[873]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V873*/ curfptr[872])->tabval[8] = (basilys_ptr_t)(/*_.VALROUT___V874*/ curfptr[873]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2451: @putroutconstnotnull");
+ BASILYS_LOCATION("warmelt-macro.bysl:2454: @putroutconstnotnull");
  /*putroutconstnotnull*/
  basilys_assertmsg("putroutconstnotnull checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V873*/ curfptr[872])) == OBMAG_ROUTINE);
  basilys_assertmsg("putroutconstnotnull notnullconst", NULL != /*_.VALDATA___V196*/ curfptr[195]);
  ((basilysroutine_ptr_t)/*_.VALROUT___V873*/ curfptr[872])->tabval[9] = (basilys_ptr_t)(/*_.VALDATA___V196*/ curfptr[195]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2451: @touch");
+ BASILYS_LOCATION("warmelt-macro.bysl:2454: @touch");
  /*touch:IROUTVAL_*/
  basilysgc_touch(/*_.VALROUT___V873*/ curfptr[872]);
  
@@ -54306,49 +54350,49 @@ initial_frame_st   curfram__;
  basilysgc_touch(/*_.VALDATA___V878*/ curfptr[877]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2481: @putroutconst");
+ BASILYS_LOCATION("warmelt-macro.bysl:2484: @putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V880*/ curfptr[879])) == OBMAG_ROUTINE);
  basilys_checkmsg("putroutconst constnull.drout_827__MEXPAND_EXPORT_MACRO#0", NULL != (/*_.CLASS_SEXPR__V12*/ curfptr[11]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V880*/ curfptr[879])->tabval[0] = (basilys_ptr_t)(/*_.CLASS_SEXPR__V12*/ curfptr[11]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2481: @putroutconst");
+ BASILYS_LOCATION("warmelt-macro.bysl:2484: @putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V880*/ curfptr[879])) == OBMAG_ROUTINE);
  basilys_checkmsg("putroutconst constnull.drout_827__MEXPAND_EXPORT_MACRO#1", NULL != (/*_.CLASS_ENVIRONMENT__V13*/ curfptr[12]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V880*/ curfptr[879])->tabval[1] = (basilys_ptr_t)(/*_.CLASS_ENVIRONMENT__V13*/ curfptr[12]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2481: @putroutconst");
+ BASILYS_LOCATION("warmelt-macro.bysl:2484: @putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V880*/ curfptr[879])) == OBMAG_ROUTINE);
  basilys_checkmsg("putroutconst constnull.drout_827__MEXPAND_EXPORT_MACRO#2", NULL != (/*_.DEBUG_MSG_FUN__V10*/ curfptr[9]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V880*/ curfptr[879])->tabval[2] = (basilys_ptr_t)(/*_.DEBUG_MSG_FUN__V10*/ curfptr[9]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2481: @putroutconstnotnull");
+ BASILYS_LOCATION("warmelt-macro.bysl:2484: @putroutconstnotnull");
  /*putroutconstnotnull*/
  basilys_assertmsg("putroutconstnotnull checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V880*/ curfptr[879])) == OBMAG_ROUTINE);
  basilys_assertmsg("putroutconstnotnull notnullconst", NULL != /*_.VALCLO___V609*/ curfptr[608]);
  ((basilysroutine_ptr_t)/*_.VALROUT___V880*/ curfptr[879])->tabval[3] = (basilys_ptr_t)(/*_.VALCLO___V609*/ curfptr[608]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2481: @putroutconst");
+ BASILYS_LOCATION("warmelt-macro.bysl:2484: @putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V880*/ curfptr[879])) == OBMAG_ROUTINE);
  basilys_checkmsg("putroutconst constnull.drout_827__MEXPAND_EXPORT_MACRO#4", NULL != (/*_.CLASS_SYMBOL__V8*/ curfptr[7]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V880*/ curfptr[879])->tabval[4] = (basilys_ptr_t)(/*_.CLASS_SYMBOL__V8*/ curfptr[7]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2481: @putroutconstnotnull");
+ BASILYS_LOCATION("warmelt-macro.bysl:2484: @putroutconstnotnull");
  /*putroutconstnotnull*/
  basilys_assertmsg("putroutconstnotnull checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V880*/ curfptr[879])) == OBMAG_ROUTINE);
  basilys_assertmsg("putroutconstnotnull notnullconst", NULL != /*_.VALDATA___V208*/ curfptr[207]);
  ((basilysroutine_ptr_t)/*_.VALROUT___V880*/ curfptr[879])->tabval[5] = (basilys_ptr_t)(/*_.VALDATA___V208*/ curfptr[207]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2481: @touch");
+ BASILYS_LOCATION("warmelt-macro.bysl:2484: @touch");
  /*touch:IROUTVAL_*/
  basilysgc_touch(/*_.VALROUT___V880*/ curfptr[879]);
  
@@ -54370,89 +54414,89 @@ initial_frame_st   curfram__;
  basilysgc_touch(/*_.VALDATA___V882*/ curfptr[881]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2512: @putroutconst");
+ BASILYS_LOCATION("warmelt-macro.bysl:2515: @putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V884*/ curfptr[883])) == OBMAG_ROUTINE);
  basilys_checkmsg("putroutconst constnull.drout_831__MEXPAND_EXPORT_CLASS#0", NULL != (/*_.CLASS_SEXPR__V12*/ curfptr[11]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V884*/ curfptr[883])->tabval[0] = (basilys_ptr_t)(/*_.CLASS_SEXPR__V12*/ curfptr[11]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2512: @putroutconst");
+ BASILYS_LOCATION("warmelt-macro.bysl:2515: @putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V884*/ curfptr[883])) == OBMAG_ROUTINE);
  basilys_checkmsg("putroutconst constnull.drout_831__MEXPAND_EXPORT_CLASS#1", NULL != (/*_.CLASS_ENVIRONMENT__V13*/ curfptr[12]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V884*/ curfptr[883])->tabval[1] = (basilys_ptr_t)(/*_.CLASS_ENVIRONMENT__V13*/ curfptr[12]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2512: @putroutconst");
+ BASILYS_LOCATION("warmelt-macro.bysl:2515: @putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V884*/ curfptr[883])) == OBMAG_ROUTINE);
  basilys_checkmsg("putroutconst constnull.drout_831__MEXPAND_EXPORT_CLASS#2", NULL != (/*_.DEBUG_MSG_FUN__V10*/ curfptr[9]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V884*/ curfptr[883])->tabval[2] = (basilys_ptr_t)(/*_.DEBUG_MSG_FUN__V10*/ curfptr[9]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2512: @putroutconst");
+ BASILYS_LOCATION("warmelt-macro.bysl:2515: @putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V884*/ curfptr[883])) == OBMAG_ROUTINE);
  basilys_checkmsg("putroutconst constnull.drout_831__MEXPAND_EXPORT_CLASS#3", NULL != (/*_.PAIRLIST_TO_MULTIPLE__V49*/ curfptr[48]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V884*/ curfptr[883])->tabval[3] = (basilys_ptr_t)(/*_.PAIRLIST_TO_MULTIPLE__V49*/ curfptr[48]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2512: @putroutconst");
+ BASILYS_LOCATION("warmelt-macro.bysl:2515: @putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V884*/ curfptr[883])) == OBMAG_ROUTINE);
  basilys_checkmsg("putroutconst constnull.drout_831__MEXPAND_EXPORT_CLASS#4", NULL != (/*_.DISCR_MULTIPLE__V14*/ curfptr[13]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V884*/ curfptr[883])->tabval[4] = (basilys_ptr_t)(/*_.DISCR_MULTIPLE__V14*/ curfptr[13]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2512: @putroutconstnotnull");
+ BASILYS_LOCATION("warmelt-macro.bysl:2515: @putroutconstnotnull");
  /*putroutconstnotnull*/
  basilys_assertmsg("putroutconstnotnull checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V884*/ curfptr[883])) == OBMAG_ROUTINE);
  basilys_assertmsg("putroutconstnotnull notnullconst", NULL != /*_.VALCLO___V609*/ curfptr[608]);
  ((basilysroutine_ptr_t)/*_.VALROUT___V884*/ curfptr[883])->tabval[5] = (basilys_ptr_t)(/*_.VALCLO___V609*/ curfptr[608]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2512: @putroutconst");
+ BASILYS_LOCATION("warmelt-macro.bysl:2515: @putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V884*/ curfptr[883])) == OBMAG_ROUTINE);
  basilys_checkmsg("putroutconst constnull.drout_831__MEXPAND_EXPORT_CLASS#6", NULL != (/*_.CLASS_SYMBOL__V8*/ curfptr[7]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V884*/ curfptr[883])->tabval[6] = (basilys_ptr_t)(/*_.CLASS_SYMBOL__V8*/ curfptr[7]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2522: @putroutconstnotnull");
+ BASILYS_LOCATION("warmelt-macro.bysl:2525: @putroutconstnotnull");
  /*putroutconstnotnull*/
  basilys_assertmsg("putroutconstnotnull checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V885*/ curfptr[884])) == OBMAG_ROUTINE);
  basilys_assertmsg("putroutconstnotnull notnullconst", NULL != /*_.VALCLO___V609*/ curfptr[608]);
  ((basilysroutine_ptr_t)/*_.VALROUT___V885*/ curfptr[884])->tabval[0] = (basilys_ptr_t)(/*_.VALCLO___V609*/ curfptr[608]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2522: @putroutconst");
+ BASILYS_LOCATION("warmelt-macro.bysl:2525: @putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V885*/ curfptr[884])) == OBMAG_ROUTINE);
  basilys_checkmsg("putroutconst constnull.drout_833__LAMBDA_#1", NULL != (/*_.CLASS_SYMBOL__V8*/ curfptr[7]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V885*/ curfptr[884])->tabval[1] = (basilys_ptr_t)(/*_.CLASS_SYMBOL__V8*/ curfptr[7]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2522: @touch");
+ BASILYS_LOCATION("warmelt-macro.bysl:2525: @touch");
  /*touch:IROUTVAL_*/
  basilysgc_touch(/*_.VALROUT___V885*/ curfptr[884]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2512: @putroutconst");
+ BASILYS_LOCATION("warmelt-macro.bysl:2515: @putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V884*/ curfptr[883])) == OBMAG_ROUTINE);
  basilys_checkmsg("putroutconst constnull.drout_831__MEXPAND_EXPORT_CLASS#7", NULL != (/*_.VALROUT___V885*/ curfptr[884]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V884*/ curfptr[883])->tabval[7] = (basilys_ptr_t)(/*_.VALROUT___V885*/ curfptr[884]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2512: @putroutconstnotnull");
+ BASILYS_LOCATION("warmelt-macro.bysl:2515: @putroutconstnotnull");
  /*putroutconstnotnull*/
  basilys_assertmsg("putroutconstnotnull checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V884*/ curfptr[883])) == OBMAG_ROUTINE);
  basilys_assertmsg("putroutconstnotnull notnullconst", NULL != /*_.VALDATA___V202*/ curfptr[201]);
  ((basilysroutine_ptr_t)/*_.VALROUT___V884*/ curfptr[883])->tabval[8] = (basilys_ptr_t)(/*_.VALDATA___V202*/ curfptr[201]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2512: @touch");
+ BASILYS_LOCATION("warmelt-macro.bysl:2515: @touch");
  /*touch:IROUTVAL_*/
  basilysgc_touch(/*_.VALROUT___V884*/ curfptr[883]);
  
@@ -54474,35 +54518,35 @@ initial_frame_st   curfram__;
  basilysgc_touch(/*_.VALDATA___V887*/ curfptr[886]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2540: @putroutconst");
+ BASILYS_LOCATION("warmelt-macro.bysl:2543: @putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V889*/ curfptr[888])) == OBMAG_ROUTINE);
  basilys_checkmsg("putroutconst constnull.drout_836__MEXPAND_CURRENT_MODULE_ENVIRONMENT_CONTAINER#0", NULL != (/*_.CLASS_SEXPR__V12*/ curfptr[11]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V889*/ curfptr[888])->tabval[0] = (basilys_ptr_t)(/*_.CLASS_SEXPR__V12*/ curfptr[11]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2540: @putroutconst");
+ BASILYS_LOCATION("warmelt-macro.bysl:2543: @putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V889*/ curfptr[888])) == OBMAG_ROUTINE);
  basilys_checkmsg("putroutconst constnull.drout_836__MEXPAND_CURRENT_MODULE_ENVIRONMENT_CONTAINER#1", NULL != (/*_.CLASS_ENVIRONMENT__V13*/ curfptr[12]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V889*/ curfptr[888])->tabval[1] = (basilys_ptr_t)(/*_.CLASS_ENVIRONMENT__V13*/ curfptr[12]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2540: @putroutconst");
+ BASILYS_LOCATION("warmelt-macro.bysl:2543: @putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V889*/ curfptr[888])) == OBMAG_ROUTINE);
  basilys_checkmsg("putroutconst constnull.drout_836__MEXPAND_CURRENT_MODULE_ENVIRONMENT_CONTAINER#2", NULL != (/*_.DEBUG_MSG_FUN__V10*/ curfptr[9]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V889*/ curfptr[888])->tabval[2] = (basilys_ptr_t)(/*_.DEBUG_MSG_FUN__V10*/ curfptr[9]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2540: @putroutconstnotnull");
+ BASILYS_LOCATION("warmelt-macro.bysl:2543: @putroutconstnotnull");
  /*putroutconstnotnull*/
  basilys_assertmsg("putroutconstnotnull checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V889*/ curfptr[888])) == OBMAG_ROUTINE);
  basilys_assertmsg("putroutconstnotnull notnullconst", NULL != /*_.VALDATA___V556*/ curfptr[555]);
  ((basilysroutine_ptr_t)/*_.VALROUT___V889*/ curfptr[888])->tabval[3] = (basilys_ptr_t)(/*_.VALDATA___V556*/ curfptr[555]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2540: @touch");
+ BASILYS_LOCATION("warmelt-macro.bysl:2543: @touch");
  /*touch:IROUTVAL_*/
  basilysgc_touch(/*_.VALROUT___V889*/ curfptr[888]);
  
@@ -54524,35 +54568,35 @@ initial_frame_st   curfram__;
  basilysgc_touch(/*_.VALDATA___V891*/ curfptr[890]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2565: @putroutconst");
+ BASILYS_LOCATION("warmelt-macro.bysl:2568: @putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V893*/ curfptr[892])) == OBMAG_ROUTINE);
  basilys_checkmsg("putroutconst constnull.drout_840__MEXPAND_PARENT_MODULE_ENVIRONMENT#0", NULL != (/*_.CLASS_SEXPR__V12*/ curfptr[11]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V893*/ curfptr[892])->tabval[0] = (basilys_ptr_t)(/*_.CLASS_SEXPR__V12*/ curfptr[11]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2565: @putroutconst");
+ BASILYS_LOCATION("warmelt-macro.bysl:2568: @putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V893*/ curfptr[892])) == OBMAG_ROUTINE);
  basilys_checkmsg("putroutconst constnull.drout_840__MEXPAND_PARENT_MODULE_ENVIRONMENT#1", NULL != (/*_.CLASS_ENVIRONMENT__V13*/ curfptr[12]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V893*/ curfptr[892])->tabval[1] = (basilys_ptr_t)(/*_.CLASS_ENVIRONMENT__V13*/ curfptr[12]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2565: @putroutconst");
+ BASILYS_LOCATION("warmelt-macro.bysl:2568: @putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V893*/ curfptr[892])) == OBMAG_ROUTINE);
  basilys_checkmsg("putroutconst constnull.drout_840__MEXPAND_PARENT_MODULE_ENVIRONMENT#2", NULL != (/*_.DEBUG_MSG_FUN__V10*/ curfptr[9]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V893*/ curfptr[892])->tabval[2] = (basilys_ptr_t)(/*_.DEBUG_MSG_FUN__V10*/ curfptr[9]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2565: @putroutconstnotnull");
+ BASILYS_LOCATION("warmelt-macro.bysl:2568: @putroutconstnotnull");
  /*putroutconstnotnull*/
  basilys_assertmsg("putroutconstnotnull checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V893*/ curfptr[892])) == OBMAG_ROUTINE);
  basilys_assertmsg("putroutconstnotnull notnullconst", NULL != /*_.VALDATA___V566*/ curfptr[565]);
  ((basilysroutine_ptr_t)/*_.VALROUT___V893*/ curfptr[892])->tabval[3] = (basilys_ptr_t)(/*_.VALDATA___V566*/ curfptr[565]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2565: @touch");
+ BASILYS_LOCATION("warmelt-macro.bysl:2568: @touch");
  /*touch:IROUTVAL_*/
  basilysgc_touch(/*_.VALROUT___V893*/ curfptr[892]);
  
@@ -54574,35 +54618,35 @@ initial_frame_st   curfram__;
  basilysgc_touch(/*_.VALDATA___V895*/ curfptr[894]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2588: @putroutconst");
+ BASILYS_LOCATION("warmelt-macro.bysl:2591: @putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V897*/ curfptr[896])) == OBMAG_ROUTINE);
  basilys_checkmsg("putroutconst constnull.drout_844__MEXPAND_UPDATE_CURRENT_MODULE_ENVIRONMENT_CONTAINER#0", NULL != (/*_.CLASS_SEXPR__V12*/ curfptr[11]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V897*/ curfptr[896])->tabval[0] = (basilys_ptr_t)(/*_.CLASS_SEXPR__V12*/ curfptr[11]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2588: @putroutconst");
+ BASILYS_LOCATION("warmelt-macro.bysl:2591: @putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V897*/ curfptr[896])) == OBMAG_ROUTINE);
  basilys_checkmsg("putroutconst constnull.drout_844__MEXPAND_UPDATE_CURRENT_MODULE_ENVIRONMENT_CONTAINER#1", NULL != (/*_.CLASS_ENVIRONMENT__V13*/ curfptr[12]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V897*/ curfptr[896])->tabval[1] = (basilys_ptr_t)(/*_.CLASS_ENVIRONMENT__V13*/ curfptr[12]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2588: @putroutconst");
+ BASILYS_LOCATION("warmelt-macro.bysl:2591: @putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V897*/ curfptr[896])) == OBMAG_ROUTINE);
  basilys_checkmsg("putroutconst constnull.drout_844__MEXPAND_UPDATE_CURRENT_MODULE_ENVIRONMENT_CONTAINER#2", NULL != (/*_.DEBUG_MSG_FUN__V10*/ curfptr[9]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V897*/ curfptr[896])->tabval[2] = (basilys_ptr_t)(/*_.DEBUG_MSG_FUN__V10*/ curfptr[9]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2588: @putroutconstnotnull");
+ BASILYS_LOCATION("warmelt-macro.bysl:2591: @putroutconstnotnull");
  /*putroutconstnotnull*/
  basilys_assertmsg("putroutconstnotnull checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V897*/ curfptr[896])) == OBMAG_ROUTINE);
  basilys_assertmsg("putroutconstnotnull notnullconst", NULL != /*_.VALDATA___V572*/ curfptr[571]);
  ((basilysroutine_ptr_t)/*_.VALROUT___V897*/ curfptr[896])->tabval[3] = (basilys_ptr_t)(/*_.VALDATA___V572*/ curfptr[571]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2588: @touch");
+ BASILYS_LOCATION("warmelt-macro.bysl:2591: @touch");
  /*touch:IROUTVAL_*/
  basilysgc_touch(/*_.VALROUT___V897*/ curfptr[896]);
  
@@ -54624,49 +54668,49 @@ initial_frame_st   curfram__;
  basilysgc_touch(/*_.VALDATA___V899*/ curfptr[898]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2615: @putroutconst");
+ BASILYS_LOCATION("warmelt-macro.bysl:2618: @putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V901*/ curfptr[900])) == OBMAG_ROUTINE);
  basilys_checkmsg("putroutconst constnull.drout_848__MEXPAND_FETCH_PREDEFINED#0", NULL != (/*_.CLASS_SEXPR__V12*/ curfptr[11]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V901*/ curfptr[900])->tabval[0] = (basilys_ptr_t)(/*_.CLASS_SEXPR__V12*/ curfptr[11]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2615: @putroutconst");
+ BASILYS_LOCATION("warmelt-macro.bysl:2618: @putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V901*/ curfptr[900])) == OBMAG_ROUTINE);
  basilys_checkmsg("putroutconst constnull.drout_848__MEXPAND_FETCH_PREDEFINED#1", NULL != (/*_.CLASS_ENVIRONMENT__V13*/ curfptr[12]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V901*/ curfptr[900])->tabval[1] = (basilys_ptr_t)(/*_.CLASS_ENVIRONMENT__V13*/ curfptr[12]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2615: @putroutconst");
+ BASILYS_LOCATION("warmelt-macro.bysl:2618: @putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V901*/ curfptr[900])) == OBMAG_ROUTINE);
  basilys_checkmsg("putroutconst constnull.drout_848__MEXPAND_FETCH_PREDEFINED#2", NULL != (/*_.DEBUG_MSG_FUN__V10*/ curfptr[9]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V901*/ curfptr[900])->tabval[2] = (basilys_ptr_t)(/*_.DEBUG_MSG_FUN__V10*/ curfptr[9]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2615: @putroutconstnotnull");
+ BASILYS_LOCATION("warmelt-macro.bysl:2618: @putroutconstnotnull");
  /*putroutconstnotnull*/
  basilys_assertmsg("putroutconstnotnull checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V901*/ curfptr[900])) == OBMAG_ROUTINE);
  basilys_assertmsg("putroutconstnotnull notnullconst", NULL != /*_.VALCLO___V609*/ curfptr[608]);
  ((basilysroutine_ptr_t)/*_.VALROUT___V901*/ curfptr[900])->tabval[3] = (basilys_ptr_t)(/*_.VALCLO___V609*/ curfptr[608]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2615: @putroutconst");
+ BASILYS_LOCATION("warmelt-macro.bysl:2618: @putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V901*/ curfptr[900])) == OBMAG_ROUTINE);
  basilys_checkmsg("putroutconst constnull.drout_848__MEXPAND_FETCH_PREDEFINED#4", NULL != (/*_.CLASS_SYMBOL__V8*/ curfptr[7]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V901*/ curfptr[900])->tabval[4] = (basilys_ptr_t)(/*_.CLASS_SYMBOL__V8*/ curfptr[7]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2615: @putroutconstnotnull");
+ BASILYS_LOCATION("warmelt-macro.bysl:2618: @putroutconstnotnull");
  /*putroutconstnotnull*/
  basilys_assertmsg("putroutconstnotnull checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V901*/ curfptr[900])) == OBMAG_ROUTINE);
  basilys_assertmsg("putroutconstnotnull notnullconst", NULL != /*_.VALDATA___V582*/ curfptr[581]);
  ((basilysroutine_ptr_t)/*_.VALROUT___V901*/ curfptr[900])->tabval[5] = (basilys_ptr_t)(/*_.VALDATA___V582*/ curfptr[581]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2615: @touch");
+ BASILYS_LOCATION("warmelt-macro.bysl:2618: @touch");
  /*touch:IROUTVAL_*/
  basilysgc_touch(/*_.VALROUT___V901*/ curfptr[900]);
  
@@ -54688,49 +54732,49 @@ initial_frame_st   curfram__;
  basilysgc_touch(/*_.VALDATA___V903*/ curfptr[902]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2641: @putroutconst");
+ BASILYS_LOCATION("warmelt-macro.bysl:2644: @putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V905*/ curfptr[904])) == OBMAG_ROUTINE);
  basilys_checkmsg("putroutconst constnull.drout_852__MEXPAND_STORE_PREDEFINED#0", NULL != (/*_.CLASS_SEXPR__V12*/ curfptr[11]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V905*/ curfptr[904])->tabval[0] = (basilys_ptr_t)(/*_.CLASS_SEXPR__V12*/ curfptr[11]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2641: @putroutconst");
+ BASILYS_LOCATION("warmelt-macro.bysl:2644: @putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V905*/ curfptr[904])) == OBMAG_ROUTINE);
  basilys_checkmsg("putroutconst constnull.drout_852__MEXPAND_STORE_PREDEFINED#1", NULL != (/*_.CLASS_ENVIRONMENT__V13*/ curfptr[12]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V905*/ curfptr[904])->tabval[1] = (basilys_ptr_t)(/*_.CLASS_ENVIRONMENT__V13*/ curfptr[12]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2641: @putroutconst");
+ BASILYS_LOCATION("warmelt-macro.bysl:2644: @putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V905*/ curfptr[904])) == OBMAG_ROUTINE);
  basilys_checkmsg("putroutconst constnull.drout_852__MEXPAND_STORE_PREDEFINED#2", NULL != (/*_.DEBUG_MSG_FUN__V10*/ curfptr[9]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V905*/ curfptr[904])->tabval[2] = (basilys_ptr_t)(/*_.DEBUG_MSG_FUN__V10*/ curfptr[9]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2641: @putroutconstnotnull");
+ BASILYS_LOCATION("warmelt-macro.bysl:2644: @putroutconstnotnull");
  /*putroutconstnotnull*/
  basilys_assertmsg("putroutconstnotnull checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V905*/ curfptr[904])) == OBMAG_ROUTINE);
  basilys_assertmsg("putroutconstnotnull notnullconst", NULL != /*_.VALCLO___V609*/ curfptr[608]);
  ((basilysroutine_ptr_t)/*_.VALROUT___V905*/ curfptr[904])->tabval[3] = (basilys_ptr_t)(/*_.VALCLO___V609*/ curfptr[608]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2641: @putroutconst");
+ BASILYS_LOCATION("warmelt-macro.bysl:2644: @putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V905*/ curfptr[904])) == OBMAG_ROUTINE);
  basilys_checkmsg("putroutconst constnull.drout_852__MEXPAND_STORE_PREDEFINED#4", NULL != (/*_.CLASS_SYMBOL__V8*/ curfptr[7]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V905*/ curfptr[904])->tabval[4] = (basilys_ptr_t)(/*_.CLASS_SYMBOL__V8*/ curfptr[7]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2641: @putroutconstnotnull");
+ BASILYS_LOCATION("warmelt-macro.bysl:2644: @putroutconstnotnull");
  /*putroutconstnotnull*/
  basilys_assertmsg("putroutconstnotnull checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V905*/ curfptr[904])) == OBMAG_ROUTINE);
  basilys_assertmsg("putroutconstnotnull notnullconst", NULL != /*_.VALDATA___V592*/ curfptr[591]);
  ((basilysroutine_ptr_t)/*_.VALROUT___V905*/ curfptr[904])->tabval[5] = (basilys_ptr_t)(/*_.VALDATA___V592*/ curfptr[591]);
  
  
- BASILYS_LOCATION("warmelt-macro.bysl:2641: @touch");
+ BASILYS_LOCATION("warmelt-macro.bysl:2644: @touch");
  /*touch:IROUTVAL_*/
  basilysgc_touch(/*_.VALROUT___V905*/ curfptr[904]);
  
@@ -55739,12 +55783,12 @@ initial_frame_st   curfram__;
  
  /*block*/{
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2051: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2054: @apply");
   /*apply*/{
    union basilysparam_un argtab[1];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2051: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2054: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALCLO___V813*/ curfptr[812];
    /*_.INSTALL_INITIAL_MACRO__V973*/ curfptr[924] =  basilys_apply ((basilysclosure_ptr_t)(/*_.VALCLO___V670*/ curfptr[669]), (basilys_ptr_t)(/*_.VALDATA___V814*/ curfptr[813]), (BPARSTR_PTR ""), argtab, "", (union basilysparam_un*)0);
    }
@@ -55754,18 +55798,18 @@ initial_frame_st   curfram__;
  
  /*block*/{
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2052: @getslot");
+  BASILYS_LOCATION("warmelt-macro.bysl:2055: @getslot");
   /*_.MACROXPORTER___V974*/ curfptr[925] = basilys_getfield_object((basilys_ptr_t)(((void*)(BASILYSG(INITIAL_SYSTEM_DATA)))), 5, "SYSDATA_MACRO_EXPORTER");
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2052: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2055: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2052: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2055: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALCLO___V813*/ curfptr[812];
-   BASILYS_LOCATION("warmelt-macro.bysl:2052: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2055: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : LAMBDA*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -55777,12 +55821,12 @@ initial_frame_st   curfram__;
  
  /*block*/{
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2086: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2089: @apply");
   /*apply*/{
    union basilysparam_un argtab[1];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2086: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2089: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALCLO___V819*/ curfptr[818];
    /*_.INSTALL_INITIAL_MACRO__V975*/ curfptr[926] =  basilys_apply ((basilysclosure_ptr_t)(/*_.VALCLO___V670*/ curfptr[669]), (basilys_ptr_t)(/*_.VALDATA___V820*/ curfptr[819]), (BPARSTR_PTR ""), argtab, "", (union basilysparam_un*)0);
    }
@@ -55792,18 +55836,18 @@ initial_frame_st   curfram__;
  
  /*block*/{
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2087: @getslot");
+  BASILYS_LOCATION("warmelt-macro.bysl:2090: @getslot");
   /*_.MACROXPORTER___V976*/ curfptr[924] = basilys_getfield_object((basilys_ptr_t)(((void*)(BASILYSG(INITIAL_SYSTEM_DATA)))), 5, "SYSDATA_MACRO_EXPORTER");
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2087: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2090: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2087: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2090: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALCLO___V819*/ curfptr[818];
-   BASILYS_LOCATION("warmelt-macro.bysl:2087: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2090: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : MULTICALL*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -55815,12 +55859,12 @@ initial_frame_st   curfram__;
  
  /*block*/{
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2110: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2113: @apply");
   /*apply*/{
    union basilysparam_un argtab[1];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2110: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2113: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALCLO___V823*/ curfptr[822];
    /*_.INSTALL_INITIAL_MACRO__V977*/ curfptr[925] =  basilys_apply ((basilysclosure_ptr_t)(/*_.VALCLO___V670*/ curfptr[669]), (basilys_ptr_t)(/*_.VALDATA___V824*/ curfptr[823]), (BPARSTR_PTR ""), argtab, "", (union basilysparam_un*)0);
    }
@@ -55830,18 +55874,18 @@ initial_frame_st   curfram__;
  
  /*block*/{
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2111: @getslot");
+  BASILYS_LOCATION("warmelt-macro.bysl:2114: @getslot");
   /*_.MACROXPORTER___V978*/ curfptr[926] = basilys_getfield_object((basilys_ptr_t)(((void*)(BASILYSG(INITIAL_SYSTEM_DATA)))), 5, "SYSDATA_MACRO_EXPORTER");
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2111: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2114: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2111: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2114: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALCLO___V823*/ curfptr[822];
-   BASILYS_LOCATION("warmelt-macro.bysl:2111: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2114: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : QUOTE*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -55853,12 +55897,12 @@ initial_frame_st   curfram__;
  
  /*block*/{
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2134: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2137: @apply");
   /*apply*/{
    union basilysparam_un argtab[1];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2134: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2137: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALCLO___V827*/ curfptr[826];
    /*_.INSTALL_INITIAL_MACRO__V979*/ curfptr[924] =  basilys_apply ((basilysclosure_ptr_t)(/*_.VALCLO___V670*/ curfptr[669]), (basilys_ptr_t)(/*_.VALDATA___V828*/ curfptr[827]), (BPARSTR_PTR ""), argtab, "", (union basilysparam_un*)0);
    }
@@ -55868,18 +55912,18 @@ initial_frame_st   curfram__;
  
  /*block*/{
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2135: @getslot");
+  BASILYS_LOCATION("warmelt-macro.bysl:2138: @getslot");
   /*_.MACROXPORTER___V980*/ curfptr[925] = basilys_getfield_object((basilys_ptr_t)(((void*)(BASILYSG(INITIAL_SYSTEM_DATA)))), 5, "SYSDATA_MACRO_EXPORTER");
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2135: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2138: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2135: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2138: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALCLO___V827*/ curfptr[826];
-   BASILYS_LOCATION("warmelt-macro.bysl:2135: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2138: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : COMMENT*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -55891,12 +55935,12 @@ initial_frame_st   curfram__;
  
  /*block*/{
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2187: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2190: @apply");
   /*apply*/{
    union basilysparam_un argtab[1];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2187: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2190: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALCLO___V834*/ curfptr[833];
    /*_.INSTALL_INITIAL_MACRO__V981*/ curfptr[926] =  basilys_apply ((basilysclosure_ptr_t)(/*_.VALCLO___V670*/ curfptr[669]), (basilys_ptr_t)(/*_.VALDATA___V835*/ curfptr[834]), (BPARSTR_PTR ""), argtab, "", (union basilysparam_un*)0);
    }
@@ -55906,18 +55950,18 @@ initial_frame_st   curfram__;
  
  /*block*/{
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2188: @getslot");
+  BASILYS_LOCATION("warmelt-macro.bysl:2191: @getslot");
   /*_.MACROXPORTER___V982*/ curfptr[924] = basilys_getfield_object((basilys_ptr_t)(((void*)(BASILYSG(INITIAL_SYSTEM_DATA)))), 5, "SYSDATA_MACRO_EXPORTER");
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2188: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2191: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2188: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2191: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALCLO___V834*/ curfptr[833];
-   BASILYS_LOCATION("warmelt-macro.bysl:2188: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2191: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : PROGN*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -55929,12 +55973,12 @@ initial_frame_st   curfram__;
  
  /*block*/{
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2201: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2204: @apply");
   /*apply*/{
    union basilysparam_un argtab[1];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2201: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2204: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALCLO___V838*/ curfptr[837];
    /*_.INSTALL_INITIAL_MACRO__V983*/ curfptr[925] =  basilys_apply ((basilysclosure_ptr_t)(/*_.VALCLO___V670*/ curfptr[669]), (basilys_ptr_t)(/*_.VALDATA___V839*/ curfptr[838]), (BPARSTR_PTR ""), argtab, "", (union basilysparam_un*)0);
    }
@@ -55944,18 +55988,18 @@ initial_frame_st   curfram__;
  
  /*block*/{
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2202: @getslot");
+  BASILYS_LOCATION("warmelt-macro.bysl:2205: @getslot");
   /*_.MACROXPORTER___V984*/ curfptr[926] = basilys_getfield_object((basilys_ptr_t)(((void*)(BASILYSG(INITIAL_SYSTEM_DATA)))), 5, "SYSDATA_MACRO_EXPORTER");
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2202: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2205: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2202: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2205: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALCLO___V838*/ curfptr[837];
-   BASILYS_LOCATION("warmelt-macro.bysl:2202: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2205: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : RETURN*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -55967,12 +56011,12 @@ initial_frame_st   curfram__;
  
  /*block*/{
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2236: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2239: @apply");
   /*apply*/{
    union basilysparam_un argtab[1];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2236: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2239: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALCLO___V843*/ curfptr[842];
    /*_.INSTALL_INITIAL_MACRO__V985*/ curfptr[924] =  basilys_apply ((basilysclosure_ptr_t)(/*_.VALCLO___V670*/ curfptr[669]), (basilys_ptr_t)(/*_.VALDATA___V846*/ curfptr[845]), (BPARSTR_PTR ""), argtab, "", (union basilysparam_un*)0);
    }
@@ -55982,18 +56026,18 @@ initial_frame_st   curfram__;
  
  /*block*/{
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2237: @getslot");
+  BASILYS_LOCATION("warmelt-macro.bysl:2240: @getslot");
   /*_.MACROXPORTER___V986*/ curfptr[925] = basilys_getfield_object((basilys_ptr_t)(((void*)(BASILYSG(INITIAL_SYSTEM_DATA)))), 5, "SYSDATA_MACRO_EXPORTER");
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2237: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2240: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2237: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2240: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALCLO___V843*/ curfptr[842];
-   BASILYS_LOCATION("warmelt-macro.bysl:2237: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2240: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : FOREVER*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -56005,12 +56049,12 @@ initial_frame_st   curfram__;
  
  /*block*/{
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2272: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2275: @apply");
   /*apply*/{
    union basilysparam_un argtab[1];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2272: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2275: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALCLO___V850*/ curfptr[849];
    /*_.INSTALL_INITIAL_MACRO__V987*/ curfptr[926] =  basilys_apply ((basilysclosure_ptr_t)(/*_.VALCLO___V670*/ curfptr[669]), (basilys_ptr_t)(/*_.VALDATA___V851*/ curfptr[850]), (BPARSTR_PTR ""), argtab, "", (union basilysparam_un*)0);
    }
@@ -56020,18 +56064,18 @@ initial_frame_st   curfram__;
  
  /*block*/{
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2273: @getslot");
+  BASILYS_LOCATION("warmelt-macro.bysl:2276: @getslot");
   /*_.MACROXPORTER___V988*/ curfptr[924] = basilys_getfield_object((basilys_ptr_t)(((void*)(BASILYSG(INITIAL_SYSTEM_DATA)))), 5, "SYSDATA_MACRO_EXPORTER");
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2273: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2276: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2273: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2276: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALCLO___V850*/ curfptr[849];
-   BASILYS_LOCATION("warmelt-macro.bysl:2273: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2276: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : EXIT*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -56043,12 +56087,12 @@ initial_frame_st   curfram__;
  
  /*block*/{
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2307: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2310: @apply");
   /*apply*/{
    union basilysparam_un argtab[1];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2307: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2310: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALCLO___V854*/ curfptr[853];
    /*_.INSTALL_INITIAL_MACRO__V989*/ curfptr[925] =  basilys_apply ((basilysclosure_ptr_t)(/*_.VALCLO___V670*/ curfptr[669]), (basilys_ptr_t)(/*_.VALDATA___V855*/ curfptr[854]), (BPARSTR_PTR ""), argtab, "", (union basilysparam_un*)0);
    }
@@ -56058,18 +56102,18 @@ initial_frame_st   curfram__;
  
  /*block*/{
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2308: @getslot");
+  BASILYS_LOCATION("warmelt-macro.bysl:2311: @getslot");
   /*_.MACROXPORTER___V990*/ curfptr[926] = basilys_getfield_object((basilys_ptr_t)(((void*)(BASILYSG(INITIAL_SYSTEM_DATA)))), 5, "SYSDATA_MACRO_EXPORTER");
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2308: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2311: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2308: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2311: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALCLO___V854*/ curfptr[853];
-   BASILYS_LOCATION("warmelt-macro.bysl:2308: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2311: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : COMPILE_WARNING*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -56081,12 +56125,12 @@ initial_frame_st   curfram__;
  
  /*block*/{
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2384: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2387: @apply");
   /*apply*/{
    union basilysparam_un argtab[1];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2384: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2387: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALCLO___V862*/ curfptr[861];
    /*_.INSTALL_INITIAL_MACRO__V991*/ curfptr[924] =  basilys_apply ((basilysclosure_ptr_t)(/*_.VALCLO___V670*/ curfptr[669]), (basilys_ptr_t)(/*_.VALDATA___V865*/ curfptr[864]), (BPARSTR_PTR ""), argtab, "", (union basilysparam_un*)0);
    }
@@ -56096,18 +56140,18 @@ initial_frame_st   curfram__;
  
  /*block*/{
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2385: @getslot");
+  BASILYS_LOCATION("warmelt-macro.bysl:2388: @getslot");
   /*_.MACROXPORTER___V992*/ curfptr[925] = basilys_getfield_object((basilys_ptr_t)(((void*)(BASILYSG(INITIAL_SYSTEM_DATA)))), 5, "SYSDATA_MACRO_EXPORTER");
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2385: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2388: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2385: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2388: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALCLO___V862*/ curfptr[861];
-   BASILYS_LOCATION("warmelt-macro.bysl:2385: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2388: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : ASSERT_MSG*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -56119,12 +56163,12 @@ initial_frame_st   curfram__;
  
  /*block*/{
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2446: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2449: @apply");
   /*apply*/{
    union basilysparam_un argtab[1];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2446: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2449: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALCLO___V870*/ curfptr[869];
    /*_.INSTALL_INITIAL_MACRO__V993*/ curfptr[926] =  basilys_apply ((basilysclosure_ptr_t)(/*_.VALCLO___V670*/ curfptr[669]), (basilys_ptr_t)(/*_.VALDATA___V871*/ curfptr[870]), (BPARSTR_PTR ""), argtab, "", (union basilysparam_un*)0);
    }
@@ -56134,18 +56178,18 @@ initial_frame_st   curfram__;
  
  /*block*/{
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2447: @getslot");
+  BASILYS_LOCATION("warmelt-macro.bysl:2450: @getslot");
   /*_.MACROXPORTER___V994*/ curfptr[924] = basilys_getfield_object((basilys_ptr_t)(((void*)(BASILYSG(INITIAL_SYSTEM_DATA)))), 5, "SYSDATA_MACRO_EXPORTER");
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2447: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2450: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2447: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2450: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALCLO___V870*/ curfptr[869];
-   BASILYS_LOCATION("warmelt-macro.bysl:2447: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2450: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : DEBUG_MSG*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -56157,12 +56201,12 @@ initial_frame_st   curfram__;
  
  /*block*/{
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2476: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2479: @apply");
   /*apply*/{
    union basilysparam_un argtab[1];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2476: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2479: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALCLO___V875*/ curfptr[874];
    /*_.INSTALL_INITIAL_MACRO__V995*/ curfptr[925] =  basilys_apply ((basilysclosure_ptr_t)(/*_.VALCLO___V670*/ curfptr[669]), (basilys_ptr_t)(/*_.VALDATA___V878*/ curfptr[877]), (BPARSTR_PTR ""), argtab, "", (union basilysparam_un*)0);
    }
@@ -56172,18 +56216,18 @@ initial_frame_st   curfram__;
  
  /*block*/{
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2477: @getslot");
+  BASILYS_LOCATION("warmelt-macro.bysl:2480: @getslot");
   /*_.MACROXPORTER___V996*/ curfptr[926] = basilys_getfield_object((basilys_ptr_t)(((void*)(BASILYSG(INITIAL_SYSTEM_DATA)))), 5, "SYSDATA_MACRO_EXPORTER");
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2477: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2480: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2477: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2480: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALCLO___V875*/ curfptr[874];
-   BASILYS_LOCATION("warmelt-macro.bysl:2477: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2480: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : EXPORT_VALUES*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -56195,12 +56239,12 @@ initial_frame_st   curfram__;
  
  /*block*/{
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2507: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2510: @apply");
   /*apply*/{
    union basilysparam_un argtab[1];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2507: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2510: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALCLO___V881*/ curfptr[880];
    /*_.INSTALL_INITIAL_MACRO__V997*/ curfptr[924] =  basilys_apply ((basilysclosure_ptr_t)(/*_.VALCLO___V670*/ curfptr[669]), (basilys_ptr_t)(/*_.VALDATA___V882*/ curfptr[881]), (BPARSTR_PTR ""), argtab, "", (union basilysparam_un*)0);
    }
@@ -56210,18 +56254,18 @@ initial_frame_st   curfram__;
  
  /*block*/{
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2508: @getslot");
+  BASILYS_LOCATION("warmelt-macro.bysl:2511: @getslot");
   /*_.MACROXPORTER___V998*/ curfptr[925] = basilys_getfield_object((basilys_ptr_t)(((void*)(BASILYSG(INITIAL_SYSTEM_DATA)))), 5, "SYSDATA_MACRO_EXPORTER");
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2508: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2511: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2508: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2511: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALCLO___V881*/ curfptr[880];
-   BASILYS_LOCATION("warmelt-macro.bysl:2508: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2511: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : EXPORT_MACRO*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -56233,12 +56277,12 @@ initial_frame_st   curfram__;
  
  /*block*/{
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2535: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2538: @apply");
   /*apply*/{
    union basilysparam_un argtab[1];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2535: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2538: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALCLO___V886*/ curfptr[885];
    /*_.INSTALL_INITIAL_MACRO__V999*/ curfptr[926] =  basilys_apply ((basilysclosure_ptr_t)(/*_.VALCLO___V670*/ curfptr[669]), (basilys_ptr_t)(/*_.VALDATA___V887*/ curfptr[886]), (BPARSTR_PTR ""), argtab, "", (union basilysparam_un*)0);
    }
@@ -56248,18 +56292,18 @@ initial_frame_st   curfram__;
  
  /*block*/{
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2536: @getslot");
+  BASILYS_LOCATION("warmelt-macro.bysl:2539: @getslot");
   /*_.MACROXPORTER___V1000*/ curfptr[924] = basilys_getfield_object((basilys_ptr_t)(((void*)(BASILYSG(INITIAL_SYSTEM_DATA)))), 5, "SYSDATA_MACRO_EXPORTER");
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2536: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2539: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2536: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2539: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALCLO___V886*/ curfptr[885];
-   BASILYS_LOCATION("warmelt-macro.bysl:2536: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2539: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : EXPORT_CLASS*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -56271,12 +56315,12 @@ initial_frame_st   curfram__;
  
  /*block*/{
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2559: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2562: @apply");
   /*apply*/{
    union basilysparam_un argtab[1];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2559: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2562: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALCLO___V890*/ curfptr[889];
    /*_.INSTALL_INITIAL_MACRO__V1001*/ curfptr[925] =  basilys_apply ((basilysclosure_ptr_t)(/*_.VALCLO___V670*/ curfptr[669]), (basilys_ptr_t)(/*_.VALDATA___V891*/ curfptr[890]), (BPARSTR_PTR ""), argtab, "", (union basilysparam_un*)0);
    }
@@ -56286,18 +56330,18 @@ initial_frame_st   curfram__;
  
  /*block*/{
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2560: @getslot");
+  BASILYS_LOCATION("warmelt-macro.bysl:2563: @getslot");
   /*_.MACROXPORTER___V1002*/ curfptr[926] = basilys_getfield_object((basilys_ptr_t)(((void*)(BASILYSG(INITIAL_SYSTEM_DATA)))), 5, "SYSDATA_MACRO_EXPORTER");
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2560: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2563: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2560: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2563: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALCLO___V890*/ curfptr[889];
-   BASILYS_LOCATION("warmelt-macro.bysl:2560: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2563: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : CURRENT_MODULE_ENVIRONMENT_CONTAINER*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -56309,12 +56353,12 @@ initial_frame_st   curfram__;
  
  /*block*/{
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2581: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2584: @apply");
   /*apply*/{
    union basilysparam_un argtab[1];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2581: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2584: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALCLO___V894*/ curfptr[893];
    /*_.INSTALL_INITIAL_MACRO__V1003*/ curfptr[924] =  basilys_apply ((basilysclosure_ptr_t)(/*_.VALCLO___V670*/ curfptr[669]), (basilys_ptr_t)(/*_.VALDATA___V895*/ curfptr[894]), (BPARSTR_PTR ""), argtab, "", (union basilysparam_un*)0);
    }
@@ -56324,18 +56368,18 @@ initial_frame_st   curfram__;
  
  /*block*/{
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2582: @getslot");
+  BASILYS_LOCATION("warmelt-macro.bysl:2585: @getslot");
   /*_.MACROXPORTER___V1004*/ curfptr[925] = basilys_getfield_object((basilys_ptr_t)(((void*)(BASILYSG(INITIAL_SYSTEM_DATA)))), 5, "SYSDATA_MACRO_EXPORTER");
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2582: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2585: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2582: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2585: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALCLO___V894*/ curfptr[893];
-   BASILYS_LOCATION("warmelt-macro.bysl:2582: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2585: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : PARENT_MODULE_ENVIRONMENT*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -56347,12 +56391,12 @@ initial_frame_st   curfram__;
  
  /*block*/{
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2608: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2611: @apply");
   /*apply*/{
    union basilysparam_un argtab[1];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2608: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2611: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALCLO___V898*/ curfptr[897];
    /*_.INSTALL_INITIAL_MACRO__V1005*/ curfptr[926] =  basilys_apply ((basilysclosure_ptr_t)(/*_.VALCLO___V670*/ curfptr[669]), (basilys_ptr_t)(/*_.VALDATA___V899*/ curfptr[898]), (BPARSTR_PTR ""), argtab, "", (union basilysparam_un*)0);
    }
@@ -56362,18 +56406,18 @@ initial_frame_st   curfram__;
  
  /*block*/{
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2609: @getslot");
+  BASILYS_LOCATION("warmelt-macro.bysl:2612: @getslot");
   /*_.MACROXPORTER___V1006*/ curfptr[924] = basilys_getfield_object((basilys_ptr_t)(((void*)(BASILYSG(INITIAL_SYSTEM_DATA)))), 5, "SYSDATA_MACRO_EXPORTER");
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2609: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2612: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2609: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2612: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALCLO___V898*/ curfptr[897];
-   BASILYS_LOCATION("warmelt-macro.bysl:2609: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2612: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : UPDATE_CURRENT_MODULE_ENVIRONMENT_CONTAINER*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -56385,12 +56429,12 @@ initial_frame_st   curfram__;
  
  /*block*/{
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2637: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2640: @apply");
   /*apply*/{
    union basilysparam_un argtab[1];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2637: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2640: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALCLO___V902*/ curfptr[901];
    /*_.INSTALL_INITIAL_MACRO__V1007*/ curfptr[925] =  basilys_apply ((basilysclosure_ptr_t)(/*_.VALCLO___V670*/ curfptr[669]), (basilys_ptr_t)(/*_.VALDATA___V903*/ curfptr[902]), (BPARSTR_PTR ""), argtab, "", (union basilysparam_un*)0);
    }
@@ -56400,18 +56444,18 @@ initial_frame_st   curfram__;
  
  /*block*/{
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2638: @getslot");
+  BASILYS_LOCATION("warmelt-macro.bysl:2641: @getslot");
   /*_.MACROXPORTER___V1008*/ curfptr[926] = basilys_getfield_object((basilys_ptr_t)(((void*)(BASILYSG(INITIAL_SYSTEM_DATA)))), 5, "SYSDATA_MACRO_EXPORTER");
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2638: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2641: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2638: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2641: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALCLO___V902*/ curfptr[901];
-   BASILYS_LOCATION("warmelt-macro.bysl:2638: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2641: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : FETCH_PREDEFINED*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -56423,12 +56467,12 @@ initial_frame_st   curfram__;
  
  /*block*/{
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2670: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2673: @apply");
   /*apply*/{
    union basilysparam_un argtab[1];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2670: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2673: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALCLO___V906*/ curfptr[905];
    /*_.INSTALL_INITIAL_MACRO__V1009*/ curfptr[924] =  basilys_apply ((basilysclosure_ptr_t)(/*_.VALCLO___V670*/ curfptr[669]), (basilys_ptr_t)(/*_.VALDATA___V907*/ curfptr[906]), (BPARSTR_PTR ""), argtab, "", (union basilysparam_un*)0);
    }
@@ -56438,18 +56482,18 @@ initial_frame_st   curfram__;
  
  /*block*/{
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2671: @getslot");
+  BASILYS_LOCATION("warmelt-macro.bysl:2674: @getslot");
   /*_.MACROXPORTER___V1010*/ curfptr[925] = basilys_getfield_object((basilys_ptr_t)(((void*)(BASILYSG(INITIAL_SYSTEM_DATA)))), 5, "SYSDATA_MACRO_EXPORTER");
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2671: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2674: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2671: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2674: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALCLO___V906*/ curfptr[905];
-   BASILYS_LOCATION("warmelt-macro.bysl:2671: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2674: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : STORE_PREDEFINED*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -56461,18 +56505,18 @@ initial_frame_st   curfram__;
  
  /*block*/{
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @getslot");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @getslot");
   /*_.VALUEXPORTER___V1011*/ curfptr[926] = basilys_getfield_object((basilys_ptr_t)(((void*)(BASILYSG(INITIAL_SYSTEM_DATA)))), 4, "SYSDATA_VALUE_EXPORTER");
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V64*/ curfptr[63];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : CLASS_SRC_APPLY*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -56480,14 +56524,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V67*/ curfptr[66];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : SAPP_FUN*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -56495,14 +56539,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V69*/ curfptr[68];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : SAPP_ARGS*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -56510,14 +56554,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V110*/ curfptr[109];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : CLASS_SRC_CITERATION*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -56525,14 +56569,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V113*/ curfptr[112];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : SCITER_OPER*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -56540,14 +56584,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V115*/ curfptr[114];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : SCITER_ARGS*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -56555,14 +56599,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V117*/ curfptr[116];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : SCITER_VARBIND*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -56570,14 +56614,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V119*/ curfptr[118];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : SCITER_BODY*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -56585,14 +56629,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V166*/ curfptr[165];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : CLASS_SRC_COMMENT*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -56600,14 +56644,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V169*/ curfptr[168];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : SCOMM_STR*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -56615,14 +56659,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V542*/ curfptr[541];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : CLASS_SRC_COMPILEWARNING*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -56630,14 +56674,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V545*/ curfptr[544];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : SCWARN_MSG*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -56645,14 +56689,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V547*/ curfptr[546];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : SCWARN_EXPR*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -56660,14 +56704,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V430*/ curfptr[429];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : CLASS_SRC_CPPIF*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -56675,14 +56719,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V433*/ curfptr[432];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : SIFP_COND*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -56690,14 +56734,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V435*/ curfptr[434];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : SIFP_THEN*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -56705,14 +56749,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V437*/ curfptr[436];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : SIFP_ELSE*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -56720,14 +56764,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V556*/ curfptr[555];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : CLASS_SRC_CURRENT_MODULE_ENVIRONMENT_CONTAINER*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -56735,14 +56779,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V559*/ curfptr[558];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : CMEC_COMMENT*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -56750,14 +56794,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V266*/ curfptr[265];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : CLASS_SRC_DEFCITERATOR*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -56765,14 +56809,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V269*/ curfptr[268];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : SCITERDEF_CITERATOR*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -56780,14 +56824,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V290*/ curfptr[289];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : CLASS_SRC_DEFCLASS*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -56795,14 +56839,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V293*/ curfptr[292];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : SCLASS_CLABIND*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -56810,14 +56854,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V295*/ curfptr[294];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : SCLASS_SUPERBIND*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -56825,14 +56869,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V297*/ curfptr[296];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : SCLASS_FLDBINDS*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -56840,14 +56884,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V308*/ curfptr[307];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : CLASS_SRC_DEFINSTANCE*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -56855,14 +56899,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V311*/ curfptr[310];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : SINST_CLASS*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -56870,14 +56914,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V313*/ curfptr[312];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : SINST_CLABIND*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -56885,14 +56929,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V315*/ curfptr[314];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : SINST_OBJNUM*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -56900,14 +56944,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V317*/ curfptr[316];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : SINST_FIELDS*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -56915,14 +56959,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V276*/ curfptr[275];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : CLASS_SRC_DEFOBJCOMMON*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -56930,14 +56974,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V279*/ curfptr[278];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : SOBJ_PREDEF*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -56945,14 +56989,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V281*/ curfptr[280];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : SOBJ_DOCSTR*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -56960,14 +57004,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V252*/ curfptr[251];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : CLASS_SRC_DEFPRIMITIVE*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -56975,14 +57019,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V255*/ curfptr[254];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : SPRIM_TYPE*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -56990,14 +57034,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V257*/ curfptr[256];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : SPRIM_EXPANSION*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -57005,14 +57049,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V330*/ curfptr[329];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : CLASS_SRC_DEFSELECTOR*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -57020,14 +57064,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V242*/ curfptr[241];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : CLASS_SRC_DEFUN*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -57035,14 +57079,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V245*/ curfptr[244];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : SFUN_BODY*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -57050,14 +57094,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V532*/ curfptr[531];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : CLASS_SRC_EXIT*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -57065,14 +57109,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V535*/ curfptr[534];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : SEXI_BODY*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -57080,14 +57124,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V202*/ curfptr[201];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : CLASS_SRC_EXPORT_CLASS*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -57095,14 +57139,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V208*/ curfptr[207];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : CLASS_SRC_EXPORT_MACRO*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -57110,14 +57154,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V211*/ curfptr[210];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : SEXPMAC_MNAME*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -57125,14 +57169,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V213*/ curfptr[212];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : SEXPMAC_MVAL*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -57140,14 +57184,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V196*/ curfptr[195];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : CLASS_SRC_EXPORT_VALUES*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -57155,14 +57199,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V186*/ curfptr[185];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : CLASS_SRC_EXPORTCOMMON*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -57170,14 +57214,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V189*/ curfptr[188];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : SEXPORT_NAMES*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -57185,14 +57229,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V582*/ curfptr[581];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : CLASS_SRC_FETCH_PREDEFINED*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -57200,14 +57244,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V585*/ curfptr[584];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : SFEPD_PREDEF*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -57215,14 +57259,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V336*/ curfptr[335];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : CLASS_SRC_FIELDASSIGN*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -57230,14 +57274,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V339*/ curfptr[338];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : SFLA_FIELD*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -57245,14 +57289,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V341*/ curfptr[340];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : SFLA_EXPR*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -57260,14 +57304,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V522*/ curfptr[521];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : CLASS_SRC_FOREVER*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -57275,14 +57319,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V525*/ curfptr[524];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : SFRV_BODY*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -57290,14 +57334,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V396*/ curfptr[395];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : CLASS_SRC_IF*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -57305,14 +57349,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V399*/ curfptr[398];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : SIF_TEST*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -57320,14 +57364,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V401*/ curfptr[400];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : SIF_THEN*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -57335,14 +57379,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V410*/ curfptr[409];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : CLASS_SRC_IFELSE*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -57350,14 +57394,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V413*/ curfptr[412];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : SIF_ELSE*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -57365,14 +57409,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V512*/ curfptr[511];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : CLASS_SRC_LABELLED*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -57380,14 +57424,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V515*/ curfptr[514];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : SLABEL_BIND*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -57395,14 +57439,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V480*/ curfptr[479];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : CLASS_SRC_LAMBDA*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -57410,14 +57454,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V483*/ curfptr[482];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : SLAM_ARGBIND*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -57425,14 +57469,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V485*/ curfptr[484];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : SLAM_BODY*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -57440,14 +57484,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V466*/ curfptr[465];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : CLASS_SRC_LET*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -57455,14 +57499,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V469*/ curfptr[468];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : SLET_BINDINGS*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -57470,14 +57514,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V471*/ curfptr[470];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : SLET_BODY*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -57485,14 +57529,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V448*/ curfptr[447];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : CLASS_SRC_LETBINDING*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -57500,14 +57544,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V451*/ curfptr[450];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : SLETB_TYPE*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -57515,14 +57559,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V453*/ curfptr[452];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : SLETB_BINDER*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -57530,14 +57574,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V455*/ curfptr[454];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : SLETB_EXPR*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -57545,14 +57589,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V350*/ curfptr[349];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : CLASS_SRC_MAKE_INSTANCE*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -57560,14 +57604,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V353*/ curfptr[352];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : SMINS_CLASS*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -57575,14 +57619,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V355*/ curfptr[354];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : SMINS_CLABIND*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -57590,14 +57634,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V357*/ curfptr[356];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : SMINS_FIELDS*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -57605,14 +57649,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V78*/ curfptr[77];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : CLASS_SRC_MSEND*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -57620,14 +57664,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V81*/ curfptr[80];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : MSEND_SELSYMB*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -57635,14 +57679,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V83*/ curfptr[82];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : MSEND_RECV*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -57650,14 +57694,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V85*/ curfptr[84];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : MSEND_ARGS*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -57665,14 +57709,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V494*/ curfptr[493];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : CLASS_SRC_MULTICALL*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -57680,14 +57724,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V497*/ curfptr[496];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : SMULC_RESBIND*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -57695,14 +57739,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V499*/ curfptr[498];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : SMULC_CALL*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -57710,14 +57754,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V501*/ curfptr[500];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : SMULC_BODY*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -57725,14 +57769,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V420*/ curfptr[419];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : CLASS_SRC_OR*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -57740,14 +57784,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V423*/ curfptr[422];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : SOR_DISJ*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -57755,14 +57799,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V566*/ curfptr[565];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : CLASS_SRC_PARENT_MODULE_ENVIRONMENT*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -57770,14 +57814,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V96*/ curfptr[95];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : CLASS_SRC_PRIMITIVE*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -57785,14 +57829,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V99*/ curfptr[98];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : SPRIM_OPER*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -57800,14 +57844,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V101*/ curfptr[100];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : SPRIM_ARGS*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -57815,14 +57859,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V132*/ curfptr[131];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : CLASS_SRC_PROGN*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -57830,14 +57874,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V135*/ curfptr[134];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : SPROGN_BODY*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -57845,14 +57889,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V132*/ curfptr[131];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : CLASS_SRC_PROGN*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -57860,14 +57904,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V135*/ curfptr[134];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : SPROGN_BODY*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -57875,14 +57919,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V176*/ curfptr[175];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : CLASS_SRC_QUOTE*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -57890,14 +57934,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V179*/ curfptr[178];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : SQUOTED*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -57905,14 +57949,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V142*/ curfptr[141];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : CLASS_SRC_RETURN*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -57920,14 +57964,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V145*/ curfptr[144];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : SRETURN_BODY*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -57935,14 +57979,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V152*/ curfptr[151];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : CLASS_SRC_SETQ*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -57950,14 +57994,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V155*/ curfptr[154];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : SSTQ_VAR*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -57965,14 +58009,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V157*/ curfptr[156];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : SSTQ_EXPR*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -57980,14 +58024,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V592*/ curfptr[591];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : CLASS_SRC_STORE_PREDEFINED*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -57995,14 +58039,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V595*/ curfptr[594];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : SSTPD_PREDEF*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -58010,14 +58054,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V597*/ curfptr[596];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : SSTPD_VALUE*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -58025,14 +58069,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V368*/ curfptr[367];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : CLASS_SRC_UNSAFE_GET_FIELD*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -58040,14 +58084,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V371*/ curfptr[370];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : SUGET_OBJ*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -58055,14 +58099,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V373*/ curfptr[372];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : SUGET_FIELD*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -58070,14 +58114,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V382*/ curfptr[381];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : CLASS_SRC_UNSAFE_PUT_FIELDS*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -58085,14 +58129,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V385*/ curfptr[384];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : SUPUT_OBJ*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -58100,14 +58144,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V387*/ curfptr[386];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : SUPUT_FIELDS*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -58115,14 +58159,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V572*/ curfptr[571];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : CLASS_SRC_UPDATE_CURRENT_MODULE_ENVIRONMENT_CONTAINER*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -58130,14 +58174,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V575*/ curfptr[574];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : SUCME_COMMENT*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -58145,14 +58189,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V222*/ curfptr[221];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : CLASS_SRCDEF*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -58160,14 +58204,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V225*/ curfptr[224];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : SDEF_NAME*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -58175,14 +58219,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V232*/ curfptr[231];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : CLASS_SRCDEFORMAL*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -58190,14 +58234,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V235*/ curfptr[234];
-   BASILYS_LOCATION("warmelt-macro.bysl:2675: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2678: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : SFORMAL_ARGS*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -58209,18 +58253,18 @@ initial_frame_st   curfram__;
  
  /*block*/{
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2722: @getslot");
+  BASILYS_LOCATION("warmelt-macro.bysl:2725: @getslot");
   /*_.VALUEXPORTER___V1012*/ curfptr[924] = basilys_getfield_object((basilys_ptr_t)(((void*)(BASILYSG(INITIAL_SYSTEM_DATA)))), 4, "SYSDATA_VALUE_EXPORTER");
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2722: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2725: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2722: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2725: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALCLO___V622*/ curfptr[621];
-   BASILYS_LOCATION("warmelt-macro.bysl:2722: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2725: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : EXPAND_APPLY*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -58228,14 +58272,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2722: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2725: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2722: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2725: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALCLO___V611*/ curfptr[610];
-   BASILYS_LOCATION("warmelt-macro.bysl:2722: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2725: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : EXPAND_MSEND*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -58243,14 +58287,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2722: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2725: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2722: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2725: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALCLO___V613*/ curfptr[612];
-   BASILYS_LOCATION("warmelt-macro.bysl:2722: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2725: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : EXPAND_PAIRLIST_AS_TUPLE*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -58258,14 +58302,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2722: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2725: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2722: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2725: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALCLO___V615*/ curfptr[614];
-   BASILYS_LOCATION("warmelt-macro.bysl:2722: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2725: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : EXPAND_PRIMITIVE*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -58273,14 +58317,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2722: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2725: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2722: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2725: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALCLO___V670*/ curfptr[669];
-   BASILYS_LOCATION("warmelt-macro.bysl:2722: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2725: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : INSTALL_INITIAL_MACRO*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -58288,14 +58332,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2722: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2725: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2722: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2725: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALCLO___V620*/ curfptr[619];
-   BASILYS_LOCATION("warmelt-macro.bysl:2722: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2725: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : LAMBDA_ARG_BINDINGS*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -58303,14 +58347,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2722: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2725: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2722: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2725: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALCLO___V609*/ curfptr[608];
-   BASILYS_LOCATION("warmelt-macro.bysl:2722: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2725: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : MACROEXPAND_1*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -58318,14 +58362,14 @@ initial_frame_st   curfram__;
    }
   ;
   
-  BASILYS_LOCATION("warmelt-macro.bysl:2722: @apply");
+  BASILYS_LOCATION("warmelt-macro.bysl:2725: @apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
    
-   BASILYS_LOCATION("warmelt-macro.bysl:2722: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2725: @apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALCLO___V656*/ curfptr[655];
-   BASILYS_LOCATION("warmelt-macro.bysl:2722: @apply.arg");
+   BASILYS_LOCATION("warmelt-macro.bysl:2725: @apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &
    /*quasi.cur.mod.env.cont norm.exp.val : MACROEXPAND_TOPLEVEL_LIST*/
 /*_.CONTENV___V2*/ curfptr[1];
@@ -58339,41 +58383,41 @@ initial_frame_st   curfram__;
   
   #if ENABLE_CHECKING
    
-  BASILYS_LOCATION("warmelt-macro.bysl:2733: @cppif.then");
+  BASILYS_LOCATION("warmelt-macro.bysl:2736: @cppif.then");
   
-   BASILYS_LOCATION("warmelt-macro.bysl:2733: @block");
+   BASILYS_LOCATION("warmelt-macro.bysl:2736: @block");
    /*block*/{
     /*_#THE_CALLCOUNT__L6*/ curfnum[0] = 
      callcount;;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2733: @apply");
+    BASILYS_LOCATION("warmelt-macro.bysl:2736: @apply");
     /*apply*/{
      union basilysparam_un argtab[4];
      memset(&argtab, 0, sizeof(argtab));
      
-     BASILYS_LOCATION("warmelt-macro.bysl:2733: @apply.arg");
+     BASILYS_LOCATION("warmelt-macro.bysl:2736: @apply.arg");
      argtab[0].bp_cstring =  "at end of warmelt-macro Class_Symbol";
-     BASILYS_LOCATION("warmelt-macro.bysl:2733: @apply.arg");
+     BASILYS_LOCATION("warmelt-macro.bysl:2736: @apply.arg");
      argtab[1].bp_long = /*_#THE_CALLCOUNT__L6*/ curfnum[0];
-     BASILYS_LOCATION("warmelt-macro.bysl:2733: @apply.arg");
+     BASILYS_LOCATION("warmelt-macro.bysl:2736: @apply.arg");
      argtab[2].bp_cstring =  "warmelt-macro.bysl";
-     BASILYS_LOCATION("warmelt-macro.bysl:2733: @apply.arg");
-     argtab[3].bp_long = 2733;
+     BASILYS_LOCATION("warmelt-macro.bysl:2736: @apply.arg");
+     argtab[3].bp_long = 2736;
      /*_.DEBUG_MSG_FUN__V1014*/ curfptr[926] =  basilys_apply ((basilysclosure_ptr_t)(/*_.DEBUG_MSG_FUN__V10*/ curfptr[9]), (basilys_ptr_t)(/*_.CLASS_SYMBOL__V8*/ curfptr[7]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
      }
     ;
     /*_.IFCPP___V1013*/ curfptr[925] = /*_.DEBUG_MSG_FUN__V1014*/ curfptr[926];;
     /*epilog*/
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2733: @clear");
+    BASILYS_LOCATION("warmelt-macro.bysl:2736: @clear");
     /*clear*/ /*_#THE_CALLCOUNT__L6*/ curfnum[0] = 0 ;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2733: @clear");
+    BASILYS_LOCATION("warmelt-macro.bysl:2736: @clear");
     /*clear*/ /*_.DEBUG_MSG_FUN__V1014*/ curfptr[926] = 0 ;}
    
    #else /*ENABLE_CHECKING*/
    
-  BASILYS_LOCATION("warmelt-macro.bysl:2733: @cppif.else");
+  BASILYS_LOCATION("warmelt-macro.bysl:2736: @cppif.else");
   /*_.IFCPP___V1013*/ curfptr[925] = (/*nil*/NULL);
    #endif /*ENABLE_CHECKING*/
    ;
@@ -58384,41 +58428,41 @@ initial_frame_st   curfram__;
   
   #if ENABLE_CHECKING
    
-  BASILYS_LOCATION("warmelt-macro.bysl:2734: @cppif.then");
+  BASILYS_LOCATION("warmelt-macro.bysl:2737: @cppif.then");
   
-   BASILYS_LOCATION("warmelt-macro.bysl:2734: @block");
+   BASILYS_LOCATION("warmelt-macro.bysl:2737: @block");
    /*block*/{
     /*_#THE_CALLCOUNT__L7*/ curfnum[0] = 
      callcount;;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2734: @apply");
+    BASILYS_LOCATION("warmelt-macro.bysl:2737: @apply");
     /*apply*/{
      union basilysparam_un argtab[4];
      memset(&argtab, 0, sizeof(argtab));
      
-     BASILYS_LOCATION("warmelt-macro.bysl:2734: @apply.arg");
+     BASILYS_LOCATION("warmelt-macro.bysl:2737: @apply.arg");
      argtab[0].bp_cstring =  "end of warmelt-macro predefined Class_Symbol";
-     BASILYS_LOCATION("warmelt-macro.bysl:2734: @apply.arg");
+     BASILYS_LOCATION("warmelt-macro.bysl:2737: @apply.arg");
      argtab[1].bp_long = /*_#THE_CALLCOUNT__L7*/ curfnum[0];
-     BASILYS_LOCATION("warmelt-macro.bysl:2734: @apply.arg");
+     BASILYS_LOCATION("warmelt-macro.bysl:2737: @apply.arg");
      argtab[2].bp_cstring =  "warmelt-macro.bysl";
-     BASILYS_LOCATION("warmelt-macro.bysl:2734: @apply.arg");
-     argtab[3].bp_long = 2734;
+     BASILYS_LOCATION("warmelt-macro.bysl:2737: @apply.arg");
+     argtab[3].bp_long = 2737;
      /*_.DEBUG_MSG_FUN__V1016*/ curfptr[926] =  basilys_apply ((basilysclosure_ptr_t)(/*_.DEBUG_MSG_FUN__V10*/ curfptr[9]), (basilys_ptr_t)(((void*)(BASILYSG(CLASS_SYMBOL)))), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
      }
     ;
     /*_.IFCPP___V1015*/ curfptr[924] = /*_.DEBUG_MSG_FUN__V1016*/ curfptr[926];;
     /*epilog*/
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2734: @clear");
+    BASILYS_LOCATION("warmelt-macro.bysl:2737: @clear");
     /*clear*/ /*_#THE_CALLCOUNT__L7*/ curfnum[0] = 0 ;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2734: @clear");
+    BASILYS_LOCATION("warmelt-macro.bysl:2737: @clear");
     /*clear*/ /*_.DEBUG_MSG_FUN__V1016*/ curfptr[926] = 0 ;}
    
    #else /*ENABLE_CHECKING*/
    
-  BASILYS_LOCATION("warmelt-macro.bysl:2734: @cppif.else");
+  BASILYS_LOCATION("warmelt-macro.bysl:2737: @cppif.else");
   /*_.IFCPP___V1015*/ curfptr[924] = (/*nil*/NULL);
    #endif /*ENABLE_CHECKING*/
    ;
@@ -58429,41 +58473,41 @@ initial_frame_st   curfram__;
   
   #if ENABLE_CHECKING
    
-  BASILYS_LOCATION("warmelt-macro.bysl:2735: @cppif.then");
+  BASILYS_LOCATION("warmelt-macro.bysl:2738: @cppif.then");
   
-   BASILYS_LOCATION("warmelt-macro.bysl:2735: @block");
+   BASILYS_LOCATION("warmelt-macro.bysl:2738: @block");
    /*block*/{
     /*_#THE_CALLCOUNT__L8*/ curfnum[0] = 
      callcount;;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2735: @apply");
+    BASILYS_LOCATION("warmelt-macro.bysl:2738: @apply");
     /*apply*/{
      union basilysparam_un argtab[4];
      memset(&argtab, 0, sizeof(argtab));
      
-     BASILYS_LOCATION("warmelt-macro.bysl:2735: @apply.arg");
+     BASILYS_LOCATION("warmelt-macro.bysl:2738: @apply.arg");
      argtab[0].bp_cstring =  "at end of warmelt-macro Install_Initial_Macro";
-     BASILYS_LOCATION("warmelt-macro.bysl:2735: @apply.arg");
+     BASILYS_LOCATION("warmelt-macro.bysl:2738: @apply.arg");
      argtab[1].bp_long = /*_#THE_CALLCOUNT__L8*/ curfnum[0];
-     BASILYS_LOCATION("warmelt-macro.bysl:2735: @apply.arg");
+     BASILYS_LOCATION("warmelt-macro.bysl:2738: @apply.arg");
      argtab[2].bp_cstring =  "warmelt-macro.bysl";
-     BASILYS_LOCATION("warmelt-macro.bysl:2735: @apply.arg");
-     argtab[3].bp_long = 2735;
+     BASILYS_LOCATION("warmelt-macro.bysl:2738: @apply.arg");
+     argtab[3].bp_long = 2738;
      /*_.DEBUG_MSG_FUN__V1018*/ curfptr[926] =  basilys_apply ((basilysclosure_ptr_t)(/*_.DEBUG_MSG_FUN__V10*/ curfptr[9]), (basilys_ptr_t)(/*_.VALCLO___V670*/ curfptr[669]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
      }
     ;
     /*_.IFCPP___V1017*/ curfptr[925] = /*_.DEBUG_MSG_FUN__V1018*/ curfptr[926];;
     /*epilog*/
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2735: @clear");
+    BASILYS_LOCATION("warmelt-macro.bysl:2738: @clear");
     /*clear*/ /*_#THE_CALLCOUNT__L8*/ curfnum[0] = 0 ;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2735: @clear");
+    BASILYS_LOCATION("warmelt-macro.bysl:2738: @clear");
     /*clear*/ /*_.DEBUG_MSG_FUN__V1018*/ curfptr[926] = 0 ;}
    
    #else /*ENABLE_CHECKING*/
    
-  BASILYS_LOCATION("warmelt-macro.bysl:2735: @cppif.else");
+  BASILYS_LOCATION("warmelt-macro.bysl:2738: @cppif.else");
   /*_.IFCPP___V1017*/ curfptr[925] = (/*nil*/NULL);
    #endif /*ENABLE_CHECKING*/
    ;
@@ -58474,46 +58518,46 @@ initial_frame_st   curfram__;
   
   #if ENABLE_CHECKING
    
-  BASILYS_LOCATION("warmelt-macro.bysl:2736: @cppif.then");
+  BASILYS_LOCATION("warmelt-macro.bysl:2739: @cppif.then");
   
-   BASILYS_LOCATION("warmelt-macro.bysl:2736: @block");
+   BASILYS_LOCATION("warmelt-macro.bysl:2739: @block");
    /*block*/{
     /*_.CLOSURE_ROUTINE__V1020*/ curfptr[926] = 
       (basilys_closure_routine((basilys_ptr_t)(/*_.VALCLO___V670*/ curfptr[669])));;
     /*_#THE_CALLCOUNT__L9*/ curfnum[0] = 
      callcount;;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2736: @apply");
+    BASILYS_LOCATION("warmelt-macro.bysl:2739: @apply");
     /*apply*/{
      union basilysparam_un argtab[4];
      memset(&argtab, 0, sizeof(argtab));
      
-     BASILYS_LOCATION("warmelt-macro.bysl:2736: @apply.arg");
+     BASILYS_LOCATION("warmelt-macro.bysl:2739: @apply.arg");
      argtab[0].bp_cstring =  "at end of warmelt-macro Install_Initial_Macro routine";
-     BASILYS_LOCATION("warmelt-macro.bysl:2736: @apply.arg");
+     BASILYS_LOCATION("warmelt-macro.bysl:2739: @apply.arg");
      argtab[1].bp_long = /*_#THE_CALLCOUNT__L9*/ curfnum[0];
-     BASILYS_LOCATION("warmelt-macro.bysl:2736: @apply.arg");
+     BASILYS_LOCATION("warmelt-macro.bysl:2739: @apply.arg");
      argtab[2].bp_cstring =  "warmelt-macro.bysl";
-     BASILYS_LOCATION("warmelt-macro.bysl:2736: @apply.arg");
-     argtab[3].bp_long = 2736;
+     BASILYS_LOCATION("warmelt-macro.bysl:2739: @apply.arg");
+     argtab[3].bp_long = 2739;
      /*_.DEBUG_MSG_FUN__V1021*/ curfptr[925] =  basilys_apply ((basilysclosure_ptr_t)(/*_.DEBUG_MSG_FUN__V10*/ curfptr[9]), (basilys_ptr_t)(/*_.CLOSURE_ROUTINE__V1020*/ curfptr[926]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
      }
     ;
     /*_.IFCPP___V1019*/ curfptr[924] = /*_.DEBUG_MSG_FUN__V1021*/ curfptr[925];;
     /*epilog*/
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2736: @clear");
+    BASILYS_LOCATION("warmelt-macro.bysl:2739: @clear");
     /*clear*/ /*_.CLOSURE_ROUTINE__V1020*/ curfptr[926] = 0 ;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2736: @clear");
+    BASILYS_LOCATION("warmelt-macro.bysl:2739: @clear");
     /*clear*/ /*_#THE_CALLCOUNT__L9*/ curfnum[0] = 0 ;
     
-    BASILYS_LOCATION("warmelt-macro.bysl:2736: @clear");
+    BASILYS_LOCATION("warmelt-macro.bysl:2739: @clear");
     /*clear*/ /*_.DEBUG_MSG_FUN__V1021*/ curfptr[925] = 0 ;}
    
    #else /*ENABLE_CHECKING*/
    
-  BASILYS_LOCATION("warmelt-macro.bysl:2736: @cppif.else");
+  BASILYS_LOCATION("warmelt-macro.bysl:2739: @cppif.else");
   /*_.IFCPP___V1019*/ curfptr[924] = (/*nil*/NULL);
    #endif /*ENABLE_CHECKING*/
    ;
@@ -59197,6 +59241,124 @@ labend_rout:  basilys_topframe = (struct callframe_basilys_st *) curfram__.prev;
 
 } /* end start_module_basilys */
 
+
+/* exported field offsets */
+const int fieldoff__CMEC_COMMENT = 1;
+const int fieldoff__MSEND_ARGS = 3;
+const int fieldoff__MSEND_RECV = 2;
+const int fieldoff__MSEND_SELSYMB = 1;
+const int fieldoff__SAPP_ARGS = 2;
+const int fieldoff__SAPP_FUN = 1;
+const int fieldoff__SCITERDEF_CITERATOR = 3;
+const int fieldoff__SCITER_ARGS = 2;
+const int fieldoff__SCITER_BODY = 4;
+const int fieldoff__SCITER_OPER = 1;
+const int fieldoff__SCITER_VARBIND = 3;
+const int fieldoff__SCLASS_CLABIND = 4;
+const int fieldoff__SCLASS_FLDBINDS = 6;
+const int fieldoff__SCLASS_SUPERBIND = 5;
+const int fieldoff__SCOMM_STR = 1;
+const int fieldoff__SCWARN_EXPR = 2;
+const int fieldoff__SCWARN_MSG = 1;
+const int fieldoff__SDEF_NAME = 1;
+const int fieldoff__SEXI_BODY = 2;
+const int fieldoff__SEXPMAC_MNAME = 1;
+const int fieldoff__SEXPMAC_MVAL = 2;
+const int fieldoff__SEXPORT_NAMES = 1;
+const int fieldoff__SFEPD_PREDEF = 1;
+const int fieldoff__SFLA_EXPR = 2;
+const int fieldoff__SFLA_FIELD = 1;
+const int fieldoff__SFORMAL_ARGS = 2;
+const int fieldoff__SFRV_BODY = 2;
+const int fieldoff__SFUN_BODY = 3;
+const int fieldoff__SIFP_COND = 1;
+const int fieldoff__SIFP_ELSE = 3;
+const int fieldoff__SIFP_THEN = 2;
+const int fieldoff__SIF_ELSE = 3;
+const int fieldoff__SIF_TEST = 1;
+const int fieldoff__SIF_THEN = 2;
+const int fieldoff__SINST_CLABIND = 5;
+const int fieldoff__SINST_CLASS = 4;
+const int fieldoff__SINST_FIELDS = 7;
+const int fieldoff__SINST_OBJNUM = 6;
+const int fieldoff__SLABEL_BIND = 1;
+const int fieldoff__SLAM_ARGBIND = 1;
+const int fieldoff__SLAM_BODY = 2;
+const int fieldoff__SLETB_BINDER = 2;
+const int fieldoff__SLETB_EXPR = 3;
+const int fieldoff__SLETB_TYPE = 1;
+const int fieldoff__SLET_BINDINGS = 1;
+const int fieldoff__SLET_BODY = 2;
+const int fieldoff__SMINS_CLABIND = 2;
+const int fieldoff__SMINS_CLASS = 1;
+const int fieldoff__SMINS_FIELDS = 3;
+const int fieldoff__SMULC_BODY = 3;
+const int fieldoff__SMULC_CALL = 2;
+const int fieldoff__SMULC_RESBIND = 1;
+const int fieldoff__SOBJ_DOCSTR = 3;
+const int fieldoff__SOBJ_PREDEF = 2;
+const int fieldoff__SOR_DISJ = 1;
+const int fieldoff__SPRIM_ARGS = 2;
+const int fieldoff__SPRIM_EXPANSION = 4;
+const int fieldoff__SPRIM_OPER = 1;
+const int fieldoff__SPRIM_TYPE = 3;
+const int fieldoff__SPROGN_BODY = 1;
+const int fieldoff__SQUOTED = 1;
+const int fieldoff__SRETURN_BODY = 1;
+const int fieldoff__SSTPD_PREDEF = 1;
+const int fieldoff__SSTPD_VALUE = 2;
+const int fieldoff__SSTQ_EXPR = 2;
+const int fieldoff__SSTQ_VAR = 1;
+const int fieldoff__SUCME_COMMENT = 1;
+const int fieldoff__SUGET_FIELD = 2;
+const int fieldoff__SUGET_OBJ = 1;
+const int fieldoff__SUPUT_FIELDS = 2;
+const int fieldoff__SUPUT_OBJ = 1;
+
+/* exported class lengths */
+const int classlen__CLASS_SRCDEF = 2;
+const int classlen__CLASS_SRCDEFORMAL = 3;
+const int classlen__CLASS_SRC_APPLY = 3;
+const int classlen__CLASS_SRC_CITERATION = 5;
+const int classlen__CLASS_SRC_COMMENT = 2;
+const int classlen__CLASS_SRC_COMPILEWARNING = 3;
+const int classlen__CLASS_SRC_CPPIF = 4;
+const int classlen__CLASS_SRC_CURRENT_MODULE_ENVIRONMENT_CONTAINER = 2;
+const int classlen__CLASS_SRC_DEFCITERATOR = 4;
+const int classlen__CLASS_SRC_DEFCLASS = 7;
+const int classlen__CLASS_SRC_DEFINSTANCE = 8;
+const int classlen__CLASS_SRC_DEFOBJCOMMON = 4;
+const int classlen__CLASS_SRC_DEFPRIMITIVE = 5;
+const int classlen__CLASS_SRC_DEFSELECTOR = 8;
+const int classlen__CLASS_SRC_DEFUN = 4;
+const int classlen__CLASS_SRC_EXIT = 3;
+const int classlen__CLASS_SRC_EXPORTCOMMON = 2;
+const int classlen__CLASS_SRC_EXPORT_CLASS = 2;
+const int classlen__CLASS_SRC_EXPORT_MACRO = 3;
+const int classlen__CLASS_SRC_EXPORT_VALUES = 2;
+const int classlen__CLASS_SRC_FETCH_PREDEFINED = 2;
+const int classlen__CLASS_SRC_FIELDASSIGN = 3;
+const int classlen__CLASS_SRC_FOREVER = 3;
+const int classlen__CLASS_SRC_IF = 3;
+const int classlen__CLASS_SRC_IFELSE = 4;
+const int classlen__CLASS_SRC_LABELLED = 2;
+const int classlen__CLASS_SRC_LAMBDA = 3;
+const int classlen__CLASS_SRC_LET = 3;
+const int classlen__CLASS_SRC_LETBINDING = 4;
+const int classlen__CLASS_SRC_MAKE_INSTANCE = 4;
+const int classlen__CLASS_SRC_MSEND = 4;
+const int classlen__CLASS_SRC_MULTICALL = 4;
+const int classlen__CLASS_SRC_OR = 2;
+const int classlen__CLASS_SRC_PARENT_MODULE_ENVIRONMENT = 1;
+const int classlen__CLASS_SRC_PRIMITIVE = 3;
+const int classlen__CLASS_SRC_PROGN = 2;
+const int classlen__CLASS_SRC_QUOTE = 2;
+const int classlen__CLASS_SRC_RETURN = 2;
+const int classlen__CLASS_SRC_SETQ = 3;
+const int classlen__CLASS_SRC_STORE_PREDEFINED = 3;
+const int classlen__CLASS_SRC_UNSAFE_GET_FIELD = 3;
+const int classlen__CLASS_SRC_UNSAFE_PUT_FIELDS = 3;
+const int classlen__CLASS_SRC_UPDATE_CURRENT_MODULE_ENVIRONMENT_CONTAINER = 2;
 
 
 /**** end of warmelt-macro-3.c ****/

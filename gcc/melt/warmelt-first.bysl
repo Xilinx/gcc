@@ -350,6 +350,8 @@
 (defclass class_modulcontext
   :super class_root
   :fields (mocx_modulename		;the module name
+	   mocx_expfieldict		;dict of exported fields
+	   mocx_expclassdict		;dict of exported classes
 ))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

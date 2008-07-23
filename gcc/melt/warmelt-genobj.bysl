@@ -306,6 +306,7 @@
   :fields (
 	   obrallobj_class		;the class data
 	   obrallobj_len		;the boxed integer length
+	   obrallobj_classname		;the class name
 ))
 
 
@@ -2840,6 +2841,7 @@
 				    :obi_loc nloc
 				    :obrallobj_class ocladat
 				    :obrallobj_len (make_integerbox discr_integer nbfld)
+				    :obrallobj_classname (unsafe_get_field :named_name  ncla)
 				    :obdi_destlist destlist))
 	   )
       (list_append destlist locv)

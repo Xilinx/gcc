@@ -3833,7 +3833,9 @@
 	(nvaluexporter (normal_value_exporter env ncx sloc bindslist))
 	(nilnrep (make_instance class_nrep_nil
 				:nrep_loc sloc))
+	(mocx (unsafe_get_field :nctx_modulcontext ncx))
 	)
+    (assert_msg "check mocx" (is_a mocx class_modulcontext))
     (multiple_every
      sxnames
      (lambda (xnam :long ix)
@@ -3861,7 +3863,16 @@
 	     (debug_msg nclav "normexp_export_class nclav")
 	     (assert_msg "check xclass" (is_a xclass class_class))
 	     (let ( (xclfields (unsafe_get_field :class_fields xclass)) 
+		    ;; temporarily, to be able to melt bootstrap, we
+		    ;; have to check the object length of mocx
+		    (expcladic
+		     (if (>i (object_length mocx) (get_int mocx_expclassdict))
+			 (unsafe_get_field :mocx_expclassdict mocx)))
+		    (expfldic
+		     (if (>i (object_length mocx) (get_int mocx_expfieldict))
+			 (unsafe_get_field :mocx_expfieldict mocx)))
 		    )
+	       (mapstring_putstr expcladic (unsafe_get_field :named_name xclass) xclass)
 	       (multiple_every
 		xclfields
 		(lambda (curfld :long ix)
@@ -3875,8 +3886,11 @@
 			       )
 			  (assert_msg "check fldbind" (is_a fldbind class_field_binding))
 			  (let ( (fldata (unsafe_get_field :flbind_fdata fldbind))
+				 (field (unsafe_get_field :flbind_field fldbind))
 				 (nfld (normal_exported_value fldsym fldata nvaluexporter env ncx sloc bindslist))
 				 )
+			    (assert_msg "check field" (is_a field class_field))
+			    (mapstring_putstr expfldic (unsafe_get_field :named_name field) field)
 			    (debug_msg nfld "normexp_export_class nfld")
 			    ))))))))))
        ))

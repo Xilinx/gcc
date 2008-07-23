@@ -2032,9 +2032,12 @@
 	 (loc  (unsafe_get_field :loca_location sexpr))
 	 (curpair (pair_tail (list_first cont))) 
 	 (newenv (fresh_env env))
+	 (formals (pair_head curpair))
 	 )
     ;; parse the formal arguments
-    (let ( (argtup (lambda_arg_bindings (pair_head curpair) sexpr)) )
+    (if (and (notnull formals) (is_not_a formals class_sexpr))
+	(error_plain loc "missing formal argument list in (LAMBDA (arglist...) body...)"))
+    (let ( (argtup (lambda_arg_bindings formals sexpr)) )
       (setq curpair (pair_tail curpair))
       (multiple_every argtup 
 		      (lambda (lb) (put_env newenv lb)))
