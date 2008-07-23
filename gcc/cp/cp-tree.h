@@ -526,7 +526,7 @@ struct tree_trait_expr GTY (())
 /* The capture-list, excluding `this'.
    tree_list 
      value: name (IDENTIFIER_NODE)
-     purpose: type (including reference)  */
+     purpose: type (REFERENCE_TYPE if so captured)  */
 #define LAMBDA_EXPR_CAPTURE_LIST(NODE) \
   (((struct tree_lambda_expr *)LAMBDA_EXPR_CHECK (NODE))->capture_list)
 
@@ -549,6 +549,10 @@ struct tree_trait_expr GTY (())
 #define LAMBDA_EXPR_RETURN_TYPE(NODE) \
   (((struct tree_lambda_expr *)LAMBDA_EXPR_CHECK (NODE))->return_type)
 
+/* The function part.  */
+#define LAMBDA_EXPR_FUNCTION(NODE) \
+  (((struct tree_lambda_expr *)LAMBDA_EXPR_CHECK (NODE))->function)
+
 enum cp_lambda_default_capture_mode_type {
   CPLD_NONE,
   CPLD_COPY,
@@ -565,6 +569,7 @@ struct tree_lambda_expr GTY (())
   /*cp_parameter_declarator* param_list;*/
   tree exception_spec;
   tree return_type;
+  tree function;
 };
 
 enum cp_tree_node_structure_enum {

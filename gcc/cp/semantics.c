@@ -4506,6 +4506,7 @@ build_lambda_expr (void)
   LAMBDA_EXPR_CAPTURE_INIT_LIST    (lambda_expr) = NULL_TREE;
   LAMBDA_EXPR_EXCEPTION_SPEC       (lambda_expr) = NULL_TREE;
   LAMBDA_EXPR_RETURN_TYPE          (lambda_expr) = NULL_TREE;
+  LAMBDA_EXPR_FUNCTION             (lambda_expr) = NULL_TREE;
   return lambda_expr;
 }
 

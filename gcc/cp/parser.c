@@ -6861,10 +6861,12 @@ cp_parser_lambda_class_definition (cp_parser* parser,
     /* operator() is public */
     current_access_specifier = access_public_node;
 
-    fco_decl = cp_parser_lambda_body (parser,
+    fco_decl = start_method (
         &fco_return_type_specs,
         fco_declarator,
-        &expression_body_p);
+        /*attributes=*/NULL_TREE);
+    DECL_INITIALIZED_IN_CLASS_P (fco_decl) = 1;
+    finish_method (fco_decl);
 
     finish_member_declaration (fco_decl);
   }
@@ -6949,75 +6951,33 @@ cp_parser_lambda_class_definition (cp_parser* parser,
    * + ctor_initializer_opt_and_function_body
    ********************************************/
   {
-    if (expression_body_p)
-    {
-      tree fco_body;
-      tree fco_compound_stmt;
-      tree fco_body_expr;
-      tree fco_fn;
+    tree fco_body;
+    tree fco_compound_stmt;
+    tree fco_body_expr;
+    tree fco_fn;
 
-      /* Let the front end know that we are going to be defining this
-         function. */
-      start_preparsed_function (
-          fco_decl,
-          NULL_TREE,
-          SF_PRE_PARSED | SF_INCLASS_INLINE);
+    /* Let the front end know that we are going to be defining this
+       function. */
+    start_preparsed_function (
+        fco_decl,
+        NULL_TREE,
+        SF_PRE_PARSED | SF_INCLASS_INLINE);
 
-      fco_body = begin_function_body ();
+    fco_body = begin_function_body ();
 
-      fco_compound_stmt = begin_compound_stmt (0);
+    fco_compound_stmt = begin_compound_stmt (0);
 
-      cp_parser_require (parser, CPP_OPEN_PAREN, "%<(%>");
-      fco_body_expr = cp_parser_expression (parser, /*cast_p=*/false);
-      cp_parser_require (parser, CPP_CLOSE_PAREN, "%<)%>");
+    cp_parser_require (parser, CPP_OPEN_BRACE, "%<{%>");
+    cp_parser_require (parser, CPP_CLOSE_BRACE, "%<}%>");
 
-      if (!LAMBDA_EXPR_RETURN_TYPE (lambda_expr))
-      {
-        tree fco_return_type;
-        tree fco_return_decl;
+    finish_compound_stmt (fco_compound_stmt);
 
-        fco_return_type = finish_decltype_type (
-            fco_body_expr,
-            /*id_expression_or_member_access_p=*/false);
-        /* TREE_TYPE (FUNCTION_DECL) == METHOD_TYPE
-           TREE_TYPE (METHOD_TYPE)   == return-type */
-        TREE_TYPE (TREE_TYPE (fco_decl)) = fco_return_type;
+    finish_function_body (fco_body);
 
-        /* Must redo some work from start_preparsed_function. */
-        fco_return_decl = build_lang_decl (
-            RESULT_DECL,
-            0,
-            TYPE_MAIN_VARIANT (fco_return_type));
-        DECL_ARTIFICIAL (fco_return_decl) = 1;
-        DECL_IGNORED_P (fco_return_decl) = 1;
-        cp_apply_type_quals_to_decl (
-            cp_type_quals (fco_return_type),
-            fco_return_decl);
-
-        DECL_RESULT (fco_decl) = fco_return_decl;
-      }
-
-      finish_return_stmt (fco_body_expr);
-      /* Remember the location? */
-      /* SET_EXPR_LOCATION (fco_return_stmt, token->location); */
-
-      finish_compound_stmt (fco_compound_stmt);
-
-      finish_function_body (fco_body);
-
-      /* Finish the function and generate code for it if necessary. */
-      /* 2 == inline_p */
-      fco_fn = finish_function (2);
-      expand_or_defer_fn (fco_fn);
-    }
-    else
-    {
-      /* Must set to 0 because late_parsing_for_member checks */
-      saved_num_classes = parser->num_classes_being_defined;
-      parser->num_classes_being_defined = 0;
-      cp_parser_late_parsing_for_member (parser, fco_decl);
-      parser->num_classes_being_defined = saved_num_classes;
-    }
+    /* Finish the function and generate code for it if necessary. */
+    /* 2 == inline_p */
+    fco_fn = finish_function (2);
+    expand_or_defer_fn (fco_fn);
   }
 
   /********************************************
