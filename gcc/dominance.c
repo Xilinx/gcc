@@ -716,7 +716,7 @@ set_immediate_dominator (enum cdi_direction dir, basic_block bb,
 {
   unsigned int dir_index = dom_convert_dir_to_idx (dir);
   struct et_node *node = bb->dom[dir_index];
- 
+
   gcc_assert (dom_computed[dir_index]);
 
   if (node->father)

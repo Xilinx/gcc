@@ -723,6 +723,7 @@ tree copy_var_decl (tree, tree, tree);
 /* Location to track pending stmt for edge insertion.  */
 #define PENDING_STMT(e)	((e)->insns.t)
 
+extern void remove_bb (basic_block bb);
 extern void delete_tree_cfg_annotations (void);
 extern bool stmt_ends_bb_p (const_tree);
 extern bool is_ctrl_stmt (const_tree);
@@ -831,6 +832,8 @@ extern void reserve_phi_args_for_new_edge (basic_block);
 extern tree create_phi_node (tree, basic_block);
 extern void add_phi_arg (tree, tree, edge);
 extern void remove_phi_args (edge);
+extern void resize_phi_node (tree *, int);
+extern void move_phi_node (tree, basic_block);
 extern void remove_phi_node (tree, tree, bool);
 extern tree phi_reverse (tree);
 extern void init_phinodes (void);
@@ -1067,6 +1070,7 @@ bool tree_duplicate_loop_to_header_edge (struct loop *, edge,
 					 int);
 struct loop *slpeel_tree_duplicate_loop_to_edge_cfg (struct loop *, edge);
 void rename_variables_in_loop (struct loop *);
+void rename_variables_in_bb (basic_block bb);
 struct loop *tree_ssa_loop_version (struct loop *, tree,
 				    basic_block *);
 tree expand_simple_operations (tree);

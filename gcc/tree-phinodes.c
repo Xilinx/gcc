@@ -80,7 +80,6 @@ static GTY ((deletable (""))) tree free_phinodes[NUM_BUCKETS - 2];
 static unsigned long free_phinode_count;
 
 static int ideal_phi_node_len (int);
-static void resize_phi_node (tree *, int);
 
 #ifdef GATHER_STATISTICS
 unsigned int phi_nodes_reused;
@@ -261,7 +260,7 @@ release_phi_node (tree phi)
 /* Resize an existing PHI node.  The only way is up.  Return the
    possibly relocated phi.  */
 
-static void
+void
 resize_phi_node (tree *phi, int len)
 {
   int old_size, i;
@@ -440,14 +439,10 @@ remove_phi_args (edge e)
     remove_phi_arg_num (phi, e->dest_idx);
 }
 
+/* Unlink PHI node.  */
 
-/* Remove PHI node PHI from basic block BB.  If PREV is non-NULL, it is
-   used as the node immediately before PHI in the linked list.  If
-   RELEASE_LHS_P is true, the LHS of this PHI node is released into
-   the free pool of SSA names.  */
-
-void
-remove_phi_node (tree phi, tree prev, bool release_lhs_p)
+static void 
+unlink_phi_node (tree phi, tree prev)
 {
   tree *loc;
 
@@ -465,7 +460,29 @@ remove_phi_node (tree phi, tree prev, bool release_lhs_p)
 
   /* Remove PHI from the chain.  */
   *loc = PHI_CHAIN (phi);
+}
 
+/* Move PHI node to new basick block BB.  */
+
+void 
+move_phi_node (tree phi, basic_block bb)
+{
+  tree old_phis = phi_nodes (bb);
+
+  unlink_phi_node (phi, NULL);
+  PHI_CHAIN (phi) = old_phis;
+  set_phi_nodes (bb, phi);
+}
+
+/* Remove PHI node PHI from basic block BB.  If PREV is non-NULL, it is
+   used as the node immediately before PHI in the linked list.  If
+   RELEASE_LHS_P is true, the LHS of this PHI node is released into
+   the free pool of SSA names.  */
+
+void
+remove_phi_node (tree phi, tree prev, bool release_lhs_p)
+{
+  unlink_phi_node (phi, prev);
   /* If we are deleting the PHI node, then we should release the
      SSA_NAME node so that it can be reused.  */
   release_phi_node (phi);

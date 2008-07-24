@@ -216,6 +216,7 @@ void lambda_loopnest_to_gcc_loopnest (struct loop *,
                                       lambda_loopnest, lambda_trans_matrix,
                                       struct obstack *);
 void remove_iv (tree);
+tree find_induction_var_from_exit_cond (struct loop *);
 
 static inline void lambda_vector_negate (lambda_vector, lambda_vector, int);
 static inline void lambda_vector_mult_const (lambda_vector, lambda_vector, int, int);

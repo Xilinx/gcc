@@ -20,6 +20,9 @@ along with GCC; see the file COPYING3.  If not see
 
 #include "tree-data-ref.h"
 
+
+typedef VEC (int, heap)* graphite_loops_mapping;
+
 typedef struct graphite_bb *graphite_bb_p;
 DEF_VEC_P(graphite_bb_p);
 DEF_VEC_ALLOC_P (graphite_bb_p, heap);
@@ -201,6 +204,7 @@ struct graphite_bb
 #define GBB_CONDITIONS(GBB) GBB->conditions
 #define GBB_CONDITION_CASES(GBB) GBB->condition_cases
 #define GBB_LOOPS(GBB) GBB->loops
+#define GBB_LOOPS_MAPPING(GBB) GBB->loops_mapping
 
 /* Return the loop that contains the basic block GBB.  */
 
@@ -210,8 +214,8 @@ gbb_loop (struct graphite_bb *gbb)
   return GBB_BB (gbb)->loop_father;
 }
 
-/* Calculate the number of loops in GB in the current SCOP.  
-   Only works if GBB_DOMAIN is built.  */
+/* Calculate the number of loops around GB in the current SCOP.  Only
+   works if GBB_DOMAIN is built.  */
 
 static inline unsigned 
 gbb_nb_loops (graphite_bb_p gb)
@@ -258,7 +262,8 @@ struct loop_to_cloog_loop_str
 typedef struct name_tree
 {
   tree t;
-  char *name;
+  const char *name;
+  struct loop* loop;
 } *name_tree;
 
 DEF_VEC_P(name_tree);
@@ -298,6 +303,10 @@ struct scop
   bitmap loops;
   VEC (loop_p, heap) *loop_nest;
 
+  /* specifies for loop num in loops which corresponding loop depth that num is mapped to
+     in the transformed program */
+  graphite_loops_mapping loops_mapping;
+
   /* ???  It looks like a global mapping loop_id -> cloog_loop would work.  */
   htab_t loop2cloog_loop;
 
@@ -317,6 +326,7 @@ struct scop
 #define SCOP_OLDIVS(S) S->old_ivs
 #define SCOP_PROG(S) S->program
 #define SCOP_LOOP2CLOOG_LOOP(S) S->loop2cloog_loop
+#define SCOP_LOOPS_MAPPING(S) S->loops_mapping
 
 extern void debug_scop (scop_p, int);
 extern void debug_scops (int);
@@ -324,6 +334,7 @@ extern void print_graphite_bb (FILE *, graphite_bb_p, int, int);
 extern void debug_gbb (graphite_bb_p, int);
 extern void dot_scop (scop_p);
 extern void dot_all_scops (void);
+extern void debug_clast_stmt (struct clast_stmt *);
 
 /* Return the number of gimple loops contained in SCOP.  */
 

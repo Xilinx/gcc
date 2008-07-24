@@ -506,41 +506,16 @@ delete_basic_block (basic_block bb)
   expunge_block (bb);
 }
 
-/* Splits edge E and returns the newly created basic block.  */
+/* Updates the dominator information for block RET.  */
 
-basic_block
-split_edge (edge e)
+static void
+update_dominator_information (basic_block ret)
 {
-  basic_block ret;
-  gcov_type count = e->count;
-  int freq = EDGE_FREQUENCY (e);
   edge f;
-  bool irr = (e->flags & EDGE_IRREDUCIBLE_LOOP) != 0;
-  struct loop *loop;
-  basic_block src = e->src, dest = e->dest;
-
-  if (!cfg_hooks->split_edge)
-    internal_error ("%s does not support split_edge", cfg_hooks->name);
-
-  if (current_loops != NULL)
-    rescan_loop_exit (e, false, true);
-
-  ret = cfg_hooks->split_edge (e);
-  ret->count = count;
-  ret->frequency = freq;
-  single_succ_edge (ret)->probability = REG_BR_PROB_BASE;
-  single_succ_edge (ret)->count = count;
-
-  if (irr)
-    {
-      ret->flags |= BB_IRREDUCIBLE_LOOP;
-      single_pred_edge (ret)->flags |= EDGE_IRREDUCIBLE_LOOP;
-      single_succ_edge (ret)->flags |= EDGE_IRREDUCIBLE_LOOP;
-    }
 
   if (dom_info_available_p (CDI_DOMINATORS))
     set_immediate_dominator (CDI_DOMINATORS, ret, single_pred (ret));
-
+  
   if (dom_info_state (CDI_DOMINATORS) >= DOM_NO_FAST_QUERY)
     {
       /* There are two cases:
@@ -570,6 +545,41 @@ split_edge (edge e)
 	    set_immediate_dominator (CDI_DOMINATORS, single_succ (ret), ret);
 	}
     }
+}
+
+
+/* Splits edge E and returns the newly created basic block.  */
+
+basic_block
+split_edge (edge e)
+{
+  basic_block ret;
+  gcov_type count = e->count;
+  int freq = EDGE_FREQUENCY (e);
+  bool irr = (e->flags & EDGE_IRREDUCIBLE_LOOP) != 0;
+  struct loop *loop;
+  basic_block src = e->src, dest = e->dest;
+
+  if (!cfg_hooks->split_edge)
+    internal_error ("%s does not support split_edge", cfg_hooks->name);
+
+  if (current_loops != NULL)
+    rescan_loop_exit (e, false, true);
+
+  ret = cfg_hooks->split_edge (e);
+  ret->count = count;
+  ret->frequency = freq;
+  single_succ_edge (ret)->probability = REG_BR_PROB_BASE;
+  single_succ_edge (ret)->count = count;
+
+  if (irr)
+    {
+      ret->flags |= BB_IRREDUCIBLE_LOOP;
+      single_pred_edge (ret)->flags |= EDGE_IRREDUCIBLE_LOOP;
+      single_succ_edge (ret)->flags |= EDGE_IRREDUCIBLE_LOOP;
+    }
+
+  update_dominator_information(ret);
 
   if (current_loops != NULL)
     {

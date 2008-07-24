@@ -1,3 +1,69 @@
+2008-07-23  Jan Sjodin  <jan.sjodin@amd.com>
+	    Sebastian Pop  <sebastian.pop@amd.com>
+
+	* cfgloopmanip.c (update_dominators_in_loop): Make it static.
+	(create_empty_loop_on_edge): More fixes.
+	* tree-phinodes.c (resize_phi_node): Extern.
+	(unlink_phi_node, move_phi_node): New split from remove_phi_node.
+	* cfghooks.c (update_dominator_information): New split from split_edge.
+	* tree-vectorizer.c (rename_variables_in_bb): Extern.
+	* tree-dfa.c (collect_dfa_stats): Start walking the CFG on the
+	successor of the function entry block.
+
+	* graphite.c: Include pointer-set.h.
+	(debug_loop_mapping, increment_loop_mapped_depths,
+	get_loop_mapped_depth_for_num, get_loop_mapped_depth,
+	set_loop_mapped_depth_for_num, set_loop_mapped_depth,
+	swap_loop_mapped_depth_for_num, get_num_from_index,
+	swap_loop_mapped_depth, loop_iv_stack_debug,
+	loop_iv_stack_push, loop_iv_stack_pop, loop_iv_stack_get_iv,
+	loop_iv_stack_get_iv_from_name, loop_iv_stack_debug,
+	get_old_iv_from_ssa_name): New.
+	(new_scop): Initialize SCOP_LOOPS_MAPPING.
+	(free_scop): Free SCOP_LOOPS_MAPPING.
+	(scop_record_loop): Record old ivs.
+	(create_var_name): Removed.
+	(initialize_cloog_names): Allocate double space in case strip mine 
+	applies to all loops once.
+	(clast_name_to_gcc): Look up in the map ivstack passed in parameter.
+	(clast_to_gcc_expression): Same.  Implement more clast to gimple
+	translation.
+	(graphite_create_new_loop): Pass in ivstack.
+	(remove_all_edges): Pass in the construction_edge.
+	(graphite_remove_iv): Removed.
+	(graphite_rename_ivs, graphite_rename_ivs_stmt,
+	remove_cond_exprs): Rewritten.
+	(move_phi_nodes): New.
+	(disconnect_virtual_phi_nodes, disconnect_cond_expr): Removed.
+	(translate_clast): Pass in ivstack.  Rewrite some cases.
+	(set_cloog_options, debug_clast_stmt): New.
+	(find_transform): Use set_cloog_options.
+	(outermost_loop_layer): Removed.
+	(get_construction_edge, collect_virtual_phis, find_vdef_for_var_in_bb,
+	find_vdef_for_var_1, find_vdef_for_var, patch_phis_for_virtual_defs,
+	mark_old_loops, remove_dead_loops): New.
+	(gloog): Rewritten.
+	(graphite_trans_bb_move_loop): Call swap_loop_mapped_depth.
+	(const_column_index, get_first_matching_sign_row_index,
+	get_lower_bound_row, get_upper_bound_row, get_lower_bound,
+	get_upper_bound): New.
+	(graphite_trans_bb_strip_mine): Also update the iv map.
+
+	* graphite.h (graphite_loops_mapping, GBB_LOOPS_MAPPING): New.
+	(struct name_tree): Add a loop field.
+	(struct scop): Add a graphite_loops_mapping field.
+	(SCOP_LOOPS_MAPPING): New.
+	(debug_clast_stmt): Declare.
+	* lambda.h (find_induction_var_from_exit_cond): Declare.
+	(lambda-code.c): (find_induction_var_from_exit_cond): Extern.
+	* cfgloop.h (update_dominators_in_loop): Removed declaration.
+	(create_empty_loop_on_edge): Updated.
+	* tree-flow.h (remove_bb, resize_phi_node, move_phi_node,
+	rename_variables_in_bb): Declare.
+	* tree-cfg.c (remove_bb): Extern.
+	
+	* testsuite/gcc.dg/graphite/block-0.c: New.
+
 2008-07-21  Dwarakanath Rajagopal  <dwarak.rajagopal@amd.com>
 	    Sebastian Pop  <sebastian.pop@amd.com>
 

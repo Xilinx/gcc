@@ -468,7 +468,7 @@ scale_loop_frequencies (struct loop *loop, int num, int den)
 
 /* Recompute dominance information for basic blocks outside LOOP.  */
 
-void update_dominators_in_loop (struct loop *loop)
+static void update_dominators_in_loop (struct loop *loop)
 {
   VEC (basic_block, heap) *dom_bbs = NULL;
   sbitmap seen;
@@ -502,55 +502,56 @@ void update_dominators_in_loop (struct loop *loop)
   VEC_free (basic_block, heap, dom_bbs);
 }
 
-/* Creates and returns a new empty loop on ENTRY_EDGE.  A new
-   induction variable is created, with name IV, initial value
-   INITIAL_VALUE, a stride STRIDE and upper bound UPB is created, and
-   the value after its increment is returned in VAR_AFTER.  The outer
-   loop containing this loop is OUTER.
-
+/* create_empty_loop_on_edge
    |
-   |     -------------                      -----------------------           
-   |     |  pred_bb  |                      |  pred_bb            |           
-   |     -------------                      |  IV = INITIAL_VALUE |           
-   |           |                            -----------------------           
-   |           |                            ______    | ENTRY_EDGE            
-   |           | ENTRY_EDGE                /      V   V                       
-   |           |             =========>   |     ---------------               
-   |           |                          |     | loop_header |               
-   |           V                          |     | EXIT_COND   |-----          
-   |     -------------                    |     ---------------     \         
-   |     |  succ_bb  |                    |         |                \        
-   |     -------------                    |         |                 |       
-   |                                      |         V                 | exit_e
-   |                                      |      --------------       |       
-   |                                      |      | loop_latch |       |       
-   |                                      |      |IV += STEP  |       V       
-   |                                      |      --------------   ------------
-   |                                       \       /              | succ_bb  |
-   |                                        \ ___ /               ------------
+   |     -------------                 -----------------------           
+   |     |  pred_bb  |                 |  pred_bb            |           
+   |     -------------                 |  IV = INITIAL_VALUE |           
+   |           |                       -----------------------           
+   |           |                       ______    | ENTRY_EDGE            
+   |           | ENTRY_EDGE           /      V   V                       
+   |           |             ====>   |     ------------------               
+   |           |                     |     | loop_header     |               
+   |           V                     |     | IV <= UPPER_BOUND|---          
+   |     -------------               |     ------------------     \         
+   |     |  succ_bb  |               |         |                   \        
+   |     -------------               |         |                    |       
+   |                                 |         V                    | exit_e
+   |                                 |      --------------          |       
+   |                                 |      | loop_latch |          |       
+   |                                 |      |IV += STEP  |          V       
+   |                                 |      --------------      ------------
+   |                                  \       /                 | succ_bb  |
+   |                                   \ ___ /                  ------------
+
+   Creates an empty loop as shown above, the IV_BEFORE is the SSA_NAME
+   that is used before the increment of IV. IV_BEFORE should be used for 
+   adding code to the body that uses the IV.  OUTER is the outer loop in
+   which the new loop should be inserted.
 */
-extern struct loop *
+struct loop *
 create_empty_loop_on_edge (edge entry_edge, 
 			   tree initial_value,
-			   tree stride, tree upb,
+			   tree stride, tree upper_bound,
 			   tree iv,
-                           tree *var_after,
-                           struct loop *outer)
+			   tree *iv_before,
+			   struct loop *outer)
 {
   basic_block loop_header, loop_latch, succ_bb, pred_bb;
+  tree cond_expr;
   struct loop *loop;
   int freq;
   gcov_type cnt;
   block_stmt_iterator bsi;
   bool insert_after;
-  tree stmts, exit_test, exit_cond;
+  tree stmts, exit_test;
   edge exit_e;
   int prob;
 
   gcc_assert (entry_edge);
   gcc_assert (initial_value);
   gcc_assert (stride);
-  gcc_assert (upb);
+  gcc_assert (upper_bound);
   gcc_assert (iv);
 
   /* Create header, latch and wire up the loop.  */
@@ -570,17 +571,15 @@ create_empty_loop_on_edge (edge entry_edge,
   loop = alloc_loop ();
   loop->header = loop_header;
   loop->latch = loop_latch;
-
-  outer = succ_bb->loop_father;
   add_loop (loop, outer);
 
-  /* Set frequencies.  */
+  /* TODO: Fix frequencies and counts.  */
   freq = EDGE_FREQUENCY (entry_edge);
   cnt = entry_edge->count;
 
   prob = REG_BR_PROB_BASE / 2;
+
   scale_loop_frequencies (loop, REG_BR_PROB_BASE - prob, REG_BR_PROB_BASE);
-  scale_loop_frequencies (outer, prob, REG_BR_PROB_BASE);
 
   /* Update dominators.  */
   update_dominators_in_loop (loop);
@@ -595,21 +594,28 @@ create_empty_loop_on_edge (edge entry_edge,
 
   add_referenced_var (iv);
   standard_iv_increment_position (loop, &bsi, &insert_after);
-  create_iv (initial_value, stride, iv, loop, &bsi, insert_after, &iv, NULL);
-  *var_after = iv;
-  exit_e = single_exit (loop);
-  bsi = bsi_last (exit_e->src);
+  create_iv (initial_value, stride, iv, loop, &bsi, insert_after, iv_before, NULL);
 
-  exit_cond = build2 (LT_EXPR, boolean_type_node, upb, iv);
-  exit_cond = build3 (COND_EXPR, void_type_node, exit_cond,
+  /* Modify edge flags.  */
+  exit_e = single_exit (loop);
+  exit_e->flags = EDGE_LOOP_EXIT | EDGE_FALSE_VALUE;
+  single_pred_edge (loop_latch)->flags = EDGE_TRUE_VALUE;
+
+  bsi = bsi_last (exit_e->src);
+  
+
+  cond_expr = build2 (LE_EXPR, boolean_type_node, *iv_before, upper_bound);
+  cond_expr = build3 (COND_EXPR, void_type_node, cond_expr,
 		      NULL_TREE, NULL_TREE);
-  exit_test = TREE_OPERAND (exit_cond, 0);
+
+  exit_test = TREE_OPERAND(cond_expr, 0);
   exit_test = force_gimple_operand (exit_test, &stmts, true, NULL);
-  TREE_OPERAND (exit_cond, 0) = exit_test;
+  TREE_OPERAND (cond_expr,0) = exit_test;
   if (stmts)
     bsi_insert_after (&bsi, stmts, BSI_NEW_STMT);
 
-  bsi_insert_after (&bsi, exit_cond, BSI_NEW_STMT);
+  bsi = bsi_last (exit_e->src);
+  bsi_insert_after (&bsi, cond_expr, BSI_NEW_STMT);
 
   return loop;
 }

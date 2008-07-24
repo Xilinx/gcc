@@ -107,7 +107,6 @@ static bool computed_goto_p (const_tree);
 /* Flowgraph optimization and cleanup.  */
 static void tree_merge_blocks (basic_block, basic_block);
 static bool tree_can_merge_blocks_p (basic_block, basic_block);
-static void remove_bb (basic_block);
 static edge find_taken_edge_computed_goto (basic_block, tree);
 static edge find_taken_edge_cond_expr (basic_block, tree);
 static edge find_taken_edge_switch_expr (basic_block, tree);
@@ -2029,7 +2028,7 @@ remove_phi_nodes_and_edges_for_unreachable_block (basic_block bb)
 
 /* Remove statements of basic block BB.  */
 
-static void
+void
 remove_bb (basic_block bb)
 {
   block_stmt_iterator i;
