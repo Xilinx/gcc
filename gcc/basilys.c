@@ -141,7 +141,7 @@ struct basilocalsptr_st GTY(()) {
 
 static GTY(()) struct basilocalsptr_st* blocaltab; 
 
-
+static lt_dlhandle proghandle;
 
 
 /* *INDENT-ON* */
@@ -240,7 +240,7 @@ static FILE *debughack_file;
 FILE *basilys_dbgtracefile;
 void *basilys_checkedp_ptr1;
 void *basilys_checkedp_ptr2;
-#endif /*ENABLE_CHECKING*/
+#endif /*ENABLE_CHECKING */
 
 /*** GDBM state ****/
 static GDBM_FILE gdbm_basilys;
@@ -1001,7 +1001,8 @@ forwarded_copy (basilys_ptr_t p)
 	    dst->entab =
 	      (struct entrybasicblocksbasilys_st *) ggc_alloc_cleared (siz *
 								       sizeof
-								       (dst->entab
+								       (dst->
+									entab
 									[0]));
 	    memcpy (dst->entab, src->entab, siz * sizeof (dst->entab[0]));
 	  }
@@ -1452,15 +1453,15 @@ unsafe_index_mapobject (struct entryobjectsbasilys_st *tab,
 		 samehashcnt, (void *) attr, attr->obj_serial, (void *) curat,
 		 curat->obj_serial, curat->obj_hash,
 		 (void *) curat->obj_class,
-		 basilys_string_str (curat->obj_class->
-				     obj_vartab[FNAMED_NAME]));
+		 basilys_string_str (curat->
+				     obj_class->obj_vartab[FNAMED_NAME]));
 	      if (basilys_is_instance_of
 		  ((basilys_ptr_t) attr,
 		   (basilys_ptr_t) BASILYSGOB (CLASS_NAMED)))
 		dbgprintf ("gotten attr named %s found attr named %s",
 			   basilys_string_str (attr->obj_vartab[FNAMED_NAME]),
-			   basilys_string_str (curat->
-					       obj_vartab[FNAMED_NAME]));
+			   basilys_string_str (curat->obj_vartab
+					       [FNAMED_NAME]));
 	      basilys_dbgshortbacktrace
 		("gotten & found attr of same hash & class", 15);
 	    }
@@ -1497,15 +1498,15 @@ unsafe_index_mapobject (struct entryobjectsbasilys_st *tab,
 		 samehashcnt, (void *) attr, attr->obj_serial, (void *) curat,
 		 curat->obj_serial, curat->obj_hash,
 		 (void *) curat->obj_class,
-		 basilys_string_str (curat->obj_class->
-				     obj_vartab[FNAMED_NAME]));
+		 basilys_string_str (curat->
+				     obj_class->obj_vartab[FNAMED_NAME]));
 	      if (basilys_is_instance_of
 		  ((basilys_ptr_t) attr,
 		   (basilys_ptr_t) BASILYSGOB (CLASS_NAMED)))
 		dbgprintf ("gotten attr named %s found attr named %s",
 			   basilys_string_str (attr->obj_vartab[FNAMED_NAME]),
-			   basilys_string_str (curat->
-					       obj_vartab[FNAMED_NAME]));
+			   basilys_string_str (curat->obj_vartab
+					       [FNAMED_NAME]));
 	      basilys_dbgshortbacktrace
 		("gotten & found attr of same hash & class", 15);
 	    }
@@ -5962,7 +5963,8 @@ do_initial_command (basilys_ptr_t modata_p)
 	char *comma = 0;
 	char *pc = 0;
 	arglv = basilysgc_new_list (BASILYSGOB (DISCR_LIST));
-	for (pc = (char*) basilys_arglist_string; pc; pc = comma ? (comma + 1) : 0)
+	for (pc = (char *) basilys_arglist_string; pc;
+	     pc = comma ? (comma + 1) : 0)
 	  {
 	    comma = strchr (pc, ',');
 	    if (comma)
@@ -6165,6 +6167,10 @@ basilys_initialize (void)
   const char *randomseed = 0;
   if (inited)
     return;
+  proghandle = lt_dlopen (NULL);
+  if (!proghandle)
+    fatal_error ("basilys failed to get whole program handle - %s",
+		 lt_dlerror ());
   if (count_basilys_debugskip_string != (char *) 0)
     basilys_debugskipcount = atol (count_basilys_debugskip_string);
   seed = 0;
@@ -6215,23 +6221,54 @@ basilys_initialize (void)
 
 
 static void
-do_finalize_basilys(void)
+do_finalize_basilys (void)
 {
-  BASILYS_ENTERFRAME(1, NULL);
+  BASILYS_ENTERFRAME (1, NULL);
 #define finclosv curfram__.varptr[0]
-  finclosv = basilys_field_object ((basilys_ptr_t)BASILYSGOB(INITIAL_SYSTEM_DATA),
-				   FSYSDAT_EXIT_FINALIZER);
-  if (basilys_magic_discr(finclosv) == OBMAG_CLOSURE)
+  finclosv =
+    basilys_field_object ((basilys_ptr_t) BASILYSGOB (INITIAL_SYSTEM_DATA),
+			  FSYSDAT_EXIT_FINALIZER);
+  if (basilys_magic_discr ((basilys_ptr_t) finclosv) == OBMAG_CLOSURE)
     {
-      BASILYS_LOCATION_HERE("do_finalize_basilys before applying final closure");
+      BASILYS_LOCATION_HERE
+	("do_finalize_basilys before applying final closure");
       (void) basilys_apply ((basilysclosure_ptr_t) finclosv,
-			    (basilys_ptr_t) NULL,
-			    "", NULL, "", NULL);
-      basilys_garbcoll(0, BASILYS_NEED_FULL);
+			    (basilys_ptr_t) NULL, "", NULL, "", NULL);
+      basilys_garbcoll (0, BASILYS_NEED_FULL);
     }
- end:
-  BASILYS_EXITFRAME();
+  BASILYS_EXITFRAME ();
 #undef finclosv
+}
+
+int *
+basilys_dynobjstruct_fieldoffset_at (const char *fldnam, const char *fil,
+				     int lin)
+{
+  char *nam = 0;
+  void *ptr = 0;
+  nam = concat ("fieldoff__", fldnam, NULL);
+  ptr = lt_dlsym (proghandle, nam);
+  if (!ptr)
+    fatal_error ("basilys failed to find field offset %s - %s (%s:%d)", nam,
+		 lt_dlerror (), fil, lin);
+  free (nam);
+  return (int *) ptr;
+}
+
+
+int *
+basilys_dynobjstruct_classlength_at (const char *clanam, const char *fil,
+				     int lin)
+{
+  char *nam = 0;
+  void *ptr = 0;
+  nam = concat ("classlen__", clanam, NULL);
+  ptr = lt_dlsym (proghandle, nam);
+  if (!ptr)
+    fatal_error ("basilys failed to find class length %s - %s (%s:%d)", nam,
+		 lt_dlerror (), fil, lin);
+  free (nam);
+  return (int *) ptr;
 }
 
 
@@ -6246,7 +6283,7 @@ DEF_VEC_ALLOC_P (char_p, heap);
 void
 basilys_finalize (void)
 {
-  do_finalize_basilys();
+  do_finalize_basilys ();
   debugeprintf ("basilys_finalize with %ld GarbColl, %ld fullGc",
 		basilys_nb_garbcoll, basilys_nb_full_garbcoll);
   if (gdbm_basilys)
@@ -6284,7 +6321,7 @@ basilys_finalize (void)
 	/* @@@ I don't know if it should be a warning or a fatal error -
 	   we are finalizing! */
 	warning (0, "failed to rmdir basilys tempdir %s (%s)",
-		 tempdir_basilys, strerror(errno));
+		 tempdir_basilys, strerror (errno));
     }
 }
 
@@ -6802,7 +6839,7 @@ get_basilys_gdbm (void)
   if (!basilys_gdbmstate_string || !basilys_gdbmstate_string[0])
     return NULL;
   gdbm_basilys =
-    gdbm_open ((char*) basilys_gdbmstate_string, 8192, GDBM_WRCREAT, 0600,
+    gdbm_open ((char *) basilys_gdbmstate_string, 8192, GDBM_WRCREAT, 0600,
 	       fatal_gdbm);
   if (!gdbm_basilys)
     fatal_error ("failed to lazily open basilys GDBM (%s) - %m",
@@ -6811,9 +6848,9 @@ get_basilys_gdbm (void)
 }
 
 bool
-basilys_has_gdbmstate(void) 
+basilys_has_gdbmstate (void)
 {
-  return get_basilys_gdbm() != NULL;
+  return get_basilys_gdbm () != NULL;
 }
 
 basilys_ptr_t
@@ -6826,12 +6863,12 @@ basilysgc_fetch_gdbmstate_constr (const char *key)
 #define restrv curfram__.varptr[0]
   if (!dbf || !key || !key[0])
     goto end;
-  keydata.dptr = (char*) key;
+  keydata.dptr = (char *) key;
   keydata.dsize = strlen (key);
   valdata = gdbm_fetch (dbf, keydata);
   if (valdata.dptr != NULL && valdata.dsize >= 0)
     {
-      gcc_assert ((int)valdata.dsize == (int)strlen (valdata.dptr));
+      gcc_assert ((int) valdata.dsize == (int) strlen (valdata.dptr));
       restrv = basilysgc_new_string (BASILYSGOB (DISCR_STRING), valdata.dptr);
       free (valdata.dptr);
       valdata.dptr = 0;
@@ -6859,24 +6896,25 @@ basilysgc_fetch_gdbmstate (basilys_ptr_t key_p)
   keymagic = basilys_magic_discr ((basilys_ptr_t) keyv);
   if (keymagic == OBMAG_STRING)
     {
-      keydata.dptr = (char*)basilys_string_str ((basilys_ptr_t) keyv);
+      keydata.dptr = (char *) basilys_string_str ((basilys_ptr_t) keyv);
       keydata.dsize = strlen (keydata.dptr);
       valdata = gdbm_fetch (dbf, keydata);
     }
   else if (keymagic == OBMAG_STRBUF)
     {
-      keydata.dptr = (char*)basilys_strbuf_str ((basilys_ptr_t) keyv);
+      keydata.dptr = (char *) basilys_strbuf_str ((basilys_ptr_t) keyv);
       keydata.dsize = strlen (keydata.dptr);
       valdata = gdbm_fetch (dbf, keydata);
     }
   else if (keymagic == OBMAG_OBJECT
 	   && basilys_is_instance_of ((basilys_ptr_t) keyv,
-				      (basilys_ptr_t) BASILYSGOB (CLASS_NAMED)))
+				      (basilys_ptr_t)
+				      BASILYSGOB (CLASS_NAMED)))
     {
       kstrv = basilys_field_object ((basilys_ptr_t) keyv, FNAMED_NAME);
       if (basilys_magic_discr ((basilys_ptr_t) kstrv) == OBMAG_STRING)
 	{
-	  keydata.dptr = (char*) basilys_string_str ((basilys_ptr_t) kstrv);
+	  keydata.dptr = (char *) basilys_string_str ((basilys_ptr_t) kstrv);
 	  keydata.dsize = strlen (keydata.dptr);
 	  valdata = gdbm_fetch (dbf, keydata);
 	}
@@ -6915,7 +6953,7 @@ basilysgc_put_gdbmstate_constr (const char *key, basilys_ptr_t data_p)
   datav = data_p;
   if (!dbf || !key || !key[0])
     goto end;
-  keydata.dptr = (char*) key;
+  keydata.dptr = (char *) key;
   keydata.dsize = strlen (key);
   if (!datav)
     {
@@ -6925,24 +6963,25 @@ basilysgc_put_gdbmstate_constr (const char *key, basilys_ptr_t data_p)
   datamagic = basilys_magic_discr ((basilys_ptr_t) datav);
   if (datamagic == OBMAG_STRING)
     {
-      valdata.dptr = (char*) basilys_string_str ((basilys_ptr_t) datav);
+      valdata.dptr = (char *) basilys_string_str ((basilys_ptr_t) datav);
       valdata.dsize = strlen (keydata.dptr);
       gdbm_store (dbf, keydata, valdata, GDBM_REPLACE);
     }
   else if (datamagic == OBMAG_STRBUF)
     {
-      valdata.dptr = (char*) basilys_strbuf_str ((basilys_ptr_t) datav);
+      valdata.dptr = (char *) basilys_strbuf_str ((basilys_ptr_t) datav);
       valdata.dsize = strlen (keydata.dptr);
       gdbm_store (dbf, keydata, valdata, GDBM_REPLACE);
     }
   else if (datamagic == OBMAG_OBJECT
 	   && basilys_is_instance_of ((basilys_ptr_t) datav,
-				      (basilys_ptr_t) BASILYSGOB (CLASS_NAMED)))
+				      (basilys_ptr_t)
+				      BASILYSGOB (CLASS_NAMED)))
     {
       dstrv = basilys_field_object ((basilys_ptr_t) datav, FNAMED_NAME);
       if (basilys_magic_discr ((basilys_ptr_t) dstrv) == OBMAG_STRING)
 	{
-	  valdata.dptr = (char*) basilys_string_str ((basilys_ptr_t) dstrv);
+	  valdata.dptr = (char *) basilys_string_str ((basilys_ptr_t) dstrv);
 	  valdata.dsize = strlen (keydata.dptr);
 	  gdbm_store (dbf, keydata, valdata, GDBM_REPLACE);
 	}
@@ -6988,6 +7027,7 @@ basilysgc_put_gdbmstate (basilys_ptr_t key_p, basilys_ptr_t data_p)
     }
   else if (keymagic == OBMAG_OBJECT
 	   && basilys_is_instance_of ((basilys_ptr_t) keyv,
+				      (basilys_ptr_t)
 				      BASILYSGOB (CLASS_NAMED)))
     {
       kstrv = basilys_field_object ((basilys_ptr_t) keyv, FNAMED_NAME);
@@ -7009,18 +7049,19 @@ basilysgc_put_gdbmstate (basilys_ptr_t key_p, basilys_ptr_t data_p)
   datamagic = basilys_magic_discr ((basilys_ptr_t) datav);
   if (datamagic == OBMAG_STRING)
     {
-      valdata.dptr = (char*) basilys_string_str ((basilys_ptr_t) datav);
+      valdata.dptr = (char *) basilys_string_str ((basilys_ptr_t) datav);
       valdata.dsize = strlen (keydata.dptr);
       gdbm_store (dbf, keydata, valdata, GDBM_REPLACE);
     }
   else if (datamagic == OBMAG_STRBUF)
     {
-      valdata.dptr = (char*) basilys_strbuf_str ((basilys_ptr_t) datav);
+      valdata.dptr = (char *) basilys_strbuf_str ((basilys_ptr_t) datav);
       valdata.dsize = strlen (keydata.dptr);
       gdbm_store (dbf, keydata, valdata, GDBM_REPLACE);
     }
   else if (datamagic == OBMAG_OBJECT
 	   && basilys_is_instance_of ((basilys_ptr_t) datav,
+				      (basilys_ptr_t)
 				      BASILYSGOB (CLASS_NAMED)))
     {
       dstrv = basilys_field_object ((basilys_ptr_t) datav, FNAMED_NAME);

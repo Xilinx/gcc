@@ -1,3 +1,29 @@
+2008-07-24  Basile Starynkevitch  <basile@starynkevitch.net>
+	[adding dynamic fields offsets & class length]
+
+	* basilys.c: (basilys_dynobjstruct_fieldoffset_at,
+	basilys_dynobjstruct_classlength_at): new functions.
+	(basilys_initialize) call lt_dlopen(NULL).
+
+	* basilys.h: added basilys_raw_object_create & basilys_object_get_field macros.
+	adding MELTGCC_DYNAMIC_OBJSTRUCT specific code.
+
+	* melt/warmelt-outobj.bysl: outputting calls to macros above.
+
+	* melt/warmelt-genobj.bysl: changed comment for oslot_field.
+
+	* melt-cc-script.proto: added -d option for MELTGCC_DYNAMIC_OBJSTRUCT.
+
+	* warmelt-first-0.c: regenerated.
+
+	* warmelt-macro-0.c: regenerated.
+
+	* warmelt-normal-0.c: regenerated.
+
+	* warmelt-genobj-0.c: regenerated.
+
+	* warmelt-outobj-0.c: regenerated.
+
 2008-07-23  Basile Starynkevitch  <basile@starynkevitch.net>
 	[preparing ability to compute dynamically & generate field offsets
 	& class length for warm*0.so to permit extension of internal

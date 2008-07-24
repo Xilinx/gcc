@@ -331,7 +331,7 @@
   :super class_objinstr
   :fields ( oslot_odata			;the object data to put
 	    oslot_offset		;numerical offset
-	    oslot_field			;the [optional] field (only for generated comment)
+	    oslot_field			;the [optional] field 
 	    oslot_value			;the new value
 ))
 

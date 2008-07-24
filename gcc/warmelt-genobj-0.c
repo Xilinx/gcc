@@ -1,5 +1,5 @@
 /* GCC BASILYS GENERATED FILE warmelt-genobj-3.c - DO NOT EDIT */
-/* generated on Wed Jul 23 17:01:45 2008 */
+/* generated on Thu Jul 24 12:05:30 2008 */
 
 #include "run-basilys.h"
 
@@ -764,7 +764,8 @@ BASILYS_LOCATION("warmelt-genobj.bysl:535: @block");
    (basilys_discr((basilys_ptr_t)(/*_.RECV__V2*/ curfptr[1])));;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:539: @getslot");
-  /*_.NAMED_NAME__V8*/ curfptr[7] = basilys_getfield_object((basilys_ptr_t)(/*_.DISCR__V7*/ curfptr[6]), 1, "NAMED_NAME");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.DISCR__V7*/ curfptr[6]), 1, "NAMED_NAME");/*_.NAMED_NAME__V8*/ curfptr[7] = slot; };
   ;
   
   basilys_putstr(stderr, (basilys_ptr_t)(/*_.NAMED_NAME__V8*/ curfptr[7]));
@@ -995,7 +996,8 @@ BASILYS_LOCATION("warmelt-genobj.bysl:545: @block");
    (basilys_discr((basilys_ptr_t)(/*_.RECV__V2*/ curfptr[1])));;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:549: @getslot");
-  /*_.NAMED_NAME__V9*/ curfptr[8] = basilys_getfield_object((basilys_ptr_t)(/*_.DISCR__V8*/ curfptr[6]), 1, "NAMED_NAME");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.DISCR__V8*/ curfptr[6]), 1, "NAMED_NAME");/*_.NAMED_NAME__V9*/ curfptr[8] = slot; };
   ;
   
   basilys_putstr(stderr, (basilys_ptr_t)(/*_.NAMED_NAME__V9*/ curfptr[8]));
@@ -1226,7 +1228,8 @@ BASILYS_LOCATION("warmelt-genobj.bysl:555: @block");
    (basilys_discr((basilys_ptr_t)(/*_.RECV__V2*/ curfptr[1])));;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:560: @getslot");
-  /*_.NAMED_NAME__V9*/ curfptr[8] = basilys_getfield_object((basilys_ptr_t)(/*_.DISCR__V8*/ curfptr[6]), 1, "NAMED_NAME");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.DISCR__V8*/ curfptr[6]), 1, "NAMED_NAME");/*_.NAMED_NAME__V9*/ curfptr[8] = slot; };
   ;
   
   basilys_putstr(stderr, (basilys_ptr_t)(/*_.NAMED_NAME__V9*/ curfptr[8]));
@@ -1413,7 +1416,8 @@ BASILYS_LOCATION("warmelt-genobj.bysl:566: @block");
   ;
  
  BASILYS_LOCATION("warmelt-genobj.bysl:568: @getslot");
- /*_.OBV_TYPE__V6*/ curfptr[4] = basilys_getfield_object((basilys_ptr_t)(/*_.RECV__V2*/ curfptr[1]), 0, "OBV_TYPE");
+ { basilys_ptr_t slot=0;
+  basilys_object_get_field(slot,(basilys_ptr_t)(/*_.RECV__V2*/ curfptr[1]), 0, "OBV_TYPE");/*_.OBV_TYPE__V6*/ curfptr[4] = slot; };
  ;
  
  BASILYS_LOCATION("warmelt-genobj.bysl:566: @block");
@@ -1896,7 +1900,8 @@ BASILYS_LOCATION("warmelt-genobj.bysl:591: @block");
  /*block*/{
   
   BASILYS_LOCATION("warmelt-genobj.bysl:595: @getslot");
-  /*_.DESTL__V11*/ curfptr[10] = basilys_getfield_object((basilys_ptr_t)(/*_.RECV__V2*/ curfptr[1]), 1, "OBDI_DESTLIST");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.RECV__V2*/ curfptr[1]), 1, "OBDI_DESTLIST");/*_.DESTL__V11*/ curfptr[10] = slot; };
   ;
   /*_#IS_LIST__L4*/ curfnum[0] = 
    (basilys_magic_discr((basilys_ptr_t)(/*_.DESTL__V11*/ curfptr[10])) == OBMAG_LIST);;
@@ -1922,9 +1927,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:591: @block");
      BASILYS_LOCATION("warmelt-genobj.bysl:599: @putslot");
      /*putslot*/
      basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.RECV__V2*/ curfptr[1])) == OBMAG_OBJECT);
-     basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.RECV__V2*/ curfptr[1]))));
-     ((basilysobject_ptr_t)(/*_.RECV__V2*/ curfptr[1]))->obj_vartab[1 /*OBDI_DESTLIST*/] = (basilys_ptr_t)(
-      /*_.DESTL__V11*/ curfptr[10]);
+     basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.RECV__V2*/ curfptr[1]))));basilys_putfield_object((/*_.RECV__V2*/ curfptr[1]), (1), (/*_.DESTL__V11*/ curfptr[10]), "OBDI_DESTLIST");
      ;
      
      BASILYS_LOCATION("warmelt-genobj.bysl:599: @touch");
@@ -2471,7 +2474,8 @@ BASILYS_LOCATION("warmelt-genobj.bysl:639: @block");
     /*block*/{
      
      BASILYS_LOCATION("warmelt-genobj.bysl:651: @getslot");
-     /*_.PRONAM__V16*/ curfptr[15] = basilys_getfield_object((basilys_ptr_t)(/*_.PRO__V2*/ curfptr[1]), 2, "NRPRO_NAME");
+     { basilys_ptr_t slot=0;
+      basilys_object_get_field(slot,(basilys_ptr_t)(/*_.PRO__V2*/ curfptr[1]), 2, "NRPRO_NAME");/*_.PRONAM__V16*/ curfptr[15] = slot; };
      ;
      /*_#IS_A__L7*/ curfnum[6] = 
        basilys_is_instance_of((basilys_ptr_t)(/*_.PRONAM__V16*/ curfptr[15]), (basilys_ptr_t)((/*!CLASS_NAMED*/ curfrout->tabval[4])));;
@@ -2485,7 +2489,8 @@ BASILYS_LOCATION("warmelt-genobj.bysl:639: @block");
       /*block*/{
        
        BASILYS_LOCATION("warmelt-genobj.bysl:655: @getslot");
-       /*_.NAMED_NAME__V17*/ curfptr[16] = basilys_getfield_object((basilys_ptr_t)(/*_.PRONAM__V16*/ curfptr[15]), 1, "NAMED_NAME");
+       { basilys_ptr_t slot=0;
+        basilys_object_get_field(slot,(basilys_ptr_t)(/*_.PRONAM__V16*/ curfptr[15]), 1, "NAMED_NAME");/*_.NAMED_NAME__V17*/ curfptr[16] = slot; };
        ;
        
        BASILYS_LOCATION("warmelt-genobj.bysl:655: @compute");
@@ -2494,7 +2499,8 @@ BASILYS_LOCATION("warmelt-genobj.bysl:639: @block");
        basilysgc_add_strbuf((struct basilysstrbuf_st *)(/*_.NAMSBUF__V14*/ curfptr[13]), ( "_"));
        
        BASILYS_LOCATION("warmelt-genobj.bysl:657: @getslot");
-       /*_.NAMED_NAME__V19*/ curfptr[18] = basilys_getfield_object((basilys_ptr_t)(/*_.PRONAM__V16*/ curfptr[15]), 1, "NAMED_NAME");
+       { basilys_ptr_t slot=0;
+        basilys_object_get_field(slot,(basilys_ptr_t)(/*_.PRONAM__V16*/ curfptr[15]), 1, "NAMED_NAME");/*_.NAMED_NAME__V19*/ curfptr[18] = slot; };
        ;
        
        basilysgc_add_strbuf_cident((struct basilysstrbuf_st *)(/*_.NAMSBUF__V14*/ curfptr[13]), basilys_string_str((basilys_ptr_t)(/*_.NAMED_NAME__V19*/ curfptr[18])));
@@ -2532,11 +2538,13 @@ BASILYS_LOCATION("warmelt-genobj.bysl:639: @block");
   /*block*/{
    
    BASILYS_LOCATION("warmelt-genobj.bysl:660: @getslot");
-   /*_.NBODY__V21*/ curfptr[17] = basilys_getfield_object((basilys_ptr_t)(/*_.PRO__V2*/ curfptr[1]), 1, "NPROC_BODY");
+   { basilys_ptr_t slot=0;
+    basilys_object_get_field(slot,(basilys_ptr_t)(/*_.PRO__V2*/ curfptr[1]), 1, "NPROC_BODY");/*_.NBODY__V21*/ curfptr[17] = slot; };
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:661: @getslot");
-   /*_.NLOC__V22*/ curfptr[18] = basilys_getfield_object((basilys_ptr_t)(/*_.PRO__V2*/ curfptr[1]), 0, "NREP_LOC");
+   { basilys_ptr_t slot=0;
+    basilys_object_get_field(slot,(basilys_ptr_t)(/*_.PRO__V2*/ curfptr[1]), 0, "NREP_LOC");/*_.NLOC__V22*/ curfptr[18] = slot; };
    ;
    /*_#IS_A__L8*/ curfnum[6] = 
      basilys_is_instance_of((basilys_ptr_t)(/*_.PRO__V2*/ curfptr[1]), (basilys_ptr_t)((/*!CLASS_NREP_ROUTPROC*/ curfrout->tabval[1])));;
@@ -2550,7 +2558,8 @@ BASILYS_LOCATION("warmelt-genobj.bysl:639: @block");
     /*block*/{
      
      BASILYS_LOCATION("warmelt-genobj.bysl:662: @getslot");
-     /*_.NRPRO_ARGB__V24*/ curfptr[23] = basilys_getfield_object((basilys_ptr_t)(/*_.PRO__V2*/ curfptr[1]), 3, "NRPRO_ARGB");
+     { basilys_ptr_t slot=0;
+      basilys_object_get_field(slot,(basilys_ptr_t)(/*_.PRO__V2*/ curfptr[1]), 3, "NRPRO_ARGB");/*_.NRPRO_ARGB__V24*/ curfptr[23] = slot; };
      ;
      /*_.NARGB__V23*/ curfptr[15] = /*_.NRPRO_ARGB__V24*/ curfptr[23];;
      /*epilog*/
@@ -2579,72 +2588,57 @@ BASILYS_LOCATION("warmelt-genobj.bysl:639: @block");
    /*block*/{
     
     BASILYS_LOCATION("warmelt-genobj.bysl:664: @rawallocobj");
-    /*rawallocobj*/ /*_.INST__V31*/ curfptr[30] =
-     basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_PROCROUTINEOBJ*/ curfrout->tabval[6])), (11), ("CLASS_PROCROUTINEOBJ"));
+    /*rawallocobj*/ { basilys_ptr_t newobj = 0;
+     basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_PROCROUTINEOBJ*/ curfrout->tabval[6])), (11), "CLASS_PROCROUTINEOBJ");/*_.INST__V31*/ curfptr[30] =
+     newobj; };
     ;
     
     BASILYS_LOCATION("warmelt-genobj.bysl:664: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V31*/ curfptr[30])) == OBMAG_OBJECT);
-    basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V31*/ curfptr[30]))));
-    ((basilysobject_ptr_t)(/*_.INST__V31*/ curfptr[30]))->obj_vartab[1 /*NAMED_NAME*/] = (basilys_ptr_t)(
-     /*_.STRBUF2STRING__V26*/ curfptr[25]);
+    basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V31*/ curfptr[30]))));basilys_putfield_object((/*_.INST__V31*/ curfptr[30]), (1), (/*_.STRBUF2STRING__V26*/ curfptr[25]), "NAMED_NAME");
     ;
     
     BASILYS_LOCATION("warmelt-genobj.bysl:664: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V31*/ curfptr[30])) == OBMAG_OBJECT);
-    basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V31*/ curfptr[30]))));
-    ((basilysobject_ptr_t)(/*_.INST__V31*/ curfptr[30]))->obj_vartab[2 /*OBROUT_PROC*/] = (basilys_ptr_t)(
-     /*_.PRO__V2*/ curfptr[1]);
+    basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V31*/ curfptr[30]))));basilys_putfield_object((/*_.INST__V31*/ curfptr[30]), (2), (/*_.PRO__V2*/ curfptr[1]), "OBROUT_PROC");
     ;
     
     BASILYS_LOCATION("warmelt-genobj.bysl:664: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V31*/ curfptr[30])) == OBMAG_OBJECT);
-    basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)(/*_.INST__V31*/ curfptr[30]))));
-    ((basilysobject_ptr_t)(/*_.INST__V31*/ curfptr[30]))->obj_vartab[3 /*OBROUT_BODY*/] = (basilys_ptr_t)(
-     /*_.OBODYLIST__V25*/ curfptr[23]);
+    basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)(/*_.INST__V31*/ curfptr[30]))));basilys_putfield_object((/*_.INST__V31*/ curfptr[30]), (3), (/*_.OBODYLIST__V25*/ curfptr[23]), "OBROUT_BODY");
     ;
     
     BASILYS_LOCATION("warmelt-genobj.bysl:664: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V31*/ curfptr[30])) == OBMAG_OBJECT);
-    basilys_assertmsg("putslot checkoff", (4>=0 && 4< basilys_object_length((basilys_ptr_t)(/*_.INST__V31*/ curfptr[30]))));
-    ((basilysobject_ptr_t)(/*_.INST__V31*/ curfptr[30]))->obj_vartab[4 /*OBROUT_NBVAL*/] = (basilys_ptr_t)(
-     /*_.MAKE_INTEGERBOX__V27*/ curfptr[26]);
+    basilys_assertmsg("putslot checkoff", (4>=0 && 4< basilys_object_length((basilys_ptr_t)(/*_.INST__V31*/ curfptr[30]))));basilys_putfield_object((/*_.INST__V31*/ curfptr[30]), (4), (/*_.MAKE_INTEGERBOX__V27*/ curfptr[26]), "OBROUT_NBVAL");
     ;
     
     BASILYS_LOCATION("warmelt-genobj.bysl:664: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V31*/ curfptr[30])) == OBMAG_OBJECT);
-    basilys_assertmsg("putslot checkoff", (5>=0 && 5< basilys_object_length((basilys_ptr_t)(/*_.INST__V31*/ curfptr[30]))));
-    ((basilysobject_ptr_t)(/*_.INST__V31*/ curfptr[30]))->obj_vartab[5 /*OBROUT_NBLONG*/] = (basilys_ptr_t)(
-     /*_.MAKE_INTEGERBOX__V28*/ curfptr[27]);
+    basilys_assertmsg("putslot checkoff", (5>=0 && 5< basilys_object_length((basilys_ptr_t)(/*_.INST__V31*/ curfptr[30]))));basilys_putfield_object((/*_.INST__V31*/ curfptr[30]), (5), (/*_.MAKE_INTEGERBOX__V28*/ curfptr[27]), "OBROUT_NBLONG");
     ;
     
     BASILYS_LOCATION("warmelt-genobj.bysl:664: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V31*/ curfptr[30])) == OBMAG_OBJECT);
-    basilys_assertmsg("putslot checkoff", (6>=0 && 6< basilys_object_length((basilys_ptr_t)(/*_.INST__V31*/ curfptr[30]))));
-    ((basilysobject_ptr_t)(/*_.INST__V31*/ curfptr[30]))->obj_vartab[6 /*OBROUT_OTHERS*/] = (basilys_ptr_t)(
-     /*_.MAKE_LIST__V29*/ curfptr[28]);
+    basilys_assertmsg("putslot checkoff", (6>=0 && 6< basilys_object_length((basilys_ptr_t)(/*_.INST__V31*/ curfptr[30]))));basilys_putfield_object((/*_.INST__V31*/ curfptr[30]), (6), (/*_.MAKE_LIST__V29*/ curfptr[28]), "OBROUT_OTHERS");
     ;
     
     BASILYS_LOCATION("warmelt-genobj.bysl:664: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V31*/ curfptr[30])) == OBMAG_OBJECT);
-    basilys_assertmsg("putslot checkoff", (9>=0 && 9< basilys_object_length((basilys_ptr_t)(/*_.INST__V31*/ curfptr[30]))));
-    ((basilysobject_ptr_t)(/*_.INST__V31*/ curfptr[30]))->obj_vartab[9 /*OPROUT_LOC*/] = (basilys_ptr_t)(
-     /*_.NLOC__V22*/ curfptr[18]);
+    basilys_assertmsg("putslot checkoff", (9>=0 && 9< basilys_object_length((basilys_ptr_t)(/*_.INST__V31*/ curfptr[30]))));basilys_putfield_object((/*_.INST__V31*/ curfptr[30]), (9), (/*_.NLOC__V22*/ curfptr[18]), "OPROUT_LOC");
     ;
     
     BASILYS_LOCATION("warmelt-genobj.bysl:664: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V31*/ curfptr[30])) == OBMAG_OBJECT);
-    basilys_assertmsg("putslot checkoff", (10>=0 && 10< basilys_object_length((basilys_ptr_t)(/*_.INST__V31*/ curfptr[30]))));
-    ((basilysobject_ptr_t)(/*_.INST__V31*/ curfptr[30]))->obj_vartab[10 /*OPROUT_FUNAM*/] = (basilys_ptr_t)(
-     /*_.ROUTFUNAM__V15*/ curfptr[14]);
+    basilys_assertmsg("putslot checkoff", (10>=0 && 10< basilys_object_length((basilys_ptr_t)(/*_.INST__V31*/ curfptr[30]))));basilys_putfield_object((/*_.INST__V31*/ curfptr[30]), (10), (/*_.ROUTFUNAM__V15*/ curfptr[14]), "OPROUT_FUNAM");
     ;
     /*_.OBROUT__V30*/ curfptr[29] = /*_.INST__V31*/ curfptr[30];;}
    ;
@@ -2667,64 +2661,51 @@ BASILYS_LOCATION("warmelt-genobj.bysl:639: @block");
    /*block*/{
     
     BASILYS_LOCATION("warmelt-genobj.bysl:676: @rawallocobj");
-    /*rawallocobj*/ /*_.INST__V37*/ curfptr[36] =
-     basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_GENERCONTEXT*/ curfrout->tabval[10])), (8), ("CLASS_GENERCONTEXT"));
+    /*rawallocobj*/ { basilys_ptr_t newobj = 0;
+     basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_GENERCONTEXT*/ curfrout->tabval[10])), (8), "CLASS_GENERCONTEXT");/*_.INST__V37*/ curfptr[36] =
+     newobj; };
     ;
     
     BASILYS_LOCATION("warmelt-genobj.bysl:676: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V37*/ curfptr[36])) == OBMAG_OBJECT);
-    basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V37*/ curfptr[36]))));
-    ((basilysobject_ptr_t)(/*_.INST__V37*/ curfptr[36]))->obj_vartab[0 /*GNCX_OBJROUT*/] = (basilys_ptr_t)(
-     /*_.OBROUT__V30*/ curfptr[29]);
+    basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V37*/ curfptr[36]))));basilys_putfield_object((/*_.INST__V37*/ curfptr[36]), (0), (/*_.OBROUT__V30*/ curfptr[29]), "GNCX_OBJROUT");
     ;
     
     BASILYS_LOCATION("warmelt-genobj.bysl:676: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V37*/ curfptr[36])) == OBMAG_OBJECT);
-    basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V37*/ curfptr[36]))));
-    ((basilysobject_ptr_t)(/*_.INST__V37*/ curfptr[36]))->obj_vartab[1 /*GNCX_LOCMAP*/] = (basilys_ptr_t)(
-     /*_.LOCMAP__V32*/ curfptr[31]);
+    basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V37*/ curfptr[36]))));basilys_putfield_object((/*_.INST__V37*/ curfptr[36]), (1), (/*_.LOCMAP__V32*/ curfptr[31]), "GNCX_LOCMAP");
     ;
     
     BASILYS_LOCATION("warmelt-genobj.bysl:676: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V37*/ curfptr[36])) == OBMAG_OBJECT);
-    basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V37*/ curfptr[36]))));
-    ((basilysobject_ptr_t)(/*_.INST__V37*/ curfptr[36]))->obj_vartab[2 /*GNCX_FREEPTRLIST*/] = (basilys_ptr_t)(
-     /*_.MAKE_LIST__V33*/ curfptr[32]);
+    basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V37*/ curfptr[36]))));basilys_putfield_object((/*_.INST__V37*/ curfptr[36]), (2), (/*_.MAKE_LIST__V33*/ curfptr[32]), "GNCX_FREEPTRLIST");
     ;
     
     BASILYS_LOCATION("warmelt-genobj.bysl:676: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V37*/ curfptr[36])) == OBMAG_OBJECT);
-    basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)(/*_.INST__V37*/ curfptr[36]))));
-    ((basilysobject_ptr_t)(/*_.INST__V37*/ curfptr[36]))->obj_vartab[3 /*GNCX_FREELONGLIST*/] = (basilys_ptr_t)(
-     /*_.MAKE_LIST__V34*/ curfptr[33]);
+    basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)(/*_.INST__V37*/ curfptr[36]))));basilys_putfield_object((/*_.INST__V37*/ curfptr[36]), (3), (/*_.MAKE_LIST__V34*/ curfptr[33]), "GNCX_FREELONGLIST");
     ;
     
     BASILYS_LOCATION("warmelt-genobj.bysl:676: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V37*/ curfptr[36])) == OBMAG_OBJECT);
-    basilys_assertmsg("putslot checkoff", (4>=0 && 4< basilys_object_length((basilys_ptr_t)(/*_.INST__V37*/ curfptr[36]))));
-    ((basilysobject_ptr_t)(/*_.INST__V37*/ curfptr[36]))->obj_vartab[4 /*GNCX_FREEOTHERMAPS*/] = (basilys_ptr_t)(
-     /*_.MAKE_MAPOBJECT__V35*/ curfptr[34]);
+    basilys_assertmsg("putslot checkoff", (4>=0 && 4< basilys_object_length((basilys_ptr_t)(/*_.INST__V37*/ curfptr[36]))));basilys_putfield_object((/*_.INST__V37*/ curfptr[36]), (4), (/*_.MAKE_MAPOBJECT__V35*/ curfptr[34]), "GNCX_FREEOTHERMAPS");
     ;
     
     BASILYS_LOCATION("warmelt-genobj.bysl:676: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V37*/ curfptr[36])) == OBMAG_OBJECT);
-    basilys_assertmsg("putslot checkoff", (6>=0 && 6< basilys_object_length((basilys_ptr_t)(/*_.INST__V37*/ curfptr[36]))));
-    ((basilysobject_ptr_t)(/*_.INST__V37*/ curfptr[36]))->obj_vartab[6 /*GNCX_COMPICACHE*/] = (basilys_ptr_t)(
-     /*_.COMPICACHE__V4*/ curfptr[3]);
+    basilys_assertmsg("putslot checkoff", (6>=0 && 6< basilys_object_length((basilys_ptr_t)(/*_.INST__V37*/ curfptr[36]))));basilys_putfield_object((/*_.INST__V37*/ curfptr[36]), (6), (/*_.COMPICACHE__V4*/ curfptr[3]), "GNCX_COMPICACHE");
     ;
     
     BASILYS_LOCATION("warmelt-genobj.bysl:676: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V37*/ curfptr[36])) == OBMAG_OBJECT);
-    basilys_assertmsg("putslot checkoff", (7>=0 && 7< basilys_object_length((basilys_ptr_t)(/*_.INST__V37*/ curfptr[36]))));
-    ((basilysobject_ptr_t)(/*_.INST__V37*/ curfptr[36]))->obj_vartab[7 /*GNCX_MODULCONTEXT*/] = (basilys_ptr_t)(
-     /*_.MODCTX__V3*/ curfptr[2]);
+    basilys_assertmsg("putslot checkoff", (7>=0 && 7< basilys_object_length((basilys_ptr_t)(/*_.INST__V37*/ curfptr[36]))));basilys_putfield_object((/*_.INST__V37*/ curfptr[36]), (7), (/*_.MODCTX__V3*/ curfptr[2]), "GNCX_MODULCONTEXT");
     ;
     /*_.GCX__V36*/ curfptr[35] = /*_.INST__V37*/ curfptr[36];;}
    ;
@@ -2749,9 +2730,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:639: @block");
      BASILYS_LOCATION("warmelt-genobj.bysl:687: @putslot");
      /*putslot*/
      basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.GCX__V36*/ curfptr[35])) == OBMAG_OBJECT);
-     basilys_assertmsg("putslot checkoff", (5>=0 && 5< basilys_object_length((basilys_ptr_t)(/*_.GCX__V36*/ curfptr[35]))));
-     ((basilysobject_ptr_t)(/*_.GCX__V36*/ curfptr[35]))->obj_vartab[5 /*GNCX_RETLOC*/] = (basilys_ptr_t)(
-      /*_.RETL__V39*/ curfptr[38]);
+     basilys_assertmsg("putslot checkoff", (5>=0 && 5< basilys_object_length((basilys_ptr_t)(/*_.GCX__V36*/ curfptr[35]))));basilys_putfield_object((/*_.GCX__V36*/ curfptr[35]), (5), (/*_.RETL__V39*/ curfptr[38]), "GNCX_RETLOC");
      ;
      
      BASILYS_LOCATION("warmelt-genobj.bysl:687: @touch");
@@ -2817,9 +2796,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:639: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:718: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.OBROUT__V30*/ curfptr[29])) == OBMAG_OBJECT);
-    basilys_assertmsg("putslot checkoff", (8>=0 && 8< basilys_object_length((basilys_ptr_t)(/*_.OBROUT__V30*/ curfptr[29]))));
-    ((basilysobject_ptr_t)(/*_.OBROUT__V30*/ curfptr[29]))->obj_vartab[8 /*OPROUT_GETARGS*/] = (basilys_ptr_t)(
-     /*_.GTATUP__V43*/ curfptr[42]);
+    basilys_assertmsg("putslot checkoff", (8>=0 && 8< basilys_object_length((basilys_ptr_t)(/*_.OBROUT__V30*/ curfptr[29]))));basilys_putfield_object((/*_.OBROUT__V30*/ curfptr[29]), (8), (/*_.GTATUP__V43*/ curfptr[42]), "OPROUT_GETARGS");
     ;
     
     BASILYS_LOCATION("warmelt-genobj.bysl:718: @touch");
@@ -2969,7 +2946,8 @@ BASILYS_LOCATION("warmelt-genobj.bysl:639: @block");
      /*block*/{
       
       BASILYS_LOCATION("warmelt-genobj.bysl:723: @getslot");
-      /*_.PTHULS__V52*/ curfptr[51] = basilys_getfield_object((basilys_ptr_t)(/*_.PRO__V2*/ curfptr[1]), 8, "NRPRO_THUNKLIST");
+      { basilys_ptr_t slot=0;
+       basilys_object_get_field(slot,(basilys_ptr_t)(/*_.PRO__V2*/ curfptr[1]), 8, "NRPRO_THUNKLIST");/*_.PTHULS__V52*/ curfptr[51] = slot; };
       ;
       
       #if ENABLE_CHECKING
@@ -3415,11 +3393,13 @@ BASILYS_LOCATION("warmelt-genobj.bysl:692: @block");
  /*block*/{
   
   BASILYS_LOCATION("warmelt-genobj.bysl:695: @getslot");
-  /*_.BCTYP__V6*/ curfptr[5] = basilys_getfield_object((basilys_ptr_t)(/*_.BND__V2*/ curfptr[1]), 1, "FBIND_TYPE");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.BND__V2*/ curfptr[1]), 1, "FBIND_TYPE");/*_.BCTYP__V6*/ curfptr[5] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:696: @getslot");
-  /*_.BNAM__V7*/ curfptr[6] = basilys_getfield_object((basilys_ptr_t)(/*_.BND__V2*/ curfptr[1]), 0, "BINDER");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.BND__V2*/ curfptr[1]), 0, "BINDER");/*_.BNAM__V7*/ curfptr[6] = slot; };
   ;
   /*_#__L3*/ curfnum[1] = 
    ((/*_.BCTYP__V6*/ curfptr[5]) == ((/*!CTYPE_VALUE*/ curfrout->tabval[1])));;
@@ -3532,32 +3512,27 @@ BASILYS_LOCATION("warmelt-genobj.bysl:692: @block");
   /*block*/{
    
    BASILYS_LOCATION("warmelt-genobj.bysl:706: @rawallocobj");
-   /*rawallocobj*/ /*_.INST__V15*/ curfptr[12] =
-    basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_OBJGETARG*/ curfrout->tabval[6])), (3), ("CLASS_OBJGETARG"));
+   /*rawallocobj*/ { basilys_ptr_t newobj = 0;
+    basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_OBJGETARG*/ curfrout->tabval[6])), (3), "CLASS_OBJGETARG");/*_.INST__V15*/ curfptr[12] =
+    newobj; };
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:706: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V15*/ curfptr[12])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V15*/ curfptr[12]))));
-   ((basilysobject_ptr_t)(/*_.INST__V15*/ curfptr[12]))->obj_vartab[0 /*OBI_LOC*/] = (basilys_ptr_t)(
-    (/*~NLOC*/ curfclos->tabval[1]));
+   basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V15*/ curfptr[12]))));basilys_putfield_object((/*_.INST__V15*/ curfptr[12]), (0), ((/*~NLOC*/ curfclos->tabval[1])), "OBI_LOC");
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:706: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V15*/ curfptr[12])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V15*/ curfptr[12]))));
-   ((basilysobject_ptr_t)(/*_.INST__V15*/ curfptr[12]))->obj_vartab[1 /*OBARG_OBLOC*/] = (basilys_ptr_t)(
-    /*_.OLOC__V8*/ curfptr[7]);
+   basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V15*/ curfptr[12]))));basilys_putfield_object((/*_.INST__V15*/ curfptr[12]), (1), (/*_.OLOC__V8*/ curfptr[7]), "OBARG_OBLOC");
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:706: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V15*/ curfptr[12])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V15*/ curfptr[12]))));
-   ((basilysobject_ptr_t)(/*_.INST__V15*/ curfptr[12]))->obj_vartab[2 /*OBARG_BIND*/] = (basilys_ptr_t)(
-    /*_.BND__V2*/ curfptr[1]);
+   basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V15*/ curfptr[12]))));basilys_putfield_object((/*_.INST__V15*/ curfptr[12]), (2), (/*_.BND__V2*/ curfptr[1]), "OBARG_BIND");
    ;
    /*_.OGARG__V14*/ curfptr[10] = /*_.INST__V15*/ curfptr[12];;}
   ;
@@ -3847,24 +3822,21 @@ BASILYS_LOCATION("warmelt-genobj.bysl:751: @block");
  /*block*/{
   
   BASILYS_LOCATION("warmelt-genobj.bysl:752: @rawallocobj");
-  /*rawallocobj*/ /*_.INST__V6*/ curfptr[5] =
-   basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_OBJCOMMENTINSTR*/ curfrout->tabval[0])), (2), ("CLASS_OBJCOMMENTINSTR"));
+  /*rawallocobj*/ { basilys_ptr_t newobj = 0;
+   basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_OBJCOMMENTINSTR*/ curfrout->tabval[0])), (2), "CLASS_OBJCOMMENTINSTR");/*_.INST__V6*/ curfptr[5] =
+   newobj; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:752: @putslot");
   /*putslot*/
   basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V6*/ curfptr[5])) == OBMAG_OBJECT);
-  basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V6*/ curfptr[5]))));
-  ((basilysobject_ptr_t)(/*_.INST__V6*/ curfptr[5]))->obj_vartab[0 /*OBI_LOC*/] = (basilys_ptr_t)(
-   /*_.ILOC__V4*/ curfptr[3]);
+  basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V6*/ curfptr[5]))));basilys_putfield_object((/*_.INST__V6*/ curfptr[5]), (0), (/*_.ILOC__V4*/ curfptr[3]), "OBI_LOC");
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:752: @putslot");
   /*putslot*/
   basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V6*/ curfptr[5])) == OBMAG_OBJECT);
-  basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V6*/ curfptr[5]))));
-  ((basilysobject_ptr_t)(/*_.INST__V6*/ curfptr[5]))->obj_vartab[1 /*OBCI_COMMENT*/] = (basilys_ptr_t)(
-   /*_.COMSTR__V3*/ curfptr[2]);
+  basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V6*/ curfptr[5]))));basilys_putfield_object((/*_.INST__V6*/ curfptr[5]), (1), (/*_.COMSTR__V3*/ curfptr[2]), "OBCI_COMMENT");
   ;
   /*_.INST___V5*/ curfptr[4] = /*_.INST__V6*/ curfptr[5];;}
  ;
@@ -3955,24 +3927,21 @@ BASILYS_LOCATION("warmelt-genobj.bysl:753: @block");
  /*block*/{
   
   BASILYS_LOCATION("warmelt-genobj.bysl:754: @rawallocobj");
-  /*rawallocobj*/ /*_.INST__V6*/ curfptr[5] =
-   basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_OBJCOMMENTINSTR*/ curfrout->tabval[0])), (2), ("CLASS_OBJCOMMENTINSTR"));
+  /*rawallocobj*/ { basilys_ptr_t newobj = 0;
+   basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_OBJCOMMENTINSTR*/ curfrout->tabval[0])), (2), "CLASS_OBJCOMMENTINSTR");/*_.INST__V6*/ curfptr[5] =
+   newobj; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:754: @putslot");
   /*putslot*/
   basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V6*/ curfptr[5])) == OBMAG_OBJECT);
-  basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V6*/ curfptr[5]))));
-  ((basilysobject_ptr_t)(/*_.INST__V6*/ curfptr[5]))->obj_vartab[0 /*OBI_LOC*/] = (basilys_ptr_t)(
-   /*_.ILOC__V3*/ curfptr[2]);
+  basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V6*/ curfptr[5]))));basilys_putfield_object((/*_.INST__V6*/ curfptr[5]), (0), (/*_.ILOC__V3*/ curfptr[2]), "OBI_LOC");
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:754: @putslot");
   /*putslot*/
   basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V6*/ curfptr[5])) == OBMAG_OBJECT);
-  basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V6*/ curfptr[5]))));
-  ((basilysobject_ptr_t)(/*_.INST__V6*/ curfptr[5]))->obj_vartab[1 /*OBCI_COMMENT*/] = (basilys_ptr_t)(
-   /*_.MAKE_STRINGCONST__V4*/ curfptr[3]);
+  basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V6*/ curfptr[5]))));basilys_putfield_object((/*_.INST__V6*/ curfptr[5]), (1), (/*_.MAKE_STRINGCONST__V4*/ curfptr[3]), "OBCI_COMMENT");
   ;
   /*_.INST___V5*/ curfptr[4] = /*_.INST__V6*/ curfptr[5];;}
  ;
@@ -4497,72 +4466,57 @@ BASILYS_LOCATION("warmelt-genobj.bysl:757: @block");
   /*block*/{
    
    BASILYS_LOCATION("warmelt-genobj.bysl:771: @rawallocobj");
-   /*rawallocobj*/ /*_.INST__V36*/ curfptr[35] =
-    basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_INITIALROUTINEOBJ*/ curfrout->tabval[5])), (11), ("CLASS_INITIALROUTINEOBJ"));
+   /*rawallocobj*/ { basilys_ptr_t newobj = 0;
+    basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_INITIALROUTINEOBJ*/ curfrout->tabval[5])), (11), "CLASS_INITIALROUTINEOBJ");/*_.INST__V36*/ curfptr[35] =
+    newobj; };
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:771: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V36*/ curfptr[35])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V36*/ curfptr[35]))));
-   ((basilysobject_ptr_t)(/*_.INST__V36*/ curfptr[35]))->obj_vartab[1 /*NAMED_NAME*/] = (basilys_ptr_t)(
-    /*_.MAKE_STRINGCONST__V30*/ curfptr[29]);
+   basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V36*/ curfptr[35]))));basilys_putfield_object((/*_.INST__V36*/ curfptr[35]), (1), (/*_.MAKE_STRINGCONST__V30*/ curfptr[29]), "NAMED_NAME");
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:771: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V36*/ curfptr[35])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V36*/ curfptr[35]))));
-   ((basilysobject_ptr_t)(/*_.INST__V36*/ curfptr[35]))->obj_vartab[2 /*OBROUT_PROC*/] = (basilys_ptr_t)(
-    /*_.IPRO__V2*/ curfptr[1]);
+   basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V36*/ curfptr[35]))));basilys_putfield_object((/*_.INST__V36*/ curfptr[35]), (2), (/*_.IPRO__V2*/ curfptr[1]), "OBROUT_PROC");
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:771: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V36*/ curfptr[35])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)(/*_.INST__V36*/ curfptr[35]))));
-   ((basilysobject_ptr_t)(/*_.INST__V36*/ curfptr[35]))->obj_vartab[3 /*OBROUT_BODY*/] = (basilys_ptr_t)(
-    /*_.OINIBODY__V29*/ curfptr[28]);
+   basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)(/*_.INST__V36*/ curfptr[35]))));basilys_putfield_object((/*_.INST__V36*/ curfptr[35]), (3), (/*_.OINIBODY__V29*/ curfptr[28]), "OBROUT_BODY");
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:771: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V36*/ curfptr[35])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (4>=0 && 4< basilys_object_length((basilys_ptr_t)(/*_.INST__V36*/ curfptr[35]))));
-   ((basilysobject_ptr_t)(/*_.INST__V36*/ curfptr[35]))->obj_vartab[4 /*OBROUT_NBVAL*/] = (basilys_ptr_t)(
-    /*_.MAKE_INTEGERBOX__V31*/ curfptr[30]);
+   basilys_assertmsg("putslot checkoff", (4>=0 && 4< basilys_object_length((basilys_ptr_t)(/*_.INST__V36*/ curfptr[35]))));basilys_putfield_object((/*_.INST__V36*/ curfptr[35]), (4), (/*_.MAKE_INTEGERBOX__V31*/ curfptr[30]), "OBROUT_NBVAL");
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:771: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V36*/ curfptr[35])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (5>=0 && 5< basilys_object_length((basilys_ptr_t)(/*_.INST__V36*/ curfptr[35]))));
-   ((basilysobject_ptr_t)(/*_.INST__V36*/ curfptr[35]))->obj_vartab[5 /*OBROUT_NBLONG*/] = (basilys_ptr_t)(
-    /*_.MAKE_INTEGERBOX__V32*/ curfptr[31]);
+   basilys_assertmsg("putslot checkoff", (5>=0 && 5< basilys_object_length((basilys_ptr_t)(/*_.INST__V36*/ curfptr[35]))));basilys_putfield_object((/*_.INST__V36*/ curfptr[35]), (5), (/*_.MAKE_INTEGERBOX__V32*/ curfptr[31]), "OBROUT_NBLONG");
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:771: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V36*/ curfptr[35])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (6>=0 && 6< basilys_object_length((basilys_ptr_t)(/*_.INST__V36*/ curfptr[35]))));
-   ((basilysobject_ptr_t)(/*_.INST__V36*/ curfptr[35]))->obj_vartab[6 /*OBROUT_OTHERS*/] = (basilys_ptr_t)(
-    /*_.MAKE_LIST__V33*/ curfptr[32]);
+   basilys_assertmsg("putslot checkoff", (6>=0 && 6< basilys_object_length((basilys_ptr_t)(/*_.INST__V36*/ curfptr[35]))));basilys_putfield_object((/*_.INST__V36*/ curfptr[35]), (6), (/*_.MAKE_LIST__V33*/ curfptr[32]), "OBROUT_OTHERS");
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:771: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V36*/ curfptr[35])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (10>=0 && 10< basilys_object_length((basilys_ptr_t)(/*_.INST__V36*/ curfptr[35]))));
-   ((basilysobject_ptr_t)(/*_.INST__V36*/ curfptr[35]))->obj_vartab[10 /*OIROUT_FILL*/] = (basilys_ptr_t)(
-    /*_.MAKE_LIST__V34*/ curfptr[33]);
+   basilys_assertmsg("putslot checkoff", (10>=0 && 10< basilys_object_length((basilys_ptr_t)(/*_.INST__V36*/ curfptr[35]))));basilys_putfield_object((/*_.INST__V36*/ curfptr[35]), (10), (/*_.MAKE_LIST__V34*/ curfptr[33]), "OIROUT_FILL");
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:771: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V36*/ curfptr[35])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (9>=0 && 9< basilys_object_length((basilys_ptr_t)(/*_.INST__V36*/ curfptr[35]))));
-   ((basilysobject_ptr_t)(/*_.INST__V36*/ curfptr[35]))->obj_vartab[9 /*OIROUT_PROLOG*/] = (basilys_ptr_t)(
-    /*_.OINIPROLOG__V28*/ curfptr[27]);
+   basilys_assertmsg("putslot checkoff", (9>=0 && 9< basilys_object_length((basilys_ptr_t)(/*_.INST__V36*/ curfptr[35]))));basilys_putfield_object((/*_.INST__V36*/ curfptr[35]), (9), (/*_.OINIPROLOG__V28*/ curfptr[27]), "OIROUT_PROLOG");
    ;
    /*_.OINITROUT__V35*/ curfptr[34] = /*_.INST__V36*/ curfptr[35];;}
   ;
@@ -4607,80 +4561,63 @@ BASILYS_LOCATION("warmelt-genobj.bysl:757: @block");
   /*block*/{
    
    BASILYS_LOCATION("warmelt-genobj.bysl:783: @rawallocobj");
-   /*rawallocobj*/ /*_.INST__V45*/ curfptr[44] =
-    basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_INITGENERCONTEXT*/ curfrout->tabval[8])), (12), ("CLASS_INITGENERCONTEXT"));
+   /*rawallocobj*/ { basilys_ptr_t newobj = 0;
+    basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_INITGENERCONTEXT*/ curfrout->tabval[8])), (12), "CLASS_INITGENERCONTEXT");/*_.INST__V45*/ curfptr[44] =
+    newobj; };
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:783: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V45*/ curfptr[44])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V45*/ curfptr[44]))));
-   ((basilysobject_ptr_t)(/*_.INST__V45*/ curfptr[44]))->obj_vartab[0 /*GNCX_OBJROUT*/] = (basilys_ptr_t)(
-    /*_.OINITROUT__V35*/ curfptr[34]);
+   basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V45*/ curfptr[44]))));basilys_putfield_object((/*_.INST__V45*/ curfptr[44]), (0), (/*_.OINITROUT__V35*/ curfptr[34]), "GNCX_OBJROUT");
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:783: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V45*/ curfptr[44])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V45*/ curfptr[44]))));
-   ((basilysobject_ptr_t)(/*_.INST__V45*/ curfptr[44]))->obj_vartab[1 /*GNCX_LOCMAP*/] = (basilys_ptr_t)(
-    /*_.LOCMAP__V27*/ curfptr[26]);
+   basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V45*/ curfptr[44]))));basilys_putfield_object((/*_.INST__V45*/ curfptr[44]), (1), (/*_.LOCMAP__V27*/ curfptr[26]), "GNCX_LOCMAP");
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:783: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V45*/ curfptr[44])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V45*/ curfptr[44]))));
-   ((basilysobject_ptr_t)(/*_.INST__V45*/ curfptr[44]))->obj_vartab[2 /*GNCX_FREEPTRLIST*/] = (basilys_ptr_t)(
-    /*_.MAKE_LIST__V38*/ curfptr[37]);
+   basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V45*/ curfptr[44]))));basilys_putfield_object((/*_.INST__V45*/ curfptr[44]), (2), (/*_.MAKE_LIST__V38*/ curfptr[37]), "GNCX_FREEPTRLIST");
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:783: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V45*/ curfptr[44])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)(/*_.INST__V45*/ curfptr[44]))));
-   ((basilysobject_ptr_t)(/*_.INST__V45*/ curfptr[44]))->obj_vartab[3 /*GNCX_FREELONGLIST*/] = (basilys_ptr_t)(
-    /*_.MAKE_LIST__V39*/ curfptr[38]);
+   basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)(/*_.INST__V45*/ curfptr[44]))));basilys_putfield_object((/*_.INST__V45*/ curfptr[44]), (3), (/*_.MAKE_LIST__V39*/ curfptr[38]), "GNCX_FREELONGLIST");
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:783: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V45*/ curfptr[44])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (4>=0 && 4< basilys_object_length((basilys_ptr_t)(/*_.INST__V45*/ curfptr[44]))));
-   ((basilysobject_ptr_t)(/*_.INST__V45*/ curfptr[44]))->obj_vartab[4 /*GNCX_FREEOTHERMAPS*/] = (basilys_ptr_t)(
-    /*_.MAKE_MAPOBJECT__V40*/ curfptr[39]);
+   basilys_assertmsg("putslot checkoff", (4>=0 && 4< basilys_object_length((basilys_ptr_t)(/*_.INST__V45*/ curfptr[44]))));basilys_putfield_object((/*_.INST__V45*/ curfptr[44]), (4), (/*_.MAKE_MAPOBJECT__V40*/ curfptr[39]), "GNCX_FREEOTHERMAPS");
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:783: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V45*/ curfptr[44])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (6>=0 && 6< basilys_object_length((basilys_ptr_t)(/*_.INST__V45*/ curfptr[44]))));
-   ((basilysobject_ptr_t)(/*_.INST__V45*/ curfptr[44]))->obj_vartab[6 /*GNCX_COMPICACHE*/] = (basilys_ptr_t)(
-    /*_.COMPICACHE__V5*/ curfptr[4]);
+   basilys_assertmsg("putslot checkoff", (6>=0 && 6< basilys_object_length((basilys_ptr_t)(/*_.INST__V45*/ curfptr[44]))));basilys_putfield_object((/*_.INST__V45*/ curfptr[44]), (6), (/*_.COMPICACHE__V5*/ curfptr[4]), "GNCX_COMPICACHE");
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:783: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V45*/ curfptr[44])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (7>=0 && 7< basilys_object_length((basilys_ptr_t)(/*_.INST__V45*/ curfptr[44]))));
-   ((basilysobject_ptr_t)(/*_.INST__V45*/ curfptr[44]))->obj_vartab[7 /*GNCX_MODULCONTEXT*/] = (basilys_ptr_t)(
-    /*_.MODCTX__V3*/ curfptr[2]);
+   basilys_assertmsg("putslot checkoff", (7>=0 && 7< basilys_object_length((basilys_ptr_t)(/*_.INST__V45*/ curfptr[44]))));basilys_putfield_object((/*_.INST__V45*/ curfptr[44]), (7), (/*_.MODCTX__V3*/ curfptr[2]), "GNCX_MODULCONTEXT");
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:783: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V45*/ curfptr[44])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (10>=0 && 10< basilys_object_length((basilys_ptr_t)(/*_.INST__V45*/ curfptr[44]))));
-   ((basilysobject_ptr_t)(/*_.INST__V45*/ curfptr[44]))->obj_vartab[10 /*IGNCX_PROCURMODENVLIST*/] = (basilys_ptr_t)(
-    /*_.LIST_MAP__V43*/ curfptr[42]);
+   basilys_assertmsg("putslot checkoff", (10>=0 && 10< basilys_object_length((basilys_ptr_t)(/*_.INST__V45*/ curfptr[44]))));basilys_putfield_object((/*_.INST__V45*/ curfptr[44]), (10), (/*_.LIST_MAP__V43*/ curfptr[42]), "IGNCX_PROCURMODENVLIST");
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:783: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V45*/ curfptr[44])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (11>=0 && 11< basilys_object_length((basilys_ptr_t)(/*_.INST__V45*/ curfptr[44]))));
-   ((basilysobject_ptr_t)(/*_.INST__V45*/ curfptr[44]))->obj_vartab[11 /*IGNCX_IMPORTMAP*/] = (basilys_ptr_t)(
-    /*_.IMPORTMAP__V37*/ curfptr[36]);
+   basilys_assertmsg("putslot checkoff", (11>=0 && 11< basilys_object_length((basilys_ptr_t)(/*_.INST__V45*/ curfptr[44]))));basilys_putfield_object((/*_.INST__V45*/ curfptr[44]), (11), (/*_.IMPORTMAP__V37*/ curfptr[36]), "IGNCX_IMPORTMAP");
    ;
    /*_.GCX__V44*/ curfptr[43] = /*_.INST__V45*/ curfptr[44];;}
   ;
@@ -4705,9 +4642,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:757: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:806: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.GCX__V44*/ curfptr[43])) == OBMAG_OBJECT);
-    basilys_assertmsg("putslot checkoff", (5>=0 && 5< basilys_object_length((basilys_ptr_t)(/*_.GCX__V44*/ curfptr[43]))));
-    ((basilysobject_ptr_t)(/*_.GCX__V44*/ curfptr[43]))->obj_vartab[5 /*GNCX_RETLOC*/] = (basilys_ptr_t)(
-     /*_.RETI__V47*/ curfptr[46]);
+    basilys_assertmsg("putslot checkoff", (5>=0 && 5< basilys_object_length((basilys_ptr_t)(/*_.GCX__V44*/ curfptr[43]))));basilys_putfield_object((/*_.GCX__V44*/ curfptr[43]), (5), (/*_.RETI__V47*/ curfptr[46]), "GNCX_RETLOC");
     ;
     
     BASILYS_LOCATION("warmelt-genobj.bysl:806: @touch");
@@ -4722,9 +4657,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:757: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:807: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.OINITROUT__V35*/ curfptr[34])) == OBMAG_OBJECT);
-    basilys_assertmsg("putslot checkoff", (7>=0 && 7< basilys_object_length((basilys_ptr_t)(/*_.OINITROUT__V35*/ curfptr[34]))));
-    ((basilysobject_ptr_t)(/*_.OINITROUT__V35*/ curfptr[34]))->obj_vartab[7 /*OBROUT_RETVAL*/] = (basilys_ptr_t)(
-     /*_.RETI__V47*/ curfptr[46]);
+    basilys_assertmsg("putslot checkoff", (7>=0 && 7< basilys_object_length((basilys_ptr_t)(/*_.OINITROUT__V35*/ curfptr[34]))));basilys_putfield_object((/*_.OINITROUT__V35*/ curfptr[34]), (7), (/*_.RETI__V47*/ curfptr[46]), "OBROUT_RETVAL");
     ;
     
     BASILYS_LOCATION("warmelt-genobj.bysl:807: @touch");
@@ -4760,9 +4693,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:757: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:811: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.GCX__V44*/ curfptr[43])) == OBMAG_OBJECT);
-    basilys_assertmsg("putslot checkoff", (9>=0 && 9< basilys_object_length((basilys_ptr_t)(/*_.GCX__V44*/ curfptr[43]))));
-    ((basilysobject_ptr_t)(/*_.GCX__V44*/ curfptr[43]))->obj_vartab[9 /*IGNCX_CONTENVLOC*/] = (basilys_ptr_t)(
-     /*_.BOXL__V50*/ curfptr[49]);
+    basilys_assertmsg("putslot checkoff", (9>=0 && 9< basilys_object_length((basilys_ptr_t)(/*_.GCX__V44*/ curfptr[43]))));basilys_putfield_object((/*_.GCX__V44*/ curfptr[43]), (9), (/*_.BOXL__V50*/ curfptr[49]), "IGNCX_CONTENVLOC");
     ;
     
     BASILYS_LOCATION("warmelt-genobj.bysl:811: @touch");
@@ -4809,9 +4740,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:757: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:816: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.GCX__V44*/ curfptr[43])) == OBMAG_OBJECT);
-    basilys_assertmsg("putslot checkoff", (8>=0 && 8< basilys_object_length((basilys_ptr_t)(/*_.GCX__V44*/ curfptr[43]))));
-    ((basilysobject_ptr_t)(/*_.GCX__V44*/ curfptr[43]))->obj_vartab[8 /*IGNCX_PREVENVLOC*/] = (basilys_ptr_t)(
-     /*_.PREVE__V54*/ curfptr[53]);
+    basilys_assertmsg("putslot checkoff", (8>=0 && 8< basilys_object_length((basilys_ptr_t)(/*_.GCX__V44*/ curfptr[43]))));basilys_putfield_object((/*_.GCX__V44*/ curfptr[43]), (8), (/*_.PREVE__V54*/ curfptr[53]), "IGNCX_PREVENVLOC");
     ;
     
     BASILYS_LOCATION("warmelt-genobj.bysl:816: @touch");
@@ -4941,32 +4870,27 @@ BASILYS_LOCATION("warmelt-genobj.bysl:757: @block");
     /*block*/{
      
      BASILYS_LOCATION("warmelt-genobj.bysl:833: @rawallocobj");
-     /*rawallocobj*/ /*_.INST__V68*/ curfptr[67] =
-      basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_OBJGETSLOT*/ curfrout->tabval[21])), (4), ("CLASS_OBJGETSLOT"));
+     /*rawallocobj*/ { basilys_ptr_t newobj = 0;
+      basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_OBJGETSLOT*/ curfrout->tabval[21])), (4), "CLASS_OBJGETSLOT");/*_.INST__V68*/ curfptr[67] =
+      newobj; };
      ;
      
      BASILYS_LOCATION("warmelt-genobj.bysl:833: @putslot");
      /*putslot*/
      basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V68*/ curfptr[67])) == OBMAG_OBJECT);
-     basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V68*/ curfptr[67]))));
-     ((basilysobject_ptr_t)(/*_.INST__V68*/ curfptr[67]))->obj_vartab[1 /*OBDI_DESTLIST*/] = (basilys_ptr_t)(
-      /*_.LIST1__V66*/ curfptr[65]);
+     basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V68*/ curfptr[67]))));basilys_putfield_object((/*_.INST__V68*/ curfptr[67]), (1), (/*_.LIST1__V66*/ curfptr[65]), "OBDI_DESTLIST");
      ;
      
      BASILYS_LOCATION("warmelt-genobj.bysl:833: @putslot");
      /*putslot*/
      basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V68*/ curfptr[67])) == OBMAG_OBJECT);
-     basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V68*/ curfptr[67]))));
-     ((basilysobject_ptr_t)(/*_.INST__V68*/ curfptr[67]))->obj_vartab[2 /*OGETSL_OBJ*/] = (basilys_ptr_t)(
-      (/*!INITIALSYSTEMDATA_OBJPREDEF*/ curfrout->tabval[23]));
+     basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V68*/ curfptr[67]))));basilys_putfield_object((/*_.INST__V68*/ curfptr[67]), (2), ((/*!INITIALSYSTEMDATA_OBJPREDEF*/ curfrout->tabval[23])), "OGETSL_OBJ");
      ;
      
      BASILYS_LOCATION("warmelt-genobj.bysl:833: @putslot");
      /*putslot*/
      basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V68*/ curfptr[67])) == OBMAG_OBJECT);
-     basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)(/*_.INST__V68*/ curfptr[67]))));
-     ((basilysobject_ptr_t)(/*_.INST__V68*/ curfptr[67]))->obj_vartab[3 /*OGETSL_FIELD*/] = (basilys_ptr_t)(
-      (/*!SYSDATA_CONT_FRESH_ENV*/ curfrout->tabval[24]));
+     basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)(/*_.INST__V68*/ curfptr[67]))));basilys_putfield_object((/*_.INST__V68*/ curfptr[67]), (3), ((/*!SYSDATA_CONT_FRESH_ENV*/ curfrout->tabval[24])), "OGETSL_FIELD");
      ;
      /*_.INST___V67*/ curfptr[66] = /*_.INST__V68*/ curfptr[67];;}
     ;
@@ -4987,16 +4911,15 @@ BASILYS_LOCATION("warmelt-genobj.bysl:757: @block");
     /*block*/{
      
      BASILYS_LOCATION("warmelt-genobj.bysl:840: @rawallocobj");
-     /*rawallocobj*/ /*_.INST__V75*/ curfptr[74] =
-      basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_OBJCOMPUTE*/ curfrout->tabval[25])), (3), ("CLASS_OBJCOMPUTE"));
+     /*rawallocobj*/ { basilys_ptr_t newobj = 0;
+      basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_OBJCOMPUTE*/ curfrout->tabval[25])), (3), "CLASS_OBJCOMPUTE");/*_.INST__V75*/ curfptr[74] =
+      newobj; };
      ;
      
      BASILYS_LOCATION("warmelt-genobj.bysl:840: @putslot");
      /*putslot*/
      basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V75*/ curfptr[74])) == OBMAG_OBJECT);
-     basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V75*/ curfptr[74]))));
-     ((basilysobject_ptr_t)(/*_.INST__V75*/ curfptr[74]))->obj_vartab[2 /*OBCPT_EXPR*/] = (basilys_ptr_t)(
-      /*_.MAKE_TUPLE7__V73*/ curfptr[72]);
+     basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V75*/ curfptr[74]))));basilys_putfield_object((/*_.INST__V75*/ curfptr[74]), (2), (/*_.MAKE_TUPLE7__V73*/ curfptr[72]), "OBCPT_EXPR");
      ;
      /*_.INST___V74*/ curfptr[73] = /*_.INST__V75*/ curfptr[74];;}
     ;
@@ -5015,32 +4938,27 @@ BASILYS_LOCATION("warmelt-genobj.bysl:757: @block");
     /*block*/{
      
      BASILYS_LOCATION("warmelt-genobj.bysl:856: @rawallocobj");
-     /*rawallocobj*/ /*_.INST__V79*/ curfptr[78] =
-      basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_OBJAPPLY*/ curfrout->tabval[28])), (4), ("CLASS_OBJAPPLY"));
+     /*rawallocobj*/ { basilys_ptr_t newobj = 0;
+      basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_OBJAPPLY*/ curfrout->tabval[28])), (4), "CLASS_OBJAPPLY");/*_.INST__V79*/ curfptr[78] =
+      newobj; };
      ;
      
      BASILYS_LOCATION("warmelt-genobj.bysl:856: @putslot");
      /*putslot*/
      basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V79*/ curfptr[78])) == OBMAG_OBJECT);
-     basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V79*/ curfptr[78]))));
-     ((basilysobject_ptr_t)(/*_.INST__V79*/ curfptr[78]))->obj_vartab[1 /*OBDI_DESTLIST*/] = (basilys_ptr_t)(
-      /*_.LIST1__V76*/ curfptr[75]);
+     basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V79*/ curfptr[78]))));basilys_putfield_object((/*_.INST__V79*/ curfptr[78]), (1), (/*_.LIST1__V76*/ curfptr[75]), "OBDI_DESTLIST");
      ;
      
      BASILYS_LOCATION("warmelt-genobj.bysl:856: @putslot");
      /*putslot*/
      basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V79*/ curfptr[78])) == OBMAG_OBJECT);
-     basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V79*/ curfptr[78]))));
-     ((basilysobject_ptr_t)(/*_.INST__V79*/ curfptr[78]))->obj_vartab[2 /*OBAPP_CLOS*/] = (basilys_ptr_t)(
-      /*_.OFRESHENV__V52*/ curfptr[51]);
+     basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V79*/ curfptr[78]))));basilys_putfield_object((/*_.INST__V79*/ curfptr[78]), (2), (/*_.OFRESHENV__V52*/ curfptr[51]), "OBAPP_CLOS");
      ;
      
      BASILYS_LOCATION("warmelt-genobj.bysl:856: @putslot");
      /*putslot*/
      basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V79*/ curfptr[78])) == OBMAG_OBJECT);
-     basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)(/*_.INST__V79*/ curfptr[78]))));
-     ((basilysobject_ptr_t)(/*_.INST__V79*/ curfptr[78]))->obj_vartab[3 /*OBAPP_ARGS*/] = (basilys_ptr_t)(
-      /*_.MAKE_TUPLE1__V77*/ curfptr[76]);
+     basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)(/*_.INST__V79*/ curfptr[78]))));basilys_putfield_object((/*_.INST__V79*/ curfptr[78]), (3), (/*_.MAKE_TUPLE1__V77*/ curfptr[76]), "OBAPP_ARGS");
      ;
      /*_.INST___V78*/ curfptr[77] = /*_.INST__V79*/ curfptr[78];;}
     ;
@@ -5055,32 +4973,27 @@ BASILYS_LOCATION("warmelt-genobj.bysl:757: @block");
     /*block*/{
      
      BASILYS_LOCATION("warmelt-genobj.bysl:861: @rawallocobj");
-     /*rawallocobj*/ /*_.INST__V83*/ curfptr[82] =
-      basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_OBJCOMMENTEDBLOCK*/ curfrout->tabval[29])), (4), ("CLASS_OBJCOMMENTEDBLOCK"));
+     /*rawallocobj*/ { basilys_ptr_t newobj = 0;
+      basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_OBJCOMMENTEDBLOCK*/ curfrout->tabval[29])), (4), "CLASS_OBJCOMMENTEDBLOCK");/*_.INST__V83*/ curfptr[82] =
+      newobj; };
      ;
      
      BASILYS_LOCATION("warmelt-genobj.bysl:861: @putslot");
      /*putslot*/
      basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V83*/ curfptr[82])) == OBMAG_OBJECT);
-     basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V83*/ curfptr[82]))));
-     ((basilysobject_ptr_t)(/*_.INST__V83*/ curfptr[82]))->obj_vartab[1 /*OBLO_BODYL*/] = (basilys_ptr_t)(
-      /*_.BODFEL__V64*/ curfptr[63]);
+     basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V83*/ curfptr[82]))));basilys_putfield_object((/*_.INST__V83*/ curfptr[82]), (1), (/*_.BODFEL__V64*/ curfptr[63]), "OBLO_BODYL");
      ;
      
      BASILYS_LOCATION("warmelt-genobj.bysl:861: @putslot");
      /*putslot*/
      basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V83*/ curfptr[82])) == OBMAG_OBJECT);
-     basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V83*/ curfptr[82]))));
-     ((basilysobject_ptr_t)(/*_.INST__V83*/ curfptr[82]))->obj_vartab[2 /*OBLO_EPIL*/] = (basilys_ptr_t)(
-      /*_.THE_NULL__V80*/ curfptr[79]);
+     basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V83*/ curfptr[82]))));basilys_putfield_object((/*_.INST__V83*/ curfptr[82]), (2), (/*_.THE_NULL__V80*/ curfptr[79]), "OBLO_EPIL");
      ;
      
      BASILYS_LOCATION("warmelt-genobj.bysl:861: @putslot");
      /*putslot*/
      basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V83*/ curfptr[82])) == OBMAG_OBJECT);
-     basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)(/*_.INST__V83*/ curfptr[82]))));
-     ((basilysobject_ptr_t)(/*_.INST__V83*/ curfptr[82]))->obj_vartab[3 /*OCOMBLO_COMMENT*/] = (basilys_ptr_t)(
-      /*_.MAKE_STRINGCONST__V81*/ curfptr[80]);
+     basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)(/*_.INST__V83*/ curfptr[82]))));basilys_putfield_object((/*_.INST__V83*/ curfptr[82]), (3), (/*_.MAKE_STRINGCONST__V81*/ curfptr[80]), "OCOMBLO_COMMENT");
      ;
      /*_.INST___V82*/ curfptr[81] = /*_.INST__V83*/ curfptr[82];;}
     ;
@@ -5145,16 +5058,15 @@ BASILYS_LOCATION("warmelt-genobj.bysl:757: @block");
    /*block*/{
     
     BASILYS_LOCATION("warmelt-genobj.bysl:870: @rawallocobj");
-    /*rawallocobj*/ /*_.INST__V88*/ curfptr[68] =
-     basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_OBJEXPV*/ curfrout->tabval[31])), (2), ("CLASS_OBJEXPV"));
+    /*rawallocobj*/ { basilys_ptr_t newobj = 0;
+     basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_OBJEXPV*/ curfrout->tabval[31])), (2), "CLASS_OBJEXPV");/*_.INST__V88*/ curfptr[68] =
+     newobj; };
     ;
     
     BASILYS_LOCATION("warmelt-genobj.bysl:870: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V88*/ curfptr[68])) == OBMAG_OBJECT);
-    basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V88*/ curfptr[68]))));
-    ((basilysobject_ptr_t)(/*_.INST__V88*/ curfptr[68]))->obj_vartab[1 /*OBX_CONT*/] = (basilys_ptr_t)(
-     /*_.MAKE_TUPLE2__V86*/ curfptr[65]);
+    basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V88*/ curfptr[68]))));basilys_putfield_object((/*_.INST__V88*/ curfptr[68]), (1), (/*_.MAKE_TUPLE2__V86*/ curfptr[65]), "OBX_CONT");
     ;
     /*_.INST___V87*/ curfptr[66] = /*_.INST__V88*/ curfptr[68];;}
    ;
@@ -5165,32 +5077,27 @@ BASILYS_LOCATION("warmelt-genobj.bysl:757: @block");
    /*block*/{
     
     BASILYS_LOCATION("warmelt-genobj.bysl:868: @rawallocobj");
-    /*rawallocobj*/ /*_.INST__V91*/ curfptr[71] =
-     basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_OBJCOND*/ curfrout->tabval[30])), (4), ("CLASS_OBJCOND"));
+    /*rawallocobj*/ { basilys_ptr_t newobj = 0;
+     basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_OBJCOND*/ curfrout->tabval[30])), (4), "CLASS_OBJCOND");/*_.INST__V91*/ curfptr[71] =
+     newobj; };
     ;
     
     BASILYS_LOCATION("warmelt-genobj.bysl:868: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V91*/ curfptr[71])) == OBMAG_OBJECT);
-    basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V91*/ curfptr[71]))));
-    ((basilysobject_ptr_t)(/*_.INST__V91*/ curfptr[71]))->obj_vartab[1 /*OBCOND_TEST*/] = (basilys_ptr_t)(
-     /*_.INST___V87*/ curfptr[66]);
+    basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V91*/ curfptr[71]))));basilys_putfield_object((/*_.INST__V91*/ curfptr[71]), (1), (/*_.INST___V87*/ curfptr[66]), "OBCOND_TEST");
     ;
     
     BASILYS_LOCATION("warmelt-genobj.bysl:868: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V91*/ curfptr[71])) == OBMAG_OBJECT);
-    basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V91*/ curfptr[71]))));
-    ((basilysobject_ptr_t)(/*_.INST__V91*/ curfptr[71]))->obj_vartab[2 /*OBCOND_THEN*/] = (basilys_ptr_t)(
-     /*_.THE_NULL__V89*/ curfptr[69]);
+    basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V91*/ curfptr[71]))));basilys_putfield_object((/*_.INST__V91*/ curfptr[71]), (2), (/*_.THE_NULL__V89*/ curfptr[69]), "OBCOND_THEN");
     ;
     
     BASILYS_LOCATION("warmelt-genobj.bysl:868: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V91*/ curfptr[71])) == OBMAG_OBJECT);
-    basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)(/*_.INST__V91*/ curfptr[71]))));
-    ((basilysobject_ptr_t)(/*_.INST__V91*/ curfptr[71]))->obj_vartab[3 /*OBCOND_ELSE*/] = (basilys_ptr_t)(
-     /*_.OCOMPUTBOXLOC__V84*/ curfptr[63]);
+    basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)(/*_.INST__V91*/ curfptr[71]))));basilys_putfield_object((/*_.INST__V91*/ curfptr[71]), (3), (/*_.OCOMPUTBOXLOC__V84*/ curfptr[63]), "OBCOND_ELSE");
     ;
     /*_.OTESTCOMPUTBOXLOC__V90*/ curfptr[70] = /*_.INST__V91*/ curfptr[71];;}
    ;
@@ -5295,24 +5202,21 @@ BASILYS_LOCATION("warmelt-genobj.bysl:757: @block");
     /*block*/{
      
      BASILYS_LOCATION("warmelt-genobj.bysl:903: @rawallocobj");
-     /*rawallocobj*/ /*_.INST__V101*/ curfptr[100] =
-      basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_OBJCOMPUTE*/ curfrout->tabval[25])), (3), ("CLASS_OBJCOMPUTE"));
+     /*rawallocobj*/ { basilys_ptr_t newobj = 0;
+      basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_OBJCOMPUTE*/ curfrout->tabval[25])), (3), "CLASS_OBJCOMPUTE");/*_.INST__V101*/ curfptr[100] =
+      newobj; };
      ;
      
      BASILYS_LOCATION("warmelt-genobj.bysl:903: @putslot");
      /*putslot*/
      basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V101*/ curfptr[100])) == OBMAG_OBJECT);
-     basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V101*/ curfptr[100]))));
-     ((basilysobject_ptr_t)(/*_.INST__V101*/ curfptr[100]))->obj_vartab[1 /*OBDI_DESTLIST*/] = (basilys_ptr_t)(
-      /*_.LISDEST__V97*/ curfptr[79]);
+     basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V101*/ curfptr[100]))));basilys_putfield_object((/*_.INST__V101*/ curfptr[100]), (1), (/*_.LISDEST__V97*/ curfptr[79]), "OBDI_DESTLIST");
      ;
      
      BASILYS_LOCATION("warmelt-genobj.bysl:903: @putslot");
      /*putslot*/
      basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V101*/ curfptr[100])) == OBMAG_OBJECT);
-     basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V101*/ curfptr[100]))));
-     ((basilysobject_ptr_t)(/*_.INST__V101*/ curfptr[100]))->obj_vartab[2 /*OBCPT_EXPR*/] = (basilys_ptr_t)(
-      /*_.MAKE_STRINGCONST__V99*/ curfptr[81]);
+     basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V101*/ curfptr[100]))));basilys_putfield_object((/*_.INST__V101*/ curfptr[100]), (2), (/*_.MAKE_STRINGCONST__V99*/ curfptr[81]), "OBCPT_EXPR");
      ;
      /*_.INST___V100*/ curfptr[77] = /*_.INST__V101*/ curfptr[100];;}
     ;
@@ -5380,7 +5284,8 @@ BASILYS_LOCATION("warmelt-genobj.bysl:757: @block");
     ;
     
     BASILYS_LOCATION("warmelt-genobj.bysl:922: @getslot");
-    /*_.TOPLIS__V107*/ curfptr[106] = basilys_getfield_object((basilys_ptr_t)(/*_.IPRO__V2*/ curfptr[1]), 2, "NINIT_TOPL");
+    { basilys_ptr_t slot=0;
+     basilys_object_get_field(slot,(basilys_ptr_t)(/*_.IPRO__V2*/ curfptr[1]), 2, "NINIT_TOPL");/*_.TOPLIS__V107*/ curfptr[106] = slot; };
     ;
     
     BASILYS_LOCATION("warmelt-genobj.bysl:924: @block");
@@ -5389,9 +5294,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:757: @block");
      BASILYS_LOCATION("warmelt-genobj.bysl:924: @putslot");
      /*putslot*/
      basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.OINITROUT__V35*/ curfptr[34])) == OBMAG_OBJECT);
-     basilys_assertmsg("putslot checkoff", (8>=0 && 8< basilys_object_length((basilys_ptr_t)(/*_.OINITROUT__V35*/ curfptr[34]))));
-     ((basilysobject_ptr_t)(/*_.OINITROUT__V35*/ curfptr[34]))->obj_vartab[8 /*OIROUT_DATA*/] = (basilys_ptr_t)(
-      /*_.ODATATUP__V106*/ curfptr[105]);
+     basilys_assertmsg("putslot checkoff", (8>=0 && 8< basilys_object_length((basilys_ptr_t)(/*_.OINITROUT__V35*/ curfptr[34]))));basilys_putfield_object((/*_.OINITROUT__V35*/ curfptr[34]), (8), (/*_.ODATATUP__V106*/ curfptr[105]), "OIROUT_DATA");
      ;
      
      BASILYS_LOCATION("warmelt-genobj.bysl:924: @touch");
@@ -5548,32 +5451,27 @@ BASILYS_LOCATION("warmelt-genobj.bysl:757: @block");
        /*block*/{
         
         BASILYS_LOCATION("warmelt-genobj.bysl:967: @rawallocobj");
-        /*rawallocobj*/ /*_.INST__V121*/ curfptr[120] =
-         basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_OBJGETSLOT*/ curfrout->tabval[21])), (4), ("CLASS_OBJGETSLOT"));
+        /*rawallocobj*/ { basilys_ptr_t newobj = 0;
+         basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_OBJGETSLOT*/ curfrout->tabval[21])), (4), "CLASS_OBJGETSLOT");/*_.INST__V121*/ curfptr[120] =
+         newobj; };
         ;
         
         BASILYS_LOCATION("warmelt-genobj.bysl:967: @putslot");
         /*putslot*/
         basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V121*/ curfptr[120])) == OBMAG_OBJECT);
-        basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V121*/ curfptr[120]))));
-        ((basilysobject_ptr_t)(/*_.INST__V121*/ curfptr[120]))->obj_vartab[1 /*OBDI_DESTLIST*/] = (basilys_ptr_t)(
-         /*_.LIST1__V119*/ curfptr[118]);
+        basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V121*/ curfptr[120]))));basilys_putfield_object((/*_.INST__V121*/ curfptr[120]), (1), (/*_.LIST1__V119*/ curfptr[118]), "OBDI_DESTLIST");
         ;
         
         BASILYS_LOCATION("warmelt-genobj.bysl:967: @putslot");
         /*putslot*/
         basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V121*/ curfptr[120])) == OBMAG_OBJECT);
-        basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V121*/ curfptr[120]))));
-        ((basilysobject_ptr_t)(/*_.INST__V121*/ curfptr[120]))->obj_vartab[2 /*OGETSL_OBJ*/] = (basilys_ptr_t)(
-         (/*!INITIALSYSTEMDATA_OBJPREDEF*/ curfrout->tabval[23]));
+        basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V121*/ curfptr[120]))));basilys_putfield_object((/*_.INST__V121*/ curfptr[120]), (2), ((/*!INITIALSYSTEMDATA_OBJPREDEF*/ curfrout->tabval[23])), "OGETSL_OBJ");
         ;
         
         BASILYS_LOCATION("warmelt-genobj.bysl:967: @putslot");
         /*putslot*/
         basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V121*/ curfptr[120])) == OBMAG_OBJECT);
-        basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)(/*_.INST__V121*/ curfptr[120]))));
-        ((basilysobject_ptr_t)(/*_.INST__V121*/ curfptr[120]))->obj_vartab[3 /*OGETSL_FIELD*/] = (basilys_ptr_t)(
-         (/*!SYSDATA_VALUE_IMPORTER*/ curfrout->tabval[51]));
+        basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)(/*_.INST__V121*/ curfptr[120]))));basilys_putfield_object((/*_.INST__V121*/ curfptr[120]), (3), ((/*!SYSDATA_VALUE_IMPORTER*/ curfrout->tabval[51])), "OGETSL_FIELD");
         ;
         /*_.INST___V120*/ curfptr[119] = /*_.INST__V121*/ curfptr[120];;}
        ;
@@ -5905,24 +5803,21 @@ BASILYS_LOCATION("warmelt-genobj.bysl:757: @block");
      /*block*/{
       
       BASILYS_LOCATION("warmelt-genobj.bysl:1034: @rawallocobj");
-      /*rawallocobj*/ /*_.INST__V145*/ curfptr[118] =
-       basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_OBJCOMPUTE*/ curfrout->tabval[25])), (3), ("CLASS_OBJCOMPUTE"));
+      /*rawallocobj*/ { basilys_ptr_t newobj = 0;
+       basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_OBJCOMPUTE*/ curfrout->tabval[25])), (3), "CLASS_OBJCOMPUTE");/*_.INST__V145*/ curfptr[118] =
+       newobj; };
       ;
       
       BASILYS_LOCATION("warmelt-genobj.bysl:1034: @putslot");
       /*putslot*/
       basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V145*/ curfptr[118])) == OBMAG_OBJECT);
-      basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V145*/ curfptr[118]))));
-      ((basilysobject_ptr_t)(/*_.INST__V145*/ curfptr[118]))->obj_vartab[1 /*OBDI_DESTLIST*/] = (basilys_ptr_t)(
-       /*_.LIST1__V140*/ curfptr[112]);
+      basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V145*/ curfptr[118]))));basilys_putfield_object((/*_.INST__V145*/ curfptr[118]), (1), (/*_.LIST1__V140*/ curfptr[112]), "OBDI_DESTLIST");
       ;
       
       BASILYS_LOCATION("warmelt-genobj.bysl:1034: @putslot");
       /*putslot*/
       basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V145*/ curfptr[118])) == OBMAG_OBJECT);
-      basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V145*/ curfptr[118]))));
-      ((basilysobject_ptr_t)(/*_.INST__V145*/ curfptr[118]))->obj_vartab[2 /*OBCPT_EXPR*/] = (basilys_ptr_t)(
-       /*_.MAKE_TUPLE3__V143*/ curfptr[116]);
+      basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V145*/ curfptr[118]))));basilys_putfield_object((/*_.INST__V145*/ curfptr[118]), (2), (/*_.MAKE_TUPLE3__V143*/ curfptr[116]), "OBCPT_EXPR");
       ;
       /*_.OSETRETINIT__V144*/ curfptr[117] = /*_.INST__V145*/ curfptr[118];;}
      ;
@@ -6706,7 +6601,8 @@ BASILYS_LOCATION("warmelt-genobj.bysl:885: @block");
  /*block*/{
   
   BASILYS_LOCATION("warmelt-genobj.bysl:888: @getslot");
-  /*_.ISYM__V8*/ curfptr[7] = basilys_getfield_object((basilys_ptr_t)(/*_.IVAL__V2*/ curfptr[1]), 1, "NIMPORT_SYMB");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.IVAL__V2*/ curfptr[1]), 1, "NIMPORT_SYMB");/*_.ISYM__V8*/ curfptr[7] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:889: @apply");
@@ -7149,7 +7045,8 @@ BASILYS_LOCATION("warmelt-genobj.bysl:940: @block");
    /*block*/{
     
     BASILYS_LOCATION("warmelt-genobj.bysl:942: @getslot");
-    /*_.ODAT__V5*/ curfptr[4] = basilys_getfield_object((basilys_ptr_t)(/*_.CURPDAT__V2*/ curfptr[1]), 2, "OIE_DATA");
+    { basilys_ptr_t slot=0;
+     basilys_object_get_field(slot,(basilys_ptr_t)(/*_.CURPDAT__V2*/ curfptr[1]), 2, "OIE_DATA");/*_.ODAT__V5*/ curfptr[4] = slot; };
     ;
     
     #if ENABLE_CHECKING
@@ -7210,16 +7107,15 @@ BASILYS_LOCATION("warmelt-genobj.bysl:940: @block");
        /*block*/{
         
         BASILYS_LOCATION("warmelt-genobj.bysl:948: @rawallocobj");
-        /*rawallocobj*/ /*_.INST__V11*/ curfptr[10] =
-         basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_OBJGETNAMEDKEYWORD*/ curfrout->tabval[3])), (2), ("CLASS_OBJGETNAMEDKEYWORD"));
+        /*rawallocobj*/ { basilys_ptr_t newobj = 0;
+         basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_OBJGETNAMEDKEYWORD*/ curfrout->tabval[3])), (2), "CLASS_OBJGETNAMEDKEYWORD");/*_.INST__V11*/ curfptr[10] =
+         newobj; };
         ;
         
         BASILYS_LOCATION("warmelt-genobj.bysl:948: @putslot");
         /*putslot*/
         basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V11*/ curfptr[10])) == OBMAG_OBJECT);
-        basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V11*/ curfptr[10]))));
-        ((basilysobject_ptr_t)(/*_.INST__V11*/ curfptr[10]))->obj_vartab[1 /*OBGNAMED_IOBJ*/] = (basilys_ptr_t)(
-         /*_.CURPDAT__V2*/ curfptr[1]);
+        basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V11*/ curfptr[10]))));basilys_putfield_object((/*_.INST__V11*/ curfptr[10]), (1), (/*_.CURPDAT__V2*/ curfptr[1]), "OBGNAMED_IOBJ");
         ;
         /*_.OGKW__V10*/ curfptr[9] = /*_.INST__V11*/ curfptr[10];;}
        ;
@@ -7305,16 +7201,15 @@ BASILYS_LOCATION("warmelt-genobj.bysl:940: @block");
          /*block*/{
           
           BASILYS_LOCATION("warmelt-genobj.bysl:955: @rawallocobj");
-          /*rawallocobj*/ /*_.INST__V17*/ curfptr[8] =
-           basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_OBJGETNAMEDSYMBOL*/ curfrout->tabval[5])), (2), ("CLASS_OBJGETNAMEDSYMBOL"));
+          /*rawallocobj*/ { basilys_ptr_t newobj = 0;
+           basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_OBJGETNAMEDSYMBOL*/ curfrout->tabval[5])), (2), "CLASS_OBJGETNAMEDSYMBOL");/*_.INST__V17*/ curfptr[8] =
+           newobj; };
           ;
           
           BASILYS_LOCATION("warmelt-genobj.bysl:955: @putslot");
           /*putslot*/
           basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V17*/ curfptr[8])) == OBMAG_OBJECT);
-          basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V17*/ curfptr[8]))));
-          ((basilysobject_ptr_t)(/*_.INST__V17*/ curfptr[8]))->obj_vartab[1 /*OBGNAMED_IOBJ*/] = (basilys_ptr_t)(
-           /*_.CURPDAT__V2*/ curfptr[1]);
+          basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V17*/ curfptr[8]))));basilys_putfield_object((/*_.INST__V17*/ curfptr[8]), (1), (/*_.CURPDAT__V2*/ curfptr[1]), "OBGNAMED_IOBJ");
           ;
           /*_.OGSY__V16*/ curfptr[11] = /*_.INST__V17*/ curfptr[8];;}
          ;
@@ -7586,11 +7481,13 @@ BASILYS_LOCATION("warmelt-genobj.bysl:978: @block");
  /*block*/{
   
   BASILYS_LOCATION("warmelt-genobj.bysl:981: @getslot");
-  /*_.IMPSYM__V7*/ curfptr[5] = basilys_getfield_object((basilys_ptr_t)(/*_.CURIMPORT__V2*/ curfptr[1]), 1, "NIMPORT_SYMB");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.CURIMPORT__V2*/ curfptr[1]), 1, "NIMPORT_SYMB");/*_.IMPSYM__V7*/ curfptr[5] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:982: @getslot");
-  /*_.IMPSYDAT__V8*/ curfptr[7] = basilys_getfield_object((basilys_ptr_t)(/*_.CURIMPORT__V2*/ curfptr[1]), 2, "NIMPORT_SYDATA");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.CURIMPORT__V2*/ curfptr[1]), 2, "NIMPORT_SYDATA");/*_.IMPSYDAT__V8*/ curfptr[7] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:983: @msend");
@@ -7618,32 +7515,27 @@ BASILYS_LOCATION("warmelt-genobj.bysl:978: @block");
   /*block*/{
    
    BASILYS_LOCATION("warmelt-genobj.bysl:985: @rawallocobj");
-   /*rawallocobj*/ /*_.INST__V14*/ curfptr[13] =
-    basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_OBJAPPLY*/ curfrout->tabval[3])), (4), ("CLASS_OBJAPPLY"));
+   /*rawallocobj*/ { basilys_ptr_t newobj = 0;
+    basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_OBJAPPLY*/ curfrout->tabval[3])), (4), "CLASS_OBJAPPLY");/*_.INST__V14*/ curfptr[13] =
+    newobj; };
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:985: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V14*/ curfptr[13])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V14*/ curfptr[13]))));
-   ((basilysobject_ptr_t)(/*_.INST__V14*/ curfptr[13]))->obj_vartab[1 /*OBDI_DESTLIST*/] = (basilys_ptr_t)(
-    /*_.LIST1__V11*/ curfptr[10]);
+   basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V14*/ curfptr[13]))));basilys_putfield_object((/*_.INST__V14*/ curfptr[13]), (1), (/*_.LIST1__V11*/ curfptr[10]), "OBDI_DESTLIST");
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:985: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V14*/ curfptr[13])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V14*/ curfptr[13]))));
-   ((basilysobject_ptr_t)(/*_.INST__V14*/ curfptr[13]))->obj_vartab[2 /*OBAPP_CLOS*/] = (basilys_ptr_t)(
-    (/*~OVALUEIMPORTER*/ curfclos->tabval[2]));
+   basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V14*/ curfptr[13]))));basilys_putfield_object((/*_.INST__V14*/ curfptr[13]), (2), ((/*~OVALUEIMPORTER*/ curfclos->tabval[2])), "OBAPP_CLOS");
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:985: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V14*/ curfptr[13])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)(/*_.INST__V14*/ curfptr[13]))));
-   ((basilysobject_ptr_t)(/*_.INST__V14*/ curfptr[13]))->obj_vartab[3 /*OBAPP_ARGS*/] = (basilys_ptr_t)(
-    /*_.MAKE_TUPLE2__V12*/ curfptr[11]);
+   basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)(/*_.INST__V14*/ curfptr[13]))));basilys_putfield_object((/*_.INST__V14*/ curfptr[13]), (3), (/*_.MAKE_TUPLE2__V12*/ curfptr[11]), "OBAPP_ARGS");
    ;
    /*_.OIMPAPPL__V13*/ curfptr[12] = /*_.INST__V14*/ curfptr[13];;}
   ;
@@ -7821,7 +7713,8 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1008: @block");
    /*block*/{
     
     BASILYS_LOCATION("warmelt-genobj.bysl:1010: @getslot");
-    /*_.ODAT__V5*/ curfptr[4] = basilys_getfield_object((basilys_ptr_t)(/*_.CURPDAT__V2*/ curfptr[1]), 2, "OIE_DATA");
+    { basilys_ptr_t slot=0;
+     basilys_object_get_field(slot,(basilys_ptr_t)(/*_.CURPDAT__V2*/ curfptr[1]), 2, "OIE_DATA");/*_.ODAT__V5*/ curfptr[4] = slot; };
     ;
     
     #if ENABLE_CHECKING
@@ -7882,16 +7775,15 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1008: @block");
        /*block*/{
         
         BASILYS_LOCATION("warmelt-genobj.bysl:1016: @rawallocobj");
-        /*rawallocobj*/ /*_.INST__V11*/ curfptr[10] =
-         basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_OBJINTERNKEYWORD*/ curfrout->tabval[3])), (2), ("CLASS_OBJINTERNKEYWORD"));
+        /*rawallocobj*/ { basilys_ptr_t newobj = 0;
+         basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_OBJINTERNKEYWORD*/ curfrout->tabval[3])), (2), "CLASS_OBJINTERNKEYWORD");/*_.INST__V11*/ curfptr[10] =
+         newobj; };
         ;
         
         BASILYS_LOCATION("warmelt-genobj.bysl:1016: @putslot");
         /*putslot*/
         basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V11*/ curfptr[10])) == OBMAG_OBJECT);
-        basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V11*/ curfptr[10]))));
-        ((basilysobject_ptr_t)(/*_.INST__V11*/ curfptr[10]))->obj_vartab[1 /*OBINTERN_IOBJ*/] = (basilys_ptr_t)(
-         /*_.CURPDAT__V2*/ curfptr[1]);
+        basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V11*/ curfptr[10]))));basilys_putfield_object((/*_.INST__V11*/ curfptr[10]), (1), (/*_.CURPDAT__V2*/ curfptr[1]), "OBINTERN_IOBJ");
         ;
         /*_.OIKW__V10*/ curfptr[9] = /*_.INST__V11*/ curfptr[10];;}
        ;
@@ -7977,16 +7869,15 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1008: @block");
          /*block*/{
           
           BASILYS_LOCATION("warmelt-genobj.bysl:1023: @rawallocobj");
-          /*rawallocobj*/ /*_.INST__V17*/ curfptr[8] =
-           basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_OBJINTERNSYMBOL*/ curfrout->tabval[5])), (2), ("CLASS_OBJINTERNSYMBOL"));
+          /*rawallocobj*/ { basilys_ptr_t newobj = 0;
+           basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_OBJINTERNSYMBOL*/ curfrout->tabval[5])), (2), "CLASS_OBJINTERNSYMBOL");/*_.INST__V17*/ curfptr[8] =
+           newobj; };
           ;
           
           BASILYS_LOCATION("warmelt-genobj.bysl:1023: @putslot");
           /*putslot*/
           basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V17*/ curfptr[8])) == OBMAG_OBJECT);
-          basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V17*/ curfptr[8]))));
-          ((basilysobject_ptr_t)(/*_.INST__V17*/ curfptr[8]))->obj_vartab[1 /*OBINTERN_IOBJ*/] = (basilys_ptr_t)(
-           /*_.CURPDAT__V2*/ curfptr[1]);
+          basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V17*/ curfptr[8]))));basilys_putfield_object((/*_.INST__V17*/ curfptr[8]), (1), (/*_.CURPDAT__V2*/ curfptr[1]), "OBINTERN_IOBJ");
           ;
           /*_.OISY__V16*/ curfptr[11] = /*_.INST__V17*/ curfptr[8];;}
          ;
@@ -8225,11 +8116,13 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1065: @block");
  /*block*/{
   
   BASILYS_LOCATION("warmelt-genobj.bysl:1068: @getslot");
-  /*_.OROUT__V7*/ curfptr[6] = basilys_getfield_object((basilys_ptr_t)(/*_.GCX__V2*/ curfptr[1]), 0, "GNCX_OBJROUT");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.GCX__V2*/ curfptr[1]), 0, "GNCX_OBJROUT");/*_.OROUT__V7*/ curfptr[6] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:1069: @getslot");
-  /*_.FREELI__V8*/ curfptr[7] = basilys_getfield_object((basilys_ptr_t)(/*_.GCX__V2*/ curfptr[1]), 2, "GNCX_FREEPTRLIST");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.GCX__V2*/ curfptr[1]), 2, "GNCX_FREEPTRLIST");/*_.FREELI__V8*/ curfptr[7] = slot; };
   ;
   /*_.PFREE__V9*/ curfptr[8] = 
    (basilysgc_popfirst_list((basilys_ptr_t)(/*_.FREELI__V8*/ curfptr[7])));;
@@ -8359,7 +8252,8 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1065: @block");
     /*block*/{
      
      BASILYS_LOCATION("warmelt-genobj.bysl:1079: @getslot");
-     /*_.OFFPFREE__V15*/ curfptr[10] = basilys_getfield_object((basilys_ptr_t)(/*_.PFREE__V9*/ curfptr[8]), 1, "OBL_OFF");
+     { basilys_ptr_t slot=0;
+      basilys_object_get_field(slot,(basilys_ptr_t)(/*_.PFREE__V9*/ curfptr[8]), 1, "OBL_OFF");/*_.OFFPFREE__V15*/ curfptr[10] = slot; };
      ;
      
      #if ENABLE_CHECKING
@@ -8443,7 +8337,8 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1065: @block");
     /*block*/{
      
      BASILYS_LOCATION("warmelt-genobj.bysl:1082: @getslot");
-     /*_.NBVALOROUT__V18*/ curfptr[16] = basilys_getfield_object((basilys_ptr_t)(/*_.OROUT__V7*/ curfptr[6]), 4, "OBROUT_NBVAL");
+     { basilys_ptr_t slot=0;
+      basilys_object_get_field(slot,(basilys_ptr_t)(/*_.OROUT__V7*/ curfptr[6]), 4, "OBROUT_NBVAL");/*_.NBVALOROUT__V18*/ curfptr[16] = slot; };
      ;
      /*_#GET_INT__L14*/ curfnum[11] = 
       (basilys_get_int((basilys_ptr_t)(/*_.NBVALOROUT__V18*/ curfptr[16])));;
@@ -8520,7 +8415,8 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1065: @block");
   /*block*/{
    
    BASILYS_LOCATION("warmelt-genobj.bysl:1086: @getslot");
-   /*_.NBVALBOX__V22*/ curfptr[15] = basilys_getfield_object((basilys_ptr_t)(/*_.OROUT__V7*/ curfptr[6]), 4, "OBROUT_NBVAL");
+   { basilys_ptr_t slot=0;
+    basilys_object_get_field(slot,(basilys_ptr_t)(/*_.OROUT__V7*/ curfptr[6]), 4, "OBROUT_NBVAL");/*_.NBVALBOX__V22*/ curfptr[15] = slot; };
    ;
    /*_#NBVAL__L17*/ curfnum[8] = 
     (basilys_get_int((basilys_ptr_t)(/*_.NBVALBOX__V22*/ curfptr[15])));;
@@ -8541,7 +8437,8 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1065: @block");
      /*block*/{
       
       BASILYS_LOCATION("warmelt-genobj.bysl:1091: @getslot");
-      /*_.NAMSTR__V25*/ curfptr[24] = basilys_getfield_object((basilys_ptr_t)(/*_.NAM__V3*/ curfptr[2]), 1, "NAMED_NAME");
+      { basilys_ptr_t slot=0;
+       basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NAM__V3*/ curfptr[2]), 1, "NAMED_NAME");/*_.NAMSTR__V25*/ curfptr[24] = slot; };
       ;
       /*block*/{
        
@@ -8619,40 +8516,33 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1065: @block");
     /*block*/{
      
      BASILYS_LOCATION("warmelt-genobj.bysl:1100: @rawallocobj");
-     /*rawallocobj*/ /*_.INST__V32*/ curfptr[31] =
-      basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_OBJLOCV*/ curfrout->tabval[3])), (4), ("CLASS_OBJLOCV"));
+     /*rawallocobj*/ { basilys_ptr_t newobj = 0;
+      basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_OBJLOCV*/ curfrout->tabval[3])), (4), "CLASS_OBJLOCV");/*_.INST__V32*/ curfptr[31] =
+      newobj; };
      ;
      
      BASILYS_LOCATION("warmelt-genobj.bysl:1100: @putslot");
      /*putslot*/
      basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V32*/ curfptr[31])) == OBMAG_OBJECT);
-     basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V32*/ curfptr[31]))));
-     ((basilysobject_ptr_t)(/*_.INST__V32*/ curfptr[31]))->obj_vartab[0 /*OBV_TYPE*/] = (basilys_ptr_t)(
-      (/*!CTYPE_VALUE*/ curfrout->tabval[8]));
+     basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V32*/ curfptr[31]))));basilys_putfield_object((/*_.INST__V32*/ curfptr[31]), (0), ((/*!CTYPE_VALUE*/ curfrout->tabval[8])), "OBV_TYPE");
      ;
      
      BASILYS_LOCATION("warmelt-genobj.bysl:1100: @putslot");
      /*putslot*/
      basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V32*/ curfptr[31])) == OBMAG_OBJECT);
-     basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V32*/ curfptr[31]))));
-     ((basilysobject_ptr_t)(/*_.INST__V32*/ curfptr[31]))->obj_vartab[1 /*OBL_OFF*/] = (basilys_ptr_t)(
-      /*_.MAKE_INTEGERBOX__V30*/ curfptr[29]);
+     basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V32*/ curfptr[31]))));basilys_putfield_object((/*_.INST__V32*/ curfptr[31]), (1), (/*_.MAKE_INTEGERBOX__V30*/ curfptr[29]), "OBL_OFF");
      ;
      
      BASILYS_LOCATION("warmelt-genobj.bysl:1100: @putslot");
      /*putslot*/
      basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V32*/ curfptr[31])) == OBMAG_OBJECT);
-     basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V32*/ curfptr[31]))));
-     ((basilysobject_ptr_t)(/*_.INST__V32*/ curfptr[31]))->obj_vartab[2 /*OBL_PROC*/] = (basilys_ptr_t)(
-      /*_.OROUT__V7*/ curfptr[6]);
+     basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V32*/ curfptr[31]))));basilys_putfield_object((/*_.INST__V32*/ curfptr[31]), (2), (/*_.OROUT__V7*/ curfptr[6]), "OBL_PROC");
      ;
      
      BASILYS_LOCATION("warmelt-genobj.bysl:1100: @putslot");
      /*putslot*/
      basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V32*/ curfptr[31])) == OBMAG_OBJECT);
-     basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)(/*_.INST__V32*/ curfptr[31]))));
-     ((basilysobject_ptr_t)(/*_.INST__V32*/ curfptr[31]))->obj_vartab[3 /*OBL_CNAME*/] = (basilys_ptr_t)(
-      /*_.NAMSTR__V28*/ curfptr[27]);
+     basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)(/*_.INST__V32*/ curfptr[31]))));basilys_putfield_object((/*_.INST__V32*/ curfptr[31]), (3), (/*_.NAMSTR__V28*/ curfptr[27]), "OBL_CNAME");
      ;
      /*_.NLOC__V31*/ curfptr[30] = /*_.INST__V32*/ curfptr[31];;}
     ;
@@ -8882,11 +8772,13 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1112: @block");
  /*block*/{
   
   BASILYS_LOCATION("warmelt-genobj.bysl:1114: @getslot");
-  /*_.OROUT__V7*/ curfptr[6] = basilys_getfield_object((basilys_ptr_t)(/*_.GCX__V2*/ curfptr[1]), 0, "GNCX_OBJROUT");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.GCX__V2*/ curfptr[1]), 0, "GNCX_OBJROUT");/*_.OROUT__V7*/ curfptr[6] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:1115: @getslot");
-  /*_.FREELI__V8*/ curfptr[7] = basilys_getfield_object((basilys_ptr_t)(/*_.GCX__V2*/ curfptr[1]), 3, "GNCX_FREELONGLIST");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.GCX__V2*/ curfptr[1]), 3, "GNCX_FREELONGLIST");/*_.FREELI__V8*/ curfptr[7] = slot; };
   ;
   /*_.PFREE__V9*/ curfptr[8] = 
    (basilysgc_popfirst_list((basilys_ptr_t)(/*_.FREELI__V8*/ curfptr[7])));;
@@ -8951,7 +8843,8 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1112: @block");
     /*block*/{
      
      BASILYS_LOCATION("warmelt-genobj.bysl:1121: @getslot");
-     /*_.OFFPFREE__V12*/ curfptr[10] = basilys_getfield_object((basilys_ptr_t)(/*_.PFREE__V9*/ curfptr[8]), 1, "OBL_OFF");
+     { basilys_ptr_t slot=0;
+      basilys_object_get_field(slot,(basilys_ptr_t)(/*_.PFREE__V9*/ curfptr[8]), 1, "OBL_OFF");/*_.OFFPFREE__V12*/ curfptr[10] = slot; };
      ;
      
      #if ENABLE_CHECKING
@@ -9035,7 +8928,8 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1112: @block");
     /*block*/{
      
      BASILYS_LOCATION("warmelt-genobj.bysl:1124: @getslot");
-     /*_.NBLONGOROUT__V15*/ curfptr[13] = basilys_getfield_object((basilys_ptr_t)(/*_.OROUT__V7*/ curfptr[6]), 5, "OBROUT_NBLONG");
+     { basilys_ptr_t slot=0;
+      basilys_object_get_field(slot,(basilys_ptr_t)(/*_.OROUT__V7*/ curfptr[6]), 5, "OBROUT_NBLONG");/*_.NBLONGOROUT__V15*/ curfptr[13] = slot; };
      ;
      
      #if ENABLE_CHECKING
@@ -9160,7 +9054,8 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1112: @block");
   /*block*/{
    
    BASILYS_LOCATION("warmelt-genobj.bysl:1128: @getslot");
-   /*_.NBLONGBOX__V21*/ curfptr[13] = basilys_getfield_object((basilys_ptr_t)(/*_.OROUT__V7*/ curfptr[6]), 5, "OBROUT_NBLONG");
+   { basilys_ptr_t slot=0;
+    basilys_object_get_field(slot,(basilys_ptr_t)(/*_.OROUT__V7*/ curfptr[6]), 5, "OBROUT_NBLONG");/*_.NBLONGBOX__V21*/ curfptr[13] = slot; };
    ;
    /*_#NBLONG__L15*/ curfnum[8] = 
     (basilys_get_int((basilys_ptr_t)(/*_.NBLONGBOX__V21*/ curfptr[13])));;
@@ -9178,7 +9073,8 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1112: @block");
     /*block*/{
      
      BASILYS_LOCATION("warmelt-genobj.bysl:1133: @getslot");
-     /*_.NAMED_NAME__V24*/ curfptr[23] = basilys_getfield_object((basilys_ptr_t)(/*_.NAM__V3*/ curfptr[2]), 1, "NAMED_NAME");
+     { basilys_ptr_t slot=0;
+      basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NAM__V3*/ curfptr[2]), 1, "NAMED_NAME");/*_.NAMED_NAME__V24*/ curfptr[23] = slot; };
      ;
      /*block*/{
       
@@ -9252,32 +9148,27 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1112: @block");
     /*block*/{
      
      BASILYS_LOCATION("warmelt-genobj.bysl:1140: @rawallocobj");
-     /*rawallocobj*/ /*_.INST__V30*/ curfptr[29] =
-      basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_OBJLOCV*/ curfrout->tabval[2])), (4), ("CLASS_OBJLOCV"));
+     /*rawallocobj*/ { basilys_ptr_t newobj = 0;
+      basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_OBJLOCV*/ curfrout->tabval[2])), (4), "CLASS_OBJLOCV");/*_.INST__V30*/ curfptr[29] =
+      newobj; };
      ;
      
      BASILYS_LOCATION("warmelt-genobj.bysl:1140: @putslot");
      /*putslot*/
      basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V30*/ curfptr[29])) == OBMAG_OBJECT);
-     basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V30*/ curfptr[29]))));
-     ((basilysobject_ptr_t)(/*_.INST__V30*/ curfptr[29]))->obj_vartab[0 /*OBV_TYPE*/] = (basilys_ptr_t)(
-      (/*!CTYPE_LONG*/ curfrout->tabval[5]));
+     basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V30*/ curfptr[29]))));basilys_putfield_object((/*_.INST__V30*/ curfptr[29]), (0), ((/*!CTYPE_LONG*/ curfrout->tabval[5])), "OBV_TYPE");
      ;
      
      BASILYS_LOCATION("warmelt-genobj.bysl:1140: @putslot");
      /*putslot*/
      basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V30*/ curfptr[29])) == OBMAG_OBJECT);
-     basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V30*/ curfptr[29]))));
-     ((basilysobject_ptr_t)(/*_.INST__V30*/ curfptr[29]))->obj_vartab[1 /*OBL_OFF*/] = (basilys_ptr_t)(
-      /*_.MAKE_INTEGERBOX__V27*/ curfptr[26]);
+     basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V30*/ curfptr[29]))));basilys_putfield_object((/*_.INST__V30*/ curfptr[29]), (1), (/*_.MAKE_INTEGERBOX__V27*/ curfptr[26]), "OBL_OFF");
      ;
      
      BASILYS_LOCATION("warmelt-genobj.bysl:1140: @putslot");
      /*putslot*/
      basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V30*/ curfptr[29])) == OBMAG_OBJECT);
-     basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)(/*_.INST__V30*/ curfptr[29]))));
-     ((basilysobject_ptr_t)(/*_.INST__V30*/ curfptr[29]))->obj_vartab[3 /*OBL_CNAME*/] = (basilys_ptr_t)(
-      /*_.STRBUF2STRING__V28*/ curfptr[27]);
+     basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)(/*_.INST__V30*/ curfptr[29]))));basilys_putfield_object((/*_.INST__V30*/ curfptr[29]), (3), (/*_.STRBUF2STRING__V28*/ curfptr[27]), "OBL_CNAME");
      ;
      /*_.NLOC__V29*/ curfptr[28] = /*_.INST__V30*/ curfptr[29];;}
     ;
@@ -9814,11 +9705,13 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1148: @block");
        /*block*/{
         
         BASILYS_LOCATION("warmelt-genobj.bysl:1163: @getslot");
-        /*_.FREEMAP__V25*/ curfptr[24] = basilys_getfield_object((basilys_ptr_t)(/*_.GCX__V2*/ curfptr[1]), 4, "GNCX_FREEOTHERMAPS");
+        { basilys_ptr_t slot=0;
+         basilys_object_get_field(slot,(basilys_ptr_t)(/*_.GCX__V2*/ curfptr[1]), 4, "GNCX_FREEOTHERMAPS");/*_.FREEMAP__V25*/ curfptr[24] = slot; };
         ;
         
         BASILYS_LOCATION("warmelt-genobj.bysl:1164: @getslot");
-        /*_.OROUT__V26*/ curfptr[25] = basilys_getfield_object((basilys_ptr_t)(/*_.GCX__V2*/ curfptr[1]), 0, "GNCX_OBJROUT");
+        { basilys_ptr_t slot=0;
+         basilys_object_get_field(slot,(basilys_ptr_t)(/*_.GCX__V2*/ curfptr[1]), 0, "GNCX_OBJROUT");/*_.OROUT__V26*/ curfptr[25] = slot; };
         ;
         /*_#OFF__L10*/ curfnum[7] = -1;;
         
@@ -9964,7 +9857,8 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1148: @block");
            /*block*/{
             
             BASILYS_LOCATION("warmelt-genobj.bysl:1176: @getslot");
-            /*_.OBL_OFF__V37*/ curfptr[36] = basilys_getfield_object((basilys_ptr_t)(/*_.PFREE__V36*/ curfptr[33]), 1, "OBL_OFF");
+            { basilys_ptr_t slot=0;
+             basilys_object_get_field(slot,(basilys_ptr_t)(/*_.PFREE__V36*/ curfptr[33]), 1, "OBL_OFF");/*_.OBL_OFF__V37*/ curfptr[36] = slot; };
             ;
             /*_#GET_INT__L16*/ curfnum[15] = 
              (basilys_get_int((basilys_ptr_t)(/*_.OBL_OFF__V37*/ curfptr[36])));;
@@ -9991,7 +9885,8 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1148: @block");
            /*block*/{
             
             BASILYS_LOCATION("warmelt-genobj.bysl:1177: @getslot");
-            /*_.OBROUT_OTHERS__V38*/ curfptr[36] = basilys_getfield_object((basilys_ptr_t)(/*_.OROUT__V26*/ curfptr[25]), 6, "OBROUT_OTHERS");
+            { basilys_ptr_t slot=0;
+             basilys_object_get_field(slot,(basilys_ptr_t)(/*_.OROUT__V26*/ curfptr[25]), 6, "OBROUT_OTHERS");/*_.OBROUT_OTHERS__V38*/ curfptr[36] = slot; };
             ;
             /*_#LIST_LENGTH__L18*/ curfnum[15] = 
              (basilys_list_length((basilys_ptr_t)(/*_.OBROUT_OTHERS__V38*/ curfptr[36])));;
@@ -10019,7 +9914,8 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1148: @block");
             basilysgc_new_strbuf((basilysobject_ptr_t)((/*!DISCR_STRBUF*/ curfrout->tabval[11])), (char*)0);;
            
            BASILYS_LOCATION("warmelt-genobj.bysl:1180: @getslot");
-           /*_.OTHERS__V41*/ curfptr[40] = basilys_getfield_object((basilys_ptr_t)(/*_.OROUT__V26*/ curfptr[25]), 6, "OBROUT_OTHERS");
+           { basilys_ptr_t slot=0;
+            basilys_object_get_field(slot,(basilys_ptr_t)(/*_.OROUT__V26*/ curfptr[25]), 6, "OBROUT_OTHERS");/*_.OTHERS__V41*/ curfptr[40] = slot; };
            ;
            /*_#NBOTHERS__L20*/ curfnum[15] = 
             (basilys_list_length((basilys_ptr_t)(/*_.OTHERS__V41*/ curfptr[40])));;
@@ -10072,7 +9968,8 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1148: @block");
            basilysgc_add_strbuf((struct basilysstrbuf_st *)(/*_.NAMBUF__V40*/ curfptr[39]), ( "loc_"));
            
            BASILYS_LOCATION("warmelt-genobj.bysl:1185: @getslot");
-           /*_.NAMED_NAME__V44*/ curfptr[42] = basilys_getfield_object((basilys_ptr_t)(/*_.CTYP__V4*/ curfptr[3]), 1, "NAMED_NAME");
+           { basilys_ptr_t slot=0;
+            basilys_object_get_field(slot,(basilys_ptr_t)(/*_.CTYP__V4*/ curfptr[3]), 1, "NAMED_NAME");/*_.NAMED_NAME__V44*/ curfptr[42] = slot; };
            ;
            
            basilysgc_add_strbuf_cident((struct basilysstrbuf_st *)(/*_.NAMBUF__V40*/ curfptr[39]), basilys_string_str((basilys_ptr_t)(/*_.NAMED_NAME__V44*/ curfptr[42])));
@@ -10092,32 +9989,27 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1148: @block");
             /*block*/{
              
              BASILYS_LOCATION("warmelt-genobj.bysl:1188: @rawallocobj");
-             /*rawallocobj*/ /*_.INST__V49*/ curfptr[48] =
-              basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_OBJLOCV*/ curfrout->tabval[10])), (4), ("CLASS_OBJLOCV"));
+             /*rawallocobj*/ { basilys_ptr_t newobj = 0;
+              basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_OBJLOCV*/ curfrout->tabval[10])), (4), "CLASS_OBJLOCV");/*_.INST__V49*/ curfptr[48] =
+              newobj; };
              ;
              
              BASILYS_LOCATION("warmelt-genobj.bysl:1188: @putslot");
              /*putslot*/
              basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V49*/ curfptr[48])) == OBMAG_OBJECT);
-             basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V49*/ curfptr[48]))));
-             ((basilysobject_ptr_t)(/*_.INST__V49*/ curfptr[48]))->obj_vartab[0 /*OBV_TYPE*/] = (basilys_ptr_t)(
-              /*_.CTYP__V4*/ curfptr[3]);
+             basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V49*/ curfptr[48]))));basilys_putfield_object((/*_.INST__V49*/ curfptr[48]), (0), (/*_.CTYP__V4*/ curfptr[3]), "OBV_TYPE");
              ;
              
              BASILYS_LOCATION("warmelt-genobj.bysl:1188: @putslot");
              /*putslot*/
              basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V49*/ curfptr[48])) == OBMAG_OBJECT);
-             basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V49*/ curfptr[48]))));
-             ((basilysobject_ptr_t)(/*_.INST__V49*/ curfptr[48]))->obj_vartab[1 /*OBL_OFF*/] = (basilys_ptr_t)(
-              /*_.MAKE_INTEGERBOX__V46*/ curfptr[45]);
+             basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V49*/ curfptr[48]))));basilys_putfield_object((/*_.INST__V49*/ curfptr[48]), (1), (/*_.MAKE_INTEGERBOX__V46*/ curfptr[45]), "OBL_OFF");
              ;
              
              BASILYS_LOCATION("warmelt-genobj.bysl:1188: @putslot");
              /*putslot*/
              basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V49*/ curfptr[48])) == OBMAG_OBJECT);
-             basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)(/*_.INST__V49*/ curfptr[48]))));
-             ((basilysobject_ptr_t)(/*_.INST__V49*/ curfptr[48]))->obj_vartab[3 /*OBL_CNAME*/] = (basilys_ptr_t)(
-              /*_.STRBUF2STRING__V47*/ curfptr[46]);
+             basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)(/*_.INST__V49*/ curfptr[48]))));basilys_putfield_object((/*_.INST__V49*/ curfptr[48]), (3), (/*_.STRBUF2STRING__V47*/ curfptr[46]), "OBL_CNAME");
              ;
              /*_.NLOC__V48*/ curfptr[47] = /*_.INST__V49*/ curfptr[48];;}
             ;
@@ -10491,7 +10383,8 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1200: @block");
  /*block*/{
   
   BASILYS_LOCATION("warmelt-genobj.bysl:1204: @getslot");
-  /*_.LOCMAP__V11*/ curfptr[10] = basilys_getfield_object((basilys_ptr_t)(/*_.GCX__V3*/ curfptr[2]), 1, "GNCX_LOCMAP");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.GCX__V3*/ curfptr[2]), 1, "GNCX_LOCMAP");/*_.LOCMAP__V11*/ curfptr[10] = slot; };
   ;
   /*_.OLDLOC__V12*/ curfptr[11] = 
    (basilys_get_mapobjects((basilysmapobjects_ptr_t)(/*_.LOCMAP__V11*/ curfptr[10]), (basilysobject_ptr_t)(/*_.BND__V2*/ curfptr[1])));;
@@ -10517,7 +10410,8 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1200: @block");
      /*block*/{
       
       BASILYS_LOCATION("warmelt-genobj.bysl:1211: @getslot");
-      /*_.LETBIND_TYPE__V15*/ curfptr[14] = basilys_getfield_object((basilys_ptr_t)(/*_.BND__V2*/ curfptr[1]), 1, "LETBIND_TYPE");
+      { basilys_ptr_t slot=0;
+       basilys_object_get_field(slot,(basilys_ptr_t)(/*_.BND__V2*/ curfptr[1]), 1, "LETBIND_TYPE");/*_.LETBIND_TYPE__V15*/ curfptr[14] = slot; };
       ;
       /*_#__L6*/ curfnum[5] = 
        ((/*_.LETBIND_TYPE__V15*/ curfptr[14]) == ((/*!CTYPE_VOID*/ curfrout->tabval[4])));;
@@ -10687,7 +10581,8 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1200: @block");
   /*block*/{
    
    BASILYS_LOCATION("warmelt-genobj.bysl:1219: @getslot");
-   /*_.OLDCTY__V23*/ curfptr[16] = basilys_getfield_object((basilys_ptr_t)(/*_.OLDLOC__V12*/ curfptr[11]), 0, "OBV_TYPE");
+   { basilys_ptr_t slot=0;
+    basilys_object_get_field(slot,(basilys_ptr_t)(/*_.OLDLOC__V12*/ curfptr[11]), 0, "OBV_TYPE");/*_.OLDCTY__V23*/ curfptr[16] = slot; };
    ;
    /*_#__L9*/ curfnum[4] = 
     ((/*_.OLDCTY__V23*/ curfptr[16]) == ((/*!CTYPE_VALUE*/ curfrout->tabval[6])));;
@@ -10704,7 +10599,8 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1200: @block");
      /*block*/{
       
       BASILYS_LOCATION("warmelt-genobj.bysl:1221: @getslot");
-      /*_.FREEPL__V24*/ curfptr[15] = basilys_getfield_object((basilys_ptr_t)(/*_.GCX__V3*/ curfptr[2]), 2, "GNCX_FREEPTRLIST");
+      { basilys_ptr_t slot=0;
+       basilys_object_get_field(slot,(basilys_ptr_t)(/*_.GCX__V3*/ curfptr[2]), 2, "GNCX_FREEPTRLIST");/*_.FREEPL__V24*/ curfptr[15] = slot; };
       ;
       
       basilysgc_append_list((basilys_ptr_t)(/*_.FREEPL__V24*/ curfptr[15]), (basilys_ptr_t)(/*_.OLDLOC__V12*/ curfptr[11]));
@@ -10736,7 +10632,8 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1200: @block");
        /*block*/{
         
         BASILYS_LOCATION("warmelt-genobj.bysl:1224: @getslot");
-        /*_.FREENL__V25*/ curfptr[13] = basilys_getfield_object((basilys_ptr_t)(/*_.GCX__V3*/ curfptr[2]), 3, "GNCX_FREELONGLIST");
+        { basilys_ptr_t slot=0;
+         basilys_object_get_field(slot,(basilys_ptr_t)(/*_.GCX__V3*/ curfptr[2]), 3, "GNCX_FREELONGLIST");/*_.FREENL__V25*/ curfptr[13] = slot; };
         ;
         
         basilysgc_append_list((basilys_ptr_t)(/*_.FREENL__V25*/ curfptr[13]), (basilys_ptr_t)(/*_.OLDLOC__V12*/ curfptr[11]));
@@ -10758,11 +10655,13 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1200: @block");
        /*block*/{
         
         BASILYS_LOCATION("warmelt-genobj.bysl:1227: @getslot");
-        /*_.FREEMAP__V26*/ curfptr[15] = basilys_getfield_object((basilys_ptr_t)(/*_.GCX__V3*/ curfptr[2]), 4, "GNCX_FREEOTHERMAPS");
+        { basilys_ptr_t slot=0;
+         basilys_object_get_field(slot,(basilys_ptr_t)(/*_.GCX__V3*/ curfptr[2]), 4, "GNCX_FREEOTHERMAPS");/*_.FREEMAP__V26*/ curfptr[15] = slot; };
         ;
         
         BASILYS_LOCATION("warmelt-genobj.bysl:1228: @getslot");
-        /*_.OROUT__V27*/ curfptr[13] = basilys_getfield_object((basilys_ptr_t)(/*_.GCX__V3*/ curfptr[2]), 0, "GNCX_OBJROUT");
+        { basilys_ptr_t slot=0;
+         basilys_object_get_field(slot,(basilys_ptr_t)(/*_.GCX__V3*/ curfptr[2]), 0, "GNCX_OBJROUT");/*_.OROUT__V27*/ curfptr[13] = slot; };
         ;
         
         #if ENABLE_CHECKING
@@ -11238,15 +11137,18 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1240: @block");
  /*block*/{
   
   BASILYS_LOCATION("warmelt-genobj.bysl:1246: @getslot");
-  /*_.LOC__V11*/ curfptr[10] = basilys_getfield_object((basilys_ptr_t)(/*_.NCHK__V2*/ curfptr[1]), 0, "NREP_LOC");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NCHK__V2*/ curfptr[1]), 0, "NREP_LOC");/*_.LOC__V11*/ curfptr[10] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:1247: @getslot");
-  /*_.NEXP__V12*/ curfptr[11] = basilys_getfield_object((basilys_ptr_t)(/*_.NCHK__V2*/ curfptr[1]), 1, "NCHUNK_EXPANSION");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NCHK__V2*/ curfptr[1]), 1, "NCHUNK_EXPANSION");/*_.NEXP__V12*/ curfptr[11] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:1248: @getslot");
-  /*_.NPRIM__V13*/ curfptr[12] = basilys_getfield_object((basilys_ptr_t)(/*_.NCHK__V2*/ curfptr[1]), 2, "NCHUNK_PRIMITIVE");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NCHK__V2*/ curfptr[1]), 2, "NCHUNK_PRIMITIVE");/*_.NPRIM__V13*/ curfptr[12] = slot; };
   ;
   
   #if ENABLE_CHECKING
@@ -11371,7 +11273,8 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1240: @block");
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:1260: @getslot");
-   /*_.PRIMTY__V22*/ curfptr[21] = basilys_getfield_object((basilys_ptr_t)(/*_.NPRIM__V13*/ curfptr[12]), 3, "PRIM_TYPE");
+   { basilys_ptr_t slot=0;
+    basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NPRIM__V13*/ curfptr[12]), 3, "PRIM_TYPE");/*_.PRIMTY__V22*/ curfptr[21] = slot; };
    ;
    /*_#IS_MIXINT__L6*/ curfnum[0] = 
     (basilys_magic_discr((basilys_ptr_t)(/*_.LOC__V11*/ curfptr[10])) == OBMAG_MIXINT);;
@@ -11388,32 +11291,27 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1240: @block");
      /*block*/{
       
       BASILYS_LOCATION("warmelt-genobj.bysl:1262: @rawallocobj");
-      /*rawallocobj*/ /*_.INST__V25*/ curfptr[24] =
-       basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_OBJLOCATEDEXPV*/ curfrout->tabval[9])), (3), ("CLASS_OBJLOCATEDEXPV"));
+      /*rawallocobj*/ { basilys_ptr_t newobj = 0;
+       basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_OBJLOCATEDEXPV*/ curfrout->tabval[9])), (3), "CLASS_OBJLOCATEDEXPV");/*_.INST__V25*/ curfptr[24] =
+       newobj; };
       ;
       
       BASILYS_LOCATION("warmelt-genobj.bysl:1262: @putslot");
       /*putslot*/
       basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V25*/ curfptr[24])) == OBMAG_OBJECT);
-      basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V25*/ curfptr[24]))));
-      ((basilysobject_ptr_t)(/*_.INST__V25*/ curfptr[24]))->obj_vartab[0 /*OBV_TYPE*/] = (basilys_ptr_t)(
-       /*_.PRIMTY__V22*/ curfptr[21]);
+      basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V25*/ curfptr[24]))));basilys_putfield_object((/*_.INST__V25*/ curfptr[24]), (0), (/*_.PRIMTY__V22*/ curfptr[21]), "OBV_TYPE");
       ;
       
       BASILYS_LOCATION("warmelt-genobj.bysl:1262: @putslot");
       /*putslot*/
       basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V25*/ curfptr[24])) == OBMAG_OBJECT);
-      basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V25*/ curfptr[24]))));
-      ((basilysobject_ptr_t)(/*_.INST__V25*/ curfptr[24]))->obj_vartab[1 /*OBX_CONT*/] = (basilys_ptr_t)(
-       /*_.OTUP__V21*/ curfptr[20]);
+      basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V25*/ curfptr[24]))));basilys_putfield_object((/*_.INST__V25*/ curfptr[24]), (1), (/*_.OTUP__V21*/ curfptr[20]), "OBX_CONT");
       ;
       
       BASILYS_LOCATION("warmelt-genobj.bysl:1262: @putslot");
       /*putslot*/
       basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V25*/ curfptr[24])) == OBMAG_OBJECT);
-      basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V25*/ curfptr[24]))));
-      ((basilysobject_ptr_t)(/*_.INST__V25*/ curfptr[24]))->obj_vartab[2 /*OBCX_LOC*/] = (basilys_ptr_t)(
-       /*_.LOC__V11*/ curfptr[10]);
+      basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V25*/ curfptr[24]))));basilys_putfield_object((/*_.INST__V25*/ curfptr[24]), (2), (/*_.LOC__V11*/ curfptr[10]), "OBCX_LOC");
       ;
       /*_.INST___V24*/ curfptr[23] = /*_.INST__V25*/ curfptr[24];;}
      ;
@@ -11434,24 +11332,21 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1240: @block");
      /*block*/{
       
       BASILYS_LOCATION("warmelt-genobj.bysl:1267: @rawallocobj");
-      /*rawallocobj*/ /*_.INST__V27*/ curfptr[26] =
-       basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_OBJEXPV*/ curfrout->tabval[10])), (2), ("CLASS_OBJEXPV"));
+      /*rawallocobj*/ { basilys_ptr_t newobj = 0;
+       basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_OBJEXPV*/ curfrout->tabval[10])), (2), "CLASS_OBJEXPV");/*_.INST__V27*/ curfptr[26] =
+       newobj; };
       ;
       
       BASILYS_LOCATION("warmelt-genobj.bysl:1267: @putslot");
       /*putslot*/
       basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V27*/ curfptr[26])) == OBMAG_OBJECT);
-      basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V27*/ curfptr[26]))));
-      ((basilysobject_ptr_t)(/*_.INST__V27*/ curfptr[26]))->obj_vartab[0 /*OBV_TYPE*/] = (basilys_ptr_t)(
-       /*_.PRIMTY__V22*/ curfptr[21]);
+      basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V27*/ curfptr[26]))));basilys_putfield_object((/*_.INST__V27*/ curfptr[26]), (0), (/*_.PRIMTY__V22*/ curfptr[21]), "OBV_TYPE");
       ;
       
       BASILYS_LOCATION("warmelt-genobj.bysl:1267: @putslot");
       /*putslot*/
       basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V27*/ curfptr[26])) == OBMAG_OBJECT);
-      basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V27*/ curfptr[26]))));
-      ((basilysobject_ptr_t)(/*_.INST__V27*/ curfptr[26]))->obj_vartab[1 /*OBX_CONT*/] = (basilys_ptr_t)(
-       /*_.OTUP__V21*/ curfptr[20]);
+      basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V27*/ curfptr[26]))));basilys_putfield_object((/*_.INST__V27*/ curfptr[26]), (1), (/*_.OTUP__V21*/ curfptr[20]), "OBX_CONT");
       ;
       /*_.INST___V26*/ curfptr[23] = /*_.INST__V27*/ curfptr[26];;}
      ;
@@ -11985,16 +11880,15 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1280: @block");
   /*block*/{
    
    BASILYS_LOCATION("warmelt-genobj.bysl:1284: @rawallocobj");
-   /*rawallocobj*/ /*_.INST__V12*/ curfptr[11] =
-    basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_OBJNIL*/ curfrout->tabval[3])), (1), ("CLASS_OBJNIL"));
+   /*rawallocobj*/ { basilys_ptr_t newobj = 0;
+    basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_OBJNIL*/ curfrout->tabval[3])), (1), "CLASS_OBJNIL");/*_.INST__V12*/ curfptr[11] =
+    newobj; };
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:1284: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V12*/ curfptr[11])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V12*/ curfptr[11]))));
-   ((basilysobject_ptr_t)(/*_.INST__V12*/ curfptr[11]))->obj_vartab[0 /*OBV_TYPE*/] = (basilys_ptr_t)(
-    (/*!CTYPE_VALUE*/ curfrout->tabval[4]));
+   basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V12*/ curfptr[11]))));basilys_putfield_object((/*_.INST__V12*/ curfptr[11]), (0), ((/*!CTYPE_VALUE*/ curfrout->tabval[4])), "OBV_TYPE");
    ;
    /*_.OBNIL__V11*/ curfptr[10] = /*_.INST__V12*/ curfptr[11];;}
   ;
@@ -12241,11 +12135,13 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1292: @block");
  /*block*/{
   
   BASILYS_LOCATION("warmelt-genobj.bysl:1296: @getslot");
-  /*_.COMS__V11*/ curfptr[10] = basilys_getfield_object((basilys_ptr_t)(/*_.NCOMM__V2*/ curfptr[1]), 1, "NCOMM_STRING");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NCOMM__V2*/ curfptr[1]), 1, "NCOMM_STRING");/*_.COMS__V11*/ curfptr[10] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:1297: @getslot");
-  /*_.NLOC__V12*/ curfptr[11] = basilys_getfield_object((basilys_ptr_t)(/*_.NCOMM__V2*/ curfptr[1]), 0, "NREP_LOC");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NCOMM__V2*/ curfptr[1]), 0, "NREP_LOC");/*_.NLOC__V12*/ curfptr[11] = slot; };
   ;
   /*_.SBUF__V13*/ curfptr[12] = 
    basilysgc_new_strbuf((basilysobject_ptr_t)((/*!DISCR_STRBUF*/ curfrout->tabval[3])), (char*)0);;
@@ -12267,32 +12163,27 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1292: @block");
    /*block*/{
     
     BASILYS_LOCATION("warmelt-genobj.bysl:1303: @rawallocobj");
-    /*rawallocobj*/ /*_.INST__V17*/ curfptr[16] =
-     basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_OBJCOMPUTE*/ curfrout->tabval[5])), (3), ("CLASS_OBJCOMPUTE"));
+    /*rawallocobj*/ { basilys_ptr_t newobj = 0;
+     basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_OBJCOMPUTE*/ curfrout->tabval[5])), (3), "CLASS_OBJCOMPUTE");/*_.INST__V17*/ curfptr[16] =
+     newobj; };
     ;
     
     BASILYS_LOCATION("warmelt-genobj.bysl:1303: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V17*/ curfptr[16])) == OBMAG_OBJECT);
-    basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V17*/ curfptr[16]))));
-    ((basilysobject_ptr_t)(/*_.INST__V17*/ curfptr[16]))->obj_vartab[0 /*OBI_LOC*/] = (basilys_ptr_t)(
-     /*_.NLOC__V12*/ curfptr[11]);
+    basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V17*/ curfptr[16]))));basilys_putfield_object((/*_.INST__V17*/ curfptr[16]), (0), (/*_.NLOC__V12*/ curfptr[11]), "OBI_LOC");
     ;
     
     BASILYS_LOCATION("warmelt-genobj.bysl:1303: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V17*/ curfptr[16])) == OBMAG_OBJECT);
-    basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V17*/ curfptr[16]))));
-    ((basilysobject_ptr_t)(/*_.INST__V17*/ curfptr[16]))->obj_vartab[1 /*OBDI_DESTLIST*/] = (basilys_ptr_t)(
-     (/*nil*/NULL));
+    basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V17*/ curfptr[16]))));basilys_putfield_object((/*_.INST__V17*/ curfptr[16]), (1), ((/*nil*/NULL)), "OBDI_DESTLIST");
     ;
     
     BASILYS_LOCATION("warmelt-genobj.bysl:1303: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V17*/ curfptr[16])) == OBMAG_OBJECT);
-    basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V17*/ curfptr[16]))));
-    ((basilysobject_ptr_t)(/*_.INST__V17*/ curfptr[16]))->obj_vartab[2 /*OBCPT_EXPR*/] = (basilys_ptr_t)(
-     /*_.OSTR__V15*/ curfptr[14]);
+    basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V17*/ curfptr[16]))));basilys_putfield_object((/*_.INST__V17*/ curfptr[16]), (2), (/*_.OSTR__V15*/ curfptr[14]), "OBCPT_EXPR");
     ;
     /*_.RES__V16*/ curfptr[15] = /*_.INST__V17*/ curfptr[16];;}
    ;
@@ -12604,23 +12495,28 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1316: @block");
  /*block*/{
   
   BASILYS_LOCATION("warmelt-genobj.bysl:1319: @getslot");
-  /*_.LOC__V9*/ curfptr[8] = basilys_getfield_object((basilys_ptr_t)(/*_.LSYO__V2*/ curfptr[1]), 0, "NREP_LOC");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.LSYO__V2*/ curfptr[1]), 0, "NREP_LOC");/*_.LOC__V9*/ curfptr[8] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:1320: @getslot");
-  /*_.LOCMAP__V10*/ curfptr[9] = basilys_getfield_object((basilys_ptr_t)(/*_.GCX__V3*/ curfptr[2]), 1, "GNCX_LOCMAP");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.GCX__V3*/ curfptr[2]), 1, "GNCX_LOCMAP");/*_.LOCMAP__V10*/ curfptr[9] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:1321: @getslot");
-  /*_.SYM__V11*/ curfptr[10] = basilys_getfield_object((basilys_ptr_t)(/*_.LSYO__V2*/ curfptr[1]), 1, "NOCC_SYMB");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.LSYO__V2*/ curfptr[1]), 1, "NOCC_SYMB");/*_.SYM__V11*/ curfptr[10] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:1322: @getslot");
-  /*_.OTY__V12*/ curfptr[11] = basilys_getfield_object((basilys_ptr_t)(/*_.LSYO__V2*/ curfptr[1]), 2, "NOCC_CTYP");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.LSYO__V2*/ curfptr[1]), 2, "NOCC_CTYP");/*_.OTY__V12*/ curfptr[11] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:1323: @getslot");
-  /*_.SBND__V13*/ curfptr[12] = basilys_getfield_object((basilys_ptr_t)(/*_.LSYO__V2*/ curfptr[1]), 3, "NOCC_BIND");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.LSYO__V2*/ curfptr[1]), 3, "NOCC_BIND");/*_.SBND__V13*/ curfptr[12] = slot; };
   ;
   /*_.OVAR__V14*/ curfptr[13] = 
    (basilys_get_mapobjects((basilysmapobjects_ptr_t)(/*_.LOCMAP__V10*/ curfptr[9]), (basilysobject_ptr_t)(/*_.SBND__V13*/ curfptr[12])));;
@@ -13265,19 +13161,23 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1353: @block");
  /*block*/{
   
   BASILYS_LOCATION("warmelt-genobj.bysl:1359: @getslot");
-  /*_.OROUT__V11*/ curfptr[10] = basilys_getfield_object((basilys_ptr_t)(/*_.GCX__V3*/ curfptr[2]), 0, "GNCX_OBJROUT");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.GCX__V3*/ curfptr[2]), 0, "GNCX_OBJROUT");/*_.OROUT__V11*/ curfptr[10] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:1360: @getslot");
-  /*_.OSYM__V12*/ curfptr[11] = basilys_getfield_object((basilys_ptr_t)(/*_.NCLO__V2*/ curfptr[1]), 1, "NOCC_SYMB");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NCLO__V2*/ curfptr[1]), 1, "NOCC_SYMB");/*_.OSYM__V12*/ curfptr[11] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:1361: @getslot");
-  /*_.OBIND__V13*/ curfptr[12] = basilys_getfield_object((basilys_ptr_t)(/*_.NCLO__V2*/ curfptr[1]), 3, "NOCC_BIND");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NCLO__V2*/ curfptr[1]), 3, "NOCC_BIND");/*_.OBIND__V13*/ curfptr[12] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:1362: @getslot");
-  /*_.CPROCS__V14*/ curfptr[13] = basilys_getfield_object((basilys_ptr_t)(/*_.NCLO__V2*/ curfptr[1]), 4, "NCLOC_PROCS");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NCLO__V2*/ curfptr[1]), 4, "NCLOC_PROCS");/*_.CPROCS__V14*/ curfptr[13] = slot; };
   ;
   /*_.LIST_LAST__V15*/ curfptr[14] = 
    (basilys_list_last((basilys_ptr_t)(/*_.CPROCS__V14*/ curfptr[13])));;
@@ -13285,7 +13185,8 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1353: @block");
    (basilys_pair_head((basilys_ptr_t)(/*_.LIST_LAST__V15*/ curfptr[14])));;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:1364: @getslot");
-  /*_.NLOC__V17*/ curfptr[16] = basilys_getfield_object((basilys_ptr_t)(/*_.NCLO__V2*/ curfptr[1]), 0, "NREP_LOC");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NCLO__V2*/ curfptr[1]), 0, "NREP_LOC");/*_.NLOC__V17*/ curfptr[16] = slot; };
   ;
   
   #if ENABLE_CHECKING
@@ -13337,7 +13238,8 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1353: @block");
   /*block*/{
    
    BASILYS_LOCATION("warmelt-genobj.bysl:1370: @getslot");
-   /*_.CLOBLIS__V21*/ curfptr[20] = basilys_getfield_object((basilys_ptr_t)(/*_.LASTCPROC__V16*/ curfptr[15]), 4, "NRPRO_CLOSEDB");
+   { basilys_ptr_t slot=0;
+    basilys_object_get_field(slot,(basilys_ptr_t)(/*_.LASTCPROC__V16*/ curfptr[15]), 4, "NRPRO_CLOSEDB");/*_.CLOBLIS__V21*/ curfptr[20] = slot; };
    ;
    /*_#CLORANK__L5*/ curfnum[0] = -1;;
    
@@ -13570,53 +13472,48 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1353: @block");
     /*block*/{
      
      BASILYS_LOCATION("warmelt-genobj.bysl:1390: @getslot");
-     /*_.NCLOTYP__V34*/ curfptr[28] = basilys_getfield_object((basilys_ptr_t)(/*_.NCLO__V2*/ curfptr[1]), 2, "NOCC_CTYP");
+     { basilys_ptr_t slot=0;
+      basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NCLO__V2*/ curfptr[1]), 2, "NOCC_CTYP");/*_.NCLOTYP__V34*/ curfptr[28] = slot; };
      ;
      /*_.MAKE_INTEGERBOX__V35*/ curfptr[34] = 
       (basilysgc_new_int((basilysobject_ptr_t)((/*!DISCR_INTEGER*/ curfrout->tabval[5])), (/*_#CLORANK__L5*/ curfnum[0])));;
      
      BASILYS_LOCATION("warmelt-genobj.bysl:1397: @getslot");
-     /*_.NAMED_NAME__V36*/ curfptr[35] = basilys_getfield_object((basilys_ptr_t)(/*_.OSYM__V12*/ curfptr[11]), 1, "NAMED_NAME");
+     { basilys_ptr_t slot=0;
+      basilys_object_get_field(slot,(basilys_ptr_t)(/*_.OSYM__V12*/ curfptr[11]), 1, "NAMED_NAME");/*_.NAMED_NAME__V36*/ curfptr[35] = slot; };
      ;
      
      BASILYS_LOCATION("warmelt-genobj.bysl:1392: @block");
      /*block*/{
       
       BASILYS_LOCATION("warmelt-genobj.bysl:1392: @rawallocobj");
-      /*rawallocobj*/ /*_.INST__V38*/ curfptr[37] =
-       basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_OBJCLOCCV*/ curfrout->tabval[4])), (4), ("CLASS_OBJCLOCCV"));
+      /*rawallocobj*/ { basilys_ptr_t newobj = 0;
+       basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_OBJCLOCCV*/ curfrout->tabval[4])), (4), "CLASS_OBJCLOCCV");/*_.INST__V38*/ curfptr[37] =
+       newobj; };
       ;
       
       BASILYS_LOCATION("warmelt-genobj.bysl:1392: @putslot");
       /*putslot*/
       basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V38*/ curfptr[37])) == OBMAG_OBJECT);
-      basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V38*/ curfptr[37]))));
-      ((basilysobject_ptr_t)(/*_.INST__V38*/ curfptr[37]))->obj_vartab[0 /*OBV_TYPE*/] = (basilys_ptr_t)(
-       /*_.NCLOTYP__V34*/ curfptr[28]);
+      basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V38*/ curfptr[37]))));basilys_putfield_object((/*_.INST__V38*/ curfptr[37]), (0), (/*_.NCLOTYP__V34*/ curfptr[28]), "OBV_TYPE");
       ;
       
       BASILYS_LOCATION("warmelt-genobj.bysl:1392: @putslot");
       /*putslot*/
       basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V38*/ curfptr[37])) == OBMAG_OBJECT);
-      basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V38*/ curfptr[37]))));
-      ((basilysobject_ptr_t)(/*_.INST__V38*/ curfptr[37]))->obj_vartab[1 /*OBC_OFF*/] = (basilys_ptr_t)(
-       /*_.MAKE_INTEGERBOX__V35*/ curfptr[34]);
+      basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V38*/ curfptr[37]))));basilys_putfield_object((/*_.INST__V38*/ curfptr[37]), (1), (/*_.MAKE_INTEGERBOX__V35*/ curfptr[34]), "OBC_OFF");
       ;
       
       BASILYS_LOCATION("warmelt-genobj.bysl:1392: @putslot");
       /*putslot*/
       basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V38*/ curfptr[37])) == OBMAG_OBJECT);
-      basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V38*/ curfptr[37]))));
-      ((basilysobject_ptr_t)(/*_.INST__V38*/ curfptr[37]))->obj_vartab[2 /*OBC_PROC*/] = (basilys_ptr_t)(
-       /*_.LASTCPROC__V16*/ curfptr[15]);
+      basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V38*/ curfptr[37]))));basilys_putfield_object((/*_.INST__V38*/ curfptr[37]), (2), (/*_.LASTCPROC__V16*/ curfptr[15]), "OBC_PROC");
       ;
       
       BASILYS_LOCATION("warmelt-genobj.bysl:1392: @putslot");
       /*putslot*/
       basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V38*/ curfptr[37])) == OBMAG_OBJECT);
-      basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)(/*_.INST__V38*/ curfptr[37]))));
-      ((basilysobject_ptr_t)(/*_.INST__V38*/ curfptr[37]))->obj_vartab[3 /*OBC_NAME*/] = (basilys_ptr_t)(
-       /*_.NAMED_NAME__V36*/ curfptr[35]);
+      basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)(/*_.INST__V38*/ curfptr[37]))));basilys_putfield_object((/*_.INST__V38*/ curfptr[37]), (3), (/*_.NAMED_NAME__V36*/ curfptr[35]), "OBC_NAME");
       ;
       /*_.OCLOCCV__V37*/ curfptr[36] = /*_.INST__V38*/ curfptr[37];;}
      ;
@@ -14015,15 +13912,18 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1407: @block");
  /*block*/{
   
   BASILYS_LOCATION("warmelt-genobj.bysl:1413: @getslot");
-  /*_.OROUT__V11*/ curfptr[10] = basilys_getfield_object((basilys_ptr_t)(/*_.GCX__V3*/ curfptr[2]), 0, "GNCX_OBJROUT");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.GCX__V3*/ curfptr[2]), 0, "GNCX_OBJROUT");/*_.OROUT__V11*/ curfptr[10] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:1414: @getslot");
-  /*_.OSYM__V12*/ curfptr[11] = basilys_getfield_object((basilys_ptr_t)(/*_.NCNST__V2*/ curfptr[1]), 1, "NOCC_SYMB");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NCNST__V2*/ curfptr[1]), 1, "NOCC_SYMB");/*_.OSYM__V12*/ curfptr[11] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:1415: @getslot");
-  /*_.CPROCS__V13*/ curfptr[12] = basilys_getfield_object((basilys_ptr_t)(/*_.NCNST__V2*/ curfptr[1]), 4, "NCLOC_PROCS");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NCNST__V2*/ curfptr[1]), 4, "NCLOC_PROCS");/*_.CPROCS__V13*/ curfptr[12] = slot; };
   ;
   /*_.LIST_LAST__V14*/ curfptr[13] = 
    (basilys_list_last((basilys_ptr_t)(/*_.CPROCS__V13*/ curfptr[12])));;
@@ -14031,7 +13931,8 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1407: @block");
    (basilys_pair_head((basilys_ptr_t)(/*_.LIST_LAST__V14*/ curfptr[13])));;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:1417: @getslot");
-  /*_.NLOC__V16*/ curfptr[15] = basilys_getfield_object((basilys_ptr_t)(/*_.NCNST__V2*/ curfptr[1]), 0, "NREP_LOC");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NCNST__V2*/ curfptr[1]), 0, "NREP_LOC");/*_.NLOC__V16*/ curfptr[15] = slot; };
   ;
   
   #if ENABLE_CHECKING
@@ -14124,7 +14025,8 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1407: @block");
   /*block*/{
    
    BASILYS_LOCATION("warmelt-genobj.bysl:1423: @getslot");
-   /*_.CNSTLIS__V22*/ curfptr[21] = basilys_getfield_object((basilys_ptr_t)(/*_.LASTCPROC__V15*/ curfptr[14]), 5, "NRPRO_CONST");
+   { basilys_ptr_t slot=0;
+    basilys_object_get_field(slot,(basilys_ptr_t)(/*_.LASTCPROC__V15*/ curfptr[14]), 5, "NRPRO_CONST");/*_.CNSTLIS__V22*/ curfptr[21] = slot; };
    ;
    /*_#CNSTRANK__L6*/ curfnum[0] = -1;;
    
@@ -14357,53 +14259,48 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1407: @block");
     /*block*/{
      
      BASILYS_LOCATION("warmelt-genobj.bysl:1443: @getslot");
-     /*_.CNSTYP__V35*/ curfptr[29] = basilys_getfield_object((basilys_ptr_t)(/*_.NCNST__V2*/ curfptr[1]), 2, "NOCC_CTYP");
+     { basilys_ptr_t slot=0;
+      basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NCNST__V2*/ curfptr[1]), 2, "NOCC_CTYP");/*_.CNSTYP__V35*/ curfptr[29] = slot; };
      ;
      /*_.MAKE_INTEGERBOX__V36*/ curfptr[35] = 
       (basilysgc_new_int((basilysobject_ptr_t)((/*!DISCR_INTEGER*/ curfrout->tabval[5])), (/*_#CNSTRANK__L6*/ curfnum[0])));;
      
      BASILYS_LOCATION("warmelt-genobj.bysl:1450: @getslot");
-     /*_.NAMED_NAME__V37*/ curfptr[36] = basilys_getfield_object((basilys_ptr_t)(/*_.OSYM__V12*/ curfptr[11]), 1, "NAMED_NAME");
+     { basilys_ptr_t slot=0;
+      basilys_object_get_field(slot,(basilys_ptr_t)(/*_.OSYM__V12*/ curfptr[11]), 1, "NAMED_NAME");/*_.NAMED_NAME__V37*/ curfptr[36] = slot; };
      ;
      
      BASILYS_LOCATION("warmelt-genobj.bysl:1445: @block");
      /*block*/{
       
       BASILYS_LOCATION("warmelt-genobj.bysl:1445: @rawallocobj");
-      /*rawallocobj*/ /*_.INST__V39*/ curfptr[38] =
-       basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_OBJCONSTV*/ curfrout->tabval[4])), (4), ("CLASS_OBJCONSTV"));
+      /*rawallocobj*/ { basilys_ptr_t newobj = 0;
+       basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_OBJCONSTV*/ curfrout->tabval[4])), (4), "CLASS_OBJCONSTV");/*_.INST__V39*/ curfptr[38] =
+       newobj; };
       ;
       
       BASILYS_LOCATION("warmelt-genobj.bysl:1445: @putslot");
       /*putslot*/
       basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V39*/ curfptr[38])) == OBMAG_OBJECT);
-      basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V39*/ curfptr[38]))));
-      ((basilysobject_ptr_t)(/*_.INST__V39*/ curfptr[38]))->obj_vartab[0 /*OBV_TYPE*/] = (basilys_ptr_t)(
-       /*_.CNSTYP__V35*/ curfptr[29]);
+      basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V39*/ curfptr[38]))));basilys_putfield_object((/*_.INST__V39*/ curfptr[38]), (0), (/*_.CNSTYP__V35*/ curfptr[29]), "OBV_TYPE");
       ;
       
       BASILYS_LOCATION("warmelt-genobj.bysl:1445: @putslot");
       /*putslot*/
       basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V39*/ curfptr[38])) == OBMAG_OBJECT);
-      basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V39*/ curfptr[38]))));
-      ((basilysobject_ptr_t)(/*_.INST__V39*/ curfptr[38]))->obj_vartab[1 /*OBC_OFF*/] = (basilys_ptr_t)(
-       /*_.MAKE_INTEGERBOX__V36*/ curfptr[35]);
+      basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V39*/ curfptr[38]))));basilys_putfield_object((/*_.INST__V39*/ curfptr[38]), (1), (/*_.MAKE_INTEGERBOX__V36*/ curfptr[35]), "OBC_OFF");
       ;
       
       BASILYS_LOCATION("warmelt-genobj.bysl:1445: @putslot");
       /*putslot*/
       basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V39*/ curfptr[38])) == OBMAG_OBJECT);
-      basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V39*/ curfptr[38]))));
-      ((basilysobject_ptr_t)(/*_.INST__V39*/ curfptr[38]))->obj_vartab[2 /*OBC_PROC*/] = (basilys_ptr_t)(
-       /*_.LASTCPROC__V15*/ curfptr[14]);
+      basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V39*/ curfptr[38]))));basilys_putfield_object((/*_.INST__V39*/ curfptr[38]), (2), (/*_.LASTCPROC__V15*/ curfptr[14]), "OBC_PROC");
       ;
       
       BASILYS_LOCATION("warmelt-genobj.bysl:1445: @putslot");
       /*putslot*/
       basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V39*/ curfptr[38])) == OBMAG_OBJECT);
-      basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)(/*_.INST__V39*/ curfptr[38]))));
-      ((basilysobject_ptr_t)(/*_.INST__V39*/ curfptr[38]))->obj_vartab[3 /*OBC_NAME*/] = (basilys_ptr_t)(
-       /*_.NAMED_NAME__V37*/ curfptr[36]);
+      basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)(/*_.INST__V39*/ curfptr[38]))));basilys_putfield_object((/*_.INST__V39*/ curfptr[38]), (3), (/*_.NAMED_NAME__V37*/ curfptr[36]), "OBC_NAME");
       ;
       /*_.OCONSTV__V38*/ curfptr[37] = /*_.INST__V39*/ curfptr[38];;}
      ;
@@ -14843,11 +14740,13 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1459: @block");
  /*block*/{
   
   BASILYS_LOCATION("warmelt-genobj.bysl:1464: @getslot");
-  /*_.VAR__V13*/ curfptr[12] = basilys_getfield_object((basilys_ptr_t)(/*_.NSVA__V2*/ curfptr[1]), 1, "NIMPORT_SYMB");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NSVA__V2*/ curfptr[1]), 1, "NIMPORT_SYMB");/*_.VAR__V13*/ curfptr[12] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:1465: @getslot");
-  /*_.IGNCX_IMPORTMAP__V14*/ curfptr[13] = basilys_getfield_object((basilys_ptr_t)(/*_.GCX__V3*/ curfptr[2]), 11, "IGNCX_IMPORTMAP");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.GCX__V3*/ curfptr[2]), 11, "IGNCX_IMPORTMAP");/*_.IGNCX_IMPORTMAP__V14*/ curfptr[13] = slot; };
   ;
   /*_.OLOCV__V15*/ curfptr[14] = 
    (basilys_get_mapobjects((basilysmapobjects_ptr_t)(/*_.IGNCX_IMPORTMAP__V14*/ curfptr[13]), (basilysobject_ptr_t)(/*_.VAR__V13*/ curfptr[12])));;
@@ -15243,19 +15142,23 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1476: @block");
  /*block*/{
   
   BASILYS_LOCATION("warmelt-genobj.bysl:1480: @getslot");
-  /*_.NLOC__V11*/ curfptr[10] = basilys_getfield_object((basilys_ptr_t)(/*_.NCONST__V2*/ curfptr[1]), 0, "NREP_LOC");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NCONST__V2*/ curfptr[1]), 0, "NREP_LOC");/*_.NLOC__V11*/ curfptr[10] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:1481: @getslot");
-  /*_.SVAL__V12*/ curfptr[11] = basilys_getfield_object((basilys_ptr_t)(/*_.NCONST__V2*/ curfptr[1]), 1, "NCONST_SVAL");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NCONST__V2*/ curfptr[1]), 1, "NCONST_SVAL");/*_.SVAL__V12*/ curfptr[11] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:1482: @getslot");
-  /*_.DATA__V13*/ curfptr[12] = basilys_getfield_object((basilys_ptr_t)(/*_.NCONST__V2*/ curfptr[1]), 3, "NCONST_DATA");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NCONST__V2*/ curfptr[1]), 3, "NCONST_DATA");/*_.DATA__V13*/ curfptr[12] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:1483: @getslot");
-  /*_.PROC__V14*/ curfptr[13] = basilys_getfield_object((basilys_ptr_t)(/*_.NCONST__V2*/ curfptr[1]), 2, "NCONST_PROC");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NCONST__V2*/ curfptr[1]), 2, "NCONST_PROC");/*_.PROC__V14*/ curfptr[13] = slot; };
   ;
   /*_#IS_A__L4*/ curfnum[0] = 
     basilys_is_instance_of((basilys_ptr_t)(/*_.PROC__V14*/ curfptr[13]), (basilys_ptr_t)((/*!CLASS_NREP_ROUTPROC*/ curfrout->tabval[3])));;
@@ -15272,7 +15175,8 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1476: @block");
     /*block*/{
      
      BASILYS_LOCATION("warmelt-genobj.bysl:1486: @getslot");
-     /*_.CONSTLIST__V17*/ curfptr[16] = basilys_getfield_object((basilys_ptr_t)(/*_.PROC__V14*/ curfptr[13]), 5, "NRPRO_CONST");
+     { basilys_ptr_t slot=0;
+      basilys_object_get_field(slot,(basilys_ptr_t)(/*_.PROC__V14*/ curfptr[13]), 5, "NRPRO_CONST");/*_.CONSTLIST__V17*/ curfptr[16] = slot; };
      ;
      /*_.CURPAIR__V18*/ curfptr[17] = 
       (basilys_list_first((basilys_ptr_t)(/*_.CONSTLIST__V17*/ curfptr[16])));;
@@ -15471,7 +15375,8 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1476: @block");
        basilysgc_add_strbuf((struct basilysstrbuf_st *)(/*_.NAMBUF__V19*/ curfptr[18]), ( "_"));
        
        BASILYS_LOCATION("warmelt-genobj.bysl:1511: @getslot");
-       /*_.NAMED_NAME__V27*/ curfptr[23] = basilys_getfield_object((basilys_ptr_t)(/*_.SVAL__V12*/ curfptr[11]), 1, "NAMED_NAME");
+       { basilys_ptr_t slot=0;
+        basilys_object_get_field(slot,(basilys_ptr_t)(/*_.SVAL__V12*/ curfptr[11]), 1, "NAMED_NAME");/*_.NAMED_NAME__V27*/ curfptr[23] = slot; };
        ;
        
        basilysgc_add_strbuf_cident((struct basilysstrbuf_st *)(/*_.NAMBUF__V19*/ curfptr[18]), basilys_string_str((basilys_ptr_t)(/*_.NAMED_NAME__V27*/ curfptr[23])));
@@ -15498,40 +15403,33 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1476: @block");
       /*block*/{
        
        BASILYS_LOCATION("warmelt-genobj.bysl:1515: @rawallocobj");
-       /*rawallocobj*/ /*_.INST__V32*/ curfptr[31] =
-        basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_OBJCONSTV*/ curfrout->tabval[6])), (4), ("CLASS_OBJCONSTV"));
+       /*rawallocobj*/ { basilys_ptr_t newobj = 0;
+        basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_OBJCONSTV*/ curfrout->tabval[6])), (4), "CLASS_OBJCONSTV");/*_.INST__V32*/ curfptr[31] =
+        newobj; };
        ;
        
        BASILYS_LOCATION("warmelt-genobj.bysl:1515: @putslot");
        /*putslot*/
        basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V32*/ curfptr[31])) == OBMAG_OBJECT);
-       basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V32*/ curfptr[31]))));
-       ((basilysobject_ptr_t)(/*_.INST__V32*/ curfptr[31]))->obj_vartab[0 /*OBV_TYPE*/] = (basilys_ptr_t)(
-        (/*!CTYPE_VALUE*/ curfrout->tabval[7]));
+       basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V32*/ curfptr[31]))));basilys_putfield_object((/*_.INST__V32*/ curfptr[31]), (0), ((/*!CTYPE_VALUE*/ curfrout->tabval[7])), "OBV_TYPE");
        ;
        
        BASILYS_LOCATION("warmelt-genobj.bysl:1515: @putslot");
        /*putslot*/
        basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V32*/ curfptr[31])) == OBMAG_OBJECT);
-       basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V32*/ curfptr[31]))));
-       ((basilysobject_ptr_t)(/*_.INST__V32*/ curfptr[31]))->obj_vartab[1 /*OBC_OFF*/] = (basilys_ptr_t)(
-        /*_.MAKE_INTEGERBOX__V29*/ curfptr[28]);
+       basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V32*/ curfptr[31]))));basilys_putfield_object((/*_.INST__V32*/ curfptr[31]), (1), (/*_.MAKE_INTEGERBOX__V29*/ curfptr[28]), "OBC_OFF");
        ;
        
        BASILYS_LOCATION("warmelt-genobj.bysl:1515: @putslot");
        /*putslot*/
        basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V32*/ curfptr[31])) == OBMAG_OBJECT);
-       basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V32*/ curfptr[31]))));
-       ((basilysobject_ptr_t)(/*_.INST__V32*/ curfptr[31]))->obj_vartab[2 /*OBC_PROC*/] = (basilys_ptr_t)(
-        /*_.PROC__V14*/ curfptr[13]);
+       basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V32*/ curfptr[31]))));basilys_putfield_object((/*_.INST__V32*/ curfptr[31]), (2), (/*_.PROC__V14*/ curfptr[13]), "OBC_PROC");
        ;
        
        BASILYS_LOCATION("warmelt-genobj.bysl:1515: @putslot");
        /*putslot*/
        basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V32*/ curfptr[31])) == OBMAG_OBJECT);
-       basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)(/*_.INST__V32*/ curfptr[31]))));
-       ((basilysobject_ptr_t)(/*_.INST__V32*/ curfptr[31]))->obj_vartab[3 /*OBC_NAME*/] = (basilys_ptr_t)(
-        /*_.STRBUF2STRING__V30*/ curfptr[29]);
+       basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)(/*_.INST__V32*/ curfptr[31]))));basilys_putfield_object((/*_.INST__V32*/ curfptr[31]), (3), (/*_.STRBUF2STRING__V30*/ curfptr[29]), "OBC_NAME");
        ;
        /*_.CONSTV__V31*/ curfptr[30] = /*_.INST__V32*/ curfptr[31];;}
       ;
@@ -15941,7 +15839,8 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1535: @block");
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:1539: @getslot");
-  /*_.SCOMM__V10*/ curfptr[9] = basilys_getfield_object((basilys_ptr_t)(/*_.NQCME__V2*/ curfptr[1]), 4, "NQCMEC_COMMENT");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NQCME__V2*/ curfptr[1]), 4, "NQCMEC_COMMENT");/*_.SCOMM__V10*/ curfptr[9] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:1540: @block");
@@ -15970,7 +15869,8 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1535: @block");
   /*_.STR__V14*/ curfptr[11] = /*_.LET___V11*/ curfptr[10];;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:1549: @getslot");
-  /*_.NREP_LOC__V15*/ curfptr[12] = basilys_getfield_object((basilys_ptr_t)(/*_.NQCME__V2*/ curfptr[1]), 0, "NREP_LOC");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NQCME__V2*/ curfptr[1]), 0, "NREP_LOC");/*_.NREP_LOC__V15*/ curfptr[12] = slot; };
   ;
   /*_.MAKE_TUPLE2__V16*/ curfptr[15] = 
    (basilysgc_new_mult2((basilysobject_ptr_t)((/*!DISCR_MULTIPLE*/ curfrout->tabval[7])), (basilys_ptr_t)(/*_.STR__V14*/ curfptr[11]),  (basilys_ptr_t)(/*_.ONRES__V9*/ curfptr[8])));;
@@ -15979,32 +15879,27 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1535: @block");
   /*block*/{
    
    BASILYS_LOCATION("warmelt-genobj.bysl:1547: @rawallocobj");
-   /*rawallocobj*/ /*_.INST__V18*/ curfptr[17] =
-    basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_OBJLOCATEDEXPV*/ curfrout->tabval[5])), (3), ("CLASS_OBJLOCATEDEXPV"));
+   /*rawallocobj*/ { basilys_ptr_t newobj = 0;
+    basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_OBJLOCATEDEXPV*/ curfrout->tabval[5])), (3), "CLASS_OBJLOCATEDEXPV");/*_.INST__V18*/ curfptr[17] =
+    newobj; };
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:1547: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V18*/ curfptr[17])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V18*/ curfptr[17]))));
-   ((basilysobject_ptr_t)(/*_.INST__V18*/ curfptr[17]))->obj_vartab[0 /*OBV_TYPE*/] = (basilys_ptr_t)(
-    (/*!CTYPE_VALUE*/ curfrout->tabval[6]));
+   basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V18*/ curfptr[17]))));basilys_putfield_object((/*_.INST__V18*/ curfptr[17]), (0), ((/*!CTYPE_VALUE*/ curfrout->tabval[6])), "OBV_TYPE");
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:1547: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V18*/ curfptr[17])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V18*/ curfptr[17]))));
-   ((basilysobject_ptr_t)(/*_.INST__V18*/ curfptr[17]))->obj_vartab[2 /*OBCX_LOC*/] = (basilys_ptr_t)(
-    /*_.NREP_LOC__V15*/ curfptr[12]);
+   basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V18*/ curfptr[17]))));basilys_putfield_object((/*_.INST__V18*/ curfptr[17]), (2), (/*_.NREP_LOC__V15*/ curfptr[12]), "OBCX_LOC");
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:1547: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V18*/ curfptr[17])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V18*/ curfptr[17]))));
-   ((basilysobject_ptr_t)(/*_.INST__V18*/ curfptr[17]))->obj_vartab[1 /*OBX_CONT*/] = (basilys_ptr_t)(
-    /*_.MAKE_TUPLE2__V16*/ curfptr[15]);
+   basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V18*/ curfptr[17]))));basilys_putfield_object((/*_.INST__V18*/ curfptr[17]), (1), (/*_.MAKE_TUPLE2__V16*/ curfptr[15]), "OBX_CONT");
    ;
    /*_.ORES__V17*/ curfptr[16] = /*_.INST__V18*/ curfptr[17];;}
   ;
@@ -16310,19 +16205,23 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1564: @block");
  /*block*/{
   
   BASILYS_LOCATION("warmelt-genobj.bysl:1569: @getslot");
-  /*_.NLOC__V11*/ curfptr[10] = basilys_getfield_object((basilys_ptr_t)(/*_.NFOR__V2*/ curfptr[1]), 0, "NREP_LOC");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NFOR__V2*/ curfptr[1]), 0, "NREP_LOC");/*_.NLOC__V11*/ curfptr[10] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:1570: @getslot");
-  /*_.NBIND__V12*/ curfptr[11] = basilys_getfield_object((basilys_ptr_t)(/*_.NFOR__V2*/ curfptr[1]), 1, "NFOREVER_BIND");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NFOR__V2*/ curfptr[1]), 1, "NFOREVER_BIND");/*_.NBIND__V12*/ curfptr[11] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:1571: @getslot");
-  /*_.NBODY__V13*/ curfptr[12] = basilys_getfield_object((basilys_ptr_t)(/*_.NFOR__V2*/ curfptr[1]), 2, "NFOREVER_BODY");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NFOR__V2*/ curfptr[1]), 2, "NFOREVER_BODY");/*_.NBODY__V13*/ curfptr[12] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:1572: @getslot");
-  /*_.NRES__V14*/ curfptr[13] = basilys_getfield_object((basilys_ptr_t)(/*_.NFOR__V2*/ curfptr[1]), 3, "NFOREVER_RESULT");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NFOR__V2*/ curfptr[1]), 3, "NFOREVER_RESULT");/*_.NRES__V14*/ curfptr[13] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:1573: @apply");
@@ -16337,7 +16236,8 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1564: @block");
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:1575: @getslot");
-  /*_.NBIND99BIS__V16*/ curfptr[15] = basilys_getfield_object((basilys_ptr_t)(/*_.NFOR__V2*/ curfptr[1]), 1, "NFOREVER_BIND");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NFOR__V2*/ curfptr[1]), 1, "NFOREVER_BIND");/*_.NBIND99BIS__V16*/ curfptr[15] = slot; };
   ;
   /*_.ORESV99BIS__V17*/ curfptr[16] = /*_.ORESV__V15*/ curfptr[14];;
   
@@ -16436,7 +16336,8 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1564: @block");
    /*block*/{
     
     BASILYS_LOCATION("warmelt-genobj.bysl:1580: @getslot");
-    /*_.LABIND_CLONSY__V24*/ curfptr[21] = basilys_getfield_object((basilys_ptr_t)(/*_.NBIND__V12*/ curfptr[11]), 2, "LABIND_CLONSY");
+    { basilys_ptr_t slot=0;
+     basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NBIND__V12*/ curfptr[11]), 2, "LABIND_CLONSY");/*_.LABIND_CLONSY__V24*/ curfptr[21] = slot; };
     ;
     /*_#THE_CALLCOUNT__L6*/ curfnum[0] = 
      callcount;;
@@ -16613,9 +16514,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1564: @block");
    BASILYS_LOCATION("warmelt-genobj.bysl:1584: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.NBIND__V12*/ curfptr[11])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)(/*_.NBIND__V12*/ curfptr[11]))));
-   ((basilysobject_ptr_t)(/*_.NBIND__V12*/ curfptr[11]))->obj_vartab[3 /*LABIND_RES*/] = (basilys_ptr_t)(
-    /*_.ORESV__V15*/ curfptr[14]);
+   basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)(/*_.NBIND__V12*/ curfptr[11]))));basilys_putfield_object((/*_.NBIND__V12*/ curfptr[11]), (3), (/*_.ORESV__V15*/ curfptr[14]), "LABIND_RES");
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:1584: @touch");
@@ -16677,7 +16576,8 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1564: @block");
    /*block*/{
     
     BASILYS_LOCATION("warmelt-genobj.bysl:1586: @getslot");
-    /*_.LABIND_CLONSY__V35*/ curfptr[34] = basilys_getfield_object((basilys_ptr_t)(/*_.NBIND99BIS__V16*/ curfptr[15]), 2, "LABIND_CLONSY");
+    { basilys_ptr_t slot=0;
+     basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NBIND99BIS__V16*/ curfptr[15]), 2, "LABIND_CLONSY");/*_.LABIND_CLONSY__V35*/ curfptr[34] = slot; };
     ;
     /*_#THE_CALLCOUNT__L11*/ curfnum[0] = 
      callcount;;
@@ -16852,7 +16752,8 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1564: @block");
   /*block*/{
    
    BASILYS_LOCATION("warmelt-genobj.bysl:1590: @getslot");
-   /*_.CLOSY__V44*/ curfptr[43] = basilys_getfield_object((basilys_ptr_t)(/*_.NBIND__V12*/ curfptr[11]), 2, "LABIND_CLONSY");
+   { basilys_ptr_t slot=0;
+    basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NBIND__V12*/ curfptr[11]), 2, "LABIND_CLONSY");/*_.CLOSY__V44*/ curfptr[43] = slot; };
    ;
    /*_.BODYL__V45*/ curfptr[44] = 
     (basilysgc_new_list((basilysobject_ptr_t)((/*!DISCR_LIST*/ curfrout->tabval[6]))));;
@@ -16863,48 +16764,39 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1564: @block");
    /*block*/{
     
     BASILYS_LOCATION("warmelt-genobj.bysl:1593: @rawallocobj");
-    /*rawallocobj*/ /*_.INST__V48*/ curfptr[47] =
-     basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_OBJLOOP*/ curfrout->tabval[7])), (5), ("CLASS_OBJLOOP"));
+    /*rawallocobj*/ { basilys_ptr_t newobj = 0;
+     basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_OBJLOOP*/ curfrout->tabval[7])), (5), "CLASS_OBJLOOP");/*_.INST__V48*/ curfptr[47] =
+     newobj; };
     ;
     
     BASILYS_LOCATION("warmelt-genobj.bysl:1593: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V48*/ curfptr[47])) == OBMAG_OBJECT);
-    basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V48*/ curfptr[47]))));
-    ((basilysobject_ptr_t)(/*_.INST__V48*/ curfptr[47]))->obj_vartab[0 /*OBI_LOC*/] = (basilys_ptr_t)(
-     /*_.NLOC__V11*/ curfptr[10]);
+    basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V48*/ curfptr[47]))));basilys_putfield_object((/*_.INST__V48*/ curfptr[47]), (0), (/*_.NLOC__V11*/ curfptr[10]), "OBI_LOC");
     ;
     
     BASILYS_LOCATION("warmelt-genobj.bysl:1593: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V48*/ curfptr[47])) == OBMAG_OBJECT);
-    basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V48*/ curfptr[47]))));
-    ((basilysobject_ptr_t)(/*_.INST__V48*/ curfptr[47]))->obj_vartab[1 /*OBLO_BODYL*/] = (basilys_ptr_t)(
-     /*_.BODYL__V45*/ curfptr[44]);
+    basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V48*/ curfptr[47]))));basilys_putfield_object((/*_.INST__V48*/ curfptr[47]), (1), (/*_.BODYL__V45*/ curfptr[44]), "OBLO_BODYL");
     ;
     
     BASILYS_LOCATION("warmelt-genobj.bysl:1593: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V48*/ curfptr[47])) == OBMAG_OBJECT);
-    basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V48*/ curfptr[47]))));
-    ((basilysobject_ptr_t)(/*_.INST__V48*/ curfptr[47]))->obj_vartab[2 /*OBLO_EPIL*/] = (basilys_ptr_t)(
-     /*_.EPILOGL__V46*/ curfptr[45]);
+    basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V48*/ curfptr[47]))));basilys_putfield_object((/*_.INST__V48*/ curfptr[47]), (2), (/*_.EPILOGL__V46*/ curfptr[45]), "OBLO_EPIL");
     ;
     
     BASILYS_LOCATION("warmelt-genobj.bysl:1593: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V48*/ curfptr[47])) == OBMAG_OBJECT);
-    basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)(/*_.INST__V48*/ curfptr[47]))));
-    ((basilysobject_ptr_t)(/*_.INST__V48*/ curfptr[47]))->obj_vartab[3 /*OBLOOP_LABEL*/] = (basilys_ptr_t)(
-     /*_.CLOSY__V44*/ curfptr[43]);
+    basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)(/*_.INST__V48*/ curfptr[47]))));basilys_putfield_object((/*_.INST__V48*/ curfptr[47]), (3), (/*_.CLOSY__V44*/ curfptr[43]), "OBLOOP_LABEL");
     ;
     
     BASILYS_LOCATION("warmelt-genobj.bysl:1593: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V48*/ curfptr[47])) == OBMAG_OBJECT);
-    basilys_assertmsg("putslot checkoff", (4>=0 && 4< basilys_object_length((basilys_ptr_t)(/*_.INST__V48*/ curfptr[47]))));
-    ((basilysobject_ptr_t)(/*_.INST__V48*/ curfptr[47]))->obj_vartab[4 /*OBLOOP_RESV*/] = (basilys_ptr_t)(
-     /*_.ORESV__V15*/ curfptr[14]);
+    basilys_assertmsg("putslot checkoff", (4>=0 && 4< basilys_object_length((basilys_ptr_t)(/*_.INST__V48*/ curfptr[47]))));basilys_putfield_object((/*_.INST__V48*/ curfptr[47]), (4), (/*_.ORESV__V15*/ curfptr[14]), "OBLOOP_RESV");
     ;
     /*_.OLOOP__V47*/ curfptr[46] = /*_.INST__V48*/ curfptr[47];;}
    ;
@@ -17423,15 +17315,18 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1614: @block");
  /*block*/{
   
   BASILYS_LOCATION("warmelt-genobj.bysl:1620: @getslot");
-  /*_.NLOC__V11*/ curfptr[10] = basilys_getfield_object((basilys_ptr_t)(/*_.NEXI__V2*/ curfptr[1]), 0, "NREP_LOC");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NEXI__V2*/ curfptr[1]), 0, "NREP_LOC");/*_.NLOC__V11*/ curfptr[10] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:1621: @getslot");
-  /*_.NBINDX__V12*/ curfptr[11] = basilys_getfield_object((basilys_ptr_t)(/*_.NEXI__V2*/ curfptr[1]), 1, "NEXIT_BIND");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NEXI__V2*/ curfptr[1]), 1, "NEXIT_BIND");/*_.NBINDX__V12*/ curfptr[11] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:1622: @getslot");
-  /*_.NVAL__V13*/ curfptr[12] = basilys_getfield_object((basilys_ptr_t)(/*_.NEXI__V2*/ curfptr[1]), 2, "NEXIT_VAL");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NEXI__V2*/ curfptr[1]), 2, "NEXIT_VAL");/*_.NVAL__V13*/ curfptr[12] = slot; };
   ;
   
   #if ENABLE_CHECKING
@@ -17500,69 +17395,63 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1614: @block");
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:1629: @getslot");
-   /*_.BXRES__V21*/ curfptr[20] = basilys_getfield_object((basilys_ptr_t)(/*_.NBINDX__V12*/ curfptr[11]), 3, "LABIND_RES");
+   { basilys_ptr_t slot=0;
+    basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NBINDX__V12*/ curfptr[11]), 3, "LABIND_RES");/*_.BXRES__V21*/ curfptr[20] = slot; };
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:1630: @block");
    /*block*/{
     
     BASILYS_LOCATION("warmelt-genobj.bysl:1630: @rawallocobj");
-    /*rawallocobj*/ /*_.INST__V23*/ curfptr[22] =
-     basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_OBJBLOCK*/ curfrout->tabval[6])), (3), ("CLASS_OBJBLOCK"));
+    /*rawallocobj*/ { basilys_ptr_t newobj = 0;
+     basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_OBJBLOCK*/ curfrout->tabval[6])), (3), "CLASS_OBJBLOCK");/*_.INST__V23*/ curfptr[22] =
+     newobj; };
     ;
     
     BASILYS_LOCATION("warmelt-genobj.bysl:1630: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V23*/ curfptr[22])) == OBMAG_OBJECT);
-    basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V23*/ curfptr[22]))));
-    ((basilysobject_ptr_t)(/*_.INST__V23*/ curfptr[22]))->obj_vartab[0 /*OBI_LOC*/] = (basilys_ptr_t)(
-     /*_.NLOC__V11*/ curfptr[10]);
+    basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V23*/ curfptr[22]))));basilys_putfield_object((/*_.INST__V23*/ curfptr[22]), (0), (/*_.NLOC__V11*/ curfptr[10]), "OBI_LOC");
     ;
     
     BASILYS_LOCATION("warmelt-genobj.bysl:1630: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V23*/ curfptr[22])) == OBMAG_OBJECT);
-    basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V23*/ curfptr[22]))));
-    ((basilysobject_ptr_t)(/*_.INST__V23*/ curfptr[22]))->obj_vartab[1 /*OBLO_BODYL*/] = (basilys_ptr_t)(
-     /*_.INSLIST__V17*/ curfptr[16]);
+    basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V23*/ curfptr[22]))));basilys_putfield_object((/*_.INST__V23*/ curfptr[22]), (1), (/*_.INSLIST__V17*/ curfptr[16]), "OBLO_BODYL");
     ;
     
     BASILYS_LOCATION("warmelt-genobj.bysl:1630: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V23*/ curfptr[22])) == OBMAG_OBJECT);
-    basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V23*/ curfptr[22]))));
-    ((basilysobject_ptr_t)(/*_.INST__V23*/ curfptr[22]))->obj_vartab[2 /*OBLO_EPIL*/] = (basilys_ptr_t)(
-     /*_.EPILIST__V18*/ curfptr[17]);
+    basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V23*/ curfptr[22]))));basilys_putfield_object((/*_.INST__V23*/ curfptr[22]), (2), (/*_.EPILIST__V18*/ curfptr[17]), "OBLO_EPIL");
     ;
     /*_.OBLOC__V22*/ curfptr[21] = /*_.INST__V23*/ curfptr[22];;}
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:1637: @getslot");
-   /*_.LABIND_CLONSY__V24*/ curfptr[23] = basilys_getfield_object((basilys_ptr_t)(/*_.NBINDX__V12*/ curfptr[11]), 2, "LABIND_CLONSY");
+   { basilys_ptr_t slot=0;
+    basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NBINDX__V12*/ curfptr[11]), 2, "LABIND_CLONSY");/*_.LABIND_CLONSY__V24*/ curfptr[23] = slot; };
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:1635: @block");
    /*block*/{
     
     BASILYS_LOCATION("warmelt-genobj.bysl:1635: @rawallocobj");
-    /*rawallocobj*/ /*_.INST__V26*/ curfptr[25] =
-     basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_OBJEXIT*/ curfrout->tabval[7])), (2), ("CLASS_OBJEXIT"));
+    /*rawallocobj*/ { basilys_ptr_t newobj = 0;
+     basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_OBJEXIT*/ curfrout->tabval[7])), (2), "CLASS_OBJEXIT");/*_.INST__V26*/ curfptr[25] =
+     newobj; };
     ;
     
     BASILYS_LOCATION("warmelt-genobj.bysl:1635: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V26*/ curfptr[25])) == OBMAG_OBJECT);
-    basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V26*/ curfptr[25]))));
-    ((basilysobject_ptr_t)(/*_.INST__V26*/ curfptr[25]))->obj_vartab[0 /*OBI_LOC*/] = (basilys_ptr_t)(
-     /*_.NLOC__V11*/ curfptr[10]);
+    basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V26*/ curfptr[25]))));basilys_putfield_object((/*_.INST__V26*/ curfptr[25]), (0), (/*_.NLOC__V11*/ curfptr[10]), "OBI_LOC");
     ;
     
     BASILYS_LOCATION("warmelt-genobj.bysl:1635: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V26*/ curfptr[25])) == OBMAG_OBJECT);
-    basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V26*/ curfptr[25]))));
-    ((basilysobject_ptr_t)(/*_.INST__V26*/ curfptr[25]))->obj_vartab[1 /*OBEXIT_LABEL*/] = (basilys_ptr_t)(
-     /*_.LABIND_CLONSY__V24*/ curfptr[23]);
+    basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V26*/ curfptr[25]))));basilys_putfield_object((/*_.INST__V26*/ curfptr[25]), (1), (/*_.LABIND_CLONSY__V24*/ curfptr[23]), "OBEXIT_LABEL");
     ;
     /*_.OBEX__V25*/ curfptr[24] = /*_.INST__V26*/ curfptr[25];;}
    ;
@@ -17571,32 +17460,27 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1614: @block");
    /*block*/{
     
     BASILYS_LOCATION("warmelt-genobj.bysl:1639: @rawallocobj");
-    /*rawallocobj*/ /*_.INST__V28*/ curfptr[27] =
-     basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_OBJCOMPUTE*/ curfrout->tabval[8])), (3), ("CLASS_OBJCOMPUTE"));
+    /*rawallocobj*/ { basilys_ptr_t newobj = 0;
+     basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_OBJCOMPUTE*/ curfrout->tabval[8])), (3), "CLASS_OBJCOMPUTE");/*_.INST__V28*/ curfptr[27] =
+     newobj; };
     ;
     
     BASILYS_LOCATION("warmelt-genobj.bysl:1639: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V28*/ curfptr[27])) == OBMAG_OBJECT);
-    basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V28*/ curfptr[27]))));
-    ((basilysobject_ptr_t)(/*_.INST__V28*/ curfptr[27]))->obj_vartab[0 /*OBI_LOC*/] = (basilys_ptr_t)(
-     /*_.NLOC__V11*/ curfptr[10]);
+    basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V28*/ curfptr[27]))));basilys_putfield_object((/*_.INST__V28*/ curfptr[27]), (0), (/*_.NLOC__V11*/ curfptr[10]), "OBI_LOC");
     ;
     
     BASILYS_LOCATION("warmelt-genobj.bysl:1639: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V28*/ curfptr[27])) == OBMAG_OBJECT);
-    basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V28*/ curfptr[27]))));
-    ((basilysobject_ptr_t)(/*_.INST__V28*/ curfptr[27]))->obj_vartab[1 /*OBDI_DESTLIST*/] = (basilys_ptr_t)(
-     /*_.DESTLIST__V19*/ curfptr[18]);
+    basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V28*/ curfptr[27]))));basilys_putfield_object((/*_.INST__V28*/ curfptr[27]), (1), (/*_.DESTLIST__V19*/ curfptr[18]), "OBDI_DESTLIST");
     ;
     
     BASILYS_LOCATION("warmelt-genobj.bysl:1639: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V28*/ curfptr[27])) == OBMAG_OBJECT);
-    basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V28*/ curfptr[27]))));
-    ((basilysobject_ptr_t)(/*_.INST__V28*/ curfptr[27]))->obj_vartab[2 /*OBCPT_EXPR*/] = (basilys_ptr_t)(
-     /*_.OVAL__V20*/ curfptr[19]);
+    basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V28*/ curfptr[27]))));basilys_putfield_object((/*_.INST__V28*/ curfptr[27]), (2), (/*_.OVAL__V20*/ curfptr[19]), "OBCPT_EXPR");
     ;
     /*_.OBCOM__V27*/ curfptr[26] = /*_.INST__V28*/ curfptr[27];;}
    ;
@@ -18019,19 +17903,23 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1661: @block");
  /*block*/{
   
   BASILYS_LOCATION("warmelt-genobj.bysl:1664: @getslot");
-  /*_.LOC__V9*/ curfptr[8] = basilys_getfield_object((basilys_ptr_t)(/*_.RLET__V2*/ curfptr[1]), 0, "NREP_LOC");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.RLET__V2*/ curfptr[1]), 0, "NREP_LOC");/*_.LOC__V9*/ curfptr[8] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:1665: @getslot");
-  /*_.BNDS__V10*/ curfptr[9] = basilys_getfield_object((basilys_ptr_t)(/*_.RLET__V2*/ curfptr[1]), 1, "NLET_BINDINGS");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.RLET__V2*/ curfptr[1]), 1, "NLET_BINDINGS");/*_.BNDS__V10*/ curfptr[9] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:1666: @getslot");
-  /*_.BDY__V11*/ curfptr[10] = basilys_getfield_object((basilys_ptr_t)(/*_.RLET__V2*/ curfptr[1]), 2, "NLET_BODY");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.RLET__V2*/ curfptr[1]), 2, "NLET_BODY");/*_.BDY__V11*/ curfptr[10] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:1667: @getslot");
-  /*_.LOCMAP__V12*/ curfptr[11] = basilys_getfield_object((basilys_ptr_t)(/*_.GCX__V3*/ curfptr[2]), 1, "GNCX_LOCMAP");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.GCX__V3*/ curfptr[2]), 1, "GNCX_LOCMAP");/*_.LOCMAP__V12*/ curfptr[11] = slot; };
   ;
   /*_.OBODL__V13*/ curfptr[12] = 
    (basilysgc_new_list((basilysobject_ptr_t)((/*!DISCR_LIST*/ curfrout->tabval[2]))));;
@@ -18042,32 +17930,27 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1661: @block");
   /*block*/{
    
    BASILYS_LOCATION("warmelt-genobj.bysl:1670: @rawallocobj");
-   /*rawallocobj*/ /*_.INST__V16*/ curfptr[15] =
-    basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_OBJBLOCK*/ curfrout->tabval[3])), (3), ("CLASS_OBJBLOCK"));
+   /*rawallocobj*/ { basilys_ptr_t newobj = 0;
+    basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_OBJBLOCK*/ curfrout->tabval[3])), (3), "CLASS_OBJBLOCK");/*_.INST__V16*/ curfptr[15] =
+    newobj; };
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:1670: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V16*/ curfptr[15])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V16*/ curfptr[15]))));
-   ((basilysobject_ptr_t)(/*_.INST__V16*/ curfptr[15]))->obj_vartab[0 /*OBI_LOC*/] = (basilys_ptr_t)(
-    /*_.LOC__V9*/ curfptr[8]);
+   basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V16*/ curfptr[15]))));basilys_putfield_object((/*_.INST__V16*/ curfptr[15]), (0), (/*_.LOC__V9*/ curfptr[8]), "OBI_LOC");
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:1670: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V16*/ curfptr[15])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V16*/ curfptr[15]))));
-   ((basilysobject_ptr_t)(/*_.INST__V16*/ curfptr[15]))->obj_vartab[1 /*OBLO_BODYL*/] = (basilys_ptr_t)(
-    /*_.OBODL__V13*/ curfptr[12]);
+   basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V16*/ curfptr[15]))));basilys_putfield_object((/*_.INST__V16*/ curfptr[15]), (1), (/*_.OBODL__V13*/ curfptr[12]), "OBLO_BODYL");
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:1670: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V16*/ curfptr[15])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V16*/ curfptr[15]))));
-   ((basilysobject_ptr_t)(/*_.INST__V16*/ curfptr[15]))->obj_vartab[2 /*OBLO_EPIL*/] = (basilys_ptr_t)(
-    /*_.OEPIL__V14*/ curfptr[13]);
+   basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V16*/ curfptr[15]))));basilys_putfield_object((/*_.INST__V16*/ curfptr[15]), (2), (/*_.OEPIL__V14*/ curfptr[13]), "OBLO_EPIL");
    ;
    /*_.OBLOCK__V15*/ curfptr[14] = /*_.INST__V16*/ curfptr[15];;}
   ;
@@ -18959,15 +18842,18 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1688: @block");
  /*block*/{
   
   BASILYS_LOCATION("warmelt-genobj.bysl:1693: @getslot");
-  /*_.BDER__V11*/ curfptr[9] = basilys_getfield_object((basilys_ptr_t)(/*_.NLBND__V2*/ curfptr[1]), 0, "BINDER");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NLBND__V2*/ curfptr[1]), 0, "BINDER");/*_.BDER__V11*/ curfptr[9] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:1694: @getslot");
-  /*_.CTY__V12*/ curfptr[11] = basilys_getfield_object((basilys_ptr_t)(/*_.NLBND__V2*/ curfptr[1]), 1, "LETBIND_TYPE");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NLBND__V2*/ curfptr[1]), 1, "LETBIND_TYPE");/*_.CTY__V12*/ curfptr[11] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:1695: @getslot");
-  /*_.NEXP__V13*/ curfptr[12] = basilys_getfield_object((basilys_ptr_t)(/*_.NLBND__V2*/ curfptr[1]), 2, "LETBIND_EXPR");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NLBND__V2*/ curfptr[1]), 2, "LETBIND_EXPR");/*_.NEXP__V13*/ curfptr[12] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:1696: @apply");
@@ -19528,24 +19414,21 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1688: @block");
       /*block*/{
        
        BASILYS_LOCATION("warmelt-genobj.bysl:1726: @rawallocobj");
-       /*rawallocobj*/ /*_.INST__V40*/ curfptr[26] =
-        basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_OBJCLEAR*/ curfrout->tabval[6])), (2), ("CLASS_OBJCLEAR"));
+       /*rawallocobj*/ { basilys_ptr_t newobj = 0;
+        basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_OBJCLEAR*/ curfrout->tabval[6])), (2), "CLASS_OBJCLEAR");/*_.INST__V40*/ curfptr[26] =
+        newobj; };
        ;
        
        BASILYS_LOCATION("warmelt-genobj.bysl:1726: @putslot");
        /*putslot*/
        basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V40*/ curfptr[26])) == OBMAG_OBJECT);
-       basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V40*/ curfptr[26]))));
-       ((basilysobject_ptr_t)(/*_.INST__V40*/ curfptr[26]))->obj_vartab[0 /*OBI_LOC*/] = (basilys_ptr_t)(
-        (/*~LOC*/ curfclos->tabval[0]));
+       basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V40*/ curfptr[26]))));basilys_putfield_object((/*_.INST__V40*/ curfptr[26]), (0), ((/*~LOC*/ curfclos->tabval[0])), "OBI_LOC");
        ;
        
        BASILYS_LOCATION("warmelt-genobj.bysl:1726: @putslot");
        /*putslot*/
        basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V40*/ curfptr[26])) == OBMAG_OBJECT);
-       basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V40*/ curfptr[26]))));
-       ((basilysobject_ptr_t)(/*_.INST__V40*/ curfptr[26]))->obj_vartab[1 /*OCLR_VLOC*/] = (basilys_ptr_t)(
-        /*_.OBVA__V14*/ curfptr[13]);
+       basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V40*/ curfptr[26]))));basilys_putfield_object((/*_.INST__V40*/ curfptr[26]), (1), (/*_.OBVA__V14*/ curfptr[13]), "OCLR_VLOC");
        ;
        /*_.OBCL__V39*/ curfptr[24] = /*_.INST__V40*/ curfptr[26];;}
       ;
@@ -20243,26 +20126,31 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1766: @block");
  /*block*/{
   
   BASILYS_LOCATION("warmelt-genobj.bysl:1770: @getslot");
-  /*_.LOC__V11*/ curfptr[10] = basilys_getfield_object((basilys_ptr_t)(/*_.NCITER__V2*/ curfptr[1]), 0, "NREP_LOC");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NCITER__V2*/ curfptr[1]), 0, "NREP_LOC");/*_.LOC__V11*/ curfptr[10] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:1771: @getslot");
-  /*_.CITER__V12*/ curfptr[11] = basilys_getfield_object((basilys_ptr_t)(/*_.NCITER__V2*/ curfptr[1]), 1, "NCITER_CITERATOR");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NCITER__V2*/ curfptr[1]), 1, "NCITER_CITERATOR");/*_.CITER__V12*/ curfptr[11] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:1772: @getslot");
-  /*_.NLOCBIND__V13*/ curfptr[12] = basilys_getfield_object((basilys_ptr_t)(/*_.NCITER__V2*/ curfptr[1]), 2, "NCITER_LOCBINDINGS");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NCITER__V2*/ curfptr[1]), 2, "NCITER_LOCBINDINGS");/*_.NLOCBIND__V13*/ curfptr[12] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:1773: @getslot");
-  /*_.NCHKBEF__V14*/ curfptr[13] = basilys_getfield_object((basilys_ptr_t)(/*_.NCITER__V2*/ curfptr[1]), 3, "NCITER_CHUNKBEFORE");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NCITER__V2*/ curfptr[1]), 3, "NCITER_CHUNKBEFORE");/*_.NCHKBEF__V14*/ curfptr[13] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:1774: @block");
   /*block*/{
    
    BASILYS_LOCATION("warmelt-genobj.bysl:1774: @getslot");
-   /*_.NS__V16*/ curfptr[15] = basilys_getfield_object((basilys_ptr_t)(/*_.NCITER__V2*/ curfptr[1]), 5, "NCITER_STATOCC");
+   { basilys_ptr_t slot=0;
+    basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NCITER__V2*/ curfptr[1]), 5, "NCITER_STATOCC");/*_.NS__V16*/ curfptr[15] = slot; };
    ;
    
    #if ENABLE_CHECKING
@@ -20365,22 +20253,26 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1766: @block");
   /*_.NSTATOCC__V21*/ curfptr[19] = /*_.LET___V15*/ curfptr[14];;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:1778: @getslot");
-  /*_.NBODY__V22*/ curfptr[15] = basilys_getfield_object((basilys_ptr_t)(/*_.NCITER__V2*/ curfptr[1]), 4, "NCITER_BODY");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NCITER__V2*/ curfptr[1]), 4, "NCITER_BODY");/*_.NBODY__V22*/ curfptr[15] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:1779: @getslot");
-  /*_.NBODBIND__V23*/ curfptr[16] = basilys_getfield_object((basilys_ptr_t)(/*_.NCITER__V2*/ curfptr[1]), 6, "NCITER_BODBINDINGS");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NCITER__V2*/ curfptr[1]), 6, "NCITER_BODBINDINGS");/*_.NBODBIND__V23*/ curfptr[16] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:1780: @getslot");
-  /*_.NCHKAFT__V24*/ curfptr[17] = basilys_getfield_object((basilys_ptr_t)(/*_.NCITER__V2*/ curfptr[1]), 7, "NCITER_CHUNKAFTER");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NCITER__V2*/ curfptr[1]), 7, "NCITER_CHUNKAFTER");/*_.NCHKAFT__V24*/ curfptr[17] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:1781: @block");
   /*block*/{
    
    BASILYS_LOCATION("warmelt-genobj.bysl:1781: @getslot");
-   /*_.BI__V26*/ curfptr[25] = basilys_getfield_object((basilys_ptr_t)(/*_.NSTATOCC__V21*/ curfptr[19]), 3, "NOCC_BIND");
+   { basilys_ptr_t slot=0;
+    basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NSTATOCC__V21*/ curfptr[19]), 3, "NOCC_BIND");/*_.BI__V26*/ curfptr[25] = slot; };
    ;
    
    #if ENABLE_CHECKING
@@ -20439,11 +20331,13 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1766: @block");
   /*_.NSTATBIND__V29*/ curfptr[27] = /*_.LET___V25*/ curfptr[24];;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:1784: @getslot");
-  /*_.NSTATSY__V30*/ curfptr[25] = basilys_getfield_object((basilys_ptr_t)(/*_.NSTATBIND__V29*/ curfptr[27]), 0, "BINDER");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NSTATBIND__V29*/ curfptr[27]), 0, "BINDER");/*_.NSTATSY__V30*/ curfptr[25] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:1785: @getslot");
-  /*_.NOCC_CTYP__V31*/ curfptr[26] = basilys_getfield_object((basilys_ptr_t)(/*_.NSTATOCC__V21*/ curfptr[19]), 2, "NOCC_CTYP");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NSTATOCC__V21*/ curfptr[19]), 2, "NOCC_CTYP");/*_.NOCC_CTYP__V31*/ curfptr[26] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:1785: @apply");
@@ -20467,48 +20361,39 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1766: @block");
   /*block*/{
    
    BASILYS_LOCATION("warmelt-genobj.bysl:1788: @rawallocobj");
-   /*rawallocobj*/ /*_.INST__V36*/ curfptr[35] =
-    basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_OBJCITERBLOCK*/ curfrout->tabval[7])), (6), ("CLASS_OBJCITERBLOCK"));
+   /*rawallocobj*/ { basilys_ptr_t newobj = 0;
+    basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_OBJCITERBLOCK*/ curfrout->tabval[7])), (6), "CLASS_OBJCITERBLOCK");/*_.INST__V36*/ curfptr[35] =
+    newobj; };
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:1788: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V36*/ curfptr[35])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V36*/ curfptr[35]))));
-   ((basilysobject_ptr_t)(/*_.INST__V36*/ curfptr[35]))->obj_vartab[0 /*OBI_LOC*/] = (basilys_ptr_t)(
-    /*_.LOC__V11*/ curfptr[10]);
+   basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V36*/ curfptr[35]))));basilys_putfield_object((/*_.INST__V36*/ curfptr[35]), (0), (/*_.LOC__V11*/ curfptr[10]), "OBI_LOC");
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:1788: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V36*/ curfptr[35])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V36*/ curfptr[35]))));
-   ((basilysobject_ptr_t)(/*_.INST__V36*/ curfptr[35]))->obj_vartab[1 /*OBLO_BODYL*/] = (basilys_ptr_t)(
-    /*_.OBODL__V33*/ curfptr[32]);
+   basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V36*/ curfptr[35]))));basilys_putfield_object((/*_.INST__V36*/ curfptr[35]), (1), (/*_.OBODL__V33*/ curfptr[32]), "OBLO_BODYL");
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:1788: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V36*/ curfptr[35])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V36*/ curfptr[35]))));
-   ((basilysobject_ptr_t)(/*_.INST__V36*/ curfptr[35]))->obj_vartab[2 /*OBLO_EPIL*/] = (basilys_ptr_t)(
-    /*_.OEPIL__V34*/ curfptr[33]);
+   basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V36*/ curfptr[35]))));basilys_putfield_object((/*_.INST__V36*/ curfptr[35]), (2), (/*_.OEPIL__V34*/ curfptr[33]), "OBLO_EPIL");
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:1788: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V36*/ curfptr[35])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (4>=0 && 4< basilys_object_length((basilys_ptr_t)(/*_.INST__V36*/ curfptr[35]))));
-   ((basilysobject_ptr_t)(/*_.INST__V36*/ curfptr[35]))->obj_vartab[4 /*OBCITER_BEFORE*/] = (basilys_ptr_t)(
-    (/*nil*/NULL));
+   basilys_assertmsg("putslot checkoff", (4>=0 && 4< basilys_object_length((basilys_ptr_t)(/*_.INST__V36*/ curfptr[35]))));basilys_putfield_object((/*_.INST__V36*/ curfptr[35]), (4), ((/*nil*/NULL)), "OBCITER_BEFORE");
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:1788: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V36*/ curfptr[35])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (5>=0 && 5< basilys_object_length((basilys_ptr_t)(/*_.INST__V36*/ curfptr[35]))));
-   ((basilysobject_ptr_t)(/*_.INST__V36*/ curfptr[35]))->obj_vartab[5 /*OBCITER_AFTER*/] = (basilys_ptr_t)(
-    (/*nil*/NULL));
+   basilys_assertmsg("putslot checkoff", (5>=0 && 5< basilys_object_length((basilys_ptr_t)(/*_.INST__V36*/ curfptr[35]))));basilys_putfield_object((/*_.INST__V36*/ curfptr[35]), (5), ((/*nil*/NULL)), "OBCITER_AFTER");
    ;
    /*_.OCBLOCK__V35*/ curfptr[34] = /*_.INST__V36*/ curfptr[35];;}
   ;
@@ -20730,17 +20615,13 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1766: @block");
    BASILYS_LOCATION("warmelt-genobj.bysl:1814: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.OCBLOCK__V35*/ curfptr[34])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (4>=0 && 4< basilys_object_length((basilys_ptr_t)(/*_.OCBLOCK__V35*/ curfptr[34]))));
-   ((basilysobject_ptr_t)(/*_.OCBLOCK__V35*/ curfptr[34]))->obj_vartab[4 /*OBCITER_BEFORE*/] = (basilys_ptr_t)(
-    /*_.MULTIPLE_MAP__V48*/ curfptr[47]);
+   basilys_assertmsg("putslot checkoff", (4>=0 && 4< basilys_object_length((basilys_ptr_t)(/*_.OCBLOCK__V35*/ curfptr[34]))));basilys_putfield_object((/*_.OCBLOCK__V35*/ curfptr[34]), (4), (/*_.MULTIPLE_MAP__V48*/ curfptr[47]), "OBCITER_BEFORE");
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:1814: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.OCBLOCK__V35*/ curfptr[34])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (5>=0 && 5< basilys_object_length((basilys_ptr_t)(/*_.OCBLOCK__V35*/ curfptr[34]))));
-   ((basilysobject_ptr_t)(/*_.OCBLOCK__V35*/ curfptr[34]))->obj_vartab[5 /*OBCITER_AFTER*/] = (basilys_ptr_t)(
-    /*_.MULTIPLE_MAP__V51*/ curfptr[50]);
+   basilys_assertmsg("putslot checkoff", (5>=0 && 5< basilys_object_length((basilys_ptr_t)(/*_.OCBLOCK__V35*/ curfptr[34]))));basilys_putfield_object((/*_.OCBLOCK__V35*/ curfptr[34]), (5), (/*_.MULTIPLE_MAP__V51*/ curfptr[50]), "OBCITER_AFTER");
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:1814: @touch");
@@ -21128,15 +21009,18 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1800: @block");
  /*block*/{
   
   BASILYS_LOCATION("warmelt-genobj.bysl:1803: @getslot");
-  /*_.BDER__V7*/ curfptr[5] = basilys_getfield_object((basilys_ptr_t)(/*_.NLBND__V2*/ curfptr[1]), 0, "BINDER");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NLBND__V2*/ curfptr[1]), 0, "BINDER");/*_.BDER__V7*/ curfptr[5] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:1804: @getslot");
-  /*_.CTY__V8*/ curfptr[7] = basilys_getfield_object((basilys_ptr_t)(/*_.NLBND__V2*/ curfptr[1]), 1, "LETBIND_TYPE");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NLBND__V2*/ curfptr[1]), 1, "LETBIND_TYPE");/*_.CTY__V8*/ curfptr[7] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:1805: @getslot");
-  /*_.NEXP__V9*/ curfptr[8] = basilys_getfield_object((basilys_ptr_t)(/*_.NLBND__V2*/ curfptr[1]), 2, "LETBIND_EXPR");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NLBND__V2*/ curfptr[1]), 2, "LETBIND_EXPR");/*_.NEXP__V9*/ curfptr[8] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:1806: @apply");
@@ -21245,7 +21129,8 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1800: @block");
    /*block*/{
     
     BASILYS_LOCATION("warmelt-genobj.bysl:1811: @getslot");
-    /*_.GNCX_LOCMAP__V15*/ curfptr[13] = basilys_getfield_object((basilys_ptr_t)((/*~GCX*/ curfclos->tabval[0])), 1, "GNCX_LOCMAP");
+    { basilys_ptr_t slot=0;
+     basilys_object_get_field(slot,(basilys_ptr_t)((/*~GCX*/ curfclos->tabval[0])), 1, "GNCX_LOCMAP");/*_.GNCX_LOCMAP__V15*/ curfptr[13] = slot; };
     ;
     
      basilysgc_put_mapobjects( (basilysmapobjects_ptr_t) (/*_.GNCX_LOCMAP__V15*/ curfptr[13]), (basilysobject_ptr_t) (/*_.NLBND__V2*/ curfptr[1]), (basilys_ptr_t)(/*_.OBLVA__V10*/ curfptr[9]));
@@ -21880,15 +21765,18 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1840: @block");
  /*block*/{
   
   BASILYS_LOCATION("warmelt-genobj.bysl:1843: @getslot");
-  /*_.BDER__V7*/ curfptr[5] = basilys_getfield_object((basilys_ptr_t)(/*_.NBBND__V2*/ curfptr[1]), 0, "BINDER");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NBBND__V2*/ curfptr[1]), 0, "BINDER");/*_.BDER__V7*/ curfptr[5] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:1844: @getslot");
-  /*_.CTY__V8*/ curfptr[7] = basilys_getfield_object((basilys_ptr_t)(/*_.NBBND__V2*/ curfptr[1]), 1, "LETBIND_TYPE");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NBBND__V2*/ curfptr[1]), 1, "LETBIND_TYPE");/*_.CTY__V8*/ curfptr[7] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:1845: @getslot");
-  /*_.NEXP__V9*/ curfptr[8] = basilys_getfield_object((basilys_ptr_t)(/*_.NBBND__V2*/ curfptr[1]), 2, "LETBIND_EXPR");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NBBND__V2*/ curfptr[1]), 2, "LETBIND_EXPR");/*_.NEXP__V9*/ curfptr[8] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:1846: @apply");
@@ -21956,7 +21844,8 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1840: @block");
    /*block*/{
     
     BASILYS_LOCATION("warmelt-genobj.bysl:1850: @getslot");
-    /*_.GNCX_LOCMAP__V13*/ curfptr[11] = basilys_getfield_object((basilys_ptr_t)((/*~GCX*/ curfclos->tabval[0])), 1, "GNCX_LOCMAP");
+    { basilys_ptr_t slot=0;
+     basilys_object_get_field(slot,(basilys_ptr_t)((/*~GCX*/ curfclos->tabval[0])), 1, "GNCX_LOCMAP");/*_.GNCX_LOCMAP__V13*/ curfptr[11] = slot; };
     ;
     
      basilysgc_put_mapobjects( (basilysmapobjects_ptr_t) (/*_.GNCX_LOCMAP__V13*/ curfptr[11]), (basilysobject_ptr_t) (/*_.NBBND__V2*/ curfptr[1]), (basilys_ptr_t)(/*_.OBBVA__V10*/ curfptr[9]));
@@ -22197,15 +22086,18 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1859: @block");
  /*block*/{
   
   BASILYS_LOCATION("warmelt-genobj.bysl:1863: @getslot");
-  /*_.LOC__V11*/ curfptr[10] = basilys_getfield_object((basilys_ptr_t)(/*_.NSQ__V2*/ curfptr[1]), 0, "NREP_LOC");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NSQ__V2*/ curfptr[1]), 0, "NREP_LOC");/*_.LOC__V11*/ curfptr[10] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:1864: @getslot");
-  /*_.VAR__V12*/ curfptr[11] = basilys_getfield_object((basilys_ptr_t)(/*_.NSQ__V2*/ curfptr[1]), 1, "NSTQ_VAR");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NSQ__V2*/ curfptr[1]), 1, "NSTQ_VAR");/*_.VAR__V12*/ curfptr[11] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:1865: @getslot");
-  /*_.EXP__V13*/ curfptr[12] = basilys_getfield_object((basilys_ptr_t)(/*_.NSQ__V2*/ curfptr[1]), 2, "NSTQ_EXP");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NSQ__V2*/ curfptr[1]), 2, "NSTQ_EXP");/*_.EXP__V13*/ curfptr[12] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:1866: @msend");
@@ -22252,7 +22144,8 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1859: @block");
    /*block*/{
     
     BASILYS_LOCATION("warmelt-genobj.bysl:1871: @getslot");
-    /*_.OBI_LOC__V17*/ curfptr[16] = basilys_getfield_object((basilys_ptr_t)(/*_.CRES__V16*/ curfptr[15]), 0, "OBI_LOC");
+    { basilys_ptr_t slot=0;
+     basilys_object_get_field(slot,(basilys_ptr_t)(/*_.CRES__V16*/ curfptr[15]), 0, "OBI_LOC");/*_.OBI_LOC__V17*/ curfptr[16] = slot; };
     ;
     /*_#NULL__L5*/ curfnum[4] = 
      ((/*_.OBI_LOC__V17*/ curfptr[16]) == NULL);;
@@ -22271,9 +22164,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1859: @block");
        BASILYS_LOCATION("warmelt-genobj.bysl:1872: @putslot");
        /*putslot*/
        basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.CRES__V16*/ curfptr[15])) == OBMAG_OBJECT);
-       basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.CRES__V16*/ curfptr[15]))));
-       ((basilysobject_ptr_t)(/*_.CRES__V16*/ curfptr[15]))->obj_vartab[0 /*OBI_LOC*/] = (basilys_ptr_t)(
-        /*_.LOC__V11*/ curfptr[10]);
+       basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.CRES__V16*/ curfptr[15]))));basilys_putfield_object((/*_.CRES__V16*/ curfptr[15]), (0), (/*_.LOC__V11*/ curfptr[10]), "OBI_LOC");
        ;
        
        BASILYS_LOCATION("warmelt-genobj.bysl:1872: @touch");
@@ -22588,15 +22479,18 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1881: @block");
  /*block*/{
   
   BASILYS_LOCATION("warmelt-genobj.bysl:1885: @getslot");
-  /*_.LOC__V11*/ curfptr[10] = basilys_getfield_object((basilys_ptr_t)(/*_.NPRO__V2*/ curfptr[1]), 0, "NREP_LOC");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NPRO__V2*/ curfptr[1]), 0, "NREP_LOC");/*_.LOC__V11*/ curfptr[10] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:1886: @getslot");
-  /*_.NSEQ__V12*/ curfptr[11] = basilys_getfield_object((basilys_ptr_t)(/*_.NPRO__V2*/ curfptr[1]), 1, "NPROGN_SEQ");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NPRO__V2*/ curfptr[1]), 1, "NPROGN_SEQ");/*_.NSEQ__V12*/ curfptr[11] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:1887: @getslot");
-  /*_.NLAST__V13*/ curfptr[12] = basilys_getfield_object((basilys_ptr_t)(/*_.NPRO__V2*/ curfptr[1]), 2, "NPROGN_LAST");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NPRO__V2*/ curfptr[1]), 2, "NPROGN_LAST");/*_.NLAST__V13*/ curfptr[12] = slot; };
   ;
   /*_.BODYL__V14*/ curfptr[13] = 
    (basilysgc_new_list((basilysobject_ptr_t)((/*!DISCR_LIST*/ curfrout->tabval[3]))));;
@@ -22605,24 +22499,21 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1881: @block");
   /*block*/{
    
    BASILYS_LOCATION("warmelt-genobj.bysl:1889: @rawallocobj");
-   /*rawallocobj*/ /*_.INST__V16*/ curfptr[15] =
-    basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_OBJBLOCK*/ curfrout->tabval[4])), (3), ("CLASS_OBJBLOCK"));
+   /*rawallocobj*/ { basilys_ptr_t newobj = 0;
+    basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_OBJBLOCK*/ curfrout->tabval[4])), (3), "CLASS_OBJBLOCK");/*_.INST__V16*/ curfptr[15] =
+    newobj; };
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:1889: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V16*/ curfptr[15])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V16*/ curfptr[15]))));
-   ((basilysobject_ptr_t)(/*_.INST__V16*/ curfptr[15]))->obj_vartab[0 /*OBI_LOC*/] = (basilys_ptr_t)(
-    /*_.LOC__V11*/ curfptr[10]);
+   basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V16*/ curfptr[15]))));basilys_putfield_object((/*_.INST__V16*/ curfptr[15]), (0), (/*_.LOC__V11*/ curfptr[10]), "OBI_LOC");
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:1889: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V16*/ curfptr[15])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V16*/ curfptr[15]))));
-   ((basilysobject_ptr_t)(/*_.INST__V16*/ curfptr[15]))->obj_vartab[1 /*OBLO_BODYL*/] = (basilys_ptr_t)(
-    /*_.BODYL__V14*/ curfptr[13]);
+   basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V16*/ curfptr[15]))));basilys_putfield_object((/*_.INST__V16*/ curfptr[15]), (1), (/*_.BODYL__V14*/ curfptr[13]), "OBLO_BODYL");
    ;
    /*_.OBLOCK__V15*/ curfptr[14] = /*_.INST__V16*/ curfptr[15];;}
   ;
@@ -23074,15 +22965,18 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1909: @block");
  /*block*/{
   
   BASILYS_LOCATION("warmelt-genobj.bysl:1913: @getslot");
-  /*_.LOC__V11*/ curfptr[10] = basilys_getfield_object((basilys_ptr_t)(/*_.NMA__V2*/ curfptr[1]), 0, "NREP_LOC");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NMA__V2*/ curfptr[1]), 0, "NREP_LOC");/*_.LOC__V11*/ curfptr[10] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:1914: @getslot");
-  /*_.MUL__V12*/ curfptr[11] = basilys_getfield_object((basilys_ptr_t)(/*_.NMA__V2*/ curfptr[1]), 1, "NACCM_MUL");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NMA__V2*/ curfptr[1]), 1, "NACCM_MUL");/*_.MUL__V12*/ curfptr[11] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:1915: @getslot");
-  /*_.IX__V13*/ curfptr[12] = basilys_getfield_object((basilys_ptr_t)(/*_.NMA__V2*/ curfptr[1]), 2, "NACCM_IX");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NMA__V2*/ curfptr[1]), 2, "NACCM_IX");/*_.IX__V13*/ curfptr[12] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:1916: @msend");
@@ -23238,7 +23132,8 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1909: @block");
     /*block*/{
      
      BASILYS_LOCATION("warmelt-genobj.bysl:1946: @getslot");
-     /*_.COMPTUP__V23*/ curfptr[22] = basilys_getfield_object((basilys_ptr_t)(/*_.CMUL__V14*/ curfptr[13]), 5, "OIM_TUPVAL");
+     { basilys_ptr_t slot=0;
+      basilys_object_get_field(slot,(basilys_ptr_t)(/*_.CMUL__V14*/ curfptr[13]), 5, "OIM_TUPVAL");/*_.COMPTUP__V23*/ curfptr[22] = slot; };
      ;
      /*_#IS_MULTIPLE__L9*/ curfnum[7] = 
       (basilys_magic_discr((basilys_ptr_t)(/*_.COMPTUP__V23*/ curfptr[22])) == OBMAG_MULTIPLE);;
@@ -23511,24 +23406,21 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1920: @block");
   /*block*/{
    
    BASILYS_LOCATION("warmelt-genobj.bysl:1932: @rawallocobj");
-   /*rawallocobj*/ /*_.INST__V8*/ curfptr[7] =
-    basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_OBJEXPV*/ curfrout->tabval[2])), (2), ("CLASS_OBJEXPV"));
+   /*rawallocobj*/ { basilys_ptr_t newobj = 0;
+    basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_OBJEXPV*/ curfrout->tabval[2])), (2), "CLASS_OBJEXPV");/*_.INST__V8*/ curfptr[7] =
+    newobj; };
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:1932: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V8*/ curfptr[7])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V8*/ curfptr[7]))));
-   ((basilysobject_ptr_t)(/*_.INST__V8*/ curfptr[7]))->obj_vartab[0 /*OBV_TYPE*/] = (basilys_ptr_t)(
-    (/*!CTYPE_VALUE*/ curfrout->tabval[3]));
+   basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V8*/ curfptr[7]))));basilys_putfield_object((/*_.INST__V8*/ curfptr[7]), (0), ((/*!CTYPE_VALUE*/ curfrout->tabval[3])), "OBV_TYPE");
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:1932: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V8*/ curfptr[7])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V8*/ curfptr[7]))));
-   ((basilysobject_ptr_t)(/*_.INST__V8*/ curfptr[7]))->obj_vartab[1 /*OBX_CONT*/] = (basilys_ptr_t)(
-    /*_.TCONT__V6*/ curfptr[5]);
+   basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V8*/ curfptr[7]))));basilys_putfield_object((/*_.INST__V8*/ curfptr[7]), (1), (/*_.TCONT__V6*/ curfptr[5]), "OBX_CONT");
    ;
    /*_.RES__V7*/ curfptr[6] = /*_.INST__V8*/ curfptr[7];;}
   ;
@@ -23810,15 +23702,18 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1961: @block");
  /*block*/{
   
   BASILYS_LOCATION("warmelt-genobj.bysl:1965: @getslot");
-  /*_.LOC__V11*/ curfptr[10] = basilys_getfield_object((basilys_ptr_t)(/*_.NFA__V2*/ curfptr[1]), 0, "NREP_LOC");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NFA__V2*/ curfptr[1]), 0, "NREP_LOC");/*_.LOC__V11*/ curfptr[10] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:1966: @getslot");
-  /*_.OBJ__V12*/ curfptr[11] = basilys_getfield_object((basilys_ptr_t)(/*_.NFA__V2*/ curfptr[1]), 1, "NACCF_OBJ");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NFA__V2*/ curfptr[1]), 1, "NACCF_OBJ");/*_.OBJ__V12*/ curfptr[11] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:1967: @getslot");
-  /*_.FLD__V13*/ curfptr[12] = basilys_getfield_object((basilys_ptr_t)(/*_.NFA__V2*/ curfptr[1]), 2, "NACCF_FLD");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NFA__V2*/ curfptr[1]), 2, "NACCF_FLD");/*_.FLD__V13*/ curfptr[12] = slot; };
   ;
   /*_#FLDOFF__L4*/ curfnum[0] = 
    (basilys_get_int((basilys_ptr_t)(/*_.FLD__V13*/ curfptr[12])));;
@@ -24001,7 +23896,8 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1961: @block");
     /*block*/{
      
      BASILYS_LOCATION("warmelt-genobj.bysl:1997: @getslot");
-     /*_.CDATA__V26*/ curfptr[25] = basilys_getfield_object((basilys_ptr_t)(/*_.COBJ__V15*/ curfptr[14]), 2, "OIE_DATA");
+     { basilys_ptr_t slot=0;
+      basilys_object_get_field(slot,(basilys_ptr_t)(/*_.COBJ__V15*/ curfptr[14]), 2, "OIE_DATA");/*_.CDATA__V26*/ curfptr[25] = slot; };
      ;
      /*_#IS_A__L9*/ curfnum[8] = 
        basilys_is_instance_of((basilys_ptr_t)(/*_.CDATA__V26*/ curfptr[25]), (basilys_ptr_t)((/*!CLASS_NREP_DATAINSTANCE*/ curfrout->tabval[13])));;
@@ -24018,7 +23914,8 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1961: @block");
        /*block*/{
         
         BASILYS_LOCATION("warmelt-genobj.bysl:2000: @getslot");
-        /*_.SLOTUP__V29*/ curfptr[28] = basilys_getfield_object((basilys_ptr_t)(/*_.CDATA__V26*/ curfptr[25]), 8, "NINST_SLOTS");
+        { basilys_ptr_t slot=0;
+         basilys_object_get_field(slot,(basilys_ptr_t)(/*_.CDATA__V26*/ curfptr[25]), 8, "NINST_SLOTS");/*_.SLOTUP__V29*/ curfptr[28] = slot; };
         ;
         /*_.OURSLOT__V30*/ curfptr[29] = 
          (basilys_multiple_nth((basilys_ptr_t)(/*_.SLOTUP__V29*/ curfptr[28]), (/*_#FLDOFF__L4*/ curfnum[0])));;
@@ -24380,24 +24277,21 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1974: @block");
   /*block*/{
    
    BASILYS_LOCATION("warmelt-genobj.bysl:1985: @rawallocobj");
-   /*rawallocobj*/ /*_.INST__V8*/ curfptr[7] =
-    basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_OBJEXPV*/ curfrout->tabval[2])), (2), ("CLASS_OBJEXPV"));
+   /*rawallocobj*/ { basilys_ptr_t newobj = 0;
+    basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_OBJEXPV*/ curfrout->tabval[2])), (2), "CLASS_OBJEXPV");/*_.INST__V8*/ curfptr[7] =
+    newobj; };
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:1985: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V8*/ curfptr[7])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V8*/ curfptr[7]))));
-   ((basilysobject_ptr_t)(/*_.INST__V8*/ curfptr[7]))->obj_vartab[0 /*OBV_TYPE*/] = (basilys_ptr_t)(
-    (/*!CTYPE_VALUE*/ curfrout->tabval[3]));
+   basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V8*/ curfptr[7]))));basilys_putfield_object((/*_.INST__V8*/ curfptr[7]), (0), ((/*!CTYPE_VALUE*/ curfrout->tabval[3])), "OBV_TYPE");
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:1985: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V8*/ curfptr[7])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V8*/ curfptr[7]))));
-   ((basilysobject_ptr_t)(/*_.INST__V8*/ curfptr[7]))->obj_vartab[1 /*OBX_CONT*/] = (basilys_ptr_t)(
-    /*_.TCONT__V6*/ curfptr[5]);
+   basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V8*/ curfptr[7]))));basilys_putfield_object((/*_.INST__V8*/ curfptr[7]), (1), (/*_.TCONT__V6*/ curfptr[5]), "OBX_CONT");
    ;
    /*_.RES__V7*/ curfptr[6] = /*_.INST__V8*/ curfptr[7];;}
   ;
@@ -24679,15 +24573,18 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2016: @block");
  /*block*/{
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2020: @getslot");
-  /*_.LOC__V11*/ curfptr[10] = basilys_getfield_object((basilys_ptr_t)(/*_.NUGF__V2*/ curfptr[1]), 0, "NREP_LOC");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NUGF__V2*/ curfptr[1]), 0, "NREP_LOC");/*_.LOC__V11*/ curfptr[10] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2021: @getslot");
-  /*_.NOBJ__V12*/ curfptr[11] = basilys_getfield_object((basilys_ptr_t)(/*_.NUGF__V2*/ curfptr[1]), 1, "NUGET_OBJ");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NUGF__V2*/ curfptr[1]), 1, "NUGET_OBJ");/*_.NOBJ__V12*/ curfptr[11] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2022: @getslot");
-  /*_.NFIELD__V13*/ curfptr[12] = basilys_getfield_object((basilys_ptr_t)(/*_.NUGF__V2*/ curfptr[1]), 2, "NUGET_FIELD");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NUGF__V2*/ curfptr[1]), 2, "NUGET_FIELD");/*_.NFIELD__V13*/ curfptr[12] = slot; };
   ;
   /*_.DLIST__V14*/ curfptr[13] = 
    (basilysgc_new_list((basilysobject_ptr_t)((/*!DISCR_LIST*/ curfrout->tabval[3]))));;
@@ -24707,40 +24604,33 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2016: @block");
   /*block*/{
    
    BASILYS_LOCATION("warmelt-genobj.bysl:2025: @rawallocobj");
-   /*rawallocobj*/ /*_.INST__V17*/ curfptr[16] =
-    basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_OBJGETSLOT*/ curfrout->tabval[5])), (4), ("CLASS_OBJGETSLOT"));
+   /*rawallocobj*/ { basilys_ptr_t newobj = 0;
+    basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_OBJGETSLOT*/ curfrout->tabval[5])), (4), "CLASS_OBJGETSLOT");/*_.INST__V17*/ curfptr[16] =
+    newobj; };
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:2025: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V17*/ curfptr[16])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V17*/ curfptr[16]))));
-   ((basilysobject_ptr_t)(/*_.INST__V17*/ curfptr[16]))->obj_vartab[0 /*OBI_LOC*/] = (basilys_ptr_t)(
-    /*_.LOC__V11*/ curfptr[10]);
+   basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V17*/ curfptr[16]))));basilys_putfield_object((/*_.INST__V17*/ curfptr[16]), (0), (/*_.LOC__V11*/ curfptr[10]), "OBI_LOC");
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:2025: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V17*/ curfptr[16])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V17*/ curfptr[16]))));
-   ((basilysobject_ptr_t)(/*_.INST__V17*/ curfptr[16]))->obj_vartab[1 /*OBDI_DESTLIST*/] = (basilys_ptr_t)(
-    /*_.DLIST__V14*/ curfptr[13]);
+   basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V17*/ curfptr[16]))));basilys_putfield_object((/*_.INST__V17*/ curfptr[16]), (1), (/*_.DLIST__V14*/ curfptr[13]), "OBDI_DESTLIST");
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:2025: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V17*/ curfptr[16])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V17*/ curfptr[16]))));
-   ((basilysobject_ptr_t)(/*_.INST__V17*/ curfptr[16]))->obj_vartab[2 /*OGETSL_OBJ*/] = (basilys_ptr_t)(
-    /*_.OOBJ__V15*/ curfptr[14]);
+   basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V17*/ curfptr[16]))));basilys_putfield_object((/*_.INST__V17*/ curfptr[16]), (2), (/*_.OOBJ__V15*/ curfptr[14]), "OGETSL_OBJ");
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:2025: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V17*/ curfptr[16])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)(/*_.INST__V17*/ curfptr[16]))));
-   ((basilysobject_ptr_t)(/*_.INST__V17*/ curfptr[16]))->obj_vartab[3 /*OGETSL_FIELD*/] = (basilys_ptr_t)(
-    /*_.NFIELD__V13*/ curfptr[12]);
+   basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)(/*_.INST__V17*/ curfptr[16]))));basilys_putfield_object((/*_.INST__V17*/ curfptr[16]), (3), (/*_.NFIELD__V13*/ curfptr[12]), "OGETSL_FIELD");
    ;
    /*_.OGETSLOT__V16*/ curfptr[15] = /*_.INST__V17*/ curfptr[16];;}
   ;
@@ -25002,15 +24892,18 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2038: @block");
  /*block*/{
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2042: @getslot");
-  /*_.LOC__V11*/ curfptr[10] = basilys_getfield_object((basilys_ptr_t)(/*_.NUPF__V2*/ curfptr[1]), 0, "NREP_LOC");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NUPF__V2*/ curfptr[1]), 0, "NREP_LOC");/*_.LOC__V11*/ curfptr[10] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2043: @getslot");
-  /*_.NOBJ__V12*/ curfptr[11] = basilys_getfield_object((basilys_ptr_t)(/*_.NUPF__V2*/ curfptr[1]), 1, "NUPUT_OBJ");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NUPF__V2*/ curfptr[1]), 1, "NUPUT_OBJ");/*_.NOBJ__V12*/ curfptr[11] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2044: @getslot");
-  /*_.NFLDASS__V13*/ curfptr[12] = basilys_getfield_object((basilys_ptr_t)(/*_.NUPF__V2*/ curfptr[1]), 2, "NUPUT_FIELDS");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NUPF__V2*/ curfptr[1]), 2, "NUPUT_FIELDS");/*_.NFLDASS__V13*/ curfptr[12] = slot; };
   ;
   /*_.OBODL__V14*/ curfptr[13] = 
    (basilysgc_new_list((basilysobject_ptr_t)((/*!DISCR_LIST*/ curfrout->tabval[3]))));;
@@ -25021,32 +24914,27 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2038: @block");
   /*block*/{
    
    BASILYS_LOCATION("warmelt-genobj.bysl:2047: @rawallocobj");
-   /*rawallocobj*/ /*_.INST__V17*/ curfptr[16] =
-    basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_OBJBLOCK*/ curfrout->tabval[4])), (3), ("CLASS_OBJBLOCK"));
+   /*rawallocobj*/ { basilys_ptr_t newobj = 0;
+    basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_OBJBLOCK*/ curfrout->tabval[4])), (3), "CLASS_OBJBLOCK");/*_.INST__V17*/ curfptr[16] =
+    newobj; };
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:2047: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V17*/ curfptr[16])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V17*/ curfptr[16]))));
-   ((basilysobject_ptr_t)(/*_.INST__V17*/ curfptr[16]))->obj_vartab[0 /*OBI_LOC*/] = (basilys_ptr_t)(
-    /*_.LOC__V11*/ curfptr[10]);
+   basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V17*/ curfptr[16]))));basilys_putfield_object((/*_.INST__V17*/ curfptr[16]), (0), (/*_.LOC__V11*/ curfptr[10]), "OBI_LOC");
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:2047: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V17*/ curfptr[16])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V17*/ curfptr[16]))));
-   ((basilysobject_ptr_t)(/*_.INST__V17*/ curfptr[16]))->obj_vartab[1 /*OBLO_BODYL*/] = (basilys_ptr_t)(
-    /*_.OBODL__V14*/ curfptr[13]);
+   basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V17*/ curfptr[16]))));basilys_putfield_object((/*_.INST__V17*/ curfptr[16]), (1), (/*_.OBODL__V14*/ curfptr[13]), "OBLO_BODYL");
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:2047: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V17*/ curfptr[16])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V17*/ curfptr[16]))));
-   ((basilysobject_ptr_t)(/*_.INST__V17*/ curfptr[16]))->obj_vartab[2 /*OBLO_EPIL*/] = (basilys_ptr_t)(
-    /*_.OEPIL__V15*/ curfptr[14]);
+   basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V17*/ curfptr[16]))));basilys_putfield_object((/*_.INST__V17*/ curfptr[16]), (2), (/*_.OEPIL__V15*/ curfptr[14]), "OBLO_EPIL");
    ;
    /*_.OBLOCK__V16*/ curfptr[15] = /*_.INST__V17*/ curfptr[16];;}
   ;
@@ -25115,24 +25003,21 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2038: @block");
   /*block*/{
    
    BASILYS_LOCATION("warmelt-genobj.bysl:2074: @rawallocobj");
-   /*rawallocobj*/ /*_.INST__V23*/ curfptr[22] =
-    basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_OBJTOUCH*/ curfrout->tabval[14])), (3), ("CLASS_OBJTOUCH"));
+   /*rawallocobj*/ { basilys_ptr_t newobj = 0;
+    basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_OBJTOUCH*/ curfrout->tabval[14])), (3), "CLASS_OBJTOUCH");/*_.INST__V23*/ curfptr[22] =
+    newobj; };
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:2074: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V23*/ curfptr[22])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V23*/ curfptr[22]))));
-   ((basilysobject_ptr_t)(/*_.INST__V23*/ curfptr[22]))->obj_vartab[0 /*OBI_LOC*/] = (basilys_ptr_t)(
-    /*_.LOC__V11*/ curfptr[10]);
+   basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V23*/ curfptr[22]))));basilys_putfield_object((/*_.INST__V23*/ curfptr[22]), (0), (/*_.LOC__V11*/ curfptr[10]), "OBI_LOC");
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:2074: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V23*/ curfptr[22])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V23*/ curfptr[22]))));
-   ((basilysobject_ptr_t)(/*_.INST__V23*/ curfptr[22]))->obj_vartab[1 /*OTOUCH_VAL*/] = (basilys_ptr_t)(
-    /*_.OOBJ__V18*/ curfptr[17]);
+   basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V23*/ curfptr[22]))));basilys_putfield_object((/*_.INST__V23*/ curfptr[22]), (1), (/*_.OOBJ__V18*/ curfptr[17]), "OTOUCH_VAL");
    ;
    /*_.INST___V22*/ curfptr[21] = /*_.INST__V23*/ curfptr[22];;}
   ;
@@ -25322,15 +25207,18 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2055: @block");
  /*block*/{
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2057: @getslot");
-  /*_.ALOC__V5*/ curfptr[3] = basilys_getfield_object((basilys_ptr_t)(/*_.NFA__V2*/ curfptr[1]), 0, "NREP_LOC");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NFA__V2*/ curfptr[1]), 0, "NREP_LOC");/*_.ALOC__V5*/ curfptr[3] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2058: @getslot");
-  /*_.AFIELD__V6*/ curfptr[5] = basilys_getfield_object((basilys_ptr_t)(/*_.NFA__V2*/ curfptr[1]), 1, "NFLA_FIELD");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NFA__V2*/ curfptr[1]), 1, "NFLA_FIELD");/*_.AFIELD__V6*/ curfptr[5] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2059: @getslot");
-  /*_.AVAL__V7*/ curfptr[6] = basilys_getfield_object((basilys_ptr_t)(/*_.NFA__V2*/ curfptr[1]), 2, "NFLA_VAL");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NFA__V2*/ curfptr[1]), 2, "NFLA_VAL");/*_.AVAL__V7*/ curfptr[6] = slot; };
   ;
   /*_#AOFF__L3*/ curfnum[1] = 
    (basilys_get_int((basilys_ptr_t)(/*_.AFIELD__V6*/ curfptr[5])));;
@@ -25412,48 +25300,39 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2055: @block");
    /*block*/{
     
     BASILYS_LOCATION("warmelt-genobj.bysl:2065: @rawallocobj");
-    /*rawallocobj*/ /*_.INST__V14*/ curfptr[13] =
-     basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_OBJPUTSLOT*/ curfrout->tabval[3])), (5), ("CLASS_OBJPUTSLOT"));
+    /*rawallocobj*/ { basilys_ptr_t newobj = 0;
+     basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_OBJPUTSLOT*/ curfrout->tabval[3])), (5), "CLASS_OBJPUTSLOT");/*_.INST__V14*/ curfptr[13] =
+     newobj; };
     ;
     
     BASILYS_LOCATION("warmelt-genobj.bysl:2065: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V14*/ curfptr[13])) == OBMAG_OBJECT);
-    basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V14*/ curfptr[13]))));
-    ((basilysobject_ptr_t)(/*_.INST__V14*/ curfptr[13]))->obj_vartab[0 /*OBI_LOC*/] = (basilys_ptr_t)(
-     /*_.IFELSE___V11*/ curfptr[10]);
+    basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V14*/ curfptr[13]))));basilys_putfield_object((/*_.INST__V14*/ curfptr[13]), (0), (/*_.IFELSE___V11*/ curfptr[10]), "OBI_LOC");
     ;
     
     BASILYS_LOCATION("warmelt-genobj.bysl:2065: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V14*/ curfptr[13])) == OBMAG_OBJECT);
-    basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V14*/ curfptr[13]))));
-    ((basilysobject_ptr_t)(/*_.INST__V14*/ curfptr[13]))->obj_vartab[1 /*OSLOT_ODATA*/] = (basilys_ptr_t)(
-     (/*~OOBJ*/ curfclos->tabval[2]));
+    basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V14*/ curfptr[13]))));basilys_putfield_object((/*_.INST__V14*/ curfptr[13]), (1), ((/*~OOBJ*/ curfclos->tabval[2])), "OSLOT_ODATA");
     ;
     
     BASILYS_LOCATION("warmelt-genobj.bysl:2065: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V14*/ curfptr[13])) == OBMAG_OBJECT);
-    basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)(/*_.INST__V14*/ curfptr[13]))));
-    ((basilysobject_ptr_t)(/*_.INST__V14*/ curfptr[13]))->obj_vartab[3 /*OSLOT_FIELD*/] = (basilys_ptr_t)(
-     /*_.AFIELD__V6*/ curfptr[5]);
+    basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)(/*_.INST__V14*/ curfptr[13]))));basilys_putfield_object((/*_.INST__V14*/ curfptr[13]), (3), (/*_.AFIELD__V6*/ curfptr[5]), "OSLOT_FIELD");
     ;
     
     BASILYS_LOCATION("warmelt-genobj.bysl:2065: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V14*/ curfptr[13])) == OBMAG_OBJECT);
-    basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V14*/ curfptr[13]))));
-    ((basilysobject_ptr_t)(/*_.INST__V14*/ curfptr[13]))->obj_vartab[2 /*OSLOT_OFFSET*/] = (basilys_ptr_t)(
-     /*_.MAKE_INTEGERBOX__V12*/ curfptr[11]);
+    basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V14*/ curfptr[13]))));basilys_putfield_object((/*_.INST__V14*/ curfptr[13]), (2), (/*_.MAKE_INTEGERBOX__V12*/ curfptr[11]), "OSLOT_OFFSET");
     ;
     
     BASILYS_LOCATION("warmelt-genobj.bysl:2065: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V14*/ curfptr[13])) == OBMAG_OBJECT);
-    basilys_assertmsg("putslot checkoff", (4>=0 && 4< basilys_object_length((basilys_ptr_t)(/*_.INST__V14*/ curfptr[13]))));
-    ((basilysobject_ptr_t)(/*_.INST__V14*/ curfptr[13]))->obj_vartab[4 /*OSLOT_VALUE*/] = (basilys_ptr_t)(
-     /*_.OVAL__V10*/ curfptr[8]);
+    basilys_assertmsg("putslot checkoff", (4>=0 && 4< basilys_object_length((basilys_ptr_t)(/*_.INST__V14*/ curfptr[13]))));basilys_putfield_object((/*_.INST__V14*/ curfptr[13]), (4), (/*_.OVAL__V10*/ curfptr[8]), "OSLOT_VALUE");
     ;
     /*_.OPUF__V13*/ curfptr[12] = /*_.INST__V14*/ curfptr[13];;}
    ;
@@ -25709,15 +25588,18 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2084: @block");
  /*block*/{
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2087: @getslot");
-  /*_.LOC__V9*/ curfptr[8] = basilys_getfield_object((basilys_ptr_t)(/*_.NAPP__V2*/ curfptr[1]), 0, "NREP_LOC");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NAPP__V2*/ curfptr[1]), 0, "NREP_LOC");/*_.LOC__V9*/ curfptr[8] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2088: @getslot");
-  /*_.FUN__V10*/ curfptr[9] = basilys_getfield_object((basilys_ptr_t)(/*_.NAPP__V2*/ curfptr[1]), 1, "NAPP_FUN");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NAPP__V2*/ curfptr[1]), 1, "NAPP_FUN");/*_.FUN__V10*/ curfptr[9] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2089: @getslot");
-  /*_.ARGS__V11*/ curfptr[10] = basilys_getfield_object((basilys_ptr_t)(/*_.NAPP__V2*/ curfptr[1]), 2, "NAPP_ARGS");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NAPP__V2*/ curfptr[1]), 2, "NAPP_ARGS");/*_.ARGS__V11*/ curfptr[10] = slot; };
   ;
   
   #if ENABLE_CHECKING
@@ -25809,40 +25691,33 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2084: @block");
    /*block*/{
     
     BASILYS_LOCATION("warmelt-genobj.bysl:2102: @rawallocobj");
-    /*rawallocobj*/ /*_.INST__V21*/ curfptr[20] =
-     basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_OBJAPPLY*/ curfrout->tabval[9])), (4), ("CLASS_OBJAPPLY"));
+    /*rawallocobj*/ { basilys_ptr_t newobj = 0;
+     basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_OBJAPPLY*/ curfrout->tabval[9])), (4), "CLASS_OBJAPPLY");/*_.INST__V21*/ curfptr[20] =
+     newobj; };
     ;
     
     BASILYS_LOCATION("warmelt-genobj.bysl:2102: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V21*/ curfptr[20])) == OBMAG_OBJECT);
-    basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V21*/ curfptr[20]))));
-    ((basilysobject_ptr_t)(/*_.INST__V21*/ curfptr[20]))->obj_vartab[0 /*OBI_LOC*/] = (basilys_ptr_t)(
-     /*_.LOC__V9*/ curfptr[8]);
+    basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V21*/ curfptr[20]))));basilys_putfield_object((/*_.INST__V21*/ curfptr[20]), (0), (/*_.LOC__V9*/ curfptr[8]), "OBI_LOC");
     ;
     
     BASILYS_LOCATION("warmelt-genobj.bysl:2102: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V21*/ curfptr[20])) == OBMAG_OBJECT);
-    basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V21*/ curfptr[20]))));
-    ((basilysobject_ptr_t)(/*_.INST__V21*/ curfptr[20]))->obj_vartab[1 /*OBDI_DESTLIST*/] = (basilys_ptr_t)(
-     /*_.DLIST__V19*/ curfptr[18]);
+    basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V21*/ curfptr[20]))));basilys_putfield_object((/*_.INST__V21*/ curfptr[20]), (1), (/*_.DLIST__V19*/ curfptr[18]), "OBDI_DESTLIST");
     ;
     
     BASILYS_LOCATION("warmelt-genobj.bysl:2102: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V21*/ curfptr[20])) == OBMAG_OBJECT);
-    basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V21*/ curfptr[20]))));
-    ((basilysobject_ptr_t)(/*_.INST__V21*/ curfptr[20]))->obj_vartab[2 /*OBAPP_CLOS*/] = (basilys_ptr_t)(
-     /*_.OCLOS__V15*/ curfptr[14]);
+    basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V21*/ curfptr[20]))));basilys_putfield_object((/*_.INST__V21*/ curfptr[20]), (2), (/*_.OCLOS__V15*/ curfptr[14]), "OBAPP_CLOS");
     ;
     
     BASILYS_LOCATION("warmelt-genobj.bysl:2102: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V21*/ curfptr[20])) == OBMAG_OBJECT);
-    basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)(/*_.INST__V21*/ curfptr[20]))));
-    ((basilysobject_ptr_t)(/*_.INST__V21*/ curfptr[20]))->obj_vartab[3 /*OBAPP_ARGS*/] = (basilys_ptr_t)(
-     /*_.OARGS__V18*/ curfptr[17]);
+    basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)(/*_.INST__V21*/ curfptr[20]))));basilys_putfield_object((/*_.INST__V21*/ curfptr[20]), (3), (/*_.OARGS__V18*/ curfptr[17]), "OBAPP_ARGS");
     ;
     /*_.OAPP__V20*/ curfptr[19] = /*_.INST__V21*/ curfptr[20];;}
    ;
@@ -26299,27 +26174,33 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2115: @block");
  /*block*/{
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2119: @getslot");
-  /*_.LOC__V11*/ curfptr[10] = basilys_getfield_object((basilys_ptr_t)(/*_.NMAPP__V2*/ curfptr[1]), 0, "NREP_LOC");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NMAPP__V2*/ curfptr[1]), 0, "NREP_LOC");/*_.LOC__V11*/ curfptr[10] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2120: @getslot");
-  /*_.RBINDS__V12*/ curfptr[11] = basilys_getfield_object((basilys_ptr_t)(/*_.NMAPP__V2*/ curfptr[1]), 3, "NMULAPP_BINDINGS");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NMAPP__V2*/ curfptr[1]), 3, "NMULAPP_BINDINGS");/*_.RBINDS__V12*/ curfptr[11] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2121: @getslot");
-  /*_.FUN__V13*/ curfptr[12] = basilys_getfield_object((basilys_ptr_t)(/*_.NMAPP__V2*/ curfptr[1]), 1, "NAPP_FUN");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NMAPP__V2*/ curfptr[1]), 1, "NAPP_FUN");/*_.FUN__V13*/ curfptr[12] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2122: @getslot");
-  /*_.ARGS__V14*/ curfptr[13] = basilys_getfield_object((basilys_ptr_t)(/*_.NMAPP__V2*/ curfptr[1]), 2, "NAPP_ARGS");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NMAPP__V2*/ curfptr[1]), 2, "NAPP_ARGS");/*_.ARGS__V14*/ curfptr[13] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2123: @getslot");
-  /*_.NBODY__V15*/ curfptr[14] = basilys_getfield_object((basilys_ptr_t)(/*_.NMAPP__V2*/ curfptr[1]), 4, "NMULAPP_BODY");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NMAPP__V2*/ curfptr[1]), 4, "NMULAPP_BODY");/*_.NBODY__V15*/ curfptr[14] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2124: @getslot");
-  /*_.LOCMAP__V16*/ curfptr[15] = basilys_getfield_object((basilys_ptr_t)(/*_.GCX__V3*/ curfptr[2]), 1, "GNCX_LOCMAP");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.GCX__V3*/ curfptr[2]), 1, "GNCX_LOCMAP");/*_.LOCMAP__V16*/ curfptr[15] = slot; };
   ;
   /*_#NBRES__L4*/ curfnum[0] = 
    (basilys_multiple_length((basilys_ptr_t)(/*_.RBINDS__V12*/ curfptr[11])));;
@@ -26367,32 +26248,27 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2115: @block");
   /*block*/{
    
    BASILYS_LOCATION("warmelt-genobj.bysl:2146: @rawallocobj");
-   /*rawallocobj*/ /*_.INST__V23*/ curfptr[22] =
-    basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_OBJBLOCK*/ curfrout->tabval[10])), (3), ("CLASS_OBJBLOCK"));
+   /*rawallocobj*/ { basilys_ptr_t newobj = 0;
+    basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_OBJBLOCK*/ curfrout->tabval[10])), (3), "CLASS_OBJBLOCK");/*_.INST__V23*/ curfptr[22] =
+    newobj; };
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:2146: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V23*/ curfptr[22])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V23*/ curfptr[22]))));
-   ((basilysobject_ptr_t)(/*_.INST__V23*/ curfptr[22]))->obj_vartab[0 /*OBI_LOC*/] = (basilys_ptr_t)(
-    /*_.LOC__V11*/ curfptr[10]);
+   basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V23*/ curfptr[22]))));basilys_putfield_object((/*_.INST__V23*/ curfptr[22]), (0), (/*_.LOC__V11*/ curfptr[10]), "OBI_LOC");
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:2146: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V23*/ curfptr[22])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V23*/ curfptr[22]))));
-   ((basilysobject_ptr_t)(/*_.INST__V23*/ curfptr[22]))->obj_vartab[1 /*OBLO_BODYL*/] = (basilys_ptr_t)(
-    /*_.OBODL__V20*/ curfptr[19]);
+   basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V23*/ curfptr[22]))));basilys_putfield_object((/*_.INST__V23*/ curfptr[22]), (1), (/*_.OBODL__V20*/ curfptr[19]), "OBLO_BODYL");
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:2146: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V23*/ curfptr[22])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V23*/ curfptr[22]))));
-   ((basilysobject_ptr_t)(/*_.INST__V23*/ curfptr[22]))->obj_vartab[2 /*OBLO_EPIL*/] = (basilys_ptr_t)(
-    /*_.OEPIL__V21*/ curfptr[20]);
+   basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V23*/ curfptr[22]))));basilys_putfield_object((/*_.INST__V23*/ curfptr[22]), (2), (/*_.OEPIL__V21*/ curfptr[20]), "OBLO_EPIL");
    ;
    /*_.OBLOCK__V22*/ curfptr[21] = /*_.INST__V23*/ curfptr[22];;}
   ;
@@ -26495,48 +26371,39 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2115: @block");
   /*block*/{
    
    BASILYS_LOCATION("warmelt-genobj.bysl:2158: @rawallocobj");
-   /*rawallocobj*/ /*_.INST__V35*/ curfptr[34] =
-    basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_OBJMULTIAPPLY*/ curfrout->tabval[15])), (5), ("CLASS_OBJMULTIAPPLY"));
+   /*rawallocobj*/ { basilys_ptr_t newobj = 0;
+    basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_OBJMULTIAPPLY*/ curfrout->tabval[15])), (5), "CLASS_OBJMULTIAPPLY");/*_.INST__V35*/ curfptr[34] =
+    newobj; };
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:2158: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V35*/ curfptr[34])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V35*/ curfptr[34]))));
-   ((basilysobject_ptr_t)(/*_.INST__V35*/ curfptr[34]))->obj_vartab[0 /*OBI_LOC*/] = (basilys_ptr_t)(
-    /*_.LOC__V11*/ curfptr[10]);
+   basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V35*/ curfptr[34]))));basilys_putfield_object((/*_.INST__V35*/ curfptr[34]), (0), (/*_.LOC__V11*/ curfptr[10]), "OBI_LOC");
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:2158: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V35*/ curfptr[34])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V35*/ curfptr[34]))));
-   ((basilysobject_ptr_t)(/*_.INST__V35*/ curfptr[34]))->obj_vartab[1 /*OBDI_DESTLIST*/] = (basilys_ptr_t)(
-    /*_.RESLIST__V28*/ curfptr[27]);
+   basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V35*/ curfptr[34]))));basilys_putfield_object((/*_.INST__V35*/ curfptr[34]), (1), (/*_.RESLIST__V28*/ curfptr[27]), "OBDI_DESTLIST");
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:2158: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V35*/ curfptr[34])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V35*/ curfptr[34]))));
-   ((basilysobject_ptr_t)(/*_.INST__V35*/ curfptr[34]))->obj_vartab[2 /*OBAPP_CLOS*/] = (basilys_ptr_t)(
-    /*_.COMPILE_OBJ__V33*/ curfptr[32]);
+   basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V35*/ curfptr[34]))));basilys_putfield_object((/*_.INST__V35*/ curfptr[34]), (2), (/*_.COMPILE_OBJ__V33*/ curfptr[32]), "OBAPP_CLOS");
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:2158: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V35*/ curfptr[34])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)(/*_.INST__V35*/ curfptr[34]))));
-   ((basilysobject_ptr_t)(/*_.INST__V35*/ curfptr[34]))->obj_vartab[3 /*OBAPP_ARGS*/] = (basilys_ptr_t)(
-    /*_.OARGS__V31*/ curfptr[30]);
+   basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)(/*_.INST__V35*/ curfptr[34]))));basilys_putfield_object((/*_.INST__V35*/ curfptr[34]), (3), (/*_.OARGS__V31*/ curfptr[30]), "OBAPP_ARGS");
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:2158: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V35*/ curfptr[34])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (4>=0 && 4< basilys_object_length((basilys_ptr_t)(/*_.INST__V35*/ curfptr[34]))));
-   ((basilysobject_ptr_t)(/*_.INST__V35*/ curfptr[34]))->obj_vartab[4 /*OBMULTAPP_XRES*/] = (basilys_ptr_t)(
-    /*_.OXRES__V24*/ curfptr[23]);
+   basilys_assertmsg("putslot checkoff", (4>=0 && 4< basilys_object_length((basilys_ptr_t)(/*_.INST__V35*/ curfptr[34]))));basilys_putfield_object((/*_.INST__V35*/ curfptr[34]), (4), (/*_.OXRES__V24*/ curfptr[23]), "OBMULTAPP_XRES");
    ;
    /*_.OMAPP__V34*/ curfptr[33] = /*_.INST__V35*/ curfptr[34];;}
   ;
@@ -27009,11 +26876,13 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2129: @block");
  /*block*/{
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2133: @getslot");
-  /*_.BDER__V8*/ curfptr[7] = basilys_getfield_object((basilys_ptr_t)(/*_.BIND__V2*/ curfptr[1]), 0, "BINDER");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.BIND__V2*/ curfptr[1]), 0, "BINDER");/*_.BDER__V8*/ curfptr[7] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2134: @getslot");
-  /*_.CTY__V9*/ curfptr[8] = basilys_getfield_object((basilys_ptr_t)(/*_.BIND__V2*/ curfptr[1]), 1, "FBIND_TYPE");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.BIND__V2*/ curfptr[1]), 1, "FBIND_TYPE");/*_.CTY__V9*/ curfptr[8] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2135: @apply");
@@ -27486,24 +27355,21 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2181: @block");
     /*block*/{
      
      BASILYS_LOCATION("warmelt-genobj.bysl:2183: @rawallocobj");
-     /*rawallocobj*/ /*_.INST__V4*/ curfptr[3] =
-      basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_OBJCLEAR*/ curfrout->tabval[0])), (2), ("CLASS_OBJCLEAR"));
+     /*rawallocobj*/ { basilys_ptr_t newobj = 0;
+      basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_OBJCLEAR*/ curfrout->tabval[0])), (2), "CLASS_OBJCLEAR");/*_.INST__V4*/ curfptr[3] =
+      newobj; };
      ;
      
      BASILYS_LOCATION("warmelt-genobj.bysl:2183: @putslot");
      /*putslot*/
      basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V4*/ curfptr[3])) == OBMAG_OBJECT);
-     basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V4*/ curfptr[3]))));
-     ((basilysobject_ptr_t)(/*_.INST__V4*/ curfptr[3]))->obj_vartab[0 /*OBI_LOC*/] = (basilys_ptr_t)(
-      (/*~LOC*/ curfclos->tabval[0]));
+     basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V4*/ curfptr[3]))));basilys_putfield_object((/*_.INST__V4*/ curfptr[3]), (0), ((/*~LOC*/ curfclos->tabval[0])), "OBI_LOC");
      ;
      
      BASILYS_LOCATION("warmelt-genobj.bysl:2183: @putslot");
      /*putslot*/
      basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V4*/ curfptr[3])) == OBMAG_OBJECT);
-     basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V4*/ curfptr[3]))));
-     ((basilysobject_ptr_t)(/*_.INST__V4*/ curfptr[3]))->obj_vartab[1 /*OCLR_VLOC*/] = (basilys_ptr_t)(
-      /*_.RLOC__V2*/ curfptr[1]);
+     basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V4*/ curfptr[3]))));basilys_putfield_object((/*_.INST__V4*/ curfptr[3]), (1), (/*_.RLOC__V2*/ curfptr[1]), "OCLR_VLOC");
      ;
      /*_.OCLEAR__V3*/ curfptr[2] = /*_.INST__V4*/ curfptr[3];;}
     ;
@@ -27780,19 +27646,23 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2201: @block");
  /*block*/{
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2204: @getslot");
-  /*_.LOC__V9*/ curfptr[8] = basilys_getfield_object((basilys_ptr_t)(/*_.NSND__V2*/ curfptr[1]), 0, "NREP_LOC");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NSND__V2*/ curfptr[1]), 0, "NREP_LOC");/*_.LOC__V9*/ curfptr[8] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2205: @getslot");
-  /*_.NSEL__V10*/ curfptr[9] = basilys_getfield_object((basilys_ptr_t)(/*_.NSND__V2*/ curfptr[1]), 1, "NSEND_SEL");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NSND__V2*/ curfptr[1]), 1, "NSEND_SEL");/*_.NSEL__V10*/ curfptr[9] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2206: @getslot");
-  /*_.NRECV__V11*/ curfptr[10] = basilys_getfield_object((basilys_ptr_t)(/*_.NSND__V2*/ curfptr[1]), 2, "NSEND_RECV");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NSND__V2*/ curfptr[1]), 2, "NSEND_RECV");/*_.NRECV__V11*/ curfptr[10] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2207: @getslot");
-  /*_.NARGS__V12*/ curfptr[11] = basilys_getfield_object((basilys_ptr_t)(/*_.NSND__V2*/ curfptr[1]), 3, "NSEND_ARGS");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NSND__V2*/ curfptr[1]), 3, "NSEND_ARGS");/*_.NARGS__V12*/ curfptr[11] = slot; };
   ;
   
   #if ENABLE_CHECKING
@@ -27895,48 +27765,39 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2201: @block");
    /*block*/{
     
     BASILYS_LOCATION("warmelt-genobj.bysl:2216: @rawallocobj");
-    /*rawallocobj*/ /*_.INST__V23*/ curfptr[22] =
-     basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_OBJMSEND*/ curfrout->tabval[7])), (5), ("CLASS_OBJMSEND"));
+    /*rawallocobj*/ { basilys_ptr_t newobj = 0;
+     basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_OBJMSEND*/ curfrout->tabval[7])), (5), "CLASS_OBJMSEND");/*_.INST__V23*/ curfptr[22] =
+     newobj; };
     ;
     
     BASILYS_LOCATION("warmelt-genobj.bysl:2216: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V23*/ curfptr[22])) == OBMAG_OBJECT);
-    basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V23*/ curfptr[22]))));
-    ((basilysobject_ptr_t)(/*_.INST__V23*/ curfptr[22]))->obj_vartab[0 /*OBI_LOC*/] = (basilys_ptr_t)(
-     /*_.LOC__V9*/ curfptr[8]);
+    basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V23*/ curfptr[22]))));basilys_putfield_object((/*_.INST__V23*/ curfptr[22]), (0), (/*_.LOC__V9*/ curfptr[8]), "OBI_LOC");
     ;
     
     BASILYS_LOCATION("warmelt-genobj.bysl:2216: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V23*/ curfptr[22])) == OBMAG_OBJECT);
-    basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V23*/ curfptr[22]))));
-    ((basilysobject_ptr_t)(/*_.INST__V23*/ curfptr[22]))->obj_vartab[1 /*OBDI_DESTLIST*/] = (basilys_ptr_t)(
-     /*_.MAKE_LIST__V21*/ curfptr[20]);
+    basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V23*/ curfptr[22]))));basilys_putfield_object((/*_.INST__V23*/ curfptr[22]), (1), (/*_.MAKE_LIST__V21*/ curfptr[20]), "OBDI_DESTLIST");
     ;
     
     BASILYS_LOCATION("warmelt-genobj.bysl:2216: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V23*/ curfptr[22])) == OBMAG_OBJECT);
-    basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V23*/ curfptr[22]))));
-    ((basilysobject_ptr_t)(/*_.INST__V23*/ curfptr[22]))->obj_vartab[2 /*OBMSND_SEL*/] = (basilys_ptr_t)(
-     /*_.OSEL__V16*/ curfptr[15]);
+    basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V23*/ curfptr[22]))));basilys_putfield_object((/*_.INST__V23*/ curfptr[22]), (2), (/*_.OSEL__V16*/ curfptr[15]), "OBMSND_SEL");
     ;
     
     BASILYS_LOCATION("warmelt-genobj.bysl:2216: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V23*/ curfptr[22])) == OBMAG_OBJECT);
-    basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)(/*_.INST__V23*/ curfptr[22]))));
-    ((basilysobject_ptr_t)(/*_.INST__V23*/ curfptr[22]))->obj_vartab[3 /*OBMSND_RECV*/] = (basilys_ptr_t)(
-     /*_.ORECV__V17*/ curfptr[16]);
+    basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)(/*_.INST__V23*/ curfptr[22]))));basilys_putfield_object((/*_.INST__V23*/ curfptr[22]), (3), (/*_.ORECV__V17*/ curfptr[16]), "OBMSND_RECV");
     ;
     
     BASILYS_LOCATION("warmelt-genobj.bysl:2216: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V23*/ curfptr[22])) == OBMAG_OBJECT);
-    basilys_assertmsg("putslot checkoff", (4>=0 && 4< basilys_object_length((basilys_ptr_t)(/*_.INST__V23*/ curfptr[22]))));
-    ((basilysobject_ptr_t)(/*_.INST__V23*/ curfptr[22]))->obj_vartab[4 /*OBMSND_ARGS*/] = (basilys_ptr_t)(
-     /*_.OARGS__V20*/ curfptr[19]);
+    basilys_assertmsg("putslot checkoff", (4>=0 && 4< basilys_object_length((basilys_ptr_t)(/*_.INST__V23*/ curfptr[22]))));basilys_putfield_object((/*_.INST__V23*/ curfptr[22]), (4), (/*_.OARGS__V20*/ curfptr[19]), "OBMSND_ARGS");
     ;
     /*_.OSEND__V22*/ curfptr[21] = /*_.INST__V23*/ curfptr[22];;}
    ;
@@ -28337,31 +28198,38 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2232: @block");
  /*block*/{
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2236: @getslot");
-  /*_.LOC__V11*/ curfptr[10] = basilys_getfield_object((basilys_ptr_t)(/*_.NMSND__V2*/ curfptr[1]), 0, "NREP_LOC");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NMSND__V2*/ curfptr[1]), 0, "NREP_LOC");/*_.LOC__V11*/ curfptr[10] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2237: @getslot");
-  /*_.RBINDS__V12*/ curfptr[11] = basilys_getfield_object((basilys_ptr_t)(/*_.NMSND__V2*/ curfptr[1]), 4, "NMULSEND_BINDINGS");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NMSND__V2*/ curfptr[1]), 4, "NMULSEND_BINDINGS");/*_.RBINDS__V12*/ curfptr[11] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2238: @getslot");
-  /*_.NBODY__V13*/ curfptr[12] = basilys_getfield_object((basilys_ptr_t)(/*_.NMSND__V2*/ curfptr[1]), 5, "NMULSEND_BODY");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NMSND__V2*/ curfptr[1]), 5, "NMULSEND_BODY");/*_.NBODY__V13*/ curfptr[12] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2239: @getslot");
-  /*_.NSEL__V14*/ curfptr[13] = basilys_getfield_object((basilys_ptr_t)(/*_.NMSND__V2*/ curfptr[1]), 1, "NSEND_SEL");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NMSND__V2*/ curfptr[1]), 1, "NSEND_SEL");/*_.NSEL__V14*/ curfptr[13] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2240: @getslot");
-  /*_.NRECV__V15*/ curfptr[14] = basilys_getfield_object((basilys_ptr_t)(/*_.NMSND__V2*/ curfptr[1]), 2, "NSEND_RECV");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NMSND__V2*/ curfptr[1]), 2, "NSEND_RECV");/*_.NRECV__V15*/ curfptr[14] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2241: @getslot");
-  /*_.NARGS__V16*/ curfptr[15] = basilys_getfield_object((basilys_ptr_t)(/*_.NMSND__V2*/ curfptr[1]), 3, "NSEND_ARGS");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NMSND__V2*/ curfptr[1]), 3, "NSEND_ARGS");/*_.NARGS__V16*/ curfptr[15] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2242: @getslot");
-  /*_.LOCMAP__V17*/ curfptr[16] = basilys_getfield_object((basilys_ptr_t)(/*_.GCX__V3*/ curfptr[2]), 1, "GNCX_LOCMAP");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.GCX__V3*/ curfptr[2]), 1, "GNCX_LOCMAP");/*_.LOCMAP__V17*/ curfptr[16] = slot; };
   ;
   /*_#NBRES__L4*/ curfnum[0] = 
    (basilys_multiple_length((basilys_ptr_t)(/*_.RBINDS__V12*/ curfptr[11])));;
@@ -28503,32 +28371,27 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2232: @block");
   /*block*/{
    
    BASILYS_LOCATION("warmelt-genobj.bysl:2274: @rawallocobj");
-   /*rawallocobj*/ /*_.INST__V34*/ curfptr[33] =
-    basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_OBJBLOCK*/ curfrout->tabval[14])), (3), ("CLASS_OBJBLOCK"));
+   /*rawallocobj*/ { basilys_ptr_t newobj = 0;
+    basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_OBJBLOCK*/ curfrout->tabval[14])), (3), "CLASS_OBJBLOCK");/*_.INST__V34*/ curfptr[33] =
+    newobj; };
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:2274: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V34*/ curfptr[33])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V34*/ curfptr[33]))));
-   ((basilysobject_ptr_t)(/*_.INST__V34*/ curfptr[33]))->obj_vartab[0 /*OBI_LOC*/] = (basilys_ptr_t)(
-    /*_.LOC__V11*/ curfptr[10]);
+   basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V34*/ curfptr[33]))));basilys_putfield_object((/*_.INST__V34*/ curfptr[33]), (0), (/*_.LOC__V11*/ curfptr[10]), "OBI_LOC");
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:2274: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V34*/ curfptr[33])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V34*/ curfptr[33]))));
-   ((basilysobject_ptr_t)(/*_.INST__V34*/ curfptr[33]))->obj_vartab[1 /*OBLO_BODYL*/] = (basilys_ptr_t)(
-    /*_.OBODL__V31*/ curfptr[30]);
+   basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V34*/ curfptr[33]))));basilys_putfield_object((/*_.INST__V34*/ curfptr[33]), (1), (/*_.OBODL__V31*/ curfptr[30]), "OBLO_BODYL");
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:2274: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V34*/ curfptr[33])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V34*/ curfptr[33]))));
-   ((basilysobject_ptr_t)(/*_.INST__V34*/ curfptr[33]))->obj_vartab[2 /*OBLO_EPIL*/] = (basilys_ptr_t)(
-    /*_.OEPIL__V32*/ curfptr[31]);
+   basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V34*/ curfptr[33]))));basilys_putfield_object((/*_.INST__V34*/ curfptr[33]), (2), (/*_.OEPIL__V32*/ curfptr[31]), "OBLO_EPIL");
    ;
    /*_.OBLOCK__V33*/ curfptr[32] = /*_.INST__V34*/ curfptr[33];;}
   ;
@@ -28537,56 +28400,45 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2232: @block");
   /*block*/{
    
    BASILYS_LOCATION("warmelt-genobj.bysl:2278: @rawallocobj");
-   /*rawallocobj*/ /*_.INST__V36*/ curfptr[35] =
-    basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_OBJMULTIMSEND*/ curfrout->tabval[15])), (6), ("CLASS_OBJMULTIMSEND"));
+   /*rawallocobj*/ { basilys_ptr_t newobj = 0;
+    basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_OBJMULTIMSEND*/ curfrout->tabval[15])), (6), "CLASS_OBJMULTIMSEND");/*_.INST__V36*/ curfptr[35] =
+    newobj; };
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:2278: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V36*/ curfptr[35])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V36*/ curfptr[35]))));
-   ((basilysobject_ptr_t)(/*_.INST__V36*/ curfptr[35]))->obj_vartab[0 /*OBI_LOC*/] = (basilys_ptr_t)(
-    /*_.LOC__V11*/ curfptr[10]);
+   basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V36*/ curfptr[35]))));basilys_putfield_object((/*_.INST__V36*/ curfptr[35]), (0), (/*_.LOC__V11*/ curfptr[10]), "OBI_LOC");
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:2278: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V36*/ curfptr[35])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V36*/ curfptr[35]))));
-   ((basilysobject_ptr_t)(/*_.INST__V36*/ curfptr[35]))->obj_vartab[1 /*OBDI_DESTLIST*/] = (basilys_ptr_t)(
-    /*_.RESLIST__V25*/ curfptr[24]);
+   basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V36*/ curfptr[35]))));basilys_putfield_object((/*_.INST__V36*/ curfptr[35]), (1), (/*_.RESLIST__V25*/ curfptr[24]), "OBDI_DESTLIST");
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:2278: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V36*/ curfptr[35])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V36*/ curfptr[35]))));
-   ((basilysobject_ptr_t)(/*_.INST__V36*/ curfptr[35]))->obj_vartab[2 /*OBMSND_SEL*/] = (basilys_ptr_t)(
-    /*_.OSEL__V24*/ curfptr[23]);
+   basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V36*/ curfptr[35]))));basilys_putfield_object((/*_.INST__V36*/ curfptr[35]), (2), (/*_.OSEL__V24*/ curfptr[23]), "OBMSND_SEL");
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:2278: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V36*/ curfptr[35])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)(/*_.INST__V36*/ curfptr[35]))));
-   ((basilysobject_ptr_t)(/*_.INST__V36*/ curfptr[35]))->obj_vartab[3 /*OBMSND_RECV*/] = (basilys_ptr_t)(
-    /*_.ORECV__V26*/ curfptr[25]);
+   basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)(/*_.INST__V36*/ curfptr[35]))));basilys_putfield_object((/*_.INST__V36*/ curfptr[35]), (3), (/*_.ORECV__V26*/ curfptr[25]), "OBMSND_RECV");
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:2278: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V36*/ curfptr[35])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (4>=0 && 4< basilys_object_length((basilys_ptr_t)(/*_.INST__V36*/ curfptr[35]))));
-   ((basilysobject_ptr_t)(/*_.INST__V36*/ curfptr[35]))->obj_vartab[4 /*OBMSND_ARGS*/] = (basilys_ptr_t)(
-    /*_.OARGS__V29*/ curfptr[28]);
+   basilys_assertmsg("putslot checkoff", (4>=0 && 4< basilys_object_length((basilys_ptr_t)(/*_.INST__V36*/ curfptr[35]))));basilys_putfield_object((/*_.INST__V36*/ curfptr[35]), (4), (/*_.OARGS__V29*/ curfptr[28]), "OBMSND_ARGS");
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:2278: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V36*/ curfptr[35])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (5>=0 && 5< basilys_object_length((basilys_ptr_t)(/*_.INST__V36*/ curfptr[35]))));
-   ((basilysobject_ptr_t)(/*_.INST__V36*/ curfptr[35]))->obj_vartab[5 /*OBMULTSND_XRES*/] = (basilys_ptr_t)(
-    /*_.OXRES__V21*/ curfptr[20]);
+   basilys_assertmsg("putslot checkoff", (5>=0 && 5< basilys_object_length((basilys_ptr_t)(/*_.INST__V36*/ curfptr[35]))));basilys_putfield_object((/*_.INST__V36*/ curfptr[35]), (5), (/*_.OXRES__V21*/ curfptr[20]), "OBMULTSND_XRES");
    ;
    /*_.OMSEND__V35*/ curfptr[34] = /*_.INST__V36*/ curfptr[35];;}
   ;
@@ -29062,11 +28914,13 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2247: @block");
  /*block*/{
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2251: @getslot");
-  /*_.BDER__V8*/ curfptr[7] = basilys_getfield_object((basilys_ptr_t)(/*_.BIND__V2*/ curfptr[1]), 0, "BINDER");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.BIND__V2*/ curfptr[1]), 0, "BINDER");/*_.BDER__V8*/ curfptr[7] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2252: @getslot");
-  /*_.CTY__V9*/ curfptr[8] = basilys_getfield_object((basilys_ptr_t)(/*_.BIND__V2*/ curfptr[1]), 1, "FBIND_TYPE");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.BIND__V2*/ curfptr[1]), 1, "FBIND_TYPE");/*_.CTY__V9*/ curfptr[8] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2253: @apply");
@@ -29539,24 +29393,21 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2302: @block");
     /*block*/{
      
      BASILYS_LOCATION("warmelt-genobj.bysl:2304: @rawallocobj");
-     /*rawallocobj*/ /*_.INST__V4*/ curfptr[3] =
-      basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_OBJCLEAR*/ curfrout->tabval[0])), (2), ("CLASS_OBJCLEAR"));
+     /*rawallocobj*/ { basilys_ptr_t newobj = 0;
+      basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_OBJCLEAR*/ curfrout->tabval[0])), (2), "CLASS_OBJCLEAR");/*_.INST__V4*/ curfptr[3] =
+      newobj; };
      ;
      
      BASILYS_LOCATION("warmelt-genobj.bysl:2304: @putslot");
      /*putslot*/
      basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V4*/ curfptr[3])) == OBMAG_OBJECT);
-     basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V4*/ curfptr[3]))));
-     ((basilysobject_ptr_t)(/*_.INST__V4*/ curfptr[3]))->obj_vartab[0 /*OBI_LOC*/] = (basilys_ptr_t)(
-      (/*~LOC*/ curfclos->tabval[0]));
+     basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V4*/ curfptr[3]))));basilys_putfield_object((/*_.INST__V4*/ curfptr[3]), (0), ((/*~LOC*/ curfclos->tabval[0])), "OBI_LOC");
      ;
      
      BASILYS_LOCATION("warmelt-genobj.bysl:2304: @putslot");
      /*putslot*/
      basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V4*/ curfptr[3])) == OBMAG_OBJECT);
-     basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V4*/ curfptr[3]))));
-     ((basilysobject_ptr_t)(/*_.INST__V4*/ curfptr[3]))->obj_vartab[1 /*OCLR_VLOC*/] = (basilys_ptr_t)(
-      /*_.RLOC__V2*/ curfptr[1]);
+     basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V4*/ curfptr[3]))));basilys_putfield_object((/*_.INST__V4*/ curfptr[3]), (1), (/*_.RLOC__V2*/ curfptr[1]), "OCLR_VLOC");
      ;
      /*_.OCLEAR__V3*/ curfptr[2] = /*_.INST__V4*/ curfptr[3];;}
     ;
@@ -29889,7 +29740,8 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2322: @block");
    (basilys_discr((basilys_ptr_t)(/*_.BIND__V2*/ curfptr[1])));;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2328: @getslot");
-  /*_.NAMED_NAME__V12*/ curfptr[11] = basilys_getfield_object((basilys_ptr_t)(/*_.DISCR__V11*/ curfptr[10]), 1, "NAMED_NAME");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.DISCR__V11*/ curfptr[10]), 1, "NAMED_NAME");/*_.NAMED_NAME__V12*/ curfptr[11] = slot; };
   ;
   
   basilys_putstr(stderr, (basilys_ptr_t)(/*_.NAMED_NAME__V12*/ curfptr[11]));
@@ -30171,11 +30023,13 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2336: @block");
  /*block*/{
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2340: @getslot");
-  /*_.SYM__V11*/ curfptr[10] = basilys_getfield_object((basilys_ptr_t)(/*_.BIND__V2*/ curfptr[1]), 0, "BINDER");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.BIND__V2*/ curfptr[1]), 0, "BINDER");/*_.SYM__V11*/ curfptr[10] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2341: @getslot");
-  /*_.IMPORTMAP__V12*/ curfptr[11] = basilys_getfield_object((basilys_ptr_t)(/*_.GCX__V3*/ curfptr[2]), 11, "IGNCX_IMPORTMAP");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.GCX__V3*/ curfptr[2]), 11, "IGNCX_IMPORTMAP");/*_.IMPORTMAP__V12*/ curfptr[11] = slot; };
   ;
   /*_.OLOCV__V13*/ curfptr[12] = 
    (basilys_get_mapobjects((basilysmapobjects_ptr_t)(/*_.IMPORTMAP__V12*/ curfptr[11]), (basilysobject_ptr_t)(/*_.SYM__V11*/ curfptr[10])));;
@@ -30520,7 +30374,8 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2353: @block");
  /*block*/{
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2357: @getslot");
-  /*_.SBDATA__V11*/ curfptr[10] = basilys_getfield_object((basilys_ptr_t)(/*_.BIND__V2*/ curfptr[1]), 2, "SBIND_SELECTORDATA");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.BIND__V2*/ curfptr[1]), 2, "SBIND_SELECTORDATA");/*_.SBDATA__V11*/ curfptr[10] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2358: @msend");
@@ -30823,7 +30678,8 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2368: @block");
  /*block*/{
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2372: @getslot");
-  /*_.PBDATA__V11*/ curfptr[10] = basilys_getfield_object((basilys_ptr_t)(/*_.BIND__V2*/ curfptr[1]), 3, "PBIND_PRIMDATA");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.BIND__V2*/ curfptr[1]), 3, "PBIND_PRIMDATA");/*_.PBDATA__V11*/ curfptr[10] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2373: @msend");
@@ -31126,7 +30982,8 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2381: @block");
  /*block*/{
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2385: @getslot");
-  /*_.FBDATA__V11*/ curfptr[10] = basilys_getfield_object((basilys_ptr_t)(/*_.BIND__V2*/ curfptr[1]), 2, "FUBIND_FUNDATA");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.BIND__V2*/ curfptr[1]), 2, "FUBIND_FUNDATA");/*_.FBDATA__V11*/ curfptr[10] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2386: @msend");
@@ -31429,7 +31286,8 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2394: @block");
  /*block*/{
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2398: @getslot");
-  /*_.CBDATA__V11*/ curfptr[10] = basilys_getfield_object((basilys_ptr_t)(/*_.BIND__V2*/ curfptr[1]), 3, "CBIND_CLADATA");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.BIND__V2*/ curfptr[1]), 3, "CBIND_CLADATA");/*_.CBDATA__V11*/ curfptr[10] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2399: @msend");
@@ -31732,7 +31590,8 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2407: @block");
  /*block*/{
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2411: @getslot");
-  /*_.FBDATA__V11*/ curfptr[10] = basilys_getfield_object((basilys_ptr_t)(/*_.BIND__V2*/ curfptr[1]), 3, "FLBIND_FDATA");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.BIND__V2*/ curfptr[1]), 3, "FLBIND_FDATA");/*_.FBDATA__V11*/ curfptr[10] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2412: @msend");
@@ -32035,7 +31894,8 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2420: @block");
  /*block*/{
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2424: @getslot");
-  /*_.IBDATA__V11*/ curfptr[10] = basilys_getfield_object((basilys_ptr_t)(/*_.BIND__V2*/ curfptr[1]), 2, "IBIND_DATA");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.BIND__V2*/ curfptr[1]), 2, "IBIND_DATA");/*_.IBDATA__V11*/ curfptr[10] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2425: @msend");
@@ -32292,11 +32152,13 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2435: @block");
  /*block*/{
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2438: @getslot");
-  /*_.TYPRECV__V9*/ curfptr[8] = basilys_getfield_object((basilys_ptr_t)(/*_.RECV__V2*/ curfptr[1]), 0, "OBV_TYPE");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.RECV__V2*/ curfptr[1]), 0, "OBV_TYPE");/*_.TYPRECV__V9*/ curfptr[8] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2439: @getslot");
-  /*_.TYPDESTO__V10*/ curfptr[9] = basilys_getfield_object((basilys_ptr_t)(/*_.DESTO__V3*/ curfptr[2]), 0, "OBV_TYPE");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.DESTO__V3*/ curfptr[2]), 0, "OBV_TYPE");/*_.TYPDESTO__V10*/ curfptr[9] = slot; };
   ;
   /*_#__L3*/ curfnum[0] = 
    ((/*_.TYPRECV__V9*/ curfptr[8]) == ((/*!CTYPE_VOID*/ curfrout->tabval[2])));;
@@ -32349,24 +32211,21 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2435: @block");
        /*block*/{
         
         BASILYS_LOCATION("warmelt-genobj.bysl:2450: @rawallocobj");
-        /*rawallocobj*/ /*_.INST__V17*/ curfptr[16] =
-         basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_OBJBLOCK*/ curfrout->tabval[4])), (3), ("CLASS_OBJBLOCK"));
+        /*rawallocobj*/ { basilys_ptr_t newobj = 0;
+         basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_OBJBLOCK*/ curfrout->tabval[4])), (3), "CLASS_OBJBLOCK");/*_.INST__V17*/ curfptr[16] =
+         newobj; };
         ;
         
         BASILYS_LOCATION("warmelt-genobj.bysl:2450: @putslot");
         /*putslot*/
         basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V17*/ curfptr[16])) == OBMAG_OBJECT);
-        basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V17*/ curfptr[16]))));
-        ((basilysobject_ptr_t)(/*_.INST__V17*/ curfptr[16]))->obj_vartab[1 /*OBLO_BODYL*/] = (basilys_ptr_t)(
-         /*_.OBODL__V15*/ curfptr[14]);
+        basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V17*/ curfptr[16]))));basilys_putfield_object((/*_.INST__V17*/ curfptr[16]), (1), (/*_.OBODL__V15*/ curfptr[14]), "OBLO_BODYL");
         ;
         
         BASILYS_LOCATION("warmelt-genobj.bysl:2450: @putslot");
         /*putslot*/
         basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V17*/ curfptr[16])) == OBMAG_OBJECT);
-        basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V17*/ curfptr[16]))));
-        ((basilysobject_ptr_t)(/*_.INST__V17*/ curfptr[16]))->obj_vartab[2 /*OBLO_EPIL*/] = (basilys_ptr_t)(
-         (/*nil*/NULL));
+        basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V17*/ curfptr[16]))));basilys_putfield_object((/*_.INST__V17*/ curfptr[16]), (2), ((/*nil*/NULL)), "OBLO_EPIL");
         ;
         /*_.OBLK__V16*/ curfptr[15] = /*_.INST__V17*/ curfptr[16];;}
        ;
@@ -32375,16 +32234,15 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2435: @block");
        /*block*/{
         
         BASILYS_LOCATION("warmelt-genobj.bysl:2456: @rawallocobj");
-        /*rawallocobj*/ /*_.INST__V19*/ curfptr[18] =
-         basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_OBJCLEAR*/ curfrout->tabval[5])), (2), ("CLASS_OBJCLEAR"));
+        /*rawallocobj*/ { basilys_ptr_t newobj = 0;
+         basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_OBJCLEAR*/ curfrout->tabval[5])), (2), "CLASS_OBJCLEAR");/*_.INST__V19*/ curfptr[18] =
+         newobj; };
         ;
         
         BASILYS_LOCATION("warmelt-genobj.bysl:2456: @putslot");
         /*putslot*/
         basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V19*/ curfptr[18])) == OBMAG_OBJECT);
-        basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V19*/ curfptr[18]))));
-        ((basilysobject_ptr_t)(/*_.INST__V19*/ curfptr[18]))->obj_vartab[1 /*OCLR_VLOC*/] = (basilys_ptr_t)(
-         /*_.DESTO__V3*/ curfptr[2]);
+        basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V19*/ curfptr[18]))));basilys_putfield_object((/*_.INST__V19*/ curfptr[18]), (1), (/*_.DESTO__V3*/ curfptr[2]), "OCLR_VLOC");
         ;
         /*_.OCLR__V18*/ curfptr[17] = /*_.INST__V19*/ curfptr[18];;}
        ;
@@ -32508,24 +32366,21 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2435: @block");
        /*block*/{
         
         BASILYS_LOCATION("warmelt-genobj.bysl:2473: @rawallocobj");
-        /*rawallocobj*/ /*_.INST__V28*/ curfptr[27] =
-         basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_OBJCOMPUTE*/ curfrout->tabval[7])), (3), ("CLASS_OBJCOMPUTE"));
+        /*rawallocobj*/ { basilys_ptr_t newobj = 0;
+         basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_OBJCOMPUTE*/ curfrout->tabval[7])), (3), "CLASS_OBJCOMPUTE");/*_.INST__V28*/ curfptr[27] =
+         newobj; };
         ;
         
         BASILYS_LOCATION("warmelt-genobj.bysl:2473: @putslot");
         /*putslot*/
         basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V28*/ curfptr[27])) == OBMAG_OBJECT);
-        basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V28*/ curfptr[27]))));
-        ((basilysobject_ptr_t)(/*_.INST__V28*/ curfptr[27]))->obj_vartab[1 /*OBDI_DESTLIST*/] = (basilys_ptr_t)(
-         /*_.DESTLIS__V25*/ curfptr[12]);
+        basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V28*/ curfptr[27]))));basilys_putfield_object((/*_.INST__V28*/ curfptr[27]), (1), (/*_.DESTLIS__V25*/ curfptr[12]), "OBDI_DESTLIST");
         ;
         
         BASILYS_LOCATION("warmelt-genobj.bysl:2473: @putslot");
         /*putslot*/
         basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V28*/ curfptr[27])) == OBMAG_OBJECT);
-        basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V28*/ curfptr[27]))));
-        ((basilysobject_ptr_t)(/*_.INST__V28*/ curfptr[27]))->obj_vartab[2 /*OBCPT_EXPR*/] = (basilys_ptr_t)(
-         /*_.EXPLIS__V26*/ curfptr[11]);
+        basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V28*/ curfptr[27]))));basilys_putfield_object((/*_.INST__V28*/ curfptr[27]), (2), (/*_.EXPLIS__V26*/ curfptr[11]), "OBCPT_EXPR");
         ;
         /*_.OBC__V27*/ curfptr[17] = /*_.INST__V28*/ curfptr[27];;}
        ;
@@ -32753,7 +32608,8 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2435: @block");
         (basilys_discr((basilys_ptr_t)(/*_.RECV__V2*/ curfptr[1])));;
        
        BASILYS_LOCATION("warmelt-genobj.bysl:2489: @getslot");
-       /*_.NAMED_NAME__V40*/ curfptr[15] = basilys_getfield_object((basilys_ptr_t)(/*_.DISCR__V39*/ curfptr[12]), 1, "NAMED_NAME");
+       { basilys_ptr_t slot=0;
+        basilys_object_get_field(slot,(basilys_ptr_t)(/*_.DISCR__V39*/ curfptr[12]), 1, "NAMED_NAME");/*_.NAMED_NAME__V40*/ curfptr[15] = slot; };
        ;
        
        basilys_putstr(stderr, (basilys_ptr_t)(/*_.NAMED_NAME__V40*/ curfptr[15]));
@@ -32774,7 +32630,8 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2435: @block");
         (basilys_discr((basilys_ptr_t)(/*_.DESTO__V3*/ curfptr[2])));;
        
        BASILYS_LOCATION("warmelt-genobj.bysl:2491: @getslot");
-       /*_.NAMED_NAME__V42*/ curfptr[15] = basilys_getfield_object((basilys_ptr_t)(/*_.DISCR__V41*/ curfptr[12]), 1, "NAMED_NAME");
+       { basilys_ptr_t slot=0;
+        basilys_object_get_field(slot,(basilys_ptr_t)(/*_.DISCR__V41*/ curfptr[12]), 1, "NAMED_NAME");/*_.NAMED_NAME__V42*/ curfptr[15] = slot; };
        ;
        
        basilys_putstr(stderr, (basilys_ptr_t)(/*_.NAMED_NAME__V42*/ curfptr[15]));
@@ -33163,31 +33020,29 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2502: @block");
    (basilysgc_new_list((basilysobject_ptr_t)((/*!DISCR_LIST*/ curfrout->tabval[2]))));;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2509: @getslot");
-  /*_.TYPDESTO__V15*/ curfptr[14] = basilys_getfield_object((basilys_ptr_t)(/*_.DESTO__V3*/ curfptr[2]), 0, "OBV_TYPE");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.DESTO__V3*/ curfptr[2]), 0, "OBV_TYPE");/*_.TYPDESTO__V15*/ curfptr[14] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2510: @block");
   /*block*/{
    
    BASILYS_LOCATION("warmelt-genobj.bysl:2510: @rawallocobj");
-   /*rawallocobj*/ /*_.INST__V17*/ curfptr[16] =
-    basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_OBJCOMPUTE*/ curfrout->tabval[3])), (3), ("CLASS_OBJCOMPUTE"));
+   /*rawallocobj*/ { basilys_ptr_t newobj = 0;
+    basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_OBJCOMPUTE*/ curfrout->tabval[3])), (3), "CLASS_OBJCOMPUTE");/*_.INST__V17*/ curfptr[16] =
+    newobj; };
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:2510: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V17*/ curfptr[16])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V17*/ curfptr[16]))));
-   ((basilysobject_ptr_t)(/*_.INST__V17*/ curfptr[16]))->obj_vartab[1 /*OBDI_DESTLIST*/] = (basilys_ptr_t)(
-    /*_.DESTLIS__V13*/ curfptr[12]);
+   basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V17*/ curfptr[16]))));basilys_putfield_object((/*_.INST__V17*/ curfptr[16]), (1), (/*_.DESTLIS__V13*/ curfptr[12]), "OBDI_DESTLIST");
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:2510: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V17*/ curfptr[16])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V17*/ curfptr[16]))));
-   ((basilysobject_ptr_t)(/*_.INST__V17*/ curfptr[16]))->obj_vartab[2 /*OBCPT_EXPR*/] = (basilys_ptr_t)(
-    /*_.EXPLIS__V14*/ curfptr[13]);
+   basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V17*/ curfptr[16]))));basilys_putfield_object((/*_.INST__V17*/ curfptr[16]), (2), (/*_.EXPLIS__V14*/ curfptr[13]), "OBCPT_EXPR");
    ;
    /*_.OBC__V16*/ curfptr[15] = /*_.INST__V17*/ curfptr[16];;}
   ;
@@ -33591,31 +33446,29 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2525: @block");
    (basilysgc_new_list((basilysobject_ptr_t)((/*!DISCR_LIST*/ curfrout->tabval[2]))));;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2533: @getslot");
-  /*_.TYPDESTO__V15*/ curfptr[14] = basilys_getfield_object((basilys_ptr_t)(/*_.DESTO__V3*/ curfptr[2]), 0, "OBV_TYPE");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.DESTO__V3*/ curfptr[2]), 0, "OBV_TYPE");/*_.TYPDESTO__V15*/ curfptr[14] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2534: @block");
   /*block*/{
    
    BASILYS_LOCATION("warmelt-genobj.bysl:2534: @rawallocobj");
-   /*rawallocobj*/ /*_.INST__V17*/ curfptr[16] =
-    basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_OBJCOMPUTE*/ curfrout->tabval[3])), (3), ("CLASS_OBJCOMPUTE"));
+   /*rawallocobj*/ { basilys_ptr_t newobj = 0;
+    basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_OBJCOMPUTE*/ curfrout->tabval[3])), (3), "CLASS_OBJCOMPUTE");/*_.INST__V17*/ curfptr[16] =
+    newobj; };
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:2534: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V17*/ curfptr[16])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V17*/ curfptr[16]))));
-   ((basilysobject_ptr_t)(/*_.INST__V17*/ curfptr[16]))->obj_vartab[1 /*OBDI_DESTLIST*/] = (basilys_ptr_t)(
-    /*_.DESTLIS__V13*/ curfptr[12]);
+   basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V17*/ curfptr[16]))));basilys_putfield_object((/*_.INST__V17*/ curfptr[16]), (1), (/*_.DESTLIS__V13*/ curfptr[12]), "OBDI_DESTLIST");
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:2534: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V17*/ curfptr[16])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V17*/ curfptr[16]))));
-   ((basilysobject_ptr_t)(/*_.INST__V17*/ curfptr[16]))->obj_vartab[2 /*OBCPT_EXPR*/] = (basilys_ptr_t)(
-    /*_.EXPLIS__V14*/ curfptr[13]);
+   basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V17*/ curfptr[16]))));basilys_putfield_object((/*_.INST__V17*/ curfptr[16]), (2), (/*_.EXPLIS__V14*/ curfptr[13]), "OBCPT_EXPR");
    ;
    /*_.OBC__V16*/ curfptr[15] = /*_.INST__V17*/ curfptr[16];;}
   ;
@@ -33904,11 +33757,13 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2550: @block");
  /*block*/{
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2555: @getslot");
-  /*_.OBL__V9*/ curfptr[8] = basilys_getfield_object((basilys_ptr_t)(/*_.RECV__V2*/ curfptr[1]), 1, "OBLO_BODYL");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.RECV__V2*/ curfptr[1]), 1, "OBLO_BODYL");/*_.OBL__V9*/ curfptr[8] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2556: @getslot");
-  /*_.OEP__V10*/ curfptr[9] = basilys_getfield_object((basilys_ptr_t)(/*_.RECV__V2*/ curfptr[1]), 2, "OBLO_EPIL");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.RECV__V2*/ curfptr[1]), 2, "OBLO_EPIL");/*_.OEP__V10*/ curfptr[9] = slot; };
   ;
   
   #if ENABLE_CHECKING
@@ -34244,11 +34099,13 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2577: @block");
  /*block*/{
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2580: @getslot");
-  /*_.EPIL__V8*/ curfptr[6] = basilys_getfield_object((basilys_ptr_t)(/*_.RECV__V2*/ curfptr[1]), 2, "OBLO_EPIL");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.RECV__V2*/ curfptr[1]), 2, "OBLO_EPIL");/*_.EPIL__V8*/ curfptr[6] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2581: @getslot");
-  /*_.RESV__V9*/ curfptr[8] = basilys_getfield_object((basilys_ptr_t)(/*_.RECV__V2*/ curfptr[1]), 4, "OBLOOP_RESV");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.RECV__V2*/ curfptr[1]), 4, "OBLOOP_RESV");/*_.RESV__V9*/ curfptr[8] = slot; };
   ;
   /*_.DESTLIST__V10*/ curfptr[9] = 
    (basilysgc_new_list((basilysobject_ptr_t)((/*!DISCR_LIST*/ curfrout->tabval[2]))));;
@@ -34257,24 +34114,21 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2577: @block");
   /*block*/{
    
    BASILYS_LOCATION("warmelt-genobj.bysl:2583: @rawallocobj");
-   /*rawallocobj*/ /*_.INST__V12*/ curfptr[11] =
-    basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_OBJCOMPUTE*/ curfrout->tabval[3])), (3), ("CLASS_OBJCOMPUTE"));
+   /*rawallocobj*/ { basilys_ptr_t newobj = 0;
+    basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_OBJCOMPUTE*/ curfrout->tabval[3])), (3), "CLASS_OBJCOMPUTE");/*_.INST__V12*/ curfptr[11] =
+    newobj; };
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:2583: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V12*/ curfptr[11])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V12*/ curfptr[11]))));
-   ((basilysobject_ptr_t)(/*_.INST__V12*/ curfptr[11]))->obj_vartab[1 /*OBDI_DESTLIST*/] = (basilys_ptr_t)(
-    /*_.DESTLIST__V10*/ curfptr[9]);
+   basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V12*/ curfptr[11]))));basilys_putfield_object((/*_.INST__V12*/ curfptr[11]), (1), (/*_.DESTLIST__V10*/ curfptr[9]), "OBDI_DESTLIST");
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:2583: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V12*/ curfptr[11])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V12*/ curfptr[11]))));
-   ((basilysobject_ptr_t)(/*_.INST__V12*/ curfptr[11]))->obj_vartab[2 /*OBCPT_EXPR*/] = (basilys_ptr_t)(
-    /*_.RESV__V9*/ curfptr[8]);
+   basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V12*/ curfptr[11]))));basilys_putfield_object((/*_.INST__V12*/ curfptr[11]), (2), (/*_.RESV__V9*/ curfptr[8]), "OBCPT_EXPR");
    ;
    /*_.OBC__V11*/ curfptr[10] = /*_.INST__V12*/ curfptr[11];;}
   ;
@@ -34828,23 +34682,28 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2611: @block");
  /*block*/{
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2615: @getslot");
-  /*_.LOC__V11*/ curfptr[10] = basilys_getfield_object((basilys_ptr_t)(/*_.RIF__V2*/ curfptr[1]), 0, "NREP_LOC");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.RIF__V2*/ curfptr[1]), 0, "NREP_LOC");/*_.LOC__V11*/ curfptr[10] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2616: @getslot");
-  /*_.NTEST__V12*/ curfptr[11] = basilys_getfield_object((basilys_ptr_t)(/*_.RIF__V2*/ curfptr[1]), 1, "NIF_TEST");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.RIF__V2*/ curfptr[1]), 1, "NIF_TEST");/*_.NTEST__V12*/ curfptr[11] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2617: @getslot");
-  /*_.NTHEN__V13*/ curfptr[12] = basilys_getfield_object((basilys_ptr_t)(/*_.RIF__V2*/ curfptr[1]), 2, "NIF_THEN");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.RIF__V2*/ curfptr[1]), 2, "NIF_THEN");/*_.NTHEN__V13*/ curfptr[12] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2618: @getslot");
-  /*_.NELSE__V14*/ curfptr[13] = basilys_getfield_object((basilys_ptr_t)(/*_.RIF__V2*/ curfptr[1]), 3, "NIF_ELSE");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.RIF__V2*/ curfptr[1]), 3, "NIF_ELSE");/*_.NELSE__V14*/ curfptr[13] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2619: @getslot");
-  /*_.NCTYP__V15*/ curfptr[14] = basilys_getfield_object((basilys_ptr_t)(/*_.RIF__V2*/ curfptr[1]), 4, "NIF_CTYP");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.RIF__V2*/ curfptr[1]), 4, "NIF_CTYP");/*_.NCTYP__V15*/ curfptr[14] = slot; };
   ;
   
   #if ENABLE_CHECKING
@@ -34954,40 +34813,33 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2611: @block");
    /*block*/{
     
     BASILYS_LOCATION("warmelt-genobj.bysl:2626: @rawallocobj");
-    /*rawallocobj*/ /*_.INST__V24*/ curfptr[23] =
-     basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_OBJCOND*/ curfrout->tabval[6])), (4), ("CLASS_OBJCOND"));
+    /*rawallocobj*/ { basilys_ptr_t newobj = 0;
+     basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_OBJCOND*/ curfrout->tabval[6])), (4), "CLASS_OBJCOND");/*_.INST__V24*/ curfptr[23] =
+     newobj; };
     ;
     
     BASILYS_LOCATION("warmelt-genobj.bysl:2626: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V24*/ curfptr[23])) == OBMAG_OBJECT);
-    basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V24*/ curfptr[23]))));
-    ((basilysobject_ptr_t)(/*_.INST__V24*/ curfptr[23]))->obj_vartab[0 /*OBI_LOC*/] = (basilys_ptr_t)(
-     /*_.LOC__V11*/ curfptr[10]);
+    basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V24*/ curfptr[23]))));basilys_putfield_object((/*_.INST__V24*/ curfptr[23]), (0), (/*_.LOC__V11*/ curfptr[10]), "OBI_LOC");
     ;
     
     BASILYS_LOCATION("warmelt-genobj.bysl:2626: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V24*/ curfptr[23])) == OBMAG_OBJECT);
-    basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V24*/ curfptr[23]))));
-    ((basilysobject_ptr_t)(/*_.INST__V24*/ curfptr[23]))->obj_vartab[1 /*OBCOND_TEST*/] = (basilys_ptr_t)(
-     /*_.OTEST__V19*/ curfptr[18]);
+    basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V24*/ curfptr[23]))));basilys_putfield_object((/*_.INST__V24*/ curfptr[23]), (1), (/*_.OTEST__V19*/ curfptr[18]), "OBCOND_TEST");
     ;
     
     BASILYS_LOCATION("warmelt-genobj.bysl:2626: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V24*/ curfptr[23])) == OBMAG_OBJECT);
-    basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V24*/ curfptr[23]))));
-    ((basilysobject_ptr_t)(/*_.INST__V24*/ curfptr[23]))->obj_vartab[2 /*OBCOND_THEN*/] = (basilys_ptr_t)(
-     /*_.OTHEN__V20*/ curfptr[19]);
+    basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V24*/ curfptr[23]))));basilys_putfield_object((/*_.INST__V24*/ curfptr[23]), (2), (/*_.OTHEN__V20*/ curfptr[19]), "OBCOND_THEN");
     ;
     
     BASILYS_LOCATION("warmelt-genobj.bysl:2626: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V24*/ curfptr[23])) == OBMAG_OBJECT);
-    basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)(/*_.INST__V24*/ curfptr[23]))));
-    ((basilysobject_ptr_t)(/*_.INST__V24*/ curfptr[23]))->obj_vartab[3 /*OBCOND_ELSE*/] = (basilys_ptr_t)(
-     /*_.OELSE__V21*/ curfptr[20]);
+    basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)(/*_.INST__V24*/ curfptr[23]))));basilys_putfield_object((/*_.INST__V24*/ curfptr[23]), (3), (/*_.OELSE__V21*/ curfptr[20]), "OBCOND_ELSE");
     ;
     /*_.OBIF__V23*/ curfptr[21] = /*_.INST__V24*/ curfptr[23];;}
    ;
@@ -35309,11 +35161,13 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2639: @block");
  /*block*/{
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2644: @getslot");
-  /*_.OTHEN__V9*/ curfptr[8] = basilys_getfield_object((basilys_ptr_t)(/*_.RECV__V2*/ curfptr[1]), 2, "OBCOND_THEN");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.RECV__V2*/ curfptr[1]), 2, "OBCOND_THEN");/*_.OTHEN__V9*/ curfptr[8] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2645: @getslot");
-  /*_.OELSE__V10*/ curfptr[9] = basilys_getfield_object((basilys_ptr_t)(/*_.RECV__V2*/ curfptr[1]), 3, "OBCOND_ELSE");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.RECV__V2*/ curfptr[1]), 3, "OBCOND_ELSE");/*_.OELSE__V10*/ curfptr[9] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2649: @block");
@@ -35347,17 +35201,13 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2639: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:2653: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.RECV__V2*/ curfptr[1])) == OBMAG_OBJECT);
-    basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.RECV__V2*/ curfptr[1]))));
-    ((basilysobject_ptr_t)(/*_.RECV__V2*/ curfptr[1]))->obj_vartab[2 /*OBCOND_THEN*/] = (basilys_ptr_t)(
-     /*_.DTHEN__V12*/ curfptr[11]);
+    basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.RECV__V2*/ curfptr[1]))));basilys_putfield_object((/*_.RECV__V2*/ curfptr[1]), (2), (/*_.DTHEN__V12*/ curfptr[11]), "OBCOND_THEN");
     ;
     
     BASILYS_LOCATION("warmelt-genobj.bysl:2653: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.RECV__V2*/ curfptr[1])) == OBMAG_OBJECT);
-    basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)(/*_.RECV__V2*/ curfptr[1]))));
-    ((basilysobject_ptr_t)(/*_.RECV__V2*/ curfptr[1]))->obj_vartab[3 /*OBCOND_ELSE*/] = (basilys_ptr_t)(
-     /*_.DELSE__V13*/ curfptr[12]);
+    basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)(/*_.RECV__V2*/ curfptr[1]))));basilys_putfield_object((/*_.RECV__V2*/ curfptr[1]), (3), (/*_.DELSE__V13*/ curfptr[12]), "OBCOND_ELSE");
     ;
     
     BASILYS_LOCATION("warmelt-genobj.bysl:2653: @touch");
@@ -35608,23 +35458,28 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2663: @block");
  /*block*/{
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2667: @getslot");
-  /*_.LOC__V11*/ curfptr[10] = basilys_getfield_object((basilys_ptr_t)(/*_.PIF__V2*/ curfptr[1]), 0, "NREP_LOC");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.PIF__V2*/ curfptr[1]), 0, "NREP_LOC");/*_.LOC__V11*/ curfptr[10] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2668: @getslot");
-  /*_.NCOND__V12*/ curfptr[11] = basilys_getfield_object((basilys_ptr_t)(/*_.PIF__V2*/ curfptr[1]), 1, "NIFP_COND");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.PIF__V2*/ curfptr[1]), 1, "NIFP_COND");/*_.NCOND__V12*/ curfptr[11] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2669: @getslot");
-  /*_.NTHEN__V13*/ curfptr[12] = basilys_getfield_object((basilys_ptr_t)(/*_.PIF__V2*/ curfptr[1]), 2, "NIFP_THEN");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.PIF__V2*/ curfptr[1]), 2, "NIFP_THEN");/*_.NTHEN__V13*/ curfptr[12] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2670: @getslot");
-  /*_.NELSE__V14*/ curfptr[13] = basilys_getfield_object((basilys_ptr_t)(/*_.PIF__V2*/ curfptr[1]), 3, "NIFP_ELSE");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.PIF__V2*/ curfptr[1]), 3, "NIFP_ELSE");/*_.NELSE__V14*/ curfptr[13] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2671: @getslot");
-  /*_.CTYP__V15*/ curfptr[14] = basilys_getfield_object((basilys_ptr_t)(/*_.PIF__V2*/ curfptr[1]), 4, "NIFP_CTYP");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.PIF__V2*/ curfptr[1]), 4, "NIFP_CTYP");/*_.CTYP__V15*/ curfptr[14] = slot; };
   ;
   /*_#IS_A__L4*/ curfnum[0] = 
     basilys_is_instance_of((basilys_ptr_t)(/*_.NCOND__V12*/ curfptr[11]), (basilys_ptr_t)((/*!CLASS_SYMBOL*/ curfrout->tabval[3])));;
@@ -35638,7 +35493,8 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2663: @block");
    /*block*/{
     
     BASILYS_LOCATION("warmelt-genobj.bysl:2673: @getslot");
-    /*_.NAMED_NAME__V17*/ curfptr[16] = basilys_getfield_object((basilys_ptr_t)(/*_.NCOND__V12*/ curfptr[11]), 1, "NAMED_NAME");
+    { basilys_ptr_t slot=0;
+     basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NCOND__V12*/ curfptr[11]), 1, "NAMED_NAME");/*_.NAMED_NAME__V17*/ curfptr[16] = slot; };
     ;
     /*_.SCOND__V16*/ curfptr[15] = /*_.NAMED_NAME__V17*/ curfptr[16];;
     /*epilog*/
@@ -35760,40 +35616,33 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2663: @block");
   /*block*/{
    
    BASILYS_LOCATION("warmelt-genobj.bysl:2678: @rawallocobj");
-   /*rawallocobj*/ /*_.INST__V25*/ curfptr[24] =
-    basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_OBJCPPIF*/ curfrout->tabval[5])), (4), ("CLASS_OBJCPPIF"));
+   /*rawallocobj*/ { basilys_ptr_t newobj = 0;
+    basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_OBJCPPIF*/ curfrout->tabval[5])), (4), "CLASS_OBJCPPIF");/*_.INST__V25*/ curfptr[24] =
+    newobj; };
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:2678: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V25*/ curfptr[24])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V25*/ curfptr[24]))));
-   ((basilysobject_ptr_t)(/*_.INST__V25*/ curfptr[24]))->obj_vartab[0 /*OBI_LOC*/] = (basilys_ptr_t)(
-    /*_.LOC__V11*/ curfptr[10]);
+   basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V25*/ curfptr[24]))));basilys_putfield_object((/*_.INST__V25*/ curfptr[24]), (0), (/*_.LOC__V11*/ curfptr[10]), "OBI_LOC");
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:2678: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V25*/ curfptr[24])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V25*/ curfptr[24]))));
-   ((basilysobject_ptr_t)(/*_.INST__V25*/ curfptr[24]))->obj_vartab[1 /*OBIFP_COND*/] = (basilys_ptr_t)(
-    /*_.SCOND__V16*/ curfptr[15]);
+   basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V25*/ curfptr[24]))));basilys_putfield_object((/*_.INST__V25*/ curfptr[24]), (1), (/*_.SCOND__V16*/ curfptr[15]), "OBIFP_COND");
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:2678: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V25*/ curfptr[24])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V25*/ curfptr[24]))));
-   ((basilysobject_ptr_t)(/*_.INST__V25*/ curfptr[24]))->obj_vartab[2 /*OBIFP_THEN*/] = (basilys_ptr_t)(
-    /*_.OTHEN__V22*/ curfptr[18]);
+   basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V25*/ curfptr[24]))));basilys_putfield_object((/*_.INST__V25*/ curfptr[24]), (2), (/*_.OTHEN__V22*/ curfptr[18]), "OBIFP_THEN");
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:2678: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V25*/ curfptr[24])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)(/*_.INST__V25*/ curfptr[24]))));
-   ((basilysobject_ptr_t)(/*_.INST__V25*/ curfptr[24]))->obj_vartab[3 /*OBIFP_ELSE*/] = (basilys_ptr_t)(
-    /*_.OELSE__V23*/ curfptr[19]);
+   basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)(/*_.INST__V25*/ curfptr[24]))));basilys_putfield_object((/*_.INST__V25*/ curfptr[24]), (3), (/*_.OELSE__V23*/ curfptr[19]), "OBIFP_ELSE");
    ;
    /*_.RES__V24*/ curfptr[16] = /*_.INST__V25*/ curfptr[24];;}
   ;
@@ -36070,11 +35919,13 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2691: @block");
  /*block*/{
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2696: @getslot");
-  /*_.OTHEN__V9*/ curfptr[8] = basilys_getfield_object((basilys_ptr_t)(/*_.RECV__V2*/ curfptr[1]), 2, "OBIFP_THEN");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.RECV__V2*/ curfptr[1]), 2, "OBIFP_THEN");/*_.OTHEN__V9*/ curfptr[8] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2697: @getslot");
-  /*_.OELSE__V10*/ curfptr[9] = basilys_getfield_object((basilys_ptr_t)(/*_.RECV__V2*/ curfptr[1]), 3, "OBIFP_ELSE");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.RECV__V2*/ curfptr[1]), 3, "OBIFP_ELSE");/*_.OELSE__V10*/ curfptr[9] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2701: @block");
@@ -36108,17 +35959,13 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2691: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:2705: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.RECV__V2*/ curfptr[1])) == OBMAG_OBJECT);
-    basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.RECV__V2*/ curfptr[1]))));
-    ((basilysobject_ptr_t)(/*_.RECV__V2*/ curfptr[1]))->obj_vartab[2 /*OBIFP_THEN*/] = (basilys_ptr_t)(
-     /*_.DTHEN__V12*/ curfptr[11]);
+    basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.RECV__V2*/ curfptr[1]))));basilys_putfield_object((/*_.RECV__V2*/ curfptr[1]), (2), (/*_.DTHEN__V12*/ curfptr[11]), "OBIFP_THEN");
     ;
     
     BASILYS_LOCATION("warmelt-genobj.bysl:2705: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.RECV__V2*/ curfptr[1])) == OBMAG_OBJECT);
-    basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)(/*_.RECV__V2*/ curfptr[1]))));
-    ((basilysobject_ptr_t)(/*_.RECV__V2*/ curfptr[1]))->obj_vartab[3 /*OBIFP_ELSE*/] = (basilys_ptr_t)(
-     /*_.DELSE__V13*/ curfptr[12]);
+    basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)(/*_.RECV__V2*/ curfptr[1]))));basilys_putfield_object((/*_.RECV__V2*/ curfptr[1]), (3), (/*_.DELSE__V13*/ curfptr[12]), "OBIFP_ELSE");
     ;
     
     BASILYS_LOCATION("warmelt-genobj.bysl:2705: @touch");
@@ -36369,23 +36216,28 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2715: @block");
  /*block*/{
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2720: @getslot");
-  /*_.RLOC__V11*/ curfptr[10] = basilys_getfield_object((basilys_ptr_t)(/*_.NRET__V2*/ curfptr[1]), 0, "NREP_LOC");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NRET__V2*/ curfptr[1]), 0, "NREP_LOC");/*_.RLOC__V11*/ curfptr[10] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2721: @getslot");
-  /*_.RMAIN__V12*/ curfptr[11] = basilys_getfield_object((basilys_ptr_t)(/*_.NRET__V2*/ curfptr[1]), 1, "NRET_MAIN");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NRET__V2*/ curfptr[1]), 1, "NRET_MAIN");/*_.RMAIN__V12*/ curfptr[11] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2722: @getslot");
-  /*_.RREST__V13*/ curfptr[12] = basilys_getfield_object((basilys_ptr_t)(/*_.NRET__V2*/ curfptr[1]), 2, "NRET_REST");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NRET__V2*/ curfptr[1]), 2, "NRET_REST");/*_.RREST__V13*/ curfptr[12] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2723: @getslot");
-  /*_.RETLOC__V14*/ curfptr[13] = basilys_getfield_object((basilys_ptr_t)(/*_.GCX__V3*/ curfptr[2]), 5, "GNCX_RETLOC");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.GCX__V3*/ curfptr[2]), 5, "GNCX_RETLOC");/*_.RETLOC__V14*/ curfptr[13] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2724: @getslot");
-  /*_.OROUT__V15*/ curfptr[14] = basilys_getfield_object((basilys_ptr_t)(/*_.GCX__V3*/ curfptr[2]), 0, "GNCX_OBJROUT");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.GCX__V3*/ curfptr[2]), 0, "GNCX_OBJROUT");/*_.OROUT__V15*/ curfptr[14] = slot; };
   ;
   /*_.OLIS__V16*/ curfptr[15] = 
    (basilysgc_new_list((basilysobject_ptr_t)((/*!DISCR_LIST*/ curfrout->tabval[3]))));;
@@ -36394,24 +36246,21 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2715: @block");
   /*block*/{
    
    BASILYS_LOCATION("warmelt-genobj.bysl:2726: @rawallocobj");
-   /*rawallocobj*/ /*_.INST__V18*/ curfptr[17] =
-    basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_OBJBLOCK*/ curfrout->tabval[4])), (3), ("CLASS_OBJBLOCK"));
+   /*rawallocobj*/ { basilys_ptr_t newobj = 0;
+    basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_OBJBLOCK*/ curfrout->tabval[4])), (3), "CLASS_OBJBLOCK");/*_.INST__V18*/ curfptr[17] =
+    newobj; };
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:2726: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V18*/ curfptr[17])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V18*/ curfptr[17]))));
-   ((basilysobject_ptr_t)(/*_.INST__V18*/ curfptr[17]))->obj_vartab[0 /*OBI_LOC*/] = (basilys_ptr_t)(
-    /*_.RLOC__V11*/ curfptr[10]);
+   basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V18*/ curfptr[17]))));basilys_putfield_object((/*_.INST__V18*/ curfptr[17]), (0), (/*_.RLOC__V11*/ curfptr[10]), "OBI_LOC");
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:2726: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V18*/ curfptr[17])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V18*/ curfptr[17]))));
-   ((basilysobject_ptr_t)(/*_.INST__V18*/ curfptr[17]))->obj_vartab[1 /*OBLO_BODYL*/] = (basilys_ptr_t)(
-    /*_.OLIS__V16*/ curfptr[15]);
+   basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V18*/ curfptr[17]))));basilys_putfield_object((/*_.INST__V18*/ curfptr[17]), (1), (/*_.OLIS__V16*/ curfptr[15]), "OBLO_BODYL");
    ;
    /*_.OBLOCK__V17*/ curfptr[16] = /*_.INST__V18*/ curfptr[17];;}
   ;
@@ -36559,7 +36408,8 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2715: @block");
    ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2734: @getslot");
-  /*_.OBROUT_RETVAL__V26*/ curfptr[24] = basilys_getfield_object((basilys_ptr_t)(/*_.OROUT__V15*/ curfptr[14]), 7, "OBROUT_RETVAL");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.OROUT__V15*/ curfptr[14]), 7, "OBROUT_RETVAL");/*_.OBROUT_RETVAL__V26*/ curfptr[24] = slot; };
   ;
   /*_#NULL__L7*/ curfnum[0] = 
    ((/*_.OBROUT_RETVAL__V26*/ curfptr[24]) == NULL);;
@@ -36578,9 +36428,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2715: @block");
      BASILYS_LOCATION("warmelt-genobj.bysl:2735: @putslot");
      /*putslot*/
      basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.OROUT__V15*/ curfptr[14])) == OBMAG_OBJECT);
-     basilys_assertmsg("putslot checkoff", (7>=0 && 7< basilys_object_length((basilys_ptr_t)(/*_.OROUT__V15*/ curfptr[14]))));
-     ((basilysobject_ptr_t)(/*_.OROUT__V15*/ curfptr[14]))->obj_vartab[7 /*OBROUT_RETVAL*/] = (basilys_ptr_t)(
-      /*_.RETLOC__V14*/ curfptr[13]);
+     basilys_assertmsg("putslot checkoff", (7>=0 && 7< basilys_object_length((basilys_ptr_t)(/*_.OROUT__V15*/ curfptr[14]))));basilys_putfield_object((/*_.OROUT__V15*/ curfptr[14]), (7), (/*_.RETLOC__V14*/ curfptr[13]), "OBROUT_RETVAL");
      ;
      
      BASILYS_LOCATION("warmelt-genobj.bysl:2735: @touch");
@@ -36652,16 +36500,15 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2715: @block");
   /*block*/{
    
    BASILYS_LOCATION("warmelt-genobj.bysl:2750: @rawallocobj");
-   /*rawallocobj*/ /*_.INST__V32*/ curfptr[31] =
-    basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_OBJFINALRETURN*/ curfrout->tabval[13])), (1), ("CLASS_OBJFINALRETURN"));
+   /*rawallocobj*/ { basilys_ptr_t newobj = 0;
+    basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_OBJFINALRETURN*/ curfrout->tabval[13])), (1), "CLASS_OBJFINALRETURN");/*_.INST__V32*/ curfptr[31] =
+    newobj; };
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:2750: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V32*/ curfptr[31])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V32*/ curfptr[31]))));
-   ((basilysobject_ptr_t)(/*_.INST__V32*/ curfptr[31]))->obj_vartab[0 /*OBI_LOC*/] = (basilys_ptr_t)(
-    /*_.RLOC__V11*/ curfptr[10]);
+   basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V32*/ curfptr[31]))));basilys_putfield_object((/*_.INST__V32*/ curfptr[31]), (0), (/*_.RLOC__V11*/ curfptr[10]), "OBI_LOC");
    ;
    /*_.INST___V31*/ curfptr[30] = /*_.INST__V32*/ curfptr[31];;}
   ;
@@ -36873,32 +36720,27 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2739: @block");
   /*block*/{
    
    BASILYS_LOCATION("warmelt-genobj.bysl:2742: @rawallocobj");
-   /*rawallocobj*/ /*_.INST__V6*/ curfptr[5] =
-    basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_OBJPUTXTRARESULT*/ curfrout->tabval[0])), (3), ("CLASS_OBJPUTXTRARESULT"));
+   /*rawallocobj*/ { basilys_ptr_t newobj = 0;
+    basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_OBJPUTXTRARESULT*/ curfrout->tabval[0])), (3), "CLASS_OBJPUTXTRARESULT");/*_.INST__V6*/ curfptr[5] =
+    newobj; };
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:2742: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V6*/ curfptr[5])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V6*/ curfptr[5]))));
-   ((basilysobject_ptr_t)(/*_.INST__V6*/ curfptr[5]))->obj_vartab[0 /*OBI_LOC*/] = (basilys_ptr_t)(
-    (/*~RLOC*/ curfclos->tabval[0]));
+   basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V6*/ curfptr[5]))));basilys_putfield_object((/*_.INST__V6*/ curfptr[5]), (0), ((/*~RLOC*/ curfclos->tabval[0])), "OBI_LOC");
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:2742: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V6*/ curfptr[5])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V6*/ curfptr[5]))));
-   ((basilysobject_ptr_t)(/*_.INST__V6*/ curfptr[5]))->obj_vartab[1 /*OBXRES_RANK*/] = (basilys_ptr_t)(
-    /*_.MAKE_INTEGERBOX__V3*/ curfptr[2]);
+   basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V6*/ curfptr[5]))));basilys_putfield_object((/*_.INST__V6*/ curfptr[5]), (1), (/*_.MAKE_INTEGERBOX__V3*/ curfptr[2]), "OBXRES_RANK");
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:2742: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V6*/ curfptr[5])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V6*/ curfptr[5]))));
-   ((basilysobject_ptr_t)(/*_.INST__V6*/ curfptr[5]))->obj_vartab[2 /*OBXRES_OBLOC*/] = (basilys_ptr_t)(
-    /*_.COMPILE_OBJ__V4*/ curfptr[3]);
+   basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V6*/ curfptr[5]))));basilys_putfield_object((/*_.INST__V6*/ curfptr[5]), (2), (/*_.COMPILE_OBJ__V4*/ curfptr[3]), "OBXRES_OBLOC");
    ;
    /*_.OXRES__V5*/ curfptr[4] = /*_.INST__V6*/ curfptr[5];;}
   ;
@@ -37196,14 +37038,16 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2766: @block");
  /*block*/{
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2770: @getslot");
-  /*_.NLOC__V11*/ curfptr[10] = basilys_getfield_object((basilys_ptr_t)(/*_.NLAM__V2*/ curfptr[1]), 0, "NREP_LOC");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NLAM__V2*/ curfptr[1]), 0, "NREP_LOC");/*_.NLOC__V11*/ curfptr[10] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2771: @block");
   /*block*/{
    
    BASILYS_LOCATION("warmelt-genobj.bysl:2772: @getslot");
-   /*_.CHECKPRO__V13*/ curfptr[12] = basilys_getfield_object((basilys_ptr_t)(/*_.NLAM__V2*/ curfptr[1]), 1, "NLAMBDA_PROC");
+   { basilys_ptr_t slot=0;
+    basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NLAM__V2*/ curfptr[1]), 1, "NLAMBDA_PROC");/*_.CHECKPRO__V13*/ curfptr[12] = slot; };
    ;
    
    #if ENABLE_CHECKING
@@ -37262,11 +37106,13 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2766: @block");
   /*_.NPRO__V16*/ curfptr[14] = /*_.LET___V12*/ curfptr[11];;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2775: @getslot");
-  /*_.NAM__V17*/ curfptr[12] = basilys_getfield_object((basilys_ptr_t)(/*_.NPRO__V16*/ curfptr[14]), 2, "NRPRO_NAME");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NPRO__V16*/ curfptr[14]), 2, "NRPRO_NAME");/*_.NAM__V17*/ curfptr[12] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2776: @getslot");
-  /*_.NCLOVTUP__V18*/ curfptr[13] = basilys_getfield_object((basilys_ptr_t)(/*_.NLAM__V2*/ curfptr[1]), 3, "NLAMBDA_CLOSEDV");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NLAM__V2*/ curfptr[1]), 3, "NLAMBDA_CLOSEDV");/*_.NCLOVTUP__V18*/ curfptr[13] = slot; };
   ;
   /*_#NBCLOSED__L5*/ curfnum[0] = 
    (basilys_multiple_length((basilys_ptr_t)(/*_.NCLOVTUP__V18*/ curfptr[13])));;
@@ -37283,11 +37129,13 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2766: @block");
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2779: @getslot");
-  /*_.NROU__V20*/ curfptr[19] = basilys_getfield_object((basilys_ptr_t)(/*_.NLAM__V2*/ curfptr[1]), 2, "NLAMBDA_CONSTROUT");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NLAM__V2*/ curfptr[1]), 2, "NLAMBDA_CONSTROUT");/*_.NROU__V20*/ curfptr[19] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2780: @getslot");
-  /*_.OROUT__V21*/ curfptr[20] = basilys_getfield_object((basilys_ptr_t)(/*_.GCX__V3*/ curfptr[2]), 0, "GNCX_OBJROUT");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.GCX__V3*/ curfptr[2]), 0, "GNCX_OBJROUT");/*_.OROUT__V21*/ curfptr[20] = slot; };
   ;
   /*_.OLIS__V22*/ curfptr[21] = 
    (basilysgc_new_list((basilysobject_ptr_t)((/*!DISCR_LIST*/ curfrout->tabval[5]))));;
@@ -37296,24 +37144,21 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2766: @block");
   /*block*/{
    
    BASILYS_LOCATION("warmelt-genobj.bysl:2782: @rawallocobj");
-   /*rawallocobj*/ /*_.INST__V24*/ curfptr[23] =
-    basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_OBJBLOCK*/ curfrout->tabval[6])), (3), ("CLASS_OBJBLOCK"));
+   /*rawallocobj*/ { basilys_ptr_t newobj = 0;
+    basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_OBJBLOCK*/ curfrout->tabval[6])), (3), "CLASS_OBJBLOCK");/*_.INST__V24*/ curfptr[23] =
+    newobj; };
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:2782: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V24*/ curfptr[23])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V24*/ curfptr[23]))));
-   ((basilysobject_ptr_t)(/*_.INST__V24*/ curfptr[23]))->obj_vartab[0 /*OBI_LOC*/] = (basilys_ptr_t)(
-    /*_.NLOC__V11*/ curfptr[10]);
+   basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V24*/ curfptr[23]))));basilys_putfield_object((/*_.INST__V24*/ curfptr[23]), (0), (/*_.NLOC__V11*/ curfptr[10]), "OBI_LOC");
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:2782: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V24*/ curfptr[23])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V24*/ curfptr[23]))));
-   ((basilysobject_ptr_t)(/*_.INST__V24*/ curfptr[23]))->obj_vartab[1 /*OBLO_BODYL*/] = (basilys_ptr_t)(
-    /*_.OLIS__V22*/ curfptr[21]);
+   basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V24*/ curfptr[23]))));basilys_putfield_object((/*_.INST__V24*/ curfptr[23]), (1), (/*_.OLIS__V22*/ curfptr[21]), "OBLO_BODYL");
    ;
    /*_.OBLOCK__V23*/ curfptr[22] = /*_.INST__V24*/ curfptr[23];;}
   ;
@@ -37438,48 +37283,39 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2766: @block");
   /*block*/{
    
    BASILYS_LOCATION("warmelt-genobj.bysl:2789: @rawallocobj");
-   /*rawallocobj*/ /*_.INST__V35*/ curfptr[34] =
-    basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_OBJNEWCLOSURE*/ curfrout->tabval[7])), (5), ("CLASS_OBJNEWCLOSURE"));
+   /*rawallocobj*/ { basilys_ptr_t newobj = 0;
+    basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_OBJNEWCLOSURE*/ curfrout->tabval[7])), (5), "CLASS_OBJNEWCLOSURE");/*_.INST__V35*/ curfptr[34] =
+    newobj; };
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:2789: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V35*/ curfptr[34])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V35*/ curfptr[34]))));
-   ((basilysobject_ptr_t)(/*_.INST__V35*/ curfptr[34]))->obj_vartab[0 /*OBI_LOC*/] = (basilys_ptr_t)(
-    /*_.NLOC__V11*/ curfptr[10]);
+   basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V35*/ curfptr[34]))));basilys_putfield_object((/*_.INST__V35*/ curfptr[34]), (0), (/*_.NLOC__V11*/ curfptr[10]), "OBI_LOC");
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:2789: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V35*/ curfptr[34])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V35*/ curfptr[34]))));
-   ((basilysobject_ptr_t)(/*_.INST__V35*/ curfptr[34]))->obj_vartab[2 /*OBNCLO_DISCR*/] = (basilys_ptr_t)(
-    (/*!DISCRCLOSURE_OBJPREDEF*/ curfrout->tabval[8]));
+   basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V35*/ curfptr[34]))));basilys_putfield_object((/*_.INST__V35*/ curfptr[34]), (2), ((/*!DISCRCLOSURE_OBJPREDEF*/ curfrout->tabval[8])), "OBNCLO_DISCR");
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:2789: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V35*/ curfptr[34])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)(/*_.INST__V35*/ curfptr[34]))));
-   ((basilysobject_ptr_t)(/*_.INST__V35*/ curfptr[34]))->obj_vartab[3 /*OBNCLO_ROUT*/] = (basilys_ptr_t)(
-    /*_.PROGN___V32*/ curfptr[30]);
+   basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)(/*_.INST__V35*/ curfptr[34]))));basilys_putfield_object((/*_.INST__V35*/ curfptr[34]), (3), (/*_.PROGN___V32*/ curfptr[30]), "OBNCLO_ROUT");
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:2789: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V35*/ curfptr[34])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (4>=0 && 4< basilys_object_length((basilys_ptr_t)(/*_.INST__V35*/ curfptr[34]))));
-   ((basilysobject_ptr_t)(/*_.INST__V35*/ curfptr[34]))->obj_vartab[4 /*OBNCLO_LEN*/] = (basilys_ptr_t)(
-    /*_.MAKE_INTEGERBOX__V33*/ curfptr[28]);
+   basilys_assertmsg("putslot checkoff", (4>=0 && 4< basilys_object_length((basilys_ptr_t)(/*_.INST__V35*/ curfptr[34]))));basilys_putfield_object((/*_.INST__V35*/ curfptr[34]), (4), (/*_.MAKE_INTEGERBOX__V33*/ curfptr[28]), "OBNCLO_LEN");
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:2789: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V35*/ curfptr[34])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V35*/ curfptr[34]))));
-   ((basilysobject_ptr_t)(/*_.INST__V35*/ curfptr[34]))->obj_vartab[1 /*OBDI_DESTLIST*/] = (basilys_ptr_t)(
-    /*_.DESTLIST__V25*/ curfptr[24]);
+   basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V35*/ curfptr[34]))));basilys_putfield_object((/*_.INST__V35*/ curfptr[34]), (1), (/*_.DESTLIST__V25*/ curfptr[24]), "OBDI_DESTLIST");
    ;
    /*_.INST___V34*/ curfptr[29] = /*_.INST__V35*/ curfptr[34];;}
   ;
@@ -37786,40 +37622,33 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2804: @block");
  /*block*/{
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2808: @rawallocobj");
-  /*rawallocobj*/ /*_.INST__V8*/ curfptr[7] =
-   basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_OBJPUTCLOSEDV*/ curfrout->tabval[1])), (4), ("CLASS_OBJPUTCLOSEDV"));
+  /*rawallocobj*/ { basilys_ptr_t newobj = 0;
+   basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_OBJPUTCLOSEDV*/ curfrout->tabval[1])), (4), "CLASS_OBJPUTCLOSEDV");/*_.INST__V8*/ curfptr[7] =
+   newobj; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2808: @putslot");
   /*putslot*/
   basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V8*/ curfptr[7])) == OBMAG_OBJECT);
-  basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V8*/ curfptr[7]))));
-  ((basilysobject_ptr_t)(/*_.INST__V8*/ curfptr[7]))->obj_vartab[0 /*OBI_LOC*/] = (basilys_ptr_t)(
-   (/*~NLOC*/ curfclos->tabval[1]));
+  basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V8*/ curfptr[7]))));basilys_putfield_object((/*_.INST__V8*/ curfptr[7]), (0), ((/*~NLOC*/ curfclos->tabval[1])), "OBI_LOC");
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2808: @putslot");
   /*putslot*/
   basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V8*/ curfptr[7])) == OBMAG_OBJECT);
-  basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V8*/ curfptr[7]))));
-  ((basilysobject_ptr_t)(/*_.INST__V8*/ curfptr[7]))->obj_vartab[1 /*OPCLOV_CLOS*/] = (basilys_ptr_t)(
-   (/*~LOCV*/ curfclos->tabval[2]));
+  basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V8*/ curfptr[7]))));basilys_putfield_object((/*_.INST__V8*/ curfptr[7]), (1), ((/*~LOCV*/ curfclos->tabval[2])), "OPCLOV_CLOS");
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2808: @putslot");
   /*putslot*/
   basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V8*/ curfptr[7])) == OBMAG_OBJECT);
-  basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V8*/ curfptr[7]))));
-  ((basilysobject_ptr_t)(/*_.INST__V8*/ curfptr[7]))->obj_vartab[2 /*OPCLOV_OFF*/] = (basilys_ptr_t)(
-   /*_.MAKE_INTEGERBOX__V5*/ curfptr[3]);
+  basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V8*/ curfptr[7]))));basilys_putfield_object((/*_.INST__V8*/ curfptr[7]), (2), (/*_.MAKE_INTEGERBOX__V5*/ curfptr[3]), "OPCLOV_OFF");
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2808: @putslot");
   /*putslot*/
   basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V8*/ curfptr[7])) == OBMAG_OBJECT);
-  basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)(/*_.INST__V8*/ curfptr[7]))));
-  ((basilysobject_ptr_t)(/*_.INST__V8*/ curfptr[7]))->obj_vartab[3 /*OPCLOV_CVAL*/] = (basilys_ptr_t)(
-   /*_.COMPILE_OBJ__V6*/ curfptr[5]);
+  basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)(/*_.INST__V8*/ curfptr[7]))));basilys_putfield_object((/*_.INST__V8*/ curfptr[7]), (3), (/*_.COMPILE_OBJ__V6*/ curfptr[5]), "OPCLOV_CVAL");
   ;
   /*_.INST___V7*/ curfptr[6] = /*_.INST__V8*/ curfptr[7];;}
  ;
@@ -38041,19 +37870,23 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2821: @block");
  /*block*/{
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2826: @getslot");
-  /*_.NLOC__V11*/ curfptr[10] = basilys_getfield_object((basilys_ptr_t)(/*_.NMKI__V2*/ curfptr[1]), 0, "NREP_LOC");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NMKI__V2*/ curfptr[1]), 0, "NREP_LOC");/*_.NLOC__V11*/ curfptr[10] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2827: @getslot");
-  /*_.NCLA__V12*/ curfptr[11] = basilys_getfield_object((basilys_ptr_t)(/*_.NMKI__V2*/ curfptr[1]), 1, "NMINS_CLASS");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NMKI__V2*/ curfptr[1]), 1, "NMINS_CLASS");/*_.NCLA__V12*/ curfptr[11] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2828: @getslot");
-  /*_.NCLADAT__V13*/ curfptr[12] = basilys_getfield_object((basilys_ptr_t)(/*_.NMKI__V2*/ curfptr[1]), 2, "NMINS_CLADATA");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NMKI__V2*/ curfptr[1]), 2, "NMINS_CLADATA");/*_.NCLADAT__V13*/ curfptr[12] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2829: @getslot");
-  /*_.NFIELDS__V14*/ curfptr[13] = basilys_getfield_object((basilys_ptr_t)(/*_.NMKI__V2*/ curfptr[1]), 3, "NMINS_FIELDS");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NMKI__V2*/ curfptr[1]), 3, "NMINS_FIELDS");/*_.NFIELDS__V14*/ curfptr[13] = slot; };
   ;
   
   #if ENABLE_CHECKING
@@ -38105,7 +37938,8 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2821: @block");
   /*block*/{
    
    BASILYS_LOCATION("warmelt-genobj.bysl:2832: @getslot");
-   /*_.CLASS_FIELDS__V18*/ curfptr[17] = basilys_getfield_object((basilys_ptr_t)(/*_.NCLA__V12*/ curfptr[11]), 6, "CLASS_FIELDS");
+   { basilys_ptr_t slot=0;
+    basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NCLA__V12*/ curfptr[11]), 6, "CLASS_FIELDS");/*_.CLASS_FIELDS__V18*/ curfptr[17] = slot; };
    ;
    /*_#NBFLD__L5*/ curfnum[0] = 
     (basilys_multiple_length((basilys_ptr_t)(/*_.CLASS_FIELDS__V18*/ curfptr[17])));;
@@ -38140,24 +37974,21 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2821: @block");
    /*block*/{
     
     BASILYS_LOCATION("warmelt-genobj.bysl:2837: @rawallocobj");
-    /*rawallocobj*/ /*_.INST__V24*/ curfptr[23] =
-     basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_OBJBLOCK*/ curfrout->tabval[8])), (3), ("CLASS_OBJBLOCK"));
+    /*rawallocobj*/ { basilys_ptr_t newobj = 0;
+     basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_OBJBLOCK*/ curfrout->tabval[8])), (3), "CLASS_OBJBLOCK");/*_.INST__V24*/ curfptr[23] =
+     newobj; };
     ;
     
     BASILYS_LOCATION("warmelt-genobj.bysl:2837: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V24*/ curfptr[23])) == OBMAG_OBJECT);
-    basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V24*/ curfptr[23]))));
-    ((basilysobject_ptr_t)(/*_.INST__V24*/ curfptr[23]))->obj_vartab[0 /*OBI_LOC*/] = (basilys_ptr_t)(
-     /*_.NLOC__V11*/ curfptr[10]);
+    basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V24*/ curfptr[23]))));basilys_putfield_object((/*_.INST__V24*/ curfptr[23]), (0), (/*_.NLOC__V11*/ curfptr[10]), "OBI_LOC");
     ;
     
     BASILYS_LOCATION("warmelt-genobj.bysl:2837: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V24*/ curfptr[23])) == OBMAG_OBJECT);
-    basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V24*/ curfptr[23]))));
-    ((basilysobject_ptr_t)(/*_.INST__V24*/ curfptr[23]))->obj_vartab[1 /*OBLO_BODYL*/] = (basilys_ptr_t)(
-     /*_.OLIS__V21*/ curfptr[20]);
+    basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V24*/ curfptr[23]))));basilys_putfield_object((/*_.INST__V24*/ curfptr[23]), (1), (/*_.OLIS__V21*/ curfptr[20]), "OBLO_BODYL");
     ;
     /*_.OBLOCK__V23*/ curfptr[22] = /*_.INST__V24*/ curfptr[23];;}
    ;
@@ -38165,55 +37996,47 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2821: @block");
     (basilysgc_new_int((basilysobject_ptr_t)((/*!DISCR_INTEGER*/ curfrout->tabval[10])), (/*_#NBFLD__L5*/ curfnum[0])));;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:2844: @getslot");
-   /*_.NAMED_NAME__V26*/ curfptr[25] = basilys_getfield_object((basilys_ptr_t)(/*_.NCLA__V12*/ curfptr[11]), 1, "NAMED_NAME");
+   { basilys_ptr_t slot=0;
+    basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NCLA__V12*/ curfptr[11]), 1, "NAMED_NAME");/*_.NAMED_NAME__V26*/ curfptr[25] = slot; };
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:2840: @block");
    /*block*/{
     
     BASILYS_LOCATION("warmelt-genobj.bysl:2840: @rawallocobj");
-    /*rawallocobj*/ /*_.INST__V28*/ curfptr[27] =
-     basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_OBJRAWALLOCOBJ*/ curfrout->tabval[9])), (5), ("CLASS_OBJRAWALLOCOBJ"));
+    /*rawallocobj*/ { basilys_ptr_t newobj = 0;
+     basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_OBJRAWALLOCOBJ*/ curfrout->tabval[9])), (5), "CLASS_OBJRAWALLOCOBJ");/*_.INST__V28*/ curfptr[27] =
+     newobj; };
     ;
     
     BASILYS_LOCATION("warmelt-genobj.bysl:2840: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V28*/ curfptr[27])) == OBMAG_OBJECT);
-    basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V28*/ curfptr[27]))));
-    ((basilysobject_ptr_t)(/*_.INST__V28*/ curfptr[27]))->obj_vartab[0 /*OBI_LOC*/] = (basilys_ptr_t)(
-     /*_.NLOC__V11*/ curfptr[10]);
+    basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V28*/ curfptr[27]))));basilys_putfield_object((/*_.INST__V28*/ curfptr[27]), (0), (/*_.NLOC__V11*/ curfptr[10]), "OBI_LOC");
     ;
     
     BASILYS_LOCATION("warmelt-genobj.bysl:2840: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V28*/ curfptr[27])) == OBMAG_OBJECT);
-    basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V28*/ curfptr[27]))));
-    ((basilysobject_ptr_t)(/*_.INST__V28*/ curfptr[27]))->obj_vartab[2 /*OBRALLOBJ_CLASS*/] = (basilys_ptr_t)(
-     /*_.OCLADAT__V22*/ curfptr[21]);
+    basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V28*/ curfptr[27]))));basilys_putfield_object((/*_.INST__V28*/ curfptr[27]), (2), (/*_.OCLADAT__V22*/ curfptr[21]), "OBRALLOBJ_CLASS");
     ;
     
     BASILYS_LOCATION("warmelt-genobj.bysl:2840: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V28*/ curfptr[27])) == OBMAG_OBJECT);
-    basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)(/*_.INST__V28*/ curfptr[27]))));
-    ((basilysobject_ptr_t)(/*_.INST__V28*/ curfptr[27]))->obj_vartab[3 /*OBRALLOBJ_LEN*/] = (basilys_ptr_t)(
-     /*_.MAKE_INTEGERBOX__V25*/ curfptr[24]);
+    basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)(/*_.INST__V28*/ curfptr[27]))));basilys_putfield_object((/*_.INST__V28*/ curfptr[27]), (3), (/*_.MAKE_INTEGERBOX__V25*/ curfptr[24]), "OBRALLOBJ_LEN");
     ;
     
     BASILYS_LOCATION("warmelt-genobj.bysl:2840: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V28*/ curfptr[27])) == OBMAG_OBJECT);
-    basilys_assertmsg("putslot checkoff", (4>=0 && 4< basilys_object_length((basilys_ptr_t)(/*_.INST__V28*/ curfptr[27]))));
-    ((basilysobject_ptr_t)(/*_.INST__V28*/ curfptr[27]))->obj_vartab[4 /*OBRALLOBJ_CLASSNAME*/] = (basilys_ptr_t)(
-     /*_.NAMED_NAME__V26*/ curfptr[25]);
+    basilys_assertmsg("putslot checkoff", (4>=0 && 4< basilys_object_length((basilys_ptr_t)(/*_.INST__V28*/ curfptr[27]))));basilys_putfield_object((/*_.INST__V28*/ curfptr[27]), (4), (/*_.NAMED_NAME__V26*/ curfptr[25]), "OBRALLOBJ_CLASSNAME");
     ;
     
     BASILYS_LOCATION("warmelt-genobj.bysl:2840: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V28*/ curfptr[27])) == OBMAG_OBJECT);
-    basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V28*/ curfptr[27]))));
-    ((basilysobject_ptr_t)(/*_.INST__V28*/ curfptr[27]))->obj_vartab[1 /*OBDI_DESTLIST*/] = (basilys_ptr_t)(
-     /*_.DESTLIST__V19*/ curfptr[18]);
+    basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V28*/ curfptr[27]))));basilys_putfield_object((/*_.INST__V28*/ curfptr[27]), (1), (/*_.DESTLIST__V19*/ curfptr[18]), "OBDI_DESTLIST");
     ;
     /*_.ORALLOBJ__V27*/ curfptr[26] = /*_.INST__V28*/ curfptr[27];;}
    ;
@@ -38513,15 +38336,18 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2852: @block");
  /*block*/{
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2854: @getslot");
-  /*_.CFLOC__V5*/ curfptr[3] = basilys_getfield_object((basilys_ptr_t)(/*_.CFLA__V2*/ curfptr[1]), 0, "NREP_LOC");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.CFLA__V2*/ curfptr[1]), 0, "NREP_LOC");/*_.CFLOC__V5*/ curfptr[3] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2855: @getslot");
-  /*_.CFIELD__V6*/ curfptr[5] = basilys_getfield_object((basilys_ptr_t)(/*_.CFLA__V2*/ curfptr[1]), 1, "NFLA_FIELD");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.CFLA__V2*/ curfptr[1]), 1, "NFLA_FIELD");/*_.CFIELD__V6*/ curfptr[5] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2856: @getslot");
-  /*_.CVAL__V7*/ curfptr[6] = basilys_getfield_object((basilys_ptr_t)(/*_.CFLA__V2*/ curfptr[1]), 2, "NFLA_VAL");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.CFLA__V2*/ curfptr[1]), 2, "NFLA_VAL");/*_.CVAL__V7*/ curfptr[6] = slot; };
   ;
   
   #if ENABLE_CHECKING
@@ -38653,48 +38479,39 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2852: @block");
    /*block*/{
     
     BASILYS_LOCATION("warmelt-genobj.bysl:2862: @rawallocobj");
-    /*rawallocobj*/ /*_.INST__V17*/ curfptr[16] =
-     basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_OBJPUTSLOT*/ curfrout->tabval[4])), (5), ("CLASS_OBJPUTSLOT"));
+    /*rawallocobj*/ { basilys_ptr_t newobj = 0;
+     basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_OBJPUTSLOT*/ curfrout->tabval[4])), (5), "CLASS_OBJPUTSLOT");/*_.INST__V17*/ curfptr[16] =
+     newobj; };
     ;
     
     BASILYS_LOCATION("warmelt-genobj.bysl:2862: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V17*/ curfptr[16])) == OBMAG_OBJECT);
-    basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V17*/ curfptr[16]))));
-    ((basilysobject_ptr_t)(/*_.INST__V17*/ curfptr[16]))->obj_vartab[0 /*OBI_LOC*/] = (basilys_ptr_t)(
-     /*_.IFELSE___V14*/ curfptr[12]);
+    basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V17*/ curfptr[16]))));basilys_putfield_object((/*_.INST__V17*/ curfptr[16]), (0), (/*_.IFELSE___V14*/ curfptr[12]), "OBI_LOC");
     ;
     
     BASILYS_LOCATION("warmelt-genobj.bysl:2862: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V17*/ curfptr[16])) == OBMAG_OBJECT);
-    basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V17*/ curfptr[16]))));
-    ((basilysobject_ptr_t)(/*_.INST__V17*/ curfptr[16]))->obj_vartab[1 /*OSLOT_ODATA*/] = (basilys_ptr_t)(
-     (/*~LOCV*/ curfclos->tabval[3]));
+    basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V17*/ curfptr[16]))));basilys_putfield_object((/*_.INST__V17*/ curfptr[16]), (1), ((/*~LOCV*/ curfclos->tabval[3])), "OSLOT_ODATA");
     ;
     
     BASILYS_LOCATION("warmelt-genobj.bysl:2862: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V17*/ curfptr[16])) == OBMAG_OBJECT);
-    basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)(/*_.INST__V17*/ curfptr[16]))));
-    ((basilysobject_ptr_t)(/*_.INST__V17*/ curfptr[16]))->obj_vartab[3 /*OSLOT_FIELD*/] = (basilys_ptr_t)(
-     /*_.CFIELD__V6*/ curfptr[5]);
+    basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)(/*_.INST__V17*/ curfptr[16]))));basilys_putfield_object((/*_.INST__V17*/ curfptr[16]), (3), (/*_.CFIELD__V6*/ curfptr[5]), "OSLOT_FIELD");
     ;
     
     BASILYS_LOCATION("warmelt-genobj.bysl:2862: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V17*/ curfptr[16])) == OBMAG_OBJECT);
-    basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V17*/ curfptr[16]))));
-    ((basilysobject_ptr_t)(/*_.INST__V17*/ curfptr[16]))->obj_vartab[2 /*OSLOT_OFFSET*/] = (basilys_ptr_t)(
-     /*_.MAKE_INTEGERBOX__V15*/ curfptr[14]);
+    basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V17*/ curfptr[16]))));basilys_putfield_object((/*_.INST__V17*/ curfptr[16]), (2), (/*_.MAKE_INTEGERBOX__V15*/ curfptr[14]), "OSLOT_OFFSET");
     ;
     
     BASILYS_LOCATION("warmelt-genobj.bysl:2862: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V17*/ curfptr[16])) == OBMAG_OBJECT);
-    basilys_assertmsg("putslot checkoff", (4>=0 && 4< basilys_object_length((basilys_ptr_t)(/*_.INST__V17*/ curfptr[16]))));
-    ((basilysobject_ptr_t)(/*_.INST__V17*/ curfptr[16]))->obj_vartab[4 /*OSLOT_VALUE*/] = (basilys_ptr_t)(
-     /*_.OVAL__V11*/ curfptr[10]);
+    basilys_assertmsg("putslot checkoff", (4>=0 && 4< basilys_object_length((basilys_ptr_t)(/*_.INST__V17*/ curfptr[16]))));basilys_putfield_object((/*_.INST__V17*/ curfptr[16]), (4), (/*_.OVAL__V11*/ curfptr[10]), "OSLOT_VALUE");
     ;
     /*_.INST___V16*/ curfptr[15] = /*_.INST__V17*/ curfptr[16];;}
    ;
@@ -39163,31 +38980,29 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2889: @block");
  /*block*/{
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2894: @getslot");
-  /*_.NRPREDEF__V7*/ curfptr[6] = basilys_getfield_object((basilys_ptr_t)(/*_.NPR__V2*/ curfptr[1]), 1, "NRPREDEF");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NPR__V2*/ curfptr[1]), 1, "NRPREDEF");/*_.NRPREDEF__V7*/ curfptr[6] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2892: @block");
   /*block*/{
    
    BASILYS_LOCATION("warmelt-genobj.bysl:2892: @rawallocobj");
-   /*rawallocobj*/ /*_.INST__V9*/ curfptr[8] =
-    basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_OBJPREDEF*/ curfrout->tabval[1])), (2), ("CLASS_OBJPREDEF"));
+   /*rawallocobj*/ { basilys_ptr_t newobj = 0;
+    basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_OBJPREDEF*/ curfrout->tabval[1])), (2), "CLASS_OBJPREDEF");/*_.INST__V9*/ curfptr[8] =
+    newobj; };
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:2892: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V9*/ curfptr[8])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V9*/ curfptr[8]))));
-   ((basilysobject_ptr_t)(/*_.INST__V9*/ curfptr[8]))->obj_vartab[0 /*OBV_TYPE*/] = (basilys_ptr_t)(
-    (/*!CTYPE_VALUE*/ curfrout->tabval[2]));
+   basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V9*/ curfptr[8]))));basilys_putfield_object((/*_.INST__V9*/ curfptr[8]), (0), ((/*!CTYPE_VALUE*/ curfrout->tabval[2])), "OBV_TYPE");
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:2892: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V9*/ curfptr[8])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V9*/ curfptr[8]))));
-   ((basilysobject_ptr_t)(/*_.INST__V9*/ curfptr[8]))->obj_vartab[1 /*OBPREDEF*/] = (basilys_ptr_t)(
-    /*_.NRPREDEF__V7*/ curfptr[6]);
+   basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V9*/ curfptr[8]))));basilys_putfield_object((/*_.INST__V9*/ curfptr[8]), (1), (/*_.NRPREDEF__V7*/ curfptr[6]), "OBPREDEF");
    ;
    /*_.OPR__V8*/ curfptr[7] = /*_.INST__V9*/ curfptr[8];;}
   ;
@@ -39711,7 +39526,8 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2907: @block");
    /*block*/{
     
     BASILYS_LOCATION("warmelt-genobj.bysl:2918: @getslot");
-    /*_.NINST_PREDEF__V27*/ curfptr[26] = basilys_getfield_object((basilys_ptr_t)(/*_.NDAT__V2*/ curfptr[1]), 6, "NINST_PREDEF");
+    { basilys_ptr_t slot=0;
+     basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NDAT__V2*/ curfptr[1]), 6, "NINST_PREDEF");/*_.NINST_PREDEF__V27*/ curfptr[26] = slot; };
     ;
     /*_.IPREDEF__V26*/ curfptr[25] = /*_.NINST_PREDEF__V27*/ curfptr[26];;
     /*epilog*/
@@ -39727,11 +39543,13 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2907: @block");
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2919: @getslot");
-  /*_.IBODYLIS__V28*/ curfptr[26] = basilys_getfield_object((basilys_ptr_t)(/*_.IROUT__V5*/ curfptr[4]), 3, "OBROUT_BODY");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.IROUT__V5*/ curfptr[4]), 3, "OBROUT_BODY");/*_.IBODYLIS__V28*/ curfptr[26] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2920: @getslot");
-  /*_.IFILLLIS__V29*/ curfptr[28] = basilys_getfield_object((basilys_ptr_t)(/*_.IROUT__V5*/ curfptr[4]), 10, "OIROUT_FILL");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.IROUT__V5*/ curfptr[4]), 10, "OIROUT_FILL");/*_.IFILLLIS__V29*/ curfptr[28] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2921: @apply");
@@ -39746,19 +39564,23 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2907: @block");
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2922: @getslot");
-  /*_.COMM__V31*/ curfptr[30] = basilys_getfield_object((basilys_ptr_t)((/*!konst_9_VALUEDATA_*/ curfrout->tabval[9])), 1, "NAMED_NAME");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)((/*!konst_9_VALUEDATA_*/ curfrout->tabval[9])), 1, "NAMED_NAME");/*_.COMM__V31*/ curfptr[30] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2923: @getslot");
-  /*_.NLOC__V32*/ curfptr[31] = basilys_getfield_object((basilys_ptr_t)(/*_.NDAT__V2*/ curfptr[1]), 0, "NREP_LOC");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NDAT__V2*/ curfptr[1]), 0, "NREP_LOC");/*_.NLOC__V32*/ curfptr[31] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2924: @getslot");
-  /*_.DLOCBIND__V33*/ curfptr[32] = basilys_getfield_object((basilys_ptr_t)(/*_.NDAT__V2*/ curfptr[1]), 4, "NDATA_LOCBIND");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NDAT__V2*/ curfptr[1]), 4, "NDATA_LOCBIND");/*_.DLOCBIND__V33*/ curfptr[32] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2925: @getslot");
-  /*_.LOCMAP__V34*/ curfptr[33] = basilys_getfield_object((basilys_ptr_t)(/*_.GCX__V6*/ curfptr[5]), 1, "GNCX_LOCMAP");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.GCX__V6*/ curfptr[5]), 1, "GNCX_LOCMAP");/*_.LOCMAP__V34*/ curfptr[33] = slot; };
   ;
   /*_.ISTMTLIS__V35*/ curfptr[34] = /*_.IBODYLIS__V28*/ curfptr[26];;
   /*_#MULTIPLE_LENGTH__L11*/ curfnum[10] = 
@@ -39819,7 +39641,8 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2907: @block");
    /*block*/{
     
     BASILYS_LOCATION("warmelt-genobj.bysl:2931: @getslot");
-    /*_.OIE_LOCVAR__V40*/ curfptr[39] = basilys_getfield_object((basilys_ptr_t)(/*_.OBJ__V3*/ curfptr[2]), 4, "OIE_LOCVAR");
+    { basilys_ptr_t slot=0;
+     basilys_object_get_field(slot,(basilys_ptr_t)(/*_.OBJ__V3*/ curfptr[2]), 4, "OIE_LOCVAR");/*_.OIE_LOCVAR__V40*/ curfptr[39] = slot; };
     ;
     /*_#NULL__L13*/ curfnum[11] = 
      ((/*_.OIE_LOCVAR__V40*/ curfptr[39]) == NULL);;
@@ -39869,9 +39692,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2907: @block");
    BASILYS_LOCATION("warmelt-genobj.bysl:2932: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.OBJ__V3*/ curfptr[2])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (4>=0 && 4< basilys_object_length((basilys_ptr_t)(/*_.OBJ__V3*/ curfptr[2]))));
-   ((basilysobject_ptr_t)(/*_.OBJ__V3*/ curfptr[2]))->obj_vartab[4 /*OIE_LOCVAR*/] = (basilys_ptr_t)(
-    /*_.LOCVAR__V30*/ curfptr[29]);
+   basilys_assertmsg("putslot checkoff", (4>=0 && 4< basilys_object_length((basilys_ptr_t)(/*_.OBJ__V3*/ curfptr[2]))));basilys_putfield_object((/*_.OBJ__V3*/ curfptr[2]), (4), (/*_.LOCVAR__V30*/ curfptr[29]), "OIE_LOCVAR");
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:2932: @touch");
@@ -39994,7 +39815,8 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2907: @block");
         (basilysgc_new_stringdup((basilysobject_ptr_t)((/*!DISCR_VERBATIMSTRING*/ curfrout->tabval[13])), ( "BASILYSGIX(predefinited,")));;
        
        BASILYS_LOCATION("warmelt-genobj.bysl:2947: @getslot");
-       /*_.NAMED_NAME__V48*/ curfptr[47] = basilys_getfield_object((basilys_ptr_t)(/*_.IPREDEF__V26*/ curfptr[25]), 1, "NAMED_NAME");
+       { basilys_ptr_t slot=0;
+        basilys_object_get_field(slot,(basilys_ptr_t)(/*_.IPREDEF__V26*/ curfptr[25]), 1, "NAMED_NAME");/*_.NAMED_NAME__V48*/ curfptr[47] = slot; };
        ;
        /*_.MAKE_STRING__V49*/ curfptr[48] = 
         (basilysgc_new_stringdup((basilysobject_ptr_t)((/*!DISCR_VERBATIMSTRING*/ curfrout->tabval[13])), basilys_string_str((basilys_ptr_t)(/*_.NAMED_NAME__V48*/ curfptr[47]))));;
@@ -40007,16 +39829,15 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2907: @block");
        /*block*/{
         
         BASILYS_LOCATION("warmelt-genobj.bysl:2941: @rawallocobj");
-        /*rawallocobj*/ /*_.INST__V53*/ curfptr[52] =
-         basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_OBJEXPV*/ curfrout->tabval[12])), (2), ("CLASS_OBJEXPV"));
+        /*rawallocobj*/ { basilys_ptr_t newobj = 0;
+         basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_OBJEXPV*/ curfrout->tabval[12])), (2), "CLASS_OBJEXPV");/*_.INST__V53*/ curfptr[52] =
+         newobj; };
         ;
         
         BASILYS_LOCATION("warmelt-genobj.bysl:2941: @putslot");
         /*putslot*/
         basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V53*/ curfptr[52])) == OBMAG_OBJECT);
-        basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V53*/ curfptr[52]))));
-        ((basilysobject_ptr_t)(/*_.INST__V53*/ curfptr[52]))->obj_vartab[1 /*OBX_CONT*/] = (basilys_ptr_t)(
-         /*_.MAKE_TUPLE3__V51*/ curfptr[50]);
+        basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V53*/ curfptr[52]))));basilys_putfield_object((/*_.INST__V53*/ curfptr[52]), (1), (/*_.MAKE_TUPLE3__V51*/ curfptr[50]), "OBX_CONT");
         ;
         /*_.INST___V52*/ curfptr[51] = /*_.INST__V53*/ curfptr[52];;}
        ;
@@ -40068,16 +39889,15 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2907: @block");
          /*block*/{
           
           BASILYS_LOCATION("warmelt-genobj.bysl:2953: @rawallocobj");
-          /*rawallocobj*/ /*_.INST__V59*/ curfptr[51] =
-           basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_OBJEXPV*/ curfrout->tabval[12])), (2), ("CLASS_OBJEXPV"));
+          /*rawallocobj*/ { basilys_ptr_t newobj = 0;
+           basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_OBJEXPV*/ curfrout->tabval[12])), (2), "CLASS_OBJEXPV");/*_.INST__V59*/ curfptr[51] =
+           newobj; };
           ;
           
           BASILYS_LOCATION("warmelt-genobj.bysl:2953: @putslot");
           /*putslot*/
           basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V59*/ curfptr[51])) == OBMAG_OBJECT);
-          basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V59*/ curfptr[51]))));
-          ((basilysobject_ptr_t)(/*_.INST__V59*/ curfptr[51]))->obj_vartab[1 /*OBX_CONT*/] = (basilys_ptr_t)(
-           /*_.MAKE_TUPLE3__V57*/ curfptr[49]);
+          basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V59*/ curfptr[51]))));basilys_putfield_object((/*_.INST__V59*/ curfptr[51]), (1), (/*_.MAKE_TUPLE3__V57*/ curfptr[49]), "OBX_CONT");
           ;
           /*_.INST___V58*/ curfptr[50] = /*_.INST__V59*/ curfptr[51];;}
          ;
@@ -40122,24 +39942,21 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2907: @block");
      /*block*/{
       
       BASILYS_LOCATION("warmelt-genobj.bysl:2965: @rawallocobj");
-      /*rawallocobj*/ /*_.INST__V63*/ curfptr[50] =
-       basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_OBJCOMMENTEDBLOCK*/ curfrout->tabval[15])), (4), ("CLASS_OBJCOMMENTEDBLOCK"));
+      /*rawallocobj*/ { basilys_ptr_t newobj = 0;
+       basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_OBJCOMMENTEDBLOCK*/ curfrout->tabval[15])), (4), "CLASS_OBJCOMMENTEDBLOCK");/*_.INST__V63*/ curfptr[50] =
+       newobj; };
       ;
       
       BASILYS_LOCATION("warmelt-genobj.bysl:2965: @putslot");
       /*putslot*/
       basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V63*/ curfptr[50])) == OBMAG_OBJECT);
-      basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V63*/ curfptr[50]))));
-      ((basilysobject_ptr_t)(/*_.INST__V63*/ curfptr[50]))->obj_vartab[1 /*OBLO_BODYL*/] = (basilys_ptr_t)(
-       /*_.INITLIS__V60*/ curfptr[47]);
+      basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V63*/ curfptr[50]))));basilys_putfield_object((/*_.INST__V63*/ curfptr[50]), (1), (/*_.INITLIS__V60*/ curfptr[47]), "OBLO_BODYL");
       ;
       
       BASILYS_LOCATION("warmelt-genobj.bysl:2965: @putslot");
       /*putslot*/
       basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V63*/ curfptr[50])) == OBMAG_OBJECT);
-      basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)(/*_.INST__V63*/ curfptr[50]))));
-      ((basilysobject_ptr_t)(/*_.INST__V63*/ curfptr[50]))->obj_vartab[3 /*OCOMBLO_COMMENT*/] = (basilys_ptr_t)(
-       /*_.MAKE_STRINGCONST__V61*/ curfptr[48]);
+      basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)(/*_.INST__V63*/ curfptr[50]))));basilys_putfield_object((/*_.INST__V63*/ curfptr[50]), (3), (/*_.MAKE_STRINGCONST__V61*/ curfptr[48]), "OCOMBLO_COMMENT");
       ;
       /*_.OBLOCKPREDEF__V62*/ curfptr[49] = /*_.INST__V63*/ curfptr[50];;}
      ;
@@ -40148,40 +39965,33 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2907: @block");
      /*block*/{
       
       BASILYS_LOCATION("warmelt-genobj.bysl:2969: @rawallocobj");
-      /*rawallocobj*/ /*_.INST__V65*/ curfptr[64] =
-       basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_OBJCOND*/ curfrout->tabval[17])), (4), ("CLASS_OBJCOND"));
+      /*rawallocobj*/ { basilys_ptr_t newobj = 0;
+       basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_OBJCOND*/ curfrout->tabval[17])), (4), "CLASS_OBJCOND");/*_.INST__V65*/ curfptr[64] =
+       newobj; };
       ;
       
       BASILYS_LOCATION("warmelt-genobj.bysl:2969: @putslot");
       /*putslot*/
       basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V65*/ curfptr[64])) == OBMAG_OBJECT);
-      basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V65*/ curfptr[64]))));
-      ((basilysobject_ptr_t)(/*_.INST__V65*/ curfptr[64]))->obj_vartab[0 /*OBI_LOC*/] = (basilys_ptr_t)(
-       /*_.NLOC__V32*/ curfptr[31]);
+      basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V65*/ curfptr[64]))));basilys_putfield_object((/*_.INST__V65*/ curfptr[64]), (0), (/*_.NLOC__V32*/ curfptr[31]), "OBI_LOC");
       ;
       
       BASILYS_LOCATION("warmelt-genobj.bysl:2969: @putslot");
       /*putslot*/
       basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V65*/ curfptr[64])) == OBMAG_OBJECT);
-      basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V65*/ curfptr[64]))));
-      ((basilysobject_ptr_t)(/*_.INST__V65*/ curfptr[64]))->obj_vartab[1 /*OBCOND_TEST*/] = (basilys_ptr_t)(
-       /*_.OTESTPREDEF__V46*/ curfptr[44]);
+      basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V65*/ curfptr[64]))));basilys_putfield_object((/*_.INST__V65*/ curfptr[64]), (1), (/*_.OTESTPREDEF__V46*/ curfptr[44]), "OBCOND_TEST");
       ;
       
       BASILYS_LOCATION("warmelt-genobj.bysl:2969: @putslot");
       /*putslot*/
       basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V65*/ curfptr[64])) == OBMAG_OBJECT);
-      basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V65*/ curfptr[64]))));
-      ((basilysobject_ptr_t)(/*_.INST__V65*/ curfptr[64]))->obj_vartab[2 /*OBCOND_THEN*/] = (basilys_ptr_t)(
-       (/*nil*/NULL));
+      basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V65*/ curfptr[64]))));basilys_putfield_object((/*_.INST__V65*/ curfptr[64]), (2), ((/*nil*/NULL)), "OBCOND_THEN");
       ;
       
       BASILYS_LOCATION("warmelt-genobj.bysl:2969: @putslot");
       /*putslot*/
       basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V65*/ curfptr[64])) == OBMAG_OBJECT);
-      basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)(/*_.INST__V65*/ curfptr[64]))));
-      ((basilysobject_ptr_t)(/*_.INST__V65*/ curfptr[64]))->obj_vartab[3 /*OBCOND_ELSE*/] = (basilys_ptr_t)(
-       /*_.OBLOCKPREDEF__V62*/ curfptr[49]);
+      basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)(/*_.INST__V65*/ curfptr[64]))));basilys_putfield_object((/*_.INST__V65*/ curfptr[64]), (3), (/*_.OBLOCKPREDEF__V62*/ curfptr[49]), "OBCOND_ELSE");
       ;
       /*_.OCONDPREDEF__V64*/ curfptr[46] = /*_.INST__V65*/ curfptr[64];;}
      ;
@@ -40268,7 +40078,8 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2907: @block");
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:3000: @getslot");
-  /*_.NINST_SLOTS__V70*/ curfptr[49] = basilys_getfield_object((basilys_ptr_t)(/*_.NDAT__V2*/ curfptr[1]), 8, "NINST_SLOTS");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NDAT__V2*/ curfptr[1]), 8, "NINST_SLOTS");/*_.NINST_SLOTS__V70*/ curfptr[49] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:3001: @block");
@@ -40333,7 +40144,8 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2907: @block");
    /*block*/{
     
     BASILYS_LOCATION("warmelt-genobj.bysl:3024: @getslot");
-    /*_.NREP_LOC__V75*/ curfptr[74] = basilys_getfield_object((basilys_ptr_t)(/*_.NDAT__V2*/ curfptr[1]), 0, "NREP_LOC");
+    { basilys_ptr_t slot=0;
+     basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NDAT__V2*/ curfptr[1]), 0, "NREP_LOC");/*_.NREP_LOC__V75*/ curfptr[74] = slot; };
     ;
     /*_.IFELSE___V74*/ curfptr[73] = /*_.NREP_LOC__V75*/ curfptr[74];;
     /*epilog*/
@@ -40348,32 +40160,27 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2907: @block");
   /*block*/{
    
    BASILYS_LOCATION("warmelt-genobj.bysl:3023: @rawallocobj");
-   /*rawallocobj*/ /*_.INST__V77*/ curfptr[76] =
-    basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_OBJTOUCH*/ curfrout->tabval[29])), (3), ("CLASS_OBJTOUCH"));
+   /*rawallocobj*/ { basilys_ptr_t newobj = 0;
+    basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_OBJTOUCH*/ curfrout->tabval[29])), (3), "CLASS_OBJTOUCH");/*_.INST__V77*/ curfptr[76] =
+    newobj; };
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:3023: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V77*/ curfptr[76])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V77*/ curfptr[76]))));
-   ((basilysobject_ptr_t)(/*_.INST__V77*/ curfptr[76]))->obj_vartab[0 /*OBI_LOC*/] = (basilys_ptr_t)(
-    /*_.IFELSE___V74*/ curfptr[73]);
+   basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V77*/ curfptr[76]))));basilys_putfield_object((/*_.INST__V77*/ curfptr[76]), (0), (/*_.IFELSE___V74*/ curfptr[73]), "OBI_LOC");
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:3023: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V77*/ curfptr[76])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V77*/ curfptr[76]))));
-   ((basilysobject_ptr_t)(/*_.INST__V77*/ curfptr[76]))->obj_vartab[2 /*OTOUCH_COMMENT*/] = (basilys_ptr_t)(
-    /*_.COMM__V31*/ curfptr[30]);
+   basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V77*/ curfptr[76]))));basilys_putfield_object((/*_.INST__V77*/ curfptr[76]), (2), (/*_.COMM__V31*/ curfptr[30]), "OTOUCH_COMMENT");
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:3023: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V77*/ curfptr[76])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V77*/ curfptr[76]))));
-   ((basilysobject_ptr_t)(/*_.INST__V77*/ curfptr[76]))->obj_vartab[1 /*OTOUCH_VAL*/] = (basilys_ptr_t)(
-    /*_.OBJ__V3*/ curfptr[2]);
+   basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V77*/ curfptr[76]))));basilys_putfield_object((/*_.INST__V77*/ curfptr[76]), (1), (/*_.OBJ__V3*/ curfptr[2]), "OTOUCH_VAL");
    ;
    /*_.INST___V76*/ curfptr[74] = /*_.INST__V77*/ curfptr[76];;}
   ;
@@ -40717,15 +40524,18 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2982: @block");
  /*block*/{
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2985: @getslot");
-  /*_.BDER__V5*/ curfptr[3] = basilys_getfield_object((basilys_ptr_t)(/*_.LBIND__V2*/ curfptr[1]), 0, "BINDER");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.LBIND__V2*/ curfptr[1]), 0, "BINDER");/*_.BDER__V5*/ curfptr[3] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2986: @getslot");
-  /*_.CTY__V6*/ curfptr[5] = basilys_getfield_object((basilys_ptr_t)(/*_.LBIND__V2*/ curfptr[1]), 1, "LETBIND_TYPE");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.LBIND__V2*/ curfptr[1]), 1, "LETBIND_TYPE");/*_.CTY__V6*/ curfptr[5] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2987: @getslot");
-  /*_.NEXP__V7*/ curfptr[6] = basilys_getfield_object((basilys_ptr_t)(/*_.LBIND__V2*/ curfptr[1]), 2, "LETBIND_EXPR");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.LBIND__V2*/ curfptr[1]), 2, "LETBIND_EXPR");/*_.NEXP__V7*/ curfptr[6] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:2988: @apply");
@@ -40988,40 +40798,33 @@ BASILYS_LOCATION("warmelt-genobj.bysl:3001: @block");
      /*block*/{
       
       BASILYS_LOCATION("warmelt-genobj.bysl:3012: @rawallocobj");
-      /*rawallocobj*/ /*_.INST__V8*/ curfptr[7] =
-       basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_OBJPUTSLOT*/ curfrout->tabval[3])), (5), ("CLASS_OBJPUTSLOT"));
+      /*rawallocobj*/ { basilys_ptr_t newobj = 0;
+       basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_OBJPUTSLOT*/ curfrout->tabval[3])), (5), "CLASS_OBJPUTSLOT");/*_.INST__V8*/ curfptr[7] =
+       newobj; };
       ;
       
       BASILYS_LOCATION("warmelt-genobj.bysl:3012: @putslot");
       /*putslot*/
       basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V8*/ curfptr[7])) == OBMAG_OBJECT);
-      basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V8*/ curfptr[7]))));
-      ((basilysobject_ptr_t)(/*_.INST__V8*/ curfptr[7]))->obj_vartab[0 /*OBI_LOC*/] = (basilys_ptr_t)(
-       (/*~NLOC*/ curfclos->tabval[1]));
+      basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V8*/ curfptr[7]))));basilys_putfield_object((/*_.INST__V8*/ curfptr[7]), (0), ((/*~NLOC*/ curfclos->tabval[1])), "OBI_LOC");
       ;
       
       BASILYS_LOCATION("warmelt-genobj.bysl:3012: @putslot");
       /*putslot*/
       basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V8*/ curfptr[7])) == OBMAG_OBJECT);
-      basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V8*/ curfptr[7]))));
-      ((basilysobject_ptr_t)(/*_.INST__V8*/ curfptr[7]))->obj_vartab[1 /*OSLOT_ODATA*/] = (basilys_ptr_t)(
-       (/*~OBJ*/ curfclos->tabval[2]));
+      basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V8*/ curfptr[7]))));basilys_putfield_object((/*_.INST__V8*/ curfptr[7]), (1), ((/*~OBJ*/ curfclos->tabval[2])), "OSLOT_ODATA");
       ;
       
       BASILYS_LOCATION("warmelt-genobj.bysl:3012: @putslot");
       /*putslot*/
       basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V8*/ curfptr[7])) == OBMAG_OBJECT);
-      basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V8*/ curfptr[7]))));
-      ((basilysobject_ptr_t)(/*_.INST__V8*/ curfptr[7]))->obj_vartab[2 /*OSLOT_OFFSET*/] = (basilys_ptr_t)(
-       /*_.OOFF__V6*/ curfptr[4]);
+      basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V8*/ curfptr[7]))));basilys_putfield_object((/*_.INST__V8*/ curfptr[7]), (2), (/*_.OOFF__V6*/ curfptr[4]), "OSLOT_OFFSET");
       ;
       
       BASILYS_LOCATION("warmelt-genobj.bysl:3012: @putslot");
       /*putslot*/
       basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V8*/ curfptr[7])) == OBMAG_OBJECT);
-      basilys_assertmsg("putslot checkoff", (4>=0 && 4< basilys_object_length((basilys_ptr_t)(/*_.INST__V8*/ curfptr[7]))));
-      ((basilysobject_ptr_t)(/*_.INST__V8*/ curfptr[7]))->obj_vartab[4 /*OSLOT_VALUE*/] = (basilys_ptr_t)(
-       /*_.SLOBJ__V3*/ curfptr[2]);
+      basilys_assertmsg("putslot checkoff", (4>=0 && 4< basilys_object_length((basilys_ptr_t)(/*_.INST__V8*/ curfptr[7]))));basilys_putfield_object((/*_.INST__V8*/ curfptr[7]), (4), (/*_.SLOBJ__V3*/ curfptr[2]), "OSLOT_VALUE");
       ;
       /*_.OPUT__V7*/ curfptr[6] = /*_.INST__V8*/ curfptr[7];;}
      ;
@@ -41126,24 +40929,21 @@ BASILYS_LOCATION("warmelt-genobj.bysl:3030: @block");
    /*block*/{
     
     BASILYS_LOCATION("warmelt-genobj.bysl:3034: @rawallocobj");
-    /*rawallocobj*/ /*_.INST__V4*/ curfptr[3] =
-     basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_OBJCLEAR*/ curfrout->tabval[0])), (2), ("CLASS_OBJCLEAR"));
+    /*rawallocobj*/ { basilys_ptr_t newobj = 0;
+     basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_OBJCLEAR*/ curfrout->tabval[0])), (2), "CLASS_OBJCLEAR");/*_.INST__V4*/ curfptr[3] =
+     newobj; };
     ;
     
     BASILYS_LOCATION("warmelt-genobj.bysl:3034: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V4*/ curfptr[3])) == OBMAG_OBJECT);
-    basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V4*/ curfptr[3]))));
-    ((basilysobject_ptr_t)(/*_.INST__V4*/ curfptr[3]))->obj_vartab[0 /*OBI_LOC*/] = (basilys_ptr_t)(
-     (/*~NLOC*/ curfclos->tabval[1]));
+    basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V4*/ curfptr[3]))));basilys_putfield_object((/*_.INST__V4*/ curfptr[3]), (0), ((/*~NLOC*/ curfclos->tabval[1])), "OBI_LOC");
     ;
     
     BASILYS_LOCATION("warmelt-genobj.bysl:3034: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V4*/ curfptr[3])) == OBMAG_OBJECT);
-    basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V4*/ curfptr[3]))));
-    ((basilysobject_ptr_t)(/*_.INST__V4*/ curfptr[3]))->obj_vartab[1 /*OCLR_VLOC*/] = (basilys_ptr_t)(
-     /*_.OBVA__V2*/ curfptr[1]);
+    basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V4*/ curfptr[3]))));basilys_putfield_object((/*_.INST__V4*/ curfptr[3]), (1), (/*_.OBVA__V2*/ curfptr[1]), "OCLR_VLOC");
     ;
     /*_.INST___V3*/ curfptr[2] = /*_.INST__V4*/ curfptr[3];;}
    ;
@@ -41656,13 +41456,15 @@ BASILYS_LOCATION("warmelt-genobj.bysl:3060: @block");
  /*block*/{
   
   BASILYS_LOCATION("warmelt-genobj.bysl:3064: @getslot");
-  /*_.COMPICACHE__V11*/ curfptr[10] = basilys_getfield_object((basilys_ptr_t)(/*_.GCX__V3*/ curfptr[2]), 6, "GNCX_COMPICACHE");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.GCX__V3*/ curfptr[2]), 6, "GNCX_COMPICACHE");/*_.COMPICACHE__V11*/ curfptr[10] = slot; };
   ;
   /*_.CHOBJ__V12*/ curfptr[11] = 
    (basilys_get_mapobjects((basilysmapobjects_ptr_t)(/*_.COMPICACHE__V11*/ curfptr[10]), (basilysobject_ptr_t)(/*_.SYV__V2*/ curfptr[1])));;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:3066: @getslot");
-  /*_.INIROUT__V13*/ curfptr[12] = basilys_getfield_object((basilys_ptr_t)(/*_.GCX__V3*/ curfptr[2]), 0, "GNCX_OBJROUT");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.GCX__V3*/ curfptr[2]), 0, "GNCX_OBJROUT");/*_.INIROUT__V13*/ curfptr[12] = slot; };
   ;
   
   #if ENABLE_CHECKING
@@ -41795,7 +41597,8 @@ BASILYS_LOCATION("warmelt-genobj.bysl:3060: @block");
   /*block*/{
    
    BASILYS_LOCATION("warmelt-genobj.bysl:3075: @getslot");
-   /*_.NDATA_DISCRX__V22*/ curfptr[17] = basilys_getfield_object((basilys_ptr_t)(/*_.SYV__V2*/ curfptr[1]), 2, "NDATA_DISCRX");
+   { basilys_ptr_t slot=0;
+    basilys_object_get_field(slot,(basilys_ptr_t)(/*_.SYV__V2*/ curfptr[1]), 2, "NDATA_DISCRX");/*_.NDATA_DISCRX__V22*/ curfptr[17] = slot; };
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:3075: @msend");
@@ -41813,32 +41616,27 @@ BASILYS_LOCATION("warmelt-genobj.bysl:3060: @block");
    /*block*/{
     
     BASILYS_LOCATION("warmelt-genobj.bysl:3077: @rawallocobj");
-    /*rawallocobj*/ /*_.INST__V25*/ curfptr[24] =
-     basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_OBJINITOBJECT*/ curfrout->tabval[5])), (6), ("CLASS_OBJINITOBJECT"));
+    /*rawallocobj*/ { basilys_ptr_t newobj = 0;
+     basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_OBJINITOBJECT*/ curfrout->tabval[5])), (6), "CLASS_OBJINITOBJECT");/*_.INST__V25*/ curfptr[24] =
+     newobj; };
     ;
     
     BASILYS_LOCATION("warmelt-genobj.bysl:3077: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V25*/ curfptr[24])) == OBMAG_OBJECT);
-    basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V25*/ curfptr[24]))));
-    ((basilysobject_ptr_t)(/*_.INST__V25*/ curfptr[24]))->obj_vartab[0 /*OBV_TYPE*/] = (basilys_ptr_t)(
-     (/*!CTYPE_VALUE*/ curfrout->tabval[6]));
+    basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V25*/ curfptr[24]))));basilys_putfield_object((/*_.INST__V25*/ curfptr[24]), (0), ((/*!CTYPE_VALUE*/ curfrout->tabval[6])), "OBV_TYPE");
     ;
     
     BASILYS_LOCATION("warmelt-genobj.bysl:3077: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V25*/ curfptr[24])) == OBMAG_OBJECT);
-    basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V25*/ curfptr[24]))));
-    ((basilysobject_ptr_t)(/*_.INST__V25*/ curfptr[24]))->obj_vartab[2 /*OIE_DATA*/] = (basilys_ptr_t)(
-     /*_.SYV__V2*/ curfptr[1]);
+    basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V25*/ curfptr[24]))));basilys_putfield_object((/*_.INST__V25*/ curfptr[24]), (2), (/*_.SYV__V2*/ curfptr[1]), "OIE_DATA");
     ;
     
     BASILYS_LOCATION("warmelt-genobj.bysl:3077: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V25*/ curfptr[24])) == OBMAG_OBJECT);
-    basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)(/*_.INST__V25*/ curfptr[24]))));
-    ((basilysobject_ptr_t)(/*_.INST__V25*/ curfptr[24]))->obj_vartab[3 /*OIE_DISCR*/] = (basilys_ptr_t)(
-     /*_.ODISCR__V23*/ curfptr[19]);
+    basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)(/*_.INST__V25*/ curfptr[24]))));basilys_putfield_object((/*_.INST__V25*/ curfptr[24]), (3), (/*_.ODISCR__V23*/ curfptr[19]), "OIE_DISCR");
     ;
     /*_.OBSYM__V24*/ curfptr[23] = /*_.INST__V25*/ curfptr[24];;}
    ;
@@ -41892,7 +41690,8 @@ BASILYS_LOCATION("warmelt-genobj.bysl:3060: @block");
      basilysgc_new_strbuf((basilysobject_ptr_t)((/*!DISCR_STRBUF*/ curfrout->tabval[7])), (char*)0);;
     
     BASILYS_LOCATION("warmelt-genobj.bysl:3087: @getslot");
-    /*_.NDATA_RANK__V29*/ curfptr[28] = basilys_getfield_object((basilys_ptr_t)(/*_.SYV__V2*/ curfptr[1]), 3, "NDATA_RANK");
+    { basilys_ptr_t slot=0;
+     basilys_object_get_field(slot,(basilys_ptr_t)(/*_.SYV__V2*/ curfptr[1]), 3, "NDATA_RANK");/*_.NDATA_RANK__V29*/ curfptr[28] = slot; };
     ;
     /*_#SYRK__L7*/ curfnum[0] = 
      (basilys_get_int((basilys_ptr_t)(/*_.NDATA_RANK__V29*/ curfptr[28])));;
@@ -41904,7 +41703,8 @@ BASILYS_LOCATION("warmelt-genobj.bysl:3060: @block");
     basilysgc_add_strbuf((struct basilysstrbuf_st *)(/*_.NAMBUF__V28*/ curfptr[26]), ( "__"));
     
     BASILYS_LOCATION("warmelt-genobj.bysl:3092: @getslot");
-    /*_.NDSY_NAMESTR__V30*/ curfptr[29] = basilys_getfield_object((basilys_ptr_t)(/*_.SYV__V2*/ curfptr[1]), 9, "NDSY_NAMESTR");
+    { basilys_ptr_t slot=0;
+     basilys_object_get_field(slot,(basilys_ptr_t)(/*_.SYV__V2*/ curfptr[1]), 9, "NDSY_NAMESTR");/*_.NDSY_NAMESTR__V30*/ curfptr[29] = slot; };
     ;
     
     basilysgc_add_strbuf_cident((struct basilysstrbuf_st *)(/*_.NAMBUF__V28*/ curfptr[26]), basilys_string_str((basilys_ptr_t)(/*_.NDSY_NAMESTR__V30*/ curfptr[29])));
@@ -41917,9 +41717,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:3060: @block");
      BASILYS_LOCATION("warmelt-genobj.bysl:3093: @putslot");
      /*putslot*/
      basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.OBSYM__V24*/ curfptr[23])) == OBMAG_OBJECT);
-     basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.OBSYM__V24*/ curfptr[23]))));
-     ((basilysobject_ptr_t)(/*_.OBSYM__V24*/ curfptr[23]))->obj_vartab[1 /*OIE_CNAME*/] = (basilys_ptr_t)(
-      /*_.STRBUF2STRING__V31*/ curfptr[30]);
+     basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.OBSYM__V24*/ curfptr[23]))));basilys_putfield_object((/*_.OBSYM__V24*/ curfptr[23]), (1), (/*_.STRBUF2STRING__V31*/ curfptr[30]), "OIE_CNAME");
      ;
      
      BASILYS_LOCATION("warmelt-genobj.bysl:3093: @touch");
@@ -41946,7 +41744,8 @@ BASILYS_LOCATION("warmelt-genobj.bysl:3060: @block");
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:3096: @getslot");
-   /*_.NINST_SLOTS__V32*/ curfptr[26] = basilys_getfield_object((basilys_ptr_t)(/*_.SYV__V2*/ curfptr[1]), 8, "NINST_SLOTS");
+   { basilys_ptr_t slot=0;
+    basilys_object_get_field(slot,(basilys_ptr_t)(/*_.SYV__V2*/ curfptr[1]), 8, "NINST_SLOTS");/*_.NINST_SLOTS__V32*/ curfptr[26] = slot; };
    ;
    /*_#MULTIPLE_LENGTH__L8*/ curfnum[0] = 
     (basilys_multiple_length((basilys_ptr_t)(/*_.NINST_SLOTS__V32*/ curfptr[26])));;
@@ -42303,13 +42102,15 @@ BASILYS_LOCATION("warmelt-genobj.bysl:3111: @block");
  /*block*/{
   
   BASILYS_LOCATION("warmelt-genobj.bysl:3115: @getslot");
-  /*_.COMPICACHE__V9*/ curfptr[8] = basilys_getfield_object((basilys_ptr_t)(/*_.GCX__V3*/ curfptr[2]), 6, "GNCX_COMPICACHE");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.GCX__V3*/ curfptr[2]), 6, "GNCX_COMPICACHE");/*_.COMPICACHE__V9*/ curfptr[8] = slot; };
   ;
   /*_.CHOBJ__V10*/ curfptr[9] = 
    (basilys_get_mapobjects((basilysmapobjects_ptr_t)(/*_.COMPICACHE__V9*/ curfptr[8]), (basilysobject_ptr_t)(/*_.DAI__V2*/ curfptr[1])));;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:3117: @getslot");
-  /*_.INIROUT__V11*/ curfptr[10] = basilys_getfield_object((basilys_ptr_t)(/*_.GCX__V3*/ curfptr[2]), 0, "GNCX_OBJROUT");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.GCX__V3*/ curfptr[2]), 0, "GNCX_OBJROUT");/*_.INIROUT__V11*/ curfptr[10] = slot; };
   ;
   
   #if ENABLE_CHECKING
@@ -42442,39 +42243,48 @@ BASILYS_LOCATION("warmelt-genobj.bysl:3111: @block");
   /*block*/{
    
    BASILYS_LOCATION("warmelt-genobj.bysl:3125: @getslot");
-   /*_.LOC__V20*/ curfptr[15] = basilys_getfield_object((basilys_ptr_t)(/*_.DAI__V2*/ curfptr[1]), 0, "NREP_LOC");
+   { basilys_ptr_t slot=0;
+    basilys_object_get_field(slot,(basilys_ptr_t)(/*_.DAI__V2*/ curfptr[1]), 0, "NREP_LOC");/*_.LOC__V20*/ curfptr[15] = slot; };
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:3126: @getslot");
-   /*_.NAM__V21*/ curfptr[17] = basilys_getfield_object((basilys_ptr_t)(/*_.DAI__V2*/ curfptr[1]), 1, "NDATA_NAME");
+   { basilys_ptr_t slot=0;
+    basilys_object_get_field(slot,(basilys_ptr_t)(/*_.DAI__V2*/ curfptr[1]), 1, "NDATA_NAME");/*_.NAM__V21*/ curfptr[17] = slot; };
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:3128: @getslot");
-   /*_.DISX__V22*/ curfptr[21] = basilys_getfield_object((basilys_ptr_t)(/*_.DAI__V2*/ curfptr[1]), 2, "NDATA_DISCRX");
+   { basilys_ptr_t slot=0;
+    basilys_object_get_field(slot,(basilys_ptr_t)(/*_.DAI__V2*/ curfptr[1]), 2, "NDATA_DISCRX");/*_.DISX__V22*/ curfptr[21] = slot; };
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:3129: @getslot");
-   /*_.DRANK__V23*/ curfptr[22] = basilys_getfield_object((basilys_ptr_t)(/*_.DAI__V2*/ curfptr[1]), 3, "NDATA_RANK");
+   { basilys_ptr_t slot=0;
+    basilys_object_get_field(slot,(basilys_ptr_t)(/*_.DAI__V2*/ curfptr[1]), 3, "NDATA_RANK");/*_.DRANK__V23*/ curfptr[22] = slot; };
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:3130: @getslot");
-   /*_.DHASH__V24*/ curfptr[23] = basilys_getfield_object((basilys_ptr_t)(/*_.DAI__V2*/ curfptr[1]), 7, "NINST_HASH");
+   { basilys_ptr_t slot=0;
+    basilys_object_get_field(slot,(basilys_ptr_t)(/*_.DAI__V2*/ curfptr[1]), 7, "NINST_HASH");/*_.DHASH__V24*/ curfptr[23] = slot; };
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:3131: @getslot");
-   /*_.DPREDEF__V25*/ curfptr[24] = basilys_getfield_object((basilys_ptr_t)(/*_.DAI__V2*/ curfptr[1]), 6, "NINST_PREDEF");
+   { basilys_ptr_t slot=0;
+    basilys_object_get_field(slot,(basilys_ptr_t)(/*_.DAI__V2*/ curfptr[1]), 6, "NINST_PREDEF");/*_.DPREDEF__V25*/ curfptr[24] = slot; };
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:3132: @getslot");
-   /*_.DSLOTS__V26*/ curfptr[25] = basilys_getfield_object((basilys_ptr_t)(/*_.DAI__V2*/ curfptr[1]), 8, "NINST_SLOTS");
+   { basilys_ptr_t slot=0;
+    basilys_object_get_field(slot,(basilys_ptr_t)(/*_.DAI__V2*/ curfptr[1]), 8, "NINST_SLOTS");/*_.DSLOTS__V26*/ curfptr[25] = slot; };
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:3133: @getslot");
-   /*_.ININSL__V27*/ curfptr[26] = basilys_getfield_object((basilys_ptr_t)(/*_.INIROUT__V11*/ curfptr[10]), 2, "NINIT_TOPL");
+   { basilys_ptr_t slot=0;
+    basilys_object_get_field(slot,(basilys_ptr_t)(/*_.INIROUT__V11*/ curfptr[10]), 2, "NINIT_TOPL");/*_.ININSL__V27*/ curfptr[26] = slot; };
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:3134: @getslot");
-   /*_.INIFILL__V28*/ curfptr[27] = basilys_getfield_object((basilys_ptr_t)(/*_.INIROUT__V11*/ curfptr[10]), 10, "OIROUT_FILL");
+   { basilys_ptr_t slot=0;
+    basilys_object_get_field(slot,(basilys_ptr_t)(/*_.INIROUT__V11*/ curfptr[10]), 10, "OIROUT_FILL");/*_.INIFILL__V28*/ curfptr[27] = slot; };
    ;
    
    #if ENABLE_CHECKING
@@ -42625,40 +42435,33 @@ BASILYS_LOCATION("warmelt-genobj.bysl:3111: @block");
      /*block*/{
       
       BASILYS_LOCATION("warmelt-genobj.bysl:3148: @rawallocobj");
-      /*rawallocobj*/ /*_.INST__V39*/ curfptr[38] =
-       basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_OBJINITOBJECT*/ curfrout->tabval[4])), (6), ("CLASS_OBJINITOBJECT"));
+      /*rawallocobj*/ { basilys_ptr_t newobj = 0;
+       basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_OBJINITOBJECT*/ curfrout->tabval[4])), (6), "CLASS_OBJINITOBJECT");/*_.INST__V39*/ curfptr[38] =
+       newobj; };
       ;
       
       BASILYS_LOCATION("warmelt-genobj.bysl:3148: @putslot");
       /*putslot*/
       basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V39*/ curfptr[38])) == OBMAG_OBJECT);
-      basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V39*/ curfptr[38]))));
-      ((basilysobject_ptr_t)(/*_.INST__V39*/ curfptr[38]))->obj_vartab[0 /*OBV_TYPE*/] = (basilys_ptr_t)(
-       (/*!CTYPE_VALUE*/ curfrout->tabval[5]));
+      basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V39*/ curfptr[38]))));basilys_putfield_object((/*_.INST__V39*/ curfptr[38]), (0), ((/*!CTYPE_VALUE*/ curfrout->tabval[5])), "OBV_TYPE");
       ;
       
       BASILYS_LOCATION("warmelt-genobj.bysl:3148: @putslot");
       /*putslot*/
       basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V39*/ curfptr[38])) == OBMAG_OBJECT);
-      basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V39*/ curfptr[38]))));
-      ((basilysobject_ptr_t)(/*_.INST__V39*/ curfptr[38]))->obj_vartab[2 /*OIE_DATA*/] = (basilys_ptr_t)(
-       /*_.DAI__V2*/ curfptr[1]);
+      basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V39*/ curfptr[38]))));basilys_putfield_object((/*_.INST__V39*/ curfptr[38]), (2), (/*_.DAI__V2*/ curfptr[1]), "OIE_DATA");
       ;
       
       BASILYS_LOCATION("warmelt-genobj.bysl:3148: @putslot");
       /*putslot*/
       basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V39*/ curfptr[38])) == OBMAG_OBJECT);
-      basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)(/*_.INST__V39*/ curfptr[38]))));
-      ((basilysobject_ptr_t)(/*_.INST__V39*/ curfptr[38]))->obj_vartab[3 /*OIE_DISCR*/] = (basilys_ptr_t)(
-       /*_.CDISX__V34*/ curfptr[33]);
+      basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)(/*_.INST__V39*/ curfptr[38]))));basilys_putfield_object((/*_.INST__V39*/ curfptr[38]), (3), (/*_.CDISX__V34*/ curfptr[33]), "OIE_DISCR");
       ;
       
       BASILYS_LOCATION("warmelt-genobj.bysl:3148: @putslot");
       /*putslot*/
       basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V39*/ curfptr[38])) == OBMAG_OBJECT);
-      basilys_assertmsg("putslot checkoff", (5>=0 && 5< basilys_object_length((basilys_ptr_t)(/*_.INST__V39*/ curfptr[38]))));
-      ((basilysobject_ptr_t)(/*_.INST__V39*/ curfptr[38]))->obj_vartab[5 /*OIO_PREDEF*/] = (basilys_ptr_t)(
-       /*_.DPREDEF__V25*/ curfptr[24]);
+      basilys_assertmsg("putslot checkoff", (5>=0 && 5< basilys_object_length((basilys_ptr_t)(/*_.INST__V39*/ curfptr[38]))));basilys_putfield_object((/*_.INST__V39*/ curfptr[38]), (5), (/*_.DPREDEF__V25*/ curfptr[24]), "OIO_PREDEF");
       ;
       /*_.OINI__V38*/ curfptr[37] = /*_.INST__V39*/ curfptr[38];;}
      ;
@@ -42725,7 +42528,8 @@ BASILYS_LOCATION("warmelt-genobj.bysl:3111: @block");
        basilysgc_add_strbuf((struct basilysstrbuf_st *)(/*_.NAMBUF__V40*/ curfptr[39]), ( "__"));
        
        BASILYS_LOCATION("warmelt-genobj.bysl:3163: @getslot");
-       /*_.NAMED_NAME__V43*/ curfptr[41] = basilys_getfield_object((basilys_ptr_t)(/*_.NAM__V21*/ curfptr[17]), 1, "NAMED_NAME");
+       { basilys_ptr_t slot=0;
+        basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NAM__V21*/ curfptr[17]), 1, "NAMED_NAME");/*_.NAMED_NAME__V43*/ curfptr[41] = slot; };
        ;
        
        basilysgc_add_strbuf_cident((struct basilysstrbuf_st *)(/*_.NAMBUF__V40*/ curfptr[39]), basilys_string_str((basilys_ptr_t)(/*_.NAMED_NAME__V43*/ curfptr[41])));
@@ -42752,9 +42556,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:3111: @block");
        BASILYS_LOCATION("warmelt-genobj.bysl:3165: @putslot");
        /*putslot*/
        basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.OINI__V38*/ curfptr[37])) == OBMAG_OBJECT);
-       basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.OINI__V38*/ curfptr[37]))));
-       ((basilysobject_ptr_t)(/*_.OINI__V38*/ curfptr[37]))->obj_vartab[1 /*OIE_CNAME*/] = (basilys_ptr_t)(
-        /*_.CNAM__V45*/ curfptr[44]);
+       basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.OINI__V38*/ curfptr[37]))));basilys_putfield_object((/*_.OINI__V38*/ curfptr[37]), (1), (/*_.CNAM__V45*/ curfptr[44]), "OIE_CNAME");
        ;
        
        BASILYS_LOCATION("warmelt-genobj.bysl:3165: @touch");
@@ -43380,13 +43182,15 @@ BASILYS_LOCATION("warmelt-genobj.bysl:3189: @block");
  /*block*/{
   
   BASILYS_LOCATION("warmelt-genobj.bysl:3194: @getslot");
-  /*_.COMPICACHE__V11*/ curfptr[10] = basilys_getfield_object((basilys_ptr_t)(/*_.GCX__V3*/ curfptr[2]), 6, "GNCX_COMPICACHE");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.GCX__V3*/ curfptr[2]), 6, "GNCX_COMPICACHE");/*_.COMPICACHE__V11*/ curfptr[10] = slot; };
   ;
   /*_.CHOBJ__V12*/ curfptr[11] = 
    (basilys_get_mapobjects((basilysmapobjects_ptr_t)(/*_.COMPICACHE__V11*/ curfptr[10]), (basilysobject_ptr_t)(/*_.NTI__V2*/ curfptr[1])));;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:3196: @getslot");
-  /*_.INIROUT__V13*/ curfptr[12] = basilys_getfield_object((basilys_ptr_t)(/*_.GCX__V3*/ curfptr[2]), 0, "GNCX_OBJROUT");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.GCX__V3*/ curfptr[2]), 0, "GNCX_OBJROUT");/*_.INIROUT__V13*/ curfptr[12] = slot; };
   ;
   
   #if ENABLE_CHECKING
@@ -43519,7 +43323,8 @@ BASILYS_LOCATION("warmelt-genobj.bysl:3189: @block");
   /*block*/{
    
    BASILYS_LOCATION("warmelt-genobj.bysl:3204: @getslot");
-   /*_.NCOMPI__V22*/ curfptr[17] = basilys_getfield_object((basilys_ptr_t)(/*_.NTI__V2*/ curfptr[1]), 5, "NTUP_COMP");
+   { basilys_ptr_t slot=0;
+    basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NTI__V2*/ curfptr[1]), 5, "NTUP_COMP");/*_.NCOMPI__V22*/ curfptr[17] = slot; };
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:3207: @block");
@@ -43551,11 +43356,13 @@ BASILYS_LOCATION("warmelt-genobj.bysl:3189: @block");
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:3208: @getslot");
-   /*_.DISX__V26*/ curfptr[25] = basilys_getfield_object((basilys_ptr_t)(/*_.NTI__V2*/ curfptr[1]), 2, "NDATA_DISCRX");
+   { basilys_ptr_t slot=0;
+    basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NTI__V2*/ curfptr[1]), 2, "NDATA_DISCRX");/*_.DISX__V26*/ curfptr[25] = slot; };
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:3209: @getslot");
-   /*_.DRANK__V27*/ curfptr[26] = basilys_getfield_object((basilys_ptr_t)(/*_.NTI__V2*/ curfptr[1]), 3, "NDATA_RANK");
+   { basilys_ptr_t slot=0;
+    basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NTI__V2*/ curfptr[1]), 3, "NDATA_RANK");/*_.DRANK__V27*/ curfptr[26] = slot; };
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:3210: @msend");
@@ -43570,7 +43377,8 @@ BASILYS_LOCATION("warmelt-genobj.bysl:3189: @block");
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:3211: @getslot");
-   /*_.NAM__V29*/ curfptr[28] = basilys_getfield_object((basilys_ptr_t)(/*_.NTI__V2*/ curfptr[1]), 1, "NDATA_NAME");
+   { basilys_ptr_t slot=0;
+    basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NTI__V2*/ curfptr[1]), 1, "NDATA_NAME");/*_.NAM__V29*/ curfptr[28] = slot; };
    ;
    /*_.NAMBUF__V30*/ curfptr[29] = 
     basilysgc_new_strbuf((basilysobject_ptr_t)((/*!DISCR_STRBUF*/ curfrout->tabval[8])), (char*)0);;
@@ -43589,11 +43397,13 @@ BASILYS_LOCATION("warmelt-genobj.bysl:3189: @block");
     (basilys_get_int((basilys_ptr_t)(/*_.DRANK__V27*/ curfptr[26])));;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:3215: @getslot");
-   /*_.INIBODY__V32*/ curfptr[31] = basilys_getfield_object((basilys_ptr_t)(/*_.INIROUT__V13*/ curfptr[12]), 3, "OBROUT_BODY");
+   { basilys_ptr_t slot=0;
+    basilys_object_get_field(slot,(basilys_ptr_t)(/*_.INIROUT__V13*/ curfptr[12]), 3, "OBROUT_BODY");/*_.INIBODY__V32*/ curfptr[31] = slot; };
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:3216: @getslot");
-   /*_.COMM__V33*/ curfptr[32] = basilys_getfield_object((basilys_ptr_t)((/*!konst_11_INITUP_*/ curfrout->tabval[11])), 1, "NAMED_NAME");
+   { basilys_ptr_t slot=0;
+    basilys_object_get_field(slot,(basilys_ptr_t)((/*!konst_11_INITUP_*/ curfrout->tabval[11])), 1, "NAMED_NAME");/*_.COMM__V33*/ curfptr[32] = slot; };
    ;
    
    basilysgc_add_strbuf((struct basilysstrbuf_st *)(/*_.NAMBUF__V30*/ curfptr[29]), ( "dtup_"));
@@ -43611,7 +43421,8 @@ BASILYS_LOCATION("warmelt-genobj.bysl:3189: @block");
      basilysgc_add_strbuf((struct basilysstrbuf_st *)(/*_.NAMBUF__V30*/ curfptr[29]), ( "__"));
      
      BASILYS_LOCATION("warmelt-genobj.bysl:3222: @getslot");
-     /*_.NAMED_NAME__V34*/ curfptr[33] = basilys_getfield_object((basilys_ptr_t)(/*_.NAM__V29*/ curfptr[28]), 1, "NAMED_NAME");
+     { basilys_ptr_t slot=0;
+      basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NAM__V29*/ curfptr[28]), 1, "NAMED_NAME");/*_.NAMED_NAME__V34*/ curfptr[33] = slot; };
      ;
      
      basilysgc_add_strbuf_cident((struct basilysstrbuf_st *)(/*_.NAMBUF__V30*/ curfptr[29]), basilys_string_str((basilys_ptr_t)(/*_.NAMED_NAME__V34*/ curfptr[33])));
@@ -43636,48 +43447,39 @@ BASILYS_LOCATION("warmelt-genobj.bysl:3189: @block");
     /*block*/{
      
      BASILYS_LOCATION("warmelt-genobj.bysl:3223: @rawallocobj");
-     /*rawallocobj*/ /*_.INST__V38*/ curfptr[37] =
-      basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_OBJINITMULTIPLE*/ curfrout->tabval[12])), (6), ("CLASS_OBJINITMULTIPLE"));
+     /*rawallocobj*/ { basilys_ptr_t newobj = 0;
+      basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_OBJINITMULTIPLE*/ curfrout->tabval[12])), (6), "CLASS_OBJINITMULTIPLE");/*_.INST__V38*/ curfptr[37] =
+      newobj; };
      ;
      
      BASILYS_LOCATION("warmelt-genobj.bysl:3223: @putslot");
      /*putslot*/
      basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V38*/ curfptr[37])) == OBMAG_OBJECT);
-     basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V38*/ curfptr[37]))));
-     ((basilysobject_ptr_t)(/*_.INST__V38*/ curfptr[37]))->obj_vartab[0 /*OBV_TYPE*/] = (basilys_ptr_t)(
-      (/*!CTYPE_VALUE*/ curfrout->tabval[13]));
+     basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V38*/ curfptr[37]))));basilys_putfield_object((/*_.INST__V38*/ curfptr[37]), (0), ((/*!CTYPE_VALUE*/ curfrout->tabval[13])), "OBV_TYPE");
      ;
      
      BASILYS_LOCATION("warmelt-genobj.bysl:3223: @putslot");
      /*putslot*/
      basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V38*/ curfptr[37])) == OBMAG_OBJECT);
-     basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)(/*_.INST__V38*/ curfptr[37]))));
-     ((basilysobject_ptr_t)(/*_.INST__V38*/ curfptr[37]))->obj_vartab[3 /*OIE_DISCR*/] = (basilys_ptr_t)(
-      /*_.ODISCR__V28*/ curfptr[27]);
+     basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)(/*_.INST__V38*/ curfptr[37]))));basilys_putfield_object((/*_.INST__V38*/ curfptr[37]), (3), (/*_.ODISCR__V28*/ curfptr[27]), "OIE_DISCR");
      ;
      
      BASILYS_LOCATION("warmelt-genobj.bysl:3223: @putslot");
      /*putslot*/
      basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V38*/ curfptr[37])) == OBMAG_OBJECT);
-     basilys_assertmsg("putslot checkoff", (4>=0 && 4< basilys_object_length((basilys_ptr_t)(/*_.INST__V38*/ curfptr[37]))));
-     ((basilysobject_ptr_t)(/*_.INST__V38*/ curfptr[37]))->obj_vartab[4 /*OIE_LOCVAR*/] = (basilys_ptr_t)(
-      /*_.LOCVAR__V31*/ curfptr[30]);
+     basilys_assertmsg("putslot checkoff", (4>=0 && 4< basilys_object_length((basilys_ptr_t)(/*_.INST__V38*/ curfptr[37]))));basilys_putfield_object((/*_.INST__V38*/ curfptr[37]), (4), (/*_.LOCVAR__V31*/ curfptr[30]), "OIE_LOCVAR");
      ;
      
      BASILYS_LOCATION("warmelt-genobj.bysl:3223: @putslot");
      /*putslot*/
      basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V38*/ curfptr[37])) == OBMAG_OBJECT);
-     basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V38*/ curfptr[37]))));
-     ((basilysobject_ptr_t)(/*_.INST__V38*/ curfptr[37]))->obj_vartab[1 /*OIE_CNAME*/] = (basilys_ptr_t)(
-      /*_.STRBUF2STRING__V36*/ curfptr[35]);
+     basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V38*/ curfptr[37]))));basilys_putfield_object((/*_.INST__V38*/ curfptr[37]), (1), (/*_.STRBUF2STRING__V36*/ curfptr[35]), "OIE_CNAME");
      ;
      
      BASILYS_LOCATION("warmelt-genobj.bysl:3223: @putslot");
      /*putslot*/
      basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V38*/ curfptr[37])) == OBMAG_OBJECT);
-     basilys_assertmsg("putslot checkoff", (5>=0 && 5< basilys_object_length((basilys_ptr_t)(/*_.INST__V38*/ curfptr[37]))));
-     ((basilysobject_ptr_t)(/*_.INST__V38*/ curfptr[37]))->obj_vartab[5 /*OIM_TUPVAL*/] = (basilys_ptr_t)(
-      /*_.OCOMPI__V25*/ curfptr[24]);
+     basilys_assertmsg("putslot checkoff", (5>=0 && 5< basilys_object_length((basilys_ptr_t)(/*_.INST__V38*/ curfptr[37]))));basilys_putfield_object((/*_.INST__V38*/ curfptr[37]), (5), (/*_.OCOMPI__V25*/ curfptr[24]), "OIM_TUPVAL");
      ;
      /*_.OTUP__V37*/ curfptr[36] = /*_.INST__V38*/ curfptr[37];;}
     ;
@@ -43734,24 +43536,21 @@ BASILYS_LOCATION("warmelt-genobj.bysl:3189: @block");
     /*block*/{
      
      BASILYS_LOCATION("warmelt-genobj.bysl:3245: @rawallocobj");
-     /*rawallocobj*/ /*_.INST__V43*/ curfptr[42] =
-      basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_OBJTOUCH*/ curfrout->tabval[19])), (3), ("CLASS_OBJTOUCH"));
+     /*rawallocobj*/ { basilys_ptr_t newobj = 0;
+      basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_OBJTOUCH*/ curfrout->tabval[19])), (3), "CLASS_OBJTOUCH");/*_.INST__V43*/ curfptr[42] =
+      newobj; };
      ;
      
      BASILYS_LOCATION("warmelt-genobj.bysl:3245: @putslot");
      /*putslot*/
      basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V43*/ curfptr[42])) == OBMAG_OBJECT);
-     basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V43*/ curfptr[42]))));
-     ((basilysobject_ptr_t)(/*_.INST__V43*/ curfptr[42]))->obj_vartab[1 /*OTOUCH_VAL*/] = (basilys_ptr_t)(
-      /*_.OTUP__V37*/ curfptr[36]);
+     basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V43*/ curfptr[42]))));basilys_putfield_object((/*_.INST__V43*/ curfptr[42]), (1), (/*_.OTUP__V37*/ curfptr[36]), "OTOUCH_VAL");
      ;
      
      BASILYS_LOCATION("warmelt-genobj.bysl:3245: @putslot");
      /*putslot*/
      basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V43*/ curfptr[42])) == OBMAG_OBJECT);
-     basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V43*/ curfptr[42]))));
-     ((basilysobject_ptr_t)(/*_.INST__V43*/ curfptr[42]))->obj_vartab[2 /*OTOUCH_COMMENT*/] = (basilys_ptr_t)(
-      /*_.COMM__V33*/ curfptr[32]);
+     basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V43*/ curfptr[42]))));basilys_putfield_object((/*_.INST__V43*/ curfptr[42]), (2), (/*_.COMM__V33*/ curfptr[32]), "OTOUCH_COMMENT");
      ;
      /*_.INST___V42*/ curfptr[41] = /*_.INST__V43*/ curfptr[42];;}
     ;
@@ -44113,32 +43912,27 @@ BASILYS_LOCATION("warmelt-genobj.bysl:3235: @block");
     /*block*/{
      
      BASILYS_LOCATION("warmelt-genobj.bysl:3239: @rawallocobj");
-     /*rawallocobj*/ /*_.INST__V6*/ curfptr[5] =
-      basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_OBJPUTUPLE*/ curfrout->tabval[0])), (4), ("CLASS_OBJPUTUPLE"));
+     /*rawallocobj*/ { basilys_ptr_t newobj = 0;
+      basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_OBJPUTUPLE*/ curfrout->tabval[0])), (4), "CLASS_OBJPUTUPLE");/*_.INST__V6*/ curfptr[5] =
+      newobj; };
      ;
      
      BASILYS_LOCATION("warmelt-genobj.bysl:3239: @putslot");
      /*putslot*/
      basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V6*/ curfptr[5])) == OBMAG_OBJECT);
-     basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V6*/ curfptr[5]))));
-     ((basilysobject_ptr_t)(/*_.INST__V6*/ curfptr[5]))->obj_vartab[1 /*OPUTU_TUPLED*/] = (basilys_ptr_t)(
-      (/*~OTUP*/ curfclos->tabval[2]));
+     basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V6*/ curfptr[5]))));basilys_putfield_object((/*_.INST__V6*/ curfptr[5]), (1), ((/*~OTUP*/ curfclos->tabval[2])), "OPUTU_TUPLED");
      ;
      
      BASILYS_LOCATION("warmelt-genobj.bysl:3239: @putslot");
      /*putslot*/
      basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V6*/ curfptr[5])) == OBMAG_OBJECT);
-     basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V6*/ curfptr[5]))));
-     ((basilysobject_ptr_t)(/*_.INST__V6*/ curfptr[5]))->obj_vartab[2 /*OPUTU_OFFSET*/] = (basilys_ptr_t)(
-      /*_.MAKE_INTEGERBOX__V4*/ curfptr[3]);
+     basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V6*/ curfptr[5]))));basilys_putfield_object((/*_.INST__V6*/ curfptr[5]), (2), (/*_.MAKE_INTEGERBOX__V4*/ curfptr[3]), "OPUTU_OFFSET");
      ;
      
      BASILYS_LOCATION("warmelt-genobj.bysl:3239: @putslot");
      /*putslot*/
      basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V6*/ curfptr[5])) == OBMAG_OBJECT);
-     basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)(/*_.INST__V6*/ curfptr[5]))));
-     ((basilysobject_ptr_t)(/*_.INST__V6*/ curfptr[5]))->obj_vartab[3 /*OPUTU_VALUE*/] = (basilys_ptr_t)(
-      /*_.OCOMP__V3*/ curfptr[2]);
+     basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)(/*_.INST__V6*/ curfptr[5]))));basilys_putfield_object((/*_.INST__V6*/ curfptr[5]), (3), (/*_.OCOMP__V3*/ curfptr[2]), "OPUTU_VALUE");
      ;
      /*_.INST___V5*/ curfptr[4] = /*_.INST__V6*/ curfptr[5];;}
     ;
@@ -44363,11 +44157,13 @@ BASILYS_LOCATION("warmelt-genobj.bysl:3260: @block");
  /*block*/{
   
   BASILYS_LOCATION("warmelt-genobj.bysl:3265: @getslot");
-  /*_.COMPICACHE__V11*/ curfptr[10] = basilys_getfield_object((basilys_ptr_t)(/*_.GCX__V3*/ curfptr[2]), 6, "GNCX_COMPICACHE");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.GCX__V3*/ curfptr[2]), 6, "GNCX_COMPICACHE");/*_.COMPICACHE__V11*/ curfptr[10] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:3266: @getslot");
-  /*_.INIROUT__V12*/ curfptr[11] = basilys_getfield_object((basilys_ptr_t)(/*_.GCX__V3*/ curfptr[2]), 0, "GNCX_OBJROUT");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.GCX__V3*/ curfptr[2]), 0, "GNCX_OBJROUT");/*_.INIROUT__V12*/ curfptr[11] = slot; };
   ;
   /*_.CHOBJ__V13*/ curfptr[12] = 
    (basilys_get_mapobjects((basilysmapobjects_ptr_t)(/*_.COMPICACHE__V11*/ curfptr[10]), (basilysobject_ptr_t)(/*_.NDS__V2*/ curfptr[1])));;
@@ -44504,7 +44300,8 @@ BASILYS_LOCATION("warmelt-genobj.bysl:3260: @block");
     basilysgc_new_strbuf((basilysobject_ptr_t)((/*!DISCR_STRBUF*/ curfrout->tabval[4])), (char*)0);;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:3277: @getslot");
-   /*_.NDISX__V23*/ curfptr[19] = basilys_getfield_object((basilys_ptr_t)(/*_.NDS__V2*/ curfptr[1]), 2, "NDATA_DISCRX");
+   { basilys_ptr_t slot=0;
+    basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NDS__V2*/ curfptr[1]), 2, "NDATA_DISCRX");/*_.NDISX__V23*/ curfptr[19] = slot; };
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:3278: @msend");
@@ -44519,15 +44316,18 @@ BASILYS_LOCATION("warmelt-genobj.bysl:3260: @block");
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:3279: @getslot");
-   /*_.ODATA__V25*/ curfptr[24] = basilys_getfield_object((basilys_ptr_t)(/*_.NDS__V2*/ curfptr[1]), 5, "NSTR_STRING");
+   { basilys_ptr_t slot=0;
+    basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NDS__V2*/ curfptr[1]), 5, "NSTR_STRING");/*_.ODATA__V25*/ curfptr[24] = slot; };
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:3280: @getslot");
-   /*_.DRANK__V26*/ curfptr[25] = basilys_getfield_object((basilys_ptr_t)(/*_.NDS__V2*/ curfptr[1]), 3, "NDATA_RANK");
+   { basilys_ptr_t slot=0;
+    basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NDS__V2*/ curfptr[1]), 3, "NDATA_RANK");/*_.DRANK__V26*/ curfptr[25] = slot; };
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:3281: @getslot");
-   /*_.NAM__V27*/ curfptr[26] = basilys_getfield_object((basilys_ptr_t)(/*_.NDS__V2*/ curfptr[1]), 1, "NDATA_NAME");
+   { basilys_ptr_t slot=0;
+    basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NDS__V2*/ curfptr[1]), 1, "NDATA_NAME");/*_.NAM__V27*/ curfptr[26] = slot; };
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:3282: @apply");
@@ -44547,32 +44347,27 @@ BASILYS_LOCATION("warmelt-genobj.bysl:3260: @block");
    /*block*/{
     
     BASILYS_LOCATION("warmelt-genobj.bysl:3284: @rawallocobj");
-    /*rawallocobj*/ /*_.INST__V30*/ curfptr[29] =
-     basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_OBJINITSTRING*/ curfrout->tabval[8])), (5), ("CLASS_OBJINITSTRING"));
+    /*rawallocobj*/ { basilys_ptr_t newobj = 0;
+     basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_OBJINITSTRING*/ curfrout->tabval[8])), (5), "CLASS_OBJINITSTRING");/*_.INST__V30*/ curfptr[29] =
+     newobj; };
     ;
     
     BASILYS_LOCATION("warmelt-genobj.bysl:3284: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V30*/ curfptr[29])) == OBMAG_OBJECT);
-    basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V30*/ curfptr[29]))));
-    ((basilysobject_ptr_t)(/*_.INST__V30*/ curfptr[29]))->obj_vartab[2 /*OIE_DATA*/] = (basilys_ptr_t)(
-     /*_.ODATA__V25*/ curfptr[24]);
+    basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V30*/ curfptr[29]))));basilys_putfield_object((/*_.INST__V30*/ curfptr[29]), (2), (/*_.ODATA__V25*/ curfptr[24]), "OIE_DATA");
     ;
     
     BASILYS_LOCATION("warmelt-genobj.bysl:3284: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V30*/ curfptr[29])) == OBMAG_OBJECT);
-    basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)(/*_.INST__V30*/ curfptr[29]))));
-    ((basilysobject_ptr_t)(/*_.INST__V30*/ curfptr[29]))->obj_vartab[3 /*OIE_DISCR*/] = (basilys_ptr_t)(
-     /*_.ODISCR__V24*/ curfptr[23]);
+    basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)(/*_.INST__V30*/ curfptr[29]))));basilys_putfield_object((/*_.INST__V30*/ curfptr[29]), (3), (/*_.ODISCR__V24*/ curfptr[23]), "OIE_DISCR");
     ;
     
     BASILYS_LOCATION("warmelt-genobj.bysl:3284: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V30*/ curfptr[29])) == OBMAG_OBJECT);
-    basilys_assertmsg("putslot checkoff", (4>=0 && 4< basilys_object_length((basilys_ptr_t)(/*_.INST__V30*/ curfptr[29]))));
-    ((basilysobject_ptr_t)(/*_.INST__V30*/ curfptr[29]))->obj_vartab[4 /*OIE_LOCVAR*/] = (basilys_ptr_t)(
-     /*_.LOCVAR__V28*/ curfptr[27]);
+    basilys_assertmsg("putslot checkoff", (4>=0 && 4< basilys_object_length((basilys_ptr_t)(/*_.INST__V30*/ curfptr[29]))));basilys_putfield_object((/*_.INST__V30*/ curfptr[29]), (4), (/*_.LOCVAR__V28*/ curfptr[27]), "OIE_LOCVAR");
     ;
     /*_.OSTR__V29*/ curfptr[28] = /*_.INST__V30*/ curfptr[29];;}
    ;
@@ -44602,7 +44397,8 @@ BASILYS_LOCATION("warmelt-genobj.bysl:3260: @block");
      basilysgc_add_strbuf((struct basilysstrbuf_st *)(/*_.NAMBUF__V22*/ curfptr[17]), ( "__"));
      
      BASILYS_LOCATION("warmelt-genobj.bysl:3299: @getslot");
-     /*_.NAMED_NAME__V31*/ curfptr[30] = basilys_getfield_object((basilys_ptr_t)(/*_.NAM__V27*/ curfptr[26]), 1, "NAMED_NAME");
+     { basilys_ptr_t slot=0;
+      basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NAM__V27*/ curfptr[26]), 1, "NAMED_NAME");/*_.NAMED_NAME__V31*/ curfptr[30] = slot; };
      ;
      
      basilysgc_add_strbuf_cident((struct basilysstrbuf_st *)(/*_.NAMBUF__V22*/ curfptr[17]), basilys_string_str((basilys_ptr_t)(/*_.NAMED_NAME__V31*/ curfptr[30])));
@@ -44626,9 +44422,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:3260: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:3300: @putslot");
     /*putslot*/
     basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.OSTR__V29*/ curfptr[28])) == OBMAG_OBJECT);
-    basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.OSTR__V29*/ curfptr[28]))));
-    ((basilysobject_ptr_t)(/*_.OSTR__V29*/ curfptr[28]))->obj_vartab[1 /*OIE_CNAME*/] = (basilys_ptr_t)(
-     /*_.STRBUF2STRING__V32*/ curfptr[30]);
+    basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.OSTR__V29*/ curfptr[28]))));basilys_putfield_object((/*_.OSTR__V29*/ curfptr[28]), (1), (/*_.STRBUF2STRING__V32*/ curfptr[30]), "OIE_CNAME");
     ;
     
     BASILYS_LOCATION("warmelt-genobj.bysl:3300: @touch");
@@ -44962,15 +44756,18 @@ BASILYS_LOCATION("warmelt-genobj.bysl:3309: @block");
  /*block*/{
   
   BASILYS_LOCATION("warmelt-genobj.bysl:3314: @getslot");
-  /*_.COMPICACHE__V11*/ curfptr[10] = basilys_getfield_object((basilys_ptr_t)(/*_.GCX__V3*/ curfptr[2]), 6, "GNCX_COMPICACHE");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.GCX__V3*/ curfptr[2]), 6, "GNCX_COMPICACHE");/*_.COMPICACHE__V11*/ curfptr[10] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:3315: @getslot");
-  /*_.INIROUT__V12*/ curfptr[11] = basilys_getfield_object((basilys_ptr_t)(/*_.GCX__V3*/ curfptr[2]), 0, "GNCX_OBJROUT");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.GCX__V3*/ curfptr[2]), 0, "GNCX_OBJROUT");/*_.INIROUT__V12*/ curfptr[11] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:3316: @getslot");
-  /*_.INIBODY__V13*/ curfptr[12] = basilys_getfield_object((basilys_ptr_t)(/*_.INIROUT__V12*/ curfptr[11]), 3, "OBROUT_BODY");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.INIROUT__V12*/ curfptr[11]), 3, "OBROUT_BODY");/*_.INIBODY__V13*/ curfptr[12] = slot; };
   ;
   /*_.CHOBJ__V14*/ curfptr[13] = 
    (basilys_get_mapobjects((basilysmapobjects_ptr_t)(/*_.COMPICACHE__V11*/ curfptr[10]), (basilysobject_ptr_t)(/*_.NCL__V2*/ curfptr[1])));;
@@ -45105,27 +44902,33 @@ BASILYS_LOCATION("warmelt-genobj.bysl:3309: @block");
   /*block*/{
    
    BASILYS_LOCATION("warmelt-genobj.bysl:3325: @getslot");
-   /*_.NAM__V23*/ curfptr[18] = basilys_getfield_object((basilys_ptr_t)(/*_.NCL__V2*/ curfptr[1]), 1, "NDATA_NAME");
+   { basilys_ptr_t slot=0;
+    basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NCL__V2*/ curfptr[1]), 1, "NDATA_NAME");/*_.NAM__V23*/ curfptr[18] = slot; };
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:3326: @getslot");
-   /*_.DISCX__V24*/ curfptr[20] = basilys_getfield_object((basilys_ptr_t)(/*_.NCL__V2*/ curfptr[1]), 2, "NDATA_DISCRX");
+   { basilys_ptr_t slot=0;
+    basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NCL__V2*/ curfptr[1]), 2, "NDATA_DISCRX");/*_.DISCX__V24*/ curfptr[20] = slot; };
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:3327: @getslot");
-   /*_.NRANK__V25*/ curfptr[24] = basilys_getfield_object((basilys_ptr_t)(/*_.NCL__V2*/ curfptr[1]), 3, "NDATA_RANK");
+   { basilys_ptr_t slot=0;
+    basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NCL__V2*/ curfptr[1]), 3, "NDATA_RANK");/*_.NRANK__V25*/ curfptr[24] = slot; };
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:3328: @getslot");
-   /*_.NLOC__V26*/ curfptr[25] = basilys_getfield_object((basilys_ptr_t)(/*_.NCL__V2*/ curfptr[1]), 0, "NREP_LOC");
+   { basilys_ptr_t slot=0;
+    basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NCL__V2*/ curfptr[1]), 0, "NREP_LOC");/*_.NLOC__V26*/ curfptr[25] = slot; };
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:3329: @getslot");
-   /*_.NPRO__V27*/ curfptr[26] = basilys_getfield_object((basilys_ptr_t)(/*_.NCL__V2*/ curfptr[1]), 5, "NDCLO_PROC");
+   { basilys_ptr_t slot=0;
+    basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NCL__V2*/ curfptr[1]), 5, "NDCLO_PROC");/*_.NPRO__V27*/ curfptr[26] = slot; };
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:3330: @getslot");
-   /*_.NCLOV__V28*/ curfptr[27] = basilys_getfield_object((basilys_ptr_t)(/*_.NCL__V2*/ curfptr[1]), 6, "NDCLO_CLOSV");
+   { basilys_ptr_t slot=0;
+    basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NCL__V2*/ curfptr[1]), 6, "NDCLO_CLOSV");/*_.NCLOV__V28*/ curfptr[27] = slot; };
    ;
    /*_#NBCLOS__L6*/ curfnum[0] = 
     (basilys_multiple_length((basilys_ptr_t)(/*_.NCLOV__V28*/ curfptr[27])));;
@@ -45155,7 +44958,8 @@ BASILYS_LOCATION("warmelt-genobj.bysl:3309: @block");
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:3335: @getslot");
-   /*_.COMM__V32*/ curfptr[31] = basilys_getfield_object((basilys_ptr_t)((/*!konst_8_DATACLOSURE_*/ curfrout->tabval[8])), 1, "NAMED_NAME");
+   { basilys_ptr_t slot=0;
+    basilys_object_get_field(slot,(basilys_ptr_t)((/*!konst_8_DATACLOSURE_*/ curfrout->tabval[8])), 1, "NAMED_NAME");/*_.COMM__V32*/ curfptr[31] = slot; };
    ;
    
    #if ENABLE_CHECKING
@@ -45220,7 +45024,8 @@ BASILYS_LOCATION("warmelt-genobj.bysl:3309: @block");
      basilysgc_add_strbuf((struct basilysstrbuf_st *)(/*_.NAMBUF__V29*/ curfptr[28]), ( "__"));
      
      BASILYS_LOCATION("warmelt-genobj.bysl:3342: @getslot");
-     /*_.NAMED_NAME__V35*/ curfptr[33] = basilys_getfield_object((basilys_ptr_t)(/*_.NAM__V23*/ curfptr[18]), 1, "NAMED_NAME");
+     { basilys_ptr_t slot=0;
+      basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NAM__V23*/ curfptr[18]), 1, "NAMED_NAME");/*_.NAMED_NAME__V35*/ curfptr[33] = slot; };
      ;
      
      basilysgc_add_strbuf_cident((struct basilysstrbuf_st *)(/*_.NAMBUF__V29*/ curfptr[28]), basilys_string_str((basilys_ptr_t)(/*_.NAMED_NAME__V35*/ curfptr[33])));
@@ -45240,7 +45045,8 @@ BASILYS_LOCATION("warmelt-genobj.bysl:3309: @block");
    /*block*/{
     
     BASILYS_LOCATION("warmelt-genobj.bysl:3345: @getslot");
-    /*_.NDATAROU__V37*/ curfptr[36] = basilys_getfield_object((basilys_ptr_t)(/*_.NPRO__V27*/ curfptr[26]), 6, "NRPRO_DATAROUT");
+    { basilys_ptr_t slot=0;
+     basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NPRO__V27*/ curfptr[26]), 6, "NRPRO_DATAROUT");/*_.NDATAROU__V37*/ curfptr[36] = slot; };
     ;
     /*_.STRBUF2STRING__V38*/ curfptr[37] = 
      (basilysgc_new_stringdup((basilysobject_ptr_t)((/*!DISCR_STRING*/ curfrout->tabval[12])), basilys_strbuf_str((basilys_ptr_t)(/*_.NAMBUF__V29*/ curfptr[28]))));;
@@ -45249,48 +45055,39 @@ BASILYS_LOCATION("warmelt-genobj.bysl:3309: @block");
     /*block*/{
      
      BASILYS_LOCATION("warmelt-genobj.bysl:3347: @rawallocobj");
-     /*rawallocobj*/ /*_.INST__V40*/ curfptr[39] =
-      basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_OBJINITCLOSURE*/ curfrout->tabval[10])), (5), ("CLASS_OBJINITCLOSURE"));
+     /*rawallocobj*/ { basilys_ptr_t newobj = 0;
+      basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_OBJINITCLOSURE*/ curfrout->tabval[10])), (5), "CLASS_OBJINITCLOSURE");/*_.INST__V40*/ curfptr[39] =
+      newobj; };
      ;
      
      BASILYS_LOCATION("warmelt-genobj.bysl:3347: @putslot");
      /*putslot*/
      basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V40*/ curfptr[39])) == OBMAG_OBJECT);
-     basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V40*/ curfptr[39]))));
-     ((basilysobject_ptr_t)(/*_.INST__V40*/ curfptr[39]))->obj_vartab[0 /*OBV_TYPE*/] = (basilys_ptr_t)(
-      (/*!CTYPE_VALUE*/ curfrout->tabval[11]));
+     basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V40*/ curfptr[39]))));basilys_putfield_object((/*_.INST__V40*/ curfptr[39]), (0), ((/*!CTYPE_VALUE*/ curfrout->tabval[11])), "OBV_TYPE");
      ;
      
      BASILYS_LOCATION("warmelt-genobj.bysl:3347: @putslot");
      /*putslot*/
      basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V40*/ curfptr[39])) == OBMAG_OBJECT);
-     basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)(/*_.INST__V40*/ curfptr[39]))));
-     ((basilysobject_ptr_t)(/*_.INST__V40*/ curfptr[39]))->obj_vartab[3 /*OIE_DISCR*/] = (basilys_ptr_t)(
-      /*_.ODISCR__V30*/ curfptr[29]);
+     basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)(/*_.INST__V40*/ curfptr[39]))));basilys_putfield_object((/*_.INST__V40*/ curfptr[39]), (3), (/*_.ODISCR__V30*/ curfptr[29]), "OIE_DISCR");
      ;
      
      BASILYS_LOCATION("warmelt-genobj.bysl:3347: @putslot");
      /*putslot*/
      basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V40*/ curfptr[39])) == OBMAG_OBJECT);
-     basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V40*/ curfptr[39]))));
-     ((basilysobject_ptr_t)(/*_.INST__V40*/ curfptr[39]))->obj_vartab[2 /*OIE_DATA*/] = (basilys_ptr_t)(
-      /*_.NCL__V2*/ curfptr[1]);
+     basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V40*/ curfptr[39]))));basilys_putfield_object((/*_.INST__V40*/ curfptr[39]), (2), (/*_.NCL__V2*/ curfptr[1]), "OIE_DATA");
      ;
      
      BASILYS_LOCATION("warmelt-genobj.bysl:3347: @putslot");
      /*putslot*/
      basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V40*/ curfptr[39])) == OBMAG_OBJECT);
-     basilys_assertmsg("putslot checkoff", (4>=0 && 4< basilys_object_length((basilys_ptr_t)(/*_.INST__V40*/ curfptr[39]))));
-     ((basilysobject_ptr_t)(/*_.INST__V40*/ curfptr[39]))->obj_vartab[4 /*OIE_LOCVAR*/] = (basilys_ptr_t)(
-      /*_.LOCVAR__V31*/ curfptr[30]);
+     basilys_assertmsg("putslot checkoff", (4>=0 && 4< basilys_object_length((basilys_ptr_t)(/*_.INST__V40*/ curfptr[39]))));basilys_putfield_object((/*_.INST__V40*/ curfptr[39]), (4), (/*_.LOCVAR__V31*/ curfptr[30]), "OIE_LOCVAR");
      ;
      
      BASILYS_LOCATION("warmelt-genobj.bysl:3347: @putslot");
      /*putslot*/
      basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V40*/ curfptr[39])) == OBMAG_OBJECT);
-     basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V40*/ curfptr[39]))));
-     ((basilysobject_ptr_t)(/*_.INST__V40*/ curfptr[39]))->obj_vartab[1 /*OIE_CNAME*/] = (basilys_ptr_t)(
-      /*_.STRBUF2STRING__V38*/ curfptr[37]);
+     basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V40*/ curfptr[39]))));basilys_putfield_object((/*_.INST__V40*/ curfptr[39]), (1), (/*_.STRBUF2STRING__V38*/ curfptr[37]), "OIE_CNAME");
      ;
      /*_.OICLO__V39*/ curfptr[38] = /*_.INST__V40*/ curfptr[39];;}
     ;
@@ -45364,32 +45161,27 @@ BASILYS_LOCATION("warmelt-genobj.bysl:3309: @block");
      /*block*/{
       
       BASILYS_LOCATION("warmelt-genobj.bysl:3362: @rawallocobj");
-      /*rawallocobj*/ /*_.INST__V47*/ curfptr[46] =
-       basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_OBJPUTCLOSUROUT*/ curfrout->tabval[14])), (3), ("CLASS_OBJPUTCLOSUROUT"));
+      /*rawallocobj*/ { basilys_ptr_t newobj = 0;
+       basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_OBJPUTCLOSUROUT*/ curfrout->tabval[14])), (3), "CLASS_OBJPUTCLOSUROUT");/*_.INST__V47*/ curfptr[46] =
+       newobj; };
       ;
       
       BASILYS_LOCATION("warmelt-genobj.bysl:3362: @putslot");
       /*putslot*/
       basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V47*/ curfptr[46])) == OBMAG_OBJECT);
-      basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V47*/ curfptr[46]))));
-      ((basilysobject_ptr_t)(/*_.INST__V47*/ curfptr[46]))->obj_vartab[0 /*OBI_LOC*/] = (basilys_ptr_t)(
-       /*_.NLOC__V26*/ curfptr[25]);
+      basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V47*/ curfptr[46]))));basilys_putfield_object((/*_.INST__V47*/ curfptr[46]), (0), (/*_.NLOC__V26*/ curfptr[25]), "OBI_LOC");
       ;
       
       BASILYS_LOCATION("warmelt-genobj.bysl:3362: @putslot");
       /*putslot*/
       basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V47*/ curfptr[46])) == OBMAG_OBJECT);
-      basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V47*/ curfptr[46]))));
-      ((basilysobject_ptr_t)(/*_.INST__V47*/ curfptr[46]))->obj_vartab[1 /*OPCLOR_CLOS*/] = (basilys_ptr_t)(
-       /*_.OICLO__V39*/ curfptr[38]);
+      basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V47*/ curfptr[46]))));basilys_putfield_object((/*_.INST__V47*/ curfptr[46]), (1), (/*_.OICLO__V39*/ curfptr[38]), "OPCLOR_CLOS");
       ;
       
       BASILYS_LOCATION("warmelt-genobj.bysl:3362: @putslot");
       /*putslot*/
       basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V47*/ curfptr[46])) == OBMAG_OBJECT);
-      basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V47*/ curfptr[46]))));
-      ((basilysobject_ptr_t)(/*_.INST__V47*/ curfptr[46]))->obj_vartab[2 /*OPCLOR_ROUT*/] = (basilys_ptr_t)(
-       /*_.ODATROUT__V45*/ curfptr[44]);
+      basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V47*/ curfptr[46]))));basilys_putfield_object((/*_.INST__V47*/ curfptr[46]), (2), (/*_.ODATROUT__V45*/ curfptr[44]), "OPCLOR_ROUT");
       ;
       /*_.OCPUTROUT__V46*/ curfptr[45] = /*_.INST__V47*/ curfptr[46];;}
      ;
@@ -45585,32 +45377,27 @@ BASILYS_LOCATION("warmelt-genobj.bysl:3309: @block");
      /*block*/{
       
       BASILYS_LOCATION("warmelt-genobj.bysl:3387: @rawallocobj");
-      /*rawallocobj*/ /*_.INST__V59*/ curfptr[58] =
-       basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_OBJTOUCH*/ curfrout->tabval[22])), (3), ("CLASS_OBJTOUCH"));
+      /*rawallocobj*/ { basilys_ptr_t newobj = 0;
+       basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_OBJTOUCH*/ curfrout->tabval[22])), (3), "CLASS_OBJTOUCH");/*_.INST__V59*/ curfptr[58] =
+       newobj; };
       ;
       
       BASILYS_LOCATION("warmelt-genobj.bysl:3387: @putslot");
       /*putslot*/
       basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V59*/ curfptr[58])) == OBMAG_OBJECT);
-      basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V59*/ curfptr[58]))));
-      ((basilysobject_ptr_t)(/*_.INST__V59*/ curfptr[58]))->obj_vartab[0 /*OBI_LOC*/] = (basilys_ptr_t)(
-       /*_.NLOC__V26*/ curfptr[25]);
+      basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V59*/ curfptr[58]))));basilys_putfield_object((/*_.INST__V59*/ curfptr[58]), (0), (/*_.NLOC__V26*/ curfptr[25]), "OBI_LOC");
       ;
       
       BASILYS_LOCATION("warmelt-genobj.bysl:3387: @putslot");
       /*putslot*/
       basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V59*/ curfptr[58])) == OBMAG_OBJECT);
-      basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V59*/ curfptr[58]))));
-      ((basilysobject_ptr_t)(/*_.INST__V59*/ curfptr[58]))->obj_vartab[2 /*OTOUCH_COMMENT*/] = (basilys_ptr_t)(
-       /*_.COMM__V32*/ curfptr[31]);
+      basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V59*/ curfptr[58]))));basilys_putfield_object((/*_.INST__V59*/ curfptr[58]), (2), (/*_.COMM__V32*/ curfptr[31]), "OTOUCH_COMMENT");
       ;
       
       BASILYS_LOCATION("warmelt-genobj.bysl:3387: @putslot");
       /*putslot*/
       basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V59*/ curfptr[58])) == OBMAG_OBJECT);
-      basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V59*/ curfptr[58]))));
-      ((basilysobject_ptr_t)(/*_.INST__V59*/ curfptr[58]))->obj_vartab[1 /*OTOUCH_VAL*/] = (basilys_ptr_t)(
-       /*_.OICLO__V39*/ curfptr[38]);
+      basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V59*/ curfptr[58]))));basilys_putfield_object((/*_.INST__V59*/ curfptr[58]), (1), (/*_.OICLO__V39*/ curfptr[38]), "OTOUCH_VAL");
       ;
       /*_.INST___V58*/ curfptr[57] = /*_.INST__V59*/ curfptr[58];;}
      ;
@@ -45846,40 +45633,33 @@ BASILYS_LOCATION("warmelt-genobj.bysl:3376: @block");
   /*block*/{
    
    BASILYS_LOCATION("warmelt-genobj.bysl:3378: @rawallocobj");
-   /*rawallocobj*/ /*_.INST__V6*/ curfptr[5] =
-    basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_OBJPUTCLOSEDV*/ curfrout->tabval[1])), (4), ("CLASS_OBJPUTCLOSEDV"));
+   /*rawallocobj*/ { basilys_ptr_t newobj = 0;
+    basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_OBJPUTCLOSEDV*/ curfrout->tabval[1])), (4), "CLASS_OBJPUTCLOSEDV");/*_.INST__V6*/ curfptr[5] =
+    newobj; };
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:3378: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V6*/ curfptr[5])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V6*/ curfptr[5]))));
-   ((basilysobject_ptr_t)(/*_.INST__V6*/ curfptr[5]))->obj_vartab[0 /*OBI_LOC*/] = (basilys_ptr_t)(
-    (/*~NLOC*/ curfclos->tabval[1]));
+   basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V6*/ curfptr[5]))));basilys_putfield_object((/*_.INST__V6*/ curfptr[5]), (0), ((/*~NLOC*/ curfclos->tabval[1])), "OBI_LOC");
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:3378: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V6*/ curfptr[5])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V6*/ curfptr[5]))));
-   ((basilysobject_ptr_t)(/*_.INST__V6*/ curfptr[5]))->obj_vartab[1 /*OPCLOV_CLOS*/] = (basilys_ptr_t)(
-    (/*~OICLO*/ curfclos->tabval[2]));
+   basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V6*/ curfptr[5]))));basilys_putfield_object((/*_.INST__V6*/ curfptr[5]), (1), ((/*~OICLO*/ curfclos->tabval[2])), "OPCLOV_CLOS");
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:3378: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V6*/ curfptr[5])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V6*/ curfptr[5]))));
-   ((basilysobject_ptr_t)(/*_.INST__V6*/ curfptr[5]))->obj_vartab[2 /*OPCLOV_OFF*/] = (basilys_ptr_t)(
-    /*_.MAKE_INTEGERBOX__V4*/ curfptr[3]);
+   basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V6*/ curfptr[5]))));basilys_putfield_object((/*_.INST__V6*/ curfptr[5]), (2), (/*_.MAKE_INTEGERBOX__V4*/ curfptr[3]), "OPCLOV_OFF");
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:3378: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V6*/ curfptr[5])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)(/*_.INST__V6*/ curfptr[5]))));
-   ((basilysobject_ptr_t)(/*_.INST__V6*/ curfptr[5]))->obj_vartab[3 /*OPCLOV_CVAL*/] = (basilys_ptr_t)(
-    /*_.CLOVAL__V3*/ curfptr[2]);
+   basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)(/*_.INST__V6*/ curfptr[5]))));basilys_putfield_object((/*_.INST__V6*/ curfptr[5]), (3), (/*_.CLOVAL__V3*/ curfptr[2]), "OPCLOV_CVAL");
    ;
    /*_.OCPUTCLOS__V5*/ curfptr[4] = /*_.INST__V6*/ curfptr[5];;}
   ;
@@ -46115,11 +45895,13 @@ BASILYS_LOCATION("warmelt-genobj.bysl:3400: @block");
  /*block*/{
   
   BASILYS_LOCATION("warmelt-genobj.bysl:3405: @getslot");
-  /*_.COMPICACHE__V11*/ curfptr[10] = basilys_getfield_object((basilys_ptr_t)(/*_.GCX__V3*/ curfptr[2]), 6, "GNCX_COMPICACHE");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.GCX__V3*/ curfptr[2]), 6, "GNCX_COMPICACHE");/*_.COMPICACHE__V11*/ curfptr[10] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:3406: @getslot");
-  /*_.INIROUT__V12*/ curfptr[11] = basilys_getfield_object((basilys_ptr_t)(/*_.GCX__V3*/ curfptr[2]), 0, "GNCX_OBJROUT");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.GCX__V3*/ curfptr[2]), 0, "GNCX_OBJROUT");/*_.INIROUT__V12*/ curfptr[11] = slot; };
   ;
   /*_.CHOBJ__V13*/ curfptr[12] = 
    (basilys_get_mapobjects((basilysmapobjects_ptr_t)(/*_.COMPICACHE__V11*/ curfptr[10]), (basilysobject_ptr_t)(/*_.NDROU__V2*/ curfptr[1])));;
@@ -46255,31 +46037,38 @@ BASILYS_LOCATION("warmelt-genobj.bysl:3400: @block");
   /*block*/{
    
    BASILYS_LOCATION("warmelt-genobj.bysl:3416: @getslot");
-   /*_.NAM__V23*/ curfptr[18] = basilys_getfield_object((basilys_ptr_t)(/*_.NDROU__V2*/ curfptr[1]), 1, "NDATA_NAME");
+   { basilys_ptr_t slot=0;
+    basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NDROU__V2*/ curfptr[1]), 1, "NDATA_NAME");/*_.NAM__V23*/ curfptr[18] = slot; };
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:3417: @getslot");
-   /*_.DISX__V24*/ curfptr[20] = basilys_getfield_object((basilys_ptr_t)(/*_.NDROU__V2*/ curfptr[1]), 2, "NDATA_DISCRX");
+   { basilys_ptr_t slot=0;
+    basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NDROU__V2*/ curfptr[1]), 2, "NDATA_DISCRX");/*_.DISX__V24*/ curfptr[20] = slot; };
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:3418: @getslot");
-   /*_.NLOC__V25*/ curfptr[24] = basilys_getfield_object((basilys_ptr_t)(/*_.NDROU__V2*/ curfptr[1]), 0, "NREP_LOC");
+   { basilys_ptr_t slot=0;
+    basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NDROU__V2*/ curfptr[1]), 0, "NREP_LOC");/*_.NLOC__V25*/ curfptr[24] = slot; };
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:3419: @getslot");
-   /*_.DRANK__V26*/ curfptr[25] = basilys_getfield_object((basilys_ptr_t)(/*_.NDROU__V2*/ curfptr[1]), 3, "NDATA_RANK");
+   { basilys_ptr_t slot=0;
+    basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NDROU__V2*/ curfptr[1]), 3, "NDATA_RANK");/*_.DRANK__V26*/ curfptr[25] = slot; };
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:3420: @getslot");
-   /*_.NAM__V27*/ curfptr[26] = basilys_getfield_object((basilys_ptr_t)(/*_.NDROU__V2*/ curfptr[1]), 1, "NDATA_NAME");
+   { basilys_ptr_t slot=0;
+    basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NDROU__V2*/ curfptr[1]), 1, "NDATA_NAME");/*_.NAM__V27*/ curfptr[26] = slot; };
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:3421: @getslot");
-   /*_.NPRO__V28*/ curfptr[27] = basilys_getfield_object((basilys_ptr_t)(/*_.NDROU__V2*/ curfptr[1]), 5, "NDROU_PROC");
+   { basilys_ptr_t slot=0;
+    basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NDROU__V2*/ curfptr[1]), 5, "NDROU_PROC");/*_.NPRO__V28*/ curfptr[27] = slot; };
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:3422: @getslot");
-   /*_.INIBODY__V29*/ curfptr[28] = basilys_getfield_object((basilys_ptr_t)(/*_.INIROUT__V12*/ curfptr[11]), 3, "OBROUT_BODY");
+   { basilys_ptr_t slot=0;
+    basilys_object_get_field(slot,(basilys_ptr_t)(/*_.INIROUT__V12*/ curfptr[11]), 3, "OBROUT_BODY");/*_.INIBODY__V29*/ curfptr[28] = slot; };
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:3423: @apply");
@@ -46314,7 +46103,8 @@ BASILYS_LOCATION("warmelt-genobj.bysl:3400: @block");
       /*block*/{
        
        BASILYS_LOCATION("warmelt-genobj.bysl:3427: @getslot");
-       /*_.NREP_LOC__V33*/ curfptr[32] = basilys_getfield_object((basilys_ptr_t)(/*_.NPRO__V28*/ curfptr[27]), 0, "NREP_LOC");
+       { basilys_ptr_t slot=0;
+        basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NPRO__V28*/ curfptr[27]), 0, "NREP_LOC");/*_.NREP_LOC__V33*/ curfptr[32] = slot; };
        ;
        
        BASILYS_LOCATION("warmelt-genobj.bysl:3427: @compute");
@@ -46428,7 +46218,8 @@ BASILYS_LOCATION("warmelt-genobj.bysl:3400: @block");
       basilysgc_add_strbuf((struct basilysstrbuf_st *)(/*_.NAMBUF__V38*/ curfptr[33]), ( "__"));
       
       BASILYS_LOCATION("warmelt-genobj.bysl:3438: @getslot");
-      /*_.NAMED_NAME__V40*/ curfptr[39] = basilys_getfield_object((basilys_ptr_t)(/*_.NAM__V27*/ curfptr[26]), 1, "NAMED_NAME");
+      { basilys_ptr_t slot=0;
+       basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NAM__V27*/ curfptr[26]), 1, "NAMED_NAME");/*_.NAMED_NAME__V40*/ curfptr[39] = slot; };
       ;
       
       basilysgc_add_strbuf_cident((struct basilysstrbuf_st *)(/*_.NAMBUF__V38*/ curfptr[33]), basilys_string_str((basilys_ptr_t)(/*_.NAMED_NAME__V40*/ curfptr[39])));
@@ -46455,56 +46246,45 @@ BASILYS_LOCATION("warmelt-genobj.bysl:3400: @block");
      /*block*/{
       
       BASILYS_LOCATION("warmelt-genobj.bysl:3442: @rawallocobj");
-      /*rawallocobj*/ /*_.INST__V45*/ curfptr[44] =
-       basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_OBJINITROUTINE*/ curfrout->tabval[9])), (6), ("CLASS_OBJINITROUTINE"));
+      /*rawallocobj*/ { basilys_ptr_t newobj = 0;
+       basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_OBJINITROUTINE*/ curfrout->tabval[9])), (6), "CLASS_OBJINITROUTINE");/*_.INST__V45*/ curfptr[44] =
+       newobj; };
       ;
       
       BASILYS_LOCATION("warmelt-genobj.bysl:3442: @putslot");
       /*putslot*/
       basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V45*/ curfptr[44])) == OBMAG_OBJECT);
-      basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V45*/ curfptr[44]))));
-      ((basilysobject_ptr_t)(/*_.INST__V45*/ curfptr[44]))->obj_vartab[0 /*OBV_TYPE*/] = (basilys_ptr_t)(
-       (/*!CTYPE_VALUE*/ curfrout->tabval[10]));
+      basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V45*/ curfptr[44]))));basilys_putfield_object((/*_.INST__V45*/ curfptr[44]), (0), ((/*!CTYPE_VALUE*/ curfrout->tabval[10])), "OBV_TYPE");
       ;
       
       BASILYS_LOCATION("warmelt-genobj.bysl:3442: @putslot");
       /*putslot*/
       basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V45*/ curfptr[44])) == OBMAG_OBJECT);
-      basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)(/*_.INST__V45*/ curfptr[44]))));
-      ((basilysobject_ptr_t)(/*_.INST__V45*/ curfptr[44]))->obj_vartab[3 /*OIE_DISCR*/] = (basilys_ptr_t)(
-       /*_.ODISCR__V39*/ curfptr[38]);
+      basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)(/*_.INST__V45*/ curfptr[44]))));basilys_putfield_object((/*_.INST__V45*/ curfptr[44]), (3), (/*_.ODISCR__V39*/ curfptr[38]), "OIE_DISCR");
       ;
       
       BASILYS_LOCATION("warmelt-genobj.bysl:3442: @putslot");
       /*putslot*/
       basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V45*/ curfptr[44])) == OBMAG_OBJECT);
-      basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V45*/ curfptr[44]))));
-      ((basilysobject_ptr_t)(/*_.INST__V45*/ curfptr[44]))->obj_vartab[2 /*OIE_DATA*/] = (basilys_ptr_t)(
-       /*_.NDROU__V2*/ curfptr[1]);
+      basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V45*/ curfptr[44]))));basilys_putfield_object((/*_.INST__V45*/ curfptr[44]), (2), (/*_.NDROU__V2*/ curfptr[1]), "OIE_DATA");
       ;
       
       BASILYS_LOCATION("warmelt-genobj.bysl:3442: @putslot");
       /*putslot*/
       basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V45*/ curfptr[44])) == OBMAG_OBJECT);
-      basilys_assertmsg("putslot checkoff", (4>=0 && 4< basilys_object_length((basilys_ptr_t)(/*_.INST__V45*/ curfptr[44]))));
-      ((basilysobject_ptr_t)(/*_.INST__V45*/ curfptr[44]))->obj_vartab[4 /*OIE_LOCVAR*/] = (basilys_ptr_t)(
-       /*_.LOCVAR__V30*/ curfptr[29]);
+      basilys_assertmsg("putslot checkoff", (4>=0 && 4< basilys_object_length((basilys_ptr_t)(/*_.INST__V45*/ curfptr[44]))));basilys_putfield_object((/*_.INST__V45*/ curfptr[44]), (4), (/*_.LOCVAR__V30*/ curfptr[29]), "OIE_LOCVAR");
       ;
       
       BASILYS_LOCATION("warmelt-genobj.bysl:3442: @putslot");
       /*putslot*/
       basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V45*/ curfptr[44])) == OBMAG_OBJECT);
-      basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V45*/ curfptr[44]))));
-      ((basilysobject_ptr_t)(/*_.INST__V45*/ curfptr[44]))->obj_vartab[1 /*OIE_CNAME*/] = (basilys_ptr_t)(
-       /*_.STRBUF2STRING__V42*/ curfptr[41]);
+      basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V45*/ curfptr[44]))));basilys_putfield_object((/*_.INST__V45*/ curfptr[44]), (1), (/*_.STRBUF2STRING__V42*/ curfptr[41]), "OIE_CNAME");
       ;
       
       BASILYS_LOCATION("warmelt-genobj.bysl:3442: @putslot");
       /*putslot*/
       basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V45*/ curfptr[44])) == OBMAG_OBJECT);
-      basilys_assertmsg("putslot checkoff", (5>=0 && 5< basilys_object_length((basilys_ptr_t)(/*_.INST__V45*/ curfptr[44]))));
-      ((basilysobject_ptr_t)(/*_.INST__V45*/ curfptr[44]))->obj_vartab[5 /*OIR_PROCROUTINE*/] = (basilys_ptr_t)(
-       /*_.MAPOBJECT_GET__V43*/ curfptr[42]);
+      basilys_assertmsg("putslot checkoff", (5>=0 && 5< basilys_object_length((basilys_ptr_t)(/*_.INST__V45*/ curfptr[44]))));basilys_putfield_object((/*_.INST__V45*/ curfptr[44]), (5), (/*_.MAPOBJECT_GET__V43*/ curfptr[42]), "OIR_PROCROUTINE");
       ;
       /*_.OIROUT__V44*/ curfptr[43] = /*_.INST__V45*/ curfptr[44];;}
      ;
@@ -46525,7 +46305,8 @@ BASILYS_LOCATION("warmelt-genobj.bysl:3400: @block");
        /*block*/{
         
         BASILYS_LOCATION("warmelt-genobj.bysl:3453: @getslot");
-        /*_.PCONSTL__V48*/ curfptr[47] = basilys_getfield_object((basilys_ptr_t)(/*_.NPRO__V28*/ curfptr[27]), 5, "NRPRO_CONST");
+        { basilys_ptr_t slot=0;
+         basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NPRO__V28*/ curfptr[27]), 5, "NRPRO_CONST");/*_.PCONSTL__V48*/ curfptr[47] = slot; };
         ;
         /*_#NBCONST__L11*/ curfnum[10] = 
          (basilys_list_length((basilys_ptr_t)(/*_.PCONSTL__V48*/ curfptr[47])));;
@@ -46533,7 +46314,8 @@ BASILYS_LOCATION("warmelt-genobj.bysl:3400: @block");
          (basilysgc_new_int((basilysobject_ptr_t)((/*!DISCR_INTEGER*/ curfrout->tabval[13])), (0)));;
         
         BASILYS_LOCATION("warmelt-genobj.bysl:3456: @getslot");
-        /*_.COMM__V50*/ curfptr[49] = basilys_getfield_object((basilys_ptr_t)((/*!konst_14_IROUTVAL_*/ curfrout->tabval[14])), 1, "NAMED_NAME");
+        { basilys_ptr_t slot=0;
+         basilys_object_get_field(slot,(basilys_ptr_t)((/*!konst_14_IROUTVAL_*/ curfrout->tabval[14])), 1, "NAMED_NAME");/*_.COMM__V50*/ curfptr[49] = slot; };
         ;
         
         #if ENABLE_CHECKING
@@ -46651,32 +46433,27 @@ BASILYS_LOCATION("warmelt-genobj.bysl:3400: @block");
           /*block*/{
            
            BASILYS_LOCATION("warmelt-genobj.bysl:3513: @rawallocobj");
-           /*rawallocobj*/ /*_.INST__V57*/ curfptr[56] =
-            basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_OBJTOUCH*/ curfrout->tabval[26])), (3), ("CLASS_OBJTOUCH"));
+           /*rawallocobj*/ { basilys_ptr_t newobj = 0;
+            basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_OBJTOUCH*/ curfrout->tabval[26])), (3), "CLASS_OBJTOUCH");/*_.INST__V57*/ curfptr[56] =
+            newobj; };
            ;
            
            BASILYS_LOCATION("warmelt-genobj.bysl:3513: @putslot");
            /*putslot*/
            basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V57*/ curfptr[56])) == OBMAG_OBJECT);
-           basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V57*/ curfptr[56]))));
-           ((basilysobject_ptr_t)(/*_.INST__V57*/ curfptr[56]))->obj_vartab[0 /*OBI_LOC*/] = (basilys_ptr_t)(
-            /*_.NLOC__V25*/ curfptr[24]);
+           basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V57*/ curfptr[56]))));basilys_putfield_object((/*_.INST__V57*/ curfptr[56]), (0), (/*_.NLOC__V25*/ curfptr[24]), "OBI_LOC");
            ;
            
            BASILYS_LOCATION("warmelt-genobj.bysl:3513: @putslot");
            /*putslot*/
            basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V57*/ curfptr[56])) == OBMAG_OBJECT);
-           basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V57*/ curfptr[56]))));
-           ((basilysobject_ptr_t)(/*_.INST__V57*/ curfptr[56]))->obj_vartab[1 /*OTOUCH_VAL*/] = (basilys_ptr_t)(
-            /*_.OIROUT__V44*/ curfptr[43]);
+           basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V57*/ curfptr[56]))));basilys_putfield_object((/*_.INST__V57*/ curfptr[56]), (1), (/*_.OIROUT__V44*/ curfptr[43]), "OTOUCH_VAL");
            ;
            
            BASILYS_LOCATION("warmelt-genobj.bysl:3513: @putslot");
            /*putslot*/
            basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V57*/ curfptr[56])) == OBMAG_OBJECT);
-           basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V57*/ curfptr[56]))));
-           ((basilysobject_ptr_t)(/*_.INST__V57*/ curfptr[56]))->obj_vartab[2 /*OTOUCH_COMMENT*/] = (basilys_ptr_t)(
-            /*_.COMM__V50*/ curfptr[49]);
+           basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V57*/ curfptr[56]))));basilys_putfield_object((/*_.INST__V57*/ curfptr[56]), (2), (/*_.COMM__V50*/ curfptr[49]), "OTOUCH_COMMENT");
            ;
            /*_.INST___V56*/ curfptr[55] = /*_.INST__V57*/ curfptr[56];;}
           ;
@@ -47052,7 +46829,8 @@ BASILYS_LOCATION("warmelt-genobj.bysl:3462: @block");
    /*block*/{
     
     BASILYS_LOCATION("warmelt-genobj.bysl:3466: @getslot");
-    /*_.CNSTBIND__V6*/ curfptr[5] = basilys_getfield_object((basilys_ptr_t)(/*_.CONSTX__V2*/ curfptr[1]), 3, "NOCC_BIND");
+    { basilys_ptr_t slot=0;
+     basilys_object_get_field(slot,(basilys_ptr_t)(/*_.CONSTX__V2*/ curfptr[1]), 3, "NOCC_BIND");/*_.CNSTBIND__V6*/ curfptr[5] = slot; };
     ;
     
     #if ENABLE_CHECKING
@@ -47143,40 +46921,33 @@ BASILYS_LOCATION("warmelt-genobj.bysl:3462: @block");
           /*block*/{
            
            BASILYS_LOCATION("warmelt-genobj.bysl:3476: @rawallocobj");
-           /*rawallocobj*/ /*_.INST__V13*/ curfptr[12] =
-            basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_OBJPUTROUTCONSTNOTNULL*/ curfrout->tabval[5])), (4), ("CLASS_OBJPUTROUTCONSTNOTNULL"));
+           /*rawallocobj*/ { basilys_ptr_t newobj = 0;
+            basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_OBJPUTROUTCONSTNOTNULL*/ curfrout->tabval[5])), (4), "CLASS_OBJPUTROUTCONSTNOTNULL");/*_.INST__V13*/ curfptr[12] =
+            newobj; };
            ;
            
            BASILYS_LOCATION("warmelt-genobj.bysl:3476: @putslot");
            /*putslot*/
            basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V13*/ curfptr[12])) == OBMAG_OBJECT);
-           basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V13*/ curfptr[12]))));
-           ((basilysobject_ptr_t)(/*_.INST__V13*/ curfptr[12]))->obj_vartab[0 /*OBI_LOC*/] = (basilys_ptr_t)(
-            (/*~NLOC*/ curfclos->tabval[2]));
+           basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V13*/ curfptr[12]))));basilys_putfield_object((/*_.INST__V13*/ curfptr[12]), (0), ((/*~NLOC*/ curfclos->tabval[2])), "OBI_LOC");
            ;
            
            BASILYS_LOCATION("warmelt-genobj.bysl:3476: @putslot");
            /*putslot*/
            basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V13*/ curfptr[12])) == OBMAG_OBJECT);
-           basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V13*/ curfptr[12]))));
-           ((basilysobject_ptr_t)(/*_.INST__V13*/ curfptr[12]))->obj_vartab[1 /*OPRCONST_ROUT*/] = (basilys_ptr_t)(
-            (/*~OIROUT*/ curfclos->tabval[3]));
+           basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V13*/ curfptr[12]))));basilys_putfield_object((/*_.INST__V13*/ curfptr[12]), (1), ((/*~OIROUT*/ curfclos->tabval[3])), "OPRCONST_ROUT");
            ;
            
            BASILYS_LOCATION("warmelt-genobj.bysl:3476: @putslot");
            /*putslot*/
            basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V13*/ curfptr[12])) == OBMAG_OBJECT);
-           basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V13*/ curfptr[12]))));
-           ((basilysobject_ptr_t)(/*_.INST__V13*/ curfptr[12]))->obj_vartab[2 /*OPRCONST_OFF*/] = (basilys_ptr_t)(
-            /*_.MAKE_INTEGERBOX__V11*/ curfptr[10]);
+           basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V13*/ curfptr[12]))));basilys_putfield_object((/*_.INST__V13*/ curfptr[12]), (2), (/*_.MAKE_INTEGERBOX__V11*/ curfptr[10]), "OPRCONST_OFF");
            ;
            
            BASILYS_LOCATION("warmelt-genobj.bysl:3476: @putslot");
            /*putslot*/
            basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V13*/ curfptr[12])) == OBMAG_OBJECT);
-           basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)(/*_.INST__V13*/ curfptr[12]))));
-           ((basilysobject_ptr_t)(/*_.INST__V13*/ curfptr[12]))->obj_vartab[3 /*OPRCONST_CVAL*/] = (basilys_ptr_t)(
-            /*_.OCONSTX__V9*/ curfptr[7]);
+           basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)(/*_.INST__V13*/ curfptr[12]))));basilys_putfield_object((/*_.INST__V13*/ curfptr[12]), (3), (/*_.OCONSTX__V9*/ curfptr[7]), "OPRCONST_CVAL");
            ;
            /*_.INST___V12*/ curfptr[11] = /*_.INST__V13*/ curfptr[12];;}
           ;
@@ -47202,40 +46973,33 @@ BASILYS_LOCATION("warmelt-genobj.bysl:3462: @block");
           /*block*/{
            
            BASILYS_LOCATION("warmelt-genobj.bysl:3481: @rawallocobj");
-           /*rawallocobj*/ /*_.INST__V16*/ curfptr[15] =
-            basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_OBJPUTROUTCONST*/ curfrout->tabval[7])), (4), ("CLASS_OBJPUTROUTCONST"));
+           /*rawallocobj*/ { basilys_ptr_t newobj = 0;
+            basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_OBJPUTROUTCONST*/ curfrout->tabval[7])), (4), "CLASS_OBJPUTROUTCONST");/*_.INST__V16*/ curfptr[15] =
+            newobj; };
            ;
            
            BASILYS_LOCATION("warmelt-genobj.bysl:3481: @putslot");
            /*putslot*/
            basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V16*/ curfptr[15])) == OBMAG_OBJECT);
-           basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V16*/ curfptr[15]))));
-           ((basilysobject_ptr_t)(/*_.INST__V16*/ curfptr[15]))->obj_vartab[0 /*OBI_LOC*/] = (basilys_ptr_t)(
-            (/*~NLOC*/ curfclos->tabval[2]));
+           basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V16*/ curfptr[15]))));basilys_putfield_object((/*_.INST__V16*/ curfptr[15]), (0), ((/*~NLOC*/ curfclos->tabval[2])), "OBI_LOC");
            ;
            
            BASILYS_LOCATION("warmelt-genobj.bysl:3481: @putslot");
            /*putslot*/
            basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V16*/ curfptr[15])) == OBMAG_OBJECT);
-           basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V16*/ curfptr[15]))));
-           ((basilysobject_ptr_t)(/*_.INST__V16*/ curfptr[15]))->obj_vartab[1 /*OPRCONST_ROUT*/] = (basilys_ptr_t)(
-            (/*~OIROUT*/ curfclos->tabval[3]));
+           basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V16*/ curfptr[15]))));basilys_putfield_object((/*_.INST__V16*/ curfptr[15]), (1), ((/*~OIROUT*/ curfclos->tabval[3])), "OPRCONST_ROUT");
            ;
            
            BASILYS_LOCATION("warmelt-genobj.bysl:3481: @putslot");
            /*putslot*/
            basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V16*/ curfptr[15])) == OBMAG_OBJECT);
-           basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V16*/ curfptr[15]))));
-           ((basilysobject_ptr_t)(/*_.INST__V16*/ curfptr[15]))->obj_vartab[2 /*OPRCONST_OFF*/] = (basilys_ptr_t)(
-            /*_.MAKE_INTEGERBOX__V14*/ curfptr[10]);
+           basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V16*/ curfptr[15]))));basilys_putfield_object((/*_.INST__V16*/ curfptr[15]), (2), (/*_.MAKE_INTEGERBOX__V14*/ curfptr[10]), "OPRCONST_OFF");
            ;
            
            BASILYS_LOCATION("warmelt-genobj.bysl:3481: @putslot");
            /*putslot*/
            basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V16*/ curfptr[15])) == OBMAG_OBJECT);
-           basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)(/*_.INST__V16*/ curfptr[15]))));
-           ((basilysobject_ptr_t)(/*_.INST__V16*/ curfptr[15]))->obj_vartab[3 /*OPRCONST_CVAL*/] = (basilys_ptr_t)(
-            /*_.OCONSTX__V9*/ curfptr[7]);
+           basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)(/*_.INST__V16*/ curfptr[15]))));basilys_putfield_object((/*_.INST__V16*/ curfptr[15]), (3), (/*_.OCONSTX__V9*/ curfptr[7]), "OPRCONST_CVAL");
            ;
            /*_.INST___V15*/ curfptr[11] = /*_.INST__V16*/ curfptr[15];;}
           ;
@@ -47381,40 +47145,33 @@ BASILYS_LOCATION("warmelt-genobj.bysl:3462: @block");
          /*block*/{
           
           BASILYS_LOCATION("warmelt-genobj.bysl:3498: @rawallocobj");
-          /*rawallocobj*/ /*_.INST__V23*/ curfptr[9] =
-           basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_OBJPUTROUTCONST*/ curfrout->tabval[7])), (4), ("CLASS_OBJPUTROUTCONST"));
+          /*rawallocobj*/ { basilys_ptr_t newobj = 0;
+           basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_OBJPUTROUTCONST*/ curfrout->tabval[7])), (4), "CLASS_OBJPUTROUTCONST");/*_.INST__V23*/ curfptr[9] =
+           newobj; };
           ;
           
           BASILYS_LOCATION("warmelt-genobj.bysl:3498: @putslot");
           /*putslot*/
           basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V23*/ curfptr[9])) == OBMAG_OBJECT);
-          basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V23*/ curfptr[9]))));
-          ((basilysobject_ptr_t)(/*_.INST__V23*/ curfptr[9]))->obj_vartab[0 /*OBI_LOC*/] = (basilys_ptr_t)(
-           (/*~NLOC*/ curfclos->tabval[2]));
+          basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V23*/ curfptr[9]))));basilys_putfield_object((/*_.INST__V23*/ curfptr[9]), (0), ((/*~NLOC*/ curfclos->tabval[2])), "OBI_LOC");
           ;
           
           BASILYS_LOCATION("warmelt-genobj.bysl:3498: @putslot");
           /*putslot*/
           basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V23*/ curfptr[9])) == OBMAG_OBJECT);
-          basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V23*/ curfptr[9]))));
-          ((basilysobject_ptr_t)(/*_.INST__V23*/ curfptr[9]))->obj_vartab[1 /*OPRCONST_ROUT*/] = (basilys_ptr_t)(
-           (/*~OIROUT*/ curfclos->tabval[3]));
+          basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V23*/ curfptr[9]))));basilys_putfield_object((/*_.INST__V23*/ curfptr[9]), (1), ((/*~OIROUT*/ curfclos->tabval[3])), "OPRCONST_ROUT");
           ;
           
           BASILYS_LOCATION("warmelt-genobj.bysl:3498: @putslot");
           /*putslot*/
           basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V23*/ curfptr[9])) == OBMAG_OBJECT);
-          basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V23*/ curfptr[9]))));
-          ((basilysobject_ptr_t)(/*_.INST__V23*/ curfptr[9]))->obj_vartab[2 /*OPRCONST_OFF*/] = (basilys_ptr_t)(
-           /*_.MAKE_INTEGERBOX__V21*/ curfptr[5]);
+          basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V23*/ curfptr[9]))));basilys_putfield_object((/*_.INST__V23*/ curfptr[9]), (2), (/*_.MAKE_INTEGERBOX__V21*/ curfptr[5]), "OPRCONST_OFF");
           ;
           
           BASILYS_LOCATION("warmelt-genobj.bysl:3498: @putslot");
           /*putslot*/
           basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V23*/ curfptr[9])) == OBMAG_OBJECT);
-          basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)(/*_.INST__V23*/ curfptr[9]))));
-          ((basilysobject_ptr_t)(/*_.INST__V23*/ curfptr[9]))->obj_vartab[3 /*OPRCONST_CVAL*/] = (basilys_ptr_t)(
-           /*_.OCONSTX__V20*/ curfptr[7]);
+          basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)(/*_.INST__V23*/ curfptr[9]))));basilys_putfield_object((/*_.INST__V23*/ curfptr[9]), (3), (/*_.OCONSTX__V20*/ curfptr[7]), "OPRCONST_CVAL");
           ;
           /*_.IPUT__V22*/ curfptr[6] = /*_.INST__V23*/ curfptr[9];;}
          ;
@@ -47795,7 +47552,8 @@ BASILYS_LOCATION("warmelt-genobj.bysl:3527: @block");
  /*block*/{
   
   BASILYS_LOCATION("warmelt-genobj.bysl:3531: @getslot");
-  /*_.LOCBOX__V11*/ curfptr[10] = basilys_getfield_object((basilys_ptr_t)(/*_.GCX__V3*/ curfptr[2]), 9, "IGNCX_CONTENVLOC");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.GCX__V3*/ curfptr[2]), 9, "IGNCX_CONTENVLOC");/*_.LOCBOX__V11*/ curfptr[10] = slot; };
   ;
   
   #if ENABLE_CHECKING
@@ -48084,7 +47842,8 @@ BASILYS_LOCATION("warmelt-genobj.bysl:3539: @block");
  /*block*/{
   
   BASILYS_LOCATION("warmelt-genobj.bysl:3543: @getslot");
-  /*_.PREVENVLOC__V11*/ curfptr[10] = basilys_getfield_object((basilys_ptr_t)(/*_.GCX__V3*/ curfptr[2]), 8, "IGNCX_PREVENVLOC");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.GCX__V3*/ curfptr[2]), 8, "IGNCX_PREVENVLOC");/*_.PREVENVLOC__V11*/ curfptr[10] = slot; };
   ;
   
   #if ENABLE_CHECKING
@@ -48373,15 +48132,18 @@ BASILYS_LOCATION("warmelt-genobj.bysl:3551: @block");
  /*block*/{
   
   BASILYS_LOCATION("warmelt-genobj.bysl:3555: @getslot");
-  /*_.NLOC__V11*/ curfptr[10] = basilys_getfield_object((basilys_ptr_t)(/*_.NSPR__V2*/ curfptr[1]), 0, "NREP_LOC");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NSPR__V2*/ curfptr[1]), 0, "NREP_LOC");/*_.NLOC__V11*/ curfptr[10] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:3556: @getslot");
-  /*_.NPRED__V12*/ curfptr[11] = basilys_getfield_object((basilys_ptr_t)(/*_.NSPR__V2*/ curfptr[1]), 1, "NSTPD_PREDEF");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NSPR__V2*/ curfptr[1]), 1, "NSTPD_PREDEF");/*_.NPRED__V12*/ curfptr[11] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:3557: @getslot");
-  /*_.NVAL__V13*/ curfptr[12] = basilys_getfield_object((basilys_ptr_t)(/*_.NSPR__V2*/ curfptr[1]), 2, "NSTPD_VALUE");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NSPR__V2*/ curfptr[1]), 2, "NSTPD_VALUE");/*_.NVAL__V13*/ curfptr[12] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:3558: @msend");
@@ -48406,7 +48168,8 @@ BASILYS_LOCATION("warmelt-genobj.bysl:3551: @block");
    /*block*/{
     
     BASILYS_LOCATION("warmelt-genobj.bysl:3562: @getslot");
-    /*_.NAMED_NAME__V16*/ curfptr[15] = basilys_getfield_object((basilys_ptr_t)(/*_.NPRED__V12*/ curfptr[11]), 1, "NAMED_NAME");
+    { basilys_ptr_t slot=0;
+     basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NPRED__V12*/ curfptr[11]), 1, "NAMED_NAME");/*_.NAMED_NAME__V16*/ curfptr[15] = slot; };
     ;
     /*_.MAKE_STRING__V17*/ curfptr[16] = 
      (basilysgc_new_stringdup((basilysobject_ptr_t)((/*!DISCR_VERBATIMSTRING*/ curfrout->tabval[5])), basilys_string_str((basilys_ptr_t)(/*_.NAMED_NAME__V16*/ curfptr[15]))));;
@@ -48517,16 +48280,15 @@ BASILYS_LOCATION("warmelt-genobj.bysl:3551: @block");
   /*block*/{
    
    BASILYS_LOCATION("warmelt-genobj.bysl:3566: @rawallocobj");
-   /*rawallocobj*/ /*_.INST__V26*/ curfptr[25] =
-    basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_OBJEXPV*/ curfrout->tabval[6])), (2), ("CLASS_OBJEXPV"));
+   /*rawallocobj*/ { basilys_ptr_t newobj = 0;
+    basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_OBJEXPV*/ curfrout->tabval[6])), (2), "CLASS_OBJEXPV");/*_.INST__V26*/ curfptr[25] =
+    newobj; };
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:3566: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V26*/ curfptr[25])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V26*/ curfptr[25]))));
-   ((basilysobject_ptr_t)(/*_.INST__V26*/ curfptr[25]))->obj_vartab[1 /*OBX_CONT*/] = (basilys_ptr_t)(
-    /*_.MAKE_TUPLE3__V24*/ curfptr[15]);
+   basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V26*/ curfptr[25]))));basilys_putfield_object((/*_.INST__V26*/ curfptr[25]), (1), (/*_.MAKE_TUPLE3__V24*/ curfptr[15]), "OBX_CONT");
    ;
    /*_.OLEFT__V25*/ curfptr[24] = /*_.INST__V26*/ curfptr[25];;}
   ;
@@ -48541,32 +48303,27 @@ BASILYS_LOCATION("warmelt-genobj.bysl:3551: @block");
   /*block*/{
    
    BASILYS_LOCATION("warmelt-genobj.bysl:3571: @rawallocobj");
-   /*rawallocobj*/ /*_.INST__V29*/ curfptr[28] =
-    basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_OBJCOMPUTE*/ curfrout->tabval[8])), (3), ("CLASS_OBJCOMPUTE"));
+   /*rawallocobj*/ { basilys_ptr_t newobj = 0;
+    basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_OBJCOMPUTE*/ curfrout->tabval[8])), (3), "CLASS_OBJCOMPUTE");/*_.INST__V29*/ curfptr[28] =
+    newobj; };
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:3571: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V29*/ curfptr[28])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V29*/ curfptr[28]))));
-   ((basilysobject_ptr_t)(/*_.INST__V29*/ curfptr[28]))->obj_vartab[0 /*OBI_LOC*/] = (basilys_ptr_t)(
-    /*_.NLOC__V11*/ curfptr[10]);
+   basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V29*/ curfptr[28]))));basilys_putfield_object((/*_.INST__V29*/ curfptr[28]), (0), (/*_.NLOC__V11*/ curfptr[10]), "OBI_LOC");
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:3571: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V29*/ curfptr[28])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V29*/ curfptr[28]))));
-   ((basilysobject_ptr_t)(/*_.INST__V29*/ curfptr[28]))->obj_vartab[1 /*OBDI_DESTLIST*/] = (basilys_ptr_t)(
-    /*_.LIST1__V27*/ curfptr[26]);
+   basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V29*/ curfptr[28]))));basilys_putfield_object((/*_.INST__V29*/ curfptr[28]), (1), (/*_.LIST1__V27*/ curfptr[26]), "OBDI_DESTLIST");
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:3571: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V29*/ curfptr[28])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V29*/ curfptr[28]))));
-   ((basilysobject_ptr_t)(/*_.INST__V29*/ curfptr[28]))->obj_vartab[2 /*OBCPT_EXPR*/] = (basilys_ptr_t)(
-    /*_.OVAL__V14*/ curfptr[13]);
+   basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V29*/ curfptr[28]))));basilys_putfield_object((/*_.INST__V29*/ curfptr[28]), (2), (/*_.OVAL__V14*/ curfptr[13]), "OBCPT_EXPR");
    ;
    /*_.RES__V28*/ curfptr[27] = /*_.INST__V29*/ curfptr[28];;}
   ;
@@ -48878,23 +48635,28 @@ BASILYS_LOCATION("warmelt-genobj.bysl:3585: @block");
  /*block*/{
   
   BASILYS_LOCATION("warmelt-genobj.bysl:3589: @getslot");
-  /*_.NLOC__V11*/ curfptr[10] = basilys_getfield_object((basilys_ptr_t)(/*_.NUCMEB__V2*/ curfptr[1]), 0, "NREP_LOC");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NUCMEB__V2*/ curfptr[1]), 0, "NREP_LOC");/*_.NLOC__V11*/ curfptr[10] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:3590: @getslot");
-  /*_.NCOMM__V12*/ curfptr[11] = basilys_getfield_object((basilys_ptr_t)(/*_.NUCMEB__V2*/ curfptr[1]), 2, "NCUMEB_COMMENT");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NUCMEB__V2*/ curfptr[1]), 2, "NCUMEB_COMMENT");/*_.NCOMM__V12*/ curfptr[11] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:3591: @getslot");
-  /*_.NEX__V13*/ curfptr[12] = basilys_getfield_object((basilys_ptr_t)(/*_.NUCMEB__V2*/ curfptr[1]), 1, "NUCMEB_EXPR");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NUCMEB__V2*/ curfptr[1]), 1, "NUCMEB_EXPR");/*_.NEX__V13*/ curfptr[12] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:3592: @getslot");
-  /*_.PCML__V14*/ curfptr[13] = basilys_getfield_object((basilys_ptr_t)(/*_.GCX__V3*/ curfptr[2]), 10, "IGNCX_PROCURMODENVLIST");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.GCX__V3*/ curfptr[2]), 10, "IGNCX_PROCURMODENVLIST");/*_.PCML__V14*/ curfptr[13] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:3593: @getslot");
-  /*_.OCONTENVLOC__V15*/ curfptr[14] = basilys_getfield_object((basilys_ptr_t)(/*_.GCX__V3*/ curfptr[2]), 9, "IGNCX_CONTENVLOC");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.GCX__V3*/ curfptr[2]), 9, "IGNCX_CONTENVLOC");/*_.OCONTENVLOC__V15*/ curfptr[14] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:3594: @block");
@@ -48944,32 +48706,27 @@ BASILYS_LOCATION("warmelt-genobj.bysl:3585: @block");
   /*block*/{
    
    BASILYS_LOCATION("warmelt-genobj.bysl:3604: @rawallocobj");
-   /*rawallocobj*/ /*_.INST__V22*/ curfptr[21] =
-    basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_OBJCOMMENTEDBLOCK*/ curfrout->tabval[5])), (4), ("CLASS_OBJCOMMENTEDBLOCK"));
+   /*rawallocobj*/ { basilys_ptr_t newobj = 0;
+    basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_OBJCOMMENTEDBLOCK*/ curfrout->tabval[5])), (4), "CLASS_OBJCOMMENTEDBLOCK");/*_.INST__V22*/ curfptr[21] =
+    newobj; };
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:3604: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V22*/ curfptr[21])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V22*/ curfptr[21]))));
-   ((basilysobject_ptr_t)(/*_.INST__V22*/ curfptr[21]))->obj_vartab[0 /*OBI_LOC*/] = (basilys_ptr_t)(
-    /*_.NLOC__V11*/ curfptr[10]);
+   basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V22*/ curfptr[21]))));basilys_putfield_object((/*_.INST__V22*/ curfptr[21]), (0), (/*_.NLOC__V11*/ curfptr[10]), "OBI_LOC");
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:3604: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V22*/ curfptr[21])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V22*/ curfptr[21]))));
-   ((basilysobject_ptr_t)(/*_.INST__V22*/ curfptr[21]))->obj_vartab[1 /*OBLO_BODYL*/] = (basilys_ptr_t)(
-    /*_.OBODL__V19*/ curfptr[18]);
+   basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V22*/ curfptr[21]))));basilys_putfield_object((/*_.INST__V22*/ curfptr[21]), (1), (/*_.OBODL__V19*/ curfptr[18]), "OBLO_BODYL");
    ;
    
    BASILYS_LOCATION("warmelt-genobj.bysl:3604: @putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V22*/ curfptr[21])) == OBMAG_OBJECT);
-   basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)(/*_.INST__V22*/ curfptr[21]))));
-   ((basilysobject_ptr_t)(/*_.INST__V22*/ curfptr[21]))->obj_vartab[3 /*OCOMBLO_COMMENT*/] = (basilys_ptr_t)(
-    /*_.STRBUF2STRING__V20*/ curfptr[19]);
+   basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)(/*_.INST__V22*/ curfptr[21]))));basilys_putfield_object((/*_.INST__V22*/ curfptr[21]), (3), (/*_.STRBUF2STRING__V20*/ curfptr[19]), "OCOMBLO_COMMENT");
    ;
    /*_.OCBLO__V21*/ curfptr[20] = /*_.INST__V22*/ curfptr[21];;}
   ;
@@ -49319,15 +49076,18 @@ BASILYS_LOCATION("warmelt-genobj.bysl:3617: @block");
    /*block*/{
     
     BASILYS_LOCATION("warmelt-genobj.bysl:3621: @getslot");
-    /*_.CURPROC__V5*/ curfptr[3] = basilys_getfield_object((basilys_ptr_t)(/*_.CUROUT__V2*/ curfptr[1]), 2, "OBROUT_PROC");
+    { basilys_ptr_t slot=0;
+     basilys_object_get_field(slot,(basilys_ptr_t)(/*_.CUROUT__V2*/ curfptr[1]), 2, "OBROUT_PROC");/*_.CURPROC__V5*/ curfptr[3] = slot; };
     ;
     
     BASILYS_LOCATION("warmelt-genobj.bysl:3622: @getslot");
-    /*_.CNSLIS__V6*/ curfptr[5] = basilys_getfield_object((basilys_ptr_t)(/*_.CURPROC__V5*/ curfptr[3]), 5, "NRPRO_CONST");
+    { basilys_ptr_t slot=0;
+     basilys_object_get_field(slot,(basilys_ptr_t)(/*_.CURPROC__V5*/ curfptr[3]), 5, "NRPRO_CONST");/*_.CNSLIS__V6*/ curfptr[5] = slot; };
     ;
     
     BASILYS_LOCATION("warmelt-genobj.bysl:3623: @getslot");
-    /*_.DATAROUT__V7*/ curfptr[6] = basilys_getfield_object((basilys_ptr_t)(/*_.CURPROC__V5*/ curfptr[3]), 6, "NRPRO_DATAROUT");
+    { basilys_ptr_t slot=0;
+     basilys_object_get_field(slot,(basilys_ptr_t)(/*_.CURPROC__V5*/ curfptr[3]), 6, "NRPRO_DATAROUT");/*_.DATAROUT__V7*/ curfptr[6] = slot; };
     ;
     
     BASILYS_LOCATION("warmelt-genobj.bysl:3624: @msend");
@@ -49344,7 +49104,8 @@ BASILYS_LOCATION("warmelt-genobj.bysl:3617: @block");
      (basilysgc_new_int((basilysobject_ptr_t)((/*!DISCR_INTEGER*/ curfrout->tabval[3])), (0)));;
     
     BASILYS_LOCATION("warmelt-genobj.bysl:3626: @getslot");
-    /*_.OROUTLOCVAR__V10*/ curfptr[9] = basilys_getfield_object((basilys_ptr_t)(/*_.ODATAROUT__V8*/ curfptr[7]), 4, "OIE_LOCVAR");
+    { basilys_ptr_t slot=0;
+     basilys_object_get_field(slot,(basilys_ptr_t)(/*_.ODATAROUT__V8*/ curfptr[7]), 4, "OIE_LOCVAR");/*_.OROUTLOCVAR__V10*/ curfptr[9] = slot; };
     ;
     
     #if ENABLE_CHECKING
@@ -49763,40 +49524,33 @@ BASILYS_LOCATION("warmelt-genobj.bysl:3634: @block");
      /*block*/{
       
       BASILYS_LOCATION("warmelt-genobj.bysl:3643: @rawallocobj");
-      /*rawallocobj*/ /*_.INST__V7*/ curfptr[6] =
-       basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_OBJPUTROUTCONST*/ curfrout->tabval[2])), (4), ("CLASS_OBJPUTROUTCONST"));
+      /*rawallocobj*/ { basilys_ptr_t newobj = 0;
+       basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_OBJPUTROUTCONST*/ curfrout->tabval[2])), (4), "CLASS_OBJPUTROUTCONST");/*_.INST__V7*/ curfptr[6] =
+       newobj; };
       ;
       
       BASILYS_LOCATION("warmelt-genobj.bysl:3643: @putslot");
       /*putslot*/
       basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V7*/ curfptr[6])) == OBMAG_OBJECT);
-      basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V7*/ curfptr[6]))));
-      ((basilysobject_ptr_t)(/*_.INST__V7*/ curfptr[6]))->obj_vartab[0 /*OBI_LOC*/] = (basilys_ptr_t)(
-       (/*~NLOC*/ curfclos->tabval[1]));
+      basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V7*/ curfptr[6]))));basilys_putfield_object((/*_.INST__V7*/ curfptr[6]), (0), ((/*~NLOC*/ curfclos->tabval[1])), "OBI_LOC");
       ;
       
       BASILYS_LOCATION("warmelt-genobj.bysl:3643: @putslot");
       /*putslot*/
       basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V7*/ curfptr[6])) == OBMAG_OBJECT);
-      basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V7*/ curfptr[6]))));
-      ((basilysobject_ptr_t)(/*_.INST__V7*/ curfptr[6]))->obj_vartab[1 /*OPRCONST_ROUT*/] = (basilys_ptr_t)(
-       (/*~OROUTLOCVAR*/ curfclos->tabval[2]));
+      basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V7*/ curfptr[6]))));basilys_putfield_object((/*_.INST__V7*/ curfptr[6]), (1), ((/*~OROUTLOCVAR*/ curfclos->tabval[2])), "OPRCONST_ROUT");
       ;
       
       BASILYS_LOCATION("warmelt-genobj.bysl:3643: @putslot");
       /*putslot*/
       basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V7*/ curfptr[6])) == OBMAG_OBJECT);
-      basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V7*/ curfptr[6]))));
-      ((basilysobject_ptr_t)(/*_.INST__V7*/ curfptr[6]))->obj_vartab[2 /*OPRCONST_OFF*/] = (basilys_ptr_t)(
-       /*_.MAKE_INTEGERBOX__V5*/ curfptr[3]);
+      basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V7*/ curfptr[6]))));basilys_putfield_object((/*_.INST__V7*/ curfptr[6]), (2), (/*_.MAKE_INTEGERBOX__V5*/ curfptr[3]), "OPRCONST_OFF");
       ;
       
       BASILYS_LOCATION("warmelt-genobj.bysl:3643: @putslot");
       /*putslot*/
       basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V7*/ curfptr[6])) == OBMAG_OBJECT);
-      basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)(/*_.INST__V7*/ curfptr[6]))));
-      ((basilysobject_ptr_t)(/*_.INST__V7*/ curfptr[6]))->obj_vartab[3 /*OPRCONST_CVAL*/] = (basilys_ptr_t)(
-       (/*~OEX*/ curfclos->tabval[3]));
+      basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)(/*_.INST__V7*/ curfptr[6]))));basilys_putfield_object((/*_.INST__V7*/ curfptr[6]), (3), ((/*~OEX*/ curfclos->tabval[3])), "OPRCONST_CVAL");
       ;
       /*_.OPUTROUT__V6*/ curfptr[5] = /*_.INST__V7*/ curfptr[6];;}
      ;
@@ -49807,32 +49561,27 @@ BASILYS_LOCATION("warmelt-genobj.bysl:3634: @block");
      /*block*/{
       
       BASILYS_LOCATION("warmelt-genobj.bysl:3649: @rawallocobj");
-      /*rawallocobj*/ /*_.INST__V10*/ curfptr[9] =
-       basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_OBJTOUCH*/ curfrout->tabval[4])), (3), ("CLASS_OBJTOUCH"));
+      /*rawallocobj*/ { basilys_ptr_t newobj = 0;
+       basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_OBJTOUCH*/ curfrout->tabval[4])), (3), "CLASS_OBJTOUCH");/*_.INST__V10*/ curfptr[9] =
+       newobj; };
       ;
       
       BASILYS_LOCATION("warmelt-genobj.bysl:3649: @putslot");
       /*putslot*/
       basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V10*/ curfptr[9])) == OBMAG_OBJECT);
-      basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V10*/ curfptr[9]))));
-      ((basilysobject_ptr_t)(/*_.INST__V10*/ curfptr[9]))->obj_vartab[0 /*OBI_LOC*/] = (basilys_ptr_t)(
-       (/*~NLOC*/ curfclos->tabval[1]));
+      basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V10*/ curfptr[9]))));basilys_putfield_object((/*_.INST__V10*/ curfptr[9]), (0), ((/*~NLOC*/ curfclos->tabval[1])), "OBI_LOC");
       ;
       
       BASILYS_LOCATION("warmelt-genobj.bysl:3649: @putslot");
       /*putslot*/
       basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V10*/ curfptr[9])) == OBMAG_OBJECT);
-      basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V10*/ curfptr[9]))));
-      ((basilysobject_ptr_t)(/*_.INST__V10*/ curfptr[9]))->obj_vartab[1 /*OTOUCH_VAL*/] = (basilys_ptr_t)(
-       (/*~OROUTLOCVAR*/ curfclos->tabval[2]));
+      basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V10*/ curfptr[9]))));basilys_putfield_object((/*_.INST__V10*/ curfptr[9]), (1), ((/*~OROUTLOCVAR*/ curfclos->tabval[2])), "OTOUCH_VAL");
       ;
       
       BASILYS_LOCATION("warmelt-genobj.bysl:3649: @putslot");
       /*putslot*/
       basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V10*/ curfptr[9])) == OBMAG_OBJECT);
-      basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V10*/ curfptr[9]))));
-      ((basilysobject_ptr_t)(/*_.INST__V10*/ curfptr[9]))->obj_vartab[2 /*OTOUCH_COMMENT*/] = (basilys_ptr_t)(
-       /*_.MAKE_STRINGCONST__V8*/ curfptr[7]);
+      basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V10*/ curfptr[9]))));basilys_putfield_object((/*_.INST__V10*/ curfptr[9]), (2), (/*_.MAKE_STRINGCONST__V8*/ curfptr[7]), "OTOUCH_COMMENT");
       ;
       /*_.OTOUCHROUT__V9*/ curfptr[8] = /*_.INST__V10*/ curfptr[9];;}
      ;
@@ -49847,32 +49596,27 @@ BASILYS_LOCATION("warmelt-genobj.bysl:3634: @block");
      /*block*/{
       
       BASILYS_LOCATION("warmelt-genobj.bysl:3654: @rawallocobj");
-      /*rawallocobj*/ /*_.INST__V13*/ curfptr[12] =
-       basilys_make_raw_object((basilys_ptr_t)((/*!CLASS_OBJCOMPUTE*/ curfrout->tabval[6])), (3), ("CLASS_OBJCOMPUTE"));
+      /*rawallocobj*/ { basilys_ptr_t newobj = 0;
+       basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_OBJCOMPUTE*/ curfrout->tabval[6])), (3), "CLASS_OBJCOMPUTE");/*_.INST__V13*/ curfptr[12] =
+       newobj; };
       ;
       
       BASILYS_LOCATION("warmelt-genobj.bysl:3654: @putslot");
       /*putslot*/
       basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V13*/ curfptr[12])) == OBMAG_OBJECT);
-      basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V13*/ curfptr[12]))));
-      ((basilysobject_ptr_t)(/*_.INST__V13*/ curfptr[12]))->obj_vartab[0 /*OBI_LOC*/] = (basilys_ptr_t)(
-       (/*~NLOC*/ curfclos->tabval[1]));
+      basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V13*/ curfptr[12]))));basilys_putfield_object((/*_.INST__V13*/ curfptr[12]), (0), ((/*~NLOC*/ curfclos->tabval[1])), "OBI_LOC");
       ;
       
       BASILYS_LOCATION("warmelt-genobj.bysl:3654: @putslot");
       /*putslot*/
       basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V13*/ curfptr[12])) == OBMAG_OBJECT);
-      basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V13*/ curfptr[12]))));
-      ((basilysobject_ptr_t)(/*_.INST__V13*/ curfptr[12]))->obj_vartab[1 /*OBDI_DESTLIST*/] = (basilys_ptr_t)(
-       /*_.LIST1__V11*/ curfptr[10]);
+      basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V13*/ curfptr[12]))));basilys_putfield_object((/*_.INST__V13*/ curfptr[12]), (1), (/*_.LIST1__V11*/ curfptr[10]), "OBDI_DESTLIST");
       ;
       
       BASILYS_LOCATION("warmelt-genobj.bysl:3654: @putslot");
       /*putslot*/
       basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V13*/ curfptr[12])) == OBMAG_OBJECT);
-      basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V13*/ curfptr[12]))));
-      ((basilysobject_ptr_t)(/*_.INST__V13*/ curfptr[12]))->obj_vartab[2 /*OBCPT_EXPR*/] = (basilys_ptr_t)(
-       (/*~OEX*/ curfclos->tabval[3]));
+      basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V13*/ curfptr[12]))));basilys_putfield_object((/*_.INST__V13*/ curfptr[12]), (2), ((/*~OEX*/ curfclos->tabval[3])), "OBCPT_EXPR");
       ;
       /*_.OCOPY__V12*/ curfptr[11] = /*_.INST__V13*/ curfptr[12];;}
      ;
@@ -51236,7 +50980,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_3__CLASS_OBJCODE));
   basilys_assertmsg("iniobj checkdiscr dobj_5__CLASS_OBJVALUE", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_5__CLASS_OBJVALUE.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_5__CLASS_OBJVALUE.obj_num = OBMAG_OBJECT;
-  cdat->dobj_5__CLASS_OBJVALUE.obj_hash = 153941224;
+  cdat->dobj_5__CLASS_OBJVALUE.obj_hash = 613537164;
   cdat->dobj_5__CLASS_OBJVALUE.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_5__CLASS_OBJVALUE));
  
@@ -51273,7 +51017,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_9__OBV_TYPE));
   basilys_assertmsg("iniobj checkdiscr dobj_11__OBV_TYPE", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_11__OBV_TYPE.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_11__OBV_TYPE.obj_num = 0;
-  cdat->dobj_11__OBV_TYPE.obj_hash = 896409396;
+  cdat->dobj_11__OBV_TYPE.obj_hash = 172273580;
   cdat->dobj_11__OBV_TYPE.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_11__OBV_TYPE));
  
@@ -51302,7 +51046,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_13__CLASS_OBJPUREVA
   basilys_assertmsg("iniobj checkdiscr dobj_15__CLASS_OBJPUREVALUE", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_15__CLASS_OBJPUREVALUE.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_15__CLASS_OBJPUREVALUE.obj_num = OBMAG_OBJECT;
-  cdat->dobj_15__CLASS_OBJPUREVALUE.obj_hash = 912859418;
+  cdat->dobj_15__CLASS_OBJPUREVALUE.obj_hash = 334399564;
   cdat->dobj_15__CLASS_OBJPUREVALUE.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_15__CLASS_OBJPUREVALUE));
  
@@ -51339,7 +51083,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_19__CLASS_OBJLOCV))
   basilys_assertmsg("iniobj checkdiscr dobj_21__CLASS_OBJLOCV", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_21__CLASS_OBJLOCV.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_21__CLASS_OBJLOCV.obj_num = OBMAG_OBJECT;
-  cdat->dobj_21__CLASS_OBJLOCV.obj_hash = 137313177;
+  cdat->dobj_21__CLASS_OBJLOCV.obj_hash = 452779086;
   cdat->dobj_21__CLASS_OBJLOCV.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_21__CLASS_OBJLOCV));
  
@@ -51376,7 +51120,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_25__OBL_OFF));
   basilys_assertmsg("iniobj checkdiscr dobj_27__OBL_OFF", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_27__OBL_OFF.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_27__OBL_OFF.obj_num = 1;
-  cdat->dobj_27__OBL_OFF.obj_hash = 935256014;
+  cdat->dobj_27__OBL_OFF.obj_hash = 604821207;
   cdat->dobj_27__OBL_OFF.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_27__OBL_OFF));
  
@@ -51405,7 +51149,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_29__OBL_PROC));
   basilys_assertmsg("iniobj checkdiscr dobj_31__OBL_PROC", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_31__OBL_PROC.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_31__OBL_PROC.obj_num = 2;
-  cdat->dobj_31__OBL_PROC.obj_hash = 255633609;
+  cdat->dobj_31__OBL_PROC.obj_hash = 604852294;
   cdat->dobj_31__OBL_PROC.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_31__OBL_PROC));
  
@@ -51434,7 +51178,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_33__OBL_CNAME));
   basilys_assertmsg("iniobj checkdiscr dobj_35__OBL_CNAME", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_35__OBL_CNAME.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_35__OBL_CNAME.obj_num = 3;
-  cdat->dobj_35__OBL_CNAME.obj_hash = 523980899;
+  cdat->dobj_35__OBL_CNAME.obj_hash = 671801203;
   cdat->dobj_35__OBL_CNAME.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_35__OBL_CNAME));
  
@@ -51463,7 +51207,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_37__CLASS_OBJCLOCCV
   basilys_assertmsg("iniobj checkdiscr dobj_39__CLASS_OBJCLOCCV", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_39__CLASS_OBJCLOCCV.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_39__CLASS_OBJCLOCCV.obj_num = OBMAG_OBJECT;
-  cdat->dobj_39__CLASS_OBJCLOCCV.obj_hash = 764373787;
+  cdat->dobj_39__CLASS_OBJCLOCCV.obj_hash = 385692613;
   cdat->dobj_39__CLASS_OBJCLOCCV.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_39__CLASS_OBJCLOCCV));
  
@@ -51500,7 +51244,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_43__OBC_OFF));
   basilys_assertmsg("iniobj checkdiscr dobj_45__OBC_OFF", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_45__OBC_OFF.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_45__OBC_OFF.obj_num = 1;
-  cdat->dobj_45__OBC_OFF.obj_hash = 85010136;
+  cdat->dobj_45__OBC_OFF.obj_hash = 786374087;
   cdat->dobj_45__OBC_OFF.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_45__OBC_OFF));
  
@@ -51529,7 +51273,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_47__OBC_PROC));
   basilys_assertmsg("iniobj checkdiscr dobj_49__OBC_PROC", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_49__OBC_PROC.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_49__OBC_PROC.obj_num = 2;
-  cdat->dobj_49__OBC_PROC.obj_hash = 414014094;
+  cdat->dobj_49__OBC_PROC.obj_hash = 356316000;
   cdat->dobj_49__OBC_PROC.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_49__OBC_PROC));
  
@@ -51558,7 +51302,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_51__OBC_NAME));
   basilys_assertmsg("iniobj checkdiscr dobj_53__OBC_NAME", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_53__OBC_NAME.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_53__OBC_NAME.obj_num = 3;
-  cdat->dobj_53__OBC_NAME.obj_hash = 512649025;
+  cdat->dobj_53__OBC_NAME.obj_hash = 576474775;
   cdat->dobj_53__OBC_NAME.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_53__OBC_NAME));
  
@@ -51587,7 +51331,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_55__CLASS_OBJCONSTV
   basilys_assertmsg("iniobj checkdiscr dobj_57__CLASS_OBJCONSTV", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_57__CLASS_OBJCONSTV.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_57__CLASS_OBJCONSTV.obj_num = OBMAG_OBJECT;
-  cdat->dobj_57__CLASS_OBJCONSTV.obj_hash = 999215844;
+  cdat->dobj_57__CLASS_OBJCONSTV.obj_hash = 925015308;
   cdat->dobj_57__CLASS_OBJCONSTV.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_57__CLASS_OBJCONSTV));
  
@@ -51624,7 +51368,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_61__CLASS_OBJPREDEF
   basilys_assertmsg("iniobj checkdiscr dobj_63__CLASS_OBJPREDEF", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_63__CLASS_OBJPREDEF.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_63__CLASS_OBJPREDEF.obj_num = OBMAG_OBJECT;
-  cdat->dobj_63__CLASS_OBJPREDEF.obj_hash = 546435106;
+  cdat->dobj_63__CLASS_OBJPREDEF.obj_hash = 854319301;
   cdat->dobj_63__CLASS_OBJPREDEF.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_63__CLASS_OBJPREDEF));
  
@@ -51661,7 +51405,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_67__OBPREDEF));
   basilys_assertmsg("iniobj checkdiscr dobj_69__OBPREDEF", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_69__OBPREDEF.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_69__OBPREDEF.obj_num = 1;
-  cdat->dobj_69__OBPREDEF.obj_hash = 477189965;
+  cdat->dobj_69__OBPREDEF.obj_hash = 631988979;
   cdat->dobj_69__OBPREDEF.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_69__OBPREDEF));
  
@@ -51690,7 +51434,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_71__CLASS_OBJNIL));
   basilys_assertmsg("iniobj checkdiscr dobj_73__CLASS_OBJNIL", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_73__CLASS_OBJNIL.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_73__CLASS_OBJNIL.obj_num = OBMAG_OBJECT;
-  cdat->dobj_73__CLASS_OBJNIL.obj_hash = 390718979;
+  cdat->dobj_73__CLASS_OBJNIL.obj_hash = 792763580;
   cdat->dobj_73__CLASS_OBJNIL.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_73__CLASS_OBJNIL));
  
@@ -51727,7 +51471,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_77__CLASS_OBJINITEL
   basilys_assertmsg("iniobj checkdiscr dobj_79__CLASS_OBJINITELEM", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_79__CLASS_OBJINITELEM.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_79__CLASS_OBJINITELEM.obj_num = OBMAG_OBJECT;
-  cdat->dobj_79__CLASS_OBJINITELEM.obj_hash = 74512374;
+  cdat->dobj_79__CLASS_OBJINITELEM.obj_hash = 863660648;
   cdat->dobj_79__CLASS_OBJINITELEM.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_79__CLASS_OBJINITELEM));
  
@@ -51764,7 +51508,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_83__OIE_CNAME));
   basilys_assertmsg("iniobj checkdiscr dobj_85__OIE_CNAME", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_85__OIE_CNAME.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_85__OIE_CNAME.obj_num = 1;
-  cdat->dobj_85__OIE_CNAME.obj_hash = 77696056;
+  cdat->dobj_85__OIE_CNAME.obj_hash = 451540526;
   cdat->dobj_85__OIE_CNAME.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_85__OIE_CNAME));
  
@@ -51793,7 +51537,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_87__OIE_DATA));
   basilys_assertmsg("iniobj checkdiscr dobj_89__OIE_DATA", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_89__OIE_DATA.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_89__OIE_DATA.obj_num = 2;
-  cdat->dobj_89__OIE_DATA.obj_hash = 678746295;
+  cdat->dobj_89__OIE_DATA.obj_hash = 784068562;
   cdat->dobj_89__OIE_DATA.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_89__OIE_DATA));
  
@@ -51822,7 +51566,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_91__OIE_DISCR));
   basilys_assertmsg("iniobj checkdiscr dobj_93__OIE_DISCR", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_93__OIE_DISCR.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_93__OIE_DISCR.obj_num = 3;
-  cdat->dobj_93__OIE_DISCR.obj_hash = 463618657;
+  cdat->dobj_93__OIE_DISCR.obj_hash = 27379008;
   cdat->dobj_93__OIE_DISCR.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_93__OIE_DISCR));
  
@@ -51851,7 +51595,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_95__OIE_LOCVAR));
   basilys_assertmsg("iniobj checkdiscr dobj_97__OIE_LOCVAR", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_97__OIE_LOCVAR.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_97__OIE_LOCVAR.obj_num = 4;
-  cdat->dobj_97__OIE_LOCVAR.obj_hash = 385437111;
+  cdat->dobj_97__OIE_LOCVAR.obj_hash = 760392698;
   cdat->dobj_97__OIE_LOCVAR.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_97__OIE_LOCVAR));
  
@@ -51880,7 +51624,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_99__CLASS_OBJINITOB
   basilys_assertmsg("iniobj checkdiscr dobj_101__CLASS_OBJINITOBJECT", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_101__CLASS_OBJINITOBJECT.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_101__CLASS_OBJINITOBJECT.obj_num = OBMAG_OBJECT;
-  cdat->dobj_101__CLASS_OBJINITOBJECT.obj_hash = 618089626;
+  cdat->dobj_101__CLASS_OBJINITOBJECT.obj_hash = 625662879;
   cdat->dobj_101__CLASS_OBJINITOBJECT.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_101__CLASS_OBJINITOBJECT));
  
@@ -51917,7 +51661,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_105__OIO_PREDEF));
   basilys_assertmsg("iniobj checkdiscr dobj_107__OIO_PREDEF", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_107__OIO_PREDEF.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_107__OIO_PREDEF.obj_num = 5;
-  cdat->dobj_107__OIO_PREDEF.obj_hash = 817645385;
+  cdat->dobj_107__OIO_PREDEF.obj_hash = 795352353;
   cdat->dobj_107__OIO_PREDEF.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_107__OIO_PREDEF));
  
@@ -51946,7 +51690,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_109__CLASS_OBJINITM
   basilys_assertmsg("iniobj checkdiscr dobj_111__CLASS_OBJINITMULTIPLE", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_111__CLASS_OBJINITMULTIPLE.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_111__CLASS_OBJINITMULTIPLE.obj_num = OBMAG_OBJECT;
-  cdat->dobj_111__CLASS_OBJINITMULTIPLE.obj_hash = 781903392;
+  cdat->dobj_111__CLASS_OBJINITMULTIPLE.obj_hash = 1053284914;
   cdat->dobj_111__CLASS_OBJINITMULTIPLE.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_111__CLASS_OBJINITMULTIPLE));
  
@@ -51983,7 +51727,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_115__OIM_TUPVAL));
   basilys_assertmsg("iniobj checkdiscr dobj_117__OIM_TUPVAL", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_117__OIM_TUPVAL.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_117__OIM_TUPVAL.obj_num = 5;
-  cdat->dobj_117__OIM_TUPVAL.obj_hash = 1027811600;
+  cdat->dobj_117__OIM_TUPVAL.obj_hash = 707526055;
   cdat->dobj_117__OIM_TUPVAL.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_117__OIM_TUPVAL));
  
@@ -52012,7 +51756,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_119__CLASS_OBJINITC
   basilys_assertmsg("iniobj checkdiscr dobj_121__CLASS_OBJINITCLOSURE", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_121__CLASS_OBJINITCLOSURE.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_121__CLASS_OBJINITCLOSURE.obj_num = OBMAG_OBJECT;
-  cdat->dobj_121__CLASS_OBJINITCLOSURE.obj_hash = 224630303;
+  cdat->dobj_121__CLASS_OBJINITCLOSURE.obj_hash = 992353928;
   cdat->dobj_121__CLASS_OBJINITCLOSURE.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_121__CLASS_OBJINITCLOSURE));
  
@@ -52049,7 +51793,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_125__CLASS_OBJINITR
   basilys_assertmsg("iniobj checkdiscr dobj_127__CLASS_OBJINITROUTINE", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_127__CLASS_OBJINITROUTINE.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_127__CLASS_OBJINITROUTINE.obj_num = OBMAG_OBJECT;
-  cdat->dobj_127__CLASS_OBJINITROUTINE.obj_hash = 547956274;
+  cdat->dobj_127__CLASS_OBJINITROUTINE.obj_hash = 641243669;
   cdat->dobj_127__CLASS_OBJINITROUTINE.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_127__CLASS_OBJINITROUTINE));
  
@@ -52086,7 +51830,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_131__OIR_PROCROUTIN
   basilys_assertmsg("iniobj checkdiscr dobj_133__OIR_PROCROUTINE", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_133__OIR_PROCROUTINE.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_133__OIR_PROCROUTINE.obj_num = 5;
-  cdat->dobj_133__OIR_PROCROUTINE.obj_hash = 892449587;
+  cdat->dobj_133__OIR_PROCROUTINE.obj_hash = 243209241;
   cdat->dobj_133__OIR_PROCROUTINE.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_133__OIR_PROCROUTINE));
  
@@ -52115,7 +51859,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_135__CLASS_OBJINITS
   basilys_assertmsg("iniobj checkdiscr dobj_137__CLASS_OBJINITSTRING", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_137__CLASS_OBJINITSTRING.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_137__CLASS_OBJINITSTRING.obj_num = OBMAG_OBJECT;
-  cdat->dobj_137__CLASS_OBJINITSTRING.obj_hash = 458918599;
+  cdat->dobj_137__CLASS_OBJINITSTRING.obj_hash = 851544000;
   cdat->dobj_137__CLASS_OBJINITSTRING.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_137__CLASS_OBJINITSTRING));
  
@@ -52152,7 +51896,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_141__CLASS_OBJEXPV)
   basilys_assertmsg("iniobj checkdiscr dobj_143__CLASS_OBJEXPV", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_143__CLASS_OBJEXPV.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_143__CLASS_OBJEXPV.obj_num = OBMAG_OBJECT;
-  cdat->dobj_143__CLASS_OBJEXPV.obj_hash = 288940667;
+  cdat->dobj_143__CLASS_OBJEXPV.obj_hash = 250413102;
   cdat->dobj_143__CLASS_OBJEXPV.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_143__CLASS_OBJEXPV));
  
@@ -52189,7 +51933,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_147__OBX_CONT));
   basilys_assertmsg("iniobj checkdiscr dobj_149__OBX_CONT", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_149__OBX_CONT.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_149__OBX_CONT.obj_num = 1;
-  cdat->dobj_149__OBX_CONT.obj_hash = 485245213;
+  cdat->dobj_149__OBX_CONT.obj_hash = 434464851;
   cdat->dobj_149__OBX_CONT.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_149__OBX_CONT));
  
@@ -52218,7 +51962,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_151__CLASS_OBJLOCAT
   basilys_assertmsg("iniobj checkdiscr dobj_153__CLASS_OBJLOCATEDEXPV", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_153__CLASS_OBJLOCATEDEXPV.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_153__CLASS_OBJLOCATEDEXPV.obj_num = OBMAG_OBJECT;
-  cdat->dobj_153__CLASS_OBJLOCATEDEXPV.obj_hash = 750237390;
+  cdat->dobj_153__CLASS_OBJLOCATEDEXPV.obj_hash = 260516439;
   cdat->dobj_153__CLASS_OBJLOCATEDEXPV.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_153__CLASS_OBJLOCATEDEXPV));
  
@@ -52255,7 +51999,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_157__OBCX_LOC));
   basilys_assertmsg("iniobj checkdiscr dobj_159__OBCX_LOC", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_159__OBCX_LOC.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_159__OBCX_LOC.obj_num = 2;
-  cdat->dobj_159__OBCX_LOC.obj_hash = 243860083;
+  cdat->dobj_159__OBCX_LOC.obj_hash = 1028831855;
   cdat->dobj_159__OBCX_LOC.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_159__OBCX_LOC));
  
@@ -52284,7 +52028,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_161__CLASS_OBJINSTR
   basilys_assertmsg("iniobj checkdiscr dobj_163__CLASS_OBJINSTR", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_163__CLASS_OBJINSTR.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_163__CLASS_OBJINSTR.obj_num = OBMAG_OBJECT;
-  cdat->dobj_163__CLASS_OBJINSTR.obj_hash = 493796746;
+  cdat->dobj_163__CLASS_OBJINSTR.obj_hash = 1028138256;
   cdat->dobj_163__CLASS_OBJINSTR.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_163__CLASS_OBJINSTR));
  
@@ -52321,7 +52065,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_167__OBI_LOC));
   basilys_assertmsg("iniobj checkdiscr dobj_169__OBI_LOC", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_169__OBI_LOC.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_169__OBI_LOC.obj_num = 0;
-  cdat->dobj_169__OBI_LOC.obj_hash = 422534854;
+  cdat->dobj_169__OBI_LOC.obj_hash = 198579697;
   cdat->dobj_169__OBI_LOC.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_169__OBI_LOC));
  
@@ -52350,7 +52094,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_171__CLASS_OBJCOMME
   basilys_assertmsg("iniobj checkdiscr dobj_173__CLASS_OBJCOMMENTINSTR", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_173__CLASS_OBJCOMMENTINSTR.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_173__CLASS_OBJCOMMENTINSTR.obj_num = OBMAG_OBJECT;
-  cdat->dobj_173__CLASS_OBJCOMMENTINSTR.obj_hash = 877239294;
+  cdat->dobj_173__CLASS_OBJCOMMENTINSTR.obj_hash = 814655243;
   cdat->dobj_173__CLASS_OBJCOMMENTINSTR.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_173__CLASS_OBJCOMMENTINSTR));
  
@@ -52387,7 +52131,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_177__OBCI_COMMENT))
   basilys_assertmsg("iniobj checkdiscr dobj_179__OBCI_COMMENT", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_179__OBCI_COMMENT.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_179__OBCI_COMMENT.obj_num = 1;
-  cdat->dobj_179__OBCI_COMMENT.obj_hash = 967756028;
+  cdat->dobj_179__OBCI_COMMENT.obj_hash = 320785949;
   cdat->dobj_179__OBCI_COMMENT.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_179__OBCI_COMMENT));
  
@@ -52416,7 +52160,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_181__CLASS_OBJDESTI
   basilys_assertmsg("iniobj checkdiscr dobj_183__CLASS_OBJDESTINSTR", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_183__CLASS_OBJDESTINSTR.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_183__CLASS_OBJDESTINSTR.obj_num = OBMAG_OBJECT;
-  cdat->dobj_183__CLASS_OBJDESTINSTR.obj_hash = 862141229;
+  cdat->dobj_183__CLASS_OBJDESTINSTR.obj_hash = 625524007;
   cdat->dobj_183__CLASS_OBJDESTINSTR.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_183__CLASS_OBJDESTINSTR));
  
@@ -52453,7 +52197,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_187__OBDI_DESTLIST)
   basilys_assertmsg("iniobj checkdiscr dobj_189__OBDI_DESTLIST", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_189__OBDI_DESTLIST.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_189__OBDI_DESTLIST.obj_num = 1;
-  cdat->dobj_189__OBDI_DESTLIST.obj_hash = 431006454;
+  cdat->dobj_189__OBDI_DESTLIST.obj_hash = 668384181;
   cdat->dobj_189__OBDI_DESTLIST.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_189__OBDI_DESTLIST));
  
@@ -52482,7 +52226,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_191__CLASS_OBJCOMPU
   basilys_assertmsg("iniobj checkdiscr dobj_193__CLASS_OBJCOMPUTE", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_193__CLASS_OBJCOMPUTE.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_193__CLASS_OBJCOMPUTE.obj_num = OBMAG_OBJECT;
-  cdat->dobj_193__CLASS_OBJCOMPUTE.obj_hash = 504776829;
+  cdat->dobj_193__CLASS_OBJCOMPUTE.obj_hash = 636002605;
   cdat->dobj_193__CLASS_OBJCOMPUTE.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_193__CLASS_OBJCOMPUTE));
  
@@ -52519,7 +52263,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_197__OBCPT_EXPR));
   basilys_assertmsg("iniobj checkdiscr dobj_199__OBCPT_EXPR", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_199__OBCPT_EXPR.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_199__OBCPT_EXPR.obj_num = 2;
-  cdat->dobj_199__OBCPT_EXPR.obj_hash = 701109727;
+  cdat->dobj_199__OBCPT_EXPR.obj_hash = 850877252;
   cdat->dobj_199__OBCPT_EXPR.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_199__OBCPT_EXPR));
  
@@ -52548,7 +52292,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_201__CLASS_OBJGETAR
   basilys_assertmsg("iniobj checkdiscr dobj_203__CLASS_OBJGETARG", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_203__CLASS_OBJGETARG.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_203__CLASS_OBJGETARG.obj_num = OBMAG_OBJECT;
-  cdat->dobj_203__CLASS_OBJGETARG.obj_hash = 617355781;
+  cdat->dobj_203__CLASS_OBJGETARG.obj_hash = 102505491;
   cdat->dobj_203__CLASS_OBJGETARG.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_203__CLASS_OBJGETARG));
  
@@ -52585,7 +52329,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_207__OBARG_OBLOC));
   basilys_assertmsg("iniobj checkdiscr dobj_209__OBARG_OBLOC", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_209__OBARG_OBLOC.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_209__OBARG_OBLOC.obj_num = 1;
-  cdat->dobj_209__OBARG_OBLOC.obj_hash = 16023198;
+  cdat->dobj_209__OBARG_OBLOC.obj_hash = 38397841;
   cdat->dobj_209__OBARG_OBLOC.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_209__OBARG_OBLOC));
  
@@ -52614,7 +52358,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_211__OBARG_BIND));
   basilys_assertmsg("iniobj checkdiscr dobj_213__OBARG_BIND", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_213__OBARG_BIND.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_213__OBARG_BIND.obj_num = 2;
-  cdat->dobj_213__OBARG_BIND.obj_hash = 89782332;
+  cdat->dobj_213__OBARG_BIND.obj_hash = 74153138;
   cdat->dobj_213__OBARG_BIND.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_213__OBARG_BIND));
  
@@ -52643,7 +52387,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_215__CLASS_OBJPUTXT
   basilys_assertmsg("iniobj checkdiscr dobj_217__CLASS_OBJPUTXTRARESULT", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_217__CLASS_OBJPUTXTRARESULT.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_217__CLASS_OBJPUTXTRARESULT.obj_num = OBMAG_OBJECT;
-  cdat->dobj_217__CLASS_OBJPUTXTRARESULT.obj_hash = 103302550;
+  cdat->dobj_217__CLASS_OBJPUTXTRARESULT.obj_hash = 806791006;
   cdat->dobj_217__CLASS_OBJPUTXTRARESULT.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_217__CLASS_OBJPUTXTRARESULT));
  
@@ -52680,7 +52424,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_221__OBXRES_RANK));
   basilys_assertmsg("iniobj checkdiscr dobj_223__OBXRES_RANK", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_223__OBXRES_RANK.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_223__OBXRES_RANK.obj_num = 1;
-  cdat->dobj_223__OBXRES_RANK.obj_hash = 318173976;
+  cdat->dobj_223__OBXRES_RANK.obj_hash = 985588565;
   cdat->dobj_223__OBXRES_RANK.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_223__OBXRES_RANK));
  
@@ -52709,7 +52453,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_225__OBXRES_OBLOC))
   basilys_assertmsg("iniobj checkdiscr dobj_227__OBXRES_OBLOC", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_227__OBXRES_OBLOC.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_227__OBXRES_OBLOC.obj_num = 2;
-  cdat->dobj_227__OBXRES_OBLOC.obj_hash = 972780423;
+  cdat->dobj_227__OBXRES_OBLOC.obj_hash = 990861655;
   cdat->dobj_227__OBXRES_OBLOC.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_227__OBXRES_OBLOC));
  
@@ -52738,7 +52482,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_229__CLASS_OBJFINAL
   basilys_assertmsg("iniobj checkdiscr dobj_231__CLASS_OBJFINALRETURN", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_231__CLASS_OBJFINALRETURN.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_231__CLASS_OBJFINALRETURN.obj_num = OBMAG_OBJECT;
-  cdat->dobj_231__CLASS_OBJFINALRETURN.obj_hash = 92167750;
+  cdat->dobj_231__CLASS_OBJFINALRETURN.obj_hash = 757628081;
   cdat->dobj_231__CLASS_OBJFINALRETURN.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_231__CLASS_OBJFINALRETURN));
  
@@ -52775,7 +52519,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_235__CLASS_OBJCLEAR
   basilys_assertmsg("iniobj checkdiscr dobj_237__CLASS_OBJCLEAR", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_237__CLASS_OBJCLEAR.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_237__CLASS_OBJCLEAR.obj_num = OBMAG_OBJECT;
-  cdat->dobj_237__CLASS_OBJCLEAR.obj_hash = 114066713;
+  cdat->dobj_237__CLASS_OBJCLEAR.obj_hash = 570855526;
   cdat->dobj_237__CLASS_OBJCLEAR.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_237__CLASS_OBJCLEAR));
  
@@ -52812,7 +52556,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_241__OCLR_VLOC));
   basilys_assertmsg("iniobj checkdiscr dobj_243__OCLR_VLOC", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_243__OCLR_VLOC.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_243__OCLR_VLOC.obj_num = 1;
-  cdat->dobj_243__OCLR_VLOC.obj_hash = 111589648;
+  cdat->dobj_243__OCLR_VLOC.obj_hash = 1016486000;
   cdat->dobj_243__OCLR_VLOC.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_243__OCLR_VLOC));
  
@@ -52841,7 +52585,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_245__CLASS_OBJBLOCK
   basilys_assertmsg("iniobj checkdiscr dobj_247__CLASS_OBJBLOCK", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_247__CLASS_OBJBLOCK.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_247__CLASS_OBJBLOCK.obj_num = OBMAG_OBJECT;
-  cdat->dobj_247__CLASS_OBJBLOCK.obj_hash = 985388600;
+  cdat->dobj_247__CLASS_OBJBLOCK.obj_hash = 192046962;
   cdat->dobj_247__CLASS_OBJBLOCK.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_247__CLASS_OBJBLOCK));
  
@@ -52878,7 +52622,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_251__OBLO_BODYL));
   basilys_assertmsg("iniobj checkdiscr dobj_253__OBLO_BODYL", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_253__OBLO_BODYL.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_253__OBLO_BODYL.obj_num = 1;
-  cdat->dobj_253__OBLO_BODYL.obj_hash = 535189153;
+  cdat->dobj_253__OBLO_BODYL.obj_hash = 878981279;
   cdat->dobj_253__OBLO_BODYL.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_253__OBLO_BODYL));
  
@@ -52907,7 +52651,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_255__OBLO_EPIL));
   basilys_assertmsg("iniobj checkdiscr dobj_257__OBLO_EPIL", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_257__OBLO_EPIL.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_257__OBLO_EPIL.obj_num = 2;
-  cdat->dobj_257__OBLO_EPIL.obj_hash = 122478936;
+  cdat->dobj_257__OBLO_EPIL.obj_hash = 182401979;
   cdat->dobj_257__OBLO_EPIL.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_257__OBLO_EPIL));
  
@@ -52936,7 +52680,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_259__CLASS_OBJCOMME
   basilys_assertmsg("iniobj checkdiscr dobj_261__CLASS_OBJCOMMENTEDBLOCK", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_261__CLASS_OBJCOMMENTEDBLOCK.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_261__CLASS_OBJCOMMENTEDBLOCK.obj_num = OBMAG_OBJECT;
-  cdat->dobj_261__CLASS_OBJCOMMENTEDBLOCK.obj_hash = 300558231;
+  cdat->dobj_261__CLASS_OBJCOMMENTEDBLOCK.obj_hash = 636516668;
   cdat->dobj_261__CLASS_OBJCOMMENTEDBLOCK.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_261__CLASS_OBJCOMMENTEDBLOCK));
  
@@ -52973,7 +52717,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_265__OCOMBLO_COMMEN
   basilys_assertmsg("iniobj checkdiscr dobj_267__OCOMBLO_COMMENT", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_267__OCOMBLO_COMMENT.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_267__OCOMBLO_COMMENT.obj_num = 3;
-  cdat->dobj_267__OCOMBLO_COMMENT.obj_hash = 94526139;
+  cdat->dobj_267__OCOMBLO_COMMENT.obj_hash = 52053044;
   cdat->dobj_267__OCOMBLO_COMMENT.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_267__OCOMBLO_COMMENT));
  
@@ -53002,7 +52746,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_269__CLASS_OBJLOOP)
   basilys_assertmsg("iniobj checkdiscr dobj_271__CLASS_OBJLOOP", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_271__CLASS_OBJLOOP.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_271__CLASS_OBJLOOP.obj_num = OBMAG_OBJECT;
-  cdat->dobj_271__CLASS_OBJLOOP.obj_hash = 484537427;
+  cdat->dobj_271__CLASS_OBJLOOP.obj_hash = 916375685;
   cdat->dobj_271__CLASS_OBJLOOP.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_271__CLASS_OBJLOOP));
  
@@ -53039,7 +52783,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_275__OBLOOP_LABEL))
   basilys_assertmsg("iniobj checkdiscr dobj_277__OBLOOP_LABEL", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_277__OBLOOP_LABEL.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_277__OBLOOP_LABEL.obj_num = 3;
-  cdat->dobj_277__OBLOOP_LABEL.obj_hash = 1011096744;
+  cdat->dobj_277__OBLOOP_LABEL.obj_hash = 86351455;
   cdat->dobj_277__OBLOOP_LABEL.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_277__OBLOOP_LABEL));
  
@@ -53068,7 +52812,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_279__OBLOOP_RESV));
   basilys_assertmsg("iniobj checkdiscr dobj_281__OBLOOP_RESV", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_281__OBLOOP_RESV.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_281__OBLOOP_RESV.obj_num = 4;
-  cdat->dobj_281__OBLOOP_RESV.obj_hash = 707098137;
+  cdat->dobj_281__OBLOOP_RESV.obj_hash = 337955572;
   cdat->dobj_281__OBLOOP_RESV.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_281__OBLOOP_RESV));
  
@@ -53097,7 +52841,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_283__CLASS_OBJEXIT)
   basilys_assertmsg("iniobj checkdiscr dobj_285__CLASS_OBJEXIT", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_285__CLASS_OBJEXIT.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_285__CLASS_OBJEXIT.obj_num = OBMAG_OBJECT;
-  cdat->dobj_285__CLASS_OBJEXIT.obj_hash = 506201422;
+  cdat->dobj_285__CLASS_OBJEXIT.obj_hash = 766725578;
   cdat->dobj_285__CLASS_OBJEXIT.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_285__CLASS_OBJEXIT));
  
@@ -53134,7 +52878,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_289__OBEXIT_LABEL))
   basilys_assertmsg("iniobj checkdiscr dobj_291__OBEXIT_LABEL", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_291__OBEXIT_LABEL.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_291__OBEXIT_LABEL.obj_num = 1;
-  cdat->dobj_291__OBEXIT_LABEL.obj_hash = 420579678;
+  cdat->dobj_291__OBEXIT_LABEL.obj_hash = 957555055;
   cdat->dobj_291__OBEXIT_LABEL.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_291__OBEXIT_LABEL));
  
@@ -53163,7 +52907,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_293__CLASS_OBJCITER
   basilys_assertmsg("iniobj checkdiscr dobj_295__CLASS_OBJCITERBLOCK", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_295__CLASS_OBJCITERBLOCK.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_295__CLASS_OBJCITERBLOCK.obj_num = OBMAG_OBJECT;
-  cdat->dobj_295__CLASS_OBJCITERBLOCK.obj_hash = 346200871;
+  cdat->dobj_295__CLASS_OBJCITERBLOCK.obj_hash = 223658193;
   cdat->dobj_295__CLASS_OBJCITERBLOCK.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_295__CLASS_OBJCITERBLOCK));
  
@@ -53200,7 +52944,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_299__OBCITER_CITER)
   basilys_assertmsg("iniobj checkdiscr dobj_301__OBCITER_CITER", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_301__OBCITER_CITER.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_301__OBCITER_CITER.obj_num = 3;
-  cdat->dobj_301__OBCITER_CITER.obj_hash = 951192758;
+  cdat->dobj_301__OBCITER_CITER.obj_hash = 824977573;
   cdat->dobj_301__OBCITER_CITER.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_301__OBCITER_CITER));
  
@@ -53229,7 +52973,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_303__OBCITER_BEFORE
   basilys_assertmsg("iniobj checkdiscr dobj_305__OBCITER_BEFORE", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_305__OBCITER_BEFORE.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_305__OBCITER_BEFORE.obj_num = 4;
-  cdat->dobj_305__OBCITER_BEFORE.obj_hash = 141215484;
+  cdat->dobj_305__OBCITER_BEFORE.obj_hash = 587697359;
   cdat->dobj_305__OBCITER_BEFORE.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_305__OBCITER_BEFORE));
  
@@ -53258,7 +53002,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_307__OBCITER_AFTER)
   basilys_assertmsg("iniobj checkdiscr dobj_309__OBCITER_AFTER", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_309__OBCITER_AFTER.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_309__OBCITER_AFTER.obj_num = 5;
-  cdat->dobj_309__OBCITER_AFTER.obj_hash = 935421806;
+  cdat->dobj_309__OBCITER_AFTER.obj_hash = 850969541;
   cdat->dobj_309__OBCITER_AFTER.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_309__OBCITER_AFTER));
  
@@ -53287,7 +53031,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_311__CLASS_OBJCOND)
   basilys_assertmsg("iniobj checkdiscr dobj_313__CLASS_OBJCOND", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_313__CLASS_OBJCOND.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_313__CLASS_OBJCOND.obj_num = OBMAG_OBJECT;
-  cdat->dobj_313__CLASS_OBJCOND.obj_hash = 912167644;
+  cdat->dobj_313__CLASS_OBJCOND.obj_hash = 30807556;
   cdat->dobj_313__CLASS_OBJCOND.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_313__CLASS_OBJCOND));
  
@@ -53324,7 +53068,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_317__OBCOND_TEST));
   basilys_assertmsg("iniobj checkdiscr dobj_319__OBCOND_TEST", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_319__OBCOND_TEST.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_319__OBCOND_TEST.obj_num = 1;
-  cdat->dobj_319__OBCOND_TEST.obj_hash = 752247000;
+  cdat->dobj_319__OBCOND_TEST.obj_hash = 891994484;
   cdat->dobj_319__OBCOND_TEST.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_319__OBCOND_TEST));
  
@@ -53353,7 +53097,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_321__OBCOND_THEN));
   basilys_assertmsg("iniobj checkdiscr dobj_323__OBCOND_THEN", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_323__OBCOND_THEN.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_323__OBCOND_THEN.obj_num = 2;
-  cdat->dobj_323__OBCOND_THEN.obj_hash = 336616836;
+  cdat->dobj_323__OBCOND_THEN.obj_hash = 253893301;
   cdat->dobj_323__OBCOND_THEN.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_323__OBCOND_THEN));
  
@@ -53382,7 +53126,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_325__OBCOND_ELSE));
   basilys_assertmsg("iniobj checkdiscr dobj_327__OBCOND_ELSE", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_327__OBCOND_ELSE.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_327__OBCOND_ELSE.obj_num = 3;
-  cdat->dobj_327__OBCOND_ELSE.obj_hash = 597355358;
+  cdat->dobj_327__OBCOND_ELSE.obj_hash = 460679490;
   cdat->dobj_327__OBCOND_ELSE.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_327__OBCOND_ELSE));
  
@@ -53411,7 +53155,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_329__CLASS_OBJCPPIF
   basilys_assertmsg("iniobj checkdiscr dobj_331__CLASS_OBJCPPIF", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_331__CLASS_OBJCPPIF.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_331__CLASS_OBJCPPIF.obj_num = OBMAG_OBJECT;
-  cdat->dobj_331__CLASS_OBJCPPIF.obj_hash = 17420221;
+  cdat->dobj_331__CLASS_OBJCPPIF.obj_hash = 609535052;
   cdat->dobj_331__CLASS_OBJCPPIF.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_331__CLASS_OBJCPPIF));
  
@@ -53448,7 +53192,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_335__OBIFP_COND));
   basilys_assertmsg("iniobj checkdiscr dobj_337__OBIFP_COND", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_337__OBIFP_COND.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_337__OBIFP_COND.obj_num = 1;
-  cdat->dobj_337__OBIFP_COND.obj_hash = 588543373;
+  cdat->dobj_337__OBIFP_COND.obj_hash = 835736832;
   cdat->dobj_337__OBIFP_COND.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_337__OBIFP_COND));
  
@@ -53477,7 +53221,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_339__OBIFP_THEN));
   basilys_assertmsg("iniobj checkdiscr dobj_341__OBIFP_THEN", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_341__OBIFP_THEN.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_341__OBIFP_THEN.obj_num = 2;
-  cdat->dobj_341__OBIFP_THEN.obj_hash = 312161143;
+  cdat->dobj_341__OBIFP_THEN.obj_hash = 22303341;
   cdat->dobj_341__OBIFP_THEN.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_341__OBIFP_THEN));
  
@@ -53506,7 +53250,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_343__OBIFP_ELSE));
   basilys_assertmsg("iniobj checkdiscr dobj_345__OBIFP_ELSE", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_345__OBIFP_ELSE.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_345__OBIFP_ELSE.obj_num = 3;
-  cdat->dobj_345__OBIFP_ELSE.obj_hash = 803529061;
+  cdat->dobj_345__OBIFP_ELSE.obj_hash = 58209664;
   cdat->dobj_345__OBIFP_ELSE.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_345__OBIFP_ELSE));
  
@@ -53535,7 +53279,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_347__CLASS_OBJINTER
   basilys_assertmsg("iniobj checkdiscr dobj_349__CLASS_OBJINTERNCOMMON", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_349__CLASS_OBJINTERNCOMMON.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_349__CLASS_OBJINTERNCOMMON.obj_num = OBMAG_OBJECT;
-  cdat->dobj_349__CLASS_OBJINTERNCOMMON.obj_hash = 1035661016;
+  cdat->dobj_349__CLASS_OBJINTERNCOMMON.obj_hash = 986886036;
   cdat->dobj_349__CLASS_OBJINTERNCOMMON.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_349__CLASS_OBJINTERNCOMMON));
  
@@ -53572,7 +53316,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_353__OBINTERN_IOBJ)
   basilys_assertmsg("iniobj checkdiscr dobj_355__OBINTERN_IOBJ", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_355__OBINTERN_IOBJ.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_355__OBINTERN_IOBJ.obj_num = 1;
-  cdat->dobj_355__OBINTERN_IOBJ.obj_hash = 363150231;
+  cdat->dobj_355__OBINTERN_IOBJ.obj_hash = 580560359;
   cdat->dobj_355__OBINTERN_IOBJ.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_355__OBINTERN_IOBJ));
  
@@ -53601,7 +53345,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_357__CLASS_OBJINTER
   basilys_assertmsg("iniobj checkdiscr dobj_359__CLASS_OBJINTERNSYMBOL", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_359__CLASS_OBJINTERNSYMBOL.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_359__CLASS_OBJINTERNSYMBOL.obj_num = OBMAG_OBJECT;
-  cdat->dobj_359__CLASS_OBJINTERNSYMBOL.obj_hash = 109602077;
+  cdat->dobj_359__CLASS_OBJINTERNSYMBOL.obj_hash = 722940423;
   cdat->dobj_359__CLASS_OBJINTERNSYMBOL.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_359__CLASS_OBJINTERNSYMBOL));
  
@@ -53638,7 +53382,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_363__CLASS_OBJINTER
   basilys_assertmsg("iniobj checkdiscr dobj_365__CLASS_OBJINTERNKEYWORD", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_365__CLASS_OBJINTERNKEYWORD.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_365__CLASS_OBJINTERNKEYWORD.obj_num = OBMAG_OBJECT;
-  cdat->dobj_365__CLASS_OBJINTERNKEYWORD.obj_hash = 406293127;
+  cdat->dobj_365__CLASS_OBJINTERNKEYWORD.obj_hash = 666564179;
   cdat->dobj_365__CLASS_OBJINTERNKEYWORD.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_365__CLASS_OBJINTERNKEYWORD));
  
@@ -53675,7 +53419,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_369__CLASS_OBJGETNA
   basilys_assertmsg("iniobj checkdiscr dobj_371__CLASS_OBJGETNAMEDCOMMON", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_371__CLASS_OBJGETNAMEDCOMMON.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_371__CLASS_OBJGETNAMEDCOMMON.obj_num = OBMAG_OBJECT;
-  cdat->dobj_371__CLASS_OBJGETNAMEDCOMMON.obj_hash = 17670005;
+  cdat->dobj_371__CLASS_OBJGETNAMEDCOMMON.obj_hash = 134113548;
   cdat->dobj_371__CLASS_OBJGETNAMEDCOMMON.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_371__CLASS_OBJGETNAMEDCOMMON));
  
@@ -53712,7 +53456,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_375__OBGNAMED_IOBJ)
   basilys_assertmsg("iniobj checkdiscr dobj_377__OBGNAMED_IOBJ", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_377__OBGNAMED_IOBJ.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_377__OBGNAMED_IOBJ.obj_num = 1;
-  cdat->dobj_377__OBGNAMED_IOBJ.obj_hash = 233126556;
+  cdat->dobj_377__OBGNAMED_IOBJ.obj_hash = 955763287;
   cdat->dobj_377__OBGNAMED_IOBJ.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_377__OBGNAMED_IOBJ));
  
@@ -53741,7 +53485,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_379__CLASS_OBJGETNA
   basilys_assertmsg("iniobj checkdiscr dobj_381__CLASS_OBJGETNAMEDSYMBOL", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_381__CLASS_OBJGETNAMEDSYMBOL.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_381__CLASS_OBJGETNAMEDSYMBOL.obj_num = OBMAG_OBJECT;
-  cdat->dobj_381__CLASS_OBJGETNAMEDSYMBOL.obj_hash = 735141845;
+  cdat->dobj_381__CLASS_OBJGETNAMEDSYMBOL.obj_hash = 600098994;
   cdat->dobj_381__CLASS_OBJGETNAMEDSYMBOL.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_381__CLASS_OBJGETNAMEDSYMBOL));
  
@@ -53778,7 +53522,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_385__CLASS_OBJGETNA
   basilys_assertmsg("iniobj checkdiscr dobj_387__CLASS_OBJGETNAMEDKEYWORD", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_387__CLASS_OBJGETNAMEDKEYWORD.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_387__CLASS_OBJGETNAMEDKEYWORD.obj_num = OBMAG_OBJECT;
-  cdat->dobj_387__CLASS_OBJGETNAMEDKEYWORD.obj_hash = 28772802;
+  cdat->dobj_387__CLASS_OBJGETNAMEDKEYWORD.obj_hash = 271974312;
   cdat->dobj_387__CLASS_OBJGETNAMEDKEYWORD.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_387__CLASS_OBJGETNAMEDKEYWORD));
  
@@ -53815,7 +53559,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_391__CLASS_OBJAPPLY
   basilys_assertmsg("iniobj checkdiscr dobj_393__CLASS_OBJAPPLY", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_393__CLASS_OBJAPPLY.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_393__CLASS_OBJAPPLY.obj_num = OBMAG_OBJECT;
-  cdat->dobj_393__CLASS_OBJAPPLY.obj_hash = 692108335;
+  cdat->dobj_393__CLASS_OBJAPPLY.obj_hash = 617222695;
   cdat->dobj_393__CLASS_OBJAPPLY.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_393__CLASS_OBJAPPLY));
  
@@ -53852,7 +53596,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_397__OBAPP_CLOS));
   basilys_assertmsg("iniobj checkdiscr dobj_399__OBAPP_CLOS", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_399__OBAPP_CLOS.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_399__OBAPP_CLOS.obj_num = 2;
-  cdat->dobj_399__OBAPP_CLOS.obj_hash = 682813153;
+  cdat->dobj_399__OBAPP_CLOS.obj_hash = 680713933;
   cdat->dobj_399__OBAPP_CLOS.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_399__OBAPP_CLOS));
  
@@ -53881,7 +53625,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_401__OBAPP_ARGS));
   basilys_assertmsg("iniobj checkdiscr dobj_403__OBAPP_ARGS", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_403__OBAPP_ARGS.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_403__OBAPP_ARGS.obj_num = 3;
-  cdat->dobj_403__OBAPP_ARGS.obj_hash = 1006694808;
+  cdat->dobj_403__OBAPP_ARGS.obj_hash = 826072729;
   cdat->dobj_403__OBAPP_ARGS.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_403__OBAPP_ARGS));
  
@@ -53910,7 +53654,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_405__CLASS_OBJMULTI
   basilys_assertmsg("iniobj checkdiscr dobj_407__CLASS_OBJMULTIAPPLY", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_407__CLASS_OBJMULTIAPPLY.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_407__CLASS_OBJMULTIAPPLY.obj_num = OBMAG_OBJECT;
-  cdat->dobj_407__CLASS_OBJMULTIAPPLY.obj_hash = 521572637;
+  cdat->dobj_407__CLASS_OBJMULTIAPPLY.obj_hash = 74351736;
   cdat->dobj_407__CLASS_OBJMULTIAPPLY.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_407__CLASS_OBJMULTIAPPLY));
  
@@ -53947,7 +53691,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_411__OBMULTAPP_XRES
   basilys_assertmsg("iniobj checkdiscr dobj_413__OBMULTAPP_XRES", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_413__OBMULTAPP_XRES.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_413__OBMULTAPP_XRES.obj_num = 4;
-  cdat->dobj_413__OBMULTAPP_XRES.obj_hash = 1058981338;
+  cdat->dobj_413__OBMULTAPP_XRES.obj_hash = 597892857;
   cdat->dobj_413__OBMULTAPP_XRES.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_413__OBMULTAPP_XRES));
  
@@ -53976,7 +53720,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_415__CLASS_OBJMSEND
   basilys_assertmsg("iniobj checkdiscr dobj_417__CLASS_OBJMSEND", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_417__CLASS_OBJMSEND.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_417__CLASS_OBJMSEND.obj_num = OBMAG_OBJECT;
-  cdat->dobj_417__CLASS_OBJMSEND.obj_hash = 710361493;
+  cdat->dobj_417__CLASS_OBJMSEND.obj_hash = 265723430;
   cdat->dobj_417__CLASS_OBJMSEND.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_417__CLASS_OBJMSEND));
  
@@ -54013,7 +53757,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_421__OBMSND_SEL));
   basilys_assertmsg("iniobj checkdiscr dobj_423__OBMSND_SEL", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_423__OBMSND_SEL.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_423__OBMSND_SEL.obj_num = 2;
-  cdat->dobj_423__OBMSND_SEL.obj_hash = 243134889;
+  cdat->dobj_423__OBMSND_SEL.obj_hash = 965250541;
   cdat->dobj_423__OBMSND_SEL.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_423__OBMSND_SEL));
  
@@ -54042,7 +53786,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_425__OBMSND_RECV));
   basilys_assertmsg("iniobj checkdiscr dobj_427__OBMSND_RECV", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_427__OBMSND_RECV.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_427__OBMSND_RECV.obj_num = 3;
-  cdat->dobj_427__OBMSND_RECV.obj_hash = 1011747166;
+  cdat->dobj_427__OBMSND_RECV.obj_hash = 292736630;
   cdat->dobj_427__OBMSND_RECV.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_427__OBMSND_RECV));
  
@@ -54071,7 +53815,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_429__OBMSND_ARGS));
   basilys_assertmsg("iniobj checkdiscr dobj_431__OBMSND_ARGS", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_431__OBMSND_ARGS.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_431__OBMSND_ARGS.obj_num = 4;
-  cdat->dobj_431__OBMSND_ARGS.obj_hash = 481979746;
+  cdat->dobj_431__OBMSND_ARGS.obj_hash = 464664942;
   cdat->dobj_431__OBMSND_ARGS.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_431__OBMSND_ARGS));
  
@@ -54100,7 +53844,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_433__CLASS_OBJMULTI
   basilys_assertmsg("iniobj checkdiscr dobj_435__CLASS_OBJMULTIMSEND", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_435__CLASS_OBJMULTIMSEND.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_435__CLASS_OBJMULTIMSEND.obj_num = OBMAG_OBJECT;
-  cdat->dobj_435__CLASS_OBJMULTIMSEND.obj_hash = 517460540;
+  cdat->dobj_435__CLASS_OBJMULTIMSEND.obj_hash = 255961363;
   cdat->dobj_435__CLASS_OBJMULTIMSEND.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_435__CLASS_OBJMULTIMSEND));
  
@@ -54137,7 +53881,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_439__OBMULTSND_XRES
   basilys_assertmsg("iniobj checkdiscr dobj_441__OBMULTSND_XRES", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_441__OBMULTSND_XRES.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_441__OBMULTSND_XRES.obj_num = 5;
-  cdat->dobj_441__OBMULTSND_XRES.obj_hash = 1053119070;
+  cdat->dobj_441__OBMULTSND_XRES.obj_hash = 520278360;
   cdat->dobj_441__OBMULTSND_XRES.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_441__OBMULTSND_XRES));
  
@@ -54166,7 +53910,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_443__CLASS_OBJRAWAL
   basilys_assertmsg("iniobj checkdiscr dobj_445__CLASS_OBJRAWALLOCOBJ", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_445__CLASS_OBJRAWALLOCOBJ.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_445__CLASS_OBJRAWALLOCOBJ.obj_num = OBMAG_OBJECT;
-  cdat->dobj_445__CLASS_OBJRAWALLOCOBJ.obj_hash = 367637645;
+  cdat->dobj_445__CLASS_OBJRAWALLOCOBJ.obj_hash = 484787626;
   cdat->dobj_445__CLASS_OBJRAWALLOCOBJ.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_445__CLASS_OBJRAWALLOCOBJ));
  
@@ -54203,7 +53947,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_449__OBRALLOBJ_CLAS
   basilys_assertmsg("iniobj checkdiscr dobj_451__OBRALLOBJ_CLASS", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_451__OBRALLOBJ_CLASS.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_451__OBRALLOBJ_CLASS.obj_num = 2;
-  cdat->dobj_451__OBRALLOBJ_CLASS.obj_hash = 801493977;
+  cdat->dobj_451__OBRALLOBJ_CLASS.obj_hash = 357528970;
   cdat->dobj_451__OBRALLOBJ_CLASS.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_451__OBRALLOBJ_CLASS));
  
@@ -54232,7 +53976,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_453__OBRALLOBJ_LEN)
   basilys_assertmsg("iniobj checkdiscr dobj_455__OBRALLOBJ_LEN", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_455__OBRALLOBJ_LEN.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_455__OBRALLOBJ_LEN.obj_num = 3;
-  cdat->dobj_455__OBRALLOBJ_LEN.obj_hash = 350205736;
+  cdat->dobj_455__OBRALLOBJ_LEN.obj_hash = 382987660;
   cdat->dobj_455__OBRALLOBJ_LEN.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_455__OBRALLOBJ_LEN));
  
@@ -54261,7 +54005,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_457__OBRALLOBJ_CLAS
   basilys_assertmsg("iniobj checkdiscr dobj_459__OBRALLOBJ_CLASSNAME", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_459__OBRALLOBJ_CLASSNAME.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_459__OBRALLOBJ_CLASSNAME.obj_num = 4;
-  cdat->dobj_459__OBRALLOBJ_CLASSNAME.obj_hash = 577836627;
+  cdat->dobj_459__OBRALLOBJ_CLASSNAME.obj_hash = 158028427;
   cdat->dobj_459__OBRALLOBJ_CLASSNAME.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_459__OBRALLOBJ_CLASSNAME));
  
@@ -54290,7 +54034,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_461__CLASS_OBJNEWCL
   basilys_assertmsg("iniobj checkdiscr dobj_463__CLASS_OBJNEWCLOSURE", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_463__CLASS_OBJNEWCLOSURE.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_463__CLASS_OBJNEWCLOSURE.obj_num = OBMAG_OBJECT;
-  cdat->dobj_463__CLASS_OBJNEWCLOSURE.obj_hash = 924882019;
+  cdat->dobj_463__CLASS_OBJNEWCLOSURE.obj_hash = 752708181;
   cdat->dobj_463__CLASS_OBJNEWCLOSURE.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_463__CLASS_OBJNEWCLOSURE));
  
@@ -54327,7 +54071,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_467__OBNCLO_DISCR))
   basilys_assertmsg("iniobj checkdiscr dobj_469__OBNCLO_DISCR", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_469__OBNCLO_DISCR.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_469__OBNCLO_DISCR.obj_num = 2;
-  cdat->dobj_469__OBNCLO_DISCR.obj_hash = 843304586;
+  cdat->dobj_469__OBNCLO_DISCR.obj_hash = 436406272;
   cdat->dobj_469__OBNCLO_DISCR.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_469__OBNCLO_DISCR));
  
@@ -54356,7 +54100,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_471__OBNCLO_ROUT));
   basilys_assertmsg("iniobj checkdiscr dobj_473__OBNCLO_ROUT", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_473__OBNCLO_ROUT.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_473__OBNCLO_ROUT.obj_num = 3;
-  cdat->dobj_473__OBNCLO_ROUT.obj_hash = 1038497397;
+  cdat->dobj_473__OBNCLO_ROUT.obj_hash = 570648848;
   cdat->dobj_473__OBNCLO_ROUT.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_473__OBNCLO_ROUT));
  
@@ -54385,7 +54129,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_475__OBNCLO_LEN));
   basilys_assertmsg("iniobj checkdiscr dobj_477__OBNCLO_LEN", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_477__OBNCLO_LEN.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_477__OBNCLO_LEN.obj_num = 4;
-  cdat->dobj_477__OBNCLO_LEN.obj_hash = 350434711;
+  cdat->dobj_477__OBNCLO_LEN.obj_hash = 617021429;
   cdat->dobj_477__OBNCLO_LEN.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_477__OBNCLO_LEN));
  
@@ -54414,7 +54158,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_479__CLASS_OBJPUTUP
   basilys_assertmsg("iniobj checkdiscr dobj_481__CLASS_OBJPUTUPLE", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_481__CLASS_OBJPUTUPLE.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_481__CLASS_OBJPUTUPLE.obj_num = OBMAG_OBJECT;
-  cdat->dobj_481__CLASS_OBJPUTUPLE.obj_hash = 537646269;
+  cdat->dobj_481__CLASS_OBJPUTUPLE.obj_hash = 792413069;
   cdat->dobj_481__CLASS_OBJPUTUPLE.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_481__CLASS_OBJPUTUPLE));
  
@@ -54451,7 +54195,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_485__OPUTU_TUPLED))
   basilys_assertmsg("iniobj checkdiscr dobj_487__OPUTU_TUPLED", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_487__OPUTU_TUPLED.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_487__OPUTU_TUPLED.obj_num = 1;
-  cdat->dobj_487__OPUTU_TUPLED.obj_hash = 174903462;
+  cdat->dobj_487__OPUTU_TUPLED.obj_hash = 124086570;
   cdat->dobj_487__OPUTU_TUPLED.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_487__OPUTU_TUPLED));
  
@@ -54480,7 +54224,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_489__OPUTU_OFFSET))
   basilys_assertmsg("iniobj checkdiscr dobj_491__OPUTU_OFFSET", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_491__OPUTU_OFFSET.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_491__OPUTU_OFFSET.obj_num = 2;
-  cdat->dobj_491__OPUTU_OFFSET.obj_hash = 659311027;
+  cdat->dobj_491__OPUTU_OFFSET.obj_hash = 988284172;
   cdat->dobj_491__OPUTU_OFFSET.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_491__OPUTU_OFFSET));
  
@@ -54509,7 +54253,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_493__OPUTU_VALUE));
   basilys_assertmsg("iniobj checkdiscr dobj_495__OPUTU_VALUE", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_495__OPUTU_VALUE.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_495__OPUTU_VALUE.obj_num = 3;
-  cdat->dobj_495__OPUTU_VALUE.obj_hash = 199130458;
+  cdat->dobj_495__OPUTU_VALUE.obj_hash = 658491814;
   cdat->dobj_495__OPUTU_VALUE.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_495__OPUTU_VALUE));
  
@@ -54538,7 +54282,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_497__CLASS_OBJPUTSL
   basilys_assertmsg("iniobj checkdiscr dobj_499__CLASS_OBJPUTSLOT", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_499__CLASS_OBJPUTSLOT.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_499__CLASS_OBJPUTSLOT.obj_num = OBMAG_OBJECT;
-  cdat->dobj_499__CLASS_OBJPUTSLOT.obj_hash = 678307287;
+  cdat->dobj_499__CLASS_OBJPUTSLOT.obj_hash = 941664750;
   cdat->dobj_499__CLASS_OBJPUTSLOT.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_499__CLASS_OBJPUTSLOT));
  
@@ -54575,7 +54319,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_503__OSLOT_ODATA));
   basilys_assertmsg("iniobj checkdiscr dobj_505__OSLOT_ODATA", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_505__OSLOT_ODATA.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_505__OSLOT_ODATA.obj_num = 1;
-  cdat->dobj_505__OSLOT_ODATA.obj_hash = 775825433;
+  cdat->dobj_505__OSLOT_ODATA.obj_hash = 839857748;
   cdat->dobj_505__OSLOT_ODATA.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_505__OSLOT_ODATA));
  
@@ -54604,7 +54348,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_507__OSLOT_OFFSET))
   basilys_assertmsg("iniobj checkdiscr dobj_509__OSLOT_OFFSET", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_509__OSLOT_OFFSET.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_509__OSLOT_OFFSET.obj_num = 2;
-  cdat->dobj_509__OSLOT_OFFSET.obj_hash = 404845668;
+  cdat->dobj_509__OSLOT_OFFSET.obj_hash = 190747490;
   cdat->dobj_509__OSLOT_OFFSET.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_509__OSLOT_OFFSET));
  
@@ -54633,7 +54377,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_511__OSLOT_FIELD));
   basilys_assertmsg("iniobj checkdiscr dobj_513__OSLOT_FIELD", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_513__OSLOT_FIELD.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_513__OSLOT_FIELD.obj_num = 3;
-  cdat->dobj_513__OSLOT_FIELD.obj_hash = 853879405;
+  cdat->dobj_513__OSLOT_FIELD.obj_hash = 731697615;
   cdat->dobj_513__OSLOT_FIELD.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_513__OSLOT_FIELD));
  
@@ -54662,7 +54406,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_515__OSLOT_VALUE));
   basilys_assertmsg("iniobj checkdiscr dobj_517__OSLOT_VALUE", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_517__OSLOT_VALUE.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_517__OSLOT_VALUE.obj_num = 4;
-  cdat->dobj_517__OSLOT_VALUE.obj_hash = 83627191;
+  cdat->dobj_517__OSLOT_VALUE.obj_hash = 1003064606;
   cdat->dobj_517__OSLOT_VALUE.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_517__OSLOT_VALUE));
  
@@ -54691,7 +54435,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_519__CLASS_OBJGETSL
   basilys_assertmsg("iniobj checkdiscr dobj_521__CLASS_OBJGETSLOT", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_521__CLASS_OBJGETSLOT.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_521__CLASS_OBJGETSLOT.obj_num = OBMAG_OBJECT;
-  cdat->dobj_521__CLASS_OBJGETSLOT.obj_hash = 913505347;
+  cdat->dobj_521__CLASS_OBJGETSLOT.obj_hash = 1015955131;
   cdat->dobj_521__CLASS_OBJGETSLOT.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_521__CLASS_OBJGETSLOT));
  
@@ -54728,7 +54472,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_525__OGETSL_OBJ));
   basilys_assertmsg("iniobj checkdiscr dobj_527__OGETSL_OBJ", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_527__OGETSL_OBJ.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_527__OGETSL_OBJ.obj_num = 2;
-  cdat->dobj_527__OGETSL_OBJ.obj_hash = 551592674;
+  cdat->dobj_527__OGETSL_OBJ.obj_hash = 433560399;
   cdat->dobj_527__OGETSL_OBJ.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_527__OGETSL_OBJ));
  
@@ -54757,7 +54501,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_529__OGETSL_FIELD))
   basilys_assertmsg("iniobj checkdiscr dobj_531__OGETSL_FIELD", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_531__OGETSL_FIELD.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_531__OGETSL_FIELD.obj_num = 3;
-  cdat->dobj_531__OGETSL_FIELD.obj_hash = 363439773;
+  cdat->dobj_531__OGETSL_FIELD.obj_hash = 190433309;
   cdat->dobj_531__OGETSL_FIELD.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_531__OGETSL_FIELD));
  
@@ -54786,7 +54530,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_533__CLASS_OBJPUTCL
   basilys_assertmsg("iniobj checkdiscr dobj_535__CLASS_OBJPUTCLOSUROUT", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_535__CLASS_OBJPUTCLOSUROUT.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_535__CLASS_OBJPUTCLOSUROUT.obj_num = OBMAG_OBJECT;
-  cdat->dobj_535__CLASS_OBJPUTCLOSUROUT.obj_hash = 659827873;
+  cdat->dobj_535__CLASS_OBJPUTCLOSUROUT.obj_hash = 604454524;
   cdat->dobj_535__CLASS_OBJPUTCLOSUROUT.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_535__CLASS_OBJPUTCLOSUROUT));
  
@@ -54823,7 +54567,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_539__OPCLOR_CLOS));
   basilys_assertmsg("iniobj checkdiscr dobj_541__OPCLOR_CLOS", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_541__OPCLOR_CLOS.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_541__OPCLOR_CLOS.obj_num = 1;
-  cdat->dobj_541__OPCLOR_CLOS.obj_hash = 812520936;
+  cdat->dobj_541__OPCLOR_CLOS.obj_hash = 679670150;
   cdat->dobj_541__OPCLOR_CLOS.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_541__OPCLOR_CLOS));
  
@@ -54852,7 +54596,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_543__OPCLOR_ROUT));
   basilys_assertmsg("iniobj checkdiscr dobj_545__OPCLOR_ROUT", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_545__OPCLOR_ROUT.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_545__OPCLOR_ROUT.obj_num = 2;
-  cdat->dobj_545__OPCLOR_ROUT.obj_hash = 518546377;
+  cdat->dobj_545__OPCLOR_ROUT.obj_hash = 1031448779;
   cdat->dobj_545__OPCLOR_ROUT.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_545__OPCLOR_ROUT));
  
@@ -54881,7 +54625,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_547__CLASS_OBJPUTCL
   basilys_assertmsg("iniobj checkdiscr dobj_549__CLASS_OBJPUTCLOSEDV", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_549__CLASS_OBJPUTCLOSEDV.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_549__CLASS_OBJPUTCLOSEDV.obj_num = OBMAG_OBJECT;
-  cdat->dobj_549__CLASS_OBJPUTCLOSEDV.obj_hash = 298645760;
+  cdat->dobj_549__CLASS_OBJPUTCLOSEDV.obj_hash = 916893124;
   cdat->dobj_549__CLASS_OBJPUTCLOSEDV.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_549__CLASS_OBJPUTCLOSEDV));
  
@@ -54918,7 +54662,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_553__OPCLOV_CLOS));
   basilys_assertmsg("iniobj checkdiscr dobj_555__OPCLOV_CLOS", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_555__OPCLOV_CLOS.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_555__OPCLOV_CLOS.obj_num = 1;
-  cdat->dobj_555__OPCLOV_CLOS.obj_hash = 805978343;
+  cdat->dobj_555__OPCLOV_CLOS.obj_hash = 34935423;
   cdat->dobj_555__OPCLOV_CLOS.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_555__OPCLOV_CLOS));
  
@@ -54947,7 +54691,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_557__OPCLOV_OFF));
   basilys_assertmsg("iniobj checkdiscr dobj_559__OPCLOV_OFF", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_559__OPCLOV_OFF.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_559__OPCLOV_OFF.obj_num = 2;
-  cdat->dobj_559__OPCLOV_OFF.obj_hash = 481049267;
+  cdat->dobj_559__OPCLOV_OFF.obj_hash = 41690944;
   cdat->dobj_559__OPCLOV_OFF.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_559__OPCLOV_OFF));
  
@@ -54976,7 +54720,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_561__OPCLOV_CVAL));
   basilys_assertmsg("iniobj checkdiscr dobj_563__OPCLOV_CVAL", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_563__OPCLOV_CVAL.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_563__OPCLOV_CVAL.obj_num = 3;
-  cdat->dobj_563__OPCLOV_CVAL.obj_hash = 1072535940;
+  cdat->dobj_563__OPCLOV_CVAL.obj_hash = 539171877;
   cdat->dobj_563__OPCLOV_CVAL.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_563__OPCLOV_CVAL));
  
@@ -55005,7 +54749,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_565__CLASS_OBJPUTCL
   basilys_assertmsg("iniobj checkdiscr dobj_567__CLASS_OBJPUTCLOSEDNOTNULLV", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_567__CLASS_OBJPUTCLOSEDNOTNULLV.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_567__CLASS_OBJPUTCLOSEDNOTNULLV.obj_num = OBMAG_OBJECT;
-  cdat->dobj_567__CLASS_OBJPUTCLOSEDNOTNULLV.obj_hash = 195906563;
+  cdat->dobj_567__CLASS_OBJPUTCLOSEDNOTNULLV.obj_hash = 575310206;
   cdat->dobj_567__CLASS_OBJPUTCLOSEDNOTNULLV.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_567__CLASS_OBJPUTCLOSEDNOTNULLV));
  
@@ -55042,7 +54786,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_571__CLASS_OBJPUTRO
   basilys_assertmsg("iniobj checkdiscr dobj_573__CLASS_OBJPUTROUTCONST", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_573__CLASS_OBJPUTROUTCONST.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_573__CLASS_OBJPUTROUTCONST.obj_num = OBMAG_OBJECT;
-  cdat->dobj_573__CLASS_OBJPUTROUTCONST.obj_hash = 1005542460;
+  cdat->dobj_573__CLASS_OBJPUTROUTCONST.obj_hash = 863411672;
   cdat->dobj_573__CLASS_OBJPUTROUTCONST.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_573__CLASS_OBJPUTROUTCONST));
  
@@ -55079,7 +54823,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_577__OPRCONST_ROUT)
   basilys_assertmsg("iniobj checkdiscr dobj_579__OPRCONST_ROUT", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_579__OPRCONST_ROUT.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_579__OPRCONST_ROUT.obj_num = 1;
-  cdat->dobj_579__OPRCONST_ROUT.obj_hash = 705918621;
+  cdat->dobj_579__OPRCONST_ROUT.obj_hash = 500006094;
   cdat->dobj_579__OPRCONST_ROUT.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_579__OPRCONST_ROUT));
  
@@ -55108,7 +54852,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_581__OPRCONST_OFF))
   basilys_assertmsg("iniobj checkdiscr dobj_583__OPRCONST_OFF", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_583__OPRCONST_OFF.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_583__OPRCONST_OFF.obj_num = 2;
-  cdat->dobj_583__OPRCONST_OFF.obj_hash = 471271773;
+  cdat->dobj_583__OPRCONST_OFF.obj_hash = 64059457;
   cdat->dobj_583__OPRCONST_OFF.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_583__OPRCONST_OFF));
  
@@ -55137,7 +54881,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_585__OPRCONST_CVAL)
   basilys_assertmsg("iniobj checkdiscr dobj_587__OPRCONST_CVAL", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_587__OPRCONST_CVAL.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_587__OPRCONST_CVAL.obj_num = 3;
-  cdat->dobj_587__OPRCONST_CVAL.obj_hash = 120302755;
+  cdat->dobj_587__OPRCONST_CVAL.obj_hash = 447223131;
   cdat->dobj_587__OPRCONST_CVAL.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_587__OPRCONST_CVAL));
  
@@ -55166,7 +54910,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_589__CLASS_OBJPUTRO
   basilys_assertmsg("iniobj checkdiscr dobj_591__CLASS_OBJPUTROUTCONSTNOTNULL", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_591__CLASS_OBJPUTROUTCONSTNOTNULL.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_591__CLASS_OBJPUTROUTCONSTNOTNULL.obj_num = OBMAG_OBJECT;
-  cdat->dobj_591__CLASS_OBJPUTROUTCONSTNOTNULL.obj_hash = 477704895;
+  cdat->dobj_591__CLASS_OBJPUTROUTCONSTNOTNULL.obj_hash = 827424562;
   cdat->dobj_591__CLASS_OBJPUTROUTCONSTNOTNULL.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_591__CLASS_OBJPUTROUTCONSTNOTNULL));
  
@@ -55203,7 +54947,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_595__CLASS_OBJTOUCH
   basilys_assertmsg("iniobj checkdiscr dobj_597__CLASS_OBJTOUCH", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_597__CLASS_OBJTOUCH.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_597__CLASS_OBJTOUCH.obj_num = OBMAG_OBJECT;
-  cdat->dobj_597__CLASS_OBJTOUCH.obj_hash = 563426201;
+  cdat->dobj_597__CLASS_OBJTOUCH.obj_hash = 1040444046;
   cdat->dobj_597__CLASS_OBJTOUCH.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_597__CLASS_OBJTOUCH));
  
@@ -55240,7 +54984,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_601__OTOUCH_VAL));
   basilys_assertmsg("iniobj checkdiscr dobj_603__OTOUCH_VAL", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_603__OTOUCH_VAL.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_603__OTOUCH_VAL.obj_num = 1;
-  cdat->dobj_603__OTOUCH_VAL.obj_hash = 70053384;
+  cdat->dobj_603__OTOUCH_VAL.obj_hash = 107709777;
   cdat->dobj_603__OTOUCH_VAL.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_603__OTOUCH_VAL));
  
@@ -55269,7 +55013,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_605__OTOUCH_COMMENT
   basilys_assertmsg("iniobj checkdiscr dobj_607__OTOUCH_COMMENT", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_607__OTOUCH_COMMENT.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_607__OTOUCH_COMMENT.obj_num = 2;
-  cdat->dobj_607__OTOUCH_COMMENT.obj_hash = 869336986;
+  cdat->dobj_607__OTOUCH_COMMENT.obj_hash = 110487894;
   cdat->dobj_607__OTOUCH_COMMENT.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_607__OTOUCH_COMMENT));
  
@@ -55298,7 +55042,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_609__CLASS_OBJSETPR
   basilys_assertmsg("iniobj checkdiscr dobj_611__CLASS_OBJSETPREDEF", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_611__CLASS_OBJSETPREDEF.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_611__CLASS_OBJSETPREDEF.obj_num = OBMAG_OBJECT;
-  cdat->dobj_611__CLASS_OBJSETPREDEF.obj_hash = 369581698;
+  cdat->dobj_611__CLASS_OBJSETPREDEF.obj_hash = 334252745;
   cdat->dobj_611__CLASS_OBJSETPREDEF.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_611__CLASS_OBJSETPREDEF));
  
@@ -55335,7 +55079,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_615__OSPR_OBJECT));
   basilys_assertmsg("iniobj checkdiscr dobj_617__OSPR_OBJECT", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_617__OSPR_OBJECT.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_617__OSPR_OBJECT.obj_num = 1;
-  cdat->dobj_617__OSPR_OBJECT.obj_hash = 276121560;
+  cdat->dobj_617__OSPR_OBJECT.obj_hash = 285536706;
   cdat->dobj_617__OSPR_OBJECT.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_617__OSPR_OBJECT));
  
@@ -55364,7 +55108,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_619__OSPR_PREDEF));
   basilys_assertmsg("iniobj checkdiscr dobj_621__OSPR_PREDEF", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_621__OSPR_PREDEF.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_621__OSPR_PREDEF.obj_num = 2;
-  cdat->dobj_621__OSPR_PREDEF.obj_hash = 478507688;
+  cdat->dobj_621__OSPR_PREDEF.obj_hash = 235228374;
   cdat->dobj_621__OSPR_PREDEF.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_621__OSPR_PREDEF));
  
@@ -55406,7 +55150,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_625__CLASS_NAMED));
   basilys_assertmsg("iniobj checkdiscr dobj_627__CLASS_ROUTINEOBJ", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_627__CLASS_ROUTINEOBJ.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_627__CLASS_ROUTINEOBJ.obj_num = OBMAG_OBJECT;
-  cdat->dobj_627__CLASS_ROUTINEOBJ.obj_hash = 484701915;
+  cdat->dobj_627__CLASS_ROUTINEOBJ.obj_hash = 430298043;
   cdat->dobj_627__CLASS_ROUTINEOBJ.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_627__CLASS_ROUTINEOBJ));
  
@@ -55443,7 +55187,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_631__OBROUT_PROC));
   basilys_assertmsg("iniobj checkdiscr dobj_633__OBROUT_PROC", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_633__OBROUT_PROC.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_633__OBROUT_PROC.obj_num = 2;
-  cdat->dobj_633__OBROUT_PROC.obj_hash = 944053484;
+  cdat->dobj_633__OBROUT_PROC.obj_hash = 614038016;
   cdat->dobj_633__OBROUT_PROC.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_633__OBROUT_PROC));
  
@@ -55472,7 +55216,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_635__OBROUT_BODY));
   basilys_assertmsg("iniobj checkdiscr dobj_637__OBROUT_BODY", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_637__OBROUT_BODY.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_637__OBROUT_BODY.obj_num = 3;
-  cdat->dobj_637__OBROUT_BODY.obj_hash = 352324264;
+  cdat->dobj_637__OBROUT_BODY.obj_hash = 552404240;
   cdat->dobj_637__OBROUT_BODY.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_637__OBROUT_BODY));
  
@@ -55501,7 +55245,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_639__OBROUT_NBVAL))
   basilys_assertmsg("iniobj checkdiscr dobj_641__OBROUT_NBVAL", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_641__OBROUT_NBVAL.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_641__OBROUT_NBVAL.obj_num = 4;
-  cdat->dobj_641__OBROUT_NBVAL.obj_hash = 658500282;
+  cdat->dobj_641__OBROUT_NBVAL.obj_hash = 778744983;
   cdat->dobj_641__OBROUT_NBVAL.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_641__OBROUT_NBVAL));
  
@@ -55530,7 +55274,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_643__OBROUT_NBLONG)
   basilys_assertmsg("iniobj checkdiscr dobj_645__OBROUT_NBLONG", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_645__OBROUT_NBLONG.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_645__OBROUT_NBLONG.obj_num = 5;
-  cdat->dobj_645__OBROUT_NBLONG.obj_hash = 1058988258;
+  cdat->dobj_645__OBROUT_NBLONG.obj_hash = 406735187;
   cdat->dobj_645__OBROUT_NBLONG.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_645__OBROUT_NBLONG));
  
@@ -55559,7 +55303,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_647__OBROUT_OTHERS)
   basilys_assertmsg("iniobj checkdiscr dobj_649__OBROUT_OTHERS", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_649__OBROUT_OTHERS.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_649__OBROUT_OTHERS.obj_num = 6;
-  cdat->dobj_649__OBROUT_OTHERS.obj_hash = 555403434;
+  cdat->dobj_649__OBROUT_OTHERS.obj_hash = 759235534;
   cdat->dobj_649__OBROUT_OTHERS.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_649__OBROUT_OTHERS));
  
@@ -55588,7 +55332,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_651__OBROUT_RETVAL)
   basilys_assertmsg("iniobj checkdiscr dobj_653__OBROUT_RETVAL", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_653__OBROUT_RETVAL.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_653__OBROUT_RETVAL.obj_num = 7;
-  cdat->dobj_653__OBROUT_RETVAL.obj_hash = 936937495;
+  cdat->dobj_653__OBROUT_RETVAL.obj_hash = 159790863;
   cdat->dobj_653__OBROUT_RETVAL.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_653__OBROUT_RETVAL));
  
@@ -55617,7 +55361,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_655__CLASS_PROCROUT
   basilys_assertmsg("iniobj checkdiscr dobj_657__CLASS_PROCROUTINEOBJ", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_657__CLASS_PROCROUTINEOBJ.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_657__CLASS_PROCROUTINEOBJ.obj_num = OBMAG_OBJECT;
-  cdat->dobj_657__CLASS_PROCROUTINEOBJ.obj_hash = 263534818;
+  cdat->dobj_657__CLASS_PROCROUTINEOBJ.obj_hash = 363671701;
   cdat->dobj_657__CLASS_PROCROUTINEOBJ.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_657__CLASS_PROCROUTINEOBJ));
  
@@ -55654,7 +55398,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_661__OPROUT_GETARGS
   basilys_assertmsg("iniobj checkdiscr dobj_663__OPROUT_GETARGS", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_663__OPROUT_GETARGS.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_663__OPROUT_GETARGS.obj_num = 8;
-  cdat->dobj_663__OPROUT_GETARGS.obj_hash = 893003513;
+  cdat->dobj_663__OPROUT_GETARGS.obj_hash = 1015789615;
   cdat->dobj_663__OPROUT_GETARGS.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_663__OPROUT_GETARGS));
  
@@ -55683,7 +55427,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_665__OPROUT_LOC));
   basilys_assertmsg("iniobj checkdiscr dobj_667__OPROUT_LOC", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_667__OPROUT_LOC.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_667__OPROUT_LOC.obj_num = 9;
-  cdat->dobj_667__OPROUT_LOC.obj_hash = 979487302;
+  cdat->dobj_667__OPROUT_LOC.obj_hash = 821197473;
   cdat->dobj_667__OPROUT_LOC.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_667__OPROUT_LOC));
  
@@ -55712,7 +55456,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_669__OPROUT_FUNAM))
   basilys_assertmsg("iniobj checkdiscr dobj_671__OPROUT_FUNAM", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_671__OPROUT_FUNAM.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_671__OPROUT_FUNAM.obj_num = 10;
-  cdat->dobj_671__OPROUT_FUNAM.obj_hash = 769624983;
+  cdat->dobj_671__OPROUT_FUNAM.obj_hash = 973826486;
   cdat->dobj_671__OPROUT_FUNAM.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_671__OPROUT_FUNAM));
  
@@ -55741,7 +55485,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_673__CLASS_INITIALR
   basilys_assertmsg("iniobj checkdiscr dobj_675__CLASS_INITIALROUTINEOBJ", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_675__CLASS_INITIALROUTINEOBJ.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_675__CLASS_INITIALROUTINEOBJ.obj_num = OBMAG_OBJECT;
-  cdat->dobj_675__CLASS_INITIALROUTINEOBJ.obj_hash = 968145173;
+  cdat->dobj_675__CLASS_INITIALROUTINEOBJ.obj_hash = 477699750;
   cdat->dobj_675__CLASS_INITIALROUTINEOBJ.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_675__CLASS_INITIALROUTINEOBJ));
  
@@ -55778,7 +55522,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_679__OIROUT_DATA));
   basilys_assertmsg("iniobj checkdiscr dobj_681__OIROUT_DATA", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_681__OIROUT_DATA.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_681__OIROUT_DATA.obj_num = 8;
-  cdat->dobj_681__OIROUT_DATA.obj_hash = 153931738;
+  cdat->dobj_681__OIROUT_DATA.obj_hash = 669130015;
   cdat->dobj_681__OIROUT_DATA.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_681__OIROUT_DATA));
  
@@ -55807,7 +55551,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_683__OIROUT_PROLOG)
   basilys_assertmsg("iniobj checkdiscr dobj_685__OIROUT_PROLOG", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_685__OIROUT_PROLOG.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_685__OIROUT_PROLOG.obj_num = 9;
-  cdat->dobj_685__OIROUT_PROLOG.obj_hash = 712160376;
+  cdat->dobj_685__OIROUT_PROLOG.obj_hash = 998511248;
   cdat->dobj_685__OIROUT_PROLOG.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_685__OIROUT_PROLOG));
  
@@ -55836,7 +55580,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_687__OIROUT_FILL));
   basilys_assertmsg("iniobj checkdiscr dobj_689__OIROUT_FILL", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_689__OIROUT_FILL.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_689__OIROUT_FILL.obj_num = 10;
-  cdat->dobj_689__OIROUT_FILL.obj_hash = 220657818;
+  cdat->dobj_689__OIROUT_FILL.obj_hash = 1042515366;
   cdat->dobj_689__OIROUT_FILL.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_689__OIROUT_FILL));
  
@@ -55877,7 +55621,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_693__CLASS_SELECTOR
  if (!/*_.VALDATA___V802*/ curfptr[801]) /*_.VALDATA___V802*/ curfptr[801] = (void*)&cdat->dobj_695__OUTPUT_C_DECLINIT;
   basilys_assertmsg("iniobj checkdiscr dobj_695__OUTPUT_C_DECLINIT", NULL != (void*)/*_.CLASS_SELECTOR__V10*/ curfptr[9]);
   cdat->dobj_695__OUTPUT_C_DECLINIT.obj_class = (basilysobject_ptr_t)(/*_.CLASS_SELECTOR__V10*/ curfptr[9]);
-  cdat->dobj_695__OUTPUT_C_DECLINIT.obj_hash = 541108848;
+  cdat->dobj_695__OUTPUT_C_DECLINIT.obj_hash = 478073901;
   cdat->dobj_695__OUTPUT_C_DECLINIT.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_695__OUTPUT_C_DECLINIT));
  
@@ -55905,7 +55649,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_697__PUT_OBJDEST));
  if (!/*_.VALDATA___V806*/ curfptr[805]) /*_.VALDATA___V806*/ curfptr[805] = (void*)&cdat->dobj_699__PUT_OBJDEST;
   basilys_assertmsg("iniobj checkdiscr dobj_699__PUT_OBJDEST", NULL != (void*)/*_.CLASS_SELECTOR__V10*/ curfptr[9]);
   cdat->dobj_699__PUT_OBJDEST.obj_class = (basilysobject_ptr_t)(/*_.CLASS_SELECTOR__V10*/ curfptr[9]);
-  cdat->dobj_699__PUT_OBJDEST.obj_hash = 567577665;
+  cdat->dobj_699__PUT_OBJDEST.obj_hash = 495091981;
   cdat->dobj_699__PUT_OBJDEST.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_699__PUT_OBJDEST));
  
@@ -55933,7 +55677,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_701__OUTPUT_C_CODE)
  if (!/*_.VALDATA___V810*/ curfptr[809]) /*_.VALDATA___V810*/ curfptr[809] = (void*)&cdat->dobj_703__OUTPUT_C_CODE;
   basilys_assertmsg("iniobj checkdiscr dobj_703__OUTPUT_C_CODE", NULL != (void*)/*_.CLASS_SELECTOR__V10*/ curfptr[9]);
   cdat->dobj_703__OUTPUT_C_CODE.obj_class = (basilysobject_ptr_t)(/*_.CLASS_SELECTOR__V10*/ curfptr[9]);
-  cdat->dobj_703__OUTPUT_C_CODE.obj_hash = 448468937;
+  cdat->dobj_703__OUTPUT_C_CODE.obj_hash = 1010903462;
   cdat->dobj_703__OUTPUT_C_CODE.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_703__OUTPUT_C_CODE));
  
@@ -55961,7 +55705,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_705__OUTPUT_C_INITF
  if (!/*_.VALDATA___V814*/ curfptr[813]) /*_.VALDATA___V814*/ curfptr[813] = (void*)&cdat->dobj_707__OUTPUT_C_INITFILL;
   basilys_assertmsg("iniobj checkdiscr dobj_707__OUTPUT_C_INITFILL", NULL != (void*)/*_.CLASS_SELECTOR__V10*/ curfptr[9]);
   cdat->dobj_707__OUTPUT_C_INITFILL.obj_class = (basilysobject_ptr_t)(/*_.CLASS_SELECTOR__V10*/ curfptr[9]);
-  cdat->dobj_707__OUTPUT_C_INITFILL.obj_hash = 755584840;
+  cdat->dobj_707__OUTPUT_C_INITFILL.obj_hash = 214437940;
   cdat->dobj_707__OUTPUT_C_INITFILL.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_707__OUTPUT_C_INITFILL));
  
@@ -55989,7 +55733,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_709__OUTPUT_C_INITP
  if (!/*_.VALDATA___V818*/ curfptr[817]) /*_.VALDATA___V818*/ curfptr[817] = (void*)&cdat->dobj_711__OUTPUT_C_INITPREDEF;
   basilys_assertmsg("iniobj checkdiscr dobj_711__OUTPUT_C_INITPREDEF", NULL != (void*)/*_.CLASS_SELECTOR__V10*/ curfptr[9]);
   cdat->dobj_711__OUTPUT_C_INITPREDEF.obj_class = (basilysobject_ptr_t)(/*_.CLASS_SELECTOR__V10*/ curfptr[9]);
-  cdat->dobj_711__OUTPUT_C_INITPREDEF.obj_hash = 683759788;
+  cdat->dobj_711__OUTPUT_C_INITPREDEF.obj_hash = 1071225513;
   cdat->dobj_711__OUTPUT_C_INITPREDEF.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_711__OUTPUT_C_INITPREDEF));
  
@@ -56438,7 +56182,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_779__INITIALSYSTEMD
  if (!/*_.VALDATA___V894*/ curfptr[893]) /*_.VALDATA___V894*/ curfptr[893] = (void*)&cdat->dobj_781__INITIALSYSTEMDATA_OBJPREDEF;
   basilys_assertmsg("iniobj checkdiscr dobj_781__INITIALSYSTEMDATA_OBJPREDEF", NULL != (void*)/*_.VALDATA___V170*/ curfptr[169]);
   cdat->dobj_781__INITIALSYSTEMDATA_OBJPREDEF.obj_class = (basilysobject_ptr_t)(/*_.VALDATA___V170*/ curfptr[169]);
-  cdat->dobj_781__INITIALSYSTEMDATA_OBJPREDEF.obj_hash = 706878124;
+  cdat->dobj_781__INITIALSYSTEMDATA_OBJPREDEF.obj_hash = 105124358;
   cdat->dobj_781__INITIALSYSTEMDATA_OBJPREDEF.obj_len = 2;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_781__INITIALSYSTEMDATA_OBJPREDEF));
  
@@ -58229,7 +57973,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_1059__DISCRCLOSURE_
  if (!/*_.VALDATA___V1168*/ curfptr[1167]) /*_.VALDATA___V1168*/ curfptr[1167] = (void*)&cdat->dobj_1061__DISCRCLOSURE_OBJPREDEF;
   basilys_assertmsg("iniobj checkdiscr dobj_1061__DISCRCLOSURE_OBJPREDEF", NULL != (void*)/*_.VALDATA___V170*/ curfptr[169]);
   cdat->dobj_1061__DISCRCLOSURE_OBJPREDEF.obj_class = (basilysobject_ptr_t)(/*_.VALDATA___V170*/ curfptr[169]);
-  cdat->dobj_1061__DISCRCLOSURE_OBJPREDEF.obj_hash = 122916027;
+  cdat->dobj_1061__DISCRCLOSURE_OBJPREDEF.obj_hash = 6785870;
   cdat->dobj_1061__DISCRCLOSURE_OBJPREDEF.obj_len = 2;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_1061__DISCRCLOSURE_OBJPREDEF));
  
@@ -58868,7 +58612,8 @@ initial_frame_st   curfram__;
   /*com.block:compute fresh module environment*/{
    /**COMMENT: start computing boxloc **/;
    ;
-   /*_.FRESHENV___V3*/ curfptr[2] = basilys_getfield_object((basilys_ptr_t)(((void*)(BASILYSG(INITIAL_SYSTEM_DATA)))), 3, "SYSDATA_CONT_FRESH_ENV");
+   { basilys_ptr_t slot=0;
+    basilys_object_get_field(slot,(basilys_ptr_t)(((void*)(BASILYSG(INITIAL_SYSTEM_DATA)))), 3, "SYSDATA_CONT_FRESH_ENV");/*_.FRESHENV___V3*/ curfptr[2] = slot; };
    ;
    
     if ((/*_.PREVENV___V4*/ curfptr[3]) && basilys_magic_discr((basilys_ptr_t)(/*_.FRESHENV___V3*/ curfptr[2])) != OBMAG_CLOSURE) warning(0, "bad BASILYS fresh_env @%p in system data <%s:%d>", /*_.FRESHENV___V3*/ curfptr[2], __FILE__, __LINE__);;;
@@ -60248,7 +59993,8 @@ initial_frame_st   curfram__;
  
  /**COMMENT: get the value importer **/;
  
- /*_.VALIMPORT___V7*/ curfptr[6] = basilys_getfield_object((basilys_ptr_t)(((void*)(BASILYSG(INITIAL_SYSTEM_DATA)))), 12, "SYSDATA_VALUE_IMPORTER");
+ { basilys_ptr_t slot=0;
+  basilys_object_get_field(slot,(basilys_ptr_t)(((void*)(BASILYSG(INITIAL_SYSTEM_DATA)))), 12, "SYSDATA_VALUE_IMPORTER");/*_.VALIMPORT___V7*/ curfptr[6] = slot; };
  
  /**COMMENT: before getting imported values **/;
  
@@ -77261,7 +77007,8 @@ initial_frame_st   curfram__;
 /*_.CONTENV___V2*/ curfptr[1];;
   } else {
    /*block*/{
-    /*_.SYSDATA_CONT_FRESH_ENV__V1264*/ curfptr[1263] = basilys_getfield_object((basilys_ptr_t)(((void*)(BASILYSG(INITIAL_SYSTEM_DATA)))), 3, "SYSDATA_CONT_FRESH_ENV");
+    { basilys_ptr_t slot=0;
+     basilys_object_get_field(slot,(basilys_ptr_t)(((void*)(BASILYSG(INITIAL_SYSTEM_DATA)))), 3, "SYSDATA_CONT_FRESH_ENV");/*_.SYSDATA_CONT_FRESH_ENV__V1264*/ curfptr[1263] = slot; };
     ;
     /*apply*/{
      union basilysparam_un argtab[1];
@@ -77287,7 +77034,8 @@ initial_frame_st   curfram__;
  /*block*/{
   
   BASILYS_LOCATION("warmelt-genobj.bysl:430: @getslot");
-  /*_.VALUEXPORTER___V1266*/ curfptr[1263] = basilys_getfield_object((basilys_ptr_t)(((void*)(BASILYSG(INITIAL_SYSTEM_DATA)))), 4, "SYSDATA_VALUE_EXPORTER");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(((void*)(BASILYSG(INITIAL_SYSTEM_DATA)))), 4, "SYSDATA_VALUE_EXPORTER");/*_.VALUEXPORTER___V1266*/ curfptr[1263] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:430: @apply");
@@ -79455,7 +79203,8 @@ initial_frame_st   curfram__;
  /*block*/{
   
   BASILYS_LOCATION("warmelt-genobj.bysl:524: @getslot");
-  /*_.VALUEXPORTER___V1267*/ curfptr[1264] = basilys_getfield_object((basilys_ptr_t)(((void*)(BASILYSG(INITIAL_SYSTEM_DATA)))), 4, "SYSDATA_VALUE_EXPORTER");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(((void*)(BASILYSG(INITIAL_SYSTEM_DATA)))), 4, "SYSDATA_VALUE_EXPORTER");/*_.VALUEXPORTER___V1267*/ curfptr[1264] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:524: @apply");
@@ -79674,7 +79423,8 @@ initial_frame_st   curfram__;
  /*block*/{
   
   BASILYS_LOCATION("warmelt-genobj.bysl:1057: @getslot");
-  /*_.VALUEXPORTER___V1276*/ curfptr[1264] = basilys_getfield_object((basilys_ptr_t)(((void*)(BASILYSG(INITIAL_SYSTEM_DATA)))), 4, "SYSDATA_VALUE_EXPORTER");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(((void*)(BASILYSG(INITIAL_SYSTEM_DATA)))), 4, "SYSDATA_VALUE_EXPORTER");/*_.VALUEXPORTER___V1276*/ curfptr[1264] = slot; };
   ;
   
   BASILYS_LOCATION("warmelt-genobj.bysl:1057: @apply");
@@ -80805,7 +80555,8 @@ initial_frame_st   curfram__;
   /*com.block:compute fresh module environment*/{
    /**COMMENT: start computing boxloc **/;
    ;
-   /*_.FRESHENV___V3*/ curfptr[2] = basilys_getfield_object((basilys_ptr_t)(((void*)(BASILYSG(INITIAL_SYSTEM_DATA)))), 3, "SYSDATA_CONT_FRESH_ENV");
+   { basilys_ptr_t slot=0;
+    basilys_object_get_field(slot,(basilys_ptr_t)(((void*)(BASILYSG(INITIAL_SYSTEM_DATA)))), 3, "SYSDATA_CONT_FRESH_ENV");/*_.FRESHENV___V3*/ curfptr[2] = slot; };
    ;
    
     if ((/*_.PREVENV___V4*/ curfptr[3]) && basilys_magic_discr((basilys_ptr_t)(/*_.FRESHENV___V3*/ curfptr[2])) != OBMAG_CLOSURE) warning(0, "bad BASILYS fresh_env @%p in system data <%s:%d>", /*_.FRESHENV___V3*/ curfptr[2], __FILE__, __LINE__);;;

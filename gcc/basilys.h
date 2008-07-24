@@ -25,6 +25,10 @@ along with GCC; see the file COPYING3.   If not see
 #error basilys.h should enly be used when basilemelt is enabled at configuretion time
 #endif
 
+#ifndef MELTGCC_DYNAMIC_OBJSTRUCT
+#define MELTGCC_DYNAMIC_OBJSTRUCT 0
+#endif
+
 /***** TODO: 
 
        if GGC-collected data, e.g. tree-s, edge-s, ... is computed by
@@ -1324,7 +1328,101 @@ basilys_field_object (basilys_ptr_t ob, unsigned off)
 basilysobject_ptr_t basilysgc_new_raw_object (basilysobject_ptr_t klass_p,
 					      unsigned len);
 
-#if ENABLE_CHECKING
+
+#if MELTGCC_DYNAMIC_OBJSTRUCT
+int* basilys_dynobjstruct_fieldoffset_at(const char*fldnam, const char*fil, int lin);
+int* basilys_dynobjstruct_classlength_at(const char*clanam, const char* fil, int lin);
+
+static inline basilys_ptr_t
+basilys_dynobjstruct_getfield_object_at (basilys_ptr_t ob, unsigned off, const char*fldnam, const char*fil, int lin, int**poff)
+{
+  if (poff && !*poff) 
+    *poff = basilys_dynobjstruct_fieldoffset_at(fldnam, fil, lin);
+  if (basilys_magic_discr (ob) == OBMAG_OBJECT)
+    {
+      basilysobject_ptr_t pob = (basilysobject_ptr_t) ob;
+      if (poff && *poff) off = **poff;
+      if (off < pob->obj_len)
+	return pob->obj_vartab[off];
+      fatal_error("checked dynamic field access failed (bad offset %d/%d [%s:%d]) - %s", (int)off, (int)pob->obj_len, fil, lin, fldnam?fldnam:"...");
+      return NULL;
+    }
+  fatal_error("checked dynamic field access failed (not object [%s:%d]) - %s", fil, lin, fldnam?fldnam:"...");
+  return NULL;
+}
+
+#define basilys_object_get_field_at(Slot,Obj,Off,Fldnam,Fil,Lin) do {	\
+  static int *offptr_##Lin;						\
+  Slot =								\
+    basilys_dynobjstruct_getfield_object_at((basilys_ptr_t)(Obj),	\
+					    (Off),Fldnam,Fil,Lin,	\
+					    &offptr_##Lin);		\
+} while(0)
+
+#define basilys_object_get_field(Slot,Obj,Off,Fldnam) \
+  basilys_object_get_field_at(Slot,Obj,Off,Fldnam,__FILE__,__LINE__)
+
+#define basilys_getfield_object(Obj,Off,Fldnam)				\
+    basilys_dynobjstruct_getfield_object_at((basilys_ptr_t)(Obj),	\
+					    (Off),Fldnam,__FILE__,	\
+                                            __LINE__,			\
+					    (int**)0)
+
+static inline void 
+basilys_dynobjstruct_putfield_object_at(basilys_ptr_t ob, unsigned off, basilys_ptr_t val, const char*msg, const char*fil, int lin, int**poff)
+{
+  if (poff && !*poff) 
+    *poff = basilys_dynobjstruct_fieldoffset_at(fldnam, fil, lin);
+  if (basilys_magic_discr (ob) == OBMAG_OBJECT)
+    {
+      basilysobject_ptr_t pob = (basilysobject_ptr_t) ob;
+      if (poff && *poff) off = **poff;
+      if (off < pob->obj_len) {
+	pob->obj_vartab[off] = val;
+	return;
+      }
+      fatal_error("checked dynamic field put failed (bad offset %d/%d [%s:%d]) - %s", (int)off, (int)pob->obj_len, fil, lin, msg?msg:"...");
+    }
+  fatal_error("checked dynamic field put failed (not object [%s:%d]) - %s", fil, lin, msg?msg:"...");
+}
+
+#define basilys_putfield_object_at(Obj,Off,Val,Fldnam,Fil,Lin) do {	\
+  static int* ptroff_##Lin;						\
+  basilys_dynobjstruct_putfield_object_at((basilys_ptr_t)(Obj),		\
+					  (Off),			\
+					  (basilys_ptr_t)(Val),Fldnam,  \
+					  Fil,Lin,			\
+					  &ptroff_##Lin); } while(0)
+#define basilys_putfield_object(Obj,Off,Val,Fldnam) \
+  basilys_putfield_object_at(Obj,Off,Val,Fldnam,__FILE__,__LINE__)
+
+
+static inline basilys_ptr_t
+basilys_dynobjstruct_make_raw_object(basilys_ptr_t klas, int len, 
+				     const char*clanam, const char*fil, int lin, int**pptr) {
+  if (pptr && !*pptr) 
+    *pptr = basilys_dynobjstruct_classlength_at(clanam,fil,lin);
+  if (pptr && *pptr) 
+    len = **pptr;
+  return (basilys_ptr_t)basilysgc_new_raw_object((basilysobject_ptr_t)klas,len);
+}
+
+#define basilys_raw_object_create_at(Newobj,Klas,Len,Clanam,Fil,Lin) do { \
+  static int* ptrlen_##Lin;						\
+  Newobj =								\
+    basilys_dynobjstruct_make_raw_object((Klas),(Len),			\
+					 Clanam,Fil,Lin,		\
+					 &ptrlen_##Lin); } while(0)
+
+#define basilys_raw_object_create(Newobj,Klas,Len,Clanam) \
+  basilys_raw_object_create_at(Newobj,Klas,Len,Clanam,__FILE__,__LINE__)
+
+#define basilys_make_raw_object(Klas,Len,Clanam)			\
+    basilys_dynobjstruct_make_raw_object((Klas),(Len),			\
+					 Clanam, __FILE__, __LINE__,	\
+					 (int**)0)
+
+#elif ENABLE_CHECKING
 static inline basilys_ptr_t
 basilys_getfield_object_at (basilys_ptr_t ob, unsigned off, const char*msg, const char*fil, int lin)
 {
@@ -1339,14 +1437,44 @@ basilys_getfield_object_at (basilys_ptr_t ob, unsigned off, const char*msg, cons
   fatal_error("checked field access failed (not object [%s:%d]) - %s", fil, lin, msg?msg:"...");
   return NULL;
 }
+
+static inline void
+basilys_putfield_object_at(basilys_ptr_t ob, unsigned off, basilys_ptr_t val, const char*msg, const char*fil, int lin)
+{
+  if (basilys_magic_discr (ob) == OBMAG_OBJECT)
+    {
+      basilysobject_ptr_t pob = (basilysobject_ptr_t) ob;
+      if (off < pob->obj_len) {
+	pob->obj_vartab[off] = val;
+	return;
+      }
+      fatal_error("checked field put failed (bad offset %d/%d [%s:%d]) - %s", (int)off, (int)pob->obj_len, fil, lin, msg?msg:"...");
+    }
+  fatal_error("checked field put failed (not object [%s:%d]) - %s", fil, lin, msg?msg:"...");
+}
+
 static inline basilys_ptr_t
 basilys_make_raw_object(basilys_ptr_t klas, int len, const char*clanam) {
+  gcc_assert(clanam != NULL);
   return (basilys_ptr_t)basilysgc_new_raw_object((basilysobject_ptr_t)klas,len);
 }
-#define basilys_getfield_object(Obj,Off,Msg) basilys_getfield_object_at((basilys_ptr_t)(Obj),(Off),(Msg),__FILE__,__LINE__)
+
+#define basilys_raw_object_create(Newobj,Klas,Len,Clanam) do {	\
+  Newobj = basilys_make_raw_object(Klas,Len,Clanam); } while(0)
+#define basilys_getfield_object(Obj,Off,Fldnam) basilys_getfield_object_at((basilys_ptr_t)(Obj),(Off),(Fldnam),__FILE__,__LINE__)
+#define basilys_object_get_field(Slot,Obj,Off,Fldnam) do {	\
+  Slot = basilys_getfield_object(Obj,Off,Fldnam);} while(0)
+#define basilys_putfield_object(Obj,Off,Val,Fldnam) basilys_putfield_object_at((basilys_ptr_t)(Obj),(Off),(basilys_ptr_t)(Val),(Fldnam),__FILE__,__LINE__)
 #else
-#define basilys_getfield_object(Obj,Off,Msg) (((basilysobject_ptr_t)(Obj))->obj_vartab[Off])
+#define basilys_getfield_object(Obj,Off,Fldnam) (((basilysobject_ptr_t)(Obj))->obj_vartab[Off])
+#define basilys_object_get_field(Slot,Obj,Off,Fldnam) do {	\
+  Slot = basilys_getfield_object(Obj,Off,Fldnam);} while(0)
+#define basilys_putfield_object(Obj,Off,Val,Fldnam) do {		\
+((basilysobject_ptr_t)(Obj))->obj_vartab[Off] = (basilys_ptr_t)(Val);	\
+}while(0)
 #define basilys_make_raw_object(Klas,Len) ((basilys_ptr_t)basilysgc_new_raw_object(Klas,Len))
+#define basilys_raw_object_create(Newobj,Klas,Len,Clanam) do { 
+  Newobj = basilys_make_raw_object(Klas,Len,Clanam); } while(0)
 #endif
 
 /* get (safely) the length of an object */
