@@ -1948,6 +1948,11 @@ process_options (void)
 	       "for correctness");
       flag_omit_frame_pointer = 0;
     }
+
+  /* Enable -fgraphite pass if any one of the graphite optimization flags 
+     is turned on.  */
+  if (flag_loop_block || flag_loop_interchange || flag_loop_strip_mine)
+    flag_graphite = 1;
 }
 
 /* This function can be called multiple times to reinitialize the compiler

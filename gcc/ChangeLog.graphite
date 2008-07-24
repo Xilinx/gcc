@@ -1,3 +1,20 @@
+2008-07-24  Dwarakanath Rajagopal  <dwarak.rajagopal@amd.com>
+
+	* common.opt: New user flag -floop-block, -floop-strip-mine 
+	and -floop-interchange.
+	* toplev.c (process_options): Enable -fgraphite pass if any one of the 
+	graphite loop optimization flags is turned on.
+	* graphite.c (graphite_apply_transformations): Add flag_loop_block, 
+	flag_loop_strip_mine and flag_loop_interchange checks before 
+	optimizations.
+	* doc/invoke.texi: Remove -fgraphite and add -floop-block, 
+	-floop-strip-mine and -floop-interchange.
+	* testsuite/gcc.dg/graphite/block-0.c: Add -floop-block and remove
+	-fgraphite.
+	* testsuite/gcc.dg/graphite/scop-16.c: Ditto.
+	* testsuite/gcc.dg/graphite/scop-17.c: Ditto.
+	* testsuite/gcc.dg/graphite/scop-18.c: Ditto.
+
 2008-07-23  Jan Sjodin  <jan.sjodin@amd.com>
 	    Sebastian Pop  <sebastian.pop@amd.com>
 

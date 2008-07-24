@@ -328,7 +328,8 @@ Objective-C and Objective-C++ Dialects}.
 -fearly-inlining -fexpensive-optimizations -ffast-math @gol
 -ffinite-math-only -ffloat-store -fforward-propagate @gol
 -ffunction-sections -fgcse -fgcse-after-reload -fgcse-las -fgcse-lm @gol
--fgcse-sm -fgraphite -fif-conversion -fif-conversion2 -finline-functions @gol
+-fgcse-sm -floop-block -floop-interchange -floop-strip-mine @gol
+-fif-conversion -fif-conversion2 -finline-functions @gol
 -finline-functions-called-once -finline-limit=@var{n} @gol
 -finline-small-functions -fipa-cp -fipa-marix-reorg -fipa-pta @gol 
 -fipa-pure-const -fipa-reference -fipa-struct-reorg @gol
@@ -6096,8 +6097,14 @@ at @option{-O} and higher.
 Perform linear loop transformations on tree.  This flag can improve cache
 performance and allow further loop optimizations to take place.
 
-@item -fgraphite
-Perform polyhedral transformations on loops.
+@item -floop-block
+Perform loop blocking transformations on loops.
+
+@item -floop-strip-mine
+Perform loop strip mining transformations on loops.
+
+@item -floop-interchange
+Perform loop interchange transformations on loops.
 
 @item -fcheck-data-deps
 @opindex fcheck-data-deps

@@ -541,7 +541,19 @@ has finished
 
 fgraphite
 Common Report Var(flag_graphite)
-Enable GRAPHITE loop transforms
+Enable in and out of Graphite representation, not modifying the compiled program
+
+floop-strip-mine
+Common Report Var(flag_loop_strip_mine) Optimization
+Enable Loop Strip Mining transformation
+
+floop-interchange
+Common Report Var(flag_loop_interchange) Optimization
+Enable Loop Interchange transformation
+
+floop-block
+Common Report Var(flag_loop_block) Optimization
+Enable Loop Blocking transformation
 
 fguess-branch-probability
 Common Report Var(flag_guess_branch_prob) Optimization

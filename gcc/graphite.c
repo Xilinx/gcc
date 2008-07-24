@@ -4580,22 +4580,19 @@ graphite_apply_transformations (scop_p scop)
   graphite_sort_gbbs (scop);
   scop_remove_ignoreable_gbbs (scop);
 
+
   /* XXX: This functions are able to show some loop
      transformations.  They blindly enable the named transformation
      on all bbs, without checking dependencies or if these
      transformations are valid at all. So disable the transformations, that
      may generate invalid code by default.  */ 
-         
-  if (0) 
-    graphite_trans_scop_swap_1and2 (scop);
 
-  if (0)
-    graphite_trans_scop_strip (scop);
-
-  /* Enabled by default to get tested. At the moment this is not save for all
-     scops, as we do not check dependencies.  */
-  if (1)
+  if (flag_loop_block)
     graphite_trans_scop_block (scop);
+  else if (flag_loop_strip_mine)
+    graphite_trans_scop_strip (scop);
+  else if (flag_loop_interchange)
+    graphite_trans_scop_swap_1and2 (scop);
 }
 
 /* Perform a set of linear transforms on LOOPS.  */
