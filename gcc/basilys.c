@@ -1001,8 +1001,7 @@ forwarded_copy (basilys_ptr_t p)
 	    dst->entab =
 	      (struct entrybasicblocksbasilys_st *) ggc_alloc_cleared (siz *
 								       sizeof
-								       (dst->
-									entab
+								       (dst->entab
 									[0]));
 	    memcpy (dst->entab, src->entab, siz * sizeof (dst->entab[0]));
 	  }
@@ -1453,15 +1452,15 @@ unsafe_index_mapobject (struct entryobjectsbasilys_st *tab,
 		 samehashcnt, (void *) attr, attr->obj_serial, (void *) curat,
 		 curat->obj_serial, curat->obj_hash,
 		 (void *) curat->obj_class,
-		 basilys_string_str (curat->
-				     obj_class->obj_vartab[FNAMED_NAME]));
+		 basilys_string_str (curat->obj_class->
+				     obj_vartab[FNAMED_NAME]));
 	      if (basilys_is_instance_of
 		  ((basilys_ptr_t) attr,
 		   (basilys_ptr_t) BASILYSGOB (CLASS_NAMED)))
 		dbgprintf ("gotten attr named %s found attr named %s",
 			   basilys_string_str (attr->obj_vartab[FNAMED_NAME]),
-			   basilys_string_str (curat->obj_vartab
-					       [FNAMED_NAME]));
+			   basilys_string_str (curat->
+					       obj_vartab[FNAMED_NAME]));
 	      basilys_dbgshortbacktrace
 		("gotten & found attr of same hash & class", 15);
 	    }
@@ -1498,15 +1497,15 @@ unsafe_index_mapobject (struct entryobjectsbasilys_st *tab,
 		 samehashcnt, (void *) attr, attr->obj_serial, (void *) curat,
 		 curat->obj_serial, curat->obj_hash,
 		 (void *) curat->obj_class,
-		 basilys_string_str (curat->
-				     obj_class->obj_vartab[FNAMED_NAME]));
+		 basilys_string_str (curat->obj_class->
+				     obj_vartab[FNAMED_NAME]));
 	      if (basilys_is_instance_of
 		  ((basilys_ptr_t) attr,
 		   (basilys_ptr_t) BASILYSGOB (CLASS_NAMED)))
 		dbgprintf ("gotten attr named %s found attr named %s",
 			   basilys_string_str (attr->obj_vartab[FNAMED_NAME]),
-			   basilys_string_str (curat->obj_vartab
-					       [FNAMED_NAME]));
+			   basilys_string_str (curat->
+					       obj_vartab[FNAMED_NAME]));
 	      basilys_dbgshortbacktrace
 		("gotten & found attr of same hash & class", 15);
 	    }
@@ -4434,12 +4433,21 @@ compile_to_dyl (const char *srcfile, const char *dlfile)
 }
 
 
+/* we need a vector of dlhandle-s to scan every loaded dylib, because
+   libtool does not have the equivalent of RTLD_GLOBAL in dlopen */
+typedef struct lt_dlhandle_struct *lt_dlhandle;	/* to keep gengtype happy, copied from ltdl.h */
+
+DEF_VEC_P (lt_dlhandle);
+DEF_VEC_ALLOC_P (lt_dlhandle, heap);
+
+static
+VEC (lt_dlhandle, heap) *
+  modhdvec = 0;
 
 /* load a dynamic library using the filepath DYPATH; if MD5SRC  is given,
    check that the basilys_md5 inside is indeed MD5SRC, otherwise
    return NULL */
-static lt_dlhandle
-load_checked_dylib (const char *dypath, char *md5src)
+     static lt_dlhandle load_checked_dylib (const char *dypath, char *md5src)
 {
   lt_dlhandle dlh = NULL;
   char *dynmd5 = NULL;
@@ -4474,12 +4482,27 @@ load_checked_dylib (const char *dypath, char *md5src)
 	    goto bad;
 	}
     }
+  VEC_safe_push (lt_dlhandle, heap, modhdvec, dlh);
   debugeprintf ("load_checked_dylib dypath %s dynmd5 %s dyncomptimstamp %s",
 		dypath, dynmd5, dyncomptimstamp);
   return dlh;
 bad:
   lt_dlclose (dlh);
   return NULL;
+}
+
+void *
+basilys_dlsym_all (const char *nam)
+{
+  int ix = 0;
+  lt_dlhandle h = 0;
+  for (ix = 0; VEC_iterate (lt_dlhandle, modhdvec, ix, h); ix++)
+    {
+      void *p = (void *) lt_dlsym (h, nam);
+      if (p)
+	return p;
+    };
+  return (void *) lt_dlsym (proghandle, nam);
 }
 
 
@@ -6167,6 +6190,7 @@ basilys_initialize (void)
   const char *randomseed = 0;
   if (inited)
     return;
+  modhdvec = VEC_alloc (lt_dlhandle, heap, 30);
   proghandle = lt_dlopen (NULL);
   if (!proghandle)
     fatal_error ("basilys failed to get whole program handle - %s",
@@ -6247,7 +6271,7 @@ basilys_dynobjstruct_fieldoffset_at (const char *fldnam, const char *fil,
   char *nam = 0;
   void *ptr = 0;
   nam = concat ("fieldoff__", fldnam, NULL);
-  ptr = lt_dlsym (proghandle, nam);
+  ptr = basilys_dlsym_all (nam);
   if (!ptr)
     fatal_error ("basilys failed to find field offset %s - %s (%s:%d)", nam,
 		 lt_dlerror (), fil, lin);
@@ -6263,7 +6287,7 @@ basilys_dynobjstruct_classlength_at (const char *clanam, const char *fil,
   char *nam = 0;
   void *ptr = 0;
   nam = concat ("classlen__", clanam, NULL);
-  ptr = lt_dlsym (proghandle, nam);
+  ptr = basilys_dlsym_all (nam);
   if (!ptr)
     fatal_error ("basilys failed to find class length %s - %s (%s:%d)", nam,
 		 lt_dlerror (), fil, lin);

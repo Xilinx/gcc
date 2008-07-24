@@ -1,4 +1,13 @@
 2008-07-24  Basile Starynkevitch  <basile@starynkevitch.net>
+	* basilys.h: added basilys_dlsym_all because ltdl.h has no RTLD_GLOBAL equivalent.
+
+	* basilys.c: (basilys_dlsym_all) new function.
+	(load_checked_dylib) fill the vector of dlhandle-s.
+	(basilys_dynobjstruct_fieldoffset_at, basilys_dynobjstruct_classlength_at) use basilys_dlsym_all.
+
+	* Makefile.in: added support for warm-*-d.so
+
+2008-07-24  Basile Starynkevitch  <basile@starynkevitch.net>
 	[adding dynamic fields offsets & class length]
 
 	* basilys.c: (basilys_dynobjstruct_fieldoffset_at,

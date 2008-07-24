@@ -1369,7 +1369,7 @@ basilys_dynobjstruct_getfield_object_at (basilys_ptr_t ob, unsigned off, const c
 					    (int**)0)
 
 static inline void 
-basilys_dynobjstruct_putfield_object_at(basilys_ptr_t ob, unsigned off, basilys_ptr_t val, const char*msg, const char*fil, int lin, int**poff)
+basilys_dynobjstruct_putfield_object_at(basilys_ptr_t ob, unsigned off, basilys_ptr_t val, const char*fldnam, const char*fil, int lin, int**poff)
 {
   if (poff && !*poff) 
     *poff = basilys_dynobjstruct_fieldoffset_at(fldnam, fil, lin);
@@ -1381,9 +1381,9 @@ basilys_dynobjstruct_putfield_object_at(basilys_ptr_t ob, unsigned off, basilys_
 	pob->obj_vartab[off] = val;
 	return;
       }
-      fatal_error("checked dynamic field put failed (bad offset %d/%d [%s:%d]) - %s", (int)off, (int)pob->obj_len, fil, lin, msg?msg:"...");
+      fatal_error("checked dynamic field put failed (bad offset %d/%d [%s:%d]) - %s", (int)off, (int)pob->obj_len, fil, lin, fldnam?fldnam:"...");
     }
-  fatal_error("checked dynamic field put failed (not object [%s:%d]) - %s", fil, lin, msg?msg:"...");
+  fatal_error("checked dynamic field put failed (not object [%s:%d]) - %s", fil, lin, fldnam?fldnam:"...");
 }
 
 #define basilys_putfield_object_at(Obj,Off,Val,Fldnam,Fil,Lin) do {	\
@@ -1965,6 +1965,9 @@ static inline unsigned basilys_nonzerohash (void)
 void basilys_initialize (void);
 /* finalize all */
 void basilys_finalize (void);
+
+/* find a symbol in all the loaded modules */
+void* basilys_dlsym_all(const char*nam);
 
 /* returns malloc-ed path inside a temporary directory, with a given basename  */
 char* basilys_tempdir_path(const char* basnam);

@@ -4780,6 +4780,8 @@ warm%.so: warm%.c built-melt-cc-script
 
 warm%-n.so : warm%.c built-melt-cc-script
 	./built-melt-cc-script -DMELTGCC_NOLINENUMBERING $< $@
+warm%-d.so : warm%.c built-melt-cc-script
+	./built-melt-cc-script -d $< $@
 
 warmelt-%-0.so: $(srcdir)/warmelt-%-0.c built-melt-cc-script
 	./built-melt-cc-script $< $@
@@ -4803,7 +4805,9 @@ WARMELT_BASELIST:=$(shell echo $(WARMELT_BASE)|sed 's: :,:g')
 WARMELT_BASE0= $(patsubst %, %-0, $(WARMELT_BASE))
 WARMELT_BASE0C= $(patsubst %, %-0.c, $(WARMELT_BASE))
 WARMELT_BASE0SO= $(patsubst %, %-0.so, $(WARMELT_BASE))
+WARMELT_BASE0DSO= $(patsubst %, %-0-d.so, $(WARMELT_BASE))
 WARMELT_BASE0ROW:=$(shell echo $(WARMELT_BASE0)|sed 's/ /:/g')
+WARMELT_BASE0DROW:=$(shell echo $(patsubst %, %-0-d, $(WARMELT_BASE))|sed 's/ /:/g')
 ##
 WARMELT_BASE1= $(patsubst %, %-1, $(WARMELT_BASE))
 WARMELT_BASE1SO= $(patsubst %, %-1.so, $(WARMELT_BASE))
@@ -4829,7 +4833,7 @@ warmelt-%.so: warmelt-%.c built-melt-cc-script
 	echo Melt building $@ from $<
 	./built-melt-cc-script $< $@
 
-warmelt0.modlis: $(WARMELT_BASE0SO)
+warmelt0.modlis: $(WARMELT_BASE0DSO)
 	date +"#$@ generated %c" > $@-tmp
 	for f in  $(WARMELT_BASE0); do echo $$f >> $@-tmp; done
 	$(SHELL) $(srcdir)/../move-if-change $@-tmp $@
@@ -4846,24 +4850,24 @@ warmelt1.modlis: $(WARMELT_BASE1SO)
 ### warmelt*0.c files from SVN repository but warmelt-macro-1 is build
 ### using wamelt-first-1.so
 
-warmelt-first-1.c: $(srcdir)/melt/warmelt-first.bysl warmelt0.modlis   cc1$(exeext)  $(WARMELT_BASE0SO)
+warmelt-first-1.c: $(srcdir)/melt/warmelt-first.bysl warmelt0.modlis   cc1$(exeext)  $(WARMELT_BASE0DSO)
 	-rm -f $@
 	@echo generating warmelt-first using $(WARMELT_BASE0) 
-	@echo WARMELT_BASE0= $(WARMELT_BASE0) WARMELT_BASE0ROW= $(WARMELT_BASE0ROW)
-	$(MELTBASILYSCCINIT1) -fbasilys-init=$(WARMELT_BASE0ROW) \
+	@echo WARMELT_BASE0= $(WARMELT_BASE0) WARMELT_BASE0ROW= $(WARMELT_BASE0DROW)
+	$(MELTBASILYSCCINIT1) -fbasilys-init=$(WARMELT_BASE0DROW) \
 	      -fbasilys-arg=$< \
 	      -fbasilys-secondarg=$@
 	ls -l $@
 
 warmelt-macro-1.c: $(srcdir)/melt/warmelt-macro.bysl cc1$(exeext) \
 	 warmelt-first-1.so  \
-	 warmelt-macro-0.so  \
-	 warmelt-normal-0.so \
-	 warmelt-genobj-0.so \
-	 warmelt-outobj-0.so 
+	 warmelt-macro-0-d.so  \
+	 warmelt-normal-0-d.so \
+	 warmelt-genobj-0-d.so \
+	 warmelt-outobj-0-d.so 
 	-rm -f $@
 	$(MELTBASILYSCCFILE1) \
-	-fbasilys-init=warmelt-first-1:warmelt-macro-0:warmelt-normal-0:warmelt-genobj-0:warmelt-outobj-0 \
+	-fbasilys-init=warmelt-first-1:warmelt-macro-0-d:warmelt-normal-0-d:warmelt-genobj-0-d:warmelt-outobj-0-d \
 	      -fbasilys-arg=$< \
 	      -fbasilys-secondarg=$@
 	ls -l $@
@@ -4871,12 +4875,12 @@ warmelt-macro-1.c: $(srcdir)/melt/warmelt-macro.bysl cc1$(exeext) \
 warmelt-normal-1.c: $(srcdir)/melt/warmelt-normal.bysl cc1$(exeext) \
 	 warmelt-first-1.so  \
 	 warmelt-macro-1.so  \
-	 warmelt-normal-0.so \
-	 warmelt-genobj-0.so \
-	 warmelt-outobj-0.so 
+	 warmelt-normal-0-d.so \
+	 warmelt-genobj-0-d.so \
+	 warmelt-outobj-0-d.so 
 	-rm -f $@
 	$(MELTBASILYSCCFILE1) \
-	-fbasilys-init=warmelt-first-1:warmelt-macro-1:warmelt-normal-0:warmelt-genobj-0:warmelt-outobj-0 \
+	-fbasilys-init=warmelt-first-1:warmelt-macro-1:warmelt-normal-0-d:warmelt-genobj-0-d:warmelt-outobj-0-d \
 	      -fbasilys-arg=$< \
 	      -fbasilys-secondarg=$@
 	ls -l $@
@@ -4885,11 +4889,11 @@ warmelt-genobj-1.c: $(srcdir)/melt/warmelt-genobj.bysl cc1$(exeext) \
 	 warmelt-first-1.so  \
 	 warmelt-macro-1.so  \
 	 warmelt-normal-1.so \
-	 warmelt-genobj-0.so \
-	 warmelt-outobj-0.so 
+	 warmelt-genobj-0-d.so \
+	 warmelt-outobj-0-d.so 
 	-rm -f $@
 	$(MELTBASILYSCCFILE1) \
-	-fbasilys-init=warmelt-first-1:warmelt-macro-1:warmelt-normal-1:warmelt-genobj-0:warmelt-outobj-0 \
+	-fbasilys-init=warmelt-first-1:warmelt-macro-1:warmelt-normal-1:warmelt-genobj-0-d:warmelt-outobj-0-d \
 	      -fbasilys-arg=$< \
 	      -fbasilys-secondarg=$@
 	ls -l $@
@@ -4899,10 +4903,10 @@ warmelt-outobj-1.c: $(srcdir)/melt/warmelt-outobj.bysl cc1$(exeext) \
 	 warmelt-macro-1.so  \
 	 warmelt-normal-1.so \
 	 warmelt-genobj-1.so \
-	 warmelt-outobj-0.so 
+	 warmelt-outobj-0-d.so 
 	-rm -f $@
 	$(MELTBASILYSCCFILE1) \
-	-fbasilys-init=warmelt-first-1:warmelt-macro-1:warmelt-normal-1:warmelt-genobj-1:warmelt-outobj-0 \
+	-fbasilys-init=warmelt-first-1:warmelt-macro-1:warmelt-normal-1:warmelt-genobj-1:warmelt-outobj-0-d \
 	      -fbasilys-arg=$< \
 	      -fbasilys-secondarg=$@
 	ls -l $@
