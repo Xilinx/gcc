@@ -3218,6 +3218,8 @@
 			 )
 		    (multiple_put_nth nlocbindtup ix nlvbind)
 		    (multiple_put_nth nsymocctup ix clocc)
+		    (debug_msg nlvbind "normexp_citeration nlvbind")
+		    (put_env bodyenv nlvbind)
 		    )
 		(progn
 		  (error_strv sloc "local formal and actual type mismatch in citerator" (unsafe_get_field :named_name soper))
@@ -3225,7 +3227,7 @@
 			       (unsafe_get_field :named_name (unsafe_get_field :binder curvbind)))
 		  ))
 	      )
-	    (put_env bodyenv curvbind)
+	    ;; was::	    (put_env bodyenv curvbind)
 	    ))
 	 (debug_msg nlocbindtup "normexp_citeration nlocbindtup")
 	 (debug_msg nsymocctup "normexp_citeration nsymocctup")

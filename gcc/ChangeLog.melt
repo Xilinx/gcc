@@ -1,4 +1,14 @@
 2008-07-24  Basile Starynkevitch  <basile@starynkevitch.net>
+	[adding a field inside the compiler works, thanks to dynamic objstruct; 
+	citerators seems to be compiled ok]
+
+	* melt/warmelt-normal.bysl: normexp_citeration has better newenv.
+
+	* melt/warmelt-genobj.bysl: compilobj_nrep_citeration seems to work.
+
+	* melt/warmelt-outobj.bysl: added outpucod_objciterblock.
+
+2008-07-24  Basile Starynkevitch  <basile@starynkevitch.net>
 	* basilys.h: added basilys_dlsym_all because ltdl.h has no RTLD_GLOBAL equivalent.
 
 	* basilys.c: (basilys_dlsym_all) new function.

@@ -405,7 +405,7 @@
 					;pointers like tree-s,
 					;cstrings, ...)
 	   obrout_retval		;the main return value
-;	   obrout_cntciter		;the boxed counter of citerations
+	   obrout_cntciter		;the boxed counter of citerations
 ))
 
 ;; procedure routine
@@ -668,7 +668,7 @@
 				 :obrout_nbval (make_integerbox discr_integer 0)
 				 :obrout_nblong (make_integerbox discr_integer 0)
 				 :obrout_others (make_list discr_list)
-;				 :obrout_cntciter (make_integerbox discr_integer 0)
+				 :obrout_cntciter (make_integerbox discr_integer 0)
 				 :oprout_loc nloc
 				 :oprout_funam routfunam
 				 )) 
@@ -708,6 +708,8 @@
 				     :obarg_obloc oloc
 				     :obarg_bind bnd))
 		     )
+		(if (and (<=i ix 0) (!= bctyp ctype_value))
+		    (error_plain nloc "first argument of function should be a value"))
 		(mapobject_put locmap bnd oloc)
 		ogarg
 		))
@@ -775,7 +777,7 @@
 			:obrout_nbval (make_integerbox discr_integer 0)
 			:obrout_nblong (make_integerbox discr_integer 0)
 			:obrout_others (make_list discr_list)
-;			:obrout_cntciter (make_integerbox discr_integer 0)
+			:obrout_cntciter (make_integerbox discr_integer 0)
 			:oirout_fill (make_list discr_list)
 			:oirout_prolog oiniprolog
 			))
@@ -1768,6 +1770,7 @@
   (assert_msg "check gcx" (is_a gcx class_genercontext))
   (debug_msg nciter "compilobj_nrep_citeration nciter")
   (let ( (loc (unsafe_get_field :nrep_loc nciter))
+	 (obrout (unsafe_get_field :gncx_objrout gcx))
 	 (citer (unsafe_get_field :nciter_citerator nciter))
 	 (nlocbind (unsafe_get_field :nciter_locbindings nciter))
 	 (nchkbef (unsafe_get_field :nciter_chunkbefore nciter))
@@ -1789,12 +1792,16 @@
 				 :obi_loc loc
 				 :oblo_bodyl obodl
 				 :oblo_epil oepil
+				 :obciter_citer citer
 				 :obciter_before ()
 				 :obciter_after ()
 				 ))
+	 (locmap  (unsafe_get_field  :gncx_locmap gcx))
 	 )
     (debug_msg nlocbind "compilobj_nrep_citeration nlocbind")
     (assert_msg "check citer" (is_a citer class_citerator))
+    (assert_msg "check locmap" (is_mapobject locmap))
+    (assert_msg "check nlocbind" (is_multiple_or_null nlocbind))
     (multiple_every
      nlocbind
      (lambda (nlbnd :long ix)
@@ -1808,34 +1815,58 @@
 	 (debug_msg bder "compilobj_nrep_citeration current local binder")
 	 (debug_msg oblva "compilobj_nrep_citeration current oblva")
 	 (if (!= cty ctype_void)
-	       (mapobject_put (unsafe_get_field  :gncx_locmap gcx) nlbnd oblva))
+	     (let ( (oclr (make_instance class_objclear
+					 :obi_loc loc
+					 :oclr_vloc oblva) ) )
+	       (list_append oepil oclr)
+	       (mapobject_put locmap nlbnd oblva)
+	       (debug_msg nlbnd "compilobj_nrep_citeration added clear for nlbnd")
+	       ))
 	 )))
     (debug_msg ocblock "compilobj_nrep_citeration ocblock start")
-    (unsafe_put_fields 
-     ocblock
-     :obciter_before (multiple_map 
-		      nchkbef 
-		      (lambda (cbef :long ix)
-			(if (is_string cbef) cbef
-			  (progn
+    (let ( (boxcntciter (unsafe_get_field :obrout_cntciter obrout))
+	   (:long cnt (+i 1 (get_int boxcntciter)))
+	   (statstr 
+	    (let ( (sbu (make_strbuf discr_strbuf)) )
+	      (put_int boxcntciter cnt)
+	      (add2sbuf_strconst sbu "cit")
+	      (add2sbuf_longdec sbu cnt)
+	      (add2sbuf_strconst sbu "__")
+	      (add2sbuf_cident sbu (unsafe_get_field :named_name nstatsy))
+	      (strbuf2string discr_verbatimstring sbu)
+	      ))
+	   )
+      (unsafe_put_fields 
+       ocblock
+       :obciter_before (multiple_map 
+			nchkbef 
+			(lambda (cbef :long ix)
+			  (cond 
+			   ((is_string cbef) cbef)
+			   ((== cbef nstatocc) statstr)
+			   (:else
 			    (debug_msg cbef "compilobj_nrep_citeration cbef")
 			    (let ( (obef (compile_obj cbef gcx)) )
 			      (debug_msg obef "compilobj_nrep_citeration obef")
 			      obef
 			      )))))
-     :obciter_after (multiple_map
-		     nchkaft 
-		     (lambda (caft :long ix)
-		       (if (is_string caft) caft
-			 (progn
+       :obciter_after (multiple_map
+		       nchkaft 
+		       (lambda (caft :long ix)
+			 (cond 
+			  ((is_string caft) caft)
+			  ((== caft nstatocc) statstr)
+			  (:else
 			   (debug_msg caft "compilobj_nrep_citeration caft")
 			   (let ( (oaft (compile_obj caft gcx)) )
 			     (debug_msg oaft "compilobj_nrep_citeration oaft")
 			     oaft
 			     )))))
-     )
+       )
+      )
     (debug_msg ocblock "compilobj_nrep_citeration ocblock filled before&after chunks")
-    (multiple_every
+    (assert_msg "check nbodbind" (is_list_or_null nbodbind))
+    (list_every
      nbodbind
      (lambda (nbbnd :long ix)
        (debug_msg nbbnd "compilobj_nrep_citeration current nbodbinding nbbnd")
@@ -1847,11 +1878,34 @@
 	      )
 	 (debug_msg obbva "compilobj_nrep_citeration current obbva")
 	 (if (!= cty ctype_void)
-	       (mapobject_put (unsafe_get_field  :gncx_locmap gcx) nbbnd obbva))
+	     (let ( (oclr (make_instance class_objclear
+					 :obi_loc loc
+					 :oclr_vloc obbva)) 
+		    )
+	       (list_append oepil oclr)
+	       (mapobject_put locmap nbbnd obbva)
+	       (debug_msg obbva "compilobj_nrep_citeration added clear for obbva")
+	       )
+	   )
+	 (let ( (ocur (compile_obj nexp gcx)) )
+	   (list_append obodl ocur)
+	   )
 	 )))
+    (debug_msg nbody "compilobj_nrep_citeration nbody")
+    (multiple_every
+     nbody
+     (lambda (ncurbod :long ix)
+       (debug_msg ncurbod "compilobj_nrep_citeration ncurbod")
+       (let ( (ocbod (compile_obj ncurbod gcx)) )
+	 (debug_msg ocbod "compilobj_nrep_citeration ocbod")
+	 (list_append obodl ocbod)
+	 )))
+					;(debug_msg ocblock "compilobj_nrep_citeration ocblock after body compil")
+    (debug_msg ocblock "compilobj_nrep_citeration final ocblock")
+    (return ocblock)
     )
-  (assert_msg "compilobj_nrep_citeration @@unimplemented" ())
   )
+  
 (install_method class_nrep_citeration compile_obj compilobj_nrep_citeration)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

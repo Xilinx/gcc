@@ -1205,7 +1205,57 @@
   )
 (install_method class_objblock output_c_code outpucod_objblock)
 
+;; output code for objciterblock
+(defun outpucod_objciterblock (obcit  declbuf implbuf :long depth)
+  (assert_msg "check obcit" (is_a obcit class_objciterblock))
+  (debug_msg obcit "outpucod_objciterblock obcit")
+  (let ( (oloc (unsafe_get_field :obi_loc obcit))
+	 (bodyl (unsafe_get_field :oblo_bodyl obcit))
+	 (epil (unsafe_get_field :oblo_epil obcit)) 
+	 (boxdepthp1 (make_integerbox discr_integer (+i depth 1)))
+	 (obefore (unsafe_get_field :obciter_before obcit))
+	 (oafter (unsafe_get_field :obciter_after obcit))
+	 (citer (unsafe_get_field :obciter_citer obcit))
+	 )
+    (assert_msg "check citer" (is_a citer class_citerator))
+    (output_location oloc "citerblock")
+    (add2sbuf_strconst implbuf "/*citerblock ")
+    (add2sbuf_ccomstring implbuf (unsafe_get_field :named_name citer))
+    (add2sbuf_strconst implbuf "*/ {")
+    (add2sbuf_indentnl implbuf depth)
+    (output_location oloc "citerbefore")
+    (multiple_every 
+     obefore 
+     (lambda (obef :long ix)
+       (output_c_code obef declbuf implbuf (get_int boxdepthp1))
+       ))
+    (add2sbuf_indentnl implbuf depth)
+    (output_location oloc "citerbody")
+    (if (is_list bodyl)
+	(output_code_instructions_list bodyl declbuf implbuf boxdepthp1))
+    (add2sbuf_indentnl implbuf depth)
+    (output_location oloc "citerafter")
+    (multiple_every 
+     oafter 
+     (lambda (oaft :long ix)
+       (output_c_code oaft declbuf implbuf (get_int boxdepthp1))
+       ))
+    (add2sbuf_indentnl implbuf depth)
+    (output_location oloc "citerepil")
+    (if (is_list epil)
+	(progn
+	  (add2sbuf_indentnl implbuf (get_int boxdepthp1))
+	  (add2sbuf_strconst implbuf "/*citerepilog*/")
+	  (output_code_instructions_list epil declbuf implbuf boxdepthp1)))
+    (add2sbuf_strconst implbuf "} /*endciterblock ")
+    (add2sbuf_ccomstring implbuf (unsafe_get_field :named_name citer))
+    (add2sbuf_strconst implbuf "*/")
+    (add2sbuf_indentnl implbuf depth)
+    )
+  )
+(install_method class_objciterblock output_c_code outpucod_objciterblock)
 
+;;;;;;;;;;;;;;;;
 (defun outpucod_objcommentinstr (obci declbuf implbuf :long depth)
   (assert_msg "check obci" (is_a obci class_objcommentinstr))
   (let ( (oloc (unsafe_get_field :obi_loc obci))
@@ -1223,6 +1273,7 @@
 ))
 (install_method class_objcommentinstr output_c_code outpucod_objcommentinstr)
 
+;;;;;;;;;;;;;;;;
 ;; output code for objcommentedblock
 (defun outpucod_objcommentedblock (oblo declbuf implbuf :long depth)
   (assert_msg "check oblo" (is_a oblo class_objcommentedblock))
@@ -1259,7 +1310,7 @@
   )
 (install_method class_objcommentedblock output_c_code outpucod_objcommentedblock)
 
-
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; add a cname for a cloned identifier into a buffer
 (defun add2sbuf_clonsym (sbuf csy)
   (assert_msg "check sbuf" (is_strbuf sbuf))
