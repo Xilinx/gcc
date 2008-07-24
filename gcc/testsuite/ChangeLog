@@ -1,3 +1,65 @@
+2008-07-23  Manuel Lopez-Ibanez  <manu@gcc.gnu.org>
+
+	PR 35058
+	* gcc.dg/Wdeclaration-after-statement-3.c: New.
+	* gcc/testsuite/gcc.dg/Wpointer-arith.c: New.
+	
+2008-07-22  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libfortran/36852
+	* gfortran.dg/namelist_52.f90: New test.
+
+2008-07-22  Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>
+
+	* lib/target-supports.exp (check_effective_target_spu_auto_overlay):
+	New procedure.
+	* lib/compat.exp (compat-execute): Use it to test whether toolchain
+	supports automatic overlay generation for the SPU.
+
+2008-07-22  Daniel Kraft  <d@domob.eu>
+
+	PR fortran/29835
+	* gfortran.dg/fmt_error_3.f90:  New test.
+	* gfortran.dg/fmt_error_4.f90:  New test.
+	* gfortran.dg/fmt_error_5.f90:  New test.
+
+2008-07-22  Manuel Lopez-Ibanez  <manu@gcc.gnu.org>
+
+	PR 28079
+	* gcc.dg/cpp/line6.c: New.
+	
+2008-07-21  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* gfortran.dg/fmt_g0_3.f08: Fix typo in expected error message.
+
+2008-07-21  Paolo Carlini  <paolo.carlini@oracle.com>
+
+        PR c++/36871
+	PR c++/36872
+        * g++.dg/ext/has_nothrow_copy.C: Rename to...
+        * g++.dg/ext/has_nothrow_copy-1.C: ... this.
+        * g++.dg/ext/has_nothrow_copy-2.C: New.
+        * g++.dg/ext/has_nothrow_copy-3.C: Likewise.
+        * g++.dg/ext/has_nothrow_copy-4.C: Likewise.
+        * g++.dg/ext/has_nothrow_copy-5.C: Likewise.
+        * g++.dg/ext/has_nothrow_copy-6.C: Likewise.
+        * g++.dg/ext/has_nothrow_copy-7.C: Likewise.
+
+2008-07-21  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR libfortran/36773
+	* gfortran.dg/zero_sized_5.f90:  New test case.
+
+2008-07-21  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/36870
+	* g++.dg/ext/has_nothrow_assign_odr.C: New.
+	* g++.dg/ext/has_nothrow_copy_odr.C: Likewise.
+	* g++.dg/ext/has_nothrow_constructor_odr.C: Likewise.
+	* g++.dg/ext/has_nothrow_assign.C: Adjust.
+	* g++.dg/ext/has_nothrow_copy.C: Likewise.
+	* g++.dg/ext/has_nothrow_constructor.C: Likewise.
+
 2008-07-17  Andreas Krebbel  <krebbel1@de.ibm.com>
 
 	PR target/36822

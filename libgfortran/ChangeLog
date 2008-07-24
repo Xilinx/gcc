@@ -1,3 +1,49 @@
+2008-07-22  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/36852
+	* io/list_read.c: If variable rank is zero, do not adjust the found
+	namelist object pointer.
+
+2008-07-22  Daniel Kraft  <d@domob.eu>
+
+	PR fortran/29835
+	* io/format.c (struct format_data):  New member error_element.
+	(unexpected_element):  Added '%c' to message.
+	(next_char):  Keep track of last parsed character in fmt->error_element.
+	(format_error):  If the message is unexpected_element, output the
+	offending character, too.
+
+2008-07-22  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR libfortran/36890
+	* io/file_pos.c:  Declare READ_CHUNK as signed to avoid
+	signed/unsigned comparison warning in formatted_backspace.
+
+2008-07-21  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR libfortran/36773
+	* intrinsics/cshift0.c (cshift0):  Return early if size of array
+	is zero.
+	* intrinsics/eoshift0.c (eoshift0):  Return early if size of
+	return array is zero.
+	* intrinsics/eoshift2.c (eoshift2):  Likewise.
+	* m4/eoshift1.m4 (eoshift1):  Return early if size of array
+	is zero.
+	* m4/eoshift3.m4 (eoshift3):  Likewise.
+	* m4/eoshift2.m4 (eoshift2):  Return early if size of return
+	array is zero.
+	* m4/eoshift4.m4 (eoshift2):  Return early if size of return
+	array is zero.
+	* generated/cshift1_16.c: Regenerated.
+	* generated/cshift1_4.c: Regenerated.
+	* generated/cshift1_8.c: Regenerated.
+	* generated/eoshift1_16.c: Regenerated.
+	* generated/eoshift1_4.c: Regenerated.
+	* generated/eoshift1_8.c: Regenerated.
+	* generated/eoshift3_16.c: Regenerated.
+	* generated/eoshift3_4.c: Regenerated.
+	* generated/eoshift3_8.c: Regenerated.
+
 2008-07-20  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
 
 	PR fortran/36857

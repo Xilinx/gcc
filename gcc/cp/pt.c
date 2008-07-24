@@ -4241,7 +4241,7 @@ fold_non_dependent_expr (tree expr)
 
 /* EXPR is an expression which is used in a constant-expression context.
    For instance, it could be a VAR_DECL with a constant initializer.
-   Extract the innest constant expression.
+   Extract the innermost constant expression.
 
    This is basically a more powerful version of
    integral_constant_value, which can be used also in templates where
@@ -5888,8 +5888,6 @@ lookup_template_class (tree d1,
 	= TREE_PRIVATE (TYPE_STUB_DECL (template_type));
       TREE_PROTECTED (type_decl)
 	= TREE_PROTECTED (TYPE_STUB_DECL (template_type));
-      DECL_IN_SYSTEM_HEADER (type_decl)
-	= DECL_IN_SYSTEM_HEADER (templ);
       if (CLASSTYPE_VISIBILITY_SPECIFIED (template_type))
 	{
 	  DECL_VISIBILITY_SPECIFIED (type_decl) = 1;
@@ -6338,7 +6336,6 @@ pop_tinst_level (void)
   /* Restore the filename and line number stashed away when we started
      this instantiation.  */
   input_location = current_tinst_level->locus;
-  in_system_header = current_tinst_level->in_system_header_p;
   current_tinst_level = current_tinst_level->next;
   --tinst_depth;
   ++tinst_level_tick;
@@ -6404,7 +6401,7 @@ tsubst_friend_function (tree decl, tree args)
 
       /* Friend functions are looked up in the containing namespace scope.
 	 We must enter that scope, to avoid finding member functions of the
-	 current cless with same name.  */
+	 current class with same name.  */
       push_nested_namespace (ns);
       fns = tsubst_expr (DECL_TI_TEMPLATE (decl), args,
 			 tf_warning_or_error, NULL_TREE,
@@ -6910,7 +6907,6 @@ instantiate_class_template (tree type)
      if tsubsting causes an error.  */
   typedecl = TYPE_MAIN_DECL (type);
   input_location = DECL_SOURCE_LOCATION (typedecl);
-  in_system_header = DECL_IN_SYSTEM_HEADER (typedecl);
 
   TYPE_HAS_USER_CONSTRUCTOR (type) = TYPE_HAS_USER_CONSTRUCTOR (pattern);
   TYPE_HAS_NEW_OPERATOR (type) = TYPE_HAS_NEW_OPERATOR (pattern);
@@ -7108,7 +7104,7 @@ instantiate_class_template (tree type)
 		{
 		  tree r;
 
-		  /* The the file and line for this declaration, to
+		  /* The file and line for this declaration, to
 		     assist in error message reporting.  Since we
 		     called push_tinst_level above, we don't need to
 		     restore these.  */
@@ -7267,7 +7263,7 @@ instantiate_class_template (tree type)
 	      /* Build new DECL_FRIENDLIST.  */
 	      tree r;
 
-	      /* The the file and line for this declaration, to
+	      /* The file and line for this declaration, to
 		 assist in error message reporting.  Since we
 		 called push_tinst_level above, we don't need to
 		 restore these.  */
@@ -11177,7 +11173,7 @@ tsubst_copy_and_build (tree t,
 	tree init = RECUR (TREE_OPERAND (t, 3));
 
 	if (TREE_OPERAND (t, 3) && !init)
-	  /* If there was an initializer in the the original tree, but
+	  /* If there was an initializer in the original tree, but
 	     it instantiated to an empty list, then we should pass on
 	     VOID_ZERO_NODE to tell build_new that it was an empty
 	     initializer () rather than no initializer.  This can only
@@ -13567,7 +13563,7 @@ unify (tree tparms, tree targs, tree parm, tree arg, int strict)
       /* CV qualifications for methods can never be deduced, they must
 	 match exactly.  We need to check them explicitly here,
 	 because type_unification_real treats them as any other
-	 cvqualified parameter.  */
+	 cv-qualified parameter.  */
       if (TREE_CODE (parm) == METHOD_TYPE
 	  && (!check_cv_quals_for_unify
 	      (UNIFY_ALLOW_NONE,
@@ -14614,8 +14610,9 @@ do_decl_instantiation (tree decl, tree storage)
     ;
   else if (storage == ridpointers[(int) RID_EXTERN])
     {
-      if (pedantic && !in_system_header && (cxx_dialect == cxx98))
-	pedwarn ("ISO C++ 1998 forbids the use of %<extern%> on explicit "
+      if (!in_system_header && (cxx_dialect == cxx98))
+	pedwarn (OPT_pedantic, 
+		 "ISO C++ 1998 forbids the use of %<extern%> on explicit "
 		 "instantiations");
       extern_p = 1;
     }
@@ -14701,16 +14698,17 @@ do_type_instantiation (tree t, tree storage, tsubst_flags_t complain)
 
   if (storage != NULL_TREE)
     {
-      if (pedantic && !in_system_header)
+      if (!in_system_header)
 	{
 	  if (storage == ridpointers[(int) RID_EXTERN])
 	    {
 	      if (cxx_dialect == cxx98)
-		pedwarn("ISO C++ 1998 forbids the use of %<extern%> on "
+		pedwarn(OPT_pedantic, 
+			"ISO C++ 1998 forbids the use of %<extern%> on "
 			"explicit instantiations");
 	    }
 	  else
-	    pedwarn("ISO C++ forbids the use of %qE on explicit "
+	    pedwarn(OPT_pedantic, "ISO C++ forbids the use of %qE on explicit "
 		    "instantiations", storage);
 	}
 
@@ -15016,7 +15014,6 @@ instantiate_decl (tree d, int defer_ok,
   bool pattern_defined;
   int need_push;
   location_t saved_loc = input_location;
-  int saved_in_system_header = in_system_header;
   bool external_p;
 
   /* This function should only be used to instantiate templates for
@@ -15099,7 +15096,6 @@ instantiate_decl (tree d, int defer_ok,
     mark_definable (d);
 
   input_location = DECL_SOURCE_LOCATION (d);
-  in_system_header = DECL_IN_SYSTEM_HEADER (d);
 
   /* If D is a member of an explicitly instantiated class template,
      and no definition is available, treat it like an implicit
@@ -15371,7 +15367,6 @@ instantiate_decl (tree d, int defer_ok,
 
 out:
   input_location = saved_loc;
-  in_system_header = saved_in_system_header;
   pop_deferring_access_checks ();
   pop_tinst_level ();
 
@@ -15389,7 +15384,6 @@ instantiate_pending_templates (int retries)
 {
   int reconsider;
   location_t saved_loc = input_location;
-  int saved_in_system_header = in_system_header;
 
   /* Instantiating templates may trigger vtable generation.  This in turn
      may require further template instantiations.  We place a limit here
@@ -15473,7 +15467,6 @@ instantiate_pending_templates (int retries)
   while (reconsider);
 
   input_location = saved_loc;
-  in_system_header = saved_in_system_header;
 }
 
 /* Substitute ARGVEC into T, which is a list of initializers for

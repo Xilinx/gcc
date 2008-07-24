@@ -131,7 +131,7 @@ struct binding_table_s GTY(())
   binding_entry * GTY((length ("%h.chain_count"))) chain;
 
   /* The number of chains in this table.  This is the length of the
-     the member "chain" considered as an array.  */
+     member "chain" considered as an array.  */
   size_t chain_count;
 
   /* Number of "binding_entry"s in this table.  */
@@ -724,10 +724,10 @@ pushdecl_maybe_friend (tree x, bool is_friend)
 	    /* Don't do anything just yet.  */;
 	  else if (t == wchar_decl_node)
 	    {
-	      if (pedantic && ! DECL_IN_SYSTEM_HEADER (x))
-		pedwarn ("redeclaration of %<wchar_t%> as %qT",
+	      if (! DECL_IN_SYSTEM_HEADER (x))
+		pedwarn (OPT_pedantic, "redeclaration of %<wchar_t%> as %qT",
 			 TREE_TYPE (x));
-
+	      
 	      /* Throw away the redeclaration.  */
 	      POP_TIMEVAR_AND_RETURN (TV_NAME_LOOKUP, t);
 	    }
@@ -782,7 +782,7 @@ pushdecl_maybe_friend (tree x, bool is_friend)
 	      tree previous = function_binding->value;
 
 	      /* In case either x or previous is declared to throw an exception,
-	         make sure both exception speficications are equal.  */
+	         make sure both exception specifications are equal.  */
 	      if (decls_match (x, previous))
 		{
 		  tree x_exception_spec = NULL_TREE;
@@ -796,10 +796,11 @@ pushdecl_maybe_friend (tree x, bool is_friend)
 					  x_exception_spec,
 					  true))
 		    {
-		      pedwarn ("declaration of %q#D with C language linkage", x);
-		      pedwarn ("conflicts with previous declaration %q+#D",
-			        previous);
-		      pedwarn ("due to different exception specifications");
+		      pedwarn (0, "declaration of %q#D with C language linkage",
+			       x);
+		      pedwarn (0, "conflicts with previous declaration %q+#D",
+			       previous);
+		      pedwarn (0, "due to different exception specifications");
 		      POP_TIMEVAR_AND_RETURN (TV_NAME_LOOKUP, error_mark_node);
 		    }
 		}

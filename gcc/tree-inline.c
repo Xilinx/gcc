@@ -951,7 +951,7 @@ copy_bb (copy_body_data *id, basic_block bb, int frequency_scale,
 		pointer_set_insert (id->statements_to_fold, stmt);
 	      /* We're duplicating a CALL_EXPR.  Find any corresponding
 		 callgraph edges and update or duplicate them.  */
-	      if (call && (decl = get_callee_fndecl (call)))
+	      if (call)
 		{
 		  struct cgraph_node *node;
 		  struct cgraph_edge *edge;
@@ -962,7 +962,8 @@ copy_bb (copy_body_data *id, basic_block bb, int frequency_scale,
 		      edge = cgraph_edge (id->src_node, orig_stmt);
 		      if (edge)
 			cgraph_clone_edge (edge, id->dst_node, stmt,
-					   REG_BR_PROB_BASE, 1, edge->frequency, true);
+					   REG_BR_PROB_BASE, 1,
+					   edge->frequency, true);
 		      break;
 
 		    case CB_CGE_MOVE_CLONES:
@@ -971,8 +972,8 @@ copy_bb (copy_body_data *id, basic_block bb, int frequency_scale,
 			   node = node->next_clone)
 			{
 			  edge = cgraph_edge (node, orig_stmt);
-			  gcc_assert (edge);
-			  cgraph_set_call_stmt (edge, stmt);
+			  if (edge)
+			    cgraph_set_call_stmt (edge, stmt);
 			}
 		      /* FALLTHRU */
 
@@ -2580,6 +2581,20 @@ add_lexical_block (tree current_block, tree new_block)
   BLOCK_SUPERCONTEXT (new_block) = current_block;
 }
 
+/* Fetch callee declaration from the call graph edge going from NODE and
+   associated with STMR call statement.  Return NULL_TREE if not found.  */
+static tree
+get_indirect_callee_fndecl (struct cgraph_node *node, tree stmt)
+{
+  struct cgraph_edge *cs;
+
+  cs = cgraph_edge (node, stmt);
+  if (cs)
+    return cs->callee->decl;
+
+  return NULL_TREE;
+}
+
 /* If *TP is a CALL_EXPR, replace it with its inline expansion.  */
 
 static bool
@@ -2621,7 +2636,11 @@ expand_call_inline (basic_block bb, tree stmt, tree *tp, void *data)
      If we cannot, then there is no hope of inlining the function.  */
   fn = get_callee_fndecl (t);
   if (!fn)
-    goto egress;
+    {
+      fn = get_indirect_callee_fndecl (id->dst_node, stmt);
+      if (!fn)
+	goto egress;
+    }
 
   /* Turn forward declarations into real ones.  */
   fn = cgraph_node (fn)->decl;
@@ -2672,6 +2691,12 @@ expand_call_inline (basic_block bb, tree stmt, tree *tp, void *data)
      inlining.  */
   if (!cgraph_inline_p (cg_edge, &reason))
     {
+      /* If this call was originally indirect, we do not want to emit any
+	 inlining related warnings or sorry messages because there are no
+	 guarantees regarding those.  */
+      if (cg_edge->indirect_call)
+	goto egress;
+
       if (lookup_attribute ("always_inline", DECL_ATTRIBUTES (fn))
 	  /* Avoid warnings during early inline pass. */
 	  && (!flag_unit_at_a_time || cgraph_global_info_ready))
@@ -3682,4 +3707,35 @@ build_duplicate_type (tree type)
   TYPE_CANONICAL (type) = type;
 
   return type;
+}
+
+/* Return whether it is safe to inline a function because it used different
+   target specific options or different optimization options.  */
+bool
+tree_can_inline_p (tree caller, tree callee)
+{
+  /* Don't inline a function with a higher optimization level than the
+     caller, or with different space constraints (hot/cold functions).  */
+  tree caller_tree = DECL_FUNCTION_SPECIFIC_OPTIMIZATION (caller);
+  tree callee_tree = DECL_FUNCTION_SPECIFIC_OPTIMIZATION (callee);
+
+  if (caller_tree != callee_tree)
+    {
+      struct cl_optimization *caller_opt
+	= TREE_OPTIMIZATION ((caller_tree)
+			     ? caller_tree
+			     : optimization_default_node);
+
+      struct cl_optimization *callee_opt
+	= TREE_OPTIMIZATION ((callee_tree)
+			     ? callee_tree
+			     : optimization_default_node);
+
+      if ((caller_opt->optimize > callee_opt->optimize)
+	  || (caller_opt->optimize_size != callee_opt->optimize_size))
+	return false;
+    }
+
+  /* Allow the backend to decide if inlining is ok.  */
+  return targetm.target_option.can_inline_p (caller, callee);
 }

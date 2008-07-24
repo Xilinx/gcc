@@ -315,7 +315,7 @@ current_tmpl_spec_kind (int n_class_scopes)
 
 	 template <class T> void S<T>::f(int);
 
-       The `class T' maches the `S<T>', leaving no template headers
+       The `class T' matches the `S<T>', leaving no template headers
        corresponding to the `f'.  */
     return tsk_none;
   else if (n_template_parm_scopes > n_class_scopes + 1)
@@ -3813,9 +3813,8 @@ check_tag_decl (cp_decl_specifier_seq *declspecs)
       /* Anonymous unions are objects, so they can have specifiers.  */;
       SET_ANON_AGGR_TYPE_P (declared_type);
 
-      if (TREE_CODE (declared_type) != UNION_TYPE && pedantic
-	  && !in_system_header)
-	pedwarn ("ISO C++ prohibits anonymous structs");
+      if (TREE_CODE (declared_type) != UNION_TYPE && !in_system_header)
+	pedwarn (OPT_pedantic, "ISO C++ prohibits anonymous structs");
     }
 
   else
@@ -4345,7 +4344,7 @@ check_array_designated_initializer (const constructor_elt *ce)
   if (ce->index)
     {
       /* The parser only allows identifiers as designated
-	 intializers.  */
+	 initializers.  */
       gcc_assert (TREE_CODE (ce->index) == IDENTIFIER_NODE);
       error ("name %qD used in a GNU-style designated "
 	     "initializer for an array", ce->index);
@@ -7004,8 +7003,8 @@ check_static_variable_definition (tree decl, tree type)
     error ("ISO C++ forbids in-class initialization of non-const "
 	   "static member %qD",
 	   decl);
-  else if (pedantic && !INTEGRAL_TYPE_P (type))
-    pedwarn ("ISO C++ forbids initialization of member constant "
+  else if (!INTEGRAL_TYPE_P (type))
+    pedwarn (OPT_pedantic, "ISO C++ forbids initialization of member constant "
 	     "%qD of non-integral type %qT", decl, type);
 
   return 0;
@@ -7050,7 +7049,7 @@ compute_array_index_type (tree name, tree size)
   
   if (!abi_version_at_least (2) && processing_template_decl)
     /* For abi-1, we handled all instances in templates the same way,
-       even when they were non-dependent. This effects the manglings
+       even when they were non-dependent. This affects the manglings
        produced.  So, we do the normal checking for non-dependent
        sizes, but at the end we'll return the same type that abi-1
        would have, but with TYPE_CANONICAL set to the "right"
@@ -7082,12 +7081,12 @@ compute_array_index_type (tree name, tree size)
 	}
       /* As an extension we allow zero-sized arrays.  We always allow
 	 them in system headers because glibc uses them.  */
-      else if (integer_zerop (size) && pedantic && !in_system_header)
+      else if (integer_zerop (size) && !in_system_header)
 	{
 	  if (name)
-	    pedwarn ("ISO C++ forbids zero-size array %qD", name);
+	    pedwarn (OPT_pedantic, "ISO C++ forbids zero-size array %qD", name);
 	  else
-	    pedwarn ("ISO C++ forbids zero-size array");
+	    pedwarn (OPT_pedantic, "ISO C++ forbids zero-size array");
 	}
     }
   else if (TREE_CONSTANT (size))
@@ -7103,9 +7102,9 @@ compute_array_index_type (tree name, tree size)
   else if (pedantic && warn_vla != 0)
     {
       if (name)
-	pedwarn ("ISO C++ forbids variable length array %qD", name);
+	pedwarn (OPT_Wvla, "ISO C++ forbids variable length array %qD", name);
       else
-	pedwarn ("ISO C++ forbids variable length array");
+	pedwarn (OPT_Wvla, "ISO C++ forbids variable length array");
     }
   else if (warn_vla > 0)
     {
@@ -7736,7 +7735,8 @@ grokdeclarator (const cp_declarator *declarator,
       else if (! is_main)
 	permerror ("ISO C++ forbids declaration of %qs with no type", name);
       else if (pedantic)
-	pedwarn ("ISO C++ forbids declaration of %qs with no type", name);
+	pedwarn (OPT_pedantic,
+		 "ISO C++ forbids declaration of %qs with no type", name);
       else
 	warning (OPT_Wreturn_type,
                  "ISO C++ forbids declaration of %qs with no type", name);
@@ -7791,7 +7791,8 @@ grokdeclarator (const cp_declarator *declarator,
 	  ok = 1;
 	  if (!explicit_int && !defaulted_int && !explicit_char && pedantic)
 	    {
-	      pedwarn ("long, short, signed or unsigned used invalidly for %qs",
+	      pedwarn (OPT_pedantic, 
+		       "long, short, signed or unsigned used invalidly for %qs",
 		       name);
 	      if (flag_pedantic_errors)
 		ok = 0;
@@ -7896,7 +7897,8 @@ grokdeclarator (const cp_declarator *declarator,
       if (pedantic)
 	{
 	  tree bad_type = build_qualified_type (type, type_quals);
-	  pedwarn ("ignoring %qV qualifiers added to function type %qT",
+	  pedwarn (OPT_pedantic, 
+		   "ignoring %qV qualifiers added to function type %qT",
 		   bad_type, type);
 	}
       type_quals = TYPE_UNQUALIFIED;
@@ -9124,10 +9126,12 @@ grokdeclarator (const cp_declarator *declarator,
 	    && pedantic)
 	  {
 	    if (storage_class == sc_static)
-	      pedwarn ("%<static%> specified invalid for function %qs "
+	      pedwarn (OPT_pedantic, 
+		       "%<static%> specified invalid for function %qs "
 		       "declared out of global scope", name);
 	    else
-	      pedwarn ("%<inline%> specifier invalid for function %qs "
+	      pedwarn (OPT_pedantic, 
+		       "%<inline%> specifier invalid for function %qs "
 		       "declared out of global scope", name);
 	  }
 
@@ -9215,9 +9219,9 @@ grokdeclarator (const cp_declarator *declarator,
 	      }
 	    if (storage_class == sc_extern && pedantic)
 	      {
-		pedwarn ("cannot explicitly declare member %q#D to have "
-			 "extern linkage",
-			 decl);
+		pedwarn (OPT_pedantic, 
+			 "cannot explicitly declare member %q#D to have "
+			 "extern linkage", decl);
 		storage_class = sc_none;
 	      }
 	  }
@@ -10104,8 +10108,8 @@ grok_op_properties (tree decl, bool complain)
 	    if (operator_code == POSTINCREMENT_EXPR
 		|| operator_code == POSTDECREMENT_EXPR)
 	      {
-		if (pedantic)
-		  pedwarn ("%qD cannot have default arguments", decl);
+		pedwarn (OPT_pedantic, "%qD cannot have default arguments", 
+			 decl);
 	      }
 	    else
 	      {
@@ -10839,7 +10843,7 @@ finish_enum (tree enumtype)
       underlying_type = integer_types[itk_unsigned_long_long];
     }
 
-  /* Compute the minium and maximum values for the type.
+  /* Compute the minimum and maximum values for the type.
 
      [dcl.enum]
 
@@ -12195,7 +12199,7 @@ maybe_register_incomplete_var (tree var)
 }
 
 /* Called when a class type (given by TYPE) is defined.  If there are
-   any existing VAR_DECLs whose type hsa been completed by this
+   any existing VAR_DECLs whose type has been completed by this
    declaration, update them now.  */
 
 void
@@ -12260,7 +12264,7 @@ cxx_maybe_build_cleanup (tree decl)
 	 initial checks on the attribute.  Note that those checks
 	 include ensuring that the function found is not an overloaded
 	 function, or an object with an overloaded call operator,
-	 etc.; we can rely on the fact that the functionfound is an
+	 etc.; we can rely on the fact that the function found is an
 	 ordinary FUNCTION_DECL.  */
       fn = lookup_name (id);
       arg = build_address (decl);
