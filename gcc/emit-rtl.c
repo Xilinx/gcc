@@ -2026,13 +2026,8 @@ offset_address (rtx memref, rtx offset, unsigned HOST_WIDE_INT pow2)
   MEM_ATTRS (new_rtx)
     = get_mem_attrs (MEM_ALIAS_SET (memref), MEM_EXPR (memref), 0, 0,
 		     MIN (MEM_ALIGN (memref), pow2 * BITS_PER_UNIT),
-<<<<<<< .working
-		     MEM_ADDR_SPACE (memref), GET_MODE (new));
-  return new;
-=======
-		     GET_MODE (new_rtx));
+		     MEM_ADDR_SPACE (memref), GET_MODE (new_rtx));
   return new_rtx;
->>>>>>> .merge-right.r138023
 }
 
 /* Return a memory reference like MEMREF, but with its address changed to
@@ -2134,13 +2129,8 @@ widen_memory_access (rtx memref, enum machine_mode mode, HOST_WIDE_INT offset)
   /* The widened memory may alias other stuff, so zap the alias set.  */
   /* ??? Maybe use get_alias_set on any remaining expression.  */
 
-<<<<<<< .working
-  MEM_ATTRS (new) = get_mem_attrs (0, expr, memoffset, GEN_INT (size),
-				   MEM_ALIGN (new), MEM_ADDR_SPACE (new), mode);
-=======
   MEM_ATTRS (new_rtx) = get_mem_attrs (0, expr, memoffset, GEN_INT (size),
-				   MEM_ALIGN (new_rtx), mode);
->>>>>>> .merge-right.r138023
+				   MEM_ALIGN (new_rtx), MEM_ADDR_SPACE (new_rtx), mode);
 
   return new_rtx;
 }
