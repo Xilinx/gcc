@@ -1,3 +1,112 @@
+2008-07-24  Daniel Kraft  <d@domob.eu>
+
+	PR fortran/33141
+	* lang.opt (Wnonstd-intrinsics):  Removed option.
+	(Wintrinsics-std), (Wintrinsic-shadow):  New options.
+	* invoke.texi (Option Summary):  Removed -Wnonstd-intrinsics
+	from the list and added -Wintrinsics-std and -Wintrinsic-shadow.
+	(Error and Warning Options):  Documented the new options and removed
+	the documentation for -Wnonstd-intrinsics.
+	* gfortran.h (gfc_option_t):  New members warn_intrinsic_shadow and
+	warn_intrinsics_std, removed warn_nonstd_intrinsics.
+	(gfc_is_intrinsic):  Renamed from gfc_intrinsic_name.
+	(gfc_warn_intrinsic_shadow), (gfc_check_intrinsic_standard):  New.
+	* decl.c (match_procedure_decl):  Replaced gfc_intrinsic_name by
+	the new name gfc_is_intrinsic.
+	(warn_intrinsic_shadow):  New helper method.
+	(gfc_match_function_decl), (gfc_match_subroutine):  Call the new method
+	warn_intrinsic_shadow to check the just-parsed procedure.
+	* expr.c (check_init_expr):  Call new gfc_is_intrinsic to check whether
+	the function called is really an intrinsic in the selected standard.
+	* intrinsic.c (gfc_is_intrinsic):  Renamed from gfc_intrinsic_name and
+	extended to take into account the selected standard settings when trying
+	to find out whether a symbol is an intrinsic or not.
+	(gfc_check_intrinsic_standard):  Made public and extended.
+	(gfc_intrinsic_func_interface), (gfc_intrinsic_sub_interface):  Removed
+	the calls to check_intrinsic_standard, this check now happens inside
+	gfc_is_intrinsic.
+	(gfc_warn_intrinsic_shadow):  New method defined.
+	* options.c (gfc_init_options):  Initialize new warning flags to false
+	and removed intialization of Wnonstd-intrinsics flag.
+	(gfc_post_options):  Removed logic for Wnonstd-intrinsics flag.
+	(set_Wall):  Set new warning flags and removed Wnonstd-intrinsics flag.
+	(gfc_handle_option):  Handle the new flags and removed handling of the
+	old Wnonstd-intrinsics flag.
+	* primary.c (gfc_match_rvalue):  Replaced call to gfc_intrinsic_name by
+	the new name gfc_is_intrinsic.
+	* resolve.c (resolve_actual_arglist):  Ditto.
+	(resolve_generic_f), (resolve_unknown_f):  Ditto.
+	(is_external_proc):  Ditto.
+	(resolve_generic_s), (resolve_unknown_s):  Ditto.
+	(resolve_symbol):  Ditto and ensure for symbols declared INTRINSIC that
+	they are really available in the selected standard setting.
+
+2008-07-24  Daniel Kraft  <d@domob.eu>
+
+	* match.c (gfc_match):  Add assertion to catch wrong calls trying to
+	match upper-case characters.
+
+2008-07-24  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR fortran/29952
+	* gfortran.h:  Add "warn_array_temp" to gfc_option_t.
+	* lang.opt:  Add -Warray-temporaries.
+	* invoke.texi:  Document -Warray-temporaries
+	* trans-array.h (gfc_trans_create_temp_array):  Add argument of
+	type *locus.
+	(gfc_conv_loop_setup):  Likewise.
+	* trans-array.c (gfc_trans_create_temp_array):  If
+	-Warray-temporaries is given and locus is present, warn about
+	creation of array temporaries.
+	(gfc_trans_array_constructor_subarray):  Add locus to call
+	of gfc_conv_loop_setup.
+	(gfc_trans_array_constructor):  Add where argument.  Pass where
+	argument to call of gfc_trans_create_temp_array.
+	(gfc_add_loop_ss_code):  Add where argument.  Pass where argument
+	to recursive call of gfc_add_loop_ss_code and to call of
+	gfc_trans_array_constructor.
+	(gfc_conv_loop_setup):  Add where argument.  Pass where argument
+	to calls to gfc_add_loop_ss_code and to gfc_trans_create_temp_array.
+	(gfc_conv_expr_descriptor):  Pass location to call of
+	gfc_conv_loop_setup.
+	(gfc_conv_array_parameter):  If -Warray-temporaries is given,
+	warn about creation of temporary arrays.
+	* trans-expr.c (gfc_conv_subref_array_arg):  Add where argument
+	to call to gfc_conv_loop_setup.
+	(gfc_conv_function_call):  Add where argument to call to
+	gfc_trans_creat_temp_array.
+	(gfc_trans_subarray_assign):  Likewise.
+	(gfc_trans_assignment_1):  Add where argument to call to
+	gfc_conv_loop_setup.
+	* trans-stmt.c (gfc_conv_elemental_dependencies):  Add where
+	argument to call to gfc_trans_create_temp_array.
+	(gfc_trans_call):  Add where argument to call to gfc_conv_loop_setup.
+	(generate_loop_for_temp_to_lhs):  Likewise.
+	(generate_loop_for_rhs_to_temp):  Likewise.
+	(compute_inner_temp_size):  Likewise.
+	(gfc_trans-pointer_assign_need_temp):  Likewise.
+	(gfc_evaluate_where_mask):  Likewise.
+	(gfc_trans_where_assign):  Likewise.
+	(gfc_trans_where_3):  Likewise.
+	* trans-io.c (transfer_srray_component):  Add where argument
+	to function. Add where argument to call to gfc_conv_loop_setup.
+	(transfer_expr):  Add where argument to call to
+	transfer_array_component.
+	(gfc_trans_transfer):  Add where expression to call to
+	gfc_conv_loop_setup.
+	* trans-intrinsic.c (gfc_conv_intrinsic_anyall):  Add
+	where argument to call to gfc_conv_loop_setup.
+	(gfc_conv_intrinsic_count):  Likewise.
+	(gfc_conv_intrinsic_arith):  Likewise.
+	(gfc_conv_intrinsic_dot_product):  Likewise.
+	(gfc_conv_intrinsic_minmaxloc):  Likewise.
+	(gfc_conv_intrinsic_minmaxval):  Likewise.
+	(gfc_conv_intrinsic_array_transfer):  Warn about
+	creation of temporary array.
+	Add where argument to call to gfc_trans_create_temp_array.
+	* options.c (gfc_init_options):  Initialize gfc_option.warn_array_temp.
+	(gfc_handle_option):  Set gfc_option.warn_array_temp.
+
 2008-07-23  Manuel Lopez-Ibanez  <manu@gcc.gnu.org>
 
 	PR 35058
