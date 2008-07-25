@@ -1,5 +1,5 @@
 /* Interprocedural analyses.
-   Copyright (C) 2005, 2007 Free Software Foundation, Inc.
+   Copyright (C) 2005, 2007, 2008 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -21,6 +21,7 @@ along with GCC; see the file COPYING3.  If not see
 #define IPA_PROP_H
 
 #include "tree.h"
+#include "vec.h"
 
 /* The following definitions and interfaces are used by
    interprocedural analyses.  */
@@ -100,14 +101,6 @@ struct ipa_replace_map
   bool ref_p;
 };
 
-/* Return the field in cgraph_node/cgraph_edge struct that points
-   to ipa_node_params/ipa_edge_args struct.  */
-#define IPA_NODE_REF(MT) ((struct ipa_node_params *)(MT)->aux)
-#define IPA_EDGE_REF(EDGE) ((struct ipa_edge_args *)(EDGE)->aux)
-/* This macro checks validity of index returned by
-   ipa_get_param_decl_index function.  */
-#define IS_VALID_JUMP_FUNC_INDEX(I) ((I) != -1)
-
 /* ipa_node_params stores information related to formal parameters of functions
    and some other information for interprocedural passes that operate on
    parameters (such as ipa-cp).  */
@@ -115,7 +108,7 @@ struct ipa_replace_map
 struct ipa_node_params
 {
   /* Number of formal parameters of this function.  When set to 0,
-     this functions's parameters would not be analyzed by the different
+     this function's parameters would not be analyzed by the different
      stages of IPA CP.  */
   int param_count;
   /* Array of lattices.  */
@@ -134,7 +127,7 @@ struct ipa_node_params
      one.  */
   gcov_type count_scale;
 
-  /* Whether this fynction is called with variable number of actual
+  /* Whether this function is called with variable number of actual
      arguments.  */
   unsigned called_with_var_arguments : 1;
 };
@@ -165,7 +158,7 @@ ipa_get_ith_param (struct ipa_node_params *info, int i)
   return info->param_decls[i];
 }
 
-/* Returns the modification flag corresponding o the ith paramterer.  Note
+/* Returns the modification flag corresponding to the ith parameter.  Note
    there is no setter method as the goal is to set all flags when building the
    array in ipa_detect_param_modifications.  */
 static inline bool
@@ -229,6 +222,81 @@ ipa_get_ith_jump_func (struct ipa_edge_args *args, int i)
   return &args->jump_functions[i];
 }
 
+/* Vectors need to have typedefs of structures.  */
+typedef struct ipa_node_params ipa_node_params_t;
+typedef struct ipa_edge_args ipa_edge_args_t;
+
+/* Types of vectors hodling the infos.  */
+DEF_VEC_O (ipa_node_params_t);
+DEF_VEC_ALLOC_O (ipa_node_params_t, heap);
+DEF_VEC_O (ipa_edge_args_t);
+DEF_VEC_ALLOC_O (ipa_edge_args_t, heap);
+
+/* Vector where the parameter infos are actually stored. */
+extern VEC (ipa_node_params_t, heap) *ipa_node_params_vector;
+/* Vector where the parameter infos are actually stored. */
+extern VEC (ipa_edge_args_t, heap) *ipa_edge_args_vector;
+
+/* Return the associated parameter/argument info corresponding to the given
+   node/edge.  */
+#define IPA_NODE_REF(NODE) (VEC_index (ipa_node_params_t, \
+				       ipa_node_params_vector, (NODE)->uid))
+#define IPA_EDGE_REF(EDGE) (VEC_index (ipa_edge_args_t, \
+				       ipa_edge_args_vector, (EDGE)->uid))
+/* This macro checks validity of index returned by
+   ipa_get_param_decl_index function.  */
+#define IS_VALID_JUMP_FUNC_INDEX(I) ((I) != -1)
+
+/* Creating and freeing ipa_node_params and ipa_edge_args.  */
+void ipa_create_all_node_params (void);
+void ipa_create_all_edge_args (void);
+void ipa_free_edge_args_substructures (struct ipa_edge_args *);
+void ipa_free_node_params_substructures (struct ipa_node_params *);
+void ipa_free_all_node_params (void);
+void ipa_free_all_edge_args (void);
+void free_all_ipa_structures_after_ipa_cp (void);
+void ipa_register_cgraph_hooks (void);
+
+/* This function ensures the array of node param infos is big enough to
+   accomdate a structure for all nodes and realloacates it if not.  */
+static inline void
+ipa_check_create_node_params (void)
+{
+  if (!ipa_node_params_vector)
+    ipa_node_params_vector = VEC_alloc (ipa_node_params_t, heap,
+					cgraph_max_uid);
+
+  if (VEC_length (ipa_node_params_t, ipa_node_params_vector)
+      <= (unsigned) cgraph_max_uid)
+    VEC_safe_grow_cleared (ipa_node_params_t, heap,
+			   ipa_node_params_vector, cgraph_max_uid + 1);
+}
+
+/* This function ensures the array of adge arguments infos is big enough to
+   accomdate a structure for all edges and realloacates it if not.  */
+static inline void
+ipa_check_create_edge_args (void)
+{
+  if (!ipa_edge_args_vector)
+    ipa_edge_args_vector = VEC_alloc (ipa_edge_args_t, heap,
+				      cgraph_edge_max_uid);
+
+  if (VEC_length (ipa_edge_args_t, ipa_edge_args_vector)
+      <=  (unsigned) cgraph_edge_max_uid)
+    VEC_safe_grow_cleared (ipa_edge_args_t, heap, ipa_edge_args_vector,
+			   cgraph_edge_max_uid + 1);
+}
+
+/* Returns true if the array of edge infos is large enough to accomodate an
+   info for EDGE.  The main purpose of this function is that debug dumping
+   function can check info availability without causing reallocations.  */
+static inline bool
+ipa_edge_args_info_available_for_edge_p (struct cgraph_edge *edge)
+{
+  return ((unsigned) edge->uid < VEC_length (ipa_edge_args_t,
+					     ipa_edge_args_vector));
+}
+
 /* A function list element.  It is used to create a temporary worklist used in
    the propagation stage of IPCP. (can be used for more IPA optimizations)  */
 struct ipa_func_list
@@ -250,13 +318,6 @@ void ipa_count_arguments (struct cgraph_edge *);
 void ipa_count_formal_params (struct cgraph_node *);
 void ipa_create_param_decls_array (struct cgraph_node *);
 void ipa_detect_param_modifications (struct cgraph_node *);
-
-/* Creating and freeing ipa_node_params and ipa_edge_args.  */
-void ipa_create_node_params (struct cgraph_node *);
-void ipa_free_all_node_params (void);
-void ipa_create_all_node_params (void);
-void ipa_create_all_edge_args (void);
-void ipa_free_all_edge_args (void);
 
 /* Debugging interface.  */
 void ipa_print_all_tree_maps (FILE *);

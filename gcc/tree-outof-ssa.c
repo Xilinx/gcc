@@ -128,6 +128,8 @@ create_temp (tree t)
   set_symbol_mem_tag (tmp, symbol_mem_tag (t));
   if (is_call_clobbered (t))
     mark_call_clobbered (tmp, var_ann (t)->escape_mask);
+  if (bitmap_bit_p (gimple_call_used_vars (cfun), DECL_UID (t)))
+    bitmap_set_bit (gimple_call_used_vars (cfun), DECL_UID (tmp));
 
   return tmp;
 }
@@ -881,7 +883,7 @@ contains_tree_r (tree * tp, int *walk_subtrees, void *data)
   if (*tp == data)
     {
       *walk_subtrees = 0;
-      return data;
+      return (tree) data;
     }
   else
     return NULL_TREE;
@@ -1454,7 +1456,7 @@ rewrite_out_of_ssa (void)
   if (dump_file && (dump_flags & TDF_DETAILS))
     dump_tree_cfg (dump_file, dump_flags & ~TDF_DETAILS);
 
-  remove_ssa_form (flag_tree_ter && !flag_mudflap && !flag_bounds);
+  remove_ssa_form (flag_tree_ter && !flag_mudflap);
 
   if (dump_file && (dump_flags & TDF_DETAILS))
     dump_tree_cfg (dump_file, dump_flags & ~TDF_DETAILS);
@@ -1477,7 +1479,7 @@ struct gimple_opt_pass pass_del_ssa =
   NULL,					/* next */
   0,					/* static_pass_number */
   TV_TREE_SSA_TO_NORMAL,		/* tv_id */
-  PROP_cfg | PROP_ssa | PROP_alias,	/* properties_required */
+  PROP_cfg | PROP_ssa,			/* properties_required */
   0,					/* properties_provided */
   /* ??? If TER is enabled, we also kill gimple.  */
   PROP_ssa,				/* properties_destroyed */

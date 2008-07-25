@@ -67,28 +67,20 @@ add_reg_br_prob_note (rtx last, int probability)
 	    || NEXT_INSN (NEXT_INSN (NEXT_INSN (NEXT_INSN (last)))))
 	  goto failed;
 	gcc_assert (!find_reg_note (last, REG_BR_PROB, 0));
-	REG_NOTES (last)
-	  = gen_rtx_EXPR_LIST (REG_BR_PROB,
-			       GEN_INT (REG_BR_PROB_BASE - probability),
-			       REG_NOTES (last));
+	add_reg_note (last, REG_BR_PROB,
+		      GEN_INT (REG_BR_PROB_BASE - probability));
 	return;
       }
   if (!last || !JUMP_P (last) || !any_condjump_p (last))
     goto failed;
   gcc_assert (!find_reg_note (last, REG_BR_PROB, 0));
-  REG_NOTES (last)
-    = gen_rtx_EXPR_LIST (REG_BR_PROB,
-			 GEN_INT (probability), REG_NOTES (last));
+  add_reg_note (last, REG_BR_PROB, GEN_INT (probability));
   return;
 failed:
   if (dump_file)
     fprintf (dump_file, "Failed to add probability note\n");
 }
 
-
-#ifndef LOCAL_ALIGNMENT
-#define LOCAL_ALIGNMENT(TYPE, ALIGNMENT) ALIGNMENT
-#endif
 
 #ifndef STACK_ALIGNMENT_NEEDED
 #define STACK_ALIGNMENT_NEEDED 1
@@ -129,7 +121,7 @@ static struct stack_var *stack_vars;
 static size_t stack_vars_alloc;
 static size_t stack_vars_num;
 
-/* An array of indicies such that stack_vars[stack_vars_sorted[i]].size
+/* An array of indices such that stack_vars[stack_vars_sorted[i]].size
    is non-decreasing.  */
 static size_t *stack_vars_sorted;
 
@@ -345,7 +337,7 @@ add_alias_set_conflicts (void)
 }
 
 /* A subroutine of partition_stack_vars.  A comparison function for qsort,
-   sorting an array of indicies by the size of the object.  */
+   sorting an array of indices by the size of the object.  */
 
 static int
 stack_var_size_cmp (const void *a, const void *b)
@@ -1920,9 +1912,9 @@ tree_expand_cfg (void)
   /* We're done expanding trees to RTL.  */
   currently_expanding_to_rtl = 0;
 
-  /* Convert tree EH labels to RTL EH labels, and clean out any unreachable
-     EH regions.  */
+  /* Convert tree EH labels to RTL EH labels and zap the tree EH table.  */
   convert_from_eh_region_ranges ();
+  set_eh_throw_stmt_table (cfun, NULL);
 
   rebuild_jump_labels (get_insns ());
   find_exception_handler_labels ();

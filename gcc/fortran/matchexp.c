@@ -130,19 +130,12 @@ gfc_get_parentheses (gfc_expr *e)
 {
   gfc_expr *e2;
 
-  /* This is a temporary fix, awaiting the patch for various
-     other character problems.  The resolution and translation
-     of substrings and concatenations are so kludged up that
-     putting parentheses around them breaks everything.  */
-  if (e->ts.type == BT_CHARACTER && e->ref)
-    return e;
-
   e2 = gfc_get_expr();
   e2->expr_type = EXPR_OP;
   e2->ts = e->ts;
   e2->rank = e->rank;
   e2->where = e->where;
-  e2->value.op.operator = INTRINSIC_PARENTHESES;
+  e2->value.op.op = INTRINSIC_PARENTHESES;
   e2->value.op.op1 = e;
   e2->value.op.op2 = NULL;
   return e2;
@@ -208,20 +201,20 @@ syntax:
 /* Build an operator expression node.  */
 
 static gfc_expr *
-build_node (gfc_intrinsic_op operator, locus *where,
+build_node (gfc_intrinsic_op op, locus *where,
 	    gfc_expr *op1, gfc_expr *op2)
 {
-  gfc_expr *new;
+  gfc_expr *new_expr;
 
-  new = gfc_get_expr ();
-  new->expr_type = EXPR_OP;
-  new->value.op.operator = operator;
-  new->where = *where;
+  new_expr = gfc_get_expr ();
+  new_expr->expr_type = EXPR_OP;
+  new_expr->value.op.op = op;
+  new_expr->where = *where;
 
-  new->value.op.op1 = op1;
-  new->value.op.op2 = op2;
+  new_expr->value.op.op1 = op1;
+  new_expr->value.op.op2 = op2;
 
-  return new;
+  return new_expr;
 }
 
 
@@ -261,7 +254,7 @@ match_level_1 (gfc_expr **result)
 /* As a GNU extension we support an expanded level-2 expression syntax.
    Via this extension we support (arbitrary) nesting of unary plus and
    minus operations following unary and binary operators, such as **.
-   The grammar of section 7.1.1.3 is effectively rewitten as:
+   The grammar of section 7.1.1.3 is effectively rewritten as:
 
 	R704  mult-operand     is level-1-expr [ power-op ext-mult-operand ]
 	R704' ext-mult-operand is add-op ext-mult-operand

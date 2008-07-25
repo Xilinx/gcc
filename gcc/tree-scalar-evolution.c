@@ -1,5 +1,6 @@
 /* Scalar evolution detector.
-   Copyright (C) 2003, 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
+   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008 Free Software
+   Foundation, Inc.
    Contributed by Sebastian Pop <s.pop@laposte.net>
 
 This file is part of GCC.
@@ -580,7 +581,7 @@ set_scalar_evolution (tree scalar, tree chrec)
   
   if (dump_file)
     {
-      if (debug_p ())
+      if (dump_flags & TDF_DETAILS)
 	{
 	  fprintf (dump_file, "(set_scalar_evolution \n");
 	  fprintf (dump_file, "  (scalar = ");
@@ -605,7 +606,7 @@ get_scalar_evolution (tree scalar)
   
   if (dump_file)
     {
-      if (debug_p ())
+      if (dump_flags & TDF_DETAILS)
 	{
 	  fprintf (dump_file, "(get_scalar_evolution \n");
 	  fprintf (dump_file, "  (scalar = ");
@@ -633,7 +634,7 @@ get_scalar_evolution (tree scalar)
       break;
     }
   
-  if (debug_p ())
+  if (dump_file && (dump_flags & TDF_DETAILS))
     {
       fprintf (dump_file, "  (scalar_evolution = ");
       print_generic_expr (dump_file, res, 0);
@@ -866,7 +867,7 @@ add_to_evolution (unsigned loop_nb, tree chrec_before, enum tree_code code,
     /* This should not happen.  */
     return chrec_dont_know;
   
-  if (debug_p ())
+  if (dump_file && (dump_flags & TDF_DETAILS))
     {
       fprintf (dump_file, "(add_to_evolution \n");
       fprintf (dump_file, "  (loop_nb = %d)\n", loop_nb);
@@ -884,7 +885,7 @@ add_to_evolution (unsigned loop_nb, tree chrec_before, enum tree_code code,
 
   res = add_to_evolution_1 (loop_nb, chrec_before, to_add, at_stmt);
 
-  if (debug_p ())
+  if (dump_file && (dump_flags & TDF_DETAILS))
     {
       fprintf (dump_file, "  (res = ");
       print_generic_expr (dump_file, res, 0);
@@ -900,7 +901,7 @@ static inline tree
 set_nb_iterations_in_loop (struct loop *loop, 
 			   tree res)
 {
-  if (debug_p ())
+  if (dump_file && (dump_flags & TDF_DETAILS))
     {
       fprintf (dump_file, "  (set_nb_iterations_in_loop = ");
       print_generic_expr (dump_file, res, 0);
@@ -960,7 +961,7 @@ get_loop_exit_condition (const struct loop *loop)
   tree res = NULL_TREE;
   edge exit_edge = single_exit (loop);
   
-  if (debug_p ())
+  if (dump_file && (dump_flags & TDF_DETAILS))
     fprintf (dump_file, "(get_loop_exit_condition \n  ");
   
   if (exit_edge)
@@ -972,7 +973,7 @@ get_loop_exit_condition (const struct loop *loop)
 	res = expr;
     }
   
-  if (debug_p ())
+  if (dump_file && (dump_flags & TDF_DETAILS))
     {
       print_generic_expr (dump_file, res, 0);
       fprintf (dump_file, ")\n");
@@ -1446,7 +1447,7 @@ analyze_evolution_in_loop (tree loop_phi_node,
   struct loop *loop = loop_containing_stmt (loop_phi_node);
   basic_block bb;
   
-  if (debug_p ())
+  if (dump_file && (dump_flags & TDF_DETAILS))
     {
       fprintf (dump_file, "(analyze_evolution_in_loop \n");
       fprintf (dump_file, "  (loop_phi_node = ");
@@ -1490,7 +1491,7 @@ analyze_evolution_in_loop (tree loop_phi_node,
       evolution_function = chrec_merge (evolution_function, ev_fn);
     }
   
-  if (debug_p ())
+  if (dump_file && (dump_flags & TDF_DETAILS))
     {
       fprintf (dump_file, "  (evolution_function = ");
       print_generic_expr (dump_file, evolution_function, 0);
@@ -1514,7 +1515,7 @@ analyze_initial_condition (tree loop_phi_node)
   tree init_cond = chrec_not_analyzed_yet;
   struct loop *loop = bb_for_stmt (loop_phi_node)->loop_father;
   
-  if (debug_p ())
+  if (dump_file && (dump_flags & TDF_DETAILS))
     {
       fprintf (dump_file, "(analyze_initial_condition \n");
       fprintf (dump_file, "  (loop_phi_node = \n");
@@ -1551,7 +1552,7 @@ analyze_initial_condition (tree loop_phi_node)
   if (init_cond == chrec_not_analyzed_yet)
     init_cond = chrec_dont_know;
 
-  if (debug_p ())
+  if (dump_file && (dump_flags & TDF_DETAILS))
     {
       fprintf (dump_file, "  (init_cond = ");
       print_generic_expr (dump_file, init_cond, 0);
@@ -1833,7 +1834,7 @@ analyze_scalar_evolution (struct loop *loop, tree var)
 {
   tree res;
 
-  if (debug_p ())
+  if (dump_file && (dump_flags & TDF_DETAILS))
     {
       fprintf (dump_file, "(analyze_scalar_evolution \n");
       fprintf (dump_file, "  (loop_nb = %d)\n", loop->num);
@@ -1847,7 +1848,7 @@ analyze_scalar_evolution (struct loop *loop, tree var)
   if (TREE_CODE (var) == SSA_NAME && res == chrec_dont_know)
     res = var;
 
-  if (debug_p ())
+  if (dump_file && (dump_flags & TDF_DETAILS))
     fprintf (dump_file, ")\n");
 
   return res;
@@ -2285,7 +2286,7 @@ instantiate_scev (struct loop *instantiation_loop, struct loop *evolution_loop,
   tree res;
   htab_t cache = htab_create (10, hash_scev_info, eq_scev_info, del_scev_info);
 
-  if (debug_p ())
+  if (dump_file && (dump_flags & TDF_DETAILS))
     {
       fprintf (dump_file, "(instantiate_scev \n");
       fprintf (dump_file, "  (instantiation_loop = %d)\n", instantiation_loop->num);
@@ -2298,7 +2299,7 @@ instantiate_scev (struct loop *instantiation_loop, struct loop *evolution_loop,
   res = instantiate_scev_1 (instantiation_loop, evolution_loop, chrec, false,
 			    cache, 0);
 
-  if (debug_p ())
+  if (dump_file && (dump_flags & TDF_DETAILS))
     {
       fprintf (dump_file, "  (res = ");
       print_generic_expr (dump_file, res, 0);
@@ -2358,7 +2359,7 @@ number_of_latch_executions (struct loop *loop)
     return res;
   res = chrec_dont_know;
 
-  if (debug_p ())
+  if (dump_file && (dump_flags & TDF_DETAILS))
     fprintf (dump_file, "(number_of_iterations_in_loop\n");
   
   exit = single_exit (loop);
@@ -2382,7 +2383,7 @@ end:
 
 /* Returns the number of executions of the exit condition of LOOP,
    i.e., the number by one higher than number_of_latch_executions.
-   Note that unline number_of_latch_executions, this number does
+   Note that unlike number_of_latch_executions, this number does
    not necessarily fit in the unsigned variant of the type of
    the control variable -- if the number of iterations is a constant,
    we return chrec_dont_know if adding one to number_of_latch_executions
@@ -2670,16 +2671,6 @@ scev_initialize (void)
     }
 }
 
-/* Clean the scalar evolution analysis cache, but preserve the cached
-   numbers of iterations for the loops.  */
-
-void
-scev_reset_except_niters (void)
-{
-  if (scalar_evolution_info)
-    htab_empty (scalar_evolution_info);
-}
-
 /* Cleans up the information cached by the scalar evolutions analysis.  */
 
 void
@@ -2691,8 +2682,7 @@ scev_reset (void)
   if (!scalar_evolution_info || !current_loops)
     return;
 
-  scev_reset_except_niters ();
-
+  htab_empty (scalar_evolution_info);
   FOR_EACH_LOOP (li, loop, 0)
     {
       loop->nb_iterations = NULL_TREE;
@@ -2879,7 +2869,7 @@ scev_const_prop (void)
 	 and avoided final value elimination if that is the case.  The problem
 	 is that it is hard to evaluate whether the expression is too
 	 expensive, as we do not know what optimization opportunities the
-	 the elimination of the final value may reveal.  Therefore, we now
+	 elimination of the final value may reveal.  Therefore, we now
 	 eliminate the final values of induction variables unconditionally.  */
       if (niter == chrec_dont_know)
 	continue;

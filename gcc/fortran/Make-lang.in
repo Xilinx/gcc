@@ -53,15 +53,15 @@ fortran-warn = $(STRICT_WARN)
 # from the parse tree to GENERIC
 
 F95_PARSER_OBJS = fortran/arith.o fortran/array.o fortran/bbt.o \
-    fortran/check.o fortran/data.o fortran/decl.o fortran/dump-parse-tree.o \
-    fortran/error.o fortran/expr.o fortran/interface.o \
-    fortran/intrinsic.o fortran/io.o fortran/iresolve.o \
+    fortran/check.o fortran/cpp.o fortran/data.o fortran/decl.o \
+    fortran/dump-parse-tree.o fortran/error.o fortran/expr.o \
+    fortran/interface.o fortran/intrinsic.o fortran/io.o fortran/iresolve.o \
     fortran/match.o fortran/matchexp.o fortran/misc.o fortran/module.o \
     fortran/openmp.o fortran/options.o fortran/parse.o fortran/primary.o \
     fortran/resolve.o fortran/scanner.o fortran/simplify.o fortran/st.o \
     fortran/symbol.o fortran/target-memory.o
 
-F95_OBJS = $(F95_PARSER_OBJS) \
+F95_OBJS = $(F95_PARSER_OBJS) $(FORTRAN_TARGET_OBJS) \
     fortran/convert.o fortran/dependency.o fortran/f95-lang.o \
     fortran/trans.o fortran/trans-array.o fortran/trans-common.o \
     fortran/trans-const.o fortran/trans-decl.o fortran/trans-expr.o \
@@ -77,7 +77,8 @@ fortran: f951$(exeext)
 # Tell GNU make to ignore files by these names if they exist.
 .PHONY: fortran
 
-gfortranspec.o: $(srcdir)/fortran/gfortranspec.c $(SYSTEM_H) $(TM_H) $(GCC_H) $(CONFIG_H)
+gfortranspec.o: $(srcdir)/fortran/gfortranspec.c $(SYSTEM_H) $(TM_H) $(GCC_H) \
+	$(CONFIG_H) coretypes.h intl.h
 	(SHLIB_LINK='$(SHLIB_LINK)'; \
 	$(CC) -c $(ALL_CFLAGS) $(ALL_CPPFLAGS) $(DRIVER_DEFINES) \
 		$(INCLUDES) $(srcdir)/fortran/gfortranspec.c)
@@ -306,9 +307,9 @@ GFORTRAN_TRANS_DEPS = fortran/gfortran.h fortran/libgfortran.h \
     $(CONFIG_H) $(SYSTEM_H) $(TREE_H) $(TM_H) coretypes.h $(GGC_H)
 
 fortran/f95-lang.o: $(GFORTRAN_TRANS_DEPS) fortran/mathbuiltins.def \
-  gt-fortran-f95-lang.h gtype-fortran.h $(CGRAPH_H) $(TARGET_H) \
+  gt-fortran-f95-lang.h gtype-fortran.h $(CGRAPH_H) $(TARGET_H) fortran/cpp.h \
   $(BUILTINS_DEF) fortran/types.def
-fortran/scanner.o: toplev.h
+fortran/scanner.o: toplev.h fortran/cpp.h
 fortran/convert.o: $(GFORTRAN_TRANS_DEPS)
 fortran/trans.o: $(GFORTRAN_TRANS_DEPS)
 fortran/trans-decl.o: $(GFORTRAN_TRANS_DEPS) gt-fortran-trans-decl.h \
@@ -329,4 +330,7 @@ fortran/dependency.o: $(GFORTRAN_TRANS_DEPS) fortran/dependency.h
 fortran/trans-common.o: $(GFORTRAN_TRANS_DEPS) $(TARGET_H) $(RTL_H)
 fortran/resolve.o: fortran/dependency.h fortran/data.h fortran/target-memory.h
 fortran/data.o: fortran/data.h
-fortran/options.o: $(PARAMS_H) $(TARGET_H)
+fortran/options.o: $(PARAMS_H) $(TARGET_H) fortran/cpp.h
+fortran/cpp.o: fortran/cpp.c $(BASEVER) incpath.h incpath.o
+	$(CC) -c $(ALL_CFLAGS) $(ALL_CPPFLAGS) -DBASEVER=$(BASEVER_s) \
+		$< $(OUTPUT_OPTION)

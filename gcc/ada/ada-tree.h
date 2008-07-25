@@ -23,15 +23,6 @@
  *                                                                          *
  ****************************************************************************/
 
-/* Ada language-specific GC tree codes.  */
-#define DEFTREECODE(SYM, NAME, TYPE, LENGTH) SYM,
-enum gnat_tree_code {
-  __DUMMY = LAST_AND_UNUSED_TREE_CODE,
-#include "ada-tree.def"
-  LAST_GNAT_TREE_CODE
-};
-#undef DEFTREECODE
-
 /* Ada uses the lang_decl and lang_type fields to hold a tree.  */
 union lang_tree_node
   GTY((desc ("0"),
@@ -48,7 +39,7 @@ struct lang_type GTY(()) {tree t; };
 #define SET_TYPE_LANG_SPECIFIC(NODE, X)	\
  (TYPE_LANG_SPECIFIC (NODE)			\
   = (TYPE_LANG_SPECIFIC (NODE)			\
-     ? TYPE_LANG_SPECIFIC (NODE) : ggc_alloc (sizeof (struct lang_type))))   \
+     ? TYPE_LANG_SPECIFIC (NODE) : GGC_NEW (struct lang_type)))   \
  ->t = X;
 
 #define GET_DECL_LANG_SPECIFIC(NODE) \
@@ -56,7 +47,7 @@ struct lang_type GTY(()) {tree t; };
 #define SET_DECL_LANG_SPECIFIC(NODE, VALUE)	\
  (DECL_LANG_SPECIFIC (NODE)			\
   = (DECL_LANG_SPECIFIC (NODE)			\
-     ? DECL_LANG_SPECIFIC (NODE) : ggc_alloc (sizeof (struct lang_decl))))   \
+     ? DECL_LANG_SPECIFIC (NODE) : GGC_NEW (struct lang_decl)))   \
  ->t = VALUE;
 
 /* Flags added to GCC type nodes.  */
@@ -289,6 +280,12 @@ struct lang_type GTY(()) {tree t; };
   GET_DECL_LANG_SPECIFIC (VAR_DECL_CHECK (NODE))
 #define SET_DECL_RENAMED_OBJECT(NODE, X) \
   SET_DECL_LANG_SPECIFIC (VAR_DECL_CHECK (NODE), X)
+
+/* In a TYPE_DECL, points to the parallel type if any, otherwise 0.  */
+#define DECL_PARALLEL_TYPE(NODE) \
+  GET_DECL_LANG_SPECIFIC (TYPE_DECL_CHECK (NODE))
+#define SET_DECL_PARALLEL_TYPE(NODE, X) \
+  SET_DECL_LANG_SPECIFIC (TYPE_DECL_CHECK (NODE), X)
 
 /* In a FUNCTION_DECL, points to the stub associated with the function
    if any, otherwise 0.  */

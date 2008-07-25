@@ -506,7 +506,7 @@ extern int arm_arch_hwdiv;
 /* Use the option -mvectorize-with-neon-quad to override the use of doubleword
    registers when autovectorizing for Neon, at least until multiple vector
    widths are supported properly by the middle-end.  */
-#define UNITS_PER_SIMD_WORD \
+#define UNITS_PER_SIMD_WORD(MODE) \
   (TARGET_NEON ? (TARGET_NEON_VECTORIZE_QUAD ? 16 : 8) : UNITS_PER_WORD)
 
 /* True if natural alignment is used for doubleword types.  */
@@ -1477,11 +1477,6 @@ do {									      \
 /* Amount of memory needed for an untyped call to save all possible return
    registers.  */
 #define APPLY_RESULT_SIZE arm_apply_result_size()
-
-/* How large values are returned */
-/* A C expression which can inhibit the returning of certain function values
-   in registers, based on the type of value.  */
-#define TARGET_RETURN_IN_MEMORY arm_return_in_memory
 
 /* Define DEFAULT_PCC_STRUCT_RETURN to 1 if all structure and union return
    values must be in memory.  On the ARM, they need only do so if larger

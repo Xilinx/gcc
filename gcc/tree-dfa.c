@@ -1,5 +1,6 @@
 /* Data flow functions for trees.
-   Copyright (C) 2001, 2002, 2003, 2004, 2005, 2007 Free Software Foundation, Inc.
+   Copyright (C) 2001, 2002, 2003, 2004, 2005, 2007, 2008 Free Software
+   Foundation, Inc.
    Contributed by Diego Novillo <dnovillo@redhat.com>
 
 This file is part of GCC.
@@ -142,33 +143,14 @@ var_ann_t
 create_var_ann (tree t)
 {
   var_ann_t ann;
-  struct static_var_ann_d *sann = NULL;
 
   gcc_assert (t);
   gcc_assert (DECL_P (t));
   gcc_assert (!t->base.ann || t->base.ann->common.type == VAR_ANN);
 
-  if (!MTAG_P (t) && (TREE_STATIC (t) || DECL_EXTERNAL (t)))
-    {
-      sann = GGC_CNEW (struct static_var_ann_d);
-      ann = &sann->ann;
-    }
-  else
-    ann = GGC_CNEW (struct var_ann_d);
-
+  ann = GGC_CNEW (struct var_ann_d);
   ann->common.type = VAR_ANN;
-
-  if (!MTAG_P (t) && (TREE_STATIC (t) || DECL_EXTERNAL (t)))
-    {
-       void **slot;
-       sann->uid = DECL_UID (t);
-       slot = htab_find_slot_with_hash (gimple_var_anns (cfun),
-				        t, DECL_UID (t), INSERT);
-       gcc_assert (!*slot);
-       *slot = sann;
-    }
-  else
-    t->base.ann = (tree_ann_t) ann;
+  t->base.ann = (tree_ann_t) ann;
 
   return ann;
 }
@@ -184,7 +166,7 @@ create_function_ann (tree t)
   gcc_assert (TREE_CODE (t) == FUNCTION_DECL);
   gcc_assert (!t->base.ann || t->base.ann->common.type == FUNCTION_ANN);
 
-  ann = ggc_alloc (sizeof (*ann));
+  ann = (function_ann_t) ggc_alloc (sizeof (*ann));
   memset ((void *) ann, 0, sizeof (*ann));
 
   ann->common.type = FUNCTION_ANN;
@@ -744,7 +726,7 @@ add_referenced_var (tree var)
       /* Scan DECL_INITIAL for pointer variables as they may contain
 	 address arithmetic referencing the address of other
 	 variables.  
-	 Even non-constant intializers need to be walked, because
+	 Even non-constant initializers need to be walked, because
 	 IPA passes might prove that their are invariant later on.  */
       if (DECL_INITIAL (var)
 	  /* Initializers of external variables are not useful to the
@@ -765,9 +747,22 @@ remove_referenced_var (tree var)
   unsigned int uid = DECL_UID (var);
 
   clear_call_clobbered (var);
+  bitmap_clear_bit (gimple_call_used_vars (cfun), uid);
   if ((v_ann = var_ann (var)))
-    ggc_free (v_ann);
-  var->base.ann = NULL;
+    {
+      /* Preserve var_anns of globals, but clear their alias info.  */
+      if (MTAG_P (var)
+	  || (!TREE_STATIC (var) && !DECL_EXTERNAL (var)))
+	{
+	  ggc_free (v_ann);
+	  var->base.ann = NULL;
+	}
+      else
+	{
+	  v_ann->mpt = NULL_TREE;
+	  v_ann->symbol_mem_tag = NULL_TREE;
+	}
+    }
   gcc_assert (DECL_P (var));
   in.uid = uid;
   loc = htab_find_slot_with_hash (gimple_referenced_vars (cfun), &in, uid,
@@ -919,7 +914,7 @@ get_ref_base_and_extent (tree exp, HOST_WIDE_INT *poffset,
 	      {
 		tree csize = TYPE_SIZE (TREE_TYPE (TREE_OPERAND (exp, 0)));
 		/* We need to adjust maxsize to the whole structure bitsize.
-		   But we can subtract any constant offset seen sofar,
+		   But we can subtract any constant offset seen so far,
 		   because that would get us out of the structure otherwise.  */
 		if (maxsize != -1 && csize && host_integerp (csize, 1))
 		  maxsize = TREE_INT_CST_LOW (csize) - bit_offset;
@@ -957,7 +952,7 @@ get_ref_base_and_extent (tree exp, HOST_WIDE_INT *poffset,
 	      {
 		tree asize = TYPE_SIZE (TREE_TYPE (TREE_OPERAND (exp, 0)));
 		/* We need to adjust maxsize to the whole array bitsize.
-		   But we can subtract any constant offset seen sofar,
+		   But we can subtract any constant offset seen so far,
 		   because that would get us outside of the array otherwise.  */
 		if (maxsize != -1 && asize && host_integerp (asize, 1))
 		  maxsize = TREE_INT_CST_LOW (asize) - bit_offset;
@@ -1042,6 +1037,7 @@ refs_may_alias_p (tree ref1, tree ref2)
   HOST_WIDE_INT offset1 = 0, offset2 = 0;
   HOST_WIDE_INT size1 = -1, size2 = -1;
   HOST_WIDE_INT max_size1 = -1, max_size2 = -1;
+  bool strict_aliasing_applies;
 
   gcc_assert ((SSA_VAR_P (ref1)
 	       || handled_component_p (ref1)
@@ -1067,21 +1063,95 @@ refs_may_alias_p (tree ref1, tree ref2)
 
   /* If both references are based on different variables, they cannot alias.
      If both references are based on the same variable, they cannot alias if
-     if the accesses do not overlap.  */
+     the accesses do not overlap.  */
   if (SSA_VAR_P (base1)
-      && SSA_VAR_P (base2)
-      && (!operand_equal_p (base1, base2, 0)
-	  || !ranges_overlap_p (offset1, max_size1, offset2, max_size2)))
+      && SSA_VAR_P (base2))
+    {
+      if (!operand_equal_p (base1, base2, 0))
+	return false;
+      return ranges_overlap_p (offset1, max_size1, offset2, max_size2);
+    }
+
+  /* If one base is a ref-all pointer weird things are allowed.  */
+  strict_aliasing_applies = (flag_strict_aliasing
+			     && (!INDIRECT_REF_P (base1)
+				 || get_alias_set (base1) != 0)
+			     && (!INDIRECT_REF_P (base2)
+				 || get_alias_set (base2) != 0));
+
+  /* If strict aliasing applies the only way to access a scalar variable
+     is through a pointer dereference or through a union (gcc extension).  */
+  if (strict_aliasing_applies
+      && ((SSA_VAR_P (ref2)
+	   && !AGGREGATE_TYPE_P (TREE_TYPE (ref2))
+	   && !INDIRECT_REF_P (ref1)
+	   && TREE_CODE (TREE_TYPE (base1)) != UNION_TYPE)
+	  || (SSA_VAR_P (ref1)
+	      && !AGGREGATE_TYPE_P (TREE_TYPE (ref1))
+	      && !INDIRECT_REF_P (ref2)
+	      && TREE_CODE (TREE_TYPE (base2)) != UNION_TYPE)))
     return false;
 
-  /* If both references are through pointers and both pointers are equal
-     then they do not alias if the accesses do not overlap.  */
-  if (TREE_CODE (base1) == INDIRECT_REF
-      && TREE_CODE (base2) == INDIRECT_REF
-      && operand_equal_p (TREE_OPERAND (base1, 0),
-			  TREE_OPERAND (base2, 0), 0)
-      && !ranges_overlap_p (offset1, max_size1, offset2, max_size2))
-    return false;
+  /* If both references are through the same type, or if strict aliasing
+     doesn't apply they are through two same pointers, they do not alias
+     if the accesses do not overlap.  */
+  if ((strict_aliasing_applies
+       && (TYPE_MAIN_VARIANT (TREE_TYPE (base1))
+	   == TYPE_MAIN_VARIANT (TREE_TYPE (base2))))
+      || (TREE_CODE (base1) == INDIRECT_REF
+	  && TREE_CODE (base2) == INDIRECT_REF
+	  && operand_equal_p (TREE_OPERAND (base1, 0),
+			      TREE_OPERAND (base2, 0), 0)))
+    return ranges_overlap_p (offset1, max_size1, offset2, max_size2);
+
+  /* If both are component references through pointers try to find a
+     common base and apply offset based disambiguation.  This handles
+     for example
+       struct A { int i; int j; } *q;
+       struct B { struct A a; int k; } *p;
+     disambiguating q->i and p->a.j.  */
+  if (strict_aliasing_applies
+      && (TREE_CODE (base1) == INDIRECT_REF
+	  || TREE_CODE (base2) == INDIRECT_REF)
+      && handled_component_p (ref1)
+      && handled_component_p (ref2))
+    {
+      tree *refp;
+      /* Now search for the type of base1 in the access path of ref2.  This
+	 would be a common base for doing offset based disambiguation on.  */
+      refp = &ref2;
+      while (handled_component_p (*refp)
+	     /* Note that the following is only conservative if there are
+		never copies of types appearing as sub-structures.  */
+	     && (TYPE_MAIN_VARIANT (TREE_TYPE (*refp))
+		 != TYPE_MAIN_VARIANT (TREE_TYPE (base1))))
+	refp = &TREE_OPERAND (*refp, 0);
+      if (TYPE_MAIN_VARIANT (TREE_TYPE (*refp))
+	  == TYPE_MAIN_VARIANT (TREE_TYPE (base1)))
+	{
+	  HOST_WIDE_INT offadj, sztmp, msztmp;
+	  get_ref_base_and_extent (*refp, &offadj, &sztmp, &msztmp);
+	  offset2 -= offadj;
+	  return ranges_overlap_p (offset1, max_size1, offset2, max_size2);
+	}
+      /* The other way around.  */
+      refp = &ref1;
+      while (handled_component_p (*refp)
+	     && (TYPE_MAIN_VARIANT (TREE_TYPE (*refp))
+		 != TYPE_MAIN_VARIANT (TREE_TYPE (base2))))
+	refp = &TREE_OPERAND (*refp, 0);
+      if (TYPE_MAIN_VARIANT (TREE_TYPE (*refp))
+	  == TYPE_MAIN_VARIANT (TREE_TYPE (base2)))
+	{
+	  HOST_WIDE_INT offadj, sztmp, msztmp;
+	  get_ref_base_and_extent (*refp, &offadj, &sztmp, &msztmp);
+	  offset1 -= offadj;
+	  return ranges_overlap_p (offset1, max_size1, offset2, max_size2);
+	}
+      /* If we can be sure to catch all equivalent types in the search
+	 for the common base then we could return false here.  In that
+	 case we would be able to disambiguate q->i and p->k.  */
+    }
 
   return true;
 }

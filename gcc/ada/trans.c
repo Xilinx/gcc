@@ -56,6 +56,10 @@
 #include "einfo.h"
 #include "ada-tree.h"
 #include "gigi.h"
+#include "adadecode.h"
+
+#include "dwarf2.h"
+#include "dwarf2out.h"
 
 /* We should avoid allocating more than ALLOCA_THRESHOLD bytes via alloca,
    for fear of running out of stack space.  If we need more, we use xmalloc
@@ -186,7 +190,6 @@ static void Compilation_Unit_to_gnu (Node_Id);
 static void record_code_position (Node_Id);
 static void insert_code_for (Node_Id);
 static void add_cleanup (tree, Node_Id);
-static tree mark_visited (tree *, int *, void *);
 static tree unshare_save_expr (tree *, int *, void *);
 static void add_stmt_list (List_Id);
 static void push_exception_label_stack (tree *, Entity_Id);
@@ -212,6 +215,11 @@ static tree gnat_stabilize_reference (tree, bool);
 static tree gnat_stabilize_reference_1 (tree, bool);
 static void set_expr_location_from_node (tree, Node_Id);
 static int lvalue_required_p (Node_Id, tree, int);
+
+/* Hooks for debug info back-ends, only supported and used in a restricted set
+   of configurations.  */
+static const char *extract_encoding (const char *) ATTRIBUTE_UNUSED;
+static const char *decode_name (const char *) ATTRIBUTE_UNUSED;
 
 /* This is the main program of the back-end.  It sets up all the table
    structures and then generates code.  */
@@ -222,14 +230,14 @@ gigi (Node_Id gnat_root, int max_gnat_node, int number_name,
       struct Elist_Header *elists_ptr, struct Elmt_Item *elmts_ptr,
       struct String_Entry *strings_ptr, Char_Code *string_chars_ptr,
       struct List_Header *list_headers_ptr, Nat number_file,
-      struct File_Info_Type *file_info_ptr ATTRIBUTE_UNUSED,
+      struct File_Info_Type *file_info_ptr,
       Entity_Id standard_integer, Entity_Id standard_long_long_float,
       Entity_Id standard_exception_type, Int gigi_operating_mode)
 {
   tree gnu_standard_long_long_float;
   tree gnu_standard_exception_type;
   struct elab_info *info;
-  int i ATTRIBUTE_UNUSED;
+  int i;
 
   max_gnat_nodes = max_gnat_node;
   number_names = number_name;
@@ -282,6 +290,18 @@ gigi (Node_Id gnat_root, int max_gnat_node, int number_name,
       TYPE_SIZE (void_type_node) = bitsize_zero_node;
       TYPE_SIZE_UNIT (void_type_node) = size_zero_node;
     }
+
+  /* If the GNU type extensions to DWARF are available, setup the hooks.  */
+#if defined (DWARF2_DEBUGGING_INFO) && defined (DWARF2_GNU_TYPE_EXTENSIONS)
+  /* We condition the name demangling and the generation of type encoding
+     strings on -gdwarf+ and always set descriptive types on.  */
+  if (use_gnu_debug_info_extensions)
+    {
+      dwarf2out_set_type_encoding_func (extract_encoding);
+      dwarf2out_set_demangle_name_func (decode_name);
+    }
+  dwarf2out_set_descriptive_type_func (get_parallel_type);
+#endif
 
   /* Enable GNAT stack checking method if needed */
   if (!Stack_Check_Probes_On_Target)
@@ -921,7 +941,7 @@ Attribute_to_gnu (Node_Id gnat_node, tree *gnu_result_type_p, int attribute)
 	    TREE_CONSTANT (gnu_expr) = 1;
 
 	  if (TREE_CODE (gnu_expr) == ADDR_EXPR)
-	    TREE_STATIC (gnu_expr) = TREE_CONSTANT (gnu_expr) = 1;
+	    TREE_NO_TRAMPOLINE (gnu_expr) = TREE_CONSTANT (gnu_expr) = 1;
 	}
 
       /* For other address attributes applied to a nested function,
@@ -3253,7 +3273,7 @@ gnat_to_gnu (Node_Id gnat_node)
 	  int i;
 	  char *string;
 	  if (length >= ALLOCA_THRESHOLD)
-             string = xmalloc (length + 1); /* in case of large strings */
+             string = XNEWVEC (char, length + 1); /* in case of large strings */
           else
              string = (char *) alloca (length + 1);
 
@@ -4881,7 +4901,10 @@ gnat_to_gnu (Node_Id gnat_node)
      the location information of their last use.  Note that we may have
      no result if we tried to build a CALL_EXPR node to a procedure with
      no side-effects and optimization is enabled.  */
-  if (gnu_result && EXPR_P (gnu_result) && !REFERENCE_CLASS_P (gnu_result))
+  if (gnu_result
+      && EXPR_P (gnu_result)
+      && TREE_CODE (gnu_result) != NOP_EXPR
+      && !REFERENCE_CLASS_P (gnu_result))
     set_expr_location_from_node (gnu_result, gnat_node);
 
   /* If we're supposed to return something of void_type, it means we have
@@ -5102,13 +5125,13 @@ add_decl_expr (tree gnu_decl, Entity_Id gnat_entity)
       /* Mark everything as used to prevent node sharing with subprograms.
 	 Note that walk_tree knows how to deal with TYPE_DECL, but neither
 	 VAR_DECL nor CONST_DECL.  This appears to be somewhat arbitrary.  */
-      walk_tree (&gnu_stmt, mark_visited, NULL, NULL);
+      mark_visited (&gnu_stmt);
       if (TREE_CODE (gnu_decl) == VAR_DECL
 	  || TREE_CODE (gnu_decl) == CONST_DECL)
 	{
-	  walk_tree (&DECL_SIZE (gnu_decl), mark_visited, NULL, NULL);
-	  walk_tree (&DECL_SIZE_UNIT (gnu_decl), mark_visited, NULL, NULL);
-	  walk_tree (&DECL_INITIAL (gnu_decl), mark_visited, NULL, NULL);
+	  mark_visited (&DECL_SIZE (gnu_decl));
+	  mark_visited (&DECL_SIZE_UNIT (gnu_decl));
+	  mark_visited (&DECL_INITIAL (gnu_decl));
 	}
       /* In any case, we have to deal with our own TYPE_ADA_SIZE field.  */
       if (TREE_CODE (gnu_decl) == TYPE_DECL
@@ -5116,7 +5139,7 @@ add_decl_expr (tree gnu_decl, Entity_Id gnat_entity)
 	      || TREE_CODE (type) == UNION_TYPE
 	      || TREE_CODE (type) == QUAL_UNION_TYPE)
 	  && (t = TYPE_ADA_SIZE (type)))
-	walk_tree (&t, mark_visited, NULL, NULL);
+	mark_visited (&t);
     }
   else
     add_stmt_with_node (gnu_stmt, gnat_entity);
@@ -5150,13 +5173,10 @@ add_decl_expr (tree gnu_decl, Entity_Id gnat_entity)
     }
 }
 
-/* Utility function to mark nodes with TREE_VISITED and types as having their
-   sized gimplified.  Called from walk_tree.  We use this to indicate all
-   variable sizes and positions in global types may not be shared by any
-   subprogram.  */
+/* Callback for walk_tree to mark the visited trees rooted at *TP.  */
 
 static tree
-mark_visited (tree *tp, int *walk_subtrees, void *data ATTRIBUTE_UNUSED)
+mark_visited_r (tree *tp, int *walk_subtrees, void *data ATTRIBUTE_UNUSED)
 {
   if (TREE_VISITED (*tp))
     *walk_subtrees = 0;
@@ -5184,6 +5204,16 @@ unshare_save_expr (tree *tp, int *walk_subtrees ATTRIBUTE_UNUSED,
     TREE_OPERAND (t, 0) = unshare_expr (TREE_OPERAND (t, 0));
 
   return NULL_TREE;
+}
+
+/* Mark nodes rooted at *TP with TREE_VISITED and types as having their
+   sized gimplified.  We use this to indicate all variable sizes and
+   positions in global types may not be shared by any subprogram.  */
+
+void
+mark_visited (tree *tp)
+{
+  walk_tree (tp, mark_visited_r, NULL, NULL);
 }
 
 /* Add GNU_CLEANUP, a cleanup action, to the current code group and
@@ -6847,7 +6877,8 @@ Sloc_to_locus (Source_Ptr Sloc, location_t *locus)
 
   if (Sloc <= Standard_Location)
     {
-      *locus = BUILTINS_LOCATION;
+      if (*locus == UNKNOWN_LOCATION)
+	*locus = BUILTINS_LOCATION;
       return false;
     }
   else
@@ -6883,6 +6914,31 @@ set_expr_location_from_node (tree node, Node_Id gnat_node)
     return;
 
   set_expr_location (node, locus);
+}
+
+/* Return a colon-separated list of encodings contained in encoded Ada
+   name.  */
+
+static const char *
+extract_encoding (const char *name)
+{
+  char *encoding = GGC_NEWVEC (char, strlen (name));
+  
+  get_encoding (name, encoding);
+  
+  return encoding;
+}
+
+/* Extract the Ada name from an encoded name.  */
+
+static const char *
+decode_name (const char *name)
+{
+  char *decoded = GGC_NEWVEC (char, strlen (name) * 2 + 60);
+  
+  __gnat_decode (name, decoded, 0);
+  
+  return decoded;
 }
 
 /* Post an error message.  MSG is the error message, properly annotated.
@@ -6942,7 +6998,7 @@ post_error_ne_num (const char *msg, Node_Id node, Entity_Id ent, int n)
 void
 post_error_ne_tree (const char *msg, Node_Id node, Entity_Id ent, tree t)
 {
-  char *newmsg = alloca (strlen (msg) + 1);
+  char *newmsg = XALLOCAVEC (char, strlen (msg) + 1);
   String_Template temp = {1, 0};
   Fat_Pointer fp;
   char start_yes, end_yes, start_no, end_no;

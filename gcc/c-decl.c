@@ -445,7 +445,7 @@ c_print_identifier (FILE *file, tree node, int indent)
   print_node (file, "symbol", I_SYMBOL_DECL (node), indent + 4);
   print_node (file, "tag", I_TAG_DECL (node), indent + 4);
   print_node (file, "label", I_LABEL_DECL (node), indent + 4);
-  if (C_IS_RESERVED_WORD (node))
+  if (C_IS_RESERVED_WORD (node) && C_RID_CODE (node) != RID_CXX_COMPAT_WARN)
     {
       tree rid = ridpointers[C_RID_CODE (node)];
       indent_to (file, indent + 4);
@@ -1258,7 +1258,10 @@ diagnose_mismatched_decls (tree newdecl, tree olddecl,
      header.  (Conflicting redeclarations were handled above.)  */
   if (TREE_CODE (newdecl) == TYPE_DECL)
     {
-      if (DECL_IN_SYSTEM_HEADER (newdecl) || DECL_IN_SYSTEM_HEADER (olddecl))
+      if (DECL_IN_SYSTEM_HEADER (newdecl)
+	  || DECL_IN_SYSTEM_HEADER (olddecl)
+	  || TREE_NO_WARNING (newdecl)
+	  || TREE_NO_WARNING (olddecl))
 	return true;  /* Allow OLDDECL to continue in use.  */
 
       error ("redefinition of typedef %q+D", newdecl);
@@ -1676,12 +1679,21 @@ merge_decls (tree newdecl, tree olddecl, tree newtype, tree oldtype)
   if (TREE_DEPRECATED (newdecl))
     TREE_DEPRECATED (olddecl) = 1;
 
-  /* Keep source location of definition rather than declaration and of
-     prototype rather than non-prototype unless that prototype is
-     built-in.  */
-  if ((DECL_INITIAL (newdecl) == 0 && DECL_INITIAL (olddecl) != 0)
-      || (old_is_prototype && !new_is_prototype
-	  && !C_DECL_BUILTIN_PROTOTYPE (olddecl)))
+  /* If a decl is in a system header and the other isn't, keep the one on the
+     system header. Otherwise, keep source location of definition rather than
+     declaration and of prototype rather than non-prototype unless that
+     prototype is built-in.  */
+  if (CODE_CONTAINS_STRUCT (TREE_CODE (olddecl), TS_DECL_WITH_VIS)
+      && DECL_IN_SYSTEM_HEADER (olddecl)
+      && !DECL_IN_SYSTEM_HEADER (newdecl) )
+    DECL_SOURCE_LOCATION (newdecl) = DECL_SOURCE_LOCATION (olddecl);
+  else if (CODE_CONTAINS_STRUCT (TREE_CODE (olddecl), TS_DECL_WITH_VIS)
+	   && DECL_IN_SYSTEM_HEADER (newdecl)
+	   && !DECL_IN_SYSTEM_HEADER (olddecl))
+    DECL_SOURCE_LOCATION (olddecl) = DECL_SOURCE_LOCATION (newdecl);
+  else if ((DECL_INITIAL (newdecl) == 0 && DECL_INITIAL (olddecl) != 0)
+	   || (old_is_prototype && !new_is_prototype
+	       && !C_DECL_BUILTIN_PROTOTYPE (olddecl)))
     DECL_SOURCE_LOCATION (newdecl) = DECL_SOURCE_LOCATION (olddecl);
 
   /* Merge the initialization information.  */
@@ -1697,12 +1709,6 @@ merge_decls (tree newdecl, tree olddecl, tree newtype, tree oldtype)
 
   if (CODE_CONTAINS_STRUCT (TREE_CODE (olddecl), TS_DECL_WITH_VIS))
     {
-      /* Merge the unused-warning information.  */
-      if (DECL_IN_SYSTEM_HEADER (olddecl))
-	DECL_IN_SYSTEM_HEADER (newdecl) = 1;
-      else if (DECL_IN_SYSTEM_HEADER (newdecl))
-	DECL_IN_SYSTEM_HEADER (olddecl) = 1;
-
       /* Merge the section attribute.
 	 We want to issue an error if the sections conflict but that
 	 must be done later in decl_attributes since we are called
@@ -1763,7 +1769,8 @@ merge_decls (tree newdecl, tree olddecl, tree newtype, tree oldtype)
 	  || !DECL_DECLARED_INLINE_P (olddecl)
 	  || !DECL_EXTERNAL (olddecl))
       && DECL_EXTERNAL (newdecl)
-      && !lookup_attribute ("gnu_inline", DECL_ATTRIBUTES (newdecl)))
+      && !lookup_attribute ("gnu_inline", DECL_ATTRIBUTES (newdecl))
+      && !current_function_decl)
     DECL_EXTERNAL (newdecl) = 0;
 
   if (DECL_EXTERNAL (newdecl))
@@ -1911,9 +1918,9 @@ merge_decls (tree newdecl, tree olddecl, tree newtype, tree oldtype)
   /* If we changed a function from DECL_EXTERNAL to !DECL_EXTERNAL,
      and the definition is coming from the old version, cgraph needs
      to be called again.  */
-  if (extern_changed && !new_is_definition 
+  if (extern_changed && !new_is_definition
       && TREE_CODE (olddecl) == FUNCTION_DECL && DECL_INITIAL (olddecl))
-    cgraph_finalize_function (olddecl, false);
+    cgraph_mark_if_needed (olddecl);
 }
 
 /* Handle when a new declaration NEWDECL has the same name as an old
@@ -3264,7 +3271,8 @@ start_decl (struct c_declarator *declarator, struct c_declspecs *declspecs,
   if (declspecs->inline_p
       && !flag_gnu89_inline
       && TREE_CODE (decl) == FUNCTION_DECL
-      && lookup_attribute ("gnu_inline", DECL_ATTRIBUTES (decl)))
+      && (lookup_attribute ("gnu_inline", DECL_ATTRIBUTES (decl))
+	  || current_function_decl))
     {
       if (declspecs->storage_class == csc_auto && current_scope != file_scope)
 	;
@@ -6094,7 +6102,8 @@ start_function (struct c_declspecs *declspecs, struct c_declarator *declarator,
   if (declspecs->inline_p
       && !flag_gnu89_inline
       && TREE_CODE (decl1) == FUNCTION_DECL
-      && lookup_attribute ("gnu_inline", DECL_ATTRIBUTES (decl1)))
+      && (lookup_attribute ("gnu_inline", DECL_ATTRIBUTES (decl1))
+	  || current_function_decl))
     {
       if (declspecs->storage_class != csc_static)
 	DECL_EXTERNAL (decl1) = !DECL_EXTERNAL (decl1);
@@ -7174,7 +7183,9 @@ declspecs_add_type (struct c_declspecs *specs, struct c_typespec spec)
     specs->deprecated_p = true;
 
   /* Handle type specifier keywords.  */
-  if (TREE_CODE (type) == IDENTIFIER_NODE && C_IS_RESERVED_WORD (type))
+  if (TREE_CODE (type) == IDENTIFIER_NODE
+      && C_IS_RESERVED_WORD (type)
+      && C_RID_CODE (type) != RID_CXX_COMPAT_WARN)
     {
       enum rid i = C_RID_CODE (type);
       if (specs->type)

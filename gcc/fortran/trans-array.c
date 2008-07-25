@@ -39,7 +39,7 @@ along with GCC; see the file COPYING3.  If not see
    In fortran all the rhs values of an assignment must be evaluated before
    any assignments take place.  This can require a temporary array to store the
    values.  We also require a temporary when we are passing array expressions
-   or vector subecripts as procedure parameters.
+   or vector subscripts as procedure parameters.
 
    Array sections are passed without copying to a temporary.  These use the
    scalarizer to determine the shape of the section.  The flag
@@ -472,14 +472,14 @@ gfc_set_loop_bounds_from_array_spec (gfc_interface_mapping * mapping,
 	    gfc_apply_interface_mapping (mapping, &tmpse, as->lower[dim]);
 	    gfc_add_block_to_block (&se->pre, &tmpse.pre);
 	    gfc_add_block_to_block (&se->post, &tmpse.post);
-	    lower = tmpse.expr;
+	    lower = fold_convert (gfc_array_index_type, tmpse.expr);
 
 	    /* ...and the upper bound.  */
 	    gfc_init_se (&tmpse, NULL);
 	    gfc_apply_interface_mapping (mapping, &tmpse, as->upper[dim]);
 	    gfc_add_block_to_block (&se->pre, &tmpse.pre);
 	    gfc_add_block_to_block (&se->post, &tmpse.post);
-	    upper = tmpse.expr;
+	    upper = fold_convert (gfc_array_index_type, tmpse.expr);
 
 	    /* Set the upper bound of the loop to UPPER - LOWER.  */
 	    tmp = fold_build2 (MINUS_EXPR, gfc_array_index_type, upper, lower);
@@ -969,7 +969,6 @@ gfc_trans_array_ctor_element (stmtblock_t * pblock, tree desc,
 			      tree offset, gfc_se * se, gfc_expr * expr)
 {
   tree tmp;
-  tree esize;
 
   gfc_conv_expr (se, expr);
 
@@ -977,11 +976,17 @@ gfc_trans_array_ctor_element (stmtblock_t * pblock, tree desc,
   tmp = build_fold_indirect_ref (gfc_conv_descriptor_data_get (desc));
   tmp = gfc_build_array_ref (tmp, offset, NULL);
 
-  esize = size_in_bytes (gfc_get_element_type (TREE_TYPE (desc)));
-  esize = fold_convert (gfc_charlen_type_node, esize);
-
   if (expr->ts.type == BT_CHARACTER)
     {
+      int i = gfc_validate_kind (BT_CHARACTER, expr->ts.kind, false);
+      tree esize;
+
+      esize = size_in_bytes (gfc_get_element_type (TREE_TYPE (desc)));
+      esize = fold_convert (gfc_charlen_type_node, esize);
+      esize = fold_build2 (TRUNC_DIV_EXPR, gfc_charlen_type_node, esize,
+			   build_int_cst (gfc_charlen_type_node,
+					  gfc_character_kinds[i].bit_size / 8));
+
       gfc_conv_string_parameter (se);
       if (POINTER_TYPE_P (TREE_TYPE (tmp)))
 	{
@@ -1454,6 +1459,9 @@ get_array_ctor_all_strlen (stmtblock_t *block, gfc_expr *e, tree *len)
 
 
 /* Figure out the string length of a character array constructor.
+   If len is NULL, don't calculate the length; this happens for recursive calls
+   when a sub-array-constructor is an element but not at the first position,
+   so when we're not interested in the length.
    Returns TRUE if all elements are character constants.  */
 
 bool
@@ -1465,16 +1473,20 @@ get_array_ctor_strlen (stmtblock_t *block, gfc_constructor * c, tree * len)
 
   if (c == NULL)
     {
-      *len = build_int_cstu (gfc_charlen_type_node, 0);
+      if (len)
+	*len = build_int_cstu (gfc_charlen_type_node, 0);
       return is_const;
     }
 
-  for (; c; c = c->next)
+  /* Loop over all constructor elements to find out is_const, but in len we
+     want to store the length of the first, not the last, element.  We can
+     of course exit the loop as soon as is_const is found to be false.  */
+  for (; c && is_const; c = c->next)
     {
       switch (c->expr->expr_type)
 	{
 	case EXPR_CONSTANT:
-	  if (!(*len && INTEGER_CST_P (*len)))
+	  if (len && !(*len && INTEGER_CST_P (*len)))
 	    *len = build_int_cstu (gfc_charlen_type_node,
 				   c->expr->value.character.length);
 	  break;
@@ -1486,14 +1498,19 @@ get_array_ctor_strlen (stmtblock_t *block, gfc_constructor * c, tree * len)
 
 	case EXPR_VARIABLE:
 	  is_const = false;
-	  get_array_ctor_var_strlen (c->expr, len);
+	  if (len)
+	    get_array_ctor_var_strlen (c->expr, len);
 	  break;
 
 	default:
 	  is_const = false;
-	  get_array_ctor_all_strlen (block, c->expr, len);
+	  if (len)
+	    get_array_ctor_all_strlen (block, c->expr, len);
 	  break;
 	}
+
+      /* After the first iteration, we don't want the length modified.  */
+      len = NULL;
     }
 
   return is_const;
@@ -1628,7 +1645,7 @@ gfc_trans_constant_array_constructor (gfc_loopinfo * loop,
 /* Helper routine of gfc_trans_array_constructor to determine if the
    bounds of the loop specified by LOOP are constant and simple enough
    to use with gfc_trans_constant_array_constructor.  Returns the
-   the iteration count of the loop if suitable, and NULL_TREE otherwise.  */
+   iteration count of the loop if suitable, and NULL_TREE otherwise.  */
 
 static tree
 constant_array_constructor_loop_size (gfc_loopinfo * loop)
@@ -1884,8 +1901,8 @@ gfc_add_loop_ss_code (gfc_loopinfo * loop, gfc_ss * ss, bool subscript)
   gfc_se se;
   int n;
 
-  /* TODO: This can generate bad code if there are ordering dependencies.
-     eg. a callee allocated function and an unknown size constructor.  */
+  /* TODO: This can generate bad code if there are ordering dependencies,
+     e.g., a callee allocated function and an unknown size constructor.  */
   gcc_assert (ss != NULL);
 
   for (; ss != gfc_ss_terminator; ss = ss->loop_chain)
@@ -4519,7 +4536,7 @@ gfc_get_dataptr_offset (stmtblock_t *block, tree parm, tree desc, tree offset,
   tmp = gfc_build_array_ref (tmp, offset, NULL);
 
   /* Offset the data pointer for pointer assignments from arrays with
-     subreferences; eg. my_integer => my_type(:)%integer_component.  */
+     subreferences; e.g. my_integer => my_type(:)%integer_component.  */
   if (subref)
     {
       /* Go past the array reference.  */
@@ -4618,7 +4635,7 @@ get_elemental_fcn_charlen (gfc_expr *expr, gfc_se *se)
   arg = expr->value.function.actual;
   gfc_init_interface_mapping (&mapping);
 
-  /* Set se = NULL in the calls to the interface mapping, to supress any
+  /* Set se = NULL in the calls to the interface mapping, to suppress any
      backend stuff.  */
   for (; arg != NULL; arg = arg->next, formal = formal ? formal->next : NULL)
     {
@@ -5848,7 +5865,7 @@ gfc_walk_op_expr (gfc_ss * ss, gfc_expr * expr)
   if (head == ss)
     {
       /* First operand is scalar.  We build the chain in reverse order, so
-         add the scarar SS after the second operand.  */
+         add the scalar SS after the second operand.  */
       head = head2;
       while (head && head->next != ss)
 	head = head->next;

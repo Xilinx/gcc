@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1997-2006, Free Software Foundation, Inc.         --
+--          Copyright (C) 1997-2008, Free Software Foundation, Inc.         --
 --                       (Version for Alpha OpenVMS)                        --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
@@ -32,7 +32,7 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
-with System.IO;           use System.IO;
+with System.IO;
 with System.Machine_Code; use System.Machine_Code;
 
 package body System.Vax_Float_Operations is
@@ -328,7 +328,7 @@ package body System.Vax_Float_Operations is
 
    procedure Debug_Output_D (Arg : D) is
    begin
-      Put (D'Image (Arg));
+      System.IO.Put (D'Image (Arg));
    end Debug_Output_D;
 
    --------------------
@@ -337,7 +337,7 @@ package body System.Vax_Float_Operations is
 
    procedure Debug_Output_F (Arg : F) is
    begin
-      Put (F'Image (Arg));
+      System.IO.Put (F'Image (Arg));
    end Debug_Output_F;
 
    --------------------
@@ -346,7 +346,7 @@ package body System.Vax_Float_Operations is
 
    procedure Debug_Output_G (Arg : G) is
    begin
-      Put (G'Image (Arg));
+      System.IO.Put (G'Image (Arg));
    end Debug_Output_G;
 
    --------------------
@@ -627,7 +627,7 @@ package body System.Vax_Float_Operations is
 
    procedure pd (Arg : D) is
    begin
-      Put_Line (D'Image (Arg));
+      System.IO.Put_Line (D'Image (Arg));
    end pd;
 
    --------
@@ -636,7 +636,7 @@ package body System.Vax_Float_Operations is
 
    procedure pf (Arg : F) is
    begin
-      Put_Line (F'Image (Arg));
+      System.IO.Put_Line (F'Image (Arg));
    end pf;
 
    --------
@@ -645,8 +645,57 @@ package body System.Vax_Float_Operations is
 
    procedure pg (Arg : G) is
    begin
-      Put_Line (G'Image (Arg));
+      System.IO.Put_Line (G'Image (Arg));
    end pg;
+
+   --------------
+   -- Return_D --
+   --------------
+
+   function Return_D (X : D) return D is
+      R : D;
+
+   begin
+      --  The return value is already in $f0 so we need to trick the compiler
+      --  into thinking that we're moving X to $f0.
+
+      Asm ("cvtdg $f0,$f0", Inputs => D'Asm_Input ("g", X), Clobber => "$f0",
+           Volatile => True);
+      Asm ("stg $f0,%0", D'Asm_Output ("=m", R), Volatile => True);
+      return R;
+   end Return_D;
+
+   --------------
+   -- Return_F --
+   --------------
+
+   function Return_F (X : F) return F is
+      R : F;
+
+   begin
+      --  The return value is already in $f0 so we need to trick the compiler
+      --  into thinking that we're moving X to $f0.
+
+      Asm ("stf $f0,%0", F'Asm_Output ("=m", R), F'Asm_Input ("g", X),
+           Clobber => "$f0", Volatile => True);
+      return R;
+   end Return_F;
+
+   --------------
+   -- Return_G --
+   --------------
+
+   function Return_G (X : G) return G is
+      R : G;
+
+   begin
+      --  The return value is already in $f0 so we need to trick the compiler
+      --  into thinking that we're moving X to $f0.
+
+      Asm ("stg $f0,%0", G'Asm_Output ("=m", R), G'Asm_Input ("g", X),
+           Clobber => "$f0", Volatile => True);
+      return R;
+   end Return_G;
 
    -----------
    -- Sub_F --

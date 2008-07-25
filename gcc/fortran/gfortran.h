@@ -78,7 +78,7 @@ char *alloca ();
 #define stringize(x) expand_macro(x)
 #define expand_macro(x) # x
 
-/* For a the runtime library, a standard prefix is a requirement to
+/* For the runtime library, a standard prefix is a requirement to
    avoid cluttering the namespace with things nobody asked for.  It's
    ugly to look at and a pain to type when you add the prefix by hand,
    so we hide it behind a macro.  */
@@ -114,9 +114,11 @@ io_kind;
    following enum makes things much more readable.  We also start
    values off at one instead of zero.  */
 
+/* FIXME: This macro is temporary until we convert everything.  */
+#define try gfc_try
 typedef enum
 { SUCCESS = 1, FAILURE }
-try;
+gfc_try;
 
 /* This is returned by gfc_notification_std to know if, given the flags
    that were given (-std=, -pedantic) we should issue an error, a warning
@@ -210,7 +212,7 @@ typedef enum
   ST_CALL, ST_CASE, ST_CLOSE, ST_COMMON, ST_CONTINUE, ST_CONTAINS, ST_CYCLE,
   ST_DATA, ST_DATA_DECL, ST_DEALLOCATE, ST_DO, ST_ELSE, ST_ELSEIF,
   ST_ELSEWHERE, ST_END_BLOCK_DATA, ST_ENDDO, ST_IMPLIED_ENDDO,
-  ST_END_FILE, ST_FLUSH, ST_END_FORALL, ST_END_FUNCTION, ST_ENDIF,
+  ST_END_FILE, ST_FINAL, ST_FLUSH, ST_END_FORALL, ST_END_FUNCTION, ST_ENDIF,
   ST_END_INTERFACE, ST_END_MODULE, ST_END_PROGRAM, ST_END_SELECT,
   ST_END_SUBROUTINE, ST_END_WHERE, ST_END_TYPE, ST_ENTRY, ST_EQUIVALENCE,
   ST_EXIT, ST_FORALL, ST_FORALL_BLOCK, ST_FORMAT, ST_FUNCTION, ST_GOTO,
@@ -228,7 +230,8 @@ typedef enum
   ST_OMP_END_WORKSHARE, ST_OMP_DO, ST_OMP_FLUSH, ST_OMP_MASTER, ST_OMP_ORDERED,
   ST_OMP_PARALLEL, ST_OMP_PARALLEL_DO, ST_OMP_PARALLEL_SECTIONS,
   ST_OMP_PARALLEL_WORKSHARE, ST_OMP_SECTIONS, ST_OMP_SECTION, ST_OMP_SINGLE,
-  ST_OMP_THREADPRIVATE, ST_OMP_WORKSHARE, ST_PROCEDURE,
+  ST_OMP_THREADPRIVATE, ST_OMP_WORKSHARE, ST_OMP_TASK, ST_OMP_END_TASK,
+  ST_OMP_TASKWAIT, ST_PROCEDURE,
   ST_GET_FCN_CHARACTERISTICS, ST_NONE
 }
 gfc_statement;
@@ -301,7 +304,7 @@ extern const mstring save_status[];
 enum gfc_isym_id
 {
   /* GFC_ISYM_NONE is used for intrinsics which will never be seen by
-     the backend (eg. KIND).  */
+     the backend (e.g. KIND).  */
   GFC_ISYM_NONE = 0,
   GFC_ISYM_ABORT,
   GFC_ISYM_ABS,
@@ -619,12 +622,12 @@ typedef struct
   unsigned allocatable:1, dimension:1, external:1, intrinsic:1,
     optional:1, pointer:1, target:1, value:1, volatile_:1,
     dummy:1, result:1, assign:1, threadprivate:1, not_always_present:1,
-    implied_index:1, subref_array_pointer:1;
+    implied_index:1, subref_array_pointer:1, proc_pointer:1;
 
   ENUM_BITFIELD (save_state) save:2;
 
   unsigned data:1,		/* Symbol is named in a DATA statement.  */
-    protected:1,		/* Symbol has been marked as protected.  */
+    is_protected:1,		/* Symbol has been marked as protected.  */
     use_assoc:1,		/* Symbol has been use-associated.  */
     use_only:1,			/* Symbol has been use-associated, with ONLY.  */
     use_rename:1,		/* Symbol has been use-associated and renamed.  */
@@ -690,7 +693,7 @@ typedef struct
   unsigned cray_pointer:1, cray_pointee:1;
 
   /* The symbol is a derived type with allocatable components, pointer 
-     components or private components, possibly nested.  zer_comp
+     components or private components, possibly nested.  zero_comp
      is true if the derived type has no component at all.  */
   unsigned alloc_comp:1, pointer_comp:1, private_comp:1, zero_comp:1;
 
@@ -791,7 +794,7 @@ typedef struct gfc_charlen
 }
 gfc_charlen;
 
-#define gfc_get_charlen() gfc_getmem(sizeof(gfc_charlen))
+#define gfc_get_charlen() XCNEW (gfc_charlen)
 
 /* Type specification structure.  FIXME: derived and cl could be union???  */
 typedef struct
@@ -823,7 +826,7 @@ typedef struct
 }
 gfc_array_spec;
 
-#define gfc_get_array_spec() gfc_getmem(sizeof(gfc_array_spec))
+#define gfc_get_array_spec() XCNEW (gfc_array_spec)
 
 
 /* Components of derived types.  */
@@ -843,7 +846,7 @@ typedef struct gfc_component
 }
 gfc_component;
 
-#define gfc_get_component() gfc_getmem(sizeof(gfc_component))
+#define gfc_get_component() XCNEW (gfc_component)
 
 /* Formal argument lists are lists of symbols.  */
 typedef struct gfc_formal_arglist
@@ -855,7 +858,7 @@ typedef struct gfc_formal_arglist
 }
 gfc_formal_arglist;
 
-#define gfc_get_formal_arglist() gfc_getmem(sizeof(gfc_formal_arglist))
+#define gfc_get_formal_arglist() XCNEW (gfc_formal_arglist)
 
 
 /* The gfc_actual_arglist structure is for actual arguments.  */
@@ -875,7 +878,7 @@ typedef struct gfc_actual_arglist
 }
 gfc_actual_arglist;
 
-#define gfc_get_actual_arglist() gfc_getmem(sizeof(gfc_actual_arglist))
+#define gfc_get_actual_arglist() XCNEW (gfc_actual_arglist)
 
 
 /* Because a symbol can belong to multiple namelists, they must be
@@ -887,7 +890,7 @@ typedef struct gfc_namelist
 }
 gfc_namelist;
 
-#define gfc_get_namelist() gfc_getmem(sizeof(gfc_namelist))
+#define gfc_get_namelist() XCNEW (gfc_namelist)
 
 enum
 {
@@ -927,7 +930,8 @@ typedef struct gfc_omp_clauses
       OMP_SCHED_STATIC,
       OMP_SCHED_DYNAMIC,
       OMP_SCHED_GUIDED,
-      OMP_SCHED_RUNTIME
+      OMP_SCHED_RUNTIME,
+      OMP_SCHED_AUTO
     } sched_kind;
   struct gfc_expr *chunk_size;
   enum
@@ -935,13 +939,15 @@ typedef struct gfc_omp_clauses
       OMP_DEFAULT_UNKNOWN,
       OMP_DEFAULT_NONE,
       OMP_DEFAULT_PRIVATE,
-      OMP_DEFAULT_SHARED
+      OMP_DEFAULT_SHARED,
+      OMP_DEFAULT_FIRSTPRIVATE
     } default_sharing;
-  bool nowait, ordered;
+  int collapse;
+  bool nowait, ordered, untied;
 }
 gfc_omp_clauses;
 
-#define gfc_get_omp_clauses() gfc_getmem(sizeof(gfc_omp_clauses))
+#define gfc_get_omp_clauses() XCNEW (gfc_omp_clauses)
 
 
 /* The gfc_st_label structure is a doubly linked list attached to a
@@ -974,15 +980,14 @@ typedef struct gfc_interface
 }
 gfc_interface;
 
-#define gfc_get_interface() gfc_getmem(sizeof(gfc_interface))
-
+#define gfc_get_interface() XCNEW (gfc_interface)
 
 /* User operator nodes.  These are like stripped down symbols.  */
 typedef struct
 {
   const char *name;
 
-  gfc_interface *operator;
+  gfc_interface *op;
   struct gfc_namespace *ns;
   gfc_access access;
 }
@@ -1014,6 +1019,10 @@ typedef struct gfc_symbol
   gfc_formal_arglist *formal;
   struct gfc_namespace *formal_ns;
 
+  /* The namespace containing type-associated procedure symbols.  */
+  /* TODO: Make this union with formal?  */
+  struct gfc_namespace *f2k_derived;
+
   struct gfc_expr *value;	/* Parameter/Initializer value */
   gfc_array_spec *as;
   struct gfc_symbol *result;	/* function result symbol */
@@ -1044,7 +1053,7 @@ typedef struct gfc_symbol
      the old symbol.  */
 
   struct gfc_symbol *old_symbol, *tlink;
-  unsigned mark:1, new:1;
+  unsigned mark:1, gfc_new:1;
   /* Nonzero if all equivalences associated with this symbol have been
      processed.  */
   unsigned equiv_built:1;
@@ -1084,7 +1093,7 @@ typedef struct gfc_common_head
 }
 gfc_common_head;
 
-#define gfc_get_common_head() gfc_getmem(sizeof(gfc_common_head))
+#define gfc_get_common_head() XCNEW (gfc_common_head)
 
 
 /* A list of all the alternate entry points for a procedure.  */
@@ -1134,7 +1143,7 @@ typedef struct gfc_dt_list
 }
 gfc_dt_list;
 
-#define gfc_get_dt_list() gfc_getmem(sizeof(gfc_dt_list))
+#define gfc_get_dt_list() XCNEW (gfc_dt_list)
 
   /* A list of all derived types.  */
   extern gfc_dt_list *gfc_derived_types;
@@ -1151,6 +1160,8 @@ typedef struct gfc_namespace
   gfc_symtree *uop_root;
   /* Tree containing all the common blocks.  */
   gfc_symtree *common_root;
+  /* Linked list of finalizer procedures.  */
+  struct gfc_finalizer *finalizers;
 
   /* If set_flag[letter] is set, an implicit type has been set for letter.  */
   int set_flag[GFC_LETTERS];
@@ -1169,7 +1180,7 @@ typedef struct gfc_namespace
   /* Points to the equivalence groups produced by trans_common.  */
   struct gfc_equiv_list *equiv_lists;
 
-  gfc_interface *operator[GFC_INTRINSIC_OPS];
+  gfc_interface *op[GFC_INTRINSIC_OPS];
 
   /* Points to the parent namespace, i.e. the namespace of a module or
      procedure in which the procedure belonging to this namespace is
@@ -1267,7 +1278,7 @@ typedef struct gfc_array_ref
 }
 gfc_array_ref;
 
-#define gfc_get_array_ref() gfc_getmem(sizeof(gfc_array_ref))
+#define gfc_get_array_ref() XCNEW (gfc_array_ref)
 
 
 /* Component reference nodes.  A variable is stored as an expression
@@ -1309,7 +1320,7 @@ typedef struct gfc_ref
 }
 gfc_ref;
 
-#define gfc_get_ref() gfc_getmem(sizeof(gfc_ref))
+#define gfc_get_ref() XCNEW (gfc_ref)
 
 
 /* Structures representing intrinsic symbols and their arguments lists.  */
@@ -1480,7 +1491,7 @@ typedef struct gfc_expr
 
     struct
     {
-      gfc_intrinsic_op operator;
+      gfc_intrinsic_op op;
       gfc_user_op *uop;
       struct gfc_expr *op1, *op2;
     }
@@ -1589,7 +1600,7 @@ typedef struct gfc_equiv
 }
 gfc_equiv;
 
-#define gfc_get_equiv() gfc_getmem(sizeof(gfc_equiv))
+#define gfc_get_equiv() XCNEW (gfc_equiv)
 
 /* Holds a single equivalence member after processing.  */
 typedef struct gfc_equiv_info
@@ -1641,7 +1652,7 @@ typedef struct gfc_case
 }
 gfc_case;
 
-#define gfc_get_case() gfc_getmem(sizeof(gfc_case))
+#define gfc_get_case() XCNEW (gfc_case)
 
 
 typedef struct
@@ -1650,7 +1661,7 @@ typedef struct
 }
 gfc_iterator;
 
-#define gfc_get_iterator() gfc_getmem(sizeof(gfc_iterator))
+#define gfc_get_iterator() XCNEW (gfc_iterator)
 
 
 /* Allocation structure for ALLOCATE, DEALLOCATE and NULLIFY statements.  */
@@ -1662,7 +1673,7 @@ typedef struct gfc_alloc
 }
 gfc_alloc;
 
-#define gfc_get_alloc() gfc_getmem(sizeof(gfc_alloc))
+#define gfc_get_alloc() XCNEW (gfc_alloc)
 
 
 typedef struct
@@ -1754,7 +1765,7 @@ typedef enum
   EXEC_OMP_PARALLEL_SECTIONS, EXEC_OMP_PARALLEL_WORKSHARE,
   EXEC_OMP_SECTIONS, EXEC_OMP_SINGLE, EXEC_OMP_WORKSHARE,
   EXEC_OMP_ATOMIC, EXEC_OMP_BARRIER, EXEC_OMP_END_NOWAIT,
-  EXEC_OMP_END_SINGLE
+  EXEC_OMP_END_SINGLE, EXEC_OMP_TASK, EXEC_OMP_TASKWAIT
 }
 gfc_exec_op;
 
@@ -1942,6 +1953,17 @@ typedef struct iterator_stack
 iterator_stack;
 extern iterator_stack *iter_stack;
 
+
+/* Node in the linked list used for storing finalizer procedures.  */
+
+typedef struct gfc_finalizer
+{
+  struct gfc_finalizer* next;
+  gfc_symbol* procedure;
+  locus where; /* Where the FINAL declaration occurred.  */
+}
+gfc_finalizer;
+
 /************************ Function prototypes *************************/
 
 /* decl.c */
@@ -1976,7 +1998,7 @@ gfc_char_t *gfc_wide_memset (gfc_char_t *, gfc_char_t, size_t);
 char *gfc_widechar_to_char (const gfc_char_t *, int);
 gfc_char_t *gfc_char_to_widechar (const char *);
 
-#define gfc_get_wide_string(n) gfc_getmem((n) * sizeof(gfc_char_t))
+#define gfc_get_wide_string(n) XCNEWVEC (gfc_char_t, n)
 
 void gfc_skip_comments (void);
 gfc_char_t gfc_next_char_literal (int);
@@ -2023,6 +2045,7 @@ bool gfc_post_options (const char **);
 
 /* iresolve.c */
 const char * gfc_get_string (const char *, ...) ATTRIBUTE_PRINTF_1;
+bool gfc_find_sym_in_expr (gfc_symbol *, gfc_expr *);
 
 /* error.c */
 
@@ -2210,6 +2233,8 @@ gfc_gsymbol *gfc_find_gsymbol (gfc_gsymbol *, const char *);
 
 void copy_formal_args (gfc_symbol *dest, gfc_symbol *src);
 
+void gfc_free_finalizer (gfc_finalizer *el); /* Needed in resolve.c, too  */
+
 /* intrinsic.c */
 extern int gfc_init_expr;
 
@@ -2339,7 +2364,7 @@ void gfc_simplify_iterator_var (gfc_expr *);
 try gfc_expand_constructor (gfc_expr *);
 int gfc_constant_ac (gfc_expr *);
 int gfc_expanded_ac (gfc_expr *);
-void gfc_resolve_character_array_constructor (gfc_expr *);
+try gfc_resolve_character_array_constructor (gfc_expr *);
 try gfc_resolve_array_constructor (gfc_expr *);
 try gfc_check_constructor_type (gfc_expr *);
 try gfc_check_iter_variable (gfc_expr *);

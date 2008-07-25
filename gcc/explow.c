@@ -874,10 +874,10 @@ round_push (rtx size)
 
   if (GET_CODE (size) == CONST_INT)
     {
-      HOST_WIDE_INT new = (INTVAL (size) + align - 1) / align * align;
+      HOST_WIDE_INT new_size = (INTVAL (size) + align - 1) / align * align;
 
-      if (INTVAL (size) != new)
-	size = GEN_INT (new);
+      if (INTVAL (size) != new_size)
+	size = GEN_INT (new_size);
     }
   else
     {
@@ -1016,11 +1016,8 @@ emit_stack_restore (enum save_level save_level, rtx sa, rtx after)
       /* These clobbers prevent the scheduler from moving
 	 references to variable arrays below the code
 	 that deletes (pops) the arrays.  */
-      emit_insn (gen_rtx_CLOBBER (VOIDmode,
-		    gen_rtx_MEM (BLKmode,
-			gen_rtx_SCRATCH (VOIDmode))));
-      emit_insn (gen_rtx_CLOBBER (VOIDmode,
-		    gen_rtx_MEM (BLKmode, stack_pointer_rtx)));
+      emit_clobber (gen_rtx_MEM (BLKmode, gen_rtx_SCRATCH (VOIDmode)));
+      emit_clobber (gen_rtx_MEM (BLKmode, stack_pointer_rtx));
     }
 
   discard_pending_stack_adjust ();
@@ -1139,10 +1136,10 @@ allocate_dynamic_stack_space (rtx size, rtx target, int known_align)
 
       if (GET_CODE (size) == CONST_INT)
 	{
-	  HOST_WIDE_INT new = INTVAL (size) / align * align;
+	  HOST_WIDE_INT new_size = INTVAL (size) / align * align;
 
-	  if (INTVAL (size) != new)
-	    size = GEN_INT (new);
+	  if (INTVAL (size) != new_size)
+	    size = GEN_INT (new_size);
 	}
       else
 	{

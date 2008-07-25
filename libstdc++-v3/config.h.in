@@ -156,12 +156,6 @@
 /* Define to 1 if you have the `frexpl' function. */
 #undef HAVE_FREXPL
 
-/* Define to 1 if you have the <gconf.h> header file. */
-#undef HAVE_GCONF_H
-
-/* Define to 1 if you have the <gconv.h> header file. */
-#undef HAVE_GCONV_H
-
 /* Define if _Unwind_GetIPInfo is available. */
 #undef HAVE_GETIPINFO
 
@@ -816,6 +810,15 @@
 /* Define if C99 types in <stdint.h> should be imported in <tr1/cstdint> in
    namespace std::tr1. */
 #undef _GLIBCXX_USE_C99_STDINT_TR1
+
+/* Defined if clock_gettime has monotonic clock support. */
+#undef _GLIBCXX_USE_CLOCK_MONOTONIC
+
+/* Defined if clock_gettime has realtime clock support. */
+#undef _GLIBCXX_USE_CLOCK_REALTIME
+
+/* Defined if gettimeofday is available. */
+#undef _GLIBCXX_USE_GETTIMEOFDAY
 
 /* Define if LFS support is available. */
 #undef _GLIBCXX_USE_LFS

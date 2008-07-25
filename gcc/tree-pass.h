@@ -1,5 +1,6 @@
 /* Definitions for describing one tree-ssa optimization pass.
-   Copyright (C) 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
+   Copyright (C) 2004, 2005, 2006, 2007, 2008 Free Software Foundation,
+   Inc.
    Contributed by Richard Henderson <rth@redhat.com>
 
 This file is part of GCC.
@@ -67,7 +68,6 @@ enum tree_dump_index
 #define TDF_GRAPH	(1 << 13)	/* a graph dump is being emitted */
 #define TDF_MEMSYMS	(1 << 14)	/* display memory symbols in expr.
                                            Implies TDF_VOPS.  */
-#define TDF_DEBUG	(1 << 15)	/* Pass debugging output.  */
 
 #define TDF_DIAGNOSTIC	(1 << 15)	/* A dump to be put in a diagnostic
 					   message.  */
@@ -87,15 +87,6 @@ extern const char *dump_flag_name (enum tree_dump_index);
 extern FILE *dump_file;
 extern int dump_flags;
 extern const char *dump_file_name;
-
-/* Return true when the dump file is initialized and in debug
-   mode.  */
-
-static inline bool
-debug_p (void)
-{
-  return (dump_file && (dump_flags & TDF_DEBUG));
-}
 
 /* Return the dump_file_info for the given phase.  */
 extern struct dump_file_info *get_dump_file_info (enum tree_dump_index);
@@ -152,7 +143,7 @@ struct gimple_opt_pass
   struct opt_pass pass;
 };
 
-/* Decription of RTL pass.  */
+/* Description of RTL pass.  */
 struct rtl_opt_pass
 {
   struct opt_pass pass;
@@ -304,8 +295,6 @@ struct dump_file_info
 
 extern void tree_lowering_passes (tree decl);
 
-extern struct gimple_opt_pass pass_bounds_early;
-extern struct gimple_opt_pass pass_bounds_late;
 extern struct gimple_opt_pass pass_mudflap_1;
 extern struct gimple_opt_pass pass_mudflap_2;
 extern struct gimple_opt_pass pass_remove_useless_stmts;
@@ -352,6 +341,7 @@ extern struct gimple_opt_pass pass_dominator;
 extern struct gimple_opt_pass pass_dce;
 extern struct gimple_opt_pass pass_dce_loop;
 extern struct gimple_opt_pass pass_cd_dce;
+extern struct gimple_opt_pass pass_call_cdce;
 extern struct gimple_opt_pass pass_merge_phi;
 extern struct gimple_opt_pass pass_split_crit_edges;
 extern struct gimple_opt_pass pass_pre;
@@ -397,7 +387,6 @@ extern struct gimple_opt_pass pass_reassoc;
 extern struct gimple_opt_pass pass_rebuild_cgraph_edges;
 extern struct gimple_opt_pass pass_build_cgraph_edges;
 extern struct gimple_opt_pass pass_reset_cc_flags;
-extern struct gimple_opt_pass pass_check;
 
 /* IPA Passes */
 extern struct ipa_opt_pass pass_ipa_inline;
@@ -522,6 +511,7 @@ extern struct gimple_opt_pass pass_O0_always_inline;
 extern struct gimple_opt_pass pass_inline_parameters;
 extern struct gimple_opt_pass pass_all_early_optimizations;
 extern struct gimple_opt_pass pass_update_address_taken;
+extern struct gimple_opt_pass pass_convert_switch;
 
 /* The root of the compilation pass tree, once constructed.  */
 extern struct opt_pass *all_passes, *all_ipa_passes, *all_lowering_passes;

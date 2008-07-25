@@ -24,53 +24,23 @@
 struct constraint;
 typedef struct constraint *constraint_t;
 
-/* Alias information used by compute_may_aliases and its helpers.  */
-struct alias_info
-{
-  /* SSA names visited while collecting points-to information.  If bit I
-     is set, it means that SSA variable with version I has already been
-     visited.  */
-  sbitmap ssa_names_visited;
-
-  /* Array of SSA_NAME pointers processed by the points-to collector.  */
-  VEC(tree,heap) *processed_ptrs;
-
-  /* ADDRESSABLE_VARS contains all the global variables and locals that
-     have had their address taken.  */
-  struct alias_map_d **addressable_vars;
-  size_t num_addressable_vars;
-
-  /* POINTERS contains all the _DECL pointers with unique memory tags
-     that have been referenced in the program.  */
-  struct alias_map_d **pointers;
-  size_t num_pointers;
-
-  /* Variables that have been written to directly (i.e., not through a
-     pointer dereference).  */
-  struct pointer_set_t *written_vars;
-
-  /* Pointers that have been used in an indirect store operation.  */
-  struct pointer_set_t *dereferenced_ptrs_store;
-
-  /* Pointers that have been used in an indirect load operation.  */
-  struct pointer_set_t *dereferenced_ptrs_load;
-};
-
 /* In tree-ssa-alias.c.  */
 enum escape_type is_escape_site (tree);
 void update_mem_sym_stats_from_stmt (tree, tree, long, long);
 
 /* In tree-ssa-structalias.c.  */
-extern void compute_points_to_sets (struct alias_info *);
+extern void compute_points_to_sets (void);
 extern void delete_points_to_sets (void);
 extern void dump_constraint (FILE *, constraint_t);
+extern void dump_constraint_edge (FILE *, constraint_t);
 extern void dump_constraints (FILE *);
+extern void dump_constraint_graph (FILE *);
 extern void debug_constraint (constraint_t);
 extern void debug_constraints (void);
+extern void debug_constraint_graph (void);
 extern void dump_solution_for_var (FILE *, unsigned int);
 extern void debug_solution_for_var (unsigned int);
 extern void dump_sa_points_to_info (FILE *);
 extern void debug_sa_points_to_info (void);
-extern void set_used_smts (void);
 
 #endif /* TREE_SSA_STRUCTALIAS_H  */

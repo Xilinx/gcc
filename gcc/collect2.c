@@ -605,11 +605,7 @@ find_a_file (struct path_prefix *pprefix, const char *name)
 
   /* Determine the filename to execute (special case for absolute paths).  */
 
-  if (*name == '/'
-#ifdef HAVE_DOS_BASED_FILE_SYSTEM
-      || (*name && name[1] == ':')
-#endif
-      )
+  if (IS_ABSOLUTE_PATH (name))
     {
       if (access (name, X_OK) == 0)
 	{
@@ -850,9 +846,9 @@ main (int argc, char **argv)
   /* Do not invoke xcalloc before this point, since locale needs to be
      set first, in case a diagnostic is issued.  */
 
-  ld1 = (const char **)(ld1_argv = xcalloc(sizeof (char *), argc+4));
-  ld2 = (const char **)(ld2_argv = xcalloc(sizeof (char *), argc+11));
-  object = (const char **)(object_lst = xcalloc(sizeof (char *), argc));
+  ld1 = (const char **)(ld1_argv = XCNEWVEC (char *, argc+4));
+  ld2 = (const char **)(ld2_argv = XCNEWVEC (char *, argc+11));
+  object = (const char **)(object_lst = XCNEWVEC (char *, argc));
 
 #ifdef DEBUG
   debug = 1;
@@ -879,7 +875,7 @@ main (int argc, char **argv)
 #endif
 
   obstack_begin (&temporary_obstack, 0);
-  temporary_firstobj = obstack_alloc (&temporary_obstack, 0);
+  temporary_firstobj = (char *) obstack_alloc (&temporary_obstack, 0);
 
 #ifndef HAVE_LD_DEMANGLE
   current_demangling_style = auto_demangling;
@@ -897,7 +893,7 @@ main (int argc, char **argv)
      -fno-exceptions -w */
   num_c_args += 5;
 
-  c_ptr = (const char **) (c_argv = xcalloc (sizeof (char *), num_c_args));
+  c_ptr = (const char **) (c_argv = XCNEWVEC (char *, num_c_args));
 
   if (argc < 2)
     fatal ("no arguments");
@@ -1680,7 +1676,8 @@ static long sequence_number = 0;
 static void
 add_to_list (struct head *head_ptr, const char *name)
 {
-  struct id *newid = xcalloc (sizeof (struct id) + strlen (name), 1);
+  struct id *newid
+    = (struct id *) xcalloc (sizeof (struct id) + strlen (name), 1);
   struct id *p;
   strcpy (newid->name, name);
 
@@ -2479,8 +2476,8 @@ scan_prog_file (const char *prog_name, enum pass which_pass)
       /* Some platforms (e.g. OSF4) declare ldopen as taking a
 	 non-const char * filename parameter, even though it will not
 	 modify that string.  So we must cast away const-ness here,
-	 which will cause -Wcast-qual to burp.  */
-      if ((ldptr = ldopen ((char *)prog_name, ldptr)) != NULL)
+	 using CONST_CAST to prevent complaints from -Wcast-qual.  */
+      if ((ldptr = ldopen (CONST_CAST (char *, prog_name), ldptr)) != NULL)
 	{
 	  if (! MY_ISCOFF (HEADER (ldptr).f_magic))
 	    fatal ("%s: not a COFF file", prog_name);
@@ -2631,7 +2628,7 @@ resolve_lib_name (const char *name)
     if (libpaths[i]->max_len > l)
       l = libpaths[i]->max_len;
 
-  lib_buf = xmalloc (l + strlen(name) + 10);
+  lib_buf = XNEWVEC (char, l + strlen(name) + 10);
 
   for (i = 0; libpaths[i]; i++)
     {

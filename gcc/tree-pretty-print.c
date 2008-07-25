@@ -43,7 +43,7 @@ static const char *op_symbol (const_tree);
 static void pretty_print_string (pretty_printer *, const char*);
 static void print_call_name (pretty_printer *, const_tree);
 static void newline_and_indent (pretty_printer *, int);
-void maybe_init_pretty_print (FILE *);
+static void maybe_init_pretty_print (FILE *);
 static void print_declaration (pretty_printer *, tree, int, int);
 static void print_struct_decl (pretty_printer *, const_tree, int, int);
 static void do_niy (pretty_printer *, const_tree);
@@ -73,7 +73,7 @@ do_niy (pretty_printer *buffer, const_tree node)
   pp_string (buffer, "<<< Unknown tree: ");
   pp_string (buffer, tree_code_name[(int) TREE_CODE (node)]);
 
-  if (!pp_lazy_mode (buffer) && EXPR_P (node))
+  if (EXPR_P (node))
     {
       len = TREE_OPERAND_LENGTH (node);
       for (i = 0; i < len; ++i)
@@ -334,19 +334,22 @@ dump_omp_clause (pretty_printer *buffer, tree clause, int spc, int flags)
       pp_string (buffer, "default(");
       switch (OMP_CLAUSE_DEFAULT_KIND (clause))
 	{
-      case OMP_CLAUSE_DEFAULT_UNSPECIFIED:
-	break;
-      case OMP_CLAUSE_DEFAULT_SHARED:
-	pp_string (buffer, "shared");
-	break;
-      case OMP_CLAUSE_DEFAULT_NONE:
-	pp_string (buffer, "none");
-	break;
-      case OMP_CLAUSE_DEFAULT_PRIVATE:
-	pp_string (buffer, "private");
-	break;
-      default:
-	gcc_unreachable ();
+	case OMP_CLAUSE_DEFAULT_UNSPECIFIED:
+	  break;
+	case OMP_CLAUSE_DEFAULT_SHARED:
+	  pp_string (buffer, "shared");
+	  break;
+	case OMP_CLAUSE_DEFAULT_NONE:
+	  pp_string (buffer, "none");
+	  break;
+	case OMP_CLAUSE_DEFAULT_PRIVATE:
+	  pp_string (buffer, "private");
+	  break;
+	case OMP_CLAUSE_DEFAULT_FIRSTPRIVATE:
+	  pp_string (buffer, "firstprivate");
+	  break;
+	default:
+	  gcc_unreachable ();
 	}
       pp_character (buffer, ')');
       break;
@@ -367,6 +370,9 @@ dump_omp_clause (pretty_printer *buffer, tree clause, int spc, int flags)
       case OMP_CLAUSE_SCHEDULE_RUNTIME:
 	pp_string (buffer, "runtime");
 	break;
+      case OMP_CLAUSE_SCHEDULE_AUTO:
+	pp_string (buffer, "auto");
+	break;
       default:
 	gcc_unreachable ();
 	}
@@ -377,6 +383,18 @@ dump_omp_clause (pretty_printer *buffer, tree clause, int spc, int flags)
 	      OMP_CLAUSE_SCHEDULE_CHUNK_EXPR (clause),
 	      spc, flags, false);
 	}
+      pp_character (buffer, ')');
+      break;
+
+    case OMP_CLAUSE_UNTIED:
+      pp_string (buffer, "untied");
+      break;
+
+    case OMP_CLAUSE_COLLAPSE:
+      pp_string (buffer, "collapse(");
+      dump_generic_node (buffer,
+			 OMP_CLAUSE_COLLAPSE_EXPR (clause),
+			 spc, flags, false);
       pp_character (buffer, ')');
       break;
 
@@ -408,7 +426,6 @@ dump_omp_clauses (pretty_printer *buffer, tree clause, int spc, int flags)
     }
 }
 
-static int dump_generic_node_aux (pretty_printer *, tree, int, int, bool);
 
 /* Dump the set of decls SYMS.  BUFFER, SPC and FLAGS are as in
    dump_generic_node.  */
@@ -445,21 +462,6 @@ dump_symbols (pretty_printer *buffer, bitmap syms, int flags)
 int
 dump_generic_node (pretty_printer *buffer, tree node, int spc, int flags,
 		   bool is_stmt)
-{ 
-  if (!pp_lazy_mode (buffer))
-    return dump_generic_node_aux (buffer, node, spc, flags, is_stmt); 
-  else 
-    {
-      pp_add_tree (buffer, node);
-      return 0;
-    }
-}
-
-/* Internal worker function for the above. */
-
-static int
-dump_generic_node_aux (pretty_printer *buffer, tree node, int spc, int flags,
-		       bool is_stmt)
 {
   tree type;
   tree op0, op1;
@@ -950,16 +952,12 @@ dump_generic_node_aux (pretty_printer *buffer, tree node, int spc, int flags,
 	pp_character (buffer, ')');
       pp_string (buffer, str);
       dump_generic_node (buffer, TREE_OPERAND (node, 1), spc, flags, false);
-
-      if (TREE_CODE (op0) != VALUE_HANDLE)
+      op0 = component_ref_field_offset (node);
+      if (op0 && TREE_CODE (op0) != INTEGER_CST)
 	{
-	  op0 = component_ref_field_offset (node);
-	  if (op0 && TREE_CODE (op0) != INTEGER_CST)
-	    {
-	      pp_string (buffer, "{off: ");
+	  pp_string (buffer, "{off: ");
 	      dump_generic_node (buffer, op0, spc, flags, false);
 	      pp_character (buffer, '}');
-	    }
 	}
       break;
 
@@ -1787,10 +1785,6 @@ dump_generic_node_aux (pretty_printer *buffer, tree node, int spc, int flags,
       pp_string (buffer, ">");
       break;
 
-    case VALUE_HANDLE:
-      pp_printf (buffer, "VH.%d", VALUE_HANDLE_ID (node));
-      break;
-
     case ASSERT_EXPR:
       pp_string (buffer, "ASSERT_EXPR <");
       dump_generic_node (buffer, ASSERT_EXPR_VAR (node), spc, flags, false);
@@ -1879,12 +1873,41 @@ dump_generic_node_aux (pretty_printer *buffer, tree node, int spc, int flags,
       is_expr = false;
       break;
 
+    case OMP_TASK:
+      pp_string (buffer, "#pragma omp task");
+      dump_omp_clauses (buffer, OMP_TASK_CLAUSES (node), spc, flags);
+      if (OMP_TASK_FN (node))
+	{
+	  pp_string (buffer, " [child fn: ");
+	  dump_generic_node (buffer, OMP_TASK_FN (node), spc, flags, false);
+
+	  pp_string (buffer, " (");
+
+	  if (OMP_TASK_DATA_ARG (node))
+	    dump_generic_node (buffer, OMP_TASK_DATA_ARG (node), spc, flags,
+			       false);
+	  else
+	    pp_string (buffer, "???");
+
+	  pp_character (buffer, ')');
+	  if (OMP_TASK_COPYFN (node))
+	    {
+	      pp_string (buffer, ", copy fn: ");
+	      dump_generic_node (buffer, OMP_TASK_COPYFN (node), spc,
+				 flags, false);
+	    }
+	  pp_character (buffer, ']');
+	}
+      goto dump_omp_body;
+
     case OMP_FOR:
       pp_string (buffer, "#pragma omp for");
       dump_omp_clauses (buffer, OMP_FOR_CLAUSES (node), spc, flags);
 
       if (!(flags & TDF_SLIM))
 	{
+	  int i;
+
 	  if (OMP_FOR_PRE_BODY (node))
 	    {
 	      newline_and_indent (buffer, spc + 2);
@@ -1894,14 +1917,22 @@ dump_generic_node_aux (pretty_printer *buffer, tree node, int spc, int flags,
 	      dump_generic_node (buffer, OMP_FOR_PRE_BODY (node),
 		  spc, flags, false);
 	    }
-	  newline_and_indent (buffer, spc);
-	  pp_string (buffer, "for (");
-	  dump_generic_node (buffer, OMP_FOR_INIT (node), spc, flags, false);
-	  pp_string (buffer, "; ");
-	  dump_generic_node (buffer, OMP_FOR_COND (node), spc, flags, false);
-	  pp_string (buffer, "; ");
-	  dump_generic_node (buffer, OMP_FOR_INCR (node), spc, flags, false);
-	  pp_string (buffer, ")");
+	  spc -= 2;
+	  for (i = 0; i < TREE_VEC_LENGTH (OMP_FOR_INIT (node)); i++)
+	    {
+	      spc += 2;
+	      newline_and_indent (buffer, spc);
+	      pp_string (buffer, "for (");
+	      dump_generic_node (buffer, TREE_VEC_ELT (OMP_FOR_INIT (node), i),
+				 spc, flags, false);
+	      pp_string (buffer, "; ");
+	      dump_generic_node (buffer, TREE_VEC_ELT (OMP_FOR_COND (node), i),
+				 spc, flags, false);
+	      pp_string (buffer, "; ");
+	      dump_generic_node (buffer, TREE_VEC_ELT (OMP_FOR_INCR (node), i),
+				 spc, flags, false);
+	      pp_string (buffer, ")");
+	    }
 	  if (OMP_FOR_BODY (node))
 	    {
 	      newline_and_indent (buffer, spc + 2);
@@ -1912,6 +1943,7 @@ dump_generic_node_aux (pretty_printer *buffer, tree node, int spc, int flags,
 	      newline_and_indent (buffer, spc + 2);
 	      pp_character (buffer, '}');
 	    }
+	  spc -= 2 * TREE_VEC_LENGTH (OMP_FOR_INIT (node)) - 2;
 	  if (OMP_FOR_PRE_BODY (node))
 	    {
 	      spc -= 4;
@@ -2269,7 +2301,7 @@ print_declaration (pretty_printer *buffer, tree t, int spc, int flags)
       pp_character (buffer, ')');
     }
 
-  /* The initial value of a function serves to determine wether the function
+  /* The initial value of a function serves to determine whether the function
      is declared or defined.  So the following does not apply to function
      nodes.  */
   if (TREE_CODE (t) != FUNCTION_DECL)
@@ -2839,7 +2871,7 @@ pretty_print_string (pretty_printer *buffer, const char *str)
     }
 }
 
-void
+static void
 maybe_init_pretty_print (FILE *file)
 {
   if (!initialized)
@@ -3196,36 +3228,4 @@ dump_generic_bb_buff (pretty_printer *buffer, basic_block bb,
 
   if (flags & TDF_BLOCKS)
     dump_bb_end (buffer, bb, indent, flags);
-}
-
-/* Unparse the top level of a tree, returning the list of tree chunks
-   that constitute its printed form. Tree chunks may be: characters,
-   strings, and sub-trees. */
-
-VEC (tree_chunk, heap) *
-lazy_dump_generic_node (tree node, int flags, bool is_stmt) 
-{
-  pretty_printer *pp = &buffer;
-  VEC (tree_chunk, heap) *res;
-
-  pp->buffer->chunks = VEC_alloc (tree_chunk, heap, 10);
-  dump_generic_node_aux (pp, node, 0, flags, is_stmt);
-  res = pp->buffer->chunks;
-  pp->buffer->chunks = NULL;
-
-  return res;
-}
-
-/* Unparse the top level of a tree and dump the resulting list of 
-   tree chunks to a file */
-
-void
-lazy_print_generic_expr (FILE *file, tree t, int flags)
-{
-  VEC (tree_chunk, heap) *chunks;
-
-  maybe_init_pretty_print (file);
-  fprintf (file, "<%s>=", tree_name(t));
-  chunks = lazy_dump_generic_node (t, flags, false);
-  pp_write_list (chunks, file);
 }

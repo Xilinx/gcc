@@ -1,5 +1,5 @@
 /* Branch prediction routines for the GNU compiler.
-   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2007
+   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -107,6 +107,22 @@ static const struct predictor_info predictor_info[]= {
 };
 #undef DEF_PREDICTOR
 
+/* Return TRUE if frequency FREQ is considered to be hot.  */
+static bool
+maybe_hot_frequency_p (int freq)
+{
+  if (!profile_info || !flag_branch_probabilities)
+    {
+      if (cfun->function_frequency == FUNCTION_FREQUENCY_UNLIKELY_EXECUTED)
+        return false;
+      if (cfun->function_frequency == FUNCTION_FREQUENCY_HOT)
+        return true;
+    }
+  if (freq < BB_FREQ_MAX / PARAM_VALUE (HOT_BB_FREQUENCY_FRACTION))
+    return false;
+  return true;
+}
+
 /* Return true in case BB can be CPU intensive and should be optimized
    for maximal performance.  */
 
@@ -117,16 +133,20 @@ maybe_hot_bb_p (const_basic_block bb)
       && (bb->count
 	  < profile_info->sum_max / PARAM_VALUE (HOT_BB_COUNT_FRACTION)))
     return false;
-  if (!profile_info || !flag_branch_probabilities)
-    {
-      if (cfun->function_frequency == FUNCTION_FREQUENCY_UNLIKELY_EXECUTED)
-        return false;
-      if (cfun->function_frequency == FUNCTION_FREQUENCY_HOT)
-        return true;
-    }
-  if (bb->frequency < BB_FREQ_MAX / PARAM_VALUE (HOT_BB_FREQUENCY_FRACTION))
+  return maybe_hot_frequency_p (bb->frequency);
+}
+
+/* Return true in case BB can be CPU intensive and should be optimized
+   for maximal performance.  */
+
+bool
+maybe_hot_edge_p (edge e)
+{
+  if (profile_info && flag_branch_probabilities
+      && (e->count
+	  < profile_info->sum_max / PARAM_VALUE (HOT_BB_COUNT_FRACTION)))
     return false;
-  return true;
+  return maybe_hot_frequency_p (EDGE_FREQUENCY (e));
 }
 
 /* Return true in case BB is cold and should be optimized for size.  */
@@ -191,7 +211,7 @@ tree_predicted_by_p (const_basic_block bb, enum br_predictor predictor)
   if (!preds)
     return false;
   
-  for (i = *preds; i; i = i->ep_next)
+  for (i = (struct edge_prediction *) *preds; i; i = i->ep_next)
     if (i->ep_predictor == predictor)
       return true;
   return false;
@@ -243,12 +263,10 @@ predict_insn (rtx insn, enum br_predictor predictor, int probability)
   if (!flag_guess_branch_prob)
     return;
 
-  REG_NOTES (insn)
-    = gen_rtx_EXPR_LIST (REG_BR_PRED,
-			 gen_rtx_CONCAT (VOIDmode,
-					 GEN_INT ((int) predictor),
-					 GEN_INT ((int) probability)),
-			 REG_NOTES (insn));
+  add_reg_note (insn, REG_BR_PRED,
+		gen_rtx_CONCAT (VOIDmode,
+				GEN_INT ((int) predictor),
+				GEN_INT ((int) probability)));
 }
 
 /* Predict insn by given predictor.  */
@@ -296,7 +314,7 @@ tree_predict_edge (edge e, enum br_predictor predictor, int probability)
       struct edge_prediction *i = XNEW (struct edge_prediction);
       void **preds = pointer_map_insert (bb_predictions, e->src);
 
-      i->ep_next = *preds;
+      i->ep_next = (struct edge_prediction *) *preds;
       *preds = i;
       i->ep_probability = probability;
       i->ep_predictor = predictor;
@@ -346,7 +364,7 @@ clear_bb_predictions (basic_block bb)
   if (!preds)
     return;
 
-  for (pred = *preds; pred; pred = next)
+  for (pred = (struct edge_prediction *) *preds; pred; pred = next)
     {
       next = pred->ep_next;
       free (pred);
@@ -541,9 +559,7 @@ combine_predictions_for_insn (rtx insn, basic_block bb)
 
   if (!prob_note)
     {
-      REG_NOTES (insn)
-	= gen_rtx_EXPR_LIST (REG_BR_PROB,
-			     GEN_INT (combined_probability), REG_NOTES (insn));
+      add_reg_note (insn, REG_BR_PROB, GEN_INT (combined_probability));
 
       /* Save the prediction into CFG in case we are seeing non-degenerated
 	 conditional jump.  */
@@ -618,7 +634,7 @@ combine_predictions_for_bb (basic_block bb)
     {
       /* We implement "first match" heuristics and use probability guessed
 	 by predictor with smallest index.  */
-      for (pred = *preds; pred; pred = pred->ep_next)
+      for (pred = (struct edge_prediction *) *preds; pred; pred = pred->ep_next)
 	{
 	  int predictor = pred->ep_predictor;
 	  int probability = pred->ep_probability;
@@ -668,7 +684,7 @@ combine_predictions_for_bb (basic_block bb)
 
   if (preds)
     {
-      for (pred = *preds; pred; pred = pred->ep_next)
+      for (pred = (struct edge_prediction *) *preds; pred; pred = pred->ep_next)
 	{
 	  int predictor = pred->ep_predictor;
 	  int probability = pred->ep_probability;
@@ -1473,7 +1489,7 @@ tree_estimate_probability (void)
   return 0;
 }
 
-/* Predict edges to succestors of CUR whose sources are not postdominated by
+/* Predict edges to successors of CUR whose sources are not postdominated by
    BB by PRED and recurse to all postdominators.  */
 
 static void
@@ -1928,7 +1944,8 @@ gate_estimate_probability (void)
 tree
 build_predict_expr (enum br_predictor predictor, enum prediction taken)
 {
-  tree t = build1 (PREDICT_EXPR, NULL_TREE, build_int_cst (NULL, predictor));
+  tree t = build1 (PREDICT_EXPR, void_type_node,
+		   build_int_cst (NULL, predictor));
   PREDICT_EXPR_OUTCOME (t) = taken;
   return t;
 }

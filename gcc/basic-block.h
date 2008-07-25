@@ -529,6 +529,7 @@ extern int dfs_enumerate_from (basic_block, int,
 			       bool (*)(const_basic_block, const void *),
 			       basic_block *, int, const void *);
 extern void compute_dominance_frontiers (bitmap *);
+extern bitmap compute_idf (bitmap, bitmap *);
 extern void dump_bb_info (basic_block, bool, bool, int, const char *, FILE *);
 extern void dump_edge_info (FILE *, edge, int);
 extern void brief_dump_cfg (FILE *);
@@ -827,6 +828,7 @@ extern void compute_available (sbitmap *, sbitmap *, sbitmap *, sbitmap *);
 
 /* In predict.c */
 extern bool maybe_hot_bb_p (const_basic_block);
+extern bool maybe_hot_edge_p (edge);
 extern bool probably_cold_bb_p (const_basic_block);
 extern bool probably_never_executed_bb_p (const_basic_block);
 extern bool tree_predicted_by_p (const_basic_block, enum br_predictor);

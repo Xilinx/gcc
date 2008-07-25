@@ -1,5 +1,5 @@
 /* Definitions for code generation pass of GNU compiler.
-   Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007
+   Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -115,7 +115,7 @@ enum optab_index
      wider than the multiplicand and multiplier.
      All involved operations are saturating.  */
   OTI_ssmadd_widen,
-  /* Unigned multiply and add with the result and addend one machine mode
+  /* Unsigned multiply and add with the result and addend one machine mode
      wider than the multiplicand and multiplier.
      All involved operations are saturating.  */
   OTI_usmadd_widen,
@@ -129,7 +129,7 @@ enum optab_index
      wider than the multiplicand and multiplier.
      All involved operations are saturating.  */
   OTI_ssmsub_widen,
-  /* Unigned multiply and subtract the result and minuend one machine mode
+  /* Unsigned multiply and subtract the result and minuend one machine mode
      wider than the multiplicand and multiplier.
      All involved operations are saturating.  */
   OTI_usmsub_widen,
@@ -722,10 +722,6 @@ extern rtx expand_copysign (rtx, rtx, rtx);
 /* Generate an instruction with a given INSN_CODE with an output and
    an input.  */
 extern void emit_unop_insn (int, rtx, rtx, enum rtx_code);
-
-/* Excapsulate the block in REG_LIBCALL, and REG_RETVAL reg notes and add 
-   REG_LIBCALL_ID notes to all insns in block.  */
-extern void maybe_encapsulate_block (rtx, rtx, rtx);
 
 /* Emit one rtl insn to compare two rtx's.  */
 extern void emit_cmp_insn (rtx, rtx, enum rtx_code, rtx, enum machine_mode,

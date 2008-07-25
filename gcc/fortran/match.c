@@ -26,6 +26,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "match.h"
 #include "parse.h"
 
+int gfc_matching_procptr_assignment = 0;
 
 /* For debugging and diagnostic purposes.  Return the textual representation
    of the intrinsic operator OP.  */
@@ -1222,7 +1223,7 @@ not_yes:
 	    case 'e':
 	    case 'v':
 	      vp = va_arg (argp, void **);
-	      gfc_free_expr (*vp);
+	      gfc_free_expr ((struct gfc_expr *)*vp);
 	      *vp = NULL;
 	      break;
 	    }
@@ -1286,7 +1287,7 @@ gfc_match_assignment (void)
       return MATCH_NO;
     }
 
-  if (lvalue->symtree->n.sym->attr.protected
+  if (lvalue->symtree->n.sym->attr.is_protected
       && lvalue->symtree->n.sym->attr.use_assoc)
     {
       gfc_current_locus = old_loc;
@@ -1329,6 +1330,7 @@ gfc_match_pointer_assignment (void)
   old_loc = gfc_current_locus;
 
   lvalue = rvalue = NULL;
+  gfc_matching_procptr_assignment = 0;
 
   m = gfc_match (" %v =>", &lvalue);
   if (m != MATCH_YES)
@@ -1337,11 +1339,15 @@ gfc_match_pointer_assignment (void)
       goto cleanup;
     }
 
+  if (lvalue->symtree->n.sym->attr.proc_pointer)
+    gfc_matching_procptr_assignment = 1;
+
   m = gfc_match (" %e%t", &rvalue);
+  gfc_matching_procptr_assignment = 0;
   if (m != MATCH_YES)
     goto cleanup;
 
-  if (lvalue->symtree->n.sym->attr.protected
+  if (lvalue->symtree->n.sym->attr.is_protected
       && lvalue->symtree->n.sym->attr.use_assoc)
     {
       gfc_error ("Assigning to a PROTECTED pointer at %C");
@@ -3770,7 +3776,7 @@ match_forall_iterator (gfc_forall_iterator **result)
   match m;
 
   where = gfc_current_locus;
-  iter = gfc_getmem (sizeof (gfc_forall_iterator));
+  iter = XCNEW (gfc_forall_iterator);
 
   m = gfc_match_expr (&iter->var);
   if (m != MATCH_YES)
@@ -3830,7 +3836,7 @@ cleanup:
 static match
 match_forall_header (gfc_forall_iterator **phead, gfc_expr **mask)
 {
-  gfc_forall_iterator *head, *tail, *new;
+  gfc_forall_iterator *head, *tail, *new_iter;
   gfc_expr *msk;
   match m;
 
@@ -3842,27 +3848,27 @@ match_forall_header (gfc_forall_iterator **phead, gfc_expr **mask)
   if (gfc_match_char ('(') != MATCH_YES)
     return MATCH_NO;
 
-  m = match_forall_iterator (&new);
+  m = match_forall_iterator (&new_iter);
   if (m == MATCH_ERROR)
     goto cleanup;
   if (m == MATCH_NO)
     goto syntax;
 
-  head = tail = new;
+  head = tail = new_iter;
 
   for (;;)
     {
       if (gfc_match_char (',') != MATCH_YES)
 	break;
 
-      m = match_forall_iterator (&new);
+      m = match_forall_iterator (&new_iter);
       if (m == MATCH_ERROR)
 	goto cleanup;
 
       if (m == MATCH_YES)
 	{
-	  tail->next = new;
-	  tail = new;
+	  tail->next = new_iter;
+	  tail = new_iter;
 	  continue;
 	}
 

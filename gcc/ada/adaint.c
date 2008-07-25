@@ -85,7 +85,15 @@
 
 #include "mingw32.h"
 #include <sys/utime.h>
+
+/* For isalpha-like tests in the compiler, we're expected to resort to
+   safe-ctype.h/ISALPHA.  This isn't available for the runtime library
+   build, so we fallback on ctype.h/isalpha there.  */
+
+#ifdef IN_RTS
 #include <ctype.h>
+#define ISALPHA isalpha
+#endif
 
 #elif defined (__Lynx__)
 
@@ -1642,7 +1650,7 @@ __gnat_is_absolute_path (char *name, int length)
   return (length != 0) &&
      (*name == '/' || *name == DIR_SEPARATOR
 #if defined (__EMX__) || defined (MSDOS) || defined (WINNT)
-      || (length > 1 && isalpha (name[0]) && name[1] == ':')
+      || (length > 1 && ISALPHA (name[0]) && name[1] == ':')
 #endif
 	  );
 #endif
@@ -2147,7 +2155,7 @@ char *
 __gnat_locate_regular_file (char *file_name, char *path_val)
 {
   char *ptr;
-  char *file_path = alloca (strlen (file_name) + 1);
+  char *file_path = (char *) alloca (strlen (file_name) + 1);
   int absolute;
 
   /* Return immediately if file_name is empty */
@@ -2196,7 +2204,7 @@ __gnat_locate_regular_file (char *file_name, char *path_val)
 
   {
     /* The result has to be smaller than path_val + file_name.  */
-    char *file_path = alloca (strlen (path_val) + strlen (file_name) + 2);
+    char *file_path = (char *) alloca (strlen (path_val) + strlen (file_name) + 2);
 
     for (;;)
       {
@@ -2245,7 +2253,7 @@ __gnat_locate_exec (char *exec_name, char *path_val)
   if (!strstr (exec_name, HOST_EXECUTABLE_SUFFIX))
     {
       char *full_exec_name
-        = alloca (strlen (exec_name) + strlen (HOST_EXECUTABLE_SUFFIX) + 1);
+        = (char *) alloca (strlen (exec_name) + strlen (HOST_EXECUTABLE_SUFFIX) + 1);
 
       strcpy (full_exec_name, exec_name);
       strcat (full_exec_name, HOST_EXECUTABLE_SUFFIX);
@@ -2298,7 +2306,7 @@ __gnat_locate_exec_on_path (char *exec_name)
   char *path_val = getenv ("PATH");
 #endif
   if (path_val == NULL) return NULL;
-  apath_val = alloca (strlen (path_val) + 1);
+  apath_val = (char *) alloca (strlen (path_val) + 1);
   strcpy (apath_val, path_val);
   return __gnat_locate_exec (exec_name, apath_val);
 #endif

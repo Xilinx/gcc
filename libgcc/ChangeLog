@@ -1,3 +1,126 @@
+2008-07-08  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/64/t-softfp-compat: Update comments.
+
+2008-07-07  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/64/_divtc3-compat.c: Moved to ...
+	* config/i386/64/_divtc3.c: Here.
+
+	* config/i386/64/_multc3-compat.c: Moved to ...
+	* config/i386/64/_multc3.c: Here.
+
+	* config/i386/64/_powitf2-compat.c: Moved to ...
+	* config/i386/64/_powitf2.c: Here.
+
+	* config/i386/64/t-softfp-compat (libgcc2-tf-compats): Add
+	.c suffix instead of -compat.c.
+
+2008-07-05  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/32/sfp-machine.h (_FP_MUL_MEAT_S): Remove.
+	(_FP_MUL_MEAT_D): Ditto.
+	(_FP_DIV_MEAT_S): Ditto.
+	(_FP_DIV_MEAT_D): Ditto.
+
+2008-07-03  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* Makefile.in: Add support for __sync_* libgcc functions.
+
+2008-07-03  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* shared-object.mk ($(base)_s$(objext)): Remove -DSHARED.
+
+2008-07-02  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR boostrap/36702
+	* config.host: Only include 32bit t-fprules-softfp for Darwin/x86
+	and Linux/x86.  Include 64bit t-softfp-compat for Linux/x86.
+
+	* config/i386/64/t-fprules-softfp: Moved to ...
+	* config/i386/64/t-softfp-compat: This.  New.
+
+2008-07-02  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/32/sfp-machine.h (FP_HANDLE_EXCEPTIONS) [FP_EX_INVALID]:
+	Initialize f with 0.0.
+
+2008-07-02  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/36669
+	* shared-object.mk ($(base)_s$(objext)): Add -DSHARED.
+
+	* config/i386/64/_divtc3-compat.c: New.
+	* config/i386/64/_multc3-compat.c: Likewise.
+	* config/i386/64/_powitf2-compat.c: Likewise.
+	* config/i386/64/eqtf2.c: Likewise.
+	* config/i386/64/getf2.c: Likewise.
+	* config/i386/64/letf2.c: Likewise.
+	* config/i386/64/t-fprules-softfp: Likewise.
+
+2008-07-02  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config.host: Add i386/${host_address}/t-fprules-softfp to
+	tmake_file for i[34567]86-*-darwin*, x86_64-*-darwin*,
+	i[34567]86-*-linux*, x86_64-*-linux*. 
+
+	* configure.ac: Set host_address to 64 or 32 for x86.
+	* configure: Regenerated.
+
+	* Makefile.in (config.status): Also depend on
+	$(srcdir)/config.host.
+
+	* config/i386/32/t-fprules-softfp: New.
+	* config/i386/32/tf-signs.c: Likewise.
+
+	* config/i386/64/sfp-machine.h: New. Moved from gcc.
+
+2008-07-02  H.J. Lu  <hongjiu.lu@intel.com>
+	    Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/32/sfp-machine.h: New.
+
+2008-06-26  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* config/rs6000/t-ppccomm: Remove rules that conflict with
+	auto-generated rules.
+
+2008-06-17  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* configure.ac: sinclude override.m4.
+	* configure: Regenerate.
+
+2008-06-11  Bernhard Fischer  <aldot@gcc.gnu.org>
+
+	* configure: Regenerate.
+
+2008-06-10  Joseph Myers  <joseph@codesourcery.com>
+
+	* Makefile.in (DECNUMINC): Remove
+	-I$(MULTIBUILDTOP)../../libdecnumber.
+	* gstdint.h: New.
+
+2008-06-07  Joseph Myers  <joseph@codesourcery.com>
+
+	* config.host (strongarm*-*-*, ep9312*-*-*, xscale-*-*,
+	parisc*-*-*, m680[012]0-*-*, *-*-linux*libc1*, *-*-linux*aout*,
+	alpha*-*-unicosmk*, strongarm*-*-freebsd*, ep9312-*-elf,
+	arm*-*-kaos*, cris-*-aout, parisc*64*-*-linux*, parisc*-*-linux*,
+	hppa1.1-*-pro*, hppa1.1-*-osf*, hppa1.1-*-bsd*,
+	i[34567]86-sequent-ptx4*, i[34567]86-sequent-sysv4*,
+	i[34567]86-*-beoself*, i[34567]86-*-beos*, i[34567]86-*-sco3.2v5*,
+	i[34567]86-*-sysv5*, i[34567]86-*-sysv4*, i[34567]86-*-uwin*,
+	i[34567]86-*-kaos*, m68020-*-elf*, m68010-*-netbsdelf*,
+	mips-wrs-windiss, mt-*-elf, powerpc-*-beos*, powerpc-*-chorusos*,
+	powerpc-wrs-windiss*, powerpcle-*-sysv*, powerpc-*-kaos*,
+	powerpcle-*-kaos*, sh*-*-kaos*, sparc-*-sysv4*, strongarm-*-elf*,
+	strongarm-*-pe, strongarm-*-kaos*, vax-*-bsd*, vax-*-sysv*,
+	vax-*-ultrix*, xscale-*-elf, xscale-*-coff): Remove.
+
+2008-05-25  Arthur Loiret  <arthur.loiret@u-psud.fr>
+
+	* config.host (sh2[lbe]*-*-linux*): Allow target.
+
 2008-04-30  Nathan Froyd  <froydnj@codesourcery.com>
 
 	* config/rs6000/t-ppccomm: Add build rules for new files.
@@ -32,8 +155,8 @@
 	    Paolo Bonzini  <bonzini@gnu.org>
 
 	PR target/30572
-	* Makefile.in: Use @shlib_slibdir@ substitution to get correct install name
-	on darwin.
+	* Makefile.in: Use @shlib_slibdir@ substitution to get
+	correct install name on darwin.
 	* config/t-slibgcc-darwin: Use @shlib_slibdir@ for -install_name.
 				
 2007-12-15  Hans-Peter Nilsson  <hp@axis.com>
@@ -137,7 +260,7 @@
 
 	* config/i386/t-crtpc: New file.
 	* config.host (i[34567]86-*-linux*): Add i386/t-crtpc to tm-file.
-        (x86_64-*-linux*): Ditto.
+	(x86_64-*-linux*): Ditto.
 
 2007-02-30  Kai Tietz  <kai.tietz@onevision.com>
 

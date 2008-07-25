@@ -1,5 +1,6 @@
 /* Optimization of PHI nodes by converting them into straightline code.
-   Copyright (C) 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
+   Copyright (C) 2004, 2005, 2006, 2007, 2008 Free Software Foundation,
+   Inc.
 
 This file is part of GCC.
 
@@ -1114,8 +1115,8 @@ static struct pointer_set_t *nontrap_set;
 static hashval_t
 name_to_bb_hash (const void *p)
 {
-  tree n = ((struct name_to_bb *)p)->ssa_name;
-  return htab_hash_pointer (n) ^ ((struct name_to_bb *)p)->store;
+  const_tree n = ((const struct name_to_bb *)p)->ssa_name;
+  return htab_hash_pointer (n) ^ ((const struct name_to_bb *)p)->store;
 }
 
 /* The equality function of *P1 and *P2.  SSA_NAMEs are shared, so
@@ -1129,7 +1130,7 @@ name_to_bb_eq (const void *p1, const void *p2)
   return n1->ssa_name == n2->ssa_name && n1->store == n2->store;
 }
 
-/* We see a the expression EXP in basic block BB.  If it's an interesting
+/* We see the expression EXP in basic block BB.  If it's an interesting
    expression (an INDIRECT_REF through an SSA_NAME) possibly insert the
    expression into the set NONTRAP or the hash table of seen expressions.
    STORE is true if this expression is on the LHS, otherwise it's on

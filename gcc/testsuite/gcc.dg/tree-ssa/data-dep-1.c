@@ -1,4 +1,5 @@
 /* { dg-do compile } */ 
+/* { dg-skip-if "too much code for avr" { "avr-*-*" } { "*" } { "" } } */
 /* { dg-options "-O2 -ftree-loop-linear -fdump-tree-ltrans-all" } */
 
 int foo (int n, int m)
@@ -24,5 +25,5 @@ int foo (int n, int m)
    outermost "k" loop: the 4 comes from the instantiation of the
    number of iterations of loop "j".  */
 
-/* { dg-final { scan-tree-dump-times "4, \\+, 1" 0 "ltrans" } } */ 
+/* { dg-final { scan-tree-dump-times "4, \\+, 1" 0 "ltrans" { xfail *-*-* } } } */ 
 /* { dg-final { cleanup-tree-dump "ltrans" } } */

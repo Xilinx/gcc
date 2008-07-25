@@ -111,7 +111,11 @@ struct simple_ipa_opt_pass pass_early_local_passes =
 static unsigned int
 execute_early_local_optimizations (void)
 {
-  if (flag_unit_at_a_time)
+  /* First time we start with early optimization we need to advance
+     cgraph state so newly inserted functions are also early optimized.
+     However we execute early local optimizations for lately inserted
+     functions, in that case don't reset cgraph state back to IPA_SSA.  */
+  if (flag_unit_at_a_time && cgraph_state < CGRAPH_STATE_IPA_SSA)
     cgraph_state = CGRAPH_STATE_IPA_SSA;
   return 0;
 }
@@ -337,20 +341,12 @@ execute_init_datastructures (void)
   return 0;
 }
 
-/* Gate: initialize or not the SSA datastructures.  */
-
-static bool
-gate_init_datastructures (void)
-{
-  return (optimize >= 1);
-}
-
 struct gimple_opt_pass pass_init_datastructures =
 {
  {
   GIMPLE_PASS,
   NULL,					/* name */
-  gate_init_datastructures,		/* gate */
+  NULL,					/* gate */
   execute_init_datastructures,		/* execute */
   NULL,					/* sub */
   NULL,					/* next */

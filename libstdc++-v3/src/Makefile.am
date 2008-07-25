@@ -143,7 +143,6 @@ sources = \
 	compatibility.cc \
 	complex_io.cc \
 	ctype.cc \
-	date_time.cc \
 	debug.cc \
 	functexcept.cc \
 	hash.cc \
@@ -187,6 +186,7 @@ sources = \
 	wstring-inst.cc \
 	mutex.cc \
 	condition_variable.cc \
+	chrono.cc \
 	${host_sources} \
 	${host_sources_extra} 
 
@@ -268,15 +268,25 @@ limits_c++0x.lo: limits_c++0x.cc
 limits_c++0x.o: limits_c++0x.cc
 	$(CXXCOMPILE) -std=gnu++0x -c $<
 
-date_time.lo: date_time.cc
-	$(LTCXXCOMPILE) -std=gnu++0x -c $<
-date_time.o: date_time.cc
-	$(CXXCOMPILE) -std=gnu++0x -c $<
-
 atomic.lo: atomic.cc
 	$(LTCXXCOMPILE) -x c++ -std=gnu++0x -c $<
 atomic.o: atomic.cc
 	$(CXXCOMPILE) -x c++ -std=gnu++0x -c $<
+
+string-inst.lo: string-inst.cc
+	$(LTCXXCOMPILE) -std=gnu++0x -c $<
+string-inst.o: string-inst.cc
+	$(CXXCOMPILE) -std=gnu++0x -c $<
+
+wstring-inst.lo: wstring-inst.cc
+	$(LTCXXCOMPILE) -std=gnu++0x -c $<
+wstring-inst.o: wstring-inst.cc
+	$(CXXCOMPILE) -std=gnu++0x -c $<
+
+chrono.lo: chrono.cc
+	$(LTCXXCOMPILE) -std=gnu++0x -c $<
+chrono.o: chrono.cc
+	$(CXXCOMPILE) -std=gnu++0x -c $<
 
 if GLIBCXX_LDBL_COMPAT
 # Use special rules for compatibility-ldbl.cc compilation, as we need to

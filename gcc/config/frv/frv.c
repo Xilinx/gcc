@@ -1682,7 +1682,7 @@ frv_frame_access (frv_frame_accessor_t *accessor, rtx reg, int stack_offset)
 	}
       else
 	emit_insn (gen_rtx_SET (VOIDmode, reg, mem));
-      emit_insn (gen_rtx_USE (VOIDmode, reg));
+      emit_use (reg);
     }
   else
     {
@@ -1946,7 +1946,7 @@ frv_expand_epilogue (bool emit_return)
   if (frame_pointer_needed)
     {
       emit_insn (gen_rtx_SET (VOIDmode, fp, gen_rtx_MEM (Pmode, fp)));
-      emit_insn (gen_rtx_USE (VOIDmode, fp));
+      emit_use (fp);
     }
 
   /* Deallocate the stack frame.  */
@@ -1972,7 +1972,7 @@ frv_expand_epilogue (bool emit_return)
 	  emit_move_insn (lr, return_addr);
 	}
 
-      emit_insn (gen_rtx_USE (VOIDmode, lr));
+      emit_use (lr);
     }
 }
 
@@ -5999,7 +5999,7 @@ frv_ifcvt_modify_insn (ce_if_block_t *ce_info,
 		goto fail;
 	    }
 
-	  frv_ifcvt_add_insn (gen_rtx_USE (VOIDmode, dest), insn, FALSE);
+	  frv_ifcvt_add_insn (gen_use (dest), insn, FALSE);
 	}
 
       /* If we are just loading a constant created for a nested conditional
@@ -6950,7 +6950,7 @@ frv_assemble_integer (rtx value, unsigned int size, int aligned_p)
 static struct machine_function *
 frv_init_machine_status (void)
 {
-  return ggc_alloc_cleared (sizeof (struct machine_function));
+  return GGC_CNEW (struct machine_function);
 }
 
 /* Implement TARGET_SCHED_ISSUE_RATE.  */
@@ -7525,7 +7525,8 @@ frv_sort_insn_group_1 (enum frv_insn_group group,
 static int
 frv_compare_insns (const void *first, const void *second)
 {
-  const rtx *insn1 = first, *insn2 = second;
+  const rtx *const insn1 = (rtx const *) first,
+    *const insn2 = (rtx const *) second;
   return frv_insn_unit (*insn1) - frv_insn_unit (*insn2);
 }
 
@@ -7758,7 +7759,7 @@ frv_extract_membar (struct frv_io *io, rtx insn)
 static void
 frv_io_check_address (rtx x, const_rtx pat ATTRIBUTE_UNUSED, void *data)
 {
-  rtx *other = data;
+  rtx *other = (rtx *) data;
 
   if (REG_P (x) && *other != 0 && reg_overlap_mentioned_p (x, *other))
     *other = 0;
@@ -7770,7 +7771,7 @@ frv_io_check_address (rtx x, const_rtx pat ATTRIBUTE_UNUSED, void *data)
 static void
 frv_io_handle_set (rtx x, const_rtx pat ATTRIBUTE_UNUSED, void *data)
 {
-  HARD_REG_SET *set = data;
+  HARD_REG_SET *set = (HARD_REG_SET *) data;
   unsigned int regno;
 
   if (REG_P (x))
@@ -7784,7 +7785,7 @@ frv_io_handle_set (rtx x, const_rtx pat ATTRIBUTE_UNUSED, void *data)
 static int
 frv_io_handle_use_1 (rtx *x, void *data)
 {
-  HARD_REG_SET *set = data;
+  HARD_REG_SET *set = (HARD_REG_SET *) data;
   unsigned int regno;
 
   if (REG_P (*x))
@@ -8005,8 +8006,8 @@ frv_optimize_membar (void)
   rtx *last_membar;
 
   compute_bb_for_insn ();
-  first_io = xcalloc (last_basic_block, sizeof (struct frv_io));
-  last_membar = xcalloc (last_basic_block, sizeof (rtx));
+  first_io = XCNEWVEC (struct frv_io, last_basic_block);
+  last_membar = XCNEWVEC (rtx, last_basic_block);
 
   FOR_EACH_BB (bb)
     frv_optimize_membar_local (bb, &first_io[bb->index],
@@ -9099,8 +9100,8 @@ frv_expand_mdpackh_builtin (tree call, rtx target)
 
   /* The high half of each word is not explicitly initialized, so indicate
      that the input operands are not live before this point.  */
-  emit_insn (gen_rtx_CLOBBER (DImode, op0));
-  emit_insn (gen_rtx_CLOBBER (DImode, op1));
+  emit_clobber (op0);
+  emit_clobber (op1);
 
   /* Move each argument into the low half of its associated input word.  */
   emit_move_insn (simplify_gen_subreg (HImode, op0, DImode, 2), arg1);

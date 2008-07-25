@@ -42,7 +42,7 @@ print_location (cpp_reader *pfile, source_location line, unsigned int col)
   else
     {
       const struct line_map *map;
-      unsigned int lin;
+      linenum_type lin;
 
       map = linemap_lookup (pfile->line_table, line);
       linemap_print_containing_files (pfile->line_table, map);
@@ -76,7 +76,7 @@ print_location (cpp_reader *pfile, source_location line, unsigned int col)
    big enough max_column_hint.)
 
    Returns 0 if the error has been suppressed.  */
-int
+static int
 _cpp_begin_message (cpp_reader *pfile, int code,
 		    source_location src_loc, unsigned int column)
 {

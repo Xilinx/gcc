@@ -49,7 +49,7 @@ along with GCC; see the file COPYING3.  If not see
 static bool vect_transform_stmt (tree, block_stmt_iterator *, bool *, slp_tree);
 static tree vect_create_destination_var (tree, tree);
 static tree vect_create_data_ref_ptr 
-  (tree, struct loop*, tree, tree *, tree *, bool, tree, bool *); 
+  (tree, struct loop*, tree, tree *, tree *, bool, bool *); 
 static tree vect_create_addr_base_for_vector_ref 
   (tree, tree *, tree, struct loop *);
 static tree vect_get_new_vect_var (tree, enum vect_var_kind, const char *);
@@ -216,7 +216,7 @@ vect_estimate_min_profitable_iters (loop_vec_info loop_vinfo)
   /* Add additional cost for the peeled instructions in prologue and epilogue
      loop.
 
-     FORNOW: If we dont know the value of peel_iters for prologue or epilogue
+     FORNOW: If we don't know the value of peel_iters for prologue or epilogue
      at compile-time - we assume it's vf/2 (the worst would be vf-1).
 
      TODO: Build an expression that represents peel_iters for prologue and
@@ -332,7 +332,7 @@ vect_estimate_min_profitable_iters (loop_vec_info loop_vinfo)
      branches.
 
      TODO: The back end may reorder the BBS's differently and reverse
-     conditions/branch directions.  Change the stimates below to
+     conditions/branch directions.  Change the estimates below to
      something more reasonable.  */
 
   if (runtime_test)
@@ -951,7 +951,6 @@ vect_create_addr_base_for_vector_ref (tree stmt,
         by the data-ref in STMT.
    4. ONLY_INIT: indicate if vp is to be updated in the loop, or remain
         pointing to the initial address.
-   5. TYPE: if not NULL indicates the required type of the data-ref
 
    Output:
    1. Declare a new ptr to vector_type, and have it point to the base of the
@@ -981,7 +980,7 @@ vect_create_addr_base_for_vector_ref (tree stmt,
 static tree
 vect_create_data_ref_ptr (tree stmt, struct loop *at_loop,
 			  tree offset, tree *initial_address, tree *ptr_incr,
-			  bool only_init, tree type, bool *inv_p)
+			  bool only_init, bool *inv_p)
 {
   tree base_name;
   stmt_vec_info stmt_info = vinfo_for_stmt (stmt);
@@ -1040,10 +1039,8 @@ vect_create_data_ref_ptr (tree stmt, struct loop *at_loop,
     }
 
   /** (1) Create the new vector-pointer variable:  **/
-  if (type)  
-    vect_ptr_type = build_pointer_type (type);
-  else
-    vect_ptr_type = build_pointer_type (vectype);
+  vect_ptr_type = build_pointer_type (vectype);
+
   vect_ptr = vect_get_new_vect_var (vect_ptr_type, vect_pointer_var,
                                     get_name (base_name));
   add_referenced_var (vect_ptr);
@@ -1392,7 +1389,7 @@ vect_get_constant_vectors (slp_tree slp_node, VEC(tree,heap) **vec_oprnds,
      created vectors. It is greater than 1 if unrolling is performed. 
 
      For example, we have two scalar operands, s1 and s2 (e.g., group of
-     strided accesses of size two), while NUINTS is four (i.e., four scalars
+     strided accesses of size two), while NUNITS is four (i.e., four scalars
      of this type can be packed in a vector). The output vector will contain
      two copies of each scalar operand: {s1, s2, s1, s2}. (NUMBER_OF_COPIES
      will be 2).
@@ -1400,7 +1397,7 @@ vect_get_constant_vectors (slp_tree slp_node, VEC(tree,heap) **vec_oprnds,
      If GROUP_SIZE > NUNITS, the scalars will be split into several vectors 
      containing the operands.
 
-     For example, NUINTS is four as before, and the group size is 8 
+     For example, NUNITS is four as before, and the group size is 8
      (s1, s2, ..., s8). We will create two vectors {s1, s2, s3, s4} and
      {s5, s6, s7, s8}.  */
     
@@ -4481,7 +4478,7 @@ vectorizable_type_promotion (tree stmt, block_stmt_iterator *bsi,
 
       /* Arguments are ready. Create the new vector stmt.  We are creating 
          two vector defs because the widened result does not fit in one vector.
-         The vectorized stmt can be expressed as a call to a taregt builtin,
+         The vectorized stmt can be expressed as a call to a target builtin,
          or a using a tree-code.  */
       /* Generate first half of the widened result:  */
       new_stmt = vect_gen_widened_results_half (code1, vectype_out, decl1, 
@@ -4756,6 +4753,24 @@ vectorizable_store (tree stmt, block_stmt_iterator *bsi, tree *vec_stmt,
       return false;
     }
 
+  /* If accesses through a pointer to vectype do not alias the original
+     memory reference we have a problem.  */
+  if (get_alias_set (vectype) != get_alias_set (TREE_TYPE (scalar_dest))
+      && !alias_set_subset_of (get_alias_set (vectype), 
+                               get_alias_set (TREE_TYPE (scalar_dest))))
+    {
+      if (vect_print_dump_info (REPORT_DETAILS))
+        fprintf (vect_dump, "vector type does not alias scalar type");
+      return false;
+    }
+
+  if (!useless_type_conversion_p (TREE_TYPE (op), TREE_TYPE (scalar_dest)))
+    {      
+      if (vect_print_dump_info (REPORT_DETAILS))
+        fprintf (vect_dump, "operands of different types");
+      return false;
+    }
+
   vec_mode = TYPE_MODE (vectype);
   /* FORNOW. In some cases can vectorize even if data-type not supported
      (e.g. - array initialization with 0).  */
@@ -4930,9 +4945,10 @@ vectorizable_store (tree stmt, block_stmt_iterator *bsi, tree *vec_stmt,
 		  next_stmt = DR_GROUP_NEXT_DR (vinfo_for_stmt (next_stmt));
 		}
 	    }
+
 	  dataref_ptr = vect_create_data_ref_ptr (first_stmt, NULL, NULL_TREE, 
-						  &dummy, &ptr_incr, false,
-						  TREE_TYPE (vec_oprnd), &inv_p);
+						  &dummy, &ptr_incr, false, 
+						  &inv_p);
 	  gcc_assert (!inv_p);
 	}
       else 
@@ -5170,7 +5186,7 @@ vect_setup_realignment (tree stmt, block_stmt_iterator *bsi,
       pe = loop_preheader_edge (loop_for_initial_load);
       vec_dest = vect_create_destination_var (scalar_dest, vectype);
       ptr = vect_create_data_ref_ptr (stmt, loop_for_initial_load, NULL_TREE,
-				&init_addr, &inc, true, NULL_TREE, &inv_p);
+				      &init_addr, &inc, true, &inv_p);
       data_ref = build1 (ALIGN_INDIRECT_REF, vectype, ptr);
       new_stmt = build_gimple_modify_stmt (vec_dest, data_ref);
       new_temp = make_ssa_name (vec_dest, new_stmt);
@@ -5473,12 +5489,14 @@ vect_transform_strided_load (tree stmt, VEC(tree,heap) *dr_chain, int size,
 	break;
 
       /* Skip the gaps. Loads created for the gaps will be removed by dead
-       code elimination pass later.
+       code elimination pass later. No need to check for the first stmt in
+       the group, since it always exists.
        DR_GROUP_GAP is the number of steps in elements from the previous
        access (if there is no gap DR_GROUP_GAP is 1). We skip loads that
        correspond to the gaps.
       */
-      if (gap_count < DR_GROUP_GAP (vinfo_for_stmt (next_stmt)))
+      if (next_stmt != first_stmt 
+          && gap_count < DR_GROUP_GAP (vinfo_for_stmt (next_stmt)))
       {
         gap_count++;
         continue;
@@ -5614,6 +5632,17 @@ vectorizable_load (tree stmt, block_stmt_iterator *bsi, tree *vec_stmt,
     {
       if (vect_print_dump_info (REPORT_DETAILS))
 	fprintf (vect_dump, "Aligned load, but unsupported type.");
+      return false;
+    }
+
+  /* If accesses through a pointer to vectype do not alias the original
+     memory reference we have a problem.  */
+  if (get_alias_set (vectype) != get_alias_set (scalar_type)
+      && !alias_set_subset_of (get_alias_set (vectype),
+                               get_alias_set (scalar_type)))
+    {
+      if (vect_print_dump_info (REPORT_DETAILS))
+        fprintf (vect_dump, "vector type does not alias scalar type");
       return false;
     }
 
@@ -5778,7 +5807,8 @@ vectorizable_load (tree stmt, block_stmt_iterator *bsi, tree *vec_stmt,
      nested within an outer-loop that is being vectorized.  */
 
   if (nested_in_vect_loop_p (loop, stmt)
-      && (TREE_INT_CST_LOW (DR_STEP (dr)) % UNITS_PER_SIMD_WORD != 0))
+      && (TREE_INT_CST_LOW (DR_STEP (dr))
+	  % GET_MODE_SIZE (TYPE_MODE (vectype)) != 0))
     {
       gcc_assert (alignment_support_scheme != dr_explicit_realign_optimized);
       compute_in_loop = true;
@@ -5808,7 +5838,7 @@ vectorizable_load (tree stmt, block_stmt_iterator *bsi, tree *vec_stmt,
         dataref_ptr = vect_create_data_ref_ptr (first_stmt,
 					        at_loop, offset, 
 						&dummy, &ptr_incr, false, 
-						NULL_TREE, &inv_p);
+						&inv_p);
       else
         dataref_ptr = 
 		bump_vector_ptr (dataref_ptr, ptr_incr, bsi, stmt, NULL_TREE);
@@ -6196,7 +6226,7 @@ vectorizable_condition (tree stmt, block_stmt_iterator *bsi, tree *vec_stmt)
   vec_then_clause = vect_get_vec_def_for_operand (then_clause, stmt, NULL);
   vec_else_clause = vect_get_vec_def_for_operand (else_clause, stmt, NULL);
 
-  /* Arguments are ready. create the new vector stmt.  */
+  /* Arguments are ready. Create the new vector stmt.  */
   vec_compare = build2 (TREE_CODE (cond_expr), vectype, 
 			vec_cond_lhs, vec_cond_rhs);
   vec_cond_expr = build3 (VEC_COND_EXPR, vectype, 
@@ -6695,16 +6725,14 @@ vect_do_peeling_for_loop_bound (loop_vec_info loop_vinfo, tree *ratio)
    Else, compute address misalignment in bytes:
      addr_mis = addr & (vectype_size - 1)
 
-   prolog_niters = min ( LOOP_NITERS , (VF - addr_mis/elem_size)&(VF-1) )
-   
-   (elem_size = element type size; an element is the scalar element 
-	whose type is the inner type of the vectype)  
+   prolog_niters = min (LOOP_NITERS, ((VF - addr_mis/elem_size)&(VF-1))/step)
 
-   For interleaving,
+   (elem_size = element type size; an element is the scalar element whose type
+   is the inner type of the vectype)
 
-   prolog_niters = min ( LOOP_NITERS , 
-                        (VF/group_size - addr_mis/elem_size)&(VF/group_size-1) )
-	 where group_size is the size of the interleaved group.
+   When the step of the data-ref in the loop is not 1 (as in interleaved data
+   and SLP), the number of iterations of the prolog must be divided by the step
+   (which is equal to the size of interleaved group).
 
    The above formulas assume that VF == number of elements in the vector. This
    may not hold when there are multiple-types in the loop.
@@ -6726,18 +6754,12 @@ vect_gen_niters_for_prolog_loop (loop_vec_info loop_vinfo, tree loop_niters)
   tree vectype = STMT_VINFO_VECTYPE (stmt_info);
   int vectype_align = TYPE_ALIGN (vectype) / BITS_PER_UNIT;
   tree niters_type = TREE_TYPE (loop_niters);
-  int group_size = 1;
+  int step = 1;
   int element_size = GET_MODE_SIZE (TYPE_MODE (TREE_TYPE (DR_REF (dr))));
   int nelements = TYPE_VECTOR_SUBPARTS (vectype);
 
   if (STMT_VINFO_STRIDED_ACCESS (stmt_info))
-    {
-      /* For interleaved access element size must be multiplied by the size of
-	 the interleaved group.  */
-      group_size = DR_GROUP_SIZE (vinfo_for_stmt (
-					       DR_GROUP_FIRST_DR (stmt_info)));
-      element_size *= group_size;
-    }
+    step = DR_GROUP_SIZE (vinfo_for_stmt (DR_GROUP_FIRST_DR (stmt_info)));
 
   pe = loop_preheader_edge (loop); 
 
@@ -6748,8 +6770,9 @@ vect_gen_niters_for_prolog_loop (loop_vec_info loop_vinfo, tree loop_niters)
 
       if (vect_print_dump_info (REPORT_DETAILS))
         fprintf (vect_dump, "known alignment = %d.", byte_misalign);
-      iters = build_int_cst (niters_type, 
-			     (nelements - elem_misalign)&(nelements/group_size-1));
+
+      iters = build_int_cst (niters_type,
+                     (((nelements - elem_misalign) & (nelements - 1)) / step));
     }
   else
     {

@@ -2396,7 +2396,8 @@ fold_convert_const (enum tree_code code, tree type, tree arg1)
   if (TREE_TYPE (arg1) == type)
     return arg1;
 
-  if (POINTER_TYPE_P (type) || INTEGRAL_TYPE_P (type))
+  if (POINTER_TYPE_P (type) || INTEGRAL_TYPE_P (type)
+      || TREE_CODE (type) == OFFSET_TYPE)
     {
       if (TREE_CODE (arg1) == INTEGER_CST)
 	return fold_convert_const_int_from_int (type, arg1);
@@ -5736,17 +5737,17 @@ extract_muldiv_1 (tree t, tree c, enum tree_code code, tree wide_type,
 	   || BINARY_CLASS_P (op0)
 	   || VL_EXP_CLASS_P (op0)
 	   || EXPRESSION_CLASS_P (op0))
-	  /* ... and is unsigned, and its type is smaller than ctype,
-	     then we cannot pass through as widening.  */
-	  && ((TYPE_UNSIGNED (TREE_TYPE (op0))
+	  /* ... and has wrapping overflow, and its type is smaller
+	     than ctype, then we cannot pass through as widening.  */
+	  && ((TYPE_OVERFLOW_WRAPS (TREE_TYPE (op0))
 	       && ! (TREE_CODE (TREE_TYPE (op0)) == INTEGER_TYPE
 		     && TYPE_IS_SIZETYPE (TREE_TYPE (op0)))
-	       && (GET_MODE_SIZE (TYPE_MODE (ctype))
-	           > GET_MODE_SIZE (TYPE_MODE (TREE_TYPE (op0)))))
+	       && (TYPE_PRECISION (ctype)
+	           > TYPE_PRECISION (TREE_TYPE (op0))))
 	      /* ... or this is a truncation (t is narrower than op0),
 		 then we cannot pass through this narrowing.  */
-	      || (GET_MODE_SIZE (TYPE_MODE (type))
-		  < GET_MODE_SIZE (TYPE_MODE (TREE_TYPE (op0))))
+	      || (TYPE_PRECISION (type)
+		  < TYPE_PRECISION (TREE_TYPE (op0)))
 	      /* ... or signedness changes for division or modulus,
 		 then we cannot pass through this conversion.  */
 	      || (code != MULT_EXPR
@@ -7866,7 +7867,10 @@ fold_unary (enum tree_code code, tree type, tree op0)
 
       /* Convert (T)(x & c) into (T)x & (T)c, if c is an integer
 	 constants (if x has signed type, the sign bit cannot be set
-	 in c).  This folds extension into the BIT_AND_EXPR.  */
+	 in c).  This folds extension into the BIT_AND_EXPR.
+	 ??? We don't do it for BOOLEAN_TYPE or ENUMERAL_TYPE because they
+	 very likely don't have maximal range for their precision and this
+	 transformation effectively doesn't preserve non-maximal ranges.  */
       if (TREE_CODE (type) == INTEGER_TYPE
 	  && TREE_CODE (op0) == BIT_AND_EXPR
 	  && TREE_CODE (TREE_OPERAND (op0, 1)) == INTEGER_CST)
@@ -11386,7 +11390,7 @@ fold_binary (enum tree_code code, tree type, tree op0, tree op1)
 	{
 	  if (strict_overflow_p)
 	    fold_overflow_warning (("assuming signed overflow does not occur "
-				    "when simplifying modulos"),
+				    "when simplifying modulus"),
 				   WARN_STRICT_OVERFLOW_MISC);
 	  return fold_convert (type, tem);
 	}
@@ -13114,6 +13118,13 @@ fold_ternary (enum tree_code code, tree type, tree op0, tree op1, tree op2)
 		return fold_convert (type, integer_zero_node);
 	    }
 	}
+
+      /* A bit-field-ref that referenced the full argument can be stripped.  */
+      if (INTEGRAL_TYPE_P (TREE_TYPE (arg0))
+	  && TYPE_PRECISION (TREE_TYPE (arg0)) == tree_low_cst (arg1, 1)
+	  && integer_zerop (op2))
+	return fold_convert (type, arg0);
+
       return NULL_TREE;
 
     default:
@@ -14071,11 +14082,6 @@ tree_single_nonnegative_warnv_p (tree t, bool *strict_overflow_p)
 
   switch (TREE_CODE (t))
     {
-    case SSA_NAME:
-      /* Query VRP to see if it has recorded any information about
-	 the range of this object.  */
-      return ssa_name_nonnegative_p (t);
-
     case INTEGER_CST:
       return tree_int_cst_sgn (t) >= 0;
 
@@ -14560,11 +14566,6 @@ tree_single_nonzero_warnv_p (tree t, bool *strict_overflow_p)
   bool sub_strict_overflow_p;
   switch (TREE_CODE (t))
     {
-    case SSA_NAME:
-      /* Query VRP to see if it has recorded any information about
-	 the range of this object.  */
-      return ssa_name_nonzero_p (t);
-
     case INTEGER_CST:
       return !integer_zerop (t);
 
@@ -14765,7 +14766,7 @@ fold_read_from_constant_string (tree exp)
 	     with constant folding.  (E.g. suppose the lower bound is 1,
 	     and its mode is QI.  Without the conversion,l (ARRAY
 	     +(INDEX-(unsigned char)1)) becomes ((ARRAY+(-(unsigned char)1))
-	     +INDEX), which becomes (ARRAY+255+INDEX).  Opps!)  */
+	     +INDEX), which becomes (ARRAY+255+INDEX).  Oops!)  */
 	  if (! integer_zerop (low_bound))
 	    index = size_diffop (index, fold_convert (sizetype, low_bound));
 

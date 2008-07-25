@@ -23,7 +23,6 @@ along with GCC; see the file COPYING3.  If not see
 #define GCC_DIAGNOSTIC_H
 
 #include "pretty-print.h"
-#include "varray.h"
 #include "options.h"
 
 /* Constants used to discriminate diagnostics.  */
@@ -184,9 +183,9 @@ extern diagnostic_context *global_dc;
 #define sorrycount diagnostic_kind_count (global_dc, DK_SORRY)
 
 /* Returns nonzero if warnings should be emitted.  */
-#define diagnostic_report_warnings_p()			\
+#define diagnostic_report_warnings_p(LOC)			\
   (!inhibit_warnings					\
-   && !(in_system_header && !warn_system_headers))
+   && !(in_system_header_at (LOC) && !warn_system_headers))
 
 #define report_diagnostic(D) diagnostic_report_diagnostic (global_dc, D)
 
@@ -216,15 +215,11 @@ extern char *diagnostic_build_prefix (diagnostic_info *);
 extern char *file_name_as_prefix (const char *);
 
 /* In tree-pretty-print.c  */
-extern void maybe_init_pretty_print (FILE *file);
 extern int dump_generic_node (pretty_printer *, tree, int, int, bool);
 extern void print_generic_stmt (FILE *, tree, int);
 extern void print_generic_stmt_indented (FILE *, tree, int, int);
 extern void print_generic_expr (FILE *, tree, int);
 extern void print_generic_decl (FILE *, tree, int);
-
-extern VEC (tree_chunk, heap) *lazy_dump_generic_node (tree, int, bool);
-extern void lazy_print_generic_expr (FILE *file, tree t, int flags);
 
 extern void debug_generic_expr (tree);
 extern void debug_generic_stmt (tree);

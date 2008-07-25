@@ -1,5 +1,6 @@
 /* Loop invariant motion.
-   Copyright (C) 2003, 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
+   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008 Free Software
+   Foundation, Inc.
    
 This file is part of GCC.
    
@@ -131,7 +132,7 @@ typedef struct mem_ref
   unsigned id;			/* ID assigned to the memory reference
 				   (its index in memory_accesses.refs_list)  */
   hashval_t hash;		/* Its hash value.  */
-  bitmap stored;		/* The set of loops in that this memory locatio
+  bitmap stored;		/* The set of loops in that this memory location
 				   is stored to.  */
   VEC (mem_ref_locs_p, heap) *accesses_in_loop;
 				/* The locations of the accesses.  Vector
@@ -570,7 +571,7 @@ outermost_indep_loop (struct loop *outer, struct loop *loop, mem_ref_p ref)
 }
 
 /* If there is a simple load or store to a memory reference in STMT, returns
-   the location of the memory reference, and sets IS_STORE accoring to whether
+   the location of the memory reference, and sets IS_STORE according to whether
    it is a store or load.  Otherwise, returns NULL.  */
 
 static tree *
@@ -618,7 +619,7 @@ mem_ref_in_stmt (tree stmt)
   gcc_assert (!store);
 
   hash = iterative_hash_expr (*mem, 0);
-  ref = htab_find_with_hash (memory_accesses.refs, *mem, hash);
+  ref = (mem_ref_p) htab_find_with_hash (memory_accesses.refs, *mem, hash);
 
   gcc_assert (ref != NULL);
   return ref;
@@ -1164,7 +1165,7 @@ force_move_till (tree ref, tree *index, void *data)
 static hashval_t
 memref_hash (const void *obj)
 {
-  const struct mem_ref *mem = obj;
+  const struct mem_ref *const mem = (const struct mem_ref *) obj;
 
   return mem->hash;
 }
@@ -1175,9 +1176,9 @@ memref_hash (const void *obj)
 static int
 memref_eq (const void *obj1, const void *obj2)
 {
-  const struct mem_ref *mem1 = obj1;
+  const struct mem_ref *const mem1 = (const struct mem_ref *) obj1;
 
-  return operand_equal_p (mem1->mem, (tree) obj2, 0);
+  return operand_equal_p (mem1->mem, (const_tree) obj2, 0);
 }
 
 /* Releases list of memory reference locations ACCS.  */
@@ -1202,7 +1203,7 @@ free_mem_ref_locs (mem_ref_locs_p accs)
 static void
 memref_free (void *obj)
 {
-  struct mem_ref *mem = obj;
+  struct mem_ref *const mem = (struct mem_ref *) obj;
   unsigned i;
   mem_ref_locs_p accs;
 
@@ -1321,7 +1322,7 @@ gather_mem_refs_stmt (struct loop *loop, tree stmt)
 
   if (*slot)
     {
-      ref = *slot;
+      ref = (mem_ref_p) *slot;
       id = ref->id;
     }
   else
@@ -1415,7 +1416,8 @@ struct vop_to_refs_elt
 static hashval_t
 vtoe_hash (const void *obj)
 {
-  const struct vop_to_refs_elt *vtoe = obj;
+  const struct vop_to_refs_elt *const vtoe =
+    (const struct vop_to_refs_elt *) obj;
 
   return vtoe->uid;
 }
@@ -1426,8 +1428,9 @@ vtoe_hash (const void *obj)
 static int
 vtoe_eq (const void *obj1, const void *obj2)
 {
-  const struct vop_to_refs_elt *vtoe = obj1;
-  const unsigned *uid = obj2;
+  const struct vop_to_refs_elt *const vtoe =
+    (const struct vop_to_refs_elt *) obj1;
+  const unsigned *const uid = (const unsigned *) obj2;
 
   return vtoe->uid == *uid;
 }
@@ -1437,7 +1440,8 @@ vtoe_eq (const void *obj1, const void *obj2)
 static void
 vtoe_free (void *obj)
 {
-  struct vop_to_refs_elt *vtoe = obj;
+  struct vop_to_refs_elt *const vtoe =
+    (struct vop_to_refs_elt *) obj;
 
   BITMAP_FREE (vtoe->refs_all);
   BITMAP_FREE (vtoe->refs_stored);
@@ -1462,7 +1466,7 @@ record_vop_access (htab_t vop_to_refs, unsigned vop, unsigned ref, bool stored)
       *slot = vtoe;
     }
   else
-    vtoe = *slot;
+    vtoe = (struct vop_to_refs_elt *) *slot;
 
   bitmap_set_bit (vtoe->refs_all, ref);
   if (stored)
@@ -1475,7 +1479,8 @@ record_vop_access (htab_t vop_to_refs, unsigned vop, unsigned ref, bool stored)
 static bitmap
 get_vop_accesses (htab_t vop_to_refs, unsigned vop)
 {
-  struct vop_to_refs_elt *vtoe = htab_find_with_hash (vop_to_refs, &vop, vop);
+  struct vop_to_refs_elt *const vtoe =
+    (struct vop_to_refs_elt *) htab_find_with_hash (vop_to_refs, &vop, vop);
   return vtoe->refs_all;
 }
 
@@ -1485,7 +1490,8 @@ get_vop_accesses (htab_t vop_to_refs, unsigned vop)
 static bitmap
 get_vop_stores (htab_t vop_to_refs, unsigned vop)
 {
-  struct vop_to_refs_elt *vtoe = htab_find_with_hash (vop_to_refs, &vop, vop);
+  struct vop_to_refs_elt *const vtoe =
+    (struct vop_to_refs_elt *) htab_find_with_hash (vop_to_refs, &vop, vop);
   return vtoe->refs_stored;
 }
 
@@ -1617,40 +1623,12 @@ mem_refs_may_alias_p (tree mem1, tree mem2, struct pointer_map_t **ttae_cache)
   /* Perform BASE + OFFSET analysis -- if MEM1 and MEM2 are based on the same
      object and their offset differ in such a way that the locations cannot
      overlap, then they cannot alias.  */
-  aff_tree off1, off2;
   double_int size1, size2;
-  tree base1, base2;
+  aff_tree off1, off2;
 
-  /* If MEM1 and MEM2 are based on different variables, they cannot alias.  */
-  base1 = get_base_address (mem1);
-  base2 = get_base_address (mem2);
-
-  if (base1
-      && !INDIRECT_REF_P (base1)
-      && base2
-      && !INDIRECT_REF_P (base2)
-      && !operand_equal_p (base1, base2, 0))
+  /* Perform basic offset and type-based disambiguation.  */
+  if (!refs_may_alias_p (mem1, mem2))
     return false;
-
-  /* With strict aliasing, it is impossible to access a scalar variable through
-     anything but a pointer dereference or through a union (gcc extension).  */
-  if (flag_strict_aliasing)
-    {
-      if (!INDIRECT_REF_P (mem1)
-	  && base1
-	  && TREE_CODE (TREE_TYPE (base1)) != UNION_TYPE
-	  && SSA_VAR_P (mem2)
-	  && !AGGREGATE_TYPE_P (TREE_TYPE (mem2)))
-	return false;
-      if (!INDIRECT_REF_P (mem2)
-	  && base2
-	  && TREE_CODE (TREE_TYPE (base2)) != UNION_TYPE
-	  && SSA_VAR_P (mem1)
-	  && !AGGREGATE_TYPE_P (TREE_TYPE (mem1)))
-	return false;
-      if (!alias_sets_conflict_p (get_alias_set (mem1), get_alias_set (mem2)))
-	return false;
-    }
 
   /* The expansion of addresses may be a bit expensive, thus we only do
      the check at -O2 and higher optimization levels.  */

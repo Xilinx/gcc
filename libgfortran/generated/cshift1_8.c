@@ -67,6 +67,7 @@ cshift1 (gfc_array_char * const restrict ret,
   index_type n;
   int which;
   GFC_INTEGER_8 sh;
+  index_type arraysize;
 
   if (pwhich)
     which = *pwhich - 1;
@@ -76,11 +77,13 @@ cshift1 (gfc_array_char * const restrict ret,
   if (which < 0 || (which + 1) > GFC_DESCRIPTOR_RANK (array))
     runtime_error ("Argument 'DIM' is out of range in call to 'CSHIFT'");
 
+  arraysize = size0 ((array_t *)array);
+
   if (ret->data == NULL)
     {
       int i;
 
-      ret->data = internal_malloc_size (size * size0 ((array_t *)array));
+      ret->data = internal_malloc_size (size * arraysize);
       ret->offset = 0;
       ret->dtype = array->dtype;
       for (i = 0; i < GFC_DESCRIPTOR_RANK (array); i++)
@@ -94,6 +97,9 @@ cshift1 (gfc_array_char * const restrict ret,
             ret->dim[i].stride = (ret->dim[i-1].ubound + 1) * ret->dim[i-1].stride;
         }
     }
+
+  if (arraysize == 0)
+    return;
 
   extent[0] = 1;
   count[0] = 0;
@@ -212,6 +218,7 @@ cshift1_8 (gfc_array_char * const restrict ret,
   cshift1 (ret, array, h, pwhich, GFC_DESCRIPTOR_SIZE (array));
 }
 
+
 void cshift1_8_char (gfc_array_char * const restrict ret, 
 	GFC_INTEGER_4,
 	const gfc_array_char * const restrict array,
@@ -229,6 +236,26 @@ cshift1_8_char (gfc_array_char * const restrict ret,
 	GFC_INTEGER_4 array_length)
 {
   cshift1 (ret, array, h, pwhich, array_length);
+}
+
+
+void cshift1_8_char4 (gfc_array_char * const restrict ret, 
+	GFC_INTEGER_4,
+	const gfc_array_char * const restrict array,
+	const gfc_array_i8 * const restrict h, 
+	const GFC_INTEGER_8 * const restrict pwhich,
+	GFC_INTEGER_4);
+export_proto(cshift1_8_char4);
+
+void
+cshift1_8_char4 (gfc_array_char * const restrict ret,
+	GFC_INTEGER_4 ret_length __attribute__((unused)),
+	const gfc_array_char * const restrict array,
+	const gfc_array_i8 * const restrict h, 
+	const GFC_INTEGER_8 * const restrict pwhich,
+	GFC_INTEGER_4 array_length)
+{
+  cshift1 (ret, array, h, pwhich, array_length * sizeof (gfc_char4_t));
 }
 
 #endif

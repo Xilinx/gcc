@@ -3427,7 +3427,7 @@ load_pic_register (bool delay_pic_helper)
   if (TARGET_VXWORKS_RTP)
     {
       emit_insn (gen_vxworks_load_got ());
-      emit_insn (gen_rtx_USE (VOIDmode, pic_offset_table_rtx));
+      emit_use (pic_offset_table_rtx);
       return;
     }
 
@@ -3457,7 +3457,7 @@ load_pic_register (bool delay_pic_helper)
      since setjmp/longjmp can cause life info to screw up.
      ??? In the case where we don't obey regdecls, this is not sufficient
      since we may not fall out the bottom.  */
-  emit_insn (gen_rtx_USE (VOIDmode, pic_offset_table_rtx));
+  emit_use (pic_offset_table_rtx);
 }
 
 /* Emit a call instruction with the pattern given by PAT.  ADDR is the
@@ -8848,7 +8848,7 @@ sparc_can_output_mi_thunk (const_tree thunk_fndecl ATTRIBUTE_UNUSED,
 static struct machine_function *
 sparc_init_machine_status (void)
 {
-  return ggc_alloc_cleared (sizeof (struct machine_function));
+  return GGC_CNEW (struct machine_function);
 }
 
 /* Locate some local-dynamic symbol still in use by this function

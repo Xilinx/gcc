@@ -469,13 +469,13 @@ perform_member_init (tree member, tree init)
 {
   tree decl;
   tree type = TREE_TYPE (member);
-  bool explicit;
+  bool is_explicit;
 
-  explicit = (init != NULL_TREE);
+  is_explicit = (init != NULL_TREE);
 
   /* Effective C++ rule 12 requires that all data members be
      initialized.  */
-  if (warn_ecpp && !explicit && TREE_CODE (type) != ARRAY_TYPE)
+  if (warn_ecpp && !is_explicit && TREE_CODE (type) != ARRAY_TYPE)
     warning (OPT_Weffc__, "%J%qD should be initialized in the member initialization "
 	     "list", current_function_decl, member);
 
@@ -503,7 +503,7 @@ perform_member_init (tree member, tree init)
     }
   else if (TYPE_NEEDS_CONSTRUCTING (type))
     {
-      if (explicit
+      if (is_explicit
 	  && TREE_CODE (type) == ARRAY_TYPE
 	  && init != NULL_TREE
 	  && TREE_CHAIN (init) == NULL_TREE
@@ -523,7 +523,7 @@ perform_member_init (tree member, tree init)
     {
       if (init == NULL_TREE)
 	{
-	  if (explicit)
+	  if (is_explicit)
 	    {
 	      init = build_default_init (type, /*nelts=*/NULL_TREE);
 	      if (TREE_CODE (type) == REFERENCE_TYPE)
@@ -533,11 +533,11 @@ perform_member_init (tree member, tree init)
 	    }
 	  /* member traversal: note it leaves init NULL */
 	  else if (TREE_CODE (type) == REFERENCE_TYPE)
-	    pedwarn ("%Juninitialized reference member %qD",
-		     current_function_decl, member);
+	    permerror ("%Juninitialized reference member %qD",
+		       current_function_decl, member);
 	  else if (CP_TYPE_CONST_P (type))
-	    pedwarn ("%Juninitialized member %qD with %<const%> type %qT",
-		     current_function_decl, member, type);
+	    permerror ("%Juninitialized member %qD with %<const%> type %qT",
+		       current_function_decl, member, type);
 	}
       else if (TREE_CODE (init) == TREE_LIST)
 	/* There was an explicit member initialization.  Do some work
@@ -1334,10 +1334,10 @@ expand_default_init (tree binfo, tree true_exp, tree exp, tree init, int flags,
 	   to run a new constructor; and catching an exception, where we
 	   have already built up the constructor call so we could wrap it
 	   in an exception region.  */;
-      else if (BRACE_ENCLOSED_INITIALIZER_P (init))
+      else if (BRACE_ENCLOSED_INITIALIZER_P (init)
+	       && CP_AGGREGATE_TYPE_P (type))
 	{
 	  /* A brace-enclosed initializer for an aggregate.  */
-	  gcc_assert (CP_AGGREGATE_TYPE_P (type));
 	  init = digest_init (type, init);
 	}
       else
@@ -1578,7 +1578,7 @@ build_offset_ref (tree type, tree member, bool address_p)
 	   a class derived from that class (_class.base.init_).  */
       if (DECL_NONSTATIC_MEMBER_FUNCTION_P (member))
 	{
-	  /* Build a representation of a the qualified name suitable
+	  /* Build a representation of the qualified name suitable
 	     for use as the operand to "&" -- even though the "&" is
 	     not actually present.  */
 	  member = build2 (OFFSET_REF, TREE_TYPE (member), decl, member);
@@ -2158,7 +2158,7 @@ build_new_1 (tree placement, tree type, tree nelts, tree init,
 	  else if (init)
             {
               if (complain & tf_error)
-                pedwarn ("ISO C++ forbids initialization in array new");
+                permerror ("ISO C++ forbids initialization in array new");
               else
                 return error_mark_node;
             }
@@ -2370,7 +2370,7 @@ build_new (tree placement, tree type, tree nelts, tree init,
       if (!build_expr_type_conversion (WANT_INT | WANT_ENUM, nelts, false))
         {
           if (complain & tf_error)
-            pedwarn ("size in array new must have integral type");
+            permerror ("size in array new must have integral type");
           else
             return error_mark_node;
         }

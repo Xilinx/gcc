@@ -34,7 +34,10 @@ along with GCC; see the file COPYING3.  If not see
 #endif
 
 #undef TARGET_64BIT_MS_ABI
-#define TARGET_64BIT_MS_ABI TARGET_64BIT
+#define TARGET_64BIT_MS_ABI (!cfun ? DEFAULT_ABI == MS_ABI : TARGET_64BIT && cfun->machine->call_abi == MS_ABI)
+
+#undef DEFAULT_ABI
+#define DEFAULT_ABI (TARGET_64BIT ? MS_ABI : SYSV_ABI)
 
 #undef DBX_REGISTER_NUMBER
 #define DBX_REGISTER_NUMBER(n)				\
@@ -67,8 +70,6 @@ along with GCC; see the file COPYING3.  If not see
 
 #include <stdio.h>
 
-#define MAYBE_UWIN_CPP_BUILTINS() /* Nothing.  */
-
 #define TARGET_OS_CPP_BUILTINS()					\
   do									\
     {									\
@@ -87,7 +88,6 @@ along with GCC; see the file COPYING3.  If not see
 	    to compare typeinfo symbols across dll boundaries.  */	\
 	builtin_define ("__GXX_MERGED_TYPEINFO_NAMES=0");		\
 	builtin_define ("__GXX_TYPEINFO_EQUALITY_INLINE=0");		\
-	MAYBE_UWIN_CPP_BUILTINS ();					\
 	EXTRA_OS_CPP_BUILTINS ();					\
   }									\
   while (0)
@@ -122,18 +122,6 @@ along with GCC; see the file COPYING3.  If not see
 /* Windows64 continues to use a 32-bit long type.  */
 #undef LONG_TYPE_SIZE
 #define LONG_TYPE_SIZE 32
-
-#undef REG_PARM_STACK_SPACE
-#define REG_PARM_STACK_SPACE(FNDECL) (TARGET_64BIT_MS_ABI ? 32 : 0)
-
-#undef OUTGOING_REG_PARM_STACK_SPACE
-#define OUTGOING_REG_PARM_STACK_SPACE(FNTYPE) (TARGET_64BIT_MS_ABI ? 1 : 0)
-
-#undef REGPARM_MAX
-#define REGPARM_MAX (TARGET_64BIT_MS_ABI ? 4 : 3)
-
-#undef SSE_REGPARM_MAX
-#define SSE_REGPARM_MAX (TARGET_64BIT_MS_ABI ? 4 : TARGET_SSE ? 3 : 0)
 
 /* Enable parsing of #pragma pack(push,<n>) and #pragma pack(pop).  */
 #define HANDLE_PRAGMA_PACK_PUSH_POP 1
@@ -199,12 +187,12 @@ do {							\
 
 /* Output a reference to a label. Fastcall function symbols
    keep their '@' prefix, while other symbols are prefixed
-   with USER_LABEL_PREFIX.  */
+   with user_label_prefix.  */
 #undef ASM_OUTPUT_LABELREF
 #define  ASM_OUTPUT_LABELREF(STREAM, NAME)	\
 do {						\
   if ((NAME)[0] != FASTCALL_PREFIX)		\
-    fputs (USER_LABEL_PREFIX, (STREAM));	\
+    fputs (user_label_prefix, (STREAM));	\
   fputs ((NAME), (STREAM));			\
 } while (0)
 
@@ -214,7 +202,7 @@ do {						\
 #define CHECK_STACK_LIMIT 4000
 
 #undef STACK_BOUNDARY
-#define STACK_BOUNDARY	(TARGET_64BIT_MS_ABI ? 128 : BITS_PER_WORD)
+#define STACK_BOUNDARY	(DEFAULT_ABI == MS_ABI ? 128 : BITS_PER_WORD)
 
 /* By default, target has a 80387, uses IEEE compatible arithmetic,
    returns float values in the 387 and needs stack probes.
@@ -224,6 +212,10 @@ do {						\
 #define TARGET_SUBTARGET_DEFAULT \
 	(MASK_80387 | MASK_IEEE_FP | MASK_FLOAT_RETURNS \
 	 | MASK_STACK_PROBE | MASK_ALIGN_DOUBLE)
+
+#undef TARGET_SUBTARGET64_DEFAULT
+#define TARGET_SUBTARGET64_DEFAULT \
+	MASK_128BIT_LONG_DOUBLE
 
 /* This is how to output an assembler line
    that says to advance the location counter

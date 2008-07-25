@@ -195,6 +195,10 @@ Wendif-labels
 C ObjC C++ ObjC++ Warning
 Warn about stray tokens after #elif and #endif
 
+Wenum-compare
+C++ ObjC++ Var(warn_enum_compare) Init(1) Warning
+Warn about comparison of different enum types
+
 Werror
 C ObjC C++ ObjC++
 ; Documented in common.opt
@@ -258,8 +262,7 @@ C ObjC Var(warn_implicit_int) Warning
 Warn when a declaration does not specify a type
 
 Wimport
-C ObjC C++ ObjC++
-Deprecated.  This switch has no effect
+C ObjC C++ ObjC++ Undocumented
 
 Wint-to-pointer-cast
 C ObjC Var(warn_int_to_pointer_cast) Init(1) Warning
@@ -676,7 +679,7 @@ Enable OpenMP
 
 foperator-names
 C++ ObjC++
-Recognize C++ kewords like \"compl\" and \"xor\"
+Recognize C++ keywords like \"compl\" and \"xor\"
 
 foptional-diags
 C++ ObjC++
@@ -863,9 +866,6 @@ C ObjC C++ ObjC++ Joined Separate
 -iwithprefixbefore <dir>	Add <dir> to the end of the main include path
 
 lang-asm
-C Undocumented
-
-lang-fortran
 C Undocumented
 
 lang-objc

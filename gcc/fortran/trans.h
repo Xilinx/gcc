@@ -1,5 +1,5 @@
 /* Header for code translation functions
-   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007 Free Software
+   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008 Free Software
    Foundation, Inc.
    Contributed by Paul Brook
 
@@ -137,7 +137,7 @@ typedef enum
   /* A non-elemental function call returning an array.  The call is executed
      before entering the scalarization loop, storing the result in a
      temporary.  This temporary is then used inside the scalarization loop.
-     Simple assignments, eg. a(:) = fn() are handles without a temporary
+     Simple assignments, e.g. a(:) = fn(), are handled without a temporary
      as a special case.  */
   GFC_SS_FUNCTION,
 
@@ -206,7 +206,7 @@ typedef struct gfc_ss
   unsigned useflags:2, where:1;
 }
 gfc_ss;
-#define gfc_get_ss() gfc_getmem(sizeof(gfc_ss))
+#define gfc_get_ss() XCNEW (gfc_ss)
 
 /* The contents of this aren't actually used.  A NULL SS chain indicates a
    scalar expression, so this pointer is used to terminate SS chains.  */
@@ -493,9 +493,13 @@ bool gfc_get_array_descr_info (const_tree, struct array_descr_info *);
 /* In trans-openmp.c */
 bool gfc_omp_privatize_by_reference (const_tree);
 enum omp_clause_default_kind gfc_omp_predetermined_sharing (tree);
-tree gfc_omp_clause_default_ctor (tree, tree);
+tree gfc_omp_clause_default_ctor (tree, tree, tree);
+tree gfc_omp_clause_copy_ctor (tree, tree, tree);
+tree gfc_omp_clause_assign_op (tree, tree, tree);
+tree gfc_omp_clause_dtor (tree, tree);
 bool gfc_omp_disregard_value_expr (tree, bool);
 bool gfc_omp_private_debug_clause (tree, bool);
+bool gfc_omp_private_outer_ref (tree);
 struct gimplify_omp_ctx;
 void gfc_omp_firstprivatize_type_sizes (struct gimplify_omp_ctx *, tree);
 
@@ -650,7 +654,7 @@ struct lang_decl		GTY(())
 #define GFC_TYPE_ARRAY_SIZE(node) (TYPE_LANG_SPECIFIC(node)->size)
 #define GFC_TYPE_ARRAY_OFFSET(node) (TYPE_LANG_SPECIFIC(node)->offset)
 #define GFC_TYPE_ARRAY_AKIND(node) (TYPE_LANG_SPECIFIC(node)->akind)
-/* Code should use gfc_get_dtype instead of accesing this directly.  It may
+/* Code should use gfc_get_dtype instead of accessing this directly.  It may
    not be known when the type is created.  */
 #define GFC_TYPE_ARRAY_DTYPE(node) (TYPE_LANG_SPECIFIC(node)->dtype)
 #define GFC_TYPE_ARRAY_DATAPTR_TYPE(node) \
@@ -706,7 +710,7 @@ typedef struct gfc_interface_sym_mapping
 {
   struct gfc_interface_sym_mapping *next;
   gfc_symbol *old;
-  gfc_symtree *new;
+  gfc_symtree *new_sym;
   gfc_expr *expr;
 }
 gfc_interface_sym_mapping;

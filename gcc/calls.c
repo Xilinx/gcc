@@ -377,8 +377,7 @@ emit_call_1 (rtx funexp, tree fntree, tree fndecl ATTRIBUTE_UNUSED,
   /* If this call can't throw, attach a REG_EH_REGION reg note to that
      effect.  */
   if (ecf_flags & ECF_NOTHROW)
-    REG_NOTES (call_insn) = gen_rtx_EXPR_LIST (REG_EH_REGION, const0_rtx,
-					       REG_NOTES (call_insn));
+    add_reg_note (call_insn, REG_EH_REGION, const0_rtx);
   else
     {
       int rn = lookup_stmt_eh_region (fntree);
@@ -386,18 +385,15 @@ emit_call_1 (rtx funexp, tree fntree, tree fndecl ATTRIBUTE_UNUSED,
       /* If rn < 0, then either (1) tree-ssa not used or (2) doesn't
 	 throw, which we already took care of.  */
       if (rn > 0)
-	REG_NOTES (call_insn) = gen_rtx_EXPR_LIST (REG_EH_REGION, GEN_INT (rn),
-						   REG_NOTES (call_insn));
+	add_reg_note (call_insn, REG_EH_REGION, GEN_INT (rn));
     }
 
   if (ecf_flags & ECF_NORETURN)
-    REG_NOTES (call_insn) = gen_rtx_EXPR_LIST (REG_NORETURN, const0_rtx,
-					       REG_NOTES (call_insn));
+    add_reg_note (call_insn, REG_NORETURN, const0_rtx);
 
   if (ecf_flags & ECF_RETURNS_TWICE)
     {
-      REG_NOTES (call_insn) = gen_rtx_EXPR_LIST (REG_SETJMP, const0_rtx,
-						 REG_NOTES (call_insn));
+      add_reg_note (call_insn, REG_SETJMP, const0_rtx);
       cfun->calls_setjmp = 1;
     }
 
@@ -2214,7 +2210,7 @@ expand_call (tree exp, rtx target, int ignore)
     n_named_args = num_actuals;
 
   /* Make a vector to hold all the information about each arg.  */
-  args = alloca (num_actuals * sizeof (struct arg_data));
+  args = XALLOCAVEC (struct arg_data, num_actuals);
   memset (args, 0, num_actuals * sizeof (struct arg_data));
 
   /* Build up entries in the ARGS array, compute the size of the
@@ -2298,11 +2294,9 @@ expand_call (tree exp, rtx target, int ignore)
       || !lang_hooks.decls.ok_for_sibcall (fndecl))
     try_tail_call = 0;
 
-  /* Ensure current function's preferred stack boundary is at least
-     what we need.  We don't have to increase alignment for recursive
-     functions.  */
-  if (crtl->preferred_stack_boundary < preferred_stack_boundary
-      && fndecl != current_function_decl)
+  /* Ensure current function's preferred stack
+     boundary is at least what we need.  */
+  if (crtl->preferred_stack_boundary < preferred_stack_boundary)
     crtl->preferred_stack_boundary = preferred_stack_boundary;
 
   preferred_unit_stack_boundary = preferred_stack_boundary / BITS_PER_UNIT;
@@ -2816,8 +2810,7 @@ expand_call (tree exp, rtx target, int ignore)
 	  /* The return value from a malloc-like function can not alias
 	     anything else.  */
 	  last = get_last_insn ();
-	  REG_NOTES (last) =
-	    gen_rtx_EXPR_LIST (REG_NOALIAS, temp, REG_NOTES (last));
+	  add_reg_note (last, REG_NOALIAS, temp);
 
 	  /* Write out the sequence.  */
 	  insns = get_insns ();
@@ -3318,7 +3311,7 @@ emit_library_call_value_1 (int retval, rtx orgfun, rtx value,
      of the full argument passing conventions to limit complexity here since
      library functions shouldn't have many args.  */
 
-  argvec = alloca ((nargs + 1) * sizeof (struct arg));
+  argvec = XALLOCAVEC (struct arg, nargs + 1);
   memset (argvec, 0, (nargs + 1) * sizeof (struct arg));
 
 #ifdef INIT_CUMULATIVE_LIBCALL_ARGS

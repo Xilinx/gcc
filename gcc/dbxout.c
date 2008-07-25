@@ -996,7 +996,7 @@ dbxout_init (const char *input_file_name)
   const char *mapped_name;
 
   typevec_len = 100;
-  typevec = ggc_calloc (typevec_len, sizeof typevec[0]);
+  typevec = GGC_CNEWVEC (struct typeinfo, typevec_len);
 
   /* stabstr_ob contains one string, which will be just fine with
      1-byte alignment.  */
@@ -1709,8 +1709,7 @@ dbxout_type (tree type, int full)
 
       if (next_type_number == typevec_len)
 	{
-	  typevec
-	    = ggc_realloc (typevec, (typevec_len * 2 * sizeof typevec[0]));
+	  typevec = GGC_RESIZEVEC (struct typeinfo, typevec, typevec_len * 2);
 	  memset (typevec + typevec_len, 0, typevec_len * sizeof typevec[0]);
 	  typevec_len *= 2;
 	}
@@ -2334,7 +2333,7 @@ dbxout_class_name_qualifiers (tree decl)
 
 /* This is a specialized subset of expand_expr for use by dbxout_symbol in
    evaluating DECL_VALUE_EXPR.  In particular, we stop if we find decls that
-   havn't been expanded, or if the expression is getting so complex we won't
+   haven't been expanded, or if the expression is getting so complex we won't
    be able to represent it in stabs anyway.  Returns NULL on failure.  */
 
 static rtx
@@ -2404,8 +2403,8 @@ dbxout_expand_expr (tree expr)
 static int
 output_used_types_helper (void **slot, void *data)
 {
-  tree type = *slot;
-  VEC(tree, heap) **types_p = data;
+  tree type = (tree) *slot;
+  VEC(tree, heap) **types_p = (VEC(tree, heap) **) data;
 
   if ((TREE_CODE (type) == RECORD_TYPE
        || TREE_CODE (type) == UNION_TYPE
@@ -2500,7 +2499,7 @@ dbxout_symbol (tree decl, int local ATTRIBUTE_UNUSED)
 
   /* If we are to generate only the symbols actually used then such
      symbol nodes are flagged with TREE_USED.  Ignore any that
-     aren't flaged as TREE_USED.  */
+     aren't flagged as TREE_USED.  */
 
   if (flag_debug_only_used_symbols
       && (!TREE_USED (decl)

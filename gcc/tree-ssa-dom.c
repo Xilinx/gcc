@@ -1,5 +1,5 @@
 /* SSA Dominator optimizations for trees
-   Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007
+   Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
    Free Software Foundation, Inc.
    Contributed by Diego Novillo <dnovillo@redhat.com>
 
@@ -283,7 +283,7 @@ tree_ssa_dominator_optimize (void)
   loop_optimizer_init (LOOPS_HAVE_SIMPLE_LATCHES);
 
   /* We need accurate information regarding back edges in the CFG
-     for jump threading; this may include back edes that are not part of
+     for jump threading; this may include back edges that are not part of
      a single loop.  */
   mark_dfs_back_edges ();
       
@@ -610,7 +610,7 @@ dom_opt_finalize_block (struct dom_walk_data *walk_data, basic_block bb)
 
 
   /* If we have an outgoing edge to a block with multiple incoming and
-     outgoing edges, then we may be able to thread the edge.  ie, we
+     outgoing edges, then we may be able to thread the edge, i.e., we
      may be able to statically determine which of the outgoing edges
      will be traversed when the incoming edge from BB is traversed.  */
   if (single_succ_p (bb)
@@ -1163,7 +1163,7 @@ record_equality (tree x, tree y)
     prev_x = x, x = y, y = prev_x, prev_x = prev_y;
   else if (prev_x && is_gimple_min_invariant (prev_x))
     x = y, y = prev_x, prev_x = prev_y;
-  else if (prev_y && TREE_CODE (prev_y) != VALUE_HANDLE)
+  else if (prev_y)
     y = prev_y;
 
   /* After the swapping, we must have one SSA_NAME.  */
@@ -1360,7 +1360,7 @@ record_edge_info (basic_block bb)
 	      tree op1 = TREE_OPERAND (cond, 1);
 
 	      /* Special case comparing booleans against a constant as we
-		 know the value of OP0 on both arms of the branch.  i.e., we
+		 know the value of OP0 on both arms of the branch, i.e., we
 		 can record an equivalence for OP0 rather than COND.  */
 	      if ((TREE_CODE (cond) == EQ_EXPR || TREE_CODE (cond) == NE_EXPR)
 		  && TREE_CODE (op0) == SSA_NAME
@@ -1629,7 +1629,7 @@ cprop_operand (tree stmt, use_operand_p op_p)
      copy of some other variable, use the value or copy stored in
      CONST_AND_COPIES.  */
   val = SSA_NAME_VALUE (op);
-  if (val && val != op && TREE_CODE (val) != VALUE_HANDLE)
+  if (val && val != op)
     {
       tree op_type, val_type;
 
@@ -1969,7 +1969,7 @@ lookup_avail_expr (tree stmt, bool insert)
   if (TREE_CODE (lhs) == SSA_NAME)
     {
       temp = SSA_NAME_VALUE (lhs);
-      if (temp && TREE_CODE (temp) != VALUE_HANDLE)
+      if (temp)
 	lhs = temp;
     }
 

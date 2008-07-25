@@ -1,6 +1,6 @@
 /* Top level of GCC compilers (cc1, cc1plus, etc.)
    Copyright (C) 1987, 1988, 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -346,7 +346,7 @@ set_pass_for_id (int id, struct opt_pass *pass)
   pass->static_pass_number = id;
   if (passes_by_id_size <= id)
     {
-      passes_by_id = xrealloc (passes_by_id, (id + 1) * sizeof (void *));
+      passes_by_id = XRESIZEVEC (struct opt_pass *, passes_by_id, id + 1);
       memset (passes_by_id + passes_by_id_size, 0,
 	      (id + 1 - passes_by_id_size) * sizeof (void *));
       passes_by_id_size = id + 1;
@@ -449,7 +449,7 @@ next_pass_1 (struct opt_pass **list, struct opt_pass *pass)
     {
       struct opt_pass *new;
 
-      new = xmalloc (sizeof (*new));
+      new = XNEW (struct opt_pass);
       memcpy (new, pass, sizeof (*new));
       new->next = NULL;
 
@@ -510,14 +510,12 @@ init_optimization_passes (void)
     by these passes.  */
   p = &all_lowering_passes;
   NEXT_PASS (pass_remove_useless_stmts);
-  NEXT_PASS (pass_bounds_early);
   NEXT_PASS (pass_mudflap_1);
   NEXT_PASS (pass_lower_omp);
   NEXT_PASS (pass_lower_cf);
   NEXT_PASS (pass_refactor_eh);
   NEXT_PASS (pass_lower_eh);
   NEXT_PASS (pass_build_cfg);
-  NEXT_PASS (pass_check);
   NEXT_PASS (pass_lower_complex_O0);
   NEXT_PASS (pass_lower_vector);
   NEXT_PASS (pass_warn_function_return);
@@ -544,13 +542,13 @@ init_optimization_passes (void)
       NEXT_PASS (pass_cleanup_cfg);
       NEXT_PASS (pass_init_datastructures);
       NEXT_PASS (pass_expand_omp);
+
+      NEXT_PASS (pass_referenced_vars);
+      NEXT_PASS (pass_reset_cc_flags);
+      NEXT_PASS (pass_build_ssa);
       NEXT_PASS (pass_all_early_optimizations);
 	{
 	  struct opt_pass **p = &pass_all_early_optimizations.pass.sub;
-	  NEXT_PASS (pass_referenced_vars);
-	  NEXT_PASS (pass_reset_cc_flags);
-	  NEXT_PASS (pass_build_ssa);
-	  NEXT_PASS (pass_expand_omp_ssa);
 	  NEXT_PASS (pass_early_warn_uninitialized);
 	  NEXT_PASS (pass_rebuild_cgraph_edges);
 	  NEXT_PASS (pass_early_inline);
@@ -564,12 +562,21 @@ init_optimization_passes (void)
 	  NEXT_PASS (pass_copy_prop);
 	  NEXT_PASS (pass_merge_phi);
 	  NEXT_PASS (pass_dce);
+          /* Ideally the function call conditional 
+             dead code elimination phase can be delayed
+             till later where potentially more opportunities
+             can be found.  Due to lack of good ways to
+             update VDEFs associated with the shrink-wrapped
+             calls, it is better to do the transformation
+             here where memory SSA is not built yet.  */
+	  NEXT_PASS (pass_call_cdce);
 	  NEXT_PASS (pass_update_address_taken);
 	  NEXT_PASS (pass_simple_dse);
 	  NEXT_PASS (pass_tail_recursion);
+	  NEXT_PASS (pass_convert_switch);
           NEXT_PASS (pass_profile);
-	  NEXT_PASS (pass_release_ssa_names);
 	}
+      NEXT_PASS (pass_release_ssa_names);
       NEXT_PASS (pass_rebuild_cgraph_edges);
     }
   NEXT_PASS (pass_ipa_increase_alignment);
@@ -709,15 +716,15 @@ init_optimization_passes (void)
       NEXT_PASS (pass_tail_calls);
       NEXT_PASS (pass_rename_ssa_copies);
       NEXT_PASS (pass_uncprop);
-      NEXT_PASS (pass_del_ssa);
-      NEXT_PASS (pass_nrv);
-      NEXT_PASS (pass_mark_used_blocks);
-      NEXT_PASS (pass_cleanup_cfg_post_optimizing);
     }
+  NEXT_PASS (pass_del_ssa);
+  NEXT_PASS (pass_nrv);
+  NEXT_PASS (pass_mark_used_blocks);
+  NEXT_PASS (pass_cleanup_cfg_post_optimizing);
+
   NEXT_PASS (pass_warn_function_noreturn);
   NEXT_PASS (pass_free_datastructures);
   NEXT_PASS (pass_mudflap_2);
-  NEXT_PASS (pass_bounds_late);
   NEXT_PASS (pass_free_cfg_annotations);
   NEXT_PASS (pass_expand);
   NEXT_PASS (pass_rest_of_compilation);
@@ -883,7 +890,7 @@ do_per_function_toporder (void (*callback) (void *data), void *data)
   else
     {
       gcc_assert (!order);
-      order = ggc_alloc (sizeof (*order) * cgraph_n_nodes);
+      order = GGC_NEWVEC (struct cgraph_node *, cgraph_n_nodes);
       nnodes = cgraph_postorder (order);
       for (i = nnodes - 1; i >= 0; i--)
 	{
@@ -1149,7 +1156,7 @@ pass_fini_dump_file (struct opt_pass *pass)
 static void
 update_properties_after_pass (void *data)
 {
-  struct opt_pass *pass = data;
+  struct opt_pass *pass = (struct opt_pass *) data;
   cfun->curr_properties = (cfun->curr_properties | pass->properties_provided)
 		           & ~pass->properties_destroyed;
 }
@@ -1235,7 +1242,7 @@ execute_one_pass (struct opt_pass *pass)
   unsigned int todo_after = 0;
 
   /* IPA passes are executed on whole program, so cfun should be NULL.
-     Ohter passes needs function context set.  */
+     Other passes need function context set.  */
   if (pass->type == SIMPLE_IPA_PASS || pass->type == IPA_PASS)
     gcc_assert (!cfun && !current_function_decl);
   else
@@ -1366,8 +1373,6 @@ execute_ipa_pass_list (struct opt_pass *pass)
 	    }
 	  summaries_generated = true;
 	}
-      else
-	summaries_generated = false;
       if (execute_one_pass (pass) && pass->sub)
 	{
 	  if (pass->sub->type == GIMPLE_PASS)

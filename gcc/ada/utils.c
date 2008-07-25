@@ -95,7 +95,7 @@ static tree handle_type_generic_attribute (tree *, tree, tree, int, bool *);
 static tree fake_attribute_handler      (tree *, tree, tree, int, bool *);
 
 /* Table of machine-independent internal attributes for Ada.  We support
-   this minimal set ot attributes to accomodate the needs of builtins.  */
+   this minimal set of attributes to accommodate the needs of builtins.  */
 const struct attribute_spec gnat_internal_attribute_table[] =
 {
   /* { name, min_len, max_len, decl_req, type_req, fn_type_req, handler } */
@@ -418,9 +418,11 @@ gnat_poplevel ()
 void
 gnat_pushdecl (tree decl, Node_Id gnat_node)
 {
-  /* If at top level, there is no context. But PARM_DECLs always go in the
-     level of its function.  */
-  if (global_bindings_p () && TREE_CODE (decl) != PARM_DECL)
+  /* If this decl is public external or at toplevel, there is no context.
+     But PARM_DECLs always go in the level of its function.  */
+  if (TREE_CODE (decl) != PARM_DECL
+      && ((DECL_EXTERNAL (decl) && TREE_PUBLIC (decl))
+	  || global_bindings_p ()))
     DECL_CONTEXT (decl) = 0;
   else
     {
@@ -1059,6 +1061,8 @@ rest_of_record_type_compilation (tree record_type)
       TYPE_SIZE_UNIT (new_record_type)
 	= size_int (TYPE_ALIGN (record_type) / BITS_PER_UNIT);
 
+      add_parallel_type (TYPE_STUB_DECL (record_type), new_record_type);
+
       /* Now scan all the fields, replacing each field with a new
 	 field corresponding to the new encoding.  */
       for (old_field = TYPE_FIELDS (record_type); old_field;
@@ -1083,6 +1087,10 @@ rest_of_record_type_compilation (tree record_type)
 
 	  If this is a union, the position can be taken as zero. */
 
+	  /* Some computations depend on the shape of the position expression,
+	     so strip conversions to make sure it's exposed.  */
+	  curpos = remove_conversions (curpos, true);
+
 	  if (TREE_CODE (new_record_type) == UNION_TYPE)
 	    pos = bitsize_zero_node, align = 0;
 	  else
@@ -1094,13 +1102,9 @@ rest_of_record_type_compilation (tree record_type)
 	      tree offset = TREE_OPERAND (curpos, 0);
 	      align = tree_low_cst (TREE_OPERAND (curpos, 1), 1);
 
-	      /* Strip off any conversions.  */
-	      while (TREE_CODE (offset) == NON_LVALUE_EXPR
-		     || CONVERT_EXPR_P (offset))
-		offset = TREE_OPERAND (offset, 0);
-
 	      /* An offset which is a bitwise AND with a negative power of 2
 		 means an alignment corresponding to this power of 2.  */
+	      offset = remove_conversions (offset, true);
 	      if (TREE_CODE (offset) == BIT_AND_EXPR
 		  && host_integerp (TREE_OPERAND (offset, 1), 0)
 		  && tree_int_cst_sgn (TREE_OPERAND (offset, 1)) < 0)
@@ -1199,6 +1203,30 @@ rest_of_record_type_compilation (tree record_type)
     }
 
   rest_of_type_decl_compilation (TYPE_STUB_DECL (record_type));
+}
+
+/* Append PARALLEL_TYPE on the chain of parallel types for decl.  */
+
+void
+add_parallel_type (tree decl, tree parallel_type)
+{
+  tree d = decl;
+
+  while (DECL_PARALLEL_TYPE (d))
+    d = TYPE_STUB_DECL (DECL_PARALLEL_TYPE (d));
+
+  SET_DECL_PARALLEL_TYPE (d, parallel_type);
+}
+
+/* Return the parallel type associated to a type, if any.  */
+
+tree
+get_parallel_type (tree type)
+{
+  if (TYPE_STUB_DECL (type))
+    return DECL_PARALLEL_TYPE (TYPE_STUB_DECL (type));
+  else
+    return NULL_TREE;
 }
 
 /* Utility function of above to merge LAST_SIZE, the previous size of a record
@@ -1445,9 +1473,9 @@ create_type_decl (tree type_name, tree type, struct attrib *attr_list,
    CONST_FLAG is true if this variable is constant, in which case we might
    return a CONST_DECL node unless CONST_DECL_ALLOWED_P is false.
 
-   PUBLIC_FLAG is true if this definition is to be made visible outside of
-   the current compilation unit. This flag should be set when processing the
-   variable definitions in a package specification.
+   PUBLIC_FLAG is true if this is for a reference to a public entity or for a
+   definition to be made visible outside of the current compilation unit, for
+   instance variable definitions in a package specification.
 
    EXTERN_FLAG is nonzero when processing an external variable declaration (as
    opposed to a definition: no storage is to be allocated for the variable).
@@ -1523,7 +1551,7 @@ create_var_decl_1 (tree var_name, tree asm_name, tree type, tree var_init,
      variable if and only if it's not external. If we are not at the top level
      we allocate automatic storage unless requested not to.  */
   TREE_STATIC (var_decl)
-    = public_flag || (global_bindings_p () ? !extern_flag : static_flag);
+    = !extern_flag && (public_flag || static_flag || global_bindings_p ());
 
   if (asm_name && VAR_OR_FUNCTION_DECL_P (var_decl))
     SET_DECL_ASSEMBLER_NAME (var_decl, asm_name);
@@ -1963,7 +1991,18 @@ create_subprog_decl (tree subprog_name, tree asm_name,
     DECL_DECLARED_INLINE_P (subprog_decl) = 1;
 
   if (asm_name)
-    SET_DECL_ASSEMBLER_NAME (subprog_decl, asm_name);
+    {
+      SET_DECL_ASSEMBLER_NAME (subprog_decl, asm_name);
+
+      /* The expand_main_function circuitry expects "main_identifier_node" to
+	 designate the DECL_NAME of the 'main' entry point, in turn expected
+	 to be declared as the "main" function literally by default.  Ada
+	 program entry points are typically declared with a different name
+	 within the binder generated file, exported as 'main' to satisfy the
+	 system expectations.  Redirect main_identifier_node in this case.  */
+      if (asm_name == main_identifier_node)
+	main_identifier_node = DECL_NAME (subprog_decl);
+    }
 
   process_attributes (subprog_decl, attr_list);
 
@@ -3542,16 +3581,46 @@ convert (tree type, tree expr)
 
     case CONSTRUCTOR:
       /* If we are converting a CONSTRUCTOR to a mere variant type, just make
-	 a new one in the proper type.  Likewise for a conversion between
-	 original and packable version.  */
-      if (code == ecode
-	  && (gnat_types_compatible_p (type, etype)
-	      || (code == RECORD_TYPE
-		  && TYPE_NAME (type) == TYPE_NAME (etype))))
+	 a new one in the proper type.  */
+      if (code == ecode && gnat_types_compatible_p (type, etype))
 	{
 	  expr = copy_node (expr);
 	  TREE_TYPE (expr) = type;
 	  return expr;
+	}
+
+      /* Likewise for a conversion between original and packable version, but
+	 we have to work harder in order to preserve type consistency.  */
+      if (code == ecode
+	  && code == RECORD_TYPE
+	  && TYPE_NAME (type) == TYPE_NAME (etype))
+	{
+	  VEC(constructor_elt,gc) *e = CONSTRUCTOR_ELTS (expr);
+	  unsigned HOST_WIDE_INT len = VEC_length (constructor_elt, e);
+	  VEC(constructor_elt,gc) *v = VEC_alloc (constructor_elt, gc, len);
+	  tree efield = TYPE_FIELDS (etype), field = TYPE_FIELDS (type);
+	  unsigned HOST_WIDE_INT idx;
+	  tree index, value;
+
+	  FOR_EACH_CONSTRUCTOR_ELT(e, idx, index, value)
+	    {
+	      constructor_elt *elt = VEC_quick_push (constructor_elt, v, NULL);
+	      /* We expect only simple constructors.  Otherwise, punt.  */
+	      if (!(index == efield || index == DECL_ORIGINAL_FIELD (efield)))
+		break;
+	      elt->index = field;
+	      elt->value = convert (TREE_TYPE (field), value);
+	      efield = TREE_CHAIN (efield);
+	      field = TREE_CHAIN (field);
+	    }
+
+	  if (idx == len)
+	    {
+	      expr = copy_node (expr);
+	      TREE_TYPE (expr) = type;
+	      CONSTRUCTOR_ELTS (expr) = v;
+	      return expr;
+	    }
 	}
       break;
 
@@ -4712,8 +4781,17 @@ handle_type_generic_attribute (tree *node, tree ARG_UNUSED (name),
 			       tree ARG_UNUSED (args), int ARG_UNUSED (flags),
 			       bool * ARG_UNUSED (no_add_attrs))
 {
-  /* Ensure we have a function type, with no arguments.  */
-  gcc_assert (TREE_CODE (*node) == FUNCTION_TYPE && ! TYPE_ARG_TYPES (*node));
+  tree params;
+  
+  /* Ensure we have a function type.  */
+  gcc_assert (TREE_CODE (*node) == FUNCTION_TYPE);
+  
+  params = TYPE_ARG_TYPES (*node);
+  while (params && ! VOID_TYPE_P (TREE_VALUE (params)))
+    params = TREE_CHAIN (params);
+
+  /* Ensure we have a variadic function.  */
+  gcc_assert (!params);
 
   return NULL_TREE;
 }
@@ -4754,8 +4832,8 @@ def_builtin_1 (enum built_in_function fncode,
   if (both_p)
     /* ??? This is normally further controlled by command-line options
        like -fno-builtin, but we don't have them for Ada.  */
-      add_builtin_function (libname, libtype, fncode, fnclass,
-			    NULL, fnattrs);
+    add_builtin_function (libname, libtype, fncode, fnclass,
+			  NULL, fnattrs);
 
   built_in_decls[(int) fncode] = decl;
   if (implicit_p)

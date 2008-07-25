@@ -722,7 +722,7 @@ c_common_type (tree t1, tree t2)
 	     signed type.  */
 	  if (code1 == FIXED_POINT_TYPE && TYPE_UNSIGNED (t1))
 	    {
-	      unsigned char mclass = 0;
+	      enum mode_class mclass = (enum mode_class) 0;
 	      if (GET_MODE_CLASS (m1) == MODE_UFRACT)
 		mclass = MODE_FRACT;
 	      else if (GET_MODE_CLASS (m1) == MODE_UACCUM)
@@ -733,7 +733,7 @@ c_common_type (tree t1, tree t2)
 	    }
 	  if (code2 == FIXED_POINT_TYPE && TYPE_UNSIGNED (t2))
 	    {
-	      unsigned char mclass = 0;
+	      enum mode_class mclass = (enum mode_class) 0;
 	      if (GET_MODE_CLASS (m2) == MODE_UFRACT)
 		mclass = MODE_FRACT;
 	      else if (GET_MODE_CLASS (m2) == MODE_UACCUM)
@@ -2191,8 +2191,6 @@ build_external_ref (tree id, int fun, location_t loc)
   /* Recursive call does not count as usage.  */
   if (ref != current_function_decl) 
     {
-      if (!skip_evaluation)
-	assemble_external (ref);
       TREE_USED (ref) = 1;
     }
 
@@ -2767,7 +2765,7 @@ parser_build_binary_op (enum tree_code code, struct c_expr arg1,
   if (warn_parentheses)
     warn_about_parentheses (code, code1, code2);
 
-  if (code1 != tcc_comparison)
+  if (TREE_CODE_CLASS (code1) != tcc_comparison)
     warn_logical_operator (code, arg1.value, arg2.value);
 
   /* Warn about comparisons against string literals, with the exception
@@ -4196,10 +4194,7 @@ convert_for_assignment (tree type, tree rhs, enum impl_conv errtype,
       if (TREE_CODE (mvr) != ARRAY_TYPE)
 	mvr = TYPE_MAIN_VARIANT (mvr);
       /* Opaque pointers are treated like void pointers.  */
-      is_opaque_pointer = (targetm.vector_opaque_p (type)
-			   || targetm.vector_opaque_p (rhstype))
-	&& TREE_CODE (ttl) == VECTOR_TYPE
-	&& TREE_CODE (ttr) == VECTOR_TYPE;
+      is_opaque_pointer = vector_targets_convertible_p (ttl, ttr);
 
       /* C++ does not allow the implicit conversion void* -> T*.  However,
 	 for the purpose of reducing the number of false positives, we
@@ -4707,47 +4702,56 @@ digest_init (tree type, tree init, bool strict_string, int require_constant)
 			 || typ1 == signed_char_type_node
 			 || typ1 == unsigned_char_type_node);
       bool wchar_array = !!comptypes (typ1, wchar_type_node);
-      if (char_array || wchar_array)
+      bool char16_array = !!comptypes (typ1, char16_type_node);
+      bool char32_array = !!comptypes (typ1, char32_type_node);
+
+      if (char_array || wchar_array || char16_array || char32_array)
 	{
 	  struct c_expr expr;
-	  bool char_string;
+	  tree typ2 = TYPE_MAIN_VARIANT (TREE_TYPE (TREE_TYPE (inside_init)));
 	  expr.value = inside_init;
 	  expr.original_code = (strict_string ? STRING_CST : ERROR_MARK);
 	  maybe_warn_string_init (type, expr);
-
-	  char_string
-	    = (TYPE_MAIN_VARIANT (TREE_TYPE (TREE_TYPE (inside_init)))
-	       == char_type_node);
 
 	  if (comptypes (TYPE_MAIN_VARIANT (TREE_TYPE (inside_init)),
 			 TYPE_MAIN_VARIANT (type)))
 	    return inside_init;
 
-	  if (!wchar_array && !char_string)
+	  if (char_array)
 	    {
-	      error_init ("char-array initialized from wide string");
-	      return error_mark_node;
+	      if (typ2 != char_type_node)
+		{
+		  error_init ("char-array initialized from wide string");
+		  return error_mark_node;
+		}
 	    }
-	  if (char_string && !char_array)
+	  else
 	    {
-	      error_init ("wchar_t-array initialized from non-wide string");
-	      return error_mark_node;
+	      if (typ2 == char_type_node)
+		{
+		  error_init ("wide character array initialized from non-wide "
+			      "string");
+		  return error_mark_node;
+		}
+	      else if (!comptypes(typ1, typ2))
+		{
+		  error_init ("wide character array initialized from "
+			      "incompatible wide string");
+		  return error_mark_node;
+		}
 	    }
 
 	  TREE_TYPE (inside_init) = type;
 	  if (TYPE_DOMAIN (type) != 0
 	      && TYPE_SIZE (type) != 0
 	      && TREE_CODE (TYPE_SIZE (type)) == INTEGER_CST
-	      /* Subtract 1 (or sizeof (wchar_t))
+	      /* Subtract the size of a single (possibly wide) character
 		 because it's ok to ignore the terminating null char
 		 that is counted in the length of the constant.  */
 	      && 0 > compare_tree_int (TYPE_SIZE_UNIT (type),
 				       TREE_STRING_LENGTH (inside_init)
-				       - ((TYPE_PRECISION (typ1)
-					   != TYPE_PRECISION (char_type_node))
-					  ? (TYPE_PRECISION (wchar_type_node)
-					     / BITS_PER_UNIT)
-					  : 1)))
+				       - (TYPE_PRECISION (typ1)
+					  / BITS_PER_UNIT)))
 	    pedwarn_init ("initializer-string for array of chars is too long");
 
 	  return inside_init;
@@ -6095,15 +6099,7 @@ set_nonincremental_init_from_string (tree str)
 
   gcc_assert (TREE_CODE (constructor_type) == ARRAY_TYPE);
 
-  if (TYPE_PRECISION (TREE_TYPE (TREE_TYPE (str)))
-      == TYPE_PRECISION (char_type_node))
-    wchar_bytes = 1;
-  else
-    {
-      gcc_assert (TYPE_PRECISION (TREE_TYPE (TREE_TYPE (str)))
-		  == TYPE_PRECISION (wchar_type_node));
-      wchar_bytes = TYPE_PRECISION (wchar_type_node) / BITS_PER_UNIT;
-    }
+  wchar_bytes = TYPE_PRECISION (TREE_TYPE (TREE_TYPE (str))) / BITS_PER_UNIT;
   charwidth = TYPE_PRECISION (char_type_node);
   type = TREE_TYPE (constructor_type);
   p = TREE_STRING_POINTER (str);
@@ -8681,6 +8677,8 @@ c_begin_omp_parallel (void)
   return block;
 }
 
+/* Generate OMP_PARALLEL, with CLAUSES and BLOCK as its compound statement.  */
+
 tree
 c_finish_omp_parallel (tree clauses, tree block)
 {
@@ -8692,6 +8690,36 @@ c_finish_omp_parallel (tree clauses, tree block)
   TREE_TYPE (stmt) = void_type_node;
   OMP_PARALLEL_CLAUSES (stmt) = clauses;
   OMP_PARALLEL_BODY (stmt) = block;
+
+  return add_stmt (stmt);
+}
+
+/* Like c_begin_compound_stmt, except force the retention of the BLOCK.  */
+
+tree
+c_begin_omp_task (void)
+{
+  tree block;
+
+  keep_next_level ();
+  block = c_begin_compound_stmt (true);
+
+  return block;
+}
+
+/* Generate OMP_TASK, with CLAUSES and BLOCK as its compound statement.  */
+
+tree
+c_finish_omp_task (tree clauses, tree block)
+{
+  tree stmt;
+
+  block = c_end_compound_stmt (block, true);
+
+  stmt = make_node (OMP_TASK);
+  TREE_TYPE (stmt) = void_type_node;
+  OMP_TASK_CLAUSES (stmt) = clauses;
+  OMP_TASK_BODY (stmt) = block;
 
   return add_stmt (stmt);
 }
@@ -8856,6 +8884,8 @@ c_finish_omp_clauses (tree clauses)
 	case OMP_CLAUSE_NOWAIT:
 	case OMP_CLAUSE_ORDERED:
 	case OMP_CLAUSE_DEFAULT:
+	case OMP_CLAUSE_UNTIED:
+	case OMP_CLAUSE_COLLAPSE:
 	  pc = &OMP_CLAUSE_CHAIN (c);
 	  continue;
 

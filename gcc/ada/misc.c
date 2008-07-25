@@ -160,44 +160,12 @@ static tree gnat_type_max_size		(const_tree);
 
 const struct lang_hooks lang_hooks = LANG_HOOKS_INITIALIZER;
 
-/* Tables describing GCC tree codes used only by GNAT.
+/* How much we want of our DWARF extensions.  Some of our dwarf+ extensions
+   are incompatible with regular GDB versions, so we must make sure to only
+   produce them on explicit request.  This is eventually reflected into the
+   use_gnu_debug_info_extensions common flag for later processing.  */
 
-   Table indexed by tree code giving a string containing a character
-   classifying the tree code.  Possibilities are
-   t, d, s, c, r, <, 1 and 2.  See cp-tree.def for details.  */
-
-#define DEFTREECODE(SYM, NAME, TYPE, LENGTH) TYPE,
-
-const enum tree_code_class tree_code_type[] = {
-#include "tree.def"
-  tcc_exceptional,
-#include "ada-tree.def"
-};
-#undef DEFTREECODE
-
-/* Table indexed by tree code giving number of expression
-   operands beyond the fixed part of the node structure.
-   Not used for types or decls.  */
-
-#define DEFTREECODE(SYM, NAME, TYPE, LENGTH) LENGTH,
-
-const unsigned char tree_code_length[] = {
-#include "tree.def"
-  0,
-#include "ada-tree.def"
-};
-#undef DEFTREECODE
-
-/* Names of tree components.
-   Used for printing out the tree and error messages.  */
-#define DEFTREECODE(SYM, NAME, TYPE, LEN) NAME,
-
-const char *const tree_code_name[] = {
-#include "tree.def"
-  "@@dummy",
-#include "ada-tree.def"
-};
-#undef DEFTREECODE
+static int gnat_dwarf_extensions = 0;
 
 /* Command-line argc and argv.
    These variables are global, since they are imported and used in
@@ -264,7 +232,7 @@ gnat_handle_option (size_t scode, const char *arg, int value)
   switch (code)
     {
     case OPT_I:
-      q = xmalloc (sizeof("-I") + strlen (arg));
+      q = XNEWVEC (char, sizeof("-I") + strlen (arg));
       strcpy (q, "-I");
       strcat (q, arg);
       gnat_argv[gnat_argc] = q;
@@ -321,7 +289,7 @@ gnat_handle_option (size_t scode, const char *arg, int value)
 
     case OPT_gnat:
       /* Recopy the switches without the 'gnat' prefix.  */
-      gnat_argv[gnat_argc] = xmalloc (strlen (arg) + 2);
+      gnat_argv[gnat_argc] = XNEWVEC (char, strlen (arg) + 2);
       gnat_argv[gnat_argc][0] = '-';
       strcpy (gnat_argv[gnat_argc] + 1, arg);
       gnat_argc++;
@@ -332,6 +300,10 @@ gnat_handle_option (size_t scode, const char *arg, int value)
       gnat_argc++;
       gnat_argv[gnat_argc] = xstrdup (arg);
       gnat_argc++;
+      break;
+
+    case OPT_gdwarf_:
+      gnat_dwarf_extensions ++;
       break;
 
     default:
@@ -382,6 +354,11 @@ gnat_post_options (const char **pfilename ATTRIBUTE_UNUSED)
     flag_eliminate_unused_debug_types = 1;
   else
     flag_eliminate_unused_debug_types = 0;
+
+  /* Reflect the explicit request of DWARF extensions into the common
+     flag for use by later passes.  */
+  if (write_symbols == DWARF2_DEBUG)
+    use_gnu_debug_info_extensions = gnat_dwarf_extensions > 0;
 
   return false;
 }

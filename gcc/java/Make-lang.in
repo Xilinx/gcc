@@ -57,7 +57,7 @@ JAVA_TARGET_INDEPENDENT_BIN_TOOLS = jcf-dump
 .PHONY: java
 
 jvspec.o: $(srcdir)/java/jvspec.c $(SYSTEM_H) coretypes.h $(TM_H) \
-  $(GCC_H) $(CONFIG_H)
+  $(GCC_H) $(CONFIG_H) java/jcf.h java/javaop.h
 	(SHLIB_LINK='$(SHLIB_LINK)'; \
 	$(CC) -c $(ALL_CFLAGS) $(ALL_CPPFLAGS) $(DRIVER_DEFINES) \
 		$(INCLUDES) $(srcdir)/java/jvspec.c $(OUTPUT_OPTION))
@@ -97,9 +97,6 @@ java-warn = $(STRICT_WARN)
 
 # String length warnings
 jvspec.o-warn = -Wno-error
-
-# Bison-1.75 output often yields (harmless) -Wtraditional warnings
-java/parse.o-warn = -Wno-error
 
 jc1$(exeext): $(JAVA_OBJS) $(BACKEND) $(LIBDEPS) attribs.o
 	rm -f $@
@@ -143,8 +140,9 @@ java.pdf: $(JAVA_PDFFILES)
 java.html: $(build_htmldir)/java/index.html
 
 JAVA_MANFILES = doc/gcj.1 doc/jcf-dump.1 doc/gij.1 \
-                doc/jv-convert.1 doc/grmic.1\
-		doc/gcj-dbtool.1 doc/gc-analyze.1
+                doc/jv-convert.1 doc/grmic.1 \
+                doc/gcj-dbtool.1 doc/gc-analyze.1 doc/aot-compile.1 \
+                doc/rebuild-gcj-db.1
 
 java.man: $(JAVA_MANFILES)
 
@@ -189,6 +187,8 @@ java.uninstall:
 	-rm -rf $(DESTDIR)$(man1dir)/gij$(man1ext)
 	-rm -rf $(DESTDIR)$(man1dir)/jv-convert$(man1ext)
 	-rm -rf $(DESTDIR)$(man1dir)/gcj-dbtool$(man1ext)
+	-rm -rf $(DESTDIR)$(man1dir)/aot-compile$(man1ext)
+	-rm -rf $(DESTDIR)$(man1dir)/rebuild-gcj-db$(man1ext)
 
 java.install-info: $(DESTDIR)$(infodir)/gcj.info
 
@@ -223,6 +223,8 @@ java.maintainer-clean:
 	-rm -f $(docobjdir)/grmic.1
 	-rm -f $(docobjdir)/gcj-dbtool.1
 	-rm -f $(docobjdir)/gc-analyze.1
+	-rm -f $(docobjdir)/aot-compile.1
+	-rm -f $(docobjdir)/rebuild-gcj-db.1
 #
 # Stage hooks:
 # The main makefile has already created stage?/java.
@@ -242,7 +244,7 @@ java.stagefeedback: stageprofile-start
 
 #
 # .o:.h dependencies.
-JAVA_TREE_H = $(TREE_H) $(HASHTAB_H) java/java-tree.h java/java-tree.def
+JAVA_TREE_H = $(TREE_H) $(HASHTAB_H) java/java-tree.h
 
 java/jcf-dump.o: $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) $(JAVA_TREE_H) \
   java/jcf-dump.c java/jcf-reader.c java/jcf.h java/javaop.h java/javaop.def \
@@ -353,15 +355,21 @@ gcj-dbtool.pod: java/gcj.texi
 	-$(TEXI2POD) -D gcj-dbtool < $< > $@
 gc-analyze.pod: java/gcj.texi
 	-$(TEXI2POD) -D gc-analyze < $< > $@
+aot-compile.pod: java/gcj.texi
+	-$(TEXI2POD) -D aot-compile < $< > $@
+rebuild-gcj-db.pod: java/gcj.texi
+	-$(TEXI2POD) -D rebuild-gcj-db < $< > $@
 
 # Install the man pages.
 java.install-man: installdirs \
                   $(DESTDIR)$(man1dir)/$(JAVA_INSTALL_NAME)$(man1ext) \
 		  $(JAVA_TARGET_INDEPENDENT_BIN_TOOLS:%=doc/%.1) \
 		  doc/gij.1 doc/jv-convert.1 doc/grmic.1 \
-		  doc/gcj-dbtool.1 doc/gc-analyze.1
+		  doc/gcj-dbtool.1 doc/gc-analyze.1 \
+		  doc/aot-compile.1 doc/rebuild-gcj-db.1
 	for tool in $(JAVA_TARGET_INDEPENDENT_BIN_TOOLS) \
-		gij jv-convert grmic gcj-dbtool gc-analyze ; do \
+		gij jv-convert grmic gcj-dbtool gc-analyze aot-compile \
+		rebuild-gcj-db; do \
 	  tool_transformed_name=`echo $$tool|sed '$(program_transform_name)'`; \
 	  man_name=$(DESTDIR)$(man1dir)/$${tool_transformed_name}$(man1ext); \
 	  rm -f $$man_name ; \

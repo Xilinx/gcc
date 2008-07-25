@@ -68,7 +68,7 @@ struct cset_converter
 #define CPP_INCREMENT_LINE(PFILE, COLS_HINT) do { \
     const struct line_maps *line_table = PFILE->line_table; \
     const struct line_map *map = &line_table->maps[line_table->used-1]; \
-    unsigned int line = SOURCE_LINE (map, line_table->highest_line); \
+    linenum_type line = SOURCE_LINE (map, line_table->highest_line); \
     linemap_line_start (PFILE->line_table, line + 1, COLS_HINT); \
   } while (0)
 
@@ -518,10 +518,6 @@ cpp_in_primary_file (cpp_reader *pfile)
   return pfile->line_table->depth == 1;
 }
 
-/* In errors.c  */
-extern int _cpp_begin_message (cpp_reader *, int,
-			       source_location, unsigned int);
-
 /* In macro.c */
 extern void _cpp_free_definition (cpp_hashnode *);
 extern bool _cpp_create_definition (cpp_reader *, cpp_hashnode *);
@@ -536,6 +532,7 @@ extern const unsigned char *_cpp_builtin_macro_text (cpp_reader *,
 extern int _cpp_warn_if_unused_macro (cpp_reader *, cpp_hashnode *, void *);
 extern void _cpp_push_token_context (cpp_reader *, cpp_hashnode *,
 				     const cpp_token *, unsigned int);
+extern void _cpp_backup_tokens_direct (cpp_reader *, unsigned int);
 
 /* In identifiers.c */
 extern void _cpp_init_hashtable (cpp_reader *, hash_table *);
@@ -561,7 +558,7 @@ extern bool _cpp_read_file_entries (cpp_reader *, FILE *);
 extern struct stat *_cpp_get_file_stat (_cpp_file *);
 
 /* In expr.c */
-extern bool _cpp_parse_expr (cpp_reader *);
+extern bool _cpp_parse_expr (cpp_reader *, bool);
 extern struct op *_cpp_expand_op_stack (cpp_reader *);
 
 /* In lex.c */
@@ -588,7 +585,7 @@ extern int _cpp_do__Pragma (cpp_reader *);
 extern void _cpp_init_directives (cpp_reader *);
 extern void _cpp_init_internal_pragmas (cpp_reader *);
 extern void _cpp_do_file_change (cpp_reader *, enum lc_reason, const char *,
-				 unsigned int, unsigned int);
+				 linenum_type, unsigned int);
 extern void _cpp_pop_buffer (cpp_reader *);
 
 /* In directives.c */

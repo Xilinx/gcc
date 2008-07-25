@@ -268,6 +268,7 @@ sra_type_can_be_decomposed_p (tree type)
 	    {
 	      /* Reject incorrectly represented bit fields.  */
 	      if (DECL_BIT_FIELD (t)
+		  && INTEGRAL_TYPE_P (TREE_TYPE (t))
 		  && (tree_low_cst (DECL_SIZE (t), 1)
 		      != TYPE_PRECISION (TREE_TYPE (t))))
 		goto fail;
@@ -304,6 +305,26 @@ sra_type_can_be_decomposed_p (tree type)
 
  fail:
   bitmap_set_bit (sra_type_decomp_cache, cache+1);
+  return false;
+}
+
+/* Returns true if the TYPE is one of the available va_list types.
+   Otherwise it returns false.
+   Note, that for multiple calling conventions there can be more
+   than just one va_list type present.  */
+
+static bool
+is_va_list_type (tree type)
+{
+  tree h;
+
+  if (type == NULL_TREE)
+    return false;
+  h = targetm.canonical_va_list_type (type);
+  if (h == NULL_TREE)
+    return false;
+  if (TYPE_MAIN_VARIANT (type) == TYPE_MAIN_VARIANT (h))
+	 return true;
   return false;
 }
 
@@ -356,12 +377,10 @@ decl_can_be_decomposed_p (tree var)
   /* HACK: if we decompose a va_list_type_node before inlining, then we'll
      confuse tree-stdarg.c, and we won't be able to figure out which and
      how many arguments are accessed.  This really should be improved in
-     tree-stdarg.c, as the decomposition is truely a win.  This could also
+     tree-stdarg.c, as the decomposition is truly a win.  This could also
      be fixed if the stdarg pass ran early, but this can't be done until
      we've aliasing information early too.  See PR 30791.  */
-  if (early_sra
-      && TYPE_MAIN_VARIANT (TREE_TYPE (var))
-	 == TYPE_MAIN_VARIANT (va_list_type_node))
+  if (early_sra && is_va_list_type (TREE_TYPE (var)))
     return false;
 
   return true;
@@ -486,7 +505,7 @@ sra_hash_tree (tree t)
 static hashval_t
 sra_elt_hash (const void *x)
 {
-  const struct sra_elt *e = x;
+  const struct sra_elt *const e = (const struct sra_elt *) x;
   const struct sra_elt *p;
   hashval_t h;
 
@@ -509,8 +528,8 @@ sra_elt_hash (const void *x)
 static int
 sra_elt_eq (const void *x, const void *y)
 {
-  const struct sra_elt *a = x;
-  const struct sra_elt *b = y;
+  const struct sra_elt *const a = (const struct sra_elt *) x;
+  const struct sra_elt *const b = (const struct sra_elt *) y;
   tree ae, be;
   const struct sra_elt *ap = a->parent;
   const struct sra_elt *bp = b->parent;
@@ -591,7 +610,7 @@ lookup_element (struct sra_elt *parent, tree child, tree type,
   elt = *slot;
   if (!elt && insert == INSERT)
     {
-      *slot = elt = obstack_alloc (&sra_obstack, sizeof (*elt));
+      *slot = elt = XOBNEW (&sra_obstack, struct sra_elt);
       memset (elt, 0, sizeof (*elt));
 
       elt->parent = parent;
@@ -1283,13 +1302,13 @@ instantiate_element (struct sra_elt *elt)
       DECL_SIZE_UNIT (var) = DECL_SIZE_UNIT (elt->element);
 
       elt->in_bitfld_block = 1;
-      elt->replacement = build3 (BIT_FIELD_REF, elt->type, var,
-				 DECL_SIZE (var),
-				 BYTES_BIG_ENDIAN
-				 ? size_binop (MINUS_EXPR,
-					       TYPE_SIZE (elt->type),
-					       DECL_SIZE (var))
-				 : bitsize_int (0));
+      elt->replacement = fold_build3 (BIT_FIELD_REF, elt->type, var,
+				      DECL_SIZE (var),
+				      BYTES_BIG_ENDIAN
+				      ? size_binop (MINUS_EXPR,
+						    TYPE_SIZE (elt->type),
+						    DECL_SIZE (var))
+				      : bitsize_int (0));
     }
 
   /* For vectors, if used on the left hand side with BIT_FIELD_REF,
@@ -1697,8 +1716,7 @@ try_instantiate_multiple_fields (struct sra_elt *elt, tree f)
     type = build_nonstandard_integer_type (size, 1);
   gcc_assert (type);
   var = build3 (BIT_FIELD_REF, type, NULL_TREE,
-		bitsize_int (size),
-		bitsize_int (bit));
+		bitsize_int (size), bitsize_int (bit));
 
   block = instantiate_missing_elements_1 (elt, var, type);
   gcc_assert (block && block->is_scalar);
@@ -1708,10 +1726,10 @@ try_instantiate_multiple_fields (struct sra_elt *elt, tree f)
   if ((bit & ~alchk)
       || (HOST_WIDE_INT)size != tree_low_cst (DECL_SIZE (var), 1))
     {
-      block->replacement = build3 (BIT_FIELD_REF,
-				   TREE_TYPE (block->element), var,
-				   bitsize_int (size),
-				   bitsize_int (bit & ~alchk));
+      block->replacement = fold_build3 (BIT_FIELD_REF,
+					TREE_TYPE (block->element), var,
+					bitsize_int (size),
+					bitsize_int (bit & ~alchk));
     }
 
   block->in_bitfld_block = 2;
@@ -1726,14 +1744,14 @@ try_instantiate_multiple_fields (struct sra_elt *elt, tree f)
 
       gcc_assert (fld && fld->is_scalar && !fld->replacement);
 
-      fld->replacement = build3 (BIT_FIELD_REF, field_type, var,
-				 DECL_SIZE (f),
-				 bitsize_int
-				 ((TREE_INT_CST_LOW (DECL_FIELD_OFFSET (f))
-				   * BITS_PER_UNIT
-				   + (TREE_INT_CST_LOW
-				      (DECL_FIELD_BIT_OFFSET (f))))
-				  & ~alchk));
+      fld->replacement = fold_build3 (BIT_FIELD_REF, field_type, var,
+				      DECL_SIZE (f),
+				      bitsize_int
+				      ((TREE_INT_CST_LOW (DECL_FIELD_OFFSET (f))
+					* BITS_PER_UNIT
+					+ (TREE_INT_CST_LOW
+					   (DECL_FIELD_BIT_OFFSET (f))))
+				       & ~alchk));
       fld->in_bitfld_block = 1;
     }
 
@@ -2075,7 +2093,7 @@ generate_one_element_ref (struct sra_elt *elt, tree base)
       {
 	tree field = elt->element;
 
-	/* We can't test elt->in_bitfld_blk here because, when this is
+	/* We can't test elt->in_bitfld_block here because, when this is
 	   called from instantiate_element, we haven't set this field
 	   yet.  */
 	if (TREE_CODE (field) == BIT_FIELD_REF)
@@ -2161,7 +2179,7 @@ sra_build_assignment (tree dst, tree src)
       var = TREE_OPERAND (src, 0);
       width = TREE_OPERAND (src, 1);
       /* The offset needs to be adjusted to a right shift quantity
-	 depending on the endianess.  */
+	 depending on the endianness.  */
       if (BYTES_BIG_ENDIAN)
 	{
 	  tree tmp = size_binop (PLUS_EXPR, width, TREE_OPERAND (src, 2));
@@ -2264,6 +2282,9 @@ sra_build_assignment (tree dst, tree src)
 	  var = utmp;
 	}
 
+      /* fold_build3 (BIT_FIELD_REF, ...) sometimes returns a cast.  */
+      STRIP_NOPS (dst);
+
       /* Finally, move and convert to the destination.  */
       if (!useless_type_conversion_p (TREE_TYPE (dst), TREE_TYPE (var)))
 	{
@@ -2288,6 +2309,12 @@ sra_build_assignment (tree dst, tree src)
       return list;
     }
 
+  /* fold_build3 (BIT_FIELD_REF, ...) sometimes returns a cast.  */
+  if (CONVERT_EXPR_P (dst))
+    {
+      STRIP_NOPS (dst);
+      src = fold_convert (TREE_TYPE (dst), src);
+    }
   /* It was hoped that we could perform some type sanity checking
      here, but since front-ends can emit accesses of fields in types
      different from their nominal types and copy structures containing
@@ -2298,8 +2325,8 @@ sra_build_assignment (tree dst, tree src)
      So we just assume type differences at this point are ok.
      The only exception we make here are pointer types, which can be different
      in e.g. structurally equal, but non-identical RECORD_TYPEs.  */
-  if (POINTER_TYPE_P (TREE_TYPE (dst))
-      && !useless_type_conversion_p (TREE_TYPE (dst), TREE_TYPE (src)))
+  else if (POINTER_TYPE_P (TREE_TYPE (dst))
+	   && !useless_type_conversion_p (TREE_TYPE (dst), TREE_TYPE (src)))
     src = fold_convert (TREE_TYPE (dst), src);
 
   return build_gimple_modify_stmt (dst, src);
@@ -2805,8 +2832,9 @@ static bool
 generate_element_init (struct sra_elt *elt, tree init, tree *list_p)
 {
   bool ret;
+  struct gimplify_ctx gctx;
 
-  push_gimplify_context ();
+  push_gimplify_context (&gctx);
   ret = generate_element_init_1 (elt, init, list_p);
   pop_gimplify_context (NULL);
 

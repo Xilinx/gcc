@@ -192,7 +192,7 @@ remap_ssa_name (tree name, copy_body_data *id)
 	  /* By inlining function having uninitialized variable, we might
 	     extend the lifetime (variable might get reused).  This cause
 	     ICE in the case we end up extending lifetime of SSA name across
-	     abnormal edge, but also increase register presure.
+	     abnormal edge, but also increase register pressure.
 
 	     We simply initialize all uninitialized vars by 0 except for case
 	     we are inlining to very first BB.  We can avoid this for all
@@ -715,6 +715,7 @@ copy_body_r (tree *tp, int *walk_subtrees, void *data)
 		    {
 	              *tp = build1 (INDIRECT_REF, type, new);
 		      TREE_THIS_VOLATILE (*tp) = TREE_THIS_VOLATILE (old);
+		      TREE_SIDE_EFFECTS (*tp) = TREE_SIDE_EFFECTS (old);
 		    }
 		}
 	      *walk_subtrees = 0;
@@ -795,7 +796,8 @@ copy_body_r (tree *tp, int *walk_subtrees, void *data)
    later  */
 
 static basic_block
-copy_bb (copy_body_data *id, basic_block bb, int frequency_scale, int count_scale)
+copy_bb (copy_body_data *id, basic_block bb, int frequency_scale,
+         gcov_type count_scale)
 {
   block_stmt_iterator bsi, copy_bsi;
   basic_block copy_basic_block;
@@ -1108,7 +1110,7 @@ update_ssa_across_abnormal_edges (basic_block bb, basic_block ret_bb,
    accordingly.  Edges will be taken care of later.  Assume aux
    pointers to point to the copies of each BB.  */
 static void
-copy_edges_for_bb (basic_block bb, int count_scale, basic_block ret_bb)
+copy_edges_for_bb (basic_block bb, gcov_type count_scale, basic_block ret_bb)
 {
   basic_block new_bb = (basic_block) bb->aux;
   edge_iterator ei;
@@ -1199,7 +1201,7 @@ copy_edges_for_bb (basic_block bb, int count_scale, basic_block ret_bb)
 static void
 copy_phis_for_bb (basic_block bb, copy_body_data *id)
 {
-  basic_block new_bb = bb->aux;
+  basic_block const new_bb = (basic_block) bb->aux;
   edge_iterator ei;
   tree phi;
 
@@ -1217,7 +1219,7 @@ copy_phis_for_bb (basic_block bb, copy_body_data *id)
 	    = new_phi = create_phi_node (new_res, new_bb);
 	  FOR_EACH_EDGE (new_edge, ei, new_bb->preds)
 	    {
-	      edge old_edge = find_edge (new_edge->src->aux, bb);
+	      edge const old_edge = find_edge ((basic_block) new_edge->src->aux, bb);
 	      tree arg = PHI_ARG_DEF_FROM_EDGE (phi, old_edge);
 	      tree new_arg = arg;
 
@@ -1257,7 +1259,7 @@ initialize_cfun (tree new_fndecl, tree callee_fndecl, gcov_type count,
   struct function *new_cfun
      = (struct function *) ggc_alloc_cleared (sizeof (struct function));
   struct function *src_cfun = DECL_STRUCT_FUNCTION (callee_fndecl);
-  int count_scale, frequency_scale;
+  gcov_type count_scale, frequency_scale;
 
   if (ENTRY_BLOCK_PTR_FOR_FUNCTION (src_cfun)->count)
     count_scale = (REG_BR_PROB_BASE * count
@@ -1321,7 +1323,7 @@ copy_cfg_body (copy_body_data * id, gcov_type count, int frequency,
   struct function *cfun_to_copy;
   basic_block bb;
   tree new_fndecl = NULL;
-  int count_scale, frequency_scale;
+  gcov_type count_scale, frequency_scale;
   int last;
 
   if (ENTRY_BLOCK_PTR_FOR_FUNCTION (src_cfun)->count)
@@ -1588,8 +1590,9 @@ setup_one_parameter (copy_body_data *id, tree p, tree value, tree fn,
 	  || !is_gimple_reg (var))
 	{
           tree_stmt_iterator i;
+          struct gimplify_ctx gctx;
 
-	  push_gimplify_context ();
+	  push_gimplify_context (&gctx);
 	  gimplify_stmt (&init_stmt);
 	  if (gimple_in_ssa_p (cfun)
               && init_stmt && TREE_CODE (init_stmt) == STATEMENT_LIST)
@@ -1603,7 +1606,7 @@ setup_one_parameter (copy_body_data *id, tree p, tree value, tree fn,
 	}
 
       /* If VAR represents a zero-sized variable, it's possible that the
-	 assignment statment may result in no gimple statements.  */
+	 assignment statement may result in no gimple statements.  */
       if (init_stmt)
         bsi_insert_after (&bsi, init_stmt, BSI_NEW_STMT);
       if (gimple_in_ssa_p (cfun))
@@ -2171,7 +2174,7 @@ struct eni_data
 static tree
 estimate_num_insns_1 (tree *tp, int *walk_subtrees, void *data)
 {
-  struct eni_data *d = data;
+  struct eni_data *const d = (struct eni_data *) data;
   tree x = *tp;
   unsigned cost;
 
@@ -2478,6 +2481,7 @@ estimate_num_insns_1 (tree *tp, int *walk_subtrees, void *data)
       }
 
     case OMP_PARALLEL:
+    case OMP_TASK:
     case OMP_FOR:
     case OMP_SECTIONS:
     case OMP_SINGLE:
@@ -2983,6 +2987,8 @@ optimize_inline_calls (tree fn)
   tree prev_fn;
   basic_block bb;
   int last = n_basic_blocks;
+  struct gimplify_ctx gctx;
+
   /* There is no point in performing inlining if errors have already
      occurred -- and we might crash if we try to inline invalid
      code.  */
@@ -3009,7 +3015,7 @@ optimize_inline_calls (tree fn)
   id.transform_lang_insert_block = NULL;
   id.statements_to_fold = pointer_set_create ();
 
-  push_gimplify_context ();
+  push_gimplify_context (&gctx);
 
   /* We make no attempts to keep dominance info up-to-date.  */
   free_dominance_info (CDI_DOMINATORS);
@@ -3586,7 +3592,7 @@ tree_function_versioning (tree old_decl, tree new_decl, varray_type tree_map,
   if (tree_map)
     for (i = 0; i < VARRAY_ACTIVE_SIZE (tree_map); i++)
       {
-	replace_info = VARRAY_GENERIC_PTR (tree_map, i);
+	replace_info = (struct ipa_replace_map *) VARRAY_GENERIC_PTR (tree_map, i);
 	if (replace_info->replace_p)
 	  insert_decl_map (&id, replace_info->old_tree,
 			   replace_info->new_tree);

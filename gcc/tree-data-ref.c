@@ -90,7 +90,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "cfgloop.h"
 #include "tree-data-ref.h"
 #include "tree-scalar-evolution.h"
-/* #include "graphite.h" */
 #include "tree-pass.h"
 #include "langhooks.h"
 
@@ -198,19 +197,6 @@ dump_data_reference (FILE *outf,
       fprintf (outf, "  Access function %d: ", i);
       print_generic_stmt (outf, DR_ACCESS_FN (dr, i), 0);
     }
-
-  /*
-  if (DR_SCOP (dr))
-    {
-      lambda_vector v;
-
-      fprintf (outf, "  access matrix: \n");
-
-      for (i = 0; VEC_iterate (lambda_vector, AM_MATRIX (DR_ACCESS_MATRIX (dr)), i, v); i++)
-	print_lambda_vector (outf, v, scop_dim_domain (DR_SCOP (dr)));
-    }
-  */
-
   fprintf (outf, ")\n");
 }
 
@@ -868,7 +854,7 @@ create_data_ref (struct loop *nest, tree memref, tree stmt, bool is_read)
   dr_analyze_indices (dr, nest);
   dr_analyze_alias (dr);
 
-  if (debug_p ())
+  if (dump_file && (dump_flags & TDF_DETAILS))
     {
       fprintf (dump_file, "\tbase_address: ");
       print_generic_expr (dump_file, DR_BASE_ADDRESS (dr), TDF_SLIM);
@@ -1409,7 +1395,7 @@ static inline void
 finalize_ddr_dependent (struct data_dependence_relation *ddr, 
 			tree chrec)
 {
-  if (debug_p ())
+  if (dump_file && (dump_flags & TDF_DETAILS))
     {
       fprintf (dump_file, "(dependence classified: ");
       print_generic_expr (dump_file, chrec, 0);
@@ -1427,7 +1413,7 @@ finalize_ddr_dependent (struct data_dependence_relation *ddr,
 static inline void
 non_affine_dependence_relation (struct data_dependence_relation *ddr)
 {
-  if (debug_p ())
+  if (dump_file && (dump_flags & TDF_DETAILS))
     fprintf (dump_file, "(Dependence relation cannot be represented by distance vector.) \n");
 
   DDR_AFFINE_P (ddr) = false;
@@ -1547,7 +1533,7 @@ analyze_ziv_subscript (tree chrec_a,
   tree type, difference;
   dependence_stats.num_ziv++;
   
-  if (debug_p ())
+  if (dump_file && (dump_flags & TDF_DETAILS))
     fprintf (dump_file, "(analyze_ziv_subscript \n");
 
   type = signed_type_for_types (TREE_TYPE (chrec_a), TREE_TYPE (chrec_b));
@@ -1580,7 +1566,7 @@ analyze_ziv_subscript (tree chrec_a,
     default:
       /* We're not sure whether the indexes overlap.  For the moment, 
 	 conservatively answer "don't know".  */
-      if (debug_p ())
+      if (dump_file && (dump_flags & TDF_DETAILS))
 	fprintf (dump_file, "ziv test failed: difference is non-integer.\n");
 
       *overlaps_a = conflict_fn_not_known ();
@@ -1590,7 +1576,7 @@ analyze_ziv_subscript (tree chrec_a,
       break;
     }
   
-  if (debug_p ())
+  if (dump_file && (dump_flags & TDF_DETAILS))
     fprintf (dump_file, ")\n");
 }
 
@@ -1688,7 +1674,7 @@ analyze_siv_subscript_cst_affine (tree chrec_a,
   
   if (!chrec_is_positive (initial_condition (difference), &value0))
     {
-      if (debug_p ())
+      if (dump_file && (dump_flags & TDF_DETAILS))
 	fprintf (dump_file, "siv test failed: chrec is not positive.\n"); 
 
       dependence_stats.num_siv_unimplemented++;
@@ -1703,7 +1689,7 @@ analyze_siv_subscript_cst_affine (tree chrec_a,
 	{
 	  if (!chrec_is_positive (CHREC_RIGHT (chrec_b), &value1))
 	    {
-	      if (debug_p ())
+	      if (dump_file && (dump_flags & TDF_DETAILS))
 		fprintf (dump_file, "siv test failed: chrec not positive.\n");
 
 	      *overlaps_a = conflict_fn_not_known ();
@@ -1784,7 +1770,7 @@ analyze_siv_subscript_cst_affine (tree chrec_a,
 	{
 	  if (!chrec_is_positive (CHREC_RIGHT (chrec_b), &value2))
 	    {
-	      if (debug_p ())
+	      if (dump_file && (dump_flags & TDF_DETAILS))
 		fprintf (dump_file, "siv test failed: chrec not positive.\n");
 
 	      *overlaps_a = conflict_fn_not_known ();
@@ -1994,7 +1980,7 @@ compute_overlap_steps_for_affine_1_2 (tree chrec_a, tree chrec_b,
   
   if (niter_x < 0 || niter_y < 0 || niter_z < 0)
     {
-      if (debug_p ())
+      if (dump_file && (dump_flags & TDF_DETAILS))
 	fprintf (dump_file, "overlap steps test failed: no iteration counts.\n");
 	   
       *overlaps_a = conflict_fn_not_known ();
@@ -2108,7 +2094,7 @@ analyze_subscript_affine_affine (tree chrec_a,
       *last_conflicts = chrec_dont_know;
       return;
     }
-  if (debug_p ())
+  if (dump_file && (dump_flags & TDF_DETAILS))
     fprintf (dump_file, "(analyze_subscript_affine_affine \n");
   
   /* For determining the initial intersection, we have to solve a
@@ -2175,7 +2161,7 @@ analyze_subscript_affine_affine (tree chrec_a,
 
       else
 	{
-	  if (debug_p ())
+	  if (dump_file && (dump_flags & TDF_DETAILS))
 	    fprintf (dump_file, "affine-affine test failed: too many variables.\n");
 	  *overlaps_a = conflict_fn_not_known ();
 	  *overlaps_b = conflict_fn_not_known ();
@@ -2325,7 +2311,7 @@ analyze_subscript_affine_affine (tree chrec_a,
 	}
       else
 	{
-	  if (debug_p ())
+	  if (dump_file && (dump_flags & TDF_DETAILS))
 	    fprintf (dump_file, "affine-affine test failed: unimplemented.\n");
 	  *overlaps_a = conflict_fn_not_known ();
 	  *overlaps_b = conflict_fn_not_known ();
@@ -2334,7 +2320,7 @@ analyze_subscript_affine_affine (tree chrec_a,
     }
   else
     {
-      if (debug_p ())
+      if (dump_file && (dump_flags & TDF_DETAILS))
 	fprintf (dump_file, "affine-affine test failed: unimplemented.\n");
       *overlaps_a = conflict_fn_not_known ();
       *overlaps_b = conflict_fn_not_known ();
@@ -2342,7 +2328,7 @@ analyze_subscript_affine_affine (tree chrec_a,
     }
 
 end_analyze_subs_aa:  
-  if (debug_p ())
+  if (dump_file && (dump_flags & TDF_DETAILS))
     {
       fprintf (dump_file, "  (overlaps_a = ");
       dump_conflict_function (dump_file, *overlaps_a);
@@ -2385,7 +2371,7 @@ can_use_analyze_subscript_affine_affine (tree *chrec_a, tree *chrec_b)
   if (!evolution_function_is_constant_p (diff))
     return false;
 
-  if (debug_p ())
+  if (dump_file && (dump_flags & TDF_DETAILS))
     fprintf (dump_file, "can_use_subscript_aff_aff_for_symbolic \n");
 
   *chrec_a = build_polynomial_chrec (CHREC_VARIABLE (*chrec_a), 
@@ -2414,7 +2400,7 @@ analyze_siv_subscript (tree chrec_a,
 {
   dependence_stats.num_siv++;
   
-  if (debug_p ())
+  if (dump_file && (dump_flags & TDF_DETAILS))
     fprintf (dump_file, "(analyze_siv_subscript \n");
   
   if (evolution_function_is_constant_p (chrec_a)
@@ -2469,7 +2455,7 @@ analyze_siv_subscript (tree chrec_a,
   else
     {
     siv_subscript_dontknow:;
-      if (debug_p ())
+      if (dump_file && (dump_flags & TDF_DETAILS))
 	fprintf (dump_file, "siv test failed: unimplemented.\n");
       *overlaps_a = conflict_fn_not_known ();
       *overlaps_b = conflict_fn_not_known ();
@@ -2477,7 +2463,7 @@ analyze_siv_subscript (tree chrec_a,
       dependence_stats.num_siv_unimplemented++;
     }
   
-  if (debug_p ())
+  if (dump_file && (dump_flags & TDF_DETAILS))
     fprintf (dump_file, ")\n");
 }
 
@@ -2533,7 +2519,7 @@ analyze_miv_subscript (tree chrec_a,
   tree type, difference;
 
   dependence_stats.num_miv++;
-  if (debug_p ())
+  if (dump_file && (dump_flags & TDF_DETAILS))
     fprintf (dump_file, "(analyze_miv_subscript \n");
 
   type = signed_type_for_types (TREE_TYPE (chrec_a), TREE_TYPE (chrec_b));
@@ -2604,7 +2590,7 @@ analyze_miv_subscript (tree chrec_a,
   else
     {
       /* When the analysis is too difficult, answer "don't know".  */
-      if (debug_p ())
+      if (dump_file && (dump_flags & TDF_DETAILS))
 	fprintf (dump_file, "analyze_miv_subscript test failed: unimplemented.\n");
 
       *overlaps_a = conflict_fn_not_known ();
@@ -2613,7 +2599,7 @@ analyze_miv_subscript (tree chrec_a,
       dependence_stats.num_miv_unimplemented++;
     }
   
-  if (debug_p ())
+  if (dump_file && (dump_flags & TDF_DETAILS))
     fprintf (dump_file, ")\n");
 }
 
@@ -2638,7 +2624,7 @@ analyze_overlapping_iterations (tree chrec_a,
 
   dependence_stats.num_subscript_tests++;
   
-  if (debug_p ())
+  if (dump_file && (dump_flags & TDF_DETAILS))
     {
       fprintf (dump_file, "(analyze_overlapping_iterations \n");
       fprintf (dump_file, "  (chrec_a = ");
@@ -2697,7 +2683,7 @@ analyze_overlapping_iterations (tree chrec_a,
 			   overlap_iterations_a, overlap_iterations_b,
 			   last_conflicts, loop_nest);
   
-  if (debug_p ())
+  if (dump_file && (dump_flags & TDF_DETAILS))
     {
       fprintf (dump_file, "  (overlap_iterations_a = ");
       dump_conflict_function (dump_file, *overlap_iterations_a);
@@ -3152,7 +3138,7 @@ build_classic_dist_vector (struct data_dependence_relation *ddr,
 						   DDR_NB_LOOPS (ddr), 0));
     }
 
-  if (debug_p ())
+  if (dump_file && (dump_flags & TDF_DETAILS))
     {
       unsigned i;
 
@@ -3271,7 +3257,7 @@ subscript_dependence_tester (struct data_dependence_relation *ddr,
 			     struct loop *loop_nest)
 {
   
-  if (debug_p ())
+  if (dump_file && (dump_flags & TDF_DETAILS))
     fprintf (dump_file, "(subscript_dependence_tester \n");
   
   if (subscript_dependence_tester_1 (ddr, DDR_A (ddr), DDR_B (ddr), loop_nest))
@@ -3281,7 +3267,7 @@ subscript_dependence_tester (struct data_dependence_relation *ddr,
   if (build_classic_dist_vector (ddr, loop_nest))
     build_classic_dir_vector (ddr);
 
-  if (debug_p ())
+  if (dump_file && (dump_flags & TDF_DETAILS))
     fprintf (dump_file, ")\n");
 }
 
@@ -3845,7 +3831,7 @@ compute_affine_dependence (struct data_dependence_relation *ddr,
   struct data_reference *dra = DDR_A (ddr);
   struct data_reference *drb = DDR_B (ddr);
   
-  if (debug_p ())
+  if (dump_file && (dump_flags & TDF_DETAILS))
     {
       fprintf (dump_file, "(compute_affine_dependence\n");
       fprintf (dump_file, "  (stmt_a = \n");
@@ -3916,7 +3902,7 @@ compute_affine_dependence (struct data_dependence_relation *ddr,
 	csys_dont_know:;
 	  dependence_stats.num_dependence_undetermined++;
 
-	  if (debug_p ())
+	  if (dump_file && (dump_flags & TDF_DETAILS))
 	    {
 	      fprintf (dump_file, "Data ref a:\n");
 	      dump_data_reference (dump_file, dra);
@@ -3928,7 +3914,7 @@ compute_affine_dependence (struct data_dependence_relation *ddr,
 	}
     }
   
-  if (debug_p ())
+  if (dump_file && (dump_flags & TDF_DETAILS))
     fprintf (dump_file, ")\n");
 }
 
@@ -4322,7 +4308,7 @@ analyze_all_data_dependences (struct loop *loop)
       dump_data_dependence_relations (dump_file, dependence_relations);
       fprintf (dump_file, "\n\n");
 
-      if (debug_p ())
+      if (dump_flags & TDF_DETAILS)
 	dump_dist_dir_vectors (dump_file, dependence_relations);
 
       if (dump_flags & TDF_STATS)
@@ -4796,8 +4782,9 @@ known_dependences_p (VEC (ddr_p, heap) *dependence_relations)
 static hashval_t
 hash_stmt_vertex_info (const void *elt)
 {
-  struct rdg_vertex_info *rvi = (struct rdg_vertex_info *) elt;
-  tree stmt = rvi->stmt;
+  const struct rdg_vertex_info *const rvi =
+    (const struct rdg_vertex_info *) elt;
+  const_tree stmt = rvi->stmt;
 
   return htab_hash_pointer (stmt);
 }
@@ -5015,7 +5002,8 @@ have_similar_memory_accesses (tree s1, tree s2)
 static int
 have_similar_memory_accesses_1 (const void *s1, const void *s2)
 {
-  return have_similar_memory_accesses ((tree) s1, (tree) s2);
+  return have_similar_memory_accesses (CONST_CAST_TREE ((const_tree)s1),
+				       CONST_CAST_TREE ((const_tree)s2));
 }
 
 /* Helper function for the hashtab.  */
@@ -5023,7 +5011,7 @@ have_similar_memory_accesses_1 (const void *s1, const void *s2)
 static hashval_t
 ref_base_address_1 (const void *s)
 {
-  tree stmt = (tree) s;
+  tree stmt = CONST_CAST_TREE((const_tree)s);
   unsigned i;
   VEC (data_ref_loc, heap) *refs;
   data_ref_loc *ref;

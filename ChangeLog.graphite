@@ -1,3 +1,9 @@
+2008-07-24  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* Merge from mainline (135673:138072).
+	Reverted the MIRO changes (from 2008-04-05) that are now
+	tracked in the miro branch.
+
 2008-04-28  Sebastian Pop  <sebastian.pop@amd.com>
 
 	* cloog: Removed.

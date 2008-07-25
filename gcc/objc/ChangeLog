@@ -1,3 +1,39 @@
+2008-07-21  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* objc-act.c: Fix comment typos.
+
+2008-07-18  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	* objc-act.c (objc_start_class_interface,
+	objc_start_category_interface, objc_start_class_implementation,
+	objc_start_category_implementation, objc_build_struct,
+	generate_static_references, build_private_template,
+	lookup_category, objc_add_method, add_category,
+	add_instance_variable, objc_is_public, conforms_to_protocol,
+	start_class, continue_class, finish_class): Avoid C++ keywords.
+
+2008-07-14  Jason Merrill  <jason@redhat.com>
+
+	PR objc++/36723
+	* objc-act.c (objc_build_constructor): Update C++ tweak.
+
+2007-07-14  Rafael Avila de Espindola  <espindola@google.com>
+
+	* objc-act.c (synth_module_prologue): Use TREE_NO_WARNING instead
+	of DECL_IN_SYSTEM_HEADER.
+
+2008-07-11  Ian Lance Taylor  <iant@google.com>
+
+	* objc-act.c (objc_is_reserved_word): Always check for RID_CLASS,
+	etc., not just when OBJCPLUS is defined.
+
+2008-06-19  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	* objc-act.c (setup_string_decl, objc_build_string_object,
+	hash_interface, eq_interface, objc_begin_try_stmt,
+	encode_method_prototype, build_ivar_list_initializer,
+	objc_build_encode_expr): Fix for -Wc++-compat.
+
 2008-05-12  Tomas Bily  <tbily@suse.cz>
 
         * objc-act.c (objc_generate_write_barrier, objc_finish_message_expr):

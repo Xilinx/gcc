@@ -152,7 +152,7 @@ default_pretend_outgoing_varargs_named (CUMULATIVE_ARGS *ca ATTRIBUTE_UNUSED)
 enum machine_mode
 default_eh_return_filter_mode (void)
 {
-  return word_mode;
+  return targetm.unwind_word_mode ();
 }
 
 enum machine_mode
@@ -163,6 +163,12 @@ default_libgcc_cmp_return_mode (void)
 
 enum machine_mode
 default_libgcc_shift_count_mode (void)
+{
+  return word_mode;
+}
+
+enum machine_mode
+default_unwind_word_mode (void)
 {
   return word_mode;
 }
@@ -575,7 +581,7 @@ default_secondary_reload (bool in_p ATTRIBUTE_UNUSED, rtx x ATTRIBUTE_UNUSED,
 			  enum machine_mode reload_mode ATTRIBUTE_UNUSED,
 			  secondary_reload_info *sri)
 {
-  enum reg_class class = NO_REGS;
+  enum reg_class rclass = NO_REGS;
 
   if (sri->prev_sri && sri->prev_sri->t_icode != CODE_FOR_nothing)
     {
@@ -584,13 +590,13 @@ default_secondary_reload (bool in_p ATTRIBUTE_UNUSED, rtx x ATTRIBUTE_UNUSED,
     }
 #ifdef SECONDARY_INPUT_RELOAD_CLASS
   if (in_p)
-    class = SECONDARY_INPUT_RELOAD_CLASS (reload_class, reload_mode, x);
+    rclass = SECONDARY_INPUT_RELOAD_CLASS (reload_class, reload_mode, x);
 #endif
 #ifdef SECONDARY_OUTPUT_RELOAD_CLASS
   if (! in_p)
-    class = SECONDARY_OUTPUT_RELOAD_CLASS (reload_class, reload_mode, x);
+    rclass = SECONDARY_OUTPUT_RELOAD_CLASS (reload_class, reload_mode, x);
 #endif
-  if (class != NO_REGS)
+  if (rclass != NO_REGS)
     {
       enum insn_code icode = (in_p ? reload_in_optab[(int) reload_mode]
 			      : reload_out_optab[(int) reload_mode]);
@@ -642,19 +648,19 @@ default_secondary_reload (bool in_p ATTRIBUTE_UNUSED, rtx x ATTRIBUTE_UNUSED,
 
 	  if (reg_class_subset_p (reload_class, insn_class))
 	    {
-	      gcc_assert (scratch_class == class);
-	      class = NO_REGS;
+	      gcc_assert (scratch_class == rclass);
+	      rclass = NO_REGS;
 	    }
 	  else
-	    class = insn_class;
+	    rclass = insn_class;
 
         }
-      if (class == NO_REGS)
+      if (rclass == NO_REGS)
 	sri->icode = icode;
       else
 	sri->t_icode = icode;
     }
-  return class;
+  return rclass;
 }
 
 bool
@@ -694,6 +700,12 @@ default_builtin_vector_alignment_reachable (const_tree type, bool is_packed)
 
   /* Assuming that types whose size is <= pointer-size
      are naturally aligned.  */
+  return true;
+}
+
+bool
+default_hard_regno_scratch_ok (unsigned int regno ATTRIBUTE_UNUSED)
+{
   return true;
 }
 

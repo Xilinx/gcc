@@ -97,9 +97,42 @@ cshift0 (gfc_array_char * ret, const gfc_array_char * array,
   index_type len;
   index_type n;
   int whichloop;
+  index_type arraysize;
 
   if (which < 1 || which > GFC_DESCRIPTOR_RANK (array))
     runtime_error ("Argument 'DIM' is out of range in call to 'CSHIFT'");
+
+  arraysize = size0 ((array_t *) array);
+
+  if (ret->data == NULL)
+    {
+      int i;
+
+      ret->offset = 0;
+      ret->dtype = array->dtype;
+      for (i = 0; i < GFC_DESCRIPTOR_RANK (array); i++)
+        {
+          ret->dim[i].lbound = 0;
+          ret->dim[i].ubound = array->dim[i].ubound - array->dim[i].lbound;
+
+          if (i == 0)
+            ret->dim[i].stride = 1;
+          else
+            ret->dim[i].stride = (ret->dim[i-1].ubound + 1)
+				 * ret->dim[i-1].stride;
+        }
+
+      if (arraysize > 0)
+	ret->data = internal_malloc_size (size * arraysize);
+      else
+	{
+	  ret->data = internal_malloc_size (1);
+	  return;
+	}
+    }
+  
+  if (arraysize == 0)
+    return;
 
   which = which - 1;
   sstride[0] = 0;
@@ -141,34 +174,6 @@ cshift0 (gfc_array_char * ret, const gfc_array_char * array,
   roffset = size;
   soffset = size;
   len = 0;
-
-  if (ret->data == NULL)
-    {
-      int i;
-      index_type arraysize = size0 ((array_t *)array);
-
-      ret->offset = 0;
-      ret->dtype = array->dtype;
-      for (i = 0; i < GFC_DESCRIPTOR_RANK (array); i++)
-        {
-          ret->dim[i].lbound = 0;
-          ret->dim[i].ubound = array->dim[i].ubound - array->dim[i].lbound;
-
-          if (i == 0)
-            ret->dim[i].stride = 1;
-          else
-            ret->dim[i].stride = (ret->dim[i-1].ubound + 1)
-				 * ret->dim[i-1].stride;
-        }
-
-      if (arraysize > 0)
-	ret->data = internal_malloc_size (size * arraysize);
-      else
-	{
-	  ret->data = internal_malloc_size (1);
-	  return;
-	}
-    }
 
   for (dim = 0; dim < GFC_DESCRIPTOR_RANK (array); dim++)
     {
@@ -334,9 +339,30 @@ cshift0 (gfc_array_char * ret, const gfc_array_char * array,
 		      GFC_INTEGER_4 array_length)			      \
   {									      \
     cshift0 (ret, array, *pshift, pdim ? *pdim : 1, array_length);	      \
+  }									      \
+									      \
+  extern void cshift0_##N##_char4 (gfc_array_char *, GFC_INTEGER_4,	      \
+				   const gfc_array_char *,		      \
+				   const GFC_INTEGER_##N *,		      \
+				   const GFC_INTEGER_##N *, GFC_INTEGER_4);   \
+  export_proto(cshift0_##N##_char4);					      \
+									      \
+  void									      \
+  cshift0_##N##_char4 (gfc_array_char *ret,				      \
+		       GFC_INTEGER_4 ret_length __attribute__((unused)),      \
+		       const gfc_array_char *array,			      \
+		       const GFC_INTEGER_##N *pshift,			      \
+		       const GFC_INTEGER_##N *pdim,			      \
+		       GFC_INTEGER_4 array_length)			      \
+  {									      \
+    cshift0 (ret, array, *pshift, pdim ? *pdim : 1,			      \
+	     array_length * sizeof (gfc_char4_t));			      \
   }
 
 DEFINE_CSHIFT (1);
 DEFINE_CSHIFT (2);
 DEFINE_CSHIFT (4);
 DEFINE_CSHIFT (8);
+#ifdef HAVE_GFC_INTEGER_16
+DEFINE_CSHIFT (16);
+#endif

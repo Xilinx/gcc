@@ -388,6 +388,9 @@
 #define TARGET_LIBGCC_CMP_RETURN_MODE  default_libgcc_cmp_return_mode
 #define TARGET_LIBGCC_SHIFT_COUNT_MODE default_libgcc_shift_count_mode
 
+/* In unwind-generic.h.  */
+#define TARGET_UNWIND_WORD_MODE default_unwind_word_mode
+
 /* In tree.c.  */
 #define TARGET_MERGE_DECL_ATTRIBUTES merge_decl_attributes
 #define TARGET_MERGE_TYPE_ATTRIBUTES merge_type_attributes
@@ -517,6 +520,8 @@
 #define TARGET_MACHINE_DEPENDENT_REORG 0
 
 #define TARGET_BUILD_BUILTIN_VA_LIST std_build_builtin_va_list
+#define TARGET_FN_ABI_VA_LIST std_fn_abi_va_list
+#define TARGET_CANONICAL_VA_LIST_TYPE std_canonical_va_list_type
 #define TARGET_EXPAND_BUILTIN_VA_START 0
 
 #define TARGET_GET_PCH_VALIDITY default_get_pch_validity
@@ -545,9 +550,7 @@
 #define TARGET_PROMOTE_PROTOTYPES hook_bool_const_tree_false
 
 #define TARGET_STRUCT_VALUE_RTX hook_rtx_tree_int_null
-#ifndef TARGET_RETURN_IN_MEMORY
 #define TARGET_RETURN_IN_MEMORY default_return_in_memory
-#endif
 #define TARGET_RETURN_IN_MSB hook_bool_const_tree_false
 
 #define TARGET_EXPAND_BUILTIN_SAVEREGS default_expand_builtin_saveregs
@@ -568,6 +571,7 @@
 
 #define TARGET_FUNCTION_VALUE default_function_value
 #define TARGET_INTERNAL_ARG_POINTER default_internal_arg_pointer
+#define TARGET_ALLOCATE_STACK_SLOTS_FOR_ARGS hook_bool_void_true
 
 #define TARGET_CALLS {						\
    TARGET_PROMOTE_FUNCTION_ARGS,				\
@@ -587,7 +591,8 @@
    TARGET_ARG_PARTIAL_BYTES,					\
    TARGET_INVALID_ARG_FOR_UNPROTOTYPED_FN,			\
    TARGET_FUNCTION_VALUE,					\
-   TARGET_INTERNAL_ARG_POINTER					\
+   TARGET_INTERNAL_ARG_POINTER,					\
+   TARGET_ALLOCATE_STACK_SLOTS_FOR_ARGS				\
    }
 
 #ifndef TARGET_UNWIND_TABLES_DEFAULT
@@ -612,6 +617,10 @@
 
 #ifndef TARGET_INSTANTIATE_DECLS
 #define TARGET_INSTANTIATE_DECLS hook_void_void
+#endif
+
+#ifndef TARGET_HARD_REGNO_SCRATCH_OK
+#define TARGET_HARD_REGNO_SCRATCH_OK default_hard_regno_scratch_ok
 #endif
 
 /* C specific.  */
@@ -761,6 +770,7 @@
   TARGET_EH_RETURN_FILTER_MODE,			\
   TARGET_LIBGCC_CMP_RETURN_MODE,                \
   TARGET_LIBGCC_SHIFT_COUNT_MODE,               \
+  TARGET_UNWIND_WORD_MODE,			\
   TARGET_MERGE_DECL_ATTRIBUTES,			\
   TARGET_MERGE_TYPE_ATTRIBUTES,			\
   TARGET_ATTRIBUTE_TABLE,			\
@@ -816,6 +826,8 @@
   TARGET_CC_MODES_COMPATIBLE,			\
   TARGET_MACHINE_DEPENDENT_REORG,		\
   TARGET_BUILD_BUILTIN_VA_LIST,			\
+  TARGET_FN_ABI_VA_LIST,			\
+  TARGET_CANONICAL_VA_LIST_TYPE,			\
   TARGET_EXPAND_BUILTIN_VA_START,		\
   TARGET_GIMPLIFY_VA_ARG_EXPR,			\
   TARGET_GET_PCH_VALIDITY,			\
@@ -838,6 +850,7 @@
   TARGET_SECONDARY_RELOAD,			\
   TARGET_EXPAND_TO_RTL_HOOK,			\
   TARGET_INSTANTIATE_DECLS,			\
+  TARGET_HARD_REGNO_SCRATCH_OK,			\
   TARGET_C,					\
   TARGET_CXX,					\
   TARGET_EMUTLS,				\

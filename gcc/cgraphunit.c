@@ -119,9 +119,9 @@ along with GCC; see the file COPYING3.  If not see
 	Functions are output early using call of
 	cgraph_assemble_pending_function from cgraph_finalize_function.  The
 	decision on whether function is needed is made more conservative so
-	uninlininable static functions are needed too.  During the call-graph
+	uninlinable static functions are needed too.  During the call-graph
 	construction the edge destinations are not marked as reachable and it
-	is completely relied upn assemble_variable to mark them.  */
+	is completely relied upon assemble_variable to mark them.  */
 
 
 #include "config.h"
@@ -326,7 +326,7 @@ cgraph_build_cdtor_fns (void)
 
 /* Determine if function DECL is needed.  That is, visible to something
    either outside this translation unit, something magic in the system
-   configury, or (if not doing unit-at-a-time) to something we havn't
+   configury, or (if not doing unit-at-a-time) to something we haven't
    seen yet.  */
 
 static bool
@@ -443,7 +443,6 @@ cgraph_process_new_functions (void)
 	     it into reachable functions list.  */
 
 	  node->next_needed = NULL;
-	  node->needed = node->reachable = false;
 	  cgraph_finalize_function (fndecl, false);
 	  cgraph_mark_reachable_node (node);
 	  output = true;
@@ -496,7 +495,7 @@ cgraph_assemble_pending_functions (void)
 {
   bool output = false;
 
-  if (flag_unit_at_a_time)
+  if (flag_unit_at_a_time || errorcount || sorrycount)
     return false;
 
   cgraph_output_pending_asms ();
@@ -603,7 +602,6 @@ cgraph_finalize_function (tree decl, bool nested)
 
   node->pid = cgraph_max_pid ++;
   notice_global_symbol (decl);
-  node->decl = decl;
   node->local.finalized = true;
   node->lowered = DECL_STRUCT_FUNCTION (decl)->cfg != NULL;
   record_cdtor_fn (node->decl);
@@ -640,6 +638,18 @@ cgraph_finalize_function (tree decl, bool nested)
   /* Possibly warn about unused parameters.  */
   if (warn_unused_parameter)
     do_warn_unused_parameter (decl);
+}
+
+/* C99 extern inline keywords allow changing of declaration after function
+   has been finalized.  We need to re-decide if we want to mark the function as
+   needed then.   */
+
+void
+cgraph_mark_if_needed (tree decl)
+{
+  struct cgraph_node *node = cgraph_node (decl);
+  if (node->local.finalized && decide_is_function_needed (node, decl))
+    cgraph_mark_needed_node (node);
 }
 
 /* Verify cgraph nodes of given cgraph node.  */
@@ -845,7 +855,7 @@ cgraph_analyze_function (struct cgraph_node *node)
   cgraph_lower_function (node);
   node->analyzed = true;
 
-  if (!flag_unit_at_a_time)
+  if (!flag_unit_at_a_time && !sorrycount && !errorcount)
     {
       bitmap_obstack_initialize (NULL);
       tree_register_cfg_hooks ();
@@ -1149,10 +1159,10 @@ cgraph_expand_function (struct cgraph_node *node)
 
   /* Make sure that BE didn't give up on compiling.  */
   /* ??? Can happen with nested function of extern inline.  */
-  gcc_assert (TREE_ASM_WRITTEN (node->decl));
+  gcc_assert (TREE_ASM_WRITTEN (decl));
 
   current_function_decl = NULL;
-  if (!cgraph_preserve_function_body_p (node->decl))
+  if (!cgraph_preserve_function_body_p (decl))
     {
       cgraph_release_function_body (node);
       /* Eliminate all call edges.  This is important so the call_expr no longer
@@ -1189,7 +1199,7 @@ cgraph_expand_all_functions (void)
 {
   struct cgraph_node *node;
   struct cgraph_node **order = XCNEWVEC (struct cgraph_node *, cgraph_n_nodes);
-  int order_pos = 0, new_order_pos = 0;
+  int order_pos, new_order_pos = 0;
   int i;
 
   order_pos = cgraph_postorder (order);
@@ -1280,6 +1290,16 @@ cgraph_output_in_order (void)
       nodes[i].kind = ORDER_ASM;
       nodes[i].u.a = pa;
     }
+
+  /* In toplevel reorder mode we output all statics; mark them as needed.  */
+  for (i = 0; i < max; ++i)
+    {
+      if (nodes[i].kind == ORDER_VAR)
+        {
+	  varpool_mark_needed_node (nodes[i].u.v);
+	}
+    }
+  varpool_empty_needed_queue ();
 
   for (i = 0; i < max; ++i)
     {
@@ -1377,7 +1397,7 @@ cgraph_optimize (void)
   if (!quiet_flag)
     fprintf (stderr, "Performing interprocedural optimizations\n");
   cgraph_state = CGRAPH_STATE_IPA;
-    
+
   /* Don't run the IPA passes if there was any error or sorry messages.  */
   if (errorcount == 0 && sorrycount == 0)
     ipa_passes ();
@@ -1419,8 +1439,8 @@ cgraph_optimize (void)
       varpool_remove_unreferenced_decls ();
 
       varpool_assemble_pending_decls ();
-      varpool_output_debug_info ();
     }
+  varpool_output_debug_info ();
   cgraph_process_new_functions ();
   cgraph_state = CGRAPH_STATE_FINISHED;
 
@@ -1448,14 +1468,14 @@ cgraph_optimize (void)
 	    dump_cgraph_node (stderr, node);
 	  }
       if (error_found)
-	internal_error ("nodes with no released memory found");
+	internal_error ("nodes with unreleased memory found");
     }
 #endif
 }
 /* Generate and emit a static constructor or destructor.  WHICH must
    be one of 'I' (for a constructor) or 'D' (for a destructor).  BODY
    is a STATEMENT_LIST containing GENERIC statements.  PRIORITY is the
-   initialization priority fot this constructor or destructor.  */
+   initialization priority for this constructor or destructor.  */
 
 void
 cgraph_build_static_cdtor (char which, tree body, int priority)

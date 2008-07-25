@@ -147,6 +147,12 @@ BUILD_EXPORTS = \
 	WINDRES="$(WINDRES_FOR_BUILD)"; export WINDRES; \
 	WINDMC="$(WINDMC_FOR_BUILD)"; export WINDMC;
 
+# These variables must be set on the make command line for directories
+# built for the build system to override those in BASE_FLAGS_TO_PASSS.
+EXTRA_BUILD_FLAGS = \
+	CFLAGS="$(CFLAGS_FOR_BUILD)" \
+	LDFLAGS="$(LDFLAGS_FOR_BUILD)"
+
 # This is the list of directories to built for the host system.
 SUBDIRS = @configdirs@
 # This is set by the configure script to the arguments to use when configuring
@@ -967,7 +973,8 @@ clean-stage[+id+]-[+prefix+][+module+]:
 	     target_alias=(get "target" "${target_alias}")
 	     args="$(BUILD_CONFIGARGS)" no-config-site=true +]
 
-[+ all prefix="build-" subdir="$(BUILD_SUBDIR)" exports="$(BUILD_EXPORTS)" +]
+[+ all prefix="build-" subdir="$(BUILD_SUBDIR)" exports="$(BUILD_EXPORTS)"
+	     args="$(EXTRA_BUILD_FLAGS)" +]
 [+ ENDFOR build_module +]
 
 # --------------------------------------
@@ -1323,7 +1330,7 @@ stage[+id+]-end:: [+ FOR host_modules +][+ IF bootstrap +]
 
 # Bubble a bug fix through all the stages up to stage [+id+].  They are
 # remade, but not reconfigured.  The next stage (if any) will not be
-# reconfigured as well.
+# reconfigured either.
 .PHONY: stage[+id+]-bubble
 stage[+id+]-bubble:: [+ IF prev +]stage[+prev+]-bubble[+ ENDIF +]
 	@r=`${PWD_COMMAND}`; export r; \
@@ -1497,7 +1504,7 @@ configure-target-[+module+]: maybe-all-gcc[+
 
 [+ ;; These Scheme functions build the bulk of the dependencies.
    ;; dep-target builds a string like "maybe-all-MODULE_KIND-gcc",
-   ;; where "maybe-" is only included if HARD is true, and all-gcc
+   ;; where "maybe-" is only included if HARD is not true, and all-gcc
    ;; is taken from VAR-NAME.
    (define dep-target (lambda (module-kind var-name hard)
       (string-append
@@ -1655,7 +1662,8 @@ config.status: configure
 
 # Rebuilding configure.
 AUTOCONF = autoconf
-$(srcdir)/configure: @MAINT@ $(srcdir)/configure.ac $(srcdir)/config/acx.m4
+$(srcdir)/configure: @MAINT@ $(srcdir)/configure.ac $(srcdir)/config/acx.m4 \
+	$(srcdir)/config/override.m4 $(srcdir)/config/proginstall.m4
 	cd $(srcdir) && $(AUTOCONF)
 
 # ------------------------------

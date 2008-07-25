@@ -306,8 +306,8 @@ del_loop_to_cloog_loop (void *e)
 static int 
 gbb_compare (const void *p_1, const void *p_2)
 {
-  graphite_bb_p gbb_1 = *((graphite_bb_p *) p_1);
-  graphite_bb_p gbb_2 = *((graphite_bb_p *) p_2);
+  const struct graphite_bb *gbb_1 = (const struct graphite_bb *) p_1;
+  const struct graphite_bb *gbb_2 = (const struct graphite_bb *) p_2;
 
   return lambda_vector_compare (GBB_STATIC_SCHEDULE (gbb_1),
                                 gbb_nb_loops (gbb_1) + 1,
@@ -1878,7 +1878,7 @@ struct irp_data
 static bool
 idx_record_params (tree base, tree *idx, void *dta)
 {
-  struct irp_data *data = dta;
+  struct irp_data *data = (struct irp_data *) dta;
 
   if (TREE_CODE (base) != ARRAY_REF)
     return true;
@@ -3032,7 +3032,7 @@ build_cloog_prog (scop_p scop)
       /* Build scattering list.  */
       {
         /* XXX: Replace with cloog_domain_list_alloc(), when available.  */
-        CloogDomainList *new_scattering = xmalloc (sizeof (CloogDomainList));
+        CloogDomainList *new_scattering = (CloogDomainList *) xmalloc (sizeof (CloogDomainList));
         CloogMatrix *scat_mat = schedule_to_scattering (gbb, prog->nb_scattdims);
         new_scattering->next = scattering;
         new_scattering->domain = cloog_domain_matrix2domain (scat_mat);

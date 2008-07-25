@@ -129,7 +129,7 @@ gfc_create_var (tree type, const char *prefix)
 }
 
 
-/* If the an expression is not constant, evaluate it now.  We assign the
+/* If the expression is not constant, evaluate it now.  We assign the
    result of the expression to an artificially created variable VAR, and
    return a pointer to the VAR_DECL node for this variable.  */
 
@@ -933,7 +933,7 @@ gfc_add_block_to_block (stmtblock_t * block, stmtblock_t * append)
 void
 gfc_get_backend_locus (locus * loc)
 {
-  loc->lb = gfc_getmem (sizeof (gfc_linebuf));    
+  loc->lb = XCNEW (gfc_linebuf);
   loc->lb->location = input_location;
   loc->lb->file = gfc_current_backend_file;
 }
@@ -1135,6 +1135,8 @@ gfc_trans_code (gfc_code * code)
 	case EXEC_OMP_PARALLEL_WORKSHARE:
 	case EXEC_OMP_SECTIONS:
 	case EXEC_OMP_SINGLE:
+	case EXEC_OMP_TASK:
+	case EXEC_OMP_TASKWAIT:
 	case EXEC_OMP_WORKSHARE:
 	  res = gfc_trans_omp_directive (code);
 	  break;

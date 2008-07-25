@@ -1009,12 +1009,12 @@ do_unlink (rtx spreg, HOST_WIDE_INT frame_size, bool all, int epilogue_p)
 	{
 	  rtx fpreg = gen_rtx_REG (Pmode, REG_FP);
 	  emit_move_insn (fpreg, postinc);
-	  emit_insn (gen_rtx_USE (VOIDmode, fpreg));
+	  emit_use (fpreg);
 	}
       if (! current_function_is_leaf)
 	{
 	  emit_move_insn (bfin_rets_rtx, postinc);
-	  emit_insn (gen_rtx_USE (VOIDmode, bfin_rets_rtx));
+	  emit_use (bfin_rets_rtx);
 	}
     }
 }
@@ -2436,7 +2436,7 @@ bfin_init_machine_status (void)
 {
   struct machine_function *f;
 
-  f = ggc_alloc_cleared (sizeof (struct machine_function));
+  f = GGC_CNEW (struct machine_function);
 
   return f;
 }
@@ -3838,7 +3838,7 @@ bfin_optimize_loop (loop_info loop)
 
   if (JUMP_P (last_insn))
     {
-      loop_info inner = bb->aux;
+      loop_info inner = (loop_info) bb->aux;
       if (inner
 	  && inner->outer == loop
 	  && inner->loop_end == last_insn

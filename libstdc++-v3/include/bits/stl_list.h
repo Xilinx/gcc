@@ -63,6 +63,7 @@
 #define _STL_LIST_H 1
 
 #include <bits/concept_check.h>
+#include <initializer_list>
 
 _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_D)
 
@@ -541,6 +542,19 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_D)
        */
       list(list&& __x)
       : _Base(std::forward<_Base>(__x)) { }
+
+      /**
+       *  @brief  Builds a %list from an initializer_list
+       *  @param  l  An initializer_list of value_type.
+       *  @param  a  An allocator object.
+       *
+       *  Create a %list consisting of copies of the elements in the
+       *  initializer_list @a l.  This is linear in l.size().
+       */
+      list(initializer_list<value_type> __l,
+           const allocator_type& __a = allocator_type())
+        : _Base(__a)
+      { _M_initialize_dispatch(__l.begin(), __l.end(), __false_type()); }
 #endif
 
       /**
@@ -597,6 +611,20 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_D)
 	this->swap(__x); 
 	return *this;
       }
+
+      /**
+       *  @brief  %List initializer list assignment operator.
+       *  @param  l  An initializer_list of value_type.
+       *
+       *  Replace the contents of the %list with copies of the elements
+       *  in the initializer_list @a l.  This is linear in l.size().
+       */
+      list&
+      operator=(initializer_list<value_type> __l)
+      {
+	this->assign(__l.begin(), __l.end());
+	return *this;
+      }
 #endif
 
       /**
@@ -633,6 +661,19 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_D)
 	  typedef typename std::__is_integer<_InputIterator>::__type _Integral;
 	  _M_assign_dispatch(__first, __last, _Integral());
 	}
+
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      /**
+       *  @brief  Assigns an initializer_list to a %list.
+       *  @param  l  An initializer_list of value_type.
+       *
+       *  Replace the contents of the %list with copies of the elements
+       *  in the initializer_list @a l.  This is linear in l.size().
+       */
+      void
+      assign(initializer_list<value_type> __l)
+      { this->assign(__l.begin(), __l.end()); }
+#endif
 
       /// Get a copy of the memory allocation object.
       allocator_type
@@ -833,15 +874,19 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_D)
        *  done in constant time, and does not invalidate iterators and
        *  references.
        */
-#ifndef __GXX_EXPERIMENTAL_CXX0X__
       void
       push_front(const value_type& __x)
       { this->_M_insert(begin(), __x); }
-#else
+
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      void
+      push_front(value_type&& __x)
+      { this->_M_insert(begin(), std::move(__x)); }
+
       template<typename... _Args>
         void
-        push_front(_Args&&... __args)
-	{ this->_M_insert(begin(), std::forward<_Args>(__args)...); }
+        emplace_front(_Args&&... __args)
+        { this->_M_insert(begin(), std::forward<_Args>(__args)...); }
 #endif
 
       /**
@@ -870,15 +915,19 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_D)
        *  in constant time, and does not invalidate iterators and
        *  references.
        */
-#ifndef __GXX_EXPERIMENTAL_CXX0X__
       void
       push_back(const value_type& __x)
       { this->_M_insert(end(), __x); }
-#else
+
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      void
+      push_back(value_type&& __x)
+      { this->_M_insert(end(), std::move(__x)); }
+
       template<typename... _Args>
         void
-        push_back(_Args&&... __args)
-	{ this->_M_insert(end(), std::forward<_Args>(__args)...); }
+        emplace_back(_Args&&... __args)
+        { this->_M_insert(end(), std::forward<_Args>(__args)...); }
 #endif
 
       /**
@@ -943,6 +992,23 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_D)
       iterator
       insert(iterator __position, value_type&& __x)
       { return emplace(__position, std::move(__x)); }
+
+      /**
+       *  @brief  Inserts the contents of an initializer_list into %list
+       *          before specified iterator.
+       *  @param  p  An iterator into the %list.
+       *  @param  l  An initializer_list of value_type.
+       *
+       *  This function will insert copies of the data in the
+       *  initializer_list @a l into the %list before the location
+       *  specified by @a p.
+       *
+       *  This operation is linear in the number of elements inserted and
+       *  does not invalidate iterators and references.
+       */
+      void
+      insert(iterator __p, initializer_list<value_type> __l)
+      { this->insert(__p, __l.begin(), __l.end()); }
 #endif
 
       /**

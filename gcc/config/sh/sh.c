@@ -260,6 +260,7 @@ static void sh_setup_incoming_varargs (CUMULATIVE_ARGS *, enum machine_mode, tre
 static bool sh_strict_argument_naming (CUMULATIVE_ARGS *);
 static bool sh_pretend_outgoing_varargs_named (CUMULATIVE_ARGS *);
 static tree sh_build_builtin_va_list (void);
+static tree sh_canonical_va_list_type (tree);
 static void sh_va_start (tree, rtx);
 static tree sh_gimplify_va_arg_expr (tree, tree, tree *, tree *);
 static bool sh_pass_by_reference (CUMULATIVE_ARGS *, enum machine_mode,
@@ -441,6 +442,8 @@ static int sh2a_function_vector_p (tree);
 
 #undef TARGET_BUILD_BUILTIN_VA_LIST
 #define TARGET_BUILD_BUILTIN_VA_LIST sh_build_builtin_va_list
+#undef TARGET_CANONICAL_VA_LIST_TYPE
+#define TARGET_CANONICAL_VA_LIST_TYPE sh_canonical_va_list_type
 #undef TARGET_EXPAND_BUILTIN_VA_START
 #define TARGET_EXPAND_BUILTIN_VA_START sh_va_start
 #undef TARGET_GIMPLIFY_VA_ARG_EXPR
@@ -1371,8 +1374,7 @@ prepare_move_operands (rtx operands[], enum machine_mode mode)
 		  if (flag_schedule_insns)
 		    emit_insn (gen_blockage ());
 		  emit_insn (gen_GOTaddr2picreg ());
-		  emit_insn (gen_rtx_USE (VOIDmode, gen_rtx_REG (SImode,
-								 PIC_REG)));
+		  emit_use (gen_rtx_REG (SImode, PIC_REG));
 		  if (flag_schedule_insns)
 		    emit_insn (gen_blockage ());
 		}
@@ -4984,10 +4986,8 @@ sh_reorg (void)
              or pseudo-op.  */
 
 	  label = gen_label_rtx ();
-	  REG_NOTES (link) = gen_rtx_INSN_LIST (REG_LABEL_OPERAND, label,
-						REG_NOTES (link));
-	  REG_NOTES (insn) = gen_rtx_INSN_LIST (REG_LABEL_OPERAND, label,
-						REG_NOTES (insn));
+	  add_reg_note (link, REG_LABEL_OPERAND, label);
+	  add_reg_note (insn, REG_LABEL_OPERAND, label);
 	  if (rescan)
 	    {
 	      scan = link;
@@ -5001,9 +5001,7 @@ sh_reorg (void)
 			   && reg_mentioned_p (reg, scan))
 			  || ((reg2 = sfunc_uses_reg (scan))
 			      && REGNO (reg2) == REGNO (reg))))
-		    REG_NOTES (scan)
-		      = gen_rtx_INSN_LIST (REG_LABEL_OPERAND, label,
-					   REG_NOTES (scan));
+		    add_reg_note (scan, REG_LABEL_OPERAND, label);
 		}
 	      while (scan != dies);
 	    }
@@ -5723,8 +5721,8 @@ output_stack_adjust (int size, rtx reg, int epilogue_p,
 	      mem = gen_tmp_stack_mem (Pmode, gen_rtx_POST_INC (Pmode, reg));
 	      emit_move_insn (tmp_reg, mem);
 	      /* Tell flow the insns that pop r4/r5 aren't dead.  */
-	      emit_insn (gen_rtx_USE (VOIDmode, tmp_reg));
-	      emit_insn (gen_rtx_USE (VOIDmode, adj_reg));
+	      emit_use (tmp_reg);
+	      emit_use (adj_reg);
 	      return;
 	    }
 	  const_reg = gen_rtx_REG (GET_MODE (reg), temp);
@@ -6862,7 +6860,7 @@ sh_expand_epilogue (bool sibcall_p)
      USE PR_MEDIA_REG, since it will be explicitly copied to TR0_REG
      by the return pattern.  */
   if (TEST_HARD_REG_BIT (live_regs_mask, PR_REG))
-    emit_insn (gen_rtx_USE (VOIDmode, gen_rtx_REG (SImode, PR_REG)));
+    emit_use (gen_rtx_REG (SImode, PR_REG));
 }
 
 static int sh_need_epilogue_known = 0;
@@ -6916,7 +6914,7 @@ sh_set_return_address (rtx ra, rtx tmp)
 
       emit_insn (GEN_MOV (rr, ra));
       /* Tell flow the register for return isn't dead.  */
-      emit_insn (gen_rtx_USE (VOIDmode, rr));
+      emit_use (rr);
       return;
     }
 
@@ -7148,6 +7146,14 @@ sh_build_builtin_va_list (void)
   layout_type (record);
 
   return record;
+}
+
+/* Return always va_list_type_node.  */
+
+static tree
+sh_canonical_va_list_type (tree type ATTRIBUTE_UNUSED)
+{
+  return va_list_type_node;
 }
 
 /* Implement `va_start' for varargs and stdarg.  */
@@ -7972,6 +7978,68 @@ initial_elimination_offset (int from, int to)
     }
   else
     return total_auto_space;
+}
+
+/* Parse the -mfixed-range= option string.  */
+void
+sh_fix_range (const char *const_str)
+{
+  int i, first, last;
+  char *str, *dash, *comma;
+  
+  /* str must be of the form REG1'-'REG2{,REG1'-'REG} where REG1 and
+     REG2 are either register names or register numbers.  The effect
+     of this option is to mark the registers in the range from REG1 to
+     REG2 as ``fixed'' so they won't be used by the compiler.  */
+  
+  i = strlen (const_str);
+  str = (char *) alloca (i + 1);
+  memcpy (str, const_str, i + 1);
+  
+  while (1)
+    {
+      dash = strchr (str, '-');
+      if (!dash)
+	{
+	  warning (0, "value of -mfixed-range must have form REG1-REG2");
+	  return;
+	}
+      *dash = '\0';
+      comma = strchr (dash + 1, ',');
+      if (comma)
+	*comma = '\0';
+      
+      first = decode_reg_name (str);
+      if (first < 0)
+	{
+	  warning (0, "unknown register name: %s", str);
+	  return;
+	}
+      
+      last = decode_reg_name (dash + 1);
+      if (last < 0)
+	{
+	  warning (0, "unknown register name: %s", dash + 1);
+	  return;
+	}
+      
+      *dash = '-';
+      
+      if (first > last)
+	{
+	  warning (0, "%s-%s is an empty range", str, dash + 1);
+	  return;
+	}
+      
+      for (i = first; i <= last; ++i)
+	fixed_regs[i] = call_used_regs[i] = 1;
+
+      if (!comma)
+	break;
+
+      *comma = ',';
+      str = comma + 1;
+    }
 }
 
 /* Insert any deferred function attributes from earlier pragmas.  */
@@ -10652,7 +10720,7 @@ sh_expand_t_scc (enum rtx_code code, rtx target)
     emit_insn (gen_movrt (result));
   else if ((code == EQ && val == 0) || (code == NE && val == 1))
     {
-      emit_insn (gen_rtx_CLOBBER (VOIDmode, result));
+      emit_clobber (result);
       emit_insn (gen_subc (result, result, result));
       emit_insn (gen_addsi3 (result, result, const1_rtx));
     }

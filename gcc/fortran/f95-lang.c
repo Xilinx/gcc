@@ -45,6 +45,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "cgraph.h"
 
 #include "gfortran.h"
+#include "cpp.h"
 #include "trans.h"
 #include "trans-types.h"
 #include "trans-const.h"
@@ -114,8 +115,12 @@ static alias_set_type gfc_get_alias_set (tree);
 #undef LANG_HOOKS_OMP_PRIVATIZE_BY_REFERENCE
 #undef LANG_HOOKS_OMP_PREDETERMINED_SHARING
 #undef LANG_HOOKS_OMP_CLAUSE_DEFAULT_CTOR
+#undef LANG_HOOKS_OMP_CLAUSE_COPY_CTOR
+#undef LANG_HOOKS_OMP_CLAUSE_ASSIGN_OP
+#undef LANG_HOOKS_OMP_CLAUSE_DTOR
 #undef LANG_HOOKS_OMP_DISREGARD_VALUE_EXPR
 #undef LANG_HOOKS_OMP_PRIVATE_DEBUG_CLAUSE
+#undef LANG_HOOKS_OMP_PRIVATE_OUTER_REF
 #undef LANG_HOOKS_OMP_FIRSTPRIVATIZE_TYPE_SIZES
 #undef LANG_HOOKS_BUILTIN_FUNCTION
 #undef LANG_HOOKS_GET_ARRAY_DESCR_INFO
@@ -136,48 +141,18 @@ static alias_set_type gfc_get_alias_set (tree);
 #define LANG_HOOKS_OMP_PRIVATIZE_BY_REFERENCE	gfc_omp_privatize_by_reference
 #define LANG_HOOKS_OMP_PREDETERMINED_SHARING	gfc_omp_predetermined_sharing
 #define LANG_HOOKS_OMP_CLAUSE_DEFAULT_CTOR	gfc_omp_clause_default_ctor
+#define LANG_HOOKS_OMP_CLAUSE_COPY_CTOR		gfc_omp_clause_copy_ctor
+#define LANG_HOOKS_OMP_CLAUSE_ASSIGN_OP		gfc_omp_clause_assign_op
+#define LANG_HOOKS_OMP_CLAUSE_DTOR		gfc_omp_clause_dtor
 #define LANG_HOOKS_OMP_DISREGARD_VALUE_EXPR	gfc_omp_disregard_value_expr
 #define LANG_HOOKS_OMP_PRIVATE_DEBUG_CLAUSE	gfc_omp_private_debug_clause
+#define LANG_HOOKS_OMP_PRIVATE_OUTER_REF	gfc_omp_private_outer_ref
 #define LANG_HOOKS_OMP_FIRSTPRIVATIZE_TYPE_SIZES \
   gfc_omp_firstprivatize_type_sizes
 #define LANG_HOOKS_BUILTIN_FUNCTION          gfc_builtin_function
 #define LANG_HOOKS_GET_ARRAY_DESCR_INFO	     gfc_get_array_descr_info
 
 const struct lang_hooks lang_hooks = LANG_HOOKS_INITIALIZER;
-
-/* A list (chain of TREE_LIST nodes) of all LABEL_DECLs in the function
-   that have names.  Here so we can clear out their names' definitions
-   at the end of the function.  */
-
-/* Tree code classes.  */
-
-#define DEFTREECODE(SYM, NAME, TYPE, LENGTH) TYPE,
-
-const enum tree_code_class tree_code_type[] = {
-#include "tree.def"
-};
-#undef DEFTREECODE
-
-/* Table indexed by tree code giving number of expression
-   operands beyond the fixed part of the node structure.
-   Not used for types or decls.  */
-
-#define DEFTREECODE(SYM, NAME, TYPE, LENGTH) LENGTH,
-
-const unsigned char tree_code_length[] = {
-#include "tree.def"
-};
-#undef DEFTREECODE
-
-/* Names of tree components.
-   Used for printing out the tree and error messages.  */
-#define DEFTREECODE(SYM, NAME, TYPE, LEN) NAME,
-
-const char *const tree_code_name[] = {
-#include "tree.def"
-};
-#undef DEFTREECODE
-
 
 #define NULL_BINDING_LEVEL (struct binding_level *) NULL
 
@@ -261,7 +236,7 @@ gfc_be_parse_file (int set_yydebug ATTRIBUTE_UNUSED)
   cgraph_finalize_compilation_unit ();
   cgraph_optimize ();
 
-  /* Tell the frontent about any errors.  */
+  /* Tell the frontend about any errors.  */
   gfc_get_errors (&warnings, &errors);
   errorcount += errors;
   warningcount += warnings;
@@ -275,18 +250,25 @@ gfc_be_parse_file (int set_yydebug ATTRIBUTE_UNUSED)
 static bool
 gfc_init (void)
 {
-  linemap_add (line_table, LC_ENTER, false, gfc_source_file, 1);
-  linemap_add (line_table, LC_RENAME, false, "<built-in>", 0);
+  if (!gfc_cpp_enabled ())
+    {
+      linemap_add (line_table, LC_ENTER, false, gfc_source_file, 1);
+      linemap_add (line_table, LC_RENAME, false, "<built-in>", 0);
+    }
+  else
+    gfc_cpp_init_0 ();
 
-  /* First initialize the backend.  */
   gfc_init_decl_processing ();
   gfc_static_ctors = NULL_TREE;
 
-  /* Then the frontend.  */
+  if (gfc_cpp_enabled ())
+    gfc_cpp_init ();
+
   gfc_init_1 ();
 
   if (gfc_new_file () != SUCCESS)
     fatal_error ("can't open input file: %s", gfc_source_file);
+
   return true;
 }
 
@@ -294,6 +276,7 @@ gfc_init (void)
 static void
 gfc_finish (void)
 {
+  gfc_cpp_done ();
   gfc_done_1 ();
   gfc_release_include_path ();
   return;
@@ -452,6 +435,10 @@ poplevel (int keep, int reverse, int functionbody)
       DECL_INITIAL (current_function_decl) = block_node;
       BLOCK_VARS (block_node) = 0;
     }
+  else if (current_binding_level == global_binding_level)
+    /* When using gfc_start_block/gfc_finish_block from middle-end hooks,
+       don't add newly created BLOCKs as subblocks of global_binding_level.  */
+    ;
   else if (block_node)
     {
       current_binding_level->blocks
@@ -560,7 +547,7 @@ gfc_init_decl_processing (void)
      only use it for actual characters, not for INTEGER(1). Also, we
      want double_type_node to actually have double precision.  */
   build_common_tree_nodes (false, false);
-  /* x86_64 minw32 has a sizetype of "unsigned long long", most other hosts
+  /* x86_64 mingw32 has a sizetype of "unsigned long long", most other hosts
      have a sizetype of "unsigned long". Therefore choose the correct size
      in mostly target independent way.  */
   if (TYPE_MODE (long_unsigned_type_node) == ptr_mode)

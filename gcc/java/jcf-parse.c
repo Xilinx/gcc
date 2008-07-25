@@ -145,7 +145,7 @@ reverse (const char *s)
   else
     {
       int len = strlen (s);
-      char *d = xmalloc (len + 1);
+      char *d = XNEWVAR (char, len + 1);
       const char *sp;
       char *dp;
       
@@ -213,11 +213,11 @@ java_read_sourcefilenames (const char *fsource_filename)
       /* Read the filenames.  Put a pointer to each filename into the
 	 array FILENAMES.  */
       {
-	char *linebuf = alloca (longest_line + 1);
+	char *linebuf = (char *) alloca (longest_line + 1);
 	int i = 0;
 	int charpos;
 
-	filenames = xmalloc (num_files * sizeof (char*));
+	filenames = XNEWVEC (char *, num_files);
 
 	charpos = 0;
 	for (;;)
@@ -249,7 +249,7 @@ java_read_sourcefilenames (const char *fsource_filename)
     }
   else
     {
-      filenames = xmalloc (sizeof (char*));      
+      filenames = XNEWVEC (char *, 1);      
       filenames[0] = reverse (fsource_filename);
       num_files = 1;
     }
@@ -391,13 +391,13 @@ annotation_grow (int delta)
 
   if (*data == NULL)
     {
-      *data = xmalloc (delta);
+      *data = XNEWVAR (unsigned char, delta);
     }
   else
     {
       int newlen = *datasize + delta;
       if (floor_log2 (newlen) != floor_log2 (*datasize))
-	*data = xrealloc (*data,  2 << (floor_log2 (newlen)));
+	*data = XRESIZEVAR (unsigned char, *data,  2 << (floor_log2 (newlen)));
     }
   *datasize += delta;
   return *data + len;
@@ -746,7 +746,7 @@ rewrite_reflection_indexes (void *arg)
 {
   bitmap_iterator bi;
   unsigned int offset;
-  VEC(int, heap) *map = arg;
+  VEC(int, heap) *map = (VEC(int, heap) *) arg;
   unsigned char *data = TYPE_REFLECTION_DATA (current_class);
 
   if (map)
@@ -1160,8 +1160,8 @@ handle_innerclass_attribute (int count, JCF *jcf, int attribute_length)
       /* If icii is 0, don't try to read the class. */
       if (icii >= 0)
 	{
-	  tree class = get_class_constant (jcf, icii);
-	  tree decl = TYPE_NAME (class);
+	  tree klass = get_class_constant (jcf, icii);
+	  tree decl = TYPE_NAME (klass);
           /* Skip reading further if ocii is null */
           if (DECL_P (decl) && !CLASS_COMPLETE_P (decl) && ocii)
 	    {
@@ -1194,7 +1194,7 @@ give_name_to_class (JCF *jcf, int i)
       this_class = lookup_class (class_name);
       {
       tree source_name = identifier_subst (class_name, "", '.', '/', ".java");
-      const char *sfname = IDENTIFIER_POINTER (source_name);
+      const char *sfname = find_sourcefile (IDENTIFIER_POINTER (source_name));
       linemap_add (line_table, LC_ENTER, false, sfname, 0);
       input_location = linemap_line_start (line_table, 0, 1);
       file_start_location = input_location;
@@ -1253,7 +1253,7 @@ int
 read_class (tree name)
 {
   JCF this_jcf, *jcf;
-  tree icv, class = NULL_TREE;
+  tree icv, klass = NULL_TREE;
   tree save_current_class = current_class;
   tree save_output_class = output_class;
   location_t save_location = input_location;
@@ -1261,8 +1261,8 @@ read_class (tree name)
 
   if ((icv = IDENTIFIER_CLASS_VALUE (name)) != NULL_TREE)
     {
-      class = TREE_TYPE (icv);
-      jcf = TYPE_JCF (class);
+      klass = TREE_TYPE (icv);
+      jcf = TYPE_JCF (klass);
     }
   else
     jcf = NULL;
@@ -1284,21 +1284,21 @@ read_class (tree name)
 
   current_jcf = jcf;
 
-  if (class == NULL_TREE || ! CLASS_PARSED_P (class))
+  if (klass == NULL_TREE || ! CLASS_PARSED_P (klass))
     {
-      output_class = current_class = class;
+      output_class = current_class = klass;
       if (JCF_SEEN_IN_ZIP (current_jcf))
 	read_zip_member(current_jcf,
 			current_jcf->zipd, current_jcf->zipd->zipf);
       jcf_parse (current_jcf);
       /* Parsing might change the class, in which case we have to
 	 put it back where we found it.  */
-      if (current_class != class && icv != NULL_TREE)
+      if (current_class != klass && icv != NULL_TREE)
 	TREE_TYPE (icv) = current_class;
-      class = current_class;
+      klass = current_class;
     }
-  layout_class (class);
-  load_inner_classes (class);
+  layout_class (klass);
+  load_inner_classes (klass);
 
   output_class = save_output_class;
   current_class = save_current_class;
@@ -1731,7 +1731,7 @@ java_parse_file (int set_yydebug ATTRIBUTE_UNUSED)
 	    {
 	      count = next - list;
 	      avail = 2 * (count + avail);
-	      list = xrealloc (list, avail);
+	      list = XRESIZEVEC (char, list, avail);
 	      next = list + count;
 	      avail = avail - count;
 	    }
@@ -1877,7 +1877,7 @@ java_parse_file (int set_yydebug ATTRIBUTE_UNUSED)
       if (magic == 0xcafebabe)
 	{
 	  CLASS_FILE_P (node) = 1;
-	  current_jcf = ggc_alloc (sizeof (JCF));
+	  current_jcf = GGC_NEW (JCF);
 	  JCF_ZERO (current_jcf);
 	  current_jcf->read_state = finput;
 	  current_jcf->filbuf = jcf_filbuf_from_stdio;
@@ -1895,7 +1895,7 @@ java_parse_file (int set_yydebug ATTRIBUTE_UNUSED)
 	}
       else if (magic == (JCF_u4)ZIPMAGIC)
 	{
-	  main_jcf = ggc_alloc (sizeof (JCF));
+	  main_jcf = GGC_NEW (JCF);
 	  JCF_ZERO (main_jcf);
 	  main_jcf->read_state = finput;
 	  main_jcf->filbuf = jcf_filbuf_from_stdio;
@@ -1905,7 +1905,7 @@ java_parse_file (int set_yydebug ATTRIBUTE_UNUSED)
 	    fatal_error ("bad zip/jar file %s", filename);
 	  localToFile = SeenZipFiles;
 	  /* Register all the classes defined there.  */
-	  process_zip_dir (main_jcf->read_state);
+	  process_zip_dir ((FILE *) main_jcf->read_state);
 	  linemap_add (line_table, LC_LEAVE, false, NULL, 0);
 	  parse_zip_file_entries ();
 	}
@@ -2025,7 +2025,7 @@ parse_zip_file_entries (void)
   for (i = 0, zdir = (ZipDirectory *)localToFile->central_directory;
        i < localToFile->count; i++, zdir = ZIPDIR_NEXT (zdir))
     {
-      tree class;
+      tree klass;
 
       switch (classify_zip_file (zdir))
 	{
@@ -2036,14 +2036,14 @@ parse_zip_file_entries (void)
 	  {
 	    char *class_name = compute_class_name (zdir);
 	    int previous_alias_set = -1;
-	    class = lookup_class (get_identifier (class_name));
+	    klass = lookup_class (get_identifier (class_name));
 	    FREE (class_name);
-	    current_jcf = TYPE_JCF (class);
-	    output_class = current_class = class;
+	    current_jcf = TYPE_JCF (klass);
+	    output_class = current_class = klass;
 
 	    /* This is a dummy class, and now we're compiling it for
 	       real.  */
-	    gcc_assert (! TYPE_DUMMY (class));
+	    gcc_assert (! TYPE_DUMMY (klass));
 
 	    /* This is for a corner case where we have a superclass
 	       but no superclass fields.
@@ -2058,17 +2058,17 @@ parse_zip_file_entries (void)
 	       FIXME: this really is a kludge.  We should figure out a
 	       way to lay out the class properly before this
 	       happens.  */
-	    if (TYPE_SIZE (class) && CLASSTYPE_SUPER (class)
-		&& integer_zerop (TYPE_SIZE (class)))
+	    if (TYPE_SIZE (klass) && CLASSTYPE_SUPER (klass)
+		&& integer_zerop (TYPE_SIZE (klass)))
 	      {
-		TYPE_SIZE (class) = NULL_TREE;
-		previous_alias_set = TYPE_ALIAS_SET (class);
-		TYPE_ALIAS_SET (class) = -1;
+		TYPE_SIZE (klass) = NULL_TREE;
+		previous_alias_set = TYPE_ALIAS_SET (klass);
+		TYPE_ALIAS_SET (klass) = -1;
 	      }
 
-	    if (! CLASS_LOADED_P (class))
+	    if (! CLASS_LOADED_P (klass))
 	      {
-		if (! CLASS_PARSED_P (class))
+		if (! CLASS_PARSED_P (klass))
 		  {
 		    read_zip_member (current_jcf, zdir, localToFile);
 		    jcf_parse (current_jcf);
@@ -2078,7 +2078,7 @@ parse_zip_file_entries (void)
 	      }
 
 	    if (previous_alias_set != -1)
-	      TYPE_ALIAS_SET (class) = previous_alias_set;
+	      TYPE_ALIAS_SET (klass) = previous_alias_set;
 
 	    if (TYPE_SIZE (current_class) != error_mark_node)
 	      {
@@ -2146,7 +2146,7 @@ process_zip_dir (FILE *finput)
        i < localToFile->count; i++, zdir = ZIPDIR_NEXT (zdir))
     {
       char *class_name, *file_name, *class_name_in_zip_dir;
-      tree class;
+      tree klass;
       JCF  *jcf;
 
       class_name_in_zip_dir = ZIPDIR_FILENAME (zdir);
@@ -2157,15 +2157,15 @@ process_zip_dir (FILE *finput)
 
       class_name = compute_class_name (zdir);
       file_name  = XNEWVEC (char, zdir->filename_length+1);
-      jcf = ggc_alloc (sizeof (JCF));
+      jcf = GGC_NEW (JCF);
       JCF_ZERO (jcf);
 
       strncpy (file_name, class_name_in_zip_dir, zdir->filename_length);
       file_name [zdir->filename_length] = '\0';
 
-      class = lookup_class (get_identifier (class_name));
+      klass = lookup_class (get_identifier (class_name));
 
-      if (CLASS_FROM_CURRENTLY_COMPILED_P (class))
+      if (CLASS_FROM_CURRENTLY_COMPILED_P (klass))
 	{
 	  /* We've already compiled this class.  */
 	  duplicate_class_warning (file_name);
@@ -2173,7 +2173,7 @@ process_zip_dir (FILE *finput)
 	}
       /* This function is only called when processing a zip file seen
 	 on the command line.  */
-      CLASS_FROM_CURRENTLY_COMPILED_P (class) = 1;
+      CLASS_FROM_CURRENTLY_COMPILED_P (klass) = 1;
 
       jcf->read_state  = finput;
       jcf->filbuf      = jcf_filbuf_from_stdio;
@@ -2181,7 +2181,7 @@ process_zip_dir (FILE *finput)
       jcf->filename    = file_name;
       jcf->zipd        = zdir;
 
-      TYPE_JCF (class) = jcf;
+      TYPE_JCF (klass) = jcf;
     }
 }
 

@@ -1,5 +1,5 @@
 /* Various declarations for language-independent pretty-print subroutines.
-   Copyright (C) 2002, 2003, 2004, 2007 Free Software Foundation, Inc.
+   Copyright (C) 2002, 2003, 2004, 2007, 2008 Free Software Foundation, Inc.
    Contributed by Gabriel Dos Reis <gdr@integrable-solutions.net>
 
 This file is part of GCC.
@@ -69,19 +69,6 @@ struct chunk_info
   const char *args[PP_NL_ARGMAX * 2];
 };
 
-/* Structure containing a piece of a tree's textual representation */
-typedef struct tree_chunk_s { 
-  /* Reference to a subtree.  */
-  tree t;
-  /* A token.  */
-  char *s;
-  /* A token of only one char is not stored in a malloc-ed string.  */
-  char c;
-} *tree_chunk;
-
-DEF_VEC_P (tree_chunk);
-DEF_VEC_ALLOC_P (tree_chunk, heap);
-
 /* The output buffer datatype.  This is best seen as an abstract datatype
    whose fields should not be accessed directly by clients.  */
 typedef struct 
@@ -99,14 +86,6 @@ typedef struct
 
   /* Stack of chunk arrays.  These come from the chunk_obstack.  */
   struct chunk_info *cur_chunk_array;
-
-  /* A buffer where the text is built up.  If null, the textual
-     representation of a tree is built as a plain string in the
-     obstack above.  If CHUNKS is not null, we're in "lazy mode", i.e.
-     instead of recursively building the textual representation of a
-     tree as a plain string, we build a list of token strings and of
-     "lazy" references to subtrees.  */
-  VEC (tree_chunk, heap) *chunks;
 
   /* Where to output formatted text.  */
   FILE *stream;
@@ -163,7 +142,7 @@ typedef bool (*printer_fn) (pretty_printer *, text_info *, const char *,
    formatting.  */
 #define pp_needs_newline(PP)  pp_base (PP)->need_newline 
 
-/* True if PRETTY-PTINTER is in line-wrapping mode.  */
+/* True if PRETTY-PRINTER is in line-wrapping mode.  */
 #define pp_is_wrapping_line(PP) (pp_line_cutoff (PP) > 0)
 
 /* The amount of whitespace to be emitted when starting a new line.  */
@@ -343,14 +322,6 @@ extern void pp_base_character (pretty_printer *, int);
 extern void pp_base_string (pretty_printer *, const char *);
 extern void pp_write_text_to_stream (pretty_printer *pp);
 extern void pp_base_maybe_space (pretty_printer *);
-
-extern tree_chunk new_tree_chunk (void);
-extern bool pp_lazy_mode (const pretty_printer *);
-extern void pp_add_tree (pretty_printer *, tree);
-extern void pp_add_string (pretty_printer *, const char *, int);
-extern void pp_add_char (pretty_printer *, char);
-extern void pp_free_list (VEC (tree_chunk, heap) *);
-extern void pp_write_list (VEC (tree_chunk, heap) *, FILE *);
 
 /* Switch into verbatim mode and return the old mode.  */
 static inline pp_wrapping_mode_t

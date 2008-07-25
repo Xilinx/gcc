@@ -1,3 +1,0 @@
-load_lib standard.exp
-load_lib libbounds.exp
-load_lib boundsconfig.exp

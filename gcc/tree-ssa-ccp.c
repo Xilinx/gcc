@@ -1,5 +1,5 @@
 /* Conditional constant propagation pass for the GNU compiler.
-   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
+   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
    Free Software Foundation, Inc.
    Adapted from original RTL SSA-CCP by Daniel Berlin <dberlin@dberlin.org>
    Adapted to GIMPLE trees by Diego Novillo <dnovillo@redhat.com>
@@ -286,7 +286,7 @@ get_symbol_constant_value (tree sym)
 	    return val;
 	}
       /* Variables declared 'const' without an initializer
-	 have zero as the intializer if they may not be
+	 have zero as the initializer if they may not be
 	 overridden at link or run time.  */
       if (!val
 	  && targetm.binds_local_p (sym)
@@ -310,13 +310,10 @@ get_symbol_constant_value (tree sym)
       change the constant value of the PHI node, which allows for more
       constants to be propagated.
 
-   3- If SSA_NAME_VALUE is set and it is a constant, its value is
-      used.
-
-   4- Variables defined by statements other than assignments and PHI
+   3- Variables defined by statements other than assignments and PHI
       nodes are considered VARYING.
 
-   5- Initial values of variables that are not GIMPLE registers are
+   4- Initial values of variables that are not GIMPLE registers are
       considered VARYING.  */
 
 static prop_value_t
@@ -331,12 +328,6 @@ get_default_value (tree var)
       /* Short circuit for regular CCP.  We are not interested in any
 	 non-register when DO_STORE_CCP is false.  */
       val.lattice_val = VARYING;
-    }
-  else if (SSA_NAME_VALUE (var)
-	   && is_gimple_min_invariant (SSA_NAME_VALUE (var)))
-    {
-      val.lattice_val = CONSTANT;
-      val.value = SSA_NAME_VALUE (var);
     }
   else if ((cst_val = get_symbol_constant_value (sym)) != NULL_TREE)
     {
@@ -2748,17 +2739,19 @@ optimize_stack_restore (basic_block bb, tree call, block_stmt_iterator i)
 static tree
 optimize_stdarg_builtin (tree call)
 {
-  tree callee, lhs, rhs;
+  tree callee, lhs, rhs, cfun_va_list;
   bool va_list_simple_ptr;
 
   if (TREE_CODE (call) != CALL_EXPR)
     return NULL_TREE;
 
-  va_list_simple_ptr = POINTER_TYPE_P (va_list_type_node)
-		       && (TREE_TYPE (va_list_type_node) == void_type_node
-			   || TREE_TYPE (va_list_type_node) == char_type_node);
-
   callee = get_callee_fndecl (call);
+
+  cfun_va_list = targetm.fn_abi_va_list (callee);
+  va_list_simple_ptr = POINTER_TYPE_P (cfun_va_list)
+		       && (TREE_TYPE (cfun_va_list) == void_type_node
+			   || TREE_TYPE (cfun_va_list) == char_type_node);
+
   switch (DECL_FUNCTION_CODE (callee))
     {
     case BUILT_IN_VA_START:
@@ -2773,7 +2766,7 @@ optimize_stdarg_builtin (tree call)
       lhs = CALL_EXPR_ARG (call, 0);
       if (!POINTER_TYPE_P (TREE_TYPE (lhs))
 	  || TYPE_MAIN_VARIANT (TREE_TYPE (TREE_TYPE (lhs)))
-	     != TYPE_MAIN_VARIANT (va_list_type_node))
+	     != TYPE_MAIN_VARIANT (cfun_va_list))
 	return NULL_TREE;
 
       lhs = build_fold_indirect_ref (lhs);
@@ -2792,13 +2785,13 @@ optimize_stdarg_builtin (tree call)
       lhs = CALL_EXPR_ARG (call, 0);
       if (!POINTER_TYPE_P (TREE_TYPE (lhs))
 	  || TYPE_MAIN_VARIANT (TREE_TYPE (TREE_TYPE (lhs)))
-	     != TYPE_MAIN_VARIANT (va_list_type_node))
+	     != TYPE_MAIN_VARIANT (cfun_va_list))
 	return NULL_TREE;
 
       lhs = build_fold_indirect_ref (lhs);
       rhs = CALL_EXPR_ARG (call, 1);
       if (TYPE_MAIN_VARIANT (TREE_TYPE (rhs))
-	  != TYPE_MAIN_VARIANT (va_list_type_node))
+	  != TYPE_MAIN_VARIANT (cfun_va_list))
 	return NULL_TREE;
 
       rhs = fold_convert (TREE_TYPE (lhs), rhs);
@@ -2823,8 +2816,9 @@ convert_to_gimple_builtin (block_stmt_iterator *si_p, tree expr, bool ignore)
   tree_stmt_iterator ti;
   tree stmt = bsi_stmt (*si_p);
   tree tmp, stmts = NULL;
+  struct gimplify_ctx gctx;
 
-  push_gimplify_context ();
+  push_gimplify_context (&gctx);
   if (ignore)
     {
       tmp = build_empty_stmt ();

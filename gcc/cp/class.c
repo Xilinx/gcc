@@ -4127,6 +4127,10 @@ type_requires_array_cookie (tree type)
       second_parm = TREE_CHAIN (TYPE_ARG_TYPES (TREE_TYPE (fn)));
       if (second_parm == void_list_node)
 	return false;
+      /* Do not consider this function if its second argument is an
+	 ellipsis.  */
+      if (!second_parm)
+	continue;
       /* Otherwise, if we have a two-argument function and the second
 	 argument is `size_t', it will be the usual deallocation
 	 function -- unless there is one-argument function, too.  */
@@ -4193,7 +4197,7 @@ check_bases_and_members (tree t)
     |= (TYPE_HAS_USER_CONSTRUCTOR (t) || TYPE_CONTAINS_VPTR_P (t));
   /* [dcl.init.aggr]
 
-     An aggregate is an arry or a class with no user-declared
+     An aggregate is an array or a class with no user-declared
      constructors ... and no virtual functions.  
 
      Again, other conditions for being an aggregate are checked
@@ -7382,7 +7386,7 @@ build_vtbl_initializer (tree binfo,
 
 	 We first check this in update_vtable_entry_for_fn, so we handle
 	 restored primary bases properly; we also need to do it here so we
-	 zero out unused slots in ctor vtables, rather than filling themff
+	 zero out unused slots in ctor vtables, rather than filling them
 	 with erroneous values (though harmless, apart from relocation
 	 costs).  */
       for (b = binfo; ; b = get_primary_binfo (b))

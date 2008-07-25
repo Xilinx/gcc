@@ -1110,7 +1110,7 @@ ready_sort (struct ready_list *ready)
 
 /* PREV is an insn that is ready to execute.  Adjust its priority if that
    will help shorten or lengthen register lifetimes as appropriate.  Also
-   provide a hook for the target to tweek itself.  */
+   provide a hook for the target to tweak itself.  */
 
 HAIFA_INLINE static void
 adjust_priority (rtx prev)
@@ -2179,7 +2179,7 @@ schedule_block (basic_block *target_bb, int rgn_n_insns1)
   q_ptr = 0;
   q_size = 0;
 
-  insn_queue = alloca ((max_insn_queue_index + 1) * sizeof (rtx));
+  insn_queue = XALLOCAVEC (rtx, max_insn_queue_index + 1);
   memset (insn_queue, 0, (max_insn_queue_index + 1) * sizeof (rtx));
 
   /* Start just before the beginning of time.  */
@@ -2373,7 +2373,7 @@ schedule_block (basic_block *target_bb, int rgn_n_insns1)
 	      asm_p = (GET_CODE (PATTERN (insn)) == ASM_INPUT
 		       || asm_noperands (PATTERN (insn)) >= 0);
 	      if (!first_cycle_insn_p && asm_p)
-		/* This is asm insn which is tryed to be issued on the
+		/* This is asm insn which is tried to be issued on the
 		   cycle not first.  Issue it on the next cycle.  */
 		cost = 1;
 	      else
@@ -2548,7 +2548,7 @@ schedule_block (basic_block *target_bb, int rgn_n_insns1)
     {
       targetm.sched.md_finish (sched_dump, sched_verbose);
 
-      /* Target might have added some instructions to the scheduled block.
+      /* Target might have added some instructions to the scheduled block
 	 in its md_finish () hook.  These new insns don't have any data
 	 initialized and to identify them we extend h_i_d so that they'll
 	 get zero luids.*/
@@ -3158,7 +3158,8 @@ extend_h_i_d (void)
      pseudos which do not cross calls.  */
   int new_max_uid = get_max_uid () + 1;  
 
-  h_i_d = xrecalloc (h_i_d, new_max_uid, old_max_uid, sizeof (*h_i_d));
+  h_i_d = (struct haifa_insn_data *)
+    xrecalloc (h_i_d, new_max_uid, old_max_uid, sizeof (*h_i_d));
   old_max_uid = new_max_uid;
 
   if (targetm.sched.h_i_d_extended)
@@ -3175,8 +3176,8 @@ extend_ready (int n_new_insns)
   readyp->veclen = rgn_n_insns + n_new_insns + 1 + issue_rate;
   readyp->vec = XRESIZEVEC (rtx, readyp->vec, readyp->veclen);
  
-  ready_try = xrecalloc (ready_try, rgn_n_insns + n_new_insns + 1,
-			 rgn_n_insns + 1, sizeof (char));
+  ready_try = (char *) xrecalloc (ready_try, rgn_n_insns + n_new_insns + 1,
+				  rgn_n_insns + 1, sizeof (char));
 
   rgn_n_insns += n_new_insns;
 
@@ -3772,11 +3773,7 @@ create_check_block_twin (rtx insn, bool mutate_p)
 	    /* any_condjump_p (jump) == false.
 	       We don't need the same note for the check because
 	       any_condjump_p (check) == true.  */
-	    {
-	      REG_NOTES (jump) = gen_rtx_EXPR_LIST (REG_CROSSING_JUMP,
-						    NULL_RTX,
-						    REG_NOTES (jump));
-	    }
+	    add_reg_note (jump, REG_CROSSING_JUMP, NULL_RTX);
 	  edge_flags = EDGE_CROSSING;
 	}
       else
@@ -4098,7 +4095,7 @@ unlink_bb_notes (basic_block first, basic_block last)
   if (first == last)
     return;
 
-  bb_header = xmalloc (last_basic_block * sizeof (*bb_header));
+  bb_header = XNEWVEC (rtx, last_basic_block);
 
   /* Make a sentinel.  */
   if (last->next_bb != EXIT_BLOCK_PTR)

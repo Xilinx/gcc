@@ -218,7 +218,7 @@ gbb_loop (struct graphite_bb *gbb)
    works if GBB_DOMAIN is built.  */
 
 static inline unsigned 
-gbb_nb_loops (graphite_bb_p gb)
+gbb_nb_loops (const struct graphite_bb *gb)
 {
   scop_p scop = GBB_SCOP (gb);
 

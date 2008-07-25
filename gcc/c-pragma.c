@@ -270,7 +270,8 @@ dpm_hash (const void *p)
 static int
 dpm_eq (const void *pa, const void *pb)
 {
-  const struct def_pragma_macro *a = pa, *b = pb;
+  const struct def_pragma_macro *const a = (const struct def_pragma_macro *) pa,
+    *const b = (const struct def_pragma_macro *) pb;
   return a->hash == b->hash && strcmp (a->name, b->name) == 0;
 }
 
@@ -315,10 +316,10 @@ handle_pragma_push_macro (cpp_reader *reader)
   dummy.name = macroname;
   slot = htab_find_slot_with_hash (pushed_macro_table, &dummy,
 				   dummy.hash, INSERT);
-  c = *slot;
+  c = (struct def_pragma_macro *) *slot;
   if (c == NULL)
     {
-      *slot = c = ggc_alloc (sizeof (struct def_pragma_macro));
+      *slot = c = GGC_NEW (struct def_pragma_macro);
       c->hash = dummy.hash;
       c->name = ggc_alloc_string (macroname, TREE_STRING_LENGTH (id) - 1);
       c->value.prev = NULL;
@@ -326,7 +327,7 @@ handle_pragma_push_macro (cpp_reader *reader)
   else
     {
       struct def_pragma_macro_value *v;
-      v = ggc_alloc (sizeof (struct def_pragma_macro_value));
+      v = GGC_NEW (struct def_pragma_macro_value);
       *v = c->value;
       c->value.prev = v;
     }
@@ -372,7 +373,7 @@ handle_pragma_pop_macro (cpp_reader *reader)
 				     dummy.hash, NO_INSERT);
   if (slot == NULL)
     return;
-  c = *slot;
+  c = (struct def_pragma_macro *) *slot;
 
   cpp_pop_definition (reader, c->name, c->value.value);
 
@@ -562,7 +563,7 @@ handle_pragma_redefine_extname (cpp_reader * ARG_UNUSED (dummy))
   if (t != CPP_EOF)
     warning (OPT_Wpragmas, "junk at end of %<#pragma redefine_extname%>");
 
-  if (!flag_mudflap && !flag_bounds && !targetm.handle_pragma_redefine_extname)
+  if (!flag_mudflap && !targetm.handle_pragma_redefine_extname)
     {
       if (warn_unknown_pragmas > in_system_header)
 	warning (OPT_Wunknown_pragmas,
@@ -896,6 +897,8 @@ static const struct omp_pragma_def omp_pragmas[] = {
   { "section", PRAGMA_OMP_SECTION },
   { "sections", PRAGMA_OMP_SECTIONS },
   { "single", PRAGMA_OMP_SINGLE },
+  { "task", PRAGMA_OMP_TASK },
+  { "taskwait", PRAGMA_OMP_TASKWAIT },
   { "threadprivate", PRAGMA_OMP_THREADPRIVATE }
 };
 

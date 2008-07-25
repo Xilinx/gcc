@@ -1389,7 +1389,7 @@ iq2000_init_machine_status (void)
 {
   struct machine_function *f;
 
-  f = ggc_alloc_cleared (sizeof (struct machine_function));
+  f = GGC_CNEW (struct machine_function);
 
   return f;
 }
@@ -2085,8 +2085,7 @@ iq2000_expand_epilogue (void)
       /* Perform the additional bump for __throw.  */
       emit_move_insn (gen_rtx_REG (Pmode, HARD_FRAME_POINTER_REGNUM),
 		      stack_pointer_rtx);
-      emit_insn (gen_rtx_USE (VOIDmode, gen_rtx_REG (Pmode,
-						  HARD_FRAME_POINTER_REGNUM)));
+      emit_use (gen_rtx_REG (Pmode, HARD_FRAME_POINTER_REGNUM));
       emit_jump_insn (gen_eh_return_internal ());
     }
   else

@@ -1,5 +1,6 @@
 /* Analysis Utilities for Loop Vectorization.
-   Copyright (C) 2003, 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
+   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008 Free Software
+   Foundation, Inc.
    Contributed by Dorit Naishlos <dorit@il.ibm.com>
 
 This file is part of GCC.
@@ -509,7 +510,7 @@ vect_analyze_operations (loop_vec_info loop_vinfo)
 	      /* Groups of strided accesses whose size is not a power of 2 are 
 		 not vectorizable yet using loop-vectorization. Therefore, if 
 		 this stmt feeds non-SLP-able stmts (i.e., this stmt has to be 
-		 both SLPed and loop-based vectorzed), the loop cannot be 
+		 both SLPed and loop-based vectorized), the loop cannot be
 		 vectorized.  */
 	      if (STMT_VINFO_STRIDED_ACCESS (stmt_info)
 		  && exact_log2 (DR_GROUP_SIZE (vinfo_for_stmt (
@@ -690,7 +691,7 @@ exist_non_indexing_operands_for_use_p (tree use, tree stmt)
 /* Function vect_analyze_scalar_cycles_1.
 
    Examine the cross iteration def-use cycles of scalar variables
-   in LOOP. LOOP_VINFO represents the loop that is noe being
+   in LOOP. LOOP_VINFO represents the loop that is now being
    considered for vectorization (can be LOOP, or an outer-loop
    enclosing LOOP).  */
 
@@ -1370,6 +1371,7 @@ vect_compute_data_ref_alignment (struct data_reference *dr)
   misalign = DR_INIT (dr);
   aligned_to = DR_ALIGNED_TO (dr);
   base_addr = DR_BASE_ADDRESS (dr);
+  vectype = STMT_VINFO_VECTYPE (stmt_info);
 
   /* In case the dataref is in an inner-loop of the loop that is being
      vectorized (LOOP), we use the base and misalignment information
@@ -1382,7 +1384,7 @@ vect_compute_data_ref_alignment (struct data_reference *dr)
       tree step = DR_STEP (dr);
       HOST_WIDE_INT dr_step = TREE_INT_CST_LOW (step);
     
-      if (dr_step % UNITS_PER_SIMD_WORD == 0)
+      if (dr_step % GET_MODE_SIZE (TYPE_MODE (vectype)) == 0)
         {
           if (vect_print_dump_info (REPORT_ALIGNMENT))
             fprintf (vect_dump, "inner step divides the vector-size.");
@@ -1399,7 +1401,6 @@ vect_compute_data_ref_alignment (struct data_reference *dr)
     }
 
   base = build_fold_indirect_ref (base_addr);
-  vectype = STMT_VINFO_VECTYPE (stmt_info);
   alignment = ssize_int (TYPE_ALIGN (vectype)/BITS_PER_UNIT);
 
   if ((aligned_to && tree_int_cst_compare (aligned_to, alignment) < 0)
@@ -1541,8 +1542,9 @@ vect_update_misalignment_for_peel (struct data_reference *dr,
       && known_alignment_for_access_p (dr_peel))
     {
       int misal = DR_MISALIGNMENT (dr);
+      tree vectype = STMT_VINFO_VECTYPE (stmt_info);
       misal += npeel * dr_size;
-      misal %= UNITS_PER_SIMD_WORD;
+      misal %= GET_MODE_SIZE (TYPE_MODE (vectype));
       SET_DR_MISALIGNMENT (dr, misal);
       return;
     }
@@ -1622,7 +1624,7 @@ vector_alignment_reachable_p (struct data_reference *dr)
       if (!known_alignment_for_access_p (dr))
 	return false;
 
-      elem_size = UNITS_PER_SIMD_WORD / nelements;
+      elem_size = GET_MODE_SIZE (TYPE_MODE (vectype)) / nelements;
       mis_in_elements = DR_MISALIGNMENT (dr) / elem_size;
 
       if ((nelements - mis_in_elements) % DR_GROUP_SIZE (stmt_info))
@@ -3541,8 +3543,8 @@ vect_stmt_relevant_p (tree stmt, loop_vec_info loop_vinfo,
    Inputs:
    - a USE in STMT in a loop represented by LOOP_VINFO
    - LIVE_P, RELEVANT - enum values to be set in the STMT_VINFO of the stmt 
-     that defined USE. This is dont by calling mark_relevant and passing it
-     the WORKLIST (to add DEF_STMT to the WORKlist in case itis relevant). 
+     that defined USE. This is done by calling mark_relevant and passing it
+     the WORKLIST (to add DEF_STMT to the WORKLIST in case it is relevant).
 
    Outputs:
    Generally, LIVE_P and RELEVANT are used to define the liveness and

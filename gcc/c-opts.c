@@ -33,7 +33,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "diagnostic.h"
 #include "intl.h"
 #include "cppdefault.h"
-#include "c-incpath.h"
+#include "incpath.h"
 #include "debug.h"		/* For debug_hooks.  */
 #include "opts.h"
 #include "options.h"
@@ -71,9 +71,6 @@ static bool deps_seen;
 
 /* If -v seen.  */
 static bool verbose;
-
-/* If -lang-fortran seen.  */
-bool lang_fortran = false;
 
 /* Dependency output file.  */
 static const char *deps_file;
@@ -249,15 +246,6 @@ c_common_init_options (unsigned int argc, const char **argv)
 	    result |= CL_C | CL_ObjC | CL_CXX | CL_ObjCXX;
 	    break;
 	  }
-
-#ifdef CL_Fortran
-      for (i = 1; i < argc; i++)
-	if (! strcmp (argv[i], "-lang-fortran"))
-	{
-	    result |= CL_Fortran;
-	    break;
-	}
-#endif
     }
 
   return result;
@@ -288,10 +276,6 @@ c_common_handle_option (size_t scode, const char *arg, int value)
 	    result = 0;
 	  break;
 	}
-#ifdef CL_Fortran
-      if (lang_fortran && (cl_options[code].flags & (CL_Fortran)))
-	break;
-#endif
       result = 0;
       break;
 
@@ -891,10 +875,6 @@ c_common_handle_option (size_t scode, const char *arg, int value)
       cpp_opts->dollars_in_ident = false;
       break;
 
-    case OPT_lang_fortran:
-      lang_fortran = true;
-      break;
-
     case OPT_lang_objc:
       cpp_opts->objc = 1;
       break;
@@ -1057,6 +1037,9 @@ c_common_post_options (const char **pfilename)
      unit-at-a-time mode.  */
   if (num_in_fnames > 1)
     flag_unit_at_a_time = 1;
+
+  if (pch_file && !flag_unit_at_a_time)
+    sorry ("Precompiled headers require -funit-at-a-time");
 
   /* Default to ObjC sjlj exception handling if NeXT runtime.  */
   if (flag_objc_sjlj_exceptions < 0)

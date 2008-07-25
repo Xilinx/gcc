@@ -1,3 +1,18 @@
+2008-07-24  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* Merge from mainline (135673:138072).
+
+	Reverted the MIRO changes (from 2008-04-05) that are now
+	tracked in the miro branch.
+	* tree-bounds.c: Removed.
+	* tree-bounds.h: Removed.
+
+	Reverted the Condate changes (from 2006-07-04, 2007-03-20) that are now
+	tracked in the condate branch.
+	* tree-check.c: Removed.
+	* tree-match.c: Removed.
+	* condate.y: Removed.
+
 2008-07-24  Dwarakanath Rajagopal  <dwarak.rajagopal@amd.com>
 
 	* common.opt: New user flag -floop-block, -floop-strip-mine 

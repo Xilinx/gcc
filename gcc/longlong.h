@@ -226,6 +226,12 @@ UDItype __umulsidi3 (USItype, USItype);
 #define UDIV_TIME 100
 #endif /* __arm__ */
 
+#if defined(__arm__)
+/* Let gcc decide how best to implement count_leading_zeros.  */
+#define count_leading_zeros(COUNT,X)	((COUNT) = __builtin_clz (X))
+#define COUNT_LEADING_ZEROS_0 32
+#endif
+
 #if defined (__CRIS__) && __CRIS_arch_version >= 3
 #define count_leading_zeros(COUNT, X) ((COUNT) = __builtin_clz (X))
 #if __CRIS_arch_version >= 8
@@ -623,12 +629,12 @@ UDItype __umulsidi3 (USItype, USItype);
 #endif /* __m88000__ */
 
 #if defined (__mips__) && W_TYPE_SIZE == 32
-#define umul_ppmm(w1, w0, u, v) \
-  __asm__ ("multu %2,%3"						\
-	   : "=l" ((USItype) (w0)),					\
-	     "=h" ((USItype) (w1))					\
-	   : "d" ((USItype) (u)),					\
-	     "d" ((USItype) (v)))
+#define umul_ppmm(w1, w0, u, v)						\
+  do {									\
+    UDItype __x = (UDItype) (USItype) (u) * (USItype) (v);		\
+    (w1) = (USItype) (__x >> 32);					\
+    (w0) = (USItype) (__x);						\
+  } while (0)
 #define UMUL_TIME 10
 #define UDIV_TIME 100
 

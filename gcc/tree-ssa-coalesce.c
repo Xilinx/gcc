@@ -1,5 +1,6 @@
 /* Coalesce SSA_NAMES together for the out-of-ssa pass.
-   Copyright (C) 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
+   Copyright (C) 2004, 2005, 2006, 2007, 2008 Free Software Foundation,
+   Inc.
    Contributed by Andrew MacLeod <amacleod@redhat.com>
 
 This file is part of GCC.
@@ -114,7 +115,7 @@ coalesce_cost_edge (edge e)
     return MUST_COALESCE_COST;
 
   return coalesce_cost (EDGE_FREQUENCY (e), 
-			maybe_hot_bb_p (e->src), 
+			maybe_hot_edge_p (e), 
 			EDGE_CRITICAL_P (e));
 }
 
@@ -314,8 +315,8 @@ add_coalesce (coalesce_list_p cl, int p1, int p2,
 static int 
 compare_pairs (const void *p1, const void *p2)
 {
-  const_coalesce_pair_p const * pp1 = p1;
-  const_coalesce_pair_p const * pp2 = p2;
+  const_coalesce_pair_p const *const pp1 = (const_coalesce_pair_p const *) p1;
+  const_coalesce_pair_p const *const pp2 = (const_coalesce_pair_p const *) p2;
   int result;
 
   result = (* pp2)->cost - (* pp1)->cost;
@@ -582,7 +583,7 @@ ssa_conflicts_merge (ssa_conflicts_p ptr, unsigned x, unsigned y)
     return;
 
   /* Add a conflict between X and every one Y has.  If the bitmap doesn't
-     exist, then it has already been coalesced, and we dont need to add a 
+     exist, then it has already been coalesced, and we don't need to add a
      conflict.  */
   EXECUTE_IF_SET_IN_BITMAP (ptr->conflicts[y], 0, z, bi)
     if (ptr->conflicts[z])
@@ -1296,6 +1297,24 @@ coalesce_partitions (var_map map, ssa_conflicts_p graph, coalesce_list_p cl,
     }
 }
 
+/* Returns a hash code for P.  */
+
+static hashval_t
+hash_ssa_name_by_var (const void *p)
+{
+  const_tree n = (const_tree) p;
+  return (hashval_t) htab_hash_pointer (SSA_NAME_VAR (n));
+}
+
+/* Returns nonzero if P1 and P2 are equal.  */
+
+static int
+eq_ssa_name_by_var (const void *p1, const void *p2)
+{
+  const_tree n1 = (const_tree) p1;
+  const_tree n2 = (const_tree) p2;
+  return SSA_NAME_VAR (n1) == SSA_NAME_VAR (n2);
+}
 
 /* Reduce the number of copies by coalescing variables in the function.  Return
    a partition map with the resulting coalesces.  */
@@ -1309,9 +1328,41 @@ coalesce_ssa_name (void)
   coalesce_list_p cl;
   bitmap used_in_copies = BITMAP_ALLOC (NULL);
   var_map map;
+  unsigned int i;
+  static htab_t ssa_name_hash;
 
   cl = create_coalesce_list ();
   map = create_outofssa_var_map (cl, used_in_copies);
+
+  /* We need to coalesce all names originating same SSA_NAME_VAR
+     so debug info remains undisturbed.  */
+  if (!optimize)
+    {
+      ssa_name_hash = htab_create (10, hash_ssa_name_by_var,
+      				   eq_ssa_name_by_var, NULL);
+      for (i = 1; i < num_ssa_names; i++)
+	{
+	  tree a = ssa_name (i);
+
+	  if (a && SSA_NAME_VAR (a) && !DECL_ARTIFICIAL (SSA_NAME_VAR (a)))
+	    {
+	      tree *slot = (tree *) htab_find_slot (ssa_name_hash, a, INSERT);
+
+	      if (!*slot)
+		*slot = a;
+	      else
+		{
+		  add_coalesce (cl, SSA_NAME_VERSION (a), SSA_NAME_VERSION (*slot),
+				MUST_COALESCE_COST - 1);
+		  bitmap_set_bit (used_in_copies, SSA_NAME_VERSION (a));
+		  bitmap_set_bit (used_in_copies, SSA_NAME_VERSION (*slot));
+		}
+	    }
+	}
+      htab_delete (ssa_name_hash);
+    }
+  if (dump_file && (dump_flags & TDF_DETAILS))
+    dump_var_map (dump_file, map);
 
   /* Don't calculate live ranges for variables not in the coalesce list.  */
   partition_view_bitmap (map, used_in_copies, true);

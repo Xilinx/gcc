@@ -266,19 +266,27 @@ do {									\
 #endif
 
 /* Define cutoff for using external functions to save floating point.
-   Currently on V.4, always use inline stores.  */
-#define FP_SAVE_INLINE(FIRST_REG) ((FIRST_REG) < 64)
+   Currently on 64-bit V.4, always use inline stores.  When optimizing
+   for size on 32-bit targets, use external functions when
+   profitable.  */
+#define FP_SAVE_INLINE(FIRST_REG) (optimize_size && !TARGET_64BIT	\
+				   ? ((FIRST_REG) == 62			\
+				      || (FIRST_REG) == 63)		\
+				   : (FIRST_REG) < 64)
+/* And similarly for general purpose registers.  */
+#define GP_SAVE_INLINE(FIRST_REG) ((FIRST_REG) < 32	\
+				   && (TARGET_64BIT || !optimize_size))
 
 /* Put jump tables in read-only memory, rather than in .text.  */
 #define JUMP_TABLES_IN_TEXT_SECTION 0
 
 /* Prefix and suffix to use to saving floating point.  */
 #define	SAVE_FP_PREFIX "_savefpr_"
-#define SAVE_FP_SUFFIX "_l"
+#define SAVE_FP_SUFFIX (TARGET_64BIT ? "_l" : "")
 
 /* Prefix and suffix to use to restoring floating point.  */
 #define	RESTORE_FP_PREFIX "_restfpr_"
-#define RESTORE_FP_SUFFIX "_l"
+#define RESTORE_FP_SUFFIX (TARGET_64BIT ? "_l" : "")
 
 /* Type used for ptrdiff_t, as a string used in a declaration.  */
 #define PTRDIFF_TYPE "int"
@@ -655,7 +663,6 @@ extern int fixuplabelno;
   myellowknife : %(link_start_yellowknife) ; \
   mmvme        : %(link_start_mvme)        ; \
   msim         : %(link_start_sim)         ; \
-  mwindiss     : %(link_start_windiss)     ; \
   mcall-freebsd: %(link_start_freebsd)     ; \
   mcall-linux  : %(link_start_linux)       ; \
   mcall-gnu    : %(link_start_gnu)         ; \
@@ -713,7 +720,6 @@ extern int fixuplabelno;
   myellowknife : %(link_os_yellowknife) ; \
   mmvme        : %(link_os_mvme)        ; \
   msim         : %(link_os_sim)         ; \
-  mwindiss     : %(link_os_windiss)     ; \
   mcall-freebsd: %(link_os_freebsd)     ; \
   mcall-linux  : %(link_os_linux)       ; \
   mcall-gnu    : %(link_os_gnu)         ; \
@@ -730,7 +736,6 @@ extern int fixuplabelno;
   myellowknife : %(cpp_os_yellowknife) ; \
   mmvme        : %(cpp_os_mvme)        ; \
   msim         : %(cpp_os_sim)         ; \
-  mwindiss     : %(cpp_os_windiss)     ; \
   mcall-freebsd: %(cpp_os_freebsd)     ; \
   mcall-linux  : %(cpp_os_linux)       ; \
   mcall-gnu    : %(cpp_os_gnu)         ; \
@@ -747,7 +752,6 @@ extern int fixuplabelno;
   myellowknife : %(startfile_yellowknife) ; \
   mmvme        : %(startfile_mvme)        ; \
   msim         : %(startfile_sim)         ; \
-  mwindiss     : %(startfile_windiss)     ; \
   mcall-freebsd: %(startfile_freebsd)     ; \
   mcall-linux  : %(startfile_linux)       ; \
   mcall-gnu    : %(startfile_gnu)         ; \
@@ -764,7 +768,6 @@ extern int fixuplabelno;
   myellowknife : %(lib_yellowknife) ; \
   mmvme        : %(lib_mvme)        ; \
   msim         : %(lib_sim)         ; \
-  mwindiss     : %(lib_windiss)     ; \
   mcall-freebsd: %(lib_freebsd)     ; \
   mcall-linux  : %(lib_linux)       ; \
   mcall-gnu    : %(lib_gnu)         ; \
@@ -781,7 +784,6 @@ extern int fixuplabelno;
   myellowknife : %(endfile_yellowknife) ; \
   mmvme        : %(endfile_mvme)        ; \
   msim         : %(endfile_sim)         ; \
-  mwindiss     :                      %(endfile_windiss)     ; \
   mcall-freebsd: %(endfile_freebsd)     ; \
   mcall-linux  : %(endfile_linux)       ; \
   mcall-gnu    : %(endfile_gnu)         ; \
@@ -992,25 +994,6 @@ ncrtn.o%s"
 #define CPP_OS_OPENBSD_SPEC "%{posix:-D_POSIX_SOURCE} %{pthread:-D_POSIX_THREADS}"
 #endif
 
-/* WindISS support.  */
-
-#define LIB_WINDISS_SPEC "--start-group -li -lcfp -lwindiss -lram -limpl -limpfp --end-group"
-
-#define CPP_OS_WINDISS_SPEC "\
--D__rtasim \
--D__EABI__ \
--D__ppc \
-%{!msoft-float: -D__hardfp} \
-"
-
-#define STARTFILE_WINDISS_SPEC "crt0.o%s crtbegin.o%s"
-
-#define ENDFILE_WINDISS_SPEC "crtend.o%s"
-
-#define LINK_START_WINDISS_SPEC ""
-
-#define LINK_OS_WINDISS_SPEC ""
-
 /* Define any extra SPECS that the compiler needs to generate.  */
 /* Override rs6000.h definition.  */
 #undef	SUBTARGET_EXTRA_SPECS
@@ -1025,7 +1008,6 @@ ncrtn.o%s"
   { "lib_linux",		LIB_LINUX_SPEC },			\
   { "lib_netbsd",		LIB_NETBSD_SPEC },			\
   { "lib_openbsd",		LIB_OPENBSD_SPEC },			\
-  { "lib_windiss",		LIB_WINDISS_SPEC },			\
   { "lib_default",		LIB_DEFAULT_SPEC },			\
   { "startfile_ads",		STARTFILE_ADS_SPEC },			\
   { "startfile_yellowknife",	STARTFILE_YELLOWKNIFE_SPEC },		\
@@ -1036,7 +1018,6 @@ ncrtn.o%s"
   { "startfile_linux",		STARTFILE_LINUX_SPEC },			\
   { "startfile_netbsd",		STARTFILE_NETBSD_SPEC },		\
   { "startfile_openbsd",	STARTFILE_OPENBSD_SPEC },		\
-  { "startfile_windiss",	STARTFILE_WINDISS_SPEC },		\
   { "startfile_default",	STARTFILE_DEFAULT_SPEC },		\
   { "endfile_ads",		ENDFILE_ADS_SPEC },			\
   { "endfile_yellowknife",	ENDFILE_YELLOWKNIFE_SPEC },		\
@@ -1047,7 +1028,6 @@ ncrtn.o%s"
   { "endfile_linux",		ENDFILE_LINUX_SPEC },			\
   { "endfile_netbsd",		ENDFILE_NETBSD_SPEC },			\
   { "endfile_openbsd",		ENDFILE_OPENBSD_SPEC },			\
-  { "endfile_windiss",		ENDFILE_WINDISS_SPEC },			\
   { "endfile_default",		ENDFILE_DEFAULT_SPEC },			\
   { "link_path",		LINK_PATH_SPEC },			\
   { "link_shlib",		LINK_SHLIB_SPEC },			\
@@ -1062,7 +1042,6 @@ ncrtn.o%s"
   { "link_start_linux",		LINK_START_LINUX_SPEC },		\
   { "link_start_netbsd",	LINK_START_NETBSD_SPEC },		\
   { "link_start_openbsd",	LINK_START_OPENBSD_SPEC },		\
-  { "link_start_windiss",	LINK_START_WINDISS_SPEC },		\
   { "link_start_default",	LINK_START_DEFAULT_SPEC },		\
   { "link_os",			LINK_OS_SPEC },				\
   { "link_os_ads",		LINK_OS_ADS_SPEC },			\
@@ -1074,7 +1053,6 @@ ncrtn.o%s"
   { "link_os_gnu",		LINK_OS_GNU_SPEC },			\
   { "link_os_netbsd",		LINK_OS_NETBSD_SPEC },			\
   { "link_os_openbsd",		LINK_OS_OPENBSD_SPEC },			\
-  { "link_os_windiss",		LINK_OS_WINDISS_SPEC },			\
   { "link_os_default",		LINK_OS_DEFAULT_SPEC },			\
   { "cc1_endian_big",		CC1_ENDIAN_BIG_SPEC },			\
   { "cc1_endian_little",	CC1_ENDIAN_LITTLE_SPEC },		\
@@ -1089,7 +1067,6 @@ ncrtn.o%s"
   { "cpp_os_linux",		CPP_OS_LINUX_SPEC },			\
   { "cpp_os_netbsd",		CPP_OS_NETBSD_SPEC },			\
   { "cpp_os_openbsd",		CPP_OS_OPENBSD_SPEC },			\
-  { "cpp_os_windiss",		CPP_OS_WINDISS_SPEC },			\
   { "cpp_os_default",		CPP_OS_DEFAULT_SPEC },			\
   { "fbsd_dynamic_linker",	FBSD_DYNAMIC_LINKER },			\
   SUBSUBTARGET_EXTRA_SPECS

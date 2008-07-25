@@ -1,6 +1,6 @@
 /* Subroutines for insn-output.c for Motorola 68000 family.
    Copyright (C) 1987, 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000,
-   2001, 2003, 2004, 2005, 2006, 2007
+   2001, 2003, 2004, 2005, 2006, 2007, 2008
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -148,7 +148,7 @@ static bool m68k_save_reg (unsigned int regno, bool interrupt_handler);
 static bool m68k_ok_for_sibcall_p (tree, tree);
 static bool m68k_rtx_costs (rtx, int, int, int *);
 #if M68K_HONOR_TARGET_STRICT_ALIGNMENT
-static bool m68k_return_in_memory (tree, tree);
+static bool m68k_return_in_memory (const_tree, const_tree);
 #endif
 
 
@@ -391,6 +391,9 @@ enum fpu_type m68k_fpu;
 /* The set of FL_* flags that apply to the target processor.  */
 unsigned int m68k_cpu_flags;
 
+/* The set of FL_* flags that apply to the processor to be tuned for.  */
+unsigned int m68k_tune_flags;
+
 /* Asm templates for calling or jumping to an arbitrary symbolic address,
    or NULL if such calls or jumps are not supported.  The address is held
    in operand 0.  */
@@ -497,7 +500,11 @@ m68k_handle_option (size_t code, const char *arg, int value)
 	error ("-mshared-library-id=%s is not between 0 and %d",
 	       arg, MAX_LIBRARY_ID);
       else
-	asprintf ((char **) &m68k_library_id_string, "%d", (value * -4) - 4);
+        {
+	  char *tmp;
+	  asprintf (&tmp, "%d", (value * -4) - 4);
+	  m68k_library_id_string = tmp;
+	}
       return true;
 
     default:
@@ -571,13 +578,23 @@ override_options (void)
   /* Set the directly-usable versions of the -mcpu and -mtune settings.  */
   m68k_cpu = entry->device;
   if (m68k_tune_entry)
-    m68k_tune = m68k_tune_entry->microarch;
+    {
+      m68k_tune = m68k_tune_entry->microarch;
+      m68k_tune_flags = m68k_tune_entry->flags;
+    }
 #ifdef M68K_DEFAULT_TUNE
   else if (!m68k_cpu_entry && !m68k_arch_entry)
-    m68k_tune = M68K_DEFAULT_TUNE;
+    {
+      enum target_device dev;
+      dev = all_microarchs[M68K_DEFAULT_TUNE].device;
+      m68k_tune_flags = all_devices[dev]->flags;
+    }
 #endif
   else
-    m68k_tune = entry->microarch;
+    {
+      m68k_tune = entry->microarch;
+      m68k_tune_flags = entry->flags;
+    }
 
   /* Set the type of FPU.  */
   m68k_fpu = (!TARGET_HARD_FLOAT ? FPUTYPE_NONE
@@ -2059,9 +2076,30 @@ legitimize_pic_address (rtx orig, enum machine_mode mode ATTRIBUTE_UNUSED,
     {
       gcc_assert (reg);
 
-      pic_ref = gen_rtx_MEM (Pmode,
-			     gen_rtx_PLUS (Pmode,
-					   pic_offset_table_rtx, orig));
+      if (TARGET_COLDFIRE && TARGET_XGOT)
+	/* When compiling with -mxgot switch the code for the above
+	   example will look like this:
+
+	   movel a5, a0
+	   addl _foo@GOT, a0
+	   movel a0@, a0
+	   movel #12345, a0@  */
+	{
+	  rtx pic_offset;
+
+	  /* Wrap ORIG in UNSPEC_GOTOFF to tip m68k_output_addr_const_extra
+	     to put @GOT after reference.  */
+	  pic_offset = gen_rtx_UNSPEC (Pmode, gen_rtvec (1, orig),
+				       UNSPEC_GOTOFF);
+	  pic_offset = gen_rtx_CONST (Pmode, pic_offset);
+	  emit_move_insn (reg, pic_offset);
+	  emit_insn (gen_addsi3 (reg, reg, pic_offset_table_rtx));
+	  pic_ref = gen_rtx_MEM (Pmode, reg);
+	}
+      else
+	pic_ref = gen_rtx_MEM (Pmode,
+			       gen_rtx_PLUS (Pmode,
+					     pic_offset_table_rtx, orig));
       crtl->uses_pic_offset_table = 1;
       MEM_READONLY_P (pic_ref) = 1;
       emit_move_insn (reg, pic_ref);
@@ -2205,13 +2243,18 @@ m68k_rtx_costs (rtx x, int code, int outer_code, int *total)
 #define MULL_COST				\
   (TUNE_68060 ? 2				\
    : TUNE_68040 ? 5				\
-   : TUNE_CFV2 ? 10				\
+   : (TUNE_CFV2 && TUNE_EMAC) ? 3		\
+   : (TUNE_CFV2 && TUNE_MAC) ? 4		\
+   : TUNE_CFV2 ? 8				\
    : TARGET_COLDFIRE ? 3 : 13)
 
 #define MULW_COST				\
   (TUNE_68060 ? 2				\
    : TUNE_68040 ? 3				\
-   : TUNE_68000_10 || TUNE_CFV2 ? 5		\
+   : TUNE_68000_10 ? 5				\
+   : (TUNE_CFV2 && TUNE_EMAC) ? 3		\
+   : (TUNE_CFV2 && TUNE_MAC) ? 2		\
+   : TUNE_CFV2 ? 8				\
    : TARGET_COLDFIRE ? 2 : 8)
 
 #define DIVW_COST				\
@@ -3841,20 +3884,26 @@ print_operand (FILE *file, rtx op, int letter)
   else if (GET_CODE (op) == CONST_DOUBLE && GET_MODE (op) == SFmode)
     {
       REAL_VALUE_TYPE r;
+      long l;
       REAL_VALUE_FROM_CONST_DOUBLE (r, op);
-      ASM_OUTPUT_FLOAT_OPERAND (letter, file, r);
+      REAL_VALUE_TO_TARGET_SINGLE (r, l);
+      asm_fprintf (file, "%I0x%lx", l);
     }
   else if (GET_CODE (op) == CONST_DOUBLE && GET_MODE (op) == XFmode)
     {
       REAL_VALUE_TYPE r;
+      long l[3];
       REAL_VALUE_FROM_CONST_DOUBLE (r, op);
-      ASM_OUTPUT_LONG_DOUBLE_OPERAND (file, r);
+      REAL_VALUE_TO_TARGET_LONG_DOUBLE (r, l);
+      asm_fprintf (file, "%I0x%lx%08lx%08lx", l[0], l[1], l[2]);
     }
   else if (GET_CODE (op) == CONST_DOUBLE && GET_MODE (op) == DFmode)
     {
       REAL_VALUE_TYPE r;
+      long l[2];
       REAL_VALUE_FROM_CONST_DOUBLE (r, op);
-      ASM_OUTPUT_DOUBLE_OPERAND (file, r);
+      REAL_VALUE_TO_TARGET_DOUBLE (r, l);
+      asm_fprintf (file, "%I0x%lx%08lx", l[0], l[1]);
     }
   else
     {
@@ -3867,6 +3916,20 @@ print_operand (FILE *file, rtx op, int letter)
       else
 	output_addr_const (file, op);
     }
+}
+
+/* m68k implementation of OUTPUT_ADDR_CONST_EXTRA.  */
+
+bool
+m68k_output_addr_const_extra (FILE *file, rtx x)
+{
+  if (GET_CODE (x) != UNSPEC || XINT (x, 1) != UNSPEC_GOTOFF)
+    return false;
+
+  output_addr_const (file, XVECEXP (x, 0, 0));
+  /* ??? What is the non-MOTOROLA syntax?  */
+  fputs ("@GOT", file);
+  return true;
 }
 
 
@@ -4564,7 +4627,7 @@ m68k_function_value (const_tree valtype, const_tree func ATTRIBUTE_UNUSED)
 /* Worker function for TARGET_RETURN_IN_MEMORY.  */
 #if M68K_HONOR_TARGET_STRICT_ALIGNMENT
 static bool
-m68k_return_in_memory (tree type, tree fntype ATTRIBUTE_UNUSED)
+m68k_return_in_memory (const_tree type, const_tree fntype ATTRIBUTE_UNUSED)
 {
   enum machine_mode mode = TYPE_MODE (type);
 
@@ -5393,8 +5456,7 @@ m68k_sched_md_init_global (FILE *sched_dump ATTRIBUTE_UNUSED,
   {
     rtx insn;
 
-    sched_branch_type = xcalloc (get_max_uid () + 1,
-				 sizeof (*sched_branch_type));
+    sched_branch_type = XCNEWVEC (enum attr_type, get_max_uid () + 1);
 
     for (insn = get_insns (); insn != NULL_RTX; insn = NEXT_INSN (insn))
       {
@@ -5451,8 +5513,7 @@ m68k_sched_md_init_global (FILE *sched_dump ATTRIBUTE_UNUSED,
     case CPU_CFV3:
       max_insn_size = 3;
       sched_ib.records.n_insns = 8;
-      sched_ib.records.adjust = xmalloc (sched_ib.records.n_insns
-					 * sizeof (*sched_ib.records.adjust));
+      sched_ib.records.adjust = XNEWVEC (int, sched_ib.records.n_insns);
       break;
 
     default:

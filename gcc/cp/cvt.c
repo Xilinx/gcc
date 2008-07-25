@@ -725,8 +725,10 @@ ocp_convert (tree type, tree expr, int convtype, int flags)
       if (abstract_virtuals_error (NULL_TREE, type))
 	return error_mark_node;
 
-      if ((flags & LOOKUP_ONLYCONVERTING)
-	  && ! (MAYBE_CLASS_TYPE_P (dtype) && DERIVED_FROM_P (type, dtype)))
+      if (BRACE_ENCLOSED_INITIALIZER_P (ctor))
+	ctor = perform_implicit_conversion (type, ctor, tf_warning_or_error);
+      else if ((flags & LOOKUP_ONLYCONVERTING)
+	       && ! (CLASS_TYPE_P (dtype) && DERIVED_FROM_P (type, dtype)))
 	/* For copy-initialization, first we create a temp of the proper type
 	   with a user-defined conversion sequence, then we direct-initialize
 	   the target with the temp (see [dcl.init]).  */
@@ -936,7 +938,7 @@ convert_to_void (tree expr, const char *implicit, tsubst_flags_t complain)
 	    {
 	      tree e;
 	      enum tree_code code;
-	      enum tree_code_class class;
+	      enum tree_code_class tclass;
 
 	      e = expr;
 	      /* We might like to warn about (say) "(int) f()", as the
@@ -953,10 +955,10 @@ convert_to_void (tree expr, const char *implicit, tsubst_flags_t complain)
 		e = TREE_OPERAND (e, 0);
 
 	      code = TREE_CODE (e);
-	      class = TREE_CODE_CLASS (code);
-	      if ((class == tcc_comparison
-		   || class == tcc_unary
-		   || (class == tcc_binary
+	      tclass = TREE_CODE_CLASS (code);
+	      if ((tclass == tcc_comparison
+		   || tclass == tcc_unary
+		   || (tclass == tcc_binary
 		       && !(code == MODIFY_EXPR
 			    || code == INIT_EXPR
 			    || code == PREDECREMENT_EXPR

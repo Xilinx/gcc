@@ -94,6 +94,10 @@ Wdisabled-optimization
 Common Var(warn_disabled_optimization) Warning
 Warn when an optimization pass is disabled
 
+Wdisallowed-function-list=
+Common RejectNegative Joined Warning
+Warn on calls to these functions
+
 Werror
 Common Var(warnings_are_errors)
 Treat all warnings as errors
@@ -716,10 +720,6 @@ fmove-loop-invariants
 Common Report Var(flag_move_loop_invariants) Init(1) Optimization
 Move loop invariant computations out of loops
 
-fbounds-checking
-Common RejectNegative Report Var(flag_bounds)
-Enable bounds checking of memory operations
-
 fmudflap
 Common RejectNegative Report Var(flag_mudflap)
 Add mudflap bounds-checking instrumentation for single-threaded program
@@ -751,10 +751,6 @@ Support synchronous non-call exceptions
 fomit-frame-pointer
 Common Report Var(flag_omit_frame_pointer) Optimization
 When possible do not generate stack frames
-
-fopenmp-ssa
-Common Report Var(flag_openmp_ssa)
-Expand OpenMP operations on SSA form
 
 foptimize-register-move
 Common Report Var(flag_regmove) Optimization
@@ -1070,7 +1066,7 @@ Common Joined RejectNegative
 -ftls-model=[global-dynamic|local-dynamic|initial-exec|local-exec]	Set the default thread-local storage code generation model
 
 ftoplevel-reorder
-Common Report Var(flag_toplevel_reorder) Init(1) Optimization
+Common Report Var(flag_toplevel_reorder) Init(2) Optimization
 Reorder top level functions, variables, and asms
 
 ftracer
@@ -1100,18 +1096,6 @@ ftree-ch
 Common Report Var(flag_tree_ch) Optimization
 Enable loop header copying on trees
 
-ftree-check=
-Common Joined RejectNegative
--ftree-check=pattern: Warn for statements matching the pattern
-
-ftree-checks=
-Common Joined RejectNegative
--ftree-checks=file: Take checking rules from file
-
-ftree-checks-verbose
-Common Report Var(flag_tree_checks_verbose)
-Outputs more information on stderr for each tree-check warning
-
 ftree-copyrename
 Common Report Var(flag_tree_copyrename) Optimization
 Replace SSA temporaries with better names in copies
@@ -1127,6 +1111,10 @@ Does nothing.  Preserved for backward compatibility.
 ftree-cselim
 Common Report Var(flag_tree_cselim) Init(2) Optimization
 Transform condition stores into unconditional ones
+
+ftree-switch-conversion
+Common Report Var(flag_tree_switch_conversion) Optimization
+Perform conversions of switch initializations.
 
 ftree-dce
 Common Report Var(flag_tree_dce) Optimization
@@ -1193,7 +1181,7 @@ Common Report Var(flag_tree_sra) Optimization
 Perform scalar replacement of aggregates
 
 ftree-ter
-Common Report Var(flag_tree_ter) Optimization
+Common Report Var(flag_tree_ter) Init(1) Optimization
 Replace temporary expressions in the SSA->normal pass
 
 ftree-lrs
@@ -1205,7 +1193,7 @@ Common Report Var(flag_tree_vrp) Init(0) Optimization
 Perform Value Range Propagation on trees
 
 funit-at-a-time
-Common Report Var(flag_unit_at_a_time) Optimization
+Common Report Var(flag_unit_at_a_time) Init(1) Optimization
 Compile whole compilation unit at a time
 
 funroll-loops
@@ -1298,6 +1286,10 @@ Use expression value profiles in optimizations
 fweb
 Common Report Var(flag_web) Init(2) Optimization
 Construct webs and split unrelated uses of single variable
+
+ftree-builtin-call-dce
+Common Report Var(flag_tree_builtin_call_dce) Init(0) Optimization
+Enable conditional dead code elimination for builtin calls
 
 fwhole-program
 Common Report Var(flag_whole_program) Init(0) Optimization

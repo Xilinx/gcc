@@ -1,5 +1,5 @@
 /* "Bag-of-pages" zone garbage collector for the GNU compiler.
-   Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007
+   Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008
    Free Software Foundation, Inc.
 
    Contributed by Richard Henderson (rth@redhat.com) and Daniel Berlin
@@ -506,6 +506,47 @@ lookup_page_table_entry (const void *p)
   return base[L1][L2];
 }
 
+/* Traverse the page table and find the entry for a page.
+   Return NULL if the object wasn't allocated via the GC.  */
+
+static inline page_entry *
+lookup_page_table_if_allocated (const void *p)
+{
+  page_entry ***base;
+  size_t L1, L2;
+
+#if HOST_BITS_PER_PTR <= 32
+  base = &G.lookup[0];
+#else
+  page_table table = G.lookup;
+  size_t high_bits = (size_t) p & ~ (size_t) 0xffffffff;
+  while (1)
+    {
+      if (table == NULL)
+	return NULL;
+      if (table->high_bits == high_bits)
+	break;
+      table = table->next;
+    }
+  base = &table->table[0];
+#endif
+
+  /* Extract the level 1 and 2 indices.  */
+  L1 = LOOKUP_L1 (p);
+  if (! base[L1])
+    return NULL;
+
+  L2 = LOOKUP_L2 (p);
+  if (L2 >= PAGE_L2_SIZE)
+    return NULL;
+  /* We might have a page entry which does not correspond exactly to a
+     system page.  */
+  if (base[L1][L2] && (const char *) p < base[L1][L2]->page)
+    return NULL;
+
+  return base[L1][L2];
+}
+
 /* Set the page table entry for the page that starts at P.  If ENTRY
    is NULL, clear the entry.  */
 
@@ -525,7 +566,7 @@ set_page_table_entry (void *p, page_entry *entry)
       goto found;
 
   /* Not found -- allocate a new table.  */
-  table = xcalloc (1, sizeof(*table));
+  table = XCNEW (struct page_table_chain);
   table->next = G.lookup;
   table->high_bits = high_bits;
   G.lookup = table;
@@ -538,7 +579,7 @@ found:
   L2 = LOOKUP_L2 (p);
 
   if (base[L1] == NULL)
-    base[L1] = xcalloc (PAGE_L2_SIZE, sizeof (page_entry *));
+    base[L1] = XCNEWVEC (page_entry *, PAGE_L2_SIZE);
 
   base[L1][L2] = entry;
 }
@@ -674,10 +715,59 @@ zone_find_object_size (struct small_page_entry *page,
   unsigned int start_word = zone_get_object_alloc_word (object_midptr);
   unsigned int start_bit = zone_get_object_alloc_bit (object_midptr);
   size_t max_size = (page->common.page + SMALL_PAGE_SIZE
-		     - (char *) object);
+		     - (const char *) object);
 
   return zone_object_size_1 (page->alloc_bits, start_word, start_bit,
 			     max_size);
+}
+
+/* highest_bit assumes that alloc_type is 32 bits.  */
+extern char check_alloc_type_size[(sizeof (alloc_type) == 4) ? 1 : -1];
+
+/* Find the highest set bit in VALUE.  Returns the bit number of that
+   bit, using the same values as ffs.  */
+static inline alloc_type
+highest_bit (alloc_type value)
+{
+  /* This also assumes that alloc_type is unsigned.  */
+  value |= value >> 1;
+  value |= value >> 2;
+  value |= value >> 4;
+  value |= value >> 8;
+  value |= value >> 16;
+  value = value ^ (value >> 1);
+  return alloc_ffs (value);
+}
+
+/* Find the offset from the start of an object to P, which may point
+   into the interior of the object.  */
+
+static unsigned long
+zone_find_object_offset (alloc_type *alloc_bits, size_t start_word,
+			 size_t start_bit)
+{
+  unsigned int offset_in_bits;
+  alloc_type alloc_word = alloc_bits[start_word];
+
+  /* Mask off any bits after the initial bit, but make sure to include
+     the initial bit in the result.  Note that START_BIT is
+     0-based.  */
+  if (start_bit < 8 * sizeof (alloc_type) - 1)
+    alloc_word &= (1 << (start_bit + 1)) - 1;
+  offset_in_bits = start_bit;
+
+  /* Search for the start of the object.  */
+  while (alloc_word == 0 && start_word > 0)
+    {
+      alloc_word = alloc_bits[--start_word];
+      offset_in_bits += 8 * sizeof (alloc_type);
+    }
+  /* We must always find a set bit.  */
+  gcc_assert (alloc_word != 0);
+  /* Note that the result of highest_bit is 1-based.  */
+  offset_in_bits -= highest_bit (alloc_word) - 1;
+
+  return BYTES_PER_ALLOC_BIT * offset_in_bits;
 }
 
 /* Allocate the mark bits for every zone, and set the pointers on each
@@ -808,7 +898,7 @@ alloc_small_page (struct alloc_zone *zone)
 	 memory order.  */
       for (i = G.quire_size - 1; i >= 1; i--)
 	{
-	  e = xcalloc (1, G.small_page_overhead);
+	  e = XCNEWVAR (struct small_page_entry, G.small_page_overhead);
 	  e->common.page = page + (i << GGC_PAGE_SHIFT);
 	  e->common.zone = zone;
 	  e->next = f;
@@ -818,7 +908,7 @@ alloc_small_page (struct alloc_zone *zone)
 
       zone->free_pages = f;
 
-      entry = xcalloc (1, G.small_page_overhead);
+      entry = XCNEWVAR (struct small_page_entry, G.small_page_overhead);
       entry->common.page = page;
       entry->common.zone = zone;
       set_page_table_entry (page, &entry->common);
@@ -845,7 +935,7 @@ alloc_large_page (size_t size, struct alloc_zone *zone)
   size_t needed_size;
 
   needed_size = size + sizeof (struct large_page_entry);
-  page = xmalloc (needed_size);
+  page = XNEWVAR (char, needed_size);
 
   entry = (struct large_page_entry *) page;
 
@@ -1349,8 +1439,67 @@ ggc_free (void *p)
 
       /* Add the chunk to the free list.  We don't bother with coalescing,
 	 since we are likely to want a chunk of this size again.  */
-      free_chunk (p, size, page->zone);
+      free_chunk ((char *)p, size, page->zone);
     }
+}
+
+/* Mark function for strings.  */
+
+void
+gt_ggc_m_S (const void *p)
+{
+  page_entry *entry;
+  unsigned long offset;
+
+  if (!p)
+    return;
+
+  /* Look up the page on which the object is alloced.  .  */
+  entry = lookup_page_table_if_allocated (p);
+  if (! entry)
+    return;
+
+  if (entry->pch_p)
+    {
+      size_t alloc_word, alloc_bit, t;
+      t = ((const char *) p - pch_zone.page) / BYTES_PER_ALLOC_BIT;
+      alloc_word = t / (8 * sizeof (alloc_type));
+      alloc_bit = t % (8 * sizeof (alloc_type));
+      offset = zone_find_object_offset (pch_zone.alloc_bits, alloc_word,
+					alloc_bit);
+    }
+  else if (entry->large_p)
+    {
+      struct large_page_entry *le = (struct large_page_entry *) entry;
+      offset = ((const char *) p) - entry->page;
+      gcc_assert (offset < le->bytes);
+    }
+  else
+    {
+      struct small_page_entry *se = (struct small_page_entry *) entry;
+      unsigned int start_word = zone_get_object_alloc_word (p);
+      unsigned int start_bit = zone_get_object_alloc_bit (p);
+      offset = zone_find_object_offset (se->alloc_bits, start_word, start_bit);
+
+      /* On some platforms a char* will not necessarily line up on an
+	 allocation boundary, so we have to update the offset to
+	 account for the leftover bytes.  */
+      offset += (size_t) p % BYTES_PER_ALLOC_BIT;
+    }
+
+  if (offset)
+    {
+      /* Here we've seen a char* which does not point to the beginning
+	 of an allocated object.  We assume it points to the middle of
+	 a STRING_CST.  */
+      gcc_assert (offset == offsetof (struct tree_string, str));
+      p = ((const char *) p) - offset;
+      gt_ggc_mx_lang_tree_node (CONST_CAST(void *, p));
+      return;
+    }
+
+  /* Inefficient, but also unlikely to matter.  */
+  ggc_set_mark (p);
 }
 
 /* If P is not marked, mark it and return false.  Otherwise return true.
@@ -1411,7 +1560,7 @@ int
 ggc_marked_p (const void *p)
 {
   struct page_entry *page;
-  const char *ptr = p;
+  const char *ptr = (const char *) p;
 
   page = zone_get_object_page (p);
 
@@ -1537,7 +1686,7 @@ init_ggc (void)
     if (GGC_PAGE_SIZE == G.pagesize)
       {
 	/* We have a good page, might as well hold onto it...  */
-	e = xcalloc (1, G.small_page_overhead);
+	e = XCNEWVAR (struct small_page_entry, G.small_page_overhead);
 	e->common.page = p;
 	e->common.zone = &main_zone;
 	e->next = main_zone.free_pages;
@@ -1565,7 +1714,7 @@ new_ggc_zone_1 (struct alloc_zone *new_zone, const char * name)
 struct alloc_zone *
 new_ggc_zone (const char * name)
 {
-  struct alloc_zone *new_zone = xcalloc (1, sizeof (struct alloc_zone));
+  struct alloc_zone *new_zone = XCNEW (struct alloc_zone);
   new_ggc_zone_1 (new_zone, name);
   return new_zone;
 }
@@ -2152,7 +2301,7 @@ struct ggc_pch_data
 struct ggc_pch_data *
 init_ggc_pch (void)
 {
-  return xcalloc (sizeof (struct ggc_pch_data), 1);
+  return XCNEW (struct ggc_pch_data);
 }
 
 /* Return which of the page-aligned buckets the object at X, with type
@@ -2231,7 +2380,7 @@ ggc_pch_this_base (struct ggc_pch_data *d, void *base_)
     }
 
   if (d->alloc_bits == NULL)
-    d->alloc_bits = xcalloc (1, d->alloc_size);
+    d->alloc_bits = XCNEWVAR (alloc_type, d->alloc_size);
 }
 
 /* Allocate a place for object X of size SIZE in the PCH file.  */
@@ -2296,7 +2445,7 @@ ggc_pch_finish (struct ggc_pch_data *d, FILE *f)
     fatal_error ("can't seek PCH file: %m");
 
   if (fwrite (d->alloc_bits, d->alloc_size, 1, f) != 1)
-    fatal_error ("can't write PCH fle: %m");
+    fatal_error ("can't write PCH file: %m");
 
   /* Done with the PCH, so write out our footer.  */
   if (fwrite (&d->d, sizeof (d->d), 1, f) != 1)
@@ -2367,7 +2516,7 @@ ggc_pch_read (FILE *f, void *addr)
 
   /* Allocate the dummy page entry for the PCH, and set all pages
      mapped into the PCH to reference it.  */
-  pch_page = xcalloc (1, sizeof (struct page_entry));
+  pch_page = XCNEW (struct page_entry);
   pch_page->page = pch_zone.page;
   pch_page->pch_p = true;
 

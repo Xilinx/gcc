@@ -734,8 +734,8 @@ package body Exp_Ch5 is
               and then not No_Ctrl_Actions (N)
             then
                declare
-                  Proc : constant Entity_Id :=
-                           TSS (Base_Type (L_Type), TSS_Slice_Assign);
+                  Proc    : constant Entity_Id :=
+                              TSS (Base_Type (L_Type), TSS_Slice_Assign);
                   Actuals : List_Id;
 
                begin
@@ -872,7 +872,7 @@ package body Exp_Ch5 is
                --  explicit bounds of right and left hand sides.
 
                declare
-                  Proc    : constant Node_Id :=
+                  Proc    : constant Entity_Id :=
                               TSS (Base_Type (L_Type), TSS_Slice_Assign);
                   Actuals : List_Id;
 
@@ -4032,6 +4032,28 @@ package body Exp_Ch5 is
          end;
       end if;
 
+      --  If we are returning an object that may not be bit-aligned, then
+      --  copy the value into a temporary first. This copy may need to expand
+      --  to a loop of component operations..
+
+      if Is_Possibly_Unaligned_Slice (Exp)
+        or else Is_Possibly_Unaligned_Object (Exp)
+      then
+         declare
+            Tnn : constant Entity_Id :=
+                    Make_Defining_Identifier (Loc, New_Internal_Name ('T'));
+         begin
+            Insert_Action (Exp,
+              Make_Object_Declaration (Loc,
+                Defining_Identifier => Tnn,
+                Constant_Present    => True,
+                Object_Definition   => New_Occurrence_Of (R_Type, Loc),
+                Expression          => Relocate_Node (Exp)),
+                Suppress => All_Checks);
+            Rewrite (Exp, New_Occurrence_Of (Tnn, Loc));
+         end;
+      end if;
+
       --  Generate call to postcondition checks if they are present
 
       if Ekind (Scope_Id) = E_Function
@@ -4061,8 +4083,7 @@ package body Exp_Ch5 is
          else
             declare
                Tnn : constant Entity_Id :=
-                       Make_Defining_Identifier (Loc,
-                         New_Internal_Name ('T'));
+                       Make_Defining_Identifier (Loc, New_Internal_Name ('T'));
 
             begin
                --  For a complex expression of an elementary type, capture
@@ -4186,13 +4207,16 @@ package body Exp_Ch5 is
       if not Ctrl_Act then
          null;
 
-      --  The left hand side is an uninitialized temporary
+      --  The left hand side is an uninitialized temporary object
 
       elsif Nkind (L) = N_Type_Conversion
         and then Is_Entity_Name (Expression (L))
+        and then Nkind (Parent (Entity (Expression (L))))
+                   = N_Object_Declaration
         and then No_Initialization (Parent (Entity (Expression (L))))
       then
          null;
+
       else
          Append_List_To (Res,
            Make_Final_Call (

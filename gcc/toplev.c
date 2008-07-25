@@ -81,7 +81,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "value-prof.h"
 #include "alloc-pool.h"
 #include "tree-mudflap.h"
-#include "tree-bounds.h"
 #include "tree-pass.h"
 
 #if defined (DWARF2_UNWIND_INFO) || defined (DWARF2_DEBUGGING_INFO)
@@ -203,11 +202,6 @@ tree current_function_decl;
    if none.  */
 const char * current_function_func_begin_label;
 
-/* Temporarily suppress certain warnings.
-   This is set while reading code from a system header file.  */
-
-int in_system_header = 0;
-
 /* Nonzero means to collect statistics which might be expensive
    and to print them when we are done.  */
 int flag_detailed_statistics = 0;
@@ -315,11 +309,6 @@ rtx stack_limit_rtx;
    flag_var_tracking == AUTODETECT_VALUE it will be set according
    to optimize, debug_info_level and debug_hooks in process_options ().  */
 int flag_var_tracking = AUTODETECT_VALUE;
-
-/* File containing check specifications */
-const char *tree_check_file = NULL;
-/* String containing inline check specifications */
-const char *tree_check_string = NULL;
 
 /* True if the user has tagged the function with the 'section'
    attribute.  */
@@ -957,6 +946,8 @@ compile_file (void)
 {
   /* Initialize yet another pass.  */
 
+  ggc_protect_identifiers = true;
+
   init_cgraph ();
   init_final (main_input_filename);
   coverage_init (aux_base_name);
@@ -974,6 +965,8 @@ compile_file (void)
 
   if (flag_syntax_only)
     return;
+
+  ggc_protect_identifiers = false;
 
   lang_hooks.decls.final_write_globals ();
 
@@ -998,10 +991,6 @@ compile_file (void)
 
   output_shared_constant_pool ();
   output_object_blocks ();
-
-  /* Likewise for bounds-checking static object registrations.  */
-  if (flag_bounds)
-    bounds_finish_file ();
 
   /* Write out any pending weak symbol declarations.  */
   weak_finish ();

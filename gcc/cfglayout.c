@@ -378,7 +378,7 @@ struct rtl_opt_pass pass_outof_cfg_layout_mode =
  }
 };
 
-/* Return sope resulting from combination of S1 and S2.  */
+/* Return scope resulting from combination of S1 and S2.  */
 static tree
 choose_inner_scope (tree s1, tree s2)
 {
@@ -855,8 +855,7 @@ fixup_reorder_chain (void)
 	      && JUMP_P (BB_END (bb))
 	      && !any_condjump_p (BB_END (bb))
 	      && (EDGE_SUCC (bb, 0)->flags & EDGE_CROSSING))
-	    REG_NOTES (BB_END (bb)) = gen_rtx_EXPR_LIST
-	      (REG_CROSSING_JUMP, NULL_RTX, REG_NOTES (BB_END (bb)));
+	    add_reg_note (BB_END (bb), REG_CROSSING_JUMP, NULL_RTX);
 	}
     }
 

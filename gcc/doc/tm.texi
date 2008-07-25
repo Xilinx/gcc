@@ -35,7 +35,7 @@ through the macros defined in the @file{.h} file.
 * Register Classes::    Defining the classes of hardware registers.
 * Old Constraints::     The old way to define machine-specific constraints.
 * Stack and Calling::   Defining which way the stack grows and by how much.
-* Varargs::		Defining the varargs macros.
+* Varargs::             Defining the varargs macros.
 * Trampolines::         Code set up at run time to enter a nested function.
 * Library Calls::       Controlling how library routines are implicitly called.
 * Addressing Modes::    Defining addressing modes valid for memory operands.
@@ -44,7 +44,7 @@ through the macros defined in the @file{.h} file.
 * Costs::               Defining relative costs of different operations.
 * Scheduling::          Adjusting the behavior of the instruction scheduler.
 * Sections::            Dividing storage into text, data, and other sections.
-* PIC::			Macros for position independent code.
+* PIC::                 Macros for position independent code.
 * Assembler Format::    Defining how to write insns and pseudo-ops to output.
 * Debugging Info::      Defining the format of debugging output.
 * Floating Point::      Handling floating point for cross-compilers.
@@ -990,11 +990,11 @@ Minimum number of units in a word.  If this is undefined, the default is
 smallest value that @code{UNITS_PER_WORD} can have at run-time.
 @end defmac
 
-@defmac UNITS_PER_SIMD_WORD
-Number of units in the vectors that the vectorizer can produce.
-The default is equal to @code{UNITS_PER_WORD}, because the vectorizer
-can do some transformations even in absence of specialized @acronym{SIMD}
-hardware.
+@defmac UNITS_PER_SIMD_WORD (@var{mode})
+Number of units in the vectors that the vectorizer can produce for
+scalar mode @var{mode}.  The default is equal to @code{UNITS_PER_WORD},
+because the vectorizer can do some transformations even in absence of
+specialized @acronym{SIMD} hardware.
 @end defmac
 
 @defmac POINTER_SIZE
@@ -1095,6 +1095,11 @@ bits.  Note that this is not the biggest alignment that is supported,
 just the biggest alignment that, when violated, may cause a fault.
 @end defmac
 
+@defmac MALLOC_ABI_ALIGNMENT
+Alignment, in bits, a C conformant malloc implementation has to
+provide.  If not defined, the default value is @code{BITS_PER_WORD}.
+@end defmac
+
 @defmac MINIMUM_ATOMIC_ALIGNMENT
 If defined, the smallest alignment, in bits, that can be given to an
 object that can be referenced in one operation, without disturbing any
@@ -1170,6 +1175,21 @@ If this macro is not defined, then @var{basic-align} is used.
 
 One use of this macro is to increase alignment of medium-size data to
 make it all fit in fewer cache lines.
+@end defmac
+
+@defmac STACK_SLOT_ALIGNMENT (@var{type}, @var{mode}, @var{basic-align})
+If defined, a C expression to compute the alignment for stack slot.
+@var{type} is the data type, @var{mode} is the widest mode available,
+and @var{basic-align} is the alignment that the slot would ordinarily
+have.  The value of this macro is used instead of that alignment to
+align the slot.
+
+If this macro is not defined, then @var{basic-align} is used when
+@var{type} is @code{NULL}.  Otherwise, @code{LOCAL_ALIGNMENT} will
+be used.
+
+This macro is to set alignment of stack slot to the maximum alignment
+of all possible modes which the slot may have.
 @end defmac
 
 @defmac EMPTY_FIELD_BOUNDARY
@@ -1896,11 +1916,11 @@ For passing values in registers, see @ref{Register Arguments}.
 For returning values in registers, see @ref{Scalar Return}.
 
 @menu
-* Register Basics::		Number and kinds of registers.
-* Allocation Order::		Order in which registers are allocated.
-* Values in Registers::		What kinds of values each reg can hold.
-* Leaf Functions::		Renumbering registers for leaf functions.
-* Stack Registers::		Handling a register stack such as 80387.
+* Register Basics::             Number and kinds of registers.
+* Allocation Order::            Order in which registers are allocated.
+* Values in Registers::         What kinds of values each reg can hold.
+* Leaf Functions::              Renumbering registers for leaf functions.
+* Stack Registers::             Handling a register stack such as 80387.
 @end menu
 
 @node Register Basics
@@ -2226,6 +2246,16 @@ You should define this macro to return nonzero in as many cases as
 possible since doing so will allow GCC to perform better register
 allocation.
 @end defmac
+
+@deftypefn {Target Hook} bool TARGET_HARD_REGNO_SCRATCH_OK (unsigned int @var{regno})
+This target hook should return @code{true} if it is OK to use a hard register
+@var{regno} as scratch reg in peephole2.
+
+One common use of this macro is to prevent using of a register that
+is not saved by a prologue in an interrupt handler.
+
+The default version of this hook always returns @code{true}.
+@end deftypefn
 
 @defmac AVOID_CCMODE_COPIES
 Define this macro if the compiler should avoid copies to/from @code{CCmode}
@@ -2970,7 +3000,7 @@ be treated like memory constraints by the reload pass.
 
 It should return 1 if the operand type represented by the constraint
 at the start of @var{str}, the first letter of which is the letter @var{c},
- comprises a subset of all memory references including
+comprises a subset of all memory references including
 all those whose address is simply a base register.  This allows the reload
 pass to reload an operand, if it does not directly correspond to the operand
 type of @var{c}, by copying its address into a base register.
@@ -4040,6 +4070,15 @@ arguments are passed on the stack, there is no need to store anything in
 should not be empty, so use @code{int}.
 @end defmac
 
+@defmac OVERRIDE_ABI_FORMAT (@var{fndecl})
+If defined, this macro is called before generating any code for a
+function, but after the @var{cfun} descriptor for the function has been
+created.  The back end may use this macro to update @var{cfun} to
+reflect an ABI other than that which would normally be used by default.
+If the compiler is generating code for a compiler-generated function,
+@var{fndecl} may be @code{NULL}.
+@end defmac
+
 @defmac INIT_CUMULATIVE_ARGS (@var{cum}, @var{fntype}, @var{libname}, @var{fndecl}, @var{n_named_args})
 A C statement (sans semicolon) for initializing the variable
 @var{cum} for the state at the beginning of the argument list.  The
@@ -4161,6 +4200,18 @@ false.
 @deftypefn {Target Hook} tree TARGET_BUILD_BUILTIN_VA_LIST (void)
 This hook returns a type node for @code{va_list} for the target.
 The default version of the hook returns @code{void*}.
+@end deftypefn
+
+@deftypefn {Target Hook} tree TARGET_FN_ABI_VA_LIST (tree @var{fndecl})
+This hook returns the va_list type of the calling convention specified by
+@var{fndecl}.
+The default version of this hook returns @code{va_list_type_node}.
+@end deftypefn
+
+@deftypefn {Target Hook} tree TARGET_CANONICAL_VA_LIST_TYPE (tree @var{type})
+This hook returns the va_list type of the calling convention specified by the
+type of @var{type}. If @var{type} is not a valid va_list type, it returns
+@code{NULL_TREE}.
 @end deftypefn
 
 @deftypefn {Target Hook} tree TARGET_GIMPLIFY_VA_ARG_EXPR (tree @var{valist}, tree @var{type}, tree *@var{pre_p}, tree *@var{post_p})
@@ -4291,6 +4342,20 @@ suffices:
 If the machine has register windows, so that the caller and the called
 function use different registers for the return value, this macro
 should recognize only the caller's register numbers.
+@end defmac
+
+@defmac TARGET_ENUM_VA_LIST (@var{idx}, @var{pname}, @var{ptype})
+This target macro is used in function @code{c_common_nodes_and_builtins}
+to iterate through the target specific builtin types for va_list. The
+variable @var{idx} is used as iterator. @var{pname} has to be a pointer
+to a @code{const char *} and @var{ptype} a pointer to a @code{tree} typed
+variable.
+The arguments @var{pname} and @var{ptype} are used to store the result of
+this macro and are set to the name of the va_list builtin type and its
+internal type.
+If the return value of this macro is zero, then there is no more element.
+Otherwise the @var{IDX} should be increased for the next call of this
+macro to iterate through all types.
 @end defmac
 
 @defmac APPLY_RESULT_SIZE
@@ -5298,6 +5363,17 @@ into the @code{symbol_ref}, and then check for it here.  When you see a
 @code{const}, you will have to look inside it to find the
 @code{symbol_ref} in order to determine the section.  @xref{Assembler
 Format}.
+@end defmac
+
+@defmac TARGET_MEM_CONSTRAINT
+A single character to be used instead of the default @code{'m'}
+character for general memory addresses.  This defines the constraint
+letter which matches the memory addresses accepted by
+@code{GO_IF_LEGITIMATE_ADDRESS_P}.  Define this macro if you want to
+support new address formats in your back end without changing the
+semantics of the @code{'m'} constraint.  This is necessary in order to
+preserve functionality of inline assembly constructs using the
+@code{'m'} constraint.
 @end defmac
 
 @defmac FIND_BASE_TERM (@var{x})
@@ -6744,10 +6820,10 @@ instructions do.
 * Uninitialized Data::   Output of uninitialized variables.
 * Label Output::         Output and generation of labels.
 * Initialization::       General principles of initialization
-			   and termination routines.
+                         and termination routines.
 * Macros for Initialization::
-			 Specific macros that control the handling of
-			   initialization and termination routines.
+                         Specific macros that control the handling of
+                         initialization and termination routines.
 * Instruction Output::   Output of actual instructions.
 * Dispatch Tables::      Output of jump tables.
 * Exception Region Output:: Output of exception region code.
@@ -6876,7 +6952,7 @@ This is true on most ELF targets.
 Choose a set of section attributes for use by @code{TARGET_ASM_NAMED_SECTION}
 based on a variable or function decl, a section name, and whether or not the
 declaration's initializer may contain runtime relocations.  @var{decl} may be
- null, in which case read-write data should be assumed.
+null, in which case read-write data should be assumed.
 
 The default version of this function handles choosing code vs data,
 read-only vs read-write data, and @code{flag_pic}.  You should only
@@ -7080,7 +7156,7 @@ assembler for grouping arithmetic expressions.  If not overridden, they
 default to normal parentheses, which is correct for most assemblers.
 @end deftypevr
 
-  These macros are provided by @file{real.h} for writing the definitions
+These macros are provided by @file{real.h} for writing the definitions
 of @code{ASM_OUTPUT_DOUBLE} and the like:
 
 @defmac REAL_VALUE_TO_TARGET_SINGLE (@var{x}, @var{l})
@@ -10465,3 +10541,14 @@ to the functions in @file{libgcc} that provide low-level support for
 call stack unwinding.  It is used in declarations in @file{unwind-generic.h}
 and the associated definitions of those functions.
 @end defmac
+
+@deftypefn {Target Hook} {bool} TARGET_ALLOCATE_STACK_SLOTS_FOR_ARGS (void)
+When optimization is disabled, this hook indicates whether or not
+arguments should be allocated to stack slots.  Normally, GCC allocates
+stacks slots for arguments when not optimizing in order to make
+debugging easier.  However, when a function is declared with
+@code{__attribute__((naked))}, there is no stack frame, and the compiler
+cannot safely move arguments from the registers in which they are passed
+to the stack.  Therefore, this hook should return true in general, but
+false for naked functions.  The default implementation always returns true.
+@end deftypefn

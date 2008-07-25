@@ -37,13 +37,13 @@ extern int initial_elimination_offset (int from, int to);
 extern int avr_simple_epilogue (void);
 extern void gas_output_limited_string (FILE *file, const char *str);
 extern void gas_output_ascii (FILE *file, const char *str, size_t length);
+extern int avr_hard_regno_rename_ok (unsigned int, unsigned int);
 
 #ifdef TREE_CODE
 extern void asm_output_external (FILE *file, tree decl, char *name);
 extern int avr_progmem_p (tree decl, tree attributes);
 
 #ifdef RTX_CODE /* inside TREE_CODE */
-extern rtx avr_function_value (const_tree type, const_tree func);
 extern void init_cumulative_args (CUMULATIVE_ARGS *cum, tree fntype,
 				  rtx libname, tree fndecl);
 extern rtx function_arg (CUMULATIVE_ARGS *cum, enum machine_mode mode,
@@ -122,7 +122,6 @@ extern RTX_CODE avr_normalize_condition (RTX_CODE condition);
 extern int compare_eq_p (rtx insn);
 extern void out_shift_with_cnt (const char *template, rtx insn,
 				rtx operands[], int *len, int t_len);
-extern int avr_peep2_scratch_safe (rtx reg_rtx);
 #endif /* RTX_CODE */
 
 #ifdef HAVE_MACHINE_MODES

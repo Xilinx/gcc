@@ -28,10 +28,10 @@ extensions, accepted by GCC in C89 mode and in C++.
 * Local Labels::        Labels local to a block.
 * Labels as Values::    Getting pointers to labels, and computed gotos.
 * Nested Functions::    As in Algol and Pascal, lexical scoping of functions.
-* Constructing Calls::	Dispatching a call to another function.
+* Constructing Calls::  Dispatching a call to another function.
 * Typeof::              @code{typeof}: referring to the type of an expression.
 * Conditionals::        Omitting the middle operand of a @samp{?:} expression.
-* Long Long::		Double-word integers---@code{long long int}.
+* Long Long::           Double-word integers---@code{long long int}.
 * Complex::             Data types for complex numbers.
 * Floating Types::      Additional Floating Types.
 * Decimal Float::       Decimal Floating Types. 
@@ -40,41 +40,41 @@ extensions, accepted by GCC in C89 mode and in C++.
 * Zero Length::         Zero-length arrays.
 * Variable Length::     Arrays whose length is computed at run time.
 * Empty Structures::    Structures with no members.
-* Variadic Macros::	Macros with a variable number of arguments.
+* Variadic Macros::     Macros with a variable number of arguments.
 * Escaped Newlines::    Slightly looser rules for escaped newlines.
 * Subscripting::        Any array can be subscripted, even if not an lvalue.
 * Pointer Arith::       Arithmetic on @code{void}-pointers and function pointers.
 * Initializers::        Non-constant initializers.
 * Compound Literals::   Compound literals give structures, unions
-                         or arrays as values.
-* Designated Inits::	Labeling elements of initializers.
+                        or arrays as values.
+* Designated Inits::    Labeling elements of initializers.
 * Cast to Union::       Casting to union type from any member of the union.
-* Case Ranges::		`case 1 ... 9' and such.
-* Mixed Declarations::	Mixing declarations and code.
+* Case Ranges::         `case 1 ... 9' and such.
+* Mixed Declarations::  Mixing declarations and code.
 * Function Attributes:: Declaring that functions have no side effects,
-                         or that they can never return.
+                        or that they can never return.
 * Attribute Syntax::    Formal syntax for attributes.
 * Function Prototypes:: Prototype declarations and old-style definitions.
 * C++ Comments::        C++ comments are recognized.
 * Dollar Signs::        Dollar sign is allowed in identifiers.
 * Character Escapes::   @samp{\e} stands for the character @key{ESC}.
-* Variable Attributes::	Specifying attributes of variables.
-* Type Attributes::	Specifying attributes of types.
+* Variable Attributes:: Specifying attributes of variables.
+* Type Attributes::     Specifying attributes of types.
 * Alignment::           Inquiring about the alignment of a type or variable.
 * Inline::              Defining inline functions (as fast as macros).
 * Extended Asm::        Assembler instructions with C expressions as operands.
-                         (With them you can define ``built-in'' functions.)
+                        (With them you can define ``built-in'' functions.)
 * Constraints::         Constraints for asm operands
 * Asm Labels::          Specifying the assembler name to use for a C symbol.
 * Explicit Reg Vars::   Defining variables residing in specified registers.
 * Alternate Keywords::  @code{__const__}, @code{__asm__}, etc., for header files.
 * Incomplete Enums::    @code{enum foo;}, with details to follow.
-* Function Names::	Printable strings which are the name of the current
-			 function.
+* Function Names::      Printable strings which are the name of the current
+                        function.
 * Return Address::      Getting the return or frame address of a function.
 * Vector Extensions::   Using vector instructions through built-in functions.
 * Offsetof::            Special syntax for implementing @code{offsetof}.
-* Atomic Builtins::	Built-in functions for atomic memory access.
+* Atomic Builtins::     Built-in functions for atomic memory access.
 * Object Size Checking:: Built-in functions for limited buffer overflow
                         checking.
 * Other Builtins::      Other built-in functions.
@@ -1945,8 +1945,7 @@ body.
 Generally, inlining into a function is limited.  For a function marked with
 this attribute, every call inside this function will be inlined, if possible.
 Whether the function itself is considered for inlining depends on its size and
-the current inlining parameters.  The @code{flatten} attribute only works
-reliably in unit-at-a-time mode.
+the current inlining parameters.
 
 @item error ("@var{message}")
 @cindex @code{error} function attribute
@@ -2362,7 +2361,7 @@ This attribute is ignored for R8C target.
 
 @item interrupt
 @cindex interrupt handler functions
-Use this attribute on the ARM, AVR, CRX, M32C, M32R/D, m68k, MS1,
+Use this attribute on the ARM, AVR, CRX, M32C, M32R/D, m68k,
 and Xstormy16 ports to indicate that the specified function is an
 interrupt handler.  The compiler will generate function entry and exit
 sequences suitable for use in an interrupt handler when this attribute
@@ -2508,11 +2507,30 @@ instruction).  Caveat: such addressing is by definition not position
 independent and hence this attribute must not be used for objects
 defined by shared libraries.
 
+@item ms_abi/sysv_abi
+@cindex @code{ms_abi} attribute
+@cindex @code{sysv_abi} attribute
+
+On 64-bit x86_65-*-* targets, you can use an ABI attribute to indicate
+which calling convention should be used for a function.  The @code{ms_abi}
+attribute tells the compiler to use the Microsoft ABI, while the
+@code{sysv_abi} attribute tells the compiler to use the ABI used on
+GNU/Linux and other systems.  The default is to use the Microsoft ABI
+when targeting Windows.  On all other systems, the default is the AMD ABI.
+
+Note, This feature is currently sorried out for Windows targets trying to
+
 @item naked
 @cindex function without a prologue/epilogue code
 Use this attribute on the ARM, AVR, IP2K and SPU ports to indicate that
 the specified function does not need prologue/epilogue sequences generated by
-the compiler.  It is up to the programmer to provide these sequences.
+the compiler.  It is up to the programmer to provide these sequences. The 
+only statements that can be safely included in naked functions are 
+@code{asm} statements that do not have operands.  All other statements,
+including declarations of local variables, @code{if} statements, and so 
+forth, should be avoided.  Naked functions should be used to implement the 
+body of an assembly function, while allowing the compiler to construct
+the requisite function declaration for the assembler.
 
 @item near
 @cindex functions which do not handle memory bank switching on 68HC11/68HC12
@@ -2565,7 +2583,7 @@ be non-null pointers.  For instance, the declaration:
 @smallexample
 extern void *
 my_memcpy (void *dest, const void *src, size_t len)
-	__attribute__((nonnull (1, 2)));
+        __attribute__((nonnull (1, 2)));
 @end smallexample
 
 @noindent
@@ -2583,7 +2601,7 @@ following declaration is equivalent to the previous example:
 @smallexample
 extern void *
 my_memcpy (void *dest, const void *src, size_t len)
-	__attribute__((nonnull));
+        __attribute__((nonnull));
 @end smallexample
 
 @item noreturn
@@ -3749,13 +3767,13 @@ targets.  You can use @code{__declspec (selectany)} as a synonym for
 compilers.
 
 @item weak
-The @code{weak} attribute is described in @xref{Function Attributes}.
+The @code{weak} attribute is described in @ref{Function Attributes}.
 
 @item dllimport
-The @code{dllimport} attribute is described in @xref{Function Attributes}.
+The @code{dllimport} attribute is described in @ref{Function Attributes}.
 
 @item dllexport
-The @code{dllexport} attribute is described in @xref{Function Attributes}.
+The @code{dllexport} attribute is described in @ref{Function Attributes}.
 
 @end table
 
@@ -3936,21 +3954,21 @@ Three attributes currently are defined for PowerPC configurations:
 @code{altivec}, @code{ms_struct} and @code{gcc_struct}.
 
 For full documentation of the struct attributes please see the
-documentation in the @xref{i386 Variable Attributes}, section.
+documentation in @ref{i386 Variable Attributes}.
 
 For documentation of @code{altivec} attribute please see the
-documentation in the @xref{PowerPC Type Attributes}, section.
+documentation in @ref{PowerPC Type Attributes}.
 
 @subsection SPU Variable Attributes
 
 The SPU supports the @code{spu_vector} attribute for variables.  For
-documentation of this attribute please see the documentation in the
-@xref{SPU Type Attributes}, section.
+documentation of this attribute please see the documentation in
+@ref{SPU Type Attributes}.
 
 @subsection Xstormy16 Variable Attributes
 
 One attribute is currently defined for xstormy16 configurations:
-@code{below100}
+@code{below100}.
 
 @table @code
 @item below100
@@ -4221,10 +4239,16 @@ The @code{deprecated} attribute can also be used for functions and
 variables (@pxref{Function Attributes}, @pxref{Variable Attributes}.)
 
 @item may_alias
-Accesses to objects with types with this attribute are not subjected to
-type-based alias analysis, but are instead assumed to be able to alias
-any other type of objects, just like the @code{char} type.  See
-@option{-fstrict-aliasing} for more information on aliasing issues.
+Accesses through pointers to types with this attribute are not subject
+to type-based alias analysis, but are instead assumed to be able to alias
+any other type of objects.  In the context of 6.5/7 an lvalue expression
+dereferencing such a pointer is treated like having a character type.
+See @option{-fstrict-aliasing} for more information on aliasing issues.
+This extension exists to support some vector APIs, in which pointers to
+one vector type are permitted to alias pointers to a different vector type.
+
+Note that an object of a type with this attribute does not have any
+special semantics.
 
 Example of use:
 
@@ -4264,6 +4288,8 @@ and caught in another, the class must have default visibility.
 Otherwise the two shared objects will be unable to use the same
 typeinfo node and exception handling will break.
 
+@end table
+
 @subsection ARM Type Attributes
 
 On those ARM targets that support @code{dllimport} (such as Symbian
@@ -4291,7 +4317,9 @@ most Symbian OS code uses @code{__declspec}.)
 @subsection i386 Type Attributes
 
 Two attributes are currently defined for i386 configurations:
-@code{ms_struct} and @code{gcc_struct}
+@code{ms_struct} and @code{gcc_struct}.
+
+@table @code
 
 @item ms_struct
 @itemx gcc_struct
@@ -4319,8 +4347,8 @@ packed))}.
 Three attributes currently are defined for PowerPC configurations:
 @code{altivec}, @code{ms_struct} and @code{gcc_struct}.
 
-For full documentation of the struct attributes please see the
-documentation in the @xref{i386 Type Attributes}, section.
+For full documentation of the @code{ms_struct} and @code{gcc_struct} 
+attributes please see the documentation in @ref{i386 Type Attributes}.
 
 The @code{altivec} attribute allows one to declare AltiVec vector data
 types supported by the AltiVec Programming Interface Manual.  The
@@ -5264,7 +5292,6 @@ GCC provides three magic variables which hold the name of the current
 function, as a string.  The first of these is @code{__func__}, which
 is part of the C99 standard:
 
-@display
 The identifier @code{__func__} is implicitly declared by the translator
 as if, immediately following the opening brace of each function
 definition, the declaration
@@ -5273,9 +5300,9 @@ definition, the declaration
 static const char __func__[] = "function-name";
 @end smallexample
 
+@noindent
 appeared, where function-name is the name of the lexically-enclosing
 function.  This name is the unadorned name of the function.
-@end display
 
 @code{__FUNCTION__} is another name for @code{__func__}.  Older
 versions of GCC recognize only this name.  However, it is not
@@ -5484,12 +5511,12 @@ the @code{offsetof} macro.
 
 @smallexample
 primary:
-	"__builtin_offsetof" "(" @code{typename} "," offsetof_member_designator ")"
+        "__builtin_offsetof" "(" @code{typename} "," offsetof_member_designator ")"
 
 offsetof_member_designator:
-	  @code{identifier}
-	| offsetof_member_designator "." @code{identifier}
-	| offsetof_member_designator "[" @code{expr} "]"
+          @code{identifier}
+        | offsetof_member_designator "." @code{identifier}
+        | offsetof_member_designator "[" @code{expr} "]"
 @end smallexample
 
 This extension is sufficient such that
@@ -5682,7 +5709,7 @@ assert (__builtin_object_size (p, 0) == sizeof (var) - 1);
 assert (__builtin_object_size (p, 1) == sizeof (var.buf1) - 1);
 /* The object q points to is var.  */
 assert (__builtin_object_size (q, 0)
-	== (char *) (&var + 1) - (char *) &var.b);
+        == (char *) (&var + 1) - (char *) &var.b);
 /* The subobject q points to is var.b.  */
 assert (__builtin_object_size (q, 1) == sizeof (var.b));
 @end smallexample
@@ -5734,11 +5761,11 @@ There are also checking built-in functions for formatted output functions.
 @smallexample
 int __builtin___sprintf_chk (char *s, int flag, size_t os, const char *fmt, ...);
 int __builtin___snprintf_chk (char *s, size_t maxlen, int flag, size_t os,
-			      const char *fmt, ...);
+                              const char *fmt, ...);
 int __builtin___vsprintf_chk (char *s, int flag, size_t os, const char *fmt,
-			      va_list ap);
+                              va_list ap);
 int __builtin___vsnprintf_chk (char *s, size_t maxlen, int flag, size_t os,
-			       const char *fmt, va_list ap);
+                               const char *fmt, va_list ap);
 @end smallexample
 
 The added @var{flag} argument is passed unchanged to @code{__sprintf_chk}
@@ -5764,6 +5791,7 @@ should be called and the @var{flag} argument passed to it.
 @node Other Builtins
 @section Other built-in functions provided by GCC
 @cindex built-in functions
+@findex __builtin_fpclassify
 @findex __builtin_isfinite
 @findex __builtin_isnormal
 @findex __builtin_isgreater
@@ -6295,10 +6323,10 @@ the same names as the standard macros ( @code{isgreater},
 @code{islessgreater}, and @code{isunordered}) , with @code{__builtin_}
 prefixed.  We intend for a library implementor to be able to simply
 @code{#define} each standard macro to its built-in equivalent.
-In the same fashion, GCC provides @code{isfinite}, @code{isinf_sign}
-and @code{isnormal} built-ins used with @code{__builtin_} prefixed.
-The @code{isinf} and @code{isnan} builtins appear both with and
-without the @code{__builtin_} prefix.
+In the same fashion, GCC provides @code{fpclassify}, @code{isfinite},
+@code{isinf_sign} and @code{isnormal} built-ins used with
+@code{__builtin_} prefixed.  The @code{isinf} and @code{isnan}
+builtins appear both with and without the @code{__builtin_} prefix.
 
 @deftypefn {Built-in Function} int __builtin_types_compatible_p (@var{type1}, @var{type2})
 
@@ -6555,6 +6583,17 @@ Similar to @code{__builtin_huge_val}, except the return
 type is @code{long double}.
 @end deftypefn
 
+@deftypefn {Built-in Function} int __builtin_fpclassify (int, int, int, int, int, ...)
+This built-in implements the C99 fpclassify functionality.  The first
+five int arguments should be the target library's notion of the
+possible FP classes and are used for return values.  They must be
+constant values and they must appear in this order: @code{FP_NAN},
+@code{FP_INFINITE}, @code{FP_NORMAL}, @code{FP_SUBNORMAL} and
+@code{FP_ZERO}.  The ellipsis is for exactly one floating point value
+to classify.  GCC treats the last argument as type-generic, which
+means it does not do default promotion from float to double.
+@end deftypefn
+
 @deftypefn {Built-in Function} double __builtin_inf (void)
 Similar to @code{__builtin_huge_val}, except a warning is generated
 if the target floating-point format does not support infinities.
@@ -6757,6 +6796,7 @@ instructions, but allow the compiler to schedule those calls.
 * X86 Built-in Functions::
 * MIPS DSP Built-in Functions::
 * MIPS Paired-Single Support::
+* MIPS Loongson Built-in Functions::
 * PowerPC AltiVec Built-in Functions::
 * SPARC VIS Built-in Functions::
 * SPU Built-in Functions::
@@ -8636,6 +8676,132 @@ value is the upper one.  The opposite order applies to big-endian targets.
 For example, the code above will set the lower half of @code{a} to
 @code{1.5} on little-endian targets and @code{9.1} on big-endian targets.
 
+@node MIPS Loongson Built-in Functions
+@subsection MIPS Loongson Built-in Functions
+
+GCC provides intrinsics to access the SIMD instructions provided by the
+ST Microelectronics Loongson-2E and -2F processors.  These intrinsics,
+available after inclusion of the @code{loongson.h} header file,
+operate on the following 64-bit vector types:
+
+@itemize
+@item @code{uint8x8_t}, a vector of eight unsigned 8-bit integers;
+@item @code{uint16x4_t}, a vector of four unsigned 16-bit integers;
+@item @code{uint32x2_t}, a vector of two unsigned 32-bit integers;
+@item @code{int8x8_t}, a vector of eight signed 8-bit integers;
+@item @code{int16x4_t}, a vector of four signed 16-bit integers;
+@item @code{int32x2_t}, a vector of two signed 32-bit integers.
+@end itemize
+
+The intrinsics provided are listed below; each is named after the
+machine instruction to which it corresponds, with suffixes added as
+appropriate to distinguish intrinsics that expand to the same machine
+instruction yet have different argument types.  Refer to the architecture
+documentation for a description of the functionality of each
+instruction.
+
+@smallexample
+int16x4_t packsswh (int32x2_t s, int32x2_t t);
+int8x8_t packsshb (int16x4_t s, int16x4_t t);
+uint8x8_t packushb (uint16x4_t s, uint16x4_t t);
+uint32x2_t paddw_u (uint32x2_t s, uint32x2_t t);
+uint16x4_t paddh_u (uint16x4_t s, uint16x4_t t);
+uint8x8_t paddb_u (uint8x8_t s, uint8x8_t t);
+int32x2_t paddw_s (int32x2_t s, int32x2_t t);
+int16x4_t paddh_s (int16x4_t s, int16x4_t t);
+int8x8_t paddb_s (int8x8_t s, int8x8_t t);
+uint64_t paddd_u (uint64_t s, uint64_t t);
+int64_t paddd_s (int64_t s, int64_t t);
+int16x4_t paddsh (int16x4_t s, int16x4_t t);
+int8x8_t paddsb (int8x8_t s, int8x8_t t);
+uint16x4_t paddush (uint16x4_t s, uint16x4_t t);
+uint8x8_t paddusb (uint8x8_t s, uint8x8_t t);
+uint64_t pandn_ud (uint64_t s, uint64_t t);
+uint32x2_t pandn_uw (uint32x2_t s, uint32x2_t t);
+uint16x4_t pandn_uh (uint16x4_t s, uint16x4_t t);
+uint8x8_t pandn_ub (uint8x8_t s, uint8x8_t t);
+int64_t pandn_sd (int64_t s, int64_t t);
+int32x2_t pandn_sw (int32x2_t s, int32x2_t t);
+int16x4_t pandn_sh (int16x4_t s, int16x4_t t);
+int8x8_t pandn_sb (int8x8_t s, int8x8_t t);
+uint16x4_t pavgh (uint16x4_t s, uint16x4_t t);
+uint8x8_t pavgb (uint8x8_t s, uint8x8_t t);
+uint32x2_t pcmpeqw_u (uint32x2_t s, uint32x2_t t);
+uint16x4_t pcmpeqh_u (uint16x4_t s, uint16x4_t t);
+uint8x8_t pcmpeqb_u (uint8x8_t s, uint8x8_t t);
+int32x2_t pcmpeqw_s (int32x2_t s, int32x2_t t);
+int16x4_t pcmpeqh_s (int16x4_t s, int16x4_t t);
+int8x8_t pcmpeqb_s (int8x8_t s, int8x8_t t);
+uint32x2_t pcmpgtw_u (uint32x2_t s, uint32x2_t t);
+uint16x4_t pcmpgth_u (uint16x4_t s, uint16x4_t t);
+uint8x8_t pcmpgtb_u (uint8x8_t s, uint8x8_t t);
+int32x2_t pcmpgtw_s (int32x2_t s, int32x2_t t);
+int16x4_t pcmpgth_s (int16x4_t s, int16x4_t t);
+int8x8_t pcmpgtb_s (int8x8_t s, int8x8_t t);
+uint16x4_t pextrh_u (uint16x4_t s, int field);
+int16x4_t pextrh_s (int16x4_t s, int field);
+uint16x4_t pinsrh_0_u (uint16x4_t s, uint16x4_t t);
+uint16x4_t pinsrh_1_u (uint16x4_t s, uint16x4_t t);
+uint16x4_t pinsrh_2_u (uint16x4_t s, uint16x4_t t);
+uint16x4_t pinsrh_3_u (uint16x4_t s, uint16x4_t t);
+int16x4_t pinsrh_0_s (int16x4_t s, int16x4_t t);
+int16x4_t pinsrh_1_s (int16x4_t s, int16x4_t t);
+int16x4_t pinsrh_2_s (int16x4_t s, int16x4_t t);
+int16x4_t pinsrh_3_s (int16x4_t s, int16x4_t t);
+int32x2_t pmaddhw (int16x4_t s, int16x4_t t);
+int16x4_t pmaxsh (int16x4_t s, int16x4_t t);
+uint8x8_t pmaxub (uint8x8_t s, uint8x8_t t);
+int16x4_t pminsh (int16x4_t s, int16x4_t t);
+uint8x8_t pminub (uint8x8_t s, uint8x8_t t);
+uint8x8_t pmovmskb_u (uint8x8_t s);
+int8x8_t pmovmskb_s (int8x8_t s);
+uint16x4_t pmulhuh (uint16x4_t s, uint16x4_t t);
+int16x4_t pmulhh (int16x4_t s, int16x4_t t);
+int16x4_t pmullh (int16x4_t s, int16x4_t t);
+int64_t pmuluw (uint32x2_t s, uint32x2_t t);
+uint8x8_t pasubub (uint8x8_t s, uint8x8_t t);
+uint16x4_t biadd (uint8x8_t s);
+uint16x4_t psadbh (uint8x8_t s, uint8x8_t t);
+uint16x4_t pshufh_u (uint16x4_t dest, uint16x4_t s, uint8_t order);
+int16x4_t pshufh_s (int16x4_t dest, int16x4_t s, uint8_t order);
+uint16x4_t psllh_u (uint16x4_t s, uint8_t amount);
+int16x4_t psllh_s (int16x4_t s, uint8_t amount);
+uint32x2_t psllw_u (uint32x2_t s, uint8_t amount);
+int32x2_t psllw_s (int32x2_t s, uint8_t amount);
+uint16x4_t psrlh_u (uint16x4_t s, uint8_t amount);
+int16x4_t psrlh_s (int16x4_t s, uint8_t amount);
+uint32x2_t psrlw_u (uint32x2_t s, uint8_t amount);
+int32x2_t psrlw_s (int32x2_t s, uint8_t amount);
+uint16x4_t psrah_u (uint16x4_t s, uint8_t amount);
+int16x4_t psrah_s (int16x4_t s, uint8_t amount);
+uint32x2_t psraw_u (uint32x2_t s, uint8_t amount);
+int32x2_t psraw_s (int32x2_t s, uint8_t amount);
+uint32x2_t psubw_u (uint32x2_t s, uint32x2_t t);
+uint16x4_t psubh_u (uint16x4_t s, uint16x4_t t);
+uint8x8_t psubb_u (uint8x8_t s, uint8x8_t t);
+int32x2_t psubw_s (int32x2_t s, int32x2_t t);
+int16x4_t psubh_s (int16x4_t s, int16x4_t t);
+int8x8_t psubb_s (int8x8_t s, int8x8_t t);
+uint64_t psubd_u (uint64_t s, uint64_t t);
+int64_t psubd_s (int64_t s, int64_t t);
+int16x4_t psubsh (int16x4_t s, int16x4_t t);
+int8x8_t psubsb (int8x8_t s, int8x8_t t);
+uint16x4_t psubush (uint16x4_t s, uint16x4_t t);
+uint8x8_t psubusb (uint8x8_t s, uint8x8_t t);
+uint32x2_t punpckhwd_u (uint32x2_t s, uint32x2_t t);
+uint16x4_t punpckhhw_u (uint16x4_t s, uint16x4_t t);
+uint8x8_t punpckhbh_u (uint8x8_t s, uint8x8_t t);
+int32x2_t punpckhwd_s (int32x2_t s, int32x2_t t);
+int16x4_t punpckhhw_s (int16x4_t s, int16x4_t t);
+int8x8_t punpckhbh_s (int8x8_t s, int8x8_t t);
+uint32x2_t punpcklwd_u (uint32x2_t s, uint32x2_t t);
+uint16x4_t punpcklhw_u (uint16x4_t s, uint16x4_t t);
+uint8x8_t punpcklbh_u (uint8x8_t s, uint8x8_t t);
+int32x2_t punpcklwd_s (int32x2_t s, int32x2_t t);
+int16x4_t punpcklhw_s (int16x4_t s, int16x4_t t);
+int8x8_t punpcklbh_s (int8x8_t s, int8x8_t t);
+@end smallexample
+
 @menu
 * Paired-Single Arithmetic::
 * Paired-Single Built-in Functions::
@@ -8959,9 +9125,10 @@ always specify the signedness.
 
 @item
 Compiling with @option{-maltivec} adds keywords @code{__vector},
-@code{__pixel}, and @code{__bool}.  Macros @option{vector},
-@code{pixel}, and @code{bool} are defined in @code{<altivec.h>} and can
-be undefined.
+@code{vector}, @code{__pixel}, @code{pixel}, @code{__bool} and
+@code{bool}.  When compiling ISO C, the context-sensitive substitution
+of the keywords @code{vector}, @code{pixel} and @code{bool} is
+disabled.  To use them, you must include @code{<altivec.h>} instead.
 
 @item
 GCC allows using a @code{typedef} name as the type specifier for a
@@ -11637,7 +11804,7 @@ test specifically for GNU C++ (@pxref{Common Predefined Macros,,
 Predefined Macros,cpp,The GNU C Preprocessor}).
 
 @menu
-* Volatiles::		What constitutes an access to a volatile object.
+* Volatiles::           What constitutes an access to a volatile object.
 * Restricted Pointers:: C99 restricted pointers and references.
 * Vague Linkage::       Where G++ puts inlines, vtables and such.
 * C++ Interface::       You can use a single C++ header file for both
@@ -12158,7 +12325,7 @@ interface table mechanism, instead of regular virtual table dispatch.
 
 @end table
 
-See also @xref{Namespace Association}.
+See also @ref{Namespace Association}.
 
 @node Namespace Association
 @section Namespace Association
@@ -12385,7 +12552,7 @@ should work just fine for standard-conforming code.
 Previously it was possible to use an empty prototype parameter list to
 indicate an unspecified number of parameters (like C), rather than no
 parameters, as C++ demands.  This feature has been removed, except where
-it is required for backwards compatibility @xref{Backwards Compatibility}.
+it is required for backwards compatibility.   @xref{Backwards Compatibility}.
 @end table
 
 G++ allows a virtual function returning @samp{void *} to be overridden
@@ -12436,7 +12603,7 @@ used to be acceptable in previous drafts of the standard, such as the ARM
 compilation of C++ written to such drafts, G++ contains some backwards
 compatibilities.  @emph{All such backwards compatibility features are
 liable to disappear in future versions of G++.} They should be considered
-deprecated @xref{Deprecated Features}.
+deprecated.   @xref{Deprecated Features}.
 
 @table @code
 @item For scope

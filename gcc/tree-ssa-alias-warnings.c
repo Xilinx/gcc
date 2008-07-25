@@ -1,5 +1,5 @@
 /* Strict aliasing checks.
-   Copyright (C) 2007 Free Software Foundation, Inc.
+   Copyright (C) 2007, 2008 Free Software Foundation, Inc.
    Contributed by Silvius Rus <rus@google.com>.
 
    This file is part of GCC.
@@ -93,7 +93,7 @@
    -Wstrict-aliasing=3 (default)
    ===================
    Should have very few false positives and few false negatives.
-   Takes care of the common punn+dereference pattern in the front end:
+   Takes care of the common pun+dereference pattern in the front end:
    *(int*)&some_float.
    Takes care of multiple statement cases in the back end,
    using flow-sensitive points-to information (-O required).
@@ -914,6 +914,7 @@ dsa_named_for (tree ptr)
 	{
 	  unsigned ix;
 	  bitmap_iterator bi;
+	  bool any = false;
 
 	  EXECUTE_IF_SET_IN_BITMAP (pi->pt_vars, 0, ix, bi)
 	    {
@@ -922,7 +923,16 @@ dsa_named_for (tree ptr)
 	      if (nonstandard_alias_p (ptr, alias, false))
 		strict_aliasing_warn (SSA_NAME_DEF_STMT (ptr),
 				      ptr, true, alias, false, true);
+	      else
+		any = true;
 	    }
+
+	  /* If there was no object in the points-to set that the pointer
+	     may alias, unconditionally warn.  */
+	  if (!any)
+	    warning (OPT_Wstrict_aliasing,
+		     "dereferencing type-punned pointer %D will "
+		     "break strict-aliasing rules", SSA_NAME_VAR (ptr));
 	}
     }
 }

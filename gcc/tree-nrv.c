@@ -226,12 +226,18 @@ tree_nrv (void)
   return 0;
 }
 
+static bool
+gate_pass_return_slot (void)
+{
+  return optimize > 0;
+}
+
 struct gimple_opt_pass pass_nrv = 
 {
  {
   GIMPLE_PASS,
   "nrv",				/* name */
-  NULL,					/* gate */
+  gate_pass_return_slot,		/* gate */
   tree_nrv,				/* execute */
   NULL,					/* sub */
   NULL,					/* next */
@@ -265,7 +271,7 @@ dest_safe_for_nrv_p (tree dest)
   if (TREE_CODE (dest) == SSA_NAME)
     dest = SSA_NAME_VAR (dest);
 
-  if (is_call_clobbered (dest))
+  if (is_call_used (dest))
     return false;
 
   return true;

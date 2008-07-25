@@ -1523,7 +1523,8 @@ get_addr_dereference_operands (tree stmt, tree *addr, int flags, tree full_ref,
 	  if (dump_file
 	      && TREE_CODE (ptr) == SSA_NAME
 	      && (pi == NULL
-		  || pi->name_mem_tag == NULL_TREE))
+		  || (pi->name_mem_tag == NULL_TREE
+		      && !pi->pt_anything)))
 	    {
 	      fprintf (dump_file,
 		  "NOTE: no flow-sensitive alias info for ");
@@ -1659,7 +1660,10 @@ add_call_clobber_ops (tree stmt, tree callee)
   bitmap_iterator bi;
   stmt_ann_t s_ann = stmt_ann (stmt);
   bitmap not_read_b, not_written_b;
-  
+  tree call = get_call_expr_in (stmt);
+
+  gcc_assert (!(call_expr_flags (call) & (ECF_PURE | ECF_CONST)));
+
   /* If we created .GLOBAL_VAR earlier, just use it.  */
   if (gimple_global_var (cfun))
     {
@@ -1673,12 +1677,10 @@ add_call_clobber_ops (tree stmt, tree callee)
      or write that variable.  */
   not_read_b = callee ? ipa_reference_get_not_read_global (callee) : NULL; 
   not_written_b = callee ? ipa_reference_get_not_written_global (callee) : NULL; 
-
   /* Add a VDEF operand for every call clobbered variable.  */
   EXECUTE_IF_SET_IN_BITMAP (gimple_call_clobbered_vars (cfun), 0, u, bi)
     {
       tree var = referenced_var_lookup (u);
-      unsigned int escape_mask = var_ann (var)->escape_mask;
       tree real_var = var;
       bool not_read;
       bool not_written;
@@ -1696,24 +1698,6 @@ add_call_clobber_ops (tree stmt, tree callee)
 
       /* See if this variable is really clobbered by this function.  */
 
-      /* Trivial case: Things escaping only to pure/const are not
-	 clobbered by non-pure-const, and only read by pure/const. */
-      if ((escape_mask & ~(ESCAPE_TO_PURE_CONST)) == 0)
-	{
-	  tree call = get_call_expr_in (stmt);
-	  if (call_expr_flags (call) & (ECF_CONST | ECF_PURE))
-	    {
-	      add_virtual_operand (var, s_ann, opf_use, NULL, 0, -1, true);
-	      clobber_stats.unescapable_clobbers_avoided++;
-	      continue;
-	    }
-	  else
-	    {
-	      clobber_stats.unescapable_clobbers_avoided++;
-	      continue;
-	    }
-	}
-            
       if (not_written)
 	{
 	  clobber_stats.static_write_clobbers_avoided++;
@@ -1738,18 +1722,47 @@ add_call_read_ops (tree stmt, tree callee)
   bitmap_iterator bi;
   stmt_ann_t s_ann = stmt_ann (stmt);
   bitmap not_read_b;
+  tree call = get_call_expr_in (stmt);
 
-  /* if the function is not pure, it may reference memory.  Add
-     a VUSE for .GLOBAL_VAR if it has been created.  See add_referenced_var
-     for the heuristic used to decide whether to create .GLOBAL_VAR.  */
+  /* Const functions do not reference memory.  */
+  if (call_expr_flags (call) & ECF_CONST)
+    return;
+
+  not_read_b = callee ? ipa_reference_get_not_read_global (callee) : NULL;
+
+  /* For pure functions we compute non-escaped uses separately.  */
+  if (call_expr_flags (call) & ECF_PURE)
+    EXECUTE_IF_SET_IN_BITMAP (gimple_call_used_vars (cfun), 0, u, bi)
+      {
+	tree var = referenced_var_lookup (u);
+	tree real_var = var;
+	bool not_read;
+
+	if (unmodifiable_var_p (var))
+	  continue;
+
+	not_read = not_read_b
+	    ? bitmap_bit_p (not_read_b, DECL_UID (real_var))
+	    : false;
+
+	clobber_stats.readonly_clobbers++;
+
+	/* See if this variable is really used by this function.  */
+	if (!not_read)
+	  add_virtual_operand (var, s_ann, opf_use, NULL, 0, -1, true);
+	else
+	  clobber_stats.static_readonly_clobbers_avoided++;
+      }
+
+  /* Add a VUSE for .GLOBAL_VAR if it has been created.  See
+     add_referenced_var for the heuristic used to decide whether to
+     create .GLOBAL_VAR.  */
   if (gimple_global_var (cfun))
     {
       tree var = gimple_global_var (cfun);
       add_virtual_operand (var, s_ann, opf_use, NULL, 0, -1, true);
       return;
     }
-  
-  not_read_b = callee ? ipa_reference_get_not_read_global (callee) : NULL; 
 
   /* Add a VUSE for each call-clobbered variable.  */
   EXECUTE_IF_SET_IN_BITMAP (gimple_call_clobbered_vars (cfun), 0, u, bi)
@@ -2092,17 +2105,22 @@ get_expr_operands (tree stmt, tree *expr_p, int flags)
 
     case OMP_FOR:
       {
-	tree init = OMP_FOR_INIT (expr);
-	tree cond = OMP_FOR_COND (expr);
-	tree incr = OMP_FOR_INCR (expr);
 	tree c, clauses = OMP_FOR_CLAUSES (stmt);
+	int i;
 
-	get_expr_operands (stmt, &GIMPLE_STMT_OPERAND (init, 0), opf_def);
-	get_expr_operands (stmt, &GIMPLE_STMT_OPERAND (init, 1), opf_use);
-	get_expr_operands (stmt, &TREE_OPERAND (cond, 1), opf_use);
-	get_expr_operands (stmt,
-	                   &TREE_OPERAND (GIMPLE_STMT_OPERAND (incr, 1), 1),
-			   opf_use);
+	for (i = 0; i < TREE_VEC_LENGTH (OMP_FOR_INIT (expr)); i++)
+	  {
+	    tree init = TREE_VEC_ELT (OMP_FOR_INIT (expr), i);
+	    tree cond = TREE_VEC_ELT (OMP_FOR_COND (expr), i);
+	    tree incr = TREE_VEC_ELT (OMP_FOR_INCR (expr), i);
+
+	    get_expr_operands (stmt, &GIMPLE_STMT_OPERAND (init, 0), opf_def);
+	    get_expr_operands (stmt, &GIMPLE_STMT_OPERAND (init, 1), opf_use);
+	    get_expr_operands (stmt, &TREE_OPERAND (cond, 1), opf_use);
+	    get_expr_operands (stmt,
+			       &TREE_OPERAND (GIMPLE_STMT_OPERAND (incr, 1),
+					      1), opf_use);
+	  }
 
 	c = find_omp_clause (clauses, OMP_CLAUSE_SCHEDULE);
 	if (c)
@@ -2785,15 +2803,9 @@ mark_difference_for_renaming (bitmap s1, bitmap s2)
   else if (!bitmap_equal_p (s1, s2))
     {
       bitmap t1 = BITMAP_ALLOC (NULL);
-      bitmap t2 = BITMAP_ALLOC (NULL);
-
-      bitmap_and_compl (t1, s1, s2);
-      bitmap_and_compl (t2, s2, s1);
-      bitmap_ior_into (t1, t2);
+      bitmap_xor (t1, s1, s2);
       mark_set_for_renaming (t1);
-
       BITMAP_FREE (t1);
-      BITMAP_FREE (t2);
     }
 }
 

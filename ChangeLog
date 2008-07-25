@@ -1,3 +1,69 @@
+2008-07-11 Dodji Seketeli <dseketel@redhat.com>
+
+	* MAINTAINERS (Write after Approval): Add myself.
+
+2008-07-02  Xuepeng Guo  <xuepeng.guo@intel.com>
+
+	* MAINTAINERS (Write After Approval):  Add myself.
+
+2008-06-29  Andrew Jenner  <andrew@codesourcery.com>
+
+	* MAINTAINERS (Write After Approval):  Add myself.
+
+2008-06-29  Krister Walfridsson  <krister.walfridsson@gmail.com>
+
+	* MAINTAINERS: Update my email address.
+
+2008-06-25  Joey Ye  <joey.ye@intel.com>
+
+	* MAINTAINERS (Write After Approval):  Add myself.
+
+2008-06-17  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* Makefile.tpl ($(srcdir)/configure): Update dependencies.
+	* Makefile.in: Regenerate.
+	* configure: Regenerate.
+
+2008-06-17  Daniel Kraft  <d@domob.eu>
+
+	* MAINTAINERS (Write After Approval):  Add myself.
+
+2008-06-16  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* configure.ac: Set TOPLEVEL_CONFIGURE_ARGUMENTS early, when
+	"$@" is still intact with both Autoconf 2.59 and 2.62.
+	* configure: Regenerate.
+
+2008-06-16  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* Makefile.tpl: Fix comment errors.
+	* Makefile.in: Regenerate.
+
+2008-06-12  David S. Miller  <davem@davemloft.net>
+	    David Edelsohn  <edelsohn@gnu.org>
+
+	* configure.ac: Add powerpc*-*-* to gold supported targets.
+	* configure: Regenerate.
+
+2008-06-08  Joseph Myers  <joseph@codesourcery.com>
+
+	PR tree-optimization/36218
+	* Makefile.def (flags_to_pass): Add LDFLAGS_FOR_BUILD.
+	* Makefile.tpl (EXTRA_BUILD_FLAGS): Define.
+	(all prefix="build-"): Pass them to build-system sub-makes.
+	* Makefile.in: Regenerate.
+
+2008-06-07  Joseph Myers  <joseph@codesourcery.com>
+
+	* MAINTAINERS (mt port): Remove.
+	(sco5, unixware, sco udk): Remove.
+	(Kean Johnston): Add to Write After Approval.
+
+2008-05-30  Julian Brown  <julian@codesourcery.com>
+
+	* configure.ac (arm*-*-linux-gnueabi): Don't disable building
+	of libobjc for ARM EABI Linux.
+	* configure: Regenerate.
 
 2008-05-18 Xinliang David Li   <davidxl@google.com>
 

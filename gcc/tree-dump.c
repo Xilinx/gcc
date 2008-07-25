@@ -814,6 +814,7 @@ static const struct dump_option_value_info dump_options[] =
   {"address", TDF_ADDRESS},
   {"slim", TDF_SLIM},
   {"raw", TDF_RAW},
+  {"graph", TDF_GRAPH},
   {"details", TDF_DETAILS},
   {"stats", TDF_STATS},
   {"blocks", TDF_BLOCKS},
@@ -822,10 +823,9 @@ static const struct dump_option_value_info dump_options[] =
   {"uid", TDF_UID},
   {"stmtaddr", TDF_STMTADDR},
   {"memsyms", TDF_MEMSYMS},
-  {"debug", TDF_DEBUG},
   {"verbose", TDF_VERBOSE},
   {"all", ~(TDF_RAW | TDF_SLIM | TDF_LINENO | TDF_TREE | TDF_RTL | TDF_IPA 
-	    | TDF_STMTADDR | TDF_GRAPH | TDF_DEBUG | TDF_DIAGNOSTIC | TDF_VERBOSE)},
+	    | TDF_STMTADDR | TDF_GRAPH | TDF_DIAGNOSTIC | TDF_VERBOSE)},
   {NULL, 0}
 };
 
@@ -844,9 +844,9 @@ dump_register (const char *suffix, const char *swtch, const char *glob,
 	extra_dump_files_alloced = 32;
       else
 	extra_dump_files_alloced *= 2;
-      extra_dump_files = xrealloc (extra_dump_files,
-				   sizeof (struct dump_file_info)
-				   * extra_dump_files_alloced);
+      extra_dump_files = XRESIZEVEC (struct dump_file_info,
+				     extra_dump_files,
+				     extra_dump_files_alloced);
     }
 
   memset (&extra_dump_files[this], 0, sizeof (struct dump_file_info));

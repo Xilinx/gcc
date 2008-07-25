@@ -1,6 +1,7 @@
 /* Read and write coverage files, and associated functionality.
    Copyright (C) 1990, 1991, 1992, 1993, 1994, 1996, 1997, 1998, 1999,
-   2000, 2001, 2003, 2004, 2005, 2007 Free Software Foundation, Inc.
+   2000, 2001, 2003, 2004, 2005, 2007, 2008 Free Software Foundation,
+   Inc.
    Contributed by James E. Wilson, UC Berkeley/Cygnus Support;
    based on some ideas from Dain Samples of UC Berkeley.
    Further mangling by Bob Manson, Cygnus Support.
@@ -140,7 +141,7 @@ get_gcov_unsigned_t (void)
 static hashval_t
 htab_counts_entry_hash (const void *of)
 {
-  const counts_entry_t *entry = of;
+  const counts_entry_t *const entry = (const counts_entry_t *) of;
 
   return entry->ident * GCOV_COUNTERS + entry->ctr;
 }
@@ -148,8 +149,8 @@ htab_counts_entry_hash (const void *of)
 static int
 htab_counts_entry_eq (const void *of1, const void *of2)
 {
-  const counts_entry_t *entry1 = of1;
-  const counts_entry_t *entry2 = of2;
+  const counts_entry_t *const entry1 = (const counts_entry_t *) of1;
+  const counts_entry_t *const entry2 = (const counts_entry_t *) of2;
 
   return entry1->ident == entry2->ident && entry1->ctr == entry2->ctr;
 }
@@ -157,7 +158,7 @@ htab_counts_entry_eq (const void *of1, const void *of2)
 static void
 htab_counts_entry_del (void *of)
 {
-  counts_entry_t *entry = of;
+  counts_entry_t *const entry = (counts_entry_t *) of;
 
   free (entry->counts);
   free (entry);
@@ -342,7 +343,7 @@ get_coverage_counts (unsigned counter, unsigned expected,
 
   elt.ident = current_function_funcdef_no + 1;
   elt.ctr = counter;
-  entry = htab_find (counts_hash, &elt);
+  entry = (counts_entry_t *) htab_find (counts_hash, &elt);
   if (!entry)
     {
       warning (0, "no coverage for function %qs found", IDENTIFIER_POINTER
@@ -489,7 +490,7 @@ coverage_checksum_string (unsigned chksum, const char *string)
          _GLOBAL__N_<filename>_<wrongmagicnumber>_<magicnumber>functionname
        since filename might contain extra underscores there seems
        to be no better chance then walk all possible offsets looking
-       for magicnuber.  */
+       for magicnumber.  */
       if (offset)
 	{
 	  for (i = i + offset; string[i]; i++)

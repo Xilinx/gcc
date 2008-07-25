@@ -198,9 +198,7 @@ timestamp.
 
 @itemize @bullet
 @item The standard GNU @file{config.sub} and @file{config.guess}
-files, kept in the top level directory, are used.  FIXME: when is the
-@file{config.guess} file in the @file{gcc} directory (that just calls
-the top level one) used?
+files, kept in the top level directory, are used.
 
 @item The file @file{config.gcc} is used to handle configuration
 specific to the particular target machine.  The file
@@ -1004,7 +1002,11 @@ an empty @var{exclude-opts} list.
 
 @item  @{ dg-xfail-if @var{comment} @{ @var{selector} @} @{ @var{include-opts} @} @{ @var{exclude-opts} @} @}
 Expect the test to fail if the conditions (which are the same as for
-@code{dg-skip-if}) are met.
+@code{dg-skip-if}) are met.  This does not affect the execute step.
+
+@item  @{ dg-xfail-run-if @var{comment} @{ @var{selector} @} @{ @var{include-opts} @} @{ @var{exclude-opts} @} @}
+Expect the execute step of a test to fail if the conditions (which are
+the same as for @code{dg-skip-if}) and @code{dg-xfail-if}) are met.
 
 @item @{ dg-require-@var{support} args @}
 Skip the test if the target does not provide the required support;

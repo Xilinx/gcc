@@ -480,8 +480,7 @@ gfc_conv_variable (gfc_se * se, gfc_expr * expr)
       else if (sym->attr.flavor == FL_PROCEDURE
 	       && se->expr != current_function_decl)
 	{
-	  gcc_assert (se->want_pointer);
-	  if (!sym->attr.dummy)
+	  if (!sym->attr.dummy && !sym->attr.proc_pointer)
 	    {
 	      gcc_assert (TREE_CODE (se->expr) == FUNCTION_DECL);
 	      se->expr = build_fold_addr_expr (se->expr);
@@ -1080,7 +1079,7 @@ gfc_conv_expr_op (gfc_se * se, gfc_expr * expr)
 
   checkstring = 0;
   lop = 0;
-  switch (expr->value.op.operator)
+  switch (expr->value.op.op)
     {
     case INTRINSIC_PARENTHESES:
       if (expr->ts.type == BT_REAL
@@ -1372,6 +1371,8 @@ gfc_conv_function_val (gfc_se * se, gfc_symbol * sym)
   if (sym->attr.dummy)
     {
       tmp = gfc_get_symbol_decl (sym);
+      if (sym->attr.proc_pointer)
+        tmp = build_fold_indirect_ref (tmp);
       gcc_assert (TREE_CODE (TREE_TYPE (tmp)) == POINTER_TYPE
 	      && TREE_CODE (TREE_TYPE (TREE_TYPE (tmp))) == FUNCTION_TYPE);
     }
@@ -1459,9 +1460,9 @@ gfc_free_interface_mapping (gfc_interface_mapping * mapping)
   for (sym = mapping->syms; sym; sym = nextsym)
     {
       nextsym = sym->next;
-      gfc_free_symbol (sym->new->n.sym);
+      gfc_free_symbol (sym->new_sym->n.sym);
       gfc_free_expr (sym->expr);
-      gfc_free (sym->new);
+      gfc_free (sym->new_sym);
       gfc_free (sym);
     }
   for (cl = mapping->charlens; cl; cl = nextcl)
@@ -1480,14 +1481,14 @@ static gfc_charlen *
 gfc_get_interface_mapping_charlen (gfc_interface_mapping * mapping,
 				   gfc_charlen * cl)
 {
-  gfc_charlen *new;
+  gfc_charlen *new_charlen;
 
-  new = gfc_get_charlen ();
-  new->next = mapping->charlens;
-  new->length = gfc_copy_expr (cl->length);
+  new_charlen = gfc_get_charlen ();
+  new_charlen->next = mapping->charlens;
+  new_charlen->length = gfc_copy_expr (cl->length);
 
-  mapping->charlens = new;
-  return new;
+  mapping->charlens = new_charlen;
+  return new_charlen;
 }
 
 
@@ -1593,10 +1594,10 @@ gfc_add_interface_mapping (gfc_interface_mapping * mapping,
   gcc_assert (new_symtree == root);
 
   /* Create a dummy->actual mapping.  */
-  sm = gfc_getmem (sizeof (*sm));
+  sm = XCNEW (gfc_interface_sym_mapping);
   sm->next = mapping->syms;
   sm->old = sym;
-  sm->new = new_symtree;
+  sm->new_sym = new_symtree;
   sm->expr = gfc_copy_expr (expr);
   mapping->syms = sm;
 
@@ -1688,10 +1689,10 @@ gfc_finish_interface_mapping (gfc_interface_mapping * mapping,
   gfc_se se;
 
   for (sym = mapping->syms; sym; sym = sym->next)
-    if (sym->new->n.sym->ts.type == BT_CHARACTER
-	&& !sym->new->n.sym->ts.cl->backend_decl)
+    if (sym->new_sym->n.sym->ts.type == BT_CHARACTER
+	&& !sym->new_sym->n.sym->ts.cl->backend_decl)
       {
-	expr = sym->new->n.sym->ts.cl->length;
+	expr = sym->new_sym->n.sym->ts.cl->length;
 	gfc_apply_interface_mapping_to_expr (mapping, expr);
 	gfc_init_se (&se, NULL);
 	gfc_conv_expr (&se, expr);
@@ -1700,7 +1701,7 @@ gfc_finish_interface_mapping (gfc_interface_mapping * mapping,
 	gfc_add_block_to_block (pre, &se.pre);
 	gfc_add_block_to_block (post, &se.post);
 
-	sym->new->n.sym->ts.cl->backend_decl = se.expr;
+	sym->new_sym->n.sym->ts.cl->backend_decl = se.expr;
       }
 }
 
@@ -1926,12 +1927,12 @@ gfc_apply_interface_mapping_to_expr (gfc_interface_mapping * mapping,
 
   /* ...and to the expression's symbol, if it has one.  */
   /* TODO Find out why the condition on expr->symtree had to be moved into
-     the loop rather than being ouside it, as originally.  */
+     the loop rather than being outside it, as originally.  */
   for (sym = mapping->syms; sym; sym = sym->next)
     if (expr->symtree && sym->old == expr->symtree->n.sym)
       {
-	if (sym->new->n.sym->backend_decl)
-	  expr->symtree = sym->new;
+	if (sym->new_sym->n.sym->backend_decl)
+	  expr->symtree = sym->new_sym;
 	else if (sym->expr)
 	  gfc_replace_expr (expr, gfc_copy_expr (sym->expr));
       }
@@ -1963,9 +1964,9 @@ gfc_apply_interface_mapping_to_expr (gfc_interface_mapping * mapping,
       for (sym = mapping->syms; sym; sym = sym->next)
 	if (sym->old == expr->value.function.esym)
 	  {
-	    expr->value.function.esym = sym->new->n.sym;
+	    expr->value.function.esym = sym->new_sym->n.sym;
 	    gfc_map_fcn_formal_to_actual (expr, sym->expr, mapping);
-	    expr->value.function.esym->result = sym->new->n.sym;
+	    expr->value.function.esym->result = sym->new_sym->n.sym;
 	  }
       break;
 
@@ -2319,6 +2320,34 @@ gfc_conv_function_call (gfc_se * se, gfc_symbol * sym,
       
 	  return 0;
 	}
+      else if ((sym->intmod_sym_id == ISOCBINDING_F_POINTER
+	         && arg->next->expr->rank == 0)
+	       || sym->intmod_sym_id == ISOCBINDING_F_PROCPOINTER)
+	{
+	  /* Convert c_f_pointer if fptr is a scalar
+	     and convert c_f_procpointer.  */
+	  gfc_se cptrse;
+	  gfc_se fptrse;
+
+	  gfc_init_se (&cptrse, NULL);
+	  gfc_conv_expr (&cptrse, arg->expr);
+	  gfc_add_block_to_block (&se->pre, &cptrse.pre);
+	  gfc_add_block_to_block (&se->post, &cptrse.post);
+
+	  gfc_init_se (&fptrse, NULL);
+	  if (sym->intmod_sym_id == ISOCBINDING_F_POINTER)
+	      fptrse.want_pointer = 1;
+
+	  gfc_conv_expr (&fptrse, arg->next->expr);
+	  gfc_add_block_to_block (&se->pre, &fptrse.pre);
+	  gfc_add_block_to_block (&se->post, &fptrse.post);
+
+	  tmp = arg->next->expr->symtree->n.sym->backend_decl;
+	  se->expr = fold_build2 (MODIFY_EXPR, TREE_TYPE (tmp), fptrse.expr,
+				  fold_convert (TREE_TYPE (tmp), cptrse.expr));
+
+	  return 0;
+	}
       else if (sym->intmod_sym_id == ISOCBINDING_ASSOCIATED)
         {
 	  gfc_se arg1se;
@@ -2470,9 +2499,10 @@ gfc_conv_function_call (gfc_se * se, gfc_symbol * sym,
 	      else
 		{
 		  gfc_conv_expr_reference (&parmse, e);
-		  if (fsym && fsym->attr.pointer
-		      && fsym->attr.flavor != FL_PROCEDURE
-		      && e->expr_type != EXPR_NULL)
+		  if (fsym && e->expr_type != EXPR_NULL
+		      && ((fsym->attr.pointer
+			   && fsym->attr.flavor != FL_PROCEDURE)
+			  || fsym->attr.proc_pointer))
 		    {
 		      /* Scalar pointer dummy args require an extra level of
 			 indirection. The null pointer already contains
@@ -2661,7 +2691,7 @@ gfc_conv_function_call (gfc_se * se, gfc_symbol * sym,
     {
       if (se->direct_byref)
 	{
-	  /* Sometimes, too much indirection can be applied; eg. for
+	  /* Sometimes, too much indirection can be applied; e.g. for
 	     function_result = array_valued_recursive_function.  */
 	  if (TREE_TYPE (TREE_TYPE (se->expr))
 		&& TREE_TYPE (TREE_TYPE (TREE_TYPE (se->expr)))
@@ -3839,6 +3869,11 @@ gfc_trans_pointer_assignment (gfc_expr * expr1, gfc_expr * expr2)
       gfc_init_se (&rse, NULL);
       rse.want_pointer = 1;
       gfc_conv_expr (&rse, expr2);
+
+      if (expr1->symtree->n.sym->attr.proc_pointer
+	  && expr1->symtree->n.sym->attr.dummy)
+	lse.expr = build_fold_indirect_ref (lse.expr);
+
       gfc_add_block_to_block (&block, &lse.pre);
       gfc_add_block_to_block (&block, &rse.pre);
       gfc_add_modify_expr (&block, lse.expr,
@@ -3899,7 +3934,7 @@ gfc_trans_pointer_assignment (gfc_expr * expr1, gfc_expr * expr2)
 
 
 /* Makes sure se is suitable for passing as a function string parameter.  */
-/* TODO: Need to check all callers fo this function.  It may be abused.  */
+/* TODO: Need to check all callers of this function.  It may be abused.  */
 
 void
 gfc_conv_string_parameter (gfc_se * se)

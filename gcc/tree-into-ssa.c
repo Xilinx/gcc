@@ -1,5 +1,5 @@
 /* Rewrite a program in Normal form into SSA.
-   Copyright (C) 2001, 2002, 2003, 2004, 2005, 2007
+   Copyright (C) 2001, 2002, 2003, 2004, 2005, 2007, 2008
    Free Software Foundation, Inc.
    Contributed by Diego Novillo <dnovillo@redhat.com>
 
@@ -207,7 +207,7 @@ struct ssa_name_info
   ENUM_BITFIELD (need_phi_state) need_phi_state : 2;
 
   /* Age of this record (so that info_for_ssa_name table can be cleared
-     quicky); if AGE < CURRENT_INFO_FOR_SSA_NAME_AGE, then the fields
+     quickly); if AGE < CURRENT_INFO_FOR_SSA_NAME_AGE, then the fields
      are assumed to be null.  */
   unsigned age;
 };
@@ -362,7 +362,7 @@ set_current_def (tree var, tree def)
 }
 
 
-/* Compute global livein information given the set of blockx where
+/* Compute global livein information given the set of blocks where
    an object is locally live at the start of the block (LIVEIN)
    and the set of blocks where the object is defined (DEF_BLOCKS).
 
@@ -787,8 +787,8 @@ struct dom_dfsnum
 static int
 cmp_dfsnum (const void *a, const void *b)
 {
-  const struct dom_dfsnum *da = a;
-  const struct dom_dfsnum *db = b;
+  const struct dom_dfsnum *const da = (const struct dom_dfsnum *) a;
+  const struct dom_dfsnum *const db = (const struct dom_dfsnum *) b;
 
   return (int) da->dfs_num - (int) db->dfs_num;
 }
@@ -985,66 +985,6 @@ prune_unused_phi_nodes (bitmap phis, bitmap kills, bitmap uses)
   free (defs);
 }
 
-/* Given a set of blocks with variable definitions (DEF_BLOCKS),
-   return a bitmap with all the blocks in the iterated dominance
-   frontier of the blocks in DEF_BLOCKS.  DFS contains dominance
-   frontier information as returned by compute_dominance_frontiers.
-
-   The resulting set of blocks are the potential sites where PHI nodes
-   are needed.  The caller is responsible for freeing the memory
-   allocated for the return value.  */
-
-static bitmap
-compute_idf (bitmap def_blocks, bitmap *dfs)
-{
-  bitmap_iterator bi;
-  unsigned bb_index, i;
-  VEC(int,heap) *work_stack;
-  bitmap phi_insertion_points;
-
-  work_stack = VEC_alloc (int, heap, n_basic_blocks);
-  phi_insertion_points = BITMAP_ALLOC (NULL);
-
-  /* Seed the work list with all the blocks in DEF_BLOCKS.  We use
-     VEC_quick_push here for speed.  This is safe because we know that
-     the number of definition blocks is no greater than the number of
-     basic blocks, which is the initial capacity of WORK_STACK.  */
-  EXECUTE_IF_SET_IN_BITMAP (def_blocks, 0, bb_index, bi)
-    VEC_quick_push (int, work_stack, bb_index);
-
-  /* Pop a block off the worklist, add every block that appears in
-     the original block's DF that we have not already processed to
-     the worklist.  Iterate until the worklist is empty.   Blocks
-     which are added to the worklist are potential sites for
-     PHI nodes.  */
-  while (VEC_length (int, work_stack) > 0)
-    {
-      bb_index = VEC_pop (int, work_stack);
-
-      /* Since the registration of NEW -> OLD name mappings is done
-	 separately from the call to update_ssa, when updating the SSA
-	 form, the basic blocks where new and/or old names are defined
-	 may have disappeared by CFG cleanup calls.  In this case,
-	 we may pull a non-existing block from the work stack.  */
-      gcc_assert (bb_index < (unsigned) last_basic_block);
-
-      EXECUTE_IF_AND_COMPL_IN_BITMAP (dfs[bb_index], phi_insertion_points,
-	                              0, i, bi)
-	{
-	  /* Use a safe push because if there is a definition of VAR
-	     in every basic block, then WORK_STACK may eventually have
-	     more than N_BASIC_BLOCK entries.  */
-	  VEC_safe_push (int, heap, work_stack, i);
-	  bitmap_set_bit (phi_insertion_points, i);
-	}
-    }
-
-  VEC_free (int, heap, work_stack);
-
-  return phi_insertion_points;
-}
-
-
 /* Return the set of blocks where variable VAR is defined and the blocks
    where VAR is live on entry (livein).  Return NULL, if no entry is
    found in DEF_BLOCKS.  */
@@ -1171,8 +1111,8 @@ insert_phi_nodes_for (tree var, bitmap phi_insertion_points, bool update_p)
 	}
       else
 	{
-	  tree sym = DECL_P (var) ? var : SSA_NAME_VAR (var);
-	  phi = create_phi_node (sym, bb);
+	  gcc_assert (DECL_P (var));
+	  phi = create_phi_node (var, bb);
 	}
 
       /* Mark this PHI node as interesting for update_ssa.  */

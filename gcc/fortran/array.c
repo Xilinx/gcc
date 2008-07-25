@@ -437,7 +437,7 @@ gfc_match_array_spec (gfc_array_spec **asp)
 	  goto cleanup;
 	}
 
-      if (as->rank > 7
+      if (as->rank >= 7
 	  && gfc_notify_std (GFC_STD_F2008, "Fortran 2008: Array "
 			     "specification at %C with more than 7 dimensions")
 	     == FAILURE)
@@ -592,7 +592,7 @@ gfc_start_constructor (bt type, int kind, locus *where)
    node onto the constructor.  */
 
 void
-gfc_append_constructor (gfc_expr *base, gfc_expr *new)
+gfc_append_constructor (gfc_expr *base, gfc_expr *new_expr)
 {
   gfc_constructor *c;
 
@@ -608,9 +608,9 @@ gfc_append_constructor (gfc_expr *base, gfc_expr *new)
       c = c->next;
     }
 
-  c->expr = new;
+  c->expr = new_expr;
 
-  if (new->ts.type != base->ts.type || new->ts.kind != base->ts.kind)
+  if (new_expr->ts.type != base->ts.type || new_expr->ts.kind != base->ts.kind)
     gfc_internal_error ("gfc_append_constructor(): New node has wrong kind");
 }
 
@@ -678,7 +678,7 @@ gfc_get_constructor (void)
 {
   gfc_constructor *c;
 
-  c = gfc_getmem (sizeof(gfc_constructor));
+  c = XCNEW (gfc_constructor);
   c->expr = NULL;
   c->iterator = NULL;
   c->next = NULL;
@@ -755,7 +755,7 @@ static match match_array_cons_element (gfc_constructor **);
 static match
 match_array_list (gfc_constructor **result)
 {
-  gfc_constructor *p, *head, *tail, *new;
+  gfc_constructor *p, *head, *tail, *new_cons;
   gfc_iterator iter;
   locus old_loc;
   gfc_expr *e;
@@ -790,7 +790,7 @@ match_array_list (gfc_constructor **result)
       if (m == MATCH_ERROR)
 	goto cleanup;
 
-      m = match_array_cons_element (&new);
+      m = match_array_cons_element (&new_cons);
       if (m == MATCH_ERROR)
 	goto cleanup;
       if (m == MATCH_NO)
@@ -801,8 +801,8 @@ match_array_list (gfc_constructor **result)
 	  goto cleanup;		/* Could be a complex constant */
 	}
 
-      tail->next = new;
-      tail = new;
+      tail->next = new_cons;
+      tail = new_cons;
 
       if (gfc_match_char (',') != MATCH_YES)
 	{
@@ -881,7 +881,7 @@ match_array_cons_element (gfc_constructor **result)
 match
 gfc_match_array_constructor (gfc_expr **result)
 {
-  gfc_constructor *head, *tail, *new;
+  gfc_constructor *head, *tail, *new_cons;
   gfc_expr *expr;
   gfc_typespec ts;
   locus where;
@@ -937,18 +937,18 @@ gfc_match_array_constructor (gfc_expr **result)
 
   for (;;)
     {
-      m = match_array_cons_element (&new);
+      m = match_array_cons_element (&new_cons);
       if (m == MATCH_ERROR)
 	goto cleanup;
       if (m == MATCH_NO)
 	goto syntax;
 
       if (head == NULL)
-	head = new;
+	head = new_cons;
       else
-	tail->next = new;
+	tail->next = new_cons;
 
-      tail = new;
+      tail = new_cons;
 
       if (gfc_match_char (',') == MATCH_NO)
 	break;
@@ -1576,22 +1576,19 @@ resolve_array_list (gfc_constructor *p)
   return t;
 }
 
-/* Resolve character array constructor. If it is a constant character array and
-   not specified character length, update character length to the maximum of
-   its element constructors' length.  For arrays with fixed length, pad the
-   elements as necessary with needed_length.  */
+/* Resolve character array constructor. If it has a specified constant character
+   length, pad/truncate the elements here; if the length is not specified and
+   all elements are of compile-time known length, emit an error as this is
+   invalid.  */
 
-void
+try
 gfc_resolve_character_array_constructor (gfc_expr *expr)
 {
   gfc_constructor *p;
-  int max_length;
-  bool generated_length;
+  int found_length;
 
   gcc_assert (expr->expr_type == EXPR_ARRAY);
   gcc_assert (expr->ts.type == BT_CHARACTER);
-
-  max_length = -1;
 
   if (expr->ts.cl == NULL)
     {
@@ -1611,15 +1608,16 @@ gfc_resolve_character_array_constructor (gfc_expr *expr)
 
 got_charlen:
 
-  generated_length = false;
+  found_length = -1;
+
   if (expr->ts.cl->length == NULL)
     {
-      /* Find the maximum length of the elements. Do nothing for variable
-	 array constructor, unless the character length is constant or
-	 there is a constant substring reference.  */
+      /* Check that all constant string elements have the same length until
+	 we reach the end or find a variable-length one.  */
 
       for (p = expr->value.constructor; p; p = p->next)
 	{
+	  int current_length = -1;
 	  gfc_ref *ref;
 	  for (ref = p->expr->ref; ref; ref = ref->next)
 	    if (ref->type == REF_SUBSTRING
@@ -1628,32 +1626,43 @@ got_charlen:
 	      break;
 
 	  if (p->expr->expr_type == EXPR_CONSTANT)
-	    max_length = MAX (p->expr->value.character.length, max_length);
+	    current_length = p->expr->value.character.length;
 	  else if (ref)
 	    {
 	      long j;
 	      j = mpz_get_ui (ref->u.ss.end->value.integer)
 		- mpz_get_ui (ref->u.ss.start->value.integer) + 1;
-	      max_length = MAX ((int) j, max_length);
+	      current_length = (int) j;
 	    }
 	  else if (p->expr->ts.cl && p->expr->ts.cl->length
 		   && p->expr->ts.cl->length->expr_type == EXPR_CONSTANT)
 	    {
 	      long j;
 	      j = mpz_get_si (p->expr->ts.cl->length->value.integer);
-	      max_length = MAX ((int) j, max_length);
+	      current_length = (int) j;
 	    }
 	  else
-	    return;
+	    return SUCCESS;
+
+	  gcc_assert (current_length != -1);
+
+	  if (found_length == -1)
+	    found_length = current_length;
+	  else if (found_length != current_length)
+	    {
+	      gfc_error ("Different CHARACTER lengths (%d/%d) in array"
+			 " constructor at %L", found_length, current_length,
+			 &p->expr->where);
+	      return FAILURE;
+	    }
+
+	  gcc_assert (found_length == current_length);
 	}
 
-      if (max_length != -1)
-	{
-	  /* Update the character length of the array constructor.  */
-	  expr->ts.cl->length = gfc_int_expr (max_length);
-	  generated_length = true;
-	  /* Real update follows below.  */
-	}
+      gcc_assert (found_length != -1);
+
+      /* Update the character length of the array constructor.  */
+      expr->ts.cl->length = gfc_int_expr (found_length);
     }
   else 
     {
@@ -1664,33 +1673,39 @@ got_charlen:
       /* If we've got a constant character length, pad according to this.
 	 gfc_extract_int does check for BT_INTEGER and EXPR_CONSTANT and sets
 	 max_length only if they pass.  */
-      gfc_extract_int (expr->ts.cl->length, &max_length);
-    }
+      gfc_extract_int (expr->ts.cl->length, &found_length);
 
-  /* Found a length to update to, do it for all element strings shorter than
-     the target length.  */
-  if (max_length != -1)
-    {
-      for (p = expr->value.constructor; p; p = p->next)
-	if (p->expr->expr_type == EXPR_CONSTANT)
-	  {
-	    gfc_expr *cl = NULL;
-	    int current_length = -1;
-
-	    if (p->expr->ts.cl && p->expr->ts.cl->length)
+      /* Now pad/truncate the elements accordingly to the specified character
+	 length.  This is ok inside this conditional, as in the case above
+	 (without typespec) all elements are verified to have the same length
+	 anyway.  */
+      if (found_length != -1)
+	for (p = expr->value.constructor; p; p = p->next)
+	  if (p->expr->expr_type == EXPR_CONSTANT)
 	    {
-	      cl = p->expr->ts.cl->length;
-	      gfc_extract_int (cl, &current_length);
+	      gfc_expr *cl = NULL;
+	      int current_length = -1;
+	      bool has_ts;
+
+	      if (p->expr->ts.cl && p->expr->ts.cl->length)
+	      {
+		cl = p->expr->ts.cl->length;
+		gfc_extract_int (cl, &current_length);
+	      }
+
+	      /* If gfc_extract_int above set current_length, we implicitly
+		 know the type is BT_INTEGER and it's EXPR_CONSTANT.  */
+
+	      has_ts = (expr->ts.cl && expr->ts.cl->length_from_typespec);
+
+	      if (! cl
+		  || (current_length != -1 && current_length < found_length))
+		gfc_set_constant_character_len (found_length, p->expr,
+						has_ts ? -1 : found_length);
 	    }
-
-	    /* If gfc_extract_int above set current_length, we implicitly
-	       know the type is BT_INTEGER and it's EXPR_CONSTANT.  */
-
-	    if (generated_length || ! cl
-		|| (current_length != -1 && current_length < max_length))
-	      gfc_set_constant_character_len (max_length, p->expr, true);
-	  }
     }
+
+  return SUCCESS;
 }
 
 
@@ -1704,8 +1719,10 @@ gfc_resolve_array_constructor (gfc_expr *expr)
   t = resolve_array_list (expr->value.constructor);
   if (t == SUCCESS)
     t = gfc_check_constructor_type (expr);
-  if (t == SUCCESS && expr->ts.type == BT_CHARACTER)
-    gfc_resolve_character_array_constructor (expr);
+
+  /* gfc_resolve_character_array_constructor is called in gfc_resolve_expr after
+     the call to this function, so we don't need to call it here; if it was
+     called twice, an error message there would be duplicated.  */
 
   return t;
 }
