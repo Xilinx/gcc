@@ -306,8 +306,8 @@ del_loop_to_cloog_loop (void *e)
 static int 
 gbb_compare (const void *p_1, const void *p_2)
 {
-  const struct graphite_bb *gbb_1 = (const struct graphite_bb *) p_1;
-  const struct graphite_bb *gbb_2 = (const struct graphite_bb *) p_2;
+  const struct graphite_bb *const gbb_1 = *(const struct graphite_bb *const*) p_1;
+  const struct graphite_bb *const gbb_2 = *(const struct graphite_bb *const*) p_2;
 
   return lambda_vector_compare (GBB_STATIC_SCHEDULE (gbb_1),
                                 gbb_nb_loops (gbb_1) + 1,
@@ -3807,15 +3807,15 @@ gbb_can_be_ignored (graphite_bb_p gb)
           case MODIFY_EXPR:
           case GIMPLE_MODIFY_STMT:
           case INIT_EXPR:
-{
-  tree var =  GENERIC_TREE_OPERAND (stmt, 0);
-  var = analyze_scalar_evolution (loop, var);
-  var = instantiate_scev (outermost_loop_in_scop (scop, GBB_BB (gb)),
-                               loop, var);
-  if (TREE_CODE (var) == SCEV_NOT_KNOWN)
-    return false;
-  break;
-}
+	    {
+	      tree var =  GENERIC_TREE_OPERAND (stmt, 0);
+	      var = analyze_scalar_evolution (loop, var);
+	      var = instantiate_scev (outermost_loop_in_scop (scop, GBB_BB (gb)),
+				      loop, var);
+	      if (TREE_CODE (var) == SCEV_NOT_KNOWN)
+		return false;
+	      break;
+	    }
           /* Otherwise not ignoreable.  */
           default:
             return false;
@@ -3898,7 +3898,7 @@ scop_remove_ignoreable_gbbs (scop_p scop)
 
 static void 
 graphite_trans_bb_swap_loops (graphite_bb_p gb, unsigned loop_one,
-unsigned loop_two)
+			      unsigned loop_two)
 {
   unsigned i;
   loop_p loop_p_one, loop_p_two;
@@ -4404,8 +4404,7 @@ graphite_trans_loop_block (VEC (graphite_bb_p, heap) *bbs, int loops)
   graphite_bb_p gb;
   int i;
 
-  /* TODO: - Calculate the stride size automatically.
-           - Only block, if there are sufficient iterations.  */
+  /* TODO: - Calculate the stride size automatically.  */
   int stride_size = 64;
 
   for (i = 0; VEC_iterate (graphite_bb_p, bbs, i, gb); i++)
@@ -4426,7 +4425,8 @@ graphite_trans_scop_swap_1and2 (scop_p scop)
   int i;
 
   for (i = 0; VEC_iterate (graphite_bb_p, SCOP_BBS (scop), i, gb); i++)
-    if (gbb_nb_loops (gb) == 2)
+    if (gbb_nb_loops (gb) == 2
+	&& is_interchange_valid (scop, 0, 1))
       graphite_trans_bb_swap_loops (gb, 0, 1);
 }
 
@@ -4580,17 +4580,12 @@ graphite_apply_transformations (scop_p scop)
   graphite_sort_gbbs (scop);
   scop_remove_ignoreable_gbbs (scop);
 
-
-  /* XXX: This functions are able to show some loop
-     transformations.  They blindly enable the named transformation
-     on all bbs, without checking dependencies or if these
-     transformations are valid at all. So disable the transformations, that
-     may generate invalid code by default.  */ 
-
   if (flag_loop_block)
     graphite_trans_scop_block (scop);
+
   else if (flag_loop_strip_mine)
     graphite_trans_scop_strip (scop);
+
   else if (flag_loop_interchange)
     graphite_trans_scop_swap_1and2 (scop);
 }

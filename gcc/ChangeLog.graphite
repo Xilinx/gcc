@@ -1,4 +1,12 @@
 2008-07-25  Sebastian Pop  <sebastian.pop@amd.com>
+	    Jan Sjodin  <jan.sjodin@amd.com>
+
+	* graphite.c (gbb_compare): Correctly constify.
+	(gbb_can_be_ignored): Indent.
+	(graphite_trans_scop_swap_1and2): Add legality check.
+	Remove dead FIXMEs.
+
+2008-07-25  Sebastian Pop  <sebastian.pop@amd.com>
 
 	Remove fallouts from "Reverted the Condate changes".
 	* tree.h: Remove unused decl.
