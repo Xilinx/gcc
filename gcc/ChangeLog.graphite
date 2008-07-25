@@ -1,3 +1,10 @@
+2008-07-25  Sebastian Pop  <sebastian.pop@amd.com>
+
+	Remove fallouts from "Reverted the Condate changes".
+	* tree.h: Remove unused decl.
+	* testsuite/gcc.dg/tree-checker: Same.
+	* timevar.def: Remove counter.
+
 2008-07-24  Sebastian Pop  <sebastian.pop@amd.com>
 
 	* Merge from mainline (135673:138072).
