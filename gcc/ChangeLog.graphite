@@ -1,4 +1,10 @@
 2008-07-25  Sebastian Pop  <sebastian.pop@amd.com>
+
+	Reverted all the changes related to the streamization and
+	loop fusion.
+	These changes are now tracked in the streamization branch.
+
+2008-07-25  Sebastian Pop  <sebastian.pop@amd.com>
 	    Jan Sjodin  <jan.sjodin@amd.com>
 
 	* graphite.c (gbb_compare): Correctly constify.

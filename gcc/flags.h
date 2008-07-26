@@ -253,11 +253,6 @@ extern enum graph_dump_types graph_dump_format;
    and to print them when we are done.  */
 extern int flag_detailed_statistics;
 
-/* File containing check specifications */
-extern const char *tree_check_file;
-/* File containing check specifications */
-extern const char *tree_check_string;
-
 /* Nonzero means that we defer emitting functions until they are actually
    used.  */
 extern int flag_remove_unreachable_functions;

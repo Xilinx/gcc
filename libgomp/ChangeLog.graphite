@@ -1,3 +1,8 @@
+2008-07-25  Sebastian Pop  <sebastian.pop@amd.com>
+
+	Reverted all the changes.  They are now tracked in the
+        streamization branch.
+
 2008-03-15  Antoniu Pop  <antoniu.pop@gmail.com>
             Sebastian Pop  <sebastian.pop@amd.com>
             Jan Sjodin  <jan.sjodin@amd.com>

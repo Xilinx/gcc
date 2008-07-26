@@ -1041,10 +1041,6 @@ fstrict-overflow
 Common Report Var(flag_strict_overflow)
 Treat signed overflow as undefined
 
-fstreamize-loops
-Common Report Var(flag_streamize_loops)
-Enable loop streamization
-
 fsyntax-only
 Common Report Var(flag_syntax_only)
 Check for syntax errors, then stop
@@ -1131,10 +1127,6 @@ Enable dead store elimination
 ftree-fre
 Common Report Var(flag_tree_fre) Optimization
 Enable Full Redundancy Elimination (FRE) on trees
-
-ftree-loop-fusion
-Common Report Var(flag_tree_loop_fusion) Optimization
-Enable loop fusion on trees
 
 ftree-loop-distribution
 Common Report Var(flag_tree_loop_distribution) Optimization

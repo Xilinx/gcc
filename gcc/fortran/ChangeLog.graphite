@@ -1,3 +1,8 @@
+2008-07-25  Sebastian Pop  <sebastian.pop@amd.com>
+
+	Reverted all the changes.  They are now tracked in the
+        streamization branch.
+
 2008-04-05  Sebastian Pop  <sebastian.pop@amd.com>
 
 	* types.def (BT_FN_BOOL_PTR, BT_FN_PTR_SIZE_UINT, BT_FN_VOID_PTR_PTR,

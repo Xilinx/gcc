@@ -182,15 +182,4 @@ extern bool GOMP_single_start (void);
 extern void *GOMP_single_copy_start (void);
 extern void GOMP_single_copy_end (void *);
 
-/* stream.c */
-extern void *GOMP_stream_create (size_t, unsigned);
-extern void GOMP_stream_push (void *, void *);
-extern void *GOMP_stream_head (void *);
-extern void GOMP_stream_pop (void *);
-extern bool GOMP_stream_eos_p (void *);
-extern void GOMP_stream_set_eos (void *);
-extern void GOMP_stream_destroy (void *);
-extern void GOMP_stream_align_push (void *, void *, int);
-extern void GOMP_stream_align_pop (void *, int);
-
 #endif /* LIBGOMP_G_H */

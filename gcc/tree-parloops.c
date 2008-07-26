@@ -108,15 +108,8 @@ parloop
 
   # Storing the initial value given by the user.  #
 
-  reduction_initial.24_46 = 1;
-  
-  # Storing the neutral value of the
-  particular reduction's operation, e.g. 0 for PLUS_EXPR, 
-  1 for MULT_EXPR, etc. into the reduction field.
-  This is done in create_stores_for_reduction.  #
+  .paral_data_store.32.sum.27 = 1;
  
-  .paral_data_store.32.sum.27 = 0;
-  
   #pragma omp parallel num_threads(4) 
 
   #pragma omp for schedule(static)
@@ -211,8 +204,7 @@ reduction_phi (htab_t reduction_list, tree phi)
 {
   struct reduction_info tmpred, *red;
 
-  if (!reduction_list
-      || htab_elements (reduction_list) == 0)
+  if (htab_elements (reduction_list) == 0)
     return NULL;
 
   tmpred.reduc_phi = phi;
@@ -693,9 +685,10 @@ eliminate_local_variables (edge entry, edge exit)
   gather_blocks_in_sese_region (entry_bb, exit_bb, &body);
 
   for (i = 0; VEC_iterate (basic_block, body, i, bb); i++)
-    for (bsi = bsi_start (bb); !bsi_end_p (bsi); bsi_next (&bsi))
-      eliminate_local_variables_stmt (entry, bsi_stmt (bsi),
-				      decl_address);
+    if (bb != entry_bb && bb != exit_bb)
+      for (bsi = bsi_start (bb); !bsi_end_p (bsi); bsi_next (&bsi))
+	eliminate_local_variables_stmt (entry, bsi_stmt (bsi),
+					decl_address);
 
   htab_delete (decl_address);
   VEC_free (basic_block, heap, body);
@@ -1172,6 +1165,7 @@ static void
 separate_decls_in_region (edge entry, edge exit, htab_t reduction_list,
 			  tree *arg_struct, tree *new_arg_struct, 
 			  struct clsn_data *ld_st_data)
+
 {
   basic_block bb1 = split_edge (entry);
   basic_block bb0 = single_pred (bb1);
@@ -1214,7 +1208,7 @@ separate_decls_in_region (edge entry, edge exit, htab_t reduction_list,
       *arg_struct = NULL;
       *new_arg_struct = NULL;
     }
-  else if (reduction_list)
+  else
     {
       /* Create the type for the structure to store the ssa names to.  */
       type = lang_hooks.types.make_type (RECORD_TYPE);
@@ -1258,32 +1252,6 @@ separate_decls_in_region (edge entry, edge exit, htab_t reduction_list,
 	  create_final_loads_for_reduction (reduction_list, &clsn_data);
 	}
     }
-  else
-    {
-      /* Create the type for the structure to store the ssa names to.  */
-      type = lang_hooks.types.make_type (RECORD_TYPE);
-      type_name = build_decl (TYPE_DECL, create_tmp_var_name (".paral_data"),
-			      type);
-      TYPE_NAME (type) = type_name;
-
-      htab_traverse (name_copies, add_field_for_name, type);
-      layout_type (type);
- 
-      /* Create the loads and stores.  */
-      *arg_struct = create_tmp_var (type, ".paral_data_store");
-      add_referenced_var (*arg_struct);
-      nvar = create_tmp_var (build_pointer_type (type), ".paral_data_load");
-      add_referenced_var (nvar);
-      *new_arg_struct = make_ssa_name (nvar, NULL_TREE);
-
-      ld_st_data->store = *arg_struct;
-      ld_st_data->load = *new_arg_struct;
-      ld_st_data->store_bb = bb0;
-      ld_st_data->load_bb = bb1;
-
-      htab_traverse (name_copies, create_loads_and_stores_for_name,
-		     ld_st_data);
-    }
 
   htab_delete (decl_copies);
   htab_delete (name_copies);
@@ -1309,7 +1277,7 @@ parallelized_function_p (tree fn)
 /* Creates and returns an empty function that will receive the body of
    a parallelized loop.  */
 
-tree
+static tree
 create_loop_fn (void)
 {
   char buf[100];
@@ -1361,13 +1329,12 @@ create_loop_fn (void)
   return decl;
 }
 
-/* Bases all the induction variables in LOOP on a single induction
-   variable (unsigned with base 0 and step 1), whose final value is
-   compared with NIT.  The induction variable is incremented in the
-   loop latch.  REDUCTION_LIST describes the reductions in LOOP.
-   Returns the induction variable that was created for LOOP.  */
+/* Bases all the induction variables in LOOP on a single induction variable
+   (unsigned with base 0 and step 1), whose final value is compared with
+   NIT.  The induction variable is incremented in the loop latch.  
+   REDUCTION_LIST describes the reductions in LOOP.  */
 
-tree
+static void
 canonicalize_loop_ivs (struct loop *loop, htab_t reduction_list, tree nit)
 {
   unsigned precision = TYPE_PRECISION (TREE_TYPE (nit));
@@ -1442,8 +1409,6 @@ canonicalize_loop_ivs (struct loop *loop, htab_t reduction_list, tree nit)
       fe->flags = EDGE_TRUE_VALUE;
     }
   COND_EXPR_COND (t) = build2 (LT_EXPR, boolean_type_node, var_before, nit);
-
-  return var_before;
 }
 
 /* Moves the exit condition of LOOP to the beginning of its header, and
@@ -1854,59 +1819,6 @@ loop_has_vector_phi_nodes (struct loop *loop)
  end:
   free (bbs);
   return res;
-}
-
-/* Generates an OpenMP parallel region between ENTRY and EXIT.  Returns the head
-   of the parallel region.  */
-
-basic_block
-create_omp_parallel_region (edge entry, edge exit, tree loop_fn,
-			    unsigned n_threads)
-{
-  struct clsn_data clsn_data;
-  tree data, new_data;
-  block_stmt_iterator bsi;
-  basic_block bb, paral_bb;
-  tree t, param;
-
-  eliminate_local_variables (entry, exit);
-  separate_decls_in_region (entry, exit, NULL, &data, &new_data, &clsn_data);
-
-  /* Prepare the OMP_PARALLEL statement.  */
-  bb = entry->dest;
-  paral_bb = single_pred (bb);
-  bsi = bsi_last (paral_bb);
-
-  t = build_omp_clause (OMP_CLAUSE_NUM_THREADS);
-  OMP_CLAUSE_NUM_THREADS_EXPR (t)
-    = build_int_cst (integer_type_node, n_threads);
-  t = build4 (OMP_PARALLEL, void_type_node, NULL_TREE, t, loop_fn, data);
-
-  bsi_insert_after (&bsi, t, BSI_NEW_STMT);
-
-  /* Initialize NEW_DATA.  */
-  if (data)
-    {
-      bsi = bsi_after_labels (bb);
-
-      param = make_ssa_name (DECL_ARGUMENTS (loop_fn), NULL_TREE);
-      t = build_gimple_modify_stmt (param, build_fold_addr_expr (data));
-      bsi_insert_before (&bsi, t, BSI_SAME_STMT);
-      SSA_NAME_DEF_STMT (param) = t;
-
-      t = build_gimple_modify_stmt (new_data,
-				    fold_convert (TREE_TYPE (new_data),
-						  param));
-      bsi_insert_before (&bsi, t, BSI_SAME_STMT);
-      SSA_NAME_DEF_STMT (new_data) = t;
-    }
-
-  /* Emit OMP_RETURN for OMP_PARALLEL.  */
-  bb = split_edge (exit);
-  bsi = bsi_last (bb);
-  bsi_insert_after (&bsi, make_node (OMP_RETURN), BSI_NEW_STMT);
-
-  return paral_bb;
 }
 
 /* Detect parallel loops and generate parallel code using libgomp

@@ -598,17 +598,4 @@ DEF_VEC_ALLOC_P (rdgc, heap);
 DEF_VEC_P (bitmap);
 DEF_VEC_ALLOC_P (bitmap, heap);
 
-/* In tree-loop-distribution.c  */
-void create_bb_after_loop (struct loop *);
-struct loop *copy_loop_before (struct loop *);
-void mark_nodes_having_upstream_mem_writes (struct graph *, bitmap);
-void rdg_build_components (struct graph *, VEC (int, heap) *,
-			   VEC (rdgc, heap) **);
-void rdg_build_partitions (struct graph *, VEC (rdgc, heap) *,
-			   VEC (int, heap) **, VEC (bitmap, heap) **,
-			   bitmap, bitmap, bitmap);
-void dump_rdg_partitions (FILE *, VEC (bitmap, heap) *);
-void free_rdg_components (VEC (rdgc, heap) *);
-
-
 #endif  /* GCC_TREE_DATA_REF_H  */
