@@ -20,5 +20,6 @@ int test ()
       foo (a[i][j]); 
 }
 
-/* { dg-final { scan-tree-dump-times "Interchange not valid for loops 2 and 3:" 1 "graphite"} } */
 /* Interchange is not legal for loops 2 and 3.  */
+/* { dg-final { scan-tree-dump-times "Interchange not valid for loops 2 and 3:" 1 "graphite"} } */
+/* { dg-final { cleanup-tree-dump "graphite" } } */

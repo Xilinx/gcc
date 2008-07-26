@@ -21,7 +21,14 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree-data-ref.h"
 
 
-typedef VEC (int, heap)* graphite_loops_mapping;
+typedef struct graphite_loop_node *graphite_loops_mapping;
+DEF_VEC_P(graphite_loops_mapping);
+DEF_VEC_ALLOC_P (graphite_loops_mapping, heap);
+struct graphite_loop_node
+{
+  int num;
+  VEC (graphite_loops_mapping, heap)* children;
+};
 
 typedef struct graphite_bb *graphite_bb_p;
 DEF_VEC_P(graphite_bb_p);

@@ -47,53 +47,197 @@ along with GCC; see the file COPYING3.  If not see
 
 VEC (scop_p, heap) *current_scops;
 
+
 /* Prints the loop mapping of SCOP.  */
 void debug_loop_mapping (scop_p);
+void debug_loop_vec (graphite_bb_p gb);
+void debug_oldivs (scop_p);
+
+/* Debug the list of old induction variables for this SCOP.  */
+
+void debug_oldivs (scop_p scop)
+{
+  int i;
+  name_tree oldiv;
+
+  fprintf (stderr, "Old IVs:");
+
+  for (i=0; VEC_iterate (name_tree, SCOP_OLDIVS (scop), i, oldiv); i++)
+    {
+      fprintf (stderr, "(");
+      print_generic_expr (stderr, oldiv->t, 0);
+      fprintf (stderr, ", %s, %d\n", oldiv->name, oldiv->loop->num);
+    }
+  fprintf (stderr, "\n");
+}
+
+/* Debug the loops around basic block GB.  */
+
+void debug_loop_vec (graphite_bb_p gb)
+{
+  int i;
+  loop_p loop;
+
+  fprintf(stderr, "Loop Vec:");
+
+  for (i=0; VEC_iterate (loop_p, GBB_LOOPS (gb), i, loop); i++)
+    fprintf (stderr, "%d: %d, ", i, loop ? loop->num : -1);
+
+  fprintf (stderr, "\n");
+}
+
+/* Creates an empty mapping.  */
+
+static graphite_loops_mapping
+create_loops_mapping (void)
+{
+  graphite_loops_mapping node = GGC_NEW (struct graphite_loop_node);
+  node->num = -1;
+  node->children = VEC_alloc (graphite_loops_mapping, heap, 3);
+  return node;
+}
+
+/* Creates a mapping for loop number NUM.  */
+
+static graphite_loops_mapping
+create_loops_mapping_num (int num)
+{
+  graphite_loops_mapping new_mapping = create_loops_mapping ();
+  new_mapping->num = num;
+  return new_mapping;
+}
+
+/* Debug recursive helper.  */
+
+static void
+debug_loop_mapping_1 (graphite_loops_mapping node, int depth)
+{
+  if (node != NULL)
+    {
+      int i;
+      graphite_loops_mapping child;
+
+      if (node->num != -1)
+	fprintf (stderr, "%d: %d, ", node->num , depth);
+
+      for (i = 0; VEC_iterate (graphite_loops_mapping, node->children, i, child); i++)
+	debug_loop_mapping_1 (child, depth+1);
+    }
+}
+
+/* Debugs the loop mapping for SCOP.  */
 
 void
 debug_loop_mapping (scop_p scop)
 {
   graphite_loops_mapping mapping = SCOP_LOOPS_MAPPING (scop);
-  int i;
-  int val;
+
   fprintf (stderr, "Mapping: ");
-  for (i = 0; VEC_iterate (int, mapping, i, val); i++)
-    fprintf (stderr, "%d: %d, ", i , val-1);
+  debug_loop_mapping_1 (mapping, -1);
   fprintf (stderr, "\n");
 }
 
-/* Increments the depth of loops that are greater than DEPTH.  */
+/* Gets the loop mapping for loop number NUM.  */
+
+static graphite_loops_mapping
+get_loop_mapping_for_num (graphite_loops_mapping mapping, int num)
+{
+  graphite_loops_mapping result = NULL;
+
+  if (mapping->num == num)
+    return mapping;
+  else 
+    {
+      int i;
+      graphite_loops_mapping child;
+
+      for (i = 0; VEC_iterate (graphite_loops_mapping, mapping->children, i, child); i++)
+	{
+	  result = get_loop_mapping_for_num (child, num);
+	  if (result)
+	    return result;
+	}
+    }
+
+  return NULL;
+}
+
+/* Add CHILD mapping to PARENT.  */
 
 static void
-increment_loop_mapped_depths (scop_p scop, int depth)
+graphite_loops_mapping_add_child (graphite_loops_mapping parent, graphite_loops_mapping child)
 {
-  graphite_loops_mapping mapping = SCOP_LOOPS_MAPPING (scop);
-  int i;
-  int val;
-  for (i = 0; VEC_iterate (int, mapping, i, val); i++)
-    if (val > depth)
-      VEC_replace (int, mapping, i, val+1);
+  VEC_safe_push (graphite_loops_mapping, heap, parent->children, child);
+}
+
+/* Adds CHILD_NUM under PARENT.  */
+
+static void
+graphite_loops_mapping_add_child_num (graphite_loops_mapping parent, int child_num)
+{
+  graphite_loops_mapping child = create_loops_mapping_num (child_num);
+  graphite_loops_mapping_add_child (parent, child);
+}
+
+/* Insert NEW_CHILD_NUM under PARENT_NUM in the SCOP loop mapping.  */
+
+static void
+graphite_loops_mapping_insert_child (scop_p scop, int parent_num, int new_child_num)
+{
+  graphite_loops_mapping parent = SCOP_LOOPS_MAPPING (scop);
+  if (parent_num != -1) 
+    parent = get_loop_mapping_for_num (parent, parent_num);
+  graphite_loops_mapping_add_child_num (parent, new_child_num);
+}
+
+/* Returns the mapping for the parent of CHILD_NUM.  */
+
+static graphite_loops_mapping
+graphite_loops_mapping_parent (graphite_loops_mapping mapping, int child_num)
+{
+  graphite_loops_mapping result;
+  if (mapping == NULL)
+    return NULL;
+  else
+    {
+      int i;
+      graphite_loops_mapping child;
+      
+      for (i = 0; VEC_iterate (graphite_loops_mapping, mapping->children, i, child); i++)
+	{
+	  if (child->num  == child_num)
+	    return mapping;
+	  result = 
+	    graphite_loops_mapping_parent (child, child_num);
+	  if (result != NULL)
+	    return result;
+	}
+      return NULL;
+    }
 }
 
 /* Returns the mapped index of the loop NUM.  */
 
-static int
-get_loop_mapped_depth_for_num (scop_p scop, unsigned num)
+static int 
+get_loop_mapped_depth_for_num (graphite_loops_mapping mapping, int num)
 {
-  int result;
-  graphite_loops_mapping mapping = SCOP_LOOPS_MAPPING (scop);
-  gcc_assert (num >= 1);
-  gcc_assert (mapping != NULL);
-
-  if (VEC_length (int, mapping) <= num)
-    VEC_safe_grow_cleared (int, heap, mapping, num+1);
-
-  result = VEC_index (int, mapping, num);
-
-  if (result == 0)
+  if (mapping == NULL)
     return -1;
+  else if (mapping->num == num)
+    return 0;
   else
-    return result-1;
+    {
+      int result = -1;
+      int i;
+      graphite_loops_mapping child;
+      
+      for (i = 0; VEC_iterate (graphite_loops_mapping, mapping->children, i, child); i++)
+	if (result == -1)
+	  result = get_loop_mapped_depth_for_num (child, num);
+      
+      return (result == -1) ? result : result + 1;
+    }
+  return -1;
 }
 
 /* Get the mapped depth for LOOP.  */
@@ -102,51 +246,61 @@ static int
 get_loop_mapped_depth (scop_p scop, struct loop *loop)
 {
   unsigned num = loop->num;
-  int depth = get_loop_mapped_depth_for_num (scop, num);
+  int depth = get_loop_mapped_depth_for_num (SCOP_LOOPS_MAPPING (scop), num);
 
   if (depth == -1)
     return loop_depth(loop)-1;
   else
-    return depth;
+    /* Compensate for root node */
+    return depth-1;
 }
 
 /* Set the mapping NUM for loop at DEPTH.  */
 
 static void
-set_loop_mapped_depth_for_num (scop_p scop, unsigned num, int depth)
+split_loop_mapped_depth_for_num (graphite_loops_mapping mapping, int new_num, int num, 
+				 graphite_loops_mapping pred, int child_index)
 {
-  graphite_loops_mapping mapping = SCOP_LOOPS_MAPPING (scop);
-  gcc_assert (num >= 1);
-  gcc_assert (mapping != NULL);
-  if (VEC_length (int, mapping) <= num)
-    VEC_safe_grow_cleared (int, heap, mapping, num+1);
+  
+  if(mapping->num == num)
+    {
+      graphite_loops_mapping new_node = create_loops_mapping ();
+      graphite_loops_mapping split_node = VEC_index (graphite_loops_mapping, pred->children, child_index);
+      graphite_loops_mapping_add_child (new_node, split_node);
+      new_node->num = new_num;
+      VEC_replace (graphite_loops_mapping, pred->children, child_index, new_node);
+    }
+  else
+    {
+      int i;
+      graphite_loops_mapping child;
 
-  VEC_replace (int, mapping, num, depth+1);
-  gcc_assert (depth+1 == VEC_index (int, mapping, num));
+      for (i = 0; VEC_iterate (graphite_loops_mapping, mapping->children, i, child); i++)
+	split_loop_mapped_depth_for_num (child, new_num, num, mapping, i);
+    }
 }
 
-/* Set the mapping for LOOP at DEPTH.  */
-
 static void
-set_loop_mapped_depth (scop_p scop, struct loop *loop, int depth)
+loop_mapped_depth_split_loop (scop_p scop, int new_num, loop_p loop)
 {
-  unsigned num = loop->num;
-  set_loop_mapped_depth_for_num (scop, num, depth);
+  split_loop_mapped_depth_for_num (SCOP_LOOPS_MAPPING (scop), new_num, loop->num, NULL, false);
 }
 
 /* Swap mapped locations for loops NUM1 and NUM2.  */
 
-static void swap_loop_mapped_depth_for_num (scop_p scop, unsigned num1, unsigned num2)
+static void swap_loop_mapped_depth_for_num (scop_p scop, int num1, int num2)
 {
-  int depth1 = get_loop_mapped_depth_for_num (scop, num1);
-  int depth2 = get_loop_mapped_depth_for_num (scop, num2);
-  set_loop_mapped_depth_for_num (scop, num1, depth2);
-  set_loop_mapped_depth_for_num (scop, num2, depth1);
+  graphite_loops_mapping mapping = SCOP_LOOPS_MAPPING (scop);
+  graphite_loops_mapping num1_node = get_loop_mapping_for_num (mapping, num1);
+  graphite_loops_mapping num2_node = get_loop_mapping_for_num (mapping, num2);
+  num1_node->num = num2;
+  num2_node->num = num1;
 }
+
 
 /* Get the id number of a loop from its INDEX.  */
 
-static unsigned
+static int
 get_num_from_index (unsigned index)
 {
   return 4 + index;
@@ -155,12 +309,12 @@ get_num_from_index (unsigned index)
 /* Swap mapped locations for loops at DEPTH1 and DEPTH2.  */
 
 static void 
-swap_loop_mapped_depth (scop_p scop, graphite_bb_p gb, unsigned depth1, unsigned depth2)
+swap_loop_mapped_depth (scop_p scop, graphite_bb_p gb, int depth1, int depth2)
 {
   loop_p loop1 = gbb_loop_at_index (gb, depth1);
   loop_p loop2 = gbb_loop_at_index (gb, depth2);
-  unsigned num1 = (loop1 == NULL) ? get_num_from_index (depth1 + 1) : (unsigned)loop1->num;
-  unsigned num2 = (loop2 == NULL) ? get_num_from_index (depth2 + 1) : (unsigned)loop2->num;
+  int num1 = (loop1 == NULL) ? get_num_from_index (depth1 + 1) : loop1->num;
+  int num2 = (loop2 == NULL) ? get_num_from_index (depth2 + 1) : loop2->num;
   swap_loop_mapped_depth_for_num (scop, num1, num2);
 }
 
@@ -236,17 +390,24 @@ loop_iv_stack_debug (loop_iv_stack stack)
 /* Get the IV from its SSA_NAME.  */
 
 static name_tree
-get_old_iv_from_ssa_name (scop_p scop, tree ssa_name)
+get_old_iv_from_ssa_name (scop_p scop, loop_p old_loop_father, tree ssa_name)
 {
+  tree var = SSA_NAME_VAR (ssa_name);
   int i;
   name_tree oldiv;
-  tree var = SSA_NAME_VAR (ssa_name);
-
+  
   for (i = 0; VEC_iterate (name_tree, SCOP_OLDIVS (scop), i, oldiv); i++)
-    if(var == oldiv->t) 
-      return oldiv;
-
+    {
+      loop_p current_loop_father = old_loop_father;
+      while (current_loop_father)
+	{
+	  if(var == oldiv->t && oldiv->loop == current_loop_father) 
+	    return oldiv;
+	  current_loop_father = loop_outer (current_loop_father);
+	}
+    }
   return NULL;
+
 }
 
 static tree harmful_stmt_in_bb (struct loop *outermost_loop, basic_block);
@@ -949,7 +1110,7 @@ new_scop (basic_block entry)
   SCOP_LOOP2CLOOG_LOOP (scop) = htab_create (10, hash_loop_to_cloog_loop,
 					     eq_loop_to_cloog_loop,
 					     del_loop_to_cloog_loop);
-  SCOP_LOOPS_MAPPING (scop) = VEC_alloc (int, heap, 20);
+  SCOP_LOOPS_MAPPING (scop) = create_loops_mapping ();
   return scop;
 }
 
@@ -981,7 +1142,6 @@ free_scop (scop_p scop)
   VEC_free (loop_p, heap, SCOP_LOOP_NEST (scop));
   VEC_free (name_tree, heap, SCOP_NEWIVS (scop));
   VEC_free (name_tree, heap, SCOP_OLDIVS (scop));
-  VEC_free (int, heap, SCOP_LOOPS_MAPPING (scop));
   
   for (i = 0; VEC_iterate (name_tree, SCOP_PARAMS (scop), i, p); i++)
     free (p);
@@ -1533,6 +1693,7 @@ build_scop_bbs (scop_p scop)
   sbitmap_free (visited);
 }
 
+
 /* Record LOOP as occuring in SCOP.  */
 
 static void
@@ -1540,7 +1701,12 @@ scop_record_loop (scop_p scop, struct loop *loop)
 {
   if (!bitmap_bit_p (SCOP_LOOPS (scop), loop->num))
     {
+      loop_p parent = loop_outer (loop);
       tree induction_var = find_induction_var_from_exit_cond (loop);
+
+      if (!bb_in_scop_p (parent->latch, scop))
+	parent = NULL;
+      graphite_loops_mapping_insert_child (scop, parent ? parent->num : -1, loop->num);
 
       if (induction_var != NULL_TREE)
 	{
@@ -1554,6 +1720,7 @@ scop_record_loop (scop_p scop, struct loop *loop)
 
       bitmap_set_bit (SCOP_LOOPS (scop), loop->num);
       VEC_safe_push (loop_p, heap, SCOP_LOOP_NEST (scop), loop);
+
     }
 }
 
@@ -2750,7 +2917,8 @@ clast_to_gcc_expression (struct clast_expr *e, tree type,
 
 static struct loop *
 graphite_create_new_loop (scop_p scop, edge entry_edge,
-			  struct clast_for *stmt, loop_iv_stack ivstack)
+			  struct clast_for *stmt, loop_iv_stack ivstack,
+			  loop_p outer)
 {
   struct loop *loop;
   tree ivvar;
@@ -2769,7 +2937,7 @@ graphite_create_new_loop (scop_p scop, edge entry_edge,
 				 SCOP_NEWIVS (scop), SCOP_PARAMS (scop),
 				 ivstack);
   loop = create_empty_loop_on_edge (entry_edge, lowb, stride, upb, ivvar,
-				    &iv_before, entry_edge->src->loop_father);
+				    &iv_before, outer ? outer : entry_edge->src->loop_father);
 
   loop_iv_stack_push(ivstack, iv_before, stmt->iterator);
 
@@ -2810,16 +2978,16 @@ remove_all_edges (basic_block bb, edge construction_edge)
 /* Get the new IV stack index from the old IV.  */
 
 static int
-graphite_get_new_iv_stack_index_from_old_iv (scop_p scop, name_tree oldiv)
+graphite_get_new_iv_stack_index_from_old_iv (scop_p scop, loop_p old_loop)
 {
-  int stack_index = get_loop_mapped_depth (scop, oldiv->loop);
+  int stack_index = get_loop_mapped_depth (scop, old_loop);
   return stack_index;
 }
 
 /* Rename the SSA_NAMEs used in STMT and that appear in IVSTACK.  */
 
 static void 
-graphite_rename_ivs_stmt (tree stmt, scop_p scop, loop_iv_stack ivstack)
+graphite_rename_ivs_stmt (tree stmt, scop_p scop, loop_p old_loop_father, loop_iv_stack ivstack)
 {
   ssa_op_iter iter;
   use_operand_p use_p;
@@ -2828,11 +2996,11 @@ graphite_rename_ivs_stmt (tree stmt, scop_p scop, loop_iv_stack ivstack)
     {
       tree use = USE_FROM_PTR (use_p);
       tree new_iv = NULL;
-      name_tree oldiv = get_old_iv_from_ssa_name(scop, use);
+      name_tree old_iv = get_old_iv_from_ssa_name(scop, old_loop_father, use);
       
-      if (oldiv)
+      if (old_iv)
 	{
-	  int a = graphite_get_new_iv_stack_index_from_old_iv (scop, oldiv);
+	  int a = graphite_get_new_iv_stack_index_from_old_iv (scop, old_iv->loop);
 	  new_iv = loop_iv_stack_get_iv (ivstack, a);
 	}
 
@@ -2845,7 +3013,7 @@ graphite_rename_ivs_stmt (tree stmt, scop_p scop, loop_iv_stack ivstack)
    terms of new induction variables.  */
 
 static void 
-graphite_rename_ivs (graphite_bb_p gbb, scop_p scop, loop_iv_stack ivstack)
+graphite_rename_ivs (graphite_bb_p gbb, scop_p scop, loop_p old_loop_father, loop_iv_stack ivstack)
 {
   basic_block bb = GBB_BB (gbb);
   block_stmt_iterator bsi;
@@ -2856,11 +3024,11 @@ graphite_rename_ivs (graphite_bb_p gbb, scop_p scop, loop_iv_stack ivstack)
 
       if (TREE_CODE (stmt) == GIMPLE_MODIFY_STMT
 	  && TREE_CODE (GIMPLE_STMT_OPERAND (stmt, 0)) == SSA_NAME
-	  && get_old_iv_from_ssa_name (scop, GIMPLE_STMT_OPERAND (stmt, 0)))
+	  && get_old_iv_from_ssa_name (scop, old_loop_father, GIMPLE_STMT_OPERAND (stmt, 0)))
 	bsi_remove (&bsi, false);
       else
 	{
-	  graphite_rename_ivs_stmt (stmt, scop, ivstack); 
+	  graphite_rename_ivs_stmt (stmt, scop, old_loop_father, ivstack); 
 	  bsi_next (&bsi);
 	}
     }
@@ -2869,7 +3037,7 @@ graphite_rename_ivs (graphite_bb_p gbb, scop_p scop, loop_iv_stack ivstack)
 /* Move all the PHI nodes from block FROM to block TO.  */
 
 static void
-move_phi_nodes (scop_p scop, basic_block from, basic_block to)
+move_phi_nodes (scop_p scop, loop_p old_loop_father, basic_block from, basic_block to)
 {
   tree phi;
   tree next_phi;
@@ -2879,7 +3047,7 @@ move_phi_nodes (scop_p scop, basic_block from, basic_block to)
       tree op = PHI_RESULT (phi);
       next_phi = PHI_CHAIN (phi);
 
-      if (get_old_iv_from_ssa_name (scop, op) == NULL)
+      if (get_old_iv_from_ssa_name (scop, old_loop_father, op) == NULL)
 	move_phi_node (phi, to);
     }
 
@@ -2926,13 +3094,14 @@ translate_clast (scop_p scop, struct loop *context_loop,
 	CloogStatement *cs = ((struct clast_user_stmt *) stmt)->statement;
 	graphite_bb_p gbb = (graphite_bb_p) cs->usr;
 	basic_block bb = gbb->bb;
+	loop_p old_loop_father = bb->loop_father;
 
 	if (bb == ENTRY_BLOCK_PTR)
 	  return next_e;
 	
 	remove_cond_exprs (bb);
 	remove_all_edges (bb, next_e);
-	move_phi_nodes (scop, bb, next_e->src);	
+	move_phi_nodes (scop, old_loop_father, bb, next_e->src);	
 	redirect_edge_succ_nodup (next_e, bb);
 
 	if (context_loop)
@@ -2946,14 +3115,15 @@ translate_clast (scop_p scop, struct loop *context_loop,
 	next_e = make_edge (bb,
 			    context_loop ? context_loop->latch : EXIT_BLOCK_PTR,
 			    EDGE_FALLTHRU);;
-	graphite_rename_ivs (gbb, scop, ivstack);
+	graphite_rename_ivs (gbb, scop, old_loop_father, ivstack);
 	return translate_clast (scop, context_loop, stmt->next, next_e, ivstack);
       }
 
     case stmt_for:
       {
 	struct loop *loop = graphite_create_new_loop (scop, next_e,
-						      (struct clast_for *) stmt, ivstack);
+						      (struct clast_for *) stmt, ivstack,
+						      context_loop ? context_loop : get_loop (0));
 	edge last_e = single_exit (loop);
 	
 	next_e = translate_clast (scop, loop, ((struct clast_for *) stmt)->body,
@@ -2973,8 +3143,8 @@ translate_clast (scop_p scop, struct loop *context_loop,
     case stmt_guard:
     case stmt_ass:
     default:
-      /* NIY.  */
-      return next_e;
+      gcc_unreachable ();
+
     }
 }
 
@@ -3330,6 +3500,77 @@ remove_dead_loops (void)
     }
 }
 
+/* Remove the edges linked to the BBS to be removed.  */
+
+static void
+remove_edges_around_useless_blocks (scop_p scop, VEC (basic_block,heap) *bbs)
+{
+  int i;
+  basic_block bb;
+ for (i = 0; VEC_iterate (basic_block, bbs, i, bb); i++)
+    if (!bb_in_scop_p (bb, scop)
+	&& bb != SCOP_EXIT (scop))
+      remove_all_edges (bb, NULL);
+}
+
+/* Returns true when it is possible to generate code for this STMT.  */
+
+static bool 
+can_generate_code_stmt (struct clast_stmt *stmt, struct pointer_set_t *used_basic_blocks)
+{
+  if (!stmt)
+    return true;
+
+  switch (stmt->type) 
+    {
+    case stmt_root:
+      return can_generate_code_stmt (stmt->next, used_basic_blocks);
+    case stmt_user:
+      {
+	CloogStatement *cs = ((struct clast_user_stmt *) stmt)->statement;
+	graphite_bb_p gbb = (graphite_bb_p) cs->usr;
+
+	if (pointer_set_contains (used_basic_blocks, gbb))
+	  return false;
+	pointer_set_insert (used_basic_blocks, gbb);
+	return can_generate_code_stmt (stmt->next, used_basic_blocks);
+      }
+    case stmt_for:
+      return can_generate_code_stmt (((struct clast_for *) stmt)->body, used_basic_blocks)
+	&& can_generate_code_stmt (stmt->next, used_basic_blocks);
+
+    case stmt_block:
+      return can_generate_code_stmt (((struct clast_block *) stmt)->body, used_basic_blocks)
+	&& can_generate_code_stmt (stmt->next, used_basic_blocks);
+    case stmt_guard:
+    case stmt_ass:
+    default:
+      return false;
+    }
+}
+
+/* Returns true when it is possible to generate code for this STMT.  */
+
+static bool 
+can_generate_code (struct clast_stmt *stmt)
+{
+  bool result;
+  struct pointer_set_t *used_basic_blocks = pointer_set_create ();
+
+  result = can_generate_code_stmt (stmt, used_basic_blocks);
+  pointer_set_destroy (used_basic_blocks);
+  return result;
+}
+
+/* Returns true when it is possible to generate code for this SCOP.  */
+
+static bool
+can_generate_for_scop (scop_p scop)
+{
+  basic_block scop_exit = SCOP_EXIT (scop);
+  return single_pred_p (scop_exit);
+}
+
 /* GIMPLE Loop Generator: generates loops from STMT in GIMPLE form for
    the given SCOP.  */
 
@@ -3339,35 +3580,43 @@ gloog (scop_p scop, struct clast_stmt *stmt)
   edge new_scop_exit_edge = NULL;
   basic_block scop_exit = SCOP_EXIT (scop);
   VEC (name_tree, heap) *ivstack = VEC_alloc (name_tree, heap, 10);
-  edge construction_edge = get_construction_edge (scop);
+  edge construction_edge = NULL;
   VEC (basic_block,heap) *bbs = VEC_alloc (basic_block, heap, 10);
-  int i;
-  basic_block bb;
+  basic_block old_scop_exit_idom = get_immediate_dominator (CDI_DOMINATORS, scop_exit);
 
+  if (!can_generate_code (stmt) || !can_generate_for_scop (scop))
+    {
+      cloog_clast_free (stmt);
+      return;
+    }      
+
+  construction_edge = get_construction_edge (scop);
   if (!construction_edge)
-    return;
+    {
+      cloog_clast_free (stmt);
+      return;
+    }
 
   gather_blocks_in_sese_region (SCOP_ENTRY (scop), SCOP_EXIT (scop), &bbs);
-  new_scop_exit_edge = translate_clast (scop, NULL, stmt, construction_edge, &ivstack);
+  new_scop_exit_edge = translate_clast (scop, SCOP_ENTRY(scop)->loop_father, stmt, construction_edge, &ivstack);
   redirect_edge_succ (new_scop_exit_edge, scop_exit);
   cloog_clast_free (stmt);
 
   if (new_scop_exit_edge->dest == EXIT_BLOCK_PTR)
     new_scop_exit_edge->flags = 0;
 
-  for (i = 0; VEC_iterate (basic_block, bbs, i, bb); i++)
-    if (!bb_in_scop_p (bb, scop)
-	&& bb != SCOP_EXIT (scop))
-      remove_all_edges (bb, NULL);
-
+  remove_edges_around_useless_blocks (scop, bbs);
+ 
   VEC_free (basic_block, heap, bbs);
 
-  if (single_pred_p (new_scop_exit_edge->dest))
+  patch_phis_for_virtual_defs ();
+
+  find_unreachable_blocks ();
+  if (old_scop_exit_idom 
+      && !(old_scop_exit_idom->flags & BB_REACHABLE))
     set_immediate_dominator (CDI_DOMINATORS,
 			     new_scop_exit_edge->dest,
 			     new_scop_exit_edge->src);
-
-  patch_phis_for_virtual_defs ();
 
   delete_unreachable_blocks();
   mark_old_loops (scop);
@@ -3874,50 +4123,6 @@ scop_remove_ignoreable_gbbs (scop_p scop)
                           Graphite BB transformations
 *******************************************************************************/
 
-/* Swap the two loops of GBB at index LOOP_ONE and LOOP_TWO.
-   This transformartion is only valid, if the loop nest between i and k is
-   perfect nested. Therefore we do not need to change the static schedule.
-
-   Example:
-
-   for (i = 0; i < 50; i++)
-     for (j ...)
-       for (k = 5; k < 100; k++)
-         A
-
-   To swap i and k call:
-
-   graphite_trans_bb_swap_loops (gb, 0, 2)
-
-   for (k = 5; k < 100; k++)
-     for (j ...)
-       for (i = 0; i < 50; i++)
-         A
-
-   XXX: Does not check validity.  Necessary?  */
-
-static void 
-graphite_trans_bb_swap_loops (graphite_bb_p gb, unsigned loop_one,
-			      unsigned loop_two)
-{
-  unsigned i;
-  loop_p loop_p_one, loop_p_two;
-  CloogMatrix *domain = GBB_DOMAIN (gb);
-
-  gcc_assert (loop_one < gbb_nb_loops (gb));
-  gcc_assert (loop_two < gbb_nb_loops (gb));
-
-  /* Move domain columns.  */  
-  for (i = 0; i < domain->NbRows; i++)
-      value_swap (domain->p[i][loop_one + 1], domain->p[i][loop_two + 1]);
-
-   /* Update LOOPS vector.  */
-  loop_p_one = VEC_index (loop_p, GBB_LOOPS (gb), loop_one);
-  loop_p_two = VEC_index (loop_p, GBB_LOOPS (gb), loop_two);
-  VEC_replace (loop_p, GBB_LOOPS(gb), loop_one, loop_p_two);
-  VEC_replace (loop_p, GBB_LOOPS(gb), loop_two, loop_p_one);
-}
-
 /* Move the loop at index LOOP and insert it before index NEW_LOOP_POS.
    This transformartion is only valid, if the loop nest between i and k is
    perfect nested. Therefore we do not need to change the static schedule.
@@ -3956,12 +4161,14 @@ graphite_trans_bb_move_loop (graphite_bb_p gb, unsigned loop,
   gcc_assert (loop < gbb_nb_loops (gb));
   gcc_assert (new_loop_pos < gbb_nb_loops (gb));
 
+
+  swap_loop_mapped_depth (scop, gb, loop, new_loop_pos);
+
   /* Update LOOPS vector.  */
   tmp_loop_p = VEC_index (loop_p, GBB_LOOPS (gb), loop);
   VEC_ordered_remove (loop_p, GBB_LOOPS (gb), loop);
   VEC_safe_insert (loop_p, heap, GBB_LOOPS (gb), new_loop_pos, tmp_loop_p);
 
-  swap_loop_mapped_depth (scop, gb, loop, new_loop_pos);
 
   /* Move the domain columns.  */
   if (loop < new_loop_pos)
@@ -4080,9 +4287,9 @@ graphite_trans_bb_strip_mine (graphite_bb_p gb, unsigned loop_depth, unsigned st
 
   VEC_safe_insert (loop_p, heap, GBB_LOOPS (gb), loop_depth, NULL);
 
-  increment_loop_mapped_depths (scop, loop_depth + 1);
-  set_loop_mapped_depth (scop, gbb_loop_at_index (gb, loop_depth + 1), loop_depth + 1);
-  set_loop_mapped_depth_for_num (scop, get_num_from_index (col_loop_strip), loop_depth);
+  loop_mapped_depth_split_loop (scop, 
+				get_num_from_index (col_loop_strip), 
+				gbb_loop_at_index(gb, loop_depth+1));
 
   GBB_DOMAIN (gb) = new_domain;
 
@@ -4357,7 +4564,7 @@ is_interchange_valid (scop_p scop, unsigned loop_a, unsigned loop_b)
              A
 */
 
-static void
+static bool
 graphite_trans_bb_block (graphite_bb_p gb, unsigned stride, unsigned loops)
 {
   unsigned i, j;
@@ -4365,9 +4572,10 @@ graphite_trans_bb_block (graphite_bb_p gb, unsigned stride, unsigned loops)
   unsigned start = nb_loops - loops;
   scop_p scop = GBB_SCOP (gb);
   unsigned outer_most_loop_index_for_gb;
+  bool transform_done = false;
 
   if (!scop_contains_loop (scop, gbb_loop (gb)))
-    return;
+    return transform_done;
 
   outer_most_loop_index_for_gb = gbb_outer_most_loop_index (scop, gb);
 
@@ -4377,19 +4585,29 @@ graphite_trans_bb_block (graphite_bb_p gb, unsigned stride, unsigned loops)
 	{
 	  if (dump_file && (dump_flags & TDF_DETAILS))
 	    fprintf (dump_file, "\nInterchange not valid for loops %d and %d:\n", i, j);
-	  return;
+	  return transform_done;
 	}
       else if (dump_file && (dump_flags & TDF_DETAILS))
 	fprintf (dump_file, "\nInterchange valid for loops %d and %d:\n", i, j);
 
   /* Strip mine loops.  */
   for (i = 0; i < nb_loops - start; i++)
-    if (strip_mine_profitable_p (gb, stride, start + 2 * i))
-      graphite_trans_bb_strip_mine (gb, start + 2 * i, stride);
+    if ((flag_loop_block || flag_loop_strip_mine)
+	&& strip_mine_profitable_p (gb, stride, start + 2 * i))
+      {
+	graphite_trans_bb_strip_mine (gb, start + 2 * i, stride);
+	transform_done = true;
+      }
 
   /* Interchange loops.  */
   for (i = 1; i < nb_loops - start; i++)
-    graphite_trans_bb_move_loop (gb, start + 2 * i, start + i);
+    if (flag_loop_block || flag_loop_interchange)
+      {
+	graphite_trans_bb_move_loop (gb, start + 2 * i, start + i);
+	transform_done = true;
+      }
+
+  return transform_done;
 }
 
 /*******************************************************************************
@@ -4398,60 +4616,29 @@ graphite_trans_bb_block (graphite_bb_p gb, unsigned stride, unsigned loops)
 
 /* Loop block a loop nest. Calculate the optimal stride size (TODO).  */
 
-static void
+static bool
 graphite_trans_loop_block (VEC (graphite_bb_p, heap) *bbs, int loops)
 {
   graphite_bb_p gb;
   int i;
+  bool transform_done = false;
 
   /* TODO: - Calculate the stride size automatically.  */
   int stride_size = 64;
 
   for (i = 0; VEC_iterate (graphite_bb_p, bbs, i, gb); i++)
-    graphite_trans_bb_block (gb, stride_size, loops);
+    transform_done = graphite_trans_bb_block (gb, stride_size, loops) || transform_done;
+  return transform_done;
 }
 
 /*******************************************************************************
                           Graphite SCOP transformations
 *******************************************************************************/
 
-/* SIMPLE EXAMPLE  */
-/* For all bb with two loops swap these two loops.  */
-
-static void
-graphite_trans_scop_swap_1and2 (scop_p scop)
-{
-  graphite_bb_p gb;
-  int i;
-
-  for (i = 0; VEC_iterate (graphite_bb_p, SCOP_BBS (scop), i, gb); i++)
-    if (gbb_nb_loops (gb) == 2
-	&& is_interchange_valid (scop, 0, 1))
-      graphite_trans_bb_swap_loops (gb, 0, 1);
-}
-
-/* SIMPLE EXAMPLE  */
-/* Strip mine all innermost loops with stride = 4.  */
-
-static void
-graphite_trans_scop_strip (scop_p scop)
-{
-  graphite_bb_p gb;
-  int i;
-  int loop_depth = scop_max_loop_depth (scop); 
-  for (i = 0; VEC_iterate (graphite_bb_p, SCOP_BBS (scop), i, gb); i++)
-    {
-      int nb_loops = gbb_nb_loops (gb);
-      if (nb_loops >= 1  && nb_loops == loop_depth)
-        graphite_trans_bb_strip_mine (gb, gbb_nb_loops (gb) - 1, 4);
-    }
-}
-
-
 /* Loop block all bbs.  
    XXX: Does not contain dependency checks. */
 
-static void
+static bool
 graphite_trans_scop_block (scop_p scop)
 {
   graphite_bb_p gb;
@@ -4459,13 +4646,14 @@ graphite_trans_scop_block (scop_p scop)
   int last_nb_loops;
   int nb_loops;
   bool perfect = true;
+  bool transform_done = false;
 
   VEC (graphite_bb_p, heap) *bbs = VEC_alloc (graphite_bb_p, heap, 3);
   int max_schedule = scop_max_loop_depth (scop) + 1;
   lambda_vector last_schedule = lambda_vector_new (max_schedule);
 
   if (VEC_length (graphite_bb_p, SCOP_BBS (scop)) == 0)
-    return;
+    return transform_done;
 
   /* Get the data of the first bb.  */
   gb = VEC_index (graphite_bb_p, SCOP_BBS (scop), 0); 
@@ -4524,7 +4712,7 @@ graphite_trans_scop_block (scop_p scop)
 
       /* Found perfect loop nest.  */
       if (perfect && last_nb_loops - j > 0)
-        graphite_trans_loop_block (bbs, last_nb_loops - j);
+        transform_done = graphite_trans_loop_block (bbs, last_nb_loops - j) || transform_done;
  
       /* Check if we start with a new loop.
 
@@ -4569,25 +4757,26 @@ graphite_trans_scop_block (scop_p scop)
 
   if (dump_file && (dump_flags & TDF_DETAILS))
     fprintf (dump_file, "\nLoop blocked.\n");
+
+  return transform_done;
 }
 
 /* Apply graphite transformations.  */
 
-static void
+static bool
 graphite_apply_transformations (scop_p scop)
 {
+  bool transform_done = false;
   /* Sort the list of bbs.  Keep them always sorted.  */
   graphite_sort_gbbs (scop);
   scop_remove_ignoreable_gbbs (scop);
 
-  if (flag_loop_block)
-    graphite_trans_scop_block (scop);
+  if (flag_loop_block
+      || flag_loop_strip_mine
+      || flag_loop_interchange)
+    transform_done = graphite_trans_scop_block (scop);
 
-  else if (flag_loop_strip_mine)
-    graphite_trans_scop_strip (scop);
-
-  else if (flag_loop_interchange)
-    graphite_trans_scop_swap_1and2 (scop);
+  return transform_done;
 }
 
 /* Perform a set of linear transforms on LOOPS.  */
@@ -4649,9 +4838,9 @@ graphite_transform_loops (void)
       if (0)
 	build_rdg_all_levels (scop);
 
-      graphite_apply_transformations (scop);
+      if(graphite_apply_transformations (scop))
+	  gloog (scop, find_transform (scop));
 
-      gloog (scop, find_transform (scop));
     }
 
   if (dump_file && (dump_flags & TDF_DETAILS))

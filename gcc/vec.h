@@ -399,6 +399,7 @@ along with GCC; see the file COPYING3.  If not see
    If you need to directly manipulate the array (for instance, you
    want to feed it to qsort), use this accessor.  */
 
+
 #define VEC_address(T,V)		(VEC_OP(T,base,address)(VEC_BASE(V)))
 
 /* Find the first index in the vector not less than the object.

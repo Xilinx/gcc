@@ -1,3 +1,26 @@
+2008-07-25  Jan Sjodin  <jan.sjodin@amd.com>
+
+	* graphite.c (debug_oldivs, debug_loop_vec, create_loops_mapping,
+	create_loops_mapping_num, debug_loop_mapping_1): New.
+	(debug_loop_mapping): Call debug_loop_mapping_1.
+	(get_loop_mapping_for_num,
+	graphite_loops_mapping_add_child,
+	graphite_loops_mapping_add_child_num,
+	graphite_loops_mapping_insert_child,
+	graphite_loops_mapping_parent,
+	split_loop_mapped_depth_for_num,
+	loop_mapped_depth_split_loop): New.
+	(increment_loop_mapped_depths): Removed.
+	(swap_loop_mapped_depth_for_num): Reimplemented.
+	(new_scop): Call create_loops_mapping.
+	(scop_record_loop): Call graphite_loops_mapping_insert_child.
+	(translate_clast): Pass the old loop father in parameter, and pass
+	it to get_old_iv_from_ssa_name.
+	(remove_edges_around_useless_blocks, can_generate_code_stmt,
+	can_generate_code, can_generate_for_scop): New.
+	(graphite_trans_bb_block): Returns false when it fails to transform.
+	* graphite.h (graphite_loop_node, graphite_loops_mapping): New.
+
 2008-07-25  Sebastian Pop  <sebastian.pop@amd.com>
 
 	Reverted all the changes related to the streamization and
