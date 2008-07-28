@@ -936,6 +936,20 @@
   "(basilysgc_new_mixint((basilysobject_ptr_t)(" dis "), (basilys_ptr_t)(" val "), (" num ")))")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;; MIXLOC primitives (use get_int to get the integer)
+;; test
+(defprimitive is_mixloc (mi) :long
+  "(basilys_magic_discr((basilys_ptr_t)(" mi ")) == OBMAG_MIXLOC)")
+;; get the value
+(defprimitive mixloc_val (mi) :value
+  "(basilys_val_mixloc((basilys_ptr_t)(" mi ")))")
+(defprimitive mixloc_location (mi) :long
+  "(basilys_location_mixloc((basilys_ptr_t)(" mi ")))")
+;; make a mixloc
+(defprimitive make_mixloc (dis val :long num loc) :value
+  "(basilysgc_new_mixloc((basilysobject_ptr_t)(" dis "), (basilys_ptr_t)(" val "), (" num "), (location_t)(" loc "))")
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; READ FILE primitive
 (defprimitive read_file (filnam) :value
   "(basilysgc_read_file (basilys_string_str((basilys_ptr_t)(" filnam ")), (char*)0))")
@@ -965,35 +979,24 @@
 
 ;; to signal an error in a basilys source with some additional string value
 (defprimitive error_strv (loc :cstring msg :value strv) :void
-  "error(\"%s:%d:: BASILYS ERROR [#%ld]: %s - %s\", "
-  " basilys_string_str(basilys_val_mixint((basilys_ptr_t)(" loc "))), "
-  " (int) basilys_num_mixint((basilys_ptr_t)(" loc ")), basilys_dbgcounter, ("
-  msg
-  "), basilys_string_str((basilys_ptr_t)(" strv ")))"
-  )
+  "basilys_error_str((basilys_ptr_t)(" loc "), (" msg 
+  "), (basilys_ptr_t)(" strv "))")
+
 ;; signal a plain error in a basilys source
 (defprimitive error_plain (loc :cstring msg) :void
-  "error(\"%s:%d:: BASILYS ERROR [#%ld]: @%s \", "
-  " basilys_string_str(basilys_val_mixint((basilys_ptr_t)(" loc "))), "
-  " (int) basilys_num_mixint((basilys_ptr_t)(" loc ")), basilys_dbgcounter, ("
-  msg "))"
-  )
+  "basilys_error_str((basilys_ptr_t)(" loc "), (" msg 
+  "), (basilys_ptr_t)0)")
+  
 
 ;; to signal an warning in a basilys source with some additional string value
 (defprimitive warning_strv (loc :cstring msg :value strv) :void
-  "warning(0, \"%s:%d:: BASILYS WARNING [#%ld]: @ %s - %s\", "
-  " basilys_string_str(basilys_val_mixint((basilys_ptr_t)(" loc "))), "
-  " (int) basilys_num_mixint((basilys_ptr_t)(" loc ")), basilys_dbgcounter, ("
-  msg
-  "), basilys_string_str((basilys_ptr_t)(" strv ")))"
-  )
+  "basilys_warning_str(0, (basilys_ptr_t)(" loc "), (" msg 
+  "), (basilys_ptr_t)(" strv "))")
+  
 ;; signal a plain warning in a basilys source
 (defprimitive warning_plain (loc :cstring msg) :void
-  "warning(0, \"%s:%d:: BASILYS WARNING [#%ld]: @ %s \","
-  " basilys_string_str(basilys_val_mixint((basilys_ptr_t)(" loc "))), "
-  " (int) basilys_num_mixint((basilys_ptr_t)(" loc ")),  basilys_dbgcounter, ("
-  msg "))"
-  )
+  "basilys_warning_str(0, (basilys_ptr_t)(" loc "), (" msg 
+  "), (basilys_ptr_t)0)")
 
 
 ;; signal a plain warning 
@@ -1027,19 +1030,12 @@
 
 ;; to signal an inform in a basilys source with some additional string value
 (defprimitive inform_strv (loc :cstring msg :value strv) :void
-  "inform(\"%s:%d:: BASILYS INFORM [#%ld]: @%s - %s\", "
-  " basilys_string_str(basilys_val_mixint((basilys_ptr_t)(" loc "))), "
-  " (int) basilys_num_mixint((basilys_ptr_t)(" loc ")), basilys_dbgcounter, ("
-  msg
-  "), basilys_string_str((basilys_ptr_t)(" strv ")))"
-  )
+  "basilys_inform_str((basilys_ptr_t)(" loc "), (" msg 
+  "), (basilys_ptr_t)(" strv "))")
 ;; signal a plain inform in a basilys source
 (defprimitive inform_plain (loc :cstring msg) :void
-  "inform(\"%s:%d::: BASILYS INFORM [#%ld]: @ %s \", "
-  " basilys_string_str(basilys_val_mixint((basilys_ptr_t)(" loc "))), basilys_dbgcounter, "
-  " (int) basilys_num_mixint((basilys_ptr_t)(" loc ")), ("
-  msg "))"
-  )
+  "basilys_inform_str((basilys_ptr_t)(" loc "), (" msg 
+  "), (basilys_ptr_t)0)")
 
 (defprimitive informsg_strv (:cstring msg :value strv) :void
   "inform((\"BASILYS INFORM [#%ld]: %s - %s\"), basilys_dbgcounter, ("
@@ -1191,6 +1187,15 @@
  :obj_num OBMAG_MIXINT
  :disc_super discr_anyrecv
  :named_name (stringconst2val discr_namestring "DISCR_MIXEDINT"))
+
+
+
+;;; the discriminant for mixed locations
+(definstance discr_mixedloc class_discr
+ :predef DISCR_MIXEDLOC
+ :obj_num OBMAG_MIXLOC
+ :disc_super discr_anyrecv
+ :named_name (stringconst2val discr_namestring "DISCR_MIXEDLOC"))
 
 
 ;;; the discriminant for closures
@@ -1424,7 +1429,7 @@
 	(debug_msg valbind "initvalue_exporter valbind")
 	(debug_msg prevbind "initvalue_exporter prevbind")
 	(cond 
-	 ( (null prevbind) () )
+	 ( (null prevbind) (the_null) )
 	 ( (and 
 	    (is_a prevbind class_selector_binding)
 	    (is_a val class_selector))
@@ -1475,6 +1480,7 @@
 		    (return)))
 	      ))
 	 )
+	(assert_msg "check valbind" (is_a valbind class_any_binding))
 	(put_env env valbind)
 	(return)
 	))))
@@ -2153,6 +2159,34 @@
     (add2sbuf_strconst sbuf "]")
     ))
 (install_method discr_mixedint dbg_output dbgout_mixint_method)
+
+;; mixloc debug value
+(defun dbgout_mixloc_method (self dbgi :long depth)
+  (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
+  (let ( (dis (discrim self)) 
+	 (sbuf  (unsafe_get_field :dbgi_sbuf dbgi))
+	 )
+    (if (== dis DISCR_MIXEDLOC)
+	(progn 
+	  (add2sbuf_strconst sbuf " #![")
+	  (add2sbuf_longdec sbuf (get_int self)))
+      (progn
+	(add2sbuf_strconst sbuf " |")
+	(add2sbuf_string sbuf (unsafe_get_field :named_name dis))
+	(add2sbuf_strconst sbuf "#![")
+	(add2sbuf_longdec sbuf (get_int self)))
+      )
+    (if  (need_dbglim depth (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
+	(progn
+	  (add2sbuf_strconst sbuf ",")
+	  (dbg_out (mixint_val self) dbgi (+i depth 1))
+	  )
+      (add2sbuf_strconst sbuf ",..")
+      )
+    (compile_warning "need to print the mixedloc" ())
+    (add2sbuf_strconst sbuf "]")
+    ))
+(install_method discr_mixedloc dbg_output dbgout_mixloc_method)
 
 ;; multiple debug out
 (defun dbgout_multiple_method (self dbgi :long depth)
@@ -3189,6 +3223,7 @@
  is_mapobject
  is_mapstring
  is_mixint
+ is_mixloc
  is_multiple
  is_multiple_or_null
  is_not_a
@@ -3213,6 +3248,8 @@
  make_mapobject
  make_mapstring
  make_multiple
+ make_mixint
+ make_mixloc
  make_pair
  make_strbuf
  make_string
@@ -3246,6 +3283,8 @@
  messageval_dbg
  minor_garbcoll
  mixint_val
+ mixloc_location
+ mixloc_val
  multiple_length
  multiple_nth
  multiple_put_nth
@@ -3323,6 +3362,7 @@
  discr_mapstrings                     
  discr_methodmap                      
  discr_mixedint                       
+ discr_mixedloc                       
  discr_multiple                       
  discr_namestring                     
  discr_nullrecv                       

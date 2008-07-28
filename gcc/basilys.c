@@ -349,6 +349,7 @@ check_pointer_at (const char msg[], long count, basilys_ptr_t * pptr,
     case OBMAG_TRIPLE:
     case OBMAG_INT:
     case OBMAG_MIXINT:
+    case OBMAG_MIXLOC:
     case OBMAG_REAL:
     case OBMAG_STRING:
     case OBMAG_STRBUF:
@@ -833,6 +834,15 @@ forwarded_copy (basilys_ptr_t p)
 	struct basilysmixint_st *src = (struct basilysmixint_st *) p;
 	struct basilysmixint_st *dst = (struct basilysmixint_st *)
 	  ggc_alloc_cleared (sizeof (struct basilysmixint_st));
+	*dst = *src;
+	n = (basilys_ptr_t) dst;
+	break;
+      }
+    case OBMAG_MIXLOC:
+      {
+	struct basilysmixloc_st *src = (struct basilysmixloc_st *) p;
+	struct basilysmixloc_st *dst = (struct basilysmixloc_st *)
+	  ggc_alloc_cleared (sizeof (struct basilysmixloc_st));
 	*dst = *src;
 	n = (basilys_ptr_t) dst;
 	break;
@@ -1328,6 +1338,12 @@ scanning (basilys_ptr_t p)
 	FORWARDED (src->ptrval);
 	break;
       }
+    case OBMAG_MIXLOC:
+      {
+	struct basilysmixloc_st *src = (struct basilysmixloc_st *) p;
+	FORWARDED (src->ptrval);
+	break;
+      }
     case OBMAG_STRBUF:
       {
 	struct basilysstrbuf_st *src = (struct basilysstrbuf_st *) p;
@@ -1568,6 +1584,39 @@ basilysgc_new_mixint (basilysobject_ptr_t discr_p,
   mix_newmix->discr = object_discrv;
   mix_newmix->intval = num;
   mix_newmix->ptrval = (basilys_ptr_t) valv;
+end:
+  BASILYS_EXITFRAME ();
+  return (basilys_ptr_t) newmix;
+#undef newmix
+#undef valv
+#undef discrv
+#undef mix_newmix
+#undef object_discrv
+}
+
+
+basilys_ptr_t
+basilysgc_new_mixloc (basilysobject_ptr_t discr_p,
+		      basilys_ptr_t val_p, long num, location_t loc)
+{
+  BASILYS_ENTERFRAME (3, NULL);
+#define newmix  curfram__.varptr[0]
+#define discrv  curfram__.varptr[1]
+#define valv    curfram__.varptr[2]
+#define object_discrv ((basilysobject_ptr_t)(discrv))
+#define mix_newmix ((struct basilysmixloc_st*)(newmix))
+  newmix = NULL;
+  discrv = (void *) discr_p;
+  valv = val_p;
+  if (basilys_magic_discr ((basilys_ptr_t) (discrv)) != OBMAG_OBJECT)
+    goto end;
+  if (object_discrv->object_magic != OBMAG_MIXLOC)
+    goto end;
+  newmix = basilysgc_allocate (sizeof (struct basilysmixloc_st), 0);
+  mix_newmix->discr = object_discrv;
+  mix_newmix->intval = num;
+  mix_newmix->ptrval = (basilys_ptr_t) valv;
+  mix_newmix->locval = loc;
 end:
   BASILYS_EXITFRAME ();
   return (basilys_ptr_t) newmix;
@@ -4831,6 +4880,7 @@ struct reading_st
   char *rcurlin;		/* current line mallocated buffer */
   int rlineno;			/* current line number */
   int rcol;			/* current column */
+  source_location rsrcloc;	/* current source location */
   basilys_ptr_t *rpfilnam;	/* pointer to location of file name string */
   basilys_ptr_t *rpgenv;	/* pointer to location of environment */
 };
@@ -4918,6 +4968,8 @@ readagain:
 	    }
 	};
       rd->rlineno++;
+      rd->rsrcloc =
+	linemap_line_start (line_table, rd->rlineno, strlen (linbuf) + 1);
       rd->rcol = 0;
       goto readagain;
     }
@@ -5013,6 +5065,7 @@ readsimplelong (struct reading_st *rd)
       NUMNAM (OBMAG_TRIPLE);
       NUMNAM (OBMAG_INT);
       NUMNAM (OBMAG_MIXINT);
+      NUMNAM (OBMAG_MIXLOC);
       NUMNAM (OBMAG_REAL);
       NUMNAM (OBMAG_STRING);
       NUMNAM (OBMAG_STRBUF);
@@ -5084,7 +5137,8 @@ end:
 
 
 static basilys_ptr_t
-makesexpr (struct reading_st *rd, int lineno, basilys_ptr_t contents_p)
+makesexpr (struct reading_st *rd, int lineno, basilys_ptr_t contents_p,
+	   location_t loc)
 {
   BASILYS_ENTERFRAME (4, NULL);
 #define sexprv  curfram__.varptr[0]
@@ -5092,8 +5146,14 @@ makesexpr (struct reading_st *rd, int lineno, basilys_ptr_t contents_p)
 #define locmixv curfram__.varptr[2]
   contsv = contents_p;
   gcc_assert (basilys_magic_discr ((basilys_ptr_t) contsv) == OBMAG_LIST);
-  locmixv = basilysgc_new_mixint (BASILYSGOB (DISCR_MIXEDINT),
-				  *rd->rpfilnam, (long) lineno);
+  loc = 0;
+#warning loc temporarily cleared to ease compilation of melt-generated stuff
+  if (loc == 0)
+    locmixv = basilysgc_new_mixint (BASILYSGOB (DISCR_MIXEDINT),
+				    *rd->rpfilnam, (long) lineno);
+  else
+    locmixv = basilysgc_new_mixloc (BASILYSGOB (DISCR_MIXEDLOC),
+				    *rd->rpfilnam, (long) lineno, loc);
   sexprv = basilysgc_new_raw_object (BASILYSGOB (CLASS_SEXPR), FSEXPR__LAST);
   ((basilysobject_ptr_t) (sexprv))->obj_vartab[FSEXPR_LOCATION] =
     (basilys_ptr_t) locmixv;
@@ -5364,6 +5424,7 @@ static basilys_ptr_t
 readsexpr (struct reading_st *rd, int endc)
 {
   int c = 0, lineno = rd->rlineno;
+  location_t loc = 0;
   BASILYS_ENTERFRAME (3, NULL);
 #define sexprv  curfram__.varptr[0]
 #define contv   curfram__.varptr[1]
@@ -5371,8 +5432,9 @@ readsexpr (struct reading_st *rd, int endc)
   if (!endc || rdeof ())
     READ_ERROR ("eof in s-expr (lin%d)", lineno);
   c = skipspace_getc (rd, COMMENT_SKIP);
+  LINEMAP_POSITION_FOR_COLUMN (loc, line_table, rd->rcol);
   contv = readseqlist (rd, endc);
-  sexprv = makesexpr (rd, lineno, (basilys_ptr_t) contv);
+  sexprv = makesexpr (rd, lineno, (basilys_ptr_t) contv, loc);
   BASILYS_EXITFRAME ();
   return (basilys_ptr_t) sexprv;
 #undef sexprv
@@ -5789,6 +5851,7 @@ readval (struct reading_st *rd, bool * pgot)
     {
       int lineno = rd->rlineno;
       bool got = false;
+      location_t loc = 0;
       rdnext ();
       compv = readval (rd, &got);
       if (!got)
@@ -5797,7 +5860,8 @@ readval (struct reading_st *rd, bool * pgot)
       altv = basilysgc_named_symbol ("quote", BASILYS_CREATE);
       basilysgc_append_list ((basilys_ptr_t) seqv, (basilys_ptr_t) altv);
       basilysgc_append_list ((basilys_ptr_t) seqv, (basilys_ptr_t) compv);
-      readv = makesexpr (rd, lineno, (basilys_ptr_t) seqv);
+      LINEMAP_POSITION_FOR_COLUMN (loc, line_table, rd->rcol);
+      readv = makesexpr (rd, lineno, (basilys_ptr_t) seqv, loc);
       *pgot = TRUE;
       goto end;
     }
@@ -5805,7 +5869,9 @@ readval (struct reading_st *rd, bool * pgot)
     {
       int lineno = rd->rlineno;
       bool got = false;
+      location_t loc = 0;
       rdnext ();
+      LINEMAP_POSITION_FOR_COLUMN (loc, line_table, rd->rcol);
       compv = readval (rd, &got);
       if (!got)
 	READ_ERROR ("expecting value after backquote %.20s", &rdcurc ());
@@ -5813,7 +5879,7 @@ readval (struct reading_st *rd, bool * pgot)
       altv = basilysgc_named_symbol ("backquote", BASILYS_CREATE);
       basilysgc_append_list ((basilys_ptr_t) seqv, (basilys_ptr_t) altv);
       basilysgc_append_list ((basilys_ptr_t) seqv, (basilys_ptr_t) compv);
-      readv = makesexpr (rd, lineno, (basilys_ptr_t) seqv);
+      readv = makesexpr (rd, lineno, (basilys_ptr_t) seqv, loc);
       *pgot = TRUE;
       goto end;
     }
@@ -5821,7 +5887,9 @@ readval (struct reading_st *rd, bool * pgot)
     {
       int lineno = rd->rlineno;
       bool got = false;
+      location_t loc = 0;
       rdnext ();
+      LINEMAP_POSITION_FOR_COLUMN (loc, line_table, rd->rcol);
       compv = readval (rd, &got);
       if (!got)
 	READ_ERROR ("expecting value after comma %.20s", &rdcurc ());
@@ -5829,7 +5897,7 @@ readval (struct reading_st *rd, bool * pgot)
       altv = basilysgc_named_symbol ("comma", BASILYS_CREATE);
       basilysgc_append_list ((basilys_ptr_t) seqv, (basilys_ptr_t) altv);
       basilysgc_append_list ((basilys_ptr_t) seqv, (basilys_ptr_t) compv);
-      readv = makesexpr (rd, lineno, (basilys_ptr_t) seqv);
+      readv = makesexpr (rd, lineno, (basilys_ptr_t) seqv, loc);
       *pgot = TRUE;
       goto end;
     }
@@ -5870,6 +5938,226 @@ end:
 }
 
 
+void
+basilys_error_str (basilys_ptr_t mixloc_p, const char *msg,
+		   basilys_ptr_t str_p)
+{
+  int mixmag = 0;
+  int lineno = 0;
+  location_t loc = 0;
+  BASILYS_ENTERFRAME (3, NULL);
+#define mixlocv    curfram__.varptr[0]
+#define strv       curfram__.varptr[1]
+#define finamv     curfram__.varptr[2]
+  gcc_assert (msg && msg[0]);
+  mixlocv = mixloc_p;
+  strv = str_p;
+  mixmag = basilys_magic_discr ((basilys_ptr_t) mixlocv);
+  if (mixmag == OBMAG_MIXLOC)
+    {
+      loc = basilys_location_mixloc (mixlocv);
+      finamv = basilys_val_mixloc (mixlocv);
+      lineno = basilys_num_mixloc (mixlocv);
+    }
+  else if (mixmag == OBMAG_MIXINT)
+    {
+      loc = 0;
+      finamv = basilys_val_mixint (mixlocv);
+      lineno = basilys_num_mixint (mixlocv);
+    }
+  else
+    {
+      loc = 0;
+      finamv = NULL;
+      lineno = 0;
+    }
+  if (loc)
+    {
+      char *cstr = basilys_string_str (strv);
+      if (cstr)
+	error ("%H.Basilys Error[#%ld]: %s - %s", &loc, basilys_dbgcounter,
+	       msg, cstr);
+      else
+	error ("%H.Basilys Error[#%ld]: %s", &loc, basilys_dbgcounter, msg);
+    }
+  else
+    {
+      char *cfilnam = basilys_string_str (finamv);
+      char *cstr = basilys_string_str (strv);
+      if (cfilnam)
+	{
+	  if (cstr)
+	    error ("Basilys Error[#%ld] @ %s:%d: %s - %s", basilys_dbgcounter,
+		   cfilnam, lineno, msg, cstr);
+	  else
+	    error ("Basilys Error[#%ld] @ %s:%d: %s", basilys_dbgcounter,
+		   cfilnam, lineno, msg);
+	}
+      else
+	{
+	  if (cstr)
+	    error ("Basilys Error[#%ld]: %s - %s", basilys_dbgcounter, msg,
+		   cstr);
+	  else
+	    error ("Basilys Error[#%ld]: %s", basilys_dbgcounter, msg);
+	}
+    }
+  BASILYS_EXITFRAME ();
+}
+
+#undef mixlocv
+#undef strv
+#undef finamv
+
+
+void
+basilys_warning_str (int opt, basilys_ptr_t mixloc_p, const char *msg,
+		     basilys_ptr_t str_p)
+{
+  int mixmag = 0;
+  int lineno = 0;
+  location_t loc = 0;
+  BASILYS_ENTERFRAME (3, NULL);
+#define mixlocv    curfram__.varptr[0]
+#define strv       curfram__.varptr[1]
+#define finamv     curfram__.varptr[2]
+  gcc_assert (msg && msg[0]);
+  mixlocv = mixloc_p;
+  strv = str_p;
+  mixmag = basilys_magic_discr ((basilys_ptr_t) mixlocv);
+  if (mixmag == OBMAG_MIXLOC)
+    {
+      loc = basilys_location_mixloc (mixlocv);
+      finamv = basilys_val_mixloc (mixlocv);
+      lineno = basilys_num_mixloc (mixlocv);
+    }
+  else if (mixmag == OBMAG_MIXINT)
+    {
+      loc = 0;
+      finamv = basilys_val_mixint (mixlocv);
+      lineno = basilys_num_mixint (mixlocv);
+    }
+  else
+    {
+      loc = 0;
+      finamv = NULL;
+      lineno = 0;
+    }
+  if (loc)
+    {
+      char *cstr = basilys_string_str (strv);
+      if (cstr)
+	warning (opt, "%H.Basilys Warning[#%ld]: %s - %s", &loc,
+		 basilys_dbgcounter, msg, cstr);
+      else
+	warning (opt, "%H.Basilys Warning[#%ld]: %s", &loc,
+		 basilys_dbgcounter, msg);
+    }
+  else
+    {
+      char *cfilnam = basilys_string_str (finamv);
+      char *cstr = basilys_string_str (strv);
+      if (cfilnam)
+	{
+	  if (cstr)
+	    warning (opt, "Basilys Warning[#%ld] @ %s:%d: %s - %s",
+		     basilys_dbgcounter, cfilnam, lineno, msg, cstr);
+	  else
+	    warning (opt, "Basilys Warning[#%ld] @ %s:%d: %s",
+		     basilys_dbgcounter, cfilnam, lineno, msg);
+	}
+      else
+	{
+	  if (cstr)
+	    warning (opt, "Basilys Warning[#%ld]: %s - %s",
+		     basilys_dbgcounter, msg, cstr);
+	  else
+	    warning (opt, "Basilys Warning[#%ld]: %s", basilys_dbgcounter,
+		     msg);
+	}
+    }
+  BASILYS_EXITFRAME ();
+}
+
+#undef mixlocv
+#undef strv
+#undef finamv
+
+
+
+void
+basilys_inform_str (basilys_ptr_t mixloc_p, const char *msg,
+		    basilys_ptr_t str_p)
+{
+  int mixmag = 0;
+  int lineno = 0;
+  location_t loc = 0;
+  BASILYS_ENTERFRAME (3, NULL);
+#define mixlocv    curfram__.varptr[0]
+#define strv       curfram__.varptr[1]
+#define finamv     curfram__.varptr[2]
+  gcc_assert (msg && msg[0]);
+  mixlocv = mixloc_p;
+  strv = str_p;
+  mixmag = basilys_magic_discr ((basilys_ptr_t) mixlocv);
+  if (mixmag == OBMAG_MIXLOC)
+    {
+      loc = basilys_location_mixloc (mixlocv);
+      finamv = basilys_val_mixloc (mixlocv);
+      lineno = basilys_num_mixloc (mixlocv);
+    }
+  else if (mixmag == OBMAG_MIXINT)
+    {
+      loc = 0;
+      finamv = basilys_val_mixint (mixlocv);
+      lineno = basilys_num_mixint (mixlocv);
+    }
+  else
+    {
+      loc = 0;
+      finamv = NULL;
+      lineno = 0;
+    }
+  if (loc)
+    {
+      char *cstr = basilys_string_str (strv);
+      if (cstr)
+	inform ("%H.Basilys Inform[#%ld]: %s - %s", &loc, basilys_dbgcounter,
+		msg, cstr);
+      else
+	inform ("%H.Basilys Inform[#%ld]: %s", &loc, basilys_dbgcounter, msg);
+    }
+  else
+    {
+      char *cfilnam = basilys_string_str (finamv);
+      char *cstr = basilys_string_str (strv);
+      if (cfilnam)
+	{
+	  if (cstr)
+	    inform ("Basilys Inform[#%ld] @ %s:%d: %s - %s",
+		    basilys_dbgcounter, cfilnam, lineno, msg, cstr);
+	  else
+	    inform ("Basilys Inform[#%ld] @ %s:%d: %s", basilys_dbgcounter,
+		    cfilnam, lineno, msg);
+	}
+      else
+	{
+	  if (cstr)
+	    inform ("Basilys Inform[#%ld]: %s - %s", basilys_dbgcounter, msg,
+		    cstr);
+	  else
+	    inform ("Basilys Inform[#%ld]: %s", basilys_dbgcounter, msg);
+	}
+    }
+  BASILYS_EXITFRAME ();
+}
+
+#undef mixlocv
+#undef strv
+#undef finamv
+
+
+
 
 basilys_ptr_t
 basilysgc_read_file (const char *filnam, const char *locnam)
@@ -5877,6 +6165,7 @@ basilysgc_read_file (const char *filnam, const char *locnam)
   struct reading_st rds;
   FILE *fil = 0;
   struct reading_st *rd = 0;
+  char *locnamdup = 0;
   BASILYS_ENTERFRAME (4, NULL);
 #define genv      curfram__.varptr[0]
 #define valv      curfram__.varptr[1]
@@ -5887,6 +6176,7 @@ basilysgc_read_file (const char *filnam, const char *locnam)
     goto end;
   if (!locnam || !locnam[0])
     locnam = basename (filnam);
+  locnamdup = xstrdup (locnam);	/* locnamdup is never freed */
   debugeprintf ("basilysgc_read_file filnam %s locnam %s", filnam, locnam);
   fil = fopen (filnam, "rt");
   if (!fil)
@@ -5895,6 +6185,7 @@ basilysgc_read_file (const char *filnam, const char *locnam)
   rds.rfil = fil;
   rds.rpath = filnam;
   rds.rlineno = 0;
+  linemap_add (line_table, LC_RENAME, false, locnamdup, 0);
   rd = &rds;
   locnamv = basilysgc_new_stringdup (BASILYSGOB (DISCR_STRING), locnam);
   rds.rpfilnam = (basilys_ptr_t *) & locnamv;
@@ -6560,6 +6851,16 @@ basilys_debug_out (struct debugprint_basilys_st *dp,
     case OBMAG_MIXINT:
       {
 	struct basilysmixint_st *p = (struct basilysmixint_st *) ptr;
+	fputs ("!", dp->dfil);
+	discr_out (dp, p->discr);
+	fprintf (dp->dfil, "[#%ld&", p->intval);
+	basilys_debug_out (dp, p->ptrval, depth + 1);
+	fputs ("]", dp->dfil);
+	break;
+      }
+    case OBMAG_MIXLOC:
+      {
+	struct basilysmixloc_st *p = (struct basilysmixloc_st *) ptr;
 	fputs ("!", dp->dfil);
 	discr_out (dp, p->discr);
 	fprintf (dp->dfil, "[#%ld&", p->intval);

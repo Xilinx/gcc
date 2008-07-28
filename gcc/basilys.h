@@ -232,6 +232,7 @@ enum obmag_en    {
   OBMAG_TRIPLE,
   OBMAG_INT,
   OBMAG_MIXINT,
+  OBMAG_MIXLOC,
   OBMAG_REAL,
   OBMAG_STRING,
   OBMAG_STRBUF,
@@ -530,6 +531,16 @@ GTY (())
   long intval;
 };
 
+/* when OBMAG_MIXLOC -  */
+struct basilysmixloc_st
+GTY (())
+{
+  basilysobject_ptr_t discr;
+  basilys_ptr_t ptrval;
+  long intval;
+  location_t locval;
+};
+
 
 
 /* when OBMAG_REAL   */
@@ -771,6 +782,7 @@ GTY ((desc ("%0.u_discr->object_magic")))
   struct basilyslist_st GTY ((tag ("OBMAG_LIST"))) u_list;
   struct basilysint_st GTY ((tag ("OBMAG_INT"))) u_int;
   struct basilysmixint_st GTY ((tag ("OBMAG_MIXINT"))) u_mixint;
+  struct basilysmixloc_st GTY ((tag ("OBMAG_MIXLOC"))) u_mixloc;
   struct basilysreal_st GTY ((tag ("OBMAG_REAL"))) u_real;
   struct basilyspair_st GTY ((tag ("OBMAG_PAIR"))) u_pair;
   struct basilystriple_st GTY ((tag ("OBMAG_TRIPLE"))) u_triple;
@@ -1209,6 +1221,8 @@ basilys_get_int (basilys_ptr_t v)
       return ((struct basilysint_st *) (v))->val;
     case OBMAG_MIXINT:
       return ((struct basilysmixint_st *) (v))->intval;
+    case OBMAG_MIXLOC:
+      return ((struct basilysmixloc_st *) (v))->intval;
     case OBMAG_OBJECT:
       return ((basilysobject_ptr_t) (v))->obj_num;
     default:
@@ -1226,6 +1240,9 @@ basilys_put_int (basilys_ptr_t v, long x)
       return TRUE;
     case OBMAG_MIXINT:
       ((struct basilysmixint_st *) (v))->intval = x;
+      return TRUE;
+    case OBMAG_MIXLOC:
+      ((struct basilysmixloc_st *) (v))->intval = x;
       return TRUE;
     case OBMAG_OBJECT:
       if (((basilysobject_ptr_t) (v))->obj_num != 0)
@@ -1291,6 +1308,9 @@ basilys_imod (long i, long j)
 basilys_ptr_t
 basilysgc_new_mixint (basilysobject_ptr_t discr_p, basilys_ptr_t val_p,
 		      long num);
+basilys_ptr_t
+basilysgc_new_mixloc (basilysobject_ptr_t discr_p, basilys_ptr_t val_p,
+		      long num, location_t loc);
 
 static inline basilys_ptr_t
 basilys_val_mixint (basilys_ptr_t mix)
@@ -1308,6 +1328,34 @@ basilys_num_mixint (basilys_ptr_t mix)
   if (basilys_magic_discr (mix) == OBMAG_MIXINT)
     return smix->intval;
   return 0;
+}
+
+static inline long
+basilys_num_mixloc (basilys_ptr_t mix)
+{
+  struct basilysmixloc_st *smix = (struct basilysmixloc_st *) mix;
+  if (basilys_magic_discr (mix) == OBMAG_MIXLOC)
+    return smix->intval;
+  return 0;
+}
+
+static inline basilys_ptr_t
+basilys_val_mixloc (basilys_ptr_t mix)
+{
+  struct basilysmixloc_st *smix = (struct basilysmixloc_st *) mix;
+  if (basilys_magic_discr (mix) == OBMAG_MIXLOC)
+    return smix->ptrval;
+  return NULL;
+}
+
+
+static inline location_t
+basilys_location_mixloc (basilys_ptr_t mix)
+{
+  struct basilysmixloc_st *smix = (struct basilysmixloc_st *) mix;
+  if (basilys_magic_discr (mix) == OBMAG_MIXLOC)
+    return smix->locval;
+  return (location_t)0;
 }
 
 
@@ -1328,6 +1376,11 @@ basilys_field_object (basilys_ptr_t ob, unsigned off)
 basilysobject_ptr_t basilysgc_new_raw_object (basilysobject_ptr_t klass_p,
 					      unsigned len);
 
+
+/* basilys diagnostic routine */
+void basilys_error_str(basilys_ptr_t mixloc_p, const char* msg, basilys_ptr_t str_p);
+void basilys_warning_str(int opt, basilys_ptr_t mixloc_p, const char* msg, basilys_ptr_t str_p);
+void basilys_inform_str(basilys_ptr_t mixloc_p, const char* msg, basilys_ptr_t str_p);
 
 #if MELTGCC_DYNAMIC_OBJSTRUCT
 int* basilys_dynobjstruct_fieldoffset_at(const char*fldnam, const char*fil, int lin);
@@ -2159,6 +2212,8 @@ enum basilys_globalix_en
   BGLOB_CLASS_GCC_PASS,
   /* the class of C iterators */
   BGLOB_CLASS_CITERATOR,
+  /* the initial discriminant of mixedloc */
+  BGLOB_DISCR_MIXEDLOC,
   /**************************** placeholder for last wired */
   BGLOB__LASTWIRED,
   BGLOB___SPARE1,

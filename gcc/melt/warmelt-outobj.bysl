@@ -444,7 +444,8 @@
 	      (add2sbuf_cencstring sbuf (unsafe_get_field :named_name dnam)))
 	  (if (is_a dpro class_nrep_routproc)
 	      (let (  (dloc (unsafe_get_field :nrep_loc dpro))
-		      (locfil (mixint_val dloc)) )
+		      (locfil (or (mixint_val dloc) (mixloc_val dloc)))
+		      )
 		(add2sbuf_strconst sbuf " @")
 		(add2sbuf_cencstring sbuf locfil)
 		(add2sbuf_strconst sbuf ":")
@@ -562,11 +563,17 @@
 	(add2sbuf_indentnl implbuf 0)
 	(add2sbuf_strconst implbuf "#line 0 ")
 	(add2sbuf_strconst implbuf " \"")
-	(if (is_mixint loc) 
-	    (progn
-	      (add2sbuf_string implbuf (mixint_val loc))
-	      (add2sbuf_strconst implbuf ":")
-	      (add2sbuf_longdec implbuf (get_int loc))))
+	(cond ( (is_mixint loc) 
+		(progn
+		  (add2sbuf_string implbuf (mixint_val loc))
+		  (add2sbuf_strconst implbuf ":")
+		  (add2sbuf_longdec implbuf (get_int loc))))
+	      ( (is_mixloc loc)
+		(progn
+		  (add2sbuf_string implbuf (mixloc_val loc))
+		  (add2sbuf_strconst implbuf ":")
+		  (add2sbuf_longdec implbuf (get_int loc))))
+	      )
 	(if msg (progn
 		  (add2sbuf_strconst implbuf ":: @")
 		  (add2sbuf_strconst implbuf msg)
@@ -580,20 +587,32 @@
 ;; output the location & set the frame's location
 (defun output_location (loc implbuf :long depth :cstring msg)
   (output_raw_location loc implbuf depth msg)
-  (if (is_mixint loc) 
-      (progn
-	(add2sbuf_strconst implbuf "BASILYS_LOCATION(\"")
-	(add2sbuf_string implbuf (mixint_val loc))
-	(add2sbuf_strconst implbuf ":")
-	(add2sbuf_longdec implbuf (get_int loc))
-	(if msg (progn
-		  (add2sbuf_strconst implbuf ": @")
-		  (add2sbuf_strconst implbuf msg)
-		  ))
-	(add2sbuf_strconst implbuf "\");")
-	(add2sbuf_indentnl implbuf depth)
-	))
-  )
+  (cond
+   ( (is_mixint loc) 
+     (add2sbuf_strconst implbuf "BASILYS_LOCATION(\"")
+     (add2sbuf_string implbuf (mixint_val loc))
+     (add2sbuf_strconst implbuf ":")
+     (add2sbuf_longdec implbuf (get_int loc))
+     (if msg (progn
+	       (add2sbuf_strconst implbuf ": @")
+	       (add2sbuf_strconst implbuf msg)
+	       ))
+     (add2sbuf_strconst implbuf "\");")
+     (add2sbuf_indentnl implbuf depth)
+     )
+   ( (is_mixloc loc)
+     (add2sbuf_strconst implbuf "BASILYS_LOCATION(\"")
+     (add2sbuf_string implbuf (mixloc_val loc))
+     (add2sbuf_strconst implbuf ":")
+     (add2sbuf_longdec implbuf (get_int loc))
+     (if msg (progn
+	       (add2sbuf_strconst implbuf ": @")
+	       (add2sbuf_strconst implbuf msg)
+	       ))
+     (add2sbuf_strconst implbuf "\");")
+     (add2sbuf_indentnl implbuf depth)
+     )
+   ))
 
 
 ;;; output the code for declaring the current frame struct
@@ -760,7 +779,7 @@
     (add2sbuf_indentnl declbuf 0)
     (output_raw_location orloc implbuf 0 "proc")
     (add2sbuf_indentnl declbuf 0)
-    (if (is_mixint orloc)
+    (if (or (is_mixint orloc) (is_mixloc orloc))
 	(output_raw_location orloc declbuf 0 "procdecl")
 	)
     (add2sbuf_strconst declbuf "static basilys_ptr_t ")
@@ -1671,7 +1690,9 @@
 		   (add2sbuf_strconst implbuf "].")
 		   (list_append paramdesclist (unsafe_get_field :ctype_parstring curctyp))
 		   (cond ( (null curarg)
-			   (add2sbuf_strconst implbuf "bp_aptr = (basilys_ptr_t*)NULL"))
+			   (add2sbuf_strconst implbuf "bp_aptr = (basilys_ptr_t*)NULL")) 
+			 ( (is_a curarg class_objnil)
+			   (add2sbuf_strconst implbuf "bp_aptr = /*nil*/(basilys_ptr_t*)NULL"))
 			 ( (== curctyp ctype_value)
 			   (add2sbuf_strconst implbuf "bp_aptr = (basilys_ptr_t*) &")
 			   (output_c_code curarg declbuf implbuf (get_int boxdepthp1))
@@ -1682,8 +1703,8 @@
 		      (output_c_code curarg declbuf implbuf (get_int boxdepthp1))
 		      ))
 		   (add2sbuf_strconst implbuf ";")
+		   (add2sbuf_indentnl implbuf (get_int boxdepthp1))
 		   ))))
-	  (add2sbuf_indentnl implbuf (get_int boxdepthp1))
 	  ))
 ;;; output the destination(s)
     (list_every 
@@ -1764,6 +1785,9 @@
 		   (list_append paramdesclist (unsafe_get_field :ctype_parstring curctyp))
 		   (cond ( (null curarg)
 			   (add2sbuf_strconst implbuf "bp_aptr = (basilys_ptr_t*)NULL")
+			   ) 
+			 ( (is_a curarg class_objnil)
+			   (add2sbuf_strconst implbuf "bp_aptr = /*nil*/(basilys_ptr_t*)NULL")
 			   )
 			 ( (== curctyp ctype_value)
 			   (add2sbuf_strconst implbuf "bp_aptr = (basilys_ptr_t*) &")
@@ -1775,8 +1799,8 @@
 		      (output_c_code curarg declbuf implbuf (get_int boxdepthp1))
 		      ))
 		   (add2sbuf_strconst implbuf ";")
+		   (add2sbuf_indentnl implbuf (get_int boxdepthp1))
 		   )))
-	  (add2sbuf_indentnl implbuf (get_int boxdepthp1))
 	  ))
 ;;; output the destination(s)
     (list_every 
@@ -2584,7 +2608,7 @@
 	 (boxdepthp1 (make_integerbox discr_integer (+i depth 1)))
 	 )
     (assert_msg "check cont" (is_multiple cont))
-    (if (is_mixint oloc)
+    (if (or (is_mixint oloc) (is_mixloc oloc))
 	(output_raw_location oloc implbuf depth "expr")
 	)
     (multiple_every
@@ -2925,7 +2949,7 @@
     ;;-  rlist 
     ;;-  (make_instance
     ;;-   class_sexpr
-    ;;-   :loca_location (make_mixint discr_mixedint 
+    ;;-   :loca_location (make_mixint discr_mixedint
     ;;- 				  (make_stringconst discr_string "**builtin post_initialization**")
     ;;- 				  0)
     ;;-   :sexp_contents (list3 'post_initialization (the_null) basnam)))

@@ -1,3 +1,37 @@
+2008-07-27  Basile Starynkevitch  <basile@starynkevitch.net>
+	[adding location_t in MELT parsing & error reports]
+
+	* basilys.h: declare  basilys_error_str, basilys_warning_str, basilys_inform_str.
+	OBMAG_MIXLOC & BGLOB_DISCR_MIXEDLOC is new.
+
+	* basilys.c:
+	(check_pointer_at, forwarded_copy) handing OBMAG_MIXLOC.
+	(basilysgc_new_mixloc) new function.
+	(struct reading_st) new field rsrcloc.
+	(skipspace_getc) handle rsrcloc.
+	(makesexpr) new argument loc. handling it.
+	(readsexpr) handle location_t [temporarily disabled]
+	(basilys_error_str, basilys_warning_str, basilys_inform_str) new functions.
+
+	* melt/warmelt-first.bysl: adding discr_mixedloc & mixloc_*
+	primitives.  diagnostic primitives call the new basilys_error_str,
+	basilys_warning_str, basilys_inform_str.
+
+	* melt/warmelt-normal.bysl: added DISCR_MIXEDLOC predef.
+
+	* melt/warmelt-outobj.bysl: handled better nil arguments, and
+	handle both old fashioned & new fashioned locations.
+
+	* warmelt-first-0.c: regenerated.
+
+	* warmelt-macro-0.c: regenerated.
+
+	* warmelt-normal-0.c: regenerated.
+
+	* warmelt-genobj-0.c: regenerated.
+
+	* warmelt-outobj-0.c: regenerated.
+
 2008-07-24  Basile Starynkevitch  <basile@starynkevitch.net>
 	[adding a field inside the compiler works, thanks to dynamic objstruct; 
 	citerators seems to be compiled ok]
