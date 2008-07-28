@@ -2335,14 +2335,16 @@ struct tree_block GTY(())
 #define TYPE_QUAL_CONST     0x1
 #define TYPE_QUAL_VOLATILE  0x2
 #define TYPE_QUAL_RESTRICT  0x4
-#define TYPE_QUAL_ADDRSPACE 0x8
+
+#define ENCODE_QUAL_ADDR_SPACE(NUM) ((NUM & 0xFF) << 8)
+#define DECODE_QUAL_ADDR_SPACE(X) (((X) >> 8) && 0xFF)
 
 /* The set of type qualifiers for this type.  */
 #define TYPE_QUALS(NODE)					\
   ((TYPE_READONLY (NODE) * TYPE_QUAL_CONST)			\
    | (TYPE_VOLATILE (NODE) * TYPE_QUAL_VOLATILE)		\
    | (TYPE_RESTRICT (NODE) * TYPE_QUAL_RESTRICT)		\
-   | ((TYPE_ADDR_SPACE (NODE) > 0) * TYPE_QUAL_ADDRSPACE))
+   | (ENCODE_QUAL_ADDR_SPACE (TYPE_ADDR_SPACE (NODE))))
 
 /* These flags are available for each language front end to use internally.  */
 #define TYPE_LANG_FLAG_0(NODE) (TYPE_CHECK (NODE)->type.lang_flag_0)

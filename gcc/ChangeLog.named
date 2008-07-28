@@ -1,3 +1,14 @@
+2008-07-28  Ben Elliston  <bje@au.ibm.com>
+
+	* tree.c (set_type_quals): Use DECODE_QUAL_ADDR_SPACE.
+	* tree.h (ENCODE_QUAL_ADDR_SPACE): New.
+	(DECODE_QUAL_ADDR_SPACE): Likewise.
+	(TYPE_QUALS): Use ENCODE_QUAL_ADDR_SPACE.
+	* tree-ssa-loop-ivopts.c (generic_type_for): Likewise.
+	* c-decl.c (quals_from_declspecs): Likewise.
+	(grokdeclarator): Likewise.
+	* c-typeck.c (build_binary_op): Likewise.
+
 2008-07-15  Ben Elliston  <bje@au.ibm.com>
 
 	* doc/rtl.texi (Special Accessors): Document MEM_ADDR_SPACE.
