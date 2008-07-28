@@ -1,9 +1,18 @@
+2008-07-25  Jan Hubicka  <jh@suse.cz>
+
+	* utils.c (end_subprog_body): Remove inline trees check.
+	* misc.c (gnat_post_options): Do not set flag_inline_trees.
+
+2008-07-25  Rainer Orth  <ro@TechFak.Uni-Bielefeld.DE>
+
+	* raise-gcc.c: Move tsystem.h before tm.h.
+
 2008-07-20  Arnaud Charlet  <charlet@adacore.com>
 
 	* gnathtml.pl: New file.
 
 2008-07-19  Olivier Hainque  <hainque@adacore.com>
-	 
+
 	* targtyps.c (get_target_default_allocator_alignment): Use
 	MALLOC_ABI_ALIGNMENT.
 

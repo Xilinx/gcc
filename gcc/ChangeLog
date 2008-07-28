@@ -1,3 +1,172 @@
+2008-07-27  Victor Kaplansky  <victork@il.ibm.com>
+
+	PR tree-optimization/35252
+	* tree-vect-analyze.c (vect_build_slp_tree): Make IMAGPART_EXPR and
+	REALPART_EXPR to be considered as same load operation.
+
+2008-07-27  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR tree-optimization/36830
+	* tree-ssa-sccvn.c (vn_reference_op_compute_hash): Hash operand #2.
+	(expressions_equal_p): Return false if only one operand is null.
+
+2008-07-26  Gerald Pfeifer  <gerald@pfeifer.com>
+
+	* doc/install.texi (powerpc-*-netbsd*): Remove redundant texinfo
+	version requirements.
+
+2008-07-26  Olivier Hainque  <hainque@adacore.com>
+
+	* collect2.c (symkind): New enum.  Symbol kinds we care about.
+	(is_ctor_dtor): Return symkind instead of int.  Adjust prototype,
+	code and head comment accordingly.
+	(scan_prog_file): Use symkind names instead of bare integers.
+	
+2008-07-25  Jan Hubicka  <jh@suse.cz>
+
+	* cgraph.c (cgraph_function_possibly_inlined_p): Do not rely on DECL_INLINE.
+	* cgraphunit.c (record_cdtor_fn): Do not initialize DECL_INLINE
+	(cgraph_preserve_function_body_p): Do not rely on DECL_INLINE.
+	* dojump.c (clear_pending_stack_adjust): Likewise.
+	* print-tree.c (print_node): Ignore DECL_INLINE.
+	* tree-inline.c (inlinable_function_p): Likewise.
+	
+2008-07-25  Michael Meissner  <gnu@the-meissners.org>
+
+	* doc/extend.texi (hot attribute): Document that the hot attribute
+	turns on -O3 for some ports.
+	(cold attribute): Document that the cold attribute turns on -Os
+	for some ports
+
+	* doc/tm.texi (OPTIMIZATION_OPTIONS): Update documentation to
+	reflect function specific option support.
+
+	* target.h (struct target_option_hooks): Add fields to say whether
+	the cold attribute implies -Os and the hot attribute implies -O3.
+
+	* target-def.h (TARGET_OPTION_COLD_ATTRIBUTE_SETS_OPTIMIZATION):
+	By default, do not turn on -Os for cold functions.
+	(TARGET_OPTION_COLD_ATTRIBUTE_SETS_OPTIMIZATION): By default, do
+	not turn on -O3 for hot functions.
+
+	* c-common.c (handle_hot_attribute): Use target hook to determine
+	if hot functions should enable -O3.
+	(handle_cold_attribute): Use target hook to determine if cold
+	functions should enable -Os.
+
+	* config/i386/i386.c (ix86_target_string): Add -m3dnowa support.
+	(override_options): Move disable scheduling to
+	optimization_options.
+	(optimization_options): Disable scheduling here, not
+	override_options.
+	(TARGET_OPTION_COLD_ATTRIBUTE_SETS_OPTIMIZATION): Define.
+	(TARGET_OPTION_HOT_ATTRIBUTE_SETS_OPTIMIZATION): Define.
+
+	* config/ia64/ia64.c (ia64_override_options): Move setting
+	scheduling flags to ia64_optimization_options.
+	(ia64_optimization_options): Disable scheduling options here, and
+	not in ia64_override_options.
+	(TARGET_OPTION_COLD_ATTRIBUTE_SETS_OPTIMIZATION): Define.
+	(TARGET_OPTION_HOT_ATTRIBUTE_SETS_OPTIMIZATION): Define.
+
+2008-07-25  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/36936
+	* config/i386/i386.c (override_options): Don't clear TARGET_CMOVE.
+
+2008-07-25  Martin Jambor  <mjambor@suse.cz>
+
+	PR tree-optimization/36926
+	* ipa-prop.c (ipa_analyze_call_uses): Call
+	ipa_is_ssa_with_stmt_def instead of SSA_NAME_IS_DEFAULT_DEF.
+
+2008-07-25  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/arm/iwmmxt.md (movv8qi_internal, movv4hi_internal,
+	movv2si_internal): Add mem = reg alternative.
+
+2008-07-25  Andreas Tobler  <a.tobler@schweiz.org>
+
+	PR bootstrap/36918
+	* config/sparc/sparc.h (DEFAULT_PCC_STRUCT_RETURN): Define
+	DEFAULT_PCC_STRUCT_RETURN to 127.
+
+2008-07-24  Jan Hubicka  <jh@suse.cz>
+
+	* cgraphbuild.c (record_reference): Drop non-unit-at-a-time code.
+	(build_cgraph_edges): Likewise.
+	* cgraph.c (cgraph_node): Do not update assembler hash.
+	(cgraph_remove_node): Drop non-unit-at-a-time code.
+	* tree-pass.h (pass_O0_always_inline): Remove.
+	* ipa-reference.c (gate_reference): Remove unit-at-a-time check.
+	* toplev.c (process_options): Flag unit-at-a-time does not imply
+	no section anchors.
+	* cgraphunit.c: Update comments.
+	(decide_is_function_needed): Drop non-unit-at-a-time mode.
+	(cgraph_assemble_pending_functions): Remove.
+	(cgraph_reset_node): Drop non-unit-at-a-time code.
+	(cgraph_finalize_function): Likewise.
+	(cgraph_analyze_function): Likewise.
+	(cgraph_finalize_compilation_unit): Likewise.
+	(cgraph_expand_function): Likewise.
+	(cgraph_optimize): Likesise.
+	(save_inline_function_body): Likewise.
+	* ipa-pure-const.c (gate_pure_const): Drop flag_unit_at_a_time check.
+	* tree-ssa-alias.c (maybe_be_aliased): Likewise.
+	* ipa-inline.c: Update comments.
+	(enum inlining_mode): remove INLINE_SPEED.
+	(cgraph_clone_inlined_nodes): Drop unit-at-a-time check.
+	(cgraph_mark_inline_edge): Likewise.
+	(try_inline): Likewise.
+	(cgraph_decide_inlining_incrementally): Likewise.
+	(cgraph_gate_inlining): Remove.
+	(cgraph_early_inlining): Remove flag_unit_at_a_time checks.
+	(cgraph_gate_early_inlining): Likewise.
+	(gate_inline_passes): Remove.
+	(pass_inline_parameters, pass_ipa_inline): Remove gates.
+	(cgraph_gate_O0_always_inline, cgraph_O0_always_inline, 
+	pass_O0_always_inline): Remove.
+	* c-pch.c (c_pch_matching): Remove -funit-at-a-time.
+	* dwarf2out.c (reference_to_unused): Remove flag_unit_at_a_time check.
+	* opts.c (no_unit_at_a_time_default): Remove.
+	(decode_options): Remove flag_unit_at_a_time reset and warning.
+	* opts.h (no_unit_at_a_time_default): Remove.
+	* c-decl.c (diagnose_mismatched_decls): Do not require inline keyword
+	early in GNU dialect.
+	(merge_decls): Update comment; drop unit-at-a-time check.
+	(finish_decl): Likewise.
+	(grok_declaration): Remove flag_inline_trees code.
+	(finish_functions): Return on function returning non-void on all
+	statics.
+	* ipa-tye-escape.c (gate_type_escape_vars): Remove.
+	* cfgexpand.c (expand_one_static_var): Remove.
+	(expand_one_var): Remove expand_one_static_var call.
+	(expand_used_vars_for_block): Remove flag_unit_a_time check.
+	* c-opts.c (c_common_post_options): Remove flag_inline_trees code
+	and flag_unit_at_a-time compatibility checks.
+	* varasm.c (assemble_alias): Remove flag_unit_at_a_time check.
+	* tree-inline.c (flag_inline_trees): Remove.
+	(inlinable_function_p): Don't check it.
+	(expand_call_inline): Remove non-unit-at-a-time code.
+	* tree-inline.h (flag_inline_trees): Remove.
+	* tree-optimize.c (execute_early_local_optimizations): Remove
+	unit-at-a-time checks.
+	(tree_rest_of_compilation): Likewise.
+	* combine.c (setup_incoming_promotions): Likewise.
+	* tree-profile.c (tree_gen_ic_func_profiler): Likewise.
+	* tree-ssa-structalias.c (delete_points_to_sets): Likewise.
+	* passes.c (pass_inline_parameters): Update comments; remove
+	O0_alwaysinline pass.
+	(execute_one_ipa_transform_pass): Do not reset in_gimple_form.
+	(execute_one_pass): Likewise.
+	* i386.c (ix86_function_regparm): Remove unit-at-a-time check.
+	(ix86_function_sseregparm): Likewise.
+	* arm.c (arm_function_in_section_p): Likewise.
+	* bfin.c (bfin_load_pic_reg, bfin_function_ok_for_sibcall): Likewise.
+	* varpool.c: Update comments.
+	(decide_is_variable_needed): Remove unit-at-a-time checks.
+	(varpool_finalize_decl): Likewise.
+
 2008-07-24  Kaz Kojima  <kkojima@gcc.gnu.org>
 
 	* config/sh/sh.h (OPTIMIZATION_OPTIONS): Set flag_omit_frame_pointer

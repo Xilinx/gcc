@@ -741,7 +741,7 @@ ipa_analyze_call_uses (struct ipa_node_params *info, tree call, tree stmt)
      pointer that is a parameter to this function. */
   n1 = PHI_ARG_DEF (def, 0);
   n2 = PHI_ARG_DEF (def, 1);
-  if (SSA_NAME_IS_DEFAULT_DEF (n1) || SSA_NAME_IS_DEFAULT_DEF (n2))
+  if (!ipa_is_ssa_with_stmt_def (n1) || !ipa_is_ssa_with_stmt_def (n2))
     return;
   d1 = SSA_NAME_DEF_STMT (n1);
   d2 = SSA_NAME_DEF_STMT (n2);
@@ -1212,7 +1212,7 @@ ipa_unregister_cgraph_hooks (void)
 void
 free_all_ipa_structures_after_ipa_cp (void)
 {
-  if (!flag_indirect_inlining || !flag_inline_trees)
+  if (!flag_indirect_inlining)
     {
       ipa_free_all_edge_args ();
       ipa_free_all_node_params ();

@@ -412,17 +412,6 @@ cgraph_node (tree decl)
       node->master_clone = node;
     }
 
-  /* This code can go away once flag_unit_at_a_mode is removed.  */
-  if (assembler_name_hash)
-    {
-      tree name = DECL_ASSEMBLER_NAME (node->decl);
-      slot = ((struct cgraph_node **)
-              htab_find_slot_with_hash (assembler_name_hash, name,
-				        decl_assembler_name_hash (name),
-				        INSERT));
-      if (!*slot)
-        *slot = node;
-    }
   return node;
 }
 
@@ -894,7 +883,7 @@ cgraph_remove_node (struct cgraph_node *node)
         htab_clear_slot (assembler_name_hash, slot);
     }
 
-  if (kill_body && flag_unit_at_a_time)
+  if (kill_body)
     cgraph_release_function_body (node);
   node->decl = NULL;
   if (node->call_site_hash)
@@ -1151,7 +1140,7 @@ bool
 cgraph_function_possibly_inlined_p (tree decl)
 {
   if (!cgraph_global_info_ready)
-    return (DECL_INLINE (decl) && !flag_really_no_inline);
+    return !DECL_UNINLINABLE (decl) && !flag_really_no_inline;
   return DECL_POSSIBLY_INLINED (decl);
 }
 

@@ -1,3 +1,57 @@
+2008-07-27  Victor Kaplansky  <victork@il.ibm.com>
+
+	PR tree-optimization/35252
+	* gcc.dg/vect/vect-complex-1.c, gcc.dg/vect/vect-complex-2.c,
+	gcc.dg/vect/fast-math-vect-complex-3.c,
+	gcc.dg/vect/vect-complex-4.c: New tests.
+
+2008-07-27  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR c++/36944
+	* g++.dg/other/pr36944.C: New.
+
+2008-07-27  Daniel Franke  <franke.daniel@gmail.com>
+
+	PR fortran/36724
+	* gfortran.dg/pointer_to_substring.f90: New test.
+
+2008-07-27  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/36132
+	PR fortran/29952
+	PR fortran/36909
+	* gfortran.dg/internal_pack_4.f90: New.
+	* gfortran.dg/internal_pack_5.f90: New.
+	* gfortran.dg/array_temporaries_2.f90: New.
+
+2008-07-26  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR fortran/36934
+	* gfortran.dg/allocatable_module_1.f90:  New test case.
+
+2008-07-25  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/36936
+	* gcc.target/i386/cmov8.c: New.
+	* gcc.target/i386/funcspec-10.c: Likewise.
+	* gcc.target/i386/funcspec-11.c: Likewise.
+
+2008-07-25  Joseph Myers  <joseph@codesourcery.com>
+
+	* lib/target-supports.exp (check_effective_target_arm_thumb1_ok):
+	New.
+	* g++.dg/inherit/thunk8.C: Use it.
+
+2008-07-24  Jan Hubicka  <jh@suse.cz>
+
+	* gcc.dg/winline-4.c: Remove.
+	* gcc.dg/pch/valid-3.hs: Remove.
+	* gcc.dg/pch/valid-3.c: Remove.
+	* g++.old-deja/g++.brendan/crash52.C: Accept returning void warning
+	* g++.old-deja/g++.jason/report.C: Likewise.
+	* testsuite/g++.dg/warn/pr23075.C: We get returning void warning
+	instead of control flow warning.
+
 2008-07-24  Daniel Kraft  <d@domob.eu>
 
 	PR fortran/33141
