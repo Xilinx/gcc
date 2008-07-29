@@ -300,9 +300,6 @@ struct scop
   /* Parameters used within the SCOP.  */
   VEC (name_tree, heap) *params;
 
-  /* New induction variables generated for this SCOP.  */
-  VEC (name_tree, heap) *new_ivs;
-
   /* A collection of old induction variables*/ 
   VEC (name_tree, heap) *old_ivs;
 
@@ -329,7 +326,6 @@ struct scop
 #define SCOP_LOOPS(S) S->loops
 #define SCOP_LOOP_NEST(S) S->loop_nest
 #define SCOP_PARAMS(S) S->params
-#define SCOP_NEWIVS(S) S->new_ivs
 #define SCOP_OLDIVS(S) S->old_ivs
 #define SCOP_PROG(S) S->program
 #define SCOP_LOOP2CLOOG_LOOP(S) S->loop2cloog_loop

@@ -1099,7 +1099,6 @@ new_scop (basic_block entry)
   SCOP_ENTRY (scop) = entry;
   SCOP_EXIT (scop) = NULL;
   SCOP_BBS (scop) = VEC_alloc (graphite_bb_p, heap, 3);
-  SCOP_NEWIVS (scop) = VEC_alloc (name_tree, heap, 3);
   SCOP_OLDIVS (scop) = VEC_alloc (name_tree, heap, 3);
   SCOP_BBS_B (scop) = BITMAP_ALLOC (NULL);
   SCOP_LOOPS (scop) = BITMAP_ALLOC (NULL);
@@ -1140,7 +1139,6 @@ free_scop (scop_p scop)
   BITMAP_FREE (SCOP_BBS_B (scop));
   BITMAP_FREE (SCOP_LOOPS (scop));
   VEC_free (loop_p, heap, SCOP_LOOP_NEST (scop));
-  VEC_free (name_tree, heap, SCOP_NEWIVS (scop));
   VEC_free (name_tree, heap, SCOP_OLDIVS (scop));
   
   for (i = 0; VEC_iterate (name_tree, SCOP_PARAMS (scop), i, p); i++)
@@ -2758,16 +2756,12 @@ gmp_cst_to_tree (Value v)
    ???  Too ugly to live.  */
 
 static tree
-clast_name_to_gcc (const char *name, VEC (name_tree, heap) *new_ivs,
-		   VEC (name_tree, heap) *params, loop_iv_stack ivstack)
+clast_name_to_gcc (const char *name, VEC (name_tree, heap) *params, 
+		   loop_iv_stack ivstack)
 {
   unsigned i;
   name_tree t;
   tree iv;
-
-  for (i = 0; VEC_iterate (name_tree, new_ivs, i, t); i++)
-    if (!strcmp (name, t->name))
-      return t->t;
 
   for (i = 0; VEC_iterate (name_tree, params, i, t); i++)
     if (!strcmp (name, t->name))
@@ -2785,7 +2779,6 @@ clast_name_to_gcc (const char *name, VEC (name_tree, heap) *new_ivs,
 
 static tree
 clast_to_gcc_expression (struct clast_expr *e, tree type,
-			 VEC (name_tree, heap) *new_ivs,
 			 VEC (name_tree, heap) *params,
 			 loop_iv_stack ivstack)
 {
@@ -2800,15 +2793,15 @@ clast_to_gcc_expression (struct clast_expr *e, tree type,
 	if (t->var)
 	  {
 	    if (value_one_p (t->val))
- 	      return clast_name_to_gcc (t->var, new_ivs, params, ivstack);
+ 	      return clast_name_to_gcc (t->var, params, ivstack);
 
 	    else if (value_mone_p (t->val))
 	      return fold_build1 (NEGATE_EXPR, integer_type_node,
-				  clast_name_to_gcc (t->var, new_ivs, params, ivstack));
+				  clast_name_to_gcc (t->var, params, ivstack));
 	    else
 	      return fold_build2 (MULT_EXPR, integer_type_node,
 				  gmp_cst_to_tree (t->val),
-				  clast_name_to_gcc (t->var, new_ivs, params, ivstack));
+				  clast_name_to_gcc (t->var, params, ivstack));
 	  }
 	else
 	  return gmp_cst_to_tree (t->val);
@@ -2824,32 +2817,32 @@ clast_to_gcc_expression (struct clast_expr *e, tree type,
             case clast_red_sum:
               if (r->n == 1)
 		{
-		  return clast_to_gcc_expression (r->elts[0], type, new_ivs, 
-						  params, ivstack);
+		  return clast_to_gcc_expression (r->elts[0], type, params, 
+						  ivstack);
 		}
 	      else 
 		{
 		  gcc_assert (r->n >= 1);
 		  gcc_assert (r->elts[0]->type == expr_term);
-		  left = clast_to_gcc_expression (r->elts[0], type, new_ivs, 
-						  params, ivstack);
+		  left = clast_to_gcc_expression (r->elts[0], type, params,
+						  ivstack);
 		  gcc_assert (r->elts[1]->type == expr_term);
-		  right = clast_to_gcc_expression (r->elts[1], type, new_ivs, 
-						   params, ivstack);
+		  right = clast_to_gcc_expression (r->elts[1], type, params,
+						   ivstack);
 		  return fold_build2 (PLUS_EXPR, type, left, right);
 		}
             case clast_red_min:
               if (r->n == 1)
 		{
-		  return clast_to_gcc_expression (r->elts[0], type, new_ivs, 
-						  params, ivstack);
+		  return clast_to_gcc_expression (r->elts[0], type, params, 
+						  ivstack);
 		}
 	      else if (r->n == 2)
 		{
-		  left = clast_to_gcc_expression (r->elts[0], type, new_ivs, 
-						  params, ivstack);
-		  right = clast_to_gcc_expression (r->elts[1], type, new_ivs, 
-						   params, ivstack);
+		  left = clast_to_gcc_expression (r->elts[0], type, params,
+						  ivstack);
+		  right = clast_to_gcc_expression (r->elts[1], type, params,
+						   ivstack);
 		  return fold_build2 (MIN_EXPR, type, left, right);
 		}
 	      else
@@ -2857,15 +2850,15 @@ clast_to_gcc_expression (struct clast_expr *e, tree type,
 	  case clast_red_max:
 	    if (r->n == 1)
 	      {
-		return clast_to_gcc_expression (r->elts[0], type, new_ivs, 
-                                                params, ivstack);
+		return clast_to_gcc_expression (r->elts[0], type, params,
+						ivstack);
 	      }
 	    else if (r->n == 2)
 	      {
-		left = clast_to_gcc_expression (r->elts[0], type, new_ivs, 
-						params, ivstack);
-		right = clast_to_gcc_expression (r->elts[1], type, new_ivs, 
-						 params, ivstack);
+		left = clast_to_gcc_expression (r->elts[0], type, params,
+						ivstack);
+		right = clast_to_gcc_expression (r->elts[1], type, params,
+						 ivstack);
 		return fold_build2 (MAX_EXPR, type, left, right);
 	      }
 	    else
@@ -2881,7 +2874,7 @@ clast_to_gcc_expression (struct clast_expr *e, tree type,
 	struct clast_binary *b = (struct clast_binary *) e;
 	struct clast_expr *lhs = (struct clast_expr *) b->LHS;
 	struct clast_expr *rhs = (struct clast_expr *) b->RHS;
-	tree tl = clast_to_gcc_expression (lhs, type, new_ivs, params, ivstack);
+	tree tl = clast_to_gcc_expression (lhs, type,  params, ivstack);
 	tree tr = gmp_cst_to_tree (rhs);
 
 	switch (b->type)
@@ -2930,11 +2923,11 @@ graphite_create_new_loop (scop_p scop, edge entry_edge,
 
   stride = gmp_cst_to_tree (stmt->stride);
   lowb = clast_to_gcc_expression (stmt->LB, integer_type_node,
-				  SCOP_NEWIVS (scop), SCOP_PARAMS (scop),
+				  SCOP_PARAMS (scop),
 				  ivstack);
   ivvar = create_tmp_var (integer_type_node, "graphiteIV");
   upb = clast_to_gcc_expression (stmt->UB, integer_type_node,
-				 SCOP_NEWIVS (scop), SCOP_PARAMS (scop),
+				 SCOP_PARAMS (scop),
 				 ivstack);
   loop = create_empty_loop_on_edge (entry_edge, lowb, stride, upb, ivvar,
 				    &iv_before, outer ? outer : entry_edge->src->loop_father);

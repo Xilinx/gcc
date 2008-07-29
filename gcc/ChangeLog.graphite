@@ -1,5 +1,13 @@
 2008-07-25  Jan Sjodin  <jan.sjodin@amd.com>
 
+	* graphite.h (struct scop): Removed new_ivs field.
+        (SCOP_NEWIVS): Deleted.
+	* graphite.c (new_scop, free_scop, clast_name_to_gcc, 
+	clast_to_gcc_expression, graphite_create_new_loop): 
+	Removed use of new_ivs.
+
+2008-07-25  Jan Sjodin  <jan.sjodin@amd.com>
+
 	* graphite.c (debug_oldivs, debug_loop_vec, create_loops_mapping,
 	create_loops_mapping_num, debug_loop_mapping_1): New.
 	(debug_loop_mapping): Call debug_loop_mapping_1.
