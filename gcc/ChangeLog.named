@@ -1,3 +1,8 @@
+2008-07-29  Ben Elliston  <bje@au.ibm.com>
+
+	* c-parser.c (c_parser_postfix_expression_after_paren_type): Guard
+	against the error_mark_node.
+
 2008-07-28  Ben Elliston  <bje@au.ibm.com>
 
 	* tree.c (set_type_quals): Use DECODE_QUAL_ADDR_SPACE.
