@@ -76,6 +76,10 @@ Wampersand
 Fortran Warning
 Warn about missing ampersand in continued character constants
 
+Warray-temporaries
+Fortran Warning
+Warn about creation of array temporaries
+
 Wcharacter-truncation
 Fortran Warning
 Warn about truncated character expressions
@@ -92,9 +96,9 @@ Wline-truncation
 Fortran Warning
 Warn about truncated source lines
 
-Wnonstd-intrinsics
+Wintrinsics-std
 Fortran Warning
-Warn about usage of non-standard intrinsics
+Warn on intrinsics not part of the selected standard
 
 Wreturn-type
 Fortran Warning
@@ -111,6 +115,10 @@ Permit nonconforming uses of the tab character
 Wunderflow
 Fortran Warning
 Warn about underflow of numerical constant expressions
+
+Wintrinsic-shadow
+Fortran Warning
+Warn if a user-procedure has the same name as an intrinsic
 
 cpp
 Fortran Joined Separate Negative(nocpp)
@@ -147,6 +155,10 @@ Produce a backtrace when a runtime error is encountered
 fblas-matmul-limit=
 Fortran RejectNegative Joined UInteger
 -fblas-matmul-limit=<n>        Size of the smallest matrix for which matmul will use BLAS
+
+fcheck-array-temporaries
+Fortran
+Produce a warning at runtime if a array temporary has been created for a procedure argument
 
 fconvert=big-endian
 Fortran RejectNegative

@@ -1,3 +1,7 @@
+2008-07-29  Basile Starynkevitch  <basile@starynkevitch.net>
+	MELT branch merged with trunk r138226 [after tuple merge into trunk]
+	some compiler probe stuff are missing
+
 2008-07-22  Basile Starynkevitch  <basile@starynkevitch.net>
 	MELT branch merged with trunk r138050
 

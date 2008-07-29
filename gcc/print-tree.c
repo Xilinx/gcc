@@ -29,6 +29,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "ggc.h"
 #include "langhooks.h"
 #include "tree-iterator.h"
+#include "diagnostic.h"
 #include "tree-flow.h"
 
 /* Define the hash table of nodes already seen.
@@ -281,7 +282,7 @@ print_node (FILE *file, const char *prefix, tree node, int indent)
       if (indent <= 4)
 	print_node_brief (file, "type", TREE_TYPE (node), indent + 4);
     }
-  else if (!GIMPLE_TUPLE_P (node))
+  else
     {
       print_node (file, "type", TREE_TYPE (node), indent + 4);
       if (TREE_TYPE (node))
@@ -369,8 +370,14 @@ print_node (FILE *file, const char *prefix, tree node, int indent)
       if (TREE_CODE (node) == TYPE_DECL && TYPE_DECL_SUPPRESS_DEBUG (node))
 	fputs (" suppress-debug", file);
 
-      if (TREE_CODE (node) == FUNCTION_DECL && DECL_INLINE (node))
-	fputs (DECL_DECLARED_INLINE_P (node) ? " inline" : " autoinline", file);
+      if (TREE_CODE (node) == FUNCTION_DECL
+	  && DECL_FUNCTION_SPECIFIC_TARGET (node))
+	fputs (" function-specific-target", file);
+      if (TREE_CODE (node) == FUNCTION_DECL
+	  && DECL_FUNCTION_SPECIFIC_OPTIMIZATION (node))
+	fputs (" function-specific-opt", file);
+      if (TREE_CODE (node) == FUNCTION_DECL && DECL_DECLARED_INLINE_P (node))
+	fputs (" autoinline", file);
       if (TREE_CODE (node) == FUNCTION_DECL && DECL_BUILT_IN (node))
 	fputs (" built-in", file);
       if (TREE_CODE (node) == FUNCTION_DECL && DECL_NO_STATIC_CHAIN (node))
@@ -706,18 +713,6 @@ print_node (FILE *file, const char *prefix, tree node, int indent)
       print_node (file, "chain", TREE_CHAIN (node), indent + 4);
       break;
 
-    case tcc_gimple_stmt:
-      len = TREE_CODE_LENGTH (TREE_CODE (node));
-
-      for (i = 0; i < len; i++)
-	{
-	  char temp[10];
-
-	  sprintf (temp, "arg %d", i);
-	  print_node (file, temp, GIMPLE_STMT_OPERAND (node, i), indent + 4);
-	}
-      break;
-
     case tcc_constant:
     case tcc_exceptional:
       switch (TREE_CODE (node))
@@ -890,8 +885,8 @@ print_node (FILE *file, const char *prefix, tree node, int indent)
 
 	case SSA_NAME:
 	  print_node_brief (file, "var", SSA_NAME_VAR (node), indent + 4);
-	  print_node_brief (file, "def_stmt",
-			    SSA_NAME_DEF_STMT (node), indent + 4);
+	  fprintf (file, "def_stmt ");
+	  print_gimple_stmt (file, SSA_NAME_DEF_STMT (node), indent + 4, 0);
 
 	  indent_to (file, indent + 4);
 	  fprintf (file, "version %u", SSA_NAME_VERSION (node));
@@ -911,12 +906,6 @@ print_node (FILE *file, const char *prefix, tree node, int indent)
 	    }
 	  break;
 
-	case PHI_NODE:
-	  print_node (file, "result", PHI_RESULT (node), indent + 4);
-	  for (i = 0; i < PHI_NUM_ARGS (node); i++)
-	    print_node (file, "arg", PHI_ARG_DEF (node, i), indent + 4);
-	  break;
-
 	case OMP_CLAUSE:
 	    {
 	      int i;
@@ -929,6 +918,14 @@ print_node (FILE *file, const char *prefix, tree node, int indent)
 		  print_node_brief (file, "", OMP_CLAUSE_OPERAND (node, i), 0);
 		}
 	    }
+	  break;
+
+	case OPTIMIZATION_NODE:
+	  cl_optimization_print (file, indent + 4, TREE_OPTIMIZATION (node));
+	  break;
+
+	case TARGET_OPTION_NODE:
+	  cl_target_option_print (file, indent + 4, TREE_TARGET_OPTION (node));
 	  break;
 
 	default:

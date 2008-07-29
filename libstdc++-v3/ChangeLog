@@ -1,3 +1,62 @@
+2008-07-28  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/36949
+	* include/tr1_impl/boost_shared_ptr.h
+	(__shared_ptr(_Sp_make_shared_tag, _Alloc, _Args&&...): Call
+	__enable_shared_from_this_helper.
+	* testsuite/20_util/shared_ptr/creation/36949.cc: New.
+
+2008-07-24  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/36924
+	Revert:
+	2008-07-23  Chris Fairles <chris.fairles@gmail.com>
+
+	* acinclude.m4 ([GLIBCXX_CHECK_CLOCK_GETTIME]): Define GLIBCXX_LIBS.
+	Holds the lib that defines clock_gettime (-lrt or -lposix4).
+	* src/Makefile.am: Use it.
+	* configure: Regenerate.
+	* configure.in: Likewise.
+	* Makefile.in: Likewise.
+	* src/Makefile.in: Likewise.
+	* libsup++/Makefile.in: Likewise.
+	* po/Makefile.in: Likewise.
+	* doc/Makefile.in: Likewise.
+
+2008-07-23  Chris Fairles <chris.fairles@gmail.com>
+
+        * include/std/condition_variable: Update to N2691 WD.
+        * include/std/mutex: Likewise.
+        * testsuite/30_threads/mutex/cons/assign_neg.cc: Adjust line numbers.
+        * testsuite/30_threads/mutex/cons/copy_neg.cc: Likewise.
+        * testsuite/30_threads/recursive_mutex/cons/assign_neg.cc: Likewise.
+        * testsuite/30_threads/recursive_mutex/cons/copy_neg.cc: Likewise.
+
+2008-07-23  Chris Fairles <chris.fairles@gmail.com>
+
+        * acinclude.m4 ([GLIBCXX_CHECK_CLOCK_GETTIME]): Define GLIBCXX_LIBS.
+	Holds the lib that defines clock_gettime (-lrt or -lposix4).
+        * src/Makefile.am: Use it.
+        * configure: Regenerate.
+        * configure.in: Likewise.
+        * Makefile.in: Likewise.
+        * src/Makefile.in: Likewise.
+        * libsup++/Makefile.in: Likewise.
+        * po/Makefile.in: Likewise.
+        * doc/Makefile.in: Likewise.
+
+2008-07-22  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/ext/sso_string_base.h
+	(__sso_string_base<>::__sso_string_base(std::initializer_list<_CharT>,
+	const _Alloc&)): Remove.
+	* include/ext/rc_string_base.h
+	(__rc_string_base<>::__rc_string_base(std::initializer_list<_CharT>,
+	const _Alloc&)): Likewise.
+	* include/ext/vstring.h
+	(__versa_string<>::__versa_string(std::initializer_list<_CharT>,
+	const _Alloc&)): Adjust.
+
 2008-07-21  Jason Merrill  <jason@redhat.com>
 
 	Add initializer_list support as per N2679.
@@ -53,10 +112,10 @@
 	Update error lineno.
 	* testsuite/23_containers/vector/requirements/dr438/insert_neg.cc:
 	Update error lineno.
-	* testsuite/23_containers/vector/requirements/dr438/constructor_1_neg.cc:
-	Update error lineno.
-	* testsuite/23_containers/vector/requirements/dr438/constructor_2_neg.cc:
-	Update error lineno.
+	* testsuite/23_containers/vector/requirements/dr438/
+	constructor_1_neg.cc: Update error lineno.
+	* testsuite/23_containers/vector/requirements/dr438/
+	constructor_2_neg.cc: Update error lineno.
 	* testsuite/23_containers/deque/requirements/dr438/assign_neg.cc:
 	Update error lineno.
 	* testsuite/23_containers/deque/requirements/dr438/insert_neg.cc:

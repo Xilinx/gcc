@@ -1,3 +1,10 @@
+2008-07-29  Basile Starynkevitch  <basile@starynkevitch.net>
+	[merging with trunk after the tuple merge]
+	MERGED WITH TRUNK rev138226
+
+	* compiler-probe.h: more gimple, less tree
+	* compiler-probe.c: incomplete merge.
+
 2008-07-28  Basile Starynkevitch  <basile@starynkevitch.net>
 	[added successfully location_t in MELT parsing & error reports]
 

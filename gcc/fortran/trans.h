@@ -348,12 +348,8 @@ void gfc_trans_vla_type_sizes (gfc_symbol *, stmtblock_t *);
 void gfc_add_expr_to_block (stmtblock_t *, tree);
 /* Add a block to the end of a block.  */
 void gfc_add_block_to_block (stmtblock_t *, stmtblock_t *);
-/* Add a MODIFY_EXPR or a GIMPLE_MODIFY_STMT to a block.  */
-void gfc_add_modify (stmtblock_t *, tree, tree, bool);
-#define gfc_add_modify_expr(BLOCK, LHS, RHS) \
-       gfc_add_modify ((BLOCK), (LHS), (RHS), false)
-#define gfc_add_modify_stmt(BLOCK, LHS, RHS) \
-       gfc_add_modify ((BLOCK), (LHS), (RHS), true)
+/* Add a MODIFY_EXPR to a block.  */
+void gfc_add_modify (stmtblock_t *, tree, tree);
 
 /* Initialize a statement block.  */
 void gfc_init_block (stmtblock_t *);
@@ -444,8 +440,9 @@ void gfc_generate_constructors (void);
 /* Get the string length of an array constructor.  */
 bool get_array_ctor_strlen (stmtblock_t *, gfc_constructor *, tree *);
 
-/* Generate a runtime error check.  */
-void gfc_trans_runtime_check (tree, stmtblock_t *, locus *, const char *, ...);
+/* Generate a runtime warning/error check.  */
+void gfc_trans_runtime_check (bool, bool, tree, stmtblock_t *, locus *,
+			      const char *, ...);
 
 /* Generate a call to free() after checking that its arg is non-NULL.  */
 tree gfc_call_free (tree);
@@ -510,6 +507,7 @@ extern GTY(()) tree gfor_fndecl_stop_numeric;
 extern GTY(()) tree gfor_fndecl_stop_string;
 extern GTY(()) tree gfor_fndecl_runtime_error;
 extern GTY(()) tree gfor_fndecl_runtime_error_at;
+extern GTY(()) tree gfor_fndecl_runtime_warning_at;
 extern GTY(()) tree gfor_fndecl_os_error;
 extern GTY(()) tree gfor_fndecl_generate_error;
 extern GTY(()) tree gfor_fndecl_set_fpe;

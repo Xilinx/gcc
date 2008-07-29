@@ -1,3 +1,285 @@
+2008-07-28  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	* gfortran.h (try): Remove macro.  Replace try with gfc_try
+	throughout.
+	* array.c: Likewise.
+	* check.c: Likewise.
+	* cpp.c: Likewise.
+	* cpp.h: Likewise.
+	* data.c: Likewise.
+	* data.h: Likewise.
+	* decl.c: Likewise.
+	* error.c: Likewise.
+	* expr.c: Likewise.
+	* interface.c: Likewise.
+	* intrinsic.c: Likewise.
+	* intrinsic.h: Likewise.
+	* io.c: Likewise.
+	* match.h: Likewise.
+	* parse.c: Likewise.
+	* parse.h: Likewise.
+	* resolve.c: Likewise.
+	* scanner.c: Likewise.
+	* simplify.c: Likewise.
+	* symbol.c: Likewise.
+	* trans-openmp.c: Likewise.
+	* trans-types.c: Likewise.
+
+2008-07-28  Tobias Burnus  <burnus@net-b.de>
+
+	* Make-lang.in: Remove -Wno-* from fortran-warn.
+
+2008-07-28  Richard Guenther  <rguenther@suse.de>
+
+	Merge from gimple-tuples-branch.
+
+	2008-07-18  Aldy Hernandez  <aldyh@redhat.com>
+
+	* trans-expr.c: Include gimple.h instead of tree-gimple.h.
+	* trans-array.c: Same.
+	* trans-openmp.c: Same.
+	* trans-stmt.c: Same.
+	* f95-lang.c: Same.
+	* trans-io.c: Same.
+	* trans-decl.c: Same.
+	* trans-intrinsic.c: Same.
+	* trans.c: Same.  Include tree-iterator.h.
+	* Make-lang.in (trans.o): Depend on tree-iterator.h
+
+	2008-07-14  Aldy Hernandez  <aldyh@redhat.com>
+
+	* trans-array.h (gfc_conv_descriptor_data_set_internal):
+	Rename to gfc_conv_descriptor_data_set.
+	(gfc_conv_descriptor_data_set_tuples): Remove.
+	* trans-array.c (gfc_conv_descriptor_data_get): Rename
+	from gfc_conv_descriptor_data_set_internal.
+	Remove last argument to gfc_add_modify.
+	(gfc_trans_allocate_array_storage): Rename gfc_add_modify_expr to
+	gfc_add_modify.
+	(gfc_trans_create_temp_array): Same.
+	(gfc_conv_array_transpose): Same.
+	(gfc_grow_array): Same.
+	(gfc_put_offset_into_var): Same.
+	(gfc_trans_array_ctor_element): Same.
+	(gfc_trans_array_constructor_subarray): Same.
+	(gfc_trans_array_constructor_value): Same.
+	(gfc_trans_scalarized_loop_end): Same.
+	(gfc_array_init_size): Same.
+	(gfc_array_allocate): Same.
+	(gfc_trans_array_bounds): Same.
+	(gfc_trans_auto_array_allocation): Same.
+	(gfc_trans_g77_array): Same.
+	(gfc_trans_dummy_array_bias): Same.
+	(gfc_conv_expr_descriptor): Same.
+	(structure_alloc_comps): Same.
+	* trans-expr.c: Same.
+	* trans-openmp.c (gfc_omp_clause_default_ctor): Same.
+	Rename gfc_conv_descriptor_data_set_tuples to
+	gfc_conv_descriptor_data_set.
+	(gfc_omp_clause_copy_ctor): Change build_gimple_modify_stmt to
+	build2_v.
+	(gfc_omp_clause_assign_op): Same.
+	(gfc_trans_omp_array_reduction): Rename gfc_add_modify_expr to
+	gfc_add_modify.
+	(gfc_trans_omp_atomic): Same.
+	(gfc_trans_omp_do): Same.  Change GIMPLE_MODIFY_STMT to MODIFY_EXPR.
+	Rename gfc_add_modify_stmt to gfc_add_modify.
+	* trans-stmt.c: Rename gfc_add_modify_expr to
+	gfc_add_modify.
+	* trans.c: Rename gfc_add_modify_expr to
+	gfc_add_modify.
+	(gfc_add_modify): Remove last argument.
+	Rename GIMPLE_MODIFY_STMT to MODIFY_EXPR.
+	* trans.h: Remove gfc_add_modify_expr, gfc_add_modify_stmt.
+	Add prototype for gfc_add_modify.
+	* f95-lang.c (union lang_tree_node): Rename GENERIC_NEXT to TREE_CHAIN.
+	* trans-decl.c: Rename gfc_add_modify_stmt to gfc_add_modify.
+	* trans-io.c: Same.
+	* trans-intrinsic.c: Same.
+
+	2008-02-25  Aldy Hernandez  <aldyh@redhat.com>
+
+	* Make-lang.in (fortran-warn): Add -Wno-format.
+
+	2008-02-19  Diego Novillo  <dnovillo@google.com>
+
+	http://gcc.gnu.org/ml/gcc-patches/2008-02/msg00804.html
+
+	* fortran/Make-lang.in (fortran-warn): Remove.
+
+	2007-11-22  Aldy Hernandez  <aldyh@redhat.com>
+
+	* trans-expr.c (gfc_trans_string_copy): Use "void *" when building a
+	memset.
+
+	2007-11-10  Aldy Hernandez  <aldyh@redhat.com>
+
+	* Make-lang.in (fortran-warn): Set to -Wno-format.
+	* trans.c (gfc_trans_code): Update comment to say GENERIC.
+	Call tree_annotate_all_with_locus instead of annotate_all_with_locus.
+
+2008-07-27  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/36132
+	PR fortran/29952
+	PR fortran/36909
+	* trans.c (gfc_trans_runtime_check): Allow run-time warning besides
+	run-time error.
+	* trans.h (gfc_trans_runtime_check): Update declaration.
+	* trans-array.c (gfc_trans_array_ctor_element,gfc_trans_array_bound_check,
+	gfc_conv_array_ref,gfc_conv_ss_startstride,gfc_trans_dummy_array_bias):
+	Updated gfc_trans_runtime_check calls.
+	(gfc_conv_array_parameter): Implement flag_check_array_temporaries,
+	fix packing/unpacking for nonpresent optional actuals to optional
+	formals.
+	* trans-array.h (gfc_conv_array_parameter): Update declaration.
+	* trans-expr.c (gfc_conv_substring,gfc_trans_arrayfunc_assign,
+	gfc_conv_function_call): Updated gfc_trans_runtime_check calls.
+	(gfc_conv_function_call): Update gfc_conv_array_parameter calls.
+	* trans-expr.c (gfc_trans_goto): Updated gfc_trans_runtime_check
+	calls.
+	* trans-io.c (set_string,gfc_conv_intrinsic_repeat): Ditto.
+	(gfc_conv_intrinsic_transfer,gfc_conv_intrinsic_loc): Same for
+	gfc_conv_array_parameter.
+	* trans-intrinsics.c (gfc_conv_intrinsic_bound): Ditto.
+	* trans-decl.c (gfc_build_builtin_function_decls): Add
+	gfor_fndecl_runtime_warning_at.
+	* lang.opt: New option fcheck-array-temporaries.
+	* gfortran.h (gfc_options): New flag_check_array_temporaries.
+	* options.c (gfc_init_options, gfc_handle_option): Handle flag.
+	* invoke.texi: New option fcheck-array-temporaries.
+
+2008-07-24  Jan Hubicka  <jh@suse.cz>
+
+	* fortran/options.c (gfc_post_options): Remove flag_unline_trees code.
+
+2008-07-24  Daniel Kraft  <d@domob.eu>
+
+	PR fortran/33141
+	* lang.opt (Wnonstd-intrinsics):  Removed option.
+	(Wintrinsics-std), (Wintrinsic-shadow):  New options.
+	* invoke.texi (Option Summary):  Removed -Wnonstd-intrinsics
+	from the list and added -Wintrinsics-std and -Wintrinsic-shadow.
+	(Error and Warning Options):  Documented the new options and removed
+	the documentation for -Wnonstd-intrinsics.
+	* gfortran.h (gfc_option_t):  New members warn_intrinsic_shadow and
+	warn_intrinsics_std, removed warn_nonstd_intrinsics.
+	(gfc_is_intrinsic):  Renamed from gfc_intrinsic_name.
+	(gfc_warn_intrinsic_shadow), (gfc_check_intrinsic_standard):  New.
+	* decl.c (match_procedure_decl):  Replaced gfc_intrinsic_name by
+	the new name gfc_is_intrinsic.
+	(warn_intrinsic_shadow):  New helper method.
+	(gfc_match_function_decl), (gfc_match_subroutine):  Call the new method
+	warn_intrinsic_shadow to check the just-parsed procedure.
+	* expr.c (check_init_expr):  Call new gfc_is_intrinsic to check whether
+	the function called is really an intrinsic in the selected standard.
+	* intrinsic.c (gfc_is_intrinsic):  Renamed from gfc_intrinsic_name and
+	extended to take into account the selected standard settings when trying
+	to find out whether a symbol is an intrinsic or not.
+	(gfc_check_intrinsic_standard):  Made public and extended.
+	(gfc_intrinsic_func_interface), (gfc_intrinsic_sub_interface):  Removed
+	the calls to check_intrinsic_standard, this check now happens inside
+	gfc_is_intrinsic.
+	(gfc_warn_intrinsic_shadow):  New method defined.
+	* options.c (gfc_init_options):  Initialize new warning flags to false
+	and removed intialization of Wnonstd-intrinsics flag.
+	(gfc_post_options):  Removed logic for Wnonstd-intrinsics flag.
+	(set_Wall):  Set new warning flags and removed Wnonstd-intrinsics flag.
+	(gfc_handle_option):  Handle the new flags and removed handling of the
+	old Wnonstd-intrinsics flag.
+	* primary.c (gfc_match_rvalue):  Replaced call to gfc_intrinsic_name by
+	the new name gfc_is_intrinsic.
+	* resolve.c (resolve_actual_arglist):  Ditto.
+	(resolve_generic_f), (resolve_unknown_f):  Ditto.
+	(is_external_proc):  Ditto.
+	(resolve_generic_s), (resolve_unknown_s):  Ditto.
+	(resolve_symbol):  Ditto and ensure for symbols declared INTRINSIC that
+	they are really available in the selected standard setting.
+
+2008-07-24  Daniel Kraft  <d@domob.eu>
+
+	* match.c (gfc_match):  Add assertion to catch wrong calls trying to
+	match upper-case characters.
+
+2008-07-24  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR fortran/29952
+	* gfortran.h:  Add "warn_array_temp" to gfc_option_t.
+	* lang.opt:  Add -Warray-temporaries.
+	* invoke.texi:  Document -Warray-temporaries
+	* trans-array.h (gfc_trans_create_temp_array):  Add argument of
+	type *locus.
+	(gfc_conv_loop_setup):  Likewise.
+	* trans-array.c (gfc_trans_create_temp_array):  If
+	-Warray-temporaries is given and locus is present, warn about
+	creation of array temporaries.
+	(gfc_trans_array_constructor_subarray):  Add locus to call
+	of gfc_conv_loop_setup.
+	(gfc_trans_array_constructor):  Add where argument.  Pass where
+	argument to call of gfc_trans_create_temp_array.
+	(gfc_add_loop_ss_code):  Add where argument.  Pass where argument
+	to recursive call of gfc_add_loop_ss_code and to call of
+	gfc_trans_array_constructor.
+	(gfc_conv_loop_setup):  Add where argument.  Pass where argument
+	to calls to gfc_add_loop_ss_code and to gfc_trans_create_temp_array.
+	(gfc_conv_expr_descriptor):  Pass location to call of
+	gfc_conv_loop_setup.
+	(gfc_conv_array_parameter):  If -Warray-temporaries is given,
+	warn about creation of temporary arrays.
+	* trans-expr.c (gfc_conv_subref_array_arg):  Add where argument
+	to call to gfc_conv_loop_setup.
+	(gfc_conv_function_call):  Add where argument to call to
+	gfc_trans_creat_temp_array.
+	(gfc_trans_subarray_assign):  Likewise.
+	(gfc_trans_assignment_1):  Add where argument to call to
+	gfc_conv_loop_setup.
+	* trans-stmt.c (gfc_conv_elemental_dependencies):  Add where
+	argument to call to gfc_trans_create_temp_array.
+	(gfc_trans_call):  Add where argument to call to gfc_conv_loop_setup.
+	(generate_loop_for_temp_to_lhs):  Likewise.
+	(generate_loop_for_rhs_to_temp):  Likewise.
+	(compute_inner_temp_size):  Likewise.
+	(gfc_trans-pointer_assign_need_temp):  Likewise.
+	(gfc_evaluate_where_mask):  Likewise.
+	(gfc_trans_where_assign):  Likewise.
+	(gfc_trans_where_3):  Likewise.
+	* trans-io.c (transfer_srray_component):  Add where argument
+	to function. Add where argument to call to gfc_conv_loop_setup.
+	(transfer_expr):  Add where argument to call to
+	transfer_array_component.
+	(gfc_trans_transfer):  Add where expression to call to
+	gfc_conv_loop_setup.
+	* trans-intrinsic.c (gfc_conv_intrinsic_anyall):  Add
+	where argument to call to gfc_conv_loop_setup.
+	(gfc_conv_intrinsic_count):  Likewise.
+	(gfc_conv_intrinsic_arith):  Likewise.
+	(gfc_conv_intrinsic_dot_product):  Likewise.
+	(gfc_conv_intrinsic_minmaxloc):  Likewise.
+	(gfc_conv_intrinsic_minmaxval):  Likewise.
+	(gfc_conv_intrinsic_array_transfer):  Warn about
+	creation of temporary array.
+	Add where argument to call to gfc_trans_create_temp_array.
+	* options.c (gfc_init_options):  Initialize gfc_option.warn_array_temp.
+	(gfc_handle_option):  Set gfc_option.warn_array_temp.
+
+2008-07-23  Manuel Lopez-Ibanez  <manu@gcc.gnu.org>
+
+	PR 35058
+	* f95-lang.c (gfc_mark_addressable): All calls to pedwarn changed.
+
+2008-07-22  Daniel Kraft  <d@domob.eu>
+
+	PR fortran/29835
+	* io.c (error_element), (format_locus):  New static globals.
+	(unexpected_element):  Spelled out this message fully.
+	(next_char):  Keep track of locus when not MODE_STRING.
+	(next_char_not_space):  Remember last parsed element in error_element.
+	(format_lex):  Fix two indentation errors.
+	(check_format):  Use format_locus and possibly error_element for a
+	slightly better error message on invalid format.
+	(check_format_string):  Set format_locus to start of the string
+	expression used as format.
+
 2008-07-21  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
 
 	* expr.c (gfc_check_pointer_assign): Fix typo in string.

@@ -183,7 +183,7 @@ rest_of_decl_compilation (tree decl,
       /* Don't output anything when a tentative file-scope definition
 	 is seen.  But at end of compilation, do output code for them.
 
-	 We do output all variables when unit-at-a-time is active and rely on
+	 We do output all variables and rely on
 	 callgraph code to defer them except for forward declarations
 	 (see gcc.c-torture/compile/920624-1.c) */
       if ((at_end
@@ -527,9 +527,7 @@ init_optimization_passes (void)
   NEXT_PASS (pass_basilys_lowering);
   *p = NULL;
 
-  /* Interprocedural optimization passes. 
-     All these passes are ignored in -fno-unit-at-a-time
-     except for subpasses of early_local_passes.  */
+  /* Interprocedural optimization passes.  */
   p = &all_ipa_passes;
   NEXT_PASS (pass_ipa_function_and_variable_visibility);
   NEXT_PASS (pass_ipa_early_inline);
@@ -603,7 +601,6 @@ init_optimization_passes (void)
   /* These passes are run after IPA passes on every function that is being
      output to the assembler file.  */
   p = &all_passes;
-  NEXT_PASS (pass_O0_always_inline);
   NEXT_PASS (pass_all_optimizations);
     {
       struct opt_pass **p = &pass_all_optimizations.pass.sub;
@@ -612,7 +609,6 @@ init_optimization_passes (void)
       NEXT_PASS (pass_build_alias);
       NEXT_PASS (pass_return_slot);
       NEXT_PASS (pass_rename_ssa_copies);
-
       /* Initial scalar cleanups.  */
       NEXT_PASS (pass_complete_unrolli);
       NEXT_PASS (pass_ccp);
@@ -641,14 +637,12 @@ init_optimization_passes (void)
       NEXT_PASS (pass_sra);
       NEXT_PASS (pass_rename_ssa_copies);
       NEXT_PASS (pass_dominator);
-
       /* The only const/copy propagation opportunities left after
 	 DOM should be due to degenerate PHI nodes.  So rather than
 	 run the full propagators, run a specialized pass which
 	 only examines PHIs to discover const/copy propagation
 	 opportunities.  */
       NEXT_PASS (pass_phi_only_cprop);
-
       NEXT_PASS (pass_reassoc);
       NEXT_PASS (pass_dce);
       NEXT_PASS (pass_dse);
@@ -696,14 +690,12 @@ init_optimization_passes (void)
       NEXT_PASS (pass_reassoc);
       NEXT_PASS (pass_vrp);
       NEXT_PASS (pass_dominator);
-      
       /* The only const/copy propagation opportunities left after
 	 DOM should be due to degenerate PHI nodes.  So rather than
 	 run the full propagators, run a specialized pass which
 	 only examines PHIs to discover const/copy propagation
 	 opportunities.  */
       NEXT_PASS (pass_phi_only_cprop);
-
       NEXT_PASS (pass_cd_dce);
       NEXT_PASS (pass_tracer);
 
@@ -744,6 +736,7 @@ init_optimization_passes (void)
   NEXT_PASS (pass_warn_function_noreturn);
   NEXT_PASS (pass_free_datastructures);
   NEXT_PASS (pass_mudflap_2);
+
   NEXT_PASS (pass_free_cfg_annotations);
   NEXT_PASS (pass_expand);
   NEXT_PASS (pass_rest_of_compilation);
@@ -983,12 +976,10 @@ execute_function_todo (void *data)
   if (flags & TODO_remove_unused_locals)
     remove_unused_locals ();
 
-  if ((flags & TODO_dump_func)
-      && dump_file && current_function_decl)
+  if ((flags & TODO_dump_func) && dump_file && current_function_decl)
     {
       if (cfun->curr_properties & PROP_trees)
-        dump_function_to_file (current_function_decl,
-                               dump_file, dump_flags);
+        dump_function_to_file (current_function_decl, dump_file, dump_flags);
       else
 	{
 	  if (dump_flags & TDF_SLIM)
@@ -999,7 +990,7 @@ execute_function_todo (void *data)
           else
 	    print_rtl (dump_file, get_insns ());
 
-	  if (cfun->curr_properties & PROP_cfg
+	  if ((cfun->curr_properties & PROP_cfg)
 	      && graph_dump_format != no_graph
 	      && (dump_flags & TDF_GRAPH))
 	    print_rtl_graph_with_bb (dump_file_name, get_insns ());
@@ -1068,8 +1059,7 @@ execute_todo (unsigned int flags)
       cgraph_remove_unreachable_nodes (true, dump_file);
     }
 
-  if ((flags & TODO_dump_cgraph)
-      && dump_file && !current_function_decl)
+  if ((flags & TODO_dump_cgraph) && dump_file && !current_function_decl)
     {
       gcc_assert (!cfun);
       dump_cgraph (dump_file);
@@ -1079,9 +1069,7 @@ execute_todo (unsigned int flags)
     }
 
   if (flags & TODO_ggc_collect)
-    {
-      ggc_collect ();
-    }
+    ggc_collect ();
 
   /* Now that the dumping has been done, we can get rid of the optional 
      df problems.  */
@@ -1250,8 +1238,6 @@ execute_one_ipa_transform_pass (struct cgraph_node *node,
   pass_fini_dump_file (pass);
 
   current_pass = NULL;
-  /* Reset in_gimple_form to not break non-unit-at-a-time mode.  */
-  in_gimple_form = false;
 }
 
 static bool
@@ -1287,6 +1273,7 @@ execute_one_pass (struct opt_pass *pass)
     }
 
   current_pass = pass;
+
   /* See if we're supposed to run this pass.  */
   if (pass->gate && !pass->gate ())
     return false;
@@ -1371,8 +1358,6 @@ execute_one_pass (struct opt_pass *pass)
 		|| pass->type != RTL_PASS);
 
   current_pass = NULL;
-  /* Reset in_gimple_form to not break non-unit-at-a-time mode.  */
-  in_gimple_form = false;
 
   return true;
 }

@@ -1,3 +1,27 @@
+2008-07-27  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/36132
+	PR fortran/29952
+	PR fortran/36909
+	* runtime/error.c: New function runtime_error_at.
+	* gfortran.map: Ditto.
+	* libgfortran.h: Ditto.
+
+2008-07-22  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/36852
+	* io/list_read.c: If variable rank is zero, do not adjust the found
+	namelist object pointer.
+
+2008-07-22  Daniel Kraft  <d@domob.eu>
+
+	PR fortran/29835
+	* io/format.c (struct format_data):  New member error_element.
+	(unexpected_element):  Added '%c' to message.
+	(next_char):  Keep track of last parsed character in fmt->error_element.
+	(format_error):  If the message is unexpected_element, output the
+	offending character, too.
+
 2008-07-22  Thomas Koenig  <tkoenig@gcc.gnu.org>
 
 	PR libfortran/36890

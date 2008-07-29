@@ -128,6 +128,7 @@ static htab_t filename_htable;
 
 /* *INDENT-OFF* */
 static GTY(()) VEC(tree,gc) *unique_tree_vector;
+static GTY(()) VEC(gimple,gc) *unique_gimple_vector;
 static GTY(()) VEC(basic_block,gc) *unique_bb_vector;
 /* each tree of unique_tree_vector or basic_block of unique_bb_vector is
    unique; we manage an hash table of indexes (>2) there. the index 0
@@ -135,10 +136,12 @@ static GTY(()) VEC(basic_block,gc) *unique_bb_vector;
    is for the seeked entry */
 static GTY (()) tree unique_seeked_tree;
 static GTY (()) basic_block unique_seeked_bb;
+static GTY (()) gimple unique_seeked_gimple;
 /* *INDENT-ON* */
 /* hashtables of integer indexes into the unique_tree_vector & unique_bb_vector */
 static htab_t unique_tree_htable;
 static htab_t unique_bb_htable;
+static htab_t unique_gimple_htable;
 #define HTAB_SEEKED_ENTRY ((PTR) 2)
 
 /***
@@ -439,6 +442,113 @@ eq_info_bb (const void *dx, const void *dy)
   return bx == by && bx != NULL;
 }
 
+/****@@@ ADDING****/
+
+/***
+ * supporting functions for unique_gimple_htable
+ ***/
+static hashval_t
+hash_info_gimple (const void *d)
+{
+  comprobe_ix_t lg = (comprobe_ix_t) d;
+  switch (lg)
+    {
+    case (comprobe_ix_t) HTAB_EMPTY_ENTRY:
+    case (comprobe_ix_t) HTAB_DELETED_ENTRY:
+      return (hashval_t) 0;
+    case (comprobe_ix_t) HTAB_SEEKED_ENTRY:
+      lg = (comprobe_ix_t) unique_seeked_gimple;
+      return (hashval_t) (lg ^ (lg >> 10));
+    default:
+      if (lg > 2 && unique_gimple_vector
+	  && lg < VEC_length (gimple, unique_gimple_vector))
+	{
+	  lg = (comprobe_ix_t) VEC_index (gimple, unique_gimple_vector, lg);
+	  return (hashval_t) (lg ^ (lg >> 10));
+	};
+      return 0;
+    }
+}
+
+
+static int
+eq_info_gimple (const void *dx, const void *dy)
+{
+  comprobe_ix_t lx = (comprobe_ix_t) dx;
+  comprobe_ix_t ly = (comprobe_ix_t) dy;
+  comprobe_ix_t nbgimple = 0;
+  gimple tx = NULL, ty = NULL;
+  if (lx == ly)
+    return 1;
+  if (unique_gimple_vector)
+    nbgimple = VEC_length (gimple, unique_gimple_vector);
+  else
+    return 0;
+  if (lx == (comprobe_ix_t) HTAB_SEEKED_ENTRY)
+    tx = unique_seeked_gimple;
+  else if (lx > 2 && lx < nbgimple)
+    tx = VEC_index (gimple, unique_gimple_vector, lx);
+  if (ly == (comprobe_ix_t) HTAB_SEEKED_ENTRY)
+    ty = unique_seeked_gimple;
+  else if (ly > 2 && ly < nbgimple)
+    ty = VEC_index (gimple, unique_gimple_vector, ly);
+  return tx == ty && tx != NULL;
+}
+
+
+comprobe_ix_t
+comprobe_unique_index_of_gimple (gimple tr)
+{
+  comprobe_ix_t trix = 0;
+  comprobe_ix_t l = 0, nbgimple = 0;
+  void **sp = NULL;
+  if (tr == NULL)
+    return 0;
+  gcc_assert (unique_gimple_vector
+	      && VEC_length (gimple, unique_gimple_vector) > 2);
+  l = (comprobe_ix_t) HTAB_SEEKED_ENTRY;
+  nbgimple = VEC_length (gimple, unique_gimple_vector);
+  unique_seeked_gimple = tr;
+  sp = htab_find_slot (unique_gimple_htable, &l, INSERT);
+  if (sp)
+    {
+      if (*sp != HTAB_EMPTY_ENTRY && *sp != HTAB_DELETED_ENTRY
+	  && *sp != HTAB_SEEKED_ENTRY)
+	l = *(comprobe_ix_t *) (*sp);
+      else
+	l = 0;
+      if (l > 2)
+	{
+	  gcc_assert (l < nbgimple
+		      && VEC_index (gimple, unique_gimple_vector, l) == tr);
+	  trix = l;
+	}
+      else
+	{
+	  VEC_safe_push (gimple, gc, unique_gimple_vector, tr);
+	  trix = nbgimple;
+	  *(comprobe_ix_t *) (sp) = trix;
+	}
+    }
+  else				/* failed to insert into unique_gimple_htable */
+    gcc_unreachable ();
+  return trix;
+}
+
+gimple
+comprobe_gimple_of_unique_index (comprobe_ix_t ix)
+{
+  unsigned nbgimple = 0;
+  if (ix < 2 || !unique_gimple_vector)
+    return 0;
+  nbgimple = VEC_length (gimple, unique_gimple_vector);
+  if ((int) ix < (int) nbgimple)
+    return VEC_index (gimple, unique_gimple_vector, ix);
+  return 0;
+}
+
+
+/****@@@ ADDED****/
 /****
  * register a reply verb
  ****/
@@ -1119,6 +1229,10 @@ static void tree_starting_displayer (struct comprobe_whatpos_st *wp,
 				     struct comprobe_infodisplay_st *di,
 				     HOST_WIDE_INT data, HOST_WIDE_INT navig);
 
+static void gimple_starting_displayer (struct comprobe_whatpos_st *wp,
+				   struct comprobe_infodisplay_st *di,
+				   HOST_WIDE_INT data, HOST_WIDE_INT navig);
+
 static void tree_ending_displayer (struct comprobe_whatpos_st *wp,
 				   struct comprobe_infodisplay_st *di,
 				   HOST_WIDE_INT data, HOST_WIDE_INT navig);
@@ -1129,13 +1243,6 @@ display_tree (tree tr, struct comprobe_infodisplay_st *di)
   gcc_assert (di != 0);
   if (!tr)
     comprobe_printf ("*** NULL TREE %p ***\n", (void*)tr);
-  else if (GIMPLE_STMT_P (tr))
-    {
-      comprobe_printf ("*** GIMPLE STMT %p ***\n", (void*)tr);
-      print_generic_stmt_indented (comprobe_replf, tr,
-				   TDF_LINENO | TDF_VOPS | TDF_MEMSYMS |
-				   TDF_UID, 1);
-    }
   else if (EXPR_P (tr))
     {
       comprobe_printf ("*** EXPR %p ***\n", (void*)tr);
@@ -1169,16 +1276,15 @@ display_tree (tree tr, struct comprobe_infodisplay_st *di)
   else
     comprobe_printf ("*** tree of code %d <%s>***\n",
 		     TREE_CODE (tr), tree_code_names[TREE_CODE (tr)]);
-  if (TREE_CODE (tr) == PHI_NODE)
-    {
-      basic_block bb = PHI_BB (tr);
-      if (bb)
-	{
-	  comprobe_ix_t bbix = comprobe_unique_index_of_basic_block (bb);
-	  comprobe_display_add_navigator (di, bb_starting_displayer,
-					  "phi node basic block", bbix);
-	}
-    }
+}
+
+static void
+display_gimple (gimple g, struct comprobe_infodisplay_st *di)
+{
+  gcc_assert (di != 0);
+  if (!g)
+    comprobe_printf ("*** NULL GIMPLE %p ***\n", (void*)g);
+#warning display_gimple to be coded
 }
 
 static void
@@ -1259,22 +1365,31 @@ bb_starting_displayer (struct comprobe_whatpos_st *wp,
 		    pfx, comprobe_replf);
       if (phi_nodes(bb))
 	{
+	  gimple_stmt_iterator gsi;
 	  comprobe_printf ("\n// basic block phi_nodes _%ld #%d is\n",
 			   ix, di->idis_infp->infp_num);
-	  display_tree (phi_nodes(bb), di);
-	  comprobe_display_add_navigator
-	    (di, tree_starting_displayer,
-	     "phi nodes", comprobe_unique_index_of_tree (phi_nodes(bb)));
+	  for (gsi = gsi_start_phis (bb); !gsi_end_p (gsi); gsi_next (&gsi)) {
+	    gimple g = gsi_stmt(gsi);
+	    display_gimple(g, di);
+	    comprobe_display_add_navigator
+	      (di, tree_starting_displayer,
+	       "phi nodes", comprobe_unique_index_of_gimple(g));
+	  }
 	};
-      if (bb_stmt_list(bb))
-	{
-	  comprobe_printf ("\n// basic block stmt_list _%ld #%d is\n", ix,
-			   di->idis_infp->infp_num);
-	  display_tree (bb_stmt_list(bb), di);
-	  comprobe_display_add_navigator
-	    (di, tree_starting_displayer,
-	     "stmt list", comprobe_unique_index_of_tree (bb_stmt_list(bb)));
-	};
+      /* basic blocks [almost?] always have statements */
+      {
+	gimple_stmt_iterator gsi;
+	comprobe_printf ("\n// basic block statements _%ld #%d is\n", ix,
+			 di->idis_infp->infp_num);
+	for (gsi = gsi_start_bb(bb); !gsi_end_p(gsi); gsi_next(&gsi)) 
+	  {
+	    gimple g = gsi_stmt(gsi);
+	    display_gimple(g, di);
+	    comprobe_display_add_navigator
+	      (di, tree_starting_displayer,
+	       "stmt", comprobe_unique_index_of_gimple(g));
+	  }
+      }
     }
   else
     comprobe_printf ("?? invalid starting basic block index %ld info #%d??",
@@ -1560,8 +1675,13 @@ comprobe_initialize (void)
   VEC_safe_push (basic_block, gc, unique_bb_vector, (basic_block) 0);
   VEC_safe_push (basic_block, gc, unique_bb_vector, (basic_block) 0);
   VEC_safe_push (basic_block, gc, unique_bb_vector, (basic_block) 0);
+  VEC_safe_push (gimple, gc, unique_gimple_vector, (gimple) 0);
+  VEC_safe_push (gimple, gc, unique_gimple_vector, (gimple) 0);
+  VEC_safe_push (gimple, gc, unique_gimple_vector, (gimple) 0);
+  VEC_safe_push (gimple, gc, unique_gimple_vector, (gimple) 0);
   unique_tree_htable = htab_create (4007, hash_info_tree, eq_info_tree, NULL);
   unique_bb_htable = htab_create (3001, hash_info_bb, eq_info_bb, NULL);
+  unique_gimple_htable = htab_create (6173, hash_info_gimple, eq_info_gimple, NULL);
   files_varr.tab = XNEWVEC (char *, 100);
   files_varr.size = 100;
   files_varr.last = 0;
@@ -1731,73 +1851,116 @@ comprobe_infopoint_rank (int filerank, int lineno)
 
 
 
+/** convenience function for iterating **/
+static bool 
+get_gimple_position_seq(gimple_seq sq, char **pfilename, int *plineno, int end)
+{
+  gimple_stmt_iterator gsi;
+  if (!end) 
+    {
+      for (gsi = gsi_start(sq); !gsi_end_p(gsi); gsi_next(&gsi)) 
+	{
+	  gimple s = gsi_stmt(gsi);
+	  if (comprobe_get_gimple_position(s, pfilename, plineno, POS_START))
+	    return true;
+	}
+    }
+  else 
+    {
+      for (gsi_last(sq); !gsi_end_p(gsi); gsi_prev(&gsi)) {
+	gimple s = gsi_stmt(gsi);
+	if (comprobe_get_gimple_position(s, pfilename, plineno, POS_END))
+	  return true;
+      }
+    }
+  return false;
+}
+
 /***
- * return true if a (GIMPLE/SSA) tree TR has a position 
+ * return true if a gimple G has a position 
  * and in that case fill the PFILENAME and PLINENO
  * if the END flag is set, return the last position
  ***/
 bool
-comprobe_get_position (tree tr, char **pfilename, int *plineno, int end)
+comprobe_get_gimple_position (gimple g, char **pfilename, int *plineno, int end)
 {
-  if (CAN_HAVE_LOCATION_P (tr) && EXPR_HAS_LOCATION (tr))
+  location_t loc = 0;
+  if (!g) 
+    return false;
+  loc = gimple_location(g);
+  if (loc != UNKNOWN_LOCATION && loc != BUILTINS_LOCATION) 
     {
-      char *pfile = (char *) EXPR_FILENAME (tr);
-      if (pfile)
-	{
-	  *pfilename = pfile;
-	  *plineno = EXPR_LINENO (tr);
-	  return TRUE;
-	}
+      if (pfilename) 
+	*pfilename = LOCATION_FILE(loc);
+      if (plineno)
+	*plineno = LOCATION_LINE(loc);
+      return true;
     }
-  else if (TREE_CODE (tr) == STATEMENT_LIST)
+  else if (gimple_has_substatements(g)) 
     {
-      tree_stmt_iterator iter;
-      tree tr_stmt;
-      if (end)
+      switch (gimple_code (g))
 	{
-	  for (iter = tsi_last (tr); !tsi_end_p (iter); tsi_prev (&iter))
-	    {
-	      tr_stmt = tsi_stmt (iter);
-	      if (comprobe_get_position
-		  (tr_stmt, pfilename, plineno, POS_END))
-		return TRUE;
-	    }
-	}
-      else
-	for (iter = tsi_start (tr); !tsi_end_p (iter); tsi_next (&iter))
+	case GIMPLE_BIND:
 	  {
-	    tr_stmt = tsi_stmt (iter);
-	    if (comprobe_get_position
-		(tr_stmt, pfilename, plineno, POS_START))
-	      return TRUE;
+	    gimple_seq sq = gimple_bind_body(g);
+	    return get_gimple_position_seq(sq, pfilename, plineno, end);
 	  }
-    }
-  else if (GIMPLE_STMT_P (tr))
-    {
-      char *pfile = (char *) EXPR_FILENAME (tr);
-      if (pfile)
-	{
-	  *pfilename = pfile;
-	  *plineno = EXPR_LINENO (tr);
-	  return TRUE;
+	case GIMPLE_CATCH:
+	  {
+	    gimple_seq sq = gimple_catch_handler(g);
+	    return get_gimple_position_seq(sq, pfilename, plineno, end);
+	  }
+	case GIMPLE_EH_FILTER:
+	  {
+	    gimple_seq sq = gimple_eh_filter_failure(g);
+	    return get_gimple_position_seq(sq, pfilename, plineno, end);
+	  }
+	case GIMPLE_TRY:
+	  {
+	    gimple_seq sq;
+	    sq = gimple_try_eval(g);
+	    if (get_gimple_position_seq(sq, pfilename, plineno, end))
+	      return true;
+	    sq = gimple_try_cleanup(g);
+	    return get_gimple_position_seq(sq, pfilename, plineno, end);
+	  }
+	case GIMPLE_WITH_CLEANUP_EXPR:
+	  {
+	    gimple_seq sq = gimple_wce_cleanup(g);
+	    return get_gimple_position_seq(sq, pfilename, plineno, end);
+	  }
+	case GIMPLE_OMP_FOR:
+	case GIMPLE_OMP_MASTER:
+	case GIMPLE_OMP_ORDERED:
+	case GIMPLE_OMP_SECTION:
+	case GIMPLE_OMP_PARALLEL:
+	case GIMPLE_OMP_TASK:
+	case GIMPLE_OMP_SECTIONS:
+	case GIMPLE_OMP_SINGLE:
+	  {
+	    static bool warned;
+	    if (!warned) {
+	      warning(0, "compiler probe not implemented for OpenMP stuff");
+	      warned = true;
+	    }
+	    return false;
+	  }
+	  break;
+	default:
+	  gcc_unreachable();
 	}
     }
-  else if (GIMPLE_TUPLE_P (tr) && GIMPLE_TUPLE_HAS_LOCUS_P (tr))
-    {
-      /* @@@@ dont know yet how to get location of a tuple */
-      gcc_unreachable ();
-    }
-  return FALSE;
+    return false;
 }
 
 int
-comprobe_file_rank_of_tree (tree tr, int *plineno)
+comprobe_file_rank_of_gimple (gimple g, int *plineno)
 {
   char *filename = 0;
   int lineno = 0, filerank = 0;
-  if (!tr)
+  if (!g)
     return 0;
-  if (!comprobe_get_position (tr, &filename, &lineno, POS_START))
+  if (!comprobe_get_gimple_position (g, &filename, &lineno, POS_START))
     return 0;
   filerank = comprobe_file_rank (filename);
   if (filerank > 0 && plineno)
@@ -1814,25 +1977,21 @@ gate_comprobe (void)
 }
 
 
-/* add information point and display start of a given tree TR with
+/* add information point and display start of a given fimple G with
    string DMESG - return the infopoint rank  */
 static int
-added_infopoint_display_tree (tree tr, const char *dmesg)
+added_infopoint_display_tree (gimple g, const char *dmesg)
 {
   int frk = 0, lin = 0, infrk = 0;
   comprobe_ix_t trix = 0;
-  debugeprintf ("added_infopoint_display_tree tr+ %p dmesg %s", (void*)tr, dmesg);
-  if (!tr)
+  if (!g)
     return 0;
-  frk = comprobe_file_rank_of_tree (tr, &lin);
+  frk = comprobe_file_rank_of_gimple (g, &lin);
   if (frk > 0 && lin > 0)
     {
-      trix = comprobe_unique_index_of_tree (tr);
+      trix = comprobe_unique_index_of_gimple (g);
       gcc_assert (trix > 2);
       infrk = comprobe_infopoint_rank (frk, lin);
-      debugeprintf
-	("added_infopoint_display_tree infrk%d frk%d lin%d tree %p dmesg %s",
-	 infrk, frk, lin, (void*)tr, dmesg);
       comprobe_infopoint_add_display (infrk, tree_starting_displayer, dmesg,
 				      (HOST_WIDE_INT) trix);
       return infrk;
@@ -1841,6 +2000,7 @@ added_infopoint_display_tree (tree tr, const char *dmesg)
 }
 
 
+#if 0 && old
 /* add information point for a given function body */
 static void
 add_infopoint_funbody (tree tr_body)
@@ -1897,6 +2057,7 @@ add_infopoint_funbody (tree tr_body)
     }
   debugeprintf ("add_infopoint_funbody tr_body %p end", (void*)tr_body);
 }
+#endif /*old code*/
 
 
 comprobe_ix_t
@@ -1955,7 +2116,7 @@ comprobe_basic_block_of_unique_index (comprobe_ix_t ix)
 static void
 add_infopoint_basic_block (basic_block bb)
 {
-  block_stmt_iterator bsi;
+  gimple_stmt_iterator gsi;
   int stmtcnt = 0;
   comprobe_ix_t bbix = 0;
   bool bbgotpos = 0;
@@ -1965,9 +2126,9 @@ add_infopoint_basic_block (basic_block bb)
   bbix = comprobe_unique_index_of_basic_block (bb);
   gcc_assert (bbix > 2);
   bbgotpos = FALSE;
-  for (bsi = bsi_start (bb); !bsi_end_p (bsi); bsi_next (&bsi))
+  for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); gsi_next (&gsi))
     {
-      tree stmt = bsi_stmt (bsi);
+      gimple stmt = gsi_stmt (gsi);
       char *filename = 0;
       int lineno = 0;
       int filrk = 0, infrk = 0;
@@ -1976,7 +2137,7 @@ add_infopoint_basic_block (basic_block bb)
 	stmtcnt++;
       else
 	continue;
-      if (comprobe_get_position (stmt, &filename, &lineno, POS_START))
+      if (comprobe_get_gimple_position (stmt, &filename, &lineno, POS_START))
 	{
 	  filrk = comprobe_file_rank (filename);
 	  infrk = comprobe_infopoint_rank (filrk, lineno);
@@ -1995,14 +2156,14 @@ add_infopoint_basic_block (basic_block bb)
 	  (void) added_infopoint_display_tree (stmt, msgbuf);
 	}
     }
-  for (bsi = bsi_last (bb); !bsi_end_p (bsi); bsi_prev (&bsi))
+  for (gsi = gsi_last_bb (bb); !gsi_end_p (gsi); gsi_prev (&gsi))
     {
-      tree stmt = bsi_stmt (bsi);
+      gimple stmt = gsi_stmt (gsi);
       char *filename = 0;
       int lineno = 0;
       int filrk = 0, infrk = 0;
       static char msgbuf[64];
-      if (comprobe_get_position (stmt, &filename, &lineno, POS_END))
+      if (comprobe_get_gimple_position (stmt, &filename, &lineno, POS_END))
 	{
 	  filrk = comprobe_file_rank (filename);
 	  infrk = comprobe_infopoint_rank (filrk, lineno);
@@ -2028,18 +2189,23 @@ execute_comprobe (void)
     {
       tree tr_decl, tr_body;
       int frk_decl = 0, lin_decl = 0;
+      gimple_seq sq = 0;
       if (!comprobe_replf)
 	break;
       debugeprintf ("execute_comprobe cgr_fun=%p", (void*)cgr_fun);
       if (flag_compiler_probe_debug)
 	dump_cgraph_node (stderr, cgr_fun);
       tr_decl = cgr_fun->decl;
+#if 0 && oldcode
       frk_decl = comprobe_file_rank_of_tree (tr_decl, &lin_decl);
       tr_body = DECL_SAVED_TREE (tr_decl);
       if (!tr_body)
 	continue;
       comprobe_check ("comprobe cgraph loop");
       add_infopoint_funbody (tr_body);
+#endif
+      sq = gimple_body(tr_decl);
+#warning should do something with the body...
       comprobe_flush ();
     }
   FOR_EACH_BB (bb)
@@ -2047,8 +2213,6 @@ execute_comprobe (void)
     if (!comprobe_replf)
       break;
     debugeprintf ("execute_comprobe bb %p", (void*)bb);
-    if (!bb_stmt_list(bb))
-      continue;
     comprobe_check ("comprobe bb loop");
     add_infopoint_basic_block (bb);
     comprobe_flush ();

@@ -14610,8 +14610,9 @@ do_decl_instantiation (tree decl, tree storage)
     ;
   else if (storage == ridpointers[(int) RID_EXTERN])
     {
-      if (pedantic && !in_system_header && (cxx_dialect == cxx98))
-	pedwarn ("ISO C++ 1998 forbids the use of %<extern%> on explicit "
+      if (!in_system_header && (cxx_dialect == cxx98))
+	pedwarn (OPT_pedantic, 
+		 "ISO C++ 1998 forbids the use of %<extern%> on explicit "
 		 "instantiations");
       extern_p = 1;
     }
@@ -14697,16 +14698,17 @@ do_type_instantiation (tree t, tree storage, tsubst_flags_t complain)
 
   if (storage != NULL_TREE)
     {
-      if (pedantic && !in_system_header)
+      if (!in_system_header)
 	{
 	  if (storage == ridpointers[(int) RID_EXTERN])
 	    {
 	      if (cxx_dialect == cxx98)
-		pedwarn("ISO C++ 1998 forbids the use of %<extern%> on "
+		pedwarn(OPT_pedantic, 
+			"ISO C++ 1998 forbids the use of %<extern%> on "
 			"explicit instantiations");
 	    }
 	  else
-	    pedwarn("ISO C++ forbids the use of %qE on explicit "
+	    pedwarn(OPT_pedantic, "ISO C++ forbids the use of %qE on explicit "
 		    "instantiations", storage);
 	}
 
@@ -15142,7 +15144,8 @@ instantiate_decl (tree d, int defer_ok,
   if (external_p
       /* ... but we instantiate inline functions so that we can inline
 	 them and ... */
-      && ! (TREE_CODE (d) == FUNCTION_DECL && DECL_INLINE (d))
+      && ! (TREE_CODE (d) == FUNCTION_DECL
+	    && possibly_inlined_p (d))
       /* ... we instantiate static data members whose values are
 	 needed in integral constant expressions.  */
       && ! (TREE_CODE (d) == VAR_DECL
@@ -15219,9 +15222,7 @@ instantiate_decl (tree d, int defer_ok,
       /* Instantiate inline functions so that the inliner can do its
 	 job, even though we'll not be emitting a copy of this
 	 function.  */
-      if (!(TREE_CODE (d) == FUNCTION_DECL
-	    && flag_inline_trees
-	    && DECL_DECLARED_INLINE_P (d)))
+      if (!(TREE_CODE (d) == FUNCTION_DECL && possibly_inlined_p (d)))
 	goto out;
     }
 

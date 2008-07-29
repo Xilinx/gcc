@@ -81,7 +81,7 @@ The callgraph:
 #include "varray.h"
 #include "output.h"
 #include "intl.h"
-#include "tree-gimple.h"
+#include "gimple.h"
 #include "tree-dump.h"
 #include "tree-flow.h"
 
@@ -412,17 +412,6 @@ cgraph_node (tree decl)
       node->master_clone = node;
     }
 
-  /* This code can go away once flag_unit_at_a_mode is removed.  */
-  if (assembler_name_hash)
-    {
-      tree name = DECL_ASSEMBLER_NAME (node->decl);
-      slot = ((struct cgraph_node **)
-              htab_find_slot_with_hash (assembler_name_hash, name,
-				        decl_assembler_name_hash (name),
-				        INSERT));
-      if (!*slot)
-        *slot = node;
-    }
   return node;
 }
 
@@ -514,9 +503,12 @@ edge_eq (const void *x, const void *y)
   return ((const struct cgraph_edge *) x)->call_stmt == y;
 }
 
-/* Return callgraph edge representing CALL_EXPR statement.  */
+
+/* Return the callgraph edge representing the GIMPLE_CALL statement
+   CALL_STMT.  */
+
 struct cgraph_edge *
-cgraph_edge (struct cgraph_node *node, tree call_stmt)
+cgraph_edge (struct cgraph_node *node, gimple call_stmt)
 {
   struct cgraph_edge *e, *e2;
   int n = 0;
@@ -537,6 +529,7 @@ cgraph_edge (struct cgraph_node *node, tree call_stmt)
 	break;
       n++;
     }
+
   if (n > 100)
     {
       node->call_site_hash = htab_create_ggc (120, edge_hash, edge_eq, NULL);
@@ -551,13 +544,15 @@ cgraph_edge (struct cgraph_node *node, tree call_stmt)
 	  *slot = e2;
 	}
     }
+
   return e;
 }
 
-/* Change call_stmt of edge E to NEW_STMT.  */
+
+/* Change field call_smt of edge E to NEW_STMT.  */
 
 void
-cgraph_set_call_stmt (struct cgraph_edge *e, tree new_stmt)
+cgraph_set_call_stmt (struct cgraph_edge *e, gimple new_stmt)
 {
   if (e->caller->call_site_hash)
     {
@@ -582,7 +577,7 @@ cgraph_set_call_stmt (struct cgraph_edge *e, tree new_stmt)
 
 struct cgraph_edge *
 cgraph_create_edge (struct cgraph_node *caller, struct cgraph_node *callee,
-		    tree call_stmt, gcov_type count, int freq, int nest)
+		    gimple call_stmt, gcov_type count, int freq, int nest)
 {
   struct cgraph_edge *edge = GGC_NEW (struct cgraph_edge);
 #ifdef ENABLE_CHECKING
@@ -592,9 +587,9 @@ cgraph_create_edge (struct cgraph_node *caller, struct cgraph_node *callee,
     gcc_assert (e->call_stmt != call_stmt);
 #endif
 
-  gcc_assert (get_call_expr_in (call_stmt));
+  gcc_assert (is_gimple_call (call_stmt));
 
-  if (!DECL_SAVED_TREE (callee->decl))
+  if (!gimple_body (callee->decl))
     edge->inline_failed = N_("function body not available");
   else if (callee->local.redefined_extern_inline)
     edge->inline_failed = N_("redefined extern inline functions are not "
@@ -625,6 +620,7 @@ cgraph_create_edge (struct cgraph_node *caller, struct cgraph_node *callee,
   gcc_assert (freq >= 0);
   gcc_assert (freq <= CGRAPH_FREQ_MAX);
   edge->loop_nest = nest;
+  edge->indirect_call = 0;
   edge->uid = cgraph_edge_max_uid++;
   if (caller->call_site_hash)
     {
@@ -701,14 +697,15 @@ cgraph_redirect_edge_callee (struct cgraph_edge *e, struct cgraph_node *n)
   e->callee = n;
 }
 
-/* Update or remove corresponding cgraph edge if a call OLD_CALL
-   in OLD_STMT changed into NEW_STMT.  */
+
+/* Update or remove the corresponding cgraph edge if a GIMPLE_CALL
+   OLD_STMT changed into NEW_STMT.  */
 
 void
-cgraph_update_edges_for_call_stmt (tree old_stmt, tree old_call,
-				   tree new_stmt)
+cgraph_update_edges_for_call_stmt (gimple old_stmt, gimple new_stmt)
 {
-  tree new_call = get_call_expr_in (new_stmt);
+  tree new_call = (is_gimple_call (new_stmt)) ? gimple_call_fn (new_stmt) : 0;
+  tree old_call = (is_gimple_call (old_stmt)) ? gimple_call_fn (old_stmt) : 0;
   struct cgraph_node *node = cgraph_node (cfun->decl);
 
   if (old_call != new_call)
@@ -726,7 +723,7 @@ cgraph_update_edges_for_call_stmt (tree old_stmt, tree old_call,
 	  cgraph_remove_edge (e);
 	  if (new_call)
 	    {
-	      new_decl = get_callee_fndecl (new_call);
+	      new_decl = gimple_call_fndecl (new_stmt);
 	      if (new_decl)
 		{
 		  ne = cgraph_create_edge (node, cgraph_node (new_decl),
@@ -745,6 +742,7 @@ cgraph_update_edges_for_call_stmt (tree old_stmt, tree old_call,
 	cgraph_set_call_stmt (e, new_stmt);
     }
 }
+
 
 /* Remove all callees from the node.  */
 
@@ -801,6 +799,7 @@ cgraph_release_function_body (struct cgraph_node *node)
       delete_tree_ssa ();
       delete_tree_cfg_annotations ();
       cfun->eh = NULL;
+      gimple_set_body (node->decl, NULL);
       current_function_decl = old_decl;
       pop_cfun();
     }
@@ -893,7 +892,7 @@ cgraph_remove_node (struct cgraph_node *node)
         htab_clear_slot (assembler_name_hash, slot);
     }
 
-  if (kill_body && flag_unit_at_a_time)
+  if (kill_body)
     cgraph_release_function_body (node);
   node->decl = NULL;
   if (node->call_site_hash)
@@ -1016,8 +1015,8 @@ dump_cgraph_node (FILE *f, struct cgraph_node *node)
     fprintf (f, " needed");
   else if (node->reachable)
     fprintf (f, " reachable");
-  if (DECL_SAVED_TREE (node->decl))
-    fprintf (f, " tree");
+  if (gimple_body (node->decl))
+    fprintf (f, " body");
   if (node->output)
     fprintf (f, " output");
   if (node->local.local)
@@ -1048,6 +1047,8 @@ dump_cgraph_node (FILE *f, struct cgraph_node *node)
 		 edge->frequency / (double)CGRAPH_FREQ_BASE);
       if (!edge->inline_failed)
 	fprintf(f, "(inlined) ");
+      if (edge->indirect_call)
+	fprintf(f, "(indirect) ");
     }
 
   fprintf (f, "\n  calls: ");
@@ -1057,6 +1058,8 @@ dump_cgraph_node (FILE *f, struct cgraph_node *node)
 	       edge->callee->uid);
       if (!edge->inline_failed)
 	fprintf(f, "(inlined) ");
+      if (edge->indirect_call)
+	fprintf(f, "(indirect) ");
       if (edge->count)
 	fprintf (f, "("HOST_WIDEST_INT_PRINT_DEC"x) ",
 		 (HOST_WIDEST_INT)edge->count);
@@ -1146,14 +1149,14 @@ bool
 cgraph_function_possibly_inlined_p (tree decl)
 {
   if (!cgraph_global_info_ready)
-    return (DECL_INLINE (decl) && !flag_really_no_inline);
+    return !DECL_UNINLINABLE (decl) && !flag_really_no_inline;
   return DECL_POSSIBLY_INLINED (decl);
 }
 
 /* Create clone of E in the node N represented by CALL_EXPR the callgraph.  */
 struct cgraph_edge *
 cgraph_clone_edge (struct cgraph_edge *e, struct cgraph_node *n,
-		   tree call_stmt, gcov_type count_scale, int freq_scale,
+		   gimple call_stmt, gcov_type count_scale, int freq_scale,
 		   int loop_nest, bool update_original)
 {
   struct cgraph_edge *new;
@@ -1166,6 +1169,7 @@ cgraph_clone_edge (struct cgraph_edge *e, struct cgraph_node *n,
 			    e->loop_nest + loop_nest);
 
   new->inline_failed = e->inline_failed;
+  new->indirect_call = e->indirect_call;
   if (update_original)
     {
       e->count -= new->count;
@@ -1183,8 +1187,8 @@ cgraph_clone_edge (struct cgraph_edge *e, struct cgraph_node *n,
    function's profile to reflect the fact that part of execution is handled
    by node.  */
 struct cgraph_node *
-cgraph_clone_node (struct cgraph_node *n, gcov_type count, int freq, int loop_nest,
-		   bool update_original)
+cgraph_clone_node (struct cgraph_node *n, gcov_type count, int freq,
+		   int loop_nest, bool update_original)
 {
   struct cgraph_node *new = cgraph_create_node ();
   struct cgraph_edge *e;
@@ -1340,8 +1344,8 @@ cgraph_add_new_function (tree fndecl, bool lowered)
 	  {
 	    push_cfun (DECL_STRUCT_FUNCTION (fndecl));
 	    current_function_decl = fndecl;
-	    tree_register_cfg_hooks ();
-            tree_lowering_passes (fndecl);
+	    gimple_register_cfg_hooks ();
+	    tree_lowering_passes (fndecl);
 	    bitmap_obstack_initialize (NULL);
 	    if (!gimple_in_ssa_p (DECL_STRUCT_FUNCTION (fndecl)))
 	      execute_pass_list (pass_early_local_passes.pass.sub);
@@ -1362,7 +1366,7 @@ cgraph_add_new_function (tree fndecl, bool lowered)
 	   to expansion.  */
 	push_cfun (DECL_STRUCT_FUNCTION (fndecl));
 	current_function_decl = fndecl;
-	tree_register_cfg_hooks ();
+	gimple_register_cfg_hooks ();
 	if (!lowered)
           tree_lowering_passes (fndecl);
 	bitmap_obstack_initialize (NULL);
