@@ -17,7 +17,7 @@ int main() {
   //call([i] () -> void { i = 0; }); // { dg-error: "assignment to non-reference capture in const lambda" }
 
   std::vector<int*> pointers;
-  //std::for_each(pointers.begin(), pointers.end(), [] (int* pointer) -> { delete pointer; });
+  std::for_each(pointers.begin(), pointers.end(), [] (int* pointer) -> void { delete pointer; });
 
   return 0;
 }
