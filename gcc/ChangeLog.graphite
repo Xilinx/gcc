@@ -1,3 +1,10 @@
+2008-07-29  Tobias Grosser  <grosser@fim.uni-passau.de>
+
+	* graphite.c (dump_gbb_conditions): Print also conditions like "if (a)".
+	Remove dublicated code and use print_generic_expr ().
+	(stmt_simple_for_scop_p): Only allow conditions we can handle
+	{<, <=, >, >=}.
+
 2008-07-25  Jan Sjodin  <jan.sjodin@amd.com>
 
 	* graphite.h (struct scop): Removed new_ivs field.

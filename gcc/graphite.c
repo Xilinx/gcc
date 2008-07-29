@@ -544,33 +544,10 @@ dump_gbb_conditions (FILE *file, graphite_bb_p gbb)
 	case COND_EXPR:
 	  if (VEC_index (tree, cases, i) == NULL_TREE)
 	    fprintf (file, "!(");
+
 	  cond = TREE_OPERAND (stmt, 0);
-	  dump_value (file, TREE_OPERAND (cond, 0));
-	  switch (TREE_CODE (cond))
-	    {
-	    case NE_EXPR:
-	      fprintf (file, " != ");
-	      break;
-	    case EQ_EXPR:
-	      fprintf (file, " == ");
-	      break;
-	    case LT_EXPR:
-	      fprintf (file, " < ");
-	      break;
-	    case GT_EXPR:
-	      fprintf (file, " > ");
-	      break;
-	    case LE_EXPR:
-	      fprintf (file, " <= ");
-	      break;
-	    case GE_EXPR:
-	      fprintf (file, " >= ");
-	      break;
-	    default:
-	      gcc_unreachable ();
-	      break;
-	    }
-	  dump_value (file, TREE_OPERAND (cond, 1));
+          print_generic_expr (file, cond, 0);
+
 	  if (VEC_index (tree, cases, i) == NULL_TREE)
 	    fprintf (file, ")");
 	  break;
@@ -1005,6 +982,15 @@ stmt_simple_for_scop_p (struct loop *outermost_loop, tree stmt)
       {
 	tree op;
 	ssa_op_iter op_iter;
+        int tree_code = TREE_CODE (TREE_OPERAND (stmt, 0));
+
+        /* We can only handle this kind of conditional expressions.  
+           For inequalities like "if (i != 3 * k)" we need unions of
+           polyhedrons.  Expressions like  "if (a)" or "if (a == 15)" need
+           them for the else branch.  */
+        if (!(tree_code == LT_EXPR || tree_code == GT_EXPR
+              || tree_code == LE_EXPR || GE_EXPR))
+          return false;
 
 	if (!outermost_loop)
 	  return false;
