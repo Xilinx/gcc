@@ -1,3 +1,15 @@
+2008-07-28  Basile Starynkevitch  <basile@starynkevitch.net>
+	[added successfully location_t in MELT parsing & error reports]
+
+	* basilys.h: basilys_dynobjstruct_fieldoffset_at &
+	basilys_dynobjstruct_classlength_at are always declared.
+
+	* basilys.c:
+	(basilys_error_str, basilys_warning_str)
+	(basilys_inform_str) added casts.
+	(basilysgc_read_file) calling linemap_add on the complete MELT
+	source path.
+
 2008-07-27  Basile Starynkevitch  <basile@starynkevitch.net>
 	[adding location_t in MELT parsing & error reports]
 

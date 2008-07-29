@@ -1382,9 +1382,10 @@ void basilys_error_str(basilys_ptr_t mixloc_p, const char* msg, basilys_ptr_t st
 void basilys_warning_str(int opt, basilys_ptr_t mixloc_p, const char* msg, basilys_ptr_t str_p);
 void basilys_inform_str(basilys_ptr_t mixloc_p, const char* msg, basilys_ptr_t str_p);
 
-#if MELTGCC_DYNAMIC_OBJSTRUCT
 int* basilys_dynobjstruct_fieldoffset_at(const char*fldnam, const char*fil, int lin);
 int* basilys_dynobjstruct_classlength_at(const char*clanam, const char* fil, int lin);
+
+#if MELTGCC_DYNAMIC_OBJSTRUCT
 
 static inline basilys_ptr_t
 basilys_dynobjstruct_getfield_object_at (basilys_ptr_t ob, unsigned off, const char*fldnam, const char*fil, int lin, int**poff)

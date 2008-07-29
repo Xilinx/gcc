@@ -1011,7 +1011,8 @@ forwarded_copy (basilys_ptr_t p)
 	    dst->entab =
 	      (struct entrybasicblocksbasilys_st *) ggc_alloc_cleared (siz *
 								       sizeof
-								       (dst->entab
+								       (dst->
+									entab
 									[0]));
 	    memcpy (dst->entab, src->entab, siz * sizeof (dst->entab[0]));
 	  }
@@ -1468,15 +1469,15 @@ unsafe_index_mapobject (struct entryobjectsbasilys_st *tab,
 		 samehashcnt, (void *) attr, attr->obj_serial, (void *) curat,
 		 curat->obj_serial, curat->obj_hash,
 		 (void *) curat->obj_class,
-		 basilys_string_str (curat->obj_class->
-				     obj_vartab[FNAMED_NAME]));
+		 basilys_string_str (curat->
+				     obj_class->obj_vartab[FNAMED_NAME]));
 	      if (basilys_is_instance_of
 		  ((basilys_ptr_t) attr,
 		   (basilys_ptr_t) BASILYSGOB (CLASS_NAMED)))
 		dbgprintf ("gotten attr named %s found attr named %s",
 			   basilys_string_str (attr->obj_vartab[FNAMED_NAME]),
-			   basilys_string_str (curat->
-					       obj_vartab[FNAMED_NAME]));
+			   basilys_string_str (curat->obj_vartab
+					       [FNAMED_NAME]));
 	      basilys_dbgshortbacktrace
 		("gotten & found attr of same hash & class", 15);
 	    }
@@ -1513,15 +1514,15 @@ unsafe_index_mapobject (struct entryobjectsbasilys_st *tab,
 		 samehashcnt, (void *) attr, attr->obj_serial, (void *) curat,
 		 curat->obj_serial, curat->obj_hash,
 		 (void *) curat->obj_class,
-		 basilys_string_str (curat->obj_class->
-				     obj_vartab[FNAMED_NAME]));
+		 basilys_string_str (curat->
+				     obj_class->obj_vartab[FNAMED_NAME]));
 	      if (basilys_is_instance_of
 		  ((basilys_ptr_t) attr,
 		   (basilys_ptr_t) BASILYSGOB (CLASS_NAMED)))
 		dbgprintf ("gotten attr named %s found attr named %s",
 			   basilys_string_str (attr->obj_vartab[FNAMED_NAME]),
-			   basilys_string_str (curat->
-					       obj_vartab[FNAMED_NAME]));
+			   basilys_string_str (curat->obj_vartab
+					       [FNAMED_NAME]));
 	      basilys_dbgshortbacktrace
 		("gotten & found attr of same hash & class", 15);
 	    }
@@ -5146,8 +5147,6 @@ makesexpr (struct reading_st *rd, int lineno, basilys_ptr_t contents_p,
 #define locmixv curfram__.varptr[2]
   contsv = contents_p;
   gcc_assert (basilys_magic_discr ((basilys_ptr_t) contsv) == OBMAG_LIST);
-  loc = 0;
-#warning loc temporarily cleared to ease compilation of melt-generated stuff
   if (loc == 0)
     locmixv = basilysgc_new_mixint (BASILYSGOB (DISCR_MIXEDINT),
 				    *rd->rpfilnam, (long) lineno);
@@ -5955,15 +5954,15 @@ basilys_error_str (basilys_ptr_t mixloc_p, const char *msg,
   mixmag = basilys_magic_discr ((basilys_ptr_t) mixlocv);
   if (mixmag == OBMAG_MIXLOC)
     {
-      loc = basilys_location_mixloc (mixlocv);
-      finamv = basilys_val_mixloc (mixlocv);
-      lineno = basilys_num_mixloc (mixlocv);
+      loc = basilys_location_mixloc ((basilys_ptr_t) mixlocv);
+      finamv = basilys_val_mixloc ((basilys_ptr_t) mixlocv);
+      lineno = basilys_num_mixloc ((basilys_ptr_t) mixlocv);
     }
   else if (mixmag == OBMAG_MIXINT)
     {
       loc = 0;
-      finamv = basilys_val_mixint (mixlocv);
-      lineno = basilys_num_mixint (mixlocv);
+      finamv = basilys_val_mixint ((basilys_ptr_t) mixlocv);
+      lineno = basilys_num_mixint ((basilys_ptr_t) mixlocv);
     }
   else
     {
@@ -5973,7 +5972,7 @@ basilys_error_str (basilys_ptr_t mixloc_p, const char *msg,
     }
   if (loc)
     {
-      char *cstr = basilys_string_str (strv);
+      char *cstr = basilys_string_str ((basilys_ptr_t) strv);
       if (cstr)
 	error ("%H.Basilys Error[#%ld]: %s - %s", &loc, basilys_dbgcounter,
 	       msg, cstr);
@@ -6027,15 +6026,15 @@ basilys_warning_str (int opt, basilys_ptr_t mixloc_p, const char *msg,
   mixmag = basilys_magic_discr ((basilys_ptr_t) mixlocv);
   if (mixmag == OBMAG_MIXLOC)
     {
-      loc = basilys_location_mixloc (mixlocv);
-      finamv = basilys_val_mixloc (mixlocv);
-      lineno = basilys_num_mixloc (mixlocv);
+      loc = basilys_location_mixloc ((basilys_ptr_t) mixlocv);
+      finamv = basilys_val_mixloc ((basilys_ptr_t) mixlocv);
+      lineno = basilys_num_mixloc ((basilys_ptr_t) mixlocv);
     }
   else if (mixmag == OBMAG_MIXINT)
     {
       loc = 0;
-      finamv = basilys_val_mixint (mixlocv);
-      lineno = basilys_num_mixint (mixlocv);
+      finamv = basilys_val_mixint ((basilys_ptr_t) mixlocv);
+      lineno = basilys_num_mixint ((basilys_ptr_t) mixlocv);
     }
   else
     {
@@ -6055,8 +6054,8 @@ basilys_warning_str (int opt, basilys_ptr_t mixloc_p, const char *msg,
     }
   else
     {
-      char *cfilnam = basilys_string_str (finamv);
-      char *cstr = basilys_string_str (strv);
+      char *cfilnam = basilys_string_str ((basilys_ptr_t) finamv);
+      char *cstr = basilys_string_str ((basilys_ptr_t) strv);
       if (cfilnam)
 	{
 	  if (cstr)
@@ -6102,15 +6101,15 @@ basilys_inform_str (basilys_ptr_t mixloc_p, const char *msg,
   mixmag = basilys_magic_discr ((basilys_ptr_t) mixlocv);
   if (mixmag == OBMAG_MIXLOC)
     {
-      loc = basilys_location_mixloc (mixlocv);
-      finamv = basilys_val_mixloc (mixlocv);
-      lineno = basilys_num_mixloc (mixlocv);
+      loc = basilys_location_mixloc ((basilys_ptr_t) mixlocv);
+      finamv = basilys_val_mixloc ((basilys_ptr_t) mixlocv);
+      lineno = basilys_num_mixloc ((basilys_ptr_t) mixlocv);
     }
   else if (mixmag == OBMAG_MIXINT)
     {
       loc = 0;
-      finamv = basilys_val_mixint (mixlocv);
-      lineno = basilys_num_mixint (mixlocv);
+      finamv = basilys_val_mixint ((basilys_ptr_t) mixlocv);
+      lineno = basilys_num_mixint ((basilys_ptr_t) mixlocv);
     }
   else
     {
@@ -6120,7 +6119,7 @@ basilys_inform_str (basilys_ptr_t mixloc_p, const char *msg,
     }
   if (loc)
     {
-      char *cstr = basilys_string_str (strv);
+      char *cstr = basilys_string_str ((basilys_ptr_t) strv);
       if (cstr)
 	inform ("%H.Basilys Inform[#%ld]: %s - %s", &loc, basilys_dbgcounter,
 		msg, cstr);
@@ -6129,8 +6128,8 @@ basilys_inform_str (basilys_ptr_t mixloc_p, const char *msg,
     }
   else
     {
-      char *cfilnam = basilys_string_str (finamv);
-      char *cstr = basilys_string_str (strv);
+      char *cfilnam = basilys_string_str ((basilys_ptr_t) finamv);
+      char *cstr = basilys_string_str ((basilys_ptr_t) strv);
       if (cfilnam)
 	{
 	  if (cstr)
@@ -6165,7 +6164,7 @@ basilysgc_read_file (const char *filnam, const char *locnam)
   struct reading_st rds;
   FILE *fil = 0;
   struct reading_st *rd = 0;
-  char *locnamdup = 0;
+  char *filnamdup = 0;
   BASILYS_ENTERFRAME (4, NULL);
 #define genv      curfram__.varptr[0]
 #define valv      curfram__.varptr[1]
@@ -6176,7 +6175,7 @@ basilysgc_read_file (const char *filnam, const char *locnam)
     goto end;
   if (!locnam || !locnam[0])
     locnam = basename (filnam);
-  locnamdup = xstrdup (locnam);	/* locnamdup is never freed */
+  filnamdup = xstrdup (filnam);	/* filnamdup is never freed */
   debugeprintf ("basilysgc_read_file filnam %s locnam %s", filnam, locnam);
   fil = fopen (filnam, "rt");
   if (!fil)
@@ -6185,7 +6184,7 @@ basilysgc_read_file (const char *filnam, const char *locnam)
   rds.rfil = fil;
   rds.rpath = filnam;
   rds.rlineno = 0;
-  linemap_add (line_table, LC_RENAME, false, locnamdup, 0);
+  linemap_add (line_table, LC_RENAME, false, filnamdup, 0);
   rd = &rds;
   locnamv = basilysgc_new_stringdup (BASILYSGOB (DISCR_STRING), locnam);
   rds.rpfilnam = (basilys_ptr_t *) & locnamv;
