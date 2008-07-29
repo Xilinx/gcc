@@ -20,7 +20,6 @@ along with GCC; see the file COPYING3.  If not see
 
 #include "tree-data-ref.h"
 
-
 typedef struct graphite_loop_node *graphite_loops_mapping;
 DEF_VEC_P(graphite_loops_mapping);
 DEF_VEC_ALLOC_P (graphite_loops_mapping, heap);
@@ -29,6 +28,18 @@ struct graphite_loop_node
   int num;
   VEC (graphite_loops_mapping, heap)* children;
 };
+
+/* Maps an index (in a domain matrix)  to a loop num */
+
+struct num_map
+{
+  int index;
+  int num;
+};
+
+typedef struct num_map* num_map_p;
+DEF_VEC_P(num_map_p);
+DEF_VEC_ALLOC_P (num_map_p, heap);
 
 typedef struct graphite_bb *graphite_bb_p;
 DEF_VEC_P(graphite_bb_p);
@@ -45,6 +56,8 @@ struct graphite_bb
 {
   basic_block bb;
   scop_p scop;
+
+  VEC (num_map_p, heap) *num_map;
 
   /* The static schedule contains the textual order for every loop layer.
     
@@ -211,7 +224,7 @@ struct graphite_bb
 #define GBB_CONDITIONS(GBB) GBB->conditions
 #define GBB_CONDITION_CASES(GBB) GBB->condition_cases
 #define GBB_LOOPS(GBB) GBB->loops
-#define GBB_LOOPS_MAPPING(GBB) GBB->loops_mapping
+#define GBB_INDEX_TO_NUM_MAP(GBB) GBB->num_map
 
 /* Return the loop that contains the basic block GBB.  */
 

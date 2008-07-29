@@ -66,7 +66,7 @@ void debug_oldivs (scop_p scop)
     {
       fprintf (stderr, "(");
       print_generic_expr (stderr, oldiv->t, 0);
-      fprintf (stderr, ", %s, %d\n", oldiv->name, oldiv->loop->num);
+      fprintf (stderr, ", %s, %d)\n", oldiv->name, oldiv->loop->num);
     }
   fprintf (stderr, "\n");
 }
@@ -118,7 +118,7 @@ debug_loop_mapping_1 (graphite_loops_mapping node, int depth)
       graphite_loops_mapping child;
 
       if (node->num != -1)
-	fprintf (stderr, "%d: %d, ", node->num , depth);
+	fprintf (stderr, "%d: %d\n", node->num , depth);
 
       for (i = 0; VEC_iterate (graphite_loops_mapping, node->children, i, child); i++)
 	debug_loop_mapping_1 (child, depth+1);
@@ -132,9 +132,33 @@ debug_loop_mapping (scop_p scop)
 {
   graphite_loops_mapping mapping = SCOP_LOOPS_MAPPING (scop);
 
-  fprintf (stderr, "Mapping: ");
+  fprintf (stderr, "Mapping:\n");
   debug_loop_mapping_1 (mapping, -1);
   fprintf (stderr, "\n");
+}
+
+/* Get maximum loop num in mapping.  */
+
+static int
+graphite_loops_mapping_max_loop_num (graphite_loops_mapping mapping)
+{
+  int result = -1;
+  int i;
+
+  if (mapping != NULL)
+    {
+      graphite_loops_mapping child;
+
+      result = mapping->num;
+
+      for (i = 0; VEC_iterate (graphite_loops_mapping, mapping->children, i, child); i++)
+	{
+	  int max_child = graphite_loops_mapping_max_loop_num(child);
+
+	  result = result < max_child ? max_child : result;
+	}
+    }
+  return result;
 }
 
 /* Gets the loop mapping for loop number NUM.  */
@@ -298,12 +322,36 @@ static void swap_loop_mapped_depth_for_num (scop_p scop, int num1, int num2)
 }
 
 
+/* Create a new loop num for GB.  */
+
+static int
+create_num_from_index (graphite_bb_p gb, int index)
+{
+  int max_num = graphite_loops_mapping_max_loop_num (SCOP_LOOPS_MAPPING (GBB_SCOP (gb)));
+  int new_num = max_num + 1;
+  num_map_p new_index_num = GGC_NEW (struct num_map);
+  if (GBB_INDEX_TO_NUM_MAP(gb) == NULL)
+    GBB_INDEX_TO_NUM_MAP(gb) = VEC_alloc (num_map_p, heap, 3);
+  
+  new_index_num->index = index;
+  new_index_num->num = new_num;
+  VEC_safe_push (num_map_p, heap, GBB_INDEX_TO_NUM_MAP (gb), new_index_num);
+  return new_num;
+}
+
 /* Get the id number of a loop from its INDEX.  */
 
 static int
-get_num_from_index (unsigned index)
+get_num_from_index (graphite_bb_p gb, int index)
 {
-  return 4 + index;
+  int i;
+  num_map_p index_num;
+
+  for (i = 0; VEC_iterate (num_map_p, GBB_INDEX_TO_NUM_MAP (gb), i, index_num); i++)
+    if (index == index_num->index)
+      return index_num->num;
+
+  gcc_unreachable();
 }
 
 /* Swap mapped locations for loops at DEPTH1 and DEPTH2.  */
@@ -313,8 +361,9 @@ swap_loop_mapped_depth (scop_p scop, graphite_bb_p gb, int depth1, int depth2)
 {
   loop_p loop1 = gbb_loop_at_index (gb, depth1);
   loop_p loop2 = gbb_loop_at_index (gb, depth2);
-  int num1 = (loop1 == NULL) ? get_num_from_index (depth1 + 1) : loop1->num;
-  int num2 = (loop2 == NULL) ? get_num_from_index (depth2 + 1) : loop2->num;
+  int num1 = (loop1 == NULL) ? get_num_from_index (gb, depth1 + 1) : loop1->num;
+  int num2 = (loop2 == NULL) ? get_num_from_index (gb, depth2 + 1) : loop2->num;
+
   swap_loop_mapped_depth_for_num (scop, num1, num2);
 }
 
@@ -1106,6 +1155,9 @@ free_graphite_bb (struct graphite_bb *gbb)
 {
   if (GBB_DOMAIN (gbb))
     cloog_matrix_free (GBB_DOMAIN (gbb));
+
+  if (GBB_INDEX_TO_NUM_MAP (gbb))
+    VEC_free (num_map_p, heap, GBB_INDEX_TO_NUM_MAP (gbb));
 }
 
 
@@ -1601,7 +1653,7 @@ build_graphite_bb (scop_p scop, basic_block bb)
   GBB_CONDITIONS (gb) = NULL;
   GBB_CONDITION_CASES (gb) = NULL;
   GBB_LOOPS (gb) = NULL;
-
+  GBB_INDEX_TO_NUM_MAP (gb) = NULL;
   /* Store the GRAPHITE representation of the current BB.  */
   VEC_safe_push (graphite_bb_p, heap, SCOP_BBS (scop), gb);
   bitmap_set_bit (SCOP_BBS_B (scop), bb->index);
@@ -4267,7 +4319,7 @@ graphite_trans_bb_strip_mine (graphite_bb_p gb, unsigned loop_depth, unsigned st
   VEC_safe_insert (loop_p, heap, GBB_LOOPS (gb), loop_depth, NULL);
 
   loop_mapped_depth_split_loop (scop, 
-				get_num_from_index (col_loop_strip), 
+				create_num_from_index (gb, col_loop_strip), 
 				gbb_loop_at_index(gb, loop_depth+1));
 
   GBB_DOMAIN (gb) = new_domain;
@@ -4499,7 +4551,7 @@ is_interchange_valid (scop_p scop, unsigned loop_a, unsigned loop_b)
 
   if (!compute_data_dependences_for_loop (nest, true, &datarefs,
 					  &dependence_relations))
-    gcc_unreachable ();
+    return false;
 
   if (dump_file && (dump_flags & TDF_DETAILS))
     dump_ddrs (dump_file, dependence_relations);

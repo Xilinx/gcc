@@ -1,3 +1,16 @@
+2008-07-29  Jan Sjodin  <jan.sjodin@amd.com>
+
+	* graphite.c (graphite_loops_mapping_max_loop_num): New.
+	(create_num_from_index): New.
+	(get_num_from_index): Also pass in the graphite BB.
+	(free_graphite_bb): Free GBB_INDEX_TO_NUM_MAP.
+	(build_graphite_bb): Initialize GBB_INDEX_TO_NUM_MAP.
+	(graphite_trans_bb_strip_mine): Call create_num_from_index.
+	(is_interchange_valid): Return false when failing.
+	* graphite.h (struct num_map): New.
+	(struct graphite_bb): New field num_map.
+	(GBB_LOOPS_MAPPING): Renamed GBB_INDEX_TO_NUM_MAP.
+
 2008-07-29  Tobias Grosser  <grosser@fim.uni-passau.de>
 
 	* graphite.c (dump_gbb_conditions): Print also conditions like "if (a)".
