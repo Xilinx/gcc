@@ -1,3 +1,9 @@
+2008-07-30  Ben Elliston  <bje@au.ibm.com>
+
+	* target.h (struct gcc_target): Fix valid_addr_space prototype.
+	* c-decl.c (grokdeclarator): Remember to pass arg 1 to pedwarn.
+	(declspecs_add_addrspace): Likewise.	
+
 2008-07-29  Ben Elliston  <bje@au.ibm.com>
 
 	* c-parser.c (c_parser_postfix_expression_after_paren_type): Guard

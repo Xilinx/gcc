@@ -640,7 +640,7 @@ struct gcc_target
   rtx (* (* addr_space_conversion_rtl) (int, int)) (rtx, rtx);
 
   /* True if an identifier that is a valid address space.  */
-  bool (* valid_addr_space) (const tree);
+  bool (* valid_addr_space) (const_tree);
 
   /* True if MODE is valid for the target.  By "valid", we mean able to
      be manipulated in non-trivial ways.  In particular, this means all
