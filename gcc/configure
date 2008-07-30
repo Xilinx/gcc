@@ -1033,7 +1033,7 @@ Optional Features:
 			  enable expensive run-time checks.  With LIST,
 			  enable only specific categories of checks.
 			  Categories are: yes,no,all,none,release.
-			  Flags are: assert,df,fold,gc,gcac,misc,
+			  Flags are: assert,df,fold,gc,gcac,gimple,misc,
 			  rtlflag,rtl,runtime,tree,valgrind,types.
   --enable-coverage=LEVEL
 			  enable compiler's code coverage collection.
@@ -7034,8 +7034,7 @@ fi
 
 loose_warn=
 save_CFLAGS="$CFLAGS"
-for option in -W -Wall -Wwrite-strings -Wstrict-prototypes \
-	  -Wmissing-prototypes -Wcast-qual; do
+for option in -W -Wall -Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes -Wcast-qual; do
   as_acx_Woption=`echo "acx_cv_prog_cc_warning_$option" | $as_tr_sh`
 
   echo "$as_me:$LINENO: checking whether $CC supports $option" >&5
@@ -7102,8 +7101,7 @@ CFLAGS="$save_CFLAGS"
 
 strict_warn=
 save_CFLAGS="$CFLAGS"
-for option in -Wold-style-definition -Wc++-compat \
-                          -Wmissing-format-attribute; do
+for option in -Wold-style-definition -Wc++-compat -Wmissing-format-attribute; do
   as_acx_Woption=`echo "acx_cv_prog_cc_warning_$option" | $as_tr_sh`
 
   echo "$as_me:$LINENO: checking whether $CC supports $option" >&5
@@ -7169,16 +7167,13 @@ fi
 CFLAGS="$save_CFLAGS"
 
 if test "$GCC" = yes; then
-  echo "$as_me:$LINENO: checking whether $CC supports -pedantic -Wno-long-long -Wno-variadic-macros \
-				     -Wno-overlength-strings" >&5
-echo $ECHO_N "checking whether $CC supports -pedantic -Wno-long-long -Wno-variadic-macros \
-				     -Wno-overlength-strings... $ECHO_C" >&6
-if test "${acx_cv_prog_cc_pedantic__Wno_long_long__Wno_variadic_macros_____________Wno_overlength_strings+set}" = set; then
+  echo "$as_me:$LINENO: checking whether $CC supports -pedantic -Wno-long-long -Wno-variadic-macros -Wno-overlength-strings" >&5
+echo $ECHO_N "checking whether $CC supports -pedantic -Wno-long-long -Wno-variadic-macros -Wno-overlength-strings... $ECHO_C" >&6
+if test "${acx_cv_prog_cc_pedantic_m4_do__Wno_long_long__Wno_variadic_macros_____________Wno_overlength_strings_+set}" = set; then
   echo $ECHO_N "(cached) $ECHO_C" >&6
 else
   save_CFLAGS="$CFLAGS"
-CFLAGS="-pedantic -Wno-long-long -Wno-variadic-macros \
-				     -Wno-overlength-strings"
+CFLAGS="-pedantic -Wno-long-long -Wno-variadic-macros -Wno-overlength-strings"
 cat >conftest.$ac_ext <<_ACEOF
 /* confdefs.h.  */
 _ACEOF
@@ -7216,21 +7211,20 @@ if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
   ac_status=$?
   echo "$as_me:$LINENO: \$? = $ac_status" >&5
   (exit $ac_status); }; }; then
-  acx_cv_prog_cc_pedantic__Wno_long_long__Wno_variadic_macros_____________Wno_overlength_strings=yes
+  acx_cv_prog_cc_pedantic_m4_do__Wno_long_long__Wno_variadic_macros_____________Wno_overlength_strings_=yes
 else
   echo "$as_me: failed program was:" >&5
 sed 's/^/| /' conftest.$ac_ext >&5
 
-acx_cv_prog_cc_pedantic__Wno_long_long__Wno_variadic_macros_____________Wno_overlength_strings=no
+acx_cv_prog_cc_pedantic_m4_do__Wno_long_long__Wno_variadic_macros_____________Wno_overlength_strings_=no
 fi
 rm -f conftest.err conftest.$ac_objext conftest.$ac_ext
 CFLAGS="$save_CFLAGS"
 fi
-echo "$as_me:$LINENO: result: $acx_cv_prog_cc_pedantic__Wno_long_long__Wno_variadic_macros_____________Wno_overlength_strings" >&5
-echo "${ECHO_T}$acx_cv_prog_cc_pedantic__Wno_long_long__Wno_variadic_macros_____________Wno_overlength_strings" >&6
-if test $acx_cv_prog_cc_pedantic__Wno_long_long__Wno_variadic_macros_____________Wno_overlength_strings = yes; then
-  strict_warn="$strict_warn${strict_warn:+ }-pedantic -Wno-long-long -Wno-variadic-macros \
-				     -Wno-overlength-strings"
+echo "$as_me:$LINENO: result: $acx_cv_prog_cc_pedantic_m4_do__Wno_long_long__Wno_variadic_macros_____________Wno_overlength_strings_" >&5
+echo "${ECHO_T}$acx_cv_prog_cc_pedantic_m4_do__Wno_long_long__Wno_variadic_macros_____________Wno_overlength_strings_" >&6
+if test $acx_cv_prog_cc_pedantic_m4_do__Wno_long_long__Wno_variadic_macros_____________Wno_overlength_strings_ = yes; then
+  strict_warn="$strict_warn${strict_warn:+ }-pedantic -Wno-long-long -Wno-variadic-macros -Wno-overlength-strings"
 fi
 
 
@@ -7286,25 +7280,25 @@ do
 	# these set all the flags to specific states
 	yes)		ac_assert_checking=1 ; ac_checking=1 ; ac_df_checking= ;
 			ac_fold_checking= ; ac_gc_checking=1 ;
-			ac_gc_always_collect= ; ac_rtl_checking= ;
+			ac_gc_always_collect= ; ac_gimple_checking=1 ; ac_rtl_checking= ;
 			ac_rtlflag_checking=1 ; ac_runtime_checking=1 ;
 			ac_tree_checking=1 ; ac_valgrind_checking= ;
 			ac_types_checking=1 ;;
 	no|none)	ac_assert_checking= ; ac_checking= ; ac_df_checking= ;
 			ac_fold_checking= ; ac_gc_checking= ;
-			ac_gc_always_collect= ; ac_rtl_checking= ;
+			ac_gc_always_collect= ; ac_gimple_checking= ; ac_rtl_checking= ;
 			ac_rtlflag_checking= ; ac_runtime_checking= ;
 			ac_tree_checking= ; ac_valgrind_checking= ;
 			ac_types_checking= ;;
 	all)		ac_assert_checking=1 ; ac_checking=1 ; ac_df_checking=1 ;
 			ac_fold_checking=1 ; ac_gc_checking=1 ;
-			ac_gc_always_collect=1 ; ac_rtl_checking=1 ;
+			ac_gc_always_collect=1 ; ac_gimple_checking=1 ; ac_rtl_checking=1 ;
 			ac_rtlflag_checking=1 ; ac_runtime_checking=1 ;
 			ac_tree_checking=1 ; ac_valgrind_checking= ;
 			ac_types_checking=1 ;;
 	release)	ac_assert_checking=1 ; ac_checking= ; ac_df_checking= ;
 			ac_fold_checking= ; ac_gc_checking= ;
-			ac_gc_always_collect= ; ac_rtl_checking= ;
+			ac_gc_always_collect= ; ac_gimple_checking= ; ac_rtl_checking= ;
 			ac_rtlflag_checking= ; ac_runtime_checking=1 ;
 			ac_tree_checking= ; ac_valgrind_checking= ;
 			ac_types_checking= ;;
@@ -7314,6 +7308,7 @@ do
 	fold)		ac_fold_checking=1 ;;
 	gc)		ac_gc_checking=1 ;;
 	gcac)		ac_gc_always_collect=1 ;;
+	gimple)		ac_gimple_checking=1 ;;
 	misc)		ac_checking=1 ;;
 	rtl)		ac_rtl_checking=1 ;;
 	rtlflag)	ac_rtlflag_checking=1 ;;
@@ -7349,6 +7344,13 @@ if test x$ac_assert_checking != x ; then
 
 cat >>confdefs.h <<\_ACEOF
 #define ENABLE_ASSERT_CHECKING 1
+_ACEOF
+
+fi
+if test x$ac_gimple_checking != x ; then
+
+cat >>confdefs.h <<\_ACEOF
+#define ENABLE_GIMPLE_CHECKING 1
 _ACEOF
 
 fi
@@ -8561,7 +8563,7 @@ else
 
                     case $ac_prog_version in
                       '')  gcc_cv_prog_makeinfo_modern=no;;
-                      4.[4-9]*|4.[1-9][0-9]*|[5-9]*|[1-9][0-9]*)  gcc_cv_prog_makeinfo_modern=yes;;
+                      4.[7-9]*|4.[1-9][0-9]*|[5-9]*|[1-9][0-9]*)  gcc_cv_prog_makeinfo_modern=yes;;
                       *)   gcc_cv_prog_makeinfo_modern=no;;
                     esac
 
@@ -14743,13 +14745,13 @@ if test "${lt_cv_nm_interface+set}" = set; then
 else
   lt_cv_nm_interface="BSD nm"
   echo "int some_variable = 0;" > conftest.$ac_ext
-  (eval echo "\"\$as_me:14746: $ac_compile\"" >&5)
+  (eval echo "\"\$as_me:14748: $ac_compile\"" >&5)
   (eval "$ac_compile" 2>conftest.err)
   cat conftest.err >&5
-  (eval echo "\"\$as_me:14749: $NM \\\"conftest.$ac_objext\\\"\"" >&5)
+  (eval echo "\"\$as_me:14751: $NM \\\"conftest.$ac_objext\\\"\"" >&5)
   (eval "$NM \"conftest.$ac_objext\"" 2>conftest.err > conftest.out)
   cat conftest.err >&5
-  (eval echo "\"\$as_me:14752: output\"" >&5)
+  (eval echo "\"\$as_me:14754: output\"" >&5)
   cat conftest.out >&5
   if $GREP 'External.*some_variable' conftest.out > /dev/null; then
     lt_cv_nm_interface="MS dumpbin"
@@ -15804,7 +15806,7 @@ ia64-*-hpux*)
   ;;
 *-*-irix6*)
   # Find out which ABI we are using.
-  echo '#line 15807 "configure"' > conftest.$ac_ext
+  echo '#line 15809 "configure"' > conftest.$ac_ext
   if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
   (eval $ac_compile) 2>&5
   ac_status=$?
@@ -16424,11 +16426,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:16427: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:16429: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>conftest.err)
    ac_status=$?
    cat conftest.err >&5
-   echo "$as_me:16431: \$? = $ac_status" >&5
+   echo "$as_me:16433: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s "$ac_outfile"; then
      # The compiler can only warn and ignore the option if not recognized
      # So say no if there are warnings other than the usual output.
@@ -16746,11 +16748,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:16749: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:16751: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>conftest.err)
    ac_status=$?
    cat conftest.err >&5
-   echo "$as_me:16753: \$? = $ac_status" >&5
+   echo "$as_me:16755: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s "$ac_outfile"; then
      # The compiler can only warn and ignore the option if not recognized
      # So say no if there are warnings other than the usual output.
@@ -16851,11 +16853,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:16854: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:16856: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>out/conftest.err)
    ac_status=$?
    cat out/conftest.err >&5
-   echo "$as_me:16858: \$? = $ac_status" >&5
+   echo "$as_me:16860: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s out/conftest2.$ac_objext
    then
      # The compiler can only warn and ignore the option if not recognized
@@ -16906,11 +16908,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:16909: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:16911: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>out/conftest.err)
    ac_status=$?
    cat out/conftest.err >&5
-   echo "$as_me:16913: \$? = $ac_status" >&5
+   echo "$as_me:16915: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s out/conftest2.$ac_objext
    then
      # The compiler can only warn and ignore the option if not recognized
@@ -19703,7 +19705,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<_LT_EOF
-#line 19706 "configure"
+#line 19708 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -19803,7 +19805,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<_LT_EOF
-#line 19806 "configure"
+#line 19808 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H

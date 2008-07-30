@@ -60,7 +60,7 @@ ALL_ADAFLAGS = $(CFLAGS) $(ALL_ADA_CFLAGS) $(X_ADAFLAGS) $(T_ADAFLAGS) \
 FORCE_DEBUG_ADAFLAGS = -g
 ADA_CFLAGS =
 ALL_ADA_CFLAGS = $(X_ADA_CFLAGS) $(T_ADA_CFLAGS) $(ADA_CFLAGS)
-ADA_INCLUDES = -nostdinc -I- -I. -Iada -I$(srcdir)/ada
+ADA_INCLUDES = -nostdinc -I- -I. -Iada -I$(srcdir)/ada -I$(srcdir)/ada/gcc-interface
 ADA_INCLUDE_DIR = $(libsubdir)/adainclude
 ADA_RTL_OBJ_DIR = $(libsubdir)/adalib
 ADA_FLAGS_TO_PASS = \
@@ -301,7 +301,7 @@ TARGET_ADA_SRCS =
 # Since the RTL should be built with the latest compiler, remove the
 #  stamp target in the parent directory whenever gnat1 is rebuilt
 gnat1$(exeext): $(TARGET_ADA_SRCS) $(GNAT1_OBJS) $(ADA_BACKEND) $(LIBDEPS)
-	$(GCC_LINK) -o $@ $(GNAT1_OBJS) $(ADA_BACKEND) $(ALL_CFLAGS) $(LIBS) $(SYSLIBS) $(GMPLIBS)
+	$(GCC_LINK) -o $@ $(GNAT1_OBJS) $(ADA_BACKEND) $(LIBS) $(SYSLIBS) $(GMPLIBS)
 	$(RM) stamp-gnatlib2 stamp-tools
 
 gnatbind$(exeext): ada/b_gnatb.o $(CONFIG_H) $(GNATBIND_OBJS)
@@ -980,7 +980,7 @@ ada/sdefault.o : ada/ada.ads ada/a-except.ads ada/a-unccon.ads \
    ada/s-wchcon.ads ada/system.ads ada/table.adb ada/table.ads ada/tree_io.ads \
    ada/types.ads ada/unchdeal.ads ada/unchconv.ads
 
-ADA_TREE_H = ada/ada-tree.h
+ADA_TREE_H = ada/gcc-interface/ada-tree.h
 
 # force debugging information on s-tasdeb.o so that it is always
 # possible to set conditional breakpoints on tasks.
@@ -1079,45 +1079,64 @@ ada/tracebak.o  : ada/tracebak.c $(CONFIG_H) $(SYSTEM_H)
 	$(CC) -c $(ALL_CFLAGS) $(ALL_ADA_CFLAGS) $(ALL_CPPFLAGS) $(INCLUDES) \
 	      -fno-omit-frame-pointer $< $(OUTPUT_OPTION)
 
-ada/cuintp.o : ada/cuintp.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
-   $(TREE_H) ada/ada.h ada/types.h ada/uintp.h ada/atree.h ada/stringt.h \
-   ada/elists.h ada/nlists.h ada/fe.h ada/gigi.h
+ada/cuintp.o : ada/gcc-interface/cuintp.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
+   $(TREE_H) ada/gcc-interface/ada.h ada/types.h ada/uintp.h ada/atree.h ada/stringt.h \
+   ada/elists.h ada/nlists.h ada/fe.h ada/gcc-interface/gigi.h
+	$(CC) -c $(ALL_CFLAGS) -I.. $(ALL_CPPFLAGS) $< -o $@
 
-ada/decl.o : ada/decl.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) $(TREE_H) \
-   $(FLAGS_H) toplev.h convert.h $(TARGET_H) ada/ada.h ada/types.h ada/atree.h \
+ada/decl.o : ada/gcc-interface/decl.c $(CONFIG_H) $(SYSTEM_H) coretypes.h \
+   $(TM_H) $(TREE_H) $(FLAGS_H) toplev.h convert.h $(TARGET_H) \
+   ada/gcc-interface/ada.h ada/types.h ada/atree.h \
    ada/nlists.h ada/elists.h ada/uintp.h ada/sinfo.h ada/einfo.h ada/snames.h \
-   ada/namet.h ada/stringt.h ada/repinfo.h ada/fe.h $(ADA_TREE_H) ada/gigi.h \
+   ada/namet.h ada/stringt.h ada/repinfo.h ada/fe.h $(ADA_TREE_H) \
+   ada/gcc-interface/gigi.h \
    $(EXPR_H) gt-ada-decl.h
+	$(CC) -c $(ALL_CFLAGS) -I.. $(ALL_CPPFLAGS) $< -o $@
 
-ada/misc.o : ada/misc.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) $(TREE_H) \
+ada/misc.o : ada/gcc-interface/misc.c $(CONFIG_H) $(SYSTEM_H) coretypes.h \
+   $(TM_H) $(TREE_H) \
    $(RTL_H) $(EXPR_H) insn-codes.h insn-flags.h insn-config.h recog.h \
    $(FLAGS_H) $(DIAGNOSTIC_H) output.h except.h $(TM_P_H) langhooks.h debug.h \
-   $(LANGHOOKS_DEF_H) libfuncs.h $(OPTABS_H) ada/ada.h ada/types.h \
+   $(LANGHOOKS_DEF_H) libfuncs.h $(OPTABS_H) ada/gcc-interface/ada.h \
+   ada/types.h \
    ada/atree.h ada/nlists.h ada/elists.h ada/sinfo.h ada/einfo.h ada/namet.h \
-   ada/stringt.h ada/uintp.h ada/fe.h $(ADA_TREE_H) ada/gigi.h \
+   ada/stringt.h ada/uintp.h ada/fe.h $(ADA_TREE_H) ada/gcc-interface/gigi.h \
    ada/adadecode.h opts.h options.h $(TARGET_H) $(REAL_H)
+	$(CC) -c $(ALL_CFLAGS) -I.. $(ALL_CPPFLAGS) $< -o $@
 
-ada/targtyps.o : ada/targtyps.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
-   $(TREE_H) ada/ada.h ada/types.h ada/atree.h ada/nlists.h ada/elists.h \
+ada/targtyps.o : ada/gcc-interface/targtyps.c $(CONFIG_H) $(SYSTEM_H) \
+   coretypes.h $(TM_H) \
+   $(TREE_H) ada/gcc-interface/ada.h ada/types.h ada/atree.h ada/nlists.h \
+   ada/elists.h \
    ada/uintp.h ada/sinfo.h ada/einfo.h ada/namet.h ada/snames.h ada/stringt.h \
-   ada/urealp.h ada/fe.h $(ADA_TREE_H) ada/gigi.h
+   ada/urealp.h ada/fe.h $(ADA_TREE_H) ada/gcc-interface/gigi.h
+	$(CC) -c $(ALL_CFLAGS) -I.. $(ALL_CPPFLAGS) $< -o $@
 
-ada/trans.o : ada/trans.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
-   $(TREE_H) $(RTL_H) $(EXPR_H) $(FLAGS_H) $(FUNCTION_H) ada/ada.h except.h \
+ada/trans.o : ada/gcc-interface/trans.c $(CONFIG_H) $(SYSTEM_H) coretypes.h \
+   $(TM_H) \
+   $(TREE_H) $(RTL_H) $(EXPR_H) $(FLAGS_H) $(FUNCTION_H) \
+   ada/gcc-interface/ada.h except.h \
    ada/types.h ada/atree.h ada/nlists.h ada/elists.h ada/uintp.h ada/sinfo.h \
    ada/einfo.h ada/namet.h ada/snames.h ada/stringt.h ada/urealp.h ada/fe.h \
-   $(ADA_TREE_H) ada/gigi.h gt-ada-trans.h
+   $(ADA_TREE_H) ada/gcc-interface/gigi.h gt-ada-trans.h tree-iterator.h
+	$(CC) -c $(ALL_CFLAGS) -I.. $(ALL_CPPFLAGS) $< -o $@
 
-ada/utils.o : ada/utils.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
+ada/utils.o : ada/gcc-interface/utils.c $(CONFIG_H) $(SYSTEM_H) coretypes.h \
+   $(TM_H) \
    $(TREE_H) $(FLAGS_H) $(EXPR_H) convert.h defaults.h langhooks.h \
-   ada/ada.h ada/types.h ada/atree.h ada/nlists.h ada/elists.h ada/sinfo.h \
+   ada/gcc-interface/ada.h ada/types.h \
+   ada/atree.h ada/nlists.h ada/elists.h ada/sinfo.h \
    ada/einfo.h ada/namet.h ada/stringt.h ada/uintp.h ada/fe.h $(ADA_TREE_H) \
-   ada/gigi.h gt-ada-utils.h gtype-ada.h $(TARGET_H)
+   ada/gcc-interface/gigi.h gt-ada-utils.h \
+   gtype-ada.h $(TARGET_H) tree-iterator.h
+	$(CC) -c $(ALL_CFLAGS) -I.. $(ALL_CPPFLAGS) $< -o $@
 
-ada/utils2.o : ada/utils2.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
-   $(TREE_H) $(FLAGS_H) ada/ada.h ada/types.h ada/atree.h ada/nlists.h \
-   ada/elists.h ada/sinfo.h ada/einfo.h ada/namet.h ada/snames.h \
-   ada/stringt.h ada/uintp.h ada/fe.h $(ADA_TREE_H) ada/gigi.h
+ada/utils2.o : ada/gcc-interface/utils2.c $(CONFIG_H) $(SYSTEM_H) coretypes.h \
+   $(TM_H) $(TREE_H) $(FLAGS_H) ada/gcc-interface/ada.h ada/types.h \
+   ada/atree.h ada/nlists.h ada/elists.h ada/sinfo.h ada/einfo.h ada/namet.h \
+   ada/snames.h ada/stringt.h ada/uintp.h ada/fe.h $(ADA_TREE_H) \
+   ada/gcc-interface/gigi.h
+	$(CC) -c $(ALL_CFLAGS) -I.. $(ALL_CPPFLAGS) $< -o $@
 
 #
 # DO NOT PUT SPECIAL RULES BELOW, THIS SECTION IS UPDATED AUTOMATICALLY

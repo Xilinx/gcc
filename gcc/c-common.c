@@ -48,6 +48,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "real.h"
 #include "cgraph.h"
 #include "target-def.h"
+#include "gimple.h"
 #include "fixed-value.h"
 
 cpp_reader *parse_in;		/* Declared in c-pragma.h.  */
@@ -574,6 +575,8 @@ static tree handle_warn_unused_result_attribute (tree *, tree, tree, int,
 static tree handle_sentinel_attribute (tree *, tree, tree, int, bool *);
 static tree handle_type_generic_attribute (tree *, tree, tree, int, bool *);
 static tree handle_alloc_size_attribute (tree *, tree, tree, int, bool *);
+static tree handle_option_attribute (tree *, tree, tree, int, bool *);
+static tree handle_optimize_attribute (tree *, tree, tree, int, bool *);
 
 static void check_function_nonnull (tree, int, tree *);
 static void check_nonnull_arg (void *, tree, unsigned HOST_WIDE_INT);
@@ -857,6 +860,10 @@ const struct attribute_spec c_common_attribute_table[] =
 			      handle_error_attribute },
   { "error",		      1, 1, true,  false, false,
 			      handle_error_attribute },
+  { "option",                 1, -1, true, false, false,
+			      handle_option_attribute },
+  { "optimize",               1, -1, true, false, false,
+			      handle_optimize_attribute },
   { NULL,                     0, 0, false, false, false, NULL }
 };
 
@@ -1041,7 +1048,7 @@ fname_decl (unsigned int rid, tree id)
       input_location = saved_location;
     }
   if (!ix && !current_function_decl)
-    pedwarn ("%qD is not defined outside of function scope", decl);
+    pedwarn (0, "%qD is not defined outside of function scope", decl);
 
   return decl;
 }
@@ -1090,7 +1097,8 @@ fix_string_type (tree value)
 	   separate the %d from the 'C'.  'ISO' should not be
 	   translated, but it may be moved after 'C%d' in languages
 	   where modifiers follow nouns.  */
-	pedwarn ("string length %qd is greater than the length %qd "
+	pedwarn (OPT_Woverlength_strings,
+		 "string length %qd is greater than the length %qd "
 		 "ISO C%d compilers are required to support",
 		 nchars - 1, nchars_max, relevant_std);
     }
@@ -1137,7 +1145,7 @@ constant_expression_warning (tree value)
 	  || TREE_CODE (value) == VECTOR_CST
 	  || TREE_CODE (value) == COMPLEX_CST)
       && TREE_OVERFLOW (value))
-    pedwarn ("overflow in constant expression");
+    pedwarn (OPT_Woverflow, "overflow in constant expression");
 }
 
 /* The same as above but print an unconditional error.  */
@@ -1355,7 +1363,7 @@ check_main_parameter_types (tree decl)
        {
        case 1:
          if (TYPE_MAIN_VARIANT (type) != integer_type_node)
-           pedwarn ("first argument of %q+D should be %<int%>", decl);
+           pedwarn (0, "first argument of %q+D should be %<int%>", decl);
          break;
 
        case 2:
@@ -1363,8 +1371,8 @@ check_main_parameter_types (tree decl)
              || TREE_CODE (TREE_TYPE (type)) != POINTER_TYPE
              || (TYPE_MAIN_VARIANT (TREE_TYPE (TREE_TYPE (type)))
                  != char_type_node))
-           pedwarn ("second argument of %q+D should be %<char **%>",
-                    decl);
+           pedwarn (0, "second argument of %q+D should be %<char **%>",
+		     decl);
          break;
 
        case 3:
@@ -1372,8 +1380,8 @@ check_main_parameter_types (tree decl)
              || TREE_CODE (TREE_TYPE (type)) != POINTER_TYPE
              || (TYPE_MAIN_VARIANT (TREE_TYPE (TREE_TYPE (type)))
                  != char_type_node))
-           pedwarn ("third argument of %q+D should probably be "
-                    "%<char **%>", decl);
+           pedwarn (0, "third argument of %q+D should probably be "
+		     "%<char **%>", decl);
          break;
        }
    }
@@ -1382,7 +1390,7 @@ check_main_parameter_types (tree decl)
     argument because it's only mentioned in an appendix of the
     standard.  */
   if (argct > 0 && (argct < 2 || argct > 3))
-   pedwarn ("%q+D takes only zero or two arguments", decl);
+   pedwarn (0, "%q+D takes only zero or two arguments", decl);
 }
 
 /* True if pointers to distinct types T1 and T2 can be converted to
@@ -3073,20 +3081,20 @@ pointer_int_sum (enum tree_code resultcode, tree ptrop, tree intop)
 
   if (TREE_CODE (TREE_TYPE (result_type)) == VOID_TYPE)
     {
-      if (pedantic || warn_pointer_arith)
-	pedwarn ("pointer of type %<void *%> used in arithmetic");
+      pedwarn (pedantic ? OPT_pedantic : OPT_Wpointer_arith, 
+	       "pointer of type %<void *%> used in arithmetic");
       size_exp = integer_one_node;
     }
   else if (TREE_CODE (TREE_TYPE (result_type)) == FUNCTION_TYPE)
     {
-      if (pedantic || warn_pointer_arith)
-	pedwarn ("pointer to a function used in arithmetic");
+      pedwarn (pedantic ? OPT_pedantic : OPT_Wpointer_arith, 
+	       "pointer to a function used in arithmetic");
       size_exp = integer_one_node;
     }
   else if (TREE_CODE (TREE_TYPE (result_type)) == METHOD_TYPE)
     {
-      if (pedantic || warn_pointer_arith)
-	pedwarn ("pointer to member function used in arithmetic");
+      pedwarn (pedantic ? OPT_pedantic : OPT_Wpointer_arith, 
+	       "pointer to member function used in arithmetic");
       size_exp = integer_one_node;
     }
   else
@@ -3594,7 +3602,8 @@ c_sizeof_or_alignof_type (tree type, bool is_sizeof, int complain)
       if (is_sizeof)
 	{
 	  if (complain && (pedantic || warn_pointer_arith))
-	    pedwarn ("invalid application of %<sizeof%> to a function type");
+	    pedwarn (pedantic ? OPT_pedantic : OPT_Wpointer_arith, 
+		     "invalid application of %<sizeof%> to a function type");
           else if (!complain)
             return error_mark_node;
 	  value = size_one_node;
@@ -3606,7 +3615,8 @@ c_sizeof_or_alignof_type (tree type, bool is_sizeof, int complain)
     {
       if (type_code == VOID_TYPE
 	  && complain && (pedantic || warn_pointer_arith))
-	pedwarn ("invalid application of %qs to a void type", op_name);
+	pedwarn (pedantic ? OPT_pedantic : OPT_Wpointer_arith, 
+		 "invalid application of %qs to a void type", op_name);
       else if (!complain)
         return error_mark_node;
       value = size_one_node;
@@ -4472,8 +4482,9 @@ c_add_case_label (splay_tree cases, tree cond, tree orig_type,
     }
 
   /* Case ranges are a GNU extension.  */
-  if (high_value && pedantic)
-    pedwarn ("range expressions in switch statements are non-standard");
+  if (high_value)
+    pedwarn (OPT_pedantic, 
+	     "range expressions in switch statements are non-standard");
 
   type = TREE_TYPE (cond);
   if (low_value)
@@ -4786,8 +4797,7 @@ finish_label_address_expr (tree label)
 {
   tree result;
 
-  if (pedantic)
-    pedwarn ("taking the address of a label is non-standard");
+  pedwarn (OPT_pedantic, "taking the address of a label is non-standard");
 
   if (label == error_mark_node)
     return error_mark_node;
@@ -5027,7 +5037,7 @@ handle_noreturn_attribute (tree *node, tree name, tree ARG_UNUSED (args),
 
 static tree
 handle_hot_attribute (tree *node, tree name, tree ARG_UNUSED (args),
-			  int ARG_UNUSED (flags), bool *no_add_attrs)
+		      int ARG_UNUSED (flags), bool *no_add_attrs)
 {
   if (TREE_CODE (*node) == FUNCTION_DECL)
     {
@@ -5037,8 +5047,34 @@ handle_hot_attribute (tree *node, tree name, tree ARG_UNUSED (args),
 		   name, "cold");
 	  *no_add_attrs = true;
 	}
-      /* Do nothing else, just set the attribute.  We'll get at
-	 it later with lookup_attribute.  */
+      else
+	{
+	  tree old_opts = DECL_FUNCTION_SPECIFIC_OPTIMIZATION (*node);
+
+	  /* If we are not at -O3, but are optimizing, turn on -O3
+	     optimizations just for this one function.  */
+	  if (((optimize > 0 && optimize < 3) || optimize_size)
+	      && targetm.target_option.hot_attribute_sets_optimization
+	      && (!old_opts || old_opts == optimization_default_node))
+	    {
+	      /* Create the hot optimization node if needed.  */
+	      if (!optimization_hot_node)
+		{
+		  struct cl_optimization current_options;
+		  static const char *os_argv[] = { NULL, "-O3", NULL };
+
+		  cl_optimization_save (&current_options);
+		  decode_options (2, os_argv);
+		  optimization_hot_node = build_optimization_node ();
+		  cl_optimization_restore (&current_options);
+		}
+
+	      DECL_FUNCTION_SPECIFIC_OPTIMIZATION (*node)
+		= optimization_hot_node;
+	    }
+	  /* Most of the rest of the hot processing is done later with
+	     lookup_attribute.  */
+	}
     }
   else
     {
@@ -5063,8 +5099,34 @@ handle_cold_attribute (tree *node, tree name, tree ARG_UNUSED (args),
 		   name, "hot");
 	  *no_add_attrs = true;
 	}
-      /* Do nothing else, just set the attribute.  We'll get at
-	 it later with lookup_attribute.  */
+      else
+	{
+	  tree old_opts = DECL_FUNCTION_SPECIFIC_OPTIMIZATION (*node);
+
+	  /* If we are optimizing, but not optimizing for space, turn on -Os
+	     optimizations just for this one function.  */
+	  if (optimize && !optimize_size
+	      && targetm.target_option.cold_attribute_sets_optimization
+	      && (!old_opts || old_opts == optimization_default_node))
+	    {
+	      /* Create the cold optimization node if needed.  */
+	      if (!optimization_cold_node)
+		{
+		  struct cl_optimization current_options;
+		  static const char *os_argv[] = { NULL, "-Os", NULL };
+
+		  cl_optimization_save (&current_options);
+		  decode_options (2, os_argv);
+		  optimization_cold_node = build_optimization_node ();
+		  cl_optimization_restore (&current_options);
+		}
+
+	      DECL_FUNCTION_SPECIFIC_OPTIMIZATION (*node)
+		= optimization_cold_node;
+	    }
+	  /* Most of the rest of the cold processing is done later with
+	     lookup_attribute.  */
+	}
     }
   else
     {
@@ -6762,6 +6824,186 @@ handle_type_generic_attribute (tree *node, tree ARG_UNUSED (name),
 
   return NULL_TREE;
 }
+
+/* For handling "option" attribute. arguments as in
+   struct attribute_spec.handler.  */
+
+static tree
+handle_option_attribute (tree *node, tree name, tree args, int flags,
+			 bool *no_add_attrs)
+{
+  /* Ensure we have a function type.  */
+  if (TREE_CODE (*node) != FUNCTION_DECL)
+    {
+      warning (OPT_Wattributes, "%qE attribute ignored", name);
+      *no_add_attrs = true;
+    }
+  else if (targetm.target_option.valid_attribute_p
+	   == default_target_option_valid_attribute_p)
+    {
+      warning (OPT_Wattributes,
+	       "%qE attribute is not supported on this machine",
+	       name);
+      *no_add_attrs = true;
+    }
+  else if (! targetm.target_option.valid_attribute_p (*node, name, args,
+						      flags))
+    *no_add_attrs = true;
+
+  return NULL_TREE;
+}
+
+/* Arguments being collected for optimization.  */
+typedef const char *const_char_p;		/* For DEF_VEC_P.  */
+DEF_VEC_P(const_char_p);
+DEF_VEC_ALLOC_P(const_char_p, gc);
+static GTY(()) VEC(const_char_p, gc) *optimize_args;
+
+
+/* Inner function to convert a TREE_LIST to argv string to parse the optimize
+   options in ARGS.  ATTR_P is true if this is for attribute(optimize), and
+   false for #pragma GCC optimize.  */
+
+bool
+parse_optimize_options (tree args, bool attr_p)
+{
+  bool ret = true;
+  unsigned opt_argc;
+  unsigned i;
+  const char **opt_argv;
+  tree ap;
+
+  /* Build up argv vector.  Just in case the string is stored away, use garbage
+     collected strings.  */
+  VEC_truncate (const_char_p, optimize_args, 0);
+  VEC_safe_push (const_char_p, gc, optimize_args, NULL);
+
+  for (ap = args; ap != NULL_TREE; ap = TREE_CHAIN (ap))
+    {
+      tree value = TREE_VALUE (ap);
+
+      if (TREE_CODE (value) == INTEGER_CST)
+	{
+	  char buffer[20];
+	  sprintf (buffer, "-O%ld", (long) TREE_INT_CST_LOW (value));
+	  VEC_safe_push (const_char_p, gc, optimize_args, ggc_strdup (buffer));
+	}
+
+      else if (TREE_CODE (value) == STRING_CST)
+	{
+	  /* Split string into multiple substrings.  */
+	  size_t len = TREE_STRING_LENGTH (value);
+	  char *p = ASTRDUP (TREE_STRING_POINTER (value));
+	  char *end = p + len;
+	  char *comma;
+	  char *next_p = p;
+
+	  while (next_p != NULL)
+	    {
+	      size_t len2;
+	      char *q, *r;
+
+	      p = next_p;
+	      comma = strchr (p, ',');
+	      if (comma)
+		{
+		  len2 = comma - p;
+		  *comma = '\0';
+		  next_p = comma+1;
+		}
+	      else
+		{
+		  len2 = end - p;
+		  next_p = NULL;
+		}
+
+	      r = q = (char *) ggc_alloc (len2 + 3);
+
+	      /* If the user supplied -Oxxx or -fxxx, only allow -Oxxx or -fxxx
+		 options.  */
+	      if (*p == '-' && p[1] != 'O' && p[1] != 'f')
+		{
+		  ret = false;
+		  if (attr_p)
+		    warning (OPT_Wattributes,
+			     "Bad option %s to optimize attribute.", p);
+		  else
+		    warning (OPT_Wpragmas,
+			     "Bad option %s to pragma attribute", p);
+		  continue;
+		}
+
+	      if (*p != '-')
+		{
+		  *r++ = '-';
+
+		  /* Assume that Ox is -Ox, a numeric value is -Ox, a s by
+		     itself is -Os, and any other switch begins with a -f.  */
+		  if ((*p >= '0' && *p <= '9')
+		      || (p[0] == 's' && p[1] == '\0'))
+		    *r++ = 'O';
+		  else if (*p != 'O')
+		    *r++ = 'f';
+		}
+
+	      memcpy (r, p, len2);
+	      r[len2] = '\0';
+	      VEC_safe_push (const_char_p, gc, optimize_args, q);
+	    }
+
+	}
+    }
+
+  opt_argc = VEC_length (const_char_p, optimize_args);
+  opt_argv = (const char **) alloca (sizeof (char *) * (opt_argc + 1));
+
+  for (i = 1; i < opt_argc; i++)
+    opt_argv[i] = VEC_index (const_char_p, optimize_args, i);
+
+  /* Now parse the options.  */
+  decode_options (opt_argc, opt_argv);
+
+  VEC_truncate (const_char_p, optimize_args, 0);
+  return ret;
+}
+
+/* For handling "optimize" attribute. arguments as in
+   struct attribute_spec.handler.  */
+
+static tree
+handle_optimize_attribute (tree *node, tree name, tree args,
+			   int ARG_UNUSED (flags), bool *no_add_attrs)
+{
+  /* Ensure we have a function type.  */
+  if (TREE_CODE (*node) != FUNCTION_DECL)
+    {
+      warning (OPT_Wattributes, "%qE attribute ignored", name);
+      *no_add_attrs = true;
+    }
+  else
+    {
+      struct cl_optimization cur_opts;
+      tree old_opts = DECL_FUNCTION_SPECIFIC_OPTIMIZATION (*node);
+
+      /* Save current options.  */
+      cl_optimization_save (&cur_opts);
+
+      /* If we previously had some optimization options, use them as the
+	 default.  */
+      if (old_opts)
+	cl_optimization_restore (TREE_OPTIMIZATION (old_opts));
+
+      /* Parse options, and update the vector.  */
+      parse_optimize_options (args, true);
+      DECL_FUNCTION_SPECIFIC_OPTIMIZATION (*node)
+	= build_optimization_node ();
+
+      /* Restore current options.  */
+      cl_optimization_restore (&cur_opts);
+    }
+
+  return NULL_TREE;
+}
 
 /* Check for valid arguments being passed to a function.
    ATTRS is a list of attributes.  There are NARGS arguments in the array
@@ -7135,71 +7377,67 @@ c_parse_error (const char *gmsgid, enum cpp_ttype token, tree value)
    inlining, so we don't have to worry about that.  */
 
 void
-c_warn_unused_result (tree *top_p)
+c_warn_unused_result (gimple_seq seq)
 {
-  tree t = *top_p;
-  tree_stmt_iterator i;
   tree fdecl, ftype;
+  gimple_stmt_iterator i;
 
-  switch (TREE_CODE (t))
+  for (i = gsi_start (seq); !gsi_end_p (i); gsi_next (&i))
     {
-    case STATEMENT_LIST:
-      for (i = tsi_start (*top_p); !tsi_end_p (i); tsi_next (&i))
-	c_warn_unused_result (tsi_stmt_ptr (i));
-      break;
+      gimple g = gsi_stmt (i);
 
-    case COND_EXPR:
-      c_warn_unused_result (&COND_EXPR_THEN (t));
-      c_warn_unused_result (&COND_EXPR_ELSE (t));
-      break;
-    case BIND_EXPR:
-      c_warn_unused_result (&BIND_EXPR_BODY (t));
-      break;
-    case TRY_FINALLY_EXPR:
-    case TRY_CATCH_EXPR:
-      c_warn_unused_result (&TREE_OPERAND (t, 0));
-      c_warn_unused_result (&TREE_OPERAND (t, 1));
-      break;
-    case CATCH_EXPR:
-      c_warn_unused_result (&CATCH_BODY (t));
-      break;
-    case EH_FILTER_EXPR:
-      c_warn_unused_result (&EH_FILTER_FAILURE (t));
-      break;
-
-    case CALL_EXPR:
-      if (TREE_USED (t))
-	break;
-
-      /* This is a naked call, as opposed to a CALL_EXPR nested inside
-	 a MODIFY_EXPR.  All calls whose value is ignored should be
-	 represented like this.  Look for the attribute.  */
-      fdecl = get_callee_fndecl (t);
-      if (fdecl)
-	ftype = TREE_TYPE (fdecl);
-      else
+      switch (gimple_code (g))
 	{
-	  ftype = TREE_TYPE (CALL_EXPR_FN (t));
-	  /* Look past pointer-to-function to the function type itself.  */
-	  ftype = TREE_TYPE (ftype);
-	}
+	case GIMPLE_BIND:
+	  c_warn_unused_result (gimple_bind_body (g));
+	  break;
+	case GIMPLE_TRY:
+	  c_warn_unused_result (gimple_try_eval (g));
+	  c_warn_unused_result (gimple_try_cleanup (g));
+	  break;
+	case GIMPLE_CATCH:
+	  c_warn_unused_result (gimple_catch_handler (g));
+	  break;
+	case GIMPLE_EH_FILTER:
+	  c_warn_unused_result (gimple_eh_filter_failure (g));
+	  break;
 
-      if (lookup_attribute ("warn_unused_result", TYPE_ATTRIBUTES (ftype)))
-	{
-	  if (fdecl)
-	    warning (0, "%Hignoring return value of %qD, "
-		     "declared with attribute warn_unused_result",
-		     EXPR_LOCUS (t), fdecl);
+	case GIMPLE_CALL:
+	  if (gimple_call_lhs (g))
+	    break;
+
+	  /* This is a naked call, as opposed to a GIMPLE_CALL with an
+	     LHS.  All calls whose value is ignored should be
+	     represented like this.  Look for the attribute.  */
+	  fdecl = gimple_call_fn (g);
+	  if (TREE_CODE (fdecl) == FUNCTION_DECL)
+	    ftype = TREE_TYPE (fdecl);
 	  else
-	    warning (0, "%Hignoring return value of function "
-		     "declared with attribute warn_unused_result",
-		     EXPR_LOCUS (t));
-	}
-      break;
+	    {
+	      ftype = TREE_TYPE (fdecl);
+	      /* Look past pointer-to-function to the function type itself.  */
+	      ftype = TREE_TYPE (ftype);
+	    }
 
-    default:
-      /* Not a container, not a call, or a call whose value is used.  */
-      break;
+	  if (lookup_attribute ("warn_unused_result", TYPE_ATTRIBUTES (ftype)))
+	    {
+	      location_t loc = gimple_location (g);
+
+	      if (fdecl)
+		warning (0, "%Hignoring return value of %qD, "
+			 "declared with attribute warn_unused_result",
+			 &loc, fdecl);
+	      else
+		warning (0, "%Hignoring return value of function "
+			 "declared with attribute warn_unused_result",
+			 &loc);
+	    }
+	  break;
+
+	default:
+	  /* Not a container, not a call, or a call whose value is used.  */
+	  break;
+	}
     }
 }
 

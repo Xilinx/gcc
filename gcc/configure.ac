@@ -322,12 +322,15 @@ AC_CHECK_TYPES([__int64], [AC_CHECK_SIZEOF(__int64)])
 # * overlong strings
 # So, we only use -pedantic if we can disable those warnings.
 
-ACX_PROG_CC_WARNING_OPTS([-W -Wall -Wwrite-strings -Wstrict-prototypes \
-	  -Wmissing-prototypes -Wcast-qual], [loose_warn])
-ACX_PROG_CC_WARNING_OPTS([-Wold-style-definition -Wc++-compat \
-                          -Wmissing-format-attribute], [strict_warn])
-ACX_PROG_CC_WARNING_ALMOST_PEDANTIC([-Wno-long-long -Wno-variadic-macros \
-				     -Wno-overlength-strings], [strict_warn])
+ACX_PROG_CC_WARNING_OPTS(
+	[m4_do([-W -Wall -Wwrite-strings -Wstrict-prototypes ],
+	       [-Wmissing-prototypes -Wcast-qual])], [loose_warn])
+ACX_PROG_CC_WARNING_OPTS(
+	[m4_do([-Wold-style-definition -Wc++-compat ], 
+	       [-Wmissing-format-attribute])], [strict_warn])
+ACX_PROG_CC_WARNING_ALMOST_PEDANTIC(
+	[m4_do([-Wno-long-long -Wno-variadic-macros ], 
+	       [-Wno-overlength-strings])], [strict_warn])
 ACX_PROG_CC_WARNINGS_ARE_ERRORS([manual], [strict_warn])
 
 # The above macros do nothing if the compiler is not GCC.  However, the
@@ -350,7 +353,7 @@ AC_ARG_ENABLE(checking,
 			  enable expensive run-time checks.  With LIST,
 			  enable only specific categories of checks.
 			  Categories are: yes,no,all,none,release.
-			  Flags are: assert,df,fold,gc,gcac,misc,
+			  Flags are: assert,df,fold,gc,gcac,gimple,misc,
 			  rtlflag,rtl,runtime,tree,valgrind,types.],
 [ac_checking_flags="${enableval}"],[
 # Determine the default checks.
@@ -366,25 +369,25 @@ do
 	# these set all the flags to specific states
 	yes)		ac_assert_checking=1 ; ac_checking=1 ; ac_df_checking= ;
 			ac_fold_checking= ; ac_gc_checking=1 ;
-			ac_gc_always_collect= ; ac_rtl_checking= ;
+			ac_gc_always_collect= ; ac_gimple_checking=1 ; ac_rtl_checking= ;
 			ac_rtlflag_checking=1 ; ac_runtime_checking=1 ;
 			ac_tree_checking=1 ; ac_valgrind_checking= ;
 			ac_types_checking=1 ;;
 	no|none)	ac_assert_checking= ; ac_checking= ; ac_df_checking= ;
 			ac_fold_checking= ; ac_gc_checking= ;
-			ac_gc_always_collect= ; ac_rtl_checking= ;
+			ac_gc_always_collect= ; ac_gimple_checking= ; ac_rtl_checking= ;
 			ac_rtlflag_checking= ; ac_runtime_checking= ;
 			ac_tree_checking= ; ac_valgrind_checking= ;
 			ac_types_checking= ;;
 	all)		ac_assert_checking=1 ; ac_checking=1 ; ac_df_checking=1 ;
 			ac_fold_checking=1 ; ac_gc_checking=1 ;
-			ac_gc_always_collect=1 ; ac_rtl_checking=1 ;
+			ac_gc_always_collect=1 ; ac_gimple_checking=1 ; ac_rtl_checking=1 ;
 			ac_rtlflag_checking=1 ; ac_runtime_checking=1 ;
 			ac_tree_checking=1 ; ac_valgrind_checking= ;
 			ac_types_checking=1 ;;
 	release)	ac_assert_checking=1 ; ac_checking= ; ac_df_checking= ;
 			ac_fold_checking= ; ac_gc_checking= ;
-			ac_gc_always_collect= ; ac_rtl_checking= ;
+			ac_gc_always_collect= ; ac_gimple_checking= ; ac_rtl_checking= ;
 			ac_rtlflag_checking= ; ac_runtime_checking=1 ;
 			ac_tree_checking= ; ac_valgrind_checking= ;
 			ac_types_checking= ;;
@@ -394,6 +397,7 @@ do
 	fold)		ac_fold_checking=1 ;;
 	gc)		ac_gc_checking=1 ;;
 	gcac)		ac_gc_always_collect=1 ;;
+	gimple)		ac_gimple_checking=1 ;;
 	misc)		ac_checking=1 ;;
 	rtl)		ac_rtl_checking=1 ;;
 	rtlflag)	ac_rtlflag_checking=1 ;;
@@ -421,6 +425,12 @@ fi
 if test x$ac_assert_checking != x ; then
   AC_DEFINE(ENABLE_ASSERT_CHECKING, 1,
 [Define if you want assertions enabled.  This is a cheap check.])
+fi
+if test x$ac_gimple_checking != x ; then
+  AC_DEFINE(ENABLE_GIMPLE_CHECKING, 1,
+[Define if you want operations on GIMPLE (the basic data structure of
+the high-level optimizers) to be checked for dynamic type safety at
+runtime.  This is moderately expensive.])
 fi
 GCC_TARGET_TEMPLATE(ENABLE_RUNTIME_CHECKING)
 if test x$ac_runtime_checking != x ; then
@@ -842,7 +852,7 @@ AC_CHECK_PROG(have_mktemp_command, mktemp, yes, no)
 # that we can use it.
 ACX_CHECK_PROG_VER(MAKEINFO, makeinfo, --version,
   [GNU texinfo.* \([0-9][0-9.]*\)],
-  [4.[4-9]*|4.[1-9][0-9]*|[5-9]*|[1-9][0-9]*])
+  [4.[7-9]*|4.[1-9][0-9]*|[5-9]*|[1-9][0-9]*])
 if test $gcc_cv_prog_makeinfo_modern = no; then
   AC_MSG_WARN([
 *** Makeinfo is missing or too old.

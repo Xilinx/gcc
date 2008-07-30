@@ -1,3 +1,9 @@
+2008-07-24  Sebastian Pop  <sebastian.pop@amd.com>
+	    Jan Sjodin  <jan.sjodin@amd.com>
+
+	Partial merge from mainline (138072:138275).
+	* graphite.c still has to be tuplified.
+
 2008-07-29  Jan Sjodin  <jan.sjodin@amd.com>
 
 	* graphite.c (graphite_loops_mapping_max_loop_num): New.

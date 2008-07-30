@@ -160,7 +160,7 @@ struct graphite_bb
      corresponding element in CONDITION_CASES is not NULL_TREE. For a 
      SWITCH_EXPR the corresponding element in CONDITION_CASES is a 
      CASE_LABEL_EXPR.  */
-  VEC (tree, heap) *conditions;
+  VEC (gimple, heap) *conditions;
   VEC (tree, heap) *condition_cases;
 
   /* LOOPS contains for every column in the graphite domain the corresponding

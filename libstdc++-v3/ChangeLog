@@ -1,3 +1,78 @@
+2008-07-29  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/debug/set.h: Minor formatting fixes.
+	* include/debug/multiset.h: Likewise.
+	* include/debug/safe_association.h: Likewise.
+	* include/debug/vector: Likewise.
+	* include/debug/map.h: Likewise.
+	* include/debug/string: Likewise.
+	* include/debug/multimap.h: Likewise.
+	* include/bits/stl_list.h: Likewise.
+	* include/bits/stl_map.h: Likewise.
+	* include/bits/stl_set.h: Likewise.
+	* include/bits/stl_multimap.h: Likewise.
+	* include/bits/stl_vector.h: Likewise.
+	* include/bits/stl_multiset.h: Likewise.
+	* include/bits/stl_bvector.h: Likewise.
+
+2008-07-29  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/std/utility: Include <initializer_list>, per the current WP.
+
+	* testsuite/lib/libstdc++.exp (check_v3_target_cstdint): Tweak,
+	don't use -std=gnu++0x unnecessarily.
+	* testsuite/18_support/numeric_limits/char16_32_t.cc: Use
+	dg-require-cstdint.
+	* testsuite/18_support/headers/cstdint/types_std_c++0x.cc: Likewise.
+	* testsuite/tr1/8_c_compatibility/cstdint/types_std_tr1.cc: Likewise.
+
+2008-07-28  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/36949
+	* include/tr1_impl/boost_shared_ptr.h
+	(__shared_ptr(_Sp_make_shared_tag, _Alloc, _Args&&...): Call
+	__enable_shared_from_this_helper.
+	* testsuite/20_util/shared_ptr/creation/36949.cc: New.
+
+2008-07-24  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/36924
+	Revert:
+	2008-07-23  Chris Fairles <chris.fairles@gmail.com>
+
+	* acinclude.m4 ([GLIBCXX_CHECK_CLOCK_GETTIME]): Define GLIBCXX_LIBS.
+	Holds the lib that defines clock_gettime (-lrt or -lposix4).
+	* src/Makefile.am: Use it.
+	* configure: Regenerate.
+	* configure.in: Likewise.
+	* Makefile.in: Likewise.
+	* src/Makefile.in: Likewise.
+	* libsup++/Makefile.in: Likewise.
+	* po/Makefile.in: Likewise.
+	* doc/Makefile.in: Likewise.
+
+2008-07-23  Chris Fairles <chris.fairles@gmail.com>
+
+        * include/std/condition_variable: Update to N2691 WD.
+        * include/std/mutex: Likewise.
+        * testsuite/30_threads/mutex/cons/assign_neg.cc: Adjust line numbers.
+        * testsuite/30_threads/mutex/cons/copy_neg.cc: Likewise.
+        * testsuite/30_threads/recursive_mutex/cons/assign_neg.cc: Likewise.
+        * testsuite/30_threads/recursive_mutex/cons/copy_neg.cc: Likewise.
+
+2008-07-23  Chris Fairles <chris.fairles@gmail.com>
+
+        * acinclude.m4 ([GLIBCXX_CHECK_CLOCK_GETTIME]): Define GLIBCXX_LIBS.
+	Holds the lib that defines clock_gettime (-lrt or -lposix4).
+        * src/Makefile.am: Use it.
+        * configure: Regenerate.
+        * configure.in: Likewise.
+        * Makefile.in: Likewise.
+        * src/Makefile.in: Likewise.
+        * libsup++/Makefile.in: Likewise.
+        * po/Makefile.in: Likewise.
+        * doc/Makefile.in: Likewise.
+
 2008-07-22  Paolo Carlini  <paolo.carlini@oracle.com>
 
 	* include/ext/sso_string_base.h
@@ -65,10 +140,10 @@
 	Update error lineno.
 	* testsuite/23_containers/vector/requirements/dr438/insert_neg.cc:
 	Update error lineno.
-	* testsuite/23_containers/vector/requirements/dr438/constructor_1_neg.cc:
-	Update error lineno.
-	* testsuite/23_containers/vector/requirements/dr438/constructor_2_neg.cc:
-	Update error lineno.
+	* testsuite/23_containers/vector/requirements/dr438/
+	constructor_1_neg.cc: Update error lineno.
+	* testsuite/23_containers/vector/requirements/dr438/
+	constructor_2_neg.cc: Update error lineno.
 	* testsuite/23_containers/deque/requirements/dr438/assign_neg.cc:
 	Update error lineno.
 	* testsuite/23_containers/deque/requirements/dr438/insert_neg.cc:

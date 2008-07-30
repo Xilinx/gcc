@@ -459,7 +459,6 @@ get_old_iv_from_ssa_name (scop_p scop, loop_p old_loop_father, tree ssa_name)
 
 }
 
-static tree harmful_stmt_in_bb (struct loop *outermost_loop, basic_block);
 static CloogMatrix *schedule_to_scattering (graphite_bb_p, int);
 static inline int nb_loops_around_gb (graphite_bb_p gb);
 
@@ -577,57 +576,17 @@ static void
 dump_gbb_conditions (FILE *file, graphite_bb_p gbb)
 {
   int i;
-  tree stmt;
-  tree cond;
-  VEC (tree, heap) *conditions = gbb->conditions;
-  VEC (tree, heap) *cases = gbb->condition_cases;
-
-  if (VEC_empty (tree, conditions))
+  gimple stmt;
+  VEC (gimple, heap) *conditions = gbb->conditions;
+  
+  if (VEC_empty (gimple, conditions))
     return;
 
   fprintf (file, "\tbb %d\t: cond = {", gbb->bb->index);
-  for (i = 0; VEC_iterate (tree, conditions, i, stmt); i++)
-    {
-      switch (TREE_CODE (stmt))
-	{
-	case COND_EXPR:
-	  if (VEC_index (tree, cases, i) == NULL_TREE)
-	    fprintf (file, "!(");
 
-	  cond = TREE_OPERAND (stmt, 0);
-          print_generic_expr (file, cond, 0);
+  for (i = 0; VEC_iterate (gimple, conditions, i, stmt); i++)
+    print_gimple_stmt (file, stmt, 0, 0);
 
-	  if (VEC_index (tree, cases, i) == NULL_TREE)
-	    fprintf (file, ")");
-	  break;
-
-	case SWITCH_EXPR:
-	  cond = VEC_index (tree, cases, i);
-	  if (CASE_LOW (cond) && CASE_HIGH (cond))
-	    {
-	      dump_value (file, TREE_OPERAND (stmt, 0));
-	      fprintf (file, " >= ");
-	      dump_value (file, CASE_LOW (cond));
-	      fprintf (file, "; ");
-	      dump_value (file, TREE_OPERAND (stmt, 0));
-	      fprintf (file, " <= ");
-	      dump_value (file, CASE_HIGH (cond));
-	    }
-	  else if (CASE_LOW (cond))
-	    {
-	      dump_value (file, TREE_OPERAND (stmt, 0));
-	      fprintf (file, " == ");
-	      dump_value (file, CASE_LOW (cond));
-	    }
-	  else 
-	    fprintf (file, "default");
-	  break;
-	default:
-	  gcc_unreachable ();
-	  break;
-    }
-    fprintf (file, "; ");
-  }
   fprintf (file, "}\n");
 }
 
@@ -990,9 +949,14 @@ loop_affine_expr (struct loop *outermost_loop, struct loop *loop, tree expr)
 /* Return true if we can create a data-ref for OP in STMT.  */
 
 static bool
-stmt_simple_memref_for_scop_p (struct loop *loop, tree stmt, tree op)
+stmt_simple_memref_for_scop_p (struct loop *loop, gimple stmt, tree op)
 {
-  data_reference_p dr = create_data_ref (loop, op, stmt, true);
+  data_reference_p dr;
+
+  if (!is_gimple_addressable (op))
+    return false;
+
+  dr = create_data_ref (loop, op, stmt, true);
   if (!dr)
     return false;
 
@@ -1005,40 +969,38 @@ stmt_simple_memref_for_scop_p (struct loop *loop, tree stmt, tree op)
    to this loop.  */
 
 static bool
-stmt_simple_for_scop_p (struct loop *outermost_loop, tree stmt)
+stmt_simple_for_scop_p (struct loop *outermost_loop, gimple stmt)
 {
-  basic_block bb = bb_for_stmt (stmt);
+  basic_block bb = gimple_bb (stmt);
   struct loop *loop = bb->loop_father;
 
   /* ASM_EXPR and CALL_EXPR may embed arbitrary side effects.
      Calls have side-effects, except those to const or pure
      functions.  */
-  if ((stmt_ann (stmt)
-       && stmt_ann (stmt)->has_volatile_ops)
-      || (get_call_expr_in (stmt) != NULL_TREE
-	  && !(call_expr_flags (get_call_expr_in (stmt))
-	       & (ECF_CONST | ECF_PURE)))
-      || TREE_CODE (stmt) == ASM_EXPR)
+  if (gimple_has_volatile_ops (stmt)
+      || (gimple_code (stmt) == GIMPLE_CALL
+	  && !(gimple_call_flags (stmt) & (ECF_CONST | ECF_PURE)))
+      || (gimple_code (stmt) == GIMPLE_ASM))
     return false;
 
-  switch (TREE_CODE (stmt))
+  switch (gimple_code (stmt))
     {
-    case RETURN_EXPR:
-    case LABEL_EXPR:
+    case GIMPLE_RETURN:
+    case GIMPLE_LABEL:
       return true;
 
-    case COND_EXPR:
+    case GIMPLE_COND:
       {
 	tree op;
 	ssa_op_iter op_iter;
-        int tree_code = TREE_CODE (TREE_OPERAND (stmt, 0));
+        enum tree_code code = gimple_cond_code (stmt);
 
         /* We can only handle this kind of conditional expressions.  
            For inequalities like "if (i != 3 * k)" we need unions of
            polyhedrons.  Expressions like  "if (a)" or "if (a == 15)" need
            them for the else branch.  */
-        if (!(tree_code == LT_EXPR || tree_code == GT_EXPR
-              || tree_code == LE_EXPR || GE_EXPR))
+        if (!(code == LT_EXPR || code == GT_EXPR
+              || code == LE_EXPR || GE_EXPR))
           return false;
 
 	if (!outermost_loop)
@@ -1051,49 +1013,45 @@ stmt_simple_for_scop_p (struct loop *outermost_loop, tree stmt)
 	return true;
       }
 
-    case GIMPLE_MODIFY_STMT:
+    case GIMPLE_ASSIGN:
       {
-	tree opnd0 = GIMPLE_STMT_OPERAND (stmt, 0);
-	tree opnd1 = GIMPLE_STMT_OPERAND (stmt, 1);
+	enum tree_code code = gimple_assign_rhs_code (stmt);
 
-	if ((handled_component_p (opnd0)
-	     || INDIRECT_REF_P (opnd0))
-	    && !stmt_simple_memref_for_scop_p (loop, stmt, opnd0))
-	  return false;
+	switch (get_gimple_rhs_class (code))
+	  {
+	  case GIMPLE_UNARY_RHS:
+	  case GIMPLE_SINGLE_RHS:
+	    return (stmt_simple_memref_for_scop_p (loop, stmt, gimple_assign_lhs (stmt))
+		    && stmt_simple_memref_for_scop_p (loop, stmt,
+						      gimple_assign_rhs1 (stmt)));
 
-	if ((handled_component_p (opnd1)
-	     || INDIRECT_REF_P (opnd1))
-	    && !stmt_simple_memref_for_scop_p (loop, stmt, opnd1))
-	  return false;
+	  case GIMPLE_BINARY_RHS:
+	    return (stmt_simple_memref_for_scop_p (loop, stmt, gimple_assign_lhs (stmt))
+		    && stmt_simple_memref_for_scop_p (loop, stmt,
+						      gimple_assign_rhs1 (stmt))
+		    && stmt_simple_memref_for_scop_p (loop, stmt,
+						      gimple_assign_rhs2 (stmt)));
 
-	/* We cannot return (loop_affine_expr (loop, opnd0) &&
-	   loop_affine_expr (loop, opnd1)) because D.1882_16 is
-	   not affine in the following:
-
-	   D.1881_15 = a[j_13][pretmp.22_20];
-	   D.1882_16 = D.1881_15 + 2;
-	   a[j_22][i_12] = D.1882_16;
-
-	   but this is valid code in a scop.
-
-	   FIXME: I'm not yet 100% sure that returning true is safe:
-	   there might be exponential scevs.  On the other hand, if
-	   these exponential scevs do not reference arrays, then
-	   access functions, domains and schedules remain affine.  So
-	   it is very well possible that we can handle exponential
-	   scalar computations.  */
-	return true;
+	  case GIMPLE_INVALID_RHS:
+	    gcc_unreachable ();
+	  default:
+	    gcc_unreachable ();
+	  }
       }
 
-    case CALL_EXPR:
+    case GIMPLE_CALL:
       {
-	tree args;
+	size_t i;
+	size_t n = gimple_call_num_args (stmt);
 
-	for (args = TREE_OPERAND (stmt, 1); args; args = TREE_CHAIN (args))
-	  if ((handled_component_p (TREE_VALUE (args))
-	       || INDIRECT_REF_P (TREE_VALUE (args)))
-	      && !stmt_simple_memref_for_scop_p (loop, stmt, TREE_VALUE (args)))
-	    return false;
+	for (i = 0; i < n; i++)
+	  {
+	    tree arg = gimple_call_arg (stmt, i);
+
+	    if (!(stmt_simple_memref_for_scop_p (loop, stmt, gimple_assign_lhs (stmt))
+		  && stmt_simple_memref_for_scop_p (loop, stmt, arg)))
+	      return false;
+	  }
 
 	return true;
       }
@@ -1111,16 +1069,16 @@ stmt_simple_for_scop_p (struct loop *outermost_loop, tree stmt)
    cannot be computed, etc.  The current open scop should end before
    this statement.  */
 
-static tree
+static gimple
 harmful_stmt_in_bb (struct loop *outermost_loop, basic_block bb)
 {
-  block_stmt_iterator bsi;
+  gimple_stmt_iterator gsi;
 
-  for (bsi = bsi_start (bb); !bsi_end_p (bsi); bsi_next (&bsi))
-    if (!stmt_simple_for_scop_p (outermost_loop, bsi_stmt (bsi)))
-      return bsi_stmt (bsi);
+  for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); gsi_next (&gsi))
+    if (!stmt_simple_for_scop_p (outermost_loop, gsi_stmt (gsi)))
+      return gsi_stmt (gsi);
 
-  return NULL_TREE;
+  return NULL;
 }
 
 /* Creates a new scop starting with ENTRY.  */
@@ -1303,14 +1261,14 @@ static struct scopdet_info build_scops_1 (basic_block, VEC (scop_p, heap) **,
 /* Checks, if a bb can be added to a SCoP.  */
 static struct scopdet_info 
 scopdet_bb_info (basic_block bb, struct loop *outermost_loop,
-	         VEC (scop_p, heap) **scops, int type, tree *stmt)
+	         VEC (scop_p, heap) **scops, int type, gimple *stmt)
 	       
 {
   struct loop *loop = bb->loop_father;
   struct scopdet_info result;
 
   *stmt = harmful_stmt_in_bb (outermost_loop, bb);
-  result.difficult = (*stmt != NULL_TREE);
+  result.difficult = (*stmt != NULL);
   result.last = NULL;
 
   switch (type)
@@ -1525,7 +1483,7 @@ scopdet_bb_info (basic_block bb, struct loop *outermost_loop,
    STMT is non NULL.  */
 
 static void
-end_scop (scop_p scop, basic_block exit, basic_block *last, tree stmt)
+end_scop (scop_p scop, basic_block exit, basic_block *last, gimple stmt)
 {
   /* XXX: Disable bb splitting, contains a bug (SIGSEGV in polyhedron
      aermod.f90).  */
@@ -1533,13 +1491,13 @@ end_scop (scop_p scop, basic_block exit, basic_block *last, tree stmt)
     {
       edge e;
 
-      if (stmt == bsi_stmt (bsi_after_labels (exit)))
-	stmt = NULL_TREE;
+      if (stmt == gsi_stmt (gsi_after_labels (exit)))
+	stmt = NULL;
       else
 	{
-	  block_stmt_iterator bsi = bsi_for_stmt (stmt);
-	  bsi_prev (&bsi);
-	  stmt = bsi_stmt (bsi);
+	  gimple_stmt_iterator gsi = gsi_for_stmt (stmt);
+	  gsi_prev (&gsi);
+	  stmt = gsi_stmt (gsi);
 	}
 
       e = split_block (exit, stmt);
@@ -1561,7 +1519,7 @@ build_scops_1 (basic_block start, VEC (scop_p, heap) **scops,
 
   bool in_scop = false;
   scop_p open_scop = NULL;
-  tree stmt;
+  gimple stmt;
   struct scopdet_info sinfo;
 
   /* Initialize result */ 
@@ -2120,14 +2078,14 @@ find_params_in_bb (struct dom_walk_data *dw_data, basic_block bb)
   unsigned i;
   data_reference_p dr;
   VEC (data_reference_p, heap) *drs;
-  block_stmt_iterator bsi;
+  gimple_stmt_iterator gsi;
   scop_p scop = (scop_p) dw_data->global_data;
   struct loop *nest = outermost_loop_in_scop (scop, bb);
 
   /* Find the parameters used in the memory access functions.  */
   drs = VEC_alloc (data_reference_p, heap, 5);
-  for (bsi = bsi_start (bb); !bsi_end_p (bsi); bsi_next (&bsi))
-    find_data_references_in_stmt (nest, bsi_stmt (bsi), &drs);
+  for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); gsi_next (&gsi))
+    find_data_references_in_stmt (nest, gsi_stmt (gsi), &drs);
 
   for (i = 0; VEC_iterate (data_reference_p, drs, i, dr); i++)
     {
@@ -2427,12 +2385,12 @@ build_loop_iteration_domains (scop_p scop, struct loop *loop,
 /* Helper recursive function.  */
 
 static void
-build_scop_conditions_1 (VEC (tree, heap) **conditions,
+build_scop_conditions_1 (VEC (gimple, heap) **conditions,
 			 VEC (tree, heap) **cases, basic_block bb, scop_p scop)
 {
   unsigned i, j;
   graphite_bb_p gbb;
-  block_stmt_iterator bsi;
+  gimple_stmt_iterator gsi;
   basic_block bb_child, bb_iter;
   VEC (basic_block, heap) *dom;
   
@@ -2442,20 +2400,20 @@ build_scop_conditions_1 (VEC (tree, heap) **conditions,
 
   /* Record conditions in graphite_bb.  */
   gbb = graphite_bb_from_bb (bb, scop);
-  GBB_CONDITIONS (gbb) = VEC_copy (tree, heap, *conditions);
+  GBB_CONDITIONS (gbb) = VEC_copy (gimple, heap, *conditions);
   GBB_CONDITION_CASES (gbb) = VEC_copy (tree, heap, *cases);
 
   dom = get_dominated_by (CDI_DOMINATORS, bb);
 
-  for (bsi = bsi_start (bb); !bsi_end_p (bsi); bsi_next (&bsi))
+  for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); gsi_next (&gsi))
     {
-      tree stmt = bsi_stmt (bsi);
+      gimple stmt = gsi_stmt (gsi);
       VEC (edge, gc) *edges;
       edge e;
 
-      switch (TREE_CODE (stmt))
+      switch (gimple_code (stmt))
 	{
-	case COND_EXPR:
+	case GIMPLE_COND:
 	  edges = bb->succs;
 	  for (i = 0; VEC_iterate (edge, edges, i, e); i++)
 	    if ((dominated_by_p (CDI_DOMINATORS, e->dest, bb))
@@ -2473,51 +2431,46 @@ build_scop_conditions_1 (VEC (tree, heap) **conditions,
 		if (e->flags & EDGE_TRUE_VALUE)
 		  VEC_safe_push (tree, heap, *cases, stmt);
 		else if (e->flags & EDGE_FALSE_VALUE)
-		  VEC_safe_push (tree, heap, *cases, NULL_TREE);
+		  VEC_safe_push (tree, heap, *cases, NULL);
 		else
 		  gcc_unreachable ();
 
-		VEC_safe_push (tree, heap, *conditions, stmt);
+		VEC_safe_push (gimple, heap, *conditions, stmt);
 		build_scop_conditions_1 (conditions, cases, e->dest, scop);
-		VEC_pop (tree, *conditions);
+		VEC_pop (gimple, *conditions);
 		VEC_pop (tree, *cases);
 	      }
 	  break;
 
-	case SWITCH_EXPR:
+	case GIMPLE_SWITCH:
 	  {
-	    tree vec = SWITCH_LABELS (stmt);
-	    size_t n = TREE_VEC_LENGTH (vec);
-	    size_t n_cases = VEC_length (tree, *conditions);
+	    unsigned int i;
 
-	    /* In this case switch is not handled.  */
-	    if (SWITCH_BODY (stmt))
-	      break;
-
-	    VEC_safe_grow (tree, heap, *cases, n_cases+1);
-	    VEC_safe_push (tree, heap, *conditions, stmt);
-
-	    for (i = 0; i < n; i++)
+	    for (i = 0; i < gimple_switch_num_labels (stmt); ++i)
 	      {
 		basic_block bb_iter;
 		size_t k;
-		bb_child = label_to_block (CASE_LABEL (TREE_VEC_ELT (vec, i)));
+		size_t n_cases = VEC_length (gimple, *conditions);
+		unsigned n = gimple_switch_num_labels (stmt);
 
-		/* Do not handled multiple values for the same block.  */
+		bb_child = label_to_block (CASE_LABEL (gimple_switch_label (stmt, i)));
+
+		/* Do not handle multiple values for the same block.  */
 		for (k = 0; k < n; k++)
-		  if (label_to_block (CASE_LABEL (TREE_VEC_ELT (vec, k))) 
-		      == bb_child && i != k)
+		  if (i != k
+		      && label_to_block (CASE_LABEL (gimple_switch_label (stmt, k))) == bb_child)
 		    break;
+
 		if (k != n)
 		  continue;
 
-		/* Switch cases with more than one predecessor are not handled.
-		 */
+		/* Switch cases with more than one predecessor are not
+		   handled.  */
 		if (VEC_length (edge, bb_child->preds) != 1)
 		  continue;
 
 		/* Recursively scan the corresponding 'case' block.  */
-		VEC_replace (tree, *cases, n_cases, TREE_VEC_ELT (vec, i));
+		VEC_replace (tree, *cases, n_cases, gimple_switch_label (stmt, i));
 		build_scop_conditions_1 (conditions, cases, bb_child, scop);
 
 		/* Remove the scanned block from the dominator successors.  */
@@ -2529,7 +2482,7 @@ build_scop_conditions_1 (VEC (tree, heap) **conditions,
 		    }  
 	      }
 
-	    VEC_pop (tree, *conditions);
+	    VEC_pop (gimple, *conditions);
 	    VEC_pop (tree, *cases);
 	    break;
 	  }
@@ -3079,7 +3032,7 @@ move_phi_nodes (scop_p scop, loop_p old_loop_father, basic_block from, basic_blo
       next_phi = PHI_CHAIN (phi);
 
       if (get_old_iv_from_ssa_name (scop, old_loop_father, op) == NULL)
-	move_phi_node (phi, to);
+	gsi_move_before (gsi_for_stmt (phi), gsi_after_labels (to));
     }
 
   set_phi_nodes (from, NULL); 
@@ -3371,24 +3324,28 @@ get_construction_edge (scop_p scop)
 /* Return a vector of all the virtual phi nodes in the current
    function.  */
  
-static VEC (tree, heap) *
+static VEC (gimple, heap) *
 collect_virtual_phis (void)     
 {
-  VEC (tree, heap) *phis = VEC_alloc (tree, heap, 3);
+  gimple_stmt_iterator si;
+  gimple_vec phis = VEC_alloc (gimple, heap, 3);
   basic_block bb;
-  tree phi;
 
-  FOR_EACH_BB (bb)
-    for (phi = phi_nodes (bb); phi; phi = PHI_CHAIN (phi))
-      /* The phis we moved will have 0 arguments because the
-	 original edges were removed.  */
-      if (PHI_NUM_ARGS (phi) == 0)
-	VEC_safe_push (tree, heap, phis, phi);
+  FOR_EACH_BB (bb) 
+    for (si = gsi_start_phis (bb); !gsi_end_p(si); gsi_next (&si))
+      {
+	gimple phi = gsi_stmt (si);
+
+	/* The phis we moved will have 0 arguments because the
+	   original edges were removed.  */
+	if (gimple_phi_num_args (phi) == 0)
+	  VEC_safe_push (gimple, heap, phis, phi);
+      }
 
   /* Deallocate if we did not find any.  */
-  if (VEC_length (tree, phis) == 0)
+  if (VEC_length (gimple, phis) == 0)
     {
-      VEC_free (tree, heap, phis);
+      VEC_free (gimple, heap, phis);
       phis = NULL;
     }
 

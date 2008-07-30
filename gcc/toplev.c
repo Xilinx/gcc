@@ -82,6 +82,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "alloc-pool.h"
 #include "tree-mudflap.h"
 #include "tree-pass.h"
+#include "gimple.h"
 
 #if defined (DWARF2_UNWIND_INFO) || defined (DWARF2_DEBUGGING_INFO)
 #include "dwarf2out.h"
@@ -243,11 +244,6 @@ int flag_pcc_struct_return = DEFAULT_PCC_STRUCT_RETURN;
    2 means C99-like requirements for complex multiply and divide.  */
 
 int flag_complex_method = 1;
-
-/* Nonzero means that we don't want inlining by virtue of -fno-inline,
-   not just because the tree inliner turned us off.  */
-
-int flag_really_no_inline = 2;
 
 /* Nonzero means we should be saving declaration info into a .X file.  */
 
@@ -825,7 +821,7 @@ check_global_declaration_1 (tree decl)
 	  || TREE_SYMBOL_REFERENCED (DECL_ASSEMBLER_NAME (decl))))
     {
       if (TREE_SYMBOL_REFERENCED (DECL_ASSEMBLER_NAME (decl)))
-	pedwarn ("%q+F used but never defined", decl);
+	pedwarn (0, "%q+F used but never defined", decl);
       else
 	warning (OPT_Wunused_function, "%q+F declared %<static%> but never defined", decl);
       /* This symbol is effectively an "extern" declaration now.  */
@@ -1702,9 +1698,6 @@ process_options (void)
   if (flag_asynchronous_unwind_tables)
     flag_unwind_tables = 1;
 
-  if (!flag_unit_at_a_time)
-    flag_section_anchors = 0;
-
   if (flag_value_profile_transformations)
     flag_profile_values = 1;
 
@@ -2092,6 +2085,7 @@ dump_memory_report (bool final)
   ggc_print_statistics ();
   stringpool_statistics ();
   dump_tree_statistics ();
+  dump_gimple_statistics ();
   dump_rtx_statistics ();
   dump_varray_statistics ();
   dump_alloc_pool_statistics ();

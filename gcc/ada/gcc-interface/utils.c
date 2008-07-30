@@ -43,7 +43,8 @@
 #include "function.h"
 #include "cgraph.h"
 #include "tree-inline.h"
-#include "tree-gimple.h"
+#include "tree-iterator.h"
+#include "gimple.h"
 #include "tree-dump.h"
 #include "pointer-set.h"
 #include "langhooks.h"
@@ -2199,12 +2200,12 @@ gnat_genericize (tree fndecl)
   pointer_set_destroy (p_set);
 }
 
-/* Finish the definition of the current subprogram and compile it all the way
-   to assembler language output.  BODY is the tree corresponding to
-   the subprogram.  */
+/* Finish the definition of the current subprogram BODY and compile it all the
+   way to assembler language output.  ELAB_P tells if this is called for an
+   elaboration routine, to be entirely discarded if empty.  */
 
 void
-end_subprog_body (tree body)
+end_subprog_body (tree body, bool elab_p)
 {
   tree fndecl = current_function_decl;
 
@@ -2217,8 +2218,7 @@ end_subprog_body (tree body)
 
   /* Deal with inline.  If declared inline or we should default to inline,
      set the flag in the decl.  */
-  DECL_INLINE (fndecl)
-    = DECL_DECLARED_INLINE_P (fndecl) || flag_inline_trees == 2;
+  DECL_INLINE (fndecl) = 1;
 
   /* We handle pending sizes via the elaboration of types, so we don't
      need to save them.  */
@@ -2247,7 +2247,13 @@ end_subprog_body (tree body)
   if (!DECL_CONTEXT (fndecl))
     {
       gnat_gimplify_function (fndecl);
-      cgraph_finalize_function (fndecl, false);
+
+      /* If this is an empty elaboration proc, just discard the node.
+	 Otherwise, compile further.  */
+      if (elab_p && empty_body_p (gimple_body (fndecl)))
+	cgraph_remove_node (cgraph_node (fndecl));
+      else
+	cgraph_finalize_function (fndecl, false);
     }
   else
     /* Register this function with cgraph just far enough to get it
@@ -3118,7 +3124,7 @@ build_function_stub (tree gnu_subprog, Entity_Id gnat_subprog)
   gnat_poplevel ();
 
   allocate_struct_function (gnu_stub_decl, false);
-  end_subprog_body (gnu_body);
+  end_subprog_body (gnu_body, false);
 }
 
 /* Build a type to be used to represent an aliased object whose nominal
@@ -4211,7 +4217,7 @@ gnat_write_global_declarations (void)
  * ************************************************************************ */
 
 /* The general scheme is fairly simple:
-   
+
    For each builtin function/type to be declared, gnat_install_builtins calls
    internal facilities which eventually get to gnat_push_decl, which in turn
    tracks the so declared builtin function decls in the 'builtin_decls' global
@@ -4242,7 +4248,7 @@ builtin_decl_for (tree name)
    ??? This is a first implementation shot, still in rough shape.  It is
    heavily inspired from the "C" family implementation, with chunks copied
    verbatim from there.
-   
+
    Two obvious TODO candidates are
    o Use a more efficient name/decl mapping scheme
    o Devise a middle-end infrastructure to avoid having to copy
@@ -4693,7 +4699,7 @@ handle_sentinel_attribute (tree *node, tree name, tree args,
 	  *no_add_attrs = true;
 	}
     }
-  
+
   if (args)
     {
       tree position = TREE_VALUE (args);
@@ -4712,7 +4718,7 @@ handle_sentinel_attribute (tree *node, tree name, tree args,
 	    }
 	}
     }
-  
+
   return NULL_TREE;
 }
 
@@ -4763,7 +4769,7 @@ handle_malloc_attribute (tree *node, tree name, tree ARG_UNUSED (args),
 }
 
 /* Fake handler for attributes we don't properly support.  */
-   
+
 tree
 fake_attribute_handler (tree * ARG_UNUSED (node),
 			tree ARG_UNUSED (name),
@@ -4817,10 +4823,10 @@ def_builtin_1 (enum built_in_function fncode,
   const char *libname;
 
   /* Preserve an already installed decl.  It most likely was setup in advance
-     (e.g. as part of the internal builtins) for specific reasons.  */ 
+     (e.g. as part of the internal builtins) for specific reasons.  */
   if (built_in_decls[(int) fncode] != NULL_TREE)
     return;
-  
+
   gcc_assert ((!both_p && !fallback_p)
 	      || !strncmp (name, "__builtin_",
 			   strlen ("__builtin_")));

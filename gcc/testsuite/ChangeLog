@@ -1,3 +1,161 @@
+2008-07-29  Paul Thomas  <pault@gcc.gnu.org>
+
+	* gfortran.dg/extends_1.f03: New test.
+	* gfortran.dg/extends_2.f03: New test.
+	* gfortran.dg/extends_3.f03: New test.
+	* gfortran.dg/extends_4.f03: New test.
+	* gfortran.dg/extends_5.f03: New test.
+	* gfortran.dg/extends_6.f03: New test.
+	* gfortran.dg/private_type_6.f90: Modify error message.
+	* gfortran.dg/structure_constructor_7.f03: Modify error message.
+	* gfortran.dg/structure_constructor_8.f03: Modify error message.
+
+2008-07-29  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/36945
+	* gcc.dg/tree-ssa/ssa-pre-18.c: New testcase.
+
+2008-07-29  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/36852
+	* g++.dg/pch/array-1.C: New test.
+	* g++.dg/pch/array-1.Hs: New file.
+
+2008-07-29  Jan Hubicka  <jh@suse.cz>
+
+	* gcc.dg/20040206-1.c: Expect frontend warning now.
+
+2008-07-29  Manuel Lopez-Ibanez  <manu@gcc.gnu.org>
+
+	PR 34985
+	* gcc.dg/pr34985.c: New.
+	* g++.dg/warn/pr34985.C: New.
+	
+2008-07-29  Daniel Kraft  <d@domob.eu>
+
+	PR fortran/36403
+	* gfortran.dg/char_eoshift_5.f90:  New test.
+	* gfortran.dg/intrinsic_optional_char_arg_1.f90:  New test.
+
+2008-07-28  Richard Guenther  <rguenther@suse.de>
+
+	Merge from gimple-tuples-branch.
+
+	* gcc.c-torture/compile/20080721-1.c: New testcase.
+	* gcc.dg/torture/20080716-1.c: Likewise.
+	* gcc.dg/tree-ssa/tailcall-3.c: Likewise.
+	* gcc.dg/tree-ssa/20080530.c: Likewise.
+	* gcc.dg/20080615-1.c: Likewise.
+	* g++.dg/torture/pr36826.C: Likewise.
+	* gcc.dg/fold-alloca-1.c: Look into cleanup_cfg1 dump instead of
+	useless dump.
+	* gcc.dg/tree-ssa/pr21658.c: Update search pattern.
+	* gfortran.dg/gomp/block-1.f90: Adjust dg-error.
+	* gcc.dg/tree-ssa/20030728-1.c: Test final_cleanup instead of
+	optimized dump.
+
+2008-07-28  Simon Baldwin  <simonb@google.com>
+
+	* gcc.dg/pragma-message.c: New.
+
+2008-07-27  Victor Kaplansky  <victork@il.ibm.com>
+
+	PR tree-optimization/35252
+	* gcc.dg/vect/vect-complex-1.c, gcc.dg/vect/vect-complex-2.c,
+	gcc.dg/vect/fast-math-vect-complex-3.c,
+	gcc.dg/vect/vect-complex-4.c: New tests.
+
+2008-07-27  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR c++/36944
+	* g++.dg/other/pr36944.C: New.
+
+2008-07-27  Daniel Franke  <franke.daniel@gmail.com>
+
+	PR fortran/36724
+	* gfortran.dg/pointer_to_substring.f90: New test.
+
+2008-07-27  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/36132
+	PR fortran/29952
+	PR fortran/36909
+	* gfortran.dg/internal_pack_4.f90: New.
+	* gfortran.dg/internal_pack_5.f90: New.
+	* gfortran.dg/array_temporaries_2.f90: New.
+
+2008-07-26  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR fortran/36934
+	* gfortran.dg/allocatable_module_1.f90:  New test case.
+
+2008-07-25  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/36936
+	* gcc.target/i386/cmov8.c: New.
+	* gcc.target/i386/funcspec-10.c: Likewise.
+	* gcc.target/i386/funcspec-11.c: Likewise.
+
+2008-07-25  Joseph Myers  <joseph@codesourcery.com>
+
+	* lib/target-supports.exp (check_effective_target_arm_thumb1_ok):
+	New.
+	* g++.dg/inherit/thunk8.C: Use it.
+
+2008-07-24  Jan Hubicka  <jh@suse.cz>
+
+	* gcc.dg/winline-4.c: Remove.
+	* gcc.dg/pch/valid-3.hs: Remove.
+	* gcc.dg/pch/valid-3.c: Remove.
+	* g++.old-deja/g++.brendan/crash52.C: Accept returning void warning
+	* g++.old-deja/g++.jason/report.C: Likewise.
+	* testsuite/g++.dg/warn/pr23075.C: We get returning void warning
+	instead of control flow warning.
+
+2008-07-24  Daniel Kraft  <d@domob.eu>
+
+	PR fortran/33141
+	* gfortran.dg/intrinsic_shadow_1.f03:  New test for -Wintrinsic-shadow.
+	* gfortran.dg/intrinsic_shadow_2.f03:  Ditto.
+	* gfortran.dg/intrinsic_shadow_3.f03:  Ditto.
+	* gfortran.dg/intrinsic_std_1.f90:  New test for -Wintrinsics-std.
+	* gfortran.dg/intrinsic_std_2.f90:  Ditto.
+	* gfortran.dg/intrinsic_std_3.f90:  Ditto.
+	* gfortran.dg/intrinsic_std_4.f90:  Ditto.
+	* gfortran.dg/warn_std_1.f90:  Removed option -Wnonstd-intrinsics.
+	* gfortran.dg/warn_std_2.f90:  Replaced -Wnonstd-intrinsics by
+	-Wintrinsics-std and adapted expected errors/warnings.
+	* gfortran.dg/warn_std_3.f90:  Ditto.
+	* gfortran.dg/c_sizeof_2.f90:  Adapted expected error/warning message.
+	* gfortran.dg/gamma_2.f90:  Ditto.
+	* gfortran.dg/selected_char_kind_3.f90:  Ditto.
+	* gfortran.dg/fmt_g0_2.f08:  Call with -fall-intrinsics to allow abort.
+
+2008-07-24  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR fortran/29952
+	* gfortran.dg/array_temporaries_1.f90: New test case.
+
+2008-07-23  Ian Lance Taylor  <iant@google.com>
+
+	* gcc.target/i386/20080723-1.c: New test.
+
+2008-07-24  Ben Elliston  <bje@au.ibm.com>
+
+	* gcc.target/spu/vector.c: New test.
+	* gcc.target/spu/vector-ansi.c: Likewise.
+
+2008-07-23  Manuel Lopez-Ibanez  <manu@gcc.gnu.org>
+
+	PR 35058
+	* gcc.dg/Wdeclaration-after-statement-3.c: New.
+	* gcc/testsuite/gcc.dg/Wpointer-arith.c: New.
+	
+2008-07-22  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libfortran/36852
+	* gfortran.dg/namelist_52.f90: New test.
+
 2008-07-22  Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>
 
 	* lib/target-supports.exp (check_effective_target_spu_auto_overlay):

@@ -532,12 +532,6 @@ java_post_options (const char **pfilename)
 {
   const char *filename = *pfilename;
 
-  /* Use tree inlining.  */
-  if (!flag_no_inline)
-    flag_no_inline = 1;
-  if (flag_inline_functions)
-    flag_inline_trees = 2;
-
   /* An absolute requirement: if we're not using indirect dispatch, we
      must always verify everything.  */
   if (! flag_indirect_dispatch)

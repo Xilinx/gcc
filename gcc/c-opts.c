@@ -1018,28 +1018,12 @@ c_common_post_options (const char **pfilename)
   C_COMMON_OVERRIDE_OPTIONS;
 #endif
 
-  flag_inline_trees = 1;
-
-  /* Use tree inlining.  */
-  if (!flag_no_inline)
-    flag_no_inline = 1;
-  if (flag_inline_functions)
-    flag_inline_trees = 2;
-
   /* By default we use C99 inline semantics in GNU99 or C99 mode.  C99
      inline semantics are not supported in GNU89 or C89 mode.  */
   if (flag_gnu89_inline == -1)
     flag_gnu89_inline = !flag_isoc99;
   else if (!flag_gnu89_inline && !flag_isoc99)
     error ("-fno-gnu89-inline is only supported in GNU99 or C99 mode");
-
-  /* If we are given more than one input file, we must use
-     unit-at-a-time mode.  */
-  if (num_in_fnames > 1)
-    flag_unit_at_a_time = 1;
-
-  if (pch_file && !flag_unit_at_a_time)
-    sorry ("Precompiled headers require -funit-at-a-time");
 
   /* Default to ObjC sjlj exception handling if NeXT runtime.  */
   if (flag_objc_sjlj_exceptions < 0)
@@ -1086,18 +1070,6 @@ c_common_post_options (const char **pfilename)
      in that standard.  */
   if (warn_overlength_strings == -1 || c_dialect_cxx ())
     warn_overlength_strings = 0;
-
-  /* Adjust various flags for C++ based on command-line settings.  */
-  if (c_dialect_cxx ())
-    {
-      if (!flag_no_inline)
-	{
-	  flag_inline_trees = 1;
-	  flag_no_inline = 1;
-	}
-      if (flag_inline_functions)
-	flag_inline_trees = 2;
-    } 
 
   /* In C, -Wconversion enables -Wsign-conversion (unless disabled
      through -Wno-sign-conversion). While in C++,
