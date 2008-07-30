@@ -1,3 +1,131 @@
+2008-07-30  Rafael Avila de Espindola  <espindola@google.com>
+
+       * final.c (call_from_call_insn): New.
+       (final_scan_insn): Call assemble_external on FUNCTION_DECLs.
+
+2008-07-30  Paolo Bonzini  <bonzini@gnu.org>
+
+	* configure.ac: Substitute ADA_CFLAGS.
+	* configure: Regenerate.
+	* config.host: Remove mention of pa/x-ada and pa/x-ada-hpux10 files.
+	* Makefile.in: Remove mention of X_* variables.
+	* config/pa/x-ada-hpux10: Remove.
+	* config/pa/x-ada: Remove.
+
+	* doc/fragments.texi: Update.
+
+2008-07-30  Olivier Hainque  <hainque@adacore.com>
+
+	* config/mips/irix-crti.asm: .hide __gcc_init and __gcc_fini.
+	* config/mips/iris6.h (IRIX_SUBTARGET_LINK_SPEC, irix ld): Hide
+	__dso_handle explicitly here.
+
+2008-07-30  Manuel Lopez-Ibanez  <manu@gcc.gnu.org>
+
+	PR 34389
+	* c-typeck.c (build_binary_op): Encapsulate code into...
+	* c-common.c (shorten_binary_op): ...this new function.
+	(conversion_warning): Use the new function. Handle non-negative
+	constant in bitwise-and.
+	* c-common.h (shorten_binary_op): Declare.
+	
+2008-07-30  Olivier Hainque  <hainque@adacore.com>
+
+	* scan.c (make_sstring_space): Add explicit conversions of
+	allocator's return value.
+	* fix-header.c (recognized_function): Likewise.
+
+2008-07-30  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* doc/cpp.texi: Update to GFDL 1.2.
+	* doc/gcc.texi: Do not list GPL as Invariant Section.
+	* doc/gccint.texi: Likewise.  Update copyright years.
+	* doc/install.texi: Update copyright years.
+
+2008-07-30  Alan Modra  <amodra@bigpond.net.au>
+
+	PR target/36955
+	* config/rs6000/rs6000.c (rs6000_legitimize_tls_address): Add
+	a use of pic_offset_table_rtx for -msecure-plt __tls_get_addr calls.
+
+2008-07-29  Jan Hubicka  <jh@suse.cz>
+
+	* c-decl.c (merge_decls): Do not handle DECL_INLINE.
+	(grokdeclarator): Likewise.
+	* langhooks.c (lhd_warn_unused_global_decl): Use
+	DECL_DECLARED_INLINE_P.
+	* print-tree.c (print_node): Remove DECL_INLINE check.
+
+2008-07-29  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/36945
+	* tree-ssa-sccvn.h (copy_reference_ops_from_ref): Declare.
+	* tree-ssa-sccvn.c (copy_reference_ops_from_ref): Export.
+	Record invariant addresses un-decomposed.
+	(copy_reference_ops_from_call): Record reference call
+	arguments properly.  Simplify.
+	* tree-ssa-pre.c (create_component_ref_by_pieces_1): New
+	helper split out from ...
+	(create_component_ref_by_pieces): ... here.  Simplify.
+	Prepare for recursive invocation for call arguments.
+	(create_expression_by_pieces): Adjust call to
+	create_component_ref_by_pieces.
+	(compute_avail): Process operand 2 of reference ops.
+
+2008-07-29  Richard Guenther  <rguenther@suse.de>
+
+	* gimplify.c (gimplify_expr): Clear TREE_SIDE_EFFECTS for
+	OBJ_TYPE_REF.
+
+2008-07-29  Jakub Jelinek  <jakub@redhat.com>
+
+	* c-format.c (check_format_types): Revert unwanted checkin.
+
+2008-07-29  Jan Hubicka  <jh@suse.cz>
+
+	* flags.h (flag_really_no_inline): Remove.
+	* cgraph.c (cgraph_function_possibly_inlined_p): Simplify.
+	* toplev.c (flag_really_no_inline): Remove.
+	* c-cppbuiltin.c (c_cpp_builtins): Use flag_no_inline.
+	* ipa-inline.c (cgraph_decide_inlining): Do not check flag_no_inline.
+	(cgraph_decide_inlining_incrementally): Likewise.
+	(compute_inline_parameters): Likewise.
+	* opts.c (decode_options): Simplify.
+	* c-opts.c (c_common_post_options): Do not set flag_no_inline.
+	* common.opt (finline): Initialize to 1.
+	* tree-inline.c (inlinable_function_p): Check flag_no_inline.
+
+2008-07-29  Jan Hubicka  <jh@suse.cz>
+
+	* predict.c (always_optimize_for_size_p): New function.
+	(optimize_bb_for_size_p, optimize_bb_for_speed_p,
+	optimize_edge_for_size_p, optimize_edge_for_speed_p,
+	optimize_insn_for_size_p, optimize_insn_for_speed_p): New global
+	functions.
+	(rtl_profile_for_bb, rtl_profile_for_edge, rtl_default_profile): New.
+	* function.c (prepare_function_start): Set default profile.
+	* function.h (rtl_data): Add maybe_hot_insn_p.
+	* cfgexpand.c (expand_gimple_basic_block): Set RTL profile.
+	(construct_exit_block): Likewise.
+	(tree_expand_cfg): Likewise.
+	* basic-block.h
+	(optimize_bb_for_size_p, optimize_bb_for_speed_p,
+	optimize_edge_for_size_p, optimize_edge_for_speed_p,
+	optimize_insn_for_size_p, optimize_insn_for_speed_p): Declare.
+	(rtl_profile_for_bb, rtl_profile_for_edge, default_rtl_profile):
+	Declare.
+
+2008-07-29  Manuel Lopez-Ibanez  <manu@gcc.gnu.org>
+
+	PR 34985
+	* c-decl.c (merge_decls): Merge USED flags.
+	
+2008-07-29  Kaz Kojima  <kkojima@gcc.gnu.org>
+
+	* config/sh/sh.c (sh_gimplify_va_arg_expr): Unshare the addr,
+	valist, next_fp, next_fp_tmp, next_fp_limit, next_o, next_o_limit,
+	next_stack, lab_false and lab_over trees.
+
 2008-07-28  Richard Guenther  <rguenther@suse.de>
 
 	PR tree-optimization/36957

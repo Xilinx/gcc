@@ -1,4 +1,9 @@
 2008-07-30  Basile Starynkevitch  <basile@starynkevitch.net>
+	MELT branch merged with trunk r138310
+
+	* Makefile.in:  removed debugging echo in run-basilys-deps.
+
+2008-07-30  Basile Starynkevitch  <basile@starynkevitch.net>
 	* Makefile.in: using realpath for run-basilys-deps ie to fill the melt_build_include_dir
 
 	* run-basilys.h: include "gimple.h"
@@ -18,7 +23,7 @@
 	* melt/warmelt-first.bysl: added ctype_gimple, discr_edge,
 	discr_gimple, discr_tree, discr_mapedges, discr_mapgimples,
 	discr_maptrees.
-	
+
 	* warmelt-first-0.c: regenerated.
 
 	* warmelt-macro-0.c: regenerated.

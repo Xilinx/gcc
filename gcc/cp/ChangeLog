@@ -1,3 +1,40 @@
+2008-07-30  Dodji Seketeli  <dseketel@redhat.com>
+
+	PR c++/36767
+	* decl2.c (fix_temporary_vars_context_r): New function.
+	 (one_static_initialization_or_destruction): Make sure temporary
+	 variables part of the initialiser have their DECL_CONTEXT()
+	 properly set.
+
+2008-07-30  Manuel Lopez-Ibanez  <manu@gcc.gnu.org>
+
+	PR 34389
+	* typeck.c (build_binary_op): Encapsulate code into
+	shorten_binary_op.
+	
+2008-07-29  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/36852
+	* tree.c (cplus_array_hash, build_cplus_array_type_1): Hash on
+	TYPE_UID instead of pointers.
+
+2008-07-29  Jan Hubicka  <jh@suse.cz>
+
+ 	* optimize.c (maybe_clone_body): Remove DECL_INLINE.
+	* decl.c (duplicate_decls): Likewise.
+	(grokfndecl): Likewise.
+	(start_method): Likewise.
+	* method.c (make_thunk, make_alias_for, implicitly_declare_fn):
+	Likewise.
+	* pt.c (register_specialization, regenerate_decl_from_template):
+	Likewise.
+	* decl2.c (grokfield): Likewise.
+
+2008-07-29  Manuel Lopez-Ibanez  <manu@gcc.gnu.org>
+
+	PR 34985
+	* decl.c (duplicate_decls): Merge USED flags.
+	
 2008-07-27  Jason Merrill  <jason@redhat.com>
 
 	PR c++/36943

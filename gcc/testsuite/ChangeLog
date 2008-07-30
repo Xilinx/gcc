@@ -1,3 +1,66 @@
+2008-07-30  Rafael Avila de Espindola  <espindola@google.com>
+
+	* gcc.dg/visibility-14.c: New test.
+	* gcc.dg/visibility-15.c: New test.
+	* gcc.dg/visibility-16.c: New test.
+	* gcc.dg/visibility-17.c: New test.
+	* gcc.dg/visibility-18.c: New test.
+	* gcc.dg/visibility-19.c: New test.
+
+2008-07-30  Dodji Seketeli  <dseketel@redhat.com>
+
+	PR c++/36767
+	* g++.dg/parse/crash42.C: New test.
+
+2008-07-30  Manuel Lopez-Ibanez  <manu@gcc.gnu.org>
+
+	PR 34389
+	* gcc.dg/Wconversion-pr34389.c: New.
+	* g++.dg/warn/Wconversion-pr34389.C: New.
+	
+2008-07-29  Steve Ellcey  <sje@cup.hp.com>
+
+	* gcc.dg/pr32370.c: Force 64 bits on IA64.
+
+2008-07-29  Paul Thomas  <pault@gcc.gnu.org>
+
+	* gfortran.dg/extends_1.f03: New test.
+	* gfortran.dg/extends_2.f03: New test.
+	* gfortran.dg/extends_3.f03: New test.
+	* gfortran.dg/extends_4.f03: New test.
+	* gfortran.dg/extends_5.f03: New test.
+	* gfortran.dg/extends_6.f03: New test.
+	* gfortran.dg/private_type_6.f90: Modify error message.
+	* gfortran.dg/structure_constructor_7.f03: Modify error message.
+	* gfortran.dg/structure_constructor_8.f03: Modify error message.
+
+2008-07-29  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/36945
+	* gcc.dg/tree-ssa/ssa-pre-18.c: New testcase.
+
+2008-07-29  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/36852
+	* g++.dg/pch/array-1.C: New test.
+	* g++.dg/pch/array-1.Hs: New file.
+
+2008-07-29  Jan Hubicka  <jh@suse.cz>
+
+	* gcc.dg/20040206-1.c: Expect frontend warning now.
+
+2008-07-29  Manuel Lopez-Ibanez  <manu@gcc.gnu.org>
+
+	PR 34985
+	* gcc.dg/pr34985.c: New.
+	* g++.dg/warn/pr34985.C: New.
+	
+2008-07-29  Daniel Kraft  <d@domob.eu>
+
+	PR fortran/36403
+	* gfortran.dg/char_eoshift_5.f90:  New test.
+	* gfortran.dg/intrinsic_optional_char_arg_1.f90:  New test.
+
 2008-07-28  Richard Guenther  <rguenther@suse.de>
 
 	Merge from gimple-tuples-branch.

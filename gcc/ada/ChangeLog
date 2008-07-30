@@ -1,3 +1,118 @@
+2008-07-30  Doug Rupp  <rupp@adacore.com>
+
+	* gigi.h (build_vms_descriptor64): New function prototype.
+	(fill_vms_descriptor): Modified function prototype.
+
+	* utils.c (build_vms_descriptor64): New function.
+
+	* utils2.c (fill_vms_descriptor): Fix handling on 32bit systems.
+
+	* trans.c (call_to_gnu): Call fill_vms_descriptor with new third
+	argument.
+
+	* decl.c (gnat_to_gnu_tree): For By_Descriptor mech, build both a
+	64bit and 32bit descriptor and save the 64bit version as an alternate
+	TREE_TYPE in the parameter.
+	(make_type_from_size) <RECORD_TYPE>: Use the appropriate mode for the
+	thin pointer.
+
+	* ada-tree.h (DECL_PARM_ALT, SET_DECL_PARM_ALT): New macros.
+
+2008-07-30  Robert Dewar  <dewar@adacore.com>
+
+	* make.adb: Minor reformatting
+
+	* mlib-utl.adb: Minor reformatting
+
+	* osint.ads: Minor reformatting
+
+2008-07-30  Jose Ruiz  <ruiz@adacore.com>
+
+	* adaint.c
+	(__gnat_file_exists): Do not use __gnat_stat for RTX.
+	(__main for RTX in RTSS mode): Create this dummy procedure symbol to
+	avoid the use of this symbol from libgcc.a in RTX kernel mode.
+
+	* cio.c
+	(put_int, put_int_stderr, put_char, put_char_stderr): For RTX we call
+	the function RtPrintf for console output.
+	
+	* argv.c Do not use the environ variable for RTX.
+	
+	* gnatlink.adb (gnatlink): The part that handles the --RTS option has
+	been moved before the call to Osint.Add_Default_Search_Dirs in order
+	to take into account the flags in system.ads (RTX_RTSS_Kernel_Module)
+	from the appropriate run time.
+	
+	* targparm.ads
+	(RTX_RTSS_Kernel_Module_On_Target): Add this flag that is set to True if
+	target is a RTSS module for RTX.
+	
+	* targparm.adb (Targparm_Tags, RTX_Str, Targparm_Str): Add tag RTX for
+	RTX_RTSS_Kernel_Module
+	(Get_Target_Parameters): Add processing of RTX_RTSS_Kernel_Module flag.
+
+	* gcc-interface/Makefile.in (LIBGNAT_TARGET_PAIRS for RTX): Use gcc
+	exception handling mechanism for Windows and RTX in Win32 mode, but
+	not for RTX in kernel mode (RTSS).
+	(LIBGNAT_SRCS): Remove ada.h
+
+2008-07-30  Paolo Bonzini  <bonzini@gnu.org>
+
+	* gcc-interface/Make-lang.in (ALL_ADAFLAGS): Remove X_ADAFLAGS and
+	T_ADAFLAGS, replace ALL_ADA_CFLAGS with ADA_CFLAGS.
+	(ALL_ADA_CFLAGS): Remove, replace throughout with ADA_CFLAGS.
+	* gcc-interface/Makefile.in (XCFLAGS, X_CFLAGS, X_CPPFLAGS, T_CPPFLAGS,
+	X_ADA_CFLAGS, T_ADA_CFLAGS, X_ADAFLAGS, T_ADAFLAGS, ADA_CFLAGS,
+	ALL_ADA_CFLAGS): Remove.
+	(ALL_ADAFLAGS, MOST_ADAFLAGS): Remove X_ADAFLAGS and T_ADAFLAGS,
+	replace ALL_ADA_CFLAGS with ADA_CFLAGS.
+	(GCC_CFLAGS): Remove X_CFLAGS.
+	(LOOSE_CFLAGS): Remove X_CFLAGS and XCFLAGS.
+	(ALL_CPPFLAGS): Remove X_CPPFLAGS and T_CPPFLAGS.
+	(ADA_CFLAGS): Substitute.
+
+2008-07-30  Laurent Guerby  <laurent@guerby.net>
+
+        PR ada/5911
+        * gcc-interface/Makefile.in (MULTISUBDIR, RTSDIR): New variables.
+        Pass MULTISUBDIR to recursive make. Use $(RTSDIR) instead of rts.
+        Replace stamp-gnatlib* by stamp-gnatlib*-rts.
+        * gcc-interface/Make-lang.in: Replace stamp-gnatlib2
+        by stamp-gnatlib2-rts.
+	
+2008-07-30  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	PR documentation/15479
+	* gnat-style.texi: Remove AdaCore copyright statement and GPL
+	statement for GNAT.  Add @copying stanza, use it.  Update to
+	GFDL 1.2.  Do not list GFDL as Invariant Section, do not list
+	title as Front-Cover Text.
+	* gnat_rm.texi: Likewise.
+	* gnat_ugn.texi: Likewise.
+
+2008-07-29  Jan Hubicka  <jh@suse.cz>
+
+	* trans.c (process_inlined_subprograms): Remove tree_really_inline
+	check.
+
+2008-07-29  Arnaud Charlet  <charlet@adacore.com>
+
+	* gcc-interface: New directory.
+
+	* ada-tree.def, cuintp.c, gigi.h, Makefile.in, targtyps.c, ada.h,
+	utils.c, ada-tree.h, decl.c, lang.opt, Make-lang.in, trans.c,
+	config-lang.in, deftarg.c, lang-specs.h, misc.c, utils2.c: Moved
+	to gcc-interface subdirectory.
+
+2008-07-29  Aaron W. LaFramboise  <aaronavay62@aaronwl.com>
+
+	* Makefile.in (EXTRA_GNATRTL_NONTASKING_OBJS): Remove extra s-win32.o.
+
+2008-07-28  Jan Hubicka  <jh@suse.cz>
+
+	* misc.c (gnat_post_options): Do not set flag_no_inline.
+
 2008-07-28  Richard Guenther  <rguenther@suse.de>
 
 	Merge from gimple-tuples-branch.
