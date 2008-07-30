@@ -29,6 +29,7 @@ along with GCC; see the file COPYING3.   If not see
 #include "obstack.h"
 #include "tm.h"
 #include "tree.h"
+#include "gimple.h"
 #include "filenames.h"
 #include "tree-pass.h"
 #include "tree-dump.h"
@@ -48,7 +49,9 @@ along with GCC; see the file COPYING3.   If not see
 
 #include "cppdefault.h"
 
+
 #include "compiler-probe.h"
+
 
 #include <dirent.h>
 
@@ -354,10 +357,12 @@ check_pointer_at (const char msg[], long count, basilys_ptr_t * pptr,
     case OBMAG_STRING:
     case OBMAG_STRBUF:
     case OBMAG_TREE:
+    case OBMAG_GIMPLE:
     case OBMAG_BASICBLOCK:
     case OBMAG_EDGE:
     case OBMAG_MAPOBJECTS:
     case OBMAG_MAPTREES:
+    case OBMAG_MAPGIMPLES:
     case OBMAG_MAPSTRINGS:
     case OBMAG_MAPBASICBLOCKS:
     case OBMAG_MAPEDGES:
@@ -908,6 +913,15 @@ forwarded_copy (basilys_ptr_t p)
 	n = (basilys_ptr_t) dst;
 	break;
       }
+    case OBMAG_GIMPLE:
+      {
+	struct basilysgimple_st *src = (struct basilysgimple_st *) p;
+	struct basilysgimple_st *dst = (struct basilysgimple_st *)
+	  ggc_alloc_cleared (sizeof (struct basilysgimple_st));
+	*dst = *src;
+	n = (basilys_ptr_t) dst;
+	break;
+      }
     case OBMAG_BASICBLOCK:
       {
 	struct basilysbasicblock_st *src = (struct basilysbasicblock_st *) p;
@@ -972,6 +986,29 @@ forwarded_copy (basilys_ptr_t p)
 	n = (basilys_ptr_t) dst;
 	break;
       }
+    case OBMAG_MAPGIMPLES:
+      {
+	struct basilysmapgimples_st *src = (struct basilysmapgimples_st *) p;
+	int siz = basilys_primtab[src->lenix];
+	struct basilysmapgimples_st *dst = (struct basilysmapgimples_st *)
+	  ggc_alloc_cleared (sizeof (struct basilysmapgimples_st));
+	dst->discr = src->discr;
+	dst->count = src->count;
+	dst->lenix = src->lenix;
+	if (siz > 0 && src->entab)
+	  {
+	    dst->entab =
+	      (struct entrygimplesbasilys_st *) ggc_alloc_cleared (siz *
+								   sizeof
+								   (dst->entab
+								    [0]));
+	    memcpy (dst->entab, src->entab, siz * sizeof (dst->entab[0]));
+	  }
+	else
+	  dst->entab = NULL;
+	n = (basilys_ptr_t) dst;
+	break;
+      }
     case OBMAG_MAPSTRINGS:
       {
 	struct basilysmapstrings_st *src = (struct basilysmapstrings_st *) p;
@@ -1011,8 +1048,7 @@ forwarded_copy (basilys_ptr_t p)
 	    dst->entab =
 	      (struct entrybasicblocksbasilys_st *) ggc_alloc_cleared (siz *
 								       sizeof
-								       (dst->
-									entab
+								       (dst->entab
 									[0]));
 	    memcpy (dst->entab, src->entab, siz * sizeof (dst->entab[0]));
 	  }
@@ -1241,6 +1277,37 @@ scanning (basilys_ptr_t p)
 	  }
 	break;
       }
+    case OBMAG_MAPGIMPLES:
+      {
+	struct basilysmapgimples_st *src = (struct basilysmapgimples_st *) p;
+	int ix, siz;
+	if (!src->entab)
+	  break;
+	siz = basilys_primtab[src->lenix];
+	gcc_assert (siz > 0);
+	if (basilys_is_young (src->entab))
+	  {
+	    struct entrygimplesbasilys_st *newtab =
+	      (struct entrygimplesbasilys_st *) ggc_alloc_cleared (siz *
+								   sizeof
+								   (struct
+								    entrygimplesbasilys_st));
+	    memcpy (newtab, src->entab,
+		    siz * sizeof (struct entrygimplesbasilys_st));
+	    src->entab = newtab;
+	  }
+	for (ix = 0; ix < siz; ix++)
+	  {
+	    gimple at = src->entab[ix].e_at;
+	    if (!at || at == (void *) 1)
+	      {
+		src->entab[ix].e_va = NULL;
+		continue;
+	      }
+	    FORWARDED (src->entab[ix].e_va);
+	  }
+	break;
+      }
     case OBMAG_MAPSTRINGS:
       {
 	struct basilysmapstrings_st *src = (struct basilysmapstrings_st *) p;
@@ -1368,6 +1435,7 @@ scanning (basilys_ptr_t p)
     case OBMAG_REAL:
     case OBMAG_STRING:
     case OBMAG_TREE:
+    case OBMAG_GIMPLE:
     case OBMAG_BASICBLOCK:
     case OBMAG_EDGE:
       break;
@@ -1469,15 +1537,15 @@ unsafe_index_mapobject (struct entryobjectsbasilys_st *tab,
 		 samehashcnt, (void *) attr, attr->obj_serial, (void *) curat,
 		 curat->obj_serial, curat->obj_hash,
 		 (void *) curat->obj_class,
-		 basilys_string_str (curat->
-				     obj_class->obj_vartab[FNAMED_NAME]));
+		 basilys_string_str (curat->obj_class->
+				     obj_vartab[FNAMED_NAME]));
 	      if (basilys_is_instance_of
 		  ((basilys_ptr_t) attr,
 		   (basilys_ptr_t) BASILYSGOB (CLASS_NAMED)))
 		dbgprintf ("gotten attr named %s found attr named %s",
 			   basilys_string_str (attr->obj_vartab[FNAMED_NAME]),
-			   basilys_string_str (curat->obj_vartab
-					       [FNAMED_NAME]));
+			   basilys_string_str (curat->
+					       obj_vartab[FNAMED_NAME]));
 	      basilys_dbgshortbacktrace
 		("gotten & found attr of same hash & class", 15);
 	    }
@@ -1514,15 +1582,15 @@ unsafe_index_mapobject (struct entryobjectsbasilys_st *tab,
 		 samehashcnt, (void *) attr, attr->obj_serial, (void *) curat,
 		 curat->obj_serial, curat->obj_hash,
 		 (void *) curat->obj_class,
-		 basilys_string_str (curat->
-				     obj_class->obj_vartab[FNAMED_NAME]));
+		 basilys_string_str (curat->obj_class->
+				     obj_vartab[FNAMED_NAME]));
 	      if (basilys_is_instance_of
 		  ((basilys_ptr_t) attr,
 		   (basilys_ptr_t) BASILYSGOB (CLASS_NAMED)))
 		dbgprintf ("gotten attr named %s found attr named %s",
 			   basilys_string_str (attr->obj_vartab[FNAMED_NAME]),
-			   basilys_string_str (curat->obj_vartab
-					       [FNAMED_NAME]));
+			   basilys_string_str (curat->
+					       obj_vartab[FNAMED_NAME]));
 	      basilys_dbgshortbacktrace
 		("gotten & found attr of same hash & class", 15);
 	    }
@@ -3770,6 +3838,8 @@ basilysgc_raw_new_mappointers (basilysobject_ptr_t discr_p, unsigned len)
   gcc_assert (sizeof (struct entrypointerbasilys_st) ==
 	      sizeof (struct entrytreesbasilys_st));
   gcc_assert (sizeof (struct entrypointerbasilys_st) ==
+	      sizeof (struct entrygimplesbasilys_st));
+  gcc_assert (sizeof (struct entrypointerbasilys_st) ==
 	      sizeof (struct entryedgesbasilys_st));
   gcc_assert (sizeof (struct entrypointerbasilys_st) ==
 	      sizeof (struct entrybasicblocksbasilys_st));
@@ -5071,11 +5141,13 @@ readsimplelong (struct reading_st *rd)
       NUMNAM (OBMAG_STRING);
       NUMNAM (OBMAG_STRBUF);
       NUMNAM (OBMAG_TREE);
+      NUMNAM (OBMAG_GIMPLE);
       NUMNAM (OBMAG_BASICBLOCK);
       NUMNAM (OBMAG_EDGE);
       NUMNAM (OBMAG_MAPOBJECTS);
       NUMNAM (OBMAG_MAPSTRINGS);
       NUMNAM (OBMAG_MAPTREES);
+      NUMNAM (OBMAG_MAPGIMPLES);
       NUMNAM (OBMAG_MAPBASICBLOCKS);
       NUMNAM (OBMAG_MAPEDGES);
       NUMNAM (OBMAG_DECAY);
@@ -7031,9 +7103,11 @@ basilys_debug_out (struct debugprint_basilys_st *dp,
       }
     case OBMAG_TRIPLE:
     case OBMAG_TREE:
+    case OBMAG_GIMPLE:
     case OBMAG_BASICBLOCK:
     case OBMAG_EDGE:
     case OBMAG_MAPTREES:
+    case OBMAG_MAPGIMPLES:
     case OBMAG_MAPBASICBLOCKS:
     case OBMAG_MAPEDGES:
     case OBMAG_DECAY:
@@ -7044,28 +7118,6 @@ basilys_debug_out (struct debugprint_basilys_st *dp,
 }
 
 
-
-#if 0				/* uneeded code */
-/* just dump the cgraph node to understand what is it about */
-static void
-dump_cgraph_basilys (int passcount)
-{
-  struct cgraph_node *cgr_fun = 0;
-  tree tr_body = 0;
-  dbgprintf ("start dump_cgraph_basilys passcount=%d", passcount);
-  for (cgr_fun = cgraph_nodes; cgr_fun; cgr_fun = cgr_fun->next)
-    {
-      dbgprintf ("current cgraph cgr_fun %p ", (void *) cgr_fun);
-      if (dump_file)
-	dump_cgraph_node (dump_file, cgr_fun);
-      tr_body = DECL_SAVED_TREE (cgr_fun->decl);
-      dbgprintf ("current cgraph tr_body %p ", (void *) tr_body);
-      if (dump_file)
-	print_generic_stmt (dump_file, tr_body,
-			    TDF_LINENO | TDF_BLOCKS | TDF_DETAILS | TDF_IPA);
-    }
-}
-#endif
 
 void
 basilys_dbgeprint (void *p)

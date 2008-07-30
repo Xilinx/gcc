@@ -1,3 +1,34 @@
+2008-07-30  Basile Starynkevitch  <basile@starynkevitch.net>
+	* Makefile.in: using realpath for run-basilys-deps ie to fill the melt_build_include_dir
+
+	* run-basilys.h: include "gimple.h"
+
+	* basilys.h: added OBMAG_GIMPLE, OBMAG_MAPGIMPLES, BPAR_GIMPLE,
+	BPARSTR_GIMPLE; added BGLOB_CTYPE_GIMPLE, BGLOB_DISCR_TREE,
+	BGLOB_DISCR_GIMPLE, BGLOB_DISCR_EDGE, BGLOB_DISCR_MAPTREES,
+	BGLOB_DISCR_MAPGIMPLES, BGLOB_DISCR_MAPEDGES.
+	(basilysgc_new_mapgimples, basilysgc_put_mapgimples)
+	(basilys_get_mapgimples, basilysgc_remove_mapgimples) new
+	functions.
+
+	* basilys.c: include "gimple.h"
+	(check_pointer_at, forwarded_copy, basilys_debug_out) handle OBMAG_GIMPLE & OBMAG_MAPGIMPLES.
+	(dump_cgraph_basilys) removed function.
+
+	* melt/warmelt-first.bysl: added ctype_gimple, discr_edge,
+	discr_gimple, discr_tree, discr_mapedges, discr_mapgimples,
+	discr_maptrees.
+	
+	* warmelt-first-0.c: regenerated.
+
+	* warmelt-macro-0.c: regenerated.
+
+	* warmelt-normal-0.c: regenerated.
+
+	* warmelt-genobj-0.c: regenerated.
+
+	* warmelt-outobj-0.c: regenerated.
+
 2008-07-29  Basile Starynkevitch  <basile@starynkevitch.net>
 	[merging with trunk after the tuple merge]
 	MERGED WITH TRUNK rev138226

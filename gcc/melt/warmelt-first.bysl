@@ -1142,6 +1142,27 @@
   :disc_super discr_anyrecv
   :named_name (stringconst2val discr_namestring "DISCR_BOX"))
 
+;;; the discriminant for trees
+(definstance discr_tree class_discr
+  :predef DISCR_TREE
+  :obj_num OBMAG_TREE
+  :disc_super discr_anyrecv
+  :named_name (stringconst2val discr_namestring "DISCR_TREE"))
+
+;;; the discriminant for gimples
+(definstance discr_gimple class_discr
+  :predef DISCR_GIMPLE
+  :obj_num OBMAG_GIMPLE
+  :disc_super discr_anyrecv
+  :named_name (stringconst2val discr_namestring "DISCR_GIMPLE"))
+
+;;; the discriminant for edges
+(definstance discr_edge class_discr
+  :predef DISCR_EDGE
+  :obj_num OBMAG_EDGE
+  :disc_super discr_anyrecv
+  :named_name (stringconst2val discr_namestring "DISCR_EDGE"))
+
 ;;; the discriminant for maps of objects
 (definstance discr_mapobjects class_discr
   :predef DISCR_MAPOBJECTS
@@ -1155,6 +1176,27 @@
   :obj_num OBMAG_MAPSTRINGS
   :disc_super discr_anyrecv
   :named_name (stringconst2val discr_namestring "DISCR_MAPSTRINGS"))
+
+;;; the discriminant for maps of trees
+(definstance discr_maptrees class_discr
+  :predef DISCR_MAPTREES
+  :obj_num OBMAG_MAPTREES
+  :disc_super discr_anyrecv
+  :named_name (stringconst2val discr_namestring "DISCR_MAPTREES"))
+
+;;; the discriminant for maps of gimples
+(definstance discr_mapgimples class_discr
+  :predef DISCR_MAPGIMPLES
+  :obj_num OBMAG_MAPGIMPLES
+  :disc_super discr_anyrecv
+  :named_name (stringconst2val discr_namestring "DISCR_MAPGIMPLES"))
+
+;;; the discriminant for maps of edges
+(definstance discr_mapedges class_discr
+  :predef DISCR_MAPEDGES
+  :obj_num OBMAG_MAPEDGES
+  :disc_super discr_anyrecv
+  :named_name (stringconst2val discr_namestring "DISCR_MAPEDGES"))
 
 ;;; the discriminant for sequence of classes 
 (definstance discr_seqclass class_discr
@@ -1273,6 +1315,19 @@
   :ctype_resfield (stringconst2val discr_namestring "bp_treeptr")
   )
 (install_ctype_descr ctype_tree "GCC tree pointer")
+
+;; the C type for gcc gimples
+(definstance ctype_gimple class_ctype
+  :predef CTYPE_GIMPLE
+  :named_name  (stringconst2val discr_namestring "CTYPE_GIMPLE")
+  :ctype_keyword ':gimple
+  :ctype_cname  (stringconst2val discr_namestring "gimple")
+  :ctype_parchar (stringconst2val discr_namestring "BPAR_GIMPLE")
+  :ctype_parstring (stringconst2val discr_namestring "BPARSTR_GIMPLE")
+  :ctype_argfield (stringconst2val discr_namestring "bp_gimple")
+  :ctype_resfield (stringconst2val discr_namestring "bp_gimpleptr")
+  )
+(install_ctype_descr ctype_gimple "GCC gimple pointer")
 
 ;; the C type for void
 (definstance ctype_void class_ctype
@@ -3346,6 +3401,7 @@
 ;; export the discriminants and instances and selectors defined above
 (export_values				;alphabetical order
  ctype_cstring                        
+ ctype_gimple
  ctype_long                           
  ctype_tree                           
  ctype_value                          
@@ -3353,13 +3409,18 @@
  dbg_output
  dbg_outputagain
  discr_anyrecv                        
- discr_box                            
+ discr_box    
  discr_charinteger                    
  discr_closure                        
+ discr_edge
+ discr_gimple
  discr_integer                        
  discr_list                           
+ discr_mapedges
+ discr_mapgimples
  discr_mapobjects                     
  discr_mapstrings                     
+ discr_maptrees
  discr_methodmap                      
  discr_mixedint                       
  discr_mixedloc                       
@@ -3372,6 +3433,7 @@
  discr_seqfield                       
  discr_strbuf                         
  discr_string                         
+ discr_tree
  discr_verbatimstring                 
  get_value
  initial_environment                  

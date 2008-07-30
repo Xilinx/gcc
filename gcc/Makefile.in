@@ -4737,16 +4737,18 @@ run-basilys-deps:
 ifdef BASILYSMELT_OBJ
 	$(mkinstalldirs) $(melt_build_include_dir); \
 	for f in $^ ; do \
-	  cf=`echo $$f | sed  "s:$(srcdir)/config/:$(melt_build_include_dir)/config/:"`; \
-	  tf=`echo $$f | sed  "s:$(srcdir)/:$(melt_build_include_dir)/:"`; \
-	  if [ "x$$f" != "x$$cf" ] ;  then  \
+          rf=`realpath $$f` ; \
+	  cf=`echo $$rf | sed  "s:$(srcdir)/config/:$(melt_build_include_dir)/config/:"`; \
+	  tf=`echo $$rf | sed  "s:$(srcdir)/:$(melt_build_include_dir)/:"`; \
+	  echo rf= $$rf cf= $$cf tf= $$tf; \
+	  if [ "x$$rf" != "x$$cf" ] ;  then  \
 	    $(mkinstalldirs) `dirname $$cf` ; \
-	    cp -p $$f $$cf ; \
-	  elif [ "x$$f" != "x$$tf" ] ;  then  \
+	    cp -p $$rf $$cf ; \
+	  elif [ "x$$rf" != "x$$tf" ] ;  then  \
 	    $(mkinstalldirs) `dirname $$tf` ; \
-	    cp -p $$f $$tf ; \
+	    cp -p $$rf $$tf ; \
 	  else  \
-	    cp -p $$f $(melt_build_include_dir)/ ; \
+	    cp -p $$rf $(melt_build_include_dir)/ ; \
 	  fi; \
 	done
 endif

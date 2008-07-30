@@ -140,6 +140,11 @@ union basilysparam_un
 #define BPAR_TREE         't'
 #define BPARSTR_TREE      "t"
 
+  gimple bp_gimple;			/* letter g */
+  gimple *bp_gimpleptr;		/* for extra results */
+#define BPAR_GIMPLE       'g'
+#define BPARSTR_GIMPLE    "g"
+
   long bp_long;			/* letter l */
   long *bp_longptr;		/* for results */
 #define BPAR_LONG         'l'
@@ -237,11 +242,13 @@ enum obmag_en    {
   OBMAG_STRING,
   OBMAG_STRBUF,
   OBMAG_TREE,
+  OBMAG_GIMPLE,
   OBMAG_BASICBLOCK,
   OBMAG_EDGE,
   OBMAG_MAPOBJECTS,
   OBMAG_MAPSTRINGS,
   OBMAG_MAPTREES,
+  OBMAG_MAPGIMPLES,
   OBMAG_MAPBASICBLOCKS,
   OBMAG_MAPEDGES,
   OBMAG_DECAY,
@@ -283,7 +290,6 @@ enum obmag_en    {
   OBMAG__SPARE36,
   OBMAG__SPARE37,
   OBMAG__SPARE38,
-  OBMAG__SPARE39,
   OBMAG_SPEC_FILE,
   OBMAG_SPEC_MPFR,
   OBMAG_SPECPPL_COEFFICIENT,
@@ -642,6 +648,14 @@ GTY (())
   tree val;
 };
 
+/* when OBMAG_GIMPLE  */
+struct basilysgimple_st
+GTY (())
+{
+  basilysobject_ptr_t discr;
+  gimple val;
+};
+
 /* when OBMAG_BASICBLOCK   */
 struct basilysbasicblock_st
 GTY (())
@@ -703,6 +717,30 @@ GTY (())
   struct entrytreesbasilys_st *GTY ((length ("basilys_primtab[%h.lenix]")))
     entab;
 };
+
+
+
+/*** hashed maps of gimples to basilys ***/
+struct entrygimplesbasilys_st
+GTY (())
+{
+  gimple e_at;
+  basilys_ptr_t e_va;
+};
+
+/* when OBMAG_MAPGIMPLES */
+struct basilysmapgimples_st
+GTY (())
+{
+  /* change basilysmappointers_st when changing this structure */
+  basilysobject_ptr_t discr;
+  unsigned count;
+  unsigned char lenix;
+  struct entrygimplesbasilys_st *GTY ((length ("basilys_primtab[%h.lenix]")))
+    entab;
+};
+
+
 
 /*** hashed maps of strings to basilys ***/
 struct entrystringsbasilys_st
@@ -798,11 +836,13 @@ GTY ((desc ("%0.u_discr->object_magic")))
   struct basilysstring_st GTY ((tag ("OBMAG_STRING"))) u_string;
   struct basilysstrbuf_st GTY ((tag ("OBMAG_STRBUF"))) u_strbuf;
   struct basilystree_st GTY ((tag ("OBMAG_TREE"))) u_tree;
+  struct basilysgimple_st GTY ((tag ("OBMAG_GIMPLE"))) u_gimple;
   struct basilysbasicblock_st GTY ((tag ("OBMAG_BASICBLOCK"))) u_basicblock;
   struct basilysedge_st GTY ((tag ("OBMAG_EDGE"))) u_edge;
   struct basilysmapobjects_st GTY ((tag ("OBMAG_MAPOBJECTS"))) u_mapobjects;
   struct basilysmapstrings_st GTY ((tag ("OBMAG_MAPSTRINGS"))) u_mapstrings;
   struct basilysmaptrees_st GTY ((tag ("OBMAG_MAPTREES"))) u_maptrees;
+  struct basilysmapgimples_st GTY ((tag ("OBMAG_MAPGIMPLES"))) u_mapgimples;
   struct basilysmapbasicblocks_st GTY ((tag ("OBMAG_MAPBASICBLOCKS")))
     u_mapbasicblocks;
   struct basilysmapedges_st GTY ((tag ("OBMAG_MAPEDGES"))) u_mapedges;
@@ -888,6 +928,16 @@ basilysgc_new_maptrees (basilysobject_ptr_t discr, unsigned len)
 }
 
 static inline basilys_ptr_t
+basilysgc_new_mapgimples (basilysobject_ptr_t discr, unsigned len)
+{
+  if (basilys_magic_discr ((basilys_ptr_t) discr) != OBMAG_OBJECT)
+    return NULL;
+  if (discr->object_magic != OBMAG_MAPGIMPLES)
+    return NULL;
+  return (basilys_ptr_t) basilysgc_raw_new_mappointers (discr, len);
+}
+
+static inline basilys_ptr_t
 basilysgc_new_mapedges (basilysobject_ptr_t discr, unsigned len)
 {
   if (basilys_magic_discr ((basilys_ptr_t) discr) != OBMAG_OBJECT)
@@ -915,6 +965,16 @@ basilysgc_put_maptrees (struct basilysmaptrees_st *map_p,
 			tree attr, basilys_ptr_t valu_p)
 {
   if (basilys_magic_discr ((basilys_ptr_t) map_p) != OBMAG_MAPTREES
+      || !attr || !valu_p)
+    return;
+  basilysgc_raw_put_mappointers (map_p, attr, valu_p);
+}
+
+static inline void
+basilysgc_put_mapgimples (struct basilysmapgimples_st *map_p,
+			gimple attr, basilys_ptr_t valu_p)
+{
+  if (basilys_magic_discr ((basilys_ptr_t) map_p) != OBMAG_MAPGIMPLES
       || !attr || !valu_p)
     return;
   basilysgc_raw_put_mappointers (map_p, attr, valu_p);
@@ -953,6 +1013,14 @@ basilys_get_maptrees (basilys_ptr_t map_p, tree attr)
 }
 
 static inline basilys_ptr_t
+basilys_get_mapgimples (basilys_ptr_t map_p, gimple attr)
+{
+  if (basilys_magic_discr ((basilys_ptr_t) map_p) != OBMAG_MAPGIMPLES || !attr)
+    return NULL;
+  return basilys_raw_get_mappointers (map_p, attr);
+}
+
+static inline basilys_ptr_t
 basilys_get_mapedges (basilys_ptr_t map_p, edge attr)
 {
   if (basilys_magic_discr ((basilys_ptr_t) map_p) != OBMAG_MAPEDGES || !attr)
@@ -980,7 +1048,15 @@ basilysgc_remove_maptrees (struct basilysmaptrees_st *map, tree attr)
 }
 
 static inline basilys_ptr_t
-basilysgc_remove_mapedges (struct basilysmaptrees_st *map, edge attr)
+basilysgc_remove_mapgimples (struct basilysmapgimples_st *map, gimple attr)
+{
+  if (basilys_magic_discr ((basilys_ptr_t) map) != OBMAG_MAPGIMPLES || !attr)
+    return NULL;
+  return basilysgc_raw_remove_mappointers (map, attr);
+}
+
+static inline basilys_ptr_t
+basilysgc_remove_mapedges (struct basilysmapedges_st *map, edge attr)
 {
   if (basilys_magic_discr ((basilys_ptr_t) map) != OBMAG_MAPEDGES || !attr)
     return NULL;
@@ -2199,6 +2275,8 @@ enum basilys_globalix_en
   BGLOB_CTYPE_VALUE,
   /* ctype of trees */
   BGLOB_CTYPE_TREE,
+  /* ctype of gimples */
+  BGLOB_CTYPE_GIMPLE,
   /* ctype for void */
   BGLOB_CTYPE_VOID,
   /* ctype of constant cstrings */
@@ -2215,6 +2293,18 @@ enum basilys_globalix_en
   BGLOB_CLASS_CITERATOR,
   /* the initial discriminant of mixedloc */
   BGLOB_DISCR_MIXEDLOC,
+  /* the initial discriminant of tree-s */
+  BGLOB_DISCR_TREE,
+  /* the initial discriminant of gimple-s */
+  BGLOB_DISCR_GIMPLE,
+  /* the initial discriminant of edge-s */
+  BGLOB_DISCR_EDGE,
+  /* the initial discriminant of tree map-s */
+  BGLOB_DISCR_MAPTREES,
+  /* the initial discriminant of gimple map-s */
+  BGLOB_DISCR_MAPGIMPLES,
+  /* the initial discriminant of edge map-s */
+  BGLOB_DISCR_MAPEDGES,
   /**************************** placeholder for last wired */
   BGLOB__LASTWIRED,
   BGLOB___SPARE1,
