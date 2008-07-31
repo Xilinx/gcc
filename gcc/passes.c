@@ -524,7 +524,9 @@ init_optimization_passes (void)
   NEXT_PASS (pass_warn_function_return);
   NEXT_PASS (pass_build_cgraph_edges);
   NEXT_PASS (pass_inline_parameters);
+#if  ENABLE_BASILYSMELT
   NEXT_PASS (pass_basilys_lowering);
+#endif
   *p = NULL;
 
   /* Interprocedural optimization passes.  */
@@ -548,10 +550,10 @@ init_optimization_passes (void)
       NEXT_PASS (pass_referenced_vars);
       NEXT_PASS (pass_reset_cc_flags);
       NEXT_PASS (pass_build_ssa);
+      NEXT_PASS (pass_early_warn_uninitialized);
       NEXT_PASS (pass_all_early_optimizations);
 	{
 	  struct opt_pass **p = &pass_all_early_optimizations.pass.sub;
-	  NEXT_PASS (pass_early_warn_uninitialized);
 	  NEXT_PASS (pass_rebuild_cgraph_edges);
 	  NEXT_PASS (pass_early_inline);
 	  NEXT_PASS (pass_cleanup_cfg);
@@ -576,7 +578,7 @@ init_optimization_passes (void)
 	  NEXT_PASS (pass_simple_dse);
 	  NEXT_PASS (pass_tail_recursion);
 	  NEXT_PASS (pass_convert_switch);
-#if ENABLE_BASILYSMELT
+#if  ENABLE_BASILYSMELT
 	  NEXT_PASS (pass_basilys_earlyopt);
 #endif /*ENABLE_BASILYSMELT*/
           NEXT_PASS (pass_profile);
@@ -593,7 +595,7 @@ init_optimization_passes (void)
   NEXT_PASS (pass_ipa_type_escape);
   NEXT_PASS (pass_ipa_pta);
   NEXT_PASS (pass_ipa_struct_reorg); 
-#if ENABLE_BASILYSMELT
+#if  ENABLE_BASILYSMELT
   NEXT_PASS (pass_basilys_ipa); 
 #endif /*ENABLE_BASILYSMELT*/
   *p = NULL;
@@ -715,23 +717,18 @@ init_optimization_passes (void)
       NEXT_PASS (pass_tail_calls);
       NEXT_PASS (pass_rename_ssa_copies);
       NEXT_PASS (pass_uncprop);
-#if ENABLE_BASILYSMELT
+#if  ENABLE_BASILYSMELT
       NEXT_PASS (pass_basilys_lateopt); 
 #endif /*ENABLE_BASILYSMELT*/
-      NEXT_PASS (pass_del_ssa);
-      NEXT_PASS (pass_nrv);
-      NEXT_PASS (pass_mark_used_blocks);
-      NEXT_PASS (pass_cleanup_cfg_post_optimizing);
     }
-
-#if ENABLE_COMPILER_PROBE
-  NEXT_PASS(pass_compiler_probe);
-#endif
-
   NEXT_PASS (pass_del_ssa);
   NEXT_PASS (pass_nrv);
   NEXT_PASS (pass_mark_used_blocks);
   NEXT_PASS (pass_cleanup_cfg_post_optimizing);
+
+#if  ENABLE_COMPILER_PROBE
+  NEXT_PASS(pass_compiler_probe);
+#endif
 
   NEXT_PASS (pass_warn_function_noreturn);
   NEXT_PASS (pass_free_datastructures);

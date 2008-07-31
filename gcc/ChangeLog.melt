@@ -1,3 +1,9 @@
+2008-07-31  Basile Starynkevitch  <basile@starynkevitch.net>
+	the yesterday's version failed to compile any simple C file. Fixed!
+	MELT branch merged with trunk r138355
+
+	* passes.c: better order for basilys related passes.
+
 2008-07-30  Basile Starynkevitch  <basile@starynkevitch.net>
 	MELT branch merged with trunk r138310
 
