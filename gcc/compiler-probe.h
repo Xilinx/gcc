@@ -403,7 +403,7 @@ typedef HOST_WIDE_INT comprobe_ix_t;
  * additional tree specific routines are declared only if we know
  * about trees because this file has been included after tree.h
  *******/
-#ifdef TREE_CODE		/*TREE_CODE is an important macro from tree.h */
+#ifdef GCC_TREE_H    /* GCC_TREE_H is the guarding macro of tree.h */
 
 /***
  * return true if a (GIMPLE/SSA) tree TR has a position 
@@ -428,7 +428,7 @@ int comprobe_file_rank_of_tree (tree tr, int *plineno);
 comprobe_ix_t comprobe_unique_index_of_tree (tree tr);
 tree comprobe_tree_of_unique_index (comprobe_ix_t ix);
 
-#endif /*TREE_CODE */
+#endif /*GCC_TREE_H */
 
 
 

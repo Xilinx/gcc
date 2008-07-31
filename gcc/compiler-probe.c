@@ -1264,7 +1264,7 @@ display_tree (tree tr, struct comprobe_infodisplay_st *di)
 	    {
 	      static char titbuf[64];
 	      memset (titbuf, 0, sizeof (titbuf));
-	      snprintf (titbuf, sizeof (titbuf) - 1, "%d-th substmt", rk);
+	      snprintf (titbuf, sizeof (titbuf) - 1, "%d-th tree substmt", rk);
 	      comprobe_display_add_navigator (di, tree_starting_displayer,
 					      titbuf,
 					      comprobe_unique_index_of_tree
@@ -1279,12 +1279,75 @@ display_tree (tree tr, struct comprobe_infodisplay_st *di)
 }
 
 static void
+display_gimple_seq (gimple_seq sq, struct comprobe_infodisplay_st *di)
+{
+  gimple_stmt_iterator gsi;
+  int rk = 0;
+  for (gsi = gsi_start(sq); !gsi_end_p(gsi); gsi_next(&gsi)) 
+    {
+      gimple s = gsi_stmt(gsi);
+      static char titbuf[64];
+      memset (titbuf, 0, sizeof (titbuf));
+      rk++;
+      snprintf (titbuf, sizeof (titbuf) - 1, "%d-th gimple substmt", rk);
+      comprobe_display_add_navigator (di, tree_starting_displayer,
+				      titbuf,
+				      comprobe_unique_index_of_gimple(s));
+    }
+}
+
+static void
 display_gimple (gimple g, struct comprobe_infodisplay_st *di)
 {
   gcc_assert (di != 0);
-  if (!g)
-    comprobe_printf ("*** NULL GIMPLE %p ***\n", (void*)g);
-#warning display_gimple to be coded
+  if (!g) 
+    {
+      comprobe_printf ("*** NULL GIMPLE %p ***\n", (void*)g);
+      return;
+    }
+  print_gimple_stmt (comprobe_replf, g, 1,
+		     TDF_LINENO | TDF_VOPS | TDF_MEMSYMS);
+  if (gimple_has_substatements(g)) 
+    {
+      switch (gimple_code (g))
+	{
+	case GIMPLE_BIND:
+	  display_gimple_seq(gimple_bind_body(g), di);
+	  break;
+	case GIMPLE_CATCH:
+	  display_gimple_seq(gimple_catch_handler(g), di);
+	  break;
+	case GIMPLE_EH_FILTER:
+	    display_gimple_seq(gimple_eh_filter_failure(g), di);
+	  break;
+	case GIMPLE_TRY:
+	  display_gimple_seq(gimple_try_eval(g), di);
+	  display_gimple_seq(gimple_try_cleanup(g), di);
+	  break;
+	case GIMPLE_WITH_CLEANUP_EXPR:
+	  display_gimple_seq(gimple_wce_cleanup(g), di);
+	  break;
+	case GIMPLE_OMP_FOR:
+	case GIMPLE_OMP_MASTER:
+	case GIMPLE_OMP_ORDERED:
+	case GIMPLE_OMP_SECTION:
+	case GIMPLE_OMP_PARALLEL:
+	case GIMPLE_OMP_TASK:
+	case GIMPLE_OMP_SECTIONS:
+	case GIMPLE_OMP_SINGLE:
+	  {
+	    static bool warned;
+	    if (!warned) {
+	      warning(0, "compiler probe not implemented for OpenMP stuff");
+	      warned = true;
+	    }
+	    return;
+	  }
+	  break;
+	default:
+	  gcc_unreachable();
+	}
+    }
 }
 
 static void

@@ -1,4 +1,12 @@
 2008-07-31  Basile Starynkevitch  <basile@starynkevitch.net>
+	* compiler-probe.h: using GCC_TREE_H guard instead of TREE_CODE to
+	avoid declaring tree specific stuff.
+
+	* compiler-probe.c:
+	(display_gimple_seq) new function.
+	(display_gimple) implemented function.
+
+2008-07-31  Basile Starynkevitch  <basile@starynkevitch.net>
 	the yesterday's version failed to compile any simple C file. Fixed!
 	MELT branch merged with trunk r138355
 
