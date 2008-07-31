@@ -499,10 +499,25 @@ get_decl_align_unit (tree decl)
 
   align = DECL_ALIGN (decl);
   align = LOCAL_ALIGNMENT (TREE_TYPE (decl), align);
-  if (align > PREFERRED_STACK_BOUNDARY)
-    align = PREFERRED_STACK_BOUNDARY;
+
+  if (align > MAX_SUPPORTED_STACK_ALIGNMENT)
+    align = MAX_SUPPORTED_STACK_ALIGNMENT;
+
+  if (SUPPORTS_STACK_ALIGNMENT)
+    {
+      if (crtl->stack_alignment_estimated < align)
+	{
+	  gcc_assert(!crtl->stack_realign_processed);
+          crtl->stack_alignment_estimated = align;
+	}
+    }
+
+  /* stack_alignment_needed > PREFERRED_STACK_BOUNDARY is permitted.
+     So here we only make sure stack_alignment_needed >= align.  */
   if (crtl->stack_alignment_needed < align)
     crtl->stack_alignment_needed = align;
+  if (crtl->max_used_stack_slot_alignment < crtl->stack_alignment_needed)
+    crtl->max_used_stack_slot_alignment = crtl->stack_alignment_needed;
 
   return align / BITS_PER_UNIT;
 }
@@ -1059,6 +1074,31 @@ defer_stack_allocation (tree var, bool toplevel)
 static HOST_WIDE_INT
 expand_one_var (tree var, bool toplevel, bool really_expand)
 {
+  if (SUPPORTS_STACK_ALIGNMENT
+      && TREE_TYPE (var) != error_mark_node
+      && TREE_CODE (var) == VAR_DECL)
+    {
+      unsigned int align;
+
+      /* Because we don't know if VAR will be in register or on stack,
+	 we conservatively assume it will be on stack even if VAR is
+	 eventually put into register after RA pass.  For non-automatic
+	 variables, which won't be on stack, we collect alignment of
+	 type and ignore user specified alignment.  */
+      if (TREE_STATIC (var) || DECL_EXTERNAL (var))
+	align = TYPE_ALIGN (TREE_TYPE (var));
+      else
+	align = DECL_ALIGN (var);
+
+      if (crtl->stack_alignment_estimated < align)
+        {
+          /* stack_alignment_estimated shouldn't change after stack
+             realign decision made */
+          gcc_assert(!crtl->stack_realign_processed);
+	  crtl->stack_alignment_estimated = align;
+	}
+    }
+
   if (TREE_CODE (var) != VAR_DECL)
     ;
   else if (DECL_EXTERNAL (var))
@@ -1798,6 +1838,7 @@ expand_gimple_basic_block (basic_block bb)
      access the BB sequence directly.  */
   stmts = bb_seq (bb);
   bb->il.gimple = NULL;
+  rtl_profile_for_bb (bb);
   init_rtl_bb_info (bb);
   bb->flags |= BB_RTL;
 
@@ -2020,6 +2061,8 @@ construct_exit_block (void)
   edge_iterator ei;
   rtx orig_end = BB_END (EXIT_BLOCK_PTR->prev_bb);
 
+  rtl_profile_for_bb (EXIT_BLOCK_PTR);
+
   /* Make sure the locus is set to the end of the function, so that
      epilogue line numbers and warnings are set properly.  */
   if (cfun->function_end_locus != UNKNOWN_LOCATION)
@@ -2133,6 +2176,66 @@ discover_nonconstant_array_refs (void)
       }
 }
 
+/* This function sets crtl->args.internal_arg_pointer to a virtual
+   register if DRAP is needed.  Local register allocator will replace
+   virtual_incoming_args_rtx with the virtual register.  */
+
+static void
+expand_stack_alignment (void)
+{
+  rtx drap_rtx;
+  unsigned int preferred_stack_boundary;
+
+  if (! SUPPORTS_STACK_ALIGNMENT)
+    return;
+  
+  if (cfun->calls_alloca
+      || cfun->has_nonlocal_label
+      || crtl->has_nonlocal_goto)
+    crtl->need_drap = true;
+
+  gcc_assert (crtl->stack_alignment_needed
+	      <= crtl->stack_alignment_estimated);
+
+  /* Update stack boundary if needed.  */
+  if (targetm.calls.update_stack_boundary)
+    targetm.calls.update_stack_boundary (); 
+
+  /* Update crtl->stack_alignment_estimated and use it later to align
+     stack.  We check PREFERRED_STACK_BOUNDARY if there may be non-call
+     exceptions since callgraph doesn't collect incoming stack alignment
+     in this case.  */
+  if (flag_non_call_exceptions
+      && PREFERRED_STACK_BOUNDARY > crtl->preferred_stack_boundary)
+    preferred_stack_boundary = PREFERRED_STACK_BOUNDARY;
+  else
+    preferred_stack_boundary = crtl->preferred_stack_boundary;
+  if (preferred_stack_boundary > crtl->stack_alignment_estimated)
+    crtl->stack_alignment_estimated = preferred_stack_boundary;
+  if (preferred_stack_boundary > crtl->stack_alignment_needed)
+    crtl->stack_alignment_needed = preferred_stack_boundary;
+
+  crtl->stack_realign_needed
+    = INCOMING_STACK_BOUNDARY < crtl->stack_alignment_estimated;
+
+  crtl->stack_realign_processed = true;
+
+  /* Target has to redefine TARGET_GET_DRAP_RTX to support stack
+     alignment.  */
+  gcc_assert (targetm.calls.get_drap_rtx != NULL);
+  drap_rtx = targetm.calls.get_drap_rtx (); 
+
+  /* Do nothing if NULL is returned, which means DRAP is not needed.  */
+  if (NULL != drap_rtx)
+    {
+      crtl->args.internal_arg_pointer = drap_rtx;
+
+      /* Call fixup_tail_calls to clean up REG_EQUIV note if DRAP is
+         needed. */
+      fixup_tail_calls ();
+    }
+}
+
 /* Translate the intermediate representation contained in the CFG
    from GIMPLE trees to RTL.
 
@@ -2153,6 +2256,8 @@ gimple_expand_cfg (void)
   /* Some backends want to know that we are expanding to RTL.  */
   currently_expanding_to_rtl = 1;
 
+  rtl_profile_for_bb (ENTRY_BLOCK_PTR);
+
   insn_locators_alloc ();
   if (!DECL_BUILT_IN (current_function_decl))
     set_curr_insn_source_location (DECL_SOURCE_LOCATION (current_function_decl));
@@ -2169,6 +2274,8 @@ gimple_expand_cfg (void)
 
   targetm.expand_to_rtl_hook ();
   crtl->stack_alignment_needed = STACK_BOUNDARY;
+  crtl->max_used_stack_slot_alignment = STACK_BOUNDARY;
+  crtl->stack_alignment_estimated = STACK_BOUNDARY;
   crtl->preferred_stack_boundary = STACK_BOUNDARY;
   cfun->cfg->max_jumptable_ents = 0;
 
@@ -2216,6 +2323,9 @@ gimple_expand_cfg (void)
   lab_rtx_for_bb = pointer_map_create ();
   FOR_BB_BETWEEN (bb, init_block->next_bb, EXIT_BLOCK_PTR, next_bb)
     bb = expand_gimple_basic_block (bb);
+
+  /* Expansion is used by optimization passes too, set maybe_hot_insn_p
+     conservatively to true until they are all profile aware.  */
   pointer_map_destroy (lab_rtx_for_bb);
   free_histograms ();
 
@@ -2240,6 +2350,9 @@ gimple_expand_cfg (void)
   sbitmap_free (blocks);
 
   compact_blocks ();
+
+  expand_stack_alignment ();
+
 #ifdef ENABLE_CHECKING
   verify_flow_info ();
 #endif
@@ -2284,6 +2397,7 @@ gimple_expand_cfg (void)
   /* Tag the blocks with a depth number so that change_scope can find
      the common parent easily.  */
   set_block_levels (DECL_INITIAL (cfun->decl), 0);
+  default_rtl_profile ();
   return 0;
 }
 
