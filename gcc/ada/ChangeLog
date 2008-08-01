@@ -1,3 +1,321 @@
+2008-07-31  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/decl.c (gnat_to_gnu_entity): Fix formatting.
+	* gcc-interface/utils.c (create_field_decl): Avoid superfluous work.
+
+2008-07-31  Pascal Obry  <obry@adacore.com>
+
+	* prj-nmsc.adb: Keep Object and Exec directory casing.
+
+2008-07-31  Jose Ruiz  <ruiz@adacore.com>
+
+	* system-rtx-rtss.ads
+	Change the default stack size. It is important to set the commit part.
+	
+	* s-taprop-rtx.adb
+	(Initialize): Get the clock resolution.
+	(RT_Resolution): Return the clock resolution that is indicated by the
+	system.
+
+	* s-parame-vxworks.adb
+	Document that this body is used for RTX in RTSS (kernel) mode.
+
+	* gcc-interface/Makefile.in
+	(LIBGNAT_TARGET_PAIRS for the rtx_rtss run time): Use the
+	s-parame-vxworks.adb body in order to have reasonable stack sizes in
+	RTX RTSS kernel mode. Virtual memory is not used in that case, so we
+	cannot ask for too big values.
+
+2008-07-31  Robert Dewar  <dewar@adacore.com>
+
+	* exp_aggr.adb: Minor reformatting
+
+	* makeutl.adb: Minor reformatting
+
+	* prj-env.adb: Minor reformatting
+
+2008-07-31  Hristian Kirtchev  <kirtchev@adacore.com>
+
+	* exp_disp.adb (Prim_Op_Kind): Retrieve the full view when a private
+	tagged type is completed by a concurrent type.
+
+2008-07-31  Gary Dismukes  <dismukes@adacore.com>
+
+	* sem_aggr.adb:
+	(Resolve_Record_Aggregate): Bypass error that a type without
+	components must have a "null record" aggregate when compiling for Ada
+	2005, since it's legal to give an aggregate of form (others => <>)
+	for such a type.
+
+2008-07-31  Javier Miranda  <miranda@adacore.com>
+
+	* sem_ch4.adb (Valid_First_Argument_Of): Complete its functionality to
+	handle synchronized types. Required to handle well the object.operation
+	notation applied to synchronized types.
+
+2008-07-31  Quentin Ochem  <ochem@adacore.com>
+
+	* s-stausa.adb (Fill_Stack): Stack_Used_When_Filling is now stored
+	anymore - just used internally.
+	Added handling of very small tasks - when the theoretical size is
+	already full at the point of the call.
+	(Report_Result): Fixed result computation, Stack_Used_When_Filling does
+	not need to be added to the result.
+
+2008-07-31  Hristian Kirtchev  <kirtchev@adacore.com>
+
+	* sem_ch6.adb (Disambiguate_Spec): Continue the disambiguation if the
+	corresponding spec is a primitive wrapper. Update comment.
+
+2008-07-31  Hristian Kirtchev  <kirtchev@adacore.com>
+
+	* bindgen.adb Comment reformatting. Update the list of run-time globals.
+	(Gen_Adainit_Ada): Add the declaration, import and value set for
+	configuration flag Canonical_Streams.
+	(Gen_Adainit_C): Add the declaration and initial value of external
+	symbol __gl_canonical_streams.
+	
+	* init.c: Update the list of global values computed by the binder.
+	
+	* opt.ads: Add flag Canonical_Streams.
+	
+	* par-prag.adb (Prag): Include Pragma_Canonical_Streams to the list of
+	semantically handled pragmas.
+	
+	* sem_prag.adb: Add an entry into enumeration type Sig_Flags.
+	(Analyze_Pragma): Add case for pragma Canonical_Streams.
+	
+	* snames.adb: Add character value for name Canonical_Streams.
+	
+	* snames.ads:
+	Add Name_Canonical_Streams to the list of configuration pragmas.
+	Add Pragma_Canonical_Streams to enumeration type Pragma_Id.
+	
+	* snames.h: Add a definition for Pragma_Canonical_Streams.
+	
+	* s-ststop.adb:
+	Add a flag and import to seize the value of external symbol
+	__gl_canonical_streams. Update comment and initial value of constant
+	Use_Block_IO.
+	
+	* gnat_rm.texi: Add section of pragma Canonical_Streams.
+	
+	* gnat_ugn.texi:
+	Add pragma Canonical_Streams to the list of configuration pragmas.
+
+2008-07-31  Ed Schonberg  <schonberg@adacore.com>
+
+	* sem_ch10.adb (Build_Unit_Name): If the unit name in a with_clause
+	has the form A.B.C and B is a unit renaming, analyze its compilation
+	unit and add a with_clause on A.b to the context.
+
+2008-07-31  Vincent Celier  <celier@adacore.com>
+
+	* makeutl.adb (Executable_Prefix_Path): If Locate_Exec_On_Path fails,
+	return the empty string, instead of raising Constraint_Error.
+
+2008-07-31  Gary Dismukes  <dismukes@adacore.com>
+
+	* checks.ads (Apply_Accessibility_Check): Add parameter Insert_Node.
+	
+	* checks.adb (Apply_Accessibility_Check): Insert the check on
+	Insert_Node.
+	
+	* exp_attr.adb:
+	(Expand_N_Attribute_Refernce, Attribute_Access): Pass attribute node
+	to new parameter Insert_Node on call to Apply_Accessibility_Check.
+	Necessary to distinguish the insertion node because the dereferenced
+	formal may come from a rename, but the check must be inserted in
+	front of the attribute.
+	
+	* exp_ch4.adb:
+	(Expand_N_Allocator): Pass actual for new Insert_Node parameter on
+	call to Apply_Accessibility_Check.
+	(Expand_N_Type_Conversion): Pass actual for new Insert_Node parameter
+	on call to Apply_Accessibility_Check.
+	Minor reformatting
+
+2008-07-31  Javier Miranda  <miranda@adacore.com>
+
+	* sem_type.adb (Has_Compatible_Type): Complete support for synchronized
+	types when the candidate type is a synchronized type.
+	
+	* sem_res.adb (Resolve_Actuals): Reorganize code handling synchronized
+	types, and complete management of synchronized types adding missing
+	code to handle formal that is a synchronized type.
+	
+	* sem_ch4.adb (Try_Primitive_Operation): Avoid testing attributes that
+	are not available and cause the compiler to blowup. Found compiling
+	test with switch -gnatc
+	
+	* sem_ch6.adb (Check_Synchronized_Overriding): Remove local subprogram
+	Has_Correct_Formal_Mode plus code cleanup.
+
+2008-07-31  Bob Duff  <duff@adacore.com>
+
+	* sinput.adb (Skip_Line_Terminators): Fix handling of LF/CR -- it was
+	recognized as two end-of-lines, but it should be just one.
+
+2008-07-31  Thomas Quinot  <quinot@adacore.com>
+
+	* exp_ch9.adb: Minor reformatting
+
+	* tbuild.ads: Fix several occurrences of incorrectly referring to
+	Name_Find as Find_Name.
+
+2008-07-31  Ed Schonberg  <schonberg@adacore.com>
+
+	* exp_aggr.adb (Aggr_Size_OK): If the aggregate has a single component
+	and the context is an object declaration with non-static bounds, treat
+	the aggregate as non-static.
+
+2008-07-31  Vincent Celier  <celier@adacore.com>
+
+	* prj-part.adb, prj-part.ads, prj.adb, prj.ads, prj-env.adb:
+	Move back spec of Parse_Single_Project to body, as it is not called
+	outside of package Prj.Part.
+	(Project_Data): Remove components Linker_Name, Linker_Path and
+	Minimum_Linker_Options as they are no longer set.
+	Remove function There_Are_Ada_Sources from package Prj and move code
+	in the only place it was used, in Prj.Env.Set_Ada_Paths.
+
+2008-07-31  Arnaud Charlet  <charlet@adacore.com>
+
+	* mlib-utl.ads: Fix typo.
+
+2008-07-31  Robert Dewar  <dewar@adacore.com>
+
+	* sem_ch12.adb: Minor reformatting
+
+2008-07-31  Sergey Rybin  <rybin@adacore.com>
+
+	* gnat_ugn.texi: Change the description of the
+	Overly_Nested_Control_Structures: now the rule always requires a
+	positive parameter for '+R' option
+
+2008-07-31  Thomas Quinot  <quinot@adacore.com>
+
+	* g-pehage.adb: Minor reformatting
+
+2008-07-31  Pascal Obry  <obry@adacore.com>
+
+	* s-finimp.ads: Minor reformatting.
+
+2008-07-31  Vincent Celier  <celier@adacore.com>
+
+	* s-regexp.ads: Minor comment fix
+
+2008-07-31  Arnaud Charlet  <charlet@adacore.com>
+
+	* s-direio.adb (Reset): Replace pragma Unmodified by Warnings (Off),
+	so that we can compile this file successfully with -gnatc.
+
+2008-07-31  Hristian Kirtchev  <kirtchev@adacore.com>
+
+	* exp_attr.adb (Find_Stream_Subprogram): Check the base type instead
+	of the type when looking for stream subprograms for type String,
+	Wide_String and Wide_Wide_String.
+	
+	* s-ststop.adb: Change the initialization expression of constant
+	Use_Block_IO.
+
+2008-07-31  Geert Bosch  <bosch@adacore.com>
+
+	* arit64.c:
+	New file implementing __gnat_mulv64 signed integer multiplication with
+	overflow checking
+
+	* fe.h (Backend_Overflow_Checks_On_Target): Define for use by Gigi
+
+	* gcc-interface/gigi.h:
+	(standard_types): Add ADT_mulv64_decl
+	(mulv64_decl): Define subprogram declaration for __gnat_mulv64
+
+	* gcc-interface/utils.c:
+	(init_gigi_decls): Add initialization of mulv64_decl
+
+	* gcc-interface/trans.c:
+	(build_unary_op_trapv): New function
+	(build_binary_op_trapv): New function
+	(gnat_to_gnu): Use the above functions instead of
+	build_{unary,binary}_op
+
+	* gcc-interface/Makefile.in
+	(LIBGNAT_SRCS): Add arit64.c
+	(LIBGNAT_OBJS): Add arit64.o
+
+2008-07-31  Vincent Celier  <celier@adacore.com>
+
+	* prj-nmsc.adb (Check_Library_Attributes): Check if Linker'Switches or
+	Linker'Default_Switches are declared. Warn if they are declared.
+
+2008-07-31  Ed Schonberg  <schonberg@adacore.com>
+
+	* exp_ch6.adb (Make_Build_In_Place_Call_In_Object_Declaration): Use
+	Insert_Actions to place the pointer declaration in the code, rather
+	than Insert_Before_And_Analyze, so that insertions of temporaries are
+	kept in the proper order when transient scopes are present.
+
+
+2008-07-31  Robert Dewar  <dewar@adacore.com>
+
+	* einfo.adb (Spec_PPC): Now defined for generic subprograms
+	
+	* einfo.ads (Spec_PPC): Now defined for generic subprograms
+	
+	* sem_prag.adb (Check_Precondition_Postcondition): Handle generic
+	subprogram case
+
+2008-07-31  Vincent Celier  <celier@adacore.com>
+
+	* s-os_lib.adb: Minor comment fix
+
+2008-07-31  Ed Schonberg  <schonberg@adacore.com>
+
+	* sem_ch6.adb (Analyze_Generic_Subprogram_Body): After analysis,
+	transfer pre/postconditions from generic copy to original tree, so that
+	they will appear in each instance.
+	(Process_PPCs): Do not transform postconditions into a procedure in a
+	generic context, to prevent double expansion of check pragmas.
+	
+	* sem_attr.adb: In an instance, the prefix of the 'result attribute
+	can be the renaming of the
+	current instance, so check validity of the name accordingly.
+
+2008-07-31  Robert Dewar  <dewar@adacore.com>
+
+	* mlib-utl.ads: Minor reformatting
+
+2008-07-31  Ed Schonberg  <schonberg@adacore.com>
+
+	sem_attr.adb: 'Result can have an ambiguous prefix, and is resolved
+	from context. This attribute must be usable in Ada95 mode.
+	The attribute can appear in the body of a function marked
+	Inline_Always, but in this case the postocondition is not enforced.
+	
+	sem_prag.adb (Check_Precondition_Postcondition): within the expansion
+	of an inlined call pre- and postconditions are legal
+
+2008-07-31  Vincent Celier  <celier@adacore.com>
+
+	* prj.adb, prj.ads, clean.adb, prj-nmsc.adb: Remove declarations that
+	were for gprmake only
+
+2008-07-31  Robert Dewar  <dewar@adacore.com>
+
+	* gnat_ugn.texi: Update -gnatN documentation.
+
+	* gnat_rm.texi: Add note about pre/postcondition
+	pragmas not checked in conjunction with front-end inlining.
+
+2008-07-31  Robert Dewar  <dewar@adacore.com>
+
+	* g-pehage.adb, g-pehage.ads: Minor reformatting
+
+2008-07-31  Arnaud Charlet  <charlet@adacore.com>
+
+	* mlib-utl.ads, prj-makr.ads: Add comments.
+
 2008-07-30  Aaron W. LaFramboise  <aaronavay62@aaronwl.com>
 
 	* gcc-interface/Makefile.in (EXTRA_GNATRTL_NONTASKING_OBJS) 
