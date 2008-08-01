@@ -1,3 +1,7 @@
+2008-08-01  Ben Elliston  <bje@au.ibm.com>
+
+	* gcc.target/spu/ea/ea.exp: Guard against non-SPU targets.
+
 2007-11-09  Ben Elliston  <bje@au.ibm.com>
 
 	* gcc.target/spu/ea/errors.c: Add int * __ea case.

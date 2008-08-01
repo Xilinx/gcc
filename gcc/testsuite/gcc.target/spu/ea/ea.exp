@@ -19,8 +19,10 @@
 # Load support procs.
 load_lib gcc-dg.exp
 
-# Skip these tests for targets that don't support this extension.
-if { ![check_effective_target_ea] } { return }
+# Exit immediately if this isn't a SPU target.
+if { ![istarget spu-*-*] } then {
+  return
+}
 
 # If a testcase doesn't have special options, use these.
 global DEFAULT_CFLAGS
