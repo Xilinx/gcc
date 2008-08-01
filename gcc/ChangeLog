@@ -1,3 +1,115 @@
+2008-08-01  Basile Starynkevitch  <basile@starynkevitch>
+	* tree-pass.h: Added comment about not dumping passes with name
+	starting with star in struct opt_pass.
+	* passes.c (register_dump_files_1): Don't do dump for a pass with
+	name starting with star.
+	* doc/passes.texi (Pass manager): Mention pass names and special
+	meaning of star prefix to avoid dump.
+
+2008-07-31  Adam Nemet  <anemet@caviumnetworks.com>
+
+	* config.gcc (mipsisa64r2*-*-linux*): New configuration.  Set ISA
+	to MIPS64r2.
+	* config/mips/mips.h (GENERATE_MIPS16E): Update comment.
+	(ISA_MIPS64R2): New macro.
+	(TARGET_CPU_CPP_BUILTINS, MULTILIB_ISA_DEFAULT): Handle it.
+	(ISA_HAS_64BIT_REGS, ISA_HAS_MUL3, ISA_HAS_FP_CONDMOVE,
+	ISA_HAS_8CC, ISA_HAS_FP4, ISA_HAS_PAIRED_SINGLE,
+	ISA_HAS_MADD_MSUB, ISA_HAS_NMADD4_NMSUB4, ISA_HAS_CLZ_CLO,
+	ISA_HAS_ROR, ISA_HAS_PREFETCH, ISA_HAS_PREFETCHX, ISA_HAS_SEB_SEH,
+	ISA_HAS_EXT_INS, ISA_HAS_MXHC1, ISA_HAS_HILO_INTERLOCKS,
+	ISA_HAS_SYNCI, MIN_FPRS_PER_FMT): Return true for ISA_MIPS64R2.
+	(MIPS_ISA_LEVEL_SPEC, ASM_SPEC, LINK_SPEC): Handle -mips64r2.
+	(TARGET_LOONGSON_2E, TARGET_LOONGSON_2F, TARGET_LOONGSON_2EF):
+	Move up to keep list alphabetically sorted.
+	(TUNE_20KC, TUNE_24K, TUNE_74K, TUNE_LOONGSON_2EF): Likewise.
+	* config/mips/mips.c (mips_cpu_info_table): Add default MIPS64r2
+	processor.
+	* doc/invoke.texi (MIPS Options): Add -mips64r2.
+	(-march=@var{arch}): Add mips64r2.
+
+2008-07-31  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/darwin.h (MAIN_STACK_BOUNDARY): Define to 128.
+
+2008-07-31  Steve Ellcey  <sje@cup.hp.com>
+
+	* expr.c (expand_assignment): Check for complete type.
+
+2008-07-31  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR debug/36977
+	* cfgexpand.c (expand_stack_alignment): Set stack_realign_tried.
+
+	* dwarf2out.c (based_loc_descr): Check crtl->stack_realign_tried
+	for stack alignment.
+
+	* function.h (rtl_data): Add stack_realign_tried.  Update
+	comments.
+
+2008-07-31  Kaz Kojima  <kkojima@gcc.gnu.org>
+
+	* config/sh/sh.c (sh_canonical_va_list_type): Remove.
+	(TARGET_CANONICAL_VA_LIST_TYPE): Remove.	    
+
+2008-07-31  Jakub Jelinek  <jakub@redhat.com>
+
+	PR rtl-optimization/36419
+	* dwarf2out.c (barrier_args_size): New variable.
+	(compute_barrier_args_size, compute_barrier_args_size_1): New
+	functions.
+	(dwarf2out_stack_adjust): For BARRIERs call compute_barrier_args_size
+	if not called yet in the current function, use barrier_args_size
+	array to find the new args_size value.
+	(dwarf2out_frame_debug): Free and clear barrier_args_size.
+
+2008-07-31  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR debug/36980
+	* dwarf2out.c (dwarf2out_frame_debug_expr): Move rule 17 before
+	rule 19.
+
+2008-07-31  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR debug/36976
+	* dwarf2out.c (dwarf2out_args_size_adjust): New.
+	(dwarf2out_stack_adjust): Use it.
+	(dwarf2out_frame_debug_expr): Likewise.
+
+>>>>>>> .r138449
+2008-07-31  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/36978
+	* tree-ssa-loop-unswitch.c (tree_may_unswitch_on): Do not fold
+	the generated condition.
+
+2008-07-31  Richard Guenther  <rguenther@suse.de>
+
+	* passes.c (init_optimization_passes): Always call
+	pass_early_warn_uninitialized.
+	* opts.c (decode_options): Do not warn about -Wuninitialized
+	at -O0.
+	* doc/invoke.texi (-Wuninitialized): Correct for enabling at -O0.
+	* doc/passes.texi (Warn for uninitialized variables): Adjust.
+
+2008-07-31  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c/36970
+	* builtins.c (maybe_emit_free_warning): New function.
+	(expand_builtin): Process BUILT_IN_FREE even at -O0.  Call
+	maybe_emit_free_warning for BUILT_IN_FREE.
+
+	PR debug/36278
+	* dwarf2out.c (get_context_die): New function.
+	(force_decl_die, force_type_die): Use it.
+	(dwarf2out_imported_module_or_decl): Likewise.  If base_type_die
+	returns NULL, force generation of DW_TAG_typedef and put that into
+	DW_AT_import.
+
+	PR preprocessor/36649
+	* c-pch.c (c_common_read_pch): Save and restore
+	line_table->trace_includes across PCH restore.
+
 2008-07-30  Eric Botcazou  <ebotcazou@adacore.com>
 
 	PR ada/36554
@@ -6,7 +118,7 @@
 2008-07-30  Rafael Avila de Espindola  <espindola@google.com>
 
 	PR 36974
-	* final.c (call_from_call_insn): Handle COND_EXEC
+	* final.c (call_from_call_insn): Handle COND_EXEC.
 
 2008-07-30  H.J. Lu  <hongjiu.lu@intel.com>
 

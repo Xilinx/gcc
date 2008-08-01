@@ -49,8 +49,8 @@ package body GNAT.Perfect_Hash_Generators is
 
    --             h (w) = (g (f1 (w)) + g (f2 (w))) mod m
 
-   --  where f1 and f2 are functions that map strings into integers, and g is a
-   --  function that maps integers into [0, m-1]. h can be order preserving.
+   --  where f1 and f2 are functions that map strings into integers, and g is
+   --  a function that maps integers into [0, m-1]. h can be order preserving.
    --  For instance, let W = {w_0, ..., w_i, ..., w_m-1}, h can be defined
    --  such that h (w_i) = i.
 
@@ -132,10 +132,10 @@ package body GNAT.Perfect_Hash_Generators is
    package WT is new GNAT.Table (Word_Type, Word_Id, 0, 32, 32);
    package IT is new GNAT.Table (Integer, Integer, 0, 32, 32);
    --  The two main tables. WT is used to store the words in their initial
-   --  version and in their reduced version (that is words reduced to
-   --  their significant characters). As an instance of GNAT.Table, WT does
-   --  not initialize string pointers to null. This initialization has to be
-   --  done manually when the table is allocated. IT is used to store several
+   --  version and in their reduced version (that is words reduced to their
+   --  significant characters). As an instance of GNAT.Table, WT does not
+   --  initialize string pointers to null. This initialization has to be done
+   --  manually when the table is allocated. IT is used to store several
    --  tables of components containing only integers.
 
    function Image (Int : Integer; W : Natural := 0) return String;
@@ -591,7 +591,7 @@ package body GNAT.Perfect_Hash_Generators is
    --  Start of processing for Assign_Values_To_Vertices
 
    begin
-      --  Value -1 denotes an unitialized value as it is supposed to
+      --  Value -1 denotes an uninitialized value as it is supposed to
       --  be in the range 0 .. NK.
 
       if G = No_Table then
@@ -1141,11 +1141,10 @@ package body GNAT.Perfect_Hash_Generators is
       Tries  : Positive     := Default_Tries)
    is
    begin
-      --  Deallocated the part of the table concerning the reduced
-      --  words. Initial words are already present in the table. We
-      --  may have reduced words already there because a previous
-      --  computation failed. We are currently retrying and the
-      --  reduced words have to be deallocated.
+      --  Deallocate the part of the table concerning the reduced words.
+      --  Initial words are already present in the table. We may have reduced
+      --  words already there because a previous computation failed. We are
+      --  currently retrying and the reduced words have to be deallocated.
 
       for W in NK .. WT.Last loop
          Free_Word (WT.Table (W));

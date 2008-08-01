@@ -891,6 +891,37 @@ package body Sem_Ch6 is
          end if;
 
          Set_Actual_Subtypes (N, Current_Scope);
+         Process_PPCs (N, Gen_Id, Body_Id);
+
+         --  If the generic unit carries pre- or post-conditions, copy them
+         --  to the original generic tree, so that they are properly added
+         --  to any instantiation.
+
+         declare
+            Orig : constant Node_Id := Original_Node (N);
+            Cond : Node_Id;
+
+         begin
+            Cond := First (Declarations (N));
+            while Present (Cond) loop
+               if Nkind (Cond) = N_Pragma
+                 and then Pragma_Name (Cond) = Name_Check
+               then
+                  Prepend (New_Copy_Tree (Cond), Declarations (Orig));
+
+               elsif Nkind (Cond) = N_Pragma
+                 and then Pragma_Name (Cond) = Name_Postcondition
+               then
+                  Set_Ekind (Defining_Entity (Orig), Ekind (Gen_Id));
+                  Prepend (New_Copy_Tree (Cond), Declarations (Orig));
+               else
+                  exit;
+               end if;
+
+               Next (Cond);
+            end loop;
+         end;
+
          Analyze_Declarations (Declarations (N));
          Check_Completion;
          Analyze (Handled_Statement_Sequence (N));
@@ -1533,9 +1564,14 @@ package body Sem_Ch6 is
          --  Subprogram_Specification. In such cases, we undo the change
          --  made by the analysis of the specification and try to find the
          --  spec again.
+         --  Note that wrappers already have their corresponding specs and
+         --  bodies set during their creation, so if the candidate spec is
+         --  a wrapper, then we definately need to swap all types to their
+         --  original concurrent status.
 
-         if No (Spec_N) then
-
+         if No (Spec_N)
+           or else Is_Primitive_Wrapper (Spec_N)
+         then
             --  Restore all references of corresponding record types to the
             --  original concurrent types.
 
@@ -1872,6 +1908,10 @@ package body Sem_Ch6 is
             Set_Has_Delayed_Freeze (Spec_Id);
             Insert_Actions (N, Freeze_Entity (Spec_Id, Loc));
          end if;
+      end if;
+
+      if Chars (Body_Id) = Name_uPostconditions then
+         Set_Has_Postconditions (Current_Scope);
       end if;
 
       --  Place subprogram on scope stack, and make formals visible. If there
@@ -6564,12 +6604,6 @@ package body Sem_Ch6 is
          In_Scope    : Boolean;
          Typ         : Entity_Id;
 
-         function Has_Correct_Formal_Mode
-           (Tag_Typ : Entity_Id;
-            Subp    : Entity_Id) return Boolean;
-         --  For an overridden subprogram Subp, check whether the mode of its
-         --  first parameter is correct depending on the kind of Tag_Typ.
-
          function Matches_Prefixed_View_Profile
            (Prim_Params  : List_Id;
             Iface_Params : List_Id) return Boolean;
@@ -6577,39 +6611,6 @@ package body Sem_Ch6 is
          --  matches that of a potentially overridden interface subprogram
          --  Iface_Params. Also determine if the type of first parameter of
          --  Iface_Params is an implemented interface.
-
-         -----------------------------
-         -- Has_Correct_Formal_Mode --
-         -----------------------------
-
-         function Has_Correct_Formal_Mode
-           (Tag_Typ : Entity_Id;
-            Subp    : Entity_Id) return Boolean
-         is
-            Formal : constant Node_Id := First_Formal (Subp);
-
-         begin
-            --  In order for an entry or a protected procedure to override, the
-            --  first parameter of the overridden routine must be of mode
-            --  "out", "in out" or access-to-variable.
-
-            if (Ekind (Subp) = E_Entry
-                  or else Ekind (Subp) = E_Procedure)
-              and then Is_Protected_Type (Tag_Typ)
-              and then Ekind (Formal) /= E_In_Out_Parameter
-              and then Ekind (Formal) /= E_Out_Parameter
-              and then Nkind (Parameter_Type (Parent (Formal))) /=
-                         N_Access_Definition
-            then
-               return False;
-            end if;
-
-            --  All other cases are OK since a task entry or routine does not
-            --  have a restriction on the mode of the first parameter of the
-            --  overridden interface routine.
-
-            return True;
-         end Has_Correct_Formal_Mode;
 
          -----------------------------------
          -- Matches_Prefixed_View_Profile --
@@ -6688,15 +6689,15 @@ package body Sem_Ch6 is
                Iface_Id  := Defining_Identifier (Iface_Param);
                Iface_Typ := Find_Parameter_Type (Iface_Param);
 
-               if Is_Access_Type (Iface_Typ) then
-                  Iface_Typ := Directly_Designated_Type (Iface_Typ);
-               end if;
-
                Prim_Id  := Defining_Identifier (Prim_Param);
                Prim_Typ := Find_Parameter_Type (Prim_Param);
 
-               if Is_Access_Type (Prim_Typ) then
-                  Prim_Typ := Directly_Designated_Type (Prim_Typ);
+               if Ekind (Iface_Typ) = E_Anonymous_Access_Type
+                 and then Ekind (Prim_Typ) = E_Anonymous_Access_Type
+                 and then Is_Concurrent_Type (Designated_Type (Prim_Typ))
+               then
+                  Iface_Typ := Designated_Type (Iface_Typ);
+                  Prim_Typ := Designated_Type (Prim_Typ);
                end if;
 
                --  Case of multiple interface types inside a parameter profile
@@ -6829,60 +6830,63 @@ package body Sem_Ch6 is
             while Present (Hom) loop
                Subp := Hom;
 
-               --  Entries can override abstract or null interface
-               --  procedures
-
-               if Ekind (Def_Id) = E_Entry
-                 and then Ekind (Subp) = E_Procedure
-                 and then Nkind (Parent (Subp)) = N_Procedure_Specification
-                 and then (Is_Abstract_Subprogram (Subp)
-                             or else Null_Present (Parent (Subp)))
+               if Subp = Def_Id
+                 or else not Is_Overloadable (Subp)
+                 or else not Is_Primitive (Subp)
+                 or else not Is_Dispatching_Operation (Subp)
+                 or else not Is_Interface (Find_Dispatching_Type (Subp))
                then
-                  while Present (Alias (Subp)) loop
-                     Subp := Alias (Subp);
-                  end loop;
+                  null;
 
-                  if Matches_Prefixed_View_Profile
-                       (Parameter_Specifications (Parent (Def_Id)),
-                        Parameter_Specifications (Parent (Subp)))
-                  then
-                     Candidate := Subp;
+               --  Entries and procedures can override abstract or null
+               --  interface procedures
 
-                     --  Absolute match
-
-                     if Has_Correct_Formal_Mode (Typ, Candidate) then
-                        Overridden_Subp := Candidate;
-                        return;
-                     end if;
-                  end if;
-
-               --  Procedures can override abstract or null interface
-               --  procedures
-
-               elsif Ekind (Def_Id) = E_Procedure
+               elsif (Ekind (Def_Id) = E_Procedure
+                        or else Ekind (Def_Id) = E_Entry)
                  and then Ekind (Subp) = E_Procedure
-                 and then Nkind (Parent (Subp)) = N_Procedure_Specification
-                 and then (Is_Abstract_Subprogram (Subp)
-                             or else Null_Present (Parent (Subp)))
                  and then Matches_Prefixed_View_Profile
                             (Parameter_Specifications (Parent (Def_Id)),
                              Parameter_Specifications (Parent (Subp)))
                then
                   Candidate := Subp;
 
-                  --  Absolute match
+                  --  For an overridden subprogram Subp, check whether the mode
+                  --  of its first parameter is correct depending on the kind
+                  --  of synchronized type.
 
-                  if Has_Correct_Formal_Mode (Typ, Candidate) then
-                     Overridden_Subp := Candidate;
-                     return;
-                  end if;
+                  declare
+                     Formal : constant Node_Id := First_Formal (Candidate);
+
+                  begin
+                     --  In order for an entry or a protected procedure to
+                     --  override, the first parameter of the overridden
+                     --  routine must be of mode "out", "in out" or
+                     --  access-to-variable.
+
+                     if (Ekind (Candidate) = E_Entry
+                         or else Ekind (Candidate) = E_Procedure)
+                       and then Is_Protected_Type (Typ)
+                       and then Ekind (Formal) /= E_In_Out_Parameter
+                       and then Ekind (Formal) /= E_Out_Parameter
+                       and then Nkind (Parameter_Type (Parent (Formal)))
+                                  /= N_Access_Definition
+                     then
+                        null;
+
+                     --  All other cases are OK since a task entry or routine
+                     --  does not have a restriction on the mode of the first
+                     --  parameter of the overridden interface routine.
+
+                     else
+                        Overridden_Subp := Candidate;
+                        return;
+                     end if;
+                  end;
 
                --  Functions can override abstract interface functions
 
                elsif Ekind (Def_Id) = E_Function
                  and then Ekind (Subp) = E_Function
-                 and then Nkind (Parent (Subp)) = N_Function_Specification
-                 and then Is_Abstract_Subprogram (Subp)
                  and then Matches_Prefixed_View_Profile
                             (Parameter_Specifications (Parent (Def_Id)),
                              Parameter_Specifications (Parent (Subp)))
@@ -7752,8 +7756,16 @@ package body Sem_Ch6 is
          --  procedure. Note that it is only at the outer level that we
          --  do this fiddling, for the spec cases, the already preanalyzed
          --  parameters are not affected.
+         --  For a postcondition pragma within a generic, preserve the pragma
+         --  for later expansion.
 
          Set_Analyzed (CP, False);
+
+         if Nam = Name_Postcondition
+           and then not Expander_Active
+         then
+            return CP;
+         end if;
 
          --  Change pragma into corresponding pragma Check
 
@@ -7827,7 +7839,15 @@ package body Sem_Ch6 is
                   end if;
 
                   Analyze (Prag);
-                  Append (Grab_PPC (Name_Postcondition), Plist);
+
+                  --  If expansion is disabled, as in a generic unit,
+                  --  save pragma for later expansion.
+
+                  if not Expander_Active then
+                     Prepend (Grab_PPC (Name_Postcondition), Declarations (N));
+                  else
+                     Append (Grab_PPC (Name_Postcondition), Plist);
+                  end if;
                end if;
 
                Next (Prag);
@@ -7860,16 +7880,23 @@ package body Sem_Ch6 is
                   Plist := Empty_List;
                end if;
 
-               Append (Grab_PPC (Name_Postcondition), Plist);
+               if not Expander_Active then
+                  Prepend (Grab_PPC (Name_Postcondition), Declarations (N));
+               else
+                  Append (Grab_PPC (Name_Postcondition), Plist);
+               end if;
             end if;
 
             Prag := Next_Pragma (Prag);
          end loop;
       end if;
 
-      --  If we had any postconditions, build the procedure
+      --  If we had any postconditions and expansion is enabled,, build
+      --  the Postconditions procedure.
 
-      if Present (Plist) then
+      if Present (Plist)
+        and then Expander_Active
+      then
          Subp := Defining_Entity (N);
 
          if Etype (Subp) /= Standard_Void_Type then

@@ -1898,6 +1898,7 @@ package body Sem_Attr is
         and then Aname /= Name_Address
         and then Aname /= Name_Code_Address
         and then Aname /= Name_Count
+        and then Aname /= Name_Result
         and then Aname /= Name_Unchecked_Access
       then
          Error_Attr ("ambiguous prefix for % attribute", P);
@@ -3741,6 +3742,16 @@ package body Sem_Attr is
          PS : constant Entity_Id := Scope (CS);
 
       begin
+         --  If the enclosing subprogram is always inlined, the enclosing
+         --  postcondition will not be propagated to the expanded call.
+
+         if Has_Pragma_Inline_Always (PS)
+           and then Warn_On_Redundant_Constructs
+         then
+            Error_Msg_N
+              ("postconditions on inlined functions not enforced?", N);
+         end if;
+
          --  If we are in the scope of a function and in Spec_Expression mode,
          --  this is likely the prescan of the postcondition pragma, and we
          --  just set the proper type. If there is an error it will be caught
@@ -3775,9 +3786,23 @@ package body Sem_Attr is
          then
             --  Check OK prefix
 
-            if Nkind (P) /= N_Identifier
-              or else Chars (P) /= Chars (PS)
+            if (Nkind (P) = N_Identifier
+                  or else Nkind (P) = N_Operator_Symbol)
+              and then Chars (P) = Chars (PS)
             then
+               null;
+
+            --  Within an instance, the prefix designates the local renaming
+            --  of the original generic.
+
+            elsif Is_Entity_Name (P)
+              and then Ekind (Entity (P)) = E_Function
+              and then Present (Alias (Entity (P)))
+              and then Chars (Alias (Entity (P))) = Chars (PS)
+            then
+               null;
+
+            else
                Error_Msg_NE
                  ("incorrect prefix for % attribute, expected &", P, PS);
                Error_Attr;

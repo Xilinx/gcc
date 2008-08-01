@@ -1,4 +1,14 @@
+2008-07-31  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/36405
+	* rtti.c (get_tinfo_decl_dynamic, get_typeid): Call
+	complete_type_or_else even for UNKNOWN_TYPE to get diagnostics.
+
 2008-07-31  Jason Merrill  <jason@redhat.com>
+
+	PR c++/36633
+	* init.c (build_new_1): Don't convert pointer to the data type
+	until we're actually going to treat it as that type.
 
 	PR c++/11309
 	* tree.c (build_aggr_init_expr): Split out...
