@@ -47,6 +47,11 @@ along with GCC; see the file COPYING3.  If not see
 
 VEC (scop_p, heap) *current_scops;
 
+/* For each block, the PHI nodes that need to be rewritten are stored into
+   these vectors.  */
+typedef VEC(gimple, heap) *gimple_vec;
+DEF_VEC_P (gimple_vec);
+DEF_VEC_ALLOC_P (gimple_vec, heap);
 
 /* Prints the loop mapping of SCOP.  */
 void debug_loop_mapping (scop_p);
@@ -536,40 +541,6 @@ graphite_sort_gbbs (scop_p scop)
          sizeof (graphite_bb_p), gbb_compare);
 }
 
-/* Dump  an integer constant or a SSA_NAME.  */
-
-static void
-dump_value (FILE *file, tree node)
-{
-  long val;
-  enum tree_code code = TREE_CODE (node);
-
-  switch (code)
-  {
-    case INTEGER_CST:
-      val = int_cst_value (node);
-      fprintf (file , "%ld", val);
-      break;
-
-    case SSA_NAME:
-      {
-	tree var = SSA_NAME_VAR (node);
-	if (DECL_NAME (var))
-	  fprintf (file, "%s", IDENTIFIER_POINTER (DECL_NAME (var)));
-	else
-	  {
-	    char c = TREE_CODE (var) == CONST_DECL ? 'C' : 'D';
-	    fprintf (file, "%c.%u", c, DECL_UID (var));
-	  }
-	fprintf (file, "_%d", SSA_NAME_VERSION (node));
-	break;
-      }
-    default:
-      fprintf (file, "?(%s)",tree_code_name[TREE_CODE (node)]);
-      break;
-  }
-}
-
 /* Dump conditions of a graphite basic block.  */
 
 static void
@@ -951,17 +922,21 @@ loop_affine_expr (struct loop *outermost_loop, struct loop *loop, tree expr)
 static bool
 stmt_simple_memref_for_scop_p (struct loop *loop, gimple stmt, tree op)
 {
-  data_reference_p dr;
-
-  if (!is_gimple_addressable (op))
-    return false;
-
-  dr = create_data_ref (loop, op, stmt, true);
+  data_reference_p dr = create_data_ref (loop, op, stmt, true);
   if (!dr)
     return false;
 
   free_data_ref (dr);
   return true;
+}
+
+/* Return true if the operand OP is simple.  */
+
+static bool
+is_simple_operand (loop_p loop, gimple stmt, tree op) 
+{
+  return !((handled_component_p (op) || INDIRECT_REF_P (op))
+	   && !stmt_simple_memref_for_scop_p (loop, stmt, op));
 }
 
 /* Return true only when STMT is simple enough for being handled by Graphite.
@@ -1021,16 +996,13 @@ stmt_simple_for_scop_p (struct loop *outermost_loop, gimple stmt)
 	  {
 	  case GIMPLE_UNARY_RHS:
 	  case GIMPLE_SINGLE_RHS:
-	    return (stmt_simple_memref_for_scop_p (loop, stmt, gimple_assign_lhs (stmt))
-		    && stmt_simple_memref_for_scop_p (loop, stmt,
-						      gimple_assign_rhs1 (stmt)));
+	    return (is_simple_operand (loop, stmt, gimple_assign_lhs (stmt))
+		    && is_simple_operand (loop, stmt, gimple_assign_rhs1 (stmt)));
 
 	  case GIMPLE_BINARY_RHS:
-	    return (stmt_simple_memref_for_scop_p (loop, stmt, gimple_assign_lhs (stmt))
-		    && stmt_simple_memref_for_scop_p (loop, stmt,
-						      gimple_assign_rhs1 (stmt))
-		    && stmt_simple_memref_for_scop_p (loop, stmt,
-						      gimple_assign_rhs2 (stmt)));
+	    return (is_simple_operand (loop, stmt, gimple_assign_lhs (stmt))
+		    && is_simple_operand (loop, stmt, gimple_assign_rhs1 (stmt))
+		    && is_simple_operand (loop, stmt, gimple_assign_rhs2 (stmt)));
 
 	  case GIMPLE_INVALID_RHS:
 	    gcc_unreachable ();
@@ -2386,7 +2358,7 @@ build_loop_iteration_domains (scop_p scop, struct loop *loop,
 
 static void
 build_scop_conditions_1 (VEC (gimple, heap) **conditions,
-			 VEC (tree, heap) **cases, basic_block bb, scop_p scop)
+			 VEC (gimple, heap) **cases, basic_block bb, scop_p scop)
 {
   unsigned i, j;
   graphite_bb_p gbb;
@@ -2401,7 +2373,7 @@ build_scop_conditions_1 (VEC (gimple, heap) **conditions,
   /* Record conditions in graphite_bb.  */
   gbb = graphite_bb_from_bb (bb, scop);
   GBB_CONDITIONS (gbb) = VEC_copy (gimple, heap, *conditions);
-  GBB_CONDITION_CASES (gbb) = VEC_copy (tree, heap, *cases);
+  GBB_CONDITION_CASES (gbb) = VEC_copy (gimple, heap, *cases);
 
   dom = get_dominated_by (CDI_DOMINATORS, bb);
 
@@ -2429,22 +2401,23 @@ build_scop_conditions_1 (VEC (gimple, heap) **conditions,
 
 		/* Recursively scan the then or else part.  */
 		if (e->flags & EDGE_TRUE_VALUE)
-		  VEC_safe_push (tree, heap, *cases, stmt);
+		  VEC_safe_push (gimple, heap, *cases, stmt);
 		else if (e->flags & EDGE_FALSE_VALUE)
-		  VEC_safe_push (tree, heap, *cases, NULL);
+		  VEC_safe_push (gimple, heap, *cases, NULL);
 		else
 		  gcc_unreachable ();
 
 		VEC_safe_push (gimple, heap, *conditions, stmt);
 		build_scop_conditions_1 (conditions, cases, e->dest, scop);
 		VEC_pop (gimple, *conditions);
-		VEC_pop (tree, *cases);
+		VEC_pop (gimple, *cases);
 	      }
 	  break;
 
 	case GIMPLE_SWITCH:
 	  {
 	    unsigned int i;
+	    gimple_stmt_iterator gsi_search_gimple_label;
 
 	    for (i = 0; i < gimple_switch_num_labels (stmt); ++i)
 	      {
@@ -2470,7 +2443,24 @@ build_scop_conditions_1 (VEC (gimple, heap) **conditions,
 		  continue;
 
 		/* Recursively scan the corresponding 'case' block.  */
-		VEC_replace (tree, *cases, n_cases, gimple_switch_label (stmt, i));
+
+		for (gsi_search_gimple_label = gsi_start_bb (bb_child);
+		     !gsi_end_p (gsi_search_gimple_label);
+		     gsi_next (&gsi_search_gimple_label))
+		  {
+		    gimple stmt_gimple_label = gsi_stmt (gsi_search_gimple_label);
+
+		    if (gimple_code (stmt_gimple_label) == GIMPLE_LABEL)
+		      {
+			tree t = gimple_label_label (stmt_gimple_label);
+
+			if (t == gimple_switch_label (stmt, i))
+			  VEC_replace (gimple, *cases, n_cases, stmt_gimple_label);
+			else
+			  gcc_unreachable ();
+		      }
+		  }
+
 		build_scop_conditions_1 (conditions, cases, bb_child, scop);
 
 		/* Remove the scanned block from the dominator successors.  */
@@ -2483,7 +2473,7 @@ build_scop_conditions_1 (VEC (gimple, heap) **conditions,
 	      }
 
 	    VEC_pop (gimple, *conditions);
-	    VEC_pop (tree, *cases);
+	    VEC_pop (gimple, *cases);
 	    break;
 	  }
 	default:
@@ -2505,13 +2495,13 @@ build_scop_conditions_1 (VEC (gimple, heap) **conditions,
 static void
 build_scop_conditions (scop_p scop)
 {
-  VEC (tree, heap) *conditions = NULL;
-  VEC (tree, heap) *cases = NULL;
+  VEC (gimple, heap) *conditions = NULL;
+  VEC (gimple, heap) *cases = NULL;
 
   build_scop_conditions_1 (&conditions, &cases, SCOP_ENTRY (scop), scop);
 
-  VEC_free (tree, heap, conditions);
-  VEC_free (tree, heap, cases);
+  VEC_free (gimple, heap, conditions);
+  VEC_free (gimple, heap, cases);
 }
 
 /* Converts the graphite scheduling function into a cloog scattering
@@ -2708,15 +2698,15 @@ build_scop_data_accesses (scop_p scop)
   for (i = 0; VEC_iterate (graphite_bb_p, SCOP_BBS (scop), i, gb); i++)
     {
       unsigned j;
-      block_stmt_iterator bsi;
+      gimple_stmt_iterator gsi;
       data_reference_p dr;
       struct loop *nest = outermost_loop_in_scop (scop, GBB_BB (gb));
 
       /* On each statement of the basic block, gather all the occurences
 	 to read/write memory.  */
       GBB_DATA_REFS (gb) = VEC_alloc (data_reference_p, heap, 5);
-      for (bsi = bsi_start (GBB_BB (gb)); !bsi_end_p (bsi); bsi_next (&bsi))
-	find_data_references_in_stmt (nest, bsi_stmt (bsi),
+      for (gsi = gsi_start_bb (GBB_BB (gb)); !gsi_end_p (gsi); gsi_next (&gsi))
+	find_data_references_in_stmt (nest, gsi_stmt (gsi),
 				      &GBB_DATA_REFS (gb));
 
       /* Construct the access matrix for each data ref, with respect to
@@ -2971,7 +2961,7 @@ graphite_get_new_iv_stack_index_from_old_iv (scop_p scop, loop_p old_loop)
 /* Rename the SSA_NAMEs used in STMT and that appear in IVSTACK.  */
 
 static void 
-graphite_rename_ivs_stmt (tree stmt, scop_p scop, loop_p old_loop_father, loop_iv_stack ivstack)
+graphite_rename_ivs_stmt (gimple stmt, scop_p scop, loop_p old_loop_father, loop_iv_stack ivstack)
 {
   ssa_op_iter iter;
   use_operand_p use_p;
@@ -3000,21 +2990,22 @@ static void
 graphite_rename_ivs (graphite_bb_p gbb, scop_p scop, loop_p old_loop_father, loop_iv_stack ivstack)
 {
   basic_block bb = GBB_BB (gbb);
-  block_stmt_iterator bsi;
+  gimple_stmt_iterator gsi;
   
-  for (bsi = bsi_after_labels (bb); !bsi_end_p (bsi);)
+  for (gsi = gsi_after_labels (bb); !gsi_end_p (gsi);)
     {
-      tree stmt = bsi_stmt (bsi);
+      gimple stmt = gsi_stmt (gsi);
 
-      if (TREE_CODE (stmt) == GIMPLE_MODIFY_STMT
-	  && TREE_CODE (GIMPLE_STMT_OPERAND (stmt, 0)) == SSA_NAME
-	  && get_old_iv_from_ssa_name (scop, old_loop_father, GIMPLE_STMT_OPERAND (stmt, 0)))
-	bsi_remove (&bsi, false);
+      if (gimple_get_lhs (stmt)
+	  && TREE_CODE (gimple_get_lhs (stmt)) == SSA_NAME
+	  && get_old_iv_from_ssa_name (scop, old_loop_father, gimple_get_lhs (stmt)))
+	gsi_remove (&gsi, false);
       else
 	{
 	  graphite_rename_ivs_stmt (stmt, scop, old_loop_father, ivstack); 
-	  bsi_next (&bsi);
+	  gsi_next (&gsi);
 	}
+
     }
 }
 
@@ -3023,16 +3014,21 @@ graphite_rename_ivs (graphite_bb_p gbb, scop_p scop, loop_p old_loop_father, loo
 static void
 move_phi_nodes (scop_p scop, loop_p old_loop_father, basic_block from, basic_block to)
 {
-  tree phi;
-  tree next_phi;
+  gimple_stmt_iterator gsi;
+  gimple_stmt_iterator gsi_1;
+  gimple_stmt_iterator gsi_2;  
 
-  for (phi = phi_nodes (from); phi != NULL; phi = next_phi)
+  for (gsi = gsi_start_phis (from); !gsi_end_p (gsi); gsi_next (&gsi))
     {
-      tree op = PHI_RESULT (phi);
-      next_phi = PHI_CHAIN (phi);
+      gimple phi = gsi_stmt (gsi);
+      tree op = gimple_phi_result (phi);
 
       if (get_old_iv_from_ssa_name (scop, old_loop_father, op) == NULL)
-	gsi_move_before (gsi_for_stmt (phi), gsi_after_labels (to));
+	{
+	  gsi_1 = gsi_for_stmt (phi);
+	  gsi_2 = gsi_after_labels (to);
+	  gsi_move_before (&gsi_1, &gsi_2);
+	}
     }
 
   set_phi_nodes (from, NULL); 
@@ -3043,16 +3039,16 @@ move_phi_nodes (scop_p scop, loop_p old_loop_father, basic_block from, basic_blo
 static void
 remove_cond_exprs (basic_block bb)
 {
-  block_stmt_iterator bsi;
+  gimple_stmt_iterator gsi;
 
-  for (bsi = bsi_after_labels (bb); !bsi_end_p (bsi);)
+  for (gsi = gsi_after_labels (bb); !gsi_end_p (gsi);)
     {
-      tree stmt = bsi_stmt (bsi);
+      gimple stmt = gsi_stmt (gsi);
 
-      if (TREE_CODE (stmt) == COND_EXPR)
-	bsi_remove (&bsi, true);
+      if (gimple_code (stmt) == GIMPLE_COND)
+	gsi_remove (&gsi, true);
       else
-	bsi_next (&bsi);
+	gsi_next (&gsi);
     }
 }
 
@@ -3357,20 +3353,23 @@ collect_virtual_phis (void)
 static tree
 find_vdef_for_var_in_bb (basic_block bb, tree var)
 {
-  block_stmt_iterator bsi;
-  tree phi;
+  gimple_stmt_iterator gsi;
+  gimple phi;
   def_operand_p def_var;
   vuse_vec_p vv;
   ssa_op_iter op_iter;
 
-  for (bsi = bsi_last (bb); !bsi_end_p (bsi); bsi_prev (&bsi))
-    FOR_EACH_SSA_VDEF_OPERAND (def_var, vv, bsi_stmt (bsi), op_iter)
+  for (gsi = gsi_last_bb (bb); !gsi_end_p (gsi); gsi_prev (&gsi))
+    FOR_EACH_SSA_VDEF_OPERAND (def_var, vv, gsi_stmt (gsi), op_iter)
       if (SSA_NAME_VAR (*def_var) == var)
 	return *def_var;
 
-  for (phi = phi_nodes (bb); phi; phi = PHI_CHAIN (phi))
-    if (SSA_NAME_VAR (PHI_RESULT (phi)) == var)
-      return PHI_RESULT (phi);
+  for (gsi = gsi_start_phis (bb); !gsi_end_p(gsi); gsi_next (&gsi))
+    {
+      phi = gsi_stmt (gsi);
+      if (SSA_NAME_VAR (PHI_RESULT (phi)) == var)
+	return PHI_RESULT (phi);
+    }
 
   return NULL;
 }
@@ -3417,16 +3416,20 @@ static void
 patch_phis_for_virtual_defs (void)
 {
   int i;
-  tree phi;
-  VEC (tree, heap) *virtual_phis = collect_virtual_phis ();
+  gimple phi;
+  VEC (gimple, heap) *virtual_phis = collect_virtual_phis ();
   
-  for (i = 0; VEC_iterate (tree, virtual_phis, i, phi); i++)
+  for (i = 0; VEC_iterate (gimple, virtual_phis, i, phi); i++)
     {
-      basic_block bb = bb_for_stmt (phi);
+      basic_block bb = gimple_bb (phi);
       edge_iterator ei;
       edge pred_edge;
-      tree new_phi;
+      gimple_stmt_iterator gsi;
+      gimple new_phi;
+
+      /* FIXME: Should PHI_RESULT become gimple_phi_result?  */
       tree phi_result = PHI_RESULT (phi);
+
       tree var = SSA_NAME_VAR (phi_result);
 
       new_phi = create_phi_node (phi_result, bb);
@@ -3442,7 +3445,8 @@ patch_phis_for_virtual_defs (void)
 	    add_phi_arg (new_phi, gimple_default_def (cfun, var), pred_edge);
 	}
 
-      remove_phi_node (phi, NULL, false);
+      gsi = gsi_for_stmt (phi);
+      remove_phi_node (&gsi, false);
     }
 }
 
@@ -3781,12 +3785,12 @@ is_empty_polyhedron (CloogDomain *domain)
 static bool 
 statement_precedes_p (scop_p scop,
                       graphite_bb_p gb_a,
-                      tree a,
+                      gimple a,
                       graphite_bb_p gb_b,
-                      tree b,
+                      gimple b,
                       unsigned p)
 {
-  block_stmt_iterator bsi;
+  gimple_stmt_iterator gsi;
   bool statm_a_found, statm_b_found;
   struct loop_to_cloog_loop_str tmp, *slot; 
 
@@ -3804,12 +3808,12 @@ statement_precedes_p (scop_p scop,
       slot = (struct loop_to_cloog_loop_str *) htab_find (SCOP_LOOP2CLOOG_LOOP(scop), &tmp);
 
       if (slot->loop_position == p - 1)
-	for (bsi = bsi_start (GBB_BB (gb_a)); !bsi_end_p (bsi); bsi_next (&bsi))
+	for (gsi = gsi_start_bb (GBB_BB (gb_a)); !gsi_end_p (gsi); gsi_next (&gsi))
 	  {
-	    if (bsi_stmt (bsi) == a)
+	    if (gsi_stmt (gsi) == a)
 	      statm_a_found = true;
         
-	    if (statm_a_found && bsi_stmt (bsi) == b)
+	    if (statm_a_found && gsi_stmt (gsi) == b)
 	      return true;
 	  }
     }
@@ -3903,20 +3907,20 @@ build_rdg_all_levels (scop_p scop)
   graphite_bb_p gb1, gb2;
   struct graph * rdg = NULL;
   struct data_reference *a, *b;
-  block_stmt_iterator bsi;
+  gimple_stmt_iterator gsi;
   struct graph_edge *e;
   
  /* VEC (data_reference_p, heap) *datarefs;*/
  /* All the statements that are involved in dependences are stored in
     this vector.  */
-  VEC (tree, heap) *stmts = VEC_alloc (tree, heap, 10);
+  VEC (gimple, heap) *stmts = VEC_alloc (gimple, heap, 10);
   VEC (ddp_p, heap) *dependences = VEC_alloc (ddp_p, heap, 10); 
   ddp_p dependence_polyhedron;    
   /* datarefs = VEC_alloc (data_reference_p, heap, 2);*/
   for (i = 0; VEC_iterate (graphite_bb_p, SCOP_BBS (scop), i, gb1); i++)
     {
-      for (bsi = bsi_start (GBB_BB (gb1)); !bsi_end_p (bsi); bsi_next (&bsi))
-	VEC_safe_push (tree, heap, stmts, bsi_stmt (bsi));
+      for (gsi = gsi_start_bb (GBB_BB (gb1)); !gsi_end_p (gsi); gsi_next (&gsi))
+	VEC_safe_push (gimple, heap, stmts, gsi_stmt (gsi));
 
       for (i1 = 0; 
            VEC_iterate (data_reference_p, GBB_DATA_REFS (gb1), i1, a); 
@@ -3936,7 +3940,7 @@ build_rdg_all_levels (scop_p scop)
     }
     
 
-  rdg = build_empty_rdg (VEC_length (tree, stmts));
+  rdg = build_empty_rdg (VEC_length (gimple, stmts));
   create_rdg_vertices (rdg, stmts);
 
   for (i = 0; VEC_iterate (ddp_p, dependences, i, dependence_polyhedron); i++)
@@ -3947,8 +3951,8 @@ build_rdg_all_levels (scop_p scop)
       e->data = dependence_polyhedron;
     }
 
-  VEC_free (tree, heap, stmts);
-  return rdg;  
+  VEC_free (gimple, heap, stmts);
+  return rdg;
 }
 
 /* Dumps the dependence graph G to file F.  */
@@ -3966,7 +3970,7 @@ dump_dependence_graph (FILE *f, struct graph *g)
 	continue;
 
       fprintf (f, "vertex: %d (%d)\nStatement: ", i, g->vertices[i].component);
-      print_generic_expr (f, RDGV_STMT (&(g->vertices[i])), 0);
+      print_gimple_stmt (f, RDGV_STMT (&(g->vertices[i])), 0, 0);
       fprintf (f, "\n-----------------\n");
       
       for (e = g->vertices[i].pred; e; e = e->pred_next)
@@ -4018,7 +4022,7 @@ nb_data_refs_in_scop (scop_p scop)
 static bool
 gbb_can_be_ignored (graphite_bb_p gb)
 {
-  block_stmt_iterator bsi;
+  gimple_stmt_iterator gsi;
   scop_p scop = GBB_SCOP (gb);
   loop_p loop = GBB_BB (gb)->loop_father;
 
@@ -4026,26 +4030,24 @@ gbb_can_be_ignored (graphite_bb_p gb)
     return false;
 
   /* Check statements.  */
-  for (bsi = bsi_start (GBB_BB (gb)); !bsi_end_p (bsi); bsi_next (&bsi))
+  for (gsi = gsi_start_bb (GBB_BB (gb)); !gsi_end_p (gsi); gsi_next (&gsi))
     {
-      tree stmt = bsi_stmt (bsi);
-      switch (TREE_CODE (stmt))
+      gimple stmt = gsi_stmt (gsi);
+      switch (gimple_code (stmt))
         {
           /* Control flow expressions can be ignored, as they are represented in
              the iteration domains and will be regenerated by graphite.  */
-          case COND_EXPR:
-          case GOTO_EXPR:
-          case SWITCH_EXPR:
+          case GIMPLE_COND:
+	  case GIMPLE_GOTO:
+	  case GIMPLE_SWITCH:
             break;
 
           /* Scalar variables can be ignored, if we can regenerate them later
              using their scalar evolution function.  
              XXX: Just a heuristic, that needs further investigation.  */
-          case MODIFY_EXPR:
-          case GIMPLE_MODIFY_STMT:
-          case INIT_EXPR:
+          case GIMPLE_ASSIGN:
 	    {
-	      tree var =  GENERIC_TREE_OPERAND (stmt, 0);
+	      tree var =  gimple_assign_lhs (stmt);
 	      var = analyze_scalar_evolution (loop, var);
 	      var = instantiate_scev (outermost_loop_in_scop (scop, GBB_BB (gb)),
 				      loop, var);

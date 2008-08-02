@@ -161,7 +161,7 @@ struct graphite_bb
      SWITCH_EXPR the corresponding element in CONDITION_CASES is a 
      CASE_LABEL_EXPR.  */
   VEC (gimple, heap) *conditions;
-  VEC (tree, heap) *condition_cases;
+  VEC (gimple, heap) *condition_cases;
 
   /* LOOPS contains for every column in the graphite domain the corresponding
      gimple loop. If there exists no corresponding gimple loop LOOPS contains

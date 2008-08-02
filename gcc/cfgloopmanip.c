@@ -539,16 +539,18 @@ create_empty_loop_on_edge (edge entry_edge,
 			   struct loop *outer)
 {
   basic_block loop_header, loop_latch, succ_bb, pred_bb;
-  tree cond_expr;
   struct loop *loop;
   int freq;
   gcov_type cnt;
-  block_stmt_iterator bsi;
+  gimple_stmt_iterator gsi;
   bool insert_after;
-  tree stmts, exit_test;
+  gimple_seq stmts;
+  gimple cond_expr;
+  tree exit_test;
   edge exit_e;
   int prob;
-
+  tree upper_bound_gimplified;
+  
   gcc_assert (entry_edge);
   gcc_assert (initial_value);
   gcc_assert (stride);
@@ -589,34 +591,39 @@ create_empty_loop_on_edge (edge entry_edge,
   initial_value = force_gimple_operand (initial_value, &stmts, true, iv);
   if (stmts)
     {
-      bsi_insert_on_edge (loop_preheader_edge (loop), stmts);
-      bsi_commit_edge_inserts ();
+      gsi_insert_seq_on_edge (loop_preheader_edge (loop), stmts);
+      gsi_commit_edge_inserts ();
     }
 
   add_referenced_var (iv);
-  standard_iv_increment_position (loop, &bsi, &insert_after);
-  create_iv (initial_value, stride, iv, loop, &bsi, insert_after, iv_before, NULL);
+  standard_iv_increment_position (loop, &gsi, &insert_after);
+  create_iv (initial_value, stride, iv, loop, &gsi, insert_after,
+	     iv_before, NULL);
 
   /* Modify edge flags.  */
   exit_e = single_exit (loop);
   exit_e->flags = EDGE_LOOP_EXIT | EDGE_FALSE_VALUE;
   single_pred_edge (loop_latch)->flags = EDGE_TRUE_VALUE;
 
-  bsi = bsi_last (exit_e->src);
-  
+  gsi = gsi_last_bb (exit_e->src);
 
-  cond_expr = build2 (LE_EXPR, boolean_type_node, *iv_before, upper_bound);
-  cond_expr = build3 (COND_EXPR, void_type_node, cond_expr,
-		      NULL_TREE, NULL_TREE);
-
-  exit_test = TREE_OPERAND(cond_expr, 0);
-  exit_test = force_gimple_operand (exit_test, &stmts, true, NULL);
-  TREE_OPERAND (cond_expr,0) = exit_test;
+  upper_bound_gimplified = 
+    force_gimple_operand (upper_bound, &stmts, true, NULL);
   if (stmts)
-    bsi_insert_after (&bsi, stmts, BSI_NEW_STMT);
+    gsi_insert_seq_after (&gsi, stmts, GSI_NEW_STMT);
+  gsi = gsi_last_bb (exit_e->src);
+  
+  cond_expr = gimple_build_cond 
+    (LE_EXPR, *iv_before, upper_bound_gimplified, NULL_TREE, NULL_TREE);
 
-  bsi = bsi_last (exit_e->src);
-  bsi_insert_after (&bsi, cond_expr, BSI_NEW_STMT);
+  exit_test = gimple_cond_lhs (cond_expr);
+  exit_test = force_gimple_operand (exit_test, &stmts, true, NULL);
+  gimple_cond_set_lhs (cond_expr, exit_test);
+  if (stmts)
+    gsi_insert_seq_after (&gsi, stmts, GSI_NEW_STMT);
+
+  gsi = gsi_last_bb (exit_e->src);
+  gsi_insert_after (&gsi, cond_expr, GSI_NEW_STMT);
 
   return loop;
 }

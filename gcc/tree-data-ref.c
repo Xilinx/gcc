@@ -4863,7 +4863,7 @@ build_rdg (struct loop *loop)
     {
       free_dependence_relations (dependence_relations);
       free_data_refs (datarefs);
-      VEC_free (tree, heap, stmts);
+      VEC_free (gimple, heap, stmts);
 
       return rdg;
     }
