@@ -40,7 +40,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree-scalar-evolution.h"
 #include "tree-pass.h"
 #include "domwalk.h"
-#include "polylib/polylibgmp.h"
 #include "cloog/cloog.h"
 #include "graphite.h"
 #include "pointer-set.h"
@@ -274,7 +273,7 @@ get_loop_mapped_depth_for_num (graphite_loops_mapping mapping, int num)
 static int
 get_loop_mapped_depth (scop_p scop, struct loop *loop)
 {
-  unsigned num = loop->num;
+  int num = loop->num;
   int depth = get_loop_mapped_depth_for_num (SCOP_LOOPS_MAPPING (scop), num);
 
   if (depth == -1)
@@ -470,8 +469,8 @@ static inline int nb_loops_around_gb (graphite_bb_p gb);
 /* Returns a new loop_to_cloog_loop_str structure.  */
 
 static inline struct loop_to_cloog_loop_str *
-new_loop_to_cloog_loop_str (unsigned int loop_num,
-                            unsigned int loop_position,
+new_loop_to_cloog_loop_str (int loop_num,
+                            int loop_position,
                             CloogLoop *cloog_loop)
 {
   struct loop_to_cloog_loop_str *result;
@@ -636,7 +635,7 @@ print_scop (FILE *file, scop_p scop, int verbosity)
   if (SCOP_BBS (scop))
     {
       graphite_bb_p gb;
-      unsigned i;
+      int i;
 
       for (i = 0; VEC_iterate (graphite_bb_p, SCOP_BBS (scop), i, gb); i++)
 	print_graphite_bb (file, gb, 0, verbosity);
@@ -650,7 +649,7 @@ print_scop (FILE *file, scop_p scop, int verbosity)
 static void
 print_scops (FILE *file, int verbosity)
 {
-  unsigned i;
+  int i;
   scop_p scop;
 
   for (i = 0; VEC_iterate (scop_p, current_scops, i, scop); i++)
@@ -1070,7 +1069,7 @@ new_scop (basic_block entry)
   SCOP_LOOP_NEST (scop) = VEC_alloc (loop_p, heap, 3);
   SCOP_PARAMS (scop) = VEC_alloc (name_tree, heap, 3);
   SCOP_PROG (scop) = cloog_program_malloc ();
-  SCOP_PROG (scop)->names = cloog_names_malloc ();
+  cloog_program_set_names (SCOP_PROG (scop), cloog_names_malloc ());
   SCOP_LOOP2CLOOG_LOOP (scop) = htab_create (10, hash_loop_to_cloog_loop,
 					     eq_loop_to_cloog_loop,
 					     del_loop_to_cloog_loop);
@@ -1123,7 +1122,7 @@ free_scop (scop_p scop)
 static void
 free_scops (VEC (scop_p, heap) *scops)
 {
-  unsigned i;
+  int i;
   scop_p scop;
 
   for (i = 0; VEC_iterate (scop_p, scops, i, scop); i++)
@@ -1604,7 +1603,7 @@ build_scop_bbs (scop_p scop)
   while (sp)
     {
       basic_block bb = stack[--sp];
-      unsigned depth = loop_depth (bb->loop_father);
+      int depth = loop_depth (bb->loop_father);
       int num = bb->loop_father->num;
       edge_iterator ei;
       edge e;
@@ -1626,32 +1625,32 @@ build_scop_bbs (scop_p scop)
       /* First push the blocks that have to be processed last.  */
       FOR_EACH_EDGE (e, ei, bb->succs)
 	if (! TEST_BIT (visited, e->dest->index)
-	    && loop_depth (e->dest->loop_father) < depth)
+	    && (int) loop_depth (e->dest->loop_father) < depth)
 	  stack[sp++] = e->dest;
 
       FOR_EACH_EDGE (e, ei, bb->succs)
 	if (! TEST_BIT (visited, e->dest->index)
-	    && loop_depth (e->dest->loop_father) == depth
+	    && (int) loop_depth (e->dest->loop_father) == depth
 	    && e->dest->loop_father->num != num)
 	  stack[sp++] = e->dest;
 
       FOR_EACH_EDGE (e, ei, bb->succs)
 	if (! TEST_BIT (visited, e->dest->index)
-	    && loop_depth (e->dest->loop_father) == depth
+	    && (int) loop_depth (e->dest->loop_father) == depth
 	    && e->dest->loop_father->num == num
 	    && EDGE_COUNT (e->dest->preds) > 1)
 	  stack[sp++] = e->dest;
 
       FOR_EACH_EDGE (e, ei, bb->succs)
 	if (! TEST_BIT (visited, e->dest->index)
-	    && loop_depth (e->dest->loop_father) == depth
+	    && (int) loop_depth (e->dest->loop_father) == depth
 	    && e->dest->loop_father->num == num
 	    && EDGE_COUNT (e->dest->preds) == 1)
 	  stack[sp++] = e->dest;
 
       FOR_EACH_EDGE (e, ei, bb->succs)
 	if (! TEST_BIT (visited, e->dest->index)
-	    && loop_depth (e->dest->loop_father) > depth)
+	    && (int) loop_depth (e->dest->loop_father) > depth)
 	  stack[sp++] = e->dest;
     }
 
@@ -1730,7 +1729,7 @@ build_scop_loop_nests (scop_p scop)
 static void
 build_scop_dynamic_schedules (scop_p scop)
 {
-  unsigned i, dim, loop_num, row, col;
+  int i, dim, loop_num, row, col;
   graphite_bb_p gb;
 
 
@@ -1795,9 +1794,9 @@ build_scop_dynamic_schedules (scop_p scop)
 static void
 build_scop_canonical_schedules (scop_p scop)
 {
-  unsigned i, j;
+  int i, j;
   graphite_bb_p gb;
-  unsigned nb = scop_nb_loops (scop) + 1;
+  int nb = scop_nb_loops (scop) + 1;
 
   SCOP_STATIC_SCHEDULE (scop) = lambda_vector_new (nb);
 
@@ -1885,7 +1884,7 @@ param_index (tree var, scop_p scop)
 static void
 scan_tree_for_params (scop_p s, tree e, CloogMatrix *c, int r, Value k)
 {
-  unsigned cst_col, param_col;
+  int cst_col, param_col;
 
   switch (TREE_CODE (e))
     {
@@ -1900,7 +1899,7 @@ scan_tree_for_params (scop_p s, tree e, CloogMatrix *c, int r, Value k)
 
 	if (c)
 	  {
-	    unsigned var_idx = loop_iteration_vector_dim (var, s);
+	    int var_idx = loop_iteration_vector_dim (var, s);
 	    value_init (c->p[r][var_idx]);
 	    value_set_si (c->p[r][var_idx], int_cst_value (right));
 	  }
@@ -2047,7 +2046,7 @@ idx_record_params (tree base, tree *idx, void *dta)
 static void
 find_params_in_bb (struct dom_walk_data *dw_data, basic_block bb)
 {
-  unsigned i;
+  int i;
   data_reference_p dr;
   VEC (data_reference_p, heap) *drs;
   gimple_stmt_iterator gsi;
@@ -2099,10 +2098,10 @@ save_var_name (char **nv, int i, name_tree p)
 static void
 initialize_cloog_names (scop_p scop)
 {
-  unsigned i, nb_params = VEC_length (name_tree, SCOP_PARAMS (scop));
+  int i, nb_params = VEC_length (name_tree, SCOP_PARAMS (scop));
   char **params = XNEWVEC (char *, nb_params);
-  unsigned nb_iterators = scop_max_loop_depth (scop);
-  unsigned nb_scattering= SCOP_PROG (scop)->nb_scattdims;
+  int nb_iterators = scop_max_loop_depth (scop);
+  int nb_scattering= cloog_program_nb_scattdims (SCOP_PROG (scop));
   char **iterators = XNEWVEC (char *, nb_iterators * 2);
   char **scattering = XNEWVEC (char *, nb_scattering);
   name_tree p;
@@ -2110,8 +2109,10 @@ initialize_cloog_names (scop_p scop)
   for (i = 0; VEC_iterate (name_tree, SCOP_PARAMS (scop), i, p); i++)
     save_var_name (params, i, p);
 
-  SCOP_PROG (scop)->names->nb_parameters = nb_params;
-  SCOP_PROG (scop)->names->parameters = params;
+  cloog_names_set_nb_parameters (cloog_program_names (SCOP_PROG (scop)),
+				 nb_params);
+  cloog_names_set_parameters (cloog_program_names (SCOP_PROG (scop)),
+			      params);
 
   for (i = 0; i < nb_iterators; i++)
     {
@@ -2119,8 +2120,10 @@ initialize_cloog_names (scop_p scop)
       sprintf (iterators[i], "graphite_iterator_%d", i);
     }
 
-  SCOP_PROG (scop)->names->nb_iterators = nb_iterators;
-  SCOP_PROG (scop)->names->iterators = iterators;
+  cloog_names_set_nb_iterators (cloog_program_names (SCOP_PROG (scop)),
+				nb_iterators);
+  cloog_names_set_iterators (cloog_program_names (SCOP_PROG (scop)),
+			     iterators);
 
   for (i = 0; i < nb_scattering; i++)
     {
@@ -2128,8 +2131,10 @@ initialize_cloog_names (scop_p scop)
       sprintf (scattering[i], "s_%d", i);
     }
 
-  SCOP_PROG (scop)->names->nb_scattering = nb_scattering;
-  SCOP_PROG (scop)->names->scattering = scattering;
+  cloog_names_set_nb_scattering (cloog_program_names (SCOP_PROG (scop)),
+				 nb_scattering);
+  cloog_names_set_scattering (cloog_program_names (SCOP_PROG (scop)),
+			      scattering);
 }
 
 /* Record the parameters used in the SCOP.  A variable is a parameter
@@ -2138,7 +2143,7 @@ initialize_cloog_names (scop_p scop)
 static void
 find_scop_parameters (scop_p scop)
 {
-  unsigned i;
+  int i;
   struct dom_walk_data walk_data;
   struct loop *loop;
 
@@ -2184,7 +2189,7 @@ find_scop_parameters (scop_p scop)
 static void
 build_scop_context (scop_p scop)
 {
-  unsigned nb_params = scop_nb_params (scop);
+  int nb_params = scop_nb_params (scop);
   CloogMatrix *matrix = cloog_matrix_alloc (1, nb_params + 2);
 
   /* Insert '0 >= 0' in the context matrix, as it is not allowed to be
@@ -2196,7 +2201,8 @@ build_scop_context (scop_p scop)
   value_init (matrix->p[0][nb_params + 1]);
   value_set_si (matrix->p[0][nb_params + 1], 0);
 
-  SCOP_PROG (scop)->context = cloog_domain_matrix2domain (matrix);
+  cloog_program_set_context (SCOP_PROG (scop),
+			     cloog_domain_matrix2domain (matrix));
   cloog_matrix_free (matrix);
 }
 
@@ -2220,7 +2226,7 @@ static graphite_bb_p
 graphite_bb_from_bb (basic_block bb, scop_p scop)
 {
   graphite_bb_p gb;
-  unsigned i;
+  int i;
 
   for (i = 0; VEC_iterate (graphite_bb_p, SCOP_BBS (scop), i, gb); i++)
     if (GBB_BB (gb) == bb)
@@ -2256,18 +2262,18 @@ static void
 build_loop_iteration_domains (scop_p scop, struct loop *loop,
                               CloogMatrix *outer_cstr, int nb_outer_loops)
 {
-  unsigned i, j, row;
+  int i, j, row;
   CloogMatrix *cstr;
 
-  unsigned nb_rows = outer_cstr->NbRows + 1;
-  unsigned nb_cols = outer_cstr->NbColumns + 1;
+  int nb_rows = outer_cstr->NbRows + 1;
+  int nb_cols = outer_cstr->NbColumns + 1;
 
   /* Last column of CSTR is the column of constants.  */
-  unsigned cst_col = nb_cols - 1;
+  int cst_col = nb_cols - 1;
 
   /* The column for the current loop is just after the columns of
      other outer loops.  */
-  unsigned loop_col = nb_outer_loops + 1;
+  int loop_col = nb_outer_loops + 1;
 
   tree nb_iters = number_of_latch_executions (loop);
 
@@ -2360,7 +2366,7 @@ static void
 build_scop_conditions_1 (VEC (gimple, heap) **conditions,
 			 VEC (gimple, heap) **cases, basic_block bb, scop_p scop)
 {
-  unsigned i, j;
+  int i, j;
   graphite_bb_p gbb;
   gimple_stmt_iterator gsi;
   basic_block bb_child, bb_iter;
@@ -2416,7 +2422,7 @@ build_scop_conditions_1 (VEC (gimple, heap) **conditions,
 
 	case GIMPLE_SWITCH:
 	  {
-	    unsigned int i;
+	    unsigned i;
 	    gimple_stmt_iterator gsi_search_gimple_label;
 
 	    for (i = 0; i < gimple_switch_num_labels (stmt); ++i)
@@ -2617,7 +2623,7 @@ build_scop_iteration_domain (scop_p scop)
 
 static bool
 build_access_matrix_with_af (tree access_fun, lambda_vector cy,
-			     scop_p scop, unsigned ndim)
+			     scop_p scop, int ndim)
 {
   switch (TREE_CODE (access_fun))
     {
@@ -2625,7 +2631,7 @@ build_access_matrix_with_af (tree access_fun, lambda_vector cy,
       {
 	tree left = CHREC_LEFT (access_fun);
 	tree right = CHREC_RIGHT (access_fun);
-	unsigned var;
+	int var;
 
 	if (TREE_CODE (right) != INTEGER_CST)
 	  return false;
@@ -2665,7 +2671,7 @@ build_access_matrix_with_af (tree access_fun, lambda_vector cy,
 static bool
 build_access_matrix (data_reference_p ref, graphite_bb_p gb)
 {
-  unsigned i, ndim = DR_NUM_DIMENSIONS (ref);
+  int i, ndim = DR_NUM_DIMENSIONS (ref);
   struct access_matrix *am = GGC_NEW (struct access_matrix);
 
   AM_MATRIX (am) = VEC_alloc (lambda_vector, heap, ndim);
@@ -2692,12 +2698,12 @@ build_access_matrix (data_reference_p ref, graphite_bb_p gb)
 static void
 build_scop_data_accesses (scop_p scop)
 {
-  unsigned i;
+  int i;
   graphite_bb_p gb;
 
   for (i = 0; VEC_iterate (graphite_bb_p, SCOP_BBS (scop), i, gb); i++)
     {
-      unsigned j;
+      int j;
       gimple_stmt_iterator gsi;
       data_reference_p dr;
       struct loop *nest = outermost_loop_in_scop (scop, GBB_BB (gb));
@@ -2740,7 +2746,7 @@ static tree
 clast_name_to_gcc (const char *name, VEC (name_tree, heap) *params, 
 		   loop_iv_stack ivstack)
 {
-  unsigned i;
+  int i;
   name_tree t;
   tree iv;
 
@@ -3064,68 +3070,63 @@ translate_clast (scop_p scop, struct loop *context_loop,
   if (!stmt)
     return next_e;
 
-  switch (stmt->type) 
+  if (CLAST_STMT_IS_A (stmt, stmt_root))
+    return translate_clast (scop, context_loop, stmt->next, next_e, ivstack);
+
+  if (CLAST_STMT_IS_A (stmt, stmt_user))
     {
-    case stmt_root:
+      CloogStatement *cs = ((struct clast_user_stmt *) stmt)->statement;
+      graphite_bb_p gbb = (graphite_bb_p) cloog_statement_usr (cs);
+      basic_block bb = gbb->bb;
+      loop_p old_loop_father = bb->loop_father;
+
+      if (bb == ENTRY_BLOCK_PTR)
+	return next_e;
+	
+      remove_cond_exprs (bb);
+      remove_all_edges (bb, next_e);
+      move_phi_nodes (scop, old_loop_father, bb, next_e->src);	
+      redirect_edge_succ_nodup (next_e, bb);
+
+      if (context_loop)
+	{
+	  remove_bb_from_loops (bb);
+	  add_bb_to_loop (bb, context_loop);
+	}
+
+      set_immediate_dominator (CDI_DOMINATORS, next_e->dest, next_e->src); 
+      mark_virtual_ops_in_bb (bb);
+      next_e = make_edge (bb,
+			  context_loop ? context_loop->latch : EXIT_BLOCK_PTR,
+			  EDGE_FALLTHRU);;
+      graphite_rename_ivs (gbb, scop, old_loop_father, ivstack);
       return translate_clast (scop, context_loop, stmt->next, next_e, ivstack);
+    }
 
-    case stmt_user:
-      {
-	CloogStatement *cs = ((struct clast_user_stmt *) stmt)->statement;
-	graphite_bb_p gbb = (graphite_bb_p) cs->usr;
-	basic_block bb = gbb->bb;
-	loop_p old_loop_father = bb->loop_father;
-
-	if (bb == ENTRY_BLOCK_PTR)
-	  return next_e;
+  if (CLAST_STMT_IS_A (stmt, stmt_for))
+    {
+      struct loop *loop = graphite_create_new_loop (scop, next_e,
+						    (struct clast_for *) stmt, ivstack,
+						    context_loop ? context_loop : get_loop (0));
+      edge last_e = single_exit (loop);
 	
-	remove_cond_exprs (bb);
-	remove_all_edges (bb, next_e);
-	move_phi_nodes (scop, old_loop_father, bb, next_e->src);	
-	redirect_edge_succ_nodup (next_e, bb);
-
-	if (context_loop)
-	  {
-	    remove_bb_from_loops (bb);
-	    add_bb_to_loop (bb, context_loop);
-	  }
-
-	set_immediate_dominator (CDI_DOMINATORS, next_e->dest, next_e->src); 
-	mark_virtual_ops_in_bb (bb);
-	next_e = make_edge (bb,
-			    context_loop ? context_loop->latch : EXIT_BLOCK_PTR,
-			    EDGE_FALLTHRU);;
-	graphite_rename_ivs (gbb, scop, old_loop_father, ivstack);
-	return translate_clast (scop, context_loop, stmt->next, next_e, ivstack);
-      }
-
-    case stmt_for:
-      {
-	struct loop *loop = graphite_create_new_loop (scop, next_e,
-						      (struct clast_for *) stmt, ivstack,
-						      context_loop ? context_loop : get_loop (0));
-	edge last_e = single_exit (loop);
+      next_e = translate_clast (scop, loop, ((struct clast_for *) stmt)->body,
+				single_pred_edge (loop->latch), ivstack);
+      redirect_edge_succ_nodup (next_e, loop->latch);
 	
-	next_e = translate_clast (scop, loop, ((struct clast_for *) stmt)->body,
-				  single_pred_edge (loop->latch), ivstack);
-	redirect_edge_succ_nodup (next_e, loop->latch);
-	
-	set_immediate_dominator (CDI_DOMINATORS, next_e->dest, next_e->src);
-	loop_iv_stack_pop (ivstack);
+      set_immediate_dominator (CDI_DOMINATORS, next_e->dest, next_e->src);
+      loop_iv_stack_pop (ivstack);
 
-	return translate_clast (scop, context_loop, stmt->next, last_e, ivstack);
-      }
+      return translate_clast (scop, context_loop, stmt->next, last_e, ivstack);
+    }
 
-    case stmt_block:
+  if (CLAST_STMT_IS_A (stmt, stmt_block))
+    {
       next_e = translate_clast (scop, context_loop, ((struct clast_block *) stmt)->body, next_e, ivstack);
       return translate_clast (scop, context_loop, stmt->next, next_e, ivstack);
-
-    case stmt_guard:
-    case stmt_ass:
-    default:
-      gcc_unreachable ();
-
     }
+
+  gcc_unreachable ();
 }
 
 /* Build cloog program for SCoP.  */
@@ -3140,9 +3141,10 @@ build_cloog_prog (scop_p scop)
   CloogBlockList *block_list = NULL;
   CloogDomainList *scattering = NULL;
   CloogProgram *prog = SCOP_PROG (scop);
-  
-  prog->nb_scattdims = 2 * max_nb_loops + 1; 
+  int nbs = 2 * max_nb_loops + 1;
+  int *scaldims = (int *) xmalloc (nbs * (sizeof (int)));
 
+  cloog_program_set_nb_scattdims (prog, nbs);
   initialize_cloog_names (scop);
 
   for (i = 0; VEC_iterate (graphite_bb_p, SCOP_BBS (scop), i, gbb); i++)
@@ -3150,9 +3152,9 @@ build_cloog_prog (scop_p scop)
       /* Build new block.  */
       CloogMatrix *domain = GBB_DOMAIN (gbb);
       CloogStatement *stmt = cloog_statement_alloc (GBB_BB (gbb)->index);
-      CloogBlock *block = cloog_block_alloc (stmt, NULL, 0, NULL,
+      CloogBlock *block = cloog_block_alloc (stmt, 0, NULL,
 					     nb_loops_around_gb (gbb));
-      stmt->usr = gbb;
+      cloog_statement_set_usr (stmt, gbb);
 
       /* Add empty domain to all bbs, which do not yet have a domain, as they
          are not part of any loop.  */
@@ -3165,17 +3167,18 @@ build_cloog_prog (scop_p scop)
       /* Build loop list.  */
       {
         CloogLoop *new_loop_list = cloog_loop_malloc ();
-        new_loop_list->next = loop_list;
-        new_loop_list->domain = cloog_domain_matrix2domain (domain);
-        new_loop_list->block = block; 
+        cloog_loop_set_next (new_loop_list, loop_list);
+        cloog_loop_set_domain (new_loop_list, cloog_domain_matrix2domain (domain));
+        cloog_loop_set_block (new_loop_list, block);
         loop_list = new_loop_list;
       }
 
       /* Build block list.  */
       {
         CloogBlockList *new_block_list = cloog_block_list_malloc ();
-        new_block_list->next = block_list;
-        new_block_list->block = block;
+
+        cloog_block_list_set_next (new_block_list, block_list);
+        cloog_block_list_set_block (new_block_list, block);
         block_list = new_block_list;
       }
 
@@ -3183,24 +3186,22 @@ build_cloog_prog (scop_p scop)
       {
         /* XXX: Replace with cloog_domain_list_alloc(), when available.  */
         CloogDomainList *new_scattering = (CloogDomainList *) xmalloc (sizeof (CloogDomainList));
-        CloogMatrix *scat_mat = schedule_to_scattering (gbb, prog->nb_scattdims);
-        new_scattering->next = scattering;
-        new_scattering->domain = cloog_domain_matrix2domain (scat_mat);
+        CloogMatrix *scat_mat = schedule_to_scattering (gbb, nbs);
+
+        cloog_set_next_domain (new_scattering, scattering);
+        cloog_set_domain (new_scattering, cloog_domain_matrix2domain (scat_mat));
         scattering = new_scattering;
         cloog_matrix_free (scat_mat);
       }
     }
 
-  prog->loop = loop_list;
-  prog->blocklist = block_list;
-  prog->scaldims = (int *) xmalloc (prog->nb_scattdims * (sizeof (int)));
+  cloog_program_set_loop (prog, loop_list);
+  cloog_program_set_blocklist (prog, block_list);
 
-  /* XXX: Work around some libcloog shortcomings.  Cedric will integrate this
-     into cloog.  */
-  gcc_assert (prog->scaldims);
-    
-  for (i = 0; i < prog->nb_scattdims; i++)
-    prog->scaldims[i] = 0 ;
+  for (i = 0; i < nbs; i++)
+    scaldims[i] = 0 ;
+
+  cloog_program_set_scaldims (prog, scaldims);
 
   /* Extract scalar dimensions to simplify the code generation problem.  */
   cloog_program_extract_scalars (prog, scattering);
@@ -3209,21 +3210,21 @@ build_cloog_prog (scop_p scop)
   cloog_program_scatter (prog, scattering);
 
   /* Iterators corresponding to scalar dimensions have to be extracted.  */
-  cloog_names_scalarize (prog->names, prog->nb_scattdims, prog->scaldims);
+  cloog_names_scalarize (cloog_program_names (prog), nbs, cloog_program_scaldims (prog));
   
   /* Free blocklist.  */
   {
-    CloogBlockList *next = prog->blocklist;
+    CloogBlockList *next = cloog_program_blocklist (prog);
 	
     while (next)
       {
         CloogBlockList *toDelete = next;
-        next = next->next;
-        toDelete->next = NULL;
-        toDelete->block = NULL;
+        next = cloog_block_list_next (next);
+        cloog_block_list_set_next (toDelete, NULL);
+        cloog_block_list_set_block (toDelete, NULL);
         cloog_block_list_free (toDelete);
       }
-    prog->blocklist = NULL;
+    cloog_program_set_blocklist (prog, NULL);
   }
 }
 
@@ -3456,7 +3457,7 @@ patch_phis_for_virtual_defs (void)
 static void
 mark_old_loops (scop_p scop)
 {
-  unsigned i;
+  int i;
   struct loop *loop;
 
   for (i = 0; VEC_iterate (loop_p, SCOP_LOOP_NEST (scop), i, loop); i++)
@@ -3513,32 +3514,29 @@ can_generate_code_stmt (struct clast_stmt *stmt, struct pointer_set_t *used_basi
   if (!stmt)
     return true;
 
-  switch (stmt->type) 
+  if (CLAST_STMT_IS_A (stmt, stmt_root))
+    return can_generate_code_stmt (stmt->next, used_basic_blocks);
+
+  if (CLAST_STMT_IS_A (stmt, stmt_user))
     {
-    case stmt_root:
+      CloogStatement *cs = ((struct clast_user_stmt *) stmt)->statement;
+      graphite_bb_p gbb = (graphite_bb_p) cloog_statement_usr (cs);
+
+      if (pointer_set_contains (used_basic_blocks, gbb))
+	return false;
+      pointer_set_insert (used_basic_blocks, gbb);
       return can_generate_code_stmt (stmt->next, used_basic_blocks);
-    case stmt_user:
-      {
-	CloogStatement *cs = ((struct clast_user_stmt *) stmt)->statement;
-	graphite_bb_p gbb = (graphite_bb_p) cs->usr;
-
-	if (pointer_set_contains (used_basic_blocks, gbb))
-	  return false;
-	pointer_set_insert (used_basic_blocks, gbb);
-	return can_generate_code_stmt (stmt->next, used_basic_blocks);
-      }
-    case stmt_for:
-      return can_generate_code_stmt (((struct clast_for *) stmt)->body, used_basic_blocks)
-	&& can_generate_code_stmt (stmt->next, used_basic_blocks);
-
-    case stmt_block:
-      return can_generate_code_stmt (((struct clast_block *) stmt)->body, used_basic_blocks)
-	&& can_generate_code_stmt (stmt->next, used_basic_blocks);
-    case stmt_guard:
-    case stmt_ass:
-    default:
-      return false;
     }
+
+  if (CLAST_STMT_IS_A (stmt, stmt_for))
+    return can_generate_code_stmt (((struct clast_for *) stmt)->body, used_basic_blocks)
+      && can_generate_code_stmt (stmt->next, used_basic_blocks);
+
+  if (CLAST_STMT_IS_A (stmt, stmt_block))
+    return can_generate_code_stmt (((struct clast_block *) stmt)->body, used_basic_blocks)
+      && can_generate_code_stmt (stmt->next, used_basic_blocks);
+
+  return false;
 }
 
 /* Returns true when it is possible to generate code for this STMT.  */
@@ -3620,382 +3618,6 @@ gloog (scop_p scop, struct clast_stmt *stmt)
   update_ssa (TODO_update_ssa);
   verify_ssa (false);
   estimate_bb_frequencies ();
-}
-
-/* Returns a matrix representing the data dependence between memory
-   accesses A and B in the context of SCOP.  */
-
-static CloogMatrix *
-initialize_dependence_polyhedron (scop_p scop, 
-                                  struct data_reference *a, 
-                                  struct data_reference *b)
-{
-  unsigned nb_cols, nb_rows, nb_params, nb_iter1, nb_iter2;
-  struct loop_to_cloog_loop_str tmp, *slot1, *slot2; 
-  unsigned row, col;
-  CloogMatrix *domain1, *domain2;
-  CloogMatrix *dep_constraints;
-  lambda_vector access_row_vector;
-  struct loop *containing_loop;
-  Value value;
-
-  containing_loop = loop_containing_stmt (DR_STMT (a));
-  tmp.loop_num = containing_loop->num;
-  slot1 = (struct loop_to_cloog_loop_str *) htab_find (SCOP_LOOP2CLOOG_LOOP(scop), &tmp); 
-          
-  containing_loop = loop_containing_stmt (DR_STMT (b));
-  tmp.loop_num = containing_loop->num;
-  slot2 = (struct loop_to_cloog_loop_str *) htab_find (SCOP_LOOP2CLOOG_LOOP(scop), &tmp); 
-  /* TODO: insert checking for possible null values of slot1 and
-     slot2.  */
-
-  domain1 = cloog_domain_domain2matrix (slot1->cloog_loop->domain);
-  domain2 = cloog_domain_domain2matrix (slot2->cloog_loop->domain);
-
-  /* Adding 2 columns: one for the eq/neq column, one for constant
-     term.  */
-  
-  nb_params = scop_nb_params (scop);
-  nb_iter1 = domain1->NbColumns - 2 - nb_params;
-  nb_iter2 = domain2->NbColumns - 2 - nb_params;
-
-  nb_cols = nb_iter1 + nb_iter2 + scop_nb_params (scop) + 2;
-  nb_rows = domain1->NbRows + domain2->NbRows + DR_NUM_DIMENSIONS (a) 
-            + 2 * MIN (nb_iter1, nb_iter2);
-  dep_constraints = cloog_matrix_alloc (nb_rows, nb_cols);
-
-  /* Initialize dependence polyhedron.  TODO: do we need it?  */
-  for (row = 0; row < dep_constraints->NbRows ; row++)
-    for (col = 0; col < dep_constraints->NbColumns; col++)
-      value_init (dep_constraints->p[row][col]);
-
-  /* Copy the iterator part of Ds (domain of S statement), with eq/neq
-     column.  */
-  for (row = 0; row < domain1->NbRows; row++)
-    for (col = 0; col <= nb_iter1; col++)
-      value_assign (dep_constraints->p[row][col], domain1->p[row][col]);
-
-  /* Copy the parametric and constant part of Ds.  */
-  for (row = 0; row < domain1->NbRows; row++)
-    {
-      value_assign (dep_constraints->p[row][nb_cols-1],
-		    domain1->p[row][domain1->NbColumns - 1]);
-      for (col = 1; col <= nb_params; col++)
-	value_assign (dep_constraints->p[row][col + nb_iter1 + nb_iter2],
-		      domain1->p[row][col + nb_iter1]);
-    }
-
-  /* Copy the iterator part of Dt (domain of T statement), without eq/neq column.  */
-  for (row = 0; row < domain2->NbRows; row++)
-    for (col = 1; col <= nb_iter2; col++)
-      value_assign (dep_constraints->p[row + domain1->NbRows][col + nb_iter2],
-		    domain2->p[row][col]);
-  
-  /* Copy the eq/neq column of Dt to dependence polyhedron.  */
-  for (row = 0; row < domain2->NbRows; row++)
-    value_assign (dep_constraints->p[row + domain1->NbRows][0], domain2->p[row][0]);
-
-  /* Copy the parametric and constant part of Dt.  */
-  for (row = 0; row < domain2->NbRows; row++)
-    {
-      value_assign (dep_constraints->p[row + domain1->NbRows][nb_cols-1],
-		    domain1->p[row][domain2->NbColumns - 1]);
-      for (col = 1; col <= nb_params; col++)
-        value_assign (dep_constraints->p[row + domain1->NbRows][col + nb_iter1 + nb_iter2],
-                      domain2->p[row][col + nb_iter2]);
-    }
-
-  /* Copy Ds access matrix.  */
-  for (row = 0; VEC_iterate (lambda_vector, AM_MATRIX (DR_ACCESS_MATRIX (a)),
-			     row, access_row_vector); row++)
-    {
-      for (col = 1; col <= nb_iter1; col++)
-	value_set_si (dep_constraints->p[row + domain1->NbRows + domain2->NbRows][col],
-		      access_row_vector[col]);              
-
-      value_set_si (dep_constraints->p[row + domain1->NbRows + domain2->NbRows][nb_cols-1], 
-                    access_row_vector[ref_nb_loops (a) - 1]);
-      /* TODO: do not forget about parametric part.  */
-    }
-  value_init (value);
-  /* Copy -Dt access matrix.  */
-  for (row = 0; VEC_iterate (lambda_vector, AM_MATRIX (DR_ACCESS_MATRIX (b)),
-			     row, access_row_vector); row++)
-    {
-      for (col = 1; col <= nb_iter2; col++)
-	value_set_si (dep_constraints->p[row + domain1->NbRows + domain2->NbRows][nb_iter1 + col], 
-		      -access_row_vector[col]);              
-      value_set_si (value, access_row_vector[ref_nb_loops (b) - 1]);
-      value_subtract (dep_constraints->p[row + domain1->NbRows + domain2->NbRows][nb_cols-1],
-                     dep_constraints->p[row + domain1->NbRows + domain2->NbRows][nb_cols-1],
-                     value);
-    }
-  value_clear (value);
-  return dep_constraints;
-}
-
-/* Returns a new dependence polyhedron for data references A and B.  */
-
-static struct data_dependence_polyhedron *
-initialize_data_dependence_polyhedron (bool loop_carried,
-                                       CloogDomain *domain,
-                                       unsigned level,
-                                       struct data_reference *a,
-                                       struct data_reference *b)
-{
-  struct data_dependence_polyhedron *res;
-
-  res = XNEW (struct data_dependence_polyhedron);
-  res->a = a;
-  res->b = b;
-  res->loop_carried = loop_carried;
-  res->level = level;
-
-  if (loop_carried)
-    res->polyhedron = domain; 
-  else
-    res->polyhedron = NULL;
-
-  return res;
-}
-
-/* Returns true when the last row of DOMAIN polyhedron is zero.  */
-
-static bool 
-is_empty_polyhedron (CloogDomain *domain)
-{
-  Polyhedron *polyhedron;
-  unsigned i, last_column, last_row;
-  polyhedron = domain->polyhedron;
-  last_column = polyhedron->Dimension + 2;
-  last_row = polyhedron->NbConstraints - 1;
-
-  for (i = 1; i < last_column - 1; i++)
-    if (!value_zero_p (polyhedron->Constraint[last_row][i]))
-      return false;
-
-  return !value_zero_p (polyhedron->Constraint[last_row][last_column - 1]);
-}
-
-/* Returns true if statement A, contained in basic block GB_A,
-   precedes statement B, contained in basic block GB_B.  The decision
-   is based on static schedule of basic block's and relative position
-   of statements.  */
-
-static bool 
-statement_precedes_p (scop_p scop,
-                      graphite_bb_p gb_a,
-                      gimple a,
-                      graphite_bb_p gb_b,
-                      gimple b,
-                      unsigned p)
-{
-  gimple_stmt_iterator gsi;
-  bool statm_a_found, statm_b_found;
-  struct loop_to_cloog_loop_str tmp, *slot; 
-
-  if (GBB_STATIC_SCHEDULE (gb_a)[p - 1] < GBB_STATIC_SCHEDULE (gb_b)[p - 1])
-    return true;
-
-  else if (GBB_STATIC_SCHEDULE (gb_a)[p - 1] == GBB_STATIC_SCHEDULE (gb_b)[p - 1])
-    {
-      statm_a_found = false;
-      statm_b_found = false;
-      /* TODO: You can use stmt_ann->uid for a slight speedup.  */
-      /* If static schedules are the same -> gb1 = gb2.  */
-      /* GBB_BB (gb_a)->loop_father; */
-      tmp.loop_num = GBB_BB (gb_a)->loop_father->num;
-      slot = (struct loop_to_cloog_loop_str *) htab_find (SCOP_LOOP2CLOOG_LOOP(scop), &tmp);
-
-      if (slot->loop_position == p - 1)
-	for (gsi = gsi_start_bb (GBB_BB (gb_a)); !gsi_end_p (gsi); gsi_next (&gsi))
-	  {
-	    if (gsi_stmt (gsi) == a)
-	      statm_a_found = true;
-        
-	    if (statm_a_found && gsi_stmt (gsi) == b)
-	      return true;
-	  }
-    }
-
-  return false;
-}
-
-static struct data_dependence_polyhedron *
-test_dependence (scop_p scop, graphite_bb_p gb1, graphite_bb_p gb2,
-                 struct data_reference *a, struct data_reference *b)
-{
-  unsigned i, j, row, iter_vector_dim;
-  unsigned loop_a, loop_b;
-  signed p;
-  CloogMatrix *dep_constraints = NULL, *temp_matrix = NULL;
-  CloogDomain *simplified;
-  
-  loop_a = loop_containing_stmt (DR_STMT (a)) -> num;
-  loop_b = loop_containing_stmt (DR_STMT (b)) -> num;
-  
-  iter_vector_dim = MIN (loop_iteration_vector_dim (loop_a, scop),
-                         loop_iteration_vector_dim (loop_b, scop));
-  
-  for (i = 1; i <= 2 * iter_vector_dim + 1; i++)
-  {
-    /* S - gb1 */
-    /* T - gb2 */
-    /* S -> T, T - S >=1 */
-    /* p is alternating sequence 0,1,-1,2,-2,... */
-    p = (i / 2) * (1 - (i % 2)*2);
-    if (p == 0)
-      dep_constraints = initialize_dependence_polyhedron (scop, a, b);
-    else if (p > 0)
-      {
-        /* assert B0, B1, ..., Bp-1 satisfy the equality */
-        
-        for (j = 0; j < iter_vector_dim; j++)
-        {
-          temp_matrix = AddANullRow (dep_constraints);
-        
-          row = j + dep_constraints->NbRows - iter_vector_dim;           
-          value_set_si (temp_matrix->p[row][0], 1); /* >= */
-          value_oppose (temp_matrix->p[row][p], 
-                        GBB_DYNAMIC_SCHEDULE (gb1)->p[j][p - 1]);
-          value_assign (temp_matrix->p[row]
-                                      [loop_iteration_vector_dim (loop_a, scop) + p], 
-                        GBB_DYNAMIC_SCHEDULE (gb1)->p[j][p - 1]);
-          value_set_si (temp_matrix->p[row][temp_matrix->NbColumns - 1], -1);
-
-          simplified = cloog_domain_matrix2domain (temp_matrix);
-          if (is_empty_polyhedron (simplified))
-          {
-            value_assign (dep_constraints->p[j + dep_constraints->NbRows 
-                                             - 2*iter_vector_dim][p], 
-                          GBB_DYNAMIC_SCHEDULE (gb1)->p[j][p - 1]);
-          
-            value_oppose (dep_constraints->p[j + dep_constraints->NbRows 
-                                             - 2*iter_vector_dim]
-                                            [loop_iteration_vector_dim (loop_a, scop) + p], 
-                          GBB_DYNAMIC_SCHEDULE (gb2)->p[j][p - 1]);
-          }
-          else
-            return initialize_data_dependence_polyhedron (true, simplified, 
-                                                          p, a, b);           
-          cloog_matrix_free (temp_matrix);
-        }
-      }
-    else if (p < 0)
-      {
-  
-        if (statement_precedes_p (scop, gb1, DR_STMT (a), gb2, DR_STMT (b), -p))
-          {
-            return initialize_data_dependence_polyhedron (false, simplified, -p,
-                                                          a, b);
-            /* VEC_safe_push (ddp_p, heap, ddps, ddp); */
-            break;
-          }
-      }
-  }    
-  cloog_matrix_free (dep_constraints);
-  return NULL;
-}
-
-/* Returns the polyhedral data dependence graph for SCOP.  */
-
-static struct graph *
-build_rdg_all_levels (scop_p scop)
-{
-  unsigned i, j, i1, j1;
-  int va, vb;
-  graphite_bb_p gb1, gb2;
-  struct graph * rdg = NULL;
-  struct data_reference *a, *b;
-  gimple_stmt_iterator gsi;
-  struct graph_edge *e;
-  
- /* VEC (data_reference_p, heap) *datarefs;*/
- /* All the statements that are involved in dependences are stored in
-    this vector.  */
-  VEC (gimple, heap) *stmts = VEC_alloc (gimple, heap, 10);
-  VEC (ddp_p, heap) *dependences = VEC_alloc (ddp_p, heap, 10); 
-  ddp_p dependence_polyhedron;    
-  /* datarefs = VEC_alloc (data_reference_p, heap, 2);*/
-  for (i = 0; VEC_iterate (graphite_bb_p, SCOP_BBS (scop), i, gb1); i++)
-    {
-      for (gsi = gsi_start_bb (GBB_BB (gb1)); !gsi_end_p (gsi); gsi_next (&gsi))
-	VEC_safe_push (gimple, heap, stmts, gsi_stmt (gsi));
-
-      for (i1 = 0; 
-           VEC_iterate (data_reference_p, GBB_DATA_REFS (gb1), i1, a); 
-           i1++)
-	for (j = 0; VEC_iterate (graphite_bb_p, SCOP_BBS (scop), j, gb2); j++)
-	  for (j1 = 0; 
-               VEC_iterate (data_reference_p, GBB_DATA_REFS (gb2), j1, b); 
-               j1++)
-	    if ((!DR_IS_READ (a) || !DR_IS_READ (b)) && dr_may_alias_p (a,b)
-		&& operand_equal_p (DR_BASE_OBJECT (a), DR_BASE_OBJECT (b), 0))
-              {
-                dependence_polyhedron = test_dependence (scop, gb1, gb2, a, b);
-                if (dependence_polyhedron != NULL)
-                  VEC_safe_push (ddp_p, heap, dependences, dependence_polyhedron);
-              }
-                /* TODO: the previous check might be too restrictive.  */ 
-    }
-    
-
-  rdg = build_empty_rdg (VEC_length (gimple, stmts));
-  create_rdg_vertices (rdg, stmts);
-
-  for (i = 0; VEC_iterate (ddp_p, dependences, i, dependence_polyhedron); i++)
-    {
-      va = rdg_vertex_for_stmt (rdg, DR_STMT (dependence_polyhedron->a)); 
-      vb = rdg_vertex_for_stmt (rdg, DR_STMT (dependence_polyhedron->b));
-      e = add_edge (rdg, va, vb);
-      e->data = dependence_polyhedron;
-    }
-
-  VEC_free (gimple, heap, stmts);
-  return rdg;
-}
-
-/* Dumps the dependence graph G to file F.  */
-
-static void
-dump_dependence_graph (FILE *f, struct graph *g)
-{
-  int i;
-  struct graph_edge *e;
-
-  for (i = 0; i < g->n_vertices; i++)
-    {
-      if (!g->vertices[i].pred
-	  && !g->vertices[i].succ)
-	continue;
-
-      fprintf (f, "vertex: %d (%d)\nStatement: ", i, g->vertices[i].component);
-      print_gimple_stmt (f, RDGV_STMT (&(g->vertices[i])), 0, 0);
-      fprintf (f, "\n-----------------\n");
-      
-      for (e = g->vertices[i].pred; e; e = e->pred_next)
-        {
-          struct data_dependence_polyhedron *ddp = RDGE_DDP (e);
-          if (ddp->polyhedron != NULL)
-            {
-              fprintf (f, "edge %d -> %d\n", e->src, i);
-              cloog_domain_print (f, ddp->polyhedron); 
-              fprintf (f, "-----------------\n");
-            }
-        }
-
-      for (e = g->vertices[i].succ; e; e = e->succ_next)
-        {
-          struct data_dependence_polyhedron *ddp = RDGE_DDP (e);
-          if (ddp->polyhedron != NULL)
-            {
-              fprintf (f, "edge %d -> %d\n", i, e->dest);
-              cloog_domain_print (f, ddp->polyhedron); 
-              fprintf (f, "-----------------\n");
-            }
-        }
-      fprintf (f, "\n");
-    }
 }
 
 /* Returns the number of data references in SCOP.  */
@@ -4140,12 +3762,12 @@ scop_remove_ignoreable_gbbs (scop_p scop)
    XXX: Does not check validity. Necessary?  */
 
 static void
-graphite_trans_bb_move_loop (graphite_bb_p gb, unsigned loop,
-			     unsigned new_loop_pos)
+graphite_trans_bb_move_loop (graphite_bb_p gb, int loop,
+			     int new_loop_pos)
 {
   CloogMatrix *domain = GBB_DOMAIN (gb);
   scop_p scop = GBB_SCOP (gb);
-  unsigned row, j;
+  int row, j;
   loop_p tmp_loop_p;
 
   gcc_assert (loop < gbb_nb_loops (gb));
@@ -4201,24 +3823,28 @@ const_column_index (CloogMatrix *domain)
 /* Get the first index that is positive or negative in matrix DOMAIN
    in COLUMN.  */
 
-static unsigned
+static int
 get_first_matching_sign_row_index (CloogMatrix *domain, int column, bool positive)
 {
-  unsigned row;
+  int row;
+
   for (row = 0; row < domain->NbRows; row++)
     {
       int val = value_get_si (domain->p[row][column]);
+
       if (val > 0 && positive)
 	return row;
+
       else if (val < 0 && !positive)
 	return row;
     }
+
   gcc_unreachable ();
 }
 
 /* Get the lower bound of COLUMN in matrix DOMAIN.  */
 
-static unsigned
+static int
 get_lower_bound_row (CloogMatrix *domain, int column)
 {
   return get_first_matching_sign_row_index (domain, column, true);
@@ -4226,7 +3852,7 @@ get_lower_bound_row (CloogMatrix *domain, int column)
 
 /* Get the upper bound of COLUMN in matrix DOMAIN.  */
 
-static unsigned
+static int
 get_upper_bound_row (CloogMatrix *domain, int column)
 {
   return get_first_matching_sign_row_index (domain, column, false);
@@ -4237,7 +3863,7 @@ get_upper_bound_row (CloogMatrix *domain, int column)
 static void
 get_lower_bound (CloogMatrix *domain, int loop, Value lower_bound_result)
 {
-  unsigned lower_bound_row = get_lower_bound_row (domain, loop);
+  int lower_bound_row = get_lower_bound_row (domain, loop);
   value_init (lower_bound_result);
   value_assign (lower_bound_result, domain->p[lower_bound_row][const_column_index(domain)]);
 }
@@ -4247,7 +3873,7 @@ get_lower_bound (CloogMatrix *domain, int loop, Value lower_bound_result)
 static void
 get_upper_bound (CloogMatrix *domain, int loop, Value upper_bound_result)
 {
-  unsigned upper_bound_row = get_upper_bound_row (domain, loop);
+  int upper_bound_row = get_upper_bound_row (domain, loop);
   value_init (upper_bound_result);
   value_assign (upper_bound_result, domain->p[upper_bound_row][const_column_index(domain)]);
 }
@@ -4256,18 +3882,18 @@ get_upper_bound (CloogMatrix *domain, int loop, Value upper_bound_result)
    Always valid, but not always a performance improvement.  */
   
 static void
-graphite_trans_bb_strip_mine (graphite_bb_p gb, unsigned loop_depth, unsigned stride)
+graphite_trans_bb_strip_mine (graphite_bb_p gb, int loop_depth, int stride)
 {
-  unsigned row, col;
+  int row, col;
   scop_p scop = GBB_SCOP (gb);
 
   CloogMatrix *domain = GBB_DOMAIN (gb);
   CloogMatrix *new_domain = cloog_matrix_alloc (domain->NbRows + 3,
                                                 domain->NbColumns + 1);   
 
-  unsigned col_loop_old = loop_depth + 2; 
-  unsigned col_loop_strip = col_loop_old - 1;
-  /*unsigned col_loc = col_loop_old + 1; */
+  int col_loop_old = loop_depth + 2; 
+  int col_loop_strip = col_loop_old - 1;
+  /*int col_loc = col_loop_old + 1; */
 
   Value old_lower_bound;
   Value old_upper_bound;
@@ -4437,8 +4063,8 @@ graphite_trans_bb_strip_mine (graphite_bb_p gb, unsigned loop_depth, unsigned st
 
   /* Update static schedule.  */
   {
-    unsigned i;
-    unsigned nb_loops = gbb_nb_loops (gb);
+    int i;
+    int nb_loops = gbb_nb_loops (gb);
     lambda_vector new_schedule = lambda_vector_new (nb_loops + 1);
 
     for (i = 0; i <= loop_depth; i++)
@@ -4457,8 +4083,8 @@ graphite_trans_bb_strip_mine (graphite_bb_p gb, unsigned loop_depth, unsigned st
    profitable or undecidable.  */
 
 static bool
-strip_mine_profitable_p (graphite_bb_p gb, unsigned stride,
-			 unsigned loop_index)
+strip_mine_profitable_p (graphite_bb_p gb, int stride,
+			 int loop_index)
 {
   bool res = true;
   edge exit = NULL;
@@ -4493,14 +4119,14 @@ strip_mine_profitable_p (graphite_bb_p gb, unsigned stride,
 /* Interchange legaility code.  */
 
 static bool
-is_interchange_valid (scop_p scop, unsigned loop_a, unsigned loop_b)
+is_interchange_valid (scop_p scop, int loop_a, int loop_b)
 {
   bool res;
   VEC (ddr_p, heap) *dependence_relations;
   VEC (data_reference_p, heap) *datarefs;
 
   struct loop *nest = VEC_index (loop_p, SCOP_LOOP_NEST (scop), loop_a);
-  unsigned depth = perfect_loop_nest_depth (nest);
+  int depth = perfect_loop_nest_depth (nest);
   lambda_trans_matrix trans;
 
   gcc_assert (loop_a < loop_b);
@@ -4555,13 +4181,13 @@ is_interchange_valid (scop_p scop, unsigned loop_a, unsigned loop_b)
 */
 
 static bool
-graphite_trans_bb_block (graphite_bb_p gb, unsigned stride, unsigned loops)
+graphite_trans_bb_block (graphite_bb_p gb, int stride, int loops)
 {
-  unsigned i, j;
-  unsigned nb_loops = gbb_nb_loops (gb);
-  unsigned start = nb_loops - loops;
+  int i, j;
+  int nb_loops = gbb_nb_loops (gb);
+  int start = nb_loops - loops;
   scop_p scop = GBB_SCOP (gb);
-  unsigned outer_most_loop_index_for_gb;
+  int outer_most_loop_index_for_gb;
   bool transform_done = false;
 
   if (!scop_contains_loop (scop, gbb_loop (gb)))
@@ -4774,9 +4400,8 @@ graphite_apply_transformations (scop_p scop)
 void
 graphite_transform_loops (void)
 {
-  unsigned i;
+  int i;
   scop_p scop;
-  struct graph * rdg = NULL;
 
   if (number_of_loops () <= 1)
     return;
@@ -4825,9 +4450,6 @@ graphite_transform_loops (void)
 	  fprintf (dump_file, "\nnumber of data refs: %d\n", nbrefs);
 	}
 
-      if (0)
-	build_rdg_all_levels (scop);
-
       if(graphite_apply_transformations (scop))
 	  gloog (scop, find_transform (scop));
 
@@ -4839,8 +4461,6 @@ graphite_transform_loops (void)
       print_scops (dump_file, 2);
       fprintf (dump_file, "\nnumber of SCoPs: %d\n",
 	       VEC_length (scop_p, current_scops));
-      if (0)
-	dump_dependence_graph (dump_file, rdg);
     }
 
   free_scops (current_scops);

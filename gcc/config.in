@@ -1317,12 +1317,6 @@
 #endif
 
 
-/* Define if polylib is in use. */
-#ifndef USED_FOR_TARGET
-#undef HAVE_polylib
-#endif
-
-
 /* Define as const if the declaration of iconv() needs const. */
 #ifndef USED_FOR_TARGET
 #undef ICONV_CONST

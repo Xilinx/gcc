@@ -237,7 +237,7 @@ gbb_loop (struct graphite_bb *gbb)
 /* Calculate the number of loops around GB in the current SCOP.  Only
    works if GBB_DOMAIN is built.  */
 
-static inline unsigned 
+static inline int
 gbb_nb_loops (const struct graphite_bb *gb)
 {
   scop_p scop = GBB_SCOP (gb);
@@ -418,7 +418,7 @@ loop_domain_dim (unsigned int loop_num, scop_p scop)
   if (!slot)
     return scop_nb_params (scop) + 2;
 
-  return slot->cloog_loop->domain->polyhedron->Dimension + 2;
+  return cloog_domain_dim (cloog_loop_domain (slot->cloog_loop)) + 2;
 }
 
 /* Returns the dimensionality of an enclosing loop iteration domain
