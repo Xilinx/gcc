@@ -6736,7 +6736,7 @@ cp_parser_lambda_class_definition (cp_parser* parser,
     current_class_type = type;
   }
 
-  tree ctor_parm_type_list = void_list_node;
+  tree ctor_parm_type_list = NULL_TREE;
   tree ctor_parm_list = NULL_TREE;
   tree ctor_init_list = NULL_TREE;
 
@@ -6811,7 +6811,10 @@ cp_parser_lambda_class_definition (cp_parser* parser,
     }
 
     /* Built parameters in reverse order.  */
+    /* TODO: reverse CAPTURE_INIT_LIST instead? */
     ctor_parm_list = nreverse (ctor_parm_list);
+    ctor_parm_type_list = nreverse (ctor_parm_type_list);
+    chainon (ctor_parm_type_list, void_list_node);
 
   }
 
@@ -6871,38 +6874,43 @@ cp_parser_lambda_class_definition (cp_parser* parser,
     finish_member_declaration (fco_decl);
   }
 
-  tree ctor_type = build_method_type_directly (
-      type,
-      void_type_node,
-      ctor_parm_type_list);
+  tree ctor = NULL_TREE;
 
-  /* Finish ctor_parm_list with `this' and plug it in.  */
-  tree this_parm = build_this_parm (ctor_type, /*quals=*/0);
-  TREE_CHAIN (this_parm) = ctor_parm_list;
-  ctor_parm_list = this_parm;
+  if (LAMBDA_EXPR_NEEDS_CONSTRUCTOR_P(lambda_expr))
+  {
+    tree ctor_type = build_method_type_directly (
+        type,
+        void_type_node,
+        ctor_parm_type_list);
 
-  tree ctor = build_lang_decl (
-      FUNCTION_DECL,
-      constructor_name (type),
-      ctor_type);
-  DECL_ARGUMENTS (ctor) = ctor_parm_list;
-  DECL_CONSTRUCTOR_P (ctor) = 1;
-  DECL_CONTEXT (ctor) = type;
-  /* TODO: are these necessary?  */
-  TREE_PUBLIC (ctor) = 1;
+    /* Finish ctor_parm_list with `this' and plug it in.  */
+    tree this_parm = build_this_parm (ctor_type, /*quals=*/0);
+    TREE_CHAIN (this_parm) = ctor_parm_list;
+    ctor_parm_list = this_parm;
 
-  DECL_IN_AGGR_P (ctor) = 1;
-  DECL_ARTIFICIAL (ctor) = 1;
-  DECL_NOT_REALLY_EXTERN (ctor) = 1;
-  DECL_DECLARED_INLINE_P (ctor) = 1;
-  DECL_INLINE (ctor) = 1;
+    ctor = build_lang_decl (
+        FUNCTION_DECL,
+        constructor_name (type),
+        ctor_type);
+    DECL_ARGUMENTS (ctor) = ctor_parm_list;
+    DECL_CONSTRUCTOR_P (ctor) = 1;
+    DECL_CONTEXT (ctor) = type;
+    /* TODO: are these necessary?  */
+    TREE_PUBLIC (ctor) = 1;
 
-  /*DECL_EXTERNAL (ctor) = 1;*/
-  /*DECL_INITIALIZED_IN_CLASS_P (ctor) = 1;*/
+    DECL_IN_AGGR_P (ctor) = 1;
+    DECL_ARTIFICIAL (ctor) = 1;
+    DECL_NOT_REALLY_EXTERN (ctor) = 1;
+    DECL_DECLARED_INLINE_P (ctor) = 1;
+    DECL_INLINE (ctor) = 1;
 
-  finish_decl (ctor, NULL_TREE, NULL_TREE);
-  current_access_specifier = access_public_node;
-  finish_member_declaration (ctor);
+    /*DECL_EXTERNAL (ctor) = 1;*/
+    /*DECL_INITIALIZED_IN_CLASS_P (ctor) = 1;*/
+
+    finish_decl (ctor, NULL_TREE, NULL_TREE);
+    current_access_specifier = access_public_node;
+    finish_member_declaration (ctor);
+  }
 
   /********************************************
    * Finish the class (part 1)
@@ -6923,6 +6931,7 @@ cp_parser_lambda_class_definition (cp_parser* parser,
    * + ctor_initializer_opt_and_function_body
    * + mem_initializer_list
    ********************************************/
+  if (LAMBDA_EXPR_NEEDS_CONSTRUCTOR_P(lambda_expr))
   {
     /* Let the front end know that we are going to be defining this
        function.  */
