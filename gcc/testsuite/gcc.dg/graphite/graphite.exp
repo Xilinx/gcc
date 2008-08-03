@@ -25,6 +25,53 @@ if ![info exists DEFAULT_CFLAGS] then {
     set DEFAULT_CFLAGS " -ansi -pedantic-errors"
 }
 
+
+# Call pass if pattern is present given number of times, otherwise fail.
+# Argument 0 is the regexp to match
+# Argument 1 is number of times the regexp must be found
+# Argument 2 is the name of the dumped tree pass
+# Argument 3 handles expected failures and the like
+proc scan-graphite-dump-times { args } {
+
+    if { [llength $args] < 3 } {
+	error "scan-graphite-dump: too few arguments"
+	return
+    }
+    if { [llength $args] >= 4 } {
+	error "scan-graphite-dump: too many arguments"
+	return
+    }
+
+    # This assumes that we are three frames down from dg-test, and that
+    # it still stores the filename of the testcase in a local variable "name".
+    # A cleaner solution would require a new DejaGnu release.
+    upvar 2 name testcase
+
+    set suf [dump-suffix "\[0-9\]\[0-9\]\[0-9\]t.[lindex $args 2]"]
+    set testname "$testcase scan-graphite-dump-times $suf \"[lindex $args 0]\" [lindex $args 1]"
+    set src [file tail [lindex $testcase 0]]
+    set output_file "[glob -nocomplain $src.\[0-9\]\[0-9\]\[0-9\]t.[lindex $args 2]]"
+    if { $output_file == "" } {
+	fail "$testname: dump file does not exist"
+	return
+    }
+
+    set fd [open $output_file r]
+    set text [read $fd]
+    close $fd
+
+    if { [llength [regexp -inline -all -- [lindex $args 0] $text]] == [lindex $args 1]} {
+        pass "$testname"
+    } else {
+	if { [llength [regexp -inline -all -- "Graphite loop optimizations cannot be used" $text]] >= 1} {
+	    pass "$testname"
+	} else {
+	    fail "$testname"
+	}
+    }
+}
+
+
 # Initialize `dg'.
 dg-init
 

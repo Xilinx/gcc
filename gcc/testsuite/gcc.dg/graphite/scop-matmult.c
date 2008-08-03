@@ -16,5 +16,5 @@ void matmult (FLOAT **A, FLOAT **B, FLOAT **C, int n)
         A[i][j] += B[i][k] * C[k][j];
 }
 
-/* { dg-final { scan-tree-dump-times "number of SCoPs: 3" 1 "graphite"} } */ 
+/* { dg-final { scan-graphite-dump-times "number of SCoPs: 3" 1 "graphite"} } */ 
 /* { dg-final { cleanup-tree-dump "graphite" } } */

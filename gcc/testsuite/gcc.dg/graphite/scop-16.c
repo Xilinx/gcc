@@ -22,5 +22,5 @@ int test ()
 }
 
 /* Interchange is legal for loops 2 and 3.  */
-/* { dg-final { scan-tree-dump-times "Interchange valid for loops 2 and 3:" 1 "graphite"} } */
+/* { dg-final { scan-graphite-dump-times "Interchange valid for loops 2 and 3:" 1 "graphite"} } */
 /* { dg-final { cleanup-tree-dump "graphite" } } */

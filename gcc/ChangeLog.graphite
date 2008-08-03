@@ -1,5 +1,15 @@
 2008-08-03  Sebastian Pop  <sebastian.pop@amd.com>
 
+	* toplev.c (process_options): Move the graphite loop optimization flags...
+	* tree-ssa-loop.c (graphite_transforms): ... here.
+	When not configured with CLooG, print to dump_file that Graphite transforms
+	were not performed.
+	* testsuite/gcc.dg/graphite/graphite.exp (scan-graphite-dump-times): New.
+	* testsuite/gcc.dg/graphite/*.c: Updated all testcases to use
+	scan-graphite-dump-times.
+
+2008-08-03  Sebastian Pop  <sebastian.pop@amd.com>
+
 	* graphite.c (dot_scop, dot_all_scops): Do not call system.
 	Do not open /tmp/scop.dot and /tmp/allscops.dot.
 

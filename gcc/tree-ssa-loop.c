@@ -297,6 +297,13 @@ graphite_transforms (void)
 
 #ifdef HAVE_cloog
   graphite_transform_loops ();
+#else
+  if (dump_file && (dump_flags & TDF_DETAILS))
+    {
+      fprintf (dump_file, "Graphite loop optimizations cannot be used.\n");
+      fprintf (dump_file, "GCC has not been configured with the required "
+	       "libraries for Graphite loop optimizations.");
+    }
 #endif
 
   return 0;
@@ -305,6 +312,11 @@ graphite_transforms (void)
 static bool
 gate_graphite_transforms (void)
 {
+  /* Enable -fgraphite pass if any one of the graphite optimization flags 
+     is turned on.  */
+  if (flag_loop_block || flag_loop_interchange || flag_loop_strip_mine)
+    flag_graphite = 1;
+
   return flag_graphite != 0;
 }
 
