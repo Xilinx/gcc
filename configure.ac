@@ -158,7 +158,7 @@ build_tools="build-texinfo build-byacc build-flex build-bison build-m4 build-fix
 
 # these libraries are used by various programs built for the host environment
 #
-host_libs="intl mmalloc libiberty opcodes bfd readline tcl tk itcl libgui zlib libcpp libdecnumber gmp mpfr polylib cloog"
+host_libs="intl mmalloc libiberty opcodes bfd readline tcl tk itcl libgui zlib libcpp libdecnumber gmp mpfr ppl cloog"
 
 # these tools are built for the host environment
 # Note, the powerpc-eabi build depends on sim occurring before gdb in order to
@@ -1303,37 +1303,37 @@ AC_SUBST(gmplibs)
 AC_SUBST(gmpinc)
 
 
-# Check for POLYLIB
-polyliblibs=
-polylibinc=
+# Check for PPL
+ppllibs=
+pplinc=
 
-AC_ARG_WITH(polylib, [  --with-polylib=PATH         Specify prefix directory for the installed POLYLIB package
-                          Equivalent to --with-polylib-include=PATH/include
-                          plus --with-polylib-lib=PATH/lib])
-AC_ARG_WITH(polylib_include, [  --with-polylib-include=PATH Specify directory for installed POLYLIB include files])
-AC_ARG_WITH(polylib_lib, [  --with-polylib-lib=PATH     Specify the directory for the installed POLYLIB library])
+AC_ARG_WITH(ppl, [  --with-ppl=PATH         Specify prefix directory for the installed PPL package
+                          Equivalent to --with-ppl-include=PATH/include
+                          plus --with-ppl-lib=PATH/lib])
+AC_ARG_WITH(ppl_include, [  --with-ppl-include=PATH Specify directory for installed PPL include files])
+AC_ARG_WITH(ppl_lib, [  --with-ppl-lib=PATH     Specify the directory for the installed PPL library])
 
-if test "x$with_polylib" != x; then
-  polyliblibs="-L$with_polylib/lib -lpolylibgmp"
-  polylibinc="-I$with_polylib/include $polylibinc"
-  LIBS="$polyliblibs $LIBS"
+if test "x$with_ppl" != x; then
+  ppllibs="-L$with_ppl/lib -lppl_c -lppl -lgmpxx"
+  pplinc="-I$with_ppl/include $pplinc"
+  LIBS="$ppllibs $LIBS"
 fi
-if test "x$with_polylib_include" != x; then
-  polylibinc="-I$with_polylib_include $polylibinc"
+if test "x$with_ppl_include" != x; then
+  pplinc="-I$with_ppl_include $pplinc"
 fi
-if test "x$with_polylib_lib" != x; then
-  polyliblibs="-L$with_polylib_lib -lpolylibgmp"
-  LIBS="$polyliblibs $LIBS"
+if test "x$with_ppl_lib" != x; then
+  ppllibs="-L$with_ppl_lib -lppl_c -lppl -lgmpxx"
+  LIBS="$ppllibs $LIBS"
 fi
-if test "x$with_polylib$with_polylib_include$with_polylib_lib" = x && test -d ${srcdir}/polylib; then
-  polyliblibs='-L$$r/$(HOST_SUBDIR)/polylib/.libs -L$$r/$(HOST_SUBDIR)/polylib/_libs -lpolylibgmp '
-  polylibinc='-I$$r/$(HOST_SUBDIR)/polylib/include -I$$s/polylib/include '
-  LIBS="$polyliblibs $LIBS"
+if test "x$with_ppl$with_ppl_include$with_ppl_lib" = x && test -d ${srcdir}/ppl; then
+  ppllibs='-L$$r/$(HOST_SUBDIR)/ppl/.libs -L$$r/$(HOST_SUBDIR)/ppl/_libs -lppl_c -lppl -lgmpxx '
+  pplinc='-I$$r/$(HOST_SUBDIR)/ppl/include -I$$s/ppl/include '
+  LIBS="$ppllibs $LIBS"
 fi
 
-# Flags needed for POLYLIB
-AC_SUBST(polyliblibs)
-AC_SUBST(polylibinc)
+# Flags needed for PPL
+AC_SUBST(ppllibs)
+AC_SUBST(pplinc)
 
 
 # Check for CLOOG
@@ -1348,11 +1348,11 @@ AC_ARG_WITH(cloog_lib, [  --with-cloog-lib=PATH     Specify the directory for th
 
 if test "x$with_cloog" != x; then
   clooglibs="-L$with_cloog/lib -lcloog"
-  clooginc="-I$with_cloog/include"
+  clooginc="-I$with_cloog/include -DCLOOG_PPL_BACKEND "
   LIBS="$clooglibs $LIBS"
 fi
-	if test "x$with_cloog_include" != x; then
-  clooginc="-I$with_cloog_include"
+if test "x$with_cloog_include" != x; then
+  clooginc="-I$with_cloog_include -DCLOOG_PPL_BACKEND "
 fi
 if test "x$with_cloog_lib" != x; then
   clooglibs="-L$with_cloog_lib -lcloog"
@@ -1360,7 +1360,7 @@ if test "x$with_cloog_lib" != x; then
 fi
 if test "x$with_cloog$with_cloog_include$with_cloog_lib" = x && test -d ${srcdir}/cloog; then
   clooglibs='-L$$r/$(HOST_SUBDIR)/cloog/.libs -L$$r/$(HOST_SUBDIR)/cloog/_libs -lcloog '
-  clooginc='-I$$r/$(HOST_SUBDIR)/cloog/include -I$$s/cloog/include '
+  clooginc='-I$$r/$(HOST_SUBDIR)/cloog/include -I$$s/cloog/include -DCLOOG_PPL_BACKEND '
   LIBS="$clooglibs $LIBS"
 fi
 
