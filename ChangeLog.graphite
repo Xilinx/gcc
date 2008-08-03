@@ -1,3 +1,9 @@
+2008-08-03  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* Makefile.def: Remove support for building ppl and cloog 
+	libs in gcc's sources.
+	* Makefile.in: Regenerated.
+
 2008-07-24  Sebastian Pop  <sebastian.pop@amd.com>
 
 	* Merge from mainline (135673:138072).
