@@ -717,17 +717,11 @@ dot_scop_1 (FILE *file, scop_p scop)
 void
 dot_scop (scop_p scop)
 {
-  FILE *stream = fopen ("/tmp/scop.dot", "w");
-  gcc_assert (stream);
-
-  dot_scop_1 (stream, scop);
-  fclose (stream);
-
-  system ("dotty /tmp/scop.dot");
+  dot_scop_1 (stderr, scop);
 }
 
 /* Pretty print all SCoPs in DOT format and mark them with different colors.
-   If there are not enough colors (8 at the moment), paint later SCoPs gray.
+   If there are not enough colors, paint later SCoPs gray.
    Special nodes:
    - "*" after the node number: entry of a SCoP,
    - "#" after the node number: exit of a SCoP,
@@ -869,13 +863,7 @@ dot_all_scops_1 (FILE *file)
 void
 dot_all_scops (void)
 {
-  FILE *stream = fopen ("/tmp/allscops.dot", "w");
-  gcc_assert (stream);
-
-  dot_all_scops_1 (stream);
-  fclose (stream);
-
-  system ("dotty /tmp/allscops.dot");
+  dot_all_scops_1 (stderr);
 }
 
 /* Returns true when LOOP is in SCOP.  */

@@ -1,23 +1,28 @@
+2008-08-03  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite.c (dot_scop, dot_all_scops): Do not call system.
+	Do not open /tmp/scop.dot and /tmp/allscops.dot.
+
 2008-08-02  Sebastian Pop  <sebastian.pop@amd.com>
 	    Jan Sjodin  <jan.sjodin@amd.com>
 
-	    * configure: Regenerated.
-	    * omp-low.c (expand_omp_sections): Remove now unused code.
-	    * config.in (HAVE_polylib): Removed.
-	    * configure.ac (HAVE_polylib, POLYLIBLIBS, POLYLIBINC): Removed.
-	    (PPLLIBS, PPLINC): Added.
-	    * graphite.c: Replace unsigned with int wherever possible.
-	    Don't access Cloog's data structures, but use accessor functions.
-	    Clast's stmt->type is now implemented as a vtable: change the 
-	    switches of stmt->type into ifs.
-	    (polylib/polylibgmp.h): Don't include.
-	    (initialize_dependence_polyhedron,
-	    initialize_data_dependence_polyhedron, is_empty_polyhedron,
-	    statement_precedes_p, test_dependence, build_rdg_all_levels,
-	    dump_dependence_graph): Removed until this code is cleaned up 
-	    or ported to Cloog.
-	    * Makefile.in (POLYLIBLIBS): Renamed PPLLIBS.
-	    (POLYLIBINC): Renamed PPLINC.
+	* configure: Regenerated.
+	* omp-low.c (expand_omp_sections): Remove now unused code.
+	* config.in (HAVE_polylib): Removed.
+	* configure.ac (HAVE_polylib, POLYLIBLIBS, POLYLIBINC): Removed.
+	(PPLLIBS, PPLINC): Added.
+	* graphite.c: Replace unsigned with int wherever possible.
+	Don't access Cloog's data structures, but use accessor functions.
+	Clast's stmt->type is now implemented as a vtable: change the 
+	switches of stmt->type into ifs.
+	(polylib/polylibgmp.h): Don't include.
+	(initialize_dependence_polyhedron,
+	initialize_data_dependence_polyhedron, is_empty_polyhedron,
+	statement_precedes_p, test_dependence, build_rdg_all_levels,
+	dump_dependence_graph): Removed until this code is cleaned up 
+	or ported to Cloog.
+	* Makefile.in (POLYLIBLIBS): Renamed PPLLIBS.
+	(POLYLIBINC): Renamed PPLINC.
 
 2008-08-01  Harsha Jagasia  <harsha.jagasia@amd.com>
 	    Dwarakanath Rajagopal  <dwarak.rajagopal@amd.com>
