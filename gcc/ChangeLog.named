@@ -1,3 +1,7 @@
+2008-08-04  Ben Elliston  <bje@au.ibm.com>
+
+	* varasm.c (make_decl_rtl): Guard against the error_mark_node.
+
 2008-07-30  Ben Elliston  <bje@au.ibm.com>
 
 	* target.h (struct gcc_target): Fix valid_addr_space prototype.
