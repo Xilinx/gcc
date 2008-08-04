@@ -32,6 +32,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "basic-block.h"
 #include "diagnostic.h"
 #include "tree-flow.h"
+#include "toplev.h"
 #include "tree-dump.h"
 #include "timevar.h"
 #include "cfgloop.h"
@@ -40,9 +41,11 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree-scalar-evolution.h"
 #include "tree-pass.h"
 #include "domwalk.h"
+#include "pointer-set.h"
+
+#ifdef HAVE_cloog
 #include "cloog/cloog.h"
 #include "graphite.h"
-#include "pointer-set.h"
 
 VEC (scop_p, heap) *current_scops;
 
@@ -4453,3 +4456,19 @@ graphite_transform_loops (void)
 
   free_scops (current_scops);
 }
+
+#else /* If Cloog is not available: #ifndef HAVE_cloog.  */
+
+void
+graphite_transform_loops (void)
+{
+  if (dump_file && (dump_flags & TDF_DETAILS))
+    {
+      fprintf (dump_file, "Graphite loop optimizations cannot be used.\n");
+      fprintf (dump_file, "GCC has not been configured with the required "
+	       "libraries for Graphite loop optimizations.");
+    }
+  sorry ("Graphite loop optimizations cannot be used");
+}
+
+#endif

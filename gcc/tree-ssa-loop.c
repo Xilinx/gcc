@@ -29,7 +29,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "output.h"
 #include "diagnostic.h"
 #include "tree-flow.h"
-#include "toplev.h"
 #include "tree-dump.h"
 #include "tree-pass.h"
 #include "timevar.h"
@@ -296,17 +295,7 @@ graphite_transforms (void)
   if (!current_loops)
     return 0;
 
-#ifdef HAVE_cloog
   graphite_transform_loops ();
-#else
-  if (dump_file && (dump_flags & TDF_DETAILS))
-    {
-      fprintf (dump_file, "Graphite loop optimizations cannot be used.\n");
-      fprintf (dump_file, "GCC has not been configured with the required "
-	       "libraries for Graphite loop optimizations.");
-    }
-  sorry ("Graphite loop optimizations cannot be used");
-#endif
 
   return 0;
 }
