@@ -283,11 +283,6 @@ package Opt is
    --  is set True, or if pragma No_Run_Time is used. See the spec of Rtsfind
    --  for details on the handling of the latter pragma.
 
-   Canonical_Streams : Boolean := False;
-   --  GNATBIND
-   --  Set to True if configuration pragma Canonical_Streams is present. It
-   --  controls the canonical behaviour of stream operations for String types.
-
    Constant_Condition_Warnings : Boolean := False;
    --  GNAT
    --  Set to True to activate warnings on constant conditions
@@ -532,6 +527,11 @@ package Opt is
    --  Set to file name to generate full source listing to named file (or if
    --  the name is of the form .xxx, then to name.xxx where name is the source
    --  file name with extension stripped.
+
+   Generate_Processed_File : Boolean := False;
+   --  GNAT
+   --  True when switch -gnateG is used. When True, create in a file
+   --  <source>.prep, if the source is preprocessed.
 
    Generating_Code : Boolean := False;
    --  GNAT

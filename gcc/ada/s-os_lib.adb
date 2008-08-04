@@ -1316,6 +1316,25 @@ package body System.OS_Lib is
       return Is_Readable_File (F_Name'Address);
    end Is_Readable_File;
 
+   ------------------------
+   -- Is_Executable_File --
+   ------------------------
+
+   function Is_Executable_File (Name : C_File_Name) return Boolean is
+      function Is_Executable_File (Name : Address) return Integer;
+      pragma Import (C, Is_Executable_File, "__gnat_is_executable_file");
+   begin
+      return Is_Executable_File (Name) /= 0;
+   end Is_Executable_File;
+
+   function Is_Executable_File (Name : String) return Boolean is
+      F_Name : String (1 .. Name'Length + 1);
+   begin
+      F_Name (1 .. Name'Length) := Name;
+      F_Name (F_Name'Last)      := ASCII.NUL;
+      return Is_Executable_File (F_Name'Address);
+   end Is_Executable_File;
+
    ---------------------
    -- Is_Regular_File --
    ---------------------
@@ -1918,6 +1937,26 @@ package body System.OS_Lib is
                  Cur_Dir (Cur_Dir'First .. Cur_Dir'First + 1);
                End_Path := End_Path + 2;
             end if;
+         end;
+      end if;
+
+      --  On Windows, remove all double-quotes that are possibly part of the
+      --  path but can cause problems with other methods.
+
+      if On_Windows then
+         declare
+            Index : Natural;
+
+         begin
+            Index := Path_Buffer'First;
+            for Current in Path_Buffer'First .. End_Path loop
+               if Path_Buffer (Current) /= '"' then
+                  Path_Buffer (Index) := Path_Buffer (Current);
+                  Index := Index + 1;
+               end if;
+            end loop;
+
+            End_Path := Index - 1;
          end;
       end if;
 

@@ -2034,15 +2034,6 @@ package body Exp_Ch6 is
          Prev := Actual;
          Prev_Orig := Original_Node (Prev);
 
-         --  The original actual may have been a call written in prefix
-         --  form, and rewritten before analysis.
-
-         if not Analyzed (Prev_Orig)
-           and then Nkind_In (Actual, N_Function_Call, N_Identifier)
-         then
-            Prev_Orig := Prev;
-         end if;
-
          --  Ada 2005 (AI-251): Check if any formal is a class-wide interface
          --  to expand it in a further round.
 
@@ -2293,13 +2284,15 @@ package body Exp_Ch6 is
                           Intval => Scope_Depth (Current_Scope) + 1),
                         Extra_Accessibility (Formal));
 
-                  --  For other cases we simply pass the level of the
-                  --  actual's access type.
+                  --  For other cases we simply pass the level of the actual's
+                  --  access type. The type is retrieved from Prev rather than
+                  --  Prev_Orig, because in some cases Prev_Orig denotes an
+                  --  original expression that has not been analyzed.
 
                   when others =>
                      Add_Extra_Actual
                        (Make_Integer_Literal (Loc,
-                          Intval => Type_Access_Level (Etype (Prev_Orig))),
+                          Intval => Type_Access_Level (Etype (Prev))),
                         Extra_Accessibility (Formal));
 
                end case;

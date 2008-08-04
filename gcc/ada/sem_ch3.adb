@@ -935,13 +935,25 @@ package body Sem_Ch3 is
          Build_Itype_Reference (Anon_Type, Parent (Parent (Related_Nod)));
 
       --  Similarly, if the access definition is the return result of a
-      --  protected function, create an itype reference for it because it
-      --  will be used within the function body.
+      --  function, create an itype reference for it because it
+      --  will be used within the function body. For a regular function that
+      --  is not a compilation unit, insert reference after the declaration.
+      --  For a protected operation, insert it after the enclosing protected
+      --  type declaration. In either case, do not create a reference for a
+      --  type obtained through a limited_with clause, because this would
+      --  introduce semantic dependencies.
 
       elsif Nkind (Related_Nod) = N_Function_Specification
-        and then  Ekind (Current_Scope) = E_Protected_Type
+        and then not From_With_Type (Anon_Type)
       then
-         Build_Itype_Reference (Anon_Type, Parent (Current_Scope));
+         if Ekind (Current_Scope) = E_Protected_Type then
+            Build_Itype_Reference (Anon_Type, Parent (Current_Scope));
+
+         elsif Is_List_Member (Parent (Related_Nod))
+           and then Nkind (Parent (N)) /= N_Parameter_Specification
+         then
+            Build_Itype_Reference (Anon_Type, Parent (Related_Nod));
+         end if;
 
       --  Finally, create an itype reference for an object declaration of
       --  an anonymous access type. This is strictly necessary only for
@@ -1042,7 +1054,9 @@ package body Sem_Ch3 is
                    or else
                  Nkind_In (D_Ityp, N_Object_Declaration,
                                    N_Object_Renaming_Declaration,
+                                   N_Formal_Object_Declaration,
                                    N_Formal_Type_Declaration,
+                                   N_Formal_Object_Declaration,
                                    N_Task_Type_Declaration,
                                    N_Protected_Type_Declaration))
       loop
@@ -1104,13 +1118,32 @@ package body Sem_Ch3 is
 
       if Present (Formals) then
          Push_Scope (Desig_Type);
+
+         --  A bit of a kludge here. These kludges will be removed when Itypes
+         --  have proper parent pointers to their declarations???
+
+         --  Kludge 1) Link definining_identifier of formals. Required by
+         --  First_Formal to provide its functionality.
+
+         declare
+            F : Node_Id;
+
+         begin
+            F := First (Formals);
+            while Present (F) loop
+               if No (Parent (Defining_Identifier (F))) then
+                  Set_Parent (Defining_Identifier (F), F);
+               end if;
+
+               Next (F);
+            end loop;
+         end;
+
          Process_Formals (Formals, Parent (T_Def));
 
-         --  A bit of a kludge here, End_Scope requires that the parent
-         --  pointer be set to something reasonable, but Itypes don't have
-         --  parent pointers. So we set it and then unset it ??? If and when
-         --  Itypes have proper parent pointers to their declarations, this
-         --  kludge can be removed.
+         --  Kludge 2) End_Scope requires that the parent pointer be set to
+         --  something reasonable, but Itypes don't have parent pointers. So
+         --  we set it and then unset it ???
 
          Set_Parent (Desig_Type, T_Name);
          End_Scope;
@@ -4428,6 +4461,10 @@ package body Sem_Ch3 is
             Comp := Object_Definition (N);
             Acc  := Comp;
 
+         when N_Function_Specification =>
+            Comp := Result_Definition (N);
+            Acc  := Comp;
+
          when others =>
             raise Program_Error;
       end case;
@@ -4471,6 +4508,10 @@ package body Sem_Ch3 is
 
       elsif Nkind (N) = N_Access_Function_Definition then
          Rewrite (Comp, New_Occurrence_Of (Anon, Loc));
+
+      elsif Nkind (N) = N_Function_Specification then
+         Rewrite (Comp, New_Occurrence_Of (Anon, Loc));
+         Set_Etype (Defining_Unit_Name (N), Anon);
 
       else
          Rewrite (Comp,

@@ -762,6 +762,7 @@ ac_includes_default="\
 # include <unistd.h>
 #endif"
 
+<<<<<<< .working
 ac_subst_vars='SHELL
 PATH_SEPARATOR
 PACKAGE_NAME
@@ -953,6 +954,9 @@ WARN_FLAGS
 LIBSUPCXX_PICFLAGS
 LIBOBJS
 LTLIBOBJS'
+=======
+ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS libtool_VERSION multi_basedir build build_cpu build_vendor build_os host host_cpu host_vendor host_os target target_cpu target_vendor target_os INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA CYGPATH_W PACKAGE VERSION ACLOCAL AUTOCONF AUTOMAKE AUTOHEADER MAKEINFO install_sh STRIP ac_ct_STRIP INSTALL_STRIP_PROGRAM mkdir_p AWK SET_MAKE am__leading_dot AMTAR am__tar am__untar glibcxx_builddir glibcxx_srcdir toplevel_srcdir CC ac_ct_CC EXEEXT OBJEXT CXX ac_ct_CXX CFLAGS CXXFLAGS LN_S AS ac_ct_AS AR ac_ct_AR RANLIB ac_ct_RANLIB MAINTAINER_MODE_TRUE MAINTAINER_MODE_FALSE MAINT CPP CPPFLAGS EGREP LIBTOOL SED FGREP GREP LD DUMPBIN ac_ct_DUMPBIN NM lt_ECHO LDFLAGS CXXCPP enable_shared enable_static GLIBCXX_HOSTED_TRUE GLIBCXX_HOSTED_FALSE GLIBCXX_BUILD_PCH_TRUE GLIBCXX_BUILD_PCH_FALSE glibcxx_PCHFLAGS glibcxx_thread_h WERROR SECTION_FLAGS CSTDIO_H BASIC_FILE_H BASIC_FILE_CC check_msgfmt glibcxx_MOFILES glibcxx_POFILES glibcxx_localedir USE_NLS CLOCALE_H CMESSAGES_H CCODECVT_CC CCOLLATE_CC CCTYPE_CC CMESSAGES_CC CMONEY_CC CNUMERIC_CC CTIME_H CTIME_CC CLOCALE_CC CLOCALE_INTERNAL_H ALLOCATOR_H ALLOCATOR_NAME C_INCLUDE_DIR GLIBCXX_C_HEADERS_C_TRUE GLIBCXX_C_HEADERS_C_FALSE GLIBCXX_C_HEADERS_C_STD_TRUE GLIBCXX_C_HEADERS_C_STD_FALSE GLIBCXX_C_HEADERS_C_GLOBAL_TRUE GLIBCXX_C_HEADERS_C_GLOBAL_FALSE GLIBCXX_C_HEADERS_COMPATIBILITY_TRUE GLIBCXX_C_HEADERS_COMPATIBILITY_FALSE GLIBCXX_C_HEADERS_EXTRA_TRUE GLIBCXX_C_HEADERS_EXTRA_FALSE DEBUG_FLAGS GLIBCXX_BUILD_DEBUG_TRUE GLIBCXX_BUILD_DEBUG_FALSE ENABLE_PARALLEL_TRUE ENABLE_PARALLEL_FALSE EXTRA_CXX_FLAGS SECTION_LDFLAGS OPT_LDFLAGS LIBMATHOBJS GLIBCXX_LIBS LIBICONV LTLIBICONV SYMVER_FILE port_specific_symbol_files ENABLE_SYMVERS_TRUE ENABLE_SYMVERS_FALSE ENABLE_SYMVERS_GNU_TRUE ENABLE_SYMVERS_GNU_FALSE ENABLE_SYMVERS_GNU_NAMESPACE_TRUE ENABLE_SYMVERS_GNU_NAMESPACE_FALSE ENABLE_SYMVERS_DARWIN_TRUE ENABLE_SYMVERS_DARWIN_FALSE ENABLE_VISIBILITY_TRUE ENABLE_VISIBILITY_FALSE GLIBCXX_LDBL_COMPAT_TRUE GLIBCXX_LDBL_COMPAT_FALSE baseline_dir ATOMICITY_SRCDIR ATOMIC_WORD_SRCDIR ATOMIC_FLAGS CPU_DEFINES_SRCDIR ABI_TWEAKS_SRCDIR OS_INC_SRCDIR ERROR_CONSTANTS_SRCDIR glibcxx_prefixdir gxx_include_dir glibcxx_toolexecdir glibcxx_toolexeclibdir GLIBCXX_INCLUDES TOPLEVEL_INCLUDES OPTIMIZE_CXXFLAGS WARN_FLAGS LIBSUPCXX_PICFLAGS LIBOBJS LTLIBOBJS'
+>>>>>>> .merge-right.r138620
 ac_subst_files=''
    # Check that the precious variables saved in the cache have kept the same
 # value.
@@ -40141,6 +40145,149 @@ ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
 
   ac_save_CXXFLAGS="$CXXFLAGS"
   CXXFLAGS="$CXXFLAGS -fno-exceptions"
+  ac_save_LIBS="$LIBS"
+
+  echo "$as_me:$LINENO: checking for library containing clock_gettime" >&5
+echo $ECHO_N "checking for library containing clock_gettime... $ECHO_C" >&6
+if test "${ac_cv_search_clock_gettime+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  ac_func_search_save_LIBS=$LIBS
+ac_cv_search_clock_gettime=no
+if test x$gcc_no_link = xyes; then
+  { { echo "$as_me:$LINENO: error: Link tests are not allowed after GCC_NO_EXECUTABLES." >&5
+echo "$as_me: error: Link tests are not allowed after GCC_NO_EXECUTABLES." >&2;}
+   { (exit 1); exit 1; }; }
+fi
+cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+/* Override any gcc2 internal prototype to avoid an error.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+/* We use char because int might match the return type of a gcc2
+   builtin and then its argument prototype would still apply.  */
+char clock_gettime ();
+int
+main ()
+{
+clock_gettime ();
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
+  (eval $ac_link) 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+	 { ac_try='test -z "$ac_cxx_werror_flag"
+			 || test ! -s conftest.err'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; } &&
+	 { ac_try='test -s conftest$ac_exeext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+  ac_cv_search_clock_gettime="none required"
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+fi
+rm -f conftest.err conftest.$ac_objext \
+      conftest$ac_exeext conftest.$ac_ext
+if test "$ac_cv_search_clock_gettime" = no; then
+  for ac_lib in posix4; do
+    LIBS="-l$ac_lib  $ac_func_search_save_LIBS"
+    if test x$gcc_no_link = xyes; then
+  { { echo "$as_me:$LINENO: error: Link tests are not allowed after GCC_NO_EXECUTABLES." >&5
+echo "$as_me: error: Link tests are not allowed after GCC_NO_EXECUTABLES." >&2;}
+   { (exit 1); exit 1; }; }
+fi
+cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+/* Override any gcc2 internal prototype to avoid an error.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+/* We use char because int might match the return type of a gcc2
+   builtin and then its argument prototype would still apply.  */
+char clock_gettime ();
+int
+main ()
+{
+clock_gettime ();
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
+  (eval $ac_link) 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+	 { ac_try='test -z "$ac_cxx_werror_flag"
+			 || test ! -s conftest.err'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; } &&
+	 { ac_try='test -s conftest$ac_exeext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+  ac_cv_search_clock_gettime="-l$ac_lib"
+break
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+fi
+rm -f conftest.err conftest.$ac_objext \
+      conftest$ac_exeext conftest.$ac_ext
+  done
+fi
+LIBS=$ac_func_search_save_LIBS
+fi
+echo "$as_me:$LINENO: result: $ac_cv_search_clock_gettime" >&5
+echo "${ECHO_T}$ac_cv_search_clock_gettime" >&6
+if test "$ac_cv_search_clock_gettime" != no; then
+  test "$ac_cv_search_clock_gettime" = "none required" || LIBS="$ac_cv_search_clock_gettime $LIBS"
+
+fi
+
+
+  # Link to -lposix4.
+  case "$ac_cv_search_clock_gettime" in
+    -lposix4*) GLIBCXX_LIBS=$ac_cv_search_clock_gettime
+  esac
 
 
 for ac_header in unistd.h
@@ -40441,7 +40588,10 @@ _ACEOF
 
   fi
 
+
+
   CXXFLAGS="$ac_save_CXXFLAGS"
+  LIBS="$ac_save_LIBS"
   ac_ext=c
 ac_cpp='$CPP $CPPFLAGS'
 ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
@@ -116752,7 +116902,204 @@ $debug ||
 
 # No need to generate the scripts if there are no CONFIG_FILES.
 # This happens for instance when ./config.status config.h
+<<<<<<< .working
 if test -n "$CONFIG_FILES"; then
+=======
+if test -n "\$CONFIG_FILES"; then
+  # Protect against being on the right side of a sed subst in config.status.
+  sed 's/,@/@@/; s/@,/@@/; s/,;t t\$/@;t t/; /@;t t\$/s/[\\\\&,]/\\\\&/g;
+   s/@@/,@/; s/@@/@,/; s/@;t t\$/,;t t/' >\$tmp/subs.sed <<\\CEOF
+s,@SHELL@,$SHELL,;t t
+s,@PATH_SEPARATOR@,$PATH_SEPARATOR,;t t
+s,@PACKAGE_NAME@,$PACKAGE_NAME,;t t
+s,@PACKAGE_TARNAME@,$PACKAGE_TARNAME,;t t
+s,@PACKAGE_VERSION@,$PACKAGE_VERSION,;t t
+s,@PACKAGE_STRING@,$PACKAGE_STRING,;t t
+s,@PACKAGE_BUGREPORT@,$PACKAGE_BUGREPORT,;t t
+s,@exec_prefix@,$exec_prefix,;t t
+s,@prefix@,$prefix,;t t
+s,@program_transform_name@,$program_transform_name,;t t
+s,@bindir@,$bindir,;t t
+s,@sbindir@,$sbindir,;t t
+s,@libexecdir@,$libexecdir,;t t
+s,@datadir@,$datadir,;t t
+s,@sysconfdir@,$sysconfdir,;t t
+s,@sharedstatedir@,$sharedstatedir,;t t
+s,@localstatedir@,$localstatedir,;t t
+s,@libdir@,$libdir,;t t
+s,@includedir@,$includedir,;t t
+s,@oldincludedir@,$oldincludedir,;t t
+s,@infodir@,$infodir,;t t
+s,@mandir@,$mandir,;t t
+s,@build_alias@,$build_alias,;t t
+s,@host_alias@,$host_alias,;t t
+s,@target_alias@,$target_alias,;t t
+s,@DEFS@,$DEFS,;t t
+s,@ECHO_C@,$ECHO_C,;t t
+s,@ECHO_N@,$ECHO_N,;t t
+s,@ECHO_T@,$ECHO_T,;t t
+s,@LIBS@,$LIBS,;t t
+s,@libtool_VERSION@,$libtool_VERSION,;t t
+s,@multi_basedir@,$multi_basedir,;t t
+s,@build@,$build,;t t
+s,@build_cpu@,$build_cpu,;t t
+s,@build_vendor@,$build_vendor,;t t
+s,@build_os@,$build_os,;t t
+s,@host@,$host,;t t
+s,@host_cpu@,$host_cpu,;t t
+s,@host_vendor@,$host_vendor,;t t
+s,@host_os@,$host_os,;t t
+s,@target@,$target,;t t
+s,@target_cpu@,$target_cpu,;t t
+s,@target_vendor@,$target_vendor,;t t
+s,@target_os@,$target_os,;t t
+s,@INSTALL_PROGRAM@,$INSTALL_PROGRAM,;t t
+s,@INSTALL_SCRIPT@,$INSTALL_SCRIPT,;t t
+s,@INSTALL_DATA@,$INSTALL_DATA,;t t
+s,@CYGPATH_W@,$CYGPATH_W,;t t
+s,@PACKAGE@,$PACKAGE,;t t
+s,@VERSION@,$VERSION,;t t
+s,@ACLOCAL@,$ACLOCAL,;t t
+s,@AUTOCONF@,$AUTOCONF,;t t
+s,@AUTOMAKE@,$AUTOMAKE,;t t
+s,@AUTOHEADER@,$AUTOHEADER,;t t
+s,@MAKEINFO@,$MAKEINFO,;t t
+s,@install_sh@,$install_sh,;t t
+s,@STRIP@,$STRIP,;t t
+s,@ac_ct_STRIP@,$ac_ct_STRIP,;t t
+s,@INSTALL_STRIP_PROGRAM@,$INSTALL_STRIP_PROGRAM,;t t
+s,@mkdir_p@,$mkdir_p,;t t
+s,@AWK@,$AWK,;t t
+s,@SET_MAKE@,$SET_MAKE,;t t
+s,@am__leading_dot@,$am__leading_dot,;t t
+s,@AMTAR@,$AMTAR,;t t
+s,@am__tar@,$am__tar,;t t
+s,@am__untar@,$am__untar,;t t
+s,@glibcxx_builddir@,$glibcxx_builddir,;t t
+s,@glibcxx_srcdir@,$glibcxx_srcdir,;t t
+s,@toplevel_srcdir@,$toplevel_srcdir,;t t
+s,@CC@,$CC,;t t
+s,@ac_ct_CC@,$ac_ct_CC,;t t
+s,@EXEEXT@,$EXEEXT,;t t
+s,@OBJEXT@,$OBJEXT,;t t
+s,@CXX@,$CXX,;t t
+s,@ac_ct_CXX@,$ac_ct_CXX,;t t
+s,@CFLAGS@,$CFLAGS,;t t
+s,@CXXFLAGS@,$CXXFLAGS,;t t
+s,@LN_S@,$LN_S,;t t
+s,@AS@,$AS,;t t
+s,@ac_ct_AS@,$ac_ct_AS,;t t
+s,@AR@,$AR,;t t
+s,@ac_ct_AR@,$ac_ct_AR,;t t
+s,@RANLIB@,$RANLIB,;t t
+s,@ac_ct_RANLIB@,$ac_ct_RANLIB,;t t
+s,@MAINTAINER_MODE_TRUE@,$MAINTAINER_MODE_TRUE,;t t
+s,@MAINTAINER_MODE_FALSE@,$MAINTAINER_MODE_FALSE,;t t
+s,@MAINT@,$MAINT,;t t
+s,@CPP@,$CPP,;t t
+s,@CPPFLAGS@,$CPPFLAGS,;t t
+s,@EGREP@,$EGREP,;t t
+s,@LIBTOOL@,$LIBTOOL,;t t
+s,@SED@,$SED,;t t
+s,@FGREP@,$FGREP,;t t
+s,@GREP@,$GREP,;t t
+s,@LD@,$LD,;t t
+s,@DUMPBIN@,$DUMPBIN,;t t
+s,@ac_ct_DUMPBIN@,$ac_ct_DUMPBIN,;t t
+s,@NM@,$NM,;t t
+s,@lt_ECHO@,$lt_ECHO,;t t
+s,@LDFLAGS@,$LDFLAGS,;t t
+s,@CXXCPP@,$CXXCPP,;t t
+s,@enable_shared@,$enable_shared,;t t
+s,@enable_static@,$enable_static,;t t
+s,@GLIBCXX_HOSTED_TRUE@,$GLIBCXX_HOSTED_TRUE,;t t
+s,@GLIBCXX_HOSTED_FALSE@,$GLIBCXX_HOSTED_FALSE,;t t
+s,@GLIBCXX_BUILD_PCH_TRUE@,$GLIBCXX_BUILD_PCH_TRUE,;t t
+s,@GLIBCXX_BUILD_PCH_FALSE@,$GLIBCXX_BUILD_PCH_FALSE,;t t
+s,@glibcxx_PCHFLAGS@,$glibcxx_PCHFLAGS,;t t
+s,@glibcxx_thread_h@,$glibcxx_thread_h,;t t
+s,@WERROR@,$WERROR,;t t
+s,@SECTION_FLAGS@,$SECTION_FLAGS,;t t
+s,@CSTDIO_H@,$CSTDIO_H,;t t
+s,@BASIC_FILE_H@,$BASIC_FILE_H,;t t
+s,@BASIC_FILE_CC@,$BASIC_FILE_CC,;t t
+s,@check_msgfmt@,$check_msgfmt,;t t
+s,@glibcxx_MOFILES@,$glibcxx_MOFILES,;t t
+s,@glibcxx_POFILES@,$glibcxx_POFILES,;t t
+s,@glibcxx_localedir@,$glibcxx_localedir,;t t
+s,@USE_NLS@,$USE_NLS,;t t
+s,@CLOCALE_H@,$CLOCALE_H,;t t
+s,@CMESSAGES_H@,$CMESSAGES_H,;t t
+s,@CCODECVT_CC@,$CCODECVT_CC,;t t
+s,@CCOLLATE_CC@,$CCOLLATE_CC,;t t
+s,@CCTYPE_CC@,$CCTYPE_CC,;t t
+s,@CMESSAGES_CC@,$CMESSAGES_CC,;t t
+s,@CMONEY_CC@,$CMONEY_CC,;t t
+s,@CNUMERIC_CC@,$CNUMERIC_CC,;t t
+s,@CTIME_H@,$CTIME_H,;t t
+s,@CTIME_CC@,$CTIME_CC,;t t
+s,@CLOCALE_CC@,$CLOCALE_CC,;t t
+s,@CLOCALE_INTERNAL_H@,$CLOCALE_INTERNAL_H,;t t
+s,@ALLOCATOR_H@,$ALLOCATOR_H,;t t
+s,@ALLOCATOR_NAME@,$ALLOCATOR_NAME,;t t
+s,@C_INCLUDE_DIR@,$C_INCLUDE_DIR,;t t
+s,@GLIBCXX_C_HEADERS_C_TRUE@,$GLIBCXX_C_HEADERS_C_TRUE,;t t
+s,@GLIBCXX_C_HEADERS_C_FALSE@,$GLIBCXX_C_HEADERS_C_FALSE,;t t
+s,@GLIBCXX_C_HEADERS_C_STD_TRUE@,$GLIBCXX_C_HEADERS_C_STD_TRUE,;t t
+s,@GLIBCXX_C_HEADERS_C_STD_FALSE@,$GLIBCXX_C_HEADERS_C_STD_FALSE,;t t
+s,@GLIBCXX_C_HEADERS_C_GLOBAL_TRUE@,$GLIBCXX_C_HEADERS_C_GLOBAL_TRUE,;t t
+s,@GLIBCXX_C_HEADERS_C_GLOBAL_FALSE@,$GLIBCXX_C_HEADERS_C_GLOBAL_FALSE,;t t
+s,@GLIBCXX_C_HEADERS_COMPATIBILITY_TRUE@,$GLIBCXX_C_HEADERS_COMPATIBILITY_TRUE,;t t
+s,@GLIBCXX_C_HEADERS_COMPATIBILITY_FALSE@,$GLIBCXX_C_HEADERS_COMPATIBILITY_FALSE,;t t
+s,@GLIBCXX_C_HEADERS_EXTRA_TRUE@,$GLIBCXX_C_HEADERS_EXTRA_TRUE,;t t
+s,@GLIBCXX_C_HEADERS_EXTRA_FALSE@,$GLIBCXX_C_HEADERS_EXTRA_FALSE,;t t
+s,@DEBUG_FLAGS@,$DEBUG_FLAGS,;t t
+s,@GLIBCXX_BUILD_DEBUG_TRUE@,$GLIBCXX_BUILD_DEBUG_TRUE,;t t
+s,@GLIBCXX_BUILD_DEBUG_FALSE@,$GLIBCXX_BUILD_DEBUG_FALSE,;t t
+s,@ENABLE_PARALLEL_TRUE@,$ENABLE_PARALLEL_TRUE,;t t
+s,@ENABLE_PARALLEL_FALSE@,$ENABLE_PARALLEL_FALSE,;t t
+s,@EXTRA_CXX_FLAGS@,$EXTRA_CXX_FLAGS,;t t
+s,@SECTION_LDFLAGS@,$SECTION_LDFLAGS,;t t
+s,@OPT_LDFLAGS@,$OPT_LDFLAGS,;t t
+s,@LIBMATHOBJS@,$LIBMATHOBJS,;t t
+s,@GLIBCXX_LIBS@,$GLIBCXX_LIBS,;t t
+s,@LIBICONV@,$LIBICONV,;t t
+s,@LTLIBICONV@,$LTLIBICONV,;t t
+s,@SYMVER_FILE@,$SYMVER_FILE,;t t
+s,@port_specific_symbol_files@,$port_specific_symbol_files,;t t
+s,@ENABLE_SYMVERS_TRUE@,$ENABLE_SYMVERS_TRUE,;t t
+s,@ENABLE_SYMVERS_FALSE@,$ENABLE_SYMVERS_FALSE,;t t
+s,@ENABLE_SYMVERS_GNU_TRUE@,$ENABLE_SYMVERS_GNU_TRUE,;t t
+s,@ENABLE_SYMVERS_GNU_FALSE@,$ENABLE_SYMVERS_GNU_FALSE,;t t
+s,@ENABLE_SYMVERS_GNU_NAMESPACE_TRUE@,$ENABLE_SYMVERS_GNU_NAMESPACE_TRUE,;t t
+s,@ENABLE_SYMVERS_GNU_NAMESPACE_FALSE@,$ENABLE_SYMVERS_GNU_NAMESPACE_FALSE,;t t
+s,@ENABLE_SYMVERS_DARWIN_TRUE@,$ENABLE_SYMVERS_DARWIN_TRUE,;t t
+s,@ENABLE_SYMVERS_DARWIN_FALSE@,$ENABLE_SYMVERS_DARWIN_FALSE,;t t
+s,@ENABLE_VISIBILITY_TRUE@,$ENABLE_VISIBILITY_TRUE,;t t
+s,@ENABLE_VISIBILITY_FALSE@,$ENABLE_VISIBILITY_FALSE,;t t
+s,@GLIBCXX_LDBL_COMPAT_TRUE@,$GLIBCXX_LDBL_COMPAT_TRUE,;t t
+s,@GLIBCXX_LDBL_COMPAT_FALSE@,$GLIBCXX_LDBL_COMPAT_FALSE,;t t
+s,@baseline_dir@,$baseline_dir,;t t
+s,@ATOMICITY_SRCDIR@,$ATOMICITY_SRCDIR,;t t
+s,@ATOMIC_WORD_SRCDIR@,$ATOMIC_WORD_SRCDIR,;t t
+s,@ATOMIC_FLAGS@,$ATOMIC_FLAGS,;t t
+s,@CPU_DEFINES_SRCDIR@,$CPU_DEFINES_SRCDIR,;t t
+s,@ABI_TWEAKS_SRCDIR@,$ABI_TWEAKS_SRCDIR,;t t
+s,@OS_INC_SRCDIR@,$OS_INC_SRCDIR,;t t
+s,@ERROR_CONSTANTS_SRCDIR@,$ERROR_CONSTANTS_SRCDIR,;t t
+s,@glibcxx_prefixdir@,$glibcxx_prefixdir,;t t
+s,@gxx_include_dir@,$gxx_include_dir,;t t
+s,@glibcxx_toolexecdir@,$glibcxx_toolexecdir,;t t
+s,@glibcxx_toolexeclibdir@,$glibcxx_toolexeclibdir,;t t
+s,@GLIBCXX_INCLUDES@,$GLIBCXX_INCLUDES,;t t
+s,@TOPLEVEL_INCLUDES@,$TOPLEVEL_INCLUDES,;t t
+s,@OPTIMIZE_CXXFLAGS@,$OPTIMIZE_CXXFLAGS,;t t
+s,@WARN_FLAGS@,$WARN_FLAGS,;t t
+s,@LIBSUPCXX_PICFLAGS@,$LIBSUPCXX_PICFLAGS,;t t
+s,@LIBOBJS@,$LIBOBJS,;t t
+s,@LTLIBOBJS@,$LTLIBOBJS,;t t
+CEOF
+>>>>>>> .merge-right.r138620
 
 _ACEOF
 

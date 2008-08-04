@@ -367,12 +367,14 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
   switch (kind)
     {
     case E_Constant:
-      /* If this is a use of a deferred constant, get its full
-	 declaration.  */
-      if (!definition && Present (Full_View (gnat_entity)))
+      /* If this is a use of a deferred constant without address clause,
+	 get its full definition.  */
+      if (!definition
+	  && No (Address_Clause (gnat_entity))
+	  && Present (Full_View (gnat_entity)))
 	{
-	  gnu_decl = gnat_to_gnu_entity (Full_View (gnat_entity),
-					 gnu_expr, 0);
+	  gnu_decl
+	    = gnat_to_gnu_entity (Full_View (gnat_entity), gnu_expr, 0);
 	  saved = true;
 	  break;
 	}
@@ -391,12 +393,14 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	      != N_Allocator))
 	gnu_expr = gnat_to_gnu (Expression (Declaration_Node (gnat_entity)));
 
-      /* Ignore deferred constant definitions; they are processed fully in the
-	 front-end.  For deferred constant references get the full definition.
-	 On the other hand, constants that are renamings are handled like
-	 variable renamings.  If No_Initialization is set, this is not a
-	 deferred constant but a constant whose value is built manually.  */
-      if (definition && !gnu_expr
+      /* Ignore deferred constant definitions without address clause since
+	 they are processed fully in the front-end.  If No_Initialization
+	 is set, this is not a deferred constant but a constant whose value
+	 is built manually.  And constants that are renamings are handled
+	 like variables.  */
+      if (definition
+	  && !gnu_expr
+	  && No (Address_Clause (gnat_entity))
 	  && !No_Initialization (Declaration_Node (gnat_entity))
 	  && No (Renamed_Object (gnat_entity)))
 	{
@@ -404,12 +408,15 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	  saved = true;
 	  break;
 	}
-      else if (!definition && IN (kind, Incomplete_Or_Private_Kind)
-	       && Present (Full_View (gnat_entity)))
+
+      /* Ignore constant definitions already marked with the error node.  See
+	 the N_Object_Declaration case of gnat_to_gnu for the rationale.  */
+      if (definition
+	  && gnu_expr
+	  && present_gnu_tree (gnat_entity)
+	  && get_gnu_tree (gnat_entity) == error_mark_node)
 	{
-	  gnu_decl =  gnat_to_gnu_entity (Full_View (gnat_entity),
-					  NULL_TREE, 0);
-	  saved = true;
+	  maybe_present = true;
 	  break;
 	}
 
@@ -1037,17 +1044,17 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	    && !Is_Imported (gnat_entity) && !gnu_expr)
 	  gnu_expr = integer_zero_node;
 
-	/* If we are defining the object and it has an Address clause we must
-	   get the address expression from the saved GCC tree for the
-	   object if the object has a Freeze_Node.  Otherwise, we elaborate
-	   the address expression here since the front-end has guaranteed
-	   in that case that the elaboration has no effects.  Note that
-	   only the latter mechanism is currently in use.  */
+	/* If we are defining the object and it has an Address clause, we must
+	   either get the address expression from the saved GCC tree for the
+	   object if it has a Freeze node, or elaborate the address expression
+	   here since the front-end has guaranteed that the elaboration has no
+	   effects in this case.  */
 	if (definition && Present (Address_Clause (gnat_entity)))
 	  {
 	    tree gnu_address
-	      = (present_gnu_tree (gnat_entity) ? get_gnu_tree (gnat_entity)
-		: gnat_to_gnu (Expression (Address_Clause (gnat_entity))));
+	      = present_gnu_tree (gnat_entity)
+		? get_gnu_tree (gnat_entity)
+		: gnat_to_gnu (Expression (Address_Clause (gnat_entity)));
 
 	    save_gnu_tree (gnat_entity, NULL_TREE, false);
 
@@ -1063,6 +1070,13 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	    const_flag = !Is_Public (gnat_entity)
 	      || compile_time_known_address_p (Expression (Address_Clause
 							   (gnat_entity)));
+
+	    /* If this is a deferred constant, the initializer is attached to
+	       the full view.  */
+	    if (kind == E_Constant && Present (Full_View (gnat_entity)))
+	      gnu_expr
+		= gnat_to_gnu
+		    (Expression (Declaration_Node (Full_View (gnat_entity))));
 
 	    /* If we don't have an initializing expression for the underlying
 	       variable, the initializing expression for the pointer is the
@@ -3872,6 +3886,11 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	      ;
 	    else if (By_Descriptor_Last <= mech && mech <= By_Descriptor)
 	      mech = By_Descriptor;
+
+	    else if (By_Short_Descriptor_Last <= mech &&
+                     mech <= By_Short_Descriptor)
+	      mech = By_Short_Descriptor;
+
 	    else if (mech > 0)
 	      {
 		if (TREE_CODE (gnu_param_type) == UNCONSTRAINED_ARRAY_TYPE
@@ -3913,7 +3932,7 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 		      = chainon (gnu_param, gnu_stub_param_list);
 		    /* Change By_Descriptor parameter to By_Reference for
 		       the internal version of an exported subprogram.  */
-		    if (mech == By_Descriptor)
+		    if (mech == By_Descriptor || mech == By_Short_Descriptor)
 		      {
 			gnu_param
 			  = gnat_to_gnu_param (gnat_param, By_Reference,
@@ -4020,19 +4039,15 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	if (TREE_CODE (gnu_return_type) == VOID_TYPE)
 	  pure_flag = false;
 
-	/* The semantics of "pure" in Ada essentially matches that of "const"
-	   in the back-end.  In particular, both properties are orthogonal to
-	   the "nothrow" property.  But this is true only if the EH circuitry
-	   is explicit in the internal representation of the back-end.  If we
-	   are to completely hide the EH circuitry from it, we need to declare
-	   that calls to pure Ada subprograms that can throw have side effects
-	   since they can trigger an "abnormal" transfer of control flow; thus
-	   they can be neither "const" nor "pure" in the back-end sense.  */
+	/* The semantics of "pure" in Ada used to essentially match that of
+	   "const" in the middle-end.  In particular, both properties were
+	   orthogonal to the "nothrow" property.  This is not true in the
+	   middle-end any more and we have no choice but to ignore the hint
+	   at this stage.  */
+
 	gnu_type
 	  = build_qualified_type (gnu_type,
 				  TYPE_QUALS (gnu_type)
-				  | (Exception_Mechanism == Back_End_Exceptions
-				     ? TYPE_QUAL_CONST * pure_flag : 0)
 				  | (TYPE_QUAL_VOLATILE * volatile_flag));
 
 	Sloc_to_locus (Sloc (gnat_entity), &input_location);
@@ -4826,13 +4841,13 @@ gnat_to_gnu_param (Entity_Id gnat_param, Mechanism_Type mech,
     gnu_param_type
       = TREE_TYPE (TREE_TYPE (TYPE_FIELDS (TREE_TYPE (gnu_param_type))));
 
-  /* VMS descriptors are themselves passed by reference.
-     Build both a 32bit and 64bit descriptor, one of which will be chosen
-     in fill_vms_descriptor based on the allocator size */
+  /* VMS descriptors are themselves passed by reference.  */
   if (mech == By_Descriptor)
     {
+      /* Build both a 32-bit and 64-bit descriptor, one of which will be
+	 chosen in fill_vms_descriptor.  */
       gnu_param_type_alt
-        = build_pointer_type (build_vms_descriptor64 (gnu_param_type,
+        = build_pointer_type (build_vms_descriptor32 (gnu_param_type,
 						      Mechanism (gnat_param),
 						      gnat_subprog));
       gnu_param_type
@@ -4840,6 +4855,11 @@ gnat_to_gnu_param (Entity_Id gnat_param, Mechanism_Type mech,
 						    Mechanism (gnat_param),
 						    gnat_subprog));
     }
+  else if (mech == By_Short_Descriptor)
+    gnu_param_type
+      = build_pointer_type (build_vms_descriptor32 (gnu_param_type,
+						    Mechanism (gnat_param),
+						    gnat_subprog));
 
   /* Arrays are passed as pointers to element type for foreign conventions.  */
   else if (foreign
@@ -4920,6 +4940,7 @@ gnat_to_gnu_param (Entity_Id gnat_param, Mechanism_Type mech,
       && !by_ref
       && (by_return
 	  || (mech != By_Descriptor
+              && mech != By_Short_Descriptor
 	      && !POINTER_TYPE_P (gnu_param_type)
 	      && !AGGREGATE_TYPE_P (gnu_param_type)))
       && !(Is_Array_Type (Etype (gnat_param))
@@ -4931,12 +4952,14 @@ gnat_to_gnu_param (Entity_Id gnat_param, Mechanism_Type mech,
 				 ro_param || by_ref || by_component_ptr);
   DECL_BY_REF_P (gnu_param) = by_ref;
   DECL_BY_COMPONENT_PTR_P (gnu_param) = by_component_ptr;
-  DECL_BY_DESCRIPTOR_P (gnu_param) = (mech == By_Descriptor);
+  DECL_BY_DESCRIPTOR_P (gnu_param) = (mech == By_Descriptor ||
+                                      mech == By_Short_Descriptor);
   DECL_POINTS_TO_READONLY_P (gnu_param)
     = (ro_param && (by_ref || by_component_ptr));
 
-  /* Save the 64bit descriptor for later. */
-  SET_DECL_PARM_ALT (gnu_param, gnu_param_type_alt);
+  /* Save the alternate descriptor type, if any.  */
+  if (gnu_param_type_alt)
+    SET_DECL_PARM_ALT_TYPE (gnu_param, gnu_param_type_alt);
 
   /* If no Mechanism was specified, indicate what we're using, then
      back-annotate it.  */

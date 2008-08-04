@@ -1526,6 +1526,14 @@ package VMS_Data is
    --   /VERBOSE), then error lines start with the full path name of the
    --   project file, rather than its simple file name.
 
+   S_GCC_Generate : aliased constant S := "/GENERATE_PROCESSED_SOURCE "    &
+                                             "-gnateG";
+   --        /NOGENERATE_PROCESSED_SOURCE (D)
+   --        /GENERATE_PROCESSED_SOURCE
+   --
+   --        Generate a file <source>_prep if the integrated preprocessing
+   --        is modifying the source text.
+
    S_GCC_GNAT    : aliased constant S := "/GNAT_INTERNAL "                 &
                                             "-gnatg";
    --        /NOGNAT_INTERNAL (D)
@@ -1744,6 +1752,15 @@ package VMS_Data is
    --   Cause a full listing of the file to be generated. In the case where
    --   a body is compiled, the corresponding spec is also listed, along
    --   with any subunits.
+
+   S_GCC_Machine : aliased constant S := "/MACHINE_CODE_LISTING "          &
+                                             "-source-listing";
+   --        /NOMACHINE_CODE_LISTING (D)
+   --        /MACHINE_CODE_LISTING
+   --
+   --   Cause a full machine code listing of the file to be generated to
+   --   <filename>.lis. Interspersed source is included if the /DEBUG
+   --   qualifier is also present.
 
    S_GCC_Mapping : aliased constant S := "/MAPPING_FILE=<"                 &
                                             "-gnatem>";
@@ -3302,6 +3319,7 @@ package VMS_Data is
                      S_GCC_Follow  'Access,
                      S_GCC_Force   'Access,
                      S_GCC_Full    'Access,
+                     S_GCC_Generate'Access,
                      S_GCC_GNAT    'Access,
                      S_GCC_Help    'Access,
                      S_GCC_Ident   'Access,
@@ -3316,6 +3334,7 @@ package VMS_Data is
                      S_GCC_Length  'Access,
                      S_GCC_List    'Access,
                      S_GCC_Output  'Access,
+                     S_GCC_Machine 'Access,
                      S_GCC_Mapping 'Access,
                      S_GCC_Mess    'Access,
                      S_GCC_Nesting 'Access,

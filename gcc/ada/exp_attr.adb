@@ -33,6 +33,7 @@ with Exp_Ch2;  use Exp_Ch2;
 with Exp_Ch3;  use Exp_Ch3;
 with Exp_Ch6;  use Exp_Ch6;
 with Exp_Ch9;  use Exp_Ch9;
+with Exp_Dist; use Exp_Dist;
 with Exp_Imgv; use Exp_Imgv;
 with Exp_Pakd; use Exp_Pakd;
 with Exp_Strm; use Exp_Strm;
@@ -2073,6 +2074,22 @@ package body Exp_Attr is
 
       when Attribute_Fraction =>
          Expand_Fpt_Attribute_R (N);
+
+      --------------
+      -- From_Any --
+      --------------
+
+      when Attribute_From_Any => From_Any : declare
+         P_Type : constant Entity_Id := Etype (Pref);
+         Decls  : constant List_Id   := New_List;
+      begin
+         Rewrite (N,
+           Build_From_Any_Call (P_Type,
+             Relocate_Node (First (Exprs)),
+             Decls));
+         Insert_Actions (N, Decls);
+         Analyze_And_Resolve (N, P_Type);
+      end From_Any;
 
       --------------
       -- Identity --
@@ -4396,6 +4413,22 @@ package body Exp_Attr is
              Relocate_Node (First (Exprs))));
          Analyze_And_Resolve (N, RTE (RE_Address));
 
+      ------------
+      -- To_Any --
+      ------------
+
+      when Attribute_To_Any => To_Any : declare
+         P_Type : constant Entity_Id := Etype (Pref);
+         Decls  : constant List_Id   := New_List;
+      begin
+         Rewrite (N,
+           Build_To_Any_Call
+             (Convert_To (P_Type,
+              Relocate_Node (First (Exprs))), Decls));
+         Insert_Actions (N, Decls);
+         Analyze_And_Resolve (N, RTE (RE_Any));
+      end To_Any;
+
       ----------------
       -- Truncation --
       ----------------
@@ -4408,6 +4441,19 @@ package body Exp_Attr is
          if not Is_Inline_Floating_Point_Attribute (N) then
             Expand_Fpt_Attribute_R (N);
          end if;
+
+      --------------
+      -- TypeCode --
+      --------------
+
+      when Attribute_TypeCode => TypeCode : declare
+         P_Type : constant Entity_Id := Etype (Pref);
+         Decls  : constant List_Id   := New_List;
+      begin
+         Rewrite (N, Build_TypeCode_Call (Loc, P_Type, Decls));
+         Insert_Actions (N, Decls);
+         Analyze_And_Resolve (N, RTE (RE_TypeCode));
+      end TypeCode;
 
       -----------------------
       -- Unbiased_Rounding --
@@ -5365,53 +5411,100 @@ package body Exp_Attr is
         and then
           not Is_Predefined_File_Name (Unit_File_Name (Current_Sem_Unit))
       then
-
          --  String as defined in package Ada
 
          if Base_Typ = Standard_String then
-            if Nam = TSS_Stream_Input then
-               return RTE (RE_String_Input);
+            if Restriction_Active (No_Stream_Optimizations) then
+               if Nam = TSS_Stream_Input then
+                  return RTE (RE_String_Input);
 
-            elsif Nam = TSS_Stream_Output then
-               return RTE (RE_String_Output);
+               elsif Nam = TSS_Stream_Output then
+                  return RTE (RE_String_Output);
 
-            elsif Nam = TSS_Stream_Read then
-               return RTE (RE_String_Read);
+               elsif Nam = TSS_Stream_Read then
+                  return RTE (RE_String_Read);
 
-            else pragma Assert (Nam = TSS_Stream_Write);
-               return RTE (RE_String_Write);
+               else pragma Assert (Nam = TSS_Stream_Write);
+                  return RTE (RE_String_Write);
+               end if;
+
+            else
+               if Nam = TSS_Stream_Input then
+                  return RTE (RE_String_Input_Blk_IO);
+
+               elsif Nam = TSS_Stream_Output then
+                  return RTE (RE_String_Output_Blk_IO);
+
+               elsif Nam = TSS_Stream_Read then
+                  return RTE (RE_String_Read_Blk_IO);
+
+               else pragma Assert (Nam = TSS_Stream_Write);
+                  return RTE (RE_String_Write_Blk_IO);
+               end if;
             end if;
 
          --  Wide_String as defined in package Ada
 
          elsif Base_Typ = Standard_Wide_String then
-            if Nam = TSS_Stream_Input then
-               return RTE (RE_Wide_String_Input);
+            if Restriction_Active (No_Stream_Optimizations) then
+               if Nam = TSS_Stream_Input then
+                  return RTE (RE_Wide_String_Input);
 
-            elsif Nam = TSS_Stream_Output then
-               return RTE (RE_Wide_String_Output);
+               elsif Nam = TSS_Stream_Output then
+                  return RTE (RE_Wide_String_Output);
 
-            elsif Nam = TSS_Stream_Read then
-               return RTE (RE_Wide_String_Read);
+               elsif Nam = TSS_Stream_Read then
+                  return RTE (RE_Wide_String_Read);
 
-            else pragma Assert (Nam = TSS_Stream_Write);
-               return RTE (RE_Wide_String_Write);
+               else pragma Assert (Nam = TSS_Stream_Write);
+                  return RTE (RE_Wide_String_Write);
+               end if;
+
+            else
+               if Nam = TSS_Stream_Input then
+                  return RTE (RE_Wide_String_Input_Blk_IO);
+
+               elsif Nam = TSS_Stream_Output then
+                  return RTE (RE_Wide_String_Output_Blk_IO);
+
+               elsif Nam = TSS_Stream_Read then
+                  return RTE (RE_Wide_String_Read_Blk_IO);
+
+               else pragma Assert (Nam = TSS_Stream_Write);
+                  return RTE (RE_Wide_String_Write_Blk_IO);
+               end if;
             end if;
 
          --  Wide_Wide_String as defined in package Ada
 
          elsif Base_Typ = Standard_Wide_Wide_String then
-            if Nam = TSS_Stream_Input then
-               return RTE (RE_Wide_Wide_String_Input);
+            if Restriction_Active (No_Stream_Optimizations) then
+               if Nam = TSS_Stream_Input then
+                  return RTE (RE_Wide_Wide_String_Input);
 
-            elsif Nam = TSS_Stream_Output then
-               return RTE (RE_Wide_Wide_String_Output);
+               elsif Nam = TSS_Stream_Output then
+                  return RTE (RE_Wide_Wide_String_Output);
 
-            elsif Nam = TSS_Stream_Read then
-               return RTE (RE_Wide_Wide_String_Read);
+               elsif Nam = TSS_Stream_Read then
+                  return RTE (RE_Wide_Wide_String_Read);
 
-            else pragma Assert (Nam = TSS_Stream_Write);
-               return RTE (RE_Wide_Wide_String_Write);
+               else pragma Assert (Nam = TSS_Stream_Write);
+                  return RTE (RE_Wide_Wide_String_Write);
+               end if;
+
+            else
+               if Nam = TSS_Stream_Input then
+                  return RTE (RE_Wide_Wide_String_Input_Blk_IO);
+
+               elsif Nam = TSS_Stream_Output then
+                  return RTE (RE_Wide_Wide_String_Output_Blk_IO);
+
+               elsif Nam = TSS_Stream_Read then
+                  return RTE (RE_Wide_Wide_String_Read_Blk_IO);
+
+               else pragma Assert (Nam = TSS_Stream_Write);
+                  return RTE (RE_Wide_Wide_String_Write_Blk_IO);
+               end if;
             end if;
          end if;
       end if;
