@@ -43,7 +43,7 @@
 (defprimitive put_gdbmstate_constr (:cstring keystr :value data) :void
   "basilysgc_put_gdbmstate_const((" keystr "), (basilys_ptr_t) (" data "))")
 
-(defprimitive put_gdbmstate (key data) :value
+(defprimitive put_gdbmstate (key data) :void
   "basilysgc_put_gdbmstate((basilys_ptr_t)(" key "), (basilys_ptr_t)(" data "))")
 
 (defun install_gcc_pass (pass)
@@ -109,6 +109,8 @@
 ;;; Basilys/MELT (ie to generate the warmelt*.c files) even when GCC
 ;;; internal representation changes a little.
 
+;;;;;;;;;;;;;;;;
+;;;; iterate on every cgraph_node
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (export_values
  fetch_gdbmstate

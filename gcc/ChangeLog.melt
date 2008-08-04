@@ -1,3 +1,6 @@
+2008-08-04  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/ana-base.bysl:  put_gdbmstate is void.
+
 2008-08-01  Basile Starynkevitch  <basile@starynkevitch.net>
 	MELT branch merged with trunk r138450
 
