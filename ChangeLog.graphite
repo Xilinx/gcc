@@ -1,5 +1,10 @@
 2008-08-04  Sebastian Pop  <sebastian.pop@amd.com>
 
+	* configure.ac: Check for CLooG and PPL version numbers.
+	* configure: Regenerated.
+
+2008-08-04  Sebastian Pop  <sebastian.pop@amd.com>
+
 	* Revert patch from 2008-08-03.
 
 2008-08-03  Sebastian Pop  <sebastian.pop@amd.com>

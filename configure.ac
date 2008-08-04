@@ -1364,6 +1364,24 @@ if test "x$with_cloog$with_cloog_include$with_cloog_lib" = x && test -d ${srcdir
   LIBS="$clooglibs $LIBS"
 fi
 
+saved_CFLAGS="$CFLAGS"
+CFLAGS="$CFLAGS $clooginc"
+
+AC_MSG_CHECKING([for correct version of PPL])
+AC_TRY_COMPILE([#include "cloog/cloog.h"],[
+#if PPL_VERSION_MAJOR != 0 || PPL_VERSION_MINOR != 9
+choke me
+#endif
+], [AC_MSG_RESULT([yes])], [AC_MSG_RESULT([no]); clooglibs= ; clooginc= ])
+
+AC_MSG_CHECKING([for correct version of CLooG])
+AC_TRY_COMPILE([#include "cloog/cloog.h"],[
+#if CLOOG_VERSION_MAJOR != 0 || CLOOG_VERSION_MINOR != 15
+choke me
+#endif
+], [AC_MSG_RESULT([yes])], [AC_MSG_RESULT([no]); clooglibs= ; clooginc= ])
+CFLAGS="$saved_CFLAGS"
+
 # Flags needed for CLOOG
 AC_SUBST(clooglibs)
 AC_SUBST(clooginc)
