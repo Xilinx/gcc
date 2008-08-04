@@ -294,8 +294,8 @@ GMPLIBS = @GMPLIBS@
 GMPINC = @GMPINC@
 
 # How to find POLYLIB
-POLYLIBLIBS = @POLYLIBLIBS@
-POLYLIBINC = @POLYLIBINC@
+POLYLIBLIBS = @PPLLIBS@
+POLYLIBINC = @PPLINC@
 
 # How to find CLOOG
 CLOOGLIBS = @CLOOGLIBS@
@@ -2224,7 +2224,7 @@ tree-eh.o : tree-eh.c $(TREE_FLOW_H) $(CONFIG_H) $(SYSTEM_H) \
 tree-ssa-loop.o : tree-ssa-loop.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
    $(TREE_H) $(RTL_H) $(TM_P_H) hard-reg-set.h $(BASIC_BLOCK_H) output.h \
    $(DIAGNOSTIC_H) $(TREE_FLOW_H) $(TREE_DUMP_H) tree-pass.h $(TIMEVAR_H) \
-   $(CFGLOOP_H) $(FLAGS_H) $(TREE_INLINE_H) tree-scalar-evolution.h
+   $(CFGLOOP_H) $(FLAGS_H) $(TREE_INLINE_H) $(TOPLEV_H) tree-scalar-evolution.h
 tree-ssa-loop-unswitch.o : tree-ssa-loop-unswitch.c $(TREE_FLOW_H) \
    $(CONFIG_H) $(SYSTEM_H) $(RTL_H) $(TREE_H) $(TM_P_H) $(CFGLOOP_H) \
    domwalk.h $(PARAMS_H) output.h $(DIAGNOSTIC_H) $(TIMEVAR_H) $(TM_H) \

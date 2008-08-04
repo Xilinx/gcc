@@ -1,3 +1,9 @@
+2008-08-04  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* Makefile.in (tree-ssa-loop.o): Depend on TOPLEV_H.
+	Remove typo left from polylib to ppl conversion.
+	* graphite.c (graphite_transforms): Use sorry instead of fatal.
+
 2008-08-03  Sebastian Pop  <sebastian.pop@amd.com>
 
 	* toplev.c (process_options): Move the graphite loop optimization flags...
