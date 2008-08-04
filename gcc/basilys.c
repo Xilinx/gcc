@@ -1048,7 +1048,8 @@ forwarded_copy (basilys_ptr_t p)
 	    dst->entab =
 	      (struct entrybasicblocksbasilys_st *) ggc_alloc_cleared (siz *
 								       sizeof
-								       (dst->entab
+								       (dst->
+									entab
 									[0]));
 	    memcpy (dst->entab, src->entab, siz * sizeof (dst->entab[0]));
 	  }
@@ -1537,15 +1538,15 @@ unsafe_index_mapobject (struct entryobjectsbasilys_st *tab,
 		 samehashcnt, (void *) attr, attr->obj_serial, (void *) curat,
 		 curat->obj_serial, curat->obj_hash,
 		 (void *) curat->obj_class,
-		 basilys_string_str (curat->obj_class->
-				     obj_vartab[FNAMED_NAME]));
+		 basilys_string_str (curat->
+				     obj_class->obj_vartab[FNAMED_NAME]));
 	      if (basilys_is_instance_of
 		  ((basilys_ptr_t) attr,
 		   (basilys_ptr_t) BASILYSGOB (CLASS_NAMED)))
 		dbgprintf ("gotten attr named %s found attr named %s",
 			   basilys_string_str (attr->obj_vartab[FNAMED_NAME]),
-			   basilys_string_str (curat->
-					       obj_vartab[FNAMED_NAME]));
+			   basilys_string_str (curat->obj_vartab
+					       [FNAMED_NAME]));
 	      basilys_dbgshortbacktrace
 		("gotten & found attr of same hash & class", 15);
 	    }
@@ -1582,15 +1583,15 @@ unsafe_index_mapobject (struct entryobjectsbasilys_st *tab,
 		 samehashcnt, (void *) attr, attr->obj_serial, (void *) curat,
 		 curat->obj_serial, curat->obj_hash,
 		 (void *) curat->obj_class,
-		 basilys_string_str (curat->obj_class->
-				     obj_vartab[FNAMED_NAME]));
+		 basilys_string_str (curat->
+				     obj_class->obj_vartab[FNAMED_NAME]));
 	      if (basilys_is_instance_of
 		  ((basilys_ptr_t) attr,
 		   (basilys_ptr_t) BASILYSGOB (CLASS_NAMED)))
 		dbgprintf ("gotten attr named %s found attr named %s",
 			   basilys_string_str (attr->obj_vartab[FNAMED_NAME]),
-			   basilys_string_str (curat->
-					       obj_vartab[FNAMED_NAME]));
+			   basilys_string_str (curat->obj_vartab
+					       [FNAMED_NAME]));
 	      basilys_dbgshortbacktrace
 		("gotten & found attr of same hash & class", 15);
 	    }
@@ -4961,7 +4962,7 @@ static struct obstack bstring_obstack;
 #define rdnext() (rd->rcol++)
 #define rdcurc() rd->rcurlin[rd->rcol]
 #define rdfollowc(Rk) rd->rcurlin[rd->rcol + (Rk)]
-#define rdeof() (feof(rd->rfil) && rd->rcurlin[rd->rcol]==0)
+#define rdeof() ((rd->rfil?feof(rd->rfil):1) && rd->rcurlin[rd->rcol]==0)
 #define READ_ERROR(Fmt,...)					\
   fatal_error("%s:%d:%d: read error <%s:%d> - " Fmt,		\
 	      rd->rpath, rd->rlineno,	rd->rcol,		\
@@ -4983,7 +4984,7 @@ readagain:
   if (!rd->rcurlin)
     goto readline;
   c = rdcurc ();
-  if (c == '\n' || c == 0)
+  if ((c == '\n' && !rdfollowc (1)) || c == 0)
   readline:
     {
       /* we expect most lines to fit into linbuf, so we don't handle
@@ -4992,6 +4993,8 @@ readagain:
       char *mlin = 0;		/* partial mallocated line buffer when
 				   not fitting into linbuf */
       char *eol = 0;
+      if (!rd->rfil)		/* reading from a buffer */
+	return EOF;
       if (rd->rcurlin)
 	free ((void *) rd->rcurlin);
       rd->rcurlin = NULL;
@@ -6283,6 +6286,77 @@ end:
 #undef seqv
 }
 
+
+
+basilys_ptr_t
+basilysgc_read_from_val (basilys_ptr_t strv_p, basilys_ptr_t locnam_p)
+{
+  struct reading_st rds;
+  char *rbuf = 0;
+  char *locnam = 0;
+  struct reading_st *rd = 0;
+  int strmagic = 0;
+  BASILYS_ENTERFRAME (5, NULL);
+#define genv      curfram__.varptr[0]
+#define valv      curfram__.varptr[1]
+#define locnamv   curfram__.varptr[2]
+#define seqv      curfram__.varptr[3]
+#define strv      curfram__.varptr[4]
+  memset (&rds, 0, sizeof (rds));
+  strv = strv_p;
+  locnamv = locnam_p;
+  rbuf = 0;
+  strmagic = basilys_magic_discr ((basilys_ptr_t) strv);
+  switch (strmagic)
+    {
+    case OBMAG_STRING:
+      rbuf = xstrdup (basilys_string_str (strv));
+      break;
+    case OBMAG_STRBUF:
+      rbuf = xstrdup (basilys_strbuf_str (strv));
+      break;
+    case OBMAG_OBJECT:
+      if (basilys_is_instance_of (strv, BASILYSG (CLASS_NAMED)))
+	strv = basilys_object_nth_field (strv, FNAMED_NAME);
+      else
+	strv = NULL;
+      if (basilys_string_str (strv))
+	rbuf = xstrdup (basilys_string_str (strv));
+      break;
+    default:
+      break;
+    }
+  if (!rbuf)
+    goto end;
+  rds.rfil = 0;
+  rds.rpath = 0;
+  rds.rlineno = 0;
+  rds.rcurlin = rbuf;
+  rd = &rds;
+  locnamv = basilysgc_new_stringdup (BASILYSGOB (DISCR_STRING), locnam);
+  rds.rpfilnam = (basilys_ptr_t *) & locnamv;
+  rds.rpgenv = (basilys_ptr_t *) & genv;
+  while (rdcurc ())
+    {
+      bool got = FALSE;
+      skipspace_getc (rd, COMMENT_SKIP);
+      if (!rdcurc () || rdeof ())
+	break;
+      valv = readval (rd, &got);
+      if (!got)
+	READ_ERROR ("no value read %.20s", &rdcurc ());
+      basilysgc_append_list ((basilys_ptr_t) seqv, (basilys_ptr_t) valv);
+    };
+  rd = 0;
+  free (rbuf);
+end:
+  BASILYS_EXITFRAME ();
+  return (basilys_ptr_t) seqv;
+#undef vecshv
+#undef genv
+#undef locnamv
+#undef seqv
+}
 
 static void
 do_initial_command (basilys_ptr_t modata_p)

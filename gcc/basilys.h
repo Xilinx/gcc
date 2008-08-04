@@ -2145,6 +2145,11 @@ basilys_ptr_t basilysgc_intern_keyword (basilys_ptr_t symb);
 /* read a list of sexpressions from a file; if the second argument is non-empty and non-null, it is used for locations; otherwise the basename of the filnam is used */
 basilys_ptr_t basilysgc_read_file (const char *filnam, const char* locnam);
 
+/* read a list of sexpression from a string or strbuf value or named
+   object; if the second argument is non-empty and non-null, it is
+   used for locations */
+basilys_ptr_t basilysgc_read_from_val(basilys_ptr_t strv_p, basilys_ptr_t locnam_p);
+
 /* Use basilys_assert(MESSAGE,EXPR) to test invariants.  The MESSAGE
    should be a constant string displayed when asserted EXPR is
    false */
