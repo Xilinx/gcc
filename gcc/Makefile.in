@@ -4758,6 +4758,8 @@ melt.encap: run-basilys.d
 	$(MAKE) warmelt-normal-2.so
 	echo melt.encap making warmelt-outobj-3.so
 	$(MAKE) warmelt-outobj-3.so
+	echo melt.encap making ana-base.so
+	$(MAKE) ana-base.so
 	echo melt.encap done
 
 .PHONY: install-melt-headers update-warmelt diff-warm-1-2 diff-warm-2-3  diff-warm-4-5 diff-warmelt-2-3
@@ -4972,6 +4974,19 @@ diff-warmelt-2-3: $(WARMELT_BASE3SO)
 	  diff $$f-2.c $$f-3.c || true; \
 	done
 
+
+####
+ana-%.c: $(srcdir)/melt/ana-%.bysl  warmelt2.modlis $(WARMELT_BASE2SO)  cc1$(exeext) 
+	@echo generating $@ using $(WARMELT_BASE2SO)
+	-rm -f $@
+	$(MELTBASILYSCCFILE1) -fbasilys-init="@warmelt2" \
+	      -fbasilys-arg=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
+	      -fbasilys-secondarg=$@
+	ls -l $@
+
+ana-%.so: ana-%.c built-melt-cc-script
+	echo Melt building $@ from $<
+	./built-melt-cc-script $< $@
 
 #### this phony target is given manually to copy the generated
 #### warmelt*-3.c into the source directory it should be only

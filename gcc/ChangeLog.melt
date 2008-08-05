@@ -1,4 +1,29 @@
 2008-08-05  Basile Starynkevitch  <basile@starynkevitch.net>
+	* basilys.h (BASILYS_DEFINE_MAPTR): New huge macro.
+	(basilysgc_new_maptrees, basilys_get_maptrees)
+	(basilys_put_maptrees, basilys_remove_maptrees)
+	(basilys_count_maptrees, basilys_size_maptrees)
+	(basilys_nthattr_maptrees, basilys_nthval_maptrees)
+	(basilysgc_new_mapgimples, basilys_get_mapgimples)
+	(basilys_put_mapgimples, basilys_remove_mapgimples)
+	(basilys_count_mapgimples, basilys_size_mapgimples)
+	(basilys_nthattr_mapgimples, basilys_nthval_mapgimples)
+	(basilysgc_new_mapedges, basilys_get_mapedges)
+	(basilys_put_mapedges, basilys_remove_mapedges)
+	(basilys_count_mapedges, basilys_size_mapedges)
+	(basilys_nthattr_mapedges, basilys_nthval_mapedges)
+	(basilysgc_new_mapbasicblocks, basilys_get_mapbasicblocks)
+	(basilys_put_mapbasicblocks, basilys_remove_mapbasicblocks)
+	(basilys_count_mapbasicblocks, basilys_size_mapbasicblocks)
+	(basilys_nthattr_mapbasicblocks)
+	(basilys_nthval_mapbasicblocks): [Re-]defined using
+	BASILYS_DEFINE_MAPTR.
+	* melt/ana-base.bysl: compiles ok.
+	* melt/warmelt-first.bysl: export class_gcc_pass.
+	* Makefile.in: compiles ana-base.bysl.
+
+
+2008-08-05  Basile Starynkevitch  <basile@starynkevitch.net>
 	* basilys.h (basilysgc_new_tree, basilys_tree_content)
 	(basilysgc_new_gimple, basilys_gimple_content)
 	(basilysgc_read_from_rawstring, basilys_handle_melt_attribute):

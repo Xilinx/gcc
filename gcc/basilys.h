@@ -917,160 +917,146 @@ basilys_container_value  (basilys_ptr_t cont);
 void *basilysgc_raw_new_mappointers (basilysobject_ptr_t discr_p,
 				     unsigned len);
 
-static inline basilys_ptr_t
-basilysgc_new_maptrees (basilysobject_ptr_t discr, unsigned len)
-{
-  if (basilys_magic_discr ((basilys_ptr_t) discr) != OBMAG_OBJECT)
-    return NULL;
-  if (discr->object_magic != OBMAG_MAPTREES)
-    return NULL;
-  return (basilys_ptr_t) basilysgc_raw_new_mappointers (discr, len);
-}
-
-static inline basilys_ptr_t
-basilysgc_new_mapgimples (basilysobject_ptr_t discr, unsigned len)
-{
-  if (basilys_magic_discr ((basilys_ptr_t) discr) != OBMAG_OBJECT)
-    return NULL;
-  if (discr->object_magic != OBMAG_MAPGIMPLES)
-    return NULL;
-  return (basilys_ptr_t) basilysgc_raw_new_mappointers (discr, len);
-}
-
-static inline basilys_ptr_t
-basilysgc_new_mapedges (basilysobject_ptr_t discr, unsigned len)
-{
-  if (basilys_magic_discr ((basilys_ptr_t) discr) != OBMAG_OBJECT)
-    return NULL;
-  if (discr->object_magic != OBMAG_MAPEDGES)
-    return NULL;
-  return (basilys_ptr_t) basilysgc_raw_new_mappointers (discr, len);
-}
-
-static inline basilys_ptr_t
-basilysgc_new_mapbasicblocks (basilysobject_ptr_t discr, unsigned len)
-{
-  if (basilys_magic_discr ((basilys_ptr_t) discr) != OBMAG_OBJECT)
-    return NULL;
-  if (discr->object_magic != OBMAG_MAPBASICBLOCKS)
-    return NULL;
-  return (basilys_ptr_t) basilysgc_raw_new_mappointers (discr, len);
-}
 void
 basilysgc_raw_put_mappointers (void *mappointer_p,
 			       const void *attr, basilys_ptr_t valu_p);
 
-static inline void
-basilysgc_put_maptrees (struct basilysmaptrees_st *map_p,
-			tree attr, basilys_ptr_t valu_p)
-{
-  if (basilys_magic_discr ((basilys_ptr_t) map_p) != OBMAG_MAPTREES
-      || !attr || !valu_p)
-    return;
-  basilysgc_raw_put_mappointers (map_p, attr, valu_p);
-}
-
-static inline void
-basilysgc_put_mapgimples (struct basilysmapgimples_st *map_p,
-			gimple attr, basilys_ptr_t valu_p)
-{
-  if (basilys_magic_discr ((basilys_ptr_t) map_p) != OBMAG_MAPGIMPLES
-      || !attr || !valu_p)
-    return;
-  basilysgc_raw_put_mappointers (map_p, attr, valu_p);
-}
-
-static inline void
-basilysgc_put_mapedges (struct basilysmapedges_st *map_p,
-			edge attr, basilys_ptr_t valu_p)
-{
-  if (basilys_magic_discr ((basilys_ptr_t) map_p) != OBMAG_MAPEDGES
-      || !attr || !valu_p)
-    return;
-  basilysgc_raw_put_mappointers (map_p, attr, valu_p);
-}
-
-static inline void
-basilysgc_put_mapbasicblocks (struct basilysmapbasicblocks_st *map_p,
-			      basic_block attr, basilys_ptr_t valu_p)
-{
-  if (basilys_magic_discr ((basilys_ptr_t) map_p) != OBMAG_MAPBASICBLOCKS
-      || !attr || !valu_p)
-    return;
-  basilysgc_raw_put_mappointers (map_p, attr, valu_p);
-}
-
-
 basilys_ptr_t
 basilys_raw_get_mappointers (void *mappointer_p, const void *attr);
-
-static inline basilys_ptr_t
-basilys_get_maptrees (basilys_ptr_t map_p, tree attr)
-{
-  if (basilys_magic_discr ((basilys_ptr_t) map_p) != OBMAG_MAPTREES || !attr)
-    return NULL;
-  return basilys_raw_get_mappointers (map_p, attr);
-}
-
-static inline basilys_ptr_t
-basilys_get_mapgimples (basilys_ptr_t map_p, gimple attr)
-{
-  if (basilys_magic_discr ((basilys_ptr_t) map_p) != OBMAG_MAPGIMPLES || !attr)
-    return NULL;
-  return basilys_raw_get_mappointers (map_p, attr);
-}
-
-static inline basilys_ptr_t
-basilys_get_mapedges (basilys_ptr_t map_p, edge attr)
-{
-  if (basilys_magic_discr ((basilys_ptr_t) map_p) != OBMAG_MAPEDGES || !attr)
-    return NULL;
-  return basilys_raw_get_mappointers (map_p, attr);
-}
-
-static inline basilys_ptr_t
-basilys_get_mapbasicblocks (basilys_ptr_t map_p, basic_block attr)
-{
-  if (basilys_magic_discr ((basilys_ptr_t) map_p) != OBMAG_MAPBASICBLOCKS || !attr)
-    return NULL;
-  return basilys_raw_get_mappointers (map_p, attr);
-}
 
 basilys_ptr_t
 basilysgc_raw_remove_mappointers (void *mappointer_p, const void *attr);
 
-static inline basilys_ptr_t
-basilysgc_remove_maptrees (struct basilysmaptrees_st *map, tree attr)
-{
-  if (basilys_magic_discr ((basilys_ptr_t) map) != OBMAG_MAPTREES || !attr)
-    return NULL;
-  return basilysgc_raw_remove_mappointers (map, attr);
+
+/* big macro to implement a mapFOOs */
+#define BASILYS_DEFINE_MAPTR(Obmag,Ptyp,Mapstruct,Newf,Getf,Putf,Removef,Countf,Sizef,Nthattrf,Nthvalf)	\
+									\
+static inline basilys_ptr_t						\
+Newf (basilysobject_ptr_t discr, unsigned len)				\
+{									\
+  if (basilys_magic_discr ((basilys_ptr_t) discr) != OBMAG_OBJECT)	\
+    return NULL;							\
+  if (discr->object_magic != Obmag)					\
+    return NULL;							\
+  return (basilys_ptr_t) basilysgc_raw_new_mappointers (discr, len);	\
+}									\
+									\
+static inline basilys_ptr_t						\
+Getf (basilys_ptr_t map_p, Ptyp attr)					\
+{									\
+  if (basilys_magic_discr ((basilys_ptr_t) map_p) != Obmag || !attr)	\
+    return NULL;							\
+  return basilys_raw_get_mappointers (map_p, attr);			\
+}									\
+									\
+static inline void							\
+Putf (struct basilysmaptrees_st *map_p,					\
+	Ptyp attr, basilys_ptr_t valu_p)				\
+{									\
+  if (basilys_magic_discr ((basilys_ptr_t) map_p) != Obmag		\
+      || !attr || !valu_p)						\
+    return;								\
+  basilysgc_raw_put_mappointers (map_p, attr, valu_p);			\
+}									\
+									\
+static inline basilys_ptr_t						\
+Removef (struct basilysmapgimples_st *map, Ptyp attr)			\
+{									\
+  if (basilys_magic_discr ((basilys_ptr_t) map) != Obmag || !attr)	\
+    return NULL;							\
+  return basilysgc_raw_remove_mappointers (map, attr);			\
+}									\
+									\
+static inline unsigned							\
+Countf (struct Mapstruct* map_p)					\
+{									\
+  if (!map_p || map_p->discr->obj_num != Obmag)				\
+    return 0;								\
+  return map_p->count;							\
+}									\
+									\
+static inline int							\
+Sizef (struct Mapstruct* map_p)						\
+{									\
+  if (!map_p || map_p->discr->obj_num != Obmag)				\
+    return 0;								\
+  return basilys_primtab[map_p->lenix];					\
+}									\
+									\
+static inline Ptyp							\
+Nthattrf(struct Mapstruct* map_p, int ix)				\
+{									\
+  Ptyp at = 0;								\
+  if (!map_p || map_p->discr->obj_num != Obmag)				\
+    return 0;								\
+  if (ix < 0 || ix >= basilys_primtab[map_p->lenix])			\
+    return 0;								\
+  at = map_p->entab[ix].e_at;						\
+  if ((void *) at == (void *) HTAB_DELETED_ENTRY)			\
+    return 0;								\
+  return at;								\
+}									\
+									\
+static inline basilys_ptr_t						\
+Nthvalf(struct Mapstruct* map_p, int ix)				\
+{									\
+  Ptyp at = 0;								\
+  if (!map_p || map_p->discr->obj_num != Obmag)				\
+    return 0;								\
+  if (ix < 0 || ix >= basilys_primtab[map_p->lenix])			\
+    return 0;								\
+  at = map_p->entab[ix].e_at;						\
+  if (!at || (void *) at == (void *) HTAB_DELETED_ENTRY)		\
+    return 0;								\
+  return map_p->entab[ix].e_va;					        \
 }
 
-static inline basilys_ptr_t
-basilysgc_remove_mapgimples (struct basilysmapgimples_st *map, gimple attr)
-{
-  if (basilys_magic_discr ((basilys_ptr_t) map) != OBMAG_MAPGIMPLES || !attr)
-    return NULL;
-  return basilysgc_raw_remove_mappointers (map, attr);
-}
+/* end of BASILYS_DEFINE_MAPTR macro */
 
-static inline basilys_ptr_t
-basilysgc_remove_mapedges (struct basilysmapedges_st *map, edge attr)
-{
-  if (basilys_magic_discr ((basilys_ptr_t) map) != OBMAG_MAPEDGES || !attr)
-    return NULL;
-  return basilysgc_raw_remove_mappointers (map, attr);
-}
+BASILYS_DEFINE_MAPTR(OBMAG_MAPTREES, tree, basilysmaptrees_st,
+		      basilysgc_new_maptrees,
+		      basilys_get_maptrees,
+		      basilys_put_maptrees,
+		      basilys_remove_maptrees,
+		      basilys_count_maptrees,
+		      basilys_size_maptrees,
+		      basilys_nthattr_maptrees,
+		      basilys_nthval_maptrees)
 
-static inline basilys_ptr_t
-basilysgc_remove_mapbasicblocks (struct basilysmapbasicblocks_st *map,
-				 basic_block attr)
-{
-  if (basilys_magic_discr ((basilys_ptr_t) map) != OBMAG_MAPBASICBLOCKS || !attr)
-    return NULL;
-  return basilysgc_raw_remove_mappointers (map, attr);
-}
+BASILYS_DEFINE_MAPTR(OBMAG_MAPGIMPLES, gimple, basilysmapgimples_st,
+		      basilysgc_new_mapgimples,
+		      basilys_get_mapgimples,
+		      basilys_put_mapgimples,
+		      basilys_remove_mapgimples,
+		      basilys_count_mapgimples,
+		      basilys_size_mapgimples,
+		      basilys_nthattr_mapgimples,
+		      basilys_nthval_mapgimples)
+
+
+BASILYS_DEFINE_MAPTR(OBMAG_MAPEDGES, edge, basilysmapedges_st,
+		      basilysgc_new_mapedges,
+		      basilys_get_mapedges,
+		      basilys_put_mapedges,
+		      basilys_remove_mapedges,
+		      basilys_count_mapedges,
+		      basilys_size_mapedges,
+		      basilys_nthattr_mapedges,
+		      basilys_nthval_mapedges)
+
+BASILYS_DEFINE_MAPTR(OBMAG_MAPBASICBLOCKS, basic_block, basilysmapbasicblocks_st,
+		      basilysgc_new_mapbasicblocks,
+		      basilys_get_mapbasicblocks,
+		      basilys_put_mapbasicblocks,
+		      basilys_remove_mapbasicblocks,
+		      basilys_count_mapbasicblocks,
+		      basilys_size_mapbasicblocks,
+		      basilys_nthattr_mapbasicblocks,
+		      basilys_nthval_mapbasicblocks)
+
+
+/* do not use BASILYS_DEFINE_MAPTR elsewhere */
+#undef BASILYS_DEFINE_MAPTR
 
 /* allocate a new boxed tree of given DISCR [DISCR_TREE if null] &
    content VAL */

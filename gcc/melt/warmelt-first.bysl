@@ -3185,6 +3185,7 @@
  class_formal_binding
  class_function_binding
  class_genercontext
+ class_gcc_pass
  class_initgenercontext
  class_instance_binding
  class_keyword

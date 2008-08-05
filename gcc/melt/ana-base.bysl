@@ -48,11 +48,25 @@
 
 (defun install_gcc_pass (pass)
   (assert_msg "check pass" (is_a pass class_gcc_pass))
-  (mapstring_put (unsafe_get_field :sysdata_pass_dict initial_system_data)
+  (mapstring_putstr (unsafe_get_field :sysdata_pass_dict initial_system_data)
 		 (unsafe_get_field :named_name pass)
 		 pass)
   (debug_msg pass "installed gcc pass")
 )
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; gimple & tree related primitives
+
+(defprimitive is_gimple (v) :long
+  "(basilys_magic_discr((basilys_ptr_t)(" v ")) == OBMAG_GIMPLE)")
+
+(defprimitive make_gimple (discr :gimple g) :value
+  "(basilysgc_make_gimple((basilys_ptr_t)(" discr "),(" g ")))")
+
+(defprimitive gimple_content (v) :gimple
+  "(basilys_gimple_content((basilys_ptr_t)(" v ")))")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;; G C C      P A S S E S 
@@ -73,6 +87,8 @@
 (definstance basilys_ipa_gccpass 
   class_gcc_pass
   :named_name (make_stringconst discr_string "basilys-ipa")
+  :gccpass_gate ()
+  :gccpass_exec ()
   :gccpass_data ()
 )
 (install_gcc_pass basilys_ipa_gccpass)
@@ -101,7 +117,7 @@
 ;;; iterators needed in our analysis
 
 ;;; an iterator is simply something which translates to a for loop in
-;;; C. It usually binds some variables (locate to the iterated body)
+;;; C. It usually binds some variables (local to the iterated body)
 ;;; to some C stuff.
 
 ;;; Be careful to not declare any iterator related stuff in
