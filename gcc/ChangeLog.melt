@@ -1,4 +1,29 @@
 2008-08-05  Basile Starynkevitch  <basile@starynkevitch.net>
+	* basilys.h (BASILYS_DEFINE_MAPTR): better macro.
+	(OBMAG_GIMPLESEQ, OBMAG_MAPGIMPLESEQS, BGLOB_DISCR_GIMPLESEQ)
+	(BGLOB_DISCR_MAPGIMPLESEQS) new enum value.
+	(basilysgc_new_mapgimpleseqs, basilys_get_mapgimpleseqs)
+	(basilys_put_mapgimpleseqs, basilys_remove_mapgimpleseqs)
+	(basilys_count_mapgimpleseqs, basilys_size_mapgimpleseqs)
+	(basilys_nthattr_mapgimpleseqs, basilys_nthval_mapgimpleseqs)
+	(basilys_gimpleseq_content, basilysgc_new_gimpleseq) new
+	functions.
+	* basilys.c (check_pointer_at, forwarded_copy, scanning) handle
+	GIMPLESEQ & MAPGIMPLESEQS cases.
+	(basilysgc_new_gimpleseq) new function.
+	* melt/warmelt-first.bysl: added ctype_gimpleseq,
+	discr_mapgimpleseqs
+	* melt/warmelt-normal.bysl: added several predefs, CTYPE_GIMPLE,
+	CTYPE_GIMPLESEQ, DISCR_MAPGIMPLES, _DISCR_MAPGIMPLESEQS,
+	DISCR_GIMPLE, DISCR_GIMPLESEQ, DISCR_MAPTREES
+	* melt/ana-base.bysl: better each_cgraph_fun iterator & do_each_cfun.
+	* warmelt-first-0.c: regenerated.
+	* warmelt-macro-0.c: regenerated.
+	* warmelt-normal-0.c: regenerated.
+	* warmelt-genobj-0.c: regenerated.
+	* warmelt-outobj-0.c: regenerated.
+
+2008-08-05  Basile Starynkevitch  <basile@starynkevitch.net>
 	* Makefile.in: ana-base.c is secondary.
 	* melt/warmelt-first.bysl: ugly hack to always have a filename in
 	assert_failed.

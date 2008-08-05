@@ -68,6 +68,15 @@
 (defprimitive gimple_content (v) :gimple
   "(basilys_gimple_content((basilys_ptr_t)(" v ")))")
 
+(defprimitive is_gimpleseq (v) :long
+  "(basilys_magic_discr((basilys_ptr_t)(" v ")) == OBMAG_GIMPLESEQ)")
+
+(defprimitive make_gimpleseq (discr :gimpleseq g) :value
+  "(basilysgc_new_gimpleseq((basilysobject_ptr_t)(" discr "),(" g ")))")
+
+(defprimitive gimpleseq_content (v) :gimpleseq
+  "(basilys_gimpleseq_content((basilys_ptr_t)(" v ")))")
+
 (defprimitive is_tree (v) :long
   "(basilys_magic_discr((basilys_ptr_t)(" v ")) == OBMAG_TREE)")
 
@@ -139,7 +148,7 @@
 (defciterator each_cgraph_fun 
   ()					; startformals
   eachcgrfun 				;state symbol
-  (:tree funtree)	;local formals
+  (:tree funtree :gimpleseq funbody)	;local formals
   (					;; before expansion
    "struct cgraph_node *" eachcgrfun "_nd=0; "
    "for (" eachcgrfun "_nd = cgraph_nodes; "
@@ -149,9 +158,11 @@
    "gimple_seq " eachcgrfun "_bdy = 0;\n"
    eachcgrfun "_dcl = " eachcgrfun "_nd->decl;\n"
    "if (!" eachcgrfun "_dcl) continue;\n"
-   eachcgrfun "_bdy = gimple_body(" eachcgrfun "_nd->decl);\n"
+   "if (TREE_CODE(" eachcgrfun "_dcl) != FUNCTION_DECL) continue;\n"
+   eachcgrfun "_bdy = gimple_body(" eachcgrfun "_dcl);\n"
    "if (!" eachcgrfun "_bdy) continue;\n"
    funtree " = " eachcgrfun "_dcl;\n"
+   funbody " = " eachcgrfun "_bdy;\n"
    )
   ( ;;after expansion
    "}"
@@ -161,10 +172,11 @@
 (defun do_each_cfun (f)
   (each_cgraph_fun  
    () 
-   (:tree decl)
-   (let ( (dclval (make_tree discr_tree decl))
+   (:tree decl :gimpleseq bdy)
+   (let ( (dclval (make_tree discr_tree decl)) 
+	  (bdyval (make_gimpleseq discr_gimpleseq bdy))
 	  )
-     (f dclval)
+     (f dclval bdyval)
    )))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

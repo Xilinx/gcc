@@ -1159,6 +1159,13 @@
   :disc_super discr_anyrecv
   :named_name (stringconst2val discr_namestring "DISCR_GIMPLE"))
 
+;;; the discriminant for gimpleseqs
+(definstance discr_gimpleseq class_discr
+  :predef DISCR_GIMPLESEQ
+  :obj_num OBMAG_GIMPLESEQ
+  :disc_super discr_anyrecv
+  :named_name (stringconst2val discr_namestring "DISCR_GIMPLESEQ"))
+
 ;;; the discriminant for edges
 (definstance discr_edge class_discr
   :predef DISCR_EDGE
@@ -1193,6 +1200,13 @@
   :obj_num OBMAG_MAPGIMPLES
   :disc_super discr_anyrecv
   :named_name (stringconst2val discr_namestring "DISCR_MAPGIMPLES"))
+
+;;; the discriminant for maps of gimpleseqs
+(definstance discr_mapgimpleseqs class_discr
+  :predef DISCR_MAPGIMPLESEQS
+  :obj_num OBMAG_MAPGIMPLESEQS
+  :disc_super discr_anyrecv
+  :named_name (stringconst2val discr_namestring "DISCR_MAPGIMPLESEQS"))
 
 ;;; the discriminant for maps of edges
 (definstance discr_mapedges class_discr
@@ -1331,6 +1345,19 @@
   :ctype_resfield (stringconst2val discr_namestring "bp_gimpleptr")
   )
 (install_ctype_descr ctype_gimple "GCC gimple pointer")
+
+;; the C type for gcc gimpleseqs
+(definstance ctype_gimpleseq class_ctype
+  :predef CTYPE_GIMPLESEQ
+  :named_name  (stringconst2val discr_namestring "CTYPE_GIMPLESEQ")
+  :ctype_keyword ':gimpleseq
+  :ctype_cname  (stringconst2val discr_namestring "gimple_seq")
+  :ctype_parchar (stringconst2val discr_namestring "BPAR_GIMPLESEQ")
+  :ctype_parstring (stringconst2val discr_namestring "BPARSTR_GIMPLESEQ")
+  :ctype_argfield (stringconst2val discr_namestring "bp_gimpleseq")
+  :ctype_resfield (stringconst2val discr_namestring "bp_gimpleseqptr")
+  )
+(install_ctype_descr ctype_gimpleseq "GCC gimpleseq pointer")
 
 ;; the C type for void
 (definstance ctype_void class_ctype
@@ -3406,6 +3433,7 @@
 (export_values				;alphabetical order
  ctype_cstring                        
  ctype_gimple
+ ctype_gimpleseq
  ctype_long                           
  ctype_tree                           
  ctype_value                          
@@ -3422,6 +3450,7 @@
  discr_list                           
  discr_mapedges
  discr_mapgimples
+ discr_mapgimpleseqs
  discr_mapobjects                     
  discr_mapstrings                     
  discr_maptrees

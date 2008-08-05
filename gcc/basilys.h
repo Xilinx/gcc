@@ -145,6 +145,11 @@ union basilysparam_un
 #define BPAR_GIMPLE       'g'
 #define BPARSTR_GIMPLE    "g"
 
+  gimple_seq bp_gimpleseq;			/* letter g */
+  gimple_seq *bp_gimpleseqptr;		/* for extra results */
+#define BPAR_GIMPLESEQ       'G'
+#define BPARSTR_GIMPLESEQ    "G"
+
   long bp_long;			/* letter l */
   long *bp_longptr;		/* for results */
 #define BPAR_LONG         'l'
@@ -243,12 +248,14 @@ enum obmag_en    {
   OBMAG_STRBUF,
   OBMAG_TREE,
   OBMAG_GIMPLE,
+  OBMAG_GIMPLESEQ,
   OBMAG_BASICBLOCK,
   OBMAG_EDGE,
   OBMAG_MAPOBJECTS,
   OBMAG_MAPSTRINGS,
   OBMAG_MAPTREES,
   OBMAG_MAPGIMPLES,
+  OBMAG_MAPGIMPLESEQS,
   OBMAG_MAPBASICBLOCKS,
   OBMAG_MAPEDGES,
   OBMAG_DECAY,
@@ -656,6 +663,14 @@ GTY (())
   gimple val;
 };
 
+/* when OBMAG_GIMPLESEQ  */
+struct basilysgimpleseq_st
+GTY (())
+{
+  basilysobject_ptr_t discr;
+  gimple_seq val;
+};
+
 /* when OBMAG_BASICBLOCK   */
 struct basilysbasicblock_st
 GTY (())
@@ -737,6 +752,27 @@ GTY (())
   unsigned count;
   unsigned char lenix;
   struct entrygimplesbasilys_st *GTY ((length ("basilys_primtab[%h.lenix]")))
+    entab;
+};
+
+
+/*** hashed maps of gimpleseqs to basilys ***/
+struct entrygimpleseqsbasilys_st
+GTY (())
+{
+  gimple_seq e_at;
+  basilys_ptr_t e_va;
+};
+
+/* when OBMAG_MAPGIMPLESEQS */
+struct basilysmapgimpleseqs_st
+GTY (())
+{
+  /* change basilysmappointers_st when changing this structure */
+  basilysobject_ptr_t discr;
+  unsigned count;
+  unsigned char lenix;
+  struct entrygimpleseqsbasilys_st *GTY ((length ("basilys_primtab[%h.lenix]")))
     entab;
 };
 
@@ -837,12 +873,14 @@ GTY ((desc ("%0.u_discr->object_magic")))
   struct basilysstrbuf_st GTY ((tag ("OBMAG_STRBUF"))) u_strbuf;
   struct basilystree_st GTY ((tag ("OBMAG_TREE"))) u_tree;
   struct basilysgimple_st GTY ((tag ("OBMAG_GIMPLE"))) u_gimple;
+  struct basilysgimpleseq_st GTY ((tag ("OBMAG_GIMPLESEQ"))) u_gimpleseq;
   struct basilysbasicblock_st GTY ((tag ("OBMAG_BASICBLOCK"))) u_basicblock;
   struct basilysedge_st GTY ((tag ("OBMAG_EDGE"))) u_edge;
   struct basilysmapobjects_st GTY ((tag ("OBMAG_MAPOBJECTS"))) u_mapobjects;
   struct basilysmapstrings_st GTY ((tag ("OBMAG_MAPSTRINGS"))) u_mapstrings;
   struct basilysmaptrees_st GTY ((tag ("OBMAG_MAPTREES"))) u_maptrees;
   struct basilysmapgimples_st GTY ((tag ("OBMAG_MAPGIMPLES"))) u_mapgimples;
+  struct basilysmapgimpleseqs_st GTY ((tag ("OBMAG_MAPGIMPLESEQS"))) u_mapgimpleseqs;
   struct basilysmapbasicblocks_st GTY ((tag ("OBMAG_MAPBASICBLOCKS")))
     u_mapbasicblocks;
   struct basilysmapedges_st GTY ((tag ("OBMAG_MAPEDGES"))) u_mapedges;
@@ -950,7 +988,7 @@ Getf (basilys_ptr_t map_p, Ptyp attr)					\
 }									\
 									\
 static inline void							\
-Putf (struct basilysmaptrees_st *map_p,					\
+Putf (struct Mapstruct *map_p,						\
 	Ptyp attr, basilys_ptr_t valu_p)				\
 {									\
   if (basilys_magic_discr ((basilys_ptr_t) map_p) != Obmag		\
@@ -960,7 +998,7 @@ Putf (struct basilysmaptrees_st *map_p,					\
 }									\
 									\
 static inline basilys_ptr_t						\
-Removef (struct basilysmapgimples_st *map, Ptyp attr)			\
+Removef (struct Mapstruct *map, Ptyp attr)				\
 {									\
   if (basilys_magic_discr ((basilys_ptr_t) map) != Obmag || !attr)	\
     return NULL;							\
@@ -1033,6 +1071,16 @@ BASILYS_DEFINE_MAPTR(OBMAG_MAPGIMPLES, gimple, basilysmapgimples_st,
 		      basilys_nthattr_mapgimples,
 		      basilys_nthval_mapgimples)
 
+BASILYS_DEFINE_MAPTR(OBMAG_MAPGIMPLESEQS, gimple_seq, basilysmapgimpleseqs_st,
+		      basilysgc_new_mapgimpleseqs,
+		      basilys_get_mapgimpleseqs,
+		      basilys_put_mapgimpleseqs,
+		      basilys_remove_mapgimpleseqs,
+		      basilys_count_mapgimpleseqs,
+		      basilys_size_mapgimpleseqs,
+		      basilys_nthattr_mapgimpleseqs,
+		      basilys_nthval_mapgimpleseqs)
+
 
 BASILYS_DEFINE_MAPTR(OBMAG_MAPEDGES, edge, basilysmapedges_st,
 		      basilysgc_new_mapedges,
@@ -1084,6 +1132,21 @@ basilys_gimple_content (basilys_ptr_t box)
 {
   struct basilysgimple_st* g = (struct basilysgimple_st*)box;
   if (!g || g->discr->object_magic != OBMAG_GIMPLE)
+    return NULL;
+  return g->val;
+}
+
+/* allocate a new boxed gimpleseq of given DISCR [DISCR_GIMPLESEQ if null] &
+   content VAL */
+basilys_ptr_t basilysgc_new_gimpleseq (basilysobject_ptr_t discr_p,
+				    gimple_seq val);
+
+/* return the content of a boxed gimple */
+static inline gimple_seq
+basilys_gimpleseq_content (basilys_ptr_t box)
+{
+  struct basilysgimpleseq_st* g = (struct basilysgimpleseq_st*)box;
+  if (!g || g->discr->object_magic != OBMAG_GIMPLESEQ)
     return NULL;
   return g->val;
 }
@@ -2305,6 +2368,8 @@ enum basilys_globalix_en
   BGLOB_CTYPE_TREE,
   /* ctype of gimples */
   BGLOB_CTYPE_GIMPLE,
+  /* ctype of gimpleseqs */
+  BGLOB_CTYPE_GIMPLESEQ,
   /* ctype for void */
   BGLOB_CTYPE_VOID,
   /* ctype of constant cstrings */
@@ -2325,12 +2390,16 @@ enum basilys_globalix_en
   BGLOB_DISCR_TREE,
   /* the initial discriminant of gimple-s */
   BGLOB_DISCR_GIMPLE,
+  /* the initial discriminant of gimpleseq-s */
+  BGLOB_DISCR_GIMPLESEQ,
   /* the initial discriminant of edge-s */
   BGLOB_DISCR_EDGE,
   /* the initial discriminant of tree map-s */
   BGLOB_DISCR_MAPTREES,
   /* the initial discriminant of gimple map-s */
   BGLOB_DISCR_MAPGIMPLES,
+  /* the initial discriminant of gimpleseq map-s */
+  BGLOB_DISCR_MAPGIMPLESEQS,
   /* the initial discriminant of edge map-s */
   BGLOB_DISCR_MAPEDGES,
   /**************************** placeholder for last wired */
