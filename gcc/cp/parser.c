@@ -37,6 +37,8 @@ along with GCC; see the file COPYING3.  If not see
 #include "target.h"
 #include "cgraph.h"
 #include "c-common.h"
+/* TODO: remove this inclusion after splitting code into semantics.c */
+#include "tree-iterator.h"
 
 
 /* The lexer.  */
@@ -6683,7 +6685,6 @@ cp_parser_lambda_class_definition (cp_parser* parser,
 
   tree enclosing_class_type = current_class_type;
   tree type;
-  tree fco_decl;
 
   bool expression_body_p;
 
@@ -6818,6 +6819,8 @@ cp_parser_lambda_class_definition (cp_parser* parser,
 
   }
 
+  tree fco;
+
   /********************************************
    * Start the function call operator
    * - member_specification_opt
@@ -6841,10 +6844,16 @@ cp_parser_lambda_class_definition (cp_parser* parser,
     if (LAMBDA_EXPR_RETURN_TYPE (lambda_expr))
     {
       fco_return_type_specs.type = LAMBDA_EXPR_RETURN_TYPE (lambda_expr);
+      /* TODO: is this necessary?  */
       fco_return_type_specs.any_specifiers_p = true;
-      /* TODO: do we need cp_parser_set_decl_spec_type()? */
-      /* TODO: do we need grokdeclarator()? */
+      /* TODO: do we need cp_parser_set_decl_spec_type()?  */
     }
+    else
+    {
+      /* For warning suppression.  */
+      fco_return_type_specs.type = error_mark_node;
+    }
+
 
     fco_name = ansi_opname (CALL_EXPR);
     fco_declarator = make_id_declarator (
@@ -6864,14 +6873,14 @@ cp_parser_lambda_class_definition (cp_parser* parser,
     /* operator() is public */
     current_access_specifier = access_public_node;
 
-    fco_decl = start_method (
+    fco = start_method (
         &fco_return_type_specs,
         fco_declarator,
         /*attributes=*/NULL_TREE);
-    DECL_INITIALIZED_IN_CLASS_P (fco_decl) = 1;
-    finish_method (fco_decl);
+    DECL_INITIALIZED_IN_CLASS_P (fco) = 1;
+    finish_method (fco);
 
-    finish_member_declaration (fco_decl);
+    finish_member_declaration (fco);
   }
 
   tree ctor = NULL_TREE;
@@ -6961,25 +6970,56 @@ cp_parser_lambda_class_definition (cp_parser* parser,
    ********************************************/
   {
     tree fco_body;
-    tree fco_compound_stmt;
     tree fco_body_expr;
     tree fco_fn;
 
     /* Let the front end know that we are going to be defining this
        function. */
     start_preparsed_function (
-        fco_decl,
+        fco,
         NULL_TREE,
         SF_PRE_PARSED | SF_INCLASS_INLINE);
 
     fco_body = begin_function_body ();
 
-    fco_compound_stmt = begin_compound_stmt (0);
+    /* TODO: does begin_compound_stmt want BCS_FN_BODY?
+     * cp_parser_compound_stmt does not pass it. */
+    cp_parser_function_body (parser);
 
-    cp_parser_require (parser, CPP_OPEN_BRACE, "%<{%>");
-    cp_parser_require (parser, CPP_CLOSE_BRACE, "%<}%>");
+    /* Return type deduction.  */
+    if (!LAMBDA_EXPR_RETURN_TYPE (lambda_expr))
+    {
+      tree_stmt_iterator istmt = tsi_start (DECL_SAVED_TREE (fco));
+      /* If we got an actual statement...  */
+      /* TODO: is this test necessary?  */
+      if (!tsi_end_p (istmt))
+      {
+        /* If the first statment is a return statement...  */
+        tree stmt = tsi_stmt (istmt);
+        if (TREE_CODE (stmt) == RETURN_EXPR)
+        {
+          tree return_type = TREE_TYPE (TREE_OPERAND (stmt, 0));
 
-    finish_compound_stmt (fco_compound_stmt);
+          /* TREE_TYPE (FUNCTION_DECL) == METHOD_TYPE
+             TREE_TYPE (METHOD_TYPE)   == return-type */
+          TREE_TYPE (TREE_TYPE (fco)) = return_type;
+
+          /* Must redo some work from start_preparsed_function. */
+          tree result = build_lang_decl (
+              RESULT_DECL,
+              /*name=*/0,
+              TYPE_MAIN_VARIANT (return_type));
+          /* TODO: are these necessary? */
+          DECL_ARTIFICIAL (result) = 1;
+          DECL_IGNORED_P (result) = 1;
+          cp_apply_type_quals_to_decl (
+              cp_type_quals (return_type),
+              result);
+
+          DECL_RESULT (fco) = result;
+        }
+      }
+    }
 
     finish_function_body (fco_body);
 
