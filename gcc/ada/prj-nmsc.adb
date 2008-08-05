@@ -1295,12 +1295,14 @@ package body Prj.Nmsc is
                while Element_Id /= No_Array_Element loop
                   Element := In_Tree.Array_Elements.Table (Element_Id);
 
-                  --  Get the name of the language
+                  if Element.Index /= All_Other_Names then
 
-                  Get_Language_Index_Of (Element.Index);
+                     --  Get the name of the language
 
-                  if Lang_Index /= No_Language_Index then
-                     case Current_Array.Name is
+                     Get_Language_Index_Of (Element.Index);
+
+                     if Lang_Index /= No_Language_Index then
+                        case Current_Array.Name is
                         when Name_Driver =>
 
                            --  Attribute Driver (<language>)
@@ -1342,7 +1344,8 @@ package body Prj.Nmsc is
 
                         when others =>
                            null;
-                     end case;
+                        end case;
+                     end if;
                   end if;
 
                   Element_Id := Element.Next;
@@ -1405,18 +1408,20 @@ package body Prj.Nmsc is
                while Element_Id /= No_Array_Element loop
                   Element := In_Tree.Array_Elements.Table (Element_Id);
 
-                  --  Get the name of the language
+                  if Element.Index /= All_Other_Names then
 
-                  Get_Language_Index_Of (Element.Index);
+                     --  Get the name of the language
 
-                  if Lang_Index /= No_Language_Index then
-                     case Current_Array.Name is
+                     Get_Language_Index_Of (Element.Index);
+
+                     if Lang_Index /= No_Language_Index then
+                        case Current_Array.Name is
                         when Name_Dependency_Switches =>
 
                            --  Attribute Dependency_Switches (<language>)
 
                            if In_Tree.Languages_Data.Table
-                                (Lang_Index).Config.Dependency_Kind = None
+                               (Lang_Index).Config.Dependency_Kind = None
                            then
                               In_Tree.Languages_Data.Table
                                 (Lang_Index).Config.Dependency_Kind :=
@@ -1438,7 +1443,7 @@ package body Prj.Nmsc is
                            --  Attribute Dependency_Driver (<language>)
 
                            if In_Tree.Languages_Data.Table
-                             (Lang_Index).Config.Dependency_Kind = None
+                               (Lang_Index).Config.Dependency_Kind = None
                            then
                               In_Tree.Languages_Data.Table
                                 (Lang_Index).Config.Dependency_Kind :=
@@ -1481,7 +1486,7 @@ package body Prj.Nmsc is
 
                            In_Tree.Languages_Data.Table
                              (Lang_Index).Config.Include_Path :=
-                               Element.Value.Value;
+                             Element.Value.Value;
 
                         when Name_Include_Path_File =>
 
@@ -1503,9 +1508,9 @@ package body Prj.Nmsc is
 
                         when Name_Required_Switches =>
                            Put (Into_List =>
-                                  In_Tree.Languages_Data.Table
-                                    (Lang_Index).Config.
-                                                   Compiler_Required_Switches,
+                                In_Tree.Languages_Data.Table
+                                  (Lang_Index).Config.
+                                    Compiler_Required_Switches,
                                 From_List => Element.Value.Values,
                                 In_Tree   => In_Tree);
 
@@ -1649,7 +1654,7 @@ package body Prj.Nmsc is
 
                            In_Tree.Languages_Data.Table
                              (Lang_Index).Config.Config_Spec_Pattern :=
-                               Element.Value.Value;
+                             Element.Value.Value;
 
                         when Name_Config_File_Unique =>
 
@@ -1671,7 +1676,8 @@ package body Prj.Nmsc is
 
                         when others =>
                            null;
-                     end case;
+                        end case;
+                     end if;
                   end if;
 
                   Element_Id := Element.Next;

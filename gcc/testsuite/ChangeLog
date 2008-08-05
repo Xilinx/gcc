@@ -1,5 +1,24 @@
 2008-08-04  Arnaud Charlet  <charlet@adacore.com>
 
+	* gnat.dg/access_discr2.adb: New test.
+	* gnat.dg/not_null.adb: New test.
+
+2008-08-04  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/36691
+	* gcc.c-torture/execute/pr36691.c: New testcase.
+
+2008-08-04  Victor Kaplansky  <victork@il.ibm.com>
+
+	* gcc.dg/vect/vect-complex-5.c: New test.
+
+2008-08-04  Simon Baldwin  <simonb@google.com>
+
+	PR c++/36999
+	* g++.dg/warn/pr36999.C: New.
+
+2008-08-04  Arnaud Charlet  <charlet@adacore.com>
+
 	* gnat.dg/bip_aggregate_bug.adb: New test.
 	* gnat.dg/test_ai254.adb: New test.
 

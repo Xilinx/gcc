@@ -2636,7 +2636,7 @@ package body Exp_Ch4 is
                New_Reference_To (Ind_Typ, Loc),
                New_Reference_To (Defining_Identifier (I_Decl), Loc)));
 
-      --  For other index types, computation is safe.
+      --  For other index types, computation is safe
 
       else
          H_Init := Ind_Val (Make_Op_Add (Loc, H_Init, L_Pos));
@@ -2667,7 +2667,7 @@ package body Exp_Ch4 is
 
       Declare_Decls := New_List (P_Decl, H_Decl, R_Decl);
 
-      --  Add constraint check for the modular index case.
+      --  Add constraint check for the modular index case
 
       if Is_Modular_Integer_Type (Ind_Typ)
         and then Esize (Ind_Typ) < Esize (Standard_Integer)
@@ -3873,6 +3873,12 @@ package body Exp_Ch4 is
               and then Compile_Time_Known_Value (Hi)
               and then Expr_Value (Type_High_Bound (Ltyp)) = Expr_Value (Hi)
               and then Expr_Value (Type_Low_Bound  (Ltyp)) = Expr_Value (Lo)
+
+               --  Kill warnings in instances, since they may be cases where we
+               --  have a test in the generic that makes sense with some types
+               --  and not with other types.
+
+              and then not In_Instance
             then
                Substitute_Valid_Check;
                return;
@@ -3886,7 +3892,7 @@ package body Exp_Ch4 is
             --  legality checks, because we are constant-folding beyond RM 4.9.
 
             if Lcheck = LT or else Ucheck = GT then
-               if Warn1 then
+               if Warn1 and then not In_Instance then
                   Error_Msg_N ("?range test optimized away", N);
                   Error_Msg_N ("\?value is known to be out of range", N);
                end if;
@@ -3902,7 +3908,7 @@ package body Exp_Ch4 is
             --  since we know we are in range.
 
             elsif Lcheck in Compare_GE and then Ucheck in Compare_LE then
-               if Warn1 then
+               if Warn1 and then not In_Instance then
                   Error_Msg_N ("?range test optimized away", N);
                   Error_Msg_N ("\?value is known to be in range", N);
                end if;
@@ -3919,7 +3925,7 @@ package body Exp_Ch4 is
             --  a comparison against the upper bound.
 
             elsif Lcheck in Compare_GE then
-               if Warn2 then
+               if Warn2 and then not In_Instance then
                   Error_Msg_N ("?lower bound test optimized away", Lo);
                   Error_Msg_N ("\?value is known to be in range", Lo);
                end if;
@@ -3937,7 +3943,7 @@ package body Exp_Ch4 is
             --  a comparison against the lower bound.
 
             elsif Ucheck in Compare_LE then
-               if Warn2 then
+               if Warn2 and then not In_Instance then
                   Error_Msg_N ("?upper bound test optimized away", Hi);
                   Error_Msg_N ("\?value is known to be in range", Hi);
                end if;

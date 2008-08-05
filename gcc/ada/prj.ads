@@ -40,10 +40,13 @@ with GNAT.OS_Lib;          use GNAT.OS_Lib;
 
 package Prj is
 
+   All_Other_Names : constant Name_Id := Names_High_Bound;
+   --  Name used to replace others as an index of an associative array
+   --  attribute in situations where this is allowed.
+
    Subdirs_Option : constant String := "--subdirs=";
    --  Switch used to indicate that the real directories (object, exec,
-   --  library, ...) are subdirectories of what is indicated in the project
-   --  file.
+   --  library, ...) are subdirectories of those in the project file.
 
    Subdirs : String_Ptr := null;
    --  The value after the equal sign in switch --subdirs=...

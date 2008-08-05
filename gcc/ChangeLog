@@ -1,3 +1,34 @@
+2008-08-04  Richard Guenther  <rguenther@suse.de>
+
+	* tree-ssa-loop-ivopts.c (add_iv_value_candidates): Also add
+	the candidate with the stripped base if that base is different
+	from the original base even for offset zero.
+
+2008-08-04  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/36691
+	* tree-ssa-loop-niter.c (number_of_iterations_lt_to_ne): Correctly
+	check for no_overflow.
+
+2008-08-04  Richard Guenther  <rguenther@suse.de>
+
+	* tree-vect-transform.c (vectorizable_call): Fix tuplification.
+
+2008-08-04  Paul Brook  <paul@codesourcery.com>
+
+	* cofig/arm/arm.c (thumb_core_reg_alloc_order): New.
+	(arm_order_regs_for_local_alloc): New function.
+	* config/arm/arm-protos.h (arm_order_regs_for_local_alloc): Add
+	prototype.
+	* config/arm/arm.h (ORDER_REGS_FOR_LOCAL_ALLOC): Define.
+
+2008-08-04  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/37012
+	* config/i386/i386.c (ix86_expand_prologue): Use UNITS_PER_WORD
+	instead of STACK_BOUNDARY / BITS_PER_UNIT to align stack.
+	(ix86_expand_epilogue): Likewise.
+
 2008-08-04  H.J. Lu  <hongjiu.lu@intel.com>
 
 	* config/i386/i386.c (ix86_compute_frame_layout): Fix a typo

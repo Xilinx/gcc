@@ -1056,7 +1056,6 @@ package body Sem_Ch3 is
                                    N_Object_Renaming_Declaration,
                                    N_Formal_Object_Declaration,
                                    N_Formal_Type_Declaration,
-                                   N_Formal_Object_Declaration,
                                    N_Task_Type_Declaration,
                                    N_Protected_Type_Declaration))
       loop
@@ -2550,6 +2549,14 @@ package body Sem_Ch3 is
 
          Set_Etype (Id, T);
          Resolve (E, T);
+
+         --  If E is null and has been replaced by an N_Raise_Constraint_Error
+         --  node (which was marked already-analyzed), we need to set the type
+         --  to something other than Any_Access in order to keep gigi happy.
+
+         if Etype (E) = Any_Access then
+            Set_Etype (E, T);
+         end if;
 
          --  If the object is an access to variable, the initialization
          --  expression cannot be an access to constant.
@@ -4476,9 +4483,18 @@ package body Sem_Ch3 is
 
       Mark_Rewrite_Insertion (Decl);
 
-      --  Insert the new declaration in the nearest enclosing scope
+      --  Insert the new declaration in the nearest enclosing scope. If the
+      --  node is a body and N is its return type, the declaration belongs in
+      --  the enclosing scope.
 
       P := Parent (N);
+
+      if Nkind (P) = N_Subprogram_Body
+        and then Nkind (N) = N_Function_Specification
+      then
+         P := Parent (P);
+      end if;
+
       while Present (P) and then not Has_Declarations (P) loop
          P := Parent (P);
       end loop;
@@ -4521,13 +4537,13 @@ package body Sem_Ch3 is
 
       Mark_Rewrite_Insertion (Comp);
 
-      --  Temporarily remove the current scope from the stack to add the new
-      --  declarations to the enclosing scope
-
       if Nkind_In (N, N_Object_Declaration, N_Access_Function_Definition) then
          Analyze (Decl);
 
       else
+         --  Temporarily remove the current scope (record or subprogram) from
+         --  the stack to add the new declarations to the enclosing scope.
+
          Scope_Stack.Decrement_Last;
          Analyze (Decl);
          Set_Is_Itype (Anon);
