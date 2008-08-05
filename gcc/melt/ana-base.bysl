@@ -63,10 +63,19 @@
   "(basilys_magic_discr((basilys_ptr_t)(" v ")) == OBMAG_GIMPLE)")
 
 (defprimitive make_gimple (discr :gimple g) :value
-  "(basilysgc_make_gimple((basilys_ptr_t)(" discr "),(" g ")))")
+  "(basilysgc_new_gimple((basilysobject_ptr_t)(" discr "),(" g ")))")
 
 (defprimitive gimple_content (v) :gimple
   "(basilys_gimple_content((basilys_ptr_t)(" v ")))")
+
+(defprimitive is_tree (v) :long
+  "(basilys_magic_discr((basilys_ptr_t)(" v ")) == OBMAG_TREE)")
+
+(defprimitive make_tree (discr :tree g) :value
+  "(basilysgc_new_tree((basilysobject_ptr_t)(" discr "),(" g ")))")
+
+(defprimitive tree_content (v) :tree
+  "(basilys_tree_content((basilys_ptr_t)(" v ")))")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;; G C C      P A S S E S 
@@ -126,7 +135,38 @@
 ;;; internal representation changes a little.
 
 ;;;;;;;;;;;;;;;;
-;;;; iterate on every cgraph_node
+;;;; iterate on every cgraph_node which is a function with a body
+(defciterator each_cgraph_fun 
+  ()					; startformals
+  eachcgrfun 				;state symbol
+  (:tree funtree)	;local formals
+  (					;; before expansion
+   "struct cgraph_node *" eachcgrfun "_nd=0; "
+   "for (" eachcgrfun "_nd = cgraph_nodes; "
+   eachcgrfun "_nd != 0; "
+   eachcgrfun "_nd = " eachcgrfun "_nd->next) {\n"
+   "tree " eachcgrfun "_dcl = 0;\n"
+   "gimple_seq " eachcgrfun "_bdy = 0;\n"
+   eachcgrfun "_dcl = " eachcgrfun "_nd->decl;\n"
+   "if (!" eachcgrfun "_dcl) continue;\n"
+   eachcgrfun "_bdy = gimple_body(" eachcgrfun "_nd->decl);\n"
+   "if (!" eachcgrfun "_bdy) continue;\n"
+   funtree " = " eachcgrfun "_dcl;\n"
+   )
+  ( ;;after expansion
+   "}"
+   )
+  )
+
+(defun do_each_cfun (f)
+  (each_cgraph_fun  
+   () 
+   (:tree decl)
+   (let ( (dclval (make_tree discr_tree decl))
+	  )
+     (f dclval)
+   )))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (export_values
  fetch_gdbmstate
@@ -138,6 +178,7 @@
  basilys_lateopt_gccpass
  basilys_lowering_gccpass
  basilys_ipa_gccpass
+ each_cgraph_fun
 )
 
 (export_class

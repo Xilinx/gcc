@@ -4841,7 +4841,7 @@ WARMELT_BASE3C= $(patsubst %, %-3.c, $(WARMELT_BASE))
 WARMELT_BASE3ROW:=$(shell echo $(WARMELT_BASE3)|sed 's/ /:/g')
 
 ## keep the generated warm*.c files!
-.SECONDARY:$(WARMELT_BASE1C) $(WARMELT_BASE2C) $(WARMELT_BASE3C)
+.SECONDARY:$(WARMELT_BASE1C) $(WARMELT_BASE2C) $(WARMELT_BASE3C) ana-base.c
 
 ## temporary
 warmelt-%.so: warmelt-%.c built-melt-cc-script

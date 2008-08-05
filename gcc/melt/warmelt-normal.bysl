@@ -749,6 +749,7 @@
 (defun normalize_tuple (tup env ncx psloc)
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normcontext))
+  (if (null tup) (return () ()))
   (assert_msg "check tup" (is_multiple tup))
   (debug_msg tup "normalize_tuple tup" )
   (let ( (bindlist (make_list discr_list)) 
@@ -1099,6 +1100,20 @@
 	  ;; cache the result & return it
 	  (mapobject_put sycmap recv insdat)
 	  insdat)
+	)
+      ( (is_a bind class_citerator_binding)
+	(debug_msg bind "normexp_symbol citerator_binding")
+	(let ( (iterdat (unsafe_get_field :cbind_citerdata bind)) )
+	  (if (null iterdat)
+	      (error_strv psloc "unresolved forward citerator reference to"
+			  (unsafe_get_field :named_name recv)
+			  )
+	    )
+	  (debug_msg iterdat "normexp_symbol iterdat")
+	  (assert_msg "normexp_symbol check iterdat" (is_a iterdat class_nrep_datainstance))
+	  ;; cache the result & return it
+	  (mapobject_put sycmap recv iterdat)
+	  iterdat)
 	)
       ;; all other cases are constants
       (:else 
@@ -3037,6 +3052,7 @@
 	(sciter (let ( (sc (unsafe_get_field :sciterdef_citerator recv)) )
 		  (assert_msg "check sciter" (is_a sc class_citerator))
 		  sc))
+	(citbind (find_env env sname))
 	(citstafor (unsafe_get_field :citer_start_formals sciter))
 	(slotup (make_multiple discr_multiple
 			       (multiple_length (unsafe_get_field :class_fields class_citerator))))
@@ -3120,6 +3136,9 @@
       (add_nctx_data ncx nafttupdata)
       (multiple_put_nth slotup (get_int citer_expafter) nafttupdata)
       )
+    (assert_msg "check citbind" (is_a citbind class_citerator_binding))
+    (unsafe_put_fields citbind
+		       :cbind_citerdata insdata)
 ;;;;;;;
     ;; return the data
     (debug_msg insdata "normexp_defciterator return insdata")

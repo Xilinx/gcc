@@ -1,4 +1,12 @@
 2008-08-05  Basile Starynkevitch  <basile@starynkevitch.net>
+	* Makefile.in: ana-base.c is secondary.
+	* melt/warmelt-first.bysl: ugly hack to always have a filename in
+	assert_failed.
+	* melt/warmelt-normal.bysl: normexp_symbol ok on
+	citerators. normalize_tuple returns if null tup.
+	* melt/ana-base.bysl:  do_each_cfun seems ok. make_tree & make_gimple corrected.
+
+2008-08-05  Basile Starynkevitch  <basile@starynkevitch.net>
 	* basilys.h (BASILYS_DEFINE_MAPTR): New huge macro.
 	(basilysgc_new_maptrees, basilys_get_maptrees)
 	(basilys_put_maptrees, basilys_remove_maptrees)

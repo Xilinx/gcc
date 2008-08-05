@@ -516,8 +516,10 @@
 
 
 ;; runtime assertion with message called by expansion of assert_msg
+;;; @@ UGLY HACK TO ALWAYS HAVE A filename
 (defprimitive assert_failed (:cstring msg :cstring filename :long lineno) :void
-  "basilys_assert_failed((" msg "),(" filename "),(" lineno "), __FUNCTION__)")
+  "basilys_assert_failed((" msg "),(" filename ")?(" filename "):__FILE__,"
+  "(" lineno ")?(" lineno "):__LINE__, __FUNCTION__)")
 
 ;; check explicitly the call stack  
 (defprimitive checkcallstack_msg (:cstring msg) :void
