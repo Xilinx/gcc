@@ -850,13 +850,24 @@ ifeq ($(strip $(filter-out %86 linux%,$(arch) $(osys))),)
     LIBGNAT_TARGET_PAIRS += \
     g-soccon.ads<g-soccon-linux-x86.ads \
     s-linux.ads<s-linux.ads \
-    s-osinte.adb<s-osinte-posix.adb \
-    s-osinte.ads<s-osinte-linux.ads \
-    s-tasinf.ads<s-tasinf-linux.ads \
-    s-tasinf.adb<s-tasinf-linux.adb \
-    s-taprop.adb<s-taprop-linux.adb
+    s-osinte.adb<s-osinte-posix.adb
 
-    EH_MECHANISM=-gcc
+    ifeq ($(strip $(filter-out xenomai,$(THREAD_KIND))),)
+      LIBGNAT_TARGET_PAIRS += \
+      s-osinte.ads<s-osinte-linux-xenomai.ads \
+      s-taprop.adb<s-taprop-linux-xenomai.adb
+
+      EH_MECHANISM=
+    else
+      LIBGNAT_TARGET_PAIRS += \
+      s-osinte.ads<s-osinte-linux.ads \
+      s-taprop.adb<s-taprop-linux.adb \
+      s-tasinf.ads<s-tasinf-linux.ads \
+      s-tasinf.adb<s-tasinf-linux.adb
+
+      EH_MECHANISM=-gcc
+    endif
+
     THREADSLIB = -lpthread
     EXTRA_GNATRTL_TASKING_OBJS=s-linux.o
   endif
@@ -1318,11 +1329,11 @@ ifeq ($(strip $(filter-out cygwin32% mingw32% pe,$(osys))),)
   g-socthi.ads<g-socthi-mingw.ads \
   g-socthi.adb<g-socthi-mingw.adb \
   g-stsifd.adb<g-stsifd-sockets.adb \
-  g-soccon.ads<g-soccon-mingw.ads \
   g-soliop.ads<g-soliop-mingw.ads
 
   ifeq ($(strip $(filter-out rtx_w32 rtx_rtss,$(THREAD_KIND))),)
     LIBGNAT_TARGET_PAIRS += \
+    g-soccon.ads<g-soccon-mingw.ads \
     s-intman.adb<s-intman-dummy.adb \
     s-osinte.ads<s-osinte-rtx.ads \
     s-osprim.adb<s-osprim-rtx.adb \
@@ -1352,10 +1363,19 @@ ifeq ($(strip $(filter-out cygwin32% mingw32% pe,$(osys))),)
     s-intman.adb<s-intman-mingw.adb \
     s-osinte.ads<s-osinte-mingw.ads \
     s-osprim.adb<s-osprim-mingw.adb \
-    s-taprop.adb<s-taprop-mingw.adb \
-    system.ads<system-mingw.ads
+    s-taprop.adb<s-taprop-mingw.adb
 
-    EXTRA_GNATRTL_NONTASKING_OBJS = s-win32.o s-winext.o g-regist.o
+    ifeq ($(strip $(filter-out x86_64%,$(arch))),)
+      LIBGNAT_TARGET_PAIRS += \
+        g-soccon.ads<g-soccon-mingw-64.ads \
+        system.ads<system-mingw-x86_64.ads
+    else
+      LIBGNAT_TARGET_PAIRS += \
+        g-soccon.ads<g-soccon-mingw.ads \
+        system.ads<system-mingw.ads
+    endif
+
+    EXTRA_GNATRTL_NONTASKING_OBJS = s-win32.o s-win32.o g-regist.o
     EXTRA_GNATRTL_TASKING_OBJS = a-exetim.o
 
     MISCLIB = -lwsock32
@@ -1928,6 +1948,9 @@ install-gnatlib: ../stamp-gnatlib-$(RTSDIR)
 	$(foreach PAIR,$(LIBGNAT_TARGET_PAIRS), \
 	          $(LN_S) $(fsrcpfx)$(word 2,$(subst <, ,$(PAIR))) \
 	                $(RTSDIR)/$(word 1,$(subst <, ,$(PAIR)));)
+# Copy generated target dependent sources
+	$(RM) $(RTSDIR)/s-oscons.ads
+	(cd $(RTSDIR); $(LN_S) ../s-oscons.ads s-oscons.ads)
 	$(RM) ../stamp-gnatlib-$(RTSDIR)
 	touch ../stamp-gnatlib1-$(RTSDIR)
 

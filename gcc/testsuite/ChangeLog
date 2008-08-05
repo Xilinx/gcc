@@ -1,3 +1,103 @@
+2008-08-05  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/37026
+	* gcc.c-torture/compile/pr37026.c: New testcase.
+
+2008-08-04  Arnaud Charlet  <charlet@adacore.com>
+
+	* gnat.dg/access_discr2.adb: New test.
+	* gnat.dg/not_null.adb: New test.
+
+2008-08-04  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/36691
+	* gcc.c-torture/execute/pr36691.c: New testcase.
+
+2008-08-04  Victor Kaplansky  <victork@il.ibm.com>
+
+	* gcc.dg/vect/vect-complex-5.c: New test.
+
+2008-08-04  Simon Baldwin  <simonb@google.com>
+
+	PR c++/36999
+	* g++.dg/warn/pr36999.C: New.
+
+2008-08-04  Arnaud Charlet  <charlet@adacore.com>
+
+	* gnat.dg/bip_aggregate_bug.adb: New test.
+	* gnat.dg/test_ai254.adb: New test.
+
+2008-08-03  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	* gfortran.dg/fmt_t_7.f: Replace CR-LF with LF.
+
+2008-08-03  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/36992
+	* gcc.target/i386/pr36992-1.c: New test.
+	* gcc.target/i386/pr36992-2.c: Ditto.
+
+2008-08-02  Richard Guenther  <rguenther@suse.de>
+
+	PR target/35252
+	* lib/target-supports.exp (vect_extract_even_odd_wide) Add.
+	(vect_strided_wide): Likewise.
+	* gcc.dg/vect/fast-math-pr35982.c: Enable for
+	vect_extract_even_odd_wide.
+	* gcc.dg/vect/fast-math-vect-complex-3.c: Likewise.
+	* gcc.dg/vect/vect-1.c: Likewise.
+	* gcc.dg/vect/vect-107.c: Likewise.
+	* gcc.dg/vect/vect-98.c: Likewise.
+	* gcc.dg/vect/vect-strided-float.c: Likewise.
+	* gcc.dg/vect/slp-11.c: Enable for vect_strided_wide.
+	* gcc.dg/vect/slp-12a.c: Likewise.
+	* gcc.dg/vect/slp-12b.c: Likewise.
+	* gcc.dg/vect/slp-19.c: Likewise.
+	* gcc.dg/vect/slp-23.c: Likewise.
+	* gcc.dg/vect/slp-5.c: Likewise.
+
+2008-08-02  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/boolean_expr2.adb: New test.
+
+2008-08-01  Arnaud Charlet  <charlet@adacore.com>
+
+	* gnat.dg/conv4.adb: New test.
+	* gnat.dg/overloading.adb: New test.
+
+2008-08-01  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/36991
+	* gcc.dg/pr36991.c: New test.
+
+2008-08-01  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/boolean_expr.ad[sb]: Rename to boolean_expr1.ad[sb].
+
+2008-08-01  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/36997
+	* gcc.dg/pr36997.c: New testcase.
+
+2008-08-01  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/deferred_const1.adb: New test.
+	* gnat.dg/deferred_const2.adb: Likewise.
+	* gnat.dg/deferred_const2_pkg.ad[sb]: New helper.
+	* gnat.dg/deferred_const3.adb: New test.
+	* gnat.dg/deferred_const3_pkg.ad[sb]: New helper.
+
+2008-08-01  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/36988
+	* gcc.c-torture/compile/pr36988.c: New testcase.
+
+2008-08-01  Olivier Hainque  <hainque@adacore.com>
+
+	* gnat.dg/raise_from_pure.ad[bs],
+	* gnat.dg/wrap_raise_from_pure.ad[bs]: Support for ...
+	* gnat.dg/test_raise_from_pure.adb: New test.
+	
 2008-07-31  Adam Nemet  <anemet@caviumnetworks.com>
 
 	* gcc.target/mips/ext-1.c: New test.
@@ -402,16 +502,16 @@
 
 2008-07-21  Paolo Carlini  <paolo.carlini@oracle.com>
 
-        PR c++/36871
+	PR c++/36871
 	PR c++/36872
-        * g++.dg/ext/has_nothrow_copy.C: Rename to...
-        * g++.dg/ext/has_nothrow_copy-1.C: ... this.
-        * g++.dg/ext/has_nothrow_copy-2.C: New.
-        * g++.dg/ext/has_nothrow_copy-3.C: Likewise.
-        * g++.dg/ext/has_nothrow_copy-4.C: Likewise.
-        * g++.dg/ext/has_nothrow_copy-5.C: Likewise.
-        * g++.dg/ext/has_nothrow_copy-6.C: Likewise.
-        * g++.dg/ext/has_nothrow_copy-7.C: Likewise.
+	* g++.dg/ext/has_nothrow_copy.C: Rename to...
+	* g++.dg/ext/has_nothrow_copy-1.C: ... this.
+	* g++.dg/ext/has_nothrow_copy-2.C: New.
+	* g++.dg/ext/has_nothrow_copy-3.C: Likewise.
+	* g++.dg/ext/has_nothrow_copy-4.C: Likewise.
+	* g++.dg/ext/has_nothrow_copy-5.C: Likewise.
+	* g++.dg/ext/has_nothrow_copy-6.C: Likewise.
+	* g++.dg/ext/has_nothrow_copy-7.C: Likewise.
 
 2008-07-21  Thomas Koenig  <tkoenig@gcc.gnu.org>
 

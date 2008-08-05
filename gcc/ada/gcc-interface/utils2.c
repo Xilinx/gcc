@@ -986,7 +986,6 @@ build_binary_op (enum tree_code op_code, tree result_type,
 	 outputs.  */
       if (modulus && integer_pow2p (modulus))
 	modulus = NULL_TREE;
-
       goto common;
 
     case COMPLEX_EXPR:
@@ -1010,6 +1009,15 @@ build_binary_op (enum tree_code op_code, tree result_type,
       left_operand = convert (operation_type, left_operand);
       right_operand = convert (sizetype, right_operand);
       break;
+
+    case PLUS_EXPR:
+    case MINUS_EXPR:
+      /* Avoid doing arithmetics in BOOLEAN_TYPE like the other compilers.
+	 Contrary to C, Ada doesn't allow arithmetics in Standard.Boolean
+	 but we can generate addition or subtraction for 'Succ and 'Pred.  */
+      if (operation_type && TREE_CODE (operation_type) == BOOLEAN_TYPE)
+	operation_type = left_base_type = right_base_type = integer_type_node;
+      goto common;
 
     default:
     common:
@@ -2152,8 +2160,8 @@ build_allocator (tree type, tree init, tree result_type, Entity_Id gnat_proc,
 
 /* Fill in a VMS descriptor for EXPR and return a constructor for it.
    GNAT_FORMAL is how we find the descriptor record.  GNAT_ACTUAL is
-   how we find the allocator size which determines whether to use the
-   alternate 64bit descriptor. */
+   how we derive the source location to raise C_E on an out of range
+   pointer. */
 
 tree
 fill_vms_descriptor (tree expr, Entity_Id gnat_formal, Node_Id gnat_actual)
@@ -2161,43 +2169,42 @@ fill_vms_descriptor (tree expr, Entity_Id gnat_formal, Node_Id gnat_actual)
   tree field;
   tree parm_decl = get_gnu_tree (gnat_formal);
   tree const_list = NULL_TREE;
-  int size;
-  tree record_type;
+  tree record_type = TREE_TYPE (TREE_TYPE (parm_decl));
+  int do_range_check =
+      strcmp ("MBO",
+	      IDENTIFIER_POINTER (DECL_NAME (TYPE_FIELDS (record_type))));
 
-  /* A string literal will always be in 32bit space on VMS. Where
-     will it be on other 64bit systems???
-     An identifier's allocation may be unknown at compile time.
-     An explicit dereference could be either in 32bit or 64bit space.
-     Don't know about other possibilities, so assume unknown which
-     will result in fetching the 64bit descriptor. ??? */
-  if (Nkind (gnat_actual) == N_String_Literal)
-    size = 32;
-  else if (Nkind (gnat_actual) == N_Identifier)
-    size = UI_To_Int (Esize (Etype (gnat_actual)));
-  else if (Nkind (gnat_actual) == N_Explicit_Dereference)
-    size = UI_To_Int (Esize (Etype (Prefix (gnat_actual))));
-  else
-    size = 0;
-
-  /* If size is unknown, make it POINTER_SIZE */
-  if (size == 0)
-    size = POINTER_SIZE;
-
-  /* If size is 64bits grab the alternate 64bit descriptor. */
-  if (size == 64)
-    TREE_TYPE (parm_decl) = DECL_PARM_ALT (parm_decl);
-
-  record_type = TREE_TYPE (TREE_TYPE (parm_decl));
   expr = maybe_unconstrained_array (expr);
   gnat_mark_addressable (expr);
 
   for (field = TYPE_FIELDS (record_type); field; field = TREE_CHAIN (field))
-    const_list
-      = tree_cons (field,
-		   convert (TREE_TYPE (field),
-			    SUBSTITUTE_PLACEHOLDER_IN_EXPR
-			    (DECL_INITIAL (field), expr)),
-		   const_list);
+    {
+      tree conexpr = convert (TREE_TYPE (field),
+			      SUBSTITUTE_PLACEHOLDER_IN_EXPR
+			      (DECL_INITIAL (field), expr));
+
+      /* Check to ensure that only 32bit pointers are passed in
+	 32bit descriptors */
+      if (do_range_check &&
+          strcmp (IDENTIFIER_POINTER (DECL_NAME (field)), "POINTER") == 0)
+        {
+	  tree pointer64type =
+	     build_pointer_type_for_mode (void_type_node, DImode, false);
+	  tree addr64expr = build_unary_op (ADDR_EXPR, pointer64type, expr);
+	  tree malloc64low =
+	     build_int_cstu (long_integer_type_node, 0x80000000);
+
+	  add_stmt (build3 (COND_EXPR, void_type_node,
+			    build_binary_op (GE_EXPR, long_integer_type_node,
+					     convert (long_integer_type_node,
+						      addr64expr), 
+					     malloc64low),
+			    build_call_raise (CE_Range_Check_Failed, gnat_actual,
+					      N_Raise_Constraint_Error),
+			    NULL_TREE));
+        }
+      const_list = tree_cons (field, conexpr, const_list);
+    }
 
   return gnat_build_constructor (record_type, nreverse (const_list));
 }

@@ -1543,7 +1543,7 @@ package body Exp_Ch3 is
                end if;
             end if;
 
-            --  Ada 2005 (AI-287) In case of default initialized components,
+            --  Ada 2005 (AI-287): In case of default initialized components,
             --  we need to generate the corresponding selected component node
             --  to access the discriminant value. In other cases this is not
             --  required because we are inside the init proc and we use the
@@ -1824,23 +1824,6 @@ package body Exp_Ch3 is
               Make_Attribute_Reference (Loc,
                 Prefix         => Make_Identifier (Loc, Name_uInit),
                 Attribute_Name => Name_Unrestricted_Access);
-         end if;
-
-         --  Ada 2005 (AI-231): Add the run-time check if required
-
-         if Ada_Version >= Ada_05
-           and then Can_Never_Be_Null (Etype (Id))            -- Lhs
-         then
-            if Known_Null (Exp) then
-               return New_List (
-                 Make_Raise_Constraint_Error (Sloc (Exp),
-                   Reason => CE_Null_Not_Allowed));
-
-            elsif Present (Etype (Exp))
-              and then not Can_Never_Be_Null (Etype (Exp))
-            then
-               Install_Null_Excluding_Check (Exp);
-            end if;
          end if;
 
          --  Take a copy of Exp to ensure that later copies of this component
@@ -2139,13 +2122,9 @@ package body Exp_Ch3 is
 
          --  Local variables
 
-         Ifaces_List      : Elist_Id;
          Ifaces_Comp_List : Elist_Id;
-         Ifaces_Tag_List  : Elist_Id;
-         Iface_Elmt       : Elmt_Id;
-         Comp_Elmt        : Elmt_Id;
-
-         pragma Warnings (Off, Ifaces_Tag_List);
+         Iface_Comp_Elmt  : Elmt_Id;
+         Iface_Comp       : Node_Id;
 
       --  Start of processing for Build_Offset_To_Top_Functions
 
@@ -2163,26 +2142,25 @@ package body Exp_Ch3 is
             return;
          end if;
 
-         Collect_Interfaces_Info
-           (Rec_Type, Ifaces_List, Ifaces_Comp_List, Ifaces_Tag_List);
+         Collect_Interface_Components (Rec_Type, Ifaces_Comp_List);
 
          --  For each interface type with secondary dispatch table we generate
          --  the Offset_To_Top_Functions (required to displace the pointer in
          --  interface conversions)
 
-         Iface_Elmt := First_Elmt (Ifaces_List);
-         Comp_Elmt  := First_Elmt (Ifaces_Comp_List);
-         while Present (Iface_Elmt) loop
+         Iface_Comp_Elmt := First_Elmt (Ifaces_Comp_List);
+         while Present (Iface_Comp_Elmt) loop
+            Iface_Comp := Node (Iface_Comp_Elmt);
+            pragma Assert (Is_Interface (Related_Type (Iface_Comp)));
 
             --  If the interface is a parent of Rec_Type it shares the primary
             --  dispatch table and hence there is no need to build the function
 
-            if not Is_Ancestor (Node (Iface_Elmt), Rec_Type) then
-               Build_Offset_To_Top_Function (Iface_Comp => Node (Comp_Elmt));
+            if not Is_Ancestor (Related_Type (Iface_Comp), Rec_Type) then
+               Build_Offset_To_Top_Function (Iface_Comp);
             end if;
 
-            Next_Elmt (Iface_Elmt);
-            Next_Elmt (Comp_Elmt);
+            Next_Elmt (Iface_Comp_Elmt);
          end loop;
       end Build_Offset_To_Top_Functions;
 

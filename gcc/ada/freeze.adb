@@ -2398,6 +2398,8 @@ package body Freeze is
 
                         elsif Root_Type (F_Type) = Standard_Boolean
                           and then Convention (F_Type) = Convention_Ada
+                          and then not Has_Warnings_Off (F_Type)
+                          and then not Has_Size_Clause (F_Type)
                         then
                            Error_Msg_N
                              ("?& is an 8-bit Ada Boolean, "
@@ -2543,6 +2545,7 @@ package body Freeze is
                           and then Convention (R_Type) = Convention_Ada
                           and then not Has_Warnings_Off (E)
                           and then not Has_Warnings_Off (R_Type)
+                          and then not Has_Size_Clause (R_Type)
                         then
                            Error_Msg_N
                              ("?return type of & is an 8-bit "
@@ -2662,7 +2665,8 @@ package body Freeze is
                --  ever default initialized, and is why the check is deferred
                --  until freezing, at which point we know if Import applies.
 
-               if not Is_Imported (E)
+               if Comes_From_Source (E)
+                 and then not Is_Imported (E)
                  and then not Has_Init_Expression (Declaration_Node (E))
                  and then
                    ((Has_Non_Null_Base_Init_Proc (Etype (E))

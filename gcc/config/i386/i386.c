@@ -3045,9 +3045,9 @@ override_options (bool main_args_p)
     ix86_force_align_arg_pointer = STACK_REALIGN_DEFAULT;
 
   /* Validate -mincoming-stack-boundary= value or default it to
-     ABI_STACK_BOUNDARY/PREFERRED_STACK_BOUNDARY.  */
+     MIN_STACK_BOUNDARY/PREFERRED_STACK_BOUNDARY.  */
   if (ix86_force_align_arg_pointer)
-    ix86_default_incoming_stack_boundary = ABI_STACK_BOUNDARY;
+    ix86_default_incoming_stack_boundary = MIN_STACK_BOUNDARY;
   else
     ix86_default_incoming_stack_boundary = PREFERRED_STACK_BOUNDARY;
   ix86_incoming_stack_boundary = ix86_default_incoming_stack_boundary;
@@ -7287,7 +7287,8 @@ ix86_compute_frame_layout (struct ix86_frame *frame)
 
   frame->hard_frame_pointer_offset = offset;
 
-  /* Set offset to aligned because the realigned frame tarts from here.  */
+  /* Set offset to aligned because the realigned frame starts from
+     here.  */
   if (stack_realign_fp)
     offset = (offset + stack_alignment_needed -1) & -stack_alignment_needed;
 
@@ -7520,10 +7521,10 @@ ix86_update_stack_boundary (void)
   /* Incoming stack alignment can be changed on individual functions
      via force_align_arg_pointer attribute.  We use the smallest
      incoming stack boundary.  */
-  if (ix86_incoming_stack_boundary > ABI_STACK_BOUNDARY
+  if (ix86_incoming_stack_boundary > MIN_STACK_BOUNDARY
       && lookup_attribute (ix86_force_align_arg_pointer_string,
 			   TYPE_ATTRIBUTES (TREE_TYPE (current_function_decl))))
-    ix86_incoming_stack_boundary = ABI_STACK_BOUNDARY;
+    ix86_incoming_stack_boundary = MIN_STACK_BOUNDARY;
 
   /* Stack at entrance of main is aligned by runtime.  We use the
      smallest incoming stack boundary. */
@@ -7655,14 +7656,13 @@ ix86_expand_prologue (void)
       rtx x, y;
       int align_bytes = crtl->stack_alignment_needed / BITS_PER_UNIT;
       int param_ptr_offset = (call_used_regs[REGNO (crtl->drap_reg)]
-			      ? 0 : STACK_BOUNDARY / BITS_PER_UNIT);
+			      ? 0 : UNITS_PER_WORD);
 
       gcc_assert (stack_realign_drap);
 
       /* Grab the argument pointer.  */
       x = plus_constant (stack_pointer_rtx, 
-                         (STACK_BOUNDARY / BITS_PER_UNIT 
-			  + param_ptr_offset));
+                         (UNITS_PER_WORD + param_ptr_offset));
       y = crtl->drap_reg;
 
       /* Only need to push parameter pointer reg if it is caller
@@ -7689,8 +7689,7 @@ ix86_expand_prologue (void)
 	 expand_builtin_return_addr etc.  */
       x = crtl->drap_reg;
       x = gen_frame_mem (Pmode,
-                         plus_constant (x,
-					-(STACK_BOUNDARY / BITS_PER_UNIT)));
+                         plus_constant (x, -UNITS_PER_WORD));
       insn = emit_insn (gen_push (x));
       RTX_FRAME_RELATED_P (insn) = 1;
     }
@@ -7710,7 +7709,7 @@ ix86_expand_prologue (void)
   if (stack_realign_fp)
     {
       int align_bytes = crtl->stack_alignment_needed / BITS_PER_UNIT;
-      gcc_assert (align_bytes > STACK_BOUNDARY / BITS_PER_UNIT);
+      gcc_assert (align_bytes > MIN_STACK_BOUNDARY / BITS_PER_UNIT);
 
       /* Align the stack.  */
       insn = emit_insn ((*ix86_gen_andsp) (stack_pointer_rtx,
@@ -7854,7 +7853,7 @@ ix86_expand_prologue (void)
       /* vDRAP is setup but after reload it turns out stack realign
          isn't necessary, here we will emit prologue to setup DRAP
          without stack realign adjustment */
-      int drap_bp_offset = STACK_BOUNDARY / BITS_PER_UNIT * 2;
+      int drap_bp_offset = UNITS_PER_WORD * 2;
       rtx x = plus_constant (hard_frame_pointer_rtx, drap_bp_offset);
       insn = emit_insn (gen_rtx_SET (VOIDmode, crtl->drap_reg, x));
     }
@@ -8053,11 +8052,11 @@ ix86_expand_epilogue (int style)
   if (crtl->drap_reg && crtl->stack_realign_needed)
     {
       int param_ptr_offset = (call_used_regs[REGNO (crtl->drap_reg)]
-			      ? 0 : STACK_BOUNDARY / BITS_PER_UNIT);
+			      ? 0 : UNITS_PER_WORD);
       gcc_assert (stack_realign_drap);
       emit_insn ((*ix86_gen_add3) (stack_pointer_rtx,
 				   crtl->drap_reg,
-				   GEN_INT (-(STACK_BOUNDARY / BITS_PER_UNIT
+				   GEN_INT (-(UNITS_PER_WORD
 					      + param_ptr_offset))));
       if (!call_used_regs[REGNO (crtl->drap_reg)])
 	emit_insn ((*ix86_gen_pop1) (crtl->drap_reg));
@@ -25176,7 +25175,7 @@ ix86_expand_vector_init_one_nonzero (bool mmx_ok, enum machine_mode mode,
 	  else
 	    tmp = new_target;
 
-	  emit_insn (gen_sse_shufps_1 (tmp, tmp, tmp,
+	  emit_insn (gen_sse_shufps_v4sf (tmp, tmp, tmp,
 				       GEN_INT (1),
 				       GEN_INT (one_var == 1 ? 0 : 1),
 				       GEN_INT (one_var == 2 ? 0+4 : 1+4),
@@ -25740,7 +25739,7 @@ ix86_expand_vector_set (bool mmx_ok, rtx target, rtx val, int elt)
 	  /* target = X A B B */
 	  ix86_expand_vector_set (false, target, val, 0);
 	  /* target = A X C D  */
-	  emit_insn (gen_sse_shufps_1 (target, target, tmp,
+	  emit_insn (gen_sse_shufps_v4sf (target, target, tmp,
 				       GEN_INT (1), GEN_INT (0),
 				       GEN_INT (2+4), GEN_INT (3+4)));
 	  return;
@@ -25751,7 +25750,7 @@ ix86_expand_vector_set (bool mmx_ok, rtx target, rtx val, int elt)
 	  /* tmp = X B C D */
 	  ix86_expand_vector_set (false, tmp, val, 0);
 	  /* target = A B X D */
-	  emit_insn (gen_sse_shufps_1 (target, target, tmp,
+	  emit_insn (gen_sse_shufps_v4sf (target, target, tmp,
 				       GEN_INT (0), GEN_INT (1),
 				       GEN_INT (0+4), GEN_INT (3+4)));
 	  return;
@@ -25762,7 +25761,7 @@ ix86_expand_vector_set (bool mmx_ok, rtx target, rtx val, int elt)
 	  /* tmp = X B C D */
 	  ix86_expand_vector_set (false, tmp, val, 0);
 	  /* target = A B X D */
-	  emit_insn (gen_sse_shufps_1 (target, target, tmp,
+	  emit_insn (gen_sse_shufps_v4sf (target, target, tmp,
 				       GEN_INT (0), GEN_INT (1),
 				       GEN_INT (2+4), GEN_INT (0+4)));
 	  return;
@@ -25883,7 +25882,7 @@ ix86_expand_vector_extract (bool mmx_ok, rtx target, rtx vec, int elt)
 	case 1:
 	case 3:
 	  tmp = gen_reg_rtx (mode);
-	  emit_insn (gen_sse_shufps_1 (tmp, vec, vec,
+	  emit_insn (gen_sse_shufps_v4sf (tmp, vec, vec,
 				       GEN_INT (elt), GEN_INT (elt),
 				       GEN_INT (elt+4), GEN_INT (elt+4)));
 	  break;
@@ -26000,7 +25999,7 @@ ix86_expand_reduc_v4sf (rtx (*fn) (rtx, rtx, rtx), rtx dest, rtx in)
   emit_insn (gen_sse_movhlps (tmp1, in, in));
   emit_insn (fn (tmp2, tmp1, in));
 
-  emit_insn (gen_sse_shufps_1 (tmp3, tmp2, tmp2,
+  emit_insn (gen_sse_shufps_v4sf (tmp3, tmp2, tmp2,
 			       GEN_INT (1), GEN_INT (1),
 			       GEN_INT (1+4), GEN_INT (1+4)));
   emit_insn (fn (dest, tmp2, tmp3));

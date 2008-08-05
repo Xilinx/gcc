@@ -40,10 +40,13 @@ with GNAT.OS_Lib;          use GNAT.OS_Lib;
 
 package Prj is
 
+   All_Other_Names : constant Name_Id := Names_High_Bound;
+   --  Name used to replace others as an index of an associative array
+   --  attribute in situations where this is allowed.
+
    Subdirs_Option : constant String := "--subdirs=";
    --  Switch used to indicate that the real directories (object, exec,
-   --  library, ...) are subdirectories of what is indicated in the project
-   --  file.
+   --  library, ...) are subdirectories of those in the project file.
 
    Subdirs : String_Ptr := null;
    --  The value after the equal sign in switch --subdirs=...
@@ -399,6 +402,13 @@ package Prj is
 
    No_Source : constant Source_Id := 0;
 
+   type Path_Syntax_Kind is
+     (Canonical,
+      --  Unix style
+
+      Host);
+      --  Host specific syntax, for example on VMS (the default)
+
    type Language_Config is record
       Kind : Language_Kind := File_Based;
       --  Kind of language. All languages are file based, except Ada which is
@@ -422,6 +432,10 @@ package Prj is
       Compiler_Required_Switches : Name_List_Index := No_Name_List;
       --  The list of switches that are required as a minimum to invoke the
       --  compiler driver.
+
+      Path_Syntax                  : Path_Syntax_Kind := Host;
+      --  Value may be Canonical (Unix style) or Host (host syntax, for example
+      --  on VMS for DEC C).
 
       Compilation_PIC_Option : Name_List_Index := No_Name_List;
       --  The option(s) to compile a source in Position Independent Code for
@@ -525,12 +539,6 @@ package Prj is
       Toolchain_Description      : Name_Id         := No_Name;
       --  Hold the value of attribute Toolchain_Description for the language
 
-      PIC_Option                 : Name_Id         := No_Name;
-      --  Hold the value of attribute Compiler'PIC_Option for the language
-
-      Objects_Generated          : Boolean         := True;
-      --  Indicates if objects are generated for the language
-
    end record;
    --  Record describing the configuration of a language
 
@@ -541,6 +549,7 @@ package Prj is
                            Compiler_Driver              => No_File,
                            Compiler_Driver_Path         => null,
                            Compiler_Required_Switches   => No_Name_List,
+                           Path_Syntax                  => Canonical,
                            Compilation_PIC_Option       => No_Name_List,
                            Object_Generated             => True,
                            Objects_Linked               => True,
@@ -567,9 +576,7 @@ package Prj is
                            Binder_Required_Switches     => No_Name_List,
                            Binder_Prefix                => No_Name,
                            Toolchain_Version            => No_Name,
-                           Toolchain_Description        => No_Name,
-                           PIC_Option                   => No_Name,
-                           Objects_Generated            => True);
+                           Toolchain_Description        => No_Name);
 
    type Language_Data is record
       Name          : Name_Id         := No_Name;

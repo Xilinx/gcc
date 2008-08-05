@@ -1,3 +1,189 @@
+2008-08-04  Richard Guenther  <rguenther@suse.de>
+
+	* tree-ssa-loop-ivopts.c (add_iv_value_candidates): Also add
+	the candidate with the stripped base if that base is different
+	from the original base even for offset zero.
+
+2008-08-04  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/36691
+	* tree-ssa-loop-niter.c (number_of_iterations_lt_to_ne): Correctly
+	check for no_overflow.
+
+2008-08-04  Richard Guenther  <rguenther@suse.de>
+
+	* tree-vect-transform.c (vectorizable_call): Fix tuplification.
+
+2008-08-04  Paul Brook  <paul@codesourcery.com>
+
+	* cofig/arm/arm.c (thumb_core_reg_alloc_order): New.
+	(arm_order_regs_for_local_alloc): New function.
+	* config/arm/arm-protos.h (arm_order_regs_for_local_alloc): Add
+	prototype.
+	* config/arm/arm.h (ORDER_REGS_FOR_LOCAL_ALLOC): Define.
+
+2008-08-04  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/37012
+	* config/i386/i386.c (ix86_expand_prologue): Use UNITS_PER_WORD
+	instead of STACK_BOUNDARY / BITS_PER_UNIT to align stack.
+	(ix86_expand_epilogue): Likewise.
+
+2008-08-04  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/i386.c (ix86_compute_frame_layout): Fix a typo
+	in comments.
+
+2008-08-03  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/mmx.md (*mov<mode>_internal_rex64): Use Yi instead of x
+	to avoid inter-unit moves for !TARGET_INTER_UNIT_MOVES.
+	(*movv2sf_internal_rex64): Ditto.
+
+2008-08-03  Jan Hubicka  <jh@suse.cz>
+
+	* optabs.c (expand_binop, expand_builtin_pow, expand_builtin_powi,
+	expand_builtin_strcat): Upse optimize_insn_for_speed predicate.
+	* expmed.c (expand_smod_pow2): Likewise.
+
+2008-08-03  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/36992
+	* config/i386/sse.md (vec_concatv2di): Add Y2 constraint to
+	alternative 0 of operand 1.
+	(*vec_concatv2di_rex64_sse): Ditto.
+	(*vec_concatv2di_rex64_sse4_1): Add x constraint to alternative 0
+	of operand 1.
+	(*sse2_storeq_rex64): Penalize allocation of "r" registers.
+	* config/i386/mmx.md (*mov<mode>_internal_rex64): Penalize allocation
+	of "Y2" registers to avoid SSE <-> MMX conversions for DImode moves.
+	(*movv2sf_internal_rex64): Ditto.
+
+2008-08-02  Richard Guenther  <rguenther@suse.de>
+
+	PR target/35252
+	* config/i386/sse.md (SSEMODE4S, SSEMODE2D): New mode iterators.
+	(ssedoublesizemode): New mode attribute.
+	(sse_shufps): Call gen_sse_shufps_v4sf.
+	(sse_shufps_1): Macroize.
+	(sse2_shufpd): Call gen_Sse_shufpd_v2df.
+	(sse2_shufpd_1): Macroize.
+	(vec_extract_odd, vec_extract_even): New expanders.
+	(vec_interleave_highv4sf, vec_interleave_lowv4sf,
+	vec_interleave_highv2df, vec_interleave_lowv2df): Likewise.
+	* i386.c (ix86_expand_vector_init_one_nonzero): Call
+	gen_sse_shufps_v4sf instead of gen_sse_shufps_1.
+	(ix86_expand_vector_set): Likewise.
+	(ix86_expand_reduc_v4sf): Likewise.
+
+2008-08-01  Doug Kwan  <dougkwan@google.com>
+
+	* matrix-reorg.c: Re-enable all code.
+	(struct malloc_call_data): Change CALL_STMT to gimple type.
+	(collect_data_for_malloc_call): Tuplify.
+	(struct access_site_info): Change STMT to gimple type.
+	(struct matrix_info): Change MIN_INDIRECT_LEVEL_ESCAPE_STMT,
+	and MALLOC_FOR_LEVEL to gimple and gimple pointer type.
+	(struct free_info): Change STMT to gimple type.
+	(struct matrix_access_phi_node):  Change PHI to gimple type.
+	(get_inner_of_cast_expr): Remove.
+	(may_flatten_matrices_1): Tuplify.
+	(may_flatten_matrices): Ditto.
+	(mark_min_matrix_escape_level): Ditto.
+	(ssa_accessed_in_tree): Refactor statement RHS related code into ...
+	(ssa_accessed_in_call_rhs): New
+	(ssa_accessed_in_assign_rhs): New
+	(record_access_alloc_site_info): Tuplify.
+	(add_allocation_site): Ditto.
+	(analyze_matrix_allocation_site): Ditto.
+	(analyze_transpose): Ditto.
+	(get_index_from_offset): Ditto.
+	(update_type_size): Ditto.
+	(analyze_accesses_for_call_expr): Tuplify and renamed into ...
+	(analyze_accesses_for_call_stmt): New. Also handle LHS of a call.
+	(analyze_accesses_for_phi_node): Tuplify.
+	(analyze_accesses_for_modify_stmt): Tuplify and renamed into ...
+	(analyze_accesses_for_assign_stmt): Remove code for handling call LHS.
+	(analyze_matrix_accesses): Tuplify.
+	(check_var_data): New call-back type for check_var_notmodified_p.
+	(check_var_notmodified_p): Tuplify and use call-back struct to
+	return statement found.
+	(can_calculate_expr_before_stmt): Factor out statement related code
+	into ...
+	(can_calculate_stmt_before_stmt): New.
+	(check_allocation_function): Tuplify.
+	(find_sites_in_func): Ditto.
+	(record_all_accesses_in_func): Ditto.
+	(transform_access_sites): Ditto.
+	(transform_allocation_sites): Ditto.
+	(matrix_reorg): Re-enable.
+	(gate_matrix_reorg): Re-enable.
+
+2008-08-01  Jakub Jelinek  <jakub@redhat.com>
+
+	* dwarf2out.c (compute_barrier_args_size): Set barrier_args_size
+	for labels for which it hasn't been set yet.  If it has been set,
+	stop walking insns and continue with next worklist item.
+	(dwarf2out_stack_adjust): Don't call compute_barrier_args_size
+	if the only BARRIER is at the very end of a function.
+
+2008-08-01  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* cfgexpand.c (expand_stack_alignment): Assert that
+	stack_realign_drap and drap_rtx must match.
+
+	* function.c (instantiate_new_reg): If DRAP is used to realign
+	stack, replace virtual_incoming_args_rtx with internal arg
+	pointer.
+
+2008-08-01  Richard Guenther  <rguenther@suse.de>
+
+	* tree-ssa-pre.c (fini_pre): Take in_fre parameter.  Free
+	loop information only if we initialized it.
+	(execute_pre): Call fini_pre with in_fre.
+	* tree-ssa-loop-ivcanon (try_unroll_loop_completely): Dump
+	if we do not unroll because we hit max-completely-peeled-insns.
+	Use our estimation for consistency, do allow shrinking.
+
+2008-08-01  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/i386.c (override_options): Replace ABI_STACK_BOUNDARY
+	with MIN_STACK_BOUNDARY.
+	(ix86_update_stack_boundary): Likewise.
+	(ix86_expand_prologue): Assert MIN_STACK_BOUNDARY instead of
+	STACK_BOUNDARY.
+
+	* config/i386/i386.h (ABI_STACK_BOUNDARY): Renamed to ...
+	(MIN_STACK_BOUNDARY): This.
+
+2008-08-01  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/36997
+	* gimplify.c (gimplify_call_expr): Set error_mark_node on GS_ERROR.
+
+2008-08-01  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/36988
+	* tree-ssa-ccp.c (ccp_fold): Conversions of constants only
+	do not matter if that doesn't change volatile qualification.
+
+2008-08-01  Paolo Bonzini  <bonzini@gnu.org>
+
+	* configure.ac: Do not generate libada-mk.  Do not subst
+	host_cc_for_libada.
+	* libada-mk.in: Remove.
+	* Makefile.in: Pass TARGET_LIBGCC2_CFLAGS to libgcc.mvars.
+	* configure: Regenerate.
+
+2008-08-01  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* tree-pass.h: Added comment about not dumping passes with name
+	starting with star in struct opt_pass.
+	* passes.c (register_dump_files_1): Don't do dump for a pass with
+	name starting with star.
+	* doc/passes.texi (Pass manager): Mention pass names and special
+	meaning of star prefix to avoid dump.
+
 2008-07-31  Adam Nemet  <anemet@caviumnetworks.com>
 
 	* config.gcc (mipsisa64r2*-*-linux*): New configuration.  Set ISA
@@ -36,13 +222,12 @@
 	* dwarf2out.c (based_loc_descr): Check crtl->stack_realign_tried
 	for stack alignment.
 
-	* function.h (rtl_data): Add stack_realign_tried.  Update
-	comments.
+	* function.h (rtl_data): Add stack_realign_tried.  Update comments.
 
 2008-07-31  Kaz Kojima  <kkojima@gcc.gnu.org>
 
 	* config/sh/sh.c (sh_canonical_va_list_type): Remove.
-	(TARGET_CANONICAL_VA_LIST_TYPE): Remove.	    
+	(TARGET_CANONICAL_VA_LIST_TYPE): Remove.
 
 2008-07-31  Jakub Jelinek  <jakub@redhat.com>
 
@@ -78,8 +263,7 @@
 
 	* passes.c (init_optimization_passes): Always call
 	pass_early_warn_uninitialized.
-	* opts.c (decode_options): Do not warn about -Wuninitialized
-	at -O0.
+	* opts.c (decode_options): Do not warn about -Wuninitialized at -O0.
 	* doc/invoke.texi (-Wuninitialized): Correct for enabling at -O0.
 	* doc/passes.texi (Warn for uninitialized variables): Adjust.
 
@@ -187,8 +371,7 @@
 	(TARGET_CALLS): Add TARGET_UPDATE_STACK_BOUNDARY and
 	TARGET_GET_DRAP_RTX.
 
-	* target.h (gcc_target): Add update_stack_boundary and
-	get_drap_rtx.
+	* target.h (gcc_target): Add update_stack_boundary and get_drap_rtx.
 
 	* tree-vectorizer.c (vect_can_force_dr_alignment_p): Replace
 	STACK_BOUNDARY with MAX_STACK_ALIGNMENT.
@@ -235,16 +418,14 @@
 	force_align_arg_pointer.
 	(ix86_handle_cconv_attribute): Likewise.
 	(ix86_function_regparm): Likewise.
-	(setup_incoming_varargs_64): Don't set stack_alignment_needed
-	here.
+	(setup_incoming_varargs_64): Don't set stack_alignment_needed here.
 	(ix86_va_start): Replace virtual_incoming_args_rtx with
 	crtl->args.internal_arg_pointer.
 	(ix86_select_alt_pic_regnum): Check DRAP register.
 	(ix86_save_reg): Replace force_align_arg_pointer with drap_reg.
 	(ix86_compute_frame_layout): Compute frame layout wrt stack
 	realignment.
-	(ix86_internal_arg_pointer): Just return
-	virtual_incoming_args_rtx.
+	(ix86_internal_arg_pointer): Just return virtual_incoming_args_rtx.
 	(ix86_expand_prologue): Decide if stack realignment is needed
 	and generate prologue code accordingly.
 	(ix86_expand_epilogue): Generate epilogue code wrt stack
@@ -323,8 +504,8 @@
 
 2008-07-30  Rafael Avila de Espindola  <espindola@google.com>
 
-       * final.c (call_from_call_insn): New.
-       (final_scan_insn): Call assemble_external on FUNCTION_DECLs.
+	* final.c (call_from_call_insn): New.
+	(final_scan_insn): Call assemble_external on FUNCTION_DECLs.
 
 2008-07-30  Paolo Bonzini  <bonzini@gnu.org>
 
@@ -397,8 +578,7 @@
 
 2008-07-29  Richard Guenther  <rguenther@suse.de>
 
-	* gimplify.c (gimplify_expr): Clear TREE_SIDE_EFFECTS for
-	OBJ_TYPE_REF.
+	* gimplify.c (gimplify_expr): Clear TREE_SIDE_EFFECTS for OBJ_TYPE_REF.
 
 2008-07-29  Jakub Jelinek  <jakub@redhat.com>
 
@@ -474,8 +654,7 @@
 	(insert_fake_stores): Remove.
 	(realify_fake_stores): Likewise.
 	(execute_pre): Remove dead code.
-	* tree-ssa-structalias.c (get_constraint_for_1): Remove tcc_unary
-	case.
+	* tree-ssa-structalias.c (get_constraint_for_1): Remove tcc_unary case.
 	(find_func_aliases): Deal with it here instead.
 	Re-enable gcc_unreachable call.
 
@@ -713,7 +892,8 @@
 
 2008-07-25  Jan Hubicka  <jh@suse.cz>
 
-	* cgraph.c (cgraph_function_possibly_inlined_p): Do not rely on DECL_INLINE.
+	* cgraph.c (cgraph_function_possibly_inlined_p): Do not rely on
+	DECL_INLINE.
 	* cgraphunit.c (record_cdtor_fn): Do not initialize DECL_INLINE
 	(cgraph_preserve_function_body_p): Do not rely on DECL_INLINE.
 	* dojump.c (clear_pending_stack_adjust): Likewise.
@@ -860,8 +1040,7 @@
 
 	* config/sh/sh.h (OPTIMIZATION_OPTIONS): Set flag_omit_frame_pointer
 	to 2 instead of -1.
-	(OVERRIDE_OPTIONS): Check if flag_omit_frame_pointer is equal
-	to 2.
+	(OVERRIDE_OPTIONS): Check if flag_omit_frame_pointer is equal to 2.
 
 2008-07-24  Kai Tietz  <kai.tietz@onevision.com>
 
@@ -1226,15 +1405,13 @@
 	(optimize_args): New static vector to remember the optimization
 	arguments.
 	(parse_optimize_options): New function to set up the optimization
-	arguments from either the optimize attribute or #pragma GCC
-	optimize.
+	arguments from either the optimize attribute or #pragma GCC optimize.
 
 	* c-common.h (c_cpp_builtins_optimize_pragma): Add declaration.
 	(builtin_define_std): Ditto.
 
 	* config.gcc (i[3467]86-*-*): Add i386-c.o to C/C++ languages.
-	Add t-i386 Makefile fragment to add i386-c.o and i386.o
-	dependencies.
+	Add t-i386 Makefile fragment to add i386-c.o and i386.o dependencies.
 	(x86_64-*-*): Ditto.
 
 	* Makefile.in (TREE_H): Add options.h.
@@ -1252,12 +1429,10 @@
 	(Save): Document Save option to create target specific options
 	that can be saved/restored on a function specific context.
 
-	* doc/c-tree.texi (DECL_FUNCTION_SPECIFIC_TARGET): Document new
-	macro.
+	* doc/c-tree.texi (DECL_FUNCTION_SPECIFIC_TARGET): Document new macro.
 	(DECL_FUNCTION_SPECIFIC_OPTIMIZATION): Ditto.
 
-	* doc/tm.texi (TARGET_VALID_OPTION_ATTRIBUTE_P): Document new
-	hook.
+	* doc/tm.texi (TARGET_VALID_OPTION_ATTRIBUTE_P): Document new hook.
 	(TARGET_OPTION_SAVE): Ditto.
 	(TARGET_OPTION_RESTORE): Ditto.
 	(TARGET_OPTION_PRINT): Ditto.
@@ -1271,8 +1446,7 @@
 2008-07-23  Michael Meissner  <gnu@the-meissners.org>
 	    Karthik Kumar  <karthikkumar@gmail.com>
 
-	* config/i386/i386.h (TARGET_ABM): Move switch into
-	ix86_isa_flags.
+	* config/i386/i386.h (TARGET_ABM): Move switch into ix86_isa_flags.
 	(TARGET_POPCNT): Ditto.
 	(TARGET_SAHF): Ditto.
 	(TARGET_AES): Ditto.
@@ -1287,8 +1461,7 @@
 	(REGISTER_TARGET_PRAGMAS): Define, call ix86_register_pragmas.
 
 	* config/i386/i386.opt (arch): New TargetSave field to define
-	fields that need to be saved for function specific option
-	support.
+	fields that need to be saved for function specific option support.
 	(tune): Ditto.
 	(fpmath): Ditto.
 	(branch_cost): Ditto.
@@ -1359,8 +1532,7 @@
 	(i386.o): Make dependencies mirror the include files used.
 	(i386-c.o): New file, add dependencies.
 
-	* config/i386/i386-protos.h (override_options): Add bool
-	argument.
+	* config/i386/i386-protos.h (override_options): Add bool argument.
 	(ix86_valid_option_attribute_tree): Add declaration.
 	(ix86_target_macros): Ditto.
 	(ix86_register_macros): Ditto.
@@ -1373,8 +1545,7 @@
 	masks for the tune variables.
 	(ix86_arch_features): Move initialization of the target masks to
 	initial_ix86_arch_features to allow functions to have different
-	target options.  Make type unsigned char, instead of unsigned
-	int.
+	target options.  Make type unsigned char, instead of unsigned int.
 	(initial_ix86_arch_features): New static vector to hold processor
 	masks for the arch variables.
 	(enum ix86_function_specific_strings): New enum to describe the
@@ -1384,8 +1555,7 @@
 	(ix86_debug_options): New function to print the current options in
 	the debugger.
 	(ix86_function_specific_save): New function hook to save the
-	function specific global variables in the cl_target_option
-	structure.
+	function specific global variables in the cl_target_option structure.
 	(ix86_function_specific_restore): New function hook to restore the
 	function specific variables from the cl_target_option structure to
 	the global variables.
@@ -1395,8 +1565,7 @@
 	attribute((option(...))) arguments.
 	(ix86_valid_option_attribute_tree): New function that is common
 	code between attribute((option(...))) and #pragma GCC option
-	support that parses the options and returns a tree holding the
-	options.
+	support that parses the options and returns a tree holding the options.
 	(ix86_valid_option_attribute_inner_p): New helper function for
 	ix86_valid_option_attribute_tree.
 	(ix86_can_inline_p): New function hook to decide if one function
@@ -1423,8 +1592,7 @@
 	(struct ptt): Move to static file scope from override_options.
 	(processor_target_table): Ditto.
 	(cpu_names): Ditto.
-	(ix86_handle_option): Add support for options that are now isa
-	options.
+	(ix86_handle_option): Add support for options that are now isa options.
 	(override_options): Add support for declaring functions that
 	support different target options than were specified on the
 	command line.  Move struct ptt, processor_target_table, cpu_names,
@@ -1452,8 +1620,8 @@
 
 2008-07-22  Rafael Avila de Espindola  <espindola@google.com>
 
-       * c-typeck.c (build_external_ref): Don't call assemble_external.
-       * final.c (output_operand): Call assemble_external.
+	* c-typeck.c (build_external_ref): Don't call assemble_external.
+	* final.c (output_operand): Call assemble_external.
 
 2008-07-21  DJ Delorie  <dj@redhat.com>
 
@@ -1775,8 +1943,8 @@
 
 2007-07-16  Rafael Avila de Espindola  <espindola@google.com>
 
-       * c-decl.c (merge_decls): Keep DECL_SOURCE_LOCATION and
-       DECL_IN_SYSTEM_HEADER in sync.
+	* c-decl.c (merge_decls): Keep DECL_SOURCE_LOCATION and
+	DECL_IN_SYSTEM_HEADER in sync.
 
 2008-07-15  Daniel Berlin  <dberlin@dberlin.org>
 
@@ -12665,7 +12833,7 @@
 	(finish_optimization_passes): Update.
 	(all_passes, all_ipa_passes, all_lowering_passes): Update declaration.
 	(register_one_dump_file, register_dump_files_1, next_pass_1):
- 	Update arguments.
+	Update arguments.
 	(init_optimization_passes): Update handling of new types.
 	(execute_one_pass, execute_pass_list, execute_ipa_pass_list): Update.
 	* ipa-struct-reorg.c: Update tree_pass descriptors.
@@ -12846,7 +13014,7 @@
 	* config/avr/avr.c (avr_arch_types): Add avr6 entry.
 	(avr_arch): Add ARCH_AVR6.
 	(avr_mcu_types): Add 'atmega2560' and 'atmega2561' entry.
- 	(initial_elimination_offset): Initialize and use 'avr_pc_size'
+	(initial_elimination_offset): Initialize and use 'avr_pc_size'
 	instead of fixed value 2.
 	(print_operand_address): Use gs() asm specifier instead of pm().
 	(avr_assemble_integer): (Ditto.).
@@ -16078,12 +16246,12 @@
 	'have_elpm', 'have_elpmx', 'have_eijmp_eicall', 'reserved'. Rename
 	'mega' to 'have_jmp_call'.
 	(TARGET_CPU_CPP_BUILTINS): Define "__AVR_HAVE_JMP_CALL__",
-	"__AVR_HAVE_RAMPZ__", 	"__AVR_HAVE_ELPM__" and  "__AVR_HAVE_ELPMX__"
+	"__AVR_HAVE_RAMPZ__", "__AVR_HAVE_ELPM__" and "__AVR_HAVE_ELPMX__"
 	macros.
 	(LINK_SPEC, CRT_BINUTILS_SPECS, ASM_SPEC): Add 'avr31' and 'avr51'
 	architectures.
 	* config/avr/t-avr (MULTILIB_OPTIONS, MULTILIB_DIRNAMES,
-	MULTILIB_MATCHES): (Ditto.).
+	MULTILIB_MATCHES): Ditto.
 
 2008-01-23  Richard Guenther  <rguenther@suse.de>
 

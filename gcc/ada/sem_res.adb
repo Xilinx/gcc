@@ -446,16 +446,18 @@ package body Sem_Res is
                return;
             end if;
 
-            --   Detect a common beginner error:
+            --   Detect a common error:
 
             --   type R (D : Positive := 100) is record
             --     Name : String (1 .. D);
             --   end record;
 
-            --  The default value causes an object of type R to be
-            --  allocated with room for Positive'Last characters.
+            --  The default value causes an object of type R to be allocated
+            --  with room for Positive'Last characters. The RM does not mandate
+            --  the allocation of the maximum size, but that is what GNAT does
+            --  so we should warn the programmer that there is a problem.
 
-            declare
+            Check_Large : declare
                SI : Node_Id;
                T  : Entity_Id;
                TB : Node_Id;
@@ -480,8 +482,10 @@ package body Sem_Res is
                     and then Compile_Time_Known_Value (Type_High_Bound (T))
                     and then
                       Minimum_Size (T, Biased => True) >=
-                        Esize (Standard_Integer) - 1;
+                        RM_Size (Standard_Positive);
                end Large_Storage_Type;
+
+            --  Start of processing for Check_Large
 
             begin
                --  Check that the Disc has a large range
@@ -553,7 +557,7 @@ package body Sem_Res is
                <<No_Danger>>
                   null;
 
-            end;
+            end Check_Large;
          end if;
 
       --  Legal case is in index or discriminant constraint
@@ -754,7 +758,22 @@ package body Sem_Res is
       C := N;
       loop
          P := Parent (C);
+
+         --  If no parent, then we were not inside a subprogram, this can for
+         --  example happen when processing certain pragmas in a spec. Just
+         --  return False in this case.
+
+         if No (P) then
+            return False;
+         end if;
+
+         --  Done if we get to subprogram body, this is definitely an infinite
+         --  recursion case if we did not find anything to stop us.
+
          exit when Nkind (P) = N_Subprogram_Body;
+
+         --  If appearing in conditional, result is false
+
          if Nkind_In (P, N_Or_Else,
                          N_And_Then,
                          N_If_Statement,
@@ -4677,6 +4696,25 @@ package body Sem_Res is
          end loop;
       end if;
 
+      if Ekind (Etype (Nam)) = E_Access_Subprogram_Type
+         and then Ekind (Typ) /= E_Access_Subprogram_Type
+         and then Nkind (Subp) /= N_Explicit_Dereference
+         and then Present (Parameter_Associations (N))
+      then
+         --  The prefix is a parameterless function call that returns an
+         --  access to subprogram. If parameters are present in the current
+         --  call  add an explicit dereference.
+
+         --  The dereference is added either in Analyze_Call or here. Should
+         --  be consolidated ???
+
+         Set_Is_Overloaded (Subp, False);
+         Set_Etype (Subp, Etype (Nam));
+         Insert_Explicit_Dereference (Subp);
+         Nam := Designated_Type (Etype (Nam));
+         Resolve (Subp, Nam);
+      end if;
+
       --  Check that a call to Current_Task does not occur in an entry body
 
       if Is_RTE (Nam, RE_Current_Task) then
@@ -5183,12 +5221,16 @@ package body Sem_Res is
       end if;
 
       --  Check for violation of restriction No_Specific_Termination_Handlers
+      --  and warn on a potentially blocking call to Abort_Task.
 
       if Is_RTE (Nam, RE_Set_Specific_Handler)
            or else
          Is_RTE (Nam, RE_Specific_Handler)
       then
          Check_Restriction (No_Specific_Termination_Handlers, N);
+
+      elsif Is_RTE (Nam, RE_Abort_Task) then
+         Check_Potentially_Blocking_Operation (N);
       end if;
 
       --  All done, evaluate call and deal with elaboration issues
@@ -6538,8 +6580,8 @@ package body Sem_Res is
    procedure Resolve_Membership_Op (N : Node_Id; Typ : Entity_Id) is
       pragma Warnings (Off, Typ);
 
-      L : constant Node_Id   := Left_Opnd (N);
-      R : constant Node_Id   := Right_Opnd (N);
+      L : constant Node_Id := Left_Opnd (N);
+      R : constant Node_Id := Right_Opnd (N);
       T : Entity_Id;
 
    begin
@@ -6604,6 +6646,8 @@ package body Sem_Res is
    ------------------
 
    procedure Resolve_Null (N : Node_Id; Typ : Entity_Id) is
+      Loc : constant Source_Ptr := Sloc (N);
+
    begin
       --  Handle restriction against anonymous null access values This
       --  restriction can be turned off using -gnatdj.
@@ -6629,6 +6673,26 @@ package body Sem_Res is
          else
             Error_Msg_N
               ("null cannot be of an anonymous access type", N);
+         end if;
+      end if;
+
+      --  Ada 2005 (AI-231): Generate the null-excluding check in case of
+      --  assignment to a null-excluding object
+
+      if Ada_Version >= Ada_05
+        and then Can_Never_Be_Null (Typ)
+        and then Nkind (Parent (N)) = N_Assignment_Statement
+      then
+         if not Inside_Init_Proc then
+            Insert_Action
+              (Compile_Time_Constraint_Error (N,
+                 "(Ada 2005) null not allowed in null-excluding objects?"),
+               Make_Raise_Constraint_Error (Loc,
+                 Reason => CE_Access_Check_Failed));
+         else
+            Insert_Action (N,
+              Make_Raise_Constraint_Error (Loc,
+                Reason => CE_Access_Check_Failed));
          end if;
       end if;
 
@@ -9459,7 +9523,27 @@ package body Sem_Res is
                       (not Is_Constrained (Opnd)
                         or else not Is_Constrained (Target)))
                then
-                  return True;
+                  --  Special case, if Value_Size has been used to make the
+                  --  sizes different, the conversion is not allowed even
+                  --  though the subtypes statically match.
+
+                  if Known_Static_RM_Size (Target)
+                    and then Known_Static_RM_Size (Opnd)
+                    and then RM_Size (Target) /= RM_Size (Opnd)
+                  then
+                     Error_Msg_NE
+                       ("target designated subtype not compatible with }",
+                        N, Opnd);
+                     Error_Msg_NE
+                       ("\because sizes of the two designated subtypes differ",
+                        N, Opnd);
+                     return False;
+
+                  --  Normal case where conversion is allowed
+
+                  else
+                     return True;
+                  end if;
 
                else
                   Error_Msg_NE
@@ -9472,16 +9556,21 @@ package body Sem_Res is
 
       --  Access to subprogram types. If the operand is an access parameter,
       --  the type has a deeper accessibility that any master, and cannot
-      --  be assigned.
+      --  be assigned. We must make an exception if the conversion is part
+      --  of an assignment and the target is the return object of an extended
+      --  return statement, because in that case the accessibility check
+      --  takes place after the return.
 
-      elsif (Ekind (Target_Type) = E_Access_Subprogram_Type
-               or else
-             Ekind (Target_Type) = E_Anonymous_Access_Subprogram_Type)
+      elsif Is_Access_Subprogram_Type (Target_Type)
         and then No (Corresponding_Remote_Type (Opnd_Type))
       then
          if Ekind (Base_Type (Opnd_Type)) = E_Anonymous_Access_Subprogram_Type
            and then Is_Entity_Name (Operand)
            and then Ekind (Entity (Operand)) = E_In_Parameter
+           and then
+             (Nkind (Parent (N)) /= N_Assignment_Statement
+               or else not Is_Entity_Name (Name (Parent (N)))
+               or else not Is_Return_Object (Entity (Name (Parent (N)))))
          then
             Error_Msg_N
               ("illegal attempt to store anonymous access to subprogram",

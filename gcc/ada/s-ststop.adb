@@ -43,6 +43,11 @@ with System.Stream_Attributes; use System;
 
 package body System.Strings.Stream_Ops is
 
+   --  The following type describes the low-level IO mechanism used in package
+   --  Stream_Ops_Internal.
+
+   type IO_Kind is (Byte_IO, Block_IO);
+
    --  The following package provides an IO framework for strings. Depending
    --  on the version of System.Stream_Attributes as well as the size of
    --  formal parameter Character_Type, the package will either utilize block
@@ -53,13 +58,24 @@ package body System.Strings.Stream_Ops is
       type String_Type is array (Positive range <>) of Character_Type;
 
    package Stream_Ops_Internal is
+      function Input
+        (Strm : access Root_Stream_Type'Class;
+         IO   : IO_Kind) return String_Type;
+
+      procedure Output
+        (Strm : access Root_Stream_Type'Class;
+         Item : String_Type;
+         IO   : IO_Kind);
+
       procedure Read
         (Strm : access Root_Stream_Type'Class;
-         Item : out String_Type);
+         Item : out String_Type;
+         IO   : IO_Kind);
 
       procedure Write
         (Strm : access Root_Stream_Type'Class;
-         Item : String_Type);
+         Item : String_Type;
+         IO   : IO_Kind);
    end Stream_Ops_Internal;
 
    -------------------------
@@ -92,24 +108,6 @@ package body System.Strings.Stream_Ops is
 
       subtype String_Block is String_Type (1 .. C_In_Default_Block);
 
-      Flag : Integer;
-      pragma Import (C, Flag, "__gl_canonical_streams");
-      --  This imported value is used to determine whether configuration pragma
-      --  Canonical_Streams is present. A value of zero indicates whether any
-      --  stream-related optimizations are enabled, while a value of one
-      --  indicates a disabled status.
-
-      Canonical_Streams : constant Boolean := Flag = 1;
-
-      --  Block IO is used when the low level can support block IO, the size
-      --  of the character type is a multiple of the stream element type and
-      --  the compilation can use stream optimizations.
-
-      Use_Block_IO : constant Boolean :=
-                       Stream_Attributes.Block_IO_OK
-                         and then C_Size mod SE_Size = 0
-                         and then not Canonical_Streams;
-
       --  Conversions to and from Default_Block
 
       function To_Default_Block is
@@ -118,13 +116,74 @@ package body System.Strings.Stream_Ops is
       function To_String_Block is
         new Ada.Unchecked_Conversion (Default_Block, String_Block);
 
+      -----------
+      -- Input --
+      -----------
+
+      function Input
+        (Strm : access Root_Stream_Type'Class;
+         IO   : IO_Kind) return String_Type
+      is
+      begin
+         if Strm = null then
+            raise Constraint_Error;
+         end if;
+
+         declare
+            Low  : Positive;
+            High : Positive;
+
+         begin
+            --  Read the bounds of the string
+
+            Positive'Read (Strm, Low);
+            Positive'Read (Strm, High);
+
+            declare
+               Item : String_Type (Low .. High);
+
+            begin
+               --  Read the character content of the string
+
+               Read (Strm, Item, IO);
+
+               return Item;
+            end;
+         end;
+      end Input;
+
+      ------------
+      -- Output --
+      ------------
+
+      procedure Output
+        (Strm : access Root_Stream_Type'Class;
+         Item : String_Type;
+         IO   : IO_Kind)
+      is
+      begin
+         if Strm = null then
+            raise Constraint_Error;
+         end if;
+
+         --  Write the bounds of the string
+
+         Positive'Write (Strm, Item'First);
+         Positive'Write (Strm, Item'Last);
+
+         --  Write the character content of the string
+
+         Write (Strm, Item, IO);
+      end Output;
+
       ----------
       -- Read --
       ----------
 
       procedure Read
         (Strm : access Root_Stream_Type'Class;
-         Item : out String_Type)
+         Item : out String_Type;
+         IO   : IO_Kind)
       is
       begin
          if Strm = null then
@@ -137,7 +196,11 @@ package body System.Strings.Stream_Ops is
             return;
          end if;
 
-         if Use_Block_IO then
+         --  Block IO
+
+         if IO = Block_IO
+           and then Stream_Attributes.Block_IO_OK
+         then
             declare
                --  Determine the size in BITS of the block necessary to contain
                --  the whole string.
@@ -221,7 +284,7 @@ package body System.Strings.Stream_Ops is
                end if;
             end;
 
-         --  Character-by-character IO
+         --  Byte IO
 
          else
             declare
@@ -242,7 +305,8 @@ package body System.Strings.Stream_Ops is
 
       procedure Write
         (Strm : access Root_Stream_Type'Class;
-         Item : String_Type)
+         Item : String_Type;
+         IO   : IO_Kind)
       is
       begin
          if Strm = null then
@@ -255,7 +319,11 @@ package body System.Strings.Stream_Ops is
             return;
          end if;
 
-         if Use_Block_IO then
+         --  Block IO
+
+         if IO = Block_IO
+           and then Stream_Attributes.Block_IO_OK
+         then
             declare
                --  Determine the size in BITS of the block necessary to contain
                --  the whole string.
@@ -309,7 +377,7 @@ package body System.Strings.Stream_Ops is
                end if;
             end;
 
-         --  Character-by-character IO
+         --  Byte IO
 
          else
             for Index in Item'First .. Item'Last loop
@@ -319,7 +387,7 @@ package body System.Strings.Stream_Ops is
       end Write;
    end Stream_Ops_Internal;
 
-   --  Specific instantiations for different string types
+   --  Specific instantiations for all Ada string types
 
    package String_Ops is
      new Stream_Ops_Internal
@@ -344,32 +412,19 @@ package body System.Strings.Stream_Ops is
      (Strm : access Ada.Streams.Root_Stream_Type'Class) return String
    is
    begin
-      if Strm = null then
-         raise Constraint_Error;
-      end if;
-
-      declare
-         Low  : Positive;
-         High : Positive;
-
-      begin
-         --  Read the bounds of the string
-
-         Positive'Read (Strm, Low);
-         Positive'Read (Strm, High);
-
-         declare
-            Item : String (Low .. High);
-
-         begin
-            --  Read the character content of the string
-
-            String_Read (Strm, Item);
-
-            return Item;
-         end;
-      end;
+      return String_Ops.Input (Strm, Byte_IO);
    end String_Input;
+
+   -------------------------
+   -- String_Input_Blk_IO --
+   -------------------------
+
+   function String_Input_Blk_IO
+     (Strm : access Ada.Streams.Root_Stream_Type'Class) return String
+   is
+   begin
+      return String_Ops.Input (Strm, Block_IO);
+   end String_Input_Blk_IO;
 
    -------------------
    -- String_Output --
@@ -380,19 +435,20 @@ package body System.Strings.Stream_Ops is
       Item : String)
    is
    begin
-      if Strm = null then
-         raise Constraint_Error;
-      end if;
-
-      --  Write the bounds of the string
-
-      Positive'Write (Strm, Item'First);
-      Positive'Write (Strm, Item'Last);
-
-      --  Write the character content of the string
-
-      String_Write (Strm, Item);
+      String_Ops.Output (Strm, Item, Byte_IO);
    end String_Output;
+
+   --------------------------
+   -- String_Output_Blk_IO --
+   --------------------------
+
+   procedure String_Output_Blk_IO
+     (Strm : access Ada.Streams.Root_Stream_Type'Class;
+      Item : String)
+   is
+   begin
+      String_Ops.Output (Strm, Item, Block_IO);
+   end String_Output_Blk_IO;
 
    -----------------
    -- String_Read --
@@ -403,8 +459,20 @@ package body System.Strings.Stream_Ops is
       Item : out String)
    is
    begin
-      String_Ops.Read (Strm, Item);
+      String_Ops.Read (Strm, Item, Byte_IO);
    end String_Read;
+
+   ------------------------
+   -- String_Read_Blk_IO --
+   ------------------------
+
+   procedure String_Read_Blk_IO
+     (Strm : access Ada.Streams.Root_Stream_Type'Class;
+      Item : out String)
+   is
+   begin
+      String_Ops.Read (Strm, Item, Block_IO);
+   end String_Read_Blk_IO;
 
    ------------------
    -- String_Write --
@@ -415,44 +483,42 @@ package body System.Strings.Stream_Ops is
       Item : String)
    is
    begin
-      String_Ops.Write (Strm, Item);
+      String_Ops.Write (Strm, Item, Byte_IO);
    end String_Write;
+
+   -------------------------
+   -- String_Write_Blk_IO --
+   -------------------------
+
+   procedure String_Write_Blk_IO
+     (Strm : access Ada.Streams.Root_Stream_Type'Class;
+      Item : String)
+   is
+   begin
+      String_Ops.Write (Strm, Item, Block_IO);
+   end String_Write_Blk_IO;
 
    -----------------------
    -- Wide_String_Input --
    -----------------------
 
    function Wide_String_Input
-     (Strm : access Ada.Streams.Root_Stream_Type'Class)
-      return Wide_String
+     (Strm : access Ada.Streams.Root_Stream_Type'Class) return Wide_String
    is
    begin
-      if Strm = null then
-         raise Constraint_Error;
-      end if;
-
-      declare
-         Low  : Positive;
-         High : Positive;
-
-      begin
-         --  Read the bounds of the string
-
-         Positive'Read (Strm, Low);
-         Positive'Read (Strm, High);
-
-         declare
-            Item : Wide_String (Low .. High);
-
-         begin
-            --  Read the character content of the string
-
-            Wide_String_Read (Strm, Item);
-
-            return Item;
-         end;
-      end;
+      return Wide_String_Ops.Input (Strm, Byte_IO);
    end Wide_String_Input;
+
+   ------------------------------
+   -- Wide_String_Input_Blk_IO --
+   ------------------------------
+
+   function Wide_String_Input_Blk_IO
+     (Strm : access Ada.Streams.Root_Stream_Type'Class) return Wide_String
+   is
+   begin
+      return Wide_String_Ops.Input (Strm, Block_IO);
+   end Wide_String_Input_Blk_IO;
 
    ------------------------
    -- Wide_String_Output --
@@ -463,19 +529,20 @@ package body System.Strings.Stream_Ops is
       Item : Wide_String)
    is
    begin
-      if Strm = null then
-         raise Constraint_Error;
-      end if;
-
-      --  Write the bounds of the string
-
-      Positive'Write (Strm, Item'First);
-      Positive'Write (Strm, Item'Last);
-
-      --  Write the character content of the string
-
-      Wide_String_Write (Strm, Item);
+      Wide_String_Ops.Output (Strm, Item, Byte_IO);
    end Wide_String_Output;
+
+   -------------------------------
+   -- Wide_String_Output_Blk_IO --
+   -------------------------------
+
+   procedure Wide_String_Output_Blk_IO
+     (Strm : access Ada.Streams.Root_Stream_Type'Class;
+      Item : Wide_String)
+   is
+   begin
+      Wide_String_Ops.Output (Strm, Item, Block_IO);
+   end Wide_String_Output_Blk_IO;
 
    ----------------------
    -- Wide_String_Read --
@@ -486,8 +553,20 @@ package body System.Strings.Stream_Ops is
       Item : out Wide_String)
    is
    begin
-      Wide_String_Ops.Read (Strm, Item);
+      Wide_String_Ops.Read (Strm, Item, Byte_IO);
    end Wide_String_Read;
+
+   -----------------------------
+   -- Wide_String_Read_Blk_IO --
+   -----------------------------
+
+   procedure Wide_String_Read_Blk_IO
+     (Strm : access Ada.Streams.Root_Stream_Type'Class;
+      Item : out Wide_String)
+   is
+   begin
+      Wide_String_Ops.Read (Strm, Item, Block_IO);
+   end Wide_String_Read_Blk_IO;
 
    -----------------------
    -- Wide_String_Write --
@@ -498,44 +577,42 @@ package body System.Strings.Stream_Ops is
       Item : Wide_String)
    is
    begin
-      Wide_String_Ops.Write (Strm, Item);
+      Wide_String_Ops.Write (Strm, Item, Byte_IO);
    end Wide_String_Write;
+
+   ------------------------------
+   -- Wide_String_Write_Blk_IO --
+   ------------------------------
+
+   procedure Wide_String_Write_Blk_IO
+     (Strm : access Ada.Streams.Root_Stream_Type'Class;
+      Item : Wide_String)
+   is
+   begin
+      Wide_String_Ops.Write (Strm, Item, Block_IO);
+   end Wide_String_Write_Blk_IO;
 
    ----------------------------
    -- Wide_Wide_String_Input --
    ----------------------------
 
    function Wide_Wide_String_Input
-     (Strm : access Ada.Streams.Root_Stream_Type'Class)
-      return Wide_Wide_String
+     (Strm : access Ada.Streams.Root_Stream_Type'Class) return Wide_Wide_String
    is
    begin
-      if Strm = null then
-         raise Constraint_Error;
-      end if;
-
-      declare
-         Low  : Positive;
-         High : Positive;
-
-      begin
-         --  Read the bounds of the string
-
-         Positive'Read (Strm, Low);
-         Positive'Read (Strm, High);
-
-         declare
-            Item : Wide_Wide_String (Low .. High);
-
-         begin
-            --  Read the character content of the string
-
-            Wide_Wide_String_Read (Strm, Item);
-
-            return Item;
-         end;
-      end;
+      return Wide_Wide_String_Ops.Input (Strm, Byte_IO);
    end Wide_Wide_String_Input;
+
+   -----------------------------------
+   -- Wide_Wide_String_Input_Blk_IO --
+   -----------------------------------
+
+   function Wide_Wide_String_Input_Blk_IO
+     (Strm : access Ada.Streams.Root_Stream_Type'Class) return Wide_Wide_String
+   is
+   begin
+      return Wide_Wide_String_Ops.Input (Strm, Block_IO);
+   end Wide_Wide_String_Input_Blk_IO;
 
    -----------------------------
    -- Wide_Wide_String_Output --
@@ -546,19 +623,20 @@ package body System.Strings.Stream_Ops is
       Item : Wide_Wide_String)
    is
    begin
-      if Strm = null then
-         raise Constraint_Error;
-      end if;
-
-      --  Write the bounds of the string
-
-      Positive'Write (Strm, Item'First);
-      Positive'Write (Strm, Item'Last);
-
-      --  Write the character content of the string
-
-      Wide_Wide_String_Write (Strm, Item);
+      Wide_Wide_String_Ops.Output (Strm, Item, Byte_IO);
    end Wide_Wide_String_Output;
+
+   ------------------------------------
+   -- Wide_Wide_String_Output_Blk_IO --
+   ------------------------------------
+
+   procedure Wide_Wide_String_Output_Blk_IO
+     (Strm : access Ada.Streams.Root_Stream_Type'Class;
+      Item : Wide_Wide_String)
+   is
+   begin
+      Wide_Wide_String_Ops.Output (Strm, Item, Block_IO);
+   end Wide_Wide_String_Output_Blk_IO;
 
    ---------------------------
    -- Wide_Wide_String_Read --
@@ -569,8 +647,20 @@ package body System.Strings.Stream_Ops is
       Item : out Wide_Wide_String)
    is
    begin
-      Wide_Wide_String_Ops.Read (Strm, Item);
+      Wide_Wide_String_Ops.Read (Strm, Item, Byte_IO);
    end Wide_Wide_String_Read;
+
+   ----------------------------------
+   -- Wide_Wide_String_Read_Blk_IO --
+   ----------------------------------
+
+   procedure Wide_Wide_String_Read_Blk_IO
+     (Strm : access Ada.Streams.Root_Stream_Type'Class;
+      Item : out Wide_Wide_String)
+   is
+   begin
+      Wide_Wide_String_Ops.Read (Strm, Item, Block_IO);
+   end Wide_Wide_String_Read_Blk_IO;
 
    ----------------------------
    -- Wide_Wide_String_Write --
@@ -581,7 +671,19 @@ package body System.Strings.Stream_Ops is
       Item : Wide_Wide_String)
    is
    begin
-      Wide_Wide_String_Ops.Write (Strm, Item);
+      Wide_Wide_String_Ops.Write (Strm, Item, Byte_IO);
    end Wide_Wide_String_Write;
+
+   -----------------------------------
+   -- Wide_Wide_String_Write_Blk_IO --
+   -----------------------------------
+
+   procedure Wide_Wide_String_Write_Blk_IO
+     (Strm : access Ada.Streams.Root_Stream_Type'Class;
+      Item : Wide_Wide_String)
+   is
+   begin
+      Wide_Wide_String_Ops.Write (Strm, Item, Block_IO);
+   end Wide_Wide_String_Write_Blk_IO;
 
 end System.Strings.Stream_Ops;

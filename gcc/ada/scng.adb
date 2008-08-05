@@ -350,6 +350,7 @@ package body Scng is
 
       procedure Error_Illegal_Wide_Character is
       begin
+         Scan_Ptr := Scan_Ptr + 1;
          Error_Msg ("illegal wide character", Wptr);
       end Error_Illegal_Wide_Character;
 
@@ -1651,7 +1652,7 @@ package body Scng is
 
                   if Err then
                      Error_Illegal_Wide_Character;
-                        Code := Character'Pos (' ');
+                     Code := Character'Pos (' ');
 
                   --  In Ada 95 mode we allow any wide character in a character
                   --  literal, but in Ada 2005, the set of characters allowed
