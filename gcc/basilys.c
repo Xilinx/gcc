@@ -2533,7 +2533,7 @@ end:
   BASILYS_EXITFRAME ();
   return (basilys_ptr_t) boxv;
 #undef boxv
-#undef discr
+#undef discrv
 #undef valv
 #undef object_discrv
 }
@@ -2570,6 +2570,59 @@ basilys_container_value (basilys_ptr_t cont)
   return ((basilysobject_ptr_t) cont)->obj_vartab[FCONTAINER_VALUE];
 }
 
+/* allocate a new boxed tree of given DISCR [or DISCR_TREE] & content
+   VAL */
+basilys_ptr_t
+basilysgc_new_tree (basilysobject_ptr_t discr_p, tree tr)
+{
+  BASILYS_ENTERFRAME (2, NULL);
+#define btreev  curfram__.varptr[0]
+#define discrv  curfram__.varptr[1]
+#define object_discrv ((basilysobject_ptr_t)(discrv))
+  discrv = (void *) discr_p;
+  if (!discrv) discrv = BASILYSG(DISCR_TREE);
+  if (basilys_magic_discr ((basilys_ptr_t) discrv) != OBMAG_OBJECT)
+    goto end;
+  if (object_discrv->object_magic != OBMAG_TREE)
+    goto end;
+  btreev = basilysgc_allocate (sizeof (struct basilystree_st), 0);
+  ((struct basilystree_st *) (btreev))->discr = (basilysobject_ptr_t) discrv;
+  ((struct basilystree_st *) (btreev))->val = tr;
+end:
+  BASILYS_EXITFRAME ();
+  return (basilys_ptr_t) btreev;
+#undef btreev
+#undef discrv
+#undef object_discrv
+}
+
+
+
+/* allocate a new boxed gimple of given DISCR [or DISCR_GIMPLE] & content
+   VAL */
+basilys_ptr_t
+basilysgc_new_gimple (basilysobject_ptr_t discr_p, gimple g)
+{
+  BASILYS_ENTERFRAME (2, NULL);
+#define bgimplev  curfram__.varptr[0]
+#define discrv  curfram__.varptr[1]
+#define object_discrv ((basilysobject_ptr_t)(discrv))
+  discrv = (void *) discr_p;
+  if (!discrv) discrv = BASILYSG(DISCR_GIMPLE);
+  if (basilys_magic_discr ((basilys_ptr_t) discrv) != OBMAG_OBJECT)
+    goto end;
+  if (object_discrv->object_magic != OBMAG_GIMPLE)
+    goto end;
+  bgimplev = basilysgc_allocate (sizeof (struct basilysgimple_st), 0);
+  ((struct basilysgimple_st *) (bgimplev))->discr = (basilysobject_ptr_t) discrv;
+  ((struct basilysgimple_st *) (bgimplev))->val = g;
+end:
+  BASILYS_EXITFRAME ();
+  return (basilys_ptr_t) bgimplev;
+#undef bgimplev
+#undef discrv
+#undef object_discrv
+}
 /* allocate a multiple of arity 1 */
 basilys_ptr_t
 basilysgc_new_mult1 (basilysobject_ptr_t discr_p, basilys_ptr_t v0_p)
@@ -6287,13 +6340,61 @@ end:
 }
 
 
+basilys_ptr_t
+basilysgc_read_from_rawstring(const char* rawstr, const char* locnam, location_t loch)
+{
+  struct reading_st rds;
+  char *rbuf = 0;
+  struct reading_st *rd = 0;
+  int strmagic = 0;
+  BASILYS_ENTERFRAME (4, NULL);
+#define genv      curfram__.varptr[0]
+#define valv      curfram__.varptr[1]
+#define locnamv   curfram__.varptr[2]
+#define seqv      curfram__.varptr[3]
+  memset (&rds, 0, sizeof (rds));
+  if (!rawstr)
+    goto end;
+  rbuf = xstrdup(rawstr);
+  rds.rfil = 0;
+  rds.rpath = 0;
+  rds.rlineno = 0;
+  rds.rcurlin = rbuf;
+  rds.rsrcloc = loch;
+  rd = &rds;
+  if (locnam)
+    locnamv = basilysgc_new_stringdup (BASILYSGOB (DISCR_STRING), locnam);
+  seqv = basilysgc_new_list (BASILYSGOB (DISCR_LIST));
+  rds.rpfilnam = (basilys_ptr_t *) & locnamv;
+  rds.rpgenv = (basilys_ptr_t *) & genv;
+  while (rdcurc ())
+    {
+      bool got = FALSE;
+      skipspace_getc (rd, COMMENT_SKIP);
+      if (!rdcurc () || rdeof ())
+	break;
+      valv = readval (rd, &got);
+      if (!got)
+	READ_ERROR ("no value read %.20s", &rdcurc ());
+      basilysgc_append_list ((basilys_ptr_t) seqv, (basilys_ptr_t) valv);
+    };
+  rd = 0;
+  free (rbuf);
+end:
+  BASILYS_EXITFRAME ();
+  return (basilys_ptr_t) seqv;
+#undef vecshv
+#undef genv
+#undef locnamv
+#undef seqv
+}
+
 
 basilys_ptr_t
 basilysgc_read_from_val (basilys_ptr_t strv_p, basilys_ptr_t locnam_p)
 {
   struct reading_st rds;
   char *rbuf = 0;
-  char *locnam = 0;
   struct reading_st *rd = 0;
   int strmagic = 0;
   BASILYS_ENTERFRAME (5, NULL);
@@ -6310,18 +6411,18 @@ basilysgc_read_from_val (basilys_ptr_t strv_p, basilys_ptr_t locnam_p)
   switch (strmagic)
     {
     case OBMAG_STRING:
-      rbuf = xstrdup (basilys_string_str (strv));
+      rbuf = (char*) xstrdup (basilys_string_str ((basilys_ptr_t)strv));
       break;
     case OBMAG_STRBUF:
-      rbuf = xstrdup (basilys_strbuf_str (strv));
+      rbuf = xstrdup (basilys_strbuf_str ((basilys_ptr_t)strv));
       break;
     case OBMAG_OBJECT:
-      if (basilys_is_instance_of (strv, BASILYSG (CLASS_NAMED)))
-	strv = basilys_object_nth_field (strv, FNAMED_NAME);
+      if (basilys_is_instance_of ((basilys_ptr_t)strv, BASILYSG (CLASS_NAMED)))
+	strv = basilys_object_nth_field ((basilys_ptr_t)strv, FNAMED_NAME);
       else
 	strv = NULL;
-      if (basilys_string_str (strv))
-	rbuf = xstrdup (basilys_string_str (strv));
+      if (basilys_string_str ((basilys_ptr_t)strv))
+	rbuf = xstrdup (basilys_string_str ((basilys_ptr_t)strv));
       break;
     default:
       break;
@@ -6333,7 +6434,6 @@ basilysgc_read_from_val (basilys_ptr_t strv_p, basilys_ptr_t locnam_p)
   rds.rlineno = 0;
   rds.rcurlin = rbuf;
   rd = &rds;
-  locnamv = basilysgc_new_stringdup (BASILYSGOB (DISCR_STRING), locnam);
   rds.rpfilnam = (basilys_ptr_t *) & locnamv;
   rds.rpgenv = (basilys_ptr_t *) & genv;
   while (rdcurc ())
@@ -7777,8 +7877,6 @@ execute_basilys_earlyopt (void)
 
 
 
-
-
 /* decide if basilys_lateopt pass has to be run */
 static bool
 gate_basilys_lateopt (void)
@@ -7887,6 +7985,48 @@ struct gimple_opt_pass pass_basilys_lateopt = {
    TODO_verify_ssa		/* todo_flags_finish */
    }
 };
+
+
+
+
+
+/*****
+ * called from c-common.c in handle_melt_attribute
+ *****/
+
+void basilys_handle_melt_attribute(tree decl, tree name, const char* attrstr, location_t loch)
+{
+  BASILYS_ENTERFRAME (4, NULL);
+#define seqv       curfram__.varptr[0]
+#define declv      curfram__.varptr[1]
+#define namev      curfram__.varptr[2]
+#define atclov	   curfram__.varptr[3]
+  if (!attrstr || !attrstr[0]) goto end;
+  seqv = basilysgc_read_from_rawstring(attrstr, "*melt-attr*",loch);
+  atclov = 
+    basilys_field_object ((basilys_ptr_t) BASILYSGOB (INITIAL_SYSTEM_DATA),
+			  FSYSDAT_MELTATTR_DEFINER);
+  if (basilys_magic_discr ((basilys_ptr_t) atclov) == OBMAG_CLOSURE)
+    {
+      union basilysparam_un argtab[2];
+      BASILYS_LOCATION_HERE("melt attribute definer");
+      declv = basilysgc_new_tree((basilys_ptr_t) BASILYSG(DISCR_TREE), decl);
+      namev = basilysgc_new_tree((basilys_ptr_t) BASILYSG(DISCR_TREE), name);
+      memset (argtab, 0, sizeof (argtab));
+      argtab[0].bp_aptr = (basilys_ptr_t *) & namev;
+      argtab[1].bp_aptr = (basilys_ptr_t *) & seqv;
+      (void) basilys_apply((basilysclosure_ptr_t) atclov,
+			   (basilys_ptr_t)declv,
+			   BPARSTR_PTR BPARSTR_PTR,
+			   argtab, "", NULL);
+    }
+ end:
+  BASILYS_EXITFRAME();
+#undef seqv
+#undef declv
+#undef namev
+#undef atclov
+}
 
 
 

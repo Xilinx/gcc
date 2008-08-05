@@ -1,3 +1,22 @@
+2008-08-05  Basile Starynkevitch  <basile@starynkevitch.net>
+	* basilys.h (basilysgc_new_tree, basilys_tree_content)
+	(basilysgc_new_gimple, basilys_gimple_content)
+	(basilysgc_read_from_rawstring, basilys_handle_melt_attribute):
+	New function declarations.
+	(FSYSDAT_MELTATTR_DEFINER) New enum value.
+	* basilys.c (basilysgc_new_tree, basilys_tree_content)
+	(basilysgc_new_gimple, basilys_gimple_content)
+	(basilysgc_read_from_rawstring, basilys_handle_melt_attribute):
+	New functions.
+	(basilysgc_read_from_val) don't overwrite locnam.
+	* melt/warmelt-first.bysl: new field sysdata_meltattr_definer.
+	* c-common.c (handle_melt_attribute): implemented function.
+	* warmelt-first-0.c: regenerated.
+	* warmelt-macro-0.c: regenerated.
+	* warmelt-normal-0.c: regenerated.
+	* warmelt-genobj-0.c: regenerated.
+	* warmelt-outobj-0.c: regenerated.
+
 2008-08-04  Basile Starynkevitch  <basile@starynkevitch.net>
 	* basilys.h (basilysgc_read_from_val): New declaration of function.
 	* basilys.c (basilysgc_read_from_val): New function.

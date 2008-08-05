@@ -171,7 +171,8 @@
 	   sysdata_internkeyw		;closure to intern a keyword
 	   sysdata_value_importer	;closure to import a value
 	   sysdata_pass_dict		;stringmap for passes
-	   sysdata_exit_finalizer ;;closure to be called after the passes, at finalization
+	   sysdata_exit_finalizer       ;;closure to be called after the passes, at finalization
+	   sysdata_meltattr_definer	;;closure to be called for melt attributes
 	   ;;;keep these spare slots to ease the addition of other slots
 	   sysdata___spare1
 	   sysdata___spare2

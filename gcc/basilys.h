@@ -1072,6 +1072,36 @@ basilysgc_remove_mapbasicblocks (struct basilysmapbasicblocks_st *map,
   return basilysgc_raw_remove_mappointers (map, attr);
 }
 
+/* allocate a new boxed tree of given DISCR [DISCR_TREE if null] &
+   content VAL */
+basilys_ptr_t basilysgc_new_tree (basilysobject_ptr_t discr_p,
+				 tree val);
+
+/* return the content of a boxed tree */
+static inline tree
+basilys_tree_content (basilys_ptr_t box)
+{
+  struct basilystree_st* tr = (struct basilystree_st*)box;
+  if (!tr || tr->discr->object_magic != OBMAG_TREE)
+    return NULL;
+  return tr->val;
+}
+
+/* allocate a new boxed gimple of given DISCR [DISCR_GIMPLE if null] &
+   content VAL */
+basilys_ptr_t basilysgc_new_gimple (basilysobject_ptr_t discr_p,
+				    gimple val);
+
+/* return the content of a boxed gimple */
+static inline gimple
+basilys_gimple_content (basilys_ptr_t box)
+{
+  struct basilysgimple_st* g = (struct basilysgimple_st*)box;
+  if (!g || g->discr->object_magic != OBMAG_GIMPLE)
+    return NULL;
+  return g->val;
+}
+
 /*************************************************************
  * young generation copying garbage collector 
  *
@@ -2145,10 +2175,17 @@ basilys_ptr_t basilysgc_intern_keyword (basilys_ptr_t symb);
 /* read a list of sexpressions from a file; if the second argument is non-empty and non-null, it is used for locations; otherwise the basename of the filnam is used */
 basilys_ptr_t basilysgc_read_file (const char *filnam, const char* locnam);
 
-/* read a list of sexpression from a string or strbuf value or named
+/* read a list of sexpressions from a raw string [which should not be
+   in the basilys heap] using a raw location name and a location in source */
+basilys_ptr_t basilysgc_read_from_rawstring(const char* rawstr, const char* rawlocnam, location_t loch);
+
+/* read a list of sexpressions from a string or strbuf value or named
    object; if the second argument is non-empty and non-null, it is
    used for locations */
 basilys_ptr_t basilysgc_read_from_val(basilys_ptr_t strv_p, basilys_ptr_t locnam_p);
+
+/* called from c-common.c in handle_melt_attribute */
+void basilys_handle_melt_attribute(tree decl, tree name, const char* attrstr, location_t loch);
 
 /* Use basilys_assert(MESSAGE,EXPR) to test invariants.  The MESSAGE
    should be a constant string displayed when asserted EXPR is
@@ -2389,8 +2426,7 @@ enum
 };
 
 /* fields inside the system data - keep in sync with the
-   class_system_data definition in MELT file warmelt-first.bysl or
-   warm-basilys.bysl */
+   class_system_data definition in MELT file warmelt-first.bysl */
 enum
 {
   FSYSDAT_CMD_FUNDICT = FNAMED__LAST,	/* the stringdict of commands */
@@ -2406,6 +2442,7 @@ enum
   FSYSDAT_VALUE_IMPORTER,	/* closure to import a value */
   FSYSDAT_PASS_DICT,		/* dictionnary of passes */
   FSYSDAT_EXIT_FINALIZER,	/* closure to call at exit */
+  FSYSDAT_MELTATTR_DEFINER,	/* closure for melt attributes */
   FSYSDAT__LAST
 };
 
