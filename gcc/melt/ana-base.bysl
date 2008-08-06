@@ -169,6 +169,7 @@
    )
   )
 
+;; apply a function to every cfun -its decl & bodyseq
 (defun do_each_cfun (f)
   (each_cgraph_fun  
    () 
@@ -179,18 +180,69 @@
      (f dclval bdyval)
    )))
 
+;;;; iterate on a gimpleseq
+(defciterator each_in_gimpleseq
+  (:gimpleseq gseq)			;start formals
+  eachgimplseq
+  (:gimple g)				;local formals
+  ( ;;; before expansion
+   "gimple_stmt_iterator gsi_" eachgimplseq ";\n"
+   "for (gsi_" eachgimplseq " = gsi_start (" gseq "); !gsi_end_p (gsi_" eachgimplseq ");"
+   " gsi_next (&gsi_" eachgimplseq ")) {\n"
+    g " = gsi_stmt (gsi_" eachgimplseq ");"
+   )
+  ( ;;; after expansion
+   "}"
+   )
+)
+
+;;;; reverseiterate on a gimpleseq
+(defciterator reveach_in_gimpleseq
+  (:gimpleseq gseq)			;start formals
+  eachgimplseq
+  (:gimple g)				;local formals
+  ( ;;; before expansion
+   "gimple_stmt_iterator gsi_" eachgimplseq ";\n"
+   "for (gsi_" eachgimplseq " = gsi_last (" gseq "); !gsi_end_p (gsi_" eachgimplseq ");"
+   " gsi_prev (&gsi_" eachgimplseq ")) {\n"
+    g " = gsi_stmt (gsi_" eachgimplseq ");"
+   )
+  ( ;;; after expansion
+   "}"
+   )
+)
+
+;; apply a function to each boxed gimple in a gimple seq
+(defun do_each_gimpleseq (f :gimpleseq gseq)
+  (each_in_gimpleseq 
+   (gseq) (:gimple g)
+   (let ( (gplval (make_gimple discr_gimple g)) )
+     (f gplval)))
+)
+
+
+;; apply a function to each boxed gimple in a gimple seq
+(defun do_reveach_gimpleseq (f :gimpleseq gseq)
+  (reveach_in_gimpleseq 
+   (gseq) (:gimple g)
+   (let ( (gplval (make_gimple discr_gimple g)) )
+     (f gplval)))
+)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (export_values
- fetch_gdbmstate
- fetch_gdbmstate_constr
- put_gdbmstate
- put_gdbmstate_constr
- install_gcc_pass
  basilys_earlyopt_gccpass
+ basilys_ipa_gccpass
  basilys_lateopt_gccpass
  basilys_lowering_gccpass
- basilys_ipa_gccpass
  each_cgraph_fun
+ each_in_gimpleseq
+ fetch_gdbmstate
+ fetch_gdbmstate_constr
+ install_gcc_pass
+ put_gdbmstate
+ put_gdbmstate_constr
+ reveach_in_gimpleseq
 )
 
 (export_class

@@ -1,3 +1,9 @@
+2008-08-06  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-first.bysl: export discr_gimpleseq
+	* melt/ana-base.bysl: added each_in_gimpleseq &
+	reveach_in_gimpleseq citerators & do_each_gimpleseq &
+	do_reveach_gimpleseq functions.
+
 2008-08-05  Basile Starynkevitch  <basile@starynkevitch.net>
 	* basilys.h (BASILYS_DEFINE_MAPTR): better macro.
 	(OBMAG_GIMPLESEQ, OBMAG_MAPGIMPLESEQS, BGLOB_DISCR_GIMPLESEQ)

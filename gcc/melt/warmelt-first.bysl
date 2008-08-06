@@ -3446,6 +3446,7 @@
  discr_closure                        
  discr_edge
  discr_gimple
+ discr_gimpleseq
  discr_integer                        
  discr_list                           
  discr_mapedges
