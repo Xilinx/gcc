@@ -1633,8 +1633,6 @@ static void cp_parser_lambda_introducer
 static void cp_parser_lambda_parameter_declaration
   (cp_parser *, tree,
    cp_parameter_declarator **);
-static tree cp_parser_lambda_body
-  (cp_parser *, cp_decl_specifier_seq *, cp_declarator *, bool *);
 static tree cp_parser_lambda_class_definition
   (cp_parser *, tree, cp_parameter_declarator *);
 
@@ -6649,7 +6647,7 @@ static tree
 cp_parser_lambda_expression (cp_parser* parser)
 {
   tree lambda_expr = build_lambda_expr ();
-  cp_parameter_declarator* fco_param_list = no_parameters;
+  cp_parameter_declarator* param_list = no_parameters;
   /* The lambda class definition */
   tree type;
   /* The construction expression (primary-expression) */
@@ -6658,11 +6656,11 @@ cp_parser_lambda_expression (cp_parser* parser)
   cp_parser_lambda_introducer (parser, lambda_expr);
   cp_parser_lambda_parameter_declaration (parser,
       lambda_expr,
-      &fco_param_list);
+      &param_list);
 
   type = cp_parser_lambda_class_definition (parser,
       lambda_expr,
-      fco_param_list);
+      param_list);
   type = TREE_CHAIN (type);
 
   construction_expr = build_functional_cast (
@@ -6677,18 +6675,13 @@ cp_parser_lambda_expression (cp_parser* parser)
 static tree
 cp_parser_lambda_class_definition (cp_parser* parser,
     tree lambda_expr,
-    cp_parameter_declarator* fco_param_list)
+    cp_parameter_declarator* param_list)
 {
   unsigned int saved_num_template_parameter_lists;
   bool         saved_in_function_body;
-  int          saved_num_classes;
 
   tree enclosing_class_type = current_class_type;
   tree type;
-
-  bool expression_body_p;
-
-  cp_decl_specifier_seq fco_return_type_specs;
 
   /* TODO: Move out to surrounding non-function, non-class scope. */
   push_to_top_level ();
@@ -6819,6 +6812,7 @@ cp_parser_lambda_class_definition (cp_parser* parser,
 
   }
 
+  /* fco = function call operator */
   tree fco;
 
   /********************************************
@@ -6830,40 +6824,36 @@ cp_parser_lambda_class_definition (cp_parser* parser,
     bool saved_in_declarator_p;
     bool saved_default_arg_ok_p;
 
-    /* fco = function call operator */
-    tree                     fco_name;
-    cp_declarator*           fco_declarator;
-
     saved_in_declarator_p = parser->in_declarator_p;
     parser->in_declarator_p = true;
 
     saved_default_arg_ok_p = parser->default_arg_ok_p;
     parser->default_arg_ok_p = true;
 
-    clear_decl_specs (&fco_return_type_specs);
+    cp_decl_specifier_seq return_type_specs;
+    clear_decl_specs (&return_type_specs);
     if (LAMBDA_EXPR_RETURN_TYPE (lambda_expr))
     {
-      fco_return_type_specs.type = LAMBDA_EXPR_RETURN_TYPE (lambda_expr);
+      return_type_specs.type = LAMBDA_EXPR_RETURN_TYPE (lambda_expr);
       /* TODO: is this necessary?  */
-      fco_return_type_specs.any_specifiers_p = true;
+      return_type_specs.any_specifiers_p = true;
       /* TODO: do we need cp_parser_set_decl_spec_type()?  */
     }
     else
     {
       /* For warning suppression.  */
-      fco_return_type_specs.type = error_mark_node;
+      return_type_specs.type = error_mark_node;
     }
 
 
-    fco_name = ansi_opname (CALL_EXPR);
-    fco_declarator = make_id_declarator (
+    cp_declarator* declarator = make_id_declarator (
         parser->scope,
-        fco_name,
+        ansi_opname (CALL_EXPR),
         sfk_none);
 
-    fco_declarator = make_call_declarator (
-        fco_declarator,
-        fco_param_list,
+    declarator = make_call_declarator (
+        declarator,
+        param_list,
         /*cv_qualifiers=*/TYPE_QUAL_CONST,
         LAMBDA_EXPR_EXCEPTION_SPEC (lambda_expr));
 
@@ -6874,8 +6864,8 @@ cp_parser_lambda_class_definition (cp_parser* parser,
     current_access_specifier = access_public_node;
 
     fco = start_method (
-        &fco_return_type_specs,
-        fco_declarator,
+        &return_type_specs,
+        declarator,
         /*attributes=*/NULL_TREE);
     DECL_INITIALIZED_IN_CLASS_P (fco) = 1;
     finish_method (fco);
@@ -6969,10 +6959,6 @@ cp_parser_lambda_class_definition (cp_parser* parser,
    * + ctor_initializer_opt_and_function_body
    ********************************************/
   {
-    tree fco_body;
-    tree fco_body_expr;
-    tree fco_fn;
-
     /* Let the front end know that we are going to be defining this
        function. */
     start_preparsed_function (
@@ -6980,7 +6966,7 @@ cp_parser_lambda_class_definition (cp_parser* parser,
         NULL_TREE,
         SF_PRE_PARSED | SF_INCLASS_INLINE);
 
-    fco_body = begin_function_body ();
+    tree body = begin_function_body ();
 
     /* TODO: does begin_compound_stmt want BCS_FN_BODY?
      * cp_parser_compound_stmt does not pass it. */
@@ -7021,12 +7007,12 @@ cp_parser_lambda_class_definition (cp_parser* parser,
       }
     }
 
-    finish_function_body (fco_body);
+    finish_function_body (body);
 
     /* Finish the function and generate code for it if necessary. */
     /* 2 == inline_p */
-    fco_fn = finish_function (2);
-    expand_or_defer_fn (fco_fn);
+    tree fn = finish_function (2);
+    expand_or_defer_fn (fn);
   }
 
   /********************************************
@@ -7183,7 +7169,7 @@ cp_parser_lambda_introducer (cp_parser* parser, tree lambda_expr)
 static void
 cp_parser_lambda_parameter_declaration (cp_parser* parser,
     tree lambda_expr,
-    cp_parameter_declarator** fco_param_list)
+    cp_parameter_declarator** param_list)
 {
 
   cp_parser_require (parser, CPP_OPEN_PAREN, "%<(%>");
@@ -7192,9 +7178,9 @@ cp_parser_lambda_parameter_declaration (cp_parser* parser,
   if (cp_lexer_next_token_is_not (parser->lexer, CPP_CLOSE_PAREN))
   {
     bool is_error = false;
-    *fco_param_list = cp_parser_parameter_declaration_list (parser, &is_error);
+    *param_list = cp_parser_parameter_declaration_list (parser, &is_error);
     if (is_error)
-      *fco_param_list = no_parameters;
+      *param_list = no_parameters;
   }
 
   cp_parser_require (parser, CPP_CLOSE_PAREN, "%<)%>");
@@ -7210,57 +7196,6 @@ cp_parser_lambda_parameter_declaration (cp_parser* parser,
     LAMBDA_EXPR_RETURN_TYPE (lambda_expr) = cp_parser_type_id (parser);
   }
 
-}
-
-static tree
-cp_parser_lambda_body (cp_parser* parser,
-    cp_decl_specifier_seq* fco_return_type_specs,
-    cp_declarator* fco_declarator,
-    bool* expression_body_p)
-{
-  cp_token* token;
-
-  tree fco_decl = error_mark_node;
-
-  /* Assume statement body */
-  *expression_body_p = false;
-
-  token = cp_lexer_peek_token (parser->lexer);
-  fco_declarator->id_loc = token->location;
-  
-  if (token->type == CPP_OPEN_BRACE)
-  {
-    if (!fco_return_type_specs->any_specifiers_p)
-      cp_parser_error (parser, "requires lambda-return-type-clause");
-    else
-      fco_decl = cp_parser_save_member_function_body (parser,
-          fco_return_type_specs,
-          fco_declarator,
-          /*attributes=*/NULL_TREE);
-  }
-  else if (token->type == CPP_OPEN_PAREN)
-  {
-    *expression_body_p = true;
-
-    if (!fco_return_type_specs->any_specifiers_p)
-    {
-      fco_return_type_specs->type = void_type_node;
-      /*fco_return_type_specs->any_specifiers_p = true;*/
-    }
-
-    fco_decl = start_method (
-        fco_return_type_specs,
-        fco_declarator,
-        /*attributes=*/NULL_TREE);
-    DECL_INITIALIZED_IN_CLASS_P (fco_decl) = 1;
-    finish_method (fco_decl);
-  }
-  else
-  {
-    cp_parser_error (parser, "expected lambda-body");
-  }
-
-  return fco_decl;
 }
 
 
