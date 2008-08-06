@@ -1,3 +1,141 @@
+2008-08-06  Aldy Hernandez  <aldyh@redhat.com>
+
+	PR middle-end/35432
+	* gimplify.c (gimplify_modify_expr): Do not optimize zero-sized types
+	if want_value.
+
+2008-08-06  Jan Hubicka  <jh@suse.cz>
+
+	* predict.c (maybe_hot_frequency_p): When profile is absent, all
+	frequencies might be hot.
+
+2008-08-06  Andreas Krebbel  <krebbel1@de.ibm.com>
+
+	* reload.c (find_reloads): Force constants into literal pool
+	also if they are wrapped in a SUBREG.
+
+2008-08-06  Maxim Kuvyrkov  <maxim@codesourcery.com>
+
+	PR target/35659
+	* haifa-sched.c (sched_insn_is_legitimate_for_speculation_p): Move ...
+	* sched-deps.c (sched_insn_is_legitimate_for_speculation_p): ... here.
+	Don't allow predicated instructions for data speculation.
+	* sched-int.h (sched_insn_is_legitimate_for_speculation_p): Move
+	declaration.
+
+2008-08-06  Maxim Kuvyrkov  <maxim@codesourcery.com>
+
+	* haifa-sched.c (extend_global): Split to extend_global_data and
+	extend_region_data.  Update all uses.
+	(extend_all): Rename to extend_block_data.
+
+2008-08-06  Maxim Kuvyrkov  <maxim@codesourcery.com>
+
+	* sched-rgn.c (new_ready): Check if instruction can be
+	speculatively scheduled before attempting speculation.
+	(debug_rgn_dependencies): Remove wrongful assert.
+
+2008-08-05  Bob Wilson  <bob.wilson@acm.org>
+
+	* config/xtensa/t-xtensa: Remove dependency for gt-xtensa.h.
+	
+2008-08-05  Bob Wilson  <bob.wilson@acm.org>
+	
+	* config/xtensa/xtensa.c (xtensa_va_start): Unshare valist.
+	(xtensa_gimplify_va_arg_expr): Unshare valist, orig_ndx, ndx, array,
+	va_size, and type_size.
+	
+2008-08-04  Jason Merrill  <jason@redhat.com>
+
+	PR c++/37016
+	* tree-ssa.c (useless_type_conversion_p_1): Call langhook
+	if TYPE_STRUCTURAL_EQUALITY_P is true for both types.
+
+2008-08-05  Richard Henderson  <rth@redhat.com>
+
+	* configure.ac (HAVE_GAS_CFI_DIRECTIVE): Check .cfi_personality.
+	* configure: Rebuild.
+
+2008-08-05  Andrew Pinski  <andrew_pinski@playstation.sony.com>
+
+	PR tree-opt/37024
+	* tree-tailcall.c (process_assignment): Use gimple_assign_cast_p
+	instead of IS_CONVERT_EXPR_CODE_P for seeing if the assignment
+	is a conversion.
+
+2008-08-05  Richard Henderson  <rth@redhat.com>
+
+	* Makefile.in (c-cppbuiltin.o): Depend on debug.h.
+	* c-cppbuiltin.c (c_cpp_builtins): Define __GCC_HAVE_DWARF2_CFI_ASM.
+	* doc/cpp.texi (__GCC_HAVE_DWARF2_CFI_ASM): Document it.
+	* common.opt (fdwarf2-cfi-asm): New.
+	* configure.ac (HAVE_GAS_CFI_DIRECTIVE): New.
+	* config.in, configure: Rebuild.
+	* dwarf2asm.c (dw2_asm_output_data_raw): New.
+	(dw2_asm_output_data_uleb128_raw, dw2_asm_output_data_sleb128_raw): New.
+	(dw2_force_const_mem): Externalize.
+	* dwarf2asm.h: Update.
+	* dwarf2out.c (dwarf2out_cfi_label): If flag_dwarf2_cfi_asm, don't
+	generate a real label.
+	(output_cfi_directive): New.
+	(add_fde_cfi): If flag_dwarf2_cfi_asm, use it.
+	(output_call_frame_info): Do nothing if flag_dwarf2_cfi_asm.
+	(dwarf2out_begin_prologue): Emit .cfi_startproc, .cfi_personality,
+	and .cfi_lsda.
+	(dwarf2out_end_epilogue): Emit .cfi_endproc.
+	(output_loc_operands_raw, output_loc_sequence_raw): New.
+	(output_cfa_loc_raw): New.
+	
+2008-08-05  Paul Brook  <paul@codesourcery.com>
+
+	* doc/invoke.texi: Document new ARM -mfpu= and -mcpu= options.
+	* config/arm/arm.c (all_fpus): Add vfpv3 and vfpv3-d16.
+	(fp_model_for_fpu): Add entry for FPUTYPE_VFP3D16.
+	(arm_file_start): Add FPUTYPE_VFP3D16.  Rename vfp3 to vfpv3.
+	* config/arm/arm.h (TARGET_VFPD32): Define.
+	(TARGET_VFP3): Use TARGET_VFPD32.
+	(fputype): Add FPUTYPE_VFP3D16.
+	(LAST_VFP_REGNUM): Use TARGET_VFPD32.
+	* config/arm/constraints.md ("w"): Use TARGET_VFPD32.
+	* config/arm/arm-cores.def: Add cortex-r4f.
+	* config/arm/arm-tune.md: Regenerate.
+
+2008-08-05  Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>
+
+	* config/spu_spu_mfcio.h: Wrap in extern "C" if __cplusplus.
+	Reword some comments throughout the file.
+
+	(MFC_MIN_DMA_LIST_ELEMENTS): New define.
+	(MFC_MAX_DMA_LIST_ELEMENTS): Likewise.
+	(MFC_MIN_DMA_LIST_SIZE): Redefine in terms of MFC_MIN_DMA_LIST_ELEMENTS.
+	(MFC_MAX_DMA_LIST_SIZE): Redefine in terms of MFC_MAX_DMA_LIST_ELEMENTS.
+
+	(MFC_START_ENABLE): Remove PPU-only define.
+	(MFC_PUTS_CMD, MFC_PUTFS_CMD, MFC_PUTBS_CMD): Likewise.
+	(MFC_GETS_CMD, MFC_GETFS_CMD, MFC_GETBS_CMD): Likewise.
+
+	(MFC_PUTB_CMD, MFC_PUTF_CMD): Reimplement using symbolic constants.
+	(MFC_PUTL_CMD, MFC_PUTLB_CMD, MFC_PUTLF_CMD): Likewise.
+	(MFC_PUTR_CMD, MFC_PUTRB_CMD, MFC_PUTRF_CMD): Likewise.
+	(MFC_PUTRL_CMD, MFC_PUTRLB_CMD, MFC_PUTRLF_CMD): Likewise.
+	(MFC_GETB_CMD, MFC_GETF_CMD): Likewise.
+	(MFC_GETL_CMD, MFC_GETLB_CMD, MFC_GETLF_CMD): Likewise.
+	(MFC_SNDSIGB_CMD, MFC_SNDSIGF_CMD): Likewise.
+
+	(MFC_SDCRT_CMD, MFC_SDCRTST_CMD): New defines.
+	(MFC_SDCRZ_CMD, MFC_SDCRST_CMD, MFC_SDCRF_CMD): Likewise.
+	(mfc_sdcrt, mfc_sdcrtst): Likewise.
+	(mfc_sdcrz, mfc_sdcrst, mfc_sdcrf): Likewise.
+
+	(spu_read_machine_status): Fix typo.
+
+2008-08-05  Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>
+
+	* config/spu/spu.h (CANNOT_CHANGE_MODE_CLASS): Allow (multi)word-sized
+	SUBREG of multi-word hard register.
+	* config/spu/spu.c (valid_subreg): Likewise.
+	(adjust_operand): Handle SUBREGs of multi-word hard registers.
+
 2008-08-04  Richard Guenther  <rguenther@suse.de>
 
 	* tree-ssa-loop-ivopts.c (add_iv_value_candidates): Also add

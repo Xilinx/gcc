@@ -1,3 +1,304 @@
+2008-08-06  Samuel Tardieu  <sam@rfc1149.net>
+
+	* gcc-interface/Make-lang.in: Use GCC_FOR_TARGET when dealing
+	with s-oscons-tmplt.i.
+
+2008-08-06  Samuel Tardieu  <sam@rfc1149.net>
+
+	* gcc-interface/Make-lang.in (OSCONS_CPPFLAGS): Remove.
+
+2008-08-06  Ed Schonberg  <schonberg@adacore.com>
+
+	* sem_ch3.adb (Analyze_Component_Declaration): Protect against misuse
+	of incomplete type.
+
+	* sem_ch8.adb (Analyze_Object_Renaming): Diagnose properly a renaming
+	of a formal parameter of an incomplete type. Improve error message for
+	other improper uses of incomplete types.
+
+2008-08-06  Robert Dewar  <dewar@adacore.com>
+
+	* gnat_ugn.texi: Clarify -gnato documentation
+
+2008-08-06  Thomas Quinot  <quinot@adacore.com>
+
+	* gcc-interface/Makefile.in,
+	g-socthi-vxworks.adb, g-socthi-mingw.adb, g-sttsne-vxworks.adb,
+	g-socthi.adb, g-socket.adb, g-socket.ads, g-sothco.ads,
+	g-soccon-linux-x86.ads, g-soccon-vxworks.ads, g-soccon-mingw.ads,
+	g-soccon-hpux-ia64.ads, g-soccon-irix.ads, g-soccon-linux-64.ads,
+	g-soccon-aix.ads, g-soccon-solaris.ads, g-soccon-lynxos.ads,
+	g-soccon-vms.ads, g-soccon.ads, g-soccon-freebsd.ads,
+	g-soccon-linux-ppc.ads, g-soccon-tru64.ads, g-soccon-hpux.ads,
+	g-soccon-solaris-64.ads, gen-oscons.c, g-soccon-darwin.ads,
+	g-soccon-mingw-64.ads, g-soccon-linux-mips.ads, g-soccon-rtems.ads:
+	Remove GNAT.Sockets.Constants. This internal package is replaced by
+	System.OS_Constants.
+
+2008-08-06  Thomas Quinot  <quinot@adacore.com>
+
+	* gcc-interface/Makefile.in, gcc-interface/Make-lang.in:
+	Remove obsolete targets referencing gen-soccon
+	When generating s-oscons.ads, use a file name that includes the
+	THREAD_KIND, to ensure that the (potentially different) version from a
+	previous build with a different threads flavour does not get reused.
+
+2008-08-06  Thomas Quinot  <quinot@adacore.com>
+
+	* sem_res.adb: Minor reformatting
+
+	* s-fileio.adb (Open): When file open operation fails, raise Name_Error
+	only when the operating system reports a non-existing file or directory
+	(ENOENT), otherwise raise Name_Error.
+
+	* exp_ch11.adb: Minor reformatting
+
+2008-08-06  Ed Schonberg  <schonberg@adacore.com>
+
+	* sem_ch3.adb (Access_Subprogram_Declaration): If the return type is
+	incomplete, add the access_to_subprogram type to the list of private
+	dependents only if the incomplete type will be completed in the current
+	scope.
+	(Build_Discriminant_Constraints): If the type of the discriminant is
+	access_to_variable, reject a constraint that is access_to_constant.
+
+2008-08-06  Thomas Quinot  <quinot@adacore.com>
+
+	* g-socket-dummy.adb, g-socket-dummy.ads, g-sothco-dummy.adb,
+	g-sothco-dummy.ads, g-socthi-dummy.adb, g-socthi-dummy.ads,
+	g-sttsne-dummy.ads: New files.
+
+	* gcc-interface/Makefile.in, Makefile.rtl: Use placeholder sources
+	with pragma Unimplemented_Unit for sockets packages on Nucleus.
+
+2008-08-06  Pascal Obry  <obry@adacore.com>
+
+	* adaint.c: Another fix for ACL support on Windows.
+
+2008-08-06  Javier Miranda  <miranda@adacore.com>
+
+	* exp_disp (Expand_Interface_Actuals): Adds missing support for
+	expansion of calls to subprograms using selected components.
+
+2008-08-06  Ed Schonberg  <schonberg@adacore.com>
+
+	* sem_res.adb (Resolve_Call): Use base type to determine whether a
+	dereference is needed because a subtype of an access_to_subprogram is
+	simply an access-subtype
+
+2008-08-06  Jerome Lambourg  <lambourg@adacore.com>
+
+	* g-comlin.adb (Set_Command_Line): Now that aliases can contain
+	parameters, always specify the expected separator.
+
+2008-08-06  Thomas Quinot  <quinot@adacore.com>
+
+	* xnmake.adb: Use new XUtil package for platform independent text
+	output.
+
+2008-08-06  Vincent Celier  <celier@adacore.com>
+
+	* gnat_ugn.texi: Document compiler switch -gnateG
+
+2008-08-06  Quentin Ochem  <ochem@adacore.com>
+
+	* s-stausa.adb (Fill_Stack): Fixed pragma assert and top pattern mark
+	in the case of an empty pattern size.
+	(Compute_Result): Do not do any computation in the case of an empty
+	pattern size.
+	(Report_Result): Fixed computation of the overflow guard.
+
+2008-08-06  Ed Schonberg  <schonberg@adacore.com>
+
+	* g-awk.adb (Finalize): Do not use directly objects of the type in the
+	finalization routine to prevent elaboration order anomalies in new
+	finalization scheme.
+
+2008-08-06  Ed Schonberg  <schonberg@adacore.com>
+
+	* sem_ch3.adb (Find_Type_Name): protect against duplicate incomplete
+	declaration for the same type.
+
+2008-08-06  Thomas Quinot  <quinot@adacore.com>
+
+	* sem.adb: Minor rewording (comment)
+
+2008-08-06  Jerome Lambourg  <lambourg@adacore.com>
+
+	* g-comlin.adb (Define_Switch, Get_Switches): New.
+	(Can_Have_Parameter, Require_Parameter, Actual_Switch): New, used when
+	ungrouping switches.
+	(For_Each_Simple_Switch): Allow more control over parameters handling.
+	This generic method now allows ungrouping of switches with parameters
+	and switches with more than one letter after the prefix.
+	(Set_Command_Line): Take care of switches that are prefixed with a
+	switch handling parameters without delimiter (-gnatya and -gnaty3 for
+	example).
+	(Add_Switch, Remove_Switch): Handle parameters possibly present inside
+	a group, as in gnaty3aM80 (3 and 80 are parameters). Report status of
+	the operation.
+	(Start, Alias_Switches, Group_Switches): Take care of parameters
+	possibly present inside a group.
+
+	* g-comlin.ads (Define_Switch): New method used to define a list of
+	expected switches, that are necessary for correctly ungrouping switches
+	with more that one character after the prefix.
+	(Get_Switches): Method that builds a getopt string from the list of
+	switches as set previously by Define_Switch.
+	(Add_Switch, Remove_Switch): New versions of the methods, reporting the
+	status of the operation. Also allow the removal of switches with
+	parameters only.
+	(Command_Line_Configuration_Record): Maintain a list of expected
+	switches.
+
+2008-08-06  Doug Rupp  <rupp@adacore.com>
+
+	* gcc-interface/decl.c (gnat_to_gnu_param): Force 32bit descriptor if
+	TARGET_MALLOC64 clear.
+
+	* gcc-interface/utils2.c (build_call_alloc_dealloc): Force 32bit malloc
+	if TARGET_MALLOC64 clear.
+
+	* gcc-interface/gigi.h (TARGET_ABI_OPEN_VMS): Move here from utils2.c
+	(TARGET_MALLC64): New macro. Default to clear.
+
+2008-08-06  Doug Rupp  <rupp@adacore.com>
+
+	* gcc-interface/utils2.c (snames.h) Include
+	(TARGET_ABI_OPEN_VMS): Initialize.
+	(build_call_alloc_dealloc); [TARGET_ABI_OPEN_VMS] Allocate on 32bit heap
+	for Convention C.
+
+2008-08-06  Ed Schonberg  <schonberg@adacore.com>
+
+	* sem_ch3.adb (Process_Discriminants): diagnose redundant or improper
+	null exclusion in a discriminant declaration
+
+	* sem_ch8.adb (Analyze_Object_Renaming): diagnose null exclusion
+	indicators when type is not an access type.
+
+	* sem_ch12.adb (Formal_Object_Declaration): diagnose null exclusion
+	indicators when type is not an access type.
+
+2008-08-06  Javier Miranda  <miranda@adacore.com>
+
+	* exp_disp (Expand_Interface_Conversion): Freeze the entity associated
+	with the target interface before expanding the code of the interface
+	conversion.
+
+2008-08-05  Ed Schonberg  <schonberg@adacore.com>
+
+	* freeze.adb:
+	(Freeze_Entity): A deferred constant does not violate the restriction
+	No_Default_Initialization, 
+
+	* sem_ch3.adb (Process_Subtype): An allocator is a valid construct that
+	can carry a null exclusion indicator, and on which an error may be
+	posted if the indicator is redundant.
+
+	* sem_ch8.adb (Analyze_Object_Renaming): Verify that a null exclusion
+	does not apply to a subtype mark that already excludes null.
+
+	* sem_ch12.adb (Formal_Object_Declaration): Verify that a null
+	exclusion does not apply to a subtype mark that already excludes null.
+
+2008-08-05  Thomas Quinot  <quinot@adacore.com>
+
+	* Makefile.rtl: Compile s-oscons.ads as part of the runtime library.
+
+2008-08-05  Doug Rupp  <rupp@adacore.com>
+
+	* vms_data.ads: Translation for /POINTER_SIZE qualifier.
+
+2008-08-05  Thomas Quinot  <quinot@adacore.com>
+
+	* gsocket.h: Make this file includable in a Nucleus environment, which
+	does not support sockets.
+
+	* socket.c: Remove Nucleus-specific hack.
+
+2008-08-05  Pascal Obry  <obry@adacore.com>
+
+	* adaint.c: Remove support for readable attribute on vxworks and nucleus
+
+2008-08-05  Ed Schonberg  <schonberg@adacore.com>
+
+	* sem_attr.adb:
+	(Analyze_Attribute, case 'Result): handle properly the case where some
+	operand of the expression in a post-condition generates a transient
+	block.
+
+	* sem_ch5.adb (Analyze_Assignment_Statement): Apply conversion to
+	right-hand side when it is an anonymous access_to_subprogram, to force
+	static accessibility check when needed.
+
+2008-08-05  Sergey Rybin  <rybin@adacore.com>
+
+	* gnat_ugn.texi: Changing the description of the gnatcheck metrics
+	rule according to the change in the rule option.
+	Add documentation for -gnatw.b/-gnatw.B
+
+2008-08-05  Robert Dewar  <dewar@adacore.com>
+
+	* ug_words: Add entries for -gnatw.b/-gnatw.B
+
+	* vms_data.ads: Add entries for -gnatw.b/-gnatw.B
+
+2008-08-05  Vincent Celier  <celier@adacore.com>
+
+	* a-wtdeio.adb (Put (Current_Output)): Use Fore in the call to Put
+	(File).
+	
+	* a-ztdeio.adb: Ditto.
+
+2008-08-05  Pascal Obry  <obry@adacore.com>
+
+	* adaint.c, adaint.h, s-os_lib.adb, s-os_lib.ads: Add support for the
+	readable attribute.
+
+2008-08-05  Vincent Celier  <celier@adacore.com>
+
+	* s-wchwts.adb:
+	(Wide_String_To_String): Returns a String with the same 'First as its
+	parameter S.
+	(Wide_Wide_String_To_String): Ditto
+	
+	* s-wchwts.ads:
+	(Wide_String_To_String): Document that the lowest index of the returned
+	String is equal to S'First.
+
+2008-08-05  Thomas Quinot  <quinot@adacore.com>
+
+	* xoscons.adb, xutil.ads, xutil.adb, s-oscons-tmplt.c: New files.
+
+	* gcc-interface/Makefile.in, gcc-interface/Make-lang.in: Generate
+	s-oscons.ads
+
+2008-08-05  Robert Dewar  <dewar@adacore.com>
+
+	* opt.ads (Warn_On_Biased_Representation): New flag
+	
+	* sem_ch13.adb:
+	(Analyze_Attribute_Definition_Clause): Issue warning when biased
+	representation is required.
+	(Minimum_Size): Don't allow biasing if enum rep clause case
+	
+	* sem_warn.adb:
+	(Set_Dot_Warning_Switch): Add handling of -gnatw.b/B switches
+	(Set_Warning_Switch): Include -gnatw.b in -gnatwa, -gnatw.B in gnatws
+	
+	* usage.adb: Add lines for -gnatw.b/B switches
+
+2008-08-05  Pascal Obry  <obry@adacore.com>
+
+	* a-coinve.adb: Reorder the code to avoid uninitialized warning.
+
+	* adaint.c: In UNIX cases do not call __gnat_stat but stat directly.
+
+2008-08-05  Thomas Quinot  <quinot@adacore.com>
+
+	* socket.c: Minor reformatting.
+
 2008-08-05  Robert Dewar  <dewar@adacore.com>
 
 	* sem_ch3.adb: Minor reformatting
