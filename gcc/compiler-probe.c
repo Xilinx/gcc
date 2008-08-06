@@ -1290,7 +1290,7 @@ display_gimple_seq (gimple_seq sq, struct comprobe_infodisplay_st *di)
       memset (titbuf, 0, sizeof (titbuf));
       rk++;
       snprintf (titbuf, sizeof (titbuf) - 1, "%d-th gimple substmt", rk);
-      comprobe_display_add_navigator (di, tree_starting_displayer,
+      comprobe_display_add_navigator (di, gimple_starting_displayer,
 				      titbuf,
 				      comprobe_unique_index_of_gimple(s));
     }
@@ -1348,6 +1348,31 @@ display_gimple (gimple g, struct comprobe_infodisplay_st *di)
 	  gcc_unreachable();
 	}
     }
+}
+
+
+static void
+gimple_starting_displayer (struct comprobe_whatpos_st *wp,
+			 struct comprobe_infodisplay_st *di,
+			 HOST_WIDE_INT data,
+			 HOST_WIDE_INT navig ATTRIBUTE_UNUSED)
+{
+  gimple g = 0;
+  comprobe_ix_t ix = (comprobe_ix_t) data;
+  unsigned nbgimple = VEC_length (gimple, unique_gimple_vector);
+  if (ix > 0 && ix < (long) nbgimple)
+    {
+      g = VEC_index (gimple, unique_gimple_vector, ix);
+      comprobe_printf
+	("// starting gimple_%ld #%d shown when '%s' \n// from gcc file %s line %d\n",
+	 ix, di->idis_infp->infp_num, wp->wp_what, basename (wp->wp_file),
+	 wp->wp_line);
+      display_gimple (g, di);
+    }
+  else
+    comprobe_printf
+      (" ?? invalid starting gimple index %ld nbgimple %d info #%d??", (long) ix,
+       (int) nbgimple, di->idis_infp->infp_num);
 }
 
 static void
@@ -2016,6 +2041,24 @@ comprobe_get_gimple_position (gimple g, char **pfilename, int *plineno, int end)
     return false;
 }
 
+bool
+comprobe_get_tree_position (tree t, char **pfilename, int *plineno, int end)
+{
+  location_t loc = 0;
+  if (!t) 
+    return false;
+  loc = EXPR_LOCATION(t);
+  if (loc != UNKNOWN_LOCATION && loc != BUILTINS_LOCATION) 
+    {
+      if (pfilename) 
+	*pfilename = LOCATION_FILE(loc);
+      if (plineno)
+	*plineno = LOCATION_LINE(loc);
+      return true;
+    }
+  return false;
+}
+
 int
 comprobe_file_rank_of_gimple (gimple g, int *plineno)
 {
@@ -2024,6 +2067,21 @@ comprobe_file_rank_of_gimple (gimple g, int *plineno)
   if (!g)
     return 0;
   if (!comprobe_get_gimple_position (g, &filename, &lineno, POS_START))
+    return 0;
+  filerank = comprobe_file_rank (filename);
+  if (filerank > 0 && plineno)
+    *plineno = lineno;
+  return filerank;
+}
+
+int
+comprobe_file_rank_of_tree (tree tr, int *plineno)
+{
+  char *filename = 0;
+  int lineno = 0, filerank = 0;
+  if (!tr)
+    return 0;
+  if (!comprobe_get_tree_position (tr, &filename, &lineno, POS_START))
     return 0;
   filerank = comprobe_file_rank (filename);
   if (filerank > 0 && plineno)
@@ -2250,8 +2308,9 @@ execute_comprobe (void)
   basic_block bb = 0;
   for (cgr_fun = cgraph_nodes; cgr_fun; cgr_fun = cgr_fun->next)
     {
-      tree tr_decl, tr_body;
-      int frk_decl = 0, lin_decl = 0;
+      tree tr_decl = 0;
+      int frk_decl = 0;
+      int lin_decl = 0;
       gimple_seq sq = 0;
       if (!comprobe_replf)
 	break;
@@ -2259,16 +2318,21 @@ execute_comprobe (void)
       if (flag_compiler_probe_debug)
 	dump_cgraph_node (stderr, cgr_fun);
       tr_decl = cgr_fun->decl;
-#if 0 && oldcode
+      if (TREE_CODE(tr_decl) != FUNCTION_DECL) 
+	continue;
       frk_decl = comprobe_file_rank_of_tree (tr_decl, &lin_decl);
+      sq = gimple_body(tr_decl);
+      if (!sq) 
+	continue;
+      sq = gimple_body(tr_decl);
+#warning should do something with the body...
+#if 0 && oldcode
       tr_body = DECL_SAVED_TREE (tr_decl);
       if (!tr_body)
 	continue;
       comprobe_check ("comprobe cgraph loop");
       add_infopoint_funbody (tr_body);
 #endif
-      sq = gimple_body(tr_decl);
-#warning should do something with the body...
       comprobe_flush ();
     }
   FOR_EACH_BB (bb)
