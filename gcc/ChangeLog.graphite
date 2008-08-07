@@ -1,3 +1,8 @@
+2008-08-07  Tobias Grosser  <grosser@fim.uni-passau.de>
+
+	* testsuite/gcc.dg/graphite/scop-16.c: Fix for 32bit.
+	* testsuite/gcc.dg/graphite/scop-17.c: Fix for 32bit.
+
 2008-08-04  Sebastian Pop  <sebastian.pop@amd.com>
 
 	* tree-ssa-loop.c (tree-ssa-loop.o): Do not include toplev.h.

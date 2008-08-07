@@ -1,6 +1,6 @@
 /* { dg-do compile } */ 
 /* { dg-options "-O2 -floop-block -fdump-tree-graphite-all" } */
-#define N 100000
+#define N 10000
 void foo (int);
 int test ()
 {
