@@ -515,6 +515,9 @@ struct tree_trait_expr GTY (())
   enum cp_trait_kind kind;
 };
 
+#define LAMBDA_TYPE_P(NODE) \
+  (CLASS_TYPE_P (NODE) && LAMBDANAME_P (TYPE_LINKAGE_IDENTIFIER (NODE)))
+
 /* The default method of implicit capture.  */
 #define LAMBDA_EXPR_DEFAULT_CAPTURE_MODE(NODE) \
   (((struct tree_lambda_expr *)LAMBDA_EXPR_CHECK (NODE))->default_capture_mode)
@@ -3685,7 +3688,12 @@ extern GTY(()) VEC(tree,gc) *local_classes;
 #define VTABLE_DELTA_NAME	"__delta"
 #define VTABLE_PFN_NAME		"__pfn"
 
-#define LAMBDANAME_FORMAT "__lambda_%d"
+#define LAMBDANAME_PREFIX "__lambda"
+#define LAMBDANAME_FORMAT LAMBDANAME_PREFIX "%d"
+#define LAMBDANAME_P(ID_NODE) \
+  (!strncmp (IDENTIFIER_POINTER (ID_NODE), \
+             LAMBDANAME_PREFIX, \
+	     sizeof (LAMBDANAME_PREFIX) - 1))
 
 #if !defined(NO_DOLLAR_IN_LABEL) || !defined(NO_DOT_IN_LABEL)
 

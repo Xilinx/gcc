@@ -6684,7 +6684,7 @@ cp_parser_lambda_class_definition (cp_parser* parser,
   tree type;
 
   /* TODO: Move out to surrounding non-function, non-class scope. */
-  push_to_top_level ();
+  //push_to_top_level ();
 
   /********************************************
    * Start up the class
@@ -6917,7 +6917,7 @@ cp_parser_lambda_class_definition (cp_parser* parser,
    * - class_specifier
    ********************************************/
   {
-    type = finish_struct (type, NULL_TREE);
+    type = finish_struct (type, /*attributes=*/NULL_TREE);
 
     if (enclosing_class_type)
       make_friend_class (enclosing_class_type, type, /*complain=*/false);
@@ -7031,7 +7031,7 @@ cp_parser_lambda_class_definition (cp_parser* parser,
     pop_deferring_access_checks ();
   }
 
-  pop_from_top_level ();
+  //pop_from_top_level ();
 
   return type;
 }
@@ -7072,10 +7072,10 @@ cp_parser_lambda_introducer (cp_parser* parser, tree lambda_expr)
     };
     enum capture_kind_type capture_kind = BY_COPY;
 
-    if (!first)
-      cp_parser_require (parser, CPP_COMMA, "%<,%>");
-    else
+    if (first)
       first = false;
+    else
+      cp_parser_require (parser, CPP_COMMA, "%<,%>");
 
     /* Possibly capture `this'. */
     if (cp_lexer_next_token_is_keyword (parser->lexer, RID_THIS))
