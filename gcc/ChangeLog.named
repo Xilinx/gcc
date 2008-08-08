@@ -1,3 +1,7 @@
+2008-08-08  Ben Elliston  <bje@au.ibm.com>
+
+	* c-decl.c (grokdeclarator): Fix bug constructing type_quals mask.
+
 2008-08-06  Ben Elliston  <bje@au.ibm.com>
 
 	* varasm.c (make_decl_rtl): Improvements to previous change.

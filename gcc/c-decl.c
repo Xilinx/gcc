@@ -4088,7 +4088,7 @@ grokdeclarator (const struct c_declarator *declarator,
   type_quals = ((constp ? TYPE_QUAL_CONST : 0)
 		| (restrictp ? TYPE_QUAL_RESTRICT : 0)
 		| (volatilep ? TYPE_QUAL_VOLATILE : 0)
-		| (ea_p ? ENCODE_QUAL_ADDR_SPACE (TYPE_ADDR_SPACE (element_type)) : 0));
+		| (ea_p ? ENCODE_QUAL_ADDR_SPACE (declspecs->address_space) : 0));
 
   /* Warn about storage classes that are invalid for certain
      kinds of declarations (parameters, typenames, etc.).  */
