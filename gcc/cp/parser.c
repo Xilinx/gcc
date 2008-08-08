@@ -6672,6 +6672,11 @@ cp_parser_lambda_expression (cp_parser* parser)
   return construction_expr;
 }
 
+#define LAMBDA_SCOPE_P(LEVEL) \
+  ((LEVEL)->this_entity && \
+   (LAMBDA_TYPE_P ((LEVEL)->this_entity) || \
+    LAMBDA_TYPE_P (DECL_CONTEXT ((LEVEL)->this_entity))))
+  
 static tree
 cp_parser_lambda_class_definition (cp_parser* parser,
     tree lambda_expr,
