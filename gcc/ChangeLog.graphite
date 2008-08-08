@@ -1,3 +1,15 @@
+2008-08-08  Tobias Grosser  <grosser@fim.uni-passau.de>
+
+	* graphite.c (free_loops_mapping): New.
+	(stmt_simple_for_scop_p): Fix typo.
+	(stmt_simple_for_scop_p): Fix tuples functions, that
+	broke polyhedron.
+	(free_graphite_bb): Fix some memleaks.
+	(free_scop): Fix some memleaks.
+	(scopdet_bb_info): Do not forget some tmp SCoPs.
+	(find_params_in_bb): Fix some memleaks.
+	(clast_to_gcc_expression): Fix warning.
+
 2008-08-07  Tobias Grosser  <grosser@fim.uni-passau.de>
 
 	* testsuite/gcc.dg/graphite/scop-16.c: Fix for 32bit.

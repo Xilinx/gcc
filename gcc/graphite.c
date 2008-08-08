@@ -104,6 +104,20 @@ create_loops_mapping (void)
   return node;
 }
 
+/* Free mapping.  */
+
+static void
+free_loops_mapping (graphite_loops_mapping lm)
+{
+  int i; 
+  graphite_loops_mapping lm_tmp;
+
+  for (i=0; VEC_iterate (graphite_loops_mapping, lm->children, i, lm_tmp); i++)
+    free_loops_mapping (lm_tmp);
+
+  VEC_free (graphite_loops_mapping, heap, lm->children); 
+}
+
 /* Creates a mapping for loop number NUM.  */
 
 static graphite_loops_mapping
@@ -965,7 +979,7 @@ stmt_simple_for_scop_p (struct loop *outermost_loop, gimple stmt)
            polyhedrons.  Expressions like  "if (a)" or "if (a == 15)" need
            them for the else branch.  */
         if (!(code == LT_EXPR || code == GT_EXPR
-              || code == LE_EXPR || GE_EXPR))
+              || code == LE_EXPR || code == GE_EXPR))
           return false;
 
 	if (!outermost_loop)
@@ -1010,8 +1024,8 @@ stmt_simple_for_scop_p (struct loop *outermost_loop, gimple stmt)
 	  {
 	    tree arg = gimple_call_arg (stmt, i);
 
-	    if (!(stmt_simple_memref_for_scop_p (loop, stmt, gimple_assign_lhs (stmt))
-		  && stmt_simple_memref_for_scop_p (loop, stmt, arg)))
+	    if (!(is_simple_operand (loop, stmt, gimple_call_lhs (stmt))
+		  && is_simple_operand (loop, stmt, arg)))
 	      return false;
 	  }
 
@@ -1073,11 +1087,17 @@ new_scop (basic_block entry)
 static void
 free_graphite_bb (struct graphite_bb *gbb)
 {
+  if (GBB_INDEX_TO_NUM_MAP (gbb))
+    VEC_free (num_map_p, heap, GBB_INDEX_TO_NUM_MAP (gbb));
+
   if (GBB_DOMAIN (gbb))
     cloog_matrix_free (GBB_DOMAIN (gbb));
 
-  if (GBB_INDEX_TO_NUM_MAP (gbb))
-    VEC_free (num_map_p, heap, GBB_INDEX_TO_NUM_MAP (gbb));
+  VEC_free (gimple, heap, GBB_CONDITIONS (gbb));
+  VEC_free (gimple, heap, GBB_CONDITION_CASES (gbb));
+  VEC_free (loop_p, heap, GBB_LOOPS (gbb));
+
+  XDELETE (gbb);
 }
 
 
@@ -1104,6 +1124,7 @@ free_scop (scop_p scop)
 
   VEC_free (name_tree, heap, SCOP_PARAMS (scop));
   cloog_program_free (SCOP_PROG (scop));
+  free_loops_mapping (SCOP_LOOPS_MAPPING (scop));
   htab_delete (SCOP_LOOP2CLOOG_LOOP (scop)); 
   free (scop);
 }
@@ -1393,6 +1414,7 @@ scopdet_bb_info (basic_block bb, struct loop *outermost_loop,
           else
             result.next = NULL; 
 
+          move_scops (&tmp_scops, scops);
           break;
         }
 
@@ -2056,6 +2078,7 @@ find_params_in_bb (struct dom_walk_data *dw_data, basic_block bb)
       irp.loop = bb->loop_father;
       irp.scop = scop;
       for_each_index (&dr->ref, idx_record_params, &irp);
+      free_data_ref (dr);
     }
 
   VEC_free (data_reference_p, heap, drs);
@@ -2853,7 +2876,7 @@ clast_to_gcc_expression (struct clast_expr *e, tree type,
 	struct clast_expr *lhs = (struct clast_expr *) b->LHS;
 	struct clast_expr *rhs = (struct clast_expr *) b->RHS;
 	tree tl = clast_to_gcc_expression (lhs, type,  params, ivstack);
-	tree tr = gmp_cst_to_tree (rhs);
+	tree tr = clast_to_gcc_expression (rhs, type,  params, ivstack); 
 
 	switch (b->type)
 	  {
@@ -4065,8 +4088,6 @@ graphite_trans_bb_strip_mine (graphite_bb_p gb, int loop_depth, int stride)
       new_schedule[i + 2] = GBB_STATIC_SCHEDULE (gb)[i];  
 
     GBB_STATIC_SCHEDULE (gb) = new_schedule;
-  
-    /* XXX: Free  old schedule.  How?  */
   }
 }
 
