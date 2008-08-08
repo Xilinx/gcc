@@ -6642,6 +6642,37 @@ cp_parser_trait_expr (cp_parser* parser, enum rid keyword)
   return finish_trait_expr (kind, type1, type2);
 }
 
+cxx_scope* innermost_scope_of_kind (cxx_scope* scope, scope_kind kind)
+{
+  while (scope && scope->kind != kind)
+    scope = scope->level_chain;
+  return scope;
+}
+
+bool lambda_scope_p (cxx_scope* scope)
+{
+  scope = innermost_scope_of_kind (scope, sk_class);
+  return (scope) ? (LAMBDA_TYPE_P (scope->this_entity)) : (false);
+}
+
+bool inner_scope_p (cxx_scope* inner, cxx_scope* outer)
+{
+  gcc_assert (outer);
+  while (inner && inner != outer)
+    inner = inner->level_chain;
+  return inner == outer;
+}
+
+bool proper_inner_scope_p (cxx_scope* inner, cxx_scope* outer)
+{
+  gcc_assert (inner && outer);
+  inner = inner->level_chain;
+  return inner_scope_p (inner, outer);
+}
+
+  
+cxx_scope* lambda_context = NULL;
+
 /* Parse a lambda expression */
 static tree
 cp_parser_lambda_expression (cp_parser* parser)
@@ -6652,6 +6683,9 @@ cp_parser_lambda_expression (cp_parser* parser)
   tree type;
   /* The construction expression (primary-expression) */
   tree construction_expr;
+  cxx_scope* saved_lambda_context = lambda_context;
+
+  lambda_context = current_binding_level;
 
   cp_parser_lambda_introducer (parser, lambda_expr);
   cp_parser_lambda_parameter_declaration (parser,
@@ -6669,24 +6703,11 @@ cp_parser_lambda_expression (cp_parser* parser)
     tf_warning_or_error
   );
 
+  lambda_context = saved_lambda_context;
+
   return construction_expr;
 }
 
-#define LAMBDA_SCOPE_P(LEVEL) \
-  ((LEVEL)->this_entity && \
-   (LAMBDA_TYPE_P ((LEVEL)->this_entity) || \
-    LAMBDA_TYPE_P (DECL_CONTEXT ((LEVEL)->this_entity))))
-
-bool lambda_scope_p (cxx_scope* scope) {
-  while (scope && !scope->this_entity)
-    scope = scope->level_chain;
-  if (!scope)
-    return false;
-  tree entity = scope->this_entity;
-  tree context = DECL_CONTEXT (entity);
-  return LAMBDA_TYPE_P (entity) || (context && LAMBDA_TYPE_P (context));
-}
-  
 static tree
 cp_parser_lambda_class_definition (cp_parser* parser,
     tree lambda_expr,
