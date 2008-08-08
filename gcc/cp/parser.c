@@ -6676,6 +6676,16 @@ cp_parser_lambda_expression (cp_parser* parser)
   ((LEVEL)->this_entity && \
    (LAMBDA_TYPE_P ((LEVEL)->this_entity) || \
     LAMBDA_TYPE_P (DECL_CONTEXT ((LEVEL)->this_entity))))
+
+bool lambda_scope_p (cxx_scope* scope) {
+  while (scope && !scope->this_entity)
+    scope = scope->level_chain;
+  if (!scope)
+    return false;
+  tree entity = scope->this_entity;
+  tree context = DECL_CONTEXT (entity);
+  return LAMBDA_TYPE_P (entity) || (context && LAMBDA_TYPE_P (context));
+}
   
 static tree
 cp_parser_lambda_class_definition (cp_parser* parser,
