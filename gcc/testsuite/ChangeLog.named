@@ -1,3 +1,12 @@
+2008-08-08  Ben Elliston  <bje@au.ibm.com>
+
+	* gcc.target/spu/cache.c: Include <stdlib.h> and <string.h>.
+	(malloc_ea, memset_ea, memcpy_ea): Define wrapper macros.
+	(size_ea_t): Typedef for 32-bit and 64-bit __ea modes.
+	(__malloc_ea32, __malloc_ea64): Prototype.
+	(__memset_ea32, __memset_ea64): Likewise.
+	(__memcpy_ea32, __memcpy_ea64): Likewise.
+
 2008-08-01  Ben Elliston  <bje@au.ibm.com>
 
 	* gcc.target/spu/ea/ea.exp: Guard against non-SPU targets.

@@ -18,13 +18,36 @@
 /* { dg-do run } */
 /* { dg-options "-mcache-size=8" } */
 
-#include <ea.h>
+#include <stdlib.h>
+#include <string.h>
 #include <spu_cache.h>
 
 #ifdef __EA64__
 #define addr unsigned long long
 #else
 #define addr unsigned long
+#endif
+
+#ifdef __EA64__
+#define malloc_ea __malloc_ea64
+#define memset_ea __memset_ea64
+#define memcpy_ea __memcpy_ea64
+
+typedef unsigned long long size_ea_t;
+
+__ea void *__malloc_ea64 (size_ea_t);
+__ea void *__memset_ea64 (__ea void *, int, size_ea_t);
+__ea void *__memcpy_ea64 (__ea void *, __ea const void *, size_ea_t);
+#else
+#define malloc_ea __malloc_ea32
+#define memset_ea __memset_ea32
+#define memcpy_ea __memcpy_ea32
+
+typedef unsigned long size_ea_t;
+
+__ea void *__malloc_ea32 (size_ea_t size);
+__ea void *__memset_ea32 (__ea void *, int, size_ea_t);
+__ea void *__memcpy_ea32 (__ea void *, __ea const void *, size_ea_t);
 #endif
 
 static __ea void *bigblock;
