@@ -519,6 +519,16 @@ struct tree_trait_expr GTY (())
 #define LAMBDA_TYPE_P(NODE) \
   (CLASS_TYPE_P (NODE) && LAMBDANAME_P (TYPE_LINKAGE_IDENTIFIER (NODE)))
 
+/* Test if FUNCTION_DECL is a lambda function.  */
+#define LAMBDA_FUNCTION_P(FNDECL) \
+  (DECL_CONTEXT (FNDECL) && LAMBDA_TYPE_P (DECL_CONTEXT (FNDECL)))
+
+enum cp_lambda_default_capture_mode_type {
+  CPLD_NONE,
+  CPLD_COPY,
+  CPLD_REFERENCE
+};
+
 /* The default method of implicit capture.  */
 #define LAMBDA_EXPR_DEFAULT_CAPTURE_MODE(NODE) \
   (((struct tree_lambda_expr *)LAMBDA_EXPR_CHECK (NODE))->default_capture_mode)
@@ -559,12 +569,6 @@ struct tree_trait_expr GTY (())
 /* The function part.  */
 #define LAMBDA_EXPR_FUNCTION(NODE) \
   (((struct tree_lambda_expr *)LAMBDA_EXPR_CHECK (NODE))->function)
-
-enum cp_lambda_default_capture_mode_type {
-  CPLD_NONE,
-  CPLD_COPY,
-  CPLD_REFERENCE
-};
 
 struct tree_lambda_expr GTY (())
 {
