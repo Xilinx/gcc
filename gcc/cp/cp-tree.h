@@ -534,7 +534,7 @@ struct tree_trait_expr GTY (())
 #define LAMBDA_EXPR_CAPTURE_LIST(NODE) \
   (((struct tree_lambda_expr *)LAMBDA_EXPR_CHECK (NODE))->capture_list)
 
-#define LAMBDA_EXPR_NEEDS_CONSTRUCTOR_P(NODE) \
+#define LAMBDA_EXPR_REQUIRES_CONSTRUCTOR_P(NODE) \
   (LAMBDA_EXPR_CAPTURE_LIST(NODE) != NULL_TREE)
 
 /* The initializers for the captures.  This is a GNU extension.

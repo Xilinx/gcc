@@ -6912,7 +6912,7 @@ cp_parser_lambda_class_definition (cp_parser* parser,
 
   tree ctor = NULL_TREE;
 
-  if (LAMBDA_EXPR_NEEDS_CONSTRUCTOR_P(lambda_expr))
+  if (LAMBDA_EXPR_REQUIRES_CONSTRUCTOR_P(lambda_expr))
   {
     tree ctor_type = build_method_type_directly (
         type,
@@ -6967,7 +6967,7 @@ cp_parser_lambda_class_definition (cp_parser* parser,
    * + ctor_initializer_opt_and_function_body
    * + mem_initializer_list
    ********************************************/
-  if (LAMBDA_EXPR_NEEDS_CONSTRUCTOR_P(lambda_expr))
+  if (LAMBDA_EXPR_REQUIRES_CONSTRUCTOR_P(lambda_expr))
   {
     /* Let the front end know that we are going to be defining this
        function.  */
