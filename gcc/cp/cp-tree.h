@@ -1230,6 +1230,7 @@ struct lang_type_class GTY(())
      as a list of adopted protocols or a pointer to a corresponding
      @interface.  See objc/objc-act.h for details.  */
   tree objc_info;
+  tree lambda_expr;
 };
 
 struct lang_type_ptrmem GTY(())
@@ -1495,6 +1496,10 @@ struct lang_type GTY(())
 /* A list of the classes which grant friendship to this class.  */
 #define CLASSTYPE_BEFRIENDING_CLASSES(NODE) \
   (LANG_TYPE_CLASS_CHECK (NODE)->befriending_classes)
+
+/* The associated LAMBDA_EXPR that made this class.  */
+#define CLASSTYPE_LAMBDA_EXPR(NODE) \
+  (LANG_TYPE_CLASS_CHECK (NODE)->lambda_expr)
 
 /* Say whether this node was declared as a "class" or a "struct".  */
 #define CLASSTYPE_DECLARED_CLASS(NODE) \

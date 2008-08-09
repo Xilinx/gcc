@@ -6742,6 +6742,7 @@ cp_parser_lambda_class_definition (cp_parser* parser,
         /*scope=*/ts_current,
         /*template_header_p=*/false);
     TREE_TYPE (lambda_expr) = type;
+    CLASSTYPE_LAMBDA_EXPR (type) = lambda_expr;
 
     /* For now, say that this was declared a class and not a struct. */
     CLASSTYPE_DECLARED_CLASS (type) = true;
