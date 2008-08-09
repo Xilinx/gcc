@@ -6720,7 +6720,7 @@ cp_parser_lambda_class_definition (cp_parser* parser,
   tree type;
 
   /* TODO: Move out to surrounding non-function, non-class scope. */
-  //push_to_top_level ();
+  /*push_to_top_level ();*/
 
   /********************************************
    * Start up the class
@@ -7067,7 +7067,7 @@ cp_parser_lambda_class_definition (cp_parser* parser,
     pop_deferring_access_checks ();
   }
 
-  //pop_from_top_level ();
+  /*pop_from_top_level ();*/
 
   return type;
 }
