@@ -6670,9 +6670,6 @@ bool proper_inner_scope_p (cxx_scope* inner, cxx_scope* outer)
   return inner_scope_p (inner, outer);
 }
 
-  
-cxx_scope* lambda_context = NULL;
-
 /* Parse a lambda expression */
 static tree
 cp_parser_lambda_expression (cp_parser* parser)
@@ -6683,9 +6680,13 @@ cp_parser_lambda_expression (cp_parser* parser)
   tree type;
   /* The construction expression (primary-expression) */
   tree construction_expr;
-  cxx_scope* saved_lambda_context = lambda_context;
-
-  lambda_context = current_binding_level;
+  /* start_* / finish_* functions don't do any state preservation
+   * (finish_function sets current_function_decl to NULL), so we have to.  */
+  /*struct function* saved_cfun = cfun;*/
+  /* TODO: do we need these? from function.h */
+  push_function_context();
+  tree saved_function_decl = current_function_decl;
+  int saved_skip_evaluation = skip_evaluation;
 
   cp_parser_lambda_introducer (parser, lambda_expr);
   cp_parser_lambda_parameter_declaration (parser,
@@ -6703,7 +6704,10 @@ cp_parser_lambda_expression (cp_parser* parser)
     tf_warning_or_error
   );
 
-  lambda_context = saved_lambda_context;
+  /*set_cfun (saved_cfun);*/
+  pop_function_context();
+  current_function_decl = saved_function_decl;
+  skip_evaluation = saved_skip_evaluation;
 
   return construction_expr;
 }
@@ -6764,8 +6768,6 @@ cp_parser_lambda_class_definition (cp_parser* parser,
 
     /* Start the class. */
     type = begin_class_definition (type, NULL_TREE);
-
-    current_class_type = type;
   }
 
   tree ctor_parm_type_list = NULL_TREE;
@@ -6790,7 +6792,8 @@ cp_parser_lambda_class_definition (cp_parser* parser,
       tree capture_type = TREE_VALUE (capture);
       tree capture_id = TREE_PURPOSE (capture);
 
-      /* TODO: support rvalue-reference captures.  */
+      /* TODO: support rvalue-reference captures. 
+       * look into tree.c : cp_build_reference_type */
       /*
       if (capture_kind == BY_RVALUE_REFERENCE)
         capture_declarator = make_reference_declarator (
@@ -6901,6 +6904,7 @@ cp_parser_lambda_class_definition (cp_parser* parser,
     /* operator() is public */
     current_access_specifier = access_public_node;
 
+    /* TODO: look into start_function  */
     fco = start_method (
         &return_type_specs,
         declarator,
@@ -6958,35 +6962,6 @@ cp_parser_lambda_class_definition (cp_parser* parser,
 
     if (enclosing_class_type)
       make_friend_class (enclosing_class_type, type, /*complain=*/false);
-  }
-
-  /********************************************
-   * Finish the constructor
-   * - class_specifier
-   * + late_parsing_for_member
-   * + function_definition_after_declarator
-   * + ctor_initializer_opt_and_function_body
-   * + mem_initializer_list
-   ********************************************/
-  if (LAMBDA_EXPR_REQUIRES_CONSTRUCTOR_P(lambda_expr))
-  {
-    /* Let the front end know that we are going to be defining this
-       function.  */
-    start_preparsed_function (
-        ctor,
-        NULL_TREE,
-        SF_PRE_PARSED | SF_INCLASS_INLINE);
-
-    tree ctor_body = begin_function_body ();
-
-    finish_mem_initializers (ctor_init_list);
-
-    finish_function_body (ctor_body);
-
-    /* Finish the function and generate code for it if necessary. */
-    /* 3 == (1 | 2) == (ctor_initializer_p && inline_p) */
-    tree ctor_fn = finish_function (3);
-    expand_or_defer_fn (ctor_fn);
   }
 
   /********************************************
@@ -7051,6 +7026,35 @@ cp_parser_lambda_class_definition (cp_parser* parser,
     /* 2 == inline_p */
     tree fn = finish_function (2);
     expand_or_defer_fn (fn);
+  }
+
+  /********************************************
+   * Finish the constructor
+   * - class_specifier
+   * + late_parsing_for_member
+   * + function_definition_after_declarator
+   * + ctor_initializer_opt_and_function_body
+   * + mem_initializer_list
+   ********************************************/
+  if (LAMBDA_EXPR_REQUIRES_CONSTRUCTOR_P(lambda_expr))
+  {
+    /* Let the front end know that we are going to be defining this
+       function.  */
+    start_preparsed_function (
+        ctor,
+        NULL_TREE,
+        SF_PRE_PARSED | SF_INCLASS_INLINE);
+
+    tree ctor_body = begin_function_body ();
+
+    finish_mem_initializers (ctor_init_list);
+
+    finish_function_body (ctor_body);
+
+    /* Finish the function and generate code for it if necessary. */
+    /* 3 == (1 | 2) == (ctor_initializer_p && inline_p) */
+    tree ctor_fn = finish_function (3);
+    expand_or_defer_fn (ctor_fn);
   }
 
   /********************************************

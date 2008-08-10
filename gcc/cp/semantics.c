@@ -2644,11 +2644,87 @@ finish_id_expression (tree id_expression,
 	  if (context != NULL_TREE && context != current_function_decl
 	      && ! TREE_STATIC (decl))
 	    {
-	      error (TREE_CODE (decl) == VAR_DECL
-		     ? "use of %<auto%> variable from containing function"
-		     : "use of parameter from containing function");
-	      error ("  %q+#D declared here", decl);
-	      return error_mark_node;
+              /* Want to find context, unless we pass outermost,
+               * default-capturing lambda function.  */
+              tree containing_function = current_function_decl;
+              tree lambda_stack = NULL_TREE;
+              while (context != containing_function)
+              {
+                if (!LAMBDA_FUNCTION_P (containing_function)
+                    || LAMBDA_EXPR_DEFAULT_CAPTURE_MODE (
+                         CLASSTYPE_LAMBDA_EXPR (
+                           DECL_CONTEXT (containing_function)))
+                       == CPLD_NONE)
+                  break;
+
+                lambda_stack = tree_cons (
+                    NULL_TREE,
+                    CLASSTYPE_LAMBDA_EXPR (DECL_CONTEXT (containing_function)),
+                    lambda_stack);
+
+                containing_function = decl_function_context (containing_function);
+              }
+
+              if (context == containing_function)
+              {
+                tree capture_base_type = TREE_TYPE (decl);
+                tree capture_id = DECL_NAME (decl);
+                tree member = NULL_TREE;
+
+                tree node;
+                for (node = lambda_stack;
+                     node;
+                     node = TREE_CHAIN (node))
+                {
+                  tree lambda_expr = TREE_VALUE (node);
+                  tree capture_init_type =
+                    (LAMBDA_EXPR_DEFAULT_CAPTURE_MODE (lambda_expr)
+                     == CPLD_REFERENCE)
+                    ? (cp_build_reference_type (
+                          capture_base_type,
+                          /*rval=*/false))
+                    : (capture_base_type);
+                  tree capture_init_expr = decl;
+
+                  /*
+                  LAMBDA_EXPR_CAPTURE_LIST (lambda_expr) = tree_cons (
+                      capture_id,
+                      capture_init_type,
+                      LAMBDA_EXPR_CAPTURE_LIST (lambda_expr));
+                  LAMBDA_EXPR_CAPTURE_INIT_LIST (lambda_expr) = tree_cons (
+                      NULL_TREE,
+                      capture_init_expr,
+                      LAMBDA_EXPR_CAPTURE_INIT_LIST (lambda_expr));
+                  */
+
+                  /* Make member variable.  */
+                  member = build_lang_decl (
+                      FIELD_DECL,
+                      capture_id,
+                      capture_init_type);
+                  DECL_MUTABLE_P (member) = 1;
+
+                  /* Prepare to add to class. */
+                  current_class_type = TREE_TYPE (lambda_expr);
+                  TYPE_BEING_DEFINED (current_class_type) = 1;
+                  /* Add to class.  */
+                  finish_member_declaration (member);
+                  /* Restore.  */
+                  TYPE_BEING_DEFINED (current_class_type) = 0;
+
+                }
+
+                decl = member;
+
+              }
+              else
+              {
+                error (TREE_CODE (decl) == VAR_DECL
+                       ? "use of %<auto%> variable from containing function"
+                       : "use of parameter from containing function");
+                error ("  %q+#D declared here", decl);
+                return error_mark_node;
+              }
 	    }
 	}
     }
