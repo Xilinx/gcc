@@ -534,6 +534,7 @@ dump_generic_node (pretty_printer *buffer, tree node, int spc, int flags,
 	  {
 	    const char *as = targetm.addr_space_name (TYPE_ADDR_SPACE (node));
 	    pp_string (buffer, as);
+	    pp_space (buffer);
 	  }
 
 	class = TREE_CODE_CLASS (TREE_CODE (node));
@@ -616,6 +617,7 @@ dump_generic_node (pretty_printer *buffer, tree node, int spc, int flags,
 	    {
 	      const char *as = targetm.addr_space_name (TYPE_ADDR_SPACE (node));
 	      pp_string (buffer, as);
+	      pp_space (buffer);
 	    }
 	  
 	  if (TYPE_REF_CAN_ALIAS_ALL (node))

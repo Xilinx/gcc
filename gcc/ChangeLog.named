@@ -1,3 +1,9 @@
+2008-08-11  Ben Elliston  <bje@au.ibm.com>
+
+	* print-rtl.c (print_rtx): Print address space number, if non-zero.
+	* tree-pretty-print.c (dump_generic_node): Print address space
+	name, if non-generic.
+
 2008-08-08  Ben Elliston  <bje@au.ibm.com>
 
 	* c-decl.c (grokdeclarator): Fix bug constructing type_quals mask.
