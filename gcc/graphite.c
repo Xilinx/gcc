@@ -2398,6 +2398,203 @@ build_loop_iteration_domains (scop_p scop, struct loop *loop,
   cloog_matrix_free (cstr);
 }
 
+/* Add conditions to the domain of GB.  */
+
+static void
+add_conditions_to_domain (graphite_bb_p gb)
+{
+  unsigned int i,j;
+  gimple stmt;
+  VEC (gimple, heap) *conditions = GBB_CONDITIONS (gb);
+  CloogMatrix *domain = GBB_DOMAIN (gb);
+  scop_p scop = GBB_SCOP (gb);
+
+  unsigned nb_rows;
+  unsigned nb_cols;
+  unsigned nb_new_rows = 0;
+  unsigned row;
+
+  if (VEC_empty (gimple, conditions))
+    return;
+
+  if (domain)
+    {
+      nb_rows = domain->NbRows;
+      nb_cols = domain->NbColumns;
+    }
+  else  
+    {
+      nb_rows = 0;
+      nb_cols = scop_nb_params (scop) + 2;
+    }
+
+  /* Count number of necessary new rows to add the conditions to the domain.  */
+  for (i = 0; VEC_iterate (gimple, conditions, i, stmt); i++)
+    {
+      switch (gimple_code (stmt))
+        {
+        case GIMPLE_COND:
+          {
+            enum tree_code code = gimple_cond_code (stmt);
+
+            switch (code)
+              {
+              case NE_EXPR:
+              case EQ_EXPR:
+                /* NE and EQ statements are not supported right know. */
+                gcc_unreachable ();
+                break;
+              case LT_EXPR:
+              case GT_EXPR:
+              case LE_EXPR:
+              case GE_EXPR:
+                nb_new_rows++;
+                break;
+              default:
+                gcc_unreachable ();
+                break;
+              }
+          break;
+          }
+        case SWITCH_EXPR:
+          /* Switch statements are not supported right know.  */
+          gcc_unreachable ();
+          break;
+
+        default:
+          gcc_unreachable ();
+          break;
+        }
+    }
+
+
+  /* Enlarge the matrix.  */ 
+  { 
+    CloogMatrix *new_domain;
+    new_domain = cloog_matrix_alloc (nb_rows + nb_new_rows, nb_cols);
+
+    for (i = 0; i < nb_rows; i++)
+      for (j = 0; j < nb_cols; j++)
+          value_assign (new_domain->p[i][j], domain->p[i][j]);
+
+    cloog_matrix_free (domain);
+    domain = new_domain;
+    GBB_DOMAIN (gb) = new_domain;
+  }     
+
+  /* Add the conditions to the new enlarged domain matrix.  */
+  row = nb_rows;
+  for (i = 0; VEC_iterate (gimple, conditions, i, stmt); i++)
+    {
+      switch (gimple_code (stmt))
+        {
+        case GIMPLE_COND:
+          {
+            Value one;
+            enum tree_code code;
+            tree left;
+            tree right;
+            loop_p loop = GBB_BB (gb)->loop_father;
+            loop_p outermost = outermost_loop_in_scop (scop, GBB_BB (gb));
+
+            left = gimple_cond_lhs (stmt);
+            right = gimple_cond_rhs (stmt);
+
+            left = analyze_scalar_evolution (loop, left);
+            right = analyze_scalar_evolution (loop, right);
+            left = instantiate_scev (outermost, loop, left);
+            right = instantiate_scev (outermost, loop, right);
+
+            code = gimple_cond_code (stmt);
+
+            /* The conditions for ELSE-branches are inverted.  */
+            if (VEC_index (gimple, gb->condition_cases, i) == NULL)
+              code = invert_tree_comparison (code, false);
+
+            switch (code)
+              {
+              case NE_EXPR:
+                /* NE statements are not supported right know. */
+                gcc_unreachable ();
+                break;
+              case EQ_EXPR:
+                value_set_si (domain->p[row][0], 1);
+                value_init (one);
+                value_set_si (one, 1);
+                scan_tree_for_params (scop, left, domain, row, one, true);
+                value_set_si (one, 1);
+                scan_tree_for_params (scop, right, domain, row, one, false);
+                row++;
+                value_set_si (domain->p[row][0], 1);
+                value_set_si (one, 1);
+                scan_tree_for_params (scop, left, domain, row, one, false);
+                value_set_si (one, 1);
+                scan_tree_for_params (scop, right, domain, row, one, true);
+                value_clear (one);
+                row++;
+                break;
+              case LT_EXPR:
+                value_set_si (domain->p[row][0], 1);
+                value_init (one);
+                value_set_si (one, 1);
+                scan_tree_for_params (scop, left, domain, row, one, true);
+                value_set_si (one, 1);
+                scan_tree_for_params (scop, right, domain, row, one, false);
+                value_sub_int (domain->p[row][nb_cols - 1],
+                    domain->p[row][nb_cols - 1], 1); 
+                value_clear (one);
+                row++;
+                break;
+              case GT_EXPR:
+                value_set_si (domain->p[row][0], 1);
+                value_init (one);
+                value_set_si (one, 1);
+                scan_tree_for_params (scop, left, domain, row, one, false);
+                value_set_si (one, 1);
+                scan_tree_for_params (scop, right, domain, row, one, true);
+                value_sub_int (domain->p[row][nb_cols - 1],
+                    domain->p[row][nb_cols - 1], 1);
+                value_clear (one);
+                row++;
+                break;
+              case LE_EXPR:
+                value_set_si (domain->p[row][0], 1);
+                value_init (one);
+                value_set_si (one, 1);
+                scan_tree_for_params (scop, left, domain, row, one, true);
+                value_set_si (one, 1);
+                scan_tree_for_params (scop, right, domain, row, one, false);
+                value_clear (one);
+                row++;
+                break;
+              case GE_EXPR:
+                value_set_si (domain->p[row][0], 1);
+                value_init (one);
+                value_set_si (one, 1);
+                scan_tree_for_params (scop, left, domain, row, one, false);
+                value_set_si (one, 1);
+                scan_tree_for_params (scop, right, domain, row, one, true);
+                value_clear (one);
+                row++;
+                break;
+              default:
+                gcc_unreachable ();
+                break;
+              }
+            break;
+          }
+        case GIMPLE_SWITCH:
+          /* Switch statements are not supported right know.  */
+          gcc_unreachable ();
+          break;
+
+        default:
+          gcc_unreachable ();
+          break;
+        }
+    }
+}
+
 /* Helper recursive function.  */
 
 static void
@@ -2418,6 +2615,8 @@ build_scop_conditions_1 (VEC (gimple, heap) **conditions,
   gbb = graphite_bb_from_bb (bb, scop);
   GBB_CONDITIONS (gbb) = VEC_copy (gimple, heap, *conditions);
   GBB_CONDITION_CASES (gbb) = VEC_copy (gimple, heap, *cases);
+
+  add_conditions_to_domain (gbb);
 
   dom = get_dominated_by (CDI_DOMINATORS, bb);
 
@@ -2532,9 +2731,7 @@ build_scop_conditions_1 (VEC (gimple, heap) **conditions,
   VEC_free (basic_block, heap, dom);
 }
 
-
-/* Record all 'if' and 'switch' conditions in each gbb of SCOP.  
-   TODO: Add this restrictions to the domain matrix.  */
+/* Record all 'if' and 'switch' conditions in each gbb of SCOP.  */
 
 static void
 build_scop_conditions (scop_p scop)
@@ -3282,7 +3479,24 @@ set_cloog_options (void)
      equations for statements.  */
   options->cpp = 1;
 
+  /* Allow cloog to build strides with a stride width different to one.
+     This example has stride = 4:
+
+     for (i = 0; i < 20; i += 4)
+       A  */
   options->strides = 1;
+
+  /* Disable optimizations and make cloog generate source code closer to the
+     input.  This is useful for debugging,  but later we want the optimized
+     code.
+
+     XXX: We can not disable optimizations, as loop blocking is not working
+     without them.  */
+  if (0)
+    {
+      options->f = -1;
+      options->l = INT_MAX;
+    }
 
   return options;
 }

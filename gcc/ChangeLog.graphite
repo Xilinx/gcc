@@ -1,5 +1,11 @@
 2008-08-11  Tobias Grosser  <grosser@fim.uni-passau.de>
 
+	* graphite.c (add_conditions_to_domain): New.
+	(build_scop_conditions_1): Call add_conditions_to_domain.
+	(set_cloog_options): Allow to disable optimizations.
+
+2008-08-11  Tobias Grosser  <grosser@fim.uni-passau.de>
+
 	* graphite.c (find_params_in_bb): Look for parameters in conditions.
 	Do not use walk_dominator_tree.
 	(find_scop_parameters): Do not use walk_dominator_tree.
