@@ -4462,9 +4462,16 @@ graphite_transform_loops (void)
 	  fprintf (dump_file, "\nnumber of data refs: %d\n", nbrefs);
 	}
 
-      if(graphite_apply_transformations (scop))
-	  gloog (scop, find_transform (scop));
-
+      /* We only build new graphite code, if we applied a transformation. But
+         call find_transform always to get more test coverage during
+         developement.  */
+      if (graphite_apply_transformations (scop))
+        gloog (scop, find_transform (scop));
+      else
+        {
+          struct clast_stmt* stmt = find_transform (scop);
+          cloog_clast_free (stmt);
+        }
     }
 
   if (dump_file && (dump_flags & TDF_DETAILS))

@@ -1,3 +1,7 @@
+2008-08-11  Tobias Grosser  <grosser@fim.uni-passau.de>
+
+	* graphite.c (graphite_transform_loops): Call always find_transform.
+
 2008-08-08  Tobias Grosser  <grosser@fim.uni-passau.de>
 
 	* graphite.c (free_loops_mapping): New.
