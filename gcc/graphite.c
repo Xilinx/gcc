@@ -1283,6 +1283,10 @@ scopdet_bb_info (basic_block bb, struct loop *outermost_loop,
         if (!dominated_by_p (CDI_DOMINATORS, result.next, bb))
           result.next = NULL;
 
+        if (TREE_CODE (number_of_latch_executions (loop))
+            == SCEV_NOT_KNOWN)
+          result.difficult = true;
+
         if (sinfo.difficult)
           move_scops (&tmp_scops, scops);
         else 
@@ -2383,6 +2387,8 @@ build_loop_iteration_domains (scop_p scop, struct loop *loop,
       scan_tree_for_params (scop, nb_iters, cstr, row, one, false);
       value_clear (one);
     }
+  else
+    gcc_unreachable ();
 
   if (loop->inner && loop_in_scop_p (loop->inner, scop))
     build_loop_iteration_domains (scop, loop->inner, cstr, nb_outer_loops + 1);
