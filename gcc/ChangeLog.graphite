@@ -1,5 +1,10 @@
 2008-08-11  Tobias Grosser  <grosser@fim.uni-passau.de>
 
+	* graphite.c (find_params_in_bb): Look for parameters in conditions.
+	Do not use walk_dominator_tree.
+	(find_scop_parameters): Do not use walk_dominator_tree.
+2008-08-11  Tobias Grosser  <grosser@fim.uni-passau.de>
+
 	* graphite.c (scan_tree_for_params) Add / Subtract inequality.
 	(idx_record_params): Adapt.
 	* graphite.h (scop_gimple_loop_depth): New.

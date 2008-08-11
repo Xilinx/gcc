@@ -2073,19 +2073,16 @@ idx_record_params (tree base, tree *idx, void *dta)
   return true;
 }
 
-/* Helper function for walking in dominance order basic blocks.  Find
-   parameters with respect to SCOP in memory access functions used in
-   BB.  DW_DATA contains the context and the results for extract
-   parameters information.  */
+/* Find parameters with respect to SCOP in BB. We are looking in memory
+   access functions, conditions and loop bounds.  */
 
 static void
-find_params_in_bb (struct dom_walk_data *dw_data, basic_block bb)
+find_params_in_bb (scop_p scop, basic_block bb)
 {
   int i;
   data_reference_p dr;
   VEC (data_reference_p, heap) *drs;
   gimple_stmt_iterator gsi;
-  scop_p scop = (scop_p) dw_data->global_data;
   struct loop *nest = outermost_loop_in_scop (scop, bb);
 
   /* Find the parameters used in the memory access functions.  */
@@ -2104,6 +2101,35 @@ find_params_in_bb (struct dom_walk_data *dw_data, basic_block bb)
     }
 
   VEC_free (data_reference_p, heap, drs);
+
+  /* Find parameters in conditional statements.  */ 
+  gsi = gsi_last_bb (bb);
+  if (!gsi_end_p (gsi))
+    {
+      gimple stmt = gsi_stmt (gsi);
+
+      if (gimple_code (stmt) == GIMPLE_COND)
+        {
+          Value one;
+          loop_p loop = bb->loop_father;
+
+          tree lhs, rhs;
+          
+          lhs = gimple_cond_lhs (stmt);
+          lhs = analyze_scalar_evolution (loop, lhs);
+          lhs = instantiate_scev (nest, loop, lhs);
+
+          rhs = gimple_cond_rhs (stmt);
+          rhs = analyze_scalar_evolution (loop, rhs);
+          rhs = instantiate_scev (nest, loop, rhs);
+
+          value_init (one);
+          scan_tree_for_params (scop, lhs, NULL, 0, one, false);
+          value_set_si (one, 1);
+          scan_tree_for_params (scop, rhs, NULL, 0, one, false);
+          value_clear (one);
+       }
+    }
 }
 
 /* Saves in NV the name of variable P->T.  */
@@ -2179,8 +2205,8 @@ initialize_cloog_names (scop_p scop)
 static void
 find_scop_parameters (scop_p scop)
 {
-  int i;
-  struct dom_walk_data walk_data;
+  graphite_bb_p gb;
+  unsigned i;
   struct loop *loop;
 
   /* Find the parameters used in the loop bounds.  */
@@ -2190,10 +2216,6 @@ find_scop_parameters (scop_p scop)
 
       if (chrec_contains_symbols (nb_iters))
 	{
-	  struct irp_data irp;
-
-	  irp.loop = loop;
-	  irp.scop = scop;
           nb_iters = analyze_scalar_evolution (loop, nb_iters);
           nb_iters = instantiate_scev (outermost_loop_in_scop (scop,
 							       loop->header),
@@ -2210,13 +2232,8 @@ find_scop_parameters (scop_p scop)
     }
 
   /* Find the parameters used in data accesses.  */
-  memset (&walk_data, 0, sizeof (struct dom_walk_data));
-  walk_data.before_dom_children_before_stmts = find_params_in_bb;
-  walk_data.dom_direction = CDI_DOMINATORS;
-  walk_data.global_data = scop;
-  init_walk_dominator_tree (&walk_data);
-  walk_dominator_tree (&walk_data, SCOP_ENTRY (scop));
-  fini_walk_dominator_tree (&walk_data);
+  for (i = 0; VEC_iterate (graphite_bb_p, SCOP_BBS (scop), i, gb); i++)
+    find_params_in_bb (scop, GBB_BB (gb));
 }
 
 /* Build the context constraints for SCOP: constraints and relations
