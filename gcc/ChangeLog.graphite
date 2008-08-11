@@ -1,5 +1,11 @@
 2008-08-11  Tobias Grosser  <grosser@fim.uni-passau.de>
 
+	* graphite.c (scan_tree_for_params) Add / Subtract inequality.
+	(idx_record_params): Adapt.
+	* graphite.h (scop_gimple_loop_depth): New.
+
+2008-08-11  Tobias Grosser  <grosser@fim.uni-passau.de>
+
 	* graphite.c (build_scop_dynamic_schedules): Remove value_init.
 	(scan_tree_for_params): Remove value_init.
 	(build_scop_context): Remove value_init.

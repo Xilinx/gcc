@@ -1885,11 +1885,11 @@ param_index (tree var, scop_p scop)
 }
 
 /* Scan EXPR and translate it to an inequality vector INEQ that will
-   be inserted in the constraint domain matrix C at row R.  N is
-   the number of columns for loop iterators in C.  */
+   be added (or subtracted) in the constraint domain matrix C at row R.  */ 
 
 static void
-scan_tree_for_params (scop_p s, tree e, CloogMatrix *c, int r, Value k)
+scan_tree_for_params (scop_p s, tree e, CloogMatrix *c, int r, Value k,
+bool subtract)
 {
   int cst_col, param_col;
 
@@ -1906,27 +1906,44 @@ scan_tree_for_params (scop_p s, tree e, CloogMatrix *c, int r, Value k)
 
 	if (c)
 	  {
-	    int var_idx = loop_iteration_vector_dim (var, s);
-	    value_set_si (c->p[r][var_idx], int_cst_value (right));
+            int loop_col = scop_gimple_loop_depth (s, get_loop (var)) + 1;
+
+            if (subtract)
+              value_sub_int (c->p[r][loop_col], c->p[r][loop_col],
+                             int_cst_value (right));
+            else
+              value_add_int (c->p[r][loop_col], c->p[r][loop_col],
+                             int_cst_value (right));
 	  }
 
 	switch (TREE_CODE (left))
 	  {
 	  case POLYNOMIAL_CHREC:
-	    scan_tree_for_params (s, left, c, r, k);
+	    scan_tree_for_params (s, left, c, r, k, subtract);
             return;
 
 	  case INTEGER_CST:
 	    /* Constant part.  */
 	    if (c)
 	      {
-		cst_col = c->NbColumns - 1;
-		value_set_si (c->p[r][cst_col], int_cst_value (left));
+                int v = int_cst_value (left);
+                cst_col = c->NbColumns - 1;
+
+                if (v < 0)
+                  {
+                    v = -v;
+                    subtract = subtract ? false : true;
+                  }
+
+                if (subtract)
+                  value_sub_int (c->p[r][cst_col], c->p[r][cst_col], v);
+                else
+                  value_add_int (c->p[r][cst_col], c->p[r][cst_col], v);
 	      }
 	    return;
 
 	  default:
-	    scan_tree_for_params (s, left, c, r, k);
+	    scan_tree_for_params (s, left, c, r, k, subtract);
 	    return;
 	  }
       }
@@ -1943,7 +1960,7 @@ scan_tree_for_params (scop_p s, tree e, CloogMatrix *c, int r, Value k)
 	  value_set_si (val, int_cst_value (TREE_OPERAND (e, 1)));
 	  value_multiply (k, k, val);
 	  value_clear (val);
-	  scan_tree_for_params (s, TREE_OPERAND (e, 0), c, r, k);
+	  scan_tree_for_params (s, TREE_OPERAND (e, 0), c, r, k, subtract);
 	}
       else
 	{
@@ -1955,19 +1972,19 @@ scan_tree_for_params (scop_p s, tree e, CloogMatrix *c, int r, Value k)
 	  value_set_si (val, int_cst_value (TREE_OPERAND (e, 0)));
 	  value_multiply (k, k, val);
 	  value_clear (val);
-	  scan_tree_for_params (s, TREE_OPERAND (e, 1), c, r, k);
+	  scan_tree_for_params (s, TREE_OPERAND (e, 1), c, r, k, subtract);
 	}
       break;
 
     case PLUS_EXPR:
-      scan_tree_for_params (s, TREE_OPERAND (e, 0), c, r, k);
-      scan_tree_for_params (s, TREE_OPERAND (e, 1), c, r, k);
+      scan_tree_for_params (s, TREE_OPERAND (e, 0), c, r, k, subtract);
+      scan_tree_for_params (s, TREE_OPERAND (e, 1), c, r, k, subtract);
       break;
 
     case MINUS_EXPR:
-      scan_tree_for_params (s, TREE_OPERAND (e, 0), c, r, k);
+      scan_tree_for_params (s, TREE_OPERAND (e, 0), c, r, k, subtract);
       value_oppose (k, k);
-      scan_tree_for_params (s, TREE_OPERAND (e, 1), c, r, k);
+      scan_tree_for_params (s, TREE_OPERAND (e, 1), c, r, k, subtract);
       break;
 
     case SSA_NAME:
@@ -1976,22 +1993,37 @@ scan_tree_for_params (scop_p s, tree e, CloogMatrix *c, int r, Value k)
       if (c)
 	{
           param_col += c->NbColumns - scop_nb_params (s) - 1;
-	  value_assign (c->p[r][param_col], k);
+
+          if (subtract)
+	    value_subtract (c->p[r][param_col], c->p[r][param_col], k);
+          else
+	    value_addto (c->p[r][param_col], c->p[r][param_col], k);
 	}
       break;
 
     case INTEGER_CST:
       if (c)
 	{
+          int v = int_cst_value (e);
 	  cst_col = c->NbColumns - 1;
-	  value_set_si (c->p[r][cst_col], int_cst_value (e));
+
+          if (v < 0)
+          {
+            v = -v;
+            subtract = subtract ? false : true;
+          }
+                
+          if (subtract)
+            value_sub_int (c->p[r][cst_col], c->p[r][cst_col], v); 
+          else
+            value_add_int (c->p[r][cst_col], c->p[r][cst_col], v);
 	}
       break;
 
     case NOP_EXPR:
     case CONVERT_EXPR:
     case NON_LVALUE_EXPR:
-      scan_tree_for_params (s, TREE_OPERAND (e, 0), c, r, k);
+      scan_tree_for_params (s, TREE_OPERAND (e, 0), c, r, k, subtract);
       break;
 
     default:
@@ -2033,7 +2065,7 @@ idx_record_params (tree base, tree *idx, void *dta)
 
 	value_init (one);
 	value_set_si (one, 1);
-	scan_tree_for_params (scop, scev, NULL, 0, one);
+	scan_tree_for_params (scop, scev, NULL, 0, one, false);
 	value_clear (one);
       }
     }
@@ -2171,7 +2203,7 @@ find_scop_parameters (scop_p scop)
 	    Value one;
 	    value_init (one);
 	    value_set_si (one, 1);
-	    scan_tree_for_params (scop, nb_iters, NULL, 0, one);
+	    scan_tree_for_params (scop, nb_iters, NULL, 0, one, false);
 	    value_clear (one);
 	  }
 	}
@@ -2331,7 +2363,7 @@ build_loop_iteration_domains (scop_p scop, struct loop *loop,
 			  loop, nb_iters);
       value_init (one);
       value_set_si (one, 1);
-      scan_tree_for_params (scop, nb_iters, cstr, row, one);
+      scan_tree_for_params (scop, nb_iters, cstr, row, one, false);
       value_clear (one);
     }
 

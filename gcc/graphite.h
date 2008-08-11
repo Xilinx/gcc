@@ -360,6 +360,8 @@ scop_nb_loops (scop_p scop)
   return VEC_length (loop_p, SCOP_LOOP_NEST (scop));
 }
 
+/* Return the maximal loop depth in SCOP.  */
+
 static int
 scop_max_loop_depth (scop_p scop)
 {
@@ -500,6 +502,24 @@ static inline int
 gbb_outer_most_loop_index (scop_p scop, graphite_bb_p gb)
 {
   return scop_loop_index (scop, outer_most_loop (scop, gbb_loop (gb)));
+}
+
+/* Return the loop depth of LOOP in SCOP.  */
+
+static inline unsigned int
+scop_gimple_loop_depth (scop_p scop, loop_p loop)
+{
+  unsigned int depth = 0;
+
+  loop = loop_outer (loop);
+
+  while (scop_contains_loop (scop, loop))
+    {
+      depth++;
+      loop = loop_outer (loop);
+    }
+
+  return depth;
 }
 
 /* Associate a POLYHEDRON dependence description to two data
