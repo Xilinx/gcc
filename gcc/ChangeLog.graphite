@@ -1,5 +1,14 @@
 2008-08-11  Tobias Grosser  <grosser@fim.uni-passau.de>
 
+	* graphite.c (build_scop_dynamic_schedules): Remove value_init.
+	(scan_tree_for_params): Remove value_init.
+	(build_scop_context): Remove value_init.
+	(build_loop_iteration_domains): Remove value_init.
+	(schedule_to_scattering): Remove value_init.
+	(graphite_trans_bb_strip_mine): Remove value_init.
+
+2008-08-11  Tobias Grosser  <grosser@fim.uni-passau.de>
+
 	* gcc/graphite.c (limit_scops): New.
 	(graphite_transform_loops): Add limit SCoPs.
 	* gcc/testsuite/gcc.dg/graphite/scop-0.c: Update number of SCoPs.

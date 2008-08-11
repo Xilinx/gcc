@@ -1756,15 +1756,9 @@ build_scop_dynamic_schedules (scop_p scop)
           for (row = 0; row < GBB_DYNAMIC_SCHEDULE (gb)->NbRows; row++)
             for (col = 0; col < GBB_DYNAMIC_SCHEDULE (gb)->NbColumns; col++)
               if (row == col)
-                {
-                  value_init (GBB_DYNAMIC_SCHEDULE (gb)->p[row][col]);
-                  value_set_si (GBB_DYNAMIC_SCHEDULE (gb)->p[row][col], 1);
-                }
+                value_set_si (GBB_DYNAMIC_SCHEDULE (gb)->p[row][col], 1);
               else  
-                {
-                  value_init (GBB_DYNAMIC_SCHEDULE (gb)->p[row][col]);
-                  value_set_si (GBB_DYNAMIC_SCHEDULE (gb)->p[row][col], 0);
-                }
+                value_set_si (GBB_DYNAMIC_SCHEDULE (gb)->p[row][col], 0);
         }
       else
         GBB_DYNAMIC_SCHEDULE (gb) = NULL;
@@ -1913,7 +1907,6 @@ scan_tree_for_params (scop_p s, tree e, CloogMatrix *c, int r, Value k)
 	if (c)
 	  {
 	    int var_idx = loop_iteration_vector_dim (var, s);
-	    value_init (c->p[r][var_idx]);
 	    value_set_si (c->p[r][var_idx], int_cst_value (right));
 	  }
 
@@ -1928,7 +1921,6 @@ scan_tree_for_params (scop_p s, tree e, CloogMatrix *c, int r, Value k)
 	    if (c)
 	      {
 		cst_col = c->NbColumns - 1;
-		value_init (c->p[r][cst_col]);
 		value_set_si (c->p[r][cst_col], int_cst_value (left));
 	      }
 	    return;
@@ -1984,7 +1976,6 @@ scan_tree_for_params (scop_p s, tree e, CloogMatrix *c, int r, Value k)
       if (c)
 	{
           param_col += c->NbColumns - scop_nb_params (s) - 1;
-	  value_init (c->p[r][param_col]);
 	  value_assign (c->p[r][param_col], k);
 	}
       break;
@@ -1993,7 +1984,6 @@ scan_tree_for_params (scop_p s, tree e, CloogMatrix *c, int r, Value k)
       if (c)
 	{
 	  cst_col = c->NbColumns - 1;
-	  value_init (c->p[r][cst_col]);
 	  value_set_si (c->p[r][cst_col], int_cst_value (e));
 	}
       break;
@@ -2209,10 +2199,8 @@ build_scop_context (scop_p scop)
   /* Insert '0 >= 0' in the context matrix, as it is not allowed to be
      empty. */
  
-  value_init (matrix->p[0][0]);
   value_set_si (matrix->p[0][0], 1);
 
-  value_init (matrix->p[0][nb_params + 1]);
   value_set_si (matrix->p[0][nb_params + 1], 0);
 
   cloog_program_set_context (SCOP_PROG (scop),
@@ -2305,37 +2293,26 @@ build_loop_iteration_domains (scop_p scop, struct loop *loop,
     {
       /* Copy the eq/ineq and loops columns.  */
       for (j = 0; j < loop_col; j++)
-        {
-          value_init (cstr->p[i][j]);
-          value_assign (cstr->p[i][j], outer_cstr->p[i][j]);
-        }
+        value_assign (cstr->p[i][j], outer_cstr->p[i][j]);
 
       /* Leave an empty column in CSTR for the current loop, and then
         copy the parameter columns.  */
       for (j = loop_col; j < outer_cstr->NbColumns; j++)
-        {
-          value_init (cstr->p[i][j + 1]);
-          value_assign (cstr->p[i][j + 1], outer_cstr->p[i][j]);
-        }
+        value_assign (cstr->p[i][j + 1], outer_cstr->p[i][j]);
     }
 
   /* 0 <= loop_i */
   row = outer_cstr->NbRows;
-  value_init (cstr->p[row][0]);
   value_set_si (cstr->p[row][0], 1);
-  value_init (cstr->p[row][loop_col]);
   value_set_si (cstr->p[row][loop_col], 1);
 
   /* loop_i <= nb_iters */
   if (TREE_CODE (nb_iters) == INTEGER_CST)
     {
       row++;
-      value_init (cstr->p[row][0]);
       value_set_si (cstr->p[row][0], 1);
-      value_init (cstr->p[row][loop_col]);
       value_set_si (cstr->p[row][loop_col], -1);
 
-      value_init (cstr->p[row][cst_col]);
       value_set_si (cstr->p[row][cst_col],
 		    int_cst_value (nb_iters));
     }
@@ -2346,9 +2323,7 @@ build_loop_iteration_domains (scop_p scop, struct loop *loop,
       Value one;
 
       row++;
-      value_init (cstr->p[row][0]);
       value_set_si (cstr->p[row][0], 1);
-      value_init (cstr->p[row][loop_col]);
       value_set_si (cstr->p[row][loop_col], -1);
       nb_iters = analyze_scalar_evolution (loop, nb_iters);
       nb_iters = 
@@ -2575,13 +2550,9 @@ schedule_to_scattering (graphite_bb_p gb, int scattering_dimensions)
 
   /* Initialize the identity matrix.  */
   for (i = 0; i < scattering_dimensions; i++)
-    {
-      value_init (scat->p[i][i + 1]);
-      value_set_si (scat->p[i][i + 1], 1);
-    }
+    value_set_si (scat->p[i][i + 1], 1);
 
   /* Textual order outside the first loop */
-  value_init (scat->p[0][col_const]);
   value_set_si (scat->p[0][col_const], -GBB_STATIC_SCHEDULE (gb)[0]);
 
   /* For all surrounding loops.  */
@@ -2590,11 +2561,9 @@ schedule_to_scattering (graphite_bb_p gb, int scattering_dimensions)
       int schedule = GBB_STATIC_SCHEDULE (gb)[i + 1];
 
       /* Iterations of this loop.  */
-      value_init (scat->p[2 * i + 1][col_iter_offset + i]);
       value_set_si (scat->p[2 * i + 1][col_iter_offset + i], -1);
 
       /* Textual order inside this loop.  */
-      value_init (scat->p[2 * i + 2][col_const]);
       value_set_si (scat->p[2 * i + 2][col_const], -schedule);
     }
 
@@ -3937,12 +3906,10 @@ graphite_trans_bb_strip_mine (graphite_bb_p gb, int loop_depth, int stride)
     for (col = 0; col < domain->NbColumns; col++)
       if (col <= loop_depth)
         {
-          value_init (new_domain->p[row][col]);
           value_assign (new_domain->p[row][col], domain->p[row][col]);
         }
       else
         {
-          value_init (new_domain->p[row][col + 1]);
           value_assign (new_domain->p[row][col + 1], domain->p[row][col]);
         }
 
@@ -3968,11 +3935,8 @@ graphite_trans_bb_strip_mine (graphite_bb_p gb, int loop_depth, int stride)
   get_upper_bound (new_domain, col_loop_old, old_upper_bound);
 
   /* Set Lower Bound */
-  value_init (new_domain->p[row][0]);
   value_set_si (new_domain->p[row][0], 1);
-  value_init (new_domain->p[row][col_loop_strip]);
   value_set_si (new_domain->p[row][col_loop_strip], 1);
-  value_init (new_domain->p[row][const_column_index (new_domain)]);
   value_assign (new_domain->p[row][const_column_index (new_domain)], old_lower_bound);
   row++;
 
@@ -4003,11 +3967,8 @@ graphite_trans_bb_strip_mine (graphite_bb_p gb, int loop_depth, int stride)
     value_add_int (new_upper_bound, new_upper_bound, 1);
 
     /* Set Upper Bound */
-    value_init (new_domain->p[row][0]);
     value_set_si (new_domain->p[row][0], 1);
-    value_init (new_domain->p[row][col_loop_strip]);
     value_set_si (new_domain->p[row][col_loop_strip], -1);
-    value_init (new_domain->p[row][const_column_index (new_domain)]);
     value_assign (new_domain->p[row][const_column_index (new_domain)], new_upper_bound);
     row++;
   }
@@ -4026,13 +3987,9 @@ graphite_trans_bb_strip_mine (graphite_bb_p gb, int loop_depth, int stride)
   {
     row = get_lower_bound_row (new_domain, col_loop_old);
     /* Add local variable to keep linear representation.  */
-    value_init (new_domain->p[row][0]);
     value_set_si (new_domain->p[row][0], 1);
-    value_init (new_domain->p[row][const_column_index (new_domain)]);
     value_set_si (new_domain->p[row][const_column_index (new_domain)],0);
-    value_init (new_domain->p[row][col_loop_old]);
     value_set_si (new_domain->p[row][col_loop_old], 1);
-    value_init (new_domain->p[row][col_loop_strip]);
     value_set_si (new_domain->p[row][col_loop_strip], -1*((int)stride));
   }
 
@@ -4051,13 +4008,9 @@ graphite_trans_bb_strip_mine (graphite_bb_p gb, int loop_depth, int stride)
   {
     row = new_domain->NbRows-1;
     
-    value_init (new_domain->p[row][0]);
     value_set_si (new_domain->p[row][0], 1);
-    value_init (new_domain->p[row][col_loop_old]);
     value_set_si (new_domain->p[row][col_loop_old], -1);
-    value_init (new_domain->p[row][col_loop_strip]);
     value_set_si (new_domain->p[row][col_loop_strip], stride);
-    value_init (new_domain->p[row][const_column_index (new_domain)]);
     value_set_si (new_domain->p[row][const_column_index (new_domain)],stride-1);
   }
 
