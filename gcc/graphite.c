@@ -4407,6 +4407,54 @@ graphite_apply_transformations (scop_p scop)
   return transform_done;
 }
 
+
+/* We limit all SCoPs to SCoPs, that are completely surrounded by a loop. 
+
+   Example:
+
+   for (i      |
+     {         |
+       for (j  |  SCoP 1
+       for (k  |
+     }         |
+
+   * SCoP frontier, as this line is not surrounded by any loop. *
+
+   for (l      |  SCoP 2
+
+   This is necessary as scalar evolution and parameter detection need a
+   outermost loop to initialize parameters correctly.  
+  
+   TODO: FIX scalar evolution and parameter detection to allow mor flexible
+         SCoP frontiers.  */
+
+static void
+limit_scops (void)
+{
+  VEC (scop_p, heap) *new_scops = VEC_alloc (scop_p, heap, 3);
+  int i;
+  scop_p scop;
+
+  for (i = 0; VEC_iterate (scop_p, current_scops, i, scop); i++)
+    {
+      int j;
+      loop_p loop;
+      build_scop_bbs (scop);
+      build_scop_loop_nests (scop);
+
+      for (j = 0; VEC_iterate (loop_p, SCOP_LOOP_NEST (scop), j, loop); j++) 
+        if (!loop_in_scop_p (loop_outer (loop), scop))
+          {
+          scop_p n_scop = new_scop (loop->header);
+          end_scop (n_scop, single_exit (loop)->dest, NULL, NULL);
+          VEC_safe_push (scop_p, heap, new_scops, n_scop);
+        }
+    }
+
+  free_scops (current_scops);
+  current_scops = new_scops;
+}
+
 /* Perform a set of linear transforms on LOOPS.  */
 
 void
@@ -4427,6 +4475,7 @@ graphite_transform_loops (void)
     fprintf (dump_file, "Graphite loop transformations \n");
 
   build_scops ();
+  limit_scops ();
 
   for (i = 0; VEC_iterate (scop_p, current_scops, i, scop); i++)
     {

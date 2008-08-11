@@ -49,5 +49,5 @@ int longest_match(IPos cur_match)
 	     && --chain_length != 0);
     return best_len;
 }
-/* { dg-final { scan-graphite-dump-times "number of SCoPs: 11" 1 "graphite"} } */
+/* { dg-final { scan-tree-dump-times "number of SCoPs: 0" 1 "graphite"} } */
 /* { dg-final { cleanup-tree-dump "graphite" } } */

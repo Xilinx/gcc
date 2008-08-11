@@ -1,5 +1,32 @@
 2008-08-11  Tobias Grosser  <grosser@fim.uni-passau.de>
 
+	* gcc/graphite.c (limit_scops): New.
+	(graphite_transform_loops): Add limit SCoPs.
+	* gcc/testsuite/gcc.dg/graphite/scop-0.c: Update number of SCoPs.
+	* gcc/testsuite/gcc.dg/graphite/scop-1.c: Update number of SCoPs.
+	* gcc/testsuite/gcc.dg/graphite/scop-10.c: Update number of SCoPs.
+	* gcc/testsuite/gcc.dg/graphite/scop-11.c: Update number of SCoPs.
+	* gcc/testsuite/gcc.dg/graphite/scop-12.c: Update number of SCoPs.
+	* gcc/testsuite/gcc.dg/graphite/scop-13.c: Update number of SCoPs.
+	* gcc/testsuite/gcc.dg/graphite/scop-14.c: Update number of SCoPs.
+	* gcc/testsuite/gcc.dg/graphite/scop-15.c: Update number of SCoPs.
+	* gcc/testsuite/gcc.dg/graphite/scop-16.c: Update number of SCoPs.
+	Change loop numbers.
+	* gcc/testsuite/gcc.dg/graphite/scop-17.c: Update number of SCoPs.
+	Change loop numbers.
+	* gcc/testsuite/gcc.dg/graphite/scop-18.c: Update number of SCoPs.
+	* gcc/testsuite/gcc.dg/graphite/scop-2.c: Update number of SCoPs.
+	* gcc/testsuite/gcc.dg/graphite/scop-3.c: Update number of SCoPs.
+	* gcc/testsuite/gcc.dg/graphite/scop-4.c: Update number of SCoPs.
+	* gcc/testsuite/gcc.dg/graphite/scop-5.c: Update number of SCoPs.
+	* gcc/testsuite/gcc.dg/graphite/scop-6.c: Update number of SCoPs.
+	* gcc/testsuite/gcc.dg/graphite/scop-7.c: Update number of SCoPs.
+	* gcc/testsuite/gcc.dg/graphite/scop-8.c: Update number of SCoPs.
+	* gcc/testsuite/gcc.dg/graphite/scop-9.c: Update number of SCoPs.
+	* gcc/testsuite/gcc.dg/graphite/scop-matmult.c: Update number of SCoPs.
+
+2008-08-11  Tobias Grosser  <grosser@fim.uni-passau.de>
+
 	* graphite.c (graphite_transform_loops): Call always find_transform.
 
 2008-08-08  Tobias Grosser  <grosser@fim.uni-passau.de>

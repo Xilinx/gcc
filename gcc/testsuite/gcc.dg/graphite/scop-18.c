@@ -22,5 +22,5 @@ void test (float **A, float **B, float **C)
 
 /* Strip Mining is not profitable for loops 0, 1 and 2. */
 
-/* { dg-final { scan-graphite-dump-times "Strip Mining is not profitable" 3 "graphite" } } */
+/* { dg-final { scan-tree-dump-times "Strip Mining is not profitable" 4 "graphite" } } */
 /* { dg-final { cleanup-tree-dump "graphite" } } */

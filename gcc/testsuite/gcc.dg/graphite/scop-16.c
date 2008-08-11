@@ -21,6 +21,6 @@ int test ()
       foo (a[i][j]); 
 }
 
-/* Interchange is legal for loops 2 and 3.  */
-/* { dg-final { scan-graphite-dump-times "Interchange valid for loops 2 and 3:" 1 "graphite"} } */
+/* Interchange is legal for loops 0 and 1 of the first two SCoPs */
+/* { dg-final { scan-graphite-dump-times "Interchange valid for loops 0 and 1:" 2 "graphite"} } */
 /* { dg-final { cleanup-tree-dump "graphite" } } */

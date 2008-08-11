@@ -20,6 +20,6 @@ int test ()
       foo (a[i][j]); 
 }
 
-/* Interchange is not legal for loops 2 and 3.  */
-/* { dg-final { scan-graphite-dump-times "Interchange not valid for loops 2 and 3:" 1 "graphite"} } */
+/* Interchange is not legal for loops 0 and 1 of SCoP 2.  */
+/* { dg-final { scan-graphite-dump-times "Interchange not valid for loops 0 and 1:" 1 "graphite"} } */
 /* { dg-final { cleanup-tree-dump "graphite" } } */
