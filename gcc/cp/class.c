@@ -150,7 +150,6 @@ static void check_bases (tree, int *, int *);
 static void check_bases_and_members (tree);
 static tree create_vtable_ptr (tree, tree *);
 static void include_empty_classes (record_layout_info);
-static void layout_class_type (tree, tree *);
 static void fixup_pending_inline (tree);
 static void fixup_inline_methods (tree);
 static void propagate_binfo_offsets (tree, tree);
@@ -4664,7 +4663,7 @@ include_empty_classes (record_layout_info rli)
    BINFO_OFFSETs for all of the base-classes.  Position the vtable
    pointer.  Accumulate declared virtual functions on VIRTUALS_P.  */
 
-static void
+void
 layout_class_type (tree t, tree *virtuals_p)
 {
   tree non_static_data_members;

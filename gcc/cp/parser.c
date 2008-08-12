@@ -6985,6 +6985,11 @@ cp_parser_lambda_class_definition (cp_parser* parser,
      * cp_parser_compound_stmt does not pass it. */
     cp_parser_function_body (parser);
 
+    /* Recalculate offsets in case we had default captures.  */
+    tree dummy = NULL_TREE;
+    layout_class_type (type, /*virtuals_p=*/&dummy);
+    gcc_assert (dummy == NULL_TREE);
+
     /* Return type deduction.  */
     if (!LAMBDA_EXPR_RETURN_TYPE (lambda_expr))
     {

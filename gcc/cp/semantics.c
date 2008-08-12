@@ -2707,8 +2707,10 @@ finish_id_expression (tree id_expression,
                   /* Prepare to add to class. */
                   current_class_type = TREE_TYPE (lambda_expr);
                   TYPE_BEING_DEFINED (current_class_type) = 1;
+
                   /* Add to class.  */
                   finish_member_declaration (member);
+
                   /* Restore.  */
                   TYPE_BEING_DEFINED (current_class_type) = 0;
 
