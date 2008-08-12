@@ -5943,13 +5943,19 @@ Perform linear loop transformations on tree.  This flag can improve cache
 performance and allow further loop optimizations to take place.
 
 @item -floop-block
-Perform loop blocking transformations on loops.
+Perform loop blocking transformations on loops.  Blocking strip mines
+each loop in the loop nest such that the memory accesses of the
+element loops fit inside the L1 cache.
 
 @item -floop-strip-mine
-Perform loop strip mining transformations on loops.
+Perform loop strip mining transformations on loops.  Strip mining
+splits a loop into two nested loops.  The outer loop has strides 
+equal to the strip size and the inner loop has strides of the 
+original loop within a strip.
 
 @item -floop-interchange
-Perform loop interchange transformations on loops.
+Perform loop interchange transformations on loops.  Interchanging
+two nested loops switches the inner and outer loops. 
 
 @item -fcheck-data-deps
 @opindex fcheck-data-deps

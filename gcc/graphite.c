@@ -42,18 +42,13 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree-pass.h"
 #include "domwalk.h"
 #include "pointer-set.h"
+#include "gimple.h"
 
 #ifdef HAVE_cloog
 #include "cloog/cloog.h"
 #include "graphite.h"
 
-VEC (scop_p, heap) *current_scops;
-
-/* For each block, the PHI nodes that need to be rewritten are stored into
-   these vectors.  */
-typedef VEC(gimple, heap) *gimple_vec;
-DEF_VEC_P (gimple_vec);
-DEF_VEC_ALLOC_P (gimple_vec, heap);
+static VEC (scop_p, heap) *current_scops;
 
 /* Prints the loop mapping of SCOP.  */
 void debug_loop_mapping (scop_p);
@@ -492,7 +487,7 @@ new_loop_to_cloog_loop_str (int loop_num,
 {
   struct loop_to_cloog_loop_str *result;
 
-  result = XNEWVEC (struct loop_to_cloog_loop_str, 1);
+  result = XNEW (struct loop_to_cloog_loop_str);
   result->loop_num = loop_num;
   result->cloog_loop = cloog_loop;
   result->loop_position = loop_position;
@@ -518,14 +513,6 @@ eq_loop_to_cloog_loop (const void *el1, const void *el2)
   elt1 = (const struct loop_to_cloog_loop_str *) el1;
   elt2 = (const struct loop_to_cloog_loop_str *) el2;
   return elt1->loop_num == elt2->loop_num;
-}
-
-/* Free function for SCOP_LOOP2CLOOG_LOOP.  */
-
-static void
-del_loop_to_cloog_loop (void *e)
-{
-  free (e);
 }
 
 /* Compares two graphite bbs and returns an integer less than, equal to, or
@@ -926,7 +913,12 @@ loop_affine_expr (struct loop *outermost_loop, struct loop *loop, tree expr)
 static bool
 stmt_simple_memref_for_scop_p (struct loop *loop, gimple stmt, tree op)
 {
-  data_reference_p dr = create_data_ref (loop, op, stmt, true);
+  data_reference_p dr;
+
+  if (really_constant_p (op))
+    return true;
+
+  dr = create_data_ref (loop, op, stmt, true);
   if (!dr)
     return false;
 
@@ -1077,7 +1069,7 @@ new_scop (basic_block entry)
   cloog_program_set_names (SCOP_PROG (scop), cloog_names_malloc ());
   SCOP_LOOP2CLOOG_LOOP (scop) = htab_create (10, hash_loop_to_cloog_loop,
 					     eq_loop_to_cloog_loop,
-					     del_loop_to_cloog_loop);
+					     free);
   SCOP_LOOPS_MAPPING (scop) = create_loops_mapping ();
   return scop;
 }

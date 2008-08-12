@@ -1,3 +1,18 @@
+2008-08-12  Harsha Jagasia  <harsha.jagasia@amd.com>
+
+	* doc/invoke.texi (-floop-block, -floop-strip-mine,
+	-floop-interchange): Add more text for explaining what each of these
+	flags is doing.
+	* tree-into-ssa.c (gimple_vec): Moved to...
+	* graphite.c: Include gimple.h.
+	(gimple_vec): Moved to...
+	(del_loop_to_cloog_loop): Removed.
+	(loop_affine_expr): Do not call create_data_ref when the 
+	operand is a constant.
+	(new_scop): Use free instead of del_loop_to_cloog_loop.
+	* Makefile.in (graphite.o): Depend on GIMPLE_H.
+	* gimple.h (gimple_vec): ... here.
+
 2008-08-11  Tobias Grosser  <grosser@fim.uni-passau.de>
 
 	* graphite.c (scopdet_bb_info): Only allow loops with known number of
