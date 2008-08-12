@@ -537,10 +537,11 @@ enum cp_lambda_default_capture_mode_type {
 #define LAMBDA_EXPR_CAPTURES_THIS_P(NODE) \
   (((struct tree_lambda_expr *)LAMBDA_EXPR_CHECK (NODE))->captures_this_p)
 
-/* The capture-list, excluding `this'.
+/* The capture-list, excluding `this'.  Values are stored as FIELD_DECL, whether
+ * or not they've been added to the lambda's class type, so that the name, type,
+ * and field are all together.
    tree_list 
-     value: name (IDENTIFIER_NODE)
-     purpose: type (REFERENCE_TYPE if so captured)  */
+     value: the FIELD_DECL for this capture */
 #define LAMBDA_EXPR_CAPTURE_LIST(NODE) \
   (((struct tree_lambda_expr *)LAMBDA_EXPR_CHECK (NODE))->capture_list)
 
@@ -549,8 +550,7 @@ enum cp_lambda_default_capture_mode_type {
 
 /* The initializers for the captures.  This is a GNU extension.
    tree_list 
-     value: expr
-     purpose: none  */
+     value: expr  */
 #define LAMBDA_EXPR_CAPTURE_INIT_LIST(NODE) \
   (((struct tree_lambda_expr *)LAMBDA_EXPR_CHECK (NODE))->capture_init_list)
 

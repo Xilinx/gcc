@@ -2670,6 +2670,7 @@ finish_id_expression (tree id_expression,
                 tree capture_base_type = TREE_TYPE (decl);
                 tree capture_id = DECL_NAME (decl);
                 tree member = NULL_TREE;
+                tree capture_init_expr = decl;
 
                 tree node;
                 for (node = lambda_stack;
@@ -2677,20 +2678,15 @@ finish_id_expression (tree id_expression,
                      node = TREE_CHAIN (node))
                 {
                   tree lambda_expr = TREE_VALUE (node);
-                  tree capture_init_type =
+                  tree capture_type =
                     (LAMBDA_EXPR_DEFAULT_CAPTURE_MODE (lambda_expr)
                      == CPLD_REFERENCE)
                     ? (cp_build_reference_type (
                           capture_base_type,
                           /*rval=*/false))
                     : (capture_base_type);
-                  tree capture_init_expr = decl;
 
                   /*
-                  LAMBDA_EXPR_CAPTURE_LIST (lambda_expr) = tree_cons (
-                      capture_id,
-                      capture_init_type,
-                      LAMBDA_EXPR_CAPTURE_LIST (lambda_expr));
                   LAMBDA_EXPR_CAPTURE_INIT_LIST (lambda_expr) = tree_cons (
                       NULL_TREE,
                       capture_init_expr,
@@ -2701,7 +2697,13 @@ finish_id_expression (tree id_expression,
                   member = build_lang_decl (
                       FIELD_DECL,
                       capture_id,
-                      capture_init_type);
+                      capture_type);
+
+                  LAMBDA_EXPR_CAPTURE_LIST (lambda_expr) = tree_cons (
+                    NULL_TREE,
+                    member,
+                    LAMBDA_EXPR_CAPTURE_LIST (lambda_expr));
+
                   DECL_MUTABLE_P (member) = 1;
 
                   /* Prepare to add to class. */
@@ -2713,6 +2715,8 @@ finish_id_expression (tree id_expression,
 
                   /* Restore.  */
                   TYPE_BEING_DEFINED (current_class_type) = 0;
+
+                  capture_init_expr = member;
 
                 }
 

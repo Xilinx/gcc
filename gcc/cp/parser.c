@@ -6772,13 +6772,13 @@ cp_parser_lambda_class_definition (cp_parser* parser,
 
   tree ctor_parm_type_list = NULL_TREE;
   tree ctor_parm_list = NULL_TREE;
-  tree ctor_init_list = NULL_TREE;
+  tree ctor_mem_init_list = NULL_TREE;
 
   /* For each capture, we need to
        1. Add parm to ctor_parm_list
        2. Add type to ctor_parm_type_list
        3. Add member to class
-       4. Add member-initializer to ctor_init_list  */
+       4. Add member-initializer to ctor_mem_init_list  */
   {
     tree capture = NULL_TREE;
 
@@ -6789,8 +6789,9 @@ cp_parser_lambda_class_definition (cp_parser* parser,
          capture;
          capture = TREE_CHAIN (capture))
     {
-      tree capture_type = TREE_VALUE (capture);
-      tree capture_id = TREE_PURPOSE (capture);
+      tree member = TREE_VALUE (capture);
+      tree capture_type = TREE_TYPE (member);
+      tree capture_id = DECL_NAME (member);
 
       /* TODO: support rvalue-reference captures. 
        * look into tree.c : cp_build_reference_type */
@@ -6820,11 +6821,7 @@ cp_parser_lambda_class_definition (cp_parser* parser,
           capture_type,
           ctor_parm_type_list);
 
-      /* Make member variable.  */
-      tree member = build_lang_decl (
-          FIELD_DECL,
-          capture_id,
-          capture_type);
+      /* TODO: add check for LAMBDA_EXPR_MUTABLE_P */
       DECL_MUTABLE_P (member) = 1;
 
       /* Add to class.  */
@@ -6838,10 +6835,10 @@ cp_parser_lambda_class_definition (cp_parser* parser,
           NULL_TREE);
 
       /* Add the member-initializer to the list.  */
-      ctor_init_list = tree_cons (
+      ctor_mem_init_list = tree_cons (
           member,
           member_ctor_arg_list,
-          ctor_init_list); 
+          ctor_mem_init_list); 
 
     }
 
@@ -6917,7 +6914,6 @@ cp_parser_lambda_class_definition (cp_parser* parser,
 
   tree ctor = NULL_TREE;
 
-  if (LAMBDA_EXPR_REQUIRES_CONSTRUCTOR_P(lambda_expr))
   {
     tree ctor_type = build_method_type_directly (
         type,
@@ -7041,7 +7037,6 @@ cp_parser_lambda_class_definition (cp_parser* parser,
    * + ctor_initializer_opt_and_function_body
    * + mem_initializer_list
    ********************************************/
-  if (LAMBDA_EXPR_REQUIRES_CONSTRUCTOR_P(lambda_expr))
   {
     /* Let the front end know that we are going to be defining this
        function.  */
@@ -7052,7 +7047,7 @@ cp_parser_lambda_class_definition (cp_parser* parser,
 
     tree ctor_body = begin_function_body ();
 
-    finish_mem_initializers (ctor_init_list);
+    finish_mem_initializers (ctor_mem_init_list);
 
     finish_function_body (ctor_body);
 
@@ -7109,7 +7104,7 @@ cp_parser_lambda_introducer (cp_parser* parser, tree lambda_expr)
   {
     tree capture_id;
     tree capture_init_expr;
-    tree capture_init_type;
+    tree capture_type;
 
     enum capture_kind_type {
       BY_COPY,
@@ -7181,16 +7176,16 @@ cp_parser_lambda_introducer (cp_parser* parser, tree lambda_expr)
     }
 
     /* Get the type. */
-    capture_init_type = finish_decltype_type (
+    capture_type = finish_decltype_type (
         capture_init_expr,
         /*id_expression_or_member_access_p=*/false);
 
     /* May come as a reference, so strip it down if desired. */
     if (capture_kind != BY_REFERENCE)
     {
-      capture_init_type = non_reference (capture_init_type);
+      capture_type = non_reference (capture_type);
     }
-    else if (TREE_CODE (capture_init_type) != REFERENCE_TYPE)
+    else if (TREE_CODE (capture_type) != REFERENCE_TYPE)
     {
       error (
           "%qE cannot be used to initialize a non-const reference",
@@ -7198,10 +7193,17 @@ cp_parser_lambda_introducer (cp_parser* parser, tree lambda_expr)
       continue;
     }
 
+    /* Make member variable.  */
+    tree member = build_lang_decl (
+        FIELD_DECL,
+        capture_id,
+        capture_type);
+
     LAMBDA_EXPR_CAPTURE_LIST (lambda_expr) = tree_cons (
-      capture_id,
-      capture_init_type,
+      NULL_TREE,
+      member,
       LAMBDA_EXPR_CAPTURE_LIST (lambda_expr));
+
     LAMBDA_EXPR_CAPTURE_INIT_LIST (lambda_expr) = tree_cons (
       NULL_TREE,
       capture_init_expr,
