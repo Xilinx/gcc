@@ -1,5 +1,11 @@
 2008-08-13  Sebastian Pop  <sebastian.pop@amd.com>
 
+	* cfgloopmanip.c (create_empty_loop_on_edge): Don't call
+	add_referenced_var.
+	* graphite.c (graphite_create_new_loop): Call add_referenced_var.
+
+2008-08-13  Sebastian Pop  <sebastian.pop@amd.com>
+
 	* cfgloopmanip.c (create_empty_loop_on_edge): Improve documentation.
 	Factor gcc_asserts into a single one.  Use force_gimple_operand_gsi.
 	* tree-scalar-evolution.c: Revert useless changes.

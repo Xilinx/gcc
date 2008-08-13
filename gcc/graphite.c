@@ -3140,6 +3140,8 @@ graphite_create_new_loop (scop_p scop, edge entry_edge,
 				  SCOP_PARAMS (scop),
 				  ivstack);
   ivvar = create_tmp_var (integer_type_node, "graphiteIV");
+  add_referenced_var (ivvar);
+
   upb = clast_to_gcc_expression (stmt->UB, integer_type_node,
 				 SCOP_PARAMS (scop),
 				 ivstack);

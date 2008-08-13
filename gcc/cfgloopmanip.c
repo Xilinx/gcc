@@ -592,7 +592,6 @@ create_empty_loop_on_edge (edge entry_edge,
       gsi_commit_edge_inserts ();
     }
 
-  add_referenced_var (iv);
   standard_iv_increment_position (loop, &gsi, &insert_after);
   create_iv (initial_value, stride, iv, loop, &gsi, insert_after,
 	     iv_before, NULL);
