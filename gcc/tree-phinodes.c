@@ -449,6 +449,7 @@ remove_phi_args (edge e)
     remove_phi_arg_num (gsi_stmt (gsi), e->dest_idx);
 }
 
+
 /* Remove the PHI node pointed-to by iterator GSI from basic block BB.  After
    removal, iterator GSI is updated to point to the next PHI node in the
    sequence. If RELEASE_LHS_P is true, the LHS of this PHI node is released

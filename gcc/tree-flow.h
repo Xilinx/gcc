@@ -687,7 +687,6 @@ tree copy_var_decl (tree, tree, tree);
 /* Location to track pending stmt for edge insertion.  */
 #define PENDING_STMT(e)	((e)->insns.g)
 
-extern void remove_bb (basic_block bb);
 extern void delete_tree_cfg_annotations (void);
 extern bool stmt_ends_bb_p (gimple);
 extern bool is_ctrl_stmt (gimple);

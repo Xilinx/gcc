@@ -2052,31 +2052,6 @@ instantiate_scev_1 (struct loop *instantiation_loop,
 	 inside the loop.  */
       res = !flow_bb_inside_loop_p (instantiation_loop, def_bb) 
 	? chrec : chrec_dont_know;
-#if 0
-      if (!flow_bb_inside_loop_p (loop, def_bb))
-	res = chrec;
-      else
-	{
-	  /* res = chrec_dont_know; */
-	  tree def = SSA_NAME_DEF_STMT (chrec);
-
-	  /* Instantiate as much as possible until ending on a phi
-	     node of the same loop, in which case it means that the
-	     definition is varying in that loop.  */
-	  switch (TREE_CODE (def))
-	    {
-	    case MODIFY_EXPR:
-	      res = instantiate_parameters_1 (loop, TREE_OPERAND (def, 1),
-					      flags, cache, size_expr);
-	      break;
-
-	    case PHI_NODE:
-	    default:
-	      res = chrec_dont_know;
-	      break;
-	    }
-	}
-#endif
       set_instantiated_value (cache, chrec, res);
 
       /* To make things even more complicated, instantiate_scev_1
@@ -2237,7 +2212,7 @@ instantiate_scev_1 (struct loop *instantiation_loop,
 
     case SCEV_KNOWN:
       return chrec_known;
-
+                                     
     default:
       break;
     }

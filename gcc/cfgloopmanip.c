@@ -505,31 +505,32 @@ static void update_dominators_in_loop (struct loop *loop)
 
 /* create_empty_loop_on_edge
    |
-   |     -------------                 -----------------------           
-   |     |  pred_bb  |                 |  pred_bb            |           
-   |     -------------                 |  IV = INITIAL_VALUE |           
-   |           |                       -----------------------           
-   |           |                       ______    | ENTRY_EDGE            
-   |           | ENTRY_EDGE           /      V   V                       
-   |           |             ====>   |     ------------------               
-   |           |                     |     | loop_header     |               
-   |           V                     |     | IV <= UPPER_BOUND|---          
-   |     -------------               |     ------------------     \         
-   |     |  succ_bb  |               |         |                   \        
-   |     -------------               |         |                    |       
-   |                                 |         V                    | exit_e
-   |                                 |      --------------          |       
-   |                                 |      | loop_latch |          |       
-   |                                 |      |IV += STEP  |          V       
-   |                                 |      --------------      ------------
-   |                                  \       /                 | succ_bb  |
-   |                                   \ ___ /                  ------------
+   |     -------------                 ------------------------
+   |     |  pred_bb  |                 |  pred_bb              |
+   |     -------------                 |  IV_0 = INITIAL_VALUE |
+   |           |                       ------------------------
+   |           |                       ______    | ENTRY_EDGE
+   |           | ENTRY_EDGE           /      V   V
+   |           |             ====>   |     -----------------------------
+   |           |                     |     | IV_BEFORE = phi (IV_0, IV) |
+   |           |                     |     | loop_header                |
+   |           V                     |     | IV_BEFORE <= UPPER_BOUND   |
+   |     -------------               |     -----------------------\-----
+   |     |  succ_bb  |               |         |                   \
+   |     -------------               |         |                    \ exit_e
+   |                                 |         V                     V---------
+   |                                 |      --------------           | succ_bb |
+   |                                 |      | loop_latch  |          ----------
+   |                                 |      |IV = IV_BEFORE + STRIDE
+   |                                 |      --------------
+   |                                  \       /
+   |                                   \ ___ /
 
    Creates an empty loop as shown above, the IV_BEFORE is the SSA_NAME
    that is used before the increment of IV. IV_BEFORE should be used for 
    adding code to the body that uses the IV.  OUTER is the outer loop in
-   which the new loop should be inserted.
-*/
+   which the new loop should be inserted.  */
+
 struct loop *
 create_empty_loop_on_edge (edge entry_edge, 
 			   tree initial_value,
@@ -551,11 +552,7 @@ create_empty_loop_on_edge (edge entry_edge,
   int prob;
   tree upper_bound_gimplified;
   
-  gcc_assert (entry_edge);
-  gcc_assert (initial_value);
-  gcc_assert (stride);
-  gcc_assert (upper_bound);
-  gcc_assert (iv);
+  gcc_assert (entry_edge && initial_value && stride && upper_bound && iv);
 
   /* Create header, latch and wire up the loop.  */
   pred_bb = entry_edge->src;
@@ -608,20 +605,17 @@ create_empty_loop_on_edge (edge entry_edge,
   gsi = gsi_last_bb (exit_e->src);
 
   upper_bound_gimplified = 
-    force_gimple_operand (upper_bound, &stmts, true, NULL);
-  if (stmts)
-    gsi_insert_seq_after (&gsi, stmts, GSI_NEW_STMT);
+    force_gimple_operand_gsi (&gsi, upper_bound, true, NULL,
+			      false, GSI_NEW_STMT);
   gsi = gsi_last_bb (exit_e->src);
   
   cond_expr = gimple_build_cond 
     (LE_EXPR, *iv_before, upper_bound_gimplified, NULL_TREE, NULL_TREE);
 
   exit_test = gimple_cond_lhs (cond_expr);
-  exit_test = force_gimple_operand (exit_test, &stmts, true, NULL);
+  exit_test = force_gimple_operand_gsi (&gsi, exit_test, true, NULL,
+					false, GSI_NEW_STMT);
   gimple_cond_set_lhs (cond_expr, exit_test);
-  if (stmts)
-    gsi_insert_seq_after (&gsi, stmts, GSI_NEW_STMT);
-
   gsi = gsi_last_bb (exit_e->src);
   gsi_insert_after (&gsi, cond_expr, GSI_NEW_STMT);
 

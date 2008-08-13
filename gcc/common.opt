@@ -545,7 +545,7 @@ has finished
 
 fgraphite
 Common Report Var(flag_graphite)
-Enable in and out of Graphite representation, not modifying the compiled program
+Enable in and out of Graphite representation
 
 floop-strip-mine
 Common Report Var(flag_loop_strip_mine) Optimization

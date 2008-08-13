@@ -1,3 +1,16 @@
+2008-08-13  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* cfgloopmanip.c (create_empty_loop_on_edge): Improve documentation.
+	Factor gcc_asserts into a single one.  Use force_gimple_operand_gsi.
+	* tree-scalar-evolution.c: Revert useless changes.
+	* tree-phinodes.c: Same.
+	* cfghooks.c: Same.
+	* vec.h: Same.
+	* tree-vectorizer.h: Same.
+	* tree-flow.h: Same.
+	* tree-cfg.c: Same.
+	* common.opt (fgraphite): Update documentation.
+
 2008-08-12  Harsha Jagasia  <harsha.jagasia@amd.com>
 
 	* doc/invoke.texi (-floop-block, -floop-strip-mine,
