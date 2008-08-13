@@ -1,3 +1,10 @@
+2008-08-13  Tobias Grosser  <grosser@fim.uni-passau.de>
+
+	* configure: Rebuilt.
+	* configure.ac: Improve PPL and CLooG to work also on FreeBSD.
+	* gcc/Makefile.in: Add GMPLIBS to LIBS so that gcc detects them on
+	FreeBSD.
+
 2008-08-04  Sebastian Pop  <sebastian.pop@amd.com>
 
 	* configure.ac: Check for CLooG and PPL version numbers.

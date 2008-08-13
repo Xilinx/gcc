@@ -4882,7 +4882,7 @@ if test "x$with_cloog$with_cloog_include$with_cloog_lib" = x && test -d ${srcdir
 fi
 
 saved_CFLAGS="$CFLAGS"
-CFLAGS="$CFLAGS $clooginc"
+CFLAGS="$CFLAGS $pplinc $gmpinc"
 
 echo "$as_me:$LINENO: checking for correct version of PPL" >&5
 echo $ECHO_N "checking for correct version of PPL... $ECHO_C" >&6
@@ -4892,7 +4892,7 @@ _ACEOF
 cat confdefs.h >>conftest.$ac_ext
 cat >>conftest.$ac_ext <<_ACEOF
 /* end confdefs.h.  */
-#include "cloog/cloog.h"
+#include "ppl_c.h"
 int
 main ()
 {
@@ -4937,6 +4937,10 @@ echo "$as_me:$LINENO: result: no" >&5
 echo "${ECHO_T}no" >&6; clooglibs= ; clooginc=
 fi
 rm -f conftest.err conftest.$ac_objext conftest.$ac_ext
+CFLAGS="$saved_CFLAGS"
+
+saved_CFLAGS="$CFLAGS"
+CFLAGS="$CFLAGS $clooginc $gmpinc $pplinc"
 
 echo "$as_me:$LINENO: checking for correct version of CLooG" >&5
 echo $ECHO_N "checking for correct version of CLooG... $ECHO_C" >&6
