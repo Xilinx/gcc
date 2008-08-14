@@ -6770,10 +6770,6 @@ cp_parser_lambda_class_definition (cp_parser* parser,
     type = begin_class_definition (type, NULL_TREE);
   }
 
-  tree ctor_parm_type_list = NULL_TREE;
-  tree ctor_parm_list = NULL_TREE;
-  tree ctor_mem_init_list = NULL_TREE;
-
   /* For each capture, we need to
        1. Add parm to ctor_parm_list
        2. Add type to ctor_parm_type_list
@@ -6790,63 +6786,13 @@ cp_parser_lambda_class_definition (cp_parser* parser,
          capture = TREE_CHAIN (capture))
     {
       tree member = TREE_VALUE (capture);
-      tree capture_type = TREE_TYPE (member);
-      tree capture_id = DECL_NAME (member);
-
-      /* TODO: support rvalue-reference captures. 
-       * look into tree.c : cp_build_reference_type */
-      /*
-      if (capture_kind == BY_RVALUE_REFERENCE)
-        capture_declarator = make_reference_declarator (
-            /cv_qualifiers=/TYPE_UNQUALIFIED,
-            capture_declarator,
-            /rvalue_ref=/true);
-            */
-
-      /* Make constructor parameter.  */
-      tree ctor_parm = cp_build_parm_decl (
-          capture_id,
-          capture_type);
-      /* TODO: unnecessary?  */
-      /*DECL_CONTEXT (ctor_parm) = ctor;*/
-      TREE_USED (ctor_parm) = 1;
-
-      /* Add to constructor parameter list.  */
-      TREE_CHAIN (ctor_parm) = ctor_parm_list;
-      ctor_parm_list = ctor_parm;
-
-      /* Add its type to the list.  */
-      ctor_parm_type_list = tree_cons (
-          NULL_TREE,
-          capture_type,
-          ctor_parm_type_list);
 
       /* TODO: add check for LAMBDA_EXPR_MUTABLE_P */
       DECL_MUTABLE_P (member) = 1;
 
       /* Add to class.  */
       finish_member_declaration (member);
-
-      /* In the member-initializer-list for the constructor, the arguments to a
-       * member's constructor consist of the corresponding parameter.  */
-      tree member_ctor_arg_list = tree_cons (
-          NULL_TREE,
-          ctor_parm,
-          NULL_TREE);
-
-      /* Add the member-initializer to the list.  */
-      ctor_mem_init_list = tree_cons (
-          member,
-          member_ctor_arg_list,
-          ctor_mem_init_list); 
-
     }
-
-    /* Built parameters in reverse order.  */
-    /* TODO: reverse CAPTURE_INIT_LIST instead? */
-    ctor_parm_list = nreverse (ctor_parm_list);
-    ctor_parm_type_list = nreverse (ctor_parm_type_list);
-    chainon (ctor_parm_type_list, void_list_node);
 
   }
 
@@ -6910,6 +6856,75 @@ cp_parser_lambda_class_definition (cp_parser* parser,
     finish_method (fco);
 
     finish_member_declaration (fco);
+  }
+
+  tree ctor_parm_type_list = NULL_TREE;
+  tree ctor_parm_list = NULL_TREE;
+  tree ctor_mem_init_list = NULL_TREE;
+
+  {
+    tree capture = NULL_TREE;
+
+    /* Members are private (for finish_member_declaration).  */
+    current_access_specifier = access_private_node;
+
+    for (capture = LAMBDA_EXPR_CAPTURE_LIST (lambda_expr);
+         capture;
+         capture = TREE_CHAIN (capture))
+    {
+      tree member = TREE_VALUE (capture);
+      tree capture_type = TREE_TYPE (member);
+      tree capture_id = DECL_NAME (member);
+
+      /* TODO: support rvalue-reference captures. 
+       * look into tree.c : cp_build_reference_type */
+      /*
+      if (capture_kind == BY_RVALUE_REFERENCE)
+        capture_declarator = make_reference_declarator (
+            /cv_qualifiers=/TYPE_UNQUALIFIED,
+            capture_declarator,
+            /rvalue_ref=/true);
+            */
+
+      /* Make constructor parameter.  */
+      tree ctor_parm = cp_build_parm_decl (
+          capture_id,
+          capture_type);
+      /* TODO: unnecessary?  */
+      /*DECL_CONTEXT (ctor_parm) = ctor;*/
+      TREE_USED (ctor_parm) = 1;
+
+      /* Add to constructor parameter list.  */
+      TREE_CHAIN (ctor_parm) = ctor_parm_list;
+      ctor_parm_list = ctor_parm;
+
+      /* Add its type to the list.  */
+      ctor_parm_type_list = tree_cons (
+          NULL_TREE,
+          capture_type,
+          ctor_parm_type_list);
+
+      /* In the member-initializer-list for the constructor, the arguments to a
+       * member's constructor consist of the corresponding parameter.  */
+      tree member_ctor_arg_list = tree_cons (
+          NULL_TREE,
+          ctor_parm,
+          NULL_TREE);
+
+      /* Add the member-initializer to the list.  */
+      ctor_mem_init_list = tree_cons (
+          member,
+          member_ctor_arg_list,
+          ctor_mem_init_list); 
+
+    }
+
+    /* Built parameters in reverse order.  */
+    /* TODO: reverse CAPTURE_INIT_LIST instead? */
+    ctor_parm_list = nreverse (ctor_parm_list);
+    ctor_parm_type_list = nreverse (ctor_parm_type_list);
+    chainon (ctor_parm_type_list, void_list_node);
+
   }
 
   tree ctor = NULL_TREE;
