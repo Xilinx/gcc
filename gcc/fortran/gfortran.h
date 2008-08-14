@@ -1958,10 +1958,20 @@ extern iterator_stack *iter_stack;
 typedef struct gfc_finalizer
 {
   struct gfc_finalizer* next;
-  gfc_symbol* procedure;
   locus where; /* Where the FINAL declaration occurred.  */
+
+  /* Up to resolution, we want the gfc_symbol, there we lookup the corresponding
+     symtree and later need only that.  This way, we can access and call the
+     finalizers from every context as they should be "always accessible".  I
+     don't make this a union because we need the information whether proc_sym is
+     still referenced or not for dereferencing it on deleting a gfc_finalizer
+     structure.  */
+  gfc_symbol*  proc_sym;
+  gfc_symtree* proc_tree; 
 }
 gfc_finalizer;
+#define gfc_get_finalizer() XCNEW (gfc_finalizer)
+
 
 /************************ Function prototypes *************************/
 
@@ -2160,7 +2170,8 @@ gfc_try gfc_add_volatile (symbol_attribute *, const char *, locus *);
 gfc_try gfc_add_proc (symbol_attribute *attr, const char *name, locus *where);
 
 gfc_try gfc_add_access (symbol_attribute *, gfc_access, const char *, locus *);
-gfc_try gfc_add_is_bind_c(symbol_attribute *, const char *, locus *, int);
+gfc_try gfc_add_is_bind_c (symbol_attribute *, const char *, locus *, int);
+gfc_try gfc_add_extension (symbol_attribute *, locus *);
 gfc_try gfc_add_value (symbol_attribute *, const char *, locus *);
 gfc_try gfc_add_flavor (symbol_attribute *, sym_flavor, const char *, locus *);
 gfc_try gfc_add_entry (symbol_attribute *, const char *, locus *);
@@ -2399,6 +2410,7 @@ gfc_try gfc_extend_assign (gfc_code *, gfc_namespace *);
 gfc_try gfc_add_interface (gfc_symbol *);
 gfc_interface *gfc_current_interface_head (void);
 void gfc_set_current_interface_head (gfc_interface *);
+gfc_symtree* gfc_find_sym_in_symtree (gfc_symbol*);
 
 /* io.c */
 extern gfc_st_label format_asterisk;

@@ -439,6 +439,14 @@ proc check_profiling_available { test_what } {
 	return 0
     }
 
+    # We don't yet support profiling for MIPS16.
+    if { [istarget mips*-*-*]
+	 && ![check_effective_target_nomips16]
+	 && ([lindex $test_what 1] == "-p"
+	     || [lindex $test_what 1] == "-pg") } {
+	return 0
+    }
+
     # MinGW does not support -p.
     if { [istarget *-*-mingw*] && [lindex $test_what 1] == "-p" } {
 	return 0
@@ -476,7 +484,7 @@ proc check_profiling_available { test_what } {
 	     || [istarget m68k-*-uclinux*]
 	     || [istarget mips*-*-elf*]
 	     || [istarget xstormy16-*]
-	     || [istarget xtensa-*-elf]
+	     || [istarget xtensa*-*-elf]
 	     || [istarget *-*-vxworks*] } {
 	    set profiling_available_saved 0
 	} else {
@@ -1203,6 +1211,8 @@ proc check_effective_target_vect_floatint_cvt { } {
     } else {
         set et_vect_floatint_cvt_saved 0
         if { [istarget i?86-*-*]
+              || ([istarget powerpc*-*-*]
+                   && ![istarget powerpc-*-linux*paired*])
               || [istarget x86_64-*-*] } {
            set et_vect_floatint_cvt_saved 1
         }

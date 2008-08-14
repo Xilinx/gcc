@@ -1657,18 +1657,31 @@ enum mips_code_readable_setting {
 #define FRAME_POINTER_REQUIRED (mips_frame_pointer_required ())
 
 /* Register in which static-chain is passed to a function.  */
-#define STATIC_CHAIN_REGNUM (GP_REG_FIRST + 2)
+#define STATIC_CHAIN_REGNUM (GP_REG_FIRST + 15)
 
-/* Registers used as temporaries in prologue/epilogue code.  If we're
-   generating mips16 code, these registers must come from the core set
-   of 8.  The prologue register mustn't conflict with any incoming
-   arguments, the static chain pointer, or the frame pointer.  The
-   epilogue temporary mustn't conflict with the return registers, the
-   frame pointer, the EH stack adjustment, or the EH data registers.  */
+/* Registers used as temporaries in prologue/epilogue code:
 
+   - If a MIPS16 PIC function needs access to _gp, it first loads
+     the value into MIPS16_PIC_TEMP and then copies it to $gp.
+
+   - The prologue can use MIPS_PROLOGUE_TEMP as a general temporary
+     register.  The register must not conflict with MIPS16_PIC_TEMP.
+
+   - The epilogue can use MIPS_EPILOGUE_TEMP as a general temporary
+     register.
+
+   If we're generating MIPS16 code, these registers must come from the
+   core set of 8.  The prologue registers mustn't conflict with any
+   incoming arguments, the static chain pointer, or the frame pointer.
+   The epilogue temporary mustn't conflict with the return registers,
+   the PIC call register ($25), the frame pointer, the EH stack adjustment,
+   or the EH data registers.  */
+
+#define MIPS16_PIC_TEMP_REGNUM (GP_REG_FIRST + 2)
 #define MIPS_PROLOGUE_TEMP_REGNUM (GP_REG_FIRST + 3)
 #define MIPS_EPILOGUE_TEMP_REGNUM (GP_REG_FIRST + (TARGET_MIPS16 ? 6 : 8))
 
+#define MIPS16_PIC_TEMP gen_rtx_REG (Pmode, MIPS16_PIC_TEMP_REGNUM)
 #define MIPS_PROLOGUE_TEMP(MODE) gen_rtx_REG (MODE, MIPS_PROLOGUE_TEMP_REGNUM)
 #define MIPS_EPILOGUE_TEMP(MODE) gen_rtx_REG (MODE, MIPS_EPILOGUE_TEMP_REGNUM)
 
@@ -1716,7 +1729,6 @@ enum mips_code_readable_setting {
 enum reg_class
 {
   NO_REGS,			/* no registers in set */
-  M16_NA_REGS,			/* mips16 regs not used to pass args */
   M16_REGS,			/* mips16 directly accessible registers */
   T_REG,			/* mips16 T register ($24) */
   M16_T_REGS,			/* mips16 registers plus T register */
@@ -1757,7 +1769,6 @@ enum reg_class
 #define REG_CLASS_NAMES							\
 {									\
   "NO_REGS",								\
-  "M16_NA_REGS",							\
   "M16_REGS",								\
   "T_REG",								\
   "M16_T_REGS",								\
@@ -1801,7 +1812,6 @@ enum reg_class
 #define REG_CLASS_CONTENTS						                                \
 {									                                \
   { 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000 },	/* no registers */	\
-  { 0x0003000c, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000 },	/* mips16 nonarg regs */\
   { 0x000300fc, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000 },	/* mips16 registers */	\
   { 0x01000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000 },	/* mips16 T register */	\
   { 0x010300fc, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000 },	/* mips16 and T regs */ \
@@ -1958,10 +1968,32 @@ enum reg_class
 
 #define RETURN_ADDR_RTX mips_return_addr
 
-/* Since the mips16 ISA mode is encoded in the least-significant bit
-   of the address, mask it off return addresses for purposes of
-   finding exception handling regions.  */
+/* Mask off the MIPS16 ISA bit in unwind addresses.
 
+   The reason for this is a little subtle.  When unwinding a call,
+   we are given the call's return address, which on most targets
+   is the address of the following instruction.  However, what we
+   actually want to find is the EH region for the call itself.
+   The target-independent unwind code therefore searches for "RA - 1".
+
+   In the MIPS16 case, RA is always an odd-valued (ISA-encoded) address.
+   RA - 1 is therefore the real (even-valued) start of the return
+   instruction.  EH region labels are usually odd-valued MIPS16 symbols
+   too, so a search for an even address within a MIPS16 region would
+   usually work.
+
+   However, there is an exception.  If the end of an EH region is also
+   the end of a function, the end label is allowed to be even.  This is
+   necessary because a following non-MIPS16 function may also need EH
+   information for its first instruction.
+
+   Thus a MIPS16 region may be terminated by an ISA-encoded or a
+   non-ISA-encoded address.  This probably isn't ideal, but it is
+   the traditional (legacy) behavior.  It is therefore only safe
+   to search MIPS EH regions for an _odd-valued_ address.
+
+   Masking off the ISA bit means that the target-independent code
+   will search for "(RA & -2) - 1", which is guaranteed to be odd.  */
 #define MASK_RETURN_ADDR GEN_INT (-2)
 
 
@@ -2181,6 +2213,10 @@ typedef struct mips_args {
   fprintf (FILE, "\t.set\tnoat\n");					\
   fprintf (FILE, "\tmove\t%s,%s\t\t# save current return address\n",	\
 	   reg_names[GP_REG_FIRST + 1], reg_names[GP_REG_FIRST + 31]);	\
+  /* _mcount treats $2 as the static chain register.  */		\
+  if (cfun->static_chain_decl != NULL)					\
+    fprintf (FILE, "\tmove\t%s,%s\n", reg_names[2],			\
+	     reg_names[STATIC_CHAIN_REGNUM]);				\
   if (!TARGET_NEWABI)							\
     {									\
       fprintf (FILE,							\
@@ -2192,6 +2228,10 @@ typedef struct mips_args {
     }									\
   fprintf (FILE, "\tjal\t_mcount\n");                                   \
   fprintf (FILE, "\t.set\tat\n");					\
+  /* _mcount treats $2 as the static chain register.  */		\
+  if (cfun->static_chain_decl != NULL)					\
+    fprintf (FILE, "\tmove\t%s,%s\n", reg_names[STATIC_CHAIN_REGNUM],	\
+	     reg_names[2]);						\
 }
 
 /* The profiler preserves all interesting registers, including $31.  */
@@ -2231,20 +2271,19 @@ typedef struct mips_args {
   fprintf (STREAM, "\t.word\t0x00000000\t\t# nop\n");			\
   if (ptr_mode == DImode)						\
     {									\
-      fprintf (STREAM, "\t.word\t0xdfe30014\t\t# ld     $3,20($31)\n");	\
-      fprintf (STREAM, "\t.word\t0xdfe2001c\t\t# ld     $2,28($31)\n");	\
-      fprintf (STREAM, "\t.word\t0x0060c82d\t\t# dmove  $25,$3\n");	\
+      fprintf (STREAM, "\t.word\t0xdff90014\t\t# ld     $25,20($31)\n"); \
+      fprintf (STREAM, "\t.word\t0xdfef001c\t\t# ld     $15,28($31)\n"); \
     }									\
   else									\
     {									\
-      fprintf (STREAM, "\t.word\t0x8fe30014\t\t# lw     $3,20($31)\n");	\
-      fprintf (STREAM, "\t.word\t0x8fe20018\t\t# lw     $2,24($31)\n");	\
-      fprintf (STREAM, "\t.word\t0x0060c821\t\t# move   $25,$3\n");	\
+      fprintf (STREAM, "\t.word\t0x8ff90010\t\t# lw     $25,16($31)\n"); \
+      fprintf (STREAM, "\t.word\t0x8fef0014\t\t# lw     $15,20($31)\n"); \
     }									\
-  fprintf (STREAM, "\t.word\t0x00600008\t\t# jr     $3\n");		\
+  fprintf (STREAM, "\t.word\t0x03200008\t\t# jr     $25\n");		\
   if (ptr_mode == DImode)						\
     {									\
       fprintf (STREAM, "\t.word\t0x0020f82d\t\t# dmove   $31,$1\n");	\
+      fprintf (STREAM, "\t.word\t0x00000000\t\t# <padding>\n");		\
       fprintf (STREAM, "\t.dword\t0x00000000\t\t# <function address>\n"); \
       fprintf (STREAM, "\t.dword\t0x00000000\t\t# <static chain value>\n"); \
     }									\
@@ -2259,7 +2298,7 @@ typedef struct mips_args {
 /* A C expression for the size in bytes of the trampoline, as an
    integer.  */
 
-#define TRAMPOLINE_SIZE (32 + GET_MODE_SIZE (ptr_mode) * 2)
+#define TRAMPOLINE_SIZE (ptr_mode == DImode ? 48 : 36)
 
 /* Alignment required for trampolines, in bits.  */
 
@@ -2289,7 +2328,7 @@ typedef struct mips_args {
 {									    \
   rtx func_addr, chain_addr, end_addr;                                      \
 									    \
-  func_addr = plus_constant (ADDR, 32);					    \
+  func_addr = plus_constant (ADDR, ptr_mode == DImode ? 32 : 28);	    \
   chain_addr = plus_constant (func_addr, GET_MODE_SIZE (ptr_mode));	    \
   mips_emit_move (gen_rtx_MEM (ptr_mode, func_addr), FUNC);		    \
   mips_emit_move (gen_rtx_MEM (ptr_mode, chain_addr), CHAIN);		    \
@@ -2389,6 +2428,11 @@ typedef struct mips_args {
 #define SYMBOL_FLAG_LONG_CALL	(SYMBOL_FLAG_MACH_DEP << 0)
 #define SYMBOL_REF_LONG_CALL_P(X)					\
   ((SYMBOL_REF_FLAGS (X) & SYMBOL_FLAG_LONG_CALL) != 0)
+
+/* This flag marks functions that cannot be lazily bound.  */
+#define SYMBOL_FLAG_BIND_NOW (SYMBOL_FLAG_MACH_DEP << 1)
+#define SYMBOL_REF_BIND_NOW_P(RTX) \
+  ((SYMBOL_REF_FLAGS (RTX) & SYMBOL_FLAG_BIND_NOW) != 0)
 
 /* True if we're generating a form of MIPS16 code in which jump tables
    are stored in the text section and encoded as 16-bit PC-relative
@@ -2702,10 +2746,6 @@ while (0)
 
 #undef ASM_DECLARE_FUNCTION_NAME
 #define ASM_DECLARE_FUNCTION_NAME(STREAM,NAME,DECL)
-
-#ifndef FUNCTION_NAME_ALREADY_DECLARED
-#define FUNCTION_NAME_ALREADY_DECLARED 0
-#endif
 
 /* This is how to store into the string LABEL
    the symbol_ref name of an internal numbered label where
@@ -3255,6 +3295,7 @@ extern int set_nomacro;			/* # of nested .set nomacro's  */
 extern int mips_dbx_regno[];
 extern int mips_dwarf_regno[];
 extern bool mips_split_p[];
+extern bool mips_split_hi_p[];
 extern GTY(()) rtx cmp_operands[2];
 extern enum processor_type mips_arch;   /* which cpu to codegen for */
 extern enum processor_type mips_tune;   /* which cpu to schedule for */

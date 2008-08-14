@@ -450,13 +450,13 @@ next_pass_1 (struct opt_pass **list, struct opt_pass *pass)
      pass is already in the list.  */
   if (pass->static_pass_number)
     {
-      struct opt_pass *new;
+      struct opt_pass *new_pass;
 
-      new = XNEW (struct opt_pass);
-      memcpy (new, pass, sizeof (*new));
-      new->next = NULL;
+      new_pass = XNEW (struct opt_pass);
+      memcpy (new_pass, pass, sizeof (*new_pass));
+      new_pass->next = NULL;
 
-      new->todo_flags_start &= ~TODO_mark_first_instance;
+      new_pass->todo_flags_start &= ~TODO_mark_first_instance;
 
       /* Indicate to register_dump_files that this pass has duplicates,
          and so it should rename the dump file.  The first instance will
@@ -465,10 +465,10 @@ next_pass_1 (struct opt_pass **list, struct opt_pass *pass)
       if (pass->name)
         {
           pass->static_pass_number -= 1;
-          new->static_pass_number = -pass->static_pass_number;
+          new_pass->static_pass_number = -pass->static_pass_number;
 	}
       
-      *list = new;
+      *list = new_pass;
     }
   else
     {
@@ -645,9 +645,9 @@ init_optimization_passes (void)
 	 only examines PHIs to discover const/copy propagation
 	 opportunities.  */
       NEXT_PASS (pass_phi_only_cprop);
+      NEXT_PASS (pass_dse);
       NEXT_PASS (pass_reassoc);
       NEXT_PASS (pass_dce);
-      NEXT_PASS (pass_dse);
       NEXT_PASS (pass_forwprop);
       NEXT_PASS (pass_phiopt);
       NEXT_PASS (pass_object_sizes);

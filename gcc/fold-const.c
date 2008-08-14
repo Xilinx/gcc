@@ -1885,8 +1885,7 @@ const_binop (enum tree_code code, tree arg1, tree arg2, int notrunc)
 	 flag_rounding_math is set, or if GCC's software emulation
 	 is unable to accurately represent the result.  */
       if ((flag_rounding_math
-	   || (REAL_MODE_FORMAT_COMPOSITE_P (mode)
-	       && !flag_unsafe_math_optimizations))
+	   || (MODE_COMPOSITE_P (mode) && !flag_unsafe_math_optimizations))
 	  && (inexact || !real_identical (&result, &value)))
 	return NULL_TREE;
 
@@ -3391,17 +3390,17 @@ static int
 twoval_comparison_p (tree arg, tree *cval1, tree *cval2, int *save_p)
 {
   enum tree_code code = TREE_CODE (arg);
-  enum tree_code_class class = TREE_CODE_CLASS (code);
+  enum tree_code_class tclass = TREE_CODE_CLASS (code);
 
   /* We can handle some of the tcc_expression cases here.  */
-  if (class == tcc_expression && code == TRUTH_NOT_EXPR)
-    class = tcc_unary;
-  else if (class == tcc_expression
+  if (tclass == tcc_expression && code == TRUTH_NOT_EXPR)
+    tclass = tcc_unary;
+  else if (tclass == tcc_expression
 	   && (code == TRUTH_ANDIF_EXPR || code == TRUTH_ORIF_EXPR
 	       || code == COMPOUND_EXPR))
-    class = tcc_binary;
+    tclass = tcc_binary;
 
-  else if (class == tcc_expression && code == SAVE_EXPR
+  else if (tclass == tcc_expression && code == SAVE_EXPR
 	   && ! TREE_SIDE_EFFECTS (TREE_OPERAND (arg, 0)))
     {
       /* If we've already found a CVAL1 or CVAL2, this expression is
@@ -3409,11 +3408,11 @@ twoval_comparison_p (tree arg, tree *cval1, tree *cval2, int *save_p)
       if (*cval1 || *cval2)
 	return 0;
 
-      class = tcc_unary;
+      tclass = tcc_unary;
       *save_p = 1;
     }
 
-  switch (class)
+  switch (tclass)
     {
     case tcc_unary:
       return twoval_comparison_p (TREE_OPERAND (arg, 0), cval1, cval2, save_p);
@@ -3484,16 +3483,16 @@ eval_subst (tree arg, tree old0, tree new0, tree old1, tree new1)
 {
   tree type = TREE_TYPE (arg);
   enum tree_code code = TREE_CODE (arg);
-  enum tree_code_class class = TREE_CODE_CLASS (code);
+  enum tree_code_class tclass = TREE_CODE_CLASS (code);
 
   /* We can handle some of the tcc_expression cases here.  */
-  if (class == tcc_expression && code == TRUTH_NOT_EXPR)
-    class = tcc_unary;
-  else if (class == tcc_expression
+  if (tclass == tcc_expression && code == TRUTH_NOT_EXPR)
+    tclass = tcc_unary;
+  else if (tclass == tcc_expression
 	   && (code == TRUTH_ANDIF_EXPR || code == TRUTH_ORIF_EXPR))
-    class = tcc_binary;
+    tclass = tcc_binary;
 
-  switch (class)
+  switch (tclass)
     {
     case tcc_unary:
       return fold_build1 (code, type,
@@ -6734,10 +6733,8 @@ fold_widened_comparison (enum tree_code code, tree type, tree arg0, tree arg1)
   if ((code == EQ_EXPR || code == NE_EXPR
        || TYPE_UNSIGNED (TREE_TYPE (arg0)) == TYPE_UNSIGNED (shorter_type))
       && (TREE_TYPE (arg1_unw) == shorter_type
-	  || (TYPE_PRECISION (shorter_type)
-	      > TYPE_PRECISION (TREE_TYPE (arg1_unw)))
 	  || ((TYPE_PRECISION (shorter_type)
-	       == TYPE_PRECISION (TREE_TYPE (arg1_unw)))
+	       >= TYPE_PRECISION (TREE_TYPE (arg1_unw)))
 	      && (TYPE_UNSIGNED (shorter_type)
 		  == TYPE_UNSIGNED (TREE_TYPE (arg1_unw))))
 	  || (TREE_CODE (arg1_unw) == INTEGER_CST

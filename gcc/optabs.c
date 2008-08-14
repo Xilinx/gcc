@@ -3759,14 +3759,17 @@ expand_copysign (rtx op0, rtx op1, rtx target)
    with two operands: an output TARGET and an input OP0.
    TARGET *must* be nonzero, and the output is always stored there.
    CODE is an rtx code such that (CODE OP0) is an rtx that describes
-   the value that is stored into TARGET.  */
+   the value that is stored into TARGET. 
 
-void
-emit_unop_insn (int icode, rtx target, rtx op0, enum rtx_code code)
+   Return false if expansion failed.  */
+
+bool
+maybe_emit_unop_insn (int icode, rtx target, rtx op0, enum rtx_code code)
 {
   rtx temp;
   enum machine_mode mode0 = insn_data[icode].operand[1].mode;
   rtx pat;
+  rtx last = get_last_insn ();
 
   temp = target;
 
@@ -3779,6 +3782,11 @@ emit_unop_insn (int icode, rtx target, rtx op0, enum rtx_code code)
     temp = gen_reg_rtx (GET_MODE (temp));
 
   pat = GEN_FCN (icode) (temp, op0);
+  if (!pat)
+    {
+      delete_insns_since (last);
+      return false;
+    }
 
   if (INSN_P (pat) && NEXT_INSN (pat) != NULL_RTX && code != UNKNOWN)
     add_equal_note (pat, temp, code, op0, NULL_RTX);
@@ -3787,6 +3795,19 @@ emit_unop_insn (int icode, rtx target, rtx op0, enum rtx_code code)
 
   if (temp != target)
     emit_move_insn (target, temp);
+  return true;
+}
+/* Generate an instruction whose insn-code is INSN_CODE,
+   with two operands: an output TARGET and an input OP0.
+   TARGET *must* be nonzero, and the output is always stored there.
+   CODE is an rtx code such that (CODE OP0) is an rtx that describes
+   the value that is stored into TARGET.  */
+
+void
+emit_unop_insn (int icode, rtx target, rtx op0, enum rtx_code code)
+{
+  bool ok = maybe_emit_unop_insn (icode, target, op0, code);
+  gcc_assert (ok);
 }
 
 struct no_conflict_data
@@ -5140,6 +5161,7 @@ expand_fix (rtx to, rtx from, int unsignedp)
 
 	if (icode != CODE_FOR_nothing)
 	  {
+	    rtx last = get_last_insn ();
 	    if (fmode != GET_MODE (from))
 	      from = convert_to_mode (fmode, from, 0);
 
@@ -5153,11 +5175,14 @@ expand_fix (rtx to, rtx from, int unsignedp)
 	    if (imode != GET_MODE (to))
 	      target = gen_reg_rtx (imode);
 
-	    emit_unop_insn (icode, target, from,
-			    doing_unsigned ? UNSIGNED_FIX : FIX);
-	    if (target != to)
-	      convert_move (to, target, unsignedp);
-	    return;
+	    if (maybe_emit_unop_insn (icode, target, from,
+				      doing_unsigned ? UNSIGNED_FIX : FIX))
+	      {
+		if (target != to)
+		  convert_move (to, target, unsignedp);
+		return;
+	      }
+	    delete_insns_since (last);
 	  }
       }
 
@@ -5365,13 +5390,18 @@ expand_sfix_optab (rtx to, rtx from, convert_optab tab)
 	icode = convert_optab_handler (tab, imode, fmode)->insn_code;
 	if (icode != CODE_FOR_nothing)
 	  {
+	    rtx last = get_last_insn ();
 	    if (fmode != GET_MODE (from))
 	      from = convert_to_mode (fmode, from, 0);
 
 	    if (imode != GET_MODE (to))
 	      target = gen_reg_rtx (imode);
 
-	    emit_unop_insn (icode, target, from, UNKNOWN);
+	    if (!maybe_emit_unop_insn (icode, target, from, UNKNOWN))
+	      {
+	        delete_insns_since (last);
+		continue;
+	      }
 	    if (target != to)
 	      convert_move (to, target, 0);
 	    return true;

@@ -663,48 +663,12 @@ along with GCC; see the file COPYING3.  If not see
 #define PREFERRED_DEBUGGING_TYPE NO_DEBUG
 #endif
 
-/* Define codes for all the float formats that we know of.  */
-#define UNKNOWN_FLOAT_FORMAT 0
-#define IEEE_FLOAT_FORMAT 1
-#define VAX_FLOAT_FORMAT 2
-
-/* Default to IEEE float if not specified.  Nearly all machines use it.  */
-#ifndef TARGET_FLOAT_FORMAT
-#define	TARGET_FLOAT_FORMAT	IEEE_FLOAT_FORMAT
-#endif
-
 #ifndef LARGEST_EXPONENT_IS_NORMAL
 #define LARGEST_EXPONENT_IS_NORMAL(SIZE) 0
 #endif
 
 #ifndef ROUND_TOWARDS_ZERO
 #define ROUND_TOWARDS_ZERO 0
-#endif
-
-#ifndef MODE_HAS_NANS
-#define MODE_HAS_NANS(MODE)					\
-  (FLOAT_MODE_P (MODE)						\
-   && TARGET_FLOAT_FORMAT == IEEE_FLOAT_FORMAT			\
-   && !LARGEST_EXPONENT_IS_NORMAL (GET_MODE_BITSIZE (MODE)))
-#endif
-
-#ifndef MODE_HAS_INFINITIES
-#define MODE_HAS_INFINITIES(MODE)				\
-  (FLOAT_MODE_P (MODE)						\
-   && TARGET_FLOAT_FORMAT == IEEE_FLOAT_FORMAT			\
-   && !LARGEST_EXPONENT_IS_NORMAL (GET_MODE_BITSIZE (MODE)))
-#endif
-
-#ifndef MODE_HAS_SIGNED_ZEROS
-#define MODE_HAS_SIGNED_ZEROS(MODE) \
-  (FLOAT_MODE_P (MODE) && TARGET_FLOAT_FORMAT == IEEE_FLOAT_FORMAT)
-#endif
-
-#ifndef MODE_HAS_SIGN_DEPENDENT_ROUNDING
-#define MODE_HAS_SIGN_DEPENDENT_ROUNDING(MODE)			\
-  (FLOAT_MODE_P (MODE)						\
-   && TARGET_FLOAT_FORMAT == IEEE_FLOAT_FORMAT			\
-   && !ROUND_TOWARDS_ZERO)
 #endif
 
 #ifndef FLOAT_LIB_COMPARE_RETURNS_BOOL

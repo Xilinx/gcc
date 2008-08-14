@@ -24,6 +24,7 @@ along with GCC; see the file COPYING3.  If not see
 
 #include "coretypes.h"
 #include "options.h"
+#include "real.h"
 
 enum debug_info_type
 {
@@ -114,12 +115,6 @@ extern int optimize_size;
    -W/-Wextra.  */
 
 extern bool extra_warnings;
-
-/* Nonzero to warn about unused variables, functions et.al.  Use
-   set_Wunused() to update the -Wunused-* flags that correspond to the
-   -Wunused option.  */
-
-extern void set_Wunused (int setting);
 
 /* Used to set the level of -Wstrict-aliasing, when no level is specified.  
    The external way to set the default level is to use

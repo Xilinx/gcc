@@ -10283,7 +10283,7 @@ output_move_vfp (rtx *operands)
   int load = REG_P (operands[0]);
   int dp = GET_MODE_SIZE (GET_MODE (operands[0])) == 8;
   int integer_p = GET_MODE_CLASS (GET_MODE (operands[0])) == MODE_INT;
-  const char *template;
+  const char *templ;
   char buff[50];
   enum machine_mode mode;
 
@@ -10306,25 +10306,25 @@ output_move_vfp (rtx *operands)
   switch (GET_CODE (addr))
     {
     case PRE_DEC:
-      template = "f%smdb%c%%?\t%%0!, {%%%s1}%s";
+      templ = "f%smdb%c%%?\t%%0!, {%%%s1}%s";
       ops[0] = XEXP (addr, 0);
       ops[1] = reg;
       break;
 
     case POST_INC:
-      template = "f%smia%c%%?\t%%0!, {%%%s1}%s";
+      templ = "f%smia%c%%?\t%%0!, {%%%s1}%s";
       ops[0] = XEXP (addr, 0);
       ops[1] = reg;
       break;
 
     default:
-      template = "f%s%c%%?\t%%%s0, %%1%s";
+      templ = "f%s%c%%?\t%%%s0, %%1%s";
       ops[0] = reg;
       ops[1] = mem;
       break;
     }
 
-  sprintf (buff, template,
+  sprintf (buff, templ,
 	   load ? "ld" : "st",
 	   dp ? 'd' : 's',
 	   dp ? "P" : "",
@@ -10335,37 +10335,35 @@ output_move_vfp (rtx *operands)
 }
 
 /* Output a Neon quad-word load or store, or a load or store for
-   larger structure modes. We could also support post-modify forms using
-   VLD1/VST1 (for the vectorizer, and perhaps otherwise), but we don't do that
-   yet.
-   WARNING: The ordering of elements in memory is weird in big-endian mode,
-   because we use VSTM instead of VST1, to make it easy to make vector stores
-   via ARM registers write values in the same order as stores direct from Neon
-   registers.  For example, the byte ordering of a quadword vector with 16-byte
-   elements like this:
+   larger structure modes.
 
-     [e7:e6:e5:e4:e3:e2:e1:e0]  (highest-numbered element first)
+   WARNING: The ordering of elements is weird in big-endian mode,
+   because we use VSTM, as required by the EABI.  GCC RTL defines
+   element ordering based on in-memory order.  This can be differ
+   from the architectural ordering of elements within a NEON register.
+   The intrinsics defined in arm_neon.h use the NEON register element
+   ordering, not the GCC RTL element ordering.
 
-   will be (with lowest address first, h = most-significant byte,
-   l = least-significant byte of element):
+   For example, the in-memory ordering of a big-endian a quadword
+   vector with 16-bit elements when stored from register pair {d0,d1}
+   will be (lowest address first, d0[N] is NEON register element N):
 
-     [e3h, e3l, e2h, e2l, e1h, e1l, e0h, e0l,
-      e7h, e7l, e6h, e6l, e5h, e5l, e4h, e4l]
+     [d0[3], d0[2], d0[1], d0[0], d1[7], d1[6], d1[5], d1[4]]
 
-   When necessary, quadword registers (dN, dN+1) are moved to ARM registers from
-   rN in the order:
+   When necessary, quadword registers (dN, dN+1) are moved to ARM
+   registers from rN in the order:
 
      dN -> (rN+1, rN), dN+1 -> (rN+3, rN+2)
 
-   So that STM/LDM can be used on vectors in ARM registers, and the same memory
-   layout will result as if VSTM/VLDM were used.  */
+   So that STM/LDM can be used on vectors in ARM registers, and the
+   same memory layout will result as if VSTM/VLDM were used.  */
 
 const char *
 output_move_neon (rtx *operands)
 {
   rtx reg, mem, addr, ops[2];
   int regno, load = REG_P (operands[0]);
-  const char *template;
+  const char *templ;
   char buff[50];
   enum machine_mode mode;
 
@@ -10392,7 +10390,7 @@ output_move_neon (rtx *operands)
   switch (GET_CODE (addr))
     {
     case POST_INC:
-      template = "v%smia%%?\t%%0!, %%h1";
+      templ = "v%smia%%?\t%%0!, %%h1";
       ops[0] = XEXP (addr, 0);
       ops[1] = reg;
       break;
@@ -10435,12 +10433,12 @@ output_move_neon (rtx *operands)
       }
 
     default:
-      template = "v%smia%%?\t%%m0, %%h1";
+      templ = "v%smia%%?\t%%m0, %%h1";
       ops[0] = mem;
       ops[1] = reg;
     }
 
-  sprintf (buff, template, load ? "ld" : "st");
+  sprintf (buff, templ, load ? "ld" : "st");
   output_asm_insn (buff, ops);
 
   return "";
@@ -13326,28 +13324,16 @@ arm_assemble_integer (rtx x, unsigned int size, int aligned_p)
   if (arm_vector_mode_supported_p (mode))
     {
       int i, units;
-      unsigned int invmask = 0, parts_per_word;
 
       gcc_assert (GET_CODE (x) == CONST_VECTOR);
 
       units = CONST_VECTOR_NUNITS (x);
       size = GET_MODE_SIZE (GET_MODE_INNER (mode));
 
-      /* For big-endian Neon vectors, we must permute the vector to the form
-         which, when loaded by a VLDR or VLDM instruction, will give a vector
-         with the elements in the right order.  */
-      if (TARGET_NEON && WORDS_BIG_ENDIAN)
-        {
-          parts_per_word = UNITS_PER_WORD / size;
-          /* FIXME: This might be wrong for 64-bit vector elements, but we don't
-             support those anywhere yet.  */
-          invmask = (parts_per_word == 0) ? 0 : (1 << (parts_per_word - 1)) - 1;
-        }
-
       if (GET_MODE_CLASS (mode) == MODE_VECTOR_INT)
         for (i = 0; i < units; i++)
 	  {
-	    rtx elt = CONST_VECTOR_ELT (x, i ^ invmask);
+	    rtx elt = CONST_VECTOR_ELT (x, i);
 	    assemble_integer
 	      (elt, size, i == 0 ? BIGGEST_ALIGNMENT : size * BITS_PER_UNIT, 1);
 	  }

@@ -147,6 +147,10 @@ struct real_format
      or -1 for a complex encoding.  */
   int signbit_rw;
 
+  /* Default rounding mode for operations on this format.  */
+  bool round_towards_zero;
+  bool has_sign_dependent_rounding;
+
   /* Properties of the format.  */
   bool has_nans;
   bool has_inf;
@@ -168,15 +172,32 @@ extern const struct real_format *
 
 #define REAL_MODE_FORMAT(MODE)						\
   (real_format_for_mode[DECIMAL_FLOAT_MODE_P (MODE)			\
-			? ((MODE - MIN_MODE_DECIMAL_FLOAT)		\
+			? (((MODE) - MIN_MODE_DECIMAL_FLOAT)		\
 			   + (MAX_MODE_FLOAT - MIN_MODE_FLOAT + 1))	\
-			: (MODE - MIN_MODE_FLOAT)])
+			: ((MODE) - MIN_MODE_FLOAT)])
+
+#define FLOAT_MODE_FORMAT(MODE) \
+  (REAL_MODE_FORMAT (SCALAR_FLOAT_MODE_P (MODE)? (MODE) \
+					       : GET_MODE_INNER (MODE)))
 
 /* The following macro determines whether the floating point format is
    composite, i.e. may contain non-consecutive mantissa bits, in which
    case compile-time FP overflow may not model run-time overflow.  */
-#define REAL_MODE_FORMAT_COMPOSITE_P(MODE) \
-	((REAL_MODE_FORMAT(MODE))->pnan < (REAL_MODE_FORMAT (MODE))->p)
+#define MODE_COMPOSITE_P(MODE) \
+  (FLOAT_MODE_P (MODE) \
+   && FLOAT_MODE_FORMAT (MODE)->pnan < FLOAT_MODE_FORMAT (MODE)->p)
+
+/* Accessor macros for format properties.  */
+#define MODE_HAS_NANS(MODE) \
+  (FLOAT_MODE_P (MODE) && FLOAT_MODE_FORMAT (MODE)->has_nans)
+#define MODE_HAS_INFINITIES(MODE) \
+  (FLOAT_MODE_P (MODE) && FLOAT_MODE_FORMAT (MODE)->has_inf)
+#define MODE_HAS_SIGNED_ZEROS(MODE) \
+  (FLOAT_MODE_P (MODE) && FLOAT_MODE_FORMAT (MODE)->has_signed_zero)
+#define MODE_HAS_SIGN_DEPENDENT_ROUNDING(MODE) \
+  (FLOAT_MODE_P (MODE) \
+   && FLOAT_MODE_FORMAT (MODE)->has_sign_dependent_rounding)
+
 
 /* Declare functions in real.c.  */
 
@@ -215,6 +236,11 @@ extern bool exact_real_truncate (enum machine_mode, const REAL_VALUE_TYPE *);
 /* Render R as a decimal floating point constant.  */
 extern void real_to_decimal (char *, const REAL_VALUE_TYPE *, size_t,
 			     size_t, int);
+
+/* Render R as a decimal floating point constant, rounded so as to be
+   parsed back to the same value when interpreted in mode MODE.  */
+extern void real_to_decimal_for_mode (char *, const REAL_VALUE_TYPE *, size_t,
+				      size_t, int, enum machine_mode);
 
 /* Render R as a hexadecimal floating point constant.  */
 extern void real_to_hexadecimal (char *, const REAL_VALUE_TYPE *,
@@ -259,6 +285,7 @@ extern unsigned int real_hash (const REAL_VALUE_TYPE *);
 extern const struct real_format ieee_single_format;
 extern const struct real_format mips_single_format;
 extern const struct real_format motorola_single_format;
+extern const struct real_format spu_single_format;
 extern const struct real_format ieee_double_format;
 extern const struct real_format mips_double_format;
 extern const struct real_format motorola_double_format;

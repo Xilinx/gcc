@@ -9980,15 +9980,14 @@ cp_parser_template_id (cp_parser *parser,
 	}
       /* Otherwise, emit an error about the invalid digraph, but continue
 	 parsing because we got our argument list.  */
-      permerror ("%H%<<::%> cannot begin a template-argument list",
-		 &next_token->location);
-      inform ("%H%<<:%> is an alternate spelling for %<[%>. Insert whitespace "
+      if (permerror ("%H%<<::%> cannot begin a template-argument list",
+		     &next_token->location))
+	{
+	  static bool hint = false;
+	  inform ("%H%<<:%> is an alternate spelling for %<[%>. Insert whitespace "
 	      "between %<<%> and %<::%>",
 	      &next_token->location);
-      if (!flag_permissive)
-	{
-	  static bool hint;
-	  if (!hint)
+	  if (!hint && !flag_permissive)
 	    {
 	      inform ("%H(if you use %<-fpermissive%> G++ will accept your code)",
                       &next_token->location);
@@ -10386,9 +10385,10 @@ cp_parser_template_argument (cp_parser* parser)
      Therefore, we try a type-id first.  */
   cp_parser_parse_tentatively (parser);
   argument = cp_parser_type_id (parser);
-  /* If there was no error parsing the type-id but the next token is a '>>',
-     we probably found a typo for '> >'. But there are type-id which are
-     also valid expressions. For instance:
+  /* If there was no error parsing the type-id but the next token is a
+     '>>', our behavior depends on which dialect of C++ we're
+     parsing. In C++98, we probably found a typo for '> >'. But there
+     are type-id which are also valid expressions. For instance:
 
      struct X { int operator >> (int); };
      template <int V> struct Foo {};
@@ -10397,8 +10397,12 @@ cp_parser_template_argument (cp_parser* parser)
      Here 'X()' is a valid type-id of a function type, but the user just
      wanted to write the expression "X() >> 5". Thus, we remember that we
      found a valid type-id, but we still try to parse the argument as an
-     expression to see what happens.  */
+     expression to see what happens. 
+
+     In C++0x, the '>>' will be considered two separate '>'
+     tokens.  */
   if (!cp_parser_error_occurred (parser)
+      && cxx_dialect == cxx98
       && cp_lexer_next_token_is (parser->lexer, CPP_RSHIFT))
     {
       maybe_type_id = true;
@@ -14977,11 +14981,17 @@ cp_parser_class_head (cp_parser* parser,
   cp_parser_commit_to_tentative_parse (parser);
   /* Issue the error about the overly-qualified name now.  */
   if (qualified_p)
-    cp_parser_error (parser,
-		     "global qualification of class name is invalid");
+    {
+      cp_parser_error (parser,
+		       "global qualification of class name is invalid");
+      return error_mark_node;
+    }
   else if (invalid_nested_name_p)
-    cp_parser_error (parser,
-		     "qualified name does not name a class");
+    {
+      cp_parser_error (parser,
+		       "qualified name does not name a class");
+      return error_mark_node;
+    }
   else if (nested_name_specifier)
     {
       tree scope;

@@ -4923,13 +4923,14 @@ gimplify_va_arg_expr (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p)
 	   != type)
     {
       static bool gave_help;
+      bool warned;
 
       /* Unfortunately, this is merely undefined, rather than a constraint
 	 violation, so we cannot make this an error.  If this call is never
 	 executed, the program is still strictly conforming.  */
-      warning (0, "%qT is promoted to %qT when passed through %<...%>",
-	       type, promoted_type);
-      if (! gave_help)
+      warned = warning (0, "%qT is promoted to %qT when passed through %<...%>",
+			type, promoted_type);
+      if (!gave_help && warned)
 	{
 	  gave_help = true;
 	  inform ("(so you should pass %qT not %qT to %<va_arg%>)",
@@ -4938,7 +4939,8 @@ gimplify_va_arg_expr (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p)
 
       /* We can, however, treat "undefined" any way we please.
 	 Call abort to encourage the user to fix the program.  */
-      inform ("if this code is reached, the program will abort");
+      if (warned)
+	inform ("if this code is reached, the program will abort");
       t = build_call_expr (implicit_built_in_decls[BUILT_IN_TRAP], 0);
       gimplify_and_add (t, pre_p);
 
@@ -5576,18 +5578,18 @@ expand_builtin_sprintf (tree exp, rtx target, enum machine_mode mode)
 static rtx
 expand_builtin_profile_func (bool exitp)
 {
-  rtx this, which;
+  rtx this_rtx, which;
 
-  this = DECL_RTL (current_function_decl);
-  gcc_assert (MEM_P (this));
-  this = XEXP (this, 0);
+  this_rtx = DECL_RTL (current_function_decl);
+  gcc_assert (MEM_P (this_rtx));
+  this_rtx = XEXP (this_rtx, 0);
 
   if (exitp)
     which = profile_function_exit_libfunc;
   else
     which = profile_function_entry_libfunc;
 
-  emit_library_call (which, LCT_NORMAL, VOIDmode, 2, this, Pmode,
+  emit_library_call (which, LCT_NORMAL, VOIDmode, 2, this_rtx, Pmode,
 		     expand_builtin_return_addr (BUILT_IN_RETURN_ADDRESS,
 						 0),
 		     Pmode);
@@ -12865,14 +12867,16 @@ do_mpfr_arg1 (tree arg, tree type, int (*func)(mpfr_ptr, mpfr_srcptr, mp_rnd_t),
 	  && (!min || real_compare (inclusive ? GE_EXPR: GT_EXPR , ra, min))
 	  && (!max || real_compare (inclusive ? LE_EXPR: LT_EXPR , ra, max)))
         {
-	  const int prec = REAL_MODE_FORMAT (TYPE_MODE (type))->p;
+	  const struct real_format *fmt = REAL_MODE_FORMAT (TYPE_MODE (type));
+	  const int prec = fmt->p;
+	  const mp_rnd_t rnd = fmt->round_towards_zero? GMP_RNDZ : GMP_RNDN;
 	  int inexact;
 	  mpfr_t m;
 
 	  mpfr_init2 (m, prec);
 	  mpfr_from_real (m, ra, GMP_RNDN);
 	  mpfr_clear_flags ();
-	  inexact = func (m, m, GMP_RNDN);
+	  inexact = func (m, m, rnd);
 	  result = do_mpfr_ckconv (m, type, inexact);
 	  mpfr_clear (m);
 	}
@@ -12907,7 +12911,9 @@ do_mpfr_arg2 (tree arg1, tree arg2, tree type,
 
       if (real_isfinite (ra1) && real_isfinite (ra2))
         {
-	  const int prec = REAL_MODE_FORMAT (TYPE_MODE (type))->p;
+	  const struct real_format *fmt = REAL_MODE_FORMAT (TYPE_MODE (type));
+	  const int prec = fmt->p;
+	  const mp_rnd_t rnd = fmt->round_towards_zero? GMP_RNDZ : GMP_RNDN;
 	  int inexact;
 	  mpfr_t m1, m2;
 
@@ -12915,7 +12921,7 @@ do_mpfr_arg2 (tree arg1, tree arg2, tree type,
 	  mpfr_from_real (m1, ra1, GMP_RNDN);
 	  mpfr_from_real (m2, ra2, GMP_RNDN);
 	  mpfr_clear_flags ();
-	  inexact = func (m1, m1, m2, GMP_RNDN);
+	  inexact = func (m1, m1, m2, rnd);
 	  result = do_mpfr_ckconv (m1, type, inexact);
 	  mpfr_clears (m1, m2, NULL);
 	}
@@ -12953,7 +12959,9 @@ do_mpfr_arg3 (tree arg1, tree arg2, tree arg3, tree type,
 
       if (real_isfinite (ra1) && real_isfinite (ra2) && real_isfinite (ra3))
         {
-	  const int prec = REAL_MODE_FORMAT (TYPE_MODE (type))->p;
+	  const struct real_format *fmt = REAL_MODE_FORMAT (TYPE_MODE (type));
+	  const int prec = fmt->p;
+	  const mp_rnd_t rnd = fmt->round_towards_zero? GMP_RNDZ : GMP_RNDN;
 	  int inexact;
 	  mpfr_t m1, m2, m3;
 
@@ -12962,7 +12970,7 @@ do_mpfr_arg3 (tree arg1, tree arg2, tree arg3, tree type,
 	  mpfr_from_real (m2, ra2, GMP_RNDN);
 	  mpfr_from_real (m3, ra3, GMP_RNDN);
 	  mpfr_clear_flags ();
-	  inexact = func (m1, m1, m2, m3, GMP_RNDN);
+	  inexact = func (m1, m1, m2, m3, rnd);
 	  result = do_mpfr_ckconv (m1, type, inexact);
 	  mpfr_clears (m1, m2, m3, NULL);
 	}
@@ -12996,7 +13004,9 @@ do_mpfr_sincos (tree arg, tree arg_sinp, tree arg_cosp)
 
       if (real_isfinite (ra))
         {
-	  const int prec = REAL_MODE_FORMAT (TYPE_MODE (type))->p;
+	  const struct real_format *fmt = REAL_MODE_FORMAT (TYPE_MODE (type));
+	  const int prec = fmt->p;
+	  const mp_rnd_t rnd = fmt->round_towards_zero? GMP_RNDZ : GMP_RNDN;
 	  tree result_s, result_c;
 	  int inexact;
 	  mpfr_t m, ms, mc;
@@ -13004,7 +13014,7 @@ do_mpfr_sincos (tree arg, tree arg_sinp, tree arg_cosp)
 	  mpfr_inits2 (prec, m, ms, mc, NULL);
 	  mpfr_from_real (m, ra, GMP_RNDN);
 	  mpfr_clear_flags ();
-	  inexact = mpfr_sin_cos (ms, mc, m, GMP_RNDN);
+	  inexact = mpfr_sin_cos (ms, mc, m, rnd);
 	  result_s = do_mpfr_ckconv (ms, type, inexact);
 	  result_c = do_mpfr_ckconv (mc, type, inexact);
 	  mpfr_clears (m, ms, mc, NULL);
@@ -13069,14 +13079,16 @@ do_mpfr_bessel_n (tree arg1, tree arg2, tree type,
 	  && real_isfinite (ra)
 	  && (!min || real_compare (inclusive ? GE_EXPR: GT_EXPR , ra, min)))
         {
-	  const int prec = REAL_MODE_FORMAT (TYPE_MODE (type))->p;
+	  const struct real_format *fmt = REAL_MODE_FORMAT (TYPE_MODE (type));
+	  const int prec = fmt->p;
+	  const mp_rnd_t rnd = fmt->round_towards_zero? GMP_RNDZ : GMP_RNDN;
 	  int inexact;
 	  mpfr_t m;
 
 	  mpfr_init2 (m, prec);
 	  mpfr_from_real (m, ra, GMP_RNDN);
 	  mpfr_clear_flags ();
-	  inexact = func (m, n, m, GMP_RNDN);
+	  inexact = func (m, n, m, rnd);
 	  result = do_mpfr_ckconv (m, type, inexact);
 	  mpfr_clear (m);
 	}
@@ -13110,7 +13122,9 @@ do_mpfr_remquo (tree arg0, tree arg1, tree arg_quo)
 
       if (real_isfinite (ra0) && real_isfinite (ra1))
         {
-	  const int prec = REAL_MODE_FORMAT (TYPE_MODE (type))->p;
+	  const struct real_format *fmt = REAL_MODE_FORMAT (TYPE_MODE (type));
+	  const int prec = fmt->p;
+	  const mp_rnd_t rnd = fmt->round_towards_zero? GMP_RNDZ : GMP_RNDN;
 	  tree result_rem;
 	  long integer_quo;
 	  mpfr_t m0, m1;
@@ -13119,7 +13133,7 @@ do_mpfr_remquo (tree arg0, tree arg1, tree arg_quo)
 	  mpfr_from_real (m0, ra0, GMP_RNDN);
 	  mpfr_from_real (m1, ra1, GMP_RNDN);
 	  mpfr_clear_flags ();
-	  mpfr_remquo (m0, &integer_quo, m0, m1, GMP_RNDN);
+	  mpfr_remquo (m0, &integer_quo, m0, m1, rnd);
 	  /* Remquo is independent of the rounding mode, so pass
 	     inexact=0 to do_mpfr_ckconv().  */
 	  result_rem = do_mpfr_ckconv (m0, type, /*inexact=*/ 0);
@@ -13187,7 +13201,9 @@ do_mpfr_lgamma_r (tree arg, tree arg_sg, tree type)
 	  && ra->cl != rvc_zero
 	  && !(real_isneg(ra) && real_isinteger(ra, TYPE_MODE (type))))
         {
-	  const int prec = REAL_MODE_FORMAT (TYPE_MODE (type))->p;
+	  const struct real_format *fmt = REAL_MODE_FORMAT (TYPE_MODE (type));
+	  const int prec = fmt->p;
+	  const mp_rnd_t rnd = fmt->round_towards_zero? GMP_RNDZ : GMP_RNDN;
 	  int inexact, sg;
 	  mpfr_t m;
 	  tree result_lg;
@@ -13195,7 +13211,7 @@ do_mpfr_lgamma_r (tree arg, tree arg_sg, tree type)
 	  mpfr_init2 (m, prec);
 	  mpfr_from_real (m, ra, GMP_RNDN);
 	  mpfr_clear_flags ();
-	  inexact = mpfr_lgamma (m, &sg, m, GMP_RNDN);
+	  inexact = mpfr_lgamma (m, &sg, m, rnd);
 	  result_lg = do_mpfr_ckconv (m, type, inexact);
 	  mpfr_clear (m);
 	  if (result_lg)

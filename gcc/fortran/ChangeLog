@@ -1,3 +1,39 @@
+2008-08-09  Manuel Lopez-Ibanez  <manu@gcc.gnu.org>
+
+	PR 36901
+	* f95-lang.c (gfc_mark_addressable): Use "pedwarn (0," instead of
+	'pedwarn0'.
+
+2008-08-09  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/37011
+	* symbol.c (gfc_add_extension): New function.
+	* decl.c (gfc_get_type_attr_spec): Call it.
+	(gfc_match_derived_decl): Set symbol extension attribute from
+	attr.extension.
+	* gfortran.h : Add prototype for gfc_add_extension.
+
+2008-08-08  Manuel Lopez-Ibanez  <manu@gcc.gnu.org>
+
+	PR 28875
+	* options.c (set_Wall): Replace set_Wunused by warn_unused.
+
+2008-08-08  Daniel Kraft  <d@domob.eu>
+
+	* gfortran.h (gfc_finalizer):  Replaced member `procedure' by two
+	new members `proc_sym' and `proc_tree' to store the symtree after
+	resolution.
+	(gfc_find_sym_in_symtree):  Made public.
+	* decl.c (gfc_match_final_decl):  Adapted for new member name.
+	* interface.c (gfc_find_sym_in_symtree):  Made public.
+	(gfc_extend_expr), (gfc_extend_assign):  Changed call accordingly.
+	* module.c (mio_finalizer), (mio_f2k_derived), (mio_full_f2k_derived):
+	New methods for module-file IO of f2k_derived.
+	(mio_symbol):  Do IO of f2k_derived namespace.
+	* resolve.c (gfc_resolve_finalizers):  Adapted for new member name and
+	finding the symtree for the symbol here.
+	* symbol.c (gfc_free_finalizer):  Adapted for new members.
+
 2008-07-30  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
 
 	* gfc-internals.texi: Update to GFDL 1.2.  Do not list GPL as

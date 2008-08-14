@@ -693,7 +693,7 @@ c_cpp_builtins (cpp_reader *pfile)
 #endif
 
 #ifdef DWARF2_UNWIND_INFO
-  if (flag_dwarf2_cfi_asm && dwarf2out_do_frame ())
+  if (dwarf2out_do_cfi_asm ())
     cpp_define (pfile, "__GCC_HAVE_DWARF2_CFI_ASM");
 #endif
 
@@ -852,7 +852,7 @@ builtin_define_with_int_value (const char *macro, HOST_WIDE_INT value)
 /* Pass an object-like macro a hexadecimal floating-point value.  */
 static void
 builtin_define_with_hex_fp_value (const char *macro,
-				  tree type ATTRIBUTE_UNUSED, int digits,
+				  tree type, int digits,
 				  const char *hex_str, 
 				  const char *fp_suffix,
 				  const char *fp_cast)
@@ -871,7 +871,8 @@ builtin_define_with_hex_fp_value (const char *macro,
      then print it back out as decimal.  */
 
   real_from_string (&real, hex_str);
-  real_to_decimal (dec_str, &real, sizeof (dec_str), digits, 0);
+  real_to_decimal_for_mode (dec_str, &real, sizeof (dec_str), digits, 0,
+			    TYPE_MODE (type));
 
   /* Assemble the macro in the following fashion
      macro = fp_cast [dec_str fp_suffix] */

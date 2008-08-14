@@ -281,15 +281,17 @@ ipcp_lattice_from_jfunc (struct ipa_node_params *info, struct ipcp_lattice *lat,
     lat->type = IPA_BOTTOM;
 }
 
-/* True when OLD and NEW values are not the same.  */
+/* True when OLD_LAT and NEW_LAT values are not the same.  */
+
 static bool
-ipcp_lattice_changed (struct ipcp_lattice *old, struct ipcp_lattice *new)
+ipcp_lattice_changed (struct ipcp_lattice *old_lat,
+		      struct ipcp_lattice *new_lat)
 {
-  if (old->type == new->type)
+  if (old_lat->type == new_lat->type)
     {
-      if (!ipcp_lat_is_const (old))
+      if (!ipcp_lat_is_const (old_lat))
 	return false;
-      if (ipcp_lats_are_equal (old, new))
+      if (ipcp_lats_are_equal (old_lat, new_lat))
 	return false;
     }
   return true;
@@ -807,7 +809,7 @@ ipcp_update_callgraph (void)
 	    if (ipcp_need_redirect_p (cs))
 	      {
 		cgraph_redirect_edge_callee (cs, orig_callee);
-		gimple_call_set_fn (cs->call_stmt, orig_callee->decl);
+		gimple_call_set_fndecl (cs->call_stmt, orig_callee->decl);
 	      }
 	  }
     }

@@ -241,8 +241,6 @@ c_lex_one_token (c_parser *parser, c_token *token)
 	      }
 	    else
 	      {
-		/* Return the canonical spelling for this keyword.  */
-		token->value = ridpointers[(int) rid_code];
 		token->type = CPP_KEYWORD;
 		token->keyword = rid_code;
 		break;
@@ -1630,6 +1628,7 @@ c_parser_enum_specifier (c_parser *parser)
 	  bool seen_comma;
 	  c_token *token;
 	  location_t comma_loc;
+	  location_t value_loc;
 	  if (c_parser_next_token_is_not (parser, CPP_NAME))
 	    {
 	      c_parser_error (parser, "expected identifier");
@@ -1641,15 +1640,19 @@ c_parser_enum_specifier (c_parser *parser)
 	  enum_id = token->value;
 	  /* Set the location in case we create a decl now.  */
 	  c_parser_set_source_position_from_token (token);
+	  value_loc = token->location;
 	  c_parser_consume_token (parser);
 	  if (c_parser_next_token_is (parser, CPP_EQ))
 	    {
 	      c_parser_consume_token (parser);
+	      value_loc = c_parser_peek_token (parser)->location;
+	      /* This may call cb_line_change and alter the input_location.  */
 	      enum_value = c_parser_expr_no_commas (parser, NULL).value;
 	    }
 	  else
 	    enum_value = NULL_TREE;
-	  enum_decl = build_enumerator (&the_enum, enum_id, enum_value);
+	  enum_decl = build_enumerator (&the_enum, enum_id, enum_value, 
+					value_loc);
 	  TREE_CHAIN (enum_decl) = values;
 	  values = enum_decl;
 	  seen_comma = false;
@@ -3791,6 +3794,23 @@ c_parser_statement_after_labels (c_parser *parser)
   parser->in_if_block = in_if_block;
 }
 
+/* Parse the condition from an if, do, while or for statements.  */
+
+static tree
+c_parser_condition (c_parser *parser)
+{
+  location_t loc;
+  tree cond;
+  loc = c_parser_peek_token (parser)->location;
+  cond = c_objc_common_truthvalue_conversion 
+    (c_parser_expression_conv (parser).value);
+  if (CAN_HAVE_LOCATION_P (cond))
+    SET_EXPR_LOCATION (cond, loc);
+  if (warn_sequence_point)
+    verify_sequence_points (cond);
+  return cond;
+}
+
 /* Parse a parenthesized condition from an if, do or while statement.
 
    condition:
@@ -3799,15 +3819,10 @@ c_parser_statement_after_labels (c_parser *parser)
 static tree
 c_parser_paren_condition (c_parser *parser)
 {
-  location_t loc;
   tree cond;
   if (!c_parser_require (parser, CPP_OPEN_PAREN, "expected %<(%>"))
     return error_mark_node;
-  loc = c_parser_peek_token (parser)->location;
-  cond = c_objc_common_truthvalue_conversion
-    (c_parser_expression_conv (parser).value);
-  if (CAN_HAVE_LOCATION_P (cond))
-    SET_EXPR_LOCATION (cond, loc);
+  cond = c_parser_condition (parser);
   c_parser_skip_until_found (parser, CPP_CLOSE_PAREN, "expected %<)%>");
   return cond;
 }
@@ -4073,7 +4088,6 @@ c_parser_for_statement (c_parser *parser)
 	  c_parser_skip_until_found (parser, CPP_SEMICOLON, "expected %<;%>");
 	}
       /* Parse the loop condition.  */
-      loc = c_parser_peek_token (parser)->location;
       if (c_parser_next_token_is (parser, CPP_SEMICOLON))
 	{
 	  c_parser_consume_token (parser);
@@ -4081,10 +4095,7 @@ c_parser_for_statement (c_parser *parser)
 	}
       else
 	{
-	  tree ocond = c_parser_expression_conv (parser).value;
-	  cond = c_objc_common_truthvalue_conversion (ocond);
-	  if (CAN_HAVE_LOCATION_P (cond))
-	    SET_EXPR_LOCATION (cond, loc);
+	  cond = c_parser_condition (parser);
 	  c_parser_skip_until_found (parser, CPP_SEMICOLON, "expected %<;%>");
 	}
       /* Parse the increment expression.  */

@@ -1,3 +1,127 @@
+2008-08-13  Samuel Tardieu  <sam@rfc1149.net>
+
+	PR ada/36777
+	* sem_util.ads, sem_util.adb (Is_Protected_Self_Reference): New.
+	* sem_attr.adb (Check_Type): The current instance of a protected
+	object is not a type name.
+	(Analyze_Access_Attribute): Accept instances of protected objects.
+	(Analyze_Attribute, Attribute_Address clause): Ditto.
+	* exp_attr.adb (Expand_N_Attribute_Reference): Rewrite
+	the prefix as being the current instance if needed.
+
+2008-08-12  Danny Smith  <danyssmith@users.sourceforge.net>
+
+	* gcc-interface/Makefile.in (EXTRA_GNATRTL_NONTASKING_OBJS) [WINDOWS]: Remove
+	duplicate s-win32.o. Add s-winext.o.
+
+2008-08-12  Danny Smith  <danyssmith@users.sourceforge.net>
+
+	* g-stsifd-sockets.adb (Create): Replace Constants.SOCK_STREAM
+	with SOSC.SOCK__STREAM.
+	* g-socthi-mingw.adb (C_Select) Replace Constants.MSG_OOB with
+	SOSC.MSG_OOB.
+
+2008-08-11  Joel Sherrill  <joel.sherrill@oarcorp.com>
+
+	* s-oscons-tmplt.c: RTEMS defines AF_INET6 but does support it.
+	* gsocket.h, socket.c: Update to support RTEMS.
+	* gcc-interface/Make-lang.in: Include CFLAGS_FOR_TARGET when cross.
+
+2008-08-10  Samuel Tardieu  <sam@rfc1149.net>
+            Robert Dewar <dewar@adacore.com>
+
+	* exp_ch4.adb (Expand_N_Op_Expon): Force evaluation of
+	left argument even when right argument is 0.
+	(Expand_N_Op_Mod): Ditto when right argument is 1.
+	(Expand_N_Op_Multiply): Ditto when any argument is 0.
+	(Expand_N_Op_Rem): Ditto when right argument is 1.
+
+2008-08-09  Manuel Lopez-Ibanez  <manu@gcc.gnu.org>
+
+	* gcc-interface/misc.c (gnat_handle_option): Replace set_Wunused
+	by warn_unused.
+	
+2008-08-08  Ed Schonberg  <schonberg@adacore.com>
+
+	* freeze.adb (Generate_Prim_Op_References): New procedure, abstracted
+	from Freeze_Entity. Used to generate cross-reference information for
+	types declared in generic packages.
+
+2008-08-08  Thomas Quinot  <quinot@adacore.com>
+
+	* gcc-interface/Makefile.in: Reintroduce g-soccon.ads as a
+	compatibility shim.
+
+2008-08-08  Thomas Quinot  <quinot@adacore.com>
+
+	* gsocket.h:
+	On Windows, include <errno.h> and redefine only selected errno values
+	from their <winsock2.h> definitions.
+
+	* s-osinte-freebsd.ads: Minor reformatting
+
+	* s-osinte-hpux.ads, s-osinte-irix.ads: Minor reformatting
+
+	* g-soccon.ads: New file.
+
+	* g-stheme.adb, g-socthi-vms.adb, g-socthi-vxworks.adb,
+	g-socthi-mingw.adb, g-sttsne-vxworks.adb, g-socthi.adb,
+	g-stsifd-sockets.adb, g-socket.adb, g-socket.ads,
+	g-sothco.adb, g-sothco.ads: Add back GNAT.Sockets.Constants as a child
+	unit, to allow building software that depends on this internal unit
+	with both older and newer compilers.
+
+2008-08-08  Robert Dewar  <dewar@adacore.com>
+
+	* s-strxdr.adb: Minor reformatting
+
+2008-08-08  Bob Duff  <duff@adacore.com>
+
+	* gnat_ugn.texi: The "Run-Time Checks" section said "arithmetic overflow
+	checking for integer operations (including division by zero)", which
+	is wrong -- divide by zero is not part of overflow checking.
+	Also added misc clarification about what check-suppression means.
+
+	* gnat_rm.texi: Clarify the meaning of pragma Suppress.
+
+2008-08-08  Jerome Lambourg  <lambourg@adacore.com>
+
+	* g-comlin.adb (Add_Switch): Handle addition of switches at the
+	begining of the command line.
+	(Append, Add): Renaming of Append to Add as this now allows addition
+	at the begining of the list.
+	
+	* g-comlin.ads (Add_Switch): Handle addition of switches at the
+	begining of the command line.
+
+2008-08-08  Thomas Quinot  <quinot@adacore.com>
+
+	* g-sercom.ads:
+	(Name): Document application scope (only legacy PC serial ports on
+	Linux and Windows).
+
+2008-08-08  Thomas Quinot  <quinot@adacore.com>
+
+	* gcc-interface/Makefile.in, gcc-interface/Make-lang.in: Revert
+	previous change, not needed after all.
+
+2008-08-08  Ed Schonberg  <schonberg@adacore.com>
+
+	* exp_ch4.adb (Expand_Allocator_Expression): add check if null
+	exclusion indicator is present
+
+2008-08-08  Robert Dewar  <dewar@adacore.com>
+
+	* g-comlin.adb: Minor code reorganization
+	Minor reformatting
+
+	* g-comlin.ads: Minor reformatting
+
+	* s-fileio.adb: Minor reformatting
+
+	* sem_attr.adb: Minor code reorganization (use Nkind_In)
+	Minor reformatting
+
 2008-08-06  Samuel Tardieu  <sam@rfc1149.net>
 
 	* gcc-interface/Make-lang.in: Use GCC_FOR_TARGET when dealing

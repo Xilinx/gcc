@@ -1,4 +1,407 @@
+2008-08-14  Rafael Avila de Espindola  <espindola@google.com>
+
+	* gcc.dg/visibility-14.c: New test.
+	* gcc.dg/visibility-15.c: New test.
+	* gcc.dg/visibility-16.c: New test.
+	* gcc.dg/visibility-17.c: New test.
+	* gcc.dg/visibility-18.c: New test.
+	* gcc.dg/visibility-19.c: New test.
+
+2008-08-14  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/34600
+	* g++.dg/parse/crash43.C: New.
+
+2008-08-14  Manuel Lopez-Ibanez  <manu@gcc.gnu.org>
+
+        PR c/28152
+	* gcc.dg/parser-pr28152.c: New.
+	* gcc.dg/parser-pr28152-2.c: New.
+
+2008-08-14  Dorit Nuzman  <dorit@il.ibm.com>
+
+	* gcc.dg/vect/vect-outer-4g.c: Change loop bound.
+	* gcc.dg/vect/vect-outer-4k.c: Likewise.
+	* gcc.dg/vect/vect-outer-4l.c: Likewise.
+	* gcc.dg/vect/vect-outer-4f.c: Likewise.
+	* gcc.dg/vect/vect-outer-4a.c: Vectorizable. Remove obsolete comment.
+	* gcc.dg/vect/vect-outer-4i.c: Likewise.
+	* gcc.dg/vect/vect-outer-4b.c: Likewise.
+	* gcc.dg/vect/vect-outer-4j.c: Likewise.
+
+2008-08-14  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/37101
+	* gcc.target/i386/pr37101.c: New test.
+
+2008-08-14  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/37103
+	* gcc.c-torture/execute/20080813-1.c: New test.
+
+2008-08-13  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* gcc.target/i386/incoming-1.c: Skip *-*-darwin*.
+	* gcc.target/i386/incoming-2.c: Likewise.
+	* gcc.target/i386/incoming-3.c: Likewise.
+	* gcc.target/i386/incoming-4.c: Likewise.
+	* gcc.target/i386/incoming-5.c: Likewise.
+
+2008-08-13  Manuel Lopez-Ibanez  <manu@gcc.gnu.org>
+
+	PR 30551
+	* gcc.dg/pr30551.c: New.
+	* gcc.dg/pr30551-2.c: New.
+	* gcc.dg/pr30551-3.c: New.
+	* gcc.dg/pr30551-4.c: New.
+	* gcc.dg/pr30551-5.c: New.
+	* gcc.dg/pr30551-6.c: New.
+	* gcc.dg/tree-ssa/reassoc-3.c: Don't compile with -pedantic-errors.
+	* g++.dg/warn/pr30551.C: New.
+	* g++.dg/warn/pr30551-2.C: New.
+
+2008-08-13  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.dg/tree-ssa/ssa-ccp-21.c: New testcase.
+	* gcc.dg/tree-ssa/ssa-ccp-22.c: Likewise.
+	* gcc.dg/tree-ssa/ssa-ccp-23.c: Likewise.
+
+2008-08-13  Samuel Tardieu  <sam@rfc1149.net>
+
+	PR ada/36777
+	* gnat.dg/protected_self_ref1.adb, gnat.dg/protected_self_ref2.adb:
+	New.
+
+2008-08-13  Manuel Lopez-Ibanez  <manu@gcc.gnu.org>
+
+	PR c/15236
+	* gcc.dg/pr15236.c: New.
+	* gcc.dg/torture/pr25183.c: Update.
+
+2008-08-13  Manuel Lopez-Ibanez  <manu@gcc.gnu.org>
+
+	PR 35635
+	* gcc.dg/pr35635.c: New.
+	* gcc.dg/Wconversion-integer.c: Update.
+	* gcc.dg/Wconversion-integer-no-sign.c: Update.
+	* gcc.dg/Wsign-conversion.c: Update.
+	* g++.dg/warn/pr35635.C: New.
+	* g++.dg/warn/Wconversion-integer.C: Update.
+	* g++.dg/warn/Wsign-conversion.C: Update.
+	
+2008-08-13  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/15255
+	* gcc.dg/tree-ssa/reassoc-14.c: New testcase.
+	* gcc.dg/tree-ssa/reassoc-15.c: Likewise.
+	* gcc.dg/tree-ssa/reassoc-16.c: Likewise.
+	* gcc.dg/torture/reassoc-1.c: Likewise.
+	* gcc.dg/tree-ssa/recip-2.c: Adjust.
+	* gcc.dg/tree-ssa/recip-6.c: Likewise.
+	* gcc.dg/tree-ssa/recip-7.c: Likewise.
+	* gfortran.dg/reassoc_4.f: Likewise.
+
+2008-08-12  Janis Johnson  <janis187@us.ibm.com>
+
+	* gcc.target/i386/pr32000-2.c: Use dg-skip-if for target expression.
+	* gcc.target/i386/stackalign/return-3.c: Ditto.
+	* gcc.target/sparc/ultrasp3.c: Ditto.
+	* lib/target-supports-dg.exp (dg-require-effective-target): Error
+	if argument is not a single effective-target keyword.
+
+	PR testsuite/36087
+	* gcc.dg/var-expand3.c: Fix name of dump file.
+
+2008-08-12  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* g++.old-deja/g++.other/decl5.C: Expand new expected errors.
+	
+2008-08-12  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/37087
+	* g++.dg/template/crash80.C: New.
+	* g++.old-deja/g++.other/decl5.C: Adjust.
+
+2008-08-12  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/37014
+	* gcc.c-torture/compile/20080812-1.c: New test.
+
+	PR tree-optimization/37084
+	* g++.dg/tree-ssa/pr37084.C: New test.
+
+2008-08-12  Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>
+
+	* gcc.c-torture/execute/20031003-1.c (main): Update test to
+	accommodate SPU single-precision rounding mode.
+	* gcc.c-torture/execute/conversion.c (test_float_to_integer,
+	test_float_to_longlong_integer): Likewise.
+	* gcc.c-torture/execute/ieee/rbug.c (main): Likewise.
+	* gcc.dg/hex-round-1.c: Skip test on SPU.
+	* gcc.dg/hex-round-2.c: Likewise.
+
+2008-08-12  Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>
+
+	* gcc.c-torture/execute/ieee/inf-2.c (testf): Skip on the SPU.
+
+2008-08-12  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/36688
+	* g++.dg/init/const6.C: New test.
+
+2008-08-12  Ira Rosen  <irar@il.ibm.com>
+
+	* gcc.dg/vect/vect-multitypes-12.c: New.
+	* gcc.dg/vect/vect-multitypes-13.c, gcc.dg/vect/vect-multitypes-14.c,
+	gcc.dg/vect/vect-multitypes-15.c : Likewise.
+	* gcc.dg/vect/vect-reduc-dot-u8a.c: Avoid vectorization of the
+	init loop.
+	* gcc.dg/vect/vect-72.c, gcc.dg/vect/vect-strided-store-a-u8-i2.c:
+	Likewise.
+	* gcc.dg/vect/vect-reduc-dot-u8b.c: Avoid vectorization of the init
+	loop.
+	Should be vectorizable on targets that support vector unpack.
+	* gcc.dg/vect/vect-widen-mult-u8.c,
+	gcc.dg/vect/wrapv-vect-reduc-dot-s8b.c,
+	gcc.dg/vect/wrapv-vect-reduc-dot-s8b.c: Likewise.
+	* gcc.dg/vect/vect-35.c: Should be vectorizable on targets that
+	support vector pack. Avoid vectorization of the init loop.
+	* gcc.dg/vect/vect-reduc-pattern-1b.c: Should be vectorizable on
+	targets that support vector unpack.
+	* gcc.dg/vect/vect-reduc-pattern-2b.c,
+	gcc.dg/vect/vect-reduc-dot-s8c.c, gcc.dg/vect/vect-112.c: Likewise.
+
+2008-08-11  Jakub Jelinek  <jakub@redhat.com>
+
+	PR rtl-optimization/36998
+	* gcc.dg/pr36998.c: New test.
+
+2008-08-11  Andreas Krebbel  <krebbel1@de.ibm.com>
+
+	* gcc.target/s390/20080806-1.c: Move testcase ...
+ 	* gcc.c-torture/compile/20080806-1.c: ... to here and make it
+	stack size sensitive.
+
+2008-08-10  Samuel Tardieu  <sam@rfc1149.net>
+
+	* gnat.dg/exp0_eval.adb: New.
+
+2008-08-10  Manuel Lopez-Ibanez  <manu@gcc.gnu.org>
+
+	PR middle-end/20644
+	* gcc.dg/uninit-pr20644-O0.c: New.
+	* gcc.dg/uninit-pr20644.c: New.
+
+2008-08-10  Manuel Lopez-Ibanez  <manu@gcc.gnu.org>
+
+	PR 36901
+	* gcc.dg/pr36901.h: Do not depend on limits.h.
+	* gcc.dg/pr36901-3.c: Update.
+	* gcc.dg/pr36901-4.c: Update.
+
+2008-08-09  Andrew Pinski  <andrew_pinski@playstation.sony.com>
+
+	PR middle-end/36238
+	* gcc.c-torture/compile/pr36238.c: New testcase.
+
+2008-08-09  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* lib/target-supports.exp (check_profiling_available): Return false
+	for -p and -pg on MIPS16 targets.
+
+2008-08-09  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.dg/tree-ssa/inline-2.c: New testcase.
+
+2008-08-09  Manuel Lopez-Ibanez  <manu@gcc.gnu.org>
+
+	PR c/17880
+	* gcc.dg/sequence-pt-pr17880.c: New.
+
+2008-08-09  Manuel Lopez-Ibanez  <manu@gcc.gnu.org>
+
+	PR c++/12242
+	* g++.dg/warn/pr12242.C: New.
+	
+2008-08-09  Manuel Lopez-Ibanez  <manu@gcc.gnu.org>
+
+	PR 36901
+	* gcc.dg/pr36901-1.c: New.
+	* gcc.dg/pr36901-3.c: New.
+	* gcc.dg/pr36901-2.c: New.
+	* gcc.dg/pr36901-4.c: New.
+	* gcc.dg/pr36901-system.h: New.
+	* gcc.dg/pr36901.h: New.
+	* gcc.target/powerpc/altivec-macros.c: Update.
+	* gcc.target/i386/regparm.c: Update.
+	* gcc.dg/funcdef-var-1.c: Update.
+	* gcc.dg/parm-mismatch-1.c: Update.
+	* gcc.dg/attr-noinline.c: Update.
+	* gcc.dg/wtr-static-1.c: Update.
+	* gcc.dg/redecl-11.c: Update.
+	* gcc.dg/pr27953.c: Update.
+	* gcc.dg/proto-1.c: Update.
+	* gcc.dg/decl-3.c: Update.
+	* gcc.dg/redecl-13.c: Update.
+	* gcc.dg/pr15360-1.c: Update.
+	* gcc.dg/redecl-15.c: Update.
+	* gcc.dg/enum-compat-1.c: Update.
+	* gcc.dg/dll-3.c: Update.
+	* gcc.dg/array-5.c: Update.
+	* gcc.dg/Wredundant-decls-2.c: Update.
+	* gcc.dg/inline4.c: Update.
+	* gcc.dg/redecl-2.c: Update.
+	* gcc.dg/inline-14.c: Update.
+	* gcc.dg/tls/diag-3.c: Update.
+	* gcc.dg/funcdef-var-2.c: Update.
+	* gcc.dg/20041213-1.c: Update.
+	* gcc.dg/old-style-then-proto-1.c: Update.
+	* gcc.dg/decl-2.c: Update.
+	* gcc.dg/redecl-12.c: Update.
+	* gcc.dg/decl-4.c: Update.
+	* gcc.dg/Wshadow-1.c: Update.
+	* gcc.dg/transparent-union-2.c: Update.
+	* gcc.dg/visibility-7.c: Update.
+	* gcc.dg/dll-2.c: Update.
+	* gcc.dg/redecl-16.c: Update.
+	* gcc.dg/inline1.c: Update.
+	* gcc.dg/decl-8.c: Update.
+	* gcc.dg/nested-redef-1.c: Update.
+	* gcc.dg/inline3.c: Update.
+	* gcc.dg/redecl-1.c: Update.
+	* gcc.dg/inline5.c: Update.
+	* gcc.dg/pr35899.c: Update.
+	* gcc.dg/noncompile/label-lineno-1.c: Update.
+	* gcc.dg/noncompile/label-1.c: Update.
+	* gcc.dg/noncompile/20020220-1.c: Update.
+	* gcc.dg/noncompile/redecl-1.c: Update.
+	* gcc.dg/redecl-5.c: Update.
+	* gcc.dg/qual-return-3.c: Update.
+	* gcc.dg/label-decl-4.c: Update.
+	
+2008-08-09  Manuel Lopez-Ibanez  <manu@gcc.gnu.org>
+
+	PR 7651
+	* g++.dg/warn/Wuninitializable-member.C: New.
+	* g++.dg/warn/Wuninitializable-member-no.C: New.
+	
+2008-08-08  Manuel Lopez-Ibanez  <manu@gcc.gnu.org>
+
+	PR 28875
+	* gcc.dg/unused-6-no.c: New.
+	* gcc.dg/unused-6-WallWextra.c: New.
+
+2008-08-08  Volker Reichelt  <v.reichelt@netcologne.de>
+
+	PR c++/35985
+	* g++.dg/inherit/base3.C: New.
+
+2008-08-08  Dorit Nuzman  <dorit@il.ibm.com>
+
+	* lib/target-supports.exp (check_effective_target_vect_floatint_cvt): 
+	Add powerpc. 
+
+2008-08-08  Daniel Kraft  <d@domob.eu>
+
+	* gfortran.dg/finalize_9.f03:  New test.
+	* gfortran.dg/module_md5_1.f90:  Adapted MD5-sum for changed module
+	file format.
+
+2008-08-08  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.dg/tree-ssa/ssa-ccp-20.c: New testcase.
+
+2008-08-08  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/37056
+	* gcc.c-torture/compile/pr37056.c: New testcase.
+
+2008-08-07  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	* gcc.dg/Wcxx-compat-2.c: Check for bool/_Bool.
+
+2008-08-07  Douglas Gregor  <doug.gregor@gmail.com>
+
+	* g++.dg/cpp0x/decltype12.C: New.
+
+2008-08-07  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/36992
+	* gcc.target/i386/pr36992-1.c: Scan movq.
+	* gcc.target/i386/pr36992-2.c: Use "-O2 -msse4" instead of
+	"-O0 -msse2".  Scan movq.
+
+2008-08-07  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/37042
+	* gcc.dg/Wstrict-aliasing-bogus-ref-all-2.c: New testcase.
+
+2008-08-07  Andreas Krebbel  <krebbel1@de.ibm.com>
+
+	* gcc.c-torture/compile/20080806-1.c: Move testcase ...
+	* gcc.target/s390/20080806-1.c: ... to here.
+
+2008-08-06  Douglas Gregor  <doug.gregor@gmail.com>
+
+	PR c++/36460
+	* g++.dg/cpp0x/bracket3.C: Add another test case for the >>
+	warning under -Wc++0x-compat.
+	* g++.dg/cpp0x/bracket4.C: Add testcase for PR c++/36460.
+
+2008-08-06  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	* gcc.dg/Wcxx-compat-2.c: Adjust test for more warnings.
+
+2008-08-06  Manuel Lopez-Ibanez  <manu@gcc.gnu.org>
+
+	PR 26785
+	* g++.dg/warn/pr26785.C: New.
+		
+2008-08-06  Victor Kaplansky  <victork@il.ibm.com>
+
+	* gcc.dg/vect/costmodel/ppc/costmodel-slp-34.c: New test.
+
+2008-08-06  Manuel Lopez-Ibanez  <manu@gcc.gnu.org>
+
+	PR 8715
+	* gcc.dg/pr8715.c: New.
+	* g++.dg/warn/pr8715.C: New.
+	
+2008-08-06  Marc Gauthier  <marc@tensilica.com>
+
+	* lib/target-supports.exp (check_profiling_available): Match more
+	processor names for Xtensa.
+	* g++.old-deja/g++.jason/thunk3.C: Likewise.
+	* gcc.dg/intmax_t-1.c: Likewise.
+	* gcc.dg/sibcall-3.c: Likewise.
+	* gcc.dg/sibcall-4.c: Likewise.
+	* gcc.c-torture/compile/20001226-1.c: Likewise.
+
+2008-08-06  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR middle-end/37010
+	* gcc.dg/torture/stackalign/push-1.c: New.
+
+2008-08-06  Michael Matz  <matz@suse.de>
+
+	PR target/36613
+	* gcc.target/i386/pr36613.c: New testcase.
+
+2008-08-06  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR middle-end/37009
+	* gcc.dg/torture/stackalign/alloca-2.c: New.
+	* gcc.dg/torture/stackalign/alloca-3.c: Likewise.
+	* gcc.dg/torture/stackalign/alloca-4.c: Likewise.
+	* gcc.dg/torture/stackalign/vararg-3.c: Likewise.
+	* gcc.target/i386/incoming-1.c: Likewise.
+	* gcc.target/i386/incoming-2.c: Likewise.
+	* gcc.target/i386/incoming-3.c: Likewise.
+	* gcc.target/i386/incoming-4.c: Likewise.
+	* gcc.target/i386/incoming-5.c: Likewise.
+
 2008-08-06  Aldy Hernandez  <aldyh@redhat.com>
+
 	PR middle-end/35432
 	* gcc.c-torture/compile/pr35432.c: New file.
 
@@ -9,7 +412,7 @@
 
 2008-08-06  Andreas Krebbel  <krebbel1@de.ibm.com>
 
- 	* gcc.c-torture/compile/20080806-1.c: New testcase.
+	* gcc.c-torture/compile/20080806-1.c: New testcase.
 
 2008-08-06  Maxim Kuvyrkov  <maxim@codesourcery.com>
 

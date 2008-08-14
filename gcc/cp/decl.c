@@ -6692,7 +6692,8 @@ grokfndecl (tree ctype,
 	  newtype = build_function_type (integer_type_node, oldtypeargs);
 	  TREE_TYPE (decl) = newtype;
 	}
-      check_main_parameter_types (decl);
+      if (warn_main)
+	check_main_parameter_types (decl);
     }
 
   if (ctype != NULL_TREE
@@ -8437,8 +8438,9 @@ grokdeclarator (const cp_declarator *declarator,
 	      friendp = 0;
 	    }
 	  else
-	    permerror ("extra qualification %<%T::%> on member %qs",
-		       ctype, name);
+	    permerror_at (declarator->id_loc, 
+			  "extra qualification %<%T::%> on member %qs",
+			  ctype, name);
 	}
       else if (/* If the qualifying type is already complete, then we
 		  can skip the following checks.  */
@@ -9268,7 +9270,10 @@ grokdeclarator (const cp_declarator *declarator,
 	      warning (0, "%qs initialized and declared %<extern%>", name);
 	  }
 	else
-	  error ("%qs has both %<extern%> and initializer", name);
+	  {
+	    error ("%qs has both %<extern%> and initializer", name);
+	    return error_mark_node;
+	  }
       }
 
     /* Record `register' declaration for warnings on &
@@ -10615,10 +10620,7 @@ xref_basetypes (tree ref, tree base_list)
         basetype = PACK_EXPANSION_PATTERN (basetype);
       if (TREE_CODE (basetype) == TYPE_DECL)
 	basetype = TREE_TYPE (basetype);
-      if (TREE_CODE (basetype) != RECORD_TYPE
-	  && TREE_CODE (basetype) != TYPENAME_TYPE
-	  && TREE_CODE (basetype) != TEMPLATE_TYPE_PARM
-	  && TREE_CODE (basetype) != BOUND_TEMPLATE_TEMPLATE_PARM)
+      if (!MAYBE_CLASS_TYPE_P (basetype) || TREE_CODE (basetype) == UNION_TYPE)
 	{
 	  error ("base type %qT fails to be a struct or class type",
 		 basetype);
