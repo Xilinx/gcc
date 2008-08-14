@@ -50,6 +50,22 @@ along with GCC; see the file COPYING3.  If not see
 
 static VEC (scop_p, heap) *current_scops;
 
+/* This "loop mapping stuff" is a tweak for dealing with the "dumb"
+   loop internal representation of CLooG.  CLooG represents the loops
+   by their depth and not uniquely as in a tree of loops.  For example
+
+   |for i
+   |  for j
+   |    for k
+   |for l
+   |  for m
+
+   the loops i and l are going to be represented as a single loop,
+   i.e. a loop at depth 1, but with a different static schedule as
+   loop l follows loop i.  Loops j and m are represented by a loop
+   depth 2, and loop k is at loop depth 3.  This should be cleaned up
+   in CLooG and not visible from GCC side.  */
+
 /* Prints the loop mapping of SCOP.  */
 void debug_loop_mapping (scop_p);
 void debug_loop_vec (graphite_bb_p gb);
@@ -3186,7 +3202,7 @@ graphite_create_new_loop (scop_p scop, edge entry_edge,
 				    &iv_before, outer ? outer
 				    : entry_edge->src->loop_father);
 
-  loop_iv_stack_push(ivstack, iv_before, stmt->iterator);
+  loop_iv_stack_push (ivstack, iv_before, stmt->iterator);
 
   return loop;
 }

@@ -1,5 +1,10 @@
 2008-08-14  Sebastian Pop  <sebastian.pop@amd.com>
 
+	* graphite.c: Add some more documentation for the loop
+          mapping.
+
+2008-08-14  Sebastian Pop  <sebastian.pop@amd.com>
+
 	* Makefile.in (tree-data-ref.o): Remove dependence on graphite.h.
 	* graphite.c: Format on less than 80 columns.
 	* graphite.h: Same.
