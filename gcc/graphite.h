@@ -205,8 +205,9 @@ struct graphite_bb
      0        1        2         3
      Loop j   NULL     Loop i    NULL
     
-     Means the original loop i is now at column two of the domain and loop j in
-     the original loop nest is now at column 0. Column 1 and 3 are emtpy.  */
+     Means the original loop i is now at column two of the domain and
+     loop j in the original loop nest is now at column 0.  Column 1 and
+     3 are emtpy.  */
   VEC (loop_p, heap) *loops;
 
   lambda_vector compressed_alpha_matrix;
@@ -320,8 +321,8 @@ struct scop
   bitmap loops;
   VEC (loop_p, heap) *loop_nest;
 
-  /* specifies for loop num in loops which corresponding loop depth that num is mapped to
-     in the transformed program */
+  /* Specifies for loop num in loops which corresponding loop depth
+     that num is mapped to in the transformed program */
   graphite_loops_mapping loops_mapping;
 
   /* ???  It looks like a global mapping loop_id -> cloog_loop would work.  */
