@@ -638,10 +638,6 @@ loopify (edge latch_edge, edge header_edge,
 {
   basic_block succ_bb = latch_edge->dest;
   basic_block pred_bb = header_edge->src;
-  basic_block *body;
-  VEC (basic_block, heap) *dom_bbs;
-  unsigned i;
-  sbitmap seen;
   struct loop *loop = alloc_loop ();
   struct loop *outer = loop_outer (succ_bb->loop_father);
   int freq;
@@ -693,35 +689,7 @@ loopify (edge latch_edge, edge header_edge,
     }
   scale_loop_frequencies (loop, false_scale, REG_BR_PROB_BASE);
   scale_loop_frequencies (succ_bb->loop_father, true_scale, REG_BR_PROB_BASE);
-
-  /* Update dominators of blocks outside of LOOP.  */
-  dom_bbs = NULL;
-  seen = sbitmap_alloc (last_basic_block);
-  sbitmap_zero (seen);
-  body = get_loop_body (loop);
-
-  for (i = 0; i < loop->num_nodes; i++)
-    SET_BIT (seen, body[i]->index);
-
-  for (i = 0; i < loop->num_nodes; i++)
-    {
-      basic_block ldom;
-
-      for (ldom = first_dom_son (CDI_DOMINATORS, body[i]);
-	   ldom;
-	   ldom = next_dom_son (CDI_DOMINATORS, ldom))
-	if (!TEST_BIT (seen, ldom->index))
-	  {
-	    SET_BIT (seen, ldom->index);
-	    VEC_safe_push (basic_block, heap, dom_bbs, ldom);
-	  }
-    }
-
-  iterate_fix_dominators (CDI_DOMINATORS, dom_bbs, false);
-
-  free (body);
-  free (seen);
-  VEC_free (basic_block, heap, dom_bbs);
+  update_dominators_in_loop (loop);
 
   return loop;
 }

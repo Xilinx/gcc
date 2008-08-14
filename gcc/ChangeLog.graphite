@@ -1,5 +1,9 @@
 2008-08-14  Sebastian Pop  <sebastian.pop@amd.com>
 
+	* cfgloopmanip.c (loopify): Use update_dominators_in_loop.
+
+2008-08-14  Sebastian Pop  <sebastian.pop@amd.com>
+
 	* doc/invoke.texi (floop-block, floop-strip-mine,
 	floop-interchange): Update documentation with examples.
 
