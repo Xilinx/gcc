@@ -4490,45 +4490,36 @@ graphite_trans_bb_block (graphite_bb_p gb, int stride, int loops)
   int start = nb_loops - loops;
   scop_p scop = GBB_SCOP (gb);
   int outer_most_loop_index_for_gb;
-  bool transform_done = false;
 
-  if (!scop_contains_loop (scop, gbb_loop (gb)))
-    return transform_done;
+  gcc_assert (scop_contains_loop (scop, gbb_loop (gb)));
 
-  outer_most_loop_index_for_gb = gbb_outer_most_loop_index (scop, gb);
-
-  for (i = outer_most_loop_index_for_gb;
-       i < outer_most_loop_index_for_gb + loops; i++)
-    for (j = i + 1; j < outer_most_loop_index_for_gb + loops; j++)
+  for (i = start ; i < nb_loops; i++)
+    for (j = i + 1; j < nb_loops; j++)
       if (!is_interchange_valid (scop, i, j))
 	{
 	  if (dump_file && (dump_flags & TDF_DETAILS))
 	    fprintf (dump_file,
 		     "\nInterchange not valid for loops %d and %d:\n", i, j);
-	  return transform_done;
+	  return false;
 	}
       else if (dump_file && (dump_flags & TDF_DETAILS))
 	fprintf (dump_file,
 		 "\nInterchange valid for loops %d and %d:\n", i, j);
 
+  /* Check, if strip mining is profitable for every loop.  */
+  for (i = 0; i < nb_loops - start; i++)
+    if (!strip_mine_profitable_p (gb, stride, start + i))
+      return false;
+
   /* Strip mine loops.  */
   for (i = 0; i < nb_loops - start; i++)
-    if ((flag_loop_block || flag_loop_strip_mine)
-	&& strip_mine_profitable_p (gb, stride, start + 2 * i))
-      {
-	graphite_trans_bb_strip_mine (gb, start + 2 * i, stride);
-	transform_done = true;
-      }
+    graphite_trans_bb_strip_mine (gb, start + 2 * i, stride);
 
   /* Interchange loops.  */
   for (i = 1; i < nb_loops - start; i++)
-    if (flag_loop_block || flag_loop_interchange)
-      {
-	graphite_trans_bb_move_loop (gb, start + 2 * i, start + i);
-	transform_done = true;
-      }
+    graphite_trans_bb_move_loop (gb, start + 2 * i, start + i);
 
-  return transform_done;
+  return true;
 }
 
 /* Loop block a loop nest. Calculate the optimal stride size (TODO).  */
@@ -4544,6 +4535,8 @@ graphite_trans_loop_block (VEC (graphite_bb_p, heap) *bbs, int loops)
   int stride_size = 64;
 
   for (i = 0; VEC_iterate (graphite_bb_p, bbs, i, gb); i++)
+    transform_done |= graphite_trans_bb_block (gb, stride_size, loops);
+
     transform_done |= graphite_trans_bb_block (gb, stride_size, loops);
   return transform_done;
 }
@@ -4684,9 +4677,7 @@ graphite_apply_transformations (scop_p scop)
   graphite_sort_gbbs (scop);
   scop_remove_ignoreable_gbbs (scop);
 
-  if (flag_loop_block
-      || flag_loop_strip_mine
-      || flag_loop_interchange)
+  if (flag_loop_block)
     transform_done = graphite_trans_scop_block (scop);
 
   return transform_done;
