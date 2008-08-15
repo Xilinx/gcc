@@ -1,5 +1,6 @@
 /* Valid __ea declarations.  */
 /* { dg-do compile } */
+/* { dg-options "-std=gnu99 -pedantic-errors" } */
 
 /* Externs.  */
 

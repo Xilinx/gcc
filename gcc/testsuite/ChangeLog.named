@@ -1,3 +1,7 @@
+2008-08-15  Ben Elliston  <bje@au.ibm.com>
+
+	* gcc.target/spu/ea/compile.c: Add dg-options directive.
+
 2008-08-08  Ben Elliston  <bje@au.ibm.com>
 
 	* gcc.target/spu/cache.c: Include <stdlib.h> and <string.h>.
