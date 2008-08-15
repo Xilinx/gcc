@@ -1,5 +1,9 @@
 2008-08-15  Tobias Grosser  <grosser@fim.uni-passau.de>
 
+	*graphite.c (graphite_trans_loop_block): Fix my merge error.
+
+2008-08-15  Tobias Grosser  <grosser@fim.uni-passau.de>
+
 	* graphite.c (graphite_trans_bb_block): Remove check for
 	flag_loop_strip_mine, flag_loop_block, flag_loop_interchange.
 	Check if loop blocking is profitable for every loop, before applying
