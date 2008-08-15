@@ -1,4 +1,4 @@
-## Makefile for the include subdirectory of the GNU C++ Standard library.
+#o# Makefile for the include subdirectory of the GNU C++ Standard library.
 ##
 ## Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
 ## Free Software Foundation, Inc.
@@ -759,6 +759,24 @@ else
 parallel_headers =
 endif
 
+# Profile mode headers
+profile_srcdir = ${glibcxx_srcdir}/include/profile
+profile_builddir = ./profile
+profile_headers = \
+	${profile_srcdir}/base.h \
+	${profile_srcdir}/unordered_map \
+	${profile_srcdir}/unordered_set \ 
+	${profile_srcdir}/vector \
+	${profile_srcdir}/bitset \
+	${profile_srcdir}/deque \
+	${profile_srcdir}/list \
+	${profile_srcdir}/map \
+	${profile_srcdir}/map.h \
+	${profile_srcdir}/multimap.h \
+	${profile_srcdir}/multiset.h \
+	${profile_srcdir}/set \
+	${profile_srcdir}/set.h \  
+	${profile_srcdir}/hashtable.h 
 
 # Some of the different "C" header models need extra files.
 # Some "C" header schemes require the "C" compatibility headers.
@@ -853,7 +871,8 @@ endif
 allstamped = \
 	stamp-std stamp-bits stamp-c_base stamp-c_base_extra \
 	stamp-c_compatibility  stamp-backward stamp-ext stamp-pb \
-	stamp-tr1 stamp-tr1-impl stamp-debug stamp-parallel stamp-host
+	stamp-tr1 stamp-tr1-impl stamp-debug stamp-parallel stamp-host \
+    stamp-profile
 
 # List of all files that are created by explicit building, editing, or
 # catenation.
@@ -976,6 +995,11 @@ stamp-parallel: ${parallel_headers}
 	@-mkdir -p ${parallel_builddir}
 	@-cd ${parallel_builddir} && $(LN_S) $? . 2>/dev/null
 	@$(STAMP) stamp-parallel
+
+stamp-profile: ${profile_headers}
+	@-mkdir -p ${profile_builddir}
+	@-cd ${profile_builddir} && $(LN_S) $? . 2>/dev/null
+	@$(STAMP) stamp-profile
 
 stamp-${host_alias}:
 	@-mkdir -p ${host_builddir}
@@ -1204,6 +1228,9 @@ install-headers:
 	  $(mkinstalldirs) $(DESTDIR)${gxx_include_dir}/${parallel_builddir};\
 	for file in $$parallel_headers_install; do \
 	  $(INSTALL_DATA) $${file} $(DESTDIR)${gxx_include_dir}/${parallel_builddir}; done
+	$(mkinstalldirs) $(DESTDIR)${gxx_include_dir}/${profile_builddir}
+	for file in ${profile_headers}; do \
+	  $(INSTALL_DATA) $${file} $(DESTDIR)${gxx_include_dir}/${profile_builddir}; done
 	$(mkinstalldirs) $(DESTDIR)${host_installdir}
 	for file in ${host_headers} ${host_headers_extra} \
 	 ${thread_host_headers}; do \

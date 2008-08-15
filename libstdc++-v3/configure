@@ -2450,7 +2450,7 @@ echo "${ECHO_T}$ac_cv_prog_egrep" >&6
   # expandable list at autoconf time; the second provides an expandable list
   # (i.e., shell variable) at configure time.
 
-  SUBDIRS='include libmath libsupc++ src doc po testsuite'
+  SUBDIRS='include libmath libsupc++ libprofc++ src doc po testsuite'
 
   # These need to be absolute paths, yet at the same time need to
   # canonicalize only relative paths, because then amd will not unmount
@@ -120695,7 +120695,8 @@ echo "${ECHO_T}$gxx_include_dir" >&6
   GLIBCXX_INCLUDES="\
 -I$glibcxx_builddir/include/$host_alias \
 -I$glibcxx_builddir/include \
--I$glibcxx_srcdir/libsupc++"
+-I$glibcxx_srcdir/libsupc++ \
+-I$glibcxx_srcdir/libprofc++"
 
   # For Canadian crosses, pick this up too.
   if test $CANADIAN = yes; then
@@ -120729,7 +120730,7 @@ else
 fi
 
 
-                                                                                ac_config_files="$ac_config_files Makefile include/Makefile libmath/Makefile libsupc++/Makefile src/Makefile doc/Makefile po/Makefile testsuite/Makefile"
+                                                                                ac_config_files="$ac_config_files Makefile include/Makefile libmath/Makefile libsupc++/Makefile libprofc++/Makefile src/Makefile doc/Makefile po/Makefile testsuite/Makefile"
 
           ac_config_files="$ac_config_files scripts/testsuite_flags"
 
@@ -121754,6 +121755,7 @@ do
   "include/Makefile" ) CONFIG_FILES="$CONFIG_FILES include/Makefile" ;;
   "libmath/Makefile" ) CONFIG_FILES="$CONFIG_FILES libmath/Makefile" ;;
   "libsupc++/Makefile" ) CONFIG_FILES="$CONFIG_FILES libsupc++/Makefile" ;;
+  "libprofc++/Makefile" ) CONFIG_FILES="$CONFIG_FILES libprofc++/Makefile" ;;
   "src/Makefile" ) CONFIG_FILES="$CONFIG_FILES src/Makefile" ;;
   "doc/Makefile" ) CONFIG_FILES="$CONFIG_FILES doc/Makefile" ;;
   "po/Makefile" ) CONFIG_FILES="$CONFIG_FILES po/Makefile" ;;

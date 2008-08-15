@@ -196,7 +196,8 @@ libstdc___la_SOURCES = $(sources)
 
 libstdc___la_LIBADD = \
 	$(top_builddir)/libmath/libmath.la \
-	$(top_builddir)/libsupc++/libsupc++convenience.la
+	$(top_builddir)/libsupc++/libsupc++convenience.la \
+	$(top_builddir)/libprofc++/libprofc++convenience.la
 
 libstdc___la_DEPENDENCIES = ${version_dep} $(libstdc___la_LIBADD)
 

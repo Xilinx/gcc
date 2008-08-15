@@ -49,7 +49,7 @@ AC_DEFUN([GLIBCXX_CONFIGURE], [
   # Keep these sync'd with the list in Makefile.am.  The first provides an
   # expandable list at autoconf time; the second provides an expandable list
   # (i.e., shell variable) at configure time.
-  m4_define([glibcxx_SUBDIRS],[include libmath libsupc++ src doc po testsuite])
+  m4_define([glibcxx_SUBDIRS],[include libmath libsupc++ libprofc++ src doc po testsuite])
   SUBDIRS='glibcxx_SUBDIRS'
 
   # These need to be absolute paths, yet at the same time need to
@@ -591,7 +591,9 @@ AC_DEFUN([GLIBCXX_EXPORT_INCLUDES], [
   GLIBCXX_INCLUDES="\
 -I$glibcxx_builddir/include/$host_alias \
 -I$glibcxx_builddir/include \
--I$glibcxx_srcdir/libsupc++"
+-I$glibcxx_srcdir/libsupc++ \
+-I$glibcxx_srcdir/libprofc++"
+
 
   # For Canadian crosses, pick this up too.
   if test $CANADIAN = yes; then

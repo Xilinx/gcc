@@ -3673,6 +3673,12 @@ warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n"
 	  add_assembler_option ("--target-help", 13);
 	  add_linker_option ("--target-help", 13);
 	}
+      else if (strcmp (argv[i], "-fprofile-stdlib-use") == 0
+               || strcmp (argv[i], "-fprofile-stdlib-use=") == 0)
+        flag_profile_stdlib_use = true;
+      else if (strcmp (argv[i], "-fprofile-stdlib-advise") == 0
+               || strcmp (argv[i], "-fprofile-stdlib-advise=") == 0)
+        flag_profile_stdlib_advise = true;
       else if (! strcmp (argv[i], "-pass-exit-codes"))
 	{
 	  pass_exit_codes = 1;
@@ -6588,6 +6594,17 @@ main (int argc, char **argv)
       /* We do not exit here.  Instead we have created a fake input file
 	 called 'help-dummy' which needs to be compiled, and we pass this
 	 on the various sub-processes, along with the --help switch.  */
+    }
+
+    if (flag_profile_stdlib_advise)
+    {
+      /* Execute a prebuilt tool, stdlib-advisor. */
+      int err = system("stdlib-advisor");
+      if (err) 
+      {
+        printf ("Can't find script stdlib-advisor\n");
+      }
+      return (0);
     }
 
   if (verbose_flag)

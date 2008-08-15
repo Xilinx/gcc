@@ -436,6 +436,10 @@ c_cpp_builtins (cpp_reader *pfile)
   if (flag_exceptions)
     cpp_define (pfile, "__EXCEPTIONS");
 
+  /* Turn on profiling in libstdc++ with -D_GLIBCXX_PROFILE.  */
+  if (flag_profile_stdlib)
+    cpp_define (pfile, "_GLIBCXX_PROFILE");
+
   /* Represents the C++ ABI version, always defined so it can be used while
      preprocessing C and assembler.  */
   if (flag_abi_version == 0)

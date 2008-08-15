@@ -833,6 +833,30 @@ fprofile-values
 Common Report Var(flag_profile_values)
 Insert code to profile values of expressions
 
+fprofile-stdlib
+Common Report Var(flag_profile_stdlib)
+Enable common options for generation profile info for stdlib
+
+fprofile-stdlib=
+Common Report RejectNegative 
+Enable common options for generation profile info for stdlib
+
+fprofile-stdlib-use
+Common Report Var(flag_profile_stdlib_use)
+Enable common options for applying advices in compiler on using stdlib
+
+fprofile-stdlib-use=
+Common Report RejectNegative
+Enable common options for applying advices in compiler on using stdlib
+
+fprofile-stdlib-advise
+Common Report Var(flag_profile_stdlib_advise)
+Enable common options for reporting advices on using stdlib
+
+fprofile-stdlib-advise=
+Common Report RejectNegative
+Enable common options for reporting advices on using stdlib
+
 frandom-seed
 Common
 

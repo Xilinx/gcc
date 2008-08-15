@@ -28,7 +28,7 @@ if GLIBCXX_HOSTED
   hosted_source = libmath doc src po testsuite
 endif
 ## Keep this list sync'd with acinclude.m4:GLIBCXX_CONFIGURE.
-SUBDIRS = include libsupc++ $(hosted_source)
+SUBDIRS = include libsupc++ libprofc++ $(hosted_source)
 
 ACLOCAL_AMFLAGS = -I . -I .. -I ../config
 

@@ -45,6 +45,9 @@ along with GCC; see the file COPYING3.  If not see
 #define LIBSTDCXX_PROFILE LIBSTDCXX
 #endif
 
+#ifndef LIBPROFCXX
+#define LIBPROFCXX "-lprofc++"
+#endif
 void
 lang_specific_driver (int *in_argc, const char *const **in_argv,
 		      int *in_added_libraries)
@@ -53,6 +56,9 @@ lang_specific_driver (int *in_argc, const char *const **in_argv,
 
   /* If nonzero, the user gave us the `-p' or `-pg' flag.  */
   int saw_profile_flag = 0;
+
+  /* If nonzero, the user gave us the `-fprofile-stdlib??' flag.  */
+  int saw_profile_stdlib_flag = 0;
 
   /* If nonzero, the user gave us the `-v' flag.  */
   int saw_verbose_flag = 0;
@@ -144,6 +150,9 @@ lang_specific_driver (int *in_argc, const char *const **in_argv,
 	    args[i] |= WITHLIBC;
 	  else if (strcmp (argv[i], "-pg") == 0 || strcmp (argv[i], "-p") == 0)
 	    saw_profile_flag++;
+	  else if (strcmp (argv[i], "-fprofile-stdlib") == 0 
+               || strcmp (argv[i], "-D_GLIBCXX_PROFILE") == 0)
+	    saw_profile_stdlib_flag++;
 	  else if (strcmp (argv[i], "-v") == 0)
 	    saw_verbose_flag = 1;
 	  else if (strncmp (argv[i], "-x", 2) == 0)
@@ -257,7 +266,7 @@ lang_specific_driver (int *in_argc, const char *const **in_argv,
 #endif
 
   /* Make sure to have room for the trailing NULL argument.  */
-  num_args = argc + added + need_math + shared_libgcc + (library > 0) + 1;
+  num_args = argc + added + need_math + shared_libgcc + (library > 0) + 1 + saw_profile_stdlib_flag;
   arglist = XNEWVEC (const char *, num_args);
 
   i = 0;
@@ -334,6 +343,11 @@ lang_specific_driver (int *in_argc, const char *const **in_argv,
   if (shared_libgcc)
     arglist[j++] = "-shared-libgcc";
 
+  if (saw_profile_stdlib_flag)
+  {
+    arglist[j++] = LIBPROFCXX; 
+	added_libraries++;
+  }
   arglist[j] = NULL;
 
   *in_argc = j;

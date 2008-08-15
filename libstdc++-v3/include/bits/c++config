@@ -90,11 +90,17 @@
 # define _GLIBCXX_NAMESPACE_ASSOCIATION_PARALLEL 1
 #endif
 
+// Namespace association for profile
+#ifdef _GLIBCXX_PROFILE
+# define _GLIBCXX_NAMESPACE_ASSOCIATION_PROFILE 1
+#endif
+
 #define _GLIBCXX_NAMESPACE_ASSOCIATION_VERSION 
 
 // Defined if any namespace association modes are active.
 #if _GLIBCXX_NAMESPACE_ASSOCIATION_DEBUG \
   || _GLIBCXX_NAMESPACE_ASSOCIATION_PARALLEL \
+  || _GLIBCXX_NAMESPACE_ASSOCIATION_PROFILE \
   || _GLIBCXX_NAMESPACE_ASSOCIATION_VERSION
 # define _GLIBCXX_USE_NAMESPACE_ASSOCIATION 1
 #endif
@@ -113,6 +119,7 @@
 #ifndef _GLIBCXX_USE_NAMESPACE_ASSOCIATION
 # define _GLIBCXX_STD_D _GLIBCXX_STD
 # define _GLIBCXX_STD_P _GLIBCXX_STD
+# define _GLIBCXX_STD_PR _GLIBCXX_STD
 # define _GLIBCXX_STD std
 # define _GLIBCXX_BEGIN_NESTED_NAMESPACE(X, Y) _GLIBCXX_BEGIN_NAMESPACE(X)
 # define _GLIBCXX_END_NESTED_NAMESPACE _GLIBCXX_END_NAMESPACE
@@ -158,6 +165,28 @@
 #  define _GLIBCXX_EXTERN_TEMPLATE 0
 # endif
 
+// profile
+# if _GLIBCXX_NAMESPACE_ASSOCIATION_PROFILE && !_GLIBCXX_NAMESPACE_ASSOCIATION_DEBUG
+#  define _GLIBCXX_STD_D __norm
+#  define _GLIBCXX_STD_P _GLIBCXX_STD
+#  define _GLIBCXX_STD_PR __norm
+#  define _GLIBCXX_STD __cxx1998
+#  define _GLIBCXX_BEGIN_NAMESPACE(X) namespace X _GLIBCXX_VISIBILITY_ATTR(default) { 
+#  define _GLIBCXX_END_NAMESPACE }
+#  define _GLIBCXX_EXTERN_TEMPLATE 0
+# endif
+
+// profile + debug
+# if _GLIBCXX_NAMESPACE_ASSOCIATION_PROFILE and _GLIBCXX_NAMESPACE_ASSOCIATION_DEBUG
+#  define _GLIBCXX_STD_D __norm
+#  define _GLIBCXX_STD_P _GLIBCXX_STD
+#  define _GLIBCXX_STD_PR __norm
+#  define _GLIBCXX_STD __cxx1998
+#  define _GLIBCXX_BEGIN_NAMESPACE(X) namespace X _GLIBCXX_VISIBILITY_ATTR(default) {
+#  define _GLIBCXX_END_NAMESPACE }
+#  define _GLIBCXX_EXTERN_TEMPLATE 0
+# endif
+
 # if __NO_INLINE__ && !__GXX_WEAK__
 #  warning currently using namespace associated mode which may fail \
    without inlining due to lack of weak symbols
@@ -168,7 +197,7 @@
 #endif
 
 // Namespace associations for debug mode.
-#if _GLIBCXX_NAMESPACE_ASSOCIATION_DEBUG
+#if _GLIBCXX_NAMESPACE_ASSOCIATION_DEBUG && !_GLIBCXX_NAMESPACE_ASSOCIATION_PROFILE
 namespace std
 { 
   namespace __norm { } 
@@ -183,6 +212,16 @@ namespace std
 { 
   namespace __norm { } 
   inline namespace __parallel { }
+  inline namespace __cxx1998 { }
+}
+#endif
+
+// Namespace associations for profile mode
+#if _GLIBCXX_NAMESPACE_ASSOCIATION_PROFILE
+namespace std
+{ 
+  namespace __norm { } 
+  inline namespace __profile { }
   inline namespace __cxx1998 { }
 }
 #endif
