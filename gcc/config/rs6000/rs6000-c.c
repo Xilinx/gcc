@@ -85,12 +85,12 @@ rs6000_pragma_longcall (cpp_reader *pfile ATTRIBUTE_UNUSED)
 #define builtin_assert(TXT) cpp_assert (pfile, TXT)
 
 /* Keep the AltiVec keywords handy for fast comparisons.  */
-static tree __vector_keyword;
-static tree vector_keyword;
-static tree __pixel_keyword;
-static tree pixel_keyword;
-static tree __bool_keyword;
-static tree bool_keyword;
+static GTY(()) tree __vector_keyword;
+static GTY(()) tree vector_keyword;
+static GTY(()) tree __pixel_keyword;
+static GTY(()) tree pixel_keyword;
+static GTY(()) tree __bool_keyword;
+static GTY(()) tree bool_keyword;
 
 /* Preserved across calls.  */
 static tree expand_bool_pixel;
@@ -278,6 +278,8 @@ rs6000_cpu_cpp_builtins (cpp_reader *pfile)
 	  cpp_get_callbacks (pfile)->macro_to_expand = rs6000_macro_to_expand;
 	}
     }
+  if (rs6000_cpu == PROCESSOR_CELL)
+    builtin_define ("__PPU__");
   if (TARGET_SPE)
     builtin_define ("__SPE__");
   if (TARGET_PAIRED_FLOAT)

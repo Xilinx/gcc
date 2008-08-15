@@ -111,6 +111,7 @@ static unsigned int  h8300_bitfield_length        (rtx, rtx);
 static unsigned int  h8300_binary_length          (rtx, const h8300_length_table *);
 static bool          h8300_short_move_mem_p       (rtx, enum rtx_code);
 static unsigned int  h8300_move_length            (rtx *, const h8300_length_table *);
+static bool	     h8300_hard_regno_scratch_ok  (unsigned int);
 
 /* CPU_TYPE, says what cpu we're compiling for.  */
 int cpu_type;
@@ -2146,21 +2147,21 @@ h8300_displacement_length (rtx addr, int size)
   return h8300_constant_length (offset);
 }
 
-/* Store the class of operand OP in *CLASS and return the length of any
-   extra operand fields.  SIZE is the number of bytes in OP.  CLASS
+/* Store the class of operand OP in *OPCLASS and return the length of any
+   extra operand fields.  SIZE is the number of bytes in OP.  OPCLASS
    can be null if only the length is needed.  */
 
 static unsigned int
-h8300_classify_operand (rtx op, int size, enum h8300_operand_class *class)
+h8300_classify_operand (rtx op, int size, enum h8300_operand_class *opclass)
 {
   enum h8300_operand_class dummy;
 
-  if (class == 0)
-    class = &dummy;
+  if (opclass == 0)
+    opclass = &dummy;
 
   if (CONSTANT_P (op))
     {
-      *class = H8OP_IMMEDIATE;
+      *opclass = H8OP_IMMEDIATE;
 
       /* Byte-sized immediates are stored in the opcode fields.  */
       if (size == 1)
@@ -2181,27 +2182,27 @@ h8300_classify_operand (rtx op, int size, enum h8300_operand_class *class)
       op = XEXP (op, 0);
       if (CONSTANT_P (op))
 	{
-	  *class = H8OP_MEM_ABSOLUTE;
+	  *opclass = H8OP_MEM_ABSOLUTE;
 	  return h8300_constant_length (op);
 	}
       else if (GET_CODE (op) == PLUS && CONSTANT_P (XEXP (op, 1)))
 	{
-	  *class = H8OP_MEM_COMPLEX;
+	  *opclass = H8OP_MEM_COMPLEX;
 	  return h8300_displacement_length (op, size);
 	}
       else if (GET_RTX_CLASS (GET_CODE (op)) == RTX_AUTOINC)
 	{
-	  *class = H8OP_MEM_COMPLEX;
+	  *opclass = H8OP_MEM_COMPLEX;
 	  return 0;
 	}
       else if (register_operand (op, VOIDmode))
 	{
-	  *class = H8OP_MEM_BASE;
+	  *opclass = H8OP_MEM_BASE;
 	  return 0;
 	}
     }
   gcc_assert (register_operand (op, VOIDmode));
-  *class = H8OP_REGISTER;
+  *opclass = H8OP_REGISTER;
   return 0;
 }
 
@@ -2227,12 +2228,12 @@ h8300_length_from_table (rtx op1, rtx op2, const h8300_length_table *table)
 unsigned int
 h8300_unary_length (rtx op)
 {
-  enum h8300_operand_class class;
+  enum h8300_operand_class opclass;
   unsigned int size, operand_length;
 
   size = GET_MODE_SIZE (GET_MODE (op));
-  operand_length = h8300_classify_operand (op, size, &class);
-  switch (class)
+  operand_length = h8300_classify_operand (op, size, &opclass);
+  switch (opclass)
     {
     case H8OP_REGISTER:
       return 2;
@@ -2256,13 +2257,13 @@ h8300_unary_length (rtx op)
 static unsigned int
 h8300_short_immediate_length (rtx op)
 {
-  enum h8300_operand_class class;
+  enum h8300_operand_class opclass;
   unsigned int size, operand_length;
 
   size = GET_MODE_SIZE (GET_MODE (op));
-  operand_length = h8300_classify_operand (op, size, &class);
+  operand_length = h8300_classify_operand (op, size, &opclass);
 
-  switch (class)
+  switch (opclass)
     {
     case H8OP_REGISTER:
       return 2;
@@ -2282,7 +2283,7 @@ h8300_short_immediate_length (rtx op)
 static unsigned int
 h8300_bitfield_length (rtx op, rtx op2)
 {
-  enum h8300_operand_class class;
+  enum h8300_operand_class opclass;
   unsigned int size, operand_length;
 
   if (GET_CODE (op) == REG)
@@ -2290,9 +2291,9 @@ h8300_bitfield_length (rtx op, rtx op2)
   gcc_assert (GET_CODE (op) != REG);
   
   size = GET_MODE_SIZE (GET_MODE (op));
-  operand_length = h8300_classify_operand (op, size, &class);
+  operand_length = h8300_classify_operand (op, size, &opclass);
 
-  switch (class)
+  switch (opclass)
     {
     case H8OP_MEM_BASE:
     case H8OP_MEM_ABSOLUTE:
@@ -4525,15 +4526,15 @@ output_a_shift (rtx *operands)
     }
 }
 
-/* Count the number of assembly instructions in a string TEMPLATE.  */
+/* Count the number of assembly instructions in a string TEMPL.  */
 
 static unsigned int
-h8300_asm_insn_count (const char *template)
+h8300_asm_insn_count (const char *templ)
 {
   unsigned int count = 1;
 
-  for (; *template; template++)
-    if (*template == '\n')
+  for (; *templ; templ++)
+    if (*templ == '\n')
       count++;
 
   return count;
@@ -5612,6 +5613,20 @@ h8300_hard_regno_rename_ok (unsigned int old_reg ATTRIBUTE_UNUSED,
   return 1;
 }
 
+/* Returns true if register REGNO is safe to be allocated as a scratch
+   register in the current function.  */
+
+static bool
+h8300_hard_regno_scratch_ok (unsigned int regno)
+{
+  if (h8300_current_function_interrupt_function_p ()
+      && ! WORD_REG_USED (regno))
+    return false;
+
+  return true;
+}
+
+
 /* Return nonzero if X is a legitimate constant.  */
 
 int
@@ -5744,6 +5759,9 @@ h8300_return_in_memory (const_tree type, const_tree fntype ATTRIBUTE_UNUSED)
 
 #undef  TARGET_MACHINE_DEPENDENT_REORG
 #define TARGET_MACHINE_DEPENDENT_REORG h8300_reorg
+
+#undef TARGET_HARD_REGNO_SCRATCH_OK
+#define TARGET_HARD_REGNO_SCRATCH_OK h8300_hard_regno_scratch_ok
 
 #undef TARGET_DEFAULT_TARGET_FLAGS
 #define TARGET_DEFAULT_TARGET_FLAGS TARGET_DEFAULT

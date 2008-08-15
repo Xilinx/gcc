@@ -1,4 +1,4 @@
-/* Perform type resolution on the various stuctures.
+/* Perform type resolution on the various structures.
    Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
    Free Software Foundation, Inc.
    Contributed by Andy Vaught
@@ -298,7 +298,7 @@ resolve_formal_arglists (gfc_namespace *ns)
 static void
 resolve_contained_fntype (gfc_symbol *sym, gfc_namespace *ns)
 {
-  try t;
+  gfc_try t;
 
   /* If this namespace is not a function or an entry master function,
      ignore it.  */
@@ -767,12 +767,12 @@ resolve_contained_functions (gfc_namespace *ns)
 /* Resolve all of the elements of a structure constructor and make sure that
    the types are correct.  */
 
-static try
+static gfc_try
 resolve_structure_cons (gfc_expr *expr)
 {
   gfc_constructor *cons;
   gfc_component *comp;
-  try t;
+  gfc_try t;
   symbol_attribute a;
 
   t = SUCCESS;
@@ -1017,7 +1017,7 @@ resolve_assumed_size_actual (gfc_expr *e)
    that look like procedure arguments are really simple variable
    references.  */
 
-static try
+static gfc_try
 resolve_actual_arglist (gfc_actual_arglist *arg, procedure_type ptype)
 {
   gfc_symbol *sym;
@@ -1076,7 +1076,7 @@ resolve_actual_arglist (gfc_actual_arglist *arg, procedure_type ptype)
 	  if (!sym->attr.intrinsic
 	      && !(sym->attr.external || sym->attr.use_assoc
 		   || sym->attr.if_source == IFSRC_IFBODY)
-	      && gfc_intrinsic_name (sym->name, sym->attr.subroutine))
+	      && gfc_is_intrinsic (sym, sym->attr.subroutine, e->where))
 	    sym->attr.intrinsic = 1;
 
 	  if (sym->attr.proc == PROC_ST_FUNCTION)
@@ -1261,7 +1261,7 @@ resolve_actual_arglist (gfc_actual_arglist *arg, procedure_type ptype)
    procedures.  If called with c == NULL, we have a function, otherwise if
    expr == NULL, we have a subroutine.  */
 
-static try
+static gfc_try
 resolve_elemental_actual (gfc_expr *expr, gfc_code *c)
 {
   gfc_actual_arglist *arg0;
@@ -1506,7 +1506,7 @@ resolve_generic_f0 (gfc_expr *expr, gfc_symbol *sym)
 }
 
 
-static try
+static gfc_try
 resolve_generic_f (gfc_expr *expr)
 {
   gfc_symbol *sym;
@@ -1535,7 +1535,7 @@ generic:
 
   /* Last ditch attempt.  See if the reference is to an intrinsic
      that possesses a matching interface.  14.1.2.4  */
-  if (sym && !gfc_intrinsic_name (sym->name, 0))
+  if (sym && !gfc_is_intrinsic (sym, 0, expr->where))
     {
       gfc_error ("There is no specific function for the generic '%s' at %L",
 		 expr->symtree->n.sym->name, &expr->where);
@@ -1568,7 +1568,7 @@ resolve_specific_f0 (gfc_symbol *sym, gfc_expr *expr)
       gfc_intrinsic_sym *isym;
       isym = gfc_find_function (sym->ts.interface->name);
 
-      /* Existance of isym should be checked already.  */
+      /* Existence of isym should be checked already.  */
       gcc_assert (isym);
 
       sym->ts.type = isym->ts.type;
@@ -1622,7 +1622,7 @@ found:
 }
 
 
-static try
+static gfc_try
 resolve_specific_f (gfc_expr *expr)
 {
   gfc_symbol *sym;
@@ -1656,7 +1656,7 @@ resolve_specific_f (gfc_expr *expr)
 
 /* Resolve a procedure call not known to be generic nor specific.  */
 
-static try
+static gfc_try
 resolve_unknown_f (gfc_expr *expr)
 {
   gfc_symbol *sym;
@@ -1673,7 +1673,7 @@ resolve_unknown_f (gfc_expr *expr)
 
   /* See if we have an intrinsic function reference.  */
 
-  if (gfc_intrinsic_name (sym->name, 0))
+  if (gfc_is_intrinsic (sym, 0, expr->where))
     {
       if (gfc_intrinsic_func_interface (expr, 1) == MATCH_YES)
 	return SUCCESS;
@@ -1721,13 +1721,13 @@ is_external_proc (gfc_symbol *sym)
 {
   if (!sym->attr.dummy && !sym->attr.contained
 	&& !(sym->attr.intrinsic
-	      || gfc_intrinsic_name (sym->name, sym->attr.subroutine))
+	      || gfc_is_intrinsic (sym, sym->attr.subroutine, sym->declared_at))
 	&& sym->attr.proc != PROC_ST_FUNCTION
 	&& !sym->attr.use_assoc
 	&& sym->name)
     return true;
-  else
-    return false;
+
+  return false;
 }
 
 
@@ -1796,10 +1796,10 @@ pure_stmt_function (gfc_expr *e, gfc_symbol *sym)
 }
 
 
-static try
+static gfc_try
 is_scalar_expr_ptr (gfc_expr *expr)
 {
-  try retval = SUCCESS;
+  gfc_try retval = SUCCESS;
   gfc_ref *ref;
   int start;
   int end;
@@ -1897,14 +1897,14 @@ is_scalar_expr_ptr (gfc_expr *expr)
    and, in the case of c_associated, set the binding label based on
    the arguments.  */
 
-static try
+static gfc_try
 gfc_iso_c_func_interface (gfc_symbol *sym, gfc_actual_arglist *args,
                           gfc_symbol **new_sym)
 {
   char name[GFC_MAX_SYMBOL_LEN + 1];
   char binding_label[GFC_MAX_BINDING_LABEL_LEN + 1];
   int optional_arg = 0;
-  try retval = SUCCESS;
+  gfc_try retval = SUCCESS;
   gfc_symbol *args_sym;
   gfc_typespec *arg_ts;
   gfc_ref *parent_ref;
@@ -2161,13 +2161,13 @@ gfc_iso_c_func_interface (gfc_symbol *sym, gfc_actual_arglist *args,
 /* TODO: Check procedure arguments so that an INTENT(IN) isn't passed
    to INTENT(OUT) or INTENT(INOUT).  */
 
-static try
+static gfc_try
 resolve_function (gfc_expr *expr)
 {
   gfc_actual_arglist *arg;
   gfc_symbol *sym;
   const char *name;
-  try t;
+  gfc_try t;
   int temp;
   procedure_type p = PROC_INTRINSIC;
 
@@ -2438,7 +2438,7 @@ resolve_generic_s0 (gfc_code *c, gfc_symbol *sym)
 }
 
 
-static try
+static gfc_try
 resolve_generic_s (gfc_code *c)
 {
   gfc_symbol *sym;
@@ -2469,7 +2469,7 @@ generic:
      that possesses a matching interface.  14.1.2.4  */
   sym = c->symtree->n.sym;
 
-  if (!gfc_intrinsic_name (sym->name, 1))
+  if (!gfc_is_intrinsic (sym, 1, c->loc))
     {
       gfc_error ("There is no specific subroutine for the generic '%s' at %L",
 		 sym->name, &c->loc);
@@ -2644,7 +2644,7 @@ resolve_specific_s0 (gfc_code *c, gfc_symbol *sym)
 
       isym = gfc_find_function (sym->ts.interface->name);
 
-      /* Existance of isym should be checked already.  */
+      /* Existence of isym should be checked already.  */
       gcc_assert (isym);
 
       sym->ts.type = isym->ts.type;
@@ -2698,7 +2698,7 @@ found:
 }
 
 
-static try
+static gfc_try
 resolve_specific_s (gfc_code *c)
 {
   gfc_symbol *sym;
@@ -2733,7 +2733,7 @@ resolve_specific_s (gfc_code *c)
 
 /* Resolve a subroutine call not known to be generic nor specific.  */
 
-static try
+static gfc_try
 resolve_unknown_s (gfc_code *c)
 {
   gfc_symbol *sym;
@@ -2748,7 +2748,7 @@ resolve_unknown_s (gfc_code *c)
 
   /* See if we have an intrinsic function reference.  */
 
-  if (gfc_intrinsic_name (sym->name, 1))
+  if (gfc_is_intrinsic (sym, 1, c->loc))
     {
       if (gfc_intrinsic_sub_interface (c, 1) == MATCH_YES)
 	return SUCCESS;
@@ -2772,10 +2772,10 @@ found:
    for functions, subroutines and functions are stored differently and this
    makes things awkward.  */
 
-static try
+static gfc_try
 resolve_call (gfc_code *c)
 {
-  try t;
+  gfc_try t;
   procedure_type ptype = PROC_INTRINSIC;
 
   if (c->symtree && c->symtree->n.sym
@@ -2864,10 +2864,10 @@ resolve_call (gfc_code *c)
    if their shapes do not match.  If either op1->shape or op2->shape is
    NULL, return SUCCESS.  */
 
-static try
+static gfc_try
 compare_shapes (gfc_expr *op1, gfc_expr *op2)
 {
-  try t;
+  gfc_try t;
   int i;
 
   t = SUCCESS;
@@ -2893,17 +2893,17 @@ compare_shapes (gfc_expr *op1, gfc_expr *op2)
 /* Resolve an operator expression node.  This can involve replacing the
    operation with a user defined function call.  */
 
-static try
+static gfc_try
 resolve_operator (gfc_expr *e)
 {
   gfc_expr *op1, *op2;
   char msg[200];
   bool dual_locus_error;
-  try t;
+  gfc_try t;
 
   /* Resolve all subnodes-- give them types.  */
 
-  switch (e->value.op.operator)
+  switch (e->value.op.op)
     {
     default:
       if (gfc_resolve_expr (e->value.op.op2) == FAILURE)
@@ -2933,7 +2933,7 @@ resolve_operator (gfc_expr *e)
       goto bad_op;
     }
 
-  switch (e->value.op.operator)
+  switch (e->value.op.op)
     {
     case INTRINSIC_UPLUS:
     case INTRINSIC_UMINUS:
@@ -2946,7 +2946,7 @@ resolve_operator (gfc_expr *e)
 	}
 
       sprintf (msg, _("Operand of unary numeric operator '%s' at %%L is %s"),
-	       gfc_op2string (e->value.op.operator), gfc_typename (&e->ts));
+	       gfc_op2string (e->value.op.op), gfc_typename (&e->ts));
       goto bad_op;
 
     case INTRINSIC_PLUS:
@@ -2962,7 +2962,7 @@ resolve_operator (gfc_expr *e)
 
       sprintf (msg,
 	       _("Operands of binary numeric operator '%s' at %%L are %s/%s"),
-	       gfc_op2string (e->value.op.operator), gfc_typename (&op1->ts),
+	       gfc_op2string (e->value.op.op), gfc_typename (&op1->ts),
 	       gfc_typename (&op2->ts));
       goto bad_op;
 
@@ -2996,7 +2996,7 @@ resolve_operator (gfc_expr *e)
 	}
 
       sprintf (msg, _("Operands of logical operator '%s' at %%L are %s/%s"),
-	       gfc_op2string (e->value.op.operator), gfc_typename (&op1->ts),
+	       gfc_op2string (e->value.op.op), gfc_typename (&op1->ts),
 	       gfc_typename (&op2->ts));
 
       goto bad_op;
@@ -3053,19 +3053,19 @@ resolve_operator (gfc_expr *e)
       if (op1->ts.type == BT_LOGICAL && op2->ts.type == BT_LOGICAL)
 	sprintf (msg,
 		 _("Logicals at %%L must be compared with %s instead of %s"),
-		 (e->value.op.operator == INTRINSIC_EQ 
-		  || e->value.op.operator == INTRINSIC_EQ_OS)
-		 ? ".eqv." : ".neqv.", gfc_op2string (e->value.op.operator));
+		 (e->value.op.op == INTRINSIC_EQ 
+		  || e->value.op.op == INTRINSIC_EQ_OS)
+		 ? ".eqv." : ".neqv.", gfc_op2string (e->value.op.op));
       else
 	sprintf (msg,
 		 _("Operands of comparison operator '%s' at %%L are %s/%s"),
-		 gfc_op2string (e->value.op.operator), gfc_typename (&op1->ts),
+		 gfc_op2string (e->value.op.op), gfc_typename (&op1->ts),
 		 gfc_typename (&op2->ts));
 
       goto bad_op;
 
     case INTRINSIC_USER:
-      if (e->value.op.uop->operator == NULL)
+      if (e->value.op.uop->op == NULL)
 	sprintf (msg, _("Unknown operator '%s' at %%L"), e->value.op.uop->name);
       else if (op2 == NULL)
 	sprintf (msg, _("Operand of user operator '%s' at %%L is %s"),
@@ -3091,7 +3091,7 @@ resolve_operator (gfc_expr *e)
 
   t = SUCCESS;
 
-  switch (e->value.op.operator)
+  switch (e->value.op.op)
     {
     case INTRINSIC_PLUS:
     case INTRINSIC_MINUS:
@@ -3185,7 +3185,7 @@ resolve_operator (gfc_expr *e)
     {
       t = gfc_simplify_expr (e, 0);
       /* Some calls do not succeed in simplification and return FAILURE
-	 even though there is no error; eg. variable references to
+	 even though there is no error; e.g. variable references to
 	 PARAMETER arrays.  */
       if (!gfc_is_constant_expr (e))
 	t = SUCCESS;
@@ -3338,7 +3338,7 @@ compute_last_value_for_triplet (gfc_expr *start, gfc_expr *end,
 /* Compare a single dimension of an array reference to the array
    specification.  */
 
-static try
+static gfc_try
 check_dimension (int i, gfc_array_ref *ar, gfc_array_spec *as)
 {
   mpz_t last_value;
@@ -3456,7 +3456,7 @@ check_dimension (int i, gfc_array_ref *ar, gfc_array_spec *as)
 
 /* Compare an array reference with an array specification.  */
 
-static try
+static gfc_try
 compare_spec_to_ref (gfc_array_ref *ar)
 {
   gfc_array_spec *as;
@@ -3495,7 +3495,7 @@ compare_spec_to_ref (gfc_array_ref *ar)
 
 /* Resolve one part of an array index.  */
 
-try
+gfc_try
 gfc_resolve_index (gfc_expr *index, int check_scalar)
 {
   gfc_typespec ts;
@@ -3539,7 +3539,7 @@ gfc_resolve_index (gfc_expr *index, int check_scalar)
 
 /* Resolve a dim argument to an intrinsic function.  */
 
-try
+gfc_try
 gfc_resolve_dim_arg (gfc_expr *dim)
 {
   if (dim == NULL)
@@ -3644,7 +3644,7 @@ find_array_spec (gfc_expr *e)
 
 /* Resolve an array reference.  */
 
-static try
+static gfc_try
 resolve_array_ref (gfc_array_ref *ar)
 {
   int i, check_scalar;
@@ -3705,7 +3705,7 @@ resolve_array_ref (gfc_array_ref *ar)
 }
 
 
-static try
+static gfc_try
 resolve_substring (gfc_ref *ref)
 {
   if (ref->u.ss.start != NULL)
@@ -3837,7 +3837,7 @@ gfc_resolve_substring_charlen (gfc_expr *e)
 
 /* Resolve subtype references.  */
 
-static try
+static gfc_try
 resolve_ref (gfc_expr *expr)
 {
   int current_part_dimension, n_components, seen_part_dimension;
@@ -4035,11 +4035,11 @@ done:
 
 /* Resolve a variable expression.  */
 
-static try
+static gfc_try
 resolve_variable (gfc_expr *e)
 {
   gfc_symbol *sym;
-  try t;
+  gfc_try t;
 
   t = SUCCESS;
 
@@ -4217,7 +4217,7 @@ gfc_resolve_character_operator (gfc_expr *e)
   gfc_expr *e1 = NULL;
   gfc_expr *e2 = NULL;
 
-  gcc_assert (e->value.op.operator == INTRINSIC_CONCAT);
+  gcc_assert (e->value.op.op == INTRINSIC_CONCAT);
 
   if (op1->ts.cl && op1->ts.cl->length)
     e1 = gfc_copy_expr (op1->ts.cl->length);
@@ -4285,10 +4285,10 @@ fixup_charlen (gfc_expr *e)
    with their operators, intrinsic operators are converted to function calls
    for overloaded types and unresolved function references are resolved.  */
 
-try
+gfc_try
 gfc_resolve_expr (gfc_expr *e)
 {
-  try t;
+  gfc_try t;
 
   if (e == NULL)
     return SUCCESS;
@@ -4373,7 +4373,7 @@ gfc_resolve_expr (gfc_expr *e)
 /* Resolve an expression from an iterator.  They must be scalar and have
    INTEGER or (optionally) REAL type.  */
 
-static try
+static gfc_try
 gfc_resolve_iterator_expr (gfc_expr *expr, bool real_ok,
 			   const char *name_msgid)
 {
@@ -4414,7 +4414,7 @@ gfc_resolve_iterator_expr (gfc_expr *expr, bool real_ok,
 /* Resolve the expressions in an iterator structure.  If REAL_OK is
    false allow only INTEGER type iterators, otherwise allow REAL types.  */
 
-try
+gfc_try
 gfc_resolve_iterator (gfc_iterator *iter, bool real_ok)
 {
   if (gfc_resolve_iterator_expr (iter->var, real_ok, "Loop variable")
@@ -4497,7 +4497,7 @@ forall_index (gfc_expr *expr, gfc_symbol *sym, int *f)
 /* Check whether the FORALL index appears in the expression or not.
    Returns SUCCESS if SYM is found in EXPR.  */
 
-try
+gfc_try
 find_forall_index (gfc_expr *expr, gfc_symbol *sym, int f)
 {
   if (gfc_traverse_expr (expr, sym, forall_index, f))
@@ -4597,7 +4597,7 @@ derived_inaccessible (gfc_symbol *sym)
 /* Resolve the argument of a deallocate expression.  The expression must be
    a pointer or a full array.  */
 
-static try
+static gfc_try
 resolve_deallocate_expr (gfc_expr *e)
 {
   symbol_attribute attr;
@@ -4712,7 +4712,7 @@ expr_to_initialize (gfc_expr *e)
    checks to see whether the expression is OK or not.  The expression must
    have a trailing array reference that gives the size of the array.  */
 
-static try
+static gfc_try
 resolve_allocate_expr (gfc_expr *e, gfc_code *code)
 {
   int i, pointer, allocatable, dimension, check_intent_in;
@@ -4873,7 +4873,7 @@ check_symbols:
 	      || (ar->end[i] != NULL
 		  && gfc_find_sym_in_expr (sym, ar->end[i])))
 	    {
-	      gfc_error ("'%s' must not appear an the array specification at "
+	      gfc_error ("'%s' must not appear in the array specification at "
 			 "%L in the same ALLOCATE statement where it is "
 			 "itself allocated", sym->name, &ar->where);
 	      return FAILURE;
@@ -5112,7 +5112,7 @@ check_case_overlap (gfc_case *list)
    Makes sure that all case expressions are scalar constants of the same
    type.  Return FAILURE if anything is wrong.  */
 
-static try
+static gfc_try
 validate_case_label_expr (gfc_expr *e, gfc_expr *case_expr)
 {
   if (e == NULL) return SUCCESS;
@@ -5181,7 +5181,7 @@ resolve_select (gfc_code *code)
   int seen_logical;
   int ncases;
   bt type;
-  try t;
+  gfc_try t;
 
   if (code->expr == NULL)
     {
@@ -5622,12 +5622,12 @@ resolve_branch (gfc_st_label *label, gfc_code *code)
 
 /* Check whether EXPR1 has the same shape as EXPR2.  */
 
-static try
+static gfc_try
 resolve_where_shape (gfc_expr *expr1, gfc_expr *expr2)
 {
   mpz_t shape[GFC_MAX_DIMENSIONS];
   mpz_t shape2[GFC_MAX_DIMENSIONS];
-  try result = FAILURE;
+  gfc_try result = FAILURE;
   int i;
 
   /* Compare the rank.  */
@@ -5934,7 +5934,7 @@ static void resolve_code (gfc_code *, gfc_namespace *);
 void
 gfc_resolve_blocks (gfc_code *b, gfc_namespace *ns)
 {
-  try t;
+  gfc_try t;
 
   for (; b; b = b->block)
     {
@@ -5999,7 +5999,7 @@ gfc_resolve_blocks (gfc_code *b, gfc_namespace *ns)
 
 
 /* Does everything to resolve an ordinary assignment.  Returns true
-   if this is an interface asignment.  */
+   if this is an interface assignment.  */
 static bool
 resolve_ordinary_assign (gfc_code *code, gfc_namespace *ns)
 {
@@ -6148,7 +6148,7 @@ resolve_code (gfc_code *code, gfc_namespace *ns)
   int omp_workshare_save;
   int forall_save;
   code_stack frame;
-  try t;
+  gfc_try t;
 
   frame.prev = cs_base;
   frame.head = code;
@@ -6666,7 +6666,7 @@ gfc_verify_binding_labels (gfc_symbol *sym)
 
 /* Resolve an index expression.  */
 
-static try
+static gfc_try
 resolve_index_expr (gfc_expr *e)
 {
   if (gfc_resolve_expr (e) == FAILURE)
@@ -6683,7 +6683,7 @@ resolve_index_expr (gfc_expr *e)
 
 /* Resolve a charlen structure.  */
 
-static try
+static gfc_try
 resolve_charlen (gfc_charlen *cl)
 {
   int i;
@@ -6983,7 +6983,7 @@ apply_default_init_local (gfc_symbol *sym)
 
 /* Resolution of common features of flavors variable and procedure.  */
 
-static try
+static gfc_try
 resolve_fl_var_and_proc (gfc_symbol *sym, int mp_flag)
 {
   /* Constraints on deferred shape variable.  */
@@ -7025,7 +7025,7 @@ resolve_fl_var_and_proc (gfc_symbol *sym, int mp_flag)
 /* Additional checks for symbols with flavor variable and derived
    type.  To be called from resolve_fl_variable.  */
 
-static try
+static gfc_try
 resolve_fl_variable_derived (gfc_symbol *sym, int no_init_flag)
 {
   gcc_assert (sym->ts.type == BT_DERIVED);
@@ -7084,7 +7084,7 @@ resolve_fl_variable_derived (gfc_symbol *sym, int no_init_flag)
 
 /* Resolve symbols with flavor variable.  */
 
-static try
+static gfc_try
 resolve_fl_variable (gfc_symbol *sym, int mp_flag)
 {
   int no_init_flag, automatic_flag;
@@ -7209,7 +7209,7 @@ no_init_error:
 
 /* Resolve a procedure.  */
 
-static try
+static gfc_try
 resolve_fl_procedure (gfc_symbol *sym, int mp_flag)
 {
   gfc_formal_arglist *arg;
@@ -7251,7 +7251,7 @@ resolve_fl_procedure (gfc_symbol *sym, int mp_flag)
     }
 
   /* Ensure that derived type for are not of a private type.  Internal
-     module procedures are excluded by 2.2.3.3 - ie. they are not
+     module procedures are excluded by 2.2.3.3 - i.e., they are not
      externally accessible and can access all the objects accessible in
      the host.  */
   if (!(sym->ns->parent
@@ -7443,6 +7443,20 @@ resolve_fl_procedure (gfc_symbol *sym, int mp_flag)
 	}
     }
   
+  if (sym->attr.save == SAVE_EXPLICIT && !sym->attr.proc_pointer)
+    {
+      gfc_error ("PROCEDURE attribute conflicts with SAVE attribute "
+		 "in '%s' at %L", sym->name, &sym->declared_at);
+      return FAILURE;
+    }
+
+  if (sym->attr.intent && !sym->attr.proc_pointer)
+    {
+      gfc_error ("PROCEDURE attribute conflicts with INTENT attribute "
+		 "in '%s' at %L", sym->name, &sym->declared_at);
+      return FAILURE;
+    }
+
   return SUCCESS;
 }
 
@@ -7451,12 +7465,12 @@ resolve_fl_procedure (gfc_symbol *sym, int mp_flag)
    been defined and we now know their defined arguments, check that they fulfill
    the requirements of the standard for procedures used as finalizers.  */
 
-static try
+static gfc_try
 gfc_resolve_finalizers (gfc_symbol* derived)
 {
   gfc_finalizer* list;
   gfc_finalizer** prev_link; /* For removing wrong entries from the list.  */
-  try result = SUCCESS;
+  gfc_try result = SUCCESS;
   bool seen_scalar = false;
 
   if (!derived->f2k_derived || !derived->f2k_derived->finalizers)
@@ -7472,22 +7486,29 @@ gfc_resolve_finalizers (gfc_symbol* derived)
       gfc_finalizer* i;
       int my_rank;
 
+      /* Skip this finalizer if we already resolved it.  */
+      if (list->proc_tree)
+	{
+	  prev_link = &(list->next);
+	  continue;
+	}
+
       /* Check this exists and is a SUBROUTINE.  */
-      if (!list->procedure->attr.subroutine)
+      if (!list->proc_sym->attr.subroutine)
 	{
 	  gfc_error ("FINAL procedure '%s' at %L is not a SUBROUTINE",
-		     list->procedure->name, &list->where);
+		     list->proc_sym->name, &list->where);
 	  goto error;
 	}
 
       /* We should have exactly one argument.  */
-      if (!list->procedure->formal || list->procedure->formal->next)
+      if (!list->proc_sym->formal || list->proc_sym->formal->next)
 	{
 	  gfc_error ("FINAL procedure at %L must have exactly one argument",
 		     &list->where);
 	  goto error;
 	}
-      arg = list->procedure->formal->sym;
+      arg = list->proc_sym->formal->sym;
 
       /* This argument must be of our type.  */
       if (arg->ts.type != BT_DERIVED || arg->ts.derived != derived)
@@ -7541,16 +7562,16 @@ gfc_resolve_finalizers (gfc_symbol* derived)
 	{
 	  /* Argument list might be empty; that is an error signalled earlier,
 	     but we nevertheless continued resolving.  */
-	  if (i->procedure->formal)
+	  if (i->proc_sym->formal)
 	    {
-	      gfc_symbol* i_arg = i->procedure->formal->sym;
+	      gfc_symbol* i_arg = i->proc_sym->formal->sym;
 	      const int i_rank = (i_arg->as ? i_arg->as->rank : 0);
 	      if (i_rank == my_rank)
 		{
 		  gfc_error ("FINAL procedure '%s' declared at %L has the same"
 			     " rank (%d) as '%s'",
-			     list->procedure->name, &list->where, my_rank, 
-			     i->procedure->name);
+			     list->proc_sym->name, &list->where, my_rank, 
+			     i->proc_sym->name);
 		  goto error;
 		}
 	    }
@@ -7560,10 +7581,14 @@ gfc_resolve_finalizers (gfc_symbol* derived)
 	if (!arg->as || arg->as->rank == 0)
 	  seen_scalar = true;
 
+	/* Find the symtree for this procedure.  */
+	gcc_assert (!list->proc_tree);
+	list->proc_tree = gfc_find_sym_in_symtree (list->proc_sym);
+
 	prev_link = &list->next;
 	continue;
 
-	/* Remove wrong nodes immediatelly from the list so we don't risk any
+	/* Remove wrong nodes immediately from the list so we don't risk any
 	   troubles in the future when they might fail later expectations.  */
 error:
 	result = FAILURE;
@@ -7581,7 +7606,8 @@ error:
 		 derived->name, &derived->declared_at);
 
   /* TODO:  Remove this error when finalization is finished.  */
-  gfc_error ("Finalization at %L is not yet implemented", &derived->declared_at);
+  gfc_error ("Finalization at %L is not yet implemented",
+	     &derived->declared_at);
 
   return result;
 }
@@ -7610,7 +7636,7 @@ add_dt_to_dt_list (gfc_symbol *derived)
 
 /* Resolve the components of a derived type.  */
 
-static try
+static gfc_try
 resolve_fl_derived (gfc_symbol *sym)
 {
   gfc_component *c;
@@ -7682,8 +7708,8 @@ resolve_fl_derived (gfc_symbol *sym)
       for (i = 0; i < c->as->rank; i++)
 	{
 	  if (c->as->lower[i] == NULL
-	      || !gfc_is_constant_expr (c->as->lower[i])
 	      || (resolve_index_expr (c->as->lower[i]) == FAILURE)
+	      || !gfc_is_constant_expr (c->as->lower[i])
 	      || c->as->upper[i] == NULL
 	      || (resolve_index_expr (c->as->upper[i]) == FAILURE)
 	      || !gfc_is_constant_expr (c->as->upper[i]))
@@ -7707,7 +7733,7 @@ resolve_fl_derived (gfc_symbol *sym)
 }
 
 
-static try
+static gfc_try
 resolve_fl_namelist (gfc_symbol *sym)
 {
   gfc_namelist *nl;
@@ -7826,7 +7852,7 @@ resolve_fl_namelist (gfc_symbol *sym)
 }
 
 
-static try
+static gfc_try
 resolve_fl_parameter (gfc_symbol *sym)
 {
   /* A parameter array's shape needs to be constant.  */
@@ -7961,24 +7987,45 @@ resolve_symbol (gfc_symbol *sym)
      type to avoid spurious warnings.  */
   if (sym->attr.flavor != FL_MODULE && sym->attr.intrinsic)
     {
-      if (gfc_intrinsic_name (sym->name, 0))
+      gfc_intrinsic_sym* isym;
+      const char* symstd;
+
+      /* We already know this one is an intrinsic, so we don't call
+	 gfc_is_intrinsic for full checking but rather use gfc_find_function and
+	 gfc_find_subroutine directly to check whether it is a function or
+	 subroutine.  */
+
+      if ((isym = gfc_find_function (sym->name)))
 	{
 	  if (sym->ts.type != BT_UNKNOWN && gfc_option.warn_surprising)
-	    gfc_warning ("Type specified for intrinsic function '%s' at %L is ignored",
-			 sym->name, &sym->declared_at);
+	    gfc_warning ("Type specified for intrinsic function '%s' at %L is"
+			 " ignored", sym->name, &sym->declared_at);
 	}
-      else if (gfc_intrinsic_name (sym->name, 1))
+      else if ((isym = gfc_find_subroutine (sym->name)))
 	{
 	  if (sym->ts.type != BT_UNKNOWN)
 	    {
-	      gfc_error ("Intrinsic subroutine '%s' at %L shall not have a type specifier", 
-			 sym->name, &sym->declared_at);
+	      gfc_error ("Intrinsic subroutine '%s' at %L shall not have a type"
+			 " specifier", sym->name, &sym->declared_at);
 	      return;
 	    }
 	}
       else
 	{
-	  gfc_error ("Intrinsic '%s' at %L does not exist", sym->name, &sym->declared_at);
+	  gfc_error ("'%s' declared INTRINSIC at %L does not exist",
+		     sym->name, &sym->declared_at);
+	  return;
+	}
+
+      /* Check it is actually available in the standard settings.  */
+      if (gfc_check_intrinsic_standard (isym, &symstd, false, sym->declared_at)
+	    == FAILURE)
+	{
+	  gfc_error ("The intrinsic '%s' declared INTRINSIC at %L is not"
+		     " available in the current standard settings but %s.  Use"
+                     " an appropriate -std=* option or enable -fall-intrinsics"
+                     " in order to use it.",
+                     sym->name, &sym->declared_at, symstd);
 	  return;
 	}
      }
@@ -8077,7 +8124,7 @@ resolve_symbol (gfc_symbol *sym)
       sym->attr.use_assoc == 0 && sym->attr.dummy == 0 &&
       sym->attr.flavor != FL_PROCEDURE && sym->attr.flavor != FL_DERIVED)
     {
-      try t = SUCCESS;
+      gfc_try t = SUCCESS;
       
       /* First, make sure the variable is declared at the
 	 module-level scope (J3/04-007, Section 15.3).	*/
@@ -8290,7 +8337,7 @@ values;
 
 /* Advance the values structure to point to the next value in the data list.  */
 
-static try
+static gfc_try
 next_data_value (void)
 {
 
@@ -8307,13 +8354,13 @@ next_data_value (void)
 }
 
 
-static try
+static gfc_try
 check_data_variable (gfc_data_variable *var, locus *where)
 {
   gfc_expr *e;
   mpz_t size;
   mpz_t offset;
-  try t;
+  gfc_try t;
   ar_type mark = AR_UNKNOWN;
   int i;
   mpz_t section_index[GFC_MAX_DIMENSIONS];
@@ -8470,17 +8517,17 @@ check_data_variable (gfc_data_variable *var, locus *where)
 }
 
 
-static try traverse_data_var (gfc_data_variable *, locus *);
+static gfc_try traverse_data_var (gfc_data_variable *, locus *);
 
 /* Iterate over a list of elements in a DATA statement.  */
 
-static try
+static gfc_try
 traverse_data_list (gfc_data_variable *var, locus *where)
 {
   mpz_t trip;
   iterator_stack frame;
   gfc_expr *e, *start, *end, *step;
-  try retval = SUCCESS;
+  gfc_try retval = SUCCESS;
 
   mpz_init (frame.value);
 
@@ -8560,10 +8607,10 @@ cleanup:
 
 /* Type resolve variables in the variable list of a DATA statement.  */
 
-static try
+static gfc_try
 traverse_data_var (gfc_data_variable *var, locus *where)
 {
-  try t;
+  gfc_try t;
 
   for (; var; var = var->next)
     {
@@ -8584,7 +8631,7 @@ traverse_data_var (gfc_data_variable *var, locus *where)
    This is separate from the assignment checking because data lists should
    only be resolved once.  */
 
-static try
+static gfc_try
 resolve_data_variables (gfc_data_variable *d)
 {
   for (; d; d = d->next)
@@ -8642,7 +8689,7 @@ resolve_data (gfc_data *d)
    is storage associated with any such variable, shall not be used in the
    following contexts: (clients of this function).  */
 
-/* Determines if a variable is not 'pure', ie not assignable within a pure
+/* Determines if a variable is not 'pure', i.e., not assignable within a pure
    procedure.  Returns zero if assignment is OK, nonzero if there is a
    problem.  */
 int
@@ -8800,7 +8847,7 @@ sequence_type (gfc_typespec ts)
 
 /* Resolve derived type EQUIVALENCE object.  */
 
-static try
+static gfc_try
 resolve_equivalence_derived (gfc_symbol *derived, gfc_symbol *sym, gfc_expr *e)
 {
   gfc_symbol *d;
@@ -8962,7 +9009,7 @@ resolve_equivalence (gfc_equiv *eq)
 
       sym = e->symtree->n.sym;
 
-      if (sym->attr.protected)
+      if (sym->attr.is_protected)
 	cnt_protected++;
       if (cnt_protected > 0 && cnt_protected != object)
        	{
@@ -9165,7 +9212,7 @@ gfc_resolve_uops (gfc_symtree *symtree)
   gfc_resolve_uops (symtree->left);
   gfc_resolve_uops (symtree->right);
 
-  for (itr = symtree->n.uop->operator; itr; itr = itr->next)
+  for (itr = symtree->n.uop->op; itr; itr = itr->next)
     {
       sym = itr->sym;
       if (!sym->attr.function)

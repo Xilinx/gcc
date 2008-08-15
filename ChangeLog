@@ -1,3 +1,20 @@
+2008-08-09  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* configure.ac (mips*-*-*linux*, mips*-*-gnu*): Use mt-mips-gnu.
+	* configure: Regenerate.
+
+2008-07-30 Paolo Bonzini  <bonzini@gnu.org>
+
+	* configure.ac: Add makefile fragments for hpux.
+	* Makefile.def (flags_to_pass): Add ADA_CFLAGS.
+	* Makefile.tpl (HOST_EXPORTS): Pass ADA_CFLAGS.
+	* configure: Regenerate.
+	* Makefile.in: Regenerate.
+
+2008-07-28 Aldy Hernandez <aldyh@redhat.com>
+
+	* MAINTAINERS: Add Jakub and myself as gimple maintainers.
+
 2008-07-11 Dodji Seketeli <dseketel@redhat.com>
 
 	* MAINTAINERS (Write after Approval): Add myself.

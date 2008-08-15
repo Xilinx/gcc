@@ -376,7 +376,7 @@ c_common_handle_option (size_t scode, const char *arg, int value)
       break;
 
     case OPT_Wall:
-      set_Wunused (value);
+      warn_unused = value;
       set_Wformat (value);
       set_Wimplicit (value);
       warn_char_subscripts = value;
@@ -404,9 +404,12 @@ c_common_handle_option (size_t scode, const char *arg, int value)
 	warn_uninitialized = (value ? 2 : 0);
 
       if (!c_dialect_cxx ())
-	/* We set this to 2 here, but 1 in -Wmain, so -ffreestanding
-	   can turn it off only if it's not explicit.  */
-	warn_main = value * 2;
+	{
+	  /* We set this to 2 here, but 1 in -Wmain, so -ffreestanding
+	     can turn it off only if it's not explicit.  */
+	  if (warn_main == -1)
+	    warn_main = (value ? 2 : 0);
+	}
       else
 	{
 	  /* C++-specific warnings.  */
@@ -465,13 +468,6 @@ c_common_handle_option (size_t scode, const char *arg, int value)
 
     case OPT_Winvalid_pch:
       cpp_opts->warn_invalid_pch = value;
-      break;
-
-    case OPT_Wmain:
-      if (value)
-	warn_main = 1;
-      else
-	warn_main = -1;
       break;
 
     case OPT_Wmissing_include_dirs:
@@ -615,9 +611,6 @@ c_common_handle_option (size_t scode, const char *arg, int value)
     case OPT_fhosted:
       flag_hosted = value;
       flag_no_builtin = !value;
-      /* warn_main will be 2 if set by -Wall, 1 if set by -Wmain */
-      if (!value && warn_main == 2)
-	warn_main = 0;
       break;
 
     case OPT_fshort_double:
@@ -907,6 +900,8 @@ c_common_handle_option (size_t scode, const char *arg, int value)
 	warn_pointer_sign = 1;
       if (warn_overlength_strings == -1)
 	warn_overlength_strings = 1;
+      if (warn_main == -1)
+	warn_main = 2;
       break;
 
     case OPT_print_objc_runtime_info:
@@ -1018,28 +1013,12 @@ c_common_post_options (const char **pfilename)
   C_COMMON_OVERRIDE_OPTIONS;
 #endif
 
-  flag_inline_trees = 1;
-
-  /* Use tree inlining.  */
-  if (!flag_no_inline)
-    flag_no_inline = 1;
-  if (flag_inline_functions)
-    flag_inline_trees = 2;
-
   /* By default we use C99 inline semantics in GNU99 or C99 mode.  C99
      inline semantics are not supported in GNU89 or C89 mode.  */
   if (flag_gnu89_inline == -1)
     flag_gnu89_inline = !flag_isoc99;
   else if (!flag_gnu89_inline && !flag_isoc99)
     error ("-fno-gnu89-inline is only supported in GNU99 or C99 mode");
-
-  /* If we are given more than one input file, we must use
-     unit-at-a-time mode.  */
-  if (num_in_fnames > 1)
-    flag_unit_at_a_time = 1;
-
-  if (pch_file && !flag_unit_at_a_time)
-    sorry ("Precompiled headers require -funit-at-a-time");
 
   /* Default to ObjC sjlj exception handling if NeXT runtime.  */
   if (flag_objc_sjlj_exceptions < 0)
@@ -1087,17 +1066,14 @@ c_common_post_options (const char **pfilename)
   if (warn_overlength_strings == -1 || c_dialect_cxx ())
     warn_overlength_strings = 0;
 
-  /* Adjust various flags for C++ based on command-line settings.  */
-  if (c_dialect_cxx ())
-    {
-      if (!flag_no_inline)
-	{
-	  flag_inline_trees = 1;
-	  flag_no_inline = 1;
-	}
-      if (flag_inline_functions)
-	flag_inline_trees = 2;
-    } 
+  /* Wmain is enabled by default in C++ but not in C.  */
+  /* Wmain is disabled by default for -ffreestanding (!flag_hosted),
+     even if -Wall was given (warn_main will be 2 if set by -Wall, 1
+     if set by -Wmain).  */
+  if (warn_main == -1)
+    warn_main = (c_dialect_cxx () && flag_hosted) ? 1 : 0;
+  else if (warn_main == 2)
+    warn_main = flag_hosted ? 1 : 0;
 
   /* In C, -Wconversion enables -Wsign-conversion (unless disabled
      through -Wno-sign-conversion). While in C++,

@@ -62,6 +62,34 @@ dw2_assemble_integer (int size, rtx x)
 }
 
 
+/* Output a value of a given size in target byte order.  */
+
+void
+dw2_asm_output_data_raw (int size, unsigned HOST_WIDE_INT value)
+{
+  unsigned char bytes[8];
+  int i;
+
+  for (i = 0; i < 8; ++i)
+    {
+      bytes[i] = value & 0xff;
+      value >>= 8;
+    }
+
+  if (BYTES_BIG_ENDIAN)
+    {
+      for (i = size - 1; i > 0; --i)
+	fprintf (asm_out_file, "0x%x,", bytes[i]);
+      fprintf (asm_out_file, "0x%x", bytes[0]);
+    }
+  else
+    {
+      for (i = 0; i < size - 1; ++i)
+	fprintf (asm_out_file, "0x%x,", bytes[i]);
+      fprintf (asm_out_file, "0x%x", bytes[i]);
+    }
+}
+
 /* Output an immediate constant in a given SIZE in bytes.  */
 
 void
@@ -505,6 +533,26 @@ eh_data_format_name (int format)
 #endif
 }
 
+/* Output an unsigned LEB128 quantity, but only the byte values.  */
+
+void
+dw2_asm_output_data_uleb128_raw (unsigned HOST_WIDE_INT value)
+{
+  while (1)
+    {
+      int byte = (value & 0x7f);
+      value >>= 7;
+      if (value != 0)
+	/* More bytes to follow.  */
+	byte |= 0x80;
+
+      fprintf (asm_out_file, "0x%x", byte);
+      if (value == 0)
+	break;
+      fputc (',', asm_out_file);
+    }
+}
+
 /* Output an unsigned LEB128 quantity.  */
 
 void
@@ -564,6 +612,29 @@ dw2_asm_output_data_uleb128 (unsigned HOST_WIDE_INT value,
   fputc ('\n', asm_out_file);
 
   va_end (ap);
+}
+
+/* Output an signed LEB128 quantity, but only the byte values.  */
+
+void
+dw2_asm_output_data_sleb128_raw (HOST_WIDE_INT value)
+{
+  int byte, more;
+
+  while (1)
+    {
+      byte = (value & 0x7f);
+      value >>= 7;
+      more = !((value == 0 && (byte & 0x40) == 0)
+		|| (value == -1 && (byte & 0x40) != 0));
+      if (more)
+	byte |= 0x80;
+
+      fprintf (asm_out_file, "0x%x", byte);
+      if (!more)
+	break;
+      fputc (',', asm_out_file);
+    }
 }
 
 /* Output a signed LEB128 quantity.  */
@@ -689,7 +760,6 @@ dw2_asm_output_delta_sleb128 (const char *lab1 ATTRIBUTE_UNUSED,
 }
 #endif /* 0 */
 
-static rtx dw2_force_const_mem (rtx, bool);
 static int dw2_output_indirect_constant_1 (splay_tree_node, void *);
 
 static GTY((param1_is (char *), param2_is (tree))) splay_tree indirect_pool;
@@ -730,11 +800,11 @@ splay_tree_compare_strings (splay_tree_key k1, splay_tree_key k2)
 /* Put X, a SYMBOL_REF, in memory.  Return a SYMBOL_REF to the allocated
    memory.  Differs from force_const_mem in that a single pool is used for
    the entire unit of translation, and the memory is not guaranteed to be
-   "near" the function in any interesting sense.  PUBLIC controls whether
+   "near" the function in any interesting sense.  IS_PUBLIC controls whether
    the symbol can be shared across the entire application (or DSO).  */
 
-static rtx
-dw2_force_const_mem (rtx x, bool public)
+rtx
+dw2_force_const_mem (rtx x, bool is_public)
 {
   splay_tree_node node;
   const char *str;
@@ -755,7 +825,7 @@ dw2_force_const_mem (rtx x, bool public)
     {
       tree id;
 
-      if (public && USE_LINKONCE_INDIRECT)
+      if (is_public && USE_LINKONCE_INDIRECT)
 	{
 	  char *ref_name = XALLOCAVEC (char, strlen (str) + sizeof "DW.ref.");
 
@@ -829,7 +899,7 @@ dw2_output_indirect_constants (void)
    reference is shared across the entire application (or DSO).  */
 
 void
-dw2_asm_output_encoded_addr_rtx (int encoding, rtx addr, bool public,
+dw2_asm_output_encoded_addr_rtx (int encoding, rtx addr, bool is_public,
 				 const char *comment, ...)
 {
   int size;
@@ -870,7 +940,7 @@ dw2_asm_output_encoded_addr_rtx (int encoding, rtx addr, bool public,
 	     the constant pool for this function.  Moreover, we'd like to
 	     share these constants across the entire unit of translation and
 	     even, if possible, across the entire application (or DSO).  */
-	  addr = dw2_force_const_mem (addr, public);
+	  addr = dw2_force_const_mem (addr, is_public);
 	  encoding &= ~DW_EH_PE_indirect;
 	  goto restart;
 	}

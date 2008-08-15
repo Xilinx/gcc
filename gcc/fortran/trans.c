@@ -23,7 +23,8 @@ along with GCC; see the file COPYING3.  If not see
 #include "system.h"
 #include "coretypes.h"
 #include "tree.h"
-#include "tree-gimple.h"
+#include "gimple.h"
+#include "tree-iterator.h"
 #include "ggc.h"
 #include "toplev.h"
 #include "defaults.h"
@@ -129,7 +130,7 @@ gfc_create_var (tree type, const char *prefix)
 }
 
 
-/* If the an expression is not constant, evaluate it now.  We assign the
+/* If the expression is not constant, evaluate it now.  We assign the
    result of the expression to an artificially created variable VAR, and
    return a pointer to the VAR_DECL node for this variable.  */
 
@@ -142,19 +143,18 @@ gfc_evaluate_now (tree expr, stmtblock_t * pblock)
     return expr;
 
   var = gfc_create_var (TREE_TYPE (expr), NULL);
-  gfc_add_modify_expr (pblock, var, expr);
+  gfc_add_modify (pblock, var, expr);
 
   return var;
 }
 
 
-/* Build a MODIFY_EXPR (or GIMPLE_MODIFY_STMT) node and add it to a
-   given statement block PBLOCK.  A MODIFY_EXPR is an assignment:
+/* Build a MODIFY_EXPR node and add it to a given statement block PBLOCK.  
+   A MODIFY_EXPR is an assignment:
    LHS <- RHS.  */
 
 void
-gfc_add_modify (stmtblock_t * pblock, tree lhs, tree rhs,
-		bool tuples_p)
+gfc_add_modify (stmtblock_t * pblock, tree lhs, tree rhs)
 {
   tree tmp;
 
@@ -167,8 +167,7 @@ gfc_add_modify (stmtblock_t * pblock, tree lhs, tree rhs,
 	      || AGGREGATE_TYPE_P (TREE_TYPE (lhs)));
 #endif
 
-  tmp = fold_build2 (tuples_p ? GIMPLE_MODIFY_STMT : MODIFY_EXPR,
-		     void_type_node, lhs, rhs);
+  tmp = fold_build2 (MODIFY_EXPR, void_type_node, lhs, rhs);
   gfc_add_expr_to_block (pblock, tmp);
 }
 
@@ -351,13 +350,14 @@ gfc_build_array_ref (tree base, tree offset, tree decl)
 /* Generate a runtime error if COND is true.  */
 
 void
-gfc_trans_runtime_check (tree cond, stmtblock_t * pblock, locus * where,
-			 const char * msgid, ...)
+gfc_trans_runtime_check (bool error, bool once, tree cond, stmtblock_t * pblock,
+		     locus * where, const char * msgid, ...)
 {
   va_list ap;
   stmtblock_t block;
   tree body;
   tree tmp;
+  tree tmpvar = NULL;
   tree arg, arg2;
   tree *argarray;
   tree fntype;
@@ -376,6 +376,14 @@ gfc_trans_runtime_check (tree cond, stmtblock_t * pblock, locus * where,
 	if (*p != '%')
 	  nargs++;
       }
+
+  if (once)
+    {
+       tmpvar = gfc_create_var (boolean_type_node, "print_warning");
+       TREE_STATIC (tmpvar) = 1;
+       DECL_INITIAL (tmpvar) = boolean_true_node;
+       gfc_add_expr_to_block (pblock, tmpvar);
+    }
 
   /* The code to generate the error.  */
   gfc_start_block (&block);
@@ -408,15 +416,24 @@ gfc_trans_runtime_check (tree cond, stmtblock_t * pblock, locus * where,
     argarray[2+i] = va_arg (ap, tree);
   va_end (ap);
   
-  /* Build the function call to runtime_error_at; because of the variable
-     number of arguments, we can't use build_call_expr directly.  */
-  fntype = TREE_TYPE (gfor_fndecl_runtime_error_at);
+  /* Build the function call to runtime_(warning,error)_at; because of the
+     variable number of arguments, we can't use build_call_expr directly.  */
+  if (error)
+    fntype = TREE_TYPE (gfor_fndecl_runtime_error_at);
+  else
+    fntype = TREE_TYPE (gfor_fndecl_runtime_warning_at);
+
   tmp = fold_builtin_call_array (TREE_TYPE (fntype),
 				 fold_build1 (ADDR_EXPR,
 					      build_pointer_type (fntype),
-					      gfor_fndecl_runtime_error_at),
+					      error
+					      ? gfor_fndecl_runtime_error_at
+					      : gfor_fndecl_runtime_warning_at),
 				 nargs + 2, argarray);
   gfc_add_expr_to_block (&block, tmp);
+
+  if (once)
+    gfc_add_modify (&block, tmpvar, boolean_false_node);
 
   body = gfc_finish_block (&block);
 
@@ -427,7 +444,12 @@ gfc_trans_runtime_check (tree cond, stmtblock_t * pblock, locus * where,
   else
     {
       /* Tell the compiler that this isn't likely.  */
-      cond = fold_convert (long_integer_type_node, cond);
+      if (once)
+	cond = fold_build2 (TRUTH_AND_EXPR, long_integer_type_node, tmpvar,
+			    cond);
+      else
+	cond = fold_convert (long_integer_type_node, cond);
+
       tmp = build_int_cst (long_integer_type_node, 0);
       cond = build_call_expr (built_in_decls[BUILT_IN_EXPECT], 2, cond, tmp);
       cond = fold_convert (boolean_type_node, cond);
@@ -472,7 +494,7 @@ gfc_call_malloc (stmtblock_t * block, tree type, tree size)
   size = fold_build2 (MAX_EXPR, size_type_node, size,
 		      build_int_cst (size_type_node, 1));
 
-  gfc_add_modify_expr (&block2, res,
+  gfc_add_modify (&block2, res,
 		       build_call_expr (built_in_decls[BUILT_IN_MALLOC], 1,
 		       size));
   null_result = fold_build2 (EQ_EXPR, boolean_type_node, res,
@@ -570,10 +592,10 @@ gfc_allocate_with_status (stmtblock_t * block, tree size, tree status)
       stmtblock_t set_status_block;
 
       gfc_start_block (&set_status_block);
-      gfc_add_modify_expr (&set_status_block,
+      gfc_add_modify (&set_status_block,
 			   fold_build1 (INDIRECT_REF, status_type, status),
 			   build_int_cst (status_type, LIBERROR_ALLOCATION));
-      gfc_add_modify_expr (&set_status_block, res,
+      gfc_add_modify (&set_status_block, res,
 			   build_int_cst (pvoid_type_node, 0));
 
       tmp = fold_build2 (EQ_EXPR, boolean_type_node, status,
@@ -584,7 +606,7 @@ gfc_allocate_with_status (stmtblock_t * block, tree size, tree status)
 
   /* The allocation itself.  */
   gfc_start_block (&alloc_block);
-  gfc_add_modify_expr (&alloc_block, res,
+  gfc_add_modify (&alloc_block, res,
 		       build_call_expr (built_in_decls[BUILT_IN_MALLOC], 1,
 					fold_build2 (MAX_EXPR, size_type_node,
 						     size,
@@ -666,7 +688,7 @@ gfc_allocate_array_with_status (stmtblock_t * block, tree mem, tree size,
   /* If mem is NULL, we call gfc_allocate_with_status.  */
   gfc_start_block (&alloc_block);
   tmp = gfc_allocate_with_status (&alloc_block, size, status);
-  gfc_add_modify_expr (&alloc_block, res, fold_convert (type, tmp));
+  gfc_add_modify (&alloc_block, res, fold_convert (type, tmp));
   alloc = gfc_finish_block (&alloc_block);
 
   /* Otherwise, we issue a runtime error or set the status variable.  */
@@ -685,9 +707,9 @@ gfc_allocate_array_with_status (stmtblock_t * block, tree mem, tree size,
       gfc_add_expr_to_block (&set_status_block, tmp);
 
       tmp = gfc_allocate_with_status (&set_status_block, size, status);
-      gfc_add_modify_expr (&set_status_block, res, fold_convert (type, tmp));
+      gfc_add_modify (&set_status_block, res, fold_convert (type, tmp));
 
-      gfc_add_modify_expr (&set_status_block,
+      gfc_add_modify (&set_status_block,
 			   fold_build1 (INDIRECT_REF, status_type, status),
 			   build_int_cst (status_type, LIBERROR_ALLOCATION));
 
@@ -862,7 +884,7 @@ gfc_call_realloc (stmtblock_t * block, tree mem, tree size)
   /* Call realloc and check the result.  */
   tmp = build_call_expr (built_in_decls[BUILT_IN_REALLOC], 2,
 			 fold_convert (pvoid_type_node, mem), size);
-  gfc_add_modify_expr (block, res, fold_convert (type, tmp));
+  gfc_add_modify (block, res, fold_convert (type, tmp));
   null_result = fold_build2 (EQ_EXPR, boolean_type_node, res,
 			     build_int_cst (pvoid_type_node, 0));
   nonzero = fold_build2 (NE_EXPR, boolean_type_node, size,
@@ -962,7 +984,7 @@ gfc_trans_code (gfc_code * code)
 
   gfc_start_block (&block);
 
-  /* Translate statements one by one to GIMPLE trees until we reach
+  /* Translate statements one by one into GENERIC trees until we reach
      the end of this gfc_code branch.  */
   for (; code; code = code->next)
     {
@@ -1150,7 +1172,7 @@ gfc_trans_code (gfc_code * code)
       if (res != NULL_TREE && ! IS_EMPTY_STMT (res))
 	{
 	  if (TREE_CODE (res) == STATEMENT_LIST)
-	    annotate_all_with_locus (&res, input_location);
+	    tree_annotate_all_with_location (&res, input_location);
 	  else
 	    SET_EXPR_LOCATION (res, input_location);
 	    

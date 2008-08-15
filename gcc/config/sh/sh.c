@@ -51,7 +51,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "intl.h"
 #include "sched-int.h"
 #include "ggc.h"
-#include "tree-gimple.h"
+#include "gimple.h"
 #include "cfgloop.h"
 #include "alloc-pool.h"
 #include "tm-constrs.h"
@@ -260,9 +260,8 @@ static void sh_setup_incoming_varargs (CUMULATIVE_ARGS *, enum machine_mode, tre
 static bool sh_strict_argument_naming (CUMULATIVE_ARGS *);
 static bool sh_pretend_outgoing_varargs_named (CUMULATIVE_ARGS *);
 static tree sh_build_builtin_va_list (void);
-static tree sh_canonical_va_list_type (tree);
 static void sh_va_start (tree, rtx);
-static tree sh_gimplify_va_arg_expr (tree, tree, tree *, tree *);
+static tree sh_gimplify_va_arg_expr (tree, tree, gimple_seq *, gimple_seq *);
 static bool sh_pass_by_reference (CUMULATIVE_ARGS *, enum machine_mode,
 				  const_tree, bool);
 static bool sh_callee_copies (CUMULATIVE_ARGS *, enum machine_mode,
@@ -442,8 +441,6 @@ static int sh2a_function_vector_p (tree);
 
 #undef TARGET_BUILD_BUILTIN_VA_LIST
 #define TARGET_BUILD_BUILTIN_VA_LIST sh_build_builtin_va_list
-#undef TARGET_CANONICAL_VA_LIST_TYPE
-#define TARGET_CANONICAL_VA_LIST_TYPE sh_canonical_va_list_type
 #undef TARGET_EXPAND_BUILTIN_VA_START
 #define TARGET_EXPAND_BUILTIN_VA_START sh_va_start
 #undef TARGET_GIMPLIFY_VA_ARG_EXPR
@@ -1303,9 +1300,9 @@ prepare_move_operands (rtx operands[], enum machine_mode mode)
 	{
 	  /* This is like change_address_1 (operands[0], mode, 0, 1) ,
 	     except that we can't use that function because it is static.  */
-	  rtx new = change_address (operands[0], mode, 0);
-	  MEM_COPY_ATTRIBUTES (new, operands[0]);
-	  operands[0] = new;
+	  rtx new_rtx = change_address (operands[0], mode, 0);
+	  MEM_COPY_ATTRIBUTES (new_rtx, operands[0]);
+	  operands[0] = new_rtx;
 	}
 
       /* This case can happen while generating code to move the result
@@ -1918,14 +1915,14 @@ print_slot (rtx insn)
 const char *
 output_far_jump (rtx insn, rtx op)
 {
-  struct { rtx lab, reg, op; } this;
+  struct { rtx lab, reg, op; } this_jmp;
   rtx braf_base_lab = NULL_RTX;
   const char *jump;
   int far;
   int offset = branch_dest (insn) - INSN_ADDRESSES (INSN_UID (insn));
   rtx prev;
 
-  this.lab = gen_label_rtx ();
+  this_jmp.lab = gen_label_rtx ();
 
   if (TARGET_SH2
       && offset >= -32764
@@ -1951,10 +1948,10 @@ output_far_jump (rtx insn, rtx op)
   if (GET_CODE ((prev = prev_nonnote_insn (insn))) == INSN
       && INSN_CODE (prev) == CODE_FOR_indirect_jump_scratch)
     {
-      this.reg = SET_DEST (XVECEXP (PATTERN (prev), 0, 0));
-      if (REGNO (this.reg) == R0_REG && flag_pic && ! TARGET_SH2)
+      this_jmp.reg = SET_DEST (XVECEXP (PATTERN (prev), 0, 0));
+      if (REGNO (this_jmp.reg) == R0_REG && flag_pic && ! TARGET_SH2)
 	jump = "mov.l	r1,@-r15; mova	%O0,r0; mov.l	@r0,r1; add	r1,r0; mov.l	@r15+,r1; jmp	@%1";
-      output_asm_insn (jump, &this.lab);
+      output_asm_insn (jump, &this_jmp.lab);
       if (dbr_sequence_length ())
 	print_slot (final_sequence);
       else
@@ -1966,7 +1963,7 @@ output_far_jump (rtx insn, rtx op)
       if (dbr_sequence_length ())
 	print_slot (final_sequence);
 
-      this.reg = gen_rtx_REG (SImode, 13);
+      this_jmp.reg = gen_rtx_REG (SImode, 13);
       /* We must keep the stack aligned to 8-byte boundaries on SH5.
 	 Fortunately, MACL is fixed and call-clobbered, and we never
 	 need its value across jumps, so save r13 in it instead of in
@@ -1975,7 +1972,7 @@ output_far_jump (rtx insn, rtx op)
 	output_asm_insn ("lds	r13, macl", 0);
       else
 	output_asm_insn ("mov.l	r13,@-r15", 0);
-      output_asm_insn (jump, &this.lab);
+      output_asm_insn (jump, &this_jmp.lab);
       if (TARGET_SH5)
 	output_asm_insn ("sts	macl, r13", 0);
       else
@@ -1989,16 +1986,16 @@ output_far_jump (rtx insn, rtx op)
     }
   if (far)
     output_asm_insn (".align	2", 0);
-  (*targetm.asm_out.internal_label) (asm_out_file, "L", CODE_LABEL_NUMBER (this.lab));
-  this.op = op;
+  (*targetm.asm_out.internal_label) (asm_out_file, "L", CODE_LABEL_NUMBER (this_jmp.lab));
+  this_jmp.op = op;
   if (far && flag_pic)
     {
       if (TARGET_SH2)
-	this.lab = braf_base_lab;
-      output_asm_insn (".long	%O2-%O0", &this.lab);
+	this_jmp.lab = braf_base_lab;
+      output_asm_insn (".long	%O2-%O0", &this_jmp.lab);
     }
   else
-    output_asm_insn (far ? ".long	%O2" : ".word %O2-%O0", &this.lab);
+    output_asm_insn (far ? ".long	%O2" : ".word %O2-%O0", &this_jmp.lab);
   return "";
 }
 
@@ -2095,14 +2092,14 @@ output_branch (int logic, rtx insn, rtx *operands)
     }
 }
 
-/* Output a code sequence for INSN using TEMPLATE with OPERANDS; but before,
+/* Output a code sequence for INSN using TEMPL with OPERANDS; but before,
    fill in operands 9 as a label to the successor insn.
    We try to use jump threading where possible.
    IF CODE matches the comparison in the IF_THEN_ELSE of a following jump,
    we assume the jump is taken.  I.e. EQ means follow jmp and bf, NE means
    follow jmp and bt, if the address is in range.  */
 const char *
-output_branchy_insn (enum rtx_code code, const char *template,
+output_branchy_insn (enum rtx_code code, const char *templ,
 		     rtx insn, rtx *operands)
 {
   rtx next_insn = NEXT_INSN (insn);
@@ -2118,7 +2115,7 @@ output_branchy_insn (enum rtx_code code, const char *template,
 	  INSN_ADDRESSES_NEW (operands[9],
 			      INSN_ADDRESSES (INSN_UID (next_insn))
 			      + get_attr_length (next_insn));
-	  return template;
+	  return templ;
 	}
       else
 	{
@@ -2130,7 +2127,7 @@ output_branchy_insn (enum rtx_code code, const char *template,
 		/* branch_true */
 		src = XEXP (src, 1);
 	      operands[9] = src;
-	      return template;
+	      return templ;
 	    }
 	}
     }
@@ -2139,7 +2136,7 @@ output_branchy_insn (enum rtx_code code, const char *template,
   INSN_ADDRESSES_NEW (operands[9],
 		      INSN_ADDRESSES (INSN_UID (insn))
 		      + get_attr_length (insn));
-  return template;
+  return templ;
 }
 
 const char *
@@ -3486,7 +3483,7 @@ static rtx
 add_constant (rtx x, enum machine_mode mode, rtx last_value)
 {
   int i;
-  rtx lab, new;
+  rtx lab, new_rtx;
   label_ref_list_t ref, newref;
 
   /* First see if we've already got it.  */
@@ -3502,14 +3499,14 @@ add_constant (rtx x, enum machine_mode mode, rtx last_value)
 	    }
 	  if (rtx_equal_p (x, pool_vector[i].value))
 	    {
-	      lab = new = 0;
+	      lab = new_rtx = 0;
 	      if (! last_value
 		  || ! i
 		  || ! rtx_equal_p (last_value, pool_vector[i-1].value))
 		{
-		  new = gen_label_rtx ();
-		  LABEL_REFS (new) = pool_vector[i].label;
-		  pool_vector[i].label = lab = new;
+		  new_rtx = gen_label_rtx ();
+		  LABEL_REFS (new_rtx) = pool_vector[i].label;
+		  pool_vector[i].label = lab = new_rtx;
 		}
 	      if (lab && pool_window_label)
 		{
@@ -3519,8 +3516,8 @@ add_constant (rtx x, enum machine_mode mode, rtx last_value)
 		  newref->next = ref;
 		  pool_vector[pool_window_last].wend = newref;
 		}
-	      if (new)
-		pool_window_label = new;
+	      if (new_rtx)
+		pool_window_label = new_rtx;
 	      pool_window_last = i;
 	      return lab;
 	    }
@@ -4424,7 +4421,7 @@ gen_block_redirect (rtx jump, int addr, int need_block)
       rtx scan;
       /* Don't look for the stack pointer as a scratch register,
 	 it would cause trouble if an interrupt occurred.  */
-      unsigned try = 0x7fff, used;
+      unsigned attempt = 0x7fff, used;
       int jump_left = flag_expensive_optimizations + 1;
 
       /* It is likely that the most recent eligible instruction is wanted for
@@ -4445,7 +4442,7 @@ gen_block_redirect (rtx jump, int addr, int need_block)
 	      && GET_CODE (PATTERN (scan)) != CLOBBER
 	      && get_attr_in_delay_slot (scan) == IN_DELAY_SLOT_YES)
 	    {
-	      try &= ~regs_used (PATTERN (scan), 0);
+	      attempt &= ~regs_used (PATTERN (scan), 0);
 	      break;
 	    }
 	}
@@ -4463,9 +4460,9 @@ gen_block_redirect (rtx jump, int addr, int need_block)
 	      if (code == CALL_INSN)
 		used |= regs_used (CALL_INSN_FUNCTION_USAGE (scan), 0);
 	      dead |= (used >> 16) & ~used;
-	      if (dead & try)
+	      if (dead & attempt)
 		{
-		  dead &= try;
+		  dead &= attempt;
 		  break;
 		}
 	      if (code == JUMP_INSN)
@@ -7148,14 +7145,6 @@ sh_build_builtin_va_list (void)
   return record;
 }
 
-/* Return always va_list_type_node.  */
-
-static tree
-sh_canonical_va_list_type (tree type ATTRIBUTE_UNUSED)
-{
-  return va_list_type_node;
-}
-
 /* Implement `va_start' for varargs and stdarg.  */
 
 static void
@@ -7200,7 +7189,7 @@ sh_va_start (tree valist, rtx nextarg)
   /* Call __builtin_saveregs.  */
   u = make_tree (sizetype, expand_builtin_saveregs ());
   u = fold_convert (ptr_type_node, u);
-  t = build2 (GIMPLE_MODIFY_STMT, ptr_type_node, next_fp, u);
+  t = build2 (MODIFY_EXPR, ptr_type_node, next_fp, u);
   TREE_SIDE_EFFECTS (t) = 1;
   expand_expr (t, const0_rtx, VOIDmode, EXPAND_NORMAL);
 
@@ -7211,11 +7200,11 @@ sh_va_start (tree valist, rtx nextarg)
     nfp = 0;
   u = fold_build2 (POINTER_PLUS_EXPR, ptr_type_node, u,
 		   size_int (UNITS_PER_WORD * nfp));
-  t = build2 (GIMPLE_MODIFY_STMT, ptr_type_node, next_fp_limit, u);
+  t = build2 (MODIFY_EXPR, ptr_type_node, next_fp_limit, u);
   TREE_SIDE_EFFECTS (t) = 1;
   expand_expr (t, const0_rtx, VOIDmode, EXPAND_NORMAL);
 
-  t = build2 (GIMPLE_MODIFY_STMT, ptr_type_node, next_o, u);
+  t = build2 (MODIFY_EXPR, ptr_type_node, next_o, u);
   TREE_SIDE_EFFECTS (t) = 1;
   expand_expr (t, const0_rtx, VOIDmode, EXPAND_NORMAL);
 
@@ -7226,12 +7215,12 @@ sh_va_start (tree valist, rtx nextarg)
     nint = 0;
   u = fold_build2 (POINTER_PLUS_EXPR, ptr_type_node, u,
 		   size_int (UNITS_PER_WORD * nint));
-  t = build2 (GIMPLE_MODIFY_STMT, ptr_type_node, next_o_limit, u);
+  t = build2 (MODIFY_EXPR, ptr_type_node, next_o_limit, u);
   TREE_SIDE_EFFECTS (t) = 1;
   expand_expr (t, const0_rtx, VOIDmode, EXPAND_NORMAL);
 
   u = make_tree (ptr_type_node, nextarg);
-  t = build2 (GIMPLE_MODIFY_STMT, ptr_type_node, next_stack, u);
+  t = build2 (MODIFY_EXPR, ptr_type_node, next_stack, u);
   TREE_SIDE_EFFECTS (t) = 1;
   expand_expr (t, const0_rtx, VOIDmode, EXPAND_NORMAL);
 }
@@ -7260,8 +7249,8 @@ find_sole_member (tree type)
 /* Implement `va_arg'.  */
 
 static tree
-sh_gimplify_va_arg_expr (tree valist, tree type, tree *pre_p,
-			 tree *post_p ATTRIBUTE_UNUSED)
+sh_gimplify_va_arg_expr (tree valist, tree type, gimple_seq *pre_p,
+			 gimple_seq *post_p ATTRIBUTE_UNUSED)
 {
   HOST_WIDE_INT size, rsize;
   tree tmp, pptr_type_node;
@@ -7350,20 +7339,19 @@ sh_gimplify_va_arg_expr (tree valist, tree type, tree *pre_p,
 	  tree cmp;
 	  bool is_double = size == 8 && TREE_CODE (eff_type) == REAL_TYPE;
 
-	  tmp = build1 (ADDR_EXPR, pptr_type_node, next_fp);
-	  tmp = build2 (GIMPLE_MODIFY_STMT, void_type_node, addr, tmp);
-	  gimplify_and_add (tmp, pre_p);
+	  tmp = build1 (ADDR_EXPR, pptr_type_node, unshare_expr (next_fp));
+	  gimplify_assign (unshare_expr (addr), tmp, pre_p);
 
-	  tmp = build2 (GIMPLE_MODIFY_STMT, ptr_type_node, next_fp_tmp, valist);
-	  gimplify_and_add (tmp, pre_p);
+	  gimplify_assign (unshare_expr (next_fp_tmp), valist, pre_p);
 	  tmp = next_fp_limit;
 	  if (size > 4 && !is_double)
-	    tmp = build2 (POINTER_PLUS_EXPR, TREE_TYPE (tmp), tmp,
-			  size_int (4 - size));
-	  tmp = build2 (GE_EXPR, boolean_type_node, next_fp_tmp, tmp);
+	    tmp = build2 (POINTER_PLUS_EXPR, TREE_TYPE (tmp),
+			  unshare_expr (tmp), size_int (4 - size));
+	  tmp = build2 (GE_EXPR, boolean_type_node,
+			unshare_expr (next_fp_tmp), unshare_expr (tmp));
 	  cmp = build3 (COND_EXPR, void_type_node, tmp,
-		        build1 (GOTO_EXPR, void_type_node, lab_false),
-		        NULL_TREE);
+		        build1 (GOTO_EXPR, void_type_node,
+				unshare_expr (lab_false)), NULL_TREE);
 	  if (!is_double)
 	    gimplify_and_add (cmp, pre_p);
 
@@ -7374,10 +7362,8 @@ sh_gimplify_va_arg_expr (tree valist, tree type, tree *pre_p,
 	      tmp = build2 (BIT_AND_EXPR, sizetype, tmp,
 			    size_int (UNITS_PER_WORD));
 	      tmp = build2 (POINTER_PLUS_EXPR, ptr_type_node,
-			    next_fp_tmp, tmp);
-	      tmp = build2 (GIMPLE_MODIFY_STMT, ptr_type_node,
-		  	    next_fp_tmp, tmp);
-	      gimplify_and_add (tmp, pre_p);
+			    unshare_expr (next_fp_tmp), tmp);
+	      gimplify_assign (unshare_expr (next_fp_tmp), tmp, pre_p);
 	    }
 	  if (is_double)
 	    gimplify_and_add (cmp, pre_p);
@@ -7402,57 +7388,53 @@ sh_gimplify_va_arg_expr (tree valist, tree type, tree *pre_p,
 	    }
 #endif /* FUNCTION_ARG_SCmode_WART */
 
-	  tmp = build1 (GOTO_EXPR, void_type_node, lab_over);
+	  tmp = build1 (GOTO_EXPR, void_type_node, unshare_expr (lab_over));
 	  gimplify_and_add (tmp, pre_p);
 
-	  tmp = build1 (LABEL_EXPR, void_type_node, lab_false);
+	  tmp = build1 (LABEL_EXPR, void_type_node, unshare_expr (lab_false));
 	  gimplify_and_add (tmp, pre_p);
 
-	  tmp = build1 (ADDR_EXPR, pptr_type_node, next_stack);
-	  tmp = build2 (GIMPLE_MODIFY_STMT, void_type_node, addr, tmp);
-	  gimplify_and_add (tmp, pre_p);
-	  tmp = build2 (GIMPLE_MODIFY_STMT, ptr_type_node, next_fp_tmp, valist);
-	  gimplify_and_add (tmp, pre_p);
+	  tmp = build1 (ADDR_EXPR, pptr_type_node, unshare_expr (next_stack));
+	  gimplify_assign (unshare_expr (addr), tmp, pre_p);
+	  gimplify_assign (unshare_expr (next_fp_tmp),
+			   unshare_expr (valist), pre_p);
 
-	  tmp = build2 (GIMPLE_MODIFY_STMT, ptr_type_node, valist, next_fp_tmp);
-	  gimplify_and_add (tmp, post_p);
+	  gimplify_assign (unshare_expr (valist),
+			   unshare_expr (next_fp_tmp), post_p);
 	  valist = next_fp_tmp;
 	}
       else
 	{
-	  tmp = build2 (POINTER_PLUS_EXPR, ptr_type_node, next_o,
-			size_int (rsize));
-	  tmp = build2 (GT_EXPR, boolean_type_node, tmp, next_o_limit);
+	  tmp = build2 (POINTER_PLUS_EXPR, ptr_type_node,
+			unshare_expr (next_o), size_int (rsize));
+	  tmp = build2 (GT_EXPR, boolean_type_node, tmp,
+			unshare_expr (next_o_limit));
 	  tmp = build3 (COND_EXPR, void_type_node, tmp,
-		        build1 (GOTO_EXPR, void_type_node, lab_false),
-		        NULL_TREE);
+		        build1 (GOTO_EXPR, void_type_node,
+				unshare_expr (lab_false)),
+			NULL_TREE);
 	  gimplify_and_add (tmp, pre_p);
 
-	  tmp = build1 (ADDR_EXPR, pptr_type_node, next_o);
-	  tmp = build2 (GIMPLE_MODIFY_STMT, void_type_node, addr, tmp);
+	  tmp = build1 (ADDR_EXPR, pptr_type_node, unshare_expr (next_o));
+	  gimplify_assign (unshare_expr (addr), tmp, pre_p);
+
+	  tmp = build1 (GOTO_EXPR, void_type_node, unshare_expr (lab_over));
 	  gimplify_and_add (tmp, pre_p);
 
-	  tmp = build1 (GOTO_EXPR, void_type_node, lab_over);
-	  gimplify_and_add (tmp, pre_p);
-
-	  tmp = build1 (LABEL_EXPR, void_type_node, lab_false);
+	  tmp = build1 (LABEL_EXPR, void_type_node, unshare_expr (lab_false));
 	  gimplify_and_add (tmp, pre_p);
 
 	  if (size > 4 && ! (TARGET_SH4 || TARGET_SH2A))
-	    {
-	      tmp = build2 (GIMPLE_MODIFY_STMT, ptr_type_node,
-		  	    next_o, next_o_limit);
-	      gimplify_and_add (tmp, pre_p);
-	    }
+	    gimplify_assign (unshare_expr (next_o),
+			     unshare_expr (next_o_limit), pre_p);
 
-	  tmp = build1 (ADDR_EXPR, pptr_type_node, next_stack);
-	  tmp = build2 (GIMPLE_MODIFY_STMT, void_type_node, addr, tmp);
-	  gimplify_and_add (tmp, pre_p);
+	  tmp = build1 (ADDR_EXPR, pptr_type_node, unshare_expr (next_stack));
+	  gimplify_assign (unshare_expr (addr), tmp, pre_p);
 	}
 
       if (!result)
 	{
-	  tmp = build1 (LABEL_EXPR, void_type_node, lab_over);
+	  tmp = build1 (LABEL_EXPR, void_type_node, unshare_expr (lab_over));
 	  gimplify_and_add (tmp, pre_p);
 	}
     }
@@ -7463,10 +7445,9 @@ sh_gimplify_va_arg_expr (tree valist, tree type, tree *pre_p,
   tmp = std_gimplify_va_arg_expr (valist, type, pre_p, NULL);
   if (result)
     {
-      tmp = build2 (GIMPLE_MODIFY_STMT, void_type_node, result, tmp);
-      gimplify_and_add (tmp, pre_p);
+      gimplify_assign (result, tmp, pre_p);
 
-      tmp = build1 (LABEL_EXPR, void_type_node, lab_over);
+      tmp = build1 (LABEL_EXPR, void_type_node, unshare_expr (lab_over));
       gimplify_and_add (tmp, pre_p);
     }
   else
@@ -8794,14 +8775,14 @@ sh_insn_length_adjustment (rtx insn)
     {
       int sum = 0;
       rtx body = PATTERN (insn);
-      const char *template;
+      const char *templ;
       char c;
       int maybe_label = 1;
 
       if (GET_CODE (body) == ASM_INPUT)
-	template = XSTR (body, 0);
+	templ = XSTR (body, 0);
       else if (asm_noperands (body) >= 0)
-	template
+	templ
 	  = decode_asm_operands (body, NULL, NULL, NULL, NULL, NULL);
       else
 	return 0;
@@ -8810,20 +8791,20 @@ sh_insn_length_adjustment (rtx insn)
 	  int ppi_adjust = 0;
 
 	  do
-	    c = *template++;
+	    c = *templ++;
 	  while (c == ' ' || c == '\t');
 	  /* all sh-dsp parallel-processing insns start with p.
 	     The only non-ppi sh insn starting with p is pref.
 	     The only ppi starting with pr is prnd.  */
-	  if ((c == 'p' || c == 'P') && strncasecmp ("re", template, 2))
+	  if ((c == 'p' || c == 'P') && strncasecmp ("re", templ, 2))
 	    ppi_adjust = 2;
 	  /* The repeat pseudo-insn expands two three insns, a total of
 	     six bytes in size.  */
 	  else if ((c == 'r' || c == 'R')
-		   && ! strncasecmp ("epeat", template, 5))
+		   && ! strncasecmp ("epeat", templ, 5))
 	    ppi_adjust = 4;
 	  while (c && c != '\n'
-		 && ! IS_ASM_LOGICAL_LINE_SEPARATOR (c, template))
+		 && ! IS_ASM_LOGICAL_LINE_SEPARATOR (c, templ))
 	    {
 	      /* If this is a label, it is obviously not a ppi insn.  */
 	      if (c == ':' && maybe_label)
@@ -8833,7 +8814,7 @@ sh_insn_length_adjustment (rtx insn)
 		}
 	      else if (c == '\'' || c == '"')
 		maybe_label = 0;
-	      c = *template++;
+	      c = *templ++;
 	    }
 	  sum += ppi_adjust;
 	  maybe_label = c != ':';
@@ -10253,24 +10234,24 @@ sh_expand_binop_v2sf (enum rtx_code code, rtx op0, rtx op1, rtx op2)
    is invalid.  */
 bool
 sh_cannot_change_mode_class (enum machine_mode from, enum machine_mode to,
-			     enum reg_class class)
+			     enum reg_class rclass)
 {
   /* We want to enable the use of SUBREGs as a means to
      VEC_SELECT a single element of a vector.  */
   if (to == SFmode && VECTOR_MODE_P (from) && GET_MODE_INNER (from) == SFmode)
-    return (reg_classes_intersect_p (GENERAL_REGS, class));
+    return (reg_classes_intersect_p (GENERAL_REGS, rclass));
 
   if (GET_MODE_SIZE (from) != GET_MODE_SIZE (to))
     {
       if (TARGET_LITTLE_ENDIAN)
 	{
 	  if (GET_MODE_SIZE (to) < 8 || GET_MODE_SIZE (from) < 8)
-	    return reg_classes_intersect_p (DF_REGS, class);
+	    return reg_classes_intersect_p (DF_REGS, rclass);
 	}
       else
 	{
 	  if (GET_MODE_SIZE (from) < 8)
-	    return reg_classes_intersect_p (DF_HI_REGS, class);
+	    return reg_classes_intersect_p (DF_HI_REGS, rclass);
 	}
     }
   return 0;
@@ -10390,7 +10371,7 @@ sh_output_mi_thunk (FILE *file, tree thunk_fndecl ATTRIBUTE_UNUSED,
 {
   CUMULATIVE_ARGS cum;
   int structure_value_byref = 0;
-  rtx this, this_value, sibcall, insns, funexp;
+  rtx this_rtx, this_value, sibcall, insns, funexp;
   tree funtype = TREE_TYPE (function);
   int simple_add = CONST_OK_FOR_ADD (delta);
   int did_load = 0;
@@ -10418,7 +10399,7 @@ sh_output_mi_thunk (FILE *file, tree thunk_fndecl ATTRIBUTE_UNUSED,
 
       FUNCTION_ARG_ADVANCE (cum, Pmode, ptype, 1);
     }
-  this = FUNCTION_ARG (cum, Pmode, ptr_type_node, 1);
+  this_rtx = FUNCTION_ARG (cum, Pmode, ptr_type_node, 1);
 
   /* For SHcompact, we only have r0 for a scratch register: r1 is the
      static chain pointer (even if you can't have nested virtual functions
@@ -10459,7 +10440,7 @@ sh_output_mi_thunk (FILE *file, tree thunk_fndecl ATTRIBUTE_UNUSED,
 	error ("Need a call-clobbered target register");
     }
 
-  this_value = plus_constant (this, delta);
+  this_value = plus_constant (this_rtx, delta);
   if (vcall_offset
       && (simple_add || scratch0 != scratch1)
       && strict_memory_address_p (ptr_mode, this_value))
@@ -10471,11 +10452,11 @@ sh_output_mi_thunk (FILE *file, tree thunk_fndecl ATTRIBUTE_UNUSED,
   if (!delta)
     ; /* Do nothing.  */
   else if (simple_add)
-    emit_move_insn (this, this_value);
+    emit_move_insn (this_rtx, this_value);
   else
     {
       emit_move_insn (scratch1, GEN_INT (delta));
-      emit_insn (gen_add2_insn (this, scratch1));
+      emit_insn (gen_add2_insn (this_rtx, scratch1));
     }
 
   if (vcall_offset)
@@ -10483,7 +10464,7 @@ sh_output_mi_thunk (FILE *file, tree thunk_fndecl ATTRIBUTE_UNUSED,
       rtx offset_addr;
 
       if (!did_load)
-	emit_load_ptr (scratch0, this);
+	emit_load_ptr (scratch0, this_rtx);
 
       offset_addr = plus_constant (scratch0, vcall_offset);
       if (strict_memory_address_p (ptr_mode, offset_addr))
@@ -10493,7 +10474,7 @@ sh_output_mi_thunk (FILE *file, tree thunk_fndecl ATTRIBUTE_UNUSED,
 	  /* scratch0 != scratch1, and we have indexed loads.  Get better
 	     schedule by loading the offset into r1 and using an indexed
 	     load - then the load of r1 can issue before the load from
-             (this + delta) finishes.  */
+             (this_rtx + delta) finishes.  */
 	  emit_move_insn (scratch1, GEN_INT (vcall_offset));
 	  offset_addr = gen_rtx_PLUS (Pmode, scratch0, scratch1);
 	}
@@ -10514,7 +10495,7 @@ sh_output_mi_thunk (FILE *file, tree thunk_fndecl ATTRIBUTE_UNUSED,
 
       if (Pmode != ptr_mode)
 	scratch0 = gen_rtx_TRUNCATE (ptr_mode, scratch0);
-      emit_insn (gen_add2_insn (this, scratch0));
+      emit_insn (gen_add2_insn (this_rtx, scratch0));
     }
 
   /* Generate a tail call to the target function.  */
@@ -10549,7 +10530,7 @@ sh_output_mi_thunk (FILE *file, tree thunk_fndecl ATTRIBUTE_UNUSED,
     }
   sibcall = emit_call_insn (sibcall);
   SIBLING_CALL_P (sibcall) = 1;
-  use_reg (&CALL_INSN_FUNCTION_USAGE (sibcall), this);
+  use_reg (&CALL_INSN_FUNCTION_USAGE (sibcall), this_rtx);
   emit_barrier ();
 
   /* Run just enough of rest_of_compilation to do scheduling and get
@@ -10949,19 +10930,19 @@ replace_n_hard_rtx (rtx x, rtx *replacements, int n_replacements, int modify)
 
   if (GET_CODE (x) == SUBREG)
     {
-      rtx new = replace_n_hard_rtx (SUBREG_REG (x), replacements,
+      rtx new_rtx = replace_n_hard_rtx (SUBREG_REG (x), replacements,
 				    n_replacements, modify);
 
-      if (GET_CODE (new) == CONST_INT)
+      if (GET_CODE (new_rtx) == CONST_INT)
 	{
-	  x = simplify_subreg (GET_MODE (x), new,
+	  x = simplify_subreg (GET_MODE (x), new_rtx,
 			       GET_MODE (SUBREG_REG (x)),
 			       SUBREG_BYTE (x));
 	  if (! x)
 	    abort ();
 	}
       else if (modify)
-	SUBREG_REG (x) = new;
+	SUBREG_REG (x) = new_rtx;
 
       return x;
     }
@@ -11009,18 +10990,18 @@ replace_n_hard_rtx (rtx x, rtx *replacements, int n_replacements, int modify)
     }
   else if (GET_CODE (x) == ZERO_EXTEND)
     {
-      rtx new = replace_n_hard_rtx (XEXP (x, 0), replacements,
+      rtx new_rtx = replace_n_hard_rtx (XEXP (x, 0), replacements,
 				    n_replacements, modify);
 
-      if (GET_CODE (new) == CONST_INT)
+      if (GET_CODE (new_rtx) == CONST_INT)
 	{
 	  x = simplify_unary_operation (ZERO_EXTEND, GET_MODE (x),
-					new, GET_MODE (XEXP (x, 0)));
+					new_rtx, GET_MODE (XEXP (x, 0)));
 	  if (! x)
 	    abort ();
 	}
       else if (modify)
-	XEXP (x, 0) = new;
+	XEXP (x, 0) = new_rtx;
 
       return x;
     }
@@ -11028,26 +11009,26 @@ replace_n_hard_rtx (rtx x, rtx *replacements, int n_replacements, int modify)
   fmt = GET_RTX_FORMAT (GET_CODE (x));
   for (i = GET_RTX_LENGTH (GET_CODE (x)) - 1; i >= 0; i--)
     {
-      rtx new;
+      rtx new_rtx;
 
       if (fmt[i] == 'e')
 	{
-	  new = replace_n_hard_rtx (XEXP (x, i), replacements,
+	  new_rtx = replace_n_hard_rtx (XEXP (x, i), replacements,
 				    n_replacements, modify);
-	  if (!new)
+	  if (!new_rtx)
 	    return NULL_RTX;
 	  if (modify)
-	    XEXP (x, i) = new;
+	    XEXP (x, i) = new_rtx;
 	}
       else if (fmt[i] == 'E')
 	for (j = XVECLEN (x, i) - 1; j >= 0; j--)
 	  {
-	    new = replace_n_hard_rtx (XVECEXP (x, i, j), replacements,
+	    new_rtx = replace_n_hard_rtx (XVECEXP (x, i, j), replacements,
 				      n_replacements, modify);
-	  if (!new)
+	  if (!new_rtx)
 	    return NULL_RTX;
 	    if (modify)
-	      XVECEXP (x, i, j) = new;
+	      XVECEXP (x, i, j) = new_rtx;
 	  }
     }
 
@@ -11181,12 +11162,12 @@ shmedia_prepare_call_address (rtx fnaddr, int is_sibcall)
 }
 
 enum reg_class
-sh_secondary_reload (bool in_p, rtx x, enum reg_class class,
+sh_secondary_reload (bool in_p, rtx x, enum reg_class rclass,
 		     enum machine_mode mode, secondary_reload_info *sri)
 {
   if (in_p)
     {
-      if (REGCLASS_HAS_FP_REG (class)
+      if (REGCLASS_HAS_FP_REG (rclass)
 	  && ! TARGET_SHMEDIA
 	  && immediate_operand ((x), mode)
 	  && ! ((fp_zero_operand (x) || fp_one_operand (x))
@@ -11206,13 +11187,13 @@ sh_secondary_reload (bool in_p, rtx x, enum reg_class class,
 	  default:
 	    abort ();
 	  }
-      if (class == FPUL_REGS
+      if (rclass == FPUL_REGS
           && ((GET_CODE (x) == REG
                && (REGNO (x) == MACL_REG || REGNO (x) == MACH_REG
                    || REGNO (x) == T_REG))
               || GET_CODE (x) == PLUS))
         return GENERAL_REGS;
-      if (class == FPUL_REGS && immediate_operand (x, mode))
+      if (rclass == FPUL_REGS && immediate_operand (x, mode))
 	{
 	  if (satisfies_constraint_I08 (x) || fp_zero_operand (x))
 	    return GENERAL_REGS;
@@ -11221,11 +11202,11 @@ sh_secondary_reload (bool in_p, rtx x, enum reg_class class,
 	  sri->icode = CODE_FOR_reload_insi__i_fpul;
 	  return NO_REGS;
 	}
-      if (class == FPSCR_REGS
+      if (rclass == FPSCR_REGS
           && ((GET_CODE (x) == REG && REGNO (x) >= FIRST_PSEUDO_REGISTER)
               || (GET_CODE (x) == MEM && GET_CODE (XEXP (x, 0)) == PLUS)))
         return GENERAL_REGS;
-      if (REGCLASS_HAS_FP_REG (class)
+      if (REGCLASS_HAS_FP_REG (rclass)
           && TARGET_SHMEDIA
           && immediate_operand (x, mode)
           && x != CONST0_RTX (GET_MODE (x))
@@ -11238,24 +11219,24 @@ sh_secondary_reload (bool in_p, rtx x, enum reg_class class,
 			? CODE_FOR_reload_inqi : CODE_FOR_reload_inhi);
 	  return NO_REGS;
 	}
-      if (TARGET_SHMEDIA && class == GENERAL_REGS
+      if (TARGET_SHMEDIA && rclass == GENERAL_REGS
           && (GET_CODE (x) == LABEL_REF || PIC_DIRECT_ADDR_P (x)))
         return TARGET_REGS;
     } /* end of input-only processing.  */
 
-  if (((REGCLASS_HAS_FP_REG (class)
+  if (((REGCLASS_HAS_FP_REG (rclass)
 	&& (GET_CODE (x) == REG
 	    && (GENERAL_OR_AP_REGISTER_P (REGNO (x))
 		|| (FP_REGISTER_P (REGNO (x)) && mode == SImode
 		    && TARGET_FMOVD))))
-       || (REGCLASS_HAS_GENERAL_REG (class)
+       || (REGCLASS_HAS_GENERAL_REG (rclass)
 	   && GET_CODE (x) == REG
 	   && FP_REGISTER_P (REGNO (x))))
       && ! TARGET_SHMEDIA
       && (mode == SFmode || mode == SImode))
     return FPUL_REGS;
-  if ((class == FPUL_REGS
-       || (REGCLASS_HAS_FP_REG (class)
+  if ((rclass == FPUL_REGS
+       || (REGCLASS_HAS_FP_REG (rclass)
            && ! TARGET_SHMEDIA && mode == SImode))
       && (GET_CODE (x) == MEM
           || (GET_CODE (x) == REG
@@ -11263,20 +11244,20 @@ sh_secondary_reload (bool in_p, rtx x, enum reg_class class,
                   || REGNO (x) == T_REG
                   || system_reg_operand (x, VOIDmode)))))
     {
-      if (class == FPUL_REGS)
+      if (rclass == FPUL_REGS)
 	return GENERAL_REGS;
       return FPUL_REGS;
     }
-  if ((class == TARGET_REGS
-       || (TARGET_SHMEDIA && class == SIBCALL_REGS))
+  if ((rclass == TARGET_REGS
+       || (TARGET_SHMEDIA && rclass == SIBCALL_REGS))
       && !satisfies_constraint_Csy (x)
       && (GET_CODE (x) != REG || ! GENERAL_REGISTER_P (REGNO (x))))
     return GENERAL_REGS;
-  if ((class == MAC_REGS || class == PR_REGS)
+  if ((rclass == MAC_REGS || rclass == PR_REGS)
       && GET_CODE (x) == REG && ! GENERAL_REGISTER_P (REGNO (x))
-      && class != REGNO_REG_CLASS (REGNO (x)))
+      && rclass != REGNO_REG_CLASS (REGNO (x)))
     return GENERAL_REGS;
-  if (class != GENERAL_REGS && GET_CODE (x) == REG
+  if (rclass != GENERAL_REGS && GET_CODE (x) == REG
       && TARGET_REGISTER_P (REGNO (x)))
     return GENERAL_REGS;
   return NO_REGS;

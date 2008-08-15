@@ -75,6 +75,9 @@ along with GCC; see the file COPYING3.  If not see
 #undef STACK_BOUNDARY
 #define STACK_BOUNDARY 128
 
+#undef MAIN_STACK_BOUNDARY
+#define MAIN_STACK_BOUNDARY 128
+
 /* Since we'll never want a stack boundary less aligned than 128 bits
    we need the extra work here otherwise bits of gcc get very grumpy
    when we ask for lower alignment.  We could just reject values less
@@ -263,8 +266,8 @@ extern void darwin_x86_file_end (void);
    : (n) >= 11 && (n) <= 18 ? (n) + 1					\
    : (n))
 
-#undef REGISTER_TARGET_PRAGMAS
-#define REGISTER_TARGET_PRAGMAS() DARWIN_REGISTER_TARGET_PRAGMAS()
+#undef REGISTER_SUBTARGET_PRAGMAS
+#define REGISTER_SUBTARGET_PRAGMAS() DARWIN_REGISTER_TARGET_PRAGMAS()
 
 #undef TARGET_SET_DEFAULT_TYPE_ATTRIBUTES
 #define TARGET_SET_DEFAULT_TYPE_ATTRIBUTES darwin_set_default_type_attributes

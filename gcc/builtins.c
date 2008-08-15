@@ -27,7 +27,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "real.h"
 #include "rtl.h"
 #include "tree.h"
-#include "tree-gimple.h"
+#include "gimple.h"
 #include "flags.h"
 #include "regs.h"
 #include "hard-reg-set.h"
@@ -98,8 +98,8 @@ static rtx expand_builtin_mathfn_3 (tree, rtx, rtx);
 static rtx expand_builtin_interclass_mathfn (tree, rtx, rtx);
 static rtx expand_builtin_sincos (tree);
 static rtx expand_builtin_cexpi (tree, rtx, rtx);
-static rtx expand_builtin_int_roundingfn (tree, rtx, rtx);
-static rtx expand_builtin_int_roundingfn_2 (tree, rtx, rtx);
+static rtx expand_builtin_int_roundingfn (tree, rtx);
+static rtx expand_builtin_int_roundingfn_2 (tree, rtx);
 static rtx expand_builtin_args_info (tree);
 static rtx expand_builtin_next_arg (void);
 static rtx expand_builtin_va_start (tree);
@@ -207,6 +207,7 @@ static rtx expand_builtin_memory_chk (tree, rtx, enum machine_mode,
 				      enum built_in_function);
 static void maybe_emit_chk_warning (tree, enum built_in_function);
 static void maybe_emit_sprintf_chk_warning (tree, enum built_in_function);
+static void maybe_emit_free_warning (tree);
 static tree fold_builtin_object_size (tree, tree);
 static tree fold_builtin_strcat_chk (tree, tree, tree, tree);
 static tree fold_builtin_strncat_chk (tree, tree, tree, tree, tree);
@@ -743,7 +744,7 @@ expand_builtin_setjmp_receiver (rtx receiver_label ATTRIBUTE_UNUSED)
 	{
 	  /* Now restore our arg pointer from the address at which it
 	     was saved in our stack frame.  */
-	  emit_move_insn (virtual_incoming_args_rtx,
+	  emit_move_insn (crtl->args.internal_arg_pointer,
 			  copy_to_reg (get_arg_pointer_save_area ()));
 	}
     }
@@ -777,6 +778,11 @@ expand_builtin_longjmp (rtx buf_addr, rtx value)
 {
   rtx fp, lab, stack, insn, last;
   enum machine_mode sa_mode = STACK_SAVEAREA_MODE (SAVE_NONLOCAL);
+
+  /* DRAP is needed for stack realign if longjmp is expanded to current 
+     function  */
+  if (SUPPORTS_STACK_ALIGNMENT)
+    crtl->need_drap = true;
 
   if (setjmp_alias_set == -1)
     setjmp_alias_set = new_alias_set ();
@@ -1345,7 +1351,7 @@ expand_builtin_apply_args_1 (void)
       }
 
   /* Save the arg pointer to the block.  */
-  tem = copy_to_reg (virtual_incoming_args_rtx);
+  tem = copy_to_reg (crtl->args.internal_arg_pointer);
 #ifdef STACK_GROWS_DOWNWARD
   /* We need the pointer as the caller actually passed them to us, not
      as we might have pretended they were passed.  Make sure it's a valid
@@ -1453,6 +1459,14 @@ expand_builtin_apply (rtx function, rtx arguments, rtx argsize)
   /* Allocate a block of memory onto the stack and copy the memory
      arguments to the outgoing arguments address.  */
   allocate_dynamic_stack_space (argsize, 0, BITS_PER_UNIT);
+
+  /* Set DRAP flag to true, even though allocate_dynamic_stack_space
+     may have already set current_function_calls_alloca to true.
+     current_function_calls_alloca won't be set if argsize is zero,
+     so we have to guarantee need_drap is true here.  */
+  if (SUPPORTS_STACK_ALIGNMENT)
+    crtl->need_drap = true;
+
   dest = virtual_outgoing_args_rtx;
 #ifndef STACK_GROWS_DOWNWARD
   if (GET_CODE (argsize) == CONST_INT)
@@ -2464,11 +2478,10 @@ expand_builtin_cexpi (tree exp, rtx target, rtx subtarget)
    do not need to worry about setting errno to EDOM.
    If expanding via optab fails, lower expression to (int)(floor(x)).
    EXP is the expression that is a call to the builtin function;
-   if convenient, the result should be placed in TARGET.  SUBTARGET may
-   be used as the target for computing one of EXP's operands.  */
+   if convenient, the result should be placed in TARGET.  */
 
 static rtx
-expand_builtin_int_roundingfn (tree exp, rtx target, rtx subtarget)
+expand_builtin_int_roundingfn (tree exp, rtx target)
 {
   convert_optab builtin_optab;
   rtx op0, insns, tmp;
@@ -2511,7 +2524,7 @@ expand_builtin_int_roundingfn (tree exp, rtx target, rtx subtarget)
      side-effects more the once.  */
   CALL_EXPR_ARG (exp, 0) = arg = builtin_save_expr (arg);
 
-  op0 = expand_expr (arg, subtarget, VOIDmode, EXPAND_NORMAL);
+  op0 = expand_expr (arg, NULL, VOIDmode, EXPAND_NORMAL);
 
   start_sequence ();
 
@@ -2592,11 +2605,10 @@ expand_builtin_int_roundingfn (tree exp, rtx target, rtx subtarget)
    conversion (lrint).
    Return 0 if a normal call should be emitted rather than expanding the
    function in-line.  EXP is the expression that is a call to the builtin
-   function; if convenient, the result should be placed in TARGET.
-   SUBTARGET may be used as the target for computing one of EXP's operands.  */
+   function; if convenient, the result should be placed in TARGET.  */
 
 static rtx
-expand_builtin_int_roundingfn_2 (tree exp, rtx target, rtx subtarget)
+expand_builtin_int_roundingfn_2 (tree exp, rtx target)
 {
   convert_optab builtin_optab;
   rtx op0, insns;
@@ -2635,7 +2647,7 @@ expand_builtin_int_roundingfn_2 (tree exp, rtx target, rtx subtarget)
      side-effects more the once.  */
   CALL_EXPR_ARG (exp, 0) = arg = builtin_save_expr (arg);
 
-  op0 = expand_expr (arg, subtarget, VOIDmode, EXPAND_NORMAL);
+  op0 = expand_expr (arg, NULL, VOIDmode, EXPAND_NORMAL);
 
   start_sequence ();
 
@@ -2899,7 +2911,7 @@ expand_builtin_pow (tree exp, rtx target, rtx subtarget)
   if (real_identical (&c, &cint)
       && ((n >= -1 && n <= 2)
 	  || (flag_unsafe_math_optimizations
-	      && !optimize_size
+	      && optimize_insn_for_speed_p ()
 	      && powi_cost (n) <= POWI_MAX_MULTS)))
     {
       op = expand_expr (arg0, subtarget, VOIDmode, EXPAND_NORMAL);
@@ -2923,7 +2935,7 @@ expand_builtin_pow (tree exp, rtx target, rtx subtarget)
       real_from_integer (&cint, VOIDmode, n, n < 0 ? -1 : 0, 0);
       if (real_identical (&c2, &cint)
 	  && ((flag_unsafe_math_optimizations
-	       && !optimize_size
+	       && optimize_insn_for_speed_p ()
 	       && powi_cost (n/2) <= POWI_MAX_MULTS)
 	      || n == 1))
 	{
@@ -2968,7 +2980,7 @@ expand_builtin_pow (tree exp, rtx target, rtx subtarget)
       real_arithmetic (&c2, RDIV_EXPR, &cint, &dconst3);
       real_convert (&c2, mode, &c2);
       if (real_identical (&c2, &c)
-	  && ((!optimize_size
+	  && ((optimize_insn_for_speed_p ()
 	       && powi_cost (n/3) <= POWI_MAX_MULTS)
 	      || n == 1))
 	{
@@ -3030,7 +3042,7 @@ expand_builtin_powi (tree exp, rtx target, rtx subtarget)
       if ((TREE_INT_CST_HIGH (arg1) == 0
 	   || TREE_INT_CST_HIGH (arg1) == -1)
 	  && ((n >= -1 && n <= 2)
-	      || (! optimize_size
+	      || (optimize_insn_for_speed_p ()
 		  && powi_cost (n) <= POWI_MAX_MULTS)))
 	{
 	  op0 = expand_expr (arg0, subtarget, VOIDmode, EXPAND_NORMAL);
@@ -3289,6 +3301,7 @@ expand_builtin_memcpy (tree exp, rtx target, enum machine_mode mode)
 					    false, /*endp=*/0);
       HOST_WIDE_INT expected_size = -1;
       unsigned int expected_align = 0;
+      tree_ann_common_t ann;
 
       if (result)
 	{
@@ -3310,7 +3323,10 @@ expand_builtin_memcpy (tree exp, rtx target, enum machine_mode mode)
       if (src_align == 0)
 	return NULL_RTX;
  
-      stringop_block_profile (exp, &expected_align, &expected_size);
+      ann = tree_common_ann (exp);
+      if (ann)
+        stringop_block_profile (ann->stmt, &expected_align, &expected_size);
+
       if (expected_align < dest_align)
 	expected_align = dest_align;
       dest_mem = get_memory_rtx (dest, len);
@@ -3885,6 +3901,7 @@ expand_builtin_memset_args (tree dest, tree val, tree len,
   rtx dest_mem, dest_addr, len_rtx;
   HOST_WIDE_INT expected_size = -1;
   unsigned int expected_align = 0;
+  tree_ann_common_t ann;
 
   dest_align = get_pointer_alignment (dest, BIGGEST_ALIGNMENT);
 
@@ -3892,7 +3909,10 @@ expand_builtin_memset_args (tree dest, tree val, tree len,
   if (dest_align == 0)
     return NULL_RTX;
 
-  stringop_block_profile (orig_exp, &expected_align, &expected_size);
+  ann = tree_common_ann (orig_exp);
+  if (ann)
+    stringop_block_profile (ann->stmt, &expected_align, &expected_size);
+
   if (expected_align < dest_align)
     expected_align = dest_align;
 
@@ -4444,7 +4464,7 @@ expand_builtin_strcat (tree fndecl, tree exp, rtx target, enum machine_mode mode
       if (p && *p == '\0')
 	return expand_expr (dst, target, mode, EXPAND_NORMAL);
 
-      if (!optimize_size)
+      if (optimize_insn_for_speed_p ())
 	{
 	  /* See if we can store by pieces into (dst + strlen(dst)).  */
 	  tree newsrc, newdst,
@@ -4757,7 +4777,8 @@ expand_builtin_va_start (tree exp)
    current (padded) address and increment by the (padded) size.  */
 
 tree
-std_gimplify_va_arg_expr (tree valist, tree type, tree *pre_p, tree *post_p)
+std_gimplify_va_arg_expr (tree valist, tree type, gimple_seq *pre_p,
+			  gimple_seq *post_p)
 {
   tree addr, t, type_size, rounded_size, valist_tmp;
   unsigned HOST_WIDE_INT align, boundary;
@@ -4775,7 +4796,16 @@ std_gimplify_va_arg_expr (tree valist, tree type, tree *pre_p, tree *post_p)
     type = build_pointer_type (type);
 
   align = PARM_BOUNDARY / BITS_PER_UNIT;
-  boundary = FUNCTION_ARG_BOUNDARY (TYPE_MODE (type), type) / BITS_PER_UNIT;
+  boundary = FUNCTION_ARG_BOUNDARY (TYPE_MODE (type), type);
+
+  /* When we align parameter on stack for caller, if the parameter
+     alignment is beyond MAX_SUPPORTED_STACK_ALIGNMENT, it will be
+     aligned at MAX_SUPPORTED_STACK_ALIGNMENT.  We will match callee
+     here with caller.  */
+  if (boundary > MAX_SUPPORTED_STACK_ALIGNMENT)
+    boundary = MAX_SUPPORTED_STACK_ALIGNMENT;
+
+  boundary /= BITS_PER_UNIT;
 
   /* Hoist the valist value into a temporary for the moment.  */
   valist_tmp = get_initialized_tmp_var (valist, pre_p, NULL);
@@ -4868,7 +4898,7 @@ dummy_object (tree type)
    builtin function, but a very special sort of operator.  */
 
 enum gimplify_status
-gimplify_va_arg_expr (tree *expr_p, tree *pre_p, tree *post_p)
+gimplify_va_arg_expr (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p)
 {
   tree promoted_type, have_va_type;
   tree valist = TREE_OPERAND (*expr_p, 0);
@@ -4893,13 +4923,14 @@ gimplify_va_arg_expr (tree *expr_p, tree *pre_p, tree *post_p)
 	   != type)
     {
       static bool gave_help;
+      bool warned;
 
       /* Unfortunately, this is merely undefined, rather than a constraint
 	 violation, so we cannot make this an error.  If this call is never
 	 executed, the program is still strictly conforming.  */
-      warning (0, "%qT is promoted to %qT when passed through %<...%>",
-	       type, promoted_type);
-      if (! gave_help)
+      warned = warning (0, "%qT is promoted to %qT when passed through %<...%>",
+			type, promoted_type);
+      if (!gave_help && warned)
 	{
 	  gave_help = true;
 	  inform ("(so you should pass %qT not %qT to %<va_arg%>)",
@@ -4908,9 +4939,10 @@ gimplify_va_arg_expr (tree *expr_p, tree *pre_p, tree *post_p)
 
       /* We can, however, treat "undefined" any way we please.
 	 Call abort to encourage the user to fix the program.  */
-      inform ("if this code is reached, the program will abort");
+      if (warned)
+	inform ("if this code is reached, the program will abort");
       t = build_call_expr (implicit_built_in_decls[BUILT_IN_TRAP], 0);
-      append_to_statement_list (t, pre_p);
+      gimplify_and_add (t, pre_p);
 
       /* This is dead code, but go ahead and finish so that the
 	 mode of the result comes out right.  */
@@ -4932,13 +4964,14 @@ gimplify_va_arg_expr (tree *expr_p, tree *pre_p, tree *post_p)
 	      tree p1 = build_pointer_type (TREE_TYPE (have_va_type));
 	      valist = build_fold_addr_expr_with_type (valist, p1);
 	    }
+
 	  gimplify_expr (&valist, pre_p, post_p, is_gimple_val, fb_rvalue);
 	}
       else
 	gimplify_expr (&valist, pre_p, post_p, is_gimple_min_lval, fb_lvalue);
 
       if (!targetm.gimplify_va_arg_expr)
-	/* FIXME:Once most targets are converted we should merely
+	/* FIXME: Once most targets are converted we should merely
 	   assert this is non-null.  */
 	return GS_ALL_DONE;
 
@@ -5545,18 +5578,18 @@ expand_builtin_sprintf (tree exp, rtx target, enum machine_mode mode)
 static rtx
 expand_builtin_profile_func (bool exitp)
 {
-  rtx this, which;
+  rtx this_rtx, which;
 
-  this = DECL_RTL (current_function_decl);
-  gcc_assert (MEM_P (this));
-  this = XEXP (this, 0);
+  this_rtx = DECL_RTL (current_function_decl);
+  gcc_assert (MEM_P (this_rtx));
+  this_rtx = XEXP (this_rtx, 0);
 
   if (exitp)
     which = profile_function_exit_libfunc;
   else
     which = profile_function_entry_libfunc;
 
-  emit_library_call (which, LCT_NORMAL, VOIDmode, 2, this, Pmode,
+  emit_library_call (which, LCT_NORMAL, VOIDmode, 2, this_rtx, Pmode,
 		     expand_builtin_return_addr (BUILT_IN_RETURN_ADDRESS,
 						 0),
 		     Pmode);
@@ -6100,7 +6133,8 @@ expand_builtin (tree exp, rtx target, rtx subtarget, enum machine_mode mode,
   if (!optimize
       && !called_as_built_in (fndecl)
       && DECL_ASSEMBLER_NAME_SET_P (fndecl)
-      && fcode != BUILT_IN_ALLOCA)
+      && fcode != BUILT_IN_ALLOCA
+      && fcode != BUILT_IN_FREE)
     return expand_call (exp, target, ignore);
 
   /* The built-in function expanders test for target == const0_rtx
@@ -6198,7 +6232,7 @@ expand_builtin (tree exp, rtx target, rtx subtarget, enum machine_mode mode,
     CASE_FLT_FN (BUILT_IN_LLCEIL):
     CASE_FLT_FN (BUILT_IN_LFLOOR):
     CASE_FLT_FN (BUILT_IN_LLFLOOR):
-      target = expand_builtin_int_roundingfn (exp, target, subtarget);
+      target = expand_builtin_int_roundingfn (exp, target);
       if (target)
 	return target;
       break;
@@ -6207,7 +6241,7 @@ expand_builtin (tree exp, rtx target, rtx subtarget, enum machine_mode mode,
     CASE_FLT_FN (BUILT_IN_LLRINT):
     CASE_FLT_FN (BUILT_IN_LROUND):
     CASE_FLT_FN (BUILT_IN_LLROUND):
-      target = expand_builtin_int_roundingfn_2 (exp, target, subtarget);
+      target = expand_builtin_int_roundingfn_2 (exp, target);
       if (target)
 	return target;
       break;
@@ -6977,6 +7011,10 @@ expand_builtin (tree exp, rtx target, rtx subtarget, enum machine_mode mode,
       maybe_emit_sprintf_chk_warning (exp, fcode);
       break;
 
+    case BUILT_IN_FREE:
+      maybe_emit_free_warning (exp);
+      break;
+
     default:	/* just do library call, if unknown builtin */
       break;
     }
@@ -7241,7 +7279,7 @@ fold_builtin_inf (tree type, int warn)
      Thus we pedwarn to ensure this constraint violation is
      diagnosed.  */
   if (!MODE_HAS_INFINITIES (TYPE_MODE (type)) && warn)
-    pedwarn ("target format does not support infinity");
+    pedwarn (0, "target format does not support infinity");
 
   real_inf (&real);
   return build_real (type, real);
@@ -7285,7 +7323,7 @@ integer_valued_real_p (tree t)
     case COMPOUND_EXPR:
     case MODIFY_EXPR:
     case BIND_EXPR:
-      return integer_valued_real_p (GENERIC_TREE_OPERAND (t, 1));
+      return integer_valued_real_p (TREE_OPERAND (t, 1));
 
     case PLUS_EXPR:
     case MINUS_EXPR:
@@ -10565,7 +10603,7 @@ fold_builtin_n (tree fndecl, tree *args, int nargs, bool ignore)
     }
   if (ret)
     {
-      ret = build1 (NOP_EXPR, GENERIC_TREE_TYPE (ret), ret);
+      ret = build1 (NOP_EXPR, TREE_TYPE (ret), ret);
       TREE_NO_WARNING (ret) = 1;
       return ret;
     }
@@ -10821,6 +10859,61 @@ validate_arg (const_tree arg, enum tree_code code)
   else if (code == INTEGER_TYPE)
     return INTEGRAL_TYPE_P (TREE_TYPE (arg));
   return code == TREE_CODE (TREE_TYPE (arg));
+}
+
+/* This function validates the types of a function call argument list
+   against a specified list of tree_codes.  If the last specifier is a 0,
+   that represents an ellipses, otherwise the last specifier must be a
+   VOID_TYPE.
+
+   This is the GIMPLE version of validate_arglist.  Eventually we want to
+   completely convert builtins.c to work from GIMPLEs and the tree based
+   validate_arglist will then be removed.  */
+
+bool
+validate_gimple_arglist (const_gimple call, ...)
+{
+  enum tree_code code;
+  bool res = 0;
+  va_list ap;
+  const_tree arg;
+  size_t i;
+
+  va_start (ap, call);
+  i = 0;
+
+  do
+    {
+      code = va_arg (ap, enum tree_code);
+      switch (code)
+	{
+	case 0:
+	  /* This signifies an ellipses, any further arguments are all ok.  */
+	  res = true;
+	  goto end;
+	case VOID_TYPE:
+	  /* This signifies an endlink, if no arguments remain, return
+	     true, otherwise return false.  */
+	  res = (i == gimple_call_num_args (call));
+	  goto end;
+	default:
+	  /* If no parameters remain or the parameter's code does not
+	     match the specified code, return false.  Otherwise continue
+	     checking any remaining arguments.  */
+	  arg = gimple_call_arg (call, i++);
+	  if (!validate_arg (arg, code))
+	    goto end;
+	  break;
+	}
+    }
+  while (1);
+
+  /* We need gotos here since we can only have one VA_CLOSE in a
+     function.  */
+ end: ;
+  va_end (ap);
+
+  return res;
 }
 
 /* This function validates the types of a function call argument list
@@ -11432,6 +11525,7 @@ fold_builtin_fputs (tree arg0, tree arg1, bool ignore, bool unlocked, tree len)
 /* Fold the next_arg or va_start call EXP. Returns true if there was an error
    produced.  False otherwise.  This is done so that we don't output the error
    or warning twice or three times.  */
+
 bool
 fold_builtin_next_arg (tree exp, bool va_start_p)
 {
@@ -11893,6 +11987,27 @@ maybe_emit_sprintf_chk_warning (tree exp, enum built_in_function fcode)
       warning (0, "%Kcall to %D will always overflow destination buffer",
 	       exp, get_callee_fndecl (exp));
     }
+}
+
+/* Emit warning if a free is called with address of a variable.  */
+
+static void
+maybe_emit_free_warning (tree exp)
+{
+  tree arg = CALL_EXPR_ARG (exp, 0);
+
+  STRIP_NOPS (arg);
+  if (TREE_CODE (arg) != ADDR_EXPR)
+    return;
+
+  arg = get_base_address (TREE_OPERAND (arg, 0));
+  if (arg == NULL || INDIRECT_REF_P (arg))
+    return;
+
+  if (SSA_VAR_P (arg))
+    warning (0, "%Kattempt to free a non-heap object %qD", exp, arg);
+  else
+    warning (0, "%Kattempt to free a non-heap object", exp);
 }
 
 /* Fold a call to __builtin_object_size with arguments PTR and OST,
@@ -12752,14 +12867,16 @@ do_mpfr_arg1 (tree arg, tree type, int (*func)(mpfr_ptr, mpfr_srcptr, mp_rnd_t),
 	  && (!min || real_compare (inclusive ? GE_EXPR: GT_EXPR , ra, min))
 	  && (!max || real_compare (inclusive ? LE_EXPR: LT_EXPR , ra, max)))
         {
-	  const int prec = REAL_MODE_FORMAT (TYPE_MODE (type))->p;
+	  const struct real_format *fmt = REAL_MODE_FORMAT (TYPE_MODE (type));
+	  const int prec = fmt->p;
+	  const mp_rnd_t rnd = fmt->round_towards_zero? GMP_RNDZ : GMP_RNDN;
 	  int inexact;
 	  mpfr_t m;
 
 	  mpfr_init2 (m, prec);
 	  mpfr_from_real (m, ra, GMP_RNDN);
 	  mpfr_clear_flags ();
-	  inexact = func (m, m, GMP_RNDN);
+	  inexact = func (m, m, rnd);
 	  result = do_mpfr_ckconv (m, type, inexact);
 	  mpfr_clear (m);
 	}
@@ -12794,7 +12911,9 @@ do_mpfr_arg2 (tree arg1, tree arg2, tree type,
 
       if (real_isfinite (ra1) && real_isfinite (ra2))
         {
-	  const int prec = REAL_MODE_FORMAT (TYPE_MODE (type))->p;
+	  const struct real_format *fmt = REAL_MODE_FORMAT (TYPE_MODE (type));
+	  const int prec = fmt->p;
+	  const mp_rnd_t rnd = fmt->round_towards_zero? GMP_RNDZ : GMP_RNDN;
 	  int inexact;
 	  mpfr_t m1, m2;
 
@@ -12802,7 +12921,7 @@ do_mpfr_arg2 (tree arg1, tree arg2, tree type,
 	  mpfr_from_real (m1, ra1, GMP_RNDN);
 	  mpfr_from_real (m2, ra2, GMP_RNDN);
 	  mpfr_clear_flags ();
-	  inexact = func (m1, m1, m2, GMP_RNDN);
+	  inexact = func (m1, m1, m2, rnd);
 	  result = do_mpfr_ckconv (m1, type, inexact);
 	  mpfr_clears (m1, m2, NULL);
 	}
@@ -12840,7 +12959,9 @@ do_mpfr_arg3 (tree arg1, tree arg2, tree arg3, tree type,
 
       if (real_isfinite (ra1) && real_isfinite (ra2) && real_isfinite (ra3))
         {
-	  const int prec = REAL_MODE_FORMAT (TYPE_MODE (type))->p;
+	  const struct real_format *fmt = REAL_MODE_FORMAT (TYPE_MODE (type));
+	  const int prec = fmt->p;
+	  const mp_rnd_t rnd = fmt->round_towards_zero? GMP_RNDZ : GMP_RNDN;
 	  int inexact;
 	  mpfr_t m1, m2, m3;
 
@@ -12849,7 +12970,7 @@ do_mpfr_arg3 (tree arg1, tree arg2, tree arg3, tree type,
 	  mpfr_from_real (m2, ra2, GMP_RNDN);
 	  mpfr_from_real (m3, ra3, GMP_RNDN);
 	  mpfr_clear_flags ();
-	  inexact = func (m1, m1, m2, m3, GMP_RNDN);
+	  inexact = func (m1, m1, m2, m3, rnd);
 	  result = do_mpfr_ckconv (m1, type, inexact);
 	  mpfr_clears (m1, m2, m3, NULL);
 	}
@@ -12883,7 +13004,9 @@ do_mpfr_sincos (tree arg, tree arg_sinp, tree arg_cosp)
 
       if (real_isfinite (ra))
         {
-	  const int prec = REAL_MODE_FORMAT (TYPE_MODE (type))->p;
+	  const struct real_format *fmt = REAL_MODE_FORMAT (TYPE_MODE (type));
+	  const int prec = fmt->p;
+	  const mp_rnd_t rnd = fmt->round_towards_zero? GMP_RNDZ : GMP_RNDN;
 	  tree result_s, result_c;
 	  int inexact;
 	  mpfr_t m, ms, mc;
@@ -12891,7 +13014,7 @@ do_mpfr_sincos (tree arg, tree arg_sinp, tree arg_cosp)
 	  mpfr_inits2 (prec, m, ms, mc, NULL);
 	  mpfr_from_real (m, ra, GMP_RNDN);
 	  mpfr_clear_flags ();
-	  inexact = mpfr_sin_cos (ms, mc, m, GMP_RNDN);
+	  inexact = mpfr_sin_cos (ms, mc, m, rnd);
 	  result_s = do_mpfr_ckconv (ms, type, inexact);
 	  result_c = do_mpfr_ckconv (mc, type, inexact);
 	  mpfr_clears (m, ms, mc, NULL);
@@ -12956,14 +13079,16 @@ do_mpfr_bessel_n (tree arg1, tree arg2, tree type,
 	  && real_isfinite (ra)
 	  && (!min || real_compare (inclusive ? GE_EXPR: GT_EXPR , ra, min)))
         {
-	  const int prec = REAL_MODE_FORMAT (TYPE_MODE (type))->p;
+	  const struct real_format *fmt = REAL_MODE_FORMAT (TYPE_MODE (type));
+	  const int prec = fmt->p;
+	  const mp_rnd_t rnd = fmt->round_towards_zero? GMP_RNDZ : GMP_RNDN;
 	  int inexact;
 	  mpfr_t m;
 
 	  mpfr_init2 (m, prec);
 	  mpfr_from_real (m, ra, GMP_RNDN);
 	  mpfr_clear_flags ();
-	  inexact = func (m, n, m, GMP_RNDN);
+	  inexact = func (m, n, m, rnd);
 	  result = do_mpfr_ckconv (m, type, inexact);
 	  mpfr_clear (m);
 	}
@@ -12997,7 +13122,9 @@ do_mpfr_remquo (tree arg0, tree arg1, tree arg_quo)
 
       if (real_isfinite (ra0) && real_isfinite (ra1))
         {
-	  const int prec = REAL_MODE_FORMAT (TYPE_MODE (type))->p;
+	  const struct real_format *fmt = REAL_MODE_FORMAT (TYPE_MODE (type));
+	  const int prec = fmt->p;
+	  const mp_rnd_t rnd = fmt->round_towards_zero? GMP_RNDZ : GMP_RNDN;
 	  tree result_rem;
 	  long integer_quo;
 	  mpfr_t m0, m1;
@@ -13006,7 +13133,7 @@ do_mpfr_remquo (tree arg0, tree arg1, tree arg_quo)
 	  mpfr_from_real (m0, ra0, GMP_RNDN);
 	  mpfr_from_real (m1, ra1, GMP_RNDN);
 	  mpfr_clear_flags ();
-	  mpfr_remquo (m0, &integer_quo, m0, m1, GMP_RNDN);
+	  mpfr_remquo (m0, &integer_quo, m0, m1, rnd);
 	  /* Remquo is independent of the rounding mode, so pass
 	     inexact=0 to do_mpfr_ckconv().  */
 	  result_rem = do_mpfr_ckconv (m0, type, /*inexact=*/ 0);
@@ -13074,7 +13201,9 @@ do_mpfr_lgamma_r (tree arg, tree arg_sg, tree type)
 	  && ra->cl != rvc_zero
 	  && !(real_isneg(ra) && real_isinteger(ra, TYPE_MODE (type))))
         {
-	  const int prec = REAL_MODE_FORMAT (TYPE_MODE (type))->p;
+	  const struct real_format *fmt = REAL_MODE_FORMAT (TYPE_MODE (type));
+	  const int prec = fmt->p;
+	  const mp_rnd_t rnd = fmt->round_towards_zero? GMP_RNDZ : GMP_RNDN;
 	  int inexact, sg;
 	  mpfr_t m;
 	  tree result_lg;
@@ -13082,7 +13211,7 @@ do_mpfr_lgamma_r (tree arg, tree arg_sg, tree type)
 	  mpfr_init2 (m, prec);
 	  mpfr_from_real (m, ra, GMP_RNDN);
 	  mpfr_clear_flags ();
-	  inexact = mpfr_lgamma (m, &sg, m, GMP_RNDN);
+	  inexact = mpfr_lgamma (m, &sg, m, rnd);
 	  result_lg = do_mpfr_ckconv (m, type, inexact);
 	  mpfr_clear (m);
 	  if (result_lg)
@@ -13106,3 +13235,303 @@ do_mpfr_lgamma_r (tree arg, tree arg_sg, tree type)
   return result;
 }
 #endif
+
+/* FIXME tuples.
+   The functions below provide an alternate interface for folding
+   builtin function calls presented as GIMPLE_CALL statements rather
+   than as CALL_EXPRs.  The folded result is still expressed as a
+   tree.  There is too much code duplication in the handling of
+   varargs functions, and a more intrusive re-factoring would permit
+   better sharing of code between the tree and statement-based
+   versions of these functions.  */
+
+/* Construct a new CALL_EXPR using the tail of the argument list of STMT
+   along with N new arguments specified as the "..." parameters.  SKIP
+   is the number of arguments in STMT to be omitted.  This function is used
+   to do varargs-to-varargs transformations.  */
+
+static tree
+gimple_rewrite_call_expr (gimple stmt, int skip, tree fndecl, int n, ...)
+{
+  int oldnargs = gimple_call_num_args (stmt);
+  int nargs = oldnargs - skip + n;
+  tree fntype = TREE_TYPE (fndecl);
+  tree fn = build1 (ADDR_EXPR, build_pointer_type (fntype), fndecl);
+  tree *buffer;
+  int i, j;
+  va_list ap;
+
+  buffer = XALLOCAVEC (tree, nargs);
+  va_start (ap, n);
+  for (i = 0; i < n; i++)
+    buffer[i] = va_arg (ap, tree);
+  va_end (ap);
+  for (j = skip; j < oldnargs; j++, i++)
+    buffer[i] = gimple_call_arg (stmt, j);
+
+  return fold (build_call_array (TREE_TYPE (fntype), fn, nargs, buffer));
+}
+
+/* Fold a call STMT to __{,v}sprintf_chk.  Return NULL_TREE if
+   a normal call should be emitted rather than expanding the function
+   inline.  FCODE is either BUILT_IN_SPRINTF_CHK or BUILT_IN_VSPRINTF_CHK.  */
+
+static tree
+gimple_fold_builtin_sprintf_chk (gimple stmt, enum built_in_function fcode)
+{
+  tree dest, size, len, fn, fmt, flag;
+  const char *fmt_str;
+  int nargs = gimple_call_num_args (stmt);
+
+  /* Verify the required arguments in the original call.  */
+  if (nargs < 4)
+    return NULL_TREE;
+  dest = gimple_call_arg (stmt, 0);
+  if (!validate_arg (dest, POINTER_TYPE))
+    return NULL_TREE;
+  flag = gimple_call_arg (stmt, 1);
+  if (!validate_arg (flag, INTEGER_TYPE))
+    return NULL_TREE;
+  size = gimple_call_arg (stmt, 2);
+  if (!validate_arg (size, INTEGER_TYPE))
+    return NULL_TREE;
+  fmt = gimple_call_arg (stmt, 3);
+  if (!validate_arg (fmt, POINTER_TYPE))
+    return NULL_TREE;
+
+  if (! host_integerp (size, 1))
+    return NULL_TREE;
+
+  len = NULL_TREE;
+
+  if (!init_target_chars ())
+    return NULL_TREE;
+
+  /* Check whether the format is a literal string constant.  */
+  fmt_str = c_getstr (fmt);
+  if (fmt_str != NULL)
+    {
+      /* If the format doesn't contain % args or %%, we know the size.  */
+      if (strchr (fmt_str, target_percent) == 0)
+	{
+	  if (fcode != BUILT_IN_SPRINTF_CHK || nargs == 4)
+	    len = build_int_cstu (size_type_node, strlen (fmt_str));
+	}
+      /* If the format is "%s" and first ... argument is a string literal,
+	 we know the size too.  */
+      else if (fcode == BUILT_IN_SPRINTF_CHK
+	       && strcmp (fmt_str, target_percent_s) == 0)
+	{
+	  tree arg;
+
+	  if (nargs == 5)
+	    {
+	      arg = gimple_call_arg (stmt, 4);
+	      if (validate_arg (arg, POINTER_TYPE))
+		{
+		  len = c_strlen (arg, 1);
+		  if (! len || ! host_integerp (len, 1))
+		    len = NULL_TREE;
+		}
+	    }
+	}
+    }
+
+  if (! integer_all_onesp (size))
+    {
+      if (! len || ! tree_int_cst_lt (len, size))
+	return NULL_TREE;
+    }
+
+  /* Only convert __{,v}sprintf_chk to {,v}sprintf if flag is 0
+     or if format doesn't contain % chars or is "%s".  */
+  if (! integer_zerop (flag))
+    {
+      if (fmt_str == NULL)
+	return NULL_TREE;
+      if (strchr (fmt_str, target_percent) != NULL
+	  && strcmp (fmt_str, target_percent_s))
+	return NULL_TREE;
+    }
+
+  /* If __builtin_{,v}sprintf_chk is used, assume {,v}sprintf is available.  */
+  fn = built_in_decls[fcode == BUILT_IN_VSPRINTF_CHK
+		      ? BUILT_IN_VSPRINTF : BUILT_IN_SPRINTF];
+  if (!fn)
+    return NULL_TREE;
+
+  return gimple_rewrite_call_expr (stmt, 4, fn, 2, dest, fmt);
+}
+
+/* Fold a call STMT to {,v}snprintf.  Return NULL_TREE if
+   a normal call should be emitted rather than expanding the function
+   inline.  FCODE is either BUILT_IN_SNPRINTF_CHK or
+   BUILT_IN_VSNPRINTF_CHK.  If MAXLEN is not NULL, it is maximum length
+   passed as second argument.  */
+
+tree
+gimple_fold_builtin_snprintf_chk (gimple stmt, tree maxlen,
+                                  enum built_in_function fcode)
+{
+  tree dest, size, len, fn, fmt, flag;
+  const char *fmt_str;
+
+  /* Verify the required arguments in the original call.  */
+  if (gimple_call_num_args (stmt) < 5)
+    return NULL_TREE;
+  dest = gimple_call_arg (stmt, 0);
+  if (!validate_arg (dest, POINTER_TYPE))
+    return NULL_TREE;
+  len = gimple_call_arg (stmt, 1);
+  if (!validate_arg (len, INTEGER_TYPE))
+    return NULL_TREE;
+  flag = gimple_call_arg (stmt, 2);
+  if (!validate_arg (flag, INTEGER_TYPE))
+    return NULL_TREE;
+  size = gimple_call_arg (stmt, 3);
+  if (!validate_arg (size, INTEGER_TYPE))
+    return NULL_TREE;
+  fmt = gimple_call_arg (stmt, 4);
+  if (!validate_arg (fmt, POINTER_TYPE))
+    return NULL_TREE;
+
+  if (! host_integerp (size, 1))
+    return NULL_TREE;
+
+  if (! integer_all_onesp (size))
+    {
+      if (! host_integerp (len, 1))
+	{
+	  /* If LEN is not constant, try MAXLEN too.
+	     For MAXLEN only allow optimizing into non-_ocs function
+	     if SIZE is >= MAXLEN, never convert to __ocs_fail ().  */
+	  if (maxlen == NULL_TREE || ! host_integerp (maxlen, 1))
+	    return NULL_TREE;
+	}
+      else
+	maxlen = len;
+
+      if (tree_int_cst_lt (size, maxlen))
+	return NULL_TREE;
+    }
+
+  if (!init_target_chars ())
+    return NULL_TREE;
+
+  /* Only convert __{,v}snprintf_chk to {,v}snprintf if flag is 0
+     or if format doesn't contain % chars or is "%s".  */
+  if (! integer_zerop (flag))
+    {
+      fmt_str = c_getstr (fmt);
+      if (fmt_str == NULL)
+	return NULL_TREE;
+      if (strchr (fmt_str, target_percent) != NULL
+	  && strcmp (fmt_str, target_percent_s))
+	return NULL_TREE;
+    }
+
+  /* If __builtin_{,v}snprintf_chk is used, assume {,v}snprintf is
+     available.  */
+  fn = built_in_decls[fcode == BUILT_IN_VSNPRINTF_CHK
+		      ? BUILT_IN_VSNPRINTF : BUILT_IN_SNPRINTF];
+  if (!fn)
+    return NULL_TREE;
+
+  return gimple_rewrite_call_expr (stmt, 5, fn, 3, dest, len, fmt);
+}
+
+/* Builtins with folding operations that operate on "..." arguments
+   need special handling; we need to store the arguments in a convenient
+   data structure before attempting any folding.  Fortunately there are
+   only a few builtins that fall into this category.  FNDECL is the
+   function, EXP is the CALL_EXPR for the call, and IGNORE is true if the
+   result of the function call is ignored.  */
+
+static tree
+gimple_fold_builtin_varargs (tree fndecl, gimple stmt, bool ignore ATTRIBUTE_UNUSED)
+{
+  enum built_in_function fcode = DECL_FUNCTION_CODE (fndecl);
+  tree ret = NULL_TREE;
+
+  switch (fcode)
+    {
+    case BUILT_IN_SPRINTF_CHK:
+    case BUILT_IN_VSPRINTF_CHK:
+      ret = gimple_fold_builtin_sprintf_chk (stmt, fcode);
+      break;
+
+    case BUILT_IN_SNPRINTF_CHK:
+    case BUILT_IN_VSNPRINTF_CHK:
+      ret = gimple_fold_builtin_snprintf_chk (stmt, NULL_TREE, fcode);
+
+    default:
+      break;
+    }
+  if (ret)
+    {
+      ret = build1 (NOP_EXPR, TREE_TYPE (ret), ret);
+      TREE_NO_WARNING (ret) = 1;
+      return ret;
+    }
+  return NULL_TREE;
+}
+
+/* A wrapper function for builtin folding that prevents warnings for
+   "statement without effect" and the like, caused by removing the
+   call node earlier than the warning is generated.  */
+
+tree
+fold_call_stmt (gimple stmt, bool ignore)
+{
+  tree ret = NULL_TREE;
+  tree fndecl = gimple_call_fndecl (stmt);
+  if (fndecl
+      && TREE_CODE (fndecl) == FUNCTION_DECL
+      && DECL_BUILT_IN (fndecl)
+      && !gimple_call_va_arg_pack_p (stmt))
+    {
+      int nargs = gimple_call_num_args (stmt);
+
+      /* FIXME: Don't use a list in this interface.  */
+      if (DECL_BUILT_IN_CLASS (fndecl) == BUILT_IN_MD)
+        {
+          tree arglist = NULL_TREE;
+          int i;
+          for (i = nargs - 1; i >= 0; i--)
+            arglist = tree_cons (NULL_TREE, gimple_call_arg (stmt, i), arglist);
+	  return targetm.fold_builtin (fndecl, arglist, ignore);
+        }
+      else
+	{
+	  if (nargs <= MAX_ARGS_TO_FOLD_BUILTIN)
+	    {
+              tree args[MAX_ARGS_TO_FOLD_BUILTIN];
+              int i;
+              for (i = 0; i < nargs; i++)
+                args[i] = gimple_call_arg (stmt, i);
+	      ret = fold_builtin_n (fndecl, args, nargs, ignore);
+	    }
+	  if (!ret)
+	    ret = gimple_fold_builtin_varargs (fndecl, stmt, ignore);
+	  if (ret)
+	    {
+	      /* Propagate location information from original call to
+		 expansion of builtin.  Otherwise things like
+		 maybe_emit_chk_warning, that operate on the expansion
+		 of a builtin, will use the wrong location information.  */
+	      if (gimple_has_location (stmt))
+                {
+		  tree realret = ret;
+		  if (TREE_CODE (ret) == NOP_EXPR)
+		    realret = TREE_OPERAND (ret, 0);
+		  if (CAN_HAVE_LOCATION_P (realret)
+		      && !EXPR_HAS_LOCATION (realret))
+		    SET_EXPR_LOCATION (realret, gimple_location (stmt));
+                  return realret;
+                }
+	      return ret;
+	    }
+	}
+    }
+  return NULL_TREE;
+}

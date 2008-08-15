@@ -1112,6 +1112,7 @@ combine_instructions (rtx f, unsigned int nregs)
       last_call_luid = 0;
       mem_last_set = -1;
       label_tick++;
+      rtl_profile_for_bb (this_basic_block);
       for (insn = BB_HEAD (this_basic_block);
 	   insn != NEXT_INSN (BB_END (this_basic_block));
 	   insn = next ? next : NEXT_INSN (insn))
@@ -1268,6 +1269,7 @@ combine_instructions (rtx f, unsigned int nregs)
 	}
     }
 
+  default_rtl_profile ();
   clear_log_links ();
   clear_bb_flags ();
   new_direct_jump_p |= purge_all_dead_edges ();
@@ -1340,8 +1342,7 @@ setup_incoming_promotions (rtx first)
          function lie within the current compilation unit.  (This does
 	 take into account the exporting of a function via taking its
 	 address, and so forth.)  */
-      if (flag_unit_at_a_time)
-	strictly_local = cgraph_local_info (current_function_decl)->local;
+      strictly_local = cgraph_local_info (current_function_decl)->local;
 
       /* The mode and signedness of the argument before any promotions happen
          (equal to the mode of the pseudo holding it at that stage).  */

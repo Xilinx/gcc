@@ -1672,7 +1672,7 @@ preprocessor_line (gfc_char_t *c)
 }
 
 
-static try load_file (const char *, bool);
+static gfc_try load_file (const char *, const char *, bool);
 
 /* include_line()-- Checks a line buffer to see if it is an include
    line.  If so, we call load_file() recursively to load the included
@@ -1743,7 +1743,7 @@ include_line (gfc_char_t *line)
 		   read by anything else.  */
 
   filename = gfc_widechar_to_char (begin, -1);
-  load_file (filename, false);
+  load_file (filename, NULL, false);
   gfc_free (filename);
   return true;
 }
@@ -1751,8 +1751,8 @@ include_line (gfc_char_t *line)
 
 /* Load a file into memory by calling load_line until the file ends.  */
 
-static try
-load_file (const char *filename, bool initial)
+static gfc_try
+load_file (const char *realfilename, const char *displayedname, bool initial)
 {
   gfc_char_t *line;
   gfc_linebuf *b;
@@ -1760,6 +1760,9 @@ load_file (const char *filename, bool initial)
   FILE *input;
   int len, line_len;
   bool first_line;
+  const char *filename;
+
+  filename = displayedname ? displayedname : realfilename;
 
   for (f = current_file; f; f = f->up)
     if (strcmp (filename, f->filename) == 0)
@@ -1776,7 +1779,7 @@ load_file (const char *filename, bool initial)
 	  gfc_src_file = NULL;
 	}
       else
-	input = gfc_open_file (filename);
+	input = gfc_open_file (realfilename);
       if (input == NULL)
 	{
 	  gfc_error_now ("Can't open file '%s'", filename);
@@ -1785,7 +1788,7 @@ load_file (const char *filename, bool initial)
     }
   else
     {
-      input = gfc_open_included_file (filename, false, false);
+      input = gfc_open_included_file (realfilename, false, false);
       if (input == NULL)
 	{
 	  gfc_error_now ("Can't open included file '%s'", filename);
@@ -1840,11 +1843,11 @@ load_file (const char *filename, bool initial)
 				&& line[2] == (unsigned char) '\xBF')))
 	{
 	  int n = line[1] == (unsigned char) '\xBB' ? 3 : 2;
-	  gfc_char_t *new = gfc_get_wide_string (line_len);
+	  gfc_char_t *new_char = gfc_get_wide_string (line_len);
 
-	  wide_strcpy (new, &line[n]);
+	  wide_strcpy (new_char, &line[n]);
 	  gfc_free (line);
-	  line = new;
+	  line = new_char;
 	  len -= n;
 	}
 
@@ -1914,23 +1917,23 @@ load_file (const char *filename, bool initial)
 
 
 /* Open a new file and start scanning from that file. Returns SUCCESS
-   if everything went OK, FAILURE otherwise.  If form == FORM_UKNOWN
+   if everything went OK, FAILURE otherwise.  If form == FORM_UNKNOWN
    it tries to determine the source form from the filename, defaulting
    to free form.  */
 
-try
+gfc_try
 gfc_new_file (void)
 {
-  try result;
+  gfc_try result;
 
   if (gfc_cpp_enabled ())
     {
       result = gfc_cpp_preprocess (gfc_source_file);
       if (!gfc_cpp_preprocess_only ())
-        result = load_file (gfc_cpp_temporary_file (), true);
+        result = load_file (gfc_cpp_temporary_file (), gfc_source_file, true);
     }
   else
-    result = load_file (gfc_source_file, true);
+    result = load_file (gfc_source_file, NULL, true);
 
   gfc_current_locus.lb = line_head;
   gfc_current_locus.nextc = (line_head == NULL) ? NULL : line_head->line;

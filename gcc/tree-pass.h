@@ -72,7 +72,9 @@ enum tree_dump_index
 #define TDF_DIAGNOSTIC	(1 << 15)	/* A dump to be put in a diagnostic
 					   message.  */
 #define TDF_VERBOSE     (1 << 16)       /* A dump that uses the full tree 
-					   dumper to print stmts. */
+					   dumper to print stmts.  */
+#define TDF_RHS_ONLY	(1 << 17)	/* a flag to only print the RHS of
+					   a gimple stmt.  */
 
 extern char *get_dump_file_name (enum tree_dump_index);
 extern int dump_enabled_p (enum tree_dump_index);
@@ -102,7 +104,8 @@ struct opt_pass
     SIMPLE_IPA_PASS,
     IPA_PASS
   } type;
-  /* Terse name of the pass used as a fragment of the dump file name.  */
+  /* Terse name of the pass used as a fragment of the dump file
+     name.  If the name starts with a star, no dump happens. */
   const char *name;
 
   /* If non-null, this pass and all sub-passes are executed only if
@@ -504,7 +507,6 @@ extern struct rtl_opt_pass pass_final;
 extern struct rtl_opt_pass pass_rtl_seqabstr;
 extern struct gimple_opt_pass pass_release_ssa_names;
 extern struct gimple_opt_pass pass_early_inline;
-extern struct gimple_opt_pass pass_O0_always_inline;
 extern struct gimple_opt_pass pass_inline_parameters;
 extern struct gimple_opt_pass pass_all_early_optimizations;
 extern struct gimple_opt_pass pass_update_address_taken;

@@ -1,4 +1,4 @@
-/* Copyright (C) 2006, 2007 Free Software Foundation, Inc.
+/* Copyright (C) 2006, 2007, 2008 Free Software Foundation, Inc.
 
    This file is free software; you can redistribute it and/or modify it under
    the terms of the GNU General Public License as published by the Free
@@ -50,7 +50,7 @@
 #include "assert.h"
 #include "c-common.h"
 #include "machmode.h"
-#include "tree-gimple.h"
+#include "gimple.h"
 #include "tm-constrs.h"
 #include "spu-builtins.h"
 #include "ddg.h"
@@ -118,8 +118,8 @@ static unsigned char spu_pass_by_reference (CUMULATIVE_ARGS *cum, enum machine_m
 					    const_tree type, unsigned char named);
 static tree spu_build_builtin_va_list (void);
 static void spu_va_start (tree, rtx);
-static tree spu_gimplify_va_arg_expr (tree valist, tree type, tree * pre_p,
-				      tree * post_p);
+static tree spu_gimplify_va_arg_expr (tree valist, tree type,
+				      gimple_seq * pre_p, gimple_seq * post_p);
 static int regno_aligned_for_load (int regno);
 static int store_with_one_insn_p (rtx mem);
 static int mem_is_padded_component_ref (rtx x);
@@ -352,6 +352,8 @@ spu_override_options (void)
       else
         error ("Unknown architecture '%s'", &spu_tune_string[0]);
     }
+
+  REAL_MODE_FORMAT (SFmode) = &spu_single_format;
 }
 
 /* Handle an attribute requiring a FUNCTION_DECL; arguments as in
@@ -419,7 +421,8 @@ valid_subreg (rtx op)
   enum machine_mode im = GET_MODE (SUBREG_REG (op));
   return om != VOIDmode && im != VOIDmode
     && (GET_MODE_SIZE (im) == GET_MODE_SIZE (om)
-	|| (GET_MODE_SIZE (im) <= 4 && GET_MODE_SIZE (om) <= 4));
+	|| (GET_MODE_SIZE (im) <= 4 && GET_MODE_SIZE (om) <= 4)
+	|| (GET_MODE_SIZE (im) >= 16 && GET_MODE_SIZE (om) >= 16));
 }
 
 /* When insv and ext[sz]v ar passed a TI SUBREG, we want to strip it off
@@ -429,8 +432,10 @@ adjust_operand (rtx op, HOST_WIDE_INT * start)
 {
   enum machine_mode mode;
   int op_size;
-  /* Strip any SUBREG */
-  if (GET_CODE (op) == SUBREG)
+  /* Strip any paradoxical SUBREG.  */
+  if (GET_CODE (op) == SUBREG
+      && (GET_MODE_BITSIZE (GET_MODE (op))
+	  > GET_MODE_BITSIZE (GET_MODE (SUBREG_REG (op)))))
     {
       if (start)
 	*start -=
@@ -1516,10 +1521,18 @@ spu_split_immediate (rtx * ops)
       {
 	unsigned char arrhi[16];
 	unsigned char arrlo[16];
-	rtx to, hi, lo;
+	rtx to, temp, hi, lo;
 	int i;
+	enum machine_mode imode = mode;
+	/* We need to do reals as ints because the constant used in the
+	   IOR might not be a legitimate real constant. */
+	imode = int_mode_for_mode (mode);
 	constant_to_array (mode, ops[1], arrhi);
-	to = !can_create_pseudo_p () ? ops[0] : gen_reg_rtx (mode);
+	if (imode != mode)
+	  to = simplify_gen_subreg (imode, ops[0], mode, 0);
+	else
+	  to = ops[0];
+	temp = !can_create_pseudo_p () ? to : gen_reg_rtx (imode);
 	for (i = 0; i < 16; i += 4)
 	  {
 	    arrlo[i + 2] = arrhi[i + 2];
@@ -1527,11 +1540,11 @@ spu_split_immediate (rtx * ops)
 	    arrlo[i + 0] = arrlo[i + 1] = 0;
 	    arrhi[i + 2] = arrhi[i + 3] = 0;
 	  }
-	hi = array_to_constant (mode, arrhi);
-	lo = array_to_constant (mode, arrlo);
-	emit_move_insn (to, hi);
+	hi = array_to_constant (imode, arrhi);
+	lo = array_to_constant (imode, arrlo);
+	emit_move_insn (temp, hi);
 	emit_insn (gen_rtx_SET
-		   (VOIDmode, ops[0], gen_rtx_IOR (mode, to, lo)));
+		   (VOIDmode, to, gen_rtx_IOR (imode, temp, lo)));
 	return 1;
       }
     case IC_FSMBI2:
@@ -3238,7 +3251,7 @@ spu_va_start (tree valist, rtx nextarg)
   if (crtl->args.pretend_args_size > 0)
     t = build2 (POINTER_PLUS_EXPR, TREE_TYPE (args), t,
 		size_int (-STACK_POINTER_OFFSET));
-  t = build2 (GIMPLE_MODIFY_STMT, TREE_TYPE (args), args, t);
+  t = build2 (MODIFY_EXPR, TREE_TYPE (args), args, t);
   TREE_SIDE_EFFECTS (t) = 1;
   expand_expr (t, const0_rtx, VOIDmode, EXPAND_NORMAL);
 
@@ -3247,7 +3260,7 @@ spu_va_start (tree valist, rtx nextarg)
   t = build2 (POINTER_PLUS_EXPR, TREE_TYPE (skip), t,
 	      size_int (crtl->args.pretend_args_size
 			 - STACK_POINTER_OFFSET));
-  t = build2 (GIMPLE_MODIFY_STMT, TREE_TYPE (skip), skip, t);
+  t = build2 (MODIFY_EXPR, TREE_TYPE (skip), skip, t);
   TREE_SIDE_EFFECTS (t) = 1;
   expand_expr (t, const0_rtx, VOIDmode, EXPAND_NORMAL);
 }
@@ -3270,8 +3283,8 @@ spu_va_start (tree valist, rtx nextarg)
     ret = *(TYPE *)addr;
  */
 static tree
-spu_gimplify_va_arg_expr (tree valist, tree type, tree * pre_p,
-			  tree * post_p ATTRIBUTE_UNUSED)
+spu_gimplify_va_arg_expr (tree valist, tree type, gimple_seq * pre_p,
+			  gimple_seq * post_p ATTRIBUTE_UNUSED)
 {
   tree f_args, f_skip;
   tree args, skip;
@@ -3303,22 +3316,21 @@ spu_gimplify_va_arg_expr (tree valist, tree type, tree * pre_p,
   /* build conditional expression to calculate addr. The expression
      will be gimplified later. */
   paddedsize = size_int (rsize);
-  tmp = build2 (POINTER_PLUS_EXPR, ptr_type_node, args, paddedsize);
+  tmp = build2 (POINTER_PLUS_EXPR, ptr_type_node, unshare_expr (args), paddedsize);
   tmp = build2 (TRUTH_AND_EXPR, boolean_type_node,
-		build2 (GT_EXPR, boolean_type_node, tmp, skip),
-		build2 (LE_EXPR, boolean_type_node, args, skip));
+		build2 (GT_EXPR, boolean_type_node, tmp, unshare_expr (skip)),
+		build2 (LE_EXPR, boolean_type_node, unshare_expr (args),
+		unshare_expr (skip)));
 
   tmp = build3 (COND_EXPR, ptr_type_node, tmp,
-		build2 (POINTER_PLUS_EXPR, ptr_type_node, skip,
-			size_int (32)), args);
+		build2 (POINTER_PLUS_EXPR, ptr_type_node, unshare_expr (skip),
+			size_int (32)), unshare_expr (args));
 
-  tmp = build2 (GIMPLE_MODIFY_STMT, ptr_type_node, addr, tmp);
-  gimplify_and_add (tmp, pre_p);
+  gimplify_assign (addr, tmp, pre_p);
 
   /* update VALIST.__args */
   tmp = build2 (POINTER_PLUS_EXPR, ptr_type_node, addr, paddedsize);
-  tmp = build2 (GIMPLE_MODIFY_STMT, TREE_TYPE (args), args, tmp);
-  gimplify_and_add (tmp, pre_p);
+  gimplify_assign (unshare_expr (args), tmp, pre_p);
 
   addr = fold_convert (build_pointer_type (type), addr);
 
@@ -4563,7 +4575,7 @@ spu_restore_stack_block (rtx op0 ATTRIBUTE_UNUSED, rtx op1)
 int
 spu_safe_dma (HOST_WIDE_INT channel)
 {
-  return (channel >= 21 && channel <= 27);
+  return TARGET_SAFE_DMA && channel >= 21 && channel <= 27;
 }
 
 void

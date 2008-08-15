@@ -1,6 +1,6 @@
 /* Subroutines for insn-output.c for HPPA.
    Copyright (C) 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000, 2001,
-   2002, 2003, 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
+   2002, 2003, 2004, 2005, 2006, 2007, 2008 Free Software Foundation, Inc.
    Contributed by Tim Moore (moore@cs.utah.edu), based on sparc.c
 
 This file is part of GCC.
@@ -125,7 +125,7 @@ static void pa_asm_out_destructor (rtx, int);
 static void pa_init_builtins (void);
 static rtx hppa_builtin_saveregs (void);
 static void hppa_va_start (tree, rtx);
-static tree hppa_gimplify_va_arg_expr (tree, tree, tree *, tree *);
+static tree hppa_gimplify_va_arg_expr (tree, tree, gimple_seq *, gimple_seq *);
 static bool pa_scalar_mode_supported_p (enum machine_mode);
 static bool pa_commutative_p (const_rtx x, int outer_code);
 static void copy_fp_args (rtx) ATTRIBUTE_UNUSED;
@@ -5684,19 +5684,19 @@ output_arg_descriptor (rtx call_insn)
 }
 
 static enum reg_class
-pa_secondary_reload (bool in_p, rtx x, enum reg_class class,
+pa_secondary_reload (bool in_p, rtx x, enum reg_class rclass,
 		     enum machine_mode mode, secondary_reload_info *sri)
 {
   int is_symbolic, regno;
 
   /* Handle the easy stuff first.  */
-  if (class == R1_REGS)
+  if (rclass == R1_REGS)
     return NO_REGS;
 
   if (REG_P (x))
     {
       regno = REGNO (x);
-      if (class == BASE_REG_CLASS && regno < FIRST_PSEUDO_REGISTER)
+      if (rclass == BASE_REG_CLASS && regno < FIRST_PSEUDO_REGISTER)
 	return NO_REGS;
     }
   else
@@ -5712,7 +5712,7 @@ pa_secondary_reload (bool in_p, rtx x, enum reg_class class,
      generation requires %r1 as a scratch register.  */
   if (flag_pic
       && (mode == SImode || mode == DImode)
-      && FP_REG_CLASS_P (class)
+      && FP_REG_CLASS_P (rclass)
       && (GET_CODE (x) == CONST_INT || GET_CODE (x) == CONST_DOUBLE))
     {
       sri->icode = (mode == SImode ? CODE_FOR_reload_insi_r1
@@ -5735,7 +5735,7 @@ pa_secondary_reload (bool in_p, rtx x, enum reg_class class,
      memory loads and stores.  */
   if ((regno >= FIRST_PSEUDO_REGISTER || regno == -1)
       && GET_MODE_CLASS (mode) == MODE_INT
-      && FP_REG_CLASS_P (class))
+      && FP_REG_CLASS_P (rclass))
     {
       /* Reload passes (mem:SI (reg/f:DI 30 %r30) when it wants to check
 	 the secondary reload needed for a pseudo.  It never passes a
@@ -5767,7 +5767,7 @@ pa_secondary_reload (bool in_p, rtx x, enum reg_class class,
 
   /* We need a secondary register (GPR) for copies between the SAR
      and anything other than a general register.  */
-  if (class == SHIFT_REGS && (regno <= 0 || regno >= 32))
+  if (rclass == SHIFT_REGS && (regno <= 0 || regno >= 32))
     {
       sri->icode = in_p ? reload_in_optab[mode] : reload_out_optab[mode];
       return NO_REGS;
@@ -5777,7 +5777,7 @@ pa_secondary_reload (bool in_p, rtx x, enum reg_class class,
      well as secondary memory.  */
   if (regno >= 0 && regno < FIRST_PSEUDO_REGISTER
       && (REGNO_REG_CLASS (regno) == SHIFT_REGS
-      && FP_REG_CLASS_P (class)))
+      && FP_REG_CLASS_P (rclass)))
     {
       sri->icode = in_p ? reload_in_optab[mode] : reload_out_optab[mode];
       return NO_REGS;
@@ -5998,7 +5998,8 @@ hppa_va_start (tree valist, rtx nextarg)
 }
 
 static tree
-hppa_gimplify_va_arg_expr (tree valist, tree type, tree *pre_p, tree *post_p)
+hppa_gimplify_va_arg_expr (tree valist, tree type, gimple_seq *pre_p,
+			   gimple_seq *post_p)
 {
   if (TARGET_64BIT)
     {
@@ -8830,7 +8831,7 @@ pa_reorg (void)
 static void
 pa_combine_instructions (void)
 {
-  rtx anchor, new;
+  rtx anchor, new_rtx;
 
   /* This can get expensive since the basic algorithm is on the
      order of O(n^2) (or worse).  Only do it for -O2 or higher
@@ -8842,8 +8843,8 @@ pa_combine_instructions (void)
      may be combined with "floating" insns.  As the name implies,
      "anchor" instructions don't move, while "floating" insns may
      move around.  */
-  new = gen_rtx_PARALLEL (VOIDmode, gen_rtvec (2, NULL_RTX, NULL_RTX));
-  new = make_insn_raw (new);
+  new_rtx = gen_rtx_PARALLEL (VOIDmode, gen_rtvec (2, NULL_RTX, NULL_RTX));
+  new_rtx = make_insn_raw (new_rtx);
 
   for (anchor = get_insns (); anchor; anchor = NEXT_INSN (anchor))
     {
@@ -8899,7 +8900,7 @@ pa_combine_instructions (void)
 		{
 		  /* If ANCHOR and FLOATER can be combined, then we're
 		     done with this pass.  */
-		  if (pa_can_combine_p (new, anchor, floater, 0,
+		  if (pa_can_combine_p (new_rtx, anchor, floater, 0,
 					SET_DEST (PATTERN (floater)),
 					XEXP (SET_SRC (PATTERN (floater)), 0),
 					XEXP (SET_SRC (PATTERN (floater)), 1)))
@@ -8911,7 +8912,7 @@ pa_combine_instructions (void)
 		{
 		  if (GET_CODE (SET_SRC (PATTERN (floater))) == PLUS)
 		    {
-		      if (pa_can_combine_p (new, anchor, floater, 0,
+		      if (pa_can_combine_p (new_rtx, anchor, floater, 0,
 					    SET_DEST (PATTERN (floater)),
 					XEXP (SET_SRC (PATTERN (floater)), 0),
 					XEXP (SET_SRC (PATTERN (floater)), 1)))
@@ -8919,7 +8920,7 @@ pa_combine_instructions (void)
 		    }
 		  else
 		    {
-		      if (pa_can_combine_p (new, anchor, floater, 0,
+		      if (pa_can_combine_p (new_rtx, anchor, floater, 0,
 					    SET_DEST (PATTERN (floater)),
 					    SET_SRC (PATTERN (floater)),
 					    SET_SRC (PATTERN (floater))))
@@ -8961,7 +8962,7 @@ pa_combine_instructions (void)
 		    {
 		      /* If ANCHOR and FLOATER can be combined, then we're
 			 done with this pass.  */
-		      if (pa_can_combine_p (new, anchor, floater, 1,
+		      if (pa_can_combine_p (new_rtx, anchor, floater, 1,
 					    SET_DEST (PATTERN (floater)),
 					    XEXP (SET_SRC (PATTERN (floater)),
 						  0),
@@ -9020,7 +9021,7 @@ pa_combine_instructions (void)
 }
 
 static int
-pa_can_combine_p (rtx new, rtx anchor, rtx floater, int reversed, rtx dest,
+pa_can_combine_p (rtx new_rtx, rtx anchor, rtx floater, int reversed, rtx dest,
 		  rtx src1, rtx src2)
 {
   int insn_code_number;
@@ -9033,12 +9034,12 @@ pa_can_combine_p (rtx new, rtx anchor, rtx floater, int reversed, rtx dest,
      If the pattern doesn't match or the constraints
      aren't met keep searching for a suitable floater
      insn.  */
-  XVECEXP (PATTERN (new), 0, 0) = PATTERN (anchor);
-  XVECEXP (PATTERN (new), 0, 1) = PATTERN (floater);
-  INSN_CODE (new) = -1;
-  insn_code_number = recog_memoized (new);
+  XVECEXP (PATTERN (new_rtx), 0, 0) = PATTERN (anchor);
+  XVECEXP (PATTERN (new_rtx), 0, 1) = PATTERN (floater);
+  INSN_CODE (new_rtx) = -1;
+  insn_code_number = recog_memoized (new_rtx);
   if (insn_code_number < 0
-      || (extract_insn (new), ! constrain_operands (1)))
+      || (extract_insn (new_rtx), ! constrain_operands (1)))
     return 0;
 
   if (reversed)
@@ -9651,11 +9652,11 @@ pa_hpux_file_end (void)
 #endif
 
 /* Return true if a change from mode FROM to mode TO for a register
-   in register class CLASS is invalid.  */
+   in register class RCLASS is invalid.  */
 
 bool
 pa_cannot_change_mode_class (enum machine_mode from, enum machine_mode to,
-			     enum reg_class class)
+			     enum reg_class rclass)
 {
   if (from == to)
     return false;
@@ -9673,7 +9674,7 @@ pa_cannot_change_mode_class (enum machine_mode from, enum machine_mode to,
      On the 64-bit target, this conflicts with the definition of
      LOAD_EXTEND_OP.  Thus, we can't allow changing between modes
      with different sizes in the floating-point registers.  */
-  if (MAYBE_FP_REG_CLASS_P (class))
+  if (MAYBE_FP_REG_CLASS_P (rclass))
     return true;
 
   /* HARD_REGNO_MODE_OK places modes with sizes larger than a word

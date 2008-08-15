@@ -51,13 +51,6 @@ ACX_NONCANONICAL_TARGET
 # Need to pass this down for now :-P
 AC_PROG_LN_S
 
-# Determine x_ada_cflags
-case $host in
-  hppa*) x_ada_cflags=-mdisable-indexing ;;
-  *) x_ada_cflags= ;;
-esac
-AC_SUBST([x_ada_cflags])
-
 # Determine what to build for 'gnattools'
 if test $build = $target ; then
   # Note that build=target is almost certainly the wrong test; FIXME
@@ -159,6 +152,16 @@ case "${target}" in
     indepsw.adb<indepsw-gnu.adb"
     ;;
 esac
+
+# From user or toplevel makefile.
+AC_SUBST(ADA_CFLAGS)
+
+AC_PROG_CC
+warn_cflags=
+if test "x$GCC" = "xyes"; then
+  warn_cflags='$(GCC_WARN_CFLAGS)'
+fi
+AC_SUBST(warn_cflags)
 
 # Output: create a Makefile.
 AC_CONFIG_FILES([Makefile])

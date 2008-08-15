@@ -463,7 +463,7 @@ do { \
 do {									\
   if (LEVEL)								\
     {									\
-      flag_omit_frame_pointer = -1;					\
+      flag_omit_frame_pointer = 2;					\
       if (! SIZE)							\
 	sh_div_str = "inv:minlat";					\
     }									\
@@ -690,7 +690,7 @@ do {									\
     if (! VALID_REGISTER_P (ADDREGNAMES_REGNO (regno)))			\
       sh_additional_register_names[regno][0] = '\0';			\
 									\
-  if (flag_omit_frame_pointer < 0)					\
+  if (flag_omit_frame_pointer == 2)					\
    {									\
      /* The debugging information is sufficient,			\
         but gdb doesn't implement this yet */				\
@@ -2501,19 +2501,6 @@ struct sh_args {
 	    goto LABEL;							\
 	}								\
     }									\
-  /* FIXME: This is a temporary hack which should be removed.		\
-     When reload in progress, find_reloads_subreg_address tries to	\
-     make a new reload for some types of address.  Unfortunately it	\
-     generates wrong code on SH.  See PR36780.  The following is to	\
-     avoid this issue.  */						\
-  if (!TARGET_SHMEDIA && reload_in_progress				\
-      && GET_CODE (X) == PLUS						\
-      && (GET_MODE_SIZE (MODE) == 4 || GET_MODE_SIZE (MODE) == 8)	\
-      && GET_CODE (XEXP ((X), 0)) == PLUS				\
-      && GET_CODE (XEXP (XEXP ((X), 0), 1)) == CONST_INT		\
-      && BASE_REGISTER_RTX_P (XEXP (XEXP ((X), 0), 0))			\
-      && GET_CODE (XEXP ((X), 1)) == CONST_INT)				\
-    goto LABEL;								\
 }
 
 /* Try machine-dependent ways of modifying an illegitimate address

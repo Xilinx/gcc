@@ -52,7 +52,7 @@
 #include "reload.h"
 #include "cfglayout.h"
 #include "sched-int.h"
-#include "tree-gimple.h"
+#include "gimple.h"
 #include "tree-flow.h"
 #include "intl.h"
 #include "params.h"
@@ -958,7 +958,7 @@ static void rs6000_darwin_file_start (void);
 
 static tree rs6000_build_builtin_va_list (void);
 static void rs6000_va_start (tree, rtx);
-static tree rs6000_gimplify_va_arg (tree, tree, tree *, tree *);
+static tree rs6000_gimplify_va_arg (tree, tree, gimple_seq *, gimple_seq *);
 static bool rs6000_must_pass_in_stack (enum machine_mode, const_tree);
 static bool rs6000_scalar_mode_supported_p (enum machine_mode);
 static bool rs6000_vector_mode_supported_p (enum machine_mode);
@@ -1493,19 +1493,23 @@ rs6000_override_options (const char *default_cpu)
 	 {"power3", PROCESSOR_PPC630,
 	  POWERPC_BASE_MASK | MASK_PPC_GFXOPT | MASK_POWERPC64},
 	 {"power4", PROCESSOR_POWER4,
-	  POWERPC_BASE_MASK | MASK_PPC_GFXOPT | MASK_MFCRF | MASK_POWERPC64},
+	  POWERPC_BASE_MASK | MASK_POWERPC64 | MASK_PPC_GPOPT | MASK_PPC_GFXOPT
+	  | MASK_MFCRF},
 	 {"power5", PROCESSOR_POWER5,
-	  POWERPC_BASE_MASK | MASK_POWERPC64 | MASK_PPC_GFXOPT
+	  POWERPC_BASE_MASK | MASK_POWERPC64 | MASK_PPC_GPOPT | MASK_PPC_GFXOPT
 	  | MASK_MFCRF | MASK_POPCNTB},
 	 {"power5+", PROCESSOR_POWER5,
-	  POWERPC_BASE_MASK | MASK_POWERPC64 | MASK_PPC_GFXOPT
+	  POWERPC_BASE_MASK | MASK_POWERPC64 | MASK_PPC_GPOPT | MASK_PPC_GFXOPT
 	  | MASK_MFCRF | MASK_POPCNTB | MASK_FPRND},
  	 {"power6", PROCESSOR_POWER6,
-	  POWERPC_7400_MASK | MASK_POWERPC64 | MASK_MFCRF | MASK_POPCNTB
-	  | MASK_FPRND | MASK_CMPB | MASK_DFP },
+	  POWERPC_7400_MASK | MASK_POWERPC64 | MASK_PPC_GPOPT | MASK_MFCRF
+	  | MASK_POPCNTB | MASK_FPRND | MASK_CMPB | MASK_DFP},
 	 {"power6x", PROCESSOR_POWER6,
-	  POWERPC_7400_MASK | MASK_POWERPC64 | MASK_MFCRF | MASK_POPCNTB
-	  | MASK_FPRND | MASK_CMPB | MASK_MFPGPR | MASK_DFP },
+	  POWERPC_7400_MASK | MASK_POWERPC64 | MASK_PPC_GPOPT | MASK_MFCRF
+	  | MASK_POPCNTB | MASK_FPRND | MASK_CMPB | MASK_DFP | MASK_MFPGPR},
+	 {"power7", PROCESSOR_POWER5,
+	  POWERPC_7400_MASK | MASK_POWERPC64 | MASK_PPC_GPOPT | MASK_MFCRF
+	  | MASK_POPCNTB | MASK_FPRND | MASK_CMPB | MASK_DFP},
 	 {"powerpc", PROCESSOR_POWERPC, POWERPC_BASE_MASK},
 	 {"powerpc64", PROCESSOR_POWERPC64,
 	  POWERPC_BASE_MASK | MASK_PPC_GFXOPT | MASK_POWERPC64},
@@ -1959,7 +1963,11 @@ rs6000_builtin_mask_for_load (void)
     return 0;
 }
 
-/* Implement targetm.vectorize.builtin_conversion.  */
+/* Implement targetm.vectorize.builtin_conversion.
+   Returns a decl of a function that implements conversion of an integer vector
+   into a floating-point vector, or vice-versa. TYPE is the type of the integer
+   side of the conversion.
+   Return NULL_TREE if it is not available.  */
 static tree
 rs6000_builtin_conversion (enum tree_code code, tree type)
 {
@@ -1968,16 +1976,28 @@ rs6000_builtin_conversion (enum tree_code code, tree type)
 
   switch (code)
     {
+    case FIX_TRUNC_EXPR:
+      switch (TYPE_MODE (type))
+	{
+	case V4SImode:
+	  return TYPE_UNSIGNED (type)
+	    ? rs6000_builtin_decls[ALTIVEC_BUILTIN_VCTUXS]
+	    : rs6000_builtin_decls[ALTIVEC_BUILTIN_VCTSXS];
+	default:
+	  return NULL_TREE;
+	}
+
     case FLOAT_EXPR:
       switch (TYPE_MODE (type))
 	{
 	case V4SImode:
-	  return TYPE_UNSIGNED (type) ?
-	    rs6000_builtin_decls[ALTIVEC_BUILTIN_VCFUX] :
-	    rs6000_builtin_decls[ALTIVEC_BUILTIN_VCFSX];
+	  return TYPE_UNSIGNED (type)
+	    ? rs6000_builtin_decls[ALTIVEC_BUILTIN_VCFUX]
+	    : rs6000_builtin_decls[ALTIVEC_BUILTIN_VCFSX];
 	default:
 	  return NULL_TREE;
 	}
+
     default:
       return NULL_TREE;
     }
@@ -1993,14 +2013,14 @@ rs6000_builtin_mul_widen_even (tree type)
   switch (TYPE_MODE (type))
     {
     case V8HImode:
-      return TYPE_UNSIGNED (type) ?
-            rs6000_builtin_decls[ALTIVEC_BUILTIN_VMULEUH] :
-            rs6000_builtin_decls[ALTIVEC_BUILTIN_VMULESH];
+      return TYPE_UNSIGNED (type)
+            ? rs6000_builtin_decls[ALTIVEC_BUILTIN_VMULEUH]
+            : rs6000_builtin_decls[ALTIVEC_BUILTIN_VMULESH];
 
     case V16QImode:
-      return TYPE_UNSIGNED (type) ?
-            rs6000_builtin_decls[ALTIVEC_BUILTIN_VMULEUB] :
-            rs6000_builtin_decls[ALTIVEC_BUILTIN_VMULESB];
+      return TYPE_UNSIGNED (type)
+            ? rs6000_builtin_decls[ALTIVEC_BUILTIN_VMULEUB]
+            : rs6000_builtin_decls[ALTIVEC_BUILTIN_VMULESB];
     default:
       return NULL_TREE;
     }
@@ -2016,14 +2036,14 @@ rs6000_builtin_mul_widen_odd (tree type)
   switch (TYPE_MODE (type))
     {
     case V8HImode:
-      return TYPE_UNSIGNED (type) ?
-            rs6000_builtin_decls[ALTIVEC_BUILTIN_VMULOUH] :
-            rs6000_builtin_decls[ALTIVEC_BUILTIN_VMULOSH];
+      return TYPE_UNSIGNED (type)
+            ? rs6000_builtin_decls[ALTIVEC_BUILTIN_VMULOUH]
+            : rs6000_builtin_decls[ALTIVEC_BUILTIN_VMULOSH];
 
     case V16QImode:
-      return TYPE_UNSIGNED (type) ?
-            rs6000_builtin_decls[ALTIVEC_BUILTIN_VMULOUB] :
-            rs6000_builtin_decls[ALTIVEC_BUILTIN_VMULOSB];
+      return TYPE_UNSIGNED (type)
+            ? rs6000_builtin_decls[ALTIVEC_BUILTIN_VMULOUB]
+            : rs6000_builtin_decls[ALTIVEC_BUILTIN_VMULOSB];
     default:
       return NULL_TREE;
     }
@@ -2110,7 +2130,7 @@ optimization_options (int level ATTRIBUTE_UNUSED, int size ATTRIBUTE_UNUSED)
      Skip section anchors for Objective C and Objective C++
      until front-ends fixed.  */
   if (!TARGET_MACHO && lang_hooks.name[4] != 'O')
-    flag_section_anchors = 1;
+    flag_section_anchors = 2;
 }
 
 /* Implement TARGET_HANDLE_OPTION.  */
@@ -2848,7 +2868,7 @@ paired_expand_vector_init (rtx target, rtx vals)
   enum machine_mode mode = GET_MODE (target);
   int n_elts = GET_MODE_NUNITS (mode);
   int n_var = 0;
-  rtx x, new, tmp, constant_op, op1, op2;
+  rtx x, new_rtx, tmp, constant_op, op1, op2;
   int i;
 
   for (i = 0; i < n_elts; ++i)
@@ -2867,10 +2887,10 @@ paired_expand_vector_init (rtx target, rtx vals)
   if (n_var == 2)
     {
       /* The vector is initialized only with non-constants.  */
-      new = gen_rtx_VEC_CONCAT (V2SFmode, XVECEXP (vals, 0, 0),
+      new_rtx = gen_rtx_VEC_CONCAT (V2SFmode, XVECEXP (vals, 0, 0),
 				XVECEXP (vals, 0, 1));
 
-      emit_move_insn (target, new);
+      emit_move_insn (target, new_rtx);
       return;
     }
   
@@ -2886,11 +2906,11 @@ paired_expand_vector_init (rtx target, rtx vals)
   emit_move_insn (tmp, constant_op);
 
   if (CONSTANT_P (op1))
-    new = gen_rtx_VEC_CONCAT (V2SFmode, tmp, op2);
+    new_rtx = gen_rtx_VEC_CONCAT (V2SFmode, tmp, op2);
   else
-    new = gen_rtx_VEC_CONCAT (V2SFmode, op1, tmp);
+    new_rtx = gen_rtx_VEC_CONCAT (V2SFmode, op1, tmp);
 
-  emit_move_insn (target, new);
+  emit_move_insn (target, new_rtx);
 }
 
 void
@@ -3947,6 +3967,8 @@ rs6000_legitimize_tls_address (rtx addr, enum tls_model model)
 	  insn = emit_call_insn (insn);
 	  RTL_CONST_CALL_P (insn) = 1;
 	  use_reg (&CALL_INSN_FUNCTION_USAGE (insn), r3);
+	  if (DEFAULT_ABI == ABI_V4 && TARGET_SECURE_PLT && flag_pic)
+	    use_reg (&CALL_INSN_FUNCTION_USAGE (insn), pic_offset_table_rtx);
 	  insn = get_insns ();
 	  end_sequence ();
 	  emit_libcall_block (insn, dest, r3, addr);
@@ -3969,6 +3991,8 @@ rs6000_legitimize_tls_address (rtx addr, enum tls_model model)
 	  insn = emit_call_insn (insn);
 	  RTL_CONST_CALL_P (insn) = 1;
 	  use_reg (&CALL_INSN_FUNCTION_USAGE (insn), r3);
+	  if (DEFAULT_ABI == ABI_V4 && TARGET_SECURE_PLT && flag_pic)
+	    use_reg (&CALL_INSN_FUNCTION_USAGE (insn), pic_offset_table_rtx);
 	  insn = get_insns ();
 	  end_sequence ();
 	  tmp1 = gen_reg_rtx (Pmode);
@@ -6712,9 +6736,12 @@ rs6000_va_start (tree valist, rtx nextarg)
 
   valist = build_va_arg_indirect_ref (valist);
   gpr = build3 (COMPONENT_REF, TREE_TYPE (f_gpr), valist, f_gpr, NULL_TREE);
-  fpr = build3 (COMPONENT_REF, TREE_TYPE (f_fpr), valist, f_fpr, NULL_TREE);
-  ovf = build3 (COMPONENT_REF, TREE_TYPE (f_ovf), valist, f_ovf, NULL_TREE);
-  sav = build3 (COMPONENT_REF, TREE_TYPE (f_sav), valist, f_sav, NULL_TREE);
+  fpr = build3 (COMPONENT_REF, TREE_TYPE (f_fpr), unshare_expr (valist),
+		f_fpr, NULL_TREE);
+  ovf = build3 (COMPONENT_REF, TREE_TYPE (f_ovf), unshare_expr (valist),
+		f_ovf, NULL_TREE);
+  sav = build3 (COMPONENT_REF, TREE_TYPE (f_sav), unshare_expr (valist),
+		f_sav, NULL_TREE);
 
   /* Count number of gp and fp argument registers used.  */
   words = crtl->args.info.words;
@@ -6730,7 +6757,7 @@ rs6000_va_start (tree valist, rtx nextarg)
 
   if (cfun->va_list_gpr_size)
     {
-      t = build2 (GIMPLE_MODIFY_STMT, TREE_TYPE (gpr), gpr,
+      t = build2 (MODIFY_EXPR, TREE_TYPE (gpr), gpr,
 		  build_int_cst (NULL_TREE, n_gpr));
       TREE_SIDE_EFFECTS (t) = 1;
       expand_expr (t, const0_rtx, VOIDmode, EXPAND_NORMAL);
@@ -6738,7 +6765,7 @@ rs6000_va_start (tree valist, rtx nextarg)
 
   if (cfun->va_list_fpr_size)
     {
-      t = build2 (GIMPLE_MODIFY_STMT, TREE_TYPE (fpr), fpr,
+      t = build2 (MODIFY_EXPR, TREE_TYPE (fpr), fpr,
 		  build_int_cst (NULL_TREE, n_fpr));
       TREE_SIDE_EFFECTS (t) = 1;
       expand_expr (t, const0_rtx, VOIDmode, EXPAND_NORMAL);
@@ -6749,7 +6776,7 @@ rs6000_va_start (tree valist, rtx nextarg)
   if (words != 0)
     t = build2 (POINTER_PLUS_EXPR, TREE_TYPE (ovf), t,
 	        size_int (words * UNITS_PER_WORD));
-  t = build2 (GIMPLE_MODIFY_STMT, TREE_TYPE (ovf), ovf, t);
+  t = build2 (MODIFY_EXPR, TREE_TYPE (ovf), ovf, t);
   TREE_SIDE_EFFECTS (t) = 1;
   expand_expr (t, const0_rtx, VOIDmode, EXPAND_NORMAL);
 
@@ -6766,7 +6793,7 @@ rs6000_va_start (tree valist, rtx nextarg)
   if (cfun->machine->varargs_save_offset)
     t = build2 (POINTER_PLUS_EXPR, TREE_TYPE (sav), t,
 	        size_int (cfun->machine->varargs_save_offset));
-  t = build2 (GIMPLE_MODIFY_STMT, TREE_TYPE (sav), sav, t);
+  t = build2 (MODIFY_EXPR, TREE_TYPE (sav), sav, t);
   TREE_SIDE_EFFECTS (t) = 1;
   expand_expr (t, const0_rtx, VOIDmode, EXPAND_NORMAL);
 }
@@ -6774,7 +6801,8 @@ rs6000_va_start (tree valist, rtx nextarg)
 /* Implement va_arg.  */
 
 tree
-rs6000_gimplify_va_arg (tree valist, tree type, tree *pre_p, tree *post_p)
+rs6000_gimplify_va_arg (tree valist, tree type, gimple_seq *pre_p,
+			gimple_seq *post_p)
 {
   tree f_gpr, f_fpr, f_res, f_ovf, f_sav;
   tree gpr, fpr, ovf, sav, reg, t, u;
@@ -6783,6 +6811,7 @@ rs6000_gimplify_va_arg (tree valist, tree type, tree *pre_p, tree *post_p)
   int align;
   tree ptrtype = build_pointer_type (type);
   int regalign = 0;
+  gimple stmt;
 
   if (pass_by_reference (NULL, TYPE_MODE (type), type, false))
     {
@@ -6801,14 +6830,14 @@ rs6000_gimplify_va_arg (tree valist, tree type, tree *pre_p, tree *post_p)
 	  if (elem_size < UNITS_PER_WORD)
 	    {
 	      tree real_part, imag_part;
-	      tree post = NULL_TREE;
+	      gimple_seq post = NULL;
 
 	      real_part = rs6000_gimplify_va_arg (valist, elem_type, pre_p,
 						  &post);
 	      /* Copy the value into a temporary, lest the formal temporary
 		 be reused out from under us.  */
 	      real_part = get_initialized_tmp_var (real_part, pre_p, &post);
-	      append_to_statement_list (post, pre_p);
+	      gimple_seq_add_seq (pre_p, post);
 
 	      imag_part = rs6000_gimplify_va_arg (valist, elem_type, pre_p,
 						  post_p);
@@ -6828,9 +6857,12 @@ rs6000_gimplify_va_arg (tree valist, tree type, tree *pre_p, tree *post_p)
 
   valist = build_va_arg_indirect_ref (valist);
   gpr = build3 (COMPONENT_REF, TREE_TYPE (f_gpr), valist, f_gpr, NULL_TREE);
-  fpr = build3 (COMPONENT_REF, TREE_TYPE (f_fpr), valist, f_fpr, NULL_TREE);
-  ovf = build3 (COMPONENT_REF, TREE_TYPE (f_ovf), valist, f_ovf, NULL_TREE);
-  sav = build3 (COMPONENT_REF, TREE_TYPE (f_sav), valist, f_sav, NULL_TREE);
+  fpr = build3 (COMPONENT_REF, TREE_TYPE (f_fpr), unshare_expr (valist),
+		f_fpr, NULL_TREE);
+  ovf = build3 (COMPONENT_REF, TREE_TYPE (f_ovf), unshare_expr (valist),
+		f_ovf, NULL_TREE);
+  sav = build3 (COMPONENT_REF, TREE_TYPE (f_sav), unshare_expr (valist),
+		f_sav, NULL_TREE);
 
   size = int_size_in_bytes (type);
   rsize = (size + 3) / 4;
@@ -6884,18 +6916,19 @@ rs6000_gimplify_va_arg (tree valist, tree type, tree *pre_p, tree *post_p)
       if (n_reg == 2 && reg == gpr)
 	{
 	  regalign = 1;
-	  u = build2 (BIT_AND_EXPR, TREE_TYPE (reg), reg,
+	  u = build2 (BIT_AND_EXPR, TREE_TYPE (reg), unshare_expr (reg),
 		     build_int_cst (TREE_TYPE (reg), n_reg - 1));
-	  u = build2 (POSTINCREMENT_EXPR, TREE_TYPE (reg), reg, u);
+	  u = build2 (POSTINCREMENT_EXPR, TREE_TYPE (reg),
+		      unshare_expr (reg), u);
 	}
       /* _Decimal128 is passed in even/odd fpr pairs; the stored
 	 reg number is 0 for f1, so we want to make it odd.  */
       else if (reg == fpr && TYPE_MODE (type) == TDmode)
 	{
 	  regalign = 1;
-	  t = build2 (BIT_IOR_EXPR, TREE_TYPE (reg), reg,
+	  t = build2 (BIT_IOR_EXPR, TREE_TYPE (reg), unshare_expr (reg),
 		      build_int_cst (TREE_TYPE (reg), 1));
-	  u = build2 (MODIFY_EXPR, void_type_node, reg, t);
+	  u = build2 (MODIFY_EXPR, void_type_node, unshare_expr (reg), t);
 	}
 
       t = fold_convert (TREE_TYPE (reg), size_int (8 - n_reg + 1));
@@ -6908,7 +6941,7 @@ rs6000_gimplify_va_arg (tree valist, tree type, tree *pre_p, tree *post_p)
       if (sav_ofs)
 	t = build2 (POINTER_PLUS_EXPR, ptr_type_node, sav, size_int (sav_ofs));
 
-      u = build2 (POSTINCREMENT_EXPR, TREE_TYPE (reg), reg,
+      u = build2 (POSTINCREMENT_EXPR, TREE_TYPE (reg), unshare_expr (reg),
 		  build_int_cst (TREE_TYPE (reg), n_reg));
       u = fold_convert (sizetype, u);
       u = build2 (MULT_EXPR, sizetype, u, size_int (sav_scale));
@@ -6921,22 +6954,18 @@ rs6000_gimplify_va_arg (tree valist, tree type, tree *pre_p, tree *post_p)
 	  && TYPE_MODE (type) == SDmode)
 	t = build2 (POINTER_PLUS_EXPR, TREE_TYPE (t), t, size_int (size));
 
-      t = build2 (GIMPLE_MODIFY_STMT, void_type_node, addr, t);
-      gimplify_and_add (t, pre_p);
+      gimplify_assign (addr, t, pre_p);
 
-      t = build1 (GOTO_EXPR, void_type_node, lab_over);
-      gimplify_and_add (t, pre_p);
+      gimple_seq_add_stmt (pre_p, gimple_build_goto (lab_over));
 
-      t = build1 (LABEL_EXPR, void_type_node, lab_false);
-      append_to_statement_list (t, pre_p);
+      stmt = gimple_build_label (lab_false);
+      gimple_seq_add_stmt (pre_p, stmt);
 
       if ((n_reg == 2 && !regalign) || n_reg > 2)
 	{
 	  /* Ensure that we don't find any more args in regs.
 	     Alignment has taken care of for special cases.  */
-	  t = build_gimple_modify_stmt (reg,
-					build_int_cst (TREE_TYPE (reg), 8));
-	  gimplify_and_add (t, pre_p);
+	  gimplify_assign (reg, build_int_cst (TREE_TYPE (reg), 8), pre_p);
 	}
     }
 
@@ -6954,17 +6983,15 @@ rs6000_gimplify_va_arg (tree valist, tree type, tree *pre_p, tree *post_p)
     }
   gimplify_expr (&t, pre_p, NULL, is_gimple_val, fb_rvalue);
 
-  u = build2 (GIMPLE_MODIFY_STMT, void_type_node, addr, t);
-  gimplify_and_add (u, pre_p);
+  gimplify_assign (unshare_expr (addr), t, pre_p);
 
   t = build2 (POINTER_PLUS_EXPR, TREE_TYPE (t), t, size_int (size));
-  t = build2 (GIMPLE_MODIFY_STMT, TREE_TYPE (ovf), ovf, t);
-  gimplify_and_add (t, pre_p);
+  gimplify_assign (unshare_expr (ovf), t, pre_p);
 
   if (lab_over)
     {
-      t = build1 (LABEL_EXPR, void_type_node, lab_over);
-      append_to_statement_list (t, pre_p);
+      stmt = gimple_build_label (lab_over);
+      gimple_seq_add_stmt (pre_p, stmt);
     }
 
   if (STRICT_ALIGNMENT
@@ -9094,7 +9121,9 @@ rs6000_expand_builtin (tree exp, rtx target, rtx subtarget ATTRIBUTE_UNUSED,
   /* FIXME: There's got to be a nicer way to handle this case than
      constructing a new CALL_EXPR.  */
   if (fcode == ALTIVEC_BUILTIN_VCFUX
-      || fcode == ALTIVEC_BUILTIN_VCFSX)
+      || fcode == ALTIVEC_BUILTIN_VCFSX
+      || fcode == ALTIVEC_BUILTIN_VCTUXS
+      || fcode == ALTIVEC_BUILTIN_VCTSXS)
     {
       if (call_expr_nargs (exp) == 1)
 	exp = build_call_nary (TREE_TYPE (exp), CALL_EXPR_FN (exp),
@@ -11320,15 +11349,14 @@ rs6000_alloc_sdmode_stack_slot (void)
 {
   tree t;
   basic_block bb;
-  block_stmt_iterator bsi;
+  gimple_stmt_iterator gsi;
 
   gcc_assert (cfun->machine->sdmode_stack_slot == NULL_RTX);
 
   FOR_EACH_BB (bb)
-    for (bsi = bsi_start (bb); !bsi_end_p (bsi); bsi_next (&bsi))
+    for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); gsi_next (&gsi))
       {
-	tree ret = walk_tree_without_duplicates (bsi_stmt_ptr (bsi),
-						 rs6000_check_sdmode, NULL);
+	tree ret = walk_gimple_op (gsi_stmt (gsi), rs6000_check_sdmode, NULL);
 	if (ret)
 	  {
 	    rtx stack = assign_stack_local (DDmode, GET_MODE_SIZE (DDmode), 0);
@@ -11363,11 +11391,11 @@ rs6000_instantiate_decls (void)
 }
 
 /* Return the register class of a scratch register needed to copy IN into
-   or out of a register in CLASS in MODE.  If it can be done directly,
+   or out of a register in RCLASS in MODE.  If it can be done directly,
    NO_REGS is returned.  */
 
 enum reg_class
-rs6000_secondary_reload_class (enum reg_class class,
+rs6000_secondary_reload_class (enum reg_class rclass,
 			       enum machine_mode mode ATTRIBUTE_UNUSED,
 			       rtx in)
 {
@@ -11386,7 +11414,7 @@ rs6000_secondary_reload_class (enum reg_class class,
 
 	 On Darwin, pic addresses require a load from memory, which
 	 needs a base register.  */
-      if (class != BASE_REGS
+      if (rclass != BASE_REGS
 	  && (GET_CODE (in) == SYMBOL_REF
 	      || GET_CODE (in) == HIGH
 	      || GET_CODE (in) == LABEL_REF
@@ -11415,22 +11443,22 @@ rs6000_secondary_reload_class (enum reg_class class,
 
   /* We can place anything into GENERAL_REGS and can put GENERAL_REGS
      into anything.  */
-  if (class == GENERAL_REGS || class == BASE_REGS
+  if (rclass == GENERAL_REGS || rclass == BASE_REGS
       || (regno >= 0 && INT_REGNO_P (regno)))
     return NO_REGS;
 
   /* Constants, memory, and FP registers can go into FP registers.  */
   if ((regno == -1 || FP_REGNO_P (regno))
-      && (class == FLOAT_REGS || class == NON_SPECIAL_REGS))
+      && (rclass == FLOAT_REGS || rclass == NON_SPECIAL_REGS))
     return (mode != SDmode) ? NO_REGS : GENERAL_REGS;
 
   /* Memory, and AltiVec registers can go into AltiVec registers.  */
   if ((regno == -1 || ALTIVEC_REGNO_P (regno))
-      && class == ALTIVEC_REGS)
+      && rclass == ALTIVEC_REGS)
     return NO_REGS;
 
   /* We can copy among the CR registers.  */
-  if ((class == CR_REGS || class == CR0_REGS)
+  if ((rclass == CR_REGS || rclass == CR0_REGS)
       && regno >= 0 && CR_REGNO_P (regno))
     return NO_REGS;
 
@@ -17571,7 +17599,7 @@ rs6000_output_mi_thunk (FILE *file, tree thunk_fndecl ATTRIBUTE_UNUSED,
 			HOST_WIDE_INT delta, HOST_WIDE_INT vcall_offset,
 			tree function)
 {
-  rtx this, insn, funexp;
+  rtx this_rtx, insn, funexp;
 
   reload_completed = 1;
   epilogue_completed = 1;
@@ -17582,17 +17610,17 @@ rs6000_output_mi_thunk (FILE *file, tree thunk_fndecl ATTRIBUTE_UNUSED,
   /* Find the "this" pointer.  If the function returns a structure,
      the structure return pointer is in r3.  */
   if (aggregate_value_p (TREE_TYPE (TREE_TYPE (function)), function))
-    this = gen_rtx_REG (Pmode, 4);
+    this_rtx = gen_rtx_REG (Pmode, 4);
   else
-    this = gen_rtx_REG (Pmode, 3);
+    this_rtx = gen_rtx_REG (Pmode, 3);
 
   /* Apply the constant offset, if required.  */
   if (delta)
     {
       rtx delta_rtx = GEN_INT (delta);
       emit_insn (TARGET_32BIT
-		 ? gen_addsi3 (this, this, delta_rtx)
-		 : gen_adddi3 (this, this, delta_rtx));
+		 ? gen_addsi3 (this_rtx, this_rtx, delta_rtx)
+		 : gen_adddi3 (this_rtx, this_rtx, delta_rtx));
     }
 
   /* Apply the offset from the vtable, if required.  */
@@ -17601,7 +17629,7 @@ rs6000_output_mi_thunk (FILE *file, tree thunk_fndecl ATTRIBUTE_UNUSED,
       rtx vcall_offset_rtx = GEN_INT (vcall_offset);
       rtx tmp = gen_rtx_REG (Pmode, 12);
 
-      emit_move_insn (tmp, gen_rtx_MEM (Pmode, this));
+      emit_move_insn (tmp, gen_rtx_MEM (Pmode, this_rtx));
       if (((unsigned HOST_WIDE_INT) vcall_offset) + 0x8000 >= 0x10000)
 	{
 	  emit_insn (TARGET_32BIT
@@ -17616,8 +17644,8 @@ rs6000_output_mi_thunk (FILE *file, tree thunk_fndecl ATTRIBUTE_UNUSED,
 	  emit_move_insn (tmp, gen_rtx_MEM (Pmode, loc));
 	}
       emit_insn (TARGET_32BIT
-		 ? gen_addsi3 (this, this, tmp)
-		 : gen_adddi3 (this, this, tmp));
+		 ? gen_addsi3 (this_rtx, this_rtx, tmp)
+		 : gen_adddi3 (this_rtx, this_rtx, tmp));
     }
 
   /* Generate a tail call to the target function.  */
@@ -20513,12 +20541,12 @@ rs6000_elf_encode_section_info (tree decl, rtx rtl, int first)
 }
 
 static inline bool
-compare_section_name (const char *section, const char *template)
+compare_section_name (const char *section, const char *templ)
 {
   int len;
 
-  len = strlen (template);
-  return (strncmp (section, template, len) == 0
+  len = strlen (templ);
+  return (strncmp (section, templ, len) == 0
 	  && (section[len] == 0 || section[len] == '.'));
 }
 
@@ -21806,17 +21834,17 @@ rs6000_register_move_cost (enum machine_mode mode,
    or from memory.  */
 
 int
-rs6000_memory_move_cost (enum machine_mode mode, enum reg_class class,
+rs6000_memory_move_cost (enum machine_mode mode, enum reg_class rclass,
 			 int in ATTRIBUTE_UNUSED)
 {
-  if (reg_classes_intersect_p (class, GENERAL_REGS))
+  if (reg_classes_intersect_p (rclass, GENERAL_REGS))
     return 4 * hard_regno_nregs[0][mode];
-  else if (reg_classes_intersect_p (class, FLOAT_REGS))
+  else if (reg_classes_intersect_p (rclass, FLOAT_REGS))
     return 4 * hard_regno_nregs[32][mode];
-  else if (reg_classes_intersect_p (class, ALTIVEC_REGS))
+  else if (reg_classes_intersect_p (rclass, ALTIVEC_REGS))
     return 4 * hard_regno_nregs[FIRST_ALTIVEC_REGNO][mode];
   else
-    return 4 + rs6000_register_move_cost (mode, class, GENERAL_REGS);
+    return 4 + rs6000_register_move_cost (mode, rclass, GENERAL_REGS);
 }
 
 /* Returns a code for a target-specific builtin that implements

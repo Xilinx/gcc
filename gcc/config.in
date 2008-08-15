@@ -93,6 +93,14 @@
 #endif
 
 
+/* Define if you want operations on GIMPLE (the basic data structure of the
+   high-level optimizers) to be checked for dynamic type safety at runtime.
+   This is moderately expensive. */
+#ifndef USED_FOR_TARGET
+#undef ENABLE_GIMPLE_CHECKING
+#endif
+
+
 /* Define to 1 if translation of program messages to the user's native
    language is requested. */
 #ifndef USED_FOR_TARGET
@@ -369,6 +377,10 @@
 #undef HAVE_AS_TLS
 #endif
 
+/* Define if your assembler supports VSX instructions. */
+#ifndef USED_FOR_TARGET
+#undef HAVE_AS_VSX
+#endif
 
 /* Define to 1 if you have the `atoll' function. */
 #ifndef USED_FOR_TARGET
@@ -810,6 +822,18 @@
 /* Define if your assembler supports .balign and .p2align. */
 #ifndef USED_FOR_TARGET
 #undef HAVE_GAS_BALIGN_AND_P2ALIGN
+#endif
+
+
+/* Define 0/1 if your assembler supports CFI directives. */
+#ifndef USED_FOR_TARGET
+#undef HAVE_GAS_CFI_DIRECTIVE
+#endif
+
+
+/* Define 0/1 if your assembler supports .cfi_personality. */
+#ifndef USED_FOR_TARGET
+#undef HAVE_GAS_CFI_PERSONALITY_DIRECTIVE
 #endif
 
 

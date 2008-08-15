@@ -581,7 +581,7 @@ default_secondary_reload (bool in_p ATTRIBUTE_UNUSED, rtx x ATTRIBUTE_UNUSED,
 			  enum machine_mode reload_mode ATTRIBUTE_UNUSED,
 			  secondary_reload_info *sri)
 {
-  enum reg_class class = NO_REGS;
+  enum reg_class rclass = NO_REGS;
 
   if (sri->prev_sri && sri->prev_sri->t_icode != CODE_FOR_nothing)
     {
@@ -590,13 +590,13 @@ default_secondary_reload (bool in_p ATTRIBUTE_UNUSED, rtx x ATTRIBUTE_UNUSED,
     }
 #ifdef SECONDARY_INPUT_RELOAD_CLASS
   if (in_p)
-    class = SECONDARY_INPUT_RELOAD_CLASS (reload_class, reload_mode, x);
+    rclass = SECONDARY_INPUT_RELOAD_CLASS (reload_class, reload_mode, x);
 #endif
 #ifdef SECONDARY_OUTPUT_RELOAD_CLASS
   if (! in_p)
-    class = SECONDARY_OUTPUT_RELOAD_CLASS (reload_class, reload_mode, x);
+    rclass = SECONDARY_OUTPUT_RELOAD_CLASS (reload_class, reload_mode, x);
 #endif
-  if (class != NO_REGS)
+  if (rclass != NO_REGS)
     {
       enum insn_code icode = (in_p ? reload_in_optab[(int) reload_mode]
 			      : reload_out_optab[(int) reload_mode]);
@@ -648,19 +648,19 @@ default_secondary_reload (bool in_p ATTRIBUTE_UNUSED, rtx x ATTRIBUTE_UNUSED,
 
 	  if (reg_class_subset_p (reload_class, insn_class))
 	    {
-	      gcc_assert (scratch_class == class);
-	      class = NO_REGS;
+	      gcc_assert (scratch_class == rclass);
+	      rclass = NO_REGS;
 	    }
 	  else
-	    class = insn_class;
+	    rclass = insn_class;
 
         }
-      if (class == NO_REGS)
+      if (rclass == NO_REGS)
 	sri->icode = icode;
       else
 	sri->t_icode = icode;
     }
-  return class;
+  return rclass;
 }
 
 bool
@@ -707,6 +707,40 @@ bool
 default_hard_regno_scratch_ok (unsigned int regno ATTRIBUTE_UNUSED)
 {
   return true;
+}
+
+bool
+default_target_option_valid_attribute_p (tree ARG_UNUSED (fndecl),
+					 tree ARG_UNUSED (name),
+					 tree ARG_UNUSED (args),
+					 int ARG_UNUSED (flags))
+{
+  return false;
+}
+
+bool
+default_target_option_can_inline_p (tree caller, tree callee)
+{
+  bool ret = false;
+  tree callee_opts = DECL_FUNCTION_SPECIFIC_TARGET (callee);
+  tree caller_opts = DECL_FUNCTION_SPECIFIC_TARGET (caller);
+
+  /* If callee has no option attributes, then it is ok to inline */
+  if (!callee_opts)
+    ret = true;
+
+  /* If caller has no option attributes, but callee does then it is not ok to
+     inline */
+  else if (!caller_opts)
+    ret = false;
+
+  /* If both caller and callee have attributes, assume that if the pointer is
+     different, the the two functions have different target options since
+     build_target_option_node uses a hash table for the options.  */
+  else
+    ret = (callee_opts == caller_opts);
+
+  return ret;
 }
 
 #include "gt-targhooks.h"

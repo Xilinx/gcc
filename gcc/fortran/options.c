@@ -69,12 +69,15 @@ gfc_init_options (unsigned int argc, const char **argv)
   gfc_option.warn_aliasing = 0;
   gfc_option.warn_ampersand = 0;
   gfc_option.warn_character_truncation = 0;
+  gfc_option.warn_array_temp = 0;
   gfc_option.warn_conversion = 0;
   gfc_option.warn_implicit_interface = 0;
   gfc_option.warn_line_truncation = 0;
   gfc_option.warn_surprising = 0;
   gfc_option.warn_tabs = 1;
   gfc_option.warn_underflow = 1;
+  gfc_option.warn_intrinsic_shadow = 0;
+  gfc_option.warn_intrinsics_std = 0;
   gfc_option.max_errors = 25;
 
   gfc_option.flag_all_intrinsics = 0;
@@ -98,6 +101,7 @@ gfc_init_options (unsigned int argc, const char **argv)
   gfc_option.flag_backslash = 0;
   gfc_option.flag_module_private = 0;
   gfc_option.flag_backtrace = 0;
+  gfc_option.flag_check_array_temporaries = 0;
   gfc_option.flag_allow_leading_underscore = 0;
   gfc_option.flag_dump_core = 0;
   gfc_option.flag_external_blas = 0;
@@ -122,8 +126,6 @@ gfc_init_options (unsigned int argc, const char **argv)
   flag_errno_math = 0;
 
   set_default_std_flags ();
-
-  gfc_option.warn_nonstd_intrinsics = 0;
 
   /* -fshort-enums can be default on some targets.  */
   gfc_option.fshort_enums = targetm.default_short_enums ();
@@ -292,14 +294,6 @@ gfc_post_options (const char **pfilename)
 	gfc_warning_now ("'-fd-lines-as-code' has no effect in free form");
     }
 
-  flag_inline_trees = 1;
-
-  /* Use tree inlining.  */
-  if (!flag_no_inline)
-    flag_no_inline = 1;
-  if (flag_inline_functions)
-    flag_inline_trees = 2;
-
   /* If -pedantic, warn about the use of GNU extensions.  */
   if (pedantic && (gfc_option.allow_std & GFC_STD_GNU) != 0)
     gfc_option.warn_std |= GFC_STD_GNU;
@@ -354,9 +348,6 @@ gfc_post_options (const char **pfilename)
       gfc_option.warn_tabs = 0;
     }
 
-  if (gfc_option.flag_all_intrinsics)
-    gfc_option.warn_nonstd_intrinsics = 0;
-
   gfc_cpp_post_options ();
 
 /* FIXME: return gfc_cpp_preprocess_only ();
@@ -378,13 +369,14 @@ set_Wall (int setting)
   gfc_option.warn_aliasing = setting;
   gfc_option.warn_ampersand = setting;
   gfc_option.warn_line_truncation = setting;
-  gfc_option.warn_nonstd_intrinsics = setting;
   gfc_option.warn_surprising = setting;
   gfc_option.warn_tabs = !setting;
   gfc_option.warn_underflow = setting;
+  gfc_option.warn_intrinsic_shadow = setting;
+  gfc_option.warn_intrinsics_std = setting;
   gfc_option.warn_character_truncation = setting;
 
-  set_Wunused (setting);
+  warn_unused = setting;
   warn_return_type = setting;
   warn_switch = setting;
 
@@ -485,6 +477,10 @@ gfc_handle_option (size_t scode, const char *arg, int value)
       gfc_option.warn_ampersand = value;
       break;
 
+    case OPT_Warray_temporaries:
+      gfc_option.warn_array_temp = value;
+      break;
+
     case OPT_Wcharacter_truncation:
       gfc_option.warn_character_truncation = value;
       break;
@@ -517,6 +513,10 @@ gfc_handle_option (size_t scode, const char *arg, int value)
       gfc_option.warn_underflow = value;
       break;
 
+    case OPT_Wintrinsic_shadow:
+      gfc_option.warn_intrinsic_shadow = value;
+      break;
+
     case OPT_fall_intrinsics:
       gfc_option.flag_all_intrinsics = 1;
       break;
@@ -535,6 +535,10 @@ gfc_handle_option (size_t scode, const char *arg, int value)
       
     case OPT_fbacktrace:
       gfc_option.flag_backtrace = value;
+      break;
+      
+    case OPT_fcheck_array_temporaries:
+      gfc_option.flag_check_array_temporaries = value;
       break;
       
     case OPT_fdump_core:
@@ -778,8 +782,8 @@ gfc_handle_option (size_t scode, const char *arg, int value)
       gfc_option.warn_std = 0;
       break;
 
-    case OPT_Wnonstd_intrinsics:
-      gfc_option.warn_nonstd_intrinsics = value;
+    case OPT_Wintrinsics_std:
+      gfc_option.warn_intrinsics_std = value;
       break;
 
     case OPT_fshort_enums:

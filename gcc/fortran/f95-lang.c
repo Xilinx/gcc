@@ -29,7 +29,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "system.h"
 #include "coretypes.h"
 #include "tree.h"
-#include "tree-gimple.h"
+#include "gimple.h"
 #include "flags.h"
 #include "langhooks.h"
 #include "langhooks-def.h"
@@ -62,7 +62,7 @@ GTY(())
 
 union lang_tree_node
 GTY((desc ("TREE_CODE (&%h.generic) == IDENTIFIER_NODE"),
-     chain_next ("(union lang_tree_node *)GENERIC_NEXT (&%h.generic)")))
+     chain_next ("(union lang_tree_node *)TREE_CHAIN (&%h.generic)")))
 
 {
   union tree_node GTY((tag ("0"),
@@ -236,7 +236,7 @@ gfc_be_parse_file (int set_yydebug ATTRIBUTE_UNUSED)
   cgraph_finalize_compilation_unit ();
   cgraph_optimize ();
 
-  /* Tell the frontent about any errors.  */
+  /* Tell the frontend about any errors.  */
   gfc_get_errors (&warnings, &errors);
   errorcount += errors;
   warningcount += warnings;
@@ -437,7 +437,7 @@ poplevel (int keep, int reverse, int functionbody)
     }
   else if (current_binding_level == global_binding_level)
     /* When using gfc_start_block/gfc_finish_block from middle-end hooks,
-       don't add newly created BLOCKs as sublocks of global_binding_level.  */
+       don't add newly created BLOCKs as subblocks of global_binding_level.  */
     ;
   else if (block_node)
     {
@@ -547,7 +547,7 @@ gfc_init_decl_processing (void)
      only use it for actual characters, not for INTEGER(1). Also, we
      want double_type_node to actually have double precision.  */
   build_common_tree_nodes (false, false);
-  /* x86_64 minw32 has a sizetype of "unsigned long long", most other hosts
+  /* x86_64 mingw32 has a sizetype of "unsigned long long", most other hosts
      have a sizetype of "unsigned long". Therefore choose the correct size
      in mostly target independent way.  */
   if (TYPE_MODE (long_unsigned_type_node) == ptr_mode)
@@ -604,7 +604,7 @@ gfc_mark_addressable (tree exp)
 		       IDENTIFIER_POINTER (DECL_NAME (x)));
 		return false;
 	      }
-	    pedwarn ("register variable %qs used in nested function",
+	    pedwarn (0, "register variable %qs used in nested function",
 		     IDENTIFIER_POINTER (DECL_NAME (x)));
 	  }
 	else if (DECL_REGISTER (x) && !TREE_ADDRESSABLE (x))
@@ -629,7 +629,7 @@ gfc_mark_addressable (tree exp)
 	      }
 #endif
 
-	    pedwarn ("address of register variable %qs requested",
+	    pedwarn (0, "address of register variable %qs requested",
 		     IDENTIFIER_POINTER (DECL_NAME (x)));
 	  }
 

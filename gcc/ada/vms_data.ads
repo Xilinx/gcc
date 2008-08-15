@@ -1526,6 +1526,14 @@ package VMS_Data is
    --   /VERBOSE), then error lines start with the full path name of the
    --   project file, rather than its simple file name.
 
+   S_GCC_Generate : aliased constant S := "/GENERATE_PROCESSED_SOURCE "    &
+                                             "-gnateG";
+   --        /NOGENERATE_PROCESSED_SOURCE (D)
+   --        /GENERATE_PROCESSED_SOURCE
+   --
+   --        Generate a file <source>_prep if the integrated preprocessing
+   --        is modifying the source text.
+
    S_GCC_GNAT    : aliased constant S := "/GNAT_INTERNAL "                 &
                                             "-gnatg";
    --        /NOGNAT_INTERNAL (D)
@@ -1745,6 +1753,15 @@ package VMS_Data is
    --   a body is compiled, the corresponding spec is also listed, along
    --   with any subunits.
 
+   S_GCC_Machine : aliased constant S := "/MACHINE_CODE_LISTING "          &
+                                             "-source-listing";
+   --        /NOMACHINE_CODE_LISTING (D)
+   --        /MACHINE_CODE_LISTING
+   --
+   --   Cause a full machine code listing of the file to be generated to
+   --   <filename>.lis. Interspersed source is included if the /DEBUG
+   --   qualifier is also present.
+
    S_GCC_Mapping : aliased constant S := "/MAPPING_FILE=<"                 &
                                             "-gnatem>";
    --        /MAPPING_FILE=file_name
@@ -1931,6 +1948,36 @@ package VMS_Data is
    --   fname where the period is replace by an underline. For example, if
    --   file xyz.adb is compiled with -gnatl=.lst, then the output is written
    --   to file xyz.adb_lst.
+
+   S_GCC_Pointer : aliased constant S := "/POINTER_SIZE="                  &
+                                            "64 "                          &
+                                               "-mmalloc64 "               &
+                                            "LONG "                        &
+                                               "-mmalloc64 "               &
+                                            "32 "                          &
+                                               "-mno-malloc64 "            &
+                                            "SHORT "                       &
+                                               "-mno-malloc64";
+   --        /POINTER_SIZE=64 (D)
+   --        /POINTER_SIZE[=(keyword[,...])]
+   --
+   --   Change how pointers and descriptors are allocated. The following
+   --   keywords are supported:
+   --
+   --        64 (D)       Allocate heap pointers in 64bit space except as
+   --                     constrained by a 32bit size clause or by
+   --                     Convention_C and generate 64bit descriptors for
+   --                     Descriptor mechanisms for calling imported
+   --                     subprograms and accept both 64bit and 32bit
+   --                     descriptors for calls to exported subprograms.
+   --
+   --        LONG         Equivalent to option 64.
+   --
+   --        32           Allocate all heap pointers in 32bit space and
+   --                     generate 32bit descriptors for Descriptor
+   --                     mechanisms for calling imported subprograms.
+   --
+   --        SHORT        Equivalent to option 32.
 
    S_GCC_Polling : aliased constant S := "/POLLING "                       &
                                             "-gnatP";
@@ -2752,6 +2799,10 @@ package VMS_Data is
                                                "-gnatwb "                  &
                                             "NO_BAD_FIXED_VALUES "         &
                                                "-gnatwB "                  &
+                                            "BIASED_REPRESENTATION "       &
+                                               "-gnatw.b "                 &
+                                            "NO_BIASED_REPRESENTATION "    &
+                                               "-gnatw.B "                 &
                                             "CONDITIONALS "                &
                                                "-gnatwc "                  &
                                             "NOCONDITIONALS "              &
@@ -3302,6 +3353,7 @@ package VMS_Data is
                      S_GCC_Follow  'Access,
                      S_GCC_Force   'Access,
                      S_GCC_Full    'Access,
+                     S_GCC_Generate'Access,
                      S_GCC_GNAT    'Access,
                      S_GCC_Help    'Access,
                      S_GCC_Ident   'Access,
@@ -3316,6 +3368,7 @@ package VMS_Data is
                      S_GCC_Length  'Access,
                      S_GCC_List    'Access,
                      S_GCC_Output  'Access,
+                     S_GCC_Machine 'Access,
                      S_GCC_Mapping 'Access,
                      S_GCC_Mess    'Access,
                      S_GCC_Nesting 'Access,
@@ -3325,6 +3378,7 @@ package VMS_Data is
                      S_GCC_Nostlib 'Access,
                      S_GCC_Opt     'Access,
                      S_GCC_OptX    'Access,
+                     S_GCC_Pointer 'Access,
                      S_GCC_Polling 'Access,
                      S_GCC_Project 'Access,
                      S_GCC_Psta    'Access,

@@ -1,3 +1,22 @@
+2008-08-07  Andrew Haley  <aph@redhat.com>
+
+	* testsuite/libjava.lang/StackTrace2.java: Rewrite to prevent
+	spurious failure when some methods are inlined.
+
+2008-08-05  Matthias Klose  <doko@ubuntu.com>
+
+	* HACKING: Update instructions how to build gcj/javaprims.h.
+
+2008-08-04  Tom Tromey  <tromey@redhat.com>
+
+	PR libgcj/31890:
+	* gcj/javaprims.h: Regenerate class list.
+
+2008-07-16  Roger Sayle  <roger@eyesopen.com>
+	    Paolo Bonzini  <bonzini@gnu.org>
+
+	* scripts/jar.in: Fix portability problems with Solaris /bin/sh.
+
 2008-07-08  Matthias Klose  <doko@ubuntu.com>
 
 	* libtool-version: Bump soversion.

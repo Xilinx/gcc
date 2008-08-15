@@ -166,6 +166,10 @@ not attempt to (re-)generate data structures or lower intermediate
 language form based on the requirements of the next pass.  Nevertheless,
 what is present is useful, and a far sight better than nothing at all.
 
+Each pass may have its own dump file (for GCC debugging purposes).
+Passes without any names, or with a name starting with a star, do not
+dump anything.
+
 TODO: describe the global variables set up by the pass manager,
 and a brief description of how a new pass should use it.
 I need to look at what info rtl passes use first@enddots{}
@@ -275,7 +279,7 @@ located in @file{tree-ssa.c} and is described by @code{pass_build_ssa}.
 This pass scans the function for uses of @code{SSA_NAME}s that
 are fed by default definition.  For non-parameter variables, such
 uses are uninitialized.  The pass is run twice, before and after
-optimization.  In the first pass we only warn for uses that are
+optimization (if turned on).  In the first pass we only warn for uses that are
 positively uninitialized; in the second pass we warn for uses that
 are possibly uninitialized.  The pass is located in @file{tree-ssa.c}
 and is defined by @code{pass_early_warn_uninitialized} and

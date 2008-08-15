@@ -24,6 +24,7 @@ along with GCC; see the file COPYING3.  If not see
 
 #include "coretypes.h"
 #include "options.h"
+#include "real.h"
 
 enum debug_info_type
 {
@@ -115,12 +116,6 @@ extern int optimize_size;
 
 extern bool extra_warnings;
 
-/* Nonzero to warn about unused variables, functions et.al.  Use
-   set_Wunused() to update the -Wunused-* flags that correspond to the
-   -Wunused option.  */
-
-extern void set_Wunused (int setting);
-
 /* Used to set the level of -Wstrict-aliasing, when no level is specified.  
    The external way to set the default level is to use
    -Wstrict-aliasing=level.  
@@ -142,11 +137,6 @@ extern HOST_WIDE_INT larger_than_size;
 
 extern bool warn_frame_larger_than;
 extern HOST_WIDE_INT frame_larger_than_size;
-
-/* Temporarily suppress certain warnings.
-   This is set while reading code from a system header file.  */
-
-extern int in_system_header;
 
 /* Nonzero for -dp: annotate the assembly with a comment describing the
    pattern and alternative used.  */
@@ -173,11 +163,6 @@ extern int flag_pcc_struct_return;
    2 means C99-like requirements for complex multiply and divide.  */
 
 extern int flag_complex_method;
-
-/* Nonzero means that we don't want inlining by virtue of -fno-inline,
-   not just because the tree inliner turned us off.  */
-
-extern int flag_really_no_inline;
 
 /* Nonzero if we are only using compiler to check syntax errors.  */
 

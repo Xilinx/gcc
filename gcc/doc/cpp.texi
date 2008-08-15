@@ -15,7 +15,7 @@ Copyright @copyright{} 1987, 1989, 1991, 1992, 1993, 1994, 1995, 1996,
 Free Software Foundation, Inc.
 
 Permission is granted to copy, distribute and/or modify this document
-under the terms of the GNU Free Documentation License, Version 1.1 or
+under the terms of the GNU Free Documentation License, Version 1.2 or
 any later version published by the Free Software Foundation.  A copy of
 the license is included in the
 @c man end
@@ -2239,6 +2239,10 @@ If GCC cannot determine the current date, it will emit a warning message
 These macros are defined when the target processor supports atomic compare
 and swap operations on operands 1, 2, 4, 8 or 16 bytes in length, respectively.
 
+@item __GCC_HAVE_DWARF2_CFI_ASM
+This macro is defined when the compiler is emitting Dwarf2 CFI directives
+to the assembler.  When this is defined, it is possible to emit those same
+directives in inline assembly.
 @end table
 
 @node System-specific Predefined Macros

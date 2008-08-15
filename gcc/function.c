@@ -59,7 +59,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "langhooks.h"
 #include "target.h"
 #include "cfglayout.h"
-#include "tree-gimple.h"
+#include "gimple.h"
 #include "tree-pass.h"
 #include "predict.h"
 #include "df.h"
@@ -350,10 +350,14 @@ get_stack_local_alignment (tree type, enum machine_mode mode)
    -2 means use BITS_PER_UNIT,
    positive specifies alignment boundary in bits.
 
+   If REDUCE_ALIGNMENT_OK is true, it is OK to reduce alignment.
+
    We do not round to stack_boundary here.  */
 
 rtx
-assign_stack_local (enum machine_mode mode, HOST_WIDE_INT size, int align)
+assign_stack_local_1 (enum machine_mode mode, HOST_WIDE_INT size,
+		      int align,
+		      bool reduce_alignment_ok ATTRIBUTE_UNUSED)
 {
   rtx x, addr;
   int bigend_correction = 0;
@@ -375,17 +379,52 @@ assign_stack_local (enum machine_mode mode, HOST_WIDE_INT size, int align)
   else
     alignment = align / BITS_PER_UNIT;
 
+  alignment_in_bits = alignment * BITS_PER_UNIT;
+
   if (FRAME_GROWS_DOWNWARD)
     frame_offset -= size;
 
-  /* Ignore alignment we can't do with expected alignment of the boundary.  */
-  if (alignment * BITS_PER_UNIT > PREFERRED_STACK_BOUNDARY)
-    alignment = PREFERRED_STACK_BOUNDARY / BITS_PER_UNIT;
+  /* Ignore alignment if it exceeds MAX_SUPPORTED_STACK_ALIGNMENT.  */
+  if (alignment_in_bits > MAX_SUPPORTED_STACK_ALIGNMENT)
+    {
+      alignment_in_bits = MAX_SUPPORTED_STACK_ALIGNMENT;
+      alignment = alignment_in_bits / BITS_PER_UNIT;
+    }
 
-  alignment_in_bits = alignment * BITS_PER_UNIT;
+  if (SUPPORTS_STACK_ALIGNMENT)
+    {
+      if (crtl->stack_alignment_estimated < alignment_in_bits)
+	{
+          if (!crtl->stack_realign_processed)
+	    crtl->stack_alignment_estimated = alignment_in_bits;
+          else
+	    {
+	      /* If stack is realigned and stack alignment value
+		 hasn't been finalized, it is OK not to increase
+		 stack_alignment_estimated.  The bigger alignment
+		 requirement is recorded in stack_alignment_needed
+		 below.  */
+	      gcc_assert (!crtl->stack_realign_finalized);
+	      if (!crtl->stack_realign_needed)
+		{
+		  /* It is OK to reduce the alignment as long as the
+		     requested size is 0 or the estimated stack
+		     alignment >= mode alignment.  */
+		  gcc_assert (reduce_alignment_ok
+		              || size == 0
+			      || (crtl->stack_alignment_estimated
+				  >= GET_MODE_ALIGNMENT (mode)));
+		  alignment_in_bits = crtl->stack_alignment_estimated;
+		  alignment = alignment_in_bits / BITS_PER_UNIT;
+		}
+	    }
+	}
+    }
 
   if (crtl->stack_alignment_needed < alignment_in_bits)
     crtl->stack_alignment_needed = alignment_in_bits;
+  if (crtl->max_used_stack_slot_alignment < crtl->stack_alignment_needed)
+    crtl->max_used_stack_slot_alignment = crtl->stack_alignment_needed;
 
   /* Calculate how many bytes the start of local variables is off from
      stack alignment.  */
@@ -448,6 +487,14 @@ assign_stack_local (enum machine_mode mode, HOST_WIDE_INT size, int align)
     frame_offset = 0;
 
   return x;
+}
+
+/* Wrap up assign_stack_local_1 with last parameter as false.  */
+
+rtx
+assign_stack_local (enum machine_mode mode, HOST_WIDE_INT size, int align)
+{
+  return assign_stack_local_1 (mode, size, align, false);
 }
 
 /* Removes temporary slot TEMP from LIST.  */
@@ -885,59 +932,60 @@ find_temp_slot_from_address (rtx x)
   return 0;
 }
 
-/* Indicate that NEW is an alternate way of referring to the temp slot
-   that previously was known by OLD.  */
+/* Indicate that NEW_RTX is an alternate way of referring to the temp
+   slot that previously was known by OLD_RTX.  */
 
 void
-update_temp_slot_address (rtx old, rtx new)
+update_temp_slot_address (rtx old_rtx, rtx new_rtx)
 {
   struct temp_slot *p;
 
-  if (rtx_equal_p (old, new))
+  if (rtx_equal_p (old_rtx, new_rtx))
     return;
 
-  p = find_temp_slot_from_address (old);
+  p = find_temp_slot_from_address (old_rtx);
 
-  /* If we didn't find one, see if both OLD is a PLUS.  If so, and NEW
-     is a register, see if one operand of the PLUS is a temporary
-     location.  If so, NEW points into it.  Otherwise, if both OLD and
-     NEW are a PLUS and if there is a register in common between them.
-     If so, try a recursive call on those values.  */
+  /* If we didn't find one, see if both OLD_RTX is a PLUS.  If so, and
+     NEW_RTX is a register, see if one operand of the PLUS is a
+     temporary location.  If so, NEW_RTX points into it.  Otherwise,
+     if both OLD_RTX and NEW_RTX are a PLUS and if there is a register
+     in common between them.  If so, try a recursive call on those
+     values.  */
   if (p == 0)
     {
-      if (GET_CODE (old) != PLUS)
+      if (GET_CODE (old_rtx) != PLUS)
 	return;
 
-      if (REG_P (new))
+      if (REG_P (new_rtx))
 	{
-	  update_temp_slot_address (XEXP (old, 0), new);
-	  update_temp_slot_address (XEXP (old, 1), new);
+	  update_temp_slot_address (XEXP (old_rtx, 0), new_rtx);
+	  update_temp_slot_address (XEXP (old_rtx, 1), new_rtx);
 	  return;
 	}
-      else if (GET_CODE (new) != PLUS)
+      else if (GET_CODE (new_rtx) != PLUS)
 	return;
 
-      if (rtx_equal_p (XEXP (old, 0), XEXP (new, 0)))
-	update_temp_slot_address (XEXP (old, 1), XEXP (new, 1));
-      else if (rtx_equal_p (XEXP (old, 1), XEXP (new, 0)))
-	update_temp_slot_address (XEXP (old, 0), XEXP (new, 1));
-      else if (rtx_equal_p (XEXP (old, 0), XEXP (new, 1)))
-	update_temp_slot_address (XEXP (old, 1), XEXP (new, 0));
-      else if (rtx_equal_p (XEXP (old, 1), XEXP (new, 1)))
-	update_temp_slot_address (XEXP (old, 0), XEXP (new, 0));
+      if (rtx_equal_p (XEXP (old_rtx, 0), XEXP (new_rtx, 0)))
+	update_temp_slot_address (XEXP (old_rtx, 1), XEXP (new_rtx, 1));
+      else if (rtx_equal_p (XEXP (old_rtx, 1), XEXP (new_rtx, 0)))
+	update_temp_slot_address (XEXP (old_rtx, 0), XEXP (new_rtx, 1));
+      else if (rtx_equal_p (XEXP (old_rtx, 0), XEXP (new_rtx, 1)))
+	update_temp_slot_address (XEXP (old_rtx, 1), XEXP (new_rtx, 0));
+      else if (rtx_equal_p (XEXP (old_rtx, 1), XEXP (new_rtx, 1)))
+	update_temp_slot_address (XEXP (old_rtx, 0), XEXP (new_rtx, 0));
 
       return;
     }
 
   /* Otherwise add an alias for the temp's address.  */
   else if (p->address == 0)
-    p->address = new;
+    p->address = new_rtx;
   else
     {
       if (GET_CODE (p->address) != EXPR_LIST)
 	p->address = gen_rtx_EXPR_LIST (VOIDmode, p->address, NULL_RTX);
 
-      p->address = gen_rtx_EXPR_LIST (VOIDmode, new, p->address);
+      p->address = gen_rtx_EXPR_LIST (VOIDmode, new_rtx, p->address);
     }
 }
 
@@ -1163,23 +1211,33 @@ static int cfa_offset;
 static rtx
 instantiate_new_reg (rtx x, HOST_WIDE_INT *poffset)
 {
-  rtx new;
+  rtx new_rtx;
   HOST_WIDE_INT offset;
 
   if (x == virtual_incoming_args_rtx)
-    new = arg_pointer_rtx, offset = in_arg_offset;
+    {
+      if (stack_realign_drap)
+        {
+	  /* Replace virtual_incoming_args_rtx with internal arg
+	     pointer if DRAP is used to realign stack.  */
+          new_rtx = crtl->args.internal_arg_pointer;
+          offset = 0;
+        }
+      else
+        new_rtx = arg_pointer_rtx, offset = in_arg_offset;
+    }
   else if (x == virtual_stack_vars_rtx)
-    new = frame_pointer_rtx, offset = var_offset;
+    new_rtx = frame_pointer_rtx, offset = var_offset;
   else if (x == virtual_stack_dynamic_rtx)
-    new = stack_pointer_rtx, offset = dynamic_offset;
+    new_rtx = stack_pointer_rtx, offset = dynamic_offset;
   else if (x == virtual_outgoing_args_rtx)
-    new = stack_pointer_rtx, offset = out_arg_offset;
+    new_rtx = stack_pointer_rtx, offset = out_arg_offset;
   else if (x == virtual_cfa_rtx)
     {
 #ifdef FRAME_POINTER_CFA_OFFSET
-      new = frame_pointer_rtx;
+      new_rtx = frame_pointer_rtx;
 #else
-      new = arg_pointer_rtx;
+      new_rtx = arg_pointer_rtx;
 #endif
       offset = cfa_offset;
     }
@@ -1187,7 +1245,7 @@ instantiate_new_reg (rtx x, HOST_WIDE_INT *poffset)
     return NULL_RTX;
 
   *poffset = offset;
-  return new;
+  return new_rtx;
 }
 
 /* A subroutine of instantiate_virtual_regs, called via for_each_rtx.
@@ -1201,7 +1259,7 @@ instantiate_virtual_regs_in_rtx (rtx *loc, void *data)
 {
   HOST_WIDE_INT offset;
   bool *changed = (bool *) data;
-  rtx x, new;
+  rtx x, new_rtx;
 
   x = *loc;
   if (x == 0)
@@ -1210,21 +1268,21 @@ instantiate_virtual_regs_in_rtx (rtx *loc, void *data)
   switch (GET_CODE (x))
     {
     case REG:
-      new = instantiate_new_reg (x, &offset);
-      if (new)
+      new_rtx = instantiate_new_reg (x, &offset);
+      if (new_rtx)
 	{
-	  *loc = plus_constant (new, offset);
+	  *loc = plus_constant (new_rtx, offset);
 	  if (changed)
 	    *changed = true;
 	}
       return -1;
 
     case PLUS:
-      new = instantiate_new_reg (XEXP (x, 0), &offset);
-      if (new)
+      new_rtx = instantiate_new_reg (XEXP (x, 0), &offset);
+      if (new_rtx)
 	{
-	  new = plus_constant (new, offset);
-	  *loc = simplify_gen_binary (PLUS, GET_MODE (x), new, XEXP (x, 1));
+	  new_rtx = plus_constant (new_rtx, offset);
+	  *loc = simplify_gen_binary (PLUS, GET_MODE (x), new_rtx, XEXP (x, 1));
 	  if (changed)
 	    *changed = true;
 	  return -1;
@@ -1270,7 +1328,7 @@ instantiate_virtual_regs_in_insn (rtx insn)
   HOST_WIDE_INT offset;
   int insn_code, i;
   bool any_change = false;
-  rtx set, new, x, seq;
+  rtx set, new_rtx, x, seq;
 
   /* There are some special cases to be handled first.  */
   set = single_set (insn);
@@ -1280,17 +1338,17 @@ instantiate_virtual_regs_in_insn (rtx insn)
 	 to mean that the underlying register gets assigned the inverse
 	 transformation.  This is used, for example, in the handling of
 	 non-local gotos.  */
-      new = instantiate_new_reg (SET_DEST (set), &offset);
-      if (new)
+      new_rtx = instantiate_new_reg (SET_DEST (set), &offset);
+      if (new_rtx)
 	{
 	  start_sequence ();
 
 	  for_each_rtx (&SET_SRC (set), instantiate_virtual_regs_in_rtx, NULL);
-	  x = simplify_gen_binary (PLUS, GET_MODE (new), SET_SRC (set),
+	  x = simplify_gen_binary (PLUS, GET_MODE (new_rtx), SET_SRC (set),
 				   GEN_INT (-offset));
-	  x = force_operand (x, new);
-	  if (x != new)
-	    emit_move_insn (new, x);
+	  x = force_operand (x, new_rtx);
+	  if (x != new_rtx)
+	    emit_move_insn (new_rtx, x);
 
 	  seq = get_insns ();
 	  end_sequence ();
@@ -1304,15 +1362,15 @@ instantiate_virtual_regs_in_insn (rtx insn)
 	 new add insn.  The difference between this and falling through
 	 to the generic case is avoiding a new pseudo and eliminating a
 	 move insn in the initial rtl stream.  */
-      new = instantiate_new_reg (SET_SRC (set), &offset);
-      if (new && offset != 0
+      new_rtx = instantiate_new_reg (SET_SRC (set), &offset);
+      if (new_rtx && offset != 0
 	  && REG_P (SET_DEST (set))
 	  && REGNO (SET_DEST (set)) > LAST_VIRTUAL_REGISTER)
 	{
 	  start_sequence ();
 
 	  x = expand_simple_binop (GET_MODE (SET_DEST (set)), PLUS,
-				   new, GEN_INT (offset), SET_DEST (set),
+				   new_rtx, GEN_INT (offset), SET_DEST (set),
 				   1, OPTAB_LIB_WIDEN);
 	  if (x != SET_DEST (set))
 	    emit_move_insn (SET_DEST (set), x);
@@ -1335,7 +1393,7 @@ instantiate_virtual_regs_in_insn (rtx insn)
 	  && recog_data.operand_loc[1] == &XEXP (SET_SRC (set), 0)
 	  && recog_data.operand_loc[2] == &XEXP (SET_SRC (set), 1)
 	  && GET_CODE (recog_data.operand[2]) == CONST_INT
-	  && (new = instantiate_new_reg (recog_data.operand[1], &offset)))
+	  && (new_rtx = instantiate_new_reg (recog_data.operand[1], &offset)))
 	{
 	  offset += INTVAL (recog_data.operand[2]);
 
@@ -1345,7 +1403,7 @@ instantiate_virtual_regs_in_insn (rtx insn)
 	      && REGNO (SET_DEST (set)) > LAST_VIRTUAL_REGISTER)
 	    {
 	      start_sequence ();
-	      emit_move_insn (SET_DEST (set), new);
+	      emit_move_insn (SET_DEST (set), new_rtx);
 	      seq = get_insns ();
 	      end_sequence ();
 
@@ -1359,10 +1417,10 @@ instantiate_virtual_regs_in_insn (rtx insn)
 	  /* Using validate_change and apply_change_group here leaves
 	     recog_data in an invalid state.  Since we know exactly what
 	     we want to check, do those two by hand.  */
-	  if (safe_insn_predicate (insn_code, 1, new)
+	  if (safe_insn_predicate (insn_code, 1, new_rtx)
 	      && safe_insn_predicate (insn_code, 2, x))
 	    {
-	      *recog_data.operand_loc[1] = recog_data.operand[1] = new;
+	      *recog_data.operand_loc[1] = recog_data.operand[1] = new_rtx;
 	      *recog_data.operand_loc[2] = recog_data.operand[2] = x;
 	      any_change = true;
 
@@ -1417,11 +1475,11 @@ instantiate_virtual_regs_in_insn (rtx insn)
 	  break;
 
 	case REG:
-	  new = instantiate_new_reg (x, &offset);
-	  if (new == NULL)
+	  new_rtx = instantiate_new_reg (x, &offset);
+	  if (new_rtx == NULL)
 	    continue;
 	  if (offset == 0)
-	    x = new;
+	    x = new_rtx;
 	  else
 	    {
 	      start_sequence ();
@@ -1432,7 +1490,7 @@ instantiate_virtual_regs_in_insn (rtx insn)
 	      /* ??? Recognize address_operand and/or "p" constraints
 		 to see if (plus new offset) is a valid before we put
 		 this through expand_simple_binop.  */
-	      x = expand_simple_binop (GET_MODE (x), PLUS, new,
+	      x = expand_simple_binop (GET_MODE (x), PLUS, new_rtx,
 				       GEN_INT (offset), NULL_RTX,
 				       1, OPTAB_LIB_WIDEN);
 	      seq = get_insns ();
@@ -1442,21 +1500,21 @@ instantiate_virtual_regs_in_insn (rtx insn)
 	  break;
 
 	case SUBREG:
-	  new = instantiate_new_reg (SUBREG_REG (x), &offset);
-	  if (new == NULL)
+	  new_rtx = instantiate_new_reg (SUBREG_REG (x), &offset);
+	  if (new_rtx == NULL)
 	    continue;
 	  if (offset != 0)
 	    {
 	      start_sequence ();
-	      new = expand_simple_binop (GET_MODE (new), PLUS, new,
+	      new_rtx = expand_simple_binop (GET_MODE (new_rtx), PLUS, new_rtx,
 					 GEN_INT (offset), NULL_RTX,
 					 1, OPTAB_LIB_WIDEN);
 	      seq = get_insns ();
 	      end_sequence ();
 	      emit_insn_before (seq, insn);
 	    }
-	  x = simplify_gen_subreg (recog_data.operand_mode[i], new,
-				   GET_MODE (new), SUBREG_BYTE (x));
+	  x = simplify_gen_subreg (recog_data.operand_mode[i], new_rtx,
+				   GET_MODE (new_rtx), SUBREG_BYTE (x));
 	  break;
 
 	default:
@@ -1547,7 +1605,7 @@ static tree
 instantiate_expr (tree *tp, int *walk_subtrees, void *data ATTRIBUTE_UNUSED)
 {
   tree t = *tp;
-  if (! EXPR_P (t) && ! GIMPLE_STMT_P (t))
+  if (! EXPR_P (t))
     {
       *walk_subtrees = 0;
       if (DECL_P (t) && DECL_RTL_SET_P (t))
@@ -2203,6 +2261,11 @@ assign_parm_find_entry_rtl (struct assign_parm_data_all *all,
   locate_and_pad_parm (data->promoted_mode, data->passed_type, in_regs,
 		       entry_parm ? data->partial : 0, current_function_decl,
 		       &all->stack_args_size, &data->locate);
+
+  /* Update parm_stack_boundary if this parameter is passed in the
+     stack.  */
+  if (!in_regs && crtl->parm_stack_boundary < data->locate.boundary)
+    crtl->parm_stack_boundary = data->locate.boundary;
 
   /* Adjust offsets to include the pretend args.  */
   pretend_bytes = all->extra_pretend_bytes - pretend_bytes;
@@ -2947,6 +3010,20 @@ assign_parms (tree fndecl)
 	  continue;
 	}
 
+      /* Estimate stack alignment from parameter alignment.  */
+      if (SUPPORTS_STACK_ALIGNMENT)
+        {
+          unsigned int align = FUNCTION_ARG_BOUNDARY (data.promoted_mode,
+						      data.passed_type);
+	  if (TYPE_ALIGN (data.nominal_type) > align)
+	    align = TYPE_ALIGN (data.passed_type);
+	  if (crtl->stack_alignment_estimated < align)
+	    {
+	      gcc_assert (!crtl->stack_realign_processed);
+	      crtl->stack_alignment_estimated = align;
+	    }
+	}
+	
       if (cfun->stdarg && !TREE_CHAIN (parm))
 	assign_parms_setup_varargs (&all, &data, false);
 
@@ -2983,6 +3060,28 @@ assign_parms (tree fndecl)
   /* Output all parameter conversion instructions (possibly including calls)
      now that all parameters have been copied out of hard registers.  */
   emit_insn (all.first_conversion_insn);
+
+  /* Estimate reload stack alignment from scalar return mode.  */
+  if (SUPPORTS_STACK_ALIGNMENT)
+    {
+      if (DECL_RESULT (fndecl))
+	{
+	  tree type = TREE_TYPE (DECL_RESULT (fndecl));
+	  enum machine_mode mode = TYPE_MODE (type);
+
+	  if (mode != BLKmode
+	      && mode != VOIDmode
+	      && !AGGREGATE_TYPE_P (type))
+	    {
+	      unsigned int align = GET_MODE_ALIGNMENT (mode);
+	      if (crtl->stack_alignment_estimated < align)
+		{
+		  gcc_assert (!crtl->stack_realign_processed);
+		  crtl->stack_alignment_estimated = align;
+		}
+	    }
+	} 
+    }
 
   /* If we are receiving a struct value address as the first argument, set up
      the RTL for the function result. As this might require code to convert
@@ -3092,7 +3191,7 @@ gimplify_parm_type (tree *tp, int *walk_subtrees, void *data)
       else if (TYPE_SIZE (t) && !TREE_CONSTANT (TYPE_SIZE (t))
 	       && !TYPE_SIZES_GIMPLIFIED (t))
 	{
-	  gimplify_type_sizes (t, (tree *) data);
+	  gimplify_type_sizes (t, (gimple_seq *) data);
 	  *walk_subtrees = 1;
 	}
     }
@@ -3102,15 +3201,15 @@ gimplify_parm_type (tree *tp, int *walk_subtrees, void *data)
 
 /* Gimplify the parameter list for current_function_decl.  This involves
    evaluating SAVE_EXPRs of variable sized parameters and generating code
-   to implement callee-copies reference parameters.  Returns a list of
-   statements to add to the beginning of the function, or NULL if nothing
-   to do.  */
+   to implement callee-copies reference parameters.  Returns a sequence of
+   statements to add to the beginning of the function.  */
 
-tree
+gimple_seq
 gimplify_parameters (void)
 {
   struct assign_parm_data_all all;
-  tree fnargs, parm, stmts = NULL;
+  tree fnargs, parm;
+  gimple_seq stmts = NULL;
 
   assign_parms_initialize_all (&all);
   fnargs = assign_parms_augmented_arg_list (&all);
@@ -3170,12 +3269,11 @@ gimplify_parameters (void)
 		  t = built_in_decls[BUILT_IN_ALLOCA];
 		  t = build_call_expr (t, 1, DECL_SIZE_UNIT (parm));
 		  t = fold_convert (ptr_type, t);
-		  t = build_gimple_modify_stmt (addr, t);
+		  t = build2 (MODIFY_EXPR, TREE_TYPE (addr), addr, t);
 		  gimplify_and_add (t, &stmts);
 		}
 
-	      t = build_gimple_modify_stmt (local, parm);
-	      gimplify_and_add (t, &stmts);
+	      gimplify_assign (local, parm, &stmts);
 
 	      SET_DECL_VALUE_EXPR (parm, local);
 	      DECL_HAS_VALUE_EXPR_P (parm) = 1;
@@ -3259,14 +3357,42 @@ locate_and_pad_parm (enum machine_mode passed_mode, tree type, int in_regs,
   where_pad = FUNCTION_ARG_PADDING (passed_mode, type);
   boundary = FUNCTION_ARG_BOUNDARY (passed_mode, type);
   locate->where_pad = where_pad;
+
+  /* Alignment can't exceed MAX_SUPPORTED_STACK_ALIGNMENT.  */
+  if (boundary > MAX_SUPPORTED_STACK_ALIGNMENT)
+    boundary = MAX_SUPPORTED_STACK_ALIGNMENT;
+
   locate->boundary = boundary;
+
+  if (SUPPORTS_STACK_ALIGNMENT)
+    {
+      /* stack_alignment_estimated can't change after stack has been
+	 realigned.  */
+      if (crtl->stack_alignment_estimated < boundary)
+        {
+          if (!crtl->stack_realign_processed)
+	    crtl->stack_alignment_estimated = boundary;
+	  else
+	    {
+	      /* If stack is realigned and stack alignment value
+		 hasn't been finalized, it is OK not to increase
+		 stack_alignment_estimated.  The bigger alignment
+		 requirement is recorded in stack_alignment_needed
+		 below.  */
+	      gcc_assert (!crtl->stack_realign_finalized
+			  && crtl->stack_realign_needed);
+	    }
+	}
+    }
 
   /* Remember if the outgoing parameter requires extra alignment on the
      calling function side.  */
-  if (boundary > PREFERRED_STACK_BOUNDARY)
-    boundary = PREFERRED_STACK_BOUNDARY;
   if (crtl->stack_alignment_needed < boundary)
     crtl->stack_alignment_needed = boundary;
+  if (crtl->max_used_stack_slot_alignment < crtl->stack_alignment_needed)
+    crtl->max_used_stack_slot_alignment = crtl->stack_alignment_needed;
+  if (crtl->preferred_stack_boundary < boundary)
+    crtl->preferred_stack_boundary = boundary;
 
 #ifdef ARGS_GROW_DOWNWARD
   locate->slot_offset.constant = -initial_offset_ptr->constant;
@@ -3731,13 +3857,30 @@ debug_find_var_in_block_tree (tree var, tree block)
 
 static bool in_dummy_function;
 
-/* Invoke the target hook when setting cfun.  */
+/* Invoke the target hook when setting cfun.  Update the optimization options
+   if the function uses different options than the default.  */
 
 static void
 invoke_set_current_function_hook (tree fndecl)
 {
   if (!in_dummy_function)
-    targetm.set_current_function (fndecl);
+    {
+      tree opts = ((fndecl)
+		   ? DECL_FUNCTION_SPECIFIC_OPTIMIZATION (fndecl)
+		   : optimization_default_node);
+
+      if (!opts)
+	opts = optimization_default_node;
+
+      /* Change optimization options if needed.  */
+      if (optimization_current_node != opts)
+	{
+	  optimization_current_node = opts;
+	  cl_optimization_restore (TREE_OPTIMIZATION (opts));
+	}
+
+      targetm.set_current_function (fndecl);
+    }
 }
 
 /* cfun should never be set directly; use this function.  */
@@ -3763,22 +3906,12 @@ DEF_VEC_ALLOC_P(function_p,heap);
 
 static VEC(function_p,heap) *cfun_stack;
 
-/* We save the value of in_system_header here when pushing the first
-   function on the cfun stack, and we restore it from here when
-   popping the last function.  */
-
-static bool saved_in_system_header;
-
 /* Push the current cfun onto the stack, and set cfun to new_cfun.  */
 
 void
 push_cfun (struct function *new_cfun)
 {
-  if (cfun == NULL)
-    saved_in_system_header = in_system_header;
   VEC_safe_push (function_p, heap, cfun_stack, cfun);
-  if (new_cfun)
-    in_system_header = DECL_IN_SYSTEM_HEADER (new_cfun->decl);
   set_cfun (new_cfun);
 }
 
@@ -3788,8 +3921,6 @@ void
 pop_cfun (void)
 {
   struct function *new_cfun = VEC_pop (function_p, cfun_stack);
-  in_system_header = ((new_cfun == NULL) ? saved_in_system_header
-		      : DECL_IN_SYSTEM_HEADER (new_cfun->decl));
   set_cfun (new_cfun);
 }
 
@@ -3867,11 +3998,7 @@ allocate_struct_function (tree fndecl, bool abstract_p)
 void
 push_struct_function (tree fndecl)
 {
-  if (cfun == NULL)
-    saved_in_system_header = in_system_header;
   VEC_safe_push (function_p, heap, cfun_stack, cfun);
-  if (fndecl)
-    in_system_header = DECL_IN_SYSTEM_HEADER (fndecl);
   allocate_struct_function (fndecl, false);
 }
 
@@ -3885,6 +4012,7 @@ prepare_function_start (void)
   init_emit ();
   init_varasm_status ();
   init_expr ();
+  default_rtl_profile ();
 
   cse_not_expected = ! optimize;
 
@@ -4601,7 +4729,8 @@ get_arg_pointer_save_area (void)
 	 generated stack slot may not be a valid memory address, so we
 	 have to check it and fix it if necessary.  */
       start_sequence ();
-      emit_move_insn (validize_mem (ret), virtual_incoming_args_rtx);
+      emit_move_insn (validize_mem (ret),
+                      crtl->args.internal_arg_pointer);
       seq = get_insns ();
       end_sequence ();
 
@@ -4711,6 +4840,7 @@ thread_prologue_and_epilogue_insns (void)
 #endif
   edge_iterator ei;
 
+  rtl_profile_for_bb (ENTRY_BLOCK_PTR);
 #ifdef HAVE_prologue
   if (HAVE_prologue)
     {
@@ -4757,6 +4887,7 @@ thread_prologue_and_epilogue_insns (void)
   if (e == NULL)
     goto epilogue_done;
 
+  rtl_profile_for_bb (EXIT_BLOCK_PTR);
 #ifdef HAVE_return
   if (optimize && HAVE_return)
     {
@@ -4906,6 +5037,7 @@ thread_prologue_and_epilogue_insns (void)
       cfg_layout_finalize ();
     }
 epilogue_done:
+  default_rtl_profile ();
 
   if (inserted)
     {

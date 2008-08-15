@@ -3045,7 +3045,7 @@ check_field_decls (tree t, tree *access_decls,
 
       /* Core issue 80: A nonstatic data member is required to have a
 	 different name from the class iff the class has a
-	 user-defined constructor.  */
+	 user-declared constructor.  */
       if (constructor_name_p (DECL_NAME (x), t)
 	  && TYPE_HAS_USER_CONSTRUCTOR (t))
 	permerror ("field %q+#D with same name as class", x);
@@ -3767,8 +3767,8 @@ check_methods (tree t)
 	  if (DECL_PURE_VIRTUAL_P (x))
 	    VEC_safe_push (tree, gc, CLASSTYPE_PURE_VIRTUALS (t), x);
 	}
-      /* All user-declared destructors are non-trivial.  */
-      if (DECL_DESTRUCTOR_P (x))
+      /* All user-provided destructors are non-trivial.  */
+      if (DECL_DESTRUCTOR_P (x) && !DECL_DEFAULTED_FN (x))
 	TYPE_HAS_NONTRIVIAL_DESTRUCTOR (t) = 1;
     }
 }
@@ -4067,6 +4067,91 @@ type_has_user_nondefault_constructor (tree t)
   return false;
 }
 
+/* Returns true iff FN is a user-provided function, i.e. user-declared
+   and not defaulted at its first declaration.  */
+
+static bool
+user_provided_p (tree fn)
+{
+  if (TREE_CODE (fn) == TEMPLATE_DECL)
+    return true;
+  else
+    return (!DECL_ARTIFICIAL (fn)
+	    && !(DECL_DEFAULTED_FN (fn)
+		 && DECL_INITIALIZED_IN_CLASS_P (fn)));
+}
+
+/* Returns true iff class T has a user-provided constructor.  */
+
+bool
+type_has_user_provided_constructor (tree t)
+{
+  tree fns;
+
+  if (!TYPE_HAS_USER_CONSTRUCTOR (t))
+    return false;
+
+  /* This can happen in error cases; avoid crashing.  */
+  if (!CLASSTYPE_METHOD_VEC (t))
+    return false;
+
+  for (fns = CLASSTYPE_CONSTRUCTORS (t); fns; fns = OVL_NEXT (fns))
+    if (user_provided_p (OVL_CURRENT (fns)))
+      return true;
+
+  return false;
+}
+
+/* Returns true iff class T has a user-provided default constructor.  */
+
+bool
+type_has_user_provided_default_constructor (tree t)
+{
+  tree fns, args;
+
+  if (!TYPE_HAS_USER_CONSTRUCTOR (t))
+    return false;
+
+  for (fns = CLASSTYPE_CONSTRUCTORS (t); fns; fns = OVL_NEXT (fns))
+    {
+      tree fn = OVL_CURRENT (fns);
+      if (TREE_CODE (fn) == FUNCTION_DECL
+	  && user_provided_p (fn))
+	{
+	  args = FUNCTION_FIRST_USER_PARMTYPE (fn);
+	  while (args && TREE_PURPOSE (args))
+	    args = TREE_CHAIN (args);
+	  if (!args || args == void_list_node)
+	    return true;
+	}
+    }
+
+  return false;
+}
+
+/* Returns true if FN can be explicitly defaulted.  */
+
+bool
+defaultable_fn_p (tree fn)
+{
+  if (DECL_CONSTRUCTOR_P (fn))
+    {
+      if (skip_artificial_parms_for (fn, DECL_ARGUMENTS (fn))
+	  == NULL_TREE)
+	return true;
+      else if (copy_fn_p (fn) > 0)
+	return true;
+      else
+	return false;
+    }
+  else if (DECL_DESTRUCTOR_P (fn))
+    return true;
+  else if (DECL_ASSIGNMENT_OPERATOR_P (fn))
+    return copy_fn_p (fn);
+  else
+    return false;
+}
+
 /* Remove all zero-width bit-fields from T.  */
 
 static void
@@ -4158,6 +4243,8 @@ check_bases_and_members (tree t)
      should take a non-const reference argument.  */
   int no_const_asn_ref;
   tree access_decls;
+  bool saved_complex_asn_ref;
+  bool saved_nontrivial_dtor;
 
   /* By default, we use const reference arguments and generate default
      constructors.  */
@@ -4170,6 +4257,12 @@ check_bases_and_members (tree t)
 
   /* Check all the method declarations.  */
   check_methods (t);
+
+  /* Save the initial values of these flags which only indicate whether
+     or not the class has user-provided functions.  As we analyze the
+     bases and members we can set these flags for other reasons.  */
+  saved_complex_asn_ref = TYPE_HAS_COMPLEX_ASSIGN_REF (t);
+  saved_nontrivial_dtor = TYPE_HAS_NONTRIVIAL_DESTRUCTOR (t);
 
   /* Check all the data member declarations.  We cannot call
      check_field_decls until we have called check_bases check_methods,
@@ -4186,37 +4279,34 @@ check_bases_and_members (tree t)
 
   /* Do some bookkeeping that will guide the generation of implicitly
      declared member functions.  */
-  TYPE_HAS_COMPLEX_INIT_REF (t)
-    |= (TYPE_HAS_INIT_REF (t) || TYPE_CONTAINS_VPTR_P (t));
+  TYPE_HAS_COMPLEX_INIT_REF (t) |= TYPE_CONTAINS_VPTR_P (t);
   /* We need to call a constructor for this class if it has a
-     user-declared constructor, or if the default constructor is going
+     user-provided constructor, or if the default constructor is going
      to initialize the vptr.  (This is not an if-and-only-if;
      TYPE_NEEDS_CONSTRUCTING is set elsewhere if bases or members
      themselves need constructing.)  */
   TYPE_NEEDS_CONSTRUCTING (t)
-    |= (TYPE_HAS_USER_CONSTRUCTOR (t) || TYPE_CONTAINS_VPTR_P (t));
+    |= (type_has_user_provided_constructor (t) || TYPE_CONTAINS_VPTR_P (t));
   /* [dcl.init.aggr]
 
-     An aggregate is an arry or a class with no user-declared
+     An aggregate is an array or a class with no user-provided
      constructors ... and no virtual functions.  
 
      Again, other conditions for being an aggregate are checked
      elsewhere.  */
   CLASSTYPE_NON_AGGREGATE (t)
-    |= (TYPE_HAS_USER_CONSTRUCTOR (t) || TYPE_POLYMORPHIC_P (t));
+    |= (type_has_user_provided_constructor (t) || TYPE_POLYMORPHIC_P (t));
   CLASSTYPE_NON_POD_P (t)
     |= (CLASSTYPE_NON_AGGREGATE (t)
-	|| TYPE_HAS_NONTRIVIAL_DESTRUCTOR (t)
-	|| TYPE_HAS_ASSIGN_REF (t));
-  TYPE_HAS_COMPLEX_ASSIGN_REF (t)
-    |= TYPE_HAS_ASSIGN_REF (t) || TYPE_CONTAINS_VPTR_P (t);
+	|| saved_nontrivial_dtor || saved_complex_asn_ref);
+  TYPE_HAS_COMPLEX_ASSIGN_REF (t) |= TYPE_CONTAINS_VPTR_P (t);
   TYPE_HAS_COMPLEX_DFLT (t)
     |= (TYPE_HAS_DEFAULT_CONSTRUCTOR (t) || TYPE_CONTAINS_VPTR_P (t));
 
   /* If the class has no user-declared constructor, but does have
      non-static const or reference data members that can never be
      initialized, issue a warning.  */
-  if (extra_warnings
+  if (warn_uninitialized
       /* Classes with user-declared constructors are presumed to
 	 initialize these members.  */
       && !TYPE_HAS_USER_CONSTRUCTOR (t)
@@ -4235,13 +4325,13 @@ check_bases_and_members (tree t)
 
 	  type = TREE_TYPE (field);
 	  if (TREE_CODE (type) == REFERENCE_TYPE)
-	    warning (OPT_Wextra, "non-static reference %q+#D in class "
-		     "without a constructor", field);
+	    warning (OPT_Wuninitialized, "non-static reference %q+#D "
+		     "in class without a constructor", field);
 	  else if (CP_TYPE_CONST_P (type)
 		   && (!CLASS_TYPE_P (type)
 		       || !TYPE_HAS_DEFAULT_CONSTRUCTOR (type)))
-	    warning (OPT_Wextra, "non-static const member %q+#D in class "
-		     "without a constructor", field);
+	    warning (OPT_Wuninitialized, "non-static const member %q+#D "
+		     "in class without a constructor", field);
 	}
     }
 
@@ -7386,7 +7476,7 @@ build_vtbl_initializer (tree binfo,
 
 	 We first check this in update_vtable_entry_for_fn, so we handle
 	 restored primary bases properly; we also need to do it here so we
-	 zero out unused slots in ctor vtables, rather than filling themff
+	 zero out unused slots in ctor vtables, rather than filling them
 	 with erroneous values (though harmless, apart from relocation
 	 costs).  */
       for (b = binfo; ; b = get_primary_binfo (b))

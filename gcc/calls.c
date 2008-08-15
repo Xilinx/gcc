@@ -25,6 +25,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "tm.h"
 #include "rtl.h"
 #include "tree.h"
+#include "gimple.h"
 #include "flags.h"
 #include "expr.h"
 #include "optabs.h"
@@ -41,6 +42,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "cgraph.h"
 #include "except.h"
 #include "dbgcnt.h"
+#include "tree-flow.h"
 
 /* Like PREFERRED_STACK_BOUNDARY but in units of bytes, not bits.  */
 #define STACK_BYTES (PREFERRED_STACK_BOUNDARY / BITS_PER_UNIT)
@@ -380,7 +382,7 @@ emit_call_1 (rtx funexp, tree fntree, tree fndecl ATTRIBUTE_UNUSED,
     add_reg_note (call_insn, REG_EH_REGION, const0_rtx);
   else
     {
-      int rn = lookup_stmt_eh_region (fntree);
+      int rn = lookup_expr_eh_region (fntree);
 
       /* If rn < 0, then either (1) tree-ssa not used or (2) doesn't
 	 throw, which we already took care of.  */
@@ -413,6 +415,10 @@ emit_call_1 (rtx funexp, tree fntree, tree fndecl ATTRIBUTE_UNUSED,
       rounded_stack_size -= n_popped;
       rounded_stack_size_rtx = GEN_INT (rounded_stack_size);
       stack_pointer_delta -= n_popped;
+
+      /* If popup is needed, stack realign must use DRAP  */
+      if (SUPPORTS_STACK_ALIGNMENT)
+        crtl->need_drap = true;
     }
 
   if (!ACCUMULATE_OUTGOING_ARGS)
@@ -542,7 +548,26 @@ setjmp_call_p (const_tree fndecl)
   return special_function_p (fndecl, 0) & ECF_RETURNS_TWICE;
 }
 
+
+/* Return true if STMT is an alloca call.  */
+
+bool
+gimple_alloca_call_p (const_gimple stmt)
+{
+  tree fndecl;
+
+  if (!is_gimple_call (stmt))
+    return false;
+
+  fndecl = gimple_call_fndecl (stmt);
+  if (fndecl && (special_function_p (fndecl, 0) & ECF_MAY_BE_ALLOCA))
+    return true;
+
+  return false;
+}
+
 /* Return true when exp contains alloca call.  */
+
 bool
 alloca_call_p (const_tree exp)
 {
@@ -1852,7 +1877,7 @@ shift_return_value (enum machine_mode mode, bool left_p, rtx value)
 static rtx
 avoid_likely_spilled_reg (rtx x)
 {
-  rtx new;
+  rtx new_rtx;
 
   if (REG_P (x)
       && HARD_REGISTER_P (x)
@@ -1863,10 +1888,10 @@ avoid_likely_spilled_reg (rtx x)
 	 and the whole point of this function is to avoid
 	 using the hard register directly in such a situation.  */
       generating_concat_p = 0;
-      new = gen_reg_rtx (GET_MODE (x));
+      new_rtx = gen_reg_rtx (GET_MODE (x));
       generating_concat_p = 1;
-      emit_move_insn (new, x);
-      return new;
+      emit_move_insn (new_rtx, x);
+      return new_rtx;
     }
   return x;
 }
@@ -2251,7 +2276,7 @@ expand_call (tree exp, rtx target, int ignore)
   if (currently_expanding_call++ != 0
       || !flag_optimize_sibling_calls
       || args_size.var
-      || lookup_stmt_eh_region (exp) >= 0
+      || lookup_expr_eh_region (exp) >= 0
       || dbg_cnt (tail_call) == false)
     try_tail_call = 0;
 
@@ -2294,10 +2319,13 @@ expand_call (tree exp, rtx target, int ignore)
       || !lang_hooks.decls.ok_for_sibcall (fndecl))
     try_tail_call = 0;
 
-  /* Ensure current function's preferred stack
-     boundary is at least what we need.  */
+  /* Ensure current function's preferred stack boundary is at least
+     what we need.  Stack alignment may also increase preferred stack
+     boundary.  */
   if (crtl->preferred_stack_boundary < preferred_stack_boundary)
     crtl->preferred_stack_boundary = preferred_stack_boundary;
+  else
+    preferred_stack_boundary = crtl->preferred_stack_boundary;
 
   preferred_unit_stack_boundary = preferred_stack_boundary / BITS_PER_UNIT;
 
@@ -2384,7 +2412,7 @@ expand_call (tree exp, rtx target, int ignore)
 	 incoming argument block.  */
       if (pass == 0)
 	{
-	  argblock = virtual_incoming_args_rtx;
+	  argblock = crtl->args.internal_arg_pointer;
 	  argblock
 #ifdef STACK_GROWS_DOWNWARD
 	    = plus_constant (argblock, crtl->args.pretend_args_size);
@@ -3229,7 +3257,7 @@ emit_library_call_value_1 (int retval, rtx orgfun, rtx value,
 #ifdef REG_PARM_STACK_SPACE
   /* Define the boundary of the register parm stack space that needs to be
      save, if any.  */
-  int low_to_save, high_to_save;
+  int low_to_save = 0, high_to_save = 0;
   rtx save_area = 0;            /* Place that it is saved.  */
 #endif
 

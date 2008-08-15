@@ -1,25 +1,29 @@
 \input texinfo   @c -*-texinfo-*-
 @c %**start of header
+
 @c oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
 @c                                                                            o
 @c                            GNAT DOCUMENTATION                              o
 @c                                                                            o
 @c                             G N A T _ U G N                                o
 @c                                                                            o
-@c                     Copyright (C) 1992-2008, AdaCore                       o
-@c                                                                            o
-@c  GNAT is free software;  you can  redistribute it  and/or modify it under  o
-@c  terms of the  GNU General Public License as published  by the Free Soft-  o
-@c  ware  Foundation;  either version 2,  or (at your option) any later ver-  o
-@c  sion.  GNAT is distributed in the hope that it will be useful, but WITH-  o
-@c  OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY  o
-@c  or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License  o
-@c  for  more details.  You should have  received  a copy of the GNU General  o
-@c  Public License  distributed with GNAT;  see file COPYING.  If not, write  o
-@c  to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor,  o
-@c  Boston, MA 02110-1301, USA.                                               o
+@c   GNAT is maintained by Ada Core Technologies Inc (http://www.gnat.com).   o
 @c                                                                            o
 @c oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
+
+@setfilename gnat_ugn.info
+
+@copying
+Copyright @copyright{} 1995-2005, 2006, 2007, 2008 Free Software Foundation,
+Inc.
+
+Permission is granted to copy, distribute and/or modify this document
+under the terms of the GNU Free Documentation License, Version 1.2 or
+any later version published by the Free Software Foundation; with no
+Invariant Sections, with no Front-Cover Texts and with no Back-Cover
+Texts.  A copy of the license is included in the section entitled
+``GNU Free Documentation License''.
+@end copying
 
 @c oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
 @c
@@ -76,8 +80,6 @@
 @c
 @c oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
 
-@setfilename gnat_ugn.info
-
 @set NOW January 2007
 @c This flag is used where the text refers to conditions that exist when the
 @c text was entered into the document but which may change over time.
@@ -117,21 +119,6 @@
 @setchapternewpage odd
 @syncodeindex fn cp
 @c %**end of header
-
-@copying
-Copyright @copyright{} 1995-2005, 2006, 2007, 2008 Free Software Foundation,
-Inc.
-
-Permission is granted to copy, distribute and/or modify this document
-under the terms of the GNU Free Documentation License, Version 1.2
-or any later version published by the Free Software Foundation;
-with the Invariant Sections being ``GNU Free Documentation License'', with the
-Front-Cover Texts being
-``@value{EDITION} User's Guide'',
-and with no Back-Cover Texts.
-A copy of the license is included in the section entitled
-``GNU Free Documentation License''.
-@end copying
 
 @titlepage
 @title @value{EDITION} User's Guide
@@ -2381,13 +2368,19 @@ that for inlining to actually occur as a result of the use of this switch,
 it is necessary to compile in optimizing mode.
 
 @cindex @option{-gnatN} switch
-The use of @option{-gnatN} activates a more extensive inlining optimization
+The use of @option{-gnatN} activates  inlining optimization
 that is performed by the front end of the compiler. This inlining does
 not require that the code generation be optimized. Like @option{-gnatn},
 the use of this switch generates additional dependencies.
 Note that
 @option{-gnatN} automatically implies @option{-gnatn} so it is not necessary
 to specify both options.
+
+When using a gcc-based back end (in practice this means using any version
+of GNAT other than the JGNAT, .NET or GNAAMP versions), then the use of
+@option{-gnatN} is deprecated, and the use of @option{-gnatn} is preferred.
+Historically front end inlining was more extensive than the gcc back end
+inlining, but that is no longer the case.
 
 @item
 If an object file @file{O} depends on the proper body of a subunit through
@@ -3911,6 +3904,10 @@ Defines a symbol, associated with @var{value}, for preprocessing.
 @cindex @option{-gnatef} (@command{gcc})
 Display full source path name in brief error messages.
 
+@item -gnateG
+@cindex @option{-gnateG} (@command{gcc})
+Save result of preprocessing in a text file.
+
 @item -gnatem=@var{path}
 @cindex @option{-gnatem} (@command{gcc})
 Specify a mapping file
@@ -4025,12 +4022,12 @@ catches that cannot be dealt with in the front-end.
 @item -gnato
 @cindex @option{-gnato} (@command{gcc})
 Enable numeric overflow checking (which is not normally enabled by
-default). Not that division by zero is a separate check that is not
+default). Note that division by zero is a separate check that is not
 controlled by this switch (division by zero checking is on by default).
 
 @item -gnatp
 @cindex @option{-gnatp} (@command{gcc})
-Suppress all checks.
+Suppress all checks. See @ref{Run-Time Checks} for details.
 
 @item -gnatP
 @cindex @option{-gnatP} (@command{gcc})
@@ -4041,11 +4038,11 @@ details.
 
 @item -gnatq
 @cindex @option{-gnatq} (@command{gcc})
-Don't quit; try semantics, even if parse errors.
+Don't quit. Try semantics, even if parse errors.
 
 @item -gnatQ
 @cindex @option{-gnatQ} (@command{gcc})
-Don't quit; generate @file{ALI} and tree files even if illegalities.
+Don't quit. Generate @file{ALI} and tree files even if illegalities.
 
 @item -gnatr
 @cindex @option{-gnatr} (@command{gcc})
@@ -4838,6 +4835,21 @@ are not generated.
 @cindex @option{-gnatwB} (@command{gcc})
 This switch suppresses warnings for static fixed-point expressions whose
 value is not an exact multiple of Small.
+
+@item -gnatw.b
+@emph{Activate warnings on biased representation.}
+@cindex @option{-gnatw.b} (@command{gcc})
+@cindex Biased representation
+This switch activates warnings when a size clause, value size clause, component
+clause, or component size clause forces the use of biased representation for an
+integer type (e.g. representing a range of 10..11 in a single bit by using 0/1
+to represent 10/11). The default is that such warnings are generated.
+
+@item -gnatw.B
+@emph{Suppress warnings on biased representation.}
+@cindex @option{-gnatwB} (@command{gcc})
+This switch suppresses warnings for representation clauses that force the use
+of biased representation.
 
 @item -gnatwc
 @emph{Activate warnings on conditionals.}
@@ -6210,14 +6222,11 @@ clears any previously set style checks.
 @cindex Checks, stack overflow checking
 
 @noindent
-If you compile with the default options, GNAT will insert many run-time
-checks into the compiled code, including code that performs range
-checking against constraints, but not arithmetic overflow checking for
-integer operations (including division by zero), checks for access
-before elaboration on subprogram calls, or stack overflow checking. All
-other run-time checks, as required by the Ada Reference Manual, are
-generated by default. The following @command{gcc} switches refine this
-default behavior:
+By default, the following checks are suppressed: integer overflow
+checks, stack overflow checks, and checks for access before
+elaboration on subprogram calls. All other checks, including range
+checks and array bounds checks, are turned on by default. The
+following @command{gcc} switches refine this default behavior.
 
 @table @option
 @c !sort!
@@ -6226,12 +6235,32 @@ default behavior:
 @cindex Suppressing checks
 @cindex Checks, suppressing
 @findex Suppress
-Suppress all run-time checks as though @code{pragma Suppress (all_checks})
+Suppress all run-time checks as though @code{pragma Suppress (All_checks)}
 had been present in the source. Validity checks are also suppressed (in
 other words @option{-gnatp} also implies @option{-gnatVn}.
 Use this switch to improve the performance
 of the code at the expense of safety in the presence of invalid data or
 program bugs.
+
+Note that when checks are suppressed, the compiler is allowed, but not
+required, to omit the checking code. If the run-time cost of the
+checking code is zero or near-zero, the compiler will generate it even
+if checks are suppressed. In particular, if the compiler can prove
+that a certain check will necessarily fail, it will generate code to
+do an unconditional ``raise'', even if checks are suppressed. The
+compiler warns in this case.
+
+Of course, run-time checks are omitted whenever the compiler can prove
+that they will not fail, whether or not checks are suppressed.
+
+Note that if you suppress a check that would have failed, program
+execution is erroneous, which means the behavior is totally
+unpredictable. The program might crash, or print wrong answers, or
+do anything else. It might even do exactly what you wanted it to do
+(and then it might start failing mysteriously next week or next
+year). The compiler will generate code based on the assumption that
+the condition being checked is true, which can result in disaster if
+that assumption is wrong.
 
 @item -gnato
 @cindex @option{-gnato} (@command{gcc})
@@ -6246,11 +6275,11 @@ the true value of the result of an operation may be outside the base
 range of the result type. The following example shows the distinction:
 
 @smallexample @c ada
-X1 : Integer := Integer'Last;
-X2 : Integer range 1 .. 5 := 5;
-X3 : Integer := Integer'Last;
-X4 : Integer range 1 .. 5 := 5;
-F  : Float := 2.0E+20;
+X1 : Integer := "Integer'Last";
+X2 : Integer range 1 .. 5 := "5";
+X3 : Integer := "Integer'Last";
+X4 : Integer range 1 .. 5 := "5";
+F  : Float := "2.0E+20";
 @dots{}
 X1 := X1 + 1;
 X2 := X2 + 1;
@@ -6259,15 +6288,23 @@ X4 := Integer (F);
 @end smallexample
 
 @noindent
+Note that if explicit values are assigned at compile time, the
+compiler may be able to detect overflow at compile time, in which case
+no actual run-time checking code is required, and Constraint_Error
+will be raised unconditionally, with or without
+@option{-gnato}. That's why the assigned values in the above fragment
+are in quotes, the meaning is "assign a value not known to the
+compiler that happens to be equal to ...". The remaining discussion
+assumes that the compiler cannot detect the values at compile time.
+
 Here the first addition results in a value that is outside the base range
 of Integer, and hence requires an overflow check for detection of the
 constraint error. Thus the first assignment to @code{X1} raises a
 @code{Constraint_Error} exception only if @option{-gnato} is set.
 
-The second increment operation results in a violation
-of the explicit range constraint, and such range checks are always
-performed (unless specifically suppressed with a pragma @code{suppress}
-or the use of @option{-gnatp}).
+The second increment operation results in a violation of the explicit
+range constraint; such range checks are performed by default, and are
+unaffected by @option{-gnato}.
 
 The two conversions of @code{F} both result in values that are outside
 the base range of type @code{Integer} and thus will raise
@@ -6323,6 +6360,8 @@ explicitly use the -gnato switch either on the @command{gnatmake} or
 @cindex Check, elaboration
 Enables dynamic checks for access-before-elaboration
 on subprogram calls and generic instantiations.
+Note that @option{-gnatE} is not necessary for safety, because in the
+default mode, GNAT ensures statically that the checks would not fail.
 For full details of the effect and use of this switch,
 @xref{Compiling Using gcc}.
 
@@ -7193,6 +7232,11 @@ symbol with the same name either in a definition file or specified with a
 
 @noindent
 This switch is similar to switch @option{^-D^/ASSOCIATE^} of @code{gnatprep}.
+
+@item -gnateG
+When integrated preprocessing is performed and the preprocessor modifies
+the source text, write the result of this preprocessing into a file
+<source>^.prep^_prep^.
 
 @end table
 
@@ -9524,8 +9568,8 @@ some guidelines on debugging optimized code.
 @subsection Controlling Run-Time Checks
 
 @noindent
-By default, GNAT generates all run-time checks, except arithmetic overflow
-checking for integer operations and checks for access before elaboration on
+By default, GNAT generates all run-time checks, except integer overflow
+checks, stack overflow checks, and checks for access before elaboration on
 subprogram calls. The latter are not required in default mode, because all
 necessary checking is done at compile time.
 @cindex @option{-gnatp} (@command{gcc})
@@ -20517,7 +20561,7 @@ used as a parameter of the @option{+R} or @option{-R} options.
 @ignore
 * Improperly_Called_Protected_Entries::
 @end ignore
-* Metrics_Violation::
+* Metrics::
 * Misnamed_Identifiers::
 * Multiple_Entries_In_Protected_Definitions::
 * Name_Clashes::
@@ -21018,64 +21062,25 @@ Flag each protected entry that can be called from more than one task.
 This rule has no parameters.
 @end ignore
 
-@node Metrics_Violation
-@subsection @code{Metrics_Violation}
+@node Metrics
+@subsection @code{Metrics}
 @cindex @code{Metrics} rule (for @command{gnatcheck})
 
 @noindent
-This is an umbrella rule for a set of metrics-based checks. The parameters of
-the rule specify which metrics should be checked, and a bound (upper or lower,
-depending on the metric) for each specified metric. A construct is
-flagged if a specified metric can be computed for it, and the resulting value
-is higher then the upper bound (or less than the lower bound) specified.
+This is an umbrella rule for a set of metrics-based checks. Each metric-based
+check has its own rule name that starts from the common prefix
+@code{Metrics_}. For @option{+R} option, this name ends with @code{_GT}
+(greater then) or @code{_LT} (less then). The parameter of the rule
+@option{+R} option specifies bound (upper or lower, depending on the metric)
+for the given metric. A construct is flagged if a specified metric can be
+computed for it, and the resulting value is higher then the upper bound (or
+less than the lower bound) specified. Parameters and metric names are not
+case-sensitive @option{-R} option does not have a parameter and it turns OFF
+the check for the metric indicated by the metric rule name.
 
-This rule has the following parameters:
-
-@itemize @bullet
-@item
-For the @option{+R} option:
-@table @code
-@item @i{Metric_Check_Name} < @i{LowerBound}
-Turns the check for the specified metric ON and specifies the lower bound
-for a given metric check
-
-@item @i{Metric_Check_Name} > @i{UpperBound}
-
-Turns the check for the specified metric ON and specifies the upper bound
-for a given metric check
-@end table
-
-@item
-For the @option{-R} option:
-@table @code
-@item @i{Metric_Check_Name}
-Turns the check for the specified metric OFF
-@end table
-@end itemize
-
-@noindent
-Parameters are not case-sensitive. @i{Metric_Check_Name} must be
-the name of a metric supported by the @code{Metrics_Violation} rule
-(see the table below),
-otherwise the parameter is ignored. Whether the upper or lower bound
-is specified for a given check, depends on the metric. If a
-parameter for the @option{+R} option specifies an invalid limit, a
-warning is issued and the parameter is ignored.
-
-The @option{-R} option without parameters turns OFF all the previously enabled
-metric checks. the @option{+R} option without parameters turns ON all the
-metric checks that have been defined by previous @option{+R} options with
-valid parameters. @option{+R} option with a valid
-parameter also turns ON all the other metric checks that have been defined
-by previous @option{+R} options with valid parameters if they have been
-disabled by @option{-R} option without parameters.
-
-By default no metrics checks are ON, so the @option{+R} option without
-parameters actually does not specify any check.
-
-The following table shows the available metrics-based checks,
-including the constraint that must be satisfied by the bound that
-is specified for the check.
+The following table shows the available metrics-based checks, including the
+constraint that must be satisfied by the bound that is specified for the check
+and what bound - upper (U) or lower (L) - should be specified.
 
 @multitable {@code{Cyclomatic_Complexity}}{Cyclomatic complexity}{Positive integer}
 @ifnothtml
@@ -21085,9 +21090,9 @@ is specified for the check.
 @item @b{Check Name} @tab @b{Description} @tab @b{Bounds Value}
 @end ifhtml
 @c Above conditional code is workaround to bug in texi2html (Feb 2008)
-@item @code{Essential_Complexity} @tab Essential complexity @tab Positive integer
-@item @code{Cyclomatic_Complexity} @tab Cyclomatic complexity @tab Positive integer
-@item @code{LSLOC} @tab Logical Source Lines of Code @tab Positive integer
+@item @code{Essential_Complexity} @tab Essential complexity @tab Positive integer (U)
+@item @code{Cyclomatic_Complexity} @tab Cyclomatic complexity @tab Positive integer (U)
+@item @code{LSLOC} @tab Logical Source Lines of Code @tab Positive integer (U)
 @end multitable
 
 @noindent
@@ -21096,10 +21101,15 @@ the same as for the corresponding metrics in @command{gnatmetric}.
 
 @emph{Example:} the rule
 @smallexample
-+RMetrics_Violation: Cyclomatic_Complexity > 7
++RMetrics_Cyclomatic_Complexity_GT : 7
 @end smallexample
 @noindent
 means that all bodies with cyclomatic complexity exceeding 7 will be flagged.
+
+To turn OFF the check for cyclomatic complexity metric, use the following option:
+@smallexample
+-RMetrics_Cyclomatic_Complexity
+@end smallexample
 
 @node Misnamed_Identifiers
 @subsection @code{Misnamed_Identifiers}
@@ -21548,7 +21558,7 @@ The control structures checked are the following:
 @end itemize
 
 @noindent
-The rule may have the following parameter for the @option{+R} option:
+The rule has the following parameter for the @option{+R} option:
 
 @table @emph
 @item N
@@ -21557,17 +21567,11 @@ level that is not flagged
 @end table
 
 @noindent
-If the parameter for the @option{+R} option is not a positive integer,
-the parameter is ignored and the rule is turned ON with the most recently
-specified maximal non-flagged nesting level.
+If the parameter for the @option{+R} option is not specified or
+if it is not a positive integer, @option{+R} option is ignored.
 
 If more then one  option is specified for the gnatcheck call, the later option and
 new parameter override the previous one(s).
-
-A @option{+R} option with no parameter turns the rule ON using the maximal
-non-flagged nesting level specified by the most recent @option{+R} option with
-a parameter, or the value 4 if there is no such previous @option{+R} option.
-
 
 
 @node Parameters_Out_Of_Order
@@ -25521,6 +25525,7 @@ information about several specific platforms.
 * Linux-Specific Considerations::
 * AIX-Specific Considerations::
 * Irix-Specific Considerations::
+* RTX-Specific Considerations::
 @end menu
 
 @node Summary of Run-Time Configurations
@@ -25630,6 +25635,15 @@ information about several specific platforms.
 @item @code{@ @ }@i{rts-sjlj (default)}
 @item @code{@ @ @ @ }Tasking    @tab native Win32 threads
 @item @code{@ @ @ @ }Exceptions @tab SJLJ
+@*
+@item @b{x86-windows-rtx}
+@item @code{@ @ }@i{rts-rtx-rtss (default)}
+@item @code{@ @ @ @ }Tasking    @tab RTX real-time subsystem RTSS threads (kernel mode)
+@item @code{@ @ @ @ }Exceptions @tab SJLJ
+@*
+@item @code{@ @ }@i{rts-rtx-w32}
+@item @code{@ @ @ @ }Tasking    @tab RTX Win32 threads (user mode)
+@item @code{@ @ @ @ }Exceptions @tab ZCX
 @*
 @item @b{x86_64-linux}
 @item @code{@ @ }@i{rts-native (default)}
@@ -25854,6 +25868,26 @@ following command line on a bash prompt:
 $  LD_LIBRARY_PATH=$LD_LIBRARY_PATH:`dirname \`gcc --print-file-name=libgcc_s.so\``
 @end group
 @end smallexample
+
+@node RTX-Specific Considerations
+@section RTX-Specific Considerations
+@cindex RTX libraries
+
+@noindent
+The Real-time Extension (RTX) to Windows is based on the Windows Win32
+API. Applications can be built to work in two different modes:
+
+@itemize @bullet
+@item
+Windows executables that run in Ring 3 to utilize memory protection
+(@emph{rts-rtx-w32}).
+
+@item
+Real-time subsystem (RTSS) executables that run in Ring 0, where
+performance can be optimized with RTSS applications taking precedent
+over all Windows applications (@emph{rts-rtx-rtss}).
+
+@end itemize
 
 @c *******************************
 @node Example of Binder Output File

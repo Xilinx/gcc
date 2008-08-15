@@ -314,6 +314,10 @@ read_input_line (FILE *list, char **herep, char **linep,
   char *line;
   int c = getc (list);
 
+  /* Read over whitespace.  */
+  while (c == '\n' || c == ' ')
+    c = getc (list);
+
   if (c == EOF)
     {
       *linep = 0;
@@ -1537,7 +1541,7 @@ open_base_files (void)
       "hard-reg-set.h", "basic-block.h", "cselib.h", "insn-addr.h",
       "optabs.h", "libfuncs.h", "debug.h", "ggc.h", "cgraph.h",
       "tree-flow.h", "reload.h", "cpp-id-data.h", "tree-chrec.h",
-      "cfglayout.h", "except.h", "output.h", "cfgloop.h", NULL
+      "cfglayout.h", "except.h", "output.h", "gimple.h", "cfgloop.h", NULL
     };
     const char *const *ifp;
     outf_p gtype_desc_c;

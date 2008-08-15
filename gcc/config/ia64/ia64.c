@@ -50,7 +50,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "hashtab.h"
 #include "langhooks.h"
 #include "cfglayout.h"
-#include "tree-gimple.h"
+#include "gimple.h"
 #include "intl.h"
 #include "df.h"
 #include "debug.h"
@@ -275,7 +275,7 @@ static tree ia64_handle_model_attribute (tree *, tree, tree, int, bool *);
 static tree ia64_handle_version_id_attribute (tree *, tree, tree, int, bool *);
 static void ia64_encode_section_info (tree, rtx, int);
 static rtx ia64_struct_value_rtx (tree, int);
-static tree ia64_gimplify_va_arg (tree, tree, tree *, tree *);
+static tree ia64_gimplify_va_arg (tree, tree, gimple_seq *, gimple_seq *);
 static bool ia64_scalar_mode_supported_p (enum machine_mode mode);
 static bool ia64_vector_mode_supported_p (enum machine_mode mode);
 static bool ia64_cannot_force_const_mem (rtx);
@@ -492,6 +492,12 @@ static const struct attribute_spec ia64_attribute_table[] =
 
 #undef TARGET_C_MODE_FOR_SUFFIX
 #define TARGET_C_MODE_FOR_SUFFIX ia64_c_mode_for_suffix
+
+#undef TARGET_OPTION_COLD_ATTRIBUTE_SETS_OPTIMIZATION
+#define TARGET_OPTION_COLD_ATTRIBUTE_SETS_OPTIMIZATION true
+
+#undef TARGET_OPTION_HOT_ATTRIBUTE_SETS_OPTIMIZATION
+#define TARGET_OPTION_HOT_ATTRIBUTE_SETS_OPTIMIZATION true
 
 struct gcc_target targetm = TARGET_INITIALIZER;
 
@@ -4336,7 +4342,8 @@ ia64_function_ok_for_sibcall (tree decl, tree exp ATTRIBUTE_UNUSED)
 /* Implement va_arg.  */
 
 static tree
-ia64_gimplify_va_arg (tree valist, tree type, tree *pre_p, tree *post_p)
+ia64_gimplify_va_arg (tree valist, tree type, gimple_seq *pre_p,
+		      gimple_seq *post_p)
 {
   /* Variable sized types are passed by reference.  */
   if (pass_by_reference (NULL, TYPE_MODE (type), type, false))
@@ -4359,8 +4366,7 @@ ia64_gimplify_va_arg (tree valist, tree type, tree *pre_p, tree *post_p)
       t = build2 (BIT_AND_EXPR, TREE_TYPE (t), t,
 		  size_int (-2 * UNITS_PER_WORD));
       t = fold_convert (TREE_TYPE (valist), t);
-      t = build2 (GIMPLE_MODIFY_STMT, TREE_TYPE (valist), valist, t);
-      gimplify_and_add (t, pre_p);
+      gimplify_assign (unshare_expr (valist), t, pre_p);
     }
 
   return std_gimplify_va_arg_expr (valist, type, pre_p, post_p);
@@ -4952,13 +4958,13 @@ ia64_register_move_cost (enum machine_mode mode, enum reg_class from,
   return 2;
 }
 
-/* Implement PREFERRED_RELOAD_CLASS.  Place additional restrictions on CLASS
+/* Implement PREFERRED_RELOAD_CLASS.  Place additional restrictions on RCLASS
    to use when copying X into that class.  */
 
 enum reg_class
-ia64_preferred_reload_class (rtx x, enum reg_class class)
+ia64_preferred_reload_class (rtx x, enum reg_class rclass)
 {
-  switch (class)
+  switch (rclass)
     {
     case FR_REGS:
     case FP_REGS:
@@ -4983,16 +4989,16 @@ ia64_preferred_reload_class (rtx x, enum reg_class class)
       break;
     }
 
-  return class;
+  return rclass;
 }
 
 /* This function returns the register class required for a secondary
-   register when copying between one of the registers in CLASS, and X,
+   register when copying between one of the registers in RCLASS, and X,
    using MODE.  A return value of NO_REGS means that no secondary register
    is required.  */
 
 enum reg_class
-ia64_secondary_reload_class (enum reg_class class,
+ia64_secondary_reload_class (enum reg_class rclass,
 			     enum machine_mode mode ATTRIBUTE_UNUSED, rtx x)
 {
   int regno = -1;
@@ -5000,7 +5006,7 @@ ia64_secondary_reload_class (enum reg_class class,
   if (GET_CODE (x) == REG || GET_CODE (x) == SUBREG)
     regno = true_regnum (x);
 
-  switch (class)
+  switch (rclass)
     {
     case BR_REGS:
     case AR_M_REGS:
@@ -5231,9 +5237,6 @@ ia64_override_options (void)
       warning (0, "not yet implemented: latency-optimized inline square root");
       TARGET_INLINE_SQRT = INL_MAX_THR;
     }
-
-  ia64_flag_schedule_insns2 = flag_schedule_insns_after_reload;
-  flag_schedule_insns_after_reload = 0;
 
   ia64_section_threshold = g_switch_set ? g_switch_value : IA64_DEFAULT_GVALUE;
 
@@ -9568,7 +9571,7 @@ ia64_output_mi_thunk (FILE *file, tree thunk ATTRIBUTE_UNUSED,
 		      HOST_WIDE_INT delta, HOST_WIDE_INT vcall_offset,
 		      tree function)
 {
-  rtx this, insn, funexp;
+  rtx this_rtx, insn, funexp;
   unsigned int this_parmno;
   unsigned int this_regno;
   rtx delta_rtx;
@@ -9597,7 +9600,7 @@ ia64_output_mi_thunk (FILE *file, tree thunk ATTRIBUTE_UNUSED,
   if (!TARGET_REG_NAMES)
     reg_names[this_regno] = ia64_reg_numbers[this_parmno];
 
-  this = gen_rtx_REG (Pmode, this_regno);
+  this_rtx = gen_rtx_REG (Pmode, this_regno);
 
   /* Apply the constant offset, if required.  */
   delta_rtx = GEN_INT (delta);
@@ -9607,11 +9610,11 @@ ia64_output_mi_thunk (FILE *file, tree thunk ATTRIBUTE_UNUSED,
       REG_POINTER (tmp) = 1;
       if (delta && satisfies_constraint_I (delta_rtx))
 	{
-	  emit_insn (gen_ptr_extend_plus_imm (this, tmp, delta_rtx));
+	  emit_insn (gen_ptr_extend_plus_imm (this_rtx, tmp, delta_rtx));
 	  delta = 0;
 	}
       else
-	emit_insn (gen_ptr_extend (this, tmp));
+	emit_insn (gen_ptr_extend (this_rtx, tmp));
     }
   if (delta)
     {
@@ -9621,7 +9624,7 @@ ia64_output_mi_thunk (FILE *file, tree thunk ATTRIBUTE_UNUSED,
 	  emit_move_insn (tmp, delta_rtx);
 	  delta_rtx = tmp;
 	}
-      emit_insn (gen_adddi3 (this, this, delta_rtx));
+      emit_insn (gen_adddi3 (this_rtx, this_rtx, delta_rtx));
     }
 
   /* Apply the offset from the vtable, if required.  */
@@ -9634,7 +9637,7 @@ ia64_output_mi_thunk (FILE *file, tree thunk ATTRIBUTE_UNUSED,
 	{
 	  rtx t = gen_rtx_REG (ptr_mode, 2);
 	  REG_POINTER (t) = 1;
-	  emit_move_insn (t, gen_rtx_MEM (ptr_mode, this));
+	  emit_move_insn (t, gen_rtx_MEM (ptr_mode, this_rtx));
 	  if (satisfies_constraint_I (vcall_offset_rtx))
 	    {
 	      emit_insn (gen_ptr_extend_plus_imm (tmp, t, vcall_offset_rtx));
@@ -9644,7 +9647,7 @@ ia64_output_mi_thunk (FILE *file, tree thunk ATTRIBUTE_UNUSED,
 	    emit_insn (gen_ptr_extend (tmp, t));
 	}
       else
-	emit_move_insn (tmp, gen_rtx_MEM (Pmode, this));
+	emit_move_insn (tmp, gen_rtx_MEM (Pmode, this_rtx));
 
       if (vcall_offset)
 	{
@@ -9662,7 +9665,7 @@ ia64_output_mi_thunk (FILE *file, tree thunk ATTRIBUTE_UNUSED,
       else
 	emit_move_insn (tmp, gen_rtx_MEM (Pmode, tmp));
 
-      emit_insn (gen_adddi3 (this, this, tmp));
+      emit_insn (gen_adddi3 (this_rtx, this_rtx, tmp));
     }
 
   /* Generate a tail call to the target function.  */
@@ -9927,6 +9930,13 @@ void
 ia64_optimization_options (int level ATTRIBUTE_UNUSED,
                            int size ATTRIBUTE_UNUSED)
 {
+  /* Disable the second machine independent scheduling pass and use one for the
+     IA-64.  This needs to be here instead of in OVERRIDE_OPTIONS because this
+     is done whenever the optimization is changed via #pragma GCC optimize or
+     attribute((optimize(...))).  */
+  ia64_flag_schedule_insns2 = flag_schedule_insns_after_reload;
+  flag_schedule_insns_after_reload = 0;
+
   /* Let the scheduler form additional regions.  */
   set_param_value ("max-sched-extend-regions-iters", 2);
 

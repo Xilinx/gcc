@@ -832,7 +832,10 @@ package body Sem_Ch8 is
       if Nkind (Nam) = N_Explicit_Dereference
         and then Ekind (Etype (T2)) = E_Incomplete_Type
       then
-         Error_Msg_N ("invalid use of incomplete type", Id);
+         Error_Msg_NE ("invalid use of incomplete type&", Id, T2);
+         return;
+      elsif Ekind (Etype (T)) = E_Incomplete_Type then
+         Error_Msg_NE ("invalid use of incomplete type&", Id, T);
          return;
       end if;
 
@@ -884,7 +887,20 @@ package body Sem_Ch8 is
                   Error_Msg_N
                     ("renamed object does not exclude `NULL` "
                      & "(RM 8.5.1(4.6/2))", N);
+
+               elsif Can_Never_Be_Null (Etype (Nam_Ent)) then
+                  Error_Msg_NE
+                    ("`NOT NULL` not allowed (type of& already excludes null)",
+                      N, Nam_Ent);
+
                end if;
+
+            elsif Has_Null_Exclusion (N)
+              and then No (Access_Definition (N))
+              and then Can_Never_Be_Null (T)
+            then
+               Error_Msg_NE
+                 ("`NOT NULL` not allowed (& already excludes null)", N, T);
             end if;
          end;
       end if;
@@ -1578,25 +1594,45 @@ package body Sem_Ch8 is
                --  an abstract formal subprogram must be dispatching
                --  operation).
 
-               case Attribute_Name (Nam) is
-                  when Name_Input  =>
-                     Stream_Prim :=
-                       Find_Prim_Op (Prefix_Type, TSS_Stream_Input);
-                  when Name_Output =>
-                     Stream_Prim :=
-                       Find_Prim_Op (Prefix_Type, TSS_Stream_Output);
-                  when Name_Read   =>
-                     Stream_Prim :=
-                       Find_Prim_Op (Prefix_Type, TSS_Stream_Read);
-                  when Name_Write  =>
-                     Stream_Prim :=
-                       Find_Prim_Op (Prefix_Type, TSS_Stream_Write);
-                  when others      =>
-                     Error_Msg_N
-                       ("attribute must be a primitive dispatching operation",
-                        Nam);
-                     return;
-               end case;
+               begin
+                  case Attribute_Name (Nam) is
+                     when Name_Input  =>
+                        Stream_Prim :=
+                          Find_Prim_Op (Prefix_Type, TSS_Stream_Input);
+                     when Name_Output =>
+                        Stream_Prim :=
+                          Find_Prim_Op (Prefix_Type, TSS_Stream_Output);
+                     when Name_Read   =>
+                        Stream_Prim :=
+                          Find_Prim_Op (Prefix_Type, TSS_Stream_Read);
+                     when Name_Write  =>
+                        Stream_Prim :=
+                          Find_Prim_Op (Prefix_Type, TSS_Stream_Write);
+                     when others      =>
+                        Error_Msg_N
+                          ("attribute must be a primitive"
+                            & " dispatching operation", Nam);
+                        return;
+                  end case;
+
+               exception
+
+                  --  If no operation was found, and the type is limited,
+                  --  the user should have defined one.
+
+                  when Program_Error =>
+                     if Is_Limited_Type (Prefix_Type) then
+                        Error_Msg_NE
+                         ("stream operation not defined for type&",
+                           N, Prefix_Type);
+                        return;
+
+                     --  Otherwise, compiler should have generated default
+
+                     else
+                        raise;
+                     end if;
+               end;
 
                --  Rewrite the attribute into the name of its corresponding
                --  primitive dispatching subprogram. We can then proceed with

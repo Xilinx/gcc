@@ -1,5 +1,5 @@
 /* Header for code translation functions
-   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007 Free Software
+   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008 Free Software
    Foundation, Inc.
    Contributed by Paul Brook
 
@@ -137,7 +137,7 @@ typedef enum
   /* A non-elemental function call returning an array.  The call is executed
      before entering the scalarization loop, storing the result in a
      temporary.  This temporary is then used inside the scalarization loop.
-     Simple assignments, eg. a(:) = fn() are handles without a temporary
+     Simple assignments, e.g. a(:) = fn(), are handled without a temporary
      as a special case.  */
   GFC_SS_FUNCTION,
 
@@ -348,12 +348,8 @@ void gfc_trans_vla_type_sizes (gfc_symbol *, stmtblock_t *);
 void gfc_add_expr_to_block (stmtblock_t *, tree);
 /* Add a block to the end of a block.  */
 void gfc_add_block_to_block (stmtblock_t *, stmtblock_t *);
-/* Add a MODIFY_EXPR or a GIMPLE_MODIFY_STMT to a block.  */
-void gfc_add_modify (stmtblock_t *, tree, tree, bool);
-#define gfc_add_modify_expr(BLOCK, LHS, RHS) \
-       gfc_add_modify ((BLOCK), (LHS), (RHS), false)
-#define gfc_add_modify_stmt(BLOCK, LHS, RHS) \
-       gfc_add_modify ((BLOCK), (LHS), (RHS), true)
+/* Add a MODIFY_EXPR to a block.  */
+void gfc_add_modify (stmtblock_t *, tree, tree);
 
 /* Initialize a statement block.  */
 void gfc_init_block (stmtblock_t *);
@@ -444,8 +440,9 @@ void gfc_generate_constructors (void);
 /* Get the string length of an array constructor.  */
 bool get_array_ctor_strlen (stmtblock_t *, gfc_constructor *, tree *);
 
-/* Generate a runtime error check.  */
-void gfc_trans_runtime_check (tree, stmtblock_t *, locus *, const char *, ...);
+/* Generate a runtime warning/error check.  */
+void gfc_trans_runtime_check (bool, bool, tree, stmtblock_t *, locus *,
+			      const char *, ...);
 
 /* Generate a call to free() after checking that its arg is non-NULL.  */
 tree gfc_call_free (tree);
@@ -510,6 +507,7 @@ extern GTY(()) tree gfor_fndecl_stop_numeric;
 extern GTY(()) tree gfor_fndecl_stop_string;
 extern GTY(()) tree gfor_fndecl_runtime_error;
 extern GTY(()) tree gfor_fndecl_runtime_error_at;
+extern GTY(()) tree gfor_fndecl_runtime_warning_at;
 extern GTY(()) tree gfor_fndecl_os_error;
 extern GTY(()) tree gfor_fndecl_generate_error;
 extern GTY(()) tree gfor_fndecl_set_fpe;
@@ -654,7 +652,7 @@ struct lang_decl		GTY(())
 #define GFC_TYPE_ARRAY_SIZE(node) (TYPE_LANG_SPECIFIC(node)->size)
 #define GFC_TYPE_ARRAY_OFFSET(node) (TYPE_LANG_SPECIFIC(node)->offset)
 #define GFC_TYPE_ARRAY_AKIND(node) (TYPE_LANG_SPECIFIC(node)->akind)
-/* Code should use gfc_get_dtype instead of accesing this directly.  It may
+/* Code should use gfc_get_dtype instead of accessing this directly.  It may
    not be known when the type is created.  */
 #define GFC_TYPE_ARRAY_DTYPE(node) (TYPE_LANG_SPECIFIC(node)->dtype)
 #define GFC_TYPE_ARRAY_DATAPTR_TYPE(node) \
@@ -710,7 +708,7 @@ typedef struct gfc_interface_sym_mapping
 {
   struct gfc_interface_sym_mapping *next;
   gfc_symbol *old;
-  gfc_symtree *new;
+  gfc_symtree *new_sym;
   gfc_expr *expr;
 }
 gfc_interface_sym_mapping;

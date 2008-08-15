@@ -439,6 +439,14 @@ proc check_profiling_available { test_what } {
 	return 0
     }
 
+    # We don't yet support profiling for MIPS16.
+    if { [istarget mips*-*-*]
+	 && ![check_effective_target_nomips16]
+	 && ([lindex $test_what 1] == "-p"
+	     || [lindex $test_what 1] == "-pg") } {
+	return 0
+    }
+
     # MinGW does not support -p.
     if { [istarget *-*-mingw*] && [lindex $test_what 1] == "-p" } {
 	return 0
@@ -476,7 +484,7 @@ proc check_profiling_available { test_what } {
 	     || [istarget m68k-*-uclinux*]
 	     || [istarget mips*-*-elf*]
 	     || [istarget xstormy16-*]
-	     || [istarget xtensa-*-elf]
+	     || [istarget xtensa*-*-elf]
 	     || [istarget *-*-vxworks*] } {
 	    set profiling_available_saved 0
 	} else {
@@ -1203,6 +1211,8 @@ proc check_effective_target_vect_floatint_cvt { } {
     } else {
         set et_vect_floatint_cvt_saved 0
         if { [istarget i?86-*-*]
+              || ([istarget powerpc*-*-*]
+                   && ![istarget powerpc-*-linux*paired*])
               || [istarget x86_64-*-*] } {
            set et_vect_floatint_cvt_saved 1
         }
@@ -1247,6 +1257,17 @@ proc check_effective_target_arm_neon_ok { } {
     } else {
         return 0
     }
+}
+
+# Return 1 is this is an ARM target where -mthumb causes Thumb-1 to be
+# used.
+
+proc check_effective_target_arm_thumb1_ok { } {
+    return [check_no_compiler_messages arm_thumb1_ok assembly {
+	#if !defined(__arm__) || !defined(__thumb__) || defined(__thumb2__)
+	#error FOO
+	#endif
+    } "-mthumb"]
 }
 
 # Return 1 if the target supports executing NEON instructions, 0
@@ -1385,6 +1406,19 @@ proc check_effective_target_powerpc_altivec { } {
 	    int dummy;
 	    #endif
 	}]
+    } else {
+	return 0
+    }
+}
+
+# Return 1 if this is a SPU target with a toolchain that
+# supports automatic overlay generation.
+
+proc check_effective_target_spu_auto_overlay { } {
+    if { [istarget spu*-*-elf*] } {
+	return [check_no_compiler_messages spu_auto_overlay executable {
+		int main (void) { }
+		} "-Wl,--auto-overlay" ]
     } else {
 	return 0
     }
@@ -1817,10 +1851,6 @@ proc check_effective_target_unaligned_stack { } {
         verbose "check_effective_target_unaligned_stack: using cached result" 2
     } else {
         set et_unaligned_stack_saved 0
-        if { ( [istarget i?86-*-*] || [istarget x86_64-*-*] )
-          && (! [istarget *-*-darwin*] ) } {
-            set et_unaligned_stack_saved 1
-        }
     }
     verbose "check_effective_target_unaligned_stack: returning $et_unaligned_stack_saved" 2
     return $et_unaligned_stack_saved
@@ -2058,6 +2088,27 @@ proc check_effective_target_vect_extract_even_odd { } {
     return $et_vect_extract_even_odd_saved
 }
 
+# Return 1 if the target supports vector even/odd elements extraction of
+# vectors with SImode elements or larger, 0 otherwise.
+
+proc check_effective_target_vect_extract_even_odd_wide { } {
+    global et_vect_extract_even_odd_wide_saved
+    
+    if [info exists et_vect_extract_even_odd_wide_saved] {
+        verbose "check_effective_target_vect_extract_even_odd_wide: using cached result" 2
+    } else {
+        set et_vect_extract_even_odd_wide_saved 0 
+        if { [istarget powerpc*-*-*] 
+             || [istarget i?86-*-*]
+             || [istarget x86_64-*-*] } {
+           set et_vect_extract_even_odd_wide_saved 1
+        }
+    }
+
+    verbose "check_effective_target_vect_extract_even_wide_odd: returning $et_vect_extract_even_odd_wide_saved" 2
+    return $et_vect_extract_even_odd_wide_saved
+}
+
 # Return 1 if the target supports vector interleaving, 0 otherwise.
 
 proc check_effective_target_vect_interleave { } {
@@ -2094,6 +2145,25 @@ proc check_effective_target_vect_strided { } {
 
     verbose "check_effective_target_vect_strided: returning $et_vect_strided_saved" 2
     return $et_vect_strided_saved
+}
+
+# Return 1 if the target supports vector interleaving and extract even/odd
+# for wide element types, 0 otherwise.
+proc check_effective_target_vect_strided_wide { } {
+    global et_vect_strided_wide_saved
+
+    if [info exists et_vect_strided_wide_saved] {
+        verbose "check_effective_target_vect_strided_wide: using cached result" 2
+    } else {
+        set et_vect_strided_wide_saved 0
+        if { [check_effective_target_vect_interleave]
+             && [check_effective_target_vect_extract_even_odd_wide] } {
+           set et_vect_strided_wide_saved 1
+        }
+    }
+
+    verbose "check_effective_target_vect_strided_wide: returning $et_vect_strided_wide_saved" 2
+    return $et_vect_strided_wide_saved
 }
 
 # Return 1 if the target supports section-anchors
@@ -2441,4 +2511,15 @@ proc check_effective_target_4byte_wchar_t { } {
     return [check_no_compiler_messages 4byte_wchar_t object {
 	int dummy[sizeof (__WCHAR_TYPE__) >= 4 ? 1 : -1];
     }]
+}
+
+# Return 1 if the target supports automatic stack alignment.
+
+proc check_effective_target_automatic_stack_alignment  { } {
+    if { [istarget i?86*-*-*]
+	 || [istarget x86_64-*-*] } then {
+	return 1
+    } else {
+	return 0
+    }
 }

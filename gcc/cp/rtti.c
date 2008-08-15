@@ -252,7 +252,8 @@ get_tinfo_decl_dynamic (tree exp)
   /* Peel off cv qualifiers.  */
   type = TYPE_MAIN_VARIANT (type);
 
-  if (CLASS_TYPE_P (type))
+  /* For UNKNOWN_TYPEs call complete_type_or_else to get diagnostics.  */
+  if (CLASS_TYPE_P (type) || TREE_CODE (type) == UNKNOWN_TYPE)
     type = complete_type_or_else (type, exp);
 
   if (!type)
@@ -459,7 +460,8 @@ get_typeid (tree type)
      that is the operand of typeid are always ignored.  */
   type = TYPE_MAIN_VARIANT (type);
 
-  if (CLASS_TYPE_P (type))
+  /* For UNKNOWN_TYPEs call complete_type_or_else to get diagnostics.  */
+  if (CLASS_TYPE_P (type) || TREE_CODE (type) == UNKNOWN_TYPE)
     type = complete_type_or_else (type, NULL_TREE);
 
   if (!type)
@@ -1408,7 +1410,7 @@ emit_support_tinfos (void)
   {
     &void_type_node,
     &boolean_type_node,
-    &wchar_type_node,
+    &wchar_type_node, &char16_type_node, &char32_type_node,
     &char_type_node, &signed_char_type_node, &unsigned_char_type_node,
     &short_integer_type_node, &short_unsigned_type_node,
     &integer_type_node, &unsigned_type_node,

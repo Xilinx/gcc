@@ -1356,9 +1356,6 @@ expand_expr_stmt (tree exp)
   tree type;
 
   value = expand_expr (exp, const0_rtx, VOIDmode, EXPAND_NORMAL);
-  if (GIMPLE_TUPLE_P (exp))
-    type = void_type_node;
-  else
   type = TREE_TYPE (exp);
 
   /* If all we do is reference a volatile value in memory,
@@ -1412,7 +1409,6 @@ warn_if_unused_value (const_tree exp, location_t locus)
     case PREDECREMENT_EXPR:
     case POSTDECREMENT_EXPR:
     case MODIFY_EXPR:
-    case GIMPLE_MODIFY_STMT:
     case INIT_EXPR:
     case TARGET_EXPR:
     case CALL_EXPR:
@@ -1581,10 +1577,10 @@ expand_return (tree retval)
       expand_null_return ();
       return;
     }
-  else if ((TREE_CODE (retval) == GIMPLE_MODIFY_STMT
+  else if ((TREE_CODE (retval) == MODIFY_EXPR
 	    || TREE_CODE (retval) == INIT_EXPR)
-	   && TREE_CODE (GENERIC_TREE_OPERAND (retval, 0)) == RESULT_DECL)
-    retval_rhs = GENERIC_TREE_OPERAND (retval, 1);
+	   && TREE_CODE (TREE_OPERAND (retval, 0)) == RESULT_DECL)
+    retval_rhs = TREE_OPERAND (retval, 1);
   else
     retval_rhs = retval;
 
@@ -1603,7 +1599,7 @@ expand_return (tree retval)
      (and in expand_call).  */
 
   else if (retval_rhs != 0
-	   && TYPE_MODE (GENERIC_TREE_TYPE (retval_rhs)) == BLKmode
+	   && TYPE_MODE (TREE_TYPE (retval_rhs)) == BLKmode
 	   && REG_P (result_rtl))
     {
       int i;
@@ -1817,7 +1813,7 @@ expand_nl_goto_receiver (void)
 	{
 	  /* Now restore our arg pointer from the address at which it
 	     was saved in our stack frame.  */
-	  emit_move_insn (virtual_incoming_args_rtx,
+	  emit_move_insn (crtl->args.internal_arg_pointer,
 			  copy_to_reg (get_arg_pointer_save_area ()));
 	}
     }

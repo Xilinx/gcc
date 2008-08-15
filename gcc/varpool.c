@@ -32,7 +32,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "debug.h" 
 #include "target.h"
 #include "output.h"
-#include "tree-gimple.h"
+#include "gimple.h"
 #include "tree-flow.h"
 
 /*  This file contains basic routines manipulating variable pool.
@@ -61,7 +61,7 @@ struct varpool_node *varpool_nodes;
    maintained in forward order.  GTY is needed to make it friendly to
    PCH.
  
-   During unit-at-a-time compilation we construct the queue of needed variables
+   During compilation we construct the queue of needed variables
    twice: first time it is during cgraph construction, second time it is at the
    end of compilation in VARPOOL_REMOVE_UNREFERENCED_DECLS so we can avoid
    optimized out variables being output.
@@ -214,16 +214,12 @@ varpool_reset_queue (void)
 
 /* Determine if variable DECL is needed.  That is, visible to something
    either outside this translation unit, something magic in the system
-   configury, or (if not doing unit-at-a-time) to something we haven't
-   seen yet.  */
+   configury */
 bool
 decide_is_variable_needed (struct varpool_node *node, tree decl)
 {
   /* If the user told us it is used, then it must be so.  */
   if (node->externally_visible || node->force_output)
-    return true;
-  if (!flag_unit_at_a_time
-      && lookup_attribute ("used", DECL_ATTRIBUTES (decl)))
     return true;
 
   /* ??? If the assembler name is set by hand, it is possible to assemble
@@ -257,7 +253,7 @@ decide_is_variable_needed (struct varpool_node *node, tree decl)
 
   /* When not reordering top level variables, we have to assume that
      we are going to keep everything.  */
-  if (flag_unit_at_a_time && flag_toplevel_reorder)
+  if (flag_toplevel_reorder)
     return false;
 
   /* We want to emit COMDAT variables only when absolutely necessary.  */
@@ -280,7 +276,7 @@ varpool_finalize_decl (tree decl)
      if this function has already run.  */
   if (node->finalized)
     {
-      if (cgraph_global_info_ready || (!flag_unit_at_a_time && !flag_openmp))
+      if (cgraph_global_info_ready)
 	varpool_assemble_pending_decls ();
       return;
     }
@@ -295,7 +291,7 @@ varpool_finalize_decl (tree decl)
      there.  */
   else if (TREE_PUBLIC (decl) && !DECL_COMDAT (decl) && !DECL_EXTERNAL (decl))
     varpool_mark_needed_node (node);
-  if (cgraph_global_info_ready || (!flag_unit_at_a_time && !flag_openmp))
+  if (cgraph_global_info_ready)
     varpool_assemble_pending_decls ();
 }
 
@@ -357,7 +353,13 @@ varpool_assemble_decl (struct varpool_node *node)
       && (TREE_CODE (decl) != VAR_DECL || !DECL_HAS_VALUE_EXPR_P (decl)))
     {
       assemble_variable (decl, 0, 1, 0);
-      return TREE_ASM_WRITTEN (decl);
+      if (TREE_ASM_WRITTEN (decl))
+	{
+	  node->next_needed = varpool_assembled_nodes_queue;
+	  varpool_assembled_nodes_queue = node;
+	  node->finalized = 1;
+	  return true;
+	}
     }
 
   return false;
@@ -423,12 +425,7 @@ varpool_assemble_pending_decls (void)
 
       varpool_nodes_queue = varpool_nodes_queue->next_needed;
       if (varpool_assemble_decl (node))
-	{
-	  changed = true;
-	  node->next_needed = varpool_assembled_nodes_queue;
-	  varpool_assembled_nodes_queue = node;
-	  node->finalized = 1;
-	}
+	changed = true;
       else
         node->next_needed = NULL;
     }
@@ -436,6 +433,26 @@ varpool_assemble_pending_decls (void)
      in the queue.  */
   varpool_last_needed_node = NULL;
   return changed;
+}
+
+/* Remove all elements from the queue so we can re-use it for debug output.  */
+void
+varpool_empty_needed_queue (void)
+{
+  /* EH might mark decls as needed during expansion.  This should be safe since
+     we don't create references to new function, but it should not be used
+     elsewhere.  */
+  varpool_analyze_pending_decls ();
+
+  while (varpool_nodes_queue)
+    {
+      struct varpool_node *node = varpool_nodes_queue;
+      varpool_nodes_queue = varpool_nodes_queue->next_needed;
+      node->next_needed = NULL;
+    }
+  /* varpool_nodes_queue is now empty, clear the pointer to the last element
+     in the queue.  */
+  varpool_last_needed_node = NULL;
 }
 
 /* Output all variables enqueued to be assembled.  */

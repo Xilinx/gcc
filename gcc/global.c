@@ -233,6 +233,7 @@ compute_regsets (HARD_REG_SET *elim_set,
     = (! flag_omit_frame_pointer
        || (cfun->calls_alloca && EXIT_IGNORE_STACK)
        || crtl->accesses_prior_frames
+       || crtl->stack_realign_needed
        || FRAME_POINTER_REQUIRED);
 
   frame_pointer_needed = need_fp;
@@ -256,7 +257,10 @@ compute_regsets (HARD_REG_SET *elim_set,
     {
       bool cannot_elim
 	= (! CAN_ELIMINATE (eliminables[i].from, eliminables[i].to)
-	   || (eliminables[i].to == STACK_POINTER_REGNUM && need_fp));
+	   || (eliminables[i].to == STACK_POINTER_REGNUM
+	       && need_fp 
+	       && (! SUPPORTS_STACK_ALIGNMENT
+		   || ! stack_realign_fp)));
 
       if (!regs_asm_clobbered[eliminables[i].from])
 	{
@@ -978,7 +982,7 @@ find_reg (int num, HARD_REG_SET losers, int alt_regs_p, int accept_call_clobbere
   int i, best_reg, pass;
   HARD_REG_SET used, used1, used2;
 
-  enum reg_class class = (alt_regs_p
+  enum reg_class rclass = (alt_regs_p
 			  ? reg_alternate_class (allocno[num].reg)
 			  : reg_preferred_class (allocno[num].reg));
   enum machine_mode mode = PSEUDO_REGNO_MODE (allocno[num].reg);
@@ -995,7 +999,7 @@ find_reg (int num, HARD_REG_SET losers, int alt_regs_p, int accept_call_clobbere
   if (losers)
     IOR_HARD_REG_SET (used1, losers);
 
-  IOR_COMPL_HARD_REG_SET (used1, reg_class_contents[(int) class]);
+  IOR_COMPL_HARD_REG_SET (used1, reg_class_contents[(int) rclass]);
 
 #ifdef EH_RETURN_DATA_REGNO
   if (allocno[num].no_eh_reg)

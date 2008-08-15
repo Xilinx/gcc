@@ -766,7 +766,7 @@ package body Sem_Type is
       if T1 = T2 then
          return True;
 
-      elsif  BT1 = BT2
+      elsif BT1 = BT2
         or else BT1 = T2
         or else BT2 = T1
       then
@@ -2101,14 +2101,21 @@ package body Sem_Type is
          return
            Covers (Typ, Etype (N))
 
-            --  Ada 2005 (AI-345) The context may be a synchronized interface.
+            --  Ada 2005 (AI-345): The context may be a synchronized interface.
             --  If the type is already frozen use the corresponding_record
             --  to check whether it is a proper descendant.
 
            or else
-             (Is_Concurrent_Type (Etype (N))
+             (Is_Record_Type (Typ)
+                and then Is_Concurrent_Type (Etype (N))
                 and then Present (Corresponding_Record_Type (Etype (N)))
                 and then Covers (Typ, Corresponding_Record_Type (Etype (N))))
+
+           or else
+             (Is_Concurrent_Type (Typ)
+                and then Is_Record_Type (Etype (N))
+                and then Present (Corresponding_Record_Type (Typ))
+                and then Covers (Corresponding_Record_Type (Typ), Etype (N)))
 
            or else
              (not Is_Tagged_Type (Typ)

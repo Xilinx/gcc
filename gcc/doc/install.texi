@@ -70,8 +70,9 @@
 
 @c Part 2 Summary Description and Copyright
 @copying
-Copyright @copyright{} 1988, 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008 Free Software Foundation, Inc.
+Copyright @copyright{} 1988, 1989, 1992, 1993, 1994, 1995, 1996, 1997,
+1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007,
+2008 Free Software Foundation, Inc.
 @sp 1
 Permission is granted to copy, distribute and/or modify this document
 under the terms of the GNU Free Documentation License, Version 1.2 or
@@ -386,7 +387,7 @@ Necessary to build GCC during development because the generated output
 files are not included in the SVN repository.  They are included in
 releases.
 
-@item Texinfo version 4.4 (or later)
+@item Texinfo version 4.7 (or later)
 
 Necessary for running @command{makeinfo} when modifying @file{*.texi}
 files to test your changes.
@@ -1765,7 +1766,7 @@ build machinery, not of GCC itself) that is used even if you only
 build the C front end.
 
 When building from SVN or snapshots, or if you modify Texinfo
-documentation, you need version 4.4 or later of Texinfo installed if you
+documentation, you need version 4.7 or later of Texinfo installed if you
 want Info documentation to be regenerated.  Releases contain Info
 documentation pre-built for the unmodified documentation in the release.
 
@@ -2362,7 +2363,7 @@ If you find a bug, please report it following the
 @uref{../bugs.html,,bug reporting guidelines}.
 
 If you want to print the GCC manuals, do @samp{cd @var{objdir}; make
-dvi}.  You will need to have @command{texi2dvi} (version at least 4.4)
+dvi}.  You will need to have @command{texi2dvi} (version at least 4.7)
 and @TeX{} installed.  This creates a number of @file{.dvi} files in
 subdirectories of @file{@var{objdir}}; these may be converted for
 printing with programs such as @command{dvips}.  Alternately, by using
@@ -2415,7 +2416,7 @@ AIX:
 @uref{http://www.bullfreeware.com,,Bull's Freeware and Shareware Archive for AIX};
 
 @item
-@uref{http://pware.hvcc.edu,,Hudson Valley Community College Open Source Softeware for IBM System p};
+@uref{http://pware.hvcc.edu,,Hudson Valley Community College Open Source Software for IBM System p};
 
 @item
 @uref{http://www.perzl.org/aix,,AIX 5L and 6 Open Source Packages}.
@@ -2624,9 +2625,9 @@ information are.
 @item
 @uref{#x86-64-x-x,,x86_64-*-*, amd64-*-*}
 @item
-@uref{#xtensa-x-elf,,xtensa-*-elf}
+@uref{#xtensa-x-elf,,xtensa*-*-elf}
 @item
-@uref{#xtensa-x-linux,,xtensa-*-linux*}
+@uref{#xtensa-x-linux,,xtensa*-*-linux*}
 @item
 @uref{#windows,,Microsoft Windows}
 @item
@@ -3675,9 +3676,7 @@ or newer for a working GCC@.
 <hr />
 @end html
 @heading @anchor{powerpc-x-netbsd}powerpc-*-netbsd*
-PowerPC system in big endian mode running NetBSD@.  To build the
-documentation you will need Texinfo version 4.4 (NetBSD 1.5.1 included
-Texinfo version 3.12).
+PowerPC system in big endian mode running NetBSD@.
 
 @html
 <hr />
@@ -4037,7 +4036,7 @@ both 64-bit x86-64 and 32-bit x86 code (via the @option{-m32} switch).
 @html
 <hr />
 @end html
-@heading @anchor{xtensa-x-elf}xtensa-*-elf
+@heading @anchor{xtensa-x-elf}xtensa*-*-elf
 
 This target is intended for embedded Xtensa systems using the
 @samp{newlib} C library.  It uses ELF but does not support shared
@@ -4055,14 +4054,14 @@ which you can use to replace the default header file.
 @html
 <hr />
 @end html
-@heading @anchor{xtensa-x-linux}xtensa-*-linux*
+@heading @anchor{xtensa-x-linux}xtensa*-*-linux*
 
 This target is for Xtensa systems running GNU/Linux.  It supports ELF
 shared objects and the GNU C library (glibc).  It also generates
 position-independent code (PIC) regardless of whether the
 @option{-fpic} or @option{-fPIC} options are used.  In other
 respects, this target is the same as the
-@uref{#xtensa-*-elf,,@samp{xtensa-*-elf}} target.
+@uref{#xtensa*-*-elf,,@samp{xtensa*-*-elf}} target.
 
 @html
 <hr />

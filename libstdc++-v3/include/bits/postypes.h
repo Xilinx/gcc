@@ -46,6 +46,20 @@
 
 #include <cwchar> // For mbstate_t
 
+// XXX If <stdint.h> is really needed, make sure to define the macros,
+// in order not to break <tr1/cstdint> (and <cstdint> in C++0x).
+// Reconsider all this as soon as possible...
+#if (defined(_GLIBCXX_HAVE_INT64_T) && !defined(_GLIBCXX_HAVE_INT64_T_LONG) \
+     && !defined(_GLIBCXX_HAVE_INT64_T_LONG_LONG))
+#ifndef __STDC_LIMIT_MACROS
+# define __STDC_LIMIT_MACROS
+#endif
+#ifndef __STDC_CONSTANT_MACROS
+# define __STDC_CONSTANT_MACROS
+#endif
+#include <stdint.h> // For int64_t
+#endif
+
 _GLIBCXX_BEGIN_NAMESPACE(std)
 
   // The types streamoff, streampos and wstreampos and the class
@@ -63,12 +77,12 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
    *  Note: In versions of GCC up to and including GCC 3.3, streamoff
    *  was typedef long.
   */  
-#ifdef _GLIBCXX_HAVE_INT64_T
-# if (__CHAR_BIT__ * __SIZEOF_LONG__ == 64)
+#ifdef _GLIBCXX_HAVE_INT64_T_LONG
   typedef long          streamoff;
-# else
+#elif defined(_GLIBCXX_HAVE_INT64_T_LONG_LONG)
   typedef long long     streamoff;
-# endif
+#elif defined(_GLIBCXX_HAVE_INT64_T) 
+  typedef int64_t       streamoff;
 #else
   typedef long long     streamoff;
 #endif

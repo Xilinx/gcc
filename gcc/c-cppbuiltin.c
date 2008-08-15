@@ -30,6 +30,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "c-pragma.h"
 #include "output.h"
 #include "except.h"		/* For USING_SJLJ_EXCEPTIONS.  */
+#include "debug.h"		/* For dwarf2out_do_frame.  */
 #include "toplev.h"
 #include "tm_p.h"		/* Target prototypes.  */
 #include "target.h"
@@ -405,6 +406,58 @@ builtin_define_stdint_macros (void)
   builtin_define_type_max ("__INTMAX_MAX__", intmax_type_node, intmax_long);
 }
 
+/* Adjust the optimization macros when a #pragma GCC optimization is done to
+   reflect the current level.  */
+void
+c_cpp_builtins_optimize_pragma (cpp_reader *pfile, tree prev_tree,
+				tree cur_tree)
+{
+  struct cl_optimization *prev = TREE_OPTIMIZATION (prev_tree);
+  struct cl_optimization *cur  = TREE_OPTIMIZATION (cur_tree);
+  bool prev_fast_math;
+  bool cur_fast_math;
+
+  /* -undef turns off target-specific built-ins.  */
+  if (flag_undef)
+    return;
+
+  /* Other target-independent built-ins determined by command-line
+     options.  */
+  if (!prev->optimize_size && cur->optimize_size)
+    cpp_define (pfile, "__OPTIMIZE_SIZE__");
+  else if (prev->optimize_size && !cur->optimize_size)
+    cpp_undef (pfile, "__OPTIMIZE_SIZE__");
+
+  if (!prev->optimize && cur->optimize)
+    cpp_define (pfile, "__OPTIMIZE__");
+  else if (prev->optimize && !cur->optimize)
+    cpp_undef (pfile, "__OPTIMIZE__");
+
+  prev_fast_math = fast_math_flags_struct_set_p (prev);
+  cur_fast_math  = fast_math_flags_struct_set_p (cur);
+  if (!prev_fast_math && cur_fast_math)
+    cpp_define (pfile, "__FAST_MATH__");
+  else if (prev_fast_math && !cur_fast_math)
+    cpp_undef (pfile, "__FAST_MATH__");
+
+  if (!prev->flag_signaling_nans && cur->flag_signaling_nans)
+    cpp_define (pfile, "__SUPPORT_SNAN__");
+  else if (prev->flag_signaling_nans && !cur->flag_signaling_nans)
+    cpp_undef (pfile, "__SUPPORT_SNAN__");
+
+  if (!prev->flag_finite_math_only && cur->flag_finite_math_only)
+    {
+      cpp_undef (pfile, "__FINITE_MATH_ONLY__");
+      cpp_define (pfile, "__FINITE_MATH_ONLY__=1");
+    }
+  else if (!prev->flag_finite_math_only && cur->flag_finite_math_only)
+    {
+      cpp_undef (pfile, "__FINITE_MATH_ONLY__");
+      cpp_define (pfile, "__FINITE_MATH_ONLY__=0");
+    }
+}
+
+
 /* Hook that registers front end and target-specific built-ins.  */
 void
 c_cpp_builtins (cpp_reader *pfile)
@@ -588,7 +641,7 @@ c_cpp_builtins (cpp_reader *pfile)
 
   if (fast_math_flags_set_p ())
     cpp_define (pfile, "__FAST_MATH__");
-  if (flag_really_no_inline)
+  if (flag_no_inline)
     cpp_define (pfile, "__NO_INLINE__");
   if (flag_signaling_nans)
     cpp_define (pfile, "__SUPPORT_SNAN__");
@@ -641,6 +694,11 @@ c_cpp_builtins (cpp_reader *pfile)
 #ifdef HAVE_sync_compare_and_swapti
   if (HAVE_sync_compare_and_swapti)
     cpp_define (pfile, "__GCC_HAVE_SYNC_COMPARE_AND_SWAP_16");
+#endif
+
+#ifdef DWARF2_UNWIND_INFO
+  if (dwarf2out_do_cfi_asm ())
+    cpp_define (pfile, "__GCC_HAVE_DWARF2_CFI_ASM");
 #endif
 
   /* Make the choice of ObjC runtime visible to source code.  */
@@ -798,7 +856,7 @@ builtin_define_with_int_value (const char *macro, HOST_WIDE_INT value)
 /* Pass an object-like macro a hexadecimal floating-point value.  */
 static void
 builtin_define_with_hex_fp_value (const char *macro,
-				  tree type ATTRIBUTE_UNUSED, int digits,
+				  tree type, int digits,
 				  const char *hex_str, 
 				  const char *fp_suffix,
 				  const char *fp_cast)
@@ -817,7 +875,8 @@ builtin_define_with_hex_fp_value (const char *macro,
      then print it back out as decimal.  */
 
   real_from_string (&real, hex_str);
-  real_to_decimal (dec_str, &real, sizeof (dec_str), digits, 0);
+  real_to_decimal_for_mode (dec_str, &real, sizeof (dec_str), digits, 0,
+			    TYPE_MODE (type));
 
   /* Assemble the macro in the following fashion
      macro = fp_cast [dec_str fp_suffix] */

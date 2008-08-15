@@ -462,7 +462,7 @@ extern void c_print_identifier (FILE *, tree, int);
 extern int quals_from_declspecs (const struct c_declspecs *);
 extern struct c_declarator *build_array_declarator (tree, struct c_declspecs *,
 						    bool, bool);
-extern tree build_enumerator (struct c_enum_contents *, tree, tree);
+extern tree build_enumerator (struct c_enum_contents *, tree, tree, location_t);
 extern tree check_for_loop_decls (void);
 extern void mark_forward_parm_decls (void);
 extern void declare_parm_level (void);
@@ -563,7 +563,7 @@ extern tree c_cast_expr (struct c_type_name *, tree);
 extern tree build_c_cast (tree, tree);
 extern void store_init_value (tree, tree);
 extern void error_init (const char *);
-extern void pedwarn_init (const char *);
+extern void pedwarn_init (int opt, const char *);
 extern void maybe_warn_string_init (tree, struct c_expr);
 extern void start_init (tree, tree, int);
 extern void finish_init (void);
@@ -640,7 +640,7 @@ extern void c_write_global_declarations (void);
 #define ATTRIBUTE_GCC_CDIAG(m, n) ATTRIBUTE_NONNULL(m)
 #endif
 
-extern void pedwarn_c90 (const char *, ...) ATTRIBUTE_GCC_CDIAG(1,2);
-extern void pedwarn_c99 (const char *, ...) ATTRIBUTE_GCC_CDIAG(1,2);
+extern void pedwarn_c90 (int opt, const char *, ...) ATTRIBUTE_GCC_CDIAG(2,3);
+extern void pedwarn_c99 (int opt, const char *, ...) ATTRIBUTE_GCC_CDIAG(2,3);
 
 #endif /* ! GCC_C_TREE_H */

@@ -148,6 +148,7 @@ GLIBCXX_HOSTED_TRUE = @GLIBCXX_HOSTED_TRUE@
 GLIBCXX_INCLUDES = @GLIBCXX_INCLUDES@
 GLIBCXX_LDBL_COMPAT_FALSE = @GLIBCXX_LDBL_COMPAT_FALSE@
 GLIBCXX_LDBL_COMPAT_TRUE = @GLIBCXX_LDBL_COMPAT_TRUE@
+GLIBCXX_LIBS = @GLIBCXX_LIBS@
 GREP = @GREP@
 INSTALL_DATA = @INSTALL_DATA@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
@@ -285,6 +286,7 @@ std_headers = \
 	${std_srcdir}/array \
 	${std_srcdir}/bitset \
 	${std_srcdir}/c++0x_warning.h \
+	${std_srcdir}/chrono \
 	${std_srcdir}/complex \
 	${std_srcdir}/condition_variable \
 	${std_srcdir}/deque \
