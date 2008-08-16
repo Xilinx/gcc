@@ -4489,7 +4489,6 @@ graphite_trans_bb_block (graphite_bb_p gb, int stride, int loops)
   int nb_loops = gbb_nb_loops (gb);
   int start = nb_loops - loops;
   scop_p scop = GBB_SCOP (gb);
-  int outer_most_loop_index_for_gb;
 
   gcc_assert (scop_contains_loop (scop, gbb_loop (gb)));
 

@@ -1,6 +1,10 @@
 2008-08-15  Tobias Grosser  <grosser@fim.uni-passau.de>
 
-	*graphite.c (graphite_trans_loop_block): Fix my merge error.
+	* graphite.c (graphite_trans_loop_block): Fix warning.
+
+2008-08-15  Tobias Grosser  <grosser@fim.uni-passau.de>
+
+	* graphite.c (graphite_trans_loop_block): Fix my merge error.
 
 2008-08-15  Tobias Grosser  <grosser@fim.uni-passau.de>
 
