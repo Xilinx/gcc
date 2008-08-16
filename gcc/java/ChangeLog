@@ -1,3 +1,184 @@
+2008-08-12  Ulrich Weigand  <uweigand@de.ibm.com>
+
+	* typeck.c (convert): Do not check for TARGET_FLOAT_FORMAT.
+
+2008-08-08  Manuel Lopez-Ibanez  <manu@gcc.gnu.org>
+
+	PR 28875
+	* lang.c (java_handle_option): Replace set_Wunused with
+	warn_unused.
+
+2008-07-30  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* gcj.texi: Update copyright years.  Do not list GPL as
+	Invariant Section.
+
+2008-07-29  Jakub Jelinek  <jakub@redhat.com>
+
+	* class.c (build_utf8_ref): Set DECL_SIZE and DECL_SIZE_UNIT
+	from ctype's sizes.
+
+	* class.c (build_utf8_ref): Pad initializer string to utf8const_type's
+	alignment.
+
+2008-07-29  Jan Hubicka  <jh@suse.cz>
+
+	* lang.c (java_post_options): Remove handling of flag_no_inline.
+
+2008-07-28  Richard Guenther  <rguenther@suse.de>
+
+	Merge from gimple-tuples-branch.
+
+	2008-07-18  Richard Guenther  <rguenther@suse.de>
+
+	* expr.c: Include tree-iterator.h.
+	* Make-lang.in (expr.o): Add tree-iterator.h dependency.
+
+	2008-07-18  Aldy Hernandez  <aldyh@redhat.com>
+
+	* java-gimplify.c: Include gimple.h instead of tree-gimple.h.
+	* expr.c: Same.
+
+	2008-07-14  Aldy Hernandez  <aldyh@redhat.com>
+
+	* java-gimplify.c (java_gimplify_expr): Same.
+	(java_gimplify_modify_expr): Same.
+	* java-tree.h: Rename GENERIC_NEXT to TREE_CHAIN.
+
+	2008-05-02  Diego Novillo  <dnovillo@google.com>
+
+	* expr.c (build_java_throw_out_of_bounds_exception): Fix
+	mixed declarations and code.
+
+	2008-05-02  Doug Kwan  <dougkwan@google.com>
+	
+	* expr.c (build_java_throw_out_of_bounds_exception ): Wrap call to
+	_Jv_ThrowBadArrayIndex with a COMPOUND_EXPR to return 0.
+
+	2008-02-19  Diego Novillo  <dnovillo@google.com>
+
+	http://gcc.gnu.org/ml/gcc-patches/2008-02/msg00804.html
+
+	* java-gimplify.c (java_gimplify_self_mod_expr): Change
+	gimple_seq arguments to gimple_seq *.  Update all users.
+
+	2007-11-26  Aldy Hernandez  <aldyh@redhat.com>
+
+	* java-gimplify.c (java_gimplify_expr): Make pre_p and post_p
+	sequences.
+	(java_gimplify_self_mod_expr): Same.                                    
+	* java-tree.h (java_gimplify_expr): Make pre_p and post_p               
+	sequences.
+
+2008-07-24  Jan Hubicka  <jh@suse.cz>
+
+	* java/decl.c: Include cgraph.h
+	(end_java_method): Remove non-unit-at-a-time code.
+	(java_mark_decl_local): Likewise; sanity check that we don't touch
+	finalized nodes.
+
+2008-07-15  Jan Hubicka  <jh@suse.cz>
+
+	* lang.c (java_init_options): Enable unit-at-a-time by default.
+
+2008-07-14  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* Make-lang.in (jvspec.o): Fix dependencies.
+
+2008-07-06  Tom Tromey  <tromey@redhat.com>
+
+	* Make-lang.in (java/parse.o-warn): Remove.
+	(java/jcf-io.o-warn): Remove.
+
+2008-07-05  Tom Tromey  <tromey@redhat.com>
+
+	* jcf-io.c: Don't include fnmatch.h.  Don't use JCF_USE_SCANDIR.
+	(compare_path): Remove.
+	(java_or_class_file): Likewise.
+	(memoized_dirlist_entry): Likewise.
+	(memoized_dirlist_hash): Likewise.
+	(memoized_dirlist_lookup_eq): Likewise.
+	(memoized_dirlists): Likewise.
+	(caching_stat): Likewise.
+	(find_class): Use stat.
+	* jcf.h (JCF_USE_SCANDIR): Remove.
+
+2008-06-30  Joshua Sumali  <jsumali@redhat.com>
+
+	* Make-lang.in (JAVA_MANFILES): Add doc/aot-compile.1 and
+	doc/rebuild-gcj-db.1
+	(java.uninstall): Likewise.
+	(java.maintainer-clean): Likewise.
+	(aot-compile.pod): New rule.
+	(rebuild-gcj-db.pod): New rule.
+	(java.install-man): Install doc/aot-compile.1 and doc/rebuild-gcj-db.1
+	* gcj.texi: Add new sections for aot-compile and rebuild-gcj-db.
+
+2008-06-29  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	* Make-lang.in (java/jcf-io.o-warn): New.
+
+2008-06-24  Tom Tromey  <tromey@redhat.com>
+
+	* jcf-path.c (jcf_path_init): Don't name variable 'try'.
+	* expr.c (add_type_assertion): Rename argument.
+	(build_java_arrayaccess): Don't name variable 'throw'.
+	(ARRAY_NEW_MULTI): Don't name variable 'class'.
+	* jcf-io.c (find_class): Don't name variable 'class'.
+	* mangle.c (compression_table_add): Don't name variable 'new'.
+	* constants.c (cpool_for_class): Rename argument.
+	(alloc_constant_fieldref): Likewise.
+	* jcf-parse.c (handle_innerclass_attribute): Don't name variable
+	'class'.
+	(read_class): Likewise.
+	(parse_zip_file_entries): Likewise.
+	(process_zip_dir): Likewise.
+	* decl.c (java_mark_class_local): Rename argument.
+	* class.c (GEN_TABLE): Use type_name, not typename.
+	(gen_indirect_dispatch_tables): Likewise.
+	(add_field): Rename argument.
+	(is_compiled_class): Likewise.
+	(safe_layout_class): Likewise.
+	(emit_assertion_table): Likewise.
+	* typeck.c (has_method): Rename argument.
+
+2008-06-19  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	* class.c (ident_subst, mangled_classname, unmangle_classname,
+	gen_indirect_dispatch_tables, add_method_1,
+	build_fieldref_cache_entry, make_local_function_alias,
+	layout_class, java_treetreehash_find, java_treetreehash_new,
+	split_qualified_name): Fix for -Wc++-compat.
+	* constants.c (set_constant_entry, cpool_for_class): Likewise.
+	* decl.c (make_binding_level, java_dup_lang_specific_decl,
+	start_java_method): Likewise.
+	* except.c (prepare_eh_table_type): Likewise.
+	* expr.c (type_assertion_hash, note_instructions): Likewise.
+	* java-tree.h (MAYBE_CREATE_VAR_LANG_DECL_SPECIFIC,
+	MAYBE_CREATE_TYPE_TYPE_LANG_SPECIFIC): Likewise.
+	* jcf-io.c (jcf_filbuf_from_stdio, opendir_in_zip, find_class):
+	Likewise.
+	* jcf-parse.c (reverse, java_read_sourcefilenames,
+	annotation_grow, rewrite_reflection_indexes, java_parse_file,
+	process_zip_dir): Likewise.
+	* jcf-path.c (add_entry, add_path, jcf_path_init,
+	jcf_path_extdirs_arg): Likewise.
+	* jcf-reader.c (jcf_parse_constant_pool): Likewise.
+	* jvgenmain.c (do_mangle_classname): Likewise.
+	* lang.c (put_decl_string): Likewise.
+	* verify-impl.c (make_state_copy, make_state, add_new_state):
+	Likewise.
+
+2008-06-15  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* gcj.texi: Expand TABs, remove whitespace from blank lines.
+
+2008-06-14  Tom Tromey  <tromey@redhat.com>
+
+	PR java/36247:
+	* class.c (build_class_ref): Initialize this_classdollar when
+	needed.
+
 2008-05-23  Andrew Haley  <aph@redhat.com>
 
 	* jcf-parse.c (give_name_to_class): Call find_sourcefile to find full

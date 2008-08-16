@@ -22,7 +22,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "system.h"
 #include "coretypes.h"
 #include "tree.h"
-#include "tree-gimple.h"
+#include "gimple.h"
 #include "tree-iterator.h"
 #include "ggc.h"
 
@@ -89,7 +89,7 @@ tsi_link_before (tree_stmt_iterator *i, tree t, enum tsi_iterator_update mode)
     }
   else
     {
-      head = ggc_alloc (sizeof (*head));
+      head = GGC_NEW (struct tree_statement_list_node);
       head->prev = NULL;
       head->next = NULL;
       head->stmt = t;
@@ -165,7 +165,7 @@ tsi_link_after (tree_stmt_iterator *i, tree t, enum tsi_iterator_update mode)
     }
   else
     {
-      head = ggc_alloc (sizeof (*head));
+      head = GGC_NEW (struct tree_statement_list_node);
       head->prev = NULL;
       head->next = NULL;
       head->stmt = t;

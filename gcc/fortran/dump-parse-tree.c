@@ -437,7 +437,7 @@ show_expr (gfc_expr *p)
 
     case EXPR_OP:
       fputc ('(', dumpfile);
-      switch (p->value.op.operator)
+      switch (p->value.op.op)
 	{
 	case INTRINSIC_UPLUS:
 	  fputs ("U+ ", dumpfile);
@@ -570,7 +570,7 @@ show_attr (symbol_attribute *attr)
     fputs (" OPTIONAL", dumpfile);
   if (attr->pointer)
     fputs (" POINTER", dumpfile);
-  if (attr->protected)
+  if (attr->is_protected)
     fputs (" PROTECTED", dumpfile);
   if (attr->value)
     fputs (" VALUE", dumpfile);
@@ -737,7 +737,7 @@ show_uop (gfc_user_op *uop)
   show_indent ();
   fprintf (dumpfile, "%s:", uop->name);
 
-  for (intr = uop->operator; intr; intr = intr->next)
+  for (intr = uop->op; intr; intr = intr->next)
     fprintf (dumpfile, " %s", intr->sym->name);
 }
 
@@ -848,6 +848,8 @@ show_omp_node (int level, gfc_code *c)
     case EXEC_OMP_PARALLEL_WORKSHARE: name = "PARALLEL WORKSHARE"; break;
     case EXEC_OMP_SECTIONS: name = "SECTIONS"; break;
     case EXEC_OMP_SINGLE: name = "SINGLE"; break;
+    case EXEC_OMP_TASK: name = "TASK"; break;
+    case EXEC_OMP_TASKWAIT: name = "TASKWAIT"; break;
     case EXEC_OMP_WORKSHARE: name = "WORKSHARE"; break;
     default:
       gcc_unreachable ();
@@ -863,6 +865,7 @@ show_omp_node (int level, gfc_code *c)
     case EXEC_OMP_SINGLE:
     case EXEC_OMP_WORKSHARE:
     case EXEC_OMP_PARALLEL_WORKSHARE:
+    case EXEC_OMP_TASK:
       omp_clauses = c->ext.omp_clauses;
       break;
     case EXEC_OMP_CRITICAL:
@@ -878,6 +881,7 @@ show_omp_node (int level, gfc_code *c)
 	}
       return;
     case EXEC_OMP_BARRIER:
+    case EXEC_OMP_TASKWAIT:
       return;
     default:
       break;
@@ -907,6 +911,7 @@ show_omp_node (int level, gfc_code *c)
 	    case OMP_SCHED_DYNAMIC: type = "DYNAMIC"; break;
 	    case OMP_SCHED_GUIDED: type = "GUIDED"; break;
 	    case OMP_SCHED_RUNTIME: type = "RUNTIME"; break;
+	    case OMP_SCHED_AUTO: type = "AUTO"; break;
 	    default:
 	      gcc_unreachable ();
 	    }
@@ -926,7 +931,7 @@ show_omp_node (int level, gfc_code *c)
 	    case OMP_DEFAULT_NONE: type = "NONE"; break;
 	    case OMP_DEFAULT_PRIVATE: type = "PRIVATE"; break;
 	    case OMP_DEFAULT_SHARED: type = "SHARED"; break;
-	    case OMP_SCHED_RUNTIME: type = "RUNTIME"; break;
+	    case OMP_DEFAULT_FIRSTPRIVATE: type = "FIRSTPRIVATE"; break;
 	    default:
 	      gcc_unreachable ();
 	    }
@@ -934,6 +939,10 @@ show_omp_node (int level, gfc_code *c)
 	}
       if (omp_clauses->ordered)
 	fputs (" ORDERED", dumpfile);
+      if (omp_clauses->untied)
+	fputs (" UNTIED", dumpfile);
+      if (omp_clauses->collapse)
+	fprintf (dumpfile, " COLLAPSE(%d)", omp_clauses->collapse);
       for (list_type = 0; list_type < OMP_LIST_NUM; list_type++)
 	if (omp_clauses->lists[list_type] != NULL
 	    && list_type != OMP_LIST_COPYPRIVATE)
@@ -1806,6 +1815,8 @@ show_code_node (int level, gfc_code *c)
     case EXEC_OMP_PARALLEL_WORKSHARE:
     case EXEC_OMP_SECTIONS:
     case EXEC_OMP_SINGLE:
+    case EXEC_OMP_TASK:
+    case EXEC_OMP_TASKWAIT:
     case EXEC_OMP_WORKSHARE:
       show_omp_node (level, c);
       break;
@@ -1886,7 +1897,7 @@ show_namespace (gfc_namespace *ns)
       for (op = GFC_INTRINSIC_BEGIN; op != GFC_INTRINSIC_END; op++)
 	{
 	  /* User operator interfaces */
-	  intr = ns->operator[op];
+	  intr = ns->op[op];
 	  if (intr == NULL)
 	    continue;
 

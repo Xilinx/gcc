@@ -421,7 +421,6 @@ package body Einfo is
    --    Debug_Info_Off                  Flag166
    --    Sec_Stack_Needed_For_Return     Flag167
    --    Materialize_Entity              Flag168
-   --    Function_Returns_With_DSP       Flag169
    --    Is_Known_Valid                  Flag170
 
    --    Is_Hidden_Open_Scope            Flag171
@@ -505,8 +504,8 @@ package body Einfo is
    --    Optimize_Alignment_Time         Flag242
    --    Overlays_Constant               Flag243
    --    Is_RACW_Stub_Type               Flag244
+   --    Is_Private_Primitive            Flag245
 
-   --    (unused)                        Flag245
    --    (unused)                        Flag246
    --    (unused)                        Flag247
 
@@ -1097,13 +1096,6 @@ package body Einfo is
       pragma Assert (Is_Type (Id) or else Ekind (Id) = E_Constant);
       return Node11 (Id);
    end Full_View;
-
-   function Function_Returns_With_DSP (Id : E) return B is
-   begin
-      pragma Assert
-        (Is_Subprogram (Id) or else Ekind (Id) = E_Subprogram_Type);
-      return Flag169 (Id);
-   end Function_Returns_With_DSP;
 
    function Generic_Homonym (Id : E) return E is
    begin
@@ -1936,7 +1928,8 @@ package body Einfo is
 
    function Is_Primitive_Wrapper (Id : E) return B is
    begin
-      pragma Assert (Ekind (Id) = E_Procedure);
+      pragma Assert (Ekind (Id) = E_Function
+        or else Ekind (Id) = E_Procedure);
       return Flag195 (Id);
    end Is_Primitive_Wrapper;
 
@@ -1950,6 +1943,13 @@ package body Einfo is
    begin
       return Flag53 (Id);
    end Is_Private_Descendant;
+
+   function Is_Private_Primitive (Id : E) return B is
+   begin
+      pragma Assert (Ekind (Id) = E_Function
+        or else Ekind (Id) = E_Procedure);
+      return Flag245 (Id);
+   end Is_Private_Primitive;
 
    function Is_Protected_Interface (Id : E) return B is
    begin
@@ -2579,7 +2579,7 @@ package body Einfo is
 
    function Spec_PPC_List (Id : E) return N is
    begin
-      pragma Assert (Is_Subprogram (Id));
+      pragma Assert (Is_Subprogram (Id) or else Is_Generic_Subprogram (Id));
       return Node24 (Id);
    end Spec_PPC_List;
 
@@ -2709,8 +2709,9 @@ package body Einfo is
 
    function Wrapped_Entity (Id : E) return E is
    begin
-      pragma Assert (Ekind (Id) = E_Procedure
-                       and then Is_Primitive_Wrapper (Id));
+      pragma Assert ((Ekind (Id) = E_Function
+          or else Ekind (Id) = E_Procedure)
+        and then Is_Primitive_Wrapper (Id));
       return Node27 (Id);
    end Wrapped_Entity;
 
@@ -3504,13 +3505,6 @@ package body Einfo is
       pragma Assert (Is_Type (Id) or else Ekind (Id) = E_Constant);
       Set_Node11 (Id, V);
    end Set_Full_View;
-
-   procedure Set_Function_Returns_With_DSP (Id : E; V : B := True) is
-   begin
-      pragma Assert
-        (Is_Subprogram (Id) or else Ekind (Id) = E_Subprogram_Type);
-      Set_Flag169 (Id, V);
-   end Set_Function_Returns_With_DSP;
 
    procedure Set_Generic_Homonym (Id : E; V : E) is
    begin
@@ -4386,7 +4380,8 @@ package body Einfo is
 
    procedure Set_Is_Primitive_Wrapper (Id : E; V : B := True) is
    begin
-      pragma Assert (Ekind (Id) = E_Procedure);
+      pragma Assert (Ekind (Id) = E_Function
+        or else Ekind (Id) = E_Procedure);
       Set_Flag195 (Id, V);
    end Set_Is_Primitive_Wrapper;
 
@@ -4400,6 +4395,13 @@ package body Einfo is
    begin
       Set_Flag53 (Id, V);
    end Set_Is_Private_Descendant;
+
+   procedure Set_Is_Private_Primitive (Id : E; V : B := True) is
+   begin
+      pragma Assert (Ekind (Id) = E_Function
+        or else Ekind (Id) = E_Procedure);
+      Set_Flag245 (Id, V);
+   end Set_Is_Private_Primitive;
 
    procedure Set_Is_Protected_Interface (Id : E; V : B := True) is
    begin
@@ -5042,7 +5044,7 @@ package body Einfo is
 
    procedure Set_Spec_PPC_List (Id : E; V : N) is
    begin
-      pragma Assert (Is_Subprogram (Id));
+      pragma Assert (Is_Subprogram (Id) or else Is_Generic_Subprogram (Id));
       Set_Node24 (Id, V);
    end Set_Spec_PPC_List;
 
@@ -5182,8 +5184,9 @@ package body Einfo is
 
    procedure Set_Wrapped_Entity (Id : E; V : E) is
    begin
-      pragma Assert (Ekind (Id) = E_Procedure
-                       and then Is_Primitive_Wrapper (Id));
+      pragma Assert ((Ekind (Id) = E_Function
+          or else Ekind (Id) = E_Procedure)
+        and then Is_Primitive_Wrapper (Id));
       Set_Node27 (Id, V);
    end Set_Wrapped_Entity;
 
@@ -7472,7 +7475,6 @@ package body Einfo is
       W ("Can_Use_Internal_Rep",            Flag229 (Id));
       W ("Finalize_Storage_Only",           Flag158 (Id));
       W ("From_With_Type",                  Flag159 (Id));
-      W ("Function_Returns_With_DSP",       Flag169 (Id));
       W ("Has_Aliased_Components",          Flag135 (Id));
       W ("Has_Alignment_Clause",            Flag46  (Id));
       W ("Has_All_Calls_Remote",            Flag79  (Id));
@@ -7612,9 +7614,11 @@ package body Einfo is
       W ("Is_Packed_Array_Type",            Flag138 (Id));
       W ("Is_Potentially_Use_Visible",      Flag9   (Id));
       W ("Is_Preelaborated",                Flag59  (Id));
+      W ("Is_Primitive",                    Flag218 (Id));
       W ("Is_Primitive_Wrapper",            Flag195 (Id));
       W ("Is_Private_Composite",            Flag107 (Id));
       W ("Is_Private_Descendant",           Flag53  (Id));
+      W ("Is_Private_Primitive",            Flag245 (Id));
       W ("Is_Protected_Interface",          Flag198 (Id));
       W ("Is_Public",                       Flag10  (Id));
       W ("Is_Pure",                         Flag44  (Id));
@@ -7681,7 +7685,6 @@ package body Einfo is
       W ("Suppress_Init_Proc",              Flag105 (Id));
       W ("Suppress_Style_Checks",           Flag165 (Id));
       W ("Suppress_Value_Tracking_On_Call", Flag217 (Id));
-      W ("Is_Primitive",                    Flag218 (Id));
       W ("Treat_As_Volatile",               Flag41  (Id));
       W ("Universal_Aliasing",              Flag216 (Id));
       W ("Used_As_Generic_Actual",          Flag222 (Id));

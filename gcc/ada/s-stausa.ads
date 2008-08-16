@@ -216,7 +216,7 @@ package System.Stack_Usage is
    --  Max_Pattern_Size is the size of the pattern zone, might be smaller than
    --  the full stack size in order to take into account e.g. the secondary
    --  stack and a guard against overflow. The actual size taken will be
-   --  reajusted with data already used at the time the stack is actually
+   --  readjusted with data already used at the time the stack is actually
    --  filled.
 
    Is_Enabled : Boolean := False;
@@ -304,10 +304,6 @@ private
       Result_Id : Positive;
       --  Id of the result. If less than value given to gnatbind -u corresponds
       --  to the location in the result array of result for the current task.
-
-      Stack_Used_When_Filling : Natural := 0;
-      --  Amount of stack that was already used when actually filling the
-      --  memory, and therefore not analyzed.
    end record;
 
    Environment_Task_Analyzer : Stack_Analyzer;

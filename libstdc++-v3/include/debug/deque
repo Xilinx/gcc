@@ -1,6 +1,6 @@
 // Debugging deque implementation -*- C++ -*-
 
-// Copyright (C) 2003, 2004, 2005, 2006, 2007
+// Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008
 // Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
@@ -94,6 +94,10 @@ namespace __debug
       deque(deque&& __x)
       : _Base(std::forward<deque>(__x)), _Safe_base()
       { this->_M_swap(__x); }
+
+      deque(initializer_list<value_type> __l,
+	    const allocator_type& __a = allocator_type())
+      : _Base(__l, __a), _Safe_base() { }
 #endif
 
       ~deque() { }
@@ -115,6 +119,14 @@ namespace __debug
 	swap(__x);	  
 	return *this;
       }
+
+      deque&
+      operator=(initializer_list<value_type> __l)
+      {
+	*static_cast<_Base*>(this) = __l;
+	this->_M_invalidate_all();
+	return *this;
+      }
 #endif
 
       template<class _InputIterator>
@@ -132,6 +144,15 @@ namespace __debug
 	_Base::assign(__n, __t);
 	this->_M_invalidate_all();
       }
+
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      void
+      assign(initializer_list<value_type> __l)
+      {
+	_Base::assign(__l);
+	this->_M_invalidate_all();
+      }
+#endif
 
       using _Base::get_allocator;
 
@@ -254,7 +275,6 @@ namespace __debug
       }
 
       // 23.2.1.3 modifiers:
-#ifndef __GXX_EXPERIMENTAL_CXX0X__
       void
       push_front(const _Tp& __x)
       {
@@ -268,20 +288,29 @@ namespace __debug
 	_Base::push_back(__x);
 	this->_M_invalidate_all();
       }
-#else
+
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      void
+      push_front(_Tp&& __x)
+      { emplace_front(std::move(__x)); }
+
+      void
+      push_back(_Tp&& __x)
+      { emplace_back(std::move(__x)); }
+
       template<typename... _Args>
         void
-        push_front(_Args&&... __args)
+        emplace_front(_Args&&... __args)
 	{
-	  _Base::push_front(std::forward<_Args>(__args)...);
+	  _Base::emplace_front(std::forward<_Args>(__args)...);
 	  this->_M_invalidate_all();
 	}
 
       template<typename... _Args>
         void
-        push_back(_Args&&... __args)
+        emplace_back(_Args&&... __args)
 	{
-	  _Base::push_back(std::forward<_Args>(__args)...);
+	  _Base::emplace_back(std::forward<_Args>(__args)...);
 	  this->_M_invalidate_all();
 	}
 
@@ -310,6 +339,13 @@ namespace __debug
       iterator
       insert(iterator __position, _Tp&& __x)
       { return emplace(__position, std::move(__x)); }
+
+      void
+      insert(iterator __p, initializer_list<value_type> __l)
+      {
+	_Base::insert(__p, __l);
+	this->_M_invalidate_all();
+      }
 #endif
 
       void

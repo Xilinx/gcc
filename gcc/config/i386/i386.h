@@ -49,6 +49,13 @@ along with GCC; see the file COPYING3.  If not see
 #define TARGET_SSE4A	OPTION_ISA_SSE4A
 #define TARGET_SSE5	OPTION_ISA_SSE5
 #define TARGET_ROUND	OPTION_ISA_ROUND
+#define TARGET_ABM	OPTION_ISA_ABM
+#define TARGET_POPCNT	OPTION_ISA_POPCNT
+#define TARGET_SAHF	OPTION_ISA_SAHF
+#define TARGET_AES	OPTION_ISA_AES
+#define TARGET_PCLMUL	OPTION_ISA_PCLMUL
+#define TARGET_CMPXCHG16B OPTION_ISA_CX16
+
 
 /* SSE5 and SSE4.1 define the same round instructions */
 #define	OPTION_MASK_ISA_ROUND	(OPTION_MASK_ISA_SSE4_1 | OPTION_MASK_ISA_SSE5)
@@ -163,6 +170,10 @@ struct processor_costs {
 };
 
 extern const struct processor_costs *ix86_cost;
+extern const struct processor_costs ix86_size_cost;
+
+#define ix86_cur_cost() \
+  (optimize_insn_for_size_p () ? &ix86_size_cost: ix86_cost)
 
 /* Macros used in the machine description to test the flags.  */
 
@@ -281,11 +292,12 @@ enum ix86_tune_indices {
   X86_TUNE_NOT_UNPAIRABLE,
   X86_TUNE_NOT_VECTORMODE,
   X86_TUNE_USE_VECTOR_CONVERTS,
+  X86_TUNE_FUSE_CMP_AND_BRANCH,
 
   X86_TUNE_LAST
 };
 
-extern unsigned int ix86_tune_features[X86_TUNE_LAST];
+extern unsigned char ix86_tune_features[X86_TUNE_LAST];
 
 #define TARGET_USE_LEAVE	ix86_tune_features[X86_TUNE_USE_LEAVE]
 #define TARGET_PUSH_MEMORY	ix86_tune_features[X86_TUNE_PUSH_MEMORY]
@@ -363,7 +375,10 @@ extern unsigned int ix86_tune_features[X86_TUNE_LAST];
 #define	TARGET_MOVE_M1_VIA_OR	ix86_tune_features[X86_TUNE_MOVE_M1_VIA_OR]
 #define TARGET_NOT_UNPAIRABLE	ix86_tune_features[X86_TUNE_NOT_UNPAIRABLE]
 #define TARGET_NOT_VECTORMODE	ix86_tune_features[X86_TUNE_NOT_VECTORMODE]
-#define TARGET_USE_VECTOR_CONVERTS ix86_tune_features[X86_TUNE_USE_VECTOR_CONVERTS]
+#define TARGET_USE_VECTOR_CONVERTS \
+	ix86_tune_features[X86_TUNE_USE_VECTOR_CONVERTS]
+#define TARGET_FUSE_CMP_AND_BRANCH \
+	ix86_tune_features[X86_TUNE_FUSE_CMP_AND_BRANCH]
 
 /* Feature tests against the various architecture variations.  */
 enum ix86_arch_indices {
@@ -376,7 +391,7 @@ enum ix86_arch_indices {
   X86_ARCH_LAST
 };
 
-extern unsigned int ix86_arch_features[X86_ARCH_LAST];
+extern unsigned char ix86_arch_features[X86_ARCH_LAST];
 
 #define TARGET_CMOVE		ix86_arch_features[X86_ARCH_CMOVE]
 #define TARGET_CMPXCHG		ix86_arch_features[X86_ARCH_CMPXCHG]
@@ -388,15 +403,7 @@ extern unsigned int ix86_arch_features[X86_ARCH_LAST];
 
 extern int x86_prefetch_sse;
 
-#define TARGET_ABM		x86_abm
-#define TARGET_CMPXCHG16B	x86_cmpxchg16b
-#define TARGET_POPCNT		x86_popcnt
 #define TARGET_PREFETCH_SSE	x86_prefetch_sse
-#define TARGET_SAHF		x86_sahf
-#define TARGET_RECIP		x86_recip
-#define TARGET_FUSED_MADD	x86_fused_muladd
-#define TARGET_AES		(TARGET_SSE2 && x86_aes)
-#define TARGET_PCLMUL		(TARGET_SSE2 && x86_pclmul)
 
 #define ASSEMBLER_DIALECT	(ix86_asm_dialect)
 
@@ -446,7 +453,17 @@ extern tree x86_mfence;
 #define TARGET_MACHO 0
 
 /* Likewise, for the Windows 64-bit ABI.  */
-#define TARGET_64BIT_MS_ABI 0
+#define TARGET_64BIT_MS_ABI (TARGET_64BIT && ix86_cfun_abi () == MS_ABI)
+
+/* Available call abi.  */
+enum calling_abi
+{
+  SYSV_ABI = 0,
+  MS_ABI = 1
+};
+
+/* The default abi form used by target.  */
+#define DEFAULT_ABI SYSV_ABI
 
 /* Subtargets may reset this to 1 in order to enable 96-bit long double
    with the rounding mode forced to 53 bits.  */
@@ -461,7 +478,7 @@ extern tree x86_mfence;
    Don't use this macro to turn on various extra optimizations for
    `-O'.  That is what `OPTIMIZATION_OPTIONS' is for.  */
 
-#define OVERRIDE_OPTIONS override_options ()
+#define OVERRIDE_OPTIONS override_options (true)
 
 /* Define this to change the optimizations performed by default.  */
 #define OPTIMIZATION_OPTIONS(LEVEL, SIZE) \
@@ -478,13 +495,27 @@ extern const char *host_detect_local_cpu (int argc, const char **argv);
 #define HAVE_LOCAL_CPU_DETECT
 #endif
 
+#if TARGET_64BIT_DEFAULT
+#define OPT_ARCH64 "!m32"
+#define OPT_ARCH32 "m32"
+#else
+#define OPT_ARCH64 "m64"
+#define OPT_ARCH32 "!m64"
+#endif
+
 /* Support for configure-time defaults of some command line options.
    The order here is important so that -march doesn't squash the
    tune or cpu values.  */
 #define OPTION_DEFAULT_SPECS					   \
   {"tune", "%{!mtune=*:%{!mcpu=*:%{!march=*:-mtune=%(VALUE)}}}" }, \
+  {"tune_32", "%{" OPT_ARCH32 ":%{!mtune=*:%{!mcpu=*:%{!march=*:-mtune=%(VALUE)}}}}" }, \
+  {"tune_64", "%{" OPT_ARCH64 ":%{!mtune=*:%{!mcpu=*:%{!march=*:-mtune=%(VALUE)}}}}" }, \
   {"cpu", "%{!mtune=*:%{!mcpu=*:%{!march=*:-mtune=%(VALUE)}}}" },  \
-  {"arch", "%{!march=*:-march=%(VALUE)}"}
+  {"cpu_32", "%{" OPT_ARCH32 ":%{!mtune=*:%{!mcpu=*:%{!march=*:-mtune=%(VALUE)}}}}" }, \
+  {"cpu_64", "%{" OPT_ARCH64 ":%{!mtune=*:%{!mcpu=*:%{!march=*:-mtune=%(VALUE)}}}}" }, \
+  {"arch", "%{!march=*:-march=%(VALUE)}"},			   \
+  {"arch_32", "%{" OPT_ARCH32 ":%{!march=*:-march=%(VALUE)}}"},	   \
+  {"arch_64", "%{" OPT_ARCH64 ":%{!march=*:-march=%(VALUE)}}"},
 
 /* Specs for the compiler proper */
 
@@ -509,196 +540,10 @@ extern const char *host_detect_local_cpu (int argc, const char **argv);
 #endif
 
 /* Target CPU builtins.  */
-#define TARGET_CPU_CPP_BUILTINS()				\
-  do								\
-    {								\
-      size_t arch_len = strlen (ix86_arch_string);		\
-      size_t tune_len = strlen (ix86_tune_string);		\
-      int last_arch_char = ix86_arch_string[arch_len - 1];	\
-      int last_tune_char = ix86_tune_string[tune_len - 1];	\
-								\
-      if (TARGET_64BIT)						\
-	{							\
-	  builtin_assert ("cpu=x86_64");			\
-	  builtin_assert ("machine=x86_64");			\
-	  builtin_define ("__amd64");				\
-	  builtin_define ("__amd64__");				\
-	  builtin_define ("__x86_64");				\
-	  builtin_define ("__x86_64__");			\
-	}							\
-      else							\
-	{							\
-	  builtin_assert ("cpu=i386");				\
-	  builtin_assert ("machine=i386");			\
-	  builtin_define_std ("i386");				\
-	}							\
-								\
-      /* Built-ins based on -march=.  */			\
-      switch (ix86_arch)					\
-	{							\
-	case PROCESSOR_I386:					\
-	  break;						\
-	case PROCESSOR_I486:					\
-	  builtin_define ("__i486");				\
-	  builtin_define ("__i486__");				\
-	  break;						\
-	case PROCESSOR_PENTIUM:					\
-	  builtin_define ("__i586");				\
-	  builtin_define ("__i586__");				\
-	  builtin_define ("__pentium");				\
-	  builtin_define ("__pentium__");			\
-	  if (last_arch_char == 'x')				\
-	    builtin_define ("__pentium_mmx__");			\
-	  break;						\
-	case PROCESSOR_PENTIUMPRO:				\
-	  builtin_define ("__i686");				\
-	  builtin_define ("__i686__");				\
-	  builtin_define ("__pentiumpro");			\
-	  builtin_define ("__pentiumpro__");			\
-	  break;						\
-	case PROCESSOR_GEODE:					\
-	  builtin_define ("__geode");				\
-	  builtin_define ("__geode__");				\
-	  break;						\
-	case PROCESSOR_K6:					\
-	  builtin_define ("__k6");				\
-	  builtin_define ("__k6__");				\
-	  if (last_arch_char == '2')				\
-	    builtin_define ("__k6_2__");			\
-	  else if (last_arch_char == '3')			\
-	    builtin_define ("__k6_3__");			\
-	  break;						\
-	case PROCESSOR_ATHLON:					\
-	  builtin_define ("__athlon");				\
-	  builtin_define ("__athlon__");			\
-	  /* Only plain "athlon" lacks SSE.  */			\
-	  if (last_arch_char != 'n')				\
-	    builtin_define ("__athlon_sse__");			\
-	  break;						\
-	case PROCESSOR_K8:					\
-	  builtin_define ("__k8");				\
-	  builtin_define ("__k8__");				\
-	  break;						\
-	case PROCESSOR_AMDFAM10:				\
-	  builtin_define ("__amdfam10");			\
-	  builtin_define ("__amdfam10__");			\
-	  break;						\
-	case PROCESSOR_PENTIUM4:				\
-	  builtin_define ("__pentium4");			\
-	  builtin_define ("__pentium4__");			\
-	  break;						\
-	case PROCESSOR_NOCONA:					\
-	  builtin_define ("__nocona");				\
-	  builtin_define ("__nocona__");			\
-	  break;						\
-	case PROCESSOR_CORE2:					\
-	  builtin_define ("__core2");				\
-	  builtin_define ("__core2__");				\
-	  break;						\
-	case PROCESSOR_GENERIC32:				\
-	case PROCESSOR_GENERIC64:				\
-	case PROCESSOR_max:					\
-	  gcc_unreachable ();					\
-	}							\
-								\
-      /* Built-ins based on -mtune=.  */			\
-      switch (ix86_tune)					\
-	{							\
-	case PROCESSOR_I386:					\
-	  builtin_define ("__tune_i386__");			\
-	  break;						\
-	case PROCESSOR_I486:					\
-	  builtin_define ("__tune_i486__");			\
-	  break;						\
-	case PROCESSOR_PENTIUM:					\
-	  builtin_define ("__tune_i586__");			\
-	  builtin_define ("__tune_pentium__");			\
-	  if (last_tune_char == 'x')				\
-	    builtin_define ("__tune_pentium_mmx__");		\
-	  break;						\
-	case PROCESSOR_PENTIUMPRO:				\
-	  builtin_define ("__tune_i686__");			\
-	  builtin_define ("__tune_pentiumpro__");		\
-	  switch (last_tune_char)				\
-	    {							\
-	    case '3':						\
-	      builtin_define ("__tune_pentium3__");		\
-	      /* FALLTHRU */					\
-	    case '2':						\
-	      builtin_define ("__tune_pentium2__");		\
-	      break;						\
-	    }							\
-	  break;						\
-	case PROCESSOR_GEODE:					\
-	  builtin_define ("__tune_geode__");			\
-	  break;						\
-	case PROCESSOR_K6:					\
-	  builtin_define ("__tune_k6__");			\
-	  if (last_tune_char == '2')				\
-	    builtin_define ("__tune_k6_2__");			\
-	  else if (last_tune_char == '3')			\
-	    builtin_define ("__tune_k6_3__");			\
-	  break;						\
-	case PROCESSOR_ATHLON:					\
-	  builtin_define ("__tune_athlon__");			\
-	  /* Only plain "athlon" lacks SSE.  */			\
-	  if (last_tune_char != 'n')				\
-	    builtin_define ("__tune_athlon_sse__");		\
-	  break;						\
-	case PROCESSOR_K8:					\
-	  builtin_define ("__tune_k8__");			\
-	  break;						\
-	case PROCESSOR_AMDFAM10:				\
-	  builtin_define ("__tune_amdfam10__");			\
-	  break;						\
-	case PROCESSOR_PENTIUM4:				\
-	  builtin_define ("__tune_pentium4__");			\
-	  break;						\
-        case PROCESSOR_NOCONA:					\
-	  builtin_define ("__tune_nocona__");			\
-	  break;						\
-	case PROCESSOR_CORE2:					\
-	  builtin_define ("__tune_core2__");			\
-	  break;						\
-	case PROCESSOR_GENERIC32:				\
-	case PROCESSOR_GENERIC64:				\
-	  break;						\
-	case PROCESSOR_max:					\
-	  gcc_unreachable ();					\
-	}							\
-								\
-      if (TARGET_MMX)						\
-	builtin_define ("__MMX__");				\
-      if (TARGET_3DNOW)						\
-	builtin_define ("__3dNOW__");				\
-      if (TARGET_3DNOW_A)					\
-	builtin_define ("__3dNOW_A__");				\
-      if (TARGET_SSE)						\
-	builtin_define ("__SSE__");				\
-      if (TARGET_SSE2)						\
-	builtin_define ("__SSE2__");				\
-      if (TARGET_SSE3)						\
-	builtin_define ("__SSE3__");				\
-      if (TARGET_SSSE3)						\
-	builtin_define ("__SSSE3__");				\
-      if (TARGET_SSE4_1)					\
-	builtin_define ("__SSE4_1__");				\
-      if (TARGET_SSE4_2)					\
-	builtin_define ("__SSE4_2__");				\
-      if (TARGET_AES)						\
-	builtin_define ("__AES__");				\
-      if (TARGET_PCLMUL)					\
-	builtin_define ("__PCLMUL__");				\
-      if (TARGET_SSE4A)						\
- 	builtin_define ("__SSE4A__");		                \
-      if (TARGET_SSE5)						\
-	builtin_define ("__SSE5__");				\
-      if (TARGET_SSE_MATH && TARGET_SSE)			\
-	builtin_define ("__SSE_MATH__");			\
-      if (TARGET_SSE_MATH && TARGET_SSE2)			\
-	builtin_define ("__SSE2_MATH__");			\
-    }								\
-  while (0)
+#define TARGET_CPU_CPP_BUILTINS() ix86_target_macros ()
+
+/* Target Pragmas.  */
+#define REGISTER_TARGET_PRAGMAS() ix86_register_pragmas ()
 
 enum target_cpu_default
 {
@@ -804,18 +649,35 @@ enum target_cpu_default
 #define PARM_BOUNDARY BITS_PER_WORD
 
 /* Boundary (in *bits*) on which stack pointer should be aligned.  */
-#define STACK_BOUNDARY BITS_PER_WORD
+#define STACK_BOUNDARY	(TARGET_64BIT && DEFAULT_ABI == MS_ABI ? 128 \
+							       : BITS_PER_WORD)
+
+/* Stack boundary of the main function guaranteed by OS.  */
+#define MAIN_STACK_BOUNDARY (TARGET_64BIT ? 128 : 32)
+
+/* Minimum stack boundary.  */
+#define MIN_STACK_BOUNDARY (TARGET_64BIT ? 128 : 32)
 
 /* Boundary (in *bits*) on which the stack pointer prefers to be
    aligned; the compiler cannot rely on having this alignment.  */
 #define PREFERRED_STACK_BOUNDARY ix86_preferred_stack_boundary
 
-/* As of July 2001, many runtimes do not align the stack properly when
-   entering main.  This causes expand_main_function to forcibly align
-   the stack, which results in aligned frames for functions called from
-   main, though it does nothing for the alignment of main itself.  */
-#define FORCE_PREFERRED_STACK_BOUNDARY_IN_MAIN \
-  (ix86_preferred_stack_boundary > STACK_BOUNDARY && !TARGET_64BIT)
+/* It should be MIN_STACK_BOUNDARY.  But we set it to 128 bits for
+   both 32bit and 64bit, to support codes that need 128 bit stack
+   alignment for SSE instructions, but can't realign the stack.  */
+#define PREFERRED_STACK_BOUNDARY_DEFAULT 128
+
+/* 1 if -mstackrealign should be turned on by default.  It will
+   generate an alternate prologue and epilogue that realigns the
+   runtime stack if nessary.  This supports mixing codes that keep a
+   4-byte aligned stack, as specified by i386 psABI, with codes that
+   need a 16-byte aligned stack, as required by SSE instructions.  If
+   STACK_REALIGN_DEFAULT is 1 and PREFERRED_STACK_BOUNDARY_DEFAULT is
+   128, stacks for all functions may be realigned.  */
+#define STACK_REALIGN_DEFAULT 0
+
+/* Boundary (in *bits*) on which the incoming stack is aligned.  */
+#define INCOMING_STACK_BOUNDARY ix86_incoming_stack_boundary
 
 /* Target OS keeps a vector-aligned (128-bit, 16-byte) stack.  This is
    mandatory for the 64-bit ABI, and may or may not be true for other
@@ -841,6 +703,9 @@ enum target_cpu_default
    and Pentium Pro XFmode values at 128 bit boundaries.  */
 
 #define BIGGEST_ALIGNMENT 128
+
+/* Maximum stack alignment.  */
+#define MAX_STACK_ALIGNMENT MAX_OFILE_ALIGNMENT
 
 /* Decide whether a variable of mode MODE should be 128 bit aligned.  */
 #define ALIGN_MODE_128(MODE) \
@@ -1044,6 +909,8 @@ enum target_cpu_default
 #define ORDER_REGS_FOR_LOCAL_ALLOC x86_order_regs_for_local_alloc ()
 
 
+#define OVERRIDE_ABI_FORMAT(FNDECL) ix86_call_abi_override (FNDECL)
+
 /* Macro to conditionally modify fixed_regs/call_used_regs.  */
 #define CONDITIONAL_REGISTER_USAGE					\
 do {									\
@@ -1094,7 +961,7 @@ do {									\
 	for (i = FIRST_REX_SSE_REG; i <= LAST_REX_SSE_REG; i++)		\
 	  reg_names[i] = "";						\
       }									\
-    if (TARGET_64BIT_MS_ABI)						\
+    if (TARGET_64BIT && DEFAULT_ABI == MS_ABI)				\
       {									\
         call_used_regs[4 /*RSI*/] = 0;                                  \
         call_used_regs[5 /*RDI*/] = 0;                                  \
@@ -1266,7 +1133,7 @@ do {									\
    the pic register when possible.  The change is visible after the
    prologue has been emitted.  */
 
-#define REAL_PIC_OFFSET_TABLE_REGNUM  3
+#define REAL_PIC_OFFSET_TABLE_REGNUM  BX_REG
 
 #define PIC_OFFSET_TABLE_REGNUM				\
   ((TARGET_64BIT && ix86_cmodel == CM_SMALL_PIC)	\
@@ -1624,7 +1491,9 @@ enum reg_class
    This space can be allocated by the caller, or be a part of the
    machine-dependent stack frame: `OUTGOING_REG_PARM_STACK_SPACE' says
    which.  */
-#define REG_PARM_STACK_SPACE(FNDECL) 0
+#define REG_PARM_STACK_SPACE(FNDECL) ix86_reg_parm_stack_space (FNDECL)
+
+#define OUTGOING_REG_PARM_STACK_SPACE(FNTYPE) (ix86_function_type_abi (FNTYPE) == MS_ABI ? 1 : 0)
 
 /* Value is the number of bytes of arguments automatically
    popped when returning from a subroutine call.
@@ -1686,6 +1555,8 @@ typedef struct ix86_args {
   int maybe_vaarg;		/* true for calls to possibly vardic fncts.  */
   int float_in_sse;		/* 1 if in 32-bit mode SFmode (2 for DFmode) should
 				   be passed in SSE registers.  Otherwise 0.  */
+  int call_abi;			/* Set to SYSV_ABI for sysv abi. Otherwise
+ 				   MS_ABI for ms abi.  */
 } CUMULATIVE_ARGS;
 
 /* Initialize a variable CUM of type CUMULATIVE_ARGS
@@ -1781,12 +1652,9 @@ typedef struct ix86_args {
  { FRAME_POINTER_REGNUM, HARD_FRAME_POINTER_REGNUM}}	\
 
 /* Given FROM and TO register numbers, say whether this elimination is
-   allowed.  Frame pointer elimination is automatically handled.
+   allowed.   */
 
-   All other eliminations are valid.  */
-
-#define CAN_ELIMINATE(FROM, TO) \
-  ((TO) == STACK_POINTER_REGNUM ? !frame_pointer_needed : 1)
+#define CAN_ELIMINATE(FROM, TO) ix86_can_eliminate ((FROM), (TO))
 
 /* Define the offset between two registers, one to be eliminated, and the other
    its replacement, at the start of a routine.  */
@@ -1953,9 +1821,22 @@ do {									\
    is also used as the pic register in ELF.  So for now, don't allow more than
    3 registers to be passed in registers.  */
 
-#define REGPARM_MAX (TARGET_64BIT ? 6 : 3)
+/* Abi specific values for REGPARM_MAX and SSE_REGPARM_MAX */
+#define X86_64_REGPARM_MAX 6
+#define X64_REGPARM_MAX 4
+#define X86_32_REGPARM_MAX 3
 
-#define SSE_REGPARM_MAX (TARGET_64BIT ? 8 : (TARGET_SSE ? 3 : 0))
+#define X86_64_SSE_REGPARM_MAX 8
+#define X64_SSE_REGPARM_MAX 4
+#define X86_32_SSE_REGPARM_MAX (TARGET_SSE ? 3 : 0)
+
+#define REGPARM_MAX (TARGET_64BIT ? (TARGET_64BIT_MS_ABI ? X64_REGPARM_MAX \
+							 : X86_64_REGPARM_MAX) \
+				  : X86_32_REGPARM_MAX)
+
+#define SSE_REGPARM_MAX (TARGET_64BIT ? (TARGET_64BIT_MS_ABI ? X64_SSE_REGPARM_MAX \
+							     : X86_64_SSE_REGPARM_MAX) \
+				      : X86_32_SSE_REGPARM_MAX)
 
 #define MMX_REGPARM_MAX (TARGET_64BIT ? 0 : (TARGET_MMX ? 3 : 0))
 
@@ -2342,6 +2223,7 @@ enum asm_dialect {
 
 extern enum asm_dialect ix86_asm_dialect;
 extern unsigned int ix86_preferred_stack_boundary;
+extern unsigned int ix86_incoming_stack_boundary;
 extern int ix86_branch_cost, ix86_section_threshold;
 
 /* Smallest class containing REGNO.  */
@@ -2443,7 +2325,6 @@ struct machine_function GTY(())
 {
   struct stack_local_entry *stack_locals;
   const char *some_ld_name;
-  rtx force_align_arg_pointer;
   int save_varrargs_registers;
   int accesses_prev_frame;
   int optimize_mode_switching[MAX_386_ENTITIES];
@@ -2464,6 +2345,9 @@ struct machine_function GTY(())
      ix86_current_function_calls_tls_descriptor macro for a better
      approximation.  */
   int tls_descriptor_call_expanded_p;
+  /* This value is used for amd64 targets and specifies the current abi
+     to be used. MS_ABI means ms abi. Otherwise SYSV_ABI means sysv abi.  */
+  int call_abi;
 };
 
 #define ix86_stack_locals (cfun->machine->stack_locals)
@@ -2504,6 +2388,11 @@ struct machine_function GTY(())
 /* Cost of conditional branch.  */
 #undef TARG_COND_BRANCH_COST
 #define TARG_COND_BRANCH_COST           ix86_cost->branch_cost
+
+/* Enum through the target specific extra va_list types. Please, do not
+   iterate the base va_list type name.  */
+#define TARGET_ENUM_VA_LIST(IDX, PNAME, PTYPE) \
+  (!TARGET_64BIT ? 0 : ix86_enum_va_list (IDX, PNAME, PTYPE))
 
 /* Cost of any scalar operation, excluding load and store.  */
 #undef TARG_SCALAR_STMT_COST

@@ -1,6 +1,6 @@
 /* Perform simple optimizations to clean up the result of reload.
    Copyright (C) 1987, 1988, 1989, 1992, 1993, 1994, 1995, 1996, 1997,
-   1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
+   1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -394,9 +394,9 @@ reload_cse_simplify_operands (rtx insn, rtx testreg)
   if (! constrain_operands (1))
     fatal_insn_not_found (insn);
 
-  alternative_reject = alloca (recog_data.n_alternatives * sizeof (int));
-  alternative_nregs = alloca (recog_data.n_alternatives * sizeof (int));
-  alternative_order = alloca (recog_data.n_alternatives * sizeof (int));
+  alternative_reject = XALLOCAVEC (int, recog_data.n_alternatives);
+  alternative_nregs = XALLOCAVEC (int, recog_data.n_alternatives);
+  alternative_order = XALLOCAVEC (int, recog_data.n_alternatives);
   memset (alternative_reject, 0, recog_data.n_alternatives * sizeof (int));
   memset (alternative_nregs, 0, recog_data.n_alternatives * sizeof (int));
 
@@ -487,7 +487,7 @@ reload_cse_simplify_operands (rtx insn, rtx testreg)
       int regno;
       const char *p;
 
-      op_alt_regno[i] = alloca (recog_data.n_alternatives * sizeof (int));
+      op_alt_regno[i] = XALLOCAVEC (int, recog_data.n_alternatives);
       for (j = 0; j < recog_data.n_alternatives; j++)
 	op_alt_regno[i][j] = -1;
 
@@ -518,7 +518,7 @@ reload_cse_simplify_operands (rtx insn, rtx testreg)
 
       for (regno = 0; regno < FIRST_PSEUDO_REGISTER; regno++)
 	{
-	  int class = (int) NO_REGS;
+	  int rclass = (int) NO_REGS;
 
 	  if (! TEST_HARD_REG_BIT (equiv_regs[i], regno))
 	    continue;
@@ -552,13 +552,13 @@ reload_cse_simplify_operands (rtx insn, rtx testreg)
 		  break;
 
 		case 'g': case 'r':
-		  class = reg_class_subunion[(int) class][(int) GENERAL_REGS];
+		  rclass = reg_class_subunion[(int) rclass][(int) GENERAL_REGS];
 		  break;
 
 		default:
-		  class
+		  rclass
 		    = (reg_class_subunion
-		       [(int) class]
+		       [(int) rclass]
 		       [(int) REG_CLASS_FROM_CONSTRAINT ((unsigned char) c, p)]);
 		  break;
 
@@ -568,7 +568,7 @@ reload_cse_simplify_operands (rtx insn, rtx testreg)
 		     alternative yet and the operand being replaced is not
 		     a cheap CONST_INT.  */
 		  if (op_alt_regno[i][j] == -1
-		      && reg_fits_class_p (testreg, class, 0, mode)
+		      && reg_fits_class_p (testreg, rclass, 0, mode)
 		      && (GET_CODE (recog_data.operand[i]) != CONST_INT
 			  || (rtx_cost (recog_data.operand[i], SET)
 			      > rtx_cost (testreg, SET))))
@@ -577,7 +577,7 @@ reload_cse_simplify_operands (rtx insn, rtx testreg)
 		      op_alt_regno[i][j] = regno;
 		    }
 		  j++;
-		  class = (int) NO_REGS;
+		  rclass = (int) NO_REGS;
 		  break;
 		}
 	      p += CONSTRAINT_LEN (c, p);
@@ -661,7 +661,7 @@ reload_cse_simplify_operands (rtx insn, rtx testreg)
    replace them with reg+reg addressing.  */
 #define RELOAD_COMBINE_MAX_USES 6
 
-/* INSN is the insn where a register has ben used, and USEP points to the
+/* INSN is the insn where a register has been used, and USEP points to the
    location of the register within the rtl.  */
 struct reg_use { rtx insn, *usep; };
 

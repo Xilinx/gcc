@@ -1,6 +1,6 @@
 /* Handle the constant pool of the Java(TM) Virtual Machine.
    Copyright (C) 1997, 1998, 1999, 2000, 2001, 2003, 2004, 2005, 2006,
-   2007  Free Software Foundation, Inc.
+   2007, 2008  Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -44,9 +44,8 @@ set_constant_entry (CPool *cpool, int index, int tag, jword value)
   if (cpool->data == NULL)
     {
       cpool->capacity = 100;
-      cpool->tags = ggc_alloc_cleared (sizeof(uint8) * cpool->capacity);
-      cpool->data = ggc_alloc_cleared (sizeof(union cpool_entry)
-				       * cpool->capacity);
+      cpool->tags = GGC_CNEWVEC (uint8, cpool->capacity);
+      cpool->data = GGC_CNEWVEC (union cpool_entry, cpool->capacity);
       cpool->count = 1;
     }
   if (index >= cpool->capacity)
@@ -55,10 +54,9 @@ set_constant_entry (CPool *cpool, int index, int tag, jword value)
       cpool->capacity *= 2;
       if (index >= cpool->capacity)
 	cpool->capacity = index + 10;
-      cpool->tags = ggc_realloc (cpool->tags, 
-				 sizeof(uint8) * cpool->capacity);
-      cpool->data = ggc_realloc (cpool->data,
-				 sizeof(union cpool_entry) * cpool->capacity);
+      cpool->tags = GGC_RESIZEVEC (uint8, cpool->tags, cpool->capacity);
+      cpool->data = GGC_RESIZEVEC (union cpool_entry, cpool->data,
+				   cpool->capacity);
 
       /* Make sure GC never sees uninitialized tag values.  */
       memset (cpool->tags + old_cap, 0, cpool->capacity - old_cap);
@@ -329,14 +327,14 @@ get_tag_node (int tag)
 /* Given a class, return its constant pool, creating one if necessary.  */
 
 CPool *
-cpool_for_class (tree class)
+cpool_for_class (tree klass)
 {
-  CPool *cpool = TYPE_CPOOL (class);
+  CPool *cpool = TYPE_CPOOL (klass);
 
   if (cpool == NULL)
     {
-      cpool = ggc_alloc_cleared (sizeof (struct CPool));
-      TYPE_CPOOL (class) = cpool;
+      cpool = GGC_CNEW (struct CPool);
+      TYPE_CPOOL (klass) = cpool;
     }
   return cpool;
 }
@@ -372,13 +370,13 @@ find_name_and_type_constant_tree (CPool *cpool, tree name, tree type)
 }
 
 /* Look for a field ref that matches DECL in the constant pool of
-   CLASS.  
+   KLASS.  
    Return the index of the entry.  */
 
 int
-alloc_constant_fieldref (tree class, tree decl)
+alloc_constant_fieldref (tree klass, tree decl)
 {
-  CPool *outgoing_cpool = cpool_for_class (class);
+  CPool *outgoing_cpool = cpool_for_class (klass);
   int class_index 
     = find_tree_constant (outgoing_cpool, CONSTANT_Class, 
 			  DECL_NAME (TYPE_NAME (DECL_CONTEXT (decl))));

@@ -45,7 +45,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "target-def.h"
 #include "tm_p.h"
 #include "langhooks.h"
-#include "tree-gimple.h"
+#include "gimple.h"
 #include "df.h"
 #include "ggc.h"
 
@@ -283,7 +283,7 @@ xstormy16_output_cbranch_hi (rtx op, const char *label, int reversed, rtx insn)
 			 : get_attr_length (insn) == 4);
   int really_reversed = reversed ^ need_longbranch;
   const char *ccode;
-  const char *template;
+  const char *templ;
   const char *operands;
   enum rtx_code code;
   
@@ -329,10 +329,10 @@ xstormy16_output_cbranch_hi (rtx op, const char *label, int reversed, rtx insn)
     }
 
   if (need_longbranch)
-    template = "b%s %s,.+8 | jmpf %s";
+    templ = "b%s %s,.+8 | jmpf %s";
   else
-    template = "b%s %s,%s";
-  sprintf (string, template, ccode, operands, label);
+    templ = "b%s %s,%s";
+  sprintf (string, templ, ccode, operands, label);
   
   return string;
 }
@@ -354,7 +354,7 @@ xstormy16_output_cbranch_si (rtx op, const char *label, int reversed, rtx insn)
   int need_longbranch = get_attr_length (insn) >= 8;
   int really_reversed = reversed ^ need_longbranch;
   const char *ccode;
-  const char *template;
+  const char *templ;
   char prevop[16];
   enum rtx_code code;
   
@@ -400,10 +400,10 @@ xstormy16_output_cbranch_si (rtx op, const char *label, int reversed, rtx insn)
     }
 
   if (need_longbranch)
-    template = "%s | b%s .+6 | jmpf %s";
+    templ = "%s | b%s .+6 | jmpf %s";
   else
-    template = "%s | b%s %s";
-  sprintf (string, template, prevop, ccode, label);
+    templ = "%s | b%s %s";
+  sprintf (string, templ, prevop, ccode, label);
   
   return string;
 }
@@ -420,11 +420,11 @@ xstormy16_output_cbranch_si (rtx op, const char *label, int reversed, rtx insn)
    You should define these macros to indicate to the reload phase that it may
    need to allocate at least one register for a reload in addition to the
    register to contain the data.  Specifically, if copying X to a register
-   CLASS in MODE requires an intermediate register, you should define
+   RCLASS in MODE requires an intermediate register, you should define
    `SECONDARY_INPUT_RELOAD_CLASS' to return the largest register class all of
    whose registers can be used as intermediate registers or scratch registers.
 
-   If copying a register CLASS in MODE to X requires an intermediate or scratch
+   If copying a register RCLASS in MODE to X requires an intermediate or scratch
    register, `SECONDARY_OUTPUT_RELOAD_CLASS' should be defined to return the
    largest register class required.  If the requirements for input and output
    reloads are the same, the macro `SECONDARY_RELOAD_CLASS' should be used
@@ -432,7 +432,7 @@ xstormy16_output_cbranch_si (rtx op, const char *label, int reversed, rtx insn)
 
    The values returned by these macros are often `GENERAL_REGS'.  Return
    `NO_REGS' if no spare register is needed; i.e., if X can be directly copied
-   to or from a register of CLASS in MODE without requiring a scratch register.
+   to or from a register of RCLASS in MODE without requiring a scratch register.
    Do not define this macro if it would always return `NO_REGS'.
 
    If a scratch register is required (either with or without an intermediate
@@ -443,7 +443,7 @@ xstormy16_output_cbranch_si (rtx op, const char *label, int reversed, rtx insn)
 
    Define constraints for the reload register and scratch register that contain
    a single register class.  If the original reload register (whose class is
-   CLASS) can meet the constraint given in the pattern, the value returned by
+   RCLASS) can meet the constraint given in the pattern, the value returned by
    these macros is used for the class of the scratch register.  Otherwise, two
    additional reload registers are required.  Their classes are obtained from
    the constraints in the insn pattern.
@@ -461,7 +461,7 @@ xstormy16_output_cbranch_si (rtx op, const char *label, int reversed, rtx insn)
    This case often occurs between floating-point and general registers.  */
 
 enum reg_class
-xstormy16_secondary_reload_class (enum reg_class class,
+xstormy16_secondary_reload_class (enum reg_class rclass,
 				  enum machine_mode mode,
 				  rtx x)
 {
@@ -471,7 +471,7 @@ xstormy16_secondary_reload_class (enum reg_class class,
        || ((GET_CODE (x) == SUBREG || GET_CODE (x) == REG)
 	   && (true_regnum (x) == -1
 	       || true_regnum (x) >= FIRST_PSEUDO_REGISTER)))
-      && ! reg_class_subset_p (class, EIGHT_REGS))
+      && ! reg_class_subset_p (rclass, EIGHT_REGS))
     return EIGHT_REGS;
 
   /* When reloading a PLUS, the carry register will be required
@@ -483,13 +483,13 @@ xstormy16_secondary_reload_class (enum reg_class class,
 }
 
 enum reg_class
-xstormy16_preferred_reload_class (rtx x, enum reg_class class)
+xstormy16_preferred_reload_class (rtx x, enum reg_class rclass)
 {
-  if (class == GENERAL_REGS
+  if (rclass == GENERAL_REGS
       && GET_CODE (x) == MEM)
     return EIGHT_REGS;
 
-  return class;
+  return rclass;
 }
 
 /* Predicate for symbols and addresses that reflect special 8-bit
@@ -1350,11 +1350,11 @@ xstormy16_expand_builtin_va_start (tree valist, rtx nextarg ATTRIBUTE_UNUSED)
   u = build_int_cst (NULL_TREE, INCOMING_FRAME_SP_OFFSET);
   u = fold_convert (TREE_TYPE (count), u);
   t = build2 (POINTER_PLUS_EXPR, TREE_TYPE (base), t, u);
-  t = build2 (GIMPLE_MODIFY_STMT, TREE_TYPE (base), base, t);
+  t = build2 (MODIFY_EXPR, TREE_TYPE (base), base, t);
   TREE_SIDE_EFFECTS (t) = 1;
   expand_expr (t, const0_rtx, VOIDmode, EXPAND_NORMAL);
 
-  t = build2 (GIMPLE_MODIFY_STMT, TREE_TYPE (count), count, 
+  t = build2 (MODIFY_EXPR, TREE_TYPE (count), count, 
 	      build_int_cst (NULL_TREE,
 			     crtl->args.info * UNITS_PER_WORD));
   TREE_SIDE_EFFECTS (t) = 1;
@@ -1366,8 +1366,8 @@ xstormy16_expand_builtin_va_start (tree valist, rtx nextarg ATTRIBUTE_UNUSED)
    Note:  This algorithm is documented in stormy-abi.  */
    
 static tree
-xstormy16_gimplify_va_arg_expr (tree valist, tree type, tree *pre_p,
-				tree *post_p ATTRIBUTE_UNUSED)
+xstormy16_gimplify_va_arg_expr (tree valist, tree type, gimple_seq *pre_p,
+				gimple_seq *post_p ATTRIBUTE_UNUSED)
 {
   tree f_base, f_count;
   tree base, count;
@@ -1408,8 +1408,7 @@ xstormy16_gimplify_va_arg_expr (tree valist, tree type, tree *pre_p,
       gimplify_and_add (t, pre_p);
 
       t = build2 (POINTER_PLUS_EXPR, ptr_type_node, base, count_tmp);
-      t = build2 (GIMPLE_MODIFY_STMT, void_type_node, addr, t);
-      gimplify_and_add (t, pre_p);
+      gimplify_assign (addr, t, pre_p);
 
       t = build1 (GOTO_EXPR, void_type_node, lab_gotaddr);
       gimplify_and_add (t, pre_p);
@@ -1427,7 +1426,7 @@ xstormy16_gimplify_va_arg_expr (tree valist, tree type, tree *pre_p,
       tree r, u;
 
       r = size_int (NUM_ARGUMENT_REGISTERS * UNITS_PER_WORD);
-      u = build2 (GIMPLE_MODIFY_STMT, void_type_node, count_tmp, r);
+      u = build2 (MODIFY_EXPR, TREE_TYPE (count_tmp), count_tmp, r);
 
       t = fold_convert (TREE_TYPE (count), r);
       t = build2 (GE_EXPR, boolean_type_node, count_tmp, t);
@@ -1444,16 +1443,14 @@ xstormy16_gimplify_va_arg_expr (tree valist, tree type, tree *pre_p,
   t = fold_convert (TREE_TYPE (t), fold (t));
   t = fold_build1 (NEGATE_EXPR, TREE_TYPE (t), t);
   t = build2 (POINTER_PLUS_EXPR, TREE_TYPE (base), base, t);
-  t = build2 (GIMPLE_MODIFY_STMT, void_type_node, addr, t);
-  gimplify_and_add (t, pre_p);
+  gimplify_assign (addr, t, pre_p);
 
   t = build1 (LABEL_EXPR, void_type_node, lab_gotaddr);
   gimplify_and_add (t, pre_p);
 
   t = fold_convert (TREE_TYPE (count), size_tree);
   t = build2 (PLUS_EXPR, TREE_TYPE (count), count_tmp, t);
-  t = build2 (GIMPLE_MODIFY_STMT, TREE_TYPE (count), count, t);
-  gimplify_and_add (t, pre_p);
+  gimplify_assign (count, t, pre_p);
   
   addr = fold_convert (build_pointer_type (type), addr);
   return build_va_arg_indirect_ref (addr);

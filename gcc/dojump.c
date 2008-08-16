@@ -71,8 +71,7 @@ clear_pending_stack_adjust (void)
 {
   if (optimize > 0
       && (! flag_omit_frame_pointer || cfun->calls_alloca)
-      && EXIT_IGNORE_STACK
-      && ! (DECL_INLINE (current_function_decl) && ! flag_no_inline))
+      && EXIT_IGNORE_STACK)
     discard_pending_stack_adjust ();
 }
 
@@ -305,8 +304,6 @@ do_jump (tree exp, rtx if_false_label, rtx if_true_label)
 	break;
       }
 
-    case TRUTH_ANDIF_EXPR:
-    case TRUTH_ORIF_EXPR:
     case COMPOUND_EXPR:
       /* Lowered by gimplify.c.  */
       gcc_unreachable ();
@@ -516,6 +513,7 @@ do_jump (tree exp, rtx if_false_label, rtx if_true_label)
       if (BRANCH_COST >= 4 || TREE_SIDE_EFFECTS (TREE_OPERAND (exp, 1)))
 	goto normal;
 
+    case TRUTH_ANDIF_EXPR:
       if (if_false_label == NULL_RTX)
         {
 	  drop_through_label = gen_label_rtx ();
@@ -536,6 +534,7 @@ do_jump (tree exp, rtx if_false_label, rtx if_true_label)
       if (BRANCH_COST >= 4 || TREE_SIDE_EFFECTS (TREE_OPERAND (exp, 1)))
 	goto normal;
 
+    case TRUTH_ORIF_EXPR:
       if (if_true_label == NULL_RTX)
 	{
           drop_through_label = gen_label_rtx ();

@@ -528,6 +528,11 @@ package Opt is
    --  the name is of the form .xxx, then to name.xxx where name is the source
    --  file name with extension stripped.
 
+   Generate_Processed_File : Boolean := False;
+   --  GNAT
+   --  True when switch -gnateG is used. When True, create in a file
+   --  <source>.prep, if the source is preprocessed.
+
    Generating_Code : Boolean := False;
    --  GNAT
    --  True if the frontend finished its work and has called the backend to
@@ -1234,6 +1239,12 @@ package Opt is
    --  GNAT
    --  Set to True to generate warnings for static fixed-point expression
    --  values that are not an exact multiple of the small value of the type.
+
+   Warn_On_Biased_Representation : Boolean := True;
+   --  GNAT
+   --  Set to True to generate warnings for size clauses, component clauses
+   --  and component_size clauses that force biased representation. Set False
+   --  by -gnatw.B.
 
    Warn_On_Constant : Boolean := False;
    --  GNAT

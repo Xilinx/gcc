@@ -213,6 +213,9 @@
   switch (mode)
     {
     case TFmode:
+      if (TARGET_E500_DOUBLE)
+	return 0;
+
       REAL_VALUE_FROM_CONST_DOUBLE (rv, op);
       REAL_VALUE_TO_TARGET_LONG_DOUBLE (rv, k);
 
@@ -912,7 +915,7 @@
   rtx elt;
   int count = XVECLEN (op, 0);
 
-  if (count != 55)
+  if (count != 54)
     return 0;
 
   index = 0;
@@ -961,9 +964,8 @@
       || GET_MODE (SET_SRC (elt)) != Pmode)
     return 0;
 
-  if (GET_CODE (XVECEXP (op, 0, index++)) != USE
-      || GET_CODE (XVECEXP (op, 0, index++)) != USE
-      || GET_CODE (XVECEXP (op, 0, index++)) != CLOBBER)
+  if (GET_CODE (XVECEXP (op, 0, index++)) != SET
+      || GET_CODE (XVECEXP (op, 0, index++)) != SET)
     return 0;
   return 1;
 })

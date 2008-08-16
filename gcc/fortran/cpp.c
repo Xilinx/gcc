@@ -1,3 +1,21 @@
+/* Copyright (C) 2008 Free Software Foundation, Inc.
+
+This file is part of GCC.
+
+GCC is free software; you can redistribute it and/or modify it under
+the terms of the GNU General Public License as published by the Free
+Software Foundation; either version 3, or (at your option) any later
+version.
+
+GCC is distributed in the hope that it will be useful, but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or
+FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+for more details.
+
+You should have received a copy of the GNU General Public License
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
+
 #include "config.h"
 #include "system.h"
 #include "coretypes.h"
@@ -149,7 +167,7 @@ cpp_define_builtins (cpp_reader *pfile)
   cpp_define (pfile, "_LANGUAGE_FORTRAN=1");
 
   if (gfc_option.flag_openmp)
-    cpp_define (pfile, "_OPENMP=200505");
+    cpp_define (pfile, "_OPENMP=200805");
 
 
   /* More builtins that might be useful, but are not documented
@@ -524,6 +542,9 @@ gfc_cpp_init (void)
 {
   int i;
 
+  if (gfc_option.flag_preprocessed)
+    return;
+
   cpp_change_file (cpp_in, LC_RENAME, _("<built-in>"));
   if (!gfc_cpp_option.no_predefined)
     cpp_define_builtins (cpp_in);
@@ -553,7 +574,7 @@ gfc_cpp_init (void)
     pp_dir_change (cpp_in, get_src_pwd ());
 }
 
-try
+gfc_try
 gfc_cpp_preprocess (const char *source_file)
 {
   if (!gfc_cpp_enabled ())
@@ -573,6 +594,8 @@ gfc_cpp_preprocess (const char *source_file)
       putc ('\n', print.outf);
       cpp_forall_identifiers (cpp_in, dump_macro, NULL);
     }
+
+  putc ('\n', print.outf);
 
   if (!gfc_cpp_preprocess_only ()
       || (gfc_cpp_preprocess_only () && gfc_cpp_option.output_filename))

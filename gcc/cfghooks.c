@@ -1,5 +1,6 @@
 /* Hooks for cfg representation specific functions.
-   Copyright (C) 2003, 2004, 2005, 2007 Free Software Foundation, Inc.
+   Copyright (C) 2003, 2004, 2005, 2007, 2008 Free Software Foundation,
+   Inc.
    Contributed by Sebastian Pop <s.pop@laposte.net>
 
 This file is part of GCC.
@@ -50,9 +51,9 @@ cfg_layout_rtl_register_cfg_hooks (void)
 /* Initialization of functions specific to the tree IR.  */
 
 void
-tree_register_cfg_hooks (void)
+gimple_register_cfg_hooks (void)
 {
-  cfg_hooks = &tree_cfg_hooks;
+  cfg_hooks = &gimple_cfg_hooks;
 }
 
 /* Returns current ir type.  */
@@ -60,7 +61,7 @@ tree_register_cfg_hooks (void)
 enum ir_type
 current_ir_type (void)
 {
-  if (cfg_hooks == &tree_cfg_hooks)
+  if (cfg_hooks == &gimple_cfg_hooks)
     return IR_GIMPLE;
   else if (cfg_hooks == &rtl_cfg_hooks)
     return IR_RTL_CFGRTL;
@@ -290,7 +291,7 @@ dump_bb (basic_block bb, FILE *outf, int indent)
   putc ('\n', outf);
 
   if (cfg_hooks->dump_bb)
-    cfg_hooks->dump_bb (bb, outf, indent);
+    cfg_hooks->dump_bb (bb, outf, indent, 0);
 }
 
 /* Redirect edge E to the given basic block DEST and update underlying program
@@ -1029,7 +1030,7 @@ cfg_hook_duplicate_loop_to_header_edge (struct loop *loop, edge e,
 
 /* Conditional jumps are represented differently in trees and RTL,
    this hook takes a basic block that is known to have a cond jump
-   at its end and extracts the taken and not taken eges out of it
+   at its end and extracts the taken and not taken edges out of it
    and store it in E1 and E2 respectively.  */
 void
 extract_cond_bb_edges (basic_block b, edge *e1, edge *e2)

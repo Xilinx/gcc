@@ -102,13 +102,13 @@ ignore_bb_p (const_basic_block bb)
 static int
 count_insns (basic_block bb)
 {
-  block_stmt_iterator bsi;
-  tree stmt;
+  gimple_stmt_iterator gsi;
+  gimple stmt;
   int n = 0;
 
-  for (bsi = bsi_start (bb); !bsi_end_p (bsi); bsi_next (&bsi))
+  for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); gsi_next (&gsi))
     {
-      stmt = bsi_stmt (bsi);
+      stmt = gsi_stmt (gsi);
       n += estimate_num_insns (stmt, &eni_size_weights);
     }
   return n;
@@ -265,7 +265,7 @@ tail_duplicate (void)
   while (traced_insns < cover_insns && nduplicated < max_dup_insns
          && !fibheap_empty (heap))
     {
-      basic_block bb = fibheap_extract_min (heap);
+      basic_block bb = (basic_block) fibheap_extract_min (heap);
       int n, pos;
 
       if (!bb)

@@ -1,6 +1,6 @@
 // <algorithm> declarations  -*- C++ -*-
 
-// Copyright (C) 2007 Free Software Foundation, Inc.
+// Copyright (C) 2007, 2008 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -25,9 +25,13 @@
 
 /*
   adjacent_find
+  all_of (C++0x)
+  any_of (C++0x)
   binary_search
   copy
   copy_backward
+  copy_if (C++0x)
+  copy_n (C++0x)
   count
   count_if
   equal
@@ -38,6 +42,7 @@
   find_end
   find_first_of
   find_if
+  find_if_not (C++0x)
   for_each
   generate
   generate_n
@@ -45,6 +50,7 @@
   inplace_merge
   is_heap (C++0x)
   is_heap_until (C++0x)
+  is_partitioned (C++0x)
   is_sorted (C++0x)
   is_sorted_until (C++0x)
   iter_swap
@@ -60,10 +66,13 @@
   minmax_element (C++0x)
   mismatch
   next_permutation
+  none_of (C++0x)
   nth_element
   partial_sort
   partial_sort_copy
   partition
+  partition_copy (C++0x)
+  partition_point (C++0x)
   pop_heap
   prev_permutation
   push_heap
@@ -111,6 +120,16 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
   // adjacent_find
 
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+  template<typename _IIter, typename _Predicate>
+    bool
+    all_of(_IIter, _IIter, _Predicate);
+
+  template<typename _IIter, typename _Predicate>
+    bool
+    any_of(_IIter, _IIter, _Predicate);
+#endif
+
   template<typename _FIter, typename _Tp>
     bool 
     binary_search(_FIter, _FIter, const _Tp&);
@@ -126,6 +145,16 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
   template<typename _BIter1, typename _BIter2>
     _BIter2
     copy_backward(_BIter1, _BIter1, _BIter2);
+
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+  template<typename _IIter, typename _OIter, typename _Predicate>
+    _OIter
+    copy_if(_IIter, _IIter, _OIter, _Predicate);
+
+  template<typename _IIter, typename _Size, typename _OIter>
+    _OIter
+    copy_n(_IIter, _Size, _OIter);
+#endif
 
   // count
   // count_if
@@ -165,6 +194,13 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
   // find_first_of
   // find_if
+
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+  template<typename _IIter, typename _Predicate>
+    _IIter
+    find_if_not(_IIter, _IIter, _Predicate);
+#endif
+
   // for_each
   // generate
   // generate_n
@@ -201,6 +237,10 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
   template<typename _RAIter, typename _Compare>
     _RAIter 
     is_heap_until(_RAIter, _RAIter, _Compare);
+
+  template<typename _IIter, typename _Predicate>
+    bool
+    is_partitioned(_IIter, _IIter, _Predicate);
 
   template<typename _FIter>
     bool 
@@ -288,6 +328,12 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
     bool 
     next_permutation(_BIter, _BIter, _Compare);
 
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+  template<typename _IIter, typename _Predicate>
+    bool
+    none_of(_IIter, _IIter, _Predicate);
+#endif
+
   // nth_element
   // partial_sort
 
@@ -298,6 +344,19 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
   template<typename _IIter, typename _RAIter, typename _Compare>
     _RAIter
     partial_sort_copy(_IIter, _IIter, _RAIter, _RAIter, _Compare);
+
+  // partition
+
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+  template<typename _IIter, typename _OIter1,
+	   typename _OIter2, typename _Predicate>
+    pair<_OIter1, _OIter2>
+    partition_copy(_IIter, _IIter, _OIter1, _OIter2, _Predicate);
+
+  template<typename _FIter, typename _Predicate>
+    _FIter
+    partition_point(_FIter, _FIter, _Predicate);
+#endif
 
   template<typename _RAIter>
     void 
@@ -392,6 +451,10 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
     void 
     swap(_Tp&, _Tp&);
 
+  template<typename _Tp, size_t _Nm>
+    void
+    swap(_Tp (&)[_Nm], _Tp (&)[_Nm]);
+
   template<typename _FIter1, typename _FIter2>
     _FIter2 
     swap_ranges(_FIter1, _FIter1, _FIter2);
@@ -457,7 +520,7 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_P)
     find_first_of(_FIter1, _FIter1, _FIter2, _FIter2, _BinaryPredicate);
 
   template<typename _IIter, typename _Predicate>
-    _IIter 
+    _IIter
     find_if(_IIter, _IIter, _Predicate);
 
   template<typename _IIter, typename _Funct>

@@ -1,6 +1,6 @@
 // Versatile string -*- C++ -*-
 
-// Copyright (C) 2005, 2006, 2007 Free Software Foundation, Inc.
+// Copyright (C) 2005, 2006, 2007, 2008 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -36,6 +36,7 @@
 
 #pragma GCC system_header
 
+#include <initializer_list>
 #include <ext/vstring_util.h>
 #include <ext/rc_string_base.h>
 #include <ext/sso_string_base.h>
@@ -156,6 +157,15 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
        */
       __versa_string(__versa_string&& __str)
       : __vstring_base(std::forward<__vstring_base>(__str)) { }
+
+      /**
+       *  @brief  Construct string from an initializer list.
+       *  @param  l  std::initializer_list of characters.
+       *  @param  a  Allocator to use (default is default allocator).
+       */
+      __versa_string(std::initializer_list<_CharT> __l,
+		     const _Alloc& __a = _Alloc())
+      : __vstring_base(__l.begin(), __l.end(), __a) { }
 #endif
 
       /**
@@ -255,6 +265,17 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
       {
 	if (this != &__str)
 	  this->swap(__str);
+	return *this;
+      }
+
+      /**
+       *  @brief  Set value to string constructed from initializer list.
+       *  @param  l  std::initializer_list.
+       */
+      __versa_string&
+      operator=(std::initializer_list<_CharT> __l)
+      {
+	this->assign(__l.begin(), __l.end());
 	return *this;
       }
 #endif
@@ -623,6 +644,17 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
 	return *this;
       }
 
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      /**
+       *  @brief  Append an initializer_list of characters.
+       *  @param l  The initializer_list of characters to be appended.
+       *  @return  Reference to this string.
+       */
+      __versa_string&
+      operator+=(std::initializer_list<_CharT> __l)
+      { return this->append(__l.begin(), __l.end()); }
+#endif // __GXX_EXPERIMENTAL_CXX0X__
+
       /**
        *  @brief  Append a string to this string.
        *  @param str  The string to append.
@@ -689,6 +721,17 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
       __versa_string&
       append(size_type __n, _CharT __c)
       { return _M_replace_aux(this->size(), size_type(0), __n, __c); }
+
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      /**
+       *  @brief  Append an initializer_list of characters.
+       *  @param l  The initializer_list of characters to append.
+       *  @return  Reference to this string.
+       */
+      __versa_string&
+      append(std::initializer_list<_CharT> __l)
+      { return this->append(__l.begin(), __l.end()); }
+#endif // __GXX_EXPERIMENTAL_CXX0X__
 
       /**
        *  @brief  Append a range of characters.
@@ -807,6 +850,17 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
         assign(_InputIterator __first, _InputIterator __last)
         { return this->replace(_M_ibegin(), _M_iend(), __first, __last); }
 
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      /**
+       *  @brief  Set value to an initializer_list of characters.
+       *  @param l  The initializer_list of characters to assign.
+       *  @return  Reference to this string.
+       */
+      __versa_string&
+      assign(std::initializer_list<_CharT> __l)
+      { return this->assign(__l.begin(), __l.end()); }
+#endif // __GXX_EXPERIMENTAL_CXX0X__
+
       /**
        *  @brief  Insert multiple characters.
        *  @param p  Iterator referencing location in string to insert at.
@@ -838,6 +892,18 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
         void
         insert(iterator __p, _InputIterator __beg, _InputIterator __end)
         { this->replace(__p, __p, __beg, __end); }
+
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      /**
+       *  @brief  Insert an initializer_list of characters.
+       *  @param p  Iterator referencing location in string to insert at.
+       *  @param l  The initializer_list of characters to insert.
+       *  @throw  std::length_error  If new length exceeds @c max_size().
+       */
+      void
+      insert(iterator __p, std::initializer_list<_CharT> __l)
+      { this->insert(__p, __l.begin(), __l.end()); }
+#endif // __GXX_EXPERIMENTAL_CXX0X__
 
       /**
        *  @brief  Insert value of a string.
@@ -1295,6 +1361,25 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
 			     __k1.base(), __k2 - __k1);
       }
       
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      /**
+       *  @brief  Replace range of characters with initializer_list.
+       *  @param i1  Iterator referencing start of range to replace.
+       *  @param i2  Iterator referencing end of range to replace.
+       *  @param l  The initializer_list of characters to insert.
+       *  @return  Reference to this string.
+       *  @throw  std::length_error  If new length exceeds @c max_size().
+       *
+       *  Removes the characters in the range [i1,i2).  In place, characters
+       *  in the range [k1,k2) are inserted.  If the length of result exceeds
+       *  max_size(), length_error is thrown.  The value of the string doesn't
+       *  change if an error is thrown.
+      */
+      __versa_string& replace(iterator __i1, iterator __i2,
+			      std::initializer_list<_CharT> __l)
+      { return this->replace(__i1, __i2, __l.begin(), __l.end()); }
+#endif // __GXX_EXPERIMENTAL_CXX0X__
+
     private:
       template<class _Integer>
 	__versa_string&
@@ -2320,6 +2405,136 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
     { return getline(__is, __str, __is.widen('\n')); }      
 
 _GLIBCXX_END_NAMESPACE
+
+#if (defined(__GXX_EXPERIMENTAL_CXX0X__) && defined(_GLIBCXX_USE_C99))
+
+#include <ext/string_conversions.h>
+
+_GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
+
+  // 21.4 Numeric Conversions [string.conversions].
+  inline int
+  stoi(const __vstring& __str, std::size_t* __idx = 0, int __base = 10)
+  { return __gnu_cxx::__stoa<long, int>(&std::strtol, "stoi", __str.c_str(),
+					__idx, __base); }
+
+  inline long
+  stol(const __vstring& __str, std::size_t* __idx = 0, int __base = 10)
+  { return __gnu_cxx::__stoa(&std::strtol, "stol", __str.c_str(),
+			     __idx, __base); }
+
+  inline unsigned long
+  stoul(const __vstring& __str, std::size_t* __idx = 0, int __base = 10)
+  { return __gnu_cxx::__stoa(&std::strtoul, "stoul", __str.c_str(),
+			     __idx, __base); }
+
+  inline long long
+  stoll(const __vstring& __str, std::size_t* __idx = 0,	int __base = 10)
+  { return __gnu_cxx::__stoa(&std::strtoll, "stoll", __str.c_str(),
+			     __idx, __base); }
+
+  inline unsigned long long
+  stoull(const __vstring& __str, std::size_t* __idx, int __base = 10)
+  { return __gnu_cxx::__stoa(&std::strtoull, "stoull", __str.c_str(),
+			     __idx, __base); }
+
+  // NB: strtof vs strtod.
+  inline float
+  stof(const __vstring& __str, std::size_t* __idx = 0)
+  { return __gnu_cxx::__stoa(&std::strtof, "stof", __str.c_str(), __idx); }
+
+  inline double
+  stod(const __vstring& __str, std::size_t* __idx = 0)
+  { return __gnu_cxx::__stoa(&std::strtod, "stod", __str.c_str(), __idx); }
+
+  inline long double
+  stold(const __vstring& __str, std::size_t* __idx = 0)
+  { return __gnu_cxx::__stoa(&std::strtold, "stold", __str.c_str(), __idx); }
+
+  // NB: (v)snprintf vs sprintf.
+  inline __vstring
+  to_string(long long __val)
+  { return __gnu_cxx::__to_xstring<__vstring>(&std::vsnprintf,
+					      4 * sizeof(long long),
+					      "%lld", __val); }
+
+  inline __vstring
+  to_string(unsigned long long __val)
+  { return __gnu_cxx::__to_xstring<__vstring>(&std::vsnprintf,
+					      4 * sizeof(unsigned long long),
+					      "%llu", __val); }
+
+  inline __vstring
+  to_string(long double __val)
+  {
+    const int __n = __numeric_traits<long double>::__max_exponent10 + 20;
+    return __gnu_cxx::__to_xstring<__vstring>(&std::vsnprintf, __n,
+					      "%Lf", __val);
+  }
+
+#ifdef _GLIBCXX_USE_WCHAR_T
+  inline int 
+  stoi(const __wvstring& __str, std::size_t* __idx = 0, int __base = 10)
+  { return __gnu_cxx::__stoa<long, int>(&std::wcstol, "stoi", __str.c_str(),
+					__idx, __base); }
+
+  inline long 
+  stol(const __wvstring& __str, std::size_t* __idx = 0, int __base = 10)
+  { return __gnu_cxx::__stoa(&std::wcstol, "stol", __str.c_str(),
+			     __idx, __base); }
+
+  inline unsigned long
+  stoul(const __wvstring& __str, std::size_t* __idx = 0, int __base = 10)
+  { return __gnu_cxx::__stoa(&std::wcstoul, "stoul", __str.c_str(),
+			     __idx, __base); }
+
+  inline long long
+  stoll(const __wvstring& __str, std::size_t* __idx = 0, int __base = 10)
+  { return __gnu_cxx::__stoa(&std::wcstoll, "stoll", __str.c_str(),
+			     __idx, __base); }
+
+  inline unsigned long long
+  stoull(const __wvstring& __str, std::size_t* __idx = 0, int __base = 10)
+  { return __gnu_cxx::__stoa(&std::wcstoull, "stoull", __str.c_str(),
+			     __idx, __base); }
+
+  // NB: wcstof vs wcstod.
+  inline float
+  stof(const __wvstring& __str, std::size_t* __idx = 0)
+  { return __gnu_cxx::__stoa(&std::wcstof, "stof", __str.c_str(), __idx); }
+
+  inline double
+  stod(const __wvstring& __str, std::size_t* __idx = 0)
+  { return __gnu_cxx::__stoa(&std::wcstod, "stod", __str.c_str(), __idx); }
+
+  inline long double
+  stold(const __wvstring& __str, std::size_t* __idx = 0)
+  { return __gnu_cxx::__stoa(&std::wcstold, "stold", __str.c_str(), __idx); }
+
+  inline __wvstring
+  to_wstring(long long __val)
+  { return __gnu_cxx::__to_xstring<__wvstring>(&std::vswprintf,
+					       4 * sizeof(long long),
+					       L"%lld", __val); }
+
+  inline __wvstring
+  to_wstring(unsigned long long __val)
+  { return __gnu_cxx::__to_xstring<__wvstring>(&std::vswprintf,
+					       4 * sizeof(unsigned long long),
+					       L"%llu", __val); }
+
+  inline __wvstring
+  to_wstring(long double __val)
+  {
+    const int __n = __numeric_traits<long double>::__max_exponent10 + 20;
+    return __gnu_cxx::__to_xstring<__wvstring>(&std::vswprintf, __n,
+					       L"%Lf", __val);
+  }
+#endif
+
+_GLIBCXX_END_NAMESPACE
+
+#endif
 
 #ifndef _GLIBCXX_EXPORT_TEMPLATE
 # include "vstring.tcc" 

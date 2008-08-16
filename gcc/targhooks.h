@@ -34,6 +34,7 @@ extern bool default_pretend_outgoing_varargs_named (CUMULATIVE_ARGS *);
 extern enum machine_mode default_eh_return_filter_mode (void);
 extern enum machine_mode default_libgcc_cmp_return_mode (void);
 extern enum machine_mode default_libgcc_shift_count_mode (void);
+extern enum machine_mode default_unwind_word_mode (void);
 extern unsigned HOST_WIDE_INT default_shift_truncation_mask
   (enum machine_mode);
 extern unsigned int default_min_divisions_for_recip_mul (enum machine_mode);
@@ -96,3 +97,6 @@ extern int default_reloc_rw_mask (void);
 extern tree default_mangle_decl_assembler_name (tree, tree);
 extern tree default_emutls_var_fields (tree, tree *);
 extern tree default_emutls_var_init (tree, tree, tree);
+extern bool default_hard_regno_scratch_ok (unsigned int);
+extern bool default_target_option_valid_attribute_p (tree, tree, tree, int);
+extern bool default_target_option_can_inline_p (tree, tree);

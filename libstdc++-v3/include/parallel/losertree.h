@@ -376,7 +376,7 @@ public:
   }
 
   ~LoserTreePointerBase()
-  { ::operator delete(losers); }
+  { ::operator delete[](losers); }
 
   int get_min_source()
   { return losers[0].source; }
@@ -1024,4 +1024,4 @@ public:
 
 } // namespace __gnu_parallel
 
-#endif
+#endif /* _GLIBCXX_PARALLEL_LOSERTREE_H */

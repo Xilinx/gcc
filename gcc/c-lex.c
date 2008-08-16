@@ -205,10 +205,13 @@ fe_file_change (const struct line_map *new_map)
 	 we already did in compile_file.  */
       if (!MAIN_FILE_P (new_map))
 	{
-	  int included_at = LAST_SOURCE_LINE_LOCATION (new_map - 1);
+	  unsigned int included_at = LAST_SOURCE_LINE_LOCATION (new_map - 1);
+	  int line = 0;
+	  if (included_at > BUILTINS_LOCATION)
+	    line = SOURCE_LINE (new_map - 1, included_at);
 
 	  input_location = new_map->start_location;
-	  (*debug_hooks->start_source_file) (included_at, new_map->to_file);
+	  (*debug_hooks->start_source_file) (line, new_map->to_file);
 #ifndef NO_IMPLICIT_EXTERN_C
 	  if (c_header_level)
 	    ++c_header_level;
@@ -236,7 +239,6 @@ fe_file_change (const struct line_map *new_map)
     }
 
   update_header_times (new_map->to_file);
-  in_system_header = new_map->sysp != 0;
   input_location = new_map->start_location;
 }
 
@@ -468,7 +470,7 @@ narrowest_unsigned_type (unsigned HOST_WIDE_INT low,
 			 unsigned HOST_WIDE_INT high,
 			 unsigned int flags)
 {
-  enum integer_type_kind itk;
+  int itk;
 
   if ((flags & CPP_N_WIDTH) == CPP_N_SMALL)
     itk = itk_unsigned_int;
@@ -484,7 +486,7 @@ narrowest_unsigned_type (unsigned HOST_WIDE_INT low,
       if ((unsigned HOST_WIDE_INT) TREE_INT_CST_HIGH (upper) > high
 	  || ((unsigned HOST_WIDE_INT) TREE_INT_CST_HIGH (upper) == high
 	      && TREE_INT_CST_LOW (upper) >= low))
-	return itk;
+	return (enum integer_type_kind) itk;
     }
 
   return itk_none;
@@ -495,7 +497,7 @@ static enum integer_type_kind
 narrowest_signed_type (unsigned HOST_WIDE_INT low,
 		       unsigned HOST_WIDE_INT high, unsigned int flags)
 {
-  enum integer_type_kind itk;
+  int itk;
 
   if ((flags & CPP_N_WIDTH) == CPP_N_SMALL)
     itk = itk_int;
@@ -512,7 +514,7 @@ narrowest_signed_type (unsigned HOST_WIDE_INT low,
       if ((unsigned HOST_WIDE_INT) TREE_INT_CST_HIGH (upper) > high
 	  || ((unsigned HOST_WIDE_INT) TREE_INT_CST_HIGH (upper) == high
 	      && TREE_INT_CST_LOW (upper) >= low))
-	return itk;
+	return (enum integer_type_kind) itk;
     }
 
   return itk_none;
@@ -585,8 +587,8 @@ interpret_integer (const cpp_token *token, unsigned int flags)
   if (itk > itk_unsigned_long
       && (flags & CPP_N_WIDTH) != CPP_N_LARGE
       && !in_system_header && !flag_isoc99)
-    pedwarn ("integer constant is too large for %qs type",
-	     (flags & CPP_N_UNSIGNED) ? "unsigned long" : "long");
+    pedwarn (0, "integer constant is too large for %qs type",
+	      (flags & CPP_N_UNSIGNED) ? "unsigned long" : "long");
 
   value = build_int_cst_wide (type, integer.low, integer.high);
 
@@ -639,8 +641,8 @@ interpret_float (const cpp_token *token, unsigned int flags)
 
 	    return error_mark_node;
 	  }
-	else if (pedantic)
-	  pedwarn ("non-standard suffix on floating constant");
+	else
+	  pedwarn (OPT_pedantic, "non-standard suffix on floating constant");
 
 	type = c_common_type_for_mode (mode, 0);
 	gcc_assert (type);
@@ -682,7 +684,7 @@ interpret_float (const cpp_token *token, unsigned int flags)
   if (REAL_VALUE_ISINF (real)) 
     {
       if (!MODE_HAS_INFINITIES (TYPE_MODE (type)))
-	pedwarn ("floating constant exceeds range of %qT", type);
+	pedwarn (0, "floating constant exceeds range of %qT", type);
       else
 	warning (OPT_Woverflow, "floating constant exceeds range of %qT", type);
     }
@@ -974,7 +976,7 @@ lex_charconst (const cpp_token *token)
   cppchar_t result;
   tree type, value;
   unsigned int chars_seen;
-  int unsignedp;
+  int unsignedp = 0;
 
   result = cpp_interpret_charconst (parse_in, token,
 				    &chars_seen, &unsignedp);

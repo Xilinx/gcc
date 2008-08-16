@@ -1,5 +1,5 @@
 /* Alias analysis for trees.
-   Copyright (C) 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
+   Copyright (C) 2004, 2005, 2006, 2007, 2008 Free Software Foundation, Inc.
    Contributed by Diego Novillo <dnovillo@redhat.com>
 
 This file is part of GCC.
@@ -35,7 +35,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "function.h"
 #include "diagnostic.h"
 #include "tree-dump.h"
-#include "tree-gimple.h"
+#include "gimple.h"
 #include "tree-flow.h"
 #include "tree-inline.h"
 #include "tree-pass.h"
@@ -166,6 +166,40 @@ along with GCC; see the file COPYING3.  If not see
    Lastly, we delete partitions with no symbols, and clean up after
    ourselves.  */
 
+
+/* Alias information used by compute_may_aliases and its helpers.  */
+struct alias_info
+{
+  /* SSA names visited while collecting points-to information.  If bit I
+     is set, it means that SSA variable with version I has already been
+     visited.  */
+  sbitmap ssa_names_visited;
+
+  /* Array of SSA_NAME pointers processed by the points-to collector.  */
+  VEC(tree,heap) *processed_ptrs;
+
+  /* ADDRESSABLE_VARS contains all the global variables and locals that
+     have had their address taken.  */
+  struct alias_map_d **addressable_vars;
+  size_t num_addressable_vars;
+
+  /* POINTERS contains all the _DECL pointers with unique memory tags
+     that have been referenced in the program.  */
+  struct alias_map_d **pointers;
+  size_t num_pointers;
+
+  /* Variables that have been written to directly (i.e., not through a
+     pointer dereference).  */
+  struct pointer_set_t *written_vars;
+
+  /* Pointers that have been used in an indirect store operation.  */
+  struct pointer_set_t *dereferenced_ptrs_store;
+
+  /* Pointers that have been used in an indirect load operation.  */
+  struct pointer_set_t *dereferenced_ptrs_load;
+};
+
+
 /* Structure to map a variable to its alias set.  */
 struct alias_map_d
 {
@@ -197,7 +231,6 @@ static bitmap_obstack alias_bitmap_obstack;
 /* Local functions.  */
 static void compute_flow_insensitive_aliasing (struct alias_info *);
 static void dump_alias_stats (FILE *);
-static bool may_alias_p (tree, alias_set_type, tree, alias_set_type, bool);
 static tree create_memory_tag (tree type, bool is_type_tag);
 static tree get_smt_for (tree, struct alias_info *);
 static tree get_nmt_for (tree);
@@ -206,6 +239,7 @@ static struct alias_info *init_alias_info (void);
 static void delete_alias_info (struct alias_info *);
 static void compute_flow_sensitive_aliasing (struct alias_info *);
 static void setup_pointers_and_addressables (struct alias_info *);
+static void update_alias_info (struct alias_info *);
 static void create_global_var (void);
 static void maybe_create_global_var (void);
 static void set_pt_anything (tree);
@@ -229,7 +263,7 @@ get_mem_sym_stats_for (tree var)
   slot = pointer_map_insert (map, var);
   if (*slot == NULL)
     {
-      stats = pool_alloc (mem_sym_stats_pool);
+      stats = (struct mem_sym_stats_d *) pool_alloc (mem_sym_stats_pool);
       memset (stats, 0, sizeof (*stats));
       stats->var = var;
       *slot = (void *) stats;
@@ -305,10 +339,7 @@ mark_non_addressable (tree var)
 
   mpt = memory_partition (var);
 
-  if (!MTAG_P (var))
-    var_ann (var)->call_clobbered = false;
-
-  bitmap_clear_bit (gimple_call_clobbered_vars (cfun), DECL_UID (var));
+  clear_call_clobbered (var);
   TREE_ADDRESSABLE (var) = 0;
 
   if (mpt)
@@ -509,7 +540,7 @@ compute_tag_properties (void)
   VEC_free (tree, heap, taglist);
 }
 
-/* Set up the initial variable clobbers and globalness.
+/* Set up the initial variable clobbers, call-uses and globalness.
    When this function completes, only tags whose aliases need to be
    clobbered will be set clobbered.  Tags clobbered because they   
    contain call clobbered vars are handled in compute_tag_properties.  */
@@ -541,6 +572,14 @@ set_initial_properties (struct alias_info *ai)
 	}
     }
 
+  if (!clobber_what_escaped ())
+    {
+      any_pt_anything = true;
+      pt_anything_mask |= ESCAPE_TO_CALL;
+    }
+
+  compute_call_used_vars ();
+
   for (i = 0; VEC_iterate (tree, ai->processed_ptrs, i, ptr); i++)
     {
       struct ptr_info_def *pi = SSA_NAME_PTR_INFO (ptr);
@@ -561,18 +600,6 @@ set_initial_properties (struct alias_info *ai)
 
 	  if (tag)
 	    mark_call_clobbered (tag, pi->escape_mask);
-
-	  /* Defer to points-to analysis if possible, otherwise
-	     clobber all addressable variables.  Parameters cannot
-	     point to local memory though.
-	     ???  Properly tracking which pointers point to non-local
-	     memory only would make a big difference here.  */
-	  if (!clobber_what_p_points_to (ptr)
-	      && !(pi->escape_mask & ESCAPE_IS_PARM))
-	    {
-	      any_pt_anything = true;
-	      pt_anything_mask |= pi->escape_mask;
-	    }
 	}
 
       /* If the name tag is call clobbered, so is the symbol tag
@@ -591,14 +618,14 @@ set_initial_properties (struct alias_info *ai)
          So removing this code and fixing all the bugs would be nice.
          It is the cause of a bunch of clobbering.  */
       if ((pi->pt_global_mem || pi->pt_anything) 
-	  && pi->is_dereferenced && pi->name_mem_tag)
+	  && pi->memory_tag_needed && pi->name_mem_tag)
 	{
 	  mark_call_clobbered (pi->name_mem_tag, ESCAPE_IS_GLOBAL);
 	  MTAG_GLOBAL (pi->name_mem_tag) = true;
 	}
       
       if ((pi->pt_global_mem || pi->pt_anything) 
-	  && pi->is_dereferenced
+	  && pi->memory_tag_needed
 	  && tag)
 	{
 	  mark_call_clobbered (tag, ESCAPE_IS_GLOBAL);
@@ -725,7 +752,7 @@ static void
 count_mem_refs (long *num_vuses_p, long *num_vdefs_p,
 		long *num_partitioned_p, long *num_unpartitioned_p)
 {
-  block_stmt_iterator bsi;
+  gimple_stmt_iterator gsi;
   basic_block bb;
   long num_vdefs, num_vuses, num_partitioned, num_unpartitioned;
   referenced_var_iterator rvi;
@@ -735,10 +762,10 @@ count_mem_refs (long *num_vuses_p, long *num_vdefs_p,
 
   if (num_vuses_p || num_vdefs_p)
     FOR_EACH_BB (bb)
-      for (bsi = bsi_start (bb); !bsi_end_p (bsi); bsi_next (&bsi))
+      for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); gsi_next (&gsi))
 	{
-	  tree stmt = bsi_stmt (bsi);
-	  if (stmt_references_memory_p (stmt))
+	  gimple stmt = gsi_stmt (gsi);
+	  if (gimple_references_memory_p (stmt))
 	    {
 	      num_vuses += NUM_SSA_OPERANDS (stmt, SSA_OP_VUSE);
 	      num_vdefs += NUM_SSA_OPERANDS (stmt, SSA_OP_VDEF);
@@ -979,7 +1006,7 @@ debug_mp_info (VEC(mem_sym_stats_t,heap) *mp_info)
    recorded by this function, see compute_memory_partitions).  */
 
 void
-update_mem_sym_stats_from_stmt (tree var, tree stmt, long num_direct_reads,
+update_mem_sym_stats_from_stmt (tree var, gimple stmt, long num_direct_reads,
                                 long num_direct_writes)
 {
   mem_sym_stats_t stats;
@@ -989,11 +1016,11 @@ update_mem_sym_stats_from_stmt (tree var, tree stmt, long num_direct_reads,
   stats = get_mem_sym_stats_for (var);
 
   stats->num_direct_reads += num_direct_reads;
-  stats->frequency_reads += ((long) bb_for_stmt (stmt)->frequency
+  stats->frequency_reads += ((long) gimple_bb (stmt)->frequency
                              * num_direct_reads);
 
   stats->num_direct_writes += num_direct_writes;
-  stats->frequency_writes += ((long) bb_for_stmt (stmt)->frequency
+  stats->frequency_writes += ((long) gimple_bb (stmt)->frequency
                               * num_direct_writes);
 }
 
@@ -1281,7 +1308,7 @@ update_reference_counts (struct mem_ref_stats_d *mem_ref_stats)
       if (ptr
 	  && POINTER_TYPE_P (TREE_TYPE (ptr))
 	  && (pi = SSA_NAME_PTR_INFO (ptr)) != NULL
-	  && pi->is_dereferenced)
+	  && pi->memory_tag_needed)
 	{
 	  unsigned j;
 	  bitmap_iterator bj;
@@ -1602,7 +1629,6 @@ done:
   timevar_pop (TV_MEMORY_PARTITIONING);
 }
 
-
 /* Compute may-alias information for every variable referenced in function
    FNDECL.
 
@@ -1730,7 +1756,12 @@ compute_may_aliases (void)
      address of V escapes the current function, making V call-clobbered
      (i.e., whether &V is stored in a global variable or if its passed as a
      function call argument).  */
-  compute_points_to_sets (ai);
+  compute_points_to_sets ();
+
+  /* Update various related attributes like escaped addresses,
+     pointer dereferences for loads and stores.  This is used
+     when creating name tags and alias sets.  */
+  update_alias_info (ai);
 
   /* Collect all pointers and addressable variables, compute alias sets,
      create memory tags for pointers and promote variables whose address is
@@ -1780,11 +1811,11 @@ compute_may_aliases (void)
 
   /* Populate all virtual operands and newly promoted register operands.  */
   {
-    block_stmt_iterator bsi;
+    gimple_stmt_iterator gsi;
     basic_block bb;
     FOR_EACH_BB (bb)
-      for (bsi = bsi_start (bb); !bsi_end_p (bsi); bsi_next (&bsi))
-	update_stmt_if_modified (bsi_stmt (bsi));
+      for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); gsi_next (&gsi))
+	update_stmt_if_modified (gsi_stmt (gsi));
   }
 
   /* Debugging dumps.  */
@@ -1820,7 +1851,8 @@ compute_may_aliases (void)
 struct count_ptr_d
 {
   tree ptr;
-  unsigned count;
+  unsigned num_stores;
+  unsigned num_loads;
 };
 
 
@@ -1830,7 +1862,8 @@ struct count_ptr_d
 static tree
 count_ptr_derefs (tree *tp, int *walk_subtrees, void *data)
 {
-  struct count_ptr_d *count_p = (struct count_ptr_d *) data;
+  struct walk_stmt_info *wi_p = (struct walk_stmt_info *) data;
+  struct count_ptr_d *count_p = (struct count_ptr_d *) wi_p->info;
 
   /* Do not walk inside ADDR_EXPR nodes.  In the expression &ptr->fld,
      pointer 'ptr' is *not* dereferenced, it is simply used to compute
@@ -1842,7 +1875,12 @@ count_ptr_derefs (tree *tp, int *walk_subtrees, void *data)
     }
 
   if (INDIRECT_REF_P (*tp) && TREE_OPERAND (*tp, 0) == count_p->ptr)
-    count_p->count++;
+    {
+      if (wi_p->is_lhs)
+	count_p->num_stores++;
+      else
+	count_p->num_loads++;
+    }
 
   return NULL_TREE;
 }
@@ -1855,7 +1893,7 @@ count_ptr_derefs (tree *tp, int *walk_subtrees, void *data)
    stored in *NUM_STORES_P and *NUM_LOADS_P.  */
 
 void
-count_uses_and_derefs (tree ptr, tree stmt, unsigned *num_uses_p,
+count_uses_and_derefs (tree ptr, gimple stmt, unsigned *num_uses_p,
 		       unsigned *num_loads_p, unsigned *num_stores_p)
 {
   ssa_op_iter i;
@@ -1877,59 +1915,24 @@ count_uses_and_derefs (tree ptr, tree stmt, unsigned *num_uses_p,
      find all the indirect and direct uses of x_1 inside.  The only
      shortcut we can take is the fact that GIMPLE only allows
      INDIRECT_REFs inside the expressions below.  */
-  if (TREE_CODE (stmt) == GIMPLE_MODIFY_STMT
-      || (TREE_CODE (stmt) == RETURN_EXPR
-	  && TREE_CODE (TREE_OPERAND (stmt, 0)) == GIMPLE_MODIFY_STMT)
-      || TREE_CODE (stmt) == ASM_EXPR
-      || TREE_CODE (stmt) == CALL_EXPR)
+  if (is_gimple_assign (stmt)
+      || gimple_code (stmt) == GIMPLE_RETURN
+      || gimple_code (stmt) == GIMPLE_ASM
+      || is_gimple_call (stmt))
     {
-      tree lhs, rhs;
+      struct walk_stmt_info wi;
+      struct count_ptr_d count;
 
-      if (TREE_CODE (stmt) == GIMPLE_MODIFY_STMT)
-	{
-	  lhs = GIMPLE_STMT_OPERAND (stmt, 0);
-	  rhs = GIMPLE_STMT_OPERAND (stmt, 1);
-	}
-      else if (TREE_CODE (stmt) == RETURN_EXPR)
-	{
-	  tree e = TREE_OPERAND (stmt, 0);
-	  lhs = GIMPLE_STMT_OPERAND (e, 0);
-	  rhs = GIMPLE_STMT_OPERAND (e, 1);
-	}
-      else if (TREE_CODE (stmt) == ASM_EXPR)
-	{
-	  lhs = ASM_OUTPUTS (stmt);
-	  rhs = ASM_INPUTS (stmt);
-	}
-      else
-	{
-	  lhs = NULL_TREE;
-	  rhs = stmt;
-	}
+      count.ptr = ptr;
+      count.num_stores = 0;
+      count.num_loads = 0;
 
-      if (lhs
-	  && (TREE_CODE (lhs) == TREE_LIST
-	      || EXPR_P (lhs)
-	      || GIMPLE_STMT_P (lhs)))
-	{
-	  struct count_ptr_d count;
-	  count.ptr = ptr;
-	  count.count = 0;
-	  walk_tree (&lhs, count_ptr_derefs, &count, NULL);
-	  *num_stores_p = count.count;
-	}
+      memset (&wi, 0, sizeof (wi));
+      wi.info = &count;
+      walk_gimple_op (stmt, count_ptr_derefs, &wi);
 
-      if (rhs
-	  && (TREE_CODE (rhs) == TREE_LIST
-	      || EXPR_P (rhs)
-	      || GIMPLE_STMT_P (rhs)))
-	{
-	  struct count_ptr_d count;
-	  count.ptr = ptr;
-	  count.count = 0;
-	  walk_tree (&rhs, count_ptr_derefs, &count, NULL);
-	  *num_loads_p = count.count;
-	}
+      *num_stores_p = count.num_stores;
+      *num_loads_p = count.num_loads;
     }
 
   gcc_assert (*num_uses_p >= *num_loads_p + *num_stores_p);
@@ -2003,21 +2006,15 @@ reset_alias_info (void)
 	bitmap_set_bit (all_nmts, DECL_UID (var));
 
       /* Since we are about to re-discover call-clobbered
-	 variables, clear the call-clobbered flag.  Variables that
-	 are intrinsically call-clobbered (globals, local statics,
-	 etc) will not be marked by the aliasing code, so we can't
-	 remove them from CALL_CLOBBERED_VARS.  
-
-	 NB: STRUCT_FIELDS are still call clobbered if they are for a
-	 global variable, so we *don't* clear their call clobberedness
-	 just because they are tags, though we will clear it if they
-	 aren't for global variables.  */
-      if (TREE_CODE (var) == NAME_MEMORY_TAG
-	  || TREE_CODE (var) == SYMBOL_MEMORY_TAG
-	  || TREE_CODE (var) == MEMORY_PARTITION_TAG
-	  || !is_global_var (var))
-	clear_call_clobbered (var);
+	 variables, clear the call-clobbered flag.  */
+      clear_call_clobbered (var);
     }
+
+  /* There should be no call-clobbered variable left.  */
+  gcc_assert (bitmap_empty_p (gimple_call_clobbered_vars (cfun)));
+
+  /* Clear the call-used variables.  */
+  bitmap_clear (gimple_call_used_vars (cfun));
 
   /* Clear flow-sensitive points-to information from each SSA name.  */
   for (i = 1; i < num_ssa_names; i++)
@@ -2039,6 +2036,7 @@ reset_alias_info (void)
 	  pi->pt_anything = 0;
 	  pi->pt_null = 0;
 	  pi->value_escapes_p = 0;
+	  pi->memory_tag_needed = 0;
 	  pi->is_dereferenced = 0;
 	  if (pi->pt_vars)
 	    bitmap_clear (pi->pt_vars);
@@ -2182,7 +2180,7 @@ create_name_tags (void)
 
       pi = SSA_NAME_PTR_INFO (ptr);
 
-      if (pi->pt_anything || !pi->is_dereferenced)
+      if (pi->pt_anything || !pi->memory_tag_needed)
 	{
 	  /* No name tags for pointers that have not been
 	     dereferenced or point to an arbitrary location.  */
@@ -2289,7 +2287,6 @@ compute_flow_sensitive_aliasing (struct alias_info *ai)
   tree ptr;
   
   timevar_push (TV_FLOW_SENSITIVE);
-  set_used_smts ();
   
   for (i = 0; VEC_iterate (tree, ai->processed_ptrs, i, ptr); i++)
     {
@@ -2344,6 +2341,8 @@ have_common_aliases_p (bitmap tag1aliases, bitmap tag2aliases)
 static void
 compute_flow_insensitive_aliasing (struct alias_info *ai)
 {
+  referenced_var_iterator rvi;
+  tree var;
   size_t i;
 
   timevar_push (TV_FLOW_INSENSITIVE);
@@ -2434,6 +2433,24 @@ compute_flow_insensitive_aliasing (struct alias_info *ai)
 	  add_may_alias (tag1, tag2);
 	}
     }
+
+  /* We have to add all HEAP variables to all SMTs aliases bitmaps.
+     As we don't know which effective type the HEAP will have we cannot
+     do better here and we need the conflicts with obfuscated pointers
+     (a simple (*(int[n] *)ptr)[i] will do, with ptr from a VLA array
+     allocation).  */
+  for (i = 0; i < ai->num_pointers; i++)
+    {
+      struct alias_map_d *p_map = ai->pointers[i];
+      tree tag = symbol_mem_tag (p_map->var);
+
+      FOR_EACH_REFERENCED_VAR (var, rvi)
+	{
+	  if (var_ann (var)->is_heapvar)
+	    add_may_alias (tag, var);
+	}
+    }
+
   timevar_pop (TV_FLOW_INSENSITIVE);
 }
 
@@ -2450,6 +2467,273 @@ create_alias_map_for (tree var, struct alias_info *ai)
   ai->addressable_vars[ai->num_addressable_vars++] = alias_map;
 }
 
+
+/* Update related alias information kept in AI.  This is used when
+   building name tags, alias sets and deciding grouping heuristics.
+   STMT is the statement to process.  This function also updates
+   ADDRESSABLE_VARS.  */
+
+static void
+update_alias_info_1 (gimple stmt, struct alias_info *ai)
+{
+  bitmap addr_taken;
+  use_operand_p use_p;
+  ssa_op_iter iter;
+  bool stmt_dereferences_ptr_p;
+  enum escape_type stmt_escape_type = is_escape_site (stmt);
+  struct mem_ref_stats_d *mem_ref_stats = gimple_mem_ref_stats (cfun);
+
+  stmt_dereferences_ptr_p = false;
+
+  if (stmt_escape_type == ESCAPE_TO_CALL
+      || stmt_escape_type == ESCAPE_TO_PURE_CONST)
+    {
+      mem_ref_stats->num_call_sites++;
+      if (stmt_escape_type == ESCAPE_TO_PURE_CONST)
+	mem_ref_stats->num_pure_const_call_sites++;
+    }
+  else if (stmt_escape_type == ESCAPE_TO_ASM)
+    mem_ref_stats->num_asm_sites++;
+
+  /* Mark all the variables whose address are taken by the statement.  */
+  addr_taken = gimple_addresses_taken (stmt);
+  if (addr_taken)
+    bitmap_ior_into (gimple_addressable_vars (cfun), addr_taken);
+
+  /* Process each operand use.  For pointers, determine whether they
+     are dereferenced by the statement, or whether their value
+     escapes, etc.  */
+  FOR_EACH_PHI_OR_STMT_USE (use_p, stmt, iter, SSA_OP_USE)
+    {
+      tree op, var;
+      var_ann_t v_ann;
+      struct ptr_info_def *pi;
+      unsigned num_uses, num_loads, num_stores;
+
+      op = USE_FROM_PTR (use_p);
+
+      /* If STMT is a PHI node, OP may be an ADDR_EXPR.  If so, add it
+	 to the set of addressable variables.  */
+      if (TREE_CODE (op) == ADDR_EXPR)
+	{
+	  bitmap addressable_vars = gimple_addressable_vars (cfun);
+
+	  gcc_assert (gimple_code (stmt) == GIMPLE_PHI);
+	  gcc_assert (addressable_vars);
+
+	  /* PHI nodes don't have annotations for pinning the set
+	     of addresses taken, so we collect them here.
+
+	     FIXME, should we allow PHI nodes to have annotations
+	     so that they can be treated like regular statements?
+	     Currently, they are treated as second-class
+	     statements.  */
+	  add_to_addressable_set (TREE_OPERAND (op, 0), &addressable_vars);
+	  continue;
+	}
+
+      /* Ignore constants (they may occur in PHI node arguments).  */
+      if (TREE_CODE (op) != SSA_NAME)
+	continue;
+
+      var = SSA_NAME_VAR (op);
+      v_ann = var_ann (var);
+
+      /* The base variable of an SSA name must be a GIMPLE register, and thus
+	 it cannot be aliased.  */
+      gcc_assert (!may_be_aliased (var));
+
+      /* We are only interested in pointers.  */
+      if (!POINTER_TYPE_P (TREE_TYPE (op)))
+	continue;
+
+      pi = get_ptr_info (op);
+
+      /* Add OP to AI->PROCESSED_PTRS, if it's not there already.  */
+      if (!TEST_BIT (ai->ssa_names_visited, SSA_NAME_VERSION (op)))
+	{
+	  SET_BIT (ai->ssa_names_visited, SSA_NAME_VERSION (op));
+	  VEC_safe_push (tree, heap, ai->processed_ptrs, op);
+	}
+
+      /* If STMT is a PHI node, then it will not have pointer
+	 dereferences and it will not be an escape point.  */
+      if (gimple_code (stmt) == GIMPLE_PHI)
+	continue;
+
+      /* Determine whether OP is a dereferenced pointer, and if STMT
+	 is an escape point, whether OP escapes.  */
+      count_uses_and_derefs (op, stmt, &num_uses, &num_loads, &num_stores);
+
+      /* For directly dereferenced pointers we can apply
+	 TBAA-pruning to their points-to set.  We may not count the
+	 implicit dereferences &PTR->FLD here.  */
+      if (num_loads + num_stores > 0)
+	pi->is_dereferenced = 1;
+
+      /* Handle a corner case involving address expressions of the
+	 form '&PTR->FLD'.  The problem with these expressions is that
+	 they do not represent a dereference of PTR.  However, if some
+	 other transformation propagates them into an INDIRECT_REF
+	 expression, we end up with '*(&PTR->FLD)' which is folded
+	 into 'PTR->FLD'.
+
+	 So, if the original code had no other dereferences of PTR,
+	 the aliaser will not create memory tags for it, and when
+	 &PTR->FLD gets propagated to INDIRECT_REF expressions, the
+	 memory operations will receive no VDEF/VUSE operands.
+
+	 One solution would be to have count_uses_and_derefs consider
+	 &PTR->FLD a dereference of PTR.  But that is wrong, since it
+	 is not really a dereference but an offset calculation.
+
+	 What we do here is to recognize these special ADDR_EXPR
+	 nodes.  Since these expressions are never GIMPLE values (they
+	 are not GIMPLE invariants), they can only appear on the RHS
+	 of an assignment and their base address is always an
+	 INDIRECT_REF expression.  */
+      if (is_gimple_assign (stmt)
+	  && gimple_assign_rhs_code (stmt) == ADDR_EXPR
+	  && !is_gimple_val (gimple_assign_rhs1 (stmt)))
+	{
+	  /* If the RHS if of the form &PTR->FLD and PTR == OP, then
+	     this represents a potential dereference of PTR.  */
+	  tree rhs = gimple_assign_rhs1 (stmt);
+	  tree base = get_base_address (TREE_OPERAND (rhs, 0));
+	  if (TREE_CODE (base) == INDIRECT_REF
+	      && TREE_OPERAND (base, 0) == op)
+	    num_loads++;
+	}
+
+      if (num_loads + num_stores > 0)
+	{
+	  /* Mark OP as dereferenced.  In a subsequent pass,
+	     dereferenced pointers that point to a set of
+	     variables will be assigned a name tag to alias
+	     all the variables OP points to.  */
+	  pi->memory_tag_needed = 1;
+
+	  /* ???  For always executed direct dereferences we can
+	     apply TBAA-pruning to their escape set.  */
+
+	  /* If this is a store operation, mark OP as being
+	     dereferenced to store, otherwise mark it as being
+	     dereferenced to load.  */
+	  if (num_stores > 0)
+	    pointer_set_insert (ai->dereferenced_ptrs_store, var);
+	  else
+	    pointer_set_insert (ai->dereferenced_ptrs_load, var);
+
+	  /* Update the frequency estimate for all the dereferences of
+	     pointer OP.  */
+	  update_mem_sym_stats_from_stmt (op, stmt, num_loads, num_stores);
+
+	  /* Indicate that STMT contains pointer dereferences.  */
+	  stmt_dereferences_ptr_p = true;
+	}
+
+      if (stmt_escape_type != NO_ESCAPE && num_loads + num_stores < num_uses)
+	{
+	  /* If STMT is an escape point and STMT contains at
+	     least one direct use of OP, then the value of OP
+	     escapes and so the pointed-to variables need to
+	     be marked call-clobbered.  */
+	  pi->value_escapes_p = 1;
+	  pi->escape_mask |= stmt_escape_type;
+
+	  /* If the statement makes a function call, assume
+	     that pointer OP will be dereferenced in a store
+	     operation inside the called function.  */
+	  if (is_gimple_call (stmt)
+	      || stmt_escape_type == ESCAPE_STORED_IN_GLOBAL)
+	    {
+	      pointer_set_insert (ai->dereferenced_ptrs_store, var);
+	      pi->memory_tag_needed = 1;
+	    }
+	}
+    }
+
+  if (gimple_code (stmt) == GIMPLE_PHI)
+    return;
+
+  /* Mark stored variables in STMT as being written to and update the
+     memory reference stats for all memory symbols referenced by STMT.  */
+  if (gimple_references_memory_p (stmt))
+    {
+      unsigned i;
+      bitmap_iterator bi;
+
+      mem_ref_stats->num_mem_stmts++;
+
+      /* Notice that we only update memory reference stats for symbols
+	 loaded and stored by the statement if the statement does not
+	 contain pointer dereferences and it is not a call/asm site.
+	 This is to avoid double accounting problems when creating
+	 memory partitions.  After computing points-to information,
+	 pointer dereference statistics are used to update the
+	 reference stats of the pointed-to variables, so here we
+	 should only update direct references to symbols.
+
+	 Indirect references are not updated here for two reasons: (1)
+	 The first time we compute alias information, the sets
+	 LOADED/STORED are empty for pointer dereferences, (2) After
+	 partitioning, LOADED/STORED may have references to
+	 partitions, not the original pointed-to variables.  So, if we
+	 always counted LOADED/STORED here and during partitioning, we
+	 would count many symbols more than once.
+
+	 This does cause some imprecision when a statement has a
+	 combination of direct symbol references and pointer
+	 dereferences (e.g., MEMORY_VAR = *PTR) or if a call site has
+	 memory symbols in its argument list, but these cases do not
+	 occur so frequently as to constitute a serious problem.  */
+      if (gimple_stored_syms (stmt))
+	EXECUTE_IF_SET_IN_BITMAP (gimple_stored_syms (stmt), 0, i, bi)
+	  {
+	    tree sym = referenced_var (i);
+	    pointer_set_insert (ai->written_vars, sym);
+	    if (!stmt_dereferences_ptr_p
+		&& stmt_escape_type != ESCAPE_TO_CALL
+		&& stmt_escape_type != ESCAPE_TO_PURE_CONST
+		&& stmt_escape_type != ESCAPE_TO_ASM)
+	      update_mem_sym_stats_from_stmt (sym, stmt, 0, 1);
+	  }
+
+      if (!stmt_dereferences_ptr_p
+	  && gimple_loaded_syms (stmt)
+	  && stmt_escape_type != ESCAPE_TO_CALL
+	  && stmt_escape_type != ESCAPE_TO_PURE_CONST
+	  && stmt_escape_type != ESCAPE_TO_ASM)
+	EXECUTE_IF_SET_IN_BITMAP (gimple_loaded_syms (stmt), 0, i, bi)
+	  update_mem_sym_stats_from_stmt (referenced_var (i), stmt, 1, 0);
+    }
+}
+
+/* Update various related attributes like escaped addresses,
+   pointer dereferences for loads and stores.  This is used
+   when creating name tags and alias sets.  */
+
+static void
+update_alias_info (struct alias_info *ai)
+{
+  basic_block bb;
+
+  FOR_EACH_BB (bb)
+    {
+      gimple_stmt_iterator gsi;
+      gimple phi;
+
+      for (gsi = gsi_start_phis (bb); !gsi_end_p (gsi); gsi_next (&gsi))
+	{
+	  phi = gsi_stmt (gsi);
+	  if (is_gimple_reg (PHI_RESULT (phi)))
+	    update_alias_info_1 (phi, ai);
+	}
+
+      for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); gsi_next (&gsi))
+	update_alias_info_1 (gsi_stmt (gsi), ai);
+    }
+}
 
 /* Create memory tags for all the dereferenced pointers and build the
    ADDRESSABLE_VARS and POINTERS arrays used for building the may-alias
@@ -2661,7 +2945,7 @@ maybe_create_global_var (void)
    
    VAR_ALIAS_SET is the alias set for VAR.  */
 
-static bool
+bool
 may_alias_p (tree ptr, alias_set_type mem_alias_set,
 	     tree var, alias_set_type var_alias_set,
 	     bool alias_set_only)
@@ -2749,11 +3033,11 @@ may_alias_p (tree ptr, alias_set_type mem_alias_set,
       
       /* The star count is -1 if the type at the end of the
 	 pointer_to chain is not a record or union type. */ 
-      if (!alias_set_only
-	  && ipa_type_escape_star_count_of_interesting_type (var_type) >= 0)
+      if (!alias_set_only && 
+	  0 /* FIXME tuples ipa_type_escape_star_count_of_interesting_type (var_type) >= 0*/)
 	{
 	  int ptr_star_count = 0;
-	  
+
 	  /* ipa_type_escape_star_count_of_interesting_type is a
 	     little too restrictive for the pointer type, need to
 	     allow pointers to primitive types as long as those
@@ -2795,6 +3079,23 @@ may_alias_p (tree ptr, alias_set_type mem_alias_set,
   return true;
 }
 
+/* Return true, if PTR may point to a global variable.  */
+
+bool
+may_point_to_global_var (tree ptr)
+{
+  struct ptr_info_def *pi = SSA_NAME_PTR_INFO (ptr);
+
+  /* If we do not have points-to information for this variable,
+     we have to punt.  */
+  if (!pi
+      || !pi->name_mem_tag)
+    return true;
+
+  /* The name memory tag is marked as global variable if the points-to
+     set contains a global variable.  */
+  return is_global_var (pi->name_mem_tag);
+}
 
 /* Add ALIAS to the set of variables that may alias VAR.  */
 
@@ -2830,6 +3131,8 @@ set_pt_anything (tree ptr)
   struct ptr_info_def *pi = get_ptr_info (ptr);
 
   pi->pt_anything = 1;
+  /* Anything includes global memory.  */
+  pi->pt_global_mem = 1;
   pi->pt_vars = NULL;
 
   /* The pointer used to have a name tag, but we now found it pointing
@@ -2856,21 +3159,20 @@ set_pt_anything (tree ptr)
    if none.  */
 
 enum escape_type
-is_escape_site (tree stmt)
+is_escape_site (gimple stmt)
 {
-  tree call = get_call_expr_in (stmt);
-  if (call != NULL_TREE)
+  if (is_gimple_call (stmt))
     {
-      if (!TREE_SIDE_EFFECTS (call))
+      if (gimple_call_flags (stmt) & (ECF_PURE | ECF_CONST))
 	return ESCAPE_TO_PURE_CONST;
 
       return ESCAPE_TO_CALL;
     }
-  else if (TREE_CODE (stmt) == ASM_EXPR)
+  else if (gimple_code (stmt) == GIMPLE_ASM)
     return ESCAPE_TO_ASM;
-  else if (TREE_CODE (stmt) == GIMPLE_MODIFY_STMT)
+  else if (is_gimple_assign (stmt))
     {
-      tree lhs = GIMPLE_STMT_OPERAND (stmt, 0);
+      tree lhs = gimple_assign_lhs (stmt);
 
       /* Get to the base of _REF nodes.  */
       if (TREE_CODE (lhs) != SSA_NAME)
@@ -2881,12 +3183,10 @@ is_escape_site (tree stmt)
       if (lhs == NULL_TREE)
 	return ESCAPE_UNKNOWN;
 
-      if (CONVERT_EXPR_P (GIMPLE_STMT_OPERAND (stmt, 1))
-	  || TREE_CODE (GIMPLE_STMT_OPERAND (stmt, 1)) == VIEW_CONVERT_EXPR)
+      if (gimple_assign_cast_p (stmt))
 	{
-	  tree from
-	    = TREE_TYPE (TREE_OPERAND (GIMPLE_STMT_OPERAND (stmt, 1), 0));
-	  tree to = TREE_TYPE (GIMPLE_STMT_OPERAND (stmt, 1));
+	  tree from = TREE_TYPE (gimple_assign_rhs1 (stmt));
+	  tree to = TREE_TYPE (lhs);
 
 	  /* If the RHS is a conversion between a pointer and an integer, the
 	     pointer escapes since we can't track the integer.  */
@@ -2897,6 +3197,12 @@ is_escape_site (tree stmt)
       /* If the LHS is an SSA name, it can't possibly represent a non-local
 	 memory store.  */
       if (TREE_CODE (lhs) == SSA_NAME)
+	return NO_ESCAPE;
+
+      /* If the LHS is a non-global decl, it isn't a non-local memory store.
+	 If the LHS escapes, the RHS escape is dealt with in the PTA solver.  */
+      if (DECL_P (lhs)
+	  && !is_global_var (lhs))
 	return NO_ESCAPE;
 
       /* FIXME: LHS is not an SSA_NAME.  Even if it's an assignment to a
@@ -2910,7 +3216,7 @@ is_escape_site (tree stmt)
 	 Applications (OOPSLA), pp. 1-19, 1999.  */
       return ESCAPE_STORED_IN_GLOBAL;
     }
-  else if (TREE_CODE (stmt) == RETURN_EXPR)
+  else if (gimple_code (stmt) == RETURN_EXPR)
     return ESCAPE_TO_RETURN;
 
   return NO_ESCAPE;
@@ -2926,12 +3232,12 @@ create_tag_raw (enum tree_code code, tree type, const char *prefix)
 
   tmp_var = build_decl (code, create_tmp_var_name (prefix), type);
 
-  /* Make the variable writable.  */
+  /* Memory tags are always writable and non-static.  */
   TREE_READONLY (tmp_var) = 0;
+  TREE_STATIC (tmp_var) = 0;
 
   /* It doesn't start out global.  */
   MTAG_GLOBAL (tmp_var) = 0;
-  TREE_STATIC (tmp_var) = 0;
   TREE_USED (tmp_var) = 1;
 
   return tmp_var;
@@ -3204,7 +3510,6 @@ get_ptr_info (tree t)
   return pi;
 }
 
-
 /* Dump points-to information for SSA_NAME PTR into FILE.  */
 
 void
@@ -3224,6 +3529,8 @@ dump_points_to_info_for (FILE *file, tree ptr)
 
       if (pi->is_dereferenced)
 	fprintf (file, ", is dereferenced");
+      else if (pi->memory_tag_needed)
+	fprintf (file, ", is dereferenced in call");
 
       if (pi->value_escapes_p)
 	fprintf (file, ", its value escapes");
@@ -3258,10 +3565,10 @@ debug_points_to_info_for (tree var)
    it needs to traverse the whole CFG looking for pointer SSA_NAMEs.  */
 
 void
-dump_points_to_info (FILE *file)
+dump_points_to_info (FILE *file ATTRIBUTE_UNUSED)
 {
   basic_block bb;
-  block_stmt_iterator si;
+  gimple_stmt_iterator si;
   ssa_op_iter iter;
   const char *fname =
     lang_hooks.decl_printable_name (current_function_decl, 2);
@@ -3286,18 +3593,17 @@ dump_points_to_info (FILE *file)
   /* Dump points-to information for every pointer defined in the program.  */
   FOR_EACH_BB (bb)
     {
-      tree phi;
-
-      for (phi = phi_nodes (bb); phi; phi = PHI_CHAIN (phi))
+      for (si = gsi_start_phis (bb); !gsi_end_p (si); gsi_next (&si))
 	{
+	  gimple phi = gsi_stmt (si);
 	  tree ptr = PHI_RESULT (phi);
 	  if (POINTER_TYPE_P (TREE_TYPE (ptr)))
 	    dump_points_to_info_for (file, ptr);
 	}
 
-	for (si = bsi_start (bb); !bsi_end_p (si); bsi_next (&si))
+	for (si = gsi_start_bb (bb); !gsi_end_p (si); gsi_next (&si))
 	  {
-	    tree stmt = bsi_stmt (si);
+	    gimple stmt = gsi_stmt (si);
 	    tree def;
 	    FOR_EACH_SSA_TREE_OPERAND (def, stmt, iter, SSA_OP_DEF)
 	      if (TREE_CODE (def) == SSA_NAME
@@ -3352,7 +3658,6 @@ debug_may_aliases_for (tree var)
   dump_may_aliases_for (stderr, var);
 }
 
-
 /* Return true if VAR may be aliased.  */
 
 bool
@@ -3365,7 +3670,7 @@ may_be_aliased (tree var)
   /* Globally visible variables can have their addresses taken by other
      translation units.  */
   if (MTAG_P (var)
-      && (MTAG_GLOBAL (var) || TREE_PUBLIC (var)))
+      && MTAG_GLOBAL (var))
     return true;
   else if (!MTAG_P (var)
            && (DECL_EXTERNAL (var) || TREE_PUBLIC (var)))
@@ -3377,17 +3682,7 @@ may_be_aliased (tree var)
   if (!TREE_STATIC (var))
     return false;
 
-  /* If we're in unit-at-a-time mode, then we must have seen all
-     occurrences of address-of operators, and so we can trust
-     TREE_ADDRESSABLE.  Otherwise we can only be sure the variable
-     isn't addressable if it's local to the current function.  */
-  if (flag_unit_at_a_time)
-    return false;
-
-  if (decl_function_context (var) == current_function_decl)
-    return false;
-
-  return true;
+  return false;
 }
 
 /* The following is based on code in add_stmt_operand to ensure that the

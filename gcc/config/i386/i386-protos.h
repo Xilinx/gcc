@@ -20,7 +20,7 @@ along with GCC; see the file COPYING3.  If not see
 <http://www.gnu.org/licenses/>.  */
 
 /* Functions in i386.c */
-extern void override_options (void);
+extern void override_options (bool);
 extern void optimization_options (int, int);
 
 extern int ix86_can_use_return_insn_p (void);
@@ -28,6 +28,7 @@ extern int ix86_frame_pointer_required (void);
 extern void ix86_setup_frame_addresses (void);
 
 extern void ix86_file_end (void);
+extern int ix86_can_eliminate (int, int);
 extern HOST_WIDE_INT ix86_initial_elimination_offset (int, int);
 extern void ix86_expand_prologue (void);
 extern void ix86_expand_epilogue (int);
@@ -137,6 +138,15 @@ extern int ix86_function_arg_boundary (enum machine_mode, tree);
 extern bool ix86_sol10_return_in_memory (const_tree,const_tree);
 extern rtx ix86_force_to_memory (enum machine_mode, rtx);
 extern void ix86_free_from_memory (enum machine_mode);
+extern int ix86_cfun_abi (void);
+extern int ix86_function_abi (const_tree);
+extern int ix86_function_type_abi (const_tree);
+extern void ix86_call_abi_override (const_tree);
+extern tree ix86_fn_abi_va_list (tree);
+extern tree ix86_canonical_va_list_type (tree);
+extern int ix86_enum_va_list (int, const char **, tree *);
+extern int ix86_reg_parm_stack_space (const_tree);
+
 extern void ix86_split_fp_branch (enum rtx_code code, rtx, rtx,
 				  rtx, rtx, rtx, rtx);
 extern bool ix86_hard_regno_mode_ok (int, enum machine_mode);
@@ -193,6 +203,7 @@ extern int ix86_constant_alignment (tree, int);
 extern tree ix86_handle_shared_attribute (tree *, tree, tree, int, bool *);
 extern tree ix86_handle_selectany_attribute (tree *, tree, tree, int, bool *);
 extern int x86_field_alignment (tree, int);
+extern tree ix86_valid_option_attribute_tree (tree);
 #endif
 
 extern rtx ix86_tls_get_addr (void);
@@ -203,8 +214,12 @@ extern void ix86_expand_vector_set (bool, rtx, rtx, int);
 extern void ix86_expand_vector_extract (bool, rtx, rtx, int);
 extern void ix86_expand_reduc_v4sf (rtx (*)(rtx, rtx, rtx), rtx, rtx);
 
-extern bool ix86_sse5_valid_op_p (rtx [], rtx, int, bool, int);
+extern bool ix86_sse5_valid_op_p (rtx [], rtx, int, bool, int, bool);
 extern void ix86_expand_sse5_multiple_memory (rtx [], int, enum machine_mode);
+
+/* In i386-c.c  */
+extern void ix86_target_macros (void);
+extern void ix86_register_pragmas (void);
 
 /* In winnt.c  */
 extern void i386_pe_unique_section (tree, int);

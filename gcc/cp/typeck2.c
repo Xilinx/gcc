@@ -37,6 +37,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "toplev.h"
 #include "output.h"
 #include "diagnostic.h"
+#include "real.h"
 
 static tree
 process_init_constructor (tree type, tree init);
@@ -331,22 +332,18 @@ abstract_virtuals_error (tree decl, tree type)
 
 /* Print an error message for invalid use of an incomplete type.
    VALUE is the expression that was used (or 0 if that isn't known)
-   and TYPE is the type that was invalid.  DIAG_TYPE indicates the
-   type of diagnostic:  0 for an error, 1 for a warning, 2 for a
-   pedwarn.  */
+   and TYPE is the type that was invalid.  DIAG_KIND indicates the
+   type of diagnostic (see diagnostic.def).  */
 
 void
-cxx_incomplete_type_diagnostic (const_tree value, const_tree type, int diag_type)
+cxx_incomplete_type_diagnostic (const_tree value, const_tree type, 
+				diagnostic_t diag_kind)
 {
   int decl = 0;
-  void (*p_msg) (const char *, ...) ATTRIBUTE_GCC_CXXDIAG(1,2);
 
-  if (diag_type == 1)
-    p_msg = warning0;
-  else if (diag_type == 2)
-    p_msg = pedwarn;
-  else
-    p_msg = error;
+  gcc_assert (diag_kind == DK_WARNING 
+	      || diag_kind == DK_PEDWARN 
+	      || diag_kind == DK_ERROR);
 
   /* Avoid duplicate error message.  */
   if (TREE_CODE (type) == ERROR_MARK)
@@ -356,7 +353,8 @@ cxx_incomplete_type_diagnostic (const_tree value, const_tree type, int diag_type
 		     || TREE_CODE (value) == PARM_DECL
 		     || TREE_CODE (value) == FIELD_DECL))
     {
-      p_msg ("%q+D has incomplete type", value);
+      emit_diagnostic (diag_kind, input_location, 0,
+		       "%q+D has incomplete type", value);
       decl = 1;
     }
  retry:
@@ -368,15 +366,19 @@ cxx_incomplete_type_diagnostic (const_tree value, const_tree type, int diag_type
     case UNION_TYPE:
     case ENUMERAL_TYPE:
       if (!decl)
-	p_msg ("invalid use of incomplete type %q#T", type);
+	emit_diagnostic (diag_kind, input_location, 0,
+			 "invalid use of incomplete type %q#T", type);
       if (!TYPE_TEMPLATE_INFO (type))
-	p_msg ("forward declaration of %q+#T", type);
+	emit_diagnostic (diag_kind, input_location, 0,
+			 "forward declaration of %q+#T", type);
       else
-	p_msg ("declaration of %q+#T", type);
+	emit_diagnostic (diag_kind, input_location, 0,
+			 "declaration of %q+#T", type);
       break;
 
     case VOID_TYPE:
-      p_msg ("invalid use of %qT", type);
+      emit_diagnostic (diag_kind, input_location, 0,
+		       "invalid use of %qT", type);
       break;
 
     case ARRAY_TYPE:
@@ -385,37 +387,45 @@ cxx_incomplete_type_diagnostic (const_tree value, const_tree type, int diag_type
 	  type = TREE_TYPE (type);
 	  goto retry;
 	}
-      p_msg ("invalid use of array with unspecified bounds");
+      emit_diagnostic (diag_kind, input_location, 0,
+		       "invalid use of array with unspecified bounds");
       break;
 
     case OFFSET_TYPE:
     bad_member:
-      p_msg ("invalid use of member (did you forget the %<&%> ?)");
+      emit_diagnostic (diag_kind, input_location, 0,
+		       "invalid use of member (did you forget the %<&%> ?)");
       break;
 
     case TEMPLATE_TYPE_PARM:
-      p_msg ("invalid use of template type parameter %qT", type);
+      emit_diagnostic (diag_kind, input_location, 0,
+		       "invalid use of template type parameter %qT", type);
       break;
 
     case BOUND_TEMPLATE_TEMPLATE_PARM:
-      p_msg ("invalid use of template template parameter %qT",
-            TYPE_NAME (type));
+      emit_diagnostic (diag_kind, input_location, 0,
+		       "invalid use of template template parameter %qT",
+		       TYPE_NAME (type));
       break;
 
     case TYPENAME_TYPE:
-      p_msg ("invalid use of dependent type %qT", type);
+      emit_diagnostic (diag_kind, input_location, 0,
+		       "invalid use of dependent type %qT", type);
       break;
 
     case UNKNOWN_TYPE:
       if (value && TREE_CODE (value) == COMPONENT_REF)
 	goto bad_member;
       else if (value && TREE_CODE (value) == ADDR_EXPR)
-	p_msg ("address of overloaded function with no contextual "
-	       "type information");
+	emit_diagnostic (diag_kind, input_location, 0,
+			 "address of overloaded function with no contextual "
+			 "type information");
       else if (value && TREE_CODE (value) == OVERLOAD)
-	p_msg ("overloaded function with no contextual type information");
+	emit_diagnostic (diag_kind, input_location, 0,
+			 "overloaded function with no contextual type information");
       else
-	p_msg ("insufficient contextual information to determine type");
+	emit_diagnostic (diag_kind, input_location, 0,
+			 "insufficient contextual information to determine type");
       break;
 
     default:
@@ -429,7 +439,7 @@ cxx_incomplete_type_diagnostic (const_tree value, const_tree type, int diag_type
 void
 cxx_incomplete_type_error (const_tree value, const_tree type)
 {
-  cxx_incomplete_type_diagnostic (value, type, 0);
+  cxx_incomplete_type_diagnostic (value, type, DK_ERROR);
 }
 
 
@@ -592,7 +602,7 @@ store_init_value (tree decl, tree init)
 	{
 	  error ("constructor syntax used, but no constructor declared "
 		 "for type %qT", type);
-	  init = build_constructor_from_list (NULL_TREE, nreverse (init));
+	  init = build_constructor_from_list (init_list_type_node, nreverse (init));
 	}
     }
   else if (TREE_CODE (init) == TREE_LIST
@@ -631,15 +641,79 @@ store_init_value (tree decl, tree init)
 }
 
 
+/* Give errors about narrowing conversions within { }.  */
+
+void
+check_narrowing (tree type, tree init)
+{
+  tree ftype = TREE_TYPE (init);
+  bool ok = true;
+  REAL_VALUE_TYPE d;
+  bool was_decl = false;
+
+  if (DECL_P (init))
+    {
+      was_decl = true;
+      init = decl_constant_value (init);
+    }
+
+  if (TREE_CODE (type) == INTEGER_TYPE
+      && TREE_CODE (ftype) == REAL_TYPE)
+    ok = false;
+  else if (INTEGRAL_OR_ENUMERATION_TYPE_P (ftype)
+	   && CP_INTEGRAL_TYPE_P (type))
+    {
+      if (TYPE_PRECISION (type) < TYPE_PRECISION (ftype)
+	  && (TREE_CODE (init) != INTEGER_CST
+	      || !int_fits_type_p (init, type)))
+	ok = false;
+    }
+  else if (TREE_CODE (ftype) == REAL_TYPE
+	   && TREE_CODE (type) == REAL_TYPE)
+    {
+      if (TYPE_PRECISION (type) < TYPE_PRECISION (ftype))
+	{
+	  ok = false;
+	  if (TREE_CODE (init) == REAL_CST)
+	    {
+	      d = TREE_REAL_CST (init);
+	      if (exact_real_truncate (TYPE_MODE (type), &d)
+		  /* FIXME: As a temporary workaround for PR 36963, don't
+		     complain about narrowing from a floating
+		     literal. Hopefully this will be resolved at the
+		     September 2008 C++ meeting. */
+		  || !was_decl)
+		ok = true;
+	    }
+	}
+    }
+  else if (INTEGRAL_OR_ENUMERATION_TYPE_P (ftype)
+	   && TREE_CODE (type) == REAL_TYPE)
+    {
+      ok = false;
+      if (TREE_CODE (init) == INTEGER_CST)
+	{
+	  d = real_value_from_int_cst (0, init);
+	  if (exact_real_truncate (TYPE_MODE (type), &d))
+	    ok = true;
+	}
+    }
+
+  if (!ok)
+    error ("narrowing conversion of %qE to %qT inside { }", init, type);
+}
+
 /* Process the initializer INIT for a variable of type TYPE, emitting
    diagnostics for invalid initializers and converting the initializer as
    appropriate.
 
    For aggregate types, it assumes that reshape_init has already run, thus the
-   initializer will have the right shape (brace elision has been undone).  */
+   initializer will have the right shape (brace elision has been undone).
 
-tree
-digest_init (tree type, tree init)
+   NESTED is true iff we are being called for an element of a CONSTRUCTOR.  */
+
+static tree
+digest_init_r (tree type, tree init, bool nested)
 {
   enum tree_code code = TREE_CODE (type);
 
@@ -671,17 +745,26 @@ digest_init (tree type, tree init)
 	{
 	  tree char_type = TYPE_MAIN_VARIANT (TREE_TYPE (TREE_TYPE (init)));
 
-	  if (char_type != char_type_node
-	      && TYPE_PRECISION (typ1) == BITS_PER_UNIT)
+	  if (TYPE_PRECISION (typ1) == BITS_PER_UNIT)
 	    {
-	      error ("char-array initialized from wide string");
-	      return error_mark_node;
+	      if (char_type != char_type_node)
+		{
+		  error ("char-array initialized from wide string");
+		  return error_mark_node;
+		}
 	    }
-	  if (char_type == char_type_node
-	      && TYPE_PRECISION (typ1) != BITS_PER_UNIT)
+	  else
 	    {
-	      error ("int-array initialized from non-wide string");
-	      return error_mark_node;
+	      if (char_type == char_type_node)
+		{
+		  error ("int-array initialized from non-wide string");
+		  return error_mark_node;
+		}
+	      else if (char_type != typ1)
+		{
+		  error ("int-array initialized from incompatible wide string");
+		  return error_mark_node;
+		}
 	    }
 
 	  TREE_TYPE (init) = type;
@@ -694,7 +777,7 @@ digest_init (tree type, tree init)
 		 counted in the length of the constant, but in C++ this would
 		 be invalid.  */
 	      if (size < TREE_STRING_LENGTH (init))
-		pedwarn ("initializer-string for array of chars is too long");
+		permerror ("initializer-string for array of chars is too long");
 	    }
 	  return init;
 	}
@@ -706,6 +789,8 @@ digest_init (tree type, tree init)
     {
       tree *exp;
 
+      if (cxx_dialect != cxx98 && nested)
+	check_narrowing (type, init);
       init = convert_for_initialization (0, type, init, LOOKUP_NORMAL,
 					 "initialization", NULL_TREE, 0,
                                          tf_warning_or_error);
@@ -731,7 +816,7 @@ digest_init (tree type, tree init)
 	      || TREE_CODE (type) == COMPLEX_TYPE);
 
   if (BRACE_ENCLOSED_INITIALIZER_P (init))
-      return process_init_constructor (type, init);
+    return process_init_constructor (type, init);
   else
     {
       if (COMPOUND_LITERAL_P (init) && TREE_CODE (type) == ARRAY_TYPE)
@@ -757,6 +842,11 @@ digest_init (tree type, tree init)
     }
 }
 
+tree
+digest_init (tree type, tree init)
+{
+  return digest_init_r (type, init, false);
+}
 
 /* Set of flags used within process_init_constructor to describe the
    initializers.  */
@@ -828,7 +918,7 @@ process_init_constructor_array (tree type, tree init)
       else
 	ce->index = size_int (i);
       gcc_assert (ce->value);
-      ce->value = digest_init (TREE_TYPE (type), ce->value);
+      ce->value = digest_init_r (TREE_TYPE (type), ce->value, true);
 
       if (ce->value != error_mark_node)
 	gcc_assert (same_type_ignoring_top_level_qualifiers_p
@@ -854,7 +944,7 @@ process_init_constructor_array (tree type, tree init)
               next = build_functional_cast (TREE_TYPE (type), NULL_TREE,
                                             tf_warning_or_error);
 	    else
-		next = build_constructor (NULL_TREE, NULL);
+	      next = build_constructor (init_list_type_node, NULL);
 	    next = digest_init (TREE_TYPE (type), next);
 	  }
 	else if (!zero_init_p (TREE_TYPE (type)))
@@ -929,7 +1019,7 @@ process_init_constructor_record (tree type, tree init)
 	    }
 
 	  gcc_assert (ce->value);
-	  next = digest_init (TREE_TYPE (field), ce->value);
+	  next = digest_init_r (TREE_TYPE (field), ce->value, true);
 	  ++idx;
 	}
       else if (TYPE_NEEDS_CONSTRUCTING (TREE_TYPE (field)))
@@ -942,9 +1032,9 @@ process_init_constructor_record (tree type, tree init)
 	    next = build_functional_cast (TREE_TYPE (field), NULL_TREE,
                                           tf_warning_or_error);
 	  else
-	    next = build_constructor (NULL_TREE, NULL);
+	    next = build_constructor (init_list_type_node, NULL);
 
-	  next = digest_init (TREE_TYPE (field), next);
+	  next = digest_init_r (TREE_TYPE (field), next, true);
 
 	  /* Warn when some struct elements are implicitly initialized.  */
 	  warning (OPT_Wmissing_field_initializers,
@@ -1037,7 +1127,7 @@ process_init_constructor_union (tree type, tree init)
     }
 
   if (ce->value && ce->value != error_mark_node)
-    ce->value = digest_init (TREE_TYPE (ce->index), ce->value);
+    ce->value = digest_init_r (TREE_TYPE (ce->index), ce->value, true);
 
   return picflag_from_initializer (ce->value);
 }
@@ -1402,7 +1492,7 @@ add_exception_specifier (tree list, tree spec, int complain)
   bool ok;
   tree core = spec;
   bool is_ptr;
-  int diag_type = -1; /* none */
+  diagnostic_t diag_type = DK_UNSPECIFIED; /* none */
 
   if (spec == error_mark_node)
     return list;
@@ -1431,7 +1521,7 @@ add_exception_specifier (tree list, tree spec, int complain)
 	 and calls.  So just give a pedwarn at this point; we will give an
 	 error later if we hit one of those two cases.  */
       if (!COMPLETE_TYPE_P (complete_type (core)))
-	diag_type = 2; /* pedwarn */
+	diag_type = DK_PEDWARN; /* pedwarn */
     }
 
   if (ok)
@@ -1445,9 +1535,9 @@ add_exception_specifier (tree list, tree spec, int complain)
 	list = tree_cons (NULL_TREE, spec, list);
     }
   else
-    diag_type = 0; /* error */
+    diag_type = DK_ERROR; /* error */
 
-  if (diag_type >= 0 && complain)
+  if (diag_type != DK_UNSPECIFIED && complain)
     cxx_incomplete_type_diagnostic (NULL_TREE, core, diag_type);
 
   return list;

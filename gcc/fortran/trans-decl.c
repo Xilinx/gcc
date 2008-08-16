@@ -26,7 +26,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "coretypes.h"
 #include "tree.h"
 #include "tree-dump.h"
-#include "tree-gimple.h"
+#include "gimple.h"
 #include "ggc.h"
 #include "toplev.h"
 #include "tm.h"
@@ -79,6 +79,7 @@ tree gfor_fndecl_stop_numeric;
 tree gfor_fndecl_stop_string;
 tree gfor_fndecl_runtime_error;
 tree gfor_fndecl_runtime_error_at;
+tree gfor_fndecl_runtime_warning_at;
 tree gfor_fndecl_os_error;
 tree gfor_fndecl_generate_error;
 tree gfor_fndecl_set_fpe;
@@ -461,7 +462,7 @@ gfc_finish_decl (tree decl)
 static void
 gfc_finish_var_decl (tree decl, gfc_symbol * sym)
 {
-  tree new;
+  tree new_type;
   /* TREE_ADDRESSABLE means the address of this variable is actually needed.
      This is the equivalent of the TARGET variables.
      We also need to set this if the variable is passed by reference in a
@@ -525,7 +526,7 @@ gfc_finish_var_decl (tree decl, gfc_symbol * sym)
      a default initializer; this must be applied each time the variable
      comes into scope it therefore need not be static.  These variables
      are SAVE_NONE but have an initializer.  Otherwise explicitly
-     intitialized variables are SAVE_IMPLICIT and explicitly saved are
+     initialized variables are SAVE_IMPLICIT and explicitly saved are
      SAVE_EXPLICIT.  */
   if (!sym->attr.use_assoc
 	&& (sym->attr.save != SAVE_NONE || sym->attr.data
@@ -535,8 +536,8 @@ gfc_finish_var_decl (tree decl, gfc_symbol * sym)
   if (sym->attr.volatile_)
     {
       TREE_THIS_VOLATILE (decl) = 1;
-      new = build_qualified_type (TREE_TYPE (decl), TYPE_QUAL_VOLATILE);
-      TREE_TYPE (decl) = new;
+      new_type = build_qualified_type (TREE_TYPE (decl), TYPE_QUAL_VOLATILE);
+      TREE_TYPE (decl) = new_type;
     } 
 
   /* Keep variables larger than max-stack-var-size off stack.  */
@@ -1104,6 +1105,44 @@ gfc_restore_sym (gfc_symbol * sym, gfc_saved_var * save)
 }
 
 
+/* Declare a procedure pointer.  */
+
+static tree
+get_proc_pointer_decl (gfc_symbol *sym)
+{
+  tree decl;
+
+  decl = sym->backend_decl;
+  if (decl)
+    return decl;
+
+  decl = build_decl (VAR_DECL, get_identifier (sym->name),
+		     build_pointer_type (gfc_get_function_type (sym)));
+
+  if (sym->ns->proc_name->backend_decl == current_function_decl
+      || sym->attr.contained)
+    gfc_add_decl_to_function (decl);
+  else
+    gfc_add_decl_to_parent_function (decl);
+
+  sym->backend_decl = decl;
+
+  if (!sym->attr.use_assoc
+	&& (sym->attr.save != SAVE_NONE || sym->attr.data
+	      || (sym->value && sym->ns->proc_name->attr.is_main_program)))
+    TREE_STATIC (decl) = 1;
+
+  if (TREE_STATIC (decl) && sym->value)
+    {
+      /* Add static initializer.  */
+      DECL_INITIAL (decl) = gfc_conv_initializer (sym->value, &sym->ts,
+	  TREE_TYPE (decl), sym->attr.dimension, sym->attr.proc_pointer);
+    }
+
+  return decl;
+}
+
+
 /* Get a basic decl for an external function.  */
 
 tree
@@ -1125,6 +1164,9 @@ gfc_get_extern_function_decl (gfc_symbol * sym)
      The procedure may be an alternate entry point, but we don't want/need
      to know that.  */
   gcc_assert (!(sym->attr.entry || sym->attr.entry_master));
+
+  if (sym->attr.proc_pointer)
+    return get_proc_pointer_decl (sym);
 
   if (sym->attr.intrinsic)
     {
@@ -1540,7 +1582,10 @@ create_function_arglist (gfc_symbol * sym)
 	    type = gfc_sym_type (f->sym);
 	}
 
-      /* Build a the argument declaration.  */
+      if (f->sym->attr.proc_pointer)
+        type = build_pointer_type (type);
+
+      /* Build the argument declaration.  */
       parm = build_decl (PARM_DECL, gfc_sym_identifier (f->sym), type);
 
       /* Fill in arg stuff.  */
@@ -2411,6 +2456,10 @@ gfc_build_builtin_function_decls (void)
   /* The runtime_error_at function does not return.  */
   TREE_THIS_VOLATILE (gfor_fndecl_runtime_error_at) = 1;
   
+  gfor_fndecl_runtime_warning_at =
+    gfc_build_library_function_decl (get_identifier (PREFIX("runtime_warning_at")),
+				     void_type_node, -2, pchar_type_node,
+				     pchar_type_node);
   gfor_fndecl_generate_error =
     gfc_build_library_function_decl (get_identifier (PREFIX("generate_error")),
 				     void_type_node, 3, pvoid_type_node,
@@ -2527,7 +2576,7 @@ gfc_trans_assign_aux_var (gfc_symbol * sym, tree fnbody)
 
   /* Set the initial value to length. See the comments in
      function gfc_add_assign_aux_vars in this file.  */
-  gfc_add_modify_expr (&body, GFC_DECL_STRING_LEN (sym->backend_decl),
+  gfc_add_modify (&body, GFC_DECL_STRING_LEN (sym->backend_decl),
 		       build_int_cst (NULL_TREE, -2));
 
   gfc_add_expr_to_block (&body, fnbody);
@@ -2558,7 +2607,7 @@ gfc_trans_vla_one_sizepos (tree *tp, stmtblock_t *body)
 
   var = gfc_create_var_np (TREE_TYPE (t), NULL);
   gfc_add_decl_to_function (var);
-  gfc_add_modify_expr (body, var, val);
+  gfc_add_modify (body, var, val);
   if (TREE_CODE (t) == SAVE_EXPR)
     TREE_OPERAND (t, 0) = var;
   *tp = var;
@@ -3292,9 +3341,13 @@ gfc_generate_function_code (gfc_namespace * ns)
 			 build_int_cst (integer_type_node,
 					flag_bounds_check), array);
 
+      array = tree_cons (NULL_TREE,
+			 build_int_cst (integer_type_node,
+					gfc_option.flag_range_check), array);
+
       array_type = build_array_type (integer_type_node,
 				     build_index_type (build_int_cst (NULL_TREE,
-								      6)));
+								      7)));
       array = build_constructor_from_list (array_type, nreverse (array));
       TREE_CONSTANT (array) = 1;
       TREE_STATIC (array) = 1;
@@ -3308,7 +3361,7 @@ gfc_generate_function_code (gfc_namespace * ns)
       var = gfc_build_addr_expr (pvoid_type_node, var);
 
       tmp = build_call_expr (gfor_fndecl_set_options, 2,
-			     build_int_cst (integer_type_node, 7), var);
+			     build_int_cst (integer_type_node, 8), var);
       gfc_add_expr_to_block (&body, tmp);
     }
 
@@ -3359,7 +3412,7 @@ gfc_generate_function_code (gfc_namespace * ns)
     {
       tree alternate_return;
       alternate_return = gfc_get_fake_result_decl (sym, 0);
-      gfc_add_modify_expr (&body, alternate_return, integer_zero_node);
+      gfc_add_modify (&body, alternate_return, integer_zero_node);
     }
 
   if (ns->entries)

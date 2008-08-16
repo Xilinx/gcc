@@ -96,36 +96,6 @@ along with GCC; see the file COPYING3.  If not see
 	fputc ( '\n', FILE);						\
  } while (0)
 
-#undef ASM_DECLARE_FUNCTION_NAME
-#define ASM_DECLARE_FUNCTION_NAME(STREAM, NAME, DECL)			\
-  do {									\
-    if (!flag_inhibit_size_directive)					\
-      {									\
-	fputs ("\t.ent\t", STREAM);					\
-	assemble_name (STREAM, NAME);					\
-	putc ('\n', STREAM);						\
-      }									\
-    ASM_OUTPUT_TYPE_DIRECTIVE (STREAM, NAME, "function");		\
-    assemble_name (STREAM, NAME);					\
-    fputs (":\n", STREAM);						\
-  } while (0)
-
-#undef ASM_DECLARE_FUNCTION_SIZE
-#define ASM_DECLARE_FUNCTION_SIZE(STREAM, NAME, DECL)			\
-  do {									\
-    if (!flag_inhibit_size_directive)					\
-      {									\
-	fputs ("\t.end\t", STREAM);					\
-	assemble_name (STREAM, NAME);					\
-	putc ('\n', STREAM);						\
-      }									\
-  } while (0)
-
-/* Tell function_prologue in mips.c that we have already output the .ent/.end
-   pseudo-ops.  */
-#undef FUNCTION_NAME_ALREADY_DECLARED
-#define FUNCTION_NAME_ALREADY_DECLARED 1
-
 /* The glibc _mcount stub will save $v0 for us.  Don't mess with saving
    it, since ASM_OUTPUT_REG_PUSH/ASM_OUTPUT_REG_POP do not work in the
    presence of $gp-relative calls.  */
@@ -143,9 +113,27 @@ along with GCC; see the file COPYING3.  If not see
 
 #ifdef HAVE_AS_NO_SHARED
 /* Default to -mno-shared for non-PIC.  */
-#define NO_SHARED_SPECS \
+# define NO_SHARED_SPECS \
   "%{mshared|mno-shared|fpic|fPIC|fpie|fPIE:;:-mno-shared}"
-#define DRIVER_SELF_SPECS NO_SHARED_SPECS
 #else
-#define NO_SHARED_SPECS
+# define NO_SHARED_SPECS ""
 #endif
+
+/* -march=native handling only makes sense with compiler running on
+   a MIPS chip.  */
+#if defined(__mips__)
+extern const char *host_detect_local_cpu (int argc, const char **argv);
+# define EXTRA_SPEC_FUNCTIONS \
+  { "local_cpu_detect", host_detect_local_cpu },
+
+# define MARCH_MTUNE_NATIVE_SPECS				\
+  " %{march=native:%<march=native %:local_cpu_detect(arch)}"	\
+  " %{mtune=native:%<mtune=native %:local_cpu_detect(tune)}"
+#else
+# define MARCH_MTUNE_NATIVE_SPECS ""
+#endif
+
+#define BASE_DRIVER_SELF_SPECS \
+  NO_SHARED_SPECS \
+  MARCH_MTUNE_NATIVE_SPECS
+#define DRIVER_SELF_SPECS BASE_DRIVER_SELF_SPECS

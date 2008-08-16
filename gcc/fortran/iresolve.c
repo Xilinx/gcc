@@ -106,7 +106,7 @@ resolve_mask_arg (gfc_expr *mask)
       /* In the library, we access the mask with a GFC_LOGICAL_1
 	 argument.  No need to waste memory if we are about to create
 	 a temporary array.  */
-      if (mask->expr_type == EXPR_OP)
+      if (mask->expr_type == EXPR_OP && mask->ts.kind != 1)
 	{
 	  ts.type = BT_LOGICAL;
 	  ts.kind = 1;
@@ -705,7 +705,7 @@ gfc_resolve_dot_product (gfc_expr *f, gfc_expr *a, gfc_expr *b)
 
   temp.expr_type = EXPR_OP;
   gfc_clear_ts (&temp.ts);
-  temp.value.op.operator = INTRINSIC_NONE;
+  temp.value.op.op = INTRINSIC_NONE;
   temp.value.op.op1 = a;
   temp.value.op.op2 = b;
   gfc_type_convert_binary (&temp);
@@ -1332,7 +1332,7 @@ gfc_resolve_matmul (gfc_expr *f, gfc_expr *a, gfc_expr *b)
     {
       temp.expr_type = EXPR_OP;
       gfc_clear_ts (&temp.ts);
-      temp.value.op.operator = INTRINSIC_NONE;
+      temp.value.op.op = INTRINSIC_NONE;
       temp.value.op.op1 = a;
       temp.value.op.op2 = b;
       gfc_type_convert_binary (&temp);
@@ -1340,6 +1340,34 @@ gfc_resolve_matmul (gfc_expr *f, gfc_expr *a, gfc_expr *b)
     }
 
   f->rank = (a->rank == 2 && b->rank == 2) ? 2 : 1;
+
+  if (a->rank == 2 && b->rank == 2)
+    {
+      if (a->shape && b->shape)
+	{
+	  f->shape = gfc_get_shape (f->rank);
+	  mpz_init_set (f->shape[0], a->shape[0]);
+	  mpz_init_set (f->shape[1], b->shape[1]);
+	}
+    }
+  else if (a->rank == 1)
+    {
+      if (b->shape)
+	{
+	  f->shape = gfc_get_shape (f->rank);
+	  mpz_init_set (f->shape[0], b->shape[1]);
+	}
+    }
+  else 
+    {
+      /* b->rank == 1 and a->rank == 2 here, all other cases have
+	 been caught in check.c.   */
+      if (a->shape)
+	{
+	  f->shape = gfc_get_shape (f->rank);
+	  mpz_init_set (f->shape[0], a->shape[0]);
+	}
+    }
 
   f->value.function.name
     = gfc_get_string (PREFIX ("matmul_%c%d"), gfc_type_letter (f->ts.type),
@@ -1760,6 +1788,7 @@ gfc_resolve_product (gfc_expr *f, gfc_expr *array, gfc_expr *dim,
   if (dim != NULL)
     {
       f->rank = array->rank - 1;
+      f->shape = gfc_copy_shape_excluding (array->shape, array->rank, dim);
       gfc_resolve_dim_arg (dim);
     }
 
@@ -2243,6 +2272,7 @@ gfc_resolve_sum (gfc_expr *f, gfc_expr *array, gfc_expr *dim, gfc_expr *mask)
   if (dim != NULL)
     {
       f->rank = array->rank - 1;
+      f->shape = gfc_copy_shape_excluding (array->shape, array->rank, dim);
       gfc_resolve_dim_arg (dim);
     }
 

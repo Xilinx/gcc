@@ -91,7 +91,7 @@ struct cgraph_local_info GTY(())
 };
 
 /* Information about the function that needs to be computed globally
-   once compilation is finished.  Available only with -funit-at-time.  */
+   once compilation is finished.  Available only with -funit-at-a-time.  */
 
 struct cgraph_global_info GTY(())
 {
@@ -100,7 +100,8 @@ struct cgraph_global_info GTY(())
   /* Expected offset of the stack frame of inlined function.  */
   HOST_WIDE_INT stack_frame_offset;
 
-  /* For inline clones this points to the function they will be inlined into.  */
+  /* For inline clones this points to the function they will be
+     inlined into.  */
   struct cgraph_node *inlined_to;
 
   /* Estimated size of the function after inlining.  */
@@ -196,7 +197,7 @@ struct cgraph_edge GTY((chain_next ("%h.next_caller"), chain_prev ("%h.prev_call
   struct cgraph_edge *next_caller;
   struct cgraph_edge *prev_callee;
   struct cgraph_edge *next_callee;
-  tree call_stmt;
+  gimple call_stmt;
   PTR GTY ((skip (""))) aux;
   /* When NULL, inline this call.  When non-NULL, points to the explanation
      why function was not inlined.  */
@@ -208,7 +209,11 @@ struct cgraph_edge GTY((chain_next ("%h.next_caller"), chain_prev ("%h.prev_call
      per function call.  The range is 0 to CGRAPH_FREQ_MAX.  */
   int frequency;
   /* Depth of loop nest, 1 means no loop nest.  */
-  int loop_nest;
+  unsigned int loop_nest : 31;
+  /* Whether this edge describes a call that was originally indirect.  */
+  unsigned int indirect_call : 1;
+  /* Unique id of the edge.  */
+  int uid;
 };
 
 #define CGRAPH_FREQ_BASE 1000
@@ -222,7 +227,7 @@ DEF_VEC_ALLOC_P(cgraph_edge_p,heap);
 /* The varpool data structure.
    Each static variable decl has assigned varpool_node.  */
 
-struct varpool_node GTY(())
+struct varpool_node GTY((chain_next ("%h.next")))
 {
   tree decl;
   /* Pointer to the next function in varpool_nodes.  */
@@ -266,6 +271,7 @@ struct cgraph_asm_node GTY(())
 extern GTY(()) struct cgraph_node *cgraph_nodes;
 extern GTY(()) int cgraph_n_nodes;
 extern GTY(()) int cgraph_max_uid;
+extern GTY(()) int cgraph_edge_max_uid;
 extern GTY(()) int cgraph_max_pid;
 extern bool cgraph_global_info_ready;
 enum cgraph_state
@@ -301,19 +307,19 @@ void cgraph_release_function_body (struct cgraph_node *);
 void cgraph_node_remove_callees (struct cgraph_node *node);
 struct cgraph_edge *cgraph_create_edge (struct cgraph_node *,
 					struct cgraph_node *,
-					tree, gcov_type, int, int);
+					gimple, gcov_type, int, int);
 struct cgraph_node *cgraph_node (tree);
 struct cgraph_node *cgraph_node_for_asm (tree asmname);
-struct cgraph_edge *cgraph_edge (struct cgraph_node *, tree);
-void cgraph_set_call_stmt (struct cgraph_edge *, tree);
-void cgraph_update_edges_for_call_stmt (tree, tree, tree);
+struct cgraph_edge *cgraph_edge (struct cgraph_node *, gimple);
+void cgraph_set_call_stmt (struct cgraph_edge *, gimple);
+void cgraph_update_edges_for_call_stmt (gimple, gimple);
 struct cgraph_local_info *cgraph_local_info (tree);
 struct cgraph_global_info *cgraph_global_info (tree);
 struct cgraph_rtl_info *cgraph_rtl_info (tree);
 const char * cgraph_node_name (struct cgraph_node *);
 struct cgraph_edge * cgraph_clone_edge (struct cgraph_edge *,
 					struct cgraph_node *,
-					tree, gcov_type, int, int, bool);
+					gimple, gcov_type, int, int, bool);
 struct cgraph_node * cgraph_clone_node (struct cgraph_node *, gcov_type, int,
 					int, bool);
 
@@ -331,6 +337,7 @@ void cgraph_add_new_function (tree, bool);
 
 /* In cgraphunit.c  */
 void cgraph_finalize_function (tree, bool);
+void cgraph_mark_if_needed (tree);
 void cgraph_finalize_compilation_unit (void);
 void cgraph_optimize (void);
 void cgraph_mark_needed_node (struct cgraph_node *);
@@ -350,8 +357,29 @@ struct cgraph_node *save_inline_function_body (struct cgraph_node *);
 void record_references_in_initializer (tree);
 bool cgraph_process_new_functions (void);
 
+typedef void (*cgraph_edge_hook)(struct cgraph_edge *, void *);
+typedef void (*cgraph_node_hook)(struct cgraph_node *, void *);
+typedef void (*cgraph_2edge_hook)(struct cgraph_edge *, struct cgraph_edge *,
+				  void *);
+typedef void (*cgraph_2node_hook)(struct cgraph_node *, struct cgraph_node *,
+				  void *);
+struct cgraph_edge_hook_list;
+struct cgraph_node_hook_list;
+struct cgraph_2edge_hook_list;
+struct cgraph_2node_hook_list;
+struct cgraph_edge_hook_list *cgraph_add_edge_removal_hook (cgraph_edge_hook, void *);
+void cgraph_remove_edge_removal_hook (struct cgraph_edge_hook_list *);
+struct cgraph_node_hook_list *cgraph_add_node_removal_hook (cgraph_node_hook,
+							    void *);
+void cgraph_remove_node_removal_hook (struct cgraph_node_hook_list *);
+struct cgraph_2edge_hook_list *cgraph_add_edge_duplication_hook (cgraph_2edge_hook, void *);
+void cgraph_remove_edge_duplication_hook (struct cgraph_2edge_hook_list *);
+struct cgraph_2node_hook_list *cgraph_add_node_duplication_hook (cgraph_2node_hook, void *);
+void cgraph_remove_node_duplication_hook (struct cgraph_2node_hook_list *);
+
 /* In cgraphbuild.c  */
 unsigned int rebuild_cgraph_edges (void);
+int compute_call_stmt_bb_frequency (basic_block bb);
 
 /* In ipa.c  */
 bool cgraph_remove_unreachable_nodes (bool, FILE *);
@@ -377,6 +405,7 @@ bool varpool_assemble_decl (struct varpool_node *node);
 bool varpool_analyze_pending_decls (void);
 void varpool_output_debug_info (void);
 void varpool_remove_unreferenced_decls (void);
+void varpool_empty_needed_queue (void);
 
 /* Walk all reachable static variables.  */
 #define FOR_EACH_STATIC_VARIABLE(node) \

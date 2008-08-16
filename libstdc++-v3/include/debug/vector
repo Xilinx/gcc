@@ -106,6 +106,11 @@ namespace __debug
 	this->_M_swap(__x);
 	__x._M_guaranteed_capacity = 0;
       }
+
+      vector(initializer_list<value_type> __l,
+	     const allocator_type& __a = allocator_type())
+      : _Base(__l, __a), _Safe_base(),
+	_M_guaranteed_capacity(__l.size()) { }
 #endif
 
       ~vector() { }
@@ -128,6 +133,15 @@ namespace __debug
 	swap(__x);
 	return *this;
       }
+
+      vector&
+      operator=(initializer_list<value_type> __l)
+      {
+	static_cast<_Base&>(*this) = __l;
+	this->_M_invalidate_all();
+	_M_update_guaranteed_capacity();
+	return *this;
+      }
 #endif
 
       template<typename _InputIterator>
@@ -147,6 +161,16 @@ namespace __debug
 	this->_M_invalidate_all();
 	_M_update_guaranteed_capacity();
       }
+
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      void
+      assign(initializer_list<value_type> __l)
+      {
+	_Base::assign(__l);
+	this->_M_invalidate_all();
+	_M_update_guaranteed_capacity();
+      }
+#endif
 
       using _Base::get_allocator;
 
@@ -289,7 +313,6 @@ namespace __debug
       using _Base::data;
 
       // 23.2.4.3 modifiers:
-#ifndef __GXX_EXPERIMENTAL_CXX0X__
       void
       push_back(const _Tp& __x)
       {
@@ -299,13 +322,20 @@ namespace __debug
 	  this->_M_invalidate_all();
 	_M_update_guaranteed_capacity();
       }
-#else
+
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      template<typename _Up = _Tp>
+        typename __gnu_cxx::__enable_if<!std::__are_same<_Up, bool>::__value,
+					void>::__type
+        push_back(_Tp&& __x)
+	{ emplace_back(std::move(__x)); }
+
       template<typename... _Args>
         void
-        push_back(_Args&&... __args)
+        emplace_back(_Args&&... __args)
 	{
 	  bool __realloc = _M_requires_reallocation(this->size() + 1);
-	  _Base::push_back(std::forward<_Args>(__args)...);
+	  _Base::emplace_back(std::forward<_Args>(__args)...);
 	  if (__realloc)
 	    this->_M_invalidate_all();
 	  _M_update_guaranteed_capacity();
@@ -356,9 +386,15 @@ namespace __debug
       }
 
 #ifdef __GXX_EXPERIMENTAL_CXX0X__
-      iterator
-      insert(iterator __position, _Tp&& __x)
-      { return emplace(__position, std::move(__x)); }
+      template<typename _Up = _Tp>
+        typename __gnu_cxx::__enable_if<!std::__are_same<_Up, bool>::__value,
+					iterator>::__type
+        insert(iterator __position, _Tp&& __x)
+        { return emplace(__position, std::move(__x)); }
+
+      void
+      insert(iterator __position, initializer_list<value_type> __l)
+      { this->insert(__position, __l.begin(), __l.end()); }
 #endif
 
       void

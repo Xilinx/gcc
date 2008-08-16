@@ -108,20 +108,13 @@ extern void dump_eh_tree (FILE *, struct function *);
 extern bool eh_region_outer_p (struct function *, int, int);
 extern int eh_region_outermost (struct function *, int, int);
 
-/* tree-eh.c */
-extern void add_stmt_to_eh_region_fn (struct function *, tree, int);
-extern bool remove_stmt_from_eh_region_fn (struct function *, tree);
-extern int lookup_stmt_eh_region_fn (struct function *, const_tree);
-extern int lookup_stmt_eh_region (const_tree);
-extern bool verify_eh_edges (tree);
-
 /* If non-NULL, this is a function that returns an expression to be
    executed if an unhandled exception is propagated out of a cleanup
    region.  For example, in C++, an exception thrown by a destructor
    during stack unwinding is required to result in a call to
    `std::terminate', so the C++ version of this function returns a
    CALL_EXPR for `std::terminate'.  */
-extern tree (*lang_protect_cleanup_actions) (void);
+extern gimple (*lang_protect_cleanup_actions) (void);
 
 /* Return true if type A catches type B.  */
 extern int (*lang_eh_type_covers) (tree a, tree b);
@@ -135,14 +128,14 @@ extern tree (*lang_eh_runtime_type) (tree);
    has appropriate support.  */
 
 #ifndef MUST_USE_SJLJ_EXCEPTIONS
-# if !(defined (EH_RETURN_DATA_REGNO)			\
+# if defined (EH_RETURN_DATA_REGNO)			\
        && (defined (TARGET_UNWIND_INFO)			\
 	   || (DWARF2_UNWIND_INFO			\
 	       && (defined (EH_RETURN_HANDLER_RTX)	\
-		   || defined (HAVE_eh_return)))))
-#  define MUST_USE_SJLJ_EXCEPTIONS	1
-# else
+		   || defined (HAVE_eh_return))))
 #  define MUST_USE_SJLJ_EXCEPTIONS	0
+# else
+#  define MUST_USE_SJLJ_EXCEPTIONS	1
 # endif
 #endif
 
@@ -152,14 +145,21 @@ extern tree (*lang_eh_runtime_type) (tree);
 # endif
 # if CONFIG_SJLJ_EXCEPTIONS == 0
 #  define USING_SJLJ_EXCEPTIONS		0
-#  ifndef EH_RETURN_DATA_REGNO
+#  if !defined(EH_RETURN_DATA_REGNO)
     #error "EH_RETURN_DATA_REGNO required"
 #  endif
-#  if !defined(EH_RETURN_HANDLER_RTX) && !defined(HAVE_eh_return)
+#  if ! (defined(TARGET_UNWIND_INFO) || DWARF2_UNWIND_INFO)
+    #error "{DWARF2,TARGET}_UNWIND_INFO required"
+#  endif
+#  if !defined(TARGET_UNWIND_INFO) \
+	&& !(defined(EH_RETURN_HANDLER_RTX) || defined(HAVE_eh_return))
     #error "EH_RETURN_HANDLER_RTX or eh_return required"
 #  endif
-#  if !defined(DWARF2_UNWIND_INFO) && !defined(TARGET_UNWIND_INFO)
-    #error "{DWARF2,TARGET}_UNWIND_INFO required"
+/* Usually the above error checks will have already triggered an
+   error, but backends may set MUST_USE_SJLJ_EXCEPTIONS for their own
+   reasons.  */
+#  if MUST_USE_SJLJ_EXCEPTIONS
+    #error "Must use SJLJ exceptions but configured not to"
 #  endif
 # endif
 #else
@@ -168,7 +168,7 @@ extern tree (*lang_eh_runtime_type) (tree);
 
 struct throw_stmt_node GTY(())
 {
-  tree stmt;
+  gimple stmt;
   int region_nr;
 };
 

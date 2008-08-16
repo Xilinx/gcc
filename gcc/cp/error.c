@@ -284,7 +284,10 @@ dump_type (tree t, int flags)
   switch (TREE_CODE (t))
     {
     case UNKNOWN_TYPE:
-      pp_identifier (cxx_pp, "<unresolved overloaded function type>");
+      if (t == init_list_type_node)
+	pp_identifier (cxx_pp, "<brace-enclosed initializer list>");
+      else
+	pp_identifier (cxx_pp, "<unresolved overloaded function type>");
       break;
 
     case TREE_LIST:
@@ -2658,7 +2661,7 @@ cp_cpp_error (cpp_reader *pfile ATTRIBUTE_UNUSED, int level,
       dlevel = DK_WARNING;
       break;
     case CPP_DL_PEDWARN:
-      dlevel = pedantic_warning_kind ();
+      dlevel = DK_PEDWARN;
       break;
     case CPP_DL_ERROR:
       dlevel = DK_ERROR;
@@ -2674,13 +2677,20 @@ cp_cpp_error (cpp_reader *pfile ATTRIBUTE_UNUSED, int level,
   report_diagnostic (&diagnostic);
 }
 
-/* Warn about the use of variadic templates when appropriate.  */
+/* Warn about the use of C++0x features when appropriate.  */
 void
-maybe_warn_variadic_templates (void)
+maybe_warn_cpp0x (const char* str)
 {
   if ((cxx_dialect == cxx98) && !in_system_header)
     /* We really want to suppress this warning in system headers,
        because libstdc++ uses variadic templates even when we aren't
        in C++0x mode. */
-    pedwarn ("ISO C++ does not include variadic templates");
+    pedwarn (0, "%s only available with -std=c++0x or -std=gnu++0x", str);
+}
+
+/* Warn about the use of variadic templates when appropriate.  */
+void
+maybe_warn_variadic_templates (void)
+{
+  maybe_warn_cpp0x ("variadic templates");
 }

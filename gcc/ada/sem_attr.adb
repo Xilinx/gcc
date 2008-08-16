@@ -315,6 +315,9 @@ package body Sem_Attr is
       --  corresponding possible defined attribute function (e.g. for the
       --  Read attribute, Nam will be TSS_Stream_Read).
 
+      procedure Check_PolyORB_Attribute;
+      --  Validity checking for PolyORB/DSA attribute
+
       procedure Check_Task_Prefix;
       --  Verify that prefix of attribute N is a task or task type
 
@@ -708,6 +711,12 @@ package body Sem_Attr is
                elsif Ada_Version >= Ada_05
                  and then OK_Self_Reference
                then
+                  null;
+
+               --  OK if reference to the current instance of a protected
+               --  object.
+
+               elsif Is_Protected_Self_Reference (P) then
                   null;
 
                --  Otherwise we have an error case
@@ -1380,6 +1389,23 @@ package body Sem_Attr is
          end if;
       end Check_Object_Reference;
 
+      ----------------------------
+      -- Check_PolyORB_Attribute --
+      ----------------------------
+
+      procedure Check_PolyORB_Attribute is
+      begin
+         Validate_Non_Static_Attribute_Function_Call;
+
+         Check_Type;
+         Check_Not_CPP_Type;
+
+         if Get_PCS_Name /= Name_PolyORB_DSA then
+            Error_Attr
+              ("attribute% requires the 'Poly'O'R'B 'P'C'S", N);
+         end if;
+      end Check_PolyORB_Attribute;
+
       ------------------------
       -- Check_Program_Unit --
       ------------------------
@@ -1622,6 +1648,11 @@ package body Sem_Attr is
            or else not Is_Type (Entity (P))
          then
             Error_Attr_P ("prefix of % attribute must be a type");
+
+         elsif Is_Protected_Self_Reference (P) then
+            Error_Attr_P
+              ("prefix of % attribute denotes current instance " &
+                 "(RM 9.4(21/2))");
 
          elsif Ekind (Entity (P)) = E_Incomplete_Type
             and then Present (Full_View (Entity (P)))
@@ -1898,6 +1929,7 @@ package body Sem_Attr is
         and then Aname /= Name_Address
         and then Aname /= Name_Code_Address
         and then Aname /= Name_Count
+        and then Aname /= Name_Result
         and then Aname /= Name_Unchecked_Access
       then
          Error_Attr ("ambiguous prefix for % attribute", P);
@@ -1988,7 +2020,13 @@ package body Sem_Attr is
          --  An Address attribute created by expansion is legal even when it
          --  applies to other entity-denoting expressions.
 
-         if Is_Entity_Name (P) then
+         if Is_Protected_Self_Reference (P) then
+            --  An Address attribute on a protected object self reference
+            --  is legal.
+
+            null;
+
+         elsif Is_Entity_Name (P) then
             declare
                Ent : constant Entity_Id := Entity (P);
 
@@ -2975,6 +3013,15 @@ package body Sem_Attr is
          Set_Etype (N, P_Base_Type);
          Resolve (E1, P_Base_Type);
 
+      --------------
+      -- From_Any --
+      --------------
+
+      when Attribute_From_Any =>
+         Check_E1;
+         Check_PolyORB_Attribute;
+         Set_Etype (N, P_Base_Type);
+
       -----------------------
       -- Has_Access_Values --
       -----------------------
@@ -3737,10 +3784,20 @@ package body Sem_Attr is
       ------------
 
       when Attribute_Result => Result : declare
-         CS : constant Entity_Id := Current_Scope;
-         PS : constant Entity_Id := Scope (CS);
+         CS : Entity_Id := Current_Scope;
+         PS : Entity_Id := Scope (CS);
 
       begin
+         --  If the enclosing subprogram is always inlined, the enclosing
+         --  postcondition will not be propagated to the expanded call.
+
+         if Has_Pragma_Inline_Always (PS)
+           and then Warn_On_Redundant_Constructs
+         then
+            Error_Msg_N
+              ("postconditions on inlined functions not enforced?", N);
+         end if;
+
          --  If we are in the scope of a function and in Spec_Expression mode,
          --  this is likely the prescan of the postcondition pragma, and we
          --  just set the proper type. If there is an error it will be caught
@@ -3768,30 +3825,60 @@ package body Sem_Attr is
             end if;
 
          --  Body case, where we must be inside a generated _Postcondition
-         --  procedure, or the attribute use is definitely misplaced.
-
-         elsif Chars (CS) = Name_uPostconditions
-           and then Ekind (PS) = E_Function
-         then
-            --  Check OK prefix
-
-            if Nkind (P) /= N_Identifier
-              or else Chars (P) /= Chars (PS)
-            then
-               Error_Msg_NE
-                 ("incorrect prefix for % attribute, expected &", P, PS);
-               Error_Attr;
-            end if;
-
-            Rewrite (N,
-              Make_Identifier (Sloc (N),
-                Chars => Name_uResult));
-            Analyze_And_Resolve (N, Etype (PS));
+         --  procedure, and the prefix must be on the scope stack,  or else
+         --  the attribute use is definitely misplaced. The condition itself
+         --  may have generated transient scopes, and is not necessarily the
+         --  current one.
 
          else
-            Error_Attr
-              ("% attribute can only appear in function Postcondition pragma",
-               P);
+            while Present (CS)
+              and then CS /= Standard_Standard
+            loop
+               if Chars (CS) = Name_uPostconditions then
+                  exit;
+               else
+                  CS := Scope (CS);
+               end if;
+            end loop;
+
+            PS := Scope (CS);
+
+            if Chars (CS) = Name_uPostconditions
+              and then Ekind (PS) = E_Function
+            then
+               --  Check OK prefix
+
+               if Nkind_In (P, N_Identifier, N_Operator_Symbol)
+                 and then Chars (P) = Chars (PS)
+               then
+                  null;
+
+               --  Within an instance, the prefix designates the local renaming
+               --  of the original generic.
+
+               elsif Is_Entity_Name (P)
+                 and then Ekind (Entity (P)) = E_Function
+                 and then Present (Alias (Entity (P)))
+                 and then Chars (Alias (Entity (P))) = Chars (PS)
+               then
+                  null;
+
+               else
+                  Error_Msg_NE
+                    ("incorrect prefix for % attribute, expected &", P, PS);
+                  Error_Attr;
+               end if;
+
+               Rewrite (N,
+                 Make_Identifier (Sloc (N),
+                   Chars => Name_uResult));
+               Analyze_And_Resolve (N, Etype (PS));
+
+            else
+               Error_Attr
+                 ("% attribute can only appear" &
+                   "  in function Postcondition pragma", P);
+            end if;
          end if;
       end Result;
 
@@ -4213,6 +4300,15 @@ package body Sem_Attr is
          Analyze_And_Resolve (E1, Any_Integer);
          Set_Etype (N, RTE (RE_Address));
 
+      ------------
+      -- To_Any --
+      ------------
+
+      when Attribute_To_Any =>
+         Check_E1;
+         Check_PolyORB_Attribute;
+         Set_Etype (N, RTE (RE_Any));
+
       ----------------
       -- Truncation --
       ----------------
@@ -4231,6 +4327,15 @@ package body Sem_Attr is
          Check_Type;
          Check_Not_Incomplete_Type;
          Set_Etype (N, RTE (RE_Type_Class));
+
+      ------------
+      -- To_Any --
+      ------------
+
+      when Attribute_TypeCode =>
+         Check_E0;
+         Check_PolyORB_Attribute;
+         Set_Etype (N, RTE (RE_TypeCode));
 
       -----------------
       -- UET_Address --
@@ -7228,6 +7333,13 @@ package body Sem_Attr is
          end if;
       end Width;
 
+      --  The following attributes denote function that cannot be folded
+
+      when Attribute_From_Any |
+           Attribute_To_Any   |
+           Attribute_TypeCode =>
+         null;
+
       --  The following attributes can never be folded, and furthermore we
       --  should not even have entered the case statement for any of these.
       --  Note that in some cases, the values have already been folded as
@@ -7461,6 +7573,19 @@ package body Sem_Attr is
          begin
             if Is_Variable (P) then
                Note_Possible_Modification (P, Sure => False);
+            end if;
+
+            --  The following comes from a query by Adam Beneschan, concerning
+            --  improper use of universal_access in equality tests involving
+            --  anonymous access types. Another good reason for 'Ref, but
+            --  for now disable the test, which breaks several filed tests.
+
+            if Ekind (Typ) = E_Anonymous_Access_Type
+              and then Nkind_In (Parent (N), N_Op_Eq, N_Op_Ne)
+              and then False
+            then
+               Error_Msg_N ("need unique type to resolve 'Access", N);
+               Error_Msg_N ("\qualify attribute with some access type", N);
             end if;
 
             if Is_Entity_Name (P) then

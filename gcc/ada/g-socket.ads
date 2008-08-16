@@ -52,6 +52,8 @@ with Ada.Exceptions;
 with Ada.Streams;
 with Ada.Unchecked_Deallocation;
 
+with System.OS_Constants;
+
 package GNAT.Sockets is
 
    --  Sockets are designed to provide a consistent communication facility
@@ -367,6 +369,12 @@ package GNAT.Sockets is
    --     Finalize;
    --  end PingPong;
 
+   package SOSC renames System.OS_Constants;
+   --  Renaming used to provide short-hand notations thoughout the sockets
+   --  binding. Note that System.OS_Constants is an internal unit, and the
+   --  entities declared therein are not meant for direct access by users,
+   --  including through this renaming.
+
    procedure Initialize;
    --  Initialize must be called before using any other socket routines.
    --  Note that this operation is a no-op on UNIX platforms, but applications
@@ -404,9 +412,11 @@ package GNAT.Sockets is
    --  structure. Moreover, negative values are not allowed to avoid system
    --  incompatibilities.
 
-   Immediate : constant := 0.0;
-   Forever   : constant := Duration (Integer'Last) * 1.0;
-   --  Should be Duration 2 ** (Constants.SIZEOF_tv_sec * 8 - 1) - 1 ???
+   Immediate : constant Duration := 0.0;
+
+   Timeval_Forever : constant := 2.0 ** (SOSC.SIZEOF_tv_sec * 8 - 1) - 1.0;
+   Forever         : constant Duration :=
+                       Duration'Min (Duration'Last, Timeval_Forever);
 
    subtype Timeval_Duration is Duration range Immediate .. Forever;
 
@@ -788,7 +798,7 @@ package GNAT.Sockets is
       Status   : out Selector_Status);
    --  Accept a new connection on Server using Accept_Socket, waiting no longer
    --  than the given timeout duration. Status is set to indicate whether the
-   --  operation completed successully, timed out, or was aborted. If Selector
+   --  operation completed successfully, timed out, or was aborted. If Selector
    --  is not null, the designated selector is used to wait for the socket to
    --  become available, else a private selector object is created by this
    --  procedure and destroyed before it returns.
@@ -816,7 +826,7 @@ package GNAT.Sockets is
       Status   : out Selector_Status);
    --  Connect Socket to the given Server address using Connect_Socket, waiting
    --  no longer than the given timeout duration. Status is set to indicate
-   --  whether the operation completed successully, timed out, or was aborted.
+   --  whether the operation completed successfully, timed out, or was aborted.
    --  If Selector is not null, the designated selector is used to wait for the
    --  socket to become available, else a private selector object is created
    --  by this procedure and destroyed before it returns.
@@ -1049,7 +1059,7 @@ package GNAT.Sockets is
    --  it is used in the visible part of GNAT.Sockets.Thin_Common. This is
    --  really an inversion of abstraction. The private part of GNAT.Sockets
    --  needs to have visibility on this type, but since Thin_Common is a child
-   --  of Sokcets, the type can't be declared there. The correct fix would
+   --  of Sockets, the type can't be declared there. The correct fix would
    --  be to move the thin sockets binding outside of GNAT.Sockets altogether,
    --  e.g. by renaming it to GNAT.Sockets_Thin.
 

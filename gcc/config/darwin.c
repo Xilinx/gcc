@@ -366,7 +366,8 @@ machopic_indirection_hash (const void *slot)
 static int
 machopic_indirection_eq (const void *slot, const void *key)
 {
-  return strcmp (((const machopic_indirection *) slot)->ptr_name, key) == 0;
+  return strcmp (((const machopic_indirection *) slot)->ptr_name,
+		 (const char *) key) == 0;
 }
 
 /* Return the name of the non-lazy pointer (if STUB_P is false) or
@@ -420,7 +421,7 @@ machopic_indirection_name (rtx sym_ref, bool stub_p)
   else
     suffix = NON_LAZY_POINTER_SUFFIX;
 
-  buffer = alloca (strlen ("&L")
+  buffer = XALLOCAVEC (char, strlen ("&L")
 		   + strlen (prefix)
 		   + namelen
 		   + strlen (suffix)
@@ -555,7 +556,7 @@ machopic_indirect_data_reference (rtx orig, rtx reg)
 	  emit_insn (gen_rtx_SET (VOIDmode, reg,
 				  gen_rtx_LO_SUM (Pmode, reg,
 						  copy_rtx (offset))));
-	  emit_insn (gen_rtx_USE (VOIDmode, pic_offset_table_rtx));
+	  emit_use (pic_offset_table_rtx);
 
 	  orig = gen_rtx_PLUS (Pmode, pic_offset_table_rtx, reg);
 #endif
@@ -756,9 +757,7 @@ machopic_legitimize_pic_address (rtx orig, enum machine_mode mode, rtx reg)
 
 	      pic_ref = reg;
 #else
-	      emit_insn (gen_rtx_USE (VOIDmode,
-				      gen_rtx_REG (Pmode,
-						   PIC_OFFSET_TABLE_REGNUM)));
+	      emit_use (gen_rtx_REG (Pmode, PIC_OFFSET_TABLE_REGNUM));
 
 	      emit_insn (gen_rtx_SET (VOIDmode, reg,
 				      gen_rtx_HIGH (Pmode,
@@ -782,9 +781,7 @@ machopic_legitimize_pic_address (rtx orig, enum machine_mode mode, rtx reg)
 		  pic = reg;
 		}
 #if 0
-	      emit_insn (gen_rtx_USE (VOIDmode,
-				      gen_rtx_REG (Pmode,
-						   PIC_OFFSET_TABLE_REGNUM)));
+	      emit_use (gen_rtx_REG (Pmode, PIC_OFFSET_TABLE_REGNUM));
 #endif
 
 	      if (reload_in_progress)
@@ -857,8 +854,7 @@ machopic_legitimize_pic_address (rtx orig, enum machine_mode mode, rtx reg)
 		      pic = reg;
 		    }
 #if 0
-		  emit_insn (gen_rtx_USE (VOIDmode,
-					  pic_offset_table_rtx));
+		  emit_use (pic_offset_table_rtx);
 #endif
 		  if (reload_in_progress)
 		    df_set_regs_ever_live (REGNO (pic), true);
@@ -974,7 +970,7 @@ machopic_output_indirection (void **slot, void *data)
 	    sym_name = IDENTIFIER_POINTER (id);
 	}
 
-      sym = alloca (strlen (sym_name) + 2);
+      sym = XALLOCAVEC (char, strlen (sym_name) + 2);
       if (sym_name[0] == '*' || sym_name[0] == '&')
 	strcpy (sym, sym_name + 1);
       else if (sym_name[0] == '-' || sym_name[0] == '+')
@@ -982,7 +978,7 @@ machopic_output_indirection (void **slot, void *data)
       else
 	sprintf (sym, "%s%s", user_label_prefix, sym_name);
 
-      stub = alloca (strlen (ptr_name) + 2);
+      stub = XALLOCAVEC (char, strlen (ptr_name) + 2);
       if (ptr_name[0] == '*' || ptr_name[0] == '&')
 	strcpy (stub, ptr_name + 1);
       else

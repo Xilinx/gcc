@@ -35,7 +35,7 @@ through the macros defined in the @file{.h} file.
 * Register Classes::    Defining the classes of hardware registers.
 * Old Constraints::     The old way to define machine-specific constraints.
 * Stack and Calling::   Defining which way the stack grows and by how much.
-* Varargs::		Defining the varargs macros.
+* Varargs::             Defining the varargs macros.
 * Trampolines::         Code set up at run time to enter a nested function.
 * Library Calls::       Controlling how library routines are implicitly called.
 * Addressing Modes::    Defining addressing modes valid for memory operands.
@@ -44,7 +44,7 @@ through the macros defined in the @file{.h} file.
 * Costs::               Defining relative costs of different operations.
 * Scheduling::          Adjusting the behavior of the instruction scheduler.
 * Sections::            Dividing storage into text, data, and other sections.
-* PIC::			Macros for position independent code.
+* PIC::                 Macros for position independent code.
 * Assembler Format::    Defining how to write insns and pseudo-ops to output.
 * Debugging Info::      Defining the format of debugging output.
 * Floating Point::      Handling floating point for cross-compilers.
@@ -833,10 +833,9 @@ specified, 1 if @option{-O} is specified, and 0 if neither is specified.
 
 @var{size} is nonzero if @option{-Os} is specified and zero otherwise.
 
-You should not use this macro to change options that are not
-machine-specific.  These should uniformly selected by the same
-optimization level on all supported machines.  Use this macro to enable
-machine-specific optimizations.
+This macro is run once at program startup and when the optimization
+options are changed via @code{#pragma GCC optimize} or by using the
+@code{optimize} attribute.
 
 @strong{Do not examine @code{write_symbols} in
 this macro!} The debugging options are not supposed to alter the
@@ -1085,6 +1084,12 @@ macro must evaluate to a value equal to or larger than
 @code{STACK_BOUNDARY}.
 @end defmac
 
+@defmac INCOMING_STACK_BOUNDARY
+Define this macro if the incoming stack boundary may be different
+from @code{PREFERRED_STACK_BOUNDARY}.  This macro must evaluate
+to a value equal to or larger than @code{STACK_BOUNDARY}.
+@end defmac
+
 @defmac FUNCTION_BOUNDARY
 Alignment required for a function entry point, in bits.
 @end defmac
@@ -1093,6 +1098,11 @@ Alignment required for a function entry point, in bits.
 Biggest alignment that any data type can require on this machine, in
 bits.  Note that this is not the biggest alignment that is supported,
 just the biggest alignment that, when violated, may cause a fault.
+@end defmac
+
+@defmac MALLOC_ABI_ALIGNMENT
+Alignment, in bits, a C conformant malloc implementation has to
+provide.  If not defined, the default value is @code{BITS_PER_WORD}.
 @end defmac
 
 @defmac MINIMUM_ATOMIC_ALIGNMENT
@@ -1116,6 +1126,18 @@ alignment computed in the usual way (including applying of
 alignment) is @var{computed}.  It overrides alignment only if the
 field alignment has not been set by the
 @code{__attribute__ ((aligned (@var{n})))} construct.
+@end defmac
+
+@defmac MAX_STACK_ALIGNMENT
+Biggest stack alignment guaranteed by the backend.  Use this macro
+to specify the maximum alignment of a variable on stack.
+
+If not defined, the default value is @code{STACK_BOUNDARY}.
+
+@c FIXME: The default should be @code{PREFERRED_STACK_BOUNDARY}.
+@c But the fix for PR 32893 indicates that we can only guarantee
+@c maximum stack alignment on stack up to @code{STACK_BOUNDARY}, not
+@c @code{PREFERRED_STACK_BOUNDARY}, if stack alignment isn't supported.
 @end defmac
 
 @defmac MAX_OFILE_ALIGNMENT
@@ -1363,100 +1385,12 @@ of shift instructions expanded to libgcc calls.  If not defined
 targets.
 @end deftypefn
 
-@defmac TARGET_FLOAT_FORMAT
-A code distinguishing the floating point format of the target machine.
-There are two defined values:
-
-@ftable @code
-@item IEEE_FLOAT_FORMAT
-This code indicates IEEE floating point.  It is the default; there is no
-need to define @code{TARGET_FLOAT_FORMAT} when the format is IEEE@.
-
-@item VAX_FLOAT_FORMAT
-This code indicates the ``F float'' (for @code{float}) and ``D float''
-or ``G float'' formats (for @code{double}) used on the VAX and PDP-11@.
-@end ftable
-
-If your target uses a floating point format other than these, you must
-define a new @var{name}_FLOAT_FORMAT code for it, and add support for
-it to @file{real.c}.
-
-The ordering of the component words of floating point values stored in
-memory is controlled by @code{FLOAT_WORDS_BIG_ENDIAN}.
-@end defmac
-
-@defmac MODE_HAS_NANS (@var{mode})
-When defined, this macro should be true if @var{mode} has a NaN
-representation.  The compiler assumes that NaNs are not equal to
-anything (including themselves) and that addition, subtraction,
-multiplication and division all return NaNs when one operand is
-NaN@.
-
-By default, this macro is true if @var{mode} is a floating-point
-mode and the target floating-point format is IEEE@.
-@end defmac
-
-@defmac MODE_HAS_INFINITIES (@var{mode})
-This macro should be true if @var{mode} can represent infinity.  At
-present, the compiler uses this macro to decide whether @samp{x - x}
-is always defined.  By default, the macro is true when @var{mode}
-is a floating-point mode and the target format is IEEE@.
-@end defmac
-
-@defmac MODE_HAS_SIGNED_ZEROS (@var{mode})
-True if @var{mode} distinguishes between positive and negative zero.
-The rules are expected to follow the IEEE standard:
-
-@itemize @bullet
-@item
-@samp{x + x} has the same sign as @samp{x}.
-
-@item
-If the sum of two values with opposite sign is zero, the result is
-positive for all rounding modes expect towards @minus{}infinity, for
-which it is negative.
-
-@item
-The sign of a product or quotient is negative when exactly one
-of the operands is negative.
-@end itemize
-
-The default definition is true if @var{mode} is a floating-point
-mode and the target format is IEEE@.
-@end defmac
-
-@defmac MODE_HAS_SIGN_DEPENDENT_ROUNDING (@var{mode})
-If defined, this macro should be true for @var{mode} if it has at
-least one rounding mode in which @samp{x} and @samp{-x} can be
-rounded to numbers of different magnitude.  Two such modes are
-towards @minus{}infinity and towards +infinity.
-
-The default definition of this macro is true if @var{mode} is
-a floating-point mode and the target format is IEEE@.
-@end defmac
-
 @defmac ROUND_TOWARDS_ZERO
 If defined, this macro should be true if the prevailing rounding
-mode is towards zero.  A true value has the following effects:
+mode is towards zero.
 
-@itemize @bullet
-@item
-@code{MODE_HAS_SIGN_DEPENDENT_ROUNDING} will be false for all modes.
-
-@item
-@file{libgcc.a}'s floating-point emulator will round towards zero
-rather than towards nearest.
-
-@item
-The compiler's floating-point emulator will round towards zero after
-doing arithmetic, and when converting from the internal float format to
-the target format.
-@end itemize
-
-The macro does not affect the parsing of string literals.  When the
-primary rounding mode is towards zero, library functions like
-@code{strtod} might still round towards nearest, and the compiler's
-parser should behave like the target's @code{strtod} where possible.
+Defining this macro only affects the way @file{libgcc.a} emulates
+floating-point arithmetic.
 
 Not defining this macro is equivalent to returning zero.
 @end defmac
@@ -1466,9 +1400,7 @@ This macro should return true if floats with @var{size}
 bits do not have a NaN or infinity representation, but use the largest
 exponent for normal numbers instead.
 
-Defining this macro to true for @var{size} causes @code{MODE_HAS_NANS}
-and @code{MODE_HAS_INFINITIES} to be false for @var{size}-bit modes.
-It also affects the way @file{libgcc.a} and @file{real.c} emulate
+Defining this macro only affects the way @file{libgcc.a} emulates
 floating-point arithmetic.
 
 The default definition of this macro returns false for all sizes.
@@ -1911,11 +1843,11 @@ For passing values in registers, see @ref{Register Arguments}.
 For returning values in registers, see @ref{Scalar Return}.
 
 @menu
-* Register Basics::		Number and kinds of registers.
-* Allocation Order::		Order in which registers are allocated.
-* Values in Registers::		What kinds of values each reg can hold.
-* Leaf Functions::		Renumbering registers for leaf functions.
-* Stack Registers::		Handling a register stack such as 80387.
+* Register Basics::             Number and kinds of registers.
+* Allocation Order::            Order in which registers are allocated.
+* Values in Registers::         What kinds of values each reg can hold.
+* Leaf Functions::              Renumbering registers for leaf functions.
+* Stack Registers::             Handling a register stack such as 80387.
 @end menu
 
 @node Register Basics
@@ -2241,6 +2173,16 @@ You should define this macro to return nonzero in as many cases as
 possible since doing so will allow GCC to perform better register
 allocation.
 @end defmac
+
+@deftypefn {Target Hook} bool TARGET_HARD_REGNO_SCRATCH_OK (unsigned int @var{regno})
+This target hook should return @code{true} if it is OK to use a hard register
+@var{regno} as scratch reg in peephole2.
+
+One common use of this macro is to prevent using of a register that
+is not saved by a prologue in an interrupt handler.
+
+The default version of this hook always returns @code{true}.
+@end deftypefn
 
 @defmac AVOID_CCMODE_COPIES
 Define this macro if the compiler should avoid copies to/from @code{CCmode}
@@ -2985,7 +2927,7 @@ be treated like memory constraints by the reload pass.
 
 It should return 1 if the operand type represented by the constraint
 at the start of @var{str}, the first letter of which is the letter @var{c},
- comprises a subset of all memory references including
+comprises a subset of all memory references including
 all those whose address is simply a base register.  This allows the reload
 pass to reload an operand, if it does not directly correspond to the operand
 type of @var{c}, by copying its address into a base register.
@@ -4055,6 +3997,15 @@ arguments are passed on the stack, there is no need to store anything in
 should not be empty, so use @code{int}.
 @end defmac
 
+@defmac OVERRIDE_ABI_FORMAT (@var{fndecl})
+If defined, this macro is called before generating any code for a
+function, but after the @var{cfun} descriptor for the function has been
+created.  The back end may use this macro to update @var{cfun} to
+reflect an ABI other than that which would normally be used by default.
+If the compiler is generating code for a compiler-generated function,
+@var{fndecl} may be @code{NULL}.
+@end defmac
+
 @defmac INIT_CUMULATIVE_ARGS (@var{cum}, @var{fntype}, @var{libname}, @var{fndecl}, @var{n_named_args})
 A C statement (sans semicolon) for initializing the variable
 @var{cum} for the state at the beginning of the argument list.  The
@@ -4176,6 +4127,18 @@ false.
 @deftypefn {Target Hook} tree TARGET_BUILD_BUILTIN_VA_LIST (void)
 This hook returns a type node for @code{va_list} for the target.
 The default version of the hook returns @code{void*}.
+@end deftypefn
+
+@deftypefn {Target Hook} tree TARGET_FN_ABI_VA_LIST (tree @var{fndecl})
+This hook returns the va_list type of the calling convention specified by
+@var{fndecl}.
+The default version of this hook returns @code{va_list_type_node}.
+@end deftypefn
+
+@deftypefn {Target Hook} tree TARGET_CANONICAL_VA_LIST_TYPE (tree @var{type})
+This hook returns the va_list type of the calling convention specified by the
+type of @var{type}. If @var{type} is not a valid va_list type, it returns
+@code{NULL_TREE}.
 @end deftypefn
 
 @deftypefn {Target Hook} tree TARGET_GIMPLIFY_VA_ARG_EXPR (tree @var{valist}, tree @var{type}, tree *@var{pre_p}, tree *@var{post_p})
@@ -4306,6 +4269,20 @@ suffices:
 If the machine has register windows, so that the caller and the called
 function use different registers for the return value, this macro
 should recognize only the caller's register numbers.
+@end defmac
+
+@defmac TARGET_ENUM_VA_LIST (@var{idx}, @var{pname}, @var{ptype})
+This target macro is used in function @code{c_common_nodes_and_builtins}
+to iterate through the target specific builtin types for va_list. The
+variable @var{idx} is used as iterator. @var{pname} has to be a pointer
+to a @code{const char *} and @var{ptype} a pointer to a @code{tree} typed
+variable.
+The arguments @var{pname} and @var{ptype} are used to store the result of
+this macro and are set to the name of the va_list builtin type and its
+internal type.
+If the return value of this macro is zero, then there is no more element.
+Otherwise the @var{IDX} should be increased for the next call of this
+macro to iterate through all types.
 @end defmac
 
 @defmac APPLY_RESULT_SIZE
@@ -6770,10 +6747,10 @@ instructions do.
 * Uninitialized Data::   Output of uninitialized variables.
 * Label Output::         Output and generation of labels.
 * Initialization::       General principles of initialization
-			   and termination routines.
+                         and termination routines.
 * Macros for Initialization::
-			 Specific macros that control the handling of
-			   initialization and termination routines.
+                         Specific macros that control the handling of
+                         initialization and termination routines.
 * Instruction Output::   Output of actual instructions.
 * Dispatch Tables::      Output of jump tables.
 * Exception Region Output:: Output of exception region code.
@@ -6902,7 +6879,7 @@ This is true on most ELF targets.
 Choose a set of section attributes for use by @code{TARGET_ASM_NAMED_SECTION}
 based on a variable or function decl, a section name, and whether or not the
 declaration's initializer may contain runtime relocations.  @var{decl} may be
- null, in which case read-write data should be assumed.
+null, in which case read-write data should be assumed.
 
 The default version of this function handles choosing code vs data,
 read-only vs read-write data, and @code{flag_pic}.  You should only
@@ -7106,7 +7083,7 @@ assembler for grouping arithmetic expressions.  If not overridden, they
 default to normal parentheses, which is correct for most assemblers.
 @end deftypevr
 
-  These macros are provided by @file{real.h} for writing the definitions
+These macros are provided by @file{real.h} for writing the definitions
 of @code{ASM_OUTPUT_DOUBLE} and the like:
 
 @defmac REAL_VALUE_TO_TARGET_SINGLE (@var{x}, @var{l})
@@ -9221,6 +9198,51 @@ attributes, @code{false} otherwise.  By default, if a function has a
 target specific attribute attached to it, it will not be inlined.
 @end deftypefn
 
+@deftypefn {Target Hook} bool TARGET_VALID_OPTION_ATTRIBUTE_P (tree @var{fndecl}, tree @var{name}, tree @var{args}, int @var{flags})
+This hook is called to parse the @code{attribute(option("..."))}, and
+it allows the function to set different target machine compile time
+options for the current function that might be different than the
+options specified on the command line.  The hook should return
+@code{true} if the options are valid.
+
+The hook should set the @var{DECL_FUNCTION_SPECIFIC_TARGET} field in
+the function declaration to hold a pointer to a target specific
+@var{struct cl_target_option} structure.
+@end deftypefn
+
+@deftypefn {Target Hook} void TARGET_OPTION_SAVE (struct cl_target_option *@var{ptr})
+This hook is called to save any additional target specific information
+in the @var{struct cl_target_option} structure for function specific
+options.
+@xref{Option file format}.
+@end deftypefn
+
+@deftypefn {Target Hook} void TARGET_OPTION_RESTORE (struct cl_target_option *@var{ptr})
+This hook is called to restore any additional target specific
+information in the @var{struct cl_target_option} structure for
+function specific options.
+@end deftypefn
+
+@deftypefn {Target Hook} void TARGET_OPTION_PRINT (struct cl_target_option *@var{ptr})
+This hook is called to print any additional target specific
+information in the @var{struct cl_target_option} structure for
+function specific options.
+@end deftypefn
+
+@deftypefn {Target Hook} bool TARGET_OPTION_PRAGMA_PARSE (target @var{args})
+This target hook parses the options for @code{#pragma GCC option} to
+set the machine specific options for functions that occur later in the
+input stream.  The options should be the same as handled by the
+@code{TARGET_VALID_OPTION_ATTRIBUTE_P} hook.
+@end deftypefn
+
+@deftypefn {Target Hook} bool TARGET_CAN_INLINE_P (tree @var{caller}, tree @var{callee})
+This target hook returns @code{false} if the @var{caller} function
+cannot inline @var{callee}, based on target specific information.  By
+default, inlining is not allowed if the callee function has function
+specific target options and the caller does not use the same options.
+@end deftypefn
+
 @node Emulated TLS
 @section Emulating TLS
 @cindex Emulated TLS
@@ -10491,6 +10513,17 @@ to the functions in @file{libgcc} that provide low-level support for
 call stack unwinding.  It is used in declarations in @file{unwind-generic.h}
 and the associated definitions of those functions.
 @end defmac
+
+@deftypefn {Target Hook} void TARGET_UPDATE_STACK_BOUNDARY (void)
+Define this macro to update the current function stack boundary if
+necessary.
+@end deftypefn
+
+@deftypefn {Target Hook} rtx TARGET_GET_DRAP_RTX (void)
+Define this macro to an rtx for Dynamic Realign Argument Pointer if a
+different argument pointer register is needed to access the function's
+argument list when stack is aligned.
+@end deftypefn
 
 @deftypefn {Target Hook} {bool} TARGET_ALLOCATE_STACK_SLOTS_FOR_ARGS (void)
 When optimization is disabled, this hook indicates whether or not

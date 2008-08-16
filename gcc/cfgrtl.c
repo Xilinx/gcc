@@ -76,7 +76,7 @@ static void rtl_delete_block (basic_block);
 static basic_block rtl_redirect_edge_and_branch_force (edge, basic_block);
 static edge rtl_redirect_edge_and_branch (edge, basic_block);
 static basic_block rtl_split_block (basic_block, void *);
-static void rtl_dump_bb (basic_block, FILE *, int);
+static void rtl_dump_bb (basic_block, FILE *, int, int);
 static int rtl_verify_flow_info_1 (void);
 static void rtl_make_forwarder_block (edge);
 
@@ -1111,11 +1111,7 @@ force_nonfallthru_and_redirect (edge e, basic_block target)
 	  && JUMP_P (BB_END (jump_block))
 	  && !any_condjump_p (BB_END (jump_block))
 	  && (EDGE_SUCC (jump_block, 0)->flags & EDGE_CROSSING))
-	REG_NOTES (BB_END (jump_block)) = gen_rtx_EXPR_LIST (REG_CROSSING_JUMP,
-							     NULL_RTX,
-							     REG_NOTES
-							     (BB_END
-							      (jump_block)));
+	add_reg_note (BB_END (jump_block), REG_CROSSING_JUMP, NULL_RTX);
 
       /* Wire edge in.  */
       new_edge = make_edge (e->src, jump_block, EDGE_FALLTHRU);
@@ -1418,8 +1414,7 @@ commit_one_edge_insertion (edge e)
 	      if (JUMP_P (BB_END (bb))
 		  && !any_condjump_p (BB_END (bb))
 		  && (single_succ_edge (bb)->flags & EDGE_CROSSING))
-		REG_NOTES (BB_END (bb)) = gen_rtx_EXPR_LIST
-		  (REG_CROSSING_JUMP, NULL_RTX, REG_NOTES (BB_END (bb)));
+		add_reg_note (BB_END (bb), REG_CROSSING_JUMP, NULL_RTX);
 	    }
 	}
     }
@@ -1515,7 +1510,7 @@ commit_edge_insertions (void)
    at start and end).  */
 
 static void
-rtl_dump_bb (basic_block bb, FILE *outf, int indent)
+rtl_dump_bb (basic_block bb, FILE *outf, int indent, int flags ATTRIBUTE_UNUSED)
 {
   rtx insn;
   rtx last;
@@ -2809,7 +2804,7 @@ rtl_flow_call_edges_add (sbitmap blocks)
 	  e = find_edge (bb, EXIT_BLOCK_PTR);
 	  if (e)
 	    {
-	      insert_insn_on_edge (gen_rtx_USE (VOIDmode, const0_rtx), e);
+	      insert_insn_on_edge (gen_use (const0_rtx), e);
 	      commit_edge_insertions ();
 	    }
 	}

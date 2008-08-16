@@ -1,3 +1,251 @@
+2008-08-14  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR libfortran/37123
+	* intrinsics/cshift0.c (cshift0): Fix 2 typos.
+
+2008-08-14  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR libfortran/36886
+	* Makefile.am:  Added $(i_cshift0_c).
+	Added $(i_cshift0_c) to gfor_built_specific_src.
+	Add rule to build from cshift0.m4.
+	* Makefile.in:  Regenerated.
+	* libgfortran.h:  Addedd prototypes for cshift0_i1,
+	cshift0_i2, cshift0_i4, cshift0_i8, cshift0_i16,
+	cshift0_r4, cshift0_r8, cshift0_r10, cshift0_r16,
+	cshift0_c4, cshift0_c8, cshift0_c10, cshift0_c16.
+	Define Macros GFC_UNALIGNED_C4 and GFC_UNALIGNED_C8.
+	* intrinsics/cshift0.c:  Remove helper functions for
+	the innter shift loop.
+	(cshift0):  Call specific functions depending on type
+	of array argument.  Only call specific functions for
+	correct alignment for other types.
+	* m4/cshift0.m4:  New file.
+	* generated/cshift0_i1.c:  New file.
+	* generated/cshift0_i2.c:  New file.
+	* generated/cshift0_i4.c:  New file.
+	* generated/cshift0_i8:.c  New file.
+	* generated/cshift0_i16.c:  New file.
+	* generated/cshift0_r4.c:  New file.
+	* generated/cshift0_r8.c:  New file.
+	* generated/cshift0_r10.c:  New file.
+	* generated/cshift0_r16.c:  New file.
+	* generated/cshift0_c4.c:  New file.
+	* generated/cshift0_c8.c:  New file.
+	* generated/cshift0_c10.c:  New file.
+	* generated/cshift0_c16.c:  New file.
+
+2008-07-27  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/36132
+	PR fortran/29952
+	PR fortran/36909
+	* runtime/error.c: New function runtime_error_at.
+	* gfortran.map: Ditto.
+	* libgfortran.h: Ditto.
+
+2008-07-22  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/36582
+	* io/list_read.c: If variable rank is zero, do not adjust the found
+	namelist object pointer.
+
+2008-07-22  Daniel Kraft  <d@domob.eu>
+
+	PR fortran/29835
+	* io/format.c (struct format_data):  New member error_element.
+	(unexpected_element):  Added '%c' to message.
+	(next_char):  Keep track of last parsed character in fmt->error_element.
+	(format_error):  If the message is unexpected_element, output the
+	offending character, too.
+
+2008-07-22  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR libfortran/36890
+	* io/file_pos.c:  Declare READ_CHUNK as signed to avoid
+	signed/unsigned comparison warning in formatted_backspace.
+
+2008-07-21  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR libfortran/36773
+	* intrinsics/cshift0.c (cshift0):  Return early if size of array
+	is zero.
+	* intrinsics/eoshift0.c (eoshift0):  Return early if size of
+	return array is zero.
+	* intrinsics/eoshift2.c (eoshift2):  Likewise.
+	* m4/eoshift1.m4 (eoshift1):  Return early if size of array
+	is zero.
+	* m4/eoshift3.m4 (eoshift3):  Likewise.
+	* m4/eoshift2.m4 (eoshift2):  Return early if size of return
+	array is zero.
+	* m4/eoshift4.m4 (eoshift2):  Return early if size of return
+	array is zero.
+	* generated/cshift1_16.c: Regenerated.
+	* generated/cshift1_4.c: Regenerated.
+	* generated/cshift1_8.c: Regenerated.
+	* generated/eoshift1_16.c: Regenerated.
+	* generated/eoshift1_4.c: Regenerated.
+	* generated/eoshift1_8.c: Regenerated.
+	* generated/eoshift3_16.c: Regenerated.
+	* generated/eoshift3_4.c: Regenerated.
+	* generated/eoshift3_8.c: Regenerated.
+
+2008-07-20  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/36857
+	* io/write_float.def: Comment out locale dependent code and fix general
+	comments.
+	
+2008-07-07  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR fortran/36341
+	PR fortran/34670
+	* m4/matmul.m4:  Add bounds checking.
+	* m4/matmull.m4:  Likewise.
+	* generated/matmul_c10.c: Regenerated.
+	* generated/matmul_c16.c: Regenerated.
+	* generated/matmul_c4.c: Regenerated.
+	* generated/matmul_c8.c: Regenerated.
+	* generated/matmul_i1.c: Regenerated.
+	* generated/matmul_i16.c: Regenerated.
+	* generated/matmul_i2.c: Regenerated.
+	* generated/matmul_i4.c: Regenerated.
+	* generated/matmul_i8.c: Regenerated.
+	* generated/matmul_l16.c: Regenerated.
+	* generated/matmul_l4.c: Regenerated.
+	* generated/matmul_l8.c: Regenerated.
+	* generated/matmul_r10.c: Regenerated.
+	* generated/matmul_r16.c: Regenerated.
+	* generated/matmul_r4.c: Regenerated.
+	* generated/matmul_r8.c: Regenerated.
+
+2008-07-07  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* acinclude.m4 (LIBGFOR_CHECK_GTHR_DEFAULT): Fix configure cache
+	variable name.
+	* configure: Regenerate.
+
+2008-07-01  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/36676
+	* io/list_read.c (find_nml_name): Use eat_separator instead of eat_line.
+	
+2008-06-28  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/36657
+	* io/list_read.c (read_character): Check for '!' along with separators.
+	(find_nml_name): Likewise and eat the comment if found.
+
+2008-06-17  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* configure: Regenerate.
+
+2008-06-16  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/36546
+	* io/list_read.c (eat_separator): Add tab character to condition
+	for looping past whitespace.
+
+2008-06-14  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/36515
+	* libgfortran.h (compile_options_t): Add int range_check to structure.
+	* runtime/compile_options.c (set_options): Add range_check option.
+	(init_compile_options): Likewise.
+	*io/read.c (read_decimal): Change overflow checks to include
+	range_check.
+	
+2008-06-13  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/36538
+	* io/list_read.c (namelist_read): Add eat_separator to eliminate leading
+	tabs.
+
+2008-06-13  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/35863
+	* libgfortran.h: Change l8_to_l4_offset to big_endian and add endian_off.
+	* runtime/main.c: Fix error in comment. Change l8_to_l4_offset to
+	big_endian. (determine_endianness): Add endian_off and set its value
+	according to big_endian.
+	* gfortran.map: Add symbol for new _gfortran_transfer_character_wide.
+	* io/io.h: Add prototype declarations for new functions.
+	* io/list_read.c (list_formatted_read_scalar): Modify to handle kind=4.
+	(list_formatted_read): Calculate stride based on kind for character type
+	and use it when calling list_formatted_read_scalar.
+	* io/inquire.c (inquire_via_unit): Change l8_to_l4_offset to big_endian.
+	* io/open.c (st_open): Change l8_to_l4_offset to big_endian.
+	* io/read.c (read_a_char4): New function to handle formatted read.
+	* io/write.c: Define GFC_CHAR4(x) to improve readability of code.
+	(write_a_char4): New function to handle formatted write.
+	(write_character): Modify to accept the kind parameter and adjust for
+	endianess of the machine. (list_formatted_write): Calculate the stride
+	resulting from the kind and adjust the list_formatted_write_scalar call
+	accordingly. (nml_write_obj): Adjust calls to write_character.
+	(namelist_write): Likewise.
+	* io/transfer.c (formatted_transfer_scaler): Rename 'len' argument to
+	'kind' argument to better describe what it is. Add calls to new
+	functions for kind == 4. (formatted_transfer): Modify to handle the case
+	of type character and kind equals 4 to pass in the kind to the transfer
+	routines. (transfer_character_wide): Add this new function.
+	(transfer_array): Don't set kind to the character string length. Adjust
+	strides bases on character kind.
+	(unformatted_read): Adjust size based on kind for character types.
+	(unformatted_write): Likewise. (data_transfer_init): Change
+	l8_to_l4_offset to big_endian.
+	io/fbuf.c (fbuf_seek): Add cast to eliminate warning.
+
+2008-06-13  Tobias Burnus  <burnus@net-b.de>
+
+	* configure.ac (AM_CFLAGS): Remove -Werror again.
+	* configure: Regenerate.
+
+2008-06-13  Tobias Burnus  <burnus@net-b.de>
+
+	PR libgfortran/36518
+	* configure.ac (AM_CFLAGS): Add -Werror.
+	* configure: Regenerate.
+	* m4/ifunction_logical.m4: Cast "n" to "(int)".
+	* generated/any_l16.c: Regenerate.
+	* generated/any_l2.c: Regenerate.
+	* generated/all_l1.c: Regenerate.
+	* generated/all_l2.c: Regenerate.
+	* generated/all_l16.c: Regenerate.
+	* generated/any_l4.c: Regenerate.
+	* generated/count_4_l.c: Regenerate.
+	* generated/count_8_l.c: Regenerate.
+	* generated/all_l4.c: Regenerate.
+	* generated/count_1_l.c: Regenerate.
+	* generated/count_16_l.c: Regenerate.
+	* generated/any_l8.c: Regenerate.
+	* generated/count_2_l.c: Regenerate.
+	* generated/any_l1.c: Regenerate.
+	* generated/all_l8.c: Regenerate.
+
+2008-06-13  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/36495
+	* configure.ac (AM_FCFLAGS): Add "-Werror -fimplicit-none".
+	* configure: (generated) ditto.
+	* intrinsics/dprod_r8.f90: Add "implicit none".
+
+2008-06-07  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libfortran/36420
+	PR libfortran/36421
+	PR libfortran/36422
+	* io/io.h: Add prototype for write_real.
+	* io/transfer.c (formatted_transfer_scalar): For FMT_G and width zero,
+	use write_real.
+	* io/format.c: Add zero width error message. (parse_format_list): Use
+	error message for FMT_A if followed by FMT_ZERO. Use zero width error
+	message	for FMT_G if mode is READ or if -std=f95 or f2003. (fmormat0):
+	Fix typo in comment.
+	* io/write.c(write_a): Set wlen to len if FMT_G	and length is zero.
+	(write_l): Add wlen variable and use it if FMT_G and width is zero.
+	(write_decimal): If FMT_G, set m to -1 to flag processor dependent
+	formatting. (write_real): Remove static declaration.
+
 2008-05-28  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
 
 	PR fortran/36319

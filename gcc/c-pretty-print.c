@@ -1019,7 +1019,7 @@ pp_c_constant (c_pretty_printer *pp, tree e)
     case COMPLEX_CST:
       /* Sometimes, we are confused and we think a complex literal
          is a constant.  Such thing is a compound literal which
-         grammatically belongs to postifx-expr production.  */
+         grammatically belongs to postfix-expr production.  */
       pp_c_compound_literal (pp, e);
       break;
 
@@ -1096,7 +1096,7 @@ pp_c_primary_expression (c_pretty_printer *pp, tree e)
       break;
 
     default:
-      /* FIXME:  Make sure we won't get into an infinie loop.  */
+      /* FIXME:  Make sure we won't get into an infinite loop.  */
       pp_c_left_paren (pp);
       pp_expression (pp, e);
       pp_c_right_paren (pp);
@@ -1852,14 +1852,13 @@ static void
 pp_c_assignment_expression (c_pretty_printer *pp, tree e)
 {
   if (TREE_CODE (e) == MODIFY_EXPR 
-      || TREE_CODE (e) == GIMPLE_MODIFY_STMT
       || TREE_CODE (e) == INIT_EXPR)
     {
-      pp_c_unary_expression (pp, GENERIC_TREE_OPERAND (e, 0));
+      pp_c_unary_expression (pp, TREE_OPERAND (e, 0));
       pp_c_whitespace (pp);
       pp_equal (pp);
       pp_space (pp);
-      pp_c_expression (pp, GENERIC_TREE_OPERAND (e, 1));
+      pp_c_expression (pp, TREE_OPERAND (e, 1));
     }
   else
     pp_c_conditional_expression (pp, e);
@@ -2007,7 +2006,6 @@ pp_c_expression (c_pretty_printer *pp, tree e)
       break;
 
     case MODIFY_EXPR:
-    case GIMPLE_MODIFY_STMT:
     case INIT_EXPR:
       pp_assignment_expression (pp, e);
       break;

@@ -184,26 +184,26 @@ canonicalize_address (rtx x)
    for a memory access in the given MODE.  */
 
 static bool
-should_replace_address (rtx old, rtx new, enum machine_mode mode)
+should_replace_address (rtx old_rtx, rtx new_rtx, enum machine_mode mode)
 {
   int gain;
 
-  if (rtx_equal_p (old, new) || !memory_address_p (mode, new))
+  if (rtx_equal_p (old_rtx, new_rtx) || !memory_address_p (mode, new_rtx))
     return false;
 
   /* Copy propagation is always ok.  */
-  if (REG_P (old) && REG_P (new))
+  if (REG_P (old_rtx) && REG_P (new_rtx))
     return true;
 
   /* Prefer the new address if it is less expensive.  */
-  gain = address_cost (old, mode) - address_cost (new, mode);
+  gain = address_cost (old_rtx, mode) - address_cost (new_rtx, mode);
 
   /* If the addresses have equivalent cost, prefer the new address
      if it has the highest `rtx_cost'.  That has the potential of
      eliminating the most insns without additional costs, and it
      is the same that cse.c used to do.  */
   if (gain == 0)
-    gain = rtx_cost (new, SET) - rtx_cost (old, SET);
+    gain = rtx_cost (new_rtx, SET) - rtx_cost (old_rtx, SET);
 
   return (gain > 0);
 }
@@ -244,7 +244,7 @@ enum {
    that is because there is no simplify_gen_* function for LO_SUM).  */
 
 static bool
-propagate_rtx_1 (rtx *px, rtx old, rtx new, int flags)
+propagate_rtx_1 (rtx *px, rtx old_rtx, rtx new_rtx, int flags)
 {
   rtx x = *px, tem = NULL_RTX, op0, op1, op2;
   enum rtx_code code = GET_CODE (x);
@@ -265,9 +265,9 @@ propagate_rtx_1 (rtx *px, rtx old, rtx new, int flags)
 
   /* If X is OLD_RTX, return NEW_RTX.  But not if replacing only within an
      address, and we are *not* inside one.  */
-  if (x == old)
+  if (x == old_rtx)
     {
-      *px = new;
+      *px = new_rtx;
       return can_appear;
     }
 
@@ -277,7 +277,7 @@ propagate_rtx_1 (rtx *px, rtx old, rtx new, int flags)
     case RTX_UNARY:
       op0 = XEXP (x, 0);
       op_mode = GET_MODE (op0);
-      valid_ops &= propagate_rtx_1 (&op0, old, new, flags);
+      valid_ops &= propagate_rtx_1 (&op0, old_rtx, new_rtx, flags);
       if (op0 == XEXP (x, 0))
 	return true;
       tem = simplify_gen_unary (code, mode, op0, op_mode);
@@ -287,8 +287,8 @@ propagate_rtx_1 (rtx *px, rtx old, rtx new, int flags)
     case RTX_COMM_ARITH:
       op0 = XEXP (x, 0);
       op1 = XEXP (x, 1);
-      valid_ops &= propagate_rtx_1 (&op0, old, new, flags);
-      valid_ops &= propagate_rtx_1 (&op1, old, new, flags);
+      valid_ops &= propagate_rtx_1 (&op0, old_rtx, new_rtx, flags);
+      valid_ops &= propagate_rtx_1 (&op1, old_rtx, new_rtx, flags);
       if (op0 == XEXP (x, 0) && op1 == XEXP (x, 1))
 	return true;
       tem = simplify_gen_binary (code, mode, op0, op1);
@@ -299,8 +299,8 @@ propagate_rtx_1 (rtx *px, rtx old, rtx new, int flags)
       op0 = XEXP (x, 0);
       op1 = XEXP (x, 1);
       op_mode = GET_MODE (op0) != VOIDmode ? GET_MODE (op0) : GET_MODE (op1);
-      valid_ops &= propagate_rtx_1 (&op0, old, new, flags);
-      valid_ops &= propagate_rtx_1 (&op1, old, new, flags);
+      valid_ops &= propagate_rtx_1 (&op0, old_rtx, new_rtx, flags);
+      valid_ops &= propagate_rtx_1 (&op1, old_rtx, new_rtx, flags);
       if (op0 == XEXP (x, 0) && op1 == XEXP (x, 1))
 	return true;
       tem = simplify_gen_relational (code, mode, op_mode, op0, op1);
@@ -312,9 +312,9 @@ propagate_rtx_1 (rtx *px, rtx old, rtx new, int flags)
       op1 = XEXP (x, 1);
       op2 = XEXP (x, 2);
       op_mode = GET_MODE (op0);
-      valid_ops &= propagate_rtx_1 (&op0, old, new, flags);
-      valid_ops &= propagate_rtx_1 (&op1, old, new, flags);
-      valid_ops &= propagate_rtx_1 (&op2, old, new, flags);
+      valid_ops &= propagate_rtx_1 (&op0, old_rtx, new_rtx, flags);
+      valid_ops &= propagate_rtx_1 (&op1, old_rtx, new_rtx, flags);
+      valid_ops &= propagate_rtx_1 (&op2, old_rtx, new_rtx, flags);
       if (op0 == XEXP (x, 0) && op1 == XEXP (x, 1) && op2 == XEXP (x, 2))
 	return true;
       if (op_mode == VOIDmode)
@@ -327,7 +327,7 @@ propagate_rtx_1 (rtx *px, rtx old, rtx new, int flags)
       if (code == SUBREG)
 	{
           op0 = XEXP (x, 0);
-	  valid_ops &= propagate_rtx_1 (&op0, old, new, flags);
+	  valid_ops &= propagate_rtx_1 (&op0, old_rtx, new_rtx, flags);
           if (op0 == XEXP (x, 0))
 	    return true;
 	  tem = simplify_gen_subreg (mode, op0, GET_MODE (SUBREG_REG (x)),
@@ -336,7 +336,7 @@ propagate_rtx_1 (rtx *px, rtx old, rtx new, int flags)
       break;
 
     case RTX_OBJ:
-      if (code == MEM && x != new)
+      if (code == MEM && x != new_rtx)
 	{
 	  rtx new_op0;
 	  op0 = XEXP (x, 0);
@@ -346,7 +346,7 @@ propagate_rtx_1 (rtx *px, rtx old, rtx new, int flags)
 	    return true;
 
 	  op0 = new_op0 = targetm.delegitimize_address (op0);
-	  valid_ops &= propagate_rtx_1 (&new_op0, old, new,
+	  valid_ops &= propagate_rtx_1 (&new_op0, old_rtx, new_rtx,
 					flags | PR_CAN_APPEAR);
 
 	  /* Dismiss transformation that we do not want to carry on.  */
@@ -359,7 +359,7 @@ propagate_rtx_1 (rtx *px, rtx old, rtx new, int flags)
 	  canonicalize_address (new_op0);
 
 	  /* Copy propagations are always ok.  Otherwise check the costs.  */
-	  if (!(REG_P (old) && REG_P (new))
+	  if (!(REG_P (old_rtx) && REG_P (new_rtx))
 	      && !should_replace_address (op0, new_op0, GET_MODE (x)))
 	    return true;
 
@@ -374,8 +374,8 @@ propagate_rtx_1 (rtx *px, rtx old, rtx new, int flags)
 	  /* The only simplification we do attempts to remove references to op0
 	     or make it constant -- in both cases, op0's invalidity will not
 	     make the result invalid.  */
-	  propagate_rtx_1 (&op0, old, new, flags | PR_CAN_APPEAR);
-	  valid_ops &= propagate_rtx_1 (&op1, old, new, flags);
+	  propagate_rtx_1 (&op0, old_rtx, new_rtx, flags | PR_CAN_APPEAR);
+	  valid_ops &= propagate_rtx_1 (&op1, old_rtx, new_rtx, flags);
           if (op0 == XEXP (x, 0) && op1 == XEXP (x, 1))
 	    return true;
 
@@ -393,9 +393,9 @@ propagate_rtx_1 (rtx *px, rtx old, rtx new, int flags)
 
       else if (code == REG)
 	{
-	  if (rtx_equal_p (x, old))
+	  if (rtx_equal_p (x, old_rtx))
 	    {
-              *px = new;
+              *px = new_rtx;
               return can_appear;
 	    }
 	}
@@ -438,23 +438,23 @@ varying_mem_p (rtx *body, void *data ATTRIBUTE_UNUSED)
    Otherwise, we accept simplifications that have a lower or equal cost.  */
 
 static rtx
-propagate_rtx (rtx x, enum machine_mode mode, rtx old, rtx new)
+propagate_rtx (rtx x, enum machine_mode mode, rtx old_rtx, rtx new_rtx)
 {
   rtx tem;
   bool collapsed;
   int flags;
 
-  if (REG_P (new) && REGNO (new) < FIRST_PSEUDO_REGISTER)
+  if (REG_P (new_rtx) && REGNO (new_rtx) < FIRST_PSEUDO_REGISTER)
     return NULL_RTX;
 
   flags = 0;
-  if (REG_P (new) || CONSTANT_P (new))
+  if (REG_P (new_rtx) || CONSTANT_P (new_rtx))
     flags |= PR_CAN_APPEAR;
-  if (!for_each_rtx (&new, varying_mem_p, NULL))
+  if (!for_each_rtx (&new_rtx, varying_mem_p, NULL))
     flags |= PR_HANDLE_MEM;
 
   tem = x;
-  collapsed = propagate_rtx_1 (&tem, old, copy_rtx (new), flags);
+  collapsed = propagate_rtx_1 (&tem, old_rtx, copy_rtx (new_rtx), flags);
   if (tem == x || !collapsed)
     return NULL_RTX;
 
@@ -527,10 +527,15 @@ use_killed_between (struct df_ref *use, rtx def_insn, rtx target_insn)
     return true;
 
   /* Check if the reg in USE has only one definition.  We already
-     know that this definition reaches use, or we wouldn't be here.  */
+     know that this definition reaches use, or we wouldn't be here.
+     However, this is invalid for hard registers because if they are
+     live at the beginning of the function it does not mean that we
+     have an uninitialized access.  */
   regno = DF_REF_REGNO (use);
   def = DF_REG_DEF_CHAIN (regno);
-  if (def && (def->next_reg == NULL))
+  if (def
+      && def->next_reg == NULL
+      && regno >= FIRST_PSEUDO_REGISTER)
     return false;
 
   /* Check locally if we are in the same basic block.  */
@@ -546,13 +551,13 @@ use_killed_between (struct df_ref *use, rtx def_insn, rtx target_insn)
       /* See if USE is killed between DEF_INSN and the last insn in the
 	 basic block containing DEF_INSN.  */
       x = df_bb_regno_last_def_find (def_bb, regno);
-      if (x && DF_INSN_LUID (x->insn) >= DF_INSN_LUID (def_insn))
+      if (x && DF_INSN_LUID (DF_REF_INSN (x)) >= DF_INSN_LUID (def_insn))
 	return true;
 
       /* See if USE is killed between TARGET_INSN and the first insn in the
 	 basic block containing TARGET_INSN.  */
       x = df_bb_regno_first_def_find (target_bb, regno);
-      if (x && DF_INSN_LUID (x->insn) < DF_INSN_LUID (target_insn))
+      if (x && DF_INSN_LUID (DF_REF_INSN (x)) < DF_INSN_LUID (target_insn))
 	return true;
 
       return false;
@@ -570,6 +575,7 @@ static bool
 all_uses_available_at (rtx def_insn, rtx target_insn)
 {
   struct df_ref **use_rec;
+  struct df_insn_info *insn_info = DF_INSN_INFO_GET (def_insn);
   rtx def_set = single_set (def_insn);
 
   gcc_assert (def_set);
@@ -583,13 +589,13 @@ all_uses_available_at (rtx def_insn, rtx target_insn)
 
       /* If the insn uses the reg that it defines, the substitution is
          invalid.  */
-      for (use_rec = DF_INSN_USES (def_insn); *use_rec; use_rec++)
+      for (use_rec = DF_INSN_INFO_USES (insn_info); *use_rec; use_rec++)
 	{
 	  struct df_ref *use = *use_rec;
 	  if (rtx_equal_p (DF_REF_REG (use), def_reg))
 	    return false;
 	}
-      for (use_rec = DF_INSN_EQ_USES (def_insn); *use_rec; use_rec++)
+      for (use_rec = DF_INSN_INFO_EQ_USES (insn_info); *use_rec; use_rec++)
 	{
 	  struct df_ref *use = *use_rec;
 	  if (rtx_equal_p (use->reg, def_reg))
@@ -600,13 +606,13 @@ all_uses_available_at (rtx def_insn, rtx target_insn)
     {
       /* Look at all the uses of DEF_INSN, and see if they are not
 	 killed between DEF_INSN and TARGET_INSN.  */
-      for (use_rec = DF_INSN_USES (def_insn); *use_rec; use_rec++)
+      for (use_rec = DF_INSN_INFO_USES (insn_info); *use_rec; use_rec++)
 	{
 	  struct df_ref *use = *use_rec;
 	  if (use_killed_between (use, def_insn, target_insn))
 	    return false;
 	}
-      for (use_rec = DF_INSN_EQ_USES (def_insn); *use_rec; use_rec++)
+      for (use_rec = DF_INSN_INFO_EQ_USES (insn_info); *use_rec; use_rec++)
 	{
 	  struct df_ref *use = *use_rec;
 	  if (use_killed_between (use, def_insn, target_insn))
@@ -716,7 +722,7 @@ update_df (rtx insn, rtx *loc, struct df_ref **use_rec, enum df_ref_type type,
    performed.  */
 
 static bool
-try_fwprop_subst (struct df_ref *use, rtx *loc, rtx new, rtx def_insn, bool set_reg_equal)
+try_fwprop_subst (struct df_ref *use, rtx *loc, rtx new_rtx, rtx def_insn, bool set_reg_equal)
 {
   rtx insn = DF_REF_INSN (use);
   enum df_ref_type type = DF_REF_TYPE (use);
@@ -730,11 +736,11 @@ try_fwprop_subst (struct df_ref *use, rtx *loc, rtx new, rtx def_insn, bool set_
       fprintf (dump_file, "\nIn insn %d, replacing\n ", INSN_UID (insn));
       print_inline_rtx (dump_file, *loc, 2);
       fprintf (dump_file, "\n with ");
-      print_inline_rtx (dump_file, new, 2);
+      print_inline_rtx (dump_file, new_rtx, 2);
       fprintf (dump_file, "\n");
     }
 
-  validate_unshare_change (insn, loc, new, true);
+  validate_unshare_change (insn, loc, new_rtx, true);
   if (!verify_changes (0))
     {
       if (dump_file)
@@ -765,10 +771,11 @@ try_fwprop_subst (struct df_ref *use, rtx *loc, rtx new, rtx def_insn, bool set_
       num_changes++;
 
       df_ref_remove (use);
-      if (!CONSTANT_P (new))
+      if (!CONSTANT_P (new_rtx))
 	{
-	  update_df (insn, loc, DF_INSN_USES (def_insn), type, flags);
-	  update_df (insn, loc, DF_INSN_EQ_USES (def_insn), type, flags);
+	  struct df_insn_info *insn_info = DF_INSN_INFO_GET (def_insn);
+	  update_df (insn, loc, DF_INSN_INFO_USES (insn_info), type, flags);
+	  update_df (insn, loc, DF_INSN_INFO_EQ_USES (insn_info), type, flags);
 	}
     }
   else
@@ -776,24 +783,22 @@ try_fwprop_subst (struct df_ref *use, rtx *loc, rtx new, rtx def_insn, bool set_
       cancel_changes (0);
 
       /* Can also record a simplified value in a REG_EQUAL note,
-	 making a new one if one does not already exist.
-	 Don't do this if the insn has a REG_RETVAL note, because the
-	 combined presence means that the REG_EQUAL note refers to the
-	 (full) contents of the libcall value.  */
-      if (set_reg_equal && !find_reg_note (insn, REG_RETVAL, NULL_RTX))
+	 making a new one if one does not already exist.  */
+      if (set_reg_equal)
 	{
 	  if (dump_file)
 	    fprintf (dump_file, " Setting REG_EQUAL note\n");
 
-	  set_unique_reg_note (insn, REG_EQUAL, copy_rtx (new));
+	  set_unique_reg_note (insn, REG_EQUAL, copy_rtx (new_rtx));
 
 	  /* ??? Is this still necessary if we add the note through
 	     set_unique_reg_note?  */
-          if (!CONSTANT_P (new))
+          if (!CONSTANT_P (new_rtx))
 	    {
-	      update_df (insn, loc, DF_INSN_USES (def_insn),
+	      struct df_insn_info *insn_info = DF_INSN_INFO_GET (def_insn);
+	      update_df (insn, loc, DF_INSN_INFO_USES (insn_info),
 			 type, DF_REF_IN_NOTE);
-	      update_df (insn, loc, DF_INSN_EQ_USES (def_insn),
+	      update_df (insn, loc, DF_INSN_INFO_EQ_USES (insn_info),
 			 type, DF_REF_IN_NOTE);
 	    }
 	}
@@ -845,7 +850,7 @@ forward_propagate_and_simplify (struct df_ref *use, rtx def_insn, rtx def_set)
 {
   rtx use_insn = DF_REF_INSN (use);
   rtx use_set = single_set (use_insn);
-  rtx src, reg, new, *loc;
+  rtx src, reg, new_rtx, *loc;
   bool set_reg_equal;
   enum machine_mode mode;
 
@@ -888,10 +893,10 @@ forward_propagate_and_simplify (struct df_ref *use, rtx def_insn, rtx def_set)
       if (x != src)
 	{
           rtx note = find_reg_note (use_insn, REG_EQUAL, NULL_RTX);
-	  rtx old = note ? XEXP (note, 0) : SET_SRC (use_set);
-	  rtx new = simplify_replace_rtx (old, src, x);
-	  if (old != new)
-            set_unique_reg_note (use_insn, REG_EQUAL, copy_rtx (new));
+	  rtx old_rtx = note ? XEXP (note, 0) : SET_SRC (use_set);
+	  rtx new_rtx = simplify_replace_rtx (old_rtx, src, x);
+	  if (old_rtx != new_rtx)
+            set_unique_reg_note (use_insn, REG_EQUAL, copy_rtx (new_rtx));
 	}
       return false;
     }
@@ -923,12 +928,12 @@ forward_propagate_and_simplify (struct df_ref *use, rtx def_insn, rtx def_set)
   else
     mode = GET_MODE (*loc);
 
-  new = propagate_rtx (*loc, mode, reg, src);
+  new_rtx = propagate_rtx (*loc, mode, reg, src);
 
-  if (!new)
+  if (!new_rtx)
     return false;
 
-  return try_fwprop_subst (use, loc, new, def_insn, set_reg_equal);
+  return try_fwprop_subst (use, loc, new_rtx, def_insn, set_reg_equal);
 }
 
 

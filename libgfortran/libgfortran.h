@@ -272,13 +272,12 @@ typedef GFC_UINTEGER_4 gfc_char4_t;
    simply equal to the kind parameter itself.  */
 #define GFC_SIZE_OF_CHAR_KIND(kind) (kind)
 
-
 /* This will be 0 on little-endian machines and one on big-endian machines.  */
-extern int l8_to_l4_offset;
-internal_proto(l8_to_l4_offset);
+extern int big_endian;
+internal_proto(big_endian);
 
 #define GFOR_POINTER_TO_L1(p, kind) \
-  (l8_to_l4_offset * (kind - 1) + (GFC_LOGICAL_1 *)(p))
+  (big_endian * (kind - 1) + (GFC_LOGICAL_1 *)(p))
 
 #define GFC_INTEGER_1_HUGE \
   (GFC_INTEGER_1)((((GFC_UINTEGER_1)1) << 7) - 1)
@@ -438,6 +437,12 @@ typedef GFC_ARRAY_DESCRIPTOR (GFC_MAX_DIMENSIONS, GFC_LOGICAL_16) gfc_array_l16;
 			     (__alignof__(GFC_INTEGER_16) - 1))
 #endif
 
+#define GFC_UNALIGNED_C4(x) (((uintptr_t)(x)) & \
+			     (__alignof__(GFC_COMPLEX_4) - 1))
+
+#define GFC_UNALIGNED_C8(x) (((uintptr_t)(x)) & \
+			     (__alignof__(GFC_COMPLEX_8) - 1))
+
 /* Runtime library include.  */
 #define stringize(x) expand_macro(x)
 #define expand_macro(x) # x
@@ -478,6 +483,7 @@ typedef struct
   size_t record_marker;
   int max_subrecord_length;
   int bounds_check;
+  int range_check;
 }
 compile_options_t;
 
@@ -642,6 +648,9 @@ iexport_proto(runtime_error);
 extern void runtime_error_at (const char *, const char *, ...)
      __attribute__ ((noreturn, format (printf, 2, 3)));
 iexport_proto(runtime_error_at);
+
+extern void runtime_warning_at (const char *, const char *, ...);
+iexport_proto(runtime_warning_at);
 
 extern void internal_error (st_parameter_common *, const char *)
   __attribute__ ((noreturn));
@@ -1206,5 +1215,56 @@ typedef GFC_ARRAY_DESCRIPTOR (GFC_MAX_DIMENSIONS, void) array_t;
 
 extern index_type size0 (const array_t * array); 
 iexport_proto(size0);
+
+/* Internal auxiliary functions for cshift */
+
+void cshift0_i1 (gfc_array_i1 *, const gfc_array_i1 *, ssize_t, int);
+internal_proto(cshift0_i1);
+
+void cshift0_i2 (gfc_array_i2 *, const gfc_array_i2 *, ssize_t, int);
+internal_proto(cshift0_i2);
+
+void cshift0_i4 (gfc_array_i4 *, const gfc_array_i4 *, ssize_t, int);
+internal_proto(cshift0_i4);
+
+void cshift0_i8 (gfc_array_i8 *, const gfc_array_i8 *, ssize_t, int);
+internal_proto(cshift0_i8);
+
+#ifdef HAVE_GFC_INTEGER_16
+void cshift0_i16 (gfc_array_i16 *, const gfc_array_i16 *, ssize_t, int);
+internal_proto(cshift0_i16);
+#endif
+
+void cshift0_r4 (gfc_array_r4 *, const gfc_array_r4 *, ssize_t, int);
+internal_proto(cshift0_r4);
+
+void cshift0_r8 (gfc_array_r8 *, const gfc_array_r8 *, ssize_t, int);
+internal_proto(cshift0_r8);
+
+#ifdef HAVE_GFC_REAL_10
+void cshift0_r10 (gfc_array_r10 *, const gfc_array_r10 *, ssize_t, int);
+internal_proto(cshift0_r10);
+#endif
+
+#ifdef HAVE_GFC_REAL_16
+void cshift0_r16 (gfc_array_r16 *, const gfc_array_r16 *, ssize_t, int);
+internal_proto(cshift0_r16);
+#endif
+
+void cshift0_c4 (gfc_array_c4 *, const gfc_array_c4 *, ssize_t, int);
+internal_proto(cshift0_c4);
+
+void cshift0_c8 (gfc_array_c8 *, const gfc_array_c8 *, ssize_t, int);
+internal_proto(cshift0_c8);
+
+#ifdef HAVE_GFC_COMPLEX_10
+void cshift0_c10 (gfc_array_c10 *, const gfc_array_c10 *, ssize_t, int);
+internal_proto(cshift0_c10);
+#endif
+
+#ifdef HAVE_GFC_COMPLEX_16
+void cshift0_c16 (gfc_array_c16 *, const gfc_array_c16 *, ssize_t, int);
+internal_proto(cshift0_c16);
+#endif
 
 #endif  /* LIBGFOR_H  */

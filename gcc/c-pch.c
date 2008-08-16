@@ -45,7 +45,6 @@ static const struct c_pch_matching
   const char *flag_name;
 } pch_matching[] = {
   { &flag_exceptions, "-fexceptions" },
-  { &flag_unit_at_a_time, "-funit-at-a-time" }
 };
 
 enum {
@@ -93,10 +92,10 @@ static const char *
 get_ident (void)
 {
   static char result[IDENT_LENGTH];
-  static const char template[IDENT_LENGTH] = "gpch.013";
+  static const char templ[IDENT_LENGTH] = "gpch.013";
   static const char c_language_chars[] = "Co+O";
 
-  memcpy (result, template, IDENT_LENGTH);
+  memcpy (result, templ, IDENT_LENGTH);
   result[4] = c_language_chars[c_language];
 
   return result;
@@ -368,6 +367,7 @@ c_common_read_pch (cpp_reader *pfile, const char *name,
   struct c_pch_header h;
   struct save_macro_data *smd;
   expanded_location saved_loc;
+  bool saved_trace_includes;
 
   f = fdopen (fd, "rb");
   if (f == NULL)
@@ -413,6 +413,7 @@ c_common_read_pch (cpp_reader *pfile, const char *name,
 
   /* Save the location and then restore it after reading the PCH.  */
   saved_loc = expand_location (line_table->highest_line);
+  saved_trace_includes = line_table->trace_includes;
 
   cpp_prepare_state (pfile, &smd);
 
@@ -426,6 +427,7 @@ c_common_read_pch (cpp_reader *pfile, const char *name,
 
   fclose (f);
 
+  line_table->trace_includes = saved_trace_includes;
   cpp_set_line_map (pfile, line_table);
   linemap_add (line_table, LC_RENAME, 0, saved_loc.file, saved_loc.line);
 

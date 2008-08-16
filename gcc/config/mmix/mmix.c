@@ -241,7 +241,7 @@ mmix_init_expanders (void)
 static struct machine_function *
 mmix_init_machine_status (void)
 {
-  return ggc_alloc_cleared (sizeof (struct machine_function));
+  return GGC_CNEW (struct machine_function);
 }
 
 /* DATA_ALIGNMENT.
@@ -353,11 +353,11 @@ mmix_local_regno (int regno)
    We need to extend the reload class of REMAINDER_REG and HIMULT_REG.  */
 
 enum reg_class
-mmix_preferred_reload_class (rtx x ATTRIBUTE_UNUSED, enum reg_class class)
+mmix_preferred_reload_class (rtx x ATTRIBUTE_UNUSED, enum reg_class rclass)
 {
   /* FIXME: Revisit.  */
   return GET_CODE (x) == MOD && GET_MODE (x) == DImode
-    ? REMAINDER_REG : class;
+    ? REMAINDER_REG : rclass;
 }
 
 /* PREFERRED_OUTPUT_RELOAD_CLASS.
@@ -365,25 +365,25 @@ mmix_preferred_reload_class (rtx x ATTRIBUTE_UNUSED, enum reg_class class)
 
 enum reg_class
 mmix_preferred_output_reload_class (rtx x ATTRIBUTE_UNUSED,
-				    enum reg_class class)
+				    enum reg_class rclass)
 {
   /* FIXME: Revisit.  */
   return GET_CODE (x) == MOD && GET_MODE (x) == DImode
-    ? REMAINDER_REG : class;
+    ? REMAINDER_REG : rclass;
 }
 
 /* SECONDARY_RELOAD_CLASS.
    We need to reload regs of REMAINDER_REG and HIMULT_REG elsewhere.  */
 
 enum reg_class
-mmix_secondary_reload_class (enum reg_class class,
+mmix_secondary_reload_class (enum reg_class rclass,
 			     enum machine_mode mode ATTRIBUTE_UNUSED,
 			     rtx x ATTRIBUTE_UNUSED,
 			     int in_p ATTRIBUTE_UNUSED)
 {
-  if (class == REMAINDER_REG
-      || class == HIMULT_REG
-      || class == SYSTEM_REGS)
+  if (rclass == REMAINDER_REG
+      || rclass == HIMULT_REG
+      || rclass == SYSTEM_REGS)
     return GENERAL_REGS;
 
   return NO_REGS;
@@ -1158,7 +1158,7 @@ mmix_encode_section_info (tree decl, rtx rtl, int first)
 
       const char *str = XSTR (XEXP (rtl, 0), 0);
       int len = strlen (str);
-      char *newstr = alloca (len + 2);
+      char *newstr = XALLOCAVEC (char, len + 2);
       newstr[0] = '@';
       strcpy (newstr + 1, str);
       XSTR (XEXP (rtl, 0), 0) = ggc_alloc_string (newstr, len + 1);

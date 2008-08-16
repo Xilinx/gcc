@@ -598,11 +598,6 @@ dequeue_and_dump (dump_info_p di)
       dump_child ("op 1", TREE_OPERAND (t, 1));
       break;
 
-    case GIMPLE_MODIFY_STMT:
-      dump_child ("op 0", GIMPLE_STMT_OPERAND (t, 0));
-      dump_child ("op 1", GIMPLE_STMT_OPERAND (t, 1));
-      break;
-
     case COMPONENT_REF:
       dump_child ("op 0", TREE_OPERAND (t, 0));
       dump_child ("op 1", TREE_OPERAND (t, 1));
@@ -814,6 +809,7 @@ static const struct dump_option_value_info dump_options[] =
   {"address", TDF_ADDRESS},
   {"slim", TDF_SLIM},
   {"raw", TDF_RAW},
+  {"graph", TDF_GRAPH},
   {"details", TDF_DETAILS},
   {"stats", TDF_STATS},
   {"blocks", TDF_BLOCKS},
@@ -824,7 +820,8 @@ static const struct dump_option_value_info dump_options[] =
   {"memsyms", TDF_MEMSYMS},
   {"verbose", TDF_VERBOSE},
   {"all", ~(TDF_RAW | TDF_SLIM | TDF_LINENO | TDF_TREE | TDF_RTL | TDF_IPA 
-	    | TDF_STMTADDR | TDF_GRAPH | TDF_DIAGNOSTIC | TDF_VERBOSE)},
+	    | TDF_STMTADDR | TDF_GRAPH | TDF_DIAGNOSTIC | TDF_VERBOSE
+	    | TDF_RHS_ONLY)},
   {NULL, 0}
 };
 
@@ -835,27 +832,27 @@ dump_register (const char *suffix, const char *swtch, const char *glob,
   static int next_dump = FIRST_AUTO_NUMBERED_DUMP;
   int num = next_dump++;
 
-  size_t this = extra_dump_files_in_use++;
+  size_t count = extra_dump_files_in_use++;
 
-  if (this >= extra_dump_files_alloced)
+  if (count >= extra_dump_files_alloced)
     {
       if (extra_dump_files_alloced == 0)
 	extra_dump_files_alloced = 32;
       else
 	extra_dump_files_alloced *= 2;
-      extra_dump_files = xrealloc (extra_dump_files,
-				   sizeof (struct dump_file_info)
-				   * extra_dump_files_alloced);
+      extra_dump_files = XRESIZEVEC (struct dump_file_info,
+				     extra_dump_files,
+				     extra_dump_files_alloced);
     }
 
-  memset (&extra_dump_files[this], 0, sizeof (struct dump_file_info));
-  extra_dump_files[this].suffix = suffix;
-  extra_dump_files[this].swtch = swtch;
-  extra_dump_files[this].glob = glob;
-  extra_dump_files[this].flags = flags;
-  extra_dump_files[this].num = num;
+  memset (&extra_dump_files[count], 0, sizeof (struct dump_file_info));
+  extra_dump_files[count].suffix = suffix;
+  extra_dump_files[count].swtch = swtch;
+  extra_dump_files[count].glob = glob;
+  extra_dump_files[count].flags = flags;
+  extra_dump_files[count].num = num;
 
-  return this + TDI_end;
+  return count + TDI_end;
 }
 
 

@@ -196,7 +196,7 @@ gfc_widechar_to_char (const gfc_char_t *s, int length)
   /* Passing a negative length is used to indicate that length should be
      calculated using gfc_wide_strlen().  */
   len = (length >= 0 ? (size_t) length : gfc_wide_strlen (s));
-  res = gfc_getmem (len + 1);
+  res = XNEWVEC (char, len + 1);
 
   for (i = 0; i < len; i++)
     {
@@ -319,19 +319,19 @@ add_path_to_list (gfc_directorylist **list, const char *path,
 
   dir = *list;
   if (!dir)
-    dir = *list = gfc_getmem (sizeof (gfc_directorylist));
+    dir = *list = XCNEW (gfc_directorylist);
   else
     {
       while (dir->next)
 	dir = dir->next;
 
-      dir->next = gfc_getmem (sizeof (gfc_directorylist));
+      dir->next = XCNEW (gfc_directorylist);
       dir = dir->next;
     }
 
   dir->next = NULL;
   dir->use_for_modules = use_for_modules;
-  dir->path = gfc_getmem (strlen (p) + 2);
+  dir->path = XCNEWVEC (char, strlen (p) + 2);
   strcpy (dir->path, p);
   strcat (dir->path, "/");	/* make '/' last character */
 }
@@ -495,9 +495,8 @@ add_file_change (const char *filename, int line)
 	file_changes_allocated *= 2;
       else
 	file_changes_allocated = 16;
-      file_changes
-	= xrealloc (file_changes,
-		    file_changes_allocated * sizeof (*file_changes));
+      file_changes = XRESIZEVEC (struct gfc_file_change, file_changes,
+				 file_changes_allocated);
     }
   file_changes[file_changes_count].filename = filename;
   file_changes[file_changes_count].lb = NULL;
@@ -702,7 +701,8 @@ skip_free_comments (void)
 		      if (((c = next_char ()) == 'm' || c == 'M')
 			  && ((c = next_char ()) == 'p' || c == 'P'))
 			{
-			  if ((c = next_char ()) == ' ' || continue_flag)
+			  if ((c = next_char ()) == ' ' || c == '\t'
+			      || continue_flag)
 			    {
 			      while (gfc_is_whitespace (c))
 				c = next_char ();
@@ -724,7 +724,7 @@ skip_free_comments (void)
 		      next_char ();
 		      c = next_char ();
 		    }
-		  if (continue_flag || c == ' ')
+		  if (continue_flag || c == ' ' || c == '\t')
 		    {
 		      gfc_current_locus = old_loc;
 		      next_char ();
@@ -820,11 +820,11 @@ skip_fixed_comments (void)
 			  c = next_char ();
 			  if (c != '\n'
 			      && ((openmp_flag && continue_flag)
-				  || c == ' ' || c == '0'))
+				  || c == ' ' || c == '\t' || c == '0'))
 			    {
-			      c = next_char ();
-			      while (gfc_is_whitespace (c))
+			      do
 				c = next_char ();
+			      while (gfc_is_whitespace (c));
 			      if (c != '\n' && c != '!')
 				{
 				  /* Canonicalize to *$omp.  */
@@ -843,6 +843,11 @@ skip_fixed_comments (void)
 		      for (col = 3; col < 6; col++, c = next_char ())
 			if (c == ' ')
 			  continue;
+			else if (c == '\t')
+			  {
+			    col = 6;
+			    break;
+			  }
 			else if (c < '0' || c > '9')
 			  break;
 			else
@@ -850,7 +855,7 @@ skip_fixed_comments (void)
 
 		      if (col == 6 && c != '\n'
 			  && ((continue_flag && !digit_seen)
-			      || c == ' ' || c == '0'))
+			      || c == ' ' || c == '\t' || c == '0'))
 			{
 			  gfc_current_locus = start;
 			  start.nextc[0] = ' ';
@@ -1445,7 +1450,7 @@ load_line (FILE *input, gfc_char_t **pbuf, int *pbuflen, const int *first_char)
 	      /* Reallocate line buffer to double size to hold the
 		overlong line.  */
 	      buflen = buflen * 2;
-	      *pbuf = xrealloc (*pbuf, (buflen + 1) * sizeof (gfc_char_t));
+	      *pbuf = XRESIZEVEC (gfc_char_t, *pbuf, (buflen + 1));
 	      buffer = (*pbuf) + i;
 	    }
 	}
@@ -1495,10 +1500,9 @@ get_file (const char *name, enum lc_reason reason ATTRIBUTE_UNUSED)
 {
   gfc_file *f;
 
-  f = gfc_getmem (sizeof (gfc_file));
+  f = XCNEW (gfc_file);
 
-  f->filename = gfc_getmem (strlen (name) + 1);
-  strcpy (f->filename, name);
+  f->filename = xstrdup (name);
 
   f->next = file_head;
   file_head = f;
@@ -1648,9 +1652,10 @@ preprocessor_line (gfc_char_t *c)
 
   if (strcmp (current_file->filename, filename) != 0)
     {
-      gfc_free (current_file->filename);
-      current_file->filename = gfc_getmem (strlen (filename) + 1);
-      strcpy (current_file->filename, filename);
+       /* FIXME: we leak the old filename because a pointer to it may be stored
+          in the linemap.  Alternative could be using GC or updating linemap to
+          point to the new name, but there is no API for that currently. */
+      current_file->filename = xstrdup (filename);
     }
 
   /* Set new line number.  */
@@ -1667,7 +1672,7 @@ preprocessor_line (gfc_char_t *c)
 }
 
 
-static try load_file (const char *, bool);
+static gfc_try load_file (const char *, const char *, bool);
 
 /* include_line()-- Checks a line buffer to see if it is an include
    line.  If so, we call load_file() recursively to load the included
@@ -1738,7 +1743,7 @@ include_line (gfc_char_t *line)
 		   read by anything else.  */
 
   filename = gfc_widechar_to_char (begin, -1);
-  load_file (filename, false);
+  load_file (filename, NULL, false);
   gfc_free (filename);
   return true;
 }
@@ -1746,8 +1751,8 @@ include_line (gfc_char_t *line)
 
 /* Load a file into memory by calling load_line until the file ends.  */
 
-static try
-load_file (const char *filename, bool initial)
+static gfc_try
+load_file (const char *realfilename, const char *displayedname, bool initial)
 {
   gfc_char_t *line;
   gfc_linebuf *b;
@@ -1755,6 +1760,9 @@ load_file (const char *filename, bool initial)
   FILE *input;
   int len, line_len;
   bool first_line;
+  const char *filename;
+
+  filename = displayedname ? displayedname : realfilename;
 
   for (f = current_file; f; f = f->up)
     if (strcmp (filename, f->filename) == 0)
@@ -1771,7 +1779,7 @@ load_file (const char *filename, bool initial)
 	  gfc_src_file = NULL;
 	}
       else
-	input = gfc_open_file (filename);
+	input = gfc_open_file (realfilename);
       if (input == NULL)
 	{
 	  gfc_error_now ("Can't open file '%s'", filename);
@@ -1780,7 +1788,7 @@ load_file (const char *filename, bool initial)
     }
   else
     {
-      input = gfc_open_included_file (filename, false, false);
+      input = gfc_open_included_file (realfilename, false, false);
       if (input == NULL)
 	{
 	  gfc_error_now ("Can't open included file '%s'", filename);
@@ -1835,11 +1843,11 @@ load_file (const char *filename, bool initial)
 				&& line[2] == (unsigned char) '\xBF')))
 	{
 	  int n = line[1] == (unsigned char) '\xBB' ? 3 : 2;
-	  gfc_char_t *new = gfc_get_wide_string (line_len);
+	  gfc_char_t *new_char = gfc_get_wide_string (line_len);
 
-	  wide_strcpy (new, &line[n]);
+	  wide_strcpy (new_char, &line[n]);
 	  gfc_free (line);
-	  line = new;
+	  line = new_char;
 	  len -= n;
 	}
 
@@ -1875,8 +1883,8 @@ load_file (const char *filename, bool initial)
 
       /* Add line.  */
 
-      b = gfc_getmem (gfc_linebuf_header_size
-		      + (len + 1) * sizeof (gfc_char_t));
+      b = (gfc_linebuf *) gfc_getmem (gfc_linebuf_header_size
+				      + (len + 1) * sizeof (gfc_char_t));
 
       b->location
 	= linemap_line_start (line_table, current_file->line++, 120);
@@ -1909,23 +1917,23 @@ load_file (const char *filename, bool initial)
 
 
 /* Open a new file and start scanning from that file. Returns SUCCESS
-   if everything went OK, FAILURE otherwise.  If form == FORM_UKNOWN
+   if everything went OK, FAILURE otherwise.  If form == FORM_UNKNOWN
    it tries to determine the source form from the filename, defaulting
    to free form.  */
 
-try
+gfc_try
 gfc_new_file (void)
 {
-  try result;
+  gfc_try result;
 
   if (gfc_cpp_enabled ())
     {
       result = gfc_cpp_preprocess (gfc_source_file);
       if (!gfc_cpp_preprocess_only ())
-        result = load_file (gfc_cpp_temporary_file (), true);
+        result = load_file (gfc_cpp_temporary_file (), gfc_source_file, true);
     }
   else
-    result = load_file (gfc_source_file, true);
+    result = load_file (gfc_source_file, NULL, true);
 
   gfc_current_locus.lb = line_head;
   gfc_current_locus.nextc = (line_head == NULL) ? NULL : line_head->line;
@@ -1967,7 +1975,7 @@ unescape_filename (const char *ptr)
 
   /* Undo effects of cpp_quote_string.  */
   s = ptr;
-  d = gfc_getmem (p + 1 - ptr - unescape);
+  d = XCNEWVEC (char, p + 1 - ptr - unescape);
   ret = d;
 
   while (s != p)
@@ -2040,7 +2048,7 @@ gfc_read_orig_filename (const char *filename, const char **canon_source_file)
 
   if (! IS_ABSOLUTE_PATH (filename))
     {
-      char *p = gfc_getmem (len + strlen (filename));
+      char *p = XCNEWVEC (char, len + strlen (filename));
 
       memcpy (p, dirname, len - 2);
       p[len - 2] = '/';

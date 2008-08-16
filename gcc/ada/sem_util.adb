@@ -1447,7 +1447,7 @@ package body Sem_Util is
    --  Start of processing for Collect_Interfaces_Info
 
    begin
-      Collect_Interfaces  (T, Ifaces_List);
+      Collect_Interfaces (T, Ifaces_List);
       Collect_Interface_Components (T, Comps_List);
 
       --  Search for the record component and tag associated with each
@@ -6371,6 +6371,42 @@ package body Sem_Util is
          return False;
       end if;
    end Is_Potentially_Persistent_Type;
+
+   ---------------------------------
+   -- Is_Protected_Self_Reference --
+   ---------------------------------
+
+   function Is_Protected_Self_Reference (N : Node_Id) return Boolean
+   is
+      function In_Access_Definition (N : Node_Id) return Boolean;
+      --  Returns true if N belongs to an access definition
+
+      --------------------------
+      -- In_Access_Definition --
+      --------------------------
+
+      function In_Access_Definition (N : Node_Id) return Boolean
+      is
+         P : Node_Id := Parent (N);
+      begin
+         while Present (P) loop
+            if Nkind (P) = N_Access_Definition then
+               return True;
+            end if;
+            P := Parent (P);
+         end loop;
+         return False;
+      end In_Access_Definition;
+
+   --  Start of processing for Is_Protected_Self_Reference
+
+   begin
+      return Ada_Version >= Ada_05
+        and then Is_Entity_Name (N)
+        and then Is_Protected_Type (Entity (N))
+        and then In_Open_Scopes (Entity (N))
+        and then not In_Access_Definition (N);
+   end Is_Protected_Self_Reference;
 
    -----------------------------
    -- Is_RCI_Pkg_Spec_Or_Body --

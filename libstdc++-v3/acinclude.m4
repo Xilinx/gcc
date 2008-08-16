@@ -466,8 +466,13 @@ AC_DEFUN([GLIBCXX_CHECK_WRITEV], [
 
 dnl
 dnl Check whether int64_t is available in <stdint.h>, and define HAVE_INT64_T.
+dnl Also check whether int64_t is actually a typedef to long or long long.
 dnl
 AC_DEFUN([GLIBCXX_CHECK_INT64_T], [
+
+  AC_LANG_SAVE
+  AC_LANG_CPLUSPLUS
+
   AC_MSG_CHECKING([for int64_t])
   AC_CACHE_VAL(glibcxx_cv_INT64_T, [
     AC_TRY_COMPILE(
@@ -476,10 +481,43 @@ AC_DEFUN([GLIBCXX_CHECK_INT64_T], [
       [glibcxx_cv_INT64_T=yes],
       [glibcxx_cv_INT64_T=no])
   ])
+
   if test $glibcxx_cv_INT64_T = yes; then
     AC_DEFINE(HAVE_INT64_T, 1, [Define if int64_t is available in <stdint.h>.])
+    AC_MSG_RESULT($glibcxx_cv_INT64_T)
+
+    AC_MSG_CHECKING([for int64_t as long])
+    AC_CACHE_VAL(glibcxx_cv_int64_t_long, [
+      AC_TRY_COMPILE(
+        [#include <stdint.h>
+        template<typename, typename> struct same { enum { value = -1 }; };
+        template<typename Tp> struct same<Tp, Tp> { enum { value = 1 }; };
+        int array[same<int64_t, long>::value];], [],
+	[glibcxx_cv_int64_t_long=yes], [glibcxx_cv_int64_t_long=no])
+    ])
+
+    if test $glibcxx_cv_int64_t_long = yes; then
+      AC_DEFINE(HAVE_INT64_T_LONG, 1, [Define if int64_t is a long.])
+      AC_MSG_RESULT($glibcxx_cv_int64_t_long)
+    fi
+
+    AC_MSG_CHECKING([for int64_t as long long])
+    AC_CACHE_VAL(glibcxx_cv_int64_t_long_long, [
+      AC_TRY_COMPILE(
+        [#include <stdint.h>
+        template<typename, typename> struct same { enum { value = -1 }; };
+        template<typename Tp> struct same<Tp, Tp> { enum { value = 1 }; };
+        int array[same<int64_t, long long>::value];], [],
+	[glibcxx_cv_int64_t_long_long=yes], [glibcxx_cv_int64_t_long_long=no])
+    ])
+
+    if test $glibcxx_cv_int64_t_long_long = yes; then
+      AC_DEFINE(HAVE_INT64_T_LONG_LONG, 1, [Define if int64_t is a long long.])
+      AC_MSG_RESULT($glibcxx_cv_int64_t_long_long)
+    fi
   fi
-  AC_MSG_RESULT($glibcxx_cv_INT64_T)
+
+  AC_LANG_RESTORE
 ])
 
 
@@ -1009,6 +1047,105 @@ AC_DEFUN([GLIBCXX_ENABLE_C99], [
 
 
 dnl
+dnl Check for IEEE Std 1003.1-2001 clock_gettime required for 
+dnl 20.8.5 [time.clock] in the current C++0X working draft.
+dnl
+AC_DEFUN([GLIBCXX_CHECK_CLOCK_GETTIME], [
+
+  AC_LANG_SAVE
+  AC_LANG_CPLUSPLUS
+  ac_save_CXXFLAGS="$CXXFLAGS"
+  CXXFLAGS="$CXXFLAGS -fno-exceptions"
+  ac_save_LIBS="$LIBS"
+
+  AC_SEARCH_LIBS(clock_gettime, [posix4])
+
+  # Link to -lposix4.
+  case "$ac_cv_search_clock_gettime" in
+    -lposix4*) GLIBCXX_LIBS=$ac_cv_search_clock_gettime
+  esac
+
+  AC_CHECK_HEADERS(unistd.h, ac_has_unistd_h=yes, ac_has_unistd_h=no)
+  
+  ac_has_clock_monotonic=no;  
+  ac_has_clock_realtime=no;  
+  if test x"$ac_has_unistd_h" = x"yes"; then    
+    AC_MSG_CHECKING([for monotonic clock])
+    AC_TRY_LINK(
+      [#include <unistd.h>
+       #include <time.h>
+      ],
+      [#if _POSIX_TIMERS > 0 && defined(_POSIX_MONOTONIC_CLOCK)
+        timespec tp;     
+       #endif
+        clock_gettime(CLOCK_MONOTONIC, &tp);
+      ], [ac_has_clock_monotonic=yes], [ac_has_clock_monotonic=no])
+    
+    AC_MSG_RESULT($ac_has_clock_monotonic)   
+    
+    AC_MSG_CHECKING([for realtime clock])
+    AC_TRY_LINK(
+      [#include <unistd.h>
+       #include <time.h>
+      ],
+      [#if _POSIX_TIMERS > 0
+        timespec tp;      
+       #endif
+        clock_gettime(CLOCK_REALTIME, &tp);
+      ], [ac_has_clock_realtime=yes], [ac_has_clock_realtime=no])
+    
+    AC_MSG_RESULT($ac_has_clock_realtime)
+  fi 
+  
+  if test x"$ac_has_clock_monotonic" = x"yes"; then
+    AC_DEFINE(_GLIBCXX_USE_CLOCK_MONOTONIC, 1,
+      [ Defined if clock_gettime has monotonic clock support. ])
+  fi
+
+  if test x"$ac_has_clock_realtime" = x"yes"; then
+    AC_DEFINE(_GLIBCXX_USE_CLOCK_REALTIME, 1,
+      [ Defined if clock_gettime has realtime clock support. ])
+  fi
+
+  AC_SUBST(GLIBCXX_LIBS)
+
+  CXXFLAGS="$ac_save_CXXFLAGS"
+  LIBS="$ac_save_LIBS"
+  AC_LANG_RESTORE
+])
+
+dnl
+dnl Check for IEEE Std 1003.1-2001 gettimeofday required for 
+dnl 20.8.5 [time.clock] in the current C++0X working draft.
+dnl
+AC_DEFUN([GLIBCXX_CHECK_GETTIMEOFDAY], [
+  
+  AC_LANG_SAVE
+  AC_LANG_CPLUSPLUS
+  ac_save_CXXFLAGS="$CXXFLAGS"
+  CXXFLAGS="$CXXFLAGS -fno-exceptions"
+  
+  ac_has_gettimeofday=no;
+  AC_CHECK_HEADERS(sys/time.h, ac_has_sys_time_h=yes, ac_has_sys_time_h=no)
+  if test x"$ac_has_sys_time_h" = x"yes"; then
+    AC_MSG_CHECKING([for gettimeofday])
+    AC_TRY_LINK([#include <sys/time.h>],
+      [timeval tv; gettimeofday(&tv, 0);],
+      [ac_has_gettimeofday=yes], [ac_has_gettimeofday=no])
+    
+    AC_MSG_RESULT($ac_has_gettimeofday)
+  fi
+  
+  if test x"$ac_has_gettimeofday" = x"yes"; then
+    AC_DEFINE(_GLIBCXX_USE_GETTIMEOFDAY, 1,
+      [ Defined if gettimeofday is available. ])
+  fi
+  
+  CXXFLAGS="$ac_save_CXXFLAGS"
+  AC_LANG_RESTORE
+])
+
+dnl
 dnl Check for ISO/IEC 9899:1999 "C99" support to ISO/IEC DTR 19768 "TR1"
 dnl facilities in Chapter 8, "C compatibility".
 dnl
@@ -1067,7 +1204,8 @@ AC_DEFUN([GLIBCXX_CHECK_C99_TR1], [
 	         [int ch;
 	          int ret;
 	          ret = isblank(ch);
-		 ],[glibcxx_cv_c99_ctype_tr1=yes], [glibcxx_cv_c99_ctype_tr1=no])
+		 ],[glibcxx_cv_c99_ctype_tr1=yes],
+		   [glibcxx_cv_c99_ctype_tr1=no])
   ])
   AC_MSG_RESULT($glibcxx_cv_c99_ctype_tr1)
   if test x"$glibcxx_cv_c99_ctype_tr1" = x"yes"; then
@@ -1138,7 +1276,8 @@ AC_DEFUN([GLIBCXX_CHECK_C99_TR1], [
 	          typedef uint_least64_t  my_uint_least64_t;
 		  typedef uintmax_t       my_uintmax_t;
 		  typedef uintptr_t       my_uintptr_t;
-		 ],[glibcxx_cv_c99_stdint_tr1=yes], [glibcxx_cv_c99_stdint_tr1=no])
+		 ],[glibcxx_cv_c99_stdint_tr1=yes],
+		   [glibcxx_cv_c99_stdint_tr1=no])
   ])
   AC_MSG_RESULT($glibcxx_cv_c99_stdint_tr1)
   if test x"$glibcxx_cv_c99_stdint_tr1" = x"yes"; then
@@ -1319,6 +1458,29 @@ AC_DEFUN([GLIBCXX_CHECK_RANDOM_TR1], [
     AC_DEFINE(_GLIBCXX_USE_RANDOM_TR1, 1,
               [Define if dev/random and dev/urandom are available for
 	       the random_device of TR1 (Chapter 5.1).])
+  fi
+
+])
+
+dnl
+dnl Check whether EOF, SEEK_CUR, and SEEK_END have the most common values:
+dnl in that case including <cstdio> in some C++ headers can be avoided.
+dnl
+AC_DEFUN([GLIBCXX_CHECK_STDIO_MACROS], [
+
+  AC_MSG_CHECKING([for EOF == -1, SEEK_CUR == 1, SEEK_END == 2])
+  AC_CACHE_VAL(glibcxx_cv_stdio_macros, [
+  AC_TRY_COMPILE([#include <stdio.h>],
+                 [#if ((EOF != -1) || (SEEK_CUR != 1) || (SEEK_END != 2))
+	            unusual values...
+	          #endif
+	         ], [glibcxx_cv_stdio_macros=yes],
+		    [glibcxx_cv_stdio_macros=no])
+  ])
+  AC_MSG_RESULT($glibcxx_cv_stdio_macros)
+  if test x"$glibcxx_cv_stdio_macros" = x"yes"; then
+    AC_DEFINE(_GLIBCXX_STDIO_MACROS, 1,
+              [Define if EOF == -1, SEEK_CUR == 1, SEEK_END == 2.])
   fi
 
 ])

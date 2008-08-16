@@ -29,7 +29,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "system.h"
 #include "coretypes.h"
 #include "tree.h"
-#include "tree-gimple.h"
+#include "gimple.h"
 #include "flags.h"
 #include "langhooks.h"
 #include "langhooks-def.h"
@@ -62,7 +62,7 @@ GTY(())
 
 union lang_tree_node
 GTY((desc ("TREE_CODE (&%h.generic) == IDENTIFIER_NODE"),
-     chain_next ("(union lang_tree_node *)GENERIC_NEXT (&%h.generic)")))
+     chain_next ("(union lang_tree_node *)TREE_CHAIN (&%h.generic)")))
 
 {
   union tree_node GTY((tag ("0"),
@@ -115,8 +115,12 @@ static alias_set_type gfc_get_alias_set (tree);
 #undef LANG_HOOKS_OMP_PRIVATIZE_BY_REFERENCE
 #undef LANG_HOOKS_OMP_PREDETERMINED_SHARING
 #undef LANG_HOOKS_OMP_CLAUSE_DEFAULT_CTOR
+#undef LANG_HOOKS_OMP_CLAUSE_COPY_CTOR
+#undef LANG_HOOKS_OMP_CLAUSE_ASSIGN_OP
+#undef LANG_HOOKS_OMP_CLAUSE_DTOR
 #undef LANG_HOOKS_OMP_DISREGARD_VALUE_EXPR
 #undef LANG_HOOKS_OMP_PRIVATE_DEBUG_CLAUSE
+#undef LANG_HOOKS_OMP_PRIVATE_OUTER_REF
 #undef LANG_HOOKS_OMP_FIRSTPRIVATIZE_TYPE_SIZES
 #undef LANG_HOOKS_BUILTIN_FUNCTION
 #undef LANG_HOOKS_GET_ARRAY_DESCR_INFO
@@ -137,48 +141,18 @@ static alias_set_type gfc_get_alias_set (tree);
 #define LANG_HOOKS_OMP_PRIVATIZE_BY_REFERENCE	gfc_omp_privatize_by_reference
 #define LANG_HOOKS_OMP_PREDETERMINED_SHARING	gfc_omp_predetermined_sharing
 #define LANG_HOOKS_OMP_CLAUSE_DEFAULT_CTOR	gfc_omp_clause_default_ctor
+#define LANG_HOOKS_OMP_CLAUSE_COPY_CTOR		gfc_omp_clause_copy_ctor
+#define LANG_HOOKS_OMP_CLAUSE_ASSIGN_OP		gfc_omp_clause_assign_op
+#define LANG_HOOKS_OMP_CLAUSE_DTOR		gfc_omp_clause_dtor
 #define LANG_HOOKS_OMP_DISREGARD_VALUE_EXPR	gfc_omp_disregard_value_expr
 #define LANG_HOOKS_OMP_PRIVATE_DEBUG_CLAUSE	gfc_omp_private_debug_clause
+#define LANG_HOOKS_OMP_PRIVATE_OUTER_REF	gfc_omp_private_outer_ref
 #define LANG_HOOKS_OMP_FIRSTPRIVATIZE_TYPE_SIZES \
   gfc_omp_firstprivatize_type_sizes
 #define LANG_HOOKS_BUILTIN_FUNCTION          gfc_builtin_function
 #define LANG_HOOKS_GET_ARRAY_DESCR_INFO	     gfc_get_array_descr_info
 
 const struct lang_hooks lang_hooks = LANG_HOOKS_INITIALIZER;
-
-/* A list (chain of TREE_LIST nodes) of all LABEL_DECLs in the function
-   that have names.  Here so we can clear out their names' definitions
-   at the end of the function.  */
-
-/* Tree code classes.  */
-
-#define DEFTREECODE(SYM, NAME, TYPE, LENGTH) TYPE,
-
-const enum tree_code_class tree_code_type[] = {
-#include "tree.def"
-};
-#undef DEFTREECODE
-
-/* Table indexed by tree code giving number of expression
-   operands beyond the fixed part of the node structure.
-   Not used for types or decls.  */
-
-#define DEFTREECODE(SYM, NAME, TYPE, LENGTH) LENGTH,
-
-const unsigned char tree_code_length[] = {
-#include "tree.def"
-};
-#undef DEFTREECODE
-
-/* Names of tree components.
-   Used for printing out the tree and error messages.  */
-#define DEFTREECODE(SYM, NAME, TYPE, LEN) NAME,
-
-const char *const tree_code_name[] = {
-#include "tree.def"
-};
-#undef DEFTREECODE
-
 
 #define NULL_BINDING_LEVEL (struct binding_level *) NULL
 
@@ -262,7 +236,7 @@ gfc_be_parse_file (int set_yydebug ATTRIBUTE_UNUSED)
   cgraph_finalize_compilation_unit ();
   cgraph_optimize ();
 
-  /* Tell the frontent about any errors.  */
+  /* Tell the frontend about any errors.  */
   gfc_get_errors (&warnings, &errors);
   errorcount += errors;
   warningcount += warnings;
@@ -461,6 +435,10 @@ poplevel (int keep, int reverse, int functionbody)
       DECL_INITIAL (current_function_decl) = block_node;
       BLOCK_VARS (block_node) = 0;
     }
+  else if (current_binding_level == global_binding_level)
+    /* When using gfc_start_block/gfc_finish_block from middle-end hooks,
+       don't add newly created BLOCKs as subblocks of global_binding_level.  */
+    ;
   else if (block_node)
     {
       current_binding_level->blocks
@@ -569,7 +547,7 @@ gfc_init_decl_processing (void)
      only use it for actual characters, not for INTEGER(1). Also, we
      want double_type_node to actually have double precision.  */
   build_common_tree_nodes (false, false);
-  /* x86_64 minw32 has a sizetype of "unsigned long long", most other hosts
+  /* x86_64 mingw32 has a sizetype of "unsigned long long", most other hosts
      have a sizetype of "unsigned long". Therefore choose the correct size
      in mostly target independent way.  */
   if (TYPE_MODE (long_unsigned_type_node) == ptr_mode)
@@ -626,7 +604,7 @@ gfc_mark_addressable (tree exp)
 		       IDENTIFIER_POINTER (DECL_NAME (x)));
 		return false;
 	      }
-	    pedwarn ("register variable %qs used in nested function",
+	    pedwarn (0, "register variable %qs used in nested function",
 		     IDENTIFIER_POINTER (DECL_NAME (x)));
 	  }
 	else if (DECL_REGISTER (x) && !TREE_ADDRESSABLE (x))
@@ -651,7 +629,7 @@ gfc_mark_addressable (tree exp)
 	      }
 #endif
 
-	    pedwarn ("address of register variable %qs requested",
+	    pedwarn (0, "address of register variable %qs requested",
 		     IDENTIFIER_POINTER (DECL_NAME (x)));
 	  }
 

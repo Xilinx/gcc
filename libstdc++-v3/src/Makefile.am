@@ -143,7 +143,6 @@ sources = \
 	compatibility.cc \
 	complex_io.cc \
 	ctype.cc \
-	date_time.cc \
 	debug.cc \
 	functexcept.cc \
 	hash.cc \
@@ -187,6 +186,7 @@ sources = \
 	wstring-inst.cc \
 	mutex.cc \
 	condition_variable.cc \
+	chrono.cc \
 	${host_sources} \
 	${host_sources_extra} 
 
@@ -196,10 +196,14 @@ vpath % $(top_srcdir)
 libstdc___la_SOURCES = $(sources)
 
 libstdc___la_LIBADD = \
+	$(GLIBCXX_LIBS) \
 	$(top_builddir)/libmath/libmath.la \
 	$(top_builddir)/libsupc++/libsupc++convenience.la
 
-libstdc___la_DEPENDENCIES = ${version_dep} $(libstdc___la_LIBADD)
+libstdc___la_DEPENDENCIES = \
+	${version_dep} \
+	$(top_builddir)/libmath/libmath.la \
+	$(top_builddir)/libsupc++/libsupc++convenience.la
 
 libstdc___la_LDFLAGS = \
 	-version-info $(libtool_VERSION) ${version_arg} -lm 
@@ -268,15 +272,25 @@ limits_c++0x.lo: limits_c++0x.cc
 limits_c++0x.o: limits_c++0x.cc
 	$(CXXCOMPILE) -std=gnu++0x -c $<
 
-date_time.lo: date_time.cc
-	$(LTCXXCOMPILE) -std=gnu++0x -c $<
-date_time.o: date_time.cc
-	$(CXXCOMPILE) -std=gnu++0x -c $<
-
 atomic.lo: atomic.cc
 	$(LTCXXCOMPILE) -x c++ -std=gnu++0x -c $<
 atomic.o: atomic.cc
 	$(CXXCOMPILE) -x c++ -std=gnu++0x -c $<
+
+string-inst.lo: string-inst.cc
+	$(LTCXXCOMPILE) -std=gnu++0x -c $<
+string-inst.o: string-inst.cc
+	$(CXXCOMPILE) -std=gnu++0x -c $<
+
+wstring-inst.lo: wstring-inst.cc
+	$(LTCXXCOMPILE) -std=gnu++0x -c $<
+wstring-inst.o: wstring-inst.cc
+	$(CXXCOMPILE) -std=gnu++0x -c $<
+
+chrono.lo: chrono.cc
+	$(LTCXXCOMPILE) -std=gnu++0x -c $<
+chrono.o: chrono.cc
+	$(CXXCOMPILE) -std=gnu++0x -c $<
 
 if GLIBCXX_LDBL_COMPAT
 # Use special rules for compatibility-ldbl.cc compilation, as we need to

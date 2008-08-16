@@ -30,15 +30,6 @@ The Free Software Foundation is independent of Sun Microsystems, Inc.  */
 
 #include "hashtab.h"
 
-/* Java language-specific tree codes.  */
-#define DEFTREECODE(SYM, NAME, TYPE, LENGTH) SYM,
-enum java_tree_code {
-  __DUMMY = LAST_AND_UNUSED_TREE_CODE,
-#include "java-tree.def"
-  LAST_JAVA_TREE_CODE
-};
-#undef DEFTREECODE
-
 struct JCF;
 
 /* Usage of TREE_LANG_FLAG_?:
@@ -658,7 +649,7 @@ struct lang_identifier GTY(())
 /* The resulting tree type.  */
 union lang_tree_node 
   GTY((desc ("TREE_CODE (&%h.generic) == IDENTIFIER_NODE"),
-       chain_next ("(union lang_tree_node *)GENERIC_NEXT (&%h.generic)")))
+       chain_next ("(union lang_tree_node *)TREE_CHAIN (&%h.generic)")))
 
 {
   union tree_node GTY ((tag ("0"), 
@@ -769,8 +760,7 @@ union lang_tree_node
 #define MAYBE_CREATE_VAR_LANG_DECL_SPECIFIC(T)			\
   if (DECL_LANG_SPECIFIC (T) == NULL)				\
     {								\
-      DECL_LANG_SPECIFIC ((T))					\
-	= ggc_alloc_cleared (sizeof (struct lang_decl));	\
+      DECL_LANG_SPECIFIC ((T)) = GGC_CNEW (struct lang_decl);	\
       DECL_LANG_SPECIFIC (T)->desc = LANG_DECL_VAR;		\
     }
 
@@ -900,7 +890,7 @@ struct lang_decl GTY(())
 #define MAYBE_CREATE_TYPE_TYPE_LANG_SPECIFIC(T) \
   if (TYPE_LANG_SPECIFIC ((T)) == NULL)		\
      TYPE_LANG_SPECIFIC ((T))			\
-     = ggc_alloc_cleared (sizeof (struct lang_type));
+     = GGC_CNEW (struct lang_type);
 
 #define TYPE_DUMMY(T)		(TYPE_LANG_SPECIFIC(T)->dummy_class)
 
@@ -1565,7 +1555,7 @@ enum
 #undef DEBUG_JAVA_BINDING_LEVELS
 
 extern void java_genericize (tree);
-extern int java_gimplify_expr (tree *, tree *, tree *);
+extern int java_gimplify_expr (tree *, gimple_seq *, gimple_seq *);
 
 extern FILE *finput;
 

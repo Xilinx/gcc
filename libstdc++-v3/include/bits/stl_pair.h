@@ -1,6 +1,6 @@
 // Pair implementation -*- C++ -*-
 
-// Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007
+// Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
 // Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
@@ -62,8 +62,8 @@
 #ifndef _STL_PAIR_H
 #define _STL_PAIR_H 1
 
-#include <bits/stl_move.h> // for std::move / std::forward, std::decay, and
-                           // std::swap
+#include <bits/move.h> // for std::move / std::forward, std::decay, and
+                       // std::swap
 
 _GLIBCXX_BEGIN_NAMESPACE(std)
 
@@ -151,7 +151,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
     operator==(const pair<_T1, _T2>& __x, const pair<_T1, _T2>& __y)
     { return __x.first == __y.first && __x.second == __y.second; }
 
-  /// <http://gcc.gnu.org/onlinedocs/libstdc++/20_util/howto.html#pairlt>
+  /// <http://gcc.gnu.org/onlinedocs/libstdc++/manual/utilities.html>
   template<class _T1, class _T2>
     inline bool
     operator<(const pair<_T1, _T2>& __x, const pair<_T1, _T2>& __y)

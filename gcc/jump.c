@@ -1068,8 +1068,7 @@ mark_jump_label_1 (rtx x, rtx insn, bool in_mem, bool is_target)
 		   a label, except for the primary target of a jump,
 		   must have such a note.  */
 		if (! find_reg_note (insn, kind, label))
-		  REG_NOTES (insn)
-		    = gen_rtx_INSN_LIST (kind, label, REG_NOTES (insn));
+		  add_reg_note (insn, kind, label);
 	      }
 	  }
 	return;
@@ -1327,6 +1326,15 @@ redirect_exp_1 (rtx *loc, rtx olabel, rtx nlabel, rtx insn)
       return;
     }
 
+  if (code == IF_THEN_ELSE)
+    {
+      /* Skip the condition of an IF_THEN_ELSE.  We only want to
+         change jump destinations, not eventual label comparisons.  */
+      redirect_exp_1 (&XEXP (x, 1), olabel, nlabel, insn);
+      redirect_exp_1 (&XEXP (x, 2), olabel, nlabel, insn);
+      return;
+    }
+
   fmt = GET_RTX_FORMAT (code);
   for (i = GET_RTX_LENGTH (code) - 1; i >= 0; i--)
     {
@@ -1544,12 +1552,22 @@ rtx_renumbered_equal_p (const_rtx x, const_rtx y)
 
 	  if (reg_renumber[reg_x] >= 0)
 	    {
+	      if (!subreg_offset_representable_p (reg_renumber[reg_x],
+						  GET_MODE (SUBREG_REG (x)),
+						  byte_x,
+						  GET_MODE (x)))
+		return 0;
 	      reg_x = subreg_regno_offset (reg_renumber[reg_x],
 					   GET_MODE (SUBREG_REG (x)),
 					   byte_x,
 					   GET_MODE (x));
 	      byte_x = 0;
 	    }
+	  else if (!subreg_offset_representable_p (reg_x,
+						   GET_MODE (SUBREG_REG (x)),
+						   byte_x,
+						   GET_MODE (x)))
+	    return 0;
 	}
       else
 	{
@@ -1565,12 +1583,22 @@ rtx_renumbered_equal_p (const_rtx x, const_rtx y)
 
 	  if (reg_renumber[reg_y] >= 0)
 	    {
+	      if (!subreg_offset_representable_p (reg_renumber[reg_y],
+						  GET_MODE (SUBREG_REG (y)),
+						  byte_y,
+						  GET_MODE (y)))
+		return 0;
 	      reg_y = subreg_regno_offset (reg_renumber[reg_y],
 					   GET_MODE (SUBREG_REG (y)),
 					   byte_y,
 					   GET_MODE (y));
 	      byte_y = 0;
 	    }
+	  else if (!subreg_offset_representable_p (reg_y,
+						   GET_MODE (SUBREG_REG (y)),
+						   byte_y,
+						   GET_MODE (y)))
+	    return 0;
 	}
       else
 	{

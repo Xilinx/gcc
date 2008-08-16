@@ -199,7 +199,7 @@ gen_stdcall_or_fastcall_suffix (tree decl, tree id, bool fastcall)
 	}
       }
   /* Assume max of 8 base 10 digits in the suffix.  */
-  p = new_str = alloca (1 + strlen (old_str) + 1 + 8 + 1);
+  p = new_str = XALLOCAVEC (char, 1 + strlen (old_str) + 1 + 8 + 1);
   if (fastcall)
     *p++ = FASTCALL_PREFIX;
   sprintf (p, "%s@" HOST_WIDE_INT_PRINT_DEC, old_str, total);
@@ -380,7 +380,7 @@ i386_pe_unique_section (tree decl, int reloc)
   else
     prefix = ".data$";
   len = strlen (name) + strlen (prefix);
-  string = alloca (len + 1);
+  string = XALLOCAVEC (char, len + 1);
   sprintf (string, "%s%s", prefix, name);
 
   DECL_SECTION_NAME (decl) = build_string (len, string);
@@ -531,16 +531,16 @@ i386_pe_asm_output_aligned_decl_common (FILE *stream, tree decl,
 /* Mark a function appropriately.  This should only be called for
    functions for which we are not emitting COFF debugging information.
    FILE is the assembler output file, NAME is the name of the
-   function, and PUBLIC is nonzero if the function is globally
+   function, and PUB is nonzero if the function is globally
    visible.  */
 
 void
-i386_pe_declare_function_type (FILE *file, const char *name, int public)
+i386_pe_declare_function_type (FILE *file, const char *name, int pub)
 {
   fprintf (file, "\t.def\t");
   assemble_name (file, name);
   fprintf (file, ";\t.scl\t%d;\t.type\t%d;\t.endef\n",
-	   public ? (int) C_EXT : (int) C_STAT,
+	   pub ? (int) C_EXT : (int) C_STAT,
 	   (int) DT_FCN << N_BTSHFT);
 }
 

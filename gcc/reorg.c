@@ -1529,12 +1529,12 @@ try_merge_delay_insns (rtx insn, rtx thread)
 	    {
 	      if (! annul_p)
 		{
-		  rtx new;
+		  rtx new_rtx;
 
 		  update_block (dtrial, thread);
-		  new = delete_from_delay_slot (dtrial);
+		  new_rtx = delete_from_delay_slot (dtrial);
 	          if (INSN_DELETED_P (thread))
-		    thread = new;
+		    thread = new_rtx;
 		  INSN_FROM_TARGET_P (next_to_match) = 0;
 		}
 	      else
@@ -1567,12 +1567,12 @@ try_merge_delay_insns (rtx insn, rtx thread)
 	{
 	  if (GET_MODE (merged_insns) == SImode)
 	    {
-	      rtx new;
+	      rtx new_rtx;
 
 	      update_block (XEXP (merged_insns, 0), thread);
-	      new = delete_from_delay_slot (XEXP (merged_insns, 0));
+	      new_rtx = delete_from_delay_slot (XEXP (merged_insns, 0));
 	      if (INSN_DELETED_P (thread))
-		thread = new;
+		thread = new_rtx;
 	    }
 	  else
 	    {
@@ -3217,9 +3217,7 @@ delete_prior_computation (rtx note, rtx insn)
 		{
 		  int i;
 
-		  REG_NOTES (our_prev)
-		    = gen_rtx_EXPR_LIST (REG_UNUSED, reg,
-					 REG_NOTES (our_prev));
+		  add_reg_note (our_prev, REG_UNUSED, reg);
 
 		  for (i = dest_regno; i < dest_endregno; i++)
 		    if (! find_regno_note (our_prev, REG_UNUSED, i))
@@ -3281,8 +3279,7 @@ delete_computation (rtx insn)
 	    delete_computation (prev);
 	  else
 	    /* Otherwise, show that cc0 won't be used.  */
-	    REG_NOTES (prev) = gen_rtx_EXPR_LIST (REG_UNUSED,
-						  cc0_rtx, REG_NOTES (prev));
+	    add_reg_note (prev, REG_UNUSED, cc0_rtx);
 	}
     }
 #endif
@@ -3834,7 +3831,7 @@ dbr_schedule (rtx first)
 	epilogue_insn = insn;
     }
 
-  uid_to_ruid = xmalloc ((max_uid + 1) * sizeof (int));
+  uid_to_ruid = XNEWVEC (int, max_uid + 1);
   for (i = 0, insn = first; insn; i++, insn = NEXT_INSN (insn))
     uid_to_ruid[INSN_UID (insn)] = i;
 
@@ -3842,7 +3839,7 @@ dbr_schedule (rtx first)
   if (unfilled_firstobj == 0)
     {
       gcc_obstack_init (&unfilled_slots_obstack);
-      unfilled_firstobj = obstack_alloc (&unfilled_slots_obstack, 0);
+      unfilled_firstobj = XOBNEWVAR (&unfilled_slots_obstack, rtx, 0);
     }
 
   for (insn = next_active_insn (first); insn; insn = next_active_insn (insn))
@@ -3917,7 +3914,7 @@ dbr_schedule (rtx first)
   obstack_free (&unfilled_slots_obstack, unfilled_firstobj);
 
   /* It is not clear why the line below is needed, but it does seem to be.  */
-  unfilled_firstobj = obstack_alloc (&unfilled_slots_obstack, 0);
+  unfilled_firstobj = XOBNEWVAR (&unfilled_slots_obstack, rtx, 0);
 
   if (dump_file)
     {
@@ -4024,9 +4021,7 @@ dbr_schedule (rtx first)
 	continue;
 
       pred_flags = get_jump_flags (insn, JUMP_LABEL (insn));
-      REG_NOTES (insn) = gen_rtx_EXPR_LIST (REG_BR_PRED,
-					    GEN_INT (pred_flags),
-					    REG_NOTES (insn));
+      add_reg_note (insn, REG_BR_PRED, GEN_INT (pred_flags));
     }
   free_resource_info ();
   free (uid_to_ruid);

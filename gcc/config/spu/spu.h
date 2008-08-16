@@ -124,34 +124,6 @@ extern GTY(()) int spu_tune;
 
 #define STACK_SIZE_MODE SImode
 
-/* #define TARGET_FLOAT_FORMAT     	SPU_FLOAT_FORMAT */
-
-#ifndef MODE_HAS_NANS
-#define MODE_HAS_NANS(MODE)                                     \
-  (FLOAT_MODE_P (MODE) 						\
-   && MODE != SFmode						\
-   && !LARGEST_EXPONENT_IS_NORMAL (GET_MODE_BITSIZE (MODE)))
-#endif
-                                                                              
-#ifndef MODE_HAS_INFINITIES
-#define MODE_HAS_INFINITIES(MODE)                               \
-  (FLOAT_MODE_P (MODE) 						\
-   && MODE != SFmode                                            \
-   && !LARGEST_EXPONENT_IS_NORMAL (GET_MODE_BITSIZE (MODE)))
-#endif
-                                                                              
-#ifndef MODE_HAS_SIGN_DEPENDENT_ROUNDING
-#define MODE_HAS_SIGN_DEPENDENT_ROUNDING(MODE)                  \
-  (FLOAT_MODE_P (MODE)                                          \
-    && MODE != SFmode                                           \
-   && !ROUND_TOWARDS_ZERO)
-#endif
-
-#define ROUND_TOWARDS_ZERO 1
-
-/* This is certainly true.  Should it be defined?  (It wasn't before.) */
-/* #define LARGEST_EXPONENT_IS_NORMAL(size) (size != 32) */
-
 
 /* Type Layout */
 
@@ -263,6 +235,7 @@ enum reg_class {
    only true for SPU. */
 #define CANNOT_CHANGE_MODE_CLASS(FROM, TO, CLASS) \
         ((GET_MODE_SIZE (FROM) > 4 || GET_MODE_SIZE (TO) > 4) \
+	 && (GET_MODE_SIZE (FROM) < 16 || GET_MODE_SIZE (TO) < 16) \
 	 && GET_MODE_SIZE (FROM) != GET_MODE_SIZE (TO))
 
 #define REGISTER_TARGET_PRAGMAS() do {					\
@@ -288,6 +261,8 @@ targetm.resolve_overloaded_builtin = spu_resolve_overloaded_builtin;	\
 /* #define RETURN_ADDR_IN_PREVIOUS_FRAME */
 
 #define INCOMING_RETURN_ADDR_RTX gen_rtx_REG(Pmode, LINK_REGISTER_REGNUM)
+
+#define DWARF_FRAME_RETURN_COLUMN DWARF_FRAME_REGNUM (LINK_REGISTER_REGNUM)
 
 #define ARG_POINTER_CFA_OFFSET(FNDECL) (-STACK_POINTER_OFFSET)
 

@@ -937,15 +937,15 @@ gen_int_relational (enum rtx_code test_code, rtx result, rtx cmp0, rtx cmp1,
     {
       if (p_info->const_add != 0)
 	{
-	  HOST_WIDE_INT new = INTVAL (cmp1) + p_info->const_add;
+	  HOST_WIDE_INT new_const = INTVAL (cmp1) + p_info->const_add;
 
 	  /* If modification of cmp1 caused overflow,
 	     we would get the wrong answer if we follow the usual path;
 	     thus, x > 0xffffffffU would turn into x > 0U.  */
 	  if ((p_info->unsignedp
-	       ? (unsigned HOST_WIDE_INT) new >
+	       ? (unsigned HOST_WIDE_INT) new_const >
 	       (unsigned HOST_WIDE_INT) INTVAL (cmp1)
-	       : new > INTVAL (cmp1))
+	       : new_const > INTVAL (cmp1))
 	      != (p_info->const_add > 0))
 	    {
 	      /* This test is always true, but if INVERT is true then
@@ -955,7 +955,7 @@ gen_int_relational (enum rtx_code test_code, rtx result, rtx cmp0, rtx cmp1,
 	      return result;
 	    }
 	  else
-	    cmp1 = GEN_INT (new);
+	    cmp1 = GEN_INT (new_const);
 	}
     }
 
@@ -1389,7 +1389,7 @@ iq2000_init_machine_status (void)
 {
   struct machine_function *f;
 
-  f = ggc_alloc_cleared (sizeof (struct machine_function));
+  f = GGC_CNEW (struct machine_function);
 
   return f;
 }
@@ -2085,8 +2085,7 @@ iq2000_expand_epilogue (void)
       /* Perform the additional bump for __throw.  */
       emit_move_insn (gen_rtx_REG (Pmode, HARD_FRAME_POINTER_REGNUM),
 		      stack_pointer_rtx);
-      emit_insn (gen_rtx_USE (VOIDmode, gen_rtx_REG (Pmode,
-						  HARD_FRAME_POINTER_REGNUM)));
+      emit_use (gen_rtx_REG (Pmode, HARD_FRAME_POINTER_REGNUM));
       emit_jump_insn (gen_eh_return_internal ());
     }
   else

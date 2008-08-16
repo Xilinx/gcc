@@ -246,7 +246,7 @@ package Sem_Util is
    --  families constrained by discriminants.
 
    function Denotes_Variable (N : Node_Id) return Boolean;
-   --  Returns True if node N denotes a single variable without parentheses.
+   --  Returns True if node N denotes a single variable without parentheses
 
    function Depends_On_Discriminant (N : Node_Id) return Boolean;
    --  Returns True if N denotes a discriminant or if N is a range, a subtype
@@ -726,6 +726,10 @@ package Sem_Util is
    --  persistent. A private type is potentially persistent if the full type
    --  is potentially persistent.
 
+   function Is_Protected_Self_Reference (N : Node_Id) return Boolean;
+   --  Return True if node N denotes a protected type name which represents
+   --  the current instance of a protected object according to RM 9.4(21/2).
+
    function Is_RCI_Pkg_Spec_Or_Body (Cunit : Node_Id) return Boolean;
    --  Return True if a compilation unit is the specification or the
    --  body of a remote call interface package.
@@ -942,8 +946,8 @@ package Sem_Util is
    --  Returns True if the names of both entities correspond with matching
    --  primitives. This routine includes support for the case in which one
    --  or both entities correspond with entities built by Derive_Subprogram
-   --  with a special name to avoid being overriden (ie. return true in case
-   --  of entities with names "nameP" and "name" or viceversa).
+   --  with a special name to avoid being overridden (i.e. return true in case
+   --  of entities with names "nameP" and "name" or vice versa).
 
    function Private_Component (Type_Id : Entity_Id) return Entity_Id;
    --  Returns some private component (if any) of the given Type_Id.

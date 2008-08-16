@@ -38,6 +38,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "target.h"
 #include "tree-pass.h"
 #include "diagnostic.h"
+#include "cgraph.h"
 
 /* Various flags to control the mangling process.  */
 
@@ -154,7 +155,6 @@ make_thunk (tree function, bool this_adjusting,
   DECL_NO_STATIC_CHAIN (thunk) = 1;
   /* The THUNK is not a pending inline, even if the FUNCTION is.  */
   DECL_PENDING_INLINE_P (thunk) = 0;
-  DECL_INLINE (thunk) = 0;
   DECL_DECLARED_INLINE_P (thunk) = 0;
   /* Nor has it been deferred.  */
   DECL_DEFERRED_FN (thunk) = 0;
@@ -280,7 +280,6 @@ make_alias_for (tree function, tree newid)
   DECL_ARTIFICIAL (alias) = 1;
   DECL_NO_STATIC_CHAIN (alias) = 1;
   DECL_PENDING_INLINE_P (alias) = 0;
-  DECL_INLINE (alias) = 0;
   DECL_DECLARED_INLINE_P (alias) = 0;
   DECL_DEFERRED_FN (alias) = 0;
   DECL_USE_TEMPLATE (alias) = 0;
@@ -523,8 +522,7 @@ use_thunk (tree thunk_fndecl, bool emit_p)
       pop_deferring_access_checks ();
 
       thunk_fndecl = finish_function (0);
-      tree_lowering_passes (thunk_fndecl);
-      tree_rest_of_compilation (thunk_fndecl);
+      cgraph_add_new_function (thunk_fndecl, false);
     }
 
   pop_from_top_level ();
@@ -1108,9 +1106,9 @@ implicitly_declare_fn (special_function_kind kind, tree type, bool const_p)
   rest_of_decl_compilation (fn, toplevel_bindings_p (), at_eof);
   DECL_IN_AGGR_P (fn) = 1;
   DECL_ARTIFICIAL (fn) = 1;
+  DECL_DEFAULTED_FN (fn) = 1;
   DECL_NOT_REALLY_EXTERN (fn) = 1;
   DECL_DECLARED_INLINE_P (fn) = 1;
-  DECL_INLINE (fn) = 1;
   gcc_assert (!TREE_USED (fn));
 
   /* Restore PROCESSING_TEMPLATE_DECL.  */

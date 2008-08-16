@@ -388,6 +388,9 @@
 #define TARGET_LIBGCC_CMP_RETURN_MODE  default_libgcc_cmp_return_mode
 #define TARGET_LIBGCC_SHIFT_COUNT_MODE default_libgcc_shift_count_mode
 
+/* In unwind-generic.h.  */
+#define TARGET_UNWIND_WORD_MODE default_unwind_word_mode
+
 /* In tree.c.  */
 #define TARGET_MERGE_DECL_ATTRIBUTES merge_decl_attributes
 #define TARGET_MERGE_TYPE_ATTRIBUTES merge_type_attributes
@@ -517,6 +520,8 @@
 #define TARGET_MACHINE_DEPENDENT_REORG 0
 
 #define TARGET_BUILD_BUILTIN_VA_LIST std_build_builtin_va_list
+#define TARGET_FN_ABI_VA_LIST std_fn_abi_va_list
+#define TARGET_CANONICAL_VA_LIST_TYPE std_canonical_va_list_type
 #define TARGET_EXPAND_BUILTIN_VA_START 0
 
 #define TARGET_GET_PCH_VALIDITY default_get_pch_validity
@@ -545,9 +550,7 @@
 #define TARGET_PROMOTE_PROTOTYPES hook_bool_const_tree_false
 
 #define TARGET_STRUCT_VALUE_RTX hook_rtx_tree_int_null
-#ifndef TARGET_RETURN_IN_MEMORY
 #define TARGET_RETURN_IN_MEMORY default_return_in_memory
-#endif
 #define TARGET_RETURN_IN_MSB hook_bool_const_tree_false
 
 #define TARGET_EXPAND_BUILTIN_SAVEREGS default_expand_builtin_saveregs
@@ -568,6 +571,8 @@
 
 #define TARGET_FUNCTION_VALUE default_function_value
 #define TARGET_INTERNAL_ARG_POINTER default_internal_arg_pointer
+#define TARGET_UPDATE_STACK_BOUNDARY NULL
+#define TARGET_GET_DRAP_RTX NULL
 #define TARGET_ALLOCATE_STACK_SLOTS_FOR_ARGS hook_bool_void_true
 
 #define TARGET_CALLS {						\
@@ -589,6 +594,8 @@
    TARGET_INVALID_ARG_FOR_UNPROTOTYPED_FN,			\
    TARGET_FUNCTION_VALUE,					\
    TARGET_INTERNAL_ARG_POINTER,					\
+   TARGET_UPDATE_STACK_BOUNDARY,				\
+   TARGET_GET_DRAP_RTX,						\
    TARGET_ALLOCATE_STACK_SLOTS_FOR_ARGS				\
    }
 
@@ -614,6 +621,10 @@
 
 #ifndef TARGET_INSTANTIATE_DECLS
 #define TARGET_INSTANTIATE_DECLS hook_void_void
+#endif
+
+#ifndef TARGET_HARD_REGNO_SCRATCH_OK
+#define TARGET_HARD_REGNO_SCRATCH_OK default_hard_regno_scratch_ok
 #endif
 
 /* C specific.  */
@@ -751,6 +762,51 @@
     TARGET_EMUTLS_DEBUG_FORM_TLS_ADDRESS	\
   }
 
+/* Function specific option attribute support.  */
+#ifndef TARGET_OPTION_VALID_ATTRIBUTE_P
+#define TARGET_OPTION_VALID_ATTRIBUTE_P NULL
+#endif
+
+#ifndef TARGET_OPTION_SAVE
+#define TARGET_OPTION_SAVE NULL
+#endif
+
+#ifndef TARGET_OPTION_RESTORE
+#define TARGET_OPTION_RESTORE NULL
+#endif
+
+#ifndef TARGET_OPTION_PRINT
+#define TARGET_OPTION_PRINT NULL
+#endif
+
+#ifndef TARGET_OPTION_PRAGMA_PARSE
+#define TARGET_OPTION_PRAGMA_PARSE NULL
+#endif
+
+#ifndef TARGET_OPTION_CAN_INLINE_P
+#define TARGET_OPTION_CAN_INLINE_P default_target_option_can_inline_p
+#endif
+
+#ifndef TARGET_OPTION_COLD_ATTRIBUTE_SETS_OPTIMIZATION
+#define TARGET_OPTION_COLD_ATTRIBUTE_SETS_OPTIMIZATION false
+#endif
+
+#ifndef TARGET_OPTION_HOT_ATTRIBUTE_SETS_OPTIMIZATION
+#define TARGET_OPTION_HOT_ATTRIBUTE_SETS_OPTIMIZATION false
+#endif
+
+#define TARGET_OPTION_HOOKS			\
+  {						\
+    TARGET_OPTION_VALID_ATTRIBUTE_P,		\
+    TARGET_OPTION_SAVE,				\
+    TARGET_OPTION_RESTORE,			\
+    TARGET_OPTION_PRINT,			\
+    TARGET_OPTION_PRAGMA_PARSE,			\
+    TARGET_OPTION_CAN_INLINE_P,			\
+    TARGET_OPTION_COLD_ATTRIBUTE_SETS_OPTIMIZATION, \
+    TARGET_OPTION_HOT_ATTRIBUTE_SETS_OPTIMIZATION, \
+  }
+
 /* The whole shebang.  */
 #define TARGET_INITIALIZER			\
 {						\
@@ -763,6 +819,7 @@
   TARGET_EH_RETURN_FILTER_MODE,			\
   TARGET_LIBGCC_CMP_RETURN_MODE,                \
   TARGET_LIBGCC_SHIFT_COUNT_MODE,               \
+  TARGET_UNWIND_WORD_MODE,			\
   TARGET_MERGE_DECL_ATTRIBUTES,			\
   TARGET_MERGE_TYPE_ATTRIBUTES,			\
   TARGET_ATTRIBUTE_TABLE,			\
@@ -818,6 +875,8 @@
   TARGET_CC_MODES_COMPATIBLE,			\
   TARGET_MACHINE_DEPENDENT_REORG,		\
   TARGET_BUILD_BUILTIN_VA_LIST,			\
+  TARGET_FN_ABI_VA_LIST,			\
+  TARGET_CANONICAL_VA_LIST_TYPE,			\
   TARGET_EXPAND_BUILTIN_VA_START,		\
   TARGET_GIMPLIFY_VA_ARG_EXPR,			\
   TARGET_GET_PCH_VALIDITY,			\
@@ -840,9 +899,11 @@
   TARGET_SECONDARY_RELOAD,			\
   TARGET_EXPAND_TO_RTL_HOOK,			\
   TARGET_INSTANTIATE_DECLS,			\
+  TARGET_HARD_REGNO_SCRATCH_OK,			\
   TARGET_C,					\
   TARGET_CXX,					\
   TARGET_EMUTLS,				\
+  TARGET_OPTION_HOOKS,				\
   TARGET_EXTRA_LIVE_ON_ENTRY,			\
   TARGET_UNWIND_TABLES_DEFAULT,			\
   TARGET_HAVE_NAMED_SECTIONS,			\

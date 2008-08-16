@@ -235,6 +235,14 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
     : _M_dataplus(_S_construct(__beg, __end, __a), __a)
     { }
 
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+  template<typename _CharT, typename _Traits, typename _Alloc>
+    basic_string<_CharT, _Traits, _Alloc>::
+    basic_string(initializer_list<_CharT> __l, const _Alloc& __a)
+    : _M_dataplus(_S_construct(__l.begin(), __l.end(), __a), __a)
+    { }
+#endif
+
   template<typename _CharT, typename _Traits, typename _Alloc>
     basic_string<_CharT, _Traits, _Alloc>&
     basic_string<_CharT, _Traits, _Alloc>::
@@ -1104,7 +1112,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
   // Inhibit implicit instantiations for required instantiations,
   // which are defined via explicit instantiations elsewhere.
   // NB: This syntax is a GNU extension.
-#if _GLIBCXX_EXTERN_TEMPLATE
+#if _GLIBCXX_EXTERN_TEMPLATE > 0
   extern template class basic_string<char>;
   extern template
     basic_istream<char>&

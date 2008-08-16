@@ -164,6 +164,22 @@ enum mips_loadgp_style {
 
 struct mips16e_save_restore_info;
 
+/* Classifies a type of call.
+
+   MIPS_CALL_NORMAL
+	A normal call or call_value pattern.
+
+   MIPS_CALL_SIBCALL
+	A sibcall or sibcall_value pattern.
+
+   MIPS_CALL_EPILOGUE
+	A call inserted in the epilogue.  */
+enum mips_call_type {
+  MIPS_CALL_NORMAL,
+  MIPS_CALL_SIBCALL,
+  MIPS_CALL_EPILOGUE
+};
+
 extern bool mips_symbolic_constant_p (rtx, enum mips_symbol_context,
 				      enum mips_symbol_type *);
 extern int mips_regno_mode_ok_for_base_p (int, enum machine_mode, bool);
@@ -171,9 +187,12 @@ extern bool mips_legitimate_address_p (enum machine_mode, rtx, bool);
 extern bool mips_stack_address_p (rtx, enum machine_mode);
 extern int mips_address_insns (rtx, enum machine_mode, bool);
 extern int mips_const_insns (rtx);
+extern int mips_split_const_insns (rtx);
 extern int mips_load_store_insns (rtx, rtx);
 extern int mips_idiv_insns (void);
 extern rtx mips_emit_move (rtx, rtx);
+extern rtx mips_pic_base_register (rtx);
+extern rtx mips_got_load (rtx, rtx, enum mips_symbol_type);
 extern bool mips_split_symbol (rtx, rtx, enum machine_mode, rtx *);
 extern rtx mips_unspec_address (rtx, enum mips_symbol_type);
 extern bool mips_legitimize_address (rtx *, enum machine_mode);
@@ -201,7 +220,7 @@ extern rtx mips_subword (rtx, bool);
 extern bool mips_split_64bit_move_p (rtx, rtx);
 extern void mips_split_doubleword_move (rtx, rtx);
 extern const char *mips_output_move (rtx, rtx);
-extern void mips_restore_gp (void);
+extern void mips_restore_gp (rtx);
 #ifdef RTX_CODE
 extern bool mips_expand_scc (enum rtx_code, rtx);
 extern void mips_expand_conditional_branch (rtx *, enum rtx_code);
@@ -209,7 +228,9 @@ extern void mips_expand_vcondv2sf (rtx, rtx, rtx, enum rtx_code, rtx, rtx);
 extern void mips_expand_conditional_move (rtx *);
 extern void mips_expand_conditional_trap (enum rtx_code);
 #endif
-extern rtx mips_expand_call (rtx, rtx, rtx, rtx, bool);
+extern bool mips_use_pic_fn_addr_reg_p (const_rtx);
+extern rtx mips_expand_call (enum mips_call_type, rtx, rtx, rtx, rtx, bool);
+extern void mips_split_call (rtx, rtx);
 extern void mips_expand_fcc_reload (rtx, rtx, rtx);
 extern void mips_set_return_address (rtx, rtx);
 extern bool mips_expand_block_move (rtx, rtx, rtx);
@@ -257,6 +278,7 @@ extern HOST_WIDE_INT mips_initial_elimination_offset (int, int);
 extern rtx mips_return_addr (int, rtx);
 extern enum mips_loadgp_style mips_current_loadgp_style (void);
 extern void mips_expand_prologue (void);
+extern void mips_expand_before_return (void);
 extern void mips_expand_epilogue (bool);
 extern bool mips_can_use_return_insn (void);
 extern rtx mips_function_value (const_tree, enum machine_mode);
@@ -301,5 +323,7 @@ union mips_gen_fn_ptrs
 
 extern void mips_expand_atomic_qihi (union mips_gen_fn_ptrs,
 				     rtx, rtx, rtx, rtx);
+
+extern void mips_expand_vector_init (rtx, rtx);
 
 #endif /* ! GCC_MIPS_PROTOS_H */

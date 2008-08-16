@@ -15,12 +15,13 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 
+sinclude(../config/acx.m4)
+sinclude(../config/override.m4)
+
 AC_INIT
 AC_PREREQ([2.59])
 
 AC_CONFIG_SRCDIR([Makefile.in])
-
-sinclude(../config/acx.m4)
 
 # Determine the host, build, and target systems
 AC_CANONICAL_BUILD
@@ -72,13 +73,6 @@ AC_SUBST([enable_shared])
 # Need to pass this down for now :-P
 AC_PROG_LN_S
 
-# Determine x_ada_cflags
-case $host in
-  hppa*) x_ada_cflags=-mdisable-indexing ;;
-  *) x_ada_cflags= ;;
-esac
-AC_SUBST([x_ada_cflags])
-
 # Determine what to build for 'gnatlib'
 if test $build = $target \
    && test ${enable_shared} = yes ; then
@@ -88,6 +82,13 @@ else
   default_gnatlib_target="gnatlib-plain"
 fi
 AC_SUBST([default_gnatlib_target])
+
+AC_PROG_CC
+warn_cflags=
+if test "x$GCC" = "xyes"; then
+  warn_cflags='$(GCC_WARN_CFLAGS)'
+fi
+AC_SUBST(warn_cflags)
 
 # Output: create a Makefile.
 AC_CONFIG_FILES([Makefile])

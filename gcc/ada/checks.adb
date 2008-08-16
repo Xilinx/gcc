@@ -470,7 +470,11 @@ package body Checks is
    -- Apply_Accessibility_Check --
    -------------------------------
 
-   procedure Apply_Accessibility_Check (N : Node_Id; Typ : Entity_Id) is
+   procedure Apply_Accessibility_Check
+     (N           : Node_Id;
+      Typ         : Entity_Id;
+      Insert_Node : Node_Id)
+   is
       Loc         : constant Source_Ptr := Sloc (N);
       Param_Ent   : constant Entity_Id  := Param_Entity (N);
       Param_Level : Node_Id;
@@ -501,7 +505,7 @@ package body Checks is
          --  Raise Program_Error if the accessibility level of the the access
          --  parameter is deeper than the level of the target access type.
 
-         Insert_Action (N,
+         Insert_Action (Insert_Node,
            Make_Raise_Program_Error (Loc,
              Condition =>
                Make_Op_Gt (Loc,
@@ -1629,10 +1633,35 @@ package body Checks is
          end;
       end if;
 
-      --  Get the bounds of the target type
+      --  Get the (static) bounds of the target type
 
       Ifirst := Expr_Value (LB);
       Ilast  := Expr_Value (HB);
+
+      --  A simple optimization: if the expression is a universal literal,
+      --  we can do the comparison with the bounds and the conversion to
+      --  an integer type statically. The range checks are unchanged.
+
+      if Nkind (Ck_Node) = N_Real_Literal
+        and then Etype (Ck_Node) = Universal_Real
+        and then Is_Integer_Type (Target_Typ)
+        and then Nkind (Parent (Ck_Node)) = N_Type_Conversion
+      then
+         declare
+            Int_Val : constant Uint := UR_To_Uint (Realval (Ck_Node));
+
+         begin
+            if Int_Val <= Ilast and then Int_Val >= Ifirst then
+
+               --  Conversion is safe
+
+               Rewrite (Parent (Ck_Node),
+                 Make_Integer_Literal (Loc, UI_To_Int (Int_Val)));
+               Analyze_And_Resolve (Parent (Ck_Node), Target_Typ);
+               return;
+            end if;
+         end;
+      end if;
 
       --  Check against lower bound
 
@@ -2842,11 +2871,7 @@ package body Checks is
          --  be applied to a [sub]type that does not exclude null already.
 
          elsif Can_Never_Be_Null (Typ)
-
-            --  No need to check itypes that have a null exclusion because
-            --  they are already examined at their point of creation.
-
-           and then not Is_Itype (Typ)
+           and then Comes_From_Source (Typ)
          then
             Error_Msg_NE
               ("`NOT NULL` not allowed (& already excludes null)",
@@ -5277,10 +5302,20 @@ package body Checks is
       --  If known to be null, here is where we generate a compile time check
 
       if Known_Null (N) then
-         Apply_Compile_Time_Constraint_Error
-           (N,
-            "null value not allowed here?",
-            CE_Access_Check_Failed);
+
+         --  Avoid generating warning message inside init procs
+
+         if not Inside_Init_Proc then
+            Apply_Compile_Time_Constraint_Error
+              (N,
+               "null value not allowed here?",
+               CE_Access_Check_Failed);
+         else
+            Insert_Action (N,
+              Make_Raise_Constraint_Error (Loc,
+                Reason => CE_Access_Check_Failed));
+         end if;
+
          Mark_Non_Null;
          return;
       end if;

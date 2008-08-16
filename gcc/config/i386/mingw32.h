@@ -38,7 +38,7 @@ along with GCC; see the file COPYING3.  If not see
       builtin_define_std ("WINNT");				\
       builtin_define_with_int_value ("_INTEGRAL_MAX_BITS",	\
 				     TYPE_PRECISION (intmax_type_node));\
-      if (TARGET_64BIT_MS_ABI)					\
+      if (TARGET_64BIT && DEFAULT_ABI == MS_ABI)			\
 	{							\
 	  builtin_define ("__MINGW64__");			\
 	  builtin_define_std ("WIN64");				\
@@ -160,9 +160,8 @@ do {						         \
 #undef TARGET_N_FORMAT_TYPES
 #define TARGET_N_FORMAT_TYPES 3
 
-/* JCR_SECTION works on mingw32.  */
+/* Let defaults.h definition of TARGET_USE_JCR_SECTION apply. */
 #undef TARGET_USE_JCR_SECTION
-#define TARGET_USE_JCR_SECTION 1
 
 #undef MINGW_ENABLE_EXECUTE_STACK
 #define MINGW_ENABLE_EXECUTE_STACK     \

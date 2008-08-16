@@ -1,5 +1,5 @@
 /* Data structure definitions for a generic GCC target.
-   Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007
+   Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
    Free Software Foundation, Inc.
 
    This program is free software; you can redistribute it and/or modify it
@@ -351,7 +351,7 @@ struct gcc_target
        second argument is the cost of the dependence as estimated by
        the scheduler.  The last argument is the distance in cycles
        between the already scheduled insn (first parameter) and the
-       the second insn (second parameter).  */
+       second insn (second parameter).  */
     bool (* is_costly_dependence) (struct _dep *_dep, int, int);
 
     /* The following member value is a pointer to a function called
@@ -462,6 +462,9 @@ struct gcc_target
 
   /* Return machine mode for libgcc expanded shift instructions.  */
   enum machine_mode (* libgcc_shift_count_mode) (void);
+
+  /* Return machine mode to be used for _Unwind_Word type.  */
+  enum machine_mode (* unwind_word_mode) (void);
 
   /* Given two decls, merge their attributes and return the result.  */
   tree (* merge_decl_attributes) (tree, tree);
@@ -694,12 +697,18 @@ struct gcc_target
   /* Create the __builtin_va_list type.  */
   tree (* build_builtin_va_list) (void);
 
+  /* Get the cfun/fndecl calling abi __builtin_va_list type.  */
+  tree (* fn_abi_va_list) (tree);
+
+  /* Get the __builtin_va_list type dependent on input type.  */
+  tree (* canonical_va_list_type) (tree);
+
   /* Expand the __builtin_va_start builtin.  */
   void (* expand_builtin_va_start) (tree valist, rtx nextarg);
 
   /* Gimplifies a VA_ARG_EXPR.  */
-  tree (* gimplify_va_arg_expr) (tree valist, tree type, tree *pre_p,
-				 tree *post_p);
+  tree (* gimplify_va_arg_expr) (tree valist, tree type, gimple_seq *pre_p,
+				 gimple_seq *post_p);
 
   /* Validity-checking routines for PCH files, target-specific.
      get_pch_validity returns a pointer to the data to be stored,
@@ -745,10 +754,9 @@ struct gcc_target
   void (* dwarf_handle_frame_unspec) (const char *, rtx, int);
 
   /* Perform architecture specific checking of statements gimplified
-     from VA_ARG_EXPR.  LHS is left hand side of MODIFY_EXPR, RHS
-     is right hand side.  Returns true if the statements doesn't need
-     to be checked for va_list references.  */
-  bool (* stdarg_optimize_hook) (struct stdarg_info *ai, const_tree lhs, const_tree rhs);
+     from VA_ARG_EXPR.  STMT is the statement.  Returns true if the statement
+     doesn't need to be checked for va_list references.  */
+  bool (* stdarg_optimize_hook) (struct stdarg_info *ai, const_gimple stmt);
 
   /* This target hook allows the operating system to override the DECL
      that represents the external variable that contains the stack
@@ -831,6 +839,13 @@ struct gcc_target
        current function.  */
     rtx (*internal_arg_pointer) (void);
 
+    /* Update the current function stack boundary if needed.  */
+    void (*update_stack_boundary) (void);
+
+    /* Handle stack alignment and return an rtx for Dynamic Realign
+       Argument Pointer if necessary.  */
+    rtx (*get_drap_rtx) (void);
+
     /* Return true if all function parameters should be spilled to the
        stack.  */
     bool (*allocate_stack_slots_for_args) (void);
@@ -862,6 +877,10 @@ struct gcc_target
      instantiations on rtx that are not actually in insns yet,
      but will be later.  */
   void (* instantiate_decls) (void);
+
+  /* Return true if is OK to use a hard register REGNO as scratch register
+     in peephole2.  */
+  bool (* hard_regno_scratch_ok) (unsigned int regno);
 
   /* Functions specific to the C family of frontends.  */
   struct c {
@@ -949,6 +968,40 @@ struct gcc_target
     /* Whether we can emit debug information for TLS vars.  */
     bool debug_form_tls_address;
   } emutls;  
+
+  struct target_option_hooks {
+    /* Function to validate the attribute((option(...))) strings or NULL.  If
+       the option is validated, it is assumed that DECL_FUNCTION_SPECIFIC will
+       be filled in in the function decl node.  */
+    bool (*valid_attribute_p) (tree, tree, tree, int);
+
+    /* Function to save any extra target state in the target options
+       structure.  */
+    void (*save) (struct cl_target_option *);
+
+    /* Function to restore any extra target state from the target options
+       structure.  */
+    void (*restore) (struct cl_target_option *);
+
+    /* Function to print any extra target state from the target options
+       structure.  */
+    void (*print) (FILE *, int, struct cl_target_option *);
+
+    /* Function to parse arguments to be validated for #pragma option, and to
+       change the state if the options are valid.  If the arguments are NULL,
+       use the default target options.  Return true if the options are valid,
+       and set the current state.  */
+    bool (*pragma_parse) (tree);
+
+    /* Function to determine if one function can inline another function.  */
+    bool (*can_inline_p) (tree, tree);
+
+    /* Whether the cold attribute changes the optimization level.  */
+    bool cold_attribute_sets_optimization;
+
+    /* Whether the hot attribute changes the optimization level.  */
+    bool hot_attribute_sets_optimization;
+  } target_option;
 
   /* For targets that need to mark extra registers as live on entry to
      the function, they should define this target hook and set their

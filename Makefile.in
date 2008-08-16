@@ -144,6 +144,12 @@ BUILD_EXPORTS = \
 	WINDRES="$(WINDRES_FOR_BUILD)"; export WINDRES; \
 	WINDMC="$(WINDMC_FOR_BUILD)"; export WINDMC;
 
+# These variables must be set on the make command line for directories
+# built for the build system to override those in BASE_FLAGS_TO_PASSS.
+EXTRA_BUILD_FLAGS = \
+	CFLAGS="$(CFLAGS_FOR_BUILD)" \
+	LDFLAGS="$(LDFLAGS_FOR_BUILD)"
+
 # This is the list of directories to built for the host system.
 SUBDIRS = @configdirs@
 # This is set by the configure script to the arguments to use when configuring
@@ -158,6 +164,7 @@ HOST_SUBDIR = @host_subdir@
 HOST_EXPORTS = \
 	$(BASE_EXPORTS) \
 	CC="$(CC)"; export CC; \
+	ADA_CFLAGS="$(ADA_CFLAGS)"; export ADA_CFLAGS; \
 	CFLAGS="$(CFLAGS)"; export CFLAGS; \
 	CONFIG_SHELL="$(SHELL)"; export CONFIG_SHELL; \
 	CXX="$(CXX)"; export CXX; \
@@ -499,6 +506,7 @@ BASE_FLAGS_TO_PASS = \
 	"INSTALL_DATA=$(INSTALL_DATA)" \
 	"INSTALL_PROGRAM=$(INSTALL_PROGRAM)" \
 	"INSTALL_SCRIPT=$(INSTALL_SCRIPT)" \
+	"LDFLAGS_FOR_BUILD=$(LDFLAGS_FOR_BUILD)" \
 	"LEX=$(LEX)" \
 	"M4=$(M4)" \
 	"MAKE=$(MAKE)" \
@@ -507,6 +515,7 @@ BASE_FLAGS_TO_PASS = \
 	"SHELL=$(SHELL)" \
 	"YACC=$(YACC)" \
 	"`echo 'ADAFLAGS=$(ADAFLAGS)' | sed -e s'/[^=][^=]*=$$/XFOO=/'`" \
+	"ADA_CFLAGS=$(ADA_CFLAGS)" \
 	"AR_FLAGS=$(AR_FLAGS)" \
 	"`echo 'BOOT_ADAFLAGS=$(BOOT_ADAFLAGS)' | sed -e s'/[^=][^=]*=$$/XFOO=/'`" \
 	"BOOT_CFLAGS=$(BOOT_CFLAGS)" \
@@ -2762,7 +2771,7 @@ all-build-libiberty: configure-build-libiberty
 	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
 	$(BUILD_EXPORTS) \
 	(cd $(BUILD_SUBDIR)/libiberty && \
-	  $(MAKE) $(BASE_FLAGS_TO_PASS)   \
+	  $(MAKE) $(BASE_FLAGS_TO_PASS) $(EXTRA_BUILD_FLAGS)  \
 		$(TARGET-build-libiberty))
 @endif build-libiberty
 
@@ -2818,7 +2827,7 @@ all-build-bison: configure-build-bison
 	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
 	$(BUILD_EXPORTS) \
 	(cd $(BUILD_SUBDIR)/bison && \
-	  $(MAKE) $(BASE_FLAGS_TO_PASS)   \
+	  $(MAKE) $(BASE_FLAGS_TO_PASS) $(EXTRA_BUILD_FLAGS)  \
 		$(TARGET-build-bison))
 @endif build-bison
 
@@ -2874,7 +2883,7 @@ all-build-byacc: configure-build-byacc
 	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
 	$(BUILD_EXPORTS) \
 	(cd $(BUILD_SUBDIR)/byacc && \
-	  $(MAKE) $(BASE_FLAGS_TO_PASS)   \
+	  $(MAKE) $(BASE_FLAGS_TO_PASS) $(EXTRA_BUILD_FLAGS)  \
 		$(TARGET-build-byacc))
 @endif build-byacc
 
@@ -2930,7 +2939,7 @@ all-build-flex: configure-build-flex
 	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
 	$(BUILD_EXPORTS) \
 	(cd $(BUILD_SUBDIR)/flex && \
-	  $(MAKE) $(BASE_FLAGS_TO_PASS)   \
+	  $(MAKE) $(BASE_FLAGS_TO_PASS) $(EXTRA_BUILD_FLAGS)  \
 		$(TARGET-build-flex))
 @endif build-flex
 
@@ -2986,7 +2995,7 @@ all-build-m4: configure-build-m4
 	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
 	$(BUILD_EXPORTS) \
 	(cd $(BUILD_SUBDIR)/m4 && \
-	  $(MAKE) $(BASE_FLAGS_TO_PASS)   \
+	  $(MAKE) $(BASE_FLAGS_TO_PASS) $(EXTRA_BUILD_FLAGS)  \
 		$(TARGET-build-m4))
 @endif build-m4
 
@@ -3042,7 +3051,7 @@ all-build-texinfo: configure-build-texinfo
 	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
 	$(BUILD_EXPORTS) \
 	(cd $(BUILD_SUBDIR)/texinfo && \
-	  $(MAKE) $(BASE_FLAGS_TO_PASS)   \
+	  $(MAKE) $(BASE_FLAGS_TO_PASS) $(EXTRA_BUILD_FLAGS)  \
 		$(TARGET-build-texinfo))
 @endif build-texinfo
 
@@ -3098,7 +3107,7 @@ all-build-fixincludes: configure-build-fixincludes
 	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
 	$(BUILD_EXPORTS) \
 	(cd $(BUILD_SUBDIR)/fixincludes && \
-	  $(MAKE) $(BASE_FLAGS_TO_PASS)   \
+	  $(MAKE) $(BASE_FLAGS_TO_PASS) $(EXTRA_BUILD_FLAGS)  \
 		$(TARGET-build-fixincludes))
 @endif build-fixincludes
 
@@ -50790,7 +50799,7 @@ stage1-end::
 
 # Bubble a bug fix through all the stages up to stage 1.  They are
 # remade, but not reconfigured.  The next stage (if any) will not be
-# reconfigured as well.
+# reconfigured either.
 .PHONY: stage1-bubble
 stage1-bubble:: 
 	@r=`${PWD_COMMAND}`; export r; \
@@ -51013,7 +51022,7 @@ stage2-end::
 
 # Bubble a bug fix through all the stages up to stage 2.  They are
 # remade, but not reconfigured.  The next stage (if any) will not be
-# reconfigured as well.
+# reconfigured either.
 .PHONY: stage2-bubble
 stage2-bubble:: stage1-bubble
 	@r=`${PWD_COMMAND}`; export r; \
@@ -51257,7 +51266,7 @@ stageb2g0-end::
 
 # Bubble a bug fix through all the stages up to stage b2g0.  They are
 # remade, but not reconfigured.  The next stage (if any) will not be
-# reconfigured as well.
+# reconfigured either.
 .PHONY: stageb2g0-bubble
 stageb2g0-bubble:: stage1-bubble
 	@r=`${PWD_COMMAND}`; export r; \
@@ -51501,7 +51510,7 @@ stage3-end::
 
 # Bubble a bug fix through all the stages up to stage 3.  They are
 # remade, but not reconfigured.  The next stage (if any) will not be
-# reconfigured as well.
+# reconfigured either.
 .PHONY: stage3-bubble
 stage3-bubble:: stage2-bubble
 	@r=`${PWD_COMMAND}`; export r; \
@@ -51799,7 +51808,7 @@ stageb3g2-end::
 
 # Bubble a bug fix through all the stages up to stage b3g2.  They are
 # remade, but not reconfigured.  The next stage (if any) will not be
-# reconfigured as well.
+# reconfigured either.
 .PHONY: stageb3g2-bubble
 stageb3g2-bubble:: stageb2g0-bubble
 	@r=`${PWD_COMMAND}`; export r; \
@@ -52097,7 +52106,7 @@ stage4-end::
 
 # Bubble a bug fix through all the stages up to stage 4.  They are
 # remade, but not reconfigured.  The next stage (if any) will not be
-# reconfigured as well.
+# reconfigured either.
 .PHONY: stage4-bubble
 stage4-bubble:: stage3-bubble
 	@r=`${PWD_COMMAND}`; export r; \
@@ -52384,7 +52393,7 @@ stageprofile-end::
 
 # Bubble a bug fix through all the stages up to stage profile.  They are
 # remade, but not reconfigured.  The next stage (if any) will not be
-# reconfigured as well.
+# reconfigured either.
 .PHONY: stageprofile-bubble
 stageprofile-bubble:: stage1-bubble
 	@r=`${PWD_COMMAND}`; export r; \
@@ -52607,7 +52616,7 @@ stagefeedback-end::
 
 # Bubble a bug fix through all the stages up to stage feedback.  They are
 # remade, but not reconfigured.  The next stage (if any) will not be
-# reconfigured as well.
+# reconfigured either.
 .PHONY: stagefeedback-bubble
 stagefeedback-bubble:: stageprofile-bubble
 	@r=`${PWD_COMMAND}`; export r; \
@@ -53599,7 +53608,8 @@ config.status: configure
 
 # Rebuilding configure.
 AUTOCONF = autoconf
-$(srcdir)/configure: @MAINT@ $(srcdir)/configure.ac $(srcdir)/config/acx.m4
+$(srcdir)/configure: @MAINT@ $(srcdir)/configure.ac $(srcdir)/config/acx.m4 \
+	$(srcdir)/config/override.m4 $(srcdir)/config/proginstall.m4
 	cd $(srcdir) && $(AUTOCONF)
 
 # ------------------------------

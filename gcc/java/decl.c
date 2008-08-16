@@ -49,6 +49,7 @@ The Free Software Foundation is independent of Sun Microsystems, Inc.  */
 #include "version.h"
 #include "tree-iterator.h"
 #include "langhooks.h"
+#include "cgraph.h"
 
 #if defined (DEBUG_JAVA_BINDING_LEVELS)
 extern void indent (void);
@@ -1254,7 +1255,7 @@ static struct binding_level *
 make_binding_level (void)
 {
   /* NOSTRICT */
-  return ggc_alloc_cleared (sizeof (struct binding_level));
+  return GGC_CNEW (struct binding_level);
 }
 
 void
@@ -1593,7 +1594,7 @@ java_dup_lang_specific_decl (tree node)
     return;
 
   lang_decl_size = sizeof (struct lang_decl);
-  x = ggc_alloc (lang_decl_size);
+  x = GGC_NEW (struct lang_decl);
   memcpy (x, DECL_LANG_SPECIFIC (node), lang_decl_size);
   DECL_LANG_SPECIFIC (node) = x;
 }
@@ -1720,7 +1721,7 @@ start_java_method (tree fndecl)
   i = DECL_MAX_LOCALS(fndecl) + DECL_MAX_STACK(fndecl);
   decl_map = make_tree_vec (i);
   base_decl_map = make_tree_vec (i);
-  type_map = xrealloc (type_map, i * sizeof (tree));
+  type_map = XRESIZEVEC (tree, type_map, i);
 
 #if defined(DEBUG_JAVA_BINDING_LEVELS)
   fprintf (stderr, "%s:\n", lang_printable_name (fndecl, 2));
@@ -1797,14 +1798,6 @@ end_java_method (void)
 
   finish_method (fndecl);
 
-  if (! flag_unit_at_a_time)
-    {
-      /* Nulling these fields when we no longer need them saves
-	 memory.  */
-      DECL_SAVED_TREE (fndecl) = NULL;
-      DECL_STRUCT_FUNCTION (fndecl) = NULL;
-      DECL_INITIAL (fndecl) = NULL_TREE;
-    }
   current_function_decl = NULL_TREE;
 }
 
@@ -1854,15 +1847,12 @@ java_mark_decl_local (tree decl)
 {
   DECL_EXTERNAL (decl) = 0;
 
-  /* If we've already constructed DECL_RTL, give encode_section_info
-     a second chance, now that we've changed the flags.  */
-  /* ??? Ideally, we'd have flag_unit_at_a_time set, and not have done
-     anything that would have referenced DECL_RTL so far.  But at the
-     moment we force flag_unit_at_a_time off due to excessive memory
-     consumption when compiling large jar files.  Which probably means
-     that we need to re-order how we process jar files...  */
-  if (DECL_RTL_SET_P (decl))
-    make_decl_rtl (decl);
+#ifdef ENABLE_CHECKING
+  /* Double check that we didn't pass the function to the callgraph early.  */
+  if (TREE_CODE (decl) == FUNCTION_DECL)
+    gcc_assert (!cgraph_node (decl)->local.finalized);
+#endif
+  gcc_assert (!DECL_RTL_SET_P (decl));
 }
 
 /* Given appropriate target support, G++ will emit hidden aliases for native
@@ -1899,15 +1889,15 @@ java_mark_cni_decl_local (tree decl)
 /* Use the preceding two functions and mark all members of the class.  */
 
 void
-java_mark_class_local (tree class)
+java_mark_class_local (tree klass)
 {
   tree t;
 
-  for (t = TYPE_FIELDS (class); t ; t = TREE_CHAIN (t))
+  for (t = TYPE_FIELDS (klass); t ; t = TREE_CHAIN (t))
     if (FIELD_STATIC (t))
       java_mark_decl_local (t);
 
-  for (t = TYPE_METHODS (class); t ; t = TREE_CHAIN (t))
+  for (t = TYPE_METHODS (klass); t ; t = TREE_CHAIN (t))
     if (!METHOD_ABSTRACT (t))
       {
 	if (METHOD_NATIVE (t) && !flag_jni)

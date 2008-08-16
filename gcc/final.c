@@ -410,7 +410,7 @@ get_attr_length_1 (rtx insn ATTRIBUTE_UNUSED,
 	  length = asm_insn_count (body) * fallback_fn (insn);
 	else if (GET_CODE (body) == SEQUENCE)
 	  for (i = 0; i < XVECLEN (body, 0); i++)
-	    length += get_attr_length (XVECEXP (body, 0, i));
+	    length += get_attr_length_1 (XVECEXP (body, 0, i), fallback_fn);
 	else
 	  length = fallback_fn (insn);
 	break;
@@ -858,8 +858,7 @@ shorten_branches (rtx first ATTRIBUTE_UNUSED)
       n_labels = max_labelno - min_labelno + 1;
       n_old_labels = old - min_labelno + 1;
 
-      label_align = xrealloc (label_align,
-			      n_labels * sizeof (struct label_alignment));
+      label_align = XRESIZEVEC (struct label_alignment, label_align, n_labels);
 
       /* Range of labels grows monotonically in the function.  Failing here
          means that the initialization of array got lost.  */
@@ -1378,17 +1377,20 @@ shorten_branches (rtx first ATTRIBUTE_UNUSED)
 static int
 asm_insn_count (rtx body)
 {
-  const char *template;
+  const char *templ;
   int count = 1;
 
   if (GET_CODE (body) == ASM_INPUT)
-    template = XSTR (body, 0);
+    templ = XSTR (body, 0);
   else
-    template = decode_asm_operands (body, NULL, NULL, NULL, NULL, NULL);
+    templ = decode_asm_operands (body, NULL, NULL, NULL, NULL, NULL);
 
-  for (; *template; template++)
-    if (IS_ASM_LOGICAL_LINE_SEPARATOR (*template, template)
-	|| *template == '\n')
+  if (!*templ)
+    return 0;
+
+  for (; *templ; templ++)
+    if (IS_ASM_LOGICAL_LINE_SEPARATOR (*templ, templ)
+	|| *templ == '\n')
       count++;
 
   return count;
@@ -1742,6 +1744,34 @@ output_alternate_entry_point (FILE *file, rtx insn)
     }
 }
 
+/* Given a CALL_INSN, find and return the nested CALL. */
+static rtx
+call_from_call_insn (rtx insn)
+{
+  rtx x;
+  gcc_assert (CALL_P (insn));
+  x = PATTERN (insn);
+
+  while (GET_CODE (x) != CALL)
+    {
+      switch (GET_CODE (x))
+	{
+	default:
+	  gcc_unreachable ();
+	case COND_EXEC:
+	  x = COND_EXEC_CODE (x);
+	  break;
+	case PARALLEL:
+	  x = XVECEXP (x, 0, 0);
+	  break;
+	case SET:
+	  x = XEXP (x, 1);
+	  break;
+	}
+    }
+  return x;
+}
+
 /* The final scan for one insn, INSN.
    Args are same as in `final', except that INSN
    is the insn being scanned.
@@ -1977,11 +2007,7 @@ final_scan_insn (rtx insn, FILE *file, int optimize ATTRIBUTE_UNUSED,
       if (LABEL_NAME (insn))
 	(*debug_hooks->label) (insn);
 
-      if (app_on)
-	{
-	  fputs (ASM_APP_OFF, file);
-	  app_on = 0;
-	}
+      app_disable ();
 
       next = next_nonnote_insn (insn);
       if (next != 0 && JUMP_P (next))
@@ -2037,7 +2063,7 @@ final_scan_insn (rtx insn, FILE *file, int optimize ATTRIBUTE_UNUSED,
       {
 	rtx body = PATTERN (insn);
 	int insn_code_number;
-	const char *template;
+	const char *templ;
 
 #ifdef HAVE_conditional_execution
 	/* Reset this early so it is correct for ASM statements.  */
@@ -2081,11 +2107,7 @@ final_scan_insn (rtx insn, FILE *file, int optimize ATTRIBUTE_UNUSED,
 	    else
 	      switch_to_section (current_function_section ());
 
-	    if (app_on)
-	      {
-		fputs (ASM_APP_OFF, file);
-		app_on = 0;
-	      }
+	    app_disable ();
 
 #if defined(ASM_OUTPUT_ADDR_VEC) || defined(ASM_OUTPUT_ADDR_DIFF_VEC)
 	    if (GET_CODE (body) == ADDR_VEC)
@@ -2159,11 +2181,7 @@ final_scan_insn (rtx insn, FILE *file, int optimize ATTRIBUTE_UNUSED,
 	      {
 		expanded_location loc;
 
-		if (! app_on)
-		  {
-		    fputs (ASM_APP_ON, file);
-		    app_on = 1;
-		  }
+		app_enable ();
 		loc = expand_location (ASM_INPUT_SOURCE_LOCATION (body));
 		if (*loc.file && loc.line)
 		  fprintf (asm_out_file, "%s %i \"%s\" 1\n",
@@ -2181,7 +2199,7 @@ final_scan_insn (rtx insn, FILE *file, int optimize ATTRIBUTE_UNUSED,
 	if (asm_noperands (body) >= 0)
 	  {
 	    unsigned int noperands = asm_noperands (body);
-	    rtx *ops = alloca (noperands * sizeof (rtx));
+	    rtx *ops = XALLOCAVEC (rtx, noperands);
 	    const char *string;
 	    location_t loc;
 	    expanded_location expanded;
@@ -2203,11 +2221,7 @@ final_scan_insn (rtx insn, FILE *file, int optimize ATTRIBUTE_UNUSED,
 	    /* Output the insn using them.  */
 	    if (string[0])
 	      {
-		if (! app_on)
-		  {
-		    fputs (ASM_APP_ON, file);
-		    app_on = 1;
-		  }
+		app_enable ();
 		if (expanded.file && expanded.line)
 		  fprintf (asm_out_file, "%s %i \"%s\" 1\n",
 			   ASM_COMMENT_START, expanded.line, expanded.file);
@@ -2222,11 +2236,7 @@ final_scan_insn (rtx insn, FILE *file, int optimize ATTRIBUTE_UNUSED,
 	    break;
 	  }
 
-	if (app_on)
-	  {
-	    fputs (ASM_APP_OFF, file);
-	    app_on = 0;
-	  }
+	app_disable ();
 
 	if (GET_CODE (body) == SEQUENCE)
 	  {
@@ -2554,12 +2564,12 @@ final_scan_insn (rtx insn, FILE *file, int optimize ATTRIBUTE_UNUSED,
 #endif
 
 	/* Find the proper template for this insn.  */
-	template = get_insn_template (insn_code_number, insn);
+	templ = get_insn_template (insn_code_number, insn);
 
 	/* If the C code returns 0, it means that it is a jump insn
 	   which follows a deleted test insn, and that test insn
 	   needs to be reinserted.  */
-	if (template == 0)
+	if (templ == 0)
 	  {
 	    rtx prev;
 
@@ -2582,12 +2592,12 @@ final_scan_insn (rtx insn, FILE *file, int optimize ATTRIBUTE_UNUSED,
 
 	/* If the template is the string "#", it means that this insn must
 	   be split.  */
-	if (template[0] == '#' && template[1] == '\0')
+	if (templ[0] == '#' && templ[1] == '\0')
 	  {
-	    rtx new = try_split (body, insn, 0);
+	    rtx new_rtx = try_split (body, insn, 0);
 
 	    /* If we didn't split the insn, go away.  */
-	    if (new == insn && PATTERN (new) == body)
+	    if (new_rtx == insn && PATTERN (new_rtx) == body)
 	      fatal_insn ("could not split insn", insn);
 
 #ifdef HAVE_ATTR_length
@@ -2597,7 +2607,7 @@ final_scan_insn (rtx insn, FILE *file, int optimize ATTRIBUTE_UNUSED,
 	    gcc_unreachable ();
 #endif
 
-	    return new;
+	    return new_rtx;
 	  }
 
 #ifdef TARGET_UNWIND_INFO
@@ -2607,8 +2617,22 @@ final_scan_insn (rtx insn, FILE *file, int optimize ATTRIBUTE_UNUSED,
 	targetm.asm_out.unwind_emit (asm_out_file, insn);
 #endif
 
+	if (CALL_P (insn))
+	  {
+	    rtx x = call_from_call_insn (insn);
+	    x = XEXP (x, 0);
+	    if (x && MEM_P (x) && GET_CODE (XEXP (x, 0)) == SYMBOL_REF)
+	      {
+		tree t;
+		x = XEXP (x, 0);
+		t = SYMBOL_REF_DECL (x);
+		if (t)
+		  assemble_external (t);
+	      }
+	  }
+
 	/* Output assembler code from the template.  */
-	output_asm_insn (template, recog_data.operand);
+	output_asm_insn (templ, recog_data.operand);
 
 	/* If necessary, report the effect that the instruction has on
 	   the unwind info.   We've already done this for delay slots
@@ -2737,11 +2761,11 @@ alter_subreg (rtx *xp)
     }
   else
     {
-      rtx new = simplify_subreg (GET_MODE (x), y, GET_MODE (y),
+      rtx new_rtx = simplify_subreg (GET_MODE (x), y, GET_MODE (y),
 				 SUBREG_BYTE (x));
 
-      if (new != 0)
-	*xp = new;
+      if (new_rtx != 0)
+	*xp = new_rtx;
       else if (REG_P (y))
 	{
 	  /* Simplify_subreg can't handle some REG cases, but we have to.  */
@@ -3095,7 +3119,7 @@ output_asm_operand_names (rtx *operands, int *oporder, int nops)
       of the operand, with no other punctuation.  */
 
 void
-output_asm_insn (const char *template, rtx *operands)
+output_asm_insn (const char *templ, rtx *operands)
 {
   const char *p;
   int c;
@@ -3108,11 +3132,11 @@ output_asm_insn (const char *template, rtx *operands)
 
   /* An insn may return a null string template
      in a case where no assembler code is needed.  */
-  if (*template == 0)
+  if (*templ == 0)
     return;
 
   memset (opoutput, 0, sizeof opoutput);
-  p = template;
+  p = templ;
   putc ('\t', asm_out_file);
 
 #ifdef ASM_OUTPUT_OPCODE
@@ -3342,6 +3366,14 @@ output_operand (rtx x, int code ATTRIBUTE_UNUSED)
   gcc_assert (!x || !REG_P (x) || REGNO (x) < FIRST_PSEUDO_REGISTER);
 
   PRINT_OPERAND (asm_out_file, x, code);
+  if (x && MEM_P (x) && GET_CODE (XEXP (x, 0)) == SYMBOL_REF)
+    {
+      tree t;
+      x = XEXP (x, 0);
+      t = SYMBOL_REF_DECL (x);
+      if (t)
+	assemble_external (t);
+    }
 }
 
 /* Print a memory reference operand for address X
@@ -4056,8 +4088,7 @@ debug_queue_symbol (tree decl)
   if (symbol_queue_index >= symbol_queue_size)
     {
       symbol_queue_size += 10;
-      symbol_queue = xrealloc (symbol_queue,
-			       symbol_queue_size * sizeof (tree));
+      symbol_queue = XRESIZEVEC (tree, symbol_queue, symbol_queue_size);
     }
 
   symbol_queue[symbol_queue_index++] = decl;

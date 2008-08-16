@@ -37,13 +37,13 @@ extern int initial_elimination_offset (int from, int to);
 extern int avr_simple_epilogue (void);
 extern void gas_output_limited_string (FILE *file, const char *str);
 extern void gas_output_ascii (FILE *file, const char *str, size_t length);
+extern int avr_hard_regno_rename_ok (unsigned int, unsigned int);
 
 #ifdef TREE_CODE
 extern void asm_output_external (FILE *file, tree decl, char *name);
 extern int avr_progmem_p (tree decl, tree attributes);
 
 #ifdef RTX_CODE /* inside TREE_CODE */
-extern rtx avr_function_value (const_tree type, const_tree func);
 extern void init_cumulative_args (CUMULATIVE_ARGS *cum, tree fntype,
 				  rtx libname, tree fndecl);
 extern rtx function_arg (CUMULATIVE_ARGS *cum, enum machine_mode mode,
@@ -94,7 +94,7 @@ extern void avr_output_bld (rtx operands[], int bit_nr);
 extern void avr_output_addr_vec_elt (FILE *stream, int value);
 extern const char *avr_out_sbxx_branch (rtx insn, rtx operands[]);
 
-extern enum reg_class preferred_reload_class (rtx x, enum reg_class class);
+extern enum reg_class preferred_reload_class (rtx x, enum reg_class rclass);
 extern int extra_constraint_Q (rtx x);
 extern rtx legitimize_address (rtx x, rtx oldx, enum machine_mode mode);
 extern int adjust_insn_length (rtx insn, int len);
@@ -111,22 +111,21 @@ extern int reg_unused_after (rtx insn, rtx reg);
 extern int _reg_unused_after (rtx insn, rtx reg);
 extern int avr_jump_mode (rtx x, rtx insn);
 extern int byte_immediate_operand (rtx op, enum machine_mode mode);
-extern int test_hard_reg_class (enum reg_class class, rtx x);
+extern int test_hard_reg_class (enum reg_class rclass, rtx x);
 extern int jump_over_one_insn_p (rtx insn, rtx dest);
 
 extern int avr_hard_regno_mode_ok (int regno, enum machine_mode mode);
 extern void final_prescan_insn (rtx insn, rtx *operand, int num_operands);
 extern int avr_simplify_comparison_p (enum machine_mode mode,
-				      RTX_CODE operator, rtx x);
+				      RTX_CODE op, rtx x);
 extern RTX_CODE avr_normalize_condition (RTX_CODE condition);
 extern int compare_eq_p (rtx insn);
-extern void out_shift_with_cnt (const char *template, rtx insn,
+extern void out_shift_with_cnt (const char *templ, rtx insn,
 				rtx operands[], int *len, int t_len);
-extern int avr_peep2_scratch_safe (rtx reg_rtx);
 #endif /* RTX_CODE */
 
 #ifdef HAVE_MACHINE_MODES
-extern int class_max_nregs (enum reg_class class, enum machine_mode mode);
+extern int class_max_nregs (enum reg_class rclass, enum machine_mode mode);
 #endif /* HAVE_MACHINE_MODES */
 
 #ifdef REAL_VALUE_TYPE

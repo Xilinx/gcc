@@ -24,10 +24,7 @@ case "${host}" in
     GLIBCXX_CHECK_COMPLEX_MATH_SUPPORT
     GLIBCXX_CHECK_STDLIB_SUPPORT
     GLIBCXX_CHECK_S_ISREG_OR_S_IFREG
-    AC_DEFINE(HAVE_SIGSETJMP)
-    AC_DEFINE(HAVE_GETPAGESIZE)
     AC_DEFINE(HAVE_WRITEV)
-    AC_DEFINE(HAVE_INT64_T)
 
     AC_DEFINE(HAVE_LIBM)
     AC_DEFINE(HAVE_COPYSIGN)
@@ -46,7 +43,7 @@ case "${host}" in
     # so we just check for all the features here.
     # Check for available headers.
     AC_CHECK_HEADERS([nan.h ieeefp.h endian.h sys/isa_defs.h machine/endian.h \
-    machine/param.h sys/machine.h fp.h locale.h float.h inttypes.h gconv.h \
+    machine/param.h sys/machine.h fp.h locale.h float.h inttypes.h \
     sys/types.h])
 
     # Don't call GLIBCXX_CHECK_LINKER_FEATURES, Darwin doesn't have a GNU ld
@@ -65,16 +62,6 @@ case "${host}" in
     GLIBCXX_CHECK_WRITEV
 
     AC_DEFINE(HAVE_LC_MESSAGES)
-
-    AC_TRY_COMPILE(
-      [#include <setjmp.h>],
-      [sigjmp_buf env;
-       while (! sigsetjmp (env, 1))
-         siglongjmp (env, 1);
-    ],
-    [AC_DEFINE(HAVE_SIGSETJMP, 1, [Define if sigsetjmp is available.])])
-
-    AC_DEFINE(HAVE_MMAP)
     ;;
 
   *djgpp)
@@ -125,9 +112,7 @@ case "${host}" in
     GLIBCXX_CHECK_LINKER_FEATURES
     GLIBCXX_CHECK_COMPLEX_MATH_SUPPORT
     AC_DEFINE(HAVE_LC_MESSAGES)
-    AC_DEFINE(HAVE_GETPAGESIZE)
     AC_DEFINE(HAVE_SETENV)
-    AC_DEFINE(HAVE_SIGSETJMP)
     AC_DEFINE(HAVE_COPYSIGN)
     AC_DEFINE(HAVE_COPYSIGNF)
     AC_DEFINE(HAVE_FINITEF)
@@ -139,7 +124,6 @@ case "${host}" in
     AC_DEFINE(HAVE_ISNAN)
     AC_DEFINE(HAVE_ISNANF)
 
-    AC_DEFINE(HAVE_MMAP)
     AC_DEFINE(HAVE_ACOSF)
     AC_DEFINE(HAVE_ASINF)
     AC_DEFINE(HAVE_ATAN2F)
@@ -197,7 +181,7 @@ case "${host}" in
     AC_CHECK_HEADERS([nan.h ieeefp.h endian.h sys/isa_defs.h \
       machine/endian.h machine/param.h sys/machine.h sys/types.h \
       fp.h float.h endian.h inttypes.h locale.h float.h stdint.h \
-      sys/ipc.h sys/sem.h gconf.h])
+      sys/ipc.h sys/sem.h])
     SECTION_FLAGS='-ffunction-sections -fdata-sections'
     AC_SUBST(SECTION_FLAGS)
     GLIBCXX_CHECK_COMPILER_FEATURES
@@ -208,7 +192,6 @@ case "${host}" in
     GLIBCXX_CHECK_STDLIB_SUPPORT
 
     # For LFS.
-    AC_DEFINE(HAVE_INT64_T)
     GLIBCXX_CHECK_LFS
 
     # For showmanyc_helper().
@@ -220,17 +203,12 @@ case "${host}" in
     AC_CHECK_HEADERS(sys/uio.h)
     GLIBCXX_CHECK_WRITEV
 
-    # For C99 support to TR1.
-    GLIBCXX_CHECK_C99_TR1
+    AC_DEFINE(_GLIBCXX_USE_RANDOM_TR1)
 
-    # Check for sigsetjmp
-    AC_TRY_COMPILE(
-      [#include <setjmp.h>],
-      [sigjmp_buf env;
-       while (! sigsetjmp (env, 1))
-         siglongjmp (env, 1);
-      ],
-      [AC_DEFINE(HAVE_SIGSETJMP, 1, [Define if sigsetjmp is available.])])
+    AC_LC_MESSAGES
+
+    # For iconv support.
+    AM_ICONV
     ;;
   *-mingw32*)
     AC_CHECK_HEADERS([sys/types.h locale.h float.h])
@@ -303,23 +281,14 @@ case "${host}" in
     ;;
   *-solaris*)
     case "$target" in
-    #  *-solaris2.5)
-    #    os_include_dir="os/solaris/solaris2.5"
-    #    ;;
-    #  *-solaris2.6)
-    #    os_include_dir="os/solaris/solaris2.6"
-    #    ;;
       *-solaris2.7 | *-solaris2.8 | *-solaris2.9 | *-solaris2.10)
          GLIBCXX_CHECK_LINKER_FEATURES
-         AC_DEFINE(HAVE_GETPAGESIZE)
-         AC_DEFINE(HAVE_SIGSETJMP)
          AC_DEFINE(HAVE_MBSTATE_T)
          AC_DEFINE(HAVE_POLL)
          AC_DEFINE(HAVE_S_ISREG)
          AC_DEFINE(HAVE_LC_MESSAGES)
          AC_DEFINE(HAVE_FINITE)
          AC_DEFINE(HAVE_FPCLASS)
-         AC_DEFINE(HAVE_GETPAGESIZE)
          # All of the dependencies for wide character support are here, so
          # turn it on. 
          AC_DEFINE(_GLIBCXX_USE_WCHAR_T) 
@@ -362,7 +331,6 @@ case "${host}" in
       AC_DEFINE(HAVE_STRTOLD)
      ;;
     esac
-    AC_DEFINE(HAVE_MMAP) 
     AC_DEFINE(HAVE_COPYSIGN)
     AC_DEFINE(HAVE_ISNAN)
     AC_DEFINE(HAVE_ISNANF)
@@ -396,7 +364,6 @@ case "${host}" in
     fi
     ;;
   *-vxworks)
-    AC_DEFINE(HAVE_MMAP)
     AC_DEFINE(HAVE_ACOSF)
     AC_DEFINE(HAVE_ASINF)
     AC_DEFINE(HAVE_ATAN2F)
@@ -417,53 +384,6 @@ case "${host}" in
     AC_DEFINE(HAVE_SQRTF)
     AC_DEFINE(HAVE_TANF)
     AC_DEFINE(HAVE_TANHF)
-    ;;
-  *-windiss*)
-    AC_DEFINE(HAVE_ACOSF)
-    AC_DEFINE(HAVE_ACOSL)
-    AC_DEFINE(HAVE_ASINF)
-    AC_DEFINE(HAVE_ASINL)
-    AC_DEFINE(HAVE_ATAN2F)
-    AC_DEFINE(HAVE_ATAN2L)
-    AC_DEFINE(HAVE_ATANF)
-    AC_DEFINE(HAVE_ATANL)
-    AC_DEFINE(HAVE_CEILF)
-    AC_DEFINE(HAVE_CEILL)
-    AC_DEFINE(HAVE_COPYSIGN)
-    AC_DEFINE(HAVE_COPYSIGNF)
-    AC_DEFINE(HAVE_COSF)
-    AC_DEFINE(HAVE_COSL)
-    AC_DEFINE(HAVE_COSHF)
-    AC_DEFINE(HAVE_COSHL)
-    AC_DEFINE(HAVE_EXPF)
-    AC_DEFINE(HAVE_EXPL)
-    AC_DEFINE(HAVE_FABSF)
-    AC_DEFINE(HAVE_FABSL)
-    AC_DEFINE(HAVE_FLOORF)
-    AC_DEFINE(HAVE_FLOORL)
-    AC_DEFINE(HAVE_FMODF)
-    AC_DEFINE(HAVE_FMODL)
-    AC_DEFINE(HAVE_FREXPF)
-    AC_DEFINE(HAVE_FREXPL)
-    AC_DEFINE(HAVE_LDEXPF)
-    AC_DEFINE(HAVE_LDEXPL)
-    AC_DEFINE(HAVE_LOG10F)
-    AC_DEFINE(HAVE_LOG10L)
-    AC_DEFINE(HAVE_LOGF)
-    AC_DEFINE(HAVE_MODFF)
-    AC_DEFINE(HAVE_MODFL)
-    AC_DEFINE(HAVE_POWF)
-    AC_DEFINE(HAVE_POWL)
-    AC_DEFINE(HAVE_SINF)
-    AC_DEFINE(HAVE_SINL)
-    AC_DEFINE(HAVE_SINHF)
-    AC_DEFINE(HAVE_SINHL)
-    AC_DEFINE(HAVE_SQRTF)
-    AC_DEFINE(HAVE_SQRTL)
-    AC_DEFINE(HAVE_TANF)
-    AC_DEFINE(HAVE_TANL)
-    AC_DEFINE(HAVE_TANHF)
-    AC_DEFINE(HAVE_TANHL)
     ;;
   *)
     AC_MSG_ERROR([No support for this host/target combination.])

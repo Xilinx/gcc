@@ -59,15 +59,15 @@ is_friend (tree type, tree supplicant)
 	      tree friends = FRIEND_DECLS (list);
 	      for (; friends ; friends = TREE_CHAIN (friends))
 		{
-		  tree friend = TREE_VALUE (friends);
+		  tree this_friend = TREE_VALUE (friends);
 
-		  if (friend == NULL_TREE)
+		  if (this_friend == NULL_TREE)
 		    continue;
 
-		  if (supplicant == friend)
+		  if (supplicant == this_friend)
 		    return 1;
 
-		  if (is_specialization_of_friend (supplicant, friend))
+		  if (is_specialization_of_friend (supplicant, this_friend))
 		    return 1;
 		}
 	      break;
@@ -253,7 +253,7 @@ make_friend_class (tree type, tree friend_type, bool complain)
   else if (same_type_p (type, friend_type))
     {
       if (complain)
-	pedwarn ("class %qT is implicitly friends with itself",
+	warning (0, "class %qT is implicitly friends with itself",
 		 type);
       return;
     }
@@ -568,9 +568,11 @@ do_friend (tree ctype, tree declarator, tree decl,
 	  if (warn)
 	    {
 	      static int explained;
-	      warning (OPT_Wnon_template_friend, "friend declaration "
-		       "%q#D declares a non-template function", decl);
-	      if (! explained)
+	      bool warned;
+
+	      warned = warning (OPT_Wnon_template_friend, "friend declaration "
+				"%q#D declares a non-template function", decl);
+	      if (! explained && warned)
 		{
 		  inform ("(if this is not what you intended, make sure "
 			  "the function template has already been declared "

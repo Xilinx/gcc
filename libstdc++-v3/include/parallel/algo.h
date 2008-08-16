@@ -1649,7 +1649,7 @@ namespace __parallel
     {
       c_rand_number<> r;
       // Parallelization still possible.
-      random_shuffle(begin, end, r);
+      __gnu_parallel::random_shuffle(begin, end, r);
     }
 
   // Parallel algorithm for random access iterators.
@@ -2367,4 +2367,4 @@ namespace __parallel
 } // end namespace
 } // end namespace
 
-#endif /* _GLIBCXX_ALGORITHM_H */
+#endif /* _GLIBCXX_PARALLEL_ALGO_H */

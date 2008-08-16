@@ -172,7 +172,6 @@ along with GCC; see the file COPYING3.  If not see
    thing you need to do to add a new special allocation size.  */
 
 static const size_t extra_order_size_table[] = {
-  sizeof (struct stmt_ann_d),
   sizeof (struct var_ann_d),
   sizeof (struct tree_decl_non_common),
   sizeof (struct tree_field_decl),
@@ -184,9 +183,6 @@ static const size_t extra_order_size_table[] = {
   sizeof (struct basic_block_def),
   sizeof (bitmap_element),
   sizeof (bitmap_head),
-  /* PHI nodes with one to three arguments are already covered by the
-     above sizes.  */
-  sizeof (struct tree_phi_node) + sizeof (struct phi_arg_d) * 3,
   TREE_EXP_SIZE (2),
   RTL_SIZE (2),			/* MEM, PLUS, etc.  */
   RTL_SIZE (9),			/* INSN */
@@ -386,7 +382,7 @@ static struct globals
   /* Maximum number of elements that can be used before resizing.  */
   unsigned int depth_max;
 
-  /* Each element of this arry is an index in by_depth where the given
+  /* Each element of this array is an index in by_depth where the given
      depth starts.  This structure is indexed by that given depth we
      are interested in.  */
   unsigned int *depth;
@@ -503,7 +499,7 @@ push_depth (unsigned int i)
   if (G.depth_in_use >= G.depth_max)
     {
       G.depth_max *= 2;
-      G.depth = xrealloc (G.depth, G.depth_max * sizeof (unsigned int));
+      G.depth = XRESIZEVEC (unsigned int, G.depth, G.depth_max);
     }
   G.depth[G.depth_in_use++] = i;
 }
@@ -516,10 +512,9 @@ push_by_depth (page_entry *p, unsigned long *s)
   if (G.by_depth_in_use >= G.by_depth_max)
     {
       G.by_depth_max *= 2;
-      G.by_depth = xrealloc (G.by_depth,
-			     G.by_depth_max * sizeof (page_entry *));
-      G.save_in_use = xrealloc (G.save_in_use,
-				G.by_depth_max * sizeof (unsigned long *));
+      G.by_depth = XRESIZEVEC (page_entry *, G.by_depth, G.by_depth_max);
+      G.save_in_use = XRESIZEVEC (unsigned long *, G.save_in_use,
+				  G.by_depth_max);
     }
   G.by_depth[G.by_depth_in_use] = p;
   G.save_in_use[G.by_depth_in_use++] = s;
@@ -611,7 +606,7 @@ set_page_table_entry (void *p, page_entry *entry)
       goto found;
 
   /* Not found -- allocate a new table.  */
-  table = xcalloc (1, sizeof(*table));
+  table = XCNEW (struct page_table_chain);
   table->next = G.lookup;
   table->high_bits = high_bits;
   G.lookup = table;
@@ -657,12 +652,12 @@ static inline char *
 alloc_anon (char *pref ATTRIBUTE_UNUSED, size_t size)
 {
 #ifdef HAVE_MMAP_ANON
-  char *page = mmap (pref, size, PROT_READ | PROT_WRITE,
-		     MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+  char *page = (char *) mmap (pref, size, PROT_READ | PROT_WRITE,
+			      MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
 #endif
 #ifdef HAVE_MMAP_DEV_ZERO
-  char *page = mmap (pref, size, PROT_READ | PROT_WRITE,
-		     MAP_PRIVATE, G.dev_zero_fd, 0);
+  char *page = (char *) mmap (pref, size, PROT_READ | PROT_WRITE,
+			      MAP_PRIVATE, G.dev_zero_fd, 0);
 #endif
 
   if (page == (char *) MAP_FAILED)
@@ -772,7 +767,7 @@ alloc_page (unsigned order)
 	 memory order.  */
       for (i = GGC_QUIRE_SIZE - 1; i >= 1; i--)
 	{
-	  e = xcalloc (1, page_entry_size);
+	  e = XCNEWVAR (struct page_entry, page_entry_size);
 	  e->order = order;
 	  e->bytes = G.pagesize;
 	  e->page = page + (i << G.lg_pagesize);
@@ -800,7 +795,7 @@ alloc_page (unsigned order)
 	alloc_size = GGC_QUIRE_SIZE * G.pagesize;
       else
 	alloc_size = entry_size + G.pagesize - 1;
-      allocation = xmalloc (alloc_size);
+      allocation = XNEWVEC (char, alloc_size);
 
       page = (char *) (((size_t) allocation + G.pagesize - 1) & -G.pagesize);
       head_slop = page - allocation;
@@ -843,7 +838,7 @@ alloc_page (unsigned order)
 	  struct page_entry *e, *f = G.free_pages;
 	  for (a = enda - G.pagesize; a != page; a -= G.pagesize)
 	    {
-	      e = xcalloc (1, page_entry_size);
+	      e = XCNEWVAR (struct page_entry, page_entry_size);
 	      e->order = order;
 	      e->bytes = G.pagesize;
 	      e->page = a;
@@ -857,7 +852,7 @@ alloc_page (unsigned order)
 #endif
 
   if (entry == NULL)
-    entry = xcalloc (1, page_entry_size);
+    entry = XCNEWVAR (struct page_entry, page_entry_size);
 
   entry->bytes = entry_size;
   entry->page = page;
@@ -1285,7 +1280,7 @@ gt_ggc_m_S (const void *p)
 	 a STRING_CST.  */
       gcc_assert (offset == offsetof (struct tree_string, str));
       p = ((const char *) p) - offset;
-      gt_ggc_mx_lang_tree_node ((void *) p);
+      gt_ggc_mx_lang_tree_node (CONST_CAST (void *, p));
       return;
     }
 
@@ -1666,7 +1661,7 @@ clear_marks (void)
 	  if (p->context_depth < G.context_depth)
 	    {
 	      if (! save_in_use_p (p))
-		save_in_use_p (p) = xmalloc (bitmap_size);
+		save_in_use_p (p) = XNEWVAR (unsigned long, bitmap_size);
 	      memcpy (save_in_use_p (p), p->in_use_p, bitmap_size);
 	    }
 
@@ -2272,7 +2267,7 @@ ggc_pch_read (FILE *f, void *addr)
 {
   struct ggc_pch_ondisk d;
   unsigned i;
-  char *offs = addr;
+  char *offs = (char *) addr;
   unsigned long count_old_page_tables;
   unsigned long count_new_page_tables;
 
@@ -2318,9 +2313,9 @@ ggc_pch_read (FILE *f, void *addr)
 
       bytes = ROUND_UP (d.totals[i] * OBJECT_SIZE (i), G.pagesize);
       num_objs = bytes / OBJECT_SIZE (i);
-      entry = xcalloc (1, (sizeof (struct page_entry)
-			   - sizeof (long)
-			   + BITMAP_SIZE (num_objs + 1)));
+      entry = XCNEWVAR (struct page_entry, (sizeof (struct page_entry)
+					    - sizeof (long)
+					    + BITMAP_SIZE (num_objs + 1)));
       entry->bytes = bytes;
       entry->page = offs;
       entry->context_depth = 0;

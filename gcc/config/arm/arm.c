@@ -62,6 +62,7 @@ const struct attribute_spec arm_attribute_table[];
 void (*arm_lang_output_object_attributes_hook)(void);
 
 /* Forward function declarations.  */
+static int arm_compute_static_chain_stack_bytes (void);
 static arm_stack_offsets *arm_get_frame_offsets (void);
 static void arm_add_gc_roots (void);
 static int arm_gen_constant (enum rtx_code, enum machine_mode, rtx,
@@ -166,6 +167,7 @@ static bool arm_default_short_enums (void);
 static bool arm_align_anon_bitfield (void);
 static bool arm_return_in_msb (const_tree);
 static bool arm_must_pass_in_stack (enum machine_mode, const_tree);
+static bool arm_return_in_memory (const_tree, const_tree);
 #ifdef TARGET_UNWIND_INFO
 static void arm_unwind_emit (FILE *, rtx);
 static bool arm_output_ttype (rtx);
@@ -332,6 +334,9 @@ static bool arm_allocate_stack_slots_for_args (void);
 
 #undef TARGET_RETURN_IN_MSB
 #define TARGET_RETURN_IN_MSB arm_return_in_msb
+
+#undef TARGET_RETURN_IN_MEMORY
+#define TARGET_RETURN_IN_MEMORY arm_return_in_memory
 
 #undef TARGET_MUST_PASS_IN_STACK
 #define TARGET_MUST_PASS_IN_STACK arm_must_pass_in_stack
@@ -695,6 +700,8 @@ static const struct fpu_desc all_fpus[] =
   {"maverick",	FPUTYPE_MAVERICK},
   {"vfp",	FPUTYPE_VFP},
   {"vfp3",	FPUTYPE_VFP3},
+  {"vfpv3",	FPUTYPE_VFP3},
+  {"vfpv3-d16",	FPUTYPE_VFP3D16},
   {"neon",	FPUTYPE_NEON}
 };
 
@@ -711,6 +718,7 @@ static const enum fputype fp_model_for_fpu[] =
   ARM_FP_MODEL_FPA,		/* FPUTYPE_FPA_EMU3  */
   ARM_FP_MODEL_MAVERICK,	/* FPUTYPE_MAVERICK  */
   ARM_FP_MODEL_VFP,		/* FPUTYPE_VFP  */
+  ARM_FP_MODEL_VFP,		/* FPUTYPE_VFP3D16  */
   ARM_FP_MODEL_VFP,		/* FPUTYPE_VFP3  */
   ARM_FP_MODEL_VFP		/* FPUTYPE_NEON  */
 };
@@ -2747,9 +2755,9 @@ arm_apply_result_size (void)
 }
 
 /* Decide whether a type should be returned in memory (true)
-   or in a register (false).  This is called by the macro
+   or in a register (false).  This is called as the target hook
    TARGET_RETURN_IN_MEMORY.  */
-bool
+static bool
 arm_return_in_memory (const_tree type, const_tree fntype ATTRIBUTE_UNUSED)
 {
   HOST_WIDE_INT size;
@@ -3263,11 +3271,6 @@ arm_function_in_section_p (tree decl, section *section)
   /* If DECL_SECTION_NAME is set, assume it is trustworthy.  */
   if (!DECL_SECTION_NAME (decl))
     {
-      /* Only cater for unit-at-a-time mode, where we know that the user
-	 cannot later specify a section for DECL.  */
-      if (!flag_unit_at_a_time)
-	return false;
-
       /* Make sure that we will not create a unique section for DECL.  */
       if (flag_function_sections || DECL_ONE_ONLY (decl))
 	return false;
@@ -3693,7 +3696,7 @@ arm_load_pic_register (unsigned long saved_regs ATTRIBUTE_UNUSED)
 
   /* Need to emit this whether or not we obey regdecls,
      since setjmp/longjmp can cause life info to screw up.  */
-  emit_insn (gen_rtx_USE (VOIDmode, pic_reg));
+  emit_use (pic_reg);
 }
 
 
@@ -10280,7 +10283,7 @@ output_move_vfp (rtx *operands)
   int load = REG_P (operands[0]);
   int dp = GET_MODE_SIZE (GET_MODE (operands[0])) == 8;
   int integer_p = GET_MODE_CLASS (GET_MODE (operands[0])) == MODE_INT;
-  const char *template;
+  const char *templ;
   char buff[50];
   enum machine_mode mode;
 
@@ -10303,25 +10306,25 @@ output_move_vfp (rtx *operands)
   switch (GET_CODE (addr))
     {
     case PRE_DEC:
-      template = "f%smdb%c%%?\t%%0!, {%%%s1}%s";
+      templ = "f%smdb%c%%?\t%%0!, {%%%s1}%s";
       ops[0] = XEXP (addr, 0);
       ops[1] = reg;
       break;
 
     case POST_INC:
-      template = "f%smia%c%%?\t%%0!, {%%%s1}%s";
+      templ = "f%smia%c%%?\t%%0!, {%%%s1}%s";
       ops[0] = XEXP (addr, 0);
       ops[1] = reg;
       break;
 
     default:
-      template = "f%s%c%%?\t%%%s0, %%1%s";
+      templ = "f%s%c%%?\t%%%s0, %%1%s";
       ops[0] = reg;
       ops[1] = mem;
       break;
     }
 
-  sprintf (buff, template,
+  sprintf (buff, templ,
 	   load ? "ld" : "st",
 	   dp ? 'd' : 's',
 	   dp ? "P" : "",
@@ -10332,37 +10335,35 @@ output_move_vfp (rtx *operands)
 }
 
 /* Output a Neon quad-word load or store, or a load or store for
-   larger structure modes. We could also support post-modify forms using
-   VLD1/VST1 (for the vectorizer, and perhaps otherwise), but we don't do that
-   yet.
-   WARNING: The ordering of elements in memory is weird in big-endian mode,
-   because we use VSTM instead of VST1, to make it easy to make vector stores
-   via ARM registers write values in the same order as stores direct from Neon
-   registers.  For example, the byte ordering of a quadword vector with 16-byte
-   elements like this:
+   larger structure modes.
 
-     [e7:e6:e5:e4:e3:e2:e1:e0]  (highest-numbered element first)
+   WARNING: The ordering of elements is weird in big-endian mode,
+   because we use VSTM, as required by the EABI.  GCC RTL defines
+   element ordering based on in-memory order.  This can be differ
+   from the architectural ordering of elements within a NEON register.
+   The intrinsics defined in arm_neon.h use the NEON register element
+   ordering, not the GCC RTL element ordering.
 
-   will be (with lowest address first, h = most-significant byte,
-   l = least-significant byte of element):
+   For example, the in-memory ordering of a big-endian a quadword
+   vector with 16-bit elements when stored from register pair {d0,d1}
+   will be (lowest address first, d0[N] is NEON register element N):
 
-     [e3h, e3l, e2h, e2l, e1h, e1l, e0h, e0l,
-      e7h, e7l, e6h, e6l, e5h, e5l, e4h, e4l]
+     [d0[3], d0[2], d0[1], d0[0], d1[7], d1[6], d1[5], d1[4]]
 
-   When necessary, quadword registers (dN, dN+1) are moved to ARM registers from
-   rN in the order:
+   When necessary, quadword registers (dN, dN+1) are moved to ARM
+   registers from rN in the order:
 
      dN -> (rN+1, rN), dN+1 -> (rN+3, rN+2)
 
-   So that STM/LDM can be used on vectors in ARM registers, and the same memory
-   layout will result as if VSTM/VLDM were used.  */
+   So that STM/LDM can be used on vectors in ARM registers, and the
+   same memory layout will result as if VSTM/VLDM were used.  */
 
 const char *
 output_move_neon (rtx *operands)
 {
   rtx reg, mem, addr, ops[2];
   int regno, load = REG_P (operands[0]);
-  const char *template;
+  const char *templ;
   char buff[50];
   enum machine_mode mode;
 
@@ -10389,7 +10390,7 @@ output_move_neon (rtx *operands)
   switch (GET_CODE (addr))
     {
     case POST_INC:
-      template = "v%smia%%?\t%%0!, %%h1";
+      templ = "v%smia%%?\t%%0!, %%h1";
       ops[0] = XEXP (addr, 0);
       ops[1] = reg;
       break;
@@ -10432,12 +10433,12 @@ output_move_neon (rtx *operands)
       }
 
     default:
-      template = "v%smia%%?\t%%m0, %%h1";
+      templ = "v%smia%%?\t%%m0, %%h1";
       ops[0] = mem;
       ops[1] = reg;
     }
 
-  sprintf (buff, template, load ? "ld" : "st");
+  sprintf (buff, templ, load ? "ld" : "st");
   output_asm_insn (buff, ops);
 
   return "";
@@ -10793,6 +10794,24 @@ arm_compute_save_reg0_reg12_mask (void)
 }
 
 
+/* Compute the number of bytes used to store the static chain register on the 
+   stack, above the stack frame. We need to know this accurately to get the
+   alignment of the rest of the stack frame correct. */
+
+static int arm_compute_static_chain_stack_bytes (void)
+{
+  unsigned long func_type = arm_current_func_type ();
+  int static_chain_stack_bytes = 0;
+
+  if (TARGET_APCS_FRAME && frame_pointer_needed && TARGET_ARM &&
+      IS_NESTED (func_type) &&
+      df_regs_ever_live_p (3) && crtl->args.pretend_args_size == 0)
+    static_chain_stack_bytes = 4;
+
+  return static_chain_stack_bytes;
+}
+
+
 /* Compute a bit mask of which registers need to be
    saved on the stack for the current function.
    This is used by arm_get_frame_offsets, which may add extra registers.  */
@@ -10845,7 +10864,9 @@ arm_compute_save_reg_mask (void)
 
   if (TARGET_REALLY_IWMMXT
       && ((bit_count (save_reg_mask)
-	   + ARM_NUM_INTS (crtl->args.pretend_args_size)) % 2) != 0)
+	   + ARM_NUM_INTS (crtl->args.pretend_args_size +
+			   arm_compute_static_chain_stack_bytes())
+	   ) % 2) != 0)
     {
       /* The total number of registers that are going to be pushed
 	 onto the stack is odd.  We need to ensure that the stack
@@ -10928,6 +10949,26 @@ thumb1_compute_save_reg_mask (void)
 
       if (! call_used_regs[reg])
 	mask |= 1 << reg;
+    }
+
+  /* The 504 below is 8 bytes less than 512 because there are two possible
+     alignment words.  We can't tell here if they will be present or not so we
+     have to play it safe and assume that they are. */
+  if ((CALLER_INTERWORKING_SLOT_SIZE +
+       ROUND_UP_WORD (get_frame_size ()) +
+       crtl->outgoing_args_size) >= 504)
+    {
+      /* This is the same as the code in thumb1_expand_prologue() which
+	 determines which register to use for stack decrement. */
+      for (reg = LAST_ARG_REGNUM + 1; reg <= LAST_LO_REGNUM; reg++)
+	if (mask & (1 << reg))
+	  break;
+
+      if (reg > LAST_LO_REGNUM)
+	{
+	  /* Make sure we have a register available for stack decrement. */
+	  mask |= 1 << LAST_LO_REGNUM;
+	}
     }
 
   return mask;
@@ -12065,7 +12106,8 @@ arm_get_frame_offsets (void)
   offsets->saved_args = crtl->args.pretend_args_size;
 
   /* In Thumb mode this is incorrect, but never used.  */
-  offsets->frame = offsets->saved_args + (frame_pointer_needed ? 4 : 0);
+  offsets->frame = offsets->saved_args + (frame_pointer_needed ? 4 : 0) +
+                   arm_compute_static_chain_stack_bytes();
 
   if (TARGET_32BIT)
     {
@@ -12112,7 +12154,8 @@ arm_get_frame_offsets (void)
     }
 
   /* Saved registers include the stack frame.  */
-  offsets->saved_regs = offsets->saved_args + saved;
+  offsets->saved_regs = offsets->saved_args + saved +
+                        arm_compute_static_chain_stack_bytes();
   offsets->soft_frame = offsets->saved_regs + CALLER_INTERWORKING_SLOT_SIZE;
   /* A leaf function does not need any stack alignment if it has nothing
      on the stack.  */
@@ -12204,14 +12247,9 @@ arm_compute_initial_elimination_offset (unsigned int from, unsigned int to)
 	  return offsets->soft_frame - offsets->saved_args;
 
 	case ARM_HARD_FRAME_POINTER_REGNUM:
-	  /* If there is no stack frame then the hard
-	     frame pointer and the arg pointer coincide.  */
-	  if (offsets->frame == offsets->saved_regs)
-	    return 0;
-	  /* FIXME:  Not sure about this.  Maybe we should always return 0 ?  */
-	  return (frame_pointer_needed
-		  && cfun->static_chain_decl != NULL
-		  && ! cfun->machine->uses_anonymous_args) ? 4 : 0;
+	  /* This is only non-zero in the case where the static chain register
+	     is stored above the frame.  */
+	  return offsets->frame - offsets->saved_args - 4;
 
 	case STACK_POINTER_REGNUM:
 	  /* If nothing has been pushed on the stack at all
@@ -12439,7 +12477,9 @@ arm_expand_prologue (void)
 
       r0 = gen_rtx_REG (SImode, 0);
       r1 = gen_rtx_REG (SImode, 1);
-      dwarf = gen_rtx_UNSPEC (SImode, NULL_RTVEC, UNSPEC_STACK_ALIGN);
+      /* Use a real rtvec rather than NULL_RTVEC so the rest of the
+	 compiler won't choke.  */
+      dwarf = gen_rtx_UNSPEC (SImode, rtvec_alloc (0), UNSPEC_STACK_ALIGN);
       dwarf = gen_rtx_SET (VOIDmode, r0, dwarf);
       insn = gen_movsi (r0, stack_pointer_rtx);
       RTX_FRAME_RELATED_P (insn) = 1;
@@ -12497,6 +12537,9 @@ arm_expand_prologue (void)
 	    insn = emit_set_insn (gen_rtx_REG (SImode, 3), ip_rtx);
 	  else if (args_to_push == 0)
 	    {
+	      gcc_assert(arm_compute_static_chain_stack_bytes() == 4);
+	      saved_regs += 4;
+
 	      rtx dwarf;
 
 	      insn = gen_rtx_PRE_DEC (SImode, stack_pointer_rtx);
@@ -13281,28 +13324,16 @@ arm_assemble_integer (rtx x, unsigned int size, int aligned_p)
   if (arm_vector_mode_supported_p (mode))
     {
       int i, units;
-      unsigned int invmask = 0, parts_per_word;
 
       gcc_assert (GET_CODE (x) == CONST_VECTOR);
 
       units = CONST_VECTOR_NUNITS (x);
       size = GET_MODE_SIZE (GET_MODE_INNER (mode));
 
-      /* For big-endian Neon vectors, we must permute the vector to the form
-         which, when loaded by a VLDR or VLDM instruction, will give a vector
-         with the elements in the right order.  */
-      if (TARGET_NEON && WORDS_BIG_ENDIAN)
-        {
-          parts_per_word = UNITS_PER_WORD / size;
-          /* FIXME: This might be wrong for 64-bit vector elements, but we don't
-             support those anywhere yet.  */
-          invmask = (parts_per_word == 0) ? 0 : (1 << (parts_per_word - 1)) - 1;
-        }
-
       if (GET_MODE_CLASS (mode) == MODE_VECTOR_INT)
         for (i = 0; i < units; i++)
 	  {
-	    rtx elt = CONST_VECTOR_ELT (x, i ^ invmask);
+	    rtx elt = CONST_VECTOR_ELT (x, i);
 	    assemble_integer
 	      (elt, size, i == 0 ? BIGGEST_ALIGNMENT : size * BITS_PER_UNIT, 1);
 	  }
@@ -15007,121 +15038,86 @@ arm_init_neon_builtins (void)
 {
   unsigned int i, fcode = ARM_BUILTIN_NEON_BASE;
 
-  /* Create distinguished type nodes for NEON vector element types,
-     and pointers to values of such types, so we can detect them later.  */
-  tree neon_intQI_type_node = make_signed_type (GET_MODE_PRECISION (QImode));
-  tree neon_intHI_type_node = make_signed_type (GET_MODE_PRECISION (HImode));
-  tree neon_polyQI_type_node = make_signed_type (GET_MODE_PRECISION (QImode));
-  tree neon_polyHI_type_node = make_signed_type (GET_MODE_PRECISION (HImode));
-  tree neon_intSI_type_node = make_signed_type (GET_MODE_PRECISION (SImode));
-  tree neon_intDI_type_node = make_signed_type (GET_MODE_PRECISION (DImode));
-  tree neon_float_type_node = make_node (REAL_TYPE);
+  tree neon_intQI_type_node;
+  tree neon_intHI_type_node;
+  tree neon_polyQI_type_node;
+  tree neon_polyHI_type_node;
+  tree neon_intSI_type_node;
+  tree neon_intDI_type_node;
+  tree neon_float_type_node;
 
-  tree intQI_pointer_node = build_pointer_type (neon_intQI_type_node);
-  tree intHI_pointer_node = build_pointer_type (neon_intHI_type_node);
-  tree intSI_pointer_node = build_pointer_type (neon_intSI_type_node);
-  tree intDI_pointer_node = build_pointer_type (neon_intDI_type_node);
-  tree float_pointer_node = build_pointer_type (neon_float_type_node);
+  tree intQI_pointer_node;
+  tree intHI_pointer_node;
+  tree intSI_pointer_node;
+  tree intDI_pointer_node;
+  tree float_pointer_node;
 
-  /* Next create constant-qualified versions of the above types.  */
-  tree const_intQI_node = build_qualified_type (neon_intQI_type_node,
-						TYPE_QUAL_CONST);
-  tree const_intHI_node = build_qualified_type (neon_intHI_type_node,
-						TYPE_QUAL_CONST);
-  tree const_intSI_node = build_qualified_type (neon_intSI_type_node,
-						TYPE_QUAL_CONST);
-  tree const_intDI_node = build_qualified_type (neon_intDI_type_node,
-						TYPE_QUAL_CONST);
-  tree const_float_node = build_qualified_type (neon_float_type_node,
-						TYPE_QUAL_CONST);
+  tree const_intQI_node;
+  tree const_intHI_node;
+  tree const_intSI_node;
+  tree const_intDI_node;
+  tree const_float_node;
 
-  tree const_intQI_pointer_node = build_pointer_type (const_intQI_node);
-  tree const_intHI_pointer_node = build_pointer_type (const_intHI_node);
-  tree const_intSI_pointer_node = build_pointer_type (const_intSI_node);
-  tree const_intDI_pointer_node = build_pointer_type (const_intDI_node);
-  tree const_float_pointer_node = build_pointer_type (const_float_node);
+  tree const_intQI_pointer_node;
+  tree const_intHI_pointer_node;
+  tree const_intSI_pointer_node;
+  tree const_intDI_pointer_node;
+  tree const_float_pointer_node;
 
-  /* Now create vector types based on our NEON element types.  */
-  /* 64-bit vectors.  */
-  tree V8QI_type_node =
-    build_vector_type_for_mode (neon_intQI_type_node, V8QImode);
-  tree V4HI_type_node =
-    build_vector_type_for_mode (neon_intHI_type_node, V4HImode);
-  tree V2SI_type_node =
-    build_vector_type_for_mode (neon_intSI_type_node, V2SImode);
-  tree V2SF_type_node =
-    build_vector_type_for_mode (neon_float_type_node, V2SFmode);
-  /* 128-bit vectors.  */
-  tree V16QI_type_node =
-    build_vector_type_for_mode (neon_intQI_type_node, V16QImode);
-  tree V8HI_type_node =
-    build_vector_type_for_mode (neon_intHI_type_node, V8HImode);
-  tree V4SI_type_node =
-    build_vector_type_for_mode (neon_intSI_type_node, V4SImode);
-  tree V4SF_type_node =
-    build_vector_type_for_mode (neon_float_type_node, V4SFmode);
-  tree V2DI_type_node =
-    build_vector_type_for_mode (neon_intDI_type_node, V2DImode);
+  tree V8QI_type_node;
+  tree V4HI_type_node;
+  tree V2SI_type_node;
+  tree V2SF_type_node;
+  tree V16QI_type_node;
+  tree V8HI_type_node;
+  tree V4SI_type_node;
+  tree V4SF_type_node;
+  tree V2DI_type_node;
 
-  /* Unsigned integer types for various mode sizes.  */
-  tree intUQI_type_node = make_unsigned_type (GET_MODE_PRECISION (QImode));
-  tree intUHI_type_node = make_unsigned_type (GET_MODE_PRECISION (HImode));
-  tree intUSI_type_node = make_unsigned_type (GET_MODE_PRECISION (SImode));
-  tree intUDI_type_node = make_unsigned_type (GET_MODE_PRECISION (DImode));
+  tree intUQI_type_node;
+  tree intUHI_type_node;
+  tree intUSI_type_node;
+  tree intUDI_type_node;
 
-  /* Opaque integer types for structures of vectors.  */
-  tree intEI_type_node = make_signed_type (GET_MODE_PRECISION (EImode));
-  tree intOI_type_node = make_signed_type (GET_MODE_PRECISION (OImode));
-  tree intCI_type_node = make_signed_type (GET_MODE_PRECISION (CImode));
-  tree intXI_type_node = make_signed_type (GET_MODE_PRECISION (XImode));
+  tree intEI_type_node;
+  tree intOI_type_node;
+  tree intCI_type_node;
+  tree intXI_type_node;
 
-  /* Pointers to vector types.  */
-  tree V8QI_pointer_node = build_pointer_type (V8QI_type_node);
-  tree V4HI_pointer_node = build_pointer_type (V4HI_type_node);
-  tree V2SI_pointer_node = build_pointer_type (V2SI_type_node);
-  tree V2SF_pointer_node = build_pointer_type (V2SF_type_node);
-  tree V16QI_pointer_node = build_pointer_type (V16QI_type_node);
-  tree V8HI_pointer_node = build_pointer_type (V8HI_type_node);
-  tree V4SI_pointer_node = build_pointer_type (V4SI_type_node);
-  tree V4SF_pointer_node = build_pointer_type (V4SF_type_node);
-  tree V2DI_pointer_node = build_pointer_type (V2DI_type_node);
+  tree V8QI_pointer_node;
+  tree V4HI_pointer_node;
+  tree V2SI_pointer_node;
+  tree V2SF_pointer_node;
+  tree V16QI_pointer_node;
+  tree V8HI_pointer_node;
+  tree V4SI_pointer_node;
+  tree V4SF_pointer_node;
+  tree V2DI_pointer_node;
 
-  /* Operations which return results as pairs.  */
-  tree void_ftype_pv8qi_v8qi_v8qi =
-    build_function_type_list (void_type_node, V8QI_pointer_node, V8QI_type_node,
-  			      V8QI_type_node, NULL);
-  tree void_ftype_pv4hi_v4hi_v4hi =
-    build_function_type_list (void_type_node, V4HI_pointer_node, V4HI_type_node,
-  			      V4HI_type_node, NULL);
-  tree void_ftype_pv2si_v2si_v2si =
-    build_function_type_list (void_type_node, V2SI_pointer_node, V2SI_type_node,
-  			      V2SI_type_node, NULL);
-  tree void_ftype_pv2sf_v2sf_v2sf =
-    build_function_type_list (void_type_node, V2SF_pointer_node, V2SF_type_node,
-  			      V2SF_type_node, NULL);
-  tree void_ftype_pdi_di_di =
-    build_function_type_list (void_type_node, intDI_pointer_node,
-			      neon_intDI_type_node, neon_intDI_type_node, NULL);
-  tree void_ftype_pv16qi_v16qi_v16qi =
-    build_function_type_list (void_type_node, V16QI_pointer_node,
-			      V16QI_type_node, V16QI_type_node, NULL);
-  tree void_ftype_pv8hi_v8hi_v8hi =
-    build_function_type_list (void_type_node, V8HI_pointer_node, V8HI_type_node,
-  			      V8HI_type_node, NULL);
-  tree void_ftype_pv4si_v4si_v4si =
-    build_function_type_list (void_type_node, V4SI_pointer_node, V4SI_type_node,
-  			      V4SI_type_node, NULL);
-  tree void_ftype_pv4sf_v4sf_v4sf =
-    build_function_type_list (void_type_node, V4SF_pointer_node, V4SF_type_node,
-  			      V4SF_type_node, NULL);
-  tree void_ftype_pv2di_v2di_v2di =
-    build_function_type_list (void_type_node, V2DI_pointer_node, V2DI_type_node,
-			      V2DI_type_node, NULL);
+  tree void_ftype_pv8qi_v8qi_v8qi;
+  tree void_ftype_pv4hi_v4hi_v4hi;
+  tree void_ftype_pv2si_v2si_v2si;
+  tree void_ftype_pv2sf_v2sf_v2sf;
+  tree void_ftype_pdi_di_di;
+  tree void_ftype_pv16qi_v16qi_v16qi;
+  tree void_ftype_pv8hi_v8hi_v8hi;
+  tree void_ftype_pv4si_v4si_v4si;
+  tree void_ftype_pv4sf_v4sf_v4sf;
+  tree void_ftype_pv2di_v2di_v2di;
 
   tree reinterp_ftype_dreg[5][5];
   tree reinterp_ftype_qreg[5][5];
   tree dreg_types[5], qreg_types[5];
 
+  /* Create distinguished type nodes for NEON vector element types,
+     and pointers to values of such types, so we can detect them later.  */
+  neon_intQI_type_node = make_signed_type (GET_MODE_PRECISION (QImode));
+  neon_intHI_type_node = make_signed_type (GET_MODE_PRECISION (HImode));
+  neon_polyQI_type_node = make_signed_type (GET_MODE_PRECISION (QImode));
+  neon_polyHI_type_node = make_signed_type (GET_MODE_PRECISION (HImode));
+  neon_intSI_type_node = make_signed_type (GET_MODE_PRECISION (SImode));
+  neon_intDI_type_node = make_signed_type (GET_MODE_PRECISION (DImode));
+  neon_float_type_node = make_node (REAL_TYPE);
   TYPE_PRECISION (neon_float_type_node) = FLOAT_TYPE_SIZE;
   layout_type (neon_float_type_node);
 
@@ -15138,11 +15134,63 @@ arm_init_neon_builtins (void)
 					     "__builtin_neon_sf");
   (*lang_hooks.types.register_builtin_type) (neon_intDI_type_node,
 					     "__builtin_neon_di");
-
   (*lang_hooks.types.register_builtin_type) (neon_polyQI_type_node,
 					     "__builtin_neon_poly8");
   (*lang_hooks.types.register_builtin_type) (neon_polyHI_type_node,
 					     "__builtin_neon_poly16");
+
+  intQI_pointer_node = build_pointer_type (neon_intQI_type_node);
+  intHI_pointer_node = build_pointer_type (neon_intHI_type_node);
+  intSI_pointer_node = build_pointer_type (neon_intSI_type_node);
+  intDI_pointer_node = build_pointer_type (neon_intDI_type_node);
+  float_pointer_node = build_pointer_type (neon_float_type_node);
+
+  /* Next create constant-qualified versions of the above types.  */
+  const_intQI_node = build_qualified_type (neon_intQI_type_node,
+					   TYPE_QUAL_CONST);
+  const_intHI_node = build_qualified_type (neon_intHI_type_node,
+					   TYPE_QUAL_CONST);
+  const_intSI_node = build_qualified_type (neon_intSI_type_node,
+					   TYPE_QUAL_CONST);
+  const_intDI_node = build_qualified_type (neon_intDI_type_node,
+					   TYPE_QUAL_CONST);
+  const_float_node = build_qualified_type (neon_float_type_node,
+					   TYPE_QUAL_CONST);
+
+  const_intQI_pointer_node = build_pointer_type (const_intQI_node);
+  const_intHI_pointer_node = build_pointer_type (const_intHI_node);
+  const_intSI_pointer_node = build_pointer_type (const_intSI_node);
+  const_intDI_pointer_node = build_pointer_type (const_intDI_node);
+  const_float_pointer_node = build_pointer_type (const_float_node);
+
+  /* Now create vector types based on our NEON element types.  */
+  /* 64-bit vectors.  */
+  V8QI_type_node =
+    build_vector_type_for_mode (neon_intQI_type_node, V8QImode);
+  V4HI_type_node =
+    build_vector_type_for_mode (neon_intHI_type_node, V4HImode);
+  V2SI_type_node =
+    build_vector_type_for_mode (neon_intSI_type_node, V2SImode);
+  V2SF_type_node =
+    build_vector_type_for_mode (neon_float_type_node, V2SFmode);
+  /* 128-bit vectors.  */
+  V16QI_type_node =
+    build_vector_type_for_mode (neon_intQI_type_node, V16QImode);
+  V8HI_type_node =
+    build_vector_type_for_mode (neon_intHI_type_node, V8HImode);
+  V4SI_type_node =
+    build_vector_type_for_mode (neon_intSI_type_node, V4SImode);
+  V4SF_type_node =
+    build_vector_type_for_mode (neon_float_type_node, V4SFmode);
+  V2DI_type_node =
+    build_vector_type_for_mode (neon_intDI_type_node, V2DImode);
+
+  /* Unsigned integer types for various mode sizes.  */
+  intUQI_type_node = make_unsigned_type (GET_MODE_PRECISION (QImode));
+  intUHI_type_node = make_unsigned_type (GET_MODE_PRECISION (HImode));
+  intUSI_type_node = make_unsigned_type (GET_MODE_PRECISION (SImode));
+  intUDI_type_node = make_unsigned_type (GET_MODE_PRECISION (DImode));
+
   (*lang_hooks.types.register_builtin_type) (intUQI_type_node,
 					     "__builtin_neon_uqi");
   (*lang_hooks.types.register_builtin_type) (intUHI_type_node,
@@ -15151,6 +15199,12 @@ arm_init_neon_builtins (void)
 					     "__builtin_neon_usi");
   (*lang_hooks.types.register_builtin_type) (intUDI_type_node,
 					     "__builtin_neon_udi");
+
+  /* Opaque integer types for structures of vectors.  */
+  intEI_type_node = make_signed_type (GET_MODE_PRECISION (EImode));
+  intOI_type_node = make_signed_type (GET_MODE_PRECISION (OImode));
+  intCI_type_node = make_signed_type (GET_MODE_PRECISION (CImode));
+  intXI_type_node = make_signed_type (GET_MODE_PRECISION (XImode));
 
   (*lang_hooks.types.register_builtin_type) (intTI_type_node,
 					     "__builtin_neon_ti");
@@ -15162,6 +15216,49 @@ arm_init_neon_builtins (void)
 					     "__builtin_neon_ci");
   (*lang_hooks.types.register_builtin_type) (intXI_type_node,
 					     "__builtin_neon_xi");
+
+  /* Pointers to vector types.  */
+  V8QI_pointer_node = build_pointer_type (V8QI_type_node);
+  V4HI_pointer_node = build_pointer_type (V4HI_type_node);
+  V2SI_pointer_node = build_pointer_type (V2SI_type_node);
+  V2SF_pointer_node = build_pointer_type (V2SF_type_node);
+  V16QI_pointer_node = build_pointer_type (V16QI_type_node);
+  V8HI_pointer_node = build_pointer_type (V8HI_type_node);
+  V4SI_pointer_node = build_pointer_type (V4SI_type_node);
+  V4SF_pointer_node = build_pointer_type (V4SF_type_node);
+  V2DI_pointer_node = build_pointer_type (V2DI_type_node);
+
+  /* Operations which return results as pairs.  */
+  void_ftype_pv8qi_v8qi_v8qi =
+    build_function_type_list (void_type_node, V8QI_pointer_node, V8QI_type_node,
+  			      V8QI_type_node, NULL);
+  void_ftype_pv4hi_v4hi_v4hi =
+    build_function_type_list (void_type_node, V4HI_pointer_node, V4HI_type_node,
+  			      V4HI_type_node, NULL);
+  void_ftype_pv2si_v2si_v2si =
+    build_function_type_list (void_type_node, V2SI_pointer_node, V2SI_type_node,
+  			      V2SI_type_node, NULL);
+  void_ftype_pv2sf_v2sf_v2sf =
+    build_function_type_list (void_type_node, V2SF_pointer_node, V2SF_type_node,
+  			      V2SF_type_node, NULL);
+  void_ftype_pdi_di_di =
+    build_function_type_list (void_type_node, intDI_pointer_node,
+			      neon_intDI_type_node, neon_intDI_type_node, NULL);
+  void_ftype_pv16qi_v16qi_v16qi =
+    build_function_type_list (void_type_node, V16QI_pointer_node,
+			      V16QI_type_node, V16QI_type_node, NULL);
+  void_ftype_pv8hi_v8hi_v8hi =
+    build_function_type_list (void_type_node, V8HI_pointer_node, V8HI_type_node,
+  			      V8HI_type_node, NULL);
+  void_ftype_pv4si_v4si_v4si =
+    build_function_type_list (void_type_node, V4SI_pointer_node, V4SI_type_node,
+  			      V4SI_type_node, NULL);
+  void_ftype_pv4sf_v4sf_v4sf =
+    build_function_type_list (void_type_node, V4SF_pointer_node, V4SF_type_node,
+  			      V4SF_type_node, NULL);
+  void_ftype_pv2di_v2di_v2di =
+    build_function_type_list (void_type_node, V2DI_pointer_node, V2DI_type_node,
+			      V2DI_type_node, NULL);
 
   dreg_types[0] = V8QI_type_node;
   dreg_types[1] = V4HI_type_node;
@@ -15539,8 +15636,8 @@ arm_expand_unop_builtin (enum insn_code icode,
 static int
 neon_builtin_compare (const void *a, const void *b)
 {
-  const neon_builtin_datum *key = a;
-  const neon_builtin_datum *memb = b;
+  const neon_builtin_datum *const key = (const neon_builtin_datum *) a;
+  const neon_builtin_datum *const memb = (const neon_builtin_datum *) b;
   unsigned int soughtcode = key->base_fcode;
 
   if (soughtcode >= memb->base_fcode
@@ -15559,7 +15656,8 @@ locate_neon_builtin_icode (int fcode, neon_itype *itype)
   int idx;
 
   key.base_fcode = fcode;
-  found = bsearch (&key, &neon_builtin_data[0], ARRAY_SIZE (neon_builtin_data),
+  found = (neon_builtin_datum *)
+    bsearch (&key, &neon_builtin_data[0], ARRAY_SIZE (neon_builtin_data),
 		   sizeof (neon_builtin_data[0]), neon_builtin_compare);
   gcc_assert (found);
   idx = fcode - (int) found->base_fcode;
@@ -16940,62 +17038,25 @@ thumb1_expand_prologue (void)
 	     been pushed at the start of the prologue and so we can corrupt
 	     it now.  */
 	  for (regno = LAST_ARG_REGNUM + 1; regno <= LAST_LO_REGNUM; regno++)
-	    if (live_regs_mask & (1 << regno)
-		&& !(frame_pointer_needed
-		     && (regno == THUMB_HARD_FRAME_POINTER_REGNUM)))
+	    if (live_regs_mask & (1 << regno))
 	      break;
 
-	  if (regno > LAST_LO_REGNUM) /* Very unlikely.  */
-	    {
-	      rtx spare = gen_rtx_REG (SImode, IP_REGNUM);
+	  gcc_assert(regno <= LAST_LO_REGNUM);
 
-	      /* Choose an arbitrary, non-argument low register.  */
-	      reg = gen_rtx_REG (SImode, LAST_LO_REGNUM);
+	  reg = gen_rtx_REG (SImode, regno);
 
-	      /* Save it by copying it into a high, scratch register.  */
-	      emit_insn (gen_movsi (spare, reg));
-	      /* Add a USE to stop propagate_one_insn() from barfing.  */
-	      emit_insn (gen_prologue_use (spare));
+	  emit_insn (gen_movsi (reg, GEN_INT (- amount)));
 
-	      /* Decrement the stack.  */
-	      emit_insn (gen_movsi (reg, GEN_INT (- amount)));
-	      insn = emit_insn (gen_addsi3 (stack_pointer_rtx,
-					    stack_pointer_rtx, reg));
-	      RTX_FRAME_RELATED_P (insn) = 1;
-	      dwarf = gen_rtx_SET (VOIDmode, stack_pointer_rtx,
-				   plus_constant (stack_pointer_rtx,
-						  -amount));
-	      RTX_FRAME_RELATED_P (dwarf) = 1;
-	      REG_NOTES (insn)
-		= gen_rtx_EXPR_LIST (REG_FRAME_RELATED_EXPR, dwarf,
-				     REG_NOTES (insn));
-
-	      /* Restore the low register's original value.  */
-	      emit_insn (gen_movsi (reg, spare));
-
-	      /* Emit a USE of the restored scratch register, so that flow
-		 analysis will not consider the restore redundant.  The
-		 register won't be used again in this function and isn't
-		 restored by the epilogue.  */
-	      emit_insn (gen_prologue_use (reg));
-	    }
-	  else
-	    {
-	      reg = gen_rtx_REG (SImode, regno);
-
-	      emit_insn (gen_movsi (reg, GEN_INT (- amount)));
-
-	      insn = emit_insn (gen_addsi3 (stack_pointer_rtx,
-					    stack_pointer_rtx, reg));
-	      RTX_FRAME_RELATED_P (insn) = 1;
-	      dwarf = gen_rtx_SET (VOIDmode, stack_pointer_rtx,
-				   plus_constant (stack_pointer_rtx,
-						  -amount));
-	      RTX_FRAME_RELATED_P (dwarf) = 1;
-	      REG_NOTES (insn)
-		= gen_rtx_EXPR_LIST (REG_FRAME_RELATED_EXPR, dwarf,
-				     REG_NOTES (insn));
-	    }
+	  insn = emit_insn (gen_addsi3 (stack_pointer_rtx,
+					stack_pointer_rtx, reg));
+	  RTX_FRAME_RELATED_P (insn) = 1;
+	  dwarf = gen_rtx_SET (VOIDmode, stack_pointer_rtx,
+			       plus_constant (stack_pointer_rtx,
+					      -amount));
+	  RTX_FRAME_RELATED_P (dwarf) = 1;
+	  REG_NOTES (insn)
+	    = gen_rtx_EXPR_LIST (REG_FRAME_RELATED_EXPR, dwarf,
+				 REG_NOTES (insn));
 	}
     }
 
@@ -17064,10 +17125,10 @@ thumb1_expand_epilogue (void)
      so that flow2 will get register lifetimes correct.  */
   for (regno = 0; regno < 13; regno++)
     if (df_regs_ever_live_p (regno) && !call_used_regs[regno])
-      emit_insn (gen_rtx_CLOBBER (VOIDmode, gen_rtx_REG (SImode, regno)));
+      emit_clobber (gen_rtx_REG (SImode, regno));
 
   if (! df_regs_ever_live_p (LR_REGNUM))
-    emit_insn (gen_rtx_USE (VOIDmode, gen_rtx_REG (SImode, LR_REGNUM)));
+    emit_use (gen_rtx_REG (SImode, LR_REGNUM));
 }
 
 static void
@@ -17666,8 +17727,12 @@ arm_file_start (void)
 	      fpu_name = "vfp";
 	      set_float_abi_attributes = 1;
 	      break;
+	    case FPUTYPE_VFP3D16:
+	      fpu_name = "vfpv3-d16";
+	      set_float_abi_attributes = 1;
+	      break;
 	    case FPUTYPE_VFP3:
-	      fpu_name = "vfp3";
+	      fpu_name = "vfpv3";
 	      set_float_abi_attributes = 1;
 	      break;
 	    case FPUTYPE_NEON:
@@ -18247,7 +18312,8 @@ arm_cxx_key_method_may_be_inline (void)
 static void
 arm_cxx_determine_class_data_visibility (tree decl)
 {
-  if (!TARGET_AAPCS_BASED)
+  if (!TARGET_AAPCS_BASED
+      || !TARGET_DLLIMPORT_DECL_ATTRIBUTES)
     return;
 
   /* In general, \S 3.2.5.5 of the ARM EABI requires that class data
@@ -18329,7 +18395,7 @@ thumb_set_return_address (rtx source, rtx scratch)
   rtx addr;
   unsigned long mask;
 
-  emit_insn (gen_rtx_USE (VOIDmode, source));
+  emit_use (source);
 
   offsets = arm_get_frame_offsets ();
   mask = offsets->saved_regs_mask;
@@ -18971,6 +19037,30 @@ arm_mangle_type (const_tree type)
   /* Use the default mangling for unrecognized (possibly user-defined)
      vector types.  */
   return NULL;
+}
+
+/* Order of allocation of core registers for Thumb: this allocation is
+   written over the corresponding initial entries of the array
+   initialized with REG_ALLOC_ORDER.  We allocate all low registers
+   first.  Saving and restoring a low register is usually cheaper than
+   using a call-clobbered high register.  */
+
+static const int thumb_core_reg_alloc_order[] =
+{
+   3,  2,  1,  0,  4,  5,  6,  7,
+  14, 12,  8,  9, 10, 11, 13, 15
+};
+
+/* Adjust register allocation order when compiling for Thumb.  */
+
+void
+arm_order_regs_for_local_alloc (void)
+{
+  const int arm_reg_alloc_order[] = REG_ALLOC_ORDER;
+  memcpy(reg_alloc_order, arm_reg_alloc_order, sizeof (reg_alloc_order));
+  if (TARGET_THUMB)
+    memcpy (reg_alloc_order, thumb_core_reg_alloc_order,
+            sizeof (thumb_core_reg_alloc_order));
 }
 
 #include "gt-arm.h"

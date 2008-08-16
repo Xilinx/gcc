@@ -638,19 +638,35 @@ ocp_convert (tree type, tree expr, int convtype, int flags)
   if (INTEGRAL_CODE_P (code))
     {
       tree intype = TREE_TYPE (e);
-      /* enum = enum, enum = int, enum = float, (enum)pointer are all
-	 errors.  */
-      if (TREE_CODE (type) == ENUMERAL_TYPE
-	  && (((INTEGRAL_OR_ENUMERATION_TYPE_P (intype)
+
+      if (TREE_CODE (type) == ENUMERAL_TYPE)
+	{
+	  /* enum = enum, enum = int, enum = float, (enum)pointer are all
+	     errors.  */
+	  if (((INTEGRAL_OR_ENUMERATION_TYPE_P (intype)
 		|| TREE_CODE (intype) == REAL_TYPE)
 	       && ! (convtype & CONV_STATIC))
-	      || TREE_CODE (intype) == POINTER_TYPE))
-	{
-	  if (flags & LOOKUP_COMPLAIN)
-	    permerror ("conversion from %q#T to %q#T", intype, type);
+	      || TREE_CODE (intype) == POINTER_TYPE)
+	    {
+	      if (flags & LOOKUP_COMPLAIN)
+		permerror ("conversion from %q#T to %q#T", intype, type);
 
-	  if (!flag_permissive)
-	    return error_mark_node;
+	      if (!flag_permissive)
+		return error_mark_node;
+	    }
+
+	  /* [expr.static.cast]
+
+	     8. A value of integral or enumeration type can be explicitly
+	     converted to an enumeration type. The value is unchanged if
+	     the original value is within the range of the enumeration
+	     values. Otherwise, the resulting enumeration value is
+	     unspecified.  */
+	  if (TREE_CODE (expr) == INTEGER_CST && !int_fits_type_p (expr, type))
+	    warning (OPT_Wconversion, 
+		     "the result of the conversion is unspecified because "
+		     "%qE is outside the range of type %qT",
+		     expr, type);
 	}
       if (MAYBE_CLASS_TYPE_P (intype))
 	{
@@ -725,8 +741,10 @@ ocp_convert (tree type, tree expr, int convtype, int flags)
       if (abstract_virtuals_error (NULL_TREE, type))
 	return error_mark_node;
 
-      if ((flags & LOOKUP_ONLYCONVERTING)
-	  && ! (MAYBE_CLASS_TYPE_P (dtype) && DERIVED_FROM_P (type, dtype)))
+      if (BRACE_ENCLOSED_INITIALIZER_P (ctor))
+	ctor = perform_implicit_conversion (type, ctor, tf_warning_or_error);
+      else if ((flags & LOOKUP_ONLYCONVERTING)
+	       && ! (CLASS_TYPE_P (dtype) && DERIVED_FROM_P (type, dtype)))
 	/* For copy-initialization, first we create a temp of the proper type
 	   with a user-defined conversion sequence, then we direct-initialize
 	   the target with the temp (see [dcl.init]).  */
@@ -936,7 +954,7 @@ convert_to_void (tree expr, const char *implicit, tsubst_flags_t complain)
 	    {
 	      tree e;
 	      enum tree_code code;
-	      enum tree_code_class class;
+	      enum tree_code_class tclass;
 
 	      e = expr;
 	      /* We might like to warn about (say) "(int) f()", as the
@@ -953,10 +971,10 @@ convert_to_void (tree expr, const char *implicit, tsubst_flags_t complain)
 		e = TREE_OPERAND (e, 0);
 
 	      code = TREE_CODE (e);
-	      class = TREE_CODE_CLASS (code);
-	      if ((class == tcc_comparison
-		   || class == tcc_unary
-		   || (class == tcc_binary
+	      tclass = TREE_CODE_CLASS (code);
+	      if ((tclass == tcc_comparison
+		   || tclass == tcc_unary
+		   || (tclass == tcc_binary
 		       && !(code == MODIFY_EXPR
 			    || code == INIT_EXPR
 			    || code == PREDECREMENT_EXPR

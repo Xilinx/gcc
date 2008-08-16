@@ -42,9 +42,6 @@ extern unsigned int arm_dbx_register_number (unsigned int);
 extern void arm_output_fn_unwind (FILE *, bool);
   
 
-#ifdef TREE_CODE
-extern bool arm_return_in_memory (const_tree, const_tree);
-#endif
 #ifdef RTX_CODE
 extern bool arm_vector_mode_supported_p (enum machine_mode);
 extern int arm_hard_regno_mode_ok (unsigned int, enum machine_mode);
@@ -210,5 +207,7 @@ extern void arm_pr_long_calls_off (struct cpp_reader *);
 extern void arm_lang_object_attributes_init(void);
 
 extern const char *arm_mangle_type (const_tree);
+
+extern void arm_order_regs_for_local_alloc (void);
 
 #endif /* ! GCC_ARM_PROTOS_H */

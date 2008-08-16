@@ -544,8 +544,6 @@ static void change_queue_index (rtx, int);
 
 static void extend_h_i_d (void);
 static void extend_ready (int);
-static void extend_global (rtx);
-static void extend_all (rtx);
 static void init_h_i_d (rtx);
 static void generate_recovery_code (rtx);
 static void process_insn_forw_deps_be_in_spec (rtx, rtx, ds_t);
@@ -1110,7 +1108,7 @@ ready_sort (struct ready_list *ready)
 
 /* PREV is an insn that is ready to execute.  Adjust its priority if that
    will help shorten or lengthen register lifetimes as appropriate.  Also
-   provide a hook for the target to tweek itself.  */
+   provide a hook for the target to tweak itself.  */
 
 HAIFA_INLINE static void
 adjust_priority (rtx prev)
@@ -2179,7 +2177,7 @@ schedule_block (basic_block *target_bb, int rgn_n_insns1)
   q_ptr = 0;
   q_size = 0;
 
-  insn_queue = alloca ((max_insn_queue_index + 1) * sizeof (rtx));
+  insn_queue = XALLOCAVEC (rtx, max_insn_queue_index + 1);
   memset (insn_queue, 0, (max_insn_queue_index + 1) * sizeof (rtx));
 
   /* Start just before the beginning of time.  */
@@ -2373,7 +2371,7 @@ schedule_block (basic_block *target_bb, int rgn_n_insns1)
 	      asm_p = (GET_CODE (PATTERN (insn)) == ASM_INPUT
 		       || asm_noperands (PATTERN (insn)) >= 0);
 	      if (!first_cycle_insn_p && asm_p)
-		/* This is asm insn which is tryed to be issued on the
+		/* This is asm insn which is tried to be issued on the
 		   cycle not first.  Issue it on the next cycle.  */
 		cost = 1;
 	      else
@@ -2548,7 +2546,7 @@ schedule_block (basic_block *target_bb, int rgn_n_insns1)
     {
       targetm.sched.md_finish (sched_dump, sched_verbose);
 
-      /* Target might have added some instructions to the scheduled block.
+      /* Target might have added some instructions to the scheduled block
 	 in its md_finish () hook.  These new insns don't have any data
 	 initialized and to identify them we extend h_i_d so that they'll
 	 get zero luids.*/
@@ -3158,7 +3156,8 @@ extend_h_i_d (void)
      pseudos which do not cross calls.  */
   int new_max_uid = get_max_uid () + 1;  
 
-  h_i_d = xrecalloc (h_i_d, new_max_uid, old_max_uid, sizeof (*h_i_d));
+  h_i_d = (struct haifa_insn_data *)
+    xrecalloc (h_i_d, new_max_uid, old_max_uid, sizeof (*h_i_d));
   old_max_uid = new_max_uid;
 
   if (targetm.sched.h_i_d_extended)
@@ -3175,8 +3174,8 @@ extend_ready (int n_new_insns)
   readyp->veclen = rgn_n_insns + n_new_insns + 1 + issue_rate;
   readyp->vec = XRESIZEVEC (rtx, readyp->vec, readyp->veclen);
  
-  ready_try = xrecalloc (ready_try, rgn_n_insns + n_new_insns + 1,
-			 rgn_n_insns + 1, sizeof (char));
+  ready_try = (char *) xrecalloc (ready_try, rgn_n_insns + n_new_insns + 1,
+				  rgn_n_insns + 1, sizeof (char));
 
   rgn_n_insns += n_new_insns;
 
@@ -3187,36 +3186,45 @@ extend_ready (int n_new_insns)
     choice_stack[i].state = xmalloc (dfa_state_size);
 }
 
-/* Extend global scheduler structures (those, that live across calls to
-   schedule_block) to include information about just emitted INSN.  */
+/* Extend global-scope scheduler data structures
+   (those, that live within one call to schedule_insns)
+   to include information about just emitted INSN.  */
 static void
-extend_global (rtx insn)
+extend_global_data (rtx insn)
 {
   gcc_assert (INSN_P (insn));
-
-  /* These structures have scheduler scope.  */
 
   /* Init h_i_d.  */
   extend_h_i_d ();
   init_h_i_d (insn);
 
-  /* Init data handled in sched-deps.c.  */
-  sd_init_insn (insn);
-
   /* Extend dependency caches by one element.  */
   extend_dependency_caches (1, false);
 }
 
-/* Extends global and local scheduler structures to include information
-   about just emitted INSN.  */
+/* Extend global- and region-scope scheduler data structures
+   (those, that live within one call to schedule_region)
+   to include information about just emitted INSN.  */
 static void
-extend_all (rtx insn)
-{ 
-  extend_global (insn);
+extend_region_data (rtx insn)
+{
+  extend_global_data (insn);
+
+  /* Init dependency data.  */
+  sd_init_insn (insn);
+}
+
+/* Extend global-, region- and block-scope scheduler data structures
+   (those, that live within one call to schedule_block)
+   to include information about just emitted INSN.  */
+static void
+extend_block_data (rtx insn)
+{
+  extend_region_data (insn);
 
   /* These structures have block scope.  */
   extend_ready (1);
-  
+
   (*current_sched_info->add_remove_insn) (insn, 0);
 }
 
@@ -3390,7 +3398,7 @@ add_to_speculative_block (rtx insn)
       rec = BLOCK_FOR_INSN (check);
 
       twin = emit_insn_before (copy_insn (PATTERN (insn)), BB_END (rec));
-      extend_global (twin);
+      extend_region_data (twin);
 
       sd_copy_back_deps (twin, insn, true);
 
@@ -3580,7 +3588,7 @@ init_before_recovery (void)
       x = emit_jump_insn_after (gen_jump (label), BB_END (single));
       JUMP_LABEL (x) = label;
       LABEL_NUSES (label)++;
-      extend_global (x);
+      extend_global_data (x);
           
       emit_barrier_after (x);
 
@@ -3680,7 +3688,7 @@ create_check_block_twin (rtx insn, bool mutate_p)
     check = emit_insn_before (check, insn);
 
   /* Extend data structures.  */
-  extend_all (check);
+  extend_block_data (check);
   RECOVERY_BLOCK (check) = rec;
 
   if (sched_verbose && spec_info->dump)
@@ -3707,7 +3715,7 @@ create_check_block_twin (rtx insn, bool mutate_p)
 	  }
 
       twin = emit_insn_after (ORIG_PAT (insn), BB_END (rec));
-      extend_global (twin);
+      extend_region_data (twin);
 
       if (sched_verbose && spec_info->dump)
 	/* INSN_BB (insn) isn't determined for twin insns yet.
@@ -3760,7 +3768,7 @@ create_check_block_twin (rtx insn, bool mutate_p)
       jump = emit_jump_insn_after (gen_jump (label), BB_END (rec));
       JUMP_LABEL (jump) = label;
       LABEL_NUSES (label)++;
-      extend_global (jump);
+      extend_region_data (jump);
 
       if (BB_PARTITION (second_bb) != BB_PARTITION (rec))
 	/* Partition type is the same, if it is "unpartitioned".  */
@@ -3772,11 +3780,7 @@ create_check_block_twin (rtx insn, bool mutate_p)
 	    /* any_condjump_p (jump) == false.
 	       We don't need the same note for the check because
 	       any_condjump_p (check) == true.  */
-	    {
-	      REG_NOTES (jump) = gen_rtx_EXPR_LIST (REG_CROSSING_JUMP,
-						    NULL_RTX,
-						    REG_NOTES (jump));
-	    }
+	    add_reg_note (jump, REG_CROSSING_JUMP, NULL_RTX);
 	  edge_flags = EDGE_CROSSING;
 	}
       else
@@ -4015,32 +4019,6 @@ change_pattern (rtx insn, rtx new_pat)
   dfa_clear_single_insn_cache (insn);
 }
 
-/* Return true if INSN can potentially be speculated with type DS.  */
-bool
-sched_insn_is_legitimate_for_speculation_p (const_rtx insn, ds_t ds)
-{
-  if (HAS_INTERNAL_DEP (insn))
-    return false;
-
-  if (!NONJUMP_INSN_P (insn))
-    return false;
-
-  if (SCHED_GROUP_P (insn))
-    return false;
-
-  if (IS_SPECULATION_CHECK_P (insn))
-    return false;
-
-  if (side_effects_p (PATTERN (insn)))
-    return false;
-
-  if ((ds & BE_IN_SPEC)
-      && may_trap_p (PATTERN (insn)))
-    return false;
-
-  return true;
-}
-
 /* -1 - can't speculate,
    0 - for speculation with REQUEST mode it is OK to use
    current instruction pattern,
@@ -4098,7 +4076,7 @@ unlink_bb_notes (basic_block first, basic_block last)
   if (first == last)
     return;
 
-  bb_header = xmalloc (last_basic_block * sizeof (*bb_header));
+  bb_header = XNEWVEC (rtx, last_basic_block);
 
   /* Make a sentinel.  */
   if (last->next_bb != EXIT_BLOCK_PTR)

@@ -74,6 +74,10 @@ enum rid
   RID_DFLOAT32, RID_DFLOAT64, RID_DFLOAT128,
   RID_FRACT, RID_ACCUM,
 
+  /* This means to warn that this is a C++ keyword, and then treat it
+     as a normal identifier.  */
+  RID_CXX_COMPAT_WARN,
+
   /* Too many ways of getting the name of a function as a string */
   RID_FUNCTION_NAME, RID_PRETTY_FUNCTION_NAME, RID_C99_FUNCTION_NAME,
 
@@ -184,7 +188,12 @@ enum c_tree_index
     CTI_MAX
 };
 
-#define C_RID_CODE(id)	(((struct c_common_identifier *) (id))->node.rid_code)
+#define C_CPP_HASHNODE(id) \
+  (&(((struct c_common_identifier *) (id))->node))
+#define C_RID_CODE(id) \
+  ((enum rid) (((struct c_common_identifier *) (id))->node.rid_code))
+#define C_SET_RID_CODE(id, code) \
+  (((struct c_common_identifier *) (id))->node.rid_code = (unsigned char) code)
 
 /* Identifier part common to the C front ends.  Inherits from
    tree_identifier, despite appearances.  */
@@ -193,6 +202,36 @@ struct c_common_identifier GTY(())
   struct tree_common common;
   struct cpp_hashnode node;
 };
+
+/* An entry in the reserved keyword table.  */
+
+struct c_common_resword
+{
+  const char *const word;
+  ENUM_BITFIELD(rid) const rid : 16;
+  const unsigned int disable   : 16;
+};
+
+/* Disable mask.  Keywords are disabled if (reswords[i].disable &
+   mask) is _true_.  Thus for keywords which are present in all
+   languages the disable field is zero.  */
+
+#define D_CONLY		0x001	/* C only (not in C++).  */
+#define D_CXXONLY	0x002	/* C++ only (not in C).  */
+#define D_C99		0x004	/* In C, C99 only.  */
+#define D_CXX0X         0x008	/* In C++, C++0X only.  */
+#define D_EXT		0x010	/* GCC extension.  */
+#define D_EXT89		0x020	/* GCC extension incorporated in C99.  */
+#define D_ASM		0x040	/* Disabled by -fno-asm.  */
+#define D_OBJC		0x080	/* In Objective C and neither C nor C++.  */
+#define D_CXX_OBJC	0x100	/* In Objective C, and C++, but not C.  */
+#define D_CXXWARN	0x200	/* In C warn with -Wcxx-compat.  */
+
+/* The reserved keyword table.  */
+extern const struct c_common_resword c_common_reswords[];
+
+/* The number of items in the reserved keyword table.  */
+extern const unsigned int num_c_common_reswords;
 
 #define char16_type_node		c_global_trees[CTI_CHAR16_TYPE]
 #define char32_type_node		c_global_trees[CTI_CHAR32_TYPE]
@@ -459,11 +498,6 @@ extern int flag_isoc99;
 
 extern int flag_hosted;
 
-/* Warn if main is suspicious.  */
-
-extern int warn_main;
-
-
 /* ObjC language option variables.  */
 
 
@@ -704,6 +738,9 @@ extern bool same_scalar_type_ignoring_signedness (tree, tree);
 #define c_sizeof(T)  c_sizeof_or_alignof_type (T, true, 1)
 #define c_alignof(T) c_sizeof_or_alignof_type (T, false, 1)
 
+/* Subroutine of build_binary_op, used for certain operations.  */
+extern tree shorten_binary_op (tree result_type, tree op0, tree op1, bool bitwise);
+
 /* Subroutine of build_binary_op, used for comparison operations.
    See if the operands have both been converted from subword integer types
    and, if so, perhaps change them both back to their original type.  */
@@ -763,16 +800,6 @@ extern void finish_file	(void);
 #define COMPOUND_LITERAL_EXPR_DECL(NODE)			\
   DECL_EXPR_DECL (COMPOUND_LITERAL_EXPR_DECL_STMT (NODE))
 
-#define DEFTREECODE(SYM, NAME, TYPE, LENGTH) SYM,
-
-enum c_tree_code {
-  C_DUMMY_TREE_CODE = LAST_AND_UNUSED_TREE_CODE,
-#include "c-common.def"
-  LAST_C_TREE_CODE
-};
-
-#undef DEFTREECODE
-
 extern int anon_aggr_type_p (const_tree);
 
 /* For a VAR_DECL that is an anonymous union, these are the various
@@ -831,6 +858,7 @@ extern tree finish_label_address_expr (tree);
 extern tree lookup_label (tree);
 extern tree lookup_name (tree);
 
+extern bool vector_targets_convertible_p (const_tree t1, const_tree t2);
 extern bool vector_types_convertible_p (const_tree t1, const_tree t2, bool emit_lax_note);
 
 extern rtx c_expand_expr (tree, rtx, enum machine_mode, int, rtx *);
@@ -840,6 +868,7 @@ extern tree c_staticp (tree);
 extern void init_c_lex (void);
 
 extern void c_cpp_builtins (cpp_reader *);
+extern void c_cpp_builtins_optimize_pragma (cpp_reader *, tree, tree);
 
 /* Positive if an implicit `extern "C"' scope has just been entered;
    negative if such a scope has just been exited.  */
@@ -866,7 +895,7 @@ extern void dump_time_statistics (void);
 
 extern bool c_dump_tree (void *, tree);
 
-extern void c_warn_unused_result (tree *);
+extern void c_warn_unused_result (gimple_seq);
 
 extern void verify_sequence_points (tree);
 
@@ -894,11 +923,14 @@ extern void warn_about_parentheses (enum tree_code, enum tree_code,
 				    enum tree_code);
 extern void warn_for_unused_label (tree label);
 extern void warn_for_div_by_zero (tree divisor);
-
+extern void warn_for_sign_compare (tree orig_op0, tree orig_op1, 
+				   tree op0, tree op1, 
+				   tree result_type, 
+				   enum tree_code resultcode);
 
 /* In c-gimplify.c  */
 extern void c_genericize (tree);
-extern int c_gimplify_expr (tree *, tree *, tree *);
+extern int c_gimplify_expr (tree *, gimple_seq *, gimple_seq *);
 extern tree c_build_bind_expr (tree, tree);
 
 /* In c-pch.c  */
@@ -914,6 +946,8 @@ extern void c_common_print_pch_checksum (FILE *f);
 /* In *-checksum.c */
 extern const unsigned char executable_checksum[16];
 
+/* In c-cppbuiltin.c  */
+extern void builtin_define_std (const char *macro);
 extern void builtin_define_with_value (const char *, const char *, int);
 extern void c_stddef_cpp_builtins (void);
 extern void fe_file_change (const struct line_map *);
@@ -995,6 +1029,7 @@ extern tree c_finish_omp_ordered (tree);
 extern void c_finish_omp_barrier (void);
 extern tree c_finish_omp_atomic (enum tree_code, tree, tree);
 extern void c_finish_omp_flush (void);
+extern void c_finish_omp_taskwait (void);
 extern tree c_finish_omp_for (location_t, tree, tree, tree, tree, tree, tree);
 extern void c_split_parallel_clauses (tree, tree *, tree *);
 extern enum omp_clause_default_kind c_omp_predetermined_sharing (tree);
