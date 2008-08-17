@@ -6775,11 +6775,33 @@ cp_parser_lambda_expression (cp_parser* parser)
     tf_warning_or_error
   );
 
+  /* Build aggregate constructor.
+   * - cp_parser_braced_list
+   * - cp_parser_functional_cast  */
+  VEC (constructor_elt, gc)* elts = NULL;
+  tree initializer;
+  for (initializer = LAMBDA_EXPR_CAPTURE_INIT_LIST (lambda_expr);
+       initializer;
+       initializer = TREE_CHAIN (initializer))
+  {
+    CONSTRUCTOR_APPEND_ELT (
+        elts,
+        /*identifier=*/NULL_TREE,
+        TREE_VALUE (initializer));
+  }
+
+  tree expr = make_node (CONSTRUCTOR);
+  CONSTRUCTOR_ELTS (expr) = elts;
+  TREE_TYPE (expr) = init_list_type_node;
+  CONSTRUCTOR_IS_DIRECT_INIT (expr) = 1;
+
   /*set_cfun (saved_cfun);*/
   pop_function_context();
   current_function_decl = saved_function_decl;
   skip_evaluation = saved_skip_evaluation;
 
+  /* TREE_TYPE to remove TYPE_DECL wrapping  */
+  /*return finish_compound_literal (TREE_TYPE (type), expr);*/
   return construction_expr;
 }
 
@@ -6812,7 +6834,7 @@ cp_parser_lambda_class_definition (cp_parser* parser,
 
     /* Create the new class for this lambda. */
     type = xref_tag (
-        /*tag_code=*/class_type,
+        /*tag_code=*/record_type,
         /*name=*/name,
         /*scope=*/ts_current,
         /*template_header_p=*/false);
@@ -6820,7 +6842,7 @@ cp_parser_lambda_class_definition (cp_parser* parser,
     CLASSTYPE_LAMBDA_EXPR (type) = lambda_expr;
 
     /* For now, say that this was declared a class and not a struct. */
-    CLASSTYPE_DECLARED_CLASS (type) = true;
+    CLASSTYPE_DECLARED_CLASS (type) = false;
 
     /* Clear base types. */
     xref_basetypes (type, /*bases=*/NULL_TREE);

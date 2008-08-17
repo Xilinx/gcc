@@ -2711,12 +2711,10 @@ finish_id_expression (tree id_expression,
                           /*rval=*/false))
                     : (capture_base_type);
 
-                  /*
                   LAMBDA_EXPR_CAPTURE_INIT_LIST (lambda_expr) = tree_cons (
                       NULL_TREE,
                       capture_init_expr,
                       LAMBDA_EXPR_CAPTURE_INIT_LIST (lambda_expr));
-                  */
 
                   /* Make member variable.  */
                   member = build_lang_decl (
