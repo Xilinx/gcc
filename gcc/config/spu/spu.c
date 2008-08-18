@@ -3809,6 +3809,8 @@ spu_expand_mov (rtx * ops, enum machine_mode mode)
     {
       if (GET_CODE (ops[0]) == MEM)
 	{
+ 	  if (MEM_ADDR_SPACE (ops[0]))
+ 	    ops[0] = expand_ea_mem (ops[0], true);
 	  if (!spu_valid_move (ops))
 	    {
 	      emit_insn (gen_store (ops[0], ops[1], gen_reg_rtx (TImode),
@@ -3818,6 +3820,8 @@ spu_expand_mov (rtx * ops, enum machine_mode mode)
 	}
       else if (GET_CODE (ops[1]) == MEM)
 	{
+ 	  if (MEM_ADDR_SPACE (ops[1]))
+ 	    ops[1] = expand_ea_mem (ops[1], false);
 	  if (!spu_valid_move (ops))
 	    {
 	      emit_insn (gen_load
@@ -3826,17 +3830,6 @@ spu_expand_mov (rtx * ops, enum machine_mode mode)
 	      return 1;
 	    }
 	}
-
-      if (MEM_P (ops[0]))
-	{
- 	  if (MEM_ADDR_SPACE (ops[0]))
- 	    ops[0] = expand_ea_mem (ops[0], true);
- 	}
-      else if (MEM_P (ops[1]))
-	{
- 	  if (MEM_ADDR_SPACE (ops[1]))
- 	    ops[1] = expand_ea_mem (ops[1], false);
- 	}
 
       /* Catch the SImode immediates greater than 0x7fffffff, and sign
          extend them. */

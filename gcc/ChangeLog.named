@@ -1,3 +1,8 @@
+2008-08-18  Ben Elliston  <bje@au.ibm.com>
+
+	* config/spu/spu.c (spu_expand_mov): Adjust __ea mems before
+	calling spu_valid_move.
+	
 2008-08-11  Ben Elliston  <bje@au.ibm.com>
 
 	* print-rtl.c (print_rtx): Print address space number, if non-zero.
