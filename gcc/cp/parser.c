@@ -6758,14 +6758,22 @@ cp_parser_lambda_expression (cp_parser* parser)
   /* Remember that we are defining one more class.  */
   ++parser->num_classes_being_defined;
 
+  tree type = begin_lambda_type (lambda_expr);
+
   cp_parser_lambda_parameter_declaration (parser, lambda_expr);
+
+  type = finish_struct (type, /*attributes=*/NULL_TREE);
+
+  if (current_class_type)
+    make_friend_class (current_class_type, type, /*complain=*/false);
+
   cp_parser_lambda_body (parser, lambda_expr);
 
   parser->in_function_body = saved_in_function_body;
   parser->num_template_parameter_lists = saved_num_template_parameter_lists;
   --parser->num_classes_being_defined;
 
-  tree type = TREE_CHAIN (TREE_TYPE (lambda_expr));
+  type = TREE_CHAIN (type);
 
   /* Build aggregate constructor.
    * - cp_parser_braced_list
@@ -6942,10 +6950,6 @@ cp_parser_lambda_parameter_declaration (cp_parser* parser,
     LAMBDA_EXPR_RETURN_TYPE (lambda_expr) = cp_parser_type_id (parser);
   }
 
-  tree enclosing_class_type = current_class_type;
-
-  tree type = begin_lambda_type (lambda_expr);
-
   /********************************************
    * Start the function call operator
    * - member_specification_opt
@@ -6981,7 +6985,9 @@ cp_parser_lambda_parameter_declaration (cp_parser* parser,
     declarator = make_call_declarator (
         declarator,
         param_list,
-        /*cv_qualifiers=*/TYPE_QUAL_CONST,
+        /*cv_qualifiers=*/(LAMBDA_EXPR_MUTABLE_P (lambda_expr) ?
+           (TYPE_UNQUALIFIED) :
+           (TYPE_QUAL_CONST)),
         exception_spec);
 
     parser->in_declarator_p = saved_in_declarator_p;
@@ -7004,13 +7010,6 @@ cp_parser_lambda_parameter_declaration (cp_parser* parser,
     LAMBDA_EXPR_FUNCTION (lambda_expr) = fco;
 
   }
-
-  /* Wrap up the class and return.  */
-
-  type = finish_struct (type, /*attributes=*/NULL_TREE);
-
-  if (enclosing_class_type)
-    make_friend_class (enclosing_class_type, type, /*complain=*/false);
 
 }
 

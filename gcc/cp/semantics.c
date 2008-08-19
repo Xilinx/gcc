@@ -4975,9 +4975,6 @@ begin_lambda_type (tree lambda)
   {
     tree member = TREE_PURPOSE (node);
 
-    if (member != LAMBDA_EXPR_THIS_CAPTURE (lambda))
-      DECL_MUTABLE_P (member) = LAMBDA_EXPR_MUTABLE_P (lambda);
-
     /* Add to class.  */
     finish_member_declaration (member);
   }
@@ -5062,10 +5059,6 @@ add_default_capture (tree lambda_stack, tree id, tree initializer)
     /* Prepare to add to class. */
     current_class_type = TREE_TYPE (lambda);
     TYPE_BEING_DEFINED (current_class_type) = 1;
-
-    if (!this_capture_p
-        && LAMBDA_EXPR_MUTABLE_P (lambda))
-      DECL_MUTABLE_P (member) = 1;
 
     /* Add to class.  */
     finish_member_declaration (member);
