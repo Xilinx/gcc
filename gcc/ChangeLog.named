@@ -1,3 +1,8 @@
+2008-08-19  Ben Elliston  <bje@au.ibm.com>
+
+	* tree-ssa.c (useless_type_conversion_p_1): Do not lose casts
+	between pointers in different address spaces.
+
 2008-08-18  Ben Elliston  <bje@au.ibm.com>
 
 	* config/spu/spu.c (spu_expand_mov): Adjust __ea mems before

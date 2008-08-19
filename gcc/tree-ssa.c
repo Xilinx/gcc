@@ -1118,6 +1118,12 @@ useless_type_conversion_p_1 (tree outer_type, tree inner_type)
 	  && TYPE_VOLATILE (TREE_TYPE (outer_type)))
 	return false;
 
+      /* Do not lose casts between pointers in different address
+	 spaces.  */
+      if (TYPE_ADDR_SPACE (TREE_TYPE (inner_type))
+	  != TYPE_ADDR_SPACE (TREE_TYPE (outer_type)))
+	return false;
+
       /* Do not lose casts between pointers with different
 	 TYPE_REF_CAN_ALIAS_ALL setting or alias sets.  */
       if ((TYPE_REF_CAN_ALIAS_ALL (inner_type)
