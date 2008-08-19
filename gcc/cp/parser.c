@@ -1634,10 +1634,9 @@ static tree cp_parser_lambda_expression
 static void cp_parser_lambda_introducer
   (cp_parser *, tree);
 static void cp_parser_lambda_parameter_declaration
-  (cp_parser *, tree,
-   cp_parameter_declarator **);
-static tree cp_parser_lambda_class_definition
-  (cp_parser *, tree, cp_parameter_declarator *);
+  (cp_parser *, tree);
+static void cp_parser_lambda_body
+  (cp_parser *, tree);
 
 /* Statements [gram.stmt.stmt]  */
 
@@ -6746,17 +6745,27 @@ static tree
 cp_parser_lambda_expression (cp_parser* parser)
 {
   tree lambda_expr = build_lambda_expr ();
-  cp_parameter_declarator* param_list = no_parameters;
 
   cp_parser_lambda_introducer (parser, lambda_expr);
-  cp_parser_lambda_parameter_declaration (parser,
-      lambda_expr,
-      &param_list);
 
-  tree type = cp_parser_lambda_class_definition (parser,
-      lambda_expr,
-      param_list);
-  type = TREE_CHAIN (type);
+  /* Inside the class, surrounding template-parameter-lists do not apply.  */
+  unsigned int saved_num_template_parameter_lists
+      = parser->num_template_parameter_lists;
+  parser->num_template_parameter_lists = 0;
+  /* We are not in a function body.  */
+  bool saved_in_function_body = parser->in_function_body;
+  parser->in_function_body = false;
+  /* Remember that we are defining one more class.  */
+  ++parser->num_classes_being_defined;
+
+  cp_parser_lambda_parameter_declaration (parser, lambda_expr);
+  cp_parser_lambda_body (parser, lambda_expr);
+
+  parser->in_function_body = saved_in_function_body;
+  parser->num_template_parameter_lists = saved_num_template_parameter_lists;
+  --parser->num_classes_being_defined;
+
+  tree type = TREE_CHAIN (TREE_TYPE (lambda_expr));
 
   /* Build aggregate constructor.
    * - cp_parser_braced_list
@@ -6778,230 +6787,6 @@ cp_parser_lambda_expression (cp_parser* parser)
 
   /* TREE_TYPE to remove TYPE_DECL wrapping  */
   return finish_compound_literal (TREE_TYPE (type), expr);
-}
-
-static tree
-cp_parser_lambda_class_definition (cp_parser* parser,
-    tree lambda_expr,
-    cp_parameter_declarator* param_list)
-{
-  unsigned int saved_num_template_parameter_lists;
-  bool         saved_in_function_body;
-
-  tree enclosing_class_type = current_class_type;
-
-  {
-    /* Inside the class, surrounding template-parameter-lists
-       do not apply.  */
-    saved_num_template_parameter_lists
-      = parser->num_template_parameter_lists;
-    parser->num_template_parameter_lists = 0;
-    /* We are not in a function body.  */
-    saved_in_function_body = parser->in_function_body;
-    parser->in_function_body = false;
-    /* Remember that we are defining one more class.  */
-    ++parser->num_classes_being_defined;
-  }
-
-  tree type = begin_lambda_type (lambda_expr);
-
-  /* For each capture, we need to add the member to the class.  */
-  {
-
-    /* Members are public (for finish_member_declaration) so that we can use
-     * aggregate initialization.  */
-    current_access_specifier = access_public_node;
-
-    tree node;
-    for (node = LAMBDA_EXPR_CAPTURE_LIST (lambda_expr);
-         node;
-         node = TREE_CHAIN (node))
-    {
-      tree member = TREE_PURPOSE (node);
-
-      if (LAMBDA_EXPR_MUTABLE_P (lambda_expr))
-        DECL_MUTABLE_P (member) = 1;
-
-      /* Add to class.  */
-      finish_member_declaration (member);
-    }
-
-  }
-
-  /* fco = function call operator */
-  tree fco;
-
-  /********************************************
-   * Start the function call operator
-   * - member_specification_opt
-   * + member_declaration
-   ********************************************/
-  {
-    bool saved_in_declarator_p;
-    bool saved_default_arg_ok_p;
-
-    saved_in_declarator_p = parser->in_declarator_p;
-    parser->in_declarator_p = true;
-
-    saved_default_arg_ok_p = parser->default_arg_ok_p;
-    parser->default_arg_ok_p = true;
-
-    cp_decl_specifier_seq return_type_specs;
-    clear_decl_specs (&return_type_specs);
-    if (LAMBDA_EXPR_RETURN_TYPE (lambda_expr))
-    {
-      return_type_specs.type = LAMBDA_EXPR_RETURN_TYPE (lambda_expr);
-      /* TODO: is this necessary?  */
-      return_type_specs.any_specifiers_p = true;
-      /* TODO: do we need cp_parser_set_decl_spec_type()?  */
-    }
-    else
-    {
-      /* For warning suppression.  */
-      return_type_specs.type = error_mark_node;
-    }
-
-
-    cp_declarator* declarator = make_id_declarator (
-        parser->scope,
-        ansi_opname (CALL_EXPR),
-        sfk_none);
-
-    declarator = make_call_declarator (
-        declarator,
-        param_list,
-        /*cv_qualifiers=*/TYPE_QUAL_CONST,
-        LAMBDA_EXPR_EXCEPTION_SPEC (lambda_expr));
-
-    parser->in_declarator_p = saved_in_declarator_p;
-    parser->default_arg_ok_p = saved_default_arg_ok_p;
-
-    /* operator() is public */
-    current_access_specifier = access_public_node;
-
-    /* TODO: look into start_function  */
-    fco = start_method (
-        &return_type_specs,
-        declarator,
-        /*attributes=*/NULL_TREE);
-    DECL_INITIALIZED_IN_CLASS_P (fco) = 1;
-    finish_method (fco);
-
-    finish_member_declaration (fco);
-  }
-
-  /********************************************
-   * Finish the class (part 1)
-   * - class_specifier
-   ********************************************/
-  {
-    type = finish_struct (type, /*attributes=*/NULL_TREE);
-
-    if (enclosing_class_type)
-      make_friend_class (enclosing_class_type, type, /*complain=*/false);
-  }
-
-  /* start_* / finish_* functions don't do any state preservation
-   * (finish_function sets current_function_decl to NULL), so we have to.  */
-  /*struct function* saved_cfun = cfun;*/
-  /* TODO: do we need these? from function.h */
-  push_function_context();
-  tree saved_function_decl = current_function_decl;
-  int saved_skip_evaluation = skip_evaluation;
-
-  /********************************************
-   * Finish the function call operator
-   * - class_specifier
-   * + late_parsing_for_member
-   * + function_definition_after_declarator
-   * + ctor_initializer_opt_and_function_body
-   ********************************************/
-  {
-    /* Let the front end know that we are going to be defining this
-       function. */
-    start_preparsed_function (
-        fco,
-        NULL_TREE,
-        SF_PRE_PARSED | SF_INCLASS_INLINE);
-
-    tree body = begin_function_body ();
-
-    /* TODO: does begin_compound_stmt want BCS_FN_BODY?
-     * cp_parser_compound_stmt does not pass it. */
-    cp_parser_function_body (parser);
-
-    /* Recalculate offsets in case we had default captures.  */
-    tree dummy = NULL_TREE;
-    layout_class_type (type, /*virtuals_p=*/&dummy);
-    gcc_assert (dummy == NULL_TREE);
-
-    /* Return type deduction.  */
-    if (!LAMBDA_EXPR_RETURN_TYPE (lambda_expr))
-    {
-      tree_stmt_iterator istmt = tsi_start (DECL_SAVED_TREE (fco));
-      /* If we got an actual statement...  */
-      /* TODO: is this test necessary?  */
-      if (!tsi_end_p (istmt))
-      {
-        /* If the first statment is a return statement...  */
-        tree stmt = tsi_stmt (istmt);
-        if (TREE_CODE (stmt) == RETURN_EXPR)
-        {
-          tree return_type = TREE_TYPE (TREE_OPERAND (stmt, 0));
-
-          /* TREE_TYPE (FUNCTION_DECL) == METHOD_TYPE
-             TREE_TYPE (METHOD_TYPE)   == return-type */
-          TREE_TYPE (TREE_TYPE (fco)) = return_type;
-
-          /* Must redo some work from start_preparsed_function. */
-          tree result = build_lang_decl (
-              RESULT_DECL,
-              /*name=*/0,
-              TYPE_MAIN_VARIANT (return_type));
-          /* TODO: are these necessary? */
-          DECL_ARTIFICIAL (result) = 1;
-          DECL_IGNORED_P (result) = 1;
-          cp_apply_type_quals_to_decl (
-              cp_type_quals (return_type),
-              result);
-
-          DECL_RESULT (fco) = result;
-        }
-      }
-    }
-
-    finish_function_body (body);
-
-    /* Finish the function and generate code for it if necessary. */
-    /* 2 == inline_p */
-    tree fn = finish_function (2);
-    expand_or_defer_fn (fn);
-  }
-
-  /*set_cfun (saved_cfun);*/
-  pop_function_context();
-  current_function_decl = saved_function_decl;
-  skip_evaluation = saved_skip_evaluation;
-
-
-  /********************************************
-   * Finish the class (part 2)
-   * - class_specifier
-   ********************************************/
-  {
-    parser->in_function_body
-      = saved_in_function_body;
-    parser->num_template_parameter_lists
-      = saved_num_template_parameter_lists;
-
-    --parser->num_classes_being_defined;
-
-    pop_deferring_access_checks ();
-  }
-
-  /*pop_from_top_level ();*/
-
-  return type;
 }
 
 static void
@@ -7122,9 +6907,9 @@ cp_parser_lambda_introducer (cp_parser* parser, tree lambda_expr)
 
 static void
 cp_parser_lambda_parameter_declaration (cp_parser* parser,
-    tree lambda_expr,
-    cp_parameter_declarator** param_list)
+    tree lambda_expr)
 {
+  cp_parameter_declarator* param_list = no_parameters;
 
   cp_parser_require (parser, CPP_OPEN_PAREN, "%<(%>");
 
@@ -7132,14 +6917,10 @@ cp_parser_lambda_parameter_declaration (cp_parser* parser,
   if (cp_lexer_next_token_is_not (parser->lexer, CPP_CLOSE_PAREN))
   {
     bool is_error = false;
-    *param_list = cp_parser_parameter_declaration_list (parser, &is_error);
+    param_list = cp_parser_parameter_declaration_list (parser, &is_error);
     /* TODO: better way to handle this error?  */
     if (is_error)
-      *param_list = no_parameters;
-  }
-  else
-  {
-    *param_list = no_parameters;
+      param_list = no_parameters;
   }
 
   cp_parser_require (parser, CPP_CLOSE_PAREN, "%<)%>");
@@ -7152,8 +6933,7 @@ cp_parser_lambda_parameter_declaration (cp_parser* parser,
   }
 
   /* Parse optional exception specification.  */
-  LAMBDA_EXPR_EXCEPTION_SPEC (lambda_expr)
-    = cp_parser_exception_specification_opt (parser);
+  tree exception_spec = cp_parser_exception_specification_opt (parser);
 
   /* Parse optional return type clause.  */
   if (cp_lexer_next_token_is (parser->lexer, CPP_DEREF))
@@ -7161,6 +6941,166 @@ cp_parser_lambda_parameter_declaration (cp_parser* parser,
     cp_lexer_consume_token (parser->lexer);
     LAMBDA_EXPR_RETURN_TYPE (lambda_expr) = cp_parser_type_id (parser);
   }
+
+  tree enclosing_class_type = current_class_type;
+
+  tree type = begin_lambda_type (lambda_expr);
+
+  /********************************************
+   * Start the function call operator
+   * - member_specification_opt
+   * + member_declaration
+   ********************************************/
+  {
+    bool saved_in_declarator_p = parser->in_declarator_p;
+    parser->in_declarator_p = true;
+
+    bool saved_default_arg_ok_p = parser->default_arg_ok_p;
+    parser->default_arg_ok_p = true;
+
+    cp_decl_specifier_seq return_type_specs;
+    clear_decl_specs (&return_type_specs);
+    if (LAMBDA_EXPR_RETURN_TYPE (lambda_expr))
+    {
+      return_type_specs.type = LAMBDA_EXPR_RETURN_TYPE (lambda_expr);
+      /* TODO: is this necessary?  */
+      return_type_specs.any_specifiers_p = true;
+      /* TODO: do we need cp_parser_set_decl_spec_type()?  */
+    }
+    else
+    {
+      /* For warning suppression.  */
+      return_type_specs.type = error_mark_node;
+    }
+
+    cp_declarator* declarator = make_id_declarator (
+        parser->scope,
+        ansi_opname (CALL_EXPR),
+        sfk_none);
+
+    declarator = make_call_declarator (
+        declarator,
+        param_list,
+        /*cv_qualifiers=*/TYPE_QUAL_CONST,
+        exception_spec);
+
+    parser->in_declarator_p = saved_in_declarator_p;
+    parser->default_arg_ok_p = saved_default_arg_ok_p;
+
+    /* operator() is public */
+    current_access_specifier = access_public_node;
+
+    /* fco = function call operator */
+    /* TODO: look into start_function  */
+    tree fco = start_method (
+        &return_type_specs,
+        declarator,
+        /*attributes=*/NULL_TREE);
+    DECL_INITIALIZED_IN_CLASS_P (fco) = 1;
+    finish_method (fco);
+
+    finish_member_declaration (fco);
+
+    LAMBDA_EXPR_FUNCTION (lambda_expr) = fco;
+
+  }
+
+  /* Wrap up the class and return.  */
+
+  type = finish_struct (type, /*attributes=*/NULL_TREE);
+
+  if (enclosing_class_type)
+    make_friend_class (enclosing_class_type, type, /*complain=*/false);
+
+}
+
+static void
+cp_parser_lambda_body (cp_parser* parser,
+    tree lambda_expr)
+{
+  /* start_* / finish_* functions don't do any state preservation
+   * (finish_function sets current_function_decl to NULL), so we have to.  */
+  /*struct function* saved_cfun = cfun;*/
+  /* TODO: do we need these? from function.h */
+  push_function_context();
+  tree saved_function_decl = current_function_decl;
+  int saved_skip_evaluation = skip_evaluation;
+
+  /********************************************
+   * Finish the function call operator
+   * - class_specifier
+   * + late_parsing_for_member
+   * + function_definition_after_declarator
+   * + ctor_initializer_opt_and_function_body
+   ********************************************/
+  {
+    tree fco = LAMBDA_EXPR_FUNCTION (lambda_expr);
+
+    /* Let the front end know that we are going to be defining this
+       function. */
+    start_preparsed_function (
+        fco,
+        NULL_TREE,
+        SF_PRE_PARSED | SF_INCLASS_INLINE);
+
+    tree body = begin_function_body ();
+
+    /* TODO: does begin_compound_stmt want BCS_FN_BODY?
+     * cp_parser_compound_stmt does not pass it. */
+    cp_parser_function_body (parser);
+
+    /* Recalculate offsets in case we had default captures.  */
+    tree dummy = NULL_TREE;
+    layout_class_type (TREE_TYPE (lambda_expr), /*virtuals_p=*/&dummy);
+    gcc_assert (dummy == NULL_TREE);
+
+    /* Return type deduction.  */
+    if (!LAMBDA_EXPR_RETURN_TYPE (lambda_expr))
+    {
+      tree_stmt_iterator istmt = tsi_start (DECL_SAVED_TREE (fco));
+      /* If we got an actual statement...  */
+      /* TODO: is this test necessary?  */
+      if (!tsi_end_p (istmt))
+      {
+        /* If the first statment is a return statement...  */
+        tree stmt = tsi_stmt (istmt);
+        if (TREE_CODE (stmt) == RETURN_EXPR)
+        {
+          tree return_type = TREE_TYPE (TREE_OPERAND (stmt, 0));
+
+          /* TREE_TYPE (FUNCTION_DECL) == METHOD_TYPE
+             TREE_TYPE (METHOD_TYPE)   == return-type */
+          TREE_TYPE (TREE_TYPE (fco)) = return_type;
+
+          /* Must redo some work from start_preparsed_function. */
+          tree result = build_lang_decl (
+              RESULT_DECL,
+              /*name=*/0,
+              TYPE_MAIN_VARIANT (return_type));
+          /* TODO: are these necessary? */
+          DECL_ARTIFICIAL (result) = 1;
+          DECL_IGNORED_P (result) = 1;
+          cp_apply_type_quals_to_decl (
+              cp_type_quals (return_type),
+              result);
+
+          DECL_RESULT (fco) = result;
+        }
+      }
+    }
+
+    finish_function_body (body);
+
+    /* Finish the function and generate code for it if necessary. */
+    /* 2 == inline_p */
+    tree fn = finish_function (2);
+    expand_or_defer_fn (fn);
+  }
+
+  /*set_cfun (saved_cfun);*/
+  pop_function_context();
+  current_function_decl = saved_function_decl;
+  skip_evaluation = saved_skip_evaluation;
 
 }
 

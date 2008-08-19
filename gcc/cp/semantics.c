@@ -4963,6 +4963,25 @@ begin_lambda_type (tree lambda)
   TREE_TYPE (lambda) = type;
   CLASSTYPE_LAMBDA_EXPR (type) = lambda;
 
+  /* Members are public (for finish_member_declaration) so that we can use
+   * aggregate initialization.  */
+  current_access_specifier = access_public_node;
+
+  /* For each capture, we need to add the member to the class.  */
+  tree node;
+  for (node = LAMBDA_EXPR_CAPTURE_LIST (lambda);
+      node;
+      node = TREE_CHAIN (node))
+  {
+    tree member = TREE_PURPOSE (node);
+
+    if (member != LAMBDA_EXPR_THIS_CAPTURE (lambda))
+      DECL_MUTABLE_P (member) = LAMBDA_EXPR_MUTABLE_P (lambda);
+
+    /* Add to class.  */
+    finish_member_declaration (member);
+  }
+
   return type;
 }
 
