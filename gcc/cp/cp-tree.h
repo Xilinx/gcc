@@ -80,6 +80,7 @@ extern void cp_cpp_error			(cpp_reader *, int,
       TYPE_REF_IS_RVALUE (in REFERENCE_TYPE)
       ATTR_IS_DEPENDENT (in the TREE_LIST for an attribute)
       CONSTRUCTOR_IS_DIRECT_INIT (in CONSTRUCTOR)
+      LAMBDA_EXPR_CAPTURES_THIS_P (in LAMBDA_EXPR)
    1: IDENTIFIER_VIRTUAL_P (in IDENTIFIER_NODE)
       TI_PENDING_TEMPLATE_FLAG.
       TEMPLATE_PARMS_FOR_INLINE.
@@ -89,6 +90,7 @@ extern void cp_cpp_error			(cpp_reader *, int,
       DECL_INITIALIZED_P (in VAR_DECL)
       TYPENAME_IS_CLASS_P (in TYPENAME_TYPE)
       STMT_IS_FULL_EXPR_P (in _STMT)
+      LAMBDA_EXPR_MUTABLE_P (in LAMBDA_EXPR)
    2: IDENTIFIER_OPNAME_P (in IDENTIFIER_NODE)
       ICS_THIS_FLAG (in _CONV)
       DECL_INITIALIZED_BY_CONSTANT_EXPRESSION_P (in VAR_DECL)
@@ -550,30 +552,26 @@ enum cp_lambda_default_capture_mode_type {
   CPLD_REFERENCE
 };
 
-/* The default method of implicit capture.  */
+/* The method of default capture, if any.  */
 #define LAMBDA_EXPR_DEFAULT_CAPTURE_MODE(NODE) \
   (((struct tree_lambda_expr *)LAMBDA_EXPR_CHECK (NODE))->default_capture_mode)
 
+/* The node in the capture-list that holds the 'this' capture.  */
+#define LAMBDA_EXPR_THIS_CAPTURE(NODE) \
+  (((struct tree_lambda_expr *)LAMBDA_EXPR_CHECK (NODE))->this_capture)
+
 /* Predicate tracking whether `this' is in the effective capture set.  */
 #define LAMBDA_EXPR_CAPTURES_THIS_P(NODE) \
-  (((struct tree_lambda_expr *)LAMBDA_EXPR_CHECK (NODE))->captures_this_p)
+  LAMBDA_EXPR_THIS_CAPTURE(NODE)
 
-/* The capture-list, excluding `this'.  Values are stored as FIELD_DECL, whether
- * or not they've been added to the lambda's class type, so that the name, type,
- * and field are all together.
-   tree_list 
-     value: the FIELD_DECL for this capture */
+/* The capture-list, excluding `this'.  Each capture is stored as a FIELD_DECL
+ * so that the name, type, and field are all together, whether or not it has
+ * been added to the lambda's class type.
+   TREE_LIST: 
+     TREE_PURPOSE: The FIELD_DECL for this capture.
+     TREE_VALUE: The initializer. This is part of a GNU extension.  */
 #define LAMBDA_EXPR_CAPTURE_LIST(NODE) \
   (((struct tree_lambda_expr *)LAMBDA_EXPR_CHECK (NODE))->capture_list)
-
-#define LAMBDA_EXPR_REQUIRES_CONSTRUCTOR_P(NODE) \
-  (LAMBDA_EXPR_CAPTURE_LIST(NODE) != NULL_TREE)
-
-/* The initializers for the captures.  This is a GNU extension.
-   tree_list 
-     value: expr  */
-#define LAMBDA_EXPR_CAPTURE_INIT_LIST(NODE) \
-  (((struct tree_lambda_expr *)LAMBDA_EXPR_CHECK (NODE))->capture_init_list)
 
 /* The list of parameters to the lambda function.  */
 #define LAMBDA_EXPR_PARAM_LIST(NODE) \
@@ -582,6 +580,10 @@ enum cp_lambda_default_capture_mode_type {
 /* The exception specifier.  */
 #define LAMBDA_EXPR_EXCEPTION_SPEC(NODE) \
   (((struct tree_lambda_expr *)LAMBDA_EXPR_CHECK (NODE))->exception_spec)
+
+/* Predicate tracking whether the lambda was declared 'mutable'.  */
+#define LAMBDA_EXPR_MUTABLE_P(NODE) \
+  TREE_LANG_FLAG_1 (LAMBDA_EXPR_CHECK (NODE))
 
 /* The return type.  */
 #define LAMBDA_EXPR_RETURN_TYPE(NODE) \
@@ -595,9 +597,8 @@ struct tree_lambda_expr GTY (())
 {
   struct tree_common common;
   enum cp_lambda_default_capture_mode_type default_capture_mode;
-  bool captures_this_p;
+  tree this_capture;
   tree capture_list;
-  tree capture_init_list;
   /*cp_parameter_declarator* param_list;*/
   tree exception_spec;
   tree return_type;
@@ -4823,6 +4824,10 @@ extern void finish_static_assert                (tree, tree, location_t,
 extern tree finish_decltype_type                (tree, bool);
 extern tree finish_trait_expr			(enum cp_trait_kind, tree, tree);
 extern tree build_lambda_expr                   (void);
+extern tree begin_lambda_type                   (tree);
+extern tree add_this_capture                    (tree);
+extern tree add_capture                         (tree, tree, tree, bool);
+extern tree lambda_expr_this_capture            (tree);
 
 /* in tree.c */
 extern void lang_check_failed			(const char *, int,

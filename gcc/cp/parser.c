@@ -6747,62 +6747,37 @@ cp_parser_lambda_expression (cp_parser* parser)
 {
   tree lambda_expr = build_lambda_expr ();
   cp_parameter_declarator* param_list = no_parameters;
-  /* The lambda class definition */
-  tree type;
-  /* The construction expression (primary-expression) */
-  tree construction_expr;
-  /* start_* / finish_* functions don't do any state preservation
-   * (finish_function sets current_function_decl to NULL), so we have to.  */
-  /*struct function* saved_cfun = cfun;*/
-  /* TODO: do we need these? from function.h */
-  push_function_context();
-  tree saved_function_decl = current_function_decl;
-  int saved_skip_evaluation = skip_evaluation;
 
   cp_parser_lambda_introducer (parser, lambda_expr);
   cp_parser_lambda_parameter_declaration (parser,
       lambda_expr,
       &param_list);
 
-  type = cp_parser_lambda_class_definition (parser,
+  tree type = cp_parser_lambda_class_definition (parser,
       lambda_expr,
       param_list);
   type = TREE_CHAIN (type);
 
-  construction_expr = build_functional_cast (
-    type,
-    LAMBDA_EXPR_CAPTURE_INIT_LIST (lambda_expr),
-    tf_warning_or_error
-  );
-
   /* Build aggregate constructor.
    * - cp_parser_braced_list
    * - cp_parser_functional_cast  */
-  VEC (constructor_elt, gc)* elts = NULL;
-  tree initializer;
-  for (initializer = LAMBDA_EXPR_CAPTURE_INIT_LIST (lambda_expr);
-       initializer;
-       initializer = TREE_CHAIN (initializer))
+  VEC(constructor_elt,gc) *elts = NULL;
+  tree node;
+  for (node = LAMBDA_EXPR_CAPTURE_LIST (lambda_expr);
+       node;
+       node = TREE_CHAIN (node))
   {
     CONSTRUCTOR_APPEND_ELT (
         elts,
         /*identifier=*/NULL_TREE,
-        TREE_VALUE (initializer));
+        TREE_VALUE (node));
   }
 
-  tree expr = make_node (CONSTRUCTOR);
-  CONSTRUCTOR_ELTS (expr) = elts;
-  TREE_TYPE (expr) = init_list_type_node;
+  tree expr = build_constructor (init_list_type_node, elts);
   CONSTRUCTOR_IS_DIRECT_INIT (expr) = 1;
 
-  /*set_cfun (saved_cfun);*/
-  pop_function_context();
-  current_function_decl = saved_function_decl;
-  skip_evaluation = saved_skip_evaluation;
-
   /* TREE_TYPE to remove TYPE_DECL wrapping  */
-  /*return finish_compound_literal (TREE_TYPE (type), expr);*/
-  return construction_expr;
+  return finish_compound_literal (TREE_TYPE (type), expr);
 }
 
 static tree
@@ -6814,42 +6789,8 @@ cp_parser_lambda_class_definition (cp_parser* parser,
   bool         saved_in_function_body;
 
   tree enclosing_class_type = current_class_type;
-  tree type;
 
-  /* TODO: Move out to surrounding non-function, non-class scope. */
-  /*push_to_top_level ();*/
-
-  /********************************************
-   * Start up the class
-   * - class_specifier
-   * + class_head
-   ********************************************/
   {
-    tree name;
-
-    push_deferring_access_checks (dk_no_deferred);
-
-    /* Unique name. This is just like an unnamed class. */
-    name = make_lambda_name ();
-
-    /* Create the new class for this lambda. */
-    type = xref_tag (
-        /*tag_code=*/record_type,
-        /*name=*/name,
-        /*scope=*/ts_current,
-        /*template_header_p=*/false);
-    TREE_TYPE (lambda_expr) = type;
-    CLASSTYPE_LAMBDA_EXPR (type) = lambda_expr;
-
-    /* For now, say that this was declared a class and not a struct. */
-    CLASSTYPE_DECLARED_CLASS (type) = false;
-
-    /* Clear base types. */
-    xref_basetypes (type, /*bases=*/NULL_TREE);
-
-    /* Remember that we are defining one more class. */
-    ++parser->num_classes_being_defined;
-
     /* Inside the class, surrounding template-parameter-lists
        do not apply.  */
     saved_num_template_parameter_lists
@@ -6858,30 +6799,28 @@ cp_parser_lambda_class_definition (cp_parser* parser,
     /* We are not in a function body.  */
     saved_in_function_body = parser->in_function_body;
     parser->in_function_body = false;
-
-    /* Start the class. */
-    type = begin_class_definition (type, NULL_TREE);
+    /* Remember that we are defining one more class.  */
+    ++parser->num_classes_being_defined;
   }
 
-  /* For each capture, we need to
-       1. Add parm to ctor_parm_list
-       2. Add type to ctor_parm_type_list
-       3. Add member to class
-       4. Add member-initializer to ctor_mem_init_list  */
+  tree type = begin_lambda_type (lambda_expr);
+
+  /* For each capture, we need to add the member to the class.  */
   {
-    tree capture = NULL_TREE;
 
-    /* Members are private (for finish_member_declaration).  */
-    current_access_specifier = access_private_node;
+    /* Members are public (for finish_member_declaration) so that we can use
+     * aggregate initialization.  */
+    current_access_specifier = access_public_node;
 
-    for (capture = LAMBDA_EXPR_CAPTURE_LIST (lambda_expr);
-         capture;
-         capture = TREE_CHAIN (capture))
+    tree node;
+    for (node = LAMBDA_EXPR_CAPTURE_LIST (lambda_expr);
+         node;
+         node = TREE_CHAIN (node))
     {
-      tree member = TREE_VALUE (capture);
+      tree member = TREE_PURPOSE (node);
 
-      /* TODO: add check for LAMBDA_EXPR_MUTABLE_P */
-      DECL_MUTABLE_P (member) = 1;
+      if (LAMBDA_EXPR_MUTABLE_P (lambda_expr))
+        DECL_MUTABLE_P (member) = 1;
 
       /* Add to class.  */
       finish_member_declaration (member);
@@ -6951,112 +6890,6 @@ cp_parser_lambda_class_definition (cp_parser* parser,
     finish_member_declaration (fco);
   }
 
-  tree ctor_parm_type_list = NULL_TREE;
-  tree ctor_parm_list = NULL_TREE;
-  tree ctor_mem_init_list = NULL_TREE;
-
-  {
-    tree capture = NULL_TREE;
-
-    /* Members are private (for finish_member_declaration).  */
-    current_access_specifier = access_private_node;
-
-    for (capture = LAMBDA_EXPR_CAPTURE_LIST (lambda_expr);
-         capture;
-         capture = TREE_CHAIN (capture))
-    {
-      tree member = TREE_VALUE (capture);
-      tree capture_type = TREE_TYPE (member);
-      tree capture_id = DECL_NAME (member);
-
-      /* TODO: support rvalue-reference captures. 
-       * look into tree.c : cp_build_reference_type */
-      /*
-      if (capture_kind == BY_RVALUE_REFERENCE)
-        capture_declarator = make_reference_declarator (
-            /cv_qualifiers=/TYPE_UNQUALIFIED,
-            capture_declarator,
-            /rvalue_ref=/true);
-            */
-
-      /* Make constructor parameter.  */
-      tree ctor_parm = cp_build_parm_decl (
-          capture_id,
-          capture_type);
-      /* TODO: unnecessary?  */
-      /*DECL_CONTEXT (ctor_parm) = ctor;*/
-      TREE_USED (ctor_parm) = 1;
-
-      /* Add to constructor parameter list.  */
-      TREE_CHAIN (ctor_parm) = ctor_parm_list;
-      ctor_parm_list = ctor_parm;
-
-      /* Add its type to the list.  */
-      ctor_parm_type_list = tree_cons (
-          NULL_TREE,
-          capture_type,
-          ctor_parm_type_list);
-
-      /* In the member-initializer-list for the constructor, the arguments to a
-       * member's constructor consist of the corresponding parameter.  */
-      tree member_ctor_arg_list = tree_cons (
-          NULL_TREE,
-          ctor_parm,
-          NULL_TREE);
-
-      /* Add the member-initializer to the list.  */
-      ctor_mem_init_list = tree_cons (
-          member,
-          member_ctor_arg_list,
-          ctor_mem_init_list); 
-
-    }
-
-    /* Built parameters in reverse order.  */
-    /* TODO: reverse CAPTURE_INIT_LIST instead? */
-    ctor_parm_list = nreverse (ctor_parm_list);
-    ctor_parm_type_list = nreverse (ctor_parm_type_list);
-    chainon (ctor_parm_type_list, void_list_node);
-
-  }
-
-  tree ctor = NULL_TREE;
-
-  {
-    tree ctor_type = build_method_type_directly (
-        type,
-        void_type_node,
-        ctor_parm_type_list);
-
-    /* Finish ctor_parm_list with `this' and plug it in.  */
-    tree this_parm = build_this_parm (ctor_type, /*quals=*/0);
-    TREE_CHAIN (this_parm) = ctor_parm_list;
-    ctor_parm_list = this_parm;
-
-    ctor = build_lang_decl (
-        FUNCTION_DECL,
-        constructor_name (type),
-        ctor_type);
-    DECL_ARGUMENTS (ctor) = ctor_parm_list;
-    DECL_CONSTRUCTOR_P (ctor) = 1;
-    DECL_CONTEXT (ctor) = type;
-    /* TODO: are these necessary?  */
-    TREE_PUBLIC (ctor) = 1;
-
-    DECL_IN_AGGR_P (ctor) = 1;
-    DECL_ARTIFICIAL (ctor) = 1;
-    DECL_NOT_REALLY_EXTERN (ctor) = 1;
-    DECL_DECLARED_INLINE_P (ctor) = 1;
-    DECL_INLINE (ctor) = 1;
-
-    /*DECL_EXTERNAL (ctor) = 1;*/
-    /*DECL_INITIALIZED_IN_CLASS_P (ctor) = 1;*/
-
-    finish_decl (ctor, NULL_TREE, NULL_TREE);
-    current_access_specifier = access_public_node;
-    finish_member_declaration (ctor);
-  }
-
   /********************************************
    * Finish the class (part 1)
    * - class_specifier
@@ -7067,6 +6900,14 @@ cp_parser_lambda_class_definition (cp_parser* parser,
     if (enclosing_class_type)
       make_friend_class (enclosing_class_type, type, /*complain=*/false);
   }
+
+  /* start_* / finish_* functions don't do any state preservation
+   * (finish_function sets current_function_decl to NULL), so we have to.  */
+  /*struct function* saved_cfun = cfun;*/
+  /* TODO: do we need these? from function.h */
+  push_function_context();
+  tree saved_function_decl = current_function_decl;
+  int saved_skip_evaluation = skip_evaluation;
 
   /********************************************
    * Finish the function call operator
@@ -7137,33 +6978,11 @@ cp_parser_lambda_class_definition (cp_parser* parser,
     expand_or_defer_fn (fn);
   }
 
-  /********************************************
-   * Finish the constructor
-   * - class_specifier
-   * + late_parsing_for_member
-   * + function_definition_after_declarator
-   * + ctor_initializer_opt_and_function_body
-   * + mem_initializer_list
-   ********************************************/
-  {
-    /* Let the front end know that we are going to be defining this
-       function.  */
-    start_preparsed_function (
-        ctor,
-        NULL_TREE,
-        SF_PRE_PARSED | SF_INCLASS_INLINE);
+  /*set_cfun (saved_cfun);*/
+  pop_function_context();
+  current_function_decl = saved_function_decl;
+  skip_evaluation = saved_skip_evaluation;
 
-    tree ctor_body = begin_function_body ();
-
-    finish_mem_initializers (ctor_mem_init_list);
-
-    finish_function_body (ctor_body);
-
-    /* Finish the function and generate code for it if necessary. */
-    /* 3 == (1 | 2) == (ctor_initializer_p && inline_p) */
-    tree ctor_fn = finish_function (3);
-    expand_or_defer_fn (ctor_fn);
-  }
 
   /********************************************
    * Finish the class (part 2)
@@ -7212,7 +7031,6 @@ cp_parser_lambda_introducer (cp_parser* parser, tree lambda_expr)
   {
     tree capture_id;
     tree capture_init_expr;
-    tree capture_type;
 
     enum capture_kind_type {
       BY_COPY,
@@ -7229,7 +7047,7 @@ cp_parser_lambda_introducer (cp_parser* parser, tree lambda_expr)
     /* Possibly capture `this'. */
     if (cp_lexer_next_token_is_keyword (parser->lexer, RID_THIS))
     {
-      LAMBDA_EXPR_CAPTURES_THIS_P (lambda_expr) = true;
+      add_this_capture (lambda_expr);
       cp_lexer_consume_token (parser->lexer);
       continue;
     }
@@ -7286,39 +7104,11 @@ cp_parser_lambda_introducer (cp_parser* parser, tree lambda_expr)
           capture_token->location);
     }
 
-    /* Get the type. */
-    capture_type = finish_decltype_type (
-        capture_init_expr,
-        /*id_expression_or_member_access_p=*/false);
-
-    /* May come as a reference, so strip it down if desired. */
-    if (capture_kind != BY_REFERENCE)
-    {
-      capture_type = non_reference (capture_type);
-    }
-    else if (TREE_CODE (capture_type) != REFERENCE_TYPE)
-    {
-      error (
-          "%qE cannot be used to initialize a non-const reference",
-          capture_init_expr);
-      continue;
-    }
-
-    /* Make member variable.  */
-    tree member = build_lang_decl (
-        FIELD_DECL,
+    add_capture (
+        lambda_expr,
         capture_id,
-        capture_type);
-
-    LAMBDA_EXPR_CAPTURE_LIST (lambda_expr) = tree_cons (
-      NULL_TREE,
-      member,
-      LAMBDA_EXPR_CAPTURE_LIST (lambda_expr));
-
-    LAMBDA_EXPR_CAPTURE_INIT_LIST (lambda_expr) = tree_cons (
-      NULL_TREE,
-      capture_init_expr,
-      LAMBDA_EXPR_CAPTURE_INIT_LIST (lambda_expr));
+        capture_init_expr,
+        /*by_reference_p=*/capture_kind == BY_REFERENCE);
 
   }
 
@@ -7339,11 +7129,23 @@ cp_parser_lambda_parameter_declaration (cp_parser* parser,
   {
     bool is_error = false;
     *param_list = cp_parser_parameter_declaration_list (parser, &is_error);
+    /* TODO: better way to handle this error?  */
     if (is_error)
       *param_list = no_parameters;
   }
+  else
+  {
+    *param_list = no_parameters;
+  }
 
   cp_parser_require (parser, CPP_CLOSE_PAREN, "%<)%>");
+
+  /* Parse optional mutable specification.  */
+  if (cp_lexer_next_token_is_keyword (parser->lexer, RID_MUTABLE))
+  {
+    cp_lexer_consume_token (parser->lexer);
+    LAMBDA_EXPR_MUTABLE_P (lambda_expr) = 1;
+  }
 
   /* Parse optional exception specification.  */
   LAMBDA_EXPR_EXCEPTION_SPEC (lambda_expr)
