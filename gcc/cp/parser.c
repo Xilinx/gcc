@@ -37,8 +37,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "target.h"
 #include "cgraph.h"
 #include "c-common.h"
-/* TODO: remove this inclusion after splitting code into semantics.c */
-#include "tree-iterator.h"
 
 
 /* The lexer.  */
@@ -1633,7 +1631,7 @@ static tree cp_parser_lambda_expression
   (cp_parser *);
 static void cp_parser_lambda_introducer
   (cp_parser *, tree);
-static void cp_parser_lambda_parameter_declaration
+static void cp_parser_lambda_parameter_declaration_opt
   (cp_parser *, tree);
 static void cp_parser_lambda_body
   (cp_parser *, tree);
@@ -6760,7 +6758,7 @@ cp_parser_lambda_expression (cp_parser* parser)
 
   tree type = begin_lambda_type (lambda_expr);
 
-  cp_parser_lambda_parameter_declaration (parser, lambda_expr);
+  cp_parser_lambda_parameter_declaration_opt (parser, lambda_expr);
 
   type = finish_struct (type, /*attributes=*/NULL_TREE);
 
@@ -6914,40 +6912,44 @@ cp_parser_lambda_introducer (cp_parser* parser, tree lambda_expr)
 }
 
 static void
-cp_parser_lambda_parameter_declaration (cp_parser* parser,
+cp_parser_lambda_parameter_declaration_opt (cp_parser* parser,
     tree lambda_expr)
 {
   cp_parameter_declarator* param_list = no_parameters;
+  tree exception_spec = NULL_TREE;
 
-  cp_parser_require (parser, CPP_OPEN_PAREN, "%<(%>");
-
-  /* Parse optional parameters.  */
-  if (cp_lexer_next_token_is_not (parser->lexer, CPP_CLOSE_PAREN))
+  if (cp_lexer_next_token_is (parser->lexer, CPP_OPEN_PAREN))
   {
-    bool is_error = false;
-    param_list = cp_parser_parameter_declaration_list (parser, &is_error);
-    /* TODO: better way to handle this error?  */
-    if (is_error)
-      param_list = no_parameters;
-  }
+    cp_parser_require (parser, CPP_OPEN_PAREN, "%<(%>");
 
-  cp_parser_require (parser, CPP_CLOSE_PAREN, "%<)%>");
+    /* Parse optional parameters.  */
+    if (cp_lexer_next_token_is_not (parser->lexer, CPP_CLOSE_PAREN))
+    {
+      bool is_error = false;
+      param_list = cp_parser_parameter_declaration_list (parser, &is_error);
+      /* TODO: better way to handle this error?  */
+      if (is_error)
+        param_list = no_parameters;
+    }
 
-  /* Parse optional mutable specification.  */
-  if (cp_lexer_next_token_is_keyword (parser->lexer, RID_MUTABLE))
-  {
-    cp_lexer_consume_token (parser->lexer);
-    LAMBDA_EXPR_MUTABLE_P (lambda_expr) = 1;
-  }
+    cp_parser_require (parser, CPP_CLOSE_PAREN, "%<)%>");
 
-  /* Parse optional exception specification.  */
-  tree exception_spec = cp_parser_exception_specification_opt (parser);
+    /* Parse optional mutable specification.  */
+    if (cp_lexer_next_token_is_keyword (parser->lexer, RID_MUTABLE))
+    {
+      cp_lexer_consume_token (parser->lexer);
+      LAMBDA_EXPR_MUTABLE_P (lambda_expr) = 1;
+    }
 
-  /* Parse optional return type clause.  */
-  if (cp_lexer_next_token_is (parser->lexer, CPP_DEREF))
-  {
-    cp_lexer_consume_token (parser->lexer);
-    LAMBDA_EXPR_RETURN_TYPE (lambda_expr) = cp_parser_type_id (parser);
+    /* Parse optional exception specification.  */
+    exception_spec = cp_parser_exception_specification_opt (parser);
+
+    /* Parse optional return type clause.  */
+    if (cp_lexer_next_token_is (parser->lexer, CPP_DEREF))
+    {
+      cp_lexer_consume_token (parser->lexer);
+      LAMBDA_EXPR_RETURN_TYPE (lambda_expr) = cp_parser_type_id (parser);
+    }
   }
 
   /********************************************
@@ -7048,52 +7050,8 @@ cp_parser_lambda_body (cp_parser* parser,
      * cp_parser_compound_stmt does not pass it. */
     cp_parser_function_body (parser);
 
-    /* Recalculate offsets in case we had default captures.  */
-    tree dummy = NULL_TREE;
-    layout_class_type (TREE_TYPE (lambda_expr), /*virtuals_p=*/&dummy);
-    gcc_assert (dummy == NULL_TREE);
+    finish_lambda_function_body (lambda_expr, body);
 
-    /* Return type deduction.  */
-    if (!LAMBDA_EXPR_RETURN_TYPE (lambda_expr))
-    {
-      tree_stmt_iterator istmt = tsi_start (DECL_SAVED_TREE (fco));
-      /* If we got an actual statement...  */
-      /* TODO: is this test necessary?  */
-      if (!tsi_end_p (istmt))
-      {
-        /* If the first statment is a return statement...  */
-        tree stmt = tsi_stmt (istmt);
-        if (TREE_CODE (stmt) == RETURN_EXPR)
-        {
-          tree return_type = TREE_TYPE (TREE_OPERAND (stmt, 0));
-
-          /* TREE_TYPE (FUNCTION_DECL) == METHOD_TYPE
-             TREE_TYPE (METHOD_TYPE)   == return-type */
-          TREE_TYPE (TREE_TYPE (fco)) = return_type;
-
-          /* Must redo some work from start_preparsed_function. */
-          tree result = build_lang_decl (
-              RESULT_DECL,
-              /*name=*/0,
-              TYPE_MAIN_VARIANT (return_type));
-          /* TODO: are these necessary? */
-          DECL_ARTIFICIAL (result) = 1;
-          DECL_IGNORED_P (result) = 1;
-          cp_apply_type_quals_to_decl (
-              cp_type_quals (return_type),
-              result);
-
-          DECL_RESULT (fco) = result;
-        }
-      }
-    }
-
-    finish_function_body (body);
-
-    /* Finish the function and generate code for it if necessary. */
-    /* 2 == inline_p */
-    tree fn = finish_function (2);
-    expand_or_defer_fn (fn);
   }
 
   /*set_cfun (saved_cfun);*/

@@ -556,14 +556,6 @@ enum cp_lambda_default_capture_mode_type {
 #define LAMBDA_EXPR_DEFAULT_CAPTURE_MODE(NODE) \
   (((struct tree_lambda_expr *)LAMBDA_EXPR_CHECK (NODE))->default_capture_mode)
 
-/* The node in the capture-list that holds the 'this' capture.  */
-#define LAMBDA_EXPR_THIS_CAPTURE(NODE) \
-  (((struct tree_lambda_expr *)LAMBDA_EXPR_CHECK (NODE))->this_capture)
-
-/* Predicate tracking whether `this' is in the effective capture set.  */
-#define LAMBDA_EXPR_CAPTURES_THIS_P(NODE) \
-  LAMBDA_EXPR_THIS_CAPTURE(NODE)
-
 /* The capture-list, excluding `this'.  Each capture is stored as a FIELD_DECL
  * so that the name, type, and field are all together, whether or not it has
  * been added to the lambda's class type.
@@ -573,13 +565,13 @@ enum cp_lambda_default_capture_mode_type {
 #define LAMBDA_EXPR_CAPTURE_LIST(NODE) \
   (((struct tree_lambda_expr *)LAMBDA_EXPR_CHECK (NODE))->capture_list)
 
-/* The list of parameters to the lambda function.  */
-#define LAMBDA_EXPR_PARAM_LIST(NODE) \
-  (((struct tree_lambda_expr *)LAMBDA_EXPR_CHECK (NODE))->param_list)
+/* The node in the capture-list that holds the 'this' capture.  */
+#define LAMBDA_EXPR_THIS_CAPTURE(NODE) \
+  (((struct tree_lambda_expr *)LAMBDA_EXPR_CHECK (NODE))->this_capture)
 
-/* The exception specifier.  */
-#define LAMBDA_EXPR_EXCEPTION_SPEC(NODE) \
-  (((struct tree_lambda_expr *)LAMBDA_EXPR_CHECK (NODE))->exception_spec)
+/* Predicate tracking whether `this' is in the effective capture set.  */
+#define LAMBDA_EXPR_CAPTURES_THIS_P(NODE) \
+  LAMBDA_EXPR_THIS_CAPTURE(NODE)
 
 /* Predicate tracking whether the lambda was declared 'mutable'.  */
 #define LAMBDA_EXPR_MUTABLE_P(NODE) \
@@ -597,10 +589,8 @@ struct tree_lambda_expr GTY (())
 {
   struct tree_common common;
   enum cp_lambda_default_capture_mode_type default_capture_mode;
-  tree this_capture;
   tree capture_list;
-  /*cp_parameter_declarator* param_list;*/
-  tree exception_spec;
+  tree this_capture;
   tree return_type;
   tree function;
 };
@@ -4825,6 +4815,7 @@ extern tree finish_decltype_type                (tree, bool);
 extern tree finish_trait_expr			(enum cp_trait_kind, tree, tree);
 extern tree build_lambda_expr                   (void);
 extern tree begin_lambda_type                   (tree);
+extern void finish_lambda_function_body         (tree, tree);
 extern tree add_capture                         (tree, tree, tree, bool);
 extern tree add_default_capture                 (tree, tree, tree);
 extern tree lambda_expr_this_capture            (tree);

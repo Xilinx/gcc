@@ -4923,9 +4923,8 @@ build_lambda_expr (void)
 {
   tree lambda = make_node (LAMBDA_EXPR);
   LAMBDA_EXPR_DEFAULT_CAPTURE_MODE (lambda) = CPLD_NONE;
-  LAMBDA_EXPR_THIS_CAPTURE         (lambda) = NULL_TREE;
   LAMBDA_EXPR_CAPTURE_LIST         (lambda) = NULL_TREE;
-  LAMBDA_EXPR_EXCEPTION_SPEC       (lambda) = NULL_TREE;
+  LAMBDA_EXPR_THIS_CAPTURE         (lambda) = NULL_TREE;
   LAMBDA_EXPR_RETURN_TYPE          (lambda) = NULL_TREE;
   LAMBDA_EXPR_MUTABLE_P            (lambda) = false;
   LAMBDA_EXPR_FUNCTION             (lambda) = NULL_TREE;
@@ -4980,6 +4979,59 @@ begin_lambda_type (tree lambda)
   }
 
   return type;
+}
+
+void
+finish_lambda_function_body (tree lambda, tree body)
+{
+  /* Recalculate offsets in case we had default captures.  */
+  tree dummy = NULL_TREE;
+  layout_class_type (TREE_TYPE (lambda), /*virtuals_p=*/&dummy);
+  gcc_assert (dummy == NULL_TREE);
+
+  /* Return type deduction.  */
+  if (!LAMBDA_EXPR_RETURN_TYPE (lambda))
+  {
+    tree fco = LAMBDA_EXPR_FUNCTION (lambda);
+
+    tree_stmt_iterator istmt = tsi_start (DECL_SAVED_TREE (fco));
+    /* If we got an actual statement...  */
+    /* TODO: is this test necessary?  */
+    if (!tsi_end_p (istmt))
+    {
+      /* If the first statment is a return statement...  */
+      tree stmt = tsi_stmt (istmt);
+      if (TREE_CODE (stmt) == RETURN_EXPR)
+      {
+        tree return_type = TREE_TYPE (TREE_OPERAND (stmt, 0));
+
+        /* TREE_TYPE (FUNCTION_DECL) == METHOD_TYPE
+           TREE_TYPE (METHOD_TYPE)   == return-type */
+        TREE_TYPE (TREE_TYPE (fco)) = return_type;
+
+        /* Must redo some work from start_preparsed_function. */
+        tree result = build_lang_decl (
+            RESULT_DECL,
+            /*name=*/0,
+            TYPE_MAIN_VARIANT (return_type));
+        /* TODO: are these necessary? */
+        DECL_ARTIFICIAL (result) = 1;
+        DECL_IGNORED_P (result) = 1;
+        cp_apply_type_quals_to_decl (
+            cp_type_quals (return_type),
+            result);
+
+        DECL_RESULT (fco) = result;
+      }
+    }
+  }
+
+  finish_function_body (body);
+
+  /* Finish the function and generate code for it if necessary. */
+  /* 2 == inline_p */
+  tree fn = finish_function (2);
+  expand_or_defer_fn (fn);
 }
 
 /* From a name and initializer, creates a capture (by reference if
