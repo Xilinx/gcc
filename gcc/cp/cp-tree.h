@@ -4825,8 +4825,8 @@ extern tree finish_decltype_type                (tree, bool);
 extern tree finish_trait_expr			(enum cp_trait_kind, tree, tree);
 extern tree build_lambda_expr                   (void);
 extern tree begin_lambda_type                   (tree);
-extern tree add_this_capture                    (tree);
 extern tree add_capture                         (tree, tree, tree, bool);
+extern tree add_default_capture                 (tree, tree, tree);
 extern tree lambda_expr_this_capture            (tree);
 
 /* in tree.c */

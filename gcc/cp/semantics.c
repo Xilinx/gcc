@@ -2714,50 +2714,10 @@ finish_id_expression (tree id_expression,
 
               if (context == containing_function)
               {
-                tree capture_id = DECL_NAME (decl);
-                tree member = NULL_TREE;
-                tree capture_init_expr = decl;
-
-                tree saved_class_type = current_class_type;
-                tree saved_access_specifier = current_access_specifier;
-                current_access_specifier = access_public_node;
-
-                tree node;
-                for (node = lambda_stack;
-                     node;
-                     node = TREE_CHAIN (node))
-                {
-                  tree lambda_expr = TREE_VALUE (node);
-
-                  member = add_capture (
-                      lambda_expr,
-                      capture_id,
-                      capture_init_expr,
-                      /*by_reference_p=*/
-                      LAMBDA_EXPR_DEFAULT_CAPTURE_MODE (lambda_expr)
-                        == CPLD_REFERENCE);
-
-                  /* Prepare to add to class. */
-                  current_class_type = TREE_TYPE (lambda_expr);
-                  TYPE_BEING_DEFINED (current_class_type) = 1;
-
-                  if (LAMBDA_EXPR_MUTABLE_P (lambda_expr))
-                    DECL_MUTABLE_P (member) = 1;
-
-                  /* Add to class.  */
-                  finish_member_declaration (member);
-
-                  /* Restore.  */
-                  TYPE_BEING_DEFINED (current_class_type) = 0;
-
-                  capture_init_expr = member;
-
-                }
-
-                current_class_type = saved_class_type;
-                current_access_specifier = saved_access_specifier;
-                decl = member;
-
+                decl = add_default_capture (
+                    lambda_stack,
+                    /*id=*/DECL_NAME (decl),
+                    /*initializer=*/decl);
               }
               else
               {
@@ -5006,34 +4966,6 @@ begin_lambda_type (tree lambda)
   return type;
 }
 
-/* For the special case of capturing 'this'.  */
-
-tree
-add_this_capture (tree lambda)
-{
-  tree capture = error_mark_node;
-
-  if (LAMBDA_EXPR_CAPTURES_THIS_P (lambda))
-  {
-    error ("already captured %<this%> in lambda expression");
-  }
-  else
-  {
-    tree this_expr = finish_this_expr();
-    if (this_expr != error_mark_node)
-    {
-      capture = add_capture (
-          lambda,
-          get_identifier ("__this"),
-          this_expr,
-          /*by_reference_p=*/false);
-    }
-  }
-
-  return LAMBDA_EXPR_THIS_CAPTURE (lambda) = capture;
-
-}
-
 /* From a name and initializer, creates a capture (by reference if
  * BY_REFERENCE_P is true), adds it to the capture-list for the given lambda
  * expression, and returns it.  */
@@ -5041,7 +4973,6 @@ add_this_capture (tree lambda)
 tree
 add_capture (tree lambda, tree id, tree initializer, bool by_reference_p)
 {
-
   tree type = finish_decltype_type (
       initializer,
       /*id_expression_or_member_access_p=*/false);
@@ -5068,19 +4999,74 @@ add_capture (tree lambda, tree id, tree initializer, bool by_reference_p)
       initializer,
       LAMBDA_EXPR_CAPTURE_LIST (lambda));
 
+  if (id == get_identifier ("__this"))
+  {
+    if (LAMBDA_EXPR_CAPTURES_THIS_P (lambda))
+      error ("already captured %<this%> in lambda expression");
+    LAMBDA_EXPR_THIS_CAPTURE (lambda) = member;
+  }
+
   return member;
 
 }
 
-/* Exactly like add_capture, except this has to temporarily change some state
- * because default captures are late captures.  */
+/* Similar to add_capture, except this works on a stack of nested lambdas.
+ * Returns the FIELD_DECL for the capture for the lambda at the bottom of the
+ * stack.  */
 
-/*
 tree
-add_default_capture (tree lambda, tree id, tree initializer, bool by_reference_p)
+add_default_capture (tree lambda_stack, tree id, tree initializer)
 {
+  bool this_capture_p = (id == get_identifier ("__this"));
+
+  tree member = NULL_TREE;
+
+  tree saved_class_type = current_class_type;
+  tree saved_access_specifier = current_access_specifier;
+  current_access_specifier = access_public_node;
+
+  tree node;
+  for (node = lambda_stack;
+       node;
+       node = TREE_CHAIN (node))
+  {
+    tree lambda = TREE_VALUE (node);
+
+    member = add_capture (
+        lambda,
+        id,
+        initializer,
+        /*by_reference_p=*/
+        (!this_capture_p
+         && LAMBDA_EXPR_DEFAULT_CAPTURE_MODE (lambda) == CPLD_REFERENCE));
+
+    /* Prepare to add to class. */
+    current_class_type = TREE_TYPE (lambda);
+    TYPE_BEING_DEFINED (current_class_type) = 1;
+
+    if (!this_capture_p
+        && LAMBDA_EXPR_MUTABLE_P (lambda))
+      DECL_MUTABLE_P (member) = 1;
+
+    /* Add to class.  */
+    finish_member_declaration (member);
+
+    /* Restore.  */
+    TYPE_BEING_DEFINED (current_class_type) = 0;
+
+    initializer = member;
+
+  }
+
+  current_class_type = saved_class_type;
+  current_access_specifier = saved_access_specifier;
+
+  return member;
+
 }
-*/
+
+/* Returns the INDIRECT_REF for the 'this' capture, possibly adding it through
+ * default capturing.  */
 
 tree
 lambda_expr_this_capture (tree lambda)
@@ -5089,40 +5075,50 @@ lambda_expr_this_capture (tree lambda)
 
   tree this_capture = LAMBDA_EXPR_THIS_CAPTURE (lambda);
 
-  if (!this_capture)
+  /* Try to default capture 'this' if we can.  */
+  if (!this_capture
+      && LAMBDA_EXPR_DEFAULT_CAPTURE_MODE (lambda) != CPLD_NONE)
   {
+    tree containing_function = TYPE_CONTEXT (TREE_TYPE (lambda));
+    tree lambda_stack = tree_cons (
+        NULL_TREE,
+        lambda,
+        NULL_TREE);
 
-    if (LAMBDA_EXPR_DEFAULT_CAPTURE_MODE (lambda) != CPLD_NONE)
+    /* If we are in a lambda function, we can move out until we hit:
+     *   1. a non-lambda function
+     *   2. a lambda function capturing 'this'
+     *   3. a non-default capturing lambda function  */
+    while (LAMBDA_FUNCTION_P (containing_function))
     {
-      tree containing_function = DECL_CONTEXT (TREE_TYPE (lambda));
-      tree lambda_stack = tree_cons (
+      tree lambda =
+        CLASSTYPE_LAMBDA_EXPR (DECL_CONTEXT (containing_function));
+
+      if (LAMBDA_EXPR_THIS_CAPTURE (lambda)
+          || LAMBDA_EXPR_DEFAULT_CAPTURE_MODE (lambda) == CPLD_NONE)
+        break;
+
+      lambda_stack = tree_cons (
           NULL_TREE,
           lambda,
-          NULL_TREE);
+          lambda_stack);
 
-      /* If we are in a lambda function, we can move out until we hit:
-       *   1. a non-lambda function
-       *   2. a lambda function capturing 'this'
-       *   3. a non-default capturing lambda function  */
-      while (LAMBDA_FUNCTION_P (containing_function))
-      {
-        tree lambda =
-          CLASSTYPE_LAMBDA_EXPR (DECL_CONTEXT (containing_function));
-
-        if (LAMBDA_EXPR_THIS_CAPTURE (lambda)
-            || LAMBDA_EXPR_DEFAULT_CAPTURE_MODE (lambda) == CPLD_NONE)
-          break;
-
-        lambda_stack = tree_cons (
-            NULL_TREE,
-            lambda,
-            lambda_stack);
-
-        containing_function = decl_function_context (containing_function);
-      }
-
+      containing_function = decl_function_context (containing_function);
     }
 
+    if (DECL_NONSTATIC_MEMBER_FUNCTION_P (containing_function))
+    {
+      this_capture = add_default_capture (
+          lambda_stack,
+          /*id=*/get_identifier ("__this"),
+          /* First parameter is 'this'.  */
+          /*initializer=*/DECL_ARGUMENTS (containing_function));
+    }
+
+  }
+
+  if (!this_capture)
+  {
     error ("%<this%> was not captured for this lambda function");
     result = error_mark_node;
   }

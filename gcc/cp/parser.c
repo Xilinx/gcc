@@ -7047,7 +7047,11 @@ cp_parser_lambda_introducer (cp_parser* parser, tree lambda_expr)
     /* Possibly capture `this'. */
     if (cp_lexer_next_token_is_keyword (parser->lexer, RID_THIS))
     {
-      add_this_capture (lambda_expr);
+      add_capture (
+          lambda_expr,
+          /*id=*/get_identifier ("__this"),
+          /*initializer=*/finish_this_expr(),
+          /*by_reference_p=*/false);
       cp_lexer_consume_token (parser->lexer);
       continue;
     }
