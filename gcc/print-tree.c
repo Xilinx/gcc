@@ -588,8 +588,10 @@ print_node (FILE *file, const char *prefix, tree node, int indent)
       if (TYPE_RESTRICT (node))
 	fputs (" restrict", file);
 
+      /* FIXME: Use a target hook here to translate the address space
+	 number.  */
       if (TYPE_ADDR_SPACE (node))
-	fputs (TARGET_ADDR_SPACE_NAME (TYPE_ADDR_SPACE (node)), file);
+	fputs (" __ea", file);
 
       if (TYPE_LANG_FLAG_0 (node))
 	fputs (" type_0", file);

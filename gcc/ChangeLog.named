@@ -1,5 +1,10 @@
 2008-08-19  Ben Elliston  <bje@au.ibm.com>
 
+	* print-tree.c (print_node): Don't use target hooks from this
+	function (for now).
+
+2008-08-19  Ben Elliston  <bje@au.ibm.com>
+
 	* tree-ssa.c (useless_type_conversion_p_1): Do not lose casts
 	between pointers in different address spaces.
 
