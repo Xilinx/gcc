@@ -130,6 +130,32 @@ dwarf2out_do_frame (void)
 	  );
 }
 
+/* Decide whether to emit frame unwind via assembler directives.  */
+
+int
+dwarf2out_do_cfi_asm (void)
+{
+  int enc;
+
+  if (!flag_dwarf2_cfi_asm || !dwarf2out_do_frame ())
+    return false;
+  if (!eh_personality_libfunc)
+    return true;
+  if (!HAVE_GAS_CFI_PERSONALITY_DIRECTIVE)
+    return false;
+
+  /* Make sure the personality encoding is one the assembler can support.
+     In particular, aligned addresses can't be handled.  */
+  enc = ASM_PREFERRED_EH_DATA_FORMAT (/*code=*/2,/*global=*/1);
+  if ((enc & 0x70) != 0 && (enc & 0x70) != DW_EH_PE_pcrel)
+    return false;
+  enc = ASM_PREFERRED_EH_DATA_FORMAT (/*code=*/0,/*global=*/0);
+  if ((enc & 0x70) != 0 && (enc & 0x70) != DW_EH_PE_pcrel)
+    return false;
+
+  return true;
+}
+
 /* The size of the target's pointer type.  */
 #ifndef PTR_SIZE
 #define PTR_SIZE (POINTER_SIZE / BITS_PER_UNIT)
@@ -384,6 +410,7 @@ static void initial_return_save (rtx);
 #endif
 static HOST_WIDE_INT stack_adjust_offset (const_rtx);
 static void output_cfi (dw_cfi_ref, dw_fde_ref, int);
+static void output_cfi_directive (dw_cfi_ref);
 static void output_call_frame_info (int);
 static void dwarf2out_note_section_used (void);
 static void dwarf2out_stack_adjust (rtx, bool);
@@ -394,6 +421,7 @@ static void dwarf2out_frame_debug_expr (rtx, const char *);
 
 /* Support for complex CFA locations.  */
 static void output_cfa_loc (dw_cfi_ref);
+static void output_cfa_loc_raw (dw_cfi_ref);
 static void get_cfa_from_loc_descr (dw_cfa_location *,
 				    struct dw_loc_descr_struct *);
 static struct dw_loc_descr_struct *build_cfa_loc
@@ -665,8 +693,19 @@ dwarf2out_cfi_label (void)
 {
   static char label[20];
 
-  ASM_GENERATE_INTERNAL_LABEL (label, "LCFI", dwarf2out_cfi_label_num++);
-  ASM_OUTPUT_LABEL (asm_out_file, label);
+  if (dwarf2out_do_cfi_asm ())
+    {
+      /* In this case, we will be emitting the asm directive instead of
+	 the label, so just return a placeholder to keep the rest of the
+	 interfaces happy.  */
+      strcpy (label, "<do not output>");
+    }
+  else
+    {
+      ASM_GENERATE_INTERNAL_LABEL (label, "LCFI", dwarf2out_cfi_label_num++);
+      ASM_OUTPUT_LABEL (asm_out_file, label);
+    }
+
   return label;
 }
 
@@ -676,7 +715,25 @@ dwarf2out_cfi_label (void)
 static void
 add_fde_cfi (const char *label, dw_cfi_ref cfi)
 {
-  if (label)
+  dw_cfi_ref *list_head = &cie_cfi_head;
+
+  if (dwarf2out_do_cfi_asm ())
+    {
+      if (label)
+	{
+	  output_cfi_directive (cfi);
+
+	  /* We still have to add the cfi to the list so that
+	     lookup_cfa works later on.  */
+	  list_head = &current_fde ()->dw_fde_cfi;
+	}
+      /* ??? If this is a CFI for the CIE, we don't emit.  This
+	 assumes that the standard CIE contents that the assembler
+	 uses matches the standard CIE contents that the compiler
+	 uses.  This is probably a bad assumption.  I'm not quite
+	 sure how to address this for now.  */
+    }
+  else if (label)
     {
       dw_fde_ref fde = current_fde ();
 
@@ -705,11 +762,10 @@ add_fde_cfi (const char *label, dw_cfi_ref cfi)
 	  fde->dw_fde_current_label = label;
 	}
 
-      add_cfi (&fde->dw_fde_cfi, cfi);
+      list_head = &fde->dw_fde_cfi;
     }
 
-  else
-    add_cfi (&cie_cfi_head, cfi);
+  add_cfi (list_head, cfi);
 }
 
 /* Subroutine of lookup_cfa.  */
@@ -1225,9 +1281,6 @@ compute_barrier_args_size_1 (rtx insn, HOST_WIDE_INT cur_args_size,
 	      barrier_args_size [INSN_UID (dest)] = cur_args_size;
 	      VEC_safe_push (rtx, heap, *next, dest);
 	    }
-	  else
-	    gcc_assert (barrier_args_size[INSN_UID (dest)]
-			== cur_args_size);
 	}
     }
 
@@ -1285,8 +1338,6 @@ compute_barrier_args_size (void)
 		    {
 		      /* The insns starting with this label have been
 			 already scanned or are in the worklist.  */
-		      gcc_assert (barrier_args_size[INSN_UID (insn)]
-				  == cur_args_size);
 		      break;
 		    }
 		}
@@ -2619,6 +2670,100 @@ output_cfi (dw_cfi_ref cfi, dw_fde_ref fde, int for_eh)
     }
 }
 
+/* Similar, but do it via assembler directives instead.  */
+
+static void
+output_cfi_directive (dw_cfi_ref cfi)
+{
+  unsigned long r, r2;
+
+  switch (cfi->dw_cfi_opc)
+    {
+    case DW_CFA_advance_loc:
+    case DW_CFA_advance_loc1:
+    case DW_CFA_advance_loc2:
+    case DW_CFA_advance_loc4:
+    case DW_CFA_MIPS_advance_loc8:
+    case DW_CFA_set_loc:
+      /* Should only be created by add_fde_cfi in a code path not
+	 followed when emitting via directives.  The assembler is
+	 going to take care of this for us.  */
+      gcc_unreachable ();
+
+    case DW_CFA_offset:
+    case DW_CFA_offset_extended:
+    case DW_CFA_offset_extended_sf:
+      r = DWARF2_FRAME_REG_OUT (cfi->dw_cfi_oprnd1.dw_cfi_reg_num, 0);
+      fprintf (asm_out_file, "\t.cfi_offset %lu, "HOST_WIDE_INT_PRINT_DEC"\n",
+	       r, cfi->dw_cfi_oprnd2.dw_cfi_offset * DWARF_CIE_DATA_ALIGNMENT);
+      break;
+
+    case DW_CFA_restore:
+    case DW_CFA_restore_extended:
+      r = DWARF2_FRAME_REG_OUT (cfi->dw_cfi_oprnd1.dw_cfi_reg_num, 0);
+      fprintf (asm_out_file, "\t.cfi_restore %lu\n", r);
+      break;
+
+    case DW_CFA_undefined:
+      r = DWARF2_FRAME_REG_OUT (cfi->dw_cfi_oprnd1.dw_cfi_reg_num, 0);
+      fprintf (asm_out_file, "\t.cfi_undefined %lu\n", r);
+      break;
+
+    case DW_CFA_same_value:
+      r = DWARF2_FRAME_REG_OUT (cfi->dw_cfi_oprnd1.dw_cfi_reg_num, 0);
+      fprintf (asm_out_file, "\t.cfi_same_value %lu\n", r);
+      break;
+
+    case DW_CFA_def_cfa:
+    case DW_CFA_def_cfa_sf:
+      r = DWARF2_FRAME_REG_OUT (cfi->dw_cfi_oprnd1.dw_cfi_reg_num, 0);
+      fprintf (asm_out_file, "\t.cfi_def_cfa %lu, "HOST_WIDE_INT_PRINT_DEC"\n",
+	       r, cfi->dw_cfi_oprnd2.dw_cfi_offset);
+      break;
+
+    case DW_CFA_def_cfa_register:
+      r = DWARF2_FRAME_REG_OUT (cfi->dw_cfi_oprnd1.dw_cfi_reg_num, 0);
+      fprintf (asm_out_file, "\t.cfi_def_cfa_register %lu\n", r);
+      break;
+
+    case DW_CFA_register:
+      r = DWARF2_FRAME_REG_OUT (cfi->dw_cfi_oprnd1.dw_cfi_reg_num, 0);
+      r2 = DWARF2_FRAME_REG_OUT (cfi->dw_cfi_oprnd2.dw_cfi_reg_num, 0);
+      fprintf (asm_out_file, "\t.cfi_register %lu, %lu\n", r, r2);
+      break;
+
+    case DW_CFA_def_cfa_offset:
+    case DW_CFA_def_cfa_offset_sf:
+      fprintf (asm_out_file, "\t.cfi_def_cfa_offset "
+	       HOST_WIDE_INT_PRINT_DEC"\n",
+	       cfi->dw_cfi_oprnd1.dw_cfi_offset);
+      break;
+
+    case DW_CFA_GNU_args_size:
+      fprintf (asm_out_file, "\t.cfi_escape 0x%x,", DW_CFA_GNU_args_size);
+      dw2_asm_output_data_uleb128_raw (cfi->dw_cfi_oprnd1.dw_cfi_offset);
+      if (flag_debug_asm)
+	fprintf (asm_out_file, "\t%s args_size "HOST_WIDE_INT_PRINT_DEC,
+		 ASM_COMMENT_START, cfi->dw_cfi_oprnd1.dw_cfi_offset);
+      fputc ('\n', asm_out_file);
+      break;
+
+    case DW_CFA_GNU_window_save:
+      fprintf (asm_out_file, "\t.cfi_window_save\n");
+      break;
+
+    case DW_CFA_def_cfa_expression:
+    case DW_CFA_expression:
+      fprintf (asm_out_file, "\t.cfi_escape 0x%x,", cfi->dw_cfi_opc);
+      output_cfa_loc_raw (cfi);
+      fputc ('\n', asm_out_file);
+      break;
+
+    default:
+      gcc_unreachable ();
+    }
+}
+
 /* Output the call frame information used to record information
    that relates to calculating the frame pointer, and records the
    location of saved registers.  */
@@ -2640,6 +2785,10 @@ output_call_frame_info (int for_eh)
 
   /* Don't emit a CIE if there won't be any FDEs.  */
   if (fde_table_in_use == 0)
+    return;
+
+  /* Nothing to do if the assembler's doing it all.  */
+  if (dwarf2out_do_cfi_asm ())
     return;
 
   /* If we make FDEs linkonce, we may have to emit an empty label for
@@ -3058,6 +3207,49 @@ dwarf2out_begin_prologue (unsigned int line ATTRIBUTE_UNUSED,
   if (file)
     dwarf2out_source_line (line, file);
 #endif
+
+  if (dwarf2out_do_cfi_asm ())
+    {
+      int enc;
+      rtx ref;
+
+      fprintf (asm_out_file, "\t.cfi_startproc\n");
+
+      if (eh_personality_libfunc)
+	{
+	  enc = ASM_PREFERRED_EH_DATA_FORMAT (/*code=*/2, /*global=*/1); 
+	  ref = eh_personality_libfunc;
+
+	  /* ??? The GAS support isn't entirely consistent.  We have to
+	     handle indirect support ourselves, but PC-relative is done
+	     in the assembler.  Further, the assembler can't handle any
+	     of the weirder relocation types.  */
+	  if (enc & DW_EH_PE_indirect)
+	    ref = dw2_force_const_mem (ref, true);
+
+	  fprintf (asm_out_file, "\t.cfi_personality 0x%x,", enc);
+	  output_addr_const (asm_out_file, ref);
+	  fputc ('\n', asm_out_file);
+	}
+
+      if (crtl->uses_eh_lsda)
+	{
+	  char lab[20];
+
+	  enc = ASM_PREFERRED_EH_DATA_FORMAT (/*code=*/0, /*global=*/0);
+	  ASM_GENERATE_INTERNAL_LABEL (lab, "LLSDA",
+				       current_function_funcdef_no);
+	  ref = gen_rtx_SYMBOL_REF (Pmode, lab);
+	  SYMBOL_REF_FLAGS (ref) = SYMBOL_FLAG_LOCAL;
+
+	  if (enc & DW_EH_PE_indirect)
+	    ref = dw2_force_const_mem (ref, true);
+
+	  fprintf (asm_out_file, "\t.cfi_lsda 0x%x,", enc);
+	  output_addr_const (asm_out_file, ref);
+	  fputc ('\n', asm_out_file);
+	}
+    }
 }
 
 /* Output a marker (i.e. a label) for the absolute end of the generated code
@@ -3070,6 +3262,9 @@ dwarf2out_end_epilogue (unsigned int line ATTRIBUTE_UNUSED,
 {
   dw_fde_ref fde;
   char label[MAX_ARTIFICIAL_LABEL_BYTES];
+
+  if (dwarf2out_do_cfi_asm ())
+    fprintf (asm_out_file, "\t.cfi_endproc\n");
 
   /* Output a label to mark the endpoint of the code generated for this
      function.  */
@@ -3277,15 +3472,7 @@ typedef struct dw_loc_list_struct GTY(())
 
 #if defined (DWARF2_DEBUGGING_INFO) || defined (DWARF2_UNWIND_INFO)
 
-static const char *dwarf_stack_op_name (unsigned);
-static dw_loc_descr_ref new_loc_descr (enum dwarf_location_atom,
-				       unsigned HOST_WIDE_INT, unsigned HOST_WIDE_INT);
 static dw_loc_descr_ref int_loc_descriptor (HOST_WIDE_INT);
-static void add_loc_descr (dw_loc_descr_ref *, dw_loc_descr_ref);
-static unsigned long size_of_loc_descr (dw_loc_descr_ref);
-static unsigned long size_of_locs (dw_loc_descr_ref);
-static void output_loc_operands (dw_loc_descr_ref);
-static void output_loc_sequence (dw_loc_descr_ref);
 
 /* Convert a DWARF stack opcode into its string name.  */
 
@@ -3621,6 +3808,25 @@ new_loc_descr (enum dwarf_location_atom op, unsigned HOST_WIDE_INT oprnd1,
   return descr;
 }
 
+/* Return a pointer to a newly allocated location description for
+   REG and OFFSET.  */
+
+static inline dw_loc_descr_ref
+new_reg_loc_descr (unsigned int reg,  unsigned HOST_WIDE_INT offset)
+{
+  if (offset)
+    {
+      if (reg <= 31)
+	return new_loc_descr (DW_OP_breg0 + reg, offset, 0);
+      else
+	return new_loc_descr (DW_OP_bregx, reg, offset);
+    }
+  else if (reg <= 31)
+    return new_loc_descr (DW_OP_reg0 + reg, 0, 0);
+  else
+   return new_loc_descr (DW_OP_regx, reg, 0);
+}
+
 /* Add a location description term to a location description expression.  */
 
 static inline void
@@ -3931,6 +4137,141 @@ output_loc_sequence (dw_loc_descr_ref loc)
     }
 }
 
+/* Output location description stack opcode's operands (if any).
+   The output is single bytes on a line, suitable for .cfi_escape.  */
+
+static void
+output_loc_operands_raw (dw_loc_descr_ref loc)
+{
+  dw_val_ref val1 = &loc->dw_loc_oprnd1;
+  dw_val_ref val2 = &loc->dw_loc_oprnd2;
+
+  switch (loc->dw_loc_opc)
+    {
+    case DW_OP_addr:
+      /* We cannot output addresses in .cfi_escape, only bytes.  */
+      gcc_unreachable ();
+
+    case DW_OP_const1u:
+    case DW_OP_const1s:
+    case DW_OP_pick:
+    case DW_OP_deref_size:
+    case DW_OP_xderef_size:
+      fputc (',', asm_out_file);
+      dw2_asm_output_data_raw (1, val1->v.val_int);
+      break;
+
+    case DW_OP_const2u:
+    case DW_OP_const2s:
+      fputc (',', asm_out_file);
+      dw2_asm_output_data_raw (2, val1->v.val_int);
+      break;
+
+    case DW_OP_const4u:
+    case DW_OP_const4s:
+      fputc (',', asm_out_file);
+      dw2_asm_output_data_raw (4, val1->v.val_int);
+      break;
+
+    case DW_OP_const8u:
+    case DW_OP_const8s:
+      gcc_assert (HOST_BITS_PER_LONG >= 64);
+      fputc (',', asm_out_file);
+      dw2_asm_output_data_raw (8, val1->v.val_int);
+      break;
+
+    case DW_OP_skip:
+    case DW_OP_bra:
+      {
+	int offset;
+
+	gcc_assert (val1->val_class == dw_val_class_loc);
+	offset = val1->v.val_loc->dw_loc_addr - (loc->dw_loc_addr + 3);
+
+        fputc (',', asm_out_file);
+	dw2_asm_output_data_raw (2, offset);
+      }
+      break;
+
+    case DW_OP_constu:
+    case DW_OP_plus_uconst:
+    case DW_OP_regx:
+    case DW_OP_piece:
+      fputc (',', asm_out_file);
+      dw2_asm_output_data_uleb128_raw (val1->v.val_unsigned);
+      break;
+
+    case DW_OP_consts:
+    case DW_OP_breg0:
+    case DW_OP_breg1:
+    case DW_OP_breg2:
+    case DW_OP_breg3:
+    case DW_OP_breg4:
+    case DW_OP_breg5:
+    case DW_OP_breg6:
+    case DW_OP_breg7:
+    case DW_OP_breg8:
+    case DW_OP_breg9:
+    case DW_OP_breg10:
+    case DW_OP_breg11:
+    case DW_OP_breg12:
+    case DW_OP_breg13:
+    case DW_OP_breg14:
+    case DW_OP_breg15:
+    case DW_OP_breg16:
+    case DW_OP_breg17:
+    case DW_OP_breg18:
+    case DW_OP_breg19:
+    case DW_OP_breg20:
+    case DW_OP_breg21:
+    case DW_OP_breg22:
+    case DW_OP_breg23:
+    case DW_OP_breg24:
+    case DW_OP_breg25:
+    case DW_OP_breg26:
+    case DW_OP_breg27:
+    case DW_OP_breg28:
+    case DW_OP_breg29:
+    case DW_OP_breg30:
+    case DW_OP_breg31:
+    case DW_OP_fbreg:
+      fputc (',', asm_out_file);
+      dw2_asm_output_data_sleb128_raw (val1->v.val_int);
+      break;
+
+    case DW_OP_bregx:
+      fputc (',', asm_out_file);
+      dw2_asm_output_data_uleb128_raw (val1->v.val_unsigned);
+      fputc (',', asm_out_file);
+      dw2_asm_output_data_sleb128_raw (val2->v.val_int);
+      break;
+
+    case INTERNAL_DW_OP_tls_addr:
+      gcc_unreachable ();
+
+    default:
+      /* Other codes have no operands.  */
+      break;
+    }
+}
+
+static void
+output_loc_sequence_raw (dw_loc_descr_ref loc)
+{
+  while (1)
+    {
+      /* Output the opcode.  */
+      fprintf (asm_out_file, "0x%x", loc->dw_loc_opc);
+      output_loc_operands_raw (loc);
+
+      if (!loc->dw_loc_next)
+	break;
+      loc = loc->dw_loc_next;
+
+      fputc (',', asm_out_file);
+    }
+}
+
 /* This routine will generate the correct assembly data for a location
    description based on a cfi entry with a complex address.  */
 
@@ -3952,6 +4293,27 @@ output_cfa_loc (dw_cfi_ref cfi)
   output_loc_sequence (loc);
 }
 
+/* Similar, but used for .cfi_escape.  */
+
+static void
+output_cfa_loc_raw (dw_cfi_ref cfi)
+{
+  dw_loc_descr_ref loc;
+  unsigned long size;
+
+  if (cfi->dw_cfi_opc == DW_CFA_expression)
+    fprintf (asm_out_file, "0x%x,", cfi->dw_cfi_oprnd2.dw_cfi_reg_num);
+
+  /* Output the size of the block.  */
+  loc = cfi->dw_cfi_oprnd1.dw_cfi_loc;
+  size = size_of_locs (loc);
+  dw2_asm_output_data_uleb128_raw (size);
+  fputc (',', asm_out_file);
+
+  /* Now output the operations themselves.  */
+  output_loc_sequence_raw (loc);
+}
+
 /* This function builds a dwarf location descriptor sequence from a
    dw_cfa_location, adding the given OFFSET to the result of the
    expression.  */
@@ -3965,18 +4327,7 @@ build_cfa_loc (dw_cfa_location *cfa, HOST_WIDE_INT offset)
 
   if (cfa->indirect)
     {
-      if (cfa->base_offset)
-	{
-	  if (cfa->reg <= 31)
-	    head = new_loc_descr (DW_OP_breg0 + cfa->reg, cfa->base_offset, 0);
-	  else
-	    head = new_loc_descr (DW_OP_bregx, cfa->reg, cfa->base_offset);
-	}
-      else if (cfa->reg <= 31)
-	head = new_loc_descr (DW_OP_reg0 + cfa->reg, 0, 0);
-      else
-	head = new_loc_descr (DW_OP_regx, cfa->reg, 0);
-
+      head = new_reg_loc_descr (cfa->reg, cfa->base_offset);
       head->dw_loc_oprnd1.val_class = dw_val_class_const;
       tmp = new_loc_descr (DW_OP_deref, 0, 0);
       add_loc_descr (&head, tmp);
@@ -3987,17 +4338,7 @@ build_cfa_loc (dw_cfa_location *cfa, HOST_WIDE_INT offset)
 	}
     }
   else
-    {
-      if (offset == 0)
-	if (cfa->reg <= 31)
-	  head = new_loc_descr (DW_OP_reg0 + cfa->reg, 0, 0);
-	else
-	  head = new_loc_descr (DW_OP_regx, cfa->reg, 0);
-      else if (cfa->reg <= 31)
-	head = new_loc_descr (DW_OP_breg0 + cfa->reg, offset, 0);
-      else
-	head = new_loc_descr (DW_OP_bregx, cfa->reg, offset);
-    }
+    head = new_reg_loc_descr (cfa->reg, offset);
 
   return head;
 }
@@ -4016,21 +4357,15 @@ build_cfa_aligned_loc (HOST_WIDE_INT offset, HOST_WIDE_INT alignment)
  /* When CFA is defined as FP+OFFSET, emulate stack alignment.  */
   if (cfa.reg == HARD_FRAME_POINTER_REGNUM && cfa.indirect == 0)
     {
-      if (dwarf_fp <= 31)
-	head = new_loc_descr (DW_OP_breg0 + dwarf_fp, 0, 0);
-      else
-	head = new_loc_descr (DW_OP_bregx, dwarf_fp, 0);
-
+      head = new_reg_loc_descr (dwarf_fp, 0);
       add_loc_descr (&head, int_loc_descriptor (alignment));
       add_loc_descr (&head, new_loc_descr (DW_OP_and, 0, 0));
 
       add_loc_descr (&head, int_loc_descriptor (offset));
       add_loc_descr (&head, new_loc_descr (DW_OP_plus, 0, 0));
     }
-  else if (dwarf_fp <= 31)
-    head = new_loc_descr (DW_OP_breg0 + dwarf_fp, offset, 0);
   else
-    head = new_loc_descr (DW_OP_bregx, dwarf_fp, offset);
+    head = new_reg_loc_descr (dwarf_fp, offset);
   return head;
 }
 
@@ -9318,11 +9653,7 @@ reg_loc_descriptor (rtx rtl, enum var_init_status initialized)
 static dw_loc_descr_ref
 one_reg_loc_descriptor (unsigned int regno, enum var_init_status initialized)
 {
-  dw_loc_descr_ref reg_loc_descr;
-  if (regno <= 31)
-    reg_loc_descr = new_loc_descr (DW_OP_reg0 + regno, 0, 0);
-  else
-    reg_loc_descr = new_loc_descr (DW_OP_regx, regno, 0);
+  dw_loc_descr_ref reg_loc_descr = new_reg_loc_descr (regno, 0);
 
   if (initialized == VAR_INIT_STATUS_UNINITIALIZED)
     add_loc_descr (&reg_loc_descr, new_loc_descr (DW_OP_GNU_uninit, 0, 0));
@@ -9485,10 +9816,7 @@ based_loc_descr (rtx reg, HOST_WIDE_INT offset,
 		= DWARF_FRAME_REGNUM (cfa.indirect
 				      ? HARD_FRAME_POINTER_REGNUM
 				      : STACK_POINTER_REGNUM);
-	      if (base_reg <= 31)
-		return new_loc_descr (DW_OP_breg0 + base_reg, offset, 0);
-	      else
-		return new_loc_descr (DW_OP_bregx, base_reg, offset);
+	      return new_reg_loc_descr (base_reg, offset);
 	    }
 
 	  offset += frame_pointer_fb_offset;

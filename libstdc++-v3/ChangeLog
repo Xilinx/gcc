@@ -1,3 +1,237 @@
+2008-08-18  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/37149
+	* testsuite/27_io/basic_ostream/inserters_other/char/4.cc: Include
+	<cstdio>.
+	* testsuite/27_io/basic_ostream/inserters_other/char/error_code.cc:
+	Likewise.
+	* testsuite/27_io/objects/char/12048-1.cc: Likewise.
+	* testsuite/27_io/objects/char/12048-3.cc: Likewise.
+	* testsuite/27_io/objects/wchar_t/12048-1.cc: Likewise.
+	* testsuite/27_io/objects/wchar_t/12048-3.cc: Likewise.
+	* testsuite/ext/malloc_allocator/deallocate_global.cc: Likewise.
+	* testsuite/ext/malloc_allocator/deallocate_local.cc: Likewise.
+	* testsuite/ext/mt_allocator/deallocate_global-2.cc: Likewise.
+	* testsuite/ext/mt_allocator/deallocate_global-4.cc: Likewise.
+	* testsuite/ext/mt_allocator/deallocate_global_thread-1.cc: Likewise.
+	* testsuite/ext/mt_allocator/deallocate_global_thread-3.cc: Likewise.
+	* testsuite/ext/mt_allocator/deallocate_local-2.cc: Likewise.
+	* testsuite/ext/mt_allocator/deallocate_local-4.cc: Likewise.
+	* testsuite/ext/mt_allocator/deallocate_local-6.cc: Likewise.
+	* testsuite/ext/mt_allocator/deallocate_local-8.cc: Likewise.
+	* testsuite/ext/mt_allocator/deallocate_local_thread-1.cc: Likewise.
+	* testsuite/ext/mt_allocator/deallocate_local_thread-3.cc: Likewise.
+	* testsuite/ext/mt_allocator/deallocate_local_thread-5.cc: Likewise.
+	* testsuite/ext/mt_allocator/deallocate_local_thread-7.cc: Likewise.
+	* testsuite/ext/new_allocator/deallocate_global.cc: Likewise.
+	* testsuite/ext/new_allocator/deallocate_local.cc: Likewise.
+	* testsuite/ext/stdio_sync_filebuf/wchar_t/12077.cc: Likewise.
+	* include/std/regex: Include <sstream>.
+	* include/tr1/regex: Likewise.
+
+2008-08-18  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* configure.ac: Do not hardcode HAVE_S_ISREG and HAVE_S_IFREG for
+	newlib.
+	* configure: Regenerate.
+
+2008-08-18  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/37147
+	* acinclude.m4 ([GLIBCXX_CHECK_C99_TR1]): Tighten checks on stdint.h,
+	check the macros too.
+	* configure: Regenerate.
+
+2008-08-17  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* acinclude.m4 ([AC_LC_MESSAGES]): Use AC_TRY_COMPILE instead of
+	AC_TRY_LINK.
+	* configure.ac: Run unconditionally AC_LC_MESSAGES.
+	* crossconfig.m4: Adjust.
+	* configure: Regenerate.
+
+2008-08-17  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* acinclude.m4 ([GLIBCXX_CHECK_LFS], [GLIBCXX_CHECK_POLL],
+	[GLIBCXX_CHECK_S_ISREG_OR_S_IFREG], [GLIBCXX_CHECK_WRITEV]):
+	Use GCC_TRY_COMPILE_OR_LINK instead of AC_TRY_LINK, in C++,
+	with -fno-exceptions as flags.
+	* configure.ac: Run unconditionally GLIBCXX_CHECK_LFS,
+	GLIBCXX_CHECK_POLL, GLIBCXX_CHECK_S_ISREG_OR_S_IFREG,
+	GLIBCXX_CHECK_WRITEV and commonized AC_CHECK_HEADERS. 
+	* crossconfig.m4: Adjust; remove AC_CHECK_HEADERS commonized
+	in configure.ac.
+	* configure: Regenerate.
+
+2008-08-13  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	Re-instate last patch, amended to use __exchange_and_add_dispatch
+	and __atomic_add_dispatch in eh_ptr.cc and eh_throw.cc. 
+
+2008-08-13  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	Revert the last patch.
+
+2008-08-13  Sebastian Redl <sebastian.redl@getdesigned.at>
+
+	Add exception propagation support as per N2179.
+        * libsupc++/exception_ptr.h (exception_ptr, current_exception,
+        copy_exception, rethrow_exception): New file, implement exception
+	propagation.
+        * libsupc++/eh_ptr.cc (exception_ptr, current_exception,
+        rethrow_exception, __gxx_dependent_exception_cleanup): Likewise.
+        * libsupc++/unwind-cxx.h (__cxa_exception): Add reference count.
+	(__cxa_dependent_exception, __cxa_allocate_dependent_exception,
+        __cxa_free_dependent_exception, __get_dependent_exception_from_ue,
+        __GXX_INIT_DEPENDENT_EXCEPTION_CLASS, __is_dependent_exception,
+        __gxx_dependent_exception_class, __get_object_from_ue,
+        __get_object_from_ambiguous_exception): Add.
+        (__GXX_INIT_EXCEPTION_CLASS, __gxx_exception_class): Rename.
+        (__is_gxx_exception_class): Handle dependent exceptions.
+        * libsupc++/eh_arm.cc (__cxa_type_match): Likewise.
+        * libsupc++/eh_call.cc (__cxa_call_unexpected): Likewise.
+        * libsupc++/eh_personality.cc (__gxx_personality_*): Likewise.
+        * libsupc++/eh_type.cc (__cxa_current_exception_type): Likewise.
+        * libsupc++/eh_alloc.cc (__cxa_allocate_dependent_exception,
+        __cxa_free_dependent_exception): Add.
+        * libsupc++/eh_throw.cc (__gxx_exception_cleanup): Handle reference
+        counting.
+        * libsupc++/exception: Conditionally include exception_ptr.h.
+        * libsupc++/Makefile.am: Register new files.
+        * libsupc++/Makefile.in: Regenerate.
+        * config/abi/pre/gnu.ver: Add new symbols.
+        * testsuite/18_support/exception_ptr/current_exception.cc: Test the
+        core functionality of current_exception().
+        * testsuite/18_support/exception_ptr/rethrow_exception.cc: Test the
+        core functionality of rethrow_exception().
+        * testsuite/18_support/exception_ptr/lifespan.cc: Test the life span of
+        exception objects during exception propagation.
+
+2008-08-12  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/37100
+	* include/bits/stl_pair.h: Fix documentation URL in comment.
+
+2008-08-12  Johannes Singler  <singler@ira.uka.de>
+
+        * include/paralle/losertree.h 
+        (LoserTreePointerBase<>::~LoserTreePointerBase):
+        Replace delete by appropriate delete[].
+
+2008-08-12  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* configure.ac: Run unconditionally GLIBCXX_CHECK_INT64_T and
+	GLIBCXX_CHECK_C99_TR1; remove sigsetjmp and mmap checks (unused).
+	* crossconfig.m4: Adjust; remove HAVE_GETPAGESIZE defines (unused).
+	* configure: Regenerate.
+	* config.h.in: Likewise.
+
+	* acinclude.m4: Minor formatting fixes.
+
+2008-08-11  Stephen M. Webb  <stephenw@xandros.com>
+
+	* include/tr1_impl/regex: Formatting fixes.
+	* testsuite/tr1/7_regular_expressions/regex_traits/char/value.cc:
+	  New test.
+	* testsuite/tr1/7_regular_expressions/regex_traits/wchar_t/value.cc:
+	  New test.
+
+2008-08-11  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* config/locale/generic/c_locale.cc: Include <cstdio>.
+
+2008-08-11  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* configure.ac: Run GLIBCXX_CHECK_STDIO_MACROS unconditionally.
+	* configure: Regenerate.
+
+2008-08-10  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/tr1_impl/type_traits (_DEFINE_SPEC*): Simplify.
+	(_DEFINE_SPEC_BODY): Remove.
+	(__is_void_helper, __is_integral_helper, __is_floating_point_helper,
+	__is_member_object_pointer_helper, __is_member_function_pointer_helper,
+	__remove_pointer_helper): Add.
+	(is_void, is_integral, is_floating_point, is_member_object_pointer,
+	is_member_function_pointer, remove_pointer): Use the latter.
+	* include/tr1/type_traits (_DEFINE_SPEC): Simplify.
+	(_DEFINE_SPEC_HELPER): Remove.
+	(__is_signed_helper, __is_unsigned_helper): Add.
+	(is_signed, is_unsigned): Use the latter.
+
+2008-08-09  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	Revert fix for libstdc++/35637, thanks to other/36901.
+	* include/tr1_impl/type_traits (__is_function_helper): New, uses
+	variadic templates.
+	(is_function): Forward to the latter.
+	(__in_array): Remove.
+
+2008-08-09  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* config/locale/darwin/ctype_members.cc: Include <cstdio>.
+
+2008-08-08  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/ios_base.h: Undef _IOS_BASE_SEEK_CUR and
+	_IOS_BASE_SEEK_END at the end of the file.
+	* include/bits/char_traits.h: Likewise for _CHAR_TRAITS_EOF.
+
+2008-08-07  Stephen M. Webb  <stephenw@xandros.com>
+
+	* include/tr1_impl/regex (match_results<>::cbegin, cend): Add, per
+	N2691 WD.
+
+2008-08-06  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* acinclude.m4 ([GLIBCXX_CHECK_STDIO_MACROS]): New, checks for
+	common values of EOF, SEEK_CUR, SEEK_END.
+	* configure.ac: Use it.
+	* include/bits/ios_base.h: Likewise.
+	* include/bits/char_traits.h: Likewise.
+	* config/locale/gnu/ctype_members.cc: Include <cstdio>.
+	* config/locale/generic/ctype_members.cc: Likewise.
+	* testsuite/27_io/ios_base/cons/assign_neg.cc: Adjust dg-error lines.
+	* testsuite/27_io/ios_base/cons/copy_neg.cc: Likewise.
+	* configure: Regenerate.
+	* config.h.in: Likewise.
+
+2008-08-06  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* acinclude.m4 ([GLIBCXX_CHECK_INT64_T]): Also check whether int64_t
+	is actually a typedef to long or long long.
+	* include/bits/postypes.h: If int64_t is actually a typedef for
+	long or long long don't include <stdint.h> unnecessarily.
+	* configure: Regenerate.
+	* config.h.in: Likewise.
+	
+2008-08-05  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* testsuite/util/testsuite_api.h (diamond_derivation<>::test):
+	Expect ambiguity together with the standard exception classes.
+	* testsuite/27_io/ios_base/failure/cons_virtual_derivation.cc: Remove
+	xfail.
+	* testsuite/19_diagnostics/logic_error/cons_virtual_derivation.cc:
+	Likewise.
+	* testsuite/19_diagnostics/runtime_error/cons_virtual_derivation.cc:
+	Likewise.
+	* testsuite/19_diagnostics/system_error/cons_virtual_derivation.cc:
+	Likewise.
+	* testsuite/18_support/bad_alloc/cons_virtual_derivation.cc: Likewise.
+	* testsuite/18_support/bad_cast/cons_virtual_derivation.cc: Likewise.
+	* testsuite/18_support/bad_exception/cons_virtual_derivation.cc:
+	Likewise.
+	* testsuite/18_support/bad_typeid/cons_virtual_derivation.cc:
+	Likewise.
+	* testsuite/ext/concurrence_lock_error/cons_virtual_derivation.cc:
+	Likewise.
+	* testsuite/ext/forced_exception_error/cons_virtual_derivation.cc:
+	Likewise.
+	* testsuite/ext/concurrence_unlock_error/cons_virtual_derivation.cc:
+	Likewise.
+	* testsuite/20_util/bad_function_call/cons_virtual_derivation.cc:
+	Likewise.
+
 2008-08-04  Paolo Carlini  <paolo.carlini@oracle.com>
 
 	* include/bits/postypes.h: Reinstate inclusion of <stdint.h>;

@@ -881,8 +881,7 @@ sra_walk_expr (tree *expr_p, gimple_stmt_iterator *gsi, bool is_output,
 	   outer element, to which walk_tree will bring us next.  */
 	goto use_all;
 
-      case NOP_EXPR:
-      case CONVERT_EXPR:
+      CASE_CONVERT:
 	/* Similarly, a nop explicitly wants to look at an object in a
 	   type other than the one we've scalarized.  */
 	goto use_all;
@@ -2779,6 +2778,12 @@ generate_element_init_1 (struct sra_elt *elt, tree init, gimple_seq *seq_p)
     case CONSTRUCTOR:
       FOR_EACH_CONSTRUCTOR_ELT (CONSTRUCTOR_ELTS (init), idx, purpose, value)
 	{
+	  /* Array constructors are routinely created with NULL indices.  */
+	  if (purpose == NULL_TREE)
+	    {
+	      result = false;
+	      break;
+	    }
 	  if (TREE_CODE (purpose) == RANGE_EXPR)
 	    {
 	      tree lower = TREE_OPERAND (purpose, 0);
@@ -3404,11 +3409,6 @@ scalarize_init (struct sra_elt *lhs_elt, tree rhs, gimple_stmt_iterator *gsi)
       result = generate_element_init (lhs_elt, rhs, &init_seq);
     }
 
-  /* CONSTRUCTOR is defined such that any member not mentioned is assigned
-     a zero value.  Initialize the rest of the instantiated elements.  */
-  generate_element_zero (lhs_elt, &seq);
-  gimple_seq_add_seq (&seq, init_seq);
-
   if (!result)
     {
       /* If we failed to convert the entire initializer, then we must
@@ -3422,6 +3422,13 @@ scalarize_init (struct sra_elt *lhs_elt, tree rhs, gimple_stmt_iterator *gsi)
 			   &seq0);
       gimple_seq_add_seq (&seq0, seq);
       seq = seq0;
+    }
+  else
+    {
+      /* CONSTRUCTOR is defined such that any member not mentioned is assigned
+	 a zero value.  Initialize the rest of the instantiated elements.  */
+      generate_element_zero (lhs_elt, &seq);
+      gimple_seq_add_seq (&seq, init_seq);
     }
 
   if (lhs_elt->use_block_copy || !result)

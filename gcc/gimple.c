@@ -285,6 +285,8 @@ static inline gimple
 gimple_build_call_1 (tree fn, unsigned nargs)
 {
   gimple s = gimple_build_with_ops (GIMPLE_CALL, 0, nargs + 3);
+  if (TREE_CODE (fn) == FUNCTION_DECL)
+    fn = build_fold_addr_expr (fn);
   gimple_set_op (s, 1, fn);
   return s;
 }
@@ -370,22 +372,22 @@ void
 extract_ops_from_tree (tree expr, enum tree_code *subcode_p, tree *op1_p,
 		       tree *op2_p)
 {
-  enum gimple_rhs_class class;
+  enum gimple_rhs_class grhs_class;
 
   *subcode_p = TREE_CODE (expr);
-  class = get_gimple_rhs_class (*subcode_p);
+  grhs_class = get_gimple_rhs_class (*subcode_p);
 
-  if (class == GIMPLE_BINARY_RHS)
+  if (grhs_class == GIMPLE_BINARY_RHS)
     {
       *op1_p = TREE_OPERAND (expr, 0);
       *op2_p = TREE_OPERAND (expr, 1);
     }
-  else if (class == GIMPLE_UNARY_RHS)
+  else if (grhs_class == GIMPLE_UNARY_RHS)
     {
       *op1_p = TREE_OPERAND (expr, 0);
       *op2_p = NULL_TREE;
     }
-  else if (class == GIMPLE_SINGLE_RHS)
+  else if (grhs_class == GIMPLE_SINGLE_RHS)
     {
       *op1_p = expr;
       *op2_p = NULL_TREE;
@@ -1276,16 +1278,16 @@ gimple_seq
 gimple_seq_copy (gimple_seq src)
 {
   gimple_stmt_iterator gsi;
-  gimple_seq new = gimple_seq_alloc ();
+  gimple_seq new_seq = gimple_seq_alloc ();
   gimple stmt;
 
   for (gsi = gsi_start (src); !gsi_end_p (gsi); gsi_next (&gsi))
     {
       stmt = gimple_copy (gsi_stmt (gsi));
-      gimple_seq_add_stmt (&new, stmt);
+      gimple_seq_add_stmt (&new_seq, stmt);
     }
 
-  return new;
+  return new_seq;
 }
 
 
@@ -1897,8 +1899,7 @@ bool
 gimple_assign_unary_nop_p (gimple gs)
 {
   return (gimple_code (gs) == GIMPLE_ASSIGN
-          && (gimple_assign_rhs_code (gs) == NOP_EXPR
-              || gimple_assign_rhs_code (gs) == CONVERT_EXPR
+          && (CONVERT_EXPR_CODE_P (gimple_assign_rhs_code (gs))
               || gimple_assign_rhs_code (gs) == NON_LVALUE_EXPR)
           && gimple_assign_rhs1 (gs) != error_mark_node
           && (TYPE_MODE (TREE_TYPE (gimple_assign_lhs (gs)))

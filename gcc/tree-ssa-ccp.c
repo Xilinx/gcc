@@ -528,17 +528,10 @@ likely_value (gimple stmt)
       && !ZERO_SSA_OPERANDS (stmt, SSA_OP_ALL_VIRTUALS))
     return VARYING;
 
-  /* A GIMPLE_CALL is assumed to be varying.  NOTE: This may be overly
-     conservative, in the presence of const and pure calls.  */
-  if (code == GIMPLE_CALL)
-    return VARYING;
-
   /* Note that only a GIMPLE_SINGLE_RHS assignment can satisfy
      is_gimple_min_invariant, so we do not consider calls or
      other forms of assignment.  */
-  if (code == GIMPLE_ASSIGN
-      && (get_gimple_rhs_class (gimple_assign_rhs_code (stmt))
-          == GIMPLE_SINGLE_RHS)
+  if (gimple_assign_single_p (stmt)
       && is_gimple_min_invariant (gimple_assign_rhs1 (stmt)))
     return CONSTANT;
 
@@ -630,15 +623,23 @@ surely_varying_stmt_p (gimple stmt)
 	return true;
     }
 
-  /* If it contains a call, it is varying.  */
+  /* If it is a call and does not return a value or is not a
+     builtin and not an indirect call, it is varying.  */
   if (is_gimple_call (stmt))
-    return true;
+    {
+      tree fndecl;
+      if (!gimple_call_lhs (stmt)
+	  || ((fndecl = gimple_call_fndecl (stmt)) != NULL_TREE
+	      && !DECL_BUILT_IN (fndecl)))
+	return true;
+    }
 
   /* Anything other than assignments and conditional jumps are not
      interesting for CCP.  */
   if (gimple_code (stmt) != GIMPLE_ASSIGN
-      && (gimple_code (stmt) != GIMPLE_COND)
-      && (gimple_code (stmt) != GIMPLE_SWITCH))
+      && gimple_code (stmt) != GIMPLE_COND
+      && gimple_code (stmt) != GIMPLE_SWITCH
+      && gimple_code (stmt) != GIMPLE_CALL)
     return true;
 
   return false;
@@ -987,18 +988,26 @@ ccp_fold (gimple stmt)
 		 useless_type_conversion_p places for pointer type conversions
 		 do not apply here.  Substitution later will only substitute to
 		 allowed places.  */
-              if ((subcode == NOP_EXPR || subcode == CONVERT_EXPR)
-		  && ((POINTER_TYPE_P (TREE_TYPE (lhs))
-		       && POINTER_TYPE_P (TREE_TYPE (op0))
-		       /* Do not allow differences in volatile qualification
-			  as this might get us confused as to whether a
-			  propagation destination statement is volatile
-			  or not.  See PR36988.  */
-		       && (TYPE_VOLATILE (TREE_TYPE (TREE_TYPE (lhs)))
-			   == TYPE_VOLATILE (TREE_TYPE (TREE_TYPE (op0)))))
-		      || useless_type_conversion_p (TREE_TYPE (lhs),
-						    TREE_TYPE (op0))))
-                return op0;
+	      if (CONVERT_EXPR_CODE_P (subcode)
+		  && POINTER_TYPE_P (TREE_TYPE (lhs))
+		  && POINTER_TYPE_P (TREE_TYPE (op0))
+		  /* Do not allow differences in volatile qualification
+		     as this might get us confused as to whether a
+		     propagation destination statement is volatile
+		     or not.  See PR36988.  */
+		  && (TYPE_VOLATILE (TREE_TYPE (TREE_TYPE (lhs)))
+		      == TYPE_VOLATILE (TREE_TYPE (TREE_TYPE (op0)))))
+		{
+		  tree tem;
+		  /* Still try to generate a constant of correct type.  */
+		  if (!useless_type_conversion_p (TREE_TYPE (lhs),
+						  TREE_TYPE (op0))
+		      && ((tem = maybe_fold_offset_to_address
+				   (op0, integer_zero_node, TREE_TYPE (lhs)))
+			  != NULL_TREE))
+		    return tem;
+		  return op0;
+		}
 
               return fold_unary (subcode, gimple_expr_type (stmt), op0);
             }  
@@ -1024,6 +1033,18 @@ ccp_fold (gimple stmt)
                     op1 = val->value;
                 }
 
+	      /* Fold &foo + CST into an invariant reference if possible.  */
+	      if (gimple_assign_rhs_code (stmt) == POINTER_PLUS_EXPR
+		  && TREE_CODE (op0) == ADDR_EXPR
+		  && TREE_CODE (op1) == INTEGER_CST)
+		{
+		  tree lhs = gimple_assign_lhs (stmt);
+		  tree tem = maybe_fold_offset_to_address (op0, op1,
+							   TREE_TYPE (lhs));
+		  if (tem != NULL_TREE)
+		    return tem;
+		}
+
               return fold_binary (subcode, gimple_expr_type (stmt), op0, op1);
             }
 
@@ -1034,11 +1055,42 @@ ccp_fold (gimple stmt)
       break;
 
     case GIMPLE_CALL:
-      /* It may be possible to fold away calls to builtin functions if
-         their arguments are constants.  At present, such folding will not
-         be attempted, as likely_value classifies all calls as VARYING.  */
-      gcc_unreachable ();
-      break;
+      {
+	tree fn = gimple_call_fn (stmt);
+	prop_value_t *val;
+
+	if (TREE_CODE (fn) == SSA_NAME)
+	  {
+	    val = get_value (fn);
+	    if (val->lattice_val == CONSTANT)
+	      fn = val->value;
+	  }
+	if (TREE_CODE (fn) == ADDR_EXPR
+	    && DECL_BUILT_IN (TREE_OPERAND (fn, 0)))
+	  {
+	    tree *args = XALLOCAVEC (tree, gimple_call_num_args (stmt));
+	    tree call, retval;
+	    unsigned i;
+	    for (i = 0; i < gimple_call_num_args (stmt); ++i)
+	      {
+		args[i] = gimple_call_arg (stmt, i);
+		if (TREE_CODE (args[i]) == SSA_NAME)
+		  {
+		    val = get_value (args[i]);
+		    if (val->lattice_val == CONSTANT)
+		      args[i] = val->value;
+		  }
+	      }
+	    call = build_call_array (gimple_call_return_type (stmt),
+				     fn, gimple_call_num_args (stmt), args);
+	    retval = fold_call_expr (call, false);
+	    if (retval)
+	      /* fold_call_expr wraps the result inside a NOP_EXPR.  */
+	      STRIP_NOPS (retval);
+	    return retval;
+	  }
+	return NULL_TREE;
+      }
 
     case GIMPLE_COND:
       {
@@ -1916,15 +1968,16 @@ maybe_fold_offset_to_reference (tree base, tree offset, tree orig_type)
 	 so it needs to be removed and new COMPONENT_REF constructed.
 	 The wrong COMPONENT_REF are often constructed by folding the
 	 (type *)&object within the expression (type *)&object+offset  */
-      if (handled_component_p (base) && 0)
+      if (handled_component_p (base))
 	{
           HOST_WIDE_INT sub_offset, size, maxsize;
 	  tree newbase;
 	  newbase = get_ref_base_and_extent (base, &sub_offset,
 					     &size, &maxsize);
 	  gcc_assert (newbase);
-	  gcc_assert (!(sub_offset & (BITS_PER_UNIT - 1)));
-	  if (size == maxsize)
+	  if (size == maxsize
+	      && size != -1
+	      && !(sub_offset & (BITS_PER_UNIT - 1)))
 	    {
 	      base = newbase;
 	      if (sub_offset)
@@ -1954,6 +2007,63 @@ maybe_fold_offset_to_reference (tree base, tree offset, tree orig_type)
       ret = maybe_fold_offset_to_array_ref (base, offset, orig_type, true);
     }
   return ret;
+}
+
+/* Attempt to express (ORIG_TYPE)&BASE+OFFSET as &BASE->field_of_orig_type
+   or &BASE[index] or by combination of those.
+
+   Before attempting the conversion strip off existing component refs.  */
+
+tree
+maybe_fold_offset_to_address (tree addr, tree offset, tree orig_type)
+{
+  tree t;
+
+  gcc_assert (POINTER_TYPE_P (TREE_TYPE (addr))
+	      && POINTER_TYPE_P (orig_type));
+
+  t = maybe_fold_offset_to_reference (addr, offset, TREE_TYPE (orig_type));
+  if (t != NULL_TREE)
+    {
+      tree orig = addr;
+      tree ptr_type;
+
+      /* For __builtin_object_size to function correctly we need to
+         make sure not to fold address arithmetic so that we change
+	 reference from one array to another.  This would happen for
+	 example for
+
+	   struct X { char s1[10]; char s2[10] } s;
+	   char *foo (void) { return &s.s2[-4]; }
+
+	 where we need to avoid generating &s.s1[6].  As the C and
+	 C++ frontends create different initial trees
+	 (char *) &s.s1 + -4  vs.  &s.s1[-4]  we have to do some
+	 sophisticated comparisons here.  Note that checking for the
+	 condition after the fact is easier than trying to avoid doing
+	 the folding.  */
+      STRIP_NOPS (orig);
+      if (TREE_CODE (orig) == ADDR_EXPR)
+	orig = TREE_OPERAND (orig, 0);
+      if ((TREE_CODE (orig) == ARRAY_REF
+	   || (TREE_CODE (orig) == COMPONENT_REF
+	       && TREE_CODE (TREE_TYPE (TREE_OPERAND (orig, 1))) == ARRAY_TYPE))
+	  && (TREE_CODE (t) == ARRAY_REF
+	      || (TREE_CODE (t) == COMPONENT_REF
+		  && TREE_CODE (TREE_TYPE (TREE_OPERAND (t, 1))) == ARRAY_TYPE))
+	  && !operand_equal_p (TREE_CODE (orig) == ARRAY_REF
+			       ? TREE_OPERAND (orig, 0) : orig,
+			       TREE_CODE (t) == ARRAY_REF
+			       ? TREE_OPERAND (t, 0) : t, 0))
+	return NULL_TREE;
+
+      ptr_type = build_pointer_type (TREE_TYPE (t));
+      if (!useless_type_conversion_p (orig_type, ptr_type))
+	return NULL_TREE;
+      return build_fold_addr_expr_with_type (t, ptr_type);
+    }
+
+  return NULL_TREE;
 }
 
 /* A subroutine of fold_stmt_r.  Attempt to simplify *(BASE+OFFSET).
@@ -2191,16 +2301,10 @@ fold_stmt_r (tree *expr_p, int *walk_subtrees, void *data)
 
       if (POINTER_TYPE_P (TREE_TYPE (expr))
 	  && POINTER_TYPE_P (TREE_TYPE (TREE_OPERAND (expr, 0)))
-	  && (t = maybe_fold_offset_to_reference
-		      (TREE_OPERAND (expr, 0),
-		       integer_zero_node,
-		       TREE_TYPE (TREE_TYPE (expr)))))
-	{
-	  tree ptr_type = build_pointer_type (TREE_TYPE (t));
-	  if (!useless_type_conversion_p (TREE_TYPE (expr), ptr_type))
-	    return NULL_TREE;
-          t = build_fold_addr_expr_with_type (t, ptr_type);
-	}
+	  && (t = maybe_fold_offset_to_address (TREE_OPERAND (expr, 0),
+						integer_zero_node,
+						TREE_TYPE (TREE_TYPE (expr)))))
+	return t;
       break;
 
       /* ??? Could handle more ARRAY_REFs here, as a variant of INDIRECT_REF.
@@ -2677,21 +2781,15 @@ fold_gimple_assign (gimple_stmt_iterator *si)
           if (valid_gimple_rhs_p (result))
 	    return result;
         }
-      else if ((gimple_assign_rhs_code (stmt) == NOP_EXPR
-		|| gimple_assign_rhs_code (stmt) == CONVERT_EXPR)
+      else if (CONVERT_EXPR_CODE_P (gimple_assign_rhs_code (stmt))
 	       && POINTER_TYPE_P (gimple_expr_type (stmt))
 	       && POINTER_TYPE_P (TREE_TYPE (gimple_assign_rhs1 (stmt))))
 	{
 	  tree type = gimple_expr_type (stmt);
-	  tree t = maybe_fold_offset_to_reference (gimple_assign_rhs1 (stmt),
-						   integer_zero_node,
-						   TREE_TYPE (type));
+	  tree t = maybe_fold_offset_to_address (gimple_assign_rhs1 (stmt),
+						 integer_zero_node, type);
 	  if (t)
-	    {
-	      tree ptr_type = build_pointer_type (TREE_TYPE (t));
-	      if (useless_type_conversion_p (type, ptr_type))
-		return build_fold_addr_expr_with_type (t, ptr_type);
-	    }
+	    return t;
 	}
       break;
 

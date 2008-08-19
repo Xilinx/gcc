@@ -45,6 +45,7 @@
 #include "einfo.h"
 #include "ada-tree.h"
 #include "gigi.h"
+#include "snames.h"
 
 static tree find_common_type (tree, tree);
 static bool contains_save_expr_p (tree);
@@ -1919,11 +1920,11 @@ build_call_alloc_dealloc (tree gnu_obj, tree gnu_size, unsigned align,
   /* ??? For now, disable variable-sized allocators in the stack since
      we can't yet gimplify an ALLOCATE_EXPR.  */
   else if (gnat_pool == -1
-	   && TREE_CODE (gnu_size) == INTEGER_CST && !flag_stack_check)
+	   && TREE_CODE (gnu_size) == INTEGER_CST
+	   && flag_stack_check != GENERIC_STACK_CHECK)
     {
       /* If the size is a constant, we can put it in the fixed portion of
 	 the stack frame to avoid the need to adjust the stack pointer.  */
-      if (TREE_CODE (gnu_size) == INTEGER_CST && !flag_stack_check)
 	{
 	  tree gnu_range
 	    = build_range_type (NULL_TREE, size_one_node, gnu_size);
@@ -1936,9 +1937,8 @@ build_call_alloc_dealloc (tree gnu_obj, tree gnu_size, unsigned align,
 	  return convert (ptr_void_type_node,
 			  build_unary_op (ADDR_EXPR, NULL_TREE, gnu_decl));
 	}
-      else
-	gcc_unreachable ();
 #if 0
+      else
 	return build2 (ALLOCATE_EXPR, ptr_void_type_node, gnu_size, gnu_align);
 #endif
     }
@@ -1950,7 +1950,11 @@ build_call_alloc_dealloc (tree gnu_obj, tree gnu_size, unsigned align,
       /* If the allocator size is 32bits but the pointer size is 64bits then
 	 allocate 32bit memory (sometimes necessary on 64bit VMS). Otherwise
 	 default to standard malloc. */
-      if (UI_To_Int (Esize (Etype (gnat_node))) == 32 && POINTER_SIZE == 64)
+      if (TARGET_ABI_OPEN_VMS &&
+          (!TARGET_MALLOC64 ||
+           (POINTER_SIZE == 64
+	    && (UI_To_Int (Esize (Etype (gnat_node))) == 32
+	        || Convention (Etype (gnat_node)) == Convention_C))))
         return build_call_1_expr (malloc32_decl, gnu_size);
       else
         return build_call_1_expr (malloc_decl, gnu_size);

@@ -2929,7 +2929,7 @@ are automatically detected and this attribute is ignored.
 The @code{hot} attribute is not implemented in GCC versions earlier
 than 4.3.
 
-Starting with GCC 4.4, the @code{cold} attribute sets
+Starting with GCC 4.4, the @code{hot} attribute sets
 @code{optimize("O3")} to turn on more aggressive optimization on the
 the i386, x86_64, and IA-64 targets.
 
@@ -8097,6 +8097,7 @@ v2di __builtin_ia32_psrlqi128 (v2di, int)
 v8hi __builtin_ia32_psrawi128 (v8hi, int)
 v4si __builtin_ia32_psradi128 (v4si, int)
 v4si __builtin_ia32_pmaddwd128 (v8hi, v8hi)
+v2di __builtin_ia32_movq128 (v2di)
 @end smallexample
 
 The following built-in functions are available when @option{-msse3} is used.

@@ -1069,10 +1069,10 @@ initialize_argument_information (int num_actuals ATTRIBUTE_UNUSED,
 	      rtx copy;
 
 	      if (!COMPLETE_TYPE_P (type)
-		  || TREE_CODE (TYPE_SIZE (type)) != INTEGER_CST
-		  || (flag_stack_check && ! STACK_CHECK_BUILTIN
-		      && (0 < compare_tree_int (TYPE_SIZE_UNIT (type),
-						STACK_CHECK_MAX_VAR_SIZE))))
+		  || TREE_CODE (TYPE_SIZE_UNIT (type)) != INTEGER_CST
+		  || (flag_stack_check == GENERIC_STACK_CHECK
+		      && compare_tree_int (TYPE_SIZE_UNIT (type),
+					   STACK_CHECK_MAX_VAR_SIZE) > 0))
 		{
 		  /* This is a variable-sized object.  Make space on the stack
 		     for it.  */
@@ -1877,7 +1877,7 @@ shift_return_value (enum machine_mode mode, bool left_p, rtx value)
 static rtx
 avoid_likely_spilled_reg (rtx x)
 {
-  rtx new;
+  rtx new_rtx;
 
   if (REG_P (x)
       && HARD_REGISTER_P (x)
@@ -1888,10 +1888,10 @@ avoid_likely_spilled_reg (rtx x)
 	 and the whole point of this function is to avoid
 	 using the hard register directly in such a situation.  */
       generating_concat_p = 0;
-      new = gen_reg_rtx (GET_MODE (x));
+      new_rtx = gen_reg_rtx (GET_MODE (x));
       generating_concat_p = 1;
-      emit_move_insn (new, x);
-      return new;
+      emit_move_insn (new_rtx, x);
+      return new_rtx;
     }
   return x;
 }
@@ -2319,10 +2319,13 @@ expand_call (tree exp, rtx target, int ignore)
       || !lang_hooks.decls.ok_for_sibcall (fndecl))
     try_tail_call = 0;
 
-  /* Ensure current function's preferred stack
-     boundary is at least what we need.  */
+  /* Ensure current function's preferred stack boundary is at least
+     what we need.  Stack alignment may also increase preferred stack
+     boundary.  */
   if (crtl->preferred_stack_boundary < preferred_stack_boundary)
     crtl->preferred_stack_boundary = preferred_stack_boundary;
+  else
+    preferred_stack_boundary = crtl->preferred_stack_boundary;
 
   preferred_unit_stack_boundary = preferred_stack_boundary / BITS_PER_UNIT;
 

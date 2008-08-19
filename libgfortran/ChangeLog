@@ -1,3 +1,64 @@
+2008-08-19  Tobias Burnus  <burnus@net-b.de>
+
+	PR libfortran/35863
+	* io/write.c (write_a_char4): Add missing variable declaration
+	in HAVE_CRLF block.
+
+2008-08-15  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libfortran/35863
+	* intrinsics/selected_char_kind.c: Enable iso_10646.
+	* io/read.c (typedef uchar): New type.
+	(read_utf8): New function to read a single UTF-8 encoded character.
+	(read_utf8_char1): New function to read UTF-8 into a KIND=1 string.
+	(read_default_char1): New functio to read default into KIND=1 string.
+	(read_utf8_char4): New function to read UTF-8 into a KIND=4 string.
+	(read_default_char4): New function to read UTF-8 into a KIND=4 string.
+	(read_a): Modify to use the new functions.
+	(read_a_char4): Modify to use the new functions.
+	* io/write.c (error.h): Add include. (typedef uchar): New type.
+	(write_default_char4): New function to default write KIND=4 string.
+	(write_utf8_char4): New function to UTF-8 write KIND=4 string.
+	(write_a_char4): Modify to use new functions.
+	(write_character): Modify to use new functions.
+
+2008-08-14  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR libfortran/37123
+	* intrinsics/cshift0.c (cshift0): Fix 2 typos.
+
+2008-08-14  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR libfortran/36886
+	* Makefile.am:  Added $(i_cshift0_c).
+	Added $(i_cshift0_c) to gfor_built_specific_src.
+	Add rule to build from cshift0.m4.
+	* Makefile.in:  Regenerated.
+	* libgfortran.h:  Addedd prototypes for cshift0_i1,
+	cshift0_i2, cshift0_i4, cshift0_i8, cshift0_i16,
+	cshift0_r4, cshift0_r8, cshift0_r10, cshift0_r16,
+	cshift0_c4, cshift0_c8, cshift0_c10, cshift0_c16.
+	Define Macros GFC_UNALIGNED_C4 and GFC_UNALIGNED_C8.
+	* intrinsics/cshift0.c:  Remove helper functions for
+	the innter shift loop.
+	(cshift0):  Call specific functions depending on type
+	of array argument.  Only call specific functions for
+	correct alignment for other types.
+	* m4/cshift0.m4:  New file.
+	* generated/cshift0_i1.c:  New file.
+	* generated/cshift0_i2.c:  New file.
+	* generated/cshift0_i4.c:  New file.
+	* generated/cshift0_i8:.c  New file.
+	* generated/cshift0_i16.c:  New file.
+	* generated/cshift0_r4.c:  New file.
+	* generated/cshift0_r8.c:  New file.
+	* generated/cshift0_r10.c:  New file.
+	* generated/cshift0_r16.c:  New file.
+	* generated/cshift0_c4.c:  New file.
+	* generated/cshift0_c8.c:  New file.
+	* generated/cshift0_c10.c:  New file.
+	* generated/cshift0_c16.c:  New file.
+
 2008-07-27  Tobias Burnus  <burnus@net-b.de>
 
 	PR fortran/36132
@@ -9,7 +70,7 @@
 
 2008-07-22  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
 
-	PR fortran/36852
+	PR fortran/36582
 	* io/list_read.c: If variable rank is zero, do not adjust the found
 	namelist object pointer.
 

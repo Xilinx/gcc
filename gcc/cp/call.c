@@ -201,8 +201,7 @@ static void add_candidates (tree, tree, tree, bool, tree, tree,
 			    int, struct z_candidate **);
 static conversion *merge_conversion_sequences (conversion *, conversion *);
 static bool magic_varargs_p (tree);
-typedef void (*diagnostic_fn_t) (const char *, ...) ATTRIBUTE_GCC_CXXDIAG(1,2);
-static tree build_temp (tree, tree, int, diagnostic_fn_t *);
+static tree build_temp (tree, tree, int, diagnostic_t *);
 
 /* Returns nonzero iff the destructor name specified in NAME matches BASETYPE.
    NAME can take many forms...  */
@@ -4039,7 +4038,7 @@ build_new_op (enum tree_code code, int flags, tree arg1, tree arg2, tree arg3,
 	  /* Look for an `operator++ (int)'.  If they didn't have
 	     one, then we fall back to the old way of doing things.  */
 	  if (flags & LOOKUP_COMPLAIN)
-	    permerror ("no %<%D(int)%> declared for postfix %qs, "
+	    permerror (input_location, "no %<%D(int)%> declared for postfix %qs, "
 		       "trying prefix operator instead",
 		       fnname,
 		       operator_name_info[code].name);
@@ -4445,7 +4444,7 @@ enforce_access (tree basetype_path, tree decl, tree diag_decl)
 
 static tree
 build_temp (tree expr, tree type, int flags,
-	    diagnostic_fn_t *diagnostic_fn)
+	    diagnostic_t *diagnostic_kind)
 {
   int savew, savee;
 
@@ -4455,11 +4454,11 @@ build_temp (tree expr, tree type, int flags,
 				    build_tree_list (NULL_TREE, expr),
 				    type, flags, tf_warning_or_error);
   if (warningcount > savew)
-    *diagnostic_fn = warning0;
+    *diagnostic_kind = DK_WARNING;
   else if (errorcount > savee)
-    *diagnostic_fn = error;
+    *diagnostic_kind = DK_ERROR;
   else
-    *diagnostic_fn = NULL;
+    *diagnostic_kind = 0;
   return expr;
 }
 
@@ -4505,7 +4504,7 @@ convert_like_real (conversion *convs, tree expr, tree fn, int argnum,
 		   bool c_cast_p, tsubst_flags_t complain)
 {
   tree totype = convs->type;
-  diagnostic_fn_t diagnostic_fn;
+  diagnostic_t diag_kind;
   int flags;
 
   if (convs->bad_p
@@ -4536,9 +4535,9 @@ convert_like_real (conversion *convs, tree expr, tree fn, int argnum,
 	}
       if (complain & tf_error)
 	{
-	  permerror ("invalid conversion from %qT to %qT", TREE_TYPE (expr), totype);
+	  permerror (input_location, "invalid conversion from %qT to %qT", TREE_TYPE (expr), totype);
 	  if (fn)
-	    permerror ("  initializing argument %P of %qD", argnum, fn);
+	    permerror (input_location, "  initializing argument %P of %qD", argnum, fn);
 	}
       else
 	return error_mark_node;
@@ -4682,12 +4681,13 @@ convert_like_real (conversion *convs, tree expr, tree fn, int argnum,
 	   conversion (i.e. the second step of copy-initialization), so
 	   don't allow any more.  */
 	flags |= LOOKUP_NO_CONVERSION;
-      expr = build_temp (expr, totype, flags, &diagnostic_fn);
-      if (diagnostic_fn && fn)
+      expr = build_temp (expr, totype, flags, &diag_kind);
+      if (diag_kind && fn)
 	{
 	  if ((complain & tf_error))
-	    diagnostic_fn ("  initializing argument %P of %qD", argnum, fn);
-	  else if (diagnostic_fn == error)
+	    emit_diagnostic (diag_kind, input_location, 0, 
+			     "  initializing argument %P of %qD", argnum, fn);
+	  else if (diag_kind == DK_ERROR)
 	    return error_mark_node;
 	}
       return build_cplus_new (totype, expr);
@@ -5191,7 +5191,7 @@ build_over_call (struct z_candidate *cand, int flags, tsubst_flags_t complain)
       if (convs[i]->bad_p)
 	{
 	  if (complain & tf_error)
-	    permerror ("passing %qT as %<this%> argument of %q#D discards qualifiers",
+	    permerror (input_location, "passing %qT as %<this%> argument of %q#D discards qualifiers",
 		       TREE_TYPE (argtype), fn);
 	  else
 	    return error_mark_node;
@@ -6647,10 +6647,12 @@ joust (struct z_candidate *cand1, struct z_candidate *cand2, bool warn)
 	  tree source = source_type (w->convs[0]);
 	  if (! DECL_CONSTRUCTOR_P (w->fn))
 	    source = TREE_TYPE (source);
-	  warning (OPT_Wconversion, "choosing %qD over %qD", w->fn, l->fn);
-	  warning (OPT_Wconversion, "  for conversion from %qT to %qT",
-		   source, w->second_conv->type);
-	  inform ("  because conversion sequence for the argument is better");
+	  if (warning (OPT_Wconversion, "choosing %qD over %qD", w->fn, l->fn)
+	      && warning (OPT_Wconversion, "  for conversion from %qT to %qT",
+			  source, w->second_conv->type)) 
+	    {
+	      inform ("  because conversion sequence for the argument is better");
+	    }
 	}
       else
 	add_warning (w, l);

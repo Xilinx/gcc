@@ -390,9 +390,15 @@ dnl Check whether S_ISREG (Posix) or S_IFREG is available in <sys/stat.h>.
 dnl Define HAVE_S_ISREG / HAVE_S_IFREG appropriately.
 dnl
 AC_DEFUN([GLIBCXX_CHECK_S_ISREG_OR_S_IFREG], [
+
+  AC_LANG_SAVE
+  AC_LANG_CPLUSPLUS
+  ac_save_CXXFLAGS="$CXXFLAGS"
+  CXXFLAGS="$CXXFLAGS -fno-exceptions"
+
   AC_MSG_CHECKING([for S_ISREG or S_IFREG])
   AC_CACHE_VAL(glibcxx_cv_S_ISREG, [
-    AC_TRY_LINK(
+    GCC_TRY_COMPILE_OR_LINK(
       [#include <sys/stat.h>],
       [struct stat buffer;
        fstat(0, &buffer);
@@ -401,7 +407,7 @@ AC_DEFUN([GLIBCXX_CHECK_S_ISREG_OR_S_IFREG], [
       [glibcxx_cv_S_ISREG=no])
   ])
   AC_CACHE_VAL(glibcxx_cv_S_IFREG, [
-    AC_TRY_LINK(
+    GCC_TRY_COMPILE_OR_LINK(
       [#include <sys/stat.h>],
       [struct stat buffer;
        fstat(0, &buffer);
@@ -420,6 +426,9 @@ AC_DEFUN([GLIBCXX_CHECK_S_ISREG_OR_S_IFREG], [
     res=S_IFREG
   fi
   AC_MSG_RESULT($res)
+
+  CXXFLAGS="$ac_save_CXXFLAGS"
+  AC_LANG_RESTORE
 ])
 
 
@@ -427,9 +436,15 @@ dnl
 dnl Check whether poll is available in <poll.h>, and define HAVE_POLL.
 dnl
 AC_DEFUN([GLIBCXX_CHECK_POLL], [
+
+  AC_LANG_SAVE
+  AC_LANG_CPLUSPLUS
+  ac_save_CXXFLAGS="$CXXFLAGS"
+  CXXFLAGS="$CXXFLAGS -fno-exceptions"
+
   AC_MSG_CHECKING([for poll])
   AC_CACHE_VAL(glibcxx_cv_POLL, [
-    AC_TRY_LINK(
+    GCC_TRY_COMPILE_OR_LINK(
       [#include <poll.h>],
       [struct pollfd pfd[1];
        pfd[0].events = POLLIN;
@@ -441,6 +456,9 @@ AC_DEFUN([GLIBCXX_CHECK_POLL], [
     AC_DEFINE(HAVE_POLL, 1, [Define if poll is available in <poll.h>.])
   fi
   AC_MSG_RESULT($glibcxx_cv_POLL)
+
+  CXXFLAGS="$ac_save_CXXFLAGS"
+  AC_LANG_RESTORE
 ])
 
 
@@ -448,9 +466,15 @@ dnl
 dnl Check whether writev is available in <sys/uio.h>, and define HAVE_WRITEV.
 dnl
 AC_DEFUN([GLIBCXX_CHECK_WRITEV], [
+
+  AC_LANG_SAVE
+  AC_LANG_CPLUSPLUS
+  ac_save_CXXFLAGS="$CXXFLAGS"
+  CXXFLAGS="$CXXFLAGS -fno-exceptions"
+
   AC_MSG_CHECKING([for writev])
   AC_CACHE_VAL(glibcxx_cv_WRITEV, [
-    AC_TRY_LINK(
+    GCC_TRY_COMPILE_OR_LINK(
       [#include <sys/uio.h>],
       [struct iovec iov[2];
        writev(0, iov, 0);],
@@ -461,13 +485,21 @@ AC_DEFUN([GLIBCXX_CHECK_WRITEV], [
     AC_DEFINE(HAVE_WRITEV, 1, [Define if writev is available in <sys/uio.h>.])
   fi
   AC_MSG_RESULT($glibcxx_cv_WRITEV)
+
+  CXXFLAGS="$ac_save_CXXFLAGS"
+  AC_LANG_RESTORE
 ])
 
 
 dnl
 dnl Check whether int64_t is available in <stdint.h>, and define HAVE_INT64_T.
+dnl Also check whether int64_t is actually a typedef to long or long long.
 dnl
 AC_DEFUN([GLIBCXX_CHECK_INT64_T], [
+
+  AC_LANG_SAVE
+  AC_LANG_CPLUSPLUS
+
   AC_MSG_CHECKING([for int64_t])
   AC_CACHE_VAL(glibcxx_cv_INT64_T, [
     AC_TRY_COMPILE(
@@ -476,10 +508,43 @@ AC_DEFUN([GLIBCXX_CHECK_INT64_T], [
       [glibcxx_cv_INT64_T=yes],
       [glibcxx_cv_INT64_T=no])
   ])
+
   if test $glibcxx_cv_INT64_T = yes; then
     AC_DEFINE(HAVE_INT64_T, 1, [Define if int64_t is available in <stdint.h>.])
+    AC_MSG_RESULT($glibcxx_cv_INT64_T)
+
+    AC_MSG_CHECKING([for int64_t as long])
+    AC_CACHE_VAL(glibcxx_cv_int64_t_long, [
+      AC_TRY_COMPILE(
+        [#include <stdint.h>
+        template<typename, typename> struct same { enum { value = -1 }; };
+        template<typename Tp> struct same<Tp, Tp> { enum { value = 1 }; };
+        int array[same<int64_t, long>::value];], [],
+	[glibcxx_cv_int64_t_long=yes], [glibcxx_cv_int64_t_long=no])
+    ])
+
+    if test $glibcxx_cv_int64_t_long = yes; then
+      AC_DEFINE(HAVE_INT64_T_LONG, 1, [Define if int64_t is a long.])
+      AC_MSG_RESULT($glibcxx_cv_int64_t_long)
+    fi
+
+    AC_MSG_CHECKING([for int64_t as long long])
+    AC_CACHE_VAL(glibcxx_cv_int64_t_long_long, [
+      AC_TRY_COMPILE(
+        [#include <stdint.h>
+        template<typename, typename> struct same { enum { value = -1 }; };
+        template<typename Tp> struct same<Tp, Tp> { enum { value = 1 }; };
+        int array[same<int64_t, long long>::value];], [],
+	[glibcxx_cv_int64_t_long_long=yes], [glibcxx_cv_int64_t_long_long=no])
+    ])
+
+    if test $glibcxx_cv_int64_t_long_long = yes; then
+      AC_DEFINE(HAVE_INT64_T_LONG_LONG, 1, [Define if int64_t is a long long.])
+      AC_MSG_RESULT($glibcxx_cv_int64_t_long_long)
+    fi
   fi
-  AC_MSG_RESULT($glibcxx_cv_INT64_T)
+
+  AC_LANG_RESTORE
 ])
 
 
@@ -493,7 +558,7 @@ AC_DEFUN([GLIBCXX_CHECK_LFS], [
   CXXFLAGS="$CXXFLAGS -fno-exceptions"	
   AC_MSG_CHECKING([for LFS support])
   AC_CACHE_VAL(glibcxx_cv_LFS, [
-    AC_TRY_LINK(
+    GCC_TRY_COMPILE_OR_LINK(
       [#include <unistd.h>
        #include <stdio.h>
        #include <sys/stat.h>
@@ -1166,7 +1231,8 @@ AC_DEFUN([GLIBCXX_CHECK_C99_TR1], [
 	         [int ch;
 	          int ret;
 	          ret = isblank(ch);
-		 ],[glibcxx_cv_c99_ctype_tr1=yes], [glibcxx_cv_c99_ctype_tr1=no])
+		 ],[glibcxx_cv_c99_ctype_tr1=yes],
+		   [glibcxx_cv_c99_ctype_tr1=no])
   ])
   AC_MSG_RESULT($glibcxx_cv_c99_ctype_tr1)
   if test x"$glibcxx_cv_c99_ctype_tr1" = x"yes"; then
@@ -1208,36 +1274,95 @@ AC_DEFUN([GLIBCXX_CHECK_C99_TR1], [
   # Check for the existence of <stdint.h> types.
   AC_MSG_CHECKING([for ISO C99 support to TR1 in <stdint.h>])
   AC_CACHE_VAL(glibcxx_cv_c99_stdint_tr1, [
-  AC_TRY_COMPILE([#include <stdint.h>],
+  AC_TRY_COMPILE([#define __STDC_LIMIT_MACROS
+                  #define __STDC_CONSTANT_MACROS
+                  #include <stdint.h>],
 	         [typedef int8_t          my_int8_t;
+		  my_int8_t               i8 = INT8_MIN;
+		  i8 = INT8_MAX;
 	          typedef int16_t         my_int16_t;
+		  my_int16_t              i16 = INT16_MIN;
+		  i16 = INT16_MAX;
 	          typedef int32_t         my_int32_t;
+		  my_int32_t              i32 = INT32_MIN;
+		  i32 = INT32_MAX;
 	          typedef int64_t         my_int64_t;
+		  my_int64_t              i64 = INT64_MIN;
+		  i64 = INT64_MAX;
 	          typedef int_fast8_t     my_int_fast8_t;
+		  my_int_fast8_t          if8 = INT_FAST8_MIN;
+		  if8 = INT_FAST8_MAX;
 	          typedef int_fast16_t    my_int_fast16_t;
+		  my_int_fast16_t         if16 = INT_FAST16_MIN;
+		  if16 = INT_FAST16_MAX;
 	          typedef int_fast32_t    my_int_fast32_t;
-	          typedef int_fast64_t    my_int_fast64_t;	
+		  my_int_fast32_t         if32 = INT_FAST32_MIN;
+		  if32 = INT_FAST32_MAX;
+	          typedef int_fast64_t    my_int_fast64_t;
+		  my_int_fast64_t         if64 = INT_FAST64_MIN;
+		  if64 = INT_FAST64_MAX;
 	          typedef int_least8_t    my_int_least8_t;
+		  my_int_least8_t         il8 = INT_LEAST8_MIN;
+		  il8 = INT_LEAST8_MAX;
 	          typedef int_least16_t   my_int_least16_t;
+		  my_int_least16_t        il16 = INT_LEAST16_MIN;
+		  il16 = INT_LEAST16_MAX;
 	          typedef int_least32_t   my_int_least32_t;
+		  my_int_least32_t        il32 = INT_LEAST32_MIN;
+		  il32 = INT_LEAST32_MAX;
 	          typedef int_least64_t   my_int_least64_t;
+		  my_int_least64_t        il64 = INT_LEAST64_MIN;
+		  il64 = INT_LEAST64_MAX;
 		  typedef intmax_t        my_intmax_t;
+		  my_intmax_t             im = INTMAX_MAX;
+		  im = INTMAX_MIN;
 		  typedef intptr_t        my_intptr_t;
+		  my_intptr_t             ip = INTPTR_MAX;
+		  ip = INTPTR_MIN;
 	          typedef uint8_t         my_uint8_t;
+		  my_uint8_t              ui8 = UINT8_MAX;
+		  ui8 = UINT8_MAX;
 	          typedef uint16_t        my_uint16_t;
+		  my_uint16_t             ui16 = UINT16_MAX;
+		  ui16 = UINT16_MAX;
 	          typedef uint32_t        my_uint32_t;
+		  my_uint32_t             ui32 = UINT32_MAX;
+		  ui32 = UINT32_MAX;
 	          typedef uint64_t        my_uint64_t;
+		  my_uint64_t             ui64 = UINT64_MAX;
+		  ui64 = UINT64_MAX;
 	          typedef uint_fast8_t    my_uint_fast8_t;
+		  my_uint_fast8_t         uif8 = UINT_FAST8_MAX;
+		  uif8 = UINT_FAST8_MAX;
 	          typedef uint_fast16_t   my_uint_fast16_t;
+		  my_uint_fast16_t        uif16 = UINT_FAST16_MAX;
+		  uif16 = UINT_FAST16_MAX;
 	          typedef uint_fast32_t   my_uint_fast32_t;
-	          typedef uint_fast64_t   my_uint_fast64_t;	
+		  my_uint_fast32_t        uif32 = UINT_FAST32_MAX;
+		  uif32 = UINT_FAST32_MAX;
+	          typedef uint_fast64_t   my_uint_fast64_t;
+		  my_uint_fast64_t        uif64 = UINT_FAST64_MAX;
+		  uif64 = UINT_FAST64_MAX;
 	          typedef uint_least8_t   my_uint_least8_t;
+		  my_uint_least8_t        uil8 = UINT_LEAST8_MAX;
+		  uil8 = UINT_LEAST8_MAX;
 	          typedef uint_least16_t  my_uint_least16_t;
+		  my_uint_least16_t       uil16 = UINT_LEAST16_MAX;
+		  uil16 = UINT_LEAST16_MAX;
 	          typedef uint_least32_t  my_uint_least32_t;
+		  my_uint_least32_t       uil32 = UINT_LEAST32_MAX;
+		  uil32 = UINT_LEAST32_MAX;
 	          typedef uint_least64_t  my_uint_least64_t;
+		  my_uint_least64_t       uil64 = UINT_LEAST64_MAX;
+		  uil64 = UINT_LEAST64_MAX;
 		  typedef uintmax_t       my_uintmax_t;
+		  my_uintmax_t            uim = UINTMAX_MAX;
+		  uim = UINTMAX_MAX;
 		  typedef uintptr_t       my_uintptr_t;
-		 ],[glibcxx_cv_c99_stdint_tr1=yes], [glibcxx_cv_c99_stdint_tr1=no])
+		  my_uintptr_t            uip = UINTPTR_MAX;
+		  uip = UINTPTR_MAX;
+		 ],[glibcxx_cv_c99_stdint_tr1=yes],
+		   [glibcxx_cv_c99_stdint_tr1=no])
   ])
   AC_MSG_RESULT($glibcxx_cv_c99_stdint_tr1)
   if test x"$glibcxx_cv_c99_stdint_tr1" = x"yes"; then
@@ -1418,6 +1543,29 @@ AC_DEFUN([GLIBCXX_CHECK_RANDOM_TR1], [
     AC_DEFINE(_GLIBCXX_USE_RANDOM_TR1, 1,
               [Define if dev/random and dev/urandom are available for
 	       the random_device of TR1 (Chapter 5.1).])
+  fi
+
+])
+
+dnl
+dnl Check whether EOF, SEEK_CUR, and SEEK_END have the most common values:
+dnl in that case including <cstdio> in some C++ headers can be avoided.
+dnl
+AC_DEFUN([GLIBCXX_CHECK_STDIO_MACROS], [
+
+  AC_MSG_CHECKING([for EOF == -1, SEEK_CUR == 1, SEEK_END == 2])
+  AC_CACHE_VAL(glibcxx_cv_stdio_macros, [
+  AC_TRY_COMPILE([#include <stdio.h>],
+                 [#if ((EOF != -1) || (SEEK_CUR != 1) || (SEEK_END != 2))
+	            unusual values...
+	          #endif
+	         ], [glibcxx_cv_stdio_macros=yes],
+		    [glibcxx_cv_stdio_macros=no])
+  ])
+  AC_MSG_RESULT($glibcxx_cv_stdio_macros)
+  if test x"$glibcxx_cv_stdio_macros" = x"yes"; then
+    AC_DEFINE(_GLIBCXX_STDIO_MACROS, 1,
+              [Define if EOF == -1, SEEK_CUR == 1, SEEK_END == 2.])
   fi
 
 ])
@@ -2653,7 +2801,7 @@ AC_DEFUN([GLIBCXX_ENABLE_THREADS], [
 AC_DEFUN([AC_LC_MESSAGES], [
   AC_CHECK_HEADER(locale.h, [
     AC_CACHE_CHECK([for LC_MESSAGES], ac_cv_val_LC_MESSAGES,
-      [AC_TRY_LINK([#include <locale.h>], [return LC_MESSAGES],
+      [AC_TRY_COMPILE([#include <locale.h>], [return LC_MESSAGES],
        ac_cv_val_LC_MESSAGES=yes, ac_cv_val_LC_MESSAGES=no)])
     if test $ac_cv_val_LC_MESSAGES = yes; then
       AC_DEFINE(HAVE_LC_MESSAGES, 1, 

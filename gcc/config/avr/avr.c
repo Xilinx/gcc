@@ -43,6 +43,7 @@
 #include "tm_p.h"
 #include "target.h"
 #include "target-def.h"
+#include "params.h"
 #include "df.h"
 
 /* Maximal allowed offset for an address in the LD command */
@@ -192,12 +193,12 @@ static const struct mcu_type_s avr_mcu_types[] = {
   { "at86rf401",    ARCH_AVR25, "__AVR_AT86RF401__" },
     /* Classic, > 8K, <= 64K.  */
   { "avr3",         ARCH_AVR3, NULL },
-  { "at43usb320",   ARCH_AVR3, "__AVR_AT43USB320__" },
   { "at43usb355",   ARCH_AVR3, "__AVR_AT43USB355__" },
   { "at76c711",     ARCH_AVR3, "__AVR_AT76C711__" },
     /* Classic, == 128K.  */
   { "avr31",        ARCH_AVR31, NULL },
   { "atmega103",    ARCH_AVR31, "__AVR_ATmega103__" },
+  { "at43usb320",   ARCH_AVR31, "__AVR_AT43USB320__" },
     /* Classic + MOVW + JMP/CALL.  */
   { "avr35",        ARCH_AVR35, NULL },
   { "at90usb82",    ARCH_AVR35, "__AVR_AT90USB82__" },
@@ -347,6 +348,9 @@ avr_override_options (void)
   const struct mcu_type_s *t;
 
   flag_delete_null_pointer_checks = 0;
+
+  if (!PARAM_SET_P (PARAM_INLINE_CALL_COST))
+    set_param_value ("inline-call-cost", 5);
 
   for (t = avr_mcu_types; t->name; t++)
     if (strcmp (t->name, avr_mcu_name) == 0)
@@ -1403,7 +1407,7 @@ notice_update_cc (rtx body ATTRIBUTE_UNUSED, rtx insn)
    class CLASS needed to hold a value of mode MODE.  */
 
 int
-class_max_nregs (enum reg_class class ATTRIBUTE_UNUSED,enum machine_mode mode)
+class_max_nregs (enum reg_class rclass ATTRIBUTE_UNUSED,enum machine_mode mode)
 {
   return ((GET_MODE_SIZE (mode) + UNITS_PER_WORD - 1) / UNITS_PER_WORD);
 }
@@ -1566,14 +1570,14 @@ final_prescan_insn (rtx insn, rtx *operand ATTRIBUTE_UNUSED,
 /* Return 0 if undefined, 1 if always true or always false.  */
 
 int
-avr_simplify_comparison_p (enum machine_mode mode, RTX_CODE operator, rtx x)
+avr_simplify_comparison_p (enum machine_mode mode, RTX_CODE op, rtx x)
 {
   unsigned int max = (mode == QImode ? 0xff :
                       mode == HImode ? 0xffff :
                       mode == SImode ? 0xffffffff : 0);
-  if (max && operator && GET_CODE (x) == CONST_INT)
+  if (max && op && GET_CODE (x) == CONST_INT)
     {
-      if (unsigned_condition (operator) != operator)
+      if (unsigned_condition (op) != op)
 	max >>= 1;
 
       if (max != (INTVAL (x) & max)
@@ -1743,15 +1747,15 @@ output_movqi (rtx insn, rtx operands[], int *l)
     }
   else if (GET_CODE (dest) == MEM)
     {
-      const char *template;
+      const char *templ;
 
       if (src == const0_rtx)
 	operands[1] = zero_reg_rtx;
 
-      template = out_movqi_mr_r (insn, operands, real_l);
+      templ = out_movqi_mr_r (insn, operands, real_l);
 
       if (!real_l)
-	output_asm_insn (template, operands);
+	output_asm_insn (templ, operands);
 
       operands[1] = src;
     }
@@ -1893,15 +1897,15 @@ output_movhi (rtx insn, rtx operands[], int *l)
     }
   else if (GET_CODE (dest) == MEM)
     {
-      const char *template;
+      const char *templ;
 
       if (src == const0_rtx)
 	operands[1] = zero_reg_rtx;
 
-      template = out_movhi_mr_r (insn, operands, real_l);
+      templ = out_movhi_mr_r (insn, operands, real_l);
 
       if (!real_l)
-	output_asm_insn (template, operands);
+	output_asm_insn (templ, operands);
 
       operands[1] = src;
       return "";
@@ -2581,15 +2585,15 @@ output_movsisf(rtx insn, rtx operands[], int *l)
     }
   else if (GET_CODE (dest) == MEM)
     {
-      const char *template;
+      const char *templ;
 
       if (src == const0_rtx)
 	  operands[1] = zero_reg_rtx;
 
-      template = out_movsi_mr_r (insn, operands, real_l);
+      templ = out_movsi_mr_r (insn, operands, real_l);
 
       if (!real_l)
-	output_asm_insn (template, operands);
+	output_asm_insn (templ, operands);
 
       operands[1] = src;
       return "";
@@ -2930,7 +2934,7 @@ out_tstsi (rtx insn, int *l)
    carefully hand-optimized in ?sh??i3_out.  */
 
 void
-out_shift_with_cnt (const char *template, rtx insn, rtx operands[],
+out_shift_with_cnt (const char *templ, rtx insn, rtx operands[],
 		    int *len, int t_len)
 {
   rtx op[10];
@@ -2975,7 +2979,7 @@ out_shift_with_cnt (const char *template, rtx insn, rtx operands[],
 	  else
 	    {
 	      while (count-- > 0)
-		output_asm_insn (template, op);
+		output_asm_insn (templ, op);
 	    }
 
 	  return;
@@ -3056,7 +3060,7 @@ out_shift_with_cnt (const char *template, rtx insn, rtx operands[],
   else
     {
       strcat (str, "\n1:\t");
-      strcat (str, template);
+      strcat (str, templ);
       strcat (str, second_label ? "\n2:\t" : "\n\t");
       strcat (str, use_zero_reg ? AS1 (lsr,%3) : AS1 (dec,%3));
       strcat (str, CR_TAB);
@@ -5735,19 +5739,19 @@ avr_function_value (const_tree type,
    in class CLASS.  */
 
 enum reg_class
-preferred_reload_class (rtx x ATTRIBUTE_UNUSED, enum reg_class class)
+preferred_reload_class (rtx x ATTRIBUTE_UNUSED, enum reg_class rclass)
 {
-  return class;
+  return rclass;
 }
 
 int
-test_hard_reg_class (enum reg_class class, rtx x)
+test_hard_reg_class (enum reg_class rclass, rtx x)
 {
   int regno = true_regnum (x);
   if (regno < 0)
     return 0;
 
-  if (TEST_HARD_REG_CLASS (class, regno))
+  if (TEST_HARD_REG_CLASS (rclass, regno))
     return 1;
 
   return 0;

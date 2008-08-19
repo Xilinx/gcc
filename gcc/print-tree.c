@@ -76,12 +76,12 @@ dump_addr (FILE *file, const char *prefix, const void *addr)
 void
 print_node_brief (FILE *file, const char *prefix, const_tree node, int indent)
 {
-  enum tree_code_class class;
+  enum tree_code_class tclass;
 
   if (node == 0)
     return;
 
-  class = TREE_CODE_CLASS (TREE_CODE (node));
+  tclass = TREE_CODE_CLASS (TREE_CODE (node));
 
   /* Always print the slot this node is in, and its code, address and
      name if any.  */
@@ -90,7 +90,7 @@ print_node_brief (FILE *file, const char *prefix, const_tree node, int indent)
   fprintf (file, "%s <%s", prefix, tree_code_name[(int) TREE_CODE (node)]);
   dump_addr (file, " ", node);
 
-  if (class == tcc_declaration)
+  if (tclass == tcc_declaration)
     {
       if (DECL_NAME (node))
 	fprintf (file, " %s", IDENTIFIER_POINTER (DECL_NAME (node)));
@@ -101,7 +101,7 @@ print_node_brief (FILE *file, const char *prefix, const_tree node, int indent)
 	fprintf (file, " %c.%u", TREE_CODE (node) == CONST_DECL ? 'C' : 'D',
 		 DECL_UID (node));
     }
-  else if (class == tcc_type)
+  else if (tclass == tcc_type)
     {
       if (TYPE_NAME (node))
 	{
@@ -190,7 +190,7 @@ print_node (FILE *file, const char *prefix, tree node, int indent)
   int hash;
   struct bucket *b;
   enum machine_mode mode;
-  enum tree_code_class class;
+  enum tree_code_class tclass;
   int len;
   int i;
   expanded_location xloc;
@@ -200,7 +200,7 @@ print_node (FILE *file, const char *prefix, tree node, int indent)
     return;
   
   code = TREE_CODE (node);
-  class = TREE_CODE_CLASS (code);
+  tclass = TREE_CODE_CLASS (code);
 
   /* Don't get too deep in nesting.  If the user wants to see deeper,
      it is easy to use the address of a lowest-level node
@@ -212,7 +212,7 @@ print_node (FILE *file, const char *prefix, tree node, int indent)
       return;
     }
 
-  if (indent > 8 && (class == tcc_type || class == tcc_declaration))
+  if (indent > 8 && (tclass == tcc_type || tclass == tcc_declaration))
     {
       print_node_brief (file, prefix, node, indent);
       return;
@@ -253,7 +253,7 @@ print_node (FILE *file, const char *prefix, tree node, int indent)
   dump_addr (file, " ", node);
 
   /* Print the name, if any.  */
-  if (class == tcc_declaration)
+  if (tclass == tcc_declaration)
     {
       if (DECL_NAME (node))
 	fprintf (file, " %s", IDENTIFIER_POINTER (DECL_NAME (node)));
@@ -264,7 +264,7 @@ print_node (FILE *file, const char *prefix, tree node, int indent)
 	fprintf (file, " %c.%u", TREE_CODE (node) == CONST_DECL ? 'C' : 'D',
 		 DECL_UID (node));
     }
-  else if (class == tcc_type)
+  else if (tclass == tcc_type)
     {
       if (TYPE_NAME (node))
 	{

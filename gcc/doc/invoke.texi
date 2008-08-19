@@ -342,7 +342,8 @@ Objective-C and Objective-C++ Dialects}.
 -fno-toplevel-reorder -fno-trapping-math -fno-zero-initialized-in-bss @gol
 -fomit-frame-pointer -foptimize-register-move -foptimize-sibling-calls @gol
 -fpeel-loops -fpredictive-commoning -fprefetch-loop-arrays @gol
--fprofile-dir=@var{path} -fprofile-generate -fprofile-generate=@var{path} @gol
+-fprofile-correction -fprofile-dir=@var{path} -fprofile-generate @gol
+-fprofile-generate=@var{path} @gol
 -fprofile-use -fprofile-use=@var{path} -fprofile-values @gol
 -freciprocal-math -fregmove -frename-registers -freorder-blocks @gol
 -freorder-blocks-and-partition -freorder-functions @gol
@@ -634,8 +635,8 @@ Objective-C and Objective-C++ Dialects}.
 -mips16  -mno-mips16  -mflip-mips16 @gol
 -minterlink-mips16  -mno-interlink-mips16 @gol
 -mabi=@var{abi}  -mabicalls  -mno-abicalls @gol
--mshared  -mno-shared  -mxgot  -mno-xgot  -mgp32  -mgp64 @gol
--mfp32  -mfp64  -mhard-float  -msoft-float @gol
+-mshared  -mno-shared  -mplt  -mno-plt  -mxgot  -mno-xgot @gol
+-mgp32  -mgp64  -mfp32  -mfp64  -mhard-float  -msoft-float @gol
 -msingle-float  -mdouble-float  -mdsp  -mno-dsp  -mdspr2  -mno-dspr2 @gol
 -msmartmips  -mno-smartmips @gol
 -mpaired-single  -mno-paired-single  -mdmx  -mno-mdmx @gol
@@ -2752,10 +2753,6 @@ A pointer is compared against integer zero with @samp{<}, @samp{<=},
 conditional expression.
 
 @item 
-(C++ only) A non-static reference or non-static @samp{const} member
-appears in a class without constructors.
-
-@item 
 (C++ only) Ambiguous virtual bases.
 
 @item 
@@ -2947,10 +2944,11 @@ This warning is also enabled by @option{-Wextra}.
 @item -Wmain
 @opindex Wmain
 @opindex Wno-main
-Warn if the type of @samp{main} is suspicious.  @samp{main} should be a
-function with external linkage, returning int, taking either zero
-arguments, two, or three arguments of appropriate types.
-This warning is enabled by @option{-Wall}.
+Warn if the type of @samp{main} is suspicious.  @samp{main} should be
+a function with external linkage, returning int, taking either zero
+arguments, two, or three arguments of appropriate types.  This warning
+is enabled by default in C++ and is enabled by either @option{-Wall}
+or @option{-pedantic}.
 
 @item -Wmissing-braces
 @opindex Wmissing-braces
@@ -3176,8 +3174,10 @@ either specify @samp{-Wextra -Wunused} (note that @samp{-Wall} implies
 @item -Wuninitialized
 @opindex Wuninitialized
 @opindex Wno-uninitialized
-Warn if an automatic variable is used without first being initialized or
-if a variable may be clobbered by a @code{setjmp} call.
+Warn if an automatic variable is used without first being initialized
+or if a variable may be clobbered by a @code{setjmp} call. In C++,
+warn if a non-static reference or non-static @samp{const} member
+appears in a class without constructors.
 
 If you want to warn about code which uses the uninitialized value of the
 variable in its own initializer, use the @option{-Winit-self} option.
@@ -5847,7 +5847,8 @@ With this flag, the program debug info reflects a new structure layout.
 
 @item -fipa-pta
 @opindex fipa-pta
-Perform interprocedural pointer analysis.
+Perform interprocedural pointer analysis.  This option is experimental
+and does not affect generated code.
 
 @item -fipa-cp
 @opindex fipa-cp
@@ -6371,6 +6372,13 @@ we perform a copy-propagation pass to try to reduce scheduling dependencies
 and occasionally eliminate the copy.
 
 Enabled at levels @option{-O}, @option{-O2}, @option{-O3}, @option{-Os}.
+
+@item -fprofile-correction
+@opindex fprofile-correction
+Profiles collected using an instrumented binary for multi-threaded programs may
+be inconsistent due to missed counter updates. When this option is specified,
+GCC will use heuristics to correct or smooth out such inconsistencies. By
+default, GCC will emit an error message when an inconsistent profile is detected.
 
 @item -fprofile-dir=@var{path}
 @opindex fprofile-dir
@@ -8605,7 +8613,8 @@ assembly code.  Permissible names are: @samp{arm2}, @samp{arm250},
 @samp{arm10e}, @samp{arm1020e}, @samp{arm1022e},
 @samp{arm1136j-s}, @samp{arm1136jf-s}, @samp{mpcore}, @samp{mpcorenovfp},
 @samp{arm1156t2-s}, @samp{arm1176jz-s}, @samp{arm1176jzf-s},
-@samp{cortex-a8}, @samp{cortex-r4}, @samp{cortex-m3}, @samp{cortex-m1},
+@samp{cortex-a8}, @samp{cortex-r4}, @samp{cortex-r4f}, @samp{cortex-m3},
+@samp{cortex-m1},
 @samp{xscale}, @samp{iwmmxt}, @samp{ep9312}.
 
 @item -mtune=@var{name}
@@ -8639,7 +8648,8 @@ of the @option{-mcpu=} option.  Permissible names are: @samp{armv2},
 @opindex mfp
 This specifies what floating point hardware (or hardware emulation) is
 available on the target.  Permissible names are: @samp{fpa}, @samp{fpe2},
-@samp{fpe3}, @samp{maverick}, @samp{vfp}.  @option{-mfp} and @option{-mfpe}
+@samp{fpe3}, @samp{maverick}, @samp{vfp}, @samp{vfpv3}, @samp{vfpv3-d16} and
+@samp{neon}.  @option{-mfp} and @option{-mfpe}
 are synonyms for @option{-mfpu}=@samp{fpe}@var{number}, for compatibility
 with older versions of GCC@.
 
@@ -12163,6 +12173,19 @@ executables both smaller and quicker.
 
 @option{-mshared} is the default.
 
+@item -mplt
+@itemx -mno-plt
+@opindex mplt
+@opindex mno-plt
+Assume (do not assume) that the static and dynamic linkers
+support PLTs and copy relocations.  This option only affects
+@samp{-mno-shared -mabicalls}.  For the n64 ABI, this option
+has no effect without @samp{-msym32}.
+
+You can make @option{-mplt} the default by configuring
+GCC with @option{--with-mips-plt}.  The default is
+@option{-mno-plt} otherwise.
+
 @item -mxgot
 @itemx -mno-xgot
 @opindex mxgot
@@ -13025,7 +13048,7 @@ Supported values for @var{cpu_type} are @samp{401}, @samp{403},
 @samp{860}, @samp{970}, @samp{8540}, @samp{e300c2}, @samp{e300c3},
 @samp{e500mc}, @samp{ec603e}, @samp{G3}, @samp{G4}, @samp{G5},
 @samp{power}, @samp{power2}, @samp{power3}, @samp{power4},
-@samp{power5}, @samp{power5+}, @samp{power6}, @samp{power6x},
+@samp{power5}, @samp{power5+}, @samp{power6}, @samp{power6x}, @samp{power7}
 @samp{common}, @samp{powerpc}, @samp{powerpc64}, @samp{rios},
 @samp{rios1}, @samp{rios2}, @samp{rsc}, and @samp{rs64}.
 
@@ -15236,8 +15259,34 @@ a single-threaded environment since stack overflow is automatically
 detected on nearly all systems if there is only one stack.
 
 Note that this switch does not actually cause checking to be done; the
-operating system must do that.  The switch causes generation of code
-to ensure that the operating system sees the stack being extended.
+operating system or the language runtime must do that.  The switch causes
+generation of code to ensure that they see the stack being extended.
+
+You can additionally specify a string parameter: @code{no} means no
+checking, @code{generic} means force the use of old-style checking,
+@code{specific} means use the best checking method and is equivalent
+to bare @option{-fstack-check}.
+
+Old-style checking is a generic mechanism that requires no specific
+target support in the compiler but comes with the following drawbacks:
+
+@enumerate
+@item
+Modified allocation strategy for large objects: they will always be
+allocated dynamically if their size exceeds a fixed threshold.
+
+@item
+Fixed limit on the size of the static frame of functions: when it is
+topped by a particular function, stack checking is not reliable and
+a warning is issued by the compiler.
+
+@item
+Inefficiency: because of both the modified allocation strategy and the
+generic implementation, the performances of the code are hampered.
+@end enumerate
+
+Note that old-style stack checking is also the fallback method for
+@code{specific} if no target support has been added in the compiler.
 
 @item -fstack-limit-register=@var{reg}
 @itemx -fstack-limit-symbol=@var{sym}

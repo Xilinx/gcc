@@ -50,20 +50,20 @@ tree
 gimple_assign_rhs_to_tree (gimple stmt)
 {
   tree t;
-  enum gimple_rhs_class class;
+  enum gimple_rhs_class grhs_class;
     
-  class = get_gimple_rhs_class (gimple_expr_code (stmt));
+  grhs_class = get_gimple_rhs_class (gimple_expr_code (stmt));
 
-  if (class == GIMPLE_BINARY_RHS)
+  if (grhs_class == GIMPLE_BINARY_RHS)
     t = build2 (gimple_assign_rhs_code (stmt),
 		TREE_TYPE (gimple_assign_lhs (stmt)),
 		gimple_assign_rhs1 (stmt),
 		gimple_assign_rhs2 (stmt));
-  else if (class == GIMPLE_UNARY_RHS)
+  else if (grhs_class == GIMPLE_UNARY_RHS)
     t = build1 (gimple_assign_rhs_code (stmt),
 		TREE_TYPE (gimple_assign_lhs (stmt)),
 		gimple_assign_rhs1 (stmt));
-  else if (class == GIMPLE_SINGLE_RHS)
+  else if (grhs_class == GIMPLE_SINGLE_RHS)
     t = gimple_assign_rhs1 (stmt);
   else
     gcc_unreachable ();
@@ -216,16 +216,8 @@ gimple_to_tree (gimple stmt)
         
 	t = build_vl_exp (CALL_EXPR, gimple_call_num_args (stmt) + 3);
 
-        fn = gimple_call_fn (stmt);
-        if (TREE_CODE (fn) == FUNCTION_DECL)
-          CALL_EXPR_FN (t) = build1 (ADDR_EXPR,
-                                     build_pointer_type (TREE_TYPE (fn)),
-                                     fn);
-        else
-          CALL_EXPR_FN (t) = fn;
-        
+        CALL_EXPR_FN (t) = gimple_call_fn (stmt);
         TREE_TYPE (t) = gimple_call_return_type (stmt);
-
 	CALL_EXPR_STATIC_CHAIN (t) = gimple_call_chain (stmt);
 
 	for (i = 0; i < gimple_call_num_args (stmt); i++)
@@ -253,7 +245,9 @@ gimple_to_tree (gimple stmt)
 
         /* Record the original call statement, as it may be used
            to retrieve profile information during expansion.  */
-	if (TREE_CODE (fn) == FUNCTION_DECL && DECL_BUILT_IN (fn))
+
+	if ((fn = gimple_call_fndecl (stmt)) != NULL_TREE
+	    && DECL_BUILT_IN (fn))
 	  {
 	    ann = get_tree_common_ann (t);
 	    ann->stmt = stmt;
@@ -368,15 +362,11 @@ release_stmt_tree (gimple stmt, tree stmt_tree)
     case GIMPLE_CALL:
       if (gimple_call_lhs (stmt))
 	{
-	  if (TREE_CODE (gimple_call_fn (stmt)) == FUNCTION_DECL)
-	    ggc_free (CALL_EXPR_FN (TREE_OPERAND (stmt_tree, 1)));
 	  ann = tree_common_ann (TREE_OPERAND (stmt_tree, 1));
 	  if (ann)
 	    ggc_free (ann);
 	  ggc_free (TREE_OPERAND (stmt_tree, 1));
 	}
-      else if (TREE_CODE (gimple_call_fn (stmt)) == FUNCTION_DECL)
-	ggc_free (CALL_EXPR_FN (stmt_tree));
       break;
     default:
       break;
@@ -2184,7 +2174,7 @@ static void
 expand_stack_alignment (void)
 {
   rtx drap_rtx;
-  unsigned int preferred_stack_boundary;
+  unsigned int preferred_stack_boundary, incoming_stack_boundary;
 
   if (! SUPPORTS_STACK_ALIGNMENT)
     return;
@@ -2215,8 +2205,15 @@ expand_stack_alignment (void)
   if (preferred_stack_boundary > crtl->stack_alignment_needed)
     crtl->stack_alignment_needed = preferred_stack_boundary;
 
+  /* The incoming stack frame has to be aligned at least at
+     parm_stack_boundary.  */
+  if (crtl->parm_stack_boundary > INCOMING_STACK_BOUNDARY)
+    incoming_stack_boundary = crtl->parm_stack_boundary;
+  else
+    incoming_stack_boundary = INCOMING_STACK_BOUNDARY;
+
   crtl->stack_realign_needed
-    = INCOMING_STACK_BOUNDARY < crtl->stack_alignment_estimated;
+    = incoming_stack_boundary < crtl->stack_alignment_estimated;
   crtl->stack_realign_tried = crtl->stack_realign_needed;
 
   crtl->stack_realign_processed = true;

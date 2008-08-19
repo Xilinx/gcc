@@ -387,6 +387,8 @@ spu_override_options (void)
       else
         error ("Unknown architecture '%s'", &spu_tune_string[0]);
     }
+
+  REAL_MODE_FORMAT (SFmode) = &spu_single_format;
 }
 
 /* Handle an attribute requiring a FUNCTION_DECL; arguments as in
@@ -454,7 +456,8 @@ valid_subreg (rtx op)
   enum machine_mode im = GET_MODE (SUBREG_REG (op));
   return om != VOIDmode && im != VOIDmode
     && (GET_MODE_SIZE (im) == GET_MODE_SIZE (om)
-	|| (GET_MODE_SIZE (im) <= 4 && GET_MODE_SIZE (om) <= 4));
+	|| (GET_MODE_SIZE (im) <= 4 && GET_MODE_SIZE (om) <= 4)
+	|| (GET_MODE_SIZE (im) >= 16 && GET_MODE_SIZE (om) >= 16));
 }
 
 /* When insv and ext[sz]v ar passed a TI SUBREG, we want to strip it off
@@ -464,8 +467,10 @@ adjust_operand (rtx op, HOST_WIDE_INT * start)
 {
   enum machine_mode mode;
   int op_size;
-  /* Strip any SUBREG */
-  if (GET_CODE (op) == SUBREG)
+  /* Strip any paradoxical SUBREG.  */
+  if (GET_CODE (op) == SUBREG
+      && (GET_MODE_BITSIZE (GET_MODE (op))
+	  > GET_MODE_BITSIZE (GET_MODE (SUBREG_REG (op)))))
     {
       if (start)
 	*start -=
@@ -1551,10 +1556,18 @@ spu_split_immediate (rtx * ops)
       {
 	unsigned char arrhi[16];
 	unsigned char arrlo[16];
-	rtx to, hi, lo;
+	rtx to, temp, hi, lo;
 	int i;
+	enum machine_mode imode = mode;
+	/* We need to do reals as ints because the constant used in the
+	   IOR might not be a legitimate real constant. */
+	imode = int_mode_for_mode (mode);
 	constant_to_array (mode, ops[1], arrhi);
-	to = !can_create_pseudo_p () ? ops[0] : gen_reg_rtx (mode);
+	if (imode != mode)
+	  to = simplify_gen_subreg (imode, ops[0], mode, 0);
+	else
+	  to = ops[0];
+	temp = !can_create_pseudo_p () ? to : gen_reg_rtx (imode);
 	for (i = 0; i < 16; i += 4)
 	  {
 	    arrlo[i + 2] = arrhi[i + 2];
@@ -1562,11 +1575,11 @@ spu_split_immediate (rtx * ops)
 	    arrlo[i + 0] = arrlo[i + 1] = 0;
 	    arrhi[i + 2] = arrhi[i + 3] = 0;
 	  }
-	hi = array_to_constant (mode, arrhi);
-	lo = array_to_constant (mode, arrlo);
-	emit_move_insn (to, hi);
+	hi = array_to_constant (imode, arrhi);
+	lo = array_to_constant (imode, arrlo);
+	emit_move_insn (temp, hi);
 	emit_insn (gen_rtx_SET
-		   (VOIDmode, ops[0], gen_rtx_IOR (mode, to, lo)));
+		   (VOIDmode, to, gen_rtx_IOR (imode, temp, lo)));
 	return 1;
       }
     case IC_FSMBI2:
@@ -4849,7 +4862,7 @@ spu_restore_stack_block (rtx op0 ATTRIBUTE_UNUSED, rtx op1)
 int
 spu_safe_dma (HOST_WIDE_INT channel)
 {
-  return (channel >= 21 && channel <= 27);
+  return TARGET_SAFE_DMA && channel >= 21 && channel <= 27;
 }
 
 void

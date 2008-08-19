@@ -962,11 +962,11 @@ extern void omp_clause_range_check_failed (const_tree, const char *, int,
 #define TREE_HASH(NODE) ((size_t) (NODE) & 0777777)
 
 /* Tests if CODE is a conversion expr (NOP_EXPR or CONVERT_EXPR).  */
-#define IS_CONVERT_EXPR_CODE_P(CODE)				\
+#define CONVERT_EXPR_CODE_P(CODE)				\
   ((CODE) == NOP_EXPR || (CODE) == CONVERT_EXPR)
 
 /* Similarly, but accept an expressions instead of a tree code.  */
-#define CONVERT_EXPR_P(EXP)	IS_CONVERT_EXPR_CODE_P (TREE_CODE (EXP))
+#define CONVERT_EXPR_P(EXP)	CONVERT_EXPR_CODE_P (TREE_CODE (EXP))
 
 /* Generate case for NOP_EXPR, CONVERT_EXPR.  */
 
@@ -4763,6 +4763,7 @@ extern void fold_undefer_overflow_warnings (bool, const_gimple, int);
 extern void fold_undefer_and_ignore_overflow_warnings (void);
 extern bool fold_deferring_overflow_warnings_p (void);
 extern tree maybe_fold_offset_to_reference (tree, tree, tree);
+extern tree maybe_fold_offset_to_address (tree, tree, tree);
 extern tree maybe_fold_stmt_addition (tree, tree, tree);
 
 extern tree force_fit_type_double (tree, unsigned HOST_WIDE_INT, HOST_WIDE_INT,

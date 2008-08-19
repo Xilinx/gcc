@@ -4142,7 +4142,7 @@ cp_parser_nested_name_specifier_opt (cp_parser *parser,
 	  && !(TREE_CODE (new_scope) == TYPENAME_TYPE
 	       && (TREE_CODE (TYPENAME_TYPE_FULLNAME (new_scope))
 		   == TEMPLATE_ID_EXPR)))
-	permerror (TYPE_P (new_scope)
+	permerror (input_location, TYPE_P (new_scope)
 		   ? "%qT is not a template"
 		   : "%qD is not a template",
 		   new_scope);
@@ -9046,8 +9046,8 @@ cp_parser_mem_initializer (cp_parser* parser)
   /* Find out what is being initialized.  */
   if (cp_lexer_next_token_is (parser->lexer, CPP_OPEN_PAREN))
     {
-      permerror ("%Hanachronistic old-style base class initializer",
-                 &token->location);
+      permerror (token->location,
+		 "anachronistic old-style base class initializer");
       mem_initializer_id = NULL_TREE;
     }
   else
@@ -9980,15 +9980,14 @@ cp_parser_template_id (cp_parser *parser,
 	}
       /* Otherwise, emit an error about the invalid digraph, but continue
 	 parsing because we got our argument list.  */
-      permerror ("%H%<<::%> cannot begin a template-argument list",
-		 &next_token->location);
-      inform ("%H%<<:%> is an alternate spelling for %<[%>. Insert whitespace "
+      if (permerror (next_token->location,
+		     "%<<::%> cannot begin a template-argument list"))
+	{
+	  static bool hint = false;
+	  inform ("%H%<<:%> is an alternate spelling for %<[%>. Insert whitespace "
 	      "between %<<%> and %<::%>",
 	      &next_token->location);
-      if (!flag_permissive)
-	{
-	  static bool hint;
-	  if (!hint)
+	  if (!hint && !flag_permissive)
 	    {
 	      inform ("%H(if you use %<-fpermissive%> G++ will accept your code)",
                       &next_token->location);
@@ -10386,9 +10385,10 @@ cp_parser_template_argument (cp_parser* parser)
      Therefore, we try a type-id first.  */
   cp_parser_parse_tentatively (parser);
   argument = cp_parser_type_id (parser);
-  /* If there was no error parsing the type-id but the next token is a '>>',
-     we probably found a typo for '> >'. But there are type-id which are
-     also valid expressions. For instance:
+  /* If there was no error parsing the type-id but the next token is a
+     '>>', our behavior depends on which dialect of C++ we're
+     parsing. In C++98, we probably found a typo for '> >'. But there
+     are type-id which are also valid expressions. For instance:
 
      struct X { int operator >> (int); };
      template <int V> struct Foo {};
@@ -10397,8 +10397,12 @@ cp_parser_template_argument (cp_parser* parser)
      Here 'X()' is a valid type-id of a function type, but the user just
      wanted to write the expression "X() >> 5". Thus, we remember that we
      found a valid type-id, but we still try to parse the argument as an
-     expression to see what happens.  */
+     expression to see what happens. 
+
+     In C++0x, the '>>' will be considered two separate '>'
+     tokens.  */
   if (!cp_parser_error_occurred (parser)
+      && cxx_dialect == cxx98
       && cp_lexer_next_token_is (parser->lexer, CPP_RSHIFT))
     {
       maybe_type_id = true;
@@ -11354,7 +11358,7 @@ cp_parser_elaborated_type_specifier (cp_parser* parser,
       tag_type = typename_type;
       /* The `typename' keyword is only allowed in templates.  */
       if (!processing_template_decl)
-	permerror ("using %<typename%> outside of template");
+	permerror (input_location, "using %<typename%> outside of template");
     }
   /* Otherwise it must be a class-key.  */
   else
@@ -14977,11 +14981,17 @@ cp_parser_class_head (cp_parser* parser,
   cp_parser_commit_to_tentative_parse (parser);
   /* Issue the error about the overly-qualified name now.  */
   if (qualified_p)
-    cp_parser_error (parser,
-		     "global qualification of class name is invalid");
+    {
+      cp_parser_error (parser,
+		       "global qualification of class name is invalid");
+      return error_mark_node;
+    }
   else if (invalid_nested_name_p)
-    cp_parser_error (parser,
-		     "qualified name does not name a class");
+    {
+      cp_parser_error (parser,
+		       "qualified name does not name a class");
+      return error_mark_node;
+    }
   else if (nested_name_specifier)
     {
       tree scope;
@@ -15021,7 +15031,7 @@ cp_parser_class_head (cp_parser* parser,
 	 class member of a namespace outside of its namespace.  */
       if (scope == nested_name_specifier)
 	{
-	  permerror ("%Hextra qualification not allowed",
+	  permerror (input_location, "%Hextra qualification not allowed",
 		     &nested_name_specifier_token_start->location);
 	  nested_name_specifier = NULL_TREE;
 	  num_templates = 0;
@@ -18459,7 +18469,7 @@ static void
 cp_parser_check_class_key (enum tag_types class_key, tree type)
 {
   if ((TREE_CODE (type) == UNION_TYPE) != (class_key == union_type))
-    permerror ("%qs tag used in naming %q#T",
+    permerror (input_location, "%qs tag used in naming %q#T",
 	    class_key == union_type ? "union"
 	     : class_key == record_type ? "struct" : "class",
 	     type);

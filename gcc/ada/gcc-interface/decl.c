@@ -1303,12 +1303,12 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	      }
 	  }
 
-	if (definition && DECL_SIZE (gnu_decl)
+	if (definition && DECL_SIZE_UNIT (gnu_decl)
 	    && get_block_jmpbuf_decl ()
-	    && (TREE_CODE (DECL_SIZE (gnu_decl)) != INTEGER_CST
-		|| (flag_stack_check && !STACK_CHECK_BUILTIN
-		    && 0 < compare_tree_int (DECL_SIZE_UNIT (gnu_decl),
-					     STACK_CHECK_MAX_VAR_SIZE))))
+	    && (TREE_CODE (DECL_SIZE_UNIT (gnu_decl)) != INTEGER_CST
+		|| (flag_stack_check == GENERIC_STACK_CHECK
+		    && compare_tree_int (DECL_SIZE_UNIT (gnu_decl),
+					 STACK_CHECK_MAX_VAR_SIZE) > 0)))
 	  add_stmt_with_node (build_call_1_expr
 			      (update_setjmp_buf_decl,
 			       build_unary_op (ADDR_EXPR, NULL_TREE,
@@ -4842,7 +4842,13 @@ gnat_to_gnu_param (Entity_Id gnat_param, Mechanism_Type mech,
       = TREE_TYPE (TREE_TYPE (TYPE_FIELDS (TREE_TYPE (gnu_param_type))));
 
   /* VMS descriptors are themselves passed by reference.  */
-  if (mech == By_Descriptor)
+  if (mech == By_Short_Descriptor ||
+      (mech == By_Descriptor && TARGET_ABI_OPEN_VMS && !TARGET_MALLOC64))
+    gnu_param_type
+      = build_pointer_type (build_vms_descriptor32 (gnu_param_type,
+						    Mechanism (gnat_param),
+						    gnat_subprog));
+  else if (mech == By_Descriptor)
     {
       /* Build both a 32-bit and 64-bit descriptor, one of which will be
 	 chosen in fill_vms_descriptor.  */
@@ -4855,11 +4861,6 @@ gnat_to_gnu_param (Entity_Id gnat_param, Mechanism_Type mech,
 						    Mechanism (gnat_param),
 						    gnat_subprog));
     }
-  else if (mech == By_Short_Descriptor)
-    gnu_param_type
-      = build_pointer_type (build_vms_descriptor32 (gnu_param_type,
-						    Mechanism (gnat_param),
-						    gnat_subprog));
 
   /* Arrays are passed as pointers to element type for foreign conventions.  */
   else if (foreign

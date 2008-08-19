@@ -2180,6 +2180,31 @@ changequote([,])dnl
   [AC_DEFINE(HAVE_AS_LEB128, 1,
     [Define if your assembler supports .sleb128 and .uleb128.])])
 
+# Check if we have assembler support for unwind directives.
+gcc_GAS_CHECK_FEATURE([cfi directives], gcc_cv_as_cfi_directive,
+  [elf,2,17,0],,
+[	.text
+	.cfi_startproc
+	.cfi_offset 0, 0
+	.cfi_same_value 1
+	.cfi_def_cfa 1, 2
+	.cfi_escape 1, 2, 3, 4, 5
+	.cfi_endproc])
+AC_DEFINE_UNQUOTED(HAVE_GAS_CFI_DIRECTIVE,
+  [`if test $gcc_cv_as_cfi_directive = yes; then echo 1; else echo 0; fi`],
+  [Define 0/1 if your assembler supports CFI directives.])
+
+gcc_GAS_CHECK_FEATURE([cfi personality directive],
+  gcc_cv_as_cfi_personality_directive, [elf,2,17,0],,
+[	.text
+	.cfi_startproc,
+	.cfi_personality 0, symbol
+	.cfi_endproc])
+AC_DEFINE_UNQUOTED(HAVE_GAS_CFI_PERSONALITY_DIRECTIVE,
+  [`if test $gcc_cv_as_cfi_personality_directive = yes;
+    then echo 1; else echo 0; fi`],
+  [Define 0/1 if your assembler supports .cfi_personality.])
+
 # GAS versions up to and including 2.11.0 may mis-optimize
 # .eh_frame data.
 gcc_GAS_CHECK_FEATURE(eh_frame optimization, gcc_cv_as_eh_frame,
@@ -3006,6 +3031,21 @@ LCF0:
       [AC_DEFINE(HAVE_AS_DFP, 1,
 	  [Define if your assembler supports DFP instructions.])])
 
+    case $target in
+      *-*-aix*) conftest_s='	.machine "pwr7"
+	.csect .text[[PR]]
+	lxvd2x 1,2,3';;
+      *) conftest_s='	.machine power7
+	.text
+	lxvd2x 1,2,3';;
+    esac
+
+    gcc_GAS_CHECK_FEATURE([vector-scalar support],
+      gcc_cv_as_powerpc_vsx, [9,99,0], -a32,
+      [$conftest_s],,
+      [AC_DEFINE(HAVE_AS_VSX, 1,
+	  [Define if your assembler supports VSX instructions.])])
+
     gcc_GAS_CHECK_FEATURE([.gnu_attribute support],
       gcc_cv_as_powerpc_gnu_attribute, [2,18,0],,
       [.gnu_attribute 4,1],,
@@ -3070,7 +3110,7 @@ esac
 case "$target" in
   i?86*-*-* | mips*-*-* | alpha*-*-* | powerpc*-*-* | sparc*-*-* | m68*-*-* \
   | x86_64*-*-* | hppa*-*-* | arm*-*-* \
-  | xstormy16*-*-* | cris-*-* | xtensa-*-* | bfin-*-* | score*-*-* \
+  | xstormy16*-*-* | cris-*-* | xtensa*-*-* | bfin-*-* | score*-*-* \
   | spu-*-* | fido*-*-*)
     insn="nop"
     ;;

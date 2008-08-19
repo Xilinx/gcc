@@ -210,27 +210,27 @@ Common Var(warn_notreached) Warning
 Warn about code that will never be executed
 
 Wunused
-Common Warning
+Common Var(warn_unused) Init(0) Warning
 Enable all -Wunused- warnings
 
 Wunused-function
-Common Var(warn_unused_function) Warning
+Common Var(warn_unused_function) Init(-1) Warning
 Warn when a function is unused
 
 Wunused-label
-Common Var(warn_unused_label) Warning
+Common Var(warn_unused_label) Init(-1) Warning
 Warn when a label is unused
 
 Wunused-parameter
-Common Var(warn_unused_parameter) Warning
+Common Var(warn_unused_parameter) Init(-1) Warning
 Warn when a function parameter is unused
 
 Wunused-value
-Common Var(warn_unused_value) Warning
+Common Var(warn_unused_value) Init(-1) Warning
 Warn when an expression value is unused
 
 Wunused-variable
-Common Var(warn_unused_variable) Warning
+Common Var(warn_unused_variable) Init(-1) Warning
 Warn when a variable is unused
 
 Wcoverage-mismatch
@@ -458,6 +458,10 @@ Suppress output of addresses in debugging dumps
 fdump-unnumbered
 Common Report Var(flag_dump_unnumbered) VarExists
 Suppress output of instruction numbers, line number notes and addresses in debugging dumps
+
+fdwarf2-cfi-asm
+Common Report Var(flag_dwarf2_cfi_asm) Init(HAVE_GAS_CFI_DIRECTIVE)
+Enable CFI tables via GAS assembler directives.
 
 fearly-inlining
 Common Report Var(flag_early_inlining) Init(1) Optimization
@@ -817,6 +821,10 @@ Common Joined RejectNegative
 Set the top-level directory for storing the profile data.
 The default is 'pwd'.
 
+fprofile-correction
+Common Report Var(flag_profile_correction)
+Enable correction of flow inconsistent profile data input
+
 fprofile-generate
 Common
 Enable common options for generating profile info for profile feedback directed optimizations
@@ -988,11 +996,13 @@ fvariable-expansion-in-unroller
 Common Report Var(flag_variable_expansion_in_unroller) Optimization
 Apply variable expansion when loops are unrolled
 
-; Emit code to probe the stack, to help detect stack overflow; also
-; may cause large objects to be allocated dynamically.
+fstack-check=
+Common Report RejectNegative Joined
+-fstack-check=[no|generic|specific]	Insert stack checking code into the program
+
 fstack-check
-Common Report Var(flag_stack_check)
-Insert stack checking code into the program
+Common Report
+Insert stack checking code into the program.  Same as -fstack-check=specific
 
 fstack-limit
 Common

@@ -417,12 +417,8 @@ check_conflict (symbol_attribute *attr, const char *name, locus *where)
 	    goto conflict;
 
 	  case FL_PROCEDURE:
-	    if (attr->proc_pointer)
-	      break;
-	    a1 = gfc_code2string (flavors, attr->flavor);
-	    a2 = save;
-	    goto conflict;
-
+	    /* Conflicts between SAVE and PROCEDURE will be checked at
+	       resolution stage, see "resolve_fl_procedure".  */
 	  case FL_VARIABLE:
 	  case FL_NAMELIST:
 	  default:
@@ -618,8 +614,8 @@ check_conflict (symbol_attribute *attr, const char *name, locus *where)
       break;
 
     case FL_PROCEDURE:
-      if (!attr->proc_pointer)
-        conf2 (intent);
+      /* Conflicts with INTENT will be checked at resolution stage,
+	 see "resolve_fl_procedure".  */
 
       if (attr->subroutine)
 	{
@@ -1465,6 +1461,27 @@ gfc_add_is_bind_c (symbol_attribute *attr, const char *name, locus *where,
     return FAILURE;
 
   return check_conflict (attr, name, where);
+}
+
+
+/* Set the extension field for the given symbol_attribute.  */
+
+gfc_try
+gfc_add_extension (symbol_attribute *attr, locus *where)
+{
+  if (where == NULL)
+    where = &gfc_current_locus;
+
+  if (attr->extension)
+    gfc_error_now ("Duplicate EXTENDS attribute specified at %L", where);
+  else
+    attr->extension = 1;
+
+  if (gfc_notify_std (GFC_STD_F2003, "Fortran 2003: EXTENDS at %L", where)
+	== FAILURE)
+    return FAILURE;
+
+  return SUCCESS;
 }
 
 
@@ -2965,9 +2982,12 @@ gfc_free_finalizer (gfc_finalizer* el)
 {
   if (el)
     {
-      --el->procedure->refs;
-      if (!el->procedure->refs)
-	gfc_free_symbol (el->procedure);
+      if (el->proc_sym)
+	{
+	  --el->proc_sym->refs;
+	  if (!el->proc_sym->refs)
+	    gfc_free_symbol (el->proc_sym);
+	}
 
       gfc_free (el);
     }

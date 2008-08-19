@@ -1760,33 +1760,20 @@ __gnat_set_OWNER_ACL
   TCHAR username [100];
   DWORD unsize = 100;
 
-  HANDLE file = CreateFile
-    (wname, READ_CONTROL | WRITE_DAC, 0, NULL,
-     OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, NULL);
-
-  if (file == INVALID_HANDLE_VALUE)
-    return;
-
   /*  Get current user, he will act as the owner */
 
   if (!GetUserName (username, &unsize))
     return;
 
-  if (GetSecurityInfo
-      (file,
+  if (GetNamedSecurityInfo
+      (wname,
        SE_FILE_OBJECT,
        DACL_SECURITY_INFORMATION,
        NULL, NULL, &pOldDACL, NULL, &pSD) != ERROR_SUCCESS)
     return;
 
-  ZeroMemory (&ea, sizeof (EXPLICIT_ACCESS));
-
-  ea.grfAccessMode = AccessMode;
-  ea.grfAccessPermissions = AccessPermissions;
-  ea.grfInheritance = CONTAINER_INHERIT_ACE | OBJECT_INHERIT_ACE;
-  ea.Trustee.TrusteeForm = TRUSTEE_IS_NAME;
-  ea.Trustee.TrusteeType = TRUSTEE_IS_USER;
-  ea.Trustee.ptstrName = username;
+  BuildExplicitAccessWithName
+    (&ea, username, AccessPermissions, AccessMode, NO_INHERITANCE);
 
   if (AccessMode == SET_ACCESS)
     {
@@ -1799,14 +1786,13 @@ __gnat_set_OWNER_ACL
     if (SetEntriesInAcl (1, &ea, pOldDACL, &pNewDACL) != ERROR_SUCCESS)
       return;
 
-  if (SetSecurityInfo
-      (file, SE_FILE_OBJECT,
+  if (SetNamedSecurityInfo
+      (wname, SE_FILE_OBJECT,
        DACL_SECURITY_INFORMATION, NULL, NULL, pNewDACL, NULL) != ERROR_SUCCESS)
     return;
 
   LocalFree (pSD);
   LocalFree (pNewDACL);
-  CloseHandle (file);
 }
 #endif /* defined (_WIN32) && !defined (RTX) */
 
@@ -1892,7 +1878,7 @@ __gnat_set_writable (char *name)
 
   S2WSU (wname, name, GNAT_MAX_PATH_LEN + 2);
 
-  __gnat_set_OWNER_ACL (wname, GRANT_ACCESS, GENERIC_WRITE);
+  __gnat_set_OWNER_ACL (wname, GRANT_ACCESS, FILE_GENERIC_WRITE);
   SetFileAttributes
     (wname, GetFileAttributes (wname) & ~FILE_ATTRIBUTE_READONLY);
 #elif ! defined (__vxworks) && ! defined(__nucleus__)
@@ -1914,7 +1900,7 @@ __gnat_set_executable (char *name)
 
   S2WSU (wname, name, GNAT_MAX_PATH_LEN + 2);
 
-  __gnat_set_OWNER_ACL (wname, GRANT_ACCESS, GENERIC_EXECUTE);
+  __gnat_set_OWNER_ACL (wname, GRANT_ACCESS, FILE_GENERIC_EXECUTE);
 #elif ! defined (__vxworks) && ! defined(__nucleus__)
   struct stat statbuf;
 
@@ -1934,17 +1920,58 @@ __gnat_set_non_writable (char *name)
 
   S2WSU (wname, name, GNAT_MAX_PATH_LEN + 2);
 
-  __gnat_set_OWNER_ACL (wname, REVOKE_ACCESS, GENERIC_WRITE);
+  __gnat_set_OWNER_ACL
+    (wname, DENY_ACCESS,
+     FILE_WRITE_DATA | FILE_APPEND_DATA |
+     FILE_WRITE_PROPERTIES | FILE_WRITE_ATTRIBUTES);
   SetFileAttributes
     (wname, GetFileAttributes (wname) | FILE_ATTRIBUTE_READONLY);
 #elif ! defined (__vxworks) && ! defined(__nucleus__)
   struct stat statbuf;
 
   if (stat (name, &statbuf) == 0)
-  {
-    statbuf.st_mode = statbuf.st_mode & 07577;
-    chmod (name, statbuf.st_mode);
-  }
+    {
+      statbuf.st_mode = statbuf.st_mode & 07577;
+      chmod (name, statbuf.st_mode);
+    }
+#endif
+}
+
+void
+__gnat_set_readable (char *name)
+{
+#if defined (_WIN32) && !defined (RTX)
+  TCHAR wname [GNAT_MAX_PATH_LEN + 2];
+
+  S2WSU (wname, name, GNAT_MAX_PATH_LEN + 2);
+
+  __gnat_set_OWNER_ACL (wname, GRANT_ACCESS, FILE_GENERIC_READ);
+#elif ! defined (__vxworks) && ! defined(__nucleus__)
+  struct stat statbuf;
+
+  if (stat (name, &statbuf) == 0)
+    {
+      chmod (name, statbuf.st_mode | S_IREAD);
+    }
+#endif
+}
+
+void
+__gnat_set_non_readable (char *name)
+{
+#if defined (_WIN32) && !defined (RTX)
+  TCHAR wname [GNAT_MAX_PATH_LEN + 2];
+
+  S2WSU (wname, name, GNAT_MAX_PATH_LEN + 2);
+
+  __gnat_set_OWNER_ACL (wname, DENY_ACCESS, FILE_GENERIC_READ);
+#elif ! defined (__vxworks) && ! defined(__nucleus__)
+  struct stat statbuf;
+
+  if (stat (name, &statbuf) == 0)
+    {
+      chmod (name, statbuf.st_mode & (~S_IREAD));
+    }
 #endif
 }
 
@@ -3221,12 +3248,17 @@ __gnat_set_close_on_exec (int fd ATTRIBUTE_UNUSED,
   else
     flags &= ~FD_CLOEXEC;
   return fcntl (fd, F_SETFD, flags | FD_CLOEXEC);
+#elif defined(_WIN32)
+  HANDLE h = (HANDLE) _get_osfhandle (fd);
+  if (h == (HANDLE) -1)
+    return -1;
+  if (close_on_exec_p)
+    return ! SetHandleInformation (h, HANDLE_FLAG_INHERIT, 0);
+  return ! SetHandleInformation (h, HANDLE_FLAG_INHERIT, 
+    HANDLE_FLAG_INHERIT);
 #else
+  /* TODO: Unimplemented. */
   return -1;
-  /* For the Windows case, we should use SetHandleInformation to remove
-     the HANDLE_INHERIT property from fd. This is not implemented yet,
-     but for our purposes (support of GNAT.Expect) this does not matter,
-     as by default handles are *not* inherited. */
 #endif
 }
 

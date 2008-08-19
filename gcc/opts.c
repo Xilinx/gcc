@@ -26,6 +26,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "tm.h"
 #include "tree.h"
 #include "rtl.h"
+#include "expr.h"
 #include "ggc.h"
 #include "output.h"
 #include "langhooks.h"
@@ -62,9 +63,6 @@ HOST_WIDE_INT larger_than_size;
  * than N bytes. */
 bool warn_frame_larger_than;
 HOST_WIDE_INT frame_larger_than_size;
-
-/* Hack for cooperation between set_Wunused and set_Wextra.  */
-static bool maybe_warn_unused_parameter;
 
 /* Type(s) of debugging information we are producing (if any).  See
    flags.h for the definitions of the different possible types of
@@ -1667,7 +1665,7 @@ common_handle_option (size_t scode, const char *arg, int value,
       break;
 
     case OPT_Wunused:
-      set_Wunused (value);
+      warn_unused = value;
       break;
 
     case OPT_aux_info:
@@ -1903,6 +1901,37 @@ common_handle_option (size_t scode, const char *arg, int value,
       flag_sched_stalled_insns_dep = value;
       break;
 
+    case OPT_fstack_check_:
+      if (!strcmp (arg, "no"))
+	flag_stack_check = NO_STACK_CHECK;
+      else if (!strcmp (arg, "generic"))
+	/* This is the old stack checking method.  */
+	flag_stack_check = STACK_CHECK_BUILTIN
+			   ? FULL_BUILTIN_STACK_CHECK
+			   : GENERIC_STACK_CHECK;
+      else if (!strcmp (arg, "specific"))
+	/* This is the new stack checking method.  */
+	flag_stack_check = STACK_CHECK_BUILTIN
+			   ? FULL_BUILTIN_STACK_CHECK
+			   : STACK_CHECK_STATIC_BUILTIN
+			     ? STATIC_BUILTIN_STACK_CHECK
+			     : GENERIC_STACK_CHECK;
+      else
+	warning (0, "unknown stack check parameter \"%s\"", arg);
+      break;
+
+    case OPT_fstack_check:
+      /* This is the same as the "specific" mode above.  */
+      if (value)
+	flag_stack_check = STACK_CHECK_BUILTIN
+			   ? FULL_BUILTIN_STACK_CHECK
+			   : STACK_CHECK_STATIC_BUILTIN
+			     ? STATIC_BUILTIN_STACK_CHECK
+			     : GENERIC_STACK_CHECK;
+      else
+	flag_stack_check = NO_STACK_CHECK;
+      break;
+
     case OPT_fstack_limit:
       /* The real switch is -fno-stack-limit.  */
       if (value)
@@ -2037,7 +2066,6 @@ static void
 set_Wextra (int setting)
 {
   extra_warnings = setting;
-  warn_unused_parameter = (setting && maybe_warn_unused_parameter);
 
   /* We save the value of warn_uninitialized, since if they put
      -Wuninitialized on the command line, we need to generate a
@@ -2046,23 +2074,6 @@ set_Wextra (int setting)
     warn_uninitialized = 0;
   else if (warn_uninitialized != 1)
     warn_uninitialized = 2;
-}
-
-/* Initialize unused warning flags.  */
-void
-set_Wunused (int setting)
-{
-  warn_unused_function = setting;
-  warn_unused_label = setting;
-  /* Unused function parameter warnings are reported when either
-     ``-Wextra -Wunused'' or ``-Wunused-parameter'' is specified.
-     Thus, if -Wextra has already been seen, set warn_unused_parameter;
-     otherwise set maybe_warn_extra_parameter, which will be picked up
-     by set_Wextra.  */
-  maybe_warn_unused_parameter = setting;
-  warn_unused_parameter = (setting && extra_warnings);
-  warn_unused_variable = setting;
-  warn_unused_value = setting;
 }
 
 /* Used to set the level of strict aliasing warnings, 

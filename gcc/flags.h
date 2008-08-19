@@ -24,6 +24,7 @@ along with GCC; see the file COPYING3.  If not see
 
 #include "coretypes.h"
 #include "options.h"
+#include "real.h"
 
 enum debug_info_type
 {
@@ -114,12 +115,6 @@ extern int optimize_size;
    -W/-Wextra.  */
 
 extern bool extra_warnings;
-
-/* Nonzero to warn about unused variables, functions et.al.  Use
-   set_Wunused() to update the -Wunused-* flags that correspond to the
-   -Wunused option.  */
-
-extern void set_Wunused (int setting);
 
 /* Used to set the level of -Wstrict-aliasing, when no level is specified.  
    The external way to set the default level is to use
@@ -258,6 +253,27 @@ extern int flag_var_tracking;
 /* True if flag_speculative_prefetching was set by user.  Used to suppress
    warning message in case flag was set by -fprofile-{generate,use}.  */
 extern bool flag_speculative_prefetching_set;
+
+/* Type of stack check.  */
+enum stack_check_type
+{
+  /* Do not check the stack.  */
+  NO_STACK_CHECK = 0,
+
+  /* Check the stack generically, i.e. assume no specific support
+     from the target configuration files.  */
+  GENERIC_STACK_CHECK,
+
+  /* Check the stack and rely on the target configuration files to
+     check the static frame of functions, i.e. use the generic
+     mechanism only for dynamic stack allocations.  */
+  STATIC_BUILTIN_STACK_CHECK,
+
+  /* Check the stack and entirely rely on the target configuration
+     files, i.e. do not use the generic mechanism at all.  */
+  FULL_BUILTIN_STACK_CHECK
+};
+extern enum stack_check_type flag_stack_check;
 
 /* Returns TRUE if generated code should match ABI version N or
    greater is in use.  */

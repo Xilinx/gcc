@@ -1301,9 +1301,9 @@ reload (rtx first, int global)
 	  }
       }
 
-  /* If we are doing stack checking, give a warning if this function's
-     frame size is larger than we expect.  */
-  if (flag_stack_check && ! STACK_CHECK_BUILTIN)
+  /* If we are doing generic stack checking, give a warning if this
+     function's frame size is larger than we expect.  */
+  if (flag_stack_check == GENERIC_STACK_CHECK)
     {
       HOST_WIDE_INT size = get_frame_size () + STACK_CHECK_FIXED_FRAME_SIZE;
       static int verbose_warned = 0;
@@ -8009,9 +8009,11 @@ gen_reload (rtx out, rtx in, int opnum, enum reload_type type)
 
 #ifdef SECONDARY_MEMORY_NEEDED
   /* If we need a memory location to do the move, do it that way.  */
-  else if ((REG_P (in) || GET_CODE (in) == SUBREG)
+  else if ((REG_P (in)
+            || (GET_CODE (in) == SUBREG && REG_P (SUBREG_REG (in))))
 	   && reg_or_subregno (in) < FIRST_PSEUDO_REGISTER
-	   && (REG_P (out) || GET_CODE (out) == SUBREG)
+	   && (REG_P (out)
+	       || (GET_CODE (out) == SUBREG && REG_P (SUBREG_REG (out))))
 	   && reg_or_subregno (out) < FIRST_PSEUDO_REGISTER
 	   && SECONDARY_MEMORY_NEEDED (REGNO_REG_CLASS (reg_or_subregno (in)),
 				       REGNO_REG_CLASS (reg_or_subregno (out)),

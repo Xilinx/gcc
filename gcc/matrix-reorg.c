@@ -658,8 +658,7 @@ ssa_accessed_in_assign_rhs (gimple stmt, struct ssa_acc_in_tree *a)
 
     case SSA_NAME:
     case INDIRECT_REF:
-    case CONVERT_EXPR:
-    case NOP_EXPR:
+    CASE_CONVERT:
     case VIEW_CONVERT_EXPR:
       ssa_accessed_in_tree (gimple_assign_rhs1 (stmt), a);
       break;
@@ -1755,16 +1754,20 @@ record_all_accesses_in_func (void)
   sbitmap_free (visited_stmts_1);
 }
 
-/* Used when we want to convert the expression: RESULT =  something * ORIG to RESULT = something * NEW. If ORIG and NEW are power of 2, shift operations can be done, else division and multiplication.  */
+/* Used when we want to convert the expression: RESULT = something *
+   ORIG to RESULT = something * NEW_VAL. If ORIG and NEW_VAL are power
+   of 2, shift operations can be done, else division and
+   multiplication.  */
+
 static tree
-compute_offset (HOST_WIDE_INT orig, HOST_WIDE_INT new, tree result)
+compute_offset (HOST_WIDE_INT orig, HOST_WIDE_INT new_val, tree result)
 {
 
   int x, y;
   tree result1, ratio, log, orig_tree, new_tree;
 
   x = exact_log2 (orig);
-  y = exact_log2 (new);
+  y = exact_log2 (new_val);
 
   if (x != -1 && y != -1)
     {
@@ -1783,7 +1786,7 @@ compute_offset (HOST_WIDE_INT orig, HOST_WIDE_INT new, tree result)
       return result1;
     }
   orig_tree = build_int_cst (TREE_TYPE (result), orig);
-  new_tree = build_int_cst (TREE_TYPE (result), new);
+  new_tree = build_int_cst (TREE_TYPE (result), new_val);
   ratio = fold_build2 (TRUNC_DIV_EXPR, TREE_TYPE (result), result, orig_tree);
   result1 = fold_build2 (MULT_EXPR, TREE_TYPE (result), ratio, new_tree);
 

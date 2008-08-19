@@ -6340,8 +6340,7 @@ gfc_get_type_attr_spec (symbol_attribute *attr, char *name)
     }
   else if (name && gfc_match(" , extends ( %n )", name) == MATCH_YES)
     {
-      if (gfc_notify_std (GFC_STD_F2003, "Fortran 2003: derived type "
-	    "extended at %C") == FAILURE)
+      if (gfc_add_extension (attr, &gfc_current_locus) == FAILURE)
 	return MATCH_ERROR;
     }
   else
@@ -6385,7 +6384,9 @@ gfc_match_derived_decl (void)
 	seen_attr = true;
     } while (is_type_attr_spec == MATCH_YES);
 
-  /* Deal with derived type extensions.  */
+  /* Deal with derived type extensions.  The extension attribute has
+     been added to 'attr' but now the parent type must be found and
+     checked.  */
   if (parent[0])
     extended = check_extended_derived_type (parent);
 
@@ -6457,7 +6458,7 @@ gfc_match_derived_decl (void)
 
       /* Add the extended derived type as the first component.  */
       gfc_add_component (sym, parent, &p);
-      sym->attr.extension = 1;
+      sym->attr.extension = attr.extension;
       extended->refs++;
       gfc_set_sym_referenced (extended);
 
@@ -6682,6 +6683,7 @@ cleanup:
 
 }
 
+
 /* Match a FINAL declaration inside a derived type.  */
 
 match
@@ -6762,7 +6764,7 @@ gfc_match_final_decl (void)
 
       /* Check if we already have this symbol in the list, this is an error.  */
       for (f = gfc_current_block ()->f2k_derived->finalizers; f; f = f->next)
-	if (f->procedure == sym)
+	if (f->proc_sym == sym)
 	  {
 	    gfc_error ("'%s' at %C is already defined as FINAL procedure!",
 		       name);
@@ -6773,7 +6775,8 @@ gfc_match_final_decl (void)
       gcc_assert (gfc_current_block ()->f2k_derived);
       ++sym->refs;
       f = XCNEW (gfc_finalizer);
-      f->procedure = sym;
+      f->proc_sym = sym;
+      f->proc_tree = NULL;
       f->where = gfc_current_locus;
       f->next = gfc_current_block ()->f2k_derived->finalizers;
       gfc_current_block ()->f2k_derived->finalizers = f;

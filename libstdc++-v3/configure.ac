@@ -122,6 +122,35 @@ GLIBCXX_ENABLE_FULLY_DYNAMIC_STRING([no])
 # Checks for operating systems support that don't require linking.
 GLIBCXX_CHECK_SYSTEM_ERROR
 
+# For the streamoff typedef.
+GLIBCXX_CHECK_INT64_T
+
+# For LFS support.
+GLIBCXX_CHECK_LFS
+
+# For showmanyc_helper().
+AC_CHECK_HEADERS(sys/ioctl.h sys/filio.h)
+GLIBCXX_CHECK_POLL
+GLIBCXX_CHECK_S_ISREG_OR_S_IFREG
+
+# For xsputn_2().
+AC_CHECK_HEADERS(sys/uio.h)
+GLIBCXX_CHECK_WRITEV
+
+# For C99 support to TR1.
+GLIBCXX_CHECK_C99_TR1
+
+# For common values of EOF, SEEK_CUR, SEEK_END.
+GLIBCXX_CHECK_STDIO_MACROS
+
+AC_LC_MESSAGES
+
+# Check for available headers.
+AC_CHECK_HEADERS([endian.h float.h fp.h ieeefp.h inttypes.h locale.h \
+machine/endian.h machine/param.h nan.h stdint.h stdlib.h string.h \
+strings.h sys/ipc.h sys/isa_defs.h sys/machine.h sys/param.h \
+sys/resource.h sys/sem.h sys/stat.h sys/time.h sys/types.h unistd.h \
+wchar.h wctype.h])
 
 # Only do link tests if native. Else, hardcode.
 if $GLIBCXX_IS_NATIVE; then
@@ -129,34 +158,11 @@ if $GLIBCXX_IS_NATIVE; then
   # We can do more elaborate tests that assume a working linker.
   CANADIAN=no
 
-  # Check for available headers.
-  AC_CHECK_HEADERS([nan.h ieeefp.h endian.h sys/isa_defs.h machine/endian.h \
-  machine/param.h sys/machine.h fp.h locale.h float.h inttypes.h \
-  sys/types.h sys/ipc.h sys/sem.h])
-
   GLIBCXX_CHECK_LINKER_FEATURES
   GLIBCXX_CHECK_MATH_SUPPORT
   GLIBCXX_CHECK_BUILTIN_MATH_SUPPORT
   GLIBCXX_CHECK_COMPLEX_MATH_SUPPORT
   GLIBCXX_CHECK_STDLIB_SUPPORT
-
-  # For showmanyc_helper().
-  AC_CHECK_HEADERS(sys/ioctl.h sys/filio.h)
-  GLIBCXX_CHECK_POLL
-  GLIBCXX_CHECK_S_ISREG_OR_S_IFREG
-
-  # For xsputn_2().
-  AC_CHECK_HEADERS(sys/uio.h)
-  GLIBCXX_CHECK_WRITEV
-
-  # For the __streamoff_base_type typedef.
-  GLIBCXX_CHECK_INT64_T
-
-  # For LFS support.
-  GLIBCXX_CHECK_LFS
-
-  # For C99 support to TR1.
-  GLIBCXX_CHECK_C99_TR1
 
   # For dev/random and dev/urandom for TR1.
   GLIBCXX_CHECK_RANDOM_TR1
@@ -172,18 +178,6 @@ if $GLIBCXX_IS_NATIVE; then
 
   # For _Unwind_GetIPInfo.
   GCC_CHECK_UNWIND_GETIPINFO
-
-  AC_LC_MESSAGES
-
-  AC_TRY_COMPILE(
-    [#include <setjmp.h>],
-    [sigjmp_buf env;
-     while (! sigsetjmp (env, 1))
-       siglongjmp (env, 1);
-    ],
-    [AC_DEFINE(HAVE_SIGSETJMP, 1, [Define if sigsetjmp is available.])])
-
-  AC_FUNC_MMAP
 
   # For iconv support.
   AM_ICONV
@@ -227,8 +221,6 @@ else
 
     # GLIBCXX_CHECK_STDLIB_SUPPORT
     AC_DEFINE(HAVE_STRTOF)        
-    # AC_FUNC_MMAP
-    AC_DEFINE(HAVE_MMAP)
 
     AC_DEFINE(HAVE_ACOSF)
     AC_DEFINE(HAVE_ASINF)
@@ -254,9 +246,6 @@ else
     AC_DEFINE(HAVE_SQRTF)
     AC_DEFINE(HAVE_TANF)
     AC_DEFINE(HAVE_TANHF)
-
-    AC_DEFINE(HAVE_S_ISREG)
-    AC_DEFINE(HAVE_S_IFREG)
 
     AC_DEFINE(HAVE_ICONV)
   else
