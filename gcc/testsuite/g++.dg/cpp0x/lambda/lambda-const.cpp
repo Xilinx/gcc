@@ -1,6 +1,8 @@
 // { dg-do "compile" }
 // { dg-options "-std=c++0x"}
 
+#include <cassert>
+
 template<typename F>
 void call(const F& f) { f(); }
 

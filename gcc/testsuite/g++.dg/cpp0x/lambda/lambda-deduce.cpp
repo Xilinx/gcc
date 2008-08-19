@@ -4,12 +4,9 @@
 
 int main() {
   int i = 1, j = 2;
-  [i, j] () { return i = 3, j = 4; } ();
-  assert(i == 1);
+  [&i, j] () { return i = j; } ();
+  assert(i == 2);
   assert(j == 2);
-  [&i, &j] () { return i = 5, j = 6; } ();
-  assert(i == 5);
-  assert(j == 6);
 
   return 0;
 }

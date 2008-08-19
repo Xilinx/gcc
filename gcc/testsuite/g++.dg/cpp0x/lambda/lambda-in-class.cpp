@@ -1,13 +1,14 @@
 // { dg-do "compile" }
 // { dg-options "-std=c++0x"}
 
+#include <cassert>
+
 class C {
   private:
     int m_i;
 
   public:
-    C() {
-      m_i = -1;
+    C() : m_i(-1) {
       [this] () -> void { m_i = 0; } ();
       assert(m_i == 0);
       [this] () -> void { this->m_i = 1; } ();
@@ -27,7 +28,7 @@ class C {
 int main() {
   C c;
 
-  [this] () -> void {} (); // { dg-error: "cannot capture `this' outside of class method" }
+  //[this] () -> void {} (); // { dg-error: "cannot capture `this' outside of class method" }
 
   return 0;
 }
