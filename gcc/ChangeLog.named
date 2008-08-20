@@ -1,3 +1,7 @@
+2008-08-20  Ben Elliston  <bje@au.ibm.com>
+
+	* c-decl.c (grokdeclarator): Rename ea_p to addr_space_p.
+
 2008-08-19  Ben Elliston  <bje@au.ibm.com>
 
 	* print-tree.c (print_node): Don't use target hooks from this

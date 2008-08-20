@@ -3953,7 +3953,7 @@ grokdeclarator (const struct c_declarator *declarator,
   int constp;
   int restrictp;
   int volatilep;
-  int ea_p;
+  int addr_space_p;
   int type_quals = TYPE_UNQUALIFIED;
   const char *name, *orig_name;
   bool funcdef_flag = false;
@@ -4068,7 +4068,7 @@ grokdeclarator (const struct c_declarator *declarator,
   constp = declspecs->const_p + TYPE_READONLY (element_type);
   restrictp = declspecs->restrict_p + TYPE_RESTRICT (element_type);
   volatilep = declspecs->volatile_p + TYPE_VOLATILE (element_type);
-  ea_p = (declspecs->address_space > 0) + (TYPE_ADDR_SPACE (element_type) > 0);
+  addr_space_p = (declspecs->address_space > 0) + (TYPE_ADDR_SPACE (element_type) > 0);
   if (pedantic && !flag_isoc99)
     {
       if (constp > 1)
@@ -4077,7 +4077,7 @@ grokdeclarator (const struct c_declarator *declarator,
 	pedwarn (OPT_pedantic, "duplicate %<restrict%>");
       if (volatilep > 1)
 	pedwarn (OPT_pedantic, "duplicate %<volatile%>");
-      if (ea_p > 1)
+      if (addr_space_p > 1)
 	pedwarn (OPT_pedantic, "duplicate %qs", targetm.addr_space_name (TYPE_ADDR_SPACE (element_type)));
     }
   if (!flag_gen_aux_info && (TYPE_QUALS (element_type)))
@@ -4085,7 +4085,7 @@ grokdeclarator (const struct c_declarator *declarator,
   type_quals = ((constp ? TYPE_QUAL_CONST : 0)
 		| (restrictp ? TYPE_QUAL_RESTRICT : 0)
 		| (volatilep ? TYPE_QUAL_VOLATILE : 0)
-		| (ea_p ? ENCODE_QUAL_ADDR_SPACE (declspecs->address_space) : 0));
+		| (addr_space_p ? ENCODE_QUAL_ADDR_SPACE (declspecs->address_space) : 0));
 
   /* Warn about storage classes that are invalid for certain
      kinds of declarations (parameters, typenames, etc.).  */
