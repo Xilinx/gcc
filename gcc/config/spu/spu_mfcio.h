@@ -31,8 +31,6 @@ typedef unsigned long long uint64_t;
 #include <stdint.h>
 #endif
 
-typedef unsigned long long uint64_t;
-
 #ifdef __cplusplus
 extern "C" {
 #endif

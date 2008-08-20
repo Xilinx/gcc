@@ -1,5 +1,9 @@
 2008-08-20  Ben Elliston  <bje@au.ibm.com>
 
+	* config/spu/spu_mfcio.h: Remove unconditional uint64_t typedef.
+
+2008-08-20  Ben Elliston  <bje@au.ibm.com>
+
 	* doc/tm.texi (Misc): Document target hooks for named addresss
 	space support.
 
