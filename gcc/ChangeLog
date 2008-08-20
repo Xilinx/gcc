@@ -14,6 +14,8 @@
 	(TARGET_ADDR_SPACE_CONVERSION_RTL): Likewise.
 	(TARGET_VALID_POINTER_MODE): Likewise.
 	(TARGET_VALID_ADDR_SPACE): Likewise.
+	(TARGET_ASM_UNALIGNED_DI_OP): Remove.
+	(TARGET_ASM_ALIGNED_DI_OP): Define instead.
 	(ea_symbol_ref): New.
 	(spu_legitimate_constant_p): Reject __ea qualified references.
 	(spu_legitimate_address): Keep __ea references until reload.
