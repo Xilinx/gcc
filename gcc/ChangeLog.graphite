@@ -1,6 +1,15 @@
 2008-08-20  Sebastian Pop  <sebastian.pop@amd.com>
 	    Dwarakanath Rajagopal  <dwarak.rajagopal@amd.com>
 
+	* graphite.c (scop_record_loop): Factor out one level of the
+	condition by early return.
+	(build_scop_loop_nests): Format following FSF coding style.
+	(build_scop_dynamic_schedules): Factor out code.
+	(scopdet_bb_info): Reindent.  Default case should not be reachable.
+
+2008-08-20  Sebastian Pop  <sebastian.pop@amd.com>
+	    Dwarakanath Rajagopal  <dwarak.rajagopal@amd.com>
+
 	* graphite.c (loop_affine_expr): Check for DECL_P or struct
 	assignments that are not handled as simple operands for now.
 

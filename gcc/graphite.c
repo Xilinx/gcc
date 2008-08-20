@@ -1328,142 +1328,143 @@ scopdet_bb_info (basic_block bb, struct loop *outermost_loop,
         break;
       }
     case GBB_COND_HEADER:
-    {
-      VEC (scop_p, heap) *tmp_scops = VEC_alloc (scop_p, heap, 3);
-      struct scopdet_info sinfo;
-      VEC (basic_block, heap) *dominated;
-      int i;
-      basic_block dom_bb;
-      basic_block last_bb = NULL;
-      edge e;
-      result.exits = false;
+      {
+	VEC (scop_p, heap) *tmp_scops = VEC_alloc (scop_p, heap, 3);
+	struct scopdet_info sinfo;
+	VEC (basic_block, heap) *dominated;
+	int i;
+	basic_block dom_bb;
+	basic_block last_bb = NULL;
+	edge e;
+	result.exits = false;
  
-      /* First check the successors of bb, and check if it is possible to join
-         the different branches.  */
-      for (i = 0; VEC_iterate (edge, bb->succs, i, e); i++)
-        {
-          dom_bb = e->dest;
+	/* First check the successors of bb, and check if it is possible to join
+	   the different branches.  */
+	for (i = 0; VEC_iterate (edge, bb->succs, i, e); i++)
+	  {
+	    dom_bb = e->dest;
 
-          /* Ignore loop exits.  They will be handled after the loop body.  */
-          if (is_loop_exit (loop, dom_bb))
-            {
-              result.exits = true;
-              continue;
-            }
+	    /* Ignore loop exits.  They will be handled after the loop body.  */
+	    if (is_loop_exit (loop, dom_bb))
+	      {
+		result.exits = true;
+		continue;
+	      }
 
-          /* Do not follow edges, that lead to the end of the conditions block.
-             In this case e.g. the edge from 0 => 6.  Only check if all ways
-             lead to the same node (6), that we can verify, if we can fuse the
-             condition later. 
+	    /* Do not follow edges, that lead to the end of the conditions block.
+	       In this case e.g. the edge from 0 => 6.  Only check if all ways
+	       lead to the same node (6), that we can verify, if we can fuse the
+	       condition later. 
 
-             Example:
+	       Example:
 
                0
-              /|\
-             | | \
-             1 2 |
-             | | |
-             3 4 |
-             \ | /
+	       /|\
+	       | | \
+	       1 2 |
+	       | | |
+	       3 4 |
+	       \ | /
                6  */
 
-          if (!single_pred_p (dom_bb))
-            {
-              /* Check, if edge leads direct to the end of this condition.  If
-                 this is true, the condition stays joinable.  */
-              if (!last_bb)
-                last_bb = dom_bb;
+	    if (!single_pred_p (dom_bb))
+	      {
+		/* Check, if edge leads direct to the end of this condition.  If
+		   this is true, the condition stays joinable.  */
+		if (!last_bb)
+		  last_bb = dom_bb;
 
-              if (dom_bb != last_bb)
-                result.difficult = true;
+		if (dom_bb != last_bb)
+		  result.difficult = true;
 
-              continue;
-            }
+		continue;
+	      }
 
-          /* Only handle bb dominated by 'bb'.  The others will be handled by
-             the bb, that dominates this bb.  */
-          if (!dominated_by_p (CDI_DOMINATORS, dom_bb, bb))
-            {
-              result.difficult = true;
-              continue;
-            }
+	    /* Only handle bb dominated by 'bb'.  The others will be handled by
+	       the bb, that dominates this bb.  */
+	    if (!dominated_by_p (CDI_DOMINATORS, dom_bb, bb))
+	      {
+		result.difficult = true;
+		continue;
+	      }
 
 
-	  sinfo = build_scops_1 (dom_bb, &tmp_scops, loop, outermost_loop);
-                  
-          result.exits |= sinfo.exits;
-          result.last = sinfo.last;
-          result.difficult |= sinfo.difficult; 
-          
-          /* Checks, if all branches end at the same point. 
-	     If that is true, the condition stays joinable.
-	     Have a look at the example above.  */
-
-          if (sinfo.last && single_succ_p (sinfo.last))
-            {
-              basic_block next_tmp = single_succ (sinfo.last);
-                  
-              if (!last_bb)
-                last_bb = next_tmp;
-
-              if (next_tmp != last_bb)
-                result.difficult = true;
-            }
-          else
-            result.difficult = true;
-        }
-
-      /* If the condition is joinable.  */
-      if (!result.exits && !result.difficult)
-        {
-          /* Only return a next pointer, if we dominate this pointer.
-	     Otherwise it will be handled by the bb dominating it.  */ 
-          if (dominated_by_p (CDI_DOMINATORS, last_bb, bb) && last_bb != bb)
-            result.next = last_bb;
-          else
-            result.next = NULL; 
-
-          move_scops (&tmp_scops, scops);
-          break;
-        }
-
-      /* Scan the remaining bbs, dominated by bb.  */
-      dominated = get_dominated_by (CDI_DOMINATORS, bb);
-
-      for (i = 0; VEC_iterate (basic_block, dominated, i, dom_bb); i++)
-        {
-          /* Ignore loop exits.  They will be handled after the loop body.  */
-          if (is_loop_exit (loop, dom_bb))
-            {
-              result.exits = true;
-              continue;
-            }
-
-          /* Ignore the bbs processed above.  */
-          if (single_pred_p (dom_bb) && single_pred (dom_bb) == bb)
-            continue;
-
-          /* Ignore edges leaving the loop nest.  The will be handled above by
-             LOOP_HEADERS.  */
-          if (loop_depth (loop) > loop_depth (dom_bb->loop_father))
-	    sinfo = build_scops_1 (dom_bb, &tmp_scops, loop_outer (loop),
-                                   outermost_loop);
-          else
 	    sinfo = build_scops_1 (dom_bb, &tmp_scops, loop, outermost_loop);
+                  
+	    result.exits |= sinfo.exits;
+	    result.last = sinfo.last;
+	    result.difficult |= sinfo.difficult; 
+          
+	    /* Checks, if all branches end at the same point. 
+	       If that is true, the condition stays joinable.
+	       Have a look at the example above.  */
+
+	    if (sinfo.last && single_succ_p (sinfo.last))
+	      {
+		basic_block next_tmp = single_succ (sinfo.last);
+                  
+		if (!last_bb)
+		  last_bb = next_tmp;
+
+		if (next_tmp != last_bb)
+		  result.difficult = true;
+	      }
+	    else
+	      result.difficult = true;
+	  }
+
+	/* If the condition is joinable.  */
+	if (!result.exits && !result.difficult)
+	  {
+	    /* Only return a next pointer, if we dominate this pointer.
+	       Otherwise it will be handled by the bb dominating it.  */ 
+	    if (dominated_by_p (CDI_DOMINATORS, last_bb, bb) && last_bb != bb)
+	      result.next = last_bb;
+	    else
+	      result.next = NULL; 
+
+	    move_scops (&tmp_scops, scops);
+	    break;
+	  }
+
+	/* Scan the remaining bbs, dominated by bb.  */
+	dominated = get_dominated_by (CDI_DOMINATORS, bb);
+
+	for (i = 0; VEC_iterate (basic_block, dominated, i, dom_bb); i++)
+	  {
+	    /* Ignore loop exits.  They will be handled after the loop body.  */
+	    if (is_loop_exit (loop, dom_bb))
+	      {
+		result.exits = true;
+		continue;
+	      }
+
+	    /* Ignore the bbs processed above.  */
+	    if (single_pred_p (dom_bb) && single_pred (dom_bb) == bb)
+	      continue;
+
+	    /* Ignore edges leaving the loop nest.  The will be handled above by
+	       LOOP_HEADERS.  */
+	    if (loop_depth (loop) > loop_depth (dom_bb->loop_father))
+	      sinfo = build_scops_1 (dom_bb, &tmp_scops, loop_outer (loop),
+				     outermost_loop);
+	    else
+	      sinfo = build_scops_1 (dom_bb, &tmp_scops, loop, outermost_loop);
                                            
                                      
-          result.exits |= sinfo.exits; 
-          result.difficult = true;
-          result.last = NULL;
-        }
+	    result.exits |= sinfo.exits; 
+	    result.difficult = true;
+	    result.last = NULL;
+	  }
 
-      VEC_free (basic_block, heap, dominated);
+	VEC_free (basic_block, heap, dominated);
 
-      result.next = NULL; 
-      move_scops (&tmp_scops, scops);
+	result.next = NULL; 
+	move_scops (&tmp_scops, scops);
 
-      break;
-    }
+	break;
+      }
+
     default:
       gcc_unreachable ();
     }
@@ -1670,30 +1671,32 @@ build_scop_bbs (scop_p scop)
 static void
 scop_record_loop (scop_p scop, struct loop *loop)
 {
-  if (!bitmap_bit_p (SCOP_LOOPS (scop), loop->num))
+  loop_p parent;
+  tree induction_var;
+
+  if (bitmap_bit_p (SCOP_LOOPS (scop), loop->num))
+    return;
+
+  parent = loop_outer (loop);
+  induction_var = find_induction_var_from_exit_cond (loop);
+
+  if (!bb_in_scop_p (parent->latch, scop))
+    parent = NULL;
+  graphite_loops_mapping_insert_child (scop, parent ? parent->num : -1,
+				       loop->num);
+
+  if (induction_var != NULL_TREE)
     {
-      loop_p parent = loop_outer (loop);
-      tree induction_var = find_induction_var_from_exit_cond (loop);
+      name_tree oldiv = XNEW (struct name_tree);
+      oldiv->t = SSA_NAME_VAR (induction_var);
+      oldiv->name = IDENTIFIER_POINTER (DECL_NAME (oldiv->t));
+      oldiv->loop = loop;
 
-      if (!bb_in_scop_p (parent->latch, scop))
-	parent = NULL;
-      graphite_loops_mapping_insert_child (scop, parent ? parent->num : -1,
-					   loop->num);
-
-      if (induction_var != NULL_TREE)
-	{
-	  name_tree oldiv = XNEW (struct name_tree);
-	  oldiv->t = SSA_NAME_VAR (induction_var);
-	  oldiv->name = IDENTIFIER_POINTER (DECL_NAME (oldiv->t));
-	  oldiv->loop = loop;
-
-	  VEC_safe_push (name_tree, heap, SCOP_OLDIVS(scop), oldiv);
-	}
-
-      bitmap_set_bit (SCOP_LOOPS (scop), loop->num);
-      VEC_safe_push (loop_p, heap, SCOP_LOOP_NEST (scop), loop);
-
+      VEC_safe_push (name_tree, heap, SCOP_OLDIVS(scop), oldiv);
     }
+
+  bitmap_set_bit (SCOP_LOOPS (scop), loop->num);
+  VEC_safe_push (loop_p, heap, SCOP_LOOP_NEST (scop), loop);
 }
 
 /* Build the loop nests contained in SCOP.  */
@@ -1710,7 +1713,8 @@ build_scop_loop_nests (scop_p scop)
       struct loop *loop = gbb_loop (gb);
 
       /* Only add loops, if they are completely contained in the SCoP.  */
-      if (loop->header == GBB_BB (gb) && bb_in_scop_p (loop->latch, scop))
+      if (loop->header == GBB_BB (gb)
+	  && bb_in_scop_p (loop->latch, scop))
         scop_record_loop (scop, gbb_loop (gb));
     }
 
@@ -1739,20 +1743,17 @@ build_scop_dynamic_schedules (scop_p scop)
   int i, dim, loop_num, row, col;
   graphite_bb_p gb;
 
-
   for (i = 0; VEC_iterate (graphite_bb_p, SCOP_BBS (scop), i, gb); i++)
     {
-      loop_num = GBB_BB (gb) -> loop_father -> num; 
+      loop_num = GBB_BB (gb)->loop_father->num;
       if (loop_num != 0)
         {
           dim = loop_iteration_vector_dim (loop_num, scop);
           GBB_DYNAMIC_SCHEDULE (gb) = cloog_matrix_alloc (dim, dim);
+
           for (row = 0; row < GBB_DYNAMIC_SCHEDULE (gb)->NbRows; row++)
             for (col = 0; col < GBB_DYNAMIC_SCHEDULE (gb)->NbColumns; col++)
-              if (row == col)
-                value_set_si (GBB_DYNAMIC_SCHEDULE (gb)->p[row][col], 1);
-              else  
-                value_set_si (GBB_DYNAMIC_SCHEDULE (gb)->p[row][col], 0);
+              value_set_si (GBB_DYNAMIC_SCHEDULE (gb)->p[row][col], row == col);
         }
       else
         GBB_DYNAMIC_SCHEDULE (gb) = NULL;
@@ -2021,11 +2022,12 @@ bool subtract)
       break;
 
     default:
-      /* ???  The default cases should be gcc_unreachable ().  */
+      gcc_unreachable ();
       break;
     }
 }
 
+/* Data structure for idx_record_params.  */
 
 struct irp_data
 {
