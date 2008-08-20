@@ -3843,7 +3843,6 @@ spu_expand_mov (rtx * ops, enum machine_mode mode)
 	      return 1;
 	    }
 	}
-
       /* Catch the SImode immediates greater than 0x7fffffff, and sign
          extend them. */
       if (GET_CODE (ops[1]) == CONST_INT)
