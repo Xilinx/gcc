@@ -4638,7 +4638,7 @@ graphite_trans_scop_block (scop_p scop)
 
   /* Found perfect loop nest.  */
   if (last_nb_loops - j > 0)
-    graphite_trans_loop_block (bbs, last_nb_loops - j);
+    transform_done |= graphite_trans_loop_block (bbs, last_nb_loops - j);
   VEC_free (graphite_bb_p, heap, bbs);
 
   if (dump_file && (dump_flags & TDF_DETAILS))
