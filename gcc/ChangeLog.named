@@ -1,5 +1,10 @@
 2008-08-20  Ben Elliston  <bje@au.ibm.com>
 
+	* doc/tm.texi (Misc): Document target hooks for named addresss
+	space support.
+
+2008-08-20  Ben Elliston  <bje@au.ibm.com>
+
 	* c-decl.c (grokdeclarator): Rename ea_p to addr_space_p.
 
 2008-08-19  Ben Elliston  <bje@au.ibm.com>
