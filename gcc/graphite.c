@@ -4730,6 +4730,7 @@ graphite_transform_loops (void)
   if (dump_file && (dump_flags & TDF_DETAILS))
     fprintf (dump_file, "Graphite loop transformations \n");
 
+  cloog_initialize ();
   build_scops ();
   limit_scops ();
 
@@ -4788,6 +4789,7 @@ graphite_transform_loops (void)
     }
 
   free_scops (current_scops);
+  cloog_finalize ();
 }
 
 #else /* If Cloog is not available: #ifndef HAVE_cloog.  */

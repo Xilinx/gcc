@@ -1,5 +1,10 @@
 2008-08-20  Sebastian Pop  <sebastian.pop@amd.com>
 
+	* graphite.c (graphite_transform_loops): Call cloog_initialize
+	and cloog_finalize.
+
+2008-08-20  Sebastian Pop  <sebastian.pop@amd.com>
+
 	* tree-data-ref.c (stmt_simple_memref_p): New.
 	* tree-data-ref.h (stmt_simple_memref_p): Declared.
 	* graphite.c (stmt_simple_memref_for_scop_p): Removed.

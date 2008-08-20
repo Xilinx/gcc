@@ -4795,6 +4795,8 @@ fi
 
 
 # Check for PPL
+ppl_major_version=0
+ppl_minor_version=10
 ppllibs=
 pplinc=
 
@@ -4884,8 +4886,8 @@ fi
 saved_CFLAGS="$CFLAGS"
 CFLAGS="$CFLAGS $pplinc $gmpinc"
 
-echo "$as_me:$LINENO: checking for correct version of PPL" >&5
-echo $ECHO_N "checking for correct version of PPL... $ECHO_C" >&6
+echo "$as_me:$LINENO: checking for version $ppl_major_version.$ppl_minor_version of PPL" >&5
+echo $ECHO_N "checking for version $ppl_major_version.$ppl_minor_version of PPL... $ECHO_C" >&6
 cat >conftest.$ac_ext <<_ACEOF
 /* confdefs.h.  */
 _ACEOF
@@ -4897,7 +4899,7 @@ int
 main ()
 {
 
-#if PPL_VERSION_MAJOR != 0 || PPL_VERSION_MINOR != 9
+#if PPL_VERSION_MAJOR != $ppl_major_version || PPL_VERSION_MINOR != $ppl_minor_version
 choke me
 #endif
 
