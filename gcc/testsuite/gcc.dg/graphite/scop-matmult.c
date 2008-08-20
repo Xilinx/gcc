@@ -1,12 +1,11 @@
 /* { dg-do compile } */ 
 /* { dg-options "-O2 -fgraphite -fdump-tree-graphite-all" } */
-#define FLOAT float
 
-int foo (void);
+float A[1000][1000], B[1000][1000], C[1000][1000];
 
 /* Multiply two n x n matrices A and B and store the result in C.  */
 
-void matmult (FLOAT **A, FLOAT **B, FLOAT **C, int n)
+void matmult (int n)
 {
   int i,j,k;
 

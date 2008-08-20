@@ -1,5 +1,18 @@
 2008-08-20  Sebastian Pop  <sebastian.pop@amd.com>
 
+	* tree-data-ref.c (stmt_simple_memref_p): New.
+	* tree-data-ref.h (stmt_simple_memref_p): Declared.
+	* graphite.c (stmt_simple_memref_for_scop_p): Removed.
+	(is_simple_operand): Call stmt_simple_memref_p.
+
+	* testsuite/gcc.dg/graphite/scop-matmult.c: Updated for not
+	using pointer arithmetic, as this is optimized by PRE and
+	makes the code too difficult to analyze.
+
+	* testsuite/gcc.dg/graphite/scop-18.c: Same.
+
+2008-08-20  Sebastian Pop  <sebastian.pop@amd.com>
+
 	* gdbinit.in (pgg): New.
 
 2008-08-15  Tobias Grosser  <grosser@fim.uni-passau.de>

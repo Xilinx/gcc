@@ -951,31 +951,13 @@ loop_affine_expr (struct loop *outermost_loop, struct loop *loop, tree expr)
 	  || evolution_function_is_affine_multivariate_p (scev, n));
 }
 
-/* Return true if we can create a data-ref for OP in STMT.  */
-
-static bool
-stmt_simple_memref_for_scop_p (struct loop *loop, gimple stmt, tree op)
-{
-  data_reference_p dr;
-
-  if (really_constant_p (op))
-    return true;
-
-  dr = create_data_ref (loop, op, stmt, true);
-  if (!dr)
-    return false;
-
-  free_data_ref (dr);
-  return true;
-}
-
 /* Return true if the operand OP is simple.  */
 
 static bool
 is_simple_operand (loop_p loop, gimple stmt, tree op) 
 {
   return !((handled_component_p (op) || INDIRECT_REF_P (op))
-	   && !stmt_simple_memref_for_scop_p (loop, stmt, op));
+	   && !stmt_simple_memref_p (loop, stmt, op));
 }
 
 /* Return true only when STMT is simple enough for being handled by Graphite.

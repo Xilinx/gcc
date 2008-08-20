@@ -172,7 +172,7 @@ struct data_reference
   /* Behavior of the memory reference in the innermost loop.  */
   struct innermost_loop_behavior innermost;
 
-  /* Decomposition to indices for alias analysis.  */
+  /* Subscripts of this data reference.  */
   struct indices indices;
 
   /* Alias information for the data reference.  */
@@ -403,13 +403,15 @@ extern void free_data_refs (VEC (data_reference_p, heap) *);
 extern bool find_data_references_in_stmt (struct loop *, gimple,
 					  VEC (data_reference_p, heap) **);
 struct data_reference *create_data_ref (struct loop *, tree, gimple, bool);
-bool find_loop_nest (struct loop *, VEC (loop_p, heap) **);
-void compute_all_dependences (VEC (data_reference_p, heap) *,
-			      VEC (ddr_p, heap) **, VEC (loop_p, heap) *, bool);
+extern bool find_loop_nest (struct loop *, VEC (loop_p, heap) **);
+extern void compute_all_dependences (VEC (data_reference_p, heap) *,
+				     VEC (ddr_p, heap) **, VEC (loop_p, heap) *,
+				     bool);
 
 extern void create_rdg_vertices (struct graph *, VEC (gimple, heap) *);
 extern bool dr_may_alias_p (const struct data_reference *,
 			    const struct data_reference *);
+extern bool stmt_simple_memref_p (struct loop *, gimple, tree);
 
 /* Return true when the DDR contains two data references that have the
    same access functions.  */
