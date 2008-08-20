@@ -2190,10 +2190,10 @@ struct tree_block GTY(())
    combined by bitwise-or to form the complete set of qualifiers for a
    type.  */
 
-#define TYPE_UNQUALIFIED    0x0
-#define TYPE_QUAL_CONST     0x1
-#define TYPE_QUAL_VOLATILE  0x2
-#define TYPE_QUAL_RESTRICT  0x4
+#define TYPE_UNQUALIFIED   0x0
+#define TYPE_QUAL_CONST    0x1
+#define TYPE_QUAL_VOLATILE 0x2
+#define TYPE_QUAL_RESTRICT 0x4
 
 #define ENCODE_QUAL_ADDR_SPACE(NUM) ((NUM & 0xFF) << 8)
 #define DECODE_QUAL_ADDR_SPACE(X) (((X) >> 8) && 0xFF)

@@ -192,6 +192,7 @@ typedef struct c_parser GTY(())
 
 static GTY (()) c_parser *the_parser;
 
+
 /* Read in and lex a single token, storing it in *TOKEN.  */
 
 static void

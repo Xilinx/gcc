@@ -4905,8 +4905,6 @@ grokdeclarator (const struct c_declarator *declarator,
 
 	type = c_build_qualified_type (type, type_quals);
 
-	/* FIXME: Pointer variables in other address spaces may not be
-	   defined.  */
 	if (POINTER_TYPE_P (type) && TYPE_ADDR_SPACE (type) && !extern_ref)
 	  error ("%qs variable %qs must be extern", 
 		 targetm.addr_space_name (TYPE_ADDR_SPACE (type)), name);
