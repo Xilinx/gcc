@@ -1,4 +1,11 @@
 2008-08-20  Sebastian Pop  <sebastian.pop@amd.com>
+	    Dwarakanath Rajagopal  <dwarak.rajagopal@amd.com>
+
+	* graphite.c (loop_affine_expr): Check for DECL_P or struct
+	assignments that are not handled as simple operands for now.
+
+2008-08-20  Sebastian Pop  <sebastian.pop@amd.com>
+	    Dwarakanath Rajagopal  <dwarak.rajagopal@amd.com>
 
 	* graphite.c (build_scop_bbs): Factor up code.
 

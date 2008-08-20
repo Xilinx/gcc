@@ -956,8 +956,17 @@ loop_affine_expr (struct loop *outermost_loop, struct loop *loop, tree expr)
 static bool
 is_simple_operand (loop_p loop, gimple stmt, tree op) 
 {
-  return !((handled_component_p (op) || INDIRECT_REF_P (op))
-	   && !stmt_simple_memref_p (loop, stmt, op));
+  /* It is not a simple operand when it is a declaration,  */
+  if (DECL_P (op)
+      /* or a structure,  */
+      || AGGREGATE_TYPE_P (TREE_TYPE (op))
+      /* or a memory access that cannot be analyzed by the data
+	 reference analysis.  */
+      || ((handled_component_p (op) || INDIRECT_REF_P (op))
+	  && !stmt_simple_memref_p (loop, stmt, op)))
+    return false;
+
+  return true;
 }
 
 /* Return true only when STMT is simple enough for being handled by Graphite.
