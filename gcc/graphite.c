@@ -1036,12 +1036,13 @@ stmt_simple_for_scop_p (struct loop *outermost_loop, gimple stmt)
       {
 	size_t i;
 	size_t n = gimple_call_num_args (stmt);
+	tree lhs = gimple_call_lhs (stmt);
 
 	for (i = 0; i < n; i++)
 	  {
 	    tree arg = gimple_call_arg (stmt, i);
 
-	    if (!(is_simple_operand (loop, stmt, gimple_call_lhs (stmt))
+	    if (!(is_simple_operand (loop, stmt, lhs)
 		  && is_simple_operand (loop, stmt, arg)))
 	      return false;
 	  }
@@ -1160,19 +1161,21 @@ free_scops (VEC (scop_p, heap) *scops)
   VEC_free (scop_p, heap, scops);
 }
 
-#define GBB_UNKNOWN 0
-#define GBB_LOOP_SING_EXIT_HEADER 1
-#define GBB_LOOP_MULT_EXIT_HEADER 2
-#define GBB_LOOP_EXIT 3
-#define GBB_COND_HEADER 5
-#define GBB_SIMPLE 6
-#define GBB_LAST 7
+typedef enum gbb_type {
+  GBB_UNKNOWN,
+  GBB_LOOP_SING_EXIT_HEADER,
+  GBB_LOOP_MULT_EXIT_HEADER,
+  GBB_LOOP_EXIT,
+  GBB_COND_HEADER,
+  GBB_SIMPLE,
+  GBB_LAST
+} gbb_type;
 
 /* Detect the type of the bb.  Loop headers are only marked, if they are new.
    This means their loop_father is different to last_loop.  Otherwise they are
    treated like any other bb and their type can be any other type.  */
 
-static int
+static gbb_type
 get_bb_type (basic_block bb, struct loop *last_loop)
 {
   VEC (basic_block, heap) *dom;
@@ -1217,31 +1220,6 @@ move_scops (VEC (scop_p, heap) **source, VEC (scop_p, heap) **target)
   VEC_free (scop_p, heap, *source);
 }
 
-/* Check if 'exit_bb' is a bb, which follows a loop exit edge.
-   ???  Move to cfgloop.c  */ 
-
-static bool
-is_loop_exit (struct loop *loop, basic_block exit_bb)
-{
-  int i;
-  VEC (edge, heap) *exits;
-  edge e;
-  bool is_exit = false;
-
-  if (loop_outer (loop) == NULL)
-    return false;
- 
-  exits = get_loop_exit_edges (loop);
-  
-  for (i = 0; VEC_iterate (edge, exits, i, e); i++)
-    if (e->dest == exit_bb)
-      is_exit = true;
-
-  VEC_free (edge, heap, exits);
-
-  return is_exit;
-}
-
 struct scopdet_info
 {
   basic_block last;
@@ -1261,7 +1239,7 @@ static struct scopdet_info build_scops_1 (basic_block, VEC (scop_p, heap) **,
 /* Checks, if a bb can be added to a SCoP.  */
 static struct scopdet_info 
 scopdet_bb_info (basic_block bb, struct loop *outermost_loop,
-	         VEC (scop_p, heap) **scops, int type, gimple *stmt)
+	         VEC (scop_p, heap) **scops, gbb_type type, gimple *stmt)
 	       
 {
   struct loop *loop = bb->loop_father;
@@ -1491,9 +1469,7 @@ scopdet_bb_info (basic_block bb, struct loop *outermost_loop,
 static void
 end_scop (scop_p scop, basic_block exit, basic_block *last, gimple stmt)
 {
-  /* XXX: Disable bb splitting, contains a bug (SIGSEGV in polyhedron
-     aermod.f90).  */
-  if (0 && stmt && VEC_length (edge, exit->preds) == 1)
+  if (stmt && VEC_length (edge, exit->preds) == 1)
     {
       edge e;
 
@@ -1540,7 +1516,7 @@ build_scops_1 (basic_block start, VEC (scop_p, heap) **scops,
      layer and can only be added, if all bbs in deeper layers are simple.  */
   while (current != NULL)
     {
-      int type = get_bb_type (current, loop);
+      gbb_type type = get_bb_type (current, loop);
 
       sinfo = scopdet_bb_info (current, outermost_loop, scops, type,
 			       &stmt);  

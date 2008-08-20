@@ -1,4 +1,15 @@
 2008-08-20  Sebastian Pop  <sebastian.pop@amd.com>
+	    Dwarakanath Rajagopal  <dwarak.rajagopal@amd.com>
+
+	* graphite.c (stmt_simple_for_scop_p): Factor code out
+	of the loop.
+	(enum gbb_type): New.  Group all the GBB_* types under it.
+	(is_loop_exit): Moved...
+	(end_scop): Enable BB spliting.
+	* cfgloop.c (is_loop_exit): ...here.  Reimplemented.
+	* cfgloop.h (is_loop_exit): Declared.
+
+2008-08-20  Sebastian Pop  <sebastian.pop@amd.com>
 
 	* doc/invoke.texi: Remove strides from examples containing
 	DO loops when the strides are equal to 1.
@@ -19,7 +30,7 @@
 
 2008-08-20  Sebastian Pop  <sebastian.pop@amd.com>
 
-	* tree-data-ref.c (stmt_simple_memref_p): New.
+	* tree-data-ref.c) (stmt_simple_memref_p): New.
 	* tree-data-ref.h (stmt_simple_memref_p): Declared.
 	* graphite.c (stmt_simple_memref_for_scop_p): Removed.
 	(is_simple_operand): Call stmt_simple_memref_p.
