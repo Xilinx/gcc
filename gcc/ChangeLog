@@ -1,5 +1,54 @@
 2008-08-20  Ben Elliston  <bje@au.ibm.com>
 
+	* config.gcc (spu-*-elf*): Add spu_cache.h to extra_headers.
+	* config/spu/spu-c.c (spu_cpu_cpp_builtins): Define __EA32__ or
+	__EA64__, depending on the ea pointer size.  *
+	* config/spu/spu-elf.h (DRIVER_SELF_SPECS): Link the right
+	gcc_cache library depending on the -mcache-size and
+	-matomic-updates option given.
+	(LIB_SPEC): Link gcc_cachemgr library.
+	* config/spu/spu.c (struct spu_address_space): New.
+	(spu_address_spaces): New table.
+	(TARGET_ADDR_SPACE_POINTER_MODE): Define.
+	(TARGET_ADDR_SPACE_NUMBER): Likewise.
+	(TARGET_ADDR_SPACE_CONVERSION_RTL): Likewise.
+	(TARGET_VALID_POINTER_MODE): Likewise.
+	(TARGET_VALID_ADDR_SPACE): Likewise.
+	(ea_symbol_ref): New.
+	(spu_legitimate_constant_p): Reject __ea qualified references.
+	(spu_legitimate_address): Keep __ea references until reload.
+	(EAmode): Define.
+	(cache_fetch, cache_fetch_dirty, ea_alias_set): New variables.
+	(ea_load_store): New function.
+	(ea_load_store_inline): Likewise.
+	(expand_ea_mem): Likewise.
+	(spu_expand_mov): Handle __ea memory operands.
+	(spu_ea_pointer_mode): New function.
+	(spu_valid_pointer_mode): Likewise.
+	(spu_addr_space_name): Likewise.
+	(spu_addr_space_conversion_rtl): Likewise.
+	(spu_valid_addr_space): Likewise.
+	(spu_addr_space_number): Likewise.
+	* config/spu/spu.h (ASM_OUTPUT_SYMBOL_REF): New macro.
+	* config/spu/spu.md (to_ea): New expander.
+	(from_ea): Likewise.
+	* config/spu/spu.opt (mea32, mea64): New options.
+	* config/spu/spu_mfcio.h: New typedef.
+	* config/spu/t-spu-elf (MULTILIB_OPTIONS): Add mea64.
+	(EXTRA_MULTILIB_PARTS): Add cache libraries.
+	(cachemgr.o, %/cachemgr.o): New targets.
+	(cachemgr_nonatomic.o, %/cachemgr_nonatomic.o): Likewise.
+	(libgcc_%.a, %/libgcc_%.a): Likewise.
+	(cache8k.o, cache16k.o, cache32k.o, etc): Likewise.
+	(%/cache8k.o, %/cache16k.o, %/cache32k.o, etc): Likewise.
+	* config/spu/cache.S: New file.
+	* config/spu/cachemgr.c: Likewise.
+	* config/spu/spu_cache.h: Likewise.
+	* doc/invoke.texi (SPU Options): Document -mea32, -mea64,
+	-mcache-size and -matomic-updates options.
+
+2008-08-20  Ben Elliston  <bje@au.ibm.com>
+
 	* c-decl.c: Include targhooks.h.
 	(shadow_tag_warned): Include declspecs->address_space.
 	(quals_from_declspecs): Encode address space number into quals.
