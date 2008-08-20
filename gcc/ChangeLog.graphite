@@ -1,3 +1,8 @@
+2008-08-20  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* doc/invoke.texi: Remove strides from examples containing
+	DO loops when the strides are equal to 1.
+
 2008-08-20  Harsha Jagasia  <harsha.jagasia@amd.com>
 	    Dwarakanath Rajagopal  <dwarak.rajagopal@amd.com>
 

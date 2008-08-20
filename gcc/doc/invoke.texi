@@ -5947,16 +5947,16 @@ Perform loop interchange transformations on loops.  Interchanging two
 nested loops switches the inner and outer loops.  For example, given a
 loop like:
 @smallexample
-DO J = 1, M, 1
-  DO I = 1, N, 1
+DO J = 1, M
+  DO I = 1, N
     A(J, I) = A(J, I) * C
   ENDDO
 ENDDO
 @end smallexample
 loop interchange will transform the loop as if the user had written:
 @smallexample
-DO I = 1, N, 1
-  DO J = 1, M, 1
+DO I = 1, N
+  DO J = 1, M
     A(J, I) = A(J, I) * C
   ENDDO
 ENDDO
@@ -5974,14 +5974,14 @@ splits a loop into two nested loops.  The outer loop has strides
 equal to the strip size and the inner loop has strides of the 
 original loop within a strip.  For example, given a loop like:
 @smallexample
-DO I = 1, N, 1
+DO I = 1, N
   A(I) = A(I) + C
 ENDDO
 @end smallexample
 loop strip mining will transform the loop as if the user had written:
 @smallexample
 DO II = 1, N, 4
-  DO I = II, min (II + 4, N), 1
+  DO I = II, min (II + 4, N)
     A(I) = A(I) + C
   ENDDO
 ENDDO
@@ -5994,8 +5994,8 @@ Perform loop blocking transformations on loops.  Blocking strip mines
 each loop in the loop nest such that the memory accesses of the
 element loops fit inside caches.  For example, given a loop like:
 @smallexample
-DO I = 1, N, 1
-  DO J = 1, M, 1
+DO I = 1, N
+  DO J = 1, M
     A(J, I) = B(I) + C(J)
   ENDDO
 ENDDO
@@ -6004,8 +6004,8 @@ loop blocking will transform the loop as if the user had written:
 @smallexample
 DO II = 1, N, 64
   DO JJ = 1, M, 64
-    DO I = II, min (II + 64, N), 1
-      DO J = JJ, min (JJ + 64, M), 1
+    DO I = II, min (II + 64, N)
+      DO J = JJ, min (JJ + 64, M)
         A(J, I) = B(I) + C(J)
       ENDDO
     ENDDO
