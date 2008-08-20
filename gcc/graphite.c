@@ -1635,34 +1635,20 @@ build_scop_bbs (scop_p scop)
 
       /* First push the blocks that have to be processed last.  */
       FOR_EACH_EDGE (e, ei, bb->succs)
-	if (! TEST_BIT (visited, e->dest->index)
-	    && (int) loop_depth (e->dest->loop_father) < depth)
-	  stack[sp++] = e->dest;
+	{
+	  int dest_depth;
 
-      FOR_EACH_EDGE (e, ei, bb->succs)
-	if (! TEST_BIT (visited, e->dest->index)
-	    && (int) loop_depth (e->dest->loop_father) == depth
-	    && e->dest->loop_father->num != num)
-	  stack[sp++] = e->dest;
+	  if (TEST_BIT (visited, e->dest->index))
+	    continue;
 
-      FOR_EACH_EDGE (e, ei, bb->succs)
-	if (! TEST_BIT (visited, e->dest->index)
-	    && (int) loop_depth (e->dest->loop_father) == depth
-	    && e->dest->loop_father->num == num
-	    && EDGE_COUNT (e->dest->preds) > 1)
-	  stack[sp++] = e->dest;
-
-      FOR_EACH_EDGE (e, ei, bb->succs)
-	if (! TEST_BIT (visited, e->dest->index)
-	    && (int) loop_depth (e->dest->loop_father) == depth
-	    && e->dest->loop_father->num == num
-	    && EDGE_COUNT (e->dest->preds) == 1)
-	  stack[sp++] = e->dest;
-
-      FOR_EACH_EDGE (e, ei, bb->succs)
-	if (! TEST_BIT (visited, e->dest->index)
-	    && (int) loop_depth (e->dest->loop_father) > depth)
-	  stack[sp++] = e->dest;
+	  dest_depth = (int) loop_depth (e->dest->loop_father);
+	  if (dest_depth != depth
+	      || (dest_depth == depth
+		  && (e->dest->loop_father->num != num
+		      || (e->dest->loop_father->num == num
+			  && EDGE_COUNT (e->dest->preds) >= 1))))
+	    stack[sp++] = e->dest;
+	}
     }
 
   free (stack);

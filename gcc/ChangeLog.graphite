@@ -1,4 +1,8 @@
 2008-08-20  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite.c (build_scop_bbs): Factor up code.
+
+2008-08-20  Sebastian Pop  <sebastian.pop@amd.com>
 	    Dwarakanath Rajagopal  <dwarak.rajagopal@amd.com>
 
 	* graphite.c (stmt_simple_for_scop_p): Factor code out
