@@ -1352,8 +1352,9 @@ scop_record_loop (scop_p scop, struct loop *loop)
 	oldiv->name = IDENTIFIER_POINTER (DECL_NAME (oldiv->t));
       else
 	{
-	  oldiv->name = XNEWVEC (char, 16);
-	  sprintf (oldiv->name, "D.%u", DECL_UID (oldiv->t));
+	  char *n = XNEWVEC (char, 16);
+	  sprintf (n, "D.%u", DECL_UID (oldiv->t));
+	  oldiv->name = n;
 	}
       oldiv->loop = loop;
 

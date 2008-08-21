@@ -1,3 +1,7 @@
+2008-08-21  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite.c (scop_record_loop): Fix compile warning.
+
 2008-08-21  Harsha Jagasia  <harsha.jagasia@amd.com>
 	    Sebastian Pop  <sebastian.pop@amd.com>
 
