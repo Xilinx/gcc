@@ -19,6 +19,15 @@
 # Load support procs.
 load_lib gfortran-dg.exp
 
+if ![check_effective_target_fgraphite] {
+  return
+}
+
+# The default action for a test is 'compile'.  Save current default.
+global dg-do-what-default
+set save-dg-do-what-default ${dg-do-what-default}
+set dg-do-what-default compile
+
 # If a testcase doesn't have special options, use these.
 set DEFAULT_GRAPHITE_FLAGS ""
 
@@ -32,6 +41,8 @@ gfortran-dg-runtest [lsort \
 gfortran-dg-runtest [lsort \
        [glob -nocomplain $srcdir/$subdir/g77/*.\[fF\] ] ] $DEFAULT_GRAPHITE_FLAGS
 
+# Clean up.
+set dg-do-what-default ${save-dg-do-what-default}
 
 # All done.
 dg-finish

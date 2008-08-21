@@ -1,4 +1,3 @@
-/* { dg-do compile } */ 
 /* { dg-options "-O2 -fgraphite -fdump-tree-graphite-all" } */
 
 float A[1000][1000], B[1000][1000], C[1000][1000];

@@ -1,4 +1,3 @@
-! { dg-do compile } 
 ! { dg-options "-O2 -floop-block -fdump-tree-graphite-all" } 
 
 subroutine matrix_multiply(a,b,c,n)

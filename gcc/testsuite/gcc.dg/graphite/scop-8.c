@@ -1,4 +1,3 @@
-/* { dg-do compile } */ 
 /* { dg-options "-O2 -fgraphite -fdump-tree-graphite-all" } */
 
 int bar (void);

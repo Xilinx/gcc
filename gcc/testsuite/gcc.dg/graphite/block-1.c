@@ -1,4 +1,3 @@
-/* { dg-do compile } */ 
 /* { dg-options "-O2 -floop-block -fdump-tree-graphite-all" } */
 
 #define MAX 8192
@@ -28,5 +27,5 @@ int main()
   return sum;
 }
 
-/* { dg-final { scan-graphite-dump-times "Loop blocked" 3 "graphite"} } */ 
+/* { dg-final { scan-tree-dump-times "Loop blocked" 3 "graphite"} } */ 
 /* { dg-final { cleanup-tree-dump "graphite" } } */

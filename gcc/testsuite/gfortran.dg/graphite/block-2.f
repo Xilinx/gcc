@@ -1,4 +1,3 @@
-! { dg-do compile } 
 ! { dg-options "-O2 -floop-block -fdump-tree-graphite-all" } 
 
       SUBROUTINE MATRIX_MUL_UNROLLED (A, B, C, L, M, N)

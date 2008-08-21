@@ -1,4 +1,3 @@
-/* { dg-do compile } */ 
 /* { dg-options "-O2 -floop-block -fdump-tree-graphite-all" } */
 
 #define N 24

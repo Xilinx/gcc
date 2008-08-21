@@ -1,4 +1,3 @@
-/* { dg-do compile } */ 
 /* { dg-options "-O -floop-block -fdump-tree-graphite-all" } */
 
 #define N 1000
@@ -22,5 +21,5 @@ main()
   return toto();
 }
 
-/* { dg-final { scan-graphite-dump-times "Loop blocked" 1 "graphite"} } */ 
+/* { dg-final { scan-tree-dump-times "Loop blocked" 1 "graphite"} } */ 
 /* { dg-final { cleanup-tree-dump "graphite" } } */

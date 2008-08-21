@@ -1,4 +1,3 @@
-/* { dg-do compile } */ 
 /* { dg-options "-O2 -fgraphite -fdump-tree-graphite-all" } */
 
 int toto()
@@ -27,5 +26,5 @@ int toto()
   return a[3][5] + b[1];
 }
 
-/* { dg-final { scan-graphite-dump-times "number of SCoPs: 3" 1 "graphite"} } */ 
+/* { dg-final { scan-tree-dump-times "number of SCoPs: 3" 1 "graphite"} } */ 
 /* { dg-final { cleanup-tree-dump "graphite" } } */
