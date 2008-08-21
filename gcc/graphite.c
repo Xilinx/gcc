@@ -2702,11 +2702,12 @@ clast_to_gcc_expression (struct clast_expr *e, tree type,
 		}
 	      else 
 		{
-		  gcc_assert (r->n >= 1);
-		  gcc_assert (r->elts[0]->type == expr_term);
+		  gcc_assert (r->n >= 1
+			      && r->elts[0]->type == expr_term
+			      && r->elts[1]->type == expr_term);
+
 		  left = clast_to_gcc_expression (r->elts[0], type, params,
 						  ivstack);
-		  gcc_assert (r->elts[1]->type == expr_term);
 		  right = clast_to_gcc_expression (r->elts[1], type, params,
 						   ivstack);
 		  return fold_build2 (PLUS_EXPR, type, left, right);
@@ -2798,8 +2799,8 @@ graphite_create_new_loop (scop_p scop, edge entry_edge,
   tree stride, lowb, upb;
   tree iv_before;
 
-  gcc_assert (stmt->LB != NULL);
-  gcc_assert (stmt->UB != NULL);
+  gcc_assert (stmt->LB != NULL
+	      && stmt->UB != NULL);
 
   stride = gmp_cst_to_tree (stmt->stride);
   lowb = clast_to_gcc_expression (stmt->LB, integer_type_node,
@@ -3547,13 +3548,19 @@ gloog (scop_p scop, struct clast_stmt *stmt)
   delete_unreachable_blocks();
   mark_old_loops (scop);
   remove_dead_loops ();
+
+#ifdef ENABLE_CHECKING
   verify_loop_structure ();
-  calculate_dominance_info (CDI_DOMINATORS);
-  calculate_dominance_info (CDI_POST_DOMINATORS); 
+  verify_dominators (CDI_DOMINATORS);
+  verify_dominators (CDI_POST_DOMINATORS);
+#endif
+
   rewrite_into_loop_closed_ssa (NULL, TODO_update_ssa);
   update_ssa (TODO_update_ssa);
+
+#ifdef ENABLE_CHECKING
   verify_ssa (false);
-  estimate_bb_frequencies ();
+#endif
 }
 
 /* Returns the number of data references in SCOP.  */
@@ -3703,8 +3710,8 @@ graphite_trans_bb_move_loop (graphite_bb_p gb, int loop,
   int row, j;
   loop_p tmp_loop_p;
 
-  gcc_assert (loop < gbb_nb_loops (gb));
-  gcc_assert (new_loop_pos < gbb_nb_loops (gb));
+  gcc_assert (loop < gbb_nb_loops (gb)
+	      && new_loop_pos < gbb_nb_loops (gb));
 
   /* Update LOOPS vector.  */
   tmp_loop_p = VEC_index (loop_p, GBB_LOOPS (gb), loop);

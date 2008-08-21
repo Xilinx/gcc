@@ -1,3 +1,10 @@
+2008-08-20  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite.c (clast_to_gcc_expression, graphite_create_new_loop,
+	graphite_trans_bb_move_loop): Factor asserts.
+	(gloog): Perform sanity checks only for ENABLE_CHECKING.
+	Do not call calculate_dominance_info and estimate_bb_frequencies.
+
 2008-08-20  Jan Sjodin  <jan.sjodin@amd.com>
 
 	* graphite.c (create_loops_mapping, free_loops_mapping,
