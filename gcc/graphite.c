@@ -1815,6 +1815,25 @@ save_var_name (char **nv, int i, name_tree p)
   p->name = nv[i];
 }
 
+/* Return the maximal loop depth in SCOP.  */
+
+static int
+scop_max_loop_depth (scop_p scop)
+{
+  int i;
+  graphite_bb_p gbb;
+  int max_nb_loops = 0;
+
+  for (i = 0; VEC_iterate (graphite_bb_p, SCOP_BBS (scop), i, gbb); i++) 
+    {    
+      int nb_loops = gbb_nb_loops (gbb);
+      if (max_nb_loops < nb_loops)
+        max_nb_loops = nb_loops;
+    }    
+
+  return max_nb_loops;
+}
+
 /* Initialize Cloog's parameter names from the names used in GIMPLE.
    Initialize Cloog's iterator names, using 'graphite_iterator_%d'
    from 0 to scop_nb_loops (scop).  */
@@ -2827,17 +2846,17 @@ graphite_create_new_loop (scop_p scop, edge entry_edge,
   return loop;
 }
 
-/* Remove all the edges from BB.  */
+/* Remove all the edges from EDGES except the edge KEEP.  */
 
 static void
-remove_all_edges (basic_block bb, edge construction_edge)
+remove_all_edges_1 (VEC (edge, gc) *edges, edge keep)
 {
   edge e;
   edge_iterator ei;
 
-  for (ei = ei_start (bb->succs); (e = ei_safe_edge (ei)); )
+  for (ei = ei_start (edges); (e = ei_safe_edge (ei)); )
     {
-      if (e != construction_edge)
+      if (e != keep)
 	{
 	  remove_edge (e);
 	  e = ei_safe_edge (ei);
@@ -2845,17 +2864,15 @@ remove_all_edges (basic_block bb, edge construction_edge)
       else
 	ei_next (&ei);
     }
+}
 
-  for (ei = ei_start (bb->preds); (e = ei_safe_edge (ei));)
-    {
-      if (e != construction_edge)
-	{
-	  remove_edge (e);
-	  e = ei_safe_edge (ei);
-	}
-      else
-	ei_next (&ei);
-    }
+/* Remove all the edges from BB except the edge KEEP.  */
+
+static void
+remove_all_edges (basic_block bb, edge keep)
+{
+  remove_all_edges_1 (bb->succs, keep);
+  remove_all_edges_1 (bb->preds, keep);
 }
 
 /* Returns the stack index for LOOP in GBB.  */
@@ -2959,16 +2976,10 @@ move_phi_nodes (scop_p scop, loop_p old_loop_father, basic_block from,
 static void
 remove_cond_exprs (basic_block bb)
 {
-  gimple_stmt_iterator gsi;
-
-  for (gsi = gsi_after_labels (bb); !gsi_end_p (gsi);)
+  if (gimple_code (last_stmt (bb)) == GIMPLE_COND)
     {
-      gimple stmt = gsi_stmt (gsi);
-
-      if (gimple_code (stmt) == GIMPLE_COND)
-	gsi_remove (&gsi, true);
-      else
-	gsi_next (&gsi);
+      gimple_stmt_iterator gsi = gsi_last_bb (bb);
+      gsi_remove (&gsi, true);
     }
 }
 
@@ -2996,7 +3007,7 @@ translate_clast (scop_p scop, struct loop *context_loop,
 
       if (bb == ENTRY_BLOCK_PTR)
 	return next_e;
-	
+
       remove_cond_exprs (bb);
       remove_all_edges (bb, next_e);
       move_phi_nodes (scop, old_loop_father, bb, next_e->src);	

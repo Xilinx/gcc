@@ -348,25 +348,6 @@ scop_nb_loops (scop_p scop)
   return VEC_length (loop_p, SCOP_LOOP_NEST (scop));
 }
 
-/* Return the maximal loop depth in SCOP.  */
-
-static int
-scop_max_loop_depth (scop_p scop)
-{
-  int i;
-  graphite_bb_p gbb;
-  int max_nb_loops = 0;
-
-  for (i = 0; VEC_iterate (graphite_bb_p, SCOP_BBS (scop), i, gbb); i++) 
-    {    
-      int nb_loops = gbb_nb_loops (gbb);
-      if (max_nb_loops < nb_loops)
-        max_nb_loops = nb_loops;
-    }    
-
-  return max_nb_loops;
-}
-
 /* Returns the number of parameters for SCOP.  */
 
 static inline unsigned

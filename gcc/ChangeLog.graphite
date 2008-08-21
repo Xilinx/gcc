@@ -1,5 +1,14 @@
 2008-08-20  Sebastian Pop  <sebastian.pop@amd.com>
 
+	* graphite.h (scop_max_loop_depth): Moved...
+	* graphite.c (scop_max_loop_depth): ...here.
+	(remove_all_edges_1): New.
+	(remove_all_edges): Factored code.
+	(remove_cond_exprs): Check only the last statement for
+	a GIMPLE_COND expression.
+
+2008-08-20  Sebastian Pop  <sebastian.pop@amd.com>
+
 	* graphite.c (scan_tree_for_params): Early return when the
 	expression is a chrec_dont_know.  Handle case NEGATE_EXPR.
 	(find_scop_parameters): Factor out code.
