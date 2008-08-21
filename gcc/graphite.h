@@ -20,15 +20,6 @@ along with GCC; see the file COPYING3.  If not see
 
 #include "tree-data-ref.h"
 
-typedef struct graphite_loop_node *graphite_loops_mapping;
-DEF_VEC_P(graphite_loops_mapping);
-DEF_VEC_ALLOC_P (graphite_loops_mapping, heap);
-struct graphite_loop_node
-{
-  int num;
-  VEC (graphite_loops_mapping, heap)* children;
-};
-
 /* Maps an index (in a domain matrix)  to a loop num */
 
 struct num_map
@@ -320,10 +311,6 @@ struct scop
   /* Loops completely contained in the scop.  */
   bitmap loops;
   VEC (loop_p, heap) *loop_nest;
-
-  /* Specifies for loop num in loops which corresponding loop depth
-     that num is mapped to in the transformed program */
-  graphite_loops_mapping loops_mapping;
 
   /* ???  It looks like a global mapping loop_id -> cloog_loop would work.  */
   htab_t loop2cloog_loop;

@@ -50,24 +50,6 @@ along with GCC; see the file COPYING3.  If not see
 
 static VEC (scop_p, heap) *current_scops;
 
-/* This "loop mapping stuff" is a tweak for dealing with the "dumb"
-   loop internal representation of CLooG.  CLooG represents the loops
-   by their depth and not uniquely as in a tree of loops.  For example
-
-   |for i
-   |  for j
-   |    for k
-   |for l
-   |  for m
-
-   the loops i and l are going to be represented as a single loop,
-   i.e. a loop at depth 1, but with a different static schedule as
-   loop l follows loop i.  Loops j and m are represented by a loop
-   depth 2, and loop k is at loop depth 3.  This should be cleaned up
-   in CLooG and not visible from GCC side.  */
-
-/* Prints the loop mapping of SCOP.  */
-void debug_loop_mapping (scop_p);
 void debug_loop_vec (graphite_bb_p gb);
 void debug_oldivs (scop_p);
 
@@ -102,326 +84,6 @@ void debug_loop_vec (graphite_bb_p gb)
     fprintf (stderr, "%d: %d, ", i, loop ? loop->num : -1);
 
   fprintf (stderr, "\n");
-}
-
-/* Creates an empty mapping.  */
-
-static graphite_loops_mapping
-create_loops_mapping (void)
-{
-  graphite_loops_mapping node = GGC_NEW (struct graphite_loop_node);
-  node->num = -1;
-  node->children = VEC_alloc (graphite_loops_mapping, heap, 3);
-  return node;
-}
-
-/* Free mapping.  */
-
-static void
-free_loops_mapping (graphite_loops_mapping lm)
-{
-  int i; 
-  graphite_loops_mapping lm_tmp;
-
-  for (i=0; VEC_iterate (graphite_loops_mapping, lm->children, i, lm_tmp); i++)
-    free_loops_mapping (lm_tmp);
-
-  VEC_free (graphite_loops_mapping, heap, lm->children); 
-}
-
-/* Creates a mapping for loop number NUM.  */
-
-static graphite_loops_mapping
-create_loops_mapping_num (int num)
-{
-  graphite_loops_mapping new_mapping = create_loops_mapping ();
-  new_mapping->num = num;
-  return new_mapping;
-}
-
-/* Debug recursive helper.  */
-
-static void
-debug_loop_mapping_1 (graphite_loops_mapping node, int depth)
-{
-  if (node != NULL)
-    {
-      int i;
-      graphite_loops_mapping child;
-
-      if (node->num != -1)
-	fprintf (stderr, "%d: %d\n", node->num , depth);
-
-      for (i = 0;
-	   VEC_iterate (graphite_loops_mapping, node->children, i, child);
-	   i++)
-	debug_loop_mapping_1 (child, depth+1);
-    }
-}
-
-/* Debugs the loop mapping for SCOP.  */
-
-void
-debug_loop_mapping (scop_p scop)
-{
-  graphite_loops_mapping mapping = SCOP_LOOPS_MAPPING (scop);
-
-  fprintf (stderr, "Mapping:\n");
-  debug_loop_mapping_1 (mapping, -1);
-  fprintf (stderr, "\n");
-}
-
-/* Get maximum loop num in mapping.  */
-
-static int
-graphite_loops_mapping_max_loop_num (graphite_loops_mapping mapping)
-{
-  int result = -1;
-  int i;
-
-  if (mapping != NULL)
-    {
-      graphite_loops_mapping child;
-
-      result = mapping->num;
-
-      for (i = 0;
-	   VEC_iterate (graphite_loops_mapping, mapping->children, i, child);
-	   i++)
-	{
-	  int max_child = graphite_loops_mapping_max_loop_num(child);
-
-	  result = result < max_child ? max_child : result;
-	}
-    }
-  return result;
-}
-
-/* Gets the loop mapping for loop number NUM.  */
-
-static graphite_loops_mapping
-get_loop_mapping_for_num (graphite_loops_mapping mapping, int num)
-{
-  graphite_loops_mapping result = NULL;
-
-  if (mapping->num == num)
-    return mapping;
-  else 
-    {
-      int i;
-      graphite_loops_mapping child;
-
-      for (i = 0;
-	   VEC_iterate (graphite_loops_mapping, mapping->children, i, child);
-	   i++)
-	{
-	  result = get_loop_mapping_for_num (child, num);
-	  if (result)
-	    return result;
-	}
-    }
-
-  return NULL;
-}
-
-/* Add CHILD mapping to PARENT.  */
-
-static void
-graphite_loops_mapping_add_child (graphite_loops_mapping parent,
-				  graphite_loops_mapping child)
-{
-  VEC_safe_push (graphite_loops_mapping, heap, parent->children, child);
-}
-
-/* Adds CHILD_NUM under PARENT.  */
-
-static void
-graphite_loops_mapping_add_child_num (graphite_loops_mapping parent,
-				      int child_num)
-{
-  graphite_loops_mapping child = create_loops_mapping_num (child_num);
-  graphite_loops_mapping_add_child (parent, child);
-}
-
-/* Insert NEW_CHILD_NUM under PARENT_NUM in the SCOP loop mapping.  */
-
-static void
-graphite_loops_mapping_insert_child (scop_p scop, int parent_num,
-				     int new_child_num)
-{
-  graphite_loops_mapping parent = SCOP_LOOPS_MAPPING (scop);
-  if (parent_num != -1) 
-    parent = get_loop_mapping_for_num (parent, parent_num);
-  graphite_loops_mapping_add_child_num (parent, new_child_num);
-}
-
-/* Returns the mapping for the parent of CHILD_NUM.  */
-
-static graphite_loops_mapping
-graphite_loops_mapping_parent (graphite_loops_mapping mapping, int child_num)
-{
-  graphite_loops_mapping result;
-  if (mapping == NULL)
-    return NULL;
-  else
-    {
-      int i;
-      graphite_loops_mapping child;
-      
-      for (i = 0;
-	   VEC_iterate (graphite_loops_mapping, mapping->children, i, child);
-	   i++)
-	{
-	  if (child->num  == child_num)
-	    return mapping;
-	  result = 
-	    graphite_loops_mapping_parent (child, child_num);
-	  if (result != NULL)
-	    return result;
-	}
-      return NULL;
-    }
-}
-
-/* Returns the mapped index of the loop NUM.  */
-
-static int 
-get_loop_mapped_depth_for_num (graphite_loops_mapping mapping, int num)
-{
-  if (mapping == NULL)
-    return -1;
-  else if (mapping->num == num)
-    return 0;
-  else
-    {
-      int result = -1;
-      int i;
-      graphite_loops_mapping child;
-      
-      for (i = 0;
-	   VEC_iterate (graphite_loops_mapping, mapping->children, i, child);
-	   i++)
-	if (result == -1)
-	  result = get_loop_mapped_depth_for_num (child, num);
-      
-      return (result == -1) ? result : result + 1;
-    }
-  return -1;
-}
-
-/* Get the mapped depth for LOOP.  */
-
-static int
-get_loop_mapped_depth (scop_p scop, struct loop *loop)
-{
-  int num = loop->num;
-  int depth = get_loop_mapped_depth_for_num (SCOP_LOOPS_MAPPING (scop), num);
-
-  if (depth == -1)
-    return loop_depth(loop)-1;
-  else
-    /* Compensate for root node */
-    return depth-1;
-}
-
-/* Set the mapping NUM for loop at DEPTH.  */
-
-static void
-split_loop_mapped_depth_for_num (graphite_loops_mapping mapping, int new_num,
-				 int num, 
-				 graphite_loops_mapping pred, int child_index)
-{
-  
-  if(mapping->num == num)
-    {
-      graphite_loops_mapping new_node = create_loops_mapping ();
-      graphite_loops_mapping split_node = VEC_index (graphite_loops_mapping,
-						     pred->children,
-						     child_index);
-      graphite_loops_mapping_add_child (new_node, split_node);
-      new_node->num = new_num;
-      VEC_replace (graphite_loops_mapping, pred->children, child_index,
-		   new_node);
-    }
-  else
-    {
-      int i;
-      graphite_loops_mapping child;
-
-      for (i = 0;
-	   VEC_iterate (graphite_loops_mapping, mapping->children, i, child);
-	   i++)
-	split_loop_mapped_depth_for_num (child, new_num, num, mapping, i);
-    }
-}
-
-static void
-loop_mapped_depth_split_loop (scop_p scop, int new_num, loop_p loop)
-{
-  split_loop_mapped_depth_for_num (SCOP_LOOPS_MAPPING (scop), new_num,
-				   loop->num, NULL, false);
-}
-
-/* Swap mapped locations for loops NUM1 and NUM2.  */
-
-static void swap_loop_mapped_depth_for_num (scop_p scop, int num1, int num2)
-{
-  graphite_loops_mapping mapping = SCOP_LOOPS_MAPPING (scop);
-  graphite_loops_mapping num1_node = get_loop_mapping_for_num (mapping, num1);
-  graphite_loops_mapping num2_node = get_loop_mapping_for_num (mapping, num2);
-  num1_node->num = num2;
-  num2_node->num = num1;
-}
-
-
-/* Create a new loop num for GB.  */
-
-static int
-create_num_from_index (graphite_bb_p gb, int index)
-{
-  graphite_loops_mapping m = SCOP_LOOPS_MAPPING (GBB_SCOP (gb));
-  int max_num = graphite_loops_mapping_max_loop_num (m);
-  int new_num = max_num + 1;
-  num_map_p new_index_num = GGC_NEW (struct num_map);
-  if (GBB_INDEX_TO_NUM_MAP(gb) == NULL)
-    GBB_INDEX_TO_NUM_MAP(gb) = VEC_alloc (num_map_p, heap, 3);
-  
-  new_index_num->index = index;
-  new_index_num->num = new_num;
-  VEC_safe_push (num_map_p, heap, GBB_INDEX_TO_NUM_MAP (gb), new_index_num);
-  return new_num;
-}
-
-/* Get the id number of a loop from its INDEX.  */
-
-static int
-get_num_from_index (graphite_bb_p gb, int index)
-{
-  int i;
-  num_map_p index_num;
-
-  for (i = 0;
-       VEC_iterate (num_map_p, GBB_INDEX_TO_NUM_MAP (gb), i, index_num);
-       i++)
-    if (index == index_num->index)
-      return index_num->num;
-
-  gcc_unreachable();
-}
-
-/* Swap mapped locations for loops at DEPTH1 and DEPTH2.  */
-
-static void 
-swap_loop_mapped_depth (scop_p scop, graphite_bb_p gb, int depth1, int depth2)
-{
-  loop_p loop1 = gbb_loop_at_index (gb, depth1);
-  loop_p loop2 = gbb_loop_at_index (gb, depth2);
-  int num1 = (loop1 == NULL) ? get_num_from_index (gb, depth1 + 1)
-    : loop1->num;
-  int num2 = (loop2 == NULL) ? get_num_from_index (gb, depth2 + 1)
-    : loop2->num;
-
-  swap_loop_mapped_depth_for_num (scop, num1, num2);
 }
 
 typedef VEC(name_tree, heap) **loop_iv_stack;
@@ -1105,7 +767,6 @@ new_scop (basic_block entry)
   SCOP_LOOP2CLOOG_LOOP (scop) = htab_create (10, hash_loop_to_cloog_loop,
 					     eq_loop_to_cloog_loop,
 					     free);
-  SCOP_LOOPS_MAPPING (scop) = create_loops_mapping ();
   return scop;
 }
 
@@ -1151,7 +812,6 @@ free_scop (scop_p scop)
 
   VEC_free (name_tree, heap, SCOP_PARAMS (scop));
   cloog_program_free (SCOP_PROG (scop));
-  free_loops_mapping (SCOP_LOOPS_MAPPING (scop));
   htab_delete (SCOP_LOOP2CLOOG_LOOP (scop)); 
   free (scop);
 }
@@ -1682,8 +1342,6 @@ scop_record_loop (scop_p scop, struct loop *loop)
 
   if (!bb_in_scop_p (parent->latch, scop))
     parent = NULL;
-  graphite_loops_mapping_insert_child (scop, parent ? parent->num : -1,
-				       loop->num);
 
   if (induction_var != NULL_TREE)
     {
@@ -3193,19 +2851,27 @@ remove_all_edges (basic_block bb, edge construction_edge)
     }
 }
 
-/* Get the new IV stack index from the old IV.  */
+/* Returns the stack index for LOOP in GBB.  */
 
-static int
-graphite_get_new_iv_stack_index_from_old_iv (scop_p scop, loop_p old_loop)
+static int 
+get_stack_index_from_iv (graphite_bb_p gbb, loop_p loop)
 {
-  int stack_index = get_loop_mapped_depth (scop, old_loop);
-  return stack_index;
+  int i;
+  loop_p current_loop;
+
+  for (i = 0; VEC_iterate (loop_p, GBB_LOOPS (gbb), i, current_loop); i++)
+    if (loop == current_loop)
+      return i;
+
+  gcc_unreachable();
+  return -1;
 }
 
 /* Rename the SSA_NAMEs used in STMT and that appear in IVSTACK.  */
 
 static void 
-graphite_rename_ivs_stmt (gimple stmt, scop_p scop, loop_p old_loop_father, loop_iv_stack ivstack)
+graphite_rename_ivs_stmt (gimple stmt, graphite_bb_p gbb, scop_p scop,
+			  loop_p old_loop_father, loop_iv_stack ivstack)
 {
   ssa_op_iter iter;
   use_operand_p use_p;
@@ -3218,8 +2884,7 @@ graphite_rename_ivs_stmt (gimple stmt, scop_p scop, loop_p old_loop_father, loop
       
       if (old_iv)
 	{
-	  int a = graphite_get_new_iv_stack_index_from_old_iv (scop,
-							       old_iv->loop);
+	  int a = get_stack_index_from_iv (gbb, old_iv->loop);
 	  new_iv = loop_iv_stack_get_iv (ivstack, a);
 	}
 
@@ -3249,7 +2914,7 @@ graphite_rename_ivs (graphite_bb_p gbb, scop_p scop, loop_p old_loop_father,
 	gsi_remove (&gsi, false);
       else
 	{
-	  graphite_rename_ivs_stmt (stmt, scop, old_loop_father, ivstack); 
+	  graphite_rename_ivs_stmt (stmt, gbb, scop, old_loop_father, ivstack); 
 	  gsi_next (&gsi);
 	}
 
@@ -4035,21 +3700,16 @@ graphite_trans_bb_move_loop (graphite_bb_p gb, int loop,
 			     int new_loop_pos)
 {
   CloogMatrix *domain = GBB_DOMAIN (gb);
-  scop_p scop = GBB_SCOP (gb);
   int row, j;
   loop_p tmp_loop_p;
 
   gcc_assert (loop < gbb_nb_loops (gb));
   gcc_assert (new_loop_pos < gbb_nb_loops (gb));
 
-
-  swap_loop_mapped_depth (scop, gb, loop, new_loop_pos);
-
   /* Update LOOPS vector.  */
   tmp_loop_p = VEC_index (loop_p, GBB_LOOPS (gb), loop);
   VEC_ordered_remove (loop_p, GBB_LOOPS (gb), loop);
   VEC_safe_insert (loop_p, heap, GBB_LOOPS (gb), new_loop_pos, tmp_loop_p);
-
 
   /* Move the domain columns.  */
   if (loop < new_loop_pos)
@@ -4157,7 +3817,6 @@ static void
 graphite_trans_bb_strip_mine (graphite_bb_p gb, int loop_depth, int stride)
 {
   int row, col;
-  scop_p scop = GBB_SCOP (gb);
 
   CloogMatrix *domain = GBB_DOMAIN (gb);
   CloogMatrix *new_domain = cloog_matrix_alloc (domain->NbRows + 3,
@@ -4174,10 +3833,6 @@ graphite_trans_bb_strip_mine (graphite_bb_p gb, int loop_depth, int stride)
   gcc_assert (loop_depth <= gbb_nb_loops (gb) - 1);
 
   VEC_safe_insert (loop_p, heap, GBB_LOOPS (gb), loop_depth, NULL);
-
-  loop_mapped_depth_split_loop (scop, 
-				create_num_from_index (gb, col_loop_strip), 
-				gbb_loop_at_index(gb, loop_depth+1));
 
   GBB_DOMAIN (gb) = new_domain;
 

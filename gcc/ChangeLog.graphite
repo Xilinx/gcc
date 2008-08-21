@@ -1,3 +1,26 @@
+2008-08-20  Jan Sjodin  <jan.sjodin@amd.com>
+
+	* graphite.c (create_loops_mapping, free_loops_mapping,
+	create_loops_mapping_num, debug_loop_mapping_1,
+	debug_loop_mapping, graphite_loops_mapping_max_loop_num,
+	get_loop_mapping_for_num, graphite_loops_mapping_add_child,
+	graphite_loops_mapping_add_child_num,
+	graphite_loops_mapping_insert_child,
+	graphite_loops_mapping_parent, get_loop_mapped_depth_for_num,
+	get_loop_mapped_depth, split_loop_mapped_depth_for_num,
+	loop_mapped_depth_split_loop, swap_loop_mapped_depth_for_num,
+	create_num_from_index, get_num_from_index,
+	swap_loop_mapped_depth): Removed.
+	(new_scop): Do not initialize SCOP_LOOPS_MAPPING.
+	(free_scop): Do not call free_loops_mapping.
+	(graphite_get_new_iv_stack_index_from_old_iv): Renamed
+	get_stack_index_from_iv.  Use GBB_LOOPS instead of calling
+	get_loop_mapped_depth.
+	(graphite_trans_bb_move_loop): Do not update the loop mapping.
+	(graphite_trans_bb_strip_mine): Same.
+	* graphite.h (graphite_loops_mapping, graphite_loop_node): Removed.
+	(struct scop): Remove field loops_mapping.
+
 2008-08-20  Sebastian Pop  <sebastian.pop@amd.com>
 	    Dwarakanath Rajagopal  <dwarak.rajagopal@amd.com>
 
