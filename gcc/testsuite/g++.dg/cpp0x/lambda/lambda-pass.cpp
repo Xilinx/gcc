@@ -3,22 +3,18 @@
 #include <cassert>
 #include <algorithm>
 
-/*
 template <typename F, typename A1>
 void call(F f, const A1& arg1) {
   f(arg1);
 }
-*/
 
 int main() {
-  /*
   int i = 1;
   call(
       [&i] (int j) -> void { i = j; },
       2
   );
   assert(i == 2);
-  */
 
   int A[] = {1, 2, 3, 4};
   int sum = 0;
