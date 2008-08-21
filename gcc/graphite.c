@@ -1256,6 +1256,7 @@ build_graphite_bb (scop_p scop, basic_block bb)
 
   /* Build the new representation for the basic block.  */
   gb = XNEW (struct graphite_bb);
+  bb->aux = gb;
   GBB_BB (gb) = bb;
   GBB_SCOP (gb) = scop;
   GBB_DATA_REFS (gb) = NULL; 
@@ -1927,24 +1928,16 @@ nb_loops_around_gb (graphite_bb_p gb)
 
 /* Returns a graphite_bb from BB.  */
 
-static graphite_bb_p
-graphite_bb_from_bb (basic_block bb, scop_p scop)
+static inline graphite_bb_p
+gbb_from_bb (basic_block bb)
 {
-  graphite_bb_p gb;
-  int i;
-
-  for (i = 0; VEC_iterate (graphite_bb_p, SCOP_BBS (scop), i, gb); i++)
-    if (GBB_BB (gb) == bb)
-      return gb;
-
-  gcc_unreachable ();
-  return NULL;
+  return (graphite_bb_p) bb->aux;
 }
 
 /* Adds to all bb's in LOOP the DOMAIN.  */
 
 static void
-add_bb_domains (struct loop *loop, scop_p scop, CloogMatrix *domain)
+add_bb_domains (struct loop *loop, CloogMatrix *domain)
 {
   basic_block *bbs = get_loop_body (loop);
   unsigned i;
@@ -1952,7 +1945,7 @@ add_bb_domains (struct loop *loop, scop_p scop, CloogMatrix *domain)
   for (i = 0; i < loop->num_nodes; i++)
     if (bbs[i]->loop_father == loop)
       {
-        graphite_bb_p gbb = graphite_bb_from_bb (bbs[i], scop);
+        graphite_bb_p gbb = gbb_from_bb (bbs[i]);
         GBB_DOMAIN (gbb) = cloog_matrix_copy (domain);
       }
 
@@ -2049,7 +2042,7 @@ build_loop_iteration_domains (scop_p scop, struct loop *loop,
   if (nb_outer_loops != 0 && loop->next && loop_in_scop_p (loop->next, scop))
     build_loop_iteration_domains (scop, loop->next, outer_cstr, nb_outer_loops);
 
-  add_bb_domains (loop, scop, cstr);
+  add_bb_domains (loop, cstr);
 
   cloog_matrix_free (cstr);
 }
@@ -2270,7 +2263,7 @@ build_scop_conditions_1 (VEC (gimple, heap) **conditions,
     return;
 
   /* Record conditions in graphite_bb.  */
-  gbb = graphite_bb_from_bb (bb, scop);
+  gbb = gbb_from_bb (bb);
   GBB_CONDITIONS (gbb) = VEC_copy (gimple, heap, *conditions);
   GBB_CONDITION_CASES (gbb) = VEC_copy (gimple, heap, *cases);
 
@@ -4410,8 +4403,16 @@ graphite_transform_loops (void)
 	       VEC_length (scop_p, current_scops));
     }
 
-  free_scops (current_scops);
-  cloog_finalize ();
+  /* Cleanup.  */
+  {
+    basic_block bb;
+
+    FOR_EACH_BB (bb)
+      bb->aux = 0;
+
+    free_scops (current_scops);
+    cloog_finalize ();
+  }
 }
 
 #else /* If Cloog is not available: #ifndef HAVE_cloog.  */

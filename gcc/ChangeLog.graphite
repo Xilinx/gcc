@@ -1,3 +1,12 @@
+2008-08-21  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite.c (build_graphite_bb): Initialize bb->aux to
+	point to the graphite_bb_p.
+	(graphite_bb_from_bb): Renamed gbb_from_bb; returns the
+	content of bb->aux.
+	(add_bb_domains): Does not use the scop parameter.
+	(graphite_transform_loops): Clean bb->aux at the end.
+
 2008-08-20  Dwarakanath Rajagopal  <dwarak.rajagopal@amd.com>
 	    Sebastian Pop  <sebastian.pop@amd.com>
 
