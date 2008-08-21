@@ -1,3 +1,8 @@
+2008-08-21  Harsha Jagasia  <harsha.jagasia@amd.com>
+	    Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite.c (scop_record_loop): DECL_NAME can be NULL.
+
 2008-08-21  Sebastian Pop  <sebastian.pop@amd.com>
 
 	* graphite.c (build_graphite_bb): Initialize bb->aux to

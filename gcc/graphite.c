@@ -1348,7 +1348,13 @@ scop_record_loop (scop_p scop, struct loop *loop)
     {
       name_tree oldiv = XNEW (struct name_tree);
       oldiv->t = SSA_NAME_VAR (induction_var);
-      oldiv->name = IDENTIFIER_POINTER (DECL_NAME (oldiv->t));
+      if (DECL_NAME (oldiv->t))
+	oldiv->name = IDENTIFIER_POINTER (DECL_NAME (oldiv->t));
+      else
+	{
+	  oldiv->name = XNEWVEC (char, 16);
+	  sprintf (oldiv->name, "D.%u", DECL_UID (oldiv->t));
+	}
       oldiv->loop = loop;
 
       VEC_safe_push (name_tree, heap, SCOP_OLDIVS(scop), oldiv);
