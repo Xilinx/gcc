@@ -1542,9 +1542,12 @@ param_index (tree var, scop_p scop)
 
 static void
 scan_tree_for_params (scop_p s, tree e, CloogMatrix *c, int r, Value k,
-bool subtract)
+		      bool subtract)
 {
   int cst_col, param_col;
+
+  if (e == chrec_dont_know)
+    return;
 
   switch (TREE_CODE (e))
     {
@@ -1638,6 +1641,11 @@ bool subtract)
       scan_tree_for_params (s, TREE_OPERAND (e, 0), c, r, k, subtract);
       value_oppose (k, k);
       scan_tree_for_params (s, TREE_OPERAND (e, 1), c, r, k, subtract);
+      break;
+
+    case NEGATE_EXPR:
+      value_oppose (k, k);
+      scan_tree_for_params (s, TREE_OPERAND (e, 0), c, r, k, subtract);
       break;
 
     case SSA_NAME:
@@ -1862,28 +1870,26 @@ find_scop_parameters (scop_p scop)
   graphite_bb_p gb;
   unsigned i;
   struct loop *loop;
+  Value one;
+
+  value_init (one);
+  value_set_si (one, 1);
 
   /* Find the parameters used in the loop bounds.  */
   for (i = 0; VEC_iterate (loop_p, SCOP_LOOP_NEST (scop), i, loop); i++)
     {
       tree nb_iters = number_of_latch_executions (loop);
 
-      if (chrec_contains_symbols (nb_iters))
-	{
-          nb_iters = analyze_scalar_evolution (loop, nb_iters);
-          nb_iters = instantiate_scev (outermost_loop_in_scop (scop,
-							       loop->header),
-				       loop, nb_iters);
-          
-	  {
-	    Value one;
-	    value_init (one);
-	    value_set_si (one, 1);
-	    scan_tree_for_params (scop, nb_iters, NULL, 0, one, false);
-	    value_clear (one);
-	  }
-	}
+      if (!chrec_contains_symbols (nb_iters))
+	continue;
+
+      nb_iters = analyze_scalar_evolution (loop, nb_iters);
+      nb_iters = instantiate_scev (outermost_loop_in_scop (scop, loop->header),
+				   loop, nb_iters);
+      scan_tree_for_params (scop, nb_iters, NULL, 0, one, false);
     }
+
+  value_clear (one);
 
   /* Find the parameters used in data accesses.  */
   for (i = 0; VEC_iterate (graphite_bb_p, SCOP_BBS (scop), i, gb); i++)
@@ -3831,7 +3837,6 @@ graphite_trans_bb_strip_mine (graphite_bb_p gb, int loop_depth, int stride)
 
   int col_loop_old = loop_depth + 2; 
   int col_loop_strip = col_loop_old - 1;
-  /*int col_loc = col_loop_old + 1; */
 
   Value old_lower_bound;
   Value old_upper_bound;
