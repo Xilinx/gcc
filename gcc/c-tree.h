@@ -286,8 +286,8 @@ struct c_declspecs {
   BOOL_BITFIELD restrict_p : 1;
   /* Whether "_Sat" was specified.  */
   BOOL_BITFIELD saturating_p : 1;
-  /* Whether the declaration is in another address space.  */
-  unsigned char address_space;
+  /* The address space that the declaration belongs to.  */
+  addr_space_t address_space;
 };
 
 /* The various kinds of declarators in C.  */

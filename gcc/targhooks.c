@@ -703,16 +703,27 @@ default_builtin_vector_alignment_reachable (const_tree type, bool is_packed)
   return true;
 }
 
+/* The default hook for TARGET_ADDR_SPACE_NAME.  This hook should
+   never be called for targets with only a generic address space.  */
+
 const char *
 default_addr_space_name (int addrspace ATTRIBUTE_UNUSED)
 {
   gcc_unreachable ();
 }
 
-rtx (* default_addr_space_conversion_rtl (int from ATTRIBUTE_UNUSED, int to ATTRIBUTE_UNUSED)) (rtx, rtx)
+/* The default hook for TARGET_ADDR_SPACE_CONVERSION_RTL. This hook
+   should never be called for targets with only a generic address
+   space.  */
+
+rtx (* default_addr_space_conversion_rtl (int from ATTRIBUTE_UNUSED,
+					  int to ATTRIBUTE_UNUSED)) (rtx, rtx)
 {
   gcc_unreachable ();
 }
+
+/* The default hook for TARGET_ADDR_SPACE_NUMBER.  This hook should
+   never be called for targets with only a generic address space.  */
 
 unsigned char default_addr_space_number (const tree ident ATTRIBUTE_UNUSED)
 {

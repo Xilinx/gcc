@@ -1,3 +1,19 @@
+2008-08-22  Ben Elliston  <bje@au.ibm.com>
+
+	* targhooks.c (default_addr_name_space): Add function comment.
+	(default_addr_space_conversion_rtl): Likewise.
+	(default_addr_space_number): Likewise.
+	* c-decl.c (declspecs_add_addrspace): Likewise.
+	* varasm.c (default_addr_space_pointer_mode): Likewise.
+	* tree.h (addr_space_t): New typedef.
+	(struct tree_type): Reorder fields for compactness. Use
+	addr_space_t.
+	* rtl.h (struct mem_attrs): Reorder fields for compactness.
+	* c-tree.h (struct c_declspecs): Use addr_space_t.
+	* doc/extend.texi (Named Address Spaces): Use @code, not @var when
+	mentioning the __ea address space qualifier.
+	* doc/tm.texi: Revert unwanted changes.
+
 2008-08-20  Ben Elliston  <bje@au.ibm.com>
 
 	* config/spu/spu_mfcio.h: Remove unconditional uint64_t typedef.

@@ -1130,20 +1130,20 @@ address spaces in GCC will evolve as the draft technical report changes.
 Calling conventions for any target might also change.  At present, only
 the SPU target supports other address spaces.  On the SPU target, for
 example, variables may be declared as belonging to another address space
-by qualifying the type with the @var{__ea} address space identifier:
+by qualifying the type with the @code{__ea} address space identifier:
 
 @smallexample
 extern int __ea i;
 @end smallexample
 
-When the variable @var{i} is accessed, the compiler will generate
+When the variable @code{i} is accessed, the compiler will generate
 special code to access this variable.  It may use runtime library
 support, or generate special machine instructions to access that address
 space.
 
-The @var{__ea} identifier may be used exactly like any other C type
-qualifier (e.g. const or volatile).  See the N1169 document for more
-details.
+The @code{__ea} identifier may be used exactly like any other C type
+qualifier (e.g., @code{const} or @code{volatile}).  See the N1169
+document for more details.
 
 @node Zero Length
 @section Arrays of Length Zero

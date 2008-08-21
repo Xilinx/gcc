@@ -2265,6 +2265,7 @@ struct tree_block GTY(())
   (TYPE_CHECK (NODE)->type.contains_placeholder_bits)
 
 struct die_struct;
+typedef unsigned char addr_space_t;
 
 struct tree_type GTY(())
 {
@@ -2295,8 +2296,9 @@ struct tree_type GTY(())
   unsigned lang_flag_6 : 1;
   unsigned user_align : 1;
 
+  addr_space_t address_space;
   unsigned int align;
-  unsigned char address_space;
+  alias_set_type alias_set;
 
   tree pointer_to;
   tree reference_to;
@@ -2314,7 +2316,6 @@ struct tree_type GTY(())
   tree binfo;
   tree context;
   tree canonical;
-  alias_set_type alias_set;
   /* Points to a structure whose details depend on the language in use.  */
   struct lang_type *lang_specific;
 };

@@ -4170,9 +4170,10 @@ hook returns true for both @code{ptr_mode} and @code{Pmode}.
 @end deftypefn
 
 @deftypefn {Target Hook} bool TARGET_SCALAR_MODE_SUPPORTED_P (enum machine_mode @var{mode})
-Define this to return nonzero if the port is prepared to handle insns
-involving scalar mode @var{mode}.  For a scalar mode to be considered
-supported, all the basic arithmetic and comparisons must work.
+Define this to return nonzero if the port is prepared to handle
+insns involving scalar mode @var{mode}.  For a scalar mode to be
+considered supported, all the basic arithmetic and comparisons
+must work.
 
 The default version of this hook returns true for any mode
 required to handle the basic C types (as defined by the port).

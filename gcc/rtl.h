@@ -142,10 +142,10 @@ typedef struct
 typedef struct mem_attrs GTY(())
 {
   alias_set_type alias;		/* Memory alias set.  */
+  unsigned int align;		/* Alignment of MEM in bits.  */
   tree expr;			/* expr corresponding to MEM.  */
   rtx offset;			/* Offset from start of DECL, as CONST_INT.  */
   rtx size;			/* Size in bytes, as a CONST_INT.  */
-  unsigned int align;		/* Alignment of MEM in bits.  */
   unsigned char addrspace;	/* Address space (0 for generic).  */
 } mem_attrs;
 

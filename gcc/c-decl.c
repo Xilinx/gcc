@@ -7152,6 +7152,9 @@ build_null_declspecs (void)
   return ret;
 }
 
+/* Add the address space ADDRSPACE to the declaration specifiers
+   SPECS, returning SPECS.  */
+
 struct c_declspecs *
 declspecs_add_addrspace (struct c_declspecs *specs, tree addrspace)
 {

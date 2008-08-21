@@ -6289,6 +6289,8 @@ default_valid_pointer_mode (enum machine_mode mode)
   return (mode == ptr_mode || mode == Pmode);
 }
 
+/* Return the pointer mode for a given ADDRSPACE, defaulting to
+   ptr_mode for the generic address space only.  */
 enum machine_mode
 default_addr_space_pointer_mode (int addrspace)
 {
