@@ -1384,9 +1384,11 @@ no_linkage_check (tree t, bool relaxed_p)
     case ENUMERAL_TYPE:
       if (TYPE_ANONYMOUS_P (t))
 	return t;
+      /*
       fn = decl_function_context (TYPE_MAIN_DECL (t));
       if (fn && (!relaxed_p || !TREE_PUBLIC (fn)))
 	return t;
+      */
       return NULL_TREE;
 
     case ARRAY_TYPE:
