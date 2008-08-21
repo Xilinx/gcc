@@ -966,7 +966,7 @@ scopdet_bb_info (basic_block bb, struct loop *outermost_loop,
         /* XXX: Handle loop nests with the same header.  */
         /* XXX: Handle iterative optimization of outermost_loop.  */
         /* XXX: For now we just do not join loops with multiple exits. If the 
-           exits lead to the seam bb it may be possible to join the loop.  */
+           exits lead to the same bb it may be possible to join the loop.  */
         VEC (scop_p, heap) *tmp_scops = VEC_alloc (scop_p, heap, 3);
         VEC (edge, heap) *exits = get_loop_exit_edges (loop);
         edge e;
@@ -1390,31 +1390,6 @@ build_scop_loop_nests (scop_p scop)
 	  VEC_replace (loop_p, SCOP_LOOP_NEST (scop), i, loop1);
 	  VEC_replace (loop_p, SCOP_LOOP_NEST (scop), i + 1, loop0);
 	}
-    }
-}
-
-/* Build dynamic schedules for all the BBs. */
-
-static void
-build_scop_dynamic_schedules (scop_p scop)
-{
-  int i, dim, loop_num, row, col;
-  graphite_bb_p gb;
-
-  for (i = 0; VEC_iterate (graphite_bb_p, SCOP_BBS (scop), i, gb); i++)
-    {
-      loop_num = GBB_BB (gb)->loop_father->num;
-      if (loop_num != 0)
-        {
-          dim = loop_iteration_vector_dim (loop_num, scop);
-          GBB_DYNAMIC_SCHEDULE (gb) = cloog_matrix_alloc (dim, dim);
-
-          for (row = 0; row < GBB_DYNAMIC_SCHEDULE (gb)->NbRows; row++)
-            for (col = 0; col < GBB_DYNAMIC_SCHEDULE (gb)->NbColumns; col++)
-              value_set_si (GBB_DYNAMIC_SCHEDULE (gb)->p[row][col], row == col);
-        }
-      else
-        GBB_DYNAMIC_SCHEDULE (gb) = NULL;
     }
 }
 
@@ -3686,7 +3661,7 @@ scop_remove_ignoreable_gbbs (scop_p scop)
       {
         VEC_unordered_remove (graphite_bb_p, SCOP_BBS (scop), i);
         free_graphite_bb (gb);
-        /* XXX: Hackish? But working. */
+        /* XXX: Hackish? But working.  */
         i--;
       }  
 
@@ -3717,7 +3692,8 @@ scop_remove_ignoreable_gbbs (scop_p scop)
 
    graphite_trans_bb_move_loop (A, 0, 2)
 
-   XXX: Does not check validity. Necessary?  */
+   This function does not check the validity of interchanging loops.
+   This should be checked before calling this function.  */
 
 static void
 graphite_trans_bb_move_loop (graphite_bb_p gb, int loop,
@@ -4172,8 +4148,7 @@ graphite_trans_loop_block (VEC (graphite_bb_p, heap) *bbs, int loops)
   return transform_done;
 }
 
-/* Loop block all bbs.  
-   XXX: Does not contain dependency checks. */
+/* Loop block all basic blocks of SCOP.  */
 
 static bool
 graphite_trans_scop_block (scop_p scop)
@@ -4408,10 +4383,6 @@ graphite_transform_loops (void)
 
       build_scop_conditions (scop);
       build_scop_data_accesses (scop);
-
-      /* XXX: Disabled, it does not work at the moment. */
-      if (0)
-        build_scop_dynamic_schedules (scop);
 
       if (dump_file && (dump_flags & TDF_DETAILS))
 	{

@@ -1,5 +1,10 @@
 2008-08-20  Sebastian Pop  <sebastian.pop@amd.com>
 
+	* graphite.c: Fix some XXX comments.
+	(build_scop_dynamic_schedules): Removed.
+
+2008-08-20  Sebastian Pop  <sebastian.pop@amd.com>
+
 	* graphite.h (scop_max_loop_depth): Moved...
 	* graphite.c (scop_max_loop_depth): ...here.
 	(remove_all_edges_1): New.
