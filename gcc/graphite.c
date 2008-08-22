@@ -2756,7 +2756,10 @@ clast_to_gcc_expression (struct clast_expr *e, tree type,
 	struct clast_expr *lhs = (struct clast_expr *) b->LHS;
 	struct clast_expr *rhs = (struct clast_expr *) b->RHS;
 	tree tl = clast_to_gcc_expression (lhs, type,  params, ivstack);
-	tree tr = clast_to_gcc_expression (rhs, type,  params, ivstack); 
+
+	/* Cloog assumes a constant as RHS, the warning cannot be eliminated
+	   because of the type of Value. Cloog must be fixed.  */
+	tree tr = gmp_cst_to_tree (rhs);
 
 	switch (b->type)
 	  {
@@ -2783,6 +2786,69 @@ clast_to_gcc_expression (struct clast_expr *e, tree type,
 
   return NULL_TREE;
 }
+
+/* Translates a clast equation CLEQ to a tree.  */
+
+static tree
+graphite_translate_clast_equation (scop_p scop,
+				   struct clast_equation *cleq,
+				   loop_iv_stack ivstack)
+{
+  tree result = NULL;
+  enum tree_code comp;
+  tree lhs = clast_to_gcc_expression(cleq->LHS, 
+				     integer_type_node,
+				     SCOP_PARAMS (scop),
+				     ivstack);
+  tree rhs = clast_to_gcc_expression(cleq->RHS, 
+				     integer_type_node,
+				     SCOP_PARAMS (scop),
+				     ivstack);
+  if (cleq->sign == 0)
+    comp = EQ_EXPR;
+  else if (cleq->sign > 0)
+    comp = GE_EXPR;
+  else
+    comp = LE_EXPR;
+
+  result = fold_build2 (comp, integer_type_node, lhs, rhs);
+  return result;
+}
+
+/* Creates the test for the condition in STMT.  */
+
+static tree
+graphite_create_guard_cond_expr (scop_p scop, struct clast_guard *stmt, 
+				 loop_iv_stack ivstack)
+{
+  tree cond = NULL;
+  int i;
+  for (i = 0; i < stmt->n; i++)
+    {
+      tree equation = 
+	graphite_translate_clast_equation (scop, &stmt->eq[i], ivstack);
+      if (cond)
+	  cond = fold_build2 (TRUTH_AND_EXPR, integer_type_node, 
+			      cond, equation);
+      else
+	cond = equation;
+    }
+
+  return cond;
+}
+
+/* Creates a new if region corresponding to Cloog's guard.  */
+
+static edge 
+graphite_create_new_guard (scop_p scop, edge entry_edge,
+			   struct clast_guard *stmt, 
+			   loop_iv_stack ivstack)
+{
+  tree cond_expr = graphite_create_guard_cond_expr (scop, stmt, ivstack);
+  edge exit_edge = create_empty_if_region_on_edge (entry_edge, cond_expr);
+  return exit_edge;
+}
+
 
 /* Creates a new LOOP corresponding to Cloog's STMT.  Inserts an induction 
    variable for the new LOOP.  New LOOP is attached to CFG starting at
@@ -2850,22 +2916,6 @@ remove_all_edges (basic_block bb, edge keep)
   remove_all_edges_1 (bb->preds, keep);
 }
 
-/* Returns the stack index for LOOP in GBB.  */
-
-static int 
-get_stack_index_from_iv (graphite_bb_p gbb, loop_p loop)
-{
-  int i;
-  loop_p current_loop;
-
-  for (i = 0; VEC_iterate (loop_p, GBB_LOOPS (gbb), i, current_loop); i++)
-    if (loop == current_loop)
-      return i;
-
-  gcc_unreachable();
-  return -1;
-}
-
 /* Rename the SSA_NAMEs used in STMT and that appear in IVSTACK.  */
 
 static void 
@@ -2883,7 +2933,7 @@ graphite_rename_ivs_stmt (gimple stmt, graphite_bb_p gbb, scop_p scop,
       
       if (old_iv)
 	{
-	  int a = get_stack_index_from_iv (gbb, old_iv->loop);
+	  int a = gbb_loop_index (gbb, old_iv->loop);
 	  new_iv = loop_iv_stack_get_iv (ivstack, a);
 	}
 
@@ -2958,6 +3008,22 @@ remove_cond_exprs (basic_block bb)
     }
 }
 
+/* Returns the first successor edge of BB with EDGE_TRUE_VALUE flag set.  */
+
+static edge
+get_true_edge_from_guard_bb (basic_block bb)
+{
+  edge e;
+  edge_iterator ei;
+
+  FOR_EACH_EDGE (e, ei, bb->succs)
+    if (e->flags & EDGE_TRUE_VALUE) 
+      return e;
+
+  gcc_unreachable ();
+  return NULL;
+}
+
 /* Translates a CLAST statement STMT to GCC representation.  NEXT_E is
    the edge where new generated code should be attached.  BB_EXIT is the last
    basic block that defines the scope of code generation.  CONTEXT_LOOP is the
@@ -3018,6 +3084,19 @@ translate_clast (scop_p scop, struct loop *context_loop,
       set_immediate_dominator (CDI_DOMINATORS, next_e->dest, next_e->src);
       loop_iv_stack_pop (ivstack);
 
+      return translate_clast (scop, context_loop, stmt->next, last_e, ivstack);
+    }
+
+  if (CLAST_STMT_IS_A (stmt, stmt_guard))
+    {
+      edge last_e = graphite_create_new_guard (scop, next_e,
+					  ((struct clast_guard *) stmt),
+					  ivstack);
+      edge true_e = get_true_edge_from_guard_bb (next_e->dest);
+      next_e = translate_clast (scop, context_loop, 
+				((struct clast_guard *) stmt)->then,
+				true_e, ivstack);
+      redirect_edge_succ_nodup (next_e, last_e->src);
       return translate_clast (scop, context_loop, stmt->next, last_e, ivstack);
     }
 
@@ -3236,10 +3315,31 @@ get_construction_edge (scop_p scop)
     return EDGE_PRED (entry, 0);
 
   else
-    /* FIXME: This is not handled yet.  For fixing this we should
-       have SCOPs defined as single entry single exit regions,
-       that means that SCOP_ENTRY and SCOP_EXIT should be edges.  */
-    return NULL;
+    {
+      /* FIXME: This is not handled yet.  For fixing this we should
+	 have SCOPs defined as single entry single exit regions,
+	 that means that SCOP_ENTRY and SCOP_EXIT should be edges.  */
+      /* We can refine this slightly if one of the predecessors
+	 is the immediate dominator of the block.  */
+      edge e;
+      edge_iterator ei;
+      basic_block entry_idom = get_immediate_dominator (CDI_DOMINATORS,
+							entry);
+
+      FOR_EACH_EDGE (e, ei, entry->preds)
+	if (e->src == entry_idom)
+	  {
+	    /* If the successor is in a different loop we must insert
+	       a basic block between to guarantee that a loop exit
+	       will not be going directly to the entry of another
+	       loop.  */
+	    if (e->src->loop_father != e->dest->loop_father)
+	      split_edge (e);
+	    return e;
+	  }
+      
+      return NULL;
+    }
 }
 
 /* Return a vector of all the virtual phi nodes in the current
@@ -3460,6 +3560,10 @@ can_generate_code_stmt (struct clast_stmt *stmt,
 				   used_basic_blocks)
       && can_generate_code_stmt (stmt->next, used_basic_blocks);
 
+  if (CLAST_STMT_IS_A (stmt, stmt_guard))
+    return can_generate_code_stmt (((struct clast_guard *) stmt)->then,
+				   used_basic_blocks);
+
   if (CLAST_STMT_IS_A (stmt, stmt_block))
     return can_generate_code_stmt (((struct clast_block *) stmt)->body,
 				   used_basic_blocks)
@@ -3518,7 +3622,8 @@ gloog (scop_p scop, struct clast_stmt *stmt)
     }
 
   gather_blocks_in_sese_region (SCOP_ENTRY (scop), SCOP_EXIT (scop), &bbs);
-  new_scop_exit_edge = translate_clast (scop, SCOP_ENTRY(scop)->loop_father,
+  new_scop_exit_edge = translate_clast (scop, 
+					construction_edge->src->loop_father,
 					stmt, construction_edge, &ivstack);
   redirect_edge_succ (new_scop_exit_edge, scop_exit);
   cloog_clast_free (stmt);
@@ -3546,7 +3651,6 @@ gloog (scop_p scop, struct clast_stmt *stmt)
 #ifdef ENABLE_CHECKING
   verify_loop_structure ();
   verify_dominators (CDI_DOMINATORS);
-  verify_dominators (CDI_POST_DOMINATORS);
 #endif
 
   rewrite_into_loop_closed_ssa (NULL, TODO_update_ssa);

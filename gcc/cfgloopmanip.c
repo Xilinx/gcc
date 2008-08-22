@@ -503,6 +503,88 @@ static void update_dominators_in_loop (struct loop *loop)
   VEC_free (basic_block, heap, dom_bbs);
 }
 
+/* Creates an if region as shown above. CONDITION is used to create
+   the test for the if. 
+
+   |
+   |     -------------                 -------------
+   |     |  pred_bb  |                 |  pred_bb  |
+   |     -------------                 -------------
+   |           |                             |
+   |           |                             | ENTRY_EDGE
+   |           | ENTRY_EDGE                  V
+   |           |             ====>     -------------
+   |           |                       |  cond_bb  |
+   |           |                       | CONDITION |
+   |           |                       -------------
+   |           V                        /         \
+   |     -------------         e_false /           \ e_true
+   |     |  succ_bb  |                V             V
+   |     -------------         -----------       -----------
+   |                           | false_bb |      | true_bb |
+   |                           -----------       -----------
+   |                                   \           /
+   |                                    \         /
+   |                                     V       V
+   |                                   -------------
+   |                                   |  join_bb  |
+   |                                   -------------
+   |                                         | exit_edge (result)
+   |                                         V
+   |                                    -----------
+   |                                    | succ_bb |
+   |                                    -----------
+   |
+ */
+
+edge
+create_empty_if_region_on_edge (edge entry_edge, tree condition)
+{
+
+  basic_block succ_bb, cond_bb, true_bb, false_bb, join_bb;
+  edge e_true, e_false, exit_edge;
+  gimple cond_stmt;
+  tree simple_cond;
+  gimple_stmt_iterator gsi;
+
+  succ_bb = entry_edge->dest;
+  cond_bb = split_edge (entry_edge);
+  
+  /* Insert condition in cond_bb.  */
+  gsi = gsi_last_bb (cond_bb);
+  simple_cond =
+    force_gimple_operand_gsi (&gsi, condition, true, NULL,
+			      false, GSI_NEW_STMT);
+  cond_stmt = gimple_build_cond_from_tree (simple_cond, NULL_TREE, NULL_TREE);
+  gsi = gsi_last_bb (cond_bb);
+  gsi_insert_after (&gsi, cond_stmt, GSI_NEW_STMT);
+  
+  join_bb = split_edge (single_succ_edge (cond_bb));
+
+  e_true = single_succ_edge (cond_bb);
+  true_bb = split_edge (e_true);
+
+  e_false = make_edge (cond_bb, join_bb, 0);
+  false_bb = split_edge (e_false);
+
+  e_true->flags &= ~EDGE_FALLTHRU;
+  e_true->flags |= EDGE_TRUE_VALUE;
+  e_false->flags &= ~EDGE_FALLTHRU;
+  e_false->flags |= EDGE_FALSE_VALUE;
+
+  set_immediate_dominator (CDI_DOMINATORS, cond_bb, entry_edge->src);
+  set_immediate_dominator (CDI_DOMINATORS, true_bb, cond_bb);
+  set_immediate_dominator (CDI_DOMINATORS, false_bb, cond_bb);
+  set_immediate_dominator (CDI_DOMINATORS, join_bb, cond_bb);
+
+  exit_edge = single_succ_edge (join_bb);
+
+  if (single_pred_p (exit_edge->dest))
+    set_immediate_dominator (CDI_DOMINATORS, exit_edge->dest, join_bb);
+
+  return exit_edge;
+}
+
 /* create_empty_loop_on_edge
    |
    |     -------------                 ------------------------

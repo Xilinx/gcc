@@ -1,3 +1,22 @@
+2008-08-22  Jan Sjodin  <jan.sjodin@amd.com>
+
+	* cfgloopmanip.c (create_empty_if_region_on_edge): New.
+	* graphite.c (clast_to_gcc_expression): Call gmp_cst_to_tree
+	instead of recursive call.
+	(graphite_translate_clast_equation): New.
+	(graphite_create_guard_cond_expr): New.
+	(graphite_create_new_guard): New.
+	(get_stack_index_from_iv): Removed.
+	(graphite_rename_ivs_stmt): Use gbb_loop_index.
+	(get_true_edge_from_guard_bb): New.
+	(translate_clast): Handle stmt_guard in clast.
+	(get_construction_edge): Allow construction edge detection for
+	a scope entry with multiple predecessors if one predecessor is
+	the immediate dominator of scope entry.
+	(can_generate_code_stmt): Enable code generation for clast_guard.
+	(gloog): Use correct context loop.  Removed check for post dominators.
+	* cfgloop.h (create_empty_if_region_on_edge): Declared.
+
 2008-08-21  Sebastian Pop  <sebastian.pop@amd.com>
 
 	* graphite.c (remove_dead_loops): Document better which
