@@ -1125,7 +1125,7 @@ Fixed-point types are supported by the DWARF2 debug information format.
 @cindex named address spaces
 
 As an extension, the GNU C compiler supports named address spaces as
-defined in the N1169 draft of ISO/IEC DTR 18037.  Support for named
+defined in the N1275 draft of ISO/IEC DTR 18037.  Support for named
 address spaces in GCC will evolve as the draft technical report changes.
 Calling conventions for any target might also change.  At present, only
 the SPU target supports other address spaces.  On the SPU target, for
@@ -1142,7 +1142,7 @@ support, or generate special machine instructions to access that address
 space.
 
 The @code{__ea} identifier may be used exactly like any other C type
-qualifier (e.g., @code{const} or @code{volatile}).  See the N1169
+qualifier (e.g., @code{const} or @code{volatile}).  See the N1275
 document for more details.
 
 @node Zero Length
