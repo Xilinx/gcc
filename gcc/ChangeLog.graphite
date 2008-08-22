@@ -1,5 +1,10 @@
 2008-08-21  Sebastian Pop  <sebastian.pop@amd.com>
 
+	* graphite.c (remove_dead_loops): Document better which
+	loops are removed.
+
+2008-08-21  Sebastian Pop  <sebastian.pop@amd.com>
+
 	* Makefile.in: Rename POLYLIBLIBS and POLYLIBINC to PPLLIBS
 	and PPLINC.
 	(graphite.o): Also depends on pointer-set.h.

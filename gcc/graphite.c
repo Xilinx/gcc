@@ -3402,6 +3402,8 @@ remove_dead_loops (void)
 
   FOR_EACH_LOOP (li, loop, LI_FROM_INNERMOST)
     {
+      /* Remove only those loops that we marked to be removed with
+	 mark_old_loops.  */
       if (loop->header)
 	continue;
 
