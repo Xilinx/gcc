@@ -55,7 +55,7 @@
 	(shadow_tag_warned): Include declspecs->address_space.
 	(quals_from_declspecs): Encode address space number into quals.
 	(grokdeclarator): Warn about duplicate address space qualifiers.
-	Issue various diagnostics as specified by N1169.
+	Issue various diagnostics as specified by N1275.
 	(build_null_declspecs): Clear ret->address_space.
 	(declspecs_add_addrspace): New function.
 	* c-objc-common.c (c_types_compatible_p): Two types in different
