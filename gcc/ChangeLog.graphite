@@ -1,5 +1,11 @@
 2008-08-21  Sebastian Pop  <sebastian.pop@amd.com>
 
+	* Makefile.in: Rename POLYLIBLIBS and POLYLIBINC to PPLLIBS
+	and PPLINC.
+	(graphite.o): Also depends on pointer-set.h.
+
+2008-08-21  Sebastian Pop  <sebastian.pop@amd.com>
+
 	* graphite.c (scop_record_loop): Fix compile warning.
 
 2008-08-21  Harsha Jagasia  <harsha.jagasia@amd.com>
