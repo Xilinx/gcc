@@ -1,5 +1,15 @@
 2008-08-24  Sebastian Pop  <sebastian.pop@amd.com>
 
+	* graphite.c (new_graphite_bb): Remove GBB_INDEX_TO_NUM_MAP
+        initialization.
+	(free_graphite_bb): Remove GBB_INDEX_TO_NUM_MAP free.
+	(translate_clast): Correct formatting.
+	* graphite.h (struct num_map): Removed.
+	(struct graphite_bb): Remove num_map field.
+	(GBB_INDEX_TO_NUM_MAP): Removed.
+
+2008-08-24  Sebastian Pop  <sebastian.pop@amd.com>
+
 	* graphite.c (build_access_matrix_with_af): Fix comments.
 	(build_scop_data_accesses): Same.
 

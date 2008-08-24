@@ -761,7 +761,6 @@ new_graphite_bb (scop_p scop, basic_block bb)
   GBB_CONDITIONS (gbb) = NULL;
   GBB_CONDITION_CASES (gbb) = NULL;
   GBB_LOOPS (gbb) = NULL;
-  GBB_INDEX_TO_NUM_MAP (gbb) = NULL;
   VEC_safe_push (graphite_bb_p, heap, SCOP_BBS (scop), gbb);
   bitmap_set_bit (SCOP_BBS_B (scop), bb->index);
 }
@@ -771,9 +770,6 @@ new_graphite_bb (scop_p scop, basic_block bb)
 static void
 free_graphite_bb (struct graphite_bb *gbb)
 {
-  if (GBB_INDEX_TO_NUM_MAP (gbb))
-    VEC_free (num_map_p, heap, GBB_INDEX_TO_NUM_MAP (gbb));
-
   if (GBB_DOMAIN (gbb))
     cloog_matrix_free (GBB_DOMAIN (gbb));
 
@@ -3097,8 +3093,8 @@ translate_clast (scop_p scop, struct loop *context_loop,
   if (CLAST_STMT_IS_A (stmt, stmt_guard))
     {
       edge last_e = graphite_create_new_guard (scop, next_e,
-					  ((struct clast_guard *) stmt),
-					  ivstack);
+					       ((struct clast_guard *) stmt),
+					       ivstack);
       edge true_e = get_true_edge_from_guard_bb (next_e->dest);
       next_e = translate_clast (scop, context_loop, 
 				((struct clast_guard *) stmt)->then,
