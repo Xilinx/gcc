@@ -746,6 +746,46 @@ harmful_stmt_in_bb (struct loop *outermost_loop, basic_block bb)
   return NULL;
 }
 
+/* Store the GRAPHITE representation of BB.  */
+
+static void
+new_graphite_bb (scop_p scop, basic_block bb)
+{
+  struct graphite_bb *gbb = XNEW (struct graphite_bb);
+
+  bb->aux = gbb;
+  GBB_BB (gbb) = bb;
+  GBB_SCOP (gbb) = scop;
+  GBB_DATA_REFS (gbb) = NULL; 
+  GBB_DOMAIN (gbb) = NULL;
+  GBB_CONDITIONS (gbb) = NULL;
+  GBB_CONDITION_CASES (gbb) = NULL;
+  GBB_LOOPS (gbb) = NULL;
+  GBB_INDEX_TO_NUM_MAP (gbb) = NULL;
+  VEC_safe_push (graphite_bb_p, heap, SCOP_BBS (scop), gbb);
+  bitmap_set_bit (SCOP_BBS_B (scop), bb->index);
+}
+
+/* Free the bb.  */
+
+static void
+free_graphite_bb (struct graphite_bb *gbb)
+{
+  if (GBB_INDEX_TO_NUM_MAP (gbb))
+    VEC_free (num_map_p, heap, GBB_INDEX_TO_NUM_MAP (gbb));
+
+  if (GBB_DOMAIN (gbb))
+    cloog_matrix_free (GBB_DOMAIN (gbb));
+
+  free_data_refs (GBB_DATA_REFS (gbb));
+  VEC_free (gimple, heap, GBB_CONDITIONS (gbb));
+  VEC_free (gimple, heap, GBB_CONDITION_CASES (gbb));
+  VEC_free (loop_p, heap, GBB_LOOPS (gbb));
+
+  GBB_BB (gbb)->aux = 0;
+  XDELETE (gbb);
+}
+
 /* Creates a new scop starting with ENTRY.  */
 
 static scop_p
@@ -769,25 +809,6 @@ new_scop (basic_block entry)
 					     free);
   return scop;
 }
-
-/* Free the bb.  */
-
-static void
-free_graphite_bb (struct graphite_bb *gbb)
-{
-  if (GBB_INDEX_TO_NUM_MAP (gbb))
-    VEC_free (num_map_p, heap, GBB_INDEX_TO_NUM_MAP (gbb));
-
-  if (GBB_DOMAIN (gbb))
-    cloog_matrix_free (GBB_DOMAIN (gbb));
-
-  VEC_free (gimple, heap, GBB_CONDITIONS (gbb));
-  VEC_free (gimple, heap, GBB_CONDITION_CASES (gbb));
-  VEC_free (loop_p, heap, GBB_LOOPS (gbb));
-
-  XDELETE (gbb);
-}
-
 
 /* Deletes the scop.  */
 
@@ -1246,30 +1267,6 @@ build_scops (void)
   build_scops_1 (ENTRY_BLOCK_PTR, &current_scops, loop, loop);
 }
 
-
-/* Store the GRAPHITE representation of BB.  */
-
-static void
-build_graphite_bb (scop_p scop, basic_block bb)
-{
-  struct graphite_bb *gb;
-
-  /* Build the new representation for the basic block.  */
-  gb = XNEW (struct graphite_bb);
-  bb->aux = gb;
-  GBB_BB (gb) = bb;
-  GBB_SCOP (gb) = scop;
-  GBB_DATA_REFS (gb) = NULL; 
-  GBB_DOMAIN (gb) = NULL;
-  GBB_CONDITIONS (gb) = NULL;
-  GBB_CONDITION_CASES (gb) = NULL;
-  GBB_LOOPS (gb) = NULL;
-  GBB_INDEX_TO_NUM_MAP (gb) = NULL;
-  /* Store the GRAPHITE representation of the current BB.  */
-  VEC_safe_push (graphite_bb_p, heap, SCOP_BBS (scop), gb);
-  bitmap_set_bit (SCOP_BBS_B (scop), bb->index);
-}
-
 /* Gather the basic blocks belonging to the SCOP.  */
 
 static void
@@ -1301,7 +1298,7 @@ build_scop_bbs (scop_p scop)
 	      && !dominated_by_p (CDI_POST_DOMINATORS, bb, SCOP_EXIT (scop))))
 	continue;
 
-      build_graphite_bb (scop, bb);
+      new_graphite_bb (scop, bb);
       SET_BIT (visited, bb->index);
 
       /* First push the blocks that have to be processed last.  */
@@ -4517,15 +4514,8 @@ graphite_transform_loops (void)
     }
 
   /* Cleanup.  */
-  {
-    basic_block bb;
-
-    FOR_EACH_BB (bb)
-      bb->aux = 0;
-
-    free_scops (current_scops);
-    cloog_finalize ();
-  }
+  free_scops (current_scops);
+  cloog_finalize ();
 }
 
 #else /* If Cloog is not available: #ifndef HAVE_cloog.  */

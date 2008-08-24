@@ -1,3 +1,13 @@
+2008-08-24  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* tree-data-ref.c (stmt_simple_memref_p): Don't call
+	really_constant_p.
+	* graphite.c (build_graphite_bb): Renamed new_graphite_bb.
+	Moved close by free_graphite_bb.
+	(free_graphite_bb): Call free_data_refs.  Reset bb->aux.
+	(new_scop): Move close by free_scop.
+	(graphite_transform_loops): Avoid linear scan to reset bb->aux.
+
 2008-08-22  Jan Sjodin  <jan.sjodin@amd.com>
 
 	* cfgloopmanip.c (create_empty_if_region_on_edge): New.
