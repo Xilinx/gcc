@@ -2603,12 +2603,24 @@ build_scop_data_accesses (scop_p scop)
 	find_data_references_in_stmt (nest, gsi_stmt (gsi),
 				      &GBB_DATA_REFS (gb));
 
+      /* FIXME: Construction of access matrix is disabled until some
+	 pass, like the data dependence analysis, is using it.  */
+      continue;
+
       /* Construct the access matrix for each data ref, with respect to
 	 the loop nest of the current BB in the considered SCOP.  */
       for (j = 0;
 	   VEC_iterate (data_reference_p, GBB_DATA_REFS (gb), j, dr);
 	   j++)
-	build_access_matrix (dr, gb);
+	{
+	  bool res = build_access_matrix (dr, gb);
+
+	  /* FIXME: Enable the following check.  At this point the DRs
+	     should always have an affine form.  For the moment this
+	     fails as build_access_matrix does not build matrices with
+	     parameters.  */
+	  gcc_assert (res);
+	}
     }
 }
 

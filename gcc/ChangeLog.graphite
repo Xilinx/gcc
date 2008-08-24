@@ -1,5 +1,11 @@
 2008-08-24  Sebastian Pop  <sebastian.pop@amd.com>
 
+	* graphite.c (build_scop_data_accesses): Don't construct
+	access matrices.  Add a FIXME and an assert condition that
+	should pass when the access matrices will be needed.
+
+2008-08-24  Sebastian Pop  <sebastian.pop@amd.com>
+
 	* tree-data-ref.c (stmt_simple_memref_p): Don't call
 	really_constant_p.
 	* graphite.c (build_graphite_bb): Renamed new_graphite_bb.
