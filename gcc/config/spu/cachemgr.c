@@ -121,16 +121,28 @@ __cache_evict_entry (struct __cache_tag_array *entry, int way)
 
   if ((CHECK_DIRTY (entry->dirty_bits[way])) && (!CHECK_IS_LS (entry, way)))
     {
-/* Non-atomic writes.  */
 #ifdef NONATOMIC
+      /* Non-atomic writes.  */
+      unsigned int oldmask, mach_stat;
       char *line = ((void *) 0);
 
+      /* Enter critical section.  */
+      mach_stat = spu_readch (SPU_RdMachStat);
+      spu_idisable ();
+
+      /* Issue DMA request.  */
       line = GET_CACHE_LINE (entry->tag_lo[way], way);
       mfc_put (line, tag, LINE_SIZE, dma_tag, 0, 0);
 
       /* Wait for DMA completion.  */
+      oldmask = mfc_read_tag_mask ();
       mfc_write_tag_mask (1 << dma_tag);
       mfc_read_tag_status_all ();
+      mfc_write_tag_mask (oldmask);
+
+      /* Leave critical section.  */
+      if (__builtin_expect (mach_stat & 1, 0))
+	spu_ienable ();
 #else
       /* Allocate a buffer large enough that we know it has 128 bytes
          that are 128 byte aligned (for DMA). */
@@ -139,6 +151,11 @@ __cache_evict_entry (struct __cache_tag_array *entry, int way)
       qword *buf_ptr = (qword *) (((unsigned int) (buffer) + 127) & ~127);
       qword *line = GET_CACHE_LINE (entry->tag_lo[way], way);
       qword bits;
+      unsigned int mach_stat;
+
+      /* Enter critical section.  */
+      mach_stat = spu_readch (SPU_RdMachStat);
+      spu_idisable ();
 
       do
 	{
@@ -183,6 +200,10 @@ __cache_evict_entry (struct __cache_tag_array *entry, int way)
 	  mfc_putllc (buf_ptr, tag, 0, 0);
 	}
       while (mfc_read_atomic_status ());
+
+      /* Leave critical section.  */
+      if (__builtin_expect (mach_stat & 1, 0))
+	spu_ienable ();
 #endif
     }
 
@@ -213,18 +234,31 @@ __cache_evict (__ea void *ea)
 static void *
 __cache_fill (int way, addr tag)
 {
+  unsigned int oldmask, mach_stat;
   char *line = ((void *) 0);
 
-  line = GET_CACHE_LINE (tag, way);
-
-  /* This will use DMA to fill the cache line.  */
-
+  /* Reserve our DMA tag.  */
   if (dma_tag == 32)
     dma_tag = mfc_tag_reserve ();
 
+  /* Enter critical section.  */
+  mach_stat = spu_readch (SPU_RdMachStat);
+  spu_idisable ();
+
+  /* Issue DMA request.  */
+  line = GET_CACHE_LINE (tag, way);
   mfc_get (line, tag, LINE_SIZE, dma_tag, 0, 0);
+
+  /* Wait for DMA completion.  */
+  oldmask = mfc_read_tag_mask ();
   mfc_write_tag_mask (1 << dma_tag);
   mfc_read_tag_status_all ();
+  mfc_write_tag_mask (oldmask);
+
+  /* Leave critical section.  */
+  if (__builtin_expect (mach_stat & 1, 0))
+    spu_ienable ();
+
   return (void *) line;
 }
 

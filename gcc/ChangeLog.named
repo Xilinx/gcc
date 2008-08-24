@@ -1,3 +1,8 @@
+2008-08-25  Ulrich Weigand  <uweigand@de.ibm.com>
+
+	* config/spu/cachemgr.c: Make interrupt safe and respect tag mask
+	policy.
+
 2008-08-22  Ben Elliston  <bje@au.ibm.com>
 
 	* doc/extend.texi (Named Address Spaces): Use N1275, not N1169.
