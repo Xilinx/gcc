@@ -1,5 +1,10 @@
 2008-08-24  Sebastian Pop  <sebastian.pop@amd.com>
 
+	* graphite.c (build_access_matrix_with_af): Fix comments.
+	(build_scop_data_accesses): Same.
+
+2008-08-24  Sebastian Pop  <sebastian.pop@amd.com>
+
 	* graphite.c (build_scop_data_accesses): Don't construct
 	access matrices.  Add a FIXME and an assert condition that
 	should pass when the access matrices will be needed.

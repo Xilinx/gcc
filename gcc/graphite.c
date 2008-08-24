@@ -2533,21 +2533,20 @@ build_access_matrix_with_af (tree access_fun, lambda_vector cy,
 	    return build_access_matrix_with_af (left, cy, scop, ndim);
 
 	  case INTEGER_CST:
-	    /* Constant part.  */
 	    cy[ndim - 1] = int_cst_value (left);
 	    return true;
 
 	  default:
-	    /* TODO: also consider that access_fn can have parameters.  */
+	    /* FIXME: access_fn can have parameters.  */
 	    return false;
 	  }
       }
     case INTEGER_CST:
-      /* Constant part.  */
       cy[ndim - 1] = int_cst_value (access_fun);
       return true;
 
     default:
+      /* FIXME: access_fn can have parameters.  */
       return false;
     }
 }
@@ -2615,10 +2614,9 @@ build_scop_data_accesses (scop_p scop)
 	{
 	  bool res = build_access_matrix (dr, gb);
 
-	  /* FIXME: Enable the following check.  At this point the DRs
-	     should always have an affine form.  For the moment this
-	     fails as build_access_matrix does not build matrices with
-	     parameters.  */
+	  /* FIXME: At this point the DRs should always have an affine
+	     form.  For the moment this fails as build_access_matrix
+	     does not build matrices with parameters.  */
 	  gcc_assert (res);
 	}
     }
