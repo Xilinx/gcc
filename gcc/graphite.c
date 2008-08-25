@@ -3631,6 +3631,14 @@ gloog (scop_p scop, struct clast_stmt *stmt)
 					construction_edge->src->loop_father,
 					stmt, construction_edge, &ivstack);
   redirect_edge_succ (new_scop_exit_edge, scop_exit);
+  if (!old_scop_exit_idom
+      || !dominated_by_p (CDI_DOMINATORS, SCOP_ENTRY (scop),
+			  old_scop_exit_idom)
+      || SCOP_ENTRY (scop) == old_scop_exit_idom)
+    set_immediate_dominator (CDI_DOMINATORS,
+			     new_scop_exit_edge->dest,
+			     new_scop_exit_edge->src);
+
   cloog_clast_free (stmt);
 
   if (new_scop_exit_edge->dest == EXIT_BLOCK_PTR)
@@ -3643,12 +3651,6 @@ gloog (scop_p scop, struct clast_stmt *stmt)
   patch_phis_for_virtual_defs ();
 
   find_unreachable_blocks ();
-  if (old_scop_exit_idom 
-      && !(old_scop_exit_idom->flags & BB_REACHABLE))
-    set_immediate_dominator (CDI_DOMINATORS,
-			     new_scop_exit_edge->dest,
-			     new_scop_exit_edge->src);
-
   delete_unreachable_blocks();
   mark_old_loops (scop);
   remove_dead_loops ();

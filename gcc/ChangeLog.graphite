@@ -1,5 +1,9 @@
 2008-08-25  Tobias Grosser  <grosser@fim.uni-passau.de>
 
+	* graphite.c (gloog): Update dominator info.
+
+2008-08-25  Tobias Grosser  <grosser@fim.uni-passau.de>
+
 	graphite.c (remove_cond_exprs): Do not fail on empty bbs.
 
 2008-08-24  Sebastian Pop  <sebastian.pop@amd.com>
