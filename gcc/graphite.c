@@ -465,7 +465,9 @@ dot_all_scops_1 (FILE *file)
 
       /* Select color for SCoP.  */
       for (i = 0; VEC_iterate (scop_p, current_scops, i, scop); i++)
-	if (bb_in_scop_p (bb, scop) || scop->exit == bb || scop->entry == bb)
+	if (bb_in_scop_p (bb, scop)
+	    || SCOP_EXIT (scop) == bb
+	    || SCOP_ENTRY (scop) == bb))
 	  {
 	    switch (i % 17)
 	      {
@@ -529,11 +531,12 @@ dot_all_scops_1 (FILE *file)
 	    if (!bb_in_scop_p (bb, scop))
 	      fprintf (file, " ("); 
 
-	    if (bb == scop->entry && bb == scop->exit)
+	    if (bb == SCOP_ENTRY (scop)
+		&& bb == SCOP_EXIT (scop))
 	      fprintf (file, " %d*# ", bb->index);
-	    else if (bb == scop->entry)
+	    else if (bb == SCOP_ENTRY (scop))
 	      fprintf (file, " %d* ", bb->index);
-	    else if (bb == scop->exit)
+	    else if (bb == SCOP_EXIT (scop))
 	      fprintf (file, " %d# ", bb->index);
 	    else
 	      fprintf (file, " %d ", bb->index);
@@ -892,7 +895,7 @@ get_bb_type (basic_block bb, struct loop *last_loop)
   return GBB_COND_HEADER;
 }
 
-/* Move the scops from source to target and clean up target.  */
+/* Move the scops from SOURCE to TARGET and clean up SOURCE.  */
 
 static void
 move_scops (VEC (scop_p, heap) **source, VEC (scop_p, heap) **target)

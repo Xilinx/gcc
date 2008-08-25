@@ -1,5 +1,10 @@
 2008-08-25  Sebastian Pop  <sebastian.pop@amd.com>
 
+	* graphite.c (dot_all_scops_1): Cleanup.
+	(move_scops): Fix comment.
+
+2008-08-25  Sebastian Pop  <sebastian.pop@amd.com>
+
 	* graphite.c (build_scop_bbs): Revert commit 139355:
 
 	2008-08-20  Sebastian Pop  <sebastian.pop@amd.com>
@@ -13,7 +18,7 @@
 
 2008-08-25  Tobias Grosser  <grosser@fim.uni-passau.de>
 
-	graphite.c (remove_cond_exprs): Do not fail on empty bbs.
+	* graphite.c (remove_cond_exprs): Do not fail on empty bbs.
 
 2008-08-24  Sebastian Pop  <sebastian.pop@amd.com>
 
