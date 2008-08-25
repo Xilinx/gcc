@@ -1,3 +1,7 @@
+2008-08-25  Tobias Grosser  <grosser@fim.uni-passau.de>
+
+	graphite.c (remove_cond_exprs): Do not fail on empty bbs.
+
 2008-08-24  Sebastian Pop  <sebastian.pop@amd.com>
 
 	* graphite.c (new_graphite_bb): Remove GBB_INDEX_TO_NUM_MAP

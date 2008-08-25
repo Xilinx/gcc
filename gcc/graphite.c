@@ -3004,7 +3004,9 @@ move_phi_nodes (scop_p scop, loop_p old_loop_father, basic_block from,
 static void
 remove_cond_exprs (basic_block bb)
 {
-  if (gimple_code (last_stmt (bb)) == GIMPLE_COND)
+  gimple last = last_stmt (bb);
+
+  if (last && gimple_code (last) == GIMPLE_COND)
     {
       gimple_stmt_iterator gsi = gsi_last_bb (bb);
       gsi_remove (&gsi, true);
