@@ -467,7 +467,7 @@ dot_all_scops_1 (FILE *file)
       for (i = 0; VEC_iterate (scop_p, current_scops, i, scop); i++)
 	if (bb_in_scop_p (bb, scop)
 	    || SCOP_EXIT (scop) == bb
-	    || SCOP_ENTRY (scop) == bb))
+	    || SCOP_ENTRY (scop) == bb)
 	  {
 	    switch (i % 17)
 	      {
