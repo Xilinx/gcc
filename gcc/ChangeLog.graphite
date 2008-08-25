@@ -1,3 +1,12 @@
+2008-08-25  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite.c (build_scop_bbs): Revert commit 139355:
+
+	2008-08-20  Sebastian Pop  <sebastian.pop@amd.com>
+		    Dwarakanath Rajagopal  <dwarak.rajagopal@amd.com>
+
+		* graphite.c (build_scop_bbs): Factor up code.
+
 2008-08-25  Tobias Grosser  <grosser@fim.uni-passau.de>
 
 	* graphite.c (gloog): Update dominator info.

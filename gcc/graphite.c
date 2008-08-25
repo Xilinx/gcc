@@ -1297,22 +1297,38 @@ build_scop_bbs (scop_p scop)
       new_graphite_bb (scop, bb);
       SET_BIT (visited, bb->index);
 
-      /* First push the blocks that have to be processed last.  */
+      /* First push the blocks that have to be processed last.  Note
+	 that this means that the order in which the code is organized
+	 below is important: do not reorder the following code.  */
       FOR_EACH_EDGE (e, ei, bb->succs)
-	{
-	  int dest_depth;
+	if (! TEST_BIT (visited, e->dest->index)
+	    && (int) loop_depth (e->dest->loop_father) < depth)
+	  stack[sp++] = e->dest;
 
-	  if (TEST_BIT (visited, e->dest->index))
-	    continue;
+      FOR_EACH_EDGE (e, ei, bb->succs)
+	if (! TEST_BIT (visited, e->dest->index)
+	    && (int) loop_depth (e->dest->loop_father) == depth
+	    && e->dest->loop_father->num != num)
+	  stack[sp++] = e->dest;
 
-	  dest_depth = (int) loop_depth (e->dest->loop_father);
-	  if (dest_depth != depth
-	      || (dest_depth == depth
-		  && (e->dest->loop_father->num != num
-		      || (e->dest->loop_father->num == num
-			  && EDGE_COUNT (e->dest->preds) >= 1))))
-	    stack[sp++] = e->dest;
-	}
+      FOR_EACH_EDGE (e, ei, bb->succs)
+	if (! TEST_BIT (visited, e->dest->index)
+	    && (int) loop_depth (e->dest->loop_father) == depth
+	    && e->dest->loop_father->num == num
+	    && EDGE_COUNT (e->dest->preds) > 1)
+	  stack[sp++] = e->dest;
+
+      FOR_EACH_EDGE (e, ei, bb->succs)
+	if (! TEST_BIT (visited, e->dest->index)
+	    && (int) loop_depth (e->dest->loop_father) == depth
+	    && e->dest->loop_father->num == num
+	    && EDGE_COUNT (e->dest->preds) == 1)
+	  stack[sp++] = e->dest;
+
+      FOR_EACH_EDGE (e, ei, bb->succs)
+	if (! TEST_BIT (visited, e->dest->index)
+	    && (int) loop_depth (e->dest->loop_father) > depth)
+	  stack[sp++] = e->dest;
     }
 
   free (stack);
