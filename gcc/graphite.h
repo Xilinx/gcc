@@ -266,23 +266,28 @@ typedef struct name_tree
 DEF_VEC_P(name_tree);
 DEF_VEC_ALLOC_P (name_tree, heap);
 
-/* A SCoP is a Static Control Part of the program, simple enough to be
+/* A Single Entry, Single Exit region is a part of the CFG delimited
+   by two edges.  */
+typedef struct sese
+{
+  edge entry, exit;
+} *sese;
+
+#define SESE_ENTRY(S) (S->entry)
+#define SESE_EXIT(S) (S->exit)
+
+/* A SCOP is a Static Control Part of the program, simple enough to be
    represented in polyhedral form.  */
 struct scop
 {
-  /* The entry bb dominates all the bbs of the scop.  The exit bb
-     post-dominates all the bbs of the scop.  The exit bb
-     potentially contains non affine data accesses, side effect
-     statements or difficult constructs, and thus is not
-     considered part of the scop, but just boundary.  The entry bb is
-     considered part of the scop.  */
-  basic_block entry, exit;
+  /* A SCOP is defined as a SESE region.  */
+  sese region;
 
-  /* All the basic blocks in the scope.  They have extra information
+  /* All the basic blocks in this scop.  They have extra information
      attached to them, in the graphite_bb structure.  */
   VEC (graphite_bb_p, heap) *bbs;
 
-  /* Set for a basic block index when it belongs to this scope.  */
+  /* Set for a basic block index when it belongs to this SCOP.  */
   bitmap bbs_b;
 
   lambda_vector static_schedule;
@@ -293,21 +298,27 @@ struct scop
   /* A collection of old induction variables*/ 
   VEC (name_tree, heap) *old_ivs;
 
-  /* Loops completely contained in the scop.  */
+  /* Loops completely contained in the SCOP.  */
   bitmap loops;
   VEC (loop_p, heap) *loop_nest;
 
   /* ???  It looks like a global mapping loop_id -> cloog_loop would work.  */
   htab_t loop2cloog_loop;
 
-  /* Cloog representation of this scop.  */
+  /* CLooG representation of this SCOP.  */
   CloogProgram *program;
 };
 
 #define SCOP_BBS(S) S->bbs
 #define SCOP_BBS_B(S) S->bbs_b
-#define SCOP_ENTRY(S) S->entry
-#define SCOP_EXIT(S) S->exit
+#define SCOP_REGION(S) S->region
+/* SCOP_ENTRY bb dominates all the bbs of the scop.  SCOP_EXIT bb
+   post-dominates all the bbs of the scop.  SCOP_EXIT potentially
+   contains non affine data accesses, side effect statements or
+   difficult constructs, and thus is not considered part of the scop,
+   but just a boundary.  SCOP_ENTRY is considered part of the scop.  */
+#define SCOP_ENTRY(S) (SESE_ENTRY (SCOP_REGION (S))->dest)
+#define SCOP_EXIT(S) (SESE_EXIT (SCOP_REGION (S))->dest)
 #define SCOP_STATIC_SCHEDULE(S) S->static_schedule
 #define SCOP_LOOPS(S) S->loops
 #define SCOP_LOOP_NEST(S) S->loop_nest

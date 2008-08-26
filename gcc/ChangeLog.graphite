@@ -1,3 +1,20 @@
+2008-08-25  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite.c (new_scop): Entry of a scop is an edge.
+	Initialize SESE region.
+	(free_scop): Free SESE region.
+	(build_scops_1, scopdet_bb_info): Work on edges, not on bbs.
+	(split_difficult_bb): New, split from end_scop.
+	(end_scop): Exit of a scop is an edge.
+	(build_scop_bbs): Never check CDI_POST_DOMINATORS: this info is
+	not automatically updated and thus is always wrong.
+	* graphite.h (struct sese): New.
+	(SESE_ENTRY): New.
+	(SESE_EXIT): New.
+	(struct scop): New field for a SESE region.  Remove entry, exit.
+	(SCOP_ENTRY, SCOP_EXIT): Update definitions to match same
+	semantics as before.  Moved comment around.
+
 2008-08-25  Tobias Grosser  <grosser@fim.uni-passau.de>
 	    Sebastian Pop  <sebastian.pop@amd.com>
 
