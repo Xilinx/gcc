@@ -1216,8 +1216,13 @@ split_difficult_bb (basic_block exit, edge *last, gimple stmt)
 /* End SCOP with edge EXIT.  */
 
 static void
-end_scop (scop_p scop, edge exit)
+end_scop (scop_p scop, edge exit, bool split_entry)
 {
+  if (split_entry 
+      && !single_pred_p (SCOP_ENTRY (scop))
+      && exit->dest->loop_father == SCOP_ENTRY (scop)->loop_father)
+    SESE_ENTRY (SCOP_REGION (scop)) = split_block (SCOP_ENTRY (scop), NULL);
+
   SESE_EXIT (SCOP_REGION (scop)) = exit;
 }
 
@@ -1263,7 +1268,7 @@ build_scops_1 (edge start, VEC (scop_p, heap) **scops, loop_p loop,
 	  if (!exit)
 	    exit = current;
 
-          end_scop (open_scop, exit);
+	  end_scop (open_scop, exit, sinfo.difficult);
           in_scop = false;
         }
 
@@ -1287,29 +1292,30 @@ build_scops_1 (edge start, VEC (scop_p, heap) **scops, loop_p loop,
 	    edge exit = split_difficult_bb (e->dest, &sinfo.last, stmt);
 
 	    if (exit)
-	      end_scop (open_scop, exit);
+	      end_scop (open_scop, exit, sinfo.difficult);
 	    else
-	      end_scop (open_scop, e);
+	      end_scop (open_scop, e, sinfo.difficult);
+
+	    goto done;
 	  }
 
-      if (!SESE_EXIT (SCOP_REGION (open_scop)))
-        {
-          if (SCOP_ENTRY (open_scop) != sinfo.last->dest)
-            {
-	      edge exit = split_difficult_bb (sinfo.last->dest, NULL, stmt);
-	      if (exit)
-		end_scop (open_scop, exit);
-	      else
-		end_scop (open_scop, sinfo.last);
-	    }
-          else
-            {
-              VEC_pop (scop_p, *scops);
-              free_scop (open_scop);
-            }
+      if (SCOP_ENTRY (open_scop) != sinfo.last->dest)
+	{
+	  edge exit = split_difficult_bb (sinfo.last->dest, NULL, stmt);
+
+	  if (exit)
+	    end_scop (open_scop, exit, sinfo.difficult);
+	  else
+	    end_scop (open_scop, sinfo.last, sinfo.difficult);
+	}
+      else
+	{
+	  VEC_pop (scop_p, *scops);
+	  free_scop (open_scop);
         }
     }
 
+ done:
   result.last = sinfo.last;
 
   return result;
@@ -1549,7 +1555,7 @@ build_bb_loops (scop_p scop)
       int depth; 
 
       depth = nb_loops_around_gb (gb) - 1; 
-     
+
       GBB_LOOPS (gb) = VEC_alloc (loop_p, heap, 3);
       VEC_safe_grow_cleared (loop_p, heap, GBB_LOOPS (gb), depth + 1);
 
@@ -4470,7 +4476,7 @@ limit_scops (void)
         if (!loop_in_scop_p (loop_outer (loop), scop))
           {
 	    scop_p n_scop = new_scop (loop_preheader_edge (loop));
-	    end_scop (n_scop, single_exit (loop));
+	    end_scop (n_scop, single_exit (loop), false);
 	    VEC_safe_push (scop_p, heap, new_scops, n_scop);
 	  }
     }

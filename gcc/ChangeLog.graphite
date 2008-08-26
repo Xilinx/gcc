@@ -1,5 +1,11 @@
 2008-08-26  Sebastian Pop  <sebastian.pop@amd.com>
 
+	* graphite.c (end_scop): Split the entry of the scop when it
+	is the header of the loop in which the scop is ending.
+	(build_scops_1, limit_scops): Update uses of end_scop.
+
+2008-08-26  Sebastian Pop  <sebastian.pop@amd.com>
+
 	* graphite.c (dot_all_scops_1): Do not fail on uninitialized
 	SCOP_ENTRY or SCOP_EXIT.
 
