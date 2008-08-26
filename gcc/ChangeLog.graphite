@@ -1,5 +1,10 @@
 2008-08-25  Sebastian Pop  <sebastian.pop@amd.com>
 
+	* graphite.c (can_generate_for_scop): Removed.
+	(gloog): Do not call it.
+
+2008-08-25  Sebastian Pop  <sebastian.pop@amd.com>
+
 	* graphite.c (new_scop): Entry of a scop is an edge.
 	Initialize SESE region.
 	(free_scop): Free SESE region.

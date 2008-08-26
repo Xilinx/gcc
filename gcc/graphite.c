@@ -3660,15 +3660,6 @@ can_generate_code (struct clast_stmt *stmt)
   return result;
 }
 
-/* Returns true when it is possible to generate code for this SCOP.  */
-
-static bool
-can_generate_for_scop (scop_p scop)
-{
-  basic_block scop_exit = SCOP_EXIT (scop);
-  return single_pred_p (scop_exit);
-}
-
 /* GIMPLE Loop Generator: generates loops from STMT in GIMPLE form for
    the given SCOP.  */
 
@@ -3683,7 +3674,7 @@ gloog (scop_p scop, struct clast_stmt *stmt)
   basic_block old_scop_exit_idom = get_immediate_dominator (CDI_DOMINATORS,
 							    scop_exit);
 
-  if (!can_generate_code (stmt) || !can_generate_for_scop (scop))
+  if (!can_generate_code (stmt))
     {
       cloog_clast_free (stmt);
       return;
