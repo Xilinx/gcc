@@ -480,8 +480,8 @@ dot_all_scops_1 (FILE *file)
       /* Select color for SCoP.  */
       for (i = 0; VEC_iterate (scop_p, current_scops, i, scop); i++)
 	if (bb_in_scop_p (bb, scop)
-	    || SCOP_EXIT (scop) == bb
-	    || SCOP_ENTRY (scop) == bb)
+	    || (SESE_EXIT (SCOP_REGION (scop)) && SCOP_EXIT (scop) == bb)
+	    || (SESE_ENTRY (SCOP_REGION (scop)) && SCOP_ENTRY (scop) == bb))
 	  {
 	    switch (i % 17)
 	      {
@@ -545,12 +545,16 @@ dot_all_scops_1 (FILE *file)
 	    if (!bb_in_scop_p (bb, scop))
 	      fprintf (file, " ("); 
 
-	    if (bb == SCOP_ENTRY (scop)
+	    if (SESE_ENTRY (SCOP_REGION (scop))
+		&& SESE_EXIT (SCOP_REGION (scop))
+		&& bb == SCOP_ENTRY (scop)
 		&& bb == SCOP_EXIT (scop))
 	      fprintf (file, " %d*# ", bb->index);
-	    else if (bb == SCOP_ENTRY (scop))
+	    else if (SESE_ENTRY (SCOP_REGION (scop))
+		     && bb == SCOP_ENTRY (scop))
 	      fprintf (file, " %d* ", bb->index);
-	    else if (bb == SCOP_EXIT (scop))
+	    else if (SESE_EXIT (SCOP_REGION (scop))
+		     && bb == SCOP_EXIT (scop))
 	      fprintf (file, " %d# ", bb->index);
 	    else
 	      fprintf (file, " %d ", bb->index);
