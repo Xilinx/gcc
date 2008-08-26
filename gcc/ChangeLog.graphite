@@ -1,5 +1,10 @@
 2008-08-25  Sebastian Pop  <sebastian.pop@amd.com>
 
+	* graphite.c (get_construction_edge): Removed.
+	(gloog): Construction edge is the scop entry edge.
+
+2008-08-25  Sebastian Pop  <sebastian.pop@amd.com>
+
 	* graphite.c (can_generate_for_scop): Removed.
 	(gloog): Do not call it.
 

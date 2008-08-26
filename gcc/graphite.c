@@ -3376,47 +3376,6 @@ find_transform (scop_p scop)
   return stmt;
 }
 
-/* Returns the outermost loop in SCOP.  */
-
-static edge 
-get_construction_edge (scop_p scop)
-{
-  basic_block entry = SCOP_ENTRY (scop);
-
-  if (entry == ENTRY_BLOCK_PTR)
-    return single_succ_edge (entry);
-
-  else if (single_pred_p (SCOP_ENTRY (scop)))
-    return EDGE_PRED (entry, 0);
-
-  else
-    {
-      /* FIXME: This is not handled yet.  For fixing this we should
-	 have SCOPs defined as single entry single exit regions,
-	 that means that SCOP_ENTRY and SCOP_EXIT should be edges.  */
-      /* We can refine this slightly if one of the predecessors
-	 is the immediate dominator of the block.  */
-      edge e;
-      edge_iterator ei;
-      basic_block entry_idom = get_immediate_dominator (CDI_DOMINATORS,
-							entry);
-
-      FOR_EACH_EDGE (e, ei, entry->preds)
-	if (e->src == entry_idom)
-	  {
-	    /* If the successor is in a different loop we must insert
-	       a basic block between to guarantee that a loop exit
-	       will not be going directly to the entry of another
-	       loop.  */
-	    if (e->src->loop_father != e->dest->loop_father)
-	      split_edge (e);
-	    return e;
-	  }
-      
-      return NULL;
-    }
-}
-
 /* Return a vector of all the virtual phi nodes in the current
    function.  */
  
@@ -3669,19 +3628,12 @@ gloog (scop_p scop, struct clast_stmt *stmt)
   edge new_scop_exit_edge = NULL;
   basic_block scop_exit = SCOP_EXIT (scop);
   VEC (name_tree, heap) *ivstack = VEC_alloc (name_tree, heap, 10);
-  edge construction_edge = NULL;
+  edge construction_edge = SESE_ENTRY (SCOP_REGION (scop));
   VEC (basic_block,heap) *bbs = VEC_alloc (basic_block, heap, 10);
   basic_block old_scop_exit_idom = get_immediate_dominator (CDI_DOMINATORS,
 							    scop_exit);
 
   if (!can_generate_code (stmt))
-    {
-      cloog_clast_free (stmt);
-      return;
-    }      
-
-  construction_edge = get_construction_edge (scop);
-  if (!construction_edge)
     {
       cloog_clast_free (stmt);
       return;
