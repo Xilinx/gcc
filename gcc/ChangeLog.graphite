@@ -1,3 +1,15 @@
+2008-08-25  Tobias Grosser  <grosser@fim.uni-passau.de>
+	    Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite.c (graphite_transform_loops): Always enable gloog
+	and find_transform when ENABLE_CHECKING.
+
+2008-08-25  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite.c (graphite_transform_loops): Move pretty printer
+	of SCOPs before doing any transform.  Remove call to print_scops
+	and dot_all_scops_1.
+
 2008-08-25  Sebastian Pop  <sebastian.pop@amd.com>
 
 	* graphite.c (dump_gbb_conditions): Don't try to print NULL pointers.

@@ -4432,9 +4432,20 @@ graphite_apply_transformations (scop_p scop)
   if (flag_loop_block)
     transform_done = graphite_trans_scop_block (scop);
 
+#if 0
+  /* When the compiler is configured with ENABLE_CHECKING, always
+     generate code, even if we did not apply any transformation.  This
+     provides better code coverage of the backend code generator.
+
+     This also allows to check the performance for an identity
+     transform: GIMPLE -> GRAPHITE -> GIMPLE; and the output of CLooG
+     is never an identity: if CLooG optimizations are not disabled,
+     the CLooG output is always optimized in control flow.  */
+  transform_done = true;
+#endif
+
   return transform_done;
 }
-
 
 /* We limit all SCoPs to SCoPs, that are completely surrounded by a loop. 
 
@@ -4506,6 +4517,10 @@ graphite_transform_loops (void)
   build_scops ();
   limit_scops ();
 
+  if (dump_file && (dump_flags & TDF_DETAILS))
+    fprintf (dump_file, "\nnumber of SCoPs: %d\n",
+	     VEC_length (scop_p, current_scops));
+
   for (i = 0; VEC_iterate (scop_p, current_scops, i, scop); i++)
     {
       build_scop_bbs (scop);
@@ -4536,24 +4551,8 @@ graphite_transform_loops (void)
 	  fprintf (dump_file, "\nnumber of data refs: %d\n", nbrefs);
 	}
 
-      /* We only build new graphite code, if we applied a transformation. But
-         call find_transform always to get more test coverage during
-         developement.  */
       if (graphite_apply_transformations (scop))
         gloog (scop, find_transform (scop));
-      else
-        {
-          struct clast_stmt* stmt = find_transform (scop);
-          cloog_clast_free (stmt);
-        }
-    }
-
-  if (dump_file && (dump_flags & TDF_DETAILS))
-    {
-      dot_all_scops_1 (dump_file);
-      print_scops (dump_file, 2);
-      fprintf (dump_file, "\nnumber of SCoPs: %d\n",
-	       VEC_length (scop_p, current_scops));
     }
 
   /* Cleanup.  */
