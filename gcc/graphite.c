@@ -256,12 +256,12 @@ dump_gbb_conditions (FILE *file, graphite_bb_p gbb)
 {
   int i;
   gimple stmt;
-  VEC (gimple, heap) *conditions = gbb->conditions;
+  VEC (gimple, heap) *conditions = GBB_CONDITIONS (gbb);
   
   if (VEC_empty (gimple, conditions))
     return;
 
-  fprintf (file, "\tbb %d\t: cond = {", gbb->bb->index);
+  fprintf (file, "\tbb %d\t: cond = {", GBB_BB (gbb)->index);
 
   for (i = 0; VEC_iterate (gimple, conditions, i, stmt); i++)
     print_gimple_stmt (file, stmt, 0, 0);
@@ -281,38 +281,52 @@ print_graphite_bb (FILE *file, graphite_bb_p gb, int indent, int verbosity)
 
   print_loops_bb (file, GBB_BB (gb), indent+2, verbosity);
 
-  fprintf (file, "       (domain: \n");
   if (GBB_DOMAIN (gb))
-    cloog_matrix_print (dump_file, GBB_DOMAIN (gb));
-  fprintf (file, "       )\n");
+    {
+      fprintf (file, "       (domain: \n");
+      cloog_matrix_print (dump_file, GBB_DOMAIN (gb));
+      fprintf (file, "       )\n");
+    }
 
-  fprintf (file, "       (static schedule: ");
-  print_lambda_vector (file, GBB_STATIC_SCHEDULE (gb),
-                       gbb_nb_loops (gb) + 1);
-  fprintf (file, "       )\n");
+  if (GBB_STATIC_SCHEDULE (gb))
+    {
+      fprintf (file, "       (static schedule: ");
+      print_lambda_vector (file, GBB_STATIC_SCHEDULE (gb),
+			   gbb_nb_loops (gb) + 1);
+      fprintf (file, "       )\n");
+    }
 
-  fprintf (file, "       (contained loops: \n");
-    for (i = 0; VEC_iterate (loop_p, GBB_LOOPS (gb), i, loop); i++)
-      if (loop == NULL)
-        fprintf (file, "       iterator %d   =>  NULL \n", i); 
-      else
-        fprintf (file, "       iterator %d   =>  loop %d \n", i,
-                 loop->num);
-  fprintf (file, "       )\n");
+  if (GBB_LOOPS (gb))
+    {
+      fprintf (file, "       (contained loops: \n");
+      for (i = 0; VEC_iterate (loop_p, GBB_LOOPS (gb), i, loop); i++)
+	if (loop == NULL)
+	  fprintf (file, "       iterator %d   =>  NULL \n", i); 
+	else
+	  fprintf (file, "       iterator %d   =>  loop %d \n", i,
+		   loop->num);
+      fprintf (file, "       )\n");
+    }
 
   if (GBB_DATA_REFS (gb))
     dump_data_references (file, GBB_DATA_REFS (gb));
 
-  fprintf (file, "       (conditions: \n");
-  dump_gbb_conditions (dump_file, gb);
-  fprintf (file, "       )\n");
+  if (GBB_CONDITIONS (gb))
+    {
+      fprintf (file, "       (conditions: \n");
+      dump_gbb_conditions (dump_file, gb);
+      fprintf (file, "       )\n");
+    }
 
-  fprintf (file, "       (scattering: \n");
-  scattering = schedule_to_scattering (gb, 2 * gbb_nb_loops (gb)
-                                          + 1);
-  cloog_matrix_print (file, scattering);
-  cloog_matrix_free (scattering);
-  fprintf (file, "       )\n");
+  if (GBB_SCOP (gb)
+      && GBB_STATIC_SCHEDULE (gb))
+    {
+      fprintf (file, "       (scattering: \n");
+      scattering = schedule_to_scattering (gb, 2 * gbb_nb_loops (gb) + 1);
+      cloog_matrix_print (file, scattering);
+      cloog_matrix_free (scattering);
+      fprintf (file, "       )\n");
+    }
 
   fprintf (file, ")\n");
 }

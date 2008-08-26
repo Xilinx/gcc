@@ -1,5 +1,10 @@
 2008-08-25  Sebastian Pop  <sebastian.pop@amd.com>
 
+	* graphite.c (dump_gbb_conditions): Don't try to print NULL pointers.
+	(print_graphite_bb): Same.
+
+2008-08-25  Sebastian Pop  <sebastian.pop@amd.com>
+
 	* graphite.c (dot_all_scops_1): Cleanup.
 	(move_scops): Fix comment.
 
