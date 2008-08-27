@@ -1,4 +1,10 @@
-2008-08-22  Alan Modra  <amodra@bigpond.net.au>
+2008-08-27  Ben Elliston  <bje@au.ibm.com>
+
+	* target.h (struct gcc_target): Ensure that the addr_space_number
+	member takes a const_tree.
+	* config/spu/spu.c (spu_addr_space_number): Likewise.
+
+2008-08-26  Alan Modra  <amodra@bigpond.net.au>
 	    Ben Elliston  <bje@au.ibm.com>
 
 	* tree.c (build_pointer_type): Arrays have their type qualifiers

@@ -5962,7 +5962,7 @@ bool spu_valid_addr_space (const_tree value)
 }
 
 static
-unsigned char spu_addr_space_number (tree ident)
+unsigned char spu_addr_space_number (const_tree ident)
 {
   int i;
   if (!ident)

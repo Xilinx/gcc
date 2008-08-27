@@ -634,7 +634,7 @@ struct gcc_target
   const char * (* addr_space_name) (int);
 
   /* Function to map an address space to a descriptive string.  */
-  unsigned char (* addr_space_number) (const tree);
+  unsigned char (* addr_space_number) (const_tree);
 
   /* Function to return a gen function for the pointer conversion.  */
   rtx (* (* addr_space_conversion_rtl) (int, int)) (rtx, rtx);
