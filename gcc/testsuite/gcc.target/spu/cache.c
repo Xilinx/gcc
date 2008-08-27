@@ -21,6 +21,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <spu_cache.h>
+extern void *malloc (__SIZE_TYPE__);
+extern void *memset (void *, int, __SIZE_TYPE__);
+extern void abort (void);
 
 #ifdef __EA64__
 #define addr unsigned long long
@@ -54,23 +57,28 @@ static __ea void *bigblock;
 static __ea void *block;
 static int *ls_block;
 
+extern void __cache_tag_array_size;
+#define CACHE_SIZE (4 * (int) &__cache_tag_array_size)
+#define LINE_SIZE 128
+
 void
 init_mem ()
 {
-  bigblock = malloc_ea (10240 + 127);
-  block = malloc_ea (256);
-  ls_block = malloc (128);
+  bigblock = malloc_ea (CACHE_SIZE + 2 * LINE_SIZE);
+  block = malloc_ea (2 * LINE_SIZE);
+  ls_block = malloc (LINE_SIZE);
 
-  memset_ea (bigblock, 0, 10240 + 127);
-  memset_ea (block, -1, 256);
-  memset (ls_block, -1, 128);
+  memset_ea (bigblock, 0, CACHE_SIZE + 2 * LINE_SIZE);
+  memset_ea (block, -1, 2 * LINE_SIZE);
+  memset (ls_block, -1, LINE_SIZE);
+  cache_flush ();
 }
 
 /* Test 1: Simple cache fetching.  */
 void
 test1 ()
 {
-  addr aligned = ((((addr) block) + 128) & ~(127));
+  addr aligned = ((((addr) block) + LINE_SIZE - 1) & -LINE_SIZE);
   int *p1 = NULL;
   int *p2 = NULL;
   int i = 0;
@@ -83,14 +91,14 @@ test1 ()
     abort ();
 
   /* Check that the data actually is in the cache. */
-  for (i = 0; i < 32; i++)
+  for (i = 0; i < LINE_SIZE / sizeof (int); i++)
     {
       if (p1[i] != -1)
 	abort ();
     }
 
   /* Check returning within the cache line. */
-  p2 = cache_fetch ((__ea void *) (aligned + 4));
+  p2 = cache_fetch ((__ea void *) (aligned + sizeof (int)));
 
   if (p2 - p1 != 1)
     abort ();
@@ -105,33 +113,33 @@ test1 ()
 void
 test2 ()
 {
-  addr aligned = ((((addr) block) + 128) & ~(127));
+  addr aligned = ((((addr) block) + LINE_SIZE - 1) & -LINE_SIZE);
   int *p = NULL;
   int i = 0;
 
   /* First check that clean evictions don't write back.  */
   p = cache_fetch ((__ea void *) aligned);
-  for (i = 0; i < 32; i++)
+  for (i = 0; i < LINE_SIZE / sizeof (int); i++)
     p[i] = 0;
 
   cache_evict ((__ea void *) aligned);
-  memcpy_ea ((__ea char *) ls_block, (__ea void *) aligned, 128);
+  memcpy_ea ((__ea char *) ls_block, (__ea void *) aligned, LINE_SIZE);
 
-  for (i = 0; i < 32; i++)
+  for (i = 0; i < LINE_SIZE / sizeof (int); i++)
     {
       if (ls_block[i] == 0)
 	abort ();
     }
 
   /* Now check that dirty evictions do write back.  */
-  p = cache_fetch_dirty ((__ea void *) aligned, 128);
-  for (i = 0; i < 32; i++)
+  p = cache_fetch_dirty ((__ea void *) aligned, LINE_SIZE);
+  for (i = 0; i < LINE_SIZE / sizeof (int); i++)
     p[i] = 0;
 
   cache_evict ((__ea void *) aligned);
-  memcpy_ea ((__ea char *) ls_block, (__ea void *) aligned, 128);
+  memcpy_ea ((__ea char *) ls_block, (__ea void *) aligned, LINE_SIZE);
 
-  for (i = 0; i < 32; i++)
+  for (i = 0; i < LINE_SIZE / sizeof (int); i++)
     {
       if (ls_block[i] != 0)
 	abort ();
@@ -139,16 +147,17 @@ test2 ()
 
   /* Finally, check that non-atomic writeback only writes dirty bytes.  */
 
-  for (i = 0; i < 32; i++)
+  for (i = 0; i < LINE_SIZE / sizeof (int); i++)
     {
-      p = cache_fetch_dirty ((__ea void *) (aligned + i * 4), (i % 2) * 4);
+      p = cache_fetch_dirty ((__ea void *) (aligned + i * sizeof (int)),
+			     (i % 2) * sizeof (int));
       p[0] = -1;
     }
 
   cache_evict ((__ea void *) aligned);
-  memcpy_ea ((__ea char *) ls_block, (__ea void *) aligned, 128);
+  memcpy_ea ((__ea char *) ls_block, (__ea void *) aligned, LINE_SIZE);
 
-  for (i = 0; i < 32; i++)
+  for (i = 0; i < LINE_SIZE / sizeof (int); i++)
     {
       if ((ls_block[i] == -1) && (i % 2 == 0))
 	abort ();
@@ -161,25 +170,25 @@ test2 ()
 void
 test3 ()
 {
-  addr aligned = ((((addr) bigblock) + 127) & ~(127));
+  addr aligned = ((((addr) bigblock) + LINE_SIZE - 1) & -LINE_SIZE);
   char *test = NULL;
   char *ls = NULL;
   int i = 0;
 
   /* Init memory, fill the cache to capacity.  */
-  ls = cache_fetch_dirty ((__ea void *) aligned, 128);
-  for (i = 1; i < (8192 / 128); i++)
-    cache_fetch_dirty ((__ea void *) (aligned + i * 128), 128);
+  ls = cache_fetch_dirty ((__ea void *) aligned, LINE_SIZE);
+  for (i = 1; i < (CACHE_SIZE / LINE_SIZE); i++)
+    cache_fetch_dirty ((__ea void *) (aligned + i * LINE_SIZE), LINE_SIZE);
 
-  memset (ls, -1, 128);
-  test = cache_fetch ((__ea void *) (aligned + 8192));
+  memset (ls, -1, LINE_SIZE);
+  test = cache_fetch ((__ea void *) (aligned + CACHE_SIZE));
 
   /* test == ls indicates cache collision.  */
   if (test != ls)
     abort ();
 
   /* Make sure it actually wrote the cache line.  */
-  for (i = 0; i < 128; i++)
+  for (i = 0; i < LINE_SIZE; i++)
     {
       if (ls[i] != 0)
 	abort ();
@@ -192,7 +201,7 @@ test3 ()
     abort ();
 
   /* Make sure that the previous eviction actually wrote back.  */
-  for (i = 0; i < 128; i++)
+  for (i = 0; i < LINE_SIZE; i++)
     {
       if (ls[i] != 0xFF)
 	abort ();

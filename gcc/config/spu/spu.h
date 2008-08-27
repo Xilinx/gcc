@@ -442,9 +442,9 @@ targetm.resolve_overloaded_builtin = spu_resolve_overloaded_builtin;	\
 
 /* Sections */
 
-#define TEXT_SECTION_ASM_OP ".text"
+#define TEXT_SECTION_ASM_OP "\t.text"
 
-#define DATA_SECTION_ASM_OP ".data"
+#define DATA_SECTION_ASM_OP "\t.data"
 
 #define JUMP_TABLES_IN_TEXT_SECTION 1
 
@@ -486,12 +486,13 @@ targetm.resolve_overloaded_builtin = spu_resolve_overloaded_builtin;	\
   asm_fprintf (FILE, "%U%s", default_strip_name_encoding (NAME))
 
 #define ASM_OUTPUT_SYMBOL_REF(FILE, X) \
-  do								\
-    {								\
-      assemble_name (FILE, XSTR (X, 0));			\
-      if (SYMBOL_REF_DECL (X)					\
-	  && TREE_CODE (SYMBOL_REF_DECL (X)) == VAR_DECL	\
-	  && TYPE_ADDR_SPACE (TREE_TYPE (SYMBOL_REF_DECL (X))))	\
+  do									\
+    {									\
+      tree decl;							\
+      assemble_name (FILE, XSTR (X, 0));				\
+      if ((decl = SYMBOL_REF_DECL (X)) != 0				\
+	  && TREE_CODE (decl) == VAR_DECL				\
+	  && TYPE_ADDR_SPACE (strip_array_types (TREE_TYPE (decl))))	\
 	fputs ("@ppu", FILE);					\
     } while (0)
 

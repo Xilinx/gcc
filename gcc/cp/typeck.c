@@ -7108,7 +7108,7 @@ cp_type_quals (const_tree type)
   type = strip_array_types (CONST_CAST_TREE(type));
   if (type == error_mark_node)
     return TYPE_UNQUALIFIED;
-  return TYPE_QUALS (type);
+  return TYPE_QUALS (CONST_CAST_TREE (type));
 }
 
 /* Returns nonzero if the TYPE is const from a C++ perspective: look inside

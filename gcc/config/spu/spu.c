@@ -210,7 +210,7 @@ static const char *spu_addr_space_name (int);
 #undef TARGET_ADDR_SPACE_NAME
 #define TARGET_ADDR_SPACE_NAME spu_addr_space_name
 
-static unsigned char spu_addr_space_number (const tree);
+static unsigned char spu_addr_space_number (const_tree);
 #undef TARGET_ADDR_SPACE_NUMBER
 #define TARGET_ADDR_SPACE_NUMBER spu_addr_space_number
 
@@ -218,11 +218,15 @@ static rtx (* spu_addr_space_conversion_rtl (int, int)) (rtx, rtx);
 #undef TARGET_ADDR_SPACE_CONVERSION_RTL
 #define TARGET_ADDR_SPACE_CONVERSION_RTL spu_addr_space_conversion_rtl
 
+static unsigned int spu_section_type_flags (tree, const char *, int);
+#undef TARGET_SECTION_TYPE_FLAGS
+#define TARGET_SECTION_TYPE_FLAGS spu_section_type_flags
+
 static bool spu_valid_pointer_mode (enum machine_mode mode);
 #undef TARGET_VALID_POINTER_MODE
 #define TARGET_VALID_POINTER_MODE spu_valid_pointer_mode
 
-static bool spu_valid_addr_space (const tree);
+static bool spu_valid_addr_space (const_tree);
 #undef TARGET_VALID_ADDR_SPACE
 #define TARGET_VALID_ADDR_SPACE spu_valid_addr_space
 
@@ -2864,12 +2868,15 @@ arith_immediate_p (rtx op, enum machine_mode mode,
 /* Return true if X is a SYMBOL_REF to an __ea qualified variable.  */
 
 static int
-ea_symbol_ref (rtx x)
+ea_symbol_ref (rtx *px, void *data ATTRIBUTE_UNUSED)
 {
+  rtx x = *px;
+  tree decl;
+
   return (GET_CODE (x) == SYMBOL_REF
-	  && SYMBOL_REF_DECL (x)
-	  && TREE_CODE (SYMBOL_REF_DECL (x)) == VAR_DECL
-	  && TYPE_ADDR_SPACE (TREE_TYPE (SYMBOL_REF_DECL (x))));
+ 	  && (decl = SYMBOL_REF_DECL (x)) != 0
+ 	  && TREE_CODE (decl) == VAR_DECL
+ 	  && TYPE_ADDR_SPACE (strip_array_types (TREE_TYPE (decl))));
 }
 
 /* We accept:
@@ -2886,7 +2893,7 @@ spu_legitimate_constant_p (rtx x)
 
   /* Reject any __ea qualified reference.  These can't appear in
      instructions but must be forced to the constant pool.  */
-  if (ea_symbol_ref (x))
+  if (for_each_rtx (&x, ea_symbol_ref, 0))
     return 0;
 
   if (GET_CODE (x) == CONST_VECTOR)
@@ -2899,8 +2906,7 @@ spu_legitimate_constant_p (rtx x)
  		&& GET_MODE (x) == V4SImode
  		&& CONST_VECTOR_ELT (x, 0) == CONST_VECTOR_ELT (x, 1)
  		&& CONST_VECTOR_ELT (x, 1) == CONST_VECTOR_ELT (x, 2)
- 		&& CONST_VECTOR_ELT (x, 2) == CONST_VECTOR_ELT (x, 3)
- 		&& !ea_symbol_ref (CONST_VECTOR_ELT (x, 0)));
+ 		&& CONST_VECTOR_ELT (x, 2) == CONST_VECTOR_ELT (x, 3));
 
       if (!const_vector_immediate_p (x))
 	return 0;
@@ -2932,7 +2938,7 @@ spu_legitimate_address (enum machine_mode mode ATTRIBUTE_UNUSED,
     case SYMBOL_REF:
       /* Keep __ea references until reload so that spu_expand_mov
          can see them in MEMs.  */
-      if (ea_symbol_ref (x))
+      if (ea_symbol_ref (&x, 0))
         return !reload_in_progress && !reload_completed;
       return !TARGET_LARGE_MEM;
 
@@ -2945,6 +2951,10 @@ spu_legitimate_address (enum machine_mode mode ATTRIBUTE_UNUSED,
 	  /* Accept any symbol_ref + constant, assuming it does not
 	     wrap around the local store addressability limit.  */
 	  if (GET_CODE (sym) == SYMBOL_REF && GET_CODE (cst) == CONST_INT)
+	    {
+ 	      if (ea_symbol_ref (&sym, 0))
+ 		return 0;
+	    }
 	    return 1;
 	}
       return 0;
@@ -3766,11 +3776,13 @@ expand_ea_mem (rtx mem, bool is_store)
   else
     ea_load_store_inline (mem, is_store, ea_addr, data_addr);
 
+  mem = change_address (mem, VOIDmode, data_addr);
+
   if (ea_alias_set == -1)
     ea_alias_set = new_alias_set ();
   set_mem_alias_set (mem, 0);
   set_mem_alias_set (mem, ea_alias_set);
-  return change_address (mem, VOIDmode, data_addr);
+  return mem;
 }
 
 int
@@ -5849,6 +5861,14 @@ spu_valid_pointer_mode (enum machine_mode mode)
   return (mode == ptr_mode || mode == Pmode || mode == spu_ea_pointer_mode (1));
 }
 
+static unsigned int
+spu_section_type_flags (tree decl, const char *name, int reloc)
+{
+  if (strcmp (name, "._ea") == 0)
+    return SECTION_WRITE | SECTION_DEBUG;
+  return default_section_type_flags (decl, name, reloc);
+}
+
 /* Count the total number of instructions in each pipe and return the
    maximum, which is used as the Minimum Iteration Interval (MII)
    in the modulo scheduler.  get_pipe() will return -2, -1, 0, or 1.
@@ -5929,7 +5949,7 @@ rtx (* spu_addr_space_conversion_rtl (int from, int to)) (rtx, rtx)
 }
 
 static
-bool spu_valid_addr_space (tree value)
+bool spu_valid_addr_space (const_tree value)
 {
   int i;
   if (!value)

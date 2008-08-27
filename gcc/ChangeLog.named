@@ -1,3 +1,36 @@
+2008-08-22  Alan Modra  <amodra@bigpond.net.au>
+	    Ben Elliston  <bje@au.ibm.com>
+
+	* tree.c (build_pointer_type): Arrays have their type qualifiers
+	applied to the element type (see c_build_qualified_type and
+	ISO/IEC 9899:1999 section 6.7.3), so TYPE_ADDR_SPACE needs to
+	access the element type if operating on an array type.
+	* tree.h (OTHER_ADDR_SPACE_POINTER_TYPE): Likewise.
+	(GENERIC_ADDR_SPACE_POINTER_TYPE): Likewise.
+	(COMPLETE_TYPE_P): Likewise.
+	* c-objc-common.c (c_types_compatible_p): Likewise.
+	* dwarf2out.c (modified_type_die): Likewise.
+	* convert.c (convert_to_integer): Likewise.
+	* emit-rtl.c (get_mem_attrs): Use an addr_space_t argument.
+	(set_mem_attributes_mini_bitpos): Strip array types.
+	(set_mem_addr_space): Use an addr_space_t argument.
+	* tree-ssa.c (useless_type_conversion_p): Simplify void * test.
+	* c-parser.c (c_parser_postfix_expression_after_paren_type): Strip
+	array types.
+	* c-decl.c (start_decl): Set DECL_SECTION_NAME to "._ea" for __ea
+	variable definitions.
+	(grokdeclarator): Allow static and global __ea variable
+	definitions.
+	* config/spu/spu.h (TEXT_SECTION_ASM_OP): Add a tab.
+	(DATA_SECTION_ASM_OP): Likewise.
+	(ASM_OUTPUT_SYMBOL_REF): Strip array types on arg.
+	* config/spu/spu.c (TARGET_SECTION_TYPE_FLAGS): Define.
+	(spu_section_type_flags): New function.
+	(ea_symbol_ref): Convert to for_each_rtx predicate.
+	(spu_legitimate_constant_p): Reject __ea symbol refs wrapped in
+	const.
+	(spu_legitimate_address): Likewise.
+
 2008-08-25  Ulrich Weigand  <uweigand@de.ibm.com>
 
 	* config/spu/cachemgr.c: Make interrupt safe and respect tag mask

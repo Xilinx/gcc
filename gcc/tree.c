@@ -4151,7 +4151,7 @@ set_type_quals (tree type, int type_quals)
 bool
 check_qualified_type (const_tree cand, const_tree base, int type_quals)
 {
-  return (TYPE_QUALS (cand) == type_quals
+  return (TYPE_QUALS (CONST_CAST_TREE (cand)) == type_quals
 	  && TYPE_NAME (cand) == TYPE_NAME (base)
 	  /* Apparently this is needed for Objective-C.  */
 	  && TYPE_CONTEXT (cand) == TYPE_CONTEXT (base)
@@ -5476,7 +5476,8 @@ build_pointer_type_for_mode (tree to_type, enum machine_mode mode,
 tree
 build_pointer_type (tree to_type)
 {
-  enum machine_mode mode = targetm.addr_space_pointer_mode (TYPE_ADDR_SPACE (to_type));
+  enum machine_mode mode = 
+    targetm.addr_space_pointer_mode (TYPE_ADDR_SPACE (strip_array_types (to_type)));
   return build_pointer_type_for_mode (to_type, mode, false);
 }
 

@@ -3252,6 +3252,25 @@ start_decl (struct c_declarator *declarator, struct c_declspecs *declspecs,
       && !flag_no_common)
     DECL_COMMON (decl) = 1;
 
+  if (TREE_CODE (decl) == VAR_DECL
+      && TREE_TYPE (decl) != error_mark_node
+      && TYPE_ADDR_SPACE (strip_array_types (TREE_TYPE (decl)))
+      && (declspecs->storage_class == csc_static
+	  || (declspecs->storage_class == csc_none
+	      && !current_function_scope)
+	  || (declspecs->storage_class == csc_extern
+	      && initialized)))
+    {
+      static tree ea_name;
+
+      /* FIXME: do not use __ea.  */
+      if (!targetm.have_named_sections)
+	error ("%<__ea%> definitions not supported for %qD", decl);
+      if (!ea_name)
+	ea_name = build_string (4, "._ea");
+      DECL_SECTION_NAME (decl) = ea_name;
+    }
+
   /* Set attributes here so if duplicate decl, will have proper attributes.  */
   decl_attributes (&decl, attributes, 0);
 
@@ -4090,15 +4109,74 @@ grokdeclarator (const struct c_declarator *declarator,
   /* Warn about storage classes that are invalid for certain
      kinds of declarations (parameters, typenames, etc.).  */
 
+  if (((declarator->kind == cdk_pointer
+ 	&& (DECODE_QUAL_ADDR_SPACE (declarator->u.pointer_quals)) != 0)
+       || addr_space_p)
+      && targetm.addr_space_name == default_addr_space_name)
+     {
+       /* A mere warning is sure to result in improper semantics
+	  at runtime.  Don't bother to allow this to compile.  */
+       error ("extended address space not supported for this target");
+       return 0;
+     }
+
+  if (declarator->kind == cdk_pointer
+      ? (DECODE_QUAL_ADDR_SPACE (declarator->u.pointer_quals)) != 0
+      : addr_space_p)
+    {
+      const char *addrspace_name;
+
+      if (addr_space_p > 0)
+	addrspace_name = targetm.addr_space_name (addr_space_p);
+      else
+	addrspace_name = targetm.addr_space_name (DECODE_QUAL_ADDR_SPACE (declarator->u.pointer_quals));
+
+      if (decl_context == NORMAL)
+	{
+	  if (declarator->kind == cdk_function)
+	    error ("%qs specified for function %qs", addrspace_name, name);
+	  else
+	    {
+	      switch (storage_class)
+		{
+		case csc_auto:
+		  error ("%qs combined with %<auto%> qualifier for %qs", addrspace_name, name);
+		  break;
+		case csc_register:
+		  error ("%qs combined with %<register%> qualifier for %qs", addrspace_name, name);
+		  break;
+		case csc_none:
+		  if (current_function_scope)
+ 		    {
+ 		      error ("%<__ea%> specified for auto variable %qs", name);
+ 		      break;
+ 		    }
+		  break;
+		case csc_static:
+		  break;
+		case csc_extern:
+		  break;
+		case csc_typedef:
+		  break;
+		}
+	    }
+	}
+      else if (decl_context == PARM
+	       && declarator->kind != cdk_array)
+	error ("%qs specified for parameter %qs", addrspace_name, name);
+      else if (decl_context == FIELD)
+	error ("%qs specified for structure field %qs", addrspace_name, name);
+    }
+
   if (funcdef_flag
       && (threadp
 	  || storage_class == csc_auto
 	  || storage_class == csc_register
 	  || storage_class == csc_typedef))
     {
-      if (storage_class == csc_auto)
-	pedwarn ((current_scope == file_scope) ? 0 : OPT_pedantic, 
-		 "function definition declared %<auto%>");
+      if (storage_class == csc_auto
+	  && (pedantic || current_scope == file_scope))
+	pedwarn (OPT_pedantic, "function definition declared %<auto%>");
       if (storage_class == csc_register)
 	error ("function definition declared %<register%>");
       if (storage_class == csc_typedef)
@@ -4110,56 +4188,6 @@ grokdeclarator (const struct c_declarator *declarator,
 	  || storage_class == csc_register
 	  || storage_class == csc_typedef)
 	storage_class = csc_none;
-    }
-  else if (declspecs->address_space)
-    {
-      const char *addrspace_name;
-
-      /* Does the target have named address spaces?  */
-      if (targetm.addr_space_name == default_addr_space_name)
-	{
-	  /* A mere warning is sure to result in improper semantics
-	     at runtime.  Don't bother to allow this to compile.  */
-	  error ("extended address space not supported for this target");
-	  return 0;
-	}
-
-      addrspace_name = targetm.addr_space_name (declspecs->address_space);
-      if (decl_context == NORMAL)
-	{
-	  if (declarator->kind == cdk_function)
-	    error ("%qs specified for function %qs", addrspace_name, name);
-	  else if (declarator->kind == cdk_id)
-	    {
-
-	      switch (storage_class)
-		{
-		case csc_auto:
-		  error ("%qs combined with %<auto%> qualifier for %qs", addrspace_name, name);
-		  break;
-		case csc_register:
-		  error ("%qs combined with %<register%> qualifier for %qs", addrspace_name, name);
-		  break;
-		case csc_static:
-		  error ("%qs combined with %<static%> qualifier for %qs", addrspace_name, name);
-		  break;
-		case csc_none:
-		  if (current_function_scope)
-		    error ("%qs specified for auto variable %qs", addrspace_name, name);
-		  else
-		    error ("%qs variable %qs must be extern", addrspace_name, name);
-		  break;
-		case csc_extern:
-		  /* fall through */
-		case csc_typedef:
-		  break;
-		}
-	    }
-	}
-      else if (decl_context == PARM && declarator->kind == cdk_id)
-	error ("%qs specified for parameter %qs", addrspace_name, name);
-      else if (decl_context == FIELD)
-	error ("%qs specified for structure field %qs", addrspace_name, name);
     }
   else if (decl_context != NORMAL && (storage_class != csc_none || threadp))
     {
@@ -4588,6 +4616,12 @@ grokdeclarator (const struct c_declarator *declarator,
 	  {
 	    /* Merge any constancy or volatility into the target type
 	       for the pointer.  */
+	    
+ 	    if (TREE_CODE (type) == FUNCTION_TYPE)
+ 	      {
+ 		if (pedantic && type_quals)
+ 		  pedwarn (OPT_pedantic, "ISO C forbids qualified function types");
+ 	      }
 
 	    if (pedantic && TREE_CODE (type) == FUNCTION_TYPE
 		&& type_quals)
@@ -4904,10 +4938,6 @@ grokdeclarator (const struct c_declarator *declarator,
 	int extern_ref = !initialized && storage_class == csc_extern;
 
 	type = c_build_qualified_type (type, type_quals);
-
-	if (POINTER_TYPE_P (type) && TYPE_ADDR_SPACE (type) && !extern_ref)
-	  error ("%qs variable %qs must be extern", 
-		 targetm.addr_space_name (TYPE_ADDR_SPACE (type)), name);
 
 	/* C99 6.2.2p7: It is invalid (compile-time undefined
 	   behavior) to create an 'extern' declaration for a

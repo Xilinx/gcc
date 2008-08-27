@@ -1215,11 +1215,9 @@ useless_type_conversion_p (tree outer_type, tree inner_type)
   /* If the outer type is (void *), then the conversion is not
      necessary.  We have to make sure to not apply this while
      recursing though.  */
-  if (POINTER_TYPE_P (inner_type)
-      && POINTER_TYPE_P (outer_type)
-      && TREE_CODE (TREE_TYPE (outer_type)) == VOID_TYPE
-      && GENERIC_ADDR_SPACE_POINTER_TYPE_P (inner_type)
-      && GENERIC_ADDR_SPACE_POINTER_TYPE_P (outer_type))
+  if (GENERIC_ADDR_SPACE_POINTER_TYPE_P (inner_type)
+      && GENERIC_ADDR_SPACE_POINTER_TYPE_P (outer_type)
+      && TREE_CODE (TREE_TYPE (outer_type)) == VOID_TYPE)
     return true;
 
   return useless_type_conversion_p_1 (outer_type, inner_type);

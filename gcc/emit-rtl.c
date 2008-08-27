@@ -193,7 +193,7 @@ static rtx lookup_const_fixed (rtx);
 static hashval_t mem_attrs_htab_hash (const void *);
 static int mem_attrs_htab_eq (const void *, const void *);
 static mem_attrs *get_mem_attrs (alias_set_type, tree, rtx, rtx, unsigned int,
-				 unsigned char, enum machine_mode);
+				 addr_space_t, enum machine_mode);
 static hashval_t reg_attrs_htab_hash (const void *);
 static int reg_attrs_htab_eq (const void *, const void *);
 static reg_attrs *get_reg_attrs (tree, int);
@@ -321,7 +321,7 @@ mem_attrs_htab_eq (const void *x, const void *y)
 
 static mem_attrs *
 get_mem_attrs (alias_set_type alias, tree expr, rtx offset, rtx size,
-	       unsigned int align, unsigned char addrspace, enum machine_mode mode)
+	       unsigned int align, addr_space_t addrspace, enum machine_mode mode)
 {
   mem_attrs attrs;
   void **slot;
@@ -1749,7 +1749,9 @@ set_mem_attributes_minus_bitpos (rtx ref, tree t, int objectp,
 
   /* Now set the attributes we computed above.  */
   MEM_ATTRS (ref)
-    = get_mem_attrs (alias, expr, offset, size, align, TYPE_ADDR_SPACE (type), GET_MODE (ref));
+    = get_mem_attrs (alias, expr, offset, size, align,
+		     TYPE_ADDR_SPACE (strip_array_types (type)),
+		     GET_MODE (ref));
 
   /* If this is already known to be a scalar or aggregate, we are done.  */
   if (MEM_IN_STRUCT_P (ref) || MEM_SCALAR_P (ref))
@@ -1798,7 +1800,7 @@ set_mem_alias_set (rtx mem, alias_set_type set)
 /* Set the address space of MEM to ADDRSPACE (target-defined).  */
 
 void
-set_mem_addr_space (rtx mem, unsigned char addrspace)
+set_mem_addr_space (rtx mem, addr_space_t addrspace)
 {
   MEM_ATTRS (mem) = get_mem_attrs (MEM_ALIAS_SET (mem), MEM_EXPR (mem),
 				   MEM_OFFSET (mem), MEM_SIZE (mem), MEM_ALIGN (mem),

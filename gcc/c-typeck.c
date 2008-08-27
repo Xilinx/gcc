@@ -917,7 +917,7 @@ comptypes_internal (const_tree type1, const_tree type2)
 
   /* Qualifiers must match. C99 6.7.3p9 */
 
-  if (TYPE_QUALS (t1) != TYPE_QUALS (t2))
+  if (TYPE_QUALS (CONST_CAST_TREE (t1)) != TYPE_QUALS (CONST_CAST_TREE (t2)))
     return 0;
 
   /* Allow for two different type nodes which have essentially the same
