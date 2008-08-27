@@ -961,7 +961,17 @@ ccp_fold (gimple stmt)
                 }
 
               if (kind == tcc_reference)
-                return fold_const_aggregate_ref (rhs);
+		{
+		  if (TREE_CODE (rhs) == VIEW_CONVERT_EXPR
+		      && TREE_CODE (TREE_OPERAND (rhs, 0)) == SSA_NAME)
+		    {
+		      prop_value_t *val = get_value (TREE_OPERAND (rhs, 0));
+		      if (val->lattice_val == CONSTANT)
+			return fold_unary (VIEW_CONVERT_EXPR,
+					   TREE_TYPE (rhs), val->value);
+		    }
+		  return fold_const_aggregate_ref (rhs);
+		}
               else if (kind == tcc_declaration)
                 return get_symbol_constant_value (rhs);
               return rhs;
@@ -2118,7 +2128,11 @@ maybe_fold_stmt_indirect (tree expr, tree base, tree offset)
 					  TREE_TYPE (expr));
       if (t)
 	{
-	  TREE_THIS_VOLATILE (t) = volatile_p;
+	  /* Preserve volatileness of the original expression.
+	     We can end up with a plain decl here which is shared
+	     and we shouldn't mess with its flags.  */
+	  if (!SSA_VAR_P (t))
+	    TREE_THIS_VOLATILE (t) = volatile_p;
 	  return t;
 	}
     }
@@ -2300,6 +2314,7 @@ fold_stmt_r (tree *expr_p, int *walk_subtrees, void *data)
       *walk_subtrees = 0;
 
       if (POINTER_TYPE_P (TREE_TYPE (expr))
+          && POINTER_TYPE_P (TREE_TYPE (TREE_TYPE (expr)))
 	  && POINTER_TYPE_P (TREE_TYPE (TREE_OPERAND (expr, 0)))
 	  && (t = maybe_fold_offset_to_address (TREE_OPERAND (expr, 0),
 						integer_zero_node,
@@ -2404,8 +2419,11 @@ fold_stmt_r (tree *expr_p, int *walk_subtrees, void *data)
 
   if (t)
     {
-      /* Preserve volatileness of the original expression.  */
-      TREE_THIS_VOLATILE (t) = volatile_p;
+      /* Preserve volatileness of the original expression.
+	 We can end up with a plain decl here which is shared
+	 and we shouldn't mess with its flags.  */
+      if (!SSA_VAR_P (t))
+	TREE_THIS_VOLATILE (t) = volatile_p;
       *expr_p = t;
       *changed_p = true;
     }

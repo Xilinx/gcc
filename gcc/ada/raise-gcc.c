@@ -663,16 +663,21 @@ db_action_for (action_descriptor *action, _Unwind_Context *uw_context)
   return;
 }
 
-
 /* Search the call_site_table of REGION for an entry appropriate for the
-   UW_CONTEXT's ip. If one is found, store the associated landing_pad and
-   action_table entry, and set the ACTION kind to unknown for further
-   analysis. Otherwise, set the ACTION kind to nothing.
+   UW_CONTEXT's IP.  If one is found, store the associated landing_pad
+   and action_table entry, and set the ACTION kind to unknown for further
+   analysis.  Otherwise, set the ACTION kind to nothing.
 
    There are two variants of this routine, depending on the underlying
-   mechanism (dwarf/sjlj), which account for differences in the tables
-   organization.
-*/
+   mechanism (DWARF/SJLJ), which account for differences in the tables.  */
+
+#ifdef __APPLE__
+/* On MacOS X, versions older than 10.5 don't export _Unwind_GetIPInfo.  */
+#undef HAVE_GETIPINFO
+#if __ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__ >= 1050
+#define HAVE_GETIPINFO 1
+#endif
+#endif
 
 #ifdef __USING_SJLJ_EXCEPTIONS__
 
@@ -683,14 +688,21 @@ get_call_site_action_for (_Unwind_Context *uw_context,
                           region_descriptor *region,
                           action_descriptor *action)
 {
-  _Unwind_Ptr call_site
-    = _Unwind_GetIP (uw_context) - 1;
-  /* Subtract 1 because GetIP returns the actual call_site value + 1.  */
+  int ip_before_insn = 0;
+#ifdef HAVE_GETIPINFO
+  _Unwind_Ptr call_site = _Unwind_GetIPInfo (uw_context, &ip_before_insn);
+#else
+  _Unwind_Ptr call_site = _Unwind_GetIP (uw_context);
+#endif
+  /* Subtract 1 if necessary because GetIPInfo returns the actual call site
+     value + 1 in this case.  */
+  if (!ip_before_insn)
+    call_site--;
 
   /* call_site is a direct index into the call-site table, with two special
-     values : -1 for no-action and 0 for "terminate". The latter should never
-     show up for Ada. To test for the former, beware that _Unwind_Ptr might be
-     unsigned.  */
+     values : -1 for no-action and 0 for "terminate".  The latter should never
+     show up for Ada.  To test for the former, beware that _Unwind_Ptr might
+     be unsigned.  */
 
   if ((int)call_site < 0)
     {
@@ -712,17 +724,16 @@ get_call_site_action_for (_Unwind_Context *uw_context,
       action->kind = unknown;
 
       /* We have a direct index into the call-site table, but this table is
-	 made of leb128 values, the encoding length of which is variable. We
+	 made of leb128 values, the encoding length of which is variable.  We
 	 can't merely compute an offset from the index, then, but have to read
 	 all the entries before the one of interest.  */
 
-      const unsigned char * p = region->call_site_table;
+      const unsigned char *p = region->call_site_table;
 
       do {
 	p = read_uleb128 (p, &cs_lp);
 	p = read_uleb128 (p, &cs_action);
       } while (--call_site);
-
 
       action->landing_pad = cs_lp + 1;
 
@@ -735,29 +746,28 @@ get_call_site_action_for (_Unwind_Context *uw_context,
     }
 }
 
-#else
-/* ! __USING_SJLJ_EXCEPTIONS__ */
+#else /* !__USING_SJLJ_EXCEPTIONS__  */
 
 static void
 get_call_site_action_for (_Unwind_Context *uw_context,
                           region_descriptor *region,
                           action_descriptor *action)
 {
-  _Unwind_Ptr ip
-    = _Unwind_GetIP (uw_context) - 1;
-  /* Subtract 1 because GetIP yields a call return address while we are
-     interested in information for the call point. This does not always yield
-     the exact call instruction address but always brings the ip back within
-     the corresponding region.
+  const unsigned char *p = region->call_site_table;
+  int ip_before_insn = 0;
+#ifdef HAVE_GETIPINFO
+  _Unwind_Ptr ip = _Unwind_GetIPInfo (uw_context, &ip_before_insn);
+#else
+  _Unwind_Ptr ip = _Unwind_GetIP (uw_context);
+#endif
+  /* Subtract 1 if necessary because GetIPInfo yields a call return address
+     in this case, while we are interested in information for the call point.
+     This does not always yield the exact call instruction address but always
+     brings the IP back within the corresponding region.  */
+  if (!ip_before_insn)
+    ip--;
 
-     ??? When unwinding up from a signal handler triggered by a trap on some
-     instruction, we usually have the faulting instruction address here and
-     subtracting 1 might get us into the wrong region.  */
-
-  const unsigned char * p
-    = region->call_site_table;
-
-  /* Unless we are able to determine otherwise ... */
+  /* Unless we are able to determine otherwise...  */
   action->kind = nothing;
 
   db (DB_CSITE, "\n");
@@ -778,7 +788,7 @@ get_call_site_action_for (_Unwind_Context *uw_context,
 	  region->base+cs_start, cs_start, cs_len,
 	  region->lp_base+cs_lp, cs_lp);
 
-      /* The table is sorted, so if we've passed the ip, stop.  */
+      /* The table is sorted, so if we've passed the IP, stop.  */
       if (ip < region->base + cs_start)
  	break;
 
@@ -807,7 +817,7 @@ get_call_site_action_for (_Unwind_Context *uw_context,
   db (DB_CSITE, "---\n");
 }
 
-#endif
+#endif /* __USING_SJLJ_EXCEPTIONS__  */
 
 /* With CHOICE an exception choice representing an "exception - when"
    argument, and PROPAGATED_EXCEPTION a pointer to the currently propagated

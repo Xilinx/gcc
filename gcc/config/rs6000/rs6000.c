@@ -2128,8 +2128,11 @@ optimization_options (int level ATTRIBUTE_UNUSED, int size ATTRIBUTE_UNUSED)
 
   /* Enable section anchors by default.
      Skip section anchors for Objective C and Objective C++
-     until front-ends fixed.  */
-  if (!TARGET_MACHO && lang_hooks.name[4] != 'O')
+     until front-ends fixed.
+     Do not enable section anchors without toplevel reorder.  */
+  if (!TARGET_MACHO
+      && lang_hooks.name[4] != 'O'
+      && flag_toplevel_reorder != 0)
     flag_section_anchors = 2;
 }
 
@@ -20294,8 +20297,10 @@ rs6000_handle_altivec_attribute (tree *node,
     default: break;
     }
 
-  if (result && result != type && TYPE_READONLY (type))
-    result = build_qualified_type (result, TYPE_QUAL_CONST);
+  /* Propagate qualifiers attached to the element type
+     onto the vector type.  */
+  if (result && result != type && TYPE_QUALS (type))
+    result = build_qualified_type (result, TYPE_QUALS (type));
 
   *no_add_attrs = true;  /* No need to hang on to the attribute.  */
 

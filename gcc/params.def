@@ -193,6 +193,10 @@ DEFPARAM(PARAM_INLINE_UNIT_GROWTH,
 	 "inline-unit-growth",
 	 "how much can given compilation unit grow because of the inlining (in percent)",
 	 30, 0, 0)
+DEFPARAM(PARAM_IPCP_UNIT_GROWTH,
+	 "ipcp-unit-growth",
+	 "how much can given compilation unit grow because of the interprocedural constant propagation (in percent)",
+	 10, 0, 0)
 DEFPARAM(PARAM_INLINE_CALL_COST,
 	 "inline-call-cost",
 	 "expense of call operation relative to ordinary arithmetic operations",
@@ -709,6 +713,11 @@ DEFPARAM (PARAM_DF_DOUBLE_QUEUE_THRESHOLD_FACTOR,
 	  "df-double-queue-threshold-factor",
 	  "Multiplier used for determining the double-queueing threshold",
 	  2, 0, 0)
+
+DEFPARAM (PARAM_IRA_MAX_LOOPS_NUM,
+	  "ira-max-loops-num",
+	  "max loops number for regional RA",
+	  50, 0, 0)
 
 /* Switch initialization conversion will refuse to create arrays that are
    bigger than this parameter times the number of switch branches.  */

@@ -4933,14 +4933,14 @@ gimplify_va_arg_expr (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p)
       if (!gave_help && warned)
 	{
 	  gave_help = true;
-	  inform ("(so you should pass %qT not %qT to %<va_arg%>)",
+	  inform (input_location, "(so you should pass %qT not %qT to %<va_arg%>)",
 		   promoted_type, type);
 	}
 
       /* We can, however, treat "undefined" any way we please.
 	 Call abort to encourage the user to fix the program.  */
       if (warned)
-	inform ("if this code is reached, the program will abort");
+	inform (input_location, "if this code is reached, the program will abort");
       t = build_call_expr (implicit_built_in_decls[BUILT_IN_TRAP], 0);
       gimplify_and_add (t, pre_p);
 
@@ -7279,7 +7279,7 @@ fold_builtin_inf (tree type, int warn)
      Thus we pedwarn to ensure this constraint violation is
      diagnosed.  */
   if (!MODE_HAS_INFINITIES (TYPE_MODE (type)) && warn)
-    pedwarn (0, "target format does not support infinity");
+    pedwarn (input_location, 0, "target format does not support infinity");
 
   real_inf (&real);
   return build_real (type, real);
@@ -11586,6 +11586,17 @@ fold_builtin_next_arg (tree exp, bool va_start_p)
 	     it.  */
 	  warning (0, "second parameter of %<va_start%> not last named argument");
 	}
+
+      /* Undefined by C99 7.15.1.4p4 (va_start):
+         "If the parameter parmN is declared with the register storage
+         class, with a function or array type, or with a type that is
+         not compatible with the type that results after application of
+         the default argument promotions, the behavior is undefined."
+      */
+      else if (DECL_REGISTER (arg))
+        warning (0, "undefined behaviour when second parameter of "
+                 "%<va_start%> is declared with %<register%> storage");
+
       /* We want to verify the second parameter just once before the tree
 	 optimizers are run and then avoid keeping it in the tree,
 	 as otherwise we could warn even for correct code like:

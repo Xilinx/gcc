@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -65,7 +65,7 @@ package Exp_Ch6 is
       --  caller or callee, and if the callee, whether to use the secondary
       --  stack or the heap. See Create_Extra_Formals.
       BIP_Final_List,
-      --  Present if result type has controlled parts. Pointer to caller's
+      --  Present if result type needs finalization. Pointer to caller's
       --  finalization list.
       BIP_Master,
       --  Present if result type contains tasks. Master associated with
@@ -160,5 +160,10 @@ package Exp_Ch6 is
    --  function call. Function_Call must denote either an N_Function_Call node
    --  for which Is_Build_In_Place_Call is True, or an N_Qualified_Expression
    --  node applied to such a function call.
+
+   function Needs_BIP_Final_List (E : Entity_Id) return Boolean;
+   --  ???pragma Precondition (Is_Build_In_Place_Function (E));
+   --  Ada 2005 (AI-318-02): Returns True if the function needs the
+   --  BIP_Final_List implicit parameter.
 
 end Exp_Ch6;

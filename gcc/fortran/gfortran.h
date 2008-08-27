@@ -834,8 +834,7 @@ typedef struct gfc_component
   const char *name;
   gfc_typespec ts;
 
-  int pointer, allocatable, dimension;
-  gfc_access access;
+  symbol_attribute attr;
   gfc_array_spec *as;
 
   tree backend_decl;
@@ -992,6 +991,27 @@ typedef struct
 }
 gfc_user_op;
 
+
+/* Data needed for type-bound procedures.  */
+typedef struct
+{
+  struct gfc_symtree* target;
+  locus where; /* Where the PROCEDURE definition was.  */
+
+  gfc_access access;
+  char* pass_arg; /* Argument-name for PASS.  NULL if not specified.  */
+
+  /* Once resolved, we use the position of pass_arg in the formal arglist of
+     the binding-target procedure to identify it.  The first argument has
+     number 0 here, the second 1, and so on.  */
+  unsigned pass_arg_num;
+
+  unsigned nopass:1; /* Whether we have NOPASS (PASS otherwise).  */
+  unsigned non_overridable:1;
+}
+gfc_typebound_proc;
+
+
 /* Symbol nodes.  These are important things.  They are what the
    standard refers to as "entities".  The possibly multiple names that
    refer to the same entity are accomplished by a binary tree of
@@ -1128,6 +1148,8 @@ typedef struct gfc_symtree
   }
   n;
 
+  /* Data for type-bound procedures; NULL if no type-bound procedure.  */
+  gfc_typebound_proc* typebound;
 }
 gfc_symtree;
 
@@ -2132,9 +2154,6 @@ bool gfc_is_intrinsic_typename (const char *);
 gfc_typespec *gfc_get_default_type (gfc_symbol *, gfc_namespace *);
 gfc_try gfc_set_default_type (gfc_symbol *, int, gfc_namespace *);
 
-void gfc_set_component_attr (gfc_component *, symbol_attribute *);
-void gfc_get_component_attr (symbol_attribute *, gfc_component *);
-
 void gfc_set_sym_referenced (gfc_symbol *);
 
 gfc_try gfc_add_attribute (symbol_attribute *, locus *);
@@ -2189,7 +2208,7 @@ gfc_try gfc_copy_attr (symbol_attribute *, symbol_attribute *, locus *);
 gfc_try gfc_add_component (gfc_symbol *, const char *, gfc_component **);
 gfc_symbol *gfc_use_derived (gfc_symbol *);
 gfc_symtree *gfc_use_derived_tree (gfc_symtree *);
-gfc_component *gfc_find_component (gfc_symbol *, const char *);
+gfc_component *gfc_find_component (gfc_symbol *, const char *, bool, bool);
 
 gfc_st_label *gfc_get_st_label (int);
 void gfc_free_st_label (gfc_st_label *);
@@ -2241,9 +2260,14 @@ void gfc_symbol_state (void);
 gfc_gsymbol *gfc_get_gsymbol (const char *);
 gfc_gsymbol *gfc_find_gsymbol (gfc_gsymbol *, const char *);
 
+gfc_symbol* gfc_get_derived_super_type (gfc_symbol*);
+gfc_symtree* gfc_find_typebound_proc (gfc_symbol*, const char*);
+
 void copy_formal_args (gfc_symbol *dest, gfc_symbol *src);
 
 void gfc_free_finalizer (gfc_finalizer *el); /* Needed in resolve.c, too  */
+
+gfc_try gfc_check_symbol_typed (gfc_symbol*, gfc_namespace*, bool, locus);
 
 /* intrinsic.c */
 extern int gfc_init_expr;
@@ -2335,6 +2359,8 @@ bool gfc_traverse_expr (gfc_expr *, gfc_symbol *,
 			bool (*)(gfc_expr *, gfc_symbol *, int*),
 			int);
 void gfc_expr_set_symbols_referenced (gfc_expr *);
+
+gfc_try gfc_expr_check_typed (gfc_expr*, gfc_namespace*, bool);
 
 /* st.c */
 extern gfc_code new_st;

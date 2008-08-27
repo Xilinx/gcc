@@ -2675,7 +2675,7 @@ gfc_check_assign (gfc_expr *lvalue, gfc_expr *rvalue, int conform)
   has_pointer = sym->attr.pointer;
 
   for (ref = lvalue->ref; ref; ref = ref->next)
-    if (ref->type == REF_COMPONENT && ref->u.c.component->pointer)
+    if (ref->type == REF_COMPONENT && ref->u.c.component->attr.pointer)
       {
 	has_pointer = 1;
 	break;
@@ -2907,7 +2907,7 @@ gfc_check_pointer_assign (gfc_expr *lvalue, gfc_expr *rvalue)
       if (pointer)
 	check_intent_in = 0;
 
-      if (ref->type == REF_COMPONENT && ref->u.c.component->pointer)
+      if (ref->type == REF_COMPONENT && ref->u.c.component->attr.pointer)
 	pointer = 1;
     }
 
@@ -3056,7 +3056,7 @@ gfc_default_initializer (gfc_typespec *ts)
 
   /* See if we have a default initializer.  */
   for (c = ts->derived->components; c; c = c->next)
-    if (c->initializer || c->allocatable)
+    if (c->initializer || c->attr.allocatable)
       break;
 
   if (!c)
@@ -3082,7 +3082,7 @@ gfc_default_initializer (gfc_typespec *ts)
       if (c->initializer)
 	tail->expr = gfc_copy_expr (c->initializer);
 
-      if (c->allocatable)
+      if (c->attr.allocatable)
 	{
 	  tail->expr = gfc_get_expr ();
 	  tail->expr->expr_type = EXPR_NULL;
@@ -3265,4 +3265,47 @@ void
 gfc_expr_set_symbols_referenced (gfc_expr *expr)
 {
   gfc_traverse_expr (expr, NULL, expr_set_symbols_referenced, 0);
+}
+
+
+/* Walk an expression tree and check each variable encountered for being typed.
+   If strict is not set, a top-level variable is tolerated untyped in -std=gnu
+   mode; this is for things in legacy-code like:
+
+     INTEGER :: arr(n), n
+
+   The namespace is needed for IMPLICIT typing.  */
+
+static gfc_namespace* check_typed_ns;
+
+static bool
+expr_check_typed_help (gfc_expr* e, gfc_symbol* sym ATTRIBUTE_UNUSED,
+                       int* f ATTRIBUTE_UNUSED)
+{
+  gfc_try t;
+
+  if (e->expr_type != EXPR_VARIABLE)
+    return false;
+
+  gcc_assert (e->symtree);
+  t = gfc_check_symbol_typed (e->symtree->n.sym, check_typed_ns,
+                              true, e->where);
+
+  return (t == FAILURE);
+}
+
+gfc_try
+gfc_expr_check_typed (gfc_expr* e, gfc_namespace* ns, bool strict)
+{
+  bool error_found;
+
+  /* If this is a top-level variable, do the check with strict given to us.  */
+  if (!strict && e->expr_type == EXPR_VARIABLE && !e->ref)
+    return gfc_check_symbol_typed (e->symtree->n.sym, ns, strict, e->where);
+
+  /* Otherwise, walk the expression and do it strictly.  */
+  check_typed_ns = ns;
+  error_found = gfc_traverse_expr (e, NULL, &expr_check_typed_help, 0);
+
+  return error_found ? FAILURE : SUCCESS;
 }

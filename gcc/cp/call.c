@@ -771,7 +771,7 @@ standard_conversion (tree to, tree from, tree expr, bool c_cast_p,
       conv = build_conv (ck_std, to, conv);
       conv->bad_p = true;
     }
-  else if (tcode == ENUMERAL_TYPE && fcode == INTEGER_TYPE)
+  else if (UNSCOPED_ENUM_P (to) && fcode == INTEGER_TYPE)
     {
       /* For backwards brain damage compatibility, allow interconversion of
 	 enums and integers with a pedwarn.  */
@@ -896,10 +896,11 @@ standard_conversion (tree to, tree from, tree expr, bool c_cast_p,
     {
       /* [conv.bool]
 
-	  An rvalue of arithmetic, enumeration, pointer, or pointer to
-	  member type can be converted to an rvalue of type bool.  */
+	  An rvalue of arithmetic, unscoped enumeration, pointer, or
+	  pointer to member type can be converted to an rvalue of type
+	  bool.  */
       if (ARITHMETIC_TYPE_P (from)
-	  || fcode == ENUMERAL_TYPE
+	  || UNSCOPED_ENUM_P (from)
 	  || fcode == POINTER_TYPE
 	  || TYPE_PTR_TO_MEMBER_P (from))
 	{
@@ -919,7 +920,8 @@ standard_conversion (tree to, tree from, tree expr, bool c_cast_p,
   /* As an extension, allow conversion to complex type.  */
   else if (ARITHMETIC_TYPE_P (to))
     {
-      if (! (INTEGRAL_CODE_P (fcode) || fcode == REAL_TYPE))
+      if (! (INTEGRAL_CODE_P (fcode) || fcode == REAL_TYPE)
+          || SCOPED_ENUM_P (from))
 	return NULL;
       conv = build_conv (ck_std, to, conv);
 
@@ -2545,24 +2547,24 @@ print_z_candidate (const char *msgstr, struct z_candidate *candidate)
   if (TREE_CODE (candidate->fn) == IDENTIFIER_NODE)
     {
       if (candidate->num_convs == 3)
-	inform ("%s %D(%T, %T, %T) <built-in>", msgstr, candidate->fn,
+	inform (input_location, "%s %D(%T, %T, %T) <built-in>", msgstr, candidate->fn,
 		candidate->convs[0]->type,
 		candidate->convs[1]->type,
 		candidate->convs[2]->type);
       else if (candidate->num_convs == 2)
-	inform ("%s %D(%T, %T) <built-in>", msgstr, candidate->fn,
+	inform (input_location, "%s %D(%T, %T) <built-in>", msgstr, candidate->fn,
 		candidate->convs[0]->type,
 		candidate->convs[1]->type);
       else
-	inform ("%s %D(%T) <built-in>", msgstr, candidate->fn,
+	inform (input_location, "%s %D(%T) <built-in>", msgstr, candidate->fn,
 		candidate->convs[0]->type);
     }
   else if (TYPE_P (candidate->fn))
-    inform ("%s %T <conversion>", msgstr, candidate->fn);
+    inform (input_location, "%s %T <conversion>", msgstr, candidate->fn);
   else if (candidate->viable == -1)
-    inform ("%s %+#D <near match>", msgstr, candidate->fn);
+    inform (input_location, "%s %+#D <near match>", msgstr, candidate->fn);
   else
-    inform ("%s %+#D", msgstr, candidate->fn);
+    inform (input_location, "%s %+#D", msgstr, candidate->fn);
 }
 
 static void
@@ -3404,7 +3406,7 @@ build_conditional_expr (tree arg1, tree arg2, tree arg3,
   if (!arg2)
     {
       if (complain & tf_error)
-	pedwarn (OPT_pedantic, 
+	pedwarn (input_location, OPT_pedantic, 
 		 "ISO C++ forbids omitting the middle term of a ?: expression");
 
       /* Make sure that lvalues remain lvalues.  See g++.oliva/ext1.C.  */
@@ -3702,9 +3704,9 @@ build_conditional_expr (tree arg1, tree arg2, tree arg3,
        type; the usual arithmetic conversions are performed to bring
        them to a common type, and the result is of that type.  */
   else if ((ARITHMETIC_TYPE_P (arg2_type)
-	    || TREE_CODE (arg2_type) == ENUMERAL_TYPE)
+	    || UNSCOPED_ENUM_P (arg2_type))
 	   && (ARITHMETIC_TYPE_P (arg3_type)
-	       || TREE_CODE (arg3_type) == ENUMERAL_TYPE))
+	       || UNSCOPED_ENUM_P (arg3_type)))
     {
       /* In this case, there is always a common type.  */
       result_type = type_after_usual_arithmetic_conversions (arg2_type,
@@ -4791,7 +4793,7 @@ convert_like_real (conversion *convs, tree expr, tree fn, int argnum,
   if (convs->check_narrowing)
     check_narrowing (totype, expr);
 
-  if (issue_conversion_warnings)
+  if (issue_conversion_warnings && (complain & tf_warning))
     expr = convert_and_check (totype, expr);
   else
     expr = convert (totype, expr);
@@ -6651,7 +6653,7 @@ joust (struct z_candidate *cand1, struct z_candidate *cand2, bool warn)
 	      && warning (OPT_Wconversion, "  for conversion from %qT to %qT",
 			  source, w->second_conv->type)) 
 	    {
-	      inform ("  because conversion sequence for the argument is better");
+	      inform (input_location, "  because conversion sequence for the argument is better");
 	    }
 	}
       else
@@ -6766,7 +6768,7 @@ tweak:
 	{
 	  if (warn)
 	    {
-	      pedwarn (0,
+	      pedwarn (input_location, 0,
 	      "ISO C++ says that these are ambiguous, even "
 	      "though the worst conversion for the first is better than "
 	      "the worst conversion for the second:");

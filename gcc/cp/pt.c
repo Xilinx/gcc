@@ -2741,9 +2741,9 @@ check_for_bare_parameter_packs (tree t)
             name = DECL_NAME (pack);
 
 	  if (name)
-	    inform ("        %qD", name);
+	    inform (input_location, "        %qD", name);
 	  else
-	    inform ("        <anonymous>");
+	    inform (input_location, "        <anonymous>");
 
           parameter_packs = TREE_CHAIN (parameter_packs);
         }
@@ -4020,7 +4020,7 @@ push_template_decl_real (tree decl, bool is_friend)
 template arguments to %qD do not match original template %qD",
 		 decl, DECL_TEMPLATE_RESULT (tmpl));
 	  if (!uses_template_parms (TI_ARGS (tinfo)))
-	    inform ("use template<> for an explicit specialization");
+	    inform (input_location, "use template<> for an explicit specialization");
 	  /* Avoid crash in import_export_decl.  */
 	  DECL_INTERFACE_KNOWN (decl) = 1;
 	  return error_mark_node;
@@ -4141,7 +4141,7 @@ redeclare_class_template (tree type, tree parms)
     {
       error ("redeclared with %d template parameter(s)", 
              TREE_VEC_LENGTH (parms));
-      inform ("previous declaration %q+D used %d template parameter(s)", 
+      inform (input_location, "previous declaration %q+D used %d template parameter(s)", 
              tmpl, TREE_VEC_LENGTH (tmpl_parms));
       return false;
     }
@@ -4187,7 +4187,7 @@ redeclare_class_template (tree type, tree parms)
 	     A template-parameter may not be given default arguments
 	     by two different declarations in the same scope.  */
 	  error ("redefinition of default argument for %q#D", parm);
-	  inform ("%Joriginal definition appeared here", tmpl_parm);
+	  inform (input_location, "%Joriginal definition appeared here", tmpl_parm);
 	  return false;
 	}
 
@@ -4570,7 +4570,7 @@ convert_nontype_argument (tree type, tree expr)
 	{
 	  error ("%qE is not a valid template argument for type %qT "
 		 "because it is a pointer", expr, type);
-	  inform ("try using %qE instead", TREE_OPERAND (expr, 0));
+	  inform (input_location, "try using %qE instead", TREE_OPERAND (expr, 0));
 	  return NULL_TREE;
 	}
 
@@ -4608,7 +4608,7 @@ convert_nontype_argument (tree type, tree expr)
 	  error ("%qE is not a valid template argument for type %qT "
 		 "because it is of type %qT", expr, type,
 		 TREE_TYPE (expr));
-	  inform ("standard conversions are not allowed in this context");
+	  inform (input_location, "standard conversions are not allowed in this context");
 	  return NULL_TREE;
 	}
     }
@@ -5836,14 +5836,20 @@ lookup_template_class (tree d1,
 	  if (!is_partial_instantiation)
 	    {
 	      set_current_access_from_decl (TYPE_NAME (template_type));
-	      t = start_enum (TYPE_IDENTIFIER (template_type));
+	      t = start_enum (TYPE_IDENTIFIER (template_type),
+                              tsubst (ENUM_UNDERLYING_TYPE (template_type),
+                                      arglist, complain, in_decl),
+                              SCOPED_ENUM_P (template_type));
 	    }
 	  else
-	    /* We don't want to call start_enum for this type, since
-	       the values for the enumeration constants may involve
-	       template parameters.  And, no one should be interested
-	       in the enumeration constants for such a type.  */
-	    t = make_node (ENUMERAL_TYPE);
+            {
+              /* We don't want to call start_enum for this type, since
+                 the values for the enumeration constants may involve
+                 template parameters.  And, no one should be interested
+                 in the enumeration constants for such a type.  */
+              t = make_node (ENUMERAL_TYPE);
+              SET_SCOPED_ENUM_P (t, SCOPED_ENUM_P (template_type));
+            }
 	}
       else
 	{
@@ -9722,7 +9728,7 @@ tsubst_qualified_id (tree qualified_id, tree args,
 	    {
 	      error ("dependent-name %qE is parsed as a non-type, but "
 		     "instantiation yields a type", qualified_id);
-	      inform ("say %<typename %E%> if a type is meant", qualified_id);
+	      inform (input_location, "say %<typename %E%> if a type is meant", qualified_id);
 	    }
 	  return error_mark_node;
 	}
@@ -14613,7 +14619,7 @@ do_decl_instantiation (tree decl, tree storage)
   else if (storage == ridpointers[(int) RID_EXTERN])
     {
       if (!in_system_header && (cxx_dialect == cxx98))
-	pedwarn (OPT_pedantic, 
+	pedwarn (input_location, OPT_pedantic, 
 		 "ISO C++ 1998 forbids the use of %<extern%> on explicit "
 		 "instantiations");
       extern_p = 1;
@@ -14705,13 +14711,14 @@ do_type_instantiation (tree t, tree storage, tsubst_flags_t complain)
 	  if (storage == ridpointers[(int) RID_EXTERN])
 	    {
 	      if (cxx_dialect == cxx98)
-		pedwarn(OPT_pedantic, 
-			"ISO C++ 1998 forbids the use of %<extern%> on "
-			"explicit instantiations");
+		pedwarn (input_location, OPT_pedantic, 
+			 "ISO C++ 1998 forbids the use of %<extern%> on "
+			 "explicit instantiations");
 	    }
 	  else
-	    pedwarn(OPT_pedantic, "ISO C++ forbids the use of %qE on explicit "
-		    "instantiations", storage);
+	    pedwarn (input_location, OPT_pedantic, 
+		     "ISO C++ forbids the use of %qE"
+		     " on explicit instantiations", storage);
 	}
 
       if (storage == ridpointers[(int) RID_INLINE])

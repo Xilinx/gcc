@@ -238,6 +238,10 @@ ipa_count_arguments (struct cgraph_edge *cs)
   stmt = cs->call_stmt;
   gcc_assert (is_gimple_call (stmt));
   arg_num = gimple_call_num_args (stmt);
+  if (VEC_length (ipa_edge_args_t, ipa_edge_args_vector)
+      <= (unsigned) cgraph_edge_max_uid)
+    VEC_safe_grow_cleared (ipa_edge_args_t, heap,
+			   ipa_edge_args_vector, cgraph_edge_max_uid + 1);
   ipa_set_cs_argument_count (IPA_EDGE_REF (cs), arg_num);
 }
 
@@ -269,7 +273,7 @@ ipa_print_node_jump_functions (FILE *f, struct cgraph_node *node)
 	  fprintf (f, "  param %d: ", i);
 	  if (type == IPA_UNKNOWN)
 	    fprintf (f, "UNKNOWN\n");
-	  else if (type == IPA_CONST || type == IPA_CONST_REF)
+	  else if (type == IPA_CONST)
  	    {
 	      tree val = jump_func->value.constant;
 	      fprintf (f, "CONST: ");
@@ -323,33 +327,11 @@ compute_scalar_jump_functions (struct ipa_node_params *info,
     {
       arg = gimple_call_arg (call, num);
 
-      if (TREE_CODE (arg) == INTEGER_CST
-	  || TREE_CODE (arg) == REAL_CST
-	  || TREE_CODE (arg) == FIXED_CST)
+      if (is_gimple_ip_invariant (arg))
 	{
 	  functions[num].type = IPA_CONST;
 	  functions[num].value.constant = arg;
 	}
-      else if (TREE_CODE (arg) == ADDR_EXPR)
-	{
-	  if (TREE_CODE (TREE_OPERAND (arg, 0)) == FUNCTION_DECL)
-	    {
-	      functions[num].type = IPA_CONST;
-	      functions[num].value.constant = TREE_OPERAND (arg, 0);
-	    }
-	  else if (TREE_CODE (TREE_OPERAND (arg, 0)) == CONST_DECL)
-	    {
-	      tree cst_decl = TREE_OPERAND (arg, 0);
-
-	      if (TREE_CODE (DECL_INITIAL (cst_decl)) == INTEGER_CST
-		  || TREE_CODE (DECL_INITIAL (cst_decl)) == REAL_CST
-		  || TREE_CODE (DECL_INITIAL (cst_decl)) == FIXED_CST)
-		{
-		  functions[num].type = IPA_CONST_REF;
-		  functions[num].value.constant = cst_decl;
-		}
-	    }
- 	}
       else if ((TREE_CODE (arg) == SSA_NAME) && SSA_NAME_IS_DEFAULT_DEF (arg))
 	{
 	  int index = ipa_get_param_decl_index (info, SSA_NAME_VAR (arg));
@@ -492,7 +474,7 @@ determine_cst_member_ptr (gimple call, tree arg, tree method_field,
 	      method = TREE_OPERAND (rhs, 0);
 	      if (delta)
 		{
-		  fill_member_ptr_cst_jump_function (jfunc, method, delta);
+		  fill_member_ptr_cst_jump_function (jfunc, rhs, delta);
 		  return;
 		}
 	    }
@@ -507,7 +489,7 @@ determine_cst_member_ptr (gimple call, tree arg, tree method_field,
 	      delta = rhs;
 	      if (method)
 		{
-		  fill_member_ptr_cst_jump_function (jfunc, method, delta);
+		  fill_member_ptr_cst_jump_function (jfunc, rhs, delta);
 		  return;
 		}
 	    }
@@ -947,6 +929,10 @@ update_call_notes_after_inlining (struct cgraph_edge *cs,
 	    decl = jfunc->value.member_cst.pfn;
 	  else
 	    decl = jfunc->value.constant;
+
+	  if (TREE_CODE (decl) != ADDR_EXPR)
+	    continue;
+	  decl = TREE_OPERAND (decl, 0);
 
 	  if (TREE_CODE (decl) != FUNCTION_DECL)
 	    continue;

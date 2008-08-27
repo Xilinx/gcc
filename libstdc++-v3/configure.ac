@@ -104,7 +104,7 @@ GLIBCXX_ENABLE_THREADS
 GLIBCXX_CHECK_COMPILER_FEATURES
 GLIBCXX_CHECK_STANDARD_LAYOUT
 
-# Enable all the variable C++ runtime options that doesn't require linking.
+# Enable all the variable C++ runtime options that don't require linking.
 GLIBCXX_ENABLE_CSTDIO
 GLIBCXX_ENABLE_CLOCALE
 GLIBCXX_ENABLE_ALLOCATOR
@@ -143,6 +143,13 @@ GLIBCXX_CHECK_C99_TR1
 # For common values of EOF, SEEK_CUR, SEEK_END.
 GLIBCXX_CHECK_STDIO_MACROS
 
+# For gettimeofday support.
+GLIBCXX_CHECK_GETTIMEOFDAY
+
+# For clock_gettime support.
+# NB: The default is [no], because otherwise it requires linking.
+GLIBCXX_ENABLE_CLOCK_GETTIME([no])
+
 AC_LC_MESSAGES
 
 # Check for available headers.
@@ -160,18 +167,11 @@ if $GLIBCXX_IS_NATIVE; then
 
   GLIBCXX_CHECK_LINKER_FEATURES
   GLIBCXX_CHECK_MATH_SUPPORT
-  GLIBCXX_CHECK_BUILTIN_MATH_SUPPORT
   GLIBCXX_CHECK_COMPLEX_MATH_SUPPORT
   GLIBCXX_CHECK_STDLIB_SUPPORT
 
-  # For dev/random and dev/urandom for TR1.
+  # For /dev/random and /dev/urandom for TR1.
   GLIBCXX_CHECK_RANDOM_TR1
-
-  # For clock_gettime support.
-  GLIBCXX_CHECK_CLOCK_GETTIME
-
-  # For gettimeofday support.
-  GLIBCXX_CHECK_GETTIMEOFDAY
 
   # For TLS support.
   GCC_CHECK_TLS
@@ -210,7 +210,6 @@ else
   fi
 
   # Construct crosses by hand, eliminating bits that need ld...
-  # GLIBCXX_CHECK_BUILTIN_MATH_SUPPORT
   # GLIBCXX_CHECK_MATH_SUPPORT
 
   # First, test for "known" system libraries.  We may be using newlib even

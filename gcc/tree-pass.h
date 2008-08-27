@@ -390,12 +390,12 @@ extern struct gimple_opt_pass pass_reset_cc_flags;
 
 /* IPA Passes */
 extern struct ipa_opt_pass pass_ipa_inline;
-extern struct simple_ipa_opt_pass pass_ipa_reference;
+extern struct ipa_opt_pass pass_ipa_cp;
+extern struct ipa_opt_pass pass_ipa_reference;
+extern struct ipa_opt_pass pass_ipa_pure_const;
 
 extern struct simple_ipa_opt_pass pass_ipa_matrix_reorg;
-extern struct simple_ipa_opt_pass pass_ipa_cp;
 extern struct simple_ipa_opt_pass pass_ipa_early_inline;
-extern struct simple_ipa_opt_pass pass_ipa_pure_const;
 extern struct simple_ipa_opt_pass pass_ipa_type_escape;
 extern struct simple_ipa_opt_pass pass_ipa_pta;
 extern struct simple_ipa_opt_pass pass_ipa_struct_reorg;
@@ -469,6 +469,7 @@ extern struct rtl_opt_pass pass_sms;
 extern struct rtl_opt_pass pass_sched;
 extern struct rtl_opt_pass pass_local_alloc;
 extern struct rtl_opt_pass pass_global_alloc;
+extern struct rtl_opt_pass pass_ira;
 extern struct rtl_opt_pass pass_postreload;
 extern struct rtl_opt_pass pass_clean_state;
 extern struct rtl_opt_pass pass_branch_prob;

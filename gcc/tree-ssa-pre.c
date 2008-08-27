@@ -2896,7 +2896,7 @@ insert_into_preds_of_block (basic_block block, unsigned int exprnum,
   pre_expr eprime;
   edge_iterator ei;
   tree type = get_expr_type (expr);
-  tree temp;
+  tree temp, res;
   gimple phi;
 
   if (dump_file && (dump_flags & TDF_DETAILS))
@@ -3051,12 +3051,8 @@ insert_into_preds_of_block (basic_block block, unsigned int exprnum,
   if (TREE_CODE (type) == COMPLEX_TYPE
       || TREE_CODE (type) == VECTOR_TYPE)
     DECL_GIMPLE_REG_P (temp) = 1;
-  phi = create_phi_node (temp, block);
 
-  gimple_set_plf (phi, NECESSARY, false);
-  VN_INFO_GET (gimple_phi_result (phi))->valnum = gimple_phi_result (phi);
-  VN_INFO (gimple_phi_result (phi))->value_id = val;
-  VEC_safe_push (gimple, heap, inserted_exprs, phi);
+  phi = create_phi_node (temp, block);
   FOR_EACH_EDGE (pred, ei, block->preds)
     {
       pre_expr ae = avail[pred->src->index];
@@ -3067,6 +3063,20 @@ insert_into_preds_of_block (basic_block block, unsigned int exprnum,
       else
 	add_phi_arg (phi, PRE_EXPR_NAME (avail[pred->src->index]), pred);
     }
+  /* If the PHI node is already available, use it.  */
+  if ((res = vn_phi_lookup (phi)) != NULL_TREE)
+    {
+      gimple_stmt_iterator gsi = gsi_for_stmt (phi);
+      remove_phi_node (&gsi, true);
+      release_defs (phi);
+      add_to_value (val, get_or_alloc_expr_for_name (res));
+      return false;
+    }
+
+  gimple_set_plf (phi, NECESSARY, false);
+  VN_INFO_GET (gimple_phi_result (phi))->valnum = gimple_phi_result (phi);
+  VN_INFO (gimple_phi_result (phi))->value_id = val;
+  VEC_safe_push (gimple, heap, inserted_exprs, phi);
 
   newphi = get_or_alloc_expr_for_name (gimple_phi_result (phi));
   add_to_value (val, newphi);
@@ -3160,14 +3170,9 @@ do_regular_insertion (basic_block block, basic_block dom)
 	    {
 	      unsigned int vprime;
 
-	      /* This can happen in the very weird case
-		 that our fake infinite loop edges have caused a
-		 critical edge to appear.  */
-	      if (EDGE_CRITICAL_P (pred))
-		{
-		  cant_insert = true;
-		  break;
-		}
+	      /* We should never run insertion for the exit block
+	         and so not come across fake pred edges.  */
+	      gcc_assert (!(pred->flags & EDGE_FAKE));
 	      bprime = pred->src;
 	      eprime = phi_translate (expr, ANTIC_IN (block), NULL,
 				      bprime, block);
@@ -3299,14 +3304,9 @@ do_partial_partial_insertion (basic_block block, basic_block dom)
 	      unsigned int vprime;
 	      pre_expr edoubleprime;
 
-	      /* This can happen in the very weird case
-		 that our fake infinite loop edges have caused a
-		 critical edge to appear.  */
-	      if (EDGE_CRITICAL_P (pred))
-		{
-		  cant_insert = true;
-		  break;
-		}
+	      /* We should never run insertion for the exit block
+	         and so not come across fake pred edges.  */
+	      gcc_assert (!(pred->flags & EDGE_FAKE));
 	      bprime = pred->src;
 	      eprime = phi_translate (expr, ANTIC_IN (block),
 				      PA_IN (block),
@@ -4117,7 +4117,6 @@ fini_pre (bool do_fre)
   free_alloc_pool (pre_expr_pool);
   htab_delete (phi_translate_table);
   htab_delete (expression_to_id);
-  remove_fake_exit_edges ();
 
   FOR_ALL_BB (bb)
     {
@@ -4203,6 +4202,11 @@ execute_pre (bool do_fre ATTRIBUTE_UNUSED)
   statistics_counter_event (cfun, "New PHIs", pre_stats.phis);
   statistics_counter_event (cfun, "Eliminated", pre_stats.eliminations);
   statistics_counter_event (cfun, "Constified", pre_stats.constified);
+
+  /* Make sure to remove fake edges before committing our inserts.
+     This makes sure we don't end up with extra critical edges that
+     we would need to split.  */
+  remove_fake_exit_edges ();
   gsi_commit_edge_inserts ();
 
   clear_expression_ids ();

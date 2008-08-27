@@ -878,6 +878,11 @@ decode_options (unsigned int argc, const char **argv)
       flag_section_anchors = 0;
     }
 
+#ifdef IRA_COVER_CLASSES
+  /* Use IRA if it is implemented for the target.  */
+  flag_ira = 1;
+#endif
+
   /* Originally we just set the variables if a particular optimization level,
      but with the advent of being able to change the optimization level for a
      function, we need to reset optimizations.  */
@@ -1088,8 +1093,8 @@ decode_options (unsigned int argc, const char **argv)
 
   if (flag_exceptions && flag_reorder_blocks_and_partition)
     {
-      inform
-	    ("-freorder-blocks-and-partition does not work with exceptions");
+      inform (input_location, 
+	      "-freorder-blocks-and-partition does not work with exceptions");
       flag_reorder_blocks_and_partition = 0;
       flag_reorder_blocks = 1;
     }
@@ -1100,7 +1105,7 @@ decode_options (unsigned int argc, const char **argv)
   if (flag_unwind_tables && ! targetm.unwind_tables_default
       && flag_reorder_blocks_and_partition)
     {
-      inform ("-freorder-blocks-and-partition does not support unwind info");
+      inform (input_location, "-freorder-blocks-and-partition does not support unwind info");
       flag_reorder_blocks_and_partition = 0;
       flag_reorder_blocks = 1;
     }
@@ -1113,11 +1118,19 @@ decode_options (unsigned int argc, const char **argv)
       && (!targetm.have_named_sections
 	  || (flag_unwind_tables && targetm.unwind_tables_default)))
     {
-      inform
-       ("-freorder-blocks-and-partition does not work on this architecture");
+      inform (input_location,
+	      "-freorder-blocks-and-partition does not work on this architecture");
       flag_reorder_blocks_and_partition = 0;
       flag_reorder_blocks = 1;
     }
+
+#ifndef IRA_COVER_CLASSES
+  if (flag_ira)
+    {
+      inform (input_location, "-fira does not work on this architecture");
+      flag_ira = 0;
+    }
+#endif
 
   /* Save the current optimization options if this is the first call.  */
   if (first_time_p)
@@ -1968,6 +1981,21 @@ common_handle_option (size_t scode, const char *arg, int value,
 	flag_tls_default = TLS_MODEL_LOCAL_EXEC;
       else
 	warning (0, "unknown tls-model \"%s\"", arg);
+      break;
+
+    case OPT_fira_algorithm_:
+      if (!strcmp (arg, "regional"))
+	flag_ira_algorithm = IRA_ALGORITHM_REGIONAL;
+      else if (!strcmp (arg, "CB"))
+	flag_ira_algorithm = IRA_ALGORITHM_CB;
+      else if (!strcmp (arg, "mixed"))
+	flag_ira_algorithm = IRA_ALGORITHM_MIXED;
+      else
+	warning (0, "unknown ira algorithm \"%s\"", arg);
+      break;
+
+    case OPT_fira_verbose_:
+      flag_ira_verbose = value;
       break;
 
     case OPT_ftracer:

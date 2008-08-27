@@ -648,7 +648,7 @@ has_default_initializer (gfc_symbol *der)
   for (c = der->components; c; c = c->next)
     if ((c->ts.type != BT_DERIVED && c->initializer)
 	|| (c->ts.type == BT_DERIVED
-	    && (!c->pointer && has_default_initializer (c->ts.derived))))
+	    && (!c->attr.pointer && has_default_initializer (c->ts.derived))))
       break;
 
   return c != NULL;
@@ -810,7 +810,7 @@ resolve_structure_cons (gfc_expr *expr)
 
       rank = comp->as ? comp->as->rank : 0;
       if (cons->expr->expr_type != EXPR_NULL && rank != cons->expr->rank
-	  && (comp->allocatable || cons->expr->rank))
+	  && (comp->attr.allocatable || cons->expr->rank))
 	{
 	  gfc_error ("The rank of the element in the derived type "
 		     "constructor at %L does not match that of the "
@@ -824,7 +824,7 @@ resolve_structure_cons (gfc_expr *expr)
       if (!gfc_compare_types (&cons->expr->ts, &comp->ts))
 	{
 	  t = FAILURE;
-	  if (comp->pointer && cons->expr->ts.type != BT_UNKNOWN)
+	  if (comp->attr.pointer && cons->expr->ts.type != BT_UNKNOWN)
 	    gfc_error ("The element in the derived type constructor at %L, "
 		       "for pointer component '%s', is %s but should be %s",
 		       &cons->expr->where, comp->name,
@@ -835,7 +835,7 @@ resolve_structure_cons (gfc_expr *expr)
 	}
 
       if (cons->expr->expr_type == EXPR_NULL
-	    && !(comp->pointer || comp->allocatable))
+	    && !(comp->attr.pointer || comp->attr.allocatable))
 	{
 	  t = FAILURE;
 	  gfc_error ("The NULL in the derived type constructor at %L is "
@@ -844,7 +844,7 @@ resolve_structure_cons (gfc_expr *expr)
 		     comp->name);
 	}
 
-      if (!comp->pointer || cons->expr->expr_type == EXPR_NULL)
+      if (!comp->attr.pointer || cons->expr->expr_type == EXPR_NULL)
 	continue;
 
       a = gfc_expr_attr (cons->expr);
@@ -1996,7 +1996,7 @@ gfc_iso_c_func_interface (gfc_symbol *sym, gfc_actual_arglist *args,
 	  if (!(args_sym->attr.target)
 	      && !(args_sym->attr.pointer)
 	      && (parent_ref == NULL ||
-		  !parent_ref->u.c.component->pointer))
+		  !parent_ref->u.c.component->attr.pointer))
             {
               gfc_error_now ("Parameter '%s' to '%s' at %L must be either "
                              "a TARGET or an associated pointer",
@@ -2084,7 +2084,7 @@ gfc_iso_c_func_interface (gfc_symbol *sym, gfc_actual_arglist *args,
                 }
               else if ((args_sym->attr.pointer == 1 ||
 			(parent_ref != NULL 
-			 && parent_ref->u.c.component->pointer))
+			 && parent_ref->u.c.component->attr.pointer))
 		       && is_scalar_expr_ptr (args->expr) != SUCCESS)
                 {
                   /* Case 1c, section 15.1.2.5, J3/04-007: an associated
@@ -3624,7 +3624,7 @@ find_array_spec (gfc_expr *e)
 	if (c == NULL)
 	  gfc_internal_error ("find_array_spec(): Component not found");
 
-	if (c->dimension)
+	if (c->attr.dimension)
 	  {
 	    if (as != NULL)
 	      gfc_internal_error ("find_array_spec(): unused as(1)");
@@ -3897,14 +3897,14 @@ resolve_ref (gfc_expr *expr)
 	case REF_COMPONENT:
 	  if (current_part_dimension || seen_part_dimension)
 	    {
-	      if (ref->u.c.component->pointer)
+	      if (ref->u.c.component->attr.pointer)
 		{
 		  gfc_error ("Component to the right of a part reference "
 			     "with nonzero rank must not have the POINTER "
 			     "attribute at %L", &expr->where);
 		  return FAILURE;
 		}
-	      else if (ref->u.c.component->allocatable)
+	      else if (ref->u.c.component->attr.allocatable)
 		{
 		  gfc_error ("Component to the right of a part reference "
 			     "with nonzero rank must not have the ALLOCATABLE "
@@ -4630,7 +4630,7 @@ resolve_deallocate_expr (gfc_expr *e)
 	case REF_COMPONENT:
 	  allocatable = (ref->u.c.component->as != NULL
 			 && ref->u.c.component->as->type == AS_DEFERRED);
-	  pointer = ref->u.c.component->pointer;
+	  pointer = ref->u.c.component->attr.pointer;
 	  break;
 
 	case REF_SUBSTRING:
@@ -4777,8 +4777,8 @@ resolve_allocate_expr (gfc_expr *e, gfc_code *code)
 		allocatable = (ref->u.c.component->as != NULL
 			       && ref->u.c.component->as->type == AS_DEFERRED);
 
-		pointer = ref->u.c.component->pointer;
-		dimension = ref->u.c.component->dimension;
+		pointer = ref->u.c.component->attr.pointer;
+		dimension = ref->u.c.component->attr.dimension;
 		break;
 
 	      case REF_SUBSTRING:
@@ -7613,6 +7613,341 @@ error:
 }
 
 
+/* Check that it is ok for the typebound procedure proc to override the
+   procedure old.  */
+
+static gfc_try
+check_typebound_override (gfc_symtree* proc, gfc_symtree* old)
+{
+  locus where;
+  const gfc_symbol* proc_target;
+  const gfc_symbol* old_target;
+  unsigned proc_pass_arg, old_pass_arg, argpos;
+  gfc_formal_arglist* proc_formal;
+  gfc_formal_arglist* old_formal;
+
+  where = proc->typebound->where;
+  proc_target = proc->typebound->target->n.sym;
+  old_target = old->typebound->target->n.sym;
+
+  /* Check that overridden binding is not NON_OVERRIDABLE.  */
+  if (old->typebound->non_overridable)
+    {
+      gfc_error ("'%s' at %L overrides a procedure binding declared"
+		 " NON_OVERRIDABLE", proc->name, &where);
+      return FAILURE;
+    }
+
+  /* If the overridden binding is PURE, the overriding must be, too.  */
+  if (old_target->attr.pure && !proc_target->attr.pure)
+    {
+      gfc_error ("'%s' at %L overrides a PURE procedure and must also be PURE",
+		 proc->name, &where);
+      return FAILURE;
+    }
+
+  /* If the overridden binding is ELEMENTAL, the overriding must be, too.  If it
+     is not, the overriding must not be either.  */
+  if (old_target->attr.elemental && !proc_target->attr.elemental)
+    {
+      gfc_error ("'%s' at %L overrides an ELEMENTAL procedure and must also be"
+		 " ELEMENTAL", proc->name, &where);
+      return FAILURE;
+    }
+  if (!old_target->attr.elemental && proc_target->attr.elemental)
+    {
+      gfc_error ("'%s' at %L overrides a non-ELEMENTAL procedure and must not"
+		 " be ELEMENTAL, either", proc->name, &where);
+      return FAILURE;
+    }
+
+  /* If the overridden binding is a SUBROUTINE, the overriding must also be a
+     SUBROUTINE.  */
+  if (old_target->attr.subroutine && !proc_target->attr.subroutine)
+    {
+      gfc_error ("'%s' at %L overrides a SUBROUTINE and must also be a"
+		 " SUBROUTINE", proc->name, &where);
+      return FAILURE;
+    }
+
+  /* If the overridden binding is a FUNCTION, the overriding must also be a
+     FUNCTION and have the same characteristics.  */
+  if (old_target->attr.function)
+    {
+      if (!proc_target->attr.function)
+	{
+	  gfc_error ("'%s' at %L overrides a FUNCTION and must also be a"
+		     " FUNCTION", proc->name, &where);
+	  return FAILURE;
+	}
+
+      /* FIXME:  Do more comprehensive checking (including, for instance, the
+	 rank and array-shape).  */
+      gcc_assert (proc_target->result && old_target->result);
+      if (!gfc_compare_types (&proc_target->result->ts,
+			      &old_target->result->ts))
+	{
+	  gfc_error ("'%s' at %L and the overridden FUNCTION should have"
+		     " matching result types", proc->name, &where);
+	  return FAILURE;
+	}
+    }
+
+  /* If the overridden binding is PUBLIC, the overriding one must not be
+     PRIVATE.  */
+  if (old->typebound->access == ACCESS_PUBLIC
+      && proc->typebound->access == ACCESS_PRIVATE)
+    {
+      gfc_error ("'%s' at %L overrides a PUBLIC procedure and must not be"
+		 " PRIVATE", proc->name, &where);
+      return FAILURE;
+    }
+
+  /* Compare the formal argument lists of both procedures.  This is also abused
+     to find the position of the passed-object dummy arguments of both
+     bindings as at least the overridden one might not yet be resolved and we
+     need those positions in the check below.  */
+  proc_pass_arg = old_pass_arg = 0;
+  if (!proc->typebound->nopass && !proc->typebound->pass_arg)
+    proc_pass_arg = 1;
+  if (!old->typebound->nopass && !old->typebound->pass_arg)
+    old_pass_arg = 1;
+  argpos = 1;
+  for (proc_formal = proc_target->formal, old_formal = old_target->formal;
+       proc_formal && old_formal;
+       proc_formal = proc_formal->next, old_formal = old_formal->next)
+    {
+      if (proc->typebound->pass_arg
+	  && !strcmp (proc->typebound->pass_arg, proc_formal->sym->name))
+	proc_pass_arg = argpos;
+      if (old->typebound->pass_arg
+	  && !strcmp (old->typebound->pass_arg, old_formal->sym->name))
+	old_pass_arg = argpos;
+
+      /* Check that the names correspond.  */
+      if (strcmp (proc_formal->sym->name, old_formal->sym->name))
+	{
+	  gfc_error ("Dummy argument '%s' of '%s' at %L should be named '%s' as"
+		     " to match the corresponding argument of the overridden"
+		     " procedure", proc_formal->sym->name, proc->name, &where,
+		     old_formal->sym->name);
+	  return FAILURE;
+	}
+
+      /* Check that the types correspond if neither is the passed-object
+	 argument.  */
+      /* FIXME:  Do more comprehensive testing here.  */
+      if (proc_pass_arg != argpos && old_pass_arg != argpos
+	  && !gfc_compare_types (&proc_formal->sym->ts, &old_formal->sym->ts))
+	{
+	  gfc_error ("Types mismatch for dummy argument '%s' of '%s' %L in"
+		     " in respect to the overridden procedure",
+		     proc_formal->sym->name, proc->name, &where);
+	  return FAILURE;
+	}
+
+      ++argpos;
+    }
+  if (proc_formal || old_formal)
+    {
+      gfc_error ("'%s' at %L must have the same number of formal arguments as"
+		 " the overridden procedure", proc->name, &where);
+      return FAILURE;
+    }
+
+  /* If the overridden binding is NOPASS, the overriding one must also be
+     NOPASS.  */
+  if (old->typebound->nopass && !proc->typebound->nopass)
+    {
+      gfc_error ("'%s' at %L overrides a NOPASS binding and must also be"
+		 " NOPASS", proc->name, &where);
+      return FAILURE;
+    }
+
+  /* If the overridden binding is PASS(x), the overriding one must also be
+     PASS and the passed-object dummy arguments must correspond.  */
+  if (!old->typebound->nopass)
+    {
+      if (proc->typebound->nopass)
+	{
+	  gfc_error ("'%s' at %L overrides a binding with PASS and must also be"
+		     " PASS", proc->name, &where);
+	  return FAILURE;
+	}
+
+      if (proc_pass_arg != old_pass_arg)
+	{
+	  gfc_error ("Passed-object dummy argument of '%s' at %L must be at"
+		     " the same position as the passed-object dummy argument of"
+		     " the overridden procedure", proc->name, &where);
+	  return FAILURE;
+	}
+    }
+
+  return SUCCESS;
+}
+
+
+/* Resolve the type-bound procedures for a derived type.  */
+
+static gfc_symbol* resolve_bindings_derived;
+static gfc_try resolve_bindings_result;
+
+static void
+resolve_typebound_procedure (gfc_symtree* stree)
+{
+  gfc_symbol* proc;
+  locus where;
+  gfc_symbol* me_arg;
+  gfc_symbol* super_type;
+  gfc_component* comp;
+
+  /* If this is no type-bound procedure, just return.  */
+  if (!stree->typebound)
+    return;
+
+  /* Get the target-procedure to check it.  */
+  gcc_assert (stree->typebound->target);
+  proc = stree->typebound->target->n.sym;
+  where = stree->typebound->where;
+
+  /* Default access should already be resolved from the parser.  */
+  gcc_assert (stree->typebound->access != ACCESS_UNKNOWN);
+
+  /* It should be a module procedure or an external procedure with explicit
+     interface.  */
+  if ((!proc->attr.subroutine && !proc->attr.function)
+      || (proc->attr.proc != PROC_MODULE
+	  && proc->attr.if_source != IFSRC_IFBODY)
+      || proc->attr.abstract)
+    {
+      gfc_error ("'%s' must be a module procedure or an external procedure with"
+		 " an explicit interface at %L", proc->name, &where);
+      goto error;
+    }
+
+  /* Find the super-type of the current derived type.  We could do this once and
+     store in a global if speed is needed, but as long as not I believe this is
+     more readable and clearer.  */
+  super_type = gfc_get_derived_super_type (resolve_bindings_derived);
+
+  /* If PASS, resolve and check arguments.  */
+  if (!stree->typebound->nopass)
+    {
+      if (stree->typebound->pass_arg)
+	{
+	  gfc_formal_arglist* i;
+
+	  /* If an explicit passing argument name is given, walk the arg-list
+	     and look for it.  */
+
+	  me_arg = NULL;
+	  stree->typebound->pass_arg_num = 0;
+	  for (i = proc->formal; i; i = i->next)
+	    {
+	      if (!strcmp (i->sym->name, stree->typebound->pass_arg))
+		{
+		  me_arg = i->sym;
+		  break;
+		}
+	      ++stree->typebound->pass_arg_num;
+	    }
+
+	  if (!me_arg)
+	    {
+	      gfc_error ("Procedure '%s' with PASS(%s) at %L has no"
+			 " argument '%s'",
+			 proc->name, stree->typebound->pass_arg, &where,
+			 stree->typebound->pass_arg);
+	      goto error;
+	    }
+	}
+      else
+	{
+	  /* Otherwise, take the first one; there should in fact be at least
+	     one.  */
+	  stree->typebound->pass_arg_num = 0;
+	  if (!proc->formal)
+	    {
+	      gfc_error ("Procedure '%s' with PASS at %L must have at"
+			 " least one argument", proc->name, &where);
+	      goto error;
+	    }
+	  me_arg = proc->formal->sym;
+	}
+
+      /* Now check that the argument-type matches.  */
+      gcc_assert (me_arg);
+      if (me_arg->ts.type != BT_DERIVED
+	  || me_arg->ts.derived != resolve_bindings_derived)
+	{
+	  gfc_error ("Argument '%s' of '%s' with PASS(%s) at %L must be of"
+		     " the derived-type '%s'", me_arg->name, proc->name,
+		     me_arg->name, &where, resolve_bindings_derived->name);
+	  goto error;
+	}
+    }
+
+  /* If we are extending some type, check that we don't override a procedure
+     flagged NON_OVERRIDABLE.  */
+  if (super_type)
+    {
+      gfc_symtree* overridden;
+      overridden = gfc_find_typebound_proc (super_type, stree->name);
+
+      if (overridden && check_typebound_override (stree, overridden) == FAILURE)
+	goto error;
+    }
+
+  /* See if there's a name collision with a component directly in this type.  */
+  for (comp = resolve_bindings_derived->components; comp; comp = comp->next)
+    if (!strcmp (comp->name, stree->name))
+      {
+	gfc_error ("Procedure '%s' at %L has the same name as a component of"
+		   " '%s'",
+		   stree->name, &where, resolve_bindings_derived->name);
+	goto error;
+      }
+
+  /* Try to find a name collision with an inherited component.  */
+  if (super_type && gfc_find_component (super_type, stree->name, true, true))
+    {
+      gfc_error ("Procedure '%s' at %L has the same name as an inherited"
+		 " component of '%s'",
+		 stree->name, &where, resolve_bindings_derived->name);
+      goto error;
+    }
+
+  /* FIXME: Remove once typebound-procedures are fully implemented.  */
+  {
+    /* Output the error only once so we can do reasonable testing.  */
+    static bool tbp_error = false;
+    if (!tbp_error)
+      gfc_error ("Type-bound procedures are not yet implemented at %L", &where);
+    tbp_error = true;
+  }
+
+  return;
+
+error:
+  resolve_bindings_result = FAILURE;
+}
+
+static gfc_try
+resolve_typebound_procedures (gfc_symbol* derived)
+{
+  if (!derived->f2k_derived || !derived->f2k_derived->sym_root)
+    return SUCCESS;
+
+  resolve_bindings_derived = derived;
+  resolve_bindings_result = SUCCESS;
+  gfc_traverse_symtree (derived->f2k_derived->sym_root,
+			&resolve_typebound_procedure);
+
+  return resolve_bindings_result;
+}
+
+
 /* Add a derived type to the dt_list.  The dt_list is used in trans-types.c
    to give all identical derived types the same backend_decl.  */
 static void
@@ -7639,11 +7974,24 @@ add_dt_to_dt_list (gfc_symbol *derived)
 static gfc_try
 resolve_fl_derived (gfc_symbol *sym)
 {
+  gfc_symbol* super_type;
   gfc_component *c;
   int i;
 
+  super_type = gfc_get_derived_super_type (sym);
+
   for (c = sym->components; c != NULL; c = c->next)
     {
+      /* If this type is an extension, see if this component has the same name
+	 as an inherited type-bound procedure.  */
+      if (super_type && gfc_find_typebound_proc (super_type, c->name))
+	{
+	  gfc_error ("Component '%s' of '%s' at %L has the same name as an"
+		     " inherited type-bound procedure",
+		     c->name, sym->name, &c->loc);
+	  return FAILURE;
+	}
+
       if (c->ts.type == BT_CHARACTER)
 	{
 	 if (c->ts.cl->length == NULL
@@ -7682,7 +8030,7 @@ resolve_fl_derived (gfc_symbol *sym)
 	    }
 	}
 
-      if (c->ts.type == BT_DERIVED && c->pointer
+      if (c->ts.type == BT_DERIVED && c->attr.pointer
 	  && c->ts.derived->components == NULL
 	  && !c->ts.derived->attr.zero_comp)
 	{
@@ -7698,11 +8046,11 @@ resolve_fl_derived (gfc_symbol *sym)
       if (c->ts.type == BT_DERIVED
 	    && c->ts.derived
 	    && c->ts.derived->components
-	    && c->pointer
+	    && c->attr.pointer
 	    && sym != c->ts.derived)
 	add_dt_to_dt_list (c->ts.derived);
 
-      if (c->pointer || c->allocatable ||  c->as == NULL)
+      if (c->attr.pointer || c->attr.allocatable ||  c->as == NULL)
 	continue;
 
       for (i = 0; i < c->as->rank; i++)
@@ -7721,6 +8069,10 @@ resolve_fl_derived (gfc_symbol *sym)
 	    }
 	}
     }
+
+  /* Resolve the type-bound procedures.  */
+  if (resolve_typebound_procedures (sym) == FAILURE)
+    return FAILURE;
 
   /* Resolve the finalizer procedures.  */
   if (gfc_resolve_finalizers (sym) == FAILURE)
@@ -8891,7 +9243,7 @@ resolve_equivalence_derived (gfc_symbol *derived, gfc_symbol *sym, gfc_expr *e)
 
       /* Shall not be an object of sequence derived type containing a pointer
 	 in the structure.  */
-      if (c->pointer)
+      if (c->attr.pointer)
 	{
 	  gfc_error ("Derived type variable '%s' at %L with pointer "
 		     "component(s) cannot be an EQUIVALENCE object",

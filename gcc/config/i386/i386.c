@@ -6692,7 +6692,7 @@ standard_80387_constant_p (rtx x)
   /* For XFmode constants, try to find a special 80387 instruction when
      optimizing for size or on those CPUs that benefit from them.  */
   if (mode == XFmode
-      && (optimize_insn_for_size_p () || TARGET_EXT_80387_CONSTANTS))
+      && (optimize_size || TARGET_EXT_80387_CONSTANTS))
     {
       int i;
 
@@ -12794,6 +12794,10 @@ ix86_match_ccmode (rtx insn, enum machine_mode req_mode)
       if (req_mode == CCZmode)
 	return 0;
       /* FALLTHRU */
+    case CCAmode:
+    case CCCmode:
+    case CCOmode:
+    case CCSmode:
     case CCZmode:
       break;
 
@@ -25104,7 +25108,13 @@ ix86_expand_vector_init_one_nonzero (bool mmx_ok, enum machine_mode mode,
   switch (mode)
     {
     case V2DImode:
-      use_vector_set = TARGET_64BIT && TARGET_SSE4_1;
+      /* For SSE4.1, we normally use vector set.  But if the second
+	 element is zero and inter-unit moves are OK, we use movq
+	 instead.  */
+      use_vector_set = (TARGET_64BIT
+			&& TARGET_SSE4_1
+			&& !(TARGET_INTER_UNIT_MOVES
+			     && one_var == 0));
       break;
     case V16QImode:
     case V4SImode:

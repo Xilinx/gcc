@@ -1074,10 +1074,28 @@ AC_DEFUN([GLIBCXX_ENABLE_C99], [
 
 
 dnl
-dnl Check for IEEE Std 1003.1-2001 clock_gettime required for 
-dnl 20.8.5 [time.clock] in the current C++0X working draft.
+dnl Check for clock_gettime clocks, used in the implementation of 20.8.5
+dnl [time.clock] in the current C++0x working draft.
 dnl
-AC_DEFUN([GLIBCXX_CHECK_CLOCK_GETTIME], [
+dnl --enable-clock-gettime
+dnl --enable-clock-gettime=yes
+dnl        checks for the availability of monotonic and realtime clocks
+dnl        in libc and libposix4 and in case links the latter
+dnl --enable-clock-gettime=rt
+dnl        also searches (and, in case, links) librt.  Note that this is
+dnl        not always desirable because, in glibc, for example, in turn it
+dnl        triggers the linking of libpthread too, which activates locking,
+dnl        a large overhead for single-thread programs.
+dnl --enable-clock-gettime=no
+dnl --disable-clock-gettime
+dnl        disables the checks completely
+dnl
+AC_DEFUN([GLIBCXX_ENABLE_CLOCK_GETTIME], [
+
+  AC_MSG_CHECKING([for clock_gettime clocks])					 
+  GLIBCXX_ENABLE(clock-gettime,$1,[=KIND],
+    [use KIND for check type],
+    [permit yes|no|rt])
 
   AC_LANG_SAVE
   AC_LANG_CPLUSPLUS
@@ -1085,45 +1103,53 @@ AC_DEFUN([GLIBCXX_CHECK_CLOCK_GETTIME], [
   CXXFLAGS="$CXXFLAGS -fno-exceptions"
   ac_save_LIBS="$LIBS"
 
-  AC_SEARCH_LIBS(clock_gettime, [posix4])
-
-  # Link to -lposix4.
-  case "$ac_cv_search_clock_gettime" in
-    -lposix4*) GLIBCXX_LIBS=$ac_cv_search_clock_gettime
-  esac
-
-  AC_CHECK_HEADERS(unistd.h, ac_has_unistd_h=yes, ac_has_unistd_h=no)
-  
   ac_has_clock_monotonic=no;  
-  ac_has_clock_realtime=no;  
-  if test x"$ac_has_unistd_h" = x"yes"; then    
-    AC_MSG_CHECKING([for monotonic clock])
-    AC_TRY_LINK(
-      [#include <unistd.h>
-       #include <time.h>
-      ],
-      [#if _POSIX_TIMERS > 0 && defined(_POSIX_MONOTONIC_CLOCK)
-        timespec tp;     
-       #endif
-        clock_gettime(CLOCK_MONOTONIC, &tp);
-      ], [ac_has_clock_monotonic=yes], [ac_has_clock_monotonic=no])
+  ac_has_clock_realtime=no;
+
+  if test x"$enable_clock_gettime" != x"no"; then
+
+    if test x"$enable_clock_gettime" = x"rt"; then
+      AC_SEARCH_LIBS(clock_gettime, [rt posix4])
+    else
+      AC_SEARCH_LIBS(clock_gettime, [posix4])
+    fi
+
+    case "$ac_cv_search_clock_gettime" in
+      -l*) GLIBCXX_LIBS=$ac_cv_search_clock_gettime
+    esac
+
+    AC_CHECK_HEADERS(unistd.h, ac_has_unistd_h=yes, ac_has_unistd_h=no)
+
+    if test x"$ac_has_unistd_h" = x"yes"; then
+      AC_MSG_CHECKING([for monotonic clock])
+      AC_TRY_LINK(
+        [#include <unistd.h>
+         #include <time.h>
+        ],
+        [#if _POSIX_TIMERS > 0 && defined(_POSIX_MONOTONIC_CLOCK)
+          timespec tp;     
+         #endif
+          clock_gettime(CLOCK_MONOTONIC, &tp);
+        ], [ac_has_clock_monotonic=yes], [ac_has_clock_monotonic=no])
+
+      AC_MSG_RESULT($ac_has_clock_monotonic)   
     
-    AC_MSG_RESULT($ac_has_clock_monotonic)   
-    
-    AC_MSG_CHECKING([for realtime clock])
-    AC_TRY_LINK(
-      [#include <unistd.h>
-       #include <time.h>
-      ],
-      [#if _POSIX_TIMERS > 0
-        timespec tp;      
-       #endif
-        clock_gettime(CLOCK_REALTIME, &tp);
-      ], [ac_has_clock_realtime=yes], [ac_has_clock_realtime=no])
-    
-    AC_MSG_RESULT($ac_has_clock_realtime)
-  fi 
-  
+      AC_MSG_CHECKING([for realtime clock])
+      AC_TRY_LINK(
+        [#include <unistd.h>
+         #include <time.h>
+        ],
+        [#if _POSIX_TIMERS > 0
+          timespec tp;      
+         #endif
+          clock_gettime(CLOCK_REALTIME, &tp);
+        ], [ac_has_clock_realtime=yes], [ac_has_clock_realtime=no])
+
+      AC_MSG_RESULT($ac_has_clock_realtime)
+    fi
+
+  fi
+
   if test x"$ac_has_clock_monotonic" = x"yes"; then
     AC_DEFINE(_GLIBCXX_USE_CLOCK_MONOTONIC, 1,
       [ Defined if clock_gettime has monotonic clock support. ])
@@ -1142,11 +1168,13 @@ AC_DEFUN([GLIBCXX_CHECK_CLOCK_GETTIME], [
 ])
 
 dnl
-dnl Check for IEEE Std 1003.1-2001 gettimeofday required for 
-dnl 20.8.5 [time.clock] in the current C++0X working draft.
+dnl Check for gettimeofday, used in the implementation of 20.8.5
+dnl [time.clock] in the current C++0x working draft.
 dnl
 AC_DEFUN([GLIBCXX_CHECK_GETTIMEOFDAY], [
   
+  AC_MSG_CHECKING([for gettimeofday])
+
   AC_LANG_SAVE
   AC_LANG_CPLUSPLUS
   ac_save_CXXFLAGS="$CXXFLAGS"
@@ -1156,7 +1184,7 @@ AC_DEFUN([GLIBCXX_CHECK_GETTIMEOFDAY], [
   AC_CHECK_HEADERS(sys/time.h, ac_has_sys_time_h=yes, ac_has_sys_time_h=no)
   if test x"$ac_has_sys_time_h" = x"yes"; then
     AC_MSG_CHECKING([for gettimeofday])
-    AC_TRY_LINK([#include <sys/time.h>],
+    GCC_TRY_COMPILE_OR_LINK([#include <sys/time.h>],
       [timeval tv; gettimeofday(&tv, 0);],
       [ac_has_gettimeofday=yes], [ac_has_gettimeofday=no])
     
@@ -1521,27 +1549,24 @@ AC_DEFUN([GLIBCXX_CHECK_C99_TR1], [
 ])
 
 dnl
-dnl Check whether "dev/random" and "dev/urandom" are available for the
+dnl Check whether "/dev/random" and "/dev/urandom" are available for the
 dnl random_device of "TR1" (Chapter 5.1, "Random number generation").
 dnl
 AC_DEFUN([GLIBCXX_CHECK_RANDOM_TR1], [
 
-  AC_MSG_CHECKING([for "dev/random" and "dev/urandom" for TR1 random_device])
+  AC_MSG_CHECKING([for "/dev/random" and "/dev/urandom" for TR1 random_device])
   AC_CACHE_VAL(glibcxx_cv_random_tr1, [
-  AC_TRY_RUN([#include <stdio.h>
-	      int main()
-	      {
-                return !(fopen("/dev/random", "r")
-                         && fopen("/dev/urandom", "r"));
-	      }	      
-	     ],
-             [glibcxx_cv_random_tr1=yes], [glibcxx_cv_random_tr1=no],
-	     [glibcxx_cv_random_tr1=no])
+    if test -r /dev/random && test -r /dev/urandom; then
+      glibcxx_cv_random_tr1=yes;
+    else
+      glibcxx_cv_random_tr1=no;
+    fi
   ])
   AC_MSG_RESULT($glibcxx_cv_random_tr1)
+
   if test x"$glibcxx_cv_random_tr1" = x"yes"; then
     AC_DEFINE(_GLIBCXX_USE_RANDOM_TR1, 1,
-              [Define if dev/random and dev/urandom are available for
+              [Define if /dev/random and /dev/urandom are available for
 	       the random_device of TR1 (Chapter 5.1).])
   fi
 

@@ -464,9 +464,9 @@ check_counter (gimple stmt, const char * name,
               : DECL_SOURCE_LOCATION (current_function_decl);
       if (flag_profile_correction)
         {
-	  inform ("%HCorrecting inconsistent value profile: "
+	  inform (locus, "Correcting inconsistent value profile: "
 		  "%s profiler overall count (%d) does not match BB count "
-                  "(%d)", &locus, name, (int)*all, (int)bb_count);
+                  "(%d)", name, (int)*all, (int)bb_count);
 	  *all = bb_count;
 	  if (*count > *all)
             *count = *all;

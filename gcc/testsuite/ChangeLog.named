@@ -2,6 +2,21 @@
 
 	* gcc.target/spu/ea/ea.exp: Correct copyright date.
 
+2008-08-20  Ben Elliston  <bje@au.ibm.com>
+
+	* gcc.target/spu/cache.c: New test.
+	* gcc.target/spu/ea/ea.exp: New test driver.
+	* gcc.target/spu/ea/cast1.c: New test.
+	* gcc.target/spu/ea/compile.c: Likewise.
+	* gcc.target/spu/ea/cppdefine32.c: Likewise.
+	* gcc.target/spu/ea/cppdefine64.c: Likewise.
+	* gcc.target/spu/ea/errors.c: Likewise.
+	* gcc.target/spu/ea/options1.c: Likewise.
+	
+2008-08-20  Ben Elliston  <bje@au.ibm.com>
+
+	* lib/target-supports.exp (check_effective_target_ea): New.
+
 2008-08-15  Ben Elliston  <bje@au.ibm.com>
 
 	* gcc.target/spu/ea/compile.c: Add dg-options directive.

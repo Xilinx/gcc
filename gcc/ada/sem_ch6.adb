@@ -1724,6 +1724,12 @@ package body Sem_Ch6 is
                 "if subprogram is primitive",
                 Body_Spec);
             end if;
+
+         elsif Style_Check
+           and then Is_Overriding_Operation (Spec_Id)
+         then
+            pragma Assert (Unit_Declaration_Node (Body_Id) = N);
+            Style.Missing_Overriding (N, Body_Id);
          end if;
       end Verify_Overriding_Indicator;
 
@@ -3112,7 +3118,7 @@ package body Sem_Ch6 is
       --  actions interfere in complex ways with inlining.
 
       elsif Ekind (Subp) = E_Function
-        and then Controlled_Type (Etype (Subp))
+        and then Needs_Finalization (Etype (Subp))
       then
          Cannot_Inline
            ("cannot inline & (controlled return type)?", N, Subp);
@@ -3921,7 +3927,7 @@ package body Sem_Ch6 is
             if Is_Inherently_Limited_Type (Typ) then
                Set_Returns_By_Ref (Designator);
 
-            elsif Present (Utyp) and then CW_Or_Controlled_Type (Utyp) then
+            elsif Present (Utyp) and then CW_Or_Has_Controlled_Part (Utyp) then
                Set_Returns_By_Ref (Designator);
             end if;
          end;
@@ -4167,6 +4173,10 @@ package body Sem_Ch6 is
             Set_Is_Overriding_Operation (Subp);
          end if;
 
+         if Style_Check and then not Must_Override (Spec) then
+            Style.Missing_Overriding (Decl, Subp);
+         end if;
+
       --  If Subp is an operator, it may override a predefined operation.
       --  In that case overridden_subp is empty because of our implicit
       --  representation for predefined operators. We have to check whether the
@@ -4190,16 +4200,23 @@ package body Sem_Ch6 is
                  ("subprogram & overrides predefined operator ", Spec, Subp);
             end if;
 
-         elsif Is_Overriding_Operation (Subp) then
-            null;
-
          elsif Must_Override (Spec) then
-            if not Operator_Matches_Spec (Subp, Subp) then
-               Error_Msg_NE ("subprogram & is not overriding", Spec, Subp);
-
-            else
+            if Is_Overriding_Operation (Subp) then
                Set_Is_Overriding_Operation (Subp);
+
+            elsif not Operator_Matches_Spec (Subp, Subp) then
+               Error_Msg_NE ("subprogram & is not overriding", Spec, Subp);
             end if;
+
+         elsif not Error_Posted (Subp)
+           and then Style_Check
+           and then Operator_Matches_Spec (Subp, Subp)
+             and then
+               not Is_Predefined_File_Name
+                 (Unit_File_Name (Get_Source_Unit (Subp)))
+         then
+            Set_Is_Overriding_Operation (Subp);
+            Style.Missing_Overriding (Decl, Subp);
          end if;
 
       elsif Must_Override (Spec) then
@@ -5251,13 +5268,9 @@ package body Sem_Ch6 is
             --  returns. This is true even if we are able to get away with
             --  having 'in out' parameters, which are normally illegal for
             --  functions. This formal is also needed when the function has
-            --  a tagged result, because generally such functions can be called
-            --  in a dispatching context and such calls must be handled like
-            --  calls to class-wide functions.
+            --  a tagged result.
 
-            if Controlled_Type (Result_Subt)
-              or else Is_Tagged_Type (Underlying_Type (Result_Subt))
-            then
+            if Needs_BIP_Final_List (E) then
                Discard :=
                  Add_Extra_Formal
                    (E, RTE (RE_Finalizable_Ptr_Ptr),

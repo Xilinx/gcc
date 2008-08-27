@@ -166,6 +166,9 @@ static int nfunctions_inlined;
 static int overall_insns;
 static gcov_type max_count;
 
+/* Holders of ipa cgraph hooks: */
+static struct cgraph_node_hook_list *function_insertion_hook_holder;
+
 static inline struct inline_summary *
 inline_summary (struct cgraph_node *node)
 {
@@ -1073,6 +1076,8 @@ cgraph_decide_inlining (void)
   int i;
   int initial_insns = 0;
 
+  cgraph_remove_function_insertion_hook (function_insertion_hook_holder);
+
   max_count = 0;
   for (node = cgraph_nodes; node; node = node->next)
     if (node->analyzed && (node->needed || node->reachable))
@@ -1633,19 +1638,23 @@ inline_indirect_intraprocedural_analysis (struct cgraph_node *node)
 {
   struct cgraph_edge *cs;
 
-  ipa_count_formal_params (node);
-  ipa_create_param_decls_array (node);
-  ipa_detect_param_modifications (node);
+  if (!flag_ipa_cp)
+    {
+      ipa_count_formal_params (node);
+      ipa_create_param_decls_array (node);
+      ipa_detect_param_modifications (node);
+    }
   ipa_analyze_params_uses (node);
 
   if (dump_file)
     ipa_print_node_param_flags (dump_file, node);
 
-  for (cs = node->callees; cs; cs = cs->next_callee)
-    {
-      ipa_count_arguments (cs);
-      ipa_compute_jump_functions (cs);
-    }
+  if (!flag_ipa_cp)
+    for (cs = node->callees; cs; cs = cs->next_callee)
+      {
+	ipa_count_arguments (cs);
+	ipa_compute_jump_functions (cs);
+      }
 
   if (dump_file)
     ipa_print_node_jump_functions (dump_file, node);
@@ -1653,12 +1662,34 @@ inline_indirect_intraprocedural_analysis (struct cgraph_node *node)
 
 /* Note function body size.  */
 static void
+analyze_function (struct cgraph_node *node)
+{
+  push_cfun (DECL_STRUCT_FUNCTION (node->decl));
+  current_function_decl = node->decl;
+
+  compute_inline_parameters (node);
+  if (flag_indirect_inlining)
+    inline_indirect_intraprocedural_analysis (node);
+
+  current_function_decl = NULL;
+  pop_cfun ();
+}
+
+/* Called when new function is inserted to callgraph late.  */
+static void
+add_new_function (struct cgraph_node *node, void *data ATTRIBUTE_UNUSED)
+{
+  analyze_function (node);
+}
+
+/* Note function body size.  */
+static void
 inline_generate_summary (void)
 {
-  struct cgraph_node **order =
-    XCNEWVEC (struct cgraph_node *, cgraph_n_nodes);
-  int nnodes = cgraph_postorder (order);
-  int i;
+  struct cgraph_node *node;
+
+  function_insertion_hook_holder =
+      cgraph_add_function_insertion_hook (&add_new_function, NULL);
 
   if (flag_indirect_inlining)
     {
@@ -1667,27 +1698,10 @@ inline_generate_summary (void)
       ipa_check_create_edge_args ();
     }
 
-  for (i = nnodes - 1; i >= 0; i--)
-    {
-      struct cgraph_node *node = order[i];
-      
-      /* Allow possibly removed nodes to be garbage collected.  */
-      order[i] = NULL;
-      if (node->analyzed && (node->needed || node->reachable))
-	{
-	  push_cfun (DECL_STRUCT_FUNCTION (node->decl));
-	  current_function_decl = node->decl;
-	  compute_inline_parameters (node);
-
-	  if (flag_indirect_inlining)
-	    inline_indirect_intraprocedural_analysis (node);
-
-	  pop_cfun ();
-	}
-    }
+  for (node = cgraph_nodes; node; node = node->next)
+    if (node->analyzed)
+      analyze_function (node);
   
-  current_function_decl = NULL;
-  free (order);
   return;
 }
 

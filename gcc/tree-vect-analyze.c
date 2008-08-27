@@ -44,6 +44,50 @@ along with GCC; see the file COPYING3.  If not see
 
 static bool vect_can_advance_ivs_p (loop_vec_info);
 
+/* Return the smallest scalar part of STMT.
+   This is used to determine the vectype of the stmt. We generally set the 
+   vectype according to the type of the result (lhs). For stmts whose 
+   result-type is different than the type of the arguments (e.g., demotion,
+   promotion), vectype will be reset appropriately (later).  Note that we have 
+   to visit the smallest datatype in this function, because that determines the
+   VF. If the smallest datatype in the loop is present only as the rhs of a 
+   promotion operation - we'd miss it.
+   Such a case, where a variable of this datatype does not appear in the lhs
+   anywhere in the loop, can only occur if it's an invariant: e.g.:
+   'int_x = (int) short_inv', which we'd expect to have been optimized away by 
+   invariant motion. However, we cannot rely on invariant motion to always take
+   invariants out of the loop, and so in the case of promotion we also have to
+   check the rhs. 
+   LHS_SIZE_UNIT and RHS_SIZE_UNIT contain the sizes of the corresponding
+   types.  */
+
+tree
+vect_get_smallest_scalar_type (gimple stmt, HOST_WIDE_INT *lhs_size_unit,
+                               HOST_WIDE_INT *rhs_size_unit)
+{
+  tree scalar_type = gimple_expr_type (stmt);
+  HOST_WIDE_INT lhs, rhs;
+
+  lhs = rhs = TREE_INT_CST_LOW (TYPE_SIZE_UNIT (scalar_type));
+
+  if (is_gimple_assign (stmt)
+      && (gimple_assign_cast_p (stmt)
+          || gimple_assign_rhs_code (stmt) == WIDEN_MULT_EXPR
+          || gimple_assign_rhs_code (stmt) == FLOAT_EXPR))
+    {
+      tree rhs_type = TREE_TYPE (gimple_assign_rhs1 (stmt));
+
+      rhs = TREE_INT_CST_LOW (TYPE_SIZE_UNIT (rhs_type));
+      if (rhs < lhs)
+        scalar_type = rhs_type;
+    }
+     
+  *lhs_size_unit = lhs; 
+  *rhs_size_unit = rhs;
+  return scalar_type;
+}
+
+
 /* Function vect_determine_vectorization_factor
 
    Determine the vectorization factor (VF). VF is the number of data elements
@@ -83,6 +127,7 @@ vect_determine_vectorization_factor (loop_vec_info loop_vinfo)
   unsigned int nunits;
   stmt_vec_info stmt_info;
   int i;
+  HOST_WIDE_INT dummy;
 
   if (vect_print_dump_info (REPORT_DETAILS))
     fprintf (vect_dump, "=== vect_determine_vectorization_factor ===");
@@ -200,34 +245,8 @@ vect_determine_vectorization_factor (loop_vec_info loop_vinfo)
 	      gcc_assert (! STMT_VINFO_DATA_REF (stmt_info)
 			  && !is_pattern_stmt_p (stmt_info));
 
-	      /* We generally set the vectype according to the type of the 
-		 result (lhs).
-		 For stmts whose result-type is different than the type of the
-		 arguments (e.g. demotion, promotion), vectype will be reset 
-		 appropriately (later).  Note that we have to visit the smallest 
-		 datatype in this function, because that determines the VF.  
-		 If the smallest datatype in the loop is present only as the 
-		 rhs of a promotion operation - we'd miss it here.
-		 Such a case, where a variable of this datatype does not appear 
-		 in the lhs anywhere in the loop, can only occur if it's an
-		 invariant: e.g.: 'int_x = (int) short_inv', which we'd expect
-		 to have been optimized away by invariant motion. However, we 
-		 cannot rely on invariant motion to always take invariants out
-		 of the loop, and so in the case of promotion we also have to 
-		 check the rhs.  */
-	      scalar_type = gimple_expr_type (stmt);
-
-	      if (is_gimple_assign (stmt)
-		  && (gimple_assign_cast_p (stmt)
-		      || gimple_assign_rhs_code (stmt) == WIDEN_MULT_EXPR
-		      || gimple_assign_rhs_code (stmt) == FLOAT_EXPR))
-		{
-		  tree rhs_type = TREE_TYPE (gimple_assign_rhs1 (stmt));
-		  if (TREE_INT_CST_LOW (TYPE_SIZE_UNIT (rhs_type))
-		      < TREE_INT_CST_LOW (TYPE_SIZE_UNIT (scalar_type)))
-		    scalar_type = rhs_type;
-		}
-
+	      scalar_type = vect_get_smallest_scalar_type (stmt, &dummy, 
+                                                           &dummy);
 	      if (vect_print_dump_info (REPORT_DETAILS))
 		{
 		  fprintf (vect_dump, "get vectype for scalar type:  ");
@@ -2508,6 +2527,7 @@ vect_get_and_check_slp_defs (loop_vec_info loop_vinfo, slp_tree slp_node,
   stmt_vec_info stmt_info = 
     vinfo_for_stmt (VEC_index (gimple, SLP_TREE_SCALAR_STMTS (slp_node), 0));
   enum gimple_rhs_class rhs_class;
+  struct loop *loop = LOOP_VINFO_LOOP (loop_vinfo);
 
   rhs_class = get_gimple_rhs_class (gimple_assign_rhs_code (stmt));
   number_of_oprnds = gimple_num_ops (stmt) - 1;	/* RHS only */
@@ -2531,7 +2551,9 @@ vect_get_and_check_slp_defs (loop_vec_info loop_vinfo, slp_tree slp_node,
       /* Check if DEF_STMT is a part of a pattern and get the def stmt from
          the pattern. Check that all the stmts of the node are in the
          pattern.  */
-      if (def_stmt && vinfo_for_stmt (def_stmt)
+      if (def_stmt && gimple_bb (def_stmt)
+          && flow_bb_inside_loop_p (loop, gimple_bb (def_stmt))
+          && vinfo_for_stmt (def_stmt)
           && STMT_VINFO_IN_PATTERN_P (vinfo_for_stmt (def_stmt)))
         {
           if (!*first_stmt_dt0)
@@ -2705,6 +2727,7 @@ vect_build_slp_tree (loop_vec_info loop_vinfo, slp_tree *node,
   tree first_stmt_const_oprnd = NULL_TREE;
   struct data_reference *first_dr;
   bool pattern0 = false, pattern1 = false;
+  HOST_WIDE_INT dummy;
 
   /* For every stmt in NODE find its def stmt/s.  */
   for (i = 0; VEC_iterate (gimple, stmts, i, stmt); i++)
@@ -2728,7 +2751,7 @@ vect_build_slp_tree (loop_vec_info loop_vinfo, slp_tree *node,
 	  return false;
 	}
 
-      scalar_type = TREE_TYPE (lhs);
+      scalar_type = vect_get_smallest_scalar_type (stmt, &dummy, &dummy); 
       vectype = get_vectype_for_scalar_type (scalar_type);
       if (!vectype)
         {
@@ -2857,11 +2880,6 @@ vect_build_slp_tree (loop_vec_info loop_vinfo, slp_tree *node,
 		/* Load.  */
 		if (i == 0)
 		  {
-                    /* In case of multiple types we need to detect the smallest
-                       type.  */
-                    if (*max_nunits < TYPE_VECTOR_SUBPARTS (vectype))
-                       *max_nunits = TYPE_VECTOR_SUBPARTS (vectype);
-
 		    /* First stmt of the SLP group should be the first load of 
 		       the interleaving loop if data permutation is not allowed.
 		       Check that there is no gap between the loads.  */
