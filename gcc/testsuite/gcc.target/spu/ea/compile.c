@@ -15,6 +15,7 @@ __ea int *i4p;
 /* Typedefs.  */
 typedef __ea int ea_int_t;
 typedef __ea int *ea_int_star_t;
+typedef int outer_t;
 
 /* Structs.  */
 struct st {
@@ -82,4 +83,9 @@ __ea int *f8 (__ea int *x)
 long long f9 (__ea long long x[2])
 {
   return x[0] + x[1];
+}
+
+void f10 ()
+{
+  static __ea outer_t o;
 }

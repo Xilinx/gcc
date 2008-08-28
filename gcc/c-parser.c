@@ -1462,7 +1462,6 @@ c_parser_declspecs (c_parser *parser, struct c_declspecs *specs,
 	      declspecs_add_addrspace (specs, c_parser_peek_token (parser)->value);
 	      c_parser_consume_token (parser);
 	      attrs_ok = true;
-	      seen_type = true;
 	      continue;
 	    }
 

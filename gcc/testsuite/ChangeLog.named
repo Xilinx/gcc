@@ -1,5 +1,7 @@
 2008-08-28  Ben Elliston  <bje@au.ibm.com>
 
+	* gcc.target/spu/ea/compile.c: Test a static __ea declaration
+	using a typedef defined in an outer scope.
 	* lib/target-supports.exp (check_effective_target_ea): Remove.
 
 2008-08-22  Ben Elliston  <bje@au.ibm.com>

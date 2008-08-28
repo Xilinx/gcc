@@ -1,6 +1,8 @@
 2008-08-28  Ben Elliston  <bje@au.ibm.com>
 
 	* c-parser.c (c_parser_declspecs): Remove c_dialect_objc test.
+	(c_parser_declspecs): Do not set seen_type.
+
 	* varasm.c (make_decl_rtl): Formatting.
 	* print-tree.c (print_node): Remove target-specific code.
 
