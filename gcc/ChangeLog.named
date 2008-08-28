@@ -1,5 +1,11 @@
 2008-08-28  Ben Elliston  <bje@au.ibm.com>
 
+	* c-parser.c (c_parser_declspecs): Remove c_dialect_objc test.
+	* varasm.c (make_decl_rtl): Formatting.
+	* print-tree.c (print_node): Remove target-specific code.
+
+2008-08-28  Ben Elliston  <bje@au.ibm.com>
+
 	* config/spu/t-spu-elf: Use $(T) to avoid the use of multiple make
 	targets for the -mea32 and -mea64 cache libraries.  Pass
 	$(MULTILIB_CFLAGS) when compiling such objects.

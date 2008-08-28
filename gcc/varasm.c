@@ -1430,7 +1430,10 @@ make_decl_rtl (tree decl)
     x = create_block_symbol (name, get_block_for_decl (decl), -1);
   else
     {
-      addrmode = (TREE_TYPE (decl) == error_mark_node) ? Pmode : targetm.addr_space_pointer_mode (TYPE_ADDR_SPACE (TREE_TYPE (decl)));
+      addrmode = (TREE_TYPE (decl) == error_mark_node)
+	? Pmode
+	: targetm.addr_space_pointer_mode
+	(TYPE_ADDR_SPACE (TREE_TYPE (decl)));
       x = gen_rtx_SYMBOL_REF (addrmode, name);
     }
   SYMBOL_REF_WEAK (x) = DECL_WEAK (decl);

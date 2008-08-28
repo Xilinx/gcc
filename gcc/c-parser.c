@@ -1457,7 +1457,7 @@ c_parser_declspecs (c_parser *parser, struct c_declspecs *specs,
 	  tree value = c_parser_peek_token (parser)->value;
 	  c_id_kind kind = c_parser_peek_token (parser)->id_kind;
 
-	  if (kind == C_ID_ADDRSPACE && !c_dialect_objc ())
+	  if (kind == C_ID_ADDRSPACE)
 	    {
 	      declspecs_add_addrspace (specs, c_parser_peek_token (parser)->value);
 	      c_parser_consume_token (parser);
