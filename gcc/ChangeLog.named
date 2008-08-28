@@ -1,3 +1,7 @@
+2008-08-28  Ben Elliston  <bje@au.ibm.com>
+
+	* c-decl.c: Fix some merge botches.
+
 2008-08-27  Ben Elliston  <bje@au.ibm.com>
 
 	* target.h (struct gcc_target): Ensure that the addr_space_number

@@ -4108,7 +4108,8 @@ grokdeclarator (const struct c_declarator *declarator,
       if (volatilep > 1)
 	pedwarn (input_location, OPT_pedantic, "duplicate %<volatile%>");
       if (addr_space_p > 1)
-	pedwarn (OPT_pedantic, "duplicate %qs", targetm.addr_space_name (TYPE_ADDR_SPACE (element_type)));
+	pedwarn (input_location, OPT_pedantic, "duplicate %qs",
+		targetm.addr_space_name (TYPE_ADDR_SPACE (element_type)));
     }
   if (!flag_gen_aux_info && (TYPE_QUALS (element_type)))
     type = TYPE_MAIN_VARIANT (type);
@@ -4633,12 +4634,6 @@ grokdeclarator (const struct c_declarator *declarator,
 	  {
 	    /* Merge any constancy or volatility into the target type
 	       for the pointer.  */
-	    
- 	    if (TREE_CODE (type) == FUNCTION_TYPE)
- 	      {
- 		if (pedantic && type_quals)
- 		  pedwarn (OPT_pedantic, "ISO C forbids qualified function types");
- 	      }
 
 	    if (pedantic && TREE_CODE (type) == FUNCTION_TYPE
 		&& type_quals)
@@ -7216,7 +7211,8 @@ declspecs_add_addrspace (struct c_declspecs *specs, tree addrspace)
   specs->declspecs_seen_p = true;
 
   if (specs->address_space > 0)
-    pedwarn (OPT_pedantic, "duplicate %qs", targetm.addr_space_name (specs->address_space));
+    pedwarn (input_location, OPT_pedantic,
+	"duplicate %qs", targetm.addr_space_name (specs->address_space));
 
   specs->address_space = targetm.addr_space_number (addrspace);
   return specs;
