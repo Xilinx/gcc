@@ -1,3 +1,7 @@
+2008-08-28  Ben Elliston  <bje@au.ibm.com>
+
+	* lib/target-supports.exp (check_effective_target_ea): Remove.
+
 2008-08-22  Ben Elliston  <bje@au.ibm.com>
 
 	* gcc.target/spu/ea/ea.exp: Correct copyright date.

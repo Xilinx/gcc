@@ -520,41 +520,6 @@ proc check_effective_target_pcc_bitfield_type_matters { } {
     }]
 }
 
-# Return 1 if extended address spaces (__ea) is supported, 0
-# otherwise.
-#
-# This won't change for different subtargets so cache the result.
-
-proc check_effective_target_ea {} {
-    global et_ea_saved
-    global tool
-
-    if [info exists et_ea_saved] {
-	verbose "check_effective_target_ea: using cached result" 2
-    } else {
-	set et_ea_saved 1
-
-	set src ea[pid].c
-	set asm ea[pid].S
-	verbose "check_effective_target_ea: compiling testfile $src" 2
-	set f [open $src "w"]
-	# Compile a small test program.
-	puts $f "extern __ea int i;\n"
-	close $f
-
-	# Test for extended address space support on the target.
-	set comp_output \
-	    [${tool}_target_compile $src $asm assembly ""]
-	file delete $src
-	if { [string match "*not supported*" $comp_output] } {
-	    set et_ea_saved 0
-	}
-	remove-build-file $asm
-    }
-    verbose "check_effective_target_ea: returning $et_ea_saved" 2
-    return $et_ea_saved
-}
-
 # Return 1 if thread local storage (TLS) is supported, 0 otherwise.
 #
 # This won't change for different subtargets so cache the result.
