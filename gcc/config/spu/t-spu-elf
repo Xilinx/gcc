@@ -69,54 +69,30 @@ MULTILIB_OPTIONS=mea64
 EXTRA_MULTILIB_PARTS = crtbegin.o crtend.o libgcc_cachemgr.a libgcc_cachemgr_nonatomic.a \
 	libgcc_cache8k.a libgcc_cache16k.a libgcc_cache32k.a libgcc_cache64k.a libgcc_cache128k.a
 
-cachemgr.o: $(srcdir)/config/spu/cachemgr.c
-	$(GCC_FOR_TARGET) $(LIBGCC2_CFLAGS) -c $< -o $@
-
-%/cachemgr.o: $(srcdir)/config/spu/cachemgr.c
-	$(GCC_FOR_TARGET) $(LIBGCC2_CFLAGS) -c $< -o $@
+$(T)cachemgr.o: $(srcdir)/config/spu/cachemgr.c
+	$(GCC_FOR_TARGET) $(LIBGCC2_CFLAGS) $(MULTILIB_CFLAGS) -c $< -o $@
 
 # Specialised rule to add a -D flag.
-cachemgr_nonatomic.o: $(srcdir)/config/spu/cachemgr.c
-	$(GCC_FOR_TARGET) $(LIBGCC2_CFLAGS) -DNONATOMIC -c $< -o $@
+$(T)cachemgr_nonatomic.o: $(srcdir)/config/spu/cachemgr.c
+	$(GCC_FOR_TARGET) $(LIBGCC2_CFLAGS) $(MULTILIB_CFLAGS) -DNONATOMIC -c $< -o $@
 
-%/cachemgr_nonatomic.o: $(srcdir)/config/spu/cachemgr.c
-	$(GCC_FOR_TARGET) $(LIBGCC2_CFLAGS) -DNONATOMIC -c $< -o $@
-
-libgcc_%.a: %.o
+$(T)libgcc_%.a: $(T)%.o
 	$(AR_FOR_TARGET) -rcs $@ $<
 
-%/libgcc_%.a: %.o
-	$(AR_FOR_TARGET) -rcs $@ $<
+$(T)cache8k.o: $(srcdir)/config/spu/cache.S
+	$(GCC_FOR_TARGET) $(MULTILIB_CFLAGS) -D__CACHE_SIZE__=8 -o $@ -c $<
 
-cache8k.o: $(srcdir)/config/spu/cache.S
-	$(GCC_FOR_TARGET) -D__CACHE_SIZE__=8 -o $@ -c $<
+$(T)cache16k.o: $(srcdir)/config/spu/cache.S
+	$(GCC_FOR_TARGET) $(MULTILIB_CFLAGS) -D__CACHE_SIZE__=16 -o $@ -c $<
 
-cache16k.o: $(srcdir)/config/spu/cache.S
-	$(GCC_FOR_TARGET) -D__CACHE_SIZE__=16 -o $@ -c $<
+$(T)cache32k.o: $(srcdir)/config/spu/cache.S
+	$(GCC_FOR_TARGET) $(MULTILIB_CFLAGS) -D__CACHE_SIZE__=32 -o $@ -c $<
 
-cache32k.o: $(srcdir)/config/spu/cache.S
-	$(GCC_FOR_TARGET) -D__CACHE_SIZE__=32 -o $@ -c $<
+$(T)cache64k.o: $(srcdir)/config/spu/cache.S
+	$(GCC_FOR_TARGET) $(MULTILIB_CFLAGS) -D__CACHE_SIZE__=64 -o $@ -c $<
 
-cache64k.o: $(srcdir)/config/spu/cache.S
-	$(GCC_FOR_TARGET) -D__CACHE_SIZE__=64 -o $@ -c $<
-
-cache128k.o: $(srcdir)/config/spu/cache.S
-	$(GCC_FOR_TARGET) -D__CACHE_SIZE__=128 -o $@ -c $<
-
-%/cache8k.o: $(srcdir)/config/spu/cache.S
-	$(GCC_FOR_TARGET) -D__CACHE_SIZE__=8 -o $@ -c $<
-
-%/cache16k.o: $(srcdir)/config/spu/cache.S
-	$(GCC_FOR_TARGET) -D__CACHE_SIZE__=16 -o $@ -c $<
-
-%/cache32k.o: $(srcdir)/config/spu/cache.S
-	$(GCC_FOR_TARGET) -D__CACHE_SIZE__=32 -o $@ -c $<
-
-%/cache64k.o: $(srcdir)/config/spu/cache.S
-	$(GCC_FOR_TARGET) -D__CACHE_SIZE__=64 -o $@ -c $<
-
-%/cache128k.o: $(srcdir)/config/spu/cache.S
-	$(GCC_FOR_TARGET) -D__CACHE_SIZE__=128 -o $@ -c $<
+$(T)cache128k.o: $(srcdir)/config/spu/cache.S
+	$(GCC_FOR_TARGET) $(MULTILIB_CFLAGS) -D__CACHE_SIZE__=128 -o $@ -c $<
 
 LIBGCC = stmp-multilib
 INSTALL_LIBGCC = install-multilib
