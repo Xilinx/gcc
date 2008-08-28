@@ -4783,6 +4783,7 @@ DONE;
   DONE;
 }")
 
+ 
 (define_expand "vec_extract_evenv4sf"
  [(set (match_operand:V4SF 0 "spu_reg_operand" "=r")
        (vec_concat:V4SF
