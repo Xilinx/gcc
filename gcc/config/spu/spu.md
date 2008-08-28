@@ -4828,6 +4828,7 @@ DONE;
         0x10, 0x11, 0x14, 0x15,
         0x18, 0x19, 0x1C, 0x1D};
 
+  emit_move_insn (mask, array_to_constant (TImode, arr));
   emit_insn (gen_shufb (operands[0], operands[1], operands[2], mask));
   DONE;
 }")
