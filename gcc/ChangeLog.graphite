@@ -1,3 +1,26 @@
+2008-08-29  Jan Sjodin  <jan.sjodin@amd.com>
+
+	* tree-phinodes.c (make_phi_node): Extern.
+	(add_phi_node_to_bb): New.
+	(create_phi_node): Call add_phi_node_to_bb.
+	* tree-ssa-loop-ivopts.c (get_phi_with_result): New.
+	(remove_statement): Handle case where stored phi was updated
+	and is no longer the same.
+	* graphite.c (is_parameter): New.
+	(is_old_iv): New.
+	(expand_scalar_variables_expr): New.
+	(expand_scalar_variables_stmt): New.
+	(expand_scalar_variables): New.
+	(move_phi_nodes): Create new phi instead of moving old one.
+	(translate_clast): Call expand_scalar_variables.
+	(find_vdef_for_var_in_bb): Also scan regular definitions. 
+	(skip_phi_defs): New.
+	(collect_scop_exit_phi_args): New.
+	(patch_scop_exit_phi_args): New.
+	(gloog): Patch phis after scop.
+	* tree-flow.h: (add_phi_node_to_bb): Declared.
+	(make_phi_node): Declared.
+
 2008-08-26  Sebastian Pop  <sebastian.pop@amd.com>
 
 	* graphite.c (end_scop): Split the entry of the scop when it
