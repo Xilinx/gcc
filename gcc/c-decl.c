@@ -4107,10 +4107,19 @@ grokdeclarator (const struct c_declarator *declarator,
 	pedwarn (input_location, OPT_pedantic, "duplicate %<restrict%>");
       if (volatilep > 1)
 	pedwarn (input_location, OPT_pedantic, "duplicate %<volatile%>");
-      if (addr_space_p > 1)
-	pedwarn (input_location, OPT_pedantic, "duplicate %qs",
-		targetm.addr_space_name (TYPE_ADDR_SPACE (element_type)));
     }
+
+  if (!flag_iso)
+    {
+      addr_space_t as1 = declspecs->address_space;
+      addr_space_t as2 = TYPE_ADDR_SPACE (element_type);
+
+      if (as1 > 0 && as2 > 0 && as1 != as2)
+	error ("incompatible address space qualifiers %qs and %qs",
+	       targetm.addr_space_name (as1),
+	       targetm.addr_space_name (as2));
+    }
+
   if (!flag_gen_aux_info && (TYPE_QUALS (element_type)))
     type = TYPE_MAIN_VARIANT (type);
   type_quals = ((constp ? TYPE_QUAL_CONST : 0)
@@ -7210,9 +7219,11 @@ declspecs_add_addrspace (struct c_declspecs *specs, tree addrspace)
   specs->non_sc_seen_p = true;
   specs->declspecs_seen_p = true;
 
-  if (specs->address_space > 0)
-    pedwarn (input_location, OPT_pedantic,
-	"duplicate %qs", targetm.addr_space_name (specs->address_space));
+  if (specs->address_space > 0
+      && specs->address_space != targetm.addr_space_number (addrspace))
+    error ("incompatible address space qualifiers %qs and %qs",
+	   targetm.addr_space_name (targetm.addr_space_number (addrspace)),
+	   targetm.addr_space_name (specs->address_space));
 
   specs->address_space = targetm.addr_space_number (addrspace);
   return specs;

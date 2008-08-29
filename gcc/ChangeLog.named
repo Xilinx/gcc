@@ -1,3 +1,9 @@
+2008-08-29  Ben Elliston  <bje@au.ibm.com>
+
+	* c-decl.c (grokdeclarator): Produce an error for incompatible
+	address space qualifiers via typedef.
+	(declspecs_add_addrspace): Likewise.
+
 2008-08-28  Ben Elliston  <bje@au.ibm.com>
 
 	* c-parser.c (c_parser_declspecs): Remove c_dialect_objc test.

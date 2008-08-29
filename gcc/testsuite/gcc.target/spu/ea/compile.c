@@ -2,20 +2,22 @@
 /* { dg-do compile } */
 /* { dg-options "-std=gnu99 -pedantic-errors" } */
 
+/* Typedefs.  */
+typedef __ea int ea_int_t;
+typedef __ea int *ea_int_star_t;
+typedef int outer_t;
+
 /* Externs.  */
 
 __ea extern int i1;
 extern __ea int i2;
 extern int __ea i3;
+extern __ea ea_int_t i4;		/* __ea qualifier permitted via typedef.  */
+extern int __ea __ea __ea dupe;		/* __ea duplicate permitted directly.  */
 extern int __ea *ppu;
 
 /* Pointers.  */
 __ea int *i4p;
-
-/* Typedefs.  */
-typedef __ea int ea_int_t;
-typedef __ea int *ea_int_star_t;
-typedef int outer_t;
 
 /* Structs.  */
 struct st {

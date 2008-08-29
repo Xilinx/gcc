@@ -1,3 +1,8 @@
+2008-08-29  Ben Elliston  <bje@au.ibm.com>
+
+	* gcc.target/spu/ea/compile.c: Add tests for duplicate __ea
+	qualifiers, both directly and via typedefs.
+
 2008-08-28  Ben Elliston  <bje@au.ibm.com>
 
 	* gcc.target/spu/ea/compile.c: Test a static __ea declaration
