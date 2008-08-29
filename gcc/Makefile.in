@@ -1798,7 +1798,7 @@ c-decl.o : c-decl.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) $(TREE_H) \
     opts.h $(C_PRAGMA_H) gt-c-decl.h $(CGRAPH_H) $(HASHTAB_H) libfuncs.h \
     except.h $(LANGHOOKS_DEF_H) $(TREE_DUMP_H) $(C_COMMON_H) $(CPPLIB_H) \
     $(DIAGNOSTIC_H) $(INPUT_H) langhooks.h $(GIMPLE_H) tree-mudflap.h  \
-    pointer-set.h $(BASIC_BLOCK_H) $(GIMPLE_H) tree-iterator.h
+    pointer-set.h $(BASIC_BLOCK_H) $(GIMPLE_H) tree-iterator.h targhooks.h
 c-typeck.o : c-typeck.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
     $(TREE_H) $(C_TREE_H) $(TARGET_H) $(FLAGS_H) intl.h output.h $(EXPR_H) \
     $(RTL_H) $(TOPLEV_H) $(TM_P_H) langhooks.h $(GGC_H) $(TREE_FLOW_H) \
@@ -1868,7 +1868,8 @@ c-common.o : c-common.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) $(TREE_H) \
 
 c-pretty-print.o : c-pretty-print.c $(C_PRETTY_PRINT_H) \
 	$(C_TREE_H) $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) $(REAL_H) \
-	$(DIAGNOSTIC_H) tree-iterator.h fixed-value.h
+	$(DIAGNOSTIC_H) tree-iterator.h fixed-value.h $(TARGET_DEF_H) \
+	$(TARGET_H)
 
 c-opts.o : c-opts.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H)		\
         $(TREE_H) $(C_PRAGMA_H) $(FLAGS_H) $(TOPLEV_H) langhooks.h		\
@@ -2019,8 +2020,9 @@ prefix.o: prefix.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) prefix.h \
 	-DPREFIX=\"$(prefix)\" -DBASEVER=$(BASEVER_s) \
 	  -c $(srcdir)/prefix.c $(OUTPUT_OPTION)
 
-convert.o: convert.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) $(TREE_H) \
-   $(FLAGS_H) convert.h $(TOPLEV_H) langhooks.h $(REAL_H) fixed-value.h
+convert.o: convert.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
+   $(TREE_H) $(FLAGS_H) convert.h $(TOPLEV_H) langhooks.h $(REAL_H) \
+   fixed-value.h $(TARGET_H)
 
 double-int.o: double-int.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) $(TREE_H)
 
@@ -2392,11 +2394,11 @@ tree-nomudflap.o : $(CONFIG_H) $(SYSTEM_H) $(TREE_H) $(TREE_INLINE_H) \
 tree-pretty-print.o : tree-pretty-print.c $(CONFIG_H) $(SYSTEM_H) \
    $(TREE_H) $(DIAGNOSTIC_H) $(REAL_H) $(HASHTAB_H) $(TREE_FLOW_H) \
    $(TM_H) coretypes.h tree-iterator.h tree-chrec.h langhooks.h tree-pass.h \
-   value-prof.h fixed-value.h output.h
+   value-prof.h fixed-value.h output.h $(TARGET_H) $(TARGET_DEF_H)
 fold-const.o : fold-const.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
    $(TREE_H) $(FLAGS_H) $(REAL_H) $(TOPLEV_H) $(HASHTAB_H) $(EXPR_H) $(RTL_H) \
    $(GGC_H) $(TM_P_H) langhooks.h $(MD5_H) intl.h fixed-value.h $(TARGET_H) \
-   $(GIMPLE_H)
+   $(GIMPLE_H) $(TARGET_H)
 diagnostic.o : diagnostic.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
    $(TREE_H) version.h $(TM_P_H) $(FLAGS_H) $(INPUT_H) $(TOPLEV_H) intl.h \
    $(DIAGNOSTIC_H) langhooks.h $(LANGHOOKS_DEF_H) diagnostic.def opts.h

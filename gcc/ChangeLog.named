@@ -1,5 +1,10 @@
 2008-08-29  Ben Elliston  <bje@au.ibm.com>
 
+	* Makefile.in (c-decl.o, c-pretty-print.o, convert.o,
+	tree-pretty-print.o, fold-const.o): Update make dependencies.
+
+2008-08-29  Ben Elliston  <bje@au.ibm.com>
+
 	* c-decl.c (grokdeclarator): Produce an error for incompatible
 	address space qualifiers via typedef.
 	(declspecs_add_addrspace): Likewise.
