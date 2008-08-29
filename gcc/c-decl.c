@@ -4147,8 +4147,9 @@ grokdeclarator (const struct c_declarator *declarator,
     {
       const char *addrspace_name;
 
-      if (addr_space_p > 0)
-	addrspace_name = targetm.addr_space_name (addr_space_p);
+      /* Either declspecs or the declarator identifies the address space.  */
+      if (declspecs->address_space)
+	addrspace_name = targetm.addr_space_name (declspecs->address_space);
       else
 	addrspace_name = targetm.addr_space_name (DECODE_QUAL_ADDR_SPACE (declarator->u.pointer_quals));
 
