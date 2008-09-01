@@ -70,8 +70,8 @@ enum processor_type mn10300_processor = PROCESSOR_DEFAULT;
 
 static bool mn10300_handle_option (size_t, const char *, int);
 static int mn10300_address_cost_1 (rtx, int *);
-static int mn10300_address_cost (rtx);
-static bool mn10300_rtx_costs (rtx, int, int, int *);
+static int mn10300_address_cost (rtx, bool);
+static bool mn10300_rtx_costs (rtx, int, int, int *, bool);
 static void mn10300_file_start (void);
 static bool mn10300_return_in_memory (const_tree, const_tree);
 static rtx mn10300_builtin_saveregs (void);
@@ -1979,7 +1979,7 @@ mn10300_address_cost_1 (rtx x, int *unsig)
     case EXPR_LIST:
     case SUBREG:
     case MEM:
-      return mn10300_address_cost (XEXP (x, 0));
+      return mn10300_address_cost (XEXP (x, 0), !optimize_size);
 
     case ZERO_EXTEND:
       *unsig = 1;
@@ -2008,14 +2008,14 @@ mn10300_address_cost_1 (rtx x, int *unsig)
 }
 
 static int
-mn10300_address_cost (rtx x)
+mn10300_address_cost (rtx x, bool speed ATTRIBUTE_UNUSED)
 {
   int s = 0;
   return mn10300_address_cost_1 (x, &s);
 }
 
 static bool
-mn10300_rtx_costs (rtx x, int code, int outer_code, int *total)
+mn10300_rtx_costs (rtx x, int code, int outer_code, int *total, bool speed ATTRIBUTE_UNUSED)
 {
   switch (code)
     {

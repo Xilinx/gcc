@@ -53,7 +53,7 @@ static bool v850_handle_option       (size_t, const char *, int);
 static void const_double_split       (rtx, HOST_WIDE_INT *, HOST_WIDE_INT *);
 static int  const_costs_int          (HOST_WIDE_INT, int);
 static int  const_costs		     (rtx, enum rtx_code);
-static bool v850_rtx_costs	     (rtx, int, int, int *);
+static bool v850_rtx_costs	     (rtx, int, int, int *, bool);
 static void substitute_ep_register   (rtx, rtx, int, int, rtx *, rtx *);
 static void v850_reorg		     (void);
 static int  ep_memory_offset         (enum machine_mode, int);
@@ -137,7 +137,7 @@ static GTY(()) section *zbss_section;
 #define TARGET_RTX_COSTS v850_rtx_costs
 
 #undef TARGET_ADDRESS_COST
-#define TARGET_ADDRESS_COST hook_int_rtx_0
+#define TARGET_ADDRESS_COST hook_int_rtx_bool_0
 
 #undef TARGET_MACHINE_DEPENDENT_REORG
 #define TARGET_MACHINE_DEPENDENT_REORG v850_reorg
@@ -422,7 +422,7 @@ static bool
 v850_rtx_costs (rtx x,
                 int code,
                 int outer_code ATTRIBUTE_UNUSED,
-                int * total)
+                int * total, bool speed)
 {
   switch (code)
     {
@@ -438,7 +438,7 @@ v850_rtx_costs (rtx x,
     case DIV:
     case UMOD:
     case UDIV:
-      if (TARGET_V850E && optimize_size)
+      if (TARGET_V850E && !speed)
         *total = 6;
       else
 	*total = 60;
