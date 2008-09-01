@@ -166,6 +166,9 @@ static int nfunctions_inlined;
 static int overall_insns;
 static gcov_type max_count;
 
+/* Holders of ipa cgraph hooks: */
+static struct cgraph_node_hook_list *function_insertion_hook_holder;
+
 static inline struct inline_summary *
 inline_summary (struct cgraph_node *node)
 {
@@ -315,18 +318,25 @@ cgraph_estimate_growth (struct cgraph_node *node)
 {
   int growth = 0;
   struct cgraph_edge *e;
+  bool self_recursive = false;
+
   if (node->global.estimated_growth != INT_MIN)
     return node->global.estimated_growth;
 
   for (e = node->callers; e; e = e->next_caller)
-    if (e->inline_failed)
-      growth += (cgraph_estimate_size_after_inlining (1, e->caller, node)
-		 - e->caller->global.insns);
+    {
+      if (e->caller == node)
+        self_recursive = true;
+      if (e->inline_failed)
+	growth += (cgraph_estimate_size_after_inlining (1, e->caller, node)
+		   - e->caller->global.insns);
+    }
 
-  /* ??? Wrong for self recursive functions or cases where we decide to not
-     inline for different reasons, but it is not big deal as in that case
-     we will keep the body around, but we will also avoid some inlining.  */
-  if (!node->needed && !DECL_EXTERNAL (node->decl))
+  /* ??? Wrong for non-trivially self recursive functions or cases where
+     we decide to not inline for different reasons, but it is not big deal
+     as in that case we will keep the body around, but we will also avoid
+     some inlining.  */
+  if (!node->needed && !DECL_EXTERNAL (node->decl) && !self_recursive)
     growth -= node->global.insns;
 
   node->global.estimated_growth = growth;
@@ -463,26 +473,6 @@ cgraph_recursive_inlining_p (struct cgraph_node *to,
     *reason = (what->local.disregard_inline_limits
 	       ? N_("recursive inlining") : "");
   return recursive;
-}
-
-/* Return true if the call can be hot.  */
-static bool
-cgraph_maybe_hot_edge_p (struct cgraph_edge *edge)
-{
-  if (profile_info && flag_branch_probabilities
-      && (edge->count
-	  <= profile_info->sum_max / PARAM_VALUE (HOT_BB_COUNT_FRACTION)))
-    return false;
-  if (lookup_attribute ("cold", DECL_ATTRIBUTES (edge->callee->decl))
-      || lookup_attribute ("cold", DECL_ATTRIBUTES (edge->caller->decl)))
-    return false;
-  if (lookup_attribute ("hot", DECL_ATTRIBUTES (edge->caller->decl)))
-    return true;
-  if (flag_guess_branch_prob
-      && edge->frequency < (CGRAPH_FREQ_MAX
-      			    / PARAM_VALUE (HOT_BB_FREQUENCY_FRACTION)))
-    return false;
-  return true;
 }
 
 /* A cost model driving the inlining heuristics in a way so the edges with
@@ -671,7 +661,7 @@ cgraph_decide_recursive_inlining (struct cgraph_node *node,
   int depth = 0;
   int n = 0;
 
-  if (optimize_size
+  if (optimize_function_for_size_p (DECL_STRUCT_FUNCTION (node->decl))
       || (!flag_inline_functions && !DECL_DECLARED_INLINE_P (node->decl)))
     return false;
 
@@ -923,8 +913,13 @@ cgraph_decide_inlining_of_small_functions (void)
 	 is not good idea so prohibit the recursive inlining.
 
 	 ??? When the frequencies are taken into account we might not need this
-	 restriction.   */
-      if (!max_count)
+	 restriction.
+
+	 We need to be cureful here, in some testcases, e.g. directivec.c in
+	 libcpp, we can estimate self recursive function to have negative growth
+	 for inlining completely.
+	 */
+      if (!edge->count)
 	{
 	  where = edge->caller;
 	  while (where->global.inlined_to)
@@ -948,7 +943,7 @@ cgraph_decide_inlining_of_small_functions (void)
       if (!flag_inline_functions
 	  && !DECL_DECLARED_INLINE_P (edge->callee->decl))
  	not_good = N_("function not declared inline and code size would grow");
-      if (optimize_size)
+      if (optimize_function_for_size_p (DECL_STRUCT_FUNCTION(edge->caller->decl)))
  	not_good = N_("optimizing for size and code size would grow");
       if (not_good && growth > 0 && cgraph_estimate_growth (edge->callee) > 0)
 	{
@@ -1072,6 +1067,8 @@ cgraph_decide_inlining (void)
   int old_insns = 0;
   int i;
   int initial_insns = 0;
+
+  cgraph_remove_function_insertion_hook (function_insertion_hook_holder);
 
   max_count = 0;
   for (node = cgraph_nodes; node; node = node->next)
@@ -1633,32 +1630,58 @@ inline_indirect_intraprocedural_analysis (struct cgraph_node *node)
 {
   struct cgraph_edge *cs;
 
-  ipa_count_formal_params (node);
-  ipa_create_param_decls_array (node);
-  ipa_detect_param_modifications (node);
+  if (!flag_ipa_cp)
+    {
+      ipa_count_formal_params (node);
+      ipa_create_param_decls_array (node);
+      ipa_detect_param_modifications (node);
+    }
   ipa_analyze_params_uses (node);
 
-  if (dump_file)
-    ipa_print_node_param_flags (dump_file, node);
+  if (!flag_ipa_cp)
+    for (cs = node->callees; cs; cs = cs->next_callee)
+      {
+	ipa_count_arguments (cs);
+	ipa_compute_jump_functions (cs);
+      }
 
-  for (cs = node->callees; cs; cs = cs->next_callee)
+  if (dump_file)
     {
-      ipa_count_arguments (cs);
-      ipa_compute_jump_functions (cs);
+      ipa_print_node_params (dump_file, node);
+      ipa_print_node_jump_functions (dump_file, node);
     }
+}
 
-  if (dump_file)
-    ipa_print_node_jump_functions (dump_file, node);
+/* Note function body size.  */
+static void
+analyze_function (struct cgraph_node *node)
+{
+  push_cfun (DECL_STRUCT_FUNCTION (node->decl));
+  current_function_decl = node->decl;
+
+  compute_inline_parameters (node);
+  if (flag_indirect_inlining)
+    inline_indirect_intraprocedural_analysis (node);
+
+  current_function_decl = NULL;
+  pop_cfun ();
+}
+
+/* Called when new function is inserted to callgraph late.  */
+static void
+add_new_function (struct cgraph_node *node, void *data ATTRIBUTE_UNUSED)
+{
+  analyze_function (node);
 }
 
 /* Note function body size.  */
 static void
 inline_generate_summary (void)
 {
-  struct cgraph_node **order =
-    XCNEWVEC (struct cgraph_node *, cgraph_n_nodes);
-  int nnodes = cgraph_postorder (order);
-  int i;
+  struct cgraph_node *node;
+
+  function_insertion_hook_holder =
+      cgraph_add_function_insertion_hook (&add_new_function, NULL);
 
   if (flag_indirect_inlining)
     {
@@ -1667,27 +1690,10 @@ inline_generate_summary (void)
       ipa_check_create_edge_args ();
     }
 
-  for (i = nnodes - 1; i >= 0; i--)
-    {
-      struct cgraph_node *node = order[i];
-      
-      /* Allow possibly removed nodes to be garbage collected.  */
-      order[i] = NULL;
-      if (node->analyzed && (node->needed || node->reachable))
-	{
-	  push_cfun (DECL_STRUCT_FUNCTION (node->decl));
-	  current_function_decl = node->decl;
-	  compute_inline_parameters (node);
-
-	  if (flag_indirect_inlining)
-	    inline_indirect_intraprocedural_analysis (node);
-
-	  pop_cfun ();
-	}
-    }
+  for (node = cgraph_nodes; node; node = node->next)
+    if (node->analyzed)
+      analyze_function (node);
   
-  current_function_decl = NULL;
-  free (order);
   return;
 }
 

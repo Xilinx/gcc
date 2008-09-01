@@ -161,7 +161,7 @@ remap_ssa_name (tree name, copy_body_data *id)
 
   n = (tree *) pointer_map_contains (id->decl_map, name);
   if (n)
-    return *n;
+    return unshare_expr (*n);
 
   /* Do not set DEF_STMT yet as statement is not copied yet. We do that
      in copy_bb.  */
@@ -1856,10 +1856,52 @@ self_inlining_addr_expr (tree value, tree fn)
 }
 
 static void
+insert_init_stmt (basic_block bb, gimple init_stmt)
+{
+  gimple_stmt_iterator si = gsi_last_bb (bb);
+  gimple_stmt_iterator i;
+  gimple_seq seq = gimple_seq_alloc ();
+  struct gimplify_ctx gctx;
+
+  push_gimplify_context (&gctx);
+
+  i = gsi_start (seq);
+  gimple_regimplify_operands (init_stmt, &i);
+
+  if (init_stmt
+      && !gimple_seq_empty_p (seq))
+    {
+      /* The replacement can expose previously unreferenced
+	 variables.  */
+      if (gimple_in_ssa_p (cfun))
+        for (i = gsi_start (seq); !gsi_end_p (i); gsi_next (&i))
+	  find_new_referenced_vars (gsi_stmt (i));
+
+      /* Insert the gimplified sequence needed for INIT_STMT
+	 after SI.  INIT_STMT will be inserted after SEQ.  */
+      gsi_insert_seq_after (&si, seq, GSI_NEW_STMT);
+     }
+
+  pop_gimplify_context (NULL);
+
+  /* If VAR represents a zero-sized variable, it's possible that the
+     assignment statement may result in no gimple statements.  */
+  if (init_stmt)
+    gsi_insert_after (&si, init_stmt, GSI_NEW_STMT);
+
+  if (gimple_in_ssa_p (cfun))
+    for (;!gsi_end_p (si); gsi_next (&si))
+      mark_symbols_for_renaming (gsi_stmt (si));
+}
+
+/* Initialize parameter P with VALUE.  If needed, produce init statement
+   at the end of BB.  When BB is NULL, we return init statement to be
+   output later.  */
+static gimple
 setup_one_parameter (copy_body_data *id, tree p, tree value, tree fn,
 		     basic_block bb, tree *vars)
 {
-  gimple init_stmt;
+  gimple init_stmt = NULL;
   tree var;
   tree rhs = value;
   tree def = (gimple_in_ssa_p (cfun)
@@ -1902,7 +1944,7 @@ setup_one_parameter (copy_body_data *id, tree p, tree value, tree fn,
 	  && ! self_inlining_addr_expr (value, fn))
 	{
 	  insert_decl_map (id, p, value);
-	  return;
+	  return NULL;
 	}
     }
 
@@ -1960,7 +2002,7 @@ setup_one_parameter (copy_body_data *id, tree p, tree value, tree fn,
       && !SSA_NAME_OCCURS_IN_ABNORMAL_PHI (def))
     {
       insert_decl_map (id, def, rhs);
-      return;
+      return NULL;
     }
 
   /* If the value of argument is never used, don't care about initializing
@@ -1968,19 +2010,17 @@ setup_one_parameter (copy_body_data *id, tree p, tree value, tree fn,
   if (gimple_in_ssa_p (cfun) && !def && is_gimple_reg (p))
     {
       gcc_assert (!value || !TREE_SIDE_EFFECTS (value));
-      return;
+      return NULL;
     }
 
   /* Initialize this VAR_DECL from the equivalent argument.  Convert
      the argument to the proper type in case it was promoted.  */
   if (value)
     {
-      gimple_stmt_iterator si = gsi_last_bb (bb);
-
       if (rhs == error_mark_node)
 	{
 	  insert_decl_map (id, p, var);
-	  return;
+	  return NULL;
 	}
 
       STRIP_USELESS_TYPE_CONVERSION (rhs);
@@ -1997,51 +2037,10 @@ setup_one_parameter (copy_body_data *id, tree p, tree value, tree fn,
       else
         init_stmt = gimple_build_assign (var, rhs);
 
-      /* If we did not create a gimple value and we did not create a gimple
-	 cast of a gimple value, then we will need to gimplify INIT_STMT
-	 at the end.  Note that is_gimple_cast only checks the outer
-	 tree code, not its operand.  Thus the explicit check that its
-	 operand is a gimple value.  */
-      if ((!is_gimple_val (rhs)
-	  && (!is_gimple_cast (rhs)
-	      || !is_gimple_val (TREE_OPERAND (rhs, 0))))
-	  || !is_gimple_reg (var))
-	{
-	  gimple_stmt_iterator i;
-	  gimple_seq seq = gimple_seq_alloc ();
-          struct gimplify_ctx gctx;
-
-	  push_gimplify_context (&gctx);
-
-	  i = gsi_start (seq);
-	  gimple_regimplify_operands (init_stmt, &i);
-
-	  if (gimple_in_ssa_p (cfun)
-              && init_stmt
-	      && !gimple_seq_empty_p (seq))
-	    {
-	      /* The replacement can expose previously unreferenced
-		 variables.  */
-	      for (i = gsi_start (seq); !gsi_end_p (i); gsi_next (&i))
-		find_new_referenced_vars (gsi_stmt (i));
-
-	      /* Insert the gimplified sequence needed for INIT_STMT
-		 after SI.  INIT_STMT will be inserted after SEQ.  */
-	      gsi_insert_seq_after (&si, seq, GSI_NEW_STMT);
-	     }
-
-	  pop_gimplify_context (NULL);
-	}
-
-      /* If VAR represents a zero-sized variable, it's possible that the
-	 assignment statement may result in no gimple statements.  */
-      if (init_stmt)
-        gsi_insert_after (&si, init_stmt, GSI_NEW_STMT);
-
-      if (gimple_in_ssa_p (cfun))
-	for (;!gsi_end_p (si); gsi_next (&si))
-	  mark_symbols_for_renaming (gsi_stmt (si));
+      if (bb && init_stmt)
+        insert_init_stmt (bb, init_stmt);
     }
+  return init_stmt;
 }
 
 /* Generate code to initialize the parameters of the function at the
@@ -2632,10 +2631,9 @@ estimate_operator_cost (enum tree_code code, eni_weights *weights)
     /* These are "free" conversions, or their presumed cost
        is folded into other operations.  */
     case RANGE_EXPR:
-    case CONVERT_EXPR:
+    CASE_CONVERT:
     case COMPLEX_EXPR:
     case PAREN_EXPR:
-    case NOP_EXPR:
       return 0;
 
     /* Assign cost of 1 to usual operations.
@@ -3211,6 +3209,13 @@ expand_call_inline (basic_block bb, gimple stmt, copy_body_data *id)
   gcc_assert (!id->src_cfun->after_inlining);
 
   id->entry_bb = bb;
+  if (lookup_attribute ("cold", DECL_ATTRIBUTES (fn)))
+    {
+      gimple_stmt_iterator si = gsi_last_bb (bb);
+      gsi_insert_after (&si, gimple_build_predict (PRED_COLD_FUNCTION,
+      						   NOT_TAKEN),
+			GSI_NEW_STMT);
+    }
   initialize_inlined_parameters (id, stmt, fn, bb);
 
   if (DECL_INITIAL (fn))
@@ -3346,8 +3351,7 @@ expand_call_inline (basic_block bb, gimple stmt, copy_body_data *id)
   if (is_gimple_assign (stmt))
     {
       gcc_assert (gimple_assign_single_p (stmt)
-		  || gimple_assign_rhs_code (stmt) == NOP_EXPR
-		  || gimple_assign_rhs_code (stmt) == CONVERT_EXPR);
+		  || CONVERT_EXPR_CODE_P (gimple_assign_rhs_code (stmt)));
       TREE_USED (gimple_assign_rhs1 (stmt)) = 1;
     }
 
@@ -4085,19 +4089,37 @@ copy_decl_maybe_to_var (tree decl, copy_body_data *id)
 
 /* Return a copy of the function's argument tree.  */
 static tree
-copy_arguments_for_versioning (tree orig_parm, copy_body_data * id)
+copy_arguments_for_versioning (tree orig_parm, copy_body_data * id,
+			       bitmap args_to_skip, tree *vars)
 {
-  tree *arg_copy, *parg;
+  tree arg, *parg;
+  tree new_parm = NULL;
+  int i = 0;
 
-  arg_copy = &orig_parm;
-  for (parg = arg_copy; *parg; parg = &TREE_CHAIN (*parg))
-    {
-      tree new_tree = remap_decl (*parg, id);
-      lang_hooks.dup_lang_specific_decl (new_tree);
-      TREE_CHAIN (new_tree) = TREE_CHAIN (*parg);
-      *parg = new_tree;
-    }
-  return orig_parm;
+  parg = &new_parm;
+
+  for (arg = orig_parm; arg; arg = TREE_CHAIN (arg), i++)
+    if (!args_to_skip || !bitmap_bit_p (args_to_skip, i))
+      {
+        tree new_tree = remap_decl (arg, id);
+        lang_hooks.dup_lang_specific_decl (new_tree);
+        *parg = new_tree;
+	parg = &TREE_CHAIN (new_tree);
+      }
+    else
+      {
+	/* Make an equivalent VAR_DECL.  If the argument was used
+	   as temporary variable later in function, the uses will be
+	   replaced by local variable.  */
+	tree var = copy_decl_to_var (arg, id);
+	get_var_ann (var);
+	add_referenced_var (var);
+	insert_decl_map (id, arg, var);
+        /* Declare this new variable.  */
+        TREE_CHAIN (var) = *vars;
+        *vars = var;
+      }
+  return new_parm;
 }
 
 /* Return a copy of the function's static chain.  */
@@ -4142,7 +4164,7 @@ tree_versionable_function_p (tree fndecl)
    of edges of clones of the function will be updated.  */
 void
 tree_function_versioning (tree old_decl, tree new_decl, varray_type tree_map,
-			  bool update_clones)
+			  bool update_clones, bitmap args_to_skip)
 {
   struct cgraph_node *old_version_node;
   struct cgraph_node *new_version_node;
@@ -4151,8 +4173,11 @@ tree_function_versioning (tree old_decl, tree new_decl, varray_type tree_map,
   unsigned i;
   struct ipa_replace_map *replace_info;
   basic_block old_entry_block;
+  VEC (gimple, heap) *init_stmts = VEC_alloc (gimple, heap, 10);
+
   tree t_step;
   tree old_current_function_decl = current_function_decl;
+  tree vars = NULL_TREE;
 
   gcc_assert (TREE_CODE (old_decl) == FUNCTION_DECL
 	      && TREE_CODE (new_decl) == FUNCTION_DECL);
@@ -4207,24 +4232,49 @@ tree_function_versioning (tree old_decl, tree new_decl, varray_type tree_map,
   /* Copy the function's arguments.  */
   if (DECL_ARGUMENTS (old_decl) != NULL_TREE)
     DECL_ARGUMENTS (new_decl) =
-      copy_arguments_for_versioning (DECL_ARGUMENTS (old_decl), &id);
-  
-  /* If there's a tree_map, prepare for substitution.  */
-  if (tree_map)
-    for (i = 0; i < VARRAY_ACTIVE_SIZE (tree_map); i++)
-      {
-	replace_info
-	  = (struct ipa_replace_map *) VARRAY_GENERIC_PTR (tree_map, i);
-	if (replace_info->replace_p)
-	  insert_decl_map (&id, replace_info->old_tree,
-			   replace_info->new_tree);
-      }
+      copy_arguments_for_versioning (DECL_ARGUMENTS (old_decl), &id,
+      				     args_to_skip, &vars);
   
   DECL_INITIAL (new_decl) = remap_blocks (DECL_INITIAL (id.src_fn), &id);
   
   /* Renumber the lexical scoping (non-code) blocks consecutively.  */
   number_blocks (id.dst_fn);
   
+  /* If there's a tree_map, prepare for substitution.  */
+  if (tree_map)
+    for (i = 0; i < VARRAY_ACTIVE_SIZE (tree_map); i++)
+      {
+	gimple init;
+	replace_info
+	  = (struct ipa_replace_map *) VARRAY_GENERIC_PTR (tree_map, i);
+	if (replace_info->replace_p)
+	  {
+	    tree op = replace_info->new_tree;
+
+	    STRIP_NOPS (op);
+
+	    if (TREE_CODE (op) == VIEW_CONVERT_EXPR)
+	      op = TREE_OPERAND (op, 0);
+	    
+	    if (TREE_CODE (op) == ADDR_EXPR)
+	      {
+		op = TREE_OPERAND (op, 0);
+		while (handled_component_p (op))
+		  op = TREE_OPERAND (op, 0);
+		if (TREE_CODE (op) == VAR_DECL)
+		  add_referenced_var (op);
+	      }
+	    gcc_assert (TREE_CODE (replace_info->old_tree) == PARM_DECL);
+	    init = setup_one_parameter (&id, replace_info->old_tree,
+	    			        replace_info->new_tree, id.src_fn,
+				        NULL,
+				        &vars);
+	    if (init)
+	      VEC_safe_push (gimple, heap, init_stmts, init);
+	  }
+      }
+  
+  declare_inline_vars (DECL_INITIAL (new_decl), vars);
   if (DECL_STRUCT_FUNCTION (old_decl)->local_decls != NULL_TREE)
     /* Add local vars.  */
     for (t_step = DECL_STRUCT_FUNCTION (old_decl)->local_decls;
@@ -4252,6 +4302,13 @@ tree_function_versioning (tree old_decl, tree new_decl, varray_type tree_map,
   /* Renumber the lexical scoping (non-code) blocks consecutively.  */
   number_blocks (new_decl);
 
+  if (VEC_length (gimple, init_stmts))
+    {
+      basic_block bb = split_edge (single_succ_edge (ENTRY_BLOCK_PTR));
+      while (VEC_length (gimple, init_stmts))
+	insert_init_stmt (bb, VEC_pop (gimple, init_stmts));
+    }
+
   /* Clean up.  */
   pointer_map_destroy (id.decl_map);
   if (!update_clones)
@@ -4276,6 +4333,7 @@ tree_function_versioning (tree old_decl, tree new_decl, varray_type tree_map,
     }
   free_dominance_info (CDI_DOMINATORS);
   free_dominance_info (CDI_POST_DOMINATORS);
+  VEC_free (gimple, heap, init_stmts);
   pop_cfun ();
   current_function_decl = old_current_function_decl;
   gcc_assert (!current_function_decl
@@ -4311,6 +4369,11 @@ build_duplicate_type (tree type)
 bool
 tree_can_inline_p (tree caller, tree callee)
 {
+#if 0
+  /* This causes a regression in SPEC in that it prevents a cold function from
+     inlining a hot function.  Perhaps this should only apply to functions
+     that the user declares hot/cold/optimize explicitly.  */
+
   /* Don't inline a function with a higher optimization level than the
      caller, or with different space constraints (hot/cold functions).  */
   tree caller_tree = DECL_FUNCTION_SPECIFIC_OPTIMIZATION (caller);
@@ -4332,6 +4395,7 @@ tree_can_inline_p (tree caller, tree callee)
 	  || (caller_opt->optimize_size != callee_opt->optimize_size))
 	return false;
     }
+#endif
 
   /* Allow the backend to decide if inlining is ok.  */
   return targetm.target_option.can_inline_p (caller, callee);

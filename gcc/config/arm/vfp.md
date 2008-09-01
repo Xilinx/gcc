@@ -1,6 +1,6 @@
-;; ARM VFP coprocessor Machine Description
-;; Copyright (C) 2003, 2005, 2006, 2007 Free Software Foundation, Inc.
-;; Written by CodeSourcery, LLC.
+;; ARM VFP instruction patterns
+;; Copyright (C) 2003, 2005, 2006, 2007, 2008 Free Software Foundation, Inc.
+;; Written by CodeSourcery.
 ;;
 ;; This file is part of GCC.
 ;;
@@ -23,45 +23,13 @@
   [(VFPCC_REGNUM 127)]
 )
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Pipeline description
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(define_automaton "vfp11")
-
-;; There are 3 pipelines in the VFP11 unit.
-;;
-;; - A 8-stage FMAC pipeline (7 execute + writeback) with forward from
-;;   fourth stage for simple operations.
-;;
-;; - A 5-stage DS pipeline (4 execute + writeback) for divide/sqrt insns.
-;;   These insns also uses first execute stage of FMAC pipeline.
-;;
-;; - A 4-stage LS pipeline (execute + 2 memory + writeback) with forward from
-;;   second memory stage for loads.
-
-;; We do not model Write-After-Read hazards.
-;; We do not do write scheduling with the arm core, so it is only necessary
-;; to model the first stage of each pipeline
-;; ??? Need to model LS pipeline properly for load/store multiple?
-;; We do not model fmstat properly.  This could be done by modeling pipelines
-;; properly and defining an absence set between a dummy fmstat unit and all
-;; other vfp units.
-
-(define_cpu_unit "fmac" "vfp11")
-
-(define_cpu_unit "ds" "vfp11")
-
-(define_cpu_unit "vfp_ls" "vfp11")
-
-(define_cpu_unit "fmstat" "vfp11")
-
-(exclusion_set "fmac,ds" "fmstat")
-
 ;; The VFP "type" attributes differ from those used in the FPA model.
 ;; ffarith	Fast floating point insns, e.g. abs, neg, cpy, cmp.
 ;; farith	Most arithmetic insns.
-;; fmul		Double precision multiply.
+;; fmuls	Single precision multiply.
+;; fmuld	Double precision multiply.
+;; fmacs	Single precision multiply-accumulate.
+;; fmacd	Double precision multiply-accumulate.
 ;; fdivs	Single precision sqrt or division.
 ;; fdivd	Double precision sqrt or division.
 ;; f_flag	fmstat operation
@@ -70,51 +38,6 @@
 ;; f_2_r	Transfer vfp to arm reg.
 ;; r_2_f	Transfer arm to vfp reg.
 ;; f_cvt	Convert floating<->integral
-
-(define_insn_reservation "vfp_ffarith" 4
- (and (eq_attr "generic_vfp" "yes")
-      (eq_attr "type" "ffarith"))
- "fmac")
-
-(define_insn_reservation "vfp_farith" 8
- (and (eq_attr "generic_vfp" "yes")
-      (eq_attr "type" "farith,f_cvt"))
- "fmac")
-
-(define_insn_reservation "vfp_fmul" 9
- (and (eq_attr "generic_vfp" "yes")
-      (eq_attr "type" "fmul"))
- "fmac*2")
-
-(define_insn_reservation "vfp_fdivs" 19
- (and (eq_attr "generic_vfp" "yes")
-      (eq_attr "type" "fdivs"))
- "ds*15")
-
-(define_insn_reservation "vfp_fdivd" 33
- (and (eq_attr "generic_vfp" "yes")
-      (eq_attr "type" "fdivd"))
- "fmac+ds*29")
-
-;; Moves to/from arm regs also use the load/store pipeline.
-(define_insn_reservation "vfp_fload" 4
- (and (eq_attr "generic_vfp" "yes")
-      (eq_attr "type" "f_loads,f_loadd,r_2_f"))
- "vfp_ls")
-
-(define_insn_reservation "vfp_fstore" 4
- (and (eq_attr "generic_vfp" "yes")
-      (eq_attr "type" "f_stores,f_stored,f_2_r"))
- "vfp_ls")
-
-(define_insn_reservation "vfp_to_cpsr" 4
- (and (eq_attr "generic_vfp" "yes")
-      (eq_attr "type" "f_flag"))
- "fmstat,vfp_ls*3")
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Insn pattern
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; SImode moves
 ;; ??? For now do not allow loading constants into vfp regs.  This causes
@@ -653,7 +576,7 @@
   "TARGET_32BIT && TARGET_HARD_FLOAT && TARGET_VFP"
   "fmuls%?\\t%0, %1, %2"
   [(set_attr "predicable" "yes")
-   (set_attr "type" "farith")]
+   (set_attr "type" "fmuls")]
 )
 
 (define_insn "*muldf3_vfp"
@@ -663,7 +586,7 @@
   "TARGET_32BIT && TARGET_HARD_FLOAT && TARGET_VFP"
   "fmuld%?\\t%P0, %P1, %P2"
   [(set_attr "predicable" "yes")
-   (set_attr "type" "fmul")]
+   (set_attr "type" "fmuld")]
 )
 
 
@@ -674,7 +597,7 @@
   "TARGET_32BIT && TARGET_HARD_FLOAT && TARGET_VFP"
   "fnmuls%?\\t%0, %1, %2"
   [(set_attr "predicable" "yes")
-   (set_attr "type" "farith")]
+   (set_attr "type" "fmuls")]
 )
 
 (define_insn "*muldf3negdf_vfp"
@@ -684,7 +607,7 @@
   "TARGET_32BIT && TARGET_HARD_FLOAT && TARGET_VFP"
   "fnmuld%?\\t%P0, %P1, %P2"
   [(set_attr "predicable" "yes")
-   (set_attr "type" "fmul")]
+   (set_attr "type" "fmuld")]
 )
 
 
@@ -699,7 +622,7 @@
   "TARGET_32BIT && TARGET_HARD_FLOAT && TARGET_VFP"
   "fmacs%?\\t%0, %2, %3"
   [(set_attr "predicable" "yes")
-   (set_attr "type" "farith")]
+   (set_attr "type" "fmacs")]
 )
 
 (define_insn "*muldf3adddf_vfp"
@@ -710,7 +633,7 @@
   "TARGET_32BIT && TARGET_HARD_FLOAT && TARGET_VFP"
   "fmacd%?\\t%P0, %P2, %P3"
   [(set_attr "predicable" "yes")
-   (set_attr "type" "fmul")]
+   (set_attr "type" "fmacd")]
 )
 
 ;; 0 = 1 * 2 - 0
@@ -722,7 +645,7 @@
   "TARGET_32BIT && TARGET_HARD_FLOAT && TARGET_VFP"
   "fmscs%?\\t%0, %2, %3"
   [(set_attr "predicable" "yes")
-   (set_attr "type" "farith")]
+   (set_attr "type" "fmacs")]
 )
 
 (define_insn "*muldf3subdf_vfp"
@@ -733,7 +656,7 @@
   "TARGET_32BIT && TARGET_HARD_FLOAT && TARGET_VFP"
   "fmscd%?\\t%P0, %P2, %P3"
   [(set_attr "predicable" "yes")
-   (set_attr "type" "fmul")]
+   (set_attr "type" "fmacd")]
 )
 
 ;; 0 = -(1 * 2) + 0
@@ -745,7 +668,7 @@
   "TARGET_32BIT && TARGET_HARD_FLOAT && TARGET_VFP"
   "fnmacs%?\\t%0, %2, %3"
   [(set_attr "predicable" "yes")
-   (set_attr "type" "farith")]
+   (set_attr "type" "fmacs")]
 )
 
 (define_insn "*fmuldf3negdfadddf_vfp"
@@ -756,7 +679,7 @@
   "TARGET_32BIT && TARGET_HARD_FLOAT && TARGET_VFP"
   "fnmacd%?\\t%P0, %P2, %P3"
   [(set_attr "predicable" "yes")
-   (set_attr "type" "fmul")]
+   (set_attr "type" "fmacd")]
 )
 
 
@@ -770,7 +693,7 @@
   "TARGET_32BIT && TARGET_HARD_FLOAT && TARGET_VFP"
   "fnmscs%?\\t%0, %2, %3"
   [(set_attr "predicable" "yes")
-   (set_attr "type" "farith")]
+   (set_attr "type" "fmacs")]
 )
 
 (define_insn "*muldf3negdfsubdf_vfp"
@@ -782,7 +705,7 @@
   "TARGET_32BIT && TARGET_HARD_FLOAT && TARGET_VFP"
   "fnmscd%?\\t%P0, %P2, %P3"
   [(set_attr "predicable" "yes")
-   (set_attr "type" "fmul")]
+   (set_attr "type" "fmacd")]
 )
 
 

@@ -48,8 +48,8 @@ extern void cp_cpp_error			(cpp_reader *, int,
      ATTRIBUTE_GCC_CXXDIAG(3,0);
 #ifdef GCC_TOPLEV_H
 #error \
-"In order for the format checking to accept the C++ front end diagnostic\n"
-"framework extensions, you must include this file before toplev.h, not after."
+In order for the format checking to accept the C++ front end diagnostic \
+framework extensions, you must include this file before toplev.h, not after.
 #endif
 #include "toplev.h"
 #include "diagnostic.h"
@@ -116,7 +116,8 @@ extern void cp_cpp_error			(cpp_reader *, int,
    2: Unused
    3: TYPE_FOR_JAVA.
    4: TYPE_HAS_NONTRIVIAL_DESTRUCTOR
-   5: CLASS_TYPE_P.
+   5: CLASS_TYPE_P (in RECORD_TYPE and UNION_TYPE)
+      SCOPED_ENUM_P (in ENUMERAL_TYPE)
    6: TYPE_DEPENDENT_P_VALID
 
    Usage of DECL_LANG_FLAG_?:
@@ -980,7 +981,7 @@ enum languages { lang_c, lang_cplusplus, lang_java };
    || TREE_CODE (T) == TYPEOF_TYPE			\
    || TREE_CODE (T) == BOUND_TEMPLATE_TEMPLATE_PARM	\
    || TREE_CODE (T) == DECLTYPE_TYPE			\
-   || TYPE_LANG_FLAG_5 (T))
+   || CLASS_TYPE_P (T))
 
 /* Set CLASS_TYPE_P for T to VAL.  T must be a class, struct, or
    union type.  */
@@ -2688,6 +2689,10 @@ more_aggr_init_expr_args_p (const aggr_init_expr_arg_iterator *iter)
 #define INTEGRAL_OR_ENUMERATION_TYPE_P(TYPE) \
    (TREE_CODE (TYPE) == ENUMERAL_TYPE || CP_INTEGRAL_TYPE_P (TYPE))
 
+/* Returns true if TYPE is an integral or unscoped enumeration type.  */
+#define INTEGRAL_OR_UNSCOPED_ENUMERATION_TYPE_P(TYPE) \
+   (UNSCOPED_ENUM_P (TYPE) || CP_INTEGRAL_TYPE_P (TYPE))
+
 /* [basic.fundamental]
 
    Integral and floating types are collectively called arithmetic
@@ -2713,6 +2718,59 @@ more_aggr_init_expr_args_p (const aggr_init_expr_arg_iterator *iter)
    || ARITHMETIC_TYPE_P (TYPE)			\
    || TYPE_PTR_P (TYPE)				\
    || TYPE_PTRMEMFUNC_P (TYPE))
+
+/* Determines whether this type is a C++0x scoped enumeration
+   type. Scoped enumerations types are introduced via "enum class" or
+   "enum struct", e.g.,
+
+     enum class Color {
+       Red, Green, Blue
+     };
+
+   Scoped enumeration types are different from normal (unscoped)
+   enumeration types in several ways:
+   
+     - The enumerators of a scoped enumeration type are only available
+       within the scope of the enumeration type and not in the
+       enclosing scope. For example, the Red color can be referred to
+       with "Color::Red" but not "Red".
+
+     - Scoped enumerators and enumerations do not implicitly convert
+       to integers or 'bool'.
+
+     - The underlying type of the enum is well-defined.  */
+#define SCOPED_ENUM_P(TYPE)                                             \
+  (TREE_CODE (TYPE) == ENUMERAL_TYPE && TYPE_LANG_FLAG_5 (TYPE))
+
+/* Determine whether this is an unscoped enumeration type.  */
+#define UNSCOPED_ENUM_P(TYPE)                                           \
+  (TREE_CODE (TYPE) == ENUMERAL_TYPE && !TYPE_LANG_FLAG_5 (TYPE))
+
+/* Set the flag indicating whether an ENUMERAL_TYPE is a C++0x scoped
+   enumeration type (1) or a normal (unscoped) enumeration type
+   (0).  */
+#define SET_SCOPED_ENUM_P(TYPE, VAL)                    \
+  (TYPE_LANG_FLAG_5 (ENUMERAL_TYPE_CHECK (TYPE)) = (VAL))
+
+/* Returns the underlying type of the given enumeration type. The
+   underlying type is determined in different ways, depending on the
+   properties of the enum:
+
+     - In C++0x, the underlying type can be explicitly specified, e.g.,
+
+         enum E1 : char { ... } // underlying type is char
+
+     - In a C++0x scoped enumeration, the underlying type is int
+       unless otherwises specified:
+
+         enum class E2 { ... } // underlying type is int
+
+     - Otherwise, the underlying type is determined based on the
+       values of the enumerators. In this case, the
+       ENUM_UNDERLYING_TYPE will not be set until after the definition
+       of the enumeration is completed by finish_enum.  */
+#define ENUM_UNDERLYING_TYPE(TYPE) \
+  TREE_TYPE (ENUMERAL_TYPE_CHECK (TYPE))
 
 /* [dcl.init.aggr]
 
@@ -4272,9 +4330,10 @@ extern bool grok_op_properties			(tree, bool);
 extern tree xref_tag				(enum tag_types, tree, tag_scope, bool);
 extern tree xref_tag_from_type			(tree, tree, tag_scope);
 extern bool xref_basetypes			(tree, tree);
-extern tree start_enum				(tree);
+extern tree start_enum				(tree, tree, bool);
 extern void finish_enum				(tree);
 extern void build_enumerator			(tree, tree, tree);
+extern tree lookup_enumerator			(tree, tree);
 extern void start_preparsed_function		(tree, tree, int);
 extern int start_function			(cp_decl_specifier_seq *, const cp_declarator *, tree);
 extern tree begin_function_body			(void);
@@ -4305,6 +4364,7 @@ extern tree register_dtor_fn			(tree);
 extern tmpl_spec_kind current_tmpl_spec_kind	(int);
 extern tree cp_fname_init			(const char *, tree *);
 extern tree cxx_builtin_function		(tree decl);
+extern tree cxx_builtin_function_ext_scope	(tree decl);
 extern tree check_elaborated_type_specifier	(enum tag_types, tree, bool);
 extern void warn_extern_redeclared_static	(tree, tree);
 extern const char *cxx_comdat_group		(tree);
@@ -4450,7 +4510,7 @@ extern tree locate_dtor				(tree, void *);
 extern bool maybe_clone_body			(tree);
 
 /* in pt.c */
-extern void check_template_shadow		(tree);
+extern bool check_template_shadow		(tree);
 extern tree get_innermost_template_args		(tree, int);
 extern void maybe_begin_member_template_processing (tree);
 extern void maybe_end_member_template_processing (void);
@@ -4462,6 +4522,10 @@ extern void end_specialization			(void);
 extern void begin_explicit_instantiation	(void);
 extern void end_explicit_instantiation		(void);
 extern tree check_explicit_specialization	(tree, tree, int, int);
+extern tree make_auto				(void);
+extern tree do_auto_deduction			(tree, tree, tree);
+extern tree type_uses_auto			(tree);
+extern bool is_auto				(const_tree);
 extern tree process_template_parm		(tree, tree, bool, bool);
 extern tree end_template_parm_list		(tree);
 extern void end_template_decl			(void);

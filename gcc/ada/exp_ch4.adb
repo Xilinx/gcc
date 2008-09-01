@@ -575,7 +575,7 @@ package body Exp_Ch4 is
    --  Start of processing for Expand_Allocator_Expression
 
    begin
-      if Is_Tagged_Type (T) or else Controlled_Type (T) then
+      if Is_Tagged_Type (T) or else Needs_Finalization (T) then
 
          --  Ada 2005 (AI-318-02): If the initialization expression is a call
          --  to a build-in-place function, then access to the allocated object
@@ -669,7 +669,7 @@ package body Exp_Ch4 is
                Set_No_Initialization (Expression (Tmp_Node));
                Insert_Action (N, Tmp_Node);
 
-               if Controlled_Type (T)
+               if Needs_Finalization (T)
                  and then Ekind (PtrT) = E_Anonymous_Access_Type
                then
                   --  Create local finalization list for access parameter
@@ -717,7 +717,7 @@ package body Exp_Ch4 is
                --  Inherit the final chain to ensure that the expansion of the
                --  aggregate is correct in case of controlled types
 
-               if Controlled_Type (Directly_Designated_Type (PtrT)) then
+               if Needs_Finalization (Directly_Designated_Type (PtrT)) then
                   Set_Associated_Final_Chain (Def_Id,
                     Associated_Final_Chain (PtrT));
                end if;
@@ -739,7 +739,7 @@ package body Exp_Ch4 is
                   Set_No_Initialization (Expression (Tmp_Node));
                   Insert_Action (N, Tmp_Node);
 
-                  if Controlled_Type (T)
+                  if Needs_Finalization (T)
                     and then Ekind (PtrT) = E_Anonymous_Access_Type
                   then
                      --  Create local finalization list for access parameter
@@ -835,8 +835,8 @@ package body Exp_Ch4 is
             Insert_Action (N, Tag_Assign);
          end if;
 
-         if Controlled_Type (DesigT)
-            and then Controlled_Type (T)
+         if Needs_Finalization (DesigT)
+            and then Needs_Finalization (T)
          then
             declare
                Attach : Node_Id;
@@ -868,7 +868,7 @@ package body Exp_Ch4 is
                --  Normal case, not a secondary stack allocation
 
                else
-                  if Controlled_Type (T)
+                  if Needs_Finalization (T)
                     and then Ekind (PtrT) = E_Anonymous_Access_Type
                   then
                      --  Create local finalization list for access parameter
@@ -3502,7 +3502,7 @@ package body Exp_Ch4 is
                       Parameter_Associations => Args));
                end if;
 
-               if Controlled_Type (T) then
+               if Needs_Finalization (T) then
 
                   --  Postpone the generation of a finalization call for the
                   --  current allocator if it acts as a coextension.
@@ -3591,34 +3591,33 @@ package body Exp_Ch4 is
          Set_Etype (N, Standard_Boolean);
       end if;
 
-      --  Check for cases of left argument is True or False
+      --  Check for cases where left argument is known to be True or False
 
-      if Nkind (Left) = N_Identifier then
+      if Compile_Time_Known_Value (Left) then
 
          --  If left argument is True, change (True and then Right) to Right.
          --  Any actions associated with Right will be executed unconditionally
          --  and can thus be inserted into the tree unconditionally.
 
-         if Entity (Left) = Standard_True then
+         if Expr_Value_E (Left) = Standard_True then
             if Present (Actions (N)) then
                Insert_Actions (N, Actions (N));
             end if;
 
             Rewrite (N, Right);
-            Adjust_Result_Type (N, Typ);
-            return;
 
          --  If left argument is False, change (False and then Right) to False.
          --  In this case we can forget the actions associated with Right,
          --  since they will never be executed.
 
-         elsif Entity (Left) = Standard_False then
+         else pragma Assert (Expr_Value_E (Left) = Standard_False);
             Kill_Dead_Code (Right);
             Kill_Dead_Code (Actions (N));
             Rewrite (N, New_Occurrence_Of (Standard_False, Loc));
-            Adjust_Result_Type (N, Typ);
-            return;
          end if;
+
+         Adjust_Result_Type (N, Typ);
+         return;
       end if;
 
       --  If Actions are present, we expand
@@ -3650,19 +3649,19 @@ package body Exp_Ch4 is
 
       --  No actions present, check for cases of right argument True/False
 
-      if Nkind (Right) = N_Identifier then
+      if Compile_Time_Known_Value (Right) then
 
          --  Change (Left and then True) to Left. Note that we know there are
          --  no actions associated with the True operand, since we just checked
          --  for this case above.
 
-         if Entity (Right) = Standard_True then
+         if Expr_Value_E (Right) = Standard_True then
             Rewrite (N, Left);
 
          --  Change (Left and then False) to False, making sure to preserve any
          --  side effects associated with the Left operand.
 
-         elsif Entity (Right) = Standard_False then
+         else pragma Assert (Expr_Value_E (Right) = Standard_False);
             Remove_Side_Effects (Left);
             Rewrite
               (N, New_Occurrence_Of (Standard_False, Loc));
@@ -3827,8 +3826,10 @@ package body Exp_Ch4 is
             Lo_Orig : constant Node_Id := Original_Node (Lo);
             Hi_Orig : constant Node_Id := Original_Node (Hi);
 
-            Lcheck : constant Compare_Result := Compile_Time_Compare (Lop, Lo);
-            Ucheck : constant Compare_Result := Compile_Time_Compare (Lop, Hi);
+            Lcheck : constant Compare_Result :=
+                       Compile_Time_Compare (Lop, Lo, Assume_Valid => True);
+            Ucheck : constant Compare_Result :=
+                       Compile_Time_Compare (Lop, Hi, Assume_Valid => True);
 
             Warn1 : constant Boolean :=
                       Constant_Condition_Warnings
@@ -6707,34 +6708,33 @@ package body Exp_Ch4 is
          Set_Etype (N, Standard_Boolean);
       end if;
 
-      --  Check for cases of left argument is True or False
+      --  Check for cases where left argument is known to be True or False
 
-      if Nkind (Left) = N_Identifier then
+      if Compile_Time_Known_Value (Left) then
 
          --  If left argument is False, change (False or else Right) to Right.
          --  Any actions associated with Right will be executed unconditionally
          --  and can thus be inserted into the tree unconditionally.
 
-         if Entity (Left) = Standard_False then
+         if Expr_Value_E (Left) = Standard_False then
             if Present (Actions (N)) then
                Insert_Actions (N, Actions (N));
             end if;
 
             Rewrite (N, Right);
-            Adjust_Result_Type (N, Typ);
-            return;
 
          --  If left argument is True, change (True and then Right) to True. In
          --  this case we can forget the actions associated with Right, since
          --  they will never be executed.
 
-         elsif Entity (Left) = Standard_True then
+         else pragma Assert (Expr_Value_E (Left) = Standard_True);
             Kill_Dead_Code (Right);
             Kill_Dead_Code (Actions (N));
             Rewrite (N, New_Occurrence_Of (Standard_True, Loc));
-            Adjust_Result_Type (N, Typ);
-            return;
          end if;
+
+         Adjust_Result_Type (N, Typ);
+         return;
       end if;
 
       --  If Actions are present, we expand
@@ -6766,19 +6766,19 @@ package body Exp_Ch4 is
 
       --  No actions present, check for cases of right argument True/False
 
-      if Nkind (Right) = N_Identifier then
+      if Compile_Time_Known_Value (Right) then
 
          --  Change (Left or else False) to Left. Note that we know there are
          --  no actions associated with the True operand, since we just checked
          --  for this case above.
 
-         if Entity (Right) = Standard_False then
+         if Expr_Value_E (Right) = Standard_False then
             Rewrite (N, Left);
 
          --  Change (Left or else True) to True, making sure to preserve any
          --  side effects associated with the Left operand.
 
-         elsif Entity (Right) = Standard_True then
+         else pragma Assert (Expr_Value_E (Right) = Standard_True);
             Remove_Side_Effects (Left);
             Rewrite
               (N, New_Occurrence_Of (Standard_True, Loc));
@@ -9027,7 +9027,8 @@ package body Exp_Ch4 is
          Op1 : constant Node_Id   := Left_Opnd (N);
          Op2 : constant Node_Id   := Right_Opnd (N);
 
-         Res : constant Compare_Result := Compile_Time_Compare (Op1, Op2);
+         Res : constant Compare_Result :=
+                 Compile_Time_Compare (Op1, Op2, Assume_Valid => True);
          --  Res indicates if compare outcome can be compile time determined
 
          True_Result  : Boolean;

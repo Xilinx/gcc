@@ -313,18 +313,18 @@ abstract_virtuals_error (tree decl, tree type)
       unsigned ix;
       tree fn;
 
-      inform ("%J  because the following virtual functions are pure "
+      inform (input_location, "%J  because the following virtual functions are pure "
 	      "within %qT:", TYPE_MAIN_DECL (type), type);
 
       for (ix = 0; VEC_iterate (tree, pure, ix, fn); ix++)
-	inform ("\t%+#D", fn);
+	inform (input_location, "\t%+#D", fn);
       /* Now truncate the vector.  This leaves it non-null, so we know
 	 there are pure virtuals, but empty so we don't list them out
 	 again.  */
       VEC_truncate (tree, pure, 0);
     }
   else
-    inform ("%J  since type %qT has pure virtual functions",
+    inform (input_location, "%J  since type %qT has pure virtual functions",
 	    TYPE_MAIN_DECL (type), type);
 
   return 1;
@@ -398,8 +398,12 @@ cxx_incomplete_type_diagnostic (const_tree value, const_tree type,
       break;
 
     case TEMPLATE_TYPE_PARM:
-      emit_diagnostic (diag_kind, input_location, 0,
-		       "invalid use of template type parameter %qT", type);
+      if (is_auto (type))
+	emit_diagnostic (diag_kind, input_location, 0,
+			 "invalid use of %<auto%>");
+      else
+	emit_diagnostic (diag_kind, input_location, 0,
+			 "invalid use of template type parameter %qT", type);
       break;
 
     case BOUND_TEMPLATE_TEMPLATE_PARM:
@@ -777,7 +781,7 @@ digest_init_r (tree type, tree init, bool nested)
 		 counted in the length of the constant, but in C++ this would
 		 be invalid.  */
 	      if (size < TREE_STRING_LENGTH (init))
-		permerror ("initializer-string for array of chars is too long");
+		permerror (input_location, "initializer-string for array of chars is too long");
 	    }
 	  return init;
 	}

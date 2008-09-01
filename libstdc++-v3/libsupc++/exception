@@ -133,7 +133,8 @@ _GLIBCXX_END_NAMESPACE
 
 #pragma GCC visibility pop
 
-#ifdef __GXX_EXPERIMENTAL_CXX0X__
+#if (defined(__GXX_EXPERIMENTAL_CXX0X__) \
+     && defined(_GLIBCXX_ATOMIC_BUILTINS_4))
 #include <exception_ptr.h>
 #endif
 

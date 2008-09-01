@@ -1,9 +1,18 @@
+2008-09-01  Basile Starynkevitch  <basile@starynkevitch.net>
+	MERGED WITH TRUNK rev139820
+	* melt/warmelt-first.bysl: added location argument to inform.
+	* warmelt-first-0.c: regenerated.
+	* warmelt-macro-0.c: regenerated.
+	* warmelt-normal-0.c: regenerated.
+	* warmelt-genobj-0.c: regenerated.
+	* warmelt-outobj-0.c: regenerated.
+
 2008-08-06  Basile Starynkevitch  <basile@starynkevitch.net>
 	* compiler-probe.c (display_gimple_seq): Use gimple_starting_displayer.
 	(gimple_starting_displayer) Added function.
 	(comprobe_get_tree_position) Added [reimplmented] function.
 	(comprobe_file_rank_of_tree) Added function.
-	
+
 2008-08-06  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-first.bysl: export discr_gimpleseq
 	* melt/ana-base.bysl: added each_in_gimpleseq &

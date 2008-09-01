@@ -453,18 +453,32 @@ free_histograms (void)
    somehow.  */
 
 static bool
-check_counter (gimple stmt, const char *name, gcov_type all, gcov_type bb_count)
+check_counter (gimple stmt, const char * name,
+	       gcov_type *count, gcov_type *all, gcov_type bb_count)
 {
-  if (all != bb_count)
+  if (*all != bb_count || *count > *all)
     {
       location_t locus;
       locus = (stmt != NULL)
-	       ? gimple_location (stmt)
-	       : DECL_SOURCE_LOCATION (current_function_decl);
-      error ("%HCorrupted value profile: %s profiler overall count (%d) "
-	     "does not match BB count (%d)", &locus, name, (int)all,
-	     (int)bb_count);
-      return true;
+              ? gimple_location (stmt)
+              : DECL_SOURCE_LOCATION (current_function_decl);
+      if (flag_profile_correction)
+        {
+	  inform (locus, "Correcting inconsistent value profile: "
+		  "%s profiler overall count (%d) does not match BB count "
+                  "(%d)", name, (int)*all, (int)bb_count);
+	  *all = bb_count;
+	  if (*count > *all)
+            *count = *all;
+	  return false;
+	}
+      else
+	{
+	  error ("%HCorrupted value profile: %s profiler overall count (%d) "
+                 "does not match BB count (%d)", &locus, name, (int)*all,
+                 (int)bb_count);
+	  return true;
+	}
     }
 
   return false;
@@ -655,10 +669,10 @@ gimple_divmod_fixed_value_transform (gimple_stmt_iterator *si)
      at least 50% of time (and 75% gives the guarantee of usage).  */
   if (simple_cst_equal (gimple_assign_rhs2 (stmt), value) != 1
       || 2 * count < all
-      || !maybe_hot_bb_p (gimple_bb (stmt)))
+      || optimize_bb_for_size_p (gimple_bb (stmt)))
     return false;
 
-  if (check_counter (stmt, "value", all, gimple_bb (stmt)->count))
+  if (check_counter (stmt, "value", &count, &all, gimple_bb (stmt)->count))
     return false;
 
   /* Compute probability of taking the optimal path.  */
@@ -806,7 +820,7 @@ gimple_mod_pow2_value_transform (gimple_stmt_iterator *si)
   /* We require that we hit a power of 2 at least half of all evaluations.  */
   if (simple_cst_equal (gimple_assign_rhs2 (stmt), value) != 1
       || count < wrong_values
-      || !maybe_hot_bb_p (gimple_bb (stmt)))
+      || optimize_bb_for_size_p (gimple_bb (stmt)))
     return false;
 
   if (dump_file)
@@ -818,7 +832,7 @@ gimple_mod_pow2_value_transform (gimple_stmt_iterator *si)
   /* Compute probability of taking the optimal path.  */
   all = count + wrong_values;
 
-  if (check_counter (stmt, "pow2", all, gimple_bb (stmt)->count))
+  if (check_counter (stmt, "pow2", &count, &all, gimple_bb (stmt)->count))
     return false;
 
   if (all > 0)
@@ -982,11 +996,16 @@ gimple_mod_subtract_transform (gimple_stmt_iterator *si)
   count2 = histogram->hvalue.counters[1];
 
   /* Compute probability of taking the optimal path.  */
-  if (check_counter (stmt, "interval", all, gimple_bb (stmt)->count))
+  if (check_counter (stmt, "interval", &count1, &all, gimple_bb (stmt)->count))
     {
       gimple_remove_histogram_value (cfun, stmt, histogram);
       return false;
     }
+
+  if (flag_profile_correction && count1 + count2 > all)
+      all = count1 + count2;
+
+  gcc_assert (count1 + count2 <= all);
 
   /* We require that we use just subtractions in at least 50% of all
      evaluations.  */
@@ -998,7 +1017,7 @@ gimple_mod_subtract_transform (gimple_stmt_iterator *si)
 	break;
     }
   if (i == steps
-      || !maybe_hot_bb_p (gimple_bb (stmt)))
+      || optimize_bb_for_size_p (gimple_bb (stmt)))
     return false;
 
   gimple_remove_histogram_value (cfun, stmt, histogram);
@@ -1160,7 +1179,7 @@ static bool
 gimple_ic_transform (gimple stmt)
 {
   histogram_value histogram;
-  gcov_type val, count, all;
+  gcov_type val, count, all, bb_all;
   gcov_type prob;
   tree callee;
   gimple modify;
@@ -1184,6 +1203,14 @@ gimple_ic_transform (gimple stmt)
   gimple_remove_histogram_value (cfun, stmt, histogram);
 
   if (4 * count <= 3 * all)
+    return false;
+
+  bb_all = gimple_bb (stmt)->count;
+  /* The order of CHECK_COUNTER calls is important - 
+     since check_counter can correct the third parameter
+     and we want to make count <= all <= bb_all. */
+  if ( check_counter (stmt, "ic", &all, &bb_all, bb_all)
+      || check_counter (stmt, "ic", &count, &all, all))
     return false;
 
   if (all > 0)
@@ -1370,9 +1397,9 @@ gimple_stringops_transform (gimple_stmt_iterator *gsi)
   /* We require that count is at least half of all; this means
      that for the transformation to fire the value must be constant
      at least 80% of time.  */
-  if ((6 * count / 5) < all || !maybe_hot_bb_p (gimple_bb (stmt)))
+  if ((6 * count / 5) < all || optimize_bb_for_size_p (gimple_bb (stmt)))
     return false;
-  if (check_counter (stmt, "value", all, gimple_bb (stmt)->count))
+  if (check_counter (stmt, "value", &count, &all, gimple_bb (stmt)->count))
     return false;
   if (all > 0)
     prob = (count * REG_BR_PROB_BASE + all / 2) / all;

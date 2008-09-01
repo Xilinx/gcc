@@ -162,20 +162,6 @@ pointer_info;
 #define gfc_get_pointer_info() XCNEW (pointer_info)
 
 
-/* Lists of rename info for the USE statement.  */
-
-typedef struct gfc_use_rename
-{
-  char local_name[GFC_MAX_SYMBOL_LEN + 1], use_name[GFC_MAX_SYMBOL_LEN + 1];
-  struct gfc_use_rename *next;
-  int found;
-  gfc_intrinsic_op op;
-  locus where;
-}
-gfc_use_rename;
-
-#define gfc_get_use_rename() XCNEW (gfc_use_rename);
-
 /* Local variables */
 
 /* The FILE for the module we're reading or writing.  */
@@ -201,6 +187,8 @@ static int symbol_number;	/* Counter for assigning symbol numbers */
 
 /* Tells mio_expr_ref to make symbols for unused equivalence members.  */
 static bool in_load_equiv;
+
+static locus use_locus;
 
 
 
@@ -559,6 +547,8 @@ gfc_match_use (void)
 	    return m;
 	}
     }
+
+  use_locus = gfc_current_locus;
 
   m = gfc_match_name (module_name);
   if (m != MATCH_YES)
@@ -1649,7 +1639,7 @@ typedef enum
   AB_CRAY_POINTER, AB_CRAY_POINTEE, AB_THREADPRIVATE, AB_ALLOC_COMP,
   AB_POINTER_COMP, AB_PRIVATE_COMP, AB_VALUE, AB_VOLATILE, AB_PROTECTED,
   AB_IS_BIND_C, AB_IS_C_INTEROP, AB_IS_ISO_C, AB_ABSTRACT, AB_ZERO_COMP,
-  AB_EXTENSION
+  AB_EXTENSION, AB_PROCEDURE, AB_PROC_POINTER
 }
 ab_attribute;
 
@@ -1690,6 +1680,22 @@ static const mstring attr_bits[] =
     minit ("PROTECTED", AB_PROTECTED),
     minit ("ABSTRACT", AB_ABSTRACT),
     minit ("EXTENSION", AB_EXTENSION),
+    minit ("PROCEDURE", AB_PROCEDURE),
+    minit ("PROC_POINTER", AB_PROC_POINTER),
+    minit (NULL, -1)
+};
+
+/* For binding attributes.  */
+static const mstring binding_passing[] =
+{
+    minit ("PASS", 0),
+    minit ("NOPASS", 1),
+    minit (NULL, -1)
+};
+static const mstring binding_overriding[] =
+{
+    minit ("OVERRIDABLE", 0),
+    minit ("NON_OVERRIDABLE", 1),
     minit (NULL, -1)
 };
 
@@ -1805,6 +1811,10 @@ mio_symbol_attribute (symbol_attribute *attr)
 	MIO_NAME (ab_attribute) (AB_ZERO_COMP, attr_bits);
       if (attr->extension)
 	MIO_NAME (ab_attribute) (AB_EXTENSION, attr_bits);
+      if (attr->procedure)
+	MIO_NAME (ab_attribute) (AB_PROCEDURE, attr_bits);
+      if (attr->proc_pointer)
+	MIO_NAME (ab_attribute) (AB_PROC_POINTER, attr_bits);
 
       mio_rparen ();
 
@@ -1925,6 +1935,12 @@ mio_symbol_attribute (symbol_attribute *attr)
 	      break;
 	    case AB_EXTENSION:
 	      attr->extension = 1;
+	      break;
+	    case AB_PROCEDURE:
+	      attr->procedure = 1;
+	      break;
+	    case AB_PROC_POINTER:
+	      attr->proc_pointer = 1;
 	      break;
 	    }
 	}
@@ -2252,10 +2268,8 @@ mio_component (gfc_component *c)
   mio_typespec (&c->ts);
   mio_array_spec (&c->as);
 
-  mio_integer (&c->dimension);
-  mio_integer (&c->pointer);
-  mio_integer (&c->allocatable);
-  c->access = MIO_NAME (gfc_access) (c->access, access_types); 
+  mio_symbol_attribute (&c->attr);
+  c->attr.access = MIO_NAME (gfc_access) (c->attr.access, access_types); 
 
   mio_expr (&c->initializer);
   mio_rparen ();
@@ -2752,6 +2766,7 @@ static const mstring expr_types[] = {
     minit ("STRUCTURE", EXPR_STRUCTURE),
     minit ("ARRAY", EXPR_ARRAY),
     minit ("NULL", EXPR_NULL),
+    minit ("COMPCALL", EXPR_COMPCALL),
     minit (NULL, -1)
 };
 
@@ -3015,6 +3030,10 @@ mio_expr (gfc_expr **ep)
 
     case EXPR_NULL:
       break;
+
+    case EXPR_COMPCALL:
+      gcc_unreachable ();
+      break;
     }
 
   mio_rparen ();
@@ -3171,6 +3190,54 @@ mio_namespace_ref (gfc_namespace **nsp)
 /* Save/restore the f2k_derived namespace of a derived-type symbol.  */
 
 static void
+mio_typebound_proc (gfc_typebound_proc** proc)
+{
+  int flag;
+
+  if (iomode == IO_INPUT)
+    {
+      *proc = gfc_get_typebound_proc ();
+      (*proc)->where = gfc_current_locus;
+    }
+  gcc_assert (*proc);
+
+  mio_lparen ();
+  mio_symtree_ref (&(*proc)->target);
+
+  (*proc)->access = MIO_NAME (gfc_access) ((*proc)->access, access_types);
+
+  (*proc)->nopass = mio_name ((*proc)->nopass, binding_passing);
+  (*proc)->non_overridable = mio_name ((*proc)->non_overridable,
+				       binding_overriding);
+
+  if (iomode == IO_INPUT)
+    (*proc)->pass_arg = NULL;
+
+  flag = (int) (*proc)->pass_arg_num;
+  mio_integer (&flag);
+  (*proc)->pass_arg_num = (unsigned) flag;
+
+  mio_rparen ();
+}
+
+static void
+mio_typebound_symtree (gfc_symtree* st)
+{
+  if (iomode == IO_OUTPUT && !st->typebound)
+    return;
+
+  if (iomode == IO_OUTPUT)
+    {
+      mio_lparen ();
+      mio_allocated_string (st->name);
+    }
+  /* For IO_INPUT, the above is done in mio_f2k_derived.  */
+
+  mio_typebound_proc (&st->typebound);
+  mio_rparen ();
+}
+
+static void
 mio_finalizer (gfc_finalizer **f)
 {
   if (iomode == IO_OUTPUT)
@@ -3210,6 +3277,27 @@ mio_f2k_derived (gfc_namespace *f2k)
 	  mio_finalizer (&cur);
 	  cur->next = f2k->finalizers;
 	  f2k->finalizers = cur;
+	}
+    }
+  mio_rparen ();
+
+  /* Handle type-bound procedures.  */
+  mio_lparen ();
+  if (iomode == IO_OUTPUT)
+    gfc_traverse_symtree (f2k->sym_root, &mio_typebound_symtree);
+  else
+    {
+      while (peek_atom () == ATOM_LPAREN)
+	{
+	  gfc_symtree* st;
+
+	  mio_lparen (); 
+
+	  require_atom (ATOM_STRING);
+	  gfc_get_sym_tree (atom_string, f2k, &st);
+	  gfc_free (atom_string);
+
+	  mio_typebound_symtree (st);
 	}
     }
   mio_rparen ();
@@ -4960,6 +5048,7 @@ gfc_use_module (void)
   gfc_state_data *p;
   int c, line, start;
   gfc_symtree *mod_symtree;
+  gfc_use_list *use_stmt;
 
   filename = (char *) alloca (strlen (module_name) + strlen (MODULE_EXTENSION)
 			      + 1);
@@ -5052,6 +5141,34 @@ gfc_use_module (void)
   pi_root = NULL;
 
   fclose (module_fp);
+
+  use_stmt = gfc_get_use_list ();
+  use_stmt->module_name = gfc_get_string (module_name);
+  use_stmt->only_flag = only_flag;
+  use_stmt->rename = gfc_rename_list;
+  use_stmt->where = use_locus;
+  gfc_rename_list = NULL;
+  use_stmt->next = gfc_current_ns->use_stmts;
+  gfc_current_ns->use_stmts = use_stmt;
+}
+
+
+void
+gfc_free_use_stmts (gfc_use_list *use_stmts)
+{
+  gfc_use_list *next;
+  for (; use_stmts; use_stmts = next)
+    {
+      gfc_use_rename *next_rename;
+
+      for (; use_stmts->rename; use_stmts->rename = next_rename)
+	{
+	  next_rename = use_stmts->rename->next;
+	  gfc_free (use_stmts->rename);
+	}
+      next = use_stmts->next;
+      gfc_free (use_stmts);
+    }
 }
 
 

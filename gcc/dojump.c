@@ -34,6 +34,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "optabs.h"
 #include "langhooks.h"
 #include "ggc.h"
+#include "basic-block.h"
 
 static bool prefer_and_bit_test (enum machine_mode, int);
 static void do_jump_by_parts_greater (tree, int, rtx, rtx);
@@ -510,7 +511,9 @@ do_jump (tree exp, rtx if_false_label, rtx if_true_label)
       /* High branch cost, expand as the bitwise AND of the conditions.
 	 Do the same if the RHS has side effects, because we're effectively
 	 turning a TRUTH_AND_EXPR into a TRUTH_ANDIF_EXPR.  */
-      if (BRANCH_COST >= 4 || TREE_SIDE_EFFECTS (TREE_OPERAND (exp, 1)))
+      if (BRANCH_COST (optimize_insn_for_speed_p (),
+		       false) >= 4
+	  || TREE_SIDE_EFFECTS (TREE_OPERAND (exp, 1)))
 	goto normal;
 
     case TRUTH_ANDIF_EXPR:
@@ -531,7 +534,8 @@ do_jump (tree exp, rtx if_false_label, rtx if_true_label)
       /* High branch cost, expand as the bitwise OR of the conditions.
 	 Do the same if the RHS has side effects, because we're effectively
 	 turning a TRUTH_OR_EXPR into a TRUTH_ORIF_EXPR.  */
-      if (BRANCH_COST >= 4 || TREE_SIDE_EFFECTS (TREE_OPERAND (exp, 1)))
+      if (BRANCH_COST (optimize_insn_for_speed_p (), false)>= 4
+	  || TREE_SIDE_EFFECTS (TREE_OPERAND (exp, 1)))
 	goto normal;
 
     case TRUTH_ORIF_EXPR:

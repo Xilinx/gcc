@@ -26,6 +26,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "tm.h"
 #include "tree.h"
 #include "rtl.h"
+#include "expr.h"
 #include "ggc.h"
 #include "output.h"
 #include "langhooks.h"
@@ -346,7 +347,8 @@ static bool profile_arc_flag_set, flag_profile_values_set;
 static bool flag_unroll_loops_set, flag_tracer_set;
 static bool flag_value_profile_transformations_set;
 static bool flag_peel_loops_set, flag_branch_probabilities_set;
-static bool flag_inline_functions_set;
+static bool flag_inline_functions_set, flag_ipa_cp_set, flag_ipa_cp_clone_set;
+static bool flag_predictive_commoning_set, flag_unswitch_loops_set, flag_gcse_after_reload_set;
 
 /* Functions excluded from profiling.  */
 
@@ -877,6 +879,11 @@ decode_options (unsigned int argc, const char **argv)
       flag_section_anchors = 0;
     }
 
+#ifdef IRA_COVER_CLASSES
+  /* Use IRA if it is implemented for the target.  */
+  flag_ira = 1;
+#endif
+
   /* Originally we just set the variables if a particular optimization level,
      but with the advent of being able to change the optimization level for a
      function, we need to reset optimizations.  */
@@ -945,13 +952,13 @@ decode_options (unsigned int argc, const char **argv)
   flag_delete_null_pointer_checks = opt2;
   flag_reorder_blocks = opt2;
   flag_reorder_functions = opt2;
-  flag_tree_store_ccp = opt2;
   flag_tree_vrp = opt2;
   flag_tree_builtin_call_dce = opt2;
   flag_tree_pre = opt2;
-      flag_tree_switch_conversion = 1;
+  flag_tree_switch_conversion = 1;
+  flag_ipa_cp = opt2;
 
-      /* Allow more virtual operators to increase alias precision.  */
+  /* Allow more virtual operators to increase alias precision.  */
 
   set_param_value ("max-aliased-vops",
 		   (opt2) ? 500 : initial_max_aliased_vops);
@@ -967,6 +974,9 @@ decode_options (unsigned int argc, const char **argv)
   flag_unswitch_loops = opt3;
   flag_gcse_after_reload = opt3;
   flag_tree_vectorize = opt3;
+  flag_ipa_cp_clone = opt3;
+  if (flag_ipa_cp_clone)
+    flag_ipa_cp = 1;
 
   /* Allow even more virtual operators.  Max-aliased-vops was set above for
      -O2, so don't reset it unless we are at -O3.  */
@@ -984,50 +994,9 @@ decode_options (unsigned int argc, const char **argv)
 
   if (optimize_size)
     {
-      /* Loop header copying usually increases size of the code.  This used not to
-	 be true, since quite often it is possible to verify that the condition is
-	 satisfied in the first iteration and therefore to eliminate it.  Jump
-	 threading handles these cases now.  */
-      flag_tree_ch = 0;
-
-      /* Conditional DCE generates bigger code.  */
-      flag_tree_builtin_call_dce = 0;
-
-      /* PRE tends to generate bigger code.  */
-      flag_tree_pre = 0;
-
-      /* These options are set with -O3, so reset for -Os */
-      flag_predictive_commoning = 0;
-      flag_inline_functions = 0;
-      flag_unswitch_loops = 0;
-      flag_gcse_after_reload = 0;
-      flag_tree_vectorize = 0;
-
-      /* Don't reorder blocks when optimizing for size because extra jump insns may
-	 be created; also barrier may create extra padding.
-
-	 More correctly we should have a block reordering mode that tried to
-	 minimize the combined size of all the jumps.  This would more or less
-	 automatically remove extra jumps, but would also try to use more short
-	 jumps instead of long jumps.  */
-      flag_reorder_blocks = 0;
-      flag_reorder_blocks_and_partition = 0;
-
       /* Inlining of functions reducing size is a good idea regardless of them
 	 being declared inline.  */
       flag_inline_functions = 1;
-
-      /* Don't align code.  */
-      align_loops = 1;
-      align_jumps = 1;
-      align_labels = 1;
-      align_functions = 1;
-
-      /* Unroll/prefetch switches that may be set on the command line, and tend to
-	 generate bigger code.  */
-      flag_unroll_loops = 0;
-      flag_unroll_all_loops = 0;
-      flag_prefetch_loop_arrays = 0;
 
       /* Basic optimization options.  */
       optimize_size = 1;
@@ -1087,8 +1056,8 @@ decode_options (unsigned int argc, const char **argv)
 
   if (flag_exceptions && flag_reorder_blocks_and_partition)
     {
-      inform
-	    ("-freorder-blocks-and-partition does not work with exceptions");
+      inform (input_location, 
+	      "-freorder-blocks-and-partition does not work with exceptions");
       flag_reorder_blocks_and_partition = 0;
       flag_reorder_blocks = 1;
     }
@@ -1099,7 +1068,7 @@ decode_options (unsigned int argc, const char **argv)
   if (flag_unwind_tables && ! targetm.unwind_tables_default
       && flag_reorder_blocks_and_partition)
     {
-      inform ("-freorder-blocks-and-partition does not support unwind info");
+      inform (input_location, "-freorder-blocks-and-partition does not support unwind info");
       flag_reorder_blocks_and_partition = 0;
       flag_reorder_blocks = 1;
     }
@@ -1112,11 +1081,19 @@ decode_options (unsigned int argc, const char **argv)
       && (!targetm.have_named_sections
 	  || (flag_unwind_tables && targetm.unwind_tables_default)))
     {
-      inform
-       ("-freorder-blocks-and-partition does not work on this architecture");
+      inform (input_location,
+	      "-freorder-blocks-and-partition does not work on this architecture");
       flag_reorder_blocks_and_partition = 0;
       flag_reorder_blocks = 1;
     }
+
+#ifndef IRA_COVER_CLASSES
+  if (flag_ira)
+    {
+      inform (input_location, "-fira does not work on this architecture");
+      flag_ira = 0;
+    }
+#endif
 
   /* Save the current optimization options if this is the first call.  */
   if (first_time_p)
@@ -1831,6 +1808,17 @@ common_handle_option (size_t scode, const char *arg, int value,
         flag_value_profile_transformations = value;
       if (!flag_inline_functions_set)
         flag_inline_functions = value;
+      if (!flag_ipa_cp_set)
+        flag_ipa_cp = value;
+      if (!flag_ipa_cp_clone_set
+	  && value && flag_ipa_cp)
+	flag_ipa_cp_clone = value;
+      if (!flag_predictive_commoning_set)
+	flag_predictive_commoning = value;
+      if (!flag_unswitch_loops_set)
+	flag_unswitch_loops = value;
+      if (!flag_gcse_after_reload_set)
+	flag_gcse_after_reload = value;
       break;
 
     case OPT_fprofile_generate_:
@@ -1900,6 +1888,37 @@ common_handle_option (size_t scode, const char *arg, int value,
       flag_sched_stalled_insns_dep = value;
       break;
 
+    case OPT_fstack_check_:
+      if (!strcmp (arg, "no"))
+	flag_stack_check = NO_STACK_CHECK;
+      else if (!strcmp (arg, "generic"))
+	/* This is the old stack checking method.  */
+	flag_stack_check = STACK_CHECK_BUILTIN
+			   ? FULL_BUILTIN_STACK_CHECK
+			   : GENERIC_STACK_CHECK;
+      else if (!strcmp (arg, "specific"))
+	/* This is the new stack checking method.  */
+	flag_stack_check = STACK_CHECK_BUILTIN
+			   ? FULL_BUILTIN_STACK_CHECK
+			   : STACK_CHECK_STATIC_BUILTIN
+			     ? STATIC_BUILTIN_STACK_CHECK
+			     : GENERIC_STACK_CHECK;
+      else
+	warning (0, "unknown stack check parameter \"%s\"", arg);
+      break;
+
+    case OPT_fstack_check:
+      /* This is the same as the "specific" mode above.  */
+      if (value)
+	flag_stack_check = STACK_CHECK_BUILTIN
+			   ? FULL_BUILTIN_STACK_CHECK
+			   : STACK_CHECK_STATIC_BUILTIN
+			     ? STATIC_BUILTIN_STACK_CHECK
+			     : GENERIC_STACK_CHECK;
+      else
+	flag_stack_check = NO_STACK_CHECK;
+      break;
+
     case OPT_fstack_limit:
       /* The real switch is -fno-stack-limit.  */
       if (value)
@@ -1938,8 +1957,43 @@ common_handle_option (size_t scode, const char *arg, int value,
 	warning (0, "unknown tls-model \"%s\"", arg);
       break;
 
+    case OPT_fira_algorithm_:
+      if (!strcmp (arg, "regional"))
+	flag_ira_algorithm = IRA_ALGORITHM_REGIONAL;
+      else if (!strcmp (arg, "CB"))
+	flag_ira_algorithm = IRA_ALGORITHM_CB;
+      else if (!strcmp (arg, "mixed"))
+	flag_ira_algorithm = IRA_ALGORITHM_MIXED;
+      else
+	warning (0, "unknown ira algorithm \"%s\"", arg);
+      break;
+
+    case OPT_fira_verbose_:
+      flag_ira_verbose = value;
+      break;
+
     case OPT_ftracer:
       flag_tracer_set = true;
+      break;
+
+    case OPT_fipa_cp:
+      flag_ipa_cp_set = true;
+      break;
+
+    case OPT_fipa_cp_clone:
+      flag_ipa_cp_clone_set = true;
+      break;
+
+    case OPT_fpredictive_commoning:
+      flag_predictive_commoning_set = true;
+      break;
+
+    case OPT_funswitch_loops:
+      flag_unswitch_loops_set = true;
+      break;
+
+    case OPT_fgcse_after_reload:
+      flag_gcse_after_reload_set = true;
       break;
 
     case OPT_funroll_loops:

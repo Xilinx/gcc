@@ -556,25 +556,14 @@ init_optimization_passes (void)
 	  struct opt_pass **p = &pass_all_early_optimizations.pass.sub;
 	  NEXT_PASS (pass_rebuild_cgraph_edges);
 	  NEXT_PASS (pass_early_inline);
-	  NEXT_PASS (pass_cleanup_cfg);
 	  NEXT_PASS (pass_rename_ssa_copies);
 	  NEXT_PASS (pass_ccp);
 	  NEXT_PASS (pass_forwprop);
 	  NEXT_PASS (pass_update_address_taken);
-	  NEXT_PASS (pass_simple_dse);
 	  NEXT_PASS (pass_sra_early);
 	  NEXT_PASS (pass_copy_prop);
 	  NEXT_PASS (pass_merge_phi);
-	  NEXT_PASS (pass_dce);
-          /* Ideally the function call conditional 
-             dead code elimination phase can be delayed
-             till later where potentially more opportunities
-             can be found.  Due to lack of good ways to
-             update VDEFs associated with the shrink-wrapped
-             calls, it is better to do the transformation
-             here where memory SSA is not built yet.  */
-	  NEXT_PASS (pass_call_cdce);
-	  NEXT_PASS (pass_update_address_taken);
+	  NEXT_PASS (pass_cd_dce);
 	  NEXT_PASS (pass_simple_dse);
 	  NEXT_PASS (pass_tail_recursion);
 	  NEXT_PASS (pass_convert_switch);
@@ -606,30 +595,35 @@ init_optimization_passes (void)
   NEXT_PASS (pass_all_optimizations);
     {
       struct opt_pass **p = &pass_all_optimizations.pass.sub;
-      /* pass_build_alias is a dummy pass that ensures that we
-	 execute TODO_rebuild_alias at this point.  */
-      NEXT_PASS (pass_build_alias);
-      NEXT_PASS (pass_return_slot);
+      /* Initial scalar cleanups before alias computation.
+	 They ensure memory accesses are not indirect wherever possible.  */
+      NEXT_PASS (pass_strip_predict_hints);
+      NEXT_PASS (pass_update_address_taken);
       NEXT_PASS (pass_rename_ssa_copies);
-      /* Initial scalar cleanups.  */
       NEXT_PASS (pass_complete_unrolli);
       NEXT_PASS (pass_ccp);
+      NEXT_PASS (pass_forwprop);
+      /* Ideally the function call conditional
+	 dead code elimination phase can be delayed
+	 till later where potentially more opportunities
+	 can be found.  Due to lack of good ways to
+	 update VDEFs associated with the shrink-wrapped
+	 calls, it is better to do the transformation
+	 here where memory SSA is not built yet.  */
+      NEXT_PASS (pass_call_cdce);
+      /* pass_build_alias is a dummy pass that ensures that we
+	 execute TODO_rebuild_alias at this point.  Re-building
+	 alias information also rewrites no longer addressed
+	 locals into SSA form if possible.  */
+      NEXT_PASS (pass_build_alias);
+      NEXT_PASS (pass_return_slot);
       NEXT_PASS (pass_phiprop);
       NEXT_PASS (pass_fre);
-      NEXT_PASS (pass_dce);
-      NEXT_PASS (pass_forwprop);
       NEXT_PASS (pass_copy_prop);
       NEXT_PASS (pass_merge_phi);
       NEXT_PASS (pass_vrp);
       NEXT_PASS (pass_dce);
       NEXT_PASS (pass_cselim);
-      NEXT_PASS (pass_dominator);
-      /* The only const/copy propagation opportunities left after
-	 DOM should be due to degenerate PHI nodes.  So rather than
-	 run the full propagators, run a specialized pass which
-	 only examines PHIs to discover const/copy propagation
-	 opportunities.  */
-      NEXT_PASS (pass_phi_only_cprop);
       NEXT_PASS (pass_tree_ifcombine);
       NEXT_PASS (pass_phiopt);
       NEXT_PASS (pass_tail_recursion);
@@ -651,7 +645,7 @@ init_optimization_passes (void)
       NEXT_PASS (pass_forwprop);
       NEXT_PASS (pass_phiopt);
       NEXT_PASS (pass_object_sizes);
-      NEXT_PASS (pass_store_ccp);
+      NEXT_PASS (pass_ccp);
       NEXT_PASS (pass_copy_prop);
       NEXT_PASS (pass_fold_builtins);
       NEXT_PASS (pass_cse_sincos);
@@ -793,6 +787,7 @@ init_optimization_passes (void)
       NEXT_PASS (pass_subregs_of_mode_init);
       NEXT_PASS (pass_local_alloc);
       NEXT_PASS (pass_global_alloc);
+      NEXT_PASS (pass_ira);
       NEXT_PASS (pass_subregs_of_mode_finish);
       NEXT_PASS (pass_postreload);
 	{

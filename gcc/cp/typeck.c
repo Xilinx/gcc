@@ -262,10 +262,10 @@ type_after_usual_arithmetic_conversions (tree t1, tree t2)
   /* FIXME: Attributes.  */
   gcc_assert (ARITHMETIC_TYPE_P (t1)
 	      || TREE_CODE (t1) == VECTOR_TYPE
-	      || TREE_CODE (t1) == ENUMERAL_TYPE);
+	      || UNSCOPED_ENUM_P (t1));
   gcc_assert (ARITHMETIC_TYPE_P (t2)
 	      || TREE_CODE (t2) == VECTOR_TYPE
-	      || TREE_CODE (t2) == ENUMERAL_TYPE);
+	      || UNSCOPED_ENUM_P (t2));
 
   /* In what follows, we slightly generalize the rules given in [expr] so
      as to deal with `long long' and `complex'.  First, merge the
@@ -435,7 +435,7 @@ composite_pointer_type_r (tree t1, tree t2, const char* location,
   else
     {
       if (complain & tf_error)
-	permerror ("%s between distinct pointer types %qT and %qT "
+	permerror (input_location, "%s between distinct pointer types %qT and %qT "
 		   "lacks a cast",
 		   location, t1, t2);
       result_type = void_type_node;
@@ -450,7 +450,7 @@ composite_pointer_type_r (tree t1, tree t2, const char* location,
       if (!same_type_p (TYPE_PTRMEM_CLASS_TYPE (t1),
 			TYPE_PTRMEM_CLASS_TYPE (t2))
 	  && (complain & tf_error))
-	permerror ("%s between distinct pointer types %qT and %qT "
+	permerror (input_location, "%s between distinct pointer types %qT and %qT "
 		   "lacks a cast",
 		   location, t1, t2);
       result_type = build_ptrmem_type (TYPE_PTRMEM_CLASS_TYPE (t1),
@@ -512,7 +512,7 @@ composite_pointer_type (tree t1, tree t2, tree arg1, tree arg2,
       tree result_type;
 
       if (TYPE_PTRFN_P (t2) && (complain & tf_error))
-	pedwarn (OPT_pedantic, "ISO C++ forbids %s "
+	pedwarn (input_location, OPT_pedantic, "ISO C++ forbids %s "
 		 "between pointer of type %<void *%> and pointer-to-function",
 		 location);
       result_type
@@ -764,9 +764,9 @@ common_type (tree t1, tree t2)
   code1 = TREE_CODE (t1);
   code2 = TREE_CODE (t2);
 
-  if ((ARITHMETIC_TYPE_P (t1) || code1 == ENUMERAL_TYPE
+  if ((ARITHMETIC_TYPE_P (t1) || UNSCOPED_ENUM_P (t1)
        || code1 == VECTOR_TYPE)
-      && (ARITHMETIC_TYPE_P (t2) || code2 == ENUMERAL_TYPE
+      && (ARITHMETIC_TYPE_P (t2) || UNSCOPED_ENUM_P (t2)
 	  || code2 == VECTOR_TYPE))
     return type_after_usual_arithmetic_conversions (t1, t2);
 
@@ -1280,7 +1280,7 @@ cxx_sizeof_or_alignof_type (tree type, enum tree_code op, bool complain)
   if (TREE_CODE (type) == METHOD_TYPE)
     {
       if (complain)
-	pedwarn (pedantic ? OPT_pedantic : OPT_Wpointer_arith, 
+	pedwarn (input_location, pedantic ? OPT_pedantic : OPT_Wpointer_arith, 
 		 "invalid application of %qs to a member function", 
 		 operator_name_info[(int) op].name);
       value = size_one_node;
@@ -1357,7 +1357,7 @@ cxx_sizeof_expr (tree e, tsubst_flags_t complain)
   else if (is_overloaded_fn (e))
     {
       if (complain & tf_error)
-        permerror ("ISO C++ forbids applying %<sizeof%> to an expression of "
+        permerror (input_location, "ISO C++ forbids applying %<sizeof%> to an expression of "
                    "function type");
       else
         return error_mark_node;
@@ -1417,7 +1417,7 @@ cxx_alignof_expr (tree e, tsubst_flags_t complain)
   else if (is_overloaded_fn (e))
     {
       if (complain & tf_error)
-        permerror ("ISO C++ forbids applying %<__alignof%> to an expression of "
+        permerror (input_location, "ISO C++ forbids applying %<__alignof%> to an expression of "
                    "function type");
       else
         return error_mark_node;
@@ -1666,7 +1666,7 @@ default_conversion (tree exp)
   /* Perform the integral promotions first so that bitfield
      expressions (which may promote to "int", even if the bitfield is
      declared "unsigned") are promoted correctly.  */
-  if (INTEGRAL_OR_ENUMERATION_TYPE_P (TREE_TYPE (exp)))
+  if (INTEGRAL_OR_UNSCOPED_ENUMERATION_TYPE_P (TREE_TYPE (exp)))
     exp = perform_integral_promotions (exp);
   /* Perform the other conversions.  */
   exp = decay_conversion (exp);
@@ -2136,7 +2136,7 @@ check_template_keyword (tree decl)
       && TREE_CODE (decl) != TEMPLATE_ID_EXPR)
     {
       if (!is_overloaded_fn (decl))
-	permerror ("%qD is not a template", decl);
+	permerror (input_location, "%qD is not a template", decl);
       else
 	{
 	  tree fns;
@@ -2156,7 +2156,7 @@ check_template_keyword (tree decl)
 	      fns = OVL_NEXT (fns);
 	    }
 	  if (!fns)
-	    permerror ("%qD is not a template", decl);
+	    permerror (input_location, "%qD is not a template", decl);
 	}
     }
 }
@@ -2548,7 +2548,7 @@ build_array_ref (tree array, tree idx)
 
       warn_array_subscript_with_type_char (idx);
 
-      if (!INTEGRAL_OR_ENUMERATION_TYPE_P (TREE_TYPE (idx)))
+      if (!INTEGRAL_OR_UNSCOPED_ENUMERATION_TYPE_P (TREE_TYPE (idx)))
 	{
 	  error ("array subscript is not an integer");
 	  return error_mark_node;
@@ -2587,7 +2587,7 @@ build_array_ref (tree array, tree idx)
 	}
 
       if (!lvalue_p (array))
-	pedwarn (OPT_pedantic, "ISO C++ forbids subscripting non-lvalue array");
+	pedwarn (input_location, OPT_pedantic, "ISO C++ forbids subscripting non-lvalue array");
 
       /* Note in C++ it is valid to subscript a `register' array, since
 	 it is valid to take the address of something with that
@@ -2813,7 +2813,7 @@ cp_build_function_call (tree function, tree params, tsubst_flags_t complain)
 
       /* Convert anything with function type to a pointer-to-function.  */
       if (DECL_MAIN_P (function) && (complain & tf_error))
-	pedwarn (OPT_pedantic, 
+	pedwarn (input_location, OPT_pedantic, 
 		 "ISO C++ forbids calling %<::main%> from within program");
 
       function = build_addr_func (function);
@@ -3235,7 +3235,7 @@ cp_build_binary_op (enum tree_code code, tree orig_op0, tree orig_op1,
       if (t != error_mark_node)
 	{
 	  if (complain & tf_error)
-	    permerror ("assuming cast to type %qT from overloaded function",
+	    permerror (input_location, "assuming cast to type %qT from overloaded function",
 		       TREE_TYPE (t));
 	  op0 = t;
 	}
@@ -3246,7 +3246,7 @@ cp_build_binary_op (enum tree_code code, tree orig_op0, tree orig_op1,
       if (t != error_mark_node)
 	{
 	  if (complain & tf_error)
-	    permerror ("assuming cast to type %qT from overloaded function",
+	    permerror (input_location, "assuming cast to type %qT from overloaded function",
 		       TREE_TYPE (t));
 	  op1 = t;
 	}
@@ -3521,7 +3521,7 @@ cp_build_binary_op (enum tree_code code, tree orig_op0, tree orig_op1,
 	{
 	  result_type = type0;
 	  if (complain & tf_error) 
-            permerror ("ISO C++ forbids comparison between pointer and integer");
+            permerror (input_location, "ISO C++ forbids comparison between pointer and integer");
           else
             return error_mark_node;
 	}
@@ -3529,7 +3529,7 @@ cp_build_binary_op (enum tree_code code, tree orig_op0, tree orig_op1,
 	{
 	  result_type = type1;
 	  if (complain & tf_error)
-	    permerror ("ISO C++ forbids comparison between pointer and integer");
+	    permerror (input_location, "ISO C++ forbids comparison between pointer and integer");
           else
             return error_mark_node;
 	}
@@ -3709,7 +3709,7 @@ cp_build_binary_op (enum tree_code code, tree orig_op0, tree orig_op1,
 	{
 	  result_type = type0;
 	  if (complain & tf_error)
-	    permerror ("ISO C++ forbids comparison between pointer and integer");
+	    permerror (input_location, "ISO C++ forbids comparison between pointer and integer");
           else
             return error_mark_node;
 	}
@@ -3717,7 +3717,7 @@ cp_build_binary_op (enum tree_code code, tree orig_op0, tree orig_op1,
 	{
 	  result_type = type1;
 	  if (complain & tf_error)
-	    permerror ("ISO C++ forbids comparison between pointer and integer");
+	    permerror (input_location, "ISO C++ forbids comparison between pointer and integer");
           else
             return error_mark_node;
 	}
@@ -3930,11 +3930,11 @@ pointer_diff (tree op0, tree op1, tree ptrtype)
     return error_mark_node;
 
   if (TREE_CODE (target_type) == VOID_TYPE)
-    permerror ("ISO C++ forbids using pointer of type %<void *%> in subtraction");
+    permerror (input_location, "ISO C++ forbids using pointer of type %<void *%> in subtraction");
   if (TREE_CODE (target_type) == FUNCTION_TYPE)
-    permerror ("ISO C++ forbids using pointer to a function in subtraction");
+    permerror (input_location, "ISO C++ forbids using pointer to a function in subtraction");
   if (TREE_CODE (target_type) == METHOD_TYPE)
-    permerror ("ISO C++ forbids using pointer to a method in subtraction");
+    permerror (input_location, "ISO C++ forbids using pointer to a method in subtraction");
 
   /* First do the subtraction as integers;
      then drop through to build the divide operator.  */
@@ -4009,7 +4009,7 @@ build_x_unary_op (enum tree_code code, tree xarg, tsubst_flags_t complain)
               error ("invalid use of %qE to form a pointer-to-member-function",
                      xarg);
               if (TREE_CODE (xarg) != OFFSET_REF)
-                inform ("  a qualified-id is required");
+                inform (input_location, "  a qualified-id is required");
 	      return error_mark_node;
 	    }
 	  else
@@ -4299,7 +4299,7 @@ cp_build_unary_op (enum tree_code code, tree xarg, int noconvert,
 	if (TREE_CODE (argtype) == ENUMERAL_TYPE)
           {
             if (complain & tf_error)
-              permerror ((code == PREINCREMENT_EXPR || code == POSTINCREMENT_EXPR)
+              permerror (input_location, (code == PREINCREMENT_EXPR || code == POSTINCREMENT_EXPR)
                          ? G_("ISO C++ forbids incrementing an enum")
                          : G_("ISO C++ forbids decrementing an enum"));
             else
@@ -4327,7 +4327,7 @@ cp_build_unary_op (enum tree_code code, tree xarg, int noconvert,
 		     && !TYPE_PTROB_P (argtype)) 
               {
                 if (complain & tf_error)
-                  permerror ((code == PREINCREMENT_EXPR
+                  permerror (input_location, (code == PREINCREMENT_EXPR
                               || code == POSTINCREMENT_EXPR)
                              ? G_("ISO C++ forbids incrementing a pointer of type %qT")
                              : G_("ISO C++ forbids decrementing a pointer of type %qT"),
@@ -4388,7 +4388,7 @@ cp_build_unary_op (enum tree_code code, tree xarg, int noconvert,
         {
           /* ARM $3.4 */
           if (complain & tf_error)
-            permerror ("ISO C++ forbids taking address of function %<::main%>");
+            permerror (input_location, "ISO C++ forbids taking address of function %<::main%>");
           else
             return error_mark_node;
         }
@@ -4449,12 +4449,12 @@ cp_build_unary_op (enum tree_code code, tree xarg, int noconvert,
 	      else if (current_class_type
                        && TREE_OPERAND (arg, 0) == current_class_ref)
                   /* An expression like &memfn.  */
-                permerror ("ISO C++ forbids taking the address of an unqualified"
+                permerror (input_location, "ISO C++ forbids taking the address of an unqualified"
                            " or parenthesized non-static member function to form"
                            " a pointer to member function.  Say %<&%T::%D%>",
                            base, name);
 	      else
-		permerror ("ISO C++ forbids taking the address of a bound member"
+		permerror (input_location, "ISO C++ forbids taking the address of a bound member"
 			   " function to form a pointer to member function."
 			   "  Say %<&%T::%D%>",
 			   base, name);
@@ -4483,7 +4483,7 @@ cp_build_unary_op (enum tree_code code, tree xarg, int noconvert,
 	  if (! lvalue_p (arg) && complain == tf_none)
             {
               if (complain & tf_error)
-                permerror ("ISO C++ forbids taking the address of a cast to a non-lvalue expression");
+                permerror (input_location, "ISO C++ forbids taking the address of a cast to a non-lvalue expression");
               else
                 return error_mark_node;
             }
@@ -4820,7 +4820,7 @@ tree build_x_compound_expr_from_list (tree list, const char *msg)
   if (TREE_CHAIN (list))
     {
       if (msg)
-	permerror ("%s expression list treated as compound expression", msg);
+	permerror (input_location, "%s expression list treated as compound expression", msg);
 
       for (list = TREE_CHAIN (list); list; list = TREE_CHAIN (list))
 	expr = build_x_compound_expr (expr, TREE_VALUE (list), 
@@ -5260,7 +5260,7 @@ convert_member_func_to_ptr (tree type, tree expr)
 	      || TREE_CODE (intype) == METHOD_TYPE);
 
   if (pedantic || warn_pmf2ptr)
-    pedwarn (pedantic ? OPT_pedantic : OPT_Wpmf_conversions,
+    pedwarn (input_location, pedantic ? OPT_pedantic : OPT_Wpmf_conversions,
 	     "converting from %qT to %qT", intype, type);
 
   if (TREE_CODE (intype) == METHOD_TYPE)
@@ -5372,7 +5372,7 @@ build_reinterpret_cast_1 (tree type, tree expr, bool c_cast_p,
       if (TYPE_PRECISION (type) < TYPE_PRECISION (intype))
         {
           if (complain & tf_error)
-            permerror ("cast from %qT to %qT loses precision",
+            permerror (input_location, "cast from %qT to %qT loses precision",
                        intype, type);
           else
             return error_mark_node;
@@ -5649,7 +5649,7 @@ cp_build_c_cast (tree type, tree expr, tsubst_flags_t complain)
       if (TREE_CODE (TREE_TYPE (expr)) == POINTER_TYPE)
 	{
           if (complain & tf_error)
-            permerror ("ISO C++ forbids casting to an array type %qT", type);
+            permerror (input_location, "ISO C++ forbids casting to an array type %qT", type);
           else
             return error_mark_node;
 	  type = build_pointer_type (TREE_TYPE (type));
@@ -6775,7 +6775,7 @@ check_return_expr (tree retval, bool *no_warning)
      that's supposed to return a value.  */
   if (!retval && fn_returns_value_p)
     {
-      permerror ("return-statement with no value, in function returning %qT",
+      permerror (input_location, "return-statement with no value, in function returning %qT",
 	         valtype);
       /* Clear this, so finish_function won't say that we reach the
 	 end of a non-void function (which we don't, we gave a
@@ -6796,7 +6796,7 @@ check_return_expr (tree retval, bool *no_warning)
 	   its side-effects.  */
 	  finish_expr_stmt (retval);
       else
-	permerror ("return-statement with a value, in function "
+	permerror (input_location, "return-statement with a value, in function "
 		   "returning 'void'");
       current_function_returns_null = 1;
 
@@ -7103,7 +7103,7 @@ comp_ptr_ttypes_const (tree to, tree from)
 int
 cp_type_quals (const_tree type)
 {
-  /* This CONST_CAST is okay because strip_array_types returns it's
+  /* This CONST_CAST is okay because strip_array_types returns its
      argument unmodified and we assign it to a const_tree.  */
   type = strip_array_types (CONST_CAST_TREE(type));
   if (type == error_mark_node)
@@ -7117,7 +7117,7 @@ cp_type_quals (const_tree type)
 bool
 cp_type_readonly (const_tree type)
 {
-  /* This CONST_CAST is okay because strip_array_types returns it's
+  /* This CONST_CAST is okay because strip_array_types returns its
      argument unmodified and we assign it to a const_tree.  */
   type = strip_array_types (CONST_CAST_TREE(type));
   return TYPE_READONLY (type);
@@ -7128,7 +7128,7 @@ cp_type_readonly (const_tree type)
 bool
 cp_has_mutable_p (const_tree type)
 {
-  /* This CONST_CAST is okay because strip_array_types returns it's
+  /* This CONST_CAST is okay because strip_array_types returns its
      argument unmodified and we assign it to a const_tree.  */
   type = strip_array_types (CONST_CAST_TREE(type));
 
@@ -7164,7 +7164,7 @@ cp_apply_type_quals_to_decl (int type_quals, tree decl)
       if (pedantic)
 	{
 	  tree bad_type = build_qualified_type (type, type_quals);
-	  pedwarn (OPT_pedantic, 
+	  pedwarn (input_location, OPT_pedantic, 
 		   "ignoring %qV qualifiers added to function type %qT",
 		   bad_type, type);
 	}

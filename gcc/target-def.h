@@ -364,6 +364,7 @@
 #define TARGET_VECTORIZE_BUILTIN_VECTORIZATION_COST 0
 #define TARGET_VECTOR_ALIGNMENT_REACHABLE \
   default_builtin_vector_alignment_reachable
+#define TARGET_VECTORIZE_BUILTIN_VEC_PERM 0
 
 #define TARGET_VECTORIZE                                                \
   {									\
@@ -373,7 +374,8 @@
     TARGET_VECTORIZE_BUILTIN_MUL_WIDEN_EVEN,                            \
     TARGET_VECTORIZE_BUILTIN_MUL_WIDEN_ODD,				\
     TARGET_VECTORIZE_BUILTIN_VECTORIZATION_COST,			\
-    TARGET_VECTOR_ALIGNMENT_REACHABLE					\
+    TARGET_VECTOR_ALIGNMENT_REACHABLE,                                  \
+    TARGET_VECTORIZE_BUILTIN_VEC_PERM                                   \
   }
 
 #define TARGET_DEFAULT_TARGET_FLAGS 0
@@ -764,7 +766,8 @@
 
 /* Function specific option attribute support.  */
 #ifndef TARGET_OPTION_VALID_ATTRIBUTE_P
-#define TARGET_OPTION_VALID_ATTRIBUTE_P NULL
+#define TARGET_OPTION_VALID_ATTRIBUTE_P \
+  default_target_option_valid_attribute_p
 #endif
 
 #ifndef TARGET_OPTION_SAVE
@@ -780,19 +783,11 @@
 #endif
 
 #ifndef TARGET_OPTION_PRAGMA_PARSE
-#define TARGET_OPTION_PRAGMA_PARSE NULL
+#define TARGET_OPTION_PRAGMA_PARSE default_target_option_pragma_parse
 #endif
 
 #ifndef TARGET_OPTION_CAN_INLINE_P
 #define TARGET_OPTION_CAN_INLINE_P default_target_option_can_inline_p
-#endif
-
-#ifndef TARGET_OPTION_COLD_ATTRIBUTE_SETS_OPTIMIZATION
-#define TARGET_OPTION_COLD_ATTRIBUTE_SETS_OPTIMIZATION false
-#endif
-
-#ifndef TARGET_OPTION_HOT_ATTRIBUTE_SETS_OPTIMIZATION
-#define TARGET_OPTION_HOT_ATTRIBUTE_SETS_OPTIMIZATION false
 #endif
 
 #define TARGET_OPTION_HOOKS			\
@@ -803,8 +798,6 @@
     TARGET_OPTION_PRINT,			\
     TARGET_OPTION_PRAGMA_PARSE,			\
     TARGET_OPTION_CAN_INLINE_P,			\
-    TARGET_OPTION_COLD_ATTRIBUTE_SETS_OPTIMIZATION, \
-    TARGET_OPTION_HOT_ATTRIBUTE_SETS_OPTIMIZATION, \
   }
 
 /* The whole shebang.  */

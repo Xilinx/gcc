@@ -522,7 +522,7 @@ perform_member_init (tree member, tree init)
 	      && !type_has_user_provided_default_constructor (type))
 	    /* TYPE_NEEDS_CONSTRUCTING can be set just because we have a
 	       vtable; still give this diagnostic.  */
-	    permerror ("%Juninitialized member %qD with %<const%> type %qT",
+	    permerror (input_location, "%Juninitialized member %qD with %<const%> type %qT",
 		       current_function_decl, member, type);
 	  finish_expr_stmt (build_aggr_init (decl, init, 0, 
 					     tf_warning_or_error));
@@ -542,10 +542,10 @@ perform_member_init (tree member, tree init)
 	    }
 	  /* member traversal: note it leaves init NULL */
 	  else if (TREE_CODE (type) == REFERENCE_TYPE)
-	    permerror ("%Juninitialized reference member %qD",
+	    permerror (input_location, "%Juninitialized reference member %qD",
 		       current_function_decl, member);
 	  else if (CP_TYPE_CONST_P (type))
-	    permerror ("%Juninitialized member %qD with %<const%> type %qT",
+	    permerror (input_location, "%Juninitialized member %qD with %<const%> type %qT",
 		       current_function_decl, member, type);
 	}
       else if (TREE_CODE (init) == TREE_LIST)
@@ -2171,7 +2171,7 @@ build_new_1 (tree placement, tree type, tree nelts, tree init,
 	  if (init)
             {
               if (complain & tf_error)
-                permerror ("ISO C++ forbids initialization in array new");
+                permerror (input_location, "ISO C++ forbids initialization in array new");
               else
                 return error_mark_node;
             }
@@ -2366,6 +2366,14 @@ build_new (tree placement, tree type, tree nelts, tree init,
   orig_nelts = nelts;
   orig_init = init;
 
+  if (nelts == NULL_TREE && init != void_zero_node && list_length (init) == 1
+      && !any_type_dependent_arguments_p (init))
+    {
+      tree auto_node = type_uses_auto (type);
+      if (auto_node)
+	type = do_auto_deduction (type, TREE_VALUE (init), auto_node);
+    }
+
   if (processing_template_decl)
     {
       if (dependent_type_p (type)
@@ -2387,7 +2395,7 @@ build_new (tree placement, tree type, tree nelts, tree init,
       if (!build_expr_type_conversion (WANT_INT | WANT_ENUM, nelts, false))
         {
           if (complain & tf_error)
-            permerror ("size in array new must have integral type");
+            permerror (input_location, "size in array new must have integral type");
           else
             return error_mark_node;
         }
@@ -3039,7 +3047,7 @@ build_delete (tree type, tree addr, special_function_kind auto_delete,
 			   "delete operator:"))
 		{
 		  cxx_incomplete_type_diagnostic (addr, type, DK_WARNING);
-		  inform ("neither the destructor nor the class-specific "
+		  inform (input_location, "neither the destructor nor the class-specific "
 			  "operator delete will be called, even if they are "
 			  "declared when the class is defined.");
 		}

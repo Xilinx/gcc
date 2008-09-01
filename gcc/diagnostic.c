@@ -492,16 +492,16 @@ emit_diagnostic (diagnostic_t kind, location_t location, int opt,
   return report_diagnostic (&diagnostic);
 }
 
-/* An informative note.  Use this for additional details on an error
+/* An informative note at LOCATION.  Use this for additional details on an error
    message.  */
 void
-inform (const char *gmsgid, ...)
+inform (location_t location, const char *gmsgid, ...)
 {
   diagnostic_info diagnostic;
   va_list ap;
 
   va_start (ap, gmsgid);
-  diagnostic_set_info (&diagnostic, gmsgid, &ap, input_location, DK_NOTE);
+  diagnostic_set_info (&diagnostic, gmsgid, &ap, location, DK_NOTE);
   report_diagnostic (&diagnostic);
   va_end (ap);
 }
@@ -554,28 +554,13 @@ warning_at (location_t location, int opt, const char *gmsgid, ...)
    Returns true if the warning was printed, false if it was inhibited.  */
 
 bool
-pedwarn_at (location_t location, int opt, const char *gmsgid, ...)
+pedwarn (location_t location, int opt, const char *gmsgid, ...)
 {
   diagnostic_info diagnostic;
   va_list ap;
 
   va_start (ap, gmsgid);
   diagnostic_set_info (&diagnostic, gmsgid, &ap, location,  DK_PEDWARN);
-  diagnostic.option_index = opt;
-  va_end (ap);
-  return report_diagnostic (&diagnostic);
-}
-
-/* Equivalent to pedwarn_at using INPUT_LOCATION.  */
-
-bool
-pedwarn (int opt, const char *gmsgid, ...)
-{
-  diagnostic_info diagnostic;
-  va_list ap;
-
-  va_start (ap, gmsgid);
-  diagnostic_set_info (&diagnostic, gmsgid, &ap, input_location, DK_PEDWARN);
   diagnostic.option_index = opt;
   va_end (ap);
   return report_diagnostic (&diagnostic);
@@ -589,7 +574,7 @@ pedwarn (int opt, const char *gmsgid, ...)
    Returns true if the warning was printed, false if it was inhibited.  */
 
 bool
-permerror_at (location_t location, const char *gmsgid, ...)
+permerror (location_t location, const char *gmsgid, ...)
 {
   diagnostic_info diagnostic;
   va_list ap;
@@ -601,23 +586,6 @@ permerror_at (location_t location, const char *gmsgid, ...)
   va_end (ap);
   return report_diagnostic (&diagnostic);
 }
-
-/* Equivalent to permerror_at (input_location, ...).  */
-
-bool
-permerror (const char *gmsgid, ...)
-{
-  diagnostic_info diagnostic;
-  va_list ap;
-
-  va_start (ap, gmsgid);
-  diagnostic_set_info (&diagnostic, gmsgid, &ap, input_location,
-		       permissive_error_kind ());
-  diagnostic.option_index = OPT_fpermissive;
-  va_end (ap);
-  return report_diagnostic (&diagnostic);
-}
-
 
 /* A hard error: the code is definitely ill-formed, and an object file
    will not be produced.  */

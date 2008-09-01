@@ -178,12 +178,13 @@ void copy_reference_ops_from_ref (tree, VEC(vn_reference_op_s, heap) **);
 void copy_reference_ops_from_call (gimple, VEC(vn_reference_op_s, heap) **);
 tree vn_reference_lookup_pieces (VEC (tree, gc) *,
 				 VEC (vn_reference_op_s, heap) *,
-				 vn_reference_t *);
+				 vn_reference_t *, bool);
 tree vn_reference_lookup (tree, VEC (tree, gc) *, bool, vn_reference_t *);
 vn_reference_t vn_reference_insert (tree, tree, VEC (tree, gc) *);
 vn_reference_t vn_reference_insert_pieces (VEC (tree, gc) *,
 					   VEC (vn_reference_op_s, heap) *,
 					   tree, unsigned int);
+tree vn_phi_lookup (gimple);
 
 hashval_t vn_nary_op_compute_hash (const vn_nary_op_t);
 int vn_nary_op_eq (const void *, const void *);

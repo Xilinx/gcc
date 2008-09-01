@@ -1084,6 +1084,8 @@ extern unsigned int subreg_regno_offset	(unsigned int, enum machine_mode,
 extern bool subreg_offset_representable_p (unsigned int, enum machine_mode,
 					   unsigned int, enum machine_mode);
 extern unsigned int subreg_regno (const_rtx);
+extern int simplify_subreg_regno (unsigned int, enum machine_mode,
+				  unsigned int, enum machine_mode);
 extern unsigned int subreg_nregs (const_rtx);
 extern unsigned int subreg_nregs_with_regno (unsigned int, const_rtx);
 extern unsigned HOST_WIDE_INT nonzero_bits (const_rtx, enum machine_mode);
@@ -1805,6 +1807,12 @@ rtx remove_list_elem (rtx, rtx *);
 
 /* regclass.c */
 
+/* Initialize may_move_cost and friends for mode M.  */
+extern void init_move_cost (enum machine_mode);
+/* Allocate register info memory.  */
+extern void allocate_reg_info (void);
+/* Resize reg info.  */
+extern void resize_reg_info (void);
 /* Free up register info memory.  */
 extern void free_reg_info (void);
 
@@ -1815,6 +1823,7 @@ extern const char *decode_asm_operands (rtx, rtx *, rtx **, const char **,
 
 extern enum reg_class reg_preferred_class (int);
 extern enum reg_class reg_alternate_class (int);
+extern void setup_reg_classes (int, enum reg_class, enum reg_class);
 
 extern void split_all_insns (void);
 extern unsigned int split_all_insns_noflow (void);
@@ -2183,12 +2192,16 @@ extern bool can_copy_p (enum machine_mode);
 extern rtx fis_get_condition (rtx);
 
 /* In global.c */
+#ifdef HARD_CONST
+extern HARD_REG_SET eliminable_regset;
+#endif
 extern void mark_elimination (int, int);
 extern void dump_global_regs (FILE *);
 #ifdef HARD_CONST
 /* Yes, this ifdef is silly, but HARD_REG_SET is not always defined.  */
 extern void retry_global_alloc (int, HARD_REG_SET);
 #endif
+extern void build_insn_chain (void);
 
 /* In regclass.c */
 extern int reg_classes_intersect_p (enum reg_class, enum reg_class);
@@ -2214,6 +2227,7 @@ extern void dbr_schedule (rtx);
 
 /* In local-alloc.c */
 extern void dump_local_alloc (FILE *);
+extern int update_equiv_regs (void);
 
 /* In reload1.c */
 extern int function_invariant_p (const_rtx);

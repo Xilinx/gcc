@@ -54,7 +54,7 @@ along with GCC; see the file COPYING3.  If not see
 #endif
 
 /* CPP's options.  */
-static cpp_options *cpp_opts;
+cpp_options *cpp_opts;
 
 /* Input filename.  */
 static const char *this_input_filename;
@@ -321,7 +321,7 @@ c_common_handle_option (size_t scode, const char *arg, int value)
 	    error ("-I- specified twice");
 	  quote_chain_split = true;
 	  split_quote_chain ();
-	  inform ("obsolete option -I- used, please use -iquote instead");
+	  inform (input_location, "obsolete option -I- used, please use -iquote instead");
 	}
       break;
 

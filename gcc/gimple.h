@@ -872,10 +872,15 @@ extern bool is_gimple_lvalue (tree);
 bool is_gimple_address (const_tree);
 /* Returns true iff T is a GIMPLE invariant address.  */
 bool is_gimple_invariant_address (const_tree);
+/* Returns true iff T is a GIMPLE invariant address at interprocedural
+   level.  */
+bool is_gimple_ip_invariant_address (const_tree);
 /* Returns true iff T is a valid GIMPLE constant.  */
 bool is_gimple_constant (const_tree);
 /* Returns true iff T is a GIMPLE restricted function invariant.  */
 extern bool is_gimple_min_invariant (const_tree);
+/* Returns true iff T is a GIMPLE restricted interprecodural invariant.  */
+extern bool is_gimple_ip_invariant (const_tree);
 /* Returns true iff T is a GIMPLE rvalue.  */
 extern bool is_gimple_val (tree);
 /* Returns true iff T is a GIMPLE asm statement input.  */
@@ -1853,8 +1858,7 @@ gimple_assign_cast_p (gimple s)
   if (is_gimple_assign (s))
     {
       enum tree_code sc = gimple_assign_rhs_code (s);
-      return sc == NOP_EXPR
-	     || sc == CONVERT_EXPR
+      return CONVERT_EXPR_CODE_P (sc)
 	     || sc == VIEW_CONVERT_EXPR
 	     || sc == FIX_TRUNC_EXPR;
     }
@@ -4467,6 +4471,7 @@ basic_block gsi_insert_on_edge_immediate (edge, gimple);
 basic_block gsi_insert_seq_on_edge_immediate (edge, gimple_seq);
 void gsi_commit_one_edge_insert (edge, basic_block *);
 void gsi_commit_edge_inserts (void);
+gimple giple_copy_call_skip_args (gimple, bitmap);
 
 
 /* Convenience routines to walk all statements of a gimple function.

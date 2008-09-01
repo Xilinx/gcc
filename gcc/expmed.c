@@ -521,6 +521,8 @@ store_bit_field_1 (rtx str_rtx, unsigned HOST_WIDE_INT bitsize,
 	  != CODE_FOR_nothing))
     {
       int icode = optab_handler (movstrict_optab, fieldmode)->insn_code;
+      rtx insn;
+      rtx start = get_last_insn ();
 
       /* Get appropriate low part of the value being stored.  */
       if (GET_CODE (value) == CONST_INT || REG_P (value))
@@ -544,13 +546,17 @@ store_bit_field_1 (rtx str_rtx, unsigned HOST_WIDE_INT bitsize,
 	  op0 = SUBREG_REG (op0);
 	}
 
-      emit_insn (GEN_FCN (icode)
+      insn = (GEN_FCN (icode)
 		 (gen_rtx_SUBREG (fieldmode, op0,
 				  (bitnum % BITS_PER_WORD) / BITS_PER_UNIT
 				  + (offset * UNITS_PER_WORD)),
 				  value));
-
-      return true;
+      if (insn)
+	{
+	  emit_insn (insn);
+	  return true;
+	}
+      delete_insns_since (start);
     }
 
   /* Handle fields bigger than a word.  */
@@ -1198,7 +1204,7 @@ extract_bit_field_1 (rtx str_rtx, unsigned HOST_WIDE_INT bitsize,
 
       for (; new_mode != VOIDmode ; new_mode = GET_MODE_WIDER_MODE (new_mode))
 	if (GET_MODE_NUNITS (new_mode) == nunits
-	    && GET_MODE_INNER (new_mode) == tmode
+	    && GET_MODE_SIZE (new_mode) == GET_MODE_SIZE (GET_MODE (op0))
 	    && targetm.vector_mode_supported_p (new_mode))
 	  break;
       if (new_mode != VOIDmode)
@@ -3486,7 +3492,7 @@ expand_smod_pow2 (enum machine_mode mode, rtx op0, HOST_WIDE_INT d)
   result = gen_reg_rtx (mode);
 
   /* Avoid conditional branches when they're expensive.  */
-  if (BRANCH_COST >= 2
+  if (BRANCH_COST (optimize_insn_for_speed_p (), false) >= 2
       && optimize_insn_for_speed_p ())
     {
       rtx signmask = emit_store_flag (result, LT, op0, const0_rtx,
@@ -3586,7 +3592,9 @@ expand_sdiv_pow2 (enum machine_mode mode, rtx op0, HOST_WIDE_INT d)
   logd = floor_log2 (d);
   shift = build_int_cst (NULL_TREE, logd);
 
-  if (d == 2 && BRANCH_COST >= 1)
+  if (d == 2
+      && BRANCH_COST (optimize_insn_for_speed_p (),
+		      false) >= 1)
     {
       temp = gen_reg_rtx (mode);
       temp = emit_store_flag (temp, LT, op0, const0_rtx, mode, 0, 1);
@@ -3596,7 +3604,8 @@ expand_sdiv_pow2 (enum machine_mode mode, rtx op0, HOST_WIDE_INT d)
     }
 
 #ifdef HAVE_conditional_move
-  if (BRANCH_COST >= 2)
+  if (BRANCH_COST (optimize_insn_for_speed_p (), false)
+      >= 2)
     {
       rtx temp2;
 
@@ -3625,7 +3634,8 @@ expand_sdiv_pow2 (enum machine_mode mode, rtx op0, HOST_WIDE_INT d)
     }
 #endif
 
-  if (BRANCH_COST >= 2)
+  if (BRANCH_COST (optimize_insn_for_speed_p (),
+		   false) >= 2)
     {
       int ushift = GET_MODE_BITSIZE (mode) - logd;
 
@@ -5339,7 +5349,8 @@ emit_store_flag (rtx target, enum rtx_code code, rtx op0, rtx op1,
      comparison with zero.  Don't do any of these cases if branches are
      very cheap.  */
 
-  if (BRANCH_COST > 0
+  if (BRANCH_COST (optimize_insn_for_speed_p (),
+		   false) > 0
       && GET_MODE_CLASS (mode) == MODE_INT && (code == EQ || code == NE)
       && op1 != const0_rtx)
     {
@@ -5362,10 +5373,12 @@ emit_store_flag (rtx target, enum rtx_code code, rtx op0, rtx op1,
      do LE and GT if branches are expensive since they are expensive on
      2-operand machines.  */
 
-  if (BRANCH_COST == 0
+  if (BRANCH_COST (optimize_insn_for_speed_p (),
+		   false) == 0
       || GET_MODE_CLASS (mode) != MODE_INT || op1 != const0_rtx
       || (code != EQ && code != NE
-	  && (BRANCH_COST <= 1 || (code != LE && code != GT))))
+	  && (BRANCH_COST (optimize_insn_for_speed_p (),
+			   false) <= 1 || (code != LE && code != GT))))
     return 0;
 
   /* See what we need to return.  We can only return a 1, -1, or the
@@ -5461,7 +5474,10 @@ emit_store_flag (rtx target, enum rtx_code code, rtx op0, rtx op1,
 	 that "or", which is an extra insn, so we only handle EQ if branches
 	 are expensive.  */
 
-      if (tem == 0 && (code == NE || BRANCH_COST > 1))
+      if (tem == 0
+	  && (code == NE
+	      || BRANCH_COST (optimize_insn_for_speed_p (),
+		      	      false) > 1))
 	{
 	  if (rtx_equal_p (subtarget, op0))
 	    subtarget = 0;

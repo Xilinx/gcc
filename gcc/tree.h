@@ -962,11 +962,11 @@ extern void omp_clause_range_check_failed (const_tree, const char *, int,
 #define TREE_HASH(NODE) ((size_t) (NODE) & 0777777)
 
 /* Tests if CODE is a conversion expr (NOP_EXPR or CONVERT_EXPR).  */
-#define IS_CONVERT_EXPR_CODE_P(CODE)				\
+#define CONVERT_EXPR_CODE_P(CODE)				\
   ((CODE) == NOP_EXPR || (CODE) == CONVERT_EXPR)
 
 /* Similarly, but accept an expressions instead of a tree code.  */
-#define CONVERT_EXPR_P(EXP)	IS_CONVERT_EXPR_CODE_P (TREE_CODE (EXP))
+#define CONVERT_EXPR_P(EXP)	CONVERT_EXPR_CODE_P (TREE_CODE (EXP))
 
 /* Generate case for NOP_EXPR, CONVERT_EXPR.  */
 
@@ -3591,11 +3591,9 @@ enum tree_index
 
   TI_OPTIMIZATION_DEFAULT,
   TI_OPTIMIZATION_CURRENT,
-  TI_OPTIMIZATION_COLD,
-  TI_OPTIMIZATION_HOT,
   TI_TARGET_OPTION_DEFAULT,
   TI_TARGET_OPTION_CURRENT,
-  TI_CURRENT_OPTION_PRAGMA,
+  TI_CURRENT_TARGET_PRAGMA,
   TI_CURRENT_OPTIMIZE_PRAGMA,
 
   TI_MAX
@@ -3765,12 +3763,10 @@ extern GTY(()) tree global_trees[TI_MAX];
 #define main_identifier_node		global_trees[TI_MAIN_IDENTIFIER]
 #define MAIN_NAME_P(NODE) (IDENTIFIER_NODE_CHECK (NODE) == main_identifier_node)
 
-/* Optimization options (OPTIMIZATION_NODE) to use for default, current, cold,
-   and hot functions.  */
+/* Optimization options (OPTIMIZATION_NODE) to use for default and current
+   functions.  */
 #define optimization_default_node	global_trees[TI_OPTIMIZATION_DEFAULT]
 #define optimization_current_node	global_trees[TI_OPTIMIZATION_CURRENT]
-#define optimization_cold_node		global_trees[TI_OPTIMIZATION_COLD]
-#define optimization_hot_node		global_trees[TI_OPTIMIZATION_HOT]
 
 /* Default/current target options (TARGET_OPTION_NODE).  */
 #define target_option_default_node	global_trees[TI_TARGET_OPTION_DEFAULT]
@@ -3778,7 +3774,7 @@ extern GTY(()) tree global_trees[TI_MAX];
 
 /* Default tree list option(), optimize() pragmas to be linked into the
    attribute list.  */
-#define current_option_pragma		global_trees[TI_CURRENT_OPTION_PRAGMA]
+#define current_target_pragma		global_trees[TI_CURRENT_TARGET_PRAGMA]
 #define current_optimize_pragma		global_trees[TI_CURRENT_OPTIMIZE_PRAGMA]
 
 /* An enumeration of the standard C integer types.  These must be
@@ -3994,6 +3990,8 @@ extern tree build_index_2_type (tree, tree);
 extern tree build_array_type (tree, tree);
 extern tree build_function_type (tree, tree);
 extern tree build_function_type_list (tree, ...);
+extern tree build_function_type_skip_args (tree, bitmap);
+extern tree build_function_decl_skip_args (tree, bitmap);
 extern tree build_varargs_function_type_list (tree, ...);
 extern tree build_method_type_directly (tree, tree, tree);
 extern tree build_method_type (tree, tree);
@@ -4868,6 +4866,7 @@ extern tree strip_float_extensions (tree);
 /* In tree.c */
 extern int really_constant_p (const_tree);
 extern bool decl_address_invariant_p (const_tree);
+extern bool decl_address_ip_invariant_p (const_tree);
 extern int int_fits_type_p (const_tree, const_tree);
 #ifndef GENERATOR_FILE
 extern void get_type_static_bounds (const_tree, mpz_t, mpz_t);

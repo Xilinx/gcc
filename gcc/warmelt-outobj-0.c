@@ -1,5 +1,5 @@
 /* GCC BASILYS GENERATED FILE warmelt-outobj-3.c - DO NOT EDIT */
-/* generated on Tue Aug  5 17:20:18 2008 */
+/* generated on Mon Sep  1 08:27:22 2008 */
 
 #include "run-basilys.h"
 
@@ -33249,7 +33249,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:2729: @block");
        }
       ;
       basilys_output_cfile_decl_impl((basilys_ptr_t)(/*_.MODNAMSTR__V4*/ curfptr[3]), (basilys_ptr_t)(/*_.DECLBUF__V32*/ curfptr[31]), (basilys_ptr_t)(/*_.IMPLBUF__V33*/ curfptr[32]));
-      inform(("BASILYS INFORM [#%ld]: %s - %s"), basilys_dbgcounter, ( "warmelt generated module"), basilys_string_str((basilys_ptr_t)(/*_.MODNAMSTR__V4*/ curfptr[3])));
+      inform(UNKNOWN_LOCATION, ("BASILYS INFORM [#%ld]: %s - %s"), basilys_dbgcounter, ( "warmelt generated module"), basilys_string_str((basilys_ptr_t)(/*_.MODNAMSTR__V4*/ curfptr[3])));
       /*epilog*/
       
       BASILYS_LOCATION("warmelt-outobj.bysl:2823: @clear");
@@ -35411,7 +35411,7 @@ lab_endgetargs:;
 
 BASILYS_LOCATION("warmelt-outobj.bysl:2900: @block");
 /*block*/{
- inform(("BASILYS INFORM [#%ld]: %s - %s"), basilys_dbgcounter, ( "reading from file"), basilys_string_str((basilys_ptr_t)(/*_.CURARG__V2*/ curfptr[1])));
+ inform(UNKNOWN_LOCATION, ("BASILYS INFORM [#%ld]: %s - %s"), basilys_dbgcounter, ( "reading from file"), basilys_string_str((basilys_ptr_t)(/*_.CURARG__V2*/ curfptr[1])));
  
  BASILYS_LOCATION("warmelt-outobj.bysl:2902: @block");
  /*block*/{
@@ -36183,7 +36183,7 @@ lab_endgetargs:;
 
 BASILYS_LOCATION("warmelt-outobj.bysl:2938: @block");
 /*block*/{
- inform(("BASILYS INFORM [#%ld]: %s - %s"), basilys_dbgcounter, ( "reading from file"), basilys_string_str((basilys_ptr_t)(/*_.CURARG__V2*/ curfptr[1])));
+ inform(UNKNOWN_LOCATION, ("BASILYS INFORM [#%ld]: %s - %s"), basilys_dbgcounter, ( "reading from file"), basilys_string_str((basilys_ptr_t)(/*_.CURARG__V2*/ curfptr[1])));
  
  BASILYS_LOCATION("warmelt-outobj.bysl:2940: @block");
  /*block*/{

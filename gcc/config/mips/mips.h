@@ -50,6 +50,7 @@ enum processor_type {
   PROCESSOR_LOONGSON_2E,
   PROCESSOR_LOONGSON_2F,
   PROCESSOR_M4K,
+  PROCESSOR_OCTEON,
   PROCESSOR_R3900,
   PROCESSOR_R6000,
   PROCESSOR_R4000,
@@ -148,6 +149,15 @@ enum mips_code_readable_setting {
 /* True if we are generating position-independent VxWorks RTP code.  */
 #define TARGET_RTP_PIC (TARGET_VXWORKS_RTP && flag_pic)
 
+/* True if the output file is marked as ".abicalls; .option pic0"
+   (-call_nonpic).  */
+#define TARGET_ABICALLS_PIC0 \
+  (TARGET_ABSOLUTE_ABICALLS && TARGET_PLT)
+
+/* True if the output file is marked as ".abicalls; .option pic2" (-KPIC).  */
+#define TARGET_ABICALLS_PIC2 \
+  (TARGET_ABICALLS && !TARGET_ABICALLS_PIC0)
+
 /* True if the call patterns should be split into a jalr followed by
    an instruction to restore $gp.  It is only safe to split the load
    from the call when every use of $gp is explicit.  */
@@ -200,7 +210,10 @@ enum mips_code_readable_setting {
    Although GAS does understand .gpdword, the SGI linker mishandles
    the relocations GAS generates (R_MIPS_GPREL32 followed by R_MIPS_64).
    We therefore disable GP-relative switch tables for n64 on IRIX targets.  */
-#define TARGET_GPWORD (TARGET_ABICALLS && !(mips_abi == ABI_64 && TARGET_IRIX))
+#define TARGET_GPWORD				\
+  (TARGET_ABICALLS				\
+   && !TARGET_ABSOLUTE_ABICALLS			\
+   && !(mips_abi == ABI_64 && TARGET_IRIX))
 
 /* Generate mips16 code */
 #define TARGET_MIPS16		((target_flags & MASK_MIPS16) != 0)
@@ -241,6 +254,7 @@ enum mips_code_readable_setting {
 #define TARGET_MIPS5500             (mips_arch == PROCESSOR_R5500)
 #define TARGET_MIPS7000             (mips_arch == PROCESSOR_R7000)
 #define TARGET_MIPS9000             (mips_arch == PROCESSOR_R9000)
+#define TARGET_OCTEON		    (mips_arch == PROCESSOR_OCTEON)
 #define TARGET_SB1                  (mips_arch == PROCESSOR_SB1		\
 				     || mips_arch == PROCESSOR_SB1A)
 #define TARGET_SR71K                (mips_arch == PROCESSOR_SR71000)
@@ -517,6 +531,10 @@ enum mips_code_readable_setting {
       if (TARGET_LOONGSON_VECTORS)					\
         builtin_define ("__mips_loongson_vector_rev");                  \
 									\
+      /* Historical Octeon macro.  */					\
+      if (TARGET_OCTEON)						\
+	builtin_define ("__OCTEON__");					\
+									\
       /* Macros dependent on the C dialect.  */				\
       if (preprocessing_asm_p ())					\
 	{								\
@@ -681,7 +699,7 @@ enum mips_code_readable_setting {
      %{march=mips32r2|march=m4k|march=4ke*|march=4ksd|march=24k* \
        |march=34k*|march=74k*: -mips32r2} \
      %{march=mips64|march=5k*|march=20k*|march=sb1*|march=sr71000: -mips64} \
-     %{march=mips64r2: -mips64r2} \
+     %{march=mips64r2|march=octeon: -mips64r2} \
      %{!march=*: -" MULTILIB_ISA_DEFAULT "}}"
 
 /* A spec that infers a -mhard-float or -msoft-float setting from an
@@ -691,7 +709,7 @@ enum mips_code_readable_setting {
 #define MIPS_ARCH_FLOAT_SPEC \
   "%{mhard-float|msoft-float|march=mips*:; \
      march=vr41*|march=m4k|march=4k*|march=24kc|march=24kec \
-     |march=34kc|march=74kc|march=5kc: -msoft-float; \
+     |march=34kc|march=74kc|march=5kc|march=octeon: -msoft-float; \
      march=*: -mhard-float}"
 
 /* A spec condition that matches 32-bit options.  It only works if
@@ -715,7 +733,8 @@ enum mips_code_readable_setting {
   {"abi", "%{!mabi=*:-mabi=%(VALUE)}" }, \
   {"float", "%{!msoft-float:%{!mhard-float:-m%(VALUE)-float}}" }, \
   {"divide", "%{!mdivide-traps:%{!mdivide-breaks:-mdivide-%(VALUE)}}" }, \
-  {"llsc", "%{!mllsc:%{!mno-llsc:-m%(VALUE)}}" }
+  {"llsc", "%{!mllsc:%{!mno-llsc:-m%(VALUE)}}" }, \
+  {"mips-plt", "%{!mplt:%{!mno-plt:-m%(VALUE)}}" }
 
 
 #define GENERATE_DIVIDE_TRAPS (TARGET_DIVIDE_TRAPS \
@@ -758,6 +777,9 @@ enum mips_code_readable_setting {
 				  || ISA_MIPS64				\
 				  || ISA_MIPS64R2)			\
 				 && !TARGET_MIPS16)
+
+/* ISA has a three-operand multiplication instruction.  */
+#define ISA_HAS_DMUL3		(TARGET_64BIT && TARGET_OCTEON)
 
 /* ISA has the floating-point conditional move instructions introduced
    in mips4.  */
@@ -983,6 +1005,12 @@ enum mips_code_readable_setting {
   (target_flags_explicit & MASK_LLSC	\
    ? TARGET_LLSC && !TARGET_MIPS16	\
    : ISA_HAS_LL_SC)
+
+/* ISA includes the bbit* instructions.  */
+#define ISA_HAS_BBIT		TARGET_OCTEON
+
+/* ISA includes the pop instruction.  */
+#define ISA_HAS_POP		TARGET_OCTEON
 
 /* Add -G xx support.  */
 
@@ -1074,7 +1102,7 @@ enum mips_code_readable_setting {
 %{mfix-vr4120} %{mfix-vr4130} \
 %(subtarget_asm_optimizing_spec) \
 %(subtarget_asm_debugging_spec) \
-%{mabi=*} %{!mabi*: %(asm_abi_default_spec)} \
+%{mabi=*} %{!mabi=*: %(asm_abi_default_spec)} \
 %{mgp32} %{mgp64} %{march=*} %{mxgot:-xgot} \
 %{mfp32} %{mfp64} \
 %{mshared} %{mno-shared} \
@@ -2529,7 +2557,7 @@ typedef struct mips_args {
 /* A C expression for the cost of a branch instruction.  A value of
    1 is the default; other values are interpreted relative to that.  */
 
-#define BRANCH_COST mips_branch_cost
+#define BRANCH_COST(speed_p, predictable_p) mips_branch_cost
 #define LOGICAL_OP_NON_SHORT_CIRCUIT 0
 
 /* If defined, modifies the length assigned to instruction INSN as a
@@ -2559,7 +2587,7 @@ typedef struct mips_args {
    ? "%*" INSN "\t%" #OPNO "%/"					\
    : REG_P (OPERANDS[OPNO])					\
    ? "%*" INSN "r\t%" #OPNO "%/"				\
-   : TARGET_ABICALLS						\
+   : TARGET_ABICALLS_PIC2					\
    ? (".option\tpic0\n\t"					\
       "%*" INSN "\t%" #OPNO "%/\n\t"				\
       ".option\tpic2")						\

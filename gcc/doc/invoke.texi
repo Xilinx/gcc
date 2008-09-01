@@ -274,7 +274,8 @@ Objective-C and Objective-C++ Dialects}.
 @xref{Debugging Options,,Options for Debugging Your Program or GCC}.
 @gccoptlist{-d@var{letters}  -dumpspecs  -dumpmachine  -dumpversion @gol
 -fdbg-cnt-list -fdbg-cnt=@var{counter-value-list} @gol
--fdump-noaddr -fdump-unnumbered  -fdump-translation-unit@r{[}-@var{n}@r{]} @gol
+-fdump-noaddr -fdump-unnumbered @gol
+-fdump-translation-unit@r{[}-@var{n}@r{]} @gol
 -fdump-class-hierarchy@r{[}-@var{n}@r{]} @gol
 -fdump-ipa-all -fdump-ipa-cgraph -fdump-ipa-inline @gol
 -fdump-statistics @gol
@@ -330,9 +331,12 @@ Objective-C and Objective-C++ Dialects}.
 -ffunction-sections -fgcse -fgcse-after-reload -fgcse-las -fgcse-lm @gol
 -fgcse-sm -fif-conversion -fif-conversion2 -findirect-inlining @gol
 -finline-functions -finline-functions-called-once -finline-limit=@var{n} @gol
--finline-small-functions -fipa-cp -fipa-marix-reorg -fipa-pta @gol 
+-finline-small-functions -fipa-cp -fipa-cp-clone -fipa-marix-reorg -fipa-pta @gol 
 -fipa-pure-const -fipa-reference -fipa-struct-reorg @gol
--fipa-type-escape -fivopts -fkeep-inline-functions -fkeep-static-consts @gol
+-fipa-type-escape -fira -fira-algorithm=@var{algorithm} @gol
+-fira-coalesce -fno-ira-share-save-slots @gol
+-fno-ira-share-spill-slots -fira-verbose=@var{n} @gol
+-fivopts -fkeep-inline-functions -fkeep-static-consts @gol
 -fmerge-all-constants -fmerge-constants -fmodulo-sched @gol
 -fmodulo-sched-allow-regmoves -fmove-loop-invariants -fmudflap @gol
 -fmudflapir -fmudflapth -fno-branch-count-reg -fno-default-inline @gol
@@ -342,7 +346,8 @@ Objective-C and Objective-C++ Dialects}.
 -fno-toplevel-reorder -fno-trapping-math -fno-zero-initialized-in-bss @gol
 -fomit-frame-pointer -foptimize-register-move -foptimize-sibling-calls @gol
 -fpeel-loops -fpredictive-commoning -fprefetch-loop-arrays @gol
--fprofile-dir=@var{path} -fprofile-generate -fprofile-generate=@var{path} @gol
+-fprofile-correction -fprofile-dir=@var{path} -fprofile-generate @gol
+-fprofile-generate=@var{path} @gol
 -fprofile-use -fprofile-use=@var{path} -fprofile-values @gol
 -freciprocal-math -fregmove -frename-registers -freorder-blocks @gol
 -freorder-blocks-and-partition -freorder-functions @gol
@@ -360,7 +365,7 @@ Objective-C and Objective-C++ Dialects}.
 -ftree-loop-distribution @gol
 -ftree-loop-ivcanon -ftree-loop-linear -ftree-loop-optimize @gol
 -ftree-parallelize-loops=@var{n} -ftree-pre -ftree-reassoc @gol
--ftree-sink -ftree-sra -ftree-store-ccp -ftree-switch-conversion @gol
+-ftree-sink -ftree-sra -ftree-switch-conversion @gol
 -ftree-ter -ftree-vect-loop-version -ftree-vectorize -ftree-vrp @gol
 -funit-at-a-time -funroll-all-loops -funroll-loops @gol
 -funsafe-loop-optimizations -funsafe-math-optimizations -funswitch-loops @gol
@@ -559,7 +564,7 @@ Objective-C and Objective-C++ Dialects}.
 -mpreferred-stack-boundary=@var{num}
 -mincoming-stack-boundary=@var{num}
 -mcld -mcx16 -msahf -mrecip @gol
--mmmx  -msse  -msse2 -msse3 -mssse3 -msse4.1 -msse4.2 -msse4 @gol
+-mmmx  -msse  -msse2 -msse3 -mssse3 -msse4.1 -msse4.2 -msse4 -mavx @gol
 -maes -mpclmul @gol
 -msse4a -m3dnow -mpopcnt -mabm -msse5 @gol
 -mthreads  -mno-align-stringops  -minline-all-stringops @gol
@@ -635,8 +640,8 @@ Objective-C and Objective-C++ Dialects}.
 -mips16  -mno-mips16  -mflip-mips16 @gol
 -minterlink-mips16  -mno-interlink-mips16 @gol
 -mabi=@var{abi}  -mabicalls  -mno-abicalls @gol
--mshared  -mno-shared  -mxgot  -mno-xgot  -mgp32  -mgp64 @gol
--mfp32  -mfp64  -mhard-float  -msoft-float @gol
+-mshared  -mno-shared  -mplt  -mno-plt  -mxgot  -mno-xgot @gol
+-mgp32  -mgp64  -mfp32  -mfp64  -mhard-float  -msoft-float @gol
 -msingle-float  -mdouble-float  -mdsp  -mno-dsp  -mdspr2  -mno-dspr2 @gol
 -msmartmips  -mno-smartmips @gol
 -mpaired-single  -mno-paired-single  -mdmx  -mno-mdmx @gol
@@ -3611,16 +3616,17 @@ two- or four-byte boundaries.
 @opindex Wwrite-strings
 @opindex Wno-write-strings
 When compiling C, give string constants the type @code{const
-char[@var{length}]} so that
-copying the address of one into a non-@code{const} @code{char *}
-pointer will get a warning; when compiling C++, warn about the
-deprecated conversion from string literals to @code{char *}.  This
-warning, by default, is enabled for C++ programs.
-These warnings will help you find at
-compile time code that can try to write into a string constant, but
-only if you have been very careful about using @code{const} in
-declarations and prototypes.  Otherwise, it will just be a nuisance;
-this is why we did not make @option{-Wall} request these warnings.
+char[@var{length}]} so that copying the address of one into a
+non-@code{const} @code{char *} pointer will get a warning.  These
+warnings will help you find at compile time code that can try to write
+into a string constant, but only if you have been very careful about
+using @code{const} in declarations and prototypes.  Otherwise, it will
+just be a nuisance. This is why we did not make @option{-Wall} request
+these warnings.
+
+When compiling C++, warn about the deprecated conversion from string
+literals to @code{char *}.  This warning is enabled by default for C++
+programs.
 
 @item -Wclobbered
 @opindex Wclobbered
@@ -5676,6 +5682,49 @@ optimization.
 
 Enabled at levels @option{-O2}, @option{-O3}, @option{-Os}.
 
+@item -fira
+@opindex fira
+Use the integrated register allocator (@acronym{IRA}) for register
+allocation.  It is a default if @acronym{IRA} has been ported for the
+target.
+
+@item -fira-algorithm=@var{algorithm}
+Use specified algorithm for the integrated register allocator.  The
+@var{algorithm} argument should be one of @code{regional}, @code{CB},
+or @code{mixed}.  The second algorithm specifies Chaitin-Briggs
+coloring, the first one specifies regional coloring based on
+Chaitin-Briggs coloring, and the third one which is the default
+specifies a mix of Chaitin-Briggs and regional algorithms where loops
+with small register pressure are ignored.  The first algorithm can
+give best result for machines with small size and irregular register
+set, the second one is faster and generates decent code and the
+smallest size code, and the mixed algorithm usually give the best
+results in most cases and for most architectures.
+
+@item -fira-coalesce
+@opindex fira-coalesce
+Do optimistic register coalescing.  This option might be profitable for
+architectures with big regular register files.
+
+@item -fno-ira-share-save-slots
+@opindex fno-ira-share-save-slots
+Switch off sharing stack slots used for saving call used hard
+registers living through a call.  Each hard register will get a
+separate stack slot and as a result function stack frame will be
+bigger.
+
+@item -fno-ira-share-spill-slots
+@opindex fno-ira-share-spill-slots
+Switch off sharing stack slots allocated for pseudo-registers.  Each
+pseudo-register which did not get a hard register will get a separate
+stack slot and as a result function stack frame will be bigger.
+
+@item -fira-verbose=@var{n}
+@opindex fira-verbose
+Set up how verbose dump file for the integrated register allocator
+will be.  Default value is 5.  If the value is greater or equal to 10,
+the dump file will be stderr as if the value were @var{n} minus 10.
+
 @item -fdelayed-branch
 @opindex fdelayed-branch
 If supported for the target machine, attempt to reorder instructions
@@ -5857,9 +5906,18 @@ Perform interprocedural constant propagation.
 This optimization analyzes the program to determine when values passed
 to functions are constants and then optimizes accordingly.  
 This optimization can substantially increase performance
-if the application has constants passed to functions, but
-because this optimization can create multiple copies of functions,
-it may significantly increase code size.
+if the application has constants passed to functions.
+This flag is enabled by default at @option{-O2}, @option{-Os} and @option{-O3}.
+
+@item -fipa-cp-clone
+@opindex fipa-cp-clone
+Perform function cloning to make interprocedural constant propagation stronger.
+When enabled, interprocedural constant propagation will perform function cloning
+when externally visible function can be called with constant arguments.
+Because this optimization can create multiple copies of functions,
+it may significantly increase code size
+(see @option{--param ipcp-unit-growth=@var{value}}).
+This flag is enabled by default at @option{-O3}.
 
 @item -fipa-matrix-reorg
 @opindex fipa-matrix-reorg
@@ -5884,13 +5942,6 @@ enabled by default at @option{-O} and higher.
 Perform sparse conditional constant propagation (CCP) on trees.  This
 pass only operates on local scalar variables and is enabled by default
 at @option{-O} and higher.
-
-@item -ftree-store-ccp
-@opindex ftree-store-ccp
-Perform sparse conditional constant propagation (CCP) on trees.  This
-pass operates on both local scalar variables and memory stores and
-loads (global variables, structures, arrays, etc).  This flag is
-enabled by default at @option{-O2} and higher.
 
 @item -ftree-switch-conversion
 Perform conversion of simple initializations in a switch to
@@ -6374,6 +6425,13 @@ and occasionally eliminate the copy.
 
 Enabled at levels @option{-O}, @option{-O2}, @option{-O3}, @option{-Os}.
 
+@item -fprofile-correction
+@opindex fprofile-correction
+Profiles collected using an instrumented binary for multi-threaded programs may
+be inconsistent due to missed counter updates. When this option is specified,
+GCC will use heuristics to correct or smooth out such inconsistencies. By
+default, GCC will emit an error message when an inconsistent profile is detected.
+
 @item -fprofile-dir=@var{path}
 @opindex fprofile-dir
 
@@ -6847,6 +6905,10 @@ to the hottest structure frequency in the program is less than this
 parameter, then structure reorganization is not applied to this structure.
 The default is 10.
 
+@item predictable-branch-cost-outcome
+When branch is predicted to be taken with probability lower than this threshold
+(in percent), then it is considered well predictable. The default is 10.
+
 @item max-crossjump-edges
 The maximum number of incoming edges to consider for crossjumping.
 The algorithm used by @option{-fcrossjumping} is @math{O(N^2)} in
@@ -6948,6 +7010,11 @@ before applying @option{--param inline-unit-growth}.  The default is 10000
 Specifies maximal overall growth of the compilation unit caused by inlining.
 The default value is 30 which limits unit growth to 1.3 times the original
 size.
+
+@item ipcp-unit-growth
+Specifies maximal overall growth of the compilation unit caused by
+interprocedural constant propagation.  The default value is 10 which limits
+unit growth to 1.1 times the original size.
 
 @item large-stack-frame
 The limit specifying large stack frames.  While inlining the algorithm is trying
@@ -7367,6 +7434,13 @@ Maximum size of a strongly connected component (SCC) during SCCVN
 processing.  If this limit is hit, SCCVN processing for the whole
 function will not be done and optimizations depending on it will
 be disabled.  The default maximum SCC size is 10000.
+
+@item ira-max-loops-num
+IRA uses a regional register allocation by default.  If a function
+contains loops more than number given by the parameter, non-regional
+register allocator will be used even when option
+@option{-fira-algorithm} is given.  The default value of the parameter
+is 20.
 
 @end table
 @end table
@@ -10795,6 +10869,8 @@ preferred alignment to @option{-mpreferred-stack-boundary=2}.
 @itemx -mno-sse4.2
 @itemx -msse4
 @itemx -mno-sse4
+@itemx -mavx
+@itemx -mno-avx
 @itemx -maes
 @itemx -mno-aes
 @itemx -mpclmul
@@ -10816,7 +10892,7 @@ preferred alignment to @option{-mpreferred-stack-boundary=2}.
 @opindex m3dnow
 @opindex mno-3dnow
 These switches enable or disable the use of instructions in the MMX,
-SSE, SSE2, SSE3, SSSE3, SSE4.1, AES, PCLMUL, SSE4A, SSE5, ABM or
+SSE, SSE2, SSE3, SSSE3, SSE4.1, AVX, AES, PCLMUL, SSE4A, SSE5, ABM or
 3DNow!@: extended instruction sets.
 These extensions are also available as built-in functions: see
 @ref{X86 Built-in Functions}, for details of the functions enabled and
@@ -10824,6 +10900,10 @@ disabled by these switches.
 
 To have SSE/SSE2 instructions generated automatically from floating-point
 code (as opposed to 387 instructions), see @option{-mfpmath=sse}.
+
+GCC depresses SSEx instructions when @option{-mavx} is used. Instead, it
+generates new AVX instructions or AVX equivalence for all SSEx instructions
+when needed.
 
 These options will enable GCC to use these extended instructions in
 generated code, even without @option{-mfpmath=sse}.  Applications which
@@ -11983,6 +12063,7 @@ The processor names are:
 @samp{74kc}, @samp{74kf2_1}, @samp{74kf1_1}, @samp{74kf3_2},
 @samp{loongson2e}, @samp{loongson2f},
 @samp{m4k},
+@samp{octeon},
 @samp{orion},
 @samp{r2000}, @samp{r3000}, @samp{r3900}, @samp{r4000}, @samp{r4400},
 @samp{r4600}, @samp{r4650}, @samp{r6000}, @samp{r8000},
@@ -12166,6 +12247,19 @@ of relocatable objects.  Using @option{-mno-shared} will generally make
 executables both smaller and quicker.
 
 @option{-mshared} is the default.
+
+@item -mplt
+@itemx -mno-plt
+@opindex mplt
+@opindex mno-plt
+Assume (do not assume) that the static and dynamic linkers
+support PLTs and copy relocations.  This option only affects
+@samp{-mno-shared -mabicalls}.  For the n64 ABI, this option
+has no effect without @samp{-msym32}.
+
+You can make @option{-mplt} the default by configuring
+GCC with @option{--with-mips-plt}.  The default is
+@option{-mno-plt} otherwise.
 
 @item -mxgot
 @itemx -mno-xgot
@@ -15212,8 +15306,34 @@ a single-threaded environment since stack overflow is automatically
 detected on nearly all systems if there is only one stack.
 
 Note that this switch does not actually cause checking to be done; the
-operating system must do that.  The switch causes generation of code
-to ensure that the operating system sees the stack being extended.
+operating system or the language runtime must do that.  The switch causes
+generation of code to ensure that they see the stack being extended.
+
+You can additionally specify a string parameter: @code{no} means no
+checking, @code{generic} means force the use of old-style checking,
+@code{specific} means use the best checking method and is equivalent
+to bare @option{-fstack-check}.
+
+Old-style checking is a generic mechanism that requires no specific
+target support in the compiler but comes with the following drawbacks:
+
+@enumerate
+@item
+Modified allocation strategy for large objects: they will always be
+allocated dynamically if their size exceeds a fixed threshold.
+
+@item
+Fixed limit on the size of the static frame of functions: when it is
+topped by a particular function, stack checking is not reliable and
+a warning is issued by the compiler.
+
+@item
+Inefficiency: because of both the modified allocation strategy and the
+generic implementation, the performances of the code are hampered.
+@end enumerate
+
+Note that old-style stack checking is also the fallback method for
+@code{specific} if no target support has been added in the compiler.
 
 @item -fstack-limit-register=@var{reg}
 @itemx -fstack-limit-symbol=@var{sym}

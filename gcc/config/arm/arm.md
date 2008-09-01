@@ -193,6 +193,8 @@
 ; scheduling of writes.
 
 ; Classification of each insn
+; Note: vfp.md has different meanings for some of these, and some further
+; types as well.  See that file for details.
 ; alu		any alu  instruction that doesn't hit memory or fp
 ;		regs or have a shifted source operand
 ; alu_shift	any data instruction that doesn't hit memory or fp
@@ -351,6 +353,7 @@
 (include "arm1136jfs.md")
 (include "cortex-a8.md")
 (include "cortex-r4.md")
+(include "vfp11.md")
 
 
 ;;---------------------------------------------------------------------------

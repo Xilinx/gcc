@@ -1041,19 +1041,19 @@
   "), (basilys_ptr_t)0)")
 
 (defprimitive informsg_strv (:cstring msg :value strv) :void
-  "inform((\"BASILYS INFORM [#%ld]: %s - %s\"), basilys_dbgcounter, ("
+  "inform(UNKNOWN_LOCATION, (\"BASILYS INFORM [#%ld]: %s - %s\"), basilys_dbgcounter, ("
   msg
   "), basilys_string_str((basilys_ptr_t)(" strv ")))"
   )
 
 (defprimitive informsg_plain (:cstring msg) :void
-  "inform((\"BASILYS INFORM [#%ld]: %s \"),  basilys_dbgcounter, ("
+  "inform(UNKNOWN_LOCATION, (\"BASILYS INFORM [#%ld]: %s \"),  basilys_dbgcounter, ("
   msg
   "))"
   )
 
 (defprimitive informsg_long (:cstring msg :long n) :void
-  "inform((\"BASILYS INFORM [#%ld]: %s * %ld\"),  basilys_dbgcounter, ("  msg  "), (" n "))"
+  "inform(UNKNOWN_LOCATION, (\"BASILYS INFORM [#%ld]: %s * %ld\"),  basilys_dbgcounter, ("  msg  "), (" n "))"
   )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

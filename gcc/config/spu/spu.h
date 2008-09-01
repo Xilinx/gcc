@@ -196,6 +196,9 @@ enum reg_class {
    LIM_REG_CLASSES 
 };
 
+/* SPU is simple, it really only has one class of registers.  */
+#define IRA_COVER_CLASSES { GENERAL_REGS, LIM_REG_CLASSES }
+
 #define N_REG_CLASSES (int) LIM_REG_CLASSES
 
 #define REG_CLASS_NAMES \
@@ -431,7 +434,7 @@ targetm.resolve_overloaded_builtin = spu_resolve_overloaded_builtin;	\
 
 /* Costs */
 
-#define BRANCH_COST spu_branch_cost
+#define BRANCH_COST(speed_p, predictable_p) spu_branch_cost
 
 #define SLOW_BYTE_ACCESS 0
 
@@ -568,6 +571,11 @@ targetm.resolve_overloaded_builtin = spu_resolve_overloaded_builtin;	\
 /* Cost of vector store.  */
 #undef TARG_VEC_STORE_COST
 #define TARG_VEC_STORE_COST          1
+
+/* Cost of vector permutation.  */
+#ifndef TARG_VEC_PERMUTE_COST
+#define TARG_VEC_PERMUTE_COST        1 
+#endif
 
 
 /* Misc */

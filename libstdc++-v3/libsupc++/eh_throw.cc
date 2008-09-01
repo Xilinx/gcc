@@ -1,5 +1,6 @@
 // -*- C++ -*- Exception handling routines for throwing.
-// Copyright (C) 2001, 2003, 2008 Free Software Foundation, Inc.
+// Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
+// Free Software Foundation, Inc.
 //
 // This file is part of GCC.
 //
@@ -46,13 +47,17 @@ __gxx_exception_cleanup (_Unwind_Reason_Code code, _Unwind_Exception *exc)
   if (code != _URC_FOREIGN_EXCEPTION_CAUGHT && code != _URC_NO_REASON)
     __terminate (header->terminateHandler);
 
-  if (__gnu_cxx::__exchange_and_add_dispatch (&header->referenceCount, -1) == 0)
+#ifdef _GLIBCXX_ATOMIC_BUILTINS_4
+  if (__sync_sub_and_fetch (&header->referenceCount, 1) == 0)
     {
+#endif
       if (header->exceptionDestructor)
         header->exceptionDestructor (header + 1);
 
       __cxa_free_exception (header + 1);
+#ifdef _GLIBCXX_ATOMIC_BUILTINS_4
     }
+#endif
 }
 
 
@@ -62,7 +67,7 @@ __cxxabiv1::__cxa_throw (void *obj, std::type_info *tinfo,
 {
   // Definitely a primary.
   __cxa_exception *header = __get_exception_header_from_obj (obj);
-  header->referenceCount = 0;
+  header->referenceCount = 1;
   header->exceptionType = tinfo;
   header->exceptionDestructor = dest;
   header->unexpectedHandler = __unexpected_handler;

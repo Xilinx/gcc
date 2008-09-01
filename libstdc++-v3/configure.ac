@@ -100,11 +100,11 @@ GLIBCXX_ENABLE_PCH($is_hosted)
 GLIBCXX_ENABLE_ATOMIC_BUILTINS
 GLIBCXX_ENABLE_THREADS
 
-# Checks for compiler support that don't require linking.
+# Checks for compiler support that doesn't require linking.
 GLIBCXX_CHECK_COMPILER_FEATURES
 GLIBCXX_CHECK_STANDARD_LAYOUT
 
-# Enable all the variable C++ runtime options that doesn't require linking.
+# Enable all the variable C++ runtime options that don't require linking.
 GLIBCXX_ENABLE_CSTDIO
 GLIBCXX_ENABLE_CLOCALE
 GLIBCXX_ENABLE_ALLOCATOR
@@ -119,11 +119,23 @@ GLIBCXX_ENABLE_PARALLEL([yes])
 GLIBCXX_ENABLE_CXX_FLAGS
 GLIBCXX_ENABLE_FULLY_DYNAMIC_STRING([no])
 
-# Checks for operating systems support that don't require linking.
+# Checks for operating systems support that doesn't require linking.
 GLIBCXX_CHECK_SYSTEM_ERROR
 
 # For the streamoff typedef.
 GLIBCXX_CHECK_INT64_T
+
+# For LFS support.
+GLIBCXX_CHECK_LFS
+
+# For showmanyc_helper().
+AC_CHECK_HEADERS(sys/ioctl.h sys/filio.h)
+GLIBCXX_CHECK_POLL
+GLIBCXX_CHECK_S_ISREG_OR_S_IFREG
+
+# For xsputn_2().
+AC_CHECK_HEADERS(sys/uio.h)
+GLIBCXX_CHECK_WRITEV
 
 # For C99 support to TR1.
 GLIBCXX_CHECK_C99_TR1
@@ -131,51 +143,44 @@ GLIBCXX_CHECK_C99_TR1
 # For common values of EOF, SEEK_CUR, SEEK_END.
 GLIBCXX_CHECK_STDIO_MACROS
 
+# For gettimeofday support.
+GLIBCXX_CHECK_GETTIMEOFDAY
+
+# For clock_gettime support.
+# NB: The default is [no], because otherwise it requires linking.
+GLIBCXX_ENABLE_CLOCK_GETTIME([no])
+
+# For gthread support
+GLIBCXX_CHECK_GTHREADS
+
+AC_LC_MESSAGES
+
+# Check for available headers.
+AC_CHECK_HEADERS([endian.h float.h fp.h ieeefp.h inttypes.h locale.h \
+machine/endian.h machine/param.h nan.h stdint.h stdlib.h string.h \
+strings.h sys/ipc.h sys/isa_defs.h sys/machine.h sys/param.h \
+sys/resource.h sys/sem.h sys/stat.h sys/time.h sys/types.h unistd.h \
+wchar.h wctype.h])
+
 # Only do link tests if native. Else, hardcode.
 if $GLIBCXX_IS_NATIVE; then
 
   # We can do more elaborate tests that assume a working linker.
   CANADIAN=no
 
-  # Check for available headers.
-  AC_CHECK_HEADERS([nan.h ieeefp.h endian.h sys/isa_defs.h machine/endian.h \
-  machine/param.h sys/machine.h fp.h locale.h float.h inttypes.h \
-  sys/types.h sys/ipc.h sys/sem.h])
-
   GLIBCXX_CHECK_LINKER_FEATURES
   GLIBCXX_CHECK_MATH_SUPPORT
-  GLIBCXX_CHECK_BUILTIN_MATH_SUPPORT
   GLIBCXX_CHECK_COMPLEX_MATH_SUPPORT
   GLIBCXX_CHECK_STDLIB_SUPPORT
 
-  # For showmanyc_helper().
-  AC_CHECK_HEADERS(sys/ioctl.h sys/filio.h)
-  GLIBCXX_CHECK_POLL
-  GLIBCXX_CHECK_S_ISREG_OR_S_IFREG
-
-  # For xsputn_2().
-  AC_CHECK_HEADERS(sys/uio.h)
-  GLIBCXX_CHECK_WRITEV
-
-  # For LFS support.
-  GLIBCXX_CHECK_LFS
-
-  # For dev/random and dev/urandom for TR1.
+  # For /dev/random and /dev/urandom for TR1.
   GLIBCXX_CHECK_RANDOM_TR1
-
-  # For clock_gettime support.
-  GLIBCXX_CHECK_CLOCK_GETTIME
-
-  # For gettimeofday support.
-  GLIBCXX_CHECK_GETTIMEOFDAY
 
   # For TLS support.
   GCC_CHECK_TLS
 
   # For _Unwind_GetIPInfo.
   GCC_CHECK_UNWIND_GETIPINFO
-
-  AC_LC_MESSAGES
 
   # For iconv support.
   AM_ICONV
@@ -208,7 +213,6 @@ else
   fi
 
   # Construct crosses by hand, eliminating bits that need ld...
-  # GLIBCXX_CHECK_BUILTIN_MATH_SUPPORT
   # GLIBCXX_CHECK_MATH_SUPPORT
 
   # First, test for "known" system libraries.  We may be using newlib even
@@ -244,9 +248,6 @@ else
     AC_DEFINE(HAVE_SQRTF)
     AC_DEFINE(HAVE_TANF)
     AC_DEFINE(HAVE_TANHF)
-
-    AC_DEFINE(HAVE_S_ISREG)
-    AC_DEFINE(HAVE_S_IFREG)
 
     AC_DEFINE(HAVE_ICONV)
   else

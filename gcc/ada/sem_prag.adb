@@ -1383,10 +1383,7 @@ package body Sem_Prag is
             --  the end of the package declarations (for details, see
             --  Analyze_Package_Specification.Analyze_PPCs).
 
-            if Ekind (Scope (S)) /= E_Package
-                 and then
-               Ekind (Scope (S)) /= E_Generic_Package
-            then
+            if not Is_Package_Or_Generic_Package (Scope (S)) then
                Analyze_PPC_In_Decl_Part (N, S);
             end if;
 
@@ -3539,8 +3536,7 @@ package body Sem_Prag is
 
          elsif (C = Convention_Java or else C = Convention_CIL)
            and then
-             (Ekind (Def_Id) = E_Package
-                or else Ekind (Def_Id) = E_Generic_Package
+             (Is_Package_Or_Generic_Package (Def_Id)
                 or else Ekind (Def_Id) = E_Exception
                 or else Nkind (Parent (Def_Id)) = N_Component_Declaration)
          then
@@ -4307,9 +4303,7 @@ package body Sem_Prag is
          E    : Entity_Id;
 
          In_Package_Spec : constant Boolean :=
-                             (Ekind (Current_Scope) = E_Package
-                                or else
-                              Ekind (Current_Scope) = E_Generic_Package)
+                             Is_Package_Or_Generic_Package (Current_Scope)
                                and then not In_Package_Body (Current_Scope);
 
          procedure Suppress_Unsuppress_Echeck (E : Entity_Id; C : Check_Id);
@@ -5294,6 +5288,25 @@ package body Sem_Prag is
             Set_Next_Pragma (N, Opt.Check_Policy_List);
             Opt.Check_Policy_List := N;
          end Assertion_Policy;
+
+         ------------------------------
+         -- Assume_No_Invalid_Values --
+         ------------------------------
+
+         --  pragma Assume_No_Invalid_Values (On | Off);
+
+         when Pragma_Assume_No_Invalid_Values =>
+            GNAT_Pragma;
+            Check_Valid_Configuration_Pragma;
+            Check_Arg_Count (1);
+            Check_No_Identifiers;
+            Check_Arg_Is_One_Of (Arg1, Name_On, Name_Off);
+
+            if Chars (Expression (Arg1)) = Name_On then
+               Assume_No_Invalid_Values := True;
+            else
+               Assume_No_Invalid_Values := False;
+            end if;
 
          ---------------
          -- AST_Entry --
@@ -6321,8 +6334,8 @@ package body Sem_Prag is
          --  pragma Discard_Names [([On =>] LOCAL_NAME)];
 
          when Pragma_Discard_Names => Discard_Names : declare
-            E_Id : Entity_Id;
             E    : Entity_Id;
+            E_Id : Entity_Id;
 
          begin
             Check_Ada_83_Warning;
@@ -6352,6 +6365,7 @@ package body Sem_Prag is
                   Check_Arg_Count (1);
                   Check_Optional_Identifier (Arg1, Name_On);
                   Check_Arg_Is_Local_Name (Arg1);
+
                   E_Id := Expression (Arg1);
 
                   if Etype (E_Id) = Any_Type then
@@ -6361,8 +6375,8 @@ package body Sem_Prag is
                   end if;
 
                   if (Is_First_Subtype (E)
-                       and then (Is_Enumeration_Type (E)
-                                  or else Is_Tagged_Type (E)))
+                      and then
+                        (Is_Enumeration_Type (E) or else Is_Tagged_Type (E)))
                     or else Ekind (E) = E_Exception
                   then
                      Set_Discard_Names (E);
@@ -6370,6 +6384,7 @@ package body Sem_Prag is
                      Error_Pragma_Arg
                        ("inappropriate entity for pragma%", Arg1);
                   end if;
+
                end if;
             end if;
          end Discard_Names;
@@ -9069,9 +9084,11 @@ package body Sem_Prag is
                if Present (Ename) then
 
                   --  If entity name matches, we are fine
+                  --  Save entity in pragma argument, for ASIS use.
 
                   if Chars (Ename) = Chars (Ent) then
-                     null;
+                     Set_Entity (Ename, Ent);
+                     Generate_Reference (Ent, Ename);
 
                   --  If entity name does not match, only possibility is an
                   --  enumeration literal from an enumeration type declaration.
@@ -9089,6 +9106,8 @@ package body Sem_Prag is
                               "enumeration literal");
 
                         elsif Chars (Ent) = Chars (Ename) then
+                           Set_Entity (Ename, Ent);
+                           Generate_Reference (Ent, Ename);
                            exit;
 
                         else
@@ -9215,9 +9234,7 @@ package body Sem_Prag is
                   declare
                      Ent : constant Entity_Id := Find_Lib_Unit_Name;
                   begin
-                     if Ekind (Ent) = E_Package
-                       or else Ekind (Ent) = E_Generic_Package
-                     then
+                     if Is_Package_Or_Generic_Package (Ent) then
                         Set_Obsolescent (Ent);
                         return;
                      end if;
@@ -12204,6 +12221,7 @@ package body Sem_Prag is
       Pragma_Annotate                      => -1,
       Pragma_Assert                        => -1,
       Pragma_Assertion_Policy              =>  0,
+      Pragma_Assume_No_Invalid_Values      =>  0,
       Pragma_Asynchronous                  => -1,
       Pragma_Atomic                        =>  0,
       Pragma_Atomic_Components             =>  0,

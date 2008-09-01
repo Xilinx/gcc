@@ -134,8 +134,7 @@ package body Freeze is
    --  the designated type. Otherwise freezing the access type does not freeze
    --  the designated type.
 
-   procedure Generate_Prim_Op_References
-     (Typ      : Entity_Id);
+   procedure Generate_Prim_Op_References (Typ : Entity_Id);
    --  For a tagged type, generate implicit references to its primitive
    --  operations, for source navigation.
 
@@ -519,7 +518,7 @@ package body Freeze is
          --  the address expression must be a constant.
 
          if (No (Expression (Decl))
-              and then not Controlled_Type (Typ)
+              and then not Needs_Finalization (Typ)
               and then
                 (not Has_Non_Null_Base_Init_Proc (Typ)
                   or else Is_Imported (E)))
@@ -548,7 +547,7 @@ package body Freeze is
          end if;
 
          if not Error_Posted (Expr)
-           and then not Controlled_Type (Typ)
+           and then not Needs_Finalization (Typ)
          then
             Warn_Overlay (Expr, Typ, Name (Addr));
          end if;
@@ -1382,7 +1381,7 @@ package body Freeze is
          elsif Is_Access_Type (E)
            and then Comes_From_Source (E)
            and then Ekind (Directly_Designated_Type (E)) = E_Incomplete_Type
-           and then Controlled_Type (Designated_Type (E))
+           and then Needs_Finalization (Designated_Type (E))
            and then No (Associated_Final_Chain (E))
          then
             Build_Final_List (Parent (E), E);
@@ -1796,18 +1795,21 @@ package body Freeze is
                                     & "(component is little-endian)?", CLC);
                               end if;
 
-                              --  Do not allow non-contiguous field
+                           --  Do not allow non-contiguous field
 
                            else
                               Error_Msg_N
-                                ("attempt to specify non-contiguous field"
-                                 & " not permitted", CLC);
+                                ("attempt to specify non-contiguous field "
+                                 & "not permitted", CLC);
                               Error_Msg_N
-                                ("\(caused by non-standard Bit_Order "
-                                 & "specified)", CLC);
+                                ("\caused by non-standard Bit_Order "
+                                 & "specified", CLC);
+                              Error_Msg_N
+                                ("\consider possibility of using "
+                                 & "Ada 2005 mode here", CLC);
                            end if;
 
-                           --  Case where field fits in one storage unit
+                        --  Case where field fits in one storage unit
 
                         else
                            --  Give warning if suspicious component clause
@@ -2602,13 +2604,13 @@ package body Freeze is
 
                      --  Ada 2005 (AI-326): Check wrong use of tagged
                      --  incomplete type
-                     --
+
                      --    type T is tagged;
                      --    function F (X : Boolean) return T; -- ERROR
-                     --  The type must be declared in the current scope
-                     --  for the use to be legal, and the full view
-                     --  must be available when the construct that mentions
-                     --  it is frozen.
+
+                     --  The type must be declared in the current scope for the
+                     --  use to be legal, and the full view must be available
+                     --  when the construct that mentions it is frozen.
 
                      elsif Ekind (Etype (E)) = E_Incomplete_Type
                        and then Is_Tagged_Type (Etype (E))
@@ -2654,7 +2656,6 @@ package body Freeze is
 
                begin
                   T := First_Entity (E);
-
                   while Present (T) loop
                      if Is_Type (T) then
                         Generate_Prim_Op_References (T);
@@ -5207,16 +5208,14 @@ package body Freeze is
    -- Generate_Prim_Op_References --
    ---------------------------------
 
-   procedure Generate_Prim_Op_References
-     (Typ      : Entity_Id)
-   is
+   procedure Generate_Prim_Op_References (Typ : Entity_Id) is
       Base_T    : Entity_Id;
       Prim      : Elmt_Id;
       Prim_List : Elist_Id;
       Ent       : Entity_Id;
 
    begin
-      --  Handle subtypes of synchronized types.
+      --  Handle subtypes of synchronized types
 
       if Ekind (Typ) = E_Protected_Subtype
         or else Ekind (Typ) = E_Task_Subtype

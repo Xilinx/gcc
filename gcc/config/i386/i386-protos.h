@@ -128,6 +128,7 @@ extern int ix86_check_movabs (rtx, int);
 extern rtx assign_386_stack_local (enum machine_mode, enum ix86_stack_slot);
 extern int ix86_attr_length_immediate_default (rtx, int);
 extern int ix86_attr_length_address_default (rtx);
+extern int ix86_attr_length_vex_default (rtx, int, int);
 
 extern enum machine_mode ix86_fp_compare_mode (enum rtx_code);
 
@@ -203,7 +204,7 @@ extern int ix86_constant_alignment (tree, int);
 extern tree ix86_handle_shared_attribute (tree *, tree, tree, int, bool *);
 extern tree ix86_handle_selectany_attribute (tree *, tree, tree, int, bool *);
 extern int x86_field_alignment (tree, int);
-extern tree ix86_valid_option_attribute_tree (tree);
+extern tree ix86_valid_target_attribute_tree (tree);
 #endif
 
 extern rtx ix86_tls_get_addr (void);

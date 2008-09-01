@@ -173,6 +173,8 @@ struct cgraph_node_hook_list *first_cgraph_node_removal_hook;
 struct cgraph_2edge_hook_list *first_cgraph_edge_duplicated_hook;
 /* List of hooks triggered when a node is duplicated.  */
 struct cgraph_2node_hook_list *first_cgraph_node_duplicated_hook;
+/* List of hooks triggered when an function is inserted.  */
+struct cgraph_node_hook_list *first_cgraph_function_insertion_hook;
 
 
 /* Register HOOK to be called with DATA on each removed edge.  */
@@ -248,6 +250,46 @@ static void
 cgraph_call_node_removal_hooks (struct cgraph_node *node)
 {
   struct cgraph_node_hook_list *entry = first_cgraph_node_removal_hook;
+  while (entry)
+  {
+    entry->hook (node, entry->data);
+    entry = entry->next;
+  }
+}
+
+/* Register HOOK to be called with DATA on each removed node.  */
+struct cgraph_node_hook_list *
+cgraph_add_function_insertion_hook (cgraph_node_hook hook, void *data)
+{
+  struct cgraph_node_hook_list *entry;
+  struct cgraph_node_hook_list **ptr = &first_cgraph_function_insertion_hook;
+
+  entry = (struct cgraph_node_hook_list *) xmalloc (sizeof (*entry));
+  entry->hook = hook;
+  entry->data = data;
+  entry->next = NULL;
+  while (*ptr)
+    ptr = &(*ptr)->next;
+  *ptr = entry;
+  return entry;
+}
+
+/* Remove ENTRY from the list of hooks called on removing nodes.  */
+void
+cgraph_remove_function_insertion_hook (struct cgraph_node_hook_list *entry)
+{
+  struct cgraph_node_hook_list **ptr = &first_cgraph_function_insertion_hook;
+
+  while (*ptr != entry)
+    ptr = &(*ptr)->next;
+  *ptr = entry->next;
+}
+
+/* Call all node removal hooks.  */
+void
+cgraph_call_function_insertion_hooks (struct cgraph_node *node)
+{
+  struct cgraph_node_hook_list *entry = first_cgraph_function_insertion_hook;
   while (entry)
   {
     entry->hook (node, entry->data);
@@ -516,7 +558,7 @@ cgraph_edge (struct cgraph_node *node, gimple call_stmt)
   if (node->call_site_hash)
     return (struct cgraph_edge *)
       htab_find_with_hash (node->call_site_hash, call_stmt,
-			   htab_hash_pointer (call_stmt));
+      	                   htab_hash_pointer (call_stmt));
 
   /* This loop may turn out to be performance problem.  In such case adding
      hashtables into call nodes with very many edges is probably best
@@ -815,6 +857,7 @@ cgraph_remove_node (struct cgraph_node *node)
 {
   void **slot;
   bool kill_body = false;
+  struct cgraph_node *n;
 
   cgraph_call_node_removal_hooks (node);
   cgraph_node_remove_callers (node);
@@ -823,8 +866,9 @@ cgraph_remove_node (struct cgraph_node *node)
   /* Incremental inlining access removed nodes stored in the postorder list.
      */
   node->needed = node->reachable = false;
-  while (node->nested)
-    cgraph_remove_node (node->nested);
+  for (n = node->nested; n; n = n->next_nested)
+    n->origin = NULL;
+  node->nested = NULL;
   if (node->origin)
     {
       struct cgraph_node **node2 = &node->origin->nested;
@@ -1208,7 +1252,12 @@ cgraph_clone_node (struct cgraph_node *n, gcov_type count, int freq,
   new_node->master_clone = n->master_clone;
   new_node->count = count;
   if (n->count)
-    count_scale = new_node->count * REG_BR_PROB_BASE / n->count;
+    {
+      if (new_node->count > n->count)
+        count_scale = REG_BR_PROB_BASE;
+      else
+        count_scale = new_node->count * REG_BR_PROB_BASE / n->count;
+    }
   else
     count_scale = 0;
   if (update_original)
