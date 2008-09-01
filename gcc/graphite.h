@@ -336,6 +336,14 @@ extern void dot_scop (scop_p);
 extern void dot_all_scops (void);
 extern void debug_clast_stmt (struct clast_stmt *);
 
+
+extern void debug_loop_vec (graphite_bb_p gb);
+extern void debug_oldivs (scop_p);
+
+typedef VEC(name_tree, heap) **loop_iv_stack;
+extern void loop_iv_stack_debug (loop_iv_stack);
+
+
 /* Return the number of gimple loops contained in SCOP.  */
 
 static inline int

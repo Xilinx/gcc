@@ -1,3 +1,15 @@
+2008-09-01  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite.c: Add more documentation.  Fix formatting.
+	(debug_loop_vec, debug_oldivs, loop_iv_stack,
+	loop_iv_stack_debug): Moved...
+	(schedule_to_scattering): Move before use.
+	(dot_all_scops): Include in "#if 0" the code for system
+	call dotty.
+
+	* graphite.h: (debug_loop_vec, debug_oldivs, loop_iv_stack,
+	loop_iv_stack_debug): ...here.
+
 2008-08-29  Jan Sjodin  <jan.sjodin@amd.com>
 
 	* tree-phinodes.c (make_phi_node): Extern.
