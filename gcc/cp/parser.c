@@ -2451,6 +2451,7 @@ cp_parser_skip_to_closing_parenthesis (cp_parser *parser,
 {
   unsigned paren_depth = 0;
   unsigned brace_depth = 0;
+  unsigned square_depth = 0;
 
   if (recovering && !or_comma
       && cp_parser_uncommitted_to_tentative_parse_p (parser))
@@ -2467,6 +2468,15 @@ cp_parser_skip_to_closing_parenthesis (cp_parser *parser,
 	  /* If we've run out of tokens, then there is no closing `)'.  */
 	  return 0;
 
+        /* This is good for lambda expression capture-lists.  */
+        case CPP_OPEN_SQUARE:
+          ++square_depth;
+          break;
+        case CPP_CLOSE_SQUARE:
+          if (!square_depth--)
+            return 0;
+          break;
+
 	case CPP_SEMICOLON:
 	  /* This matches the processing in skip_to_end_of_statement.  */
 	  if (!brace_depth)
@@ -2482,7 +2492,7 @@ cp_parser_skip_to_closing_parenthesis (cp_parser *parser,
 	  break;
 
 	case CPP_COMMA:
-	  if (recovering && or_comma && !brace_depth && !paren_depth)
+	  if (recovering && or_comma && !brace_depth && !paren_depth && !square_depth)
 	    return -1;
 	  break;
 
@@ -6710,35 +6720,13 @@ cp_parser_trait_expr (cp_parser* parser, enum rid keyword)
   return finish_trait_expr (kind, type1, type2);
 }
 
-cxx_scope* innermost_scope_of_kind (cxx_scope* scope, scope_kind kind)
-{
-  while (scope && scope->kind != kind)
-    scope = scope->level_chain;
-  return scope;
-}
+/* Parse a lambda expression.
 
-bool lambda_scope_p (cxx_scope* scope)
-{
-  scope = innermost_scope_of_kind (scope, sk_class);
-  return (scope) ? (LAMBDA_TYPE_P (scope->this_entity)) : (false);
-}
+   lambda-expression:
+     lambda-introducer lambda-parameter-declaration [opt] compound-statement
 
-bool inner_scope_p (cxx_scope* inner, cxx_scope* outer)
-{
-  gcc_assert (outer);
-  while (inner && inner != outer)
-    inner = inner->level_chain;
-  return inner == outer;
-}
+   Returns a representation of the expression.  */
 
-bool proper_inner_scope_p (cxx_scope* inner, cxx_scope* outer)
-{
-  gcc_assert (inner && outer);
-  inner = inner->level_chain;
-  return inner_scope_p (inner, outer);
-}
-
-/* Parse a lambda expression */
 static tree
 cp_parser_lambda_expression (cp_parser* parser)
 {
@@ -6762,6 +6750,8 @@ cp_parser_lambda_expression (cp_parser* parser)
 
   type = finish_struct (type, /*attributes=*/NULL_TREE);
 
+  /* We want access to private members from anywhere within a member function,
+   * even in lambda expressions.  */
   if (current_class_type)
     make_friend_class (current_class_type, type, /*complain=*/false);
 
@@ -6795,14 +6785,22 @@ cp_parser_lambda_expression (cp_parser* parser)
   return finish_compound_literal (TREE_TYPE (type), expr);
 }
 
+/* Parse the beginning of a lambda expression.
+
+   lambda-introducer:
+     [ lambda-capture [opt] ]
+
+   LAMBDA_EXPR is the current representation of the lambda expression.  */
+
 static void
-cp_parser_lambda_introducer (cp_parser* parser, tree lambda_expr)
+cp_parser_lambda_introducer (cp_parser* parser,
+    tree lambda_expr)
 {
   /* Need commas after the first capture.  */
   bool first = true;
 
   /* Eat the leading `['. */
-  cp_lexer_consume_token (parser->lexer);
+  cp_parser_require (parser, CPP_OPEN_SQUARE, "%<[%>");
 
   /* Record default capture mode. */
   if (cp_lexer_next_token_is (parser->lexer, CPP_AND)
@@ -6820,6 +6818,13 @@ cp_parser_lambda_introducer (cp_parser* parser, tree lambda_expr)
 
   while (cp_lexer_next_token_is_not (parser->lexer, CPP_CLOSE_SQUARE))
   {
+
+    if (cp_lexer_next_token_is (parser->lexer, CPP_EOF))
+    {
+      error ("expected end of capture-list");
+      return;
+    }
+
     tree capture_id;
     tree capture_init_expr;
 
@@ -6838,12 +6843,12 @@ cp_parser_lambda_introducer (cp_parser* parser, tree lambda_expr)
     /* Possibly capture `this'. */
     if (cp_lexer_next_token_is_keyword (parser->lexer, RID_THIS))
     {
+      cp_lexer_consume_token (parser->lexer);
       add_capture (
           lambda_expr,
           /*id=*/get_identifier ("__this"),
           /*initializer=*/finish_this_expr(),
           /*by_reference_p=*/false);
-      cp_lexer_consume_token (parser->lexer);
       continue;
     }
 
@@ -6859,6 +6864,16 @@ cp_parser_lambda_introducer (cp_parser* parser, tree lambda_expr)
     /* Get the identifier. */
     cp_token* capture_token = cp_lexer_peek_token (parser->lexer);
     capture_id = cp_parser_identifier (parser);
+
+    if (capture_id == error_mark_node)
+      /* Would be nice to have a cp_parser_skip_to_closing_x for general
+       * delimiters, but I modified this to stop on unnested ']' as well. It was
+       * already changed to stop on unnested '}', so the "closing_parenthesis"
+       * name is no more misleading with my change.  */
+      cp_parser_skip_to_closing_parenthesis (parser,
+          /*recovering=*/true,
+          /*or_comma=*/true,
+          /*consume_paren=*/true);
 
     /* Find the initializer for this capture.  */
     if (cp_lexer_next_token_is (parser->lexer, CPP_EQ))
@@ -6910,6 +6925,14 @@ cp_parser_lambda_introducer (cp_parser* parser, tree lambda_expr)
   cp_parser_require (parser, CPP_CLOSE_SQUARE, "%<]%>");
 
 }
+
+/* Parse the (optional) middle of a lambda expression.
+
+   lambda-parameter-declaration:
+     ( lambda-parameter-declaration-list [opt] ) exception-specification [opt]
+       lambda-return-type-clause [opt]
+
+   LAMBDA_EXPR is the current representation of the lambda expression.  */
 
 static void
 cp_parser_lambda_parameter_declaration_opt (cp_parser* parser,
@@ -7014,6 +7037,13 @@ cp_parser_lambda_parameter_declaration_opt (cp_parser* parser,
   }
 
 }
+
+/* Parse the body of a lambda expression, which is simply
+
+   compound-statement
+
+   but which requires special handling.
+   LAMBDA_EXPR is the current representation of the lambda expression.  */
 
 static void
 cp_parser_lambda_body (cp_parser* parser,
