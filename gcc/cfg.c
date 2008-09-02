@@ -450,7 +450,7 @@ check_bb_profile (basic_block bb, FILE * file)
   gcov_type lsum;
   edge_iterator ei;
 
-  if (profile_status == PROFILE_ABSENT)
+  if (!cfun || profile_status == PROFILE_ABSENT)
     return;
 
   if (bb != EXIT_BLOCK_PTR)

@@ -1436,11 +1436,15 @@ bb_starting_displayer (struct comprobe_whatpos_st *wp,
   comprobe_ix_t ix = (comprobe_ix_t) data;
   char pfx[24];
   basic_block bb = NULL;
+  gimple_seq phis = NULL;
   debugeprintf ("bb_starting_displayer ix %d", (int) ix);
   comprobe_bb_ok_rtl = 1;
   if (ix > 0 && ix < VEC_length (basic_block, unique_bb_vector))
     {
       bb = VEC_index (basic_block, unique_bb_vector, ix);
+      debugeprintf ("bb_starting_displayer bb %p", (void*) bb);
+      if (flag_compiler_probe_debug) 
+	gimple_debug_bb(bb);
       comprobe_printf
 	("// starting basic block _%ld #%d shown when '%s' \n// from gcc file %s line %d\n",
 	 (long) ix, di->idis_infp->infp_num, wp->wp_what,
@@ -1451,19 +1455,23 @@ bb_starting_displayer (struct comprobe_whatpos_st *wp,
       dump_bb_info (bb, true, true,
 		    TDF_DETAILS | TDF_LINENO | TDF_VOPS | TDF_MEMSYMS,
 		    pfx, comprobe_replf);
-      if (phi_nodes(bb))
+      phis = phi_nodes(bb);
+      debugeprintf ("bb_starting_displayer phis %p", (void*) phis);
+      if (phis)
 	{
-	  gimple_stmt_iterator gsi;
+	  gimple_stmt_iterator gsi = {0};
 	  comprobe_printf ("\n// basic block phi_nodes _%ld #%d is\n",
 			   ix, di->idis_infp->infp_num);
-	  for (gsi = gsi_start_phis (bb); !gsi_end_p (gsi); gsi_next (&gsi)) {
+	  for (gsi = gsi_start (phis); !gsi_end_p (gsi); gsi_next (&gsi)) {
 	    gimple g = gsi_stmt(gsi);
+	    debugeprintf ("bb_starting_displayer gimple g %p", (void*) g);
 	    display_gimple(g, di);
 	    comprobe_display_add_navigator
 	      (di, tree_starting_displayer,
 	       "phi nodes", comprobe_unique_index_of_gimple(g));
 	  }
 	};
+      debugeprintf ("bb_starting_displayer again bb %p", (void*) bb);
       /* basic blocks [almost?] always have statements */
       {
 	gimple_stmt_iterator gsi;
@@ -1499,6 +1507,7 @@ bb_ending_displayer (struct comprobe_whatpos_st *wp,
   if (ix > 0 && ix < VEC_length (basic_block, unique_bb_vector))
     {
       bb = VEC_index (basic_block, unique_bb_vector, ix);
+      debugeprintf ("bb_ending_displayer bb %p", (void*) bb);  
       comprobe_printf
 	("// ending basic block _%ld #%d shown when '%s'\n// from gcc file %s line %d\n",
 	 ix, infoptrk, wp->wp_what, basename (wp->wp_file), wp->wp_line);
@@ -2241,9 +2250,11 @@ add_infopoint_basic_block (basic_block bb)
   int stmtcnt = 0;
   comprobe_ix_t bbix = 0;
   bool bbgotpos = 0;
-  debugeprintf ("add_infopoint_basic_block bb %p start", (void*)bb);
+  debugeprintf ("add_infopoint_basic_block bb %p #%d start", (void*)bb, bb?bb->index:-1);
   if (bb == NULL)
     return;
+  if (flag_compiler_probe_debug) 
+    dump_bb(bb, stderr, 0);
   bbix = comprobe_unique_index_of_basic_block (bb);
   gcc_assert (bbix > 2);
   bbgotpos = FALSE;
@@ -2359,7 +2370,7 @@ struct gimple_opt_pass pass_compiler_probe =
     NULL,				/* next */
     0,				/* static_pass_number */
     0,				/* tv_id */
-    0 /*PROP_cfg | PROP_ssa */ ,	/* properties_required */
+    PROP_cfg,			/* properties_required */
     0,				/* properties_provided */
     0,				/* properties_destroyed */
     0,				/* todo_flags_start */

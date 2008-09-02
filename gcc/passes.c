@@ -653,6 +653,8 @@ init_optimization_passes (void)
       NEXT_PASS (pass_pre);
       NEXT_PASS (pass_sink_code);
       NEXT_PASS (pass_tree_loop);
+      /* pass_compiler_probe does not work here */
+
 	{
 	  struct opt_pass **p = &pass_tree_loop.pass.sub;
 	  NEXT_PASS (pass_tree_loop_init);
@@ -715,12 +717,14 @@ init_optimization_passes (void)
       NEXT_PASS (pass_basilys_lateopt); 
 #endif /*ENABLE_BASILYSMELT*/
     }
+
   NEXT_PASS (pass_del_ssa);
   NEXT_PASS (pass_nrv);
   NEXT_PASS (pass_mark_used_blocks);
   NEXT_PASS (pass_cleanup_cfg_post_optimizing);
 
-#if  ENABLE_COMPILER_PROBE
+
+#if ENABLE_COMPILER_PROBE
   NEXT_PASS(pass_compiler_probe);
 #endif
 
