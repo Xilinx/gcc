@@ -222,66 +222,69 @@ package body Sem_Ch13 is
       Comp   := First_Component_Or_Discriminant (R);
       while Present (Comp) loop
          declare
-            CC    : constant Node_Id := Component_Clause (Comp);
-            Fbit  : constant Uint    := Static_Integer (First_Bit (CC));
+            CC : constant Node_Id := Component_Clause (Comp);
 
          begin
             if Present (CC) then
+               declare
+                  Fbit : constant Uint := Static_Integer (First_Bit (CC));
 
-               --  Case of component with size > max machine scalar
+               begin
+                  --  Case of component with size > max machine scalar
 
-               if Esize (Comp) > Max_Machine_Scalar_Size then
+                  if Esize (Comp) > Max_Machine_Scalar_Size then
 
-                  --  Must begin on byte boundary
+                     --  Must begin on byte boundary
 
-                  if Fbit mod SSU /= 0 then
-                     Error_Msg_N
-                       ("illegal first bit value for reverse bit order",
-                        First_Bit (CC));
-                     Error_Msg_Uint_1 := SSU;
-                     Error_Msg_Uint_2 := Max_Machine_Scalar_Size;
-
-                     Error_Msg_N
-                       ("\must be a multiple of ^ if size greater than ^",
-                        First_Bit (CC));
-
-                  --  Must end on byte boundary
-
-                  elsif Esize (Comp) mod SSU /= 0 then
-                     Error_Msg_N
-                       ("illegal last bit value for reverse bit order",
-                        Last_Bit (CC));
-                     Error_Msg_Uint_1 := SSU;
-                     Error_Msg_Uint_2 := Max_Machine_Scalar_Size;
-
-                     Error_Msg_N
-                       ("\must be a multiple of ^ if size greater than ^",
-                        Last_Bit (CC));
-
-                  --  OK, give warning if enabled
-
-                  elsif Warn_On_Reverse_Bit_Order then
-                     Error_Msg_N
-                       ("multi-byte field specified with non-standard"
-                        & " Bit_Order?", CC);
-
-                     if Bytes_Big_Endian then
+                     if Fbit mod SSU /= 0 then
                         Error_Msg_N
-                          ("\bytes are not reversed "
-                           & "(component is big-endian)?", CC);
-                     else
+                          ("illegal first bit value for reverse bit order",
+                           First_Bit (CC));
+                        Error_Msg_Uint_1 := SSU;
+                        Error_Msg_Uint_2 := Max_Machine_Scalar_Size;
+
                         Error_Msg_N
-                          ("\bytes are not reversed "
-                           & "(component is little-endian)?", CC);
+                          ("\must be a multiple of ^ if size greater than ^",
+                           First_Bit (CC));
+
+                     --  Must end on byte boundary
+
+                     elsif Esize (Comp) mod SSU /= 0 then
+                        Error_Msg_N
+                          ("illegal last bit value for reverse bit order",
+                           Last_Bit (CC));
+                        Error_Msg_Uint_1 := SSU;
+                        Error_Msg_Uint_2 := Max_Machine_Scalar_Size;
+
+                        Error_Msg_N
+                          ("\must be a multiple of ^ if size greater than ^",
+                           Last_Bit (CC));
+
+                     --  OK, give warning if enabled
+
+                     elsif Warn_On_Reverse_Bit_Order then
+                        Error_Msg_N
+                          ("multi-byte field specified with non-standard"
+                           & " Bit_Order?", CC);
+
+                        if Bytes_Big_Endian then
+                           Error_Msg_N
+                             ("\bytes are not reversed "
+                              & "(component is big-endian)?", CC);
+                        else
+                           Error_Msg_N
+                             ("\bytes are not reversed "
+                              & "(component is little-endian)?", CC);
+                        end if;
                      end if;
+
+                     --  Case where size is not greater than max machine
+                     --  scalar. For now, we just count these.
+
+                  else
+                     Num_CC := Num_CC + 1;
                   end if;
-
-               --  Case where size is not greater than max machine scalar.
-               --  For now, we just count these.
-
-               else
-                  Num_CC := Num_CC + 1;
-               end if;
+               end;
             end if;
          end;
 
@@ -433,18 +436,20 @@ package body Sem_Ch13 is
                   if Warn_On_Reverse_Bit_Order then
                      Error_Msg_Uint_1 := MSS;
                      Error_Msg_N
-                       ("?reverse bit order in machine " &
-                       "scalar of length^", First_Bit (CC));
+                       ("info: reverse bit order in machine " &
+                       "scalar of length^?", First_Bit (CC));
                      Error_Msg_Uint_1 := NFB;
                      Error_Msg_Uint_2 := NLB;
 
                      if Bytes_Big_Endian then
                         Error_Msg_NE
-                          ("?\big-endian range for component & is ^ .. ^",
+                          ("?\info: big-endian range for "
+                           & "component & is ^ .. ^",
                            First_Bit (CC), Comp);
                      else
                         Error_Msg_NE
-                          ("?\little-endian range for component & is ^ .. ^",
+                          ("?\info: little-endian range "
+                           & "for component & is ^ .. ^",
                            First_Bit (CC), Comp);
                      end if;
                   end if;
@@ -1131,6 +1136,12 @@ package body Sem_Ch13 is
                      Set_Associated_Node_For_Itype (New_Ctyp, U_Ent);
 
                      Set_Component_Type (Btype, New_Ctyp);
+
+                     if Warn_On_Biased_Representation then
+                        Error_Msg_N
+                          ("?component size clause forces biased "
+                           & "representation", N);
+                     end if;
                   end if;
 
                   Set_Component_Size (Btype, Csize);
@@ -1330,7 +1341,12 @@ package body Sem_Ch13 is
                  or else Has_Small_Clause (U_Ent)
                then
                   Check_Size (Expr, Etyp, Size, Biased);
-                  Set_Has_Biased_Representation (U_Ent, Biased);
+                     Set_Has_Biased_Representation (U_Ent, Biased);
+
+                  if Biased and Warn_On_Biased_Representation then
+                     Error_Msg_N
+                       ("?size clause forces biased representation", N);
+                  end if;
                end if;
 
                --  For types set RM_Size and Esize if possible
@@ -1708,6 +1724,11 @@ package body Sem_Ch13 is
                if Is_Elementary_Type (U_Ent) then
                   Check_Size (Expr, U_Ent, Size, Biased);
                   Set_Has_Biased_Representation (U_Ent, Biased);
+
+                  if Biased and Warn_On_Biased_Representation then
+                     Error_Msg_N
+                       ("?value size clause forces biased representation", N);
+                  end if;
                end if;
 
                Set_RM_Size (U_Ent, Size);
@@ -2490,6 +2511,12 @@ package body Sem_Ch13 is
                            Biased);
 
                         Set_Has_Biased_Representation (Comp, Biased);
+
+                        if Biased and Warn_On_Biased_Representation then
+                           Error_Msg_F
+                             ("?component clause forces biased "
+                              & "representation", CC);
+                        end if;
 
                         if Present (Ocomp) then
                            Set_Component_Clause     (Ocomp, CC);
@@ -3570,7 +3597,10 @@ package body Sem_Ch13 is
 
       --  Fall through with Hi and Lo set. Deal with biased case
 
-      if (Biased and then not Is_Fixed_Point_Type (T))
+      if (Biased
+           and then not Is_Fixed_Point_Type (T)
+           and then not (Is_Enumeration_Type (T)
+                          and then Has_Non_Standard_Rep (T)))
         or else Has_Biased_Representation (T)
       then
          Hi := Hi - Lo;

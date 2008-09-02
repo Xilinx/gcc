@@ -595,10 +595,12 @@ copy_reference_ops_from_ref (tree ref, VEC(vn_reference_op_s, heap) **result)
       switch (temp.opcode)
 	{
 	case ALIGN_INDIRECT_REF:
-	case MISALIGNED_INDIRECT_REF:
 	case INDIRECT_REF:
 	  /* The only operand is the address, which gets its own
 	     vn_reference_op_s structure.  */
+	  break;
+	case MISALIGNED_INDIRECT_REF:
+	  temp.op0 = TREE_OPERAND (ref, 1);
 	  break;
 	case BIT_FIELD_REF:
 	  /* Record bits and position.  */
@@ -676,6 +678,92 @@ copy_reference_ops_from_ref (tree ref, VEC(vn_reference_op_s, heap) **result)
     }
 }
 
+/* Re-create a reference tree from the reference ops OPS.
+   Returns NULL_TREE if the ops were not handled.
+   This routine needs to be kept in sync with copy_reference_ops_from_ref.  */
+
+static tree
+get_ref_from_reference_ops (VEC(vn_reference_op_s, heap) *ops)
+{
+  vn_reference_op_t op;
+  unsigned i;
+  tree ref, *op0_p = &ref;
+
+  for (i = 0; VEC_iterate (vn_reference_op_s, ops, i, op); ++i)
+    {
+      switch (op->opcode)
+	{
+	case CALL_EXPR:
+	  return NULL_TREE;
+
+	case ALIGN_INDIRECT_REF:
+	case INDIRECT_REF:
+	  *op0_p = build1 (op->opcode, op->type, NULL_TREE);
+	  op0_p = &TREE_OPERAND (*op0_p, 0);
+	  break;
+
+	case MISALIGNED_INDIRECT_REF:
+	  *op0_p = build2 (MISALIGNED_INDIRECT_REF, op->type,
+			   NULL_TREE, op->op0);
+	  op0_p = &TREE_OPERAND (*op0_p, 0);
+	  break;
+
+	case BIT_FIELD_REF:
+	  *op0_p = build3 (BIT_FIELD_REF, op->type, NULL_TREE,
+			   op->op0, op->op1);
+	  op0_p = &TREE_OPERAND (*op0_p, 0);
+	  break;
+
+	case COMPONENT_REF:
+	  *op0_p = build3 (COMPONENT_REF, TREE_TYPE (op->op0), NULL_TREE,
+			   op->op0, op->op1);
+	  op0_p = &TREE_OPERAND (*op0_p, 0);
+	  break;
+
+	case ARRAY_RANGE_REF:
+	case ARRAY_REF:
+	  *op0_p = build4 (op->opcode, op->type, NULL_TREE,
+			   op->op0, op->op1, op->op2);
+	  op0_p = &TREE_OPERAND (*op0_p, 0);
+	  break;
+
+	case STRING_CST:
+	case INTEGER_CST:
+	case COMPLEX_CST:
+	case VECTOR_CST:
+	case REAL_CST:
+	case CONSTRUCTOR:
+	case VAR_DECL:
+	case PARM_DECL:
+	case CONST_DECL:
+	case RESULT_DECL:
+	case SSA_NAME:
+	  *op0_p = op->op0;
+	  break;
+
+	case ADDR_EXPR:
+	  if (op->op0 != NULL_TREE)
+	    {
+	      gcc_assert (is_gimple_min_invariant (op->op0));
+	      *op0_p = op->op0;
+	      break;
+	    }
+	  /* Fallthrough.  */
+	case IMAGPART_EXPR:
+	case REALPART_EXPR:
+	case VIEW_CONVERT_EXPR:
+	  *op0_p = build1 (op->opcode, op->type, NULL_TREE);
+	  op0_p = &TREE_OPERAND (*op0_p, 0);
+	  break;
+
+	default:
+	  return NULL_TREE;
+	}
+    }
+
+  return ref;
+}
+
 /* Copy the operations present in load/store/call REF into RESULT, a vector of
    vn_reference_op_s's.  */
 
@@ -686,12 +774,12 @@ copy_reference_ops_from_call (gimple call,
   vn_reference_op_s temp;
   unsigned i;
 
-  /* Copy the call_expr opcode, type, function being called, and
-     arguments.  */
+  /* Copy the type, opcode, function being called and static chain.  */
   memset (&temp, 0, sizeof (temp));
   temp.type = gimple_call_return_type (call);
   temp.opcode = CALL_EXPR;
   temp.op0 = gimple_call_fn (call);
+  temp.op1 = gimple_call_chain (call);
   VEC_safe_push (vn_reference_op_s, heap, *result, &temp);
 
   /* Copy the call arguments.  As they can be references as well,
@@ -701,7 +789,6 @@ copy_reference_ops_from_call (gimple call,
       tree callarg = gimple_call_arg (call, i);
       copy_reference_ops_from_ref (callarg, result);
     }
-  return;
 }
 
 /* Create a vector of vn_reference_op_s structures from REF, a
@@ -896,7 +983,7 @@ vn_reference_lookup_1 (vn_reference_t vr, vn_reference_t *vnresult)
 tree
 vn_reference_lookup_pieces (VEC (tree, gc) *vuses,
 			    VEC (vn_reference_op_s, heap) *operands,
-			    vn_reference_t *vnresult) 
+			    vn_reference_t *vnresult, bool maywalk)
 {
   struct vn_reference_s vr1;
   tree result;
@@ -907,6 +994,28 @@ vn_reference_lookup_pieces (VEC (tree, gc) *vuses,
   vr1.operands = valueize_refs (operands);
   vr1.hashcode = vn_reference_compute_hash (&vr1);
   result = vn_reference_lookup_1 (&vr1, vnresult);
+
+  /* If there is a single defining statement for all virtual uses, we can
+     use that, following virtual use-def chains.  */
+  if (!result
+      && maywalk
+      && vr1.vuses
+      && VEC_length (tree, vr1.vuses) >= 1)
+    {
+      tree ref = get_ref_from_reference_ops (operands);
+      gimple def_stmt;
+      if (ref
+	  && (def_stmt = get_def_ref_stmt_vuses (ref, vr1.vuses))
+	  && is_gimple_assign (def_stmt))
+	{
+	  /* We are now at an aliasing definition for the vuses we want to
+	     look up.  Re-do the lookup with the vdefs for this stmt.  */
+	  vdefs_to_vec (def_stmt, &vuses);
+	  vr1.vuses = valueize_vuses (vuses);
+	  vr1.hashcode = vn_reference_compute_hash (&vr1);
+	  result = vn_reference_lookup_1 (&vr1, vnresult);
+	}
+    }
 
   return result;
 }
@@ -1349,7 +1458,7 @@ static VEC(tree, heap) *shared_lookup_phiargs;
    value number if it exists in the hash table.  Return NULL_TREE if
    it does not exist in the hash table. */
 
-static tree
+tree
 vn_phi_lookup (gimple phi)
 {
   void **slot;

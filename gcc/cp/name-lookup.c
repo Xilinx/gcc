@@ -725,7 +725,7 @@ pushdecl_maybe_friend (tree x, bool is_friend)
 	  else if (t == wchar_decl_node)
 	    {
 	      if (! DECL_IN_SYSTEM_HEADER (x))
-		pedwarn (OPT_pedantic, "redeclaration of %<wchar_t%> as %qT",
+		pedwarn (input_location, OPT_pedantic, "redeclaration of %<wchar_t%> as %qT",
 			 TREE_TYPE (x));
 	      
 	      /* Throw away the redeclaration.  */
@@ -796,11 +796,11 @@ pushdecl_maybe_friend (tree x, bool is_friend)
 					  x_exception_spec,
 					  true))
 		    {
-		      pedwarn (0, "declaration of %q#D with C language linkage",
+		      pedwarn (input_location, 0, "declaration of %q#D with C language linkage",
 			       x);
-		      pedwarn (0, "conflicts with previous declaration %q+#D",
+		      pedwarn (input_location, 0, "conflicts with previous declaration %q+#D",
 			       previous);
-		      pedwarn (0, "due to different exception specifications");
+		      pedwarn (input_location, 0, "due to different exception specifications");
 		      POP_TIMEVAR_AND_RETURN (TV_NAME_LOOKUP, error_mark_node);
 		    }
 		}
@@ -890,8 +890,8 @@ pushdecl_maybe_friend (tree x, bool is_friend)
 	      && TREE_CODE (decl) == TREE_CODE (x)
 	      && !same_type_p (TREE_TYPE (x), TREE_TYPE (decl)))
 	    {
-	      permerror ("type mismatch with previous external decl of %q#D", x);
-	      permerror ("previous external decl of %q+#D", decl);
+	      permerror (input_location, "type mismatch with previous external decl of %q#D", x);
+	      permerror (input_location, "previous external decl of %q+#D", decl);
 	    }
 	}
 
@@ -1217,16 +1217,16 @@ check_for_out_of_scope_variable (tree decl)
     }
   else
     {
-      permerror ("name lookup of %qD changed for ISO %<for%> scoping",
+      permerror (input_location, "name lookup of %qD changed for ISO %<for%> scoping",
 	         DECL_NAME (decl));
       if (flag_permissive)
-        permerror ("  using obsolete binding at %q+D", decl);
+        permerror (input_location, "  using obsolete binding at %q+D", decl);
       else
 	{
 	  static bool hint;
 	  if (!hint)
 	    {
-	      inform ("(if you use %<-fpermissive%> G++ will accept your code)");
+	      inform (input_location, "(if you use %<-fpermissive%> G++ will accept your code)");
 	      hint = true;
 	    }
 	}
@@ -1329,7 +1329,7 @@ push_binding_level (struct cp_binding_level *scope)
 
 /* Create a new KIND scope and make it the top of the active scopes stack.
    ENTITY is the scope of the associated C++ entity (namespace, class,
-   function); it is NULL otherwise.  */
+   function, C++0x enumeration); it is NULL otherwise.  */
 
 cxx_scope *
 begin_scope (scope_kind kind, tree entity)
@@ -1364,6 +1364,7 @@ begin_scope (scope_kind kind, tree entity)
     case sk_catch:
     case sk_for:
     case sk_class:
+    case sk_scoped_enum:
     case sk_function_parms:
     case sk_omp:
       scope->keep = keep_next_level_flag;
@@ -2753,7 +2754,8 @@ push_class_level_binding (tree name, tree x)
       && TREE_TYPE (decl) == error_mark_node)
     decl = TREE_VALUE (decl);
 
-  check_template_shadow (decl);
+  if (!check_template_shadow (decl))
+    POP_TIMEVAR_AND_RETURN (TV_NAME_LOOKUP, false);
 
   /* [class.mem]
 
@@ -3488,7 +3490,8 @@ do_using_directive (tree name_space)
 
   /* Emit debugging info.  */
   if (!processing_template_decl)
-    (*debug_hooks->imported_module_or_decl) (name_space, context);
+    (*debug_hooks->imported_module_or_decl) (name_space, NULL_TREE,
+					     context, false);
 }
 
 /* Deal with a using-directive seen by the parser.  Currently we only
@@ -3852,6 +3855,8 @@ lookup_qualified_name (tree scope, tree name, bool is_type_p, bool complain)
       if (qualified_lookup_using_namespace (name, scope, &binding, flags))
 	t = binding.value;
     }
+  else if (cxx_dialect != cxx98 && TREE_CODE (scope) == ENUMERAL_TYPE)
+    t = lookup_enumerator (scope, name);
   else if (is_class_type (scope, complain))
     t = lookup_member (scope, name, 2, is_type_p);
 
@@ -5323,7 +5328,7 @@ cp_emit_debug_info_for_using (tree t, tree context)
   /* FIXME: Handle TEMPLATE_DECLs.  */
   for (t = OVL_CURRENT (t); t; t = OVL_NEXT (t))
     if (TREE_CODE (t) != TEMPLATE_DECL)
-      (*debug_hooks->imported_module_or_decl) (t, context);
+      (*debug_hooks->imported_module_or_decl) (t, NULL_TREE, context, false);
 }
 
 #include "gt-cp-name-lookup.h"

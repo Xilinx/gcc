@@ -30,6 +30,15 @@
  *                                                                          *
  ****************************************************************************/
 
+#if defined(__nucleus__)
+
+#warning Sockets not supported on this platform
+#undef HAVE_SOCKETS
+
+#else
+
+#define HAVE_SOCKETS
+
 #ifndef _XOPEN_SOURCE_EXTENDED
 #define _XOPEN_SOURCE_EXTENDED 1
 /* For HP-UX */
@@ -51,6 +60,7 @@
 #endif
 
 #include <limits.h>
+#include <errno.h>
 
 #if defined(__vxworks)
 #include <vxWorks.h>
@@ -69,48 +79,83 @@
 #include <winsock2.h>
 #include <ws2tcpip.h>
 
-#define EACCES		WSAEACCES
-#define EADDRINUSE	WSAEADDRINUSE
-#define EADDRNOTAVAIL	WSAEADDRNOTAVAIL
-#define EAFNOSUPPORT	WSAEAFNOSUPPORT
-#define EALREADY	WSAEALREADY
-#define EBADF		WSAEBADF
-#define ECONNABORTED	WSAECONNABORTED
-#define ECONNREFUSED	WSAECONNREFUSED
-#define ECONNRESET	WSAECONNRESET
-#define EDESTADDRREQ	WSAEDESTADDRREQ
-#define EFAULT		WSAEFAULT
-#define EHOSTDOWN	WSAEHOSTDOWN
-#define EHOSTUNREACH	WSAEHOSTUNREACH
-#define EINPROGRESS	WSAEINPROGRESS
-#define EINTR		WSAEINTR
-#define EINVAL		WSAEINVAL
-#define EIO		WSAEDISCON
-#define EISCONN		WSAEISCONN
-#define ELOOP		WSAELOOP
-#define EMFILE		WSAEMFILE
-#define EMSGSIZE	WSAEMSGSIZE
-#define ENAMETOOLONG	WSAENAMETOOLONG
-#define ENETDOWN	WSAENETDOWN
-#define ENETRESET	WSAENETRESET
-#define ENETUNREACH	WSAENETUNREACH
-#define ENOBUFS		WSAENOBUFS
-#define ENOPROTOOPT	WSAENOPROTOOPT
-#define ENOTCONN	WSAENOTCONN
-#define ENOTSOCK	WSAENOTSOCK
-#define EOPNOTSUPP	WSAEOPNOTSUPP
-#define EPFNOSUPPORT	WSAEPFNOSUPPORT
-#define EPROTONOSUPPORT	WSAEPROTONOSUPPORT
-#define ENOTSOCK	WSAENOTSOCK
-#define EOPNOTSUPP	WSAEOPNOTSUPP
-#define EPFNOSUPPORT	WSAEPFNOSUPPORT
-#define EPROTONOSUPPORT	WSAEPROTONOSUPPORT
-#define EPROTOTYPE	WSAEPROTOTYPE
-#define ESHUTDOWN	WSAESHUTDOWN
-#define ESOCKTNOSUPPORT	WSAESOCKTNOSUPPORT
-#define ETIMEDOUT	WSAETIMEDOUT
-#define ETOOMANYREFS	WSAETOOMANYREFS
-#define EWOULDBLOCK	WSAEWOULDBLOCK
+#undef  EACCES
+#define EACCES          WSAEACCES
+#undef  EADDRINUSE
+#define EADDRINUSE      WSAEADDRINUSE
+#undef  EADDRNOTAVAIL
+#define EADDRNOTAVAIL   WSAEADDRNOTAVAIL
+#undef  EAFNOSUPPORT
+#define EAFNOSUPPORT    WSAEAFNOSUPPORT
+#undef  EALREADY
+#define EALREADY        WSAEALREADY
+#undef  EBADF
+#define EBADF           WSAEBADF
+#undef  ECONNABORTED
+#define ECONNABORTED    WSAECONNABORTED
+#undef  ECONNREFUSED
+#define ECONNREFUSED    WSAECONNREFUSED
+#undef  ECONNRESET
+#define ECONNRESET      WSAECONNRESET
+#undef  EDESTADDRREQ
+#define EDESTADDRREQ    WSAEDESTADDRREQ
+#undef  EFAULT
+#define EFAULT          WSAEFAULT
+#undef  EHOSTDOWN
+#define EHOSTDOWN       WSAEHOSTDOWN
+#undef  EHOSTUNREACH
+#define EHOSTUNREACH    WSAEHOSTUNREACH
+#undef  EINPROGRESS
+#define EINPROGRESS     WSAEINPROGRESS
+#undef  EINTR
+#define EINTR           WSAEINTR
+#undef  EINVAL
+#define EINVAL          WSAEINVAL
+#undef  EIO
+#define EIO             WSAEDISCON
+#undef  EISCONN
+#define EISCONN         WSAEISCONN
+#undef  ELOOP
+#define ELOOP           WSAELOOP
+#undef  EMFILE
+#define EMFILE          WSAEMFILE
+#undef  EMSGSIZE
+#define EMSGSIZE        WSAEMSGSIZE
+#undef  ENAMETOOLONG
+#define ENAMETOOLONG    WSAENAMETOOLONG
+#undef  ENETDOWN
+#define ENETDOWN        WSAENETDOWN
+#undef  ENETRESET
+#define ENETRESET       WSAENETRESET
+#undef  ENETUNREACH
+#define ENETUNREACH     WSAENETUNREACH
+#undef  ENOBUFS
+#define ENOBUFS         WSAENOBUFS
+#undef  ENOPROTOOPT
+#define ENOPROTOOPT     WSAENOPROTOOPT
+#undef  ENOTCONN
+#define ENOTCONN        WSAENOTCONN
+#undef  ENOTSOCK
+#define ENOTSOCK        WSAENOTSOCK
+#undef  EOPNOTSUPP
+#define EOPNOTSUPP      WSAEOPNOTSUPP
+#undef  EPFNOSUPPORT
+#define EPFNOSUPPORT    WSAEPFNOSUPPORT
+#undef  EPROTONOSUPPORT
+#define EPROTONOSUPPORT WSAEPROTONOSUPPORT
+#undef  EPROTOTYPE
+#define EPROTOTYPE      WSAEPROTOTYPE
+#undef  ESHUTDOWN
+#define ESHUTDOWN       WSAESHUTDOWN
+#undef  ESOCKTNOSUPPORT
+#define ESOCKTNOSUPPORT WSAESOCKTNOSUPPORT
+#undef  ETIMEDOUT
+#define ETIMEDOUT       WSAETIMEDOUT
+#undef  ETOOMANYREFS
+#define ETOOMANYREFS    WSAETOOMANYREFS
+#undef  EWOULDBLOCK
+#define EWOULDBLOCK     WSAEWOULDBLOCK
+
 #define SHUT_RD		SD_RECEIVE
 #define SHUT_WR		SD_SEND
 #define SHUT_RDWR	SD_BOTH
@@ -127,10 +172,6 @@
 #include <netdb.h>
 #endif
 
-#endif
-
-#ifndef __MINGW32__
-#include <errno.h>
 #endif
 
 #ifdef __vxworks
@@ -175,7 +216,7 @@
 
 #if defined (_AIX) || defined (__FreeBSD__) || defined (__hpux__) || defined (__osf__) || defined (_WIN32) || defined (__APPLE__)
 # define HAVE_THREAD_SAFE_GETxxxBYyyy 1
-#elif defined (sgi) || defined (linux) || defined (__GLIBC__) || (defined (sun) && defined (__SVR4) && !defined (__vxworks))
+#elif defined (sgi) || defined (linux) || defined (__GLIBC__) || (defined (sun) && defined (__SVR4) && !defined (__vxworks)) || defined(__rtems__)
 # define HAVE_GETxxxBYyyy_R 1
 #endif
 
@@ -185,8 +226,10 @@
 # define Need_Netdb_Buffer 0
 #endif
 
-#if defined (__FreeBSD__) || defined (__vxworks)
+#if defined (__FreeBSD__) || defined (__vxworks) || defined(__rtems__)
 # define Has_Sockaddr_Len 1
 #else
 # define Has_Sockaddr_Len 0
 #endif
+
+#endif /* defined(__nucleus__) */

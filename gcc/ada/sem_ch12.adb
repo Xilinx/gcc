@@ -1810,6 +1810,20 @@ package body Sem_Ch12 is
          Find_Type (Subtype_Mark (N));
          T := Entity (Subtype_Mark (N));
 
+         --  Verify that there is no redundant null exclusion.
+
+         if Null_Exclusion_Present (N) then
+            if not Is_Access_Type (T) then
+               Error_Msg_N
+                 ("null exclusion can only apply to an access type", N);
+
+            elsif Can_Never_Be_Null (T) then
+               Error_Msg_NE
+                 ("`NOT NULL` not allowed (& already excludes null)",
+                    N, T);
+            end if;
+         end if;
+
       --  Ada 2005 (AI-423): Formal object with an access definition
 
       else
@@ -2413,10 +2427,9 @@ package body Sem_Ch12 is
                Error_Msg_N ("no visible entity matches specification", Def);
             end if;
 
+         --  More than one interpretation, so disambiguate as for a renaming
+
          else
-
-            --  Several interpretations. Disambiguate as for a renaming.
-
             declare
                I   : Interp_Index;
                I1  : Interp_Index := 0;
@@ -2427,7 +2440,6 @@ package body Sem_Ch12 is
                Subp := Any_Id;
                Get_First_Interp (Def, I, It);
                while Present (It.Nam) loop
-
                   if Entity_Matches_Spec (It.Nam, Nam) then
                      if Subp /= Any_Id then
                         It1 := Disambiguate (Def, I1, I, Etype (Subp));
@@ -3755,6 +3767,38 @@ package body Sem_Ch12 is
       Analyze_Subprogram_Instantiation (N, E_Procedure);
    end Analyze_Procedure_Instantiation;
 
+   -----------------------------------
+   -- Need_Subprogram_Instance_Body --
+   -----------------------------------
+
+   function Need_Subprogram_Instance_Body
+     (N    : Node_Id;
+      Subp : Entity_Id) return Boolean
+   is
+   begin
+      if (Is_In_Main_Unit (N)
+            or else Is_Inlined (Subp)
+            or else Is_Inlined (Alias (Subp)))
+        and then (Operating_Mode = Generate_Code
+                    or else (Operating_Mode = Check_Semantics
+                               and then ASIS_Mode))
+        and then (Expander_Active or else ASIS_Mode)
+        and then not ABE_Is_Certain (N)
+        and then not Is_Eliminated (Subp)
+      then
+         Pending_Instantiations.Append
+           ((Inst_Node                => N,
+             Act_Decl                 => Unit_Declaration_Node (Subp),
+             Expander_Status          => Expander_Active,
+             Current_Sem_Unit         => Current_Sem_Unit,
+             Scope_Suppress           => Scope_Suppress,
+             Local_Suppress_Stack_Top => Local_Suppress_Stack_Top));
+         return True;
+      else
+         return False;
+      end if;
+   end Need_Subprogram_Instance_Body;
+
    --------------------------------------
    -- Analyze_Subprogram_Instantiation --
    --------------------------------------
@@ -4146,22 +4190,7 @@ package body Sem_Ch12 is
             --  If the context requires a full instantiation, mark node for
             --  subsequent construction of the body.
 
-            if (Is_In_Main_Unit (N)
-                  or else Is_Inlined (Act_Decl_Id))
-              and then (Operating_Mode = Generate_Code
-                          or else (Operating_Mode = Check_Semantics
-                                     and then ASIS_Mode))
-              and then (Expander_Active or else ASIS_Mode)
-              and then not ABE_Is_Certain (N)
-              and then not Is_Eliminated (Act_Decl_Id)
-            then
-               Pending_Instantiations.Append
-                 ((Inst_Node                => N,
-                   Act_Decl                 => Act_Decl,
-                   Expander_Status          => Expander_Active,
-                   Current_Sem_Unit         => Current_Sem_Unit,
-                   Scope_Suppress           => Scope_Suppress,
-                   Local_Suppress_Stack_Top => Local_Suppress_Stack_Top));
+            if Need_Subprogram_Instance_Body (N, Act_Decl_Id) then
 
                Check_Forward_Instantiation (Gen_Decl);
 
@@ -5173,8 +5202,7 @@ package body Sem_Ch12 is
 
          Inst_Par := Entity (Prefix (Gen_Id));
          while Present (Inst_Par)
-           and then Ekind (Inst_Par) /= E_Package
-           and then Ekind (Inst_Par) /= E_Generic_Package
+           and then not Is_Package_Or_Generic_Package (Inst_Par)
          loop
             Inst_Par := Homonym (Inst_Par);
          end loop;
@@ -8351,8 +8379,8 @@ package body Sem_Ch12 is
                 Defining_Identifier => New_Copy (Formal_Id),
                 Constant_Present    => True,
                 Object_Definition   => New_Copy (Def),
-                Expression          => New_Copy_Tree (Default_Expression
-                                        (Formal)));
+                Expression          => New_Copy_Tree
+                                         (Default_Expression (Formal)));
 
             Append (Decl_Node, List);
             Set_Analyzed (Expression (Decl_Node), False);
@@ -8383,9 +8411,9 @@ package body Sem_Ch12 is
                    Constant_Present    => True,
                    Object_Definition   => New_Copy (Def),
                    Expression          =>
-                      Make_Attribute_Reference (Sloc (Formal_Id),
-                        Attribute_Name => Name_First,
-                        Prefix         => New_Copy (Def)));
+                     Make_Attribute_Reference (Sloc (Formal_Id),
+                       Attribute_Name => Name_First,
+                       Prefix         => New_Copy (Def)));
 
                Append (Decl_Node, List);
 
@@ -8700,6 +8728,14 @@ package body Sem_Ch12 is
 
    begin
       Gen_Body_Id := Corresponding_Body (Gen_Decl);
+
+      --  Subprogram body may have been created already because of an inline
+      --  pragma, or because of multiple elaborations of the enclosing package
+      --  when several instances of the subprogram appear in the main unit.
+
+      if Present (Corresponding_Body (Act_Decl)) then
+         return;
+      end if;
 
       Expander_Mode_Save_And_Set (Body_Info.Expander_Status);
 
@@ -9223,10 +9259,20 @@ package body Sem_Ch12 is
             Next_Index (I2);
          end loop;
 
-         if not Subtypes_Match
-                  (Find_Actual_Type (Component_Type (A_Gen_T), A_Gen_T),
-                   Component_Type (Act_T))
+         --  Check matching subtypes. Note that there are complex visibility
+         --  issues when the generic is a child unit and some aspect of the
+         --  generic type is declared in a parent unit of the generic. We do
+         --  the test to handle this special case only after a direct check
+         --  for static matching has failed.
+
+         if Subtypes_Match
+           (Component_Type (A_Gen_T), Component_Type (Act_T))
+             or else Subtypes_Match
+                      (Find_Actual_Type (Component_Type (A_Gen_T), A_Gen_T),
+                       Component_Type (Act_T))
          then
+            null;
+         else
             Error_Msg_NE
               ("component subtype of actual does not match that of formal &",
                Actual, Gen_T);
@@ -10855,11 +10901,11 @@ package body Sem_Ch12 is
                Set_Is_Immediately_Visible (P, False);
 
             --  If the current scope is itself an instantiation of a generic
-            --  nested within P, and we are in the private part of body of
-            --  this instantiation, restore the full views of P, that were
-            --  removed in End_Package_Scope above. This obscure case can
-            --  occur when a subunit of a generic contains an instance of
-            --  of a child unit of its generic parent unit.
+            --  nested within P, and we are in the private part of body of this
+            --  instantiation, restore the full views of P, that were removed
+            --  in End_Package_Scope above. This obscure case can occur when a
+            --  subunit of a generic contains an instance of a child unit of
+            --  its generic parent unit.
 
             elsif S = Current_Scope
               and then Is_Generic_Instance (S)

@@ -447,7 +447,7 @@ case "${target}" in
     noconfigdirs="$noconfigdirs target-newlib target-libgloss ${libgcj}"
     ;;
   powerpc-*-darwin* | i[[3456789]]86-*-darwin* | x86_64-*-darwin9*)
-    noconfigdirs="$noconfigdirs bfd binutils ld gas opcodes gdb gprof"
+    noconfigdirs="$noconfigdirs ld gas gdb gprof"
     noconfigdirs="$noconfigdirs sim target-rda"
     ;;
   *-*-darwin*)
@@ -1067,10 +1067,18 @@ case "${host}" in
     # without overflowing the jump tables (-J says to use a 32 bit table)
     tentative_cc="cc -J"
     ;;
-  *-hp-hpux*)
+  hppa*-hp-hpux10*)
     tentative_cc="cc -Wp,-H256000"
+    host_makefile_frag="config/mh-pa-hpux10"
     ;;
-  *-*-hiux*)
+  hppa*-hp-hpux* | hppa*-*-hiux*)
+    tentative_cc="cc -Wp,-H256000"
+    host_makefile_frag="config/mh-pa"
+    ;;
+  hppa*-*)	
+    host_makefile_frag="config/mh-pa"
+    ;;
+  *-hp-hpux* | *-*-hiux*)
     tentative_cc="cc -Wp,-H256000"
     ;;
   rs6000-*-lynxos*)
@@ -1987,6 +1995,9 @@ case "${target}" in
   mipsisa*-*-elfoabi*)
     target_makefile_frag="config/mt-mips-elfoabi"
     ;;
+  mips*-*-*linux* | mips*-*-gnu*)
+    target_makefile_frag="config/mt-mips-gnu"
+    ;;
   *-*-netware*)
     target_makefile_frag="config/mt-netware"
     ;;
@@ -2130,11 +2141,22 @@ case "${host}" in
   ;;
 esac
 
+# Decide which environment variable is used to find dynamic libraries.
 case "${host}" in
   *-*-hpux*) RPATH_ENVVAR=SHLIB_PATH ;;
   *-*-darwin* | *-*-rhapsody* ) RPATH_ENVVAR=DYLD_LIBRARY_PATH ;;
+  *-*-mingw* | *-*-cygwin ) RPATH_ENVVAR=PATH ;;
   *) RPATH_ENVVAR=LD_LIBRARY_PATH ;;
 esac
+
+# On systems where the dynamic library environment variable is PATH,
+# gcc/ will put dynamic libraries into a subdirectory to avoid adding
+# built executables to PATH.
+if test "$RPATH_ENVVAR" = PATH; then
+  GCC_SHLIB_SUBDIR=/shlib
+else
+  GCC_SHLIB_SUBDIR=
+fi
 
 # Record target_configdirs and the configure arguments for target and
 # build configuration in Makefile.
@@ -2593,6 +2615,7 @@ AC_SUBST_FILE(ospace_frag)
 
 # Miscellanea: directories, flags, etc.
 AC_SUBST(RPATH_ENVVAR)
+AC_SUBST(GCC_SHLIB_SUBDIR)
 AC_SUBST(tooldir)
 AC_SUBST(build_tooldir)
 AC_SUBST(CONFIGURE_GDB_TK)

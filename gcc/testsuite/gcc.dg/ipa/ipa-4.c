@@ -1,5 +1,5 @@
 /* { dg-do compile } */
-/* { dg-options "-O3 -fipa-cp -fdump-ipa-cp"  } */
+/* { dg-options "-O3 -fipa-cp -fipa-cp-clone -fdump-ipa-cp"  } */
 /* { dg-skip-if "PR 25442" { "*-*-*" } { "-fpic" "-fPIC" } { "" } } */
 
 #include <stdio.h>
@@ -24,5 +24,5 @@ int main ()
 
 
 /* { dg-final { scan-ipa-dump-times "versioned function" 1 "cp"  } } */
-/* { dg-final { scan-ipa-dump-times "replacing param with const" 1 "cp"  } } */
+/* { dg-final { scan-ipa-dump-times "replacing param a with const 7" 1 "cp"  } } */
 /* { dg-final { cleanup-ipa-dump "cp" } } */

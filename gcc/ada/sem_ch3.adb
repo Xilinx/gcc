@@ -31,6 +31,7 @@ with Einfo;    use Einfo;
 with Errout;   use Errout;
 with Eval_Fat; use Eval_Fat;
 with Exp_Ch3;  use Exp_Ch3;
+with Exp_Ch9;  use Exp_Ch9;
 with Exp_Disp; use Exp_Disp;
 with Exp_Dist; use Exp_Dist;
 with Exp_Tss;  use Exp_Tss;
@@ -934,13 +935,25 @@ package body Sem_Ch3 is
          Build_Itype_Reference (Anon_Type, Parent (Parent (Related_Nod)));
 
       --  Similarly, if the access definition is the return result of a
-      --  protected function, create an itype reference for it because it
-      --  will be used within the function body.
+      --  function, create an itype reference for it because it
+      --  will be used within the function body. For a regular function that
+      --  is not a compilation unit, insert reference after the declaration.
+      --  For a protected operation, insert it after the enclosing protected
+      --  type declaration. In either case, do not create a reference for a
+      --  type obtained through a limited_with clause, because this would
+      --  introduce semantic dependencies.
 
       elsif Nkind (Related_Nod) = N_Function_Specification
-        and then  Ekind (Current_Scope) = E_Protected_Type
+        and then not From_With_Type (Anon_Type)
       then
-         Build_Itype_Reference (Anon_Type, Parent (Current_Scope));
+         if Ekind (Current_Scope) = E_Protected_Type then
+            Build_Itype_Reference (Anon_Type, Parent (Current_Scope));
+
+         elsif Is_List_Member (Parent (Related_Nod))
+           and then Nkind (Parent (N)) /= N_Parameter_Specification
+         then
+            Build_Itype_Reference (Anon_Type, Parent (Related_Nod));
+         end if;
 
       --  Finally, create an itype reference for an object declaration of
       --  an anonymous access type. This is strictly necessary only for
@@ -1041,6 +1054,7 @@ package body Sem_Ch3 is
                    or else
                  Nkind_In (D_Ityp, N_Object_Declaration,
                                    N_Object_Renaming_Declaration,
+                                   N_Formal_Object_Declaration,
                                    N_Formal_Type_Declaration,
                                    N_Task_Type_Declaration,
                                    N_Protected_Type_Declaration))
@@ -1103,13 +1117,32 @@ package body Sem_Ch3 is
 
       if Present (Formals) then
          Push_Scope (Desig_Type);
+
+         --  A bit of a kludge here. These kludges will be removed when Itypes
+         --  have proper parent pointers to their declarations???
+
+         --  Kludge 1) Link definining_identifier of formals. Required by
+         --  First_Formal to provide its functionality.
+
+         declare
+            F : Node_Id;
+
+         begin
+            F := First (Formals);
+            while Present (F) loop
+               if No (Parent (Defining_Identifier (F))) then
+                  Set_Parent (Defining_Identifier (F), F);
+               end if;
+
+               Next (F);
+            end loop;
+         end;
+
          Process_Formals (Formals, Parent (T_Def));
 
-         --  A bit of a kludge here, End_Scope requires that the parent
-         --  pointer be set to something reasonable, but Itypes don't have
-         --  parent pointers. So we set it and then unset it ??? If and when
-         --  Itypes have proper parent pointers to their declarations, this
-         --  kludge can be removed.
+         --  Kludge 2) End_Scope requires that the parent pointer be set to
+         --  something reasonable, but Itypes don't have parent pointers. So
+         --  we set it and then unset it ???
 
          Set_Parent (Desig_Type, T_Name);
          End_Scope;
@@ -1146,8 +1179,13 @@ package body Sem_Ch3 is
          end loop;
       end if;
 
+      --  If the return type is incomplete, this is legal as long as the
+      --  type is declared in the current scope and will be completed in
+      --  it (rather than being part of limited view).
+
       if Ekind (Etype (Desig_Type)) = E_Incomplete_Type
         and then not Has_Delayed_Freeze (Desig_Type)
+        and then In_Open_Scopes (Scope (Etype (Desig_Type)))
       then
          Append_Elmt (Desig_Type, Private_Dependents (Etype (Desig_Type)));
          Set_Has_Delayed_Freeze (Desig_Type);
@@ -1629,6 +1667,7 @@ package body Sem_Ch3 is
 
          if Ada_Version >= Ada_05
            and then Ekind (T) = E_Anonymous_Access_Type
+           and then Etype (E) /= Any_Type
          then
             --  Check RM 3.9.2(9): "if the expected type for an expression is
             --  an anonymous access-to-specific tagged type, then the object
@@ -2517,6 +2556,14 @@ package body Sem_Ch3 is
          Set_Etype (Id, T);
          Resolve (E, T);
 
+         --  If E is null and has been replaced by an N_Raise_Constraint_Error
+         --  node (which was marked already-analyzed), we need to set the type
+         --  to something other than Any_Access in order to keep gigi happy.
+
+         if Etype (E) = Any_Access then
+            Set_Etype (E, T);
+         end if;
+
          --  If the object is an access to variable, the initialization
          --  expression cannot be an access to constant.
 
@@ -2526,7 +2573,7 @@ package body Sem_Ch3 is
            and then Is_Access_Constant (Etype (E))
          then
             Error_Msg_N
-              ("object that is an access to variable cannot be initialized " &
+              ("access to variable cannot be initialized " &
                 "with an access-to-constant expression", E);
          end if;
 
@@ -4427,6 +4474,10 @@ package body Sem_Ch3 is
             Comp := Object_Definition (N);
             Acc  := Comp;
 
+         when N_Function_Specification =>
+            Comp := Result_Definition (N);
+            Acc  := Comp;
+
          when others =>
             raise Program_Error;
       end case;
@@ -4438,9 +4489,18 @@ package body Sem_Ch3 is
 
       Mark_Rewrite_Insertion (Decl);
 
-      --  Insert the new declaration in the nearest enclosing scope
+      --  Insert the new declaration in the nearest enclosing scope. If the
+      --  node is a body and N is its return type, the declaration belongs in
+      --  the enclosing scope.
 
       P := Parent (N);
+
+      if Nkind (P) = N_Subprogram_Body
+        and then Nkind (N) = N_Function_Specification
+      then
+         P := Parent (P);
+      end if;
+
       while Present (P) and then not Has_Declarations (P) loop
          P := Parent (P);
       end loop;
@@ -4471,6 +4531,10 @@ package body Sem_Ch3 is
       elsif Nkind (N) = N_Access_Function_Definition then
          Rewrite (Comp, New_Occurrence_Of (Anon, Loc));
 
+      elsif Nkind (N) = N_Function_Specification then
+         Rewrite (Comp, New_Occurrence_Of (Anon, Loc));
+         Set_Etype (Defining_Unit_Name (N), Anon);
+
       else
          Rewrite (Comp,
            Make_Component_Definition (Loc,
@@ -4479,13 +4543,13 @@ package body Sem_Ch3 is
 
       Mark_Rewrite_Insertion (Comp);
 
-      --  Temporarily remove the current scope from the stack to add the new
-      --  declarations to the enclosing scope
-
       if Nkind_In (N, N_Object_Declaration, N_Access_Function_Definition) then
          Analyze (Decl);
 
       else
+         --  Temporarily remove the current scope (record or subprogram) from
+         --  the stack to add the new declarations to the enclosing scope.
+
          Scope_Stack.Decrement_Last;
          Analyze (Decl);
          Set_Is_Itype (Anon);
@@ -4566,11 +4630,21 @@ package body Sem_Ch3 is
                               Has_Private_Component (Derived_Type));
       Conditional_Delay      (Derived_Type, Subt);
 
-      --  Ada 2005 (AI-231). Set the null-exclusion attribute
+      --  Ada 2005 (AI-231): Set the null-exclusion attribute, and verify
+      --  that it is not redundant.
 
-      if Null_Exclusion_Present (Type_Definition (N))
-        or else Can_Never_Be_Null (Parent_Type)
-      then
+      if Null_Exclusion_Present (Type_Definition (N)) then
+         Set_Can_Never_Be_Null (Derived_Type);
+
+         if Can_Never_Be_Null (Parent_Type)
+           and then False
+         then
+            Error_Msg_NE
+              ("`NOT NULL` not allowed (& already excludes null)",
+                N, Parent_Type);
+         end if;
+
+      elsif Can_Never_Be_Null (Parent_Type) then
          Set_Can_Never_Be_Null (Derived_Type);
       end if;
 
@@ -7554,6 +7628,15 @@ package body Sem_Ch3 is
                          (Designated_Type (Etype (Discr_Expr (J))))
             then
                Wrong_Type (Discr_Expr (J), Etype (Discr));
+
+            elsif Is_Access_Type (Etype (Discr))
+              and then not Is_Access_Constant (Etype (Discr))
+              and then Is_Access_Type (Etype (Discr_Expr (J)))
+              and then Is_Access_Constant (Etype (Discr_Expr (J)))
+            then
+               Error_Msg_NE
+                 ("constraint for discriminant& must be access to variable",
+                    Def, Discr);
             end if;
          end if;
 
@@ -12839,6 +12922,12 @@ package body Sem_Ch3 is
          end;
       end if;
 
+      if Null_Exclusion_Present (Def)
+        and then not Is_Access_Type (Parent_Type)
+      then
+         Error_Msg_N ("null exclusion can only apply to an access type", N);
+      end if;
+
       Build_Derived_Type (N, Parent_Type, T, Is_Completion);
 
       --  AI-419: The parent type of an explicitly limited derived type must
@@ -13135,6 +13224,13 @@ package body Sem_Ch3 is
 
             Set_Scope (Id, Current_Scope);
             New_Id := Id;
+
+            --  If this is a repeated incomplete declaration, no further
+            --  checks are possible.
+
+            if Nkind (N) = N_Incomplete_Type_Declaration then
+               return Prev;
+            end if;
 
          --  Case of full declaration of incomplete type
 
@@ -15294,6 +15390,15 @@ package body Sem_Ch3 is
                  Create_Null_Excluding_Itype
                    (T           => Discr_Type,
                     Related_Nod => Discr));
+
+            --  Check for improper null exclusion if the type is otherwise
+            --  legal for a discriminant.
+
+            elsif Null_Exclusion_Present (Discr)
+              and then Is_Discrete_Type (Discr_Type)
+            then
+               Error_Msg_N
+                 ("null exclusion can only apply to an access type", Discr);
             end if;
 
             --  Ada 2005 (AI-402): access discriminants of nonlimited types
@@ -15811,48 +15916,117 @@ package body Sem_Ch3 is
       --  If the private view was tagged, copy the new primitive operations
       --  from the private view to the full view.
 
-      --  Note: Subprograms covering interface primitives were previously
-      --  propagated to the full view by Derive_Progenitor_Primitives
-
-      if Is_Tagged_Type (Full_T)
-        and then not Is_Concurrent_Type (Full_T)
-      then
+      if Is_Tagged_Type (Full_T) then
          declare
-            Priv_List : Elist_Id;
-            Full_List : constant Elist_Id := Primitive_Operations (Full_T);
-            P1, P2    : Elmt_Id;
+            Disp_Typ  : Entity_Id;
+            Full_List : Elist_Id;
             Prim      : Entity_Id;
-            D_Type    : Entity_Id;
+            Prim_Elmt : Elmt_Id;
+            Priv_List : Elist_Id;
+
+            function Contains
+              (E : Entity_Id;
+               L : Elist_Id) return Boolean;
+            --  Determine whether list L contains element E
+
+            --------------
+            -- Contains --
+            --------------
+
+            function Contains
+              (E : Entity_Id;
+               L : Elist_Id) return Boolean
+            is
+               List_Elmt : Elmt_Id;
+
+            begin
+               List_Elmt := First_Elmt (L);
+               while Present (List_Elmt) loop
+                  if Node (List_Elmt) = E then
+                     return True;
+                  end if;
+
+                  Next_Elmt (List_Elmt);
+               end loop;
+
+               return False;
+            end Contains;
+
+         --  Start of processing
 
          begin
             if Is_Tagged_Type (Priv_T) then
                Priv_List := Primitive_Operations (Priv_T);
+               Prim_Elmt := First_Elmt (Priv_List);
 
-               P1 := First_Elmt (Priv_List);
-               while Present (P1) loop
-                  Prim := Node (P1);
+               --  In the case of a concurrent type completing a private tagged
+               --  type, primivies may have been declared in between the two
+               --  views. These subprograms need to be wrapped the same way
+               --  entries and protected procedures are handled because they
+               --  cannot be directly shared by the two views.
 
-                  --  Transfer explicit primitives, not those inherited from
-                  --  parent of partial view, which will be re-inherited on
-                  --  the full view.
+               if Is_Concurrent_Type (Full_T) then
+                  declare
+                     Conc_Typ  : constant Entity_Id :=
+                                   Corresponding_Record_Type (Full_T);
+                     Loc       : constant Source_Ptr := Sloc (Conc_Typ);
+                     Curr_Nod  : Node_Id := Parent (Conc_Typ);
+                     Wrap_Spec : Node_Id;
 
-                  if Comes_From_Source (Prim) then
-                     P2 := First_Elmt (Full_List);
-                     while Present (P2) and then Node (P2) /= Prim loop
-                        Next_Elmt (P2);
+                  begin
+                     while Present (Prim_Elmt) loop
+                        Prim := Node (Prim_Elmt);
+
+                        if Comes_From_Source (Prim)
+                          and then not Is_Abstract_Subprogram (Prim)
+                        then
+                           Wrap_Spec :=
+                             Make_Subprogram_Declaration (Loc,
+                               Specification =>
+                                 Build_Wrapper_Spec (Loc,
+                                   Subp_Id => Prim,
+                                   Obj_Typ => Conc_Typ,
+                                   Formals =>
+                                     Parameter_Specifications (
+                                       Parent (Prim))));
+
+                           Insert_After (Curr_Nod, Wrap_Spec);
+                           Curr_Nod := Wrap_Spec;
+
+                           Analyze (Wrap_Spec);
+                        end if;
+
+                        Next_Elmt (Prim_Elmt);
                      end loop;
 
-                     --  If not found, that is a new one
+                     return;
+                  end;
 
-                     if No (P2) then
+               --  For non-concurrent types, transfer explicit primitives, but
+               --  omit those inherited from the parent of the private view
+               --  since they will be re-inherited later on.
+
+               else
+                  Full_List := Primitive_Operations (Full_T);
+
+                  while Present (Prim_Elmt) loop
+                     Prim := Node (Prim_Elmt);
+
+                     if Comes_From_Source (Prim)
+                       and then not Contains (Prim, Full_List)
+                     then
                         Append_Elmt (Prim, Full_List);
                      end if;
-                  end if;
 
-                  Next_Elmt (P1);
-               end loop;
+                     Next_Elmt (Prim_Elmt);
+                  end loop;
+               end if;
+
+            --  Untagged private view
 
             else
+               Full_List := Primitive_Operations (Full_T);
+
                --  In this case the partial view is untagged, so here we locate
                --  all of the earlier primitives that need to be treated as
                --  dispatching (those that appear between the two views). Note
@@ -15871,10 +16045,9 @@ package body Sem_Ch3 is
                        or else
                      Ekind (Prim) = E_Function
                   then
+                     Disp_Typ := Find_Dispatching_Type (Prim);
 
-                     D_Type := Find_Dispatching_Type (Prim);
-
-                     if D_Type = Full_T
+                     if Disp_Typ = Full_T
                        and then (Chars (Prim) /= Name_Op_Ne
                                   or else Comes_From_Source (Prim))
                      then
@@ -15887,13 +16060,13 @@ package body Sem_Ch3 is
                         end if;
 
                      elsif Is_Dispatching_Operation (Prim)
-                       and then D_Type  /= Full_T
+                       and then Disp_Typ  /= Full_T
                      then
 
                         --  Verify that it is not otherwise controlled by a
                         --  formal or a return value of type T.
 
-                        Check_Controlling_Formals (D_Type, Prim);
+                        Check_Controlling_Formals (Disp_Typ, Prim);
                      end if;
                   end if;
 
@@ -16381,7 +16554,9 @@ package body Sem_Ch3 is
              or else
            Nkind_In (P, N_Derived_Type_Definition,
                         N_Discriminant_Specification,
+                        N_Formal_Object_Declaration,
                         N_Object_Declaration,
+                        N_Object_Renaming_Declaration,
                         N_Parameter_Specification,
                         N_Subtype_Declaration);
 
@@ -16425,6 +16600,9 @@ package body Sem_Ch3 is
                   when N_Component_Declaration =>
                      Error_Node :=
                        Subtype_Indication (Component_Definition (Related_Nod));
+
+                  when N_Allocator =>
+                     Error_Node := Expression (Related_Nod);
 
                   when others =>
                      pragma Assert (False);

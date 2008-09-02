@@ -372,6 +372,7 @@ decode_statement (void)
       break;
 
     case 'g':
+      match ("generic", gfc_match_generic, ST_GENERIC);
       match ("go to", gfc_match_goto, ST_GOTO);
       break;
 
@@ -1195,6 +1196,9 @@ gfc_ascii_statement (gfc_statement st)
     case ST_FUNCTION:
       p = "FUNCTION";
       break;
+    case ST_GENERIC:
+      p = "GENERIC";
+      break;
     case ST_GOTO:
       p = "GOTO";
       break;
@@ -1576,7 +1580,7 @@ typedef struct
 st_state;
 
 static gfc_try
-verify_st_order (st_state *p, gfc_statement st)
+verify_st_order (st_state *p, gfc_statement st, bool silent)
 {
 
   switch (st)
@@ -1660,9 +1664,10 @@ verify_st_order (st_state *p, gfc_statement st)
   return SUCCESS;
 
 order:
-  gfc_error ("%s statement at %C cannot follow %s statement at %L",
-	     gfc_ascii_statement (st),
-	     gfc_ascii_statement (p->last_statement), &p->where);
+  if (!silent)
+    gfc_error ("%s statement at %C cannot follow %s statement at %L",
+	       gfc_ascii_statement (st),
+	       gfc_ascii_statement (p->last_statement), &p->where);
 
   return FAILURE;
 }
@@ -1690,13 +1695,149 @@ unexpected_eof (void)
 }
 
 
+/* Parse the CONTAINS section of a derived type definition.  */
+
+gfc_access gfc_typebound_default_access;
+
+static bool
+parse_derived_contains (void)
+{
+  gfc_state_data s;
+  bool seen_private = false;
+  bool seen_comps = false;
+  bool error_flag = false;
+  bool to_finish;
+
+  gcc_assert (gfc_current_state () == COMP_DERIVED);
+  gcc_assert (gfc_current_block ());
+
+  /* Derived-types with SEQUENCE and/or BIND(C) must not have a CONTAINS
+     section.  */
+  if (gfc_current_block ()->attr.sequence)
+    gfc_error ("Derived-type '%s' with SEQUENCE must not have a CONTAINS"
+	       " section at %C", gfc_current_block ()->name);
+  if (gfc_current_block ()->attr.is_bind_c)
+    gfc_error ("Derived-type '%s' with BIND(C) must not have a CONTAINS"
+	       " section at %C", gfc_current_block ()->name);
+
+  accept_statement (ST_CONTAINS);
+  push_state (&s, COMP_DERIVED_CONTAINS, NULL);
+
+  gfc_typebound_default_access = ACCESS_PUBLIC;
+
+  to_finish = false;
+  while (!to_finish)
+    {
+      gfc_statement st;
+      st = next_statement ();
+      switch (st)
+	{
+	case ST_NONE:
+	  unexpected_eof ();
+	  break;
+
+	case ST_DATA_DECL:
+	  gfc_error ("Components in TYPE at %C must precede CONTAINS");
+	  error_flag = true;
+	  break;
+
+	case ST_PROCEDURE:
+	  if (gfc_notify_std (GFC_STD_F2003, "Fortran 2003:  Type-bound"
+					     " procedure at %C") == FAILURE)
+	    error_flag = true;
+
+	  accept_statement (ST_PROCEDURE);
+	  seen_comps = true;
+	  break;
+
+	case ST_GENERIC:
+	  if (gfc_notify_std (GFC_STD_F2003, "Fortran 2003:  GENERIC binding"
+					     " at %C") == FAILURE)
+	    error_flag = true;
+
+	  accept_statement (ST_GENERIC);
+	  seen_comps = true;
+	  break;
+
+	case ST_FINAL:
+	  if (gfc_notify_std (GFC_STD_F2003,
+			      "Fortran 2003:  FINAL procedure declaration"
+			      " at %C") == FAILURE)
+	    error_flag = true;
+
+	  accept_statement (ST_FINAL);
+	  seen_comps = true;
+	  break;
+
+	case ST_END_TYPE:
+	  to_finish = true;
+
+	  if (!seen_comps
+	      && (gfc_notify_std (GFC_STD_F2008, "Fortran 2008: Derived type "
+				  "definition at %C with empty CONTAINS "
+				  "section") == FAILURE))
+	    error_flag = true;
+
+	  /* ST_END_TYPE is accepted by parse_derived after return.  */
+	  break;
+
+	case ST_PRIVATE:
+	  if (gfc_find_state (COMP_MODULE) == FAILURE)
+	    {
+	      gfc_error ("PRIVATE statement in TYPE at %C must be inside "
+			 "a MODULE");
+	      error_flag = true;
+	      break;
+	    }
+
+	  if (seen_comps)
+	    {
+	      gfc_error ("PRIVATE statement at %C must precede procedure"
+			 " bindings");
+	      error_flag = true;
+	      break;
+	    }
+
+	  if (seen_private)
+	    {
+	      gfc_error ("Duplicate PRIVATE statement at %C");
+	      error_flag = true;
+	    }
+
+	  accept_statement (ST_PRIVATE);
+	  gfc_typebound_default_access = ACCESS_PRIVATE;
+	  seen_private = true;
+	  break;
+
+	case ST_SEQUENCE:
+	  gfc_error ("SEQUENCE statement at %C must precede CONTAINS");
+	  error_flag = true;
+	  break;
+
+	case ST_CONTAINS:
+	  gfc_error ("Already inside a CONTAINS block at %C");
+	  error_flag = true;
+	  break;
+
+	default:
+	  unexpected_statement (st);
+	  break;
+	}
+    }
+
+  pop_state ();
+  gcc_assert (gfc_current_state () == COMP_DERIVED);
+
+  return error_flag;
+}
+
+
 /* Parse a derived type.  */
 
 static void
 parse_derived (void)
 {
   int compiling_type, seen_private, seen_sequence, seen_component, error_flag;
-  int seen_contains, seen_contains_comp;
   gfc_statement st;
   gfc_state_data s;
   gfc_symbol *derived_sym = NULL;
@@ -1712,8 +1853,6 @@ parse_derived (void)
   seen_private = 0;
   seen_sequence = 0;
   seen_component = 0;
-  seen_contains = 0;
-  seen_contains_comp = 0;
 
   compiling_type = 1;
 
@@ -1726,34 +1865,22 @@ parse_derived (void)
 	  unexpected_eof ();
 
 	case ST_DATA_DECL:
-	case ST_PROCEDURE:
-	  if (seen_contains)
-	    {
-	      gfc_error ("Components in TYPE at %C must precede CONTAINS");
-	      error_flag = 1;
-	    }
-
 	  accept_statement (st);
 	  seen_component = 1;
 	  break;
 
+	case ST_PROCEDURE:
+	  gfc_error ("PROCEDURE binding at %C must be inside CONTAINS");
+	  error_flag = 1;
+	  break;
+
 	case ST_FINAL:
-	  if (!seen_contains)
-	    {
-	      gfc_error ("FINAL declaration at %C must be inside CONTAINS");
-	      error_flag = 1;
-	    }
-
-	  if (gfc_notify_std (GFC_STD_F2003,
-			      "Fortran 2003:  FINAL procedure declaration"
-			      " at %C") == FAILURE)
-	    error_flag = 1;
-
-	  accept_statement (ST_FINAL);
-	  seen_contains_comp = 1;
+	  gfc_error ("FINAL declaration at %C must be inside CONTAINS");
+	  error_flag = 1;
 	  break;
 
 	case ST_END_TYPE:
+endType:
 	  compiling_type = 0;
 
 	  if (!seen_component
@@ -1762,22 +1889,10 @@ parse_derived (void)
 		  == FAILURE))
 	    error_flag = 1;
 
-	  if (seen_contains && !seen_contains_comp
-	      && (gfc_notify_std (GFC_STD_F2008, "Fortran 2008: Derived type "
-				 "definition at %C with empty CONTAINS "
-				 "section") == FAILURE))
-	    error_flag = 1;
-
 	  accept_statement (ST_END_TYPE);
 	  break;
 
 	case ST_PRIVATE:
-	  if (seen_contains)
-	    {
-	      gfc_error ("PRIVATE statement at %C must precede CONTAINS");
-	      error_flag = 1;
-	    }
-
 	  if (gfc_find_state (COMP_MODULE) == FAILURE)
 	    {
 	      gfc_error ("PRIVATE statement in TYPE at %C must be inside "
@@ -1801,17 +1916,12 @@ parse_derived (void)
 	    }
 
 	  s.sym->component_access = ACCESS_PRIVATE;
+
 	  accept_statement (ST_PRIVATE);
 	  seen_private = 1;
 	  break;
 
 	case ST_SEQUENCE:
-	  if (seen_contains)
-	    {
-	      gfc_error ("SEQUENCE statement at %C must precede CONTAINS");
-	      error_flag = 1;
-	    }
-
 	  if (seen_component)
 	    {
 	      gfc_error ("SEQUENCE statement at %C must precede "
@@ -1841,15 +1951,10 @@ parse_derived (void)
 			      " definition at %C") == FAILURE)
 	    error_flag = 1;
 
-	  if (seen_contains)
-	    {
-	      gfc_error ("Already inside a CONTAINS block at %C");
-	      error_flag = 1;
-	    }
-
-	  seen_contains = 1;
 	  accept_statement (ST_CONTAINS);
-	  break;
+	  if (parse_derived_contains ())
+	    error_flag = 1;
+	  goto endType;
 
 	default:
 	  unexpected_statement (st);
@@ -1866,7 +1971,7 @@ parse_derived (void)
   for (c = sym->components; c; c = c->next)
     {
       /* Look for allocatable components.  */
-      if (c->allocatable
+      if (c->attr.allocatable
 	  || (c->ts.type == BT_DERIVED && c->ts.derived->attr.alloc_comp))
 	{
 	  sym->attr.alloc_comp = 1;
@@ -1874,7 +1979,7 @@ parse_derived (void)
 	}
 
       /* Look for pointer components.  */
-      if (c->pointer
+      if (c->attr.pointer
 	  || (c->ts.type == BT_DERIVED && c->ts.derived->attr.pointer_comp))
 	{
 	  sym->attr.pointer_comp = 1;
@@ -1883,7 +1988,7 @@ parse_derived (void)
 
       /* Look for private components.  */
       if (sym->component_access == ACCESS_PRIVATE
-	  || c->access == ACCESS_PRIVATE
+	  || c->attr.access == ACCESS_PRIVATE
 	  || (c->ts.type == BT_DERIVED && c->ts.derived->attr.private_comp))
 	{
 	  sym->attr.private_comp = 1;
@@ -1958,7 +2063,7 @@ static gfc_statement parse_spec (gfc_statement);
 static void
 parse_interface (void)
 {
-  gfc_compile_state new_state, current_state;
+  gfc_compile_state new_state = COMP_NONE, current_state;
   gfc_symbol *prog_unit, *sym;
   gfc_interface_info save;
   gfc_state_data s1, s2;
@@ -2169,6 +2274,26 @@ match_deferred_characteristics (gfc_typespec * ts)
 }
 
 
+/* Check specification-expressions in the function result of the currently
+   parsed block and ensure they are typed (give an IMPLICIT type if necessary).
+   For return types specified in a FUNCTION prefix, the IMPLICIT rules of the
+   scope are not yet parsed so this has to be delayed up to parse_spec.  */
+
+static void
+check_function_result_typed (void)
+{
+  gfc_typespec* ts = &gfc_current_ns->proc_name->result->ts;
+
+  gcc_assert (gfc_current_state () == COMP_FUNCTION);
+  gcc_assert (ts->type != BT_UNKNOWN);
+
+  /* Check type-parameters, at the moment only CHARACTER lengths possible.  */
+  /* TODO:  Extend when KIND type parameters are implemented.  */
+  if (ts->type == BT_CHARACTER && ts->cl && ts->cl->length)
+    gfc_expr_check_typed (ts->cl->length, gfc_current_ns, true);
+}
+
+
 /* Parse a set of specification statements.  Returns the statement
    that doesn't fit.  */
 
@@ -2176,18 +2301,69 @@ static gfc_statement
 parse_spec (gfc_statement st)
 {
   st_state ss;
+  bool function_result_typed = false;
   bool bad_characteristic = false;
   gfc_typespec *ts;
 
-  verify_st_order (&ss, ST_NONE);
+  verify_st_order (&ss, ST_NONE, false);
   if (st == ST_NONE)
     st = next_statement ();
 
+  /* If we are not inside a function or don't have a result specified so far,
+     do nothing special about it.  */
+  if (gfc_current_state () != COMP_FUNCTION)
+    function_result_typed = true;
+  else
+    {
+      gfc_symbol* proc = gfc_current_ns->proc_name;
+      gcc_assert (proc);
+
+      if (proc->result->ts.type == BT_UNKNOWN)
+	function_result_typed = true;
+    }
+
 loop:
+  
+  /* If we find a statement that can not be followed by an IMPLICIT statement
+     (and thus we can expect to see none any further), type the function result
+     if it has not yet been typed.  Be careful not to give the END statement
+     to verify_st_order!  */
+  if (!function_result_typed && st != ST_GET_FCN_CHARACTERISTICS)
+    {
+      bool verify_now = false;
+
+      if (st == ST_END_FUNCTION)
+	verify_now = true;
+      else
+	{
+	  st_state dummyss;
+	  verify_st_order (&dummyss, ST_NONE, false);
+	  verify_st_order (&dummyss, st, false);
+
+	  if (verify_st_order (&dummyss, ST_IMPLICIT, true) == FAILURE)
+	    verify_now = true;
+	}
+
+      if (verify_now)
+	{
+	  check_function_result_typed ();
+	  function_result_typed = true;
+	}
+    }
+
   switch (st)
     {
     case ST_NONE:
       unexpected_eof ();
+
+    case ST_IMPLICIT_NONE:
+    case ST_IMPLICIT:
+      if (!function_result_typed)
+	{
+	  check_function_result_typed ();
+	  function_result_typed = true;
+	}
+      goto declSt;
 
     case ST_FORMAT:
     case ST_ENTRY:
@@ -2199,14 +2375,13 @@ loop:
 
     case ST_USE:
     case ST_IMPORT:
-    case ST_IMPLICIT_NONE:
-    case ST_IMPLICIT:
     case ST_PARAMETER:
     case ST_PUBLIC:
     case ST_PRIVATE:
     case ST_DERIVED_DECL:
     case_decl:
-      if (verify_st_order (&ss, st) == FAILURE)
+declSt:
+      if (verify_st_order (&ss, st, false) == FAILURE)
 	{
 	  reject_statement ();
 	  st = next_statement ();
@@ -2295,7 +2470,7 @@ loop:
       gfc_current_block ()->ts.kind = 0;
       /* Keep the derived type; if it's bad, it will be discovered later.  */
       if (!(ts->type == BT_DERIVED && ts->derived))
-        ts->type = BT_UNKNOWN;
+	ts->type = BT_UNKNOWN;
     }
 
   return st;

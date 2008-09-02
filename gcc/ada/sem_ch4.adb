@@ -498,11 +498,24 @@ package body Sem_Ch4 is
             Set_Directly_Designated_Type (Acc_Type, Type_Id);
             Check_Fully_Declared (Type_Id, N);
 
-            --  Ada 2005 (AI-231)
+            --  Ada 2005 (AI-231): If the designated type is itself an access
+            --  type that excludes null, it's default initializastion will
+            --  be a null object, and we can insert an unconditional raise
+            --  before the allocator.
 
             if Can_Never_Be_Null (Type_Id) then
-               Error_Msg_N ("(Ada 2005) qualified expression required",
-                            Expression (N));
+               declare
+                  Not_Null_Check : constant Node_Id :=
+                                     Make_Raise_Constraint_Error (Sloc (E),
+                                       Reason => CE_Null_Not_Allowed);
+               begin
+                  if Expander_Active then
+                     Insert_Action (N, Not_Null_Check);
+                     Analyze (Not_Null_Check);
+                  else
+                     Error_Msg_N ("null value not allowed here?", E);
+                  end if;
+               end;
             end if;
 
             --  Check restriction against dynamically allocated protected
@@ -684,11 +697,15 @@ package body Sem_Ch4 is
 
    procedure Analyze_Call (N : Node_Id) is
       Actuals : constant List_Id := Parameter_Associations (N);
-      Nam     : Node_Id          := Name (N);
+      Nam     : Node_Id;
       X       : Interp_Index;
       It      : Interp;
       Nam_Ent : Entity_Id;
       Success : Boolean := False;
+
+      Deref : Boolean := False;
+      --  Flag indicates whether an interpretation of the prefix is a
+      --  parameterless call that returns an access_to_subprogram.
 
       function Name_Denotes_Function return Boolean;
       --  If the type of the name is an access to subprogram, this may be the
@@ -761,6 +778,8 @@ package body Sem_Ch4 is
       --  which will be reset if the type is successfully resolved.
 
       Set_Etype (N, Any_Type);
+
+      Nam := Name (N);
 
       if not Is_Overloaded (Nam) then
 
@@ -874,6 +893,7 @@ package body Sem_Ch4 is
 
          while Present (It.Nam) loop
             Nam_Ent := It.Nam;
+            Deref   := False;
 
             --  Name may be call that returns an access to subprogram, or more
             --  generally an overloaded expression one of whose interpretations
@@ -888,11 +908,17 @@ package body Sem_Ch4 is
                Nam_Ent := Designated_Type (Nam_Ent);
 
             elsif Is_Access_Type (Etype (Nam_Ent))
-              and then not Is_Entity_Name (Nam)
+              and then
+                (not Is_Entity_Name (Nam)
+                   or else Nkind (N) = N_Procedure_Call_Statement)
               and then Ekind (Designated_Type (Etype (Nam_Ent)))
                                                           = E_Subprogram_Type
             then
                Nam_Ent := Designated_Type (Etype (Nam_Ent));
+
+               if Is_Entity_Name (Nam) then
+                  Deref := True;
+               end if;
             end if;
 
             Analyze_One_Call (N, Nam_Ent, False, Success);
@@ -904,7 +930,16 @@ package body Sem_Ch4 is
             --  guation is done directly in Resolve.
 
             if Success then
-               Set_Etype (Nam, It.Typ);
+               if Deref
+                 and then Nkind (Parent (N)) /= N_Explicit_Dereference
+               then
+                  Set_Entity (Nam, It.Nam);
+                  Insert_Explicit_Dereference (Nam);
+                  Set_Etype (Nam, Nam_Ent);
+
+               else
+                  Set_Etype (Nam, It.Typ);
+               end if;
 
             elsif Nkind_In (Name (N), N_Selected_Component,
                                       N_Function_Call)
@@ -1480,14 +1515,15 @@ package body Sem_Ch4 is
         and then Is_Overloaded (N)
       then
          --  The prefix may include access to subprograms and other access
-         --  types. If the context selects the interpretation that is a call,
-         --  we cannot rewrite the node yet, but we include the result of
-         --  the call interpretation.
+         --  types. If the context selects the interpretation that is a
+         --  function call (not a procedure call) we cannot rewrite the node
+         --  yet, but we include the result of the call interpretation.
 
          Get_First_Interp (N, I, It);
          while Present (It.Nam) loop
             if Ekind (Base_Type (It.Typ)) = E_Subprogram_Type
                and then Etype (Base_Type (It.Typ)) /= Standard_Void_Type
+               and then Nkind (Parent (N)) /= N_Procedure_Call_Statement
             then
                Add_One_Interp (N, Etype (It.Typ), Etype (It.Typ));
             end if;
@@ -2104,11 +2140,12 @@ package body Sem_Ch4 is
       --  is already known to be compatible, and because this may be an
       --  indexing of a call with default parameters.
 
-      Formal     : Entity_Id;
-      Actual     : Node_Id;
-      Is_Indexed : Boolean := False;
-      Subp_Type  : constant Entity_Id := Etype (Nam);
-      Norm_OK    : Boolean;
+      Formal      : Entity_Id;
+      Actual      : Node_Id;
+      Is_Indexed  : Boolean := False;
+      Is_Indirect : Boolean := False;
+      Subp_Type   : constant Entity_Id := Etype (Nam);
+      Norm_OK     : Boolean;
 
       function Operator_Hidden_By (Fun : Entity_Id) return Boolean;
       --  There may be a user-defined operator that hides the current
@@ -2217,6 +2254,13 @@ package body Sem_Ch4 is
       --  in prefix notation, so that the rebuilt parameter list has more than
       --  one actual.
 
+      if not Is_Overloadable (Nam)
+        and then Ekind (Nam) /= E_Subprogram_Type
+        and then Ekind (Nam) /= E_Entry_Family
+      then
+         return;
+      end if;
+
       if Present (Actuals)
         and then
           (Needs_No_Actuals (Nam)
@@ -2236,11 +2280,13 @@ package body Sem_Ch4 is
 
          --  The prefix can also be a parameterless function that returns an
          --  access to subprogram, in which case this is an indirect call.
+         --  If this succeeds, an explicit dereference is added later on,
+         --  in Analyze_Call or Resolve_Call.
 
          elsif Is_Access_Type (Subp_Type)
            and then Ekind (Designated_Type (Subp_Type)) = E_Subprogram_Type
          then
-            Is_Indexed := Try_Indirect_Call (N, Nam, Subp_Type);
+            Is_Indirect := Try_Indirect_Call (N, Nam, Subp_Type);
          end if;
 
       end if;
@@ -2255,13 +2301,21 @@ package body Sem_Ch4 is
          return;
       end if;
 
-      Normalize_Actuals (N, Nam, (Report and not Is_Indexed), Norm_OK);
+      Normalize_Actuals
+        (N, Nam, (Report and not Is_Indexed and not Is_Indirect), Norm_OK);
 
       if not Norm_OK then
 
+         --  If an indirect call is a possible interpretation, indicate
+         --  success to the caller.
+
+         if Is_Indirect then
+            Success := True;
+            return;
+
          --  Mismatch in number or names of parameters
 
-         if Debug_Flag_E then
+         elsif Debug_Flag_E then
             Write_Str (" normalization fails in call ");
             Write_Int (Int (N));
             Write_Str (" with subprogram ");
@@ -2387,7 +2441,7 @@ package body Sem_Ch4 is
                      Write_Eol;
                   end if;
 
-                  if Report and not Is_Indexed then
+                  if Report and not Is_Indexed and not Is_Indirect then
 
                      --  Ada 2005 (AI-251): Complete the error notification
                      --  to help new Ada 2005 users
@@ -6380,9 +6434,15 @@ package body Sem_Ch4 is
          -----------------------------
 
          function Valid_First_Argument_Of (Op : Entity_Id) return Boolean is
-            Typ : constant Entity_Id := Etype (First_Formal (Op));
+            Typ : Entity_Id := Etype (First_Formal (Op));
 
          begin
+            if Is_Concurrent_Type (Typ)
+              and then Present (Corresponding_Record_Type (Typ))
+            then
+               Typ := Corresponding_Record_Type (Typ);
+            end if;
+
             --  Simple case. Object may be a subtype of the tagged type or
             --  may be the corresponding record of a synchronized type.
 
@@ -6414,6 +6474,10 @@ package body Sem_Ch4 is
          --  corresponding record (base) type.
 
          if Is_Concurrent_Type (Obj_Type) then
+            if not Present (Corresponding_Record_Type (Obj_Type)) then
+               return False;
+            end if;
+
             Corr_Type := Base_Type (Corresponding_Record_Type (Obj_Type));
             Elmt := First_Elmt (Primitive_Operations (Corr_Type));
 

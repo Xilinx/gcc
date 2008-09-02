@@ -73,6 +73,19 @@
 #define TARGET_ABI_OPEN_VMS 0
 #endif
 
+/* For efficient float-to-int rounding, it is necessary to know whether
+   floating-point arithmetic on may use wider intermediate results.
+   When FP_ARITH_MAY_WIDEN is not defined, be conservative and only assume
+   floating-point arithmetic does not widen if double precision is emulated. */
+
+#ifndef FP_ARITH_MAY_WIDEN
+#if defined(HAVE_extendsfdf2)
+#define FP_ARITH_MAY_WIDEN HAVE_extendsfdf2
+#else
+#define FP_ARITH_MAY_WIDEN 0
+#endif
+#endif
+
 extern char *__gnat_to_canonical_file_spec (char *);
 
 int max_gnat_nodes;
@@ -205,6 +218,8 @@ static void process_decls (List_Id, List_Id, Node_Id, bool, bool);
 static tree emit_range_check (tree, Node_Id);
 static tree emit_index_check (tree, tree, tree, tree);
 static tree emit_check (tree, tree, int);
+static tree build_unary_op_trapv (enum tree_code, tree, tree);
+static tree build_binary_op_trapv (enum tree_code, tree, tree, tree);
 static tree convert_with_check (Entity_Id, tree, bool, bool, bool);
 static bool smaller_packable_type_p (tree, tree);
 static bool addressable_p (tree, tree);
@@ -231,12 +246,12 @@ gigi (Node_Id gnat_root, int max_gnat_node, int number_name,
       struct Elist_Header *elists_ptr, struct Elmt_Item *elmts_ptr,
       struct String_Entry *strings_ptr, Char_Code *string_chars_ptr,
       struct List_Header *list_headers_ptr, Nat number_file,
-      struct File_Info_Type *file_info_ptr,
+      struct File_Info_Type *file_info_ptr, Entity_Id standard_boolean,
       Entity_Id standard_integer, Entity_Id standard_long_long_float,
       Entity_Id standard_exception_type, Int gigi_operating_mode)
 {
-  tree gnu_standard_long_long_float;
-  tree gnu_standard_exception_type;
+  Entity_Id gnat_literal;
+  tree gnu_standard_long_long_float, gnu_standard_exception_type, t;
   struct elab_info *info;
   int i;
 
@@ -311,12 +326,34 @@ gigi (Node_Id gnat_root, int max_gnat_node, int number_name,
   /* Give names and make TYPE_DECLs for common types.  */
   create_type_decl (get_identifier (SIZE_TYPE), sizetype,
 		    NULL, false, true, Empty);
+  create_type_decl (get_identifier ("boolean"), boolean_type_node,
+		    NULL, false, true, Empty);
   create_type_decl (get_identifier ("integer"), integer_type_node,
 		    NULL, false, true, Empty);
   create_type_decl (get_identifier ("unsigned char"), char_type_node,
 		    NULL, false, true, Empty);
   create_type_decl (get_identifier ("long integer"), long_integer_type_node,
 		    NULL, false, true, Empty);
+
+  /* Save the type we made for boolean as the type for Standard.Boolean.  */
+  save_gnu_tree (Base_Type (standard_boolean), TYPE_NAME (boolean_type_node),
+		 false);
+  gnat_literal = First_Literal (Base_Type (standard_boolean));
+  t = UI_To_gnu (Enumeration_Rep (gnat_literal), boolean_type_node);
+  gcc_assert (t == boolean_false_node);
+  t = create_var_decl (get_entity_name (gnat_literal), NULL_TREE,
+		       boolean_type_node, t, true, false, false, false,
+		       NULL, gnat_literal);
+  DECL_IGNORED_P (t) = 1;
+  save_gnu_tree (gnat_literal, t, false);
+  gnat_literal = Next_Literal (gnat_literal);
+  t = UI_To_gnu (Enumeration_Rep (gnat_literal), boolean_type_node);
+  gcc_assert (t == boolean_true_node);
+  t = create_var_decl (get_entity_name (gnat_literal), NULL_TREE,
+		       boolean_type_node, t, true, false, false, false,
+		       NULL, gnat_literal);
+  DECL_IGNORED_P (t) = 1;
+  save_gnu_tree (gnat_literal, t, false);
 
   /* Save the type we made for integer as the type for Standard.Integer.
      Then make the rest of the standard types.  Note that some of these
@@ -2225,7 +2262,7 @@ call_to_gnu (Node_Id gnat_node, tree *gnu_result_type_p, tree gnu_target)
 	    {
 	      gnu_temp = build_binary_op (MODIFY_EXPR, NULL_TREE, gnu_copy,
 					  gnu_name);
-	      set_expr_location_from_node (gnu_temp, gnat_actual);
+	      set_expr_location_from_node (gnu_temp, gnat_node);
 	      append_to_statement_list (gnu_temp, &gnu_after_list);
 	    }
 	}
@@ -2368,7 +2405,8 @@ call_to_gnu (Node_Id gnat_node, tree *gnu_result_type_p, tree gnu_target)
 	  else
 	    gnu_actual = build_unary_op (ADDR_EXPR, NULL_TREE,
 					 fill_vms_descriptor (gnu_actual,
-							      gnat_formal));
+							      gnat_formal,
+							      gnat_actual));
 	}
       else
 	{
@@ -2576,7 +2614,7 @@ call_to_gnu (Node_Id gnat_node, tree *gnu_result_type_p, tree gnu_target)
 
 	    gnu_result = build_binary_op (MODIFY_EXPR, NULL_TREE,
 					  gnu_actual, gnu_result);
-	    set_expr_location_from_node (gnu_result, gnat_actual);
+	    set_expr_location_from_node (gnu_result, gnat_node);
 	    append_to_statement_list (gnu_result, &gnu_before_list);
 	    scalar_return_list = TREE_CHAIN (scalar_return_list);
 	    gnu_name_list = TREE_CHAIN (gnu_name_list);
@@ -3373,6 +3411,15 @@ gnat_to_gnu (Node_Id gnat_node)
       if (type_annotate_only && gnu_expr && TREE_CODE (gnu_expr) == ERROR_MARK)
 	gnu_expr = NULL_TREE;
 
+      /* If this is a deferred constant with an address clause, we ignore the
+	 full view since the clause is on the partial view and we cannot have
+	 2 different GCC trees for the object.  The only bits of the full view
+	 we will use is the initializer, but it will be directly fetched.  */
+      if (Ekind(gnat_temp) == E_Constant
+	  && Present (Address_Clause (gnat_temp))
+	  && Present (Full_View (gnat_temp)))
+	save_gnu_tree (Full_View (gnat_temp), error_mark_node, true);
+
       if (No (Freeze_Node (gnat_temp)))
 	gnat_to_gnu_entity (gnat_temp, gnu_expr, 1);
       break;
@@ -3916,7 +3963,22 @@ gnat_to_gnu (Node_Id gnat_node)
 	    gnu_rhs = convert (gnu_type, gnu_rhs);
 	  }
 
-	gnu_result = build_binary_op (code, gnu_type, gnu_lhs, gnu_rhs);
+	/* Instead of expanding overflow checks for addition, subtraction
+	   and multiplication itself, the front end will leave this to
+	   the back end when Backend_Overflow_Checks_On_Target is set.
+	   As the GCC back end itself does not know yet how to properly
+	   do overflow checking, do it here.  The goal is to push
+	   the expansions further into the back end over time.  */
+	if (Do_Overflow_Check (gnat_node) && Backend_Overflow_Checks_On_Target
+            && (Nkind (gnat_node) == N_Op_Add
+		|| Nkind (gnat_node) == N_Op_Subtract
+		|| Nkind (gnat_node) == N_Op_Multiply)
+	    && !TYPE_UNSIGNED (gnu_type)
+	    && !FLOAT_TYPE_P (gnu_type))
+          gnu_result
+	    = build_binary_op_trapv (code, gnu_type, gnu_lhs, gnu_rhs);
+	else
+	  gnu_result = build_binary_op (code, gnu_type, gnu_lhs, gnu_rhs);
 
 	/* If this is a logical shift with the shift count not verified,
 	   we must return zero if it is too large.  We cannot compensate
@@ -3981,8 +4043,14 @@ gnat_to_gnu (Node_Id gnat_node)
          gnu_result_type = get_unpadded_type (Base_Type
 					      (Full_View (Etype (gnat_node))));
 
-      gnu_result = build_unary_op (gnu_codes[Nkind (gnat_node)],
-				   gnu_result_type, gnu_expr);
+      if (Do_Overflow_Check (gnat_node)
+	  && !TYPE_UNSIGNED (gnu_result_type)
+	  && !FLOAT_TYPE_P (gnu_result_type))
+	gnu_result = build_unary_op_trapv (gnu_codes[Nkind (gnat_node)],
+					   gnu_result_type, gnu_expr);
+      else
+	gnu_result = build_unary_op (gnu_codes[Nkind (gnat_node)],
+				     gnu_result_type, gnu_expr);
       break;
 
     case N_Allocator:
@@ -4496,21 +4564,22 @@ gnat_to_gnu (Node_Id gnat_node)
     /***************************************************/
 
     case N_Attribute_Definition_Clause:
-
       gnu_result = alloc_stmt_list ();
 
-      /* The only one we need deal with is for 'Address.  For the others, SEM
-	 puts the information elsewhere.  We need only deal with 'Address
-	 if the object has a Freeze_Node (which it never will currently).  */
-      if (Get_Attribute_Id (Chars (gnat_node)) != Attr_Address
-	  || No (Freeze_Node (Entity (Name (gnat_node)))))
+      /* The only one we need to deal with is 'Address since, for the others,
+	 the front-end puts the information elsewhere.  */
+      if (Get_Attribute_Id (Chars (gnat_node)) != Attr_Address)
 	break;
 
-      /* Get the value to use as the address and save it as the
-	 equivalent for GNAT_TEMP.  When the object is frozen,
-	 gnat_to_gnu_entity will do the right thing. */
-      save_gnu_tree (Entity (Name (gnat_node)),
-                     gnat_to_gnu (Expression (gnat_node)), true);
+      /* And we only deal with 'Address if the object has a Freeze node.  */
+      gnat_temp = Entity (Name (gnat_node));
+      if (No (Freeze_Node (gnat_temp)))
+	break;
+
+      /* Get the value to use as the address and save it as the equivalent
+	 for the object.  When it is frozen, gnat_to_gnu_entity will do the
+	 right thing.  */
+      save_gnu_tree (gnat_temp, gnat_to_gnu (Expression (gnat_node)), true);
       break;
 
     case N_Enumeration_Representation_Clause:
@@ -5852,6 +5921,159 @@ process_decls (List_Id gnat_decls, List_Id gnat_decls2,
 	  }
 }
 
+/* Make a unary operation of kind CODE using build_unary_op, but guard
+   the operation by an overflow check. CODE can be one of NEGATE_EXPR
+   or ABS_EXPR.  GNU_TYPE is the type desired for the result.
+   Usually the operation is to be performed in that type.  */
+
+static tree
+build_unary_op_trapv (enum tree_code code,
+		      tree gnu_type,
+		      tree operand)
+{
+  gcc_assert ((code == NEGATE_EXPR) || (code == ABS_EXPR));
+
+  operand = protect_multiple_eval (operand);
+
+  return emit_check (build_binary_op (EQ_EXPR, integer_type_node,
+				      operand, TYPE_MIN_VALUE (gnu_type)),
+		     build_unary_op (code, gnu_type, operand),
+		     CE_Overflow_Check_Failed);
+}
+
+/* Make a binary operation of kind CODE using build_binary_op, but
+   guard the operation by an overflow check. CODE can be one of
+   PLUS_EXPR, MINUS_EXPR or MULT_EXPR.  GNU_TYPE is the type desired
+   for the result.  Usually the operation is to be performed in that type.  */
+
+static tree
+build_binary_op_trapv (enum tree_code code,
+		       tree gnu_type,
+		       tree left,
+		       tree right)
+{
+  tree lhs = protect_multiple_eval (left);
+  tree rhs = protect_multiple_eval (right);
+  tree type_max = TYPE_MAX_VALUE (gnu_type);
+  tree type_min = TYPE_MIN_VALUE (gnu_type);
+  tree gnu_expr;
+  tree tmp1, tmp2;
+  tree zero = convert (gnu_type, integer_zero_node);
+  tree rhs_ge_zero;
+  tree check_pos;
+  tree check_neg;
+
+  int precision = TYPE_PRECISION (gnu_type);
+
+  /* Prefer a constant rhs to simplify checks */
+
+  if (TREE_CONSTANT (lhs) && !TREE_CONSTANT (rhs)
+      && commutative_tree_code (code))
+    {
+      tree tmp = lhs;
+      lhs = rhs;
+      rhs = tmp;
+   }
+
+  /* In the case the right-hand size is still not constant, try to
+     use an exact operation in a wider type. */
+
+  if (!TREE_CONSTANT (rhs))
+    {
+      int needed_precision = code == MULT_EXPR ? 2 * precision : precision + 1;
+
+      if (code == MULT_EXPR && precision == 64)
+	{
+	  return build_call_2_expr (mulv64_decl, lhs, rhs);
+	}
+      else if (needed_precision <= LONG_LONG_TYPE_SIZE)
+	{
+	  tree calc_type = gnat_type_for_size (needed_precision, 0);
+	  tree result;
+	  tree check;
+
+	  result = build_binary_op (code, calc_type,
+				    convert (calc_type, lhs),
+				    convert (calc_type, rhs));
+
+	  check = build_binary_op
+	    (TRUTH_ORIF_EXPR, integer_type_node,
+	     build_binary_op (LT_EXPR, integer_type_node, result,
+			      convert (calc_type, type_min)),
+	     build_binary_op (GT_EXPR, integer_type_node, result,
+			      convert (calc_type, type_max)));
+
+	  result = convert (gnu_type, result);
+
+	  return emit_check (check, result, CE_Overflow_Check_Failed);
+	}
+    }
+
+  gnu_expr = build_binary_op (code, gnu_type, lhs, rhs);
+  rhs_ge_zero = build_binary_op (GE_EXPR, integer_type_node, rhs, zero);
+
+  switch (code)
+    {
+    case PLUS_EXPR:
+      /* When rhs >= 0, overflow when lhs > type_max - rhs */
+      check_pos = build_binary_op (GT_EXPR, integer_type_node, lhs,
+				   build_binary_op (MINUS_EXPR, gnu_type,
+						    type_max, rhs)),
+
+      /* When rhs < 0, overflow when lhs < type_min - rhs */
+      check_neg = build_binary_op (LT_EXPR, integer_type_node, lhs,
+				   build_binary_op (MINUS_EXPR, gnu_type,
+						    type_min, rhs));
+      break;
+
+    case MINUS_EXPR:
+      /* When rhs >= 0, overflow when lhs < type_min + rhs */
+      check_pos = build_binary_op (LT_EXPR, integer_type_node, lhs,
+				   build_binary_op (PLUS_EXPR, gnu_type,
+						    type_min, rhs)),
+
+      /* When rhs < 0, overflow when lhs > type_max + rhs */
+      check_neg = build_binary_op (GT_EXPR, integer_type_node, lhs,
+				   build_binary_op (PLUS_EXPR, gnu_type,
+						    type_max, rhs));
+      break;
+
+    case MULT_EXPR:
+      /* The check here is designed to be efficient if the rhs is constant,
+         Four different check expressions determine wether X * C overflows,
+	 depending on C.
+	   C ==  0  =>  false
+	   C  >  0  =>  X > type_max / C || X < type_min / C
+	   C == -1  =>  X == type_min
+	   C  < -1  =>  X > type_min / C || X < type_max / C */
+
+      tmp1 = build_binary_op (TRUNC_DIV_EXPR, gnu_type, type_max, rhs);
+      tmp2 = build_binary_op (TRUNC_DIV_EXPR, gnu_type, type_min, rhs);
+
+      check_pos = build_binary_op (TRUTH_ANDIF_EXPR, integer_type_node,
+		    build_binary_op (NE_EXPR, integer_type_node, zero, rhs),
+		    build_binary_op (TRUTH_ORIF_EXPR, integer_type_node,
+		      build_binary_op (GT_EXPR, integer_type_node, lhs, tmp1),
+		      build_binary_op (LT_EXPR, integer_type_node, lhs, tmp2)));
+
+      check_neg = fold_build3 (COND_EXPR, integer_type_node,
+		    build_binary_op (EQ_EXPR, integer_type_node, rhs,
+				     build_int_cst (gnu_type, -1)),
+		    build_binary_op (EQ_EXPR, integer_type_node, lhs, type_min),
+		    build_binary_op (TRUTH_ORIF_EXPR, integer_type_node,
+		      build_binary_op (GT_EXPR, integer_type_node, lhs, tmp2),
+		      build_binary_op (LT_EXPR, integer_type_node, lhs, tmp1)));
+      break;
+
+    default:
+      gcc_unreachable();
+    }
+
+  return emit_check (fold_build3 (COND_EXPR, integer_type_node, rhs_ge_zero,
+				  check_pos, check_neg),
+		     gnu_expr, CE_Overflow_Check_Failed);
+}
+
 /* Emit code for a range check. GNU_EXPR is the expression to be checked,
    GNAT_RANGE_TYPE the gnat type or subtype containing the bounds against
    which we have to check. */
@@ -6099,12 +6321,11 @@ convert_with_check (Entity_Id gnat_type, tree gnu_expr, bool overflowp,
       /* The following calculations depend on proper rounding to even
          of each arithmetic operation. In order to prevent excess
          precision from spoiling this property, use the widest hardware
-         floating-point type.
+         floating-point type if FP_ARITH_MAY_WIDEN is true.  */
 
-         FIXME: For maximum efficiency, this should only be done for machines
-         and types where intermediates may have extra precision.  */
+      calc_type = (FP_ARITH_MAY_WIDEN ? longest_float_type_node
+                                      : gnu_in_basetype);
 
-      calc_type = longest_float_type_node;
       /* FIXME: Should not have padding in the first place */
       if (TREE_CODE (calc_type) == RECORD_TYPE
               && TYPE_IS_PADDING_P (calc_type))

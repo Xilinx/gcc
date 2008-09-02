@@ -1447,7 +1447,7 @@ package body Sem_Util is
    --  Start of processing for Collect_Interfaces_Info
 
    begin
-      Collect_Interfaces  (T, Ifaces_List);
+      Collect_Interfaces (T, Ifaces_List);
       Collect_Interface_Components (T, Comps_List);
 
       --  Search for the record component and tag associated with each
@@ -4616,14 +4616,6 @@ package body Sem_Util is
          return Has_Preelaborable_Initialization (Base_Type (E));
       end if;
 
-      --  Other private types never have preelaborable initialization
-
-      if Is_Private_Type (E) then
-         return False;
-      end if;
-
-      --  Here for all non-private view
-
       --  All elementary types have preelaborable initialization
 
       if Is_Elementary_Type (E) then
@@ -4642,6 +4634,13 @@ package body Sem_Util is
       --  initialization.
 
       elsif Is_Derived_Type (E) then
+
+         --  If the derived type is a private extension then it doesn't have
+         --  preelaborable initialization.
+
+         if Ekind (Base_Type (E)) = E_Record_Type_With_Private then
+            return False;
+         end if;
 
          --  First check whether ancestor type has preelaborable initialization
 
@@ -4662,6 +4661,13 @@ package body Sem_Util is
          then
             Has_PE := False;
          end if;
+
+      --  Private types not derived from a type having preelaborable init and
+      --  that are not marked with pragma Preelaborable_Initialization do not
+      --  have preelaborable initialization.
+
+      elsif Is_Private_Type (E) then
+         return False;
 
       --  Record type has PI if it is non private and all components have PI
 
@@ -6372,6 +6378,42 @@ package body Sem_Util is
       end if;
    end Is_Potentially_Persistent_Type;
 
+   ---------------------------------
+   -- Is_Protected_Self_Reference --
+   ---------------------------------
+
+   function Is_Protected_Self_Reference (N : Node_Id) return Boolean
+   is
+      function In_Access_Definition (N : Node_Id) return Boolean;
+      --  Returns true if N belongs to an access definition
+
+      --------------------------
+      -- In_Access_Definition --
+      --------------------------
+
+      function In_Access_Definition (N : Node_Id) return Boolean
+      is
+         P : Node_Id := Parent (N);
+      begin
+         while Present (P) loop
+            if Nkind (P) = N_Access_Definition then
+               return True;
+            end if;
+            P := Parent (P);
+         end loop;
+         return False;
+      end In_Access_Definition;
+
+   --  Start of processing for Is_Protected_Self_Reference
+
+   begin
+      return Ada_Version >= Ada_05
+        and then Is_Entity_Name (N)
+        and then Is_Protected_Type (Entity (N))
+        and then In_Open_Scopes (Entity (N))
+        and then not In_Access_Definition (N);
+   end Is_Protected_Self_Reference;
+
    -----------------------------
    -- Is_RCI_Pkg_Spec_Or_Body --
    -----------------------------
@@ -6995,11 +7037,8 @@ package body Sem_Util is
          --  If scope is a package, also clear current values of all
          --  private entities in the scope.
 
-         if Ekind (S) = E_Package
-              or else
-            Ekind (S) = E_Generic_Package
-              or else
-            Is_Concurrent_Type (S)
+         if Is_Package_Or_Generic_Package (S)
+           or else Is_Concurrent_Type (S)
          then
             Kill_Current_Values_For_Entity_Chain (First_Private_Entity (S));
          end if;
@@ -8938,6 +8977,16 @@ package body Sem_Util is
            and then not Needs_Debug_Info (E)
          then
             Set_Debug_Info_Needed (E);
+
+            --  For a private type, indicate that the full view also needs
+            --  debug information.
+
+            if Is_Type (E)
+              and then Is_Private_Type (E)
+              and then Present (Full_View (E))
+            then
+               Set_Debug_Info_Needed (Full_View (E));
+            end if;
          end if;
       end Set_Debug_Info_Needed_If_Not_Set;
 

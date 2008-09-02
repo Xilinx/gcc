@@ -210,27 +210,27 @@ Common Var(warn_notreached) Warning
 Warn about code that will never be executed
 
 Wunused
-Common Warning
+Common Var(warn_unused) Init(0) Warning
 Enable all -Wunused- warnings
 
 Wunused-function
-Common Var(warn_unused_function) Warning
+Common Var(warn_unused_function) Init(-1) Warning
 Warn when a function is unused
 
 Wunused-label
-Common Var(warn_unused_label) Warning
+Common Var(warn_unused_label) Init(-1) Warning
 Warn when a label is unused
 
 Wunused-parameter
-Common Var(warn_unused_parameter) Warning
+Common Var(warn_unused_parameter) Init(-1) Warning
 Warn when a function parameter is unused
 
 Wunused-value
-Common Var(warn_unused_value) Warning
+Common Var(warn_unused_value) Init(-1) Warning
 Warn when an expression value is unused
 
 Wunused-variable
-Common Var(warn_unused_variable) Warning
+Common Var(warn_unused_variable) Init(-1) Warning
 Warn when a variable is unused
 
 Wcoverage-mismatch
@@ -459,6 +459,10 @@ fdump-unnumbered
 Common Report Var(flag_dump_unnumbered) VarExists
 Suppress output of instruction numbers, line number notes and addresses in debugging dumps
 
+fdwarf2-cfi-asm
+Common Report Var(flag_dwarf2_cfi_asm) Init(HAVE_GAS_CFI_DIRECTIVE)
+Enable CFI tables via GAS assembler directives.
+
 fearly-inlining
 Common Report Var(flag_early_inlining) Init(1) Optimization
 Perform early inlining
@@ -635,6 +639,10 @@ fipa-cp
 Common Report Var(flag_ipa_cp) Optimization
 Perform Interprocedural constant propagation
 
+fipa-cp-clone
+Common Report Var(flag_ipa_cp_clone) Optimization
+Perform cloning to make Interprocedural constant propagation stronger
+
 fipa-pure-const
 Common Report Var(flag_ipa_pure_const) Init(0) Optimization
 Discover pure and const functions
@@ -660,6 +668,30 @@ fipa-struct-reorg
 Common Report Var(flag_ipa_struct_reorg)
 Perform structure layout optimizations based
 on profiling information.
+
+fira
+Common Report Var(flag_ira) Init(0)
+Use integrated register allocator.
+
+fira-algorithm=
+Common Joined RejectNegative
+-fira-algorithm=[regional|CB|mixed] Set the used IRA algorithm
+
+fira-coalesce
+Common Report Var(flag_ira_coalesce) Init(0)
+Do optimistic coalescing.
+
+fira-share-save-slots
+Common Report Var(flag_ira_share_save_slots) Init(1)
+Share slots for saving different hard registers.
+
+fira-share-spill-slots
+Common Report Var(flag_ira_share_spill_slots) Init(1)
+Share stack slots for spilled pseudo-registers.
+
+fira-verbose=
+Common RejectNegative Joined UInteger
+-fira-verbose=<number> Control IRA's level of diagnostic messages.
 
 fivopts
 Common Report Var(flag_ivopts) Init(1) Optimization
@@ -833,6 +865,10 @@ Common Joined RejectNegative
 Set the top-level directory for storing the profile data.
 The default is 'pwd'.
 
+fprofile-correction
+Common Report Var(flag_profile_correction)
+Enable correction of flow inconsistent profile data input
+
 fprofile-generate
 Common
 Enable common options for generating profile info for profile feedback directed optimizations
@@ -942,6 +978,29 @@ fschedule-insns2
 Common Report Var(flag_schedule_insns_after_reload) Optimization
 Reschedule instructions after register allocation
 
+; This flag should be on when a target implements non-trivial
+; scheduling hooks, maybe saving some information for its own sake.
+; On IA64, for example, this is used for correct bundling. 
+fselective-scheduling
+Common Report Var(flag_selective_scheduling) Optimization
+Schedule instructions using selective scheduling algorithm
+
+fselective-scheduling2
+Common Report Var(flag_selective_scheduling2) Optimization 
+Run selective scheduling after reload
+
+fsel-sched-pipelining
+Common Report Var(flag_sel_sched_pipelining) Init(0) Optimization
+Perform software pipelining of inner loops during selective scheduling
+
+fsel-sched-pipelining-outer-loops
+Common Report Var(flag_sel_sched_pipelining_outer_loops) Init(0) Optimization
+Perform software pipelining of outer loops during selective scheduling
+
+fsel-sched-reschedule-pipelined
+Common Report Var(flag_sel_sched_reschedule_pipelined) Init(0) Optimization
+Reschedule pipelined regions without pipelining
+
 ; sched_stalled_insns means that insns can be moved prematurely from the queue
 ; of stalled insns into the ready list.
 fsched-stalled-insns
@@ -1004,11 +1063,13 @@ fvariable-expansion-in-unroller
 Common Report Var(flag_variable_expansion_in_unroller) Optimization
 Apply variable expansion when loops are unrolled
 
-; Emit code to probe the stack, to help detect stack overflow; also
-; may cause large objects to be allocated dynamically.
+fstack-check=
+Common Report RejectNegative Joined
+-fstack-check=[no|generic|specific]	Insert stack checking code into the program
+
 fstack-check
-Common Report Var(flag_stack_check)
-Insert stack checking code into the program
+Common Report
+Insert stack checking code into the program.  Same as -fstack-check=specific
 
 fstack-limit
 Common
@@ -1089,8 +1150,8 @@ Common Report Var(flag_tree_ccp) Optimization
 Enable SSA-CCP optimization on trees
 
 ftree-store-ccp
-Common Report Var(flag_tree_store_ccp) Optimization
-Enable SSA-CCP optimization for stores and loads
+Common
+Does nothing.  Preserved for backward compatibility.
 
 ftree-ch
 Common Report Var(flag_tree_ch) Optimization

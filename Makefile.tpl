@@ -108,6 +108,11 @@ GDB_NLM_DEPS =
 # the libraries.
 RPATH_ENVVAR = @RPATH_ENVVAR@
 
+# On targets where RPATH_ENVVAR is PATH, a subdirectory of the GCC build path
+# is used instead of the directory itself to avoid including built
+# executables in PATH.
+GCC_SHLIB_SUBDIR = @GCC_SHLIB_SUBDIR@
+
 # Build programs are put under this directory.
 BUILD_SUBDIR = @build_subdir@
 # This is set by the configure script to the arguments to use when configuring
@@ -167,6 +172,7 @@ HOST_SUBDIR = @host_subdir@
 HOST_EXPORTS = \
 	$(BASE_EXPORTS) \
 	CC="$(CC)"; export CC; \
+	ADA_CFLAGS="$(ADA_CFLAGS)"; export ADA_CFLAGS; \
 	CFLAGS="$(CFLAGS)"; export CFLAGS; \
 	CONFIG_SHELL="$(SHELL)"; export CONFIG_SHELL; \
 	CXX="$(CXX)"; export CXX; \
@@ -305,6 +311,7 @@ BUILD_PREFIX_1 = @BUILD_PREFIX_1@
 # here so that they can be overridden by Makefile fragments.
 BOOT_CFLAGS= -g -O2
 BOOT_LDFLAGS=
+BOOT_ADAFLAGS=-gnatpg -gnata
 
 BISON = @BISON@
 YACC = @YACC@
@@ -450,7 +457,7 @@ HOST_LIB_PATH = [+ FOR host_modules +][+
 
 # Define HOST_LIB_PATH_gcc here, for the sake of TARGET_LIB_PATH, ouch
 @if gcc
-HOST_LIB_PATH_gcc = $$r/$(HOST_SUBDIR)/gcc:$$r/$(HOST_SUBDIR)/prev-gcc:
+HOST_LIB_PATH_gcc = $$r/$(HOST_SUBDIR)/gcc$(GCC_SHLIB_SUBDIR):$$r/$(HOST_SUBDIR)/prev-gcc$(GCC_SHLIB_SUBDIR):
 @endif gcc
 
 [+ FOR host_modules +][+ IF lib_path +]

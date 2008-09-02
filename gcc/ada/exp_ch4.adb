@@ -575,7 +575,7 @@ package body Exp_Ch4 is
    --  Start of processing for Expand_Allocator_Expression
 
    begin
-      if Is_Tagged_Type (T) or else Controlled_Type (T) then
+      if Is_Tagged_Type (T) or else Needs_Finalization (T) then
 
          --  Ada 2005 (AI-318-02): If the initialization expression is a call
          --  to a build-in-place function, then access to the allocated object
@@ -669,7 +669,7 @@ package body Exp_Ch4 is
                Set_No_Initialization (Expression (Tmp_Node));
                Insert_Action (N, Tmp_Node);
 
-               if Controlled_Type (T)
+               if Needs_Finalization (T)
                  and then Ekind (PtrT) = E_Anonymous_Access_Type
                then
                   --  Create local finalization list for access parameter
@@ -717,7 +717,7 @@ package body Exp_Ch4 is
                --  Inherit the final chain to ensure that the expansion of the
                --  aggregate is correct in case of controlled types
 
-               if Controlled_Type (Directly_Designated_Type (PtrT)) then
+               if Needs_Finalization (Directly_Designated_Type (PtrT)) then
                   Set_Associated_Final_Chain (Def_Id,
                     Associated_Final_Chain (PtrT));
                end if;
@@ -739,7 +739,7 @@ package body Exp_Ch4 is
                   Set_No_Initialization (Expression (Tmp_Node));
                   Insert_Action (N, Tmp_Node);
 
-                  if Controlled_Type (T)
+                  if Needs_Finalization (T)
                     and then Ekind (PtrT) = E_Anonymous_Access_Type
                   then
                      --  Create local finalization list for access parameter
@@ -835,8 +835,8 @@ package body Exp_Ch4 is
             Insert_Action (N, Tag_Assign);
          end if;
 
-         if Controlled_Type (DesigT)
-            and then Controlled_Type (T)
+         if Needs_Finalization (DesigT)
+            and then Needs_Finalization (T)
          then
             declare
                Attach : Node_Id;
@@ -868,7 +868,7 @@ package body Exp_Ch4 is
                --  Normal case, not a secondary stack allocation
 
                else
-                  if Controlled_Type (T)
+                  if Needs_Finalization (T)
                     and then Ekind (PtrT) = E_Anonymous_Access_Type
                   then
                      --  Create local finalization list for access parameter
@@ -944,6 +944,11 @@ package body Exp_Ch4 is
          Rewrite (N, New_Reference_To (Temp, Loc));
          Analyze_And_Resolve (N, PtrT);
 
+      elsif Is_Access_Type (T)
+        and then Can_Never_Be_Null (T)
+      then
+         Install_Null_Excluding_Check (Exp);
+
       elsif Is_Access_Type (DesigT)
         and then Nkind (Exp) = N_Allocator
         and then Nkind (Expression (Exp)) /= N_Qualified_Expression
@@ -977,8 +982,7 @@ package body Exp_Ch4 is
          --  not allow sliding, but this check does (a relaxation from Ada 83).
 
          if Is_Constrained (DesigT)
-           and then not Subtypes_Statically_Match
-                          (T, DesigT)
+           and then not Subtypes_Statically_Match (T, DesigT)
          then
             Apply_Constraint_Check
               (Exp, DesigT, No_Sliding => False);
@@ -2637,7 +2641,7 @@ package body Exp_Ch4 is
                New_Reference_To (Ind_Typ, Loc),
                New_Reference_To (Defining_Identifier (I_Decl), Loc)));
 
-      --  For other index types, computation is safe.
+      --  For other index types, computation is safe
 
       else
          H_Init := Ind_Val (Make_Op_Add (Loc, H_Init, L_Pos));
@@ -2668,7 +2672,7 @@ package body Exp_Ch4 is
 
       Declare_Decls := New_List (P_Decl, H_Decl, R_Decl);
 
-      --  Add constraint check for the modular index case.
+      --  Add constraint check for the modular index case
 
       if Is_Modular_Integer_Type (Ind_Typ)
         and then Esize (Ind_Typ) < Esize (Standard_Integer)
@@ -3440,7 +3444,8 @@ package body Exp_Ch4 is
                           and then
                             Ekind (Etype (Nod)) = E_Anonymous_Access_Type
                         then
-                           Apply_Accessibility_Check (Nod, Typ);
+                           Apply_Accessibility_Check
+                             (Nod, Typ, Insert_Node => Nod);
                         end if;
 
                         Next_Elmt (Discr);
@@ -3497,7 +3502,7 @@ package body Exp_Ch4 is
                       Parameter_Associations => Args));
                end if;
 
-               if Controlled_Type (T) then
+               if Needs_Finalization (T) then
 
                   --  Postpone the generation of a finalization call for the
                   --  current allocator if it acts as a coextension.
@@ -3586,34 +3591,33 @@ package body Exp_Ch4 is
          Set_Etype (N, Standard_Boolean);
       end if;
 
-      --  Check for cases of left argument is True or False
+      --  Check for cases where left argument is known to be True or False
 
-      if Nkind (Left) = N_Identifier then
+      if Compile_Time_Known_Value (Left) then
 
          --  If left argument is True, change (True and then Right) to Right.
          --  Any actions associated with Right will be executed unconditionally
          --  and can thus be inserted into the tree unconditionally.
 
-         if Entity (Left) = Standard_True then
+         if Expr_Value_E (Left) = Standard_True then
             if Present (Actions (N)) then
                Insert_Actions (N, Actions (N));
             end if;
 
             Rewrite (N, Right);
-            Adjust_Result_Type (N, Typ);
-            return;
 
          --  If left argument is False, change (False and then Right) to False.
          --  In this case we can forget the actions associated with Right,
          --  since they will never be executed.
 
-         elsif Entity (Left) = Standard_False then
+         else pragma Assert (Expr_Value_E (Left) = Standard_False);
             Kill_Dead_Code (Right);
             Kill_Dead_Code (Actions (N));
             Rewrite (N, New_Occurrence_Of (Standard_False, Loc));
-            Adjust_Result_Type (N, Typ);
-            return;
          end if;
+
+         Adjust_Result_Type (N, Typ);
+         return;
       end if;
 
       --  If Actions are present, we expand
@@ -3645,19 +3649,19 @@ package body Exp_Ch4 is
 
       --  No actions present, check for cases of right argument True/False
 
-      if Nkind (Right) = N_Identifier then
+      if Compile_Time_Known_Value (Right) then
 
          --  Change (Left and then True) to Left. Note that we know there are
          --  no actions associated with the True operand, since we just checked
          --  for this case above.
 
-         if Entity (Right) = Standard_True then
+         if Expr_Value_E (Right) = Standard_True then
             Rewrite (N, Left);
 
          --  Change (Left and then False) to False, making sure to preserve any
          --  side effects associated with the Left operand.
 
-         elsif Entity (Right) = Standard_False then
+         else pragma Assert (Expr_Value_E (Right) = Standard_False);
             Remove_Side_Effects (Left);
             Rewrite
               (N, New_Occurrence_Of (Standard_False, Loc));
@@ -3822,8 +3826,10 @@ package body Exp_Ch4 is
             Lo_Orig : constant Node_Id := Original_Node (Lo);
             Hi_Orig : constant Node_Id := Original_Node (Hi);
 
-            Lcheck : constant Compare_Result := Compile_Time_Compare (Lop, Lo);
-            Ucheck : constant Compare_Result := Compile_Time_Compare (Lop, Hi);
+            Lcheck : constant Compare_Result :=
+                       Compile_Time_Compare (Lop, Lo, Assume_Valid => True);
+            Ucheck : constant Compare_Result :=
+                       Compile_Time_Compare (Lop, Hi, Assume_Valid => True);
 
             Warn1 : constant Boolean :=
                       Constant_Condition_Warnings
@@ -3873,6 +3879,12 @@ package body Exp_Ch4 is
               and then Compile_Time_Known_Value (Hi)
               and then Expr_Value (Type_High_Bound (Ltyp)) = Expr_Value (Hi)
               and then Expr_Value (Type_Low_Bound  (Ltyp)) = Expr_Value (Lo)
+
+               --  Kill warnings in instances, since they may be cases where we
+               --  have a test in the generic that makes sense with some types
+               --  and not with other types.
+
+              and then not In_Instance
             then
                Substitute_Valid_Check;
                return;
@@ -3886,7 +3898,7 @@ package body Exp_Ch4 is
             --  legality checks, because we are constant-folding beyond RM 4.9.
 
             if Lcheck = LT or else Ucheck = GT then
-               if Warn1 then
+               if Warn1 and then not In_Instance then
                   Error_Msg_N ("?range test optimized away", N);
                   Error_Msg_N ("\?value is known to be out of range", N);
                end if;
@@ -3902,7 +3914,7 @@ package body Exp_Ch4 is
             --  since we know we are in range.
 
             elsif Lcheck in Compare_GE and then Ucheck in Compare_LE then
-               if Warn1 then
+               if Warn1 and then not In_Instance then
                   Error_Msg_N ("?range test optimized away", N);
                   Error_Msg_N ("\?value is known to be in range", N);
                end if;
@@ -3919,7 +3931,7 @@ package body Exp_Ch4 is
             --  a comparison against the upper bound.
 
             elsif Lcheck in Compare_GE then
-               if Warn2 then
+               if Warn2 and then not In_Instance then
                   Error_Msg_N ("?lower bound test optimized away", Lo);
                   Error_Msg_N ("\?value is known to be in range", Lo);
                end if;
@@ -3937,7 +3949,7 @@ package body Exp_Ch4 is
             --  a comparison against the lower bound.
 
             elsif Ucheck in Compare_LE then
-               if Warn2 then
+               if Warn2 and then not In_Instance then
                   Error_Msg_N ("?upper bound test optimized away", Hi);
                   Error_Msg_N ("\?value is known to be in range", Hi);
                end if;
@@ -5460,6 +5472,13 @@ package body Exp_Ch4 is
             --  X ** 0 = 1 (or 1.0)
 
             if Expv = 0 then
+
+               --  Call Remove_Side_Effects to ensure that any side effects
+               --  in the ignored left operand (in particular function calls
+               --  to user defined functions) are properly executed.
+
+               Remove_Side_Effects (Base);
+
                if Ekind (Typ) in Integer_Kind then
                   Xnode := Make_Integer_Literal (Loc, Intval => 1);
                else
@@ -5934,6 +5953,12 @@ package body Exp_Ch4 is
            and then Compile_Time_Known_Value (Right)
            and then Expr_Value (Right) = Uint_1
          then
+            --  Call Remove_Side_Effects to ensure that any side effects in
+            --  the ignored left operand (in particular function calls to
+            --  user defined functions) are properly executed.
+
+            Remove_Side_Effects (Left);
+
             Rewrite (N, Make_Integer_Literal (Loc, 0));
             Analyze_And_Resolve (N, Typ);
             return;
@@ -5982,17 +6007,17 @@ package body Exp_Ch4 is
    --------------------------
 
    procedure Expand_N_Op_Multiply (N : Node_Id) is
-      Loc  : constant Source_Ptr := Sloc (N);
-      Lop  : constant Node_Id    := Left_Opnd (N);
-      Rop  : constant Node_Id    := Right_Opnd (N);
+      Loc : constant Source_Ptr := Sloc (N);
+      Lop : constant Node_Id    := Left_Opnd (N);
+      Rop : constant Node_Id    := Right_Opnd (N);
 
-      Lp2  : constant Boolean :=
-               Nkind (Lop) = N_Op_Expon
-                 and then Is_Power_Of_2_For_Shift (Lop);
+      Lp2 : constant Boolean :=
+              Nkind (Lop) = N_Op_Expon
+                and then Is_Power_Of_2_For_Shift (Lop);
 
-      Rp2  : constant Boolean :=
-               Nkind (Rop) = N_Op_Expon
-                 and then Is_Power_Of_2_For_Shift (Rop);
+      Rp2 : constant Boolean :=
+              Nkind (Rop) = N_Op_Expon
+                and then Is_Power_Of_2_For_Shift (Rop);
 
       Ltyp : constant Entity_Id  := Etype (Lop);
       Rtyp : constant Entity_Id  := Etype (Rop);
@@ -6005,14 +6030,28 @@ package body Exp_Ch4 is
 
       if Is_Integer_Type (Typ) then
 
-         --  N * 0 = 0 * N = 0 for integer types
+         --  N * 0 = 0 for integer types
 
-         if (Compile_Time_Known_Value (Rop)
-              and then Expr_Value (Rop) = Uint_0)
-           or else
-            (Compile_Time_Known_Value (Lop)
-              and then Expr_Value (Lop) = Uint_0)
+         if Compile_Time_Known_Value (Rop)
+           and then Expr_Value (Rop) = Uint_0
          then
+            --  Call Remove_Side_Effects to ensure that any side effects in
+            --  the ignored left operand (in particular function calls to
+            --  user defined functions) are properly executed.
+
+            Remove_Side_Effects (Lop);
+
+            Rewrite (N, Make_Integer_Literal (Loc, Uint_0));
+            Analyze_And_Resolve (N, Typ);
+            return;
+         end if;
+
+         --  Similar handling for 0 * N = 0
+
+         if Compile_Time_Known_Value (Lop)
+           and then Expr_Value (Lop) = Uint_0
+         then
+            Remove_Side_Effects (Rop);
             Rewrite (N, Make_Integer_Literal (Loc, Uint_0));
             Analyze_And_Resolve (N, Typ);
             return;
@@ -6491,6 +6530,12 @@ package body Exp_Ch4 is
         and then Compile_Time_Known_Value (Right)
         and then Expr_Value (Right) = Uint_1
       then
+         --  Call Remove_Side_Effects to ensure that any side effects in the
+         --  ignored left operand (in particular function calls to user defined
+         --  functions) are properly executed.
+
+         Remove_Side_Effects (Left);
+
          Rewrite (N, Make_Integer_Literal (Loc, 0));
          Analyze_And_Resolve (N, Typ);
          return;
@@ -6663,34 +6708,33 @@ package body Exp_Ch4 is
          Set_Etype (N, Standard_Boolean);
       end if;
 
-      --  Check for cases of left argument is True or False
+      --  Check for cases where left argument is known to be True or False
 
-      if Nkind (Left) = N_Identifier then
+      if Compile_Time_Known_Value (Left) then
 
          --  If left argument is False, change (False or else Right) to Right.
          --  Any actions associated with Right will be executed unconditionally
          --  and can thus be inserted into the tree unconditionally.
 
-         if Entity (Left) = Standard_False then
+         if Expr_Value_E (Left) = Standard_False then
             if Present (Actions (N)) then
                Insert_Actions (N, Actions (N));
             end if;
 
             Rewrite (N, Right);
-            Adjust_Result_Type (N, Typ);
-            return;
 
          --  If left argument is True, change (True and then Right) to True. In
          --  this case we can forget the actions associated with Right, since
          --  they will never be executed.
 
-         elsif Entity (Left) = Standard_True then
+         else pragma Assert (Expr_Value_E (Left) = Standard_True);
             Kill_Dead_Code (Right);
             Kill_Dead_Code (Actions (N));
             Rewrite (N, New_Occurrence_Of (Standard_True, Loc));
-            Adjust_Result_Type (N, Typ);
-            return;
          end if;
+
+         Adjust_Result_Type (N, Typ);
+         return;
       end if;
 
       --  If Actions are present, we expand
@@ -6722,19 +6766,19 @@ package body Exp_Ch4 is
 
       --  No actions present, check for cases of right argument True/False
 
-      if Nkind (Right) = N_Identifier then
+      if Compile_Time_Known_Value (Right) then
 
          --  Change (Left or else False) to Left. Note that we know there are
          --  no actions associated with the True operand, since we just checked
          --  for this case above.
 
-         if Entity (Right) = Standard_False then
+         if Expr_Value_E (Right) = Standard_False then
             Rewrite (N, Left);
 
          --  Change (Left or else True) to True, making sure to preserve any
          --  side effects associated with the Left operand.
 
-         elsif Entity (Right) = Standard_True then
+         else pragma Assert (Expr_Value_E (Right) = Standard_True);
             Remove_Side_Effects (Left);
             Rewrite
               (N, New_Occurrence_Of (Standard_True, Loc));
@@ -7552,9 +7596,9 @@ package body Exp_Ch4 is
 
          --  Apply an accessibility check when the conversion operand is an
          --  access parameter (or a renaming thereof), unless conversion was
-         --  expanded from an unchecked or unrestricted access attribute. Note
-         --  that other checks may still need to be applied below (such as
-         --  tagged type checks).
+         --  expanded from an Unchecked_ or Unrestricted_Access attribute.
+         --  Note that other checks may still need to be applied below (such
+         --  as tagged type checks).
 
          if Is_Entity_Name (Operand)
            and then
@@ -7568,9 +7612,10 @@ package body Exp_Ch4 is
            and then (Nkind (Original_Node (N)) /= N_Attribute_Reference
                       or else Attribute_Name (Original_Node (N)) = Name_Access)
          then
-            Apply_Accessibility_Check (Operand, Target_Type);
+            Apply_Accessibility_Check
+              (Operand, Target_Type, Insert_Node => Operand);
 
-         --  If the level of the operand type is statically deeper then the
+         --  If the level of the operand type is statically deeper than the
          --  level of the target type, then force Program_Error. Note that this
          --  can only occur for cases where the attribute is within the body of
          --  an instantiation (otherwise the conversion will already have been
@@ -8352,7 +8397,9 @@ package body Exp_Ch4 is
          --  chain. The Final_Chain that is thus created is shared by the
          --  access parameter. The access type is tested against the result
          --  type of the function to exclude allocators whose type is an
-         --  anonymous access result type.
+         --  anonymous access result type. We freeze the type at once to
+         --  ensure that it is properly decorated for the back-end, even
+         --  if the context and current scope is a loop.
 
          if Nkind (Associated_Node_For_Itype (PtrT))
               in N_Subprogram_Specification
@@ -8369,6 +8416,7 @@ package body Exp_Ch4 is
                      Subtype_Indication =>
                        New_Occurrence_Of (T, Loc))));
 
+            Freeze_Before (N, Owner);
             Build_Final_List (N, Owner);
             Set_Associated_Final_Chain (PtrT, Associated_Final_Chain (Owner));
 
@@ -8979,7 +9027,8 @@ package body Exp_Ch4 is
          Op1 : constant Node_Id   := Left_Opnd (N);
          Op2 : constant Node_Id   := Right_Opnd (N);
 
-         Res : constant Compare_Result := Compile_Time_Compare (Op1, Op2);
+         Res : constant Compare_Result :=
+                 Compile_Time_Compare (Op1, Op2, Assume_Valid => True);
          --  Res indicates if compare outcome can be compile time determined
 
          True_Result  : Boolean;

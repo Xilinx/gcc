@@ -171,7 +171,8 @@ enum
   LOOPS_HAVE_RECORDED_EXITS = 8,
   LOOPS_MAY_HAVE_MULTIPLE_LATCHES = 16,
   LOOP_CLOSED_SSA = 32,
-  LOOPS_NEED_FIXUP = 64
+  LOOPS_NEED_FIXUP = 64,
+  LOOPS_HAVE_FALLTHRU_PREHEADERS = 128
 };
 
 #define LOOPS_NORMAL (LOOPS_HAVE_PREHEADERS | LOOPS_HAVE_SIMPLE_LATCHES \
@@ -236,6 +237,9 @@ extern unsigned get_loop_body_with_size (const struct loop *, basic_block *,
 					 unsigned);
 extern basic_block *get_loop_body_in_dom_order (const struct loop *);
 extern basic_block *get_loop_body_in_bfs_order (const struct loop *);
+extern basic_block *get_loop_body_in_custom_order (const struct loop *, 
+			       int (*) (const void *, const void *));
+
 extern VEC (edge, heap) *get_loop_exit_edges (const struct loop *);
 edge single_exit (const struct loop *);
 extern unsigned num_loop_branches (const struct loop *);
@@ -251,7 +255,8 @@ extern void delete_loop (struct loop *);
 
 enum
 {
-  CP_SIMPLE_PREHEADERS = 1
+  CP_SIMPLE_PREHEADERS = 1,
+  CP_FALLTHRU_PREHEADERS = 2
 };
 
 basic_block create_preheader (struct loop *, int);
@@ -614,12 +619,12 @@ fel_init (loop_iterator *li, loop_p *loop, unsigned flags)
 
 extern unsigned target_avail_regs;
 extern unsigned target_res_regs;
-extern unsigned target_reg_cost;
-extern unsigned target_spill_cost;
+extern unsigned target_reg_cost [2];
+extern unsigned target_spill_cost [2];
 
 /* Register pressure estimation for induction variable optimizations & loop
    invariant motion.  */
-extern unsigned estimate_reg_pressure_cost (unsigned, unsigned);
+extern unsigned estimate_reg_pressure_cost (unsigned, unsigned, bool);
 extern void init_set_costs (void);
 
 /* Loop optimizer initialization.  */

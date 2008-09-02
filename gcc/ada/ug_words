@@ -61,6 +61,7 @@ gcc -c          ^ GNAT COMPILE
 -gnatec         ^ /CONFIGURATION_PRAGMAS_FILE
 -gnateD         ^ /SYMBOL_PREPROCESSING
 -gnatef         ^ /FULL_PATH_IN_BRIEF_MESSAGES
+-gnateG         ^ /GENERATE_PROCESSED_SOURCE
 -gnatem         ^ /MAPPING_FILE
 -gnatep         ^ /DATA_PREPROCESSING
 -gnatE          ^ /CHECKS=ELABORATION
@@ -119,6 +120,8 @@ gcc -c          ^ GNAT COMPILE
 -gnatw.A        ^ /WARNINGS=NO_FAILING_ASSERTIONS
 -gnatwb         ^ /WARNINGS=BAD_FIXED_VALUES
 -gnatwB         ^ /WARNINGS=NO_BAD_FIXED_VALUES
+-gnatw.b        ^ /WARNINGS=BIASED_REPRESENTATION
+-gnatw.B        ^ /WARNINGS=NO_BIASED_REPRESENTATION
 -gnatwc         ^ /WARNINGS=CONDITIONALS
 -gnatwC         ^ /WARNINGS=NOCONDITIONALS
 -gnatw.c        ^ /WARNINGS=MISSING_COMPONENT_CLAUSES

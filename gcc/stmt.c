@@ -1813,7 +1813,7 @@ expand_nl_goto_receiver (void)
 	{
 	  /* Now restore our arg pointer from the address at which it
 	     was saved in our stack frame.  */
-	  emit_move_insn (virtual_incoming_args_rtx,
+	  emit_move_insn (crtl->args.internal_arg_pointer,
 			  copy_to_reg (get_arg_pointer_save_area ()));
 	}
     }
@@ -1867,8 +1867,8 @@ expand_decl (tree decl)
     SET_DECL_RTL (decl, gen_rtx_MEM (BLKmode, const0_rtx));
 
   else if (DECL_SIZE (decl) == 0)
-    /* Variable with incomplete type.  */
     {
+      /* Variable with incomplete type.  */
       rtx x;
       if (DECL_INITIAL (decl) == 0)
 	/* Error message was already done; now avoid a crash.  */
@@ -1899,15 +1899,14 @@ expand_decl (tree decl)
 			  TYPE_ALIGN (TREE_TYPE (TREE_TYPE (decl))));
     }
 
-  else if (TREE_CODE (DECL_SIZE_UNIT (decl)) == INTEGER_CST
-	   && ! (flag_stack_check && ! STACK_CHECK_BUILTIN
-		 && 0 < compare_tree_int (DECL_SIZE_UNIT (decl),
-					  STACK_CHECK_MAX_VAR_SIZE)))
+  else
     {
-      /* Variable of fixed size that goes on the stack.  */
       rtx oldaddr = 0;
       rtx addr;
       rtx x;
+
+      /* Variable-sized decls are dealt with in the gimplifier.  */
+      gcc_assert (TREE_CODE (DECL_SIZE_UNIT (decl)) == INTEGER_CST);
 
       /* If we previously made RTL for this decl, it must be an array
 	 whose size was determined by the initializer.
@@ -1935,41 +1934,6 @@ expand_decl (tree decl)
 	  if (addr != oldaddr)
 	    emit_move_insn (oldaddr, addr);
 	}
-    }
-  else
-    /* Dynamic-size object: must push space on the stack.  */
-    {
-      rtx address, size, x;
-
-      /* Record the stack pointer on entry to block, if have
-	 not already done so.  */
-      do_pending_stack_adjust ();
-
-      /* Compute the variable's size, in bytes.  This will expand any
-	 needed SAVE_EXPRs for the first time.  */
-      size = expand_normal (DECL_SIZE_UNIT (decl));
-      free_temp_slots ();
-
-      /* Allocate space on the stack for the variable.  Note that
-	 DECL_ALIGN says how the variable is to be aligned and we
-	 cannot use it to conclude anything about the alignment of
-	 the size.  */
-      address = allocate_dynamic_stack_space (size, NULL_RTX,
-					      TYPE_ALIGN (TREE_TYPE (decl)));
-
-      /* Reference the variable indirect through that rtx.  */
-      x = gen_rtx_MEM (DECL_MODE (decl), address);
-      set_mem_attributes (x, decl, 1);
-      SET_DECL_RTL (decl, x);
-
-
-      /* Indicate the alignment we actually gave this variable.  */
-#ifdef STACK_BOUNDARY
-      DECL_ALIGN (decl) = STACK_BOUNDARY;
-#else
-      DECL_ALIGN (decl) = BIGGEST_ALIGNMENT;
-#endif
-      DECL_USER_ALIGN (decl) = 0;
     }
 }
 
@@ -2161,7 +2125,8 @@ bool lshift_cheap_p (void)
   if (!init)
     {
       rtx reg = gen_rtx_REG (word_mode, 10000);
-      int cost = rtx_cost (gen_rtx_ASHIFT (word_mode, const1_rtx, reg), SET);
+      int cost = rtx_cost (gen_rtx_ASHIFT (word_mode, const1_rtx, reg), SET,
+      			   optimize_insn_for_speed_p ());
       cheap = cost < COSTS_N_INSNS (3);
       init = true;
     }
@@ -2455,7 +2420,7 @@ expand_case (tree exp)
 
       else if (count < case_values_threshold ()
 	       || compare_tree_int (range,
-				    (optimize_size ? 3 : 10) * count) > 0
+				    (optimize_insn_for_size_p () ? 3 : 10) * count) > 0
 	       /* RANGE may be signed, and really large ranges will show up
 		  as negative numbers.  */
 	       || compare_tree_int (range, 0) < 0
@@ -2525,7 +2490,7 @@ expand_case (tree exp)
 
 	      /* Index jumptables from zero for suitable values of
                  minval to avoid a subtraction.  */
-	      if (! optimize_size
+	      if (optimize_insn_for_speed_p ()
 		  && compare_tree_int (minval, 0) > 0
 		  && compare_tree_int (minval, 3) < 0)
 		{

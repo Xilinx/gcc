@@ -1,3 +1,23 @@
+2008-08-21  David Daney  <ddaney@avtrex.com>
+
+	* class.c (make_class_data): Don't add field_index when
+	flag_reduced_reflection set.
+
+2008-08-12  Ulrich Weigand  <uweigand@de.ibm.com>
+
+	* typeck.c (convert): Do not check for TARGET_FLOAT_FORMAT.
+
+2008-08-08  Manuel Lopez-Ibanez  <manu@gcc.gnu.org>
+
+	PR 28875
+	* lang.c (java_handle_option): Replace set_Wunused with
+	warn_unused.
+
+2008-07-30  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* gcj.texi: Update copyright years.  Do not list GPL as
+	Invariant Section.
+
 2008-07-29  Jakub Jelinek  <jakub@redhat.com>
 
 	* class.c (build_utf8_ref): Set DECL_SIZE and DECL_SIZE_UNIT

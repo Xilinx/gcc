@@ -8,14 +8,22 @@
 @c                                                                            o
 @c                              G N A T _ RM                                  o
 @c                                                                            o
-@c              Copyright (C) 1995-2008, Free Software Foundation             o
-@c                                                                            o
-@c                                                                            o
 @c  GNAT is maintained by Ada Core Technologies Inc (http://www.gnat.com).    o
 @c                                                                            o
 @c oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
 
 @setfilename gnat_rm.info
+
+@copying
+Copyright @copyright{} 1995-2008, Free Software Foundation, Inc.
+
+Permission is granted to copy, distribute and/or modify this document
+under the terms of the GNU Free Documentation License, Version 1.2 or
+any later version published by the Free Software Foundation; with no
+Invariant Sections, with the Front-Cover Texts being ``GNAT Reference
+Manual'', and with no Back-Cover Texts.  A copy of the license is
+included in the section entitled ``GNU Free Documentation License''.
+@end copying
 
 @set EDITION GNAT
 @set DEFAULTLANGUAGEVERSION Ada 2005
@@ -32,18 +40,6 @@
 @direntry
 * GNAT Reference Manual: (gnat_rm).  Reference Manual for GNU Ada tools.
 @end direntry
-
-@copying
-Copyright @copyright{} 1995-2008, Free Software Foundation, Inc.
-
-Permission is granted to copy, distribute and/or modify this document
-under the terms of the GNU Free Documentation License, Version 1.2
-or any later version published by the Free Software Foundation;
-with the Invariant Sections being ``GNU Free Documentation License'',
-with the Front-Cover Texts being ``GNAT Reference Manual'', and with
-no Back-Cover Texts. A copy of the license is included in the section
-entitled ``GNU Free Documentation License''.
-@end copying
 
 @titlepage
 @title GNAT Reference Manual
@@ -1833,6 +1829,7 @@ MECHANISM_NAME ::=
   Value
 | Reference
 | Descriptor [([Class =>] CLASS_NAME)]
+| Short_Descriptor [([Class =>] CLASS_NAME)]
 
 CLASS_NAME ::= ubs | ubsb | uba | s | sb | a
 @end smallexample
@@ -1865,6 +1862,9 @@ anonymous access parameter.
 @cindex OpenVMS
 @cindex Passing by descriptor
 Passing by descriptor is supported only on the OpenVMS ports of GNAT@.
+The default behavior for Export_Function is to accept either 64bit or
+32bit descriptors unless short_descriptor is specified, then only 32bit
+descriptors are accepted.
 
 @cindex Suppressing external name
 Special treatment is given if the EXTERNAL is an explicit null
@@ -1934,6 +1934,7 @@ MECHANISM_NAME ::=
   Value
 | Reference
 | Descriptor [([Class =>] CLASS_NAME)]
+| Short_Descriptor [([Class =>] CLASS_NAME)]
 
 CLASS_NAME ::= ubs | ubsb | uba | s | sb | a
 @end smallexample
@@ -1951,6 +1952,9 @@ pragma that specifies the desired foreign convention.
 @cindex OpenVMS
 @cindex Passing by descriptor
 Passing by descriptor is supported only on the OpenVMS ports of GNAT@.
+The default behavior for Export_Procedure is to accept either 64bit or
+32bit descriptors unless short_descriptor is specified, then only 32bit
+descriptors are accepted.
 
 @cindex Suppressing external name
 Special treatment is given if the EXTERNAL is an explicit null
@@ -2016,6 +2020,7 @@ MECHANISM_NAME ::=
   Value
 | Reference
 | Descriptor [([Class =>] CLASS_NAME)]
+| Short_Descriptor [([Class =>] CLASS_NAME)]
 
 CLASS_NAME ::= ubs | ubsb | uba | s | sb | a
 @end smallexample
@@ -2038,6 +2043,9 @@ pragma that specifies the desired foreign convention.
 @cindex OpenVMS
 @cindex Passing by descriptor
 Passing by descriptor is supported only on the OpenVMS ports of GNAT@.
+The default behavior for Export_Valued_Procedure is to accept either 64bit or
+32bit descriptors unless short_descriptor is specified, then only 32bit
+descriptors are accepted.
 
 @cindex Suppressing external name
 Special treatment is given if the EXTERNAL is an explicit null
@@ -2464,6 +2472,7 @@ MECHANISM_NAME ::=
   Value
 | Reference
 | Descriptor [([Class =>] CLASS_NAME)]
+| Short_Descriptor [([Class =>] CLASS_NAME)]
 
 CLASS_NAME ::= ubs | ubsb | uba | s | sb | a | nca
 @end smallexample
@@ -2497,6 +2506,8 @@ is used.
 @cindex OpenVMS
 @cindex Passing by descriptor
 Passing by descriptor is supported only on the OpenVMS ports of GNAT@.
+The default behavior for Import_Function is to pass a 64bit descriptor
+unless short_descriptor is specified, then a 32bit descriptor is passed.
 
 @code{First_Optional_Parameter} applies only to OpenVMS ports of GNAT@.
 It specifies that the designated parameter and all following parameters
@@ -2570,6 +2581,7 @@ MECHANISM_NAME ::=
   Value
 | Reference
 | Descriptor [([Class =>] CLASS_NAME)]
+| Short_Descriptor [([Class =>] CLASS_NAME)]
 
 CLASS_NAME ::= ubs | ubsb | uba | s | sb | a | nca
 @end smallexample
@@ -2616,6 +2628,7 @@ MECHANISM_NAME ::=
   Value
 | Reference
 | Descriptor [([Class =>] CLASS_NAME)]
+| Short_Descriptor [([Class =>] CLASS_NAME)]
 
 CLASS_NAME ::= ubs | ubsb | uba | s | sb | a | nca
 @end smallexample
@@ -3400,7 +3413,7 @@ Syntax:
 
 @smallexample @c ada
 pragma Obsolescent
-  (Entity => NAME [, static_string_EXPRESSION [,Ada_05]]);
+  [(Entity => NAME [, static_string_EXPRESSION [,Ada_05]])];
 @end smallexample
 
 @noindent
@@ -3796,6 +3809,13 @@ package Sort is
 end Sort;
 @end smallexample
 
+@noindent
+Note: postcondition pragmas associated with subprograms that are
+marked as Inline_Always, or those marked as Inline with front-end
+inlining (-gnatN option set) are accepted and legality-checked
+by the compiler, but are ignored at run-time even if postcondition
+checking is enabled.
+
 @node Pragma Precondition
 @unnumberedsec Pragma Precondition
 @cindex Preconditions
@@ -3830,12 +3850,21 @@ package Math_Functions is
 end Math_Functions;
 @end smallexample
 
-@code{Postcondition} pragmas may appear either immediate following the
+@noindent
+@code{Precondition} pragmas may appear either immediate following the
 (separate) declaration of a subprogram, or at the start of the
 declarations of a subprogram body. Only other pragmas may intervene
 (that is appear between the subprogram declaration and its
 postconditions, or appear before the postcondition in the
 declaration sequence in a subprogram body).
+
+Note: postcondition pragmas associated with subprograms that are
+marked as Inline_Always, or those marked as Inline with front-end
+inlining (-gnatN option set) are accepted and legality-checked
+by the compiler, but are ignored at run-time even if postcondition
+checking is enabled.
+
+
 
 @node Pragma Profile (Ravenscar)
 @unnumberedsec Pragma Profile (Ravenscar)
@@ -4417,6 +4446,17 @@ name: @code{Alignment_Check} which can be used to suppress alignment checks
 on addresses used in address clauses. Such checks can also be suppressed
 by suppressing range checks, but the specific use of @code{Alignment_Check}
 allows suppression of alignment checks without suppressing other range checks.
+
+Note that pragma Suppress gives the compiler permission to omit
+checks, but does not require the compiler to omit checks. The compiler
+will generate checks if they are essentially free, even when they are
+suppressed. In particular, if the compiler can prove that a certain
+check will necessarily fail, it will generate code to do an
+unconditional ``raise'', even if checks are suppressed. The compiler
+warns in this case.
+
+Of course, run-time checks are omitted whenever the compiler can prove
+that they will not fail, whether or not checks are suppressed.
 
 @node Pragma Suppress_All
 @unnumberedsec Pragma Suppress_All

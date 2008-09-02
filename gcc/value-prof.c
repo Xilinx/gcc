@@ -333,12 +333,12 @@ gimple_duplicate_stmt_histograms (struct function *fun, gimple stmt,
   histogram_value val;
   for (val = gimple_histogram_value (ofun, ostmt); val != NULL; val = val->hvalue.next)
     {
-      histogram_value new = gimple_alloc_histogram_value (fun, val->type, NULL, NULL);
-      memcpy (new, val, sizeof (*val));
-      new->hvalue.stmt = stmt;
-      new->hvalue.counters = XNEWVAR (gcov_type, sizeof (*new->hvalue.counters) * new->n_counters);
-      memcpy (new->hvalue.counters, val->hvalue.counters, sizeof (*new->hvalue.counters) * new->n_counters);
-      gimple_add_histogram_value (fun, stmt, new);
+      histogram_value new_val = gimple_alloc_histogram_value (fun, val->type, NULL, NULL);
+      memcpy (new_val, val, sizeof (*val));
+      new_val->hvalue.stmt = stmt;
+      new_val->hvalue.counters = XNEWVAR (gcov_type, sizeof (*new_val->hvalue.counters) * new_val->n_counters);
+      memcpy (new_val->hvalue.counters, val->hvalue.counters, sizeof (*new_val->hvalue.counters) * new_val->n_counters);
+      gimple_add_histogram_value (fun, stmt, new_val);
     }
 }
 
@@ -453,18 +453,32 @@ free_histograms (void)
    somehow.  */
 
 static bool
-check_counter (gimple stmt, const char *name, gcov_type all, gcov_type bb_count)
+check_counter (gimple stmt, const char * name,
+	       gcov_type *count, gcov_type *all, gcov_type bb_count)
 {
-  if (all != bb_count)
+  if (*all != bb_count || *count > *all)
     {
       location_t locus;
       locus = (stmt != NULL)
-	       ? gimple_location (stmt)
-	       : DECL_SOURCE_LOCATION (current_function_decl);
-      error ("%HCorrupted value profile: %s profiler overall count (%d) "
-	     "does not match BB count (%d)", &locus, name, (int)all,
-	     (int)bb_count);
-      return true;
+              ? gimple_location (stmt)
+              : DECL_SOURCE_LOCATION (current_function_decl);
+      if (flag_profile_correction)
+        {
+	  inform (locus, "Correcting inconsistent value profile: "
+		  "%s profiler overall count (%d) does not match BB count "
+                  "(%d)", name, (int)*all, (int)bb_count);
+	  *all = bb_count;
+	  if (*count > *all)
+            *count = *all;
+	  return false;
+	}
+      else
+	{
+	  error ("%HCorrupted value profile: %s profiler overall count (%d) "
+                 "does not match BB count (%d)", &locus, name, (int)*all,
+                 (int)bb_count);
+	  return true;
+	}
     }
 
   return false;
@@ -541,10 +555,8 @@ static tree
 gimple_divmod_fixed_value (gimple stmt, tree value, int prob, gcov_type count,
 			   gcov_type all)
 {
-  gimple stmt1, stmt2, stmt3, label1, label2;
+  gimple stmt1, stmt2, stmt3;
   tree tmp1, tmp2, tmpv;
-  tree label_decl1 = create_artificial_label ();
-  tree label_decl2 = create_artificial_label ();
   gimple bb1end, bb2end, bb3end;
   basic_block bb, bb2, bb3, bb4;
   tree optype, op1, op2;
@@ -573,17 +585,13 @@ gimple_divmod_fixed_value (gimple stmt, tree value, int prob, gcov_type count,
   bb1end = stmt3;
 
   tmp2 = create_tmp_var (optype, "PROF");
-  label1 = gimple_build_label (label_decl1);
   stmt1 = gimple_build_assign_with_ops (gimple_assign_rhs_code (stmt), tmp2,
 					op1, tmpv);
-  gsi_insert_before (&gsi, label1, GSI_SAME_STMT);
   gsi_insert_before (&gsi, stmt1, GSI_SAME_STMT);
   bb2end = stmt1;
 
-  label2 = gimple_build_label (label_decl2);
   stmt1 = gimple_build_assign_with_ops (gimple_assign_rhs_code (stmt), tmp2,
 					op1, op2);
-  gsi_insert_before (&gsi, label2, GSI_SAME_STMT);
   gsi_insert_before (&gsi, stmt1, GSI_SAME_STMT);
   bb3end = stmt1;
 
@@ -661,10 +669,10 @@ gimple_divmod_fixed_value_transform (gimple_stmt_iterator *si)
      at least 50% of time (and 75% gives the guarantee of usage).  */
   if (simple_cst_equal (gimple_assign_rhs2 (stmt), value) != 1
       || 2 * count < all
-      || !maybe_hot_bb_p (gimple_bb (stmt)))
+      || optimize_bb_for_size_p (gimple_bb (stmt)))
     return false;
 
-  if (check_counter (stmt, "value", all, gimple_bb (stmt)->count))
+  if (check_counter (stmt, "value", &count, &all, gimple_bb (stmt)->count))
     return false;
 
   /* Compute probability of taking the optimal path.  */
@@ -702,9 +710,6 @@ gimple_mod_pow2 (gimple stmt, int prob, gcov_type count, gcov_type all)
 {
   gimple stmt1, stmt2, stmt3, stmt4;
   tree tmp2, tmp3;
-  tree label_decl1 = create_artificial_label ();
-  tree label_decl2 = create_artificial_label ();
-  gimple label1, label2;
   gimple bb1end, bb2end, bb3end;
   basic_block bb, bb2, bb3, bb4;
   tree optype, op1, op2;
@@ -736,16 +741,12 @@ gimple_mod_pow2 (gimple stmt, int prob, gcov_type count, gcov_type all)
   bb1end = stmt4;
 
   /* tmp2 == op2-1 inherited from previous block.  */
-  label1 = gimple_build_label (label_decl1);
   stmt1 = gimple_build_assign_with_ops (BIT_AND_EXPR, result, op1, tmp2);
-  gsi_insert_before (&gsi, label1, GSI_SAME_STMT);
   gsi_insert_before (&gsi, stmt1, GSI_SAME_STMT);
   bb2end = stmt1;
 
-  label2 = gimple_build_label (label_decl2);
   stmt1 = gimple_build_assign_with_ops (gimple_assign_rhs_code (stmt), result,
 					op1, op2);
-  gsi_insert_before (&gsi, label2, GSI_SAME_STMT);
   gsi_insert_before (&gsi, stmt1, GSI_SAME_STMT);
   bb3end = stmt1;
 
@@ -819,7 +820,7 @@ gimple_mod_pow2_value_transform (gimple_stmt_iterator *si)
   /* We require that we hit a power of 2 at least half of all evaluations.  */
   if (simple_cst_equal (gimple_assign_rhs2 (stmt), value) != 1
       || count < wrong_values
-      || !maybe_hot_bb_p (gimple_bb (stmt)))
+      || optimize_bb_for_size_p (gimple_bb (stmt)))
     return false;
 
   if (dump_file)
@@ -831,7 +832,7 @@ gimple_mod_pow2_value_transform (gimple_stmt_iterator *si)
   /* Compute probability of taking the optimal path.  */
   all = count + wrong_values;
 
-  if (check_counter (stmt, "pow2", all, gimple_bb (stmt)->count))
+  if (check_counter (stmt, "pow2", &count, &all, gimple_bb (stmt)->count))
     return false;
 
   if (all > 0)
@@ -861,10 +862,6 @@ gimple_mod_subtract (gimple stmt, int prob1, int prob2, int ncounts,
 {
   gimple stmt1, stmt2, stmt3;
   tree tmp1;
-  tree label_decl1 = create_artificial_label ();
-  tree label_decl2 = create_artificial_label ();
-  tree label_decl3 = create_artificial_label ();
-  gimple label1, label2, label3;
   gimple bb1end, bb2end = NULL, bb3end;
   basic_block bb, bb2, bb3, bb4;
   tree optype, op1, op2;
@@ -894,25 +891,18 @@ gimple_mod_subtract (gimple stmt, int prob1, int prob2, int ncounts,
 
   if (ncounts)	/* Assumed to be 0 or 1 */
     {
-      label1 = gimple_build_label (label_decl1);
       stmt1 = gimple_build_assign_with_ops (MINUS_EXPR, result, result, tmp1);
       stmt2 = gimple_build_cond (LT_EXPR, result, tmp1, NULL_TREE, NULL_TREE);
-      gsi_insert_before (&gsi, label1, GSI_SAME_STMT);
       gsi_insert_before (&gsi, stmt1, GSI_SAME_STMT);
       gsi_insert_before (&gsi, stmt2, GSI_SAME_STMT);
       bb2end = stmt2;
     }
 
   /* Fallback case. */
-  label2 = gimple_build_label (label_decl2);
   stmt1 = gimple_build_assign_with_ops (gimple_assign_rhs_code (stmt), result,
 					result, tmp1);
-  gsi_insert_before (&gsi, label2, GSI_SAME_STMT);
   gsi_insert_before (&gsi, stmt1, GSI_SAME_STMT);
   bb3end = stmt1;
-
-  label3 = gimple_build_label (label_decl3);
-  gsi_insert_before (&gsi, label3, GSI_SAME_STMT);
 
   /* Fix CFG. */
   /* Edge e23 connects bb2 to bb3, etc. */
@@ -1006,11 +996,16 @@ gimple_mod_subtract_transform (gimple_stmt_iterator *si)
   count2 = histogram->hvalue.counters[1];
 
   /* Compute probability of taking the optimal path.  */
-  if (check_counter (stmt, "interval", all, gimple_bb (stmt)->count))
+  if (check_counter (stmt, "interval", &count1, &all, gimple_bb (stmt)->count))
     {
       gimple_remove_histogram_value (cfun, stmt, histogram);
       return false;
     }
+
+  if (flag_profile_correction && count1 + count2 > all)
+      all = count1 + count2;
+
+  gcc_assert (count1 + count2 <= all);
 
   /* We require that we use just subtractions in at least 50% of all
      evaluations.  */
@@ -1022,7 +1017,7 @@ gimple_mod_subtract_transform (gimple_stmt_iterator *si)
 	break;
     }
   if (i == steps
-      || !maybe_hot_bb_p (gimple_bb (stmt)))
+      || optimize_bb_for_size_p (gimple_bb (stmt)))
     return false;
 
   gimple_remove_histogram_value (cfun, stmt, histogram);
@@ -1098,9 +1093,6 @@ gimple_ic (gimple stmt, gimple call, struct cgraph_node *direct_call,
 {
   gimple stmt1, stmt2, stmt3;
   tree tmp1, tmpv, tmp;
-  tree label_decl1 = create_artificial_label ();
-  tree label_decl2 = create_artificial_label ();
-  gimple label1, label2;
   gimple bb1end, bb2end, bb3end;
   basic_block bb, bb2, bb3, bb4;
   tree optype = build_pointer_type (void_type_node);
@@ -1124,16 +1116,11 @@ gimple_ic (gimple stmt, gimple call, struct cgraph_node *direct_call,
   gsi_insert_before (&gsi, stmt3, GSI_SAME_STMT);
   bb1end = stmt3;
 
-  label1 = gimple_build_label (label_decl1);
   stmt1 = gimple_copy (stmt);
   gimple_call_set_fn (stmt,
 		      build_addr (direct_call->decl, current_function_decl));
-  gsi_insert_before (&gsi, label1, GSI_SAME_STMT);
   gsi_insert_before (&gsi, stmt1, GSI_SAME_STMT);
   bb2end = stmt1;
-
-  label2 = gimple_build_label (label_decl2);
-  gsi_insert_before (&gsi, label2, GSI_SAME_STMT);
   bb3end = stmt;
 
   /* Fix CFG. */
@@ -1192,7 +1179,7 @@ static bool
 gimple_ic_transform (gimple stmt)
 {
   histogram_value histogram;
-  gcov_type val, count, all;
+  gcov_type val, count, all, bb_all;
   gcov_type prob;
   tree callee;
   gimple modify;
@@ -1216,6 +1203,14 @@ gimple_ic_transform (gimple stmt)
   gimple_remove_histogram_value (cfun, stmt, histogram);
 
   if (4 * count <= 3 * all)
+    return false;
+
+  bb_all = gimple_bb (stmt)->count;
+  /* The order of CHECK_COUNTER calls is important - 
+     since check_counter can correct the third parameter
+     and we want to make count <= all <= bb_all. */
+  if ( check_counter (stmt, "ic", &all, &bb_all, bb_all)
+      || check_counter (stmt, "ic", &count, &all, all))
     return false;
 
   if (all > 0)
@@ -1287,9 +1282,6 @@ gimple_stringop_fixed_value (gimple stmt, tree value, int prob, gcov_type count,
 {
   gimple stmt1, stmt2, stmt3;
   tree tmp1, tmpv;
-  tree label_decl1 = create_artificial_label ();
-  tree label_decl2 = create_artificial_label ();
-  gimple label1, label2;
   gimple bb1end, bb2end;
   basic_block bb, bb2, bb3, bb4;
   edge e12, e13, e23, e24, e34;
@@ -1325,17 +1317,13 @@ gimple_stringop_fixed_value (gimple stmt, tree value, int prob, gcov_type count,
   gsi_insert_before (&gsi, stmt3, GSI_SAME_STMT);
   bb1end = stmt3;
 
-  label1 = gimple_build_label (label_decl1);
   stmt1 = gimple_copy (stmt);
   gimple_call_set_arg (stmt1, 2, value);
-  gsi_insert_before (&gsi, label1, GSI_SAME_STMT);
   gsi_insert_before (&gsi, stmt1, GSI_SAME_STMT);
   region = lookup_stmt_eh_region (stmt);
   if (region >= 0)
     add_stmt_to_eh_region (stmt1, region);
   bb2end = stmt1;
-  label2 = gimple_build_label (label_decl2);
-  gsi_insert_before (&gsi, label2, GSI_SAME_STMT);
 
   /* Fix CFG. */
   /* Edge e23 connects bb2 to bb3, etc. */
@@ -1409,9 +1397,9 @@ gimple_stringops_transform (gimple_stmt_iterator *gsi)
   /* We require that count is at least half of all; this means
      that for the transformation to fire the value must be constant
      at least 80% of time.  */
-  if ((6 * count / 5) < all || !maybe_hot_bb_p (gimple_bb (stmt)))
+  if ((6 * count / 5) < all || optimize_bb_for_size_p (gimple_bb (stmt)))
     return false;
-  if (check_counter (stmt, "value", all, gimple_bb (stmt)->count))
+  if (check_counter (stmt, "value", &count, &all, gimple_bb (stmt)->count))
     return false;
   if (all > 0)
     prob = (count * REG_BR_PROB_BASE + all / 2) / all;
@@ -1581,13 +1569,11 @@ gimple_indirect_call_to_profile (gimple stmt, histogram_values *values)
 {
   tree callee;
 
-  if (gimple_code (stmt) != GIMPLE_CALL)
+  if (gimple_code (stmt) != GIMPLE_CALL
+      || gimple_call_fndecl (stmt) != NULL_TREE)
     return;
 
   callee = gimple_call_fn (stmt);
-  
-  if (TREE_CODE (callee) == FUNCTION_DECL)
-    return;
 
   VEC_reserve (histogram_value, heap, *values, 3);
 

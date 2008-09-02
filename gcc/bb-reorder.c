@@ -648,7 +648,8 @@ find_traces_1_round (int branch_th, int exec_th, gcov_type count_th,
 			  /* The loop has less than 4 iterations.  */
 
 			  if (single_succ_p (bb)
-			      && copy_bb_p (best_edge->dest, !optimize_size))
+			      && copy_bb_p (best_edge->dest,
+			      		    optimize_edge_for_speed_p (best_edge)))
 			    {
 			      bb = copy_bb (best_edge->dest, best_edge, bb,
 					    *n_traces);
@@ -1102,7 +1103,7 @@ connect_traces (int n_traces, struct trace *traces)
 		 edge is traversed frequently enough.  */
 	      if (try_copy
 		  && copy_bb_p (best->dest,
-				!optimize_size
+				optimize_edge_for_speed_p (best)
 				&& EDGE_FREQUENCY (best) >= freq_threshold
 				&& best->count >= count_threshold))
 		{
@@ -1173,7 +1174,7 @@ copy_bb_p (const_basic_block bb, int code_may_grow)
   if (EDGE_COUNT (bb->succs) > 8)
     return false;
 
-  if (code_may_grow && maybe_hot_bb_p (bb))
+  if (code_may_grow && optimize_bb_for_speed_p (bb))
     max_size *= PARAM_VALUE (PARAM_MAX_GROW_COPY_BB_INSNS);
 
   FOR_BB_INSNS (bb, insn)
@@ -1984,7 +1985,7 @@ gate_duplicate_computed_gotos (void)
 {
   if (targetm.cannot_modify_jumps_p ())
     return false;
-  return (optimize > 0 && flag_expensive_optimizations && !optimize_size);
+  return (optimize > 0 && flag_expensive_optimizations);
 }
 
 
@@ -2073,6 +2074,9 @@ duplicate_computed_gotos (void)
 	  || single_succ (bb) == EXIT_BLOCK_PTR
 	  || single_succ (bb) == bb->next_bb
 	  || single_pred_p (single_succ (bb)))
+	continue;
+
+      if (!optimize_bb_for_size_p (bb))
 	continue;
 
       /* The successor block has to be a duplication candidate.  */
@@ -2221,7 +2225,15 @@ rest_of_handle_reorder_blocks (void)
      splitting possibly introduced more crossjumping opportunities.  */
   cfg_layout_initialize (CLEANUP_EXPENSIVE);
 
-  if (flag_reorder_blocks || flag_reorder_blocks_and_partition)
+  if ((flag_reorder_blocks || flag_reorder_blocks_and_partition)
+      /* Don't reorder blocks when optimizing for size because extra jump insns may
+	 be created; also barrier may create extra padding.
+
+	 More correctly we should have a block reordering mode that tried to
+	 minimize the combined size of all the jumps.  This would more or less
+	 automatically remove extra jumps, but would also try to use more short
+	 jumps instead of long jumps.  */
+      && optimize_function_for_speed_p (cfun))
     {
       reorder_basic_blocks ();
       cleanup_cfg (CLEANUP_EXPENSIVE);

@@ -279,7 +279,7 @@ static rtx
 legitimize_pic_address (rtx orig, rtx reg, rtx picreg)
 {
   rtx addr = orig;
-  rtx new = orig;
+  rtx new_rtx = orig;
 
   if (GET_CODE (addr) == SYMBOL_REF || GET_CODE (addr) == LABEL_REF)
     {
@@ -301,9 +301,9 @@ legitimize_pic_address (rtx orig, rtx reg, rtx picreg)
 	}
 
       tmp = gen_rtx_UNSPEC (Pmode, gen_rtvec (1, addr), unspec);
-      new = gen_const_mem (Pmode, gen_rtx_PLUS (Pmode, picreg, tmp));
+      new_rtx = gen_const_mem (Pmode, gen_rtx_PLUS (Pmode, picreg, tmp));
 
-      emit_move_insn (reg, new);
+      emit_move_insn (reg, new_rtx);
       if (picreg == pic_offset_table_rtx)
 	crtl->uses_pic_offset_table = 1;
       return reg;
@@ -348,7 +348,7 @@ legitimize_pic_address (rtx orig, rtx reg, rtx picreg)
       return gen_rtx_PLUS (Pmode, base, addr);
     }
 
-  return new;
+  return new_rtx;
 }
 
 /* Stack frame layout. */
@@ -1378,7 +1378,7 @@ bfin_dsp_memref_p (rtx x)
    All addressing modes are equally cheap on the Blackfin.  */
 
 static int
-bfin_address_cost (rtx addr ATTRIBUTE_UNUSED)
+bfin_address_cost (rtx addr ATTRIBUTE_UNUSED, bool speed ATTRIBUTE_UNUSED)
 {
   return 1;
 }
@@ -2156,14 +2156,14 @@ int
 hard_regno_mode_ok (int regno, enum machine_mode mode)
 {
   /* Allow only dregs to store value of mode HI or QI */
-  enum reg_class class = REGNO_REG_CLASS (regno);
+  enum reg_class rclass = REGNO_REG_CLASS (regno);
 
   if (mode == CCmode)
     return 0;
 
   if (mode == V2HImode)
     return D_REGNO_P (regno);
-  if (class == CCREGS)
+  if (rclass == CCREGS)
     return mode == BImode;
   if (mode == PDImode || mode == V2PDImode)
     return regno == REG_A0 || regno == REG_A1;
@@ -2232,24 +2232,24 @@ bfin_register_move_cost (enum machine_mode mode,
 
 int
 bfin_memory_move_cost (enum machine_mode mode ATTRIBUTE_UNUSED,
-		       enum reg_class class,
+		       enum reg_class rclass,
 		       int in ATTRIBUTE_UNUSED)
 {
   /* Make memory accesses slightly more expensive than any register-register
      move.  Also, penalize non-DP registers, since they need secondary
      reloads to load and store.  */
-  if (! reg_class_subset_p (class, DPREGS))
+  if (! reg_class_subset_p (rclass, DPREGS))
     return 10;
 
   return 8;
 }
 
 /* Inform reload about cases where moving X with a mode MODE to a register in
-   CLASS requires an extra scratch register.  Return the class needed for the
+   RCLASS requires an extra scratch register.  Return the class needed for the
    scratch register.  */
 
 static enum reg_class
-bfin_secondary_reload (bool in_p, rtx x, enum reg_class class,
+bfin_secondary_reload (bool in_p, rtx x, enum reg_class rclass,
 		       enum machine_mode mode, secondary_reload_info *sri)
 {
   /* If we have HImode or QImode, we can only use DREGS as secondary registers;
@@ -2280,11 +2280,11 @@ bfin_secondary_reload (bool in_p, rtx x, enum reg_class class,
       rtx op2 = XEXP (x, 1);
       int large_constant_p = ! satisfies_constraint_Ks7 (op2);
 
-      if (class == PREGS || class == PREGS_CLOBBERED)
+      if (rclass == PREGS || rclass == PREGS_CLOBBERED)
 	return NO_REGS;
       /* If destination is a DREG, we can do this without a scratch register
 	 if the constant is valid for an add instruction.  */
-      if ((class == DREGS || class == DPREGS)
+      if ((rclass == DREGS || rclass == DPREGS)
 	  && ! large_constant_p)
 	return NO_REGS;
       /* Reloading to anything other than a DREG?  Use a PREG scratch
@@ -2297,11 +2297,11 @@ bfin_secondary_reload (bool in_p, rtx x, enum reg_class class,
      AREGS are an exception; they can only move to or from another register
      in AREGS or one in DREGS.  They can also be assigned the constant 0.  */
   if (x_class == AREGS || x_class == EVEN_AREGS || x_class == ODD_AREGS)
-    return (class == DREGS || class == AREGS || class == EVEN_AREGS
-	    || class == ODD_AREGS
+    return (rclass == DREGS || rclass == AREGS || rclass == EVEN_AREGS
+	    || rclass == ODD_AREGS
 	    ? NO_REGS : DREGS);
 
-  if (class == AREGS || class == EVEN_AREGS || class == ODD_AREGS)
+  if (rclass == AREGS || rclass == EVEN_AREGS || rclass == ODD_AREGS)
     {
       if (code == MEM)
 	{
@@ -2318,15 +2318,15 @@ bfin_secondary_reload (bool in_p, rtx x, enum reg_class class,
     }
 
   /* CCREGS can only be moved from/to DREGS.  */
-  if (class == CCREGS && x_class != DREGS)
+  if (rclass == CCREGS && x_class != DREGS)
     return DREGS;
-  if (x_class == CCREGS && class != DREGS)
+  if (x_class == CCREGS && rclass != DREGS)
     return DREGS;
 
   /* All registers other than AREGS can load arbitrary constants.  The only
      case that remains is MEM.  */
   if (code == MEM)
-    if (! reg_class_subset_p (class, default_class))
+    if (! reg_class_subset_p (rclass, default_class))
       return default_class;
 
   return NO_REGS;
@@ -2871,7 +2871,7 @@ bfin_legitimate_constant_p (rtx x)
 }
 
 static bool
-bfin_rtx_costs (rtx x, int code, int outer_code, int *total)
+bfin_rtx_costs (rtx x, int code, int outer_code, int *total, bool speed)
 {
   int cost2 = COSTS_N_INSNS (1);
   rtx op0, op1;
@@ -2919,19 +2919,19 @@ bfin_rtx_costs (rtx x, int code, int outer_code, int *total)
 	      if (val == 2 || val == 4)
 		{
 		  *total = cost2;
-		  *total += rtx_cost (XEXP (op0, 0), outer_code);
-		  *total += rtx_cost (op1, outer_code);
+		  *total += rtx_cost (XEXP (op0, 0), outer_code, speed);
+		  *total += rtx_cost (op1, outer_code, speed);
 		  return true;
 		}
 	    }
 	  *total = cost2;
 	  if (GET_CODE (op0) != REG
 	      && (GET_CODE (op0) != SUBREG || GET_CODE (SUBREG_REG (op0)) != REG))
-	    *total += rtx_cost (op0, SET);
+	    *total += rtx_cost (op0, SET, speed);
 #if 0 /* We'd like to do this for accuracy, but it biases the loop optimizer
 	 towards creating too many induction variables.  */
 	  if (!reg_or_7bit_operand (op1, SImode))
-	    *total += rtx_cost (op1, SET);
+	    *total += rtx_cost (op1, SET, speed);
 #endif
 	}
       else if (GET_MODE (x) == DImode)
@@ -2939,10 +2939,10 @@ bfin_rtx_costs (rtx x, int code, int outer_code, int *total)
 	  *total = 6 * cost2;
 	  if (GET_CODE (op1) != CONST_INT
 	      || !satisfies_constraint_Ks7 (op1))
-	    *total += rtx_cost (op1, PLUS);
+	    *total += rtx_cost (op1, PLUS, speed);
 	  if (GET_CODE (op0) != REG
 	      && (GET_CODE (op0) != SUBREG || GET_CODE (SUBREG_REG (op0)) != REG))
-	    *total += rtx_cost (op0, PLUS);
+	    *total += rtx_cost (op0, PLUS, speed);
 	}
       return true;
 
@@ -2965,7 +2965,7 @@ bfin_rtx_costs (rtx x, int code, int outer_code, int *total)
       op1 = XEXP (x, 1);
       if (GET_CODE (op0) != REG
 	  && (GET_CODE (op0) != SUBREG || GET_CODE (SUBREG_REG (op0)) != REG))
-	*total += rtx_cost (op0, code);
+	*total += rtx_cost (op0, code, speed);
 
       return true;
 	  
@@ -2990,7 +2990,7 @@ bfin_rtx_costs (rtx x, int code, int outer_code, int *total)
 
       if (GET_CODE (op0) != REG
 	  && (GET_CODE (op0) != SUBREG || GET_CODE (SUBREG_REG (op0)) != REG))
-	*total += rtx_cost (op0, code);
+	*total += rtx_cost (op0, code, speed);
 
       if (GET_MODE (x) == DImode)
 	{
@@ -3004,12 +3004,12 @@ bfin_rtx_costs (rtx x, int code, int outer_code, int *total)
       if (code == AND)
 	{
 	  if (! rhs_andsi3_operand (XEXP (x, 1), SImode))
-	    *total += rtx_cost (XEXP (x, 1), code);
+	    *total += rtx_cost (XEXP (x, 1), code, speed);
 	}
       else
 	{
 	  if (! regorlog2_operand (XEXP (x, 1), SImode))
-	    *total += rtx_cost (XEXP (x, 1), code);
+	    *total += rtx_cost (XEXP (x, 1), code, speed);
 	}
 
       return true;
@@ -3042,17 +3042,17 @@ bfin_rtx_costs (rtx x, int code, int outer_code, int *total)
 	      op0 = XEXP (op0, 0);
 	      op1 = XEXP (op1, 0);
 	    }
-	  else if (optimize_size)
+	  else if (!speed)
 	    *total = COSTS_N_INSNS (1);
 	  else
 	    *total = COSTS_N_INSNS (3);
 
 	  if (GET_CODE (op0) != REG
 	      && (GET_CODE (op0) != SUBREG || GET_CODE (SUBREG_REG (op0)) != REG))
-	    *total += rtx_cost (op0, MULT);
+	    *total += rtx_cost (op0, MULT, speed);
 	  if (GET_CODE (op1) != REG
 	      && (GET_CODE (op1) != SUBREG || GET_CODE (SUBREG_REG (op1)) != REG))
-	    *total += rtx_cost (op1, MULT);
+	    *total += rtx_cost (op1, MULT, speed);
 	}
       return true;
 
@@ -5127,12 +5127,12 @@ bfin_output_mi_thunk (FILE *file ATTRIBUTE_UNUSED,
 {
   rtx xops[3];
   /* The this parameter is passed as the first argument.  */
-  rtx this = gen_rtx_REG (Pmode, REG_R0);
+  rtx this_rtx = gen_rtx_REG (Pmode, REG_R0);
 
   /* Adjust the this parameter by a fixed constant.  */
   if (delta)
     {
-      xops[1] = this;
+      xops[1] = this_rtx;
       if (delta >= -64 && delta <= 63)
 	{
 	  xops[0] = GEN_INT (delta);
@@ -5175,7 +5175,7 @@ bfin_output_mi_thunk (FILE *file ATTRIBUTE_UNUSED,
 	  output_asm_insn ("%h1 = %h0; %d1 = %d0; %2 = %2 + %1", xops);
 	  xops[0] = gen_rtx_MEM (Pmode, p2tmp);
 	}
-      xops[2] = this;
+      xops[2] = this_rtx;
       output_asm_insn ("%1 = %0; %2 = %2 + %1;", xops);
     }
 

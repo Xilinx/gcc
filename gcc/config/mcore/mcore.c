@@ -44,6 +44,7 @@
 #include "toplev.h"
 #include "target.h"
 #include "target-def.h"
+#include "df.h"
 
 /* Maximum size we are allowed to grow the stack in a single operation.
    If we want more, we must do it in increments of at most this size.
@@ -143,7 +144,7 @@ static const char *mcore_strip_name_encoding	(const char *);
 static int        mcore_const_costs            	(rtx, RTX_CODE);
 static int        mcore_and_cost               	(rtx);
 static int        mcore_ior_cost               	(rtx);
-static bool       mcore_rtx_costs		(rtx, int, int, int *);
+static bool       mcore_rtx_costs		(rtx, int, int, int *, bool);
 static void       mcore_external_libcall	(rtx);
 static bool       mcore_return_in_memory	(const_tree, const_tree);
 static int        mcore_arg_partial_bytes       (CUMULATIVE_ARGS *,
@@ -182,7 +183,7 @@ static int        mcore_arg_partial_bytes       (CUMULATIVE_ARGS *,
 #undef  TARGET_RTX_COSTS
 #define TARGET_RTX_COSTS 		mcore_rtx_costs
 #undef  TARGET_ADDRESS_COST
-#define TARGET_ADDRESS_COST 		hook_int_rtx_0
+#define TARGET_ADDRESS_COST 		hook_int_rtx_bool_0
 #undef  TARGET_MACHINE_DEPENDENT_REORG
 #define TARGET_MACHINE_DEPENDENT_REORG	mcore_reorg
 
@@ -479,7 +480,8 @@ mcore_ior_cost (rtx x)
 }
 
 static bool
-mcore_rtx_costs (rtx x, int code, int outer_code, int * total)
+mcore_rtx_costs (rtx x, int code, int outer_code, int * total,
+		 bool speed ATTRIBUTE_UNUSED)
 {
   switch (code)
     {
@@ -2602,30 +2604,30 @@ mcore_r15_operand_p (rtx x)
     }
 }
 
-/* Implement SECONDARY_RELOAD_CLASS.  If CLASS contains r15, and we can't
+/* Implement SECONDARY_RELOAD_CLASS.  If RCLASS contains r15, and we can't
    directly move X into it, use r1-r14 as a temporary.  */
 
 enum reg_class
-mcore_secondary_reload_class (enum reg_class class,
+mcore_secondary_reload_class (enum reg_class rclass,
 			      enum machine_mode mode ATTRIBUTE_UNUSED, rtx x)
 {
-  if (TEST_HARD_REG_BIT (reg_class_contents[class], 15)
+  if (TEST_HARD_REG_BIT (reg_class_contents[rclass], 15)
       && !mcore_r15_operand_p (x))
     return LRW_REGS;
   return NO_REGS;
 }
 
 /* Return the reg_class to use when reloading the rtx X into the class
-   CLASS.  If X is too complex to move directly into r15, prefer to
+   RCLASS.  If X is too complex to move directly into r15, prefer to
    use LRW_REGS instead.  */
 
 enum reg_class
-mcore_reload_class (rtx x, enum reg_class class)
+mcore_reload_class (rtx x, enum reg_class rclass)
 {
-  if (reg_class_subset_p (LRW_REGS, class) && !mcore_r15_operand_p (x))
+  if (reg_class_subset_p (LRW_REGS, rclass) && !mcore_r15_operand_p (x))
     return LRW_REGS;
 
-  return class;
+  return rclass;
 }
 
 /* Tell me if a pair of reg/subreg rtx's actually refer to the same

@@ -212,6 +212,12 @@ package body Switch.C is
                Ptr := Ptr + 1;
                Brief_Output := True;
 
+            --  Processing for B switch
+
+            when 'B' =>
+               Ptr := Ptr + 1;
+               Assume_No_Invalid_Values := True;
+
             --  Processing for c switch
 
             when 'c' =>
@@ -370,6 +376,16 @@ package body Switch.C is
                      Ptr := Ptr + 1;
                      Full_Path_Name_For_Brief_Errors := True;
                      return;
+
+                  --  -gnateG (save preprocessor output)
+
+                  when 'G' =>
+                     if Ptr < Max then
+                        Bad_Switch (Switch_Chars);
+                     end if;
+
+                     Generate_Processed_File := True;
+                     Ptr := Ptr + 1;
 
                   --  -gnateI (index of unit in multi-unit source)
 

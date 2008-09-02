@@ -390,7 +390,7 @@ gfc_conv_component_ref (gfc_se * se, gfc_ref * ref)
       se->string_length = tmp;
     }
 
-  if (c->pointer && c->dimension == 0 && c->ts.type != BT_CHARACTER)
+  if (c->attr.pointer && c->attr.dimension == 0 && c->ts.type != BT_CHARACTER)
     se->expr = build_fold_indirect_ref (se->expr);
 }
 
@@ -2011,6 +2011,10 @@ gfc_apply_interface_mapping_to_expr (gfc_interface_mapping * mapping,
     case EXPR_STRUCTURE:
       gfc_apply_interface_mapping_to_cons (mapping, expr->value.constructor);
       break;
+
+    case EXPR_COMPCALL:
+      gcc_unreachable ();
+      break;
     }
 
   return;
@@ -2677,7 +2681,9 @@ gfc_conv_function_call (gfc_se * se, gfc_symbol * sym,
   gfc_finish_interface_mapping (&mapping, &se->pre, &se->post);
 
   ts = sym->ts;
-  if (ts.type == BT_CHARACTER && !sym->attr.is_bind_c)
+  if (ts.type == BT_CHARACTER && sym->attr.is_bind_c)
+    se->string_length = build_int_cst (gfc_charlen_type_node, 1);
+  else if (ts.type == BT_CHARACTER)
     {
       if (sym->ts.cl->length == NULL)
 	{
@@ -3060,10 +3066,12 @@ gfc_trans_string_copy (stmtblock_t * block, tree dlength, tree dest,
   /* For non-default character kinds, we have to multiply the string
      length by the base type size.  */
   chartype = gfc_get_char_type (dkind);
-  slen = fold_build2 (MULT_EXPR, size_type_node, slen,
-		      TYPE_SIZE_UNIT (chartype));
-  dlen = fold_build2 (MULT_EXPR, size_type_node, dlen,
-		      TYPE_SIZE_UNIT (chartype));
+  slen = fold_build2 (MULT_EXPR, size_type_node,
+		      fold_convert (size_type_node, slen),
+		      fold_convert (size_type_node, TYPE_SIZE_UNIT (chartype)));
+  dlen = fold_build2 (MULT_EXPR, size_type_node,
+		      fold_convert (size_type_node, dlen),
+		      fold_convert (size_type_node, TYPE_SIZE_UNIT (chartype)));
 
   if (dlength)
     dest = fold_convert (pvoid_type_node, dest);
@@ -3432,11 +3440,11 @@ gfc_trans_subcomponent_assign (tree dest, gfc_component * cm, gfc_expr * expr)
 
   gfc_start_block (&block);
 
-  if (cm->pointer)
+  if (cm->attr.pointer)
     {
       gfc_init_se (&se, NULL);
       /* Pointer component.  */
-      if (cm->dimension)
+      if (cm->attr.dimension)
 	{
 	  /* Array pointer.  */
 	  if (expr->expr_type == EXPR_NULL)
@@ -3462,11 +3470,11 @@ gfc_trans_subcomponent_assign (tree dest, gfc_component * cm, gfc_expr * expr)
 	  gfc_add_block_to_block (&block, &se.post);
 	}
     }
-  else if (cm->dimension)
+  else if (cm->attr.dimension)
     {
-      if (cm->allocatable && expr->expr_type == EXPR_NULL)
+      if (cm->attr.allocatable && expr->expr_type == EXPR_NULL)
  	gfc_conv_descriptor_data_set (&block, dest, null_pointer_node);
-      else if (cm->allocatable)
+      else if (cm->attr.allocatable)
 	{
 	  tree tmp2;
 
@@ -3637,11 +3645,11 @@ gfc_conv_structure (gfc_se * se, gfc_expr * expr, int init)
 	 components.  Although the latter have a default initializer
 	 of EXPR_NULL,... by default, the static nullify is not needed
 	 since this is done every time we come into scope.  */
-      if (!c->expr || cm->allocatable)
+      if (!c->expr || cm->attr.allocatable)
         continue;
 
       val = gfc_conv_initializer (c->expr, &cm->ts,
-	  TREE_TYPE (cm->backend_decl), cm->dimension, cm->pointer);
+	  TREE_TYPE (cm->backend_decl), cm->attr.dimension, cm->attr.pointer);
 
       /* Append it to the constructor list.  */
       CONSTRUCTOR_APPEND_ELT (v, cm->backend_decl, val);

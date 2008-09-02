@@ -462,7 +462,7 @@ extern void c_print_identifier (FILE *, tree, int);
 extern int quals_from_declspecs (const struct c_declspecs *);
 extern struct c_declarator *build_array_declarator (tree, struct c_declspecs *,
 						    bool, bool);
-extern tree build_enumerator (struct c_enum_contents *, tree, tree);
+extern tree build_enumerator (struct c_enum_contents *, tree, tree, location_t);
 extern tree check_for_loop_decls (void);
 extern void mark_forward_parm_decls (void);
 extern void declare_parm_level (void);
@@ -475,8 +475,8 @@ extern tree finish_enum (tree, tree, tree);
 extern void finish_function (void);
 extern tree finish_struct (tree, tree, tree);
 extern struct c_arg_info *get_parm_info (bool);
-extern tree grokfield (struct c_declarator *, struct c_declspecs *,
-		       tree, tree *);
+extern tree grokfield (location_t, struct c_declarator *,
+		       struct c_declspecs *, tree, tree *);
 extern tree groktypename (struct c_type_name *);
 extern tree grokparm (const struct c_parm *);
 extern tree implicitly_declare (tree);
@@ -488,6 +488,7 @@ extern void push_parm_decl (const struct c_parm *);
 extern struct c_declarator *set_array_declarator_inner (struct c_declarator *,
 							struct c_declarator *);
 extern tree c_builtin_function (tree);
+extern tree c_builtin_function_ext_scope (tree);
 extern void shadow_tag (const struct c_declspecs *);
 extern void shadow_tag_warned (const struct c_declspecs *, int);
 extern tree start_enum (struct c_enum_contents *, tree);
@@ -549,12 +550,13 @@ extern tree c_type_promotes_to (tree);
 extern struct c_expr default_function_array_conversion (struct c_expr);
 extern tree composite_type (tree, tree);
 extern tree build_component_ref (tree, tree);
-extern tree build_array_ref (tree, tree);
+extern tree build_array_ref (tree, tree, location_t);
 extern tree build_external_ref (tree, int, location_t);
 extern void pop_maybe_used (bool);
 extern struct c_expr c_expr_sizeof_expr (struct c_expr);
 extern struct c_expr c_expr_sizeof_type (struct c_type_name *);
-extern struct c_expr parser_build_unary_op (enum tree_code, struct c_expr);
+extern struct c_expr parser_build_unary_op (enum tree_code, struct c_expr,
+    					    location_t);
 extern struct c_expr parser_build_binary_op (enum tree_code, struct c_expr,
 					     struct c_expr);
 extern tree build_conditional_expr (tree, tree, tree);
@@ -563,7 +565,7 @@ extern tree c_cast_expr (struct c_type_name *, tree);
 extern tree build_c_cast (tree, tree);
 extern void store_init_value (tree, tree);
 extern void error_init (const char *);
-extern void pedwarn_init (int opt, const char *);
+extern void pedwarn_init (location_t, int opt, const char *);
 extern void maybe_warn_string_init (tree, struct c_expr);
 extern void start_init (tree, tree, int);
 extern void finish_init (void);
@@ -640,7 +642,7 @@ extern void c_write_global_declarations (void);
 #define ATTRIBUTE_GCC_CDIAG(m, n) ATTRIBUTE_NONNULL(m)
 #endif
 
-extern void pedwarn_c90 (int opt, const char *, ...) ATTRIBUTE_GCC_CDIAG(2,3);
-extern void pedwarn_c99 (int opt, const char *, ...) ATTRIBUTE_GCC_CDIAG(2,3);
+extern void pedwarn_c90 (location_t, int opt, const char *, ...) ATTRIBUTE_GCC_CDIAG(3,4);
+extern void pedwarn_c99 (location_t, int opt, const char *, ...) ATTRIBUTE_GCC_CDIAG(3,4);
 
 #endif /* ! GCC_C_TREE_H */

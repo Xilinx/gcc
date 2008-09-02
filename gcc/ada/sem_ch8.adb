@@ -832,7 +832,10 @@ package body Sem_Ch8 is
       if Nkind (Nam) = N_Explicit_Dereference
         and then Ekind (Etype (T2)) = E_Incomplete_Type
       then
-         Error_Msg_N ("invalid use of incomplete type", Id);
+         Error_Msg_NE ("invalid use of incomplete type&", Id, T2);
+         return;
+      elsif Ekind (Etype (T)) = E_Incomplete_Type then
+         Error_Msg_NE ("invalid use of incomplete type&", Id, T);
          return;
       end if;
 
@@ -884,7 +887,20 @@ package body Sem_Ch8 is
                   Error_Msg_N
                     ("renamed object does not exclude `NULL` "
                      & "(RM 8.5.1(4.6/2))", N);
+
+               elsif Can_Never_Be_Null (Etype (Nam_Ent)) then
+                  Error_Msg_NE
+                    ("`NOT NULL` not allowed (type of& already excludes null)",
+                      N, Nam_Ent);
+
                end if;
+
+            elsif Has_Null_Exclusion (N)
+              and then No (Access_Definition (N))
+              and then Can_Never_Be_Null (T)
+            then
+               Error_Msg_NE
+                 ("`NOT NULL` not allowed (& already excludes null)", N, T);
             end if;
          end;
       end if;
@@ -1578,25 +1594,45 @@ package body Sem_Ch8 is
                --  an abstract formal subprogram must be dispatching
                --  operation).
 
-               case Attribute_Name (Nam) is
-                  when Name_Input  =>
-                     Stream_Prim :=
-                       Find_Prim_Op (Prefix_Type, TSS_Stream_Input);
-                  when Name_Output =>
-                     Stream_Prim :=
-                       Find_Prim_Op (Prefix_Type, TSS_Stream_Output);
-                  when Name_Read   =>
-                     Stream_Prim :=
-                       Find_Prim_Op (Prefix_Type, TSS_Stream_Read);
-                  when Name_Write  =>
-                     Stream_Prim :=
-                       Find_Prim_Op (Prefix_Type, TSS_Stream_Write);
-                  when others      =>
-                     Error_Msg_N
-                       ("attribute must be a primitive dispatching operation",
-                        Nam);
-                     return;
-               end case;
+               begin
+                  case Attribute_Name (Nam) is
+                     when Name_Input  =>
+                        Stream_Prim :=
+                          Find_Prim_Op (Prefix_Type, TSS_Stream_Input);
+                     when Name_Output =>
+                        Stream_Prim :=
+                          Find_Prim_Op (Prefix_Type, TSS_Stream_Output);
+                     when Name_Read   =>
+                        Stream_Prim :=
+                          Find_Prim_Op (Prefix_Type, TSS_Stream_Read);
+                     when Name_Write  =>
+                        Stream_Prim :=
+                          Find_Prim_Op (Prefix_Type, TSS_Stream_Write);
+                     when others      =>
+                        Error_Msg_N
+                          ("attribute must be a primitive"
+                            & " dispatching operation", Nam);
+                        return;
+                  end case;
+
+               exception
+
+                  --  If no operation was found, and the type is limited,
+                  --  the user should have defined one.
+
+                  when Program_Error =>
+                     if Is_Limited_Type (Prefix_Type) then
+                        Error_Msg_NE
+                         ("stream operation not defined for type&",
+                           N, Prefix_Type);
+                        return;
+
+                     --  Otherwise, compiler should have generated default
+
+                     else
+                        raise;
+                     end if;
+               end;
 
                --  Rewrite the attribute into the name of its corresponding
                --  primitive dispatching subprogram. We can then proceed with
@@ -1786,16 +1822,19 @@ package body Sem_Ch8 is
 
          --  Ada 2005: check overriding indicator
 
-         if Must_Override (Specification (N))
-           and then not Is_Overriding_Operation (Rename_Spec)
-         then
-            Error_Msg_NE ("subprogram& is not overriding", N, Rename_Spec);
+         if Is_Overriding_Operation (Rename_Spec) then
+            if Must_Not_Override (Specification (N)) then
+               Error_Msg_NE
+                 ("subprogram& overrides inherited operation",
+                    N, Rename_Spec);
+            elsif
+              Style_Check and then not Must_Override (Specification (N))
+            then
+               Style.Missing_Overriding (N, Rename_Spec);
+            end if;
 
-         elsif Must_Not_Override (Specification (N))
-           and then Is_Overriding_Operation (Rename_Spec)
-         then
-            Error_Msg_NE
-              ("subprogram& overrides inherited operation", N, Rename_Spec);
+         elsif Must_Override (Specification (N)) then
+            Error_Msg_NE ("subprogram& is not overriding", N, Rename_Spec);
          end if;
 
       --  Normal subprogram renaming (not renaming as body)
@@ -1929,9 +1968,11 @@ package body Sem_Ch8 is
 
       --  Most common case: subprogram renames subprogram. No body is generated
       --  in this case, so we must indicate the declaration is complete as is.
+      --  and inherit various attributes of the renamed subprogram.
 
       if No (Rename_Spec) then
          Set_Has_Completion   (New_S);
+         Set_Is_Imported      (New_S, Is_Imported      (Entity (Nam)));
          Set_Is_Pure          (New_S, Is_Pure          (Entity (Nam)));
          Set_Is_Preelaborated (New_S, Is_Preelaborated (Entity (Nam)));
 
@@ -2897,9 +2938,8 @@ package body Sem_Ch8 is
          Error_Msg_N
            ("renamed generic unit must be a library unit", Name (N));
 
-      elsif Ekind (Old_E) = E_Package
-        or else Ekind (Old_E) = E_Generic_Package
-      then
+      elsif Is_Package_Or_Generic_Package (Old_E) then
+
          --  Inherit categorization flags
 
          New_E := Defining_Entity (N);
@@ -6609,8 +6649,7 @@ package body Sem_Ch8 is
             then
                Full_Vis := True;
 
-            elsif (Ekind (S) = E_Package
-                    or else Ekind (S) = E_Generic_Package)
+            elsif Is_Package_Or_Generic_Package (S)
               and then (In_Private_Part (S)
                          or else In_Package_Body (S))
             then
@@ -7015,49 +7054,95 @@ package body Sem_Ch8 is
          --  as use visible. The analysis then reinstalls the spec along with
          --  its context. The use clause P.T is now recognized as redundant,
          --  but in the wrong context. Do not emit a warning in such cases.
+         --  Do not emit a warning either if we are in an instance, there
+         --  is no redundancy between an outer use_clause and one that appears
+         --  within the generic.
 
         and then not Spec_Reloaded_For_Body
+        and then not In_Instance
       then
          --  The type already has a use clause
 
          if In_Use (T) then
+
+            --  Case where we know the current use clause for the type
+
             if Present (Current_Use_Clause (T)) then
-               declare
+               Use_Clause_Known : declare
                   Clause1 : constant Node_Id := Parent (Id);
                   Clause2 : constant Node_Id := Current_Use_Clause (T);
+                  Ent1    : Entity_Id;
+                  Ent2    : Entity_Id;
                   Err_No  : Node_Id;
                   Unit1   : Node_Id;
                   Unit2   : Node_Id;
 
+                  function Entity_Of_Unit (U : Node_Id) return Entity_Id;
+                  --  Return the appropriate entity for determining which unit
+                  --  has a deeper scope: the defining entity for U, unless U
+                  --  is a package instance, in which case we retrieve the
+                  --  entity of the instance spec.
+
+                  --------------------
+                  -- Entity_Of_Unit --
+                  --------------------
+
+                  function Entity_Of_Unit (U : Node_Id) return Entity_Id is
+                  begin
+                     if Nkind (U) =  N_Package_Instantiation
+                       and then Analyzed (U)
+                     then
+                        return Defining_Entity (Instance_Spec (U));
+                     else
+                        return Defining_Entity (U);
+                     end if;
+                  end Entity_Of_Unit;
+
+               --  Start of processing for Use_Clause_Known
+
                begin
+                  --  If both current use type clause and the use type
+                  --  clause for the type are at the compilation unit level,
+                  --  one of the units must be an ancestor of the other, and
+                  --  the warning belongs on the descendant.
+
                   if Nkind (Parent (Clause1)) = N_Compilation_Unit
-                    and then Nkind (Parent (Clause2)) = N_Compilation_Unit
+                       and then
+                     Nkind (Parent (Clause2)) = N_Compilation_Unit
                   then
+                     Unit1 := Unit (Parent (Clause1));
+                     Unit2 := Unit (Parent (Clause2));
+
                      --  There is a redundant use type clause in a child unit.
                      --  Determine which of the units is more deeply nested.
+                     --  If a unit is a package instance, retrieve the entity
+                     --  and its scope from the instance spec.
 
-                     Unit1 := Defining_Entity (Unit (Parent (Clause1)));
-                     Unit2 := Defining_Entity (Unit (Parent (Clause2)));
+                     Ent1 := Entity_Of_Unit (Unit1);
+                     Ent2 := Entity_Of_Unit (Unit2);
 
-                     if Scope (Unit2) = Standard_Standard  then
+                     if Scope (Ent2) = Standard_Standard  then
                         Error_Msg_Sloc := Sloc (Current_Use_Clause (T));
                         Err_No := Clause1;
 
-                     elsif Scope (Unit1) = Standard_Standard then
+                     elsif Scope (Ent1) = Standard_Standard then
                         Error_Msg_Sloc := Sloc (Id);
                         Err_No := Clause2;
 
-                     else
-                        --  Determine which is the descendant unit
+                     --  If both units are child units, we determine which one
+                     --  is the descendant by the scope distance to the
+                     --  ultimate parent unit.
 
+                     else
                         declare
                            S1, S2 : Entity_Id;
 
                         begin
-                           S1 := Scope (Unit1);
-                           S2 := Scope (Unit2);
+                           S1 := Scope (Ent1);
+                           S2 := Scope (Ent2);
                            while S1 /= Standard_Standard
-                             and then S2 /= Standard_Standard
+                                   and then
+                                 S2 /= Standard_Standard
                            loop
                               S1 := Scope (S1);
                               S2 := Scope (S2);
@@ -7076,16 +7161,25 @@ package body Sem_Ch8 is
                      Error_Msg_NE
                        ("& is already use-visible through previous "
                         & "use_type_clause #?", Err_No, Id);
+
+                  --  Case where current use type clause and the use type
+                  --  clause for the type are not both at the compilation unit
+                  --  level. In this case we don't have location information.
+
                   else
                      Error_Msg_NE
-                       ("& is already use-visible through previous use type "
-                        & "clause?", Id, Id);
+                       ("& is already use-visible through previous "
+                        & "use type clause?", Id, Id);
                   end if;
-               end;
+               end Use_Clause_Known;
+
+            --  Here if Current_Use_Clause is not set for T, another case
+            --  where we do not have the location information available.
+
             else
                Error_Msg_NE
-                 ("& is already use-visible through previous use type "
-                  & "clause?", Id, Id);
+                 ("& is already use-visible through previous "
+                  & "use type clause?", Id, Id);
             end if;
 
          --  The package where T is declared is already used

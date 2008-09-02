@@ -157,7 +157,7 @@
 ; Floating Point Unit.  If we only have floating point emulation, then there
 ; is no point in scheduling the floating point insns.  (Well, for best
 ; performance we should try and group them together).
-(define_attr "fpu" "none,fpa,fpe2,fpe3,maverick,vfp"
+(define_attr "fpu" "none,fpa,fpe2,fpe3,maverick,vfp,vfpv3d16,vfpv3,neon"
   (const (symbol_ref "arm_fpu_attr")))
 
 ; LENGTH of an instruction (in bytes)
@@ -193,6 +193,8 @@
 ; scheduling of writes.
 
 ; Classification of each insn
+; Note: vfp.md has different meanings for some of these, and some further
+; types as well.  See that file for details.
 ; alu		any alu  instruction that doesn't hit memory or fp
 ;		regs or have a shifted source operand
 ; alu_shift	any data instruction that doesn't hit memory or fp
@@ -237,7 +239,7 @@
 ;
 
 (define_attr "type"
-	"alu,alu_shift,alu_shift_reg,mult,block,float,fdivx,fdivd,fdivs,fmul,fmuls,fmuld,fmacs,fmacd,ffmul,farith,ffarith,f_flag,float_em,f_load,f_store,f_loads,f_loadd,f_stores,f_stored,f_mem_r,r_mem_f,f_2_r,r_2_f,f_cvt,branch,call,load_byte,load1,load2,load3,load4,store1,store2,store3,store4,mav_farith,mav_dmult"
+	"alu,alu_shift,alu_shift_reg,mult,block,float,fdivx,fdivd,fdivs,fmul,fmuls,fmuld,fmacs,fmacd,ffmul,farith,ffarith,f_flag,float_em,f_load,f_store,f_loads,f_loadd,f_stores,f_stored,f_mem_r,r_mem_f,f_2_r,r_2_f,f_cvt,branch,call,load_byte,load1,load2,load3,load4,store1,store2,store3,store4,mav_farith,mav_dmult,fconsts,fconstd,fadds,faddd,ffariths,ffarithd,fcmps,fcmpd,fcpys"
 	(if_then_else 
 	 (eq_attr "insn" "smulxy,smlaxy,smlalxy,smulwy,smlawx,mul,muls,mla,mlas,umull,umulls,umlal,umlals,smull,smulls,smlal,smlals")
 	 (const_string "mult")
@@ -329,18 +331,26 @@
 ;; Processor type.  This is created automatically from arm-cores.def.
 (include "arm-tune.md")
 
+(define_attr "tune_cortexr4" "yes,no"
+  (const (if_then_else
+	  (eq_attr "tune" "cortexr4,cortexr4f")
+	  (const_string "yes")
+	  (const_string "no"))))
+
 ;; True if the generic scheduling description should be used.
 
 (define_attr "generic_sched" "yes,no"
   (const (if_then_else 
-          (eq_attr "tune" "arm926ejs,arm1020e,arm1026ejs,arm1136js,arm1136jfs,cortexa8,cortexr4")
+          (ior (eq_attr "tune" "arm926ejs,arm1020e,arm1026ejs,arm1136js,arm1136jfs,cortexa8")
+	      (eq_attr "tune_cortexr4" "yes"))
           (const_string "no")
           (const_string "yes"))))
 
 (define_attr "generic_vfp" "yes,no"
   (const (if_then_else
 	  (and (eq_attr "fpu" "vfp")
-	       (eq_attr "tune" "!arm1020e,arm1022e,cortexa8"))
+	       (eq_attr "tune" "!arm1020e,arm1022e,cortexa8")
+	       (eq_attr "tune_cortexr4" "no"))
 	  (const_string "yes")
 	  (const_string "no"))))
 
@@ -351,6 +361,8 @@
 (include "arm1136jfs.md")
 (include "cortex-a8.md")
 (include "cortex-r4.md")
+(include "cortex-r4f.md")
+(include "vfp11.md")
 
 
 ;;---------------------------------------------------------------------------
@@ -5286,12 +5298,12 @@
 			   && GET_CODE (base = XEXP (base, 0)) == REG))
 		      && REGNO_POINTER_ALIGN (REGNO (base)) >= 32)
 		    {
-		      rtx new;
+		      rtx new_rtx;
 
-		      new = widen_memory_access (operands[1], SImode,
-						 ((INTVAL (offset) & ~3)
-						  - INTVAL (offset)));
-		      emit_insn (gen_movsi (reg, new));
+		      new_rtx = widen_memory_access (operands[1], SImode,
+						     ((INTVAL (offset) & ~3)
+						      - INTVAL (offset)));
+		      emit_insn (gen_movsi (reg, new_rtx));
 		      if (((INTVAL (offset) & 2) != 0)
 			  ^ (BYTES_BIG_ENDIAN ? 1 : 0))
 			{

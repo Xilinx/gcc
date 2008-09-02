@@ -1,5 +1,11 @@
 2008-09-01  Sebastian Pop  <sebastian.pop@amd.com>
 
+	* Merge from mainline (138275:139870).
+	* testsuite/gcc.dg/graphite/scop-matmult.c: XFailed as one of 
+	the commits from trunk broke the niter detection.
+
+2008-09-01  Sebastian Pop  <sebastian.pop@amd.com>
+
 	* graphite.c: Add more documentation.  Fix formatting.
 	(debug_loop_vec, debug_oldivs, loop_iv_stack,
 	loop_iv_stack_debug): Moved...

@@ -238,6 +238,10 @@ ipa_count_arguments (struct cgraph_edge *cs)
   stmt = cs->call_stmt;
   gcc_assert (is_gimple_call (stmt));
   arg_num = gimple_call_num_args (stmt);
+  if (VEC_length (ipa_edge_args_t, ipa_edge_args_vector)
+      <= (unsigned) cgraph_edge_max_uid)
+    VEC_safe_grow_cleared (ipa_edge_args_t, heap,
+			   ipa_edge_args_vector, cgraph_edge_max_uid + 1);
   ipa_set_cs_argument_count (IPA_EDGE_REF (cs), arg_num);
 }
 
@@ -251,13 +255,13 @@ ipa_print_node_jump_functions (FILE *f, struct cgraph_node *node)
   struct ipa_jump_func *jump_func;
   enum jump_func_type type;
 
-  fprintf (f, "JUMP FUNCTIONS OF CALLER  %s:\n", cgraph_node_name (node));
+  fprintf (f, "  Jump functions of caller  %s:\n", cgraph_node_name (node));
   for (cs = node->callees; cs; cs = cs->next_callee)
     {
       if (!ipa_edge_args_info_available_for_edge_p (cs))
 	continue;
 
-      fprintf (f, "callsite  %s ", cgraph_node_name (node));
+      fprintf (f, "    callsite  %s ", cgraph_node_name (node));
       fprintf (f, "-> %s :: \n", cgraph_node_name (cs->callee));
 
       count = ipa_get_cs_argument_count (IPA_EDGE_REF (cs));
@@ -266,10 +270,10 @@ ipa_print_node_jump_functions (FILE *f, struct cgraph_node *node)
 	  jump_func = ipa_get_ith_jump_func (IPA_EDGE_REF (cs), i);
 	  type = jump_func->type;
 
-	  fprintf (f, "  param %d: ", i);
+	  fprintf (f, "       param %d: ", i);
 	  if (type == IPA_UNKNOWN)
 	    fprintf (f, "UNKNOWN\n");
-	  else if (type == IPA_CONST || type == IPA_CONST_REF)
+	  else if (type == IPA_CONST)
  	    {
 	      tree val = jump_func->value.constant;
 	      fprintf (f, "CONST: ");
@@ -299,7 +303,7 @@ ipa_print_all_jump_functions (FILE *f)
 {
   struct cgraph_node *node;
 
-  fprintf (f, "\nCALLSITE PARAM PRINT\n");
+  fprintf (f, "\nJump functions:\n");
   for (node = cgraph_nodes; node; node = node->next)
     {
       ipa_print_node_jump_functions (f, node);
@@ -323,33 +327,11 @@ compute_scalar_jump_functions (struct ipa_node_params *info,
     {
       arg = gimple_call_arg (call, num);
 
-      if (TREE_CODE (arg) == INTEGER_CST
-	  || TREE_CODE (arg) == REAL_CST
-	  || TREE_CODE (arg) == FIXED_CST)
+      if (is_gimple_ip_invariant (arg))
 	{
 	  functions[num].type = IPA_CONST;
 	  functions[num].value.constant = arg;
 	}
-      else if (TREE_CODE (arg) == ADDR_EXPR)
-	{
-	  if (TREE_CODE (TREE_OPERAND (arg, 0)) == FUNCTION_DECL)
-	    {
-	      functions[num].type = IPA_CONST;
-	      functions[num].value.constant = TREE_OPERAND (arg, 0);
-	    }
-	  else if (TREE_CODE (TREE_OPERAND (arg, 0)) == CONST_DECL)
-	    {
-	      tree cst_decl = TREE_OPERAND (arg, 0);
-
-	      if (TREE_CODE (DECL_INITIAL (cst_decl)) == INTEGER_CST
-		  || TREE_CODE (DECL_INITIAL (cst_decl)) == REAL_CST
-		  || TREE_CODE (DECL_INITIAL (cst_decl)) == FIXED_CST)
-		{
-		  functions[num].type = IPA_CONST_REF;
-		  functions[num].value.constant = cst_decl;
-		}
-	    }
- 	}
       else if ((TREE_CODE (arg) == SSA_NAME) && SSA_NAME_IS_DEFAULT_DEF (arg))
 	{
 	  int index = ipa_get_param_decl_index (info, SSA_NAME_VAR (arg));
@@ -492,7 +474,7 @@ determine_cst_member_ptr (gimple call, tree arg, tree method_field,
 	      method = TREE_OPERAND (rhs, 0);
 	      if (delta)
 		{
-		  fill_member_ptr_cst_jump_function (jfunc, method, delta);
+		  fill_member_ptr_cst_jump_function (jfunc, rhs, delta);
 		  return;
 		}
 	    }
@@ -507,7 +489,7 @@ determine_cst_member_ptr (gimple call, tree arg, tree method_field,
 	      delta = rhs;
 	      if (method)
 		{
-		  fill_member_ptr_cst_jump_function (jfunc, method, delta);
+		  fill_member_ptr_cst_jump_function (jfunc, rhs, delta);
 		  return;
 		}
 	    }
@@ -948,6 +930,10 @@ update_call_notes_after_inlining (struct cgraph_edge *cs,
 	  else
 	    decl = jfunc->value.constant;
 
+	  if (TREE_CODE (decl) != ADDR_EXPR)
+	    continue;
+	  decl = TREE_OPERAND (decl, 0);
+
 	  if (TREE_CODE (decl) != FUNCTION_DECL)
 	    continue;
 	  callee = cgraph_node (decl);
@@ -1071,6 +1057,10 @@ static void
 ipa_edge_removal_hook (struct cgraph_edge *cs,
 		       void *data __attribute__ ((unused)))
 {
+  /* During IPA-CP updating we can be called on not-yet analyze clones.  */
+  if (VEC_length (ipa_edge_args_t, ipa_edge_args_vector)
+      <= (unsigned)cs->uid)
+    return;
   ipa_free_edge_args_substructures (IPA_EDGE_REF (cs));
 }
 
@@ -1217,48 +1207,23 @@ free_all_ipa_structures_after_iinln (void)
 /* Print ipa_tree_map data structures of all functions in the
    callgraph to F.  */
 void
-ipa_print_all_tree_maps (FILE * f)
+ipa_print_node_params (FILE * f, struct cgraph_node *node)
 {
   int i, count;
   tree temp;
-  struct cgraph_node *node;
-
-  fprintf (f, "\nPARAM TREE MAP PRINT\n");
-  for (node = cgraph_nodes; node; node = node->next)
-    {
-      struct ipa_node_params *info;
-
-      if (!node->analyzed)
-	continue;
-      info = IPA_NODE_REF (node);
-      fprintf (f, "function  %s Trees :: \n", cgraph_node_name (node));
-      count = ipa_get_param_count (info);
-      for (i = 0; i < count; i++)
-	{
-	  temp = ipa_get_ith_param (info, i);
-	  if (TREE_CODE (temp) == PARM_DECL)
-	    fprintf (f, "  param [%d] : %s\n", i,
-		     (*lang_hooks.decl_printable_name) (temp, 2));
-	}
-
-    }
-}
-
-/* Print param_flags data structures of the NODE to F.  */
-void
-ipa_print_node_param_flags (FILE * f, struct cgraph_node *node)
-{
-  int i, count;
   struct ipa_node_params *info;
 
   if (!node->analyzed)
     return;
   info = IPA_NODE_REF (node);
-  fprintf (f, "PARAM FLAGS of function  %s: \n", cgraph_node_name (node));
+  fprintf (f, "  function  %s Trees :: \n", cgraph_node_name (node));
   count = ipa_get_param_count (info);
   for (i = 0; i < count; i++)
     {
-      fprintf (f, "   param %d flags:", i);
+      temp = ipa_get_ith_param (info, i);
+      if (TREE_CODE (temp) == PARM_DECL)
+	fprintf (f, "    param %d : %s", i,
+		 (*lang_hooks.decl_printable_name) (temp, 2));
       if (ipa_is_ith_param_modified (info, i))
 	fprintf (f, " modified");
       if (ipa_is_ith_param_called (info, i))
@@ -1267,14 +1232,14 @@ ipa_print_node_param_flags (FILE * f, struct cgraph_node *node)
     }
 }
 
-/* Print param_flags data structures of all functions in the
+/* Print ipa_tree_map data structures of all functions in the
    callgraph to F.  */
 void
-ipa_print_all_param_flags (FILE * f)
+ipa_print_all_params (FILE * f)
 {
   struct cgraph_node *node;
 
-  fprintf (f, "\nIPA PARAM FLAGS DUMP\n");
+  fprintf (f, "\nFunction parameters:\n");
   for (node = cgraph_nodes; node; node = node->next)
-    ipa_print_node_param_flags (f, node);
+    ipa_print_node_params (f, node);
 }

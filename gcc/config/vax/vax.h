@@ -642,17 +642,13 @@ enum reg_class { NO_REGS, ALL_REGS, LIM_REG_CLASSES };
    so give the MEM rtx a byte's mode.  */
 #define FUNCTION_MODE QImode
 
-/* This machine doesn't use IEEE floats.  */
-
-#define TARGET_FLOAT_FORMAT VAX_FLOAT_FORMAT
-
 /* Specify the cost of a branch insn; roughly the number of extra insns that
    should be added to avoid a branch.
 
    Branches are extremely cheap on the VAX while the shift insns often
    used to replace branches can be expensive.  */
 
-#define BRANCH_COST 0
+#define BRANCH_COST(speed_p, predictable_p) 0
 
 /* Tell final.c how to eliminate redundant test instructions.  */
 

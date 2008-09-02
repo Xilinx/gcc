@@ -718,7 +718,7 @@ finish_static_data_member_decl (tree decl,
     VEC_safe_push (tree, gc, pending_statics, decl);
 
   if (LOCAL_CLASS_P (current_class_type))
-    permerror ("local class %q#T shall not have static data member %q#D",
+    permerror (input_location, "local class %q#T shall not have static data member %q#D",
 	       current_class_type, decl);
 
   /* Static consts need not be initialized in the class definition.  */
@@ -1260,15 +1260,15 @@ build_anon_union_vars (tree type, tree object)
 	continue;
       if (TREE_CODE (field) != FIELD_DECL)
 	{
-	  permerror ("%q+#D invalid; an anonymous union can only "
+	  permerror (input_location, "%q+#D invalid; an anonymous union can only "
 		     "have non-static data members", field);
 	  continue;
 	}
 
       if (TREE_PRIVATE (field))
-	permerror ("private member %q+#D in anonymous union", field);
+	permerror (input_location, "private member %q+#D in anonymous union", field);
       else if (TREE_PROTECTED (field))
-	permerror ("protected member %q+#D in anonymous union", field);
+	permerror (input_location, "protected member %q+#D in anonymous union", field);
 
       if (processing_template_decl)
 	ref = build_min_nt (COMPONENT_REF, object,
@@ -1403,7 +1403,7 @@ coerce_new_type (tree type)
     e = 2;
 
   if (e == 2)
-    permerror ("%<operator new%> takes type %<size_t%> (%qT) "
+    permerror (input_location, "%<operator new%> takes type %<size_t%> (%qT) "
 	       "as first parameter", size_type_node);
 
   switch (e)
@@ -2811,6 +2811,38 @@ get_priority_info (int priority)
 						    || DECL_ONE_ONLY (decl) \
 						    || DECL_WEAK (decl)))
 
+/* Called from one_static_initialization_or_destruction(),
+   via walk_tree.
+   Walks the initializer list of a global variable and looks for
+   temporary variables (DECL_NAME() == NULL and DECL_ARTIFICIAL != 0)
+   and that have their DECL_CONTEXT() == NULL.
+   For each such temporary variable, set their DECL_CONTEXT() to
+   the current function. This is necessary because otherwise
+   some optimizers (enabled by -O2 -fprofile-arcs) might crash
+   when trying to refer to a temporary variable that does not have
+   it's DECL_CONTECT() properly set.  */
+static tree 
+fix_temporary_vars_context_r (tree *node,
+			      int  *unused ATTRIBUTE_UNUSED,
+			      void *unused1 ATTRIBUTE_UNUSED)
+{
+  gcc_assert (current_function_decl);
+
+  if (TREE_CODE (*node) == BIND_EXPR)
+    {
+      tree var;
+
+      for (var = BIND_EXPR_VARS (*node); var; var = TREE_CHAIN (var))
+	if (TREE_CODE (var) == VAR_DECL
+	  && !DECL_NAME (var)
+	  && DECL_ARTIFICIAL (var)
+	  && !DECL_CONTEXT (var))
+	  DECL_CONTEXT (var) = current_function_decl;
+    }
+
+  return NULL_TREE;
+}
+
 /* Set up to handle the initialization or destruction of DECL.  If
    INITP is nonzero, we are initializing the variable.  Otherwise, we
    are destroying it.  */
@@ -2832,6 +2864,19 @@ one_static_initialization_or_destruction (tree decl, tree init, bool initp)
      that the debugger will show somewhat sensible file and line
      information.  */
   input_location = DECL_SOURCE_LOCATION (decl);
+
+  /* Make sure temporary variables in the initialiser all have
+     their DECL_CONTEXT() set to a value different from NULL_TREE.
+     This can happen when global variables initialisers are built.
+     In that case, the DECL_CONTEXT() of the global variables _AND_ of all 
+     the temporary variables that might have been generated in the
+     accompagning initialisers is NULL_TREE, meaning the variables have been
+     declared in the global namespace.
+     What we want to do here is to fix that and make sure the DECL_CONTEXT()
+     of the temporaries are set to the current function decl.  */
+  cp_walk_tree_without_duplicates (&init,
+				   fix_temporary_vars_context_r,
+				   NULL);
 
   /* Because of:
 

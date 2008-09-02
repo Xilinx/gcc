@@ -1294,11 +1294,8 @@ package body Sem_Warn is
                            or else
                              (Ekind (E1) = E_Package
                                 and then
-                                  Ekind (Cunit_Entity (Current_Sem_Unit)) /=
-                                                          E_Package
-                                and then
-                                  Ekind (Cunit_Entity (Current_Sem_Unit)) /=
-                                                          E_Generic_Package))
+                                  not Is_Package_Or_Generic_Package
+                                    (Cunit_Entity (Current_Sem_Unit))))
 
                --  Exclude instantiations, since there is no reason why every
                --  entity in an instantiation should be referenced.
@@ -1432,7 +1429,7 @@ package body Sem_Warn is
          --  formal package, because the corresponding body is not analyzed.
 
          <<Continue>>
-            if ((Ekind (E1) = E_Package or else Ekind (E1) = E_Generic_Package)
+            if (Is_Package_Or_Generic_Package (E1)
                   and then Nkind (Parent (E1)) = N_Package_Specification
                   and then
                     Nkind (Original_Node (Unit_Declaration_Node (E1)))
@@ -2817,6 +2814,12 @@ package body Sem_Warn is
          when 'A' =>
             Warn_On_Assertion_Failure           := False;
 
+         when 'b' =>
+            Warn_On_Biased_Representation       := True;
+
+         when 'B' =>
+            Warn_On_Biased_Representation       := False;
+
          when 'c' =>
             Warn_On_Unrepped_Components         := True;
 
@@ -2837,12 +2840,12 @@ package body Sem_Warn is
             Warn_On_Assertion_Failure           := True;
             Warn_On_Assumed_Low_Bound           := True;
             Warn_On_Bad_Fixed_Value             := True;
+            Warn_On_Biased_Representation       := True;
             Warn_On_Constant                    := True;
             Warn_On_Deleted_Code                := True;
             Warn_On_Dereference                 := True;
             Warn_On_Export_Import               := True;
             Warn_On_Hiding                      := True;
-            Ineffective_Inline_Warnings         := True;
             Warn_On_Modified_Unread             := True;
             Warn_On_No_Value_Assigned           := True;
             Warn_On_Non_Local_Exception         := True;
@@ -2910,6 +2913,7 @@ package body Sem_Warn is
             Warn_On_Assertion_Failure           := True;
             Warn_On_Assumed_Low_Bound           := True;
             Warn_On_Bad_Fixed_Value             := True;
+            Warn_On_Biased_Representation       := True;
             Warn_On_Constant                    := True;
             Warn_On_Export_Import               := True;
             Warn_On_Modified_Unread             := True;
@@ -2936,6 +2940,7 @@ package body Sem_Warn is
             Warn_On_Assertion_Failure           := False;
             Warn_On_Assumed_Low_Bound           := False;
             Warn_On_Bad_Fixed_Value             := False;
+            Warn_On_Biased_Representation       := False;
             Warn_On_Constant                    := False;
             Warn_On_Deleted_Code                := False;
             Warn_On_Dereference                 := False;

@@ -127,38 +127,37 @@ package body Bindgen is
    --     Default_Stack_Size            : Integer;
    --     Leap_Seconds_Support          : Integer;
 
-   --  Main_Priority is the priority value set by pragma Priority in the
-   --  main program. If no such pragma is present, the value is -1.
+   --  Main_Priority is the priority value set by pragma Priority in the main
+   --  program. If no such pragma is present, the value is -1.
 
-   --  Time_Slice_Value is the time slice value set by pragma Time_Slice
-   --  in the main program, or by the use of a -Tnnn parameter for the
-   --  binder (if both are present, the binder value overrides). The
-   --  value is in milliseconds. A value of zero indicates that time
-   --  slicing should be suppressed. If no pragma is present, and no
-   --  -T switch was used, the value is -1.
+   --  Time_Slice_Value is the time slice value set by pragma Time_Slice in the
+   --  main program, or by the use of a -Tnnn parameter for the binder (if both
+   --  are present, the binder value overrides). The value is in milliseconds.
+   --  A value of zero indicates that time slicing should be suppressed. If no
+   --  pragma is present, and no -T switch was used, the value is -1.
 
-   --  WC_Encoding shows the wide character encoding method used for
-   --  the main program. This is one of the encoding letters defined
-   --  in System.WCh_Con.WC_Encoding_Letters.
+   --  WC_Encoding shows the wide character encoding method used for the main
+   --  program. This is one of the encoding letters defined in
+   --  System.WCh_Con.WC_Encoding_Letters.
 
-   --  Locking_Policy is a space if no locking policy was specified
-   --  for the partition. If a locking policy was specified, the value
-   --  is the upper case first character of the locking policy name,
-   --  for example, 'C' for Ceiling_Locking.
+   --  Locking_Policy is a space if no locking policy was specified for the
+   --  partition. If a locking policy was specified, the value is the upper
+   --  case first character of the locking policy name, for example, 'C' for
+   --  Ceiling_Locking.
 
-   --  Queuing_Policy is a space if no queuing policy was specified
-   --  for the partition. If a queuing policy was specified, the value
-   --  is the upper case first character of the queuing policy name
-   --  for example, 'F' for FIFO_Queuing.
+   --  Queuing_Policy is a space if no queuing policy was specified for the
+   --  partition. If a queuing policy was specified, the value is the upper
+   --  case first character of the queuing policy name for example, 'F' for
+   --  FIFO_Queuing.
 
-   --  Task_Dispatching_Policy is a space if no task dispatching policy
-   --  was specified for the partition. If a task dispatching policy
-   --  was specified, the value is the upper case first character of
-   --  the policy name, e.g. 'F' for FIFO_Within_Priorities.
+   --  Task_Dispatching_Policy is a space if no task dispatching policy was
+   --  specified for the partition. If a task dispatching policy was specified,
+   --  the value is the upper case first character of the policy name, e.g. 'F'
+   --  for FIFO_Within_Priorities.
 
-   --  Priority_Specific_Dispatching is the address of a string used to
-   --  store the task dispatching policy specified for the different priorities
-   --  in the partition. The length of this string is determined by the last
+   --  Priority_Specific_Dispatching is the address of a string used to store
+   --  the task dispatching policy specified for the different priorities in
+   --  the partition. The length of this string is determined by the last
    --  priority for which such a pragma applies (the string will be a null
    --  string if no specific dispatching policies were used). If pragma were
    --  present, the entries apply to the priorities in sequence from the first
@@ -182,12 +181,12 @@ package body Bindgen is
    --  such a pragma is given (the string will be a null string if no pragmas
    --  were used). If pragma were present the entries apply to the interrupts
    --  in sequence from the first interrupt, and are set to one of four
-   --  possible settings: 'n' for not specified, 'u' for user, 'r' for
-   --  run time, 's' for system, see description of Interrupt_State pragma
-   --  for further details.
+   --  possible settings: 'n' for not specified, 'u' for user, 'r' for run
+   --  time, 's' for system, see description of Interrupt_State pragma for
+   --  further details.
 
-   --  Num_Interrupt_States is the length of the Interrupt_States string.
-   --  It will be set to zero if no Interrupt_State pragmas are present.
+   --  Num_Interrupt_States is the length of the Interrupt_States string. It
+   --  will be set to zero if no Interrupt_State pragmas are present.
 
    --  Unreserve_All_Interrupts is set to one if at least one unit in the
    --  partition had a pragma Unreserve_All_Interrupts, and zero otherwise.
@@ -201,13 +200,12 @@ package body Bindgen is
    --  this partition, and to zero if longjmp/setjmp exceptions are used.
    --  the use of zero
 
-   --  Detect_Blocking indicates whether pragma Detect_Blocking is
-   --  active or not. A value of zero indicates that the pragma is not
-   --  present, while a value of 1 signals its presence in the
-   --  partition.
+   --  Detect_Blocking indicates whether pragma Detect_Blocking is active or
+   --  not. A value of zero indicates that the pragma is not present, while a
+   --  value of 1 signals its presence in the partition.
 
-   --  Default_Stack_Size is the default stack size used when creating an
-   --  Ada task with no explicit Storize_Size clause.
+   --  Default_Stack_Size is the default stack size used when creating an Ada
+   --  task with no explicit Storize_Size clause.
 
    --  Leap_Seconds_Support denotes whether leap seconds have been enabled or
    --  disabled. A value of zero indicates that leap seconds are turned "off",
@@ -606,6 +604,20 @@ package body Bindgen is
          WBI ("      pragma Import (C, Handler_Installed, " &
               """__gnat_handler_installed"");");
 
+         --  Import entry point for environment feature enable/disable
+         --  routine, and indication that it's been called previously.
+
+         if OpenVMS_On_Target then
+            WBI ("");
+            WBI ("      procedure Set_Features;");
+            WBI ("      pragma Import (C, Set_Features, " &
+                 """__gnat_set_features"");");
+            WBI ("");
+            WBI ("      Features_Set : Integer;");
+            WBI ("      pragma Import (C, Features_Set, " &
+                 """__gnat_features_set"");");
+         end if;
+
          --  Initialize stack limit variable of the environment task if the
          --  stack check method is stack limit and stack check is enabled.
 
@@ -767,6 +779,15 @@ package body Bindgen is
          WBI ("      if Handler_Installed = 0 then");
          WBI ("         Install_Handler;");
          WBI ("      end if;");
+
+         --  Generate call to Set_Features
+
+         if OpenVMS_On_Target then
+            WBI ("");
+            WBI ("      if Features_Set = 0 then");
+            WBI ("         Set_Features;");
+            WBI ("      end if;");
+         end if;
       end if;
 
       --  Generate call to set Initialize_Scalar values if active
@@ -1050,6 +1071,15 @@ package body Bindgen is
          WBI ("     {");
          WBI ("        __gnat_install_handler ();");
          WBI ("     }");
+
+         --  Call feature enable/disable routine
+
+         if OpenVMS_On_Target then
+            WBI ("   if (__gnat_features_set == 0)");
+            WBI ("     {");
+            WBI ("        __gnat_set_features ();");
+            WBI ("     }");
+         end if;
       end if;
 
       --  Initialize stack limit for the environment task if the stack
@@ -2269,17 +2299,19 @@ package body Bindgen is
                WBI ("   gnat_exit_status : Integer;");
                WBI ("   pragma Import (C, gnat_exit_status);");
             end if;
-
-            --  Generate the GNAT_Version and Ada_Main_Program_Name info only
-            --  for the main program. Otherwise, it can lead under some
-            --  circumstances to a symbol duplication during the link (for
-            --  instance when a C program uses 2 Ada libraries)
          end if;
+
+         --  Generate the GNAT_Version and Ada_Main_Program_Name info only for
+         --  the main program. Otherwise, it can lead under some circumstances
+         --  to a symbol duplication during the link (for instance when a C
+         --  program uses two Ada libraries). Also zero terminate the string
+         --  so that its end can be found reliably at run time.
 
          WBI ("");
          WBI ("   GNAT_Version : constant String :=");
          WBI ("                    ""GNAT Version: " &
-                                Gnat_Version_String & """;");
+                                   Gnat_Version_String &
+                                   """ & ASCII.NUL;");
          WBI ("   pragma Export (C, GNAT_Version, ""__gnat_version"");");
 
          WBI ("");
@@ -2599,12 +2631,21 @@ package body Bindgen is
 
       Gen_Elab_Defs_C;
 
-      --  Imported variable used to track elaboration/finalization phase.
-      --  Used only when we have a runtime.
+      --  Imported variables used only when we have a runtime.
 
       if not Suppress_Standard_Library_On_Target then
+
+         --  Track elaboration/finalization phase.
+
          WBI ("extern int  __gnat_handler_installed;");
          WBI ("");
+
+         --  Track feature enable/disable on VMS.
+
+         if OpenVMS_On_Target then
+            WBI ("extern int  __gnat_features_set;");
+            WBI ("");
+         end if;
       end if;
 
       --  Write argv/argc exit status stuff if main program case

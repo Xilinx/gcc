@@ -692,9 +692,9 @@ package body Exp_Ch3 is
          --  would be needed if this restriction was not active (so that we can
          --  detect attempts to call it), so set a dummy init_proc in place.
          --  This is only done though when actual default initialization is
-         --  needed, so we exclude the setting in the Is_Public case, such
-         --  as for arrays of scalars, since otherwise such objects would be
-         --  wrongly flagged as violating the restriction.
+         --  needed (and not done when only Is_Public is True), since otherwise
+         --  objects such as arrays of scalars could be wrongly flagged as
+         --  violating the restriction.
 
          if Restriction_Active (No_Default_Initialization) then
             if Has_Default_Init then
@@ -732,7 +732,7 @@ package body Exp_Ch3 is
          --  in any case no point in inlining such complex init procs.
 
          if not Has_Task (Proc_Id)
-           and then not Controlled_Type (Proc_Id)
+           and then not Needs_Finalization (Proc_Id)
          then
             Set_Is_Inlined (Proc_Id);
          end if;
@@ -1543,7 +1543,7 @@ package body Exp_Ch3 is
                end if;
             end if;
 
-            --  Ada 2005 (AI-287) In case of default initialized components,
+            --  Ada 2005 (AI-287): In case of default initialized components,
             --  we need to generate the corresponding selected component node
             --  to access the discriminant value. In other cases this is not
             --  required because we are inside the init proc and we use the
@@ -1581,7 +1581,7 @@ package body Exp_Ch3 is
           Name => New_Occurrence_Of (Proc, Loc),
           Parameter_Associations => Args));
 
-      if Controlled_Type (Typ)
+      if Needs_Finalization (Typ)
         and then Nkind (Id_Ref) = N_Selected_Component
       then
          if Chars (Selector_Name (Id_Ref)) /= Name_uParent then
@@ -1694,11 +1694,11 @@ package body Exp_Ch3 is
    ----------------------------
 
    procedure Build_Record_Init_Proc (N : Node_Id; Pe : Entity_Id) is
-      Loc         : Source_Ptr := Sloc (N);
-      Discr_Map   : constant Elist_Id := New_Elmt_List;
-      Proc_Id     : Entity_Id;
-      Rec_Type    : Entity_Id;
-      Set_Tag     : Entity_Id := Empty;
+      Loc       : Source_Ptr := Sloc (N);
+      Discr_Map : constant Elist_Id := New_Elmt_List;
+      Proc_Id   : Entity_Id;
+      Rec_Type  : Entity_Id;
+      Set_Tag   : Entity_Id := Empty;
 
       function Build_Assignment (Id : Entity_Id; N : Node_Id) return List_Id;
       --  Build a assignment statement node which assigns to record component
@@ -1826,23 +1826,6 @@ package body Exp_Ch3 is
                 Attribute_Name => Name_Unrestricted_Access);
          end if;
 
-         --  Ada 2005 (AI-231): Add the run-time check if required
-
-         if Ada_Version >= Ada_05
-           and then Can_Never_Be_Null (Etype (Id))            -- Lhs
-         then
-            if Known_Null (Exp) then
-               return New_List (
-                 Make_Raise_Constraint_Error (Sloc (Exp),
-                   Reason => CE_Null_Not_Allowed));
-
-            elsif Present (Etype (Exp))
-              and then not Can_Never_Be_Null (Etype (Exp))
-            then
-               Install_Null_Excluding_Check (Exp);
-            end if;
-         end if;
-
          --  Take a copy of Exp to ensure that later copies of this component
          --  declaration in derived types see the original tree, not a node
          --  rewritten during expansion of the init_proc.
@@ -1882,7 +1865,7 @@ package body Exp_Ch3 is
             Kind := Nkind (Expression (N));
          end if;
 
-         if Controlled_Type (Typ)
+         if Needs_Finalization (Typ)
          and then not (Kind = N_Aggregate or else Kind = N_Extension_Aggregate)
          and then not Is_Inherently_Limited_Type (Typ)
          then
@@ -2139,13 +2122,9 @@ package body Exp_Ch3 is
 
          --  Local variables
 
-         Ifaces_List      : Elist_Id;
          Ifaces_Comp_List : Elist_Id;
-         Ifaces_Tag_List  : Elist_Id;
-         Iface_Elmt       : Elmt_Id;
-         Comp_Elmt        : Elmt_Id;
-
-         pragma Warnings (Off, Ifaces_Tag_List);
+         Iface_Comp_Elmt  : Elmt_Id;
+         Iface_Comp       : Node_Id;
 
       --  Start of processing for Build_Offset_To_Top_Functions
 
@@ -2163,26 +2142,25 @@ package body Exp_Ch3 is
             return;
          end if;
 
-         Collect_Interfaces_Info
-           (Rec_Type, Ifaces_List, Ifaces_Comp_List, Ifaces_Tag_List);
+         Collect_Interface_Components (Rec_Type, Ifaces_Comp_List);
 
          --  For each interface type with secondary dispatch table we generate
          --  the Offset_To_Top_Functions (required to displace the pointer in
          --  interface conversions)
 
-         Iface_Elmt := First_Elmt (Ifaces_List);
-         Comp_Elmt  := First_Elmt (Ifaces_Comp_List);
-         while Present (Iface_Elmt) loop
+         Iface_Comp_Elmt := First_Elmt (Ifaces_Comp_List);
+         while Present (Iface_Comp_Elmt) loop
+            Iface_Comp := Node (Iface_Comp_Elmt);
+            pragma Assert (Is_Interface (Related_Type (Iface_Comp)));
 
             --  If the interface is a parent of Rec_Type it shares the primary
             --  dispatch table and hence there is no need to build the function
 
-            if not Is_Ancestor (Node (Iface_Elmt), Rec_Type) then
-               Build_Offset_To_Top_Function (Iface_Comp => Node (Comp_Elmt));
+            if not Is_Ancestor (Related_Type (Iface_Comp), Rec_Type) then
+               Build_Offset_To_Top_Function (Iface_Comp);
             end if;
 
-            Next_Elmt (Iface_Elmt);
-            Next_Elmt (Comp_Elmt);
+            Next_Elmt (Iface_Comp_Elmt);
          end loop;
       end Build_Offset_To_Top_Functions;
 
@@ -2536,6 +2514,47 @@ package body Exp_Ch3 is
          end if;
 
          Statement_List := New_List;
+
+         --  Loop through visible declarations of task types and protected
+         --  types moving any expanded code from the spec to the body of the
+         --  init procedure
+
+         if Is_Task_Record_Type (Rec_Type)
+           or else Is_Protected_Record_Type (Rec_Type)
+         then
+            declare
+               Decl : constant Node_Id :=
+                        Parent (Corresponding_Concurrent_Type (Rec_Type));
+               Def  : Node_Id;
+               N1   : Node_Id;
+               N2   : Node_Id;
+
+            begin
+               if Is_Task_Record_Type (Rec_Type) then
+                  Def := Task_Definition (Decl);
+               else
+                  Def := Protected_Definition (Decl);
+               end if;
+
+               if Present (Def) then
+                  N1 := First (Visible_Declarations (Def));
+                  while Present (N1) loop
+                     N2 := N1;
+                     N1 := Next (N1);
+
+                     if Nkind (N2) in N_Statement_Other_Than_Procedure_Call
+                       or else Nkind (N2) in N_Raise_xxx_Error
+                       or else Nkind (N2) = N_Procedure_Call_Statement
+                     then
+                        Append_To (Statement_List,
+                          New_Copy_Tree (N2, New_Scope => Proc_Id));
+                        Rewrite (N2, Make_Null_Statement (Sloc (N2)));
+                        Analyze (N2);
+                     end if;
+                  end loop;
+               end if;
+            end;
+         end if;
 
          --  Loop through components, skipping pragmas, in 2 steps. The first
          --  step deals with regular components. The second step deals with
@@ -3035,11 +3054,6 @@ package body Exp_Ch3 is
          elsif Is_Interface (Rec_Id) then
             return False;
 
-         elsif not Restriction_Active (No_Initialize_Scalars)
-           and then Is_Public (Rec_Id)
-         then
-            return True;
-
          elsif (Has_Discriminants (Rec_Id)
                   and then not Is_Unchecked_Union (Rec_Id))
            or else Is_Tagged_Type (Rec_Id)
@@ -3063,6 +3077,22 @@ package body Exp_Ch3 is
 
             Next_Component (Id);
          end loop;
+
+         --  As explained above, a record initialization procedure is needed
+         --  for public types in case Initialize_Scalars applies to a client.
+         --  However, such a procedure is not needed in the case where either
+         --  of restrictions No_Initialize_Scalars or No_Default_Initialization
+         --  apply. No_Initialize_Scalars excludes the possibility of using
+         --  Initialize_Scalars in any partition, and No_Default_Initialization
+         --  implies that no initialization should ever be done for objects of
+         --  the type, so is incompatible with Initialize_Scalars.
+
+         if not Restriction_Active (No_Initialize_Scalars)
+           and then not Restriction_Active (No_Default_Initialization)
+           and then Is_Public (Rec_Id)
+         then
+            return True;
+         end if;
 
          return False;
       end Requires_Init_Proc;
@@ -3090,7 +3120,7 @@ package body Exp_Ch3 is
 
       --  If there are discriminants, build the discriminant map to replace
       --  discriminants by their discriminals in complex bound expressions.
-      --  These only arise for the corresponding records of protected types.
+      --  These only arise for the corresponding records of synchronized types.
 
       if Is_Concurrent_Record_Type (Rec_Type)
         and then Has_Discriminants (Rec_Type)
@@ -3156,7 +3186,7 @@ package body Exp_Ch3 is
 
          if not Is_Concurrent_Type (Rec_Type)
            and then not Has_Task (Rec_Type)
-           and then not Controlled_Type (Rec_Type)
+           and then not Needs_Finalization (Rec_Type)
          then
             Set_Is_Inlined  (Proc_Id);
          end if;
@@ -4199,7 +4229,7 @@ package body Exp_Ch3 is
          --  Initialize call as it is required but one for each ancestor of
          --  its type. This processing is suppressed if No_Initialization set.
 
-         if not Controlled_Type (Typ)
+         if not Needs_Finalization (Typ)
            or else No_Initialization (N)
          then
             null;
@@ -4537,7 +4567,7 @@ package body Exp_Ch3 is
             --  we plan to support in-place function results for some cases
             --  of nonlimited types. ???)
 
-            if Controlled_Type (Typ)
+            if Needs_Finalization (Typ)
               and then not Is_Inherently_Limited_Type (Typ)
               and then not BIP_Call
             then
@@ -5012,7 +5042,7 @@ package body Exp_Ch3 is
                end if;
 
             elsif Ekind (Comp_Typ) = E_Anonymous_Access_Type
-              and then Controlled_Type (Directly_Designated_Type (Comp_Typ))
+              and then Needs_Finalization (Directly_Designated_Type (Comp_Typ))
             then
                Set_Associated_Final_Chain (Comp_Typ, Add_Final_Chain (Typ));
             end if;
@@ -5528,7 +5558,7 @@ package body Exp_Ch3 is
             Set_Has_Controlled_Component (Def_Id);
 
          elsif Ekind (Comp_Typ) = E_Anonymous_Access_Type
-           and then Controlled_Type (Directly_Designated_Type (Comp_Typ))
+           and then Needs_Finalization (Directly_Designated_Type (Comp_Typ))
          then
             if No (Flist) then
                Flist := Add_Final_Chain (Def_Id);
@@ -6155,7 +6185,7 @@ package body Exp_Ch3 is
             then
                null;
 
-            elsif (Controlled_Type (Desig_Type)
+            elsif (Needs_Finalization (Desig_Type)
                     and then Convention (Desig_Type) /= Convention_Java
                     and then Convention (Desig_Type) /= Convention_CIL)
               or else
@@ -6179,7 +6209,7 @@ package body Exp_Ch3 is
 
               or else (Is_Array_Type (Desig_Type)
                 and then not Is_Frozen (Desig_Type)
-                and then Controlled_Type (Component_Type (Desig_Type)))
+                and then Needs_Finalization (Component_Type (Desig_Type)))
 
                --  The designated type has controlled anonymous access
                --  discriminants.
@@ -7853,7 +7883,7 @@ package body Exp_Ch3 is
          null;
 
       elsif Etype (Tag_Typ) = Tag_Typ
-        or else Controlled_Type (Tag_Typ)
+        or else Needs_Finalization (Tag_Typ)
 
          --  Ada 2005 (AI-251): We must also generate these subprograms if
          --  the immediate ancestor is an interface to ensure the correct

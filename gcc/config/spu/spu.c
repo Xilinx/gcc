@@ -126,7 +126,7 @@ static int mem_is_padded_component_ref (rtx x);
 static bool spu_assemble_integer (rtx x, unsigned int size, int aligned_p);
 static void spu_asm_globalize_label (FILE * file, const char *name);
 static unsigned char spu_rtx_costs (rtx x, int code, int outer_code,
-				    int *total);
+				    int *total, bool speed);
 static unsigned char spu_function_ok_for_sibcall (tree decl, tree exp);
 static void spu_init_libfuncs (void);
 static bool spu_return_in_memory (const_tree type, const_tree fntype);
@@ -137,6 +137,7 @@ static tree spu_builtin_mul_widen_odd (tree);
 static tree spu_builtin_mask_for_load (void);
 static int spu_builtin_vectorization_cost (bool);
 static bool spu_vector_alignment_reachable (const_tree, bool);
+static tree spu_builtin_vec_perm (tree, tree *);
 static int spu_sms_res_mii (struct ddg *g);
 
 extern const char *reg_names[];
@@ -207,7 +208,7 @@ tree spu_builtin_types[SPU_BTI_MAX];
 #define TARGET_RTX_COSTS spu_rtx_costs
 
 #undef TARGET_ADDRESS_COST
-#define TARGET_ADDRESS_COST hook_int_rtx_0
+#define TARGET_ADDRESS_COST hook_int_rtx_bool_0
 
 #undef TARGET_SCHED_ISSUE_RATE
 #define TARGET_SCHED_ISSUE_RATE spu_sched_issue_rate
@@ -288,6 +289,9 @@ const struct attribute_spec spu_attribute_table[];
 #undef TARGET_VECTOR_ALIGNMENT_REACHABLE
 #define TARGET_VECTOR_ALIGNMENT_REACHABLE spu_vector_alignment_reachable
 
+#undef TARGET_VECTORIZE_BUILTIN_VEC_PERM
+#define TARGET_VECTORIZE_BUILTIN_VEC_PERM spu_builtin_vec_perm
+
 #undef TARGET_LIBGCC_CMP_RETURN_MODE
 #define TARGET_LIBGCC_CMP_RETURN_MODE spu_libgcc_cmp_return_mode
 
@@ -352,6 +356,8 @@ spu_override_options (void)
       else
         error ("Unknown architecture '%s'", &spu_tune_string[0]);
     }
+
+  REAL_MODE_FORMAT (SFmode) = &spu_single_format;
 }
 
 /* Handle an attribute requiring a FUNCTION_DECL; arguments as in
@@ -419,7 +425,8 @@ valid_subreg (rtx op)
   enum machine_mode im = GET_MODE (SUBREG_REG (op));
   return om != VOIDmode && im != VOIDmode
     && (GET_MODE_SIZE (im) == GET_MODE_SIZE (om)
-	|| (GET_MODE_SIZE (im) <= 4 && GET_MODE_SIZE (om) <= 4));
+	|| (GET_MODE_SIZE (im) <= 4 && GET_MODE_SIZE (om) <= 4)
+	|| (GET_MODE_SIZE (im) >= 16 && GET_MODE_SIZE (om) >= 16));
 }
 
 /* When insv and ext[sz]v ar passed a TI SUBREG, we want to strip it off
@@ -429,8 +436,10 @@ adjust_operand (rtx op, HOST_WIDE_INT * start)
 {
   enum machine_mode mode;
   int op_size;
-  /* Strip any SUBREG */
-  if (GET_CODE (op) == SUBREG)
+  /* Strip any paradoxical SUBREG.  */
+  if (GET_CODE (op) == SUBREG
+      && (GET_MODE_BITSIZE (GET_MODE (op))
+	  > GET_MODE_BITSIZE (GET_MODE (SUBREG_REG (op)))))
     {
       if (start)
 	*start -=
@@ -654,7 +663,7 @@ spu_expand_block_move (rtx ops[])
   int i;
   if (GET_CODE (ops[2]) != CONST_INT
       || GET_CODE (ops[3]) != CONST_INT
-      || INTVAL (ops[2]) > (HOST_WIDE_INT) (MOVE_RATIO * 8))
+      || INTVAL (ops[2]) > (HOST_WIDE_INT) (MOVE_RATIO (optimize_insn_for_speed_p ()) * 8))
     return 0;
 
   bytes = INTVAL (ops[2]);
@@ -1516,10 +1525,18 @@ spu_split_immediate (rtx * ops)
       {
 	unsigned char arrhi[16];
 	unsigned char arrlo[16];
-	rtx to, hi, lo;
+	rtx to, temp, hi, lo;
 	int i;
+	enum machine_mode imode = mode;
+	/* We need to do reals as ints because the constant used in the
+	   IOR might not be a legitimate real constant. */
+	imode = int_mode_for_mode (mode);
 	constant_to_array (mode, ops[1], arrhi);
-	to = !can_create_pseudo_p () ? ops[0] : gen_reg_rtx (mode);
+	if (imode != mode)
+	  to = simplify_gen_subreg (imode, ops[0], mode, 0);
+	else
+	  to = ops[0];
+	temp = !can_create_pseudo_p () ? to : gen_reg_rtx (imode);
 	for (i = 0; i < 16; i += 4)
 	  {
 	    arrlo[i + 2] = arrhi[i + 2];
@@ -1527,11 +1544,11 @@ spu_split_immediate (rtx * ops)
 	    arrlo[i + 0] = arrlo[i + 1] = 0;
 	    arrhi[i + 2] = arrhi[i + 3] = 0;
 	  }
-	hi = array_to_constant (mode, arrhi);
-	lo = array_to_constant (mode, arrlo);
-	emit_move_insn (to, hi);
+	hi = array_to_constant (imode, arrhi);
+	lo = array_to_constant (imode, arrlo);
+	emit_move_insn (temp, hi);
 	emit_insn (gen_rtx_SET
-		   (VOIDmode, ops[0], gen_rtx_IOR (mode, to, lo)));
+		   (VOIDmode, to, gen_rtx_IOR (imode, temp, lo)));
 	return 1;
       }
     case IC_FSMBI2:
@@ -4192,7 +4209,8 @@ spu_asm_globalize_label (FILE * file, const char *name)
 }
 
 static bool
-spu_rtx_costs (rtx x, int code, int outer_code ATTRIBUTE_UNUSED, int *total)
+spu_rtx_costs (rtx x, int code, int outer_code ATTRIBUTE_UNUSED, int *total,
+	       bool speed ATTRIBUTE_UNUSED)
 {
   enum machine_mode mode = GET_MODE (x);
   int cost = COSTS_N_INSNS (2);
@@ -4562,7 +4580,7 @@ spu_restore_stack_block (rtx op0 ATTRIBUTE_UNUSED, rtx op1)
 int
 spu_safe_dma (HOST_WIDE_INT channel)
 {
-  return (channel >= 21 && channel <= 27);
+  return TARGET_SAFE_DMA && channel >= 21 && channel <= 27;
 }
 
 void
@@ -5528,6 +5546,60 @@ spu_vector_alignment_reachable (const_tree type ATTRIBUTE_UNUSED, bool is_packed
 
   /* All other types are naturally aligned.  */
   return true;
+}
+
+/* Implement targetm.vectorize.builtin_vec_perm.  */
+tree
+spu_builtin_vec_perm (tree type, tree *mask_element_type)
+{
+  struct spu_builtin_description *d;
+
+  *mask_element_type = unsigned_char_type_node;
+
+  switch (TYPE_MODE (type))
+    {
+    case V16QImode:
+      if (TYPE_UNSIGNED (type))
+        d = &spu_builtins[SPU_SHUFFLE_0];
+      else
+        d = &spu_builtins[SPU_SHUFFLE_1];
+      break;
+
+    case V8HImode:
+      if (TYPE_UNSIGNED (type))
+        d = &spu_builtins[SPU_SHUFFLE_2];
+      else
+        d = &spu_builtins[SPU_SHUFFLE_3];
+      break;
+
+    case V4SImode:
+      if (TYPE_UNSIGNED (type))
+        d = &spu_builtins[SPU_SHUFFLE_4];
+      else
+        d = &spu_builtins[SPU_SHUFFLE_5];
+      break;
+
+    case V2DImode:
+      if (TYPE_UNSIGNED (type))
+        d = &spu_builtins[SPU_SHUFFLE_6];
+      else
+        d = &spu_builtins[SPU_SHUFFLE_7];
+      break;
+
+    case V4SFmode:
+      d = &spu_builtins[SPU_SHUFFLE_8];
+      break;
+
+    case V2DFmode:
+      d = &spu_builtins[SPU_SHUFFLE_9];
+      break;
+
+    default:
+      return NULL_TREE;
+    }
+
+  gcc_assert (d);
+  return d->fndecl;
 }
 
 /* Count the total number of instructions in each pipe and return the

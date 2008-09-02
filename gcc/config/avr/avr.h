@@ -291,6 +291,19 @@ enum reg_class {
 
 #define REGNO_REG_CLASS(R) avr_regno_reg_class(R)
 
+/* The following macro defines cover classes for Integrated Register
+   Allocator.  Cover classes is a set of non-intersected register
+   classes covering all hard registers used for register allocation
+   purpose.  Any move between two registers of a cover class should be
+   cheaper than load or store of the registers.  The macro value is
+   array of register classes with LIM_REG_CLASSES used as the end
+   marker.  */
+
+#define IRA_COVER_CLASSES               \
+{                                       \
+  GENERAL_REGS, LIM_REG_CLASSES         \
+}
+
 #define BASE_REG_CLASS (reload_completed ? BASE_POINTER_REGS : POINTER_REGS)
 
 #define INDEX_REG_CLASS NO_REGS
@@ -498,7 +511,7 @@ do {									    \
 					 (MODE)==SImode ? 8 :	\
 					 (MODE)==SFmode ? 8 : 16)
 
-#define BRANCH_COST 0
+#define BRANCH_COST(speed_p, predictable_p) 0
 
 #define SLOW_BYTE_ACCESS 0
 
@@ -931,10 +944,10 @@ mmcu=*:-mmcu=%*}"
 %{mmcu=attiny48:crttn48.o%s} \
 %{mmcu=attiny88:crttn88.o%s} \
 %{mmcu=attiny167:crttn167.o%s} \
-%{mmcu=at43usb320|mmcu=avr3:crt43320.o%s} \
-%{mmcu=at43usb355:crt43355.o%s} \
+%{mmcu=at43usb355|mmcu=avr3:crt43355.o%s} \
 %{mmcu=at76c711:crt76711.o%s} \
 %{mmcu=atmega103|mmcu=avr31:crtm103.o%s} \
+%{mmcu=at43usb320:crt43320.o%s} \
 %{mmcu=at90usb162|mmcu=avr35:crtusb162.o%s} \
 %{mmcu=at90usb82:crtusb82.o%s} \
 %{mmcu=atmega8|mmcu=avr4:crtm8.o%s} \

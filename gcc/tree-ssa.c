@@ -1165,12 +1165,18 @@ useless_type_conversion_p_1 (tree outer_type, tree inner_type)
       if (TREE_CODE (inner_type) != TREE_CODE (outer_type))
 	return false;
 
-      /* ???  Add structural equivalence check.  */
+      /* ???  This seems to be necessary even for aggregates that don't
+	 have TYPE_STRUCTURAL_EQUALITY_P set.  */
 
       /* ???  This should eventually just return false.  */
       return lang_hooks.types_compatible_p (inner_type, outer_type);
     }
-
+  /* Also for functions and possibly other types with
+     TYPE_STRUCTURAL_EQUALITY_P set.  */
+  else if (TYPE_STRUCTURAL_EQUALITY_P (inner_type)
+	   && TYPE_STRUCTURAL_EQUALITY_P (outer_type))
+    return lang_hooks.types_compatible_p (inner_type, outer_type);
+  
   return false;
 }
 
@@ -1405,23 +1411,30 @@ warn_uninit (tree t, const char *gmsgid, void *data)
   if (TREE_NO_WARNING (var))
     return;
 
+  /* Do not warn if it can be initialized outside this module.  */
+  if (is_global_var (var))
+    return;
+  
   location = (context != NULL && gimple_has_location (context))
 	     ? gimple_location (context)
 	     : DECL_SOURCE_LOCATION (var);
-  warning_at (location, OPT_Wuninitialized, gmsgid, var);
   xloc = expand_location (location);
   floc = expand_location (DECL_SOURCE_LOCATION (cfun->decl));
-  if (xloc.file != floc.file
-      || xloc.line < floc.line
-      || xloc.line > LOCATION_LINE (cfun->function_end_locus))
-    inform ("%J%qD was declared here", var, var);
+  if (warning_at (location, OPT_Wuninitialized, gmsgid, var))
+    {
+      TREE_NO_WARNING (var) = 1;
 
-  TREE_NO_WARNING (var) = 1;
+      if (xloc.file != floc.file
+	  || xloc.line < floc.line
+	  || xloc.line > LOCATION_LINE (cfun->function_end_locus))
+	inform (input_location, "%J%qD was declared here", var, var);
+    }
 }
 
 struct walk_data {
   gimple stmt;
   bool always_executed;
+  bool warn_possibly_uninitialized;
 };
 
 /* Called via walk_tree, look for SSA_NAMEs that have empty definitions
@@ -1434,15 +1447,53 @@ warn_uninitialized_var (tree *tp, int *walk_subtrees, void *data_)
   struct walk_data *data = (struct walk_data *) wi->info;
   tree t = *tp;
 
+  /* We do not care about LHS.  */
+  if (wi->is_lhs)
+    return NULL_TREE;
+
   switch (TREE_CODE (t))
     {
+    case ADDR_EXPR:
+      /* Taking the address of an uninitialized variable does not
+	 count as using it.  */
+      *walk_subtrees = 0;
+      break;
+
+    case VAR_DECL:
+      {
+	/* A VAR_DECL in the RHS of a gimple statement may mean that
+	   this variable is loaded from memory.  */
+	use_operand_p vuse;
+	tree op;
+
+	/* If there is not gimple stmt, 
+	   or alias information has not been computed,
+	   then we cannot check VUSE ops.  */
+	if (data->stmt == NULL
+            || !gimple_aliases_computed_p (cfun))
+	  return NULL_TREE;
+
+	vuse = SINGLE_SSA_USE_OPERAND (data->stmt, SSA_OP_VUSE);
+	if (vuse == NULL_USE_OPERAND_P)
+	    return NULL_TREE;
+
+	op = USE_FROM_PTR (vuse);
+	if (t != SSA_NAME_VAR (op) 
+	    || !SSA_NAME_IS_DEFAULT_DEF (op))
+	  return NULL_TREE;
+	/* If this is a VUSE of t and it is the default definition,
+	   then warn about op.  */
+	t = op;
+	/* Fall through into SSA_NAME.  */
+      }
+
     case SSA_NAME:
       /* We only do data flow with SSA_NAMEs, so that's all we
 	 can warn about.  */
       if (data->always_executed)
         warn_uninit (t, "%qD is used uninitialized in this function",
 		     data->stmt);
-      else
+      else if (data->warn_possibly_uninitialized)
         warn_uninit (t, "%qD may be used uninitialized in this function",
 		     data->stmt);
       *walk_subtrees = 0;
@@ -1488,11 +1539,13 @@ warn_uninitialized_phi (gimple phi)
 }
 
 static unsigned int
-execute_early_warn_uninitialized (void)
+warn_uninitialized_vars (bool warn_possibly_uninitialized)
 {
   gimple_stmt_iterator gsi;
   basic_block bb;
   struct walk_data data;
+
+  data.warn_possibly_uninitialized = warn_possibly_uninitialized;
 
   calculate_dominance_info (CDI_POST_DOMINATORS);
 
@@ -1513,6 +1566,19 @@ execute_early_warn_uninitialized (void)
 }
 
 static unsigned int
+execute_early_warn_uninitialized (void)
+{
+  /* Currently, this pass runs always but
+     execute_late_warn_uninitialized only runs with optimization. With
+     optimization we want to warn about possible uninitialized as late
+     as possible, thus don't do it here.  However, without
+     optimization we need to warn here about "may be uninitialized".
+  */
+  warn_uninitialized_vars (/*warn_possibly_uninitialized=*/!optimize);
+  return 0;
+}
+
+static unsigned int
 execute_late_warn_uninitialized (void)
 {
   basic_block bb;
@@ -1521,7 +1587,7 @@ execute_late_warn_uninitialized (void)
   /* Re-do the plain uninitialized variable check, as optimization may have
      straightened control flow.  Do this first so that we don't accidentally
      get a "may be" warning when we'd have seen an "is" warning later.  */
-  execute_early_warn_uninitialized ();
+  warn_uninitialized_vars (/*warn_possibly_uninitialized=*/1);
 
   FOR_EACH_BB (bb)
     for (gsi = gsi_start_phis (bb); !gsi_end_p (gsi); gsi_next (&gsi))

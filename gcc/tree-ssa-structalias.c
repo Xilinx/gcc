@@ -3852,7 +3852,7 @@ find_func_aliases (gimple origt)
 	  if (gimple_assign_rhs_code (t) == POINTER_PLUS_EXPR)
 	    get_constraint_for_ptr_offset (gimple_assign_rhs1 (t),
 					   gimple_assign_rhs2 (t), &rhsc);
-	  else if ((IS_CONVERT_EXPR_CODE_P (gimple_assign_rhs_code (t))
+	  else if ((CONVERT_EXPR_CODE_P (gimple_assign_rhs_code (t))
 		    && !(POINTER_TYPE_P (gimple_expr_type (t))
 			 && !POINTER_TYPE_P (TREE_TYPE (rhsop))))
 		   || gimple_assign_single_p (t))
@@ -3908,7 +3908,7 @@ find_func_aliases (gimple origt)
   else if (stmt_escape_type == ESCAPE_BAD_CAST)
     {
       gcc_assert (is_gimple_assign (t));
-      gcc_assert (IS_CONVERT_EXPR_CODE_P (gimple_assign_rhs_code (t))
+      gcc_assert (CONVERT_EXPR_CODE_P (gimple_assign_rhs_code (t))
 		  || gimple_assign_rhs_code (t) == VIEW_CONVERT_EXPR);
       make_escape_constraint (gimple_assign_rhs1 (t));
     }
@@ -4346,16 +4346,20 @@ create_variable_info_for (tree decl, const char *name)
 {
   unsigned int index = VEC_length (varinfo_t, varmap);
   varinfo_t vi;
-  tree decltype = TREE_TYPE (decl);
-  tree declsize = DECL_P (decl) ? DECL_SIZE (decl) : TYPE_SIZE (decltype);
+  tree decl_type = TREE_TYPE (decl);
+  tree declsize = DECL_P (decl) ? DECL_SIZE (decl) : TYPE_SIZE (decl_type);
   bool is_global = DECL_P (decl) ? is_global_var (decl) : false;
   VEC (fieldoff_s,heap) *fieldstack = NULL;
 
   if (TREE_CODE (decl) == FUNCTION_DECL && in_ipa_mode)
     return create_function_info_for (decl, name);
 
-  if (var_can_have_subvars (decl) && use_field_sensitive)
-    push_fields_onto_fieldstack (decltype, &fieldstack, 0);
+  if (var_can_have_subvars (decl) && use_field_sensitive
+      && (!var_ann (decl)
+	  || var_ann (decl)->noalias_state == 0)
+      && (!var_ann (decl)
+	  || !var_ann (decl)->is_heapvar))
+    push_fields_onto_fieldstack (decl_type, &fieldstack, 0);
 
   /* If the variable doesn't have subvars, we may end up needing to
      sort the field list and create fake variables for all the
@@ -4380,7 +4384,13 @@ create_variable_info_for (tree decl, const char *name)
   VEC_safe_push (varinfo_t, heap, varmap, vi);
   if (is_global && (!flag_whole_program || !in_ipa_mode)
       && could_have_pointers (decl))
-    make_constraint_from (vi, escaped_id);
+    {
+      if (var_ann (decl)
+	  && var_ann (decl)->noalias_state == NO_ALIAS_ANYTHING)
+	make_constraint_from (vi, vi->id);
+      else
+	make_constraint_from (vi, escaped_id);
+    }
 
   stats.total_vars++;
   if (use_field_sensitive
@@ -4551,6 +4561,7 @@ intra_create_variable_infos (void)
 	      heapvar_insert (t, heapvar);
 
 	      ann = get_var_ann (heapvar);
+	      ann->is_heapvar = 1;
 	      if (flag_argument_noalias == 1)
 		ann->noalias_state = NO_ALIAS;
 	      else if (flag_argument_noalias == 2)

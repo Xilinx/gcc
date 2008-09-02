@@ -45,6 +45,7 @@
 #include "einfo.h"
 #include "ada-tree.h"
 #include "gigi.h"
+#include "snames.h"
 
 static tree find_common_type (tree, tree);
 static bool contains_save_expr_p (tree);
@@ -986,7 +987,6 @@ build_binary_op (enum tree_code op_code, tree result_type,
 	 outputs.  */
       if (modulus && integer_pow2p (modulus))
 	modulus = NULL_TREE;
-
       goto common;
 
     case COMPLEX_EXPR:
@@ -1010,6 +1010,15 @@ build_binary_op (enum tree_code op_code, tree result_type,
       left_operand = convert (operation_type, left_operand);
       right_operand = convert (sizetype, right_operand);
       break;
+
+    case PLUS_EXPR:
+    case MINUS_EXPR:
+      /* Avoid doing arithmetics in BOOLEAN_TYPE like the other compilers.
+	 Contrary to C, Ada doesn't allow arithmetics in Standard.Boolean
+	 but we can generate addition or subtraction for 'Succ and 'Pred.  */
+      if (operation_type && TREE_CODE (operation_type) == BOOLEAN_TYPE)
+	operation_type = left_base_type = right_base_type = integer_type_node;
+      goto common;
 
     default:
     common:
@@ -1911,11 +1920,11 @@ build_call_alloc_dealloc (tree gnu_obj, tree gnu_size, unsigned align,
   /* ??? For now, disable variable-sized allocators in the stack since
      we can't yet gimplify an ALLOCATE_EXPR.  */
   else if (gnat_pool == -1
-	   && TREE_CODE (gnu_size) == INTEGER_CST && !flag_stack_check)
+	   && TREE_CODE (gnu_size) == INTEGER_CST
+	   && flag_stack_check != GENERIC_STACK_CHECK)
     {
       /* If the size is a constant, we can put it in the fixed portion of
 	 the stack frame to avoid the need to adjust the stack pointer.  */
-      if (TREE_CODE (gnu_size) == INTEGER_CST && !flag_stack_check)
 	{
 	  tree gnu_range
 	    = build_range_type (NULL_TREE, size_one_node, gnu_size);
@@ -1928,9 +1937,8 @@ build_call_alloc_dealloc (tree gnu_obj, tree gnu_size, unsigned align,
 	  return convert (ptr_void_type_node,
 			  build_unary_op (ADDR_EXPR, NULL_TREE, gnu_decl));
 	}
-      else
-	gcc_unreachable ();
 #if 0
+      else
 	return build2 (ALLOCATE_EXPR, ptr_void_type_node, gnu_size, gnu_align);
 #endif
     }
@@ -1942,7 +1950,11 @@ build_call_alloc_dealloc (tree gnu_obj, tree gnu_size, unsigned align,
       /* If the allocator size is 32bits but the pointer size is 64bits then
 	 allocate 32bit memory (sometimes necessary on 64bit VMS). Otherwise
 	 default to standard malloc. */
-      if (UI_To_Int (Esize (Etype (gnat_node))) == 32 && POINTER_SIZE == 64)
+      if (TARGET_ABI_OPEN_VMS &&
+          (!TARGET_MALLOC64 ||
+           (POINTER_SIZE == 64
+	    && (UI_To_Int (Esize (Etype (gnat_node))) == 32
+	        || Convention (Etype (gnat_node)) == Convention_C))))
         return build_call_1_expr (malloc32_decl, gnu_size);
       else
         return build_call_1_expr (malloc_decl, gnu_size);
@@ -2151,25 +2163,52 @@ build_allocator (tree type, tree init, tree result_type, Entity_Id gnat_proc,
 }
 
 /* Fill in a VMS descriptor for EXPR and return a constructor for it.
-   GNAT_FORMAL is how we find the descriptor record.  */
+   GNAT_FORMAL is how we find the descriptor record.  GNAT_ACTUAL is
+   how we derive the source location to raise C_E on an out of range
+   pointer. */
 
 tree
-fill_vms_descriptor (tree expr, Entity_Id gnat_formal)
+fill_vms_descriptor (tree expr, Entity_Id gnat_formal, Node_Id gnat_actual)
 {
-  tree record_type = TREE_TYPE (TREE_TYPE (get_gnu_tree (gnat_formal)));
   tree field;
+  tree parm_decl = get_gnu_tree (gnat_formal);
   tree const_list = NULL_TREE;
+  tree record_type = TREE_TYPE (TREE_TYPE (parm_decl));
+  int do_range_check =
+      strcmp ("MBO",
+	      IDENTIFIER_POINTER (DECL_NAME (TYPE_FIELDS (record_type))));
 
   expr = maybe_unconstrained_array (expr);
   gnat_mark_addressable (expr);
 
   for (field = TYPE_FIELDS (record_type); field; field = TREE_CHAIN (field))
-    const_list
-      = tree_cons (field,
-		   convert (TREE_TYPE (field),
-			    SUBSTITUTE_PLACEHOLDER_IN_EXPR
-			    (DECL_INITIAL (field), expr)),
-		   const_list);
+    {
+      tree conexpr = convert (TREE_TYPE (field),
+			      SUBSTITUTE_PLACEHOLDER_IN_EXPR
+			      (DECL_INITIAL (field), expr));
+
+      /* Check to ensure that only 32bit pointers are passed in
+	 32bit descriptors */
+      if (do_range_check &&
+          strcmp (IDENTIFIER_POINTER (DECL_NAME (field)), "POINTER") == 0)
+        {
+	  tree pointer64type =
+	     build_pointer_type_for_mode (void_type_node, DImode, false);
+	  tree addr64expr = build_unary_op (ADDR_EXPR, pointer64type, expr);
+	  tree malloc64low =
+	     build_int_cstu (long_integer_type_node, 0x80000000);
+
+	  add_stmt (build3 (COND_EXPR, void_type_node,
+			    build_binary_op (GE_EXPR, long_integer_type_node,
+					     convert (long_integer_type_node,
+						      addr64expr), 
+					     malloc64low),
+			    build_call_raise (CE_Range_Check_Failed, gnat_actual,
+					      N_Raise_Constraint_Error),
+			    NULL_TREE));
+        }
+      const_list = tree_cons (field, conexpr, const_list);
+    }
 
   return gnat_build_constructor (record_type, nreverse (const_list));
 }

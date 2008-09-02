@@ -1032,6 +1032,10 @@ begin
             raise Constraint_Error;
          end if;
 
+         Upper_Half_Encoding :=
+           Wide_Character_Encoding_Method in
+             WC_Upper_Half_Encoding_Method;
+
       exception
          when Constraint_Error =>
             Error_Msg_N ("invalid argument for pragma%", Arg1);
@@ -1046,6 +1050,7 @@ begin
 
       when Pragma_Abort_Defer                   |
            Pragma_Assertion_Policy              |
+           Pragma_Assume_No_Invalid_Values      |
            Pragma_AST_Entry                     |
            Pragma_All_Calls_Remote              |
            Pragma_Annotate                      |

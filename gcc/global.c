@@ -188,7 +188,7 @@ compute_regs_asm_clobbered (char *regs_asm_clobbered)
 
 /* All registers that can be eliminated.  */
 
-static HARD_REG_SET eliminable_regset;
+HARD_REG_SET eliminable_regset;
 
 static int regno_compare (const void *, const void *);
 static int allocno_compare (const void *, const void *);
@@ -197,7 +197,6 @@ static void prune_preferences (void);
 static void set_preferences (void);
 static void find_reg (int, HARD_REG_SET, int, int, int);
 static void dump_conflicts (FILE *);
-static void build_insn_chain (void);
 
 
 /* Look through the list of eliminable registers.  Set ELIM_SET to the
@@ -233,6 +232,7 @@ compute_regsets (HARD_REG_SET *elim_set,
     = (! flag_omit_frame_pointer
        || (cfun->calls_alloca && EXIT_IGNORE_STACK)
        || crtl->accesses_prior_frames
+       || crtl->stack_realign_needed
        || FRAME_POINTER_REQUIRED);
 
   frame_pointer_needed = need_fp;
@@ -256,7 +256,10 @@ compute_regsets (HARD_REG_SET *elim_set,
     {
       bool cannot_elim
 	= (! CAN_ELIMINATE (eliminables[i].from, eliminables[i].to)
-	   || (eliminables[i].to == STACK_POINTER_REGNUM && need_fp));
+	   || (eliminables[i].to == STACK_POINTER_REGNUM
+	       && need_fp 
+	       && (! SUPPORTS_STACK_ALIGNMENT
+		   || ! stack_realign_fp)));
 
       if (!regs_asm_clobbered[eliminables[i].from])
 	{
@@ -1165,8 +1168,8 @@ find_reg (int num, HARD_REG_SET losers, int alt_regs_p, int accept_call_clobbere
       if (! accept_call_clobbered
 	  && allocno[num].calls_crossed != 0
 	  && allocno[num].throwing_calls_crossed == 0
-	  && CALLER_SAVE_PROFITABLE (optimize_size ? allocno[num].n_refs : allocno[num].freq,
-				     optimize_size ? allocno[num].calls_crossed
+	  && CALLER_SAVE_PROFITABLE (optimize_function_for_size_p (cfun) ? allocno[num].n_refs : allocno[num].freq,
+				     optimize_function_for_size_p (cfun) ? allocno[num].calls_crossed
 				     : allocno[num].freq_calls_crossed))
 	{
 	  HARD_REG_SET new_losers;
@@ -1351,7 +1354,8 @@ mark_elimination (int from, int to)
 
   FOR_EACH_BB (bb)
     {
-      regset r = DF_LIVE_IN (bb);
+      /* We don't use LIVE info in IRA.  */
+      regset r = (flag_ira ? DF_LR_IN (bb) : DF_LIVE_IN (bb));
       if (REGNO_REG_SET_P (r, from))
 	{
 	  CLEAR_REGNO_REG_SET (r, from);
@@ -1381,11 +1385,21 @@ print_insn_chains (FILE *file)
     print_insn_chain (file, c);
 }
 
+/* Return true if pseudo REGNO should be added to set live_throughout
+   or dead_or_set of the insn chains for reload consideration.  */
+
+static bool
+pseudo_for_reload_consideration_p (int regno)
+{
+  /* Consider spilled pseudos too for IRA because they still have a
+     chance to get hard-registers in the reload when IRA is used.  */
+  return reg_renumber[regno] >= 0 || (flag_ira && optimize);
+}
 
 /* Walk the insns of the current function and build reload_insn_chain,
    and record register life information.  */
 
-static void
+void
 build_insn_chain (void)
 {
   unsigned int i;
@@ -1408,7 +1422,6 @@ build_insn_chain (void)
   for (i = 0; i < FIRST_PSEUDO_REGISTER; i++)
     if (TEST_HARD_REG_BIT (eliminable_regset, i))
       bitmap_set_bit (elim_regset, i);
-
   FOR_EACH_BB_REVERSE (bb)
     {
       bitmap_iterator bi;
@@ -1426,7 +1439,7 @@ build_insn_chain (void)
 
       EXECUTE_IF_SET_IN_BITMAP (df_get_live_out (bb), FIRST_PSEUDO_REGISTER, i, bi)
 	{
-	  if (reg_renumber[i] >= 0)
+	  if (pseudo_for_reload_consideration_p (i))
 	    bitmap_set_bit (live_relevant_regs, i);
 	}
 
@@ -1463,11 +1476,13 @@ build_insn_chain (void)
 			    if (!fixed_regs[regno])
 			      bitmap_set_bit (&c->dead_or_set, regno);
 			  }
-			else if (reg_renumber[regno] >= 0)
+			else if (pseudo_for_reload_consideration_p (regno))
 			  bitmap_set_bit (&c->dead_or_set, regno);
 		      }
 
-		    if ((regno < FIRST_PSEUDO_REGISTER || reg_renumber[regno] >= 0)
+		    if ((regno < FIRST_PSEUDO_REGISTER
+			 || reg_renumber[regno] >= 0
+			 || (flag_ira && optimize))
 			&& (!DF_REF_FLAGS_IS_SET (def, DF_REF_CONDITIONAL)))
 		      {
 			rtx reg = DF_REF_REG (def);
@@ -1563,11 +1578,12 @@ build_insn_chain (void)
 			    if (!fixed_regs[regno])
 			      bitmap_set_bit (&c->dead_or_set, regno);
 			  }
-			else if (reg_renumber[regno] >= 0)
+			else if (pseudo_for_reload_consideration_p (regno))
 			  bitmap_set_bit (&c->dead_or_set, regno);
 		      }
 		    
-		    if (regno < FIRST_PSEUDO_REGISTER || reg_renumber[regno] >= 0)
+		    if (regno < FIRST_PSEUDO_REGISTER
+			|| pseudo_for_reload_consideration_p (regno))
 		      {
 			if (GET_CODE (reg) == SUBREG
 			    && !DF_REF_FLAGS_IS_SET (use,
@@ -1744,6 +1760,13 @@ dump_global_regs (FILE *file)
   fprintf (file, "\n\n");
 }
 
+
+static bool
+gate_handle_global_alloc (void)
+{
+  return ! flag_ira;
+}
+
 /* Run old register allocator.  Return TRUE if we must exit
    rest_of_compilation upon return.  */
 static unsigned int
@@ -1807,7 +1830,7 @@ struct rtl_opt_pass pass_global_alloc =
  {
   RTL_PASS,
   "greg",                               /* name */
-  NULL,                                 /* gate */
+  gate_handle_global_alloc,             /* gate */
   rest_of_handle_global_alloc,          /* execute */
   NULL,                                 /* sub */
   NULL,                                 /* next */

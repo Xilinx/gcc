@@ -218,6 +218,7 @@ extern void gigi (Node_Id gnat_root, int max_gnat_node, int number_name,
                   struct List_Header *list_headers_ptr,
                   Nat number_file,
                   struct File_Info_Type *file_info_ptr,
+                  Entity_Id standard_boolean,
                   Entity_Id standard_integer,
                   Entity_Id standard_long_long_float,
                   Entity_Id standard_exception_type,
@@ -393,6 +394,9 @@ enum standard_datatypes
   /* Likewise for freeing memory.  */
   ADT_free_decl,
 
+  /* Function decl node for 64-bit multiplication with overflow checking */
+  ADT_mulv64_decl,
+
   /* Types and decls used by our temporary exception mechanism.  See
      init_gigi_decls for details.  */
   ADT_jmpbuf_type,
@@ -424,6 +428,7 @@ extern GTY(()) tree gnat_raise_decls[(int) LAST_REASON_CODE + 1];
 #define malloc_decl gnat_std_decls[(int) ADT_malloc_decl]
 #define malloc32_decl gnat_std_decls[(int) ADT_malloc32_decl]
 #define free_decl gnat_std_decls[(int) ADT_free_decl]
+#define mulv64_decl gnat_std_decls[(int) ADT_mulv64_decl]
 #define jmpbuf_type gnat_std_decls[(int) ADT_jmpbuf_type]
 #define jmpbuf_ptr_type gnat_std_decls[(int) ADT_jmpbuf_ptr_type]
 #define get_jmpbuf_decl gnat_std_decls[(int) ADT_get_jmpbuf_decl]
@@ -678,13 +683,17 @@ extern void end_subprog_body (tree body, bool elab_p);
    Return a constructor for the template.  */
 extern tree build_template (tree template_type, tree array_type, tree expr);
 
-/* Build a VMS descriptor from a Mechanism_Type, which must specify
+/* Build a 64bit VMS descriptor from a Mechanism_Type, which must specify
    a descriptor type, and the GCC type of an object.  Each FIELD_DECL
    in the type contains in its DECL_INITIAL the expression to use when
    a constructor is made for the type.  GNAT_ENTITY is a gnat node used
    to print out an error message if the mechanism cannot be applied to
    an object of that type and also for the name.  */
 extern tree build_vms_descriptor (tree type, Mechanism_Type mech,
+                                  Entity_Id gnat_entity);
+
+/* Build a 32bit VMS descriptor from a Mechanism_Type. See above. */
+extern tree build_vms_descriptor32 (tree type, Mechanism_Type mech,
                                   Entity_Id gnat_entity);
 
 /* Build a stub for the subprogram specified by the GCC tree GNU_SUBPROG
@@ -844,9 +853,10 @@ extern tree build_allocator (tree type, tree init, tree result_type,
                              Node_Id gnat_node, bool);
 
 /* Fill in a VMS descriptor for EXPR and return a constructor for it.
-   GNAT_FORMAL is how we find the descriptor record.  */
-
-extern tree fill_vms_descriptor (tree expr, Entity_Id gnat_formal);
+   GNAT_FORMAL is how we find the descriptor record. GNAT_ACTUAL is how
+   we derive the source location on a C_E */
+extern tree fill_vms_descriptor (tree expr, Entity_Id gnat_formal,
+                                 Node_Id gnat_actual);
 
 /* Indicate that we need to make the address of EXPR_NODE and it therefore
    should not be allocated in a register.  Return true if successful.  */
@@ -903,3 +913,17 @@ extern Nat get_words_be (void);
 extern Nat get_bytes_be (void);
 extern Nat get_bits_be (void);
 extern Nat get_strict_alignment (void);
+
+/* Let code know whether we are targetting VMS without need of
+   intrusive preprocessor directives.  */
+#ifndef TARGET_ABI_OPEN_VMS
+#define TARGET_ABI_OPEN_VMS 0
+#endif
+
+/* VMS macro set by default, when clear forces 32bit mallocs and 32bit
+   Descriptors. Always used in combination with TARGET_ABI_OPEN_VMS
+   so no effect on non-VMS systems. */
+#ifndef TARGET_MALLOC64
+#define TARGET_MALLOC64 0
+#endif
+

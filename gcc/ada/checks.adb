@@ -470,7 +470,11 @@ package body Checks is
    -- Apply_Accessibility_Check --
    -------------------------------
 
-   procedure Apply_Accessibility_Check (N : Node_Id; Typ : Entity_Id) is
+   procedure Apply_Accessibility_Check
+     (N           : Node_Id;
+      Typ         : Entity_Id;
+      Insert_Node : Node_Id)
+   is
       Loc         : constant Source_Ptr := Sloc (N);
       Param_Ent   : constant Entity_Id  := Param_Entity (N);
       Param_Level : Node_Id;
@@ -501,7 +505,7 @@ package body Checks is
          --  Raise Program_Error if the accessibility level of the the access
          --  parameter is deeper than the level of the target access type.
 
-         Insert_Action (N,
+         Insert_Action (Insert_Node,
            Make_Raise_Program_Error (Loc,
              Condition =>
                Make_Op_Gt (Loc,
@@ -1629,10 +1633,35 @@ package body Checks is
          end;
       end if;
 
-      --  Get the bounds of the target type
+      --  Get the (static) bounds of the target type
 
       Ifirst := Expr_Value (LB);
       Ilast  := Expr_Value (HB);
+
+      --  A simple optimization: if the expression is a universal literal,
+      --  we can do the comparison with the bounds and the conversion to
+      --  an integer type statically. The range checks are unchanged.
+
+      if Nkind (Ck_Node) = N_Real_Literal
+        and then Etype (Ck_Node) = Universal_Real
+        and then Is_Integer_Type (Target_Typ)
+        and then Nkind (Parent (Ck_Node)) = N_Type_Conversion
+      then
+         declare
+            Int_Val : constant Uint := UR_To_Uint (Realval (Ck_Node));
+
+         begin
+            if Int_Val <= Ilast and then Int_Val >= Ifirst then
+
+               --  Conversion is safe
+
+               Rewrite (Parent (Ck_Node),
+                 Make_Integer_Literal (Loc, UI_To_Int (Int_Val)));
+               Analyze_And_Resolve (Parent (Ck_Node), Target_Typ);
+               return;
+            end if;
+         end;
+      end if;
 
       --  Check against lower bound
 
@@ -2013,7 +2042,9 @@ package body Checks is
         and then
            Is_Discrete_Type (S_Typ) = Is_Discrete_Type (Target_Typ)
         and then
-          (In_Subrange_Of (S_Typ, Target_Typ, Fixed_Int)
+          (In_Subrange_Of (S_Typ, Target_Typ,
+                           Assume_Valid => True,
+                           Fixed_Int    => Fixed_Int)
              or else
            Is_In_Range (Expr, Target_Typ, Fixed_Int, Int_Real))
       then
@@ -2320,7 +2351,10 @@ package body Checks is
 
          begin
             if not Overflow_Checks_Suppressed (Target_Base)
-              and then not In_Subrange_Of (Expr_Type, Target_Base, Conv_OK)
+              and then not
+                In_Subrange_Of (Expr_Type, Target_Base,
+                                Assume_Valid => True,
+                                Fixed_Int    => Conv_OK)
               and then not Float_To_Int
             then
                Activate_Overflow_Check (N);
@@ -2842,11 +2876,7 @@ package body Checks is
          --  be applied to a [sub]type that does not exclude null already.
 
          elsif Can_Never_Be_Null (Typ)
-
-            --  No need to check itypes that have a null exclusion because
-            --  they are already examined at their point of creation.
-
-           and then not Is_Itype (Typ)
+           and then Comes_From_Source (Typ)
          then
             Error_Msg_NE
               ("`NOT NULL` not allowed (& already excludes null)",
@@ -2996,7 +3026,8 @@ package body Checks is
       Lo : out Uint;
       Hi : out Uint)
    is
-      Typ : constant Entity_Id := Etype (N);
+      Typ : Entity_Id := Etype (N);
+      --  Type to use, may get reset to base type for possibly invalid entity
 
       Lo_Left : Uint;
       Hi_Left : Uint;
@@ -3090,6 +3121,16 @@ package body Checks is
       --  the value cannot be outside this range (if it is, then we have an
       --  overflow situation, which is a separate check, we are talking here
       --  only about the expression value).
+
+      --  First step, change to use base type if the expression is an entity
+      --  which we do not know is valid.
+
+      if Is_Entity_Name (N)
+        and then not Is_Known_Valid (Entity (N))
+        and then not Assume_No_Invalid_Values
+      then
+         Typ := Base_Type (Typ);
+      end if;
 
       --  We use the actual bound unless it is dynamic, in which case use the
       --  corresponding base type bound if possible. If we can't get a bound
@@ -4536,7 +4577,7 @@ package body Checks is
       --  case the literal has already been labeled as having the subtype of
       --  the target.
 
-      if In_Subrange_Of (Source_Type, Target_Type)
+      if In_Subrange_Of (Source_Type, Target_Type, Assume_Valid => True)
         and then not
           (Nkind (N) = N_Integer_Literal
              or else
@@ -4591,7 +4632,9 @@ package body Checks is
 
       --  The conversions will always work and need no check
 
-      elsif In_Subrange_Of (Target_Type, Source_Base_Type) then
+      elsif In_Subrange_Of
+             (Target_Type, Source_Base_Type, Assume_Valid => True)
+      then
          Insert_Action (N,
            Make_Raise_Constraint_Error (Loc,
              Condition =>
@@ -4623,7 +4666,9 @@ package body Checks is
       --  If that is the case, we can freely convert the source to the target,
       --  and then test the target result against the bounds.
 
-      elsif In_Subrange_Of (Source_Type, Target_Base_Type) then
+      elsif In_Subrange_Of
+             (Source_Type, Target_Base_Type, Assume_Valid => True)
+      then
 
          --  We make a temporary to hold the value of the converted value
          --  (converted to the base type), and then we will do the test against
@@ -5277,10 +5322,20 @@ package body Checks is
       --  If known to be null, here is where we generate a compile time check
 
       if Known_Null (N) then
-         Apply_Compile_Time_Constraint_Error
-           (N,
-            "null value not allowed here?",
-            CE_Access_Check_Failed);
+
+         --  Avoid generating warning message inside init procs
+
+         if not Inside_Init_Proc then
+            Apply_Compile_Time_Constraint_Error
+              (N,
+               "null value not allowed here?",
+               CE_Access_Check_Failed);
+         else
+            Insert_Action (N,
+              Make_Raise_Constraint_Error (Loc,
+                Reason => CE_Access_Check_Failed));
+         end if;
+
          Mark_Non_Null;
          return;
       end if;
@@ -6776,7 +6831,7 @@ package body Checks is
          --  range of the target type.
 
          else
-            if not In_Subrange_Of (S_Typ, T_Typ) then
+            if not In_Subrange_Of (S_Typ, T_Typ, Assume_Valid => True) then
                Cond := Discrete_Expr_Cond (Ck_Node, T_Typ);
             end if;
          end if;

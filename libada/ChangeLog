@@ -1,3 +1,46 @@
+2008-08-29  Laurent Guerby  <laurent@guerby.net>
+	
+	* Makefile.in (FLAGS_TO_PASS): renamed to LIBADA_FLAGS_TO_PASS to
+	avoid conflicts. Factor more flags to pass.
+	(libsubdir): New variable.
+	(install-gnatlib): New target.
+
+2008-08-28  Laurent Guerby  <laurent@guerby.net>
+
+	* configure: Regenerate.
+	
+2008-08-06  Thomas Quinot  <quinot@adacore.com>
+
+	* Makefile.in: generate s-oscons.ads again, previous change was
+	unneeded.
+
+2008-08-06  Samuel Tardieu  <sam@rfc1149.net>
+
+	* Makefile.in: Pass FLAGS_TO_PASS to sub-make for target
+	oscons.
+
+2008-08-06  Thomas Quinot  <quinot@adacore.com>
+
+	* Makefile.in: Now generate s-oscons-$(THREAD_KIND).
+
+2008-08-05  Thomas Quinot  <quinot@adacore.com>
+
+	* Makefile.in (gnatlib*): Now depend on oscons target.
+	(oscons): New target.
+
+2008-08-01  Paolo Bonzini  <bonzini@gnu.org>
+
+	* configure.ac (warn_cflags): Substitute.
+	* configure: Regenerate.
+	* Makefile.in (libdir, WARN_CFLAGS): Substitute.
+	(GCC_WARN_CFLAGS): Remove NOCOMMON_FLAG.
+	(ADA_CFLAGS, T_ADA_CFLAGS, X_ADA_CFLAGS, ALL_ADA_CFLAGS): Remove,
+	they were unused.
+	(libada-mk): Do not include.  Include libgcc.mvars instead.
+	(tmake_file): Remove, do not include.
+	(FLAGS_TO_PASS): Pass dummy values for exeext and CC.
+	* configure: Regenerate.
+
 2008-06-17  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
 
 	* configure.ac: move sinclude of acx.m4 before AC_INIT,

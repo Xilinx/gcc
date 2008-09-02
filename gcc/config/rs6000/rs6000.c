@@ -829,7 +829,7 @@ static void rs6000_xcoff_file_start (void);
 static void rs6000_xcoff_file_end (void);
 #endif
 static int rs6000_variable_issue (FILE *, int, rtx, int);
-static bool rs6000_rtx_costs (rtx, int, int, int *);
+static bool rs6000_rtx_costs (rtx, int, int, int *, bool);
 static int rs6000_adjust_cost (rtx, rtx, rtx, int);
 static void rs6000_sched_init (FILE *, int, int);
 static bool is_microcoded_insn (rtx);
@@ -857,11 +857,16 @@ static int rs6000_sched_reorder (FILE *, int, rtx *, int *, int);
 static int rs6000_sched_reorder2 (FILE *, int, rtx *, int *, int);
 static int rs6000_use_sched_lookahead (void);
 static int rs6000_use_sched_lookahead_guard (rtx);
+static void * rs6000_alloc_sched_context (void);
+static void rs6000_init_sched_context (void *, bool);
+static void rs6000_set_sched_context (void *);
+static void rs6000_free_sched_context (void *);
 static tree rs6000_builtin_reciprocal (unsigned int, bool, bool);
 static tree rs6000_builtin_mask_for_load (void);
 static tree rs6000_builtin_mul_widen_even (tree);
 static tree rs6000_builtin_mul_widen_odd (tree);
 static tree rs6000_builtin_conversion (enum tree_code, tree);
+static tree rs6000_builtin_vec_perm (tree, tree *);
 
 static void def_builtin (int, const char *, tree, int);
 static bool rs6000_vector_alignment_reachable (const_tree, bool);
@@ -1130,6 +1135,15 @@ static const char alt_reg_names[][8] =
 #undef TARGET_SCHED_FIRST_CYCLE_MULTIPASS_DFA_LOOKAHEAD_GUARD
 #define TARGET_SCHED_FIRST_CYCLE_MULTIPASS_DFA_LOOKAHEAD_GUARD rs6000_use_sched_lookahead_guard
 
+#undef TARGET_SCHED_ALLOC_SCHED_CONTEXT
+#define TARGET_SCHED_ALLOC_SCHED_CONTEXT rs6000_alloc_sched_context
+#undef TARGET_SCHED_INIT_SCHED_CONTEXT
+#define TARGET_SCHED_INIT_SCHED_CONTEXT rs6000_init_sched_context
+#undef TARGET_SCHED_SET_SCHED_CONTEXT
+#define TARGET_SCHED_SET_SCHED_CONTEXT rs6000_set_sched_context
+#undef TARGET_SCHED_FREE_SCHED_CONTEXT
+#define TARGET_SCHED_FREE_SCHED_CONTEXT rs6000_free_sched_context
+
 #undef TARGET_VECTORIZE_BUILTIN_MASK_FOR_LOAD
 #define TARGET_VECTORIZE_BUILTIN_MASK_FOR_LOAD rs6000_builtin_mask_for_load
 #undef TARGET_VECTORIZE_BUILTIN_MUL_WIDEN_EVEN
@@ -1138,6 +1152,8 @@ static const char alt_reg_names[][8] =
 #define TARGET_VECTORIZE_BUILTIN_MUL_WIDEN_ODD rs6000_builtin_mul_widen_odd
 #undef TARGET_VECTORIZE_BUILTIN_CONVERSION
 #define TARGET_VECTORIZE_BUILTIN_CONVERSION rs6000_builtin_conversion
+#undef TARGET_VECTORIZE_BUILTIN_VEC_PERM
+#define TARGET_VECTORIZE_BUILTIN_VEC_PERM rs6000_builtin_vec_perm
 
 #undef TARGET_VECTOR_ALIGNMENT_REACHABLE
 #define TARGET_VECTOR_ALIGNMENT_REACHABLE rs6000_vector_alignment_reachable
@@ -1177,7 +1193,7 @@ static const char alt_reg_names[][8] =
 #undef TARGET_RTX_COSTS
 #define TARGET_RTX_COSTS rs6000_rtx_costs
 #undef TARGET_ADDRESS_COST
-#define TARGET_ADDRESS_COST hook_int_rtx_0
+#define TARGET_ADDRESS_COST hook_int_rtx_bool_0
 
 #undef TARGET_VECTOR_OPAQUE_P
 #define TARGET_VECTOR_OPAQUE_P rs6000_is_opaque_type
@@ -1507,6 +1523,9 @@ rs6000_override_options (const char *default_cpu)
 	 {"power6x", PROCESSOR_POWER6,
 	  POWERPC_7400_MASK | MASK_POWERPC64 | MASK_PPC_GPOPT | MASK_MFCRF
 	  | MASK_POPCNTB | MASK_FPRND | MASK_CMPB | MASK_DFP | MASK_MFPGPR},
+	 {"power7", PROCESSOR_POWER5,
+	  POWERPC_7400_MASK | MASK_POWERPC64 | MASK_PPC_GPOPT | MASK_MFCRF
+	  | MASK_POPCNTB | MASK_FPRND | MASK_CMPB | MASK_DFP},
 	 {"powerpc", PROCESSOR_POWERPC, POWERPC_BASE_MASK},
 	 {"powerpc64", PROCESSOR_POWERPC64,
 	  POWERPC_BASE_MASK | MASK_PPC_GFXOPT | MASK_POWERPC64},
@@ -1960,7 +1979,11 @@ rs6000_builtin_mask_for_load (void)
     return 0;
 }
 
-/* Implement targetm.vectorize.builtin_conversion.  */
+/* Implement targetm.vectorize.builtin_conversion.
+   Returns a decl of a function that implements conversion of an integer vector
+   into a floating-point vector, or vice-versa. TYPE is the type of the integer
+   side of the conversion.
+   Return NULL_TREE if it is not available.  */
 static tree
 rs6000_builtin_conversion (enum tree_code code, tree type)
 {
@@ -1969,16 +1992,28 @@ rs6000_builtin_conversion (enum tree_code code, tree type)
 
   switch (code)
     {
+    case FIX_TRUNC_EXPR:
+      switch (TYPE_MODE (type))
+	{
+	case V4SImode:
+	  return TYPE_UNSIGNED (type)
+	    ? rs6000_builtin_decls[ALTIVEC_BUILTIN_VCTUXS]
+	    : rs6000_builtin_decls[ALTIVEC_BUILTIN_VCTSXS];
+	default:
+	  return NULL_TREE;
+	}
+
     case FLOAT_EXPR:
       switch (TYPE_MODE (type))
 	{
 	case V4SImode:
-	  return TYPE_UNSIGNED (type) ?
-	    rs6000_builtin_decls[ALTIVEC_BUILTIN_VCFUX] :
-	    rs6000_builtin_decls[ALTIVEC_BUILTIN_VCFSX];
+	  return TYPE_UNSIGNED (type)
+	    ? rs6000_builtin_decls[ALTIVEC_BUILTIN_VCFUX]
+	    : rs6000_builtin_decls[ALTIVEC_BUILTIN_VCFSX];
 	default:
 	  return NULL_TREE;
 	}
+
     default:
       return NULL_TREE;
     }
@@ -1994,14 +2029,14 @@ rs6000_builtin_mul_widen_even (tree type)
   switch (TYPE_MODE (type))
     {
     case V8HImode:
-      return TYPE_UNSIGNED (type) ?
-            rs6000_builtin_decls[ALTIVEC_BUILTIN_VMULEUH] :
-            rs6000_builtin_decls[ALTIVEC_BUILTIN_VMULESH];
+      return TYPE_UNSIGNED (type)
+            ? rs6000_builtin_decls[ALTIVEC_BUILTIN_VMULEUH]
+            : rs6000_builtin_decls[ALTIVEC_BUILTIN_VMULESH];
 
     case V16QImode:
-      return TYPE_UNSIGNED (type) ?
-            rs6000_builtin_decls[ALTIVEC_BUILTIN_VMULEUB] :
-            rs6000_builtin_decls[ALTIVEC_BUILTIN_VMULESB];
+      return TYPE_UNSIGNED (type)
+            ? rs6000_builtin_decls[ALTIVEC_BUILTIN_VMULEUB]
+            : rs6000_builtin_decls[ALTIVEC_BUILTIN_VMULESB];
     default:
       return NULL_TREE;
     }
@@ -2017,14 +2052,14 @@ rs6000_builtin_mul_widen_odd (tree type)
   switch (TYPE_MODE (type))
     {
     case V8HImode:
-      return TYPE_UNSIGNED (type) ?
-            rs6000_builtin_decls[ALTIVEC_BUILTIN_VMULOUH] :
-            rs6000_builtin_decls[ALTIVEC_BUILTIN_VMULOSH];
+      return TYPE_UNSIGNED (type)
+            ? rs6000_builtin_decls[ALTIVEC_BUILTIN_VMULOUH]
+            : rs6000_builtin_decls[ALTIVEC_BUILTIN_VMULOSH];
 
     case V16QImode:
-      return TYPE_UNSIGNED (type) ?
-            rs6000_builtin_decls[ALTIVEC_BUILTIN_VMULOUB] :
-            rs6000_builtin_decls[ALTIVEC_BUILTIN_VMULOSB];
+      return TYPE_UNSIGNED (type)
+            ? rs6000_builtin_decls[ALTIVEC_BUILTIN_VMULOUB]
+            : rs6000_builtin_decls[ALTIVEC_BUILTIN_VMULOSB];
     default:
       return NULL_TREE;
     }
@@ -2059,6 +2094,40 @@ rs6000_vector_alignment_reachable (const_tree type ATTRIBUTE_UNUSED, bool is_pac
       /* Assuming that all other types are naturally aligned. CHECKME!  */
       return true;
     }
+}
+
+/* Implement targetm.vectorize.builtin_vec_perm.  */
+tree
+rs6000_builtin_vec_perm (tree type, tree *mask_element_type)
+{
+  tree d;
+
+  *mask_element_type = unsigned_char_type_node;
+
+  switch (TYPE_MODE (type))
+    {
+    case V16QImode:
+      d = rs6000_builtin_decls[ALTIVEC_BUILTIN_VPERM_16QI];
+      break;
+
+    case V8HImode:
+      d = rs6000_builtin_decls[ALTIVEC_BUILTIN_VPERM_8HI];
+      break;
+
+    case V4SImode:
+      d = rs6000_builtin_decls[ALTIVEC_BUILTIN_VPERM_4SI];
+      break;
+
+    case V4SFmode:
+      d = rs6000_builtin_decls[ALTIVEC_BUILTIN_VPERM_4SF];
+      break;
+
+    default:
+      return NULL_TREE;
+    }
+
+  gcc_assert (d);
+  return d;
 }
 
 /* Handle generic options of the form -mfoo=yes/no.
@@ -2109,8 +2178,11 @@ optimization_options (int level ATTRIBUTE_UNUSED, int size ATTRIBUTE_UNUSED)
 
   /* Enable section anchors by default.
      Skip section anchors for Objective C and Objective C++
-     until front-ends fixed.  */
-  if (!TARGET_MACHO && lang_hooks.name[4] != 'O')
+     until front-ends fixed.
+     Do not enable section anchors without toplevel reorder.  */
+  if (!TARGET_MACHO
+      && lang_hooks.name[4] != 'O'
+      && flag_toplevel_reorder != 0)
     flag_section_anchors = 2;
 }
 
@@ -2631,7 +2703,7 @@ num_insns_constant (rtx op, enum machine_mode mode)
    corresponding element of the vector, but for V4SFmode and V2SFmode,
    the corresponding "float" is interpreted as an SImode integer.  */
 
-static HOST_WIDE_INT
+HOST_WIDE_INT
 const_vector_elt_as_int (rtx op, unsigned int elt)
 {
   rtx tmp = CONST_VECTOR_ELT (op, elt);
@@ -2849,7 +2921,7 @@ paired_expand_vector_init (rtx target, rtx vals)
   enum machine_mode mode = GET_MODE (target);
   int n_elts = GET_MODE_NUNITS (mode);
   int n_var = 0;
-  rtx x, new, tmp, constant_op, op1, op2;
+  rtx x, new_rtx, tmp, constant_op, op1, op2;
   int i;
 
   for (i = 0; i < n_elts; ++i)
@@ -2868,10 +2940,10 @@ paired_expand_vector_init (rtx target, rtx vals)
   if (n_var == 2)
     {
       /* The vector is initialized only with non-constants.  */
-      new = gen_rtx_VEC_CONCAT (V2SFmode, XVECEXP (vals, 0, 0),
+      new_rtx = gen_rtx_VEC_CONCAT (V2SFmode, XVECEXP (vals, 0, 0),
 				XVECEXP (vals, 0, 1));
 
-      emit_move_insn (target, new);
+      emit_move_insn (target, new_rtx);
       return;
     }
   
@@ -2887,11 +2959,11 @@ paired_expand_vector_init (rtx target, rtx vals)
   emit_move_insn (tmp, constant_op);
 
   if (CONSTANT_P (op1))
-    new = gen_rtx_VEC_CONCAT (V2SFmode, tmp, op2);
+    new_rtx = gen_rtx_VEC_CONCAT (V2SFmode, tmp, op2);
   else
-    new = gen_rtx_VEC_CONCAT (V2SFmode, op1, tmp);
+    new_rtx = gen_rtx_VEC_CONCAT (V2SFmode, op1, tmp);
 
-  emit_move_insn (target, new);
+  emit_move_insn (target, new_rtx);
 }
 
 void
@@ -3948,6 +4020,8 @@ rs6000_legitimize_tls_address (rtx addr, enum tls_model model)
 	  insn = emit_call_insn (insn);
 	  RTL_CONST_CALL_P (insn) = 1;
 	  use_reg (&CALL_INSN_FUNCTION_USAGE (insn), r3);
+	  if (DEFAULT_ABI == ABI_V4 && TARGET_SECURE_PLT && flag_pic)
+	    use_reg (&CALL_INSN_FUNCTION_USAGE (insn), pic_offset_table_rtx);
 	  insn = get_insns ();
 	  end_sequence ();
 	  emit_libcall_block (insn, dest, r3, addr);
@@ -3970,6 +4044,8 @@ rs6000_legitimize_tls_address (rtx addr, enum tls_model model)
 	  insn = emit_call_insn (insn);
 	  RTL_CONST_CALL_P (insn) = 1;
 	  use_reg (&CALL_INSN_FUNCTION_USAGE (insn), r3);
+	  if (DEFAULT_ABI == ABI_V4 && TARGET_SECURE_PLT && flag_pic)
+	    use_reg (&CALL_INSN_FUNCTION_USAGE (insn), pic_offset_table_rtx);
 	  insn = get_insns ();
 	  end_sequence ();
 	  tmp1 = gen_reg_rtx (Pmode);
@@ -9098,7 +9174,9 @@ rs6000_expand_builtin (tree exp, rtx target, rtx subtarget ATTRIBUTE_UNUSED,
   /* FIXME: There's got to be a nicer way to handle this case than
      constructing a new CALL_EXPR.  */
   if (fcode == ALTIVEC_BUILTIN_VCFUX
-      || fcode == ALTIVEC_BUILTIN_VCFSX)
+      || fcode == ALTIVEC_BUILTIN_VCFSX
+      || fcode == ALTIVEC_BUILTIN_VCTUXS
+      || fcode == ALTIVEC_BUILTIN_VCTSXS)
     {
       if (call_expr_nargs (exp) == 1)
 	exp = build_call_nary (TREE_TYPE (exp), CALL_EXPR_FN (exp),
@@ -11366,11 +11444,11 @@ rs6000_instantiate_decls (void)
 }
 
 /* Return the register class of a scratch register needed to copy IN into
-   or out of a register in CLASS in MODE.  If it can be done directly,
+   or out of a register in RCLASS in MODE.  If it can be done directly,
    NO_REGS is returned.  */
 
 enum reg_class
-rs6000_secondary_reload_class (enum reg_class class,
+rs6000_secondary_reload_class (enum reg_class rclass,
 			       enum machine_mode mode ATTRIBUTE_UNUSED,
 			       rtx in)
 {
@@ -11389,7 +11467,7 @@ rs6000_secondary_reload_class (enum reg_class class,
 
 	 On Darwin, pic addresses require a load from memory, which
 	 needs a base register.  */
-      if (class != BASE_REGS
+      if (rclass != BASE_REGS
 	  && (GET_CODE (in) == SYMBOL_REF
 	      || GET_CODE (in) == HIGH
 	      || GET_CODE (in) == LABEL_REF
@@ -11418,22 +11496,22 @@ rs6000_secondary_reload_class (enum reg_class class,
 
   /* We can place anything into GENERAL_REGS and can put GENERAL_REGS
      into anything.  */
-  if (class == GENERAL_REGS || class == BASE_REGS
+  if (rclass == GENERAL_REGS || rclass == BASE_REGS
       || (regno >= 0 && INT_REGNO_P (regno)))
     return NO_REGS;
 
   /* Constants, memory, and FP registers can go into FP registers.  */
   if ((regno == -1 || FP_REGNO_P (regno))
-      && (class == FLOAT_REGS || class == NON_SPECIAL_REGS))
+      && (rclass == FLOAT_REGS || rclass == NON_SPECIAL_REGS))
     return (mode != SDmode) ? NO_REGS : GENERAL_REGS;
 
   /* Memory, and AltiVec registers can go into AltiVec registers.  */
   if ((regno == -1 || ALTIVEC_REGNO_P (regno))
-      && class == ALTIVEC_REGS)
+      && rclass == ALTIVEC_REGS)
     return NO_REGS;
 
   /* We can copy among the CR registers.  */
-  if ((class == CR_REGS || class == CR0_REGS)
+  if ((rclass == CR_REGS || rclass == CR0_REGS)
       && regno >= 0 && CR_REGNO_P (regno))
     return NO_REGS;
 
@@ -17574,7 +17652,7 @@ rs6000_output_mi_thunk (FILE *file, tree thunk_fndecl ATTRIBUTE_UNUSED,
 			HOST_WIDE_INT delta, HOST_WIDE_INT vcall_offset,
 			tree function)
 {
-  rtx this, insn, funexp;
+  rtx this_rtx, insn, funexp;
 
   reload_completed = 1;
   epilogue_completed = 1;
@@ -17585,17 +17663,17 @@ rs6000_output_mi_thunk (FILE *file, tree thunk_fndecl ATTRIBUTE_UNUSED,
   /* Find the "this" pointer.  If the function returns a structure,
      the structure return pointer is in r3.  */
   if (aggregate_value_p (TREE_TYPE (TREE_TYPE (function)), function))
-    this = gen_rtx_REG (Pmode, 4);
+    this_rtx = gen_rtx_REG (Pmode, 4);
   else
-    this = gen_rtx_REG (Pmode, 3);
+    this_rtx = gen_rtx_REG (Pmode, 3);
 
   /* Apply the constant offset, if required.  */
   if (delta)
     {
       rtx delta_rtx = GEN_INT (delta);
       emit_insn (TARGET_32BIT
-		 ? gen_addsi3 (this, this, delta_rtx)
-		 : gen_adddi3 (this, this, delta_rtx));
+		 ? gen_addsi3 (this_rtx, this_rtx, delta_rtx)
+		 : gen_adddi3 (this_rtx, this_rtx, delta_rtx));
     }
 
   /* Apply the offset from the vtable, if required.  */
@@ -17604,7 +17682,7 @@ rs6000_output_mi_thunk (FILE *file, tree thunk_fndecl ATTRIBUTE_UNUSED,
       rtx vcall_offset_rtx = GEN_INT (vcall_offset);
       rtx tmp = gen_rtx_REG (Pmode, 12);
 
-      emit_move_insn (tmp, gen_rtx_MEM (Pmode, this));
+      emit_move_insn (tmp, gen_rtx_MEM (Pmode, this_rtx));
       if (((unsigned HOST_WIDE_INT) vcall_offset) + 0x8000 >= 0x10000)
 	{
 	  emit_insn (TARGET_32BIT
@@ -17619,8 +17697,8 @@ rs6000_output_mi_thunk (FILE *file, tree thunk_fndecl ATTRIBUTE_UNUSED,
 	  emit_move_insn (tmp, gen_rtx_MEM (Pmode, loc));
 	}
       emit_insn (TARGET_32BIT
-		 ? gen_addsi3 (this, this, tmp)
-		 : gen_adddi3 (this, this, tmp));
+		 ? gen_addsi3 (this_rtx, this_rtx, tmp)
+		 : gen_adddi3 (this_rtx, this_rtx, tmp));
     }
 
   /* Generate a tail call to the target function.  */
@@ -19411,7 +19489,8 @@ rs6000_sched_reorder2 (FILE *dump, int sched_verbose, rtx *ready,
                   for (i=pos; i<*pn_ready-1; i++)
                     ready[i] = ready[i + 1];
                   ready[*pn_ready-1] = tmp;
-                  if INSN_PRIORITY_KNOWN (tmp)
+
+                  if (!sel_sched_p () && INSN_PRIORITY_KNOWN (tmp))
                     INSN_PRIORITY (tmp)++;
                   break;
                 }
@@ -19428,7 +19507,8 @@ rs6000_sched_reorder2 (FILE *dump, int sched_verbose, rtx *ready,
           while (pos >= 0)
             {
               if (is_load_insn (ready[pos])
-                  && INSN_PRIORITY_KNOWN (ready[pos]))
+                  && !sel_sched_p ()
+		  && INSN_PRIORITY_KNOWN (ready[pos]))
                 {
                   INSN_PRIORITY (ready[pos])++;
 
@@ -19470,8 +19550,10 @@ rs6000_sched_reorder2 (FILE *dump, int sched_verbose, rtx *ready,
                       for (i=pos; i<*pn_ready-1; i++)
                         ready[i] = ready[i + 1];
                       ready[*pn_ready-1] = tmp;
-                      if INSN_PRIORITY_KNOWN (tmp)
+
+                      if (!sel_sched_p () && INSN_PRIORITY_KNOWN (tmp))
                         INSN_PRIORITY (tmp)++;
+
                       first_store_pos = -1;
 
                       break;
@@ -19490,7 +19572,7 @@ rs6000_sched_reorder2 (FILE *dump, int sched_verbose, rtx *ready,
               for (i=first_store_pos; i<*pn_ready-1; i++)
                 ready[i] = ready[i + 1];
               ready[*pn_ready-1] = tmp;
-              if INSN_PRIORITY_KNOWN (tmp)
+              if (!sel_sched_p () && INSN_PRIORITY_KNOWN (tmp))
                 INSN_PRIORITY (tmp)++;
             }
         }
@@ -19504,7 +19586,8 @@ rs6000_sched_reorder2 (FILE *dump, int sched_verbose, rtx *ready,
           while (pos >= 0)
             {
               if (is_store_insn (ready[pos])
-                  && INSN_PRIORITY_KNOWN (ready[pos]))
+                  && !sel_sched_p ()
+		  && INSN_PRIORITY_KNOWN (ready[pos]))
                 {
                   INSN_PRIORITY (ready[pos])++;
 
@@ -20006,7 +20089,7 @@ pad_groups (FILE *dump, int sched_verbose, rtx prev_head_insn, rtx tail)
       if (group_end)
 	{
 	  /* If the scheduler had marked group termination at this location
-	     (between insn and next_indn), and neither insn nor next_insn will
+	     (between insn and next_insn), and neither insn nor next_insn will
 	     force group termination, pad the group with nops to force group
 	     termination.  */
 	  if (can_issue_more
@@ -20060,6 +20143,10 @@ rs6000_sched_finish (FILE *dump, int sched_verbose)
 
   if (reload_completed && rs6000_sched_groups)
     {
+      /* Do not run sched_finish hook when selective scheduling enabled.  */
+      if (sel_sched_p ())
+	return;
+
       if (rs6000_sched_insert_nops == sched_finish_none)
 	return;
 
@@ -20080,6 +20167,67 @@ rs6000_sched_finish (FILE *dump, int sched_verbose)
 	}
     }
 }
+
+struct _rs6000_sched_context
+{
+  short cached_can_issue_more;
+  rtx last_scheduled_insn;
+  int load_store_pendulum;
+};
+
+typedef struct _rs6000_sched_context rs6000_sched_context_def;
+typedef rs6000_sched_context_def *rs6000_sched_context_t;
+
+/* Allocate store for new scheduling context.  */
+static void *
+rs6000_alloc_sched_context (void)
+{
+  return xmalloc (sizeof (rs6000_sched_context_def));
+}
+
+/* If CLEAN_P is true then initializes _SC with clean data,
+   and from the global context otherwise.  */
+static void
+rs6000_init_sched_context (void *_sc, bool clean_p)
+{
+  rs6000_sched_context_t sc = (rs6000_sched_context_t) _sc;
+
+  if (clean_p)
+    {
+      sc->cached_can_issue_more = 0;
+      sc->last_scheduled_insn = NULL_RTX;
+      sc->load_store_pendulum = 0;
+    }
+  else
+    {
+      sc->cached_can_issue_more = cached_can_issue_more;
+      sc->last_scheduled_insn = last_scheduled_insn;
+      sc->load_store_pendulum = load_store_pendulum;
+    }
+}
+
+/* Sets the global scheduling context to the one pointed to by _SC.  */
+static void
+rs6000_set_sched_context (void *_sc)
+{
+  rs6000_sched_context_t sc = (rs6000_sched_context_t) _sc;
+
+  gcc_assert (sc != NULL);
+
+  cached_can_issue_more = sc->cached_can_issue_more;
+  last_scheduled_insn = sc->last_scheduled_insn;
+  load_store_pendulum = sc->load_store_pendulum;
+}
+
+/* Free _SC.  */
+static void
+rs6000_free_sched_context (void *_sc)
+{
+  gcc_assert (_sc != NULL);
+
+  free (_sc);
+}
+
 
 /* Length in units of the trampoline for entering a nested function.  */
 
@@ -20269,8 +20417,10 @@ rs6000_handle_altivec_attribute (tree *node,
     default: break;
     }
 
-  if (result && result != type && TYPE_READONLY (type))
-    result = build_qualified_type (result, TYPE_QUAL_CONST);
+  /* Propagate qualifiers attached to the element type
+     onto the vector type.  */
+  if (result && result != type && TYPE_QUALS (type))
+    result = build_qualified_type (result, TYPE_QUALS (type));
 
   *no_add_attrs = true;  /* No need to hang on to the attribute.  */
 
@@ -20516,12 +20666,12 @@ rs6000_elf_encode_section_info (tree decl, rtx rtl, int first)
 }
 
 static inline bool
-compare_section_name (const char *section, const char *template)
+compare_section_name (const char *section, const char *templ)
 {
   int len;
 
-  len = strlen (template);
-  return (strncmp (section, template, len) == 0
+  len = strlen (templ);
+  return (strncmp (section, templ, len) == 0
 	  && (section[len] == 0 || section[len] == '.'));
 }
 
@@ -21389,7 +21539,8 @@ rs6000_xcoff_file_end (void)
    scanned.  In either case, *TOTAL contains the cost result.  */
 
 static bool
-rs6000_rtx_costs (rtx x, int code, int outer_code, int *total)
+rs6000_rtx_costs (rtx x, int code, int outer_code, int *total,
+		  bool speed)
 {
   enum machine_mode mode = GET_MODE (x);
 
@@ -21488,7 +21639,7 @@ rs6000_rtx_costs (rtx x, int code, int outer_code, int *total)
       /* When optimizing for size, MEM should be slightly more expensive
 	 than generating address, e.g., (plus (reg) (const)).
 	 L1 cache latency is about two instructions.  */
-      *total = optimize_size ? COSTS_N_INSNS (1) + 1 : COSTS_N_INSNS (2);
+      *total = !speed ? COSTS_N_INSNS (1) + 1 : COSTS_N_INSNS (2);
       return true;
 
     case LABEL_REF:
@@ -21699,7 +21850,7 @@ rs6000_rtx_costs (rtx x, int code, int outer_code, int *total)
 
     case CALL:
     case IF_THEN_ELSE:
-      if (optimize_size)
+      if (!speed)
 	{
 	  *total = COSTS_N_INSNS (1);
 	  return true;
@@ -21809,17 +21960,17 @@ rs6000_register_move_cost (enum machine_mode mode,
    or from memory.  */
 
 int
-rs6000_memory_move_cost (enum machine_mode mode, enum reg_class class,
+rs6000_memory_move_cost (enum machine_mode mode, enum reg_class rclass,
 			 int in ATTRIBUTE_UNUSED)
 {
-  if (reg_classes_intersect_p (class, GENERAL_REGS))
+  if (reg_classes_intersect_p (rclass, GENERAL_REGS))
     return 4 * hard_regno_nregs[0][mode];
-  else if (reg_classes_intersect_p (class, FLOAT_REGS))
+  else if (reg_classes_intersect_p (rclass, FLOAT_REGS))
     return 4 * hard_regno_nregs[32][mode];
-  else if (reg_classes_intersect_p (class, ALTIVEC_REGS))
+  else if (reg_classes_intersect_p (rclass, ALTIVEC_REGS))
     return 4 * hard_regno_nregs[FIRST_ALTIVEC_REGNO][mode];
   else
-    return 4 + rs6000_register_move_cost (mode, class, GENERAL_REGS);
+    return 4 + rs6000_register_move_cost (mode, rclass, GENERAL_REGS);
 }
 
 /* Returns a code for a target-specific builtin that implements

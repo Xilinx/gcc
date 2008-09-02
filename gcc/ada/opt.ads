@@ -144,10 +144,6 @@ package Opt is
    --  Set to non null when Bind_Alternate_Main_Name is True. This value
    --  is modified as needed by Gnatbind.Scan_Bind_Arg.
 
-   Assertions_Enabled : Boolean := False;
-   --  GNAT
-   --  Enable assertions made using pragma Assert
-
    ASIS_Mode : Boolean := False;
    --  GNAT
    --  Enable semantic checks and tree transformations that are important
@@ -157,6 +153,19 @@ package Opt is
    --  from the code of GNSA-based tool (a client may need to set ON the
    --  Back_Annotate_Rep_Info flag in this case. At the moment this does not
    --  make very much sense, because GNSA cannot do back annotation).
+
+   Assertions_Enabled : Boolean := False;
+   --  GNAT
+   --  Enable assertions made using pragma Assert
+
+   Assume_No_Invalid_Values : Boolean := True;
+   --  ??? true for now, enable by setting to false later
+   --  GNAT
+   --  Normallly, in accordance with (RM 13.9.1 (9-11)) the front end assumes
+   --  that values could have invalid representations, unless it can clearly
+   --  prove that the values are valid. If this switch is set (by -gnatB or by
+   --  pragma Assume_No_Invalid_Values (Off)), then the compiler assumes values
+   --  are valid and in range of their representations.
 
    Back_Annotate_Rep_Info : Boolean := False;
    --  GNAT
@@ -527,6 +536,11 @@ package Opt is
    --  Set to file name to generate full source listing to named file (or if
    --  the name is of the form .xxx, then to name.xxx where name is the source
    --  file name with extension stripped.
+
+   Generate_Processed_File : Boolean := False;
+   --  GNAT
+   --  True when switch -gnateG is used. When True, create in a file
+   --  <source>.prep, if the source is preprocessed.
 
    Generating_Code : Boolean := False;
    --  GNAT
@@ -1235,6 +1249,12 @@ package Opt is
    --  Set to True to generate warnings for static fixed-point expression
    --  values that are not an exact multiple of the small value of the type.
 
+   Warn_On_Biased_Representation : Boolean := True;
+   --  GNAT
+   --  Set to True to generate warnings for size clauses, component clauses
+   --  and component_size clauses that force biased representation. Set False
+   --  by -gnatw.B.
+
    Warn_On_Constant : Boolean := False;
    --  GNAT
    --  Set to True to generate warnings for variables that could be declared
@@ -1402,6 +1422,13 @@ package Opt is
    --  This is the value of the configuration switch for assertions enabled
    --  mode, as possibly set by the command line switch -gnata, and possibly
    --  modified by the use of the configuration pragma Assertion_Policy.
+
+   Assume_No_Invalid_Values_Config : Boolean;
+   --  GNAT
+   --  This is the value of the configuration switch for assuming no invalid
+   --  values enabled mode mode, as possibly set by the command line switch
+   --  -gnatB, and possibly modified by the use of the configuration pragma
+   --  Assume_No_Invalid_Values.
 
    Check_Policy_List_Config : Node_Id;
    --  GNAT
@@ -1601,6 +1628,7 @@ private
       Ada_Version                    : Ada_Version_Type;
       Ada_Version_Explicit           : Ada_Version_Type;
       Assertions_Enabled             : Boolean;
+      Assume_No_Invalid_Values       : Boolean;
       Check_Policy_List              : Node_Id;
       Debug_Pragmas_Enabled          : Boolean;
       Dynamic_Elaboration_Checks     : Boolean;

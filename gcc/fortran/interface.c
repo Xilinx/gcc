@@ -392,19 +392,19 @@ gfc_compare_derived_types (gfc_symbol *derived1, gfc_symbol *derived2)
       if (strcmp (dt1->name, dt2->name) != 0)
 	return 0;
 
-      if (dt1->access != dt2->access)
+      if (dt1->attr.access != dt2->attr.access)
 	return 0;
 
-      if (dt1->pointer != dt2->pointer)
+      if (dt1->attr.pointer != dt2->attr.pointer)
 	return 0;
 
-      if (dt1->dimension != dt2->dimension)
+      if (dt1->attr.dimension != dt2->attr.dimension)
 	return 0;
 
-     if (dt1->allocatable != dt2->allocatable)
+     if (dt1->attr.allocatable != dt2->attr.allocatable)
 	return 0;
 
-      if (dt1->dimension && gfc_compare_array_spec (dt1->as, dt2->as) == 0)
+      if (dt1->attr.dimension && gfc_compare_array_spec (dt1->as, dt2->as) == 0)
 	return 0;
 
       /* Make sure that link lists do not put this function into an 
@@ -479,7 +479,6 @@ compare_type_rank (gfc_symbol *s1, gfc_symbol *s2)
 }
 
 
-static int compare_interfaces (gfc_symbol *, gfc_symbol *, int);
 static int compare_intr_interfaces (gfc_symbol *, gfc_symbol *);
 
 /* Given two symbols that are formal arguments, compare their types
@@ -954,8 +953,8 @@ generic_correspondence (gfc_formal_arglist *f1, gfc_formal_arglist *f2)
    We return nonzero if there exists an actual argument list that
    would be ambiguous between the two interfaces, zero otherwise.  */
 
-static int
-compare_interfaces (gfc_symbol *s1, gfc_symbol *s2, int generic_flag)
+int
+gfc_compare_interfaces (gfc_symbol *s1, gfc_symbol *s2, int generic_flag)
 {
   gfc_formal_arglist *f1, *f2;
 
@@ -1173,7 +1172,7 @@ check_interface1 (gfc_interface *p, gfc_interface *q0,
 	if (p->sym->name == q->sym->name && p->sym->module == q->sym->module)
 	  continue;
 
-	if (compare_interfaces (p->sym, q->sym, generic_flag))
+	if (gfc_compare_interfaces (p->sym, q->sym, generic_flag))
 	  {
 	    if (referenced)
 	      {
@@ -1460,7 +1459,7 @@ compare_parameter (gfc_symbol *formal, gfc_expr *actual,
 	 if (!compare_intr_interfaces (formal, actual->symtree->n.sym))
 	   goto proc_fail;
 	}
-      else if (!compare_interfaces (formal, actual->symtree->n.sym, 0))
+      else if (!gfc_compare_interfaces (formal, actual->symtree->n.sym, 0))
 	goto proc_fail;
 
       return 1;
@@ -1819,9 +1818,9 @@ has_vector_subscript (gfc_expr *e)
    errors when things don't match instead of just returning the status
    code.  */
 
-static int
-compare_actual_formal (gfc_actual_arglist **ap, gfc_formal_arglist *formal,
-		       int ranks_must_agree, int is_elemental, locus *where)
+int
+gfc_compare_actual_formal (gfc_actual_arglist **ap, gfc_formal_arglist *formal,
+      			   int ranks_must_agree, int is_elemental, locus *where)
 {
   gfc_actual_arglist **new_arg, *a, *actual, temp;
   gfc_formal_arglist *f;
@@ -2449,8 +2448,8 @@ gfc_procedure_use (gfc_symbol *sym, gfc_actual_arglist **ap, locus *where)
       return;
     }
 
-  if (!compare_actual_formal (ap, sym->formal, 0,
-			      sym->attr.elemental, where))
+  if (!gfc_compare_actual_formal (ap, sym->formal, 0,
+		  		  sym->attr.elemental, where))
     return;
 
   check_intents (sym->formal, *ap);
@@ -2479,7 +2478,7 @@ gfc_search_interface (gfc_interface *intr, int sub_flag,
 
       r = !intr->sym->attr.elemental;
 
-      if (compare_actual_formal (ap, intr->sym->formal, r, !r, NULL))
+      if (gfc_compare_actual_formal (ap, intr->sym->formal, r, !r, NULL))
 	{
 	  check_intents (intr->sym->formal, *ap);
 	  if (gfc_option.warn_aliasing)
@@ -2513,8 +2512,8 @@ find_symtree0 (gfc_symtree *root, gfc_symbol *sym)
 
 /* Find a symtree for a symbol.  */
 
-static gfc_symtree *
-find_sym_in_symtree (gfc_symbol *sym)
+gfc_symtree *
+gfc_find_sym_in_symtree (gfc_symbol *sym)
 {
   gfc_symtree *st;
   gfc_namespace *ns;
@@ -2652,7 +2651,7 @@ gfc_extend_expr (gfc_expr *e)
 
   /* Change the expression node to a function call.  */
   e->expr_type = EXPR_FUNCTION;
-  e->symtree = find_sym_in_symtree (sym);
+  e->symtree = gfc_find_sym_in_symtree (sym);
   e->value.function.actual = actual;
   e->value.function.esym = NULL;
   e->value.function.isym = NULL;
@@ -2718,7 +2717,7 @@ gfc_extend_assign (gfc_code *c, gfc_namespace *ns)
 
   /* Replace the assignment with the call.  */
   c->op = EXEC_ASSIGN_CALL;
-  c->symtree = find_sym_in_symtree (sym);
+  c->symtree = gfc_find_sym_in_symtree (sym);
   c->expr = NULL;
   c->expr2 = NULL;
   c->ext.actual = actual;

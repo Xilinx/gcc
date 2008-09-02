@@ -43,6 +43,7 @@
 #include "tm_p.h"
 #include "target.h"
 #include "target-def.h"
+#include "params.h"
 #include "df.h"
 
 /* Maximal allowed offset for an address in the LD command */
@@ -79,9 +80,9 @@ static unsigned int avr_section_type_flags (tree, const char *, int);
 static void avr_reorg (void);
 static void avr_asm_out_ctor (rtx, int);
 static void avr_asm_out_dtor (rtx, int);
-static int avr_operand_rtx_cost (rtx, enum machine_mode, enum rtx_code);
-static bool avr_rtx_costs (rtx, int, int, int *);
-static int avr_address_cost (rtx);
+static int avr_operand_rtx_cost (rtx, enum machine_mode, enum rtx_code, bool);
+static bool avr_rtx_costs (rtx, int, int, int *, bool);
+static int avr_address_cost (rtx, bool);
 static bool avr_return_in_memory (const_tree, const_tree);
 static struct machine_function * avr_init_machine_status (void);
 static rtx avr_builtin_setjmp_frame_value (void);
@@ -192,12 +193,12 @@ static const struct mcu_type_s avr_mcu_types[] = {
   { "at86rf401",    ARCH_AVR25, "__AVR_AT86RF401__" },
     /* Classic, > 8K, <= 64K.  */
   { "avr3",         ARCH_AVR3, NULL },
-  { "at43usb320",   ARCH_AVR3, "__AVR_AT43USB320__" },
   { "at43usb355",   ARCH_AVR3, "__AVR_AT43USB355__" },
   { "at76c711",     ARCH_AVR3, "__AVR_AT76C711__" },
     /* Classic, == 128K.  */
   { "avr31",        ARCH_AVR31, NULL },
   { "atmega103",    ARCH_AVR31, "__AVR_ATmega103__" },
+  { "at43usb320",   ARCH_AVR31, "__AVR_AT43USB320__" },
     /* Classic + MOVW + JMP/CALL.  */
   { "avr35",        ARCH_AVR35, NULL },
   { "at90usb82",    ARCH_AVR35, "__AVR_AT90USB82__" },
@@ -347,6 +348,9 @@ avr_override_options (void)
   const struct mcu_type_s *t;
 
   flag_delete_null_pointer_checks = 0;
+
+  if (!PARAM_SET_P (PARAM_INLINE_CALL_COST))
+    set_param_value ("inline-call-cost", 5);
 
   for (t = avr_mcu_types; t->name; t++)
     if (strcmp (t->name, avr_mcu_name) == 0)
@@ -1403,7 +1407,7 @@ notice_update_cc (rtx body ATTRIBUTE_UNUSED, rtx insn)
    class CLASS needed to hold a value of mode MODE.  */
 
 int
-class_max_nregs (enum reg_class class ATTRIBUTE_UNUSED,enum machine_mode mode)
+class_max_nregs (enum reg_class rclass ATTRIBUTE_UNUSED,enum machine_mode mode)
 {
   return ((GET_MODE_SIZE (mode) + UNITS_PER_WORD - 1) / UNITS_PER_WORD);
 }
@@ -1558,7 +1562,7 @@ final_prescan_insn (rtx insn, rtx *operand ATTRIBUTE_UNUSED,
       fprintf (asm_out_file, "/*DEBUG: 0x%x\t\t%d\t%d */\n",
 	       INSN_ADDRESSES (uid),
                INSN_ADDRESSES (uid) - last_insn_address,
-	       rtx_cost (PATTERN (insn), INSN));
+	       rtx_cost (PATTERN (insn), INSN, !optimize_size));
     }
   last_insn_address = INSN_ADDRESSES (uid);
 }
@@ -1566,14 +1570,14 @@ final_prescan_insn (rtx insn, rtx *operand ATTRIBUTE_UNUSED,
 /* Return 0 if undefined, 1 if always true or always false.  */
 
 int
-avr_simplify_comparison_p (enum machine_mode mode, RTX_CODE operator, rtx x)
+avr_simplify_comparison_p (enum machine_mode mode, RTX_CODE op, rtx x)
 {
   unsigned int max = (mode == QImode ? 0xff :
                       mode == HImode ? 0xffff :
                       mode == SImode ? 0xffffffff : 0);
-  if (max && operator && GET_CODE (x) == CONST_INT)
+  if (max && op && GET_CODE (x) == CONST_INT)
     {
-      if (unsigned_condition (operator) != operator)
+      if (unsigned_condition (op) != op)
 	max >>= 1;
 
       if (max != (INTVAL (x) & max)
@@ -1743,15 +1747,15 @@ output_movqi (rtx insn, rtx operands[], int *l)
     }
   else if (GET_CODE (dest) == MEM)
     {
-      const char *template;
+      const char *templ;
 
       if (src == const0_rtx)
 	operands[1] = zero_reg_rtx;
 
-      template = out_movqi_mr_r (insn, operands, real_l);
+      templ = out_movqi_mr_r (insn, operands, real_l);
 
       if (!real_l)
-	output_asm_insn (template, operands);
+	output_asm_insn (templ, operands);
 
       operands[1] = src;
     }
@@ -1893,15 +1897,15 @@ output_movhi (rtx insn, rtx operands[], int *l)
     }
   else if (GET_CODE (dest) == MEM)
     {
-      const char *template;
+      const char *templ;
 
       if (src == const0_rtx)
 	operands[1] = zero_reg_rtx;
 
-      template = out_movhi_mr_r (insn, operands, real_l);
+      templ = out_movhi_mr_r (insn, operands, real_l);
 
       if (!real_l)
-	output_asm_insn (template, operands);
+	output_asm_insn (templ, operands);
 
       operands[1] = src;
       return "";
@@ -2581,15 +2585,15 @@ output_movsisf(rtx insn, rtx operands[], int *l)
     }
   else if (GET_CODE (dest) == MEM)
     {
-      const char *template;
+      const char *templ;
 
       if (src == const0_rtx)
 	  operands[1] = zero_reg_rtx;
 
-      template = out_movsi_mr_r (insn, operands, real_l);
+      templ = out_movsi_mr_r (insn, operands, real_l);
 
       if (!real_l)
-	output_asm_insn (template, operands);
+	output_asm_insn (templ, operands);
 
       operands[1] = src;
       return "";
@@ -2930,7 +2934,7 @@ out_tstsi (rtx insn, int *l)
    carefully hand-optimized in ?sh??i3_out.  */
 
 void
-out_shift_with_cnt (const char *template, rtx insn, rtx operands[],
+out_shift_with_cnt (const char *templ, rtx insn, rtx operands[],
 		    int *len, int t_len)
 {
   rtx op[10];
@@ -2975,7 +2979,7 @@ out_shift_with_cnt (const char *template, rtx insn, rtx operands[],
 	  else
 	    {
 	      while (count-- > 0)
-		output_asm_insn (template, op);
+		output_asm_insn (templ, op);
 	    }
 
 	  return;
@@ -3056,7 +3060,7 @@ out_shift_with_cnt (const char *template, rtx insn, rtx operands[],
   else
     {
       strcat (str, "\n1:\t");
-      strcat (str, template);
+      strcat (str, templ);
       strcat (str, second_label ? "\n2:\t" : "\n\t");
       strcat (str, use_zero_reg ? AS1 (lsr,%3) : AS1 (dec,%3));
       strcat (str, CR_TAB);
@@ -4987,7 +4991,8 @@ order_regs_for_local_alloc (void)
    operand's parent operator.  */
 
 static int
-avr_operand_rtx_cost (rtx x, enum machine_mode mode, enum rtx_code outer)
+avr_operand_rtx_cost (rtx x, enum machine_mode mode, enum rtx_code outer,
+		      bool speed)
 {
   enum rtx_code code = GET_CODE (x);
   int total;
@@ -5007,7 +5012,7 @@ avr_operand_rtx_cost (rtx x, enum machine_mode mode, enum rtx_code outer)
     }
 
   total = 0;
-  avr_rtx_costs (x, code, outer, &total);
+  avr_rtx_costs (x, code, outer, &total, speed);
   return total;
 }
 
@@ -5017,7 +5022,8 @@ avr_operand_rtx_cost (rtx x, enum machine_mode mode, enum rtx_code outer)
    case, *TOTAL contains the cost result.  */
 
 static bool
-avr_rtx_costs (rtx x, int code, int outer_code ATTRIBUTE_UNUSED, int *total)
+avr_rtx_costs (rtx x, int code, int outer_code ATTRIBUTE_UNUSED, int *total,
+	       bool speed)
 {
   enum machine_mode mode = GET_MODE (x);
   HOST_WIDE_INT val;
@@ -5056,7 +5062,7 @@ avr_rtx_costs (rtx x, int code, int outer_code ATTRIBUTE_UNUSED, int *total)
 	default:
 	  return false;
 	}
-      *total += avr_operand_rtx_cost (XEXP (x, 0), mode, code);
+      *total += avr_operand_rtx_cost (XEXP (x, 0), mode, code, speed);
       return true;
 
     case ABS:
@@ -5070,24 +5076,24 @@ avr_rtx_costs (rtx x, int code, int outer_code ATTRIBUTE_UNUSED, int *total)
 	default:
 	  return false;
 	}
-      *total += avr_operand_rtx_cost (XEXP (x, 0), mode, code);
+      *total += avr_operand_rtx_cost (XEXP (x, 0), mode, code, speed);
       return true;
 
     case NOT:
       *total = COSTS_N_INSNS (GET_MODE_SIZE (mode));
-      *total += avr_operand_rtx_cost (XEXP (x, 0), mode, code);
+      *total += avr_operand_rtx_cost (XEXP (x, 0), mode, code, speed);
       return true;
 
     case ZERO_EXTEND:
       *total = COSTS_N_INSNS (GET_MODE_SIZE (mode)
 			      - GET_MODE_SIZE (GET_MODE (XEXP (x, 0))));
-      *total += avr_operand_rtx_cost (XEXP (x, 0), mode, code);
+      *total += avr_operand_rtx_cost (XEXP (x, 0), mode, code, speed);
       return true;
 
     case SIGN_EXTEND:
       *total = COSTS_N_INSNS (GET_MODE_SIZE (mode) + 2
 			      - GET_MODE_SIZE (GET_MODE (XEXP (x, 0))));
-      *total += avr_operand_rtx_cost (XEXP (x, 0), mode, code);
+      *total += avr_operand_rtx_cost (XEXP (x, 0), mode, code, speed);
       return true;
 
     case PLUS:
@@ -5096,14 +5102,14 @@ avr_rtx_costs (rtx x, int code, int outer_code ATTRIBUTE_UNUSED, int *total)
 	case QImode:
 	  *total = COSTS_N_INSNS (1);
 	  if (GET_CODE (XEXP (x, 1)) != CONST_INT)
-	    *total += avr_operand_rtx_cost (XEXP (x, 1), mode, code);
+	    *total += avr_operand_rtx_cost (XEXP (x, 1), mode, code, speed);
 	  break;
 
 	case HImode:
 	  if (GET_CODE (XEXP (x, 1)) != CONST_INT)
 	    {
 	      *total = COSTS_N_INSNS (2);
-	      *total += avr_operand_rtx_cost (XEXP (x, 1), mode, code);
+	      *total += avr_operand_rtx_cost (XEXP (x, 1), mode, code, speed);
 	    }
 	  else if (INTVAL (XEXP (x, 1)) >= -63 && INTVAL (XEXP (x, 1)) <= 63)
 	    *total = COSTS_N_INSNS (1);
@@ -5115,7 +5121,7 @@ avr_rtx_costs (rtx x, int code, int outer_code ATTRIBUTE_UNUSED, int *total)
 	  if (GET_CODE (XEXP (x, 1)) != CONST_INT)
 	    {
 	      *total = COSTS_N_INSNS (4);
-	      *total += avr_operand_rtx_cost (XEXP (x, 1), mode, code);
+	      *total += avr_operand_rtx_cost (XEXP (x, 1), mode, code, speed);
 	    }
 	  else if (INTVAL (XEXP (x, 1)) >= -63 && INTVAL (XEXP (x, 1)) <= 63)
 	    *total = COSTS_N_INSNS (1);
@@ -5126,22 +5132,22 @@ avr_rtx_costs (rtx x, int code, int outer_code ATTRIBUTE_UNUSED, int *total)
 	default:
 	  return false;
 	}
-      *total += avr_operand_rtx_cost (XEXP (x, 0), mode, code);
+      *total += avr_operand_rtx_cost (XEXP (x, 0), mode, code, speed);
       return true;
 
     case MINUS:
     case AND:
     case IOR:
       *total = COSTS_N_INSNS (GET_MODE_SIZE (mode));
-      *total += avr_operand_rtx_cost (XEXP (x, 0), mode, code);
+      *total += avr_operand_rtx_cost (XEXP (x, 0), mode, code, speed);
       if (GET_CODE (XEXP (x, 1)) != CONST_INT)
-          *total += avr_operand_rtx_cost (XEXP (x, 1), mode, code);
+          *total += avr_operand_rtx_cost (XEXP (x, 1), mode, code, speed);
       return true;
 
     case XOR:
       *total = COSTS_N_INSNS (GET_MODE_SIZE (mode));
-      *total += avr_operand_rtx_cost (XEXP (x, 0), mode, code);
-      *total += avr_operand_rtx_cost (XEXP (x, 1), mode, code);
+      *total += avr_operand_rtx_cost (XEXP (x, 0), mode, code, speed);
+      *total += avr_operand_rtx_cost (XEXP (x, 1), mode, code, speed);
       return true;
 
     case MULT:
@@ -5149,8 +5155,8 @@ avr_rtx_costs (rtx x, int code, int outer_code ATTRIBUTE_UNUSED, int *total)
 	{
 	case QImode:
 	  if (AVR_HAVE_MUL)
-	    *total = COSTS_N_INSNS (optimize_size ? 3 : 4);
-	  else if (optimize_size)
+	    *total = COSTS_N_INSNS (!speed ? 3 : 4);
+	  else if (!speed)
 	    *total = COSTS_N_INSNS (AVR_HAVE_JMP_CALL ? 2 : 1);
 	  else
 	    return false;
@@ -5158,8 +5164,8 @@ avr_rtx_costs (rtx x, int code, int outer_code ATTRIBUTE_UNUSED, int *total)
 
 	case HImode:
 	  if (AVR_HAVE_MUL)
-	    *total = COSTS_N_INSNS (optimize_size ? 7 : 10);
-	  else if (optimize_size)
+	    *total = COSTS_N_INSNS (!speed ? 7 : 10);
+	  else if (!speed)
 	    *total = COSTS_N_INSNS (AVR_HAVE_JMP_CALL ? 2 : 1);
 	  else
 	    return false;
@@ -5168,20 +5174,20 @@ avr_rtx_costs (rtx x, int code, int outer_code ATTRIBUTE_UNUSED, int *total)
 	default:
 	  return false;
 	}
-      *total += avr_operand_rtx_cost (XEXP (x, 0), mode, code);
-      *total += avr_operand_rtx_cost (XEXP (x, 1), mode, code);
+      *total += avr_operand_rtx_cost (XEXP (x, 0), mode, code, speed);
+      *total += avr_operand_rtx_cost (XEXP (x, 1), mode, code, speed);
       return true;
 
     case DIV:
     case MOD:
     case UDIV:
     case UMOD:
-      if (optimize_size)
+      if (!speed)
 	*total = COSTS_N_INSNS (AVR_HAVE_JMP_CALL ? 2 : 1);
       else
 	return false;
-      *total += avr_operand_rtx_cost (XEXP (x, 0), mode, code);
-      *total += avr_operand_rtx_cost (XEXP (x, 1), mode, code);
+      *total += avr_operand_rtx_cost (XEXP (x, 0), mode, code, speed);
+      *total += avr_operand_rtx_cost (XEXP (x, 1), mode, code, speed);
       return true;
 
     case ASHIFT:
@@ -5190,8 +5196,8 @@ avr_rtx_costs (rtx x, int code, int outer_code ATTRIBUTE_UNUSED, int *total)
 	case QImode:
 	  if (GET_CODE (XEXP (x, 1)) != CONST_INT)
 	    {
-	      *total = COSTS_N_INSNS (optimize_size ? 4 : 17);
-	      *total += avr_operand_rtx_cost (XEXP (x, 1), mode, code);
+	      *total = COSTS_N_INSNS (!speed ? 4 : 17);
+	      *total += avr_operand_rtx_cost (XEXP (x, 1), mode, code, speed);
 	    }
 	  else
 	    {
@@ -5208,8 +5214,8 @@ avr_rtx_costs (rtx x, int code, int outer_code ATTRIBUTE_UNUSED, int *total)
 	case HImode:
 	  if (GET_CODE (XEXP (x, 1)) != CONST_INT)
 	    {
-	      *total = COSTS_N_INSNS (optimize_size ? 5 : 41);
-	      *total += avr_operand_rtx_cost (XEXP (x, 1), mode, code);
+	      *total = COSTS_N_INSNS (!speed ? 5 : 41);
+	      *total += avr_operand_rtx_cost (XEXP (x, 1), mode, code, speed);
 	    }
 	  else
 	    switch (INTVAL (XEXP (x, 1)))
@@ -5236,25 +5242,25 @@ avr_rtx_costs (rtx x, int code, int outer_code ATTRIBUTE_UNUSED, int *total)
 		*total = COSTS_N_INSNS (5);
 		break;
 	      case 4:
-		*total = COSTS_N_INSNS (optimize_size ? 5 : 8);
+		*total = COSTS_N_INSNS (!speed ? 5 : 8);
 		break;
 	      case 6:
-		*total = COSTS_N_INSNS (optimize_size ? 5 : 9);
+		*total = COSTS_N_INSNS (!speed ? 5 : 9);
 		break;
 	      case 5:
-		*total = COSTS_N_INSNS (optimize_size ? 5 : 10);
+		*total = COSTS_N_INSNS (!speed ? 5 : 10);
 		break;
 	      default:
-	        *total = COSTS_N_INSNS (optimize_size ? 5 : 41);
-	        *total += avr_operand_rtx_cost (XEXP (x, 1), mode, code);
+	        *total = COSTS_N_INSNS (!speed ? 5 : 41);
+	        *total += avr_operand_rtx_cost (XEXP (x, 1), mode, code, speed);
 	      }
 	  break;
 
 	case SImode:
 	  if (GET_CODE (XEXP (x, 1)) != CONST_INT)
 	    {
-	      *total = COSTS_N_INSNS (optimize_size ? 7 : 113);
-	      *total += avr_operand_rtx_cost (XEXP (x, 1), mode, code);
+	      *total = COSTS_N_INSNS (!speed ? 7 : 113);
+	      *total += avr_operand_rtx_cost (XEXP (x, 1), mode, code, speed);
 	    }
 	  else
 	    switch (INTVAL (XEXP (x, 1)))
@@ -5274,18 +5280,18 @@ avr_rtx_costs (rtx x, int code, int outer_code ATTRIBUTE_UNUSED, int *total)
 		*total = COSTS_N_INSNS (6);
 		break;
 	      case 2:
-		*total = COSTS_N_INSNS (optimize_size ? 7 : 8);
+		*total = COSTS_N_INSNS (!speed ? 7 : 8);
 		break;
 	      default:
-		*total = COSTS_N_INSNS (optimize_size ? 7 : 113);
-		*total += avr_operand_rtx_cost (XEXP (x, 1), mode, code);
+		*total = COSTS_N_INSNS (!speed ? 7 : 113);
+		*total += avr_operand_rtx_cost (XEXP (x, 1), mode, code, speed);
 	      }
 	  break;
 
 	default:
 	  return false;
 	}
-      *total += avr_operand_rtx_cost (XEXP (x, 0), mode, code);
+      *total += avr_operand_rtx_cost (XEXP (x, 0), mode, code, speed);
       return true;
 
     case ASHIFTRT:
@@ -5294,8 +5300,8 @@ avr_rtx_costs (rtx x, int code, int outer_code ATTRIBUTE_UNUSED, int *total)
 	case QImode:
 	  if (GET_CODE (XEXP (x, 1)) != CONST_INT)
 	    {
-	      *total = COSTS_N_INSNS (optimize_size ? 4 : 17);
-	      *total += avr_operand_rtx_cost (XEXP (x, 1), mode, code);
+	      *total = COSTS_N_INSNS (!speed ? 4 : 17);
+	      *total += avr_operand_rtx_cost (XEXP (x, 1), mode, code, speed);
 	    }
 	  else
 	    {
@@ -5314,8 +5320,8 @@ avr_rtx_costs (rtx x, int code, int outer_code ATTRIBUTE_UNUSED, int *total)
 	case HImode:
 	  if (GET_CODE (XEXP (x, 1)) != CONST_INT)
 	    {
-	      *total = COSTS_N_INSNS (optimize_size ? 5 : 41);
-	      *total += avr_operand_rtx_cost (XEXP (x, 1), mode, code);
+	      *total = COSTS_N_INSNS (!speed ? 5 : 41);
+	      *total += avr_operand_rtx_cost (XEXP (x, 1), mode, code, speed);
 	    }
 	  else
 	    switch (INTVAL (XEXP (x, 1)))
@@ -5340,26 +5346,26 @@ avr_rtx_costs (rtx x, int code, int outer_code ATTRIBUTE_UNUSED, int *total)
 		*total = COSTS_N_INSNS (5);
 		break;
               case 11:
-                *total = COSTS_N_INSNS (optimize_size ? 5 : 6);
+                *total = COSTS_N_INSNS (!speed ? 5 : 6);
 		break;
               case 12:
-                *total = COSTS_N_INSNS (optimize_size ? 5 : 7);
+                *total = COSTS_N_INSNS (!speed ? 5 : 7);
 		break;
               case 6:
 	      case 13:
-                *total = COSTS_N_INSNS (optimize_size ? 5 : 8);
+                *total = COSTS_N_INSNS (!speed ? 5 : 8);
 		break;
 	      default:
-	        *total = COSTS_N_INSNS (optimize_size ? 5 : 41);
-	        *total += avr_operand_rtx_cost (XEXP (x, 1), mode, code);
+	        *total = COSTS_N_INSNS (!speed ? 5 : 41);
+	        *total += avr_operand_rtx_cost (XEXP (x, 1), mode, code, speed);
 	      }
 	  break;
 
 	case SImode:
 	  if (GET_CODE (XEXP (x, 1)) != CONST_INT)
 	    {
-	      *total = COSTS_N_INSNS (optimize_size ? 7 : 113);
-	      *total += avr_operand_rtx_cost (XEXP (x, 1), mode, code);
+	      *total = COSTS_N_INSNS (!speed ? 7 : 113);
+	      *total += avr_operand_rtx_cost (XEXP (x, 1), mode, code, speed);
 	    }
 	  else
 	    switch (INTVAL (XEXP (x, 1)))
@@ -5376,21 +5382,21 @@ avr_rtx_costs (rtx x, int code, int outer_code ATTRIBUTE_UNUSED, int *total)
 		*total = COSTS_N_INSNS (6);
 		break;
 	      case 2:
-		*total = COSTS_N_INSNS (optimize_size ? 7 : 8);
+		*total = COSTS_N_INSNS (!speed ? 7 : 8);
 		break;
 	      case 31:
 		*total = COSTS_N_INSNS (AVR_HAVE_MOVW ? 4 : 5);
 		break;
 	      default:
-		*total = COSTS_N_INSNS (optimize_size ? 7 : 113);
-		*total += avr_operand_rtx_cost (XEXP (x, 1), mode, code);
+		*total = COSTS_N_INSNS (!speed ? 7 : 113);
+		*total += avr_operand_rtx_cost (XEXP (x, 1), mode, code, speed);
 	      }
 	  break;
 
 	default:
 	  return false;
 	}
-      *total += avr_operand_rtx_cost (XEXP (x, 0), mode, code);
+      *total += avr_operand_rtx_cost (XEXP (x, 0), mode, code, speed);
       return true;
 
     case LSHIFTRT:
@@ -5399,8 +5405,8 @@ avr_rtx_costs (rtx x, int code, int outer_code ATTRIBUTE_UNUSED, int *total)
 	case QImode:
 	  if (GET_CODE (XEXP (x, 1)) != CONST_INT)
 	    {
-	      *total = COSTS_N_INSNS (optimize_size ? 4 : 17);
-	      *total += avr_operand_rtx_cost (XEXP (x, 1), mode, code);
+	      *total = COSTS_N_INSNS (!speed ? 4 : 17);
+	      *total += avr_operand_rtx_cost (XEXP (x, 1), mode, code, speed);
 	    }
 	  else
 	    {
@@ -5417,8 +5423,8 @@ avr_rtx_costs (rtx x, int code, int outer_code ATTRIBUTE_UNUSED, int *total)
 	case HImode:
 	  if (GET_CODE (XEXP (x, 1)) != CONST_INT)
 	    {
-	      *total = COSTS_N_INSNS (optimize_size ? 5 : 41);
-	      *total += avr_operand_rtx_cost (XEXP (x, 1), mode, code);
+	      *total = COSTS_N_INSNS (!speed ? 5 : 41);
+	      *total += avr_operand_rtx_cost (XEXP (x, 1), mode, code, speed);
 	    }
 	  else
 	    switch (INTVAL (XEXP (x, 1)))
@@ -5446,26 +5452,26 @@ avr_rtx_costs (rtx x, int code, int outer_code ATTRIBUTE_UNUSED, int *total)
 	      case 12:
 	      case 13:
 	      case 14:
-		*total = COSTS_N_INSNS (optimize_size ? 5 : 6);
+		*total = COSTS_N_INSNS (!speed ? 5 : 6);
 		break;
 	      case 4:
-		*total = COSTS_N_INSNS (optimize_size ? 5 : 7);
+		*total = COSTS_N_INSNS (!speed ? 5 : 7);
 		break;
 	      case 5:
 	      case 6:
-		*total = COSTS_N_INSNS (optimize_size ? 5 : 9);
+		*total = COSTS_N_INSNS (!speed ? 5 : 9);
 		break;
 	      default:
-	        *total = COSTS_N_INSNS (optimize_size ? 5 : 41);
-	        *total += avr_operand_rtx_cost (XEXP (x, 1), mode, code);
+	        *total = COSTS_N_INSNS (!speed ? 5 : 41);
+	        *total += avr_operand_rtx_cost (XEXP (x, 1), mode, code, speed);
 	      }
 	  break;
 
 	case SImode:
 	  if (GET_CODE (XEXP (x, 1)) != CONST_INT)
 	    {
-	      *total = COSTS_N_INSNS (optimize_size ? 7 : 113);
-	      *total += avr_operand_rtx_cost (XEXP (x, 1), mode, code);
+	      *total = COSTS_N_INSNS (!speed ? 7 : 113);
+	      *total += avr_operand_rtx_cost (XEXP (x, 1), mode, code, speed);
 	    }
 	  else
 	    switch (INTVAL (XEXP (x, 1)))
@@ -5477,7 +5483,7 @@ avr_rtx_costs (rtx x, int code, int outer_code ATTRIBUTE_UNUSED, int *total)
 		*total = COSTS_N_INSNS (4);
 		break;
 	      case 2:
-		*total = COSTS_N_INSNS (optimize_size ? 7 : 8);
+		*total = COSTS_N_INSNS (!speed ? 7 : 8);
 		break;
 	      case 8:
 	      case 16:
@@ -5488,15 +5494,15 @@ avr_rtx_costs (rtx x, int code, int outer_code ATTRIBUTE_UNUSED, int *total)
 		*total = COSTS_N_INSNS (6);
 		break;
 	      default:
-		*total = COSTS_N_INSNS (optimize_size ? 7 : 113);
-		*total += avr_operand_rtx_cost (XEXP (x, 1), mode, code);
+		*total = COSTS_N_INSNS (!speed ? 7 : 113);
+		*total += avr_operand_rtx_cost (XEXP (x, 1), mode, code, speed);
 	      }
 	  break;
 
 	default:
 	  return false;
 	}
-      *total += avr_operand_rtx_cost (XEXP (x, 0), mode, code);
+      *total += avr_operand_rtx_cost (XEXP (x, 0), mode, code, speed);
       return true;
 
     case COMPARE:
@@ -5505,13 +5511,13 @@ avr_rtx_costs (rtx x, int code, int outer_code ATTRIBUTE_UNUSED, int *total)
 	case QImode:
 	  *total = COSTS_N_INSNS (1);
 	  if (GET_CODE (XEXP (x, 1)) != CONST_INT)
-	    *total += avr_operand_rtx_cost (XEXP (x, 1), mode, code);
+	    *total += avr_operand_rtx_cost (XEXP (x, 1), mode, code, speed);
 	  break;
 
         case HImode:
 	  *total = COSTS_N_INSNS (2);
 	  if (GET_CODE (XEXP (x, 1)) != CONST_INT)
-            *total += avr_operand_rtx_cost (XEXP (x, 1), mode, code);
+            *total += avr_operand_rtx_cost (XEXP (x, 1), mode, code, speed);
 	  else if (INTVAL (XEXP (x, 1)) != 0)
 	    *total += COSTS_N_INSNS (1);
           break;
@@ -5519,7 +5525,7 @@ avr_rtx_costs (rtx x, int code, int outer_code ATTRIBUTE_UNUSED, int *total)
         case SImode:
           *total = COSTS_N_INSNS (4);
           if (GET_CODE (XEXP (x, 1)) != CONST_INT)
-            *total += avr_operand_rtx_cost (XEXP (x, 1), mode, code);
+            *total += avr_operand_rtx_cost (XEXP (x, 1), mode, code, speed);
 	  else if (INTVAL (XEXP (x, 1)) != 0)
 	    *total += COSTS_N_INSNS (3);
           break;
@@ -5527,7 +5533,7 @@ avr_rtx_costs (rtx x, int code, int outer_code ATTRIBUTE_UNUSED, int *total)
 	default:
 	  return false;
 	}
-      *total += avr_operand_rtx_cost (XEXP (x, 0), mode, code);
+      *total += avr_operand_rtx_cost (XEXP (x, 0), mode, code, speed);
       return true;
 
     default:
@@ -5539,7 +5545,7 @@ avr_rtx_costs (rtx x, int code, int outer_code ATTRIBUTE_UNUSED, int *total)
 /* Calculate the cost of a memory address.  */
 
 static int
-avr_address_cost (rtx x)
+avr_address_cost (rtx x, bool speed ATTRIBUTE_UNUSED)
 {
   if (GET_CODE (x) == PLUS
       && GET_CODE (XEXP (x,1)) == CONST_INT
@@ -5735,19 +5741,19 @@ avr_function_value (const_tree type,
    in class CLASS.  */
 
 enum reg_class
-preferred_reload_class (rtx x ATTRIBUTE_UNUSED, enum reg_class class)
+preferred_reload_class (rtx x ATTRIBUTE_UNUSED, enum reg_class rclass)
 {
-  return class;
+  return rclass;
 }
 
 int
-test_hard_reg_class (enum reg_class class, rtx x)
+test_hard_reg_class (enum reg_class rclass, rtx x)
 {
   int regno = true_regnum (x);
   if (regno < 0)
     return 0;
 
-  if (TEST_HARD_REG_CLASS (class, regno))
+  if (TEST_HARD_REG_CLASS (rclass, regno))
     return 1;
 
   return 0;

@@ -212,10 +212,6 @@ build_gimple_cfg (gimple_seq seq)
 #ifdef ENABLE_CHECKING
   verify_stmts ();
 #endif
-
-  /* Dump a textual representation of the flowgraph.  */
-  if (dump_file)
-    gimple_dump_cfg (dump_file, dump_flags);
 }
 
 static unsigned int
@@ -240,7 +236,8 @@ struct gimple_opt_pass pass_build_cfg =
   PROP_cfg,				/* properties_provided */
   0,					/* properties_destroyed */
   0,					/* todo_flags_start */
-  TODO_verify_stmts | TODO_cleanup_cfg	/* todo_flags_finish */
+  TODO_verify_stmts | TODO_cleanup_cfg
+  | TODO_dump_func			/* todo_flags_finish */
  }
 };
 
@@ -3547,17 +3544,44 @@ verify_types_in_gimple_assign (gimple stmt)
   /* Generic handling via classes.  */
   switch (TREE_CODE_CLASS (rhs_code))
     {
+    case tcc_exceptional: /* for SSA_NAME */
     case tcc_unary:
       if (!useless_type_conversion_p (lhs_type, rhs1_type))
 	{
 	  error ("non-trivial conversion at assignment");
-	  debug_generic_expr (lhs);
-	  debug_generic_expr (rhs1);
+	  debug_generic_expr (lhs_type);
+	  debug_generic_expr (rhs1_type);
+	  return true;
+	}
+      break;
+
+    case tcc_binary:
+      if (!is_gimple_val (rhs1) || !is_gimple_val (rhs2))
+	{
+	  error ("invalid operands in binary expression");
+	  return true;
+	}
+      if (!useless_type_conversion_p (lhs_type, rhs1_type)
+	  || !useless_type_conversion_p (lhs_type, rhs2_type))
+	{
+	  error ("type mismatch in binary expression");
+	  debug_generic_stmt (lhs_type);
+	  debug_generic_stmt (rhs1_type);
+	  debug_generic_stmt (rhs2_type);
 	  return true;
 	}
       break;
 
     case tcc_reference:
+      /* All tcc_reference trees are GIMPLE_SINGLE_RHS.  Verify that
+         no implicit type change happens here.  */
+      if (!useless_type_conversion_p (lhs_type, rhs1_type))
+	{
+	  error ("non-trivial conversion at assignment");
+	  debug_generic_expr (lhs_type);
+	  debug_generic_expr (rhs1_type);
+	  return true;
+	}
       return verify_types_in_gimple_reference (rhs1);
 
     case tcc_comparison:
@@ -3810,9 +3834,17 @@ verify_stmt (gimple_stmt_iterator *gsi)
      didn't see a function declaration before the call.  */
   if (is_gimple_call (stmt))
     {
-      tree decl = gimple_call_fn (stmt);
+      tree decl;
 
-      if (TREE_CODE (decl) == FUNCTION_DECL 
+      if (!is_gimple_call_addr (gimple_call_fn (stmt)))
+	{
+	  error ("invalid function in call statement");
+	  return true;
+	}
+
+      decl = gimple_call_fndecl (stmt);
+      if (decl
+	  && TREE_CODE (decl) == FUNCTION_DECL
 	  && DECL_LOOPING_CONST_OR_PURE_P (decl)
 	  && (!DECL_PURE_P (decl))
 	  && (!TREE_READONLY (decl)))
@@ -3827,7 +3859,7 @@ verify_stmt (gimple_stmt_iterator *gsi)
   if (addr)
     {
       debug_generic_expr (addr);
-      inform ("in statement");
+      inform (input_location, "in statement");
       debug_gimple_stmt (stmt);
       return true;
     }

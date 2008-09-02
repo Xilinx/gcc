@@ -46,6 +46,8 @@ along with GCC; see the file COPYING3.  If not see
 #define TARGET_SSSE3	OPTION_ISA_SSSE3
 #define TARGET_SSE4_1	OPTION_ISA_SSE4_1
 #define TARGET_SSE4_2	OPTION_ISA_SSE4_2
+#define TARGET_AVX	OPTION_ISA_AVX
+#define TARGET_FMA	OPTION_ISA_FMA
 #define TARGET_SSE4A	OPTION_ISA_SSE4A
 #define TARGET_SSE5	OPTION_ISA_SSE5
 #define TARGET_ROUND	OPTION_ISA_ROUND
@@ -170,6 +172,10 @@ struct processor_costs {
 };
 
 extern const struct processor_costs *ix86_cost;
+extern const struct processor_costs ix86_size_cost;
+
+#define ix86_cur_cost() \
+  (optimize_insn_for_size_p () ? &ix86_size_cost: ix86_cost)
 
 /* Macros used in the machine description to test the flags.  */
 
@@ -648,16 +654,32 @@ enum target_cpu_default
 #define STACK_BOUNDARY	(TARGET_64BIT && DEFAULT_ABI == MS_ABI ? 128 \
 							       : BITS_PER_WORD)
 
+/* Stack boundary of the main function guaranteed by OS.  */
+#define MAIN_STACK_BOUNDARY (TARGET_64BIT ? 128 : 32)
+
+/* Minimum stack boundary.  */
+#define MIN_STACK_BOUNDARY (TARGET_64BIT ? 128 : 32)
+
 /* Boundary (in *bits*) on which the stack pointer prefers to be
    aligned; the compiler cannot rely on having this alignment.  */
 #define PREFERRED_STACK_BOUNDARY ix86_preferred_stack_boundary
 
-/* As of July 2001, many runtimes do not align the stack properly when
-   entering main.  This causes expand_main_function to forcibly align
-   the stack, which results in aligned frames for functions called from
-   main, though it does nothing for the alignment of main itself.  */
-#define FORCE_PREFERRED_STACK_BOUNDARY_IN_MAIN \
-  (ix86_preferred_stack_boundary > STACK_BOUNDARY && !TARGET_64BIT)
+/* It should be MIN_STACK_BOUNDARY.  But we set it to 128 bits for
+   both 32bit and 64bit, to support codes that need 128 bit stack
+   alignment for SSE instructions, but can't realign the stack.  */
+#define PREFERRED_STACK_BOUNDARY_DEFAULT 128
+
+/* 1 if -mstackrealign should be turned on by default.  It will
+   generate an alternate prologue and epilogue that realigns the
+   runtime stack if nessary.  This supports mixing codes that keep a
+   4-byte aligned stack, as specified by i386 psABI, with codes that
+   need a 16-byte aligned stack, as required by SSE instructions.  If
+   STACK_REALIGN_DEFAULT is 1 and PREFERRED_STACK_BOUNDARY_DEFAULT is
+   128, stacks for all functions may be realigned.  */
+#define STACK_REALIGN_DEFAULT 0
+
+/* Boundary (in *bits*) on which the incoming stack is aligned.  */
+#define INCOMING_STACK_BOUNDARY ix86_incoming_stack_boundary
 
 /* Target OS keeps a vector-aligned (128-bit, 16-byte) stack.  This is
    mandatory for the 64-bit ABI, and may or may not be true for other
@@ -682,7 +704,10 @@ enum target_cpu_default
    Pentium+ prefers DFmode values to be aligned to 64 bit boundary
    and Pentium Pro XFmode values at 128 bit boundaries.  */
 
-#define BIGGEST_ALIGNMENT 128
+#define BIGGEST_ALIGNMENT (TARGET_AVX ? 256: 128)
+
+/* Maximum stack alignment.  */
+#define MAX_STACK_ALIGNMENT MAX_OFILE_ALIGNMENT
 
 /* Decide whether a variable of mode MODE should be 128 bit aligned.  */
 #define ALIGN_MODE_128(MODE) \
@@ -973,6 +998,10 @@ do {									\
 
 #define HARD_REGNO_NREGS_WITH_PADDING(REGNO, MODE) ((MODE) == XFmode ? 4 : 8)
 
+#define VALID_AVX256_REG_MODE(MODE)					\
+  ((MODE) == V32QImode || (MODE) == V16HImode || (MODE) == V8SImode	\
+   || (MODE) == V4DImode || (MODE) == V8SFmode || (MODE) == V4DFmode)
+
 #define VALID_SSE2_REG_MODE(MODE)					\
   ((MODE) == V16QImode || (MODE) == V8HImode || (MODE) == V2DFmode	\
    || (MODE) == V2DImode || (MODE) == DFmode)
@@ -990,8 +1019,14 @@ do {									\
    || (MODE) == V4HImode || (MODE) == V8QImode)
 
 /* ??? No autovectorization into MMX or 3DNOW until we can reliably
-   place emms and femms instructions.  */
-#define UNITS_PER_SIMD_WORD(MODE) (TARGET_SSE ? 16 : UNITS_PER_WORD)
+   place emms and femms instructions.
+   FIXME: AVX has 32byte floating point vector operations and 16byte
+   integer vector operations.  But vectorizer doesn't support
+   different sizes for integer and floating point vectors.  We limit
+   vector size to 16byte.  */
+#define UNITS_PER_SIMD_WORD(MODE)					\
+  (TARGET_AVX ? (((MODE) == DFmode || (MODE) == SFmode) ? 16 : 16)	\
+   	      : (TARGET_SSE ? 16 : UNITS_PER_WORD))
 
 #define VALID_DFP_MODE_P(MODE) \
   ((MODE) == SDmode || (MODE) == DDmode || (MODE) == TDmode)
@@ -1012,7 +1047,9 @@ do {									\
 #define SSE_REG_MODE_P(MODE)						\
   ((MODE) == TImode || (MODE) == V16QImode || (MODE) == TFmode		\
    || (MODE) == V8HImode || (MODE) == V2DFmode || (MODE) == V2DImode	\
-   || (MODE) == V4SFmode || (MODE) == V4SImode)
+   || (MODE) == V4SFmode || (MODE) == V4SImode || (MODE) == V32QImode	\
+   || (MODE) == V16HImode || (MODE) == V8SImode || (MODE) == V4DImode	\
+   || (MODE) == V8SFmode || (MODE) == V4DFmode)
 
 /* Value is 1 if hard register REGNO can hold a value of machine-mode MODE.  */
 
@@ -1110,7 +1147,7 @@ do {									\
    the pic register when possible.  The change is visible after the
    prologue has been emitted.  */
 
-#define REAL_PIC_OFFSET_TABLE_REGNUM  3
+#define REAL_PIC_OFFSET_TABLE_REGNUM  BX_REG
 
 #define PIC_OFFSET_TABLE_REGNUM				\
   ((TARGET_64BIT && ix86_cmodel == CM_SMALL_PIC)	\
@@ -1251,6 +1288,19 @@ enum reg_class
 { 0xffffffff,0x1fffff }							\
 }
 
+/* The following macro defines cover classes for Integrated Register
+   Allocator.  Cover classes is a set of non-intersected register
+   classes covering all hard registers used for register allocation
+   purpose.  Any move between two registers of a cover class should be
+   cheaper than load or store of the registers.  The macro value is
+   array of register classes with LIM_REG_CLASSES used as the end
+   marker.  */
+
+#define IRA_COVER_CLASSES						     \
+{									     \
+  GENERAL_REGS, FLOAT_REGS, MMX_REGS, SSE_REGS, LIM_REG_CLASSES		     \
+}
+
 /* The same information, inverted:
    Return the class number of the smallest class containing
    reg number REGNO.  This could be a conditional expression
@@ -1302,6 +1352,19 @@ enum reg_class
 
 #define SSE_VEC_FLOAT_MODE_P(MODE) \
   ((TARGET_SSE && (MODE) == V4SFmode) || (TARGET_SSE2 && (MODE) == V2DFmode))
+
+#define AVX_FLOAT_MODE_P(MODE) \
+  (TARGET_AVX && ((MODE) == SFmode || (MODE) == DFmode))
+
+#define AVX128_VEC_FLOAT_MODE_P(MODE) \
+  (TARGET_AVX && ((MODE) == V4SFmode || (MODE) == V2DFmode))
+
+#define AVX256_VEC_FLOAT_MODE_P(MODE) \
+  (TARGET_AVX && ((MODE) == V8SFmode || (MODE) == V4DFmode))
+
+#define AVX_VEC_FLOAT_MODE_P(MODE) \
+  (TARGET_AVX && ((MODE) == V4SFmode || (MODE) == V2DFmode \
+		  || (MODE) == V8SFmode || (MODE) == V4DFmode))
 
 #define MMX_REG_P(XOP) (REG_P (XOP) && MMX_REGNO_P (REGNO (XOP)))
 #define MMX_REGNO_P(N) IN_RANGE ((N), FIRST_MMX_REG, LAST_MMX_REG)
@@ -1523,6 +1586,7 @@ typedef struct ix86_args {
   int fastcall;			/* fastcall calling convention is used */
   int sse_words;		/* # sse words passed so far */
   int sse_nregs;		/* # sse registers available for passing */
+  int warn_avx;			/* True when we want to warn about AVX ABI.  */
   int warn_sse;			/* True when we want to warn about SSE ABI.  */
   int warn_mmx;			/* True when we want to warn about MMX ABI.  */
   int sse_regno;		/* next available sse register number */
@@ -1629,12 +1693,9 @@ typedef struct ix86_args {
  { FRAME_POINTER_REGNUM, HARD_FRAME_POINTER_REGNUM}}	\
 
 /* Given FROM and TO register numbers, say whether this elimination is
-   allowed.  Frame pointer elimination is automatically handled.
+   allowed.   */
 
-   All other eliminations are valid.  */
-
-#define CAN_ELIMINATE(FROM, TO) \
-  ((TO) == STACK_POINTER_REGNUM ? !frame_pointer_needed : 1)
+#define CAN_ELIMINATE(FROM, TO) ix86_can_eliminate ((FROM), (TO))
 
 /* Define the offset between two registers, one to be eliminated, and the other
    its replacement, at the start of a routine.  */
@@ -1845,12 +1906,12 @@ do {									\
 
    If you don't define this, a reasonable default is used.  */
 
-#define MOVE_RATIO (optimize_size ? 3 : ix86_cost->move_ratio)
+#define MOVE_RATIO(speed) ((speed) ? ix86_cost->move_ratio : 3)
 
 /* If a clear memory operation would take CLEAR_RATIO or more simple
    move-instruction sequences, we will do a clrmem or libcall instead.  */
 
-#define CLEAR_RATIO (optimize_size ? 2 : MIN (6, ix86_cost->move_ratio))
+#define CLEAR_RATIO(speed) ((speed) ? MIN (6, ix86_cost->move_ratio) : 2)
 
 /* Define if shifts truncate the shift count
    which implies one can omit a sign-extension or zero-extension
@@ -1914,7 +1975,8 @@ do {							\
 /* A C expression for the cost of a branch instruction.  A value of 1
    is the default; other values are interpreted relative to that.  */
 
-#define BRANCH_COST ix86_branch_cost
+#define BRANCH_COST(speed_p, predictable_p) \
+  (!(speed_p) ? 2 : (predictable_p) ? 0 : ix86_branch_cost)
 
 /* Define this macro as a C expression which is nonzero if accessing
    less than a word of memory (i.e. a `char' or a `short') is no
@@ -2100,6 +2162,29 @@ do {									\
 #define ASM_OUTPUT_ADDR_DIFF_ELT(FILE, BODY, VALUE, REL) \
   ix86_output_addr_diff_elt ((FILE), (VALUE), (REL))
 
+/* When we see %v, we will print the 'v' prefix if TARGET_AVX is
+   true.  */
+
+#define ASM_OUTPUT_AVX_PREFIX(STREAM, PTR)	\
+{						\
+  if ((PTR)[0] == '%' && (PTR)[1] == 'v')	\
+    {						\
+      if (TARGET_AVX)				\
+	(PTR) += 1;				\
+      else					\
+	(PTR) += 2;				\
+    }						\
+}
+
+/* A C statement or statements which output an assembler instruction
+   opcode to the stdio stream STREAM.  The macro-operand PTR is a
+   variable of type `char *' which points to the opcode name in
+   its "internal" form--the form that is written in the machine
+   description.  */
+
+#define ASM_OUTPUT_OPCODE(STREAM, PTR) \
+  ASM_OUTPUT_AVX_PREFIX ((STREAM), (PTR))
+
 /* Under some conditions we need jump tables in the text section,
    because the assembler cannot handle label differences between
    sections.  This is the case for x86_64 on Mach-O for example.  */
@@ -2203,6 +2288,7 @@ enum asm_dialect {
 
 extern enum asm_dialect ix86_asm_dialect;
 extern unsigned int ix86_preferred_stack_boundary;
+extern unsigned int ix86_incoming_stack_boundary;
 extern int ix86_branch_cost, ix86_section_threshold;
 
 /* Smallest class containing REGNO.  */
@@ -2304,7 +2390,6 @@ struct machine_function GTY(())
 {
   struct stack_local_entry *stack_locals;
   const char *some_ld_name;
-  rtx force_align_arg_pointer;
   int save_varrargs_registers;
   int accesses_prev_frame;
   int optimize_mode_switching[MAX_386_ENTITIES];

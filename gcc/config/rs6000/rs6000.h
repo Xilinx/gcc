@@ -72,6 +72,12 @@
 #define ASM_CPU_POWER6_SPEC "-mpower4 -maltivec"
 #endif
 
+#ifdef HAVE_AS_VSX
+#define ASM_CPU_POWER7_SPEC "-mpower7"
+#else
+#define ASM_CPU_POWER7_SPEC "-mpower4 -maltivec"
+#endif
+
 /* Common ASM definitions used by ASM_SPEC among the various targets
    for handling -mcpu=xxx switches.  */
 #define ASM_CPU_SPEC \
@@ -92,6 +98,7 @@
 %{mcpu=power5+: %(asm_cpu_power5)} \
 %{mcpu=power6: %(asm_cpu_power6) -maltivec} \
 %{mcpu=power6x: %(asm_cpu_power6) -maltivec} \
+%{mcpu=power7: %(asm_cpu_power7)} \
 %{mcpu=powerpc: -mppc} \
 %{mcpu=rios: -mpwr} \
 %{mcpu=rios1: -mpwr} \
@@ -160,6 +167,7 @@
   { "cc1_cpu",			CC1_CPU_SPEC },				\
   { "asm_cpu_power5",		ASM_CPU_POWER5_SPEC },			\
   { "asm_cpu_power6",		ASM_CPU_POWER6_SPEC },			\
+  { "asm_cpu_power7",		ASM_CPU_POWER7_SPEC },			\
   SUBTARGET_EXTRA_SPECS
 
 /* -mcpu=native handling only makes sense with compiler running on
@@ -644,12 +652,15 @@ extern enum rs6000_nop_insertion rs6000_sched_insert_nops;
 /* Define this macro to be the value 1 if unaligned accesses have a cost
    many times greater than aligned accesses, for example if they are
    emulated in a trap handler.  */
+/* Altivec vector memory instructions simply ignore the low bits; SPE
+   vector memory instructions trap on unaligned accesses.  */
 #define SLOW_UNALIGNED_ACCESS(MODE, ALIGN)				\
   (STRICT_ALIGNMENT							\
    || (((MODE) == SFmode || (MODE) == DFmode || (MODE) == TFmode	\
 	|| (MODE) == SDmode || (MODE) == DDmode || (MODE) == TDmode	\
 	|| (MODE) == DImode)						\
-       && (ALIGN) < 32))
+       && (ALIGN) < 32)							\
+   || (VECTOR_MODE_P ((MODE)) && (ALIGN) < GET_MODE_BITSIZE ((MODE))))
 
 /* Standard register usage.  */
 
@@ -956,7 +967,7 @@ extern enum rs6000_nop_insertion rs6000_sched_insert_nops;
    Set this to 3 on the RS/6000 since that is roughly the average cost of an
    unscheduled conditional branch.  */
 
-#define BRANCH_COST 3
+#define BRANCH_COST(speed_p, predictable_p) 3
 
 /* Override BRANCH_COST heuristic which empirically produces worse
    performance for removing short circuiting from the logical ops.  */
@@ -1115,6 +1126,22 @@ enum reg_class
   { 0xffffffff, 0x00000000, 0x0000efff, 0x00020000 }, /* NON_FLOAT_REGS */   \
   { 0x00000000, 0x00000000, 0x00001000, 0x00000000 }, /* XER_REGS */	     \
   { 0xffffffff, 0xffffffff, 0xffffffff, 0x0003ffff }  /* ALL_REGS */	     \
+}
+
+/* The following macro defines cover classes for Integrated Register
+   Allocator.  Cover classes is a set of non-intersected register
+   classes covering all hard registers used for register allocation
+   purpose.  Any move between two registers of a cover class should be
+   cheaper than load or store of the registers.  The macro value is
+   array of register classes with LIM_REG_CLASSES used as the end
+   marker.  */
+
+#define IRA_COVER_CLASSES						     \
+{									     \
+  GENERAL_REGS, SPECIAL_REGS, FLOAT_REGS, ALTIVEC_REGS,			     \
+  /*VRSAVE_REGS,*/ VSCR_REGS, SPE_ACC_REGS, SPEFSCR_REGS,		     \
+  /* MQ_REGS, LINK_REGS, CTR_REGS, */					     \
+  CR_REGS, XER_REGS, LIM_REG_CLASSES					     \
 }
 
 /* The same information, inverted:

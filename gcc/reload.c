@@ -1403,13 +1403,36 @@ push_reload (rtx in, rtx out, rtx *inloc, rtx *outloc,
 	      else
 		remove_address_replacements (rld[i].in);
 	    }
-	  rld[i].in = in;
-	  rld[i].in_reg = in_reg;
+	  /* When emitting reloads we don't necessarily look at the in-
+	     and outmode, but also directly at the operands (in and out).
+	     So we can't simply overwrite them with whatever we have found
+	     for this (to-be-merged) reload, we have to "merge" that too.
+	     Reusing another reload already verified that we deal with the
+	     same operands, just possibly in different modes.  So we
+	     overwrite the operands only when the new mode is larger.
+	     See also PR33613.  */
+	  if (!rld[i].in
+	      || GET_MODE_SIZE (GET_MODE (in))
+	           > GET_MODE_SIZE (GET_MODE (rld[i].in)))
+	    rld[i].in = in;
+	  if (!rld[i].in_reg
+	      || (in_reg
+		  && GET_MODE_SIZE (GET_MODE (in_reg))
+	             > GET_MODE_SIZE (GET_MODE (rld[i].in_reg))))
+	    rld[i].in_reg = in_reg;
 	}
       if (out != 0)
 	{
-	  rld[i].out = out;
-	  rld[i].out_reg = outloc ? *outloc : 0;
+	  if (!rld[i].out
+	      || (out
+		  && GET_MODE_SIZE (GET_MODE (out))
+	             > GET_MODE_SIZE (GET_MODE (rld[i].out))))
+	    rld[i].out = out;
+	  if (outloc
+	      && (!rld[i].out_reg
+		  || GET_MODE_SIZE (GET_MODE (*outloc))
+		     > GET_MODE_SIZE (GET_MODE (rld[i].out_reg))))
+	    rld[i].out_reg = *outloc;
 	}
       if (reg_class_subset_p (rclass, rld[i].rclass))
 	rld[i].rclass = rclass;
@@ -1526,8 +1549,10 @@ push_reload (rtx in, rtx out, rtx *inloc, rtx *outloc,
 	    && reg_mentioned_p (XEXP (note, 0), in)
 	    /* Check that a former pseudo is valid; see find_dummy_reload.  */
 	    && (ORIGINAL_REGNO (XEXP (note, 0)) < FIRST_PSEUDO_REGISTER
-		|| (!bitmap_bit_p (DF_LIVE_OUT (ENTRY_BLOCK_PTR),
-				   ORIGINAL_REGNO (XEXP (note, 0)))
+		|| (! bitmap_bit_p (flag_ira
+				    ? DF_LR_OUT (ENTRY_BLOCK_PTR)
+				    : DF_LIVE_OUT (ENTRY_BLOCK_PTR),
+				    ORIGINAL_REGNO (XEXP (note, 0)))
 		    && hard_regno_nregs[regno][GET_MODE (XEXP (note, 0))] == 1))
 	    && ! refers_to_regno_for_reload_p (regno,
 					       end_hard_regno (rel_mode,
@@ -2004,7 +2029,9 @@ find_dummy_reload (rtx real_in, rtx real_out, rtx *inloc, rtx *outloc,
 	     can ignore the conflict).  We must never introduce writes
 	     to such hardregs, as they would clobber the other live
 	     pseudo.  See PR 20973.  */
-          || (!bitmap_bit_p (DF_LIVE_OUT (ENTRY_BLOCK_PTR),
+          || (!bitmap_bit_p (flag_ira
+			     ? DF_LR_OUT (ENTRY_BLOCK_PTR)
+			     : DF_LIVE_OUT (ENTRY_BLOCK_PTR),
 			     ORIGINAL_REGNO (in))
 	      /* Similarly, only do this if we can be sure that the death
 		 note is still valid.  global can assign some hardreg to
@@ -2972,12 +2999,11 @@ find_reloads (rtx insn, int replace, int ind_levels, int live_known,
 	      if (REG_P (SUBREG_REG (operand))
 		  && REGNO (SUBREG_REG (operand)) < FIRST_PSEUDO_REGISTER)
 		{
-		  if (!subreg_offset_representable_p
-			(REGNO (SUBREG_REG (operand)),
-			 GET_MODE (SUBREG_REG (operand)),
-			 SUBREG_BYTE (operand),
-			 GET_MODE (operand)))
-		     force_reload = 1;
+		  if (simplify_subreg_regno (REGNO (SUBREG_REG (operand)),
+					     GET_MODE (SUBREG_REG (operand)),
+					     SUBREG_BYTE (operand),
+					     GET_MODE (operand)) < 0)
+		    force_reload = 1;
 		  offset += subreg_regno_offset (REGNO (SUBREG_REG (operand)),
 						 GET_MODE (SUBREG_REG (operand)),
 						 SUBREG_BYTE (operand),
@@ -3843,49 +3869,61 @@ find_reloads (rtx insn, int replace, int ind_levels, int live_known,
   /* Any constants that aren't allowed and can't be reloaded
      into registers are here changed into memory references.  */
   for (i = 0; i < noperands; i++)
-    if (! goal_alternative_win[i]
-	&& CONST_POOL_OK_P (recog_data.operand[i])
-	&& ((PREFERRED_RELOAD_CLASS (recog_data.operand[i],
-				     (enum reg_class) goal_alternative[i])
-	     == NO_REGS)
-	    || no_input_reloads)
-	&& operand_mode[i] != VOIDmode)
+    if (! goal_alternative_win[i])
       {
-	int this_address_reloaded;
+	rtx op = recog_data.operand[i];
+	rtx subreg = NULL_RTX;
+	rtx plus = NULL_RTX;
+	enum machine_mode mode = operand_mode[i];
 
-	this_address_reloaded = 0;
-	substed_operand[i] = recog_data.operand[i]
-	  = find_reloads_toplev (force_const_mem (operand_mode[i],
-						  recog_data.operand[i]),
-				 i, address_type[i], ind_levels, 0, insn,
-				 &this_address_reloaded);
-	if (alternative_allows_const_pool_ref (this_address_reloaded == 0
-					       ? substed_operand[i]
-					       : NULL,
-					       recog_data.constraints[i],
-					       goal_alternative_number))
-	  goal_alternative_win[i] = 1;
-      }
+	/* Reloads of SUBREGs of CONSTANT RTXs are handled later in
+	   push_reload so we have to let them pass here.  */
+	if (GET_CODE (op) == SUBREG)
+	  {
+	    subreg = op;
+	    op = SUBREG_REG (op);
+	    mode = GET_MODE (op);
+	  }
 
-  /* Likewise any invalid constants appearing as operand of a PLUS
-     that is to be reloaded.  */
-  for (i = 0; i < noperands; i++)
-    if (! goal_alternative_win[i]
-	&& GET_CODE (recog_data.operand[i]) == PLUS
-	&& CONST_POOL_OK_P (XEXP (recog_data.operand[i], 1))
-	&& (PREFERRED_RELOAD_CLASS (XEXP (recog_data.operand[i], 1),
-				    (enum reg_class) goal_alternative[i])
-	     == NO_REGS)
-	&& operand_mode[i] != VOIDmode)
-      {
-	rtx tem = force_const_mem (operand_mode[i],
-				   XEXP (recog_data.operand[i], 1));
-	tem = gen_rtx_PLUS (operand_mode[i],
-			    XEXP (recog_data.operand[i], 0), tem);
+	if (GET_CODE (op) == PLUS)
+	  {
+	    plus = op;
+	    op = XEXP (op, 1);
+	  }
 
-	substed_operand[i] = recog_data.operand[i]
-	  = find_reloads_toplev (tem, i, address_type[i],
-				 ind_levels, 0, insn, NULL);
+	if (CONST_POOL_OK_P (op)
+	    && ((PREFERRED_RELOAD_CLASS (op,
+					 (enum reg_class) goal_alternative[i])
+		 == NO_REGS)
+		|| no_input_reloads)
+	    && mode != VOIDmode)
+	  {
+	    int this_address_reloaded;
+	    rtx tem = force_const_mem (mode, op);
+
+	    /* If we stripped a SUBREG or a PLUS above add it back.  */
+	    if (plus != NULL_RTX)
+	      tem = gen_rtx_PLUS (mode, XEXP (plus, 0), tem);
+
+	    if (subreg != NULL_RTX)
+	      tem = gen_rtx_SUBREG (operand_mode[i], tem, SUBREG_BYTE (subreg));
+
+	    this_address_reloaded = 0;
+	    substed_operand[i] = recog_data.operand[i]
+	      = find_reloads_toplev (tem, i, address_type[i], ind_levels,
+				     0, insn, &this_address_reloaded);
+
+	    /* If the alternative accepts constant pool refs directly
+	       there will be no reload needed at all.  */
+	    if (plus == NULL_RTX
+		&& subreg == NULL_RTX
+		&& alternative_allows_const_pool_ref (this_address_reloaded == 0
+						      ? substed_operand[i]
+						      : NULL,
+						      recog_data.constraints[i],
+						      goal_alternative_number))
+	      goal_alternative_win[i] = 1;
+	  }
       }
 
   /* Record the values of the earlyclobber operands for the caller.  */

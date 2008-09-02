@@ -357,7 +357,7 @@ extern void push_cleanup (tree, tree, bool);
 extern tree pushdecl_top_level (tree);
 extern tree pushdecl (tree);
 extern tree build_modify_expr (tree, enum tree_code, tree);
-extern tree build_indirect_ref (tree, const char *);
+extern tree build_indirect_ref (tree, const char *, location_t);
 
 extern int c_expand_decl (tree);
 
@@ -497,11 +497,6 @@ extern int flag_isoc99;
 /* Nonzero means that we have builtin functions, and main is an int.  */
 
 extern int flag_hosted;
-
-/* Warn if main is suspicious.  */
-
-extern int warn_main;
-
 
 /* ObjC language option variables.  */
 
@@ -743,6 +738,9 @@ extern bool same_scalar_type_ignoring_signedness (tree, tree);
 #define c_sizeof(T)  c_sizeof_or_alignof_type (T, true, 1)
 #define c_alignof(T) c_sizeof_or_alignof_type (T, false, 1)
 
+/* Subroutine of build_binary_op, used for certain operations.  */
+extern tree shorten_binary_op (tree result_type, tree op0, tree op1, bool bitwise);
+
 /* Subroutine of build_binary_op, used for comparison operations.
    See if the operands have both been converted from subword integer types
    and, if so, perhaps change them both back to their original type.  */
@@ -853,7 +851,7 @@ extern tree build_function_call (tree, tree);
 
 extern tree resolve_overloaded_builtin (tree, tree);
 
-extern tree finish_label_address_expr (tree);
+extern tree finish_label_address_expr (tree, location_t);
 
 /* Same function prototype, but the C and C++ front ends have
    different implementations.  Used in c-common.c.  */
@@ -925,6 +923,10 @@ extern void warn_about_parentheses (enum tree_code, enum tree_code,
 				    enum tree_code);
 extern void warn_for_unused_label (tree label);
 extern void warn_for_div_by_zero (tree divisor);
+extern void warn_for_sign_compare (tree orig_op0, tree orig_op1, 
+				   tree op0, tree op1, 
+				   tree result_type, 
+				   enum tree_code resultcode);
 
 /* In c-gimplify.c  */
 extern void c_genericize (tree);

@@ -33,10 +33,12 @@
 
 with Ada.Finalization;            use Ada.Finalization;
 with Ada.IO_Exceptions;           use Ada.IO_Exceptions;
+with Interfaces.C;
 with Interfaces.C_Streams;        use Interfaces.C_Streams;
 
 with System.CRTL;
 with System.Case_Util;            use System.Case_Util;
+with System.OS_Lib;
 with System.Soft_Links;
 
 with Ada.Unchecked_Deallocation;
@@ -47,6 +49,7 @@ package body System.File_IO is
 
    package SSL renames System.Soft_Links;
 
+   use type Interfaces.C.int;
    use type System.CRTL.size_t;
 
    ----------------------
@@ -830,8 +833,8 @@ package body System.File_IO is
       --  Normal case of Open or Create
 
       else
-         --  If temporary file case, get temporary file name and add
-         --  to the list of temporary files to be deleted on exit.
+         --  If temporary file case, get temporary file name and add to the
+         --  list of temporary files to be deleted on exit.
 
          if Tempfile then
             if not Creat then
@@ -965,7 +968,7 @@ package body System.File_IO is
             --  mode returned by Fopen_Mode is not "r" or "r+", then we first
             --  make sure that the file exists as required by Ada semantics.
 
-            if Creat = False and then Fopstr (1) /= 'r' then
+            if not Creat and then Fopstr (1) /= 'r' then
                if file_exists (Namestr'Address) = 0 then
                   raise Name_Error;
                end if;
@@ -984,11 +987,33 @@ package body System.File_IO is
             Stream := fopen (Namestr'Address, Fopstr'Address, Encoding);
 
             if Stream = NULL_Stream then
-               if not Tempfile and then file_exists (Namestr'Address) = 0 then
-                  raise Name_Error;
-               else
-                  raise Use_Error;
-               end if;
+
+               --  Raise Name_Error if trying to open a non-existent file.
+               --  Otherwise raise Use_Error.
+
+               --  Should we raise Device_Error for ENOSPC???
+
+               declare
+                  subtype Cint is Interfaces.C.int;
+
+                  function Is_File_Not_Found_Error
+                    (Errno_Value : Cint) return Cint;
+                  --  Non-zero when the given errno value indicates a non-
+                  --  existing file.
+
+                  pragma Import
+                    (C, Is_File_Not_Found_Error,
+                     "__gnat_is_file_not_found_error");
+
+               begin
+                  if
+                    Is_File_Not_Found_Error (Cint (System.OS_Lib.Errno)) /= 0
+                  then
+                     raise Name_Error;
+                  else
+                     raise Use_Error;
+                  end if;
+               end;
             end if;
          end if;
       end if;

@@ -184,16 +184,23 @@ try_unroll_loop_completely (struct loop *loop,
 
       ninsns = tree_num_loop_insns (loop, &eni_size_weights);
 
-      if (n_unroll * ninsns
-	  > (unsigned) PARAM_VALUE (PARAM_MAX_COMPLETELY_PEELED_INSNS))
-	return false;
-
       unr_insns = estimated_unrolled_size (ninsns, n_unroll);
       if (dump_file && (dump_flags & TDF_DETAILS))
 	{
 	  fprintf (dump_file, "  Loop size: %d\n", (int) ninsns);
 	  fprintf (dump_file, "  Estimated size after unrolling: %d\n",
 		   (int) unr_insns);
+	}
+
+      if (unr_insns > ninsns
+	  && (unr_insns
+	      > (unsigned) PARAM_VALUE (PARAM_MAX_COMPLETELY_PEELED_INSNS)))
+	{
+	  if (dump_file && (dump_flags & TDF_DETAILS))
+	    fprintf (dump_file, "Not unrolling loop %d "
+		     "(--param max-completely-peeled-insns limit reached).\n",
+		     loop->num);
+	  return false;
 	}
 
       if (ul == UL_NO_GROWTH
@@ -352,7 +359,7 @@ tree_unroll_loops_completely (bool may_increase_size, bool unroll_outer)
 
       FOR_EACH_LOOP (li, loop, LI_ONLY_INNERMOST)
 	{
-	  if (may_increase_size && maybe_hot_bb_p (loop->header)
+	  if (may_increase_size && optimize_loop_for_speed_p (loop)
 	      /* Unroll outermost loops only if asked to do so or they do
 		 not cause code growth.  */
 	      && (unroll_outer

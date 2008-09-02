@@ -24,6 +24,7 @@
 #define GCC_ARM_PROTOS_H
 
 extern void arm_override_options (void);
+extern void arm_optimization_options (int, int);
 extern int use_return_insn (int, rtx);
 extern int arm_regno_class (int);
 extern void arm_load_pic_register (unsigned long);
@@ -207,5 +208,7 @@ extern void arm_pr_long_calls_off (struct cpp_reader *);
 extern void arm_lang_object_attributes_init(void);
 
 extern const char *arm_mangle_type (const_tree);
+
+extern void arm_order_regs_for_local_alloc (void);
 
 #endif /* ! GCC_ARM_PROTOS_H */

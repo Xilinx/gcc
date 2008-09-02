@@ -1004,7 +1004,7 @@ struct cum_arg
 #define DELAY_SLOT_LENGTH(JUMP) \
   (NEXT_INSN (PREV_INSN (JUMP)) == JUMP ? 0 : 2)
 
-#define BRANCH_COST 0
+#define BRANCH_COST(speed_p, predictable_p) 0
 
 /* Tell final.c how to eliminate redundant test instructions.  */
 
@@ -1189,10 +1189,8 @@ struct cum_arg
 #define FINAL_PRESCAN_INSN(insn, operand, nop)	\
   final_prescan_insn (insn, operand, nop)
 
-#define MOVE_RATIO 3
 extern int h8300_move_ratio;
-#undef  MOVE_RATIO
-#define MOVE_RATIO h8300_move_ratio
+#define MOVE_RATIO(speed) h8300_move_ratio
 
 /* Machine-specific symbol_ref flags.  */
 #define SYMBOL_FLAG_FUNCVEC_FUNCTION	(SYMBOL_FLAG_MACH_DEP << 0)

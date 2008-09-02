@@ -353,7 +353,8 @@ replace_reciprocal (use_operand_p use_p)
   basic_block bb = gimple_bb (use_stmt);
   struct occurrence *occ = (struct occurrence *) bb->aux;
 
-  if (occ->recip_def && use_stmt != occ->recip_def_stmt)
+  if (optimize_bb_for_speed_p (bb)
+      && occ->recip_def && use_stmt != occ->recip_def_stmt)
     {
       gimple_assign_set_rhs_code (use_stmt, MULT_EXPR);
       SET_USE (use_p, occ->recip_def);
@@ -445,7 +446,7 @@ execute_cse_reciprocals_1 (gimple_stmt_iterator *def_gsi, tree def)
 static bool
 gate_cse_reciprocals (void)
 {
-  return optimize && !optimize_size && flag_reciprocal_math;
+  return optimize && flag_reciprocal_math;
 }
 
 /* Go through all the floating-point SSA_NAMEs, and call
@@ -500,6 +501,9 @@ execute_cse_reciprocals (void)
 	    execute_cse_reciprocals_1 (&gsi, def);
 	}
 
+      if (optimize_bb_for_size_p (bb))
+        continue;
+
       /* Scan for a/func(b) and convert it to reciprocal a*rfunc(b).  */
       for (gsi = gsi_after_labels (bb); !gsi_end_p (gsi); gsi_next (&gsi))
         {
@@ -533,7 +537,7 @@ execute_cse_reciprocals (void)
 		  if (!fndecl)
 		    continue;
 
-		  gimple_call_set_fn (stmt1, fndecl);
+		  gimple_call_set_fndecl (stmt1, fndecl);
 		  update_stmt (stmt1);
 
 		  gimple_assign_set_rhs_code (stmt, MULT_EXPR);
@@ -840,7 +844,7 @@ execute_convert_to_rsqrt (void)
 		  fold_stmt_inplace (stmt1);
 		  update_stmt (stmt1);
 
-		  gimple_call_set_fn (stmt, fndecl);
+		  gimple_call_set_fndecl (stmt, fndecl);
 		  update_stmt (stmt);
 		}
 	    }

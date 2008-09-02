@@ -49,6 +49,7 @@
 #include "langhooks.h"
 #include "score7.h"
 #include "score3.h"
+#include "df.h"
 
 #undef  TARGET_ASM_FILE_START
 #define TARGET_ASM_FILE_START           score_asm_file_start
@@ -361,12 +362,12 @@ score_reg_class (int regno)
 
 /* Implement PREFERRED_RELOAD_CLASS macro.  */
 enum reg_class
-score_preferred_reload_class (rtx x ATTRIBUTE_UNUSED, enum reg_class class)
+score_preferred_reload_class (rtx x ATTRIBUTE_UNUSED, enum reg_class rclass)
 {
   if (TARGET_SCORE5 || TARGET_SCORE5U || TARGET_SCORE7 || TARGET_SCORE7D)
-    return score7_preferred_reload_class (x, class);
+    return score7_preferred_reload_class (x, rclass);
   else if (TARGET_SCORE3)
-    return score3_preferred_reload_class (x, class);
+    return score3_preferred_reload_class (x, rclass);
 
   gcc_unreachable ();
 }
@@ -374,14 +375,14 @@ score_preferred_reload_class (rtx x ATTRIBUTE_UNUSED, enum reg_class class)
 /* Implement SECONDARY_INPUT_RELOAD_CLASS
    and SECONDARY_OUTPUT_RELOAD_CLASS macro.  */
 enum reg_class
-score_secondary_reload_class (enum reg_class class,
+score_secondary_reload_class (enum reg_class rclass,
                               enum machine_mode mode ATTRIBUTE_UNUSED,
                               rtx x)
 {
   if (TARGET_SCORE5 || TARGET_SCORE5U || TARGET_SCORE7 || TARGET_SCORE7D)
-    return score7_secondary_reload_class (class, mode, x);
+    return score7_secondary_reload_class (rclass, mode, x);
   else if (TARGET_SCORE3)
-    return score3_secondary_reload_class (class, mode, x);
+    return score3_secondary_reload_class (rclass, mode, x);
 
   gcc_unreachable ();
 }
@@ -569,19 +570,21 @@ score_register_move_cost (enum machine_mode mode ATTRIBUTE_UNUSED,
 
 /* Implement TARGET_RTX_COSTS macro.  */
 bool
-score_rtx_costs (rtx x, int code, int outer_code, int *total)
+score_rtx_costs (rtx x, int code, int outer_code, int *total,
+		 bool speed ATTRIBUTE_UNUSED)
 {
   if (TARGET_SCORE5 || TARGET_SCORE5U || TARGET_SCORE7 || TARGET_SCORE7D)
-    return score7_rtx_costs (x, code, outer_code, total);
+    return score7_rtx_costs (x, code, outer_code, total, speed);
   else if (TARGET_SCORE3)
-    return score3_rtx_costs (x, code, outer_code, total);
+    return score3_rtx_costs (x, code, outer_code, total, speed);
 
   gcc_unreachable ();
 }
 
 /* Implement TARGET_ADDRESS_COST macro.  */
 int
-score_address_cost (rtx addr)
+score_address_cost (rtx addr,
+		    bool speed ATTRIBUTE_UNUSED)
 {
   if (TARGET_SCORE5 || TARGET_SCORE5U || TARGET_SCORE7 || TARGET_SCORE7D)
     return score7_address_cost (addr);

@@ -1,6 +1,6 @@
 /* Convert tree expression to rtl instructions, for GNU compiler.
    Copyright (C) 1988, 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999,
-   2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
+   2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -175,7 +175,7 @@ static bool float_extend_from_mem[NUM_MACHINE_MODES][NUM_MACHINE_MODES];
 #ifndef MOVE_BY_PIECES_P
 #define MOVE_BY_PIECES_P(SIZE, ALIGN) \
   (move_by_pieces_ninsns (SIZE, ALIGN, MOVE_MAX_PIECES + 1) \
-   < (unsigned int) MOVE_RATIO)
+   < (unsigned int) MOVE_RATIO (optimize_insn_for_speed_p ()))
 #endif
 
 /* This macro is used to determine whether clear_by_pieces should be
@@ -183,7 +183,7 @@ static bool float_extend_from_mem[NUM_MACHINE_MODES][NUM_MACHINE_MODES];
 #ifndef CLEAR_BY_PIECES_P
 #define CLEAR_BY_PIECES_P(SIZE, ALIGN) \
   (move_by_pieces_ninsns (SIZE, ALIGN, STORE_MAX_PIECES + 1) \
-   < (unsigned int) CLEAR_RATIO)
+   < (unsigned int) CLEAR_RATIO (optimize_insn_for_speed_p ()))
 #endif
 
 /* This macro is used to determine whether store_by_pieces should be
@@ -191,7 +191,7 @@ static bool float_extend_from_mem[NUM_MACHINE_MODES][NUM_MACHINE_MODES];
 #ifndef SET_BY_PIECES_P
 #define SET_BY_PIECES_P(SIZE, ALIGN) \
   (move_by_pieces_ninsns (SIZE, ALIGN, STORE_MAX_PIECES + 1) \
-   < (unsigned int) SET_RATIO)
+   < (unsigned int) SET_RATIO (optimize_insn_for_speed_p ()))
 #endif
 
 /* This macro is used to determine whether store_by_pieces should be
@@ -199,7 +199,7 @@ static bool float_extend_from_mem[NUM_MACHINE_MODES][NUM_MACHINE_MODES];
 #ifndef STORE_BY_PIECES_P
 #define STORE_BY_PIECES_P(SIZE, ALIGN) \
   (move_by_pieces_ninsns (SIZE, ALIGN, STORE_MAX_PIECES + 1) \
-   < (unsigned int) MOVE_RATIO)
+   < (unsigned int) MOVE_RATIO (optimize_insn_for_speed_p ()))
 #endif
 
 /* This array records the insn_code of insns to perform block moves.  */
@@ -2074,12 +2074,31 @@ emit_group_store (rtx orig_dst, rtx src, tree type ATTRIBUTE_UNUSED, int ssize)
 	    }
 	  else
 	    {
-	      gcc_assert (bytepos == 0 && XVECLEN (src, 0));
-	      dest = assign_stack_temp (GET_MODE (dest),
-				        GET_MODE_SIZE (GET_MODE (dest)), 0);
-	      emit_move_insn (adjust_address (dest, GET_MODE (tmps[i]), bytepos),
-			      tmps[i]);
-	      dst = dest;
+	      enum machine_mode dest_mode = GET_MODE (dest);
+	      enum machine_mode tmp_mode = GET_MODE (tmps[i]);
+	      int dest_size = GET_MODE_SIZE (dest_mode);
+	      int tmp_size = GET_MODE_SIZE (tmp_mode);
+
+	      gcc_assert (bytepos == 0
+			  && XVECLEN (src, 0)
+			  && dest_size == tmp_size);
+
+	      if (GET_MODE_ALIGNMENT (dest_mode)
+		  >= GET_MODE_ALIGNMENT (tmp_mode))
+		{
+		  dest = assign_stack_temp (dest_mode, dest_size, 0);
+		  emit_move_insn (adjust_address (dest,
+						  tmp_mode,
+						  bytepos),
+				  tmps[i]);
+		  dst = dest;
+		}
+	      else
+		{
+		  dest = assign_stack_temp (tmp_mode, tmp_size, 0);
+		  emit_move_insn (dest, tmps[i]);
+		  dst = adjust_address (dest, dest_mode, bytepos);
+		}
 	      break;
 	    }
 	}
@@ -3439,13 +3458,14 @@ compress_float_constant (rtx x, rtx y)
   enum machine_mode srcmode;
   REAL_VALUE_TYPE r;
   int oldcost, newcost;
+  bool speed = optimize_insn_for_speed_p ();
 
   REAL_VALUE_FROM_CONST_DOUBLE (r, y);
 
   if (LEGITIMATE_CONSTANT_P (y))
-    oldcost = rtx_cost (y, SET);
+    oldcost = rtx_cost (y, SET, speed);
   else
-    oldcost = rtx_cost (force_const_mem (dstmode, y), SET);
+    oldcost = rtx_cost (force_const_mem (dstmode, y), SET, speed);
 
   for (srcmode = GET_CLASS_NARROWEST_MODE (GET_MODE_CLASS (orig_srcmode));
        srcmode != orig_srcmode;
@@ -3472,7 +3492,7 @@ compress_float_constant (rtx x, rtx y)
 	  if (! (*insn_data[ic].operand[1].predicate) (trunc_y, srcmode))
 	    continue;
 	  /* This is valid, but may not be cheaper than the original. */
-	  newcost = rtx_cost (gen_rtx_FLOAT_EXTEND (dstmode, trunc_y), SET);
+	  newcost = rtx_cost (gen_rtx_FLOAT_EXTEND (dstmode, trunc_y), SET, speed);
 	  if (oldcost < newcost)
 	    continue;
 	}
@@ -3480,7 +3500,7 @@ compress_float_constant (rtx x, rtx y)
 	{
 	  trunc_y = force_const_mem (srcmode, trunc_y);
 	  /* This is valid, but may not be cheaper than the original. */
-	  newcost = rtx_cost (gen_rtx_FLOAT_EXTEND (dstmode, trunc_y), SET);
+	  newcost = rtx_cost (gen_rtx_FLOAT_EXTEND (dstmode, trunc_y), SET, speed);
 	  if (oldcost < newcost)
 	    continue;
 	  trunc_y = validize_mem (trunc_y);
@@ -4280,6 +4300,7 @@ expand_assignment (tree to, tree from, bool nontemporal)
      needs to be done.  Handling this in the normal way is safe because no
      computation is done before the call.  */
   if (TREE_CODE (from) == CALL_EXPR && ! aggregate_value_p (from, from)
+      && COMPLETE_TYPE_P (TREE_TYPE (from))
       && TREE_CODE (TYPE_SIZE (TREE_TYPE (from))) == INTEGER_CST
       && ! ((TREE_CODE (to) == VAR_DECL || TREE_CODE (to) == PARM_DECL)
 	    && REG_P (DECL_RTL (to))))
@@ -7133,7 +7154,7 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
   unsignedp = TYPE_UNSIGNED (type);
 
   ignore = (target == const0_rtx
-	    || ((code == NOP_EXPR || code == CONVERT_EXPR 
+	    || ((CONVERT_EXPR_CODE_P (code)
 		 || code == COND_EXPR || code == VIEW_CONVERT_EXPR)
 		&& TREE_CODE (type) == VOID_TYPE));
 
@@ -7943,20 +7964,20 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
 	    if (mode == BLKmode)
 	      {
 		HOST_WIDE_INT size = GET_MODE_BITSIZE (ext_mode);
-		rtx new;
+		rtx new_rtx;
 
 		/* If the reference doesn't use the alias set of its type,
 		   we cannot create the temporary using that type.  */
 		if (component_uses_parent_alias_set (exp))
 		  {
-		    new = assign_stack_local (ext_mode, size, 0);
-		    set_mem_alias_set (new, get_alias_set (exp));
+		    new_rtx = assign_stack_local (ext_mode, size, 0);
+		    set_mem_alias_set (new_rtx, get_alias_set (exp));
 		  }
 		else
-		  new = assign_stack_temp_for_type (ext_mode, size, 0, type);
+		  new_rtx = assign_stack_temp_for_type (ext_mode, size, 0, type);
 
-		emit_move_insn (new, op0);
-		op0 = copy_rtx (new);
+		emit_move_insn (new_rtx, op0);
+		op0 = copy_rtx (new_rtx);
 		PUT_MODE (op0, BLKmode);
 		set_mem_attributes (op0, exp, 1);
 	      }
@@ -8137,26 +8158,89 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
       return REDUCE_BIT_FIELD (op0);
 
     case VIEW_CONVERT_EXPR:
-      op0 = expand_expr (TREE_OPERAND (exp, 0), NULL_RTX, mode, modifier);
+      op0 = NULL_RTX;
+
+      /* If we are converting to BLKmode, try to avoid an intermediate
+	 temporary by fetching an inner memory reference.  */
+      if (mode == BLKmode
+	  && TREE_CODE (TYPE_SIZE (TREE_TYPE (exp))) == INTEGER_CST
+	  && TYPE_MODE (TREE_TYPE (TREE_OPERAND (exp, 0))) != BLKmode
+	  && handled_component_p (TREE_OPERAND (exp, 0)))
+      {
+	enum machine_mode mode1;
+	HOST_WIDE_INT bitsize, bitpos;
+	tree offset;
+	int unsignedp;
+	int volatilep = 0;
+	tree tem
+	  = get_inner_reference (TREE_OPERAND (exp, 0), &bitsize, &bitpos,
+				 &offset, &mode1, &unsignedp, &volatilep,
+				 true);
+	rtx orig_op0;
+
+	/* ??? We should work harder and deal with non-zero offsets.  */
+	if (!offset
+	    && (bitpos % BITS_PER_UNIT) == 0
+	    && bitsize >= 0
+	    && compare_tree_int (TYPE_SIZE (TREE_TYPE (exp)), bitsize) == 0)
+	  {
+	    /* See the normal_inner_ref case for the rationale.  */
+	    orig_op0
+	      = expand_expr (tem,
+			     (TREE_CODE (TREE_TYPE (tem)) == UNION_TYPE
+			      && (TREE_CODE (TYPE_SIZE (TREE_TYPE (tem)))
+				  != INTEGER_CST)
+			      && modifier != EXPAND_STACK_PARM
+			      ? target : NULL_RTX),
+			     VOIDmode,
+			     (modifier == EXPAND_INITIALIZER
+			      || modifier == EXPAND_CONST_ADDRESS
+			      || modifier == EXPAND_STACK_PARM)
+			     ? modifier : EXPAND_NORMAL);
+
+	    if (MEM_P (orig_op0))
+	      {
+		op0 = orig_op0;
+
+		/* Get a reference to just this component.  */
+		if (modifier == EXPAND_CONST_ADDRESS
+		    || modifier == EXPAND_SUM
+		    || modifier == EXPAND_INITIALIZER)
+		  op0 = adjust_address_nv (op0, mode, bitpos / BITS_PER_UNIT);
+		else
+		  op0 = adjust_address (op0, mode, bitpos / BITS_PER_UNIT);
+
+		if (op0 == orig_op0)
+		  op0 = copy_rtx (op0);
+
+		set_mem_attributes (op0, TREE_OPERAND (exp, 0), 0);
+		if (REG_P (XEXP (op0, 0)))
+		  mark_reg_pointer (XEXP (op0, 0), MEM_ALIGN (op0));
+
+		MEM_VOLATILE_P (op0) |= volatilep;
+	      }
+	  }
+      }
+
+      if (!op0)
+	op0 = expand_expr (TREE_OPERAND (exp, 0), NULL_RTX, mode, modifier);
 
       /* If the input and output modes are both the same, we are done.  */
-      if (TYPE_MODE (type) == GET_MODE (op0))
+      if (mode == GET_MODE (op0))
 	;
       /* If neither mode is BLKmode, and both modes are the same size
 	 then we can use gen_lowpart.  */
-      else if (TYPE_MODE (type) != BLKmode && GET_MODE (op0) != BLKmode
-	       && GET_MODE_SIZE (TYPE_MODE (type))
-		   == GET_MODE_SIZE (GET_MODE (op0)))
+      else if (mode != BLKmode && GET_MODE (op0) != BLKmode
+	       && GET_MODE_SIZE (mode) == GET_MODE_SIZE (GET_MODE (op0)))
 	{
 	  if (GET_CODE (op0) == SUBREG)
 	    op0 = force_reg (GET_MODE (op0), op0);
-	  op0 = gen_lowpart (TYPE_MODE (type), op0);
+	  op0 = gen_lowpart (mode, op0);
 	}
       /* If both modes are integral, then we can convert from one to the
 	 other.  */
-      else if (SCALAR_INT_MODE_P (GET_MODE (op0))
-	       && SCALAR_INT_MODE_P (TYPE_MODE (type)))
-	op0 = convert_modes (TYPE_MODE (type), GET_MODE (op0), op0,
+      else if (SCALAR_INT_MODE_P (GET_MODE (op0)) && SCALAR_INT_MODE_P (mode))
+	op0 = convert_modes (mode, GET_MODE (op0), op0, 
 			     TYPE_UNSIGNED (TREE_TYPE (TREE_OPERAND (exp, 0))));
       /* As a last resort, spill op0 to memory, and reload it in a
 	 different mode.  */
@@ -8180,8 +8264,8 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
 	  op0 = target;
 	}
 
-      /* At this point, OP0 is in the correct mode.  If the output type is such
-	 that the operand is known to be aligned, indicate that it is.
+      /* At this point, OP0 is in the correct mode.  If the output type is
+	 such that the operand is known to be aligned, indicate that it is.
 	 Otherwise, we need only be concerned about alignment for non-BLKmode
 	 results.  */
       if (MEM_P (op0))
@@ -8190,31 +8274,33 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
 
 	  if (TYPE_ALIGN_OK (type))
 	    set_mem_align (op0, MAX (MEM_ALIGN (op0), TYPE_ALIGN (type)));
-	  else if (TYPE_MODE (type) != BLKmode && STRICT_ALIGNMENT
-		   && MEM_ALIGN (op0) < GET_MODE_ALIGNMENT (TYPE_MODE (type)))
+	  else if (STRICT_ALIGNMENT
+		   && mode != BLKmode
+		   && MEM_ALIGN (op0) < GET_MODE_ALIGNMENT (mode))
 	    {
 	      tree inner_type = TREE_TYPE (TREE_OPERAND (exp, 0));
 	      HOST_WIDE_INT temp_size
 		= MAX (int_size_in_bytes (inner_type),
-		       (HOST_WIDE_INT) GET_MODE_SIZE (TYPE_MODE (type)));
-	      rtx new = assign_stack_temp_for_type (TYPE_MODE (type),
-						    temp_size, 0, type);
-	      rtx new_with_op0_mode = adjust_address (new, GET_MODE (op0), 0);
+		       (HOST_WIDE_INT) GET_MODE_SIZE (mode));
+	      rtx new_rtx
+		= assign_stack_temp_for_type (mode, temp_size, 0, type);
+	      rtx new_with_op0_mode
+		= adjust_address (new_rtx, GET_MODE (op0), 0);
 
 	      gcc_assert (!TREE_ADDRESSABLE (exp));
 
 	      if (GET_MODE (op0) == BLKmode)
 		emit_block_move (new_with_op0_mode, op0,
-				 GEN_INT (GET_MODE_SIZE (TYPE_MODE (type))),
+				 GEN_INT (GET_MODE_SIZE (mode)),
 				 (modifier == EXPAND_STACK_PARM
 				  ? BLOCK_OP_CALL_PARM : BLOCK_OP_NORMAL));
 	      else
 		emit_move_insn (new_with_op0_mode, op0);
 
-	      op0 = new;
+	      op0 = new_rtx;
 	    }
 
-	  op0 = adjust_address (op0, TYPE_MODE (type), 0);
+	  op0 = adjust_address (op0, mode, 0);
 	}
 
       return op0;
@@ -8969,7 +9055,10 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
       /* If no set-flag instruction, must generate a conditional store
 	 into a temporary variable.  Drop through and handle this
 	 like && and ||.  */
-
+      /* Although TRUTH_{AND,OR}IF_EXPR aren't present in GIMPLE, they
+	 are occassionally created by folding during expansion.  */
+    case TRUTH_ANDIF_EXPR:
+    case TRUTH_ORIF_EXPR:
       if (! ignore
 	  && (target == 0
 	      || modifier == EXPAND_STACK_PARM
@@ -9169,8 +9258,6 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
     case POSTDECREMENT_EXPR:
     case LOOP_EXPR:
     case EXIT_EXPR:
-    case TRUTH_ANDIF_EXPR:
-    case TRUTH_ORIF_EXPR:
       /* Lowered by gimplify.c.  */
       gcc_unreachable ();
 
@@ -9996,16 +10083,16 @@ try_tablejump (tree index_type, tree index_expr, tree minval, tree range,
 int
 vector_mode_valid_p (enum machine_mode mode)
 {
-  enum mode_class class = GET_MODE_CLASS (mode);
+  enum mode_class mclass = GET_MODE_CLASS (mode);
   enum machine_mode innermode;
 
   /* Doh!  What's going on?  */
-  if (class != MODE_VECTOR_INT
-      && class != MODE_VECTOR_FLOAT
-      && class != MODE_VECTOR_FRACT
-      && class != MODE_VECTOR_UFRACT
-      && class != MODE_VECTOR_ACCUM
-      && class != MODE_VECTOR_UACCUM)
+  if (mclass != MODE_VECTOR_INT
+      && mclass != MODE_VECTOR_FLOAT
+      && mclass != MODE_VECTOR_FRACT
+      && mclass != MODE_VECTOR_UFRACT
+      && mclass != MODE_VECTOR_ACCUM
+      && mclass != MODE_VECTOR_UACCUM)
     return 0;
 
   /* Hardware support.  Woo hoo!  */

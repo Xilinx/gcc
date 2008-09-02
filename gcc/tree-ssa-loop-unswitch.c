@@ -123,8 +123,8 @@ tree_may_unswitch_on (basic_block bb, struct loop *loop)
 	return NULL_TREE;
     }
 
-  cond = fold_build2 (gimple_cond_code (stmt), boolean_type_node,
-		      gimple_cond_lhs (stmt), gimple_cond_rhs (stmt));
+  cond = build2 (gimple_cond_code (stmt), boolean_type_node,
+		 gimple_cond_lhs (stmt), gimple_cond_rhs (stmt));
 
   /* To keep the things simple, we do not directly remove the conditions,
      but just replace tests with 0/1.  Prevent the infinite loop where we
@@ -195,6 +195,14 @@ tree_unswitch_single_loop (struct loop *loop, int num)
     {
       if (dump_file && (dump_flags & TDF_DETAILS))
 	fprintf (dump_file, ";; Not unswitching, not innermost loop\n");
+      return false;
+    }
+
+  /* Do not unswitch in cold regions.  */
+  if (optimize_loop_for_size_p (loop))
+    {
+      if (dump_file && (dump_flags & TDF_DETAILS))
+	fprintf (dump_file, ";; Not unswitching cold loops\n");
       return false;
     }
 

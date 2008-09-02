@@ -34,6 +34,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "optabs.h"
 #include "langhooks.h"
 #include "ggc.h"
+#include "basic-block.h"
 
 static bool prefer_and_bit_test (enum machine_mode, int);
 static void do_jump_by_parts_greater (tree, int, rtx, rtx);
@@ -143,8 +144,8 @@ prefer_and_bit_test (enum machine_mode mode, int bitnum)
   XEXP (and_test, 1) = GEN_INT ((unsigned HOST_WIDE_INT) 1 << bitnum);
   XEXP (XEXP (shift_test, 0), 1) = GEN_INT (bitnum);
 
-  return (rtx_cost (and_test, IF_THEN_ELSE)
-	  <= rtx_cost (shift_test, IF_THEN_ELSE));
+  return (rtx_cost (and_test, IF_THEN_ELSE, optimize_insn_for_speed_p ())
+	  <= rtx_cost (shift_test, IF_THEN_ELSE, optimize_insn_for_speed_p ()));
 }
 
 /* Generate code to evaluate EXP and jump to IF_FALSE_LABEL if
@@ -304,8 +305,6 @@ do_jump (tree exp, rtx if_false_label, rtx if_true_label)
 	break;
       }
 
-    case TRUTH_ANDIF_EXPR:
-    case TRUTH_ORIF_EXPR:
     case COMPOUND_EXPR:
       /* Lowered by gimplify.c.  */
       gcc_unreachable ();
@@ -512,9 +511,12 @@ do_jump (tree exp, rtx if_false_label, rtx if_true_label)
       /* High branch cost, expand as the bitwise AND of the conditions.
 	 Do the same if the RHS has side effects, because we're effectively
 	 turning a TRUTH_AND_EXPR into a TRUTH_ANDIF_EXPR.  */
-      if (BRANCH_COST >= 4 || TREE_SIDE_EFFECTS (TREE_OPERAND (exp, 1)))
+      if (BRANCH_COST (optimize_insn_for_speed_p (),
+		       false) >= 4
+	  || TREE_SIDE_EFFECTS (TREE_OPERAND (exp, 1)))
 	goto normal;
 
+    case TRUTH_ANDIF_EXPR:
       if (if_false_label == NULL_RTX)
         {
 	  drop_through_label = gen_label_rtx ();
@@ -532,9 +534,11 @@ do_jump (tree exp, rtx if_false_label, rtx if_true_label)
       /* High branch cost, expand as the bitwise OR of the conditions.
 	 Do the same if the RHS has side effects, because we're effectively
 	 turning a TRUTH_OR_EXPR into a TRUTH_ORIF_EXPR.  */
-      if (BRANCH_COST >= 4 || TREE_SIDE_EFFECTS (TREE_OPERAND (exp, 1)))
+      if (BRANCH_COST (optimize_insn_for_speed_p (), false)>= 4
+	  || TREE_SIDE_EFFECTS (TREE_OPERAND (exp, 1)))
 	goto normal;
 
+    case TRUTH_ORIF_EXPR:
       if (if_true_label == NULL_RTX)
 	{
           drop_through_label = gen_label_rtx ();

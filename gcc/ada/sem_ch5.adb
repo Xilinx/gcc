@@ -579,21 +579,21 @@ package body Sem_Ch5 is
          end if;
       end if;
 
-      --  Ada 2005 (AI-230 and AI-385): When the lhs type is an anonymous
-      --  access type, apply an implicit conversion of the rhs to that type
-      --  to force appropriate static and run-time accessibility checks.
-      --  This applies as well to anonymous access-to-subprogram types that
-      --  are component subtypes.
+      --  Ada 2005 (AI-385): When the lhs type is an anonymous access type,
+      --  apply an implicit conversion of the rhs to that type to force
+      --  appropriate static and run-time accessibility checks. This applies
+      --  as well to anonymous access-to-subprogram types that are component
+      --  subtypes or formal parameters.
 
       if Ada_Version >= Ada_05
-        and then
-          Is_Access_Type (T1)
-            and then
-             (Is_Local_Anonymous_Access (T1)
-               or else Can_Never_Be_Null (T1))
+        and then Is_Access_Type (T1)
       then
-         Rewrite (Rhs, Convert_To (T1, Relocate_Node (Rhs)));
-         Analyze_And_Resolve (Rhs, T1);
+         if Is_Local_Anonymous_Access (T1)
+           or else Ekind (T2) = E_Anonymous_Access_Subprogram_Type
+         then
+            Rewrite (Rhs, Convert_To (T1, Relocate_Node (Rhs)));
+            Analyze_And_Resolve (Rhs, T1);
+         end if;
       end if;
 
       --  Ada 2005 (AI-231): Assignment to not null variable
@@ -1465,10 +1465,7 @@ package body Sem_Ch5 is
          function One_Bound
            (Original_Bound : Node_Id;
             Analyzed_Bound : Node_Id) return Node_Id;
-         --  Create one declaration followed by one assignment statement
-         --  to capture the value of bound. We create a separate assignment
-         --  in order to force the creation of a block in case the bound
-         --  contains a call that uses the secondary stack.
+         --  Capture value of bound and return captured value
 
          ---------------
          -- One_Bound --
@@ -1499,14 +1496,52 @@ package body Sem_Ch5 is
             then
                Analyze_And_Resolve (Original_Bound, Typ);
                return Original_Bound;
-
-            else
-               Analyze_And_Resolve (Original_Bound, Typ);
             end if;
+
+            --  Here we need to capture the value
+
+            Analyze_And_Resolve (Original_Bound, Typ);
 
             Id :=
               Make_Defining_Identifier (Loc,
                 Chars => New_Internal_Name ('S'));
+
+            --  Normally, the best approach is simply to generate a constant
+            --  declaration that captures the bound. However, there is a nasty
+            --  case where this is wrong. If the bound is complex, and has a
+            --  possible use of the secondary stack, we need to generate a
+            --  separate assignment statement to ensure the creation of a block
+            --  which will release the secondary stack.
+
+            --  We prefer the constant declaration, since it leaves us with a
+            --  proper trace of the value, useful in optimizations that get rid
+            --  of junk range checks.
+
+            --  Probably we want something like the Side_Effect_Free routine
+            --  in Exp_Util, but for now, we just optimize the cases of 'Last
+            --  and 'First applied to an entity, since these are the important
+            --  cases for range check optimizations.
+
+            if Nkind (Original_Bound) = N_Attribute_Reference
+              and then (Attribute_Name (Original_Bound) = Name_First
+                          or else
+                        Attribute_Name (Original_Bound) = Name_Last)
+              and then Is_Entity_Name (Prefix (Original_Bound))
+            then
+               Decl :=
+                 Make_Object_Declaration (Loc,
+                   Defining_Identifier => Id,
+                   Constant_Present    => True,
+                   Object_Definition   => New_Occurrence_Of (Typ, Loc),
+                   Expression          => Relocate_Node (Original_Bound));
+
+               Insert_Before (Parent (N), Decl);
+               Analyze (Decl);
+               Rewrite (Original_Bound, New_Occurrence_Of (Id, Loc));
+               return Expression (Decl);
+            end if;
+
+            --  Here we make a declaration with a separate assignment statement
 
             Decl :=
               Make_Object_Declaration (Loc,

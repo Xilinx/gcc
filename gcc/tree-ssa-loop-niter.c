@@ -697,7 +697,7 @@ number_of_iterations_lt_to_ne (tree type, affine_iv *iv0, affine_iv *iv1,
       /* The final value of the iv is iv1->base + MOD, assuming that this
 	 computation does not overflow, and that
 	 iv0->base <= iv1->base + MOD.  */
-      if (!iv1->no_overflow && !integer_zerop (mod))
+      if (!iv0->no_overflow && !integer_zerop (mod))
 	{
 	  bound = fold_build2 (MINUS_EXPR, type,
 			       TYPE_MAX_VALUE (type1), tmod);
@@ -719,7 +719,7 @@ number_of_iterations_lt_to_ne (tree type, affine_iv *iv0, affine_iv *iv1,
       /* The final value of the iv is iv0->base - MOD, assuming that this
 	 computation does not overflow, and that
 	 iv0->base - MOD <= iv1->base. */
-      if (!iv0->no_overflow && !integer_zerop (mod))
+      if (!iv1->no_overflow && !integer_zerop (mod))
 	{
 	  bound = fold_build2 (PLUS_EXPR, type1,
 			       TYPE_MIN_VALUE (type1), tmod);
@@ -1451,8 +1451,7 @@ expand_simple_operations (tree expr)
 
   switch (code)
     {
-    case NOP_EXPR:
-    case CONVERT_EXPR:
+    CASE_CONVERT:
       /* Casts are simple.  */
       ee = expand_simple_operations (e);
       return fold_build1 (code, TREE_TYPE (expr), ee);
@@ -2034,7 +2033,6 @@ static tree
 get_val_for (tree x, tree base)
 {
   gimple stmt;
-  tree nx, val, retval, rhs1, rhs2;
 
   gcc_assert (is_gimple_min_invariant (base));
 
@@ -2050,33 +2048,30 @@ get_val_for (tree x, tree base)
   /* STMT must be either an assignment of a single SSA name or an
      expression involving an SSA name and a constant.  Try to fold that
      expression using the value for the SSA name.  */
-  rhs1 = gimple_assign_rhs1 (stmt);
-  rhs2 = gimple_assign_rhs2 (stmt);
-  if (TREE_CODE (rhs1) == SSA_NAME)
-    nx = rhs1;
-  else if (rhs2 && TREE_CODE (rhs2) == SSA_NAME)
-    nx = rhs2;
-  else
-    gcc_unreachable ();
-
-  /* NX is now the SSA name for which we want to discover the base value.  */
-  val = get_val_for (nx, base);
-  if (rhs2)
+  if (gimple_assign_ssa_name_copy_p (stmt))
+    return get_val_for (gimple_assign_rhs1 (stmt), base);
+  else if (gimple_assign_rhs_class (stmt) == GIMPLE_UNARY_RHS
+	   && TREE_CODE (gimple_assign_rhs1 (stmt)) == SSA_NAME)
     {
-      /* If this is a binary expression, fold it.  If folding is
-	 not possible, return a tree expression with the RHS of STMT.  */
-      rhs1 = (nx == rhs1) ? val : rhs1;
-      rhs2 = (nx == rhs2) ? val : rhs2;
-      retval = fold_binary (gimple_assign_rhs_code (stmt),
-			    gimple_expr_type (stmt), rhs1, rhs2);
-      if (retval == NULL_TREE)
-	retval= build2 (gimple_assign_rhs_code (stmt),
-		        gimple_expr_type (stmt), rhs1, rhs2);
+      return fold_build1 (gimple_assign_rhs_code (stmt),
+			  gimple_expr_type (stmt),
+			  get_val_for (gimple_assign_rhs1 (stmt), base));
+    }
+  else if (gimple_assign_rhs_class (stmt) == GIMPLE_BINARY_RHS)
+    {
+      tree rhs1 = gimple_assign_rhs1 (stmt);
+      tree rhs2 = gimple_assign_rhs2 (stmt);
+      if (TREE_CODE (rhs1) == SSA_NAME)
+	rhs1 = get_val_for (rhs1, base);
+      else if (TREE_CODE (rhs2) == SSA_NAME)
+	rhs2 = get_val_for (rhs2, base);
+      else
+	gcc_unreachable ();
+      return fold_build2 (gimple_assign_rhs_code (stmt),
+			  gimple_expr_type (stmt), rhs1, rhs2);
     }
   else
-    retval = val;
-      
-  return retval;
+    gcc_unreachable ();
 }
 
 
@@ -2917,6 +2912,12 @@ stmt_dominates_stmt_p (gimple s1, gimple s2)
   if (bb1 == bb2)
     {
       gimple_stmt_iterator bsi;
+
+      if (gimple_code (s2) == GIMPLE_PHI)
+	return false;
+
+      if (gimple_code (s1) == GIMPLE_PHI)
+	return true;
 
       for (bsi = gsi_start_bb (bb1); gsi_stmt (bsi) != s2; gsi_next (&bsi))
 	if (gsi_stmt (bsi) == s1)

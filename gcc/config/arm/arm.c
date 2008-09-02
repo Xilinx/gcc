@@ -62,6 +62,7 @@ const struct attribute_spec arm_attribute_table[];
 void (*arm_lang_output_object_attributes_hook)(void);
 
 /* Forward function declarations.  */
+static int arm_compute_static_chain_stack_bytes (void);
 static arm_stack_offsets *arm_get_frame_offsets (void);
 static void arm_add_gc_roots (void);
 static int arm_gen_constant (enum rtx_code, enum machine_mode, rtx,
@@ -130,7 +131,8 @@ static bool arm_slowmul_rtx_costs (rtx, int, int, int *);
 static bool arm_fastmul_rtx_costs (rtx, int, int, int *);
 static bool arm_xscale_rtx_costs (rtx, int, int, int *);
 static bool arm_9e_rtx_costs (rtx, int, int, int *);
-static int arm_address_cost (rtx);
+static bool arm_rtx_costs (rtx, int, int, int *, bool);
+static int arm_address_cost (rtx, bool);
 static bool arm_memory_load_p (rtx);
 static bool arm_cirrus_insn_p (rtx);
 static void cirrus_reorg (rtx);
@@ -255,9 +257,8 @@ static bool arm_allocate_stack_slots_for_args (void);
 #undef  TARGET_ASM_CAN_OUTPUT_MI_THUNK
 #define TARGET_ASM_CAN_OUTPUT_MI_THUNK default_can_output_mi_thunk_no_vcall
 
-/* This will be overridden in arm_override_options.  */
 #undef  TARGET_RTX_COSTS
-#define TARGET_RTX_COSTS arm_slowmul_rtx_costs
+#define TARGET_RTX_COSTS arm_rtx_costs
 #undef  TARGET_ADDRESS_COST
 #define TARGET_ADDRESS_COST arm_address_cost
 
@@ -365,6 +366,15 @@ static bool arm_allocate_stack_slots_for_args (void);
 
 #undef TARGET_CANNOT_FORCE_CONST_MEM
 #define TARGET_CANNOT_FORCE_CONST_MEM arm_cannot_force_const_mem
+
+#undef TARGET_MAX_ANCHOR_OFFSET
+#define TARGET_MAX_ANCHOR_OFFSET 4095
+
+/* The minimum is set such that the total size of the block
+   for a particular anchor is -4088 + 1 + 4095 bytes, which is
+   divisible by eight, ensuring natural spacing of anchors.  */
+#undef TARGET_MIN_ANCHOR_OFFSET
+#define TARGET_MIN_ANCHOR_OFFSET -4088
 
 #undef TARGET_SCHED_ISSUE_RATE
 #define TARGET_SCHED_ISSUE_RATE arm_issue_rate
@@ -699,6 +709,8 @@ static const struct fpu_desc all_fpus[] =
   {"maverick",	FPUTYPE_MAVERICK},
   {"vfp",	FPUTYPE_VFP},
   {"vfp3",	FPUTYPE_VFP3},
+  {"vfpv3",	FPUTYPE_VFP3},
+  {"vfpv3-d16",	FPUTYPE_VFP3D16},
   {"neon",	FPUTYPE_NEON}
 };
 
@@ -715,6 +727,7 @@ static const enum fputype fp_model_for_fpu[] =
   ARM_FP_MODEL_FPA,		/* FPUTYPE_FPA_EMU3  */
   ARM_FP_MODEL_MAVERICK,	/* FPUTYPE_MAVERICK  */
   ARM_FP_MODEL_VFP,		/* FPUTYPE_VFP  */
+  ARM_FP_MODEL_VFP,		/* FPUTYPE_VFP3D16  */
   ARM_FP_MODEL_VFP,		/* FPUTYPE_VFP3  */
   ARM_FP_MODEL_VFP		/* FPUTYPE_NEON  */
 };
@@ -1172,10 +1185,6 @@ arm_override_options (void)
   gcc_assert (arm_tune != arm_none);
 
   tune_flags = all_cores[(int)arm_tune].flags;
-  if (optimize_size)
-    targetm.rtx_costs = arm_size_rtx_costs;
-  else
-    targetm.rtx_costs = all_cores[(int)arm_tune].rtx_costs;
 
   /* Make sure that the processor choice does not conflict with any of the
      other command line choices.  */
@@ -1262,6 +1271,27 @@ arm_override_options (void)
   arm_tune_xscale = (tune_flags & FL_XSCALE) != 0;
   arm_arch_iwmmxt = (insn_flags & FL_IWMMXT) != 0;
   arm_arch_hwdiv = (insn_flags & FL_DIV) != 0;
+
+  /* If we are not using the default (ARM mode) section anchor offset
+     ranges, then set the correct ranges now.  */
+  if (TARGET_THUMB1)
+    {
+      /* Thumb-1 LDR instructions cannot have negative offsets.
+         Permissible positive offset ranges are 5-bit (for byte loads),
+         6-bit (for halfword loads), or 7-bit (for word loads).
+         Empirical results suggest a 7-bit anchor range gives the best
+         overall code size.  */
+      targetm.min_anchor_offset = 0;
+      targetm.max_anchor_offset = 127;
+    }
+  else if (TARGET_THUMB2)
+    {
+      /* The minimum is set such that the total size of the block
+         for a particular anchor is 248 + 1 + 4095 bytes, which is
+         divisible by eight, ensuring natural spacing of anchors.  */
+      targetm.min_anchor_offset = -248;
+      targetm.max_anchor_offset = 4095;
+    }
 
   /* V5 code we generate is completely interworking capable, so we turn off
      TARGET_INTERWORK here to avoid many tests later on.  */
@@ -3489,9 +3519,21 @@ legitimize_pic_address (rtx orig, enum machine_mode mode, rtx reg)
 	  && XEXP (XEXP (orig, 0), 0) == cfun->machine->pic_reg)
 	return orig;
 
+      /* Handle the case where we have: const (UNSPEC_TLS).  */
       if (GET_CODE (XEXP (orig, 0)) == UNSPEC
 	  && XINT (XEXP (orig, 0), 1) == UNSPEC_TLS)
 	return orig;
+
+      /* Handle the case where we have:
+         const (plus (UNSPEC_TLS) (ADDEND)).  The ADDEND must be a
+         CONST_INT.  */
+      if (GET_CODE (XEXP (orig, 0)) == PLUS
+          && GET_CODE (XEXP (XEXP (orig, 0), 0)) == UNSPEC
+          && XINT (XEXP (XEXP (orig, 0), 0), 1) == UNSPEC_TLS)
+        {
+	  gcc_assert (GET_CODE (XEXP (XEXP (orig, 0), 1)) == CONST_INT);
+	  return orig;
+	}
 
       if (reg == 0)
 	{
@@ -4874,7 +4916,7 @@ arm_rtx_costs_1 (rtx x, enum rtx_code code, enum rtx_code outer)
     case MINUS:
       if (GET_CODE (XEXP (x, 1)) == MULT && mode == SImode && arm_arch_thumb2)
 	{
-	  extra_cost = rtx_cost (XEXP (x, 1), code);
+	  extra_cost = rtx_cost (XEXP (x, 1), code, true);
 	  if (!REG_OR_SUBREG_REG (XEXP (x, 0)))
 	    extra_cost += 4 * ARM_NUM_REGS (mode);
 	  return extra_cost;
@@ -4923,7 +4965,7 @@ arm_rtx_costs_1 (rtx x, enum rtx_code code, enum rtx_code outer)
 
       if (GET_CODE (XEXP (x, 0)) == MULT)
 	{
-	  extra_cost = rtx_cost (XEXP (x, 0), code);
+	  extra_cost = rtx_cost (XEXP (x, 0), code, true);
 	  if (!REG_OR_SUBREG_REG (XEXP (x, 1)))
 	    extra_cost += 4 * ARM_NUM_REGS (mode);
 	  return extra_cost;
@@ -5122,7 +5164,7 @@ arm_size_rtx_costs (rtx x, int code, int outer_code, int *total)
     case ROTATE:
       if (mode == SImode && GET_CODE (XEXP (x, 1)) == REG)
 	{
-	  *total = COSTS_N_INSNS (2) + rtx_cost (XEXP (x, 0), code);
+	  *total = COSTS_N_INSNS (2) + rtx_cost (XEXP (x, 0), code, false);
 	  return true;
 	}
       /* Fall through */
@@ -5132,15 +5174,15 @@ arm_size_rtx_costs (rtx x, int code, int outer_code, int *total)
     case ASHIFTRT:
       if (mode == DImode && GET_CODE (XEXP (x, 1)) == CONST_INT)
 	{
-	  *total = COSTS_N_INSNS (3) + rtx_cost (XEXP (x, 0), code);
+	  *total = COSTS_N_INSNS (3) + rtx_cost (XEXP (x, 0), code, false);
 	  return true;
 	}
       else if (mode == SImode)
 	{
-	  *total = COSTS_N_INSNS (1) + rtx_cost (XEXP (x, 0), code);
+	  *total = COSTS_N_INSNS (1) + rtx_cost (XEXP (x, 0), code, false);
 	  /* Slightly disparage register shifts, but not by much.  */
 	  if (GET_CODE (XEXP (x, 1)) != CONST_INT)
-	    *total += 1 + rtx_cost (XEXP (x, 1), code);
+	    *total += 1 + rtx_cost (XEXP (x, 1), code, false);
 	  return true;
 	}
 
@@ -5306,6 +5348,16 @@ arm_size_rtx_costs (rtx x, int code, int outer_code, int *total)
 	*total = COSTS_N_INSNS (4); /* How knows?  */
       return false;
     }
+}
+
+/* RTX costs when optimizing for size.  */
+static bool
+arm_rtx_costs (rtx x, int code, int outer_code, int *total, bool speed)
+{
+  if (!speed)
+    return arm_size_rtx_costs (x, code, outer_code, total);
+  else
+    return all_cores[(int)arm_tune].rtx_costs;
 }
 
 /* RTX costs for cores with a slow MUL implementation.  Thumb-2 is not
@@ -5500,7 +5552,7 @@ arm_xscale_rtx_costs (rtx x, int code, int outer_code, int *total)
       /* A COMPARE of a MULT is slow on XScale; the muls instruction
 	 will stall until the multiplication is complete.  */
       if (GET_CODE (XEXP (x, 0)) == MULT)
-	*total = 4 + rtx_cost (XEXP (x, 0), code);
+	*total = 4 + rtx_cost (XEXP (x, 0), code, true);
       else
 	*total = arm_rtx_costs_1 (x, code, outer_code);
       return true;
@@ -5620,7 +5672,7 @@ arm_thumb_address_cost (rtx x)
 }
 
 static int
-arm_address_cost (rtx x)
+arm_address_cost (rtx x, bool speed ATTRIBUTE_UNUSED)
 {
   return TARGET_32BIT ? arm_arm_address_cost (x) : arm_thumb_address_cost (x);
 }
@@ -8768,17 +8820,20 @@ add_minipool_backward_ref (Mfix *fix)
 		 its maximum address (which can happen if we have
 		 re-located a forwards fix); force the new fix to come
 		 after it.  */
-	      min_mp = mp;
-	      min_address = mp->min_address + fix->fix_size;
+	      if (ARM_DOUBLEWORD_ALIGN
+		  && fix->fix_size >= 8 && mp->fix_size < 8)
+		return NULL;
+	      else
+		{
+		  min_mp = mp;
+		  min_address = mp->min_address + fix->fix_size;
+		}
 	    }
-	  /* If we are inserting an 8-bytes aligned quantity and
-	     we have not already found an insertion point, then
-	     make sure that all such 8-byte aligned quantities are
-	     placed at the start of the pool.  */
+	  /* Do not insert a non-8-byte aligned quantity before 8-byte
+	     aligned quantities.  */
 	  else if (ARM_DOUBLEWORD_ALIGN
-		   && min_mp == NULL
-		   && fix->fix_size >= 8
-		   && mp->fix_size < 8)
+		   && fix->fix_size < 8
+		   && mp->fix_size >= 8)
 	    {
 	      min_mp = mp;
 	      min_address = mp->min_address + fix->fix_size;
@@ -10279,7 +10334,7 @@ output_move_vfp (rtx *operands)
   int load = REG_P (operands[0]);
   int dp = GET_MODE_SIZE (GET_MODE (operands[0])) == 8;
   int integer_p = GET_MODE_CLASS (GET_MODE (operands[0])) == MODE_INT;
-  const char *template;
+  const char *templ;
   char buff[50];
   enum machine_mode mode;
 
@@ -10302,25 +10357,25 @@ output_move_vfp (rtx *operands)
   switch (GET_CODE (addr))
     {
     case PRE_DEC:
-      template = "f%smdb%c%%?\t%%0!, {%%%s1}%s";
+      templ = "f%smdb%c%%?\t%%0!, {%%%s1}%s";
       ops[0] = XEXP (addr, 0);
       ops[1] = reg;
       break;
 
     case POST_INC:
-      template = "f%smia%c%%?\t%%0!, {%%%s1}%s";
+      templ = "f%smia%c%%?\t%%0!, {%%%s1}%s";
       ops[0] = XEXP (addr, 0);
       ops[1] = reg;
       break;
 
     default:
-      template = "f%s%c%%?\t%%%s0, %%1%s";
+      templ = "f%s%c%%?\t%%%s0, %%1%s";
       ops[0] = reg;
       ops[1] = mem;
       break;
     }
 
-  sprintf (buff, template,
+  sprintf (buff, templ,
 	   load ? "ld" : "st",
 	   dp ? 'd' : 's',
 	   dp ? "P" : "",
@@ -10331,37 +10386,35 @@ output_move_vfp (rtx *operands)
 }
 
 /* Output a Neon quad-word load or store, or a load or store for
-   larger structure modes. We could also support post-modify forms using
-   VLD1/VST1 (for the vectorizer, and perhaps otherwise), but we don't do that
-   yet.
-   WARNING: The ordering of elements in memory is weird in big-endian mode,
-   because we use VSTM instead of VST1, to make it easy to make vector stores
-   via ARM registers write values in the same order as stores direct from Neon
-   registers.  For example, the byte ordering of a quadword vector with 16-byte
-   elements like this:
+   larger structure modes.
 
-     [e7:e6:e5:e4:e3:e2:e1:e0]  (highest-numbered element first)
+   WARNING: The ordering of elements is weird in big-endian mode,
+   because we use VSTM, as required by the EABI.  GCC RTL defines
+   element ordering based on in-memory order.  This can be differ
+   from the architectural ordering of elements within a NEON register.
+   The intrinsics defined in arm_neon.h use the NEON register element
+   ordering, not the GCC RTL element ordering.
 
-   will be (with lowest address first, h = most-significant byte,
-   l = least-significant byte of element):
+   For example, the in-memory ordering of a big-endian a quadword
+   vector with 16-bit elements when stored from register pair {d0,d1}
+   will be (lowest address first, d0[N] is NEON register element N):
 
-     [e3h, e3l, e2h, e2l, e1h, e1l, e0h, e0l,
-      e7h, e7l, e6h, e6l, e5h, e5l, e4h, e4l]
+     [d0[3], d0[2], d0[1], d0[0], d1[7], d1[6], d1[5], d1[4]]
 
-   When necessary, quadword registers (dN, dN+1) are moved to ARM registers from
-   rN in the order:
+   When necessary, quadword registers (dN, dN+1) are moved to ARM
+   registers from rN in the order:
 
      dN -> (rN+1, rN), dN+1 -> (rN+3, rN+2)
 
-   So that STM/LDM can be used on vectors in ARM registers, and the same memory
-   layout will result as if VSTM/VLDM were used.  */
+   So that STM/LDM can be used on vectors in ARM registers, and the
+   same memory layout will result as if VSTM/VLDM were used.  */
 
 const char *
 output_move_neon (rtx *operands)
 {
   rtx reg, mem, addr, ops[2];
   int regno, load = REG_P (operands[0]);
-  const char *template;
+  const char *templ;
   char buff[50];
   enum machine_mode mode;
 
@@ -10388,7 +10441,7 @@ output_move_neon (rtx *operands)
   switch (GET_CODE (addr))
     {
     case POST_INC:
-      template = "v%smia%%?\t%%0!, %%h1";
+      templ = "v%smia%%?\t%%0!, %%h1";
       ops[0] = XEXP (addr, 0);
       ops[1] = reg;
       break;
@@ -10431,12 +10484,12 @@ output_move_neon (rtx *operands)
       }
 
     default:
-      template = "v%smia%%?\t%%m0, %%h1";
+      templ = "v%smia%%?\t%%m0, %%h1";
       ops[0] = mem;
       ops[1] = reg;
     }
 
-  sprintf (buff, template, load ? "ld" : "st");
+  sprintf (buff, templ, load ? "ld" : "st");
   output_asm_insn (buff, ops);
 
   return "";
@@ -10792,6 +10845,24 @@ arm_compute_save_reg0_reg12_mask (void)
 }
 
 
+/* Compute the number of bytes used to store the static chain register on the 
+   stack, above the stack frame. We need to know this accurately to get the
+   alignment of the rest of the stack frame correct. */
+
+static int arm_compute_static_chain_stack_bytes (void)
+{
+  unsigned long func_type = arm_current_func_type ();
+  int static_chain_stack_bytes = 0;
+
+  if (TARGET_APCS_FRAME && frame_pointer_needed && TARGET_ARM &&
+      IS_NESTED (func_type) &&
+      df_regs_ever_live_p (3) && crtl->args.pretend_args_size == 0)
+    static_chain_stack_bytes = 4;
+
+  return static_chain_stack_bytes;
+}
+
+
 /* Compute a bit mask of which registers need to be
    saved on the stack for the current function.
    This is used by arm_get_frame_offsets, which may add extra registers.  */
@@ -10844,7 +10915,9 @@ arm_compute_save_reg_mask (void)
 
   if (TARGET_REALLY_IWMMXT
       && ((bit_count (save_reg_mask)
-	   + ARM_NUM_INTS (crtl->args.pretend_args_size)) % 2) != 0)
+	   + ARM_NUM_INTS (crtl->args.pretend_args_size +
+			   arm_compute_static_chain_stack_bytes())
+	   ) % 2) != 0)
     {
       /* The total number of registers that are going to be pushed
 	 onto the stack is odd.  We need to ensure that the stack
@@ -10927,6 +11000,26 @@ thumb1_compute_save_reg_mask (void)
 
       if (! call_used_regs[reg])
 	mask |= 1 << reg;
+    }
+
+  /* The 504 below is 8 bytes less than 512 because there are two possible
+     alignment words.  We can't tell here if they will be present or not so we
+     have to play it safe and assume that they are. */
+  if ((CALLER_INTERWORKING_SLOT_SIZE +
+       ROUND_UP_WORD (get_frame_size ()) +
+       crtl->outgoing_args_size) >= 504)
+    {
+      /* This is the same as the code in thumb1_expand_prologue() which
+	 determines which register to use for stack decrement. */
+      for (reg = LAST_ARG_REGNUM + 1; reg <= LAST_LO_REGNUM; reg++)
+	if (mask & (1 << reg))
+	  break;
+
+      if (reg > LAST_LO_REGNUM)
+	{
+	  /* Make sure we have a register available for stack decrement. */
+	  mask |= 1 << LAST_LO_REGNUM;
+	}
     }
 
   return mask;
@@ -12064,7 +12157,8 @@ arm_get_frame_offsets (void)
   offsets->saved_args = crtl->args.pretend_args_size;
 
   /* In Thumb mode this is incorrect, but never used.  */
-  offsets->frame = offsets->saved_args + (frame_pointer_needed ? 4 : 0);
+  offsets->frame = offsets->saved_args + (frame_pointer_needed ? 4 : 0) +
+                   arm_compute_static_chain_stack_bytes();
 
   if (TARGET_32BIT)
     {
@@ -12111,7 +12205,8 @@ arm_get_frame_offsets (void)
     }
 
   /* Saved registers include the stack frame.  */
-  offsets->saved_regs = offsets->saved_args + saved;
+  offsets->saved_regs = offsets->saved_args + saved +
+                        arm_compute_static_chain_stack_bytes();
   offsets->soft_frame = offsets->saved_regs + CALLER_INTERWORKING_SLOT_SIZE;
   /* A leaf function does not need any stack alignment if it has nothing
      on the stack.  */
@@ -12203,14 +12298,9 @@ arm_compute_initial_elimination_offset (unsigned int from, unsigned int to)
 	  return offsets->soft_frame - offsets->saved_args;
 
 	case ARM_HARD_FRAME_POINTER_REGNUM:
-	  /* If there is no stack frame then the hard
-	     frame pointer and the arg pointer coincide.  */
-	  if (offsets->frame == offsets->saved_regs)
-	    return 0;
-	  /* FIXME:  Not sure about this.  Maybe we should always return 0 ?  */
-	  return (frame_pointer_needed
-		  && cfun->static_chain_decl != NULL
-		  && ! cfun->machine->uses_anonymous_args) ? 4 : 0;
+	  /* This is only non-zero in the case where the static chain register
+	     is stored above the frame.  */
+	  return offsets->frame - offsets->saved_args - 4;
 
 	case STACK_POINTER_REGNUM:
 	  /* If nothing has been pushed on the stack at all
@@ -12438,7 +12528,9 @@ arm_expand_prologue (void)
 
       r0 = gen_rtx_REG (SImode, 0);
       r1 = gen_rtx_REG (SImode, 1);
-      dwarf = gen_rtx_UNSPEC (SImode, NULL_RTVEC, UNSPEC_STACK_ALIGN);
+      /* Use a real rtvec rather than NULL_RTVEC so the rest of the
+	 compiler won't choke.  */
+      dwarf = gen_rtx_UNSPEC (SImode, rtvec_alloc (0), UNSPEC_STACK_ALIGN);
       dwarf = gen_rtx_SET (VOIDmode, r0, dwarf);
       insn = gen_movsi (r0, stack_pointer_rtx);
       RTX_FRAME_RELATED_P (insn) = 1;
@@ -12496,6 +12588,9 @@ arm_expand_prologue (void)
 	    insn = emit_set_insn (gen_rtx_REG (SImode, 3), ip_rtx);
 	  else if (args_to_push == 0)
 	    {
+	      gcc_assert(arm_compute_static_chain_stack_bytes() == 4);
+	      saved_regs += 4;
+
 	      rtx dwarf;
 
 	      insn = gen_rtx_PRE_DEC (SImode, stack_pointer_rtx);
@@ -13280,28 +13375,16 @@ arm_assemble_integer (rtx x, unsigned int size, int aligned_p)
   if (arm_vector_mode_supported_p (mode))
     {
       int i, units;
-      unsigned int invmask = 0, parts_per_word;
 
       gcc_assert (GET_CODE (x) == CONST_VECTOR);
 
       units = CONST_VECTOR_NUNITS (x);
       size = GET_MODE_SIZE (GET_MODE_INNER (mode));
 
-      /* For big-endian Neon vectors, we must permute the vector to the form
-         which, when loaded by a VLDR or VLDM instruction, will give a vector
-         with the elements in the right order.  */
-      if (TARGET_NEON && WORDS_BIG_ENDIAN)
-        {
-          parts_per_word = UNITS_PER_WORD / size;
-          /* FIXME: This might be wrong for 64-bit vector elements, but we don't
-             support those anywhere yet.  */
-          invmask = (parts_per_word == 0) ? 0 : (1 << (parts_per_word - 1)) - 1;
-        }
-
       if (GET_MODE_CLASS (mode) == MODE_VECTOR_INT)
         for (i = 0; i < units; i++)
 	  {
-	    rtx elt = CONST_VECTOR_ELT (x, i ^ invmask);
+	    rtx elt = CONST_VECTOR_ELT (x, i);
 	    assemble_integer
 	      (elt, size, i == 0 ? BIGGEST_ALIGNMENT : size * BITS_PER_UNIT, 1);
 	  }
@@ -17006,62 +17089,25 @@ thumb1_expand_prologue (void)
 	     been pushed at the start of the prologue and so we can corrupt
 	     it now.  */
 	  for (regno = LAST_ARG_REGNUM + 1; regno <= LAST_LO_REGNUM; regno++)
-	    if (live_regs_mask & (1 << regno)
-		&& !(frame_pointer_needed
-		     && (regno == THUMB_HARD_FRAME_POINTER_REGNUM)))
+	    if (live_regs_mask & (1 << regno))
 	      break;
 
-	  if (regno > LAST_LO_REGNUM) /* Very unlikely.  */
-	    {
-	      rtx spare = gen_rtx_REG (SImode, IP_REGNUM);
+	  gcc_assert(regno <= LAST_LO_REGNUM);
 
-	      /* Choose an arbitrary, non-argument low register.  */
-	      reg = gen_rtx_REG (SImode, LAST_LO_REGNUM);
+	  reg = gen_rtx_REG (SImode, regno);
 
-	      /* Save it by copying it into a high, scratch register.  */
-	      emit_insn (gen_movsi (spare, reg));
-	      /* Add a USE to stop propagate_one_insn() from barfing.  */
-	      emit_insn (gen_prologue_use (spare));
+	  emit_insn (gen_movsi (reg, GEN_INT (- amount)));
 
-	      /* Decrement the stack.  */
-	      emit_insn (gen_movsi (reg, GEN_INT (- amount)));
-	      insn = emit_insn (gen_addsi3 (stack_pointer_rtx,
-					    stack_pointer_rtx, reg));
-	      RTX_FRAME_RELATED_P (insn) = 1;
-	      dwarf = gen_rtx_SET (VOIDmode, stack_pointer_rtx,
-				   plus_constant (stack_pointer_rtx,
-						  -amount));
-	      RTX_FRAME_RELATED_P (dwarf) = 1;
-	      REG_NOTES (insn)
-		= gen_rtx_EXPR_LIST (REG_FRAME_RELATED_EXPR, dwarf,
-				     REG_NOTES (insn));
-
-	      /* Restore the low register's original value.  */
-	      emit_insn (gen_movsi (reg, spare));
-
-	      /* Emit a USE of the restored scratch register, so that flow
-		 analysis will not consider the restore redundant.  The
-		 register won't be used again in this function and isn't
-		 restored by the epilogue.  */
-	      emit_insn (gen_prologue_use (reg));
-	    }
-	  else
-	    {
-	      reg = gen_rtx_REG (SImode, regno);
-
-	      emit_insn (gen_movsi (reg, GEN_INT (- amount)));
-
-	      insn = emit_insn (gen_addsi3 (stack_pointer_rtx,
-					    stack_pointer_rtx, reg));
-	      RTX_FRAME_RELATED_P (insn) = 1;
-	      dwarf = gen_rtx_SET (VOIDmode, stack_pointer_rtx,
-				   plus_constant (stack_pointer_rtx,
-						  -amount));
-	      RTX_FRAME_RELATED_P (dwarf) = 1;
-	      REG_NOTES (insn)
-		= gen_rtx_EXPR_LIST (REG_FRAME_RELATED_EXPR, dwarf,
-				     REG_NOTES (insn));
-	    }
+	  insn = emit_insn (gen_addsi3 (stack_pointer_rtx,
+					stack_pointer_rtx, reg));
+	  RTX_FRAME_RELATED_P (insn) = 1;
+	  dwarf = gen_rtx_SET (VOIDmode, stack_pointer_rtx,
+			       plus_constant (stack_pointer_rtx,
+					      -amount));
+	  RTX_FRAME_RELATED_P (dwarf) = 1;
+	  REG_NOTES (insn)
+	    = gen_rtx_EXPR_LIST (REG_FRAME_RELATED_EXPR, dwarf,
+				 REG_NOTES (insn));
 	}
     }
 
@@ -17732,8 +17778,12 @@ arm_file_start (void)
 	      fpu_name = "vfp";
 	      set_float_abi_attributes = 1;
 	      break;
+	    case FPUTYPE_VFP3D16:
+	      fpu_name = "vfpv3-d16";
+	      set_float_abi_attributes = 1;
+	      break;
 	    case FPUTYPE_VFP3:
-	      fpu_name = "vfp3";
+	      fpu_name = "vfpv3";
 	      set_float_abi_attributes = 1;
 	      break;
 	    case FPUTYPE_NEON:
@@ -18185,8 +18235,15 @@ arm_no_early_mul_dep (rtx producer, rtx consumer)
     op = XVECEXP (op, 0, 0);
   op = XEXP (op, 1);
 
-  return (GET_CODE (op) == PLUS
-	  && !reg_overlap_mentioned_p (value, XEXP (op, 0)));
+  if (GET_CODE (op) == PLUS || GET_CODE (op) == MINUS)
+    {
+      if (GET_CODE (XEXP (op, 0)) == MULT)
+	return !reg_overlap_mentioned_p (value, XEXP (op, 0));
+      else
+	return !reg_overlap_mentioned_p (value, XEXP (op, 1));
+    }
+
+  return 0;
 }
 
 /* We can't rely on the caller doing the proper promotion when
@@ -18967,6 +19024,7 @@ arm_issue_rate (void)
   switch (arm_tune)
     {
     case cortexr4:
+    case cortexr4f:
     case cortexa8:
       return 2;
 
@@ -19038,6 +19096,41 @@ arm_mangle_type (const_tree type)
   /* Use the default mangling for unrecognized (possibly user-defined)
      vector types.  */
   return NULL;
+}
+
+/* Order of allocation of core registers for Thumb: this allocation is
+   written over the corresponding initial entries of the array
+   initialized with REG_ALLOC_ORDER.  We allocate all low registers
+   first.  Saving and restoring a low register is usually cheaper than
+   using a call-clobbered high register.  */
+
+static const int thumb_core_reg_alloc_order[] =
+{
+   3,  2,  1,  0,  4,  5,  6,  7,
+  14, 12,  8,  9, 10, 11, 13, 15
+};
+
+/* Adjust register allocation order when compiling for Thumb.  */
+
+void
+arm_order_regs_for_local_alloc (void)
+{
+  const int arm_reg_alloc_order[] = REG_ALLOC_ORDER;
+  memcpy(reg_alloc_order, arm_reg_alloc_order, sizeof (reg_alloc_order));
+  if (TARGET_THUMB)
+    memcpy (reg_alloc_order, thumb_core_reg_alloc_order,
+            sizeof (thumb_core_reg_alloc_order));
+}
+
+/* Set default optimization options.  */
+void
+arm_optimization_options (int level, int size ATTRIBUTE_UNUSED)
+{
+  /* Enable section anchors by default at -O1 or higher.
+     Use 2 to distinguish from an explicit -fsection-anchors
+     given on the command line.  */
+  if (level > 0)
+    flag_section_anchors = 2;
 }
 
 #include "gt-arm.h"

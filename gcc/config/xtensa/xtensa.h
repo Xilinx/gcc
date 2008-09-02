@@ -479,6 +479,11 @@ enum reg_class
   { 0xffffffff, 0x0000000f }  /* all registers */ \
 }
 
+#define IRA_COVER_CLASSES						\
+{									\
+  BR_REGS, FP_REGS, ACC_REG, AR_REGS, LIM_REG_CLASSES			\
+}
+
 /* A C expression whose value is a register class containing hard
    register REGNO.  In general there is more that one such class;
    choose a class which is "minimal", meaning that no smaller class
@@ -882,7 +887,7 @@ typedef struct xtensa_args
 
 #define MEMORY_MOVE_COST(MODE, CLASS, IN) 4
 
-#define BRANCH_COST 3
+#define BRANCH_COST(speed_p, predictable_p) 3
 
 /* How to refer to registers in assembler output.
    This sequence is indexed by compiler's hard-register-number (see above).  */

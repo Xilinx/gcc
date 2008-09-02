@@ -209,6 +209,7 @@ package Rtsfind is
       System_Compare_Array_Unsigned_64,
       System_Compare_Array_Unsigned_8,
       System_DSA_Services,
+      System_DSA_Types,
       System_Exception_Table,
       System_Exceptions,
       System_Exn_Int,
@@ -696,6 +697,8 @@ package Rtsfind is
      RE_Get_Local_Partition_Id,          -- System.DSA_Services
      RE_Get_Passive_Partition_Id,        -- System.DSA_Services
 
+     RE_Any_Container_Ptr,               -- System.DSA_Types
+
      RE_Register_Exception,              -- System.Exception_Table
 
      RE_Local_Raise,                     -- System.Exceptions
@@ -1157,6 +1160,7 @@ package Rtsfind is
      RE_BS_To_Any,                       -- System.Partition_Interface
      RE_Any_To_BS,                       -- System.Partition_Interface
 
+     RE_FA_A,                            -- System.Partition_Interface
      RE_FA_B,                            -- System.Partition_Interface
      RE_FA_C,                            -- System.Partition_Interface
      RE_FA_F,                            -- System.Partition_Interface
@@ -1205,7 +1209,7 @@ package Rtsfind is
      RE_TC_Build,                        -- System.Partition_Interface
      RE_Get_TC,                          -- System.Partition_Interface
      RE_Set_TC,                          -- System.Partition_Interface
-     RE_TC_Any,                          -- System.Partition_Interface
+     RE_TC_A,                            -- System.Partition_Interface
      RE_TC_B,                            -- System.Partition_Interface
      RE_TC_C,                            -- System.Partition_Interface
      RE_TC_F,                            -- System.Partition_Interface
@@ -1257,11 +1261,8 @@ package Rtsfind is
      RE_SS_Mark,                         -- System.Secondary_Stack
      RE_SS_Release,                      -- System.Secondary_Stack
 
-     RE_Shared_Var_Close,                -- System.Shared_Storage
      RE_Shared_Var_Lock,                 -- System.Shared_Storage
-     RE_Shared_Var_ROpen,                -- System.Shared_Storage
      RE_Shared_Var_Unlock,               -- System.Shared_Storage
-     RE_Shared_Var_WOpen,                -- System.Shared_Storage
      RE_Shared_Var_Procs,                -- System.Shared_Storage
 
      RE_Abort_Undefer_Direct,            -- System.Standard_Library
@@ -1331,17 +1332,29 @@ package Rtsfind is
      RE_Str_Concat_5,                    -- System.String_Ops_Concat_5
 
      RE_String_Input,                    -- System.Strings.Stream_Ops
+     RE_String_Input_Blk_IO,             -- System.Strings.Stream_Ops
      RE_String_Output,                   -- System.Strings.Stream_Ops
+     RE_String_Output_Blk_IO,            -- System.Strings.Stream_Ops
      RE_String_Read,                     -- System.Strings.Stream_Ops
+     RE_String_Read_Blk_IO,              -- System.Strings.Stream_Ops
      RE_String_Write,                    -- System.Strings.Stream_Ops
+     RE_String_Write_Blk_IO,             -- System.Strings.Stream_Ops
      RE_Wide_String_Input,               -- System.Strings.Stream_Ops
+     RE_Wide_String_Input_Blk_IO,        -- System.Strings.Stream_Ops
      RE_Wide_String_Output,              -- System.Strings.Stream_Ops
+     RE_Wide_String_Output_Blk_IO,       -- System.Strings.Stream_Ops
      RE_Wide_String_Read,                -- System.Strings.Stream_Ops
+     RE_Wide_String_Read_Blk_IO,         -- System.Strings.Stream_Ops
      RE_Wide_String_Write,               -- System.Strings.Stream_Ops
+     RE_Wide_String_Write_Blk_IO,        -- System.Strings.Stream_Ops
      RE_Wide_Wide_String_Input,          -- System.Strings.Stream_Ops
+     RE_Wide_Wide_String_Input_Blk_IO,   -- System.Strings.Stream_Ops
      RE_Wide_Wide_String_Output,         -- System.Strings.Stream_Ops
+     RE_Wide_Wide_String_Output_Blk_IO,  -- System.Strings.Stream_Ops
      RE_Wide_Wide_String_Read,           -- System.Strings.Stream_Ops
+     RE_Wide_Wide_String_Read_Blk_IO,    -- System.Strings.Stream_Ops
      RE_Wide_Wide_String_Write,          -- System.Strings.Stream_Ops
+     RE_Wide_Wide_String_Write_Blk_IO,   -- System.Strings.Stream_Ops
 
      RE_Task_Info_Type,                  -- System.Task_Info
      RE_Unspecified_Task_Info,           -- System.Task_Info
@@ -1838,6 +1851,8 @@ package Rtsfind is
      RE_Get_Local_Partition_Id           => System_DSA_Services,
      RE_Get_Passive_Partition_Id         => System_DSA_Services,
 
+     RE_Any_Container_Ptr                => System_DSA_Types,
+
      RE_Register_Exception               => System_Exception_Table,
 
      RE_Local_Raise                      => System_Exceptions,
@@ -2290,6 +2305,7 @@ package Rtsfind is
      RE_BS_To_Any                        => System_Partition_Interface,
      RE_Any_To_BS                        => System_Partition_Interface,
 
+     RE_FA_A                             => System_Partition_Interface,
      RE_FA_B                             => System_Partition_Interface,
      RE_FA_C                             => System_Partition_Interface,
      RE_FA_F                             => System_Partition_Interface,
@@ -2338,7 +2354,7 @@ package Rtsfind is
      RE_TC_Build                         => System_Partition_Interface,
      RE_Get_TC                           => System_Partition_Interface,
      RE_Set_TC                           => System_Partition_Interface,
-     RE_TC_Any                           => System_Partition_Interface,
+     RE_TC_A                             => System_Partition_Interface,
      RE_TC_B                             => System_Partition_Interface,
      RE_TC_C                             => System_Partition_Interface,
      RE_TC_F                             => System_Partition_Interface,
@@ -2399,11 +2415,8 @@ package Rtsfind is
      RE_SS_Pool                          => System_Secondary_Stack,
      RE_SS_Release                       => System_Secondary_Stack,
 
-     RE_Shared_Var_Close                 => System_Shared_Storage,
      RE_Shared_Var_Lock                  => System_Shared_Storage,
-     RE_Shared_Var_ROpen                 => System_Shared_Storage,
      RE_Shared_Var_Unlock                => System_Shared_Storage,
-     RE_Shared_Var_WOpen                 => System_Shared_Storage,
      RE_Shared_Var_Procs                 => System_Shared_Storage,
 
      RE_Abort_Undefer_Direct             => System_Standard_Library,
@@ -2473,17 +2486,29 @@ package Rtsfind is
      RE_Str_Concat_5                     => System_String_Ops_Concat_5,
 
      RE_String_Input                     => System_Strings_Stream_Ops,
+     RE_String_Input_Blk_IO              => System_Strings_Stream_Ops,
      RE_String_Output                    => System_Strings_Stream_Ops,
+     RE_String_Output_Blk_IO             => System_Strings_Stream_Ops,
      RE_String_Read                      => System_Strings_Stream_Ops,
+     RE_String_Read_Blk_IO               => System_Strings_Stream_Ops,
      RE_String_Write                     => System_Strings_Stream_Ops,
+     RE_String_Write_Blk_IO              => System_Strings_Stream_Ops,
      RE_Wide_String_Input                => System_Strings_Stream_Ops,
+     RE_Wide_String_Input_Blk_IO         => System_Strings_Stream_Ops,
      RE_Wide_String_Output               => System_Strings_Stream_Ops,
+     RE_Wide_String_Output_Blk_IO        => System_Strings_Stream_Ops,
      RE_Wide_String_Read                 => System_Strings_Stream_Ops,
+     RE_Wide_String_Read_Blk_IO          => System_Strings_Stream_Ops,
      RE_Wide_String_Write                => System_Strings_Stream_Ops,
+     RE_Wide_String_Write_Blk_IO         => System_Strings_Stream_Ops,
      RE_Wide_Wide_String_Input           => System_Strings_Stream_Ops,
+     RE_Wide_Wide_String_Input_Blk_IO    => System_Strings_Stream_Ops,
      RE_Wide_Wide_String_Output          => System_Strings_Stream_Ops,
+     RE_Wide_Wide_String_Output_Blk_IO   => System_Strings_Stream_Ops,
      RE_Wide_Wide_String_Read            => System_Strings_Stream_Ops,
+     RE_Wide_Wide_String_Read_Blk_IO     => System_Strings_Stream_Ops,
      RE_Wide_Wide_String_Write           => System_Strings_Stream_Ops,
+     RE_Wide_Wide_String_Write_Blk_IO    => System_Strings_Stream_Ops,
 
      RE_Task_Info_Type                   => System_Task_Info,
      RE_Unspecified_Task_Info            => System_Task_Info,

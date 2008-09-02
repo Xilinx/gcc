@@ -367,12 +367,14 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
   switch (kind)
     {
     case E_Constant:
-      /* If this is a use of a deferred constant, get its full
-	 declaration.  */
-      if (!definition && Present (Full_View (gnat_entity)))
+      /* If this is a use of a deferred constant without address clause,
+	 get its full definition.  */
+      if (!definition
+	  && No (Address_Clause (gnat_entity))
+	  && Present (Full_View (gnat_entity)))
 	{
-	  gnu_decl = gnat_to_gnu_entity (Full_View (gnat_entity),
-					 gnu_expr, 0);
+	  gnu_decl
+	    = gnat_to_gnu_entity (Full_View (gnat_entity), gnu_expr, 0);
 	  saved = true;
 	  break;
 	}
@@ -391,12 +393,14 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	      != N_Allocator))
 	gnu_expr = gnat_to_gnu (Expression (Declaration_Node (gnat_entity)));
 
-      /* Ignore deferred constant definitions; they are processed fully in the
-	 front-end.  For deferred constant references get the full definition.
-	 On the other hand, constants that are renamings are handled like
-	 variable renamings.  If No_Initialization is set, this is not a
-	 deferred constant but a constant whose value is built manually.  */
-      if (definition && !gnu_expr
+      /* Ignore deferred constant definitions without address clause since
+	 they are processed fully in the front-end.  If No_Initialization
+	 is set, this is not a deferred constant but a constant whose value
+	 is built manually.  And constants that are renamings are handled
+	 like variables.  */
+      if (definition
+	  && !gnu_expr
+	  && No (Address_Clause (gnat_entity))
 	  && !No_Initialization (Declaration_Node (gnat_entity))
 	  && No (Renamed_Object (gnat_entity)))
 	{
@@ -404,12 +408,15 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	  saved = true;
 	  break;
 	}
-      else if (!definition && IN (kind, Incomplete_Or_Private_Kind)
-	       && Present (Full_View (gnat_entity)))
+
+      /* Ignore constant definitions already marked with the error node.  See
+	 the N_Object_Declaration case of gnat_to_gnu for the rationale.  */
+      if (definition
+	  && gnu_expr
+	  && present_gnu_tree (gnat_entity)
+	  && get_gnu_tree (gnat_entity) == error_mark_node)
 	{
-	  gnu_decl =  gnat_to_gnu_entity (Full_View (gnat_entity),
-					  NULL_TREE, 0);
-	  saved = true;
+	  maybe_present = true;
 	  break;
 	}
 
@@ -1037,17 +1044,17 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	    && !Is_Imported (gnat_entity) && !gnu_expr)
 	  gnu_expr = integer_zero_node;
 
-	/* If we are defining the object and it has an Address clause we must
-	   get the address expression from the saved GCC tree for the
-	   object if the object has a Freeze_Node.  Otherwise, we elaborate
-	   the address expression here since the front-end has guaranteed
-	   in that case that the elaboration has no effects.  Note that
-	   only the latter mechanism is currently in use.  */
+	/* If we are defining the object and it has an Address clause, we must
+	   either get the address expression from the saved GCC tree for the
+	   object if it has a Freeze node, or elaborate the address expression
+	   here since the front-end has guaranteed that the elaboration has no
+	   effects in this case.  */
 	if (definition && Present (Address_Clause (gnat_entity)))
 	  {
 	    tree gnu_address
-	      = (present_gnu_tree (gnat_entity) ? get_gnu_tree (gnat_entity)
-		: gnat_to_gnu (Expression (Address_Clause (gnat_entity))));
+	      = present_gnu_tree (gnat_entity)
+		? get_gnu_tree (gnat_entity)
+		: gnat_to_gnu (Expression (Address_Clause (gnat_entity)));
 
 	    save_gnu_tree (gnat_entity, NULL_TREE, false);
 
@@ -1063,6 +1070,13 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	    const_flag = !Is_Public (gnat_entity)
 	      || compile_time_known_address_p (Expression (Address_Clause
 							   (gnat_entity)));
+
+	    /* If this is a deferred constant, the initializer is attached to
+	       the full view.  */
+	    if (kind == E_Constant && Present (Full_View (gnat_entity)))
+	      gnu_expr
+		= gnat_to_gnu
+		    (Expression (Declaration_Node (Full_View (gnat_entity))));
 
 	    /* If we don't have an initializing expression for the underlying
 	       variable, the initializing expression for the pointer is the
@@ -1289,12 +1303,12 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	      }
 	  }
 
-	if (definition && DECL_SIZE (gnu_decl)
+	if (definition && DECL_SIZE_UNIT (gnu_decl)
 	    && get_block_jmpbuf_decl ()
-	    && (TREE_CODE (DECL_SIZE (gnu_decl)) != INTEGER_CST
-		|| (flag_stack_check && !STACK_CHECK_BUILTIN
-		    && 0 < compare_tree_int (DECL_SIZE_UNIT (gnu_decl),
-					     STACK_CHECK_MAX_VAR_SIZE))))
+	    && (TREE_CODE (DECL_SIZE_UNIT (gnu_decl)) != INTEGER_CST
+		|| (flag_stack_check == GENERIC_STACK_CHECK
+		    && compare_tree_int (DECL_SIZE_UNIT (gnu_decl),
+					 STACK_CHECK_MAX_VAR_SIZE) > 0)))
 	  add_stmt_with_node (build_call_1_expr
 			      (update_setjmp_buf_decl,
 			       build_unary_op (ADDR_EXPR, NULL_TREE,
@@ -1536,15 +1550,20 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 			    gnu_expr, 0);
 
       gnu_type = make_node (INTEGER_TYPE);
+      TREE_TYPE (gnu_type) = get_unpadded_type (Etype (gnat_entity));
+
+      /* Set the precision to the Esize except for bit-packed arrays and
+	 subtypes of Standard.Boolean.  */
       if (Is_Packed_Array_Type (gnat_entity)
 	  && Is_Bit_Packed_Array (Original_Array_Type (gnat_entity)))
 	{
 	  esize = UI_To_Int (RM_Size (gnat_entity));
 	  TYPE_PACKED_ARRAY_TYPE_P (gnu_type) = 1;
 	}
+      else if (TREE_CODE (TREE_TYPE (gnu_type)) == BOOLEAN_TYPE)
+        esize = 1;
 
       TYPE_PRECISION (gnu_type) = esize;
-      TREE_TYPE (gnu_type) = get_unpadded_type (Etype (gnat_entity));
 
       TYPE_MIN_VALUE (gnu_type)
 	= convert (TREE_TYPE (gnu_type),
@@ -1596,7 +1615,7 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	 are uninitialized.  Both goals are accomplished by wrapping the
 	 modular value in an enclosing struct.  */
       if (Is_Packed_Array_Type (gnat_entity)
-	    && Is_Bit_Packed_Array (Original_Array_Type (gnat_entity)))
+	  && Is_Bit_Packed_Array (Original_Array_Type (gnat_entity)))
 	{
 	  tree gnu_field_type = gnu_type;
 	  tree gnu_field;
@@ -3057,7 +3076,7 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 
 			/* Discard old fields that are outside the new type.
 			   This avoids confusing code scanning it to decide
-			   how to pass it to functions on some platforms.   */
+			   how to pass it to functions on some platforms.  */
 			if (TREE_CODE (gnu_new_pos) == INTEGER_CST
 			    && TREE_CODE (TYPE_SIZE (gnu_type)) == INTEGER_CST
 			    && !integer_zerop (gnu_size)
@@ -3867,6 +3886,11 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	      ;
 	    else if (By_Descriptor_Last <= mech && mech <= By_Descriptor)
 	      mech = By_Descriptor;
+
+	    else if (By_Short_Descriptor_Last <= mech &&
+                     mech <= By_Short_Descriptor)
+	      mech = By_Short_Descriptor;
+
 	    else if (mech > 0)
 	      {
 		if (TREE_CODE (gnu_param_type) == UNCONSTRAINED_ARRAY_TYPE
@@ -3908,7 +3932,7 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 		      = chainon (gnu_param, gnu_stub_param_list);
 		    /* Change By_Descriptor parameter to By_Reference for
 		       the internal version of an exported subprogram.  */
-		    if (mech == By_Descriptor)
+		    if (mech == By_Descriptor || mech == By_Short_Descriptor)
 		      {
 			gnu_param
 			  = gnat_to_gnu_param (gnat_param, By_Reference,
@@ -4015,19 +4039,15 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	if (TREE_CODE (gnu_return_type) == VOID_TYPE)
 	  pure_flag = false;
 
-	/* The semantics of "pure" in Ada essentially matches that of "const"
-	   in the back-end.  In particular, both properties are orthogonal to
-	   the "nothrow" property.  But this is true only if the EH circuitry
-	   is explicit in the internal representation of the back-end.  If we
-	   are to completely hide the EH circuitry from it, we need to declare
-	   that calls to pure Ada subprograms that can throw have side effects
-	   since they can trigger an "abnormal" transfer of control flow; thus
-	   they can be neither "const" nor "pure" in the back-end sense.  */
+	/* The semantics of "pure" in Ada used to essentially match that of
+	   "const" in the middle-end.  In particular, both properties were
+	   orthogonal to the "nothrow" property.  This is not true in the
+	   middle-end any more and we have no choice but to ignore the hint
+	   at this stage.  */
+
 	gnu_type
 	  = build_qualified_type (gnu_type,
 				  TYPE_QUALS (gnu_type)
-				  | (Exception_Mechanism == Back_End_Exceptions
-				     ? TYPE_QUAL_CONST * pure_flag : 0)
 				  | (TYPE_QUAL_VOLATILE * volatile_flag));
 
 	Sloc_to_locus (Sloc (gnat_entity), &input_location);
@@ -4774,6 +4794,7 @@ gnat_to_gnu_param (Entity_Id gnat_param, Mechanism_Type mech,
 {
   tree gnu_param_name = get_entity_name (gnat_param);
   tree gnu_param_type = gnat_to_gnu_type (Etype (gnat_param));
+  tree gnu_param_type_alt = NULL_TREE;
   bool in_param = (Ekind (gnat_param) == E_In_Parameter);
   /* The parameter can be indirectly modified if its address is taken.  */
   bool ro_param = in_param && !Address_Taken (gnat_param);
@@ -4821,11 +4842,25 @@ gnat_to_gnu_param (Entity_Id gnat_param, Mechanism_Type mech,
       = TREE_TYPE (TREE_TYPE (TYPE_FIELDS (TREE_TYPE (gnu_param_type))));
 
   /* VMS descriptors are themselves passed by reference.  */
-  if (mech == By_Descriptor)
+  if (mech == By_Short_Descriptor ||
+      (mech == By_Descriptor && TARGET_ABI_OPEN_VMS && !TARGET_MALLOC64))
     gnu_param_type
-      = build_pointer_type (build_vms_descriptor (gnu_param_type,
-						  Mechanism (gnat_param),
-						  gnat_subprog));
+      = build_pointer_type (build_vms_descriptor32 (gnu_param_type,
+						    Mechanism (gnat_param),
+						    gnat_subprog));
+  else if (mech == By_Descriptor)
+    {
+      /* Build both a 32-bit and 64-bit descriptor, one of which will be
+	 chosen in fill_vms_descriptor.  */
+      gnu_param_type_alt
+        = build_pointer_type (build_vms_descriptor32 (gnu_param_type,
+						      Mechanism (gnat_param),
+						      gnat_subprog));
+      gnu_param_type
+        = build_pointer_type (build_vms_descriptor (gnu_param_type,
+						    Mechanism (gnat_param),
+						    gnat_subprog));
+    }
 
   /* Arrays are passed as pointers to element type for foreign conventions.  */
   else if (foreign
@@ -4906,6 +4941,7 @@ gnat_to_gnu_param (Entity_Id gnat_param, Mechanism_Type mech,
       && !by_ref
       && (by_return
 	  || (mech != By_Descriptor
+              && mech != By_Short_Descriptor
 	      && !POINTER_TYPE_P (gnu_param_type)
 	      && !AGGREGATE_TYPE_P (gnu_param_type)))
       && !(Is_Array_Type (Etype (gnat_param))
@@ -4917,9 +4953,14 @@ gnat_to_gnu_param (Entity_Id gnat_param, Mechanism_Type mech,
 				 ro_param || by_ref || by_component_ptr);
   DECL_BY_REF_P (gnu_param) = by_ref;
   DECL_BY_COMPONENT_PTR_P (gnu_param) = by_component_ptr;
-  DECL_BY_DESCRIPTOR_P (gnu_param) = (mech == By_Descriptor);
+  DECL_BY_DESCRIPTOR_P (gnu_param) = (mech == By_Descriptor ||
+                                      mech == By_Short_Descriptor);
   DECL_POINTS_TO_READONLY_P (gnu_param)
     = (ro_param && (by_ref || by_component_ptr));
+
+  /* Save the alternate descriptor type, if any.  */
+  if (gnu_param_type_alt)
+    SET_DECL_PARM_ALT_TYPE (gnu_param, gnu_param_type_alt);
 
   /* If no Mechanism was specified, indicate what we're using, then
      back-annotate it.  */
@@ -7094,7 +7135,8 @@ set_rm_size (Uint uint_size, tree gnu_type, Entity_Id gnat_entity)
   if (TREE_CODE (gnu_type) == INTEGER_TYPE
       && Is_Discrete_Or_Fixed_Point_Type (gnat_entity))
     TYPE_RM_SIZE_NUM (gnu_type) = size;
-  else if (TREE_CODE (gnu_type) == ENUMERAL_TYPE)
+  else if (TREE_CODE (gnu_type) == ENUMERAL_TYPE
+	   || TREE_CODE (gnu_type) == BOOLEAN_TYPE)
     TYPE_RM_SIZE_NUM (gnu_type) = size;
   else if ((TREE_CODE (gnu_type) == RECORD_TYPE
 	    || TREE_CODE (gnu_type) == UNION_TYPE
@@ -7112,7 +7154,7 @@ static tree
 make_type_from_size (tree type, tree size_tree, bool for_biased)
 {
   unsigned HOST_WIDE_INT size;
-  bool biased_p;
+  bool biased_p, boolean_p;
   tree new_type;
 
   /* If size indicates an error, just return TYPE to avoid propagating
@@ -7126,13 +7168,23 @@ make_type_from_size (tree type, tree size_tree, bool for_biased)
     {
     case INTEGER_TYPE:
     case ENUMERAL_TYPE:
+    case BOOLEAN_TYPE:
       biased_p = (TREE_CODE (type) == INTEGER_TYPE
 		  && TYPE_BIASED_REPRESENTATION_P (type));
+
+      boolean_p = (TREE_CODE (type) == BOOLEAN_TYPE
+		   || (TREE_CODE (type) == INTEGER_TYPE
+		       && TREE_TYPE (type)
+		       && TREE_CODE (TREE_TYPE (type)) == BOOLEAN_TYPE));
+
+      if (boolean_p)
+	size = round_up_to_align (size, BITS_PER_UNIT);
 
       /* Only do something if the type is not a packed array type and
 	 doesn't already have the proper size.  */
       if (TYPE_PACKED_ARRAY_TYPE_P (type)
-	  || (TYPE_PRECISION (type) == size && biased_p == for_biased))
+	  || (biased_p == for_biased && TYPE_PRECISION (type) == size)
+	  || (boolean_p && compare_tree_int (TYPE_SIZE (type), size) == 0))
 	break;
 
       biased_p |= for_biased;
@@ -7142,22 +7194,33 @@ make_type_from_size (tree type, tree size_tree, bool for_biased)
 	new_type = make_unsigned_type (size);
       else
 	new_type = make_signed_type (size);
+      if (boolean_p)
+	TYPE_PRECISION (new_type) = 1;
       TREE_TYPE (new_type) = TREE_TYPE (type) ? TREE_TYPE (type) : type;
       TYPE_MIN_VALUE (new_type)
 	= convert (TREE_TYPE (new_type), TYPE_MIN_VALUE (type));
       TYPE_MAX_VALUE (new_type)
 	= convert (TREE_TYPE (new_type), TYPE_MAX_VALUE (type));
       TYPE_BIASED_REPRESENTATION_P (new_type) = biased_p;
-      TYPE_RM_SIZE_NUM (new_type) = bitsize_int (size);
+      if (boolean_p)
+	TYPE_RM_SIZE_NUM (new_type) = bitsize_int (1);
+      else
+	TYPE_RM_SIZE_NUM (new_type) = bitsize_int (size);
       return new_type;
 
     case RECORD_TYPE:
       /* Do something if this is a fat pointer, in which case we
 	 may need to return the thin pointer.  */
       if (TYPE_IS_FAT_POINTER_P (type) && size < POINTER_SIZE * 2)
-	return
-	  build_pointer_type
-	    (TYPE_OBJECT_RECORD_TYPE (TYPE_UNCONSTRAINED_ARRAY (type)));
+	{
+	  enum machine_mode p_mode = mode_for_size (size, MODE_INT, 0);
+	  if (!targetm.valid_pointer_mode (p_mode))
+	    p_mode = ptr_mode;
+	  return
+	    build_pointer_type_for_mode
+	      (TYPE_OBJECT_RECORD_TYPE (TYPE_UNCONSTRAINED_ARRAY (type)),
+	       p_mode, 0);
+	}
       break;
 
     case POINTER_TYPE:

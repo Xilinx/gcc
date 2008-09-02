@@ -710,8 +710,8 @@ check_specialization_namespace (tree tmpl)
     return true;
   else
     {
-      permerror ("specialization of %qD in different namespace", tmpl);
-      permerror ("  from definition of %q+#D", tmpl);
+      permerror (input_location, "specialization of %qD in different namespace", tmpl);
+      permerror (input_location, "  from definition of %q+#D", tmpl);
       return false;
     }
 }
@@ -728,7 +728,7 @@ check_explicit_instantiation_namespace (tree spec)
      namespace of its template.  */
   ns = decl_namespace_context (spec);
   if (!is_ancestor (current_namespace, ns))
-    permerror ("explicit instantiation of %qD in namespace %qD "
+    permerror (input_location, "explicit instantiation of %qD in namespace %qD "
 	       "(which does not enclose namespace %qD)",
 	       spec, current_namespace, ns);
 }
@@ -811,8 +811,8 @@ maybe_process_partial_specialization (tree type)
 	  if (current_namespace
 	      != decl_namespace_context (CLASSTYPE_TI_TEMPLATE (type)))
 	    {
-	      permerror ("specializing %q#T in different namespace", type);
-	      permerror ("  from definition of %q+#D",
+	      permerror (input_location, "specializing %q#T in different namespace", type);
+	      permerror (input_location, "  from definition of %q+#D",
 		         CLASSTYPE_TI_TEMPLATE (type));
 	    }
 
@@ -2002,8 +2002,8 @@ check_explicit_specialization (tree declarator,
       for (; t; t = TREE_CHAIN (t))
 	if (TREE_PURPOSE (t))
 	  {
-	    permerror
-	      ("default argument specified in explicit specialization");
+	    permerror (input_location, 
+		       "default argument specified in explicit specialization");
 	    break;
 	  }
     }
@@ -2741,9 +2741,9 @@ check_for_bare_parameter_packs (tree t)
             name = DECL_NAME (pack);
 
 	  if (name)
-	    inform ("        %qD", name);
+	    inform (input_location, "        %qD", name);
 	  else
-	    inform ("        <anonymous>");
+	    inform (input_location, "        <anonymous>");
 
           parameter_packs = TREE_CHAIN (parameter_packs);
         }
@@ -2809,12 +2809,15 @@ expand_template_argument_pack (tree args)
   return result_args;
 }
 
-/* Complain if DECL shadows a template parameter.
+/* Checks if DECL shadows a template parameter.
 
    [temp.local]: A template-parameter shall not be redeclared within its
-   scope (including nested scopes).  */
+   scope (including nested scopes).
 
-void
+   Emits an error and returns TRUE if the DECL shadows a parameter,
+   returns FALSE otherwise.  */
+
+bool
 check_template_shadow (tree decl)
 {
   tree olddecl;
@@ -2822,7 +2825,7 @@ check_template_shadow (tree decl)
   /* If we're not in a template, we can't possibly shadow a template
      parameter.  */
   if (!current_template_parms)
-    return;
+    return true;
 
   /* Figure out what we're shadowing.  */
   if (TREE_CODE (decl) == OVERLOAD)
@@ -2832,24 +2835,25 @@ check_template_shadow (tree decl)
   /* If there's no previous binding for this name, we're not shadowing
      anything, let alone a template parameter.  */
   if (!olddecl)
-    return;
+    return true;
 
   /* If we're not shadowing a template parameter, we're done.  Note
      that OLDDECL might be an OVERLOAD (or perhaps even an
      ERROR_MARK), so we can't just blithely assume it to be a _DECL
      node.  */
   if (!DECL_P (olddecl) || !DECL_TEMPLATE_PARM_P (olddecl))
-    return;
+    return true;
 
   /* We check for decl != olddecl to avoid bogus errors for using a
      name inside a class.  We check TPFI to avoid duplicate errors for
      inline member templates.  */
   if (decl == olddecl
       || TEMPLATE_PARMS_FOR_INLINE (current_template_parms))
-    return;
+    return true;
 
   error ("declaration of %q+#D", decl);
   error (" shadows template parm %q+#D", olddecl);
+  return false;
 }
 
 /* Return a new TEMPLATE_PARM_INDEX with the indicated INDEX, LEVEL,
@@ -4016,7 +4020,7 @@ push_template_decl_real (tree decl, bool is_friend)
 template arguments to %qD do not match original template %qD",
 		 decl, DECL_TEMPLATE_RESULT (tmpl));
 	  if (!uses_template_parms (TI_ARGS (tinfo)))
-	    inform ("use template<> for an explicit specialization");
+	    inform (input_location, "use template<> for an explicit specialization");
 	  /* Avoid crash in import_export_decl.  */
 	  DECL_INTERFACE_KNOWN (decl) = 1;
 	  return error_mark_node;
@@ -4137,7 +4141,7 @@ redeclare_class_template (tree type, tree parms)
     {
       error ("redeclared with %d template parameter(s)", 
              TREE_VEC_LENGTH (parms));
-      inform ("previous declaration %q+D used %d template parameter(s)", 
+      inform (input_location, "previous declaration %q+D used %d template parameter(s)", 
              tmpl, TREE_VEC_LENGTH (tmpl_parms));
       return false;
     }
@@ -4183,7 +4187,7 @@ redeclare_class_template (tree type, tree parms)
 	     A template-parameter may not be given default arguments
 	     by two different declarations in the same scope.  */
 	  error ("redefinition of default argument for %q#D", parm);
-	  inform ("%Joriginal definition appeared here", tmpl_parm);
+	  inform (input_location, "%Joriginal definition appeared here", tmpl_parm);
 	  return false;
 	}
 
@@ -4566,7 +4570,7 @@ convert_nontype_argument (tree type, tree expr)
 	{
 	  error ("%qE is not a valid template argument for type %qT "
 		 "because it is a pointer", expr, type);
-	  inform ("try using %qE instead", TREE_OPERAND (expr, 0));
+	  inform (input_location, "try using %qE instead", TREE_OPERAND (expr, 0));
 	  return NULL_TREE;
 	}
 
@@ -4604,7 +4608,7 @@ convert_nontype_argument (tree type, tree expr)
 	  error ("%qE is not a valid template argument for type %qT "
 		 "because it is of type %qT", expr, type,
 		 TREE_TYPE (expr));
-	  inform ("standard conversions are not allowed in this context");
+	  inform (input_location, "standard conversions are not allowed in this context");
 	  return NULL_TREE;
 	}
     }
@@ -4938,7 +4942,7 @@ convert_template_argument (tree parm,
   if (requires_type && ! is_type && TREE_CODE (arg) == SCOPE_REF
       && TREE_CODE (TREE_OPERAND (arg, 0)) == TEMPLATE_TYPE_PARM)
     {
-      permerror ("to refer to a type member of a template parameter, "
+      permerror (input_location, "to refer to a type member of a template parameter, "
 	         "use %<typename %E%>", orig_arg);
 
       orig_arg = make_typename_type (TREE_OPERAND (arg, 0),
@@ -5832,14 +5836,20 @@ lookup_template_class (tree d1,
 	  if (!is_partial_instantiation)
 	    {
 	      set_current_access_from_decl (TYPE_NAME (template_type));
-	      t = start_enum (TYPE_IDENTIFIER (template_type));
+	      t = start_enum (TYPE_IDENTIFIER (template_type),
+                              tsubst (ENUM_UNDERLYING_TYPE (template_type),
+                                      arglist, complain, in_decl),
+                              SCOPED_ENUM_P (template_type));
 	    }
 	  else
-	    /* We don't want to call start_enum for this type, since
-	       the values for the enumeration constants may involve
-	       template parameters.  And, no one should be interested
-	       in the enumeration constants for such a type.  */
-	    t = make_node (ENUMERAL_TYPE);
+            {
+              /* We don't want to call start_enum for this type, since
+                 the values for the enumeration constants may involve
+                 template parameters.  And, no one should be interested
+                 in the enumeration constants for such a type.  */
+              t = make_node (ENUMERAL_TYPE);
+              SET_SCOPED_ENUM_P (t, SCOPED_ENUM_P (template_type));
+            }
 	}
       else
 	{
@@ -8143,7 +8153,9 @@ tsubst_decl (tree t, tree args, tsubst_flags_t complain)
 	/* Clear out the mangled name and RTL for the instantiation.  */
 	SET_DECL_ASSEMBLER_NAME (r, NULL_TREE);
 	SET_DECL_RTL (r, NULL_RTX);
-	DECL_INITIAL (r) = NULL_TREE;
+	/* Leave DECL_INITIAL set on deleted instantiations.  */
+	if (!DECL_DELETED_FN (r))
+	  DECL_INITIAL (r) = NULL_TREE;
 	DECL_CONTEXT (r) = ctx;
 
 	if (member && DECL_CONV_FN_P (r))
@@ -9716,7 +9728,7 @@ tsubst_qualified_id (tree qualified_id, tree args,
 	    {
 	      error ("dependent-name %qE is parsed as a non-type, but "
 		     "instantiation yields a type", qualified_id);
-	      inform ("say %<typename %E%> if a type is meant", qualified_id);
+	      inform (input_location, "say %<typename %E%> if a type is meant", qualified_id);
 	    }
 	  return error_mark_node;
 	}
@@ -11044,7 +11056,8 @@ tsubst_copy_and_build (tree t,
 	op1 = tsubst_non_call_postfix_expression (op1, args, complain,
 						  in_decl);
       if (TREE_CODE (op1) == LABEL_DECL)
-	return finish_label_address_expr (DECL_NAME (op1));
+	return finish_label_address_expr (DECL_NAME (op1),
+					  EXPR_LOCATION (op1));
       return build_x_unary_op (ADDR_EXPR, op1, complain);
 
     case PLUS_EXPR:
@@ -14585,7 +14598,7 @@ do_decl_instantiation (tree decl, tree storage)
 	 the first instantiation was `extern' and the second is not,
 	 and EXTERN_P for the opposite case.  */
       if (DECL_NOT_REALLY_EXTERN (result) && !extern_p)
-	permerror ("duplicate explicit instantiation of %q#D", result);
+	permerror (input_location, "duplicate explicit instantiation of %q#D", result);
       /* If an "extern" explicit instantiation follows an ordinary
 	 explicit instantiation, the template is instantiated.  */
       if (extern_p)
@@ -14598,7 +14611,7 @@ do_decl_instantiation (tree decl, tree storage)
     }
   else if (!DECL_TEMPLATE_INFO (result))
     {
-      permerror ("explicit instantiation of non-template %q#D", result);
+      permerror (input_location, "explicit instantiation of non-template %q#D", result);
       return;
     }
 
@@ -14607,7 +14620,7 @@ do_decl_instantiation (tree decl, tree storage)
   else if (storage == ridpointers[(int) RID_EXTERN])
     {
       if (!in_system_header && (cxx_dialect == cxx98))
-	pedwarn (OPT_pedantic, 
+	pedwarn (input_location, OPT_pedantic, 
 		 "ISO C++ 1998 forbids the use of %<extern%> on explicit "
 		 "instantiations");
       extern_p = 1;
@@ -14699,13 +14712,14 @@ do_type_instantiation (tree t, tree storage, tsubst_flags_t complain)
 	  if (storage == ridpointers[(int) RID_EXTERN])
 	    {
 	      if (cxx_dialect == cxx98)
-		pedwarn(OPT_pedantic, 
-			"ISO C++ 1998 forbids the use of %<extern%> on "
-			"explicit instantiations");
+		pedwarn (input_location, OPT_pedantic, 
+			 "ISO C++ 1998 forbids the use of %<extern%> on "
+			 "explicit instantiations");
 	    }
 	  else
-	    pedwarn(OPT_pedantic, "ISO C++ forbids the use of %qE on explicit "
-		    "instantiations", storage);
+	    pedwarn (input_location, OPT_pedantic, 
+		     "ISO C++ forbids the use of %qE"
+		     " on explicit instantiations", storage);
 	}
 
       if (storage == ridpointers[(int) RID_INLINE])
@@ -14750,7 +14764,7 @@ do_type_instantiation (tree t, tree storage, tsubst_flags_t complain)
 
       if (!previous_instantiation_extern_p && !extern_p
 	  && (complain & tf_error))
-	permerror ("duplicate explicit instantiation of %q#T", t);
+	permerror (input_location, "duplicate explicit instantiation of %q#T", t);
 
       /* If we've already instantiated the template, just return now.  */
       if (!CLASSTYPE_INTERFACE_ONLY (t))
@@ -15194,8 +15208,8 @@ instantiate_decl (tree d, int defer_ok,
 	   member function or static data member of a class template
 	   shall be present in every translation unit in which it is
 	   explicitly instantiated.  */
-	permerror
-	  ("explicit instantiation of %qD but no definition available", d);
+	permerror (input_location,  "explicit instantiation of %qD "
+		   "but no definition available", d);
 
       /* ??? Historically, we have instantiated inline functions, even
 	 when marked as "extern template".  */
@@ -15879,7 +15893,7 @@ dependent_type_p (tree type)
       /* If we are not processing a template, then nobody should be
 	 providing us with a dependent type.  */
       gcc_assert (type);
-      gcc_assert (TREE_CODE (type) != TEMPLATE_TYPE_PARM);
+      gcc_assert (TREE_CODE (type) != TEMPLATE_TYPE_PARM || is_auto (type));
       return false;
     }
 
@@ -16173,6 +16187,19 @@ type_dependent_expression_p (tree expression)
 
   if (TREE_CODE (expression) == STMT_EXPR)
     expression = stmt_expr_value_expr (expression);
+
+  if (BRACE_ENCLOSED_INITIALIZER_P (expression))
+    {
+      tree elt;
+      unsigned i;
+
+      FOR_EACH_CONSTRUCTOR_VALUE (CONSTRUCTOR_ELTS (expression), i, elt)
+	{
+	  if (type_dependent_expression_p (elt))
+	    return true;
+	}
+      return false;
+    }
 
   if (TREE_TYPE (expression) == unknown_type_node)
     {
@@ -16658,6 +16685,143 @@ build_non_dependent_args (tree args)
 			  build_non_dependent_expr (TREE_VALUE (a)),
 			  new_args);
   return nreverse (new_args);
+}
+
+/* Returns a type which represents 'auto'.  We use a TEMPLATE_TYPE_PARM
+   with a level one deeper than the actual template parms.  */
+
+tree
+make_auto (void)
+{
+  tree au;
+
+  /* ??? Is it worth caching this for multiple autos at the same level?  */
+  au = cxx_make_type (TEMPLATE_TYPE_PARM);
+  TYPE_NAME (au) = build_decl (TYPE_DECL, get_identifier ("auto"), au);
+  TYPE_STUB_DECL (au) = TYPE_NAME (au);
+  TEMPLATE_TYPE_PARM_INDEX (au) = build_template_parm_index
+    (0, processing_template_decl + 1, processing_template_decl + 1,
+     TYPE_NAME (au), NULL_TREE);
+  TYPE_CANONICAL (au) = canonical_type_parameter (au);
+  DECL_ARTIFICIAL (TYPE_NAME (au)) = 1;
+  SET_DECL_TEMPLATE_PARM_P (TYPE_NAME (au));
+
+  return au;
+}
+
+/* Replace auto in TYPE with std::initializer_list<auto>.  */
+
+static tree
+listify_autos (tree type, tree auto_node)
+{
+  tree std_init_list = namespace_binding
+    (get_identifier ("initializer_list"), std_node);
+  tree argvec;
+  tree init_auto;
+  if (!std_init_list || !DECL_CLASS_TEMPLATE_P (std_init_list))
+    {    
+      error ("deducing auto from brace-enclosed initializer list requires "
+	     "#include <initializer_list>");
+      return error_mark_node;
+    }
+  argvec = make_tree_vec (1);
+  TREE_VEC_ELT (argvec, 0) = auto_node;
+  init_auto = lookup_template_class (std_init_list, argvec, NULL_TREE,
+				     NULL_TREE, 0, tf_warning_or_error);
+
+  TREE_VEC_ELT (argvec, 0) = init_auto;
+  if (processing_template_decl)
+    argvec = add_to_template_args (current_template_args (), argvec);
+  return tsubst (type, argvec, tf_warning_or_error, NULL_TREE);
+}
+
+/* Replace occurrences of 'auto' in TYPE with the appropriate type deduced
+   from INIT.  AUTO_NODE is the TEMPLATE_TYPE_PARM used for 'auto' in TYPE.  */
+
+tree
+do_auto_deduction (tree type, tree init, tree auto_node)
+{
+  tree parms, args, tparms, targs;
+  int val;
+
+  /* [dcl.spec.auto]: Obtain P from T by replacing the occurrences of auto
+     with either a new invented type template parameter U or, if the
+     initializer is a braced-init-list (8.5.4), with
+     std::initializer_list<U>.  */
+  if (BRACE_ENCLOSED_INITIALIZER_P (init))
+    type = listify_autos (type, auto_node);
+
+  parms = build_tree_list (NULL_TREE, type);
+  args = build_tree_list (NULL_TREE, init);
+  tparms = make_tree_vec (1);
+  targs = make_tree_vec (1);
+  TREE_VEC_ELT (tparms, 0)
+    = build_tree_list (NULL_TREE, TYPE_NAME (auto_node));
+  val = type_unification_real (tparms, targs, parms, args, 0,
+			       DEDUCE_CALL, LOOKUP_NORMAL);
+  if (val > 0)
+    {
+      error ("unable to deduce %qT from %qE", type, init);
+      return error_mark_node;
+    }
+
+  if (processing_template_decl)
+    targs = add_to_template_args (current_template_args (), targs);
+  return tsubst (type, targs, tf_warning_or_error, NULL_TREE);
+}
+
+/* Substitutes LATE_RETURN_TYPE for 'auto' in TYPE and returns the
+   result.  */
+
+tree
+splice_late_return_type (tree type, tree late_return_type)
+{
+  tree argvec;
+
+  if (late_return_type == NULL_TREE)
+    return type;
+  argvec = make_tree_vec (1);
+  TREE_VEC_ELT (argvec, 0) = late_return_type;
+  if (processing_template_decl)
+    argvec = add_to_template_args (current_template_args (), argvec);
+  return tsubst (type, argvec, tf_warning_or_error, NULL_TREE);
+}
+
+/* Returns true iff TYPE is a TEMPLATE_TYPE_PARM representing 'auto'.  */
+
+bool
+is_auto (const_tree type)
+{
+  if (TREE_CODE (type) == TEMPLATE_TYPE_PARM
+      && TYPE_IDENTIFIER (type) == get_identifier ("auto"))
+    return true;
+  else
+    return false;
+}
+
+/* Returns true iff TYPE contains a use of 'auto'.  Since auto can only
+   appear as a type-specifier for the declaration in question, we don't
+   have to look through the whole type.  */
+
+tree
+type_uses_auto (tree type)
+{
+  enum tree_code code;
+  if (is_auto (type))
+    return type;
+
+  code = TREE_CODE (type);
+
+  if (code == POINTER_TYPE || code == REFERENCE_TYPE
+      || code == OFFSET_TYPE || code == FUNCTION_TYPE
+      || code == METHOD_TYPE || code == ARRAY_TYPE)
+    return type_uses_auto (TREE_TYPE (type));
+
+  if (TYPE_PTRMEMFUNC_P (type))
+    return type_uses_auto (TREE_TYPE (TREE_TYPE
+				   (TYPE_PTRMEMFUNC_FN_TYPE (type))));
+
+  return NULL_TREE;
 }
 
 #include "gt-cp-pt.h"

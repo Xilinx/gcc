@@ -339,15 +339,17 @@ build_aggr_init_array (tree return_type, tree fn, tree slot, int nargs,
 }
 
 /* INIT is a CALL_EXPR or AGGR_INIT_EXPR which needs info about its
-   target.  TYPE is the type that this initialization should appear to
-   have.
+   target.  TYPE is the type to be initialized.
 
-   Build an encapsulation of the initialization to perform
-   and return it so that it can be processed by language-independent
-   and language-specific expression expanders.  */
+   Build an AGGR_INIT_EXPR to represent the initialization.  This function
+   differs from build_cplus_new in that an AGGR_INIT_EXPR can only be used
+   to initialize another object, whereas a TARGET_EXPR can either
+   initialize another object or create its own temporary object, and as a
+   result building up a TARGET_EXPR requires that the type's destructor be
+   callable.  */
 
 tree
-build_cplus_new (tree type, tree init)
+build_aggr_init_expr (tree type, tree init)
 {
   tree fn;
   tree slot;
@@ -369,8 +371,6 @@ build_cplus_new (tree type, tree init)
 	     && TREE_CODE (TREE_OPERAND (fn, 0)) == FUNCTION_DECL
 	     && DECL_CONSTRUCTOR_P (TREE_OPERAND (fn, 0)));
 
-  slot = build_local_temp (type);
-
   /* We split the CALL_EXPR into its function and its arguments here.
      Then, in expand_expr, we put them back together.  The reason for
      this is that this expression might be a default argument
@@ -384,6 +384,8 @@ build_cplus_new (tree type, tree init)
      type, don't mess with AGGR_INIT_EXPR.  */
   if (is_ctor || TREE_ADDRESSABLE (type))
     {
+      slot = build_local_temp (type);
+
       if (TREE_CODE(init) == CALL_EXPR)
 	rval = build_aggr_init_array (void_type_node, fn, slot,
 				      call_expr_nargs (init),
@@ -397,6 +399,30 @@ build_cplus_new (tree type, tree init)
     }
   else
     rval = init;
+
+  return rval;
+}
+
+/* INIT is a CALL_EXPR or AGGR_INIT_EXPR which needs info about its
+   target.  TYPE is the type that this initialization should appear to
+   have.
+
+   Build an encapsulation of the initialization to perform
+   and return it so that it can be processed by language-independent
+   and language-specific expression expanders.  */
+
+tree
+build_cplus_new (tree type, tree init)
+{
+  tree rval = build_aggr_init_expr (type, init);
+  tree slot;
+
+  if (TREE_CODE (rval) == AGGR_INIT_EXPR)
+    slot = AGGR_INIT_EXPR_SLOT (rval);
+  else if (TREE_CODE (rval) == CALL_EXPR)
+    slot = build_local_temp (type);
+  else
+    return rval;
 
   rval = build_target_expr (slot, rval);
   TARGET_EXPR_IMPLICIT_P (rval) = 1;
@@ -847,7 +873,8 @@ cp_build_qualified_type_real (tree type,
      between the unqualified and qualified types.  */
   if (result != type
       && TREE_CODE (type) == POINTER_TYPE
-      && TREE_CODE (TREE_TYPE (type)) == METHOD_TYPE)
+      && TREE_CODE (TREE_TYPE (type)) == METHOD_TYPE
+      && TYPE_LANG_SPECIFIC (result) == TYPE_LANG_SPECIFIC (type))
     TYPE_LANG_SPECIFIC (result) = NULL;
 
   return result;
@@ -1712,12 +1739,12 @@ cp_tree_equal (tree t1, tree t2)
     return false;
 
   for (code1 = TREE_CODE (t1);
-       code1 == NOP_EXPR || code1 == CONVERT_EXPR
+       CONVERT_EXPR_CODE_P (code1)
 	 || code1 == NON_LVALUE_EXPR;
        code1 = TREE_CODE (t1))
     t1 = TREE_OPERAND (t1, 0);
   for (code2 = TREE_CODE (t2);
-       code2 == NOP_EXPR || code2 == CONVERT_EXPR
+       CONVERT_EXPR_CODE_P (code2)
 	 || code1 == NON_LVALUE_EXPR;
        code2 = TREE_CODE (t2))
     t2 = TREE_OPERAND (t2, 0);
@@ -2061,7 +2088,7 @@ is_dummy_object (const_tree ob)
 int
 pod_type_p (const_tree t)
 {
-  /* This CONST_CAST is okay because strip_array_types returns it's
+  /* This CONST_CAST is okay because strip_array_types returns its
      argument unmodified and we assign it to a const_tree.  */
   t = strip_array_types (CONST_CAST_TREE(t));
 
@@ -2100,7 +2127,7 @@ class_tmpl_impl_spec_p (const_tree t)
 int
 zero_init_p (const_tree t)
 {
-  /* This CONST_CAST is okay because strip_array_types returns it's
+  /* This CONST_CAST is okay because strip_array_types returns its
      argument unmodified and we assign it to a const_tree.  */
   t = strip_array_types (CONST_CAST_TREE(t));
 
@@ -2687,7 +2714,8 @@ stabilize_init (tree init, tree *initp)
     return true;
 
   if (TREE_CODE (t) == INIT_EXPR
-      && TREE_CODE (TREE_OPERAND (t, 1)) != TARGET_EXPR)
+      && TREE_CODE (TREE_OPERAND (t, 1)) != TARGET_EXPR
+      && TREE_CODE (TREE_OPERAND (t, 1)) != AGGR_INIT_EXPR)
     {
       TREE_OPERAND (t, 1) = stabilize_expr (TREE_OPERAND (t, 1), initp);
       return true;

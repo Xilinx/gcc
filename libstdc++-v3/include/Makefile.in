@@ -36,6 +36,7 @@ POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
 target_triplet = @target@
+LIBOBJDIR =
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in \
 	$(top_srcdir)/fragment.am
 subdir = include
@@ -148,6 +149,7 @@ GLIBCXX_HOSTED_TRUE = @GLIBCXX_HOSTED_TRUE@
 GLIBCXX_INCLUDES = @GLIBCXX_INCLUDES@
 GLIBCXX_LDBL_COMPAT_FALSE = @GLIBCXX_LDBL_COMPAT_FALSE@
 GLIBCXX_LDBL_COMPAT_TRUE = @GLIBCXX_LDBL_COMPAT_TRUE@
+GLIBCXX_LIBS = @GLIBCXX_LIBS@
 GREP = @GREP@
 INSTALL_DATA = @INSTALL_DATA@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@

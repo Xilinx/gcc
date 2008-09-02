@@ -67,7 +67,9 @@
 #endif
 
 #ifndef MAX_CONDITIONAL_EXECUTE
-#define MAX_CONDITIONAL_EXECUTE   (BRANCH_COST + 1)
+#define MAX_CONDITIONAL_EXECUTE \
+  (BRANCH_COST (optimize_function_for_speed_p (cfun), false) \
+   + 1)
 #endif
 
 #define IFCVT_MULTIPLE_DUMPS 1
@@ -141,12 +143,13 @@ cheap_bb_rtx_cost_p (const_basic_block bb, int max_cost)
 {
   int count = 0;
   rtx insn = BB_HEAD (bb);
+  bool speed = optimize_bb_for_speed_p (bb);
 
   while (1)
     {
       if (NONJUMP_INSN_P (insn))
 	{
-	  int cost = insn_rtx_cost (PATTERN (insn));
+	  int cost = insn_rtx_cost (PATTERN (insn), speed);
 	  if (cost == 0)
 	    return false;
 
@@ -626,6 +629,9 @@ struct noce_if_info
      from TEST_BB.  For the noce transformations, we allow the symmetric
      form as well.  */
   bool then_else_reversed;
+
+  /* Estimated cost of the particular branch instruction.  */
+  int branch_cost;
 };
 
 static rtx noce_emit_store_flag (struct noce_if_info *, rtx, int, int);
@@ -963,20 +969,20 @@ noce_try_store_flag_constants (struct noce_if_info *if_info)
 	normalize = 0;
       else if (ifalse == 0 && exact_log2 (itrue) >= 0
 	       && (STORE_FLAG_VALUE == 1
-		   || BRANCH_COST >= 2))
+		   || if_info->branch_cost >= 2))
 	normalize = 1;
       else if (itrue == 0 && exact_log2 (ifalse) >= 0 && can_reverse
-	       && (STORE_FLAG_VALUE == 1 || BRANCH_COST >= 2))
+	       && (STORE_FLAG_VALUE == 1 || if_info->branch_cost >= 2))
 	normalize = 1, reversep = 1;
       else if (itrue == -1
 	       && (STORE_FLAG_VALUE == -1
-		   || BRANCH_COST >= 2))
+		   || if_info->branch_cost >= 2))
 	normalize = -1;
       else if (ifalse == -1 && can_reverse
-	       && (STORE_FLAG_VALUE == -1 || BRANCH_COST >= 2))
+	       && (STORE_FLAG_VALUE == -1 || if_info->branch_cost >= 2))
 	normalize = -1, reversep = 1;
-      else if ((BRANCH_COST >= 2 && STORE_FLAG_VALUE == -1)
-	       || BRANCH_COST >= 3)
+      else if ((if_info->branch_cost >= 2 && STORE_FLAG_VALUE == -1)
+	       || if_info->branch_cost >= 3)
 	normalize = -1;
       else
 	return FALSE;
@@ -1107,7 +1113,7 @@ noce_try_addcc (struct noce_if_info *if_info)
 
       /* If that fails, construct conditional increment or decrement using
 	 setcc.  */
-      if (BRANCH_COST >= 2
+      if (if_info->branch_cost >= 2
 	  && (XEXP (if_info->a, 1) == const1_rtx
 	      || XEXP (if_info->a, 1) == constm1_rtx))
         {
@@ -1158,7 +1164,7 @@ noce_try_store_flag_mask (struct noce_if_info *if_info)
   int reversep;
 
   reversep = 0;
-  if ((BRANCH_COST >= 2
+  if ((if_info->branch_cost >= 2
        || STORE_FLAG_VALUE == -1)
       && ((if_info->a == const0_rtx
 	   && rtx_equal_p (if_info->b, if_info->x))
@@ -1317,7 +1323,7 @@ noce_try_cmove_arith (struct noce_if_info *if_info)
   /* ??? FIXME: Magic number 5.  */
   if (cse_not_expected
       && MEM_P (a) && MEM_P (b)
-      && BRANCH_COST >= 5)
+      && if_info->branch_cost >= 5)
     {
       a = XEXP (a, 0);
       b = XEXP (b, 0);
@@ -1346,8 +1352,9 @@ noce_try_cmove_arith (struct noce_if_info *if_info)
      if insn_rtx_cost can't be estimated.  */
   if (insn_a)
     {
-      insn_cost = insn_rtx_cost (PATTERN (insn_a));
-      if (insn_cost == 0 || insn_cost > COSTS_N_INSNS (BRANCH_COST))
+      insn_cost = insn_rtx_cost (PATTERN (insn_a),
+      				 optimize_bb_for_speed_p (BLOCK_FOR_INSN (insn_a)));
+      if (insn_cost == 0 || insn_cost > COSTS_N_INSNS (if_info->branch_cost))
 	return FALSE;
     }
   else
@@ -1355,8 +1362,9 @@ noce_try_cmove_arith (struct noce_if_info *if_info)
 
   if (insn_b)
     {
-      insn_cost += insn_rtx_cost (PATTERN (insn_b));
-      if (insn_cost == 0 || insn_cost > COSTS_N_INSNS (BRANCH_COST))
+      insn_cost += insn_rtx_cost (PATTERN (insn_b),
+      				 optimize_bb_for_speed_p (BLOCK_FOR_INSN (insn_b)));
+      if (insn_cost == 0 || insn_cost > COSTS_N_INSNS (if_info->branch_cost))
         return FALSE;
     }
 
@@ -1896,7 +1904,8 @@ noce_try_sign_mask (struct noce_if_info *if_info)
      INSN_B which can happen for e.g. conditional stores to memory.  */
   b_unconditional = (if_info->insn_b == NULL_RTX
 		     || BLOCK_FOR_INSN (if_info->insn_b) == if_info->test_bb);
-  if (rtx_cost (t, SET) >= COSTS_N_INSNS (2)
+  if (rtx_cost (t, SET, optimize_bb_for_speed_p (BLOCK_FOR_INSN (if_info->insn_b)))
+      >= COSTS_N_INSNS (2)
       && (!b_unconditional
           || t != if_info->b))
     return FALSE;
@@ -2831,6 +2840,8 @@ noce_find_if_block (basic_block test_bb,
   if_info.cond_earliest = cond_earliest;
   if_info.jump = jump;
   if_info.then_else_reversed = then_else_reversed;
+  if_info.branch_cost = BRANCH_COST (optimize_bb_for_speed_p (test_bb),
+				     predictable_edge_p (then_edge));
 
   /* Do the real work.  */
 
@@ -3597,7 +3608,9 @@ find_if_case_1 (basic_block test_bb, edge then_edge, edge else_edge)
 	     test_bb->index, then_bb->index);
 
   /* THEN is small.  */
-  if (! cheap_bb_rtx_cost_p (then_bb, COSTS_N_INSNS (BRANCH_COST)))
+  if (! cheap_bb_rtx_cost_p (then_bb,
+	COSTS_N_INSNS (BRANCH_COST (optimize_bb_for_speed_p (then_edge->src),
+				    predictable_edge_p (then_edge)))))
     return FALSE;
 
   /* Registers set are dead, or are predicable.  */
@@ -3711,7 +3724,9 @@ find_if_case_2 (basic_block test_bb, edge then_edge, edge else_edge)
 	     test_bb->index, else_bb->index);
 
   /* ELSE is small.  */
-  if (! cheap_bb_rtx_cost_p (else_bb, COSTS_N_INSNS (BRANCH_COST)))
+  if (! cheap_bb_rtx_cost_p (else_bb, 
+	COSTS_N_INSNS (BRANCH_COST (optimize_bb_for_speed_p (else_edge->src),
+				    predictable_edge_p (else_edge)))))
     return FALSE;
 
   /* Registers set are dead, or are predicable.  */

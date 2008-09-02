@@ -25,6 +25,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "flags.h"
 #include "gfortran.h"
 #include "parse.h"
+#include "match.h"
 
 
 /* Strings for all symbol attributes.  We use these for dumping the
@@ -417,12 +418,8 @@ check_conflict (symbol_attribute *attr, const char *name, locus *where)
 	    goto conflict;
 
 	  case FL_PROCEDURE:
-	    if (attr->proc_pointer)
-	      break;
-	    a1 = gfc_code2string (flavors, attr->flavor);
-	    a2 = save;
-	    goto conflict;
-
+	    /* Conflicts between SAVE and PROCEDURE will be checked at
+	       resolution stage, see "resolve_fl_procedure".  */
 	  case FL_VARIABLE:
 	  case FL_NAMELIST:
 	  default:
@@ -618,8 +615,8 @@ check_conflict (symbol_attribute *attr, const char *name, locus *where)
       break;
 
     case FL_PROCEDURE:
-      if (!attr->proc_pointer)
-        conf2 (intent);
+      /* Conflicts with INTENT will be checked at resolution stage,
+	 see "resolve_fl_procedure".  */
 
       if (attr->subroutine)
 	{
@@ -1468,6 +1465,27 @@ gfc_add_is_bind_c (symbol_attribute *attr, const char *name, locus *where,
 }
 
 
+/* Set the extension field for the given symbol_attribute.  */
+
+gfc_try
+gfc_add_extension (symbol_attribute *attr, locus *where)
+{
+  if (where == NULL)
+    where = &gfc_current_locus;
+
+  if (attr->extension)
+    gfc_error_now ("Duplicate EXTENDS attribute specified at %L", where);
+  else
+    attr->extension = 1;
+
+  if (gfc_notify_std (GFC_STD_F2003, "Fortran 2003: EXTENDS at %L", where)
+	== FAILURE)
+    return FAILURE;
+
+  return SUCCESS;
+}
+
+
 gfc_try
 gfc_add_explicit_interface (gfc_symbol *sym, ifsrc source,
 			    gfc_formal_arglist * formal, locus *where)
@@ -1522,9 +1540,11 @@ gfc_add_type (gfc_symbol *sym, gfc_typespec *ts, locus *where)
 	  gfc_error (msg, sym->name, where, gfc_basic_typename (sym->ts.type));
 	  return FAILURE;
 	}
-      else if (gfc_notify_std (GFC_STD_GNU, msg, sym->name, where,
-			       gfc_basic_typename (sym->ts.type)) == FAILURE)
+      if (gfc_notify_std (GFC_STD_GNU, msg, sym->name, where,
+	      		  gfc_basic_typename (sym->ts.type)) == FAILURE)
 	return FAILURE;
+      if (gfc_option.warn_surprising)
+	gfc_warning (msg, sym->name, where, gfc_basic_typename (sym->ts.type));
     }
 
   flavor = sym->attr.flavor;
@@ -1702,7 +1722,7 @@ gfc_add_component (gfc_symbol *sym, const char *name,
     }
 
   if (sym->attr.extension
-	&& gfc_find_component (sym->components->ts.derived, name))
+	&& gfc_find_component (sym->components->ts.derived, name, true, true))
     {
       gfc_error ("Component '%s' at %C already in the parent type "
 		 "at %L", name, &sym->components->ts.derived->declared_at);
@@ -1819,10 +1839,12 @@ bad:
 
 /* Given a derived type node and a component name, try to locate the
    component structure.  Returns the NULL pointer if the component is
-   not found or the components are private.  */
+   not found or the components are private.  If noaccess is set, no access
+   checks are done.  */
 
 gfc_component *
-gfc_find_component (gfc_symbol *sym, const char *name)
+gfc_find_component (gfc_symbol *sym, const char *name,
+		    bool noaccess, bool silent)
 {
   gfc_component *p;
 
@@ -1842,31 +1864,34 @@ gfc_find_component (gfc_symbol *sym, const char *name)
 	&& sym->attr.extension
 	&& sym->components->ts.type == BT_DERIVED)
     {
-      p = gfc_find_component (sym->components->ts.derived, name);
+      p = gfc_find_component (sym->components->ts.derived, name,
+			      noaccess, silent);
       /* Do not overwrite the error.  */
       if (p == NULL)
 	return p;
     }
 
-  if (p == NULL)
+  if (p == NULL && !silent)
     gfc_error ("'%s' at %C is not a member of the '%s' structure",
 	       name, sym->name);
 
-  else if (sym->attr.use_assoc)
+  else if (sym->attr.use_assoc && !noaccess)
     {
-      if (p->access == ACCESS_PRIVATE)
+      if (p->attr.access == ACCESS_PRIVATE)
 	{
-	  gfc_error ("Component '%s' at %C is a PRIVATE component of '%s'",
-		     name, sym->name);
+	  if (!silent)
+	    gfc_error ("Component '%s' at %C is a PRIVATE component of '%s'",
+		       name, sym->name);
 	  return NULL;
 	}
 	
       /* If there were components given and all components are private, error
 	 out at this place.  */
-      if (p->access != ACCESS_PUBLIC && sym->component_access == ACCESS_PRIVATE)
+      if (p->attr.access != ACCESS_PUBLIC && sym->component_access == ACCESS_PRIVATE)
 	{
-	  gfc_error ("All components of '%s' are PRIVATE in structure"
-		     " constructor at %C", sym->name);
+	  if (!silent)
+	    gfc_error ("All components of '%s' are PRIVATE in structure"
+		       " constructor at %C", sym->name);
 	  return NULL;
 	}
     }
@@ -1892,34 +1917,6 @@ free_components (gfc_component *p)
 
       gfc_free (p);
     }
-}
-
-
-/* Set component attributes from a standard symbol attribute structure.  */
-
-void
-gfc_set_component_attr (gfc_component *c, symbol_attribute *attr)
-{
-
-  c->dimension = attr->dimension;
-  c->pointer = attr->pointer;
-  c->allocatable = attr->allocatable;
-  c->access = attr->access;
-}
-
-
-/* Get a standard symbol attribute structure given the component
-   structure.  */
-
-void
-gfc_get_component_attr (symbol_attribute *attr, gfc_component *c)
-{
-
-  gfc_clear_attr (attr);
-  attr->dimension = c->dimension;
-  attr->pointer = c->pointer;
-  attr->allocatable = c->allocatable;
-  attr->access = c->access;
 }
 
 
@@ -2233,6 +2230,7 @@ gfc_new_symtree (gfc_symtree **root, const char *name)
 
   st = XCNEW (gfc_symtree);
   st->name = gfc_get_string (name);
+  st->typebound = NULL;
 
   gfc_insert_bbt (root, st, compare_symtree);
   return st;
@@ -2965,9 +2963,12 @@ gfc_free_finalizer (gfc_finalizer* el)
 {
   if (el)
     {
-      --el->procedure->refs;
-      if (!el->procedure->refs)
-	gfc_free_symbol (el->procedure);
+      if (el->proc_sym)
+	{
+	  --el->proc_sym->refs;
+	  if (!el->proc_sym->refs)
+	    gfc_free_symbol (el->proc_sym);
+	}
 
       gfc_free (el);
     }
@@ -3022,6 +3023,7 @@ gfc_free_namespace (gfc_namespace *ns)
 
   gfc_free_equiv (ns->equiv);
   gfc_free_equiv_lists (ns->equiv_lists);
+  gfc_free_use_stmts (ns->use_stmts);
 
   for (i = GFC_INTRINSIC_BEGIN; i != GFC_INTRINSIC_END; i++)
     gfc_free_interface (ns->op[i]);
@@ -3331,7 +3333,7 @@ verify_bind_c_derived_type (gfc_symbol *derived_sym)
     {
       /* The components cannot be pointers (fortran sense).  
          J3/04-007, Section 15.2.3, C1505.	*/
-      if (curr_comp->pointer != 0)
+      if (curr_comp->attr.pointer != 0)
         {
           gfc_error ("Component '%s' at %L cannot have the "
                      "POINTER attribute because it is a member "
@@ -3343,7 +3345,7 @@ verify_bind_c_derived_type (gfc_symbol *derived_sym)
 
       /* The components cannot be allocatable.
          J3/04-007, Section 15.2.3, C1505.	*/
-      if (curr_comp->allocatable != 0)
+      if (curr_comp->attr.allocatable != 0)
         {
           gfc_error ("Component '%s' at %L cannot have the "
                      "ALLOCATABLE attribute because it is a member "
@@ -4058,8 +4060,8 @@ generate_isocbinding_symbol (const char *mod_name, iso_c_binding_symbol s,
         index = get_c_kind ("c_ptr", c_interop_kinds_table);
         tmp_comp->ts.kind = c_interop_kinds_table[index].value;
 
-        tmp_comp->pointer = 0;
-        tmp_comp->dimension = 0;
+        tmp_comp->attr.pointer = 0;
+        tmp_comp->attr.dimension = 0;
 
         /* Mark the component as C interoperable.  */
         tmp_comp->ts.is_c_interop = 1;
@@ -4210,3 +4212,99 @@ get_iso_c_sym (gfc_symbol *old_sym, char *new_name,
   return new_symtree->n.sym;
 }
 
+
+/* Check that a symbol is already typed.  If strict is not set, an untyped
+   symbol is acceptable for non-standard-conforming mode.  */
+
+gfc_try
+gfc_check_symbol_typed (gfc_symbol* sym, gfc_namespace* ns,
+			bool strict, locus where)
+{
+  gcc_assert (sym);
+
+  if (gfc_matching_prefix)
+    return SUCCESS;
+
+  /* Check for the type and try to give it an implicit one.  */
+  if (sym->ts.type == BT_UNKNOWN
+      && gfc_set_default_type (sym, 0, ns) == FAILURE)
+    {
+      if (strict)
+	{
+	  gfc_error ("Symbol '%s' is used before it is typed at %L",
+		     sym->name, &where);
+	  return FAILURE;
+	}
+
+      if (gfc_notify_std (GFC_STD_GNU,
+			  "Extension: Symbol '%s' is used before"
+			  " it is typed at %L", sym->name, &where) == FAILURE)
+	return FAILURE;
+    }
+
+  /* Everything is ok.  */
+  return SUCCESS;
+}
+
+
+/* Get the super-type of a given derived type.  */
+
+gfc_symbol*
+gfc_get_derived_super_type (gfc_symbol* derived)
+{
+  if (!derived->attr.extension)
+    return NULL;
+
+  gcc_assert (derived->components);
+  gcc_assert (derived->components->ts.type == BT_DERIVED);
+  gcc_assert (derived->components->ts.derived);
+
+  return derived->components->ts.derived;
+}
+
+
+/* Find a type-bound procedure by name for a derived-type (looking recursively
+   through the super-types).  */
+
+gfc_symtree*
+gfc_find_typebound_proc (gfc_symbol* derived, gfc_try* t,
+			 const char* name, bool noaccess)
+{
+  gfc_symtree* res;
+
+  /* Set default to failure.  */
+  if (t)
+    *t = FAILURE;
+
+  /* Try to find it in the current type's namespace.  */
+  gcc_assert (derived->f2k_derived);
+  res = gfc_find_symtree (derived->f2k_derived->sym_root, name);
+  if (res && res->typebound)
+    {
+      /* We found one.  */
+      if (t)
+	*t = SUCCESS;
+
+      if (!noaccess && derived->attr.use_assoc
+	  && res->typebound->access == ACCESS_PRIVATE)
+	{
+	  gfc_error ("'%s' of '%s' is PRIVATE at %C", name, derived->name);
+	  if (t)
+	    *t = FAILURE;
+	}
+
+      return res;
+    }
+
+  /* Otherwise, recurse on parent type if derived is an extension.  */
+  if (derived->attr.extension)
+    {
+      gfc_symbol* super_type;
+      super_type = gfc_get_derived_super_type (derived);
+      gcc_assert (super_type);
+      return gfc_find_typebound_proc (super_type, t, name, noaccess);
+    }
+
+  /* Nothing found.  */
+  return NULL;
+}

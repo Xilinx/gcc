@@ -28,6 +28,7 @@ with Checks;   use Checks;
 with Debug;    use Debug;
 with Einfo;    use Einfo;
 with Elists;   use Elists;
+with Errout;   use Errout;
 with Expander; use Expander;
 with Exp_Util; use Exp_Util;
 with Exp_Ch3;  use Exp_Ch3;
@@ -169,12 +170,15 @@ package body Exp_Aggr is
    -- Local Subprograms for Array Aggregate Expansion --
    -----------------------------------------------------
 
-   function Aggr_Size_OK (Typ : Entity_Id) return Boolean;
+   function Aggr_Size_OK (N : Node_Id; Typ : Entity_Id) return Boolean;
    --  Very large static aggregates present problems to the back-end, and
    --  are transformed into assignments and loops. This function verifies
    --  that the total number of components of an aggregate is acceptable
    --  for transformation into a purely positional static form. It is called
    --  prior to calling Flatten.
+   --  This function also detects and warns about one-component aggregates
+   --  that appear in a non-static context. Even if the component value is
+   --  static, such an aggregate must be expanded into an assignment.
 
    procedure Convert_Array_Aggr_In_Allocator
      (Decl   : Node_Id;
@@ -291,7 +295,7 @@ package body Exp_Aggr is
    -- Aggr_Size_OK --
    ------------------
 
-   function Aggr_Size_OK (Typ : Entity_Id) return Boolean is
+   function Aggr_Size_OK (N : Node_Id; Typ : Entity_Id) return Boolean is
       Lo   : Node_Id;
       Hi   : Node_Id;
       Indx : Node_Id;
@@ -397,6 +401,43 @@ package body Exp_Aggr is
 
          if Hiv < Lov then
             return True;
+         end if;
+
+         --  One-component aggregates are suspicious, and if the context type
+         --  is an object declaration with non-static bounds it will trip gcc;
+         --  such an aggregate must be expanded into a single assignment.
+
+         if Hiv = Lov
+           and then Nkind (Parent (N)) = N_Object_Declaration
+         then
+            declare
+               Index_Type : constant Entity_Id :=
+                              Etype
+                                (First_Index
+                                   (Etype (Defining_Identifier (Parent (N)))));
+               Indx       : Node_Id;
+
+            begin
+               if not Compile_Time_Known_Value (Type_Low_Bound (Index_Type))
+                  or else not Compile_Time_Known_Value
+                                (Type_High_Bound (Index_Type))
+               then
+                  if Present (Component_Associations (N)) then
+                     Indx :=
+                       First (Choices (First (Component_Associations (N))));
+                     if Is_Entity_Name (Indx)
+                       and then not Is_Type (Entity (Indx))
+                     then
+                        Error_Msg_N
+                          ("single component aggregate in non-static context?",
+                            Indx);
+                        Error_Msg_N ("\maybe subtype name was meant?", Indx);
+                     end if;
+                  end if;
+
+                  return False;
+               end if;
+            end;
          end if;
 
          declare
@@ -932,7 +973,7 @@ package body Exp_Aggr is
          if Present (Flist) then
             F := New_Copy_Tree (Flist);
 
-         elsif Present (Etype (N)) and then Controlled_Type (Etype (N)) then
+         elsif Present (Etype (N)) and then Needs_Finalization (Etype (N)) then
             if Is_Entity_Name (Into)
               and then Present (Scope (Entity (Into)))
             then
@@ -1096,7 +1137,7 @@ package body Exp_Aggr is
                      Expression => Make_Null (Loc)));
             end if;
 
-            if Controlled_Type (Ctype) then
+            if Needs_Finalization (Ctype) then
                Append_List_To (L,
                  Make_Init_Call (
                    Ref         => New_Copy_Tree (Indexed_Comp),
@@ -1118,7 +1159,7 @@ package body Exp_Aggr is
                 Name       => Indexed_Comp,
                 Expression => New_Copy_Tree (Expr));
 
-            if Present (Comp_Type) and then Controlled_Type (Comp_Type) then
+            if Present (Comp_Type) and then Needs_Finalization (Comp_Type) then
                Set_No_Ctrl_Actions (A);
 
                --  If this is an aggregate for an array of arrays, each
@@ -1182,7 +1223,7 @@ package body Exp_Aggr is
             --  inner finalization actions).
 
             if Present (Comp_Type)
-              and then Controlled_Type (Comp_Type)
+              and then Needs_Finalization (Comp_Type)
               and then not Is_Limited_Type (Comp_Type)
               and then
                 (not Is_Array_Type (Comp_Type)
@@ -2126,7 +2167,7 @@ package body Exp_Aggr is
          --  proper scope is the scope of the target rather than the
          --  potentially transient current scope.
 
-         if Controlled_Type (Typ) then
+         if Needs_Finalization (Typ) then
 
             --  The current aggregate belongs to an allocator which creates
             --  an object through an anonymous access type or acts as the root
@@ -2395,8 +2436,12 @@ package body Exp_Aggr is
       --  to the actual type of the aggregate, so that the proper components
       --  are visible. We know already that the types are compatible.
 
+      --  There should also be a comment here explaining why the conversion
+      --  is needed in the case of interfaces.???
+
       if Present (Etype (Lhs))
-        and then Is_Interface (Etype (Lhs))
+        and then (Is_Interface (Etype (Lhs))
+                   or else Is_Class_Wide_Type (Etype (Lhs)))
       then
          Target := Unchecked_Convert_To (Typ, Lhs);
       else
@@ -2600,7 +2645,7 @@ package body Exp_Aggr is
 
                --  Call Adjust manually
 
-               if Controlled_Type (Etype (A))
+               if Needs_Finalization (Etype (A))
                  and then not Is_Limited_Type (Etype (A))
                then
                   Append_List_To (Assign,
@@ -2809,7 +2854,7 @@ package body Exp_Aggr is
             --  The controller is the one of the parent type defining the
             --  component (in case of inherited components).
 
-            if Controlled_Type (Comp_Type) then
+            if Needs_Finalization (Comp_Type) then
                Internal_Final_List :=
                  Make_Selected_Component (Loc,
                    Prefix => Convert_To (
@@ -2982,7 +3027,7 @@ package body Exp_Aggr is
                --     Attach_To_Final_List (tmp.comp,
                --       comp_typ (tmp)._record_controller.f)
 
-               if Controlled_Type (Comp_Type)
+               if Needs_Finalization (Comp_Type)
                  and then not Is_Limited_Type (Comp_Type)
                then
                   Append_List_To (L,
@@ -3847,7 +3892,7 @@ package body Exp_Aggr is
       --  assignments to the target anyway, but it is conceivable that
       --  it will eventually be able to treat such aggregates statically???
 
-      if Aggr_Size_OK (Typ)
+      if Aggr_Size_OK (N, Typ)
         and then Flatten (N, First_Index (Typ), First_Index (Base_Type (Typ)))
       then
          if Static_Components then
@@ -4916,7 +4961,7 @@ package body Exp_Aggr is
         or else Parent_Kind = N_Extension_Aggregate
         or else Parent_Kind = N_Component_Association
         or else (Parent_Kind = N_Object_Declaration
-                  and then Controlled_Type (Typ))
+                  and then Needs_Finalization (Typ))
         or else (Parent_Kind = N_Assignment_Statement
                   and then Inside_Init_Proc)
       then
@@ -6383,7 +6428,7 @@ package body Exp_Aggr is
                elsif Nkind (Expression (Expr)) /= N_Integer_Literal then
                   return False;
 
-               elsif not Aggr_Size_OK (Typ) then
+               elsif not Aggr_Size_OK (N, Typ) then
                   return False;
                end if;
 
@@ -6396,7 +6441,13 @@ package body Exp_Aggr is
                loop
                   Append_To
                     (Expressions (Agg), New_Copy (Expression (Expr)));
-                  Set_Etype (Last (Expressions (Agg)), Component_Type (Typ));
+
+                  --  The copied expression must be analyzed and resolved.
+                  --  Besides setting the type, this ensures that static
+                  --  expressions are appropriately marked as such.
+
+                  Analyze_And_Resolve
+                    (Last (Expressions (Agg)), Component_Type (Typ));
                end loop;
 
                Set_Aggregate_Bounds (Agg, Bounds);
@@ -6413,4 +6464,5 @@ package body Exp_Aggr is
          return False;
       end if;
    end Static_Array_Aggregate;
+
 end Exp_Aggr;

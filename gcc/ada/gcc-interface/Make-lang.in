@@ -55,11 +55,9 @@ else
 ADAFLAGS= $(COMMON_ADAFLAGS)
 endif
 
-ALL_ADAFLAGS = $(CFLAGS) $(ALL_ADA_CFLAGS) $(X_ADAFLAGS) $(T_ADAFLAGS) \
-	$(ADAFLAGS)
+ALL_ADAFLAGS = $(CFLAGS) $(ADA_CFLAGS) $(ADAFLAGS)
 FORCE_DEBUG_ADAFLAGS = -g
 ADA_CFLAGS =
-ALL_ADA_CFLAGS = $(X_ADA_CFLAGS) $(T_ADA_CFLAGS) $(ADA_CFLAGS)
 ADA_INCLUDES = -nostdinc -I- -I. -Iada -I$(srcdir)/ada -I$(srcdir)/ada/gcc-interface
 ADA_INCLUDE_DIR = $(libsubdir)/adainclude
 ADA_RTL_OBJ_DIR = $(libsubdir)/adalib
@@ -76,9 +74,9 @@ ADA_FLAGS_TO_PASS = \
 # Say how to compile Ada programs.
 .SUFFIXES: .ada .adb .ads
 
-# FIXME: need to add $(ALL_ADA_CFLAGS) to .c.o suffix rule
+# FIXME: need to add $(ADA_CFLAGS) to .c.o suffix rule
 # Use loose warnings for this front end, but add some special flags
-ada-warn = $(ALL_ADA_CFLAGS) $(WERROR)
+ada-warn = $(ADA_CFLAGS) $(WERROR)
 # unresolved warnings in a couple of files
 ada/tracebak.o-warn = -Wno-error
 ada/b_gnat1.o-warn = -Wno-error
@@ -302,7 +300,7 @@ TARGET_ADA_SRCS =
 #  stamp target in the parent directory whenever gnat1 is rebuilt
 gnat1$(exeext): $(TARGET_ADA_SRCS) $(GNAT1_OBJS) $(ADA_BACKEND) $(LIBDEPS)
 	$(GCC_LINK) -o $@ $(GNAT1_OBJS) $(ADA_BACKEND) $(LIBS) $(SYSLIBS) $(GMPLIBS)
-	$(RM) stamp-gnatlib2 stamp-tools
+	$(RM) stamp-gnatlib2-rts stamp-tools
 
 gnatbind$(exeext): ada/b_gnatb.o $(CONFIG_H) $(GNATBIND_OBJS)
 	$(GCC_LINK) -o $@ ada/b_gnatb.o $(GNATBIND_OBJS) $(ALL_CFLAGS) $(LIBS) $(SYSLIBS)
@@ -311,17 +309,6 @@ gnatbind$(exeext): ada/b_gnatb.o $(CONFIG_H) $(GNATBIND_OBJS)
 gnat-cross: force
 	make $(GNAT1_ADA_OBJS) CC="gcc -B../stage1/" CFLAGS="-S -gnatp" \
 		$(FLAGS_TO_PASS) $(ADA_FLAGS_TO_PASS) HOST_CFLAGS= HOST_CC=cc
-
-gen-soccon: force
-	$(MAKE) -C ada $(FLAGS_TO_PASS)  \
-	   GNATLIBFLAGS="$(GNATLIBFLAGS)" \
-	   GNATLIBCFLAGS="$(GNATLIBCFLAGS)" \
-	   TARGET_LIBGCC2_CFLAGS="$(TARGET_LIBGCC2_CFLAGS)" \
-	   THREAD_KIND="$(THREAD_KIND)" \
-	   TRACE="$(TRACE)" \
-	   LIBGNAT_OBJS=gen-soccon \
-	   gnatlib
-
 
 # Build hooks:
 
@@ -924,17 +911,46 @@ ada/sinfo.h : ada/sinfo.ads ada/xsinfo.adb
 	$(CP) $^ ada/bldtools/sinfo
 	(cd ada/bldtools/sinfo && $(GNATMAKE) -q xsinfo && ./xsinfo ../../sinfo.h )
 
-ada/nmake.adb : ada/sinfo.ads ada/nmake.adt ada/xnmake.adb
+ada/nmake.adb : ada/sinfo.ads ada/nmake.adt ada/xnmake.adb ada/xutil.ads ada/xutil.adb
 	-$(MKDIR) ada/bldtools/nmake_b
 	$(RM) $(addprefix ada/bldtools/nmake_b/,$(notdir $^))
 	$(CP) $^ ada/bldtools/nmake_b
 	(cd ada/bldtools/nmake_b && $(GNATMAKE) -q xnmake && ./xnmake -b ../../nmake.adb )
 
-ada/nmake.ads :  ada/sinfo.ads ada/nmake.adt ada/xnmake.adb ada/nmake.adb
+ada/nmake.ads :  ada/sinfo.ads ada/nmake.adt ada/xnmake.adb ada/nmake.adb ada/xutil.ads ada/xutil.adb
 	-$(MKDIR) ada/bldtools/nmake_s
 	$(RM) $(addprefix ada/bldtools/nmake_s/,$(notdir $^))
 	$(CP) $^ ada/bldtools/nmake_s
 	(cd ada/bldtools/nmake_s && $(GNATMAKE) -q xnmake && ./xnmake -s ../../nmake.ads )
+
+ifeq ($(strip $(filter-out alpha64 ia64 dec hp vms% openvms% alphavms%,$(subst -, ,$(host)))),)
+OSCONS_CPP=../../../$(DECC) -E /comment=as_is -DNATIVE \
+             -DTARGET='""$(target)""' s-oscons-tmplt.c
+
+OSCONS_EXTRACT=../../../$(DECC) -DNATIVE \
+                 -DTARGET='""$(target)""' s-oscons-tmplt.c ; \
+  ld -o s-oscons-tmplt.exe s-oscons-tmplt.obj; \
+  ./s-oscons-tmplt.exe > s-oscons-tmplt.s
+
+else
+OSCONS_CC=`echo "$(GCC_FOR_TARGET)" \
+  | sed -e 's^\./xgcc^../../../xgcc^' -e 's^-B./^-B../../../^'`
+OSCONS_CPP=$(OSCONS_CC) $(CFLAGS_FOR_TARGET) -E -C \
+  -DTARGET=\"$(target)\" s-oscons-tmplt.c > s-oscons-tmplt.i
+OSCONS_EXTRACT=$(OSCONS_CC) $(CFLAGS_FOR_TARGET) -S s-oscons-tmplt.i
+endif
+
+ada/s-oscons.ads : ada/s-oscons-tmplt.c ada/gsocket.h ada/xoscons.adb ada/xutil.ads ada/xutil.adb
+	-$(MKDIR) ada/bldtools/oscons
+	$(RM) $(addprefix ada/bldtools/oscons/,$(notdir $^))
+	$(CP) $^ ada/bldtools/oscons
+	(cd ada/bldtools/oscons ; gnatmake -q xoscons ; \
+		$(RM) s-oscons-tmplt.i s-oscons-tmplt.s ; \
+		$(OSCONS_CPP) ; \
+		$(OSCONS_EXTRACT) ; \
+		./xoscons ; \
+		$(RM) ../../s-oscons.ads ; \
+		$(CP) s-oscons.ads ../../s-oscons.ads)
 
 update-sources : ada/treeprs.ads ada/einfo.h ada/sinfo.h ada/nmake.adb \
 	ada/nmake.ads
@@ -1058,25 +1074,25 @@ ada/targext.o : ada/targext.c $(SYSTEM_H) coretypes.h $(TM_H)
 		$< $(OUTPUT_OPTION)
 
 ada/cio.o     : ada/cio.c $(CONFIG_H) $(SYSTEM_H) ada/adaint.h
-	$(CC) -c $(ALL_CFLAGS) $(ALL_ADA_CFLAGS) \
+	$(CC) -c $(ALL_CFLAGS) $(ADA_CFLAGS) \
 	         $(ALL_CPPFLAGS) $(INCLUDES) $< $(OUTPUT_OPTION)
 
 ada/init.o    : ada/init.c $(CONFIG_H) $(SYSTEM_H) ada/adaint.h ada/raise.h
-	$(CC) -c $(ALL_CFLAGS) $(ALL_ADA_CFLAGS) \
+	$(CC) -c $(ALL_CFLAGS) $(ADA_CFLAGS) \
 	         $(ALL_CPPFLAGS) $(INCLUDES) $< $(OUTPUT_OPTION)
 
 ada/initialize.o : ada/initialize.c
-	$(CC) -c $(ALL_CFLAGS) $(ALL_ADA_CFLAGS) \
+	$(CC) -c $(ALL_CFLAGS) $(ADA_CFLAGS) \
 	         $(ALL_CPPFLAGS) $(INCLUDES) $< $(OUTPUT_OPTION)
 
 ada/raise.o   : ada/raise.c $(CONFIG_H) $(SYSTEM_H) ada/adaint.h ada/raise.h
-	$(CC) -c $(ALL_CFLAGS) $(ALL_ADA_CFLAGS) \
+	$(CC) -c $(ALL_CFLAGS) $(ADA_CFLAGS) \
 		 $(ALL_CPPFLAGS) $(INCLUDES) $< $(OUTPUT_OPTION)
 
 # Need to keep the frame pointer in this file to pop the stack properly on
 # some targets.
 ada/tracebak.o  : ada/tracebak.c $(CONFIG_H) $(SYSTEM_H)
-	$(CC) -c $(ALL_CFLAGS) $(ALL_ADA_CFLAGS) $(ALL_CPPFLAGS) $(INCLUDES) \
+	$(CC) -c $(ALL_CFLAGS) $(ADA_CFLAGS) $(ALL_CPPFLAGS) $(INCLUDES) \
 	      -fno-omit-frame-pointer $< $(OUTPUT_OPTION)
 
 ada/cuintp.o : ada/gcc-interface/cuintp.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \

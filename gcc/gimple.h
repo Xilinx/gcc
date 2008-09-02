@@ -878,10 +878,15 @@ extern bool is_gimple_lvalue (tree);
 bool is_gimple_address (const_tree);
 /* Returns true iff T is a GIMPLE invariant address.  */
 bool is_gimple_invariant_address (const_tree);
+/* Returns true iff T is a GIMPLE invariant address at interprocedural
+   level.  */
+bool is_gimple_ip_invariant_address (const_tree);
 /* Returns true iff T is a valid GIMPLE constant.  */
 bool is_gimple_constant (const_tree);
 /* Returns true iff T is a GIMPLE restricted function invariant.  */
 extern bool is_gimple_min_invariant (const_tree);
+/* Returns true iff T is a GIMPLE restricted interprecodural invariant.  */
+extern bool is_gimple_ip_invariant (const_tree);
 /* Returns true iff T is a GIMPLE rvalue.  */
 extern bool is_gimple_val (tree);
 /* Returns true iff T is a GIMPLE asm statement input.  */
@@ -1840,6 +1845,17 @@ gimple_assign_set_rhs_code (gimple s, enum tree_code code)
 }
 
 
+/* Return the gimple rhs class of the code of the expression computed on
+   the rhs of assignment statement GS.
+   This will never return GIMPLE_INVALID_RHS.  */
+
+static inline enum gimple_rhs_class
+gimple_assign_rhs_class (const_gimple gs)
+{
+  return get_gimple_rhs_class (gimple_assign_rhs_code (gs));
+}
+
+
 /* Return true if S is a type-cast assignment.  */
 
 static inline bool
@@ -1848,8 +1864,7 @@ gimple_assign_cast_p (gimple s)
   if (is_gimple_assign (s))
     {
       enum tree_code sc = gimple_assign_rhs_code (s);
-      return sc == NOP_EXPR
-	     || sc == CONVERT_EXPR
+      return CONVERT_EXPR_CODE_P (sc)
 	     || sc == VIEW_CONVERT_EXPR
 	     || sc == FIX_TRUNC_EXPR;
     }
@@ -1900,7 +1915,7 @@ gimple_call_set_lhs (gimple gs, tree lhs)
 
 
 /* Return the tree node representing the function called by call
-   statement GS.  This may or may not be a FUNCTION_DECL node.  */
+   statement GS.  */
 
 static inline tree
 gimple_call_fn (const_gimple gs)
@@ -1932,6 +1947,17 @@ gimple_call_set_fn (gimple gs, tree fn)
 }
 
 
+/* Set FNDECL to be the function called by call statement GS.  */
+
+static inline void
+gimple_call_set_fndecl (gimple gs, tree decl)
+{
+  GIMPLE_CHECK (gs, GIMPLE_CALL);
+  gcc_assert (TREE_CODE (decl) == FUNCTION_DECL);
+  gimple_set_op (gs, 1, build_fold_addr_expr (decl));
+}
+
+
 /* If a given GIMPLE_CALL's callee is a FUNCTION_DECL, return it.
    Otherwise return NULL.  This function is analogous to
    get_callee_fndecl in tree land.  */
@@ -1939,8 +1965,13 @@ gimple_call_set_fn (gimple gs, tree fn)
 static inline tree
 gimple_call_fndecl (const_gimple gs)
 {
-  tree decl = gimple_call_fn (gs);
-  return (TREE_CODE (decl) == FUNCTION_DECL) ? decl : NULL_TREE;
+  tree addr = gimple_call_fn (gs);
+  if (TREE_CODE (addr) == ADDR_EXPR)
+    {
+      gcc_assert (TREE_CODE (TREE_OPERAND (addr, 0)) == FUNCTION_DECL);
+      return TREE_OPERAND (addr, 0);
+    }
+  return NULL_TREE;
 }
 
 
@@ -1952,9 +1983,9 @@ gimple_call_return_type (const_gimple gs)
   tree fn = gimple_call_fn (gs);
   tree type = TREE_TYPE (fn);
 
-  /* See through pointers.  */
-  if (POINTER_TYPE_P (type))
-    type = TREE_TYPE (type);
+  /* See through the pointer.  */
+  gcc_assert (POINTER_TYPE_P (type));
+  type = TREE_TYPE (type);
 
   gcc_assert (TREE_CODE (type) == FUNCTION_TYPE
 	      || TREE_CODE (type) == METHOD_TYPE);
@@ -1992,7 +2023,7 @@ gimple_call_set_chain (gimple gs, tree chain)
   GIMPLE_CHECK (gs, GIMPLE_CALL);
   gcc_assert (chain == NULL
               || TREE_CODE (chain) == ADDR_EXPR
-              || DECL_P (chain));
+              || SSA_VAR_P (chain));
   gimple_set_op (gs, 2, chain);
 }
 
@@ -4446,6 +4477,7 @@ basic_block gsi_insert_on_edge_immediate (edge, gimple);
 basic_block gsi_insert_seq_on_edge_immediate (edge, gimple_seq);
 void gsi_commit_one_edge_insert (edge, basic_block *);
 void gsi_commit_edge_inserts (void);
+gimple giple_copy_call_skip_args (gimple, bitmap);
 
 
 /* Convenience routines to walk all statements of a gimple function.

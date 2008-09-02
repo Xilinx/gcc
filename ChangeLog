@@ -1,3 +1,59 @@
+2008-08-31  Aaron W. LaFramboise  <aaronavay62@aaronwl.com>
+
+	* configure.ac (RPATH_ENVVAR): Use PATH on Windows.
+	(GCC_SHLIB_SUBDIR): New.
+	* Makefile.tpl (HOST_LIB_PATH_gcc): Use GCC_SHLIB_SUBDIR.
+	* configure: Regenerate.
+	* Makefile.in: Regenerate.
+
+2008-08-30  Gerald Pfeifer  <gerald@pfeifer.com>
+
+	* MAINTAINERS: Consistently use tabs to separate columns.
+
+2008-08-29  Tristan Gingold  <gingold@adacore.com>
+
+	* MAINTAINERS (Write after Approval): Add myself.
+
+2008-08-28  Tristan Gingold  <gingold@adacore.com>
+
+	* configure.ac (powerpc-*-darwin*, i?86-*-darwin*,x86_64-*-darwin9):
+	Enable bfd, binutils and opcodes.
+	* configure: Regenerate.
+
+2008-08-27  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	* MAINTAINERS: Update my hppa and hpux entries.  Remove my vax entry.
+
+2008-08-23  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	* MAINTAINERS:  Use correct Umlaut for last name.
+
+2008-08-23  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	* MAINTAINERS: Move myself from Reviewers to Write after Approval.
+
+2008-08-16  David Edelsohn  <edelsohn@gnu.org>
+
+	* MAINTAINERS: Update my email address.
+
+2008-08-16  Nicolas Roche  <roche@adacore.com>
+
+	* Makefile.tpl: Add BOOT_ADAFLAGS.
+	* Makefile.in: Regenerate.
+
+2008-08-09  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* configure.ac (mips*-*-*linux*, mips*-*-gnu*): Use mt-mips-gnu.
+	* configure: Regenerate.
+
+2008-07-30 Paolo Bonzini  <bonzini@gnu.org>
+
+	* configure.ac: Add makefile fragments for hpux.
+	* Makefile.def (flags_to_pass): Add ADA_CFLAGS.
+	* Makefile.tpl (HOST_EXPORTS): Pass ADA_CFLAGS.
+	* configure: Regenerate.
+	* Makefile.in: Regenerate.
+
 2008-07-28 Aldy Hernandez <aldyh@redhat.com>
 
 	* MAINTAINERS: Add Jakub and myself as gimple maintainers.
@@ -3655,7 +3711,7 @@
 	of libf2c.
 	* configure, Makefile.in: Regenerate.
 
-2004-05-13  Tobias SchlÃÂÃÂ¼ter  <tobi@gcc.gnu.org>
+2004-05-13  Tobias Schlï¿½ï¿½ï¿½Â¼ter  <tobi@gcc.gnu.org>
 
 	* MAINTAINERS (Write After Approval): Add myself.
 

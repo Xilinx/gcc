@@ -1377,7 +1377,7 @@ extern int may_call_alloca;
 #define LEGITIMIZE_RELOAD_ADDRESS(AD, MODE, OPNUM, TYPE, IND, WIN) 	\
 do { 									\
   long offset, newoffset, mask;						\
-  rtx new, temp = NULL_RTX;						\
+  rtx new_rtx, temp = NULL_RTX;						\
 									\
   mask = (GET_MODE_CLASS (MODE) == MODE_FLOAT				\
 	  ? (INT14_OK_STRICT ? 0x3fff : 0x1f) : 0x3fff);		\
@@ -1386,14 +1386,14 @@ do { 									\
     temp = simplify_binary_operation (PLUS, Pmode,			\
 				      XEXP (AD, 0), XEXP (AD, 1));	\
 									\
-  new = temp ? temp : AD;						\
+  new_rtx = temp ? temp : AD;						\
 									\
   if (optimize								\
-      && GET_CODE (new) == PLUS						\
-      && GET_CODE (XEXP (new, 0)) == REG				\
-      && GET_CODE (XEXP (new, 1)) == CONST_INT)				\
+      && GET_CODE (new_rtx) == PLUS						\
+      && GET_CODE (XEXP (new_rtx, 0)) == REG				\
+      && GET_CODE (XEXP (new_rtx, 1)) == CONST_INT)				\
     {									\
-      offset = INTVAL (XEXP ((new), 1));				\
+      offset = INTVAL (XEXP ((new_rtx), 1));				\
 									\
       /* Choose rounding direction.  Round up if we are >= halfway.  */	\
       if ((offset & mask) >= ((mask + 1) / 2))				\
@@ -1409,7 +1409,7 @@ do { 									\
 									\
       if (newoffset != 0 && VAL_14_BITS_P (newoffset))			\
 	{								\
-	  temp = gen_rtx_PLUS (Pmode, XEXP (new, 0),			\
+	  temp = gen_rtx_PLUS (Pmode, XEXP (new_rtx, 0),			\
 			       GEN_INT (newoffset));			\
 	  AD = gen_rtx_PLUS (Pmode, temp, GEN_INT (offset - newoffset));\
 	  push_reload (XEXP (AD, 0), 0, &XEXP (AD, 0), 0,		\
@@ -1506,7 +1506,7 @@ do { 									\
    arguments passed in registers to avoid infinite recursion during argument
    setup for a function call.  Why?  Consider how we copy the stack slots
    reserved for parameters when they may be trashed by a call.  */
-#define MOVE_RATIO (TARGET_64BIT ? 8 : 4)
+#define MOVE_RATIO(speed) (TARGET_64BIT ? 8 : 4)
 
 /* Define if operations between registers always perform the operation
    on the full register even if a narrower mode is specified.  */
@@ -1570,7 +1570,7 @@ do { 									\
   : 2)
 
 /* Adjust the cost of branches.  */
-#define BRANCH_COST (pa_cpu == PROCESSOR_8000 ? 2 : 1)
+#define BRANCH_COST(speed_p, predictable_p) (pa_cpu == PROCESSOR_8000 ? 2 : 1)
 
 /* Handling the special cases is going to get too complicated for a macro,
    just call `pa_adjust_insn_length' to do the real work.  */

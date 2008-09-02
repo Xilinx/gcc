@@ -1665,12 +1665,13 @@ simplify_binary_operation_1 (enum rtx_code code, enum machine_mode mode,
 	      rtx coeff;
 	      unsigned HOST_WIDE_INT l;
 	      HOST_WIDE_INT h;
+	      bool speed = optimize_function_for_speed_p (cfun);
 
 	      add_double (coeff0l, coeff0h, coeff1l, coeff1h, &l, &h);
 	      coeff = immed_double_const (l, h, mode);
 
 	      tem = simplify_gen_binary (MULT, mode, lhs, coeff);
-	      return rtx_cost (tem, SET) <= rtx_cost (orig, SET)
+	      return rtx_cost (tem, SET, speed) <= rtx_cost (orig, SET, speed)
 		? tem : 0;
 	    }
 	}
@@ -1740,9 +1741,8 @@ simplify_binary_operation_1 (enum rtx_code code, enum machine_mode mode,
 	 so we can distinguish it from a register-register-copy.
 
 	 In IEEE floating point, x-0 is not the same as x.  */
-
-      if ((TARGET_FLOAT_FORMAT != IEEE_FLOAT_FORMAT
-	   || ! FLOAT_MODE_P (mode) || flag_unsafe_math_optimizations)
+      if (!(HONOR_SIGNED_ZEROS (mode)
+	    && HONOR_SIGN_DEPENDENT_ROUNDING (mode))
 	  && trueop1 == CONST0_RTX (mode))
 	return op0;
 #endif
@@ -1860,12 +1860,13 @@ simplify_binary_operation_1 (enum rtx_code code, enum machine_mode mode,
 	      rtx coeff;
 	      unsigned HOST_WIDE_INT l;
 	      HOST_WIDE_INT h;
+	      bool speed = optimize_function_for_speed_p (cfun);
 
 	      add_double (coeff0l, coeff0h, negcoeff1l, negcoeff1h, &l, &h);
 	      coeff = immed_double_const (l, h, mode);
 
 	      tem = simplify_gen_binary (MULT, mode, lhs, coeff);
-	      return rtx_cost (tem, SET) <= rtx_cost (orig, SET)
+	      return rtx_cost (tem, SET, speed) <= rtx_cost (orig, SET, speed)
 		? tem : 0;
 	    }
 	}
@@ -3080,8 +3081,7 @@ simplify_const_binary_operation (enum rtx_code code, enum machine_mode mode,
 	     is unable to accurately represent the result.  */
 
 	  if ((flag_rounding_math
-	       || (REAL_MODE_FORMAT_COMPOSITE_P (mode)
-		   && !flag_unsafe_math_optimizations))
+	       || (MODE_COMPOSITE_P (mode) && !flag_unsafe_math_optimizations))
 	      && (inexact || !real_identical (&result, &value)))
 	    return NULL_RTX;
 
@@ -5071,35 +5071,13 @@ simplify_subreg (enum machine_mode outermode, rtx op,
      suppress this simplification.  If the hard register is the stack,
      frame, or argument pointer, leave this as a SUBREG.  */
 
-  if (REG_P (op)
-      && REGNO (op) < FIRST_PSEUDO_REGISTER
-#ifdef CANNOT_CHANGE_MODE_CLASS
-      && ! (REG_CANNOT_CHANGE_MODE_P (REGNO (op), innermode, outermode)
-	    && GET_MODE_CLASS (innermode) != MODE_COMPLEX_INT
-	    && GET_MODE_CLASS (innermode) != MODE_COMPLEX_FLOAT)
-#endif
-      && ((reload_completed && !frame_pointer_needed)
-	  || (REGNO (op) != FRAME_POINTER_REGNUM
-#if HARD_FRAME_POINTER_REGNUM != FRAME_POINTER_REGNUM
-	      && REGNO (op) != HARD_FRAME_POINTER_REGNUM
-#endif
-	     ))
-#if FRAME_POINTER_REGNUM != ARG_POINTER_REGNUM
-      && REGNO (op) != ARG_POINTER_REGNUM
-#endif
-      && REGNO (op) != STACK_POINTER_REGNUM
-      && subreg_offset_representable_p (REGNO (op), innermode,
-					byte, outermode))
+  if (REG_P (op) && HARD_REGISTER_P (op))
     {
-      unsigned int regno = REGNO (op);
-      unsigned int final_regno
-	= regno + subreg_regno_offset (regno, innermode, byte, outermode);
+      unsigned int regno, final_regno;
 
-      /* ??? We do allow it if the current REG is not valid for
-	 its mode.  This is a kludge to work around how float/complex
-	 arguments are passed on 32-bit SPARC and should be fixed.  */
-      if (HARD_REGNO_MODE_OK (final_regno, outermode)
-	  || ! HARD_REGNO_MODE_OK (regno, innermode))
+      regno = REGNO (op);
+      final_regno = simplify_subreg_regno (regno, innermode, byte, outermode);
+      if (HARD_REGISTER_NUM_P (final_regno))
 	{
 	  rtx x;
 	  int final_offset = byte;

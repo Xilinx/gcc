@@ -212,15 +212,20 @@ extern void (*arm_lang_output_object_attributes_hook)(void);
 #define TARGET_THUMB1_ONLY		(TARGET_THUMB1 && !arm_arch_notm)
 
 /* The following two macros concern the ability to execute coprocessor
-   instructions for VFPv3 or NEON.  TARGET_VFP3 is currently only ever
-   tested when we know we are generating for VFP hardware; we need to
-   be more careful with TARGET_NEON as noted below.  */
+   instructions for VFPv3 or NEON.  TARGET_VFP3/TARGET_VFPD32 are currently
+   only ever tested when we know we are generating for VFP hardware; we need
+   to be more careful with TARGET_NEON as noted below.  */
 
-/* FPU is VFPv3 (with twice the number of D registers).  Setting the FPU to
-   Neon automatically enables VFPv3 too.  */
+/* FPU is has the full VFPv3/NEON register file of 32 D registers.  */
+#define TARGET_VFPD32 (arm_fp_model == ARM_FP_MODEL_VFP \
+		       && (arm_fpu_arch == FPUTYPE_VFP3 \
+			   || arm_fpu_arch == FPUTYPE_NEON))
+
+/* FPU supports VFPv3 instructions.  */
 #define TARGET_VFP3 (arm_fp_model == ARM_FP_MODEL_VFP \
-		     && (arm_fpu_arch == FPUTYPE_VFP3 \
-			 || arm_fpu_arch == FPUTYPE_NEON))
+		     && (arm_fpu_arch == FPUTYPE_VFP3D16 \
+			 || TARGET_VFPD32))
+
 /* FPU supports Neon instructions.  The setting of this macro gets
    revealed via __ARM_NEON__ so we add extra guards upon TARGET_32BIT
    and TARGET_HARD_FLOAT to ensure that NEON instructions are
@@ -299,6 +304,8 @@ enum fputype
   FPUTYPE_MAVERICK,
   /* VFP.  */
   FPUTYPE_VFP,
+  /* VFPv3-D16.  */
+  FPUTYPE_VFP3D16,
   /* VFPv3.  */
   FPUTYPE_VFP3,
   /* Neon.  */
@@ -419,6 +426,9 @@ extern int arm_arch_hwdiv;
 #define CAN_DEBUG_WITHOUT_FP
 
 #define OVERRIDE_OPTIONS  arm_override_options ()
+
+#define OPTIMIZATION_OPTIONS(LEVEL,SIZE)		\
+	arm_optimization_options ((LEVEL), (SIZE))
 
 /* Nonzero if PIC code requires explicit qualifiers to generate
    PLT and GOT relocs rather than the assembler doing so implicitly.
@@ -945,7 +955,7 @@ extern int arm_structure_size_boundary;
 #define FIRST_VFP_REGNUM	63
 #define D7_VFP_REGNUM		78  /* Registers 77 and 78 == VFP reg D7.  */
 #define LAST_VFP_REGNUM	\
-  (TARGET_VFP3 ? LAST_HI_VFP_REGNUM : LAST_LO_VFP_REGNUM)
+  (TARGET_VFPD32 ? LAST_HI_VFP_REGNUM : LAST_LO_VFP_REGNUM)
 
 #define IS_VFP_REGNUM(REGNUM) \
   (((REGNUM) >= FIRST_VFP_REGNUM) && ((REGNUM) <= LAST_VFP_REGNUM))
@@ -1080,6 +1090,9 @@ extern int arm_structure_size_boundary;
    127						\
 }
 
+/* Use different register alloc ordering for Thumb.  */
+#define ORDER_REGS_FOR_LOCAL_ALLOC arm_order_regs_for_local_alloc ()
+
 /* Interrupt functions can only use registers that have already been
    saved by the prologue, even if they would normally be
    call-clobbered.  */
@@ -1174,6 +1187,20 @@ enum reg_class
    reg number REGNO.  This could be a conditional expression
    or could index an array.  */
 #define REGNO_REG_CLASS(REGNO)  arm_regno_class (REGNO)
+
+/* The following macro defines cover classes for Integrated Register
+   Allocator.  Cover classes is a set of non-intersected register
+   classes covering all hard registers used for register allocation
+   purpose.  Any move between two registers of a cover class should be
+   cheaper than load or store of the registers.  The macro value is
+   array of register classes with LIM_REG_CLASSES used as the end
+   marker.  */
+
+#define IRA_COVER_CLASSES						     \
+{									     \
+  GENERAL_REGS, FPA_REGS, CIRRUS_REGS, VFP_REGS, IWMMXT_GR_REGS, IWMMXT_REGS,\
+  LIM_REG_CLASSES							     \
+}
 
 /* FPA registers can't do subreg as all values are reformatted to internal
    precision.  VFP registers may only be accessed in the mode they
@@ -2217,7 +2244,7 @@ do {							\
 #define MOVE_MAX 4
 
 #undef  MOVE_RATIO
-#define MOVE_RATIO (arm_tune_xscale ? 4 : 2)
+#define MOVE_RATIO(speed) (arm_tune_xscale ? 4 : 2)
 
 /* Define if operations between registers always perform the operation
    on the full register even if a narrower mode is specified.  */
@@ -2270,7 +2297,7 @@ do {							\
 
 /* Try to generate sequences that don't involve branches, we can then use
    conditional instructions */
-#define BRANCH_COST \
+#define BRANCH_COST(speed_p, predictable_p) \
   (TARGET_32BIT ? 4 : (optimize > 0 ? 2 : 0))
 
 /* Position Independent Code.  */

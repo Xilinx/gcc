@@ -2155,20 +2155,31 @@ package body Sem_Aggr is
 
       begin
          Imm_Type := Base_Type (Typ);
-         while Is_Derived_Type (Imm_Type)
-           and then Etype (Imm_Type) /= Base_Type (A_Type)
-         loop
-            Imm_Type := Etype (Base_Type (Imm_Type));
+         while Is_Derived_Type (Imm_Type) loop
+            if Etype (Imm_Type) = Base_Type (A_Type) then
+               return True;
+
+            --  The base type of the parent type may appear as  a private
+            --  extension if it is declared as such in a parent unit of
+            --  the current one. For consistency of the subsequent analysis
+            --  use the partial view for the ancestor part.
+
+            elsif Is_Private_Type (Etype (Imm_Type))
+              and then Present (Full_View (Etype (Imm_Type)))
+              and then Base_Type (A_Type) = Full_View (Etype (Imm_Type))
+            then
+               A_Type := Etype (Imm_Type);
+               return True;
+
+            else
+               Imm_Type := Etype (Base_Type (Imm_Type));
+            end if;
          end loop;
 
-         if not Is_Derived_Type (Base_Type (Typ))
-           or else Etype (Imm_Type) /= Base_Type (A_Type)
-         then
-            Error_Msg_NE ("expect ancestor type of &", A, Typ);
-            return False;
-         else
-            return True;
-         end if;
+         --  If previous loop did not find a proper ancestor, report error.
+
+         Error_Msg_NE ("expect ancestor type of &", A, Typ);
+         return False;
       end Valid_Ancestor_Type;
 
    --  Start of processing for Resolve_Extension_Aggregate
@@ -2770,7 +2781,17 @@ package body Sem_Aggr is
          Error_Msg_N ("record aggregate cannot be null", N);
          return;
 
-      elsif No (First_Entity (Typ)) then
+      --  If the type has no components, then the aggregate should either
+      --  have "null record", or in Ada 2005 it could instead have a single
+      --  component association given by "others => <>". For Ada 95 we flag
+      --  an error at this point, but for Ada 2005 we proceed with checking
+      --  the associations below, which will catch the case where it's not
+      --  an aggregate with "others => <>". Note that the legality of a <>
+      --  aggregate for a null record type was established by AI05-016.
+
+      elsif No (First_Entity (Typ))
+         and then Ada_Version < Ada_05
+      then
          Error_Msg_N ("record aggregate must be null", N);
          return;
       end if;
