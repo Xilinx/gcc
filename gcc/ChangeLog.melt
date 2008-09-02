@@ -1,3 +1,6 @@
+2008-09-02  Basile Starynkevitch  <basile@starynkevitch.net>
+	* basilys.c (basilys_inform_str): added loc argument to inform.
+
 2008-09-01  Basile Starynkevitch  <basile@starynkevitch.net>
 	MERGED WITH TRUNK rev139820
 	* melt/warmelt-first.bysl: added location argument to inform.
