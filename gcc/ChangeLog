@@ -1,3 +1,735 @@
+2008-09-02  Jakub Jelinek  <jakub@redhat.com>
+
+	* dwarf2out.c (tree_add_const_value_attribute): Only handle
+	VAR_DECL and CONST_DECL.
+
+2008-09-02  H.J. Lu  <hongjiu.lu@intel.com>
+	    Jakub Jelinek  <jakub@redhat.com>
+
+	* config/i386/i386.c (X86_64_VARARGS_SIZE): Removed.
+	(setup_incoming_varargs_64): Assume cum != NULL. Set/check
+	ix86_varargs_gpr_size and ix86_varargs_fpr_size.  Use
+	ix86_varargs_gpr_size instead of X86_64_REGPARM_MAX.
+	Don't set ix86_save_varrargs_registers.
+	(ix86_setup_incoming_varargs): Assume cum != NULL.
+	(ix86_va_start): Check ix86_varargs_gpr_size and
+	ix86_varargs_fpr_size instead of cfun->va_list_gpr_size and
+	cfun->va_list_fpr_size, respectively.  Subtract 8*X86_64_REGPARM_MAX
+	from frame pointer if ix86_varargs_gpr_size == 0.
+	(ix86_compute_frame_layout): Updated.
+	* config/i386/i386.h (ix86_save_varrargs_registers): Removed.
+	(ix86_varargs_gpr_size): Define.
+	(ix86_varargs_fpr_size): Likewise.
+	(machine_function): Remove save_varrargs_registers.
+	Add varargs_gpr_size and varargs_fpr_size.
+
+2008-09-02  Jakub Jelinek  <jakub@redhat.com>
+
+	* config/alpha/alpha.c (va_list_skip_additions,
+	alpha_stdarg_optimize_hook, alpha_gimplify_va_arg_1): Tuplify.
+	(alpha_gimplify_va_arg): Call unshare_expr on second use of
+	offset_field.
+
+	PR tree-optimization/36766
+	* tree-cfg.c (gimple_purge_all_dead_eh_edges): Do nothing
+	for already removed basic blocks.
+
+	PR target/36332
+	* real.c (real_maxval): Clear a lower bit to make real_maxval
+	match get_max_float for IBM long double format.
+
+2008-09-02  Andreas Schwab  <schwab@suse.de>
+
+	* configure.ac: Use m4_quote to quote the expansion of m4_do.
+	* configure: Regenerate.
+
+2008-09-02  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* simplify-rtx.c (simplify_binary_operation_1): Check for CONST,
+	SYMBOL_REF and LABEL_REF when applying plus_constant, instead of
+	checking for a non-VOID CONSTANT_P.
+
+2008-09-02  Jan Hubicka  <jh@suse.cz>
+
+	* predict.c (pass_strip_predict_hints): Avoid bugs dump file.
+	* expmed.c (expand_divmod): Fix test of smod_pow2_cheap and sdiv_pow2_cheap
+
+2008-09-02  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* expr.c (emit_group_store): Don't assert stack temp mode size.
+
+2008-09-02  Sebastian Pop  <sebastian.pop@amd.com>
+	    Tobias Grosser  <grosser@fim.uni-passau.de>
+	    Jan Sjodin  <jan.sjodin@amd.com>
+	    Harsha Jagasia  <harsha.jagasia@amd.com>
+	    Dwarakanath Rajagopal  <dwarak.rajagopal@amd.com>
+	    Konrad Trifunovic  <konrad.trifunovic@inria.fr>
+	    Adrien Eliche  <aeliche@isty.uvsq.fr>
+
+	Merge from graphite branch.
+	* graphite.c: New.
+	* graphite.h: New.
+	* tree-loop-linear.c (perfect_loop_nest_depth): Export.
+	* doc/invoke.texi (-floop-block, -floop-interchange,
+	-floop-strip-mine): Document new flags.
+	* tree-into-ssa.c (gimple_vec): Moved...
+	* tree-loop-distribution.c (rdg_component): Moved...
+	* cfgloopmanip.c: Include tree-flow.h.
+	(update_dominators_in_loop): New.
+	(create_empty_if_region_on_edge): New.
+	(create_empty_loop_on_edge): New.
+	(loopify): Use update_dominators_in_loop.
+	* tree-pass.h (pass_graphite_transforms): Declared.
+	* configure: Regenerate.
+	* tree-phinodes.c (make_phi_node): Export.
+	(add_phi_node_to_bb): New, split from create_phi_node.
+	* tree-chrec.c (for_each_scev_op): New.
+	* tree-chrec.h (for_each_scev_op): Declared.
+	* tree-ssa-loop-ivopts.c (get_phi_with_result): New.
+	(remove_statement): Call get_phi_with_result.
+	* config.in (HAVE_cloog): Undef.
+	* gdbinit.in (pgg): New.
+	* timevar.def (TV_GRAPHITE_TRANSFORMS): New.
+	* tree-ssa-loop.c (graphite_transforms): New.
+	(gate_graphite_transforms): New.
+	(pass_graphite_transforms): New.
+	* configure.ac (PPLLIBS, PPLINC, CLOOGLIBS, CLOOGINC,
+	HAVE_cloog): Defined.
+	* tree-vectorizer.c (rename_variables_in_bb): Export.
+	* tree-data-ref.c (dr_may_alias_p): Export.
+	(stmt_simple_memref_p): New.
+	(find_data_references_in_stmt): Export.
+	(find_data_references_in_loop): Export.
+	(create_rdg_edge_for_ddr): Initialize RDGE_RELATION.
+	(create_rdg_edges_for_scalar): Initialize RDGE_RELATION.
+	(create_rdg_vertices): Export.
+	(build_empty_rdg): New.
+	(build_rdg): Call build_empty_rdg.  Free dependence_relations.
+	* tree-data-ref.h (rdg_component): ... here.
+	(scop_p): New.
+	(struct data_reference): Add a field scop.
+	(DR_SCOP): New.
+	(find_data_references_in_loop): Declared.
+	(find_data_references_in_stmt): Declared.
+	(create_rdg_vertices): Declared.
+	(dr_may_alias_p): Declared.
+	(stmt_simple_memref_p): Declared.
+	(struct rdg_edge): Add a field ddr_p relation.
+	(build_empty_rdg): Declared.
+	* lambda.h (lambda_matrix): Declare a VEC of.
+	(find_induction_var_from_exit_cond): Declared.
+	(lambda_vector_compare): New.
+	* common.opt (fgraphite, floop-strip-mine,
+	floop-interchange, floop-block): New flags.
+	* lambda-code.c (find_induction_var_from_exit_cond): Export.
+	* cfgloop.c (is_loop_exit): New.
+	* cfgloop.h (is_loop_exit): Declared.
+	(create_empty_if_region_on_edge): Declared.
+	(create_empty_loop_on_edge): Declared.
+	* tree-flow.h (add_phi_node_to_bb): Declared.
+	(make_phi_node): Declared.
+	(rename_variables_in_bb): Declared.
+	(perfect_loop_nest_depth): Declared.
+	(graphite_transform_loops): Declared.
+	* Makefile.in (cfgloopmanip.o): Depend on TREE_FLOW_H.
+	(graphite.o-warn): Add -Wno-error.
+	(PPLLIBS, PPLINC, CLOOGLIBS, CLOOGINC): Declared.
+	(LIBS): Add GMPLIBS, CLOOGLIBS, PPLLIBS.
+	(INCLUDES): Add PPLINC, CLOOGINC.
+	(OBJS-common): Add graphite.o.
+	(graphite.o): Add rule.
+	* gimple.h (gimple_vec): ... here.
+	* tree-cfg.c (print_loops): Start printing at ENTRY_BLOCK_PTR.
+	* passes.c (init_optimization_passes): Schedule 
+	pass_graphite_transforms.
+
+2008-09-02  Samuel Tardieu  <sam@rfc1149.net>
+
+	PR target/37283
+	* opts.c (decode_options): Move processing of -fno-unit-at-a-time
+	and -fno-toplevel-reorder after handle_options.
+
+2008-09-02  Paul Brook  <paul@codesourcery.com>
+
+	* config/arm/arm.c (arm_tune_cortex_a9): Define.
+	(arm_override_options): Set arm_tune_cortex_a9.
+	(arm_rtx_costs_1): Make register shifts more expensive on Cortex-A9.
+	(arm_issue_rate): Handle cortexa9.
+	* config/arm/arm.h (arm_tune_cortex_a9): Declare.
+	* config/arm/arm-cores.def: Add cortex-a9.
+	* config/arm/arm-tune.md: Regenerate.
+	* config/arm/arm.md: Include cortex-a9.md.
+	(generic_sched, generic_vfp): Add cortexa9.
+	* config/arm/cortex-a9.md: New file.
+
+2008-09-02  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/37327
+	* tree-vrp.c (register_new_assert_for): Make sure to not have
+	TREE_OVERFLOW set on the bound.
+
+2008-09-02  Alexander Monakov  <amonakov@ispras.ru>
+
+	Fixed typo in date of the 2008-09-01 MOVE_RATIO commit.
+
+	* config/ia64/ia64.opt (msched-ar-data-spec): Default to 1.
+	* config/ia64/ia64.c (ia64_set_sched_flags): Always initialize
+	spec_info->mask.
+
+2008-09-02  Victor Kaplansky  <victork@il.ibm.com>
+
+	* gcc/config/spu/spu.md (divdf3): Removed.
+
+2008-09-02  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/37095
+	* cgraph.c (cgraph_node): When creating new cgraph node after
+	assembler_name_hash has been populated, record it in the hash
+	table.
+
+2008-09-01  Paul Brook  <paul@codesourcery.com>
+
+	* doc/invoke.texi: Document -mword-relocations.
+	* config/arm/uclinux-elf.h (TARGET_DEFAULT_WORD_RELOCATIONS): Define.
+	* config/arm/symbian.h (TARGET_DEFAULT_WORD_RELOCATIONS): Define.
+	* config/arm/vxworks.h (TARGET_DEFAULT_WORD_RELOCATIONS): Define.
+	* config/arm/arm.c (arm_split_constant): Use arm_emit_movpair.
+	(arm_rtx_costs_1, arm_size_rtx_costs): Handle HIGH and LO_SUM.
+	(arm_emit_movpair): New function.
+	(arm_print_operand <c>): Handle sybolic addresses.
+	* config/arm/arm.h (TARGET_USE_MOVT): Define.
+	(TARGET_DEFAULT_WORD_RELOCATIONS): Define.
+	* config/arm/arm-protos.h (arm_emit_movpair): Add prototype.
+	* config/arm/arm.opt: Add -mword-relocations.
+	* config/arm/arm.md (movsi): Use arm_emit_movpair.
+	(arm_movt, arm_movw): New.
+
+2008-09-01  Paul Brook  <paul@codesourcery.com>
+
+	* config/arm/arm.c (arm_override_options): Set arm_abi earlier.
+	Allow Interworking on ARMv4 EABI based targets.
+	* config/arm/bpabi.h (TARGET_FIX_V4BX_SPEC): Define.
+	(SUBTARGET_EXTRA_ASM_SPEC, LINK_SPEC): Add TARGET_FIX_V4BX_SPEC.
+
+2008-09-01  Paul Brook  <paul@codesourcery.com>
+
+	* config/arm/thumb2.md (thumb2_negscc): Match the correct operand for
+	optimized LT0 test.  Remove optimization for GT.
+
+2008-09-01  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	* pa64-hpux.h (LIB_SPEC): Link against librt when building static
+	openmp applications.
+	* pa-hpux11.h (LIB_SPEC): Likewise.
+
+	* ira.c (setup_eliminable_regset): Only declare i if ELIMINABLE_REGS is
+	defined.
+
+2008-09-01  Jan Hubicka  <jh@suse.cz>
+
+	* predict.c (maybe_hot_count_p, maybe_hot_edge_p): When profile is
+	present, use only counts; when guessed use only frequencies.
+	(estimate_bb_frequencies): Use function_frequency.
+	* profile.c (compute_branch_probabilities): Exit early when
+	profile reading failed. Set profile_status.
+	(branch_prob): Do not set profile_status.
+
+2008-09-01  Aldy Hernandez  <aldyh@redhat.com>
+
+	* tree.c (protected_set_expr_location): New.
+	* tree.h (protected_set_expr_location): New prototype.
+	* c-tree.h (build_array_ref): Add argument.
+	(parser_build_unary_op): Same.
+	* c-typeck.c (build_indirect_ref): Handle new location argument.
+	(build_array_ref): Same.
+	(parser_build_unary_op): Same.
+	* gimplify.c (gimplify_asm_expr): Set input_location before calling
+	error.
+	* c-omp.c (c_finish_omp_atomic): Pass location when calling
+	build_indirect_ref.
+	* c-common.c (finish_label_address_expr): Handle new location
+	argument.
+	* c-common.h (build_indirect_ref): Add argument.
+	(finish_label_address_expr): Same.
+	* c-parser.c (c_parser_unary_expression): Pass location to build
+	functions.
+	(c_parser_postfix_expression): Same.
+
+2008-09-01  Paul Brook  <paul@codesourcery.com>
+
+	* config/arm/arm.md: Include cortex-r4f.md.
+	(attr fpu): Update type list.
+	(attr type): Add fcpys, ffariths, ffarithd, fadds, faddd, fconsts,
+	fconstd, fcmps and fcmpd.
+	(attr tune_cortexr4): Define.
+	(attr generic_sched, attr generic_vfp): Use tune_cortexr4.
+	* config/arm/vfp.md: Document fcpys, ffariths, ffarithd, fadds, faddd,
+	fconsts, fconstd, fcmps and fcmpd.  Use them in insn patterns.
+	* config/arm/arm.c (arm_issue_rate): Add cortexr4f.
+	* config/arm/arm1020e.md (v10_ffarith, v10_farith): Use new insn
+	types.
+	* config/arm/cortex-a8-neon.md (cortex_a8_vfp_add_sub,
+	cortex_a8_vfp_farith: Ditto.
+	* config/arm/vfp11.md (vfp_ffarith, vfp_farith): Ditto.
+	* config/arm/cortex-r4.md: Use tune_cortexr4.
+	* config/arm/cortex-r4f.md: New file.
+
+2008-09-01  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/37305
+	* tree-ssa-ccp.c (ccp_fold): Do not set TREE_OVERFLOW on
+	the result of constant conversions.
+	(fold_gimple_assign): Likewise.
+
+2008-09-01  Andrey Belevantsev  <abel@ispras.ru>
+
+	* sel-sched-ir.c (cmp_v_in_regset_pool): Surround with
+	#ifdef ENABLE_CHECKING.
+
+2008-09-01  Andrey Belevantsev  <abel@ispras.ru>
+
+	* sel-sched-dump.c: Surround with #ifdef INSN_SCHEDULING.
+	* sched-int.h (print_insn, print_pattern, print_value): Declare also
+	when !INSN_SCHEDULING.
+
+2008-09-01  Andreas Schwab  <schwab@suse.de>
+
+	* config/ia64/ia64.c (TARGET_ADDRESS_COST): Update.
+
+2008-09-01  Paul Brook  <paul@codesourcery.com>
+
+	* config/arm/arm.c (arm_no_early_mul_dep): Handle multiply-subtract.
+
+2008-09-01  Jan Hubicka  <jh@suse.cz>
+
+	* config/spu/spu.c (spu_expand_block_move) Update call of MOVE_RATIO.
+
+	* expr.c (MOVE_BY_PIECES_P, CLEAR_BY_PIECES_P, SET_BY_PIECES_P): Pass speed operand.
+	* expr.h (MOVE_RATIO, CLEAR_RATIO, SET_RATIO): Update.
+	* gimplify.c (gimplify_init_constructor): Add speed operand.
+	* tree-sra.c (decide_block_copy): Likewise.
+	* tree-inline.c (estimate_move_cost): Likewise.
+	* config/alpha/alpha.h (MOVE_RATIO): Update.
+	* config/frv/frv.c (MOVE_RATIO): Update.
+	* config/spu/spu.h (MOVE_RATIO): Update.
+	* config/sparc/sparc.h (MOVE_RATIO): Update.
+	* config/i386/i386.h (MOVE_RATIO, CLEAR_RATIO): Update.
+	* config/m68hc11/m68hc11.h (MOVE_RATIO): Update.
+	* config/cris/cris.h (MOVE_RATIO): Update.
+	* config/mn10300/mn10300.h (MOVE_RATIO): Update.
+	* config/arm/arm.h (MOVE_RATIO): Update.
+	* config/pa/pa.md: Update uses of MOVE_RATIO
+	* config/pa/pa.h (MOVE_RATIO): Update.
+	* config/mips/mips.h (MOVE_RATIO, MOVE_BY_PIECES, CLEAR_RATIO, SET_RATIO): Update.
+	* config/h8300/h8300.h (MOVE_RATIO): Update.
+	* config/v850/v850.h (MOVE_RATIO): Update.
+	* config/bfin/bfin.h (MOVE_RATIO): Update.
+
+2008-08-31  Andrey Belevantsev  <abel@ispras.ru>
+	Dmitry Melnik  <dm@ispras.ru>
+	Dmitry Zhurikhin  <zhur@ispras.ru>
+	Alexander Monakov  <amonakov@ispras.ru>
+	Maxim Kuvyrkov  <maxim@codesourcery.com>
+
+	* sel-sched.h, sel-sched-dump.h, sel-sched-ir.h, sel-sched.c,
+	sel-sched-dump.c, sel-sched-ir.c: New files.
+	* Makefile.in (OBJS-common): Add selective scheduling object
+	files.
+	(sel-sched.o, sel-sched-dump.o, sel-sched-ir.o): New entries.
+	(SEL_SCHED_IR_H, SEL_SCHED_DUMP_H): New entries.
+	(sched-vis.o): Add dependency on $(INSN_ATTR_H).
+	* cfghooks.h (get_cfg_hooks, set_cfg_hooks): New prototypes.
+	* cfghooks.c (get_cfg_hooks, set_cfg_hooks): New functions.
+	(make_forwarder_block): Update loop latch if we have redirected
+	the loop latch edge.
+	* cfgloop.c (get_loop_body_in_custom_order): New function.
+	* cfgloop.h (LOOPS_HAVE_FALLTHRU_PREHEADERS): New enum field.
+	(CP_FALLTHRU_PREHEADERS): Likewise.
+	(get_loop_body_in_custom_order): Declare.
+	* cfgloopmanip.c (has_preds_from_loop): New.
+	(create_preheader): Honor CP_FALLTHRU_PREHEADERS.
+	Assert that the preheader edge will be fall thru when it is set.
+	* common.opt (fsel-sched-bookkeeping, fsel-sched-pipelining,
+	fsel-sched-pipelining-outer-loops, fsel-sched-renaming,
+	fsel-sched-substitution, fselective-scheduling): New flags.
+    	* cse.c (hash_rtx_cb): New.
+	(hash_rtx): Use it.
+	* dbgcnt.def (sel_sched_cnt, sel_sched_region_cnt,
+	sel_sched_insn_cnt): New counters.
+	* final.c (compute_alignments): Export.  Free dominance info after loop_optimizer_finalize.
+	* genattr.c (main): Output maximal_insn_latency prototype.
+	* genautomata.c (output_default_latencies): New. Factor its code from ...
+	(output_internal_insn_latency_func): ... here.
+	(output_internal_maximal_insn_latency_func): New.
+	(output_maximal_insn_latency_func): New.
+	* hard-reg-set.h (UHOST_BITS_PER_WIDE_INT): Define unconditionally.
+	(struct hard_reg_set_iterator): New.
+	(hard_reg_set_iter_init, hard_reg_set_iter_set,
+	hard_reg_set_iter_next): New functions.
+	(EXECUTE_IF_SET_IN_HARD_REG_SET): New macro.
+	* lists.c (remove_free_INSN_LIST_node,
+	remove_free_EXPR_LIST_node): New functions.
+	* loop-init.c (loop_optimizer_init): When LOOPS_HAVE_FALLTHRU_PREHEADERS,
+	set CP_FALLTHRU_PREHEADERS when calling create_preheaders.
+	(loop_optimizer_finalize): Do not verify flow info after reload.
+	* recog.c (validate_replace_rtx_1): New parameter simplify.
+	Default it to true.  Update all uses.  Factor out simplifying
+	code to ...
+	(simplify_while_replacing): ... this new function.
+	(validate_replace_rtx_part,
+	validate_replace_rtx_part_nosimplify): New.
+	* recog.h (validate_replace_rtx_part,
+	validate_replace_rtx_part_nosimplify): Declare.
+	* rtl.c (rtx_equal_p_cb): New.
+	(rtx_equal_p): Use it.
+	* rtl.h (rtx_equal_p_cb, hash_rtx_cb): Declare.
+	(remove_free_INSN_LIST_NODE, remove_free_EXPR_LIST_node,
+	debug_bb_n_slim, debug_bb_slim,    print_rtl_slim): Likewise.
+	* vecprim.h: Add a vector type for unsigned int.
+	* haifa-sched.c: Include vecprim.h and cfgloop.h.
+	(issue_rate, sched_verbose_param, note_list, dfa_state_size,
+	ready_try, cycle_issued_insns, spec_info): Make global.
+	(readyp): Initialize.
+	(dfa_lookahead): New global variable.
+	(old_max_uid, old_last_basic_block): Remove.
+	(h_i_d): Make it a vector.
+	(INSN_TICK, INTER_TICK, QUEUE_INDEX, INSN_COST): Make them work
+	through HID macro.
+	(after_recovery, adding_bb_to_current_region_p):
+	New variables to handle correct insertion of the recovery code.
+	(struct ready_list): Move declaration to sched-int.h.
+	(rgn_n_insns): Removed.
+	(rtx_vec_t): Move to sched-int.h.
+	(find_insn_reg_weight): Remove.
+	(find_insn_reg_weight1): Rename to find_insn_reg_weight.
+	(haifa_init_h_i_d, haifa_finish_h_i_d):
+	New functions to initialize / finalize haifa instruction data.
+	(extend_h_i_d, init_h_i_d): Rewrite.
+	(unlink_other_notes): Move logic to add_to_note_list.  Handle
+	selective scheduler.
+	(ready_lastpos, ready_element, ready_sort, reemit_notes,
+	find_fallthru_edge): Make global, remove static prototypes.
+	(max_issue): Make global.  Add privileged_n and state parameters.  Use
+	them.
+	(extend_global, extend_all): Removed.
+	(init_before_recovery): Add new param.  Fix the handling of the case
+	when we insert a recovery code before the EXIT which has a predecessor
+	with a fallthrough edge to it.
+	(create_recovery_block): Make global.  Rename to
+	sched_create_recovery_block.  Update.
+	(change_pattern): Rename to sched_change_pattern.  Make global.
+	(speculate_insn): Rename to sched_speculate_insn.  Make global.
+	Split haifa-specific functionality into ...
+	(haifa_change_pattern): New static function.
+	(sched_extend_bb): New static function.
+	(sched_init_bbs): New function.
+	(current_sched_info): Change type to struct haifa_sched_info.
+	(insn_cost): Adjust for selective scheduling.
+	(dep_cost_1): New function.  Move logic from ...
+	(dep_cost): ... here.
+	(dep_cost): Use dep_cost_1.
+	(contributes_to_priority_p): Use sched_deps_info instead of
+	current_sched_info.
+	(priority): Adjust to work with selective scheduling.  Process the
+	corner case when all dependencies don't contribute to priority.
+	(rank_for_schedule): Use ds_weak instead of dep_weak.
+	(advance_state): New function.  Move logic from ...
+	(advance_one_cycle): ... here.
+	(add_to_note_list, concat_note_lists): New functions.
+	(rm_other_notes): Make static.  Adjust for selective scheduling.
+	(remove_notes, restore_other_notes): New functions.
+	(move_insn): Add two arguments.  Update assert.  Don't call
+	reemit_notes.
+	(choose_ready): Remove lookahead variable, use dfa_lookahead.
+	Remove more_issue, max_points.  Move the code to initialize
+	max_lookahead_tries to max_issue.
+	(schedule_block): Remove rgn_n_insns1 parameter.  Don't allocate
+	ready.  Adjust use of move_insn.  Call restore_other_notes.
+	(luid): Remove.
+	(sched_init, sched_finish): Move Haifa-specific initialization/
+	finalization to ...
+	(haifa_sched_init, haifa_sched_finish): ... respectively.
+	New functions.
+	(setup_sched_dump): New function.
+	(haifa_init_only_bb): New static function.
+	(haifa_speculate_insn): New static function.
+	(try_ready): Use haifa_* instead of speculate_insn and
+	change_pattern.
+	(extend_ready, extend_all): Remove.
+	(sched_extend_ready_list, sched_finish_ready_list): New functions.
+	(create_check_block_twin, add_to_speculative_block): Use
+	haifa_insns_init instead of extend_global.  Update to use new
+	initialization functions.  Change parameter.  Factor out code from
+	create_check_block_twin to ...
+	(sched_create_recovery_edges) ... this new function.
+	(add_block): Remove.
+	(sched_scan_info): New.
+	(extend_bb): Use sched_scan_info.
+	(init_bb, extend_insn, init_insn, init_insns_in_bb, sched_scan): New
+	static functions for walking through scheduling region.
+	(sched_luids): New vector variable to replace uid_to_luid.
+	(luids_extend_insn): New function.
+	(sched_max_luid): New variable.
+	(luids_init_insn): New function.
+	(sched_init_luids, sched_finish_luids): New functions.
+	(insn_luid): New debug function.
+	(sched_extend_target): New function.
+	(haifa_init_insn): New static function.
+	(sched_init_only_bb): New hook.
+	(sched_split_block): New hook.
+	(sched_split_block_1): New function.
+	(sched_create_empty_bb): New hook.
+	(sched_create_empty_bb_1): New function.
+	(common_sched_info, ready): New global variables.
+	(current_sched_info_var): Remove.
+	(move_block_after_check): Use common_sched_info.
+	(haifa_luid_for_non_insn): New static function.
+	(init_before_recovery): Use haifa_init_only_bb instead of
+	add_block.
+	(increase_insn_priority): New.
+	* modulo-sched.c: (issue_rate): Remove static declaration.
+	(sms_sched_info): Change type to haifa_sched_info.
+	(sms_sched_deps_info, sms_common_sched_info): New variables.
+	(setup_sched_infos): New.
+	(sms_schedule): Initialize them.  Call haifa_sched_init/finish.
+	Do not call regstat_free_calls_crossed.
+	(sms_print_insn): Use const_rtx.
+	* params.def (PARAM_MAX_PIPELINE_REGION_BLOCKS,
+	PARAM_MAX_PIPELINE_REGION_INSNS, PARAM_SELSCHED_MAX_LOOKAHEAD,
+	PARAM_SELSCHED_MAX_SCHED_TIMES, PARAM_SELSCHED_INSNS_TO_RENAME,
+	PARAM_SCHED_MEM_TRUE_DEP_COST): New.
+	* sched-deps.c (sched_deps_info): New.  Update all relevant uses of
+	current_sched_info to use it.
+	(enum reg_pending_barrier_mode): Move to sched-int.h.
+	(h_d_i_d): New variable. Initialize to NULL.
+	({true, output, anti, spec, forward}_dependency_cache): Initialize
+	to NULL.
+	(estimate_dep_weak): Remove static declaration.
+	(sched_has_condition_p): New function.  Adjust users of
+	sched_get_condition to use it instead.
+	(conditions_mutex_p): Add arguments indicating which conditions are
+	reversed.  Use them.
+	(sched_get_condition_with_rev): Rename from sched_get_condition.  Add
+	argument to indicate whether returned condition is reversed.  Do not
+	generate new rtx when condition should be reversed; indicate it by
+	setting new argument instead.
+	(add_dependence_list_and_free): Add deps parameter.
+	Update all users.  Do not free dependence list when
+	deps context is readonly.
+	(add_insn_mem_dependence, flush_pending_lists): Adjust for readonly
+	contexts.
+	(remove_from_dependence_list, remove_from_both_dependence_lists): New.
+	(remove_from_deps): New. Use the above functions.
+	(cur_insn, can_start_lhs_rhs_p): New static variables.
+	(add_or_update_back_dep_1): Initialize present_dep_type.
+	(haifa_start_insn, haifa_finish_insn, haifa_note_reg_set,
+	haifa_note_reg_clobber, haifa_note_reg_use, haifa_note_mem_dep,
+	haifa_note_dep): New functions implementing dependence hooks for
+	the Haifa scheduler.
+	(note_reg_use, note_reg_set, note_reg_clobber, note_mem_dep,
+	note_dep): New functions.
+	(ds_to_dt, extend_deps_reg_info, maybe_extend_reg_info_p): New
+	functions.
+	(init_deps): Initialize last_reg_pending_barrier and deps->readonly.
+	(free_deps): Initialize deps->reg_last.
+	(sched_analyze_reg, sched_analyze_1, sched_analyze_2,
+	sched_analyze_insn): Update to use dependency hooks infrastructure
+	and readonly contexts.
+	(deps_analyze_insn): New function.  Move part of logic from ...
+	(sched_analyze): ... here.  Also move some logic to ...
+	(deps_start_bb): ... here.  New function.
+	(add_forw_dep, delete_forw_dep): Guard use of INSN_DEP_COUNT with
+	sel_sched_p.
+	(sched_deps_init): New function.  Move code from ...
+	(init_dependency_caches): ... here.  Remove.
+	(init_deps_data_vector): New.
+	(sched_deps_finish): New function.  Move code from ...
+	(free_dependency_caches): ... here.  Remove.
+	(init_deps_global, finish_deps_global): Adjust for use with
+	selective scheduling.
+	(get_dep_weak): Move logic to ...
+	(get_dep_weak_1): New function.
+	(ds_merge): Move logic to ...
+	(ds_merge_1): New static function.
+	(ds_full_merge, ds_max_merge, ds_get_speculation_types): New functions.
+	(ds_get_max_dep_weak): New function.
+	* sched-ebb.c (sched_n_insns): Rename to sched_rgn_n_insns.
+	(n_insns): Rename to rgn_n_insns.
+	(debug_ebb_dependencies): New function.
+	(init_ready_list): Use it.
+	(begin_schedule_ready): Use sched_init_only_bb.
+	(ebb_print_insn): Indicate when an insn starts a new cycle.
+	(contributes_to_priority, compute_jump_reg_dependencies,
+	add_remove_insn, fix_recovery_cfg): Add ebb_ prefix to function names.
+	(add_block1): Remove to ebb_add_block.
+	(ebb_sched_deps_info, ebb_common_sched_info): New variables.
+	(schedule_ebb): Initialize them.  Use remove_notes instead of
+	rm_other_notes.  Use haifa_local_init/finish.
+	(schedule_ebbs): Use haifa_sched_init/finish.
+	* sched-int.h: Include vecprim.h, remove rtl.h.
+	(struct ready_list): Delete declaration.
+	(sched_verbose_param, enum sched_pass_id_t,
+	bb_vec_t, insn_vec_t, rtx_vec_t): New.
+	(struct sched_scan_info_def): New structure.
+	(sched_scan_info, sched_scan, sched_init_bbs,
+	sched_init_luids, sched_finish_luids, sched_extend_target,
+	haifa_init_h_i_d, haifa_finish_h_i_d): Declare.
+	(struct common_sched_info_def): New.
+	(common_sched_info, haifa_common_sched_info,
+	sched_emulate_haifa_p): Declare.
+	(sel_sched_p): New.
+	(sched_luids): Declare.
+	(INSN_LUID, LUID_BY_UID, SET_INSN_LUID): Declare.
+	(sched_max_luid, insn_luid): Declare.
+	(note_list, remove_notes, restore_other_notes, bb_note): Declare.
+	(sched_insns_init, sched_insns_finish, xrecalloc, reemit_notes,
+	print_insn, print_pattern, print_value, haifa_classify_insn,
+	sel_find_rgns, sel_mark_hard_insn, dfa_state_size, advance_state,
+	setup_sched_dump, sched_init, sched_finish,
+	sel_insn_is_speculation_check): Export.
+	(struct ready_list): Move from haifa-sched.c.
+	(ready_try, ready, max_issue): Export.
+	(ebb_compute_jump_reg_dependencies, find_fallthru_edge,
+	sched_init_only_bb, sched_split_block, sched_split_block_1,
+	sched_create_empty_bb, sched_create_empty_bb_1,
+	sched_create_recovery_block, sched_create_recovery_edges): Export.
+	(enum reg_pending_barrier_mode): Export.
+	(struct deps): New fields `last_reg_pending_barrier' and `readonly'.
+	(deps_t): New.
+	(struct sched_info): Rename to haifa_sched_info.  Use const_rtx for
+	print_insn field.  Move add_block and fix_recovery_cfg to
+	common_sched_info_def.  Move compute_jump_reg_dependencies, use_cselib  ...
+	(struct sched_deps_info_def): ... this new structure.
+	(sched_deps_info): Declare.
+	(struct spec_info_def): Remove weakness_cutoff, add
+	data_weakness_cutoff and control_weakness_cutoff.
+	(spec_info): Declare.
+	(struct _haifa_deps_insn_data): Split from haifa_insn_data.  Add
+	dep_count field.
+	(struct haifa_insn_data): Rename to struct _haifa_insn_data.
+	(haifa_insn_data_def, haifa_insn_data_t): New typedefs.
+	(current_sched_info): Change type to struct haifa_sched_info.
+	(haifa_deps_insn_data_def, haifa_deps_insn_data_t): New typedefs.
+	(h_d_i_d): New variable.
+	(HDID): New accessor macro.
+	(h_i_d): Change type to VEC (haifa_insn_data_def, heap) *.
+	(HID): New accessor macro.  Rewrite h_i_d accessor macros through HID
+	and HDID.
+	(IS_SPECULATION_CHECK_P): Update for selective scheduler.
+	(enum SCHED_FLAGS): Update for selective scheduler.
+	(enum SPEC_SCHED_FLAGS): New flag SEL_SCHED_SPEC_DONT_CHECK_CONTROL.
+	(init_dependency_caches, free_dependency_caches): Delete declarations.
+	(deps_analyze_insn, remove_from_deps, get_dep_weak_1,
+	estimate_dep_weak, ds_full_merge, ds_max_merge, ds_weak,
+	ds_get_speculation_types, ds_get_max_dep_weak, sched_deps_init,
+	sched_deps_finish, haifa_note_reg_set, haifa_note_reg_use,
+	haifa_note_reg_clobber, maybe_extend_reg_info_p, deps_start_bb,
+	ds_to_dt): Export.
+	(rm_other_notes): Delete declaration.
+	(schedule_block): Remove one argument.
+	(cycle_issued_insns, issue_rate, dfa_lookahead, ready_sort,
+	ready_element, ready_lastpos, sched_extend_ready_list,
+	sched_finish_ready_list, sched_change_pattern, sched_speculate_insn,
+	concat_note_lists): Export.
+	(struct region): Move from sched-rgn.h.
+	(nr_regions, rgn_table, rgn_bb_table, block_to_bb, containing_rgn,
+	RGN_NR_BLOCKS, RGN_BLOCKS, RGN_DONT_CALC_DEPS, RGN_HAS_REAL_EBB,
+	BLOCK_TO_BB, CONTAINING_RGN): Export.
+	(ebb_head, BB_TO_BLOCK, EBB_FIRST_BB, EBB_LAST_BB, INSN_BB): Likewise.
+	(current_nr_blocks, current_blocks, target_bb): Likewise.
+	(dep_cost_1, sched_is_disabled_for_current_region_p, sched_rgn_init,
+	sched_rgn_finish, rgn_setup_region, sched_rgn_compute_dependencies,
+	sched_rgn_local_init, extend_regions,
+	rgn_make_new_region_out_of_new_block, compute_priorities,
+	debug_rgn_dependencies, free_rgn_deps, contributes_to_priority,
+	extend_rgns, deps_join rgn_setup_common_sched_info,
+	rgn_setup_sched_infos, debug_regions, debug_region, dump_region_dot,
+	dump_region_dot_file, haifa_sched_init, haifa_sched_finish): Export.
+	(get_rgn_sched_max_insns_priority, sel_add_to_insn_priority,
+	increase_insn_priority): Likewise.
+	* sched-rgn.c: Include sel-sched.h.
+	(ref_counts): New static variable.  Use it ...
+	(INSN_REF_COUNT): ... here.  Rewrite and move closer to uses.
+	(FED_BY_SPEC_LOAD, IS_LOAD_INSN): Rewrite to use HID accessor macro.
+	(sched_is_disabled_for_current_region_p): Delete static declaration.
+	(struct region): Move to sched-int.h.
+	(nr_regions, rgn_table, rgn_bb_table, block_to_bb, containing_rgn,
+	ebb_head): Define and initialize.
+	(RGN_NR_BLOCKS, RGN_BLOCKS, RGN_DONT_CALC_DEPS, RGN_HAS_REAL_EBB,
+	BLOCK_TO_BB, CONTAINING_RGN, debug_regions, extend_regions,
+	BB_TO_BLOCK, EBB_FIRST_BB, EBB_LAST_BB): Move to
+	sched-int.h.
+	(find_single_block_region): Add new argument to indicate that EBB
+	regions should be constructed.
+	(debug_live): Delete declaration.
+	(current_nr_blocks, current_blocks, target_bb): Remove static qualifiers.
+	(compute_dom_prob_ps, check_live, update_live, set_spec_fed): Delete
+	declaration.
+	(init_regions): Delete declaration.
+	(debug_region, bb_in_region_p, dump_region_dot_file, dump_region_dot,
+	rgn_estimate_number_of_insns): New.
+	(too_large): Use estimate_number_of_insns.
+	(haifa_find_rgns): New. Move the code from ...
+	(find_rgns): ... here.  Call either sel_find_rgns or haifa_find_rgns.
+	(free_trg_info): New.
+	(compute_trg_info): Allocate candidate tables here instead of ...
+	(init_ready_list): ... here.
+	(rgn_print_insn): Use const_rtx.
+	(contributes_to_priority, extend_regions): Delete static declaration.
+	(add_remove_insn, fix_recovery_cfg): Add rgn_ to function names.
+	(add_block1): Rename to rgn_add_block.
+	(debug_rgn_dependencies): Delete static qualifier.
+	(new_ready): Use sched_deps_info.  Simplify.
+	(rgn_common_sched_info, rgn_const_sched_deps_info,
+	rgn_const_sel_sched_deps_info, rgn_sched_deps_info, rgn_sched_info): New.
+	(region_sched_info): Rename to rgn_const_sched_info.
+	(deps_join): New, extracted from ...
+	(propagate_deps): ... here.
+	(compute_block_dependences, debug_dependencies): Update for selective
+	scheduling.
+	(free_rgn_deps, compute_priorities): New functions.
+	(sched_rgn_init, sched_rgn_finish, rgn_setup_region,
+	sched_rgn_compute_dependencies): New functions.
+	(schedule_region): Use them.
+	(sched_rgn_local_init, sched_rgn_local_free, sched_rgn_local_finish,
+	rgn_setup_common_sched_info, rgn_setup_sched_infos):
+	New functions.
+	(schedule_insns): Call new functions that were split out.
+	(rgn_make_new_region_out_of_new_block): New.
+	(get_rgn_sched_max_insns_priority): New.
+	(rest_of_handle_sched, rest_of_handle_sched2): Call selective
+	scheduling when appropriate.
+	* sched-vis.c: Include insn-attr.h.
+	(print_value, print_pattern): Make global.
+	(print_rtl_slim, debug_bb_slim, debug_bb_n_slim): New functions.
+	* target-def.h (TARGET_SCHED_ADJUST_COST_2,
+	TARGET_SCHED_ALLOC_SCHED_CONTEXT, TARGET_SCHED_INIT_SCHED_CONTEXT,
+	TARGET_SCHED_SET_SCHED_CONTEXT, TARGET_SCHED_CLEAR_SCHED_CONTEXT,
+	TARGET_SCHED_FREE_SCHED_CONTEXT, TARGET_SCHED_GET_INSN_CHECKED_DS,
+	TARGET_SCHED_GET_INSN_SPEC_DS, TARGET_SCHED_SKIP_RTX_P): New target
+	hooks.  Initialize them to 0.
+	(TARGET_SCHED_GEN_CHECK): Rename to TARGET_SCHED_GEN_SPEC_CHECK.
+	* target.h (struct gcc_target): Add them.  Rename gen_check field to
+	gen_spec_check.
+	* flags.h (sel_sched_switch_set): Declare.
+	* opts.c (sel_sched_switch_set): New variable.
+	(decode_options): Unset flag_sel_sched_pipelining_outer_loops if
+	pipelining is disabled from command line.
+	(common_handle_option): Record whether selective scheduling is
+	requested from command line.
+	* doc/invoke.texi: Document new flags and parameters.
+	* doc/tm.texi: Document new target hooks.
+	* config/ia64/ia64.c (TARGET_SCHED_GEN_SPEC_CHECK): Define to ia64_gen_check.
+	(dfa_state_size): Do not declare locally.
+	* config/ia64/ia64.opt (msched-ar-data-spec): Default to 0.
+	* config/rs6000/rs6000.c (rs6000_init_sched_context,
+	rs6000_alloc_sched_context, rs6000_set_sched_context,
+	rs6000_free_sched_context): New functions.
+	(struct _rs6000_sched_context): New.
+	(rs6000_sched_reorder2): Do not modify INSN_PRIORITY for selective
+	scheduling.
+	(rs6000_sched_finish): Do not run for selective scheduling.
+
 2008-08-31  Jan Hubicka  <jh@suse.cz>
 
 	* frv.c (frv_rtx_costs): Update forward declaration.
@@ -852,7 +1584,7 @@
 	patterns.
 
 2008-08-28  Manuel Lopez-Ibanez  <manu@gcc.gnu.org>
-            Andrew Pinski  <pinskia@gcc.gnu.org>
+	    Andrew Pinski  <pinskia@gcc.gnu.org>
 
 	PR 18050
 	* c-common.c (verify_tree): Fix handling of ADDR_EXPR.
@@ -1612,7 +2344,7 @@
 	attribute.
 
 	* config/v850/v850.h (IRA_COVER_CLASSES): Define.
-	* config/v850/v850.md (return): Remove frame size restriction.	
+	* config/v850/v850.md (return): Remove frame size restriction.
 
 	* config/mcore/mcore.h (IRA_COVER_CLASSES): Define.
 
@@ -1642,43 +2374,43 @@
 2008-08-28  Ira Rosen  <irar@il.ibm.com>
 
 	* target.h (struct vectorize): Add new target builtin.
-	* tree-vectorizer.c (destroy_loop_vec_info): Call 
+	* tree-vectorizer.c (destroy_loop_vec_info): Call
 	vect_free_slp_instance instead of vect_free_slp_node.
 	* tree-vectorizer.h (enum slp_load_perm_type): New.
 	(struct _slp_instance): Add new fields.
 	(SLP_INSTANCE_LOAD_PERMUTATION): New.
 	(SLP_INSTANCE_LOADS): New.
 	(vect_free_slp_tree): Remove.
-	(vect_free_slp_instance): Declare.        
+	(vect_free_slp_instance): Declare.
 	(SLP_TREE_LOADS_PERM_TYPE, TARG_VEC_PERMUTE_COST): New.
 	(vectorizable_load): Add argument.
 	(vect_transform_slp_perm_load): New.
-	* tree-vect-analyze.c (vect_analyze_operations): Add an argument to 
+	* tree-vect-analyze.c (vect_analyze_operations): Add an argument to
 	vectorizable_load.
 	(vect_get_place_in_interleaving_chain): New function.
 	(vect_free_slp_tree): Make static.
 	(vect_free_slp_instance): New function.
-	(vect_build_slp_tree): Add new arguments. Allow load permutations and 
+	(vect_build_slp_tree): Add new arguments. Allow load permutations and
 	collect the load location in the interleaving chain.
 	(vect_supported_slp_permutation_p): New function.
 	(vect_supported_load_permutation_p): Likewise.
 	(vect_analyze_slp_instance): In case of loads permutation, call
-	vect_supported_load_permutation_p to check that the permutation is 
+	vect_supported_load_permutation_p to check that the permutation is
 	supported.
 	* target-def.h (TARGET_VECTORIZE_BUILTIN_VEC_PERM): New.
 	* tree-vect-transform.c (vect_transform_stmt): Add new argument.
 	(vect_create_mask_and_perm): New function.
 	(vect_get_mask_element, vect_transform_slp_perm_load): Likewise.
-	(vectorizable_load): Add an argument. Don't keep the created vectors  
-	statements in the node if permutation is required. Call 
+	(vectorizable_load): Add an argument. Don't keep the created vectors
+	statements in the node if permutation is required. Call
 	vect_transform_slp_perm_load to generate the permutation.
-	(vect_transform_stmt): Add new argument. Call vectorizable_load with 
+	(vect_transform_stmt): Add new argument. Call vectorizable_load with
 	additional argument.
-	(vect_schedule_slp_instance): In case of loads permutation, allocate  
-	vectorized statements structure for all the related SLP nodes. Call 
+	(vect_schedule_slp_instance): In case of loads permutation, allocate
+	vectorized statements structure for all the related SLP nodes. Call
 	vect_transform_stmt with addditional argument.
-	(vect_transform_loop): Call vect_transform_stmt with correct arguments. 
-	* config/spu/spu.c (spu_builtin_vec_perm): New. 
+	(vect_transform_loop): Call vect_transform_stmt with correct arguments.
+	* config/spu/spu.c (spu_builtin_vec_perm): New.
 	(TARGET_VECTORIZE_BUILTIN_VEC_PERM): Redefine.
 	* config/spu/spu.h (TARG_VEC_PERMUTE_COS): Define.
 	* config/rs6000/rs6000.c (rs6000_builtin_vec_perm): New.
@@ -1828,11 +2560,11 @@
 	* tree-pass.h (pass_ira): New external variable declaration.
 
 	* reload.h: Add 2008 to the Copyright.
-    
+
 	* cfgloopanal.c: Include params.h.
 	(estimate_reg_pressure_cost): Decrease cost for IRA optimization
 	mode.
-    
+
 	* params.h (IRA_MAX_LOOPS_NUM): New macro.
 
 	* toplev.c (ira.h): New include.
@@ -1848,7 +2580,7 @@
 	* regs.h (contains_reg_of_mode, move_cost, may_move_in_cost,
 	may_move_out_cost): New external variable declarations.
 	(move_table): New typedef.
-    
+
 	* caller-save.c: Include headers output.h and ira.h.
 	(no_caller_save_reg_set): New global variable.
 	(save_slots_num, save_slots): New variables.
@@ -1867,7 +2599,7 @@
 	(mark_set_regs): Process pseudo-register too.
 	(insert_one_insn): Put the insn after bb note in a empty basic
 	block.  Add insn check.
-    
+
 	* global.c (eliminable_regset): Make it external.
 	(mark_elimination): Use DF_LR_IN for IRA.
 	(pseudo_for_reload_consideration_p): New.
@@ -1913,7 +2645,7 @@
 	setup_reg_classes): New function prototypes.
 	(eliminable_regset): New external variable declaration.
 	(build_insn_chain, update_equiv_regs): New function prototypes.
-    
+
 	* Makefile.in (IRA_INT_H): New definition.
 	(OBJS-common): Add ira.o, ira-build.o, ira-costs.o,
 	ira-conflicts.o, ira-color.o, ira-emit.o, and ira-lives.o.
@@ -1958,9 +2690,9 @@
 	(substitute, gen_reload_chain_without_interm_reg_p): New
 	functions.
 	(reloads_conflict): Use gen_reload_chain_without_interm_reg_p.
-    
+
 	* testsuite/gcc.dg/20080410-1.c: New file.
-	
+
 	* config/s390/s390.h (IRA_COVER_CLASSES,
 	IRA_HARD_REGNO_ADD_COST_MULTIPLIER): Define.
 
@@ -1973,9 +2705,9 @@
 	* config/rs6000/rs6000.h (IRA_COVER_CLASSES): Ditto.
 
 	* config/arm/arm.h (IRA_COVER_CLASSES): Ditto.
-    
+
 	* config/alpha/alpha.h (IRA_COVER_CLASSES): Ditto.
-    
+
 	2008-08-24  Jeff Law  <law@redhat.com>
 	* ira.c (setup_reg_class_intersect_union): Prefer smallest class
 	when ignoring unavailable registers.
@@ -2195,7 +2927,7 @@
 
 	PR 35648
 	* doc/invoke.texi (Wwrite-strings): Clarify description.
-	
+
 2008-08-23  Ira Rosen  <irar@il.ibm.com>
 
 	PR tree-optimization/37174
@@ -2210,7 +2942,7 @@
 	(*ashlqi3): Rename from ashlqi3 insn pattern.
 	(ashlqi3): New expanders.
 	(*lshrqi3): Rename from lshrqi3 insn pattern.
-	(lshrqi3): New expanders.	
+	(lshrqi3): New expanders.
 	(ashlqi3_const4, ashlqi3_const5, ashlqi3_const6, lshrqi3_const4,
 	lshrqi3_const5, lshrqi3_const6): New splitters.
 	(andi, ashlqi3_l_const4, ashlqi3_l_const5, ashlqi3_l_const6,
@@ -2276,7 +3008,7 @@
 	PR 30457
 	* builtins.c (fold_builtin_next_arg): Add warning about undefined
 	behaviour.
-	
+
 2008-08-21  Aldy Hernandez  <aldyh@redhat.com>
 
 	* c-tree.h (grokfield): New argument.
@@ -2344,7 +3076,7 @@
 
 	2008-05-05  Kenneth Zadeck <zadeck@naturalbridge.com>
 		    Jan Hubicka  <jh@suse.cz>
-	
+
 	* ipa-pure-const.c
 	(init_state, finish_state, set_function_state, generate_summary):
 	New functions.
@@ -2358,7 +3090,7 @@
 	2008-07-15  Kenneth Zadeck <zadeck@naturalbridge.com>
 
 	* tree-pass.h (pass_ipa_reference): Make into ipa_opt_pass.
-	* ipa-reference.c (init_function_info, generate_summary, 
+	* ipa-reference.c (init_function_info, generate_summary,
 	propagate): New functions.
 	(analyze_function):  Call init_function_info.
 	(static_execute): Stripped into generate_summary and propagate.
@@ -2439,12 +3171,12 @@
 2008-08-20  Manuel Lopez-Ibanez  <manu@gcc.gnu.org>
 
 	* value-prof.c (check_counter): Revert wrong call to error.
-	
+
 2008-08-20  Manuel Lopez-Ibanez  <manu@gcc.gnu.org>
 
 	* profile.c: Update calls to inform.
 	* value-prof.c: Update calls to inform.
-	
+
 2008-08-20  Manuel Lopez-Ibanez  <manu@gcc.gnu.org>
 
 	* diagnostic.c (inform): Add an explicit location_t parameter.
@@ -2565,27 +3297,27 @@
 	(supportable_narrowing_operation): Likewise.
 	(vectorizable_type_promotion): Add an argument.
 	(vectorizable_type_demotion): Likewise.
-	* tree-vect-analyze.c (vect_analyze_operations): Call 
+	* tree-vect-analyze.c (vect_analyze_operations): Call
 	vectorizable_type_promotion and vectorizable_type_demotion with
 	additional argument.
 	(vect_get_and_check_slp_defs): Detect patterns.
 	(vect_build_slp_tree): Add an argument, don't fail in case of multiple
-	types. 
+	types.
 	(vect_analyze_slp_instance): Don't fail in case of multiple types. Call
 	vect_build_slp_tree with correct arguments. Calculate unrolling factor
 	according to the smallest type in the loop.
 	(vect_detect_hybrid_slp_stmts): Include statements from patterns.
-	* tree-vect-patterns.c (vect_recog_widen_mult_pattern): Call 
-	supportable_widening_operation with correct arguments. 
-	* tree-vect-transform.c (vect_get_slp_defs): Allocate output vector 
+	* tree-vect-patterns.c (vect_recog_widen_mult_pattern): Call
+	supportable_widening_operation with correct arguments.
+	* tree-vect-transform.c (vect_get_slp_defs): Allocate output vector
 	operands lists according to the number of vector statements in left
 	or right node, if exists.
 	(vect_gen_widened_results_half): Remove unused argument.
-	(vectorizable_conversion): Call supportable_widening_operation, 
+	(vectorizable_conversion): Call supportable_widening_operation,
 	supportable_narrowing_operation, and vect_gen_widened_results_half
-	with correct arguments. 
+	with correct arguments.
 	(vectorizable_assignment): Change documentation, support multiple
-	types in SLP. 
+	types in SLP.
 	(vectorizable_operation): Likewise.
 	(vect_get_loop_based_defs): New function.
 	(vect_create_vectorized_demotion_stmts): Likewise.
@@ -2595,11 +3327,11 @@
 	(vect_create_vectorized_promotion_stmts): New function.
 	(vectorizable_type_promotion): Support loop-aware SLP and general
 	multi-step conversion. Call vect_create_vectorized_promotion_stmts
-	for transformation.	
+	for transformation.
 	(vectorizable_store): Change documentation, support multiple
-	types in SLP. 
+	types in SLP.
 	(vectorizable_load): Likewise.
-	(vect_transform_stmt): Pass SLP_NODE to 
+	(vect_transform_stmt): Pass SLP_NODE to
 	vectorizable_type_promotion and vectorizable_type_demotion.
 	(vect_schedule_slp_instance): Move here the calculation of number
 	of vectorized statements for each node from...
@@ -2610,7 +3342,7 @@
 2008-08-19  Dorit Nuzman  <dorit@il.ibm.com>
 
 	PR bootstrap/37152
-	* tree-vect-transform.c (vect_create_epilog_for_reduction): Change = 
+	* tree-vect-transform.c (vect_create_epilog_for_reduction): Change =
 	to == in assert statement.
 	(vectorizable_reduction): Fix typo.
 
@@ -2668,7 +3400,7 @@
 	* gimple.c (gimple_assign_unary_nop_p): Likewise.
 	* tree-vect-transform.c (vectorizable_type_demotion)
 	(vectorizable_type_promotion): Likewise.
-	* tree-inline.c (expand_call_inline): 
+	* tree-inline.c (expand_call_inline):
 	* tree-ssa-forwprop.c (get_prop_source_stmt, can_propagate_from)
 	(forward_propagate_addr_expr_1, forward_propagate_comparison)
 	(tree_ssa_forward_propagate_single_use_vars): Likewise.
@@ -2681,10 +3413,10 @@
 	* tree.h (CONVERT_EXPR_P): Likewise.
 	* tree.c (simple_cst_equal, iterative_hash_expr): Likewise.
 	* tree-ssa-loop-im.c (rewrite_bittest): Likewise.
-	* tree-vrp.c: 
+	* tree-vrp.c:
 	(register_edge_assert_for_2, extract_range_from_unary_expr)
 	(register_edge_assert_for_1): Likewise.
-	
+
 2008-08-18  Manuel Lopez-Ibanez  <manu@gcc.gnu.org>
 
 	* real.h (dconst_e, dconst_third, dconst_sqrt2, dconst_e_ptr,
@@ -2835,7 +3567,7 @@
 
 2008-08-16  Andy Hutchinson  <hutchinsonandy@aim.com>
 
-	* config/avr/avr.c (avr_override_options): Reduce value of 
+	* config/avr/avr.c (avr_override_options): Reduce value of
 	PARAM_INLINE_CALL_COST.
 
 2008-08-15  Eric Botcazou  <ebotcazou@adacore.com>
@@ -2880,7 +3612,7 @@
 	PR c/28152
 	* c-parser.c (c_lex_one_token): Do not store the canonical spelling
 	for keywords.
-	
+
 2008-08-14  Dorit Nuzman  <dorit@il.ibm.com>
 
 	* tree-vect-transform.c (vect_create_epilog_for_reduction): Takes an
@@ -2889,15 +3621,15 @@
 	(get_initial_def_for_induction): Fix printout.
 	(vect_get_vec_def_for_stmt_copy): Support case where the
 	vec_stmt_for_operand is a phi node.
-	(vectorizable_reduction): Support reduction when duplication is needed 
+	(vectorizable_reduction): Support reduction when duplication is needed
 	due to data-types of different sizes in the loop.
-	(vectorizable_call): Remove restriction to not vectorize in case we 
+	(vectorizable_call): Remove restriction to not vectorize in case we
 	have data-types of different sizes in the loop.
 	(vectorizable_conversion): Likewise.
 	(vectorizable_operation): Likewise.
 	(vectorizable_type_demotion): Likewise.
 	(vectorizable_type_promotion): Likewise.
-	(vectorizable_induction): Add restriction to not vectorize in case 
+	(vectorizable_induction): Add restriction to not vectorize in case
 	we have data-types of different sizes in the loop.
 
 2008-08-14  Christophe Saout  <christophe@saout.de>
@@ -2994,7 +3726,7 @@
 2008-08-13  Manuel Lopez-Ibanez  <manu@gcc.gnu.org>
 
 	* toplev.h (pedwarn_at): Fix declaration.
-	
+
 2008-08-13  Joseph Myers  <joseph@codesourcery.com>
 
 	* config/sparc/linux64.h (LINK_ARCH32_SPEC, LINK_ARCH64_SPEC,
@@ -3018,7 +3750,7 @@
 	* c-common.c (conversion_warning): Use a switch. Ignore boolean
 	expressions except for conversions to signed:1 bitfields. Handle
 	COND_EXPR with constant operands.
-	
+
 2008-08-13  Richard Guenther  <rguenther@suse.de>
 
 	PR tree-optimization/15255
@@ -3196,7 +3928,7 @@
 	(supportable_widening_operation): Add two arguments. Support double
 	type conversions.
 	(supportable_narrowing_operation): Likewise.
-	* tree-vectorizer.h (supportable_widening_operation): Add two 
+	* tree-vectorizer.h (supportable_widening_operation): Add two
 	arguments.
 	(supportable_narrowing_operation): Likewise.
 	* tree-vect-patterns.c (vect_recog_widen_mult_pattern) : Call
@@ -3472,21 +4204,21 @@
 2008-08-09  Manuel Lopez-Ibanez  <manu@gcc.gnu.org>
 
 	PR 36901
-	* diagnostic.def (DK_PEDWARN, DK_PERMERROR): New.  
+	* diagnostic.def (DK_PEDWARN, DK_PERMERROR): New.
 	* diagnostic.c (pedantic_warning_kind, permissive_error_kind):
 	Moved from diagnostic.h
 	(diagnostic_report_diagnostic): Return bool. Handle DK_PEDWARN and
 	DK_PERMERROR.
 	(emit_diagnostic): New.
 	(warning0, pedwarn0): Delete.
-	(warning, warning_at, pedwarn, permerror): Return bool.  
+	(warning, warning_at, pedwarn, permerror): Return bool.
 	* diagnostic.h (pedantic_warning_kind, permissive_error_kind):
 	Moved to diagnostic.c.
 	(struct diagnostic_context): Use correct type for
 	classify_diagnostic.
 	(diagnostic_report_diagnostic): Update declaration.
 	(emit_diagnostic): Declare.
-	* errors.c (warning): Return bool.  
+	* errors.c (warning): Return bool.
 	* errors.h (warning): Update declaration.
 	* toplev.h (warning0, pedwarn0): Delete.
 	(warning, warning_at, pedwarn, permerror): Return bool.
@@ -3495,9 +4227,9 @@
 	inform. Update all calls.
 	(diagnose_mismatched_decls): Check return value of warning/pedwarn
 	before giving informative note.
-	(implicit_decl_warning): Likewise.  
-	* c-typeck.c (build_function_call): Likewise.  
-	* tree-sssa.c (warn_uninit): Likewise.  
+	(implicit_decl_warning): Likewise.
+	* c-typeck.c (build_function_call): Likewise.
+	* tree-sssa.c (warn_uninit): Likewise.
 	* builtins.c (gimplify_va_arg_expr): Likewise.
 
 2008-08-09  Manuel Lopez-Ibanez  <manu@gcc.gnu.org>
@@ -3505,7 +4237,7 @@
 	PR 7651
 	* doc/invoke.texi (-Wextra): Move warning from here...
 	(-Wuninitialized): ... to here.
-	
+
 2008-08-08  Manuel Lopez-Ibanez  <manu@gcc.gnu.org>
 
 	PR 28875
@@ -3523,7 +4255,7 @@
 	(Wunused-parameter): Likewise.
 	(Wunused-value): Likewise.
 	(Wunused-variable): Likewise.
-	
+
 2008-08-08  Peter Bergner  <bergner@vnet.ibm.com>
 
 	* doc/invoke.texi: Add cpu_type power7.
@@ -3550,7 +4282,7 @@
 	(rs6000_expand_builtin): Add case for ALTIVEC_BUILTIN_VCTUXS
 	and ALTIVEC_BUILTIN_VCTSXS.
 	(rs6000_builtin_mul_widen_even. rs6000_builtin_mul_widen_odd): Fix
-	formatting. 
+	formatting.
 
 2008-08-08  Richard Guenther  <rguenther@suse.de>
 
@@ -3593,10 +4325,10 @@
 	* c-common.c (c_common_reswords): Also warn about keyword "bool".
 
 2008-08-07  Bob Wilson  <bob.wilson@acm.org>
-	
+
 	* config/xtensa/xtensa.c (xtensa_copy_incoming_a7): Copy incoming
 	value in a6 after the set_frame_ptr insn.
-	
+
 2008-08-07  Richard Henderson  <rth@redhat.com>
 
 	PR debug/37033
@@ -3632,7 +4364,7 @@
 2008-08-07  Jan Hubicka  <jh@suse.cz>
 
 	PR target/37048
-	* i386.md (single stringop patterns): Enable unconditionally. 
+	* i386.md (single stringop patterns): Enable unconditionally.
 
 2008-08-07  H.J. Lu  <hongjiu.lu@intel.com>
 
@@ -3687,7 +4419,7 @@
 	PR 26785
 	* diagnostic.c (permerror_at): New.
 	* toplev.h (permerror_at): Declare.
-	
+
 2008-08-06  Victor Kaplansky  <victork@il.ibm.com>
 	    Ira Rosen  <irar@il.ibm.com>
 
@@ -3706,7 +4438,7 @@
 	* c-common.c (warn_for_sign_compare): New. Handle separately the
 	case that 'constant' is zero.
 	* c-typeck.c (build_binary_op): Move code to c-common.c
-	
+
 2008-08-06  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
 
 	* config/alpha/alpha.c (alpha_preferred_reload_class,
@@ -3926,13 +4658,13 @@
 2008-08-05  Bob Wilson  <bob.wilson@acm.org>
 
 	* config/xtensa/t-xtensa: Remove dependency for gt-xtensa.h.
-	
+
 2008-08-05  Bob Wilson  <bob.wilson@acm.org>
-	
+
 	* config/xtensa/xtensa.c (xtensa_va_start): Unshare valist.
 	(xtensa_gimplify_va_arg_expr): Unshare valist, orig_ndx, ndx, array,
 	va_size, and type_size.
-	
+
 2008-08-04  Jason Merrill  <jason@redhat.com>
 
 	PR c++/37016
@@ -3973,7 +4705,7 @@
 	(dwarf2out_end_epilogue): Emit .cfi_endproc.
 	(output_loc_operands_raw, output_loc_sequence_raw): New.
 	(output_cfa_loc_raw): New.
-	
+
 2008-08-05  Paul Brook  <paul@codesourcery.com>
 
 	* doc/invoke.texi: Document new ARM -mfpu= and -mcpu= options.
@@ -4456,7 +5188,7 @@
 	and generate prologue code accordingly.
 	(ix86_expand_epilogue): Generate epilogue code wrt stack
 	realignment is really needed or not.
-	
+
 	* config/i386/i386.h (MAIN_STACK_BOUNDARY): New.
 	(ABI_STACK_BOUNDARY): Likewise.
 	(PREFERRED_STACK_BOUNDARY_DEFAULT): Likewise.

@@ -241,6 +241,9 @@ extern void (*arm_lang_output_object_attributes_hook)(void);
 #define TARGET_INT_SIMD \
   (TARGET_32BIT && arm_arch6 && arm_arch_notm)
 
+/* Should MOVW/MOVT be used in preference to a constant pool.  */
+#define TARGET_USE_MOVT (arm_arch_thumb2 && !optimize_size)
+
 /* We could use unified syntax for arm mode, but for now we just use it
    for Thumb-2.  */
 #define TARGET_UNIFIED_ASM TARGET_THUMB2
@@ -403,6 +406,9 @@ extern int arm_tune_xscale;
 
 /* Nonzero if tuning for stores via the write buffer.  */
 extern int arm_tune_wbuf;
+
+/* Nonzero if tuning for Cortex-A9.  */
+extern int arm_tune_cortex_a9;
 
 /* Nonzero if we should define __THUMB_INTERWORK__ in the
    preprocessor.
@@ -1962,6 +1968,11 @@ typedef struct
    SYMBOL's section.  */
 #define ARM_OFFSETS_MUST_BE_WITHIN_SECTIONS_P 0
 
+/* Nonzero if all target requires all absolute relocations be R_ARM_ABS32.  */
+#ifndef TARGET_DEFAULT_WORD_RELOCATIONS
+#define TARGET_DEFAULT_WORD_RELOCATIONS 0
+#endif
+
 /* Nonzero if the constant value X is a legitimate general operand.
    It is given that X satisfies CONSTANT_P or is a CONST_DOUBLE.
 
@@ -2244,7 +2255,7 @@ do {							\
 #define MOVE_MAX 4
 
 #undef  MOVE_RATIO
-#define MOVE_RATIO (arm_tune_xscale ? 4 : 2)
+#define MOVE_RATIO(speed) (arm_tune_xscale ? 4 : 2)
 
 /* Define if operations between registers always perform the operation
    on the full register even if a narrower mode is specified.  */

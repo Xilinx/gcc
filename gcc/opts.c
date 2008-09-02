@@ -47,6 +47,9 @@ along with GCC; see the file COPYING3.  If not see
 unsigned HOST_WIDE_INT g_switch_value;
 bool g_switch_set;
 
+/* Same for selective scheduling.  */
+bool sel_sched_switch_set;
+
 /* True if we should exit after parsing options.  */
 bool exit_after_options;
 
@@ -867,38 +870,10 @@ decode_options (unsigned int argc, const char **argv)
 	}
     }
   
-  if (!flag_unit_at_a_time)
-    {
-      flag_section_anchors = 0;
-      flag_toplevel_reorder = 0;
-    }
-  if (!flag_toplevel_reorder)
-    {
-      if (flag_section_anchors == 1)
-        error ("Section anchors must be disabled when toplevel reorder is disabled.");
-      flag_section_anchors = 0;
-    }
-
 #ifdef IRA_COVER_CLASSES
   /* Use IRA if it is implemented for the target.  */
   flag_ira = 1;
 #endif
-
-  /* Originally we just set the variables if a particular optimization level,
-     but with the advent of being able to change the optimization level for a
-     function, we need to reset optimizations.  */
-  if (!optimize)
-    {
-      flag_merge_constants = 0;
-
-      /* We disable toplevel reordering at -O0 to disable transformations that
-         might be surprising to end users and to get -fno-toplevel-reorder
-	 tested, but we keep section anchors.  */
-      if (flag_toplevel_reorder == 2)
-        flag_toplevel_reorder = 0;
-    }
-  else
-    flag_merge_constants = 1;
 
   /* -O1 optimizations.  */
   opt1 = (optimize >= 1);
@@ -915,6 +890,7 @@ decode_options (unsigned int argc, const char **argv)
   flag_if_conversion2 = opt1;
   flag_ipa_pure_const = opt1;
   flag_ipa_reference = opt1;
+  flag_merge_constants = opt1;
   flag_split_wide_types = opt1;
   flag_tree_ccp = opt1;
   flag_tree_dce = opt1;
@@ -1032,6 +1008,24 @@ decode_options (unsigned int argc, const char **argv)
 
   handle_options (argc, argv, lang_mask);
 
+  /* -fno-unit-at-a-time and -fno-toplevel-reorder handling.  */
+  if (!flag_unit_at_a_time)
+    {
+      flag_section_anchors = 0;
+      flag_toplevel_reorder = 0;
+    }
+  else if (!optimize && flag_toplevel_reorder == 2)
+    /* We disable toplevel reordering at -O0 to disable transformations that
+       might be surprising to end users and to get -fno-toplevel-reorder
+       tested, but we keep section anchors.  */
+    flag_toplevel_reorder = 0;
+  else if (!flag_toplevel_reorder)
+    {
+      if (flag_section_anchors == 1)
+        error ("section anchors must be disabled when toplevel reorder is disabled");
+      flag_section_anchors = 0;
+    }
+
   if (first_time_p)
     {
       if (flag_pie)
@@ -1086,6 +1080,11 @@ decode_options (unsigned int argc, const char **argv)
       flag_reorder_blocks_and_partition = 0;
       flag_reorder_blocks = 1;
     }
+
+  /* Pipelining of outer loops is only possible when general pipelining
+     capabilities are requested.  */
+  if (!flag_sel_sched_pipelining)
+    flag_sel_sched_pipelining_outer_loops = 0;
 
 #ifndef IRA_COVER_CLASSES
   if (flag_ira)
@@ -1868,6 +1867,11 @@ common_handle_option (size_t scode, const char *arg, int value,
 
     case OPT_frandom_seed_:
       set_random_seed (arg);
+      break;
+
+    case OPT_fselective_scheduling:
+    case OPT_fselective_scheduling2:
+      sel_sched_switch_set = true;
       break;
 
     case OPT_fsched_verbose_:

@@ -630,14 +630,14 @@ AC_SUBST(BASILYSMELT_OBJECT)
 # So, we only use -pedantic if we can disable those warnings.
 
 ACX_PROG_CC_WARNING_OPTS(
-	[m4_do([-W -Wall -Wwrite-strings -Wstrict-prototypes ],
-	       [-Wmissing-prototypes -Wcast-qual])], [loose_warn])
+	m4_quote(m4_do([-W -Wall -Wwrite-strings -Wstrict-prototypes ],
+		       [-Wmissing-prototypes -Wcast-qual])), [loose_warn])
 ACX_PROG_CC_WARNING_OPTS(
-	[m4_do([-Wold-style-definition -Wc++-compat ], 
-	       [-Wmissing-format-attribute])], [strict_warn])
+	m4_quote(m4_do([-Wold-style-definition -Wc++-compat ], 
+		       [-Wmissing-format-attribute])), [strict_warn])
 ACX_PROG_CC_WARNING_ALMOST_PEDANTIC(
-	[m4_do([-Wno-long-long -Wno-variadic-macros ], 
-	       [-Wno-overlength-strings])], [strict_warn])
+	m4_quote(m4_do([-Wno-long-long -Wno-variadic-macros ], 
+		       [-Wno-overlength-strings])), [strict_warn])
 ACX_PROG_CC_WARNINGS_ARE_ERRORS([manual], [strict_warn])
 
 # The above macros do nothing if the compiler is not GCC.  However, the
@@ -4189,6 +4189,15 @@ fi
 
 AC_ARG_VAR(GMPLIBS,[How to link GMP])
 AC_ARG_VAR(GMPINC,[How to find GMP include files])
+
+AC_ARG_VAR(PPLLIBS,[How to link PPL])
+AC_ARG_VAR(PPLINC,[How to find PPL include files])
+
+AC_ARG_VAR(CLOOGLIBS,[How to link CLOOG])
+AC_ARG_VAR(CLOOGINC,[How to find CLOOG include files])
+if test "x${CLOOGLIBS}" != "x" ; then 
+   AC_DEFINE(HAVE_cloog, 1, [Define if cloog is in use.])
+fi
 
 # Configure the subdirectories
 # AC_CONFIG_SUBDIRS($subdirs)

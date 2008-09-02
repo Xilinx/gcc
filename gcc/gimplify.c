@@ -3595,7 +3595,8 @@ gimplify_init_constructor (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p,
 	if (num_type_elements < 0 && int_size_in_bytes (type) >= 0)
 	  cleared = true;
 	/* If there are "lots" of zeros, then block clear the object first.  */
-	else if (num_type_elements - num_nonzero_elements > CLEAR_RATIO
+	else if (num_type_elements - num_nonzero_elements
+		 > CLEAR_RATIO (optimize_function_for_speed_p (cfun))
 		 && num_nonzero_elements < num_type_elements/4)
 	  cleared = true;
 	/* ??? This bit ought not be needed.  For any element not present
@@ -4761,6 +4762,8 @@ gimplify_asm_expr (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p)
 	  mark_addressable (TREE_VALUE (link));
 	  if (tret == GS_ERROR)
 	    {
+	      if (EXPR_HAS_LOCATION (TREE_VALUE (link)))
+	        input_location = EXPR_LOCATION (TREE_VALUE (link));
 	      error ("memory input %d is not directly addressable", i);
 	      ret = tret;
 	    }
