@@ -1,3 +1,15 @@
+2008-09-03  Basile Starynkevitch  <basile@starynkevitch.net>
+	compiler probe still buggy!
+	* compiler_probe (display_tree, display_gimple)
+	(gimple_starting_displayer, tree_starting_displayer)
+	(tree_ending_displayer, add_infopoint_basic_block): more debug
+	print..
+	(bb_starting_displayer): don't display phi_nodes.
+	(added_infopoint_display_gimple): Added function.
+	(add_infopoint_funbody) removed entirely - was disabled.
+	(add_infopoint_bodyseq): Added function.
+	(execute_comprobe): do something with function bodies.
+
 2008-09-02  Basile Starynkevitch  <basile@starynkevitch.net>
 	MELT branch merged with trunk r139912 after graphite merge into trunk
 	graphite uses PPL & CLOOG...

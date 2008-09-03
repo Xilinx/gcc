@@ -46,6 +46,10 @@ Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
 #include "rtl.h"
 #include "version.h"
 
+#ifndef GCC_TREE_H
+#error something is wrong should know about GCC_TREE_H
+#endif
+
 #include "compiler-probe.h"
 
 #if !defined(ENABLE_COMPILER_PROBE) || ENABLE_COMPILER_PROBE==0
@@ -216,15 +220,18 @@ static struct drand48_data randata;
 static hashval_t
 hash_proberequest (const void *d)
 {
-  const struct proberequesthentry_st *p = (const struct proberequesthentry_st *) d;
+  const struct proberequesthentry_st *p =
+    (const struct proberequesthentry_st *) d;
   return htab_hash_string (p->verb);
 }
 
 static int
 eq_proberequest (const void *dx, const void *dy)
 {
-  const struct proberequesthentry_st *px = (const struct proberequesthentry_st *) dx;
-  const struct proberequesthentry_st *py = (const struct proberequesthentry_st *) dy;
+  const struct proberequesthentry_st *px =
+    (const struct proberequesthentry_st *) dx;
+  const struct proberequesthentry_st *py =
+    (const struct proberequesthentry_st *) dy;
   return !strcmp (px->verb, py->verb);
 }
 
@@ -272,16 +279,19 @@ del_filename (void *d)
 static hashval_t
 hash_infopoint (const void *d)
 {
-  const struct infopointhentry_st *ifp = (const struct infopointhentry_st *) d;
-  return (hashval_t)
-    (((long) (ifp->infp_filerank << 12)) ^ ((long) ifp->infp_lineno));
+  const struct infopointhentry_st *ifp =
+    (const struct infopointhentry_st *) d;
+  return (hashval_t) (((long) (ifp->infp_filerank << 12)) ^
+		      ((long) ifp->infp_lineno));
 }
 
 static int
 eq_infopoint (const void *dx, const void *dy)
 {
-  const struct infopointhentry_st *ifx = (const struct infopointhentry_st *) dx;
-  const struct infopointhentry_st *ify = (const struct infopointhentry_st *) dy;
+  const struct infopointhentry_st *ifx =
+    (const struct infopointhentry_st *) dx;
+  const struct infopointhentry_st *ify =
+    (const struct infopointhentry_st *) dy;
   return ifx->infp_lineno == ify->infp_lineno
     && ifx->infp_filerank == ify->infp_filerank;
 }
@@ -571,7 +581,9 @@ comprobe_register_unchecked (const char *verb,
   if (*slotptr == HTAB_EMPTY_ENTRY || (*slotptr) == HTAB_DELETED_ENTRY)
     {
       struct proberequesthentry_st *newslot;
-      newslot = (struct proberequesthentry_st *) xcalloc (sizeof (struct proberequesthentry_st), 1);
+      newslot =
+	(struct proberequesthentry_st *)
+	xcalloc (sizeof (struct proberequesthentry_st), 1);
       newslot->verb = xstrdup (verb);
       newslot->rout = handler;
       newslot->data = data;
@@ -635,7 +647,7 @@ comprobe_infopoint_add_display (int infoptrank,
     return;
   infp = VEC_index (infopoint_ptr_t, infopoint_vector, infoptrank);
   nodebugeprintf ("infopoint_add_display infp %p msg %s dispfun %p",
-		infp, msg, (void *) dispfun);
+		  infp, msg, (void *) dispfun);
   if (!infp || !msg || !dispfun)
     return;
   msgl = strlen (msg);
@@ -645,7 +657,7 @@ comprobe_infopoint_add_display (int infoptrank,
   dch->di_magic = DI_MAGIC;
   dch->di_fun = dispfun;
   memcpy (dch->di_msg, msg, msgl);
-  debugeprintf ("infopoint_add_display dch %p", (void*)dch);
+  debugeprintf ("infopoint_add_display dch %p", (void *) dch);
   VEC_safe_push (displaychoice_ptr_t, heap, infp->infp_dischvec, dch);
 }
 
@@ -669,7 +681,7 @@ comprobe_display_add_navigator (struct comprobe_infodisplay_st *idi,
   dch->di_magic = DI_MAGIC;
   memcpy (dch->di_msg, msg, msgl);
   nodebugeprintf ("add_navigator display %d navfun %p msg '%s'",
-		idi->idis_num, (void *) navfun, msg);
+		  idi->idis_num, (void *) navfun, msg);
   VEC_safe_push (displaychoice_ptr_t, heap, idi->idis_navig, dch);
 }
 
@@ -1001,7 +1013,8 @@ read_probe_requests (struct comprobe_whatpos_st *wp, unsigned millisec)
 	    {
 	      struct proberequest_buffer_st *newbuf;
 	      newbuf = (struct proberequest_buffer_st *)
-		xcalloc (1, sizeof (struct proberequest_buffer_st) + newsiz - 1);
+		xcalloc (1,
+			 sizeof (struct proberequest_buffer_st) + newsiz - 1);
 	      newbuf->len = newsiz;
 	      if (proberequest_buf)
 		{
@@ -1230,8 +1243,9 @@ static void tree_starting_displayer (struct comprobe_whatpos_st *wp,
 				     HOST_WIDE_INT data, HOST_WIDE_INT navig);
 
 static void gimple_starting_displayer (struct comprobe_whatpos_st *wp,
-				   struct comprobe_infodisplay_st *di,
-				   HOST_WIDE_INT data, HOST_WIDE_INT navig);
+				       struct comprobe_infodisplay_st *di,
+				       HOST_WIDE_INT data,
+				       HOST_WIDE_INT navig);
 
 static void tree_ending_displayer (struct comprobe_whatpos_st *wp,
 				   struct comprobe_infodisplay_st *di,
@@ -1241,11 +1255,14 @@ static void
 display_tree (tree tr, struct comprobe_infodisplay_st *di)
 {
   gcc_assert (di != 0);
+  debugeprintf ("display_tree tr %p code %d", (void *) tr,
+		tr ? TREE_CODE (tr) : 0);
   if (!tr)
-    comprobe_printf ("*** NULL TREE %p ***\n", (void*)tr);
+    comprobe_printf ("*** NULL TREE %p ***\n", (void *) tr);
   else if (EXPR_P (tr))
     {
-      comprobe_printf ("*** EXPR %p ***\n", (void*)tr);
+      debugeprintf ("display_tree tr %p expr", (void *) tr);
+      comprobe_printf ("*** EXPR %p ***\n", (void *) tr);
       print_generic_expr (comprobe_replf, tr,
 			  TDF_LINENO | TDF_VOPS | TDF_MEMSYMS);
     }
@@ -1253,18 +1270,21 @@ display_tree (tree tr, struct comprobe_infodisplay_st *di)
     {
       tree_stmt_iterator tsi;
       int rk = 0;
-      comprobe_printf ("*** STATEMENT LIST %p ***\n", (void*)tr);
+      debugeprintf ("display_tree tr %p stmtlist", (void *) tr);
+      comprobe_printf ("*** STATEMENT LIST %p ***\n", (void *) tr);
       print_generic_expr (comprobe_replf, tr,
 			  TDF_LINENO | TDF_VOPS | TDF_MEMSYMS);
       for (tsi = tsi_start (tr); !tsi_end_p (tsi); tsi_next (&tsi))
 	{
 	  tree stmt = tsi_stmt (tsi);
 	  rk++;
+	  debugeprintf ("display_tree stmt %p rk %d", (void *) stmt, rk);
 	  if (stmt)
 	    {
 	      static char titbuf[64];
 	      memset (titbuf, 0, sizeof (titbuf));
-	      snprintf (titbuf, sizeof (titbuf) - 1, "%d-th tree substmt", rk);
+	      snprintf (titbuf, sizeof (titbuf) - 1, "%d-th tree substmt",
+			rk);
 	      comprobe_display_add_navigator (di, tree_starting_displayer,
 					      titbuf,
 					      comprobe_unique_index_of_tree
@@ -1283,16 +1303,18 @@ display_gimple_seq (gimple_seq sq, struct comprobe_infodisplay_st *di)
 {
   gimple_stmt_iterator gsi;
   int rk = 0;
-  for (gsi = gsi_start(sq); !gsi_end_p(gsi); gsi_next(&gsi)) 
+  debugeprintf ("display_gimple_seq sq %p", (void *) sq);
+  for (gsi = gsi_start (sq); !gsi_end_p (gsi); gsi_next (&gsi))
     {
-      gimple s = gsi_stmt(gsi);
-      static char titbuf[64];
+      char titbuf[64];
+      gimple s = gsi_stmt (gsi);
       memset (titbuf, 0, sizeof (titbuf));
       rk++;
+      debugeprintf ("display_gimple_seq s=%p rk=%d", (void *) s, rk);
       snprintf (titbuf, sizeof (titbuf) - 1, "%d-th gimple substmt", rk);
       comprobe_display_add_navigator (di, gimple_starting_displayer,
 				      titbuf,
-				      comprobe_unique_index_of_gimple(s));
+				      comprobe_unique_index_of_gimple (s));
     }
 }
 
@@ -1300,32 +1322,33 @@ static void
 display_gimple (gimple g, struct comprobe_infodisplay_st *di)
 {
   gcc_assert (di != 0);
-  if (!g) 
+  debugeprintf ("display_gimple g %p", (void *) g);
+  if (!g)
     {
-      comprobe_printf ("*** NULL GIMPLE %p ***\n", (void*)g);
+      comprobe_printf ("*** NULL GIMPLE %p ***\n", (void *) g);
       return;
     }
   print_gimple_stmt (comprobe_replf, g, 1,
 		     TDF_LINENO | TDF_VOPS | TDF_MEMSYMS);
-  if (gimple_has_substatements(g)) 
+  if (gimple_has_substatements (g))
     {
       switch (gimple_code (g))
 	{
 	case GIMPLE_BIND:
-	  display_gimple_seq(gimple_bind_body(g), di);
+	  display_gimple_seq (gimple_bind_body (g), di);
 	  break;
 	case GIMPLE_CATCH:
-	  display_gimple_seq(gimple_catch_handler(g), di);
+	  display_gimple_seq (gimple_catch_handler (g), di);
 	  break;
 	case GIMPLE_EH_FILTER:
-	    display_gimple_seq(gimple_eh_filter_failure(g), di);
+	  display_gimple_seq (gimple_eh_filter_failure (g), di);
 	  break;
 	case GIMPLE_TRY:
-	  display_gimple_seq(gimple_try_eval(g), di);
-	  display_gimple_seq(gimple_try_cleanup(g), di);
+	  display_gimple_seq (gimple_try_eval (g), di);
+	  display_gimple_seq (gimple_try_cleanup (g), di);
 	  break;
 	case GIMPLE_WITH_CLEANUP_EXPR:
-	  display_gimple_seq(gimple_wce_cleanup(g), di);
+	  display_gimple_seq (gimple_wce_cleanup (g), di);
 	  break;
 	case GIMPLE_OMP_FOR:
 	case GIMPLE_OMP_MASTER:
@@ -1337,15 +1360,17 @@ display_gimple (gimple g, struct comprobe_infodisplay_st *di)
 	case GIMPLE_OMP_SINGLE:
 	  {
 	    static bool warned;
-	    if (!warned) {
-	      warning(0, "compiler probe not implemented for OpenMP stuff");
-	      warned = true;
-	    }
+	    if (!warned)
+	      {
+		warning (0,
+			 "compiler probe not implemented for OpenMP stuff");
+		warned = true;
+	      }
 	    return;
 	  }
 	  break;
 	default:
-	  gcc_unreachable();
+	  gcc_unreachable ();
 	}
     }
 }
@@ -1353,16 +1378,19 @@ display_gimple (gimple g, struct comprobe_infodisplay_st *di)
 
 static void
 gimple_starting_displayer (struct comprobe_whatpos_st *wp,
-			 struct comprobe_infodisplay_st *di,
-			 HOST_WIDE_INT data,
-			 HOST_WIDE_INT navig ATTRIBUTE_UNUSED)
+			   struct comprobe_infodisplay_st *di,
+			   HOST_WIDE_INT data,
+			   HOST_WIDE_INT navig ATTRIBUTE_UNUSED)
 {
   gimple g = 0;
   comprobe_ix_t ix = (comprobe_ix_t) data;
   unsigned nbgimple = VEC_length (gimple, unique_gimple_vector);
+  debugeprintf ("gimple_starting_displayer ix %d nbgimple %d", (int) ix,
+		(int) nbgimple);
   if (ix > 0 && ix < (long) nbgimple)
     {
       g = VEC_index (gimple, unique_gimple_vector, ix);
+      debugeprintf ("gimple_starting_displayer g %p", (void *) g);
       comprobe_printf
 	("// starting gimple_%ld #%d shown when '%s' \n// from gcc file %s line %d\n",
 	 ix, di->idis_infp->infp_num, wp->wp_what, basename (wp->wp_file),
@@ -1370,9 +1398,13 @@ gimple_starting_displayer (struct comprobe_whatpos_st *wp,
       display_gimple (g, di);
     }
   else
-    comprobe_printf
-      (" ?? invalid starting gimple index %ld nbgimple %d info #%d??", (long) ix,
-       (int) nbgimple, di->idis_infp->infp_num);
+    {
+      debugeprintf ("gimple_starting_displayer bad ix %d nbgimple %d",
+		    (int) ix, (int) nbgimple);
+      comprobe_printf
+	(" ?? invalid starting gimple index %ld nbgimple %d info #%d??",
+	 (long) ix, (int) nbgimple, di->idis_infp->infp_num);
+    }
 }
 
 static void
@@ -1389,6 +1421,8 @@ tree_starting_displayer (struct comprobe_whatpos_st *wp,
   if (ix > 0 && ix < (long) nbtree)
     {
       tr = VEC_index (tree, unique_tree_vector, ix);
+      debugeprintf ("tree_starting_displayer ix %d tr %p", (int) ix,
+		    (void *) tr);
       comprobe_printf
 	("// starting tree_%ld #%d shown when '%s' \n// from gcc file %s line %d\n",
 	 ix, di->idis_infp->infp_num, wp->wp_what, basename (wp->wp_file),
@@ -1396,9 +1430,12 @@ tree_starting_displayer (struct comprobe_whatpos_st *wp,
       display_tree (tr, di);
     }
   else
-    comprobe_printf
-      (" ?? invalid starting tree index %ld nbtree %d info #%d??", (long) ix,
-       (int) nbtree, di->idis_infp->infp_num);
+    {
+      debugeprintf ("tree_starting_displayer ix %d bad", (int) ix);
+      comprobe_printf
+	(" ?? invalid starting tree index %ld nbtree %d info #%d??",
+	 (long) ix, (int) nbtree, di->idis_infp->infp_num);
+    }
 }
 
 static void
@@ -1415,6 +1452,8 @@ tree_ending_displayer (struct comprobe_whatpos_st *wp,
   if (ix > 0 && ix < (long) nbtree)
     {
       tr = VEC_index (tree, unique_tree_vector, ix);
+      debugeprintf ("tree_ending_displayer tr %p ix %d", (void *) tr,
+		    (int) ix);
       comprobe_printf
 	("// ending tree_%ld #%d shown when '%s'\n// from gcc file %s line %d\n",
 	 (long) ix, di->idis_infp->infp_num, wp->wp_what,
@@ -1422,8 +1461,12 @@ tree_ending_displayer (struct comprobe_whatpos_st *wp,
       display_tree (tr, di);
     }
   else
-    comprobe_printf (" ?? invalid ending tree index %ld nbtree %d info #%d??",
-		     (long) ix, (int) nbtree, di->idis_infp->infp_num);
+    {
+      debugeprintf ("tree_ending_displayer ix %d bad", (int) ix);
+      comprobe_printf
+	(" ?? invalid ending tree index %ld nbtree %d info #%d??", (long) ix,
+	 (int) nbtree, di->idis_infp->infp_num);
+    }
 }
 
 
@@ -1436,15 +1479,15 @@ bb_starting_displayer (struct comprobe_whatpos_st *wp,
   comprobe_ix_t ix = (comprobe_ix_t) data;
   char pfx[24];
   basic_block bb = NULL;
-  gimple_seq phis = NULL;
   debugeprintf ("bb_starting_displayer ix %d", (int) ix);
   comprobe_bb_ok_rtl = 1;
   if (ix > 0 && ix < VEC_length (basic_block, unique_bb_vector))
     {
       bb = VEC_index (basic_block, unique_bb_vector, ix);
-      debugeprintf ("bb_starting_displayer bb %p", (void*) bb);
-      if (flag_compiler_probe_debug) 
-	gimple_debug_bb(bb);
+      debugeprintf ("bb_starting_displayer bb %p #%d ix%d", (void *) bb,
+		    bb ? bb->index : -1, (int) ix);
+      if (flag_compiler_probe_debug)
+	dump_bb (bb, stderr, 0);
       comprobe_printf
 	("// starting basic block _%ld #%d shown when '%s' \n// from gcc file %s line %d\n",
 	 (long) ix, di->idis_infp->infp_num, wp->wp_what,
@@ -1455,41 +1498,29 @@ bb_starting_displayer (struct comprobe_whatpos_st *wp,
       dump_bb_info (bb, true, true,
 		    TDF_DETAILS | TDF_LINENO | TDF_VOPS | TDF_MEMSYMS,
 		    pfx, comprobe_replf);
-      phis = phi_nodes(bb);
-      debugeprintf ("bb_starting_displayer phis %p", (void*) phis);
-      if (phis)
-	{
-	  gimple_stmt_iterator gsi = {0};
-	  comprobe_printf ("\n// basic block phi_nodes _%ld #%d is\n",
-			   ix, di->idis_infp->infp_num);
-	  for (gsi = gsi_start (phis); !gsi_end_p (gsi); gsi_next (&gsi)) {
-	    gimple g = gsi_stmt(gsi);
-	    debugeprintf ("bb_starting_displayer gimple g %p", (void*) g);
-	    display_gimple(g, di);
-	    comprobe_display_add_navigator
-	      (di, tree_starting_displayer,
-	       "phi nodes", comprobe_unique_index_of_gimple(g));
-	  }
-	};
-      debugeprintf ("bb_starting_displayer again bb %p", (void*) bb);
+      /* phi_nodes is not always valid so we don't display it */
+      debugeprintf ("bb_starting_displayer again bb %p", (void *) bb);
       /* basic blocks [almost?] always have statements */
       {
 	gimple_stmt_iterator gsi;
 	comprobe_printf ("\n// basic block statements _%ld #%d is\n", ix,
 			 di->idis_infp->infp_num);
-	for (gsi = gsi_start_bb(bb); !gsi_end_p(gsi); gsi_next(&gsi)) 
+	for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); gsi_next (&gsi))
 	  {
-	    gimple g = gsi_stmt(gsi);
-	    display_gimple(g, di);
+	    gimple g = gsi_stmt (gsi);
+	    display_gimple (g, di);
 	    comprobe_display_add_navigator
-	      (di, tree_starting_displayer,
-	       "stmt", comprobe_unique_index_of_gimple(g));
+	      (di, gimple_starting_displayer,
+	       "stmt", comprobe_unique_index_of_gimple (g));
 	  }
       }
     }
   else
-    comprobe_printf ("?? invalid starting basic block index %ld info #%d??",
-		     ix, di->idis_infp->infp_num);
+    {
+      debugeprintf ("bb_starting_displayer bb bad ix %d", (int) ix);
+      comprobe_printf ("?? invalid starting basic block index %ld info #%d??",
+		       ix, di->idis_infp->infp_num);
+    }
   comprobe_bb_ok_rtl = 0;
 }
 
@@ -1502,12 +1533,15 @@ bb_ending_displayer (struct comprobe_whatpos_st *wp,
   char pfx[24];
   basic_block bb = NULL;
   int infoptrk = di->idis_infp->infp_num;
-  debugeprintf ("bb_ending_displayer ix %d", (int) ix);  
+  debugeprintf ("bb_ending_displayer ix %d", (int) ix);
   comprobe_bb_ok_rtl = 1;
   if (ix > 0 && ix < VEC_length (basic_block, unique_bb_vector))
     {
       bb = VEC_index (basic_block, unique_bb_vector, ix);
-      debugeprintf ("bb_ending_displayer bb %p", (void*) bb);  
+      debugeprintf ("bb_ending_displayer bb %p #%d", (void *) bb,
+		    bb ? bb->index : -1);
+      if (flag_compiler_probe_debug)
+	dump_bb (bb, stderr, 0);
       comprobe_printf
 	("// ending basic block _%ld #%d shown when '%s'\n// from gcc file %s line %d\n",
 	 ix, infoptrk, wp->wp_what, basename (wp->wp_file), wp->wp_line);
@@ -1518,7 +1552,7 @@ bb_ending_displayer (struct comprobe_whatpos_st *wp,
     }
   else
     comprobe_printf ("?? invalid ending basic block index %ld info #%d??", ix,
-		     infoptrk);  
+		     infoptrk);
   comprobe_bb_ok_rtl = 0;
 }
 
@@ -1528,7 +1562,7 @@ infodialog_clear_navig (infodisplay_ptr_t disp)
 {
   int navix = 0;
   displaychoice_ptr_t navch = NULL;
-  debugeprintf ("infodialog_clear_navig disp %p num %d", (void*)disp,
+  debugeprintf ("infodialog_clear_navig disp %p num %d", (void *) disp,
 		disp->idis_num);
   if (disp->idis_navig)
     {
@@ -1553,14 +1587,18 @@ static void
 fill_infodialog (struct comprobe_whatpos_st *wp, infodisplay_ptr_t disp,
 		 displaychoice_ptr_t ch, comprobe_ix_t chix)
 {
-  debugeprintf("fill_infodialog ch %p chix %d", (void*)ch, (int)chix);
+  debugeprintf ("fill_infodialog ch %p chix %d", (void *) ch, (int) chix);
   gcc_assert (ch && ch->di_magic == DI_MAGIC);
   infodialog_clear_navig (disp);
   if (ch->di_fun)
     {
       comprobe_begin_big_printf ("PROB_dialogcontent dia:%d\n",
 				 disp->idis_num);
+      debugeprintf ("fill_infodialog ch before di_fun %p",
+		    (void *) ch->di_fun);
       (*ch->di_fun) (wp, disp, ch->di_data, chix);
+      debugeprintf ("fill_infodialog ch after di_fun %p",
+		    (void *) ch->di_fun);
       comprobe_end_big ();
       if (disp->idis_navig
 	  && VEC_length (displaychoice_ptr_t, disp->idis_navig) > 0)
@@ -1583,7 +1621,8 @@ fill_infodialog (struct comprobe_whatpos_st *wp, infodisplay_ptr_t disp,
       comprobe_printf ("PROB_showdialog dia:%d\n", disp->idis_num);
       comprobe_flush ();
     }
-  else debugeprintf("fill_infodialog no function in ch %p", (void*)ch);
+  else
+    debugeprintf ("fill_infodialog no function in ch %p", (void *) ch);
 }
 
 
@@ -1618,7 +1657,8 @@ showinfodialog_reqfun (struct comprobe_whatpos_st *wp,
     return;
   gcc_assert (ch->di_magic == DI_MAGIC);
   disp->idis_choice = chrk;
-  debugeprintf ("showinfodialog_reqfun ch %p str= %s", (void*)ch, ch->di_msg);
+  debugeprintf ("showinfodialog_reqfun ch %p str= %s", (void *) ch,
+		ch->di_msg);
   fill_infodialog (wp, disp, ch, -1);
   debugeprintf ("showinfodialog_reqfun end reqlin: %s", reqlin);
 }
@@ -1650,12 +1690,14 @@ updateinfodialog_reqfun (struct comprobe_whatpos_st *wp,
       (int) VEC_length (displaychoice_ptr_t, ip->infp_dischvec))
     ch =
       VEC_index (displaychoice_ptr_t, ip->infp_dischvec, disp->idis_choice);
-  if (!ch) {
-    debugeprintf("updateinfodialog_reqfun no ch %p", (void*)ch);
-    return;
-  };
+  if (!ch)
+    {
+      debugeprintf ("updateinfodialog_reqfun no ch %p", (void *) ch);
+      return;
+    };
   gcc_assert (ch->di_magic == DI_MAGIC);
-  debugeprintf ("updateinfodialog_reqfun ch %p str= %s", (void*)ch, ch->di_msg);
+  debugeprintf ("updateinfodialog_reqfun ch %p str= %s", (void *) ch,
+		ch->di_msg);
   fill_infodialog (wp, disp, ch, -1);
   debugeprintf ("updateinfodialog_reqfun end reqlin: %s", reqlin);
 }
@@ -1678,7 +1720,7 @@ naviginfodialog_reqfun (struct comprobe_whatpos_st *wp,
       || dialrk >= (int) VEC_length (infodisplay_ptr_t, infodisplay_vector))
     return;
   disp = VEC_index (infodisplay_ptr_t, infodisplay_vector, dialrk);
-  debugeprintf ("naviginfodialog_reqfun disp %p", (void*)disp);
+  debugeprintf ("naviginfodialog_reqfun disp %p", (void *) disp);
   if (!disp)
     return;
   gcc_assert (disp->idis_num == dialrk);
@@ -1687,9 +1729,10 @@ naviginfodialog_reqfun (struct comprobe_whatpos_st *wp,
     ch = VEC_index (displaychoice_ptr_t, disp->idis_navig, navrk);
   if (!ch)
     return;
-  debugeprintf ("naviginfodialog_reqfun ch %p navrk %d", (void*)ch, navrk);
+  debugeprintf ("naviginfodialog_reqfun ch %p navrk %d", (void *) ch, navrk);
   gcc_assert (ch->di_magic == DI_MAGIC);
-  debugeprintf ("naviginfodialog_reqfun ch %p str= %s", (void*)ch, ch->di_msg);
+  debugeprintf ("naviginfodialog_reqfun ch %p str= %s", (void *) ch,
+		ch->di_msg);
   fill_infodialog (wp, disp, ch, navrk);
   debugeprintf ("naviginfodialog_reqfun end reqlin: %s\n", reqlin);
 }
@@ -1744,7 +1787,7 @@ comprobe_initialize (void)
   static int inited;
   long seed = 0;
   const char *pc;
-  const char* randomseed = get_random_seed(false);
+  const char *randomseed = get_random_seed (false);
   gcc_assert (!inited);
   gcc_assert (randomseed != (char *) 0);
   inited = 1;
@@ -1778,17 +1821,22 @@ comprobe_initialize (void)
   VEC_safe_push (gimple, gc, unique_gimple_vector, (gimple) 0);
   unique_tree_htable = htab_create (4007, hash_info_tree, eq_info_tree, NULL);
   unique_bb_htable = htab_create (3001, hash_info_bb, eq_info_bb, NULL);
-  unique_gimple_htable = htab_create (6173, hash_info_gimple, eq_info_gimple, NULL);
+  unique_gimple_htable =
+    htab_create (6173, hash_info_gimple, eq_info_gimple, NULL);
   files_varr.tab = XNEWVEC (char *, 100);
   files_varr.size = 100;
   files_varr.last = 0;
   memset (files_varr.tab, 0, sizeof (char **) * files_varr.size);
-  comprobe_register ("prob_NAVIGINFODIALOG", naviginfodialog_reqfun, (void *) 0);
+  comprobe_register ("prob_NAVIGINFODIALOG", naviginfodialog_reqfun,
+		     (void *) 0);
   comprobe_register ("prob_NEWINFODIALOG", newinfodialog_reqfun, (void *) 0);
-  comprobe_register ("prob_REMOVEINFODIALOG", removeinfodialog_reqfun, (void *) 0);
-  comprobe_register ("prob_SHOWINFODIALOG", showinfodialog_reqfun, (void *) 0);
+  comprobe_register ("prob_REMOVEINFODIALOG", removeinfodialog_reqfun,
+		     (void *) 0);
+  comprobe_register ("prob_SHOWINFODIALOG", showinfodialog_reqfun,
+		     (void *) 0);
   comprobe_register ("prob_STOP", stop_reqfun, (void *) 0);
-  comprobe_register ("prob_UPDATEINFODIALOG", updateinfodialog_reqfun, (void *) 0);
+  comprobe_register ("prob_UPDATEINFODIALOG", updateinfodialog_reqfun,
+		     (void *) 0);
   create_probe_process ();
   comprobe_printf ("PROB_version proto:%d msg:", COMPROBE_PROTOCOL_NUMBER);
   comprobe_outenc_string (version_string);
@@ -1870,11 +1918,11 @@ comprobe_file_rank (const char *filename)
       newslot->rank = filerank;
       *slotptr = newslot;
       debugeprintf ("new file rank filerank%d file %s newslot %p", filerank,
-		    dupfilename, (void*)newslot);
+		    dupfilename, (void *) newslot);
       comprobe_printf ("PROB_file rank:%d fpath:", filerank);
-      comprobe_outenc_string(dupfilename);
-      comprobe_puts("\n");
-      comprobe_flush();
+      comprobe_outenc_string (dupfilename);
+      comprobe_puts ("\n");
+      comprobe_flush ();
     }
   else
     {
@@ -1882,7 +1930,7 @@ comprobe_file_rank (const char *filename)
       filerank = oldslot->rank;
       gcc_assert (!strcmp (files_varr.tab[filerank], filename));
       debugeprintf ("old file rank filerank%d file %s oldslot %p", filerank,
-		    filename, (void*)oldslot);
+		    filename, (void *) oldslot);
     }
   return filerank;
 }
@@ -1909,7 +1957,7 @@ comprobe_infopoint_rank (int filerank, int lineno)
   if (*slotptr == HTAB_EMPTY_ENTRY || (*slotptr) == HTAB_DELETED_ENTRY)
     {
       struct infopointhentry_st *newslot = 0;
-      newslot = ( struct infopointhentry_st *) xcalloc (sizeof (*newslot), 1);
+      newslot = (struct infopointhentry_st *) xcalloc (sizeof (*newslot), 1);
       /* dont use index 0 */
       if (VEC_length (infopoint_ptr_t, infopoint_vector) == 0)
 	VEC_safe_push (infopoint_ptr_t, heap, infopoint_vector,
@@ -1925,7 +1973,7 @@ comprobe_infopoint_rank (int filerank, int lineno)
       newslot->infp_dischvec = VEC_alloc (displaychoice_ptr_t, heap, 3);
       debugeprintf
 	("new infopoint slot filerank%d lineno%d inforank%d slot%p", filerank,
-	 lineno, inforank, (void*) newslot);
+	 lineno, inforank, (void *) newslot);
       *slotptr = newslot;
     }
   else
@@ -1941,7 +1989,7 @@ comprobe_infopoint_rank (int filerank, int lineno)
 		  == oldslot);
       debugeprintf
 	("old infopoint slot filerank%d lineno%d inforank%d oldslot%p",
-	 filerank, lineno, inforank, (void*)oldslot);
+	 filerank, lineno, inforank, (void *) oldslot);
     }
   return inforank;
 }
@@ -1949,26 +1997,28 @@ comprobe_infopoint_rank (int filerank, int lineno)
 
 
 /** convenience function for iterating **/
-static bool 
-get_gimple_position_seq(gimple_seq sq, char **pfilename, int *plineno, int end)
+static bool
+get_gimple_position_seq (gimple_seq sq, char **pfilename, int *plineno,
+			 int end)
 {
   gimple_stmt_iterator gsi;
-  if (!end) 
+  if (!end)
     {
-      for (gsi = gsi_start(sq); !gsi_end_p(gsi); gsi_next(&gsi)) 
+      for (gsi = gsi_start (sq); !gsi_end_p (gsi); gsi_next (&gsi))
 	{
-	  gimple s = gsi_stmt(gsi);
-	  if (comprobe_get_gimple_position(s, pfilename, plineno, POS_START))
+	  gimple s = gsi_stmt (gsi);
+	  if (comprobe_get_gimple_position (s, pfilename, plineno, POS_START))
 	    return true;
 	}
     }
-  else 
+  else
     {
-      for (gsi_last(sq); !gsi_end_p(gsi); gsi_prev(&gsi)) {
-	gimple s = gsi_stmt(gsi);
-	if (comprobe_get_gimple_position(s, pfilename, plineno, POS_END))
-	  return true;
-      }
+      for (gsi_last (sq); !gsi_end_p (gsi); gsi_prev (&gsi))
+	{
+	  gimple s = gsi_stmt (gsi);
+	  if (comprobe_get_gimple_position (s, pfilename, plineno, POS_END))
+	    return true;
+	}
     }
   return false;
 }
@@ -1979,52 +2029,53 @@ get_gimple_position_seq(gimple_seq sq, char **pfilename, int *plineno, int end)
  * if the END flag is set, return the last position
  ***/
 bool
-comprobe_get_gimple_position (gimple g, char **pfilename, int *plineno, int end)
+comprobe_get_gimple_position (gimple g, char **pfilename, int *plineno,
+			      int end)
 {
   location_t loc = 0;
-  if (!g) 
+  if (!g)
     return false;
-  loc = gimple_location(g);
-  if (loc != UNKNOWN_LOCATION && loc != BUILTINS_LOCATION) 
+  loc = gimple_location (g);
+  if (loc != UNKNOWN_LOCATION && loc != BUILTINS_LOCATION)
     {
-      if (pfilename) 
-	*pfilename = LOCATION_FILE(loc);
+      if (pfilename)
+	*pfilename = LOCATION_FILE (loc);
       if (plineno)
-	*plineno = LOCATION_LINE(loc);
+	*plineno = LOCATION_LINE (loc);
       return true;
     }
-  else if (gimple_has_substatements(g)) 
+  else if (gimple_has_substatements (g))
     {
       switch (gimple_code (g))
 	{
 	case GIMPLE_BIND:
 	  {
-	    gimple_seq sq = gimple_bind_body(g);
-	    return get_gimple_position_seq(sq, pfilename, plineno, end);
+	    gimple_seq sq = gimple_bind_body (g);
+	    return get_gimple_position_seq (sq, pfilename, plineno, end);
 	  }
 	case GIMPLE_CATCH:
 	  {
-	    gimple_seq sq = gimple_catch_handler(g);
-	    return get_gimple_position_seq(sq, pfilename, plineno, end);
+	    gimple_seq sq = gimple_catch_handler (g);
+	    return get_gimple_position_seq (sq, pfilename, plineno, end);
 	  }
 	case GIMPLE_EH_FILTER:
 	  {
-	    gimple_seq sq = gimple_eh_filter_failure(g);
-	    return get_gimple_position_seq(sq, pfilename, plineno, end);
+	    gimple_seq sq = gimple_eh_filter_failure (g);
+	    return get_gimple_position_seq (sq, pfilename, plineno, end);
 	  }
 	case GIMPLE_TRY:
 	  {
 	    gimple_seq sq;
-	    sq = gimple_try_eval(g);
-	    if (get_gimple_position_seq(sq, pfilename, plineno, end))
+	    sq = gimple_try_eval (g);
+	    if (get_gimple_position_seq (sq, pfilename, plineno, end))
 	      return true;
-	    sq = gimple_try_cleanup(g);
-	    return get_gimple_position_seq(sq, pfilename, plineno, end);
+	    sq = gimple_try_cleanup (g);
+	    return get_gimple_position_seq (sq, pfilename, plineno, end);
 	  }
 	case GIMPLE_WITH_CLEANUP_EXPR:
 	  {
-	    gimple_seq sq = gimple_wce_cleanup(g);
-	    return get_gimple_position_seq(sq, pfilename, plineno, end);
+	    gimple_seq sq = gimple_wce_cleanup (g);
+	    return get_gimple_position_seq (sq, pfilename, plineno, end);
 	  }
 	case GIMPLE_OMP_FOR:
 	case GIMPLE_OMP_MASTER:
@@ -2036,33 +2087,35 @@ comprobe_get_gimple_position (gimple g, char **pfilename, int *plineno, int end)
 	case GIMPLE_OMP_SINGLE:
 	  {
 	    static bool warned;
-	    if (!warned) {
-	      warning(0, "compiler probe not implemented for OpenMP stuff");
-	      warned = true;
-	    }
+	    if (!warned)
+	      {
+		warning (0,
+			 "compiler probe not implemented for OpenMP stuff");
+		warned = true;
+	      }
 	    return false;
 	  }
 	  break;
 	default:
-	  gcc_unreachable();
+	  gcc_unreachable ();
 	}
     }
-    return false;
+  return false;
 }
 
 bool
 comprobe_get_tree_position (tree t, char **pfilename, int *plineno, int end)
 {
   location_t loc = 0;
-  if (!t) 
+  if (!t)
     return false;
-  loc = EXPR_LOCATION(t);
-  if (loc != UNKNOWN_LOCATION && loc != BUILTINS_LOCATION) 
+  loc = EXPR_LOCATION (t);
+  if (loc != UNKNOWN_LOCATION && loc != BUILTINS_LOCATION)
     {
-      if (pfilename) 
-	*pfilename = LOCATION_FILE(loc);
+      if (pfilename)
+	*pfilename = LOCATION_FILE (loc);
       if (plineno)
-	*plineno = LOCATION_LINE(loc);
+	*plineno = LOCATION_LINE (loc);
       return true;
     }
   return false;
@@ -2110,7 +2163,7 @@ gate_comprobe (void)
 /* add information point and display start of a given fimple G with
    string DMESG - return the infopoint rank  */
 static int
-added_infopoint_display_tree (gimple g, const char *dmesg)
+added_infopoint_display_gimple (gimple g, const char *dmesg)
 {
   int frk = 0, lin = 0, infrk = 0;
   comprobe_ix_t trix = 0;
@@ -2130,64 +2183,45 @@ added_infopoint_display_tree (gimple g, const char *dmesg)
 }
 
 
-#if 0 && old
-/* add information point for a given function body */
 static void
-add_infopoint_funbody (tree tr_body)
+add_infopoint_bodyseq (gimple_seq sq)
 {
-  int frk_body = 0, lin_body = 0;
-  debugeprintf ("add_infopoint_funbody tr_body %p start", (void*)tr_body);
-  frk_body = comprobe_file_rank_of_tree (tr_body, &lin_body);
-  if (frk_body >= 0 && lin_body > 0)
+  gimple_stmt_iterator gsi = { };
+  int rk = 0;
+  bool gotpos = false;
+  char *filename = 0;
+  int lineno = 0;
+  int filrk = 0, infrk = 0;
+  int stix = 0;
+  debugeprintf ("add_infopoint_bodyseq %p start", (void *) sq);
+  if (!sq)
+    return;
+  if (flag_compiler_probe_debug)
+    debug_gimple_seq (sq);
+  for (gsi = gsi_start (sq); !gsi_end_p (gsi); gsi_next (&gsi))
     {
-      int esnumins = 0;
-      char *endfile = 0;
-      /* @@@ should probably dynamically allocate the message buffer */
-      static char msgbuf[200];
-      int endline = -1, endfrk = -1, infendnum = -1;
-      comprobe_ix_t trix = 0;
-      int infstartnum = -1;
-      infstartnum = comprobe_infopoint_rank (frk_body, lin_body);
-      if (comprobe_get_position (tr_body, &endfile, &endline, POS_END)
-	  && (endfrk = comprobe_file_rank (endfile)) >= 0)
-	infendnum = comprobe_infopoint_rank (endfrk, endline);
-      trix = comprobe_unique_index_of_tree (tr_body);
-      esnumins = estimate_num_insns (tr_body, &eni_inlining_weights);
-      debugeprintf
-	("add_infopoint_funbody tr%p infstartnum%d lin_body%d infendnum%d endline%d",
-	 (void*)tr_body, infstartnum, lin_body, infendnum, endline);
-      if (infstartnum > 0 && lin_body > 0)
+      char titbuf[64];
+      gimple stmt = gsi_stmt (gsi);
+      if (!stmt)
+	continue;
+      rk++;
+      debugeprintf ("add_infopoint_bodyseq stmt=%p rk=%d", (void *) stmt, rk);
+      if (flag_compiler_probe_debug)
+	debug_gimple_stmt (stmt);
+      if (comprobe_get_gimple_position (stmt, &filename, &lineno, POS_START))
 	{
-	  memset (msgbuf, 0, sizeof (msgbuf));
-	  if (frk_body == endfrk && endline > lin_body)
-	    snprintf (msgbuf, sizeof (msgbuf) - 1,
-		      _("starting body of %d lines & %d instrs"),
-		      endline - lin_body, esnumins);
-	  else
-	    snprintf (msgbuf, sizeof (msgbuf) - 1,
-		      _("starting body of %d instrs"), esnumins);
-	  if (added_infopoint_display_tree (tr_body, msgbuf) != infstartnum)
-	    gcc_unreachable ();
-	}
-      if (infendnum > 0 && endline > 0)
-	{
-	  memset (msgbuf, 0, sizeof (msgbuf));
-	  if (frk_body == endfrk && endline > lin_body && lin_body > 0)
-	    snprintf (msgbuf,
-		      sizeof (msgbuf) - 1,
-		      _("ending body of %d lines & %d instrs"),
-		      endline - lin_body, esnumins);
-	  else
-	    snprintf (msgbuf,
-		      sizeof (msgbuf) - 1,
-		      _("ending body of %d instrs"), esnumins);
+	  filrk = comprobe_file_rank (filename);
+	  infrk = comprobe_infopoint_rank (filrk, lineno);
+	  memset (titbuf, 0, sizeof (titbuf));
+	  snprintf (titbuf, sizeof (titbuf) - 1, "%d-th gimple stmt", rk);
+	  stix = comprobe_unique_index_of_gimple (stmt);
+	  gcc_assert (stix > 2);
 	  comprobe_infopoint_add_display
-	    (infendnum, tree_ending_displayer, msgbuf, (HOST_WIDE_INT) trix);
+	    (infrk, gimple_starting_displayer, titbuf, (HOST_WIDE_INT) stix);
 	}
     }
-  debugeprintf ("add_infopoint_funbody tr_body %p end", (void*)tr_body);
+  debugeprintf ("add_infopoint_bodyseq %p end", (void *) sq);
 }
-#endif /*old code*/
 
 
 comprobe_ix_t
@@ -2246,15 +2280,16 @@ comprobe_basic_block_of_unique_index (comprobe_ix_t ix)
 static void
 add_infopoint_basic_block (basic_block bb)
 {
-  gimple_stmt_iterator gsi;
+  gimple_stmt_iterator gsi = { 0 };
   int stmtcnt = 0;
   comprobe_ix_t bbix = 0;
-  bool bbgotpos = 0;
-  debugeprintf ("add_infopoint_basic_block bb %p #%d start", (void*)bb, bb?bb->index:-1);
+  bool bbgotpos = false;
+  debugeprintf ("add_infopoint_basic_block bb %p #%d start", (void *) bb,
+		bb ? bb->index : -1);
   if (bb == NULL)
     return;
-  if (flag_compiler_probe_debug) 
-    dump_bb(bb, stderr, 0);
+  if (flag_compiler_probe_debug)
+    dump_bb (bb, stderr, 0);
   bbix = comprobe_unique_index_of_basic_block (bb);
   gcc_assert (bbix > 2);
   bbgotpos = FALSE;
@@ -2265,17 +2300,23 @@ add_infopoint_basic_block (basic_block bb)
       int lineno = 0;
       int filrk = 0, infrk = 0;
       static char msgbuf[64];
+      debugeprintf ("add_infopoint_basic_block stmt %p stmtcnt %d",
+		    (void *) stmt, stmtcnt);
       if (stmt)
-	stmtcnt++;
+	{
+	  stmtcnt++;
+	}
       else
 	continue;
+      if (flag_compiler_probe_debug)
+	debug_gimple_stmt (stmt);
       if (comprobe_get_gimple_position (stmt, &filename, &lineno, POS_START))
 	{
 	  filrk = comprobe_file_rank (filename);
 	  infrk = comprobe_infopoint_rank (filrk, lineno);
 	  if (!bbgotpos)
 	    {
-	      bbgotpos = TRUE;
+	      bbgotpos = true;
 	      memset (msgbuf, 0, sizeof (msgbuf));
 	      snprintf (msgbuf,
 			sizeof (msgbuf) - 1, "start bb#%d", bb->index);
@@ -2285,8 +2326,11 @@ add_infopoint_basic_block (basic_block bb)
 	  memset (msgbuf, 0, sizeof (msgbuf));
 	  snprintf (msgbuf,
 		    sizeof (msgbuf) - 1, "stmt#%d bb#%d", stmtcnt, bb->index);
-	  (void) added_infopoint_display_tree (stmt, msgbuf);
+	  (void) added_infopoint_display_gimple (stmt, msgbuf);
 	}
+      else
+	debugeprintf ("add_infopoint_basic_block no position for stmt %p",
+		      (void *) stmt);
     }
   for (gsi = gsi_last_bb (bb); !gsi_end_p (gsi); gsi_prev (&gsi))
     {
@@ -2306,7 +2350,7 @@ add_infopoint_basic_block (basic_block bb)
 	  break;
 	}
     };
-  debugeprintf ("add_infopoint_basic_block bb %p end", (void*)bb);
+  debugeprintf ("add_infopoint_basic_block bb %p end", (void *) bb);
 }
 
 
@@ -2325,32 +2369,25 @@ execute_comprobe (void)
       gimple_seq sq = 0;
       if (!comprobe_replf)
 	break;
-      debugeprintf ("execute_comprobe cgr_fun=%p", (void*)cgr_fun);
+      debugeprintf ("execute_comprobe cgr_fun=%p", (void *) cgr_fun);
       if (flag_compiler_probe_debug)
 	dump_cgraph_node (stderr, cgr_fun);
       tr_decl = cgr_fun->decl;
-      if (TREE_CODE(tr_decl) != FUNCTION_DECL) 
+      if (TREE_CODE (tr_decl) != FUNCTION_DECL)
 	continue;
       frk_decl = comprobe_file_rank_of_tree (tr_decl, &lin_decl);
-      sq = gimple_body(tr_decl);
-      if (!sq) 
+      sq = gimple_body (tr_decl);
+      debugeprintf ("execute_comprobe sq %p", (void *) sq);
+      if (!sq)
 	continue;
-      sq = gimple_body(tr_decl);
-#warning should do something with the body...
-#if 0 && oldcode
-      tr_body = DECL_SAVED_TREE (tr_decl);
-      if (!tr_body)
-	continue;
-      comprobe_check ("comprobe cgraph loop");
-      add_infopoint_funbody (tr_body);
-#endif
+      add_infopoint_bodyseq (sq);
       comprobe_flush ();
     }
   FOR_EACH_BB (bb)
   {
     if (!comprobe_replf)
       break;
-    debugeprintf ("execute_comprobe bb %p", (void*)bb);
+    debugeprintf ("execute_comprobe bb %p", (void *) bb);
     comprobe_check ("comprobe bb loop");
     add_infopoint_basic_block (bb);
     comprobe_flush ();
@@ -2359,23 +2396,22 @@ execute_comprobe (void)
   return 0;			/* no additional todos */
 }
 
-struct gimple_opt_pass pass_compiler_probe = 
-{
+struct gimple_opt_pass pass_compiler_probe = {
   {
-    GIMPLE_PASS,			/* type */
-    "comprobe",			/* name */
-    gate_comprobe,		/* gate */
-    execute_comprobe,		/* execute */
-    NULL,				/* sub */
-    NULL,				/* next */
-    0,				/* static_pass_number */
-    0,				/* tv_id */
-    PROP_cfg,			/* properties_required */
-    0,				/* properties_provided */
-    0,				/* properties_destroyed */
-    0,				/* todo_flags_start */
-    0,				/* todo_flags_finish */
-  }
+   GIMPLE_PASS,			/* type */
+   "comprobe",			/* name */
+   gate_comprobe,		/* gate */
+   execute_comprobe,		/* execute */
+   NULL,			/* sub */
+   NULL,			/* next */
+   0,				/* static_pass_number */
+   0,				/* tv_id */
+   PROP_cfg,			/* properties_required */
+   0,				/* properties_provided */
+   0,				/* properties_destroyed */
+   0,				/* todo_flags_start */
+   0,				/* todo_flags_finish */
+   }
 };
 
 #include "gt-compiler-probe.h"
