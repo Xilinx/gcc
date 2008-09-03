@@ -1165,7 +1165,8 @@ bfin_expand_prologue (void)
     }
 
   if (crtl->limit_stack
-      || TARGET_STACK_CHECK_L1)
+      || (TARGET_STACK_CHECK_L1
+	  && !DECL_NO_LIMIT_STACK (current_function_decl)))
     {
       HOST_WIDE_INT offset
 	= bfin_initial_elimination_offset (ARG_POINTER_REGNUM,
@@ -2412,9 +2413,6 @@ bfin_handle_option (size_t code, const char *arg, int value)
 
 	    bfin_workarounds |= bfin_cpus[i].workarounds;
 	  }
-
-	if (bfin_cpu_type == BFIN_CPU_BF561)
-	  warning (0, "bf561 support is incomplete yet.");
 
 	return true;
       }
