@@ -1,3 +1,79 @@
+2008-09-03  Jan Hubicka  <jh@suse.cz>
+
+	PR middle-end/37343
+	* g++.dg/torture/pr37343.C New file.
+
+2008-09-03  Ira Rosen  <irar@il.ibm.com>
+
+	* gcc.dg/vect/slp-perm-1.c: Add call to check_vect.
+	* gcc.dg/vect/slp-perm-2.c, gcc.dg/vect/slp-perm-3.c,
+	gcc.dg/vect/slp-perm-4.c, gcc.dg/vect/slp-perm-5.c,
+	gcc.dg/vect/slp-perm-6.c, gcc.dg/vect/slp-perm-7.c,
+	gcc.dg/vect/slp-perm-8.c, gcc.dg/vect/slp-perm-9.c: Likewise.
+
+2008-09-03  Jan Hubicka  <jh@suse.cz>
+
+	PR tree-optimization/37345
+	PR tree-optimization/37358
+	PR tree-optimization/37357
+	* g++.dg/torture/pr37345.C: New file.
+
+2008-09-03  Tobias Grosser  <grosser@fim.uni-passau.de>
+
+	* lib/target-supports.exp (check_effective_target_fgraphite): Fix test.
+	Graphite is only available with -O1.
+
+2008-09-03  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* gcc.c-torture/compile/vector-4.c: Add -mavx for x86.
+
+	* gcc.target/i386/avx-3.c: Require DFP support.
+
+2008-09-03  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/37348
+	* g++.dg/parse/crash45.C: New test.
+
+	PR c++/37189
+	* g++.dg/gomp/pr37189.C: New test.
+
+	PR debug/37322
+	* gfortran.dg/debug/pr35154-dwarf2.f: Fix up scan-assembler regexps.
+
+2008-09-03  Andrew Pinski  <andrew_pinski@playstation.sony.com>
+
+	PR middle-end/36445
+	* g++.dg/torture/pr36445.C: New test.
+
+2008-09-03  Andrew Pinski  <andrew_pinski@playstation.sony.com>
+
+	PR middle-end/37293
+	* g++.dg/torture/ipa-cp-1.C: New test.
+
+2008-09-03  David Edelsohn  <edelsohn@gnu.org>
+
+	* g++.dg/ext/java-2.C: Disable on AIX.
+
+2008-09-03  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/37346
+	* g++.dg/gomp/pr37346.C: New test.
+
+2008-09-03  Bernd Schmidt  <bernd.schmidt@analog.com>
+
+	From Mike Frysinger  <michael.frysinger@analog.com>
+	* gcc.target/bfin/mcpu-bf522.c: Check SILICON_REVISION is 0x0001.
+	* gcc.target/bfin/mcpu-bf523.c: Likewise.
+	* gcc.target/bfin/mcpu-bf524.c: Likewise.
+	* gcc.target/bfin/mcpu-bf525.c: Likewise.
+	* gcc.target/bfin/mcpu-bf526.c: Likewise.
+	* gcc.target/bfin/mcpu-bf527.c: Likewise.
+	* gcc.target/bfin/mcpu-bf542.c: Likewise.
+	* gcc.target/bfin/mcpu-bf544.c: Likewise.
+	* gcc.target/bfin/mcpu-bf547.c: Likewise.
+	* gcc.target/bfin/mcpu-bf548.c: Likewise.
+	* gcc.target/bfin/mcpu-bf549.c: Likewise.
+
 2008-09-02  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
 
 	* gcc.c-torture/compile/pr33009.c: xfail on hppa*-*-*.

@@ -1,3 +1,175 @@
+2008-09-04  Jan Hubicka  <jh@suse.cz>
+
+	PR middle-end/37343
+	* tree-switch-conversion.c (check_final_bb): Accept only IP
+	invariants.
+
+2008-09-04  Jan Hubicka  <jh@suse.cz>
+
+	* tree-vrp.c (vrp_evaluate_conditional_warnv_with_ops_using_ranges):
+	Break out from ...
+	(vrp_evaluate_conditional_warnv_with_ops): ... this one.  Add
+	using_ranges argument.
+	(vrp_evaluate_conditional): Avoid bogus warning for type range.
+	(vrp_visit_cond_stmt): Update call of
+	vrp_evaluate_conditional_warnv_with_ops
+
+2008-09-04  Jan Hubicka  <jh@suse.cz>
+
+	PR tree-optimization/37345
+	PR tree-optimization/37358
+	PR tree-optimization/37357
+	* tree.c (build_function_type_skip_args): Build distinct type copy;
+	set TYPE_CONTEXT.
+	(build_function_decl_skip_args): Set type of new decl not orig decl;
+	clear DECL_VINDEX for methods turned into functions.
+
+2008-09-04  Nick Clifton  <nickc@redhat.com>
+
+	* configure.ac (HAVE_GAS_LCOMM_WITH_ALIGNMENT): New assembler
+	check.
+	* configure: Regenerate.
+	* config.in: Regenerate.
+	* config/i386/bsd.h (ASM_OUTPUT_ALIGNED_LOCAL): Use .lcomm with an
+	alignment field, if it is supported.
+
+2008-09-04  Kai Tietz  <kai.tietz@onevision.com>
+
+	* config/i386/t-mingw32 (SHLIB_LC): Change order of import
+	libraries.
+
+2008-09-03  David Edelsohn  <edelsohn@gnu.org>
+
+	* config/rs6000/rs6000.c (processor_target_table): Do not
+	enable VMX for POWER6.
+
+2008-09-03  Anton Blanchard  <anton@samba.org>
+
+	* config/rs6000/rs6000.c (rs6000_split_lock_test_and_set): Do not
+	emit memory barrier before operation.
+
+2008-09-03  John David Anglin  <dave.anglin@nrc.cnrc.gc.ca>
+
+	PR testsuite/37325
+	* config/pa/pa64-hpux.h (ASM_OUTPUT_EXTERNAL_REAL): Call
+	default_elf_asm_output_external.
+
+2008-09-03  Jeff Law  <law@redhat.com>
+
+	* h8300.c (expand_a_shift): Avoid invalid RTL sharing.
+
+2008-09-03  Richard Henderson  <rth@redhat.com>
+
+	* config/alpha/alpha.c (alpha_split_lock_test_and_set): Move
+	memory barrier to below the test-and-set.
+	(alpha_split_lock_test_and_set_12): Likewise.
+
+2008-09-03  Vladimir Makarov  <vmakarov@redhat.com>
+
+	PR rtl-opt/37243
+
+	* ira-int.h (ira_loop_tree_node): Rename mentioned_allocnos to
+	all_allocnos.
+
+	* ira-color.c (print_loop_title): Use all_allocnos.
+	(color_pass): Ditto.  Don't add border_allocnos.  Check that
+	subloop allocno in the correspdoning bitmap all_allocnos.
+
+	* ira-emit.c (change_loop): Use all_allocnos.
+
+	* ira-build.c (create_loop_tree_nodes, finish_loop_tree_node):
+	Ditto.
+	(ira_create_allocno): Set up all_allocnos bit for the created
+	allocno.
+	(create_cap_allocno): Remove setting mentioned_allocnos.
+	(create_insn_allocnos): Ditto.
+	(remove_unnecessary_allocnos): Use all_allocnos.
+	(check_allocno_creation): Check that allocnos are in the
+	corresponding bitmap all_allocnos.
+	
+2008-09-03  Vladimir Makarov  <vmakarov@redhat.com>
+
+	PR rtl-opt/37243
+	
+	* ira-conflicts.c (REG_SUBREG_P, go_through_subreg): New.
+	(process_regs_for_copy): Process subregs.  Refine check when cost
+	is taken into account in ira-costs.c.
+	(process_reg_shuffles): Use REG_SUBREG_P.
+	(add_insn_allocno_copies): Ditto.  Ignore modes.
+
+	* ira-color.c (conflict_allocno_vec): New.
+	(COST_HOP_DIVISOR): New macro.
+	(update_copy_costs_1): Use it.
+	(update_conflict_hard_regno_costs): New function.
+	(assign_hard_reg): Use it.
+	(ira_color): Allocate and free conflict_allocno_vec.
+ 
+2008-09-03  Vladimir Makarov  <vmakarov@redhat.com>
+
+	PR rtl-opt/37296
+
+	* ira-int.h (ira_sort_insn_chain): Remove.
+
+	* ira.c (basic_block_order_nums, chain_insn_order,
+	chain_freq_compare, chain_bb_compare, ira_sort_insn_chain): Remove.
+	(ira): Don't call ira_sort_insn_chain.
+
+	* reload1.c (reload): Don't call ira_sort_insn_chain.
+
+2008-09-03  Andrew Pinski  <andrew_pinski@playstation.sony.com>
+
+	PR middle-end/37293
+	* cgraphunit.c (update_call_expr): Remove eh regions from statements
+	which become non throw.
+	(cgraph_function_versioning): Also clear DECL_WEAK.  Call
+	update_call_expr after updating the flags on the decl.
+
+2008-09-03  Jan Hubicka  <jh@suse.cz>
+
+	PR tree-optimization/37315
+	* cgraph.c (cgraph_create_edge): Use gimple_has_body_p.
+	* cgraphunit.c (verify_cgraph_node): drop gimple_body check.
+	(cgraph_analyze_functions): Use node->analyzed
+	(cgraph_mark_functions_to_output): Likewise.
+	(cgraph_expand_function): All functions can be released after
+	expanding.
+	(cgraph_optimize): Use gimple_has_body_p.
+	* ipa-inline.c (cgraph_clone_inlined_nodes): Use analyzed flag.
+	(cgraph_decide_inlining_incrementally): Likewise.
+	(inline_transform): Inline transform.
+	* tree-inline.c (initialize_cfun): Do now shallow copy structure;
+	copy fields needed.
+	(inlinable_function_p): Drop gimple_body check.
+	(expand_call_inline): Use gimple_has_body_p.
+	* gimple.c (gimple_has_body_p): New.
+	* gimple.h (gimple_has_body_p): Add prototype.
+	* tree-cfg.c (execute_build_cfg): Remove gimple_body.
+	(dump_function_to_file): Use gimple_has_body_p check.
+
+2008-09-03  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/37346
+	* gimple.h (gimple_has_substatements): GIMPLE_OMP_CRITICAL has
+	substatements.
+	* tree-inline.c (remap_gimple_stmt): Handle GIMPLE_OMP_CRITICAL.
+
+2008-09-03  Bernd Schmidt  <bernd.schmidt@analog.com>
+
+	From Michael Frysinger  <michael.frysinger@analog.com>
+	* config/bfin/bfin.c (bfin_cpus[]): Add 0.1 for bf522, bf523, bf524,
+	bf525, bf526, bf527, bf542, bf544, bf547, bf548, and bf549.  Add 0.2
+	for bf538.
+
+2008-09-03  Hari Sandanagobalane  <hariharan@picochip.com>
+
+	Add picoChip port.
+	* doc/extend.texi: Document picoChip builtin functions.
+	* doc/invoke.texi: Document picoChip options.
+	* doc/contrib.texi: Add picoChip contribution.
+	* doc/md.texi: Document picoChip constraints.
+	* config.gcc: Add picochip-*-*.
+	* config/picochip/: Add new port.
+
 2008-09-03  Richard Guenther  <rguenther@suse.de>
 
 	PR tree-optimization/37328

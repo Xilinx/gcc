@@ -2843,7 +2843,8 @@ AC_DEFUN([GLIBCXX_CHECK_GTHREADS], [
 
   AC_TRY_COMPILE([#include "gthr.h"],
     [
-     	#ifndef __GTHREADS_CXX0X
+     	#if (!defined(__GTHREADS_CXX0X) || !defined(_POSIX_TIMEOUTS) \
+	     || _POSIX_TIMEOUTS <= 0)
 	#error
 	#endif
     ], [ac_has_gthreads=yes], [ac_has_gthreads=no])
