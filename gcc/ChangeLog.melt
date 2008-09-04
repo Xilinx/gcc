@@ -1,6 +1,12 @@
 2008-09-03  Basile Starynkevitch  <basile@starynkevitch.net>
+	compiler probe better.
+	* compiler-probe.c (added_infopoint_display_gimple): more
+	debugging & call
+	gimple_starting_displayer. (add_infopoint_bodyseq) more debugging
+	& changed displyed title.
+2008-09-03  Basile Starynkevitch  <basile@starynkevitch.net>
 	compiler probe still buggy!
-	* compiler_probe (display_tree, display_gimple)
+	* compiler-probe.c (display_tree, display_gimple)
 	(gimple_starting_displayer, tree_starting_displayer)
 	(tree_ending_displayer, add_infopoint_basic_block): more debug
 	print..
@@ -18,7 +24,7 @@
 	compiler probe still buggy!
 	* cfg.c (check_bb_profile): Added return if cfun is null.
 	* gimple-pretty-print.c (gimple_dump_bb_buff): Don't dump phi nodes when none.
-	* compiler_probe (bb_starting_displayer): More robust, and more debugprintf...
+	* compiler_probe.c (bb_starting_displayer): More robust, and more debugprintf...
 	(pass_compiler_probe) requirements are only PROP_cfg.
 	* passes.c (init_optimization_passes): moved pass_compiler_probe.
 

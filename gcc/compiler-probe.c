@@ -2167,18 +2167,23 @@ added_infopoint_display_gimple (gimple g, const char *dmesg)
 {
   int frk = 0, lin = 0, infrk = 0;
   comprobe_ix_t trix = 0;
+  debugeprintf("added_infopoint_display_gimple g %p dmesg %s", (void*)g, dmesg);
   if (!g)
     return 0;
   frk = comprobe_file_rank_of_gimple (g, &lin);
+  debugeprintf("added_infopoint_display_gimple frk%d lin %d", frk, lin);
   if (frk > 0 && lin > 0)
     {
       trix = comprobe_unique_index_of_gimple (g);
+      debugeprintf("added_infopoint_display_gimple trix %d", (int)trix);
       gcc_assert (trix > 2);
       infrk = comprobe_infopoint_rank (frk, lin);
-      comprobe_infopoint_add_display (infrk, tree_starting_displayer, dmesg,
+      comprobe_infopoint_add_display (infrk, gimple_starting_displayer, dmesg,
 				      (HOST_WIDE_INT) trix);
+      debugeprintf("added_infopoint_display_gimple infrk %d", (int)infrk);
       return infrk;
     };
+  debugeprintf("added_infopoint_display_gimple gives 0");
   return 0;
 }
 
@@ -2213,8 +2218,9 @@ add_infopoint_bodyseq (gimple_seq sq)
 	  filrk = comprobe_file_rank (filename);
 	  infrk = comprobe_infopoint_rank (filrk, lineno);
 	  memset (titbuf, 0, sizeof (titbuf));
-	  snprintf (titbuf, sizeof (titbuf) - 1, "%d-th gimple stmt", rk);
+	  snprintf (titbuf, sizeof (titbuf) - 1, "%d-th gimple body stmt", rk);
 	  stix = comprobe_unique_index_of_gimple (stmt);
+	  debugeprintf ("add_infopoint_bodyseq stix=%d", (int)stix);
 	  gcc_assert (stix > 2);
 	  comprobe_infopoint_add_display
 	    (infrk, gimple_starting_displayer, titbuf, (HOST_WIDE_INT) stix);
@@ -2319,13 +2325,13 @@ add_infopoint_basic_block (basic_block bb)
 	      bbgotpos = true;
 	      memset (msgbuf, 0, sizeof (msgbuf));
 	      snprintf (msgbuf,
-			sizeof (msgbuf) - 1, "start bb#%d", bb->index);
+			sizeof (msgbuf) - 1, "start bb ix%d #%d", bbix, bb->index);
 	      comprobe_infopoint_add_display
 		(infrk, bb_starting_displayer, msgbuf, (HOST_WIDE_INT) bbix);
 	    };
 	  memset (msgbuf, 0, sizeof (msgbuf));
 	  snprintf (msgbuf,
-		    sizeof (msgbuf) - 1, "stmt#%d bb#%d", stmtcnt, bb->index);
+		    sizeof (msgbuf) - 1, "stmt#%d bbix%d", stmtcnt, bbix);
 	  (void) added_infopoint_display_gimple (stmt, msgbuf);
 	}
       else
