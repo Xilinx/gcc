@@ -2104,7 +2104,7 @@ comprobe_get_gimple_position (gimple g, char **pfilename, int *plineno,
 }
 
 bool
-comprobe_get_tree_position (tree t, char **pfilename, int *plineno, int end)
+comprobe_get_tree_position (tree t, char **pfilename, int *plineno, int end ATTRIBUTE_UNUSED)
 {
   location_t loc = 0;
   if (!t)
@@ -2183,7 +2183,7 @@ added_infopoint_display_gimple (gimple g, const char *dmesg)
       debugeprintf("added_infopoint_display_gimple infrk %d", (int)infrk);
       return infrk;
     };
-  debugeprintf("added_infopoint_display_gimple gives 0");
+  debugeprintf("added_infopoint_display_gimple gives %d", 0);
   return 0;
 }
 
@@ -2191,7 +2191,7 @@ added_infopoint_display_gimple (gimple g, const char *dmesg)
 static void
 add_infopoint_bodyseq (gimple_seq sq)
 {
-  gimple_stmt_iterator gsi = { };
+  gimple_stmt_iterator gsi = { 0 };
   int rk = 0;
   bool gotpos = false;
   char *filename = 0;
@@ -2325,13 +2325,13 @@ add_infopoint_basic_block (basic_block bb)
 	      bbgotpos = true;
 	      memset (msgbuf, 0, sizeof (msgbuf));
 	      snprintf (msgbuf,
-			sizeof (msgbuf) - 1, "start bb ix%d #%d", bbix, bb->index);
+			sizeof (msgbuf) - 1, "start bb ix%d #%d", (int) bbix, bb->index);
 	      comprobe_infopoint_add_display
 		(infrk, bb_starting_displayer, msgbuf, (HOST_WIDE_INT) bbix);
 	    };
 	  memset (msgbuf, 0, sizeof (msgbuf));
 	  snprintf (msgbuf,
-		    sizeof (msgbuf) - 1, "stmt#%d bbix%d", stmtcnt, bbix);
+		    sizeof (msgbuf) - 1, "stmt#%d bbix%d", stmtcnt, (int) bbix);
 	  (void) added_infopoint_display_gimple (stmt, msgbuf);
 	}
       else

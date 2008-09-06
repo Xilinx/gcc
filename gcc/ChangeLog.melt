@@ -1,4 +1,8 @@
 2008-09-06  Basile Starynkevitch  <basile@starynkevitch.net>
+	* compiler-probe (comprobe_get_gimple_position)
+	(added_infopoint_display_gimple): added (int) casts.
+
+2008-09-06  Basile Starynkevitch  <basile@starynkevitch.net>
 	adding prettyprinting thru a routine
 	* pretty-print.h (output_buffer): renamed stream field as
 	bufstream.  added buflushroutine & buflushdata fields.
