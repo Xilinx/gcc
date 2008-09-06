@@ -247,6 +247,9 @@
    (UNSPEC_LOONGSON_ALU2_TURN_ENABLED_INSN   531)
    (UNSPEC_LOONGSON_FALU1_TURN_ENABLED_INSN  532)
    (UNSPEC_LOONGSON_FALU2_TURN_ENABLED_INSN  533)
+
+   (UNSPEC_MIPS_CACHE		600)
+   (UNSPEC_R10K_CACHE_BARRIER	601)
   ]
 )
 
@@ -771,6 +774,10 @@
 ;; This code iterator allows signed and unsigned widening multiplications
 ;; to use the same template.
 (define_code_iterator any_extend [sign_extend zero_extend])
+
+;; This code iterator allows the two right shift instructions to be
+;; generated from the same template.
+(define_code_iterator any_shiftrt [ashiftrt lshiftrt])
 
 ;; This code iterator allows the three shift instructions to be generated
 ;; from the same template.
@@ -2683,17 +2690,17 @@
 
 ;; Combiner patterns to optimize shift/truncate combinations.
 
-(define_insn ""
+(define_insn "*ashr_trunc<mode>"
   [(set (match_operand:SUBDI 0 "register_operand" "=d")
         (truncate:SUBDI
 	  (ashiftrt:DI (match_operand:DI 1 "register_operand" "d")
 		       (match_operand:DI 2 "const_arith_operand" ""))))]
-  "TARGET_64BIT && !TARGET_MIPS16 && INTVAL (operands[2]) >= 32"
+  "TARGET_64BIT && !TARGET_MIPS16 && IN_RANGE (INTVAL (operands[2]), 32, 63)"
   "dsra\t%0,%1,%2"
   [(set_attr "type" "shift")
-   (set_attr "mode" "SI")])
+   (set_attr "mode" "<MODE>")])
 
-(define_insn ""
+(define_insn "*lshr32_trunc<mode>"
   [(set (match_operand:SUBDI 0 "register_operand" "=d")
         (truncate:SUBDI
 	  (lshiftrt:DI (match_operand:DI 1 "register_operand" "d")
@@ -2701,8 +2708,19 @@
   "TARGET_64BIT && !TARGET_MIPS16"
   "dsra\t%0,%1,32"
   [(set_attr "type" "shift")
-   (set_attr "mode" "SI")])
+   (set_attr "mode" "<MODE>")])
 
+;; Logical shift by 32 or more results in proper SI values so
+;; truncation is removed by the middle end.
+(define_insn "*<optab>_trunc<mode>_exts"
+  [(set (match_operand:SUBDI 0 "register_operand" "=d")
+        (truncate:SUBDI
+	 (any_shiftrt:DI (match_operand:DI 1 "register_operand" "d")
+			 (match_operand:DI 2 "const_arith_operand" ""))))]
+  "ISA_HAS_EXTS && TARGET_64BIT && UINTVAL (operands[2]) < 32"
+  "exts\t%0,%1,%2,31"
+  [(set_attr "type" "arith")
+   (set_attr "mode" "<MODE>")])
 
 ;; Combiner patterns for truncate/sign_extend combinations.  The SI versions
 ;; use the shift/truncate patterns above.
@@ -3353,24 +3371,46 @@
 
 (define_expand "extv"
   [(set (match_operand 0 "register_operand")
-	(sign_extract (match_operand:QI 1 "memory_operand")
-		      (match_operand 2 "immediate_operand")
-		      (match_operand 3 "immediate_operand")))]
+	(sign_extract (match_operand 1 "nonimmediate_operand")
+		      (match_operand 2 "const_int_operand")
+		      (match_operand 3 "const_int_operand")))]
   "!TARGET_MIPS16"
 {
   if (mips_expand_ext_as_unaligned_load (operands[0], operands[1],
 					 INTVAL (operands[2]),
 					 INTVAL (operands[3])))
     DONE;
+  else if (register_operand (operands[1], GET_MODE (operands[0]))
+	   && ISA_HAS_EXTS && UINTVAL (operands[2]) <= 32)
+    {
+      if (GET_MODE (operands[0]) == DImode)
+	emit_insn (gen_extvdi (operands[0], operands[1], operands[2],
+			       operands[3]));
+      else
+	emit_insn (gen_extvsi (operands[0], operands[1], operands[2],
+			       operands[3]));
+      DONE;
+    }
   else
     FAIL;
 })
 
+(define_insn "extv<mode>"
+  [(set (match_operand:GPR 0 "register_operand" "=d")
+        (sign_extract:GPR (match_operand:GPR 1 "register_operand" "d")
+			  (match_operand 2 "const_int_operand" "")
+			  (match_operand 3 "const_int_operand" "")))]
+  "ISA_HAS_EXTS && UINTVAL (operands[2]) <= 32"
+  "exts\t%0,%1,%3,%m2"
+  [(set_attr "type"     "arith")
+   (set_attr "mode"     "<MODE>")])
+
+
 (define_expand "extzv"
   [(set (match_operand 0 "register_operand")
 	(zero_extract (match_operand 1 "nonimmediate_operand")
-		      (match_operand 2 "immediate_operand")
-		      (match_operand 3 "immediate_operand")))]
+		      (match_operand 2 "const_int_operand")
+		      (match_operand 3 "const_int_operand")))]
   "!TARGET_MIPS16"
 {
   if (mips_expand_ext_as_unaligned_load (operands[0], operands[1],
@@ -3395,13 +3435,24 @@
 (define_insn "extzv<mode>"
   [(set (match_operand:GPR 0 "register_operand" "=d")
 	(zero_extract:GPR (match_operand:GPR 1 "register_operand" "d")
-			  (match_operand:SI 2 "immediate_operand" "I")
-			  (match_operand:SI 3 "immediate_operand" "I")))]
+			  (match_operand 2 "const_int_operand" "")
+			  (match_operand 3 "const_int_operand" "")))]
   "mips_use_ins_ext_p (operands[1], INTVAL (operands[2]),
 		       INTVAL (operands[3]))"
   "<d>ext\t%0,%1,%3,%2"
   [(set_attr "type"	"arith")
    (set_attr "mode"	"<MODE>")])
+
+(define_insn "*extzv_trunc<mode>_exts"
+  [(set (match_operand:GPR 0 "register_operand" "=d")
+        (truncate:GPR
+	 (zero_extract:DI (match_operand:DI 1 "register_operand" "d")
+			  (match_operand 2 "const_int_operand" "")
+			  (match_operand 3 "const_int_operand" ""))))]
+  "ISA_HAS_EXTS && TARGET_64BIT && IN_RANGE (INTVAL (operands[2]), 32, 63)"
+  "exts\t%0,%1,%3,31"
+  [(set_attr "type"     "arith")
+   (set_attr "mode"     "<MODE>")])
 
 
 (define_expand "insv"
@@ -3440,6 +3491,28 @@
   "<d>ins\t%0,%z3,%2,%1"
   [(set_attr "type"	"arith")
    (set_attr "mode"	"<MODE>")])
+
+;; Combiner pattern for cins (clear and insert bit field).  We can
+;; implement mask-and-shift-left operation with this.  Note that if
+;; the upper bit of the mask is set in an SImode operation, the mask
+;; itself will be sign-extended.  mask_low_and_shift_len will
+;; therefore be greater than our threshold of 32.
+
+(define_insn "*cins<mode>"
+  [(set (match_operand:GPR 0 "register_operand" "=d")
+	(and:GPR
+	 (ashift:GPR (match_operand:GPR 1 "register_operand" "d")
+		     (match_operand:GPR 2 "const_int_operand" ""))
+	 (match_operand:GPR 3 "const_int_operand" "")))]
+  "ISA_HAS_CINS
+   && mask_low_and_shift_p (<MODE>mode, operands[3], operands[2], 32)"
+{
+  operands[3] =
+    GEN_INT (mask_low_and_shift_len (<MODE>mode, operands[3], operands[2]));
+  return "cins\t%0,%1,%2,%m3";
+}
+  [(set_attr "type"     "shift")
+   (set_attr "mode"     "<MODE>")])
 
 ;; Unaligned word moves generated by the bit field patterns.
 ;;
@@ -4652,6 +4725,25 @@
 }
   [(set_attr "length" "20")])
 
+;; Cache operations for R4000-style caches.
+(define_insn "mips_cache"
+  [(set (mem:BLK (scratch))
+	(unspec:BLK [(match_operand:SI 0 "const_int_operand")
+		     (match_operand:QI 1 "address_operand" "p")]
+		    UNSPEC_MIPS_CACHE))]
+  "ISA_HAS_CACHE"
+  "cache\t%X0,%a1")
+
+;; Similar, but with the operands hard-coded to an R10K cache barrier
+;; operation.  We keep the pattern distinct so that we can identify
+;; cache operations inserted by -mr10k-cache-barrier=, and so that
+;; the operation is never inserted into a delay slot.
+(define_insn "r10k_cache_barrier"
+  [(set (mem:BLK (scratch))
+	(unspec:BLK [(const_int 0)] UNSPEC_R10K_CACHE_BARRIER))]
+  "ISA_HAS_CACHE"
+  "cache\t0x14,0(%$)"
+  [(set_attr "can_delay" "no")])
 
 ;; Block moves, see mips.c for more details.
 ;; Argument 0 is the destination
@@ -5130,21 +5222,34 @@
   ""
   { if (mips_expand_scc (EQ, operands[0])) DONE; else FAIL; })
 
-(define_insn "*seq_<GPR:mode><GPR2:mode>"
+(define_insn "*seq_zero_<GPR:mode><GPR2:mode>"
   [(set (match_operand:GPR2 0 "register_operand" "=d")
 	(eq:GPR2 (match_operand:GPR 1 "register_operand" "d")
 		 (const_int 0)))]
-  "!TARGET_MIPS16"
+  "!TARGET_MIPS16 && !ISA_HAS_SEQ_SNE"
   "sltu\t%0,%1,1"
   [(set_attr "type" "slt")
    (set_attr "mode" "<GPR:MODE>")])
 
-(define_insn "*seq_<GPR:mode><GPR2:mode>_mips16"
+(define_insn "*seq_zero_<GPR:mode><GPR2:mode>_mips16"
   [(set (match_operand:GPR2 0 "register_operand" "=t")
 	(eq:GPR2 (match_operand:GPR 1 "register_operand" "d")
 		 (const_int 0)))]
-  "TARGET_MIPS16"
+  "TARGET_MIPS16 && !ISA_HAS_SEQ_SNE"
   "sltu\t%1,1"
+  [(set_attr "type" "slt")
+   (set_attr "mode" "<GPR:MODE>")])
+
+;; Generate sltiu unless using seq results in better code.
+(define_insn "*seq_<GPR:mode><GPR2:mode>_seq"
+  [(set (match_operand:GPR2 0 "register_operand" "=d,d,d")
+	(eq:GPR2 (match_operand:GPR 1 "register_operand" "%d,d,d")
+		 (match_operand:GPR 2 "reg_imm10_operand" "d,J,YB")))]
+  "ISA_HAS_SEQ_SNE"
+  "@
+   seq\t%0,%1,%2
+   sltiu\t%0,%1,1
+   seqi\t%0,%1,%2"
   [(set_attr "type" "slt")
    (set_attr "mode" "<GPR:MODE>")])
 
@@ -5158,12 +5263,25 @@
   "!TARGET_MIPS16"
   { if (mips_expand_scc (NE, operands[0])) DONE; else FAIL; })
 
-(define_insn "*sne_<GPR:mode><GPR2:mode>"
+(define_insn "*sne_zero_<GPR:mode><GPR2:mode>"
   [(set (match_operand:GPR2 0 "register_operand" "=d")
 	(ne:GPR2 (match_operand:GPR 1 "register_operand" "d")
 		 (const_int 0)))]
-  "!TARGET_MIPS16"
+  "!TARGET_MIPS16 && !ISA_HAS_SEQ_SNE"
   "sltu\t%0,%.,%1"
+  [(set_attr "type" "slt")
+   (set_attr "mode" "<GPR:MODE>")])
+
+;; Generate sltu unless using sne results in better code.
+(define_insn "*sne_<GPR:mode><GPR2:mode>_sne"
+  [(set (match_operand:GPR2 0 "register_operand" "=d,d,d")
+	(ne:GPR2 (match_operand:GPR 1 "register_operand" "%d,d,d")
+		 (match_operand:GPR 2 "reg_imm10_operand" "d,J,YB")))]
+  "ISA_HAS_SEQ_SNE"
+  "@
+   sne\t%0,%1,%2
+   sltu\t%0,%.,%1
+   snei\t%0,%1,%2"
   [(set_attr "type" "slt")
    (set_attr "mode" "<GPR:MODE>")])
 

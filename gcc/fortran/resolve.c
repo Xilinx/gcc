@@ -994,9 +994,11 @@ check_assumed_size_reference (gfc_symbol *sym, gfc_expr *e)
   if (need_full_assumed_size || !(sym->as && sym->as->type == AS_ASSUMED_SIZE))
       return false;
 
+  /* FIXME: The comparison "e->ref->u.ar.type == AR_FULL" is wrong.
+     What should it be?  */
   if ((e->ref->u.ar.end[e->ref->u.ar.as->rank - 1] == NULL)
 	  && (e->ref->u.ar.as->type == AS_ASSUMED_SIZE)
-	       && (e->ref->u.ar.type == DIMEN_ELEMENT))
+	       && (e->ref->u.ar.type == AR_FULL))
     {
       gfc_error ("The upper bound in the last dimension must "
 		 "appear in the reference to the assumed size "
@@ -1070,7 +1072,7 @@ resolve_actual_arglist (gfc_actual_arglist *arg, procedure_type ptype)
 	  continue;
 	}
 
-      if (e->expr_type == FL_VARIABLE && e->symtree->ambiguous)
+      if (e->expr_type == EXPR_VARIABLE && e->symtree->ambiguous)
 	{
 	  gfc_error ("'%s' at %L is ambiguous", e->symtree->n.sym->name,
 		     &e->where);
@@ -1080,7 +1082,7 @@ resolve_actual_arglist (gfc_actual_arglist *arg, procedure_type ptype)
       if (e->ts.type != BT_PROCEDURE)
 	{
 	  save_need_full_assumed_size = need_full_assumed_size;
-	  if (e->expr_type != FL_VARIABLE)
+	  if (e->expr_type != EXPR_VARIABLE)
 	    need_full_assumed_size = 0;
 	  if (gfc_resolve_expr (e) != SUCCESS)
 	    return FAILURE;
@@ -1224,7 +1226,7 @@ resolve_actual_arglist (gfc_actual_arglist *arg, procedure_type ptype)
 	 is a  variable instead, it needs to be resolved as it was not
 	 done at the beginning of this function.  */
       save_need_full_assumed_size = need_full_assumed_size;
-      if (e->expr_type != FL_VARIABLE)
+      if (e->expr_type != EXPR_VARIABLE)
 	need_full_assumed_size = 0;
       if (gfc_resolve_expr (e) != SUCCESS)
 	return FAILURE;
@@ -2202,6 +2204,16 @@ resolve_function (gfc_expr *expr)
   if (expr->symtree)
     sym = expr->symtree->n.sym;
 
+  if (sym && sym->attr.intrinsic
+      && !gfc_find_function (sym->name)
+      && gfc_find_subroutine (sym->name)
+      && sym->attr.function)
+    {
+      gfc_error ("Intrinsic subroutine '%s' used as "
+		  "a function at %L", sym->name, &expr->where);
+      return FAILURE;
+    }
+
   if (sym && sym->attr.flavor == FL_VARIABLE)
     {
       gfc_error ("'%s' at %L is not a function", sym->name, &expr->where);
@@ -2324,15 +2336,16 @@ resolve_function (gfc_expr *expr)
 	 assumed size array argument.  UBOUND and SIZE have to be
 	 excluded from the check if the second argument is anything
 	 than a constant.  */
-      int inquiry;
-      inquiry = GENERIC_ID == GFC_ISYM_UBOUND
-		  || GENERIC_ID == GFC_ISYM_SIZE;
 
       for (arg = expr->value.function.actual; arg; arg = arg->next)
 	{
-	  if (inquiry && arg->next != NULL && arg->next->expr)
+	  if ((GENERIC_ID == GFC_ISYM_UBOUND || GENERIC_ID == GFC_ISYM_SIZE)
+	      && arg->next != NULL && arg->next->expr)
 	    {
 	      if (arg->next->expr->expr_type != EXPR_CONSTANT)
+		break;
+
+	      if (arg->next->name && strncmp(arg->next->name, "kind", 4) == 0)
 		break;
 
 	      if ((int)mpz_get_si (arg->next->expr->value.integer)
@@ -10114,8 +10127,7 @@ resolve_types (gfc_namespace *ns)
   gfc_charlen *cl;
   gfc_data *d;
   gfc_equiv *eq;
-
-  gfc_current_ns = ns;
+  gfc_namespace* old_ns = gfc_current_ns;
 
   /* Check that all IMPLICIT types are ok.  */
   if (!ns->seen_implicit_none)
@@ -10128,6 +10140,8 @@ resolve_types (gfc_namespace *ns)
 				      NULL) == FAILURE)
 	  return;
     }
+
+  gfc_current_ns = ns;
 
   resolve_entries (ns);
 
@@ -10183,6 +10197,8 @@ resolve_types (gfc_namespace *ns)
     warn_unused_fortran_label (ns->st_labels);
 
   gfc_resolve_uops (ns->uop_root);
+
+  gfc_current_ns = old_ns;
 }
 
 

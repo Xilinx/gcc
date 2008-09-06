@@ -3194,7 +3194,6 @@ save_symbol (gfc_symbol *sym)
 void
 gfc_save_all (gfc_namespace *ns)
 {
-
   gfc_traverse_ns (ns, save_symbol);
 }
 
@@ -3922,7 +3921,7 @@ generate_isocbinding_symbol (const char *mod_name, iso_c_binding_symbol s,
   char comp_name[(GFC_MAX_SYMBOL_LEN * 2) + 1];
   int index;
 
-  if (gfc_notification_std (std_for_isocbinding_symbol (s)) == FAILURE)
+  if (gfc_notification_std (std_for_isocbinding_symbol (s)) == ERROR)
     return;
   tmp_symtree = gfc_find_symtree (gfc_current_ns->sym_root, name);
 

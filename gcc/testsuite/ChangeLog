@@ -1,3 +1,96 @@
+2008-09-06  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/36153
+	* gfortran.dg/size_kind.f90: New test.
+
+2008-09-06  Steven G. Kargl  <kargls@comcast.net>
+
+	PR fortran/33229
+	* gfortran.dg/intrinsic_subroutine.f90: New test.
+
+2008-09-06  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* gcc.target/mips/mips.exp (dg-mips-options): Make
+	-mr10k-cache-barrier=* imply -mips3 or above.
+	* gcc.target/mips/cache-1.c: New test.
+	* gcc.target/mips/r10k-cache-barrier-1.c: Likewise.
+	* gcc.target/mips/r10k-cache-barrier-2.c: Likewise.
+	* gcc.target/mips/r10k-cache-barrier-3.c: Likewise.
+	* gcc.target/mips/r10k-cache-barrier-4.c: Likewise.
+	* gcc.target/mips/r10k-cache-barrier-5.c: Likewise.
+	* gcc.target/mips/r10k-cache-barrier-6.c: Likewise.
+	* gcc.target/mips/r10k-cache-barrier-7.c: Likewise.
+	* gcc.target/mips/r10k-cache-barrier-8.c: Likewise.
+	* gcc.target/mips/r10k-cache-barrier-9.c: Likewise.
+	* gcc.target/mips/r10k-cache-barrier-10.c: Likewise.
+	* gcc.target/mips/r10k-cache-barrier-11.c: Likewise.
+	* gcc.target/mips/r10k-cache-barrier-12.c: Likewise.
+	* gcc.target/mips/r10k-cache-barrier-13.c: Likewise.
+	* gcc.target/mips/r10k-cache-barrier-14.c: Likewise.
+	* gcc.target/mips/r10k-cache-barrier-15.c: Likewise.
+
+2008-09-05  Daniel Kraft  <d@domob.eu>
+
+	PR fortran/35837
+	* gfortran.dg/save_3.f90: New test.
+
+2008-09-05  Douglas Gregor  <doug.gregor@gmail.com>
+
+	PR c++/37342
+	* g++.dg/other/canon-37342.C: New.
+	
+2008-09-05  Joseph Myers  <joseph@codesourcery.com>
+
+	* gcc.c-torture/compile/20080903-1.c: New test.
+
+2008-09-05  Daniel Kraft  <d@domob.eu>
+
+	PR fortran/36746
+	* gfortran.dg/implicit_derived_type_1.f90: New test.
+	* gfortran.dg/used_before_typed_5.f90: New test.
+
+2008-09-04  Jan Hubicka  <jh@suse.cz>
+
+	* gcc.target/i386/cold-attribute-1.c: Update testcase.
+
+2008-09-04  Ian Lance Taylor  <iant@google.com>
+
+	* g++.dg/init/const7.C: New test.
+
+2008-09-04  Adam Nemet  <anemet@caviumnetworks.com>
+
+	* gcc.target/mips/seq-1.c: New test.
+	* gcc.target/mips/octeon-seq-1.c: New test.
+	* gcc.target/mips/octeon-seq-2.c: New test.
+	* gcc.target/mips/octeon-seq-3.c: New test.
+	* gcc.target/mips/octeon-seq-4.c: New test.
+	* gcc.target/mips/scc-2.c: Also pass on sltiu.
+	* gcc.target/mips/scc-3.c: Likewise.
+
+2008-09-04  Adam Nemet  <anemet@caviumnetworks.com>
+
+	* gcc.target/mips/truncate-2.c: New test.
+	* gcc.target/mips/octeon-exts-1.c: New test.
+	* gcc.target/mips/octeon-exts-2.c: New test.
+	* gcc.target/mips/octeon-exts-3.c: New test.
+	* gcc.target/mips/octeon-exts-4.c: New test.
+
+2008-09-04  Adam Nemet  <anemet@caviumnetworks.com>
+
+	* gcc.target/mips/octeon-cins-1.c: New test.
+	* gcc.target/mips/octeon-cins-2.c: New test.
+
+2008-09-04  Richard Guenther  <rguenther@suse.de>
+
+	* gfortran.dg/internal_pack_4.f90: Adjust pattern.
+
+2008-09-04  Daniel Kraft  <d@domob.eu>
+
+	PR fortran/37099
+	* gfortran.dg/string_compare_1.f90: New text.
+	* gfortran.dg/string_compare_2.f90: New text.
+	* gfortran.dg/string_compare_3.f90: New text.
+
 2008-09-04  H.J. Lu  <hongjiu.lu@intel.com>
 
 	PR rtl-optimization/37243
@@ -130,7 +223,7 @@
 2008-09-02  Victor Kaplansky  <victork@il.ibm.com>
 
 	* gcc.dg/fastmath-2.c: New.
-    
+
 2008-09-02  Jakub Jelinek  <jakub@redhat.com>
 
 	PR tree-optimization/37095
@@ -1716,7 +1809,7 @@
 	* gfortran.dg/cshift_char_3.f90:  New test case.
 	* gfortran.dg/cshift_nan_1.f90:  New test case.
 
-2008-08-14  Rafael Avila de Espindola  <espindola@google.com>
+2008-08-14  Rafael Ávila de Espíndola  <espindola@google.com>
 
 	* gcc.dg/visibility-14.c: New test.
 	* gcc.dg/visibility-15.c: New test.
@@ -2438,7 +2531,7 @@
 	PR tree-optimization/36967
 	* gfortran.dg/pr36967.f: New testcase.
 
-2008-07-30  Rafael Avila de Espindola  <espindola@google.com>
+2008-07-30  Rafael Ávila de Espíndola  <espindola@google.com>
 
 	* gcc.dg/visibility-14.c: New test.
 	* gcc.dg/visibility-15.c: New test.
@@ -4132,7 +4225,7 @@
 	dg-additional-sources.
 	(profopt-execute): Handle additional sources.
 
-2008-05-28  Rafael Espindola  <espindola@google.com>
+2008-05-28  Rafael Espíndola  <espindola@google.com>
 
 	* gcc.dg/20080528-1.c: New test.
 
@@ -4269,7 +4362,7 @@
 	* g++.dg/template/inline1.C: For the not-defined symbol, use the
 	pattern from g++.dg/template/qualttp17.C.
 
-2008-05-23  Rafael Espindola  <espindola@google.com>
+2008-05-23  Rafael Espíndola  <espindola@google.com>
 
 	* gcc.c-torture/compile/20080522-1.c: Move to gcc.dg.
 	* gcc.dg/20080522-1.c: Moved from gcc.c-torture.
@@ -4307,7 +4400,7 @@
 	* gfortran.dg/cshift_large_1.f90:  New test.
 	* gfortran.dg/eoshift_large_1.f90:  New test.
 
-2008-05-22  Rafael Espindola  <espindola@google.com>
+2008-05-22  Rafael Espíndola  <espindola@google.com>
 
 	* gcc.c-torture/compile/20080522-1.c: New testcase.
 
@@ -5072,7 +5165,7 @@
 	PR fortran/36162
 	* gfortran.dg/module_widestring_1.f90: New test.
 
-2008-05-08  Rafael Espindola  <espindola@google.com>
+2008-05-08  Rafael Espíndola  <espindola@google.com>
 
 	* gcc.dg/vect/vect-111.c: Rename to no-trapping-math-vect-111.c
 	* gcc.dg/vect/vect-ifcvt-11.c: Rename to no-trapping-math-vect-ifcvt-11.c
@@ -6011,7 +6104,7 @@
 	PR fortran/35780
 	* gfortran.dg/simplify_argN_1.f90: New test.
 
-2008-04-06  Tobias Schl�ter  <tobi@gcc.gnu.org>
+2008-04-06  Tobias Schlüter  <tobi@gcc.gnu.org>
 
 	PR fortran/35832
 	* gfortran.dg/io_constraints_2.f90: Adapt to new error message.
@@ -7772,7 +7865,7 @@
 	* g++.dg/torture/pr35164-1.C: New testcase.
 	* g++.dg/torture/pr35164-2.C: Likewise.
 
-2008-02-15  Dominique d'Humieres  <dominiq@lps.ens.fr>
+2008-02-15  Dominique d'Humières  <dominiq@lps.ens.fr>
 
 	PR testsuite/35119
 	* g++.dg/template/spec35.C: Change the regular expressions

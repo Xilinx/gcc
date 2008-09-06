@@ -1,3 +1,295 @@
+2008-09-06  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* config/mips/mips.c (mips_function_ok_for_sibcall): Check for
+	DECL being null.
+
+2008-09-06  Richard Sandiford  <rdsandiford@goolemail.com>
+	    Peter Fuerst  <post@pfrst.de>
+
+	* doc/invoke.texi: Document -mr10k-cache-barrier=.
+	* doc/extend.texi: Document __builtin_mips_cache.
+	* config/mips/mips-ftypes.def: Add a (VOID, SI, CVPOINTER) entry.
+	* config/mips/mips.opt (mr10k-cache-barrier=): New option.
+	* config/mips/mips.h (TARGET_CPU_CPP_BUILTINS): Define
+	__GCC_HAVE_BUILTIN_MIPS_CACHE.
+	(TARGET_CACHE_BUILTIN, ISA_HAS_CACHE): New macros.
+	* config/mips/mips.c (mips_r10k_cache_barrier_setting): New enum.
+	(set_push_mips_isas): New variable.
+	(mips_r10k_cache_barrier): New variable.
+	(cache): New availability predicate.
+	(mips_builtins): Add an entry for __builtin_mips_cache.
+	(mips_build_cvpointer_type): New function.
+	(MIPS_ATYPE_CVPOINTER): New macro.
+	(mips_prepare_builtin_arg): Only use the insn's mode if the rtx's
+	mode is VOIDmode.
+	(r10k_simplified_address_p, r10k_simplify_address)
+	(r10k_uncached_address_p, r10k_safe_address_p)
+	(r10k_needs_protection_p_1, r10k_needs_protection_p_store)
+	(r10k_needs_protection_p_call, r10k_needs_protection_p)
+	(r10k_insert_cache_barriers): New functions.
+	(mips_reorg_process_insns): Delete cache barriers after a
+	branch-likely instruction.
+	(mips_reorg): Call r10k_insert_cache_barriers.
+	(mips_handle_option): Handle OPT_mr10k_cache_barrier_.
+	* config/mips/mips.md (UNSPEC_MIPS_CACHE): New constant.
+	(UNSPEC_R10K_CACHE_BARRIER): Likewise.
+	(mips_cache, r10k_cache_barrier): New define_insns.
+
+2008-09-06  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* ira-int.h (ira_zero_hard_reg_set, ira_one_hard_reg_set): Delete.
+	* ira-color.c (setup_allocno_left_conflicts_num): Use
+	hard_reg_set_equal_p instead of a comparison with
+	ira_zero_hard_reg_set.
+	* ira.c (setup_reg_subclasses): Likewise.
+	(setup_cover_and_important_classes): Likewise.
+	(setup_class_translate): Likewise.
+	(setup_reg_class_intersect_union): Likewise.
+	(ira_zero_hard_reg_set, ira_one_hard_reg_set): Delete.
+	(ira_init_once): Don't initialize them.
+
+2008-09-05  Vladimir Makarov  <vmakarov@redhat.com>
+
+	* doc/tm.texi (IRA_COVER_CLASSES): Fix a typo.
+
+2008-09-05  Vladimir Makarov  <vmakarov@redhat.com>
+
+	* ira-color.c (ira_fast_allocation): Permit global allocno
+	allocation.
+	
+2008-09-05  Trevor Smigiel <Trevor_Smigiel@playstation.sony.com>
+
+	Improved branch hints, safe hints, and scheduling.
+
+	* haifa-sched.c (sched_emit_insn) : Define.
+	* sched-int.h (sched_emit_insn) : Add prototype.
+	* doc/invoke.texi (-mdual-nops, -mhint-max-nops,
+	-mhint-max-distance -msafe-hints) : Document.
+	* config/spu/spu.c (spu_flag_var_tracking): New.
+	(TARGET_SCHED_INIT_GLOBAL, TARGET_SCHED_INIT,
+	TARGET_SCHED_REORDER, TARGET_SCHED_REORDER2,
+	TARGET_ASM_FILE_START): Define.
+	(TARGET_SCHED_ADJUST_PRIORITY): Remove.
+	(STOP_HINT_P, HINTED_P, SCHED_ON_EVEN_P): Define.
+	(spu_emit_branch_hint): Add blocks argument.
+	(insert_branch_hints, insert_nops): Remove.
+	(pad_bb, insert_hbrp_for_ilb_runout, insert_hbrp, in_spu_reorg,
+	uses_ls_unit, spu_sched_init_global, spu_sched_init,
+	spu_sched_reorder, asm_file_start): New functions.
+	(clock_var, spu_sched_length, pipe0_clock,
+	pipe1_clock, prev_clock_var, prev_priority,
+	spu_ls_first, prev_ls_clock): New static variables.
+	* config/spu/spu.h (TARGET_DEFAULT): Add MASK_SAFE_HINTS.
+	* config/spu.md (iprefetch): Add operand, make it clobber MEM.
+	(nopn_nv): Add a non-volatile version of nop.
+	* config/spu/spu.opt (-mdual-nops, -mhint-max-nops,
+	-mhint-max-distance, -msafe-hints): New options.
+
+2008-09-05  Janis Johnson  <janis187@us.ibm.com>
+	    Samuel Tardieu  <sam@rfc1149.net>
+
+	* opts.c (decode_options): Combine nested if statements.
+
+	PR target/37283
+	* opts.c (decode_options): Handle more relationships among
+	unit-at-a-time, toplevel-reorder, and section-anchors.
+
+2008-09-05  David Daney  <ddaney@avtrex.com>
+
+	* doc/install.texi (--enable-reduced-reflection): Document new option.
+
+2008-09-05  Bob Wilson  <bob.wilson@acm.org>
+
+	* config/xtensa/predicates.md (nonimmed_operand, mem_operand): Use
+	constantpool_mem_p.
+	(constantpool_operand): New.
+	(move_operand): Disallow sub-word modes for the constant pool.
+	* config/xtensa/xtensa.c (TARGET_SECONDARY_RELOAD): Define.
+	(xtensa_secondary_reload_class): Replace with....
+	(xtensa_secondary_reload): this function.  Remove SIGN_EXTEND check. 
+	Set icode for sub-word reloads from the constant pool.
+	* config/xtensa/xtensa.h (SECONDARY_INPUT_RELOAD_CLASS): Delete.
+	(SECONDARY_OUTPUT_RELOAD_CLASS): Delete.
+	* config/xtensa/xtensa.md (reload<mode>_literal): New.
+	* config/xtensa/xtensa-protos.h: Update prototypes.
+	
+2008-09-05  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/mips/mips.h (enum reg_class): Add FRAME_REGS.
+	(REG_CLASS_NAMES): Update.
+	(REG_CLASS_CONTENTS): Update.
+	* config/mips/mips.c (mips_regno_to_class): Use FRAME_REGS instead
+	of ALL_REGS for regs 77 and 78.
+	* function.c (instantiate_virtual_regs_in_insn): Assert that
+	return value of simplify_gen_subreg is not NULL.
+
+2008-09-05  Paolo Bonzini  <bonzini@gnu.org>
+
+	* emit-rtl.c (gen_rtvec): Rewrite not using gen_rtvec_v.
+	(gen_rtvec_v): Fix coding standards.
+
+2008-09-04  Jan Hubicka  <jh@suse.cz>
+
+	* i386.c (decide_alg): Be more conservative about optimizing for size.
+
+2008-09-04  Ian Lance Taylor  <iant@google.com>
+
+	* varasm.c (narrowing_initializer_constant_valid_p): New
+	static function.
+	(initializer_constant_valid_p): Call it.
+
+2008-09-04  Jeff Law  <law@redhat.com>
+
+	* fold-const.c (native_encode_real): Fix computation of WORDS.
+	(native_interpret_real): Likewise.
+
+2008-09-04  Janis Johnson  <janis187@us.ibm.com>
+
+	* config/rs6000/t-rs6000: Remove target gt-rs6000.h.
+
+2008-09-04  Vladimir Makarov  <vmakarov@redhat.com>
+
+	* ira-conflicts.c (process_regs_for_copy): Check insn to check
+	that the cost is already taken into account in ira-costs.c
+
+	* ira-int.h (ira_debug_copy, ira_debug_copies): New.
+
+	* ira-build.c (print_copy, print_copies, ira_debug_copy,
+	ira_debug_copies): New.
+	(ira_bulid): Call print_copies.
+	
+	* doc/tm.texi (IRA_COVER_CLASSES): Fix the description.
+	
+2008-09-04  Samuel Tardieu  <sam@rfc1149.net>
+
+	PR target/32783
+	* config/rs6000/rs6000.c (optimization_options): Remove check of
+	flag_toplevel_order.
+
+2008-09-04  Adam Nemet  <anemet@caviumnetworks.com>
+
+	* config/mips/mips.h (ISA_HAS_SEQ_SNE): New macro.
+	* config/mips/mips.c (mips_expand_scc): Also expand seq and sne if
+	second operand is a reg_imm10_operand.
+	* config/mips/mips.md (*seq_<GPR:mode><GPR2:mode>_seq,
+	*sne_<GPR:mode><GPR2:mode>_sne): New patterns.
+	(*seq_<GPR:mode><GPR2:mode>): Rename to
+	*seq_zero_<GPR:mode><GPR2:mode>.  Don't match if
+	ISA_HAS_SEQ_SNE.
+	(*seq_<GPR:mode><GPR2:mode>_mips16): Rename to
+	*seq_zero_<GPR:mode><GPR2:mode>_mip16.  Don't match if
+	ISA_HAS_SEQ_SNE.
+	(*sne_<GPR:mode><GPR2:mode>): Rename to
+	*sne_zero_<GPR:mode><GPR2:mode>.  Don't match if
+	ISA_HAS_SEQ_SNE.
+
+2008-09-04  Adam Nemet  <anemet@caviumnetworks.com>
+
+	* config/mips/mips.h (ISA_HAS_EXTS): New macro.
+	* config/mips/mips.md (*ashr_trunc<mode>): Name the pattern
+	combining an arithmetic right shift by more than 31 and a
+	trunction.  Don't match for out-of-range shift amounts.  Set
+	attribute mode to <MODE>.
+	(*lshr32_trunc<mode>): Name the pattern combining a logical right
+	shift by 32 and and a truncation.  Set attribute mode to <MODE>.
+	(*<optab>_trunc<mode>_exts): New pattern for truncated right
+	shifts by less than 32.
+	(extv): Change predicate on first operand to accept registers.
+	Change predicate of the other operands from immediate_operand to
+	const_int_operand.  Expand exts when source is a register.
+	(extzv): Change predicate of the constant operands from
+	immediate_operand to const_int_operand.
+	(extzv<mode>): Change predicate of the constant operands from
+	immediate_operand to const_int_operand and no constraint. Also
+	remove mode.
+	(*extzv_trunc<mode>_exts): New pattern.
+
+2008-09-04  Adam Nemet  <anemet@caviumnetworks.com>
+
+	* config/mips/mips.h (ISA_HAS_CINS): New macro.
+	* config/mips/mips-protos.h (mask_low_and_shift_p,
+	mask_low_and_shift_len): Declare.
+	* config/mips/mips.c (mask_low_and_shift_p,
+	mask_low_and_shift_len): New functions.
+	(mips_print_operand): Handle new operand prefix "m".
+	* config/mips/mips.md (*cins<mode>): New pattern.
+
+2008-09-04  Bernd Schmidt  <bernd.schmidt@analog.com>
+
+	* config/bfin/bfin.c (gen_one_bundle): Don't create new nops when
+	optimizing for size.
+
+2008-09-04  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* df-scan.c (df_get_entry_block_def_set): Add STACK_POINTER_REGNUM
+	regardless of epilogue_completed.
+
+2008-09-04  Vladimir Makarov  <vmakarov@redhat.com>
+
+	PR middle-end/37359
+	* ira-lives.c (process_bb_node_lives): Check setjmp.
+
+2008-09-04  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	PR middle-end/37243
+	* ira-build.c (form_loop_tree): Reverse BB walk.
+	(create_bb_allocnos): Likewise.
+	* ira-lives.c (make_regno_born_and_dead, regs_set): Delete.
+	(mark_reg_store): Rename to...
+	(mark_ref_live): ...this and take a df_ref argument instead of
+	note_stores arguments.  Assert that we have a register.
+	(mark_reg_clobber): Delete.
+	(def_conflicts_with_inputs_p): New function.
+	(mark_reg_conflicts): Delete.
+	(mark_reg_death): Rename to...
+	(mark_ref_dead): ...this and take a df_ref argument instead of
+	a register.  Assert that we have a register.
+	(process_bb_node_lives): Hoist frequency calculation out of
+	instruction walk.  Convert from a forwards scan to a backwards scan.
+	Use DF_REF_USES and DF_REF_DEFS instead of register notes and
+	note_stores.  Remove EH_RETURN_DATA_REGNO and regs_set handling.
+	(create_allocno_live_ranges): Don't create regs_set.
+
+2008-09-04  Ian Lance Taylor  <iant@google.com>
+
+	* rtl.h (LABEL_REF_NONLOCAL_P): Don't check for REG_LABEL_OPERAND
+	or REG_LABEL_TARGET.
+	* calls.c (emit_library_call_value_1): Use MEM_P rather than
+	comparing MODE with MEM.
+	* gimple.c (gimple_build_predict): Cast END_PREDICTORS before
+	comparing with GF_PREDICT_TAKEN.
+	(gimple_get_lhs): Change code to enum gimple_code.
+	(gimple_set_lhs): Likewise.
+	* ifcvt.c (noce_process_if_block): Correct GET_MODE to GET_CODE.
+	* omp-low.c (find_omp_clause): Change kind parameter to enum
+	omp_clause_code.
+	* tree-flow.h (find_omp_clause): Update declaration.
+	* regrename.c (clear_dead_regs): Change kind parameter to enum
+	reg_note.
+	* reload1.c (eliminate_regs_1): Use REG_NOTE_KIND rather than
+	GET_MODE.
+	* see.c (see_get_extension_data): Change return type to enum
+	entry_type.  Change UNKNOWN to NOT_RELEVANT, SIGN_EXTEND to
+	SIGNED_EXTENDED_DEF, ZERO_EXTEND to ZERO_EXTENDED_DEF.
+	(see_gen_normalized_extension): Change extension_code parameter to
+	enum entry_type.
+	(see_seek_pre_extension_expr): Change extension_code to enum
+	entry_type.
+	(see_merge_one_def_extension): Likewise.
+	(see_handle_relevant_defs): Likewise.
+	(see_handle_relevant_uses): Likewise.
+	(see_analyze_one_def): Likewise.
+	* tree-cfg.c (need_fake_edge_p): Compare gimple code with
+	GIMPLE_ASM rather than ASM_EXPR.
+	* tree-ssa-alias.c (is_escape_site): Compare gimple code with
+	GIMPLE_RETURN rather than RETURN_EXPR.
+	* tree-ssa-ccp.c (likely_value): Change code to enum gimple_code.
+	(evaluate_stmt): Likewise.
+	* tree-vect-analyze.c (vect_analyze_operations): Change relevance
+	to enum vect_relevant.
+	(vect_mark_stmts_to_be_vectorized): Change assertion to not
+	compare gimple codes with tree codes.
+
 2008-09-04  Paul Brook  <paul@codesourcery.com>
 
 	* config/arm/arm.c (arm_size_rtx_costs): Call cost function.
@@ -3463,7 +3755,7 @@
 	* passes.c (init_optimization_passes): Exchange store-ccp
 	with a ccp pass.
 
-2008-08-19  Rafael Espindola  <espindola@google.com>
+2008-08-19  Rafael Espíndola  <espindola@google.com>
 
 	* varasm.c (weak_decls): Move earlier in the file.
 	(assemble_external): Add weak decls to the weak_decls list.
@@ -5263,7 +5555,7 @@
 	PR ada/36554
 	* dwarf2out.c (is_subrange_type): Deal with BOOLEAN_TYPE.
 
-2008-07-30  Rafael Avila de Espindola  <espindola@google.com>
+2008-07-30  Rafael Ávila de Espíndola  <espindola@google.com>
 
 	PR 36974
 	* final.c (call_from_call_insn): Handle COND_EXEC.
@@ -5475,7 +5767,7 @@
 	* config/rs6000/rs6000.h (SLOW_UNALIGNED_ACCESS): Add clause for
 	vector modes.
 
-2008-07-30  Rafael Avila de Espindola  <espindola@google.com>
+2008-07-30  Rafael Ávila de Espíndola  <espindola@google.com>
 
 	* final.c (call_from_call_insn): New.
 	(final_scan_insn): Call assemble_external on FUNCTION_DECLs.
@@ -6591,7 +6883,7 @@
 	(TARGET_OPTION_PRINT): Ditto.
 	(TARGET_CAN_INLINE_P): Ditto.
 
-2008-07-22  Rafael Avila de Espindola  <espindola@google.com>
+2008-07-22  Rafael Ávila de Espíndola  <espindola@google.com>
 
 	* c-typeck.c (build_external_ref): Don't call assemble_external.
 	* final.c (output_operand): Call assemble_external.
@@ -6612,7 +6904,7 @@
 	highest magnitude if this is still less or equal to the true
 	quotient in magnitude.
 
-2008-07-21  Rafael Avila de Espindola  <espindola@google.com>
+2008-07-21  Rafael Ávila de Espíndola  <espindola@google.com>
 
 	* Makefile.in: Replace toplev.h with TOPLEV_H.
 	* c-decl.c (merge_decls): Don't set DECL_IN_SYSTEM_HEADER.
@@ -6914,7 +7206,7 @@
 	(m32c_legitimate_address_p): Handle "++rii" addresses created by
 	m32c_legitimize_reload_address.
 
-2007-07-16  Rafael Avila de Espindola  <espindola@google.com>
+2007-07-16  Rafael Ávila de Espíndola  <espindola@google.com>
 
 	* c-decl.c (merge_decls): Keep DECL_SOURCE_LOCATION and
 	DECL_IN_SYSTEM_HEADER in sync.
@@ -7004,7 +7296,7 @@
 
 	* emit-rtl.c (set_mem_attributes_minus_bitpos): Improve comment.
 
-2007-07-14  Rafael Avila de Espindola  <espindola@google.com>
+2007-07-14  Rafael Ávila de Espíndola  <espindola@google.com>
 
 	* c-decl.c (diagnose_mismatched_decls): Don't warn if TREE_NO_WARNING
 	is set.
@@ -11296,7 +11588,7 @@
 	Clear __gcov_indreict_call_callee variable to avoid misattribution
 	of the profile.
 
-2008-05-28  Rafael Espindola  <espindola@google.com>
+2008-05-28  Rafael Espíndola  <espindola@google.com>
 
 	* see.c (see_def_extension_not_merged): Use copy_rtx_if_shared to avoid
 	invalid sharing.
@@ -11714,7 +12006,7 @@
 	for A24 to PSImode.
 	(m32c_address_cost): Detail costs for indirect offsets.
 
-2008-05-23  Rafael Espindola  <espindola@google.com>
+2008-05-23  Rafael Espíndola  <espindola@google.com>
 
 	* see.c (see_get_extension_data): Don't use SUBREG_REG to test
 	if a node is a SUBREG.
@@ -11815,7 +12107,7 @@
 	* config/avr/avr.c (get_sequence_length): Add new function.
 	(expand_prologue, expand_epilogue): Remove duplicate code.
 
-2008-05-22  Rafael Espindola  <espindola@google.com>
+2008-05-22  Rafael Espíndola  <espindola@google.com>
 
 	* see.c (see_pre_insert_extensions): Use copy_rtx to avoid invalid rtx
 	sharing.
@@ -13107,7 +13399,7 @@
 	to one line.
 	* doc/invoke.texi (Wframe-larger-than=): Add more description.
 
-2008-05-08  Rafael Espindola  <espindola@google.com>
+2008-05-08  Rafael Espíndola  <espindola@google.com>
 
 	* tree-complex.c (expand_complex_div_wide): Don't create CONDs that
 	trap.
@@ -14134,7 +14426,7 @@
 	(evaluate_stmt): Print the likely value.
 	(ccp_visit_stmt): Avoid excessive vertical spacing.
 
-2008-04-30  Rafael Espindola  <espindola@google.com>
+2008-04-30  Rafael Espíndola  <espindola@google.com>
 
 	* builtins.c (fold_call_expr): Return realret.
 	* tree-ssa-threadedge.c
@@ -14917,7 +15209,7 @@
 	* tree-vect-analyze.c (vect_analyze_group_access): SLP is
 	incapable of dealing with loads with gaps.
 
-2008-04-24  Rafael Espindola  <espindola@google.com>
+2008-04-24  Rafael Espíndola  <espindola@google.com>
 
 	* tree-flow.h (vrp_evaluate_conditional): Change signature.
 	* tree-ssa-propagate.c (fold_predicate_in): Update call to
@@ -15241,7 +15533,7 @@
 
 	* Makefile.in (s-gtyp-input): Remove tmp-gi.list before writing it.
 
-2008-04-18  Rafael Espindola  <espindola@google.com>
+2008-04-18  Rafael Espíndola  <espindola@google.com>
 
 	* tree-vrp.c (find_case_label_index): Fix the binary search.
 	(find_case_label_range): New.
@@ -15547,7 +15839,7 @@
 	* c-decl.c (finish_decl): If extern or static var has variable
 	size, set TREE_TYPE (decl) to error_mark_node.
 
-2008-04-15  Rafael Espindola  <espindola@google.com>
+2008-04-15  Rafael Espíndola  <espindola@google.com>
 
 	* fold-const.c (tree_call_nonnegative_warnv_p): Remove local
 	variable arg1.
@@ -15687,7 +15979,7 @@
 
 	* config/spu/spu.c (spu_init_builtins): Mark builtins as nothrow.
 
-2008-04-10  Rafael Espindola  <espindola@google.com>
+2008-04-10  Rafael Espíndola  <espindola@google.com>
 
 	* tree-vrp.c (extract_range_from_binary_expr): Don't handle
 	TRUTH_ANDIF_EXPR or TRUTH_ORIF_EXPR.
@@ -15782,7 +16074,7 @@
 	* config/rs6000/rs6000.c (rs6000_output_function_epilogue): Update
 	GNU Fortran language string.
 
-2008-04-08  Rafael Espindola  <espindola@google.com>
+2008-04-08  Rafael Espíndola  <espindola@google.com>
 
 	* fold-canst.c (tree_call_nonnegative_warnv_p): New.
 	(tree_invalid_nonnegative_warnv_p): Use tree_call_nonnegative_warnv_p.
@@ -16430,7 +16722,7 @@
 	make sure to fill gaps with a fallback label if default_label
 	is not present.
 
-2008-04-03  Dominique d'Humieres <dominiq@lps.ens.fr>
+2008-04-03  Dominique d'Humières <dominiq@lps.ens.fr>
 
 	PR target/35801
 	* config/rs6000/rs6000.c (rs6000_output_mi_thunk): Free cfun.
@@ -16593,7 +16885,7 @@
 	(varying_mem_p): Move above propagate_rtx.
 	(all_uses_available_at): Do not check MEMs.
 
-2008-04-02  Rafael Espindola  <espindola@google.com>
+2008-04-02  Rafael Espíndola  <espindola@google.com>
 
 	* tree-vrp.c (extract_code_and_val_from_cond): Remove.
 	(register_edge_assert_for_2): Split the cond argument.
@@ -16768,7 +17060,7 @@
 	(*sse4_1_smin<mode>3): Likewise.
 	(*sse4_1_umin<mode>3): Likewise.
 
-2008-04-01  Rafael Espindola  <espindola@google.com>
+2008-04-01  Rafael Espíndola  <espindola@google.com>
 
 	* tree-cfg.c (verify_expr): remove in_phi.
 	(verify_stmt): Don't call walk_tree with verify_expr. Use
@@ -16789,7 +17081,7 @@
 	PR pch/13675
 	* c-pch.c (c_common_read_pch): On error close (fd) resp. fclose (f).
 
-2008-04-01  Rafael Espindola  <espindola@google.com>
+2008-04-01  Rafael Espíndola  <espindola@google.com>
 
 	* tree-vrp.c (extract_code_and_val_from_cond_with_ops): New.
 	(extract_code_and_val_from_cond): Use
@@ -16980,7 +17272,7 @@
 	vectorization support.
 	* doc/invoke.texi (-mveclibabi) [svml]: Document new target option.
 
-2008-03-28  Rafael Espindola  <espindola@google.com>
+2008-03-28  Rafael Espíndola  <espindola@google.com>
 
 	* fold-const.c (tree_unary_nonnegative_warnv_p): Make it public.
 	(tree_binary_nonnegative_warnv_p): Make it public.
@@ -18773,7 +19065,7 @@
 	on hpux10.
 	* configure: Rebuilt.
 
-2008-03-04  Rafael Espindola  <espindola@google.com>
+2008-03-04  Rafael Espíndola  <espindola@google.com>
 
 	* fold-const.c (tree_simple_nonnegative_warnv_p): New.
 	(tree_unary_nonnegative_warnv_p): New.
@@ -18794,7 +19086,7 @@
 	* config/i386/smmintrin.h (SIDD_XXX): Renamed to ...
 	(_SIDD_XXX): This.
 
-2008-03-04  Rafael Espindola  <espindola@google.com>
+2008-03-04  Rafael Espíndola  <espindola@google.com>
 
 	* fold-const.c (tree_unary_nonzero_warnv_p): New.
 	(tree_binary_nonzero_warnv_p): New.
