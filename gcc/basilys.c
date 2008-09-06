@@ -7739,6 +7739,75 @@ end:
 #undef dstrv
 }
 
+/* wrapping gimple & tree prettyprinting for MELT debug */
+
+/* the gimple prettyprinter buflushdata */
+#define PPGIMPLE_MAGIC 0x094f2de3
+struct ppgimpleflushdata_st {
+  int gf_magic;			/* always  PPGIMPLE_MAGIC*/
+  basilys_ptr_t* gf_sbufad;	/* adress of pointer to sbuf */
+  pretty_printer gf_pp;
+};
+
+static void ppgimple_flushrout(const char*txt, void*data) 
+{
+  struct ppgimpleflushdata_st* fldata = (struct ppgimpleflushdata_st*)data;
+  gcc_assert(fldata->gf_magic == PPGIMPLE_MAGIC);
+  basilysgc_add_strbuf(*fldata->gf_sbufad, txt);
+}
+
+/* pretty print into an sbuf a gimple */
+void basilysgc_ppstrbuf_gimple(basilys_ptr_t sbuf_p, int indentsp, gimple gstmt) 
+{
+  struct ppgimpleflushdata_st ppgdat = {0, (basilys_ptr_t*)0};
+#define sbufv curfram__.varptr[0]
+  BASILYS_ENTERFRAME (2, NULL);
+  sbufv = sbuf_p;
+  if (!sbufv || basilys_magic_discr(sbufv) != OBMAG_STRBUF) goto end;
+  if (!gstmt) 
+    {
+      basilysgc_add_strbuf(sbufv, "%nullgimple%");
+      goto end;
+    }
+  memset(&ppgdat, 0, sizeof(ppgdat));
+  ppgdat.gf_sbufad = (basilys_ptr_t*)&sbufv;
+  ppgdat.gf_magic = PPGIMPLE_MAGIC;
+  pp_construct_routdata(&ppgdat.gf_pp, NULL, 72,  ppgimple_flushrout, (void*)&ppgdat);
+  dump_gimple_stmt(&ppgdat.gf_pp, gstmt, indentsp, TDF_LINENO | TDF_SLIM | TDF_VOPS);
+  pp_flush(&ppgdat.gf_pp);
+  pp_destruct(&ppgdat.gf_pp);
+end:
+  memset(&ppgdat, 0, sizeof(ppgdat));
+  BASILYS_EXITFRAME ();
+#undef sbufv
+}
+
+/* pretty print into an sbuf a gimple seq */
+void basilysgc_ppstrbuf_gimple_seq(basilys_ptr_t sbuf_p, int indentsp, gimple_seq gseq) 
+{
+  struct ppgimpleflushdata_st ppgdat = {0, (basilys_ptr_t*)0};
+#define sbufv curfram__.varptr[0]
+  BASILYS_ENTERFRAME (2, NULL);
+  sbufv = sbuf_p;
+  if (!sbufv || basilys_magic_discr(sbufv) != OBMAG_STRBUF) goto end;
+  if (!gseq) 
+    {
+      basilysgc_add_strbuf(sbufv, "%nullgimpleseq%");
+      goto end;
+    }
+  memset(&ppgdat, 0, sizeof(ppgdat));
+  ppgdat.gf_sbufad = (basilys_ptr_t*)&sbufv;
+  ppgdat.gf_magic = PPGIMPLE_MAGIC;
+  pp_construct_routdata(&ppgdat.gf_pp, NULL, 72,  ppgimple_flushrout, (void*)&ppgdat);
+  dump_gimple_seq(&ppgdat.gf_pp, gseq, indentsp, TDF_LINENO | TDF_SLIM | TDF_VOPS);
+  pp_flush(&ppgdat.gf_pp);
+  pp_destruct(&ppgdat.gf_pp);
+end:
+  memset(&ppgdat, 0, sizeof(ppgdat));
+  BASILYS_EXITFRAME ();
+#undef sbufv
+}
+
 /***********************************************************
  * generate C code for a basilys unit name 
  ***********************************************************/

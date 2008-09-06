@@ -2155,6 +2155,12 @@ basilysgc_strbuf_printf (struct basilysstrbuf_st *strbuf_p, const char *fmt,
 void basilysgc_strbuf_add_indent (struct basilysstrbuf_st *strbuf_p,
 				  int indeptn, int linethresh);
 
+/* pretty print into an sbuf a gimple */
+void basilysgc_ppstrbuf_gimple(basilys_ptr_t sbuf_p, int indentsp, gimple gstmt);
+
+/* pretty print into an sbuf a gimple seq */
+void basilysgc_ppstrbuf_gimple_seq(basilys_ptr_t sbuf_p, int indentsp, gimple_seq gseq);
+
 /**************************** misc *****************************/
 /* a random generator */
 long basilys_lrand (void);

@@ -723,6 +723,31 @@ pp_construct (pretty_printer *pp, const char *prefix, int maximum_length)
   pp_set_prefix (pp, prefix);
 }
 
+void
+pp_construct_routdata (pretty_printer *pp, const char *prefix, int maximum_length, void (*flushrout)(const char*,void*), void *flushdata) 
+{
+  memset (pp, 0, sizeof (pretty_printer));
+  pp->buffer = XCNEW (output_buffer);
+  obstack_init (&pp->buffer->chunk_obstack);
+  obstack_init (&pp->buffer->formatted_obstack);
+  pp->buffer->obstack = &pp->buffer->formatted_obstack;
+  pp->buffer->bufstream = NULL;
+  pp->buffer->buflushroutine = flushrout;
+  pp->buffer->buflushdata = flushdata;
+  pp_line_cutoff (pp) = maximum_length;
+  pp_prefixing_rule (pp) = DIAGNOSTICS_SHOW_PREFIX_ONCE;
+  pp_set_prefix (pp, prefix);
+}
+
+
+void pp_destruct(pretty_printer *pp)
+{
+  pp_write_text_to_stream (pp);
+  pp_clear_state (pp);
+  XDELETE(pp->buffer);
+  memset(pp, 0, sizeof (pretty_printer));
+}
+
 /* Append a string delimited by START and END to the output area of
    PRETTY-PRINTER.  No line wrapping is done.  However, if beginning a
    new line then emit PRETTY-PRINTER's prefix and skip any leading

@@ -292,7 +292,13 @@ struct pretty_print_info
    this macro to return a pointer to the base pretty_printer structure.  */
 #define pp_base(PP) (PP)
 
+/* construct a pretty printer on stderr */
 extern void pp_construct (pretty_printer *, const char *, int);
+/* construct a pretty printer to a routine with data */
+extern void pp_construct_routdata(pretty_printer *pp, const char *prefix, int maximum_length, void (*flushrout)(const char*,void*), void *flushdata);
+/* destruct a pretty printer */
+extern void pp_destruct (pretty_printer *);
+
 extern void pp_base_set_line_maximum_length (pretty_printer *, int);
 extern void pp_base_set_prefix (pretty_printer *, const char *);
 extern void pp_base_destroy_prefix (pretty_printer *);

@@ -1,4 +1,19 @@
 2008-09-06  Basile Starynkevitch  <basile@starynkevitch.net>
+	* diagnostic.h (dump_gimple_seq): new exported function.
+	* gimple-pretty-print.c (dump_gimple_seq): previously static
+	function made public.
+	* pretty-print.h (pp_construct_routdata, pp_destruct): declared
+	new functions.
+	* pretty-print.c (pp_construct_routdata, pp_destruct): added new
+	functions.
+	* basilys.h (basilysgc_ppstrbuf_gimple)
+	(basilysgc_ppstrbuf_gimple_seq): declared new functions.
+	* basilys.c (basilysgc_ppstrbuf_gimple)
+	(basilysgc_ppstrbuf_gimple_seq): added new functions
+	(ppgimpleflushdata_st) new structure.
+	(ppgimple_flushrout) new static routine.
+
+2008-09-06  Basile Starynkevitch  <basile@starynkevitch.net>
 	* compiler-probe (comprobe_get_gimple_position)
 	(added_infopoint_display_gimple): added (int) casts.
 
