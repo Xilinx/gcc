@@ -1,3 +1,17 @@
+2008-09-06  Basile Starynkevitch  <basile@starynkevitch.net>
+	adding prettyprinting thru a routine
+	* pretty-print.h (output_buffer): renamed stream field as
+	bufstream.  added buflushroutine & buflushdata fields.
+	* pretty-print.c (pp_write_text_to_stream, pp_base_flush): handle
+	both bufstream & buflushroutine.
+	(pp_construct): sets bufstream.
+	* diagnostic.c (diagnostic_initialize): likewise.
+	* tree-pretty-print.c (maybe_init_pretty_print): likewise.
+	* gimple-pretty-print.c (maybe_init_pretty_print, dump_bb_header)
+	(dump_bb_header, dump_bb_end, gimple_dump_bb_buff): uses or sets
+	bufstream, testing when bufstream is non-null.
+	* c-pretty-print.c (print_c_tree): sets bufstream.
+
 2008-09-03  Basile Starynkevitch  <basile@starynkevitch.net>
 	compiler probe better.
 	* compiler-probe.c (added_infopoint_display_gimple): more
