@@ -2102,7 +2102,7 @@ print_c_tree (FILE *file, tree t)
       pp_c_pretty_printer_init (pp);
       pp_needs_newline (pp) = true;
     }
-  pp_base (pp)->buffer->stream = file;
+  pp_base (pp)->buffer->bufstream = file;
 
   pp_statement (pp, t);
 

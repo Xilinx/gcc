@@ -2725,7 +2725,8 @@ maybe_init_pretty_print (FILE *file)
       initialized = 1;
     }
 
-  buffer.buffer->stream = file;
+  buffer.buffer->bufstream = file;
+  buffer.buffer->buflushroutine = 0;
 }
 
 static void

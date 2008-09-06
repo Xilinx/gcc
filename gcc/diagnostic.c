@@ -99,7 +99,7 @@ diagnostic_initialize (diagnostic_context *context)
   context->printer = XNEW (pretty_printer);
   pp_construct (context->printer, NULL, 0);
   /* By default, diagnostics are sent to stderr.  */
-  context->printer->buffer->stream = stderr;
+  context->printer->buffer->bufstream = stderr;
   /* By default, we emit prefixes once per message.  */
   context->printer->wrapping.rule = DIAGNOSTICS_SHOW_PREFIX_ONCE;
 
