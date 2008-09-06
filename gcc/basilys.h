@@ -2161,6 +2161,10 @@ void basilysgc_ppstrbuf_gimple(basilys_ptr_t sbuf_p, int indentsp, gimple gstmt)
 /* pretty print into an sbuf a gimple seq */
 void basilysgc_ppstrbuf_gimple_seq(basilys_ptr_t sbuf_p, int indentsp, gimple_seq gseq);
 
+/* pretty print into an sbuf a tree */
+void basilysgc_ppstrbuf_tree(basilys_ptr_t sbuf_p, int indentsp, tree tr);
+
+
 /**************************** misc *****************************/
 /* a random generator */
 long basilys_lrand (void);

@@ -1,4 +1,9 @@
 2008-09-06  Basile Starynkevitch  <basile@starynkevitch.net>
+	* basilys.h (basilysgc_ppstrbuf_tree): added declaration.
+	* basilys.c (basilysgc_ppstrbuf_tree): added function.
+	* melt/ana-base.bysl: added debug output for boxed gimple gimpleseq trees.
+
+2008-09-06  Basile Starynkevitch  <basile@starynkevitch.net>
 	* diagnostic.h (dump_gimple_seq): new exported function.
 	* gimple-pretty-print.c (dump_gimple_seq): previously static
 	function made public.

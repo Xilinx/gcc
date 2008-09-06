@@ -7808,6 +7808,32 @@ end:
 #undef sbufv
 }
 
+/* pretty print into an sbuf a tree */
+void basilysgc_ppstrbuf_tree(basilys_ptr_t sbuf_p, int indentsp, tree tr) 
+{
+  struct ppgimpleflushdata_st ppgdat = {0, (basilys_ptr_t*)0};
+#define sbufv curfram__.varptr[0]
+  BASILYS_ENTERFRAME (2, NULL);
+  sbufv = sbuf_p;
+  if (!sbufv || basilys_magic_discr(sbufv) != OBMAG_STRBUF) goto end;
+  if (!tr) 
+    {
+      basilysgc_add_strbuf(sbufv, "%nulltree%");
+      goto end;
+    }
+  memset(&ppgdat, 0, sizeof(ppgdat));
+  ppgdat.gf_sbufad = (basilys_ptr_t*)&sbufv;
+  ppgdat.gf_magic = PPGIMPLE_MAGIC;
+  pp_construct_routdata(&ppgdat.gf_pp, NULL, 72,  ppgimple_flushrout, (void*)&ppgdat);
+  dump_generic_node(&ppgdat.gf_pp, tr, indentsp, TDF_LINENO | TDF_SLIM | TDF_VOPS, false);
+  pp_flush(&ppgdat.gf_pp);
+  pp_destruct(&ppgdat.gf_pp);
+end:
+  memset(&ppgdat, 0, sizeof(ppgdat));
+  BASILYS_EXITFRAME ();
+#undef sbufv
+}
+
 /***********************************************************
  * generate C code for a basilys unit name 
  ***********************************************************/

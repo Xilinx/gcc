@@ -86,6 +86,59 @@
 (defprimitive tree_content (v) :tree
   "(basilys_tree_content((basilys_ptr_t)(" v ")))")
 
+(defprimitive ppstrbuf_gimple (sbuf :long indent :gimple g) :void
+  "basilysgc_ppstrbuf_gimple((basilys_ptr_t)(" sbuf 
+  "), (int) (" indent "), (" g "))")
+
+(defprimitive ppstrbuf_gimple_seq (sbuf :long indent :gimpleseq gseq) :void
+  "basilysgc_ppstrbuf_gimple_seq((basilys_ptr_t)(" sbuf 
+  "), (int) (" indent "), (" gseq "))")
+
+(defprimitive ppstrbuf_tree (sbuf :long indent :tree t) :void
+  "basilysgc_ppstrbuf_tree((basilys_ptr_t)(" sbuf 
+  "), (int) (" indent "), (" t "))")
+
+;;;; boxed gimple debug
+(defun dbgout_boxgimple_method (self dbgi :long depth)
+  (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
+  (let ( (dis (discrim self)) 
+	 (sbuf  (unsafe_get_field :dbgi_sbuf dbgi)) ) 
+    (add2sbuf_strconst sbuf " ?/")
+    (if (is_a dis class_named) (add2sbuf_string sbuf (unsafe_get_field :named_name dis)))
+    (add2sbuf_strconst sbuf "/{ ")
+    (ppstrbuf_gimple sbuf depth (gimple_content self))
+    (add2sbuf_strconst sbuf "}/ ")
+    )
+  )
+(install_method discr_gimple dbg_output dbgout_boxgimple_method)
+
+;;;; boxed gimple seq debug
+(defun dbgout_boxgimpleseq_method (self dbgi :long depth)
+  (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
+  (let ( (dis (discrim self)) 
+	 (sbuf  (unsafe_get_field :dbgi_sbuf dbgi)) ) 
+    (add2sbuf_strconst sbuf " ?/")
+    (if (is_a dis class_named) (add2sbuf_string sbuf (unsafe_get_field :named_name dis)))
+    (add2sbuf_strconst sbuf "/{ ")
+    (ppstrbuf_gimple_seq sbuf depth (gimpleseq_content self))
+    (add2sbuf_strconst sbuf "}/ ")
+    )
+  )
+(install_method discr_gimpleseq dbg_output dbgout_boxgimpleseq_method)
+
+;;;; boxed tree debug
+(defun dbgout_boxtree_method (self dbgi :long depth)
+  (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
+  (let ( (dis (discrim self)) 
+	 (sbuf  (unsafe_get_field :dbgi_sbuf dbgi)) ) 
+    (add2sbuf_strconst sbuf " ?/")
+    (if (is_a dis class_named) (add2sbuf_string sbuf (unsafe_get_field :named_name dis)))
+    (add2sbuf_strconst sbuf "/{ ")
+    (ppstrbuf_tree sbuf depth (tree_content self))
+    (add2sbuf_strconst sbuf "}/ ")
+    )
+  )
+(install_method discr_tree dbg_output dbgout_boxtree_method)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;; G C C      P A S S E S 
 ;; the named_name of passes is builtin in gcc/basilys.c [lowercase]
