@@ -7967,7 +7967,7 @@ dispatch_gate_basilys (const char *passname)
 #define passv     curfram__.varptr[1]
 #define gatev     curfram__.varptr[2]
 #define resvalv   curfram__.varptr[3]
-  if (!basilys_mode_string || !basilys_mode_string[0])
+  if (errorcount >0 || sorrycount >0 || !basilys_mode_string || !basilys_mode_string[0])
     goto end;
   passdictv =
     basilys_object_nth_field ((basilys_ptr_t)

@@ -4879,7 +4879,16 @@ warm%-n.so : warm%.c built-melt-cc-script
 	./built-melt-cc-script -DMELTGCC_NOLINENUMBERING $< $@
 warm%-d.so : warm%.c built-melt-cc-script
 	./built-melt-cc-script -d $< $@
+###
+ana%.so: ana%.c built-melt-cc-script
+	./built-melt-cc-script $< $@
 
+ana%-n.so : ana%.c built-melt-cc-script
+	./built-melt-cc-script -DMELTGCC_NOLINENUMBERING $< $@
+ana%-d.so : ana%.c built-melt-cc-script
+	./built-melt-cc-script -d $< $@
+
+##
 warmelt-%-0.so: $(srcdir)/warmelt-%-0.c built-melt-cc-script
 	./built-melt-cc-script $< $@
 

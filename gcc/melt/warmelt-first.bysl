@@ -1475,7 +1475,7 @@
 	(newcont (make_instance class_container 
 				 :container_value newenv))
 	 )
-    (debug_msg newcont "initfresh_contenvmaker result newcont")
+    ;(debug_msg newcont "initfresh_contenvmaker result newcont")
     (return newcont)
     ))
 
@@ -1575,7 +1575,7 @@
 (defun initvalue_importer (sym parenv)
   ;(debug_msg sym "initvalue_importer sym")
   (assert_msg "check sym" (is_a sym class_symbol))
-  (if (need_dbg 0) (shortbacktrace_dbg "initvalue_importer" 15))
+  ;(if (need_dbg 0) (shortbacktrace_dbg "initvalue_importer" 15))
   ;(outcstring_err "importing value ")
   ;(outstr_err (unsafe_get_field :named_name sym))
   ;(outnewline_err)

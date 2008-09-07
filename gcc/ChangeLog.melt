@@ -1,4 +1,10 @@
 2008-09-07  Basile Starynkevitch  <basile@starynkevitch.net>
+	* basilys.c: disable any MELT basilys pass on errors!
+	* Makefile.in: added rules to build ana*-n.so etc..
+	* melt/warmelt-first.bysl: removed some debug msg.
+	* melt/ana-base.bysl: don't know which kind of pass is it.
+
+2008-09-07  Basile Starynkevitch  <basile@starynkevitch.net>
 	* doc/melt.texi: updated documentation; removal of
 	-fbasilys-command, and required mode for -fbasilys.
 	* basilys.c (do_initial_command): care about the result of command

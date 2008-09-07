@@ -222,16 +222,36 @@
    )
   )
 
+(defprimitive debugtree (:cstring msg :tree tr) :void
+  " do{debugeprintf(\"debugtree %s\", " msg ");"
+  "if (flag_basilys_debug) debug_tree(" tr ");}while(0) "
+)
+
+(defprimitive debuggimple(:cstring msg :gimple g) :void
+  " do{debugeprintf(\"debuggimple %s\", " msg ");"
+  "if (flag_basilys_debug) debug_gimple_stmt(" g ");}while(0) "
+)
+
+(defprimitive debuggimpleseq(:cstring msg :gimpleseq g) :void
+  " do{debugeprintf(\"debuggimpleseq %s\", " msg ");"
+  "if (flag_basilys_debug) debug_gimple_seq(" g ");}while(0) "
+)
+
 ;; apply a function to every cfun -its decl & bodyseq
 (defun do_each_cfun (f)
+  (debug_msg f "do_each_cfun f")
   (each_cgraph_fun  
    () 
    (:tree decl :gimpleseq bdy)
+   (debugtree "do_each_cfun decl" decl)
+   (debuggimpleseq "do_each_cfun bdy" bdy)
    (let ( (dclval (make_tree discr_tree decl)) 
 	  (bdyval (make_gimpleseq discr_gimpleseq bdy))
 	  )
+     (debug_msg dclval "do_each_cfun inside dclval")
+     (debug_msg bdyval "do_each_cfun inside bdyval")
      (f dclval bdyval)
-   )))
+     )))
 
 ;;;; iterate on a gimpleseq
 (defciterator each_in_gimpleseq
@@ -304,10 +324,10 @@
 ;;; our simple analysis command -fbasilys=simpana
 (defun simpana_command (dispatcher arg secarg moduldata)
   ;(debug_msg moduldata "simpana moduldata")
-  (unsafe_put_fields basilys_ipa_gccpass
+  (unsafe_put_fields basilys_earlyopt_gccpass
   :gccpass_gate simpana_ipagate
   :gccpass_exec simpana_ipaexec)
-  (debug_msg basilys_ipa_gccpass "simpana sets basilys_ipa_gccpass")
+  (debug_msg basilys_earlyopt_gccpass "simpana sets basilys_earlyopt_gccpass")
   (return dispatcher)			;return non-nil to continue compilation
   )
 (install_initial_command 
