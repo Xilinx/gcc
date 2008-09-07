@@ -1371,7 +1371,9 @@ no_linkage_check (tree t, bool relaxed_p)
 
   switch (TREE_CODE (t))
     {
+      /*
       tree fn;
+      */
 
     case RECORD_TYPE:
       if (TYPE_PTRMEMFUNC_P (t))

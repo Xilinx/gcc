@@ -6731,55 +6731,62 @@ static tree
 cp_parser_lambda_expression (cp_parser* parser)
 {
   tree lambda_expr = build_lambda_expr ();
+  tree type;
+  tree expr;
 
   cp_parser_lambda_introducer (parser, lambda_expr);
 
-  /* Inside the class, surrounding template-parameter-lists do not apply.  */
-  unsigned int saved_num_template_parameter_lists
-      = parser->num_template_parameter_lists;
-  parser->num_template_parameter_lists = 0;
-  /* We are not in a function body.  */
-  bool saved_in_function_body = parser->in_function_body;
-  parser->in_function_body = false;
-  /* Remember that we are defining one more class.  */
-  ++parser->num_classes_being_defined;
+  {
+    /* Inside the class, surrounding template-parameter-lists do not apply.  */
+    unsigned int saved_num_template_parameter_lists
+        = parser->num_template_parameter_lists;
+    /* We are not in a function body.  */
+    bool saved_in_function_body = parser->in_function_body;
 
-  tree type = begin_lambda_type (lambda_expr);
+    parser->num_template_parameter_lists = 0;
+    parser->in_function_body = false;
+    /* Remember that we are defining one more class.  */
+    ++parser->num_classes_being_defined;
 
-  cp_parser_lambda_parameter_declaration_opt (parser, lambda_expr);
+    type = begin_lambda_type (lambda_expr);
 
-  type = finish_struct (type, /*attributes=*/NULL_TREE);
+    cp_parser_lambda_parameter_declaration_opt (parser, lambda_expr);
 
-  /* We want access to private members from anywhere within a member function,
-   * even in lambda expressions.  */
-  if (current_class_type)
-    make_friend_class (current_class_type, type, /*complain=*/false);
+    type = finish_struct (type, /*attributes=*/NULL_TREE);
 
-  cp_parser_lambda_body (parser, lambda_expr);
+    /* We want access to private members from anywhere within a member function,
+     * even in lambda expressions.  */
+    if (current_class_type)
+      make_friend_class (current_class_type, type, /*complain=*/false);
 
-  parser->in_function_body = saved_in_function_body;
-  parser->num_template_parameter_lists = saved_num_template_parameter_lists;
-  --parser->num_classes_being_defined;
+    cp_parser_lambda_body (parser, lambda_expr);
+
+    parser->in_function_body = saved_in_function_body;
+    parser->num_template_parameter_lists = saved_num_template_parameter_lists;
+    --parser->num_classes_being_defined;
+  }
 
   type = TREE_CHAIN (type);
 
-  /* Build aggregate constructor.
-   * - cp_parser_braced_list
-   * - cp_parser_functional_cast  */
-  VEC(constructor_elt,gc) *elts = NULL;
-  tree node;
-  for (node = LAMBDA_EXPR_CAPTURE_LIST (lambda_expr);
-       node;
-       node = TREE_CHAIN (node))
   {
-    CONSTRUCTOR_APPEND_ELT (
-        elts,
-        /*identifier=*/NULL_TREE,
-        TREE_VALUE (node));
-  }
+    /* Build aggregate constructor.
+     * - cp_parser_braced_list
+     * - cp_parser_functional_cast  */
+    VEC(constructor_elt,gc) *elts = NULL;
+    tree node;
+    for (node = LAMBDA_EXPR_CAPTURE_LIST (lambda_expr);
+         node;
+         node = TREE_CHAIN (node))
+    {
+      CONSTRUCTOR_APPEND_ELT (
+          elts,
+          /*identifier=*/NULL_TREE,
+          TREE_VALUE (node));
+    }
 
-  tree expr = build_constructor (init_list_type_node, elts);
-  CONSTRUCTOR_IS_DIRECT_INIT (expr) = 1;
+    expr = build_constructor (init_list_type_node, elts);
+    CONSTRUCTOR_IS_DIRECT_INIT (expr) = 1;
+  }
 
   /* TREE_TYPE to remove TYPE_DECL wrapping  */
   return finish_compound_literal (TREE_TYPE (type), expr);
@@ -6819,12 +6826,7 @@ cp_parser_lambda_introducer (cp_parser* parser,
   while (cp_lexer_next_token_is_not (parser->lexer, CPP_CLOSE_SQUARE))
   {
 
-    if (cp_lexer_next_token_is (parser->lexer, CPP_EOF))
-    {
-      error ("expected end of capture-list");
-      return;
-    }
-
+    cp_token* capture_token;
     tree capture_id;
     tree capture_init_expr;
 
@@ -6834,6 +6836,12 @@ cp_parser_lambda_introducer (cp_parser* parser,
       BY_RVALUE_REFERENCE
     };
     enum capture_kind_type capture_kind = BY_COPY;
+
+    if (cp_lexer_next_token_is (parser->lexer, CPP_EOF))
+    {
+      error ("expected end of capture-list");
+      return;
+    }
 
     if (first)
       first = false;
@@ -6862,7 +6870,7 @@ cp_parser_lambda_introducer (cp_parser* parser,
       cp_lexer_consume_token (parser->lexer);
 
     /* Get the identifier. */
-    cp_token* capture_token = cp_lexer_peek_token (parser->lexer);
+    capture_token = cp_lexer_peek_token (parser->lexer);
     capture_id = cp_parser_identifier (parser);
 
     if (capture_id == error_mark_node)
@@ -6982,12 +6990,15 @@ cp_parser_lambda_parameter_declaration_opt (cp_parser* parser,
    ********************************************/
   {
     bool saved_in_declarator_p = parser->in_declarator_p;
-    parser->in_declarator_p = true;
-
     bool saved_default_arg_ok_p = parser->default_arg_ok_p;
-    parser->default_arg_ok_p = true;
 
     cp_decl_specifier_seq return_type_specs;
+    cp_declarator* declarator;
+    tree fco;
+
+    parser->in_declarator_p = true;
+    parser->default_arg_ok_p = true;
+
     clear_decl_specs (&return_type_specs);
     if (LAMBDA_EXPR_RETURN_TYPE (lambda_expr))
     {
@@ -7002,7 +7013,7 @@ cp_parser_lambda_parameter_declaration_opt (cp_parser* parser,
       return_type_specs.type = error_mark_node;
     }
 
-    cp_declarator* declarator = make_id_declarator (
+    declarator = make_id_declarator (
         parser->scope,
         ansi_opname (CALL_EXPR),
         sfk_none);
@@ -7023,7 +7034,7 @@ cp_parser_lambda_parameter_declaration_opt (cp_parser* parser,
 
     /* fco = function call operator */
     /* TODO: look into start_function  */
-    tree fco = start_method (
+    fco = start_method (
         &return_type_specs,
         declarator,
         /*attributes=*/NULL_TREE);
@@ -7053,9 +7064,9 @@ cp_parser_lambda_body (cp_parser* parser,
    * (finish_function sets current_function_decl to NULL), so we have to.  */
   /*struct function* saved_cfun = cfun;*/
   /* TODO: do we need these? from function.h */
-  push_function_context();
   tree saved_function_decl = current_function_decl;
   int saved_skip_evaluation = skip_evaluation;
+  push_function_context();
 
   /********************************************
    * Finish the function call operator
@@ -7066,6 +7077,7 @@ cp_parser_lambda_body (cp_parser* parser,
    ********************************************/
   {
     tree fco = LAMBDA_EXPR_FUNCTION (lambda_expr);
+    tree body;
 
     /* Let the front end know that we are going to be defining this
        function. */
@@ -7074,7 +7086,7 @@ cp_parser_lambda_body (cp_parser* parser,
         NULL_TREE,
         SF_PRE_PARSED | SF_INCLASS_INLINE);
 
-    tree body = begin_function_body ();
+    body = begin_function_body ();
 
     /* TODO: does begin_compound_stmt want BCS_FN_BODY?
      * cp_parser_compound_stmt does not pass it. */

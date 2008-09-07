@@ -2015,9 +2015,9 @@ finish_this_expr (void)
 
   if (current_class_ptr)
     {
-      result = current_class_ptr;
-
       tree type = TREE_TYPE (current_class_ref);
+
+      result = current_class_ptr;
       /* In a lambda expression, 'this' refers to the captured 'this'.  */
       if (LAMBDA_TYPE_P (type))
         result = lambda_expr_this_capture (CLASSTYPE_LAMBDA_EXPR (type));
@@ -4937,15 +4937,19 @@ build_lambda_expr (void)
 tree
 begin_lambda_type (tree lambda)
 {
+  tree name;
+  tree type;
+  tree node;
+
   /* TODO: necessary?  */
   push_deferring_access_checks (dk_no_deferred);
 
   /* Unique name. This is just like an unnamed class, but we cannot use
    * make_anon_name because of certain checks against TYPE_ANONYMOUS_P.  */
-  tree name = make_lambda_name ();
+  name = make_lambda_name ();
 
   /* Create the new RECORD_TYPE for this lambda.  */
-  tree type = xref_tag (
+  type = xref_tag (
       /*tag_code=*/record_type,
       /*name=*/name,
       /*scope=*/ts_current,
@@ -4969,7 +4973,6 @@ begin_lambda_type (tree lambda)
   current_access_specifier = access_public_node;
 
   /* For each capture, we need to add the member to the class.  */
-  tree node;
   for (node = LAMBDA_EXPR_CAPTURE_LIST (lambda);
        node;
        node = TREE_CHAIN (node))
@@ -5010,13 +5013,14 @@ finish_lambda_function_body (tree lambda, tree body)
       if (TREE_CODE (stmt) == RETURN_EXPR)
       {
         tree return_type = TREE_TYPE (TREE_OPERAND (stmt, 0));
+        tree result;
 
         /* TREE_TYPE (FUNCTION_DECL) == METHOD_TYPE
            TREE_TYPE (METHOD_TYPE)   == return-type */
         TREE_TYPE (TREE_TYPE (fco)) = return_type;
 
         /* Must redo some work from start_preparsed_function. */
-        tree result = build_lang_decl (
+        result = build_lang_decl (
             RESULT_DECL,
             /*name=*/0,
             TYPE_MAIN_VARIANT (return_type));
@@ -5034,10 +5038,13 @@ finish_lambda_function_body (tree lambda, tree body)
 
   finish_function_body (body);
 
-  /* Finish the function and generate code for it if necessary. */
-  /* 2 == inline_p */
-  tree fn = finish_function (2);
-  expand_or_defer_fn (fn);
+  {
+    /* Finish the function and generate code for it if necessary. */
+    /* 2 == inline_p */
+    tree fn = finish_function (2);
+    expand_or_defer_fn (fn);
+  }
+
 }
 
 /* From an ID and INITIALIZER, create a capture (by reference if
@@ -5047,7 +5054,10 @@ finish_lambda_function_body (tree lambda, tree body)
 tree
 add_capture (tree lambda, tree id, tree initializer, bool by_reference_p)
 {
-  tree type = finish_decltype_type (
+  tree type;
+  tree member;
+
+  type = finish_decltype_type (
       initializer,
       /*id_expression_or_member_access_p=*/false);
 
@@ -5063,7 +5073,7 @@ add_capture (tree lambda, tree id, tree initializer, bool by_reference_p)
   }
 
   /* Make member variable.  */
-  tree member = build_lang_decl (
+  member = build_lang_decl (
       FIELD_DECL,
       id,
       type);
@@ -5098,9 +5108,10 @@ add_default_capture (tree lambda_stack, tree id, tree initializer)
   tree saved_class_type = current_class_type;
   tree saved_access_specifier = current_access_specifier;
 
+  tree node;
+
   current_access_specifier = access_public_node;
 
-  tree node;
   for (node = lambda_stack;
        node;
        node = TREE_CHAIN (node))
