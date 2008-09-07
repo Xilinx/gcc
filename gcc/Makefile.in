@@ -4851,28 +4851,25 @@ melt.encap: run-basilys.d
 
 install-melt-headers: melt.encap $(INSTALL_MELT_HEADERS_DIR) install-melt-cc-script
 
-MELTBASILYSCCINIT1= time ./cc1$(exeext) -fbasilys  \
+MELTBASILYSCCINIT1= time ./cc1$(exeext) -fbasilys=compileinit  \
 	      -fbasilys-dynlibdir=. \
 	      -fbasilys-compile-script=built-melt-cc-script \
 	      -fbasilys-gensrcdir=. \
-	      -fbasilys-tempdir=_tempmeltdir_$$$$ \
-	      -fbasilys-command=compileinit  
+	      -fbasilys-tempdir=_tempmeltdir_$$$$ 
 #	      -frandom-seed=$$RANDOM
 
-MELTBASILYSCCFILE1= time ./cc1$(exeext) -fbasilys  \
+MELTBASILYSCCFILE1= time ./cc1$(exeext) -fbasilys=compilefile  \
 	      -fbasilys-dynlibdir=. \
 	      -fbasilys-compile-script=built-melt-cc-script \
 	      -fbasilys-gensrcdir=. \
-	      -fbasilys-tempdir=_tempmeltdir_$$$$ \
-	      -fbasilys-command=compilefile  
+	      -fbasilys-tempdir=_tempmeltdir_$$$$ 
 #	      -frandom-seed=$$RANDOM
 
-MELTBASILYSCCSHOW1= time ./cc1$(exeext) -fbasilys  \
+MELTBASILYSCCSHOW1= time ./cc1$(exeext) -fbasilys=showmdata  \
 	      -fbasilys-dynlibdir=. \
 	      -fbasilys-compile-script=built-melt-cc-script \
 	      -fbasilys-gensrcdir=. \
-	      -fbasilys-tempdir=_tempmeltdir_$$$$ \
-	      -fbasilys-command=showmdata  
+	      -fbasilys-tempdir=_tempmeltdir_$$$$ 
 #	      -frandom-seed=$$RANDOM
 
 warm%.so: warm%.c built-melt-cc-script

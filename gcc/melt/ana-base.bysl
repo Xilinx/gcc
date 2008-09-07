@@ -283,6 +283,36 @@
 )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; our simple analysis gate for ipa
+(defun simpana_ipagate (ipapass)
+  (debug_msg ipapass "simpana_ipagate start")
+  (debug_msg ipapass "simpana_ipagate end")
+  (return ipapass)
+)
+
+(defun simpana_ipaexec (ipapass)
+  (debug_msg ipapass "simpana_ipaexec start")
+  (do_each_cfun 
+   (lambda (declv bodyv)
+     (debug_msg declv "simpana_ipaexec eachcfun declv")
+     (debug_msg bodyv "simpana_ipaexec eachcfun bodyv")
+     ))
+  (debug_msg ipapass "simpana_ipaexec end")
+)
+
+
+;;; our simple analysis command -fbasilys=simpana
+(defun simpana_command (dispatcher arg secarg moduldata)
+  ;(debug_msg moduldata "simpana moduldata")
+  (unsafe_put_fields basilys_ipa_gccpass
+  :gccpass_gate simpana_ipagate
+  :gccpass_exec simpana_ipaexec)
+  (debug_msg basilys_ipa_gccpass "simpana sets basilys_ipa_gccpass")
+  (return dispatcher)			;return non-nil to continue compilation
+  )
+(install_initial_command 
+ (stringconst2val discr_string "simpana") simpana_command)
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (export_values
  basilys_earlyopt_gccpass
  basilys_ipa_gccpass

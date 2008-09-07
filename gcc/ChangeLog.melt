@@ -1,3 +1,31 @@
+2008-09-07  Basile Starynkevitch  <basile@starynkevitch.net>
+	* doc/melt.texi: updated documentation; removal of
+	-fbasilys-command, and required mode for -fbasilys.
+	* basilys.c (do_initial_command): care about the result of command
+	function application. replaced flag_basilys by
+	basilys_mode_string.
+	(load_basilys_modules_and_do_command, basilys_initialize)
+	(dispatch_gate_basilys, dispatch_execute_basilys): replaced
+	flag_basilys & basilys_command_string by basilys_mode_string.
+	( ppgimple_flushrout)
+	(basilysgc_ppstrbuf_gimple,basilysgc_ppstrbuf_gimple):
+	syntactically better casts or inits.
+	* toplev.c (toplev_main): replaced flag_basilys by
+	basilys_mode_string.
+	* common.opt: ditto, and removed -fbasilys-command.
+	* melt/ana-base.bysl: command is returning non-nil to permit
+	compilation.
+	* melt/warmelt-first.bysl: all commands returning nil.
+	* melt/warmelt-outobj.bysl: ditto. added help command.
+	* melt/ana-base.bysl: adding simpana command.
+	* Makefile.in: all MELT compilation done with -fbasilys=comp... &
+	removed -fbasilys-command.
+	* warmelt-first-0.c: regenerated.
+	* warmelt-macro-0.c: regenerated.
+	* warmelt-normal-0.c: regenerated.
+	* warmelt-genobj-0.c: regenerated.
+	* warmelt-outobj-0.c: regenerated.
+
 2008-09-06  Basile Starynkevitch  <basile@starynkevitch.net>
 	* basilys.h (basilysgc_ppstrbuf_tree): added declaration.
 	* basilys.c (basilysgc_ppstrbuf_tree): added function.

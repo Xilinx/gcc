@@ -158,7 +158,7 @@ but may occasionnally be invoked without compiling any source input to
 perform tasks which are not related to a particular GCC input source
 file. In particular, the translation of a MELT file @code{foo.bysl}
 into C code @code{foo.c} is done with a special invocation like
-@code{gcc -fbasilys -fbasilys-command=compilefile
+@code{gcc -fbasilys=compilefile
 -fbasilys-arg=foo.bysl -fbasilys-secondarg=foo.c} (possibly with other
 options like some appropriate @code{-fbasilys-init=}). In other words,
 the MELT translator to C is not a gcc front-end.
@@ -167,10 +167,19 @@ The table below lists all MELT specific options, in alphabetical order.
 
 @table @gcctabopt
 @item -fbasilys
-@gccoptlist{-fbasilys}
+@gccoptlist{-fbasilys=}
 @opindex fbasilys
 This flag (without argument) is required for every MELT enabled
 compilation. If it is not given, no MELT specific processing is done.
+If given, this gives the command to be executed before any MELT
+passes. It uses the @code{:sysdata_cmd_fundict} field of
+@code{INITIAL_SYSTEM_DATA} internal object of MELT to determine the
+MELT function applied to execute the command. If this application
+returns nil, no GCC compilation occur (i.e. no @code{*.c} or
+@code{*.cc} etc... source file is read). Hence, some commands may be
+used for their side-effects. In particular, the compilation of MELT
+lisp source file @code{*.bysl} into C code @code{*.c} is done this
+way.
 
 @item -fbasilys-arg=
 @gccoptlist{-fbasilys-arg=}
@@ -189,13 +198,6 @@ three-element list argument with first string @code{1}, second string
 @code{BB} and third string @code{3}. There is no way to give a
 string subargument containing a comma.
 
-@item -fbasilys-command=
-@gccoptlist{-fbasilys-command=}
-@opindex fbasilys-command=
-This gives the command to be executed before any MELT passes. It uses
-the @code{:sysdata_cmd_fundict} field of @code{INITIAL_SYSTEM_DATA}
-internal object of MELT to determine the MELT function used to execute
-the command.
 
 @item -fbasilys-compile-script=
 @gccoptlist{-fbasilys-compile-script=}

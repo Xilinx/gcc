@@ -6564,7 +6564,7 @@ end:
 static void
 do_initial_command (basilys_ptr_t modata_p)
 {
-  BASILYS_ENTERFRAME (7, NULL);
+  BASILYS_ENTERFRAME (8, NULL);
 #define dictv     curfram__.varptr[0]
 #define closv     curfram__.varptr[1]
 #define cstrv     curfram__.varptr[2]
@@ -6572,15 +6572,16 @@ do_initial_command (basilys_ptr_t modata_p)
 #define csecstrv  curfram__.varptr[4]
 #define modatav   curfram__.varptr[5]
 #define curargv   curfram__.varptr[6]
+#define resv      curfram__.varptr[7]
   modatav = modata_p;
-  debugeprintf ("do_initial_command command_string %s modatav %p",
-		basilys_command_string, (void *) modatav);
+  debugeprintf ("do_initial_command mode_string %s modatav %p",
+		basilys_mode_string, (void *) modatav);
   if (basilys_magic_discr
       ((BASILYSG (INITIAL_SYSTEM_DATA))) != OBMAG_OBJECT
       || BASILYSGOB (INITIAL_SYSTEM_DATA)->obj_len <
       FSYSDAT_CMD_FUNDICT + 1
       || !BASILYSGOB (INITIAL_SYSTEM_DATA)->obj_vartab
-      || !basilys_command_string || !basilys_command_string[0])
+      || !basilys_mode_string || !basilys_mode_string[0])
     goto end;
   dictv = BASILYSGOB (INITIAL_SYSTEM_DATA)->obj_vartab[FSYSDAT_CMD_FUNDICT];
   debugeprintf ("do_initial_command dictv=%p", dictv);
@@ -6589,11 +6590,11 @@ do_initial_command (basilys_ptr_t modata_p)
     goto end;
   closv =
     basilys_get_mapstrings ((struct basilysmapstrings_st *) dictv,
-			    basilys_command_string);
+			    basilys_mode_string);
   debugeprintf ("do_initial_command closv=%p", closv);
   if (basilys_magic_discr ((basilys_ptr_t) closv) != OBMAG_CLOSURE)
     {
-      error ("no closure for basilys command %s", basilys_command_string);
+      error ("no closure for basilys command %s", basilys_mode_string);
       goto end;
     };
   debugeprintf ("do_initial_command argument_string %s",
@@ -6656,12 +6657,13 @@ do_initial_command (basilys_ptr_t modata_p)
     pararg[2].bp_aptr = (basilys_ptr_t *) & modatav;
     debugeprintf ("do_initial_command before apply closv %p", closv);
     BASILYS_LOCATION_HERE ("do_initial_command before apply");
-    (void) basilys_apply ((basilysclosure_ptr_t) closv,
+    resv = basilys_apply ((basilysclosure_ptr_t) closv,
 			  (basilys_ptr_t) BASILYSG
 			  (INITIAL_SYSTEM_DATA),
 			  BPARSTR_PTR BPARSTR_PTR BPARSTR_PTR, pararg, "",
 			  NULL);
-    debugeprintf ("do_initial_command after apply closv %p", closv);
+    debugeprintf ("do_initial_command after apply closv %p resv %p", closv, resv);
+    exit_after_options = (resv == NULL);
   }
 end:
   debugeprintf ("do_initial_command end %s", basilys_argument_string);
@@ -6691,7 +6693,7 @@ load_basilys_modules_and_do_command (void)
   BASILYS_ENTERFRAME (2, NULL);
 #define modatv curfram__.varptr[0]
   debugeprintf ("load_initial_basilys_modules start init=%s command=%s",
-		basilys_init_string, basilys_command_string);
+		basilys_init_string, basilys_mode_string);
   if (!basilys_init_string || !basilys_init_string[0])
     fatal_error ("no initial basilys modules given");
   dupmodpath = xstrdup (basilys_init_string);
@@ -6767,24 +6769,24 @@ load_basilys_modules_and_do_command (void)
    * then we do the command if needed 
    **/
   /* the command exit is builtin */
-  if (basilys_command_string && !strcmp (basilys_command_string, "exit"))
-    exit_after_options = 1;
+  if (basilys_mode_string && !strcmp (basilys_mode_string, "exit"))
+    exit_after_options = true;
+  /* other commands */
   else if (basilys_magic_discr
 	   ((BASILYSG (INITIAL_SYSTEM_DATA))) == OBMAG_OBJECT
 	   && BASILYSGOB (INITIAL_SYSTEM_DATA)->obj_len >=
-	   FSYSDAT_CMD_FUNDICT && basilys_command_string
-	   && basilys_command_string[0])
+	   FSYSDAT_CMD_FUNDICT && basilys_mode_string
+	   && basilys_mode_string[0])
     {
       debugeprintf
 	("load_basilys_modules_and_do_command sets exit_after_options for command %s",
-	 basilys_command_string);
-      exit_after_options = 1;
+	 basilys_mode_string);
       BASILYS_LOCATION_HERE
 	("load_initial_basilys_modules before do_initial_command");
       do_initial_command ((basilys_ptr_t) modatv);
       debugeprintf
-	("load_basilys_modules_and_do_command after do_initial_command (will exit after options) command_string %s",
-	 basilys_command_string);
+	("load_basilys_modules_and_do_command after do_initial_command  command_string %s",
+	 basilys_mode_string);
       if (dump_file == stderr && flag_basilys_debug)
 	{
 	  debugeprintf
@@ -6794,9 +6796,9 @@ load_basilys_modules_and_do_command (void)
 	  dump_file = 0;
 	}
     }
-  else if (basilys_command_string)
+  else if (basilys_mode_string)
     fatal_error ("basilys with command string %s without command dispatcher",
-		 basilys_command_string);
+		 basilys_mode_string);
   debugeprintf
     ("load_basilys_modules_and_do_command ended with %ld GarbColl, %ld fullGc",
      basilys_nb_garbcoll, basilys_nb_full_garbcoll);
@@ -6811,7 +6813,7 @@ load_basilys_modules_and_do_command (void)
   free (dupmodpath);
   debugeprintf
     ("load_basilys_modules_and_do_command done modules %s command %s",
-     basilys_init_string, basilys_command_string);
+     basilys_init_string, basilys_mode_string);
   BASILYS_EXITFRAME ();
 #undef modatv
 }
@@ -6879,7 +6881,7 @@ basilys_initialize (void)
     fatal_error ("no initial basilys modules specified thru -fbasilys-init");
   load_basilys_modules_and_do_command ();
   debugeprintf ("basilys_initialize ended init=%s command=%s",
-		basilys_init_string, basilys_command_string);
+		basilys_init_string, basilys_mode_string);
 }
 
 
@@ -7753,20 +7755,20 @@ static void ppgimple_flushrout(const char*txt, void*data)
 {
   struct ppgimpleflushdata_st* fldata = (struct ppgimpleflushdata_st*)data;
   gcc_assert(fldata->gf_magic == PPGIMPLE_MAGIC);
-  basilysgc_add_strbuf(*fldata->gf_sbufad, txt);
+  basilysgc_add_strbuf((void*)(*fldata->gf_sbufad), txt);
 }
 
 /* pretty print into an sbuf a gimple */
 void basilysgc_ppstrbuf_gimple(basilys_ptr_t sbuf_p, int indentsp, gimple gstmt) 
 {
-  struct ppgimpleflushdata_st ppgdat = {0, (basilys_ptr_t*)0};
+  struct ppgimpleflushdata_st ppgdat;
 #define sbufv curfram__.varptr[0]
   BASILYS_ENTERFRAME (2, NULL);
   sbufv = sbuf_p;
-  if (!sbufv || basilys_magic_discr(sbufv) != OBMAG_STRBUF) goto end;
+  if (!sbufv || basilys_magic_discr((basilys_ptr_t)sbufv) != OBMAG_STRBUF) goto end;
   if (!gstmt) 
     {
-      basilysgc_add_strbuf(sbufv, "%nullgimple%");
+      basilysgc_add_strbuf((struct basilysstrbuf_st*)sbufv, "%nullgimple%");
       goto end;
     }
   memset(&ppgdat, 0, sizeof(ppgdat));
@@ -7965,7 +7967,7 @@ dispatch_gate_basilys (const char *passname)
 #define passv     curfram__.varptr[1]
 #define gatev     curfram__.varptr[2]
 #define resvalv   curfram__.varptr[3]
-  if (!flag_basilys)
+  if (!basilys_mode_string || !basilys_mode_string[0])
     goto end;
   passdictv =
     basilys_object_nth_field ((basilys_ptr_t)
@@ -7974,18 +7976,21 @@ dispatch_gate_basilys (const char *passname)
   passv =
     basilys_get_mapstrings ((struct basilysmapstrings_st *) passdictv,
 			    passname);
+  debugeprintf("dispatch_gate_basilys passname %s passv %p", passname, passv);
   if (basilys_is_instance_of
       ((basilys_ptr_t) passv, (basilys_ptr_t) BASILYSGOB (CLASS_GCC_PASS)))
     {
       gatev = basilys_object_nth_field ((basilys_ptr_t) passv, FGCCPASS_GATE);
       if (basilys_magic_discr ((basilys_ptr_t) gatev) == OBMAG_CLOSURE)
 	{
+	  debugeprintf("dispatch_gate_basilys passname %s before apply gatev %p", passname, gatev);
 	  resvalv =
 	    basilys_apply ((struct basilysclosure_st *) gatev,
 			   (basilys_ptr_t) passv, "",
 			   (union basilysparam_un *) 0, "",
 			   (union basilysparam_un *) 0);
 	  res = (resvalv != NULL);
+	  debugeprintf("dispatch_gate_basilys passname %s after apply resv %p", passname, resvalv);
 	  /* force a minor GC to be sure that nothing is in the young region */
 	  basilys_garbcoll (0, BASILYS_MINOR_OR_FULL);
 	}
@@ -8009,7 +8014,7 @@ dispatch_execute_basilys (const char *passname)
 #define passv     curfram__.varptr[1]
 #define execuv    curfram__.varptr[2]
 #define resvalv   curfram__.varptr[3]
-  if (!flag_basilys)
+  if (!basilys_mode_string || !basilys_mode_string[0])
     goto end;
   passdictv =
     basilys_object_nth_field ((basilys_ptr_t)
@@ -8018,6 +8023,7 @@ dispatch_execute_basilys (const char *passname)
   passv =
     basilys_get_mapstrings ((struct basilysmapstrings_st *) passdictv,
 			    passname);
+  debugeprintf("dispatch_execute_basilys passname %s passv %p", passname, passv);
   if (basilys_is_instance_of
       ((basilys_ptr_t) passv, (basilys_ptr_t) BASILYSGOB (CLASS_GCC_PASS)))
     {
@@ -8028,12 +8034,14 @@ dispatch_execute_basilys (const char *passname)
 	  union basilysparam_un restab[1];
 	  memset (&restab, 0, sizeof (restab));
 	  restab[0].bp_longptr = &todol;
+	  debugeprintf("dispatch_execute_basilys passname %s before apply", passname);
 	  /* apply with one extra long result */
 	  resvalv =
 	    basilys_apply ((struct basilysclosure_st *) execuv,
 			   (basilys_ptr_t) passv, "",
 			   (union basilysparam_un *) 0, BPARSTR_LONG "",
 			   restab);
+	  debugeprintf("dispatch_execute_basilys passname %s after apply", passname);
 	  if (resvalv)
 	    restodo = (unsigned int) todol;
 	  /* force a minor GC to be sure that nothing is in the young region */

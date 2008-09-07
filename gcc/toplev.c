@@ -2251,7 +2251,7 @@ toplev_main (unsigned int argc, const char **argv)
 
 #if ENABLE_BASILYSMELT
   /* initialize basilys if needed */
-  if (flag_basilys)
+  if (basilys_mode_string && basilys_mode_string[0])
     basilys_initialize();
 #endif
 
@@ -2267,7 +2267,7 @@ toplev_main (unsigned int argc, const char **argv)
 
 #if ENABLE_BASILYSMELT
   /* finalize basilys if needed */
-  if (flag_basilys)
+  if (basilys_mode_string && basilys_mode_string[0])
     basilys_finalize();
 #endif
 

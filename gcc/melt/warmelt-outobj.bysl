@@ -2864,6 +2864,7 @@
   (let ( (rlist (read_file arg)) )
     (message_dbg "ending readseq")
     (debug_msg rlist "done readseq_command")
+    (return)
 ))
 
 (install_initial_command  (stringconst2val discr_string "readseq") readseq_command)
@@ -2909,6 +2910,7 @@
       (debug_msg rlist "after read compilefile_command rlist")
       (debug_msg curenv "after read compilefile_command curenv")
       (compile_list_sexpr rlist curenv basnam)
+      (return)
       )))
 
 (install_initial_command  (stringconst2val discr_string "compilefile") compilefile_command)
@@ -2954,6 +2956,7 @@
     ;;- 				  0)
     ;;-   :sexp_contents (list3 'post_initialization (the_null) basnam)))
     (compile_list_sexpr rlist initial_environment basnam)
+    (return)
     ))
 
 (install_initial_command  (stringconst2val discr_string "compileinit") compileinit_command)
@@ -2962,7 +2965,10 @@
 (defun showmdata_command (dispatcher arg secarg moduldata)
   (message_dbg "starting showmdata_command")
   (debug_msg moduldata "showmdata moduldata")
-  (message_dbg "ending showmdata_command"))
+  (message_dbg "ending showmdata_command")
+  (return)
+  )
+
 (install_initial_command 
  (stringconst2val discr_string "showmdata") showmdata_command)
 
@@ -2976,11 +2982,19 @@
     (debug_msg sym "showvar symbol")
     (debug_msg bind "showvar binding")
     (debug_msg val "showvar val")
+    (return)
     )
   )
 
 (install_initial_command 
  (stringconst2val discr_string "showvar") showvar_command)
+(defun help_command (dispatcher arg secarg moduldata)
+  (debug_msg  (unsafe_get_field :sysdata_cmd_fundict initial_system_data) "command function dict")
+  (assert_msg "unimplemented help command" ())
+)
+
+(install_initial_command
+ (stringconst2val discr_string "help") help_command)
 
 (export_values 
  install_initial_command
