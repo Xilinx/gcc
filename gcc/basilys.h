@@ -13,7 +13,6 @@ GCC is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
-
 You should have received a copy of the GNU General Public License
 along with GCC; see the file COPYING3.   If not see
 <http://www.gnu.org/licenses/>.    */
@@ -1151,6 +1150,21 @@ basilys_gimpleseq_content (basilys_ptr_t box)
   return g->val;
 }
 
+/* allocate a new boxed basicblock of given DISCR [DISCR_BASICBLOCK if null] &
+   content VAL */
+basilys_ptr_t basilysgc_new_basicblock (basilysobject_ptr_t discr_p,
+					basic_block val);
+
+/* return the content of a boxed gimple */
+static inline basic_block
+basilys_basicblock_content (basilys_ptr_t box)
+{
+  struct basilysbasicblock_st* b = (struct basilysbasicblock_st*)box;
+  if (!b || b->discr->object_magic != OBMAG_BASICBLOCK)
+    return NULL;
+  return b->val;
+}
+
 /*************************************************************
  * young generation copying garbage collector 
  *
@@ -2164,6 +2178,9 @@ void basilysgc_ppstrbuf_gimple_seq(basilys_ptr_t sbuf_p, int indentsp, gimple_se
 /* pretty print into an sbuf a tree */
 void basilysgc_ppstrbuf_tree(basilys_ptr_t sbuf_p, int indentsp, tree tr);
 
+/* pretty print into an sbuf a basic_block */
+void basilysgc_ppstrbuf_basicblock(basilys_ptr_t sbuf_p, int indentsp, basic_block bb);
+
 
 /**************************** misc *****************************/
 /* a random generator */
@@ -2380,6 +2397,8 @@ enum basilys_globalix_en
   BGLOB_CTYPE_GIMPLE,
   /* ctype of gimpleseqs */
   BGLOB_CTYPE_GIMPLESEQ,
+  /* ctype of basicblocks */
+  BGLOB_CTYPE_BASICBLOCK,
   /* ctype for void */
   BGLOB_CTYPE_VOID,
   /* ctype of constant cstrings */
@@ -2404,6 +2423,8 @@ enum basilys_globalix_en
   BGLOB_DISCR_GIMPLESEQ,
   /* the initial discriminant of edge-s */
   BGLOB_DISCR_EDGE,
+  /* the initial discriminant of basicblock-s */
+  BGLOB_DISCR_BASICBLOCK,
   /* the initial discriminant of tree map-s */
   BGLOB_DISCR_MAPTREES,
   /* the initial discriminant of gimple map-s */
@@ -2412,6 +2433,8 @@ enum basilys_globalix_en
   BGLOB_DISCR_MAPGIMPLESEQS,
   /* the initial discriminant of edge map-s */
   BGLOB_DISCR_MAPEDGES,
+  /* the initial discriminant of basicblock map-s */
+  BGLOB_DISCR_MAPBASICBLOCKS,
   /**************************** placeholder for last wired */
   BGLOB__LASTWIRED,
   BGLOB___SPARE1,

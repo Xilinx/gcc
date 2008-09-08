@@ -1173,6 +1173,12 @@
   :disc_super discr_anyrecv
   :named_name (stringconst2val discr_namestring "DISCR_EDGE"))
 
+(definstance discr_basicblock class_discr
+  :predef DISCR_BASICBLOCK
+  :obj_num OBMAG_BASICBLOCK
+  :disc_super discr_anyrecv
+  :named_name (stringconst2val discr_namestring "DISCR_BASICBLOCK"))
+
 ;;; the discriminant for maps of objects
 (definstance discr_mapobjects class_discr
   :predef DISCR_MAPOBJECTS
@@ -1214,6 +1220,13 @@
   :obj_num OBMAG_MAPEDGES
   :disc_super discr_anyrecv
   :named_name (stringconst2val discr_namestring "DISCR_MAPEDGES"))
+
+;;; the discriminant for maps of basicblocks
+(definstance discr_mapbasicblocks class_discr
+  :predef DISCR_MAPBASICBLOCKS
+  :obj_num OBMAG_MAPBASICBLOCKS
+  :disc_super discr_anyrecv
+  :named_name (stringconst2val discr_namestring "DISCR_MAPBASICBLOCKS"))
 
 ;;; the discriminant for sequence of classes 
 (definstance discr_seqclass class_discr
@@ -1358,6 +1371,19 @@
   :ctype_resfield (stringconst2val discr_namestring "bp_gimpleseqptr")
   )
 (install_ctype_descr ctype_gimpleseq "GCC gimpleseq pointer")
+
+;; the C type for gcc basicblocks
+(definstance ctype_basicblock class_ctype
+  :predef CTYPE_BASICBLOCK
+  :named_name  (stringconst2val discr_namestring "CTYPE_BASICBLOCK")
+  :ctype_keyword ':basicblock
+  :ctype_cname  (stringconst2val discr_namestring "basic_block")
+  :ctype_parchar (stringconst2val discr_namestring "BPAR_BASICBLOCK")
+  :ctype_parstring (stringconst2val discr_namestring "BPARSTR_BASICBLOCK")
+  :ctype_argfield (stringconst2val discr_namestring "bp_basicblock")
+  :ctype_resfield (stringconst2val discr_namestring "bp_basicblockptr")
+  )
+(install_ctype_descr ctype_basicblock "GCC basicblock")
 
 ;; the C type for void
 (definstance ctype_void class_ctype
@@ -3431,6 +3457,7 @@
  )
 ;; export the discriminants and instances and selectors defined above
 (export_values				;alphabetical order
+ ctype_basicblock
  ctype_cstring                        
  ctype_gimple
  ctype_gimpleseq
@@ -3441,7 +3468,8 @@
  dbg_output
  dbg_outputagain
  discr_anyrecv                        
- discr_box    
+ discr_basicblock   
+ discr_box 
  discr_charinteger                    
  discr_closure                        
  discr_edge
@@ -3449,6 +3477,7 @@
  discr_gimpleseq
  discr_integer                        
  discr_list                           
+ discr_mapbasicblocks
  discr_mapedges
  discr_mapgimples
  discr_mapgimpleseqs
@@ -3473,7 +3502,7 @@
  initial_environment                  
  initial_system_data
  system_finalization
- )    ;;;end export discriminants, instances, selectors
+ ) ;;;end export discriminants, instances, selectors
 
 
 ;; export the functions defined above

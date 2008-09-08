@@ -2720,6 +2720,38 @@ end:
 }
 
 
+/* allocate a new boxed basic_block of given DISCR [or DISCR_BASICBLOCK] & content
+   VAL */
+basilys_ptr_t
+basilysgc_new_basicblock (basilysobject_ptr_t discr_p, basic_block bb)
+{
+  BASILYS_ENTERFRAME (2, NULL);
+#define bbbv    curfram__.varptr[0]
+#define discrv  curfram__.varptr[1]
+#define object_discrv ((basilysobject_ptr_t)(discrv))
+  discrv = (void *) discr_p;
+  if (!discrv)
+    discrv = BASILYSG (DISCR_BASICBLOCK);
+  if (basilys_magic_discr ((basilys_ptr_t) discrv) != OBMAG_OBJECT)
+    goto end;
+  if (object_discrv->object_magic != OBMAG_BASICBLOCK)
+    goto end;
+  bbbv = basilysgc_allocate (sizeof (struct basilysbasicblock_st), 0);
+  ((struct basilysbasicblock_st *) (bbbv))->discr =
+    (basilysobject_ptr_t) discrv;
+  ((struct basilysbasicblock_st *) (bbbv))->val = bb;
+end:
+  BASILYS_EXITFRAME ();
+  return (basilys_ptr_t) bbbv;
+#undef bbbv
+#undef discrv
+#undef object_discrv
+}
+
+
+
+
+/****** MULTIPLES ******/
 
 /* allocate a multiple of arity 1 */
 basilys_ptr_t
@@ -7743,25 +7775,25 @@ end:
 
 /* wrapping gimple & tree prettyprinting for MELT debug */
 
-/* the gimple prettyprinter buflushdata */
-#define PPGIMPLE_MAGIC 0x094f2de3
-struct ppgimpleflushdata_st {
-  int gf_magic;			/* always  PPGIMPLE_MAGIC*/
+/* the  prettyprinter buflushdata */
+#define PPBASILYS_MAGIC 0x094f2de3
+struct ppbasilysflushdata_st {
+  int gf_magic;			/* always  PPBASILYS_MAGIC*/
   basilys_ptr_t* gf_sbufad;	/* adress of pointer to sbuf */
   pretty_printer gf_pp;
 };
 
-static void ppgimple_flushrout(const char*txt, void*data) 
+static void ppbasilys_flushrout(const char*txt, void*data) 
 {
-  struct ppgimpleflushdata_st* fldata = (struct ppgimpleflushdata_st*)data;
-  gcc_assert(fldata->gf_magic == PPGIMPLE_MAGIC);
+  struct ppbasilysflushdata_st* fldata = (struct ppbasilysflushdata_st*)data;
+  gcc_assert(fldata->gf_magic == PPBASILYS_MAGIC);
   basilysgc_add_strbuf((void*)(*fldata->gf_sbufad), txt);
 }
 
 /* pretty print into an sbuf a gimple */
 void basilysgc_ppstrbuf_gimple(basilys_ptr_t sbuf_p, int indentsp, gimple gstmt) 
 {
-  struct ppgimpleflushdata_st ppgdat;
+  struct ppbasilysflushdata_st ppgdat;
 #define sbufv curfram__.varptr[0]
   BASILYS_ENTERFRAME (2, NULL);
   sbufv = sbuf_p;
@@ -7773,8 +7805,8 @@ void basilysgc_ppstrbuf_gimple(basilys_ptr_t sbuf_p, int indentsp, gimple gstmt)
     }
   memset(&ppgdat, 0, sizeof(ppgdat));
   ppgdat.gf_sbufad = (basilys_ptr_t*)&sbufv;
-  ppgdat.gf_magic = PPGIMPLE_MAGIC;
-  pp_construct_routdata(&ppgdat.gf_pp, NULL, 72,  ppgimple_flushrout, (void*)&ppgdat);
+  ppgdat.gf_magic = PPBASILYS_MAGIC;
+  pp_construct_routdata(&ppgdat.gf_pp, NULL, 72,  ppbasilys_flushrout, (void*)&ppgdat);
   dump_gimple_stmt(&ppgdat.gf_pp, gstmt, indentsp, TDF_LINENO | TDF_SLIM | TDF_VOPS);
   pp_flush(&ppgdat.gf_pp);
   pp_destruct(&ppgdat.gf_pp);
@@ -7787,7 +7819,7 @@ end:
 /* pretty print into an sbuf a gimple seq */
 void basilysgc_ppstrbuf_gimple_seq(basilys_ptr_t sbuf_p, int indentsp, gimple_seq gseq) 
 {
-  struct ppgimpleflushdata_st ppgdat = {0, (basilys_ptr_t*)0};
+  struct ppbasilysflushdata_st ppgdat = {0, (basilys_ptr_t*)0};
 #define sbufv curfram__.varptr[0]
   BASILYS_ENTERFRAME (2, NULL);
   sbufv = sbuf_p;
@@ -7799,8 +7831,8 @@ void basilysgc_ppstrbuf_gimple_seq(basilys_ptr_t sbuf_p, int indentsp, gimple_se
     }
   memset(&ppgdat, 0, sizeof(ppgdat));
   ppgdat.gf_sbufad = (basilys_ptr_t*)&sbufv;
-  ppgdat.gf_magic = PPGIMPLE_MAGIC;
-  pp_construct_routdata(&ppgdat.gf_pp, NULL, 72,  ppgimple_flushrout, (void*)&ppgdat);
+  ppgdat.gf_magic = PPBASILYS_MAGIC;
+  pp_construct_routdata(&ppgdat.gf_pp, NULL, 72,  ppbasilys_flushrout, (void*)&ppgdat);
   dump_gimple_seq(&ppgdat.gf_pp, gseq, indentsp, TDF_LINENO | TDF_SLIM | TDF_VOPS);
   pp_flush(&ppgdat.gf_pp);
   pp_destruct(&ppgdat.gf_pp);
@@ -7813,7 +7845,7 @@ end:
 /* pretty print into an sbuf a tree */
 void basilysgc_ppstrbuf_tree(basilys_ptr_t sbuf_p, int indentsp, tree tr) 
 {
-  struct ppgimpleflushdata_st ppgdat = {0, (basilys_ptr_t*)0};
+  struct ppbasilysflushdata_st ppgdat = {0, (basilys_ptr_t*)0};
 #define sbufv curfram__.varptr[0]
   BASILYS_ENTERFRAME (2, NULL);
   sbufv = sbuf_p;
@@ -7825,13 +7857,42 @@ void basilysgc_ppstrbuf_tree(basilys_ptr_t sbuf_p, int indentsp, tree tr)
     }
   memset(&ppgdat, 0, sizeof(ppgdat));
   ppgdat.gf_sbufad = (basilys_ptr_t*)&sbufv;
-  ppgdat.gf_magic = PPGIMPLE_MAGIC;
-  pp_construct_routdata(&ppgdat.gf_pp, NULL, 72,  ppgimple_flushrout, (void*)&ppgdat);
+  ppgdat.gf_magic = PPBASILYS_MAGIC;
+  pp_construct_routdata(&ppgdat.gf_pp, NULL, 72,  ppbasilys_flushrout, (void*)&ppgdat);
   dump_generic_node(&ppgdat.gf_pp, tr, indentsp, TDF_LINENO | TDF_SLIM | TDF_VOPS, false);
   pp_flush(&ppgdat.gf_pp);
   pp_destruct(&ppgdat.gf_pp);
 end:
   memset(&ppgdat, 0, sizeof(ppgdat));
+  BASILYS_EXITFRAME ();
+#undef sbufv
+}
+
+
+/* pretty print into an sbuf a basicblock */
+void basilysgc_ppstrbuf_basicblock(basilys_ptr_t sbuf_p, int indentsp, basic_block bb) 
+{
+  gimple_seq gsq = 0;
+#define sbufv curfram__.varptr[0]
+  BASILYS_ENTERFRAME (2, NULL);
+  sbufv = sbuf_p;
+  if (!sbufv || basilys_magic_discr(sbufv) != OBMAG_STRBUF) goto end;
+  if (!bb) 
+    {
+      basilysgc_add_strbuf(sbufv, "%nullbasicblock%");
+      goto end;
+    }
+  basilysgc_strbuf_printf(sbufv, "basicblock ix%d", bb->index);
+  gsq = bb_seq(bb);
+  if (gsq) 
+    {
+      basilysgc_add_strbuf_raw(sbufv, "{.");
+      basilysgc_ppstrbuf_gimple_seq(sbufv, indentsp+1, gsq);
+      basilysgc_add_strbuf_raw(sbufv, ".}");
+    }
+  else
+    basilysgc_add_strbuf_raw(sbufv, ";");
+end:
   BASILYS_EXITFRAME ();
 #undef sbufv
 }

@@ -86,6 +86,15 @@
 (defprimitive tree_content (v) :tree
   "(basilys_tree_content((basilys_ptr_t)(" v ")))")
 
+(defprimitive is_basicblock (v) :long
+  "(basilys_magic_discr((basilys_ptr_t)(" v ")) == OBMAG_BASICBLOCK)")
+
+(defprimitive make_basicblock (discr :basicblock bb) :value
+  "(basilysgc_new_basicblock((basilysobject_ptr_t)(" discr "),(" bb ")))")
+
+(defprimitive basicblock_content (v) :basicblock
+  "(basilys_basicblock_content((basilys_ptr_t)(" v ")))")
+
 (defprimitive ppstrbuf_gimple (sbuf :long indent :gimple g) :void
   "basilysgc_ppstrbuf_gimple((basilys_ptr_t)(" sbuf 
   "), (int) (" indent "), (" g "))")
@@ -97,6 +106,10 @@
 (defprimitive ppstrbuf_tree (sbuf :long indent :tree t) :void
   "basilysgc_ppstrbuf_tree((basilys_ptr_t)(" sbuf 
   "), (int) (" indent "), (" t "))")
+
+(defprimitive ppstrbuf_basicblock (sbuf :long indent :basicblock bb) :void
+  "basilysgc_ppstrbuf_basicblock((basilys_ptr_t)(" sbuf 
+  "), (int) (" indent "), (" bb "))")
 
 ;;;; boxed gimple debug
 (defun dbgout_boxgimple_method (self dbgi :long depth)
@@ -139,6 +152,20 @@
     )
   )
 (install_method discr_tree dbg_output dbgout_boxtree_method)
+
+;;;; boxed basicblock debug
+(defun dbgout_boxbasicblock_method (self dbgi :long depth)
+  (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
+  (let ( (dis (discrim self)) 
+	 (sbuf  (unsafe_get_field :dbgi_sbuf dbgi)) ) 
+    (add2sbuf_strconst sbuf " ?/")
+    (if (is_a dis class_named) (add2sbuf_string sbuf (unsafe_get_field :named_name dis)))
+    (add2sbuf_strconst sbuf "/{ ")
+    (ppstrbuf_basicblock sbuf depth (basicblock_content self))
+    (add2sbuf_strconst sbuf "}/ ")
+    )
+  )
+(install_method discr_basicblock dbg_output dbgout_boxbasicblock_method)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;; G C C      P A S S E S 
 ;; the named_name of passes is builtin in gcc/basilys.c [lowercase]
@@ -198,7 +225,7 @@
 
 ;;;;;;;;;;;;;;;;
 ;;;; iterate on every cgraph_node which is a function with a body
-(defciterator each_cgraph_fun 
+(defciterator each_cgraph_fun_body 
   ()					; startformals
   eachcgrfun 				;state symbol
   (:tree funtree :gimpleseq funbody)	;local formals
@@ -209,6 +236,9 @@
    eachcgrfun "_nd = " eachcgrfun "_nd->next) {\n"
    "tree " eachcgrfun "_dcl = 0;\n"
    "gimple_seq " eachcgrfun "_bdy = 0;\n"
+   "if (flag_basilys_debug) "
+   "{ debugeprintf(\"" eachcgrfun " nd=%p\", (void*)"  eachcgrfun "_nd);"
+   "debug_cgraph_node(" eachcgrfun "_nd);};\n"
    eachcgrfun "_dcl = " eachcgrfun "_nd->decl;\n"
    "if (!" eachcgrfun "_dcl) continue;\n"
    "if (TREE_CODE(" eachcgrfun "_dcl) != FUNCTION_DECL) continue;\n"
@@ -221,6 +251,36 @@
    "}"
    )
   )
+
+
+;;; iterate on every cgraph_node which is a function with a CFG and an
+;;; entryblock
+(defciterator each_cgraph_fun_entryblock
+  ()					;startformals
+  eachcgrblo				;state symbol
+  (:tree funtree :basicblock funbb)	;local formals
+  (					;before expansion
+   "struct cgraph_node *" eachcgrblo "_nd=0; "
+   "for (" eachcgrblo "_nd = cgraph_nodes; "
+   eachcgrblo "_nd != 0; "
+   eachcgrblo "_nd = " eachcgrblo "_nd->next) {\n"
+   "tree " eachcgrblo "_dcl = 0;\n"
+   "basic_block " eachcgrblo "_bb = 0;\n"
+   "if (flag_basilys_debug) "
+   "{ debugeprintf(\"" eachcgrblo " nd=%p\", (void*)"  eachcgrblo "_nd);"
+   "debug_cgraph_node(" eachcgrblo "_nd);};\n"
+   eachcgrblo "_dcl = " eachcgrblo "_nd->decl;\n"
+   "if (!" eachcgrblo "_dcl) continue;\n"
+   "if (TREE_CODE(" eachcgrblo "_dcl) != FUNCTION_DECL) continue;\n"
+   eachcgrblo "_bb = ENTRY_BLOCK_PTR_FOR_FUNCTION(DECL_STRUCT_FUNCTION(" eachcgrblo "_dcl));\n"
+   "if (!" eachcgrblo "_bb) continue;\n"
+   funtree " = " eachcgrblo "_dcl;\n"
+   funbb " = " eachcgrblo "_bb;\n"
+   )
+  (					;after expansion
+   "}"
+   )
+)
 
 (defprimitive debugtree (:cstring msg :tree tr) :void
   " do{debugeprintf(\"debugtree %s\", " msg ");"
@@ -237,20 +297,42 @@
   "if (flag_basilys_debug) debug_gimple_seq(" g ");}while(0) "
 )
 
+(defprimitive debugbasicblock(:cstring msg :basicblock bb) :void
+  " do{debugeprintf(\"debugbasicblock %s\", " msg ");"
+  "if (flag_basilys_debug) debug_bb(" bb ");}while(0) "
+)
+
 ;; apply a function to every cfun -its decl & bodyseq
-(defun do_each_cfun (f)
-  (debug_msg f "do_each_cfun f")
-  (each_cgraph_fun  
+(defun do_each_cfun_body (f)
+  (debug_msg f "do_each_cfun_body f")
+  (each_cgraph_fun_body
    () 
    (:tree decl :gimpleseq bdy)
-   (debugtree "do_each_cfun decl" decl)
-   (debuggimpleseq "do_each_cfun bdy" bdy)
+   (debugtree "do_each_cfun_body decl" decl)
+   (debuggimpleseq "do_each_cfun_body bdy" bdy)
    (let ( (dclval (make_tree discr_tree decl)) 
 	  (bdyval (make_gimpleseq discr_gimpleseq bdy))
 	  )
-     (debug_msg dclval "do_each_cfun inside dclval")
-     (debug_msg bdyval "do_each_cfun inside bdyval")
+     (debug_msg dclval "do_each_cfun_body inside dclval")
+     (debug_msg bdyval "do_each_cfun_body inside bdyval")
      (f dclval bdyval)
+     )))
+
+
+;; apply a function to every cfun -its decl & basicblock
+(defun do_each_cfun_entrybb (f)
+  (debug_msg f "do_each_cfun_bb f")
+  (each_cgraph_fun_entryblock
+   () 
+   (:tree decl :basicblock bb)
+   (debugtree "do_each_cfun_entrybb decl" decl)
+   (debugbasicblock "do_each_cfun_entrybb bdy" bb)
+   (let ( (dclval (make_tree discr_tree decl)) 
+	  (bbval (make_basicblock discr_basicblock bb))
+	  )
+     (debug_msg dclval "do_each_cfun_entrybb inside dclval")
+     (debug_msg bbval "do_each_cfun_entrybb inside bbval")
+     (f dclval bbval)
      )))
 
 ;;;; iterate on a gimpleseq
@@ -312,10 +394,15 @@
 
 (defun simpana_ipaexec (ipapass)
   (debug_msg ipapass "simpana_ipaexec start")
-  (do_each_cfun 
+  (do_each_cfun_body 
    (lambda (declv bodyv)
-     (debug_msg declv "simpana_ipaexec eachcfun declv")
-     (debug_msg bodyv "simpana_ipaexec eachcfun bodyv")
+     (debug_msg declv "simpana_ipaexec eachcfunbdy declv")
+     (debug_msg bodyv "simpana_ipaexec eachcfunbdy bodyv")
+     ))
+  (do_each_cfun_entrybb 
+   (lambda (declv bbv)
+     (debug_msg declv "simpana_ipaexec eachcfunentrybb declv")
+     (debug_msg bbv "simpana_ipaexec eachcfunentrybb bbv")
      ))
   (debug_msg ipapass "simpana_ipaexec end")
 )
@@ -338,7 +425,8 @@
  basilys_ipa_gccpass
  basilys_lateopt_gccpass
  basilys_lowering_gccpass
- each_cgraph_fun
+ each_cgraph_fun_body
+ each_cgraph_fun_entryblock
  each_in_gimpleseq
  fetch_gdbmstate
  fetch_gdbmstate_constr

@@ -1,3 +1,20 @@
+2008-09-08  Basile Starynkevitch  <basile@starynkevitch.net>
+	* basilys.h (basilysgc_ppstrbuf_basicblock)
+	(BGLOB_CTYPE_BASICBLOCK, BGLOB_DISCR_BASICBLOCK)
+	(BGLOB_DISCR_MAPBASICBLOCKS) added declaration.
+	* basilys.c (ppgimpleflushdata_st) renamed struct
+	(ppbasilysflushdata_st) new name.
+	(ppgimple_flushrout) renamed function
+	(ppbasilys_flushrout) new name.
+	( basilysgc_ppstrbuf_tree, basilysgc_ppstrbuf_gimple_seq)
+	(basilysgc_ppstrbuf_gimple) rnamed the struct ppgdat.
+	(basilysgc_ppstrbuf_basicblock) added function.
+	(basilysgc_new_basicblock) added function.
+	* melt/warmelt-first.bysl: added discr_basicblock
+	discr_mapbasicblocks ctype_basicblock
+	* melt/ana-base.bysl: added each_cgraph_fun_body
+	each_cgraph_fun_entryblock
+
 2008-09-07  Basile Starynkevitch  <basile@starynkevitch.net>
 	* basilys.c: disable any MELT basilys pass on errors!
 	* Makefile.in: added rules to build ana*-n.so etc..
