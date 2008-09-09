@@ -341,7 +341,7 @@
 
 (define_attr "generic_sched" "yes,no"
   (const (if_then_else 
-          (ior (eq_attr "tune" "arm926ejs,arm1020e,arm1026ejs,arm1136js,arm1136jfs,cortexa8")
+          (ior (eq_attr "tune" "arm926ejs,arm1020e,arm1026ejs,arm1136js,arm1136jfs,cortexa8,cortexa9")
 	      (eq_attr "tune_cortexr4" "yes"))
           (const_string "no")
           (const_string "yes"))))
@@ -349,7 +349,7 @@
 (define_attr "generic_vfp" "yes,no"
   (const (if_then_else
 	  (and (eq_attr "fpu" "vfp")
-	       (eq_attr "tune" "!arm1020e,arm1022e,cortexa8")
+	       (eq_attr "tune" "!arm1020e,arm1022e,cortexa8,cortexa9")
 	       (eq_attr "tune_cortexr4" "no"))
 	  (const_string "yes")
 	  (const_string "no"))))
@@ -360,6 +360,7 @@
 (include "arm1026ejs.md")
 (include "arm1136jfs.md")
 (include "cortex-a8.md")
+(include "cortex-a9.md")
 (include "cortex-r4.md")
 (include "cortex-r4f.md")
 (include "vfp11.md")
@@ -4823,6 +4824,14 @@
 			       optimize && can_create_pseudo_p ());
           DONE;
         }
+
+      if (TARGET_USE_MOVT && !target_word_relocations
+	  && GET_CODE (operands[1]) == SYMBOL_REF
+	  && !flag_pic && !arm_tls_referenced_p (operands[1]))
+	{
+	  arm_emit_movpair (operands[0], operands[1]);
+	  DONE;
+	}
     }
   else /* TARGET_THUMB1...  */
     {
@@ -4881,6 +4890,28 @@
 					     : 0));
   }
   "
+)
+
+;; The ARM LO_SUM and HIGH are backwards - HIGH sets the low bits, and
+;; LO_SUM adds in the high bits.  Fortunately these are opaque operations
+;; so this does not matter.
+(define_insn "*arm_movt"
+  [(set (match_operand:SI 0 "nonimmediate_operand" "=r")
+	(lo_sum:SI (match_operand:SI 1 "nonimmediate_operand" "0")
+		   (match_operand:SI 2 "general_operand"      "i")))]
+  "TARGET_32BIT"
+  "movt%?\t%0, #:upper16:%c2"
+  [(set_attr "predicable" "yes")
+   (set_attr "length" "4")]
+)
+
+(define_insn "*arm_movw"
+  [(set (match_operand:SI 0 "nonimmediate_operand" "=r")
+	(high:SI (match_operand:SI 1 "general_operand"      "i")))]
+  "TARGET_32BIT"
+  "movw%?\t%0, #:lower16:%c1"
+  [(set_attr "predicable" "yes")
+   (set_attr "length" "4")]
 )
 
 (define_insn "*arm_movsi_insn"

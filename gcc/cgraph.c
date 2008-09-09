@@ -453,7 +453,21 @@ cgraph_node (tree decl)
       node->origin->nested = node;
       node->master_clone = node;
     }
+  if (assembler_name_hash)
+    {
+      void **aslot;
+      tree name = DECL_ASSEMBLER_NAME (decl);
 
+      aslot = htab_find_slot_with_hash (assembler_name_hash, name,
+					decl_assembler_name_hash (name),
+					INSERT);
+      /* We can have multiple declarations with same assembler name. For C++
+	 it is __builtin_strlen and strlen, for instance.  Do we need to
+	 record them all?  Original implementation marked just first one
+	 so lets hope for the best.  */
+      if (*aslot == NULL)
+	*aslot = node;
+    }
   return node;
 }
 
@@ -631,7 +645,7 @@ cgraph_create_edge (struct cgraph_node *caller, struct cgraph_node *callee,
 
   gcc_assert (is_gimple_call (call_stmt));
 
-  if (!gimple_body (callee->decl))
+  if (!callee->analyzed)
     edge->inline_failed = N_("function body not available");
   else if (callee->local.redefined_extern_inline)
     edge->inline_failed = N_("redefined extern inline functions are not "
@@ -1059,7 +1073,7 @@ dump_cgraph_node (FILE *f, struct cgraph_node *node)
     fprintf (f, " needed");
   else if (node->reachable)
     fprintf (f, " reachable");
-  if (gimple_body (node->decl))
+  if (gimple_has_body_p (node->decl))
     fprintf (f, " body");
   if (node->output)
     fprintf (f, " output");

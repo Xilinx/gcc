@@ -670,7 +670,7 @@ setup_reg_subclasses (void)
 
       COPY_HARD_REG_SET (temp_hard_regset, reg_class_contents[i]);
       AND_COMPL_HARD_REG_SET (temp_hard_regset, no_unit_alloc_regs);
-      if (hard_reg_set_equal_p (temp_hard_regset, ira_zero_hard_reg_set))
+      if (hard_reg_set_empty_p (temp_hard_regset))
 	continue;
       for (j = 0; j < N_REG_CLASSES; j++)
 	if (i != j)
@@ -734,7 +734,7 @@ setup_cover_and_important_classes (void)
 	  gcc_unreachable ();
       COPY_HARD_REG_SET (temp_hard_regset, reg_class_contents[cl]);
       AND_COMPL_HARD_REG_SET (temp_hard_regset, no_unit_alloc_regs);
-      if (! hard_reg_set_equal_p (temp_hard_regset, ira_zero_hard_reg_set))
+      if (! hard_reg_set_empty_p (temp_hard_regset))
 	ira_reg_class_cover[ira_reg_class_cover_size++] = cl;
     }
   ira_important_classes_num = 0;
@@ -742,7 +742,7 @@ setup_cover_and_important_classes (void)
     {
       COPY_HARD_REG_SET (temp_hard_regset, reg_class_contents[cl]);
       AND_COMPL_HARD_REG_SET (temp_hard_regset, no_unit_alloc_regs);
-      if (! hard_reg_set_equal_p (temp_hard_regset, ira_zero_hard_reg_set))
+      if (! hard_reg_set_empty_p (temp_hard_regset))
 	for (j = 0; j < ira_reg_class_cover_size; j++)
 	  {
 	    COPY_HARD_REG_SET (temp_hard_regset, reg_class_contents[cl]);
@@ -794,8 +794,7 @@ setup_class_translate (void)
 	    {
 	      COPY_HARD_REG_SET (temp_hard_regset, reg_class_contents[cl]);
 	      AND_COMPL_HARD_REG_SET (temp_hard_regset, no_unit_alloc_regs);
-	      if (! hard_reg_set_subset_p (temp_hard_regset,
-					   ira_zero_hard_reg_set))
+	      if (! hard_reg_set_empty_p (temp_hard_regset))
 		gcc_unreachable ();
 	    }
 #endif
@@ -818,7 +817,7 @@ setup_class_translate (void)
 			     reg_class_contents[cover_class]);
 	  AND_HARD_REG_SET (temp_hard_regset, reg_class_contents[cl]);
 	  AND_COMPL_HARD_REG_SET (temp_hard_regset, no_unit_alloc_regs);
-	  if (! hard_reg_set_equal_p (temp_hard_regset, ira_zero_hard_reg_set))
+	  if (! hard_reg_set_empty_p (temp_hard_regset))
 	    {
 	      min_cost = INT_MAX;
 	      for (mode = 0; mode < MAX_MACHINE_MODE; mode++)
@@ -875,8 +874,8 @@ setup_reg_class_intersect_union (void)
 	  AND_COMPL_HARD_REG_SET (temp_hard_regset, no_unit_alloc_regs);
 	  COPY_HARD_REG_SET (temp_set2, reg_class_contents[cl2]);
 	  AND_COMPL_HARD_REG_SET (temp_set2, no_unit_alloc_regs);
-	  if (hard_reg_set_equal_p (temp_hard_regset, ira_zero_hard_reg_set)
-	      && hard_reg_set_equal_p (temp_set2, ira_zero_hard_reg_set))
+	  if (hard_reg_set_empty_p (temp_hard_regset)
+	      && hard_reg_set_empty_p (temp_set2))
 	    {
 	      for (i = 0;; i++)
 		{
@@ -1081,10 +1080,6 @@ ira_init_register_move_cost (enum machine_mode mode)
 
 
 
-/* Hard regsets whose all bits are correspondingly zero or one.  */
-HARD_REG_SET ira_zero_hard_reg_set;
-HARD_REG_SET ira_one_hard_reg_set;
-
 /* This is called once during compiler work.  It sets up
    different arrays whose values don't depend on the compiled
    function.  */
@@ -1093,8 +1088,6 @@ ira_init_once (void)
 {
   enum machine_mode mode;
 
-  CLEAR_HARD_REG_SET (ira_zero_hard_reg_set);
-  SET_HARD_REG_SET (ira_one_hard_reg_set);
   for (mode = 0; mode < MAX_MACHINE_MODE; mode++)
     {
       ira_register_move_cost[mode] = NULL;
@@ -1681,101 +1674,6 @@ expand_reg_info (int old_size)
 
 
 
-/* This page contains code for sorting the insn chain used by reload.
-   In the old register allocator, the insn chain order corresponds to
-   the order of insns in RTL.  By putting insns with higher execution
-   frequency BBs first, reload has a better chance to generate less
-   expensive operand reloads for such insns.  */
-
-/* Map bb index -> order number in the BB chain in RTL code.  */
-static int *basic_block_order_nums;
-
-/* Map chain insn uid -> order number in the insn chain before sorting
-   the insn chain.  */
-static int *chain_insn_order;
-
-/* The function is used to sort insn chain according insn execution
-   frequencies.  */
-static int
-chain_freq_compare (const void *v1p, const void *v2p)
-{
-  const struct insn_chain *c1 = *(struct insn_chain * const *)v1p;
-  const struct insn_chain *c2 = *(struct insn_chain * const *)v2p;
-  int diff;
-
-  diff = (BASIC_BLOCK (c2->block)->frequency
-	  - BASIC_BLOCK (c1->block)->frequency);
-  if (diff)
-    return diff;
-  /* Keep the same order in BB scope.  */
-  return (chain_insn_order[INSN_UID(c1->insn)]
-	  - chain_insn_order[INSN_UID(c2->insn)]);
-}
-
-/* Sort the insn chain according insn original order.  */
-static int
-chain_bb_compare (const void *v1p, const void *v2p)
-{
-  const struct insn_chain *c1 = *(struct insn_chain * const *)v1p;
-  const struct insn_chain *c2 = *(struct insn_chain * const *)v2p;
-  int diff;
-
-  diff = (basic_block_order_nums[c1->block]
-	  - basic_block_order_nums[c2->block]);
-  if (diff)
-    return diff;
-  /* Keep the same order in BB scope.  */
-  return (chain_insn_order[INSN_UID(c1->insn)]
-	  - chain_insn_order[INSN_UID(c2->insn)]);
-}
-
-/* Sort the insn chain according to insn frequencies if
-   FREQ_P or according to insn original order otherwise.  */
-void
-ira_sort_insn_chain (bool freq_p)
-{
-  struct insn_chain *chain, **chain_arr;
-  basic_block bb;
-  int i, n;
-  
-  chain_insn_order = (int *) ira_allocate (get_max_uid () * sizeof (int));
-  for (n = 0, chain = reload_insn_chain; chain != 0; chain = chain->next)
-    {
-      chain_insn_order[INSN_UID (chain->insn)] = n;
-      n++;
-    }
-  if (n <= 1)
-    return;
-  chain_arr
-    = (struct insn_chain **) ira_allocate (n * sizeof (struct insn_chain *));
-  basic_block_order_nums
-    = (int *) ira_allocate (sizeof (int) * last_basic_block);
-  n = 0;
-  FOR_EACH_BB (bb)
-    {
-      basic_block_order_nums[bb->index] = n++;
-    }
-  for (n = 0, chain = reload_insn_chain; chain != 0; chain = chain->next)
-    chain_arr[n++] = chain;
-  qsort (chain_arr, n, sizeof (struct insn_chain *),
-	 freq_p ? chain_freq_compare : chain_bb_compare);
-  ira_free (chain_insn_order);
-  for (i = 1; i < n - 1; i++)
-    {
-      chain_arr[i]->next = chain_arr[i + 1];
-      chain_arr[i]->prev = chain_arr[i - 1];
-    }
-  chain_arr[i]->next = NULL;
-  chain_arr[i]->prev = chain_arr[i - 1];
-  reload_insn_chain = chain_arr[0];
-  reload_insn_chain->prev = NULL;
-  reload_insn_chain->next = chain_arr[1];
-  ira_free (basic_block_order_nums);
-  ira_free (chain_arr);
-}
-
-
-
 /* All natural loops.  */
 struct loops ira_loops;
 
@@ -1965,9 +1863,6 @@ ira (FILE *f)
   timevar_push (TV_RELOAD);
   df_set_flags (DF_NO_INSN_RESCAN);
   build_insn_chain ();
-
-  if (optimize)
-    ira_sort_insn_chain (true);
 
   reload_completed = !reload (get_insns (), optimize > 0);
 

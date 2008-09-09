@@ -54,7 +54,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree-flow.h"
 #include "pointer-set.h"
 
-static tree grokparms (cp_parameter_declarator *, tree *);
+static tree grokparms (tree parmlist, tree *);
 static const char *redeclaration_error_message (tree, tree);
 
 static int decl_jump_unsafe (tree);
@@ -227,17 +227,16 @@ struct named_label_entry GTY(())
    function, two inside the body of a function in a local class, etc.)  */
 int function_depth;
 
+/* To avoid unwanted recursion, finish_function defers all mark_used calls
+   encountered during its execution until it finishes.  */
+bool defer_mark_used_calls;
+VEC(tree, gc) *deferred_mark_used_calls;
+
 /* States indicating how grokdeclarator() should handle declspecs marked
    with __attribute__((deprecated)).  An object declared as
    __attribute__((deprecated)) suppresses warnings of uses of other
    deprecated items.  */
-
-enum deprecated_states {
-  DEPRECATED_NORMAL,
-  DEPRECATED_SUPPRESS
-};
-
-static enum deprecated_states deprecated_state = DEPRECATED_NORMAL;
+enum deprecated_states deprecated_state = DEPRECATED_NORMAL;
 
 
 /* A TREE_LIST of VAR_DECLs.  The TREE_PURPOSE is a RECORD_TYPE or
@@ -3969,14 +3968,14 @@ groktypename (cp_decl_specifier_seq *type_specifiers,
    grokfield.)  The DECL corresponding to the DECLARATOR is returned.
    If an error occurs, the error_mark_node is returned instead.
    
-   DECLSPECS are the decl-specifiers for the declaration.  INITIALIZED is 1
-   if an explicit initializer is present, or 2 for an explicitly defaulted
-   function, or 3 for an explicitly deleted function, but 0 if this is a
-   variable implicitly initialized via a default constructor.  ATTRIBUTES
-   and PREFIX_ATTRIBUTES are GNU attributes associated with this
-   declaration.  *PUSHED_SCOPE_P is set to the scope entered in this
-   function, if any; if set, the caller is responsible for calling
-   pop_scope.  */
+   DECLSPECS are the decl-specifiers for the declaration.  INITIALIZED is
+   SD_INITIALIZED if an explicit initializer is present, or SD_DEFAULTED
+   for an explicitly defaulted function, or SD_DELETED for an explicitly
+   deleted function, but 0 (SD_UNINITIALIZED) if this is a variable
+   implicitly initialized via a default constructor.  ATTRIBUTES and
+   PREFIX_ATTRIBUTES are GNU attributes associated with this declaration.
+   *PUSHED_SCOPE_P is set to the scope entered in this function, if any; if
+   set, the caller is responsible for calling pop_scope.  */
 
 tree
 start_decl (const cp_declarator *declarator,
@@ -4034,7 +4033,7 @@ start_decl (const cp_declarator *declarator,
 	return error_mark_node;
 
       case FUNCTION_DECL:
-	if (initialized == 3)
+	if (initialized == SD_DELETED)
 	  /* We'll handle the rest of the semantics later, but we need to
 	     set this now so it's visible to duplicate_decls.  */
 	  DECL_DELETED_FN (decl) = 1;
@@ -5512,7 +5511,7 @@ cp_finish_decl (tree decl, tree init, bool init_const_expr_p,
 	  DECL_INITIAL (decl) = NULL_TREE;
 	}
 
-      if (init && init_const_expr_p)
+      if (init && init_const_expr_p && TREE_CODE (decl) == VAR_DECL)
 	{
 	  DECL_INITIALIZED_BY_CONSTANT_EXPRESSION_P (decl) = 1;
 	  if (DECL_INTEGRAL_CONSTANT_VAR_P (decl))
@@ -9489,6 +9488,32 @@ check_default_argument (tree decl, tree arg)
   return arg;
 }
 
+/* Returns a deprecated type used within TYPE, or NULL_TREE if none.  */
+
+static tree
+type_is_deprecated (tree type)
+{
+  enum tree_code code;
+  if (TREE_DEPRECATED (type))
+    return type;
+  if (TYPE_NAME (type)
+      && TREE_DEPRECATED (TYPE_NAME (type)))
+    return type;
+
+  code = TREE_CODE (type);
+
+  if (code == POINTER_TYPE || code == REFERENCE_TYPE
+      || code == OFFSET_TYPE || code == FUNCTION_TYPE
+      || code == METHOD_TYPE || code == ARRAY_TYPE)
+    return type_is_deprecated (TREE_TYPE (type));
+
+  if (TYPE_PTRMEMFUNC_P (type))
+    return type_is_deprecated
+      (TREE_TYPE (TREE_TYPE (TYPE_PTRMEMFUNC_FN_TYPE (type))));
+
+  return NULL_TREE;
+}
+
 /* Decode the list of parameter types for a function type.
    Given the list of things declared inside the parens,
    return a list of types.
@@ -9499,41 +9524,31 @@ check_default_argument (tree decl, tree arg)
    *PARMS is set to the chain of PARM_DECLs created.  */
 
 static tree
-grokparms (cp_parameter_declarator *first_parm, tree *parms)
+grokparms (tree parmlist, tree *parms)
 {
   tree result = NULL_TREE;
   tree decls = NULL_TREE;
-  int ellipsis = !first_parm || first_parm->ellipsis_p;
-  cp_parameter_declarator *parm;
+  tree parm;
   int any_error = 0;
-  struct pointer_set_t *unique_decls = pointer_set_create ();
 
-  for (parm = first_parm; parm != NULL; parm = parm->next)
+  for (parm = parmlist; parm != NULL_TREE; parm = TREE_CHAIN (parm))
     {
       tree type = NULL_TREE;
-      tree init = parm->default_argument;
-      tree attrs;
-      tree decl;
+      tree init = TREE_PURPOSE (parm);
+      tree decl = TREE_VALUE (parm);
 
-      if (parm == no_parameters)
+      if (parm == void_list_node)
 	break;
 
-      attrs = parm->decl_specifiers.attributes;
-      parm->decl_specifiers.attributes = NULL_TREE;
-      decl = grokdeclarator (parm->declarator, &parm->decl_specifiers,
-			     PARM, init != NULL_TREE, &attrs);
       if (! decl || TREE_TYPE (decl) == error_mark_node)
 	continue;
-
-      if (attrs)
-	cplus_decl_attributes (&decl, attrs, 0);
 
       type = TREE_TYPE (decl);
       if (VOID_TYPE_P (type))
 	{
 	  if (same_type_p (type, void_type_node)
 	      && DECL_SELF_REFERENCE_P (type)
-	      && !DECL_NAME (decl) && !result && !parm->next && !ellipsis)
+	      && !DECL_NAME (decl) && !result && TREE_CHAIN (parm) == void_list_node)
 	    /* this is a parmlist of `(void)', which is ok.  */
 	    break;
 	  cxx_incomplete_type_error (decl, type);
@@ -9556,6 +9571,13 @@ grokparms (cp_parameter_declarator *first_parm, tree *parms)
 
       if (type != error_mark_node)
 	{
+	  if (deprecated_state != DEPRECATED_SUPPRESS)
+	    {
+	      tree deptype = type_is_deprecated (type);
+	      if (deptype)
+		warn_deprecated_use (deptype);
+	    }
+
 	  /* Top-level qualifiers on the parameters are
 	     ignored for function types.  */
 	  type = cp_build_qualified_type (type, 0);
@@ -9598,16 +9620,9 @@ grokparms (cp_parameter_declarator *first_parm, tree *parms)
 
       if (TREE_CODE (decl) == PARM_DECL
           && FUNCTION_PARAMETER_PACK_P (decl)
-          && parm->next)
+          && TREE_CHAIN (parm)
+          && TREE_CHAIN (parm) != void_list_node)
         error ("parameter packs must be at the end of the parameter list");
-
-      if (DECL_NAME (decl))
-        {
-          if (pointer_set_contains (unique_decls, DECL_NAME (decl)))
-            error ("multiple parameters named %qE", DECL_NAME (decl));
-          else
-            pointer_set_insert (unique_decls, DECL_NAME (decl));
-        }
 
       TREE_CHAIN (decl) = decls;
       decls = decl;
@@ -9615,11 +9630,10 @@ grokparms (cp_parameter_declarator *first_parm, tree *parms)
     }
   decls = nreverse (decls);
   result = nreverse (result);
-  if (!ellipsis)
+  if (parm)
     result = chainon (result, void_list_node);
   *parms = decls;
 
-  pointer_set_destroy (unique_decls);
   return result;
 }
 
@@ -12033,6 +12047,9 @@ finish_function (int flags)
   if (fndecl == NULL_TREE)
     return error_mark_node;
 
+  gcc_assert (!defer_mark_used_calls);
+  defer_mark_used_calls = true;
+
   if (DECL_NONSTATIC_MEMBER_FUNCTION_P (fndecl)
       && DECL_VIRTUAL_P (fndecl)
       && !processing_template_decl)
@@ -12231,6 +12248,17 @@ finish_function (int flags)
        function.  For a nested function, this value is used in
        cxx_pop_function_context and then reset via pop_function_context.  */
     current_function_decl = NULL_TREE;
+
+  defer_mark_used_calls = false;
+  if (deferred_mark_used_calls)
+    {
+      unsigned int i;
+      tree decl;
+
+      for (i = 0; VEC_iterate (tree, deferred_mark_used_calls, i, decl); i++)
+	mark_used (decl);
+      VEC_free (tree, gc, deferred_mark_used_calls);
+    }
 
   return fndecl;
 }

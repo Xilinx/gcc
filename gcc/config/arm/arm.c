@@ -544,6 +544,9 @@ int arm_tune_xscale = 0;
    This typically means an ARM6 or ARM7 with MMU or MPU.  */
 int arm_tune_wbuf = 0;
 
+/* Nonzero if tuning for Cortex-A9.  */
+int arm_tune_cortex_a9 = 0;
+
 /* Nonzero if generating Thumb instructions.  */
 int thumb_code = 0;
 
@@ -1186,12 +1189,30 @@ arm_override_options (void)
 
   tune_flags = all_cores[(int)arm_tune].flags;
 
+  if (target_abi_name)
+    {
+      for (i = 0; i < ARRAY_SIZE (arm_all_abis); i++)
+	{
+	  if (streq (arm_all_abis[i].name, target_abi_name))
+	    {
+	      arm_abi = arm_all_abis[i].abi_type;
+	      break;
+	    }
+	}
+      if (i == ARRAY_SIZE (arm_all_abis))
+	error ("invalid ABI option: -mabi=%s", target_abi_name);
+    }
+  else
+    arm_abi = ARM_DEFAULT_ABI;
+
   /* Make sure that the processor choice does not conflict with any of the
      other command line choices.  */
   if (TARGET_ARM && !(insn_flags & FL_NOTM))
     error ("target CPU does not support ARM mode");
 
-  if (TARGET_INTERWORK && !(insn_flags & FL_THUMB))
+  /* BPABI targets use linker tricks to allow interworking on cores
+     without thumb support.  */
+  if (TARGET_INTERWORK && !((insn_flags & FL_THUMB) || TARGET_BPABI))
     {
       warning (0, "target CPU does not support interworking" );
       target_flags &= ~MASK_INTERWORK;
@@ -1271,6 +1292,7 @@ arm_override_options (void)
   arm_tune_xscale = (tune_flags & FL_XSCALE) != 0;
   arm_arch_iwmmxt = (insn_flags & FL_IWMMXT) != 0;
   arm_arch_hwdiv = (insn_flags & FL_DIV) != 0;
+  arm_tune_cortex_a9 = (arm_tune == cortexa9) != 0;
 
   /* If we are not using the default (ARM mode) section anchor offset
      ranges, then set the correct ranges now.  */
@@ -1303,22 +1325,6 @@ arm_override_options (void)
 
   if (arm_arch5)
     target_flags &= ~MASK_INTERWORK;
-
-  if (target_abi_name)
-    {
-      for (i = 0; i < ARRAY_SIZE (arm_all_abis); i++)
-	{
-	  if (streq (arm_all_abis[i].name, target_abi_name))
-	    {
-	      arm_abi = arm_all_abis[i].abi_type;
-	      break;
-	    }
-	}
-      if (i == ARRAY_SIZE (arm_all_abis))
-	error ("invalid ABI option: -mabi=%s", target_abi_name);
-    }
-  else
-    arm_abi = ARM_DEFAULT_ABI;
 
   if (TARGET_IWMMXT && !ARM_DOUBLEWORD_ALIGN)
     error ("iwmmxt requires an AAPCS compatible ABI for proper operation");
@@ -1924,14 +1930,22 @@ arm_split_constant (enum rtx_code code, enum machine_mode mode, rtx insn,
 	    {
 	      /* Currently SET is the only monadic value for CODE, all
 		 the rest are diadic.  */
-	      emit_set_insn (target, GEN_INT (val));
+	      if (TARGET_USE_MOVT)
+		arm_emit_movpair (target, GEN_INT (val));
+	      else
+		emit_set_insn (target, GEN_INT (val));
+
 	      return 1;
 	    }
 	  else
 	    {
 	      rtx temp = subtargets ? gen_reg_rtx (mode) : target;
 
-	      emit_set_insn (temp, GEN_INT (val));
+	      if (TARGET_USE_MOVT)
+		arm_emit_movpair (temp, GEN_INT (val));
+	      else
+		emit_set_insn (temp, GEN_INT (val));
+
 	      /* For MINUS, the value is subtracted from, since we never
 		 have subtraction of a constant.  */
 	      if (code == MINUS)
@@ -4903,7 +4917,15 @@ arm_rtx_costs_1 (rtx x, enum rtx_code code, enum rtx_code outer)
 		    || (GET_CODE (XEXP (x, 0)) == SUBREG
 			&& GET_CODE (SUBREG_REG (XEXP (x, 0))) == REG))
 		   ? 0 : 8));
-      return (1 + ((GET_CODE (XEXP (x, 0)) == REG
+
+      extra_cost = 1;
+      /* Increase the cost of complex shifts because they aren't any faster,
+         and reduce dual issue opportunities.  */
+      if (arm_tune_cortex_a9
+	  && outer != SET && GET_CODE (XEXP (x, 1)) != CONST_INT)
+	extra_cost++;
+
+      return (extra_cost + ((GET_CODE (XEXP (x, 0)) == REG
 		    || (GET_CODE (XEXP (x, 0)) == SUBREG
 			&& GET_CODE (SUBREG_REG (XEXP (x, 0))) == REG))
 		   ? 0 : 4)
@@ -5018,7 +5040,8 @@ arm_rtx_costs_1 (rtx x, enum rtx_code code, enum rtx_code outer)
 			 && ((INTVAL (XEXP (XEXP (x, 0), 1)) &
 			      (INTVAL (XEXP (XEXP (x, 0), 1)) - 1)) == 0)))
 		    && (REG_OR_SUBREG_REG (XEXP (XEXP (x, 0), 0)))
-		    && ((REG_OR_SUBREG_REG (XEXP (XEXP (x, 0), 1)))
+		    && ((REG_OR_SUBREG_REG (XEXP (XEXP (x, 0), 1))
+			 && !arm_tune_cortex_a9)
 			|| GET_CODE (XEXP (XEXP (x, 0), 1)) == CONST_INT))
 		   ? 0 : 4));
 
@@ -5114,6 +5137,10 @@ arm_rtx_costs_1 (rtx x, enum rtx_code code, enum rtx_code outer)
     case LABEL_REF:
     case SYMBOL_REF:
       return 6;
+
+    case HIGH:
+    case LO_SUM:
+      return (outer == SET) ? 1 : -1;
 
     case CONST_DOUBLE:
       if (arm_const_double_rtx (x) || vfp3_const_double_rtx (x))
@@ -5341,6 +5368,13 @@ arm_size_rtx_costs (rtx x, int code, int outer_code, int *total)
       *total = COSTS_N_INSNS (4);
       return true;
 
+    case HIGH:
+    case LO_SUM:
+      /* We prefer constant pool entries to MOVW/MOVT pairs, so bump the
+	 cost of these slightly.  */
+      *total = COSTS_N_INSNS (1) + 1;
+      return true;
+
     default:
       if (mode != VOIDmode)
 	*total = COSTS_N_INSNS (ARM_NUM_REGS (mode));
@@ -5357,7 +5391,7 @@ arm_rtx_costs (rtx x, int code, int outer_code, int *total, bool speed)
   if (!speed)
     return arm_size_rtx_costs (x, code, outer_code, total);
   else
-    return all_cores[(int)arm_tune].rtx_costs;
+    return all_cores[(int)arm_tune].rtx_costs (x, code, outer_code, total);
 }
 
 /* RTX costs for cores with a slow MUL implementation.  Thumb-2 is not
@@ -9889,6 +9923,14 @@ output_mov_long_double_arm_from_arm (rtx *operands)
 }
 
 
+/* Emit a MOVW/MOVT pair.  */
+void arm_emit_movpair (rtx dest, rtx src)
+{
+  emit_set_insn (dest, gen_rtx_HIGH (SImode, src));
+  emit_set_insn (dest, gen_rtx_LO_SUM (SImode, dest, src));
+}
+
+
 /* Output a move from arm registers to an fpa registers.
    OPERANDS[0] is an fpa register.
    OPERANDS[1] is the first registers of an arm register pair.  */
@@ -12904,10 +12946,21 @@ arm_print_operand (FILE *stream, rtx x, int code)
       }
       return;
 
-    /* An integer without a preceding # sign.  */
+    /* An integer or symbol address without a preceding # sign.  */
     case 'c':
-      gcc_assert (GET_CODE (x) == CONST_INT);
-      fprintf (stream, HOST_WIDE_INT_PRINT_DEC, INTVAL (x));
+      switch (GET_CODE (x))
+	{
+	case CONST_INT:
+	  fprintf (stream, HOST_WIDE_INT_PRINT_DEC, INTVAL (x));
+	  break;
+
+	case SYMBOL_REF:
+	  output_addr_const (stream, x);
+	  break;
+
+	default:
+	  gcc_unreachable ();
+	}
       return;
 
     case 'B':
@@ -19026,6 +19079,7 @@ arm_issue_rate (void)
     case cortexr4:
     case cortexr4f:
     case cortexa8:
+    case cortexa9:
       return 2;
 
     default:

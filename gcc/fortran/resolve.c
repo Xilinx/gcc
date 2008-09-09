@@ -82,6 +82,33 @@ gfc_is_formal_arg (void)
   return formal_arg_flag;
 }
 
+
+/* Ensure a typespec used is valid; for instance, TYPE(t) is invalid if t is
+   an ABSTRACT derived-type.  If where is not NULL, an error message with that
+   locus is printed, optionally using name.  */
+
+static gfc_try
+resolve_typespec_used (gfc_typespec* ts, locus* where, const char* name)
+{
+  if (ts->type == BT_DERIVED && ts->derived->attr.abstract)
+    {
+      if (where)
+	{
+	  if (name)
+	    gfc_error ("'%s' at %L is of the ABSTRACT type '%s'",
+		       name, where, ts->derived->name);
+	  else
+	    gfc_error ("ABSTRACT type '%s' used at %L",
+		       ts->derived->name, where);
+	}
+
+      return FAILURE;
+    }
+
+  return SUCCESS;
+}
+
+
 /* Resolve types of formal argument lists.  These have to be done early so that
    the formal argument lists of module procedures can be copied to the
    containing module before the individual procedures are resolved
@@ -967,9 +994,11 @@ check_assumed_size_reference (gfc_symbol *sym, gfc_expr *e)
   if (need_full_assumed_size || !(sym->as && sym->as->type == AS_ASSUMED_SIZE))
       return false;
 
+  /* FIXME: The comparison "e->ref->u.ar.type == AR_FULL" is wrong.
+     What should it be?  */
   if ((e->ref->u.ar.end[e->ref->u.ar.as->rank - 1] == NULL)
 	  && (e->ref->u.ar.as->type == AS_ASSUMED_SIZE)
-	       && (e->ref->u.ar.type == DIMEN_ELEMENT))
+	       && (e->ref->u.ar.type == AR_FULL))
     {
       gfc_error ("The upper bound in the last dimension must "
 		 "appear in the reference to the assumed size "
@@ -1043,7 +1072,7 @@ resolve_actual_arglist (gfc_actual_arglist *arg, procedure_type ptype)
 	  continue;
 	}
 
-      if (e->expr_type == FL_VARIABLE && e->symtree->ambiguous)
+      if (e->expr_type == EXPR_VARIABLE && e->symtree->ambiguous)
 	{
 	  gfc_error ("'%s' at %L is ambiguous", e->symtree->n.sym->name,
 		     &e->where);
@@ -1053,7 +1082,7 @@ resolve_actual_arglist (gfc_actual_arglist *arg, procedure_type ptype)
       if (e->ts.type != BT_PROCEDURE)
 	{
 	  save_need_full_assumed_size = need_full_assumed_size;
-	  if (e->expr_type != FL_VARIABLE)
+	  if (e->expr_type != EXPR_VARIABLE)
 	    need_full_assumed_size = 0;
 	  if (gfc_resolve_expr (e) != SUCCESS)
 	    return FAILURE;
@@ -1197,7 +1226,7 @@ resolve_actual_arglist (gfc_actual_arglist *arg, procedure_type ptype)
 	 is a  variable instead, it needs to be resolved as it was not
 	 done at the beginning of this function.  */
       save_need_full_assumed_size = need_full_assumed_size;
-      if (e->expr_type != FL_VARIABLE)
+      if (e->expr_type != EXPR_VARIABLE)
 	need_full_assumed_size = 0;
       if (gfc_resolve_expr (e) != SUCCESS)
 	return FAILURE;
@@ -2175,6 +2204,16 @@ resolve_function (gfc_expr *expr)
   if (expr->symtree)
     sym = expr->symtree->n.sym;
 
+  if (sym && sym->attr.intrinsic
+      && !gfc_find_function (sym->name)
+      && gfc_find_subroutine (sym->name)
+      && sym->attr.function)
+    {
+      gfc_error ("Intrinsic subroutine '%s' used as "
+		  "a function at %L", sym->name, &expr->where);
+      return FAILURE;
+    }
+
   if (sym && sym->attr.flavor == FL_VARIABLE)
     {
       gfc_error ("'%s' at %L is not a function", sym->name, &expr->where);
@@ -2297,15 +2336,16 @@ resolve_function (gfc_expr *expr)
 	 assumed size array argument.  UBOUND and SIZE have to be
 	 excluded from the check if the second argument is anything
 	 than a constant.  */
-      int inquiry;
-      inquiry = GENERIC_ID == GFC_ISYM_UBOUND
-		  || GENERIC_ID == GFC_ISYM_SIZE;
 
       for (arg = expr->value.function.actual; arg; arg = arg->next)
 	{
-	  if (inquiry && arg->next != NULL && arg->next->expr)
+	  if ((GENERIC_ID == GFC_ISYM_UBOUND || GENERIC_ID == GFC_ISYM_SIZE)
+	      && arg->next != NULL && arg->next->expr)
 	    {
 	      if (arg->next->expr->expr_type != EXPR_CONSTANT)
+		break;
+
+	      if (arg->next->name && strncmp(arg->next->name, "kind", 4) == 0)
 		break;
 
 	      if ((int)mpz_get_si (arg->next->expr->value.integer)
@@ -3981,6 +4021,10 @@ expression_rank (gfc_expr *e)
   gfc_ref *ref;
   int i, rank;
 
+  /* Just to make sure, because EXPR_COMPCALL's also have an e->ref and that
+     could lead to serious confusion...  */
+  gcc_assert (e->expr_type != EXPR_COMPCALL);
+
   if (e->ref == NULL)
     {
       if (e->expr_type == EXPR_ARRAY)
@@ -4510,6 +4554,11 @@ resolve_compcall (gfc_expr* e)
 
   if (resolve_typebound_generic_call (e) == FAILURE)
     return FAILURE;
+  gcc_assert (!e->value.compcall.tbp->is_generic);
+
+  /* Take the rank from the function's symbol.  */
+  if (e->value.compcall.tbp->u.specific->n.sym->as)
+    e->rank = e->value.compcall.tbp->u.specific->n.sym->as->rank;
 
   /* For now, we simply transform it into an EXPR_FUNCTION call with the same
      arglist to the TBP's binding target.  */
@@ -8420,8 +8469,21 @@ resolve_fl_derived (gfc_symbol *sym)
   if (super_type && resolve_fl_derived (super_type) == FAILURE)
     return FAILURE;
 
+  /* An ABSTRACT type must be extensible.  */
+  if (sym->attr.abstract && (sym->attr.is_bind_c || sym->attr.sequence))
+    {
+      gfc_error ("Non-extensible derived-type '%s' at %L must not be ABSTRACT",
+		 sym->name, &sym->declared_at);
+      return FAILURE;
+    }
+
   for (c = sym->components; c != NULL; c = c->next)
     {
+      /* Check type-spec if this is not the parent-type component.  */
+      if ((!sym->attr.extension || c != sym->components)
+	  && resolve_typespec_used (&c->ts, &c->loc, c->name) == FAILURE)
+	return FAILURE;
+
       /* If this type is an extension, see if this component has the same name
 	 as an inherited type-bound procedure.  */
       if (super_type
@@ -9115,6 +9177,13 @@ resolve_symbol (gfc_symbol *sym)
 	  || (a->dummy && a->intent == INTENT_OUT))
 	apply_default_init (sym);
     }
+
+  /* If this symbol has a type-spec, check it.  */
+  if (sym->attr.flavor == FL_VARIABLE || sym->attr.flavor == FL_PARAMETER
+      || (sym->attr.flavor == FL_PROCEDURE && sym->attr.function))
+    if (resolve_typespec_used (&sym->ts, &sym->declared_at, sym->name)
+	  == FAILURE)
+      return;
 }
 
 
@@ -10067,6 +10136,19 @@ resolve_types (gfc_namespace *ns)
   gfc_charlen *cl;
   gfc_data *d;
   gfc_equiv *eq;
+  gfc_namespace* old_ns = gfc_current_ns;
+
+  /* Check that all IMPLICIT types are ok.  */
+  if (!ns->seen_implicit_none)
+    {
+      unsigned letter;
+      for (letter = 0; letter != GFC_LETTERS; ++letter)
+	if (ns->set_flag[letter]
+	    && resolve_typespec_used (&ns->default_type[letter],
+				      &ns->implicit_loc[letter],
+				      NULL) == FAILURE)
+	  return;
+    }
 
   gfc_current_ns = ns;
 
@@ -10124,6 +10206,8 @@ resolve_types (gfc_namespace *ns)
     warn_unused_fortran_label (ns->st_labels);
 
   gfc_resolve_uops (ns->uop_root);
+
+  gfc_current_ns = old_ns;
 }
 
 

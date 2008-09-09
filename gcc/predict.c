@@ -203,7 +203,8 @@ bool
 optimize_function_for_size_p (struct function *fun)
 {
   return (optimize_size
-	  || fun->function_frequency == FUNCTION_FREQUENCY_UNLIKELY_EXECUTED);
+	  || (fun && (fun->function_frequency
+		      == FUNCTION_FREQUENCY_UNLIKELY_EXECUTED)));
 }
 
 /* Return true when current function should always be optimized for speed.  */
@@ -2179,7 +2180,7 @@ struct gimple_opt_pass pass_strip_predict_hints =
 {
  {
   GIMPLE_PASS,
-  "",					/* name */
+  NULL,					/* name */
   NULL,					/* gate */
   strip_predict_hints,			/* execute */
   NULL,					/* sub */

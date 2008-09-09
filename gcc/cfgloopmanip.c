@@ -469,7 +469,8 @@ scale_loop_frequencies (struct loop *loop, int num, int den)
 
 /* Recompute dominance information for basic blocks outside LOOP.  */
 
-static void update_dominators_in_loop (struct loop *loop)
+static void
+update_dominators_in_loop (struct loop *loop)
 {
   VEC (basic_block, heap) *dom_bbs = NULL;
   sbitmap seen;

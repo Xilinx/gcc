@@ -1118,11 +1118,6 @@ reload (rtx first, int global)
       obstack_free (&reload_obstack, reload_firstobj);
     }
 
-  if (flag_ira && optimize)
-    /* Restore the original insn chain order for correct reload work
-       (e.g. for correct inheritance).  */
-    ira_sort_insn_chain (false);
-
   /* If global-alloc was run, notify it of any register eliminations we have
      done.  */
   if (global)
@@ -2714,7 +2709,7 @@ eliminate_regs_1 (rtx x, enum machine_mode mem_mode, rtx insn,
 	      /* If this is a REG_DEAD note, it is not valid anymore.
 		 Using the eliminated version could result in creating a
 		 REG_DEAD note for the stack or frame pointer.  */
-	      if (GET_MODE (x) == REG_DEAD)
+	      if (REG_NOTE_KIND (x) == REG_DEAD)
 		return (XEXP (x, 1)
 			? eliminate_regs_1 (XEXP (x, 1), mem_mode, insn, true)
 			: NULL_RTX);

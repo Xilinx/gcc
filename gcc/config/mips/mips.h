@@ -563,6 +563,9 @@ enum mips_code_readable_setting {
 									\
       if (mips_abi == ABI_EABI)						\
 	builtin_define ("__mips_eabi");					\
+									\
+      if (TARGET_CACHE_BUILTIN)						\
+	builtin_define ("__GCC_HAVE_BUILTIN_MIPS_CACHE");		\
     }									\
   while (0)
 
@@ -1009,8 +1012,23 @@ enum mips_code_readable_setting {
 /* ISA includes the bbit* instructions.  */
 #define ISA_HAS_BBIT		TARGET_OCTEON
 
+/* ISA includes the cins instruction.  */
+#define ISA_HAS_CINS		TARGET_OCTEON
+
+/* ISA includes the exts instruction.  */
+#define ISA_HAS_EXTS		TARGET_OCTEON
+
+/* ISA includes the seq and sne instructions.  */
+#define ISA_HAS_SEQ_SNE		TARGET_OCTEON
+
 /* ISA includes the pop instruction.  */
 #define ISA_HAS_POP		TARGET_OCTEON
+
+/* The CACHE instruction is available in non-MIPS16 code.  */
+#define TARGET_CACHE_BUILTIN (mips_isa >= 3)
+
+/* The CACHE instruction is available.  */
+#define ISA_HAS_CACHE (TARGET_CACHE_BUILTIN && !TARGET_MIPS16)
 
 /* Add -G xx support.  */
 
@@ -1782,6 +1800,7 @@ enum reg_class
   ST_REGS,			/* status registers (fp status) */
   DSP_ACC_REGS,			/* DSP accumulator registers */
   ACC_REGS,			/* Hi/Lo and DSP accumulator registers */
+  FRAME_REGS,			/* $arg and $frame */
   ALL_REGS,			/* all registers */
   LIM_REG_CLASSES		/* max value + 1 */
 };
@@ -1823,6 +1842,7 @@ enum reg_class
   "ST_REGS",								\
   "DSP_ACC_REGS",							\
   "ACC_REGS",								\
+  "FRAME_REGS",								\
   "ALL_REGS"								\
 }
 
@@ -1865,7 +1885,8 @@ enum reg_class
   { 0x00000000, 0x00000000, 0x000007f8, 0x00000000, 0x00000000, 0x00000000 },	/* status registers */	\
   { 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x003f0000 },	/* dsp accumulator registers */	\
   { 0x00000000, 0x00000000, 0x00000003, 0x00000000, 0x00000000, 0x003f0000 },	/* hi/lo and dsp accumulator registers */	\
-  { 0xffffffff, 0xffffffff, 0xffff07ff, 0xffffffff, 0xffffffff, 0x0fffffff }	/* all registers */	\
+  { 0x00000000, 0x00000000, 0x00006000, 0x00000000, 0x00000000, 0x00000000 },	/* frame registers */	\
+  { 0xffffffff, 0xffffffff, 0xffff67ff, 0xffffffff, 0xffffffff, 0x0fffffff }	/* all registers */	\
 }
 
 

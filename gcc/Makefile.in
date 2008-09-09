@@ -185,6 +185,8 @@ bitmap.o-warn = -Wno-error
 dominance.o-warn = -Wno-error
 # graphite.c contains code calling cloog that has problems.
 graphite.o-warn = -Wno-error
+# mips-tfile.c contains -Wcast-qual warnings.
+mips-tfile.o-warn = -Wno-error
 
 # All warnings have to be shut off in stage1 if the compiler used then
 # isn't gcc; configure determines that.  WARN_CFLAGS will be either
@@ -2814,7 +2816,7 @@ loop-invariant.o : loop-invariant.c $(CONFIG_H) $(SYSTEM_H) $(RTL_H) \
    $(HASHTAB_H) except.h
 cfgloopmanip.o : cfgloopmanip.c $(CONFIG_H) $(SYSTEM_H) $(RTL_H) \
    $(BASIC_BLOCK_H) hard-reg-set.h $(CFGLOOP_H) $(CFGLAYOUT_H) output.h \
-   coretypes.h $(TM_H) cfghooks.h $(OBSTACK_H)
+   coretypes.h $(TM_H) cfghooks.h $(OBSTACK_H) $(TREE_FLOW_H)
 loop-init.o : loop-init.c $(CONFIG_H) $(SYSTEM_H) $(RTL_H) $(GGC_H) \
    $(BASIC_BLOCK_H) hard-reg-set.h $(CFGLOOP_H) $(CFGLAYOUT_H) \
    coretypes.h $(TM_H) $(OBSTACK_H) tree-pass.h $(TIMEVAR_H) $(FLAGS_H) $(DF_H)

@@ -175,9 +175,6 @@ framework extensions, you must include this file before toplev.h, not after.
      to which the vptr should be initialized.  Use get_vtbl_decl_for_binfo
      to extract the VAR_DECL for the complete vtable.
 
-   DECL_ARGUMENTS
-     For a VAR_DECL this is DECL_ANON_UNION_ELEMS.
-
    DECL_VINDEX
      This field is NULL for a non-virtual function.  For a virtual
      function, it is eventually set to an INTEGER_CST indicating the
@@ -1629,7 +1626,7 @@ struct lang_decl_flags GTY(())
   unsigned this_thunk_p : 1;
   unsigned repo_available_p : 1;
   unsigned hidden_friend_p : 1;
-  unsigned threadprivate_p : 1;
+  unsigned threadprivate_or_deleted_p : 1;
   unsigned defaulted_p : 1;
 
   union lang_decl_u {
@@ -2645,11 +2642,11 @@ more_aggr_init_expr_args_p (const aggr_init_expr_arg_iterator *iter)
 /* Nonzero if DECL has been declared threadprivate by
    #pragma omp threadprivate.  */
 #define CP_DECL_THREADPRIVATE_P(DECL) \
-  (DECL_LANG_SPECIFIC (VAR_DECL_CHECK (DECL))->decl_flags.threadprivate_p)
+  (DECL_LANG_SPECIFIC (VAR_DECL_CHECK (DECL))->decl_flags.threadprivate_or_deleted_p)
 
 /* Nonzero if DECL was declared with '= delete'.  */
 #define DECL_DELETED_FN(DECL) \
-  (DECL_LANG_SPECIFIC (FUNCTION_DECL_CHECK (DECL))->decl_flags.threadprivate_p)
+  (DECL_LANG_SPECIFIC (FUNCTION_DECL_CHECK (DECL))->decl_flags.threadprivate_or_deleted_p)
 
 /* Nonzero if DECL was declared with '= default'.  */
 #define DECL_DEFAULTED_FN(DECL) \
@@ -3863,6 +3860,12 @@ enum overload_flags { NO_SPECIAL = 0, DTOR_FLAG, OP_FLAG, TYPENAME_FLAG };
 #define SF_INCLASS_INLINE    2  /* The function is an inline, defined
 				   in the class body.  */
 
+/* Used with start_decl's initialized parameter.  */
+#define SD_UNINITIALIZED     0
+#define SD_INITIALIZED       1
+#define SD_DEFAULTED         2
+#define SD_DELETED           3
+
 /* Returns nonzero iff TYPE1 and TYPE2 are the same type, or if TYPE2
    is derived from TYPE1, or if TYPE2 is a pointer (reference) to a
    class derived from the type pointed to (referred to) by TYPE1.  */
@@ -4102,8 +4105,8 @@ struct cp_declarator {
     } id;
     /* For functions.  */
     struct {
-      /* The parameters to the function.  */
-      cp_parameter_declarator *parameters;
+      /* The parameters to the function as a TREE_LIST of decl/default.  */
+      tree parameters;
       /* The cv-qualifiers for the function.  */
       cp_cv_quals qualifiers;
       /* The exception-specification for the function.  */
@@ -4374,6 +4377,9 @@ extern bool cp_missing_noreturn_ok_p		(tree);
 extern void initialize_artificial_var		(tree, tree);
 extern tree check_var_type			(tree, tree);
 extern tree reshape_init (tree, tree);
+
+extern bool defer_mark_used_calls;
+extern GTY(()) VEC(tree, gc) *deferred_mark_used_calls;
 
 /* in decl2.c */
 extern bool check_java_method			(tree);
@@ -4911,7 +4917,7 @@ extern tree build_x_indirect_ref		(tree, const char *,
                                                  tsubst_flags_t);
 extern tree cp_build_indirect_ref		(tree, const char *,
                                                  tsubst_flags_t);
-extern tree build_array_ref			(tree, tree);
+extern tree build_array_ref			(tree, tree, location_t);
 extern tree get_member_function_from_ptrfunc	(tree *, tree);
 extern tree cp_build_function_call              (tree, tree, tsubst_flags_t);
 extern tree build_x_binary_op			(enum tree_code, tree,

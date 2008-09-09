@@ -354,7 +354,7 @@ grok_array_decl (tree array_expr, tree index_exp)
       if (array_expr == error_mark_node || index_exp == error_mark_node)
 	error ("ambiguous conversion for array subscript");
 
-      expr = build_array_ref (array_expr, index_exp);
+      expr = build_array_ref (array_expr, index_exp, input_location);
     }
   if (processing_template_decl && expr != error_mark_node)
     return build_min_non_dep (ARRAY_REF, expr, orig_array_expr, orig_index_exp,
@@ -3767,9 +3767,24 @@ mark_used (tree decl)
   TREE_USED (decl) = 1;
   if (DECL_CLONED_FUNCTION_P (decl))
     TREE_USED (DECL_CLONED_FUNCTION (decl)) = 1;
+  if (TREE_CODE (decl) == FUNCTION_DECL
+      && DECL_DELETED_FN (decl))
+    {
+      error ("deleted function %q+D", decl);
+      error ("used here");
+    }
   /* If we don't need a value, then we don't need to synthesize DECL.  */
   if (skip_evaluation)
     return;
+
+  /* If within finish_function, defer the rest until that function
+     finishes, otherwise it might recurse.  */
+  if (defer_mark_used_calls)
+    {
+      VEC_safe_push (tree, gc, deferred_mark_used_calls, decl);
+      return;
+    }
+
   /* Normally, we can wait until instantiation-time to synthesize
      DECL.  However, if DECL is a static data member initialized with
      a constant, we need the value right now because a reference to
@@ -3829,12 +3844,6 @@ mark_used (tree decl)
       synthesize_method (decl);
       /* If we've already synthesized the method we don't need to
 	 do the instantiation test below.  */
-    }
-  else if (TREE_CODE (decl) == FUNCTION_DECL
-	   && DECL_DELETED_FN (decl))
-    {
-      error ("deleted function %q+D", decl);
-      error ("used here");
     }
   else if ((DECL_NON_THUNK_FUNCTION_P (decl) || TREE_CODE (decl) == VAR_DECL)
 	   && DECL_LANG_SPECIFIC (decl) && DECL_TEMPLATE_INFO (decl)

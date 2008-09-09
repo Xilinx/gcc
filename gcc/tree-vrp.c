@@ -57,7 +57,8 @@ static int compare_values (tree val1, tree val2);
 static int compare_values_warnv (tree val1, tree val2, bool *);
 static void vrp_meet (value_range_t *, value_range_t *);
 static tree vrp_evaluate_conditional_warnv_with_ops (enum tree_code,
-						     tree, tree, bool, bool *);
+						     tree, tree, bool, bool *,
+						     bool *);
 
 /* Location information for ASSERT_EXPRs.  Each instance of this
    structure describes an ASSERT_EXPR for an SSA name.  Since a single
@@ -2905,7 +2906,8 @@ extract_range_from_comparison (value_range_t *vr, enum tree_code code,
   bool sop = false;
   tree val;
   
-  val = vrp_evaluate_conditional_warnv_with_ops (code, op0, op1, false, &sop);
+  val = vrp_evaluate_conditional_warnv_with_ops (code, op0, op1, false, &sop,
+  						 NULL);
 
   /* A disadvantage of using a special infinity as an overflow
      representation is that we lose the ability to record overflow
@@ -3784,6 +3786,14 @@ register_new_assert_for (tree name, tree expr,
     gcc_assert (gimple_code (gsi_stmt (si)) != GIMPLE_COND
 		&& gimple_code (gsi_stmt (si)) != GIMPLE_SWITCH);
 #endif
+
+  /* Never build an assert comparing against an integer constant with
+     TREE_OVERFLOW set.  This confuses our undefined overflow warning
+     machinery.  */
+  if (TREE_CODE (val) == INTEGER_CST
+      && TREE_OVERFLOW (val))
+    val = build_int_cst_wide (TREE_TYPE (val),
+			      TREE_INT_CST_LOW (val), TREE_INT_CST_HIGH (val));
 
   /* The new assertion A will be inserted at BB or E.  We need to
      determine if the new location is dominated by a previously
@@ -5439,13 +5449,39 @@ compare_names (enum tree_code comp, tree n1, tree n2,
   return NULL_TREE;
 }
 
+/* Helper function for vrp_evaluate_conditional_warnv.  */
+
+static tree
+vrp_evaluate_conditional_warnv_with_ops_using_ranges (enum tree_code code,
+						      tree op0, tree op1,
+						      bool * strict_overflow_p)
+{
+  value_range_t *vr0, *vr1;
+
+  vr0 = (TREE_CODE (op0) == SSA_NAME) ? get_value_range (op0) : NULL;
+  vr1 = (TREE_CODE (op1) == SSA_NAME) ? get_value_range (op1) : NULL;
+
+  if (vr0 && vr1)
+    return compare_ranges (code, vr0, vr1, strict_overflow_p);
+  else if (vr0 && vr1 == NULL)
+    return compare_range_with_value (code, vr0, op1, strict_overflow_p);
+  else if (vr0 == NULL && vr1)
+    return (compare_range_with_value
+	    (swap_tree_comparison (code), vr1, op0, strict_overflow_p));
+  return NULL;
+}
+
 /* Helper function for vrp_evaluate_conditional_warnv. */
 
 static tree
 vrp_evaluate_conditional_warnv_with_ops (enum tree_code code, tree op0,
 					 tree op1, bool use_equiv_p,
-					 bool *strict_overflow_p)
+					 bool *strict_overflow_p, bool *only_ranges)
 {
+  tree ret;
+  if (only_ranges)
+    *only_ranges = true;
+
   /* We only deal with integral and pointer types.  */
   if (!INTEGRAL_TYPE_P (TREE_TYPE (op0))
       && !POINTER_TYPE_P (TREE_TYPE (op0)))
@@ -5453,6 +5489,11 @@ vrp_evaluate_conditional_warnv_with_ops (enum tree_code code, tree op0,
 
   if (use_equiv_p)
     {
+      if (only_ranges
+          && (ret = vrp_evaluate_conditional_warnv_with_ops_using_ranges
+	              (code, op0, op1, strict_overflow_p)))
+	return ret;
+      *only_ranges = false;
       if (TREE_CODE (op0) == SSA_NAME && TREE_CODE (op1) == SSA_NAME)
 	return compare_names (code, op0, op1, strict_overflow_p);
       else if (TREE_CODE (op0) == SSA_NAME)
@@ -5462,20 +5503,8 @@ vrp_evaluate_conditional_warnv_with_ops (enum tree_code code, tree op0,
 		(swap_tree_comparison (code), op1, op0, strict_overflow_p));
     }
   else
-    {
-      value_range_t *vr0, *vr1;
-
-      vr0 = (TREE_CODE (op0) == SSA_NAME) ? get_value_range (op0) : NULL;
-      vr1 = (TREE_CODE (op1) == SSA_NAME) ? get_value_range (op1) : NULL;
-
-      if (vr0 && vr1)
-	return compare_ranges (code, vr0, vr1, strict_overflow_p);
-      else if (vr0 && vr1 == NULL)
-	return compare_range_with_value (code, vr0, op1, strict_overflow_p);
-      else if (vr0 == NULL && vr1)
-	return (compare_range_with_value
-		(swap_tree_comparison (code), vr1, op0, strict_overflow_p));
-    }
+    return vrp_evaluate_conditional_warnv_with_ops_using_ranges (code, op0, op1,
+								 strict_overflow_p);
   return NULL_TREE;
 }
 
@@ -5491,9 +5520,11 @@ vrp_evaluate_conditional (enum tree_code code, tree op0, tree op1, gimple stmt)
 {
   bool sop;
   tree ret;
+  bool only_ranges;
 
   sop = false;
-  ret = vrp_evaluate_conditional_warnv_with_ops (code, op0, op1, true, &sop);
+  ret = vrp_evaluate_conditional_warnv_with_ops (code, op0, op1, true, &sop,
+  						 &only_ranges);
 
   if (ret && sop)
     {
@@ -5526,7 +5557,7 @@ vrp_evaluate_conditional (enum tree_code code, tree op0, tree op1, gimple stmt)
     }
 
   if (warn_type_limits
-      && ret
+      && ret && only_ranges
       && TREE_CODE_CLASS (code) == tcc_comparison
       && TREE_CODE (op0) == SSA_NAME)
     {
@@ -5650,7 +5681,7 @@ vrp_visit_cond_stmt (gimple stmt, edge *taken_edge_p)
   val = vrp_evaluate_conditional_warnv_with_ops (gimple_cond_code (stmt),
 						 gimple_cond_lhs (stmt),
 						 gimple_cond_rhs (stmt),
-						 false, &sop);
+						 false, &sop, NULL);
   if (val)
     {
       if (!sop)

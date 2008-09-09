@@ -5155,6 +5155,9 @@ gfc_conv_array_parameter (gfc_se * se, gfc_expr * expr, gfc_ss * ss, int g77,
 		      && expr->ref->u.ar.type == AR_FULL);
   sym = full_array_var ? expr->symtree->n.sym : NULL;
 
+  /* The symbol should have an array specification.  */
+  gcc_assert (!sym || sym->as);
+
   if (expr->expr_type == EXPR_ARRAY && expr->ts.type == BT_CHARACTER)
     {
       get_array_ctor_strlen (&se->pre, expr->value.constructor, &tmp);
@@ -5250,8 +5253,9 @@ gfc_conv_array_parameter (gfc_se * se, gfc_expr * expr, gfc_ss * ss, int g77,
       if (fsym && fsym->attr.optional && sym && sym->attr.optional)
 	{
 	  tmp = gfc_conv_expr_present (sym);
-	  ptr = build3 (COND_EXPR, TREE_TYPE (se->expr), tmp, ptr,
-			null_pointer_node);
+	  ptr = build3 (COND_EXPR, TREE_TYPE (se->expr), tmp,
+			fold_convert (TREE_TYPE (se->expr), ptr),
+			fold_convert (TREE_TYPE (se->expr), null_pointer_node));
 	}
 
       ptr = gfc_evaluate_now (ptr, &se->pre);

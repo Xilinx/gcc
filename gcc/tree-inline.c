@@ -1156,6 +1156,12 @@ remap_gimple_stmt (gimple stmt, copy_body_data *id)
 	           (s1, gimple_omp_single_clauses (stmt));
 	  break;
 
+	case GIMPLE_OMP_CRITICAL:
+	  s1 = remap_gimple_seq (gimple_omp_body (stmt), id);
+	  copy
+	    = gimple_build_omp_critical (s1, gimple_omp_critical_name (stmt));
+	  break;
+
 	default:
 	  gcc_unreachable ();
 	}
@@ -1325,6 +1331,7 @@ copy_bb (copy_body_data *id, basic_block bb, int frequency_scale,
 	      gimple_call_set_lhs (new_call, gimple_call_lhs (stmt));
 
 	      gsi_replace (&copy_gsi, new_call, false);
+	      gimple_set_bb (stmt, NULL);
 	      stmt = new_call;
 	    }
 	  else if (is_gimple_call (stmt)
@@ -1686,8 +1693,6 @@ static void
 initialize_cfun (tree new_fndecl, tree callee_fndecl, gcov_type count,
 		 int frequency)
 {
-  struct function *new_cfun
-     = (struct function *) ggc_alloc_cleared (sizeof (struct function));
   struct function *src_cfun = DECL_STRUCT_FUNCTION (callee_fndecl);
   gcov_type count_scale, frequency_scale;
 
@@ -1706,14 +1711,40 @@ initialize_cfun (tree new_fndecl, tree callee_fndecl, gcov_type count,
 
   /* Register specific tree functions.  */
   gimple_register_cfg_hooks ();
-  *new_cfun = *DECL_STRUCT_FUNCTION (callee_fndecl);
-  new_cfun->funcdef_no = get_next_funcdef_no ();
-  VALUE_HISTOGRAMS (new_cfun) = NULL;
-  new_cfun->local_decls = NULL;
-  new_cfun->cfg = NULL;
-  new_cfun->decl = new_fndecl /*= copy_node (callee_fndecl)*/;
-  DECL_STRUCT_FUNCTION (new_fndecl) = new_cfun;
-  push_cfun (new_cfun);
+
+  /* Get clean struct function.  */
+  push_struct_function (new_fndecl);
+
+  /* We will rebuild these, so just sanity check that they are empty.  */
+  gcc_assert (VALUE_HISTOGRAMS (cfun) == NULL);
+  gcc_assert (cfun->local_decls == NULL);
+  gcc_assert (cfun->cfg == NULL);
+  gcc_assert (cfun->decl == new_fndecl);
+
+  /* No need to copy; this is initialized later in compilation.  */
+  gcc_assert (!src_cfun->calls_setjmp);
+  gcc_assert (!src_cfun->calls_alloca);
+
+  /* Copy items we preserve during clonning.  */
+  cfun->static_chain_decl = src_cfun->static_chain_decl;
+  cfun->nonlocal_goto_save_area = src_cfun->nonlocal_goto_save_area;
+  cfun->function_end_locus = src_cfun->function_end_locus;
+  cfun->curr_properties = src_cfun->curr_properties;
+  cfun->last_verified = src_cfun->last_verified;
+  if (src_cfun->ipa_transforms_to_apply)
+    cfun->ipa_transforms_to_apply = VEC_copy (ipa_opt_pass, heap,
+					      src_cfun->ipa_transforms_to_apply);
+  cfun->va_list_gpr_size = src_cfun->va_list_gpr_size;
+  cfun->va_list_fpr_size = src_cfun->va_list_fpr_size;
+  cfun->function_frequency = src_cfun->function_frequency;
+  cfun->has_nonlocal_label = src_cfun->has_nonlocal_label;
+  cfun->stdarg = src_cfun->stdarg;
+  cfun->dont_save_pending_sizes_p = src_cfun->dont_save_pending_sizes_p;
+  cfun->after_inlining = src_cfun->after_inlining;
+  cfun->returns_struct = src_cfun->returns_struct;
+  cfun->returns_pcc_struct = src_cfun->returns_pcc_struct;
+  cfun->after_tree_profile = src_cfun->after_tree_profile;
+
   init_empty_tree_cfg ();
 
   ENTRY_BLOCK_PTR->count =
@@ -2575,12 +2606,6 @@ inlinable_function_p (tree fn)
       inlinable = false;
     }
 
-  /* If we don't have the function body available, we can't inline it.
-     However, this should not be recorded since we also get here for
-     forward declared inline functions.  Therefore, return at once.  */
-  if (!gimple_body (fn))
-    return false;
-
   else if (inline_forbidden_p (fn))
     {
       /* See if we should warn about uninlinable functions.  Previously,
@@ -3083,7 +3108,7 @@ expand_call_inline (basic_block bb, gimple stmt, copy_body_data *id)
      gimple_body.  */
   if (!DECL_INITIAL (fn)
       && DECL_ABSTRACT_ORIGIN (fn)
-      && gimple_body (DECL_ABSTRACT_ORIGIN (fn)))
+      && gimple_has_body_p (DECL_ABSTRACT_ORIGIN (fn)))
     fn = DECL_ABSTRACT_ORIGIN (fn);
 
   /* Objective C and fortran still calls tree_rest_of_compilation directly.

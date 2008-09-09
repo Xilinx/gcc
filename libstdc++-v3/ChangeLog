@@ -1,3 +1,218 @@
+2008-09-09  Andreas Schwab  <schwab@suse.de>
+
+	* acinclude.m4 (GLIBCXX_CHECK_STANDARD_LAYOUT): Fix compile check
+	not to redefine main.
+
+2008-09-07  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* acinclude.m4 ([GLIBCXX_CHECK_C99_TR1]): Check wcstoimax and
+	wcstoumax, define _GLIBCXX_USE_C99_INTTYPES_WCHAR_T_TR1.
+	* include/tr1_impl/cinttypes: Use the latter.
+	* testsuite/tr1/8_c_compatibility/cinttypes/functions.cc: Likewise.
+	* configure: Regenerate.
+	* config.h.in: Likewise.
+
+2008-09-05  Peter Dimov  <pdimov@mmltd.net>
+
+	* testsuite/20_util/shared_ptr/cons/unique_ptr_deleter_ref_2.cc: New.
+
+2008-09-05  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* testsuite/20_util/shared_ptr/cons/unique_ptr_deleter_ref.cc: Rename
+	to...
+	* testsuite/20_util/shared_ptr/cons/unique_ptr_deleter_ref_1.cc: ...
+	this.
+
+2008-09-04  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	PR libstdc++/36962
+	* include/Makefile.am: Update headers.
+	* include/Makefile.in: Regenerate.
+	* include/std/memory: Update headers.
+	* include/tr1/memory: Likewise.
+	* include/tr1_impl/boost_shared_ptr.h: Remove, splitting into
+	separate implementations for std and tr1.
+	* include/bits/boost_sp_shared_count.h: Remove.
+	* include/tr1/boost_sp_shared_count.h: Remove.
+	* include/bits/shared_ptr.h: New. Combines boost_sp_shared_count.h
+	and boost_shared_ptr.h into one file.
+	(__shared_count,__shared_ptr,shared_ptr,swap): Add unique_ptr
+	and rvalue-reference support as per current WP.
+	* include/tr1/shared_ptr.h: New. Combines boost_sp_shared_count.h
+	and boost_shared_ptr.h into one file.
+	* testsuite/20_util/shared_ptr/cons/unique_ptr.cc: New.
+	* testsuite/20_util/shared_ptr/cons/unique_ptr_deleter.cc: New.
+	* testsuite/20_util/shared_ptr/cons/unique_ptr_deleter_ref.cc: New.
+	* testsuite/20_util/shared_ptr/cons/unique_ptr_neg.cc: New.
+	* testsuite/20_util/shared_ptr/assign/auto_ptr_rvalue.cc: New.
+	* testsuite/20_util/shared_ptr/assign/unique_ptr_lvalue_neg.cc: New.
+	* testsuite/20_util/shared_ptr/assign/unique_ptr_rvalue.cc: New.
+	* testsuite/20_util/shared_ptr/modifiers/swap_rvalue.cc: New.
+	* testsuite/20_util/shared_ptr/assign/auto_ptr_rvalue_neg.cc: Remove.
+
+2008-09-04  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* doc/xml/manual/locale.xml: Fix typo.
+
+2008-09-04  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* acinclude.m4 ([GLIBCXX_CHECK_GTHREADS]): Tidy checks in case of
+	POSIX threads.
+	* configure: Regenerate.
+
+2008-09-04  Chris Fairles  <chris.fairles@gmail.com>
+
+        * include/std/mutex (once_flag): Construct __gthread_once_t in a
+	temporary variable before assigning to _M_once to avoid initialization
+	errors. 
+
+2008-09-03  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* config/abi/pre/gnu.ver: Also export __once_functor_lock; tighten
+	GLIBCXX_3.4 exports (necessary in case of undef _GLIBCXX_HAVE_TLS).
+
+	* Makefile.in: Regenerate.
+	* src/Makefile.in: Likewise.
+	* doc/Makefile.in: Likewise.
+	* po/Makefile.in: Likewise.
+	* libmath/Makefile.in: Likewise.
+	* include/Makefile.in: Likewise.
+	* libsupc++/Makefile.in: Likewise.
+	* testsuite/Makefile.in: Likewise.
+
+2008-09-03  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* acinclude.m4 ([GLIBCXX_CHECK_GTHREADS]): Fix typo in last commit,
+	check _POSIX_TIMEOUTS, not _POSIX_TIMERS.
+	* configure: Regenerate.
+
+2008-09-03  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* acinclude.m4 ([GLIBCXX_CHECK_GTHREADS]): Check _POSIX_TIMERS too.
+	* configure: Regenerate.
+
+2008-09-03  Chris Fairles  <chris.fairles@gmail.com>
+
+        * include/std/condition_variable: Use new deleted ctors.
+        * include/std/mutex: Likewise plus implement timed_mutex, 
+	recursive_timed_mutex and call_once.
+	* src/condition_variable.cc: Implement wait(). Use gthread types.
+	Remove _GTHREADS_HAS_COND checks in favor of global
+	_GLIBCXX_HAS_GTHREADS.
+	* src/mutex.cc (call_once): Implementation using TLS with mutex
+	fallback.
+	* config/abi/pre/gnu.ver: Add exported symbols.
+	* testsuite/lib/libstdc++.exp (check_v3_target_gthreads): New.
+	* testsuite/lib/dg-options.exp (dg-require-gthreads): Likewise.
+	* testsuite/30_threads/lock_guard/requirements/typedefs.cc: Use
+	dg-require-gthreads and dg-require-cstdint.
+	* testsuite/30_threads/lock_guard/requirements/
+	explicit_instantiation.cc: Likewise.
+	* testsuite/30_threads/mutex/dest/destructor_locked.cc: Likewise.
+	* testsuite/30_threads/mutex/native_handle/1.cc: Likewise.
+	* testsuite/30_threads/mutex/cons/1.cc: Likewise.
+	* testsuite/30_threads/mutex/requirements/typedefs.cc: Likewise.
+	* testsuite/30_threads/mutex/try_lock/1.cc: Likewise.
+	* testsuite/30_threads/mutex/try_lock/2.cc: Likewise.
+	* testsuite/30_threads/mutex/lock/1.cc: Likewise.
+	* testsuite/30_threads/mutex/unlock/1.cc: Likewise.
+	* testsuite/30_threads/recursive_mutex/dest/destructor_locked.cc:
+	Likewise.
+        * testsuite/30_threads/recursive_mutex/native_handle/1.cc: Likewise.
+	* testsuite/30_threads/recursive_mutex/cons/1.cc: Likewise.
+        * testsuite/30_threads/recursive_mutex/requirements/typedefs.cc:
+	Likewise.
+        * testsuite/30_threads/recursive_mutex/try_lock/1.cc: Likewise.
+        * testsuite/30_threads/recursive_mutex/try_lock/2.cc: Likewise.
+        * testsuite/30_threads/recursive_mutex/lock/1.cc: Likewise.
+        * testsuite/30_threads/recursive_mutex/unlock/1.cc: Likewise.
+	* testsuite/30_threads/unique_lock/requirements/
+	explicit_instantiation.cc: Likewise.
+	* testsuite/30_threads/unique_lock/requirements/typedefs.cc: Likewise.
+        * testsuite/30_threads/mutex/cons/assign_neg.cc: Also adjust dg-error
+	lines for deleted members.
+        * testsuite/30_threads/mutex/cons/copy_neg.cc: Likewise.
+        * testsuite/30_threads/recursive_mutex/cons/assign_neg.cc: Likewise.
+        * testsuite/30_threads/recursive_mutex/cons/copy_neg.cc: Likewise.
+	* testsuite/30_threads/call_once/once_flag.cc: New.
+	* testsuite/30_threads/call_once/call_once1.cc: Likewise.
+	* testsuite/30_threads/condition_variable/cons/1.cc: Likewise.
+	* testsuite/30_threads/condition_variable/cons/copy_neg.cc: Likewise
+	* testsuite/30_threads/condition_variable/cons/assign_neg.cc: Likewise.
+	* testsuite/30_threads/condition_variable_any/cons/1.cc: Likewise.
+	* testsuite/30_threads/condition_variable_any/cons/copy_neg.cc:
+	Likewise.
+	* testsuite/30_threads/condition_variable_any/cons/assign_neg.cc:
+	Likewise.
+	* testsuite/30_threads/timed_mutex/dest/destructor_locked.cc: Likewise.
+	* testsuite/30_threads/timed_mutex/native_handle/1.cc: Likewise.
+	* testsuite/30_threads/timed_mutex/try_lock_until/1.cc: Likewise.
+	* testsuite/30_threads/timed_mutex/try_lock_until/2.cc: Likewise.
+	* testsuite/30_threads/timed_mutex/cons/assign_neg.cc: Likewise.
+	* testsuite/30_threads/timed_mutex/cons/1.cc: Likewise.
+	* testsuite/30_threads/timed_mutex/cons/copy_neg.cc: Likewise.
+	* testsuite/30_threads/timed_mutex/requirements/typedefs.cc: Likewise.
+	* testsuite/30_threads/timed_mutex/try_lock/1.cc: Likewise.
+	* testsuite/30_threads/timed_mutex/try_lock/2.cc: Likewise.
+	* testsuite/30_threads/timed_mutex/lock/1.cc: Likewise.
+	* testsuite/30_threads/timed_mutex/unlock/1.cc: Likewise.
+	* testsuite/30_threads/timed_mutex/try_lock_for/1.cc: Likewise.
+	* testsuite/30_threads/timed_mutex/try_lock_for/2.cc: Likewise.
+	* testsuite/30_threads/timed_mutex/try_lock_for/3.cc: Likewise.
+	* testsuite/30_threads/recursive_timed_mutex/dest/destructor_locked.cc: 
+	Likewise.
+	* testsuite/30_threads/recursive_timed_mutex/try_lock_until/1.cc: 
+	Likewise.
+	* testsuite/30_threads/recursive_timed_mutex/try_lock_until/2.cc: 
+	Likewise.
+	* testsuite/30_threads/recursive_timed_mutex/native_handle/1.cc: 
+	Likewise.
+	* testsuite/30_threads/recursive_timed_mutex/cons: Likewise.
+	* testsuite/30_threads/recursive_timed_mutex/cons/assign_neg.cc: 
+	Likewise.
+	* testsuite/30_threads/recursive_timed_mutex/cons/1.cc: Likewise.
+	* testsuite/30_threads/recursive_timed_mutex/cons/copy_neg.cc:
+	Likewise.
+	* testsuite/30_threads/recursive_timed_mutex/requirements/typedefs.cc:
+	Likewise.
+	* testsuite/30_threads/recursive_timed_mutex/try_lock/1.cc: Likewise.
+	* testsuite/30_threads/recursive_timed_mutex/try_lock/2.cc: Likewise.
+	* testsuite/30_threads/recursive_timed_mutex/lock/1.cc: Likewise.
+	* testsuite/30_threads/recursive_timed_mutex/lock/2.cc: Likewise.
+	* testsuite/30_threads/recursive_timed_mutex/unlock/1.cc: Likewise.
+	* testsuite/30_threads/recursive_timed_mutex/try_lock_for/1.cc:
+	Likewise.
+	* testsuite/30_threads/recursive_timed_mutex/try_lock_for/2.cc:
+	Likewise.
+	* testsuite/30_threads/recursive_timed_mutex/try_lock_for/3.cc:
+	Likewise.
+	* testsuite/30_threads/unique_lock/modifiers/1.cc: Likewise.
+	* testsuite/30_threads/unique_lock/modifiers/2.cc: Likewise.
+	* testsuite/30_threads/unique_lock/cons/1.cc: Likewise.
+	* testsuite/30_threads/unique_lock/cons/2.cc: Likewise.
+	* testsuite/30_threads/unique_lock/cons/3.cc: Likewise.
+	* testsuite/30_threads/unique_lock/cons/4.cc: Likewise.
+	* testsuite/30_threads/unique_lock/cons/5.cc: Likewise.
+	* testsuite/30_threads/unique_lock/cons/6.cc: Likewise.
+	* testsuite/30_threads/unique_lock/locking/1.cc: Likewise.
+	* testsuite/30_threads/unique_lock/locking/2.cc: Likewise.
+	* testsuite/30_threads/unique_lock/locking/3.cc: Likewise.
+	* testsuite/30_threads/unique_lock/locking/4.cc: Likewise.
+
+2008-09-01  Mark Mitchell  <mark@codesourcery.com>
+
+	* include/std/type_traits (__make_unsigned_selector<>): Consider
+	enums of size smaller than short.
+	(__make_signed_selector<>): Likewise.
+	* testsuite/20_util/make_signed/requirements/typedefs_neg.cc:
+	Adjust line numbers.
+	* testsuite/20_util/make_usigned/requirements/typedefs_neg.cc:
+	Adjust line numbers.
+	* testsuite/20_util/make_signed/requirements/typedefs-2.cc:
+	Ensure test_enum is the same size as short.
+	* testsuite/20_util/make_unsigned/requirements/typedefs-2.cc:
+	Ensure test_enum is the same size as short.
+
 2008-08-31  Aaron W. LaFramboise  <aaronavay62@aaronwl.com>
 
 	* acinclude.m4 <enable_symvers>: Don't use symvers on Windows.

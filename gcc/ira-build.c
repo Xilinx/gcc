@@ -113,7 +113,7 @@ create_loop_tree_nodes (bool loops_p)
       ira_bb_nodes[i].regno_allocno_map = NULL;
       memset (ira_bb_nodes[i].reg_pressure, 0,
 	      sizeof (ira_bb_nodes[i].reg_pressure));
-      ira_bb_nodes[i].mentioned_allocnos = NULL;
+      ira_bb_nodes[i].all_allocnos = NULL;
       ira_bb_nodes[i].modified_regnos = NULL;
       ira_bb_nodes[i].border_allocnos = NULL;
       ira_bb_nodes[i].local_copies = NULL;
@@ -156,7 +156,7 @@ create_loop_tree_nodes (bool loops_p)
 	      sizeof (ira_allocno_t) * max_regno);
       memset (ira_loop_nodes[i].reg_pressure, 0,
 	      sizeof (ira_loop_nodes[i].reg_pressure));
-      ira_loop_nodes[i].mentioned_allocnos = ira_allocate_bitmap ();
+      ira_loop_nodes[i].all_allocnos = ira_allocate_bitmap ();
       ira_loop_nodes[i].modified_regnos = ira_allocate_bitmap ();
       ira_loop_nodes[i].border_allocnos = ira_allocate_bitmap ();
       ira_loop_nodes[i].local_copies = ira_allocate_bitmap ();
@@ -188,7 +188,7 @@ finish_loop_tree_node (ira_loop_tree_node_t loop)
       ira_free_bitmap (loop->local_copies);
       ira_free_bitmap (loop->border_allocnos);
       ira_free_bitmap (loop->modified_regnos);
-      ira_free_bitmap (loop->mentioned_allocnos);
+      ira_free_bitmap (loop->all_allocnos);
       ira_free (loop->regno_allocno_map);
       loop->regno_allocno_map = NULL;
     }
@@ -212,8 +212,8 @@ finish_loop_tree_nodes (void)
 	ira_free_bitmap (ira_bb_nodes[i].border_allocnos);
       if (ira_bb_nodes[i].modified_regnos != NULL)
 	ira_free_bitmap (ira_bb_nodes[i].modified_regnos);
-      if (ira_bb_nodes[i].mentioned_allocnos != NULL)
-	ira_free_bitmap (ira_bb_nodes[i].mentioned_allocnos);
+      if (ira_bb_nodes[i].all_allocnos != NULL)
+	ira_free_bitmap (ira_bb_nodes[i].all_allocnos);
       if (ira_bb_nodes[i].regno_allocno_map != NULL)
 	ira_free (ira_bb_nodes[i].regno_allocno_map);
     }
@@ -310,7 +310,7 @@ form_loop_tree (void)
 	 ira_loop_nodes[i].children = NULL;
 	 ira_loop_nodes[i].subloops = NULL;
        }
-  FOR_EACH_BB_REVERSE (bb)
+  FOR_EACH_BB (bb)
     {
       bb_node = &ira_bb_nodes[bb->index];
       bb_node->bb = bb;
@@ -437,12 +437,13 @@ ira_create_allocno (int regno, bool cap_p, ira_loop_tree_node_t loop_tree_node)
   ALLOCNO_CAP (a) = NULL;
   ALLOCNO_CAP_MEMBER (a) = NULL;
   ALLOCNO_NUM (a) = ira_allocnos_num;
+  bitmap_set_bit (loop_tree_node->all_allocnos, ALLOCNO_NUM (a));
   ALLOCNO_CONFLICT_ALLOCNO_ARRAY (a) = NULL;
   ALLOCNO_CONFLICT_ALLOCNOS_NUM (a) = 0;
   COPY_HARD_REG_SET (ALLOCNO_CONFLICT_HARD_REGS (a), ira_no_alloc_regs);
   COPY_HARD_REG_SET (ALLOCNO_TOTAL_CONFLICT_HARD_REGS (a), ira_no_alloc_regs);
   ALLOCNO_NREFS (a) = 0;
-  ALLOCNO_FREQ (a) = 1;
+  ALLOCNO_FREQ (a) = 0;
   ALLOCNO_HARD_REGNO (a) = -1;
   ALLOCNO_CALL_FREQ (a) = 0;
   ALLOCNO_CALLS_CROSSED_NUM (a) = 0;
@@ -765,7 +766,6 @@ create_cap_allocno (ira_allocno_t a)
   ira_set_allocno_cover_class (cap, cover_class);
   ALLOCNO_AVAILABLE_REGS_NUM (cap) = ALLOCNO_AVAILABLE_REGS_NUM (a);
   ALLOCNO_CAP_MEMBER (cap) = a;
-  bitmap_set_bit (parent->mentioned_allocnos, ALLOCNO_NUM (cap));
   ALLOCNO_CAP (a) = cap;
   ALLOCNO_COVER_CLASS_COST (cap) = ALLOCNO_COVER_CLASS_COST (a);
   ALLOCNO_MEMORY_COST (cap) = ALLOCNO_MEMORY_COST (a);
@@ -1097,6 +1097,40 @@ ira_add_allocno_copy (ira_allocno_t first, ira_allocno_t second, int freq,
   return cp;
 }
 
+/* Print info about copy CP into file F.  */
+static void
+print_copy (FILE *f, ira_copy_t cp)
+{
+  fprintf (f, "  cp%d:a%d(r%d)<->a%d(r%d)@%d\n", cp->num,
+	   ALLOCNO_NUM (cp->first), ALLOCNO_REGNO (cp->first),
+	   ALLOCNO_NUM (cp->second), ALLOCNO_REGNO (cp->second), cp->freq);
+}
+
+/* Print info about copy CP into stderr.  */
+void
+ira_debug_copy (ira_copy_t cp)
+{
+  print_copy (stderr, cp);
+}
+
+/* Print info about all copies into file F.  */
+static void
+print_copies (FILE *f)
+{
+  ira_copy_t cp;
+  ira_copy_iterator ci;
+
+  FOR_EACH_COPY (cp, ci)
+    print_copy (f, cp);
+}
+
+/* Print info about all copies into stderr.  */
+void
+ira_debug_copies (void)
+{
+  print_copies (stderr);
+}
+
 /* Print info about copies involving allocno A into file F.  */
 static void
 print_allocno_copies (FILE *f, ira_allocno_t a)
@@ -1290,8 +1324,6 @@ create_insn_allocnos (rtx x, bool output_p)
 	  
 	  ALLOCNO_NREFS (a)++;
 	  ALLOCNO_FREQ (a) += REG_FREQ_FROM_BB (curr_bb);
-	  bitmap_set_bit (ira_curr_loop_tree_node->mentioned_allocnos,
-			  ALLOCNO_NUM (a));
 	  if (output_p)
 	    bitmap_set_bit (ira_curr_loop_tree_node->modified_regnos, regno);
 	}
@@ -1345,7 +1377,7 @@ create_bb_allocnos (ira_loop_tree_node_t bb_node)
 
   curr_bb = bb = bb_node->bb;
   ira_assert (bb != NULL);
-  FOR_BB_INSNS (bb, insn)
+  FOR_BB_INSNS_REVERSE (bb, insn)
     if (INSN_P (insn))
       create_insn_allocnos (PATTERN (insn), false);
   /* It might be a allocno living through from one subloop to
@@ -1709,7 +1741,7 @@ remove_unnecessary_allocnos (void)
 		prev_a = a;
 		ALLOCNO_LOOP_TREE_NODE (a) = parent;
 		parent->regno_allocno_map[regno] = a;
-		bitmap_set_bit (parent->mentioned_allocnos, ALLOCNO_NUM (a));
+		bitmap_set_bit (parent->all_allocnos, ALLOCNO_NUM (a));
 	      }
 	    else
 	      {
@@ -2358,20 +2390,18 @@ check_allocno_creation (void)
 
   FOR_EACH_ALLOCNO (a, ai)
     {
-      if (ALLOCNO_LOOP_TREE_NODE (a) == ira_loop_tree_root)
+      loop_tree_node = ALLOCNO_LOOP_TREE_NODE (a);
+      ira_assert (bitmap_bit_p (loop_tree_node->all_allocnos,
+				ALLOCNO_NUM (a)));
+      if (loop_tree_node == ira_loop_tree_root)
 	continue;
       if (ALLOCNO_CAP_MEMBER (a) != NULL)
-	{
-	  ira_assert (ALLOCNO_CAP (a) != NULL);
-	}
+	ira_assert (ALLOCNO_CAP (a) != NULL);
       else if (ALLOCNO_CAP (a) == NULL)
-	{
-	  loop_tree_node = ALLOCNO_LOOP_TREE_NODE (a);
-	  ira_assert (loop_tree_node->parent
-		      ->regno_allocno_map[ALLOCNO_REGNO (a)] != NULL
-		      && bitmap_bit_p (loop_tree_node->border_allocnos,
-				       ALLOCNO_NUM (a)));
-	}
+	ira_assert (loop_tree_node->parent
+		    ->regno_allocno_map[ALLOCNO_REGNO (a)] != NULL
+		    && bitmap_bit_p (loop_tree_node->border_allocnos,
+				     ALLOCNO_NUM (a)));
     }
 }
 #endif
@@ -2413,6 +2443,8 @@ ira_build (bool loops_p)
   sort_conflict_id_allocno_map ();
   setup_min_max_conflict_allocno_ids ();
   ira_build_conflicts ();
+  if (internal_flag_ira_verbose > 2 && ira_dump_file != NULL)
+    print_copies (ira_dump_file);
   if (internal_flag_ira_verbose > 0 && ira_dump_file != NULL)
     {
       int n, nr;

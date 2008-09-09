@@ -111,15 +111,16 @@ struct ira_loop_tree_node
      (defined only for the cover classes).  */
   int reg_pressure[N_REG_CLASSES];
 
-  /* Numbers of allocnos referred in the loop node.  */
-  bitmap mentioned_allocnos;
+  /* Numbers of allocnos referred or living in the loop node (except
+     for its subloops).  */
+  bitmap all_allocnos;
+
+  /* Numbers of allocnos living at the loop borders.  */
+  bitmap border_allocnos;
 
   /* Regnos of pseudos modified in the loop node (including its
      subloops).  */
   bitmap modified_regnos;
-
-  /* Numbers of allocnos living at the loop borders.  */
-  bitmap border_allocnos;
 
   /* Numbers of copies referred in the corresponding loop.  */
   bitmap local_copies;
@@ -701,10 +702,6 @@ ira_allocno_set_iter_next (ira_allocno_set_iterator *i)
 
 /* ira.c: */
 
-/* Hard regsets whose all bits are correspondingly zero or one.  */
-extern HARD_REG_SET ira_zero_hard_reg_set;
-extern HARD_REG_SET ira_one_hard_reg_set;
-
 /* Map: hard regs X modes -> set of hard registers for storing value
    of given mode starting with given hard register.  */
 extern HARD_REG_SET ira_reg_mode_hard_regset
@@ -837,6 +834,8 @@ extern rtx *ira_reg_equiv_const;
 extern ira_loop_tree_node_t ira_curr_loop_tree_node;
 extern ira_allocno_t *ira_curr_regno_allocno_map;
 
+extern void ira_debug_copy (ira_copy_t);
+extern void ira_debug_copies (void);
 extern void ira_debug_allocno_copies (ira_allocno_t);
 
 extern void ira_traverse_loop_tree (bool, ira_loop_tree_node_t,

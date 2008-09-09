@@ -1,3 +1,460 @@
+2008-09-09  Daniel Kraft  <d@domob.eu>
+
+	PR fortran/37429
+	* gfortran.dg/typebound_call_7.f03: New test.
+	* gfortran.dg/typebound_call_8.f03: New test.
+
+2008-09-09  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/37354
+	PR middle-end/30165
+	* g++.dg/torture/pr37354.C: New testcase.
+
+2008-09-09  Aldy Hernandez  <aldyh@redhat.com>
+
+	PR/37442
+	* gcc.target/i386/pr12329.c: Place error message on function name
+	line.
+	* gcc.target/i386/sse-5.c: Same.
+
+2008-09-09  Aldy Hernandez  <aldyh@redhat.com>
+
+	* gcc.dg/always_inline.c: Place error message on function
+	name line.
+	* gcc.dg/winline-6.c: Same.
+	* gcc.dg/noreturn-1.c: Same.
+	* gcc.dg/noreturn-7.c: Same.
+	* gcc.dg/inline-14.c: Same.
+	* gcc.dg/always_inline3.c: Same.
+	* gcc.dg/winline-3.c: Same.
+	* gcc.dg/wtr-func-def-1.c: Same.
+	* gcc.dg/winline-5.c: Same.
+	* gcc.dg/winline-7.c: Same.
+	* gcc.dg/winline-9.c: Same.
+	* gcc.dg/noreturn-4.c: Same.
+	* gcc.dg/20041213-1.c: Use column numbers.
+
+2008-09-09  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/37433
+	* gcc.c-torture/compile/pr37433.c: New testcase.
+
+2008-09-09  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/37387
+	* gcc.c-torture/compile/pr37387.c: New testcase.
+
+2008-09-09  Daniel Kraft  <d@domob.eu>
+
+	PR fortran/37411
+	* gfortran.dg/array_function_4.f90: New test.
+
+2008-09-08  Daniel Jacobowitz  <dan@codesourcery.com>
+	    Mark Mitchell  <mark@codesourcery.com>
+
+	* g++.dg/compat/eh/filter2_x.C: Declare abort.
+	* g++.dg/compat/eh/new1_x.C, g++.dg/compat/eh/new1_y.C: Include
+	cstddef and use std::size_t.
+
+	* gcc.dg/compat/compat-common.h: Define SKIP_COMPLEX_INT if
+	SKIP_COMPLEX.  Honor SKIP_COMPLEX.
+	* gcc.dg/compat/scalar-by-value-3_x.c,
+	gcc.dg/compat/scalar-by-value-3_y.c,
+	gcc.dg/compat/scalar-by-value-4_x.c,
+	gcc.dg/compat/scalar-by-value-4_y.c,
+	gcc.dg/compat/scalar-by-value-5.c,
+	gcc.dg/compat/scalar-by-value-5_main.c,
+	gcc.dg/compat/scalar-by-value-6.c,
+	gcc.dg/compat/scalar-by-value-6_main.c,
+	gcc.dg/compat/scalar-by-value-6_x.c,
+	gcc.dg/compat/scalar-by-value-6_y.c,
+	gcc.dg/compat/struct-by-value-16_x.c,
+	gcc.dg/compat/struct-by-value-16_y.c,
+	gcc.dg/compat/struct-by-value-16a_x.c,
+	gcc.dg/compat/struct-by-value-16a_y.c,
+	gcc.dg/compat/struct-by-value-17_x.c,
+	gcc.dg/compat/struct-by-value-17_y.c,
+	gcc.dg/compat/struct-by-value-17a_x.c,
+	gcc.dg/compat/struct-by-value-17a_y.c,
+	gcc.dg/compat/struct-by-value-18_x.c,
+	gcc.dg/compat/struct-by-value-18_y.c,
+	gcc.dg/compat/struct-by-value-18a_x.c,
+	gcc.dg/compat/struct-by-value-18a_y.c,
+	gcc.dg/compat/struct-layout-1.h,
+	gcc.dg/compat/scalar-return-3_x.c,
+	gcc.dg/compat/scalar-return-3_y.c,
+	gcc.dg/compat/scalar-return-4_x.c,
+	gcc.dg/compat/scalar-return-4_y.c: Honor SKIP_COMPLEX.
+
+	* gcc.dg/compat/scalar-by-value-y.h: Use stdarg.h for non-GCC
+	compilers.
+
+	* gcc.dg/compat/struct-by-value-22_y.c,
+	gcc.dg/compat/struct-by-value-22_main.c,
+	gcc.dg/compat/struct-by-value-22_x.c: Honor SKIP_VLA_IN_STRUCT.
+
+	* lib/c-compat.exp (compat_setup_dfp): Check the compiler under test
+	first.
+	* lib/compat.exp: Document COMPLEX and VLA_IN_STRUCT skips.
+
+2008-09-08  Andy Hutchinson  <hutchinsonandy@aim.com>
+
+	* gcc.dg/struct/wo_prof_escape_substr_value.c: Limit allocation
+	based on STACK_SIZE.
+	* gcc.dg/struct/wo_prof_array_through_pointer.c: Ditto.
+	* gcc.dg/struct/wo_prof_escape_substr_pointer.c: Ditto.
+	* gcc.dg/struct/wo_prof_escape_arg_to_local.c: Limit allocation
+	based on STACK_SIZE. Check malloc return for NULL.
+	* gcc.dg/struct/w_prof_local_var.c: Ditto.
+	* gcc.dg/struct/wo_prof_mult_field_peeling.c: Ditto.
+	* gcc.dg/struct/w_prof_local_array.c: Limit allocation based on
+	STACK_SIZE. XFAIL AVR target.
+	* gcc.dg/struct/wo_prof_local_array.c: Ditto.
+	* gcc.dg/struct/w_prof_two_strs.c: Limit allocation based on
+	STACK_SIZE. Limit random size to N.
+	* gcc.dg/struct/wo_prof_two_strs.c: Limit allocation based on
+	STACK_SIZE. XFAIL AVR target. Limit random size to N.
+	* gcc.dg/struct/w_prof_single_str_global.c: XFAIL AVR target.
+	* gcc.dg/struct/wo_prof_array_field.c: Ditto.
+	* gcc.dg/struct/wo_prof_double_malloc.c: Ditto.
+	* gcc.dg/struct/wo_prof_global_array.c: Ditto.
+	* gcc.dg/struct/wo_prof_single_str_global.c: Ditto.
+	* gcc.dg/struct/wo_prof_single_str_local.c: Ditto.
+	* gcc.dg/struct/w_prof_global_var.c: Limit allocation based on
+	STACK_SIZE. Check malloc return for NULL. XFAIL AVR target.
+	* gcc.dg/struct/wo_prof_global_var.c: Ditto.
+	* gcc.dg/struct/wo_prof_local_var.c: Ditto.
+	* gcc.dg/struct/wo_prof_malloc_size_var.c: Access only allocated
+	space. Limit allocation based on STACK_SIZE. XFAIL AVR target.
+
+2008-09-08  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	* g++.dg/cdce3.C: Require c99 runtime.
+
+2008-09-08  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/37393
+	* g++.dg/tree-ssa/pr37393.C: New test.
+
+	PR middle-end/37414
+	* g++.dg/opt/init2.C: New test.
+
+	PR middle-end/37337
+	* g++.dg/tree-ssa/pr37337.C: New test.
+
+2008-09-08  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/37421
+	* g++.dg/torture/pr37421.C: New testcase.
+
+2008-09-08  Daniel Kraft  <d@domob.eu>
+
+	PR fortran/36167
+	* gfortran.dg/array_function_3.f90: New test.
+	* gfortran.dg/save_3.f90: Added cleanup-modules directive.
+	* gfortran.dg/string_compare_1.f90: Ditto.
+
+2008-09-08  Daniel Kraft  <d@domob.eu>
+
+	PR fortran/37199
+	* gfortran.dg/array_function_2.f90: New test.
+
+2008-09-08  Tobias Burnus  <burnus@net.b.de>
+
+	PR fortran/37400
+	* gfortran.dg/implicit_12.f90: New test.
+
+2008-09-07  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR fortran/37203
+	* gfortran.d/reshape_order_1.f90:  New test case.
+	* gfortran.d/reshape_order_2.f90:  New test case.
+	* gfortran.d/reshape_order_3.f90:  New test case.
+	* gfortran.d/reshape_order_4.f90:  New test case.
+
+2008-09-07  Richard Guenther  <rguenther@suse.de>
+	    Ira Rosen  <irar@il.ibm.com>
+
+	PR tree-optimization/36630
+	* gcc.dg/vect/pr36630.c: New test.
+
+2008-09-07  Daniel Kraft  <d@domob.eu>
+
+	* gfortran.dg/stfunc_6.f90: Extended testcase to include more tests
+	related to PURE and statement functions.
+
+2008-09-07  Dorit Nuzman  <dorit@il.ibm.com>
+	    Ira Rosen  <irar@il.ibm.com>
+
+	PR tree-optimization/35642
+	* lib/target-supports.exp (check_effective_target_vect_short_mult):
+	Add powerpc.
+
+2008-09-07  Victor Kaplansky  <victork@il.ibm.com>
+
+	PR testsuite/37334
+	* gcc/testsuite/gcc.dg/fastmath-2.c: Add volatile to
+	definition of b, change -ffast-math to -ffinite-math-only
+	and rename test to ...
+	* gcc/testsuite/gcc.dg/div-double-1.c: ... this.
+
+2008-09-06  Jeff Law <law@redhat.com>
+
+	* gcc.c-torture/execute/memcpy-bi.c: Include <string.h>
+
+2008-09-06  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/37399
+	* gfortran.dg/size_kind.f90: Remove allocate statement
+	as it overflows at compile time on 32bit systems.
+
+2008-09-06  Jan Hubicka  <jh@suse.cz>
+
+	* g++.dg/tree-ssa-pr14703.C: New testcase.
+
+2008-09-06  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/36153
+	* gfortran.dg/size_kind.f90: New test.
+
+2008-09-06  Steven G. Kargl  <kargls@comcast.net>
+
+	PR fortran/33229
+	* gfortran.dg/intrinsic_subroutine.f90: New test.
+
+2008-09-06  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* gcc.target/mips/mips.exp (dg-mips-options): Make
+	-mr10k-cache-barrier=* imply -mips3 or above.
+	* gcc.target/mips/cache-1.c: New test.
+	* gcc.target/mips/r10k-cache-barrier-1.c: Likewise.
+	* gcc.target/mips/r10k-cache-barrier-2.c: Likewise.
+	* gcc.target/mips/r10k-cache-barrier-3.c: Likewise.
+	* gcc.target/mips/r10k-cache-barrier-4.c: Likewise.
+	* gcc.target/mips/r10k-cache-barrier-5.c: Likewise.
+	* gcc.target/mips/r10k-cache-barrier-6.c: Likewise.
+	* gcc.target/mips/r10k-cache-barrier-7.c: Likewise.
+	* gcc.target/mips/r10k-cache-barrier-8.c: Likewise.
+	* gcc.target/mips/r10k-cache-barrier-9.c: Likewise.
+	* gcc.target/mips/r10k-cache-barrier-10.c: Likewise.
+	* gcc.target/mips/r10k-cache-barrier-11.c: Likewise.
+	* gcc.target/mips/r10k-cache-barrier-12.c: Likewise.
+	* gcc.target/mips/r10k-cache-barrier-13.c: Likewise.
+	* gcc.target/mips/r10k-cache-barrier-14.c: Likewise.
+	* gcc.target/mips/r10k-cache-barrier-15.c: Likewise.
+
+2008-09-05  Daniel Kraft  <d@domob.eu>
+
+	PR fortran/35837
+	* gfortran.dg/save_3.f90: New test.
+
+2008-09-05  Douglas Gregor  <doug.gregor@gmail.com>
+
+	PR c++/37342
+	* g++.dg/other/canon-37342.C: New.
+	
+2008-09-05  Joseph Myers  <joseph@codesourcery.com>
+
+	* gcc.c-torture/compile/20080903-1.c: New test.
+
+2008-09-05  Daniel Kraft  <d@domob.eu>
+
+	PR fortran/36746
+	* gfortran.dg/implicit_derived_type_1.f90: New test.
+	* gfortran.dg/used_before_typed_5.f90: New test.
+
+2008-09-04  Jan Hubicka  <jh@suse.cz>
+
+	* gcc.target/i386/cold-attribute-1.c: Update testcase.
+
+2008-09-04  Ian Lance Taylor  <iant@google.com>
+
+	* g++.dg/init/const7.C: New test.
+
+2008-09-04  Adam Nemet  <anemet@caviumnetworks.com>
+
+	* gcc.target/mips/seq-1.c: New test.
+	* gcc.target/mips/octeon-seq-1.c: New test.
+	* gcc.target/mips/octeon-seq-2.c: New test.
+	* gcc.target/mips/octeon-seq-3.c: New test.
+	* gcc.target/mips/octeon-seq-4.c: New test.
+	* gcc.target/mips/scc-2.c: Also pass on sltiu.
+	* gcc.target/mips/scc-3.c: Likewise.
+
+2008-09-04  Adam Nemet  <anemet@caviumnetworks.com>
+
+	* gcc.target/mips/truncate-2.c: New test.
+	* gcc.target/mips/octeon-exts-1.c: New test.
+	* gcc.target/mips/octeon-exts-2.c: New test.
+	* gcc.target/mips/octeon-exts-3.c: New test.
+	* gcc.target/mips/octeon-exts-4.c: New test.
+
+2008-09-04  Adam Nemet  <anemet@caviumnetworks.com>
+
+	* gcc.target/mips/octeon-cins-1.c: New test.
+	* gcc.target/mips/octeon-cins-2.c: New test.
+
+2008-09-04  Richard Guenther  <rguenther@suse.de>
+
+	* gfortran.dg/internal_pack_4.f90: Adjust pattern.
+
+2008-09-04  Daniel Kraft  <d@domob.eu>
+
+	PR fortran/37099
+	* gfortran.dg/string_compare_1.f90: New text.
+	* gfortran.dg/string_compare_2.f90: New text.
+	* gfortran.dg/string_compare_3.f90: New text.
+
+2008-09-04  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR rtl-optimization/37243
+	* gfortran.dg/pr37243.f: New.
+
+2008-09-03  Jan Hubicka  <jh@suse.cz>
+
+	PR middle-end/37343
+	* g++.dg/torture/pr37343.C New file.
+
+2008-09-03  Ira Rosen  <irar@il.ibm.com>
+
+	* gcc.dg/vect/slp-perm-1.c: Add call to check_vect.
+	* gcc.dg/vect/slp-perm-2.c, gcc.dg/vect/slp-perm-3.c,
+	gcc.dg/vect/slp-perm-4.c, gcc.dg/vect/slp-perm-5.c,
+	gcc.dg/vect/slp-perm-6.c, gcc.dg/vect/slp-perm-7.c,
+	gcc.dg/vect/slp-perm-8.c, gcc.dg/vect/slp-perm-9.c: Likewise.
+
+2008-09-03  Jan Hubicka  <jh@suse.cz>
+
+	PR tree-optimization/37345
+	PR tree-optimization/37358
+	PR tree-optimization/37357
+	* g++.dg/torture/pr37345.C: New file.
+
+2008-09-03  Tobias Grosser  <grosser@fim.uni-passau.de>
+
+	* lib/target-supports.exp (check_effective_target_fgraphite): Fix test.
+	Graphite is only available with -O1.
+
+2008-09-03  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* gcc.c-torture/compile/vector-4.c: Add -mavx for x86.
+
+	* gcc.target/i386/avx-3.c: Require DFP support.
+
+2008-09-03  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/37348
+	* g++.dg/parse/crash45.C: New test.
+
+	PR c++/37189
+	* g++.dg/gomp/pr37189.C: New test.
+
+	PR debug/37322
+	* gfortran.dg/debug/pr35154-dwarf2.f: Fix up scan-assembler regexps.
+
+2008-09-03  Andrew Pinski  <andrew_pinski@playstation.sony.com>
+
+	PR middle-end/36445
+	* g++.dg/torture/pr36445.C: New test.
+
+2008-09-03  Andrew Pinski  <andrew_pinski@playstation.sony.com>
+
+	PR middle-end/37293
+	* g++.dg/torture/ipa-cp-1.C: New test.
+
+2008-09-03  David Edelsohn  <edelsohn@gnu.org>
+
+	* g++.dg/ext/java-2.C: Disable on AIX.
+
+2008-09-03  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/37346
+	* g++.dg/gomp/pr37346.C: New test.
+
+2008-09-03  Bernd Schmidt  <bernd.schmidt@analog.com>
+
+	From Mike Frysinger  <michael.frysinger@analog.com>
+	* gcc.target/bfin/mcpu-bf522.c: Check SILICON_REVISION is 0x0001.
+	* gcc.target/bfin/mcpu-bf523.c: Likewise.
+	* gcc.target/bfin/mcpu-bf524.c: Likewise.
+	* gcc.target/bfin/mcpu-bf525.c: Likewise.
+	* gcc.target/bfin/mcpu-bf526.c: Likewise.
+	* gcc.target/bfin/mcpu-bf527.c: Likewise.
+	* gcc.target/bfin/mcpu-bf542.c: Likewise.
+	* gcc.target/bfin/mcpu-bf544.c: Likewise.
+	* gcc.target/bfin/mcpu-bf547.c: Likewise.
+	* gcc.target/bfin/mcpu-bf548.c: Likewise.
+	* gcc.target/bfin/mcpu-bf549.c: Likewise.
+
+2008-09-02  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	* gcc.c-torture/compile/pr33009.c: xfail on hppa*-*-*.
+	* gcc.c-torture/compile/pr11832.c: Likewise.
+
+2008-09-02  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* gcc.target/i386/amd64-abi-3.c: New test.
+	* gcc.target/i386/amd64-abi-4.c: Likewise.
+	* gcc.target/i386/amd64-abi-5.c: Likewise.
+	* gcc.target/i386/amd64-abi-6.c: Likewise.
+
+2008-09-02  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/36766
+	* g++.dg/tree-ssa/pr36766.C: New test.
+
+	PR target/36332
+	* gcc.c-torture/execute/ieee/pr36332.c: New test.
+
+	PR c/37171
+	* g++.dg/ext/attrib34.C: New test.
+
+2008-09-02  Sebastian Pop  <sebastian.pop@amd.com>
+	    Tobias Grosser  <grosser@fim.uni-passau.de>
+	    Jan Sjodin  <jan.sjodin@amd.com>
+	    Harsha Jagasia  <harsha.jagasia@amd.com>
+	    Dwarakanath Rajagopal  <dwarak.rajagopal@amd.com>
+	    Konrad Trifunovic  <konrad.trifunovic@inria.fr>
+	    Adrien Eliche  <aeliche@isty.uvsq.fr>
+
+	Merge from graphite branch.
+	* gcc.dg/graphite/scop-{0,1,2,3,4,5,6,7,8,9,
+	10,11,12,13,14,15,16,17,18}.c: New.
+	* gcc.dg/graphite/graphite.exp: New.
+	* gcc.dg/graphite/scop-matmult.c: New.
+	* gcc.dg/graphite/block-0.c: New.
+	* lib/target-supports.exp (check_effective_target_fgraphite): New.
+	* gfortran.dg/graphite/block-1.f90: New.
+	* gfortran.dg/graphite/scop-{1,2}.f: New.
+	* gfortran.dg/graphite/block-{1,3,4}.f90: New.
+	* gfortran.dg/graphite/graphite.exp: New.
+	
+2008-09-02  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/37327
+	* gcc.c-torture/compile/pr37327.c: New testcase.
+
+2008-09-02  Victor Kaplansky  <victork@il.ibm.com>
+
+	* gcc.dg/fastmath-2.c: New.
+
+2008-09-02  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/37095
+	* g++.dg/inherit/thunk9.C: New test.
+
+2008-09-01  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/37228
+	* gfortran.dg/fmt_g0_4.f08: Revised test.
+
+2008-09-02  Daniel Kraft  <d@domob.eu>
+
+	* gfortran.dg/abstract_type_1.f90: New test.
+	* gfortran.dg/abstract_type_2.f03: New test.
+	* gfortran.dg/abstract_type_3.f03: New test.
+	* gfortran.dg/abstract_type_4.f03: New test.
+
 2008-09-01  Aldy Hernandez  <aldyh@redhat.com>
 
 	* gcc.dg/20010516-1.c: Test for columns.
@@ -1566,7 +2023,7 @@
 	* gfortran.dg/cshift_char_3.f90:  New test case.
 	* gfortran.dg/cshift_nan_1.f90:  New test case.
 
-2008-08-14  Rafael Avila de Espindola  <espindola@google.com>
+2008-08-14  Rafael Ávila de Espíndola  <espindola@google.com>
 
 	* gcc.dg/visibility-14.c: New test.
 	* gcc.dg/visibility-15.c: New test.
@@ -2288,7 +2745,7 @@
 	PR tree-optimization/36967
 	* gfortran.dg/pr36967.f: New testcase.
 
-2008-07-30  Rafael Avila de Espindola  <espindola@google.com>
+2008-07-30  Rafael Ávila de Espíndola  <espindola@google.com>
 
 	* gcc.dg/visibility-14.c: New test.
 	* gcc.dg/visibility-15.c: New test.
@@ -3982,7 +4439,7 @@
 	dg-additional-sources.
 	(profopt-execute): Handle additional sources.
 
-2008-05-28  Rafael Espindola  <espindola@google.com>
+2008-05-28  Rafael Espíndola  <espindola@google.com>
 
 	* gcc.dg/20080528-1.c: New test.
 
@@ -4119,7 +4576,7 @@
 	* g++.dg/template/inline1.C: For the not-defined symbol, use the
 	pattern from g++.dg/template/qualttp17.C.
 
-2008-05-23  Rafael Espindola  <espindola@google.com>
+2008-05-23  Rafael Espíndola  <espindola@google.com>
 
 	* gcc.c-torture/compile/20080522-1.c: Move to gcc.dg.
 	* gcc.dg/20080522-1.c: Moved from gcc.c-torture.
@@ -4157,7 +4614,7 @@
 	* gfortran.dg/cshift_large_1.f90:  New test.
 	* gfortran.dg/eoshift_large_1.f90:  New test.
 
-2008-05-22  Rafael Espindola  <espindola@google.com>
+2008-05-22  Rafael Espíndola  <espindola@google.com>
 
 	* gcc.c-torture/compile/20080522-1.c: New testcase.
 
@@ -4922,7 +5379,7 @@
 	PR fortran/36162
 	* gfortran.dg/module_widestring_1.f90: New test.
 
-2008-05-08  Rafael Espindola  <espindola@google.com>
+2008-05-08  Rafael Espíndola  <espindola@google.com>
 
 	* gcc.dg/vect/vect-111.c: Rename to no-trapping-math-vect-111.c
 	* gcc.dg/vect/vect-ifcvt-11.c: Rename to no-trapping-math-vect-ifcvt-11.c
@@ -5861,7 +6318,7 @@
 	PR fortran/35780
 	* gfortran.dg/simplify_argN_1.f90: New test.
 
-2008-04-06  Tobias Schl�ter  <tobi@gcc.gnu.org>
+2008-04-06  Tobias Schlüter  <tobi@gcc.gnu.org>
 
 	PR fortran/35832
 	* gfortran.dg/io_constraints_2.f90: Adapt to new error message.
@@ -7622,7 +8079,7 @@
 	* g++.dg/torture/pr35164-1.C: New testcase.
 	* g++.dg/torture/pr35164-2.C: Likewise.
 
-2008-02-15  Dominique d'Humieres  <dominiq@lps.ens.fr>
+2008-02-15  Dominique d'Humières  <dominiq@lps.ens.fr>
 
 	PR testsuite/35119
 	* g++.dg/template/spec35.C: Change the regular expressions

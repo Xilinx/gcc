@@ -848,6 +848,12 @@
 /* Define if your assembler and linker support .hidden. */
 #undef HAVE_GAS_HIDDEN
 
+/* Define if your assembler supports .lcomm with an alignment field. */
+#ifndef USED_FOR_TARGET
+#undef HAVE_GAS_LCOMM_WITH_ALIGNMENT
+#endif
+
+
 /* Define if your assembler supports .literal16. */
 #ifndef USED_FOR_TARGET
 #undef HAVE_GAS_LITERAL16

@@ -1520,7 +1520,7 @@ AC_DEFUN([GLIBCXX_CHECK_C99_TR1], [
   fi
 
   # Check for the existence of <inttypes.h> functions (NB: doesn't make
-  # sense if the previous check fails, per C99, 7.8/1).
+  # sense if the glibcxx_cv_c99_stdint_tr1 check fails, per C99, 7.8/1).
   ac_c99_inttypes_tr1=no;
   if test x"$glibcxx_cv_c99_stdint_tr1" = x"yes"; then
     AC_MSG_CHECKING([for ISO C99 support to TR1 in <inttypes.h>])
@@ -1539,6 +1539,27 @@ AC_DEFUN([GLIBCXX_CHECK_C99_TR1], [
     AC_DEFINE(_GLIBCXX_USE_C99_INTTYPES_TR1, 1,
               [Define if C99 functions in <inttypes.h> should be imported in
               <tr1/cinttypes> in namespace std::tr1.])
+  fi
+
+  # Check for the existence of whcar_t <inttypes.h> functions (NB: doesn't
+  # make sense if the glibcxx_cv_c99_stdint_tr1 check fails, per C99, 7.8/1).
+  ac_c99_inttypes_wchar_t_tr1=no;
+  if test x"$glibcxx_cv_c99_stdint_tr1" = x"yes"; then
+    AC_MSG_CHECKING([for wchar_t ISO C99 support to TR1 in <inttypes.h>])
+    AC_TRY_COMPILE([#include <inttypes.h>],
+	           [intmax_t base;
+		    const wchar_t* s;
+	            wchar_t** endptr;
+	            intmax_t ret = wcstoimax(s, endptr, base);
+	            uintmax_t uret = wcstoumax(s, endptr, base);
+        	   ],[ac_c99_inttypes_wchar_t_tr1=yes],
+		     [ac_c99_inttypes_wchar_t_tr1=no])
+  fi
+  AC_MSG_RESULT($ac_c99_inttypes_wchar_t_tr1)
+  if test x"$ac_c99_inttypes_wchar_t_tr1" = x"yes"; then
+    AC_DEFINE(_GLIBCXX_USE_C99_INTTYPES_WCHAR_T_TR1, 1,
+              [Define if wchar_t C99 functions in <inttypes.h> should be
+	      imported in <tr1/cinttypes> in namespace std::tr1.])
   fi
 
   # Check for the existence of the <stdbool.h> header.	
@@ -1643,14 +1664,9 @@ AC_DEFUN([GLIBCXX_CHECK_STANDARD_LAYOUT], [
 		    private:	    
   		    b& operator=(const b&);
   		    b(const b&);
-		    };
-
-		    int main()
-		    {
-		      b tst1 = { false };
-		       return 0;
-		    }],,
-             [ac_standard_layout=yes], [ac_standard_layout=no])
+		    };],
+		 [b tst1 = { false };],
+		 [ac_standard_layout=yes], [ac_standard_layout=no])
 
   CXXFLAGS="$ac_save_CXXFLAGS"
   AC_LANG_RESTORE
@@ -2843,9 +2859,15 @@ AC_DEFUN([GLIBCXX_CHECK_GTHREADS], [
 
   AC_TRY_COMPILE([#include "gthr.h"],
     [
-     	#ifndef __GTHREADS_CXX0X
-	#error
-	#endif
+      #ifndef __GTHREADS_CXX0X
+      #error
+      #endif
+
+      // In case of POSIX threads check _POSIX_TIMEOUTS too.
+      #if (defined(_PTHREADS) \
+           && (!defined(_POSIX_TIMEOUTS) || _POSIX_TIMEOUTS <= 0))
+      #error
+      #endif
     ], [ac_has_gthreads=yes], [ac_has_gthreads=no])
 
   AC_MSG_RESULT([$ac_has_gthreads])
