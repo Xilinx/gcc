@@ -1,3 +1,246 @@
+2008-09-09  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR tree-optimization/37375
+	* tree-scalar-evolution.c (scev_info_str): Add field instantiated_below.
+	(new_scev_info_str, eq_scev_info, find_var_scev_info,
+	set_scalar_evolution, get_scalar_evolution, get_instantiated_value,
+	set_instantiated_value): Pass instantiated_below.
+	(analyze_scalar_evolution_1, analyze_scalar_evolution): Update calls to
+	above functions.
+	(instantiate_scev_1, instantiate_scev): Pass a basic block above which the
+	definitions are not instantiated.
+
+	* tree-scalar-evolution.h (instantiate_scev): Update declaration.
+	(block_before_loop): New.
+	* tree-data-ref.c (dr_analyze_indices): Update uses of instantiate_scev.
+	* graphite.c (block_before_scop): New.
+	(loop_affine_expr, stmt_simple_for_scop_p, harmful_stmt_in_bb): Pass a 
+	basic block, not a loop for determining the parameters.
+	(scopdet_edge_info, build_scops_1): Do not pass outermost loop in the
+	scop.
+	(idx_record_params, find_params_in_bb, find_scop_parameters,
+	build_loop_iteration_domains, add_conditions_to_domain): Update calls 
+	to instantiate_scev.
+
+	* Makefile.in (cfgloopmanip.o): Add missing dependency on TREE_FLOW_H.
+
+2008-09-09  Vladimir Makarov  <vmakarov@redhat.com>
+
+	PR rtl-opt/37333
+	
+	* ira-build.c (ira_create_allocno): Setup frequency to 0.
+
+	* ira-color.c (update_conflict_hard_regno_costs): Remove assert.
+	Check zero freq and increase if necessary.
+
+2008-09-09  Vladimir Makarov  <vmakarov@redhat.com>
+
+	* ira-conflicts.c (process_regs_for_copy): Check that the hard
+	regno is in the right range.  Add comments.
+
+2008-09-09  Rainer Orth  <ro@TechFak.Uni-Bielefeld.DE>
+
+	* Makefile.in (mips-tfile.o-warn): Don't error out on mips-tfile.c
+	warnings.
+	* mips-tfile.c (copy_object): Cast alloca result to int *.
+	* mips-tdump.c (print_symbol): Cast xmalloc return values to
+	proper types.
+	Rename class to sclass.
+	(read_tfile): Cast read_seek return values to proper types.
+	Cast xcalloc return value to proper type.
+
+2008-09-09  Rainer Orth  <ro@TechFak.Uni-Bielefeld.DE>
+
+	* config/sol2.h (REGISTER_TARGET_PRAGMAS): Move ...
+	* config/i386/sol2.h (REGISTER_SUBTARGET_PRAGMAS): ... here.
+	* config/sparc/sol2.h (REGISTER_TARGET_PRAGMAS): ... and here.
+
+2008-09-09  Jan Hubicka  <jh@suse.cz>
+
+	* profile.c (is_edge_inconsistent): Add debug output; ignore negative count
+	on fake edges.
+	(is_inconsistent): Add debug output.
+
+2008-09-09  Andrey Belevantsev  <abel@ispras.ru>
+
+	* haifa-sched.c (advance_one_cycle): Do not print '\n' before printing
+	dump message.
+	(choose_ready): When first insn is chosen from the ready list, also
+	dump it.
+
+2008-09-09  Andrey Belevantsev  <abel@ispras.ru>
+
+        PR rtl-optimization/37360
+	* haifa-sched.c (max_issue): Do not assert that we never issue more
+	insns than issue_rate.  Add comment.
+	
+2008-09-09  Richard Guenther  <rguenther@suse.de>
+
+	* tree-cfg.c (verify_types_in_gimple_op): Remove.
+	(verify_types_in_gimple_call): Rename to ...
+	(verify_gimple_call): ... this.  Enhance.
+	(verify_types_in_gimple_cond): Remove.
+	(verify_gimple_comparison): New function ...
+	(verify_types_in_gimple_assign): ... split out from here.
+	(verify_types_in_gimple_return): Rename to ...
+	(verify_gimple_return): ... this.  Enhance.
+	(verify_types_in_gimple_switch): Rename to ...
+	(verify_gimple_switch): ... this.  Enhance.
+	(verify_gimple_goto): New function.
+	(verify_types_in_gimple_phi): Rename to ...
+	(verify_gimple_phi): ... this.  Enhance.
+	(verify_types_in_gimple_stmt): Adjust calls to helper functions.
+	Fold in single-statement cases from verify_types_in_gimple_seq_2.
+	(verify_types_in_gimple_seq_2): Remove cases handled in
+	verify_types_in_gimple_stmt.
+
+2008-09-09  Bernd Schmidt  <bernd.schmidt@analog.com>
+
+	* config/bfin/bfin.c (n_regs_to_save): New static variable.
+	(push_multiple_operation, pop_multiple_operation): Set it.
+	(workaround_rts_anomaly): New function.
+	(workaround_speculation): New function, broken out of bfin_reorg.
+	(bfin_reorg): Call the new functions.
+
+2008-09-09  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/37354
+	PR middle-end/30165
+	* gimplify.c (gimplify_conversion): Change conversions of
+	non-register type to VIEW_CONVERT_EXPRs.
+	(gimplify_addr_expr): If we need to make the operand
+	addressable make sure to use a properly initialized
+	temporary for that so it gets a valid gimple store.
+
+2008-09-09  Aldy Hernandez  <aldyh@redhat.com>
+
+	* function.h (struct function): Add function_start_locus.
+	* cfgexpand.c (gimple_expand_cfg): Use it.
+	* c-parser.c (c_parser_declaration_or_fndef): Set it.
+
+2008-09-09  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/37433
+	* tree-ssa-ccp.c (ccp_fold): Properly guard folding of
+	function calls.
+
+2008-09-09  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/37387
+	* tree-ssa-ifcombine.c (ifcombine_iforif): Convert the name
+	and bits to a common type.
+
+2008-09-09  Nick Clifton  <nickc@redhat.com>
+
+	* config/v850/v850.md (return): Restore frame size restriction.
+
+2008-09-09  Paolo Bonzini  <bonzini@gnu.org>
+
+	* c-common.c (c_expand_decl): Remove.
+	* c-common.h (anon_aggr_type_p): Remove prototype.
+	(DECL_ANON_UNION_ELEMS): Remove.
+	* c-objc-common.h (LANG_HOOKS_EXPAND_DECL): Remove.
+	* c-decl.c (anon_aggr_type_p): Remove.
+	* langhooks-def.h (LANG_HOOKS_EXPAND_DECL): Remove.
+	(LANG_HOOKS_INITIALIZER): Remove LANG_HOOKS_EXPAND_DECL.
+	* langhooks.h (struct lang_hooks): Remove expand_decl.
+	* langhooks.c (lhd_expand_decl): Remove.
+	* stmt.c (expand_anon_union_decl): Remove.
+	* tree.h (expand_anon_union_decl): Remove prototype.
+
+2008-08-09  Andy Hutchinson  <hutchinsonandy@aim.com>
+
+	PR target/36609
+	* config/avr/avr.c (avr_reorg): Create RTL for reversed compare with
+	zero.
+	* config/avr/avr.md  (QISI) : Define mode iterator.
+	(negated_tst<mode>) : Redefine as split using mode macro.
+	(reversed_tstqi): Define insn as reversed compare with zero.
+	(reversed_tsthi): Ditto.
+	(reversed_tstsi): Ditto.
+
+2008-09-08  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/37393
+	* tree-inline.c (copy_bb): When replacing a gimple_call_va_arg_pack_p
+	call stmt by new_call, clear gimple_bb on stmt after gsi_replace.
+
+	PR middle-end/37414
+	* predict.c (optimize_function_for_size_p): Don't segfault if
+	FUN is NULL.
+	* fold-const.c (LOGICAL_OP_NON_SHORT_CIRCUIT, fold_truthop,
+	tree_swap_operands_p): Don't test cfun != NULL before calling
+	optimize_function_for_s*_p.
+
+2008-09-08  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* ira-color.c (ira_reuse_stack_slot): Set slot_num on success at the
+	end of the search.
+
+2008-09-08  M R Swami Reddy <MR.Swami.Reddy@nsc.com>
+
+	* crx/crx.h (IRA_COVER_CLASSES): Define.
+
+2008-09-08  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/37337
+	* tree-ssa-dom.c (optimize_stmt): Call maybe_clean_or_replace_eh_stmt
+	even when a stmt has been gimple_modified_p, but after fold_stmt is
+	not any longer.  Remove unneeded may_have_exposed_new_symbols
+	initializations.
+
+2008-09-08  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/37421
+	* tree-ssa-sccvn.c (visit_copy): Make sure to fully
+	valueize the RHS.
+
+2008-09-08  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/37415
+	* opts.c (common_handle_option): Handle OPT_ftree_store_ccp.
+
+2008-09-08  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	PR driver/37409
+	* pa-hpux.h (LINK_SPEC): Strip -fwhole-program.
+	* pa-hpux10.h (LINK_SPEC): Likewise.
+	* pa-hpux11.h (LINK_SPEC): Likewise.
+
+2008-09-07  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	* pa32-regs.h (IRA_COVER_CLASSES): Define.
+	* pa64-regs.h (IRA_COVER_CLASSES): Define.
+
+2008-09-07  Helge Deller  <deller@gmx.de>
+
+        * pa/linux-atomic.c: New file.
+	* pa/t-linux (LIB2FUNCS_STATIC_EXTRA): Define.
+	* pa/t-linux64 (LIB2FUNCS_STATIC_EXTRA): Define.
+
+2008-09-07  Richard Guenther  <rguenther@suse.de>
+            Ira Rosen  <irar@il.ibm.com>
+
+	PR tree-optimization/36630
+	* tree-vect-transform.c (vect_update_ivs_after_vectorizer):
+	Call STRIP_NOPS before calling evolution_part_in_loop_num.
+
+2008-09-07  Dorit Nuzman  <dorit@il.ibm.com>
+            Ira Rosen  <irar@il.ibm.com>
+
+	PR tree-optimization/35642
+	* config/rs6000/altivec.md (mulv8hi3): Implement.
+
+2008-09-06  Jeff Law <law@redhat.com>
+
+	* h8300/h8300.h (IRA_COVER_CLASSES): Define.
+
+2008-09-06  Jan Hubicka  <jh@suse.cz>
+
+	PR tree-optimization/14703
+	* tree-ssa-live.c (remove_unused_scope_block_p): Remove ignored declarations.
+	* passes.c (init_optimization_passes): Recompute inline parameters.
+
 2008-09-06  Richard Sandiford  <rdsandiford@googlemail.com>
 
 	* config/mips/mips.c (mips_function_ok_for_sibcall): Check for
