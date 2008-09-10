@@ -82,6 +82,9 @@ extern long basilys_debugskipcount;
 #if defined(__STDC__) &&  __STDC__VERSION >= 199901L
 #define FLEXIBLE_DIM		/*flexible */
 #define HAVE_FLEXIBLE_DIM 1
+#elsif __GNUC__>=4
+#define FLEXIBLE_DIM /*gcc flexible*/
+#define HAVE_FLEXIBLE_DIM 1
 #else
 #define  FLEXIBLE_DIM /*flexibly*/1
 #define HAVE_FLEXIBLE_DIM 0
@@ -473,12 +476,14 @@ GTY (())
 
 /* when OBMAG_ROUTINE */
 #define BASILYS_ROUTDESCR_LEN 96
+#define BASILYS_ROUTADDR_LEN  (1 + (2*sizeof (basilysroutfun_t *))/ sizeof (long))
+
 struct basilysroutine_st
 GTY (())
 {
   basilysobject_ptr_t discr;
   char routdescr[BASILYS_ROUTDESCR_LEN];
-  long GTY ((skip)) routaddr[1 + 2* sizeof (basilysroutfun_t *) / sizeof (long)];
+  long GTY ((skip)) routaddr[BASILYS_ROUTADDR_LEN];
   basilys_ptr_t routdata;
   unsigned nbval;
   basilys_ptr_t GTY ((length ("%h.nbval"))) tabval[FLEXIBLE_DIM];

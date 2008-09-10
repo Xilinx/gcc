@@ -4440,7 +4440,7 @@ basilys_apply (basilysclosure_ptr_t clos_p,
   basilys_ptr_t res = NULL;
   union
   {
-    long funad[1 + sizeof (basilysroutfun_t *) / sizeof (long)];
+    long funad[BASILYS_ROUTADDR_LEN];
     basilysroutfun_t *pfun;
   }
   ufun;
@@ -4739,34 +4739,34 @@ compile_to_dyl (const char *srcfile, const char *dlfile)
 
 /* we need a vector of dlhandle-s to scan every loaded dylib, because
    libtool does not have the equivalent of RTLD_GLOBAL in dlopen */
-typedef struct lt_dlhandle_struct *lt_dlhandle;	/* to keep gengtype happy, copied from ltdl.h */
+typedef struct basilys_ltdlhandle_st*basilys_dlhandle;	/* to keep gengtype happy, inspired from ltdl.h */
 
-DEF_VEC_P (lt_dlhandle);
-DEF_VEC_ALLOC_P (lt_dlhandle, heap);
+DEF_VEC_P (basilys_dlhandle);
+DEF_VEC_ALLOC_P (basilys_dlhandle, heap);
 
 static
-VEC (lt_dlhandle, heap) *
-  modhdvec = 0;
+VEC (basilys_dlhandle, heap) *modhdvec = 0;
 
 /* load a dynamic library using the filepath DYPATH; if MD5SRC  is given,
    check that the basilys_md5 inside is indeed MD5SRC, otherwise
    return NULL */
-     static lt_dlhandle load_checked_dylib (const char *dypath, char *md5src)
+static basilys_dlhandle 
+load_checked_dylib (const char *dypath, char *md5src)
 {
-  lt_dlhandle dlh = NULL;
+  basilys_dlhandle dlh = NULL;
   char *dynmd5 = NULL;
   char *dyncomptimstamp = NULL;
   int i = 0, c = 0;
   char hbuf[4];
-  dlh = lt_dlopenext (dypath);
+  dlh = (basilys_dlhandle)lt_dlopenext (dypath);
   if (!dlh)
     return NULL;
   /* we always check that a basilys_md5 exists within the dynamically
      loaded stuff; otherwise it was not generated from MELT/basilys */
-  dynmd5 = (char *) lt_dlsym (dlh, "basilys_md5");
+  dynmd5 = (char *) lt_dlsym ((lt_dlhandle) dlh, "basilys_md5");
   if (!dynmd5)
     goto bad;
-  dyncomptimstamp = (char *) lt_dlsym (dlh, "basilys_compiled_timestamp");
+  dyncomptimstamp = (char *) lt_dlsym ((lt_dlhandle) dlh, "basilys_compiled_timestamp");
   if (!dyncomptimstamp)
     goto bad;
   if (md5src)
@@ -4786,12 +4786,12 @@ VEC (lt_dlhandle, heap) *
 	    goto bad;
 	}
     }
-  VEC_safe_push (lt_dlhandle, heap, modhdvec, dlh);
+  VEC_safe_push (basilys_dlhandle, heap, modhdvec, dlh);
   debugeprintf ("load_checked_dylib dypath %s dynmd5 %s dyncomptimstamp %s",
 		dypath, dynmd5, dyncomptimstamp);
   return dlh;
 bad:
-  lt_dlclose (dlh);
+  lt_dlclose ((lt_dlhandle) dlh);
   return NULL;
 }
 
@@ -4799,10 +4799,10 @@ void *
 basilys_dlsym_all (const char *nam)
 {
   int ix = 0;
-  lt_dlhandle h = 0;
-  for (ix = 0; VEC_iterate (lt_dlhandle, modhdvec, ix, h); ix++)
+  basilys_dlhandle h = 0;
+  for (ix = 0; VEC_iterate (basilys_dlhandle, modhdvec, ix, h); ix++)
     {
-      void *p = (void *) lt_dlsym (h, nam);
+      void *p = (void *) lt_dlsym ((lt_dlhandle) h, nam);
       if (p)
 	return p;
     };
@@ -4819,7 +4819,7 @@ basilysgc_compile_dyn (basilys_ptr_t modata_p, const char *modfile)
 {
   char *srcpath = NULL;
   FILE *srcfi = NULL;
-  lt_dlhandle dlh = 0;
+  basilys_dlhandle dlh = 0;
   lt_ptr dlsy = 0;
   int modfilelen = 0;
   int isasrc = 0;
@@ -6863,7 +6863,7 @@ basilys_initialize (void)
   const char *randomseed = 0;
   if (inited)
     return;
-  modhdvec = VEC_alloc (lt_dlhandle, heap, 30);
+  modhdvec = VEC_alloc (basilys_dlhandle, heap, 30);
   proghandle = lt_dlopen (NULL);
   if (!proghandle)
     fatal_error ("basilys failed to get whole program handle - %s",
