@@ -447,6 +447,13 @@ print_scop (FILE *file, scop_p scop, int verbosity)
 	print_graphite_bb (file, gb, 0, verbosity);
     }
 
+  fprintf (file, "       (data dependences: \n");
+
+  if (SCOP_DEP_GRAPH (scop))
+    graphite_dump_dependence_graph (dump_file, SCOP_DEP_GRAPH (scop));
+
+  fprintf (file, "       )\n");
+
   fprintf (file, ")\n");
 }
 
@@ -479,14 +486,6 @@ void
 debug_scops (int verbosity)
 {
   print_scops (stderr, verbosity);
-}
-
-/* Return true when BB is contained in SCOP.  */
-
-static inline bool
-bb_in_scop_p (basic_block bb, scop_p scop)
-{
-  return bitmap_bit_p (SCOP_BBS_B (scop), bb->index);
 }
 
 /* Pretty print to FILE the SCOP in DOT format.  */
@@ -692,15 +691,6 @@ dot_all_scops (void)
 #else
   dot_all_scops_1 (stderr);
 #endif
-}
-
-/* Returns true when LOOP is in SCOP.  */
-
-static inline bool 
-loop_in_scop_p (struct loop *loop, scop_p scop)
-{
-  return (bb_in_scop_p (loop->header, scop)
-	  && bb_in_scop_p (loop->latch, scop));
 }
 
 /* Returns the outermost loop in SCOP that contains BB.  */
@@ -931,6 +921,7 @@ new_scop (edge entry)
   SCOP_LOOP2CLOOG_LOOP (scop) = htab_create (10, hash_loop_to_cloog_loop,
 					     eq_loop_to_cloog_loop,
 					     free);
+  SCOP_DEP_GRAPH (scop) = NULL;
   return scop;
 }
 
@@ -1591,18 +1582,33 @@ build_scop_loop_nests (scop_p scop)
     }
 }
 
-/* Calculate the number of loops around GB in the current SCOP.  */
+/* Build dynamic schedules for all the BBs. */
 
-static inline int
-nb_loops_around_gb (graphite_bb_p gb)
+static void
+build_scop_dynamic_schedules (scop_p scop)
 {
-  scop_p scop = GBB_SCOP (gb);
-  struct loop *l = gbb_loop (gb);
-  int d = 0;
+  int i, dim, loop_num, row, col;
+  graphite_bb_p gb;
 
-  for (; loop_in_scop_p (l, scop); d++, l = loop_outer (l));
+  for (i = 0; VEC_iterate (graphite_bb_p, SCOP_BBS (scop), i, gb); i++)
+    {
+      loop_num = GBB_BB (gb)->loop_father->num;
 
-  return d;
+      if (loop_num != 0)
+        {
+          dim = nb_loops_around_gb (gb);
+          GBB_DYNAMIC_SCHEDULE (gb) = cloog_matrix_alloc (dim, dim);
+
+          for (row = 0; row < GBB_DYNAMIC_SCHEDULE (gb)->NbRows; row++)
+            for (col = 0; col < GBB_DYNAMIC_SCHEDULE (gb)->NbColumns; col++)
+              if (row == col)
+                value_set_si (GBB_DYNAMIC_SCHEDULE (gb)->p[row][col], 1);
+              else
+                value_set_si (GBB_DYNAMIC_SCHEDULE (gb)->p[row][col], 0);
+        }
+      else
+        GBB_DYNAMIC_SCHEDULE (gb) = NULL;
+    }
 }
 
 /* Build for BB the static schedule.
@@ -2623,27 +2629,31 @@ build_scop_iteration_domain (scop_p scop)
 }
 
 /* Initializes an equation CY of the access matrix using the
-   information for a subscript from ACCESS_FUN, relatively to the loop
+   information for a subscript from AF, relatively to the loop
    indexes from LOOP_NEST and parameter indexes from PARAMS.  NDIM is
    the dimension of the array access, i.e. the number of
    subscripts.  Returns true when the operation succeeds.  */
 
 static bool
-build_access_matrix_with_af (tree access_fun, lambda_vector cy,
+build_access_matrix_with_af (tree af, lambda_vector cy,
 			     scop_p scop, int ndim)
 {
-  switch (TREE_CODE (access_fun))
+  int param_col;
+
+  switch (TREE_CODE (af))
     {
     case POLYNOMIAL_CHREC:
       {
-	tree left = CHREC_LEFT (access_fun);
-	tree right = CHREC_RIGHT (access_fun);
+        struct loop *outer_loop;
+	tree left = CHREC_LEFT (af);
+	tree right = CHREC_RIGHT (af);
 	int var;
 
 	if (TREE_CODE (right) != INTEGER_CST)
 	  return false;
-        
-	var = loop_iteration_vector_dim (CHREC_VARIABLE (access_fun), scop);
+
+        outer_loop = get_loop (CHREC_VARIABLE (af));
+        var = nb_loops_around_loop_in_scop (outer_loop, scop);
 	cy[var] = int_cst_value (right);
 
 	switch (TREE_CODE (left))
@@ -2656,12 +2666,27 @@ build_access_matrix_with_af (tree access_fun, lambda_vector cy,
 	    return true;
 
 	  default:
-	    /* FIXME: access_fn can have parameters.  */
-	    return false;
+	    return build_access_matrix_with_af (left, cy, scop, ndim);
 	  }
       }
+
+    case PLUS_EXPR:
+      build_access_matrix_with_af (TREE_OPERAND (af, 0), cy, scop, ndim);
+      build_access_matrix_with_af (TREE_OPERAND (af, 1), cy, scop, ndim);
+      return true;
+      
+    case MINUS_EXPR:
+      build_access_matrix_with_af (TREE_OPERAND (af, 0), cy, scop, ndim);
+      build_access_matrix_with_af (TREE_OPERAND (af, 1), cy, scop, ndim);
+      return true;
+
     case INTEGER_CST:
-      cy[ndim - 1] = int_cst_value (access_fun);
+      cy[ndim - 1] = int_cst_value (af);
+      return true;
+
+    case SSA_NAME:
+      param_col = param_index (af, scop);      
+      cy [ndim - scop_nb_params (scop) + param_col - 1] = 1; 
       return true;
 
     default:
@@ -4779,12 +4804,16 @@ graphite_transform_loops (void)
 
       build_scop_conditions (scop);
       build_scop_data_accesses (scop);
+      build_scop_dynamic_schedules (scop);
 
       if (dump_file && (dump_flags & TDF_DETAILS))
 	{
 	  int nbrefs = nb_data_refs_in_scop (scop);
 	  fprintf (dump_file, "\nnumber of data refs: %d\n", nbrefs);
 	}
+
+      if (0)
+        SCOP_DEP_GRAPH (scop) = graphite_build_rdg_all_levels (scop);
 
       if (graphite_apply_transformations (scop))
         gloog (scop, find_transform (scop));

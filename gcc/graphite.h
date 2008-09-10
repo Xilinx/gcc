@@ -18,6 +18,9 @@ You should have received a copy of the GNU General Public License
 along with GCC; see the file COPYING3.  If not see
 <http://www.gnu.org/licenses/>.  */
 
+#ifndef GCC_GRAPHITE_H
+#define GCC_GRAPHITE_H
+
 #include "tree-data-ref.h"
 
 typedef struct graphite_bb *graphite_bb_p;
@@ -305,7 +308,10 @@ struct scop
   /* ???  It looks like a global mapping loop_id -> cloog_loop would work.  */
   htab_t loop2cloog_loop;
 
-  /* CLooG representation of this SCOP.  */
+  /* Data dependence graph for this SCoP.  */
+  struct graph *dep_graph;
+
+  /* Cloog representation of this scop.  */
   CloogProgram *program;
 };
 
@@ -327,6 +333,7 @@ struct scop
 #define SCOP_PROG(S) S->program
 #define SCOP_LOOP2CLOOG_LOOP(S) S->loop2cloog_loop
 #define SCOP_LOOPS_MAPPING(S) S->loops_mapping
+#define SCOP_DEP_GRAPH(S) S->dep_graph
 
 extern void debug_scop (scop_p, int);
 extern void debug_scops (int);
@@ -394,15 +401,6 @@ loop_domain_dim (unsigned int loop_num, scop_p scop)
     return scop_nb_params (scop) + 2;
 
   return cloog_domain_dim (cloog_loop_domain (slot->cloog_loop)) + 2;
-}
-
-/* Returns the dimensionality of an enclosing loop iteration domain
-   with respect to enclosing SCoP for a given data reference REF.  */
-
-static inline int
-ref_nb_loops (data_reference_p ref)
-{
-  return loop_domain_dim (loop_containing_stmt (DR_STMT (ref))->num, DR_SCOP (ref));
 }
 
 /* Returns the dimensionality of a loop iteration vector in a loop
@@ -495,6 +493,62 @@ scop_gimple_loop_depth (scop_p scop, loop_p loop)
   return depth;
 }
 
+/* Static inline function prototypes.  */
+
+static inline unsigned scop_nb_params (scop_p scop);
+
+/* Static inline function definitions. Graphite BB
+   manipulation functions.  */
+
+static inline bool
+bb_in_scop_p (basic_block bb, scop_p scop)
+{
+  return bitmap_bit_p (SCOP_BBS_B (scop), bb->index);
+}
+
+/* Returns true when LOOP is in SCOP.  */
+
+static inline bool 
+loop_in_scop_p (struct loop *loop, scop_p scop)
+{
+  return (bb_in_scop_p (loop->header, scop)
+	  && bb_in_scop_p (loop->latch, scop));
+}
+
+/* Calculate the number of loops around LOOP in the SCOP.  */
+
+static inline int
+nb_loops_around_loop_in_scop (struct loop *l, scop_p scop)
+{
+  int d = 0;
+
+  for (; loop_in_scop_p (l, scop); d++, l = loop_outer (l));
+
+  return d;
+}
+
+/* Calculate the number of loops around GB in the current SCOP.  */
+
+static inline int
+nb_loops_around_gb (graphite_bb_p gb)
+{
+  return nb_loops_around_loop_in_scop (gbb_loop (gb), GBB_SCOP (gb));
+}
+
+/* Returns the dimensionality of an enclosing loop iteration domain
+   with respect to enclosing SCoP for a given data reference REF.  The
+   returned dimensionality is homogeneous (depth of loop nest + number
+   of SCoP parameters + const).  */
+
+static inline int
+ref_nb_loops (data_reference_p ref)
+{
+  loop_p loop = loop_containing_stmt (DR_STMT (ref));
+  scop_p scop = DR_SCOP (ref);
+
+  return nb_loops_around_loop_in_scop (loop, scop) + scop_nb_params (scop) + 2;
+}
+
 /* Associate a POLYHEDRON dependence description to two data
    references A and B.  */
 struct data_dependence_polyhedron
@@ -502,7 +556,7 @@ struct data_dependence_polyhedron
   struct data_reference *a;
   struct data_reference *b;
   bool reversed_p;
-  bool loop_carried; /*TODO:konrad get rid of this, make level signed */
+  bool loop_carried;
   signed level;
   CloogDomain *polyhedron;  
 };
@@ -514,3 +568,10 @@ typedef struct data_dependence_polyhedron *ddp_p;
 DEF_VEC_P(ddp_p);
 DEF_VEC_ALLOC_P(ddp_p,heap);
 
+extern void graphite_dump_dependence_graph (FILE *, struct graph *);
+extern struct graph *graphite_build_rdg_all_levels (scop_p);
+extern struct data_dependence_polyhedron *
+graphite_test_dependence (scop_p, graphite_bb_p, graphite_bb_p,
+			  struct data_reference *, struct data_reference *);
+
+#endif  /* GCC_GRAPHITE_H  */

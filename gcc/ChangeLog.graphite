@@ -1,3 +1,23 @@
+2008-09-10  Konrad Trifunovic  <konrad.trifunovic@inria.fr>
+
+	* graphite-data-ref.c: New.
+	* graphite.c (print_scop): Also dump the dependence graph.
+	(bb_in_scop_p, loop_in_scop_p, nb_loops_around_gb): Moved...
+	(new_scop): Initialize SCOP_DEP_GRAPH.
+	(build_scop_dynamic_schedules): New.
+	(build_access_matrix_with_af): Fixed column numbering.
+	(graphite_transform_loops): Call build_scop_dynamic_schedules.
+	* graphite.h: Add ifndef/define guards against multiple inclusion.
+	(struct scop): Add dep_graph field.
+	(SCOP_DEP_GRAPH): Defined.
+	(ref_nb_loops): Fixed and moved to other position.
+	(bb_in_scop_p, loop_in_scop_p, nb_loops_around_gb): ... here.
+	(nb_loops_around_loop_in_scop): New.
+	(graphite_dump_dependence_graph): Declared.
+	(graphite_build_rdg_all_levels): Declared.
+	(graphite_test_dependence): Declared.
+	* Makefile.in (graphite-data-ref.o): New target.                                           
+
 2008-09-09  Sebastian Pop  <sebastian.pop@amd.com>
 
 	* Merge from mainline (139870:140164).
