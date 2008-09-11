@@ -1,3 +1,229 @@
+2008-09-11  Jan Hubicka  <jh@suse.cz>
+
+	* ggc-common.c (loc_array): Make static.
+	* dce.c (rest_of_handle_ud_dce): Free worklist.
+
+2008-09-11  Jan Hubicka  <jh@suse.cz>
+
+	* cgraph.c (cgraph_release_function_body): Plug memory leak on
+	ipa_transforms_to_apply and CFG; ggc_free gimple df and struct function
+	so we are sure we do not dangle it forever.
+	* function.c (outer_function_chain, find_function_data): Remove.
+	(function_context_stack): New.
+	(push_function_context, pop_function_context): Update.
+	* function.h (struct function): Remove pointer outer.
+	(outer_function_chain, find_function_data): Remove.
+	* stmt.c (force_label_rtx): Remove dead call of find_function_data.
+
+2008-09-11  Jan Hubicka  <jh@suse.cz>
+
+	PR middle-end/37448
+	* cgraph.c (cgraph_create_edge): Use !cgraph_edge for sanity check.
+
+2008-09-11  Jan Hubicka  <jh@suse.cz>
+
+	* tree-ssa-pre.c (phi_translate_1): Fix memory leak
+
+2008-09-11  Jan Hubicka  <jh@suse.cz>
+
+	* tree-ssa.c (redirect_edge_var_map_clear): Fix formatting.
+	(free_var_map_entry): New function.
+	(redirect_edge_var_map_destroy): Use it.
+
+2008-09-11  Jan Hubicka  <jh@suse.cz>
+
+	PR middle-end/37448
+	* tree-inline.c (add_lexical_block): Replace with ...
+	(prepend_lexical_block): ... prepend at begginig.
+	(remap_blocks): Use it and reverse later.
+	(expand_call_inline): Use prepend_lexical_block.
+
+2008-09-11  Jan Hubicka  <jh@suse.cz>
+
+	* gimplify.c (pop_gimplify_context): Free bind_expr_stack.
+
+2008-09-11  Jan Hubicka  <jh@suse.cz>
+
+	* function.c (free_after_compilation): Call insn_locators_free.
+	* cfglayout.c (insn_locators_free): New function.
+	* rtl.h (insn_locators_free): Declare.
+
+2008-09-11  Jan Hubicka  <jh@suse.cz>
+
+	* ifcvt.c (check_cond_move_block): Make regs argument pointer to vector pointer.
+	(cond_move_process_if_block): Update call.
+
+2008-09-11  Jan Hubicka  <jh@suse.cz>
+
+	* toplev.c (dump_memory_report): Call dump_vec_loc_statistics.
+	* vec.c: Include hashtab.h
+	(vec_descriptor, ptr_hash_entry): New structures.
+	(vec_desc_hash, vec_ptr_map): New static variables.
+	(hash_descriptor, eq_descriptor, hash_ptr, eq_ptr, vec_descriptor,
+	register_overhead, free_overhead, vec_heap_free): New functions.
+	(vec_gc_o_reserve_1): ggc_free when resizing to 0.
+	(vec_heap_o_reserve_1): free when resizing to 0; add statistics.
+	(cmp_statistic, add_statistics, dump_vec_loc_statistics): New functions.
+
+2008-09-11  Ira Rosen  <irar@il.ibm.com>
+
+	PR tree-optimization/37474
+	* tree-vect-analyze.c (vect_supported_load_permutation_p): Check the
+	length of load permutation.
+
+2008-09-11  Andreas Schwab  <schwab@suse.de>
+
+	* config/m68k/m68k.h (IRA_COVER_CLASSES): Define.
+
+2008-09-11  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/37382
+	* expmed.c (extract_low_bits): Avoid creating invalid subregs.
+	* dse.c (find_shift_sequence): Use extract_low_bits instead of
+	simplify_gen_subreg.
+
+2008-09-11  Ira Rosen  <irar@il.ibm.com>
+
+	* tree-vect-transform.c (vectorizable_store): Use the rhs vector type
+	for alias check.
+
+2008-09-10  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/37338
+	* gimplify.c (gimplify_body): Call default_rtl_profile.
+
+	PR target/36904
+	* config/rs6000/rs6000-c.c (rs6000_macro_to_expand): Return NULL
+	instead of tok->val.node if not expanding to something else.  Handle
+	intervening CPP_PADDING tokens.
+	(altivec_categorize_keyword): Remove unneeded comparisons.
+
+2008-09-10  Richard Guenther  <rguenther@suse.de>
+
+	* tree-ssa-pre.c (phi_translate_1): Fix memory leak.
+
+2008-09-10  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/37432
+	* tree-inline.c (insert_init_stmt): Make sure to not
+	insert invalid gimple stores.
+
+2008-09-10  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR tree-optimization/37388
+	* toplev.c (process_options): Fail and warn when graphite
+	flags are used, but the compiler has not been configured
+	with graphite libraries.
+	* graphite.c (graphite_transform_loops): Remove printfs
+	to dump_file for the case when graphite is not available.
+
+2008-09-10  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/37434:
+	* config/i386/i386.c (ix86_expand_vector_init_interleave): Force
+	the even element into register.
+	(ix86_expand_vector_init_general): Don't use
+	ix86_expand_vector_init_interleave on V16QImode and V8HImode
+	if we can't move from GPR to SSE register directly.
+
+2008-09-10  Bernd Schmidt  <bernd.schmidt@analog.com>
+
+	* config/bfin/bfin.c (workaround_speculation): Correct algorithm to
+	not lose track of the number of NOPs needed.  Number of NOPs needed
+	for sync vs. loads workaround was switched; corrected.  Run second
+	pass for all workarounds.  No NOPs needed after call insns.  Change
+	second pass to use find_next_insn_start and find_load helpers in order
+	to properly detect parallel insns.
+	* config/bfin/bfin.md (cbranch_with_nops): Increase length.
+
+2008-09-10  Jan Hubicka  <jh@suse.cz>
+
+	* value-prof.c (gimple_ic): Fix tuplification bug.
+	* sched-deps.c (sched_insns_conditions_mutex_p): Silence unitialized var
+	warning.
+
+2008-09-10  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/37353
+	* tree-call-cdce.c (cond_dead_built_in_calls): Remove.
+	(shrink_wrap_conditional_dead_built_in_calls): Add calls argument, use
+	calls instead of cond_dead_built_in_calls.
+	(tree_call_cdce): Add cond_dead_built_in_calls automatic variable,
+	initalize the vector only before adding first entry.  Use VEC_safe_push
+	instead of VEC_quick_push.  Pass cond_dead_built_in_calls to
+	shrink_wrap_conditional_dead_built_in_calls call.
+
+2008-09-10  Ira Rosen  <irar@il.ibm.com>
+
+	PR tree-optimization/37385
+	* tree-vect-transform.c (vect_create_data_ref_ptr): Add a new argument,
+	and use it as a vector type if not NULL.
+	(vectorizable_store): Call vect_create_data_ref_ptr with the type of 
+	vectorized rhs.
+	(vect_setup_realignment): Call vect_create_data_ref_ptr with additional
+	argument.
+	(vectorizable_load): Likewise.
+
+2008-09-10  Jakub Jelinek  <jakub@redhat.com>
+
+	* config/i386/i386.md (SWI32): New mode iterator.
+	(jcc_fused_1, jcc_fused_2, jcc_fused_3, jcc_fused_4): Use it instead
+	of SWI.
+
+2008-09-09  Vladimir Makarov  <vmakarov@redhat.com>
+
+	PR rtl-optimization/37435
+	* caller-save.c (insert_restore, insert_save): Check the mode by
+	reg_save_code.
+
+2008-09-09  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	PR other/37265
+	* dwarf2asm.c (dw2_force_const_mem): Use unstripped symbol name for
+	splay tree lookup.
+	(dw2_output_indirect_constant_1): Use unstripped name in symbol
+	reference.
+
+2008-09-09  Sandra Loosemore  <sandra@codesourcery.com>
+
+	* doc/invoke.texi (ARM Options): Correct errors in discussion 
+	of -mfloat-abi, -mhard-float, and -msoft-float.
+
+2008-09-09  Jakub Jelinek  <jakub@redhat.com>
+	    Jan Hubicka  <jh@suse.cz>
+
+	PR middle-end/37356
+	* tree-inline.c (copy_bb): Insert stmt into copy_basic_block before
+	calling gimple_regimplify_operands on it.  Iterate over all newly
+	added statements, not just the last one.
+	(insert_init_stmt): Insert stmt into seq first, then call
+	gimple_regimplify_operands on it.  Don't create new gimplification
+	context, nor find referenced vars.
+
+2008-09-09  Jakub Jelinek  <jakub@redhat.com>
+
+	PR other/37419
+	* ipa-prop.h (ipa_propagate_indirect_call_infos): Change last argument
+	to pointer to vector pointer.
+	* ipa-prop.c (ipa_propagate_indirect_call_infos,
+	propagate_info_to_inlined_callees): Likewise.
+	(update_call_notes_after_inlining): Likewise.  Push new indirect edge
+	to *new_edges instead of new_edges.  Reread IPA_EDGE_REF after
+	ipa_check_create_edge_args.
+	* ipa-inline.c (cgraph_decide_recursive_inlining): Change last argument
+	to pointer to vector pointer.
+	(cgraph_decide_inlining_of_small_function): Adjust
+	cgraph_decide_recursive_inlining and ipa_propagate_indirect_call_infos
+	calls.
+
+	PR target/37438
+	* config/i386/i386.md (zero_extendqihi2_movzbl): Enable when optimizing
+	for size, not speed.
+
+	PR rtl-optimization/37408
+	* function.c (assign_parm_find_stack_rtl): Set correct MEM_SIZE
+	if parm is promoted.
+
 2008-09-09  Sebastian Pop  <sebastian.pop@amd.com>
 
 	PR tree-optimization/37375
@@ -70,7 +296,7 @@
 
 2008-09-09  Andrey Belevantsev  <abel@ispras.ru>
 
-        PR rtl-optimization/37360
+	PR rtl-optimization/37360
 	* haifa-sched.c (max_issue): Do not assert that we never issue more
 	insns than issue_rate.  Add comment.
 	
@@ -214,19 +440,19 @@
 
 2008-09-07  Helge Deller  <deller@gmx.de>
 
-        * pa/linux-atomic.c: New file.
+	* pa/linux-atomic.c: New file.
 	* pa/t-linux (LIB2FUNCS_STATIC_EXTRA): Define.
 	* pa/t-linux64 (LIB2FUNCS_STATIC_EXTRA): Define.
 
 2008-09-07  Richard Guenther  <rguenther@suse.de>
-            Ira Rosen  <irar@il.ibm.com>
+	    Ira Rosen  <irar@il.ibm.com>
 
 	PR tree-optimization/36630
 	* tree-vect-transform.c (vect_update_ivs_after_vectorizer):
 	Call STRIP_NOPS before calling evolution_part_in_loop_num.
 
 2008-09-07  Dorit Nuzman  <dorit@il.ibm.com>
-            Ira Rosen  <irar@il.ibm.com>
+	    Ira Rosen  <irar@il.ibm.com>
 
 	PR tree-optimization/35642
 	* config/rs6000/altivec.md (mulv8hi3): Implement.

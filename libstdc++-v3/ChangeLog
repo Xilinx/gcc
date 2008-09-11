@@ -1,3 +1,45 @@
+2008-09-10  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* src/ctype.cc (use_facet<ctype<char> >, use_facet<ctype<wchar_t>):
+	Remove specializations.
+	* src/locale-inst.cc (use_facet<ctype<C> >): Instantiate.
+	* include/bits/locale_facets.tcc (use_facet<ctype<char> >,
+	use_facet<ctype<wchar_t>): Declare as extern template.
+	* include/bits/locale_facets.h (use_facet<ctype<char> >,
+	use_facet<ctype<wchar_t>): Do not declare as specializations.
+
+2008-09-10  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* config/locale/darwin/ctype_members.cc (ctype<char>::_M_narrow_init,
+	ctype<char>::_M_widen_init): Don't define here.
+	* config/locale/gnu/ctype_members.cc: Likewise.
+	* config/locale/generic/ctype_members.cc: Likewise.
+	* src/ctype.cc: Define here.
+
+2008-09-10  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/37455
+	* include/bits/locale_facets.h (ctype<char>::_M_narrow_init,
+	ctype<char>::_M_widen_init): Don't define inline.
+	* config/locale/darwin/ctype_members.cc: ... define here.
+	* config/locale/gnu/ctype_members.cc: ... likewise.
+	* config/locale/generic/ctype_members.cc: ... likewise.
+	* config/abi/pre/gnu.ver: Export.
+
+2008-09-09  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* doc/xml/manual/abi.xml: Update for new releases.
+	* doc/doxygen/user.cfg.in: Include C compatibility headers.
+	* doc/html/*: Regenerate.
+	
+2008-09-09  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/tr1_impl/cinttypes: Restore __STDC_FORMAT_MACROS after
+	inclusion of <inttypes.h>.
+	* include/tr1_impl/cstdint: Likewise for __STDC_LIMIT_MACROS and
+	__STDC_CONSTANT_MACROS after <stdint.h>.
+	* include/bits/postypes.h: Likewise.
+
 2008-09-09  Andreas Schwab  <schwab@suse.de>
 
 	* acinclude.m4 (GLIBCXX_CHECK_STANDARD_LAYOUT): Fix compile check

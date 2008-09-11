@@ -216,6 +216,7 @@ pop_gimplify_context (gimple body)
 
   gcc_assert (c && (c->bind_expr_stack == NULL
 		    || VEC_empty (gimple, c->bind_expr_stack)));
+  VEC_free (gimple, heap, c->bind_expr_stack);
   gimplify_ctxp = c->prev_context;
 
   for (t = c->temps; t ; t = TREE_CHAIN (t))
@@ -7212,6 +7213,10 @@ gimplify_body (tree *body_p, tree fndecl, bool do_parms)
   struct gimplify_ctx gctx;
 
   timevar_push (TV_TREE_GIMPLIFY);
+
+  /* Initialize for optimize_insn_for_s{ize,peed}_p possibly called during
+     gimplification.  */
+  default_rtl_profile ();
 
   gcc_assert (gimplify_ctxp == NULL);
   push_gimplify_context (&gctx);

@@ -1,4 +1,7 @@
 2008-09-11  Basile Starynkevitch  <basile@starynkevitch.net>
+	MELT branch merged with trunk r140286
+
+2008-09-11  Basile Starynkevitch  <basile@starynkevitch.net>
 	* basilys.c (readstring): added gettext when _ suffix.
 	(readval) added support for '?' prefix.
 

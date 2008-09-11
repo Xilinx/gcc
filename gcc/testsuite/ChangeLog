@@ -1,3 +1,89 @@
+2008-09-11  Ira Rosen  <irar@il.ibm.com>
+
+	PR tree-optimization/37474
+	* gcc.dg/vect/pr37474.c: New test.
+
+2008-09-11  Andreas Schwab  <schwab@suse.de>
+
+	* gcc.target/m68k/xgot-1.c: Add -mcpu=5206 to select a ColdFire
+	target.
+
+2008-09-11  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/37382
+	* gcc.c-torture/compile/pr37382.c: New test.
+
+2008-09-11  Daniel Kraft  <d@domob.eu>
+
+	PR fortran/36214
+	* gfortran.dg/boz_9.f90: Corrected test.
+	* gfortran.dg/boz_13.f90: New test.
+	* gfortran.dg/boz_14.f90: New test.
+
+2008-09-10  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/36904
+	* gcc.target/powerpc/altivec-27.c: New test.
+
+2008-09-10  Andrew Pinski  <andrew_pinski@playstation.sony.com>
+
+	PR middle-end/37333
+	* gcc.c-torture/compile/20080910-1.c: New testcase.
+
+2008-09-10  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/37432
+	* gcc.c-torture/compile/pr37432.c: New testcase.
+
+2008-09-10  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/37434:
+	* gcc.target/i386/pr37434-1.c: New.
+	* gcc.target/i386/pr37434-2.c: Likewise.
+	* gcc.target/i386/pr37434-3.c: Likewise.
+	* gcc.target/i386/pr37434-4.c: Likewise.
+	* gcc.target/i386/sse2-set-v8hi-1a.c: Likewise.
+	* gcc.target/i386/sse2-set-v8hi-2a.c: Likewise.
+	* gcc.target/i386/sse4_1-set-v16qi-1a.c: Likewise.
+	* gcc.target/i386/sse4_1-set-v16qi-2a.c: Likewise.
+	* gcc.target/i386/sse4_1-set-v16qi-3a.c: Likewise.
+
+2008-09-10  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/37420
+	* gfortran.dg/warn_unused_var.f90: New test.
+	* gfortran.dg/warn_unused_var.f90: Add cleanup-modules.
+
+2008-09-10  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/37353
+	* gcc.dg/pr37353.c: New test.
+
+2008-09-10  Martin Michlmayr <tbm@cyrius.com>
+	    Ira Rosen  <irar@il.ibm.com>
+
+	PR tree-optimization/37385
+	* gcc.dg/vect/pr37385.c: New test.
+
+2008-09-09  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR rtl-optimization/37435
+	* gcc.dg/dfp/pr37435.c: New.
+
+2008-09-09  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/37417
+	* g++.dg/ext/vla5.C: New test.
+
+	PR middle-end/37356
+	* g++.dg/tree-ssa/pr37356.C: New test.
+
+	PR target/37438
+	* gcc.dg/pr37438.c: New test.
+
+	PR c++/37389
+	* g++.dg/parse/enum4.C: New test.
+
 2008-09-09  Daniel Kraft  <d@domob.eu>
 
 	PR fortran/37429
@@ -595,7 +681,7 @@
 	* gcc.target/mips/octeon-bbit-3.c: New test.
 
 2008-08-28  Manuel Lopez-Ibanez  <manu@gcc.gnu.org>
-            Andrew Pinski  <pinskia@gcc.gnu.org>
+	    Andrew Pinski  <pinskia@gcc.gnu.org>
 
 	PR 18050
 	* gcc.dg/Wsequence-point-pr18050.c: New.
