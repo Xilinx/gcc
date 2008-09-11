@@ -284,6 +284,126 @@ This section has to be written.
 @section Reference on MELT
 @cindex Reference on MELT
 
+@menu
+* Lexical MELT conventions::
+* Main MELT syntax::
+@end menu
+
+@node Lexical MELT conventions
+@subsection Lexical MELT conventions
+
+It is recommended to edit MELT files with a Lisp-aware editor
+(e.g. the GNU emacs Lisp mode).
+
+As in Lisp dialects:
+
+@itemize @bullet
+
+@item parenthesis 
+are essential and should be matched. It is an error to add extra right
+parenthesis.
+
+@item brackets 
+are like parenthesis but should be matched (but you probably don't
+want to use them). @code{[a b]} is the same as @code{(a b)} but botn
+@code{[a b)} and @code{(a b]} are incorrect.
+
+@item comments 
+start with a semicolon (@code{;}) to the end of the line. This is the
+prefered way to put comments in MELT file.
+
+@item block comments 
+start with hash-bar (@code{#|}), may take several lines, and end with
+bar-hash (@code{|#}). Don't nest block comments.
+
+@item space 
+characters are token sepators, but indentation does not matter (we
+strongly recommend the MELT code to be indented for readability
+purposes).
+
+@item case 
+is insensitive; words, i.e. identifiers and keywords are all converted
+to uppercases.
+
+@item strings 
+are denoted like in C between double quotes, with backslashes escaping
+(eg double-backslash @code{\\} to represent a single backslash,
+backslash doublequote @code{\"} to represent a doublequote, backslash t
+@code{\t} for a tab, , and @code{\xfe} to represent the character
+coded 0xfe in hex, etc. In addition, a backslash-leftbrace @code{ \@{
+} read verbatim all characters up to the first rightbrace @code{ @}
+}. A string with the last doublequote followed by an underscore like
+@code{"do that"_} is localized using the @code{gettext} host system
+function; this could be useful for some user messages (to be
+translated to other languages like french).
+
+@item symbols
+ (i.e. identifiers) are case insensitive and may contain non
+alphanumerical characters like @code{_+-*/<>=!?:%~&@@$}. It is advised
+to use these special characters sparingly. Symbols cannot start with
+any of @code{?%}. It is advised to avoid digits after underscores in
+symbols like @code{x_12} and to have each symbol contain at least one
+letter (e.g. use @code{<i} instead of @code{<}).
+
+@item the quote character 
+@code{'} is special. @code{'x} is parsed the same as @code{(quote x)}.
+
+@item the backquote character 
+@code{`} is special. @code{`x} means the same as @code{(backquote x)}
+
+@item the comma character 
+@code{,} is special. So @code{,x} means @code{(comma x)} and @code{,(a
+b)} is @code{(comma (a b))}
+
+@item the question mark chararacter 
+@code{?} is special when is is the first of a token (it may appear
+inside a symbol otherwise). For instance, @code{?x} means
+@code{(question x)} but @code{x?} is a symbol of two characters. So
+@code{?y?} is bad taste but means @code{(question y?)}
+
+@item the hash character 
+@code{#} is special. In particular, @code{#|} starts multiline
+comments; @code{#\space} is the integer code of the space character;
+@code{#b10} is a binary number (i.e. two), @code{#o12} is octal (ie
+ten), @code{#xffff} is hexadecimal number (ie 65535).
+
+@item braces 
+@code{@{} and @code{@}} are special.
+
+
+@item numbers
+are integers in decimal like @code{-123} or @code{+22} or
+@code{33}. Notice that @code{1.2} is illegal; it is not a floating
+point number.
+
+@item colons 
+(i.e. @code{:}) starts constant (lisp-like) keywords which always evaluate to themselves.
+
+@end itemize
+
+Contrarily to some or most other Lisp dialects:
+
+@itemize @minus
+
+@item don't use the dot 
+for cons-ing, e.g. @code{(a b . c)} is not legal.
+
+@item strings 
+may contain escaped braces with special verbatim-like meaning.
+
+@item a string 
+whose ending doublequote is immediately followed by an underscore
+(e.g. @code{"example of international"_}) is localized by calling
+@code{gettext} at read time.
+
+@end itemize
+
+
+@c =======================================================================
+
+@node Main MELT syntax
+@subsection Main MELT syntax.
+
 This section has to be written.
 
 @c =======================================================================

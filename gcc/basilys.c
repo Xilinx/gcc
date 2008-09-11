@@ -5754,13 +5754,15 @@ readassoc (struct reading_st *rd)
 }
 
 
-
+/* if the string ends with "_ call gettext on it to have it
+   localized/internationlized -i18n- */
 static basilys_ptr_t
 readstring (struct reading_st *rd)
 {
   int c = 0;
   int nbesc = 0;
   char *cstr = 0, *endc = 0;
+  bool isintl = false;
   BASILYS_ENTERFRAME (1, NULL);
 #define strv   curfram__.varptr[0]
 #define str_strv  ((struct basilysstring_st*)(strv))
@@ -5869,8 +5871,16 @@ readstring (struct reading_st *rd)
     rdnext ();
   else
     READ_ERROR ("unterminated string %.20s", &rdcurc ());
+  c = rdcurc ();
+  if (c == '_' && !rdeof()) 
+    {
+      isintl = true;
+      rdnext ();
+    }
   obstack_1grow (&bstring_obstack, (char) 0);
   cstr = XOBFINISH (&bstring_obstack, char *);
+  if (isintl) 
+    cstr = gettext(cstr);
   strv = basilysgc_new_string (BASILYSGOB (DISCR_STRING), cstr);
   obstack_free (&bstring_obstack, cstr);
   BASILYS_EXITFRAME ();
@@ -6154,6 +6164,24 @@ readval (struct reading_st *rd, bool * pgot)
 	READ_ERROR ("expecting value after comma %.20s", &rdcurc ());
       seqv = basilysgc_new_list (BASILYSGOB (DISCR_LIST));
       altv = basilysgc_named_symbol ("comma", BASILYS_CREATE);
+      basilysgc_append_list ((basilys_ptr_t) seqv, (basilys_ptr_t) altv);
+      basilysgc_append_list ((basilys_ptr_t) seqv, (basilys_ptr_t) compv);
+      readv = makesexpr (rd, lineno, (basilys_ptr_t) seqv, loc);
+      *pgot = TRUE;
+      goto end;
+    }
+  else if (c == '?')
+    {
+      int lineno = rd->rlineno;
+      bool got = false;
+      location_t loc = 0;
+      rdnext ();
+      LINEMAP_POSITION_FOR_COLUMN (loc, line_table, rd->rcol);
+      compv = readval (rd, &got);
+      if (!got)
+	READ_ERROR ("expecting value after question %.20s", &rdcurc ());
+      seqv = basilysgc_new_list (BASILYSGOB (DISCR_LIST));
+      altv = basilysgc_named_symbol ("question", BASILYS_CREATE);
       basilysgc_append_list ((basilys_ptr_t) seqv, (basilys_ptr_t) altv);
       basilysgc_append_list ((basilys_ptr_t) seqv, (basilys_ptr_t) compv);
       readv = makesexpr (rd, lineno, (basilys_ptr_t) seqv, loc);

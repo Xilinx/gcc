@@ -1,3 +1,10 @@
+2008-09-11  Basile Starynkevitch  <basile@starynkevitch.net>
+	* basilys.c (readstring): added gettext when _ suffix.
+	(readval) added support for '?' prefix.
+
+	* doc/melt.texi (Reference on MELT) added Lexical MELT conventions
+	& [to be written] Main MELT syntax.
+
 2008-09-10  Basile Starynkevitch  <basile@starynkevitch.net>
 	* basilys.h (FLEXIBLE_DIM) defined when compiled with GCC.
 	(BASILYS_ROUTADDR_LEN) new constant.
