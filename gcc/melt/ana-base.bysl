@@ -266,13 +266,16 @@
    eachcgrblo "_nd = " eachcgrblo "_nd->next) {\n"
    "tree " eachcgrblo "_dcl = 0;\n"
    "basic_block " eachcgrblo "_bb = 0;\n"
+   "struct function *" eachcgrblo "_fun = 0;\n"
    "if (flag_basilys_debug) "
    "{ debugeprintf(\"" eachcgrblo " nd=%p\", (void*)"  eachcgrblo "_nd);"
    "debug_cgraph_node(" eachcgrblo "_nd);};\n"
    eachcgrblo "_dcl = " eachcgrblo "_nd->decl;\n"
    "if (!" eachcgrblo "_dcl) continue;\n"
    "if (TREE_CODE(" eachcgrblo "_dcl) != FUNCTION_DECL) continue;\n"
-   eachcgrblo "_bb = ENTRY_BLOCK_PTR_FOR_FUNCTION(DECL_STRUCT_FUNCTION(" eachcgrblo "_dcl));\n"
+   eachcgrblo "_fun = DECL_STRUCT_FUNCTION("eachcgrblo "_dcl);\n"
+   "if (!"eachcgrblo "_fun) continue;\n"
+   eachcgrblo "_bb = ENTRY_BLOCK_PTR_FOR_FUNCTION(" eachcgrblo "_fun);\n"
    "if (!" eachcgrblo "_bb) continue;\n"
    funtree " = " eachcgrblo "_dcl;\n"
    funbb " = " eachcgrblo "_bb;\n"
@@ -392,18 +395,22 @@
   (return ipapass)
 )
 
+;;; apparently only the entrybb loop matter in the ipa pass...
 (defun simpana_ipaexec (ipapass)
   (debug_msg ipapass "simpana_ipaexec start")
+  (debug_msg (unsafe_get_field :named_name ipapass) "simpana_ipaexec start name")
   (do_each_cfun_body 
    (lambda (declv bodyv)
      (debug_msg declv "simpana_ipaexec eachcfunbdy declv")
      (debug_msg bodyv "simpana_ipaexec eachcfunbdy bodyv")
      ))
+  (debug_msg ipapass "simpana_ipaexec after eachbody before eachentrybb")
   (do_each_cfun_entrybb 
    (lambda (declv bbv)
      (debug_msg declv "simpana_ipaexec eachcfunentrybb declv")
      (debug_msg bbv "simpana_ipaexec eachcfunentrybb bbv")
      ))
+  (debug_msg (unsafe_get_field :named_name ipapass) "simpana_ipaexec end name")
   (debug_msg ipapass "simpana_ipaexec end")
 )
 
@@ -411,14 +418,22 @@
 ;;; our simple analysis command -fbasilys=simpana
 (defun simpana_command (dispatcher arg secarg moduldata)
   ;(debug_msg moduldata "simpana moduldata")
+  ;; fill the earlyopt pass
   (unsafe_put_fields basilys_earlyopt_gccpass
   :gccpass_gate simpana_ipagate
   :gccpass_exec simpana_ipaexec)
   (debug_msg basilys_earlyopt_gccpass "simpana sets basilys_earlyopt_gccpass")
+  ;; fill the ipa pass
+  (unsafe_put_fields basilys_ipa_gccpass
+  :gccpass_gate simpana_ipagate
+  :gccpass_exec simpana_ipaexec)
+  (debug_msg basilys_ipa_gccpass "simpana sets basilys_earlyopt_gccpass")
   (return dispatcher)			;return non-nil to continue compilation
   )
+
 (install_initial_command 
  (stringconst2val discr_string "simpana") simpana_command)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (export_values
  basilys_earlyopt_gccpass

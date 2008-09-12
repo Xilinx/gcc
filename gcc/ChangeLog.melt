@@ -1,3 +1,7 @@
+2008-09-12  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/ana-base.bysl: only the entrybb loop matters in the
+	basilys-ipa pass.
+
 2008-09-11  Basile Starynkevitch  <basile@starynkevitch.net>
 	MELT branch merged with trunk r140286
 
