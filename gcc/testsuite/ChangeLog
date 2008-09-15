@@ -1,3 +1,73 @@
+2008-09-13  Raksit Ashok <raksit@google.com>
+
+	PR rtl-optimization/37489
+	* g++.dg/opt/cse3.C: New.
+
+2008-09-13  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR testsuite/37495
+	* gcc.c-torture/compile/vector-4.c: Add "dg-do compile".
+
+2008-09-13  Uros Bizjak  <ubizjak@gmail.com>
+
+	* gcc.c-torture/pr36141.c: Move to ...
+	* gcc.c-torture/compile/pr36141.c: ... here.
+	* gcc.dg/arm-g2.c: Move to ...
+	* gcc.target/arm/g2.c: ... here.
+	* gcc.dg/arm-vfp1.c: Move to ...
+	* gcc.target/arm/vfp1.c: ... here.
+	* gcc.dg/20031108-1: Move to ...
+	* gcc.target/arm/20031108-1.c: ... here.
+	* gcc.dg/20030909-1: Move to ...
+	* gcc.target/arm/20030909-1.c: ... here.
+	* gcc.dg/arm-mmx-1.c: Move to ...
+	* gcc.target/arm/mmx-1.c: ... here.
+	* gcc.dg/arm-scd[123].c: Move to ...
+	* gcc.target/arm/scd[123].c: ... here.
+	* gcc.dg/arm-asm.c: Move to ...
+	* gcc.target/arm/asm.c: ... here.
+	* gcc.dg/20080410-1: Move to ...
+	* gcc.target/sh/20080410-1.c: ... here.
+	* gcc.dg/globalreg-1.c: Move to ...
+	* gcc.target/sparc/globalreg-1.c: ... here.
+
+2008-09-13  Daniel Kraft  <d@domob.eu>
+
+	PR fortran/35770
+	* gfortran.dg/implicit_13.f90: New test.
+
+2008-09-11  Steve Ellcey  <sje@cup.hp.com>
+
+	* gcc.c-torture/compile/pr11832.c: xfail on ia64-*-*.
+	* gcc.c-torture/compile/pr33009.c: Ditto.
+
+2008-09-11  Janis Johnson  <janis187@us.ibm.com>
+
+	* gcc.dg/dfp/dec-eval-method-2.c: New test.
+
+2008-09-11  Joseph Myers  <joseph@codesourcery.com>
+
+	* lib/compat.exp, gcc.dg/compat/struct-layout-1.exp,
+	g++.dg/compat/struct-layout-1.exp: Use .exe extension for compat
+	test executables.
+	* gcc.dg/compat/struct-layout-1_generate.c,
+	g++.dg/compat/struct-layout-1_generate.c: Convert backslash to
+	slash in srcdir for dg-options string.
+
+2008-09-11  Joseph Myers  <joseph@codesourcery.com>
+
+	* gcc.target/i386/sse5-haddX.c, gcc.target/i386/sse5-hsubX.c:
+	Avoid intN_t types.
+
+2008-09-11  Joseph Myers  <joseph@codesourcery.com>
+
+	* gcc.dg/builtins-8.c: Condition cbrt test on HAVE_C99_RUNTIME.
+
+2008-09-11  Paolo Bonzini  <bonzini@gnu.org>
+
+	* gcc.dg/tree-ssa/vrp47.c: New.
+	* gcc.target/i386/andor-2.c: New.
+
 2008-09-11  Ira Rosen  <irar@il.ibm.com>
 
 	PR tree-optimization/37474
@@ -1896,7 +1966,7 @@
 
 	* gcc.dg/vect/vect-multitypes-15.c: Fix typo.
 	* gcc/testsuite/lib/target-supports.exp
-	   (check_effective_target_vect_long_long): Remove spu-*-*.
+	(check_effective_target_vect_long_long): Remove spu-*-*.
 	* gcc.dg/vect/vect-multitypes-16.c: Make init loop unvectorizable.
 	* gcc.dg/vect/slp-widen-mult-u8.c: Likewise.
 	
@@ -5593,7 +5663,7 @@
 	PR libfortran/35995
 	* gfortran.dg/intrinsic_ifunction_1.f90:  New test case.
 
-2008-05-04   Andy Hutchinson   <hutchinsonandy@aim.com>
+2008-05-04  Andy Hutchinson  <hutchinsonandy@aim.com>
 
 	* gcc.dg/nested-func-5.c: Skip for target without trampolines.
 	* gcc.dg/torture/nested-fn-1.c: Ditto.

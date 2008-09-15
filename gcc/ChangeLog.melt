@@ -1,3 +1,8 @@
+2008-09-15  Basile Starynkevitch  <basile@starynkevitch.net>
+	MELT branch merged with trunk r140370
+
+	* common.opt: merged options
+
 2008-09-12  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/ana-base.bysl: only the entrybb loop matters in the
 	basilys-ipa pass.

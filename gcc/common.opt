@@ -459,6 +459,10 @@ fcompiler-probe-debug
 Common Report Var(flag_compiler_probe_debug)  RejectNegative  Condition(ENABLE_COMPILER_PROBE)
 Gives on stderr lot of debugging output for the compiler probe if enabled
 
+fconserve-stack
+Common Var(flag_conserve_stack,0) Optimization
+Do not perform optimizations increasing noticeably stack usage
+
 fcprop-registers
 Common Report Var(flag_cprop_registers) Optimization
 Perform a register copy-propagation optimization pass
