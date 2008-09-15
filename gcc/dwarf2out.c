@@ -4485,7 +4485,7 @@ static void dwarf2out_end_block (unsigned, unsigned);
 static bool dwarf2out_ignore_block (const_tree);
 static void dwarf2out_global_decl (tree);
 static void dwarf2out_type_decl (tree, int);
-static void dwarf2out_imported_module_or_decl (tree, tree);
+static void dwarf2out_imported_module_or_decl (tree, tree, tree, bool);
 static void dwarf2out_abstract_function (tree);
 static void dwarf2out_var_location (rtx);
 static void dwarf2out_begin_function (tree);
@@ -5093,6 +5093,7 @@ static void gen_unspecified_parameters_die (tree, dw_die_ref);
 static void gen_formal_types_die (tree, dw_die_ref);
 static void gen_subprogram_die (tree, dw_die_ref);
 static void gen_variable_die (tree, dw_die_ref);
+static void gen_const_die (tree, dw_die_ref);
 static void gen_label_die (tree, dw_die_ref);
 static void gen_lexical_block_die (tree, dw_die_ref, int);
 static void gen_inlined_subroutine_die (tree, dw_die_ref, int);
@@ -5115,7 +5116,7 @@ static void gen_decl_die (tree, dw_die_ref);
 static dw_die_ref force_decl_die (tree);
 static dw_die_ref force_type_die (tree);
 static dw_die_ref setup_namespace_context (tree, dw_die_ref);
-static void declare_in_namespace (tree, dw_die_ref);
+static dw_die_ref declare_in_namespace (tree, dw_die_ref);
 static struct dwarf_file_data * lookup_filename (const char *);
 static void retry_incomplete_types (void);
 static void gen_type_die_for_member (tree, tree, dw_die_ref);
@@ -7196,7 +7197,8 @@ is_symbol_die (dw_die_ref c)
   return (is_type_die (c)
 	  || (get_AT (c, DW_AT_declaration)
 	      && !get_AT (c, DW_AT_specification))
-	  || c->die_tag == DW_TAG_namespace);
+	  || c->die_tag == DW_TAG_namespace
+	  || c->die_tag == DW_TAG_module);
 }
 
 static char *
@@ -7563,8 +7565,10 @@ size_of_die (dw_die_ref die)
 	  size += 1 + 2*HOST_BITS_PER_LONG/HOST_BITS_PER_CHAR; /* block */
 	  break;
 	case dw_val_class_vec:
-	  size += 1 + (a->dw_attr_val.v.val_vec.length
-		       * a->dw_attr_val.v.val_vec.elt_size); /* block */
+	  size += constant_size (a->dw_attr_val.v.val_vec.length
+				 * a->dw_attr_val.v.val_vec.elt_size)
+		  + a->dw_attr_val.v.val_vec.length
+		    * a->dw_attr_val.v.val_vec.elt_size; /* block */
 	  break;
 	case dw_val_class_flag:
 	  size += 1;
@@ -7763,7 +7767,18 @@ value_format (dw_attr_ref a)
     case dw_val_class_long_long:
       return DW_FORM_block1;
     case dw_val_class_vec:
-      return DW_FORM_block1;
+      switch (constant_size (a->dw_attr_val.v.val_vec.length
+			     * a->dw_attr_val.v.val_vec.elt_size))
+	{
+	case 1:
+	  return DW_FORM_block1;
+	case 2:
+	  return DW_FORM_block2;
+	case 4:
+	  return DW_FORM_block4;
+	default:
+	  gcc_unreachable ();
+	}
     case dw_val_class_flag:
       return DW_FORM_flag;
     case dw_val_class_die_ref:
@@ -8055,7 +8070,8 @@ output_die (dw_die_ref die)
 	    unsigned int i;
 	    unsigned char *p;
 
-	    dw2_asm_output_data (1, len * elt_size, "%s", name);
+	    dw2_asm_output_data (constant_size (len * elt_size),
+				 len * elt_size, "%s", name);
 	    if (elt_size > sizeof (HOST_WIDE_INT))
 	      {
 		elt_size /= 2;
@@ -11546,8 +11562,8 @@ secname_for_decl (const_tree decl)
   return secname;
 }
 
-/* Check whether decl is a Fortran COMMON symbol.  If not, NULL_RTX is returned.
-   If so, the rtx for the SYMBOL_REF for the COMMON block is returned, and the
+/* Check whether decl is a Fortran COMMON symbol.  If not, NULL_TREE is
+   returned.  If so, the decl for the COMMON block is returned, and the
    value is the offset into the common block for the symbol.  */
 
 static tree
@@ -11596,6 +11612,32 @@ fortran_common (tree decl, HOST_WIDE_INT *value)
   return cvar;
 }
 
+/* Dereference a location expression LOC if DECL is passed by invisible
+   reference.  */
+
+static dw_loc_descr_ref
+loc_by_reference (dw_loc_descr_ref loc, tree decl)
+{
+  HOST_WIDE_INT size;
+  enum dwarf_location_atom op;
+
+  if (loc == NULL)
+    return NULL;
+
+  if ((TREE_CODE (decl) != PARM_DECL && TREE_CODE (decl) != RESULT_DECL)
+      || !DECL_BY_REFERENCE (decl))
+    return loc;
+
+  size = int_size_in_bytes (TREE_TYPE (decl));
+  if (size > DWARF2_ADDR_SIZE || size == -1)
+    return 0;
+  else if (size == DWARF2_ADDR_SIZE)
+    op = DW_OP_deref;
+  else
+    op = DW_OP_deref_size;
+  add_loc_descr (&loc, new_loc_descr (op, size, 0));
+  return loc;
+}
 
 /* Generate *either* a DW_AT_location attribute or else a DW_AT_const_value
    data attribute for a variable or a parameter.  We generate the
@@ -11654,8 +11696,8 @@ add_location_or_const_value_attribute (dw_die_ref die, tree decl,
       else
 	initialized = VAR_INIT_STATUS_INITIALIZED;
 
-      list = new_loc_list (loc_descriptor (varloc, initialized),
-			   node->label, node->next->label, secname, 1);
+      descr = loc_by_reference (loc_descriptor (varloc, initialized), decl);
+      list = new_loc_list (descr, node->label, node->next->label, secname, 1);
       node = node->next;
 
       for (; node->next; node = node->next)
@@ -11666,8 +11708,9 @@ add_location_or_const_value_attribute (dw_die_ref die, tree decl,
 	    enum var_init_status initialized =
 	      NOTE_VAR_LOCATION_STATUS (node->var_loc_note);
 	    varloc = NOTE_VAR_LOCATION (node->var_loc_note);
-	    add_loc_descr_to_loc_list (&list,
-				       loc_descriptor (varloc, initialized),
+	    descr = loc_by_reference (loc_descriptor (varloc, initialized),
+				      decl);
+	    add_loc_descr_to_loc_list (&list, descr,
 				       node->label, node->next->label, secname);
 	  }
 
@@ -11688,8 +11731,9 @@ add_location_or_const_value_attribute (dw_die_ref die, tree decl,
 					   current_function_funcdef_no);
 	      endname = ggc_strdup (label_id);
 	    }
-	  add_loc_descr_to_loc_list (&list,
-				     loc_descriptor (varloc, initialized),
+	  descr = loc_by_reference (loc_descriptor (varloc, initialized),
+				    decl);
+	  add_loc_descr_to_loc_list (&list, descr,
 				     node->label, endname, secname);
 	}
 
@@ -11719,6 +11763,7 @@ add_location_or_const_value_attribute (dw_die_ref die, tree decl,
       descr = loc_descriptor (NOTE_VAR_LOCATION (node->var_loc_note), status);
       if (descr)
 	{
+	  descr = loc_by_reference (descr, decl);
 	  add_AT_location_description (die, attr, descr);
 	  return;
 	}
@@ -11729,12 +11774,160 @@ add_location_or_const_value_attribute (dw_die_ref die, tree decl,
   descr = loc_descriptor_from_tree (decl);
   if (descr)
     {
+      descr = loc_by_reference (descr, decl);
       add_AT_location_description (die, attr, descr);
       return;
     }
   /* None of that worked, so it must not really have a location;
      try adding a constant value attribute from the DECL_INITIAL.  */
   tree_add_const_value_attribute (die, decl);
+}
+
+/* Helper function for tree_add_const_value_attribute.  Natively encode
+   initializer INIT into an array.  Return true if successful.  */
+
+static bool
+native_encode_initializer (tree init, unsigned char *array, int size)
+{
+  tree type;
+
+  if (init == NULL_TREE)
+    return false;
+
+  STRIP_NOPS (init);
+  switch (TREE_CODE (init))
+    {
+    case STRING_CST:
+      type = TREE_TYPE (init);
+      if (TREE_CODE (type) == ARRAY_TYPE)
+	{
+	  tree enttype = TREE_TYPE (type);
+	  enum machine_mode mode = TYPE_MODE (enttype);
+
+	  if (GET_MODE_CLASS (mode) != MODE_INT || GET_MODE_SIZE (mode) != 1)
+	    return false;
+	  if (int_size_in_bytes (type) != size)
+	    return false;
+	  if (size > TREE_STRING_LENGTH (init))
+	    {
+	      memcpy (array, TREE_STRING_POINTER (init),
+		      TREE_STRING_LENGTH (init));
+	      memset (array + TREE_STRING_LENGTH (init),
+		      '\0', size - TREE_STRING_LENGTH (init));
+	    }
+	  else
+	    memcpy (array, TREE_STRING_POINTER (init), size);
+	  return true;
+	}
+      return false;
+    case CONSTRUCTOR:
+      type = TREE_TYPE (init);
+      if (int_size_in_bytes (type) != size)
+	return false;
+      if (TREE_CODE (type) == ARRAY_TYPE)
+	{
+	  HOST_WIDE_INT min_index;
+	  unsigned HOST_WIDE_INT cnt;
+	  int curpos = 0, fieldsize;
+	  constructor_elt *ce;
+
+	  if (TYPE_DOMAIN (type) == NULL_TREE
+	      || !host_integerp (TYPE_MIN_VALUE (TYPE_DOMAIN (type)), 0))
+	    return false;
+
+	  fieldsize = int_size_in_bytes (TREE_TYPE (type));
+	  if (fieldsize <= 0)
+	    return false;
+
+	  min_index = tree_low_cst (TYPE_MIN_VALUE (TYPE_DOMAIN (type)), 0);
+	  memset (array, '\0', size);
+	  for (cnt = 0;
+	       VEC_iterate (constructor_elt, CONSTRUCTOR_ELTS (init), cnt, ce);
+	       cnt++)
+	    {
+	      tree val = ce->value;
+	      tree index = ce->index;
+	      int pos = curpos;
+	      if (index && TREE_CODE (index) == RANGE_EXPR)
+		pos = (tree_low_cst (TREE_OPERAND (index, 0), 0) - min_index)
+		      * fieldsize;
+	      else if (index)
+		pos = (tree_low_cst (index, 0) - min_index) * fieldsize;
+
+	      if (val)
+		{
+		  STRIP_NOPS (val);
+		  if (!native_encode_initializer (val, array + pos, fieldsize))
+		    return false;
+		}
+	      curpos = pos + fieldsize;
+	      if (index && TREE_CODE (index) == RANGE_EXPR)
+		{
+		  int count = tree_low_cst (TREE_OPERAND (index, 1), 0)
+			      - tree_low_cst (TREE_OPERAND (index, 0), 0);
+		  while (count > 0)
+		    {
+		      if (val)
+			memcpy (array + curpos, array + pos, fieldsize);
+		      curpos += fieldsize;
+		    }
+		}
+	      gcc_assert (curpos <= size);
+	    }
+	  return true;
+	}
+      else if (TREE_CODE (type) == RECORD_TYPE
+	       || TREE_CODE (type) == UNION_TYPE)
+	{
+	  tree field = NULL_TREE;
+	  unsigned HOST_WIDE_INT cnt;
+	  constructor_elt *ce;
+
+	  if (int_size_in_bytes (type) != size)
+	    return false;
+
+	  if (TREE_CODE (type) == RECORD_TYPE)
+	    field = TYPE_FIELDS (type);
+
+	  for (cnt = 0;
+	       VEC_iterate (constructor_elt, CONSTRUCTOR_ELTS (init), cnt, ce);
+	       cnt++, field = field ? TREE_CHAIN (field) : 0)
+	    {
+	      tree val = ce->value;
+	      int pos, fieldsize;
+
+	      if (ce->index != 0)
+		field = ce->index;
+
+	      if (val)
+		STRIP_NOPS (val);
+
+	      if (field == NULL_TREE || DECL_BIT_FIELD (field))
+		return false;
+
+	      if (TREE_CODE (TREE_TYPE (field)) == ARRAY_TYPE
+		  && TYPE_DOMAIN (TREE_TYPE (field))
+		  && ! TYPE_MAX_VALUE (TYPE_DOMAIN (TREE_TYPE (field))))
+		return false;
+	      else if (DECL_SIZE_UNIT (field) == NULL_TREE
+		       || !host_integerp (DECL_SIZE_UNIT (field), 0))
+		return false;
+	      fieldsize = tree_low_cst (DECL_SIZE_UNIT (field), 0);
+	      pos = int_byte_position (field);
+	      gcc_assert (pos + fieldsize <= size);
+	      if (val
+		  && !native_encode_initializer (val, array + pos, fieldsize))
+		return false;
+	    }
+	  return true;
+	}
+      return false;
+    case VIEW_CONVERT_EXPR:
+    case NON_LVALUE_EXPR:
+      return native_encode_initializer (TREE_OPERAND (init, 0), array, size);
+    default:
+      return native_encode_expr (init, array, size) == size;
+    }
 }
 
 /* If we don't have a copy of this variable in memory for some reason (such
@@ -11744,10 +11937,14 @@ add_location_or_const_value_attribute (dw_die_ref die, tree decl,
 static void
 tree_add_const_value_attribute (dw_die_ref var_die, tree decl)
 {
-  tree init = DECL_INITIAL (decl);
+  tree init;
   tree type = TREE_TYPE (decl);
   rtx rtl;
 
+  if (TREE_CODE (decl) != VAR_DECL && TREE_CODE (decl) != CONST_DECL)
+    return;
+
+  init = DECL_INITIAL (decl);
   if (TREE_READONLY (decl) && ! TREE_THIS_VOLATILE (decl) && init)
     /* OK */;
   else
@@ -11756,6 +11953,19 @@ tree_add_const_value_attribute (dw_die_ref var_die, tree decl)
   rtl = rtl_for_decl_init (init, type);
   if (rtl)
     add_const_value_attribute (var_die, rtl);
+  /* If the host and target are sane, try harder.  */
+  else if (CHAR_BIT == 8 && BITS_PER_UNIT == 8
+	   && initializer_constant_valid_p (init, type))
+    {
+      HOST_WIDE_INT size = int_size_in_bytes (TREE_TYPE (init));
+      if (size > 0 && (int) size == size)
+	{
+	  unsigned char *array = GGC_CNEWVEC (unsigned char, size);
+
+	  if (native_encode_initializer (init, array, size))
+	    add_AT_vec (var_die, DW_AT_const_value, size, 1, array);
+	}
+    }
 }
 
 /* Convert the CFI instructions for the current function into a
@@ -11939,6 +12149,7 @@ add_bound_info (dw_die_ref subrange_die, enum dwarf_attribute bound_attr, tree b
     case RESULT_DECL:
       {
 	dw_die_ref decl_die = lookup_decl_die (bound);
+	dw_loc_descr_ref loc;
 
 	/* ??? Can this happen, or should the variable have been bound
 	   first?  Probably it can, since I imagine that we try to create
@@ -11947,6 +12158,11 @@ add_bound_info (dw_die_ref subrange_die, enum dwarf_attribute bound_attr, tree b
 	   later parameter.  */
 	if (decl_die != NULL)
 	  add_AT_die_ref (subrange_die, bound_attr, decl_die);
+	else
+	  {
+	    loc = loc_descriptor_from_tree_1 (bound, 0);
+	    add_AT_location_description (subrange_die, bound_attr, loc);
+	  }
 	break;
       }
 
@@ -11995,6 +12211,9 @@ add_subscript_info (dw_die_ref type_die, tree type, bool collapse_p)
        type = TREE_TYPE (type), dimension_number++)
     {
       tree domain = TYPE_DOMAIN (type);
+
+      if (TYPE_STRING_FLAG (type) && is_fortran () && dimension_number > 0)
+	break;
 
       /* Arrays come in three flavors: Unspecified bounds, fixed bounds,
 	 and (in GNU C only) variable bounds.  Handle all three forms
@@ -12529,7 +12748,40 @@ gen_array_type_die (tree type, dw_die_ref context_die)
 
   bool collapse_nested_arrays = !is_ada ();
   tree element_type;
-  
+
+  /* Emit DW_TAG_string_type for Fortran character types (with kind 1 only, as
+     DW_TAG_string_type doesn't have DW_AT_type attribute).  */
+  if (TYPE_STRING_FLAG (type)
+      && TREE_CODE (type) == ARRAY_TYPE
+      && is_fortran ()
+      && TYPE_MODE (TREE_TYPE (type)) == TYPE_MODE (char_type_node))
+    {
+      HOST_WIDE_INT size;
+
+      array_die = new_die (DW_TAG_string_type, scope_die, type);
+      add_name_attribute (array_die, type_tag (type));
+      equate_type_number_to_die (type, array_die);
+      size = int_size_in_bytes (type);
+      if (size >= 0)
+	add_AT_unsigned (array_die, DW_AT_byte_size, size);
+      else if (TYPE_DOMAIN (type) != NULL_TREE
+	       && TYPE_MAX_VALUE (TYPE_DOMAIN (type)) != NULL_TREE
+	       && DECL_P (TYPE_MAX_VALUE (TYPE_DOMAIN (type))))
+	{
+	  tree szdecl = TYPE_MAX_VALUE (TYPE_DOMAIN (type));
+	  dw_loc_descr_ref loc = loc_descriptor_from_tree (szdecl);
+
+	  size = int_size_in_bytes (TREE_TYPE (szdecl));
+	  if (loc && size > 0)
+	    {
+	      add_AT_loc (array_die, DW_AT_string_length, loc);
+	      if (size != DWARF2_ADDR_SIZE)
+		add_AT_unsigned (array_die, DW_AT_byte_size, size);
+	    }
+	}
+      return;
+    }
+
   /* ??? The SGI dwarf reader fails for array of array of enum types
      (e.g. const enum machine_mode insn_operand_mode[2][10]) unless the inner
      array type comes before the outer array type.  We thus call gen_type_die
@@ -12556,7 +12808,8 @@ gen_array_type_die (tree type, dw_die_ref context_die)
   /* For Fortran multidimensional arrays use DW_ORD_col_major ordering.  */
   if (is_fortran ()
       && TREE_CODE (type) == ARRAY_TYPE
-      && TREE_CODE (TREE_TYPE (type)) == ARRAY_TYPE)
+      && TREE_CODE (TREE_TYPE (type)) == ARRAY_TYPE
+      && !TYPE_STRING_FLAG (TREE_TYPE (type)))
     add_AT_unsigned (array_die, DW_AT_ordering, DW_ORD_col_major);
 
 #if 0
@@ -12584,8 +12837,12 @@ gen_array_type_die (tree type, dw_die_ref context_die)
   element_type = TREE_TYPE (type);
   if (collapse_nested_arrays)
     while (TREE_CODE (element_type) == ARRAY_TYPE)
-      element_type = TREE_TYPE (element_type);
-  
+      {
+	if (TYPE_STRING_FLAG (element_type) && is_fortran ())
+	  break;
+	element_type = TREE_TYPE (element_type);
+      }
+
 #ifndef MIPS_DEBUGGING_INFO
   gen_type_die (element_type, context_die);
 #endif
@@ -12610,6 +12867,8 @@ descr_info_loc (tree val, tree base_decl)
     {
     CASE_CONVERT:
       return descr_info_loc (TREE_OPERAND (val, 0), base_decl);
+    case VAR_DECL:
+      return loc_descriptor_from_tree_1 (val, 0);
     case INTEGER_CST:
       if (host_integerp (val, 0))
 	return int_loc_descriptor (tree_low_cst (val, 0));
@@ -12951,11 +13210,13 @@ gen_formal_parameter_die (tree node, dw_die_ref context_die)
 	  tree type = TREE_TYPE (node);
 	  add_name_and_src_coords_attributes (parm_die, node);
 	  if (DECL_BY_REFERENCE (node))
-	    type = TREE_TYPE (type);
-	  add_type_attribute (parm_die, type,
-			      TREE_READONLY (node),
-			      TREE_THIS_VOLATILE (node),
-			      context_die);
+	    add_type_attribute (parm_die, TREE_TYPE (type), 0, 0,
+				context_die);
+	  else
+	    add_type_attribute (parm_die, type,
+				TREE_READONLY (node),
+				TREE_THIS_VOLATILE (node),
+				context_die);
 	  if (DECL_ARTIFICIAL (node))
 	    add_AT_flag (parm_die, DW_AT_artificial, 1);
 	}
@@ -13525,29 +13786,72 @@ gen_variable_die (tree decl, dw_die_ref context_die)
   com_decl = fortran_common (decl, &off);
 
   /* Symbol in common gets emitted as a child of the common block, in the form
-     of a data member.
-
-     ??? This creates a new common block die for every common block symbol.
-     Better to share same common block die for all symbols in that block.  */
+     of a data member.  */
   if (com_decl)
     {
       tree field;
       dw_die_ref com_die;
-      const char *cnam = IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME (com_decl));
-      dw_loc_descr_ref loc = loc_descriptor_from_tree (com_decl);
+      dw_loc_descr_ref loc;
 
+      var_die = lookup_decl_die (decl);
+      if (var_die)
+	{
+	  if (get_AT (var_die, DW_AT_location) == NULL)
+	    {
+	      loc = loc_descriptor_from_tree (com_decl);
+	      if (loc)
+		{
+		  if (off)
+		    add_loc_descr (&loc, new_loc_descr (DW_OP_plus_uconst,
+							off, 0));
+		  add_AT_loc (var_die, DW_AT_location, loc);
+		  remove_AT (var_die, DW_AT_declaration);
+		}
+	    }
+	  return;
+	}
       field = TREE_OPERAND (DECL_VALUE_EXPR (decl), 0);
-      var_die = new_die (DW_TAG_common_block, context_die, decl);
-      add_name_and_src_coords_attributes (var_die, field);
-      add_AT_flag (var_die, DW_AT_external, 1);
-      add_AT_loc (var_die, DW_AT_location, loc);
-      com_die = new_die (DW_TAG_member, var_die, decl);
-      add_name_and_src_coords_attributes (com_die, decl);
-      add_type_attribute (com_die, TREE_TYPE (decl), TREE_READONLY (decl),
+      com_die = lookup_decl_die (com_decl);
+      loc = loc_descriptor_from_tree (com_decl);
+      if (com_die == NULL)
+	{
+	  const char *cnam
+	    = IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME (com_decl));
+
+	  com_die = new_die (DW_TAG_common_block, context_die, decl);
+	  add_name_and_src_coords_attributes (com_die, com_decl);
+	  if (loc)
+	    {
+	      add_AT_loc (com_die, DW_AT_location, loc);
+	      /* Avoid sharing the same loc descriptor between
+		 DW_TAG_common_block and DW_TAG_variable.  */
+	      loc = loc_descriptor_from_tree (com_decl);
+	    }
+          else if (DECL_EXTERNAL (decl))
+	    add_AT_flag (com_die, DW_AT_declaration, 1);
+	  add_pubname_string (cnam, com_die); /* ??? needed? */
+	  equate_decl_number_to_die (com_decl, com_die);
+	}
+      else if (get_AT (com_die, DW_AT_location) == NULL && loc)
+	{
+	  add_AT_loc (com_die, DW_AT_location, loc);
+	  loc = loc_descriptor_from_tree (com_decl);
+	  remove_AT (com_die, DW_AT_declaration);
+	}
+      var_die = new_die (DW_TAG_variable, com_die, decl);
+      add_name_and_src_coords_attributes (var_die, decl);
+      add_type_attribute (var_die, TREE_TYPE (decl), TREE_READONLY (decl),
 			  TREE_THIS_VOLATILE (decl), context_die);
-      add_AT_loc (com_die, DW_AT_data_member_location,
-		  int_loc_descriptor (off));
-      add_pubname_string (cnam, var_die); /* ??? needed? */
+      add_AT_flag (var_die, DW_AT_external, 1);
+      if (loc)
+	{
+	  if (off)
+	    add_loc_descr (&loc, new_loc_descr (DW_OP_plus_uconst, off, 0));
+	  add_AT_loc (var_die, DW_AT_location, loc);
+	}
+      else if (DECL_EXTERNAL (decl))
+	add_AT_flag (var_die, DW_AT_declaration, 1);
+      equate_decl_number_to_die (decl, var_die);
       return;
     }
 
@@ -13589,14 +13893,15 @@ gen_variable_die (tree decl, dw_die_ref context_die)
   else
     {
       tree type = TREE_TYPE (decl);
+
+      add_name_and_src_coords_attributes (var_die, decl);
       if ((TREE_CODE (decl) == PARM_DECL
 	   || TREE_CODE (decl) == RESULT_DECL)
 	  && DECL_BY_REFERENCE (decl))
-	type = TREE_TYPE (type);
-
-      add_name_and_src_coords_attributes (var_die, decl);
-      add_type_attribute (var_die, type, TREE_READONLY (decl),
-			  TREE_THIS_VOLATILE (decl), context_die);
+	add_type_attribute (var_die, TREE_TYPE (type), 0, 0, context_die);
+      else
+	add_type_attribute (var_die, type, TREE_READONLY (decl),
+			    TREE_THIS_VOLATILE (decl), context_die);
 
       if (TREE_PUBLIC (decl))
 	add_AT_flag (var_die, DW_AT_external, 1);
@@ -13623,6 +13928,24 @@ gen_variable_die (tree decl, dw_die_ref context_die)
     }
   else
     tree_add_const_value_attribute (var_die, decl);
+}
+
+/* Generate a DIE to represent a named constant.  */
+
+static void
+gen_const_die (tree decl, dw_die_ref context_die)
+{
+  dw_die_ref const_die;
+  tree type = TREE_TYPE (decl);
+
+  const_die = new_die (DW_TAG_constant, context_die, decl);
+  add_name_and_src_coords_attributes (const_die, decl);
+  add_type_attribute (const_die, type, 1, 0, context_die);
+  if (TREE_PUBLIC (decl))
+    add_AT_flag (const_die, DW_AT_external, 1);
+  if (DECL_ARTIFICIAL (decl))
+    add_AT_flag (const_die, DW_AT_artificial, 1);
+  tree_add_const_value_attribute (const_die, decl);
 }
 
 /* Generate a DIE to represent a label identifier.  */
@@ -14312,7 +14635,7 @@ gen_type_die_with_usage (tree type, dw_die_ref context_die,
 	}
       else
 	{
-	  declare_in_namespace (type, context_die);
+	  context_die = declare_in_namespace (type, context_die);
 	  need_pop = 0;
 	}
 
@@ -14684,29 +15007,32 @@ setup_namespace_context (tree thing, dw_die_ref context_die)
    For compatibility with older debuggers, namespace DIEs only contain
    declarations; all definitions are emitted at CU scope.  */
 
-static void
+static dw_die_ref
 declare_in_namespace (tree thing, dw_die_ref context_die)
 {
   dw_die_ref ns_context;
 
   if (debug_info_level <= DINFO_LEVEL_TERSE)
-    return;
+    return context_die;
 
   /* If this decl is from an inlined function, then don't try to emit it in its
      namespace, as we will get confused.  It would have already been emitted
      when the abstract instance of the inline function was emitted anyways.  */
   if (DECL_P (thing) && DECL_ABSTRACT_ORIGIN (thing))
-    return;
+    return context_die;
 
   ns_context = setup_namespace_context (thing, context_die);
 
   if (ns_context != context_die)
     {
+      if (is_fortran ())
+	return ns_context;
       if (DECL_P (thing))
 	gen_decl_die (thing, ns_context);
       else
 	gen_type_die (thing, ns_context);
     }
+  return context_die;
 }
 
 /* Generate a DIE for a namespace or namespace alias.  */
@@ -14720,10 +15046,17 @@ gen_namespace_die (tree decl)
      they are an alias of.  */
   if (DECL_ABSTRACT_ORIGIN (decl) == NULL)
     {
-      /* Output a real namespace.  */
+      /* Output a real namespace or module.  */
       dw_die_ref namespace_die
-	= new_die (DW_TAG_namespace, context_die, decl);
-      add_name_and_src_coords_attributes (namespace_die, decl);
+	= new_die (is_fortran () ? DW_TAG_module : DW_TAG_namespace,
+		   context_die, decl);
+      /* For Fortran modules defined in different CU don't add src coords.  */
+      if (namespace_die->die_tag == DW_TAG_module && DECL_EXTERNAL (decl))
+	add_name_attribute (namespace_die, dwarf2_name (decl, 0));
+      else
+	add_name_and_src_coords_attributes (namespace_die, decl);
+      if (DECL_EXTERNAL (decl))
+	add_AT_flag (namespace_die, DW_AT_declaration, 1);
       equate_decl_number_to_die (decl, namespace_die);
     }
   else
@@ -14759,8 +15092,20 @@ gen_decl_die (tree decl, dw_die_ref context_die)
       break;
 
     case CONST_DECL:
-      /* The individual enumerators of an enum type get output when we output
-	 the Dwarf representation of the relevant enum type itself.  */
+      if (!is_fortran ())
+	{
+	  /* The individual enumerators of an enum type get output when we output
+	     the Dwarf representation of the relevant enum type itself.  */
+	  break;
+	}
+
+      /* Emit its type.  */
+      gen_type_die (TREE_TYPE (decl), context_die);
+
+      /* And its containing namespace.  */
+      context_die = declare_in_namespace (decl, context_die);
+
+      gen_const_die (decl, context_die);
       break;
 
     case FUNCTION_DECL:
@@ -14813,7 +15158,7 @@ gen_decl_die (tree decl, dw_die_ref context_die)
 	    gen_type_die_for_member (origin, decl, context_die);
 
 	  /* And its containing namespace.  */
-	  declare_in_namespace (decl, context_die);
+	  context_die = declare_in_namespace (decl, context_die);
 	}
 
       /* Now output a DIE to represent the function itself.  */
@@ -14858,16 +15203,6 @@ gen_decl_die (tree decl, dw_die_ref context_die)
       if (debug_info_level <= DINFO_LEVEL_TERSE)
 	break;
 
-      /* If this is the global definition of the Fortran COMMON block, we don't
-         need to do anything.  Syntactically, the block itself has no identity,
-         just its constituent identifiers.  */
-      if (TREE_CODE (decl) == VAR_DECL
-          && TREE_PUBLIC (decl)
-          && TREE_STATIC (decl)
-          && is_fortran ()
-          && !DECL_HAS_VALUE_EXPR_P (decl))
-        break;
-
       /* Output any DIEs that are needed to specify the type of this data
 	 object.  */
       if (TREE_CODE (decl) == RESULT_DECL && DECL_BY_REFERENCE (decl))
@@ -14881,7 +15216,7 @@ gen_decl_die (tree decl, dw_die_ref context_die)
 	gen_type_die_for_member (origin, decl, context_die);
 
       /* And its containing namespace.  */
-      declare_in_namespace (decl, context_die);
+      context_die = declare_in_namespace (decl, context_die);
 
       /* Now output the DIE to represent the data object itself.  This gets
 	 complicated because of the possibility that the VAR_DECL really
@@ -14934,15 +15269,7 @@ dwarf2out_global_decl (tree decl)
   /* Output DWARF2 information for file-scope tentative data object
      declarations, file-scope (extern) function declarations (which
      had no corresponding body) and file-scope tagged type declarations
-     and definitions which have not yet been forced out.
-
-     Ignore the global decl of any Fortran COMMON blocks which also
-     wind up here though they have already been described in the local
-     scope for the procedures using them.  */
-  if (TREE_CODE (decl) == VAR_DECL
-      && TREE_PUBLIC (decl) && TREE_STATIC (decl) && is_fortran ())
-    return;
-
+     and definitions which have not yet been forced out.  */
   if (TREE_CODE (decl) != FUNCTION_DECL || !DECL_INITIAL (decl))
     dwarf2out_decl (decl);
 }
@@ -14956,10 +15283,14 @@ dwarf2out_type_decl (tree decl, int local)
     dwarf2out_decl (decl);
 }
 
-/* Output debug information for imported module or decl.  */
+/* Output debug information for imported module or decl DECL.
+   NAME is non-NULL name in context if the decl has been renamed.
+   CHILD is true if decl is one of the renamed decls as part of
+   importing whole module.  */
 
 static void
-dwarf2out_imported_module_or_decl (tree decl, tree context)
+dwarf2out_imported_module_or_decl (tree decl, tree name, tree context,
+				   bool child)
 {
   dw_die_ref imported_die, at_import_die;
   dw_die_ref scope_die;
@@ -14981,6 +15312,14 @@ dwarf2out_imported_module_or_decl (tree decl, tree context)
       && !should_emit_struct_debug (context, DINFO_USAGE_DIR_USE))
     return;
   scope_die = get_context_die (context);
+
+  if (child)
+    {
+      gcc_assert (scope_die->die_child);
+      gcc_assert (scope_die->die_child->die_tag == DW_TAG_imported_module);
+      gcc_assert (TREE_CODE (decl) != NAMESPACE_DECL);
+      scope_die = scope_die->die_child;
+    }
 
   /* For TYPE_DECL or CONST_DECL, lookup TREE_TYPE.  */
   if (TREE_CODE (decl) == TYPE_DECL || TREE_CODE (decl) == CONST_DECL)
@@ -15032,6 +15371,8 @@ dwarf2out_imported_module_or_decl (tree decl, tree context)
   xloc = expand_location (input_location);
   add_AT_file (imported_die, DW_AT_decl_file, lookup_filename (xloc.file));
   add_AT_unsigned (imported_die, DW_AT_decl_line, xloc.line);
+  if (name)
+    add_AT_string (imported_die, DW_AT_name, IDENTIFIER_POINTER (name));
   add_AT_die_ref (imported_die, DW_AT_import, at_import_die);
 }
 
@@ -15107,6 +15448,15 @@ dwarf2out_decl (tree decl)
 	 variable declarations or definitions.  */
       if (debug_info_level <= DINFO_LEVEL_TERSE)
 	return;
+      break;
+
+    case CONST_DECL:
+      if (debug_info_level <= DINFO_LEVEL_TERSE)
+	return;
+      if (!is_fortran ())
+	return;
+      if (TREE_STATIC (decl) && decl_function_context (decl))
+	context_die = lookup_decl_die (DECL_CONTEXT (decl));
       break;
 
     case NAMESPACE_DECL:

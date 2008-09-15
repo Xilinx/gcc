@@ -829,14 +829,17 @@ extern void compute_available (sbitmap *, sbitmap *, sbitmap *, sbitmap *);
 /* In predict.c */
 extern bool maybe_hot_bb_p (const_basic_block);
 extern bool maybe_hot_edge_p (edge);
-extern bool probably_cold_bb_p (const_basic_block);
 extern bool probably_never_executed_bb_p (const_basic_block);
-extern bool optimize_bb_for_size_p (basic_block);
-extern bool optimize_bb_for_speed_p (basic_block);
+extern bool optimize_bb_for_size_p (const_basic_block);
+extern bool optimize_bb_for_speed_p (const_basic_block);
 extern bool optimize_edge_for_size_p (edge);
 extern bool optimize_edge_for_speed_p (edge);
-extern bool optimize_insn_for_size_p (void);
-extern bool optimize_insn_for_speed_p (void);
+extern bool optimize_function_for_size_p (struct function *);
+extern bool optimize_function_for_speed_p (struct function *);
+extern bool optimize_loop_for_size_p (struct loop *);
+extern bool optimize_loop_for_speed_p (struct loop *);
+extern bool optimize_loop_nest_for_size_p (struct loop *);
+extern bool optimize_loop_nest_for_speed_p (struct loop *);
 extern bool gimple_predicted_by_p (const_basic_block, enum br_predictor);
 extern bool rtl_predicted_by_p (const_basic_block, enum br_predictor);
 extern void gimple_predict_edge (edge, enum br_predictor, int);
@@ -846,6 +849,7 @@ extern void guess_outgoing_edge_probabilities (basic_block);
 extern void remove_predictions_associated_with_edge (edge);
 extern bool edge_probability_reliable_p (const_edge);
 extern bool br_prob_note_reliable_p (const_rtx);
+extern bool predictable_edge_p (edge);
 
 /* In cfg.c  */
 extern void dump_regset (regset, FILE *);

@@ -1424,7 +1424,8 @@ static rtx
 find_shift_sequence (int access_size,
 		     store_info_t store_info,
 		     read_info_t read_info,
-		     int shift)
+		     int shift,
+		     bool speed)
 {
   enum machine_mode store_mode = GET_MODE (store_info->mem);
   enum machine_mode read_mode = GET_MODE (read_info->mem);
@@ -1444,7 +1445,7 @@ find_shift_sequence (int access_size,
        new_mode = GET_MODE_WIDER_MODE (new_mode))
     {
       rtx target, new_reg, shift_seq, insn, new_lhs;
-      int cost, offset;
+      int cost;
 
       /* Try a wider mode if truncating the store mode to NEW_MODE
 	 requires a real instruction.  */
@@ -1457,11 +1458,6 @@ find_shift_sequence (int access_size,
 	 desirable or not possible.  */
       if (!CONSTANT_P (store_info->rhs)
 	  && !MODES_TIEABLE_P (new_mode, store_mode))
-	continue;
-      offset = subreg_lowpart_offset (new_mode, store_mode);
-      new_lhs = simplify_gen_subreg (new_mode, copy_rtx (store_info->rhs),
-				     store_mode, offset);
-      if (new_lhs == NULL_RTX)
 	continue;
 
       new_reg = gen_reg_rtx (new_mode);
@@ -1483,7 +1479,7 @@ find_shift_sequence (int access_size,
       cost = 0;
       for (insn = shift_seq; insn != NULL_RTX; insn = NEXT_INSN (insn))
 	if (INSN_P (insn))
-	  cost += insn_rtx_cost (PATTERN (insn));
+	  cost += insn_rtx_cost (PATTERN (insn), speed);
 
       /* The computation up to here is essentially independent
 	 of the arguments and could be precomputed.  It may
@@ -1493,6 +1489,11 @@ find_shift_sequence (int access_size,
 	 but in practice the answer will depend only on ACCESS_SIZE.  */
 
       if (cost > COSTS_N_INSNS (1))
+	continue;
+
+      new_lhs = extract_low_bits (new_mode, store_mode,
+				  copy_rtx (store_info->rhs));
+      if (new_lhs == NULL_RTX)
 	continue;
 
       /* We found an acceptable shift.  Generate a move to
@@ -1582,7 +1583,8 @@ replace_read (store_info_t store_info, insn_info_t store_insn,
 	     GET_MODE_NAME (store_mode), INSN_UID (store_insn->insn));
   start_sequence ();
   if (shift)
-    read_reg = find_shift_sequence (access_size, store_info, read_info, shift);
+    read_reg = find_shift_sequence (access_size, store_info, read_info, shift,
+    				    optimize_bb_for_speed_p (BLOCK_FOR_INSN (read_insn->insn)));
   else
     read_reg = extract_low_bits (read_mode, store_mode,
 				 copy_rtx (store_info->rhs));

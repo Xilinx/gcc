@@ -3590,6 +3590,16 @@ set_expr_locus (tree node, source_location *loc)
   else
     EXPR_CHECK (node)->exp.locus = *loc;
 }
+
+/* Like SET_EXPR_LOCATION, but make sure the tree can have a location.
+
+   LOC is the location to use in tree T.  */
+
+void protected_set_expr_location (tree t, location_t loc)
+{
+  if (t && t != error_mark_node && CAN_HAVE_LOCATION_P (t))
+    SET_EXPR_LOCATION (t, loc);
+}
 
 /* Return a declaration like DDECL except that its DECL_ATTRIBUTES
    is ATTRIBUTE.  */
@@ -5894,6 +5904,91 @@ build_function_type (tree value_type, tree arg_types)
   return t;
 }
 
+/* Build variant of function type ORIG_TYPE skipping ARGS_TO_SKIP.  */
+
+tree
+build_function_type_skip_args (tree orig_type, bitmap args_to_skip)
+{
+  tree new_type = NULL;
+  tree args, new_args = NULL, t;
+  tree new_reversed;
+  int i = 0;
+
+  for (args = TYPE_ARG_TYPES (orig_type); args && args != void_list_node;
+       args = TREE_CHAIN (args), i++)
+    if (!bitmap_bit_p (args_to_skip, i))
+      new_args = tree_cons (NULL_TREE, TREE_VALUE (args), new_args);
+
+  new_reversed = nreverse (new_args);
+  if (args)
+    {
+      if (new_reversed)
+        TREE_CHAIN (new_args) = void_list_node;
+      else
+	new_reversed = void_list_node;
+    }
+    gcc_assert (new_reversed);
+
+  /* Use copy_node to preserve as much as possible from original type
+     (debug info, attribute lists etc.)
+     Exception is METHOD_TYPEs must have THIS argument.
+     When we are asked to remove it, we need to build new FUNCTION_TYPE
+     instead.  */
+  if (TREE_CODE (orig_type) != METHOD_TYPE
+      || !bitmap_bit_p (args_to_skip, 0))
+    {
+      new_type = copy_node (orig_type);
+      TYPE_ARG_TYPES (new_type) = new_reversed;
+    }
+  else
+    {
+      new_type
+        = build_distinct_type_copy (build_function_type (TREE_TYPE (orig_type),
+							 new_reversed));
+      TYPE_CONTEXT (new_type) = TYPE_CONTEXT (orig_type);
+    }
+
+  /* This is a new type, not a copy of an old type.  Need to reassociate
+     variants.  We can handle everything except the main variant lazily.  */
+  t = TYPE_MAIN_VARIANT (orig_type);
+  if (orig_type != t)
+    {
+      TYPE_MAIN_VARIANT (new_type) = t;
+      TYPE_NEXT_VARIANT (new_type) = TYPE_NEXT_VARIANT (t);
+      TYPE_NEXT_VARIANT (t) = new_type;
+    }
+  else
+    {
+      TYPE_MAIN_VARIANT (new_type) = new_type;
+      TYPE_NEXT_VARIANT (new_type) = NULL;
+    }
+  return new_type;
+}
+
+/* Build variant of function type ORIG_TYPE skipping ARGS_TO_SKIP.  
+  
+   Arguments from DECL_ARGUMENTS list can't be removed now, since they are
+   linked by TREE_CHAIN directly.  It is caller responsibility to eliminate
+   them when they are being duplicated (i.e. copy_arguments_for_versioning).  */
+
+tree
+build_function_decl_skip_args (tree orig_decl, bitmap args_to_skip)
+{
+  tree new_decl = copy_node (orig_decl);
+  tree new_type;
+
+  new_type = TREE_TYPE (orig_decl);
+  if (prototype_p (new_type))
+    new_type = build_function_type_skip_args (new_type, args_to_skip);
+  TREE_TYPE (new_decl) = new_type;
+
+  /* For declarations setting DECL_VINDEX (i.e. methods)
+     we expect first argument to be THIS pointer.   */
+  if (bitmap_bit_p (args_to_skip, 0))
+    DECL_VINDEX (new_decl) = NULL_TREE;
+  return new_decl;
+}
+
 /* Build a function type.  The RETURN_TYPE is the type returned by the
    function. If VAARGS is set, no void_type_node is appended to the
    the list. ARGP muse be alway be terminated be a NULL_TREE.  */
@@ -5909,9 +6004,9 @@ build_function_type_list_1 (bool vaargs, tree return_type, va_list argp)
 
   if (vaargs)
     {
-	  last = args;
-	  if (args != NULL_TREE)
-	    args = nreverse (args);
+      last = args;
+      if (args != NULL_TREE)
+	args = nreverse (args);
       gcc_assert (args != NULL_TREE && last != void_list_node);
     }
   else if (args == NULL_TREE)
@@ -6335,6 +6430,21 @@ int_fits_type_p (const_tree c, const_tree type)
      for "unknown if constant fits", 0 for "constant known *not* to fit" and 1
      for "constant known to fit".  */
 
+  if (TREE_TYPE (c) == sizetype
+      && TYPE_UNSIGNED (TREE_TYPE (c))
+      && TREE_INT_CST_HIGH (c) == -1
+      && !TREE_OVERFLOW (c))
+      /* So c is an unsigned integer which type is sizetype.
+         sizetype'd integers are sign extended even though they are
+	 unsigned. If the integer value fits in the lower end word of c,
+	 and if the higher end word has all its bits set to 1, that
+	 means the higher end bits are set to 1 only for sign extension.
+	 So let's convert c into an equivalent zero extended unsigned
+	 integer.  */
+      c = force_fit_type_double (size_type_node,
+				 TREE_INT_CST_LOW (c),
+				 TREE_INT_CST_HIGH (c),
+				 false, false);
   /* Check if C >= type_low_bound.  */
   if (type_low_bound && TREE_CODE (type_low_bound) == INTEGER_CST)
     {

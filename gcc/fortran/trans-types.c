@@ -1934,12 +1934,23 @@ gfc_get_derived_type (gfc_symbol * derived)
 
   gfc_finish_type (typenode);
   gfc_set_decl_location (TYPE_STUB_DECL (typenode), &derived->declared_at);
+  if (derived->module && derived->ns->proc_name->attr.flavor == FL_MODULE)
+    {
+      if (derived->ns->proc_name->backend_decl
+	  && TREE_CODE (derived->ns->proc_name->backend_decl)
+	     == NAMESPACE_DECL)
+	{
+	  TYPE_CONTEXT (typenode) = derived->ns->proc_name->backend_decl;
+	  DECL_CONTEXT (TYPE_STUB_DECL (typenode))
+	    = derived->ns->proc_name->backend_decl;
+	}
+    }
 
   derived->backend_decl = typenode;
 
-    /* Add this backend_decl to all the other, equal derived types.  */
-    for (dt = gfc_derived_types; dt; dt = dt->next)
-      copy_dt_decls_ifequal (derived, dt->derived);
+  /* Add this backend_decl to all the other, equal derived types.  */
+  for (dt = gfc_derived_types; dt; dt = dt->next)
+    copy_dt_decls_ifequal (derived, dt->derived);
 
   return derived->backend_decl;
 }
@@ -2278,7 +2289,10 @@ gfc_get_array_descr_info (const_tree type, struct array_descr_info *info)
   else
     info->base_decl = base_decl = build_decl (VAR_DECL, NULL_TREE, ptype);
 
-  elem_size = fold_convert (gfc_array_index_type, TYPE_SIZE_UNIT (etype));
+  if (GFC_TYPE_ARRAY_SPAN (type))
+    elem_size = GFC_TYPE_ARRAY_SPAN (type);
+  else
+    elem_size = fold_convert (gfc_array_index_type, TYPE_SIZE_UNIT (etype));
   field = TYPE_FIELDS (TYPE_MAIN_VARIANT (type));
   data_off = byte_position (field);
   field = TREE_CHAIN (field);

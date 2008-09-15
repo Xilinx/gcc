@@ -49,6 +49,7 @@
 #include "langhooks.h"
 #include "cfglayout.h"
 #include "score3.h"
+#include "df.h"
 
 #define BITSET_P(VALUE, BIT)      (((VALUE) & (1L << (BIT))) != 0)
 #define INS_BUF_SZ                128
@@ -1000,7 +1001,8 @@ score3_address_insns (rtx x, enum machine_mode mode)
 
 /* Implement TARGET_RTX_COSTS macro.  */
 bool
-score3_rtx_costs (rtx x, int code, int outer_code, int *total)
+score3_rtx_costs (rtx x, int code, int outer_code, int *total,
+		  bool speed ATTRIBUTE_UNUSED)
 {
   enum machine_mode mode = GET_MODE (x);
 

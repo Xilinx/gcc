@@ -303,10 +303,12 @@ Objective-C and Objective-C++ Dialects}.
 -feliminate-unused-debug-symbols -femit-class-debug-always @gol
 -fmem-report -fpre-ipa-mem-report -fpost-ipa-mem-report -fprofile-arcs @gol
 -frandom-seed=@var{string} -fsched-verbose=@var{n} @gol
+-fsel-sched-verbose -fsel-sched-dump-cfg -fsel-sched-pipelining-verbose @gol
 -ftest-coverage  -ftime-report -fvar-tracking @gol
 -g  -g@var{level}  -gcoff -gdwarf-2 @gol
 -ggdb  -gstabs  -gstabs+  -gvms  -gxcoff  -gxcoff+ @gol
--fno-merge-debug-strings -fdebug-prefix-map=@var{old}=@var{new} @gol
+-fno-merge-debug-strings -fno-dwarf2-cfi-asm @gol
+-fdebug-prefix-map=@var{old}=@var{new} @gol
 -femit-struct-debug-baseonly -femit-struct-debug-reduced @gol
 -femit-struct-debug-detailed@r{[}=@var{spec-list}@r{]} @gol
 -p  -pg  -print-file-name=@var{library}  -print-libgcc-file-name @gol
@@ -322,8 +324,8 @@ Objective-C and Objective-C++ Dialects}.
 -falign-labels[=@var{n}] -falign-loops[=@var{n}] -fassociative-math @gol
 -fauto-inc-dec -fbranch-probabilities -fbranch-target-load-optimize @gol
 -fbranch-target-load-optimize2 -fbtr-bb-exclusive -fcaller-saves @gol
--fcheck-data-deps -fcprop-registers -fcrossjumping -fcse-follow-jumps @gol
--fcse-skip-blocks -fcx-fortran-rules -fcx-limited-range @gol
+-fcheck-data-deps -fconserve-stack -fcprop-registers -fcrossjumping @gol
+-fcse-follow-jumps -fcse-skip-blocks -fcx-fortran-rules -fcx-limited-range @gol
 -fdata-sections -fdce -fdce @gol
 -fdelayed-branch -fdelete-null-pointer-checks -fdse -fdse @gol
 -fearly-inlining -fexpensive-optimizations -ffast-math @gol
@@ -337,6 +339,7 @@ Objective-C and Objective-C++ Dialects}.
 -fira-coalesce -fno-ira-share-save-slots @gol
 -fno-ira-share-spill-slots -fira-verbose=@var{n} @gol
 -fivopts -fkeep-inline-functions -fkeep-static-consts @gol
+-floop-block -floop-interchange -floop-strip-mine @gol
 -fmerge-all-constants -fmerge-constants -fmodulo-sched @gol
 -fmodulo-sched-allow-regmoves -fmove-loop-invariants -fmudflap @gol
 -fmudflapir -fmudflapth -fno-branch-count-reg -fno-default-inline @gol
@@ -356,6 +359,8 @@ Objective-C and Objective-C++ Dialects}.
 -fsched2-use-traces -fsched-spec-load -fsched-spec-load-dangerous @gol
 -fsched-stalled-insns-dep[=@var{n}] -fsched-stalled-insns[=@var{n}] @gol
 -fschedule-insns -fschedule-insns2 -fsection-anchors -fsee @gol
+-fselective-scheduling -fselective-scheduling2 @gol
+-fsel-sched-pipelining -fsel-sched-pipelining-outer-loops @gol
 -fsignaling-nans -fsingle-precision-constant -fsplit-ivs-in-unroller @gol
 -fsplit-wide-types -fstack-protector -fstack-protector-all @gol
 -fstrict-aliasing -fstrict-overflow -fthread-jumps -ftracer @gol
@@ -365,7 +370,7 @@ Objective-C and Objective-C++ Dialects}.
 -ftree-loop-distribution @gol
 -ftree-loop-ivcanon -ftree-loop-linear -ftree-loop-optimize @gol
 -ftree-parallelize-loops=@var{n} -ftree-pre -ftree-reassoc @gol
--ftree-sink -ftree-sra -ftree-store-ccp -ftree-switch-conversion @gol
+-ftree-sink -ftree-sra -ftree-switch-conversion @gol
 -ftree-ter -ftree-vect-loop-version -ftree-vectorize -ftree-vrp @gol
 -funit-at-a-time -funroll-all-loops -funroll-loops @gol
 -funsafe-loop-optimizations -funsafe-math-optimizations -funswitch-loops @gol
@@ -445,7 +450,8 @@ Objective-C and Objective-C++ Dialects}.
 -mthumb  -marm @gol
 -mtpcs-frame  -mtpcs-leaf-frame @gol
 -mcaller-super-interworking  -mcallee-super-interworking @gol
--mtp=@var{name}}
+-mtp=@var{name}
+-mword-relocations}
 
 @emph{AVR Options}
 @gccoptlist{-mmcu=@var{mcu}  -msize  -minit-stack=@var{n}  -mno-interrupts @gol
@@ -563,7 +569,7 @@ Objective-C and Objective-C++ Dialects}.
 -mpreferred-stack-boundary=@var{num}
 -mincoming-stack-boundary=@var{num}
 -mcld -mcx16 -msahf -mrecip @gol
--mmmx  -msse  -msse2 -msse3 -mssse3 -msse4.1 -msse4.2 -msse4 @gol
+-mmmx  -msse  -msse2 -msse3 -mssse3 -msse4.1 -msse4.2 -msse4 -mavx @gol
 -maes -mpclmul @gol
 -msse4a -m3dnow -mpopcnt -mabm -msse5 @gol
 -mthreads  -mno-align-stringops  -minline-all-stringops @gol
@@ -685,6 +691,10 @@ Objective-C and Objective-C++ Dialects}.
 -mfloat64  -mno-float32  -mabshi  -mno-abshi @gol
 -mbranch-expensive  -mbranch-cheap @gol
 -msplit  -mno-split  -munix-asm  -mdec-asm}
+
+@emph{picoChip Options}
+@gccoptlist{-mae=@var{ae_type} -mvliw-lookahead=@var{N}
+-msymbol-as-address -mno-inefficient-warnings}
 
 @emph{PowerPC Options}
 See RS/6000 and PowerPC Options.
@@ -1516,7 +1526,7 @@ known not to modify global memory.
 With the @option{-fno-builtin-@var{function}} option
 only the built-in function @var{function} is
 disabled.  @var{function} must not begin with @samp{__builtin_}.  If a
-function is named this is not built-in in this version of GCC, this
+function is named that is not built-in in this version of GCC, this
 option is ignored.  There is no corresponding
 @option{-fbuiltin-@var{function}} option; if you wish to enable
 built-in functions selectively when using @option{-fno-builtin} or
@@ -4339,6 +4349,12 @@ on by default.
 When compiling files in directory @file{@var{old}}, record debugging
 information describing them as in @file{@var{new}} instead.
 
+@item -fno-dwarf2-cfi-asm
+@opindex fdwarf2-cfi-asm
+@opindex fno-dwarf2-cfi-asm
+Emit DWARF 2 unwind info as compiler generated @code{.eh_frame} section
+instead of using GAS @code{.cfi_*} directives.
+
 @cindex @command{prof}
 @item -p
 @opindex p
@@ -5075,7 +5091,7 @@ Don't forget the trailing @samp{/}.
 @opindex print-sysroot
 Print the target sysroot directory that will be used during
 compilation.  This is the target sysroot specified either at configure
-time or or using the @option{--sysroot} option, possibly with an extra
+time or using the @option{--sysroot} option, possibly with an extra
 suffix that depends on compilation options.  If no target sysroot is
 specified, the option prints nothing.
 
@@ -5832,6 +5848,27 @@ The modulo scheduling comes before the traditional scheduling, if a loop
 was modulo scheduled we may want to prevent the later scheduling passes
 from changing its schedule, we use this option to control that.
 
+@item -fselective-scheduling
+@opindex fselective-scheduling
+Schedule instructions using selective scheduling algorithm.  Selective
+scheduling runs instead of the first scheduler pass.
+
+@item -fselective-scheduling2
+@opindex fselective-scheduling2
+Schedule instructions using selective scheduling algorithm.  Selective
+scheduling runs instead of the second scheduler pass.
+
+@item -fsel-sched-pipelining
+@opindex fsel-sched-pipelining
+Enable software pipelining of innermost loops during selective scheduling.  
+This option has no effect until one of @option{-fselective-scheduling} or 
+@option{-fselective-scheduling2} is turned on.
+
+@item -fsel-sched-pipelining-outer-loops
+@opindex fsel-sched-pipelining-outer-loops
+When pipelining loops during selective scheduling, also pipeline outer loops.
+This option has no effect until @option{-fsel-sched-pipelining} is turned on.
+
 @item -fcaller-saves
 @opindex fcaller-saves
 Enable values to be allocated in registers that will be clobbered by
@@ -5843,6 +5880,13 @@ This option is always enabled by default on certain machines, usually
 those which have no call-preserved registers to use instead.
 
 Enabled at levels @option{-O2}, @option{-O3}, @option{-Os}.
+
+@item -fconserve-stack
+@opindex fconserve-stack
+Attempt to minimize stack usage.  The compiler will attempt to use less
+stack space, even if that makes the program slower.  This option
+implies setting the @option{large-stack-frame} parameter to 100
+and the @option{large-stack-frame-growth} parameter to 400.
 
 @item -ftree-reassoc
 @opindex ftree-reassoc
@@ -5905,6 +5949,7 @@ This optimization analyzes the program to determine when values passed
 to functions are constants and then optimizes accordingly.  
 This optimization can substantially increase performance
 if the application has constants passed to functions.
+This flag is enabled by default at @option{-O2}, @option{-Os} and @option{-O3}.
 
 @item -fipa-cp-clone
 @opindex fipa-cp-clone
@@ -5914,6 +5959,7 @@ when externally visible function can be called with constant arguments.
 Because this optimization can create multiple copies of functions,
 it may significantly increase code size
 (see @option{--param ipcp-unit-growth=@var{value}}).
+This flag is enabled by default at @option{-O3}.
 
 @item -fipa-matrix-reorg
 @opindex fipa-matrix-reorg
@@ -5938,13 +5984,6 @@ enabled by default at @option{-O} and higher.
 Perform sparse conditional constant propagation (CCP) on trees.  This
 pass only operates on local scalar variables and is enabled by default
 at @option{-O} and higher.
-
-@item -ftree-store-ccp
-@opindex ftree-store-ccp
-Perform sparse conditional constant propagation (CCP) on trees.  This
-pass operates on both local scalar variables and memory stores and
-loads (global variables, structures, arrays, etc).  This flag is
-enabled by default at @option{-O2} and higher.
 
 @item -ftree-switch-conversion
 Perform conversion of simple initializations in a switch to
@@ -5994,6 +6033,81 @@ at @option{-O} and higher.
 @opindex ftree-loop-linear
 Perform linear loop transformations on tree.  This flag can improve cache
 performance and allow further loop optimizations to take place.
+
+@item -floop-interchange
+Perform loop interchange transformations on loops.  Interchanging two
+nested loops switches the inner and outer loops.  For example, given a
+loop like:
+@smallexample
+DO J = 1, M
+  DO I = 1, N
+    A(J, I) = A(J, I) * C
+  ENDDO
+ENDDO
+@end smallexample
+loop interchange will transform the loop as if the user had written:
+@smallexample
+DO I = 1, N
+  DO J = 1, M
+    A(J, I) = A(J, I) * C
+  ENDDO
+ENDDO
+@end smallexample
+which can be beneficial when @code{N} is larger than the caches,
+because in Fortran, the elements of an array are stored in memory
+contiguously by column, and the original loop iterates over rows,
+potentially creating at each access a cache miss.  This optimization
+applies to all the languages supported by GCC and is not limited to
+Fortran.
+
+@item -floop-strip-mine
+Perform loop strip mining transformations on loops.  Strip mining
+splits a loop into two nested loops.  The outer loop has strides 
+equal to the strip size and the inner loop has strides of the 
+original loop within a strip.  For example, given a loop like:
+@smallexample
+DO I = 1, N
+  A(I) = A(I) + C
+ENDDO
+@end smallexample
+loop strip mining will transform the loop as if the user had written:
+@smallexample
+DO II = 1, N, 4
+  DO I = II, min (II + 4, N)
+    A(I) = A(I) + C
+  ENDDO
+ENDDO
+@end smallexample
+This optimization applies to all the languages supported by GCC and is
+not limited to Fortran.
+
+@item -floop-block
+Perform loop blocking transformations on loops.  Blocking strip mines
+each loop in the loop nest such that the memory accesses of the
+element loops fit inside caches.  For example, given a loop like:
+@smallexample
+DO I = 1, N
+  DO J = 1, M
+    A(J, I) = B(I) + C(J)
+  ENDDO
+ENDDO
+@end smallexample
+loop blocking will transform the loop as if the user had written:
+@smallexample
+DO II = 1, N, 64
+  DO JJ = 1, M, 64
+    DO I = II, min (II + 64, N)
+      DO J = JJ, min (JJ + 64, M)
+        A(J, I) = B(I) + C(J)
+      ENDDO
+    ENDDO
+  ENDDO
+ENDDO
+@end smallexample
+which can be beneficial when @code{M} is larger than the caches,
+because the innermost loop will iterate over a smaller amount of data
+that can be kept in the caches.  This optimization applies to all the
+languages supported by GCC and is not limited to Fortran.
 
 @item -fcheck-data-deps
 @opindex fcheck-data-deps
@@ -6908,6 +7022,10 @@ to the hottest structure frequency in the program is less than this
 parameter, then structure reorganization is not applied to this structure.
 The default is 10.
 
+@item predictable-branch-cost-outcome
+When branch is predicted to be taken with probability lower than this threshold
+(in percent), then it is considered well predictable. The default is 10.
+
 @item max-crossjump-edges
 The maximum number of incoming edges to consider for crossjumping.
 The algorithm used by @option{-fcrossjumping} is @math{O(N^2)} in
@@ -6983,7 +7101,7 @@ The default value is 90.
 
 @item large-function-insns
 The limit specifying really large functions.  For functions larger than this
-limit after inlining inlining is constrained by
+limit after inlining, inlining is constrained by
 @option{--param large-function-growth}.  This parameter is useful primarily
 to avoid extreme compilation time caused by non-linear algorithms used by the
 backend.
@@ -7329,9 +7447,17 @@ with probably little benefit.  The default value is 100.
 The maximum number of blocks in a region to be considered for
 interblock scheduling.  The default value is 10.
 
+@item max-pipeline-region-blocks
+The maximum number of blocks in a region to be considered for
+pipelining in the selective scheduler.  The default value is 15.
+
 @item max-sched-region-insns
 The maximum number of insns in a region to be considered for
 interblock scheduling.  The default value is 100.
+
+@item max-pipeline-region-insns
+The maximum number of insns in a region to be considered for
+pipelining in the selective scheduler.  The default value is 200.
 
 @item min-spec-prob
 The minimum probability (in percents) of reaching a source block
@@ -7352,8 +7478,25 @@ The minimal probability of speculation success (in percents), so that
 speculative insn will be scheduled.
 The default value is 40.
 
-@item max-last-value-rtl
+@item sched-mem-true-dep-cost
+Minimal distance (in CPU cycles) between store and load targeting same
+memory locations.  The default value is 1.
 
+@item selsched-max-lookahead
+The maximum size of the lookahead window of selective scheduling.  It is a
+depth of search for available instructions.
+The default value is 50.
+
+@item selsched-max-sched-times
+The maximum number of times that an instruction will be scheduled during 
+selective scheduling.  This is the limit on the number of iterations 
+through which the instruction may be pipelined.  The default value is 2.
+
+@item selsched-max-insns-to-rename
+The maximum number of best instructions in the ready list that are considered
+for renaming in the selective scheduler.  The default value is 2.
+
+@item max-last-value-rtl
 The maximum size measured as number of RTLs that can be recorded in an expression
 in combiner for a pseudo register as last known value of that register.  The default
 is 10000.
@@ -8481,6 +8624,7 @@ platform.
 * MMIX Options::
 * MN10300 Options::
 * PDP-11 Options::
+* picoChip Options::
 * PowerPC Options::
 * RS/6000 and PowerPC Options::
 * S/390 and zSeries Options::
@@ -8613,35 +8757,35 @@ different function prologues), and this information can be used to
 locate the start if functions inside an executable piece of code.  The
 default is @option{-msched-prolog}.
 
+@item -mfloat-abi=@var{name}
+@opindex mfloat-abi
+Specifies which floating-point ABI to use.  Permissible values
+are: @samp{soft}, @samp{softfp} and @samp{hard}.
+
+Specifying @samp{soft} causes GCC to generate output containing 
+library calls for floating-point operations.
+@samp{softfp} allows the generation of code using hardware floating-point 
+instructions, but still uses the soft-float calling conventions.  
+@samp{hard} allows generation of floating-point instructions 
+and uses FPU-specific calling conventions.
+
+Using @option{-mfloat-abi=hard} with VFP coprocessors is not supported.
+Use @option{-mfloat-abi=softfp} with the appropriate @option{-mfpu} option
+to allow the compiler to generate code that makes use of the hardware
+floating-point capabilities for these CPUs.
+
+The default depends on the specific target configuration.  Note that
+the hard-float and soft-float ABIs are not link-compatible; you must
+compile your entire program with the same ABI, and link with a
+compatible set of libraries.
+
 @item -mhard-float
 @opindex mhard-float
-Generate output containing floating point instructions.  This is the
-default.
+Equivalent to @option{-mfloat-abi=hard}.
 
 @item -msoft-float
 @opindex msoft-float
-Generate output containing library calls for floating point.
-@strong{Warning:} the requisite libraries are not available for all ARM
-targets.  Normally the facilities of the machine's usual C compiler are
-used, but this cannot be done directly in cross-compilation.  You must make
-your own arrangements to provide suitable library functions for
-cross-compilation.
-
-@option{-msoft-float} changes the calling convention in the output file;
-therefore, it is only useful if you compile @emph{all} of a program with
-this option.  In particular, you need to compile @file{libgcc.a}, the
-library that comes with GCC, with @option{-msoft-float} in order for
-this to work.
-
-@item -mfloat-abi=@var{name}
-@opindex mfloat-abi
-Specifies which ABI to use for floating point values.  Permissible values
-are: @samp{soft}, @samp{softfp} and @samp{hard}.
-
-@samp{soft} and @samp{hard} are equivalent to @option{-msoft-float}
-and @option{-mhard-float} respectively.  @samp{softfp} allows the generation
-of floating point instructions, but still uses the soft-float calling
-conventions.
+Equivalent to @option{-mfloat-abi=soft}.
 
 @item -mlittle-endian
 @opindex mlittle-endian
@@ -8864,6 +9008,13 @@ models are @option{soft}, which generates calls to @code{__aeabi_read_tp},
 (supported in the arm6k architecture), and @option{auto}, which uses the
 best available method for the selected processor.  The default setting is
 @option{auto}.
+
+@item -mword-relocations
+@opindex mword-relocations
+Only generate absolute relocations on word sized values (i.e. R_ARM_ABS32).
+This is enabled by default on targets (uClinux, SymbianOS) where the runtime
+loader imposes this restriction, and when @option{-fpic} or @option{-fPIC}
+is speficied.
 
 @end table
 
@@ -10797,7 +10948,7 @@ the system libraries and startup modules.
 
 Set 80387 floating-point precision to 32, 64 or 80 bits.  When @option{-mpc32}
 is specified, the significands of results of floating-point operations are
-rounded to 24 bits (single precision); @option{-mpc64} rounds the the
+rounded to 24 bits (single precision); @option{-mpc64} rounds the
 significands of results of floating-point operations to 53 bits (double
 precision) and @option{-mpc80} rounds the significands of results of
 floating-point operations to 64 bits (extended double precision), which is
@@ -10868,6 +11019,8 @@ preferred alignment to @option{-mpreferred-stack-boundary=2}.
 @itemx -mno-sse4.2
 @itemx -msse4
 @itemx -mno-sse4
+@itemx -mavx
+@itemx -mno-avx
 @itemx -maes
 @itemx -mno-aes
 @itemx -mpclmul
@@ -10889,7 +11042,7 @@ preferred alignment to @option{-mpreferred-stack-boundary=2}.
 @opindex m3dnow
 @opindex mno-3dnow
 These switches enable or disable the use of instructions in the MMX,
-SSE, SSE2, SSE3, SSSE3, SSE4.1, AES, PCLMUL, SSE4A, SSE5, ABM or
+SSE, SSE2, SSE3, SSSE3, SSE4.1, AVX, AES, PCLMUL, SSE4A, SSE5, ABM or
 3DNow!@: extended instruction sets.
 These extensions are also available as built-in functions: see
 @ref{X86 Built-in Functions}, for details of the functions enabled and
@@ -10897,6 +11050,10 @@ disabled by these switches.
 
 To have SSE/SSE2 instructions generated automatically from floating-point
 code (as opposed to 387 instructions), see @option{-mfpmath=sse}.
+
+GCC depresses SSEx instructions when @option{-mavx} is used. Instead, it
+generates new AVX instructions or AVX equivalence for all SSEx instructions
+when needed.
 
 These options will enable GCC to use these extended instructions in
 generated code, even without @option{-mfpmath=sse}.  Applications which
@@ -12668,6 +12825,73 @@ Work around certain SB-1 CPU core errata.
 (This flag currently works around the SB-1 revision 2
 ``F1'' and ``F2'' floating point errata.)
 
+@item -mr10k-cache-barrier=@var{setting}
+@opindex mr10k-cache-barrier
+Specify whether GCC should insert cache barriers to avoid the
+side-effects of speculation on R10K processors.
+
+In common with many processors, the R10K tries to predict the outcome
+of a conditional branch and speculatively executes instructions from
+the ``taken'' branch.  It later aborts these instructions if the
+predicted outcome was wrong.  However, on the R10K, even aborted
+instructions can have side effects.
+
+This problem only affects kernel stores and, depending on the system,
+kernel loads.  As an example, a speculatively-executed store may load
+the target memory into cache and mark the cache line as dirty, even if
+the store itself is later aborted.  If a DMA operation writes to the
+same area of memory before the ``dirty'' line is flushed, the cached
+data will overwrite the DMA-ed data.  See the R10K processor manual
+for a full description, including other potential problems.
+
+One workaround is to insert cache barrier instructions before every memory
+access that might be speculatively executed and that might have side
+effects even if aborted.  @option{-mr10k-cache-barrier=@var{setting}}
+controls GCC's implementation of this workaround.  It assumes that
+aborted accesses to any byte in the following regions will not have
+side effects:
+
+@enumerate
+@item
+the memory occupied by the current function's stack frame;
+
+@item
+the memory occupied by an incoming stack argument;
+
+@item
+the memory occupied by an object with a link-time-constant address.
+@end enumerate
+
+It is the kernel's responsibility to ensure that speculative
+accesses to these regions are indeed safe.
+
+If the input program contains a function declaration such as:
+
+@smallexample
+void foo (void);
+@end smallexample
+
+then the implementation of @code{foo} must allow @code{j foo} and
+@code{jal foo} to be executed speculatively.  GCC honors this
+restriction for functions it compiles itself.  It expects non-GCC
+functions (such as hand-written assembly code) to do the same.
+
+The option has three forms:
+
+@table @gcctabopt
+@item -mr10k-cache-barrier=load-store
+Insert a cache barrier before a load or store that might be
+speculatively executed and that might have side effects even
+if aborted.
+
+@item -mr10k-cache-barrier=store
+Insert a cache barrier before a store that might be speculatively
+executed and that might have side effects even if aborted.
+
+@item -mr10k-cache-barrier=none
+Disable the insertion of cache barriers.  This is the default setting.
+@end table
+
 @item -mflush-func=@var{func}
 @itemx -mno-flush-func
 @opindex mflush-func
@@ -12958,6 +13182,54 @@ Use Unix assembler syntax.  This is the default when configured for
 @opindex mdec-asm
 Use DEC assembler syntax.  This is the default when configured for any
 PDP-11 target other than @samp{pdp11-*-bsd}.
+@end table
+
+@node picoChip Options
+@subsection picoChip Options
+@cindex picoChip options
+
+These @samp{-m} options are defined for picoChip implementations:
+
+@table @gcctabopt
+
+@item -mae=@var{ae_type}
+@opindex mcpu
+Set the instruction set, register set, and instruction scheduling
+parameters for array element type @var{ae_type}.  Supported values
+for @var{ae_type} are @samp{ANY}, @samp{MUL}, and @samp{MAC}.
+
+@option{-mae=ANY} selects a completely generic AE type.  Code
+generated with this option will run on any of the other AE types.  The
+code will not be as efficient as it would be if compiled for a specific
+AE type, and some types of operation (e.g., multiplication) will not
+work properly on all types of AE.
+
+@option{-mae=MUL} selects a MUL AE type.  This is the most useful AE type
+for compiled code, and is the default.
+
+@option{-mae=MAC} selects a DSP-style MAC AE.  Code compiled with this
+option may suffer from poor performance of byte (char) manipulation,
+since the DSP AE does not provide hardware support for byte load/stores.
+
+@item -msymbol-as-address
+Enable the compiler to directly use a symbol name as an address in a
+load/store instruction, without first loading it into a
+register.  Typically, the use of this option will generate larger
+programs, which run faster than when the option isn't used.  However, the
+results vary from program to program, so it is left as a user option,
+rather than being permanently enabled.
+
+@item -mno-inefficient-warnings
+Disables warnings about the generation of inefficient code.  These
+warnings can be generated, for example, when compiling code which
+performs byte-level memory operations on the MAC AE type.  The MAC AE has
+no hardware support for byte-level memory operations, so all byte
+load/stores must be synthesised from word load/store operations.  This is
+inefficient and a warning will be generated indicating to the programmer
+that they should rewrite the code to avoid byte operations, or to target
+an AE type which has the necessary hardware support.  This option enables
+the warning to be turned off.
+
 @end table
 
 @node PowerPC Options
@@ -14636,6 +14908,33 @@ is 64KB.
 This option controls the version of libgcc that the compiler links to an
 executable and selects whether atomic updates to the software cache are
 used.  The default behavior is to use atomic updates.
+
+@item -mdual-nops
+@itemx -mdual-nops=@var{n}
+@opindex mdual-nops
+By default, GCC will insert nops to increase dual issue when it expects
+it to increase performance.  @var{n} can be a value from 0 to 10.  A
+smaller @var{n} will insert fewer nops.  10 is the default, 0 is the
+same as @option{-mno-dual-nops}.  Disabled with @option{-Os}.
+
+@item -mhint-max-nops=@var{n}
+@opindex mhint-max-nops
+Maximum number of nops to insert for a branch hint.  A branch hint must
+be at least 8 instructions away from the branch it is effecting.  GCC
+will insert up to @var{n} nops to enforce this, otherwise it will not
+generate the branch hint.
+
+@item -mhint-max-distance=@var{n}
+@opindex mhint-max-distance
+The encoding of the branch hint instruction limits the hint to be within
+256 instructions of the branch it is effecting.  By default, GCC makes
+sure it is within 125. 
+
+@item -msafe-hints
+@opindex msafe-hints
+Work around a hardware bug which causes the SPU to stall indefinitely.
+By default, GCC will insert the @code{hbrp} instruction to make sure
+this stall won't happen.
 
 @end table
 

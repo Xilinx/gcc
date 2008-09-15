@@ -316,12 +316,21 @@
 #define TARGET_SCHED_FIRST_CYCLE_MULTIPASS_DFA_LOOKAHEAD_GUARD 0
 #define TARGET_SCHED_DFA_NEW_CYCLE 0
 #define TARGET_SCHED_IS_COSTLY_DEPENDENCE 0
+#define TARGET_SCHED_ADJUST_COST_2 0
 #define TARGET_SCHED_H_I_D_EXTENDED 0
+#define TARGET_SCHED_ALLOC_SCHED_CONTEXT 0
+#define TARGET_SCHED_INIT_SCHED_CONTEXT 0
+#define TARGET_SCHED_SET_SCHED_CONTEXT 0
+#define TARGET_SCHED_CLEAR_SCHED_CONTEXT 0
+#define TARGET_SCHED_FREE_SCHED_CONTEXT 0
 #define TARGET_SCHED_SPECULATE_INSN 0
 #define TARGET_SCHED_NEEDS_BLOCK_P 0
-#define TARGET_SCHED_GEN_CHECK 0
+#define TARGET_SCHED_GEN_SPEC_CHECK 0
 #define TARGET_SCHED_FIRST_CYCLE_MULTIPASS_DFA_LOOKAHEAD_GUARD_SPEC 0
 #define TARGET_SCHED_SET_SCHED_FLAGS 0
+#define TARGET_SCHED_GET_INSN_SPEC_DS 0
+#define TARGET_SCHED_GET_INSN_CHECKED_DS 0
+#define TARGET_SCHED_SKIP_RTX_P 0
 #define TARGET_SCHED_SMS_RES_MII 0
 
 #define TARGET_SCHED						\
@@ -346,12 +355,21 @@
    TARGET_SCHED_FIRST_CYCLE_MULTIPASS_DFA_LOOKAHEAD_GUARD,	\
    TARGET_SCHED_DFA_NEW_CYCLE,					\
    TARGET_SCHED_IS_COSTLY_DEPENDENCE,                           \
+   TARGET_SCHED_ADJUST_COST_2,                                  \
    TARGET_SCHED_H_I_D_EXTENDED,					\
+   TARGET_SCHED_ALLOC_SCHED_CONTEXT,                            \
+   TARGET_SCHED_INIT_SCHED_CONTEXT,                             \
+   TARGET_SCHED_SET_SCHED_CONTEXT,                              \
+   TARGET_SCHED_CLEAR_SCHED_CONTEXT,                            \
+   TARGET_SCHED_FREE_SCHED_CONTEXT,                             \
    TARGET_SCHED_SPECULATE_INSN,                                 \
    TARGET_SCHED_NEEDS_BLOCK_P,                                  \
-   TARGET_SCHED_GEN_CHECK,                                      \
+   TARGET_SCHED_GEN_SPEC_CHECK,				        \
    TARGET_SCHED_FIRST_CYCLE_MULTIPASS_DFA_LOOKAHEAD_GUARD_SPEC, \
    TARGET_SCHED_SET_SCHED_FLAGS,                                \
+   TARGET_SCHED_GET_INSN_SPEC_DS,                               \
+   TARGET_SCHED_GET_INSN_CHECKED_DS,                            \
+   TARGET_SCHED_SKIP_RTX_P,					\
    TARGET_SCHED_SMS_RES_MII}
 
 #define TARGET_VECTORIZE_BUILTIN_MASK_FOR_LOAD 0
@@ -364,6 +382,7 @@
 #define TARGET_VECTORIZE_BUILTIN_VECTORIZATION_COST 0
 #define TARGET_VECTOR_ALIGNMENT_REACHABLE \
   default_builtin_vector_alignment_reachable
+#define TARGET_VECTORIZE_BUILTIN_VEC_PERM 0
 
 #define TARGET_VECTORIZE                                                \
   {									\
@@ -373,7 +392,8 @@
     TARGET_VECTORIZE_BUILTIN_MUL_WIDEN_EVEN,                            \
     TARGET_VECTORIZE_BUILTIN_MUL_WIDEN_ODD,				\
     TARGET_VECTORIZE_BUILTIN_VECTORIZATION_COST,			\
-    TARGET_VECTOR_ALIGNMENT_REACHABLE					\
+    TARGET_VECTOR_ALIGNMENT_REACHABLE,                                  \
+    TARGET_VECTORIZE_BUILTIN_VEC_PERM                                   \
   }
 
 #define TARGET_DEFAULT_TARGET_FLAGS 0
@@ -499,7 +519,7 @@
 #define TARGET_MS_BITFIELD_LAYOUT_P hook_bool_const_tree_false
 #define TARGET_ALIGN_ANON_BITFIELD hook_bool_void_false
 #define TARGET_NARROW_VOLATILE_BITFIELD hook_bool_void_false
-#define TARGET_RTX_COSTS hook_bool_rtx_int_int_intp_false
+#define TARGET_RTX_COSTS hook_bool_rtx_int_int_intp_bool_false
 #define TARGET_MANGLE_TYPE hook_constcharptr_const_tree_null
 #define TARGET_ALLOCATE_INITIAL_VALUE NULL
 
@@ -784,7 +804,8 @@
 
 /* Function specific option attribute support.  */
 #ifndef TARGET_OPTION_VALID_ATTRIBUTE_P
-#define TARGET_OPTION_VALID_ATTRIBUTE_P NULL
+#define TARGET_OPTION_VALID_ATTRIBUTE_P \
+  default_target_option_valid_attribute_p
 #endif
 
 #ifndef TARGET_OPTION_SAVE
@@ -800,19 +821,11 @@
 #endif
 
 #ifndef TARGET_OPTION_PRAGMA_PARSE
-#define TARGET_OPTION_PRAGMA_PARSE NULL
+#define TARGET_OPTION_PRAGMA_PARSE default_target_option_pragma_parse
 #endif
 
 #ifndef TARGET_OPTION_CAN_INLINE_P
 #define TARGET_OPTION_CAN_INLINE_P default_target_option_can_inline_p
-#endif
-
-#ifndef TARGET_OPTION_COLD_ATTRIBUTE_SETS_OPTIMIZATION
-#define TARGET_OPTION_COLD_ATTRIBUTE_SETS_OPTIMIZATION false
-#endif
-
-#ifndef TARGET_OPTION_HOT_ATTRIBUTE_SETS_OPTIMIZATION
-#define TARGET_OPTION_HOT_ATTRIBUTE_SETS_OPTIMIZATION false
 #endif
 
 #define TARGET_OPTION_HOOKS			\
@@ -823,8 +836,6 @@
     TARGET_OPTION_PRINT,			\
     TARGET_OPTION_PRAGMA_PARSE,			\
     TARGET_OPTION_CAN_INLINE_P,			\
-    TARGET_OPTION_COLD_ATTRIBUTE_SETS_OPTIMIZATION, \
-    TARGET_OPTION_HOT_ATTRIBUTE_SETS_OPTIMIZATION, \
   }
 
 /* The whole shebang.  */

@@ -901,6 +901,7 @@ gfc_conv_intrinsic_bound (gfc_se * se, gfc_expr * expr, int upper)
 		  case AR_FULL:
 		    break;
 		  }
+		break;
 	      }
 	    }
 	}
@@ -2917,7 +2918,8 @@ gfc_conv_intrinsic_merge (gfc_se * se, gfc_expr * expr)
       se->string_length = len;
     }
   type = TREE_TYPE (tsource);
-  se->expr = fold_build3 (COND_EXPR, type, mask, tsource, fsource);
+  se->expr = fold_build3 (COND_EXPR, type, mask, tsource,
+			  fold_convert (type, fsource));
 }
 
 
@@ -3716,7 +3718,7 @@ gfc_conv_intrinsic_transfer (gfc_se * se, gfc_expr * expr)
       moldsize = size_in_bytes (type);
 
       /* Use memcpy to do the transfer.  */
-      tmp = fold_build1 (ADDR_EXPR, build_pointer_type (type), tmpdecl);
+      tmp = build_fold_addr_expr (tmpdecl);
       tmp = build_call_expr (built_in_decls[BUILT_IN_MEMCPY], 3,
 			     fold_convert (pvoid_type_node, tmp),
 			     fold_convert (pvoid_type_node, ptr),

@@ -188,14 +188,15 @@ gfc_merge_new_implicit (gfc_typespec *ts)
     {
       if (new_flag[i])
 	{
-
 	  if (gfc_current_ns->set_flag[i])
 	    {
 	      gfc_error ("Letter %c already has an IMPLICIT type at %C",
 			 i + 'A');
 	      return FAILURE;
 	    }
+
 	  gfc_current_ns->default_type[i] = *ts;
+	  gfc_current_ns->implicit_loc[i] = gfc_current_locus;
 	  gfc_current_ns->set_flag[i] = 1;
 	}
     }
@@ -255,6 +256,12 @@ gfc_set_default_type (gfc_symbol *sym, int error_flag, gfc_namespace *ns)
 
   sym->ts = *ts;
   sym->attr.implicit_type = 1;
+
+  if (ts->cl)
+    {
+      sym->ts.cl = gfc_get_charlen ();
+      *sym->ts.cl = *ts->cl;
+    }
 
   if (sym->attr.is_bind_c == 1)
     {
@@ -1316,6 +1323,20 @@ gfc_add_proc (symbol_attribute *attr, const char *name, locus *where)
   attr->procedure = 1;
 
   return check_conflict (attr, NULL, where);
+}
+
+
+gfc_try
+gfc_add_abstract (symbol_attribute* attr, locus* where)
+{
+  if (attr->abstract)
+    {
+      duplicate_attr ("ABSTRACT", where);
+      return FAILURE;
+    }
+
+  attr->abstract = 1;
+  return SUCCESS;
 }
 
 
@@ -3023,6 +3044,7 @@ gfc_free_namespace (gfc_namespace *ns)
 
   gfc_free_equiv (ns->equiv);
   gfc_free_equiv_lists (ns->equiv_lists);
+  gfc_free_use_stmts (ns->use_stmts);
 
   for (i = GFC_INTRINSIC_BEGIN; i != GFC_INTRINSIC_END; i++)
     gfc_free_interface (ns->op[i]);
@@ -3178,7 +3200,6 @@ save_symbol (gfc_symbol *sym)
 void
 gfc_save_all (gfc_namespace *ns)
 {
-
   gfc_traverse_ns (ns, save_symbol);
 }
 
@@ -3906,7 +3927,7 @@ generate_isocbinding_symbol (const char *mod_name, iso_c_binding_symbol s,
   char comp_name[(GFC_MAX_SYMBOL_LEN * 2) + 1];
   int index;
 
-  if (gfc_notification_std (std_for_isocbinding_symbol (s)) == FAILURE)
+  if (gfc_notification_std (std_for_isocbinding_symbol (s)) == ERROR)
     return;
   tmp_symtree = gfc_find_symtree (gfc_current_ns->sym_root, name);
 
@@ -4266,15 +4287,34 @@ gfc_get_derived_super_type (gfc_symbol* derived)
    through the super-types).  */
 
 gfc_symtree*
-gfc_find_typebound_proc (gfc_symbol* derived, const char* name)
+gfc_find_typebound_proc (gfc_symbol* derived, gfc_try* t,
+			 const char* name, bool noaccess)
 {
   gfc_symtree* res;
+
+  /* Set default to failure.  */
+  if (t)
+    *t = FAILURE;
 
   /* Try to find it in the current type's namespace.  */
   gcc_assert (derived->f2k_derived);
   res = gfc_find_symtree (derived->f2k_derived->sym_root, name);
-  if (res)
-    return res->typebound ? res : NULL;
+  if (res && res->typebound)
+    {
+      /* We found one.  */
+      if (t)
+	*t = SUCCESS;
+
+      if (!noaccess && derived->attr.use_assoc
+	  && res->typebound->access == ACCESS_PRIVATE)
+	{
+	  gfc_error ("'%s' of '%s' is PRIVATE at %C", name, derived->name);
+	  if (t)
+	    *t = FAILURE;
+	}
+
+      return res;
+    }
 
   /* Otherwise, recurse on parent type if derived is an extension.  */
   if (derived->attr.extension)
@@ -4282,7 +4322,7 @@ gfc_find_typebound_proc (gfc_symbol* derived, const char* name)
       gfc_symbol* super_type;
       super_type = gfc_get_derived_super_type (derived);
       gcc_assert (super_type);
-      return gfc_find_typebound_proc (super_type, name);
+      return gfc_find_typebound_proc (super_type, t, name, noaccess);
     }
 
   /* Nothing found.  */

@@ -1504,11 +1504,11 @@ phi_translate_1 (pre_expr expr, bitmap_set_t set1, bitmap_set_t set2,
 		  {
 		    tree name = get_representative_for (opresult);
 		    if (!name)
-		      return NULL;
+		      break;
 		    op0 = name;
 		  }
 		else if (!opresult)
-		  return NULL;
+		  break;
 	      }
 	    changed |= op0 != oldop0;
 
@@ -1522,11 +1522,11 @@ phi_translate_1 (pre_expr expr, bitmap_set_t set1, bitmap_set_t set2,
 		  {
 		    tree name = get_representative_for (opresult);
 		    if (!name)
-		      return NULL;
+		      break;
 		    op1 = name;
 		  }
 		else if (!opresult)
-		  return NULL;
+		  break;
 	      }
 	    changed |= op1 != oldop1;
 	    if (op2 && TREE_CODE (op2) == SSA_NAME)
@@ -1539,11 +1539,11 @@ phi_translate_1 (pre_expr expr, bitmap_set_t set1, bitmap_set_t set2,
 		  {
 		    tree name = get_representative_for (opresult);
 		    if (!name)
-		      return NULL;
+		      break;
 		    op2 = name;
 		  }
 		else if (!opresult)
-		  return NULL;
+		  break;
 	      }
 	    changed |= op2 != oldop2;
 
@@ -1557,6 +1557,12 @@ phi_translate_1 (pre_expr expr, bitmap_set_t set1, bitmap_set_t set2,
 	    newop.op1 = op1;
 	    newop.op2 = op2;
 	    VEC_replace (vn_reference_op_s, newoperands, i, &newop);
+	  }
+	if (i != VEC_length (vn_reference_op_s, operands))
+	  {
+	    if (newoperands)
+	      VEC_free (vn_reference_op_s, heap, newoperands);
+	    return NULL;
 	  }
 
 	newvuses = translate_vuses_through_block (vuses, phiblock, pred);
@@ -1573,7 +1579,10 @@ phi_translate_1 (pre_expr expr, bitmap_set_t set1, bitmap_set_t set2,
 	      VEC_free (vn_reference_op_s, heap, newoperands);
 
 	    if (result && is_gimple_min_invariant (result))
-	      return get_or_alloc_expr_for_constant (result);
+	      {
+	        gcc_assert (!newoperands);
+	        return get_or_alloc_expr_for_constant (result);
+	      }
 
 	    expr = (pre_expr) pool_alloc (pre_expr_pool);
 	    expr->kind = REFERENCE;
@@ -1593,11 +1602,13 @@ phi_translate_1 (pre_expr expr, bitmap_set_t set1, bitmap_set_t set2,
 		newref = vn_reference_insert_pieces (newvuses,
 						     newoperands,
 						     result, new_val_id);
+		newoperands = NULL;
 		PRE_EXPR_REFERENCE (expr) = newref;
 		get_or_alloc_expression_id (expr);
 	      }
 	    add_to_value (new_val_id, expr);
 	  }
+	VEC_free (vn_reference_op_s, heap, newoperands);
 	phi_trans_add (oldexpr, expr, pred);
 	return expr;
       }
@@ -4230,7 +4241,8 @@ do_pre (void)
 static bool
 gate_pre (void)
 {
-  return flag_tree_pre != 0;
+  /* PRE tends to generate bigger code.  */
+  return flag_tree_pre != 0 && optimize_function_for_speed_p (cfun);
 }
 
 struct gimple_opt_pass pass_pre =

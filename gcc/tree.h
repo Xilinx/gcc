@@ -1588,6 +1588,8 @@ struct tree_constructor GTY(())
    location.  */
 #define CAN_HAVE_LOCATION_P(NODE) (EXPR_P (NODE))
 
+extern void protected_set_expr_location (tree, location_t);
+
 /* In a TARGET_EXPR node.  */
 #define TARGET_EXPR_SLOT(NODE) TREE_OPERAND_CHECK_CODE (NODE, TARGET_EXPR, 0)
 #define TARGET_EXPR_INITIAL(NODE) TREE_OPERAND_CHECK_CODE (NODE, TARGET_EXPR, 1)
@@ -3611,11 +3613,9 @@ enum tree_index
 
   TI_OPTIMIZATION_DEFAULT,
   TI_OPTIMIZATION_CURRENT,
-  TI_OPTIMIZATION_COLD,
-  TI_OPTIMIZATION_HOT,
   TI_TARGET_OPTION_DEFAULT,
   TI_TARGET_OPTION_CURRENT,
-  TI_CURRENT_OPTION_PRAGMA,
+  TI_CURRENT_TARGET_PRAGMA,
   TI_CURRENT_OPTIMIZE_PRAGMA,
 
   TI_MAX
@@ -3785,12 +3785,10 @@ extern GTY(()) tree global_trees[TI_MAX];
 #define main_identifier_node		global_trees[TI_MAIN_IDENTIFIER]
 #define MAIN_NAME_P(NODE) (IDENTIFIER_NODE_CHECK (NODE) == main_identifier_node)
 
-/* Optimization options (OPTIMIZATION_NODE) to use for default, current, cold,
-   and hot functions.  */
+/* Optimization options (OPTIMIZATION_NODE) to use for default and current
+   functions.  */
 #define optimization_default_node	global_trees[TI_OPTIMIZATION_DEFAULT]
 #define optimization_current_node	global_trees[TI_OPTIMIZATION_CURRENT]
-#define optimization_cold_node		global_trees[TI_OPTIMIZATION_COLD]
-#define optimization_hot_node		global_trees[TI_OPTIMIZATION_HOT]
 
 /* Default/current target options (TARGET_OPTION_NODE).  */
 #define target_option_default_node	global_trees[TI_TARGET_OPTION_DEFAULT]
@@ -3798,7 +3796,7 @@ extern GTY(()) tree global_trees[TI_MAX];
 
 /* Default tree list option(), optimize() pragmas to be linked into the
    attribute list.  */
-#define current_option_pragma		global_trees[TI_CURRENT_OPTION_PRAGMA]
+#define current_target_pragma		global_trees[TI_CURRENT_TARGET_PRAGMA]
 #define current_optimize_pragma		global_trees[TI_CURRENT_OPTIMIZE_PRAGMA]
 
 /* An enumeration of the standard C integer types.  These must be
@@ -4014,6 +4012,8 @@ extern tree build_index_2_type (tree, tree);
 extern tree build_array_type (tree, tree);
 extern tree build_function_type (tree, tree);
 extern tree build_function_type_list (tree, ...);
+extern tree build_function_type_skip_args (tree, bitmap);
+extern tree build_function_decl_skip_args (tree, bitmap);
 extern tree build_varargs_function_type_list (tree, ...);
 extern tree build_method_type_directly (tree, tree, tree);
 extern tree build_method_type (tree, tree);
@@ -5065,7 +5065,6 @@ extern void expand_asm_expr (tree);
 extern tree resolve_asm_operand_names (tree, tree, tree);
 extern void expand_case (tree);
 extern void expand_decl (tree);
-extern void expand_anon_union_decl (tree, tree, tree);
 #ifdef HARD_CONST
 /* Silly ifdef to avoid having all includers depend on hard-reg-set.h.  */
 extern tree tree_overlaps_hard_reg_set (tree, HARD_REG_SET *);

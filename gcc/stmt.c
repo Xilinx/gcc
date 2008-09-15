@@ -151,14 +151,8 @@ force_label_rtx (tree label)
 {
   rtx ref = label_rtx (label);
   tree function = decl_function_context (label);
-  struct function *p;
 
   gcc_assert (function);
-
-  if (function != current_function_decl)
-    p = find_function_data (function);
-  else
-    p = cfun;
 
   forced_labels = gen_rtx_EXPR_LIST (VOIDmode, ref, forced_labels);
   return ref;
@@ -1958,66 +1952,6 @@ expand_stack_restore (tree var)
   emit_stack_restore (SAVE_BLOCK, sa, NULL_RTX);
 }
 
-/* DECL is an anonymous union.  CLEANUP is a cleanup for DECL.
-   DECL_ELTS is the list of elements that belong to DECL's type.
-   In each, the TREE_VALUE is a VAR_DECL, and the TREE_PURPOSE a cleanup.  */
-
-void
-expand_anon_union_decl (tree decl, tree cleanup ATTRIBUTE_UNUSED,
-			tree decl_elts)
-{
-  rtx x;
-  tree t;
-
-  /* If any of the elements are addressable, so is the entire union.  */
-  for (t = decl_elts; t; t = TREE_CHAIN (t))
-    if (TREE_ADDRESSABLE (TREE_VALUE (t)))
-      {
-	TREE_ADDRESSABLE (decl) = 1;
-	break;
-      }
-
-  expand_decl (decl);
-  x = DECL_RTL (decl);
-
-  /* Go through the elements, assigning RTL to each.  */
-  for (t = decl_elts; t; t = TREE_CHAIN (t))
-    {
-      tree decl_elt = TREE_VALUE (t);
-      enum machine_mode mode = TYPE_MODE (TREE_TYPE (decl_elt));
-      rtx decl_rtl;
-
-      /* If any of the elements are addressable, so is the entire
-	 union.  */
-      if (TREE_USED (decl_elt))
-	TREE_USED (decl) = 1;
-
-      /* Propagate the union's alignment to the elements.  */
-      DECL_ALIGN (decl_elt) = DECL_ALIGN (decl);
-      DECL_USER_ALIGN (decl_elt) = DECL_USER_ALIGN (decl);
-
-      /* If the element has BLKmode and the union doesn't, the union is
-         aligned such that the element doesn't need to have BLKmode, so
-         change the element's mode to the appropriate one for its size.  */
-      if (mode == BLKmode && DECL_MODE (decl) != BLKmode)
-	DECL_MODE (decl_elt) = mode
-	  = mode_for_size_tree (DECL_SIZE (decl_elt), MODE_INT, 1);
-
-      if (mode == GET_MODE (x))
-	decl_rtl = x;
-      else if (MEM_P (x))
-        /* (SUBREG (MEM ...)) at RTL generation time is invalid, so we
-           instead create a new MEM rtx with the proper mode.  */
-	decl_rtl = adjust_address_nv (x, mode, 0);
-      else
-	{
-	  gcc_assert (REG_P (x));
-	  decl_rtl = gen_lowpart_SUBREG (mode, x);
-	}
-      SET_DECL_RTL (decl_elt, decl_rtl);
-    }
-}
-
 /* Do the insertion of a case label into case_list.  The labels are
    fed to us in descending order from the sorted vector of case labels used
    in the tree part of the middle end.  So the list we construct is
@@ -2125,7 +2059,8 @@ bool lshift_cheap_p (void)
   if (!init)
     {
       rtx reg = gen_rtx_REG (word_mode, 10000);
-      int cost = rtx_cost (gen_rtx_ASHIFT (word_mode, const1_rtx, reg), SET);
+      int cost = rtx_cost (gen_rtx_ASHIFT (word_mode, const1_rtx, reg), SET,
+      			   optimize_insn_for_speed_p ());
       cheap = cost < COSTS_N_INSNS (3);
       init = true;
     }
@@ -2419,7 +2354,7 @@ expand_case (tree exp)
 
       else if (count < case_values_threshold ()
 	       || compare_tree_int (range,
-				    (optimize_size ? 3 : 10) * count) > 0
+				    (optimize_insn_for_size_p () ? 3 : 10) * count) > 0
 	       /* RANGE may be signed, and really large ranges will show up
 		  as negative numbers.  */
 	       || compare_tree_int (range, 0) < 0
@@ -2489,7 +2424,7 @@ expand_case (tree exp)
 
 	      /* Index jumptables from zero for suitable values of
                  minval to avoid a subtraction.  */
-	      if (! optimize_size
+	      if (optimize_insn_for_speed_p ()
 		  && compare_tree_int (minval, 0) > 0
 		  && compare_tree_int (minval, 3) < 0)
 		{

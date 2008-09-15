@@ -216,6 +216,7 @@ pop_gimplify_context (gimple body)
 
   gcc_assert (c && (c->bind_expr_stack == NULL
 		    || VEC_empty (gimple, c->bind_expr_stack)));
+  VEC_free (gimple, heap, c->bind_expr_stack);
   gimplify_ctxp = c->prev_context;
 
   for (t = c->temps; t ; t = TREE_CHAIN (t))
@@ -1871,6 +1872,12 @@ gimplify_conversion (tree *expr_p)
       else if (TREE_CODE (sub) == ADDR_EXPR)
 	canonicalize_addr_expr (expr_p);
     }
+
+  /* If we have a conversion to a non-register type force the
+     use of a VIEW_CONVERT_EXPR instead.  */
+  if (!is_gimple_reg_type (TREE_TYPE (*expr_p)))
+    *expr_p = fold_build1 (VIEW_CONVERT_EXPR, TREE_TYPE (*expr_p),
+			   TREE_OPERAND (*expr_p, 0));
 
   return GS_OK;
 }
@@ -3595,7 +3602,8 @@ gimplify_init_constructor (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p,
 	if (num_type_elements < 0 && int_size_in_bytes (type) >= 0)
 	  cleared = true;
 	/* If there are "lots" of zeros, then block clear the object first.  */
-	else if (num_type_elements - num_nonzero_elements > CLEAR_RATIO
+	else if (num_type_elements - num_nonzero_elements
+		 > CLEAR_RATIO (optimize_function_for_speed_p (cfun))
 		 && num_nonzero_elements < num_type_elements/4)
 	  cleared = true;
 	/* ??? This bit ought not be needed.  For any element not present
@@ -4554,20 +4562,31 @@ gimplify_addr_expr (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p)
       /* Mark the RHS addressable.  */
       ret = gimplify_expr (&TREE_OPERAND (expr, 0), pre_p, post_p,
 			   is_gimple_addressable, fb_either);
-      if (ret != GS_ERROR)
-	{
-	  op0 = TREE_OPERAND (expr, 0);
+      if (ret == GS_ERROR)
+	break;
 
-	  /* For various reasons, the gimplification of the expression
-	     may have made a new INDIRECT_REF.  */
-	  if (TREE_CODE (op0) == INDIRECT_REF)
-	    goto do_indirect_ref;
+      /* We cannot rely on making the RHS addressable if it is
+	 a temporary created by gimplification.  In this case create a
+	 new temporary that is initialized by a copy (which will
+	 become a store after we mark it addressable).
+	 This mostly happens if the frontend passed us something that
+	 it could not mark addressable yet, like a fortran
+	 pass-by-reference parameter (int) floatvar.  */
+      if (is_gimple_formal_tmp_var (TREE_OPERAND (expr, 0)))
+	TREE_OPERAND (expr, 0)
+	  = get_initialized_tmp_var (TREE_OPERAND (expr, 0), pre_p, post_p);
 
-	  /* Make sure TREE_CONSTANT and TREE_SIDE_EFFECTS are set properly.  */
-	  recompute_tree_invariant_for_addr_expr (expr);
+      op0 = TREE_OPERAND (expr, 0);
 
-	  mark_addressable (TREE_OPERAND (expr, 0));
-	}
+      /* For various reasons, the gimplification of the expression
+	 may have made a new INDIRECT_REF.  */
+      if (TREE_CODE (op0) == INDIRECT_REF)
+	goto do_indirect_ref;
+
+      /* Make sure TREE_CONSTANT and TREE_SIDE_EFFECTS are set properly.  */
+      recompute_tree_invariant_for_addr_expr (expr);
+
+      mark_addressable (TREE_OPERAND (expr, 0));
       break;
     }
 
@@ -4761,6 +4780,8 @@ gimplify_asm_expr (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p)
 	  mark_addressable (TREE_VALUE (link));
 	  if (tret == GS_ERROR)
 	    {
+	      if (EXPR_HAS_LOCATION (TREE_VALUE (link)))
+	        input_location = EXPR_LOCATION (TREE_VALUE (link));
 	      error ("memory input %d is not directly addressable", i);
 	      ret = tret;
 	    }
@@ -7192,6 +7213,10 @@ gimplify_body (tree *body_p, tree fndecl, bool do_parms)
   struct gimplify_ctx gctx;
 
   timevar_push (TV_TREE_GIMPLIFY);
+
+  /* Initialize for optimize_insn_for_s{ize,peed}_p possibly called during
+     gimplification.  */
+  default_rtl_profile ();
 
   gcc_assert (gimplify_ctxp == NULL);
   push_gimplify_context (&gctx);

@@ -82,6 +82,33 @@ gfc_is_formal_arg (void)
   return formal_arg_flag;
 }
 
+
+/* Ensure a typespec used is valid; for instance, TYPE(t) is invalid if t is
+   an ABSTRACT derived-type.  If where is not NULL, an error message with that
+   locus is printed, optionally using name.  */
+
+static gfc_try
+resolve_typespec_used (gfc_typespec* ts, locus* where, const char* name)
+{
+  if (ts->type == BT_DERIVED && ts->derived->attr.abstract)
+    {
+      if (where)
+	{
+	  if (name)
+	    gfc_error ("'%s' at %L is of the ABSTRACT type '%s'",
+		       name, where, ts->derived->name);
+	  else
+	    gfc_error ("ABSTRACT type '%s' used at %L",
+		       ts->derived->name, where);
+	}
+
+      return FAILURE;
+    }
+
+  return SUCCESS;
+}
+
+
 /* Resolve types of formal argument lists.  These have to be done early so that
    the formal argument lists of module procedures can be copied to the
    containing module before the individual procedures are resolved
@@ -967,9 +994,11 @@ check_assumed_size_reference (gfc_symbol *sym, gfc_expr *e)
   if (need_full_assumed_size || !(sym->as && sym->as->type == AS_ASSUMED_SIZE))
       return false;
 
+  /* FIXME: The comparison "e->ref->u.ar.type == AR_FULL" is wrong.
+     What should it be?  */
   if ((e->ref->u.ar.end[e->ref->u.ar.as->rank - 1] == NULL)
 	  && (e->ref->u.ar.as->type == AS_ASSUMED_SIZE)
-	       && (e->ref->u.ar.type == DIMEN_ELEMENT))
+	       && (e->ref->u.ar.type == AR_FULL))
     {
       gfc_error ("The upper bound in the last dimension must "
 		 "appear in the reference to the assumed size "
@@ -1043,7 +1072,7 @@ resolve_actual_arglist (gfc_actual_arglist *arg, procedure_type ptype)
 	  continue;
 	}
 
-      if (e->expr_type == FL_VARIABLE && e->symtree->ambiguous)
+      if (e->expr_type == EXPR_VARIABLE && e->symtree->ambiguous)
 	{
 	  gfc_error ("'%s' at %L is ambiguous", e->symtree->n.sym->name,
 		     &e->where);
@@ -1053,7 +1082,7 @@ resolve_actual_arglist (gfc_actual_arglist *arg, procedure_type ptype)
       if (e->ts.type != BT_PROCEDURE)
 	{
 	  save_need_full_assumed_size = need_full_assumed_size;
-	  if (e->expr_type != FL_VARIABLE)
+	  if (e->expr_type != EXPR_VARIABLE)
 	    need_full_assumed_size = 0;
 	  if (gfc_resolve_expr (e) != SUCCESS)
 	    return FAILURE;
@@ -1197,7 +1226,7 @@ resolve_actual_arglist (gfc_actual_arglist *arg, procedure_type ptype)
 	 is a  variable instead, it needs to be resolved as it was not
 	 done at the beginning of this function.  */
       save_need_full_assumed_size = need_full_assumed_size;
-      if (e->expr_type != FL_VARIABLE)
+      if (e->expr_type != EXPR_VARIABLE)
 	need_full_assumed_size = 0;
       if (gfc_resolve_expr (e) != SUCCESS)
 	return FAILURE;
@@ -2175,6 +2204,16 @@ resolve_function (gfc_expr *expr)
   if (expr->symtree)
     sym = expr->symtree->n.sym;
 
+  if (sym && sym->attr.intrinsic
+      && !gfc_find_function (sym->name)
+      && gfc_find_subroutine (sym->name)
+      && sym->attr.function)
+    {
+      gfc_error ("Intrinsic subroutine '%s' used as "
+		  "a function at %L", sym->name, &expr->where);
+      return FAILURE;
+    }
+
   if (sym && sym->attr.flavor == FL_VARIABLE)
     {
       gfc_error ("'%s' at %L is not a function", sym->name, &expr->where);
@@ -2297,15 +2336,16 @@ resolve_function (gfc_expr *expr)
 	 assumed size array argument.  UBOUND and SIZE have to be
 	 excluded from the check if the second argument is anything
 	 than a constant.  */
-      int inquiry;
-      inquiry = GENERIC_ID == GFC_ISYM_UBOUND
-		  || GENERIC_ID == GFC_ISYM_SIZE;
 
       for (arg = expr->value.function.actual; arg; arg = arg->next)
 	{
-	  if (inquiry && arg->next != NULL && arg->next->expr)
+	  if ((GENERIC_ID == GFC_ISYM_UBOUND || GENERIC_ID == GFC_ISYM_SIZE)
+	      && arg->next != NULL && arg->next->expr)
 	    {
 	      if (arg->next->expr->expr_type != EXPR_CONSTANT)
+		break;
+
+	      if (arg->next->name && strncmp(arg->next->name, "kind", 4) == 0)
 		break;
 
 	      if ((int)mpz_get_si (arg->next->expr->value.integer)
@@ -3981,6 +4021,10 @@ expression_rank (gfc_expr *e)
   gfc_ref *ref;
   int i, rank;
 
+  /* Just to make sure, because EXPR_COMPCALL's also have an e->ref and that
+     could lead to serious confusion...  */
+  gcc_assert (e->expr_type != EXPR_COMPCALL);
+
   if (e->ref == NULL)
     {
       if (e->expr_type == EXPR_ARRAY)
@@ -4281,6 +4325,258 @@ fixup_charlen (gfc_expr *e)
 }
 
 
+/* Update an actual argument to include the passed-object for type-bound
+   procedures at the right position.  */
+
+static gfc_actual_arglist*
+update_arglist_pass (gfc_actual_arglist* lst, gfc_expr* po, unsigned argpos)
+{
+  if (argpos == 1)
+    {
+      gfc_actual_arglist* result;
+
+      result = gfc_get_actual_arglist ();
+      result->expr = po;
+      result->next = lst;
+
+      return result;
+    }
+
+  gcc_assert (lst);
+  gcc_assert (argpos > 1);
+
+  lst->next = update_arglist_pass (lst->next, po, argpos - 1);
+  return lst;
+}
+
+
+/* Extract the passed-object from an EXPR_COMPCALL (a copy of it).  */
+
+static gfc_expr*
+extract_compcall_passed_object (gfc_expr* e)
+{
+  gfc_expr* po;
+
+  gcc_assert (e->expr_type == EXPR_COMPCALL);
+
+  po = gfc_get_expr ();
+  po->expr_type = EXPR_VARIABLE;
+  po->symtree = e->symtree;
+  po->ref = gfc_copy_ref (e->ref);
+
+  if (gfc_resolve_expr (po) == FAILURE)
+    return NULL;
+
+  return po;
+}
+
+
+/* Update the arglist of an EXPR_COMPCALL expression to include the
+   passed-object.  */
+
+static gfc_try
+update_compcall_arglist (gfc_expr* e)
+{
+  gfc_expr* po;
+  gfc_typebound_proc* tbp;
+
+  tbp = e->value.compcall.tbp;
+
+  po = extract_compcall_passed_object (e);
+  if (!po)
+    return FAILURE;
+
+  if (po->rank > 0)
+    {
+      gfc_error ("Passed-object at %L must be scalar", &e->where);
+      return FAILURE;
+    }
+
+  if (tbp->nopass)
+    {
+      gfc_free_expr (po);
+      return SUCCESS;
+    }
+
+  gcc_assert (tbp->pass_arg_num > 0);
+  e->value.compcall.actual = update_arglist_pass (e->value.compcall.actual, po,
+						  tbp->pass_arg_num);
+
+  return SUCCESS;
+}
+
+
+/* Resolve a call to a type-bound procedure, either function or subroutine,
+   statically from the data in an EXPR_COMPCALL expression.  The adapted
+   arglist and the target-procedure symtree are returned.  */
+
+static gfc_try
+resolve_typebound_static (gfc_expr* e, gfc_symtree** target,
+			  gfc_actual_arglist** actual)
+{
+  gcc_assert (e->expr_type == EXPR_COMPCALL);
+  gcc_assert (!e->value.compcall.tbp->is_generic);
+
+  /* Update the actual arglist for PASS.  */
+  if (update_compcall_arglist (e) == FAILURE)
+    return FAILURE;
+
+  *actual = e->value.compcall.actual;
+  *target = e->value.compcall.tbp->u.specific;
+
+  gfc_free_ref_list (e->ref);
+  e->ref = NULL;
+  e->value.compcall.actual = NULL;
+
+  return SUCCESS;
+}
+
+
+/* Given an EXPR_COMPCALL calling a GENERIC typebound procedure, figure out
+   which of the specific bindings (if any) matches the arglist and transform
+   the expression into a call of that binding.  */
+
+static gfc_try
+resolve_typebound_generic_call (gfc_expr* e)
+{
+  gfc_typebound_proc* genproc;
+  const char* genname;
+
+  gcc_assert (e->expr_type == EXPR_COMPCALL);
+  genname = e->value.compcall.name;
+  genproc = e->value.compcall.tbp;
+
+  if (!genproc->is_generic)
+    return SUCCESS;
+
+  /* Try the bindings on this type and in the inheritance hierarchy.  */
+  for (; genproc; genproc = genproc->overridden)
+    {
+      gfc_tbp_generic* g;
+
+      gcc_assert (genproc->is_generic);
+      for (g = genproc->u.generic; g; g = g->next)
+	{
+	  gfc_symbol* target;
+	  gfc_actual_arglist* args;
+	  bool matches;
+
+	  gcc_assert (g->specific);
+	  target = g->specific->u.specific->n.sym;
+
+	  /* Get the right arglist by handling PASS/NOPASS.  */
+	  args = gfc_copy_actual_arglist (e->value.compcall.actual);
+	  if (!g->specific->nopass)
+	    {
+	      gfc_expr* po;
+	      po = extract_compcall_passed_object (e);
+	      if (!po)
+		return FAILURE;
+
+	      args = update_arglist_pass (args, po, g->specific->pass_arg_num);
+	    }
+
+	  /* Check if this arglist matches the formal.  */
+	  matches = gfc_compare_actual_formal (&args, target->formal, 1,
+					       target->attr.elemental, NULL);
+
+	  /* Clean up and break out of the loop if we've found it.  */
+	  gfc_free_actual_arglist (args);
+	  if (matches)
+	    {
+	      e->value.compcall.tbp = g->specific;
+	      goto success;
+	    }
+	}
+    }
+
+  /* Nothing matching found!  */
+  gfc_error ("Found no matching specific binding for the call to the GENERIC"
+	     " '%s' at %L", genname, &e->where);
+  return FAILURE;
+
+success:
+  return SUCCESS;
+}
+
+
+/* Resolve a call to a type-bound subroutine.  */
+
+static gfc_try
+resolve_typebound_call (gfc_code* c)
+{
+  gfc_actual_arglist* newactual;
+  gfc_symtree* target;
+
+  /* Check that's really a SUBROUTINE.  */
+  if (!c->expr->value.compcall.tbp->subroutine)
+    {
+      gfc_error ("'%s' at %L should be a SUBROUTINE",
+		 c->expr->value.compcall.name, &c->loc);
+      return FAILURE;
+    }
+
+  if (resolve_typebound_generic_call (c->expr) == FAILURE)
+    return FAILURE;
+
+  /* Transform into an ordinary EXEC_CALL for now.  */
+
+  if (resolve_typebound_static (c->expr, &target, &newactual) == FAILURE)
+    return FAILURE;
+
+  c->ext.actual = newactual;
+  c->symtree = target;
+  c->op = EXEC_CALL;
+
+  gcc_assert (!c->expr->ref && !c->expr->value.compcall.actual);
+  gfc_free_expr (c->expr);
+  c->expr = NULL;
+
+  return resolve_call (c);
+}
+
+
+/* Resolve a component-call expression.  */
+
+static gfc_try
+resolve_compcall (gfc_expr* e)
+{
+  gfc_actual_arglist* newactual;
+  gfc_symtree* target;
+
+  /* Check that's really a FUNCTION.  */
+  if (!e->value.compcall.tbp->function)
+    {
+      gfc_error ("'%s' at %L should be a FUNCTION",
+		 e->value.compcall.name, &e->where);
+      return FAILURE;
+    }
+
+  if (resolve_typebound_generic_call (e) == FAILURE)
+    return FAILURE;
+  gcc_assert (!e->value.compcall.tbp->is_generic);
+
+  /* Take the rank from the function's symbol.  */
+  if (e->value.compcall.tbp->u.specific->n.sym->as)
+    e->rank = e->value.compcall.tbp->u.specific->n.sym->as->rank;
+
+  /* For now, we simply transform it into an EXPR_FUNCTION call with the same
+     arglist to the TBP's binding target.  */
+
+  if (resolve_typebound_static (e, &target, &newactual) == FAILURE)
+    return FAILURE;
+
+  e->value.function.actual = newactual;
+  e->value.function.name = e->value.compcall.name;
+  e->value.function.isym = NULL;
+  e->value.function.esym = NULL;
+  e->symtree = target;
+  e->expr_type = EXPR_FUNCTION;
+
+  return gfc_resolve_expr (e);
+}
+
+
 /* Resolve an expression.  That is, make sure that types of operands agree
    with their operators, intrinsic operators are converted to function calls
    for overloaded types and unresolved function references are resolved.  */
@@ -4315,6 +4611,10 @@ gfc_resolve_expr (gfc_expr *e)
 	  && e->ref->type != REF_SUBSTRING)
 	gfc_resolve_substring_charlen (e);
 
+      break;
+
+    case EXPR_COMPCALL:
+      t = resolve_compcall (e);
       break;
 
     case EXPR_SUBSTRING:
@@ -4786,7 +5086,7 @@ resolve_allocate_expr (gfc_expr *e, gfc_code *code)
 		pointer = 0;
 		break;
 	    }
-       }
+	}
     }
 
   if (allocatable == 0 && pointer == 0)
@@ -6201,7 +6501,9 @@ resolve_code (gfc_code *code, gfc_namespace *ns)
 	    omp_workshare_flag = omp_workshare_save;
 	}
 
-      t = gfc_resolve_expr (code->expr);
+      t = SUCCESS;
+      if (code->op != EXEC_COMPCALL)
+	t = gfc_resolve_expr (code->expr);
       forall_flag = forall_save;
 
       if (gfc_resolve_expr (code->expr2) == FAILURE)
@@ -6305,6 +6607,10 @@ resolve_code (gfc_code *code, gfc_namespace *ns)
 	case EXEC_CALL:
 	call:
 	  resolve_call (code);
+	  break;
+
+	case EXEC_COMPCALL:
+	  resolve_typebound_call (code);
 	  break;
 
 	case EXEC_SELECT:
@@ -7626,9 +7932,20 @@ check_typebound_override (gfc_symtree* proc, gfc_symtree* old)
   gfc_formal_arglist* proc_formal;
   gfc_formal_arglist* old_formal;
 
+  /* This procedure should only be called for non-GENERIC proc.  */
+  gcc_assert (!proc->typebound->is_generic);
+
+  /* If the overwritten procedure is GENERIC, this is an error.  */
+  if (old->typebound->is_generic)
+    {
+      gfc_error ("Can't overwrite GENERIC '%s' at %L",
+		 old->name, &proc->typebound->where);
+      return FAILURE;
+    }
+
   where = proc->typebound->where;
-  proc_target = proc->typebound->target->n.sym;
-  old_target = old->typebound->target->n.sym;
+  proc_target = proc->typebound->u.specific->n.sym;
+  old_target = old->typebound->u.specific->n.sym;
 
   /* Check that overridden binding is not NON_OVERRIDABLE.  */
   if (old->typebound->non_overridable)
@@ -7788,6 +8105,161 @@ check_typebound_override (gfc_symtree* proc, gfc_symtree* old)
 }
 
 
+/* Check if two GENERIC targets are ambiguous and emit an error is they are.  */
+
+static gfc_try
+check_generic_tbp_ambiguity (gfc_tbp_generic* t1, gfc_tbp_generic* t2,
+			     const char* generic_name, locus where)
+{
+  gfc_symbol* sym1;
+  gfc_symbol* sym2;
+
+  gcc_assert (t1->specific && t2->specific);
+  gcc_assert (!t1->specific->is_generic);
+  gcc_assert (!t2->specific->is_generic);
+
+  sym1 = t1->specific->u.specific->n.sym;
+  sym2 = t2->specific->u.specific->n.sym;
+
+  /* Both must be SUBROUTINEs or both must be FUNCTIONs.  */
+  if (sym1->attr.subroutine != sym2->attr.subroutine
+      || sym1->attr.function != sym2->attr.function)
+    {
+      gfc_error ("'%s' and '%s' can't be mixed FUNCTION/SUBROUTINE for"
+		 " GENERIC '%s' at %L",
+		 sym1->name, sym2->name, generic_name, &where);
+      return FAILURE;
+    }
+
+  /* Compare the interfaces.  */
+  if (gfc_compare_interfaces (sym1, sym2, 1))
+    {
+      gfc_error ("'%s' and '%s' for GENERIC '%s' at %L are ambiguous",
+		 sym1->name, sym2->name, generic_name, &where);
+      return FAILURE;
+    }
+
+  return SUCCESS;
+}
+
+
+/* Resolve a GENERIC procedure binding for a derived type.  */
+
+static gfc_try
+resolve_typebound_generic (gfc_symbol* derived, gfc_symtree* st)
+{
+  gfc_tbp_generic* target;
+  gfc_symtree* first_target;
+  gfc_symbol* super_type;
+  gfc_symtree* inherited;
+  locus where;
+
+  gcc_assert (st->typebound);
+  gcc_assert (st->typebound->is_generic);
+
+  where = st->typebound->where;
+  super_type = gfc_get_derived_super_type (derived);
+
+  /* Find the overridden binding if any.  */
+  st->typebound->overridden = NULL;
+  if (super_type)
+    {
+      gfc_symtree* overridden;
+      overridden = gfc_find_typebound_proc (super_type, NULL, st->name, true);
+
+      if (overridden && overridden->typebound)
+	st->typebound->overridden = overridden->typebound;
+    }
+
+  /* Try to find the specific bindings for the symtrees in our target-list.  */
+  gcc_assert (st->typebound->u.generic);
+  for (target = st->typebound->u.generic; target; target = target->next)
+    if (!target->specific)
+      {
+	gfc_typebound_proc* overridden_tbp;
+	gfc_tbp_generic* g;
+	const char* target_name;
+
+	target_name = target->specific_st->name;
+
+	/* Defined for this type directly.  */
+	if (target->specific_st->typebound)
+	  {
+	    target->specific = target->specific_st->typebound;
+	    goto specific_found;
+	  }
+
+	/* Look for an inherited specific binding.  */
+	if (super_type)
+	  {
+	    inherited = gfc_find_typebound_proc (super_type, NULL,
+						 target_name, true);
+
+	    if (inherited)
+	      {
+		gcc_assert (inherited->typebound);
+		target->specific = inherited->typebound;
+		goto specific_found;
+	      }
+	  }
+
+	gfc_error ("Undefined specific binding '%s' as target of GENERIC '%s'"
+		   " at %L", target_name, st->name, &where);
+	return FAILURE;
+
+	/* Once we've found the specific binding, check it is not ambiguous with
+	   other specifics already found or inherited for the same GENERIC.  */
+specific_found:
+	gcc_assert (target->specific);
+
+	/* This must really be a specific binding!  */
+	if (target->specific->is_generic)
+	  {
+	    gfc_error ("GENERIC '%s' at %L must target a specific binding,"
+		       " '%s' is GENERIC, too", st->name, &where, target_name);
+	    return FAILURE;
+	  }
+
+	/* Check those already resolved on this type directly.  */
+	for (g = st->typebound->u.generic; g; g = g->next)
+	  if (g != target && g->specific
+	      && check_generic_tbp_ambiguity (target, g, st->name, where)
+		  == FAILURE)
+	    return FAILURE;
+
+	/* Check for ambiguity with inherited specific targets.  */
+	for (overridden_tbp = st->typebound->overridden; overridden_tbp;
+	     overridden_tbp = overridden_tbp->overridden)
+	  if (overridden_tbp->is_generic)
+	    {
+	      for (g = overridden_tbp->u.generic; g; g = g->next)
+		{
+		  gcc_assert (g->specific);
+		  if (check_generic_tbp_ambiguity (target, g,
+						   st->name, where) == FAILURE)
+		    return FAILURE;
+		}
+	    }
+      }
+
+  /* If we attempt to "overwrite" a specific binding, this is an error.  */
+  if (st->typebound->overridden && !st->typebound->overridden->is_generic)
+    {
+      gfc_error ("GENERIC '%s' at %L can't overwrite specific binding with"
+		 " the same name", st->name, &where);
+      return FAILURE;
+    }
+
+  /* Take the SUBROUTINE/FUNCTION attributes of the first specific target, as
+     all must have the same attributes here.  */
+  first_target = st->typebound->u.generic->specific->u.specific;
+  st->typebound->subroutine = first_target->n.sym->attr.subroutine;
+  st->typebound->function = first_target->n.sym->attr.function;
+
+  return SUCCESS;
+}
+
+
 /* Resolve the type-bound procedures for a derived type.  */
 
 static gfc_symbol* resolve_bindings_derived;
@@ -7806,9 +8278,19 @@ resolve_typebound_procedure (gfc_symtree* stree)
   if (!stree->typebound)
     return;
 
+  /* If this is a GENERIC binding, use that routine.  */
+  if (stree->typebound->is_generic)
+    {
+      if (resolve_typebound_generic (resolve_bindings_derived, stree)
+	    == FAILURE)
+	goto error;
+      return;
+    }
+
   /* Get the target-procedure to check it.  */
-  gcc_assert (stree->typebound->target);
-  proc = stree->typebound->target->n.sym;
+  gcc_assert (!stree->typebound->is_generic);
+  gcc_assert (stree->typebound->u.specific);
+  proc = stree->typebound->u.specific->n.sym;
   where = stree->typebound->where;
 
   /* Default access should already be resolved from the parser.  */
@@ -7825,14 +8307,17 @@ resolve_typebound_procedure (gfc_symtree* stree)
 		 " an explicit interface at %L", proc->name, &where);
       goto error;
     }
+  stree->typebound->subroutine = proc->attr.subroutine;
+  stree->typebound->function = proc->attr.function;
 
   /* Find the super-type of the current derived type.  We could do this once and
      store in a global if speed is needed, but as long as not I believe this is
      more readable and clearer.  */
   super_type = gfc_get_derived_super_type (resolve_bindings_derived);
 
-  /* If PASS, resolve and check arguments.  */
-  if (!stree->typebound->nopass)
+  /* If PASS, resolve and check arguments if not already resolved / loaded
+     from a .mod file.  */
+  if (!stree->typebound->nopass && stree->typebound->pass_arg_num == 0)
     {
       if (stree->typebound->pass_arg)
 	{
@@ -7842,7 +8327,7 @@ resolve_typebound_procedure (gfc_symtree* stree)
 	     and look for it.  */
 
 	  me_arg = NULL;
-	  stree->typebound->pass_arg_num = 0;
+	  stree->typebound->pass_arg_num = 1;
 	  for (i = proc->formal; i; i = i->next)
 	    {
 	      if (!strcmp (i->sym->name, stree->typebound->pass_arg))
@@ -7866,7 +8351,7 @@ resolve_typebound_procedure (gfc_symtree* stree)
 	{
 	  /* Otherwise, take the first one; there should in fact be at least
 	     one.  */
-	  stree->typebound->pass_arg_num = 0;
+	  stree->typebound->pass_arg_num = 1;
 	  if (!proc->formal)
 	    {
 	      gfc_error ("Procedure '%s' with PASS at %L must have at"
@@ -7886,14 +8371,23 @@ resolve_typebound_procedure (gfc_symtree* stree)
 		     me_arg->name, &where, resolve_bindings_derived->name);
 	  goto error;
 	}
+
+      gfc_warning ("Polymorphic entities are not yet implemented,"
+		   " non-polymorphic passed-object dummy argument of '%s'"
+		   " at %L accepted", proc->name, &where);
     }
 
   /* If we are extending some type, check that we don't override a procedure
      flagged NON_OVERRIDABLE.  */
+  stree->typebound->overridden = NULL;
   if (super_type)
     {
       gfc_symtree* overridden;
-      overridden = gfc_find_typebound_proc (super_type, stree->name);
+      overridden = gfc_find_typebound_proc (super_type, NULL,
+					    stree->name, true);
+
+      if (overridden && overridden->typebound)
+	stree->typebound->overridden = overridden->typebound;
 
       if (overridden && check_typebound_override (stree, overridden) == FAILURE)
 	goto error;
@@ -7917,15 +8411,6 @@ resolve_typebound_procedure (gfc_symtree* stree)
 		 stree->name, &where, resolve_bindings_derived->name);
       goto error;
     }
-
-  /* FIXME: Remove once typebound-procedures are fully implemented.  */
-  {
-    /* Output the error only once so we can do reasonable testing.  */
-    static bool tbp_error = false;
-    if (!tbp_error)
-      gfc_error ("Type-bound procedures are not yet implemented at %L", &where);
-    tbp_error = true;
-  }
 
   return;
 
@@ -7980,11 +8465,29 @@ resolve_fl_derived (gfc_symbol *sym)
 
   super_type = gfc_get_derived_super_type (sym);
 
+  /* Ensure the extended type gets resolved before we do.  */
+  if (super_type && resolve_fl_derived (super_type) == FAILURE)
+    return FAILURE;
+
+  /* An ABSTRACT type must be extensible.  */
+  if (sym->attr.abstract && (sym->attr.is_bind_c || sym->attr.sequence))
+    {
+      gfc_error ("Non-extensible derived-type '%s' at %L must not be ABSTRACT",
+		 sym->name, &sym->declared_at);
+      return FAILURE;
+    }
+
   for (c = sym->components; c != NULL; c = c->next)
     {
+      /* Check type-spec if this is not the parent-type component.  */
+      if ((!sym->attr.extension || c != sym->components)
+	  && resolve_typespec_used (&c->ts, &c->loc, c->name) == FAILURE)
+	return FAILURE;
+
       /* If this type is an extension, see if this component has the same name
 	 as an inherited type-bound procedure.  */
-      if (super_type && gfc_find_typebound_proc (super_type, c->name))
+      if (super_type
+	  && gfc_find_typebound_proc (super_type, NULL, c->name, true))
 	{
 	  gfc_error ("Component '%s' of '%s' at %L has the same name as an"
 		     " inherited type-bound procedure",
@@ -8674,6 +9177,13 @@ resolve_symbol (gfc_symbol *sym)
 	  || (a->dummy && a->intent == INTENT_OUT))
 	apply_default_init (sym);
     }
+
+  /* If this symbol has a type-spec, check it.  */
+  if (sym->attr.flavor == FL_VARIABLE || sym->attr.flavor == FL_PARAMETER
+      || (sym->attr.flavor == FL_PROCEDURE && sym->attr.function))
+    if (resolve_typespec_used (&sym->ts, &sym->declared_at, sym->name)
+	  == FAILURE)
+      return;
 }
 
 
@@ -9626,6 +10136,19 @@ resolve_types (gfc_namespace *ns)
   gfc_charlen *cl;
   gfc_data *d;
   gfc_equiv *eq;
+  gfc_namespace* old_ns = gfc_current_ns;
+
+  /* Check that all IMPLICIT types are ok.  */
+  if (!ns->seen_implicit_none)
+    {
+      unsigned letter;
+      for (letter = 0; letter != GFC_LETTERS; ++letter)
+	if (ns->set_flag[letter]
+	    && resolve_typespec_used (&ns->default_type[letter],
+				      &ns->implicit_loc[letter],
+				      NULL) == FAILURE)
+	  return;
+    }
 
   gfc_current_ns = ns;
 
@@ -9683,6 +10206,8 @@ resolve_types (gfc_namespace *ns)
     warn_unused_fortran_label (ns->st_labels);
 
   gfc_resolve_uops (ns->uop_root);
+
+  gfc_current_ns = old_ns;
 }
 
 

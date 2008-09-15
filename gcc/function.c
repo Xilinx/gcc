@@ -208,23 +208,14 @@ static void do_clobber_return_reg (rtx, void *);
 static void do_use_return_reg (rtx, void *);
 static void set_insn_locators (rtx, int) ATTRIBUTE_UNUSED;
 
-/* Pointer to chain of `struct function' for containing functions.  */
-struct function *outer_function_chain;
+/* Stack of nested functions.  */
+/* Keep track of the cfun stack.  */
 
-/* Given a function decl for a containing function,
-   return the `struct function' for it.  */
+typedef struct function *function_p;
 
-struct function *
-find_function_data (tree decl)
-{
-  struct function *p;
-
-  for (p = outer_function_chain; p; p = p->outer)
-    if (p->decl == decl)
-      return p;
-
-  gcc_unreachable ();
-}
+DEF_VEC_P(function_p);
+DEF_VEC_ALLOC_P(function_p,heap);
+static VEC(function_p,heap) *function_context_stack;
 
 /* Save the current context for compilation of a nested function.
    This is called from language-specific code.  */
@@ -235,8 +226,7 @@ push_function_context (void)
   if (cfun == 0)
     allocate_struct_function (NULL, false);
 
-  cfun->outer = outer_function_chain;
-  outer_function_chain = cfun;
+  VEC_safe_push (function_p, heap, function_context_stack, cfun);
   set_cfun (NULL);
 }
 
@@ -246,10 +236,8 @@ push_function_context (void)
 void
 pop_function_context (void)
 {
-  struct function *p = outer_function_chain;
-
+  struct function *p = VEC_pop (function_p, function_context_stack);
   set_cfun (p);
-  outer_function_chain = p->outer;
   current_function_decl = p->decl;
 
   /* Reset variables that have known state during rtx generation.  */
@@ -286,6 +274,7 @@ free_after_compilation (struct function *f)
   f->cfg = NULL;
 
   regno_reg_rtx = NULL;
+  insn_locators_free ();
 }
 
 /* Return size needed for stack frame based on slots so far allocated.
@@ -1515,6 +1504,7 @@ instantiate_virtual_regs_in_insn (rtx insn)
 	    }
 	  x = simplify_gen_subreg (recog_data.operand_mode[i], new_rtx,
 				   GET_MODE (new_rtx), SUBREG_BYTE (x));
+	  gcc_assert (x);
 	  break;
 
 	default:
@@ -2331,6 +2321,11 @@ assign_parm_find_stack_rtl (tree parm, struct assign_parm_data_one *data)
   stack_parm = gen_rtx_MEM (data->promoted_mode, stack_parm);
 
   set_mem_attributes (stack_parm, parm, 1);
+  /* set_mem_attributes could set MEM_SIZE to the passed mode's size,
+     while promoted mode's size is needed.  */
+  if (data->promoted_mode != BLKmode
+      && data->promoted_mode != DECL_MODE (parm))
+    set_mem_size (stack_parm, GEN_INT (GET_MODE_SIZE (data->promoted_mode)));
 
   boundary = data->locate.boundary;
   align = BITS_PER_UNIT;
@@ -3897,13 +3892,6 @@ set_cfun (struct function *new_cfun)
       invoke_set_current_function_hook (new_cfun ? new_cfun->decl : NULL_TREE);
     }
 }
-
-/* Keep track of the cfun stack.  */
-
-typedef struct function *function_p;
-
-DEF_VEC_P(function_p);
-DEF_VEC_ALLOC_P(function_p,heap);
 
 /* Initialized with NOGC, making this poisonous to the garbage collector.  */
 

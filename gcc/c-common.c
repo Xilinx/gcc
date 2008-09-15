@@ -571,7 +571,7 @@ static tree handle_warn_unused_result_attribute (tree *, tree, tree, int,
 static tree handle_sentinel_attribute (tree *, tree, tree, int, bool *);
 static tree handle_type_generic_attribute (tree *, tree, tree, int, bool *);
 static tree handle_alloc_size_attribute (tree *, tree, tree, int, bool *);
-static tree handle_option_attribute (tree *, tree, tree, int, bool *);
+static tree handle_target_attribute (tree *, tree, tree, int, bool *);
 static tree handle_optimize_attribute (tree *, tree, tree, int, bool *);
 
 static void check_function_nonnull (tree, int, tree *);
@@ -856,8 +856,8 @@ const struct attribute_spec c_common_attribute_table[] =
 			      handle_error_attribute },
   { "error",		      1, 1, true,  false, false,
 			      handle_error_attribute },
-  { "option",                 1, -1, true, false, false,
-			      handle_option_attribute },
+  { "target",                 1, -1, true, false, false,
+			      handle_target_attribute },
   { "optimize",               1, -1, true, false, false,
 			      handle_optimize_attribute },
   { NULL,                     0, 0, false, false, false, NULL }
@@ -982,28 +982,6 @@ fname_as_string (int pretty_p)
 
   return namep;
 }
-
-/* Expand DECL if it declares an entity not handled by the
-   common code.  */
-
-int
-c_expand_decl (tree decl)
-{
-  if (TREE_CODE (decl) == VAR_DECL && !TREE_STATIC (decl))
-    {
-      /* Let the back-end know about this variable.  */
-      if (!anon_aggr_type_p (TREE_TYPE (decl)))
-	emit_local_var (decl);
-      else
-	expand_anon_union_decl (decl, NULL_TREE,
-				DECL_ANON_UNION_ELEMS (decl));
-    }
-  else
-    return 0;
-
-  return 1;
-}
-
 
 /* Return the VAR_DECL for a const char array naming the current
    function. If the VAR_DECL has not yet been created, create it
@@ -1568,7 +1546,7 @@ conversion_warning (tree type, tree expr)
   for (i = 0; i < expr_num_operands; i++)
     {
       tree op = TREE_OPERAND (expr, i);
-      if (DECL_P (op) && DECL_ARTIFICIAL (op))
+      if (op && DECL_P (op) && DECL_ARTIFICIAL (op))
 	return;
     }
 
@@ -2188,6 +2166,13 @@ verify_tree (tree x, struct tlist **pbefore_sp, struct tlist **pno_sp,
 	add_tlist (pno_sp, t->cache_after_sp, NULL_TREE, 1);
 	return;
       }
+
+    case ADDR_EXPR:
+      x = TREE_OPERAND (x, 0);
+      if (DECL_P (x))
+	return;
+      writer = 0;
+      goto restart;
 
     default:
       /* For other expressions, simply recurse on their operands.
@@ -4996,10 +4981,12 @@ c_do_switch_warnings (splay_tree cases, location_t switch_location,
 }
 
 /* Finish an expression taking the address of LABEL (an
-   IDENTIFIER_NODE).  Returns an expression for the address.  */
+   IDENTIFIER_NODE).  Returns an expression for the address.
+
+   LOC is the location for the expression returned.  */
 
 tree
-finish_label_address_expr (tree label)
+finish_label_address_expr (tree label, location_t loc)
 {
   tree result;
 
@@ -5018,6 +5005,7 @@ finish_label_address_expr (tree label)
       /* The current function in not necessarily uninlinable.
 	 Computed gotos are incompatible with inlining, but the value
 	 here could be used only in a diagnostic, for example.  */
+      protected_set_expr_location (result, loc);
     }
 
   return result;
@@ -5253,34 +5241,8 @@ handle_hot_attribute (tree *node, tree name, tree ARG_UNUSED (args),
 		   name, "cold");
 	  *no_add_attrs = true;
 	}
-      else
-	{
-	  tree old_opts = DECL_FUNCTION_SPECIFIC_OPTIMIZATION (*node);
-
-	  /* If we are not at -O3, but are optimizing, turn on -O3
-	     optimizations just for this one function.  */
-	  if (((optimize > 0 && optimize < 3) || optimize_size)
-	      && targetm.target_option.hot_attribute_sets_optimization
-	      && (!old_opts || old_opts == optimization_default_node))
-	    {
-	      /* Create the hot optimization node if needed.  */
-	      if (!optimization_hot_node)
-		{
-		  struct cl_optimization current_options;
-		  static const char *os_argv[] = { NULL, "-O3", NULL };
-
-		  cl_optimization_save (&current_options);
-		  decode_options (2, os_argv);
-		  optimization_hot_node = build_optimization_node ();
-		  cl_optimization_restore (&current_options);
-		}
-
-	      DECL_FUNCTION_SPECIFIC_OPTIMIZATION (*node)
-		= optimization_hot_node;
-	    }
-	  /* Most of the rest of the hot processing is done later with
-	     lookup_attribute.  */
-	}
+      /* Most of the rest of the hot processing is done later with
+	 lookup_attribute.  */
     }
   else
     {
@@ -5305,34 +5267,8 @@ handle_cold_attribute (tree *node, tree name, tree ARG_UNUSED (args),
 		   name, "hot");
 	  *no_add_attrs = true;
 	}
-      else
-	{
-	  tree old_opts = DECL_FUNCTION_SPECIFIC_OPTIMIZATION (*node);
-
-	  /* If we are optimizing, but not optimizing for space, turn on -Os
-	     optimizations just for this one function.  */
-	  if (optimize && !optimize_size
-	      && targetm.target_option.cold_attribute_sets_optimization
-	      && (!old_opts || old_opts == optimization_default_node))
-	    {
-	      /* Create the cold optimization node if needed.  */
-	      if (!optimization_cold_node)
-		{
-		  struct cl_optimization current_options;
-		  static const char *os_argv[] = { NULL, "-Os", NULL };
-
-		  cl_optimization_save (&current_options);
-		  decode_options (2, os_argv);
-		  optimization_cold_node = build_optimization_node ();
-		  cl_optimization_restore (&current_options);
-		}
-
-	      DECL_FUNCTION_SPECIFIC_OPTIMIZATION (*node)
-		= optimization_cold_node;
-	    }
-	  /* Most of the rest of the cold processing is done later with
-	     lookup_attribute.  */
-	}
+      /* Most of the rest of the cold processing is done later with
+	 lookup_attribute.  */
     }
   else
     {
@@ -7031,25 +6967,16 @@ handle_type_generic_attribute (tree *node, tree ARG_UNUSED (name),
   return NULL_TREE;
 }
 
-/* For handling "option" attribute. arguments as in
-   struct attribute_spec.handler.  */
+/* Handle a "target" attribute.  */
 
 static tree
-handle_option_attribute (tree *node, tree name, tree args, int flags,
+handle_target_attribute (tree *node, tree name, tree args, int flags,
 			 bool *no_add_attrs)
 {
   /* Ensure we have a function type.  */
   if (TREE_CODE (*node) != FUNCTION_DECL)
     {
       warning (OPT_Wattributes, "%qE attribute ignored", name);
-      *no_add_attrs = true;
-    }
-  else if (targetm.target_option.valid_attribute_p
-	   == default_target_option_valid_attribute_p)
-    {
-      warning (OPT_Wattributes,
-	       "%qE attribute is not supported on this machine",
-	       name);
       *no_add_attrs = true;
     }
   else if (! targetm.target_option.valid_attribute_p (*node, name, args,
@@ -7685,6 +7612,7 @@ fold_offsetof_1 (tree expr, tree stop_ref)
       return error_mark_node;
 
     case CALL_EXPR:
+    case TARGET_EXPR:
       error ("cannot apply %<offsetof%> when %<operator[]%> is overloaded");
       return error_mark_node;
 

@@ -2099,7 +2099,7 @@ do {                                                                    \
 /* If a memory-to-memory move would take MOVE_RATIO or more simple
    move-instruction pairs, we will do a movmem or libcall instead.  */
 
-#define MOVE_RATIO (optimize_size ? 3 : 8)
+#define MOVE_RATIO(speed) ((speed) ? 8 : 3)
 
 /* Define if operations between registers always perform the operation
    on the full register even if a narrower mode is specified.  */
@@ -2196,7 +2196,7 @@ do {                                                                    \
    On Niagara-2, a not-taken branch costs 1 cycle whereas a taken
    branch costs 6 cycles.  */
 
-#define BRANCH_COST \
+#define BRANCH_COST(speed_p, predictable_p) \
 	((sparc_cpu == PROCESSOR_V9 \
 	  || sparc_cpu == PROCESSOR_ULTRASPARC) \
 	 ? 7 \

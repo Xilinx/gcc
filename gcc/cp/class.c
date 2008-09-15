@@ -299,7 +299,7 @@ build_base_path (enum tree_code code,
     {
       expr = build_nop (build_pointer_type (target_type), expr);
       if (!want_pointer)
-	expr = build_indirect_ref (expr, NULL);
+	expr = build_indirect_ref (expr, NULL, EXPR_LOCATION (expr));
       return expr;
     }
 
@@ -627,7 +627,7 @@ build_vtbl_ref_1 (tree instance, tree idx)
 
   assemble_external (vtbl);
 
-  aref = build_array_ref (vtbl, idx);
+  aref = build_array_ref (vtbl, idx, input_location);
   TREE_CONSTANT (aref) |= TREE_CONSTANT (vtbl) && TREE_CONSTANT (idx);
 
   return aref;
@@ -6185,6 +6185,10 @@ resolve_address_of_overloaded_function (tree target_type,
      function will be marked as used at this point.  */
   if (!(flags & tf_conv))
     {
+      /* Make =delete work with SFINAE.  */
+      if (DECL_DELETED_FN (fn) && !(flags & tf_error))
+	return error_mark_node;
+      
       mark_used (fn);
       /* We could not check access when this expression was originally
 	 created since we did not know at that time to which function

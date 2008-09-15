@@ -1085,7 +1085,7 @@ gimple_build_predict (enum br_predictor predictor, enum prediction outcome)
 {
   gimple p = gimple_alloc (GIMPLE_PREDICT, 0);
   /* Ensure all the predictors fit into the lower bits of the subcode.  */
-  gcc_assert (END_PREDICTORS <= GF_PREDICT_TAKEN);
+  gcc_assert ((int) END_PREDICTORS <= GF_PREDICT_TAKEN);
   gimple_predict_set_predictor (p, predictor);
   gimple_predict_set_outcome (p, outcome);
   return p;
@@ -1816,6 +1816,14 @@ gimple_body (tree fndecl)
   return fn ? fn->gimple_body : NULL;
 }
 
+/* Return true when FNDECL has Gimple body either in unlowered
+   or CFG form.  */
+bool
+gimple_has_body_p (tree fndecl)
+{
+  struct function *fn = DECL_STRUCT_FUNCTION (fndecl);
+  return (gimple_body (fndecl) || (fn && fn->cfg));
+}
 
 /* Detect flags from a GIMPLE_CALL.  This is just like
    call_expr_flags, but for gimple tuples.  */
@@ -2058,7 +2066,7 @@ gimple_assign_set_rhs_with_ops (gimple_stmt_iterator *gsi, enum tree_code code,
 tree
 gimple_get_lhs (const_gimple stmt)
 {
-  enum tree_code code = gimple_code (stmt);
+  enum gimple_code code = gimple_code (stmt);
 
   if (code == GIMPLE_ASSIGN)
     return gimple_assign_lhs (stmt);
@@ -2075,7 +2083,7 @@ gimple_get_lhs (const_gimple stmt)
 void
 gimple_set_lhs (gimple stmt, tree lhs)
 {
-  enum tree_code code = gimple_code (stmt);
+  enum gimple_code code = gimple_code (stmt);
 
   if (code == GIMPLE_ASSIGN)
     gimple_assign_set_lhs (stmt, lhs);
@@ -3178,6 +3186,39 @@ canonicalize_cond_expr_cond (tree t)
     return t;
 
   return NULL_TREE;
+}
+
+/* Build call same as STMT but skipping arguments ARGS_TO_SKIP.  */
+gimple
+giple_copy_call_skip_args (gimple stmt, bitmap args_to_skip)
+{
+  int i;
+  tree fn = gimple_call_fn (stmt);
+  int nargs = gimple_call_num_args (stmt);
+  VEC(tree, heap) *vargs = VEC_alloc (tree, heap, nargs);
+  gimple new_stmt;
+
+  for (i = 0; i < nargs; i++)
+    if (!bitmap_bit_p (args_to_skip, i))
+      VEC_quick_push (tree, vargs, gimple_call_arg (stmt, i));
+
+  new_stmt = gimple_build_call_vec (fn, vargs);
+  VEC_free (tree, heap, vargs);
+  if (gimple_call_lhs (stmt))
+    gimple_call_set_lhs (new_stmt, gimple_call_lhs (stmt));
+
+  gimple_set_block (new_stmt, gimple_block (stmt));
+  if (gimple_has_location (stmt))
+    gimple_set_location (new_stmt, gimple_location (stmt));
+
+  /* Carry all the flags to the new GIMPLE_CALL.  */
+  gimple_call_set_chain (new_stmt, gimple_call_chain (stmt));
+  gimple_call_set_tail (new_stmt, gimple_call_tail_p (stmt));
+  gimple_call_set_cannot_inline (new_stmt, gimple_call_cannot_inline_p (stmt));
+  gimple_call_set_return_slot_opt (new_stmt, gimple_call_return_slot_opt_p (stmt));
+  gimple_call_set_from_thunk (new_stmt, gimple_call_from_thunk_p (stmt));
+  gimple_call_set_va_arg_pack (new_stmt, gimple_call_va_arg_pack_p (stmt));
+  return new_stmt;
 }
 
 #include "gt-gimple.h"

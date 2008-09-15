@@ -1,3 +1,204 @@
+2008-09-09  Jan Hubicka  <jh@suse.cz>
+
+	PR middle-end/37500
+	* pt.c (tsubst_decl): Do not copy DECL_STRUCT_FUNCTION pointer.
+
+2008-09-09  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/37417
+	* tree.c (array_type_nelts_top): Add size_one_node instead of
+	integer_one_node.
+
+2008-09-09  Jason Merrill  <jason@redhat.com>
+
+	PR c++/37439
+	* pt.c (tsubst_copy) [PARM_DECL]: Don't abort if the parm has
+	DECL_CONTEXT set.
+
+2008-09-09  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/37389
+	* decl.c (build_enumerator): Handle previous value's DECL_INITIAL
+	being error_operand_p.  Don't clear value if it was error_mark_node.
+
+2008-09-09  Paolo Bonzini  <bonzini@gnu.org>
+
+	* cp-objcp-common.h (LANG_HOOKS_EXPAND_DECL): Remove.
+	* cp-tree.h: Don't mention DECL_ANON_UNION_ELEMS.
+	* semantics.c (anon_aggr_type_p): Remove.
+
+2008-09-06  Jason Merrill  <jason@redhat.com>
+
+	PR c++/37302
+	* parser.c (cp_parser_parameter_declaration_list): Process the
+	PARM_DECLs as we go and push them.  Return a TREE_LIST.
+	(cp_parser_parameter_declaration_clause): Return a TREE_LIST.
+	(cp_parser_direct_declarator): Create a binding level and
+	suppress deprecated warnings in the parameter list.
+	(make_call_declarator): PARMS is now a tree.
+	* cp-tree.h (struct cp_declarator): Function parms are now a tree.
+	* decl.h (enum deprecated_states, deprecated_state): Move here.
+	* decl.c: From here.
+	(type_is_deprecated): New fn.
+	(grokparms): PARMLIST is a tree now.  Warn about parms that
+	use deprecated types.
+	* mangle.c (write_expression): Handle PARM_DECL, CALL_EXPR and
+	0-operand cast.
+	* pt.c (tsubst) [DECLTYPE_TYPE]: Set skip_evaluation.
+	(tsubst_copy) [PARM_DECL]: Handle a PARM_DECL used outside of a 
+	function.
+	* name-lookup.c (pushtag): Look through function parameter scopes.
+	(pushdecl_maybe_friend): Don't set DECL_CONTEXT on a PARM_DECL 
+	when we're parsing a function declarator.
+
+2008-09-05  Douglas Gregor  <doug.gregor@gmail.com>
+
+       PR c++/37342
+       * tree.c (cp_build_qualified_type_real): Deal with sharing of
+       TYPE_LANG_SPECIFIC in the canonical types of pointer-to-method
+       types.
+	
+2008-09-04  Ian Lance Taylor  <iant@google.com>
+
+	* parser.c (check_no_duplicate_clause): Change code parameter to
+	enum omp_clause_code.
+
+2008-09-03  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/37348
+	* decl.c (cp_finish_decl): Only set
+	DECL_INITIALIZED_BY_CONSTANT_EXPRESSION_P if decl is VAR_DECL.
+
+	PR c++/37189
+	* cp-tree.h (defer_mark_used_calls, deferred_mark_used_calls): New
+	extern decls.
+	* decl2.c (mark_used): If defer_mark_used_calls, push decl into
+	deferred_mark_used_calls vector and exit early.
+	* decl.c (defer_mark_used_calls, deferred_mark_used_calls): New
+	variables.
+	(finish_function): Set defer_mark_used_calls for the duration of the
+	function.  Call mark_used on any queued decls.
+
+2008-09-02  Jason Merrill  <jason@redhat.com>
+
+	PR c++/37208
+	* call.c (build_over_call): Make =delete work with SFINAE.
+	* class.c (resolve_address_of_overloaded_function): Likewise.
+
+	* cp-tree.h (struct lang_decl_flags): Rename threadprivate_p to
+	threadprivate_or_deleted_p.
+	(CP_DECL_THREADPRIVATE_P): Adjust.
+	(DECL_DELETED_FN): Likewise.
+	(SD_UNINITIALIZED, SD_INITIALIZED, SD_DEFAULTED): New macros.
+	(SD_DELETED): New macro.
+	* parser.c (cp_parser_init_declarator): Use them.
+	* decl.c (start_decl): Use them.
+
+	* decl2.c (mark_used): Give =deleted error even in sizeof.
+
+	* typeck2.c (check_narrowing): Downgrade narrowing error to
+	permerror.
+
+2008-09-02  Aldy Hernandez  <aldyh@redhat.com>
+
+	* typeck.c (build_array_ref): Use new location argument.
+	* class.c (build_vtbl_ref_1): Pass location to build_array_ref.
+	* call.c (build_new_op): Same.
+	* decl2.c (grok_array_decl): Same.
+	* cp-tree.h (build_array_ref): Add location argument to prototype.
+
+2008-09-01  Aldy Hernandez  <aldyh@redhat.com>
+
+	* typeck.c (build_x_indirect_ref): Add location argument.
+	* class.c (build_base_path): Pass location to build_indirect_ref.
+	* pt.c (tsubst_copy_and_build): Pass location to
+	finish_label_address_expr.
+	* parser.c (cp_parser_unary_expression): Same.
+
+2008-08-31  Jason Merrill  <jason@redhat.com>
+
+	Implement late-specified return type using 'auto'.
+	* cp-tree.h (struct cp_declarator): Add late_return_type field to
+	function declarator.
+	* parser.c (cp_parser_late_return_type_opt): New fn.
+	(cp_parser_direct_declarator): Use it.
+	(make_call_declarator): Put it in the declarator.
+	* decl.c (grokdeclarator): Splice in late-specified return type.
+	* pt.c (splice_late_return_type): New fn.
+
+2008-08-29  Michael Meissner  <gnu@the-meissners.org>
+
+	* decl.c (builtin_function_1): Take a bool argument to decide
+	whether to use pushdecl or pushdecl_top_level.
+	(duplicate_decls): Copy function specific target and optimization
+	options on duplicate declarations.
+	(cxx_builtin_function): Update builtin_function_1 call.
+	(cxx_builtin_function_ext_scope): New function, guarantee that the
+	declaration is done at global scope.
+
+	* cp-objcp-common.h (LANG_HOOKS_BUILTIN_FUNCTION_EXT_SCOPE): New
+	macro, define builtin function hook for delayed machine specific
+	builtins.
+
+	* cp-tree.h (cxx_builtin_function_ext_scope): Add declaration.
+
+2008-08-30  Jason Merrill  <jason@redhat.com>
+
+	PR c++/37288
+	* pt.c (dependent_type_p): Don't abort on auto outside of a template.
+
+2008-08-29  Jason Merrill  <jason@redhat.com>
+
+	Implement C++0x 'auto' semantics.
+	* decl.c (start_decl_1): Don't complain about auto being incomplete.
+	(cp_finish_decl): Deduce auto.
+	* init.c (build_new): Handle 'new auto'.
+	* typeck2.c (cxx_incomplete_type_diagnostic): Give a different
+	message for auto than for normal template type parms.
+	* pt.c (type_dependent_expression_p): Handle { }.
+	(make_auto): New function.
+	(listify_autos): New function.
+	(do_auto_deduction): New function.
+	(is_auto): New function.
+	(type_uses_auto): New function.
+	* cp-tree.h: Declare them.
+	* parser.c (cp_parser_decl_specifier_seq): In C++0x mode, don't
+	treat auto as a declspec.
+	(cp_parser_simple_type_specifier): It's a type-specifier.
+
+2008-08-29  Mark Mitchell  <mark@codesourcery.com>
+
+	* mangle.c (write_type): Add target-specific manglings for
+	non-fundamental types to the substitution table.
+	gcc/testsuite/
+
+2008-08-29  Jakub Jelinek  <jakub@redhat.com>
+
+	PR fortran/29635
+	PR fortran/23057
+	* name-lookup.c (do_using_directive, cp_emit_debug_info_for_using):
+	Adjust debug_hooks->imported_module_or_decl callers.
+
+2008-08-29  Jan Hubicka  <jh@suse.cz>
+
+	* cp-gimplify.c (cp_gimplify_expr): Add PRED_CONTINUE heuristic.
+
+2008-08-28  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/37260
+	* decl.c (reshape_init_r): Check init for error_mark_node.
+
+2008-08-27  Manuel Lopez-Ibanez  <manu@gcc.gnu.org>
+
+	PR c++/17880
+	* semantics.c (maybe_convert_cond): Call verify_sequence_points.
+	(finish_return_stmt): Likewise.
+	(finish_switch_condition): Likewise.
+
+2008-08-27  Manuel Lopez-Ibanez  <manu@gcc.gnu.org>
+
+	* cp-tree.h: Fix #error directive.
+
 2008-08-26  Douglas Gregor  <doug.gregor@gmail.com>
 
 	* typeck.c (type_after_usual_arithmetic_conversions): Don't do the
@@ -546,7 +747,7 @@
 	* semantics.c (classtype_has_nothrow_assign_or_copy_p): Only check
 	copy constructors and copy assignment operators proper.
 
-2008-07-21  Rafael Avila de Espindola  <espindola@google.com>
+2008-07-21  Rafael Ávila de Espíndola  <espindola@google.com>
 
 	* parser.c (cp_token): Remove in_system_header.
 	(eof_token): Remove in_system_header.
@@ -4403,7 +4604,7 @@
 	* init.c (avoid_placement_new_aliasing): New static function.
 	(build_new_1): Call it.
 
-2007-06-11  Rafael Avila de Espindola  <espindola@google.com>
+2007-06-11  Rafael Ávila de Espíndola  <espindola@google.com>
 
 	* cp-objcp-common.h (LANG_HOOKS_SIGNED_TYPE): Remove.
 	(LANG_HOOKS_SIGNED_OR_UNSIGNED_TYPE): Remove.
@@ -4632,7 +4833,7 @@
 	* rtti.c (get_tinfo_decl_dynamic, get_typeid): Try to complete the
 	type only if is a class type (5.2.8/4).
 
-2007-05-14  Rafael Avila de Espindola  <espindola@google.com>
+2007-05-14  Rafael Ávila de Espíndola  <espindola@google.com>
 
 	* cp-objcp-common.h (LANG_HOOKS_UNSIGNED_TYPE): Remove.
 	* decl.c (grokdeclarator): Use unsigned_type_for instead of

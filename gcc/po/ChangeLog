@@ -1,3 +1,11 @@
+2008-08-30  Joseph S. Myers  <joseph@codesourcery.com>
+
+	* fi.po: New.
+
+2008-08-27  Joseph S. Myers  <joseph@codesourcery.com>
+
+	* gcc.pot: Regenerate.
+
 2008-08-09  Joseph S. Myers  <joseph@codesourcery.com>
 
 	* sv.po: Update.
@@ -692,11 +700,11 @@
 	* exgettext: Merge changes from diffutils.  Scan .def files in
 	addition to .c and .h.  Add --language=c to xgettext command line.
 
-2001-12-05  Martin v. Löwis  <loewis@informatik.hu-berlin.de>
+2001-12-05  Martin v. LÃ¶wis  <loewis@informatik.hu-berlin.de>
 
 	* es.po: Update to 3.0 template.
 
-2001-12-05  Martin v. Löwis  <loewis@informatik.hu-berlin.de>
+2001-12-05  Martin v. LÃ¶wis  <loewis@informatik.hu-berlin.de>
 
 	* da.po, es.po, fr.po, ja.po: New files.
 

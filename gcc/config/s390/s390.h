@@ -828,7 +828,7 @@ extern struct rtx_def *s390_compare_op0, *s390_compare_op1, *s390_compare_emitte
 
 /* A C expression for the cost of a branch instruction.  A value of 1
    is the default; other values are interpreted relative to that.  */
-#define BRANCH_COST 1
+#define BRANCH_COST(speed_p, predictable_p) 1
 
 /* Nonzero if access to memory by bytes is slow and undesirable.  */
 #define SLOW_BYTE_ACCESS 1
@@ -872,7 +872,7 @@ extern struct rtx_def *s390_compare_op0, *s390_compare_op1, *s390_compare_emitte
    in tree-sra with UNITS_PER_WORD to make a decision so we adjust it
    here to compensate for that factor since mvc costs exactly the same
    on 31 and 64 bit.  */
-#define MOVE_RATIO (TARGET_64BIT? 2 : 4)
+#define MOVE_RATIO(speed) (TARGET_64BIT? 2 : 4)
 
 
 /* Sections.  */

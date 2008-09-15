@@ -201,7 +201,7 @@ rename_use_op (use_operand_p op_p)
 
 /* Renames the variables in basic block BB.  */
 
-static void
+void
 rename_variables_in_bb (basic_block bb)
 {
   gimple_stmt_iterator gsi;
@@ -940,10 +940,9 @@ slpeel_add_loop_guard (basic_block guard_bb, tree cond, basic_block exit_bb,
   enter_e->flags |= EDGE_FALSE_VALUE;
   gsi = gsi_last_bb (guard_bb);
 
-  cond =
-    force_gimple_operand (cond, &gimplify_stmt_list, true,
-			  NULL_TREE);
-  cond_stmt = gimple_build_cond (NE_EXPR, cond, integer_zero_node,
+  cond = force_gimple_operand (cond, &gimplify_stmt_list, true, NULL_TREE);
+  cond_stmt = gimple_build_cond (NE_EXPR,
+				 cond, build_int_cst (TREE_TYPE (cond), 0),
 				 NULL_TREE, NULL_TREE);
   if (gimplify_stmt_list)
     gsi_insert_seq_after (&gsi, gimplify_stmt_list, GSI_NEW_STMT);
@@ -1073,7 +1072,8 @@ set_prologue_iterations (basic_block bb_before_first_loop,
     force_gimple_operand (cost_pre_condition, &gimplify_stmt_list,
 			  true, NULL_TREE);
   cond_stmt = gimple_build_cond (NE_EXPR, cost_pre_condition,
-				 integer_zero_node, NULL_TREE, NULL_TREE);
+				 build_int_cst (TREE_TYPE (cost_pre_condition),
+						0), NULL_TREE, NULL_TREE);
 
   gsi = gsi_last_bb (cond_bb);
   if (gimplify_stmt_list)
@@ -1802,7 +1802,8 @@ destroy_loop_vec_info (loop_vec_info loop_vinfo, bool clean_stmts)
   VEC_free (ddr_p, heap, LOOP_VINFO_MAY_ALIAS_DDRS (loop_vinfo));
   slp_instances = LOOP_VINFO_SLP_INSTANCES (loop_vinfo);
   for (j = 0; VEC_iterate (slp_instance, slp_instances, j, instance); j++)
-    vect_free_slp_tree (SLP_INSTANCE_TREE (instance));
+    vect_free_slp_instance (instance);
+
   VEC_free (slp_instance, heap, LOOP_VINFO_SLP_INSTANCES (loop_vinfo));
   VEC_free (gimple, heap, LOOP_VINFO_STRIDED_STORES (loop_vinfo));
 
@@ -2805,19 +2806,20 @@ vectorize_loops (void)
      than all previously defined loops. This fact allows us to run 
      only over initial loops skipping newly generated ones.  */
   FOR_EACH_LOOP (li, loop, 0)
-    {
-      loop_vec_info loop_vinfo;
+    if (optimize_loop_nest_for_speed_p (loop))
+      {
+	loop_vec_info loop_vinfo;
 
-      vect_loop_location = find_loop_location (loop);
-      loop_vinfo = vect_analyze_loop (loop);
-      loop->aux = loop_vinfo;
+	vect_loop_location = find_loop_location (loop);
+	loop_vinfo = vect_analyze_loop (loop);
+	loop->aux = loop_vinfo;
 
-      if (!loop_vinfo || !LOOP_VINFO_VECTORIZABLE_P (loop_vinfo))
-	continue;
+	if (!loop_vinfo || !LOOP_VINFO_VECTORIZABLE_P (loop_vinfo))
+	  continue;
 
-      vect_transform_loop (loop_vinfo);
-      num_vectorized_loops++;
-    }
+	vect_transform_loop (loop_vinfo);
+	num_vectorized_loops++;
+      }
   vect_loop_location = UNKNOWN_LOC;
 
   statistics_counter_event (cfun, "Vectorized loops", num_vectorized_loops);

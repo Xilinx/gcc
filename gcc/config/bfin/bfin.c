@@ -114,21 +114,33 @@ struct bfin_cpu
 
 struct bfin_cpu bfin_cpus[] =
 {
+  {"bf522", BFIN_CPU_BF522, 0x0001,
+   WA_SPECULATIVE_LOADS | WA_RETS},
   {"bf522", BFIN_CPU_BF522, 0x0000,
    WA_SPECULATIVE_LOADS | WA_RETS},
 
+  {"bf523", BFIN_CPU_BF523, 0x0001,
+   WA_SPECULATIVE_LOADS | WA_RETS},
   {"bf523", BFIN_CPU_BF523, 0x0000,
    WA_SPECULATIVE_LOADS | WA_RETS},
 
+  {"bf524", BFIN_CPU_BF524, 0x0001,
+   WA_SPECULATIVE_LOADS | WA_RETS},
   {"bf524", BFIN_CPU_BF524, 0x0000,
    WA_SPECULATIVE_LOADS | WA_RETS},
 
+  {"bf525", BFIN_CPU_BF525, 0x0001,
+   WA_SPECULATIVE_LOADS | WA_RETS},
   {"bf525", BFIN_CPU_BF525, 0x0000,
    WA_SPECULATIVE_LOADS | WA_RETS},
 
+  {"bf526", BFIN_CPU_BF526, 0x0001,
+   WA_SPECULATIVE_LOADS | WA_RETS},
   {"bf526", BFIN_CPU_BF526, 0x0000,
    WA_SPECULATIVE_LOADS | WA_RETS},
 
+  {"bf527", BFIN_CPU_BF527, 0x0001,
+   WA_SPECULATIVE_LOADS | WA_RETS},
   {"bf527", BFIN_CPU_BF527, 0x0000,
    WA_SPECULATIVE_LOADS | WA_RETS},
 
@@ -178,6 +190,8 @@ struct bfin_cpu bfin_cpus[] =
    WA_SPECULATIVE_LOADS | WA_RETS},
   {"bf538", BFIN_CPU_BF538, 0x0003,
    WA_SPECULATIVE_LOADS | WA_RETS},
+  {"bf538", BFIN_CPU_BF538, 0x0002,
+   WA_SPECULATIVE_LOADS | WA_RETS},
 
   {"bf539", BFIN_CPU_BF539, 0x0004,
    WA_SPECULATIVE_LOADS | WA_RETS},
@@ -186,18 +200,28 @@ struct bfin_cpu bfin_cpus[] =
   {"bf539", BFIN_CPU_BF539, 0x0002,
    WA_SPECULATIVE_LOADS | WA_RETS},
 
+  {"bf542", BFIN_CPU_BF542, 0x0001,
+   WA_SPECULATIVE_LOADS | WA_RETS},
   {"bf542", BFIN_CPU_BF542, 0x0000,
    WA_SPECULATIVE_LOADS | WA_RETS},
 
+  {"bf544", BFIN_CPU_BF544, 0x0001,
+   WA_SPECULATIVE_LOADS | WA_RETS},
   {"bf544", BFIN_CPU_BF544, 0x0000,
    WA_SPECULATIVE_LOADS | WA_RETS},
 
+  {"bf547", BFIN_CPU_BF547, 0x0001,
+   WA_SPECULATIVE_LOADS | WA_RETS},
   {"bf547", BFIN_CPU_BF547, 0x0000,
    WA_SPECULATIVE_LOADS | WA_RETS},
 
+  {"bf548", BFIN_CPU_BF548, 0x0001,
+   WA_SPECULATIVE_LOADS | WA_RETS},
   {"bf548", BFIN_CPU_BF548, 0x0000,
    WA_SPECULATIVE_LOADS | WA_RETS},
 
+  {"bf549", BFIN_CPU_BF549, 0x0001,
+   WA_SPECULATIVE_LOADS | WA_RETS},
   {"bf549", BFIN_CPU_BF549, 0x0000,
    WA_SPECULATIVE_LOADS | WA_RETS},
 
@@ -1165,7 +1189,8 @@ bfin_expand_prologue (void)
     }
 
   if (crtl->limit_stack
-      || TARGET_STACK_CHECK_L1)
+      || (TARGET_STACK_CHECK_L1
+	  && !DECL_NO_LIMIT_STACK (current_function_decl)))
     {
       HOST_WIDE_INT offset
 	= bfin_initial_elimination_offset (ARG_POINTER_REGNUM,
@@ -1378,7 +1403,7 @@ bfin_dsp_memref_p (rtx x)
    All addressing modes are equally cheap on the Blackfin.  */
 
 static int
-bfin_address_cost (rtx addr ATTRIBUTE_UNUSED)
+bfin_address_cost (rtx addr ATTRIBUTE_UNUSED, bool speed ATTRIBUTE_UNUSED)
 {
   return 1;
 }
@@ -1917,6 +1942,9 @@ bfin_function_ok_for_sibcall (tree decl ATTRIBUTE_UNUSED,
      not need to reload P5 in the prologue, but the sibcall wil pop P5 in the
      sibcall epilogue, and we end up with the wrong value in P5.  */
 
+  if (!decl)
+    /* Not enough information.  */
+    return false;
  
   this_func = cgraph_local_info (current_function_decl);
   called_func = cgraph_local_info (decl);
@@ -2413,9 +2441,6 @@ bfin_handle_option (size_t code, const char *arg, int value)
 	    bfin_workarounds |= bfin_cpus[i].workarounds;
 	  }
 
-	if (bfin_cpu_type == BFIN_CPU_BF561)
-	  warning (0, "bf561 support is incomplete yet.");
-
 	return true;
       }
 
@@ -2871,7 +2896,7 @@ bfin_legitimate_constant_p (rtx x)
 }
 
 static bool
-bfin_rtx_costs (rtx x, int code, int outer_code, int *total)
+bfin_rtx_costs (rtx x, int code, int outer_code, int *total, bool speed)
 {
   int cost2 = COSTS_N_INSNS (1);
   rtx op0, op1;
@@ -2919,19 +2944,19 @@ bfin_rtx_costs (rtx x, int code, int outer_code, int *total)
 	      if (val == 2 || val == 4)
 		{
 		  *total = cost2;
-		  *total += rtx_cost (XEXP (op0, 0), outer_code);
-		  *total += rtx_cost (op1, outer_code);
+		  *total += rtx_cost (XEXP (op0, 0), outer_code, speed);
+		  *total += rtx_cost (op1, outer_code, speed);
 		  return true;
 		}
 	    }
 	  *total = cost2;
 	  if (GET_CODE (op0) != REG
 	      && (GET_CODE (op0) != SUBREG || GET_CODE (SUBREG_REG (op0)) != REG))
-	    *total += rtx_cost (op0, SET);
+	    *total += rtx_cost (op0, SET, speed);
 #if 0 /* We'd like to do this for accuracy, but it biases the loop optimizer
 	 towards creating too many induction variables.  */
 	  if (!reg_or_7bit_operand (op1, SImode))
-	    *total += rtx_cost (op1, SET);
+	    *total += rtx_cost (op1, SET, speed);
 #endif
 	}
       else if (GET_MODE (x) == DImode)
@@ -2939,10 +2964,10 @@ bfin_rtx_costs (rtx x, int code, int outer_code, int *total)
 	  *total = 6 * cost2;
 	  if (GET_CODE (op1) != CONST_INT
 	      || !satisfies_constraint_Ks7 (op1))
-	    *total += rtx_cost (op1, PLUS);
+	    *total += rtx_cost (op1, PLUS, speed);
 	  if (GET_CODE (op0) != REG
 	      && (GET_CODE (op0) != SUBREG || GET_CODE (SUBREG_REG (op0)) != REG))
-	    *total += rtx_cost (op0, PLUS);
+	    *total += rtx_cost (op0, PLUS, speed);
 	}
       return true;
 
@@ -2965,7 +2990,7 @@ bfin_rtx_costs (rtx x, int code, int outer_code, int *total)
       op1 = XEXP (x, 1);
       if (GET_CODE (op0) != REG
 	  && (GET_CODE (op0) != SUBREG || GET_CODE (SUBREG_REG (op0)) != REG))
-	*total += rtx_cost (op0, code);
+	*total += rtx_cost (op0, code, speed);
 
       return true;
 	  
@@ -2990,7 +3015,7 @@ bfin_rtx_costs (rtx x, int code, int outer_code, int *total)
 
       if (GET_CODE (op0) != REG
 	  && (GET_CODE (op0) != SUBREG || GET_CODE (SUBREG_REG (op0)) != REG))
-	*total += rtx_cost (op0, code);
+	*total += rtx_cost (op0, code, speed);
 
       if (GET_MODE (x) == DImode)
 	{
@@ -3004,12 +3029,12 @@ bfin_rtx_costs (rtx x, int code, int outer_code, int *total)
       if (code == AND)
 	{
 	  if (! rhs_andsi3_operand (XEXP (x, 1), SImode))
-	    *total += rtx_cost (XEXP (x, 1), code);
+	    *total += rtx_cost (XEXP (x, 1), code, speed);
 	}
       else
 	{
 	  if (! regorlog2_operand (XEXP (x, 1), SImode))
-	    *total += rtx_cost (XEXP (x, 1), code);
+	    *total += rtx_cost (XEXP (x, 1), code, speed);
 	}
 
       return true;
@@ -3042,17 +3067,17 @@ bfin_rtx_costs (rtx x, int code, int outer_code, int *total)
 	      op0 = XEXP (op0, 0);
 	      op1 = XEXP (op1, 0);
 	    }
-	  else if (optimize_size)
+	  else if (!speed)
 	    *total = COSTS_N_INSNS (1);
 	  else
 	    *total = COSTS_N_INSNS (3);
 
 	  if (GET_CODE (op0) != REG
 	      && (GET_CODE (op0) != SUBREG || GET_CODE (SUBREG_REG (op0)) != REG))
-	    *total += rtx_cost (op0, MULT);
+	    *total += rtx_cost (op0, MULT, speed);
 	  if (GET_CODE (op1) != REG
 	      && (GET_CODE (op1) != SUBREG || GET_CODE (SUBREG_REG (op1)) != REG))
-	    *total += rtx_cost (op1, MULT);
+	    *total += rtx_cost (op1, MULT, speed);
 	}
       return true;
 
@@ -3075,6 +3100,7 @@ bfin_rtx_costs (rtx x, int code, int outer_code, int *total)
 /* Used for communication between {push,pop}_multiple_operation (which
    we use not only as a predicate) and the corresponding output functions.  */
 static int first_preg_to_save, first_dreg_to_save;
+static int n_regs_to_save;
 
 int
 push_multiple_operation (rtx op, enum machine_mode mode ATTRIBUTE_UNUSED)
@@ -3143,6 +3169,7 @@ push_multiple_operation (rtx op, enum machine_mode mode ATTRIBUTE_UNUSED)
 	  lastpreg++;
 	}
     }
+  n_regs_to_save = 8 - first_dreg_to_save + 6 - first_preg_to_save;
   return 1;
 }
 
@@ -3202,6 +3229,7 @@ pop_multiple_operation (rtx op, enum machine_mode mode ATTRIBUTE_UNUSED)
     }
   first_dreg_to_save = lastdreg;
   first_preg_to_save = lastpreg;
+  n_regs_to_save = 8 - first_dreg_to_save + 6 - first_preg_to_save;
   return 1;
 }
 
@@ -4432,6 +4460,11 @@ gen_one_bundle (rtx slot[3])
 {
   gcc_assert (slot[1] != NULL_RTX);
 
+  /* Don't add extra NOPs if optimizing for size.  */
+  if (optimize_size
+      && (slot[0] == NULL_RTX || slot[2] == NULL_RTX))
+    return false;
+
   /* Verify that we really can do the multi-issue.  */
   if (slot[0])
     {
@@ -4601,6 +4634,85 @@ reorder_var_tracking_notes (void)
     }
 }
 
+/* On some silicon revisions, functions shorter than a certain number of cycles
+   can cause unpredictable behaviour.  Work around this by adding NOPs as
+   needed.  */
+static void
+workaround_rts_anomaly (void)
+{
+  rtx insn, first_insn = NULL_RTX;
+  int cycles = 4;
+
+  if (! ENABLE_WA_RETS)
+    return;
+
+  for (insn = get_insns (); insn; insn = NEXT_INSN (insn))
+    {
+      rtx pat;
+
+      if (BARRIER_P (insn))
+	return;
+      
+      if (NOTE_P (insn) || LABEL_P (insn))
+	continue;
+
+      if (first_insn == NULL_RTX)
+	first_insn = insn;
+      pat = PATTERN (insn);
+      if (GET_CODE (pat) == USE || GET_CODE (pat) == CLOBBER
+	  || GET_CODE (pat) == ASM_INPUT || GET_CODE (pat) == ADDR_VEC
+	  || GET_CODE (pat) == ADDR_DIFF_VEC || asm_noperands (pat) >= 0)
+	continue;
+
+      if (CALL_P (insn))
+	return;
+
+      if (JUMP_P (insn))
+	{
+	  if (recog_memoized (insn) == CODE_FOR_return_internal)
+	    break;
+
+	  /* Nothing to worry about for direct jumps.  */
+	  if (!any_condjump_p (insn))
+	    return;
+	  if (cycles <= 1)
+	    return;
+	  cycles--;
+	}
+      else if (INSN_P (insn))
+	{
+	  rtx pat = PATTERN (insn);
+	  int this_cycles = 1;
+
+	  if (GET_CODE (pat) == PARALLEL)
+	    {
+	      if (push_multiple_operation (pat, VOIDmode)
+		  || pop_multiple_operation (pat, VOIDmode))
+		this_cycles = n_regs_to_save;
+	    }
+	  else
+	    {
+	      enum insn_code icode = recog_memoized (insn);
+	      if (icode == CODE_FOR_link)
+		this_cycles = 4;
+	      else if (icode == CODE_FOR_unlink)
+		this_cycles = 3;
+	      else if (icode == CODE_FOR_mulsi3)
+		this_cycles = 5;
+	    }
+	  if (this_cycles >= cycles)
+	    return;
+
+	  cycles -= this_cycles;
+	}
+    }
+  while (cycles > 0)
+    {
+      emit_insn_before (gen_nop (), first_insn);
+      cycles--;
+    }
+}
+
 /* Return an insn type for INSN that can be used by the caller for anomaly
    workarounds.  This differs from plain get_attr_type in that it handles
    SEQUENCEs.  */
@@ -4681,57 +4793,13 @@ find_load (rtx insn)
   return NULL_RTX;
 }
 
-/* We use the machine specific reorg pass for emitting CSYNC instructions
-   after conditional branches as needed.
-
-   The Blackfin is unusual in that a code sequence like
-     if cc jump label
-     r0 = (p0)
-   may speculatively perform the load even if the condition isn't true.  This
-   happens for a branch that is predicted not taken, because the pipeline
-   isn't flushed or stalled, so the early stages of the following instructions,
-   which perform the memory reference, are allowed to execute before the
-   jump condition is evaluated.
-   Therefore, we must insert additional instructions in all places where this
-   could lead to incorrect behavior.  The manual recommends CSYNC, while
-   VDSP seems to use NOPs (even though its corresponding compiler option is
-   named CSYNC).
-
-   When optimizing for speed, we emit NOPs, which seems faster than a CSYNC.
-   When optimizing for size, we turn the branch into a predicted taken one.
-   This may be slower due to mispredicts, but saves code size.  */
-
 static void
-bfin_reorg (void)
+workaround_speculation (void)
 {
   rtx insn, next;
   rtx last_condjump = NULL_RTX;
   int cycles_since_jump = INT_MAX;
-
-  /* We are freeing block_for_insn in the toplev to keep compatibility
-     with old MDEP_REORGS that are not CFG based.  Recompute it now.  */
-  compute_bb_for_insn ();
-
-  if (bfin_flag_schedule_insns2)
-    {
-      splitting_for_sched = 1;
-      split_all_insns ();
-      splitting_for_sched = 0;
-
-      timevar_push (TV_SCHED2);
-      schedule_insns ();
-      timevar_pop (TV_SCHED2);
-
-      /* Examine the schedule and insert nops as necessary for 64-bit parallel
-	 instructions.  */
-      bfin_gen_bundles ();
-    }
-
-  df_analyze ();
-
-  /* Doloop optimization */
-  if (cfun->machine->has_hardware_loops)
-    bfin_reorg_loops (dump_file);
+  int delay_added = 0;
 
   if (! ENABLE_WA_SPECULATIVE_LOADS && ! ENABLE_WA_SPECULATIVE_SYNCS)
     return;
@@ -4741,6 +4809,7 @@ bfin_reorg (void)
   for (insn = get_insns (); insn; insn = next)
     {
       rtx pat;
+      int delay_needed = 0;
 
       next = find_next_insn_start (insn);
       
@@ -4759,6 +4828,7 @@ bfin_reorg (void)
 	      && ! cbranch_predicted_taken_p (insn))
 	    {
 	      last_condjump = insn;
+	      delay_added = 0;
 	      cycles_since_jump = 0;
 	    }
 	  else
@@ -4768,54 +4838,59 @@ bfin_reorg (void)
 	{
 	  rtx load_insn = find_load (insn);
 	  enum attr_type type = type_for_anomaly (insn);
-	  int delay_needed = 0;
+
 	  if (cycles_since_jump < INT_MAX)
 	    cycles_since_jump++;
 
 	  if (load_insn && ENABLE_WA_SPECULATIVE_LOADS)
 	    {
 	      if (trapping_loads_p (load_insn))
-		delay_needed = 3;
+		delay_needed = 4;
 	    }
 	  else if (type == TYPE_SYNC && ENABLE_WA_SPECULATIVE_SYNCS)
-	    delay_needed = 4;
+	    delay_needed = 3;
+	}
 
-	  if (delay_needed > cycles_since_jump)
+      if (delay_needed > cycles_since_jump
+	  && (delay_needed - cycles_since_jump) > delay_added)
+	{
+	  rtx pat1;
+	  int num_clobbers;
+	  rtx *op = recog_data.operand;
+
+	  delay_needed -= cycles_since_jump;
+
+	  extract_insn (last_condjump);
+	  if (optimize_size)
 	    {
-	      rtx pat;
-	      int num_clobbers;
-	      rtx *op = recog_data.operand;
-
-	      delay_needed -= cycles_since_jump;
-
-	      extract_insn (last_condjump);
-	      if (optimize_size)
-		{
-		  pat = gen_cbranch_predicted_taken (op[0], op[1], op[2],
-						     op[3]);
-		  cycles_since_jump = INT_MAX;
-		}
-	      else
-		/* Do not adjust cycles_since_jump in this case, so that
-		   we'll increase the number of NOPs for a subsequent insn
-		   if necessary.  */
-		pat = gen_cbranch_with_nops (op[0], op[1], op[2], op[3],
-					     GEN_INT (delay_needed));
-	      PATTERN (last_condjump) = pat;
-	      INSN_CODE (last_condjump) = recog (pat, insn, &num_clobbers);
+	      pat1 = gen_cbranch_predicted_taken (op[0], op[1], op[2],
+						 op[3]);
+	      cycles_since_jump = INT_MAX;
 	    }
+	  else
+	    {
+	      /* Do not adjust cycles_since_jump in this case, so that
+		 we'll increase the number of NOPs for a subsequent insn
+		 if necessary.  */
+	      pat1 = gen_cbranch_with_nops (op[0], op[1], op[2], op[3],
+					    GEN_INT (delay_needed));
+	      delay_added = delay_needed;
+	    }
+	  PATTERN (last_condjump) = pat1;
+	  INSN_CODE (last_condjump) = recog (pat1, insn, &num_clobbers);
+	}
+      if (CALL_P (insn))
+	{
+	  cycles_since_jump = INT_MAX;
+	  delay_added = 0;
 	}
     }
+
   /* Second pass: for predicted-true branches, see if anything at the
      branch destination needs extra nops.  */
-  if (! ENABLE_WA_SPECULATIVE_SYNCS)
-    return;
-
-  if (! ENABLE_WA_RETS)
-    return;
-
   for (insn = get_insns (); insn; insn = NEXT_INSN (insn))
     {
+      int cycles_since_jump;
       if (JUMP_P (insn)
 	  && any_condjump_p (insn)
 	  && (INSN_CODE (insn) == CODE_FOR_cbranch_predicted_taken
@@ -4823,10 +4898,14 @@ bfin_reorg (void)
 	{
 	  rtx target = JUMP_LABEL (insn);
 	  rtx label = target;
+	  rtx next_tgt;
+
 	  cycles_since_jump = 0;
-	  for (; target && cycles_since_jump < 3; target = NEXT_INSN (target))
+	  for (; target && cycles_since_jump < 3; target = next_tgt)
 	    {
 	      rtx pat;
+
+	      next_tgt = find_next_insn_start (target);
 
 	      if (NOTE_P (target) || BARRIER_P (target) || LABEL_P (target))
 		continue;
@@ -4839,12 +4918,18 @@ bfin_reorg (void)
 
 	      if (INSN_P (target))
 		{
+		  rtx load_insn = find_load (target);
 		  enum attr_type type = type_for_anomaly (target);
 		  int delay_needed = 0;
 		  if (cycles_since_jump < INT_MAX)
 		    cycles_since_jump++;
 
-		  if (type == TYPE_SYNC && ENABLE_WA_SPECULATIVE_SYNCS)
+		  if (load_insn && ENABLE_WA_SPECULATIVE_LOADS)
+		    {
+		      if (trapping_loads_p (load_insn))
+			delay_needed = 2;
+		    }
+		  else if (type == TYPE_SYNC && ENABLE_WA_SPECULATIVE_SYNCS)
 		    delay_needed = 2;
 
 		  if (delay_needed > cycles_since_jump)
@@ -4877,6 +4962,57 @@ bfin_reorg (void)
 	    }
 	}
     }
+}
+
+/* We use the machine specific reorg pass for emitting CSYNC instructions
+   after conditional branches as needed.
+
+   The Blackfin is unusual in that a code sequence like
+     if cc jump label
+     r0 = (p0)
+   may speculatively perform the load even if the condition isn't true.  This
+   happens for a branch that is predicted not taken, because the pipeline
+   isn't flushed or stalled, so the early stages of the following instructions,
+   which perform the memory reference, are allowed to execute before the
+   jump condition is evaluated.
+   Therefore, we must insert additional instructions in all places where this
+   could lead to incorrect behavior.  The manual recommends CSYNC, while
+   VDSP seems to use NOPs (even though its corresponding compiler option is
+   named CSYNC).
+
+   When optimizing for speed, we emit NOPs, which seems faster than a CSYNC.
+   When optimizing for size, we turn the branch into a predicted taken one.
+   This may be slower due to mispredicts, but saves code size.  */
+
+static void
+bfin_reorg (void)
+{
+  /* We are freeing block_for_insn in the toplev to keep compatibility
+     with old MDEP_REORGS that are not CFG based.  Recompute it now.  */
+  compute_bb_for_insn ();
+
+  if (bfin_flag_schedule_insns2)
+    {
+      splitting_for_sched = 1;
+      split_all_insns ();
+      splitting_for_sched = 0;
+
+      timevar_push (TV_SCHED2);
+      schedule_insns ();
+      timevar_pop (TV_SCHED2);
+
+      /* Examine the schedule and insert nops as necessary for 64-bit parallel
+	 instructions.  */
+      bfin_gen_bundles ();
+    }
+
+  df_analyze ();
+
+  /* Doloop optimization */
+  if (cfun->machine->has_hardware_loops)
+    bfin_reorg_loops (dump_file);
+
+  workaround_speculation ();
 
   if (bfin_flag_var_tracking)
     {
@@ -4885,7 +5021,10 @@ bfin_reorg (void)
       reorder_var_tracking_notes ();
       timevar_pop (TV_VAR_TRACKING);
     }
+
   df_finish_pass (false);
+
+  workaround_rts_anomaly ();
 }
 
 /* Handle interrupt_handler, exception_handler and nmi_handler function

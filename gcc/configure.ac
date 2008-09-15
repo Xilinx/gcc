@@ -323,14 +323,14 @@ AC_CHECK_TYPES([__int64], [AC_CHECK_SIZEOF(__int64)])
 # So, we only use -pedantic if we can disable those warnings.
 
 ACX_PROG_CC_WARNING_OPTS(
-	[m4_do([-W -Wall -Wwrite-strings -Wstrict-prototypes ],
-	       [-Wmissing-prototypes -Wcast-qual])], [loose_warn])
+	m4_quote(m4_do([-W -Wall -Wwrite-strings -Wstrict-prototypes ],
+		       [-Wmissing-prototypes -Wcast-qual])), [loose_warn])
 ACX_PROG_CC_WARNING_OPTS(
-	[m4_do([-Wold-style-definition -Wc++-compat ], 
-	       [-Wmissing-format-attribute])], [strict_warn])
+	m4_quote(m4_do([-Wold-style-definition -Wc++-compat ], 
+		       [-Wmissing-format-attribute])), [strict_warn])
 ACX_PROG_CC_WARNING_ALMOST_PEDANTIC(
-	[m4_do([-Wno-long-long -Wno-variadic-macros ], 
-	       [-Wno-overlength-strings])], [strict_warn])
+	m4_quote(m4_do([-Wno-long-long -Wno-variadic-macros ], 
+		       [-Wno-overlength-strings])), [strict_warn])
 ACX_PROG_CC_WARNINGS_ARE_ERRORS([manual], [strict_warn])
 
 # The above macros do nothing if the compiler is not GCC.  However, the
@@ -3177,6 +3177,12 @@ if test x"$insn" != x; then
 [Define if your assembler supports the --debug-prefix-map option.])])
 fi
 
+gcc_GAS_CHECK_FEATURE([.lcomm with alignment], gcc_cv_as_lcomm_with_alignment,
+ ,,
+[.lcomm bar,4,16],,
+[AC_DEFINE(HAVE_GAS_LCOMM_WITH_ALIGNMENT, 1,
+  [Define if your assembler supports .lcomm with an alignment field.])])
+
 AC_CACHE_CHECK([assembler for tolerance to line number 0],
  [gcc_cv_as_line_zero],
  [gcc_cv_as_line_zero=no
@@ -3882,6 +3888,15 @@ fi
 
 AC_ARG_VAR(GMPLIBS,[How to link GMP])
 AC_ARG_VAR(GMPINC,[How to find GMP include files])
+
+AC_ARG_VAR(PPLLIBS,[How to link PPL])
+AC_ARG_VAR(PPLINC,[How to find PPL include files])
+
+AC_ARG_VAR(CLOOGLIBS,[How to link CLOOG])
+AC_ARG_VAR(CLOOGINC,[How to find CLOOG include files])
+if test "x${CLOOGLIBS}" != "x" ; then 
+   AC_DEFINE(HAVE_cloog, 1, [Define if cloog is in use.])
+fi
 
 # Configure the subdirectories
 # AC_CONFIG_SUBDIRS($subdirs)

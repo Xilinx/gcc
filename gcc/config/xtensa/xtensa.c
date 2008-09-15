@@ -139,7 +139,7 @@ static unsigned int xtensa_multibss_section_type_flags (tree, const char *,
 							int) ATTRIBUTE_UNUSED;
 static section *xtensa_select_rtx_section (enum machine_mode, rtx,
 					   unsigned HOST_WIDE_INT);
-static bool xtensa_rtx_costs (rtx, int, int, int *);
+static bool xtensa_rtx_costs (rtx, int, int, int *, bool);
 static tree xtensa_build_builtin_va_list (void);
 static bool xtensa_return_in_memory (const_tree, const_tree);
 static tree xtensa_gimplify_va_arg_expr (tree, tree, gimple_seq *,
@@ -177,7 +177,7 @@ static const int reg_nonleaf_alloc_order[FIRST_PSEUDO_REGISTER] =
 #undef TARGET_RTX_COSTS
 #define TARGET_RTX_COSTS xtensa_rtx_costs
 #undef TARGET_ADDRESS_COST
-#define TARGET_ADDRESS_COST hook_int_rtx_0
+#define TARGET_ADDRESS_COST hook_int_rtx_bool_0
 
 #undef TARGET_BUILD_BUILTIN_VA_LIST
 #define TARGET_BUILD_BUILTIN_VA_LIST xtensa_build_builtin_va_list
@@ -215,6 +215,9 @@ static const int reg_nonleaf_alloc_order[FIRST_PSEUDO_REGISTER] =
 #define TARGET_FOLD_BUILTIN xtensa_fold_builtin
 #undef  TARGET_EXPAND_BUILTIN
 #define TARGET_EXPAND_BUILTIN xtensa_expand_builtin
+
+#undef TARGET_SECONDARY_RELOAD
+#define TARGET_SECONDARY_RELOAD xtensa_secondary_reload
 
 struct gcc_target targetm = TARGET_INITIALIZER;
 
@@ -2840,23 +2843,23 @@ xtensa_preferred_reload_class (rtx x, enum reg_class rclass, int isoutput)
 
 
 enum reg_class
-xtensa_secondary_reload_class (enum reg_class rclass,
-			       enum machine_mode mode ATTRIBUTE_UNUSED,
-			       rtx x, int isoutput)
+xtensa_secondary_reload (bool in_p, rtx x, enum reg_class rclass,
+			 enum machine_mode mode, secondary_reload_info *sri)
 {
   int regno;
 
-  if (GET_CODE (x) == SIGN_EXTEND)
-    x = XEXP (x, 0);
-  regno = xt_true_regnum (x);
-
-  if (!isoutput)
+  if (in_p && constantpool_mem_p (x))
     {
-      if ((rclass == FP_REGS || GET_MODE_SIZE (mode) < UNITS_PER_WORD)
-	  && constantpool_mem_p (x))
+      if (rclass == FP_REGS)
 	return RL_REGS;
+
+      if (mode == QImode)
+	sri->icode = CODE_FOR_reloadqi_literal;
+      else if (mode == HImode)
+	sri->icode = CODE_FOR_reloadhi_literal;
     }
 
+  regno = xt_true_regnum (x);
   if (ACC_REG_P (regno))
     return ((rclass == GR_REGS || rclass == RL_REGS) ? NO_REGS : RL_REGS);
   if (rclass == ACC_REG)
@@ -2948,7 +2951,8 @@ xtensa_select_rtx_section (enum machine_mode mode ATTRIBUTE_UNUSED,
    scanned.  In either case, *TOTAL contains the cost result.  */
 
 static bool
-xtensa_rtx_costs (rtx x, int code, int outer_code, int *total)
+xtensa_rtx_costs (rtx x, int code, int outer_code, int *total,
+		  bool speed ATTRIBUTE_UNUSED)
 {
   switch (code)
     {

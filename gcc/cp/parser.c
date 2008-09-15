@@ -853,7 +853,7 @@ clear_decl_specs (cp_decl_specifier_seq *decl_specs)
    VAR_DECLs or FUNCTION_DECLs) should do that directly.  */
 
 static cp_declarator *make_call_declarator
-  (cp_declarator *, cp_parameter_declarator *, cp_cv_quals, tree);
+  (cp_declarator *, tree, cp_cv_quals, tree, tree);
 static cp_declarator *make_array_declarator
   (cp_declarator *, tree);
 static cp_declarator *make_pointer_declarator
@@ -1013,9 +1013,10 @@ make_ptrmem_declarator (cp_cv_quals cv_qualifiers, tree class_type,
 
 cp_declarator *
 make_call_declarator (cp_declarator *target,
-		      cp_parameter_declarator *parms,
+		      tree parms,
 		      cp_cv_quals cv_qualifiers,
-		      tree exception_specification)
+		      tree exception_specification,
+		      tree late_return_type)
 {
   cp_declarator *declarator;
 
@@ -1024,6 +1025,7 @@ make_call_declarator (cp_declarator *target,
   declarator->u.function.parameters = parms;
   declarator->u.function.qualifiers = cv_qualifiers;
   declarator->u.function.exception_specification = exception_specification;
+  declarator->u.function.late_return_type = late_return_type;
   if (target)
     {
       declarator->parameter_pack_p = target->parameter_pack_p;
@@ -1726,15 +1728,17 @@ static enum tree_code cp_parser_ptr_operator
   (cp_parser *, tree *, cp_cv_quals *);
 static cp_cv_quals cp_parser_cv_qualifier_seq_opt
   (cp_parser *);
+static tree cp_parser_late_return_type_opt
+  (cp_parser *);
 static tree cp_parser_declarator_id
   (cp_parser *, bool);
 static tree cp_parser_type_id
   (cp_parser *);
 static void cp_parser_type_specifier_seq
   (cp_parser *, bool, cp_decl_specifier_seq *);
-static cp_parameter_declarator *cp_parser_parameter_declaration_clause
+static tree cp_parser_parameter_declaration_clause
   (cp_parser *);
-static cp_parameter_declarator *cp_parser_parameter_declaration_list
+static tree cp_parser_parameter_declaration_list
   (cp_parser *, bool *);
 static cp_parameter_declarator *cp_parser_parameter_declaration
   (cp_parser *, bool, bool *);
@@ -5453,13 +5457,14 @@ cp_parser_unary_expression (cp_parser *parser, bool address_p, bool cast_p)
 	{
 	  tree identifier;
 	  tree expression;
+	  location_t loc = cp_lexer_peek_token (parser->lexer)->location;
 
 	  /* Consume the '&&' token.  */
 	  cp_lexer_consume_token (parser->lexer);
 	  /* Look for the identifier.  */
 	  identifier = cp_parser_identifier (parser);
 	  /* Create an expression representing the address.  */
-	  expression = finish_label_address_expr (identifier);
+	  expression = finish_label_address_expr (identifier, loc);
 	  if (cp_parser_non_integral_constant_expression (parser,
 						"the address of a label"))
 	    expression = error_mark_node;
@@ -8324,11 +8329,11 @@ cp_parser_decl_specifier_seq (cp_parser* parser,
 	     GNU Extension:
 	       thread  */
 	case RID_AUTO:
-          /* Consume the token.  */
-          cp_lexer_consume_token (parser->lexer);
-
           if (cxx_dialect == cxx98) 
             {
+	      /* Consume the token.  */
+	      cp_lexer_consume_token (parser->lexer);
+
               /* Complain about `auto' as a storage specifier, if
                  we're complaining about C++0x compatibility.  */
               warning 
@@ -8340,10 +8345,9 @@ cp_parser_decl_specifier_seq (cp_parser* parser,
               cp_parser_set_storage_class (parser, decl_specs, RID_AUTO,
 					   token->location);
             }
-          else 
-            /* We do not yet support the use of `auto' as a
-               type-specifier.  */
-            error ("%HC++0x %<auto%> specifier not supported", &token->location);
+          else
+	    /* C++0x auto type-specifier.  */
+	    found_decl_spec = false;
           break;
 
 	case RID_REGISTER:
@@ -11069,14 +11073,8 @@ cp_parser_simple_type_specifier (cp_parser* parser,
       break;
       
     case RID_AUTO:
-      if (cxx_dialect != cxx98)
-        {
-          /* Consume the token.  */
-          cp_lexer_consume_token (parser->lexer);
-          /* We do not yet support the use of `auto' as a
-             type-specifier.  */
-          error ("%HC++0x %<auto%> specifier not supported", &token->location);
-        }
+      maybe_warn_cpp0x ("C++0x auto");
+      type = make_auto ();
       break;
 
     case RID_DECLTYPE:
@@ -12612,7 +12610,7 @@ cp_parser_init_declarator (cp_parser* parser,
       || token->type == CPP_OPEN_PAREN
       || token->type == CPP_OPEN_BRACE)
     {
-      is_initialized = 1;
+      is_initialized = SD_INITIALIZED;
       initialization_kind = token->type;
 
       if (token->type == CPP_EQ
@@ -12620,9 +12618,9 @@ cp_parser_init_declarator (cp_parser* parser,
 	{
 	  cp_token *t2 = cp_lexer_peek_nth_token (parser->lexer, 2);
 	  if (t2->keyword == RID_DEFAULT)
-	    is_initialized = 2;
+	    is_initialized = SD_DEFAULTED;
 	  else if (t2->keyword == RID_DELETE)
-	    is_initialized = 3;
+	    is_initialized = SD_DELETED;
 	}
     }
   else
@@ -12635,7 +12633,7 @@ cp_parser_init_declarator (cp_parser* parser,
 	  cp_parser_error (parser, "expected initializer");
 	  return error_mark_node;
 	}
-      is_initialized = 0;
+      is_initialized = SD_UNINITIALIZED;
       initialization_kind = CPP_EOF;
     }
 
@@ -12988,8 +12986,10 @@ cp_parser_direct_declarator (cp_parser* parser,
 
 	  if (!first || dcl_kind != CP_PARSER_DECLARATOR_NAMED)
 	    {
-	      cp_parameter_declarator *params;
+	      tree params;
 	      unsigned saved_num_template_parameter_lists;
+	      bool is_declarator = false;
+	      tree t;
 
 	      /* In a member-declarator, the only valid interpretation
 		 of a parenthesis is the start of a
@@ -13016,6 +13016,8 @@ cp_parser_direct_declarator (cp_parser* parser,
 		= parser->num_template_parameter_lists;
 	      parser->num_template_parameter_lists = 0;
 
+	      begin_scope (sk_function_parms, NULL_TREE);
+
 	      /* Parse the parameter-declaration-clause.  */
 	      params = cp_parser_parameter_declaration_clause (parser);
 
@@ -13028,6 +13030,9 @@ cp_parser_direct_declarator (cp_parser* parser,
 		{
 		  cp_cv_quals cv_quals;
 		  tree exception_specification;
+		  tree late_return;
+
+		  is_declarator = true;
 
 		  if (ctor_dtor_or_conv_p)
 		    *ctor_dtor_or_conv_p = *ctor_dtor_or_conv_p < 0;
@@ -13041,19 +13046,29 @@ cp_parser_direct_declarator (cp_parser* parser,
 		  exception_specification
 		    = cp_parser_exception_specification_opt (parser);
 
+		  late_return
+		    = cp_parser_late_return_type_opt (parser);
+
 		  /* Create the function-declarator.  */
 		  declarator = make_call_declarator (declarator,
 						     params,
 						     cv_quals,
-						     exception_specification);
+						     exception_specification,
+						     late_return);
 		  /* Any subsequent parameter lists are to do with
 		     return type, so are not those of the declared
 		     function.  */
 		  parser->default_arg_ok_p = false;
-
-		  /* Repeat the main loop.  */
-		  continue;
 		}
+
+	      /* Remove the function parms from scope.  */
+	      for (t = current_binding_level->names; t; t = TREE_CHAIN (t))
+		pop_binding (DECL_NAME (t), t);
+	      leave_scope();
+
+	      if (is_declarator)
+		/* Repeat the main loop.  */
+		continue;
 	    }
 
 	  /* If this is the first, we can try a parenthesized
@@ -13523,6 +13538,30 @@ cp_parser_cv_qualifier_seq_opt (cp_parser* parser)
   return cv_quals;
 }
 
+/* Parse a late-specified return type, if any.  This is not a separate
+   non-terminal, but part of a function declarator, which looks like
+
+   -> type-id
+
+   Returns the type indicated by the type-id.  */
+
+static tree
+cp_parser_late_return_type_opt (cp_parser* parser)
+{
+  cp_token *token;
+
+  /* Peek at the next token.  */
+  token = cp_lexer_peek_token (parser->lexer);
+  /* A late-specified return type is indicated by an initial '->'. */
+  if (token->type != CPP_DEREF)
+    return NULL_TREE;
+
+  /* Consume the ->.  */
+  cp_lexer_consume_token (parser->lexer);
+
+  return cp_parser_type_id (parser);
+}
+
 /* Parse a declarator-id.
 
    declarator-id:
@@ -13701,10 +13740,10 @@ cp_parser_type_specifier_seq (cp_parser* parser,
    value of NULL indicates a parameter-declaration-clause consisting
    only of an ellipsis.  */
 
-static cp_parameter_declarator *
+static tree
 cp_parser_parameter_declaration_clause (cp_parser* parser)
 {
-  cp_parameter_declarator *parameters;
+  tree parameters;
   cp_token *token;
   bool ellipsis_p;
   bool is_error;
@@ -13716,7 +13755,7 @@ cp_parser_parameter_declaration_clause (cp_parser* parser)
     {
       /* Consume the `...' token.  */
       cp_lexer_consume_token (parser->lexer);
-      return NULL;
+      return NULL_TREE;
     }
   else if (token->type == CPP_CLOSE_PAREN)
     /* There are no parameters.  */
@@ -13724,10 +13763,10 @@ cp_parser_parameter_declaration_clause (cp_parser* parser)
 #ifndef NO_IMPLICIT_EXTERN_C
       if (in_system_header && current_class_type == NULL
 	  && current_lang_name == lang_name_c)
-	return NULL;
+	return NULL_TREE;
       else
 #endif
-	return no_parameters;
+	return void_list_node;
     }
   /* Check for `(void)', too, which is a special case.  */
   else if (token->keyword == RID_VOID
@@ -13737,7 +13776,7 @@ cp_parser_parameter_declaration_clause (cp_parser* parser)
       /* Consume the `void' token.  */
       cp_lexer_consume_token (parser->lexer);
       /* There are no parameters.  */
-      return no_parameters;
+      return void_list_node;
     }
 
   /* Parse the parameter-declaration-list.  */
@@ -13772,8 +13811,8 @@ cp_parser_parameter_declaration_clause (cp_parser* parser)
     ellipsis_p = false;
 
   /* Finish the parameter list.  */
-  if (parameters && ellipsis_p)
-    parameters->ellipsis_p = true;
+  if (!ellipsis_p)
+    parameters = chainon (parameters, void_list_node);
 
   return parameters;
 }
@@ -13789,11 +13828,11 @@ cp_parser_parameter_declaration_clause (cp_parser* parser)
    `void_list_node' is never appended to the list.  Upon return,
    *IS_ERROR will be true iff an error occurred.  */
 
-static cp_parameter_declarator *
+static tree
 cp_parser_parameter_declaration_list (cp_parser* parser, bool *is_error)
 {
-  cp_parameter_declarator *parameters = NULL;
-  cp_parameter_declarator **tail = &parameters;
+  tree parameters = NULL_TREE;
+  tree *tail = &parameters; 
   bool saved_in_unbraced_linkage_specification_p;
 
   /* Assume all will go well.  */
@@ -13809,6 +13848,7 @@ cp_parser_parameter_declaration_list (cp_parser* parser, bool *is_error)
   while (true)
     {
       cp_parameter_declarator *parameter;
+      tree decl = error_mark_node;
       bool parenthesized_p;
       /* Parse the parameter.  */
       parameter
@@ -13816,17 +13856,38 @@ cp_parser_parameter_declaration_list (cp_parser* parser, bool *is_error)
 					   /*template_parm_p=*/false,
 					   &parenthesized_p);
 
+      /* We don't know yet if the enclosing context is deprecated, so wait
+	 and warn in grokparms if appropriate.  */
+      deprecated_state = DEPRECATED_SUPPRESS;
+
+      if (parameter)
+	decl = grokdeclarator (parameter->declarator,
+			       &parameter->decl_specifiers,
+			       PARM,
+			       parameter->default_argument != NULL_TREE,
+			       &parameter->decl_specifiers.attributes);
+
+      deprecated_state = DEPRECATED_NORMAL;
+
       /* If a parse error occurred parsing the parameter declaration,
 	 then the entire parameter-declaration-list is erroneous.  */
-      if (!parameter)
+      if (decl == error_mark_node)
 	{
 	  *is_error = true;
-	  parameters = NULL;
+	  parameters = error_mark_node;
 	  break;
 	}
+
+      if (parameter->decl_specifiers.attributes)
+	cplus_decl_attributes (&decl,
+			       parameter->decl_specifiers.attributes,
+			       0);
+      if (DECL_NAME (decl))
+	decl = pushdecl (decl);
+
       /* Add the new parameter to the list.  */
-      *tail = parameter;
-      tail = &parameter->next;
+      *tail = build_tree_list (parameter->default_argument, decl);
+      tail = &TREE_CHAIN (*tail);
 
       /* Peek at the next token.  */
       if (cp_lexer_next_token_is (parser->lexer, CPP_CLOSE_PAREN)
@@ -20012,7 +20073,7 @@ cp_parser_omp_clause_name (cp_parser *parser)
 /* Validate that a clause of the given type does not already exist.  */
 
 static void
-check_no_duplicate_clause (tree clauses, enum tree_code code,
+check_no_duplicate_clause (tree clauses, enum omp_clause_code code,
 			   const char *name, location_t location)
 {
   tree c;

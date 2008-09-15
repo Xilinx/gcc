@@ -385,6 +385,10 @@ fcommon
 Common Report Var(flag_no_common,0) Optimization
 Do not put uninitialized globals in the common section
 
+fconserve-stack
+Common Var(flag_conserve_stack,0) Optimization
+Do not perform optimizations increasing noticeably stack usage
+
 fcprop-registers
 Common Report Var(flag_cprop_registers) Optimization
 Perform a register copy-propagation optimization pass
@@ -546,6 +550,22 @@ fgcse-after-reload
 Common Report Var(flag_gcse_after_reload) Optimization
 Perform global common subexpression elimination after register allocation
 has finished
+
+fgraphite
+Common Report Var(flag_graphite)
+Enable in and out of Graphite representation
+
+floop-strip-mine
+Common Report Var(flag_loop_strip_mine) Optimization
+Enable Loop Strip Mining transformation
+
+floop-interchange
+Common Report Var(flag_loop_interchange) Optimization
+Enable Loop Interchange transformation
+
+floop-block
+Common Report Var(flag_loop_block) Optimization
+Enable Loop Blocking transformation
 
 fguess-branch-probability
 Common Report Var(flag_guess_branch_prob) Optimization
@@ -962,6 +982,29 @@ fschedule-insns2
 Common Report Var(flag_schedule_insns_after_reload) Optimization
 Reschedule instructions after register allocation
 
+; This flag should be on when a target implements non-trivial
+; scheduling hooks, maybe saving some information for its own sake.
+; On IA64, for example, this is used for correct bundling. 
+fselective-scheduling
+Common Report Var(flag_selective_scheduling) Optimization
+Schedule instructions using selective scheduling algorithm
+
+fselective-scheduling2
+Common Report Var(flag_selective_scheduling2) Optimization 
+Run selective scheduling after reload
+
+fsel-sched-pipelining
+Common Report Var(flag_sel_sched_pipelining) Init(0) Optimization
+Perform software pipelining of inner loops during selective scheduling
+
+fsel-sched-pipelining-outer-loops
+Common Report Var(flag_sel_sched_pipelining_outer_loops) Init(0) Optimization
+Perform software pipelining of outer loops during selective scheduling
+
+fsel-sched-reschedule-pipelined
+Common Report Var(flag_sel_sched_reschedule_pipelined) Init(0) Optimization
+Reschedule pipelined regions without pipelining
+
 ; sched_stalled_insns means that insns can be moved prematurely from the queue
 ; of stalled insns into the ready list.
 fsched-stalled-insns
@@ -1111,8 +1154,8 @@ Common Report Var(flag_tree_ccp) Optimization
 Enable SSA-CCP optimization on trees
 
 ftree-store-ccp
-Common Report Var(flag_tree_store_ccp) Optimization
-Enable SSA-CCP optimization for stores and loads
+Common
+Does nothing.  Preserved for backward compatibility.
 
 ftree-ch
 Common Report Var(flag_tree_ch) Optimization

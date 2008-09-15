@@ -398,8 +398,12 @@ cxx_incomplete_type_diagnostic (const_tree value, const_tree type,
       break;
 
     case TEMPLATE_TYPE_PARM:
-      emit_diagnostic (diag_kind, input_location, 0,
-		       "invalid use of template type parameter %qT", type);
+      if (is_auto (type))
+	emit_diagnostic (diag_kind, input_location, 0,
+			 "invalid use of %<auto%>");
+      else
+	emit_diagnostic (diag_kind, input_location, 0,
+			 "invalid use of template type parameter %qT", type);
       break;
 
     case BOUND_TEMPLATE_TEMPLATE_PARM:
@@ -700,7 +704,8 @@ check_narrowing (tree type, tree init)
     }
 
   if (!ok)
-    error ("narrowing conversion of %qE to %qT inside { }", init, type);
+    permerror (input_location, "narrowing conversion of %qE to %qT inside { }",
+	       init, type);
 }
 
 /* Process the initializer INIT for a variable of type TYPE, emitting

@@ -429,16 +429,6 @@ add_decl_expr (tree decl)
   add_stmt (r);
 }
 
-/* Nonzero if TYPE is an anonymous union or struct type.  We have to use a
-   flag for this because "A union for which objects or pointers are
-   declared is not an anonymous union" [class.union].  */
-
-int
-anon_aggr_type_p (const_tree node)
-{
-  return ANON_AGGR_TYPE_P (node);
-}
-
 /* Finish a scope.  */
 
 tree
@@ -572,7 +562,8 @@ finish_goto_stmt (tree destination)
 }
 
 /* COND is the condition-expression for an if, while, etc.,
-   statement.  Convert it to a boolean value, if appropriate.  */
+   statement.  Convert it to a boolean value, if appropriate.
+   In addition, verify sequence points if -Wsequence-point is enabled.  */
 
 static tree
 maybe_convert_cond (tree cond)
@@ -584,6 +575,9 @@ maybe_convert_cond (tree cond)
   /* Wait until we instantiate templates before doing conversion.  */
   if (processing_template_decl)
     return cond;
+
+  if (warn_sequence_point)
+    verify_sequence_points (cond);
 
   /* Do the conversion.  */
   cond = convert_from_reference (cond);
@@ -790,6 +784,9 @@ finish_return_stmt (tree expr)
     return error_mark_node;
   if (!processing_template_decl)
     {
+      if (warn_sequence_point)
+	verify_sequence_points (expr);
+      
       if (DECL_DESTRUCTOR_P (current_function_decl)
 	  || (DECL_CONSTRUCTOR_P (current_function_decl)
 	      && targetm.cxx.cdtor_returns_this ()))
@@ -978,6 +975,9 @@ finish_switch_cond (tree cond, tree switch_stmt)
     }
   if (check_for_bare_parameter_packs (cond))
     cond = error_mark_node;
+  else if (!processing_template_decl && warn_sequence_point)
+    verify_sequence_points (cond);
+
   finish_cond (&SWITCH_STMT_COND (switch_stmt), cond);
   SWITCH_STMT_TYPE (switch_stmt) = orig_type;
   add_stmt (switch_stmt);

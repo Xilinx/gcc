@@ -99,6 +99,7 @@ extern tree default_emutls_var_fields (tree, tree *);
 extern tree default_emutls_var_init (tree, tree, tree);
 extern bool default_hard_regno_scratch_ok (unsigned int);
 extern bool default_target_option_valid_attribute_p (tree, tree, tree, int);
+extern bool default_target_option_pragma_parse (tree, tree);
 extern bool default_target_option_can_inline_p (tree, tree);
 extern const char *default_addr_space_name (int);
 extern unsigned char default_addr_space_number (const_tree);

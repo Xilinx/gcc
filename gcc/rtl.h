@@ -1075,8 +1075,8 @@ rhs_regno (const_rtx x)
 #define MAX_COST INT_MAX
 
 extern void init_rtlanal (void);
-extern int rtx_cost (rtx, enum rtx_code);
-extern int address_cost (rtx, enum machine_mode);
+extern int rtx_cost (rtx, enum rtx_code, bool);
+extern int address_cost (rtx, enum machine_mode, bool);
 extern unsigned int subreg_lsb (const_rtx);
 extern unsigned int subreg_lsb_1 (enum machine_mode, enum machine_mode,
 				  unsigned int);
@@ -1085,6 +1085,8 @@ extern unsigned int subreg_regno_offset	(unsigned int, enum machine_mode,
 extern bool subreg_offset_representable_p (unsigned int, enum machine_mode,
 					   unsigned int, enum machine_mode);
 extern unsigned int subreg_regno (const_rtx);
+extern int simplify_subreg_regno (unsigned int, enum machine_mode,
+				  unsigned int, enum machine_mode);
 extern unsigned int subreg_nregs (const_rtx);
 extern unsigned int subreg_nregs_with_regno (unsigned int, const_rtx);
 extern unsigned HOST_WIDE_INT nonzero_bits (const_rtx, enum machine_mode);
@@ -1249,8 +1251,7 @@ do {						\
 /* Likewise in an expr_list for a REG_LABEL_OPERAND or
    REG_LABEL_TARGET note.  */
 #define LABEL_REF_NONLOCAL_P(RTX)					\
-  (RTL_FLAG_CHECK3("LABEL_REF_NONLOCAL_P", (RTX), LABEL_REF,		\
-		   REG_LABEL_OPERAND, REG_LABEL_TARGET)->volatil)
+  (RTL_FLAG_CHECK1("LABEL_REF_NONLOCAL_P", (RTX), LABEL_REF)->volatil)
 
 /* 1 if RTX is a code_label that should always be considered to be needed.  */
 #define LABEL_PRESERVE_P(RTX)						\
@@ -1777,8 +1778,20 @@ extern int replace_label (rtx *, void *);
 extern int rtx_referenced_p (rtx, rtx);
 extern bool tablejump_p (const_rtx, rtx *, rtx *);
 extern int computed_jump_p (const_rtx);
+
 typedef int (*rtx_function) (rtx *, void *);
 extern int for_each_rtx (rtx *, rtx_function, void *);
+
+typedef int (*rtx_equal_p_callback_function) (const_rtx *, const_rtx *,
+                                              rtx *, rtx *);
+extern int rtx_equal_p_cb (const_rtx, const_rtx,
+                           rtx_equal_p_callback_function);
+
+typedef int (*hash_rtx_callback_function) (const_rtx, enum machine_mode, rtx *,
+                                           enum machine_mode *);
+extern unsigned hash_rtx_cb (const_rtx, enum machine_mode, int *, int *,
+                             bool, hash_rtx_callback_function);
+
 extern rtx regno_use_in (unsigned int, rtx);
 extern int auto_inc_p (const_rtx);
 extern int in_expr_list_p (const_rtx, const_rtx);
@@ -1787,7 +1800,7 @@ extern int loc_mentioned_in_p (rtx *, const_rtx);
 extern rtx find_first_parameter_load (rtx, rtx);
 extern bool keep_with_call_p (const_rtx);
 extern bool label_is_jump_target_p (const_rtx, const_rtx);
-extern int insn_rtx_cost (rtx);
+extern int insn_rtx_cost (rtx, bool);
 
 /* Given an insn and condition, return a canonical description of
    the test being made.  */
@@ -1799,14 +1812,17 @@ extern rtx get_condition (rtx, rtx *, int, int);
 
 /* lists.c */
 
-void free_EXPR_LIST_list		(rtx *);
-void free_INSN_LIST_list		(rtx *);
-void free_EXPR_LIST_node		(rtx);
-void free_INSN_LIST_node		(rtx);
-rtx alloc_INSN_LIST			(rtx, rtx);
-rtx alloc_EXPR_LIST			(int, rtx, rtx);
-void remove_free_INSN_LIST_elem (rtx, rtx *);
-rtx remove_list_elem (rtx, rtx *);
+extern void free_EXPR_LIST_list		(rtx *);
+extern void free_INSN_LIST_list		(rtx *);
+extern void free_EXPR_LIST_node		(rtx);
+extern void free_INSN_LIST_node		(rtx);
+extern rtx alloc_INSN_LIST			(rtx, rtx);
+extern rtx alloc_EXPR_LIST			(int, rtx, rtx);
+extern void remove_free_INSN_LIST_elem (rtx, rtx *);
+extern rtx remove_list_elem (rtx, rtx *);
+extern rtx remove_free_INSN_LIST_node (rtx *);
+extern rtx remove_free_EXPR_LIST_node (rtx *);
+
 
 /* regclass.c */
 
@@ -2136,7 +2152,9 @@ extern void dump_combine_total_stats (FILE *);
 extern void delete_dead_jumptables (void);
 
 /* In sched-vis.c.  */
-extern void print_insn (char *, rtx, int);
+extern void debug_bb_n_slim (int);
+extern void debug_bb_slim (struct basic_block_def *);
+extern void print_rtl_slim (FILE *, rtx, rtx, int, int);
 extern void print_rtl_slim_with_bb (FILE *, rtx, int);
 extern void dump_insn_slim (FILE *f, rtx x);
 extern void debug_insn_slim (rtx x);
@@ -2149,6 +2167,9 @@ extern void schedule_ebbs (void);
 
 /* In haifa-sched.c.  */
 extern void fix_sched_param (const char *, const char *);
+
+/* In sel-sched-dump.c.  */
+extern void sel_sched_fix_param (const char *param, const char *val);
 
 /* In print-rtl.c */
 extern const char *print_rtx_head;
@@ -2314,6 +2335,9 @@ extern rtx compare_and_jump_seq (rtx, rtx, enum rtx_code, rtx, int, rtx);
 /* In loop-iv.c  */
 extern rtx canon_condition (rtx);
 extern void simplify_using_condition (rtx, rtx *, struct bitmap_head_def *);
+
+/* In final.c  */
+extern unsigned int compute_alignments (void);
 
 struct rtl_hooks
 {
@@ -2338,9 +2362,12 @@ extern const struct rtl_hooks general_rtl_hooks;
 #define gen_lowpart rtl_hooks.gen_lowpart
 
 extern void insn_locators_alloc (void);
+extern void insn_locators_free (void);
 extern void insn_locators_finalize (void);
 extern void set_curr_insn_source_location (location_t);
 extern void set_curr_insn_block (tree);
 extern int curr_insn_locator (void);
+extern bool optimize_insn_for_size_p (void);
+extern bool optimize_insn_for_speed_p (void);
 
 #endif /* ! GCC_RTL_H */

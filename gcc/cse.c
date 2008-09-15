@@ -283,6 +283,7 @@ static enum machine_mode this_insn_cc0_mode, prev_insn_cc0_mode;
 /* Insn being scanned.  */
 
 static rtx this_insn;
+static bool optimize_this_for_speed_p;
 
 /* Index by register number, gives the number of the next (or
    previous) register in the chain of registers sharing the same
@@ -573,7 +574,7 @@ static rtx use_related_value (rtx, struct table_elt *);
 
 static inline unsigned canon_hash (rtx, enum machine_mode);
 static inline unsigned safe_hash (rtx, enum machine_mode);
-static unsigned hash_rtx_string (const char *);
+static inline unsigned hash_rtx_string (const char *);
 
 static rtx canon_reg (rtx, rtx);
 static enum rtx_code find_comparison_args (enum rtx_code, rtx *, rtx *,
@@ -752,7 +753,7 @@ notreg_cost (rtx x, enum rtx_code outer)
 	   && TRULY_NOOP_TRUNCATION (GET_MODE_BITSIZE (GET_MODE (x)),
 				     GET_MODE_BITSIZE (GET_MODE (SUBREG_REG (x)))))
 	  ? 0
-	  : rtx_cost (x, outer) * 2);
+	  : rtx_cost (x, outer, optimize_this_for_speed_p) * 2);
 }
 
 
@@ -2043,6 +2044,7 @@ use_related_value (rtx x, struct table_elt *elt)
   return plus_constant (q->exp, offset);
 }
 
+
 /* Hash a string.  Just add its bytes up.  */
 static inline unsigned
 hash_rtx_string (const char *ps)
@@ -2057,27 +2059,20 @@ hash_rtx_string (const char *ps)
   return hash;
 }
 
-/* Hash an rtx.  We are careful to make sure the value is never negative.
-   Equivalent registers hash identically.
-   MODE is used in hashing for CONST_INTs only;
-   otherwise the mode of X is used.
-
-   Store 1 in DO_NOT_RECORD_P if any subexpression is volatile.
-
-   If HASH_ARG_IN_MEMORY_P is not NULL, store 1 in it if X contains
-   a MEM rtx which does not have the RTX_UNCHANGING_P bit set.
-
-   Note that cse_insn knows that the hash code of a MEM expression
-   is just (int) MEM plus the hash code of the address.  */
+/* Same as hash_rtx, but call CB on each rtx if it is not NULL.  
+   When the callback returns true, we continue with the new rtx.  */
 
 unsigned
-hash_rtx (const_rtx x, enum machine_mode mode, int *do_not_record_p,
-	  int *hash_arg_in_memory_p, bool have_reg_qty)
+hash_rtx_cb (const_rtx x, enum machine_mode mode,
+             int *do_not_record_p, int *hash_arg_in_memory_p,
+             bool have_reg_qty, hash_rtx_callback_function cb)
 {
   int i, j;
   unsigned hash = 0;
   enum rtx_code code;
   const char *fmt;
+  enum machine_mode newmode;
+  rtx newx;
 
   /* Used to turn recursion into iteration.  We can't rely on GCC's
      tail-recursion elimination since we need to keep accumulating values
@@ -2086,6 +2081,15 @@ hash_rtx (const_rtx x, enum machine_mode mode, int *do_not_record_p,
   if (x == 0)
     return hash;
 
+  /* Invoke the callback first.  */
+  if (cb != NULL 
+      && ((*cb) (x, mode, &newx, &newmode)))
+    {
+      hash += hash_rtx_cb (newx, newmode, do_not_record_p,
+                           hash_arg_in_memory_p, have_reg_qty, cb);
+      return hash;
+    }
+
   code = GET_CODE (x);
   switch (code)
     {
@@ -2093,7 +2097,7 @@ hash_rtx (const_rtx x, enum machine_mode mode, int *do_not_record_p,
       {
 	unsigned int regno = REGNO (x);
 
-	if (!reload_completed)
+	if (do_not_record_p && !reload_completed)
 	  {
 	    /* On some machines, we can't record any non-fixed hard register,
 	       because extending its life will cause reload problems.  We
@@ -2187,8 +2191,9 @@ hash_rtx (const_rtx x, enum machine_mode mode, int *do_not_record_p,
 	for (i = 0; i < units; ++i)
 	  {
 	    elt = CONST_VECTOR_ELT (x, i);
-	    hash += hash_rtx (elt, GET_MODE (elt), do_not_record_p,
-			      hash_arg_in_memory_p, have_reg_qty);
+	    hash += hash_rtx_cb (elt, GET_MODE (elt),
+                                 do_not_record_p, hash_arg_in_memory_p, 
+                                 have_reg_qty, cb);
 	  }
 
 	return hash;
@@ -2222,7 +2227,7 @@ hash_rtx (const_rtx x, enum machine_mode mode, int *do_not_record_p,
     case MEM:
       /* We don't record if marked volatile or if BLKmode since we don't
 	 know the size of the move.  */
-      if (MEM_VOLATILE_P (x) || GET_MODE (x) == BLKmode)
+      if (do_not_record_p && (MEM_VOLATILE_P (x) || GET_MODE (x) == BLKmode))
 	{
 	  *do_not_record_p = 1;
 	  return 0;
@@ -2269,11 +2274,16 @@ hash_rtx (const_rtx x, enum machine_mode mode, int *do_not_record_p,
     case CC0:
     case CALL:
     case UNSPEC_VOLATILE:
-      *do_not_record_p = 1;
-      return 0;
+      if (do_not_record_p) {
+        *do_not_record_p = 1;
+        return 0;
+      }
+      else
+        return hash;
+      break;
 
     case ASM_OPERANDS:
-      if (MEM_VOLATILE_P (x))
+      if (do_not_record_p && MEM_VOLATILE_P (x))
 	{
 	  *do_not_record_p = 1;
 	  return 0;
@@ -2290,12 +2300,12 @@ hash_rtx (const_rtx x, enum machine_mode mode, int *do_not_record_p,
 	    {
 	      for (i = 1; i < ASM_OPERANDS_INPUT_LENGTH (x); i++)
 		{
-		  hash += (hash_rtx (ASM_OPERANDS_INPUT (x, i),
-				     GET_MODE (ASM_OPERANDS_INPUT (x, i)),
-				     do_not_record_p, hash_arg_in_memory_p,
-				     have_reg_qty)
+		  hash += (hash_rtx_cb (ASM_OPERANDS_INPUT (x, i),
+                                        GET_MODE (ASM_OPERANDS_INPUT (x, i)),
+                                        do_not_record_p, hash_arg_in_memory_p,
+                                        have_reg_qty, cb)
 			   + hash_rtx_string
-				(ASM_OPERANDS_INPUT_CONSTRAINT (x, i)));
+                           (ASM_OPERANDS_INPUT_CONSTRAINT (x, i)));
 		}
 
 	      hash += hash_rtx_string (ASM_OPERANDS_INPUT_CONSTRAINT (x, 0));
@@ -2328,15 +2338,17 @@ hash_rtx (const_rtx x, enum machine_mode mode, int *do_not_record_p,
 	      x = XEXP (x, i);
 	      goto repeat;
 	    }
-
-	  hash += hash_rtx (XEXP (x, i), 0, do_not_record_p,
-			    hash_arg_in_memory_p, have_reg_qty);
+          
+	  hash += hash_rtx_cb (XEXP (x, i), 0, do_not_record_p,
+                               hash_arg_in_memory_p,
+                               have_reg_qty, cb);
 	  break;
 
 	case 'E':
 	  for (j = 0; j < XVECLEN (x, i); j++)
-	    hash += hash_rtx (XVECEXP (x, i, j), 0, do_not_record_p,
-			      hash_arg_in_memory_p, have_reg_qty);
+	    hash += hash_rtx_cb (XVECEXP (x, i, j), 0, do_not_record_p,
+                                 hash_arg_in_memory_p,
+                                 have_reg_qty, cb);
 	  break;
 
 	case 's':
@@ -2357,6 +2369,27 @@ hash_rtx (const_rtx x, enum machine_mode mode, int *do_not_record_p,
     }
 
   return hash;
+}
+
+/* Hash an rtx.  We are careful to make sure the value is never negative.
+   Equivalent registers hash identically.
+   MODE is used in hashing for CONST_INTs only;
+   otherwise the mode of X is used.
+
+   Store 1 in DO_NOT_RECORD_P if any subexpression is volatile.
+
+   If HASH_ARG_IN_MEMORY_P is not NULL, store 1 in it if X contains
+   a MEM rtx which does not have the RTX_UNCHANGING_P bit set.
+
+   Note that cse_insn knows that the hash code of a MEM expression
+   is just (int) MEM plus the hash code of the address.  */
+
+unsigned
+hash_rtx (const_rtx x, enum machine_mode mode, int *do_not_record_p,
+	  int *hash_arg_in_memory_p, bool have_reg_qty)
+{
+  return hash_rtx_cb (x, mode, do_not_record_p,
+                      hash_arg_in_memory_p, have_reg_qty, NULL);
 }
 
 /* Hash an rtx X for cse via hash_rtx.
@@ -3181,17 +3214,24 @@ fold_rtx (rtx x, rtx insn)
       if (const_arg0 == 0 || const_arg1 == 0)
 	{
 	  struct table_elt *p0, *p1;
-	  rtx true_rtx = const_true_rtx, false_rtx = const0_rtx;
+	  rtx true_rtx, false_rtx;
 	  enum machine_mode mode_arg1;
 
-#ifdef FLOAT_STORE_FLAG_VALUE
 	  if (SCALAR_FLOAT_MODE_P (mode))
 	    {
+#ifdef FLOAT_STORE_FLAG_VALUE
 	      true_rtx = (CONST_DOUBLE_FROM_REAL_VALUE
 			  (FLOAT_STORE_FLAG_VALUE (mode), mode));
+#else
+	      true_rtx = NULL_RTX;
+#endif
 	      false_rtx = CONST0_RTX (mode);
 	    }
-#endif
+	  else
+	    {
+	      true_rtx = const_true_rtx;
+	      false_rtx = const0_rtx;
+	    }
 
 	  code = find_comparison_args (code, &folded_arg0, &folded_arg1,
 				       &mode_arg0, &mode_arg1);
@@ -3299,8 +3339,17 @@ fold_rtx (rtx x, rtx insn)
 						  const_arg1))
 			      || (REG_P (folded_arg1)
 				  && (REG_QTY (REGNO (folded_arg1)) == ent->comparison_qty))))
-			return (comparison_dominates_p (ent->comparison_code, code)
-				? true_rtx : false_rtx);
+			{
+			  if (comparison_dominates_p (ent->comparison_code, code))
+			    {
+			      if (true_rtx)
+				return true_rtx;
+			      else
+				break;
+			    }
+			  else
+			    return false_rtx;
+			}
 		    }
 		}
 	    }
@@ -5970,6 +6019,7 @@ cse_extended_basic_block (struct cse_basic_block_data *ebb_data)
 
       FOR_BB_INSNS (bb, insn)
 	{
+	  optimize_this_for_speed_p = optimize_bb_for_speed_p (bb);
 	  /* If we have processed 1,000 insns, flush the hash table to
 	     avoid extreme quadratic behavior.  We must not include NOTEs
 	     in the count since there may be more of them when generating

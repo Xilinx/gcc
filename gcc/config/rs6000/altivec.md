@@ -1,5 +1,5 @@
 ;; AltiVec patterns.
-;; Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007
+;; Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008
 ;; Free Software Foundation, Inc.
 ;; Contributed by Aldy Hernandez (aldy@quesejoda.com)
 
@@ -255,15 +255,15 @@
 })
 
 (define_split
-  [(set (match_operand:VI 0 "altivec_register_operand" "")
-	(match_operand:VI 1 "easy_vector_constant_add_self" ""))]
+  [(set (match_operand:V 0 "altivec_register_operand" "")
+	(match_operand:V 1 "easy_vector_constant_add_self" ""))]
   "TARGET_ALTIVEC && reload_completed"
   [(set (match_dup 0) (match_dup 3))
-   (set (match_dup 0) (plus:VI (match_dup 0)
-			       (match_dup 0)))]
+   (set (match_dup 0) (match_dup 4))]
 {
   rtx dup = gen_easy_altivec_constant (operands[1]);
   rtx const_vec;
+  enum machine_mode op_mode = <MODE>mode;
 
   /* Divide the operand of the resulting VEC_DUPLICATE, and use
      simplify_rtx to make a CONST_VECTOR.  */
@@ -271,10 +271,16 @@
 						   XEXP (dup, 0), const1_rtx);
   const_vec = simplify_rtx (dup);
 
-  if (GET_MODE (const_vec) == <MODE>mode)
+  if (op_mode == V4SFmode)
+    {
+      op_mode = V4SImode;
+      operands[0] = gen_lowpart (op_mode, operands[0]);
+    }
+  if (GET_MODE (const_vec) == op_mode)
     operands[3] = const_vec;
   else
-    operands[3] = gen_lowpart (<MODE>mode, const_vec);
+    operands[3] = gen_lowpart (op_mode, const_vec);
+  operands[4] = gen_rtx_PLUS (op_mode, operands[0], operands[0]);
 })
 
 (define_insn "get_vrsave_internal"
@@ -641,6 +647,28 @@
    DONE;
  }")
  
+(define_expand "mulv8hi3"
+  [(use (match_operand:V8HI 0 "register_operand" ""))
+   (use (match_operand:V8HI 1 "register_operand" ""))
+   (use (match_operand:V8HI 2 "register_operand" ""))]
+   "TARGET_ALTIVEC"
+   "
+{
+   rtx odd = gen_reg_rtx (V4SImode);
+   rtx even = gen_reg_rtx (V4SImode);
+   rtx high = gen_reg_rtx (V4SImode);
+   rtx low = gen_reg_rtx (V4SImode);
+
+   emit_insn (gen_altivec_vmulesh (even, operands[1], operands[2]));
+   emit_insn (gen_altivec_vmulosh (odd, operands[1], operands[2]));
+
+   emit_insn (gen_altivec_vmrghw (high, even, odd));
+   emit_insn (gen_altivec_vmrglw (low, even, odd));
+
+   emit_insn (gen_altivec_vpkuwum (operands[0], high, low));
+
+   DONE;
+}")
 
 ;; Fused multiply subtract 
 (define_insn "altivec_vnmsubfp"

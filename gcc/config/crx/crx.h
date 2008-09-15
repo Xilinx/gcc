@@ -182,6 +182,19 @@ enum reg_class
 
 #define N_REG_CLASSES (int) LIM_REG_CLASSES
 
+/* The following macro defines cover classes for Integrated Register
+   Allocator.  Cover classes is a set of non-intersected register
+   classes covering all hard registers used for register allocation
+   purpose.  Any move between two registers of a cover class should be
+   cheaper than load or store of the registers.  The macro value is
+   array of register classes with LIM_REG_CLASSES used as the end
+   marker.  */
+
+#define IRA_COVER_CLASSES         \
+{                                 \
+   GENERAL_REGS, LIM_REG_CLASSES  \
+} 
+
 #define REG_CLASS_NAMES \
   {			\
     "NO_REGS",		\
@@ -420,7 +433,7 @@ struct cumulative_args
 /* Moving to processor register flushes pipeline - thus asymmetric */
 #define REGISTER_MOVE_COST(MODE, FROM, TO) ((TO != GENERAL_REGS) ? 8 : 2)
 /* Assume best case (branch predicted) */
-#define BRANCH_COST 2
+#define BRANCH_COST(speed_p, predictable_p) 2
 
 #define SLOW_BYTE_ACCESS  1
 
