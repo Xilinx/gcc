@@ -1,3 +1,52 @@
+2008-09-16  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/37380
+	* tree-sra.c (sra_build_assignment): Do not call the gimplifier
+	if not necessary.
+
+2008-09-16  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/37508
+	* tree-vrp.c (simplify_truth_ops_using_ranges): Also allow -1.
+
+2008-09-15  Kaz Kojima  <kkojima@gcc.gnu.org>
+
+	* config/sh/sh.md (movsf_ie): Fix length for TARGET_SH2A.
+
+2008-09-15  Andrew Pinski  <andrew_pinski@playstation.sony.com>
+
+	* config/rs6000/rs6000.md (floatsidf2): Rewrite PowerPC64 case to
+	use gen_floatdidf2 directly.
+	(floatunssidf2): Likewise.
+	(floatsidf_ppc64_mfpgpr): Remove.
+	(floatsidf_ppc64): Remove.
+	(floatunssidf_ppc64): Remove.
+
+2008-09-15  Jakub Jelinek  <jakub@redhat.com>
+
+	* ira-color.c (finish_cost_update): Free update_cost_queue_elems
+	rather than update_cost_queue.
+
+	* tree-ssa-alias.c (init_alias_info): Call bitmap_obstack_release
+	in every call starting with the second one, instead of only when
+	alias_bitmap_obstack.elements != NULL.
+
+	* tree-predcom.c (filter_suitable_components): Free all refs in
+	act->refs vector before calling release_component.
+	(add_ref_to_chain): Free ref if not adding it to chain->refs.
+
+	* tree-data-ref.c (free_subscripts): Free all subscript objects.
+
+	* tree-loop-linear.c (linear_transform_loops): Initialize
+	lambda_obstack only after calling perfect_loop_nest_depth.
+	Goto free_and_continue instead of just continue for later failures.
+
+	PR middle-end/37479
+	* doc/invoke.texi: Document -fno-dwarf2-cfi-asm.
+
+	PR libmudflap/36397
+	* tree-mudflap.c (mf_xform_derefs_1): Handle VIEW_CONVERT_EXPR.
+
 2008-09-14  Andreas Schwab  <schwab@suse.de>
 
 	* tree-call-cdce.c (check_target_format): Accept Motorola formats.
