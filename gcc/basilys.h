@@ -1180,6 +1180,16 @@ basilys_basicblock_gimpleseq(basilys_ptr_t box)
   return bb_seq(b->val);
 }
 
+/* return the phinodes of a boxed basicblock */
+static inline gimple_seq
+basilys_basicblock_phinodes(basilys_ptr_t box)
+{
+  struct basilysbasicblock_st* b = (struct basilysbasicblock_st*)box;
+  if (!b || b->discr->object_magic != OBMAG_BASICBLOCK || !b->val)
+    return NULL;
+  return phi_nodes(b->val);
+}
+
 /*************************************************************
  * young generation copying garbage collector 
  *

@@ -1,4 +1,11 @@
 2008-09-16  Basile Starynkevitch  <basile@starynkevitch.net>
+	* basilys.h (basilys_basicblock_phinodes): new function.
+	* basilys.c: added include of tree-flow.h tree-iterator.h
+	tree-inline.h.
+	* run-basilys.h: likewise.
+	* melt/ana-base.bysl: added phinodes into latessa pass.
+
+2008-09-16  Basile Starynkevitch  <basile@starynkevitch.net>
 [ana-base.bysl is beginning to show interesting stuff]
 
 	* tree-pass.h (pass_basilys_latessa): added pass.

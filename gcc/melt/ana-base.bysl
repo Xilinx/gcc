@@ -98,6 +98,9 @@
 (defprimitive basicblock_gimpleseq (v) :gimpleseq
   "(basilys_basicblock_gimpleseq((basilys_ptr_t)(" v ")))")
   
+(defprimitive basicblock_phinodes (v) :gimpleseq
+  "(basilys_basicblock_phinodes((basilys_ptr_t)(" v ")))")
+  
 (defprimitive ppstrbuf_gimple (sbuf :long indent :gimple g) :void
   "basilysgc_ppstrbuf_gimple((basilys_ptr_t)(" sbuf 
   "), (int) (" indent "), (" g "))")
@@ -302,40 +305,47 @@
 (defciterator each_bb_cfun
   ()					;startformals
   eachbbcfun				;state symbol
-  (:basicblock cfunbb)			;local formals
+  (					;local formals
+   :basicblock cfunbb 
+   :tree cfundecl
+   )	
   (					;before expansion
    "/*start " eachbbcfun "*/\n"
-   "basic_block "eachbbcfun  "=NULL;\n"
-   "debugeprintf(\" each_bb_cfun " eachbbcfun "cfun=%p\", cfun);\n"
-   "if (cfun) FOR_EACH_BB_FN("eachbbcfun ", cfun) {"
-   " if (flag_basilys_debug) { debugeprintf(\"each_bb_cfun "eachbbcfun  " =%p\", (void*)" eachbbcfun ");\n"
-   "  debug_bb(" eachbbcfun ");};\n"
-   " if (!" eachbbcfun ") continue;\n"
-   cfunbb " = " eachbbcfun ";\n"
+   "basic_block " eachbbcfun  "_bb=NULL;\n"
+   "debugeprintf(\" each_bb_cfun " eachbbcfun " cfun=%p\", cfun);\n"
+   "if (cfun) {\n"
+   " " cfundecl " = cfun->decl;\n"
+   " FOR_EACH_BB_FN("eachbbcfun "_bb, cfun) {"
+   "  if (flag_basilys_debug) { debugeprintf(\"each_bb_cfun " 
+   eachbbcfun  "_bb =%p\", (void*)" eachbbcfun "_bb);\n"
+   "    debug_bb(" eachbbcfun "_bb);};\n"
+   "  if (!" eachbbcfun "_bb) continue;\n"
+   "  " cfunbb " = " eachbbcfun "_bb;\n"
    )
   (					;after expansion
-   "}/*end " eachbbcfun "*/\n"
+   "debugeprintf(\" each_bb_cfun " eachbbcfun " done cfun=%p\", cfun);\n"
+   "}}/*end " eachbbcfun "*/\n"
    )
   )
 
 
 (defprimitive debugtree (:cstring msg :tree tr) :void
-  " do{debugeprintf(\"debugtree %s\", " msg ");"
+  " do{debugeprintf(\"debugtree %s @%p\", " msg ", (void*)" tr ");"
   "if (flag_basilys_debug) debug_tree(" tr ");}while(0) "
 )
 
 (defprimitive debuggimple(:cstring msg :gimple g) :void
-  " do{debugeprintf(\"debuggimple %s\", " msg ");"
+  " do{debugeprintf(\"debuggimple %s @%p\", " msg ", (void*)" g ");"
   "if (flag_basilys_debug) debug_gimple_stmt(" g ");}while(0) "
 )
 
 (defprimitive debuggimpleseq(:cstring msg :gimpleseq g) :void
-  " do{debugeprintf(\"debuggimpleseq %s\", " msg ");"
+  " do{debugeprintf(\"debuggimpleseq %s @%p\", " msg ", (void*)" g ");"
   "if (flag_basilys_debug) debug_gimple_seq(" g ");}while(0) "
 )
 
 (defprimitive debugbasicblock(:cstring msg :basicblock bb) :void
-  " do{debugeprintf(\"debugbasicblock %s\", " msg ");"
+  " do{debugeprintf(\"debugbasicblock %s @%p\", " msg ", (void*)" bb ");"
   "if (flag_basilys_debug) debug_bb(" bb ");}while(0) "
 )
 
@@ -377,11 +387,12 @@
   (debug_msg f "do_each_bb_cfun_start")
   (each_bb_cfun 
    ()
-   (:basicblock cfbb)
+   (:basicblock cfbb :tree cfdecl)
    (let ( (cfbbval (make_basicblock discr_basicblock cfbb)) )
      (debug_msg cfbbval "do_each_bb_cfun cfbbval before")
-     (f cfbbval)
-     (debug_msg  cfbbval "do_each_bb_cfun cfbbval after")))
+     (debugtree "do_each_bb_cfun cfdecl" cfdecl)
+     (f cfbbval cfdecl)
+     ))
   (debug_msg f "do_each_bb_cfun end")
 )
 
@@ -518,18 +529,38 @@
      (debug_msg declv "simpana_latessaexec eachcfunentrybb declv")
      (debug_msg bbv "simpana_latessaexec eachcfunentrybb bbv")
      (let ( (:gimpleseq gs (basicblock_gimpleseq bbv))
-	    (gsv (if gs (make_gimpleseq discr_gimpleseq gs)))
+	    (gsv (if gs (make_gimpleseq discr_gimpleseq gs))) 
+	    (:gimpleseq phis (basicblock_phinodes bbv))
+	    (phisv (if phis (make_gimpleseq discr_gimpleseq phis)))
 	    )
        (debug_msg gsv "simpana_latessaexec eachcfunentrybb gsv")
-     ))) 
+       (debug_msg phisv "simpana_latessaexec eachcfunentrybb phisv")
+       ))) 
   (debug_msg latessapass "simpana_latessaexec after eachentrybb before eachbbcfun")
   (do_each_bb_cfun
-   (lambda (cfbbv)
+   (lambda (cfbbv :tree cfdecl)
      (debug_msg cfbbv "simpana_latessaexec eachbbcfun cfbbv")
-     ))
+     (let ( (:gimpleseq bbseq
+			(basicblock_gimpleseq (basicblock_content cfbbv))) 
+	    (:gimpleseq bbphis (basicblock_phinodes cfbbv))
+	    )
+       (debuggimpleseq "simpana_latessaexec bbseq" bbseq)
+       (do_each_gimpleseq
+	(lambda (gimv)
+	  (debug_msg gimv "simpana_latessaexec gimv"))
+	bbseq
+	)
+       (debuggimpleseq "simpana_latessaexec bbphis" bbphis)
+       (do_each_gimpleseq
+	(lambda (gphiv)
+	  (debug_msg gphiv "simpana_latessaexec gimv"))
+	bbphis
+	)
+       )))
   (debug_msg (unsafe_get_field :named_name latessapass) "simpana_latessaexec end name")
   (debug_msg latessapass "simpana_latessaexec end")
-)
+  )
+
 
 
 
