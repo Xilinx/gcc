@@ -1170,6 +1170,16 @@ basilys_basicblock_content (basilys_ptr_t box)
   return b->val;
 }
 
+/* return the seq of a boxed basicblock */
+static inline gimple_seq
+basilys_basicblock_gimpleseq(basilys_ptr_t box)
+{
+  struct basilysbasicblock_st* b = (struct basilysbasicblock_st*)box;
+  if (!b || b->discr->object_magic != OBMAG_BASICBLOCK || !b->val)
+    return NULL;
+  return bb_seq(b->val);
+}
+
 /*************************************************************
  * young generation copying garbage collector 
  *

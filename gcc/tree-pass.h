@@ -416,6 +416,8 @@ extern struct gimple_opt_pass pass_basilys_earlyopt;
 extern struct simple_ipa_opt_pass pass_basilys_ipa;
 /* at end of late optimisations */
 extern struct gimple_opt_pass pass_basilys_lateopt;
+/* at end of ssa */
+extern struct gimple_opt_pass pass_basilys_latessa;
 #endif /*ENABLE_BASILYSMELT*/
 
 

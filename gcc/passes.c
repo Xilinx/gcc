@@ -720,6 +720,10 @@ init_optimization_passes (void)
 #endif /*ENABLE_BASILYSMELT*/
     }
 
+#if  ENABLE_BASILYSMELT
+  NEXT_PASS (pass_basilys_latessa); 
+#endif /*ENABLE_BASILYSMELT*/
+
   NEXT_PASS (pass_del_ssa);
   NEXT_PASS (pass_nrv);
   NEXT_PASS (pass_mark_used_blocks);

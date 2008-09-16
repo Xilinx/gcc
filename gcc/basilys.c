@@ -30,6 +30,7 @@ along with GCC; see the file COPYING3.   If not see
 #include "tm.h"
 #include "tree.h"
 #include "gimple.h"
+#include "intl.h"
 #include "filenames.h"
 #include "tree-pass.h"
 #include "tree-dump.h"
@@ -7815,7 +7816,7 @@ static void ppbasilys_flushrout(const char*txt, void*data)
 {
   struct ppbasilysflushdata_st* fldata = (struct ppbasilysflushdata_st*)data;
   gcc_assert(fldata->gf_magic == PPBASILYS_MAGIC);
-  basilysgc_add_strbuf((void*)(*fldata->gf_sbufad), txt);
+  basilysgc_add_strbuf((struct basilysstrbuf_st*)(*fldata->gf_sbufad), txt);
 }
 
 /* pretty print into an sbuf a gimple */
@@ -7847,14 +7848,14 @@ end:
 /* pretty print into an sbuf a gimple seq */
 void basilysgc_ppstrbuf_gimple_seq(basilys_ptr_t sbuf_p, int indentsp, gimple_seq gseq) 
 {
-  struct ppbasilysflushdata_st ppgdat = {0, (basilys_ptr_t*)0};
+  struct ppbasilysflushdata_st ppgdat;
 #define sbufv curfram__.varptr[0]
   BASILYS_ENTERFRAME (2, NULL);
   sbufv = sbuf_p;
-  if (!sbufv || basilys_magic_discr(sbufv) != OBMAG_STRBUF) goto end;
+  if (!sbufv || basilys_magic_discr((basilys_ptr_t) sbufv) != OBMAG_STRBUF) goto end;
   if (!gseq) 
     {
-      basilysgc_add_strbuf(sbufv, "%nullgimpleseq%");
+      basilysgc_add_strbuf((struct basilysstrbuf_st*)sbufv, "%nullgimpleseq%");
       goto end;
     }
   memset(&ppgdat, 0, sizeof(ppgdat));
@@ -7873,14 +7874,14 @@ end:
 /* pretty print into an sbuf a tree */
 void basilysgc_ppstrbuf_tree(basilys_ptr_t sbuf_p, int indentsp, tree tr) 
 {
-  struct ppbasilysflushdata_st ppgdat = {0, (basilys_ptr_t*)0};
+  struct ppbasilysflushdata_st ppgdat;
 #define sbufv curfram__.varptr[0]
   BASILYS_ENTERFRAME (2, NULL);
   sbufv = sbuf_p;
-  if (!sbufv || basilys_magic_discr(sbufv) != OBMAG_STRBUF) goto end;
+  if (!sbufv || basilys_magic_discr((basilys_ptr_t)sbufv) != OBMAG_STRBUF) goto end;
   if (!tr) 
     {
-      basilysgc_add_strbuf(sbufv, "%nulltree%");
+      basilysgc_add_strbuf((struct basilysstrbuf_st*)sbufv, "%nulltree%");
       goto end;
     }
   memset(&ppgdat, 0, sizeof(ppgdat));
@@ -7904,22 +7905,22 @@ void basilysgc_ppstrbuf_basicblock(basilys_ptr_t sbuf_p, int indentsp, basic_blo
 #define sbufv curfram__.varptr[0]
   BASILYS_ENTERFRAME (2, NULL);
   sbufv = sbuf_p;
-  if (!sbufv || basilys_magic_discr(sbufv) != OBMAG_STRBUF) goto end;
+  if (!sbufv || basilys_magic_discr((basilys_ptr_t)sbufv) != OBMAG_STRBUF) goto end;
   if (!bb) 
     {
-      basilysgc_add_strbuf(sbufv, "%nullbasicblock%");
+      basilysgc_add_strbuf((struct basilysstrbuf_st*)sbufv, "%nullbasicblock%");
       goto end;
     }
-  basilysgc_strbuf_printf(sbufv, "basicblock ix%d", bb->index);
+  basilysgc_strbuf_printf((struct basilysstrbuf_st*)sbufv, "basicblock ix%d", bb->index);
   gsq = bb_seq(bb);
   if (gsq) 
     {
-      basilysgc_add_strbuf_raw(sbufv, "{.");
-      basilysgc_ppstrbuf_gimple_seq(sbufv, indentsp+1, gsq);
-      basilysgc_add_strbuf_raw(sbufv, ".}");
+      basilysgc_add_strbuf_raw((struct basilysstrbuf_st*)sbufv, "{.");
+      basilysgc_ppstrbuf_gimple_seq((struct basilysstrbuf_st*)sbufv, indentsp+1, gsq);
+      basilysgc_add_strbuf_raw((struct basilysstrbuf_st*)sbufv, ".}");
     }
   else
-    basilysgc_add_strbuf_raw(sbufv, ";");
+    basilysgc_add_strbuf_raw((struct basilysstrbuf_st*)sbufv, ";");
 end:
   BASILYS_EXITFRAME ();
 #undef sbufv
@@ -8070,6 +8071,7 @@ dispatch_gate_basilys (const char *passname)
       ((basilys_ptr_t) passv, (basilys_ptr_t) BASILYSGOB (CLASS_GCC_PASS)))
     {
       gatev = basilys_object_nth_field ((basilys_ptr_t) passv, FGCCPASS_GATE);
+      debugeprintf("dispatch_gate_basilys passname %s gatev %p", passname, gatev);
       if (basilys_magic_discr ((basilys_ptr_t) gatev) == OBMAG_CLOSURE)
 	{
 	  debugeprintf("dispatch_gate_basilys passname %s before apply gatev %p", passname, gatev);
@@ -8120,9 +8122,16 @@ dispatch_execute_basilys (const char *passname)
 	basilys_object_nth_field ((basilys_ptr_t) passv, FGCCPASS_EXEC);
       if (basilys_magic_discr ((basilys_ptr_t) execuv) == OBMAG_CLOSURE)
 	{
+#if ENABLE_CHECKING
+	  long passdbgcounter = basilys_dbgcounter;
+#endif
 	  union basilysparam_un restab[1];
 	  memset (&restab, 0, sizeof (restab));
 	  restab[0].bp_longptr = &todol;
+	  debugeprintf("dispatch_execute_basilys passname %s dbgcounter %ld cfun %p ", 
+		       passname, basilys_dbgcounter, (void*) cfun);
+	  if (cfun && flag_basilys_debug)
+	    debug_tree(cfun->decl);
 	  debugeprintf("dispatch_execute_basilys passname %s before apply", passname);
 	  /* apply with one extra long result */
 	  resvalv =
@@ -8135,6 +8144,8 @@ dispatch_execute_basilys (const char *passname)
 	    restodo = (unsigned int) todol;
 	  /* force a minor GC to be sure that nothing is in the young region */
 	  basilys_garbcoll (0, BASILYS_MINOR_OR_FULL);
+	  debugeprintf("dispatch_execute_basilys passname %s dbgcounter %ld was %ld ended\n",
+		       passname, basilys_dbgcounter, passdbgcounter);
 	}
     }
 end:
@@ -8186,6 +8197,22 @@ static unsigned int
 execute_basilys_lateopt (void)
 {
   return dispatch_execute_basilys ("basilys-lateopt");
+}
+
+
+
+/* decide if basilys_latessa pass has to be run */
+static bool
+gate_basilys_latessa (void)
+{
+  return dispatch_gate_basilys ("basilys-latessa");
+}
+
+/* execute the basilys_lateopt pass */
+static unsigned int
+execute_basilys_latessa (void)
+{
+  return dispatch_execute_basilys ("basilys-latessa");
 }
 
 
@@ -8264,13 +8291,37 @@ struct gimple_opt_pass pass_basilys_earlyopt = {
 };
 
 
-/* pass_basilys_lateopt is called before pass_del_ssa */
+/* pass_basilys_lateopt is called before pass_del_ssa in the
+   all_optimisations metapass */
 struct gimple_opt_pass pass_basilys_lateopt = {
   {
    GIMPLE_PASS,
    "basilys-lateopt",		/* name */
    gate_basilys_lateopt,	/* gate */
    execute_basilys_lateopt,	/* execute */
+   NULL,			/* sub */
+   NULL,			/* next */
+   0,				/* static_pass_number */
+   TV_BASILE_ANALYSIS,		/* tv_id */
+   PROP_cfg | PROP_ssa,		/* properties_required */
+   0,				/* properties_provided */
+   0,				/* properties_destroyed */
+   0,				/* todo_flags_start */
+   TODO_verify_ssa		/* todo_flags_finish */
+   }
+};
+
+
+
+
+/* pass_basilys_latessa is called just before pass_del_ssa even
+   without optimization */
+struct gimple_opt_pass pass_basilys_latessa = {
+  {
+   GIMPLE_PASS,
+   "basilys-latessa",		/* name */
+   gate_basilys_latessa,	/* gate */
+   execute_basilys_latessa,	/* execute */
    NULL,			/* sub */
    NULL,			/* next */
    0,				/* static_pass_number */

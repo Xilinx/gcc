@@ -95,6 +95,9 @@
 (defprimitive basicblock_content (v) :basicblock
   "(basilys_basicblock_content((basilys_ptr_t)(" v ")))")
 
+(defprimitive basicblock_gimpleseq (v) :gimpleseq
+  "(basilys_basicblock_gimpleseq((basilys_ptr_t)(" v ")))")
+  
 (defprimitive ppstrbuf_gimple (sbuf :long indent :gimple g) :void
   "basilysgc_ppstrbuf_gimple((basilys_ptr_t)(" sbuf 
   "), (int) (" indent "), (" g "))")
@@ -210,6 +213,15 @@
 (install_gcc_pass basilys_lateopt_gccpass)
 
 
+;;;;;;;;;;;;;;;;;; late ssa pass
+;; code in SSA, soon to be removed
+(definstance basilys_latessa_gccpass class_gcc_pass
+  :named_name (make_stringconst discr_string "basilys-latessa")
+  :gccpass_data ()
+)
+(install_gcc_pass basilys_latessa_gccpass)
+
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; iterators needed in our analysis
@@ -285,6 +297,28 @@
    )
 )
 
+
+;;; iterate on evey basicblock of the current cfun
+(defciterator each_bb_cfun
+  ()					;startformals
+  eachbbcfun				;state symbol
+  (:basicblock cfunbb)			;local formals
+  (					;before expansion
+   "/*start " eachbbcfun "*/\n"
+   "basic_block "eachbbcfun  "=NULL;\n"
+   "debugeprintf(\" each_bb_cfun " eachbbcfun "cfun=%p\", cfun);\n"
+   "if (cfun) FOR_EACH_BB_FN("eachbbcfun ", cfun) {"
+   " if (flag_basilys_debug) { debugeprintf(\"each_bb_cfun "eachbbcfun  " =%p\", (void*)" eachbbcfun ");\n"
+   "  debug_bb(" eachbbcfun ");};\n"
+   " if (!" eachbbcfun ") continue;\n"
+   cfunbb " = " eachbbcfun ";\n"
+   )
+  (					;after expansion
+   "}/*end " eachbbcfun "*/\n"
+   )
+  )
+
+
 (defprimitive debugtree (:cstring msg :tree tr) :void
   " do{debugeprintf(\"debugtree %s\", " msg ");"
   "if (flag_basilys_debug) debug_tree(" tr ");}while(0) "
@@ -337,6 +371,19 @@
      (debug_msg bbval "do_each_cfun_entrybb inside bbval")
      (f dclval bbval)
      )))
+
+;;; apply a function to eevery basicblock in the current cfun
+(defun do_each_bb_cfun (f)
+  (debug_msg f "do_each_bb_cfun_start")
+  (each_bb_cfun 
+   ()
+   (:basicblock cfbb)
+   (let ( (cfbbval (make_basicblock discr_basicblock cfbb)) )
+     (debug_msg cfbbval "do_each_bb_cfun cfbbval before")
+     (f cfbbval)
+     (debug_msg  cfbbval "do_each_bb_cfun cfbbval after")))
+  (debug_msg f "do_each_bb_cfun end")
+)
 
 ;;;; iterate on a gimpleseq
 (defciterator each_in_gimpleseq
@@ -409,25 +456,102 @@
    (lambda (declv bbv)
      (debug_msg declv "simpana_ipaexec eachcfunentrybb declv")
      (debug_msg bbv "simpana_ipaexec eachcfunentrybb bbv")
-     ))
+     (let ( (:gimpleseq gs (basicblock_gimpleseq bbv))
+	    (gsv (if gs (make_gimpleseq discr_gimpleseq gs)))
+	    )
+       (debug_msg gsv "simpana_ipaexec eachcfunentrybb gsv")
+     )))
   (debug_msg (unsafe_get_field :named_name ipapass) "simpana_ipaexec end name")
   (debug_msg ipapass "simpana_ipaexec end")
 )
 
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; our simple analysis gate for earlyopt
+(defun simpana_earlyoptgate (earlyoptpass)
+  (debug_msg earlyoptpass "simpana_earlyoptgate start")
+  (debug_msg earlyoptpass "simpana_earlyoptgate end")
+  (return earlyoptpass)
+)
+
+;;; apparently only the entrybb loop matter in the earlyopt pass...
+(defun simpana_earlyoptexec (earlyoptpass)
+  (debug_msg earlyoptpass "simpana_earlyoptexec start")
+  (debug_msg (unsafe_get_field :named_name earlyoptpass) "simpana_earlyoptexec start name")
+  (do_each_cfun_body 
+   (lambda (declv bodyv)
+     (debug_msg declv "simpana_earlyoptexec eachcfunbdy declv")
+     (debug_msg bodyv "simpana_earlyoptexec eachcfunbdy bodyv")
+     ))
+  (debug_msg earlyoptpass "simpana_earlyoptexec after eachbody before eachentrybb")
+  (do_each_cfun_entrybb 
+   (lambda (declv bbv)
+     (debug_msg declv "simpana_earlyoptexec eachcfunentrybb declv")
+     (debug_msg bbv "simpana_earlyoptexec eachcfunentrybb bbv")
+     ))
+  (debug_msg (unsafe_get_field :named_name earlyoptpass) "simpana_earlyoptexec end name")
+  (debug_msg earlyoptpass "simpana_earlyoptexec end")
+)
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; our simple analysis gate for latessa
+(defun simpana_latessagate (latessapass)
+  (debug_msg latessapass "simpana_latessagate start")
+  (debug_msg latessapass "simpana_latessagate end")
+  (return latessapass)
+)
+
+;;; apparently only the entrybb loop matter in the latessa pass...
+(defun simpana_latessaexec (latessapass)
+  (debug_msg latessapass "simpana_latessaexec start")
+  (debug_msg (unsafe_get_field :named_name latessapass) "simpana_latessaexec start name")
+  (do_each_cfun_body 
+   (lambda (declv bodyv)
+     (debug_msg declv "simpana_latessaexec eachcfunbdy declv")
+     (debug_msg bodyv "simpana_latessaexec eachcfunbdy bodyv")
+     ))
+  (debug_msg latessapass "simpana_latessaexec after eachbody before eachentrybb")
+  (do_each_cfun_entrybb 
+   (lambda (declv bbv)
+     (debug_msg declv "simpana_latessaexec eachcfunentrybb declv")
+     (debug_msg bbv "simpana_latessaexec eachcfunentrybb bbv")
+     (let ( (:gimpleseq gs (basicblock_gimpleseq bbv))
+	    (gsv (if gs (make_gimpleseq discr_gimpleseq gs)))
+	    )
+       (debug_msg gsv "simpana_latessaexec eachcfunentrybb gsv")
+     ))) 
+  (debug_msg latessapass "simpana_latessaexec after eachentrybb before eachbbcfun")
+  (do_each_bb_cfun
+   (lambda (cfbbv)
+     (debug_msg cfbbv "simpana_latessaexec eachbbcfun cfbbv")
+     ))
+  (debug_msg (unsafe_get_field :named_name latessapass) "simpana_latessaexec end name")
+  (debug_msg latessapass "simpana_latessaexec end")
+)
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; our simple analysis command -fbasilys=simpana
 (defun simpana_command (dispatcher arg secarg moduldata)
   ;(debug_msg moduldata "simpana moduldata")
   ;; fill the earlyopt pass
   (unsafe_put_fields basilys_earlyopt_gccpass
-  :gccpass_gate simpana_ipagate
-  :gccpass_exec simpana_ipaexec)
+  :gccpass_gate simpana_earlyoptgate
+  :gccpass_exec simpana_earlyoptexec)
   (debug_msg basilys_earlyopt_gccpass "simpana sets basilys_earlyopt_gccpass")
   ;; fill the ipa pass
   (unsafe_put_fields basilys_ipa_gccpass
   :gccpass_gate simpana_ipagate
   :gccpass_exec simpana_ipaexec)
-  (debug_msg basilys_ipa_gccpass "simpana sets basilys_earlyopt_gccpass")
+  (debug_msg basilys_ipa_gccpass "simpana sets basilys_ipa_gccpass")
+  ;; fill the latessa pass
+  (unsafe_put_fields basilys_latessa_gccpass
+  :gccpass_gate simpana_latessagate
+  :gccpass_exec simpana_latessaexec)
+  (debug_msg basilys_latessa_gccpass "simpana sets basilys_latessa_gccpass")
   (return dispatcher)			;return non-nil to continue compilation
   )
 
@@ -439,6 +563,7 @@
  basilys_earlyopt_gccpass
  basilys_ipa_gccpass
  basilys_lateopt_gccpass
+ basilys_latessa_gccpass
  basilys_lowering_gccpass
  each_cgraph_fun_body
  each_cgraph_fun_entryblock

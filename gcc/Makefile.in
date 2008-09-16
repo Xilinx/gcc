@@ -4846,7 +4846,7 @@ melt.encap: run-basilys.d
 	echo melt.encap making warmelt-outobj-3.so
 	$(MAKE) warmelt-outobj-3.so
 	echo melt.encap making ana-base.so
-	$(MAKE) ana-base.so
+	$(MAKE) ana-base.so ana-base-n.so
 	echo melt.encap done
 
 .PHONY: install-melt-headers update-warmelt diff-warm-1-2 diff-warm-2-3  diff-warm-4-5 diff-warmelt-2-3

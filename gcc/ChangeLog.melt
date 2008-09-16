@@ -1,3 +1,19 @@
+2008-09-16  Basile Starynkevitch  <basile@starynkevitch.net>
+[ana-base.bysl is beginning to show interesting stuff]
+
+	* tree-pass.h (pass_basilys_latessa): added pass.
+	* passes.c (init_optimization_passes): added pass_basilys_latessa.
+	* basilys.h (basilys_basicblock_gimpleseq): added function.
+	* basilys.c (dispatch_execute_basilys): added dbgcounter
+	debugprint.
+	(gate_basilys_latessa, execute_basilys_latessa): added functions.
+	(pass_basilys_lateopt) added pass.
+	* Makefile.in: also making ana-base-n.so
+	* melt/ana-base.bysl: added each_bb_cfun citerator,
+	basicblock_gimpleseq primitive, basilys_latessa_gccpass instance,
+	do_each_bb_cfun, simpana_latessagate, simpana_latessaexec
+	functions.
+
 2008-09-15  Basile Starynkevitch  <basile@starynkevitch.net>
 	MELT branch merged with trunk r140370
 
