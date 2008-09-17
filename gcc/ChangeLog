@@ -1,3 +1,57 @@
+2008-09-17  Jan Hubicka  <jh@suse.cz>
+
+	* ipa-reference.c (ipa_obstack): Remove.
+	(local_info_obstack, global_info_obstack): New.
+	(add_static_var): We now handle variables only.
+	(mark_address_taken, mark_load, mark_store): New functions based on ...
+	(check_operand): ... remove.
+	(get_asm_stmt_operands): Rename to ...
+	(check_asm_memory_clobber): ... this. Look only for memory clobber.
+	(scan_stmt_for_static_refs): Rewrite.
+	(scan_op_for_static_refs): Rename to ...
+	(scan_initializer_for_static_refs): do not look for VAR_DECL
+	initializers; stop recursion on types and decls.
+	(ipa_init): Use proper obstacks.
+	(analyze_variable): Use scan_initializer_for_static_refs.
+	(init_function_info): Use local obstack.
+	(analyze_function): Simplify.
+	(add_new_function): We don't need visited_nodes obstack.
+	(generate_summary): Use proper obstacks; cleanup after propagation.
+
+2008-09-17  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/37385
+	PR tree-optimization/37491
+	* alias.c (get_alias_set): Use the canonical type.
+	* tree-vect-transform.c (vectorizable_store): Use the type of
+	the lhs for the vector type.  Adjust checking.
+	(vectorizable_load): Adjust checking.
+
+2008-09-16  Jakub Jelinek  <jakub@redhat.com>
+	    Adam Nemet  <anemet@caviumnetworks.com>
+
+	PR rtl-optimization/37483
+	* ifcvt.c (noce_try_sign_mask): Use if_info->test_bb instead of
+	if_info->insn_b's bb as argument to optimize_bb_for_speed_p.
+	Rearrange code to better match the original comment.  Check
+	t_unconditional first.  Improve comment.
+
+2008-09-16  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c/37529
+	* gimplify.c (gimplify_expr) <case GOTO_EXPR>: If gimplification of
+	GOTO_DESTINATION failed, don't create GIMPLE_GOTO.
+
+	PR c++/37530
+	* gimplify.c (gimplify_expr) <case TRY_CATCH_EXPR>: Don't create
+	GIMPLE_TRY if cleanup sequence is empty.
+
+2008-09-16  Andrew Pinski  <andrew_pinski@playstation.sony.com>
+
+	PR middle-end/37263
+	* tree-ssa-loop-ivopts.c (determine_use_iv_cost_condition): Prefer the
+	eliminate IV if the cost are the same.
+
 2008-09-16  Richard Guenther  <rguenther@suse.de>
 
 	PR middle-end/37380

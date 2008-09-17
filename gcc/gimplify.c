@@ -6483,8 +6483,12 @@ gimplify_expr (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p,
 	  /* If the target is not LABEL, then it is a computed jump
 	     and the target needs to be gimplified.  */
 	  if (TREE_CODE (GOTO_DESTINATION (*expr_p)) != LABEL_DECL)
-	    ret = gimplify_expr (&GOTO_DESTINATION (*expr_p), pre_p,
-				 NULL, is_gimple_val, fb_rvalue);
+	    {
+	      ret = gimplify_expr (&GOTO_DESTINATION (*expr_p), pre_p,
+				   NULL, is_gimple_val, fb_rvalue);
+	      if (ret == GS_ERROR)
+		break;
+	    }
 	  gimplify_seq_add_stmt (pre_p,
 			  gimple_build_goto (GOTO_DESTINATION (*expr_p)));
 	  break;
@@ -6586,6 +6590,13 @@ gimplify_expr (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p,
 	    eval = cleanup = NULL;
 	    gimplify_and_add (TREE_OPERAND (*expr_p, 0), &eval);
 	    gimplify_and_add (TREE_OPERAND (*expr_p, 1), &cleanup);
+	    /* Don't create bogus GIMPLE_TRY with empty cleanup.  */
+	    if (gimple_seq_empty_p (cleanup))
+	      {
+		gimple_seq_add_seq (pre_p, eval);
+		ret = GS_ALL_DONE;
+		break;
+	      }
 	    try_ = gimple_build_try (eval, cleanup,
 				     TREE_CODE (*expr_p) == TRY_FINALLY_EXPR
 				     ? GIMPLE_TRY_FINALLY
