@@ -570,7 +570,7 @@
    (lambda (cfbbv :tree cfdecl)
      (debug_msg cfbbv "simpana_latessaexec eachbbcfun cfbbv")
      (let ( (:gimpleseq bbseq
-			(basicblock_gimpleseq (basicblock_content cfbbv))) 
+			(basicblock_gimpleseq cfbbv))
 	    (:gimpleseq bbphis (basicblock_phinodes cfbbv))
 	    )
        (debuggimpleseq "simpana_latessaexec bbseq" bbseq)
