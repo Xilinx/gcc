@@ -1,3 +1,20 @@
+2008-09-17  Basile Starynkevitch  <basile@starynkevitch.net>
+	* basilys.h (BGLOB_CTYPE_EDGE): new enum basilys_globalix_en
+	value.
+	* melt/warmelt-first.bysl (ctype_edge) new ctype.
+	(ctype_basicblock) corrected for arg & res fields.
+	* melt/warmelt-normal.bysl (global_CTYPE_EDGE)
+	(global_CTYPE_BASICBLOCK): added primitives.
+	* melt/ana-base.bysl (eachgimple_in_basicblock): added iterator.
+	(each_in_gimpleseq, reveach_in_gimpleseq): more robust with null arg.
+	(do_eachgimple_in_basicblock): added function.
+	(simpana_latessaexec): using it.
+	* warmelt-first-0.c: regenerated.
+	* warmelt-macro-0.c: regenerated.
+	* warmelt-normal-0.c: regenerated.
+	* warmelt-genobj-0.c: regenerated.
+	* warmelt-outobj-0.c: regenerated.
+
 2008-09-16  Basile Starynkevitch  <basile@starynkevitch.net>
 	* basilys.h (basilys_basicblock_phinodes): new function.
 	* basilys.c: added include of tree-flow.h tree-iterator.h

@@ -396,6 +396,9 @@
   (debug_msg f "do_each_bb_cfun end")
 )
 
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;; gimpleseq iteration
 ;;;; iterate on a gimpleseq
 (defciterator each_in_gimpleseq
   (:gimpleseq gseq)			;start formals
@@ -403,7 +406,8 @@
   (:gimple g)				;local formals
   ( ;;; before expansion
    "gimple_stmt_iterator gsi_" eachgimplseq ";\n"
-   "for (gsi_" eachgimplseq " = gsi_start (" gseq "); !gsi_end_p (gsi_" eachgimplseq ");"
+   "if (" gseq ") for (gsi_" eachgimplseq " = gsi_start (" gseq
+        "); !gsi_end_p (gsi_" eachgimplseq ");"
    " gsi_next (&gsi_" eachgimplseq ")) {\n"
     g " = gsi_stmt (gsi_" eachgimplseq ");"
    )
@@ -419,7 +423,7 @@
   (:gimple g)				;local formals
   ( ;;; before expansion
    "gimple_stmt_iterator gsi_" eachgimplseq ";\n"
-   "for (gsi_" eachgimplseq " = gsi_last (" gseq "); !gsi_end_p (gsi_" eachgimplseq ");"
+   "if (" gseq ") for (gsi_" eachgimplseq " = gsi_last (" gseq "); !gsi_end_p (gsi_" eachgimplseq ");"
    " gsi_prev (&gsi_" eachgimplseq ")) {\n"
     g " = gsi_stmt (gsi_" eachgimplseq ");"
    )
@@ -444,6 +448,31 @@
    (let ( (gplval (make_gimple discr_gimple g)) )
      (f gplval)))
 )
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;; basicblock iteration
+
+(defciterator eachgimple_in_basicblock
+  (:basicblock bb)			;start formals
+  eachgimpbb
+  (:gimple g)				;local formals
+  ( ;;; before expansion
+   "/* " eachgimpbb "*/ gimple_stmt_iterator gsi_" eachgimpbb ";\n"
+   "if (" bb ") for (gsi_" eachgimpbb " = gsi_start_bb (" bb
+        "); !gsi_end_p (gsi_" eachgimpbb ");"
+   " gsi_next (&gsi_" eachgimpbb ")) {\n"
+    g " = gsi_stmt (gsi_" eachgimpbb ");"
+   )
+  ( ;;; after expansion
+   "} /* end " eachgimpbb "*/"
+   )
+)
+
+(defun do_eachgimple_in_basicblock (f :basicblock bb)
+  (eachgimple_in_basicblock 
+   (bb) (:gimple g)
+   (let ( (gplval (make_gimple discr_gimple g)) )
+     (f gplval)))
+   )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; our simple analysis gate for ipa
@@ -556,6 +585,10 @@
 	  (debug_msg gphiv "simpana_latessaexec gimv"))
 	bbphis
 	)
+       (do_eachgimple_in_basicblock
+	(lambda (gbbv)
+	  (debug_msg gbbv "simpana_latessaexec gbbv"))
+	(basicblock_content cfbbv))
        )))
   (debug_msg (unsafe_get_field :named_name latessapass) "simpana_latessaexec end name")
   (debug_msg latessapass "simpana_latessaexec end")

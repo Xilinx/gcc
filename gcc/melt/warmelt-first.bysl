@@ -1378,12 +1378,25 @@
   :named_name  (stringconst2val discr_namestring "CTYPE_BASICBLOCK")
   :ctype_keyword ':basicblock
   :ctype_cname  (stringconst2val discr_namestring "basic_block")
-  :ctype_parchar (stringconst2val discr_namestring "BPAR_BASICBLOCK")
-  :ctype_parstring (stringconst2val discr_namestring "BPARSTR_BASICBLOCK")
-  :ctype_argfield (stringconst2val discr_namestring "bp_basicblock")
-  :ctype_resfield (stringconst2val discr_namestring "bp_basicblockptr")
+  :ctype_parchar (stringconst2val discr_namestring "BPAR_BB")
+  :ctype_parstring (stringconst2val discr_namestring "BPARSTR_BB")
+  :ctype_argfield (stringconst2val discr_namestring "bp_bb")
+  :ctype_resfield (stringconst2val discr_namestring "bp_bbptr")
   )
 (install_ctype_descr ctype_basicblock "GCC basicblock")
+
+;; the C type for gcc edges
+(definstance ctype_edge class_ctype
+  :predef CTYPE_EDGE
+  :named_name  (stringconst2val discr_namestring "CTYPE_EDGE")
+  :ctype_keyword ':edge
+  :ctype_cname  (stringconst2val discr_namestring "edge")
+  :ctype_parchar (stringconst2val discr_namestring "BPAR_EDGE")
+  :ctype_parstring (stringconst2val discr_namestring "BPARSTR_EDGE")
+  :ctype_argfield (stringconst2val discr_namestring "bp_edge")
+  :ctype_resfield (stringconst2val discr_namestring "bp_edgeptr")
+  )
+(install_ctype_descr ctype_edge "GCC edge")
 
 ;; the C type for void
 (definstance ctype_void class_ctype
@@ -3458,7 +3471,8 @@
 ;; export the discriminants and instances and selectors defined above
 (export_values				;alphabetical order
  ctype_basicblock
- ctype_cstring                        
+ ctype_cstring     
+ ctype_edge                   
  ctype_gimple
  ctype_gimpleseq
  ctype_long                           

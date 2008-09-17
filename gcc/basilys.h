@@ -2424,6 +2424,8 @@ enum basilys_globalix_en
   BGLOB_CTYPE_GIMPLESEQ,
   /* ctype of basicblocks */
   BGLOB_CTYPE_BASICBLOCK,
+  /* ctype of edges */
+  BGLOB_CTYPE_EDGE,
   /* ctype for void */
   BGLOB_CTYPE_VOID,
   /* ctype of constant cstrings */
